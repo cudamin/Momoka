@@ -14,7 +14,8 @@ namespace Momoka.Shell.Views;
 /// 效果」（2026-10-31 用户令，附参考图）。
 /// <para>
 /// 版面的判据在 Core（<see cref="DetailHero.Immersive"/>）和视图模型（<c>DetailViewModel.Showcase</c>）：
-/// 窗口铺开（最大化，或面积过了工作区五分之四）、宽版式、背后有图、电影/剧/季四句同时成立。这一支只管屏上
+/// 窗口铺开（最大化，或面积过了工作区五分之四）、或者背景图已经/即将被裁掉（<see cref="DetailHero.NearCrop"/>，
+/// 2026-11-02）、宽版式、背后有图、电影/剧/季 —— 五句同时成立。这一支只管屏上
 /// 那三样东西 —— 正文那张纸的底色、五块正文面板的底与框、尾部补第一屏的那段留白 —— 以及窗口形态翻面那一下怎么走。
 /// </para>
 /// <para>
@@ -33,9 +34,9 @@ namespace Momoka.Shell.Views;
 /// 它负责「这一块比上一块晚多少」，合起来才是「一层层让开」而不是一块铁板平移。
 /// </para>
 /// <para>
-/// 只动 <c>MinHeight</c>、<c>SolidColorBrush.Color</c> 和 <c>SolidColorBrush.Opacity</c>，只走 XAML Storyboard，
-/// 不用 composition —— 理由同 <see cref="HomeFoldMotion"/> 上那一段（<c>GetElementVisual</c> 与框架自己的
-/// <c>Scale</c> 抢同一份 visual，界面线程当场带走了进程）。
+/// 只动 <c>MinHeight</c>、<c>SolidColorBrush.Color</c>、两支 <c>Opacity</c>（面板底／描边）和背景图那一层的
+/// <c>Opacity</c>，只走 XAML Storyboard，不用 composition —— 理由同 <see cref="HomeFoldMotion"/> 上那一段
+/// （<c>GetElementVisual</c> 与框架自己的 <c>Scale</c> 抢同一份 visual，界面线程当场带走了进程）。
 /// </para>
 /// </summary>
 public sealed partial class DetailPage
@@ -118,6 +119,11 @@ public sealed partial class DetailPage
     {
         _sheetBrush.Color = PaperColor;
         BodySheet.Background = _sheetBrush;
+
+        // 背景那张图的两档不透明度在 Core（DetailHero.BackdropOpacity／ShowcaseBackdropOpacity）：标记里写的
+        // 那一个只是第一帧，这里和 SettleShowcase 才是真正落值的地方 —— 沉浸档要把它抬高一点（更不透明），
+        // 而那个过渡由 AnimateShowcase 一起走。
+        BackdropPicture.Opacity = DetailHero.BackdropOpacity;
 
         RefreshPanelBrushes();
         foreach (var panel in BodyPanels)
@@ -301,6 +307,12 @@ public sealed partial class DetailPage
         _panelFill.Opacity = showcase ? 0 : 1;
         _panelLine.Opacity = showcase ? 0 : 1;
 
+        // 背景那张图：沉浸档略微更不透明（2026-11-02 用户令）。这一句和标记里那个 0.9、过渡里那条动画读的
+        // 是 Core 的同一对常量，三处不会各说各话。
+        BackdropPicture.Opacity = showcase
+            ? DetailHero.ShowcaseBackdropOpacity
+            : DetailHero.BackdropOpacity;
+
         // 浮起位移的底值就是起步时种下的那 16px；停掉动画只是把它交回来，还得再写一次 0 才算落定。
         foreach (var panel in BodyPanels)
             if (Drift(panel) is { } drift) drift.Y = 0;
@@ -338,6 +350,7 @@ public sealed partial class DetailPage
         var sheetFrom = _sheetBrush.Color;
         var fillFrom = _panelFill.Opacity;
         var lineFrom = _panelLine.Opacity;
+        var backdropFrom = BackdropPicture.Opacity;
         var panels = ShownPanels();
         var driftFrom = new double[panels.Count];
         for (var slot = 0; slot < panels.Count; slot++)
@@ -358,6 +371,10 @@ public sealed partial class DetailPage
         // 3) 五块正文面板的底和框：沉浸档里淡到 0，还原时淡回来。
         Track(board, _panelFill, "Opacity", fillFrom, showcase ? 0 : 1, ease, dependent: true);
         Track(board, _panelLine, "Opacity", lineFrom, showcase ? 0 : 1, ease, dependent: true);
+
+        // 3.5) 背景那张图：0.9 ↔ 0.96。Opacity 是合成属性，不用 EnableDependentAnimation。
+        Track(board, BackdropPicture, "Opacity", backdropFrom,
+            showcase ? DetailHero.ShowcaseBackdropOpacity : DetailHero.BackdropOpacity, ease);
 
         // 4) 每块正文各自浮起那 16px 归位，一块错后一块。停在半路的接着走，停在终点的才种上方向。
         for (var slot = 0; slot < panels.Count; slot++)

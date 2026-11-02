@@ -2011,6 +2011,35 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     /// <summary>
+    /// 尾部那一段（文件选项、操作那排键、剧情说明）的<em>内容</em>要占多高 —— 「剧情说明快掉出背景图了没有」
+    /// 的自变量，见 <see cref="DetailHero.Fit"/>。
+    /// <para>
+    /// 量 <c>TailContent</c> 而不是 <c>HeroTail</c>：后者带一个「补满第一屏」的下限（<c>TailMinHeight</c>），
+    /// 内容短的时候量出来的是视口，拿它去算「还差多少」永远算不出差。这一叠只是竖着排、不拉伸，ActualHeight
+    /// 就是它自己要的高。
+    /// </para>
+    /// <para>
+    /// 再把这一档的竖留白减掉，交出去的是一个跟「收到多紧」无关的内容高：它自己的上下内边距、可见块之间的
+    /// 竖距、每块面板的上下内边距。不先减掉，下一拍就会拿上一拍的答案算这一拍，收一点、尾变矮、又算出「不用
+    /// 收」—— 拖窗口时整段上下抖（视图模型那一头 <c>DetailViewModel.TailIntrinsic</c> 上写着同一句话）。
+    /// </para>
+    /// </summary>
+    private void OnTailContentSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var panels = new[] { PickerPanel, CompactBlock, OverviewPanel }
+            .Where(panel => panel.Visibility == Visibility.Visible)
+            .ToList();
+
+        var gaps = Math.Max(0, panels.Count - 1);
+        var pads = panels.Sum(panel => panel.Padding.Top + panel.Padding.Bottom);
+        var intrinsic = TailContent.ActualHeight
+            - TailContent.Padding.Top - TailContent.Padding.Bottom
+            - (TailContent.Spacing * gaps) - pads;
+
+        ViewModel.TailIntrinsic = Math.Max(0, intrinsic);
+    }
+
+    /// <summary>
     /// 同季那一带集永远是正文那张纸的第一块 —— 媒体信息紧跟在它后面（见 BodySheet 那段注释）。
     /// <para>
     /// <b>它从前会搬家，2026-09-12 起不搬了。</b>旧版：集页那一档压在头图底下那段画面里、排在剧情说明后面

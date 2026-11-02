@@ -185,10 +185,11 @@ internal sealed partial class ShellNavigationProbe
                 var sheet = Get<StackPanel>(page, "BodySheet");
                 Require(Math.Abs(tail.Spacing - view.TailSpacing) < 0.01,
                     $"{width} 这一档尾部三块之间的竖距没绑上：控件 {tail.Spacing:0.##} 对视图模型 {view.TailSpacing:0.##}");
-                Require(pickers.Padding == view.TailPanelPadding && overview.Padding == view.OverviewPanelPadding,
+                Require(Same(pickers.Padding, view.TailPanelPadding)
+                        && Same(overview.Padding, view.OverviewPanelPadding),
                     $"{width} 这一档文件选项／剧情说明的内边距没绑上：{pickers.Padding}、{overview.Padding}"
                         + $" 对 {view.TailPanelPadding}／{view.OverviewPanelPadding}");
-                Require(sheet.Padding == view.SheetPadding,
+                Require(Same(sheet.Padding, view.SheetPadding),
                     $"{width} 这一档纸面的内边距没绑上：{sheet.Padding} 对 {view.SheetPadding}");
                 Require(Math.Abs(sheet.Spacing - view.SheetSpacing) < 0.01,
                     $"{width} 这一档纸面上几块的竖距没绑上：控件 {sheet.Spacing:0.##} 对视图模型 {view.SheetSpacing:0.##}");

@@ -74,6 +74,11 @@ internal sealed partial class ShellNavigationProbe
             // 集页封面只在宽版式里画（紧凑版式整个收掉），加上集页紧凑版式的那张背景图、以及尾部那条窄带在
             // 两档上的紧凑度：四档宽度各量一遍，截图 `detail-episode-band-<宽度>.png`。
             await CaseAsync("集页封面与窄窗背景图和尾部间距", EpisodeBandAsync, 30);
+            // 「当拉窄窗口导致剧情说明接近移出背景图时，自动将组件向上移动……无法再收缩时允许剧情说明超出背景图
+            // 范围」「当拉长窗口导致背景图接近被裁剪时，自动切换到最大化（无遮挡）页面状态」（2026-11-02）：
+            // 电影、剧、季三页在六档宽度上各量一遍竖留白、带高与简介下沿，再单独量裁切触发与最大化两档。
+            // 截图 `detail-responsive-<类型>-<宽度>.png` 与 `detail-responsive-crop-*`／`-maximized`。
+            await CaseAsync("电影/剧/季页面的窄窗紧凑与自动无遮挡", DetailResponsiveAsync, 150);
             await CaseAsync("电视媒体库封面显示网页版年份", SeriesCardDatesAsync, 30);
             await CaseAsync("Emby 元数据表单字段、锁定和宽窄布局", MetadataLayoutAsync, 75, section: ShellProbeSections.Metadata);
             await CaseAsync("Emby 元数据列表编辑、重排和取消", MetadataListsAsync, 45, section: ShellProbeSections.Metadata);
@@ -251,6 +256,7 @@ internal sealed partial class ShellNavigationProbe
     private Fixture CreateFixture(HttpMessageHandler? moviePilot = null, HttpMessageHandler? aniBt = null) => new(Path.Combine(_options.Paths.Root, "fixtures", Guid.NewGuid().ToString("N")), moviePilot, aniBt);
     private static TaskCompletionSource<T> Pending<T>() => new(TaskCreationOptions.RunContinuationsAsynchronously);
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
+
     private static object? Call(object target, string name, params object?[] args) =>
         target.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(target, args);
     private static void Field(object target, string name, object? value) =>

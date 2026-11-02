@@ -331,6 +331,9 @@ public sealed partial class DetailViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsCompact))]
     [NotifyPropertyChangedFor(nameof(Showcase))]
+    [NotifyPropertyChangedFor(nameof(NearCrop))]
+    [NotifyPropertyChangedFor(nameof(Narrow))]
+    [NotifyPropertyChangedFor(nameof(Squeeze))]
     [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutWidth))]
     [NotifyPropertyChangedFor(nameof(BackdropShown))]
@@ -386,8 +389,10 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <c>GeometryChanged</c> 时写进来 —— 「这台窗口多大、是不是最大化」只有窗口自己知道
     /// （<c>HostWindow.IsMaximized</c> 与客户区／工作区两个尺寸），视图模型不去问。
     /// <para>
-    /// 它只喂 <see cref="Showcase"/>：三页（电影、剧、季）在铺开时把正文的纸面让开、下方组件整体上移，
-    /// 收窄之后回到纸面版式。别的版面一个数都不看它，所以它不需要进 <c>AnnounceShape</c> 那一批。
+    /// 它只喂 <see cref="Showcase"/>，而且是那一条判据的两条来路之一：另一条是
+    /// <see cref="NearCrop"/>（背景图已经/即将被裁掉，2026-11-02 用户令）。两条并成一句再交给
+    /// <see cref="DetailHero.Immersive"/>；铺开之后正文的纸面让开、下方组件整体上移，收窄之后回到纸面版式。
+    /// 别的版面一个数都不看它，所以它不需要进 <c>AnnounceShape</c> 那一批。
     /// </para>
     /// </summary>
     [ObservableProperty]
@@ -406,20 +411,36 @@ public sealed partial class DetailViewModel : PageViewModel
     public partial bool Spacious { get; set; }
 
     /// <summary>
-    /// 这一页这一刻走不走「沉浸版式」—— 窗口铺开时把正文那张不透明的纸整块让开，单集/剧季/相似/演职人员直接
-    /// 压在固定的模糊背景上，并且不再撑第一屏的留白（2026-10-31 用户令，附参考图）。
+    /// 背景图这一刻是不是已经「接近被裁掉」—— 按页宽铺开的高占到视口的 98% 以上，再宽一点那张图就要
+    /// 按宽撑满、把下沿切在视口外面（2026-11-02 用户令「当拉长窗口导致背景图接近被裁剪时，自动切换到最大化
+    /// （无遮挡）页面状态」）。
     /// <para>
-    /// 判据在 Core（<see cref="DetailHero.Immersive"/>）：铺开（最大化或过五分之四，<see cref="DetailHero.Spacious"/>）、
-    /// 宽版式、背后有图、条目是电影/剧/季。这里只是把页面的四个现状交过去 —— 哪几种页面算这一档是一个有唯一
-    /// 正确答案的判断，写在 Core 里才测得住。
+    /// 判据在 Core（<see cref="DetailHero.NearCrop"/>）：两句话（这里的「快被切了」和 <see cref="Spacious"/>
+    /// 的「窗口铺开了」）在 <see cref="Showcase"/> 那一行并肩站着，哪一条成立都走无遮挡版式。
     /// </para>
     /// <para>
-    /// 三个输入都不在这一个文件的属性表里各自成句：<see cref="Spacious"/> 自己的 setter 会通知，页宽跨过紧凑
-    /// 断点和背景图翻档分别在 <c>PageWidth</c>／<c>HeroArt</c> 的通知名单里，条目种类那一路在
-    /// <see cref="AnnounceShape"/> 里补一句。
+    /// 不跟着窗口消息走、只读版面三个数（页宽、图的高宽比、视口）：这三个数一变就自己重算，于是它和窗口形态
+    /// 那一路（<see cref="Spacious"/>，由页面按拖动停顿落定）互不牵连。收窄回到 98% 以下就退出，不需要迟滞 ——
+    /// 触发点在「图几乎铺满第一屏」上，那一档纸面本来就已经退到屏幕下沿，翻面时第一屏里几乎看不出动静。
     /// </para>
     /// </summary>
-    public bool Showcase => DetailHero.Immersive(Spacious, IsCompact, BackdropShown, ItemType);
+    public bool NearCrop => DetailHero.NearCrop(PageWidth, HeroHeightRatio, Viewport);
+
+    /// <summary>
+    /// 这一页这一刻走不走「沉浸版式」—— 窗口铺开或背景图快被裁掉时，把正文那张不透明的纸整块让开，
+    /// 单集/剧季/相似/演职人员直接压在固定的模糊背景上，并且不再撑第一屏的留白（2026-10-31 用户令，附参考图）。
+    /// <para>
+    /// 判据在 Core（<see cref="DetailHero.Immersive"/>）：铺开（最大化、过五分之四，或背景图快被裁 ——
+    /// <see cref="Spacious"/> 与 <see cref="NearCrop"/> 两条来路）、宽版式、背后有图、条目是电影/剧/季。
+    /// 这里只是把页面的四个现状交过去 —— 哪几种页面算这一档是一个有唯一正确答案的判断，写在 Core 里才测得住。
+    /// </para>
+    /// <para>
+    /// 四个输入都不在这一个文件的属性表里各自成句：<see cref="Spacious"/> 自己的 setter 会通知，页宽跨过紧凑
+    /// 断点、背景图翻档和裁切那条线分别在 <c>PageWidth</c>／<c>HeroArt</c>／<c>Viewport</c>／
+    /// <c>HeroHeightRatio</c> 的通知名单里，条目种类那一路在 <see cref="AnnounceShape"/> 里补一句。
+    /// </para>
+    /// </summary>
+    public bool Showcase => DetailHero.Immersive(Spacious || NearCrop, IsCompact, BackdropShown, ItemType);
 
     /// <summary>
     /// 货架标题前那条短强调线和底下那条通栏线画不画 —— 沉浸档都不画（2026-10-31 用户令「把线条去掉」）。
@@ -458,6 +479,17 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
     [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
+    [NotifyPropertyChangedFor(nameof(PaperMinHeight))]
+    [NotifyPropertyChangedFor(nameof(Showcase))]
+    [NotifyPropertyChangedFor(nameof(NearCrop))]
+    [NotifyPropertyChangedFor(nameof(Squeeze))]
+    [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
+    [NotifyPropertyChangedFor(nameof(TailSpacing))]
+    [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(SheetPadding))]
+    [NotifyPropertyChangedFor(nameof(SheetSpacing))]
+    [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(ShowShelfLines))]
     public partial double HeroHeightRatio { get; set; } = 9d / 16;
 
     // 裁切模糊的三个数：门槛（裁切不超过它不糊 —— 「提高拉长窗口后，背景被裁切触发背景图模糊的阈值」，
@@ -541,6 +573,7 @@ public sealed partial class DetailViewModel : PageViewModel
     public partial double StillWidth { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HeroContent))]
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
@@ -548,6 +581,13 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMargin))]
+    [NotifyPropertyChangedFor(nameof(PictureHeight))]
+    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
+    [NotifyPropertyChangedFor(nameof(Squeeze))]
+    [NotifyPropertyChangedFor(nameof(HeroInset))]
+    [NotifyPropertyChangedFor(nameof(TailInset))]
+    [NotifyPropertyChangedFor(nameof(TailSpacing))]
+    [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
     public partial double StillHeight { get; set; }
 
     /// <summary>
@@ -563,6 +603,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HeroContent))]
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
@@ -570,6 +611,13 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMargin))]
+    [NotifyPropertyChangedFor(nameof(PictureHeight))]
+    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
+    [NotifyPropertyChangedFor(nameof(Squeeze))]
+    [NotifyPropertyChangedFor(nameof(HeroInset))]
+    [NotifyPropertyChangedFor(nameof(TailInset))]
+    [NotifyPropertyChangedFor(nameof(TailSpacing))]
+    [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
     public partial double CornerHeight { get; set; }
 
     /// <summary>
@@ -592,6 +640,9 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BackdropShown))]
     [NotifyPropertyChangedFor(nameof(Showcase))]
     [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
+    [NotifyPropertyChangedFor(nameof(Squeeze))]
+    [NotifyPropertyChangedFor(nameof(HeroInset))]
+    [NotifyPropertyChangedFor(nameof(TailInset))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
@@ -646,6 +697,16 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(PaperMinHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
     [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
+    [NotifyPropertyChangedFor(nameof(Showcase))]
+    [NotifyPropertyChangedFor(nameof(NearCrop))]
+    [NotifyPropertyChangedFor(nameof(Squeeze))]
+    [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
+    [NotifyPropertyChangedFor(nameof(TailSpacing))]
+    [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(SheetPadding))]
+    [NotifyPropertyChangedFor(nameof(SheetSpacing))]
+    [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(ShowShelfLines))]
     public partial double Viewport { get; set; }
 
     /// <summary>
@@ -657,6 +718,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HeroContent))]
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
@@ -666,6 +728,11 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
     [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     [NotifyPropertyChangedFor(nameof(TailMargin))]
+    [NotifyPropertyChangedFor(nameof(Squeeze))]
+    [NotifyPropertyChangedFor(nameof(HeroInset))]
+    [NotifyPropertyChangedFor(nameof(TailInset))]
+    [NotifyPropertyChangedFor(nameof(TailSpacing))]
+    [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
     public partial double StackRoom { get; set; }
 
     /// <summary>
@@ -683,9 +750,53 @@ public sealed partial class DetailViewModel : PageViewModel
     public partial double CoverBottom { get; set; }
 
     /// <summary>
-    /// 带子里那一叠（剧照、片名、副标题、读数、那排键）连上下留白实测要占多高。集页那一格的高就是它
-    /// （<see cref="DetailHero.EpisodeHeight"/>）；电影、剧、季三页也用它 —— 和老档取大
-    /// （<see cref="DetailHero.WideHeight"/>），那一叠长过海报的时候带子跟着长。
+    /// 尾部那一段（文件选项、操作那排键、剧情说明）的<em>内容</em>要高多少 —— 已经减掉它自己的内边距、块与块
+    /// 之间的竖距和每块面板的上下内边距，由视图量给（<c>DetailPage.OnTailContentSizeChanged</c>）。
+    /// 它自己不上屏，只喂 <see cref="Squeeze"/> 里那句「剧情说明快掉出画面了没有」—— <see cref="DetailHero.Fit"/>。
+    /// <para>
+    /// 为什么要先减掉：<see cref="DetailHero.Fit"/> 要拿「常态留白」和「最紧留白」两档的总高去解一个比例，
+    /// 两档用的是同一份<em>内容</em>。量出来的总高里带着当前这一档的留白，不减掉就等于拿上一拍的答案算下一拍，
+    /// 收一点、尾变矮、又算出「不用收」，来回抖。视图手里有当前真实的 Padding／Spacing，减一次就得到那个不变量。
+    /// </para>
+    /// <para>
+    /// 量的是 <c>TailContent</c> 的内容高，不是 <c>HeroTail</c> 的实际高：后者有一个「补满第一屏」的下限
+    /// （<see cref="TailMinHeight"/>），量到的常常是视口而不是内容。这一叠只是竖着排、不拉伸，ActualHeight
+    /// 就是内容自己要的高。
+    /// </para>
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Squeeze))]
+    [NotifyPropertyChangedFor(nameof(HeroInset))]
+    [NotifyPropertyChangedFor(nameof(HeroRoom))]
+    [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
+    [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(ScrimHeight))]
+    [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
+    [NotifyPropertyChangedFor(nameof(TailMinHeight))]
+    [NotifyPropertyChangedFor(nameof(PictureHeight))]
+    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
+    [NotifyPropertyChangedFor(nameof(TailInset))]
+    [NotifyPropertyChangedFor(nameof(TailSpacing))]
+    [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    public partial double TailIntrinsic { get; set; }
+
+    /// <summary>
+    /// 带子里那一叠东西（剧照、片名、副标题、读数、那排键）和右上角那张艺术图里<em>最高</em>的那一个，
+    /// 不算这一格自己的上下留白。带高（<see cref="HeroLayoutHeight"/>）和窄窗口那笔「还差多少」
+    /// （<see cref="Squeeze"/>）都读它。
+    /// <para>
+    /// 艺术图和那一叠是**取大**而不是相加：它占的是右栏（只画在集页的宽版式上，<see cref="CornerVisibility"/>），
+    /// 谁高听谁的；<see cref="CornerHeight"/> 在这里按 <see cref="HeroCard"/> 分一次档 —— 紧凑版式里那一角
+    /// 收着，它的高不该算进带子。
+    /// </para>
+    /// </summary>
+    public double HeroContent =>
+        Math.Max(Math.Max(StackRoom, StillHeight), HeroCard ? CornerHeight : 0);
+
+    /// <summary>
+    /// 带子里那一叠（剧照、片名、副标题、读数、那排键）连同上下留白实测要占多高。集页那一格的高就是它
+    /// （<see cref="DetailHero.EpisodeHeight"/>）；电影、剧、季三页也用它 —— 留白按窗口宽在两档之间取
+    /// （<see cref="Squeeze"/>），那一叠长过海报的时候带子跟着长（<see cref="DetailHero.WideHeight"/>）。
     /// <para>
     /// 算在这儿而不在视图里：视图量得到的只有那一叠字键有多高（<see cref="StackRoom"/>，那排键 2026-09-13
     /// 起就是它的最后一个孩子，它的高自然在里面），而「剧照也算进去」「右上角那张艺术图也算进去」「加上
@@ -693,36 +804,28 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 剧照的高会变，写在视图那个尺寸回调里的那一版只在字键那一叠也跟着变的时候才会重算 —— 带子于是比
     /// 内容高出那么一截，正是「左上角空空的」那种坏法。
     /// </para>
-    /// <para>
-    /// 艺术图和那一叠是**取大**而不是相加：它占的是右栏（只画在集页的宽版式上，<see cref="CornerVisibility"/>），
-    /// 谁高听谁的；<see cref="CornerHeight"/> 在这里按 <see cref="HeroCard"/> 分一次档 —— 紧凑版式里那一角
-    /// 收着，它的高不该算进带子。
-    /// </para>
     /// </summary>
-    public double HeroRoom =>
-        Math.Max(Math.Max(StackRoom, StillHeight), HeroCard ? CornerHeight : 0)
-        + HeroInset.Top + HeroInset.Bottom;
+    public double HeroRoom => HeroContent + HeroInset.Top + HeroInset.Bottom;
 
     /// <summary>
-    /// 头上那一格的高。宽的一侧是老规矩：高由站在它里面那一叠东西定，跟窗口无关（「图一页面怎么改的一大片
-    /// 空白，改回去」）—— 四个页面都量在运行时：电影、剧、季走 <see cref="DetailHero.WideHeight"/>
-    /// （常态 352 = 老档 412 减掉那排键独立一行占过的 60，正好是海报加两道边；判据 <see cref="HeroArt"/>
-    /// 在导航那一刻就知道，常态下第一帧的版面就是最后的版面），集页走 <see cref="DetailHero.EpisodeHeight"/>
+    /// 头上那一格的高。宽的一侧是老规矩：高由站在它里面那一叠东西加这一格自己的上下留白定，跟窗口无关
+    /// （「图一页面怎么改的一大片空白，改回去」）—— 四个页面都量在运行时：电影、剧、季走
+    /// <see cref="DetailHero.WideHeight"/>（常态 352，就是海报加两道边；窗口窄下来时那两道边按
+    /// <see cref="Squeeze"/> 收，带子跟着矮、下方整体上移），集页走 <see cref="DetailHero.EpisodeHeight"/>
     /// （单集配的是一张 16:9 剧照，比 2:3 海报矮一大截，跟着用写死的档就是在那一叠头上留上百像素只有画面
     /// 的地方）。
     /// <para>
     /// 紧凑版式（<see cref="IsCompact"/>）分两档，判据是有没有画面可铺 —— 都在
-    /// <see cref="DetailHero.CompactHeight"/> 里，连同「没有画面那一档按内容给」的理由。海报在紧凑版式里
-    /// 照画的是季、集两页（「剧页面和电影页面的封面怎么没了？」救回来，同日又两句把剧、电影两页收回去，
-    /// 见 <see cref="DetailHero.ShowsStill"/>），
-    /// <see cref="StillHeight"/> 随 <see cref="FitStill"/> 归零，<see cref="HeroRoom"/> 自然回落到文字那一叠。
+    /// <see cref="DetailHero.CompactHeight"/> 里，连同「没有画面那一档按内容给」的理由。那一档不画封面
+    /// （<see cref="DetailHero.ShowsStill"/>），<see cref="StillHeight"/> 随 <see cref="FitStill"/> 归零，
+    /// <see cref="HeroRoom"/> 自然回落到文字那一叠。
     /// </para>
     /// </summary>
     public double HeroLayoutHeight => IsCompact
         ? DetailHero.CompactHeight(PageWidth, HeroHeightRatio, HeroRoom, HeroArt)
         : IsEpisodePage
             ? DetailHero.EpisodeHeight(HeroRoom)
-            : DetailHero.WideHeight(HeroRoom, BackdropShown);
+            : DetailHero.WideHeight(HeroContent, HeroInset.Top, HeroInset.Bottom);
 
     /// <summary>
     /// 头部在视口中的高度。从前它等于排出来的高乘一个整体缩放（<c>HeroScale</c>，1024 到 1280 那一段最小缩到
@@ -942,12 +1045,112 @@ public sealed partial class DetailViewModel : PageViewModel
     public Visibility StillVisibility => Show(StillImage is not null && CoverShown);
 
     /// <summary>
+    /// 窗口窄到什么程度 —— 0 是常态，1 是最紧，曲线在 <see cref="DetailHero.Narrow"/>。
+    /// <see cref="Squeeze"/> 拿它当底，再叠上「剧情说明快掉出画面」那一条；它自己也单独可读，好让自检分清
+    /// 「窗口窄」和「装不下」两件事。
+    /// </summary>
+    public double Narrow => Crowdable ? DetailHero.Narrow(PageWidth) : 0;
+
+    /// <summary>
+    /// 这一页这一次把竖留白收多紧 —— 0 是常态，1 是最紧。两条来路取大：
+    /// <list type="number">
+    /// <item><see cref="Narrow"/>：窗口越窄越紧凑（1440 起收，窄到紧凑断点 1024 收到最紧）。</item>
+    /// <item><see cref="DetailHero.Fit"/>：尾部最后那一块（剧情说明）快掉出背景图时，整页的竖留白一起再往上
+    /// 收 —— 头部两道、尾部上沿、块间距、面板内边距，四组按同一个比例收；收完还不够就让它探出画面
+    /// （用户 2026-11-02 的话：「无法再收缩时允许剧情说明超出背景图范围」）。</item>
+    /// </list>
+    /// 只对电影、剧、季三页的宽版式成立：集页整段合成在一块板上，紧凑版式有自己的那套数。
+    /// <para>
+    /// 四组用的是同一个比例，屏上才是「整体往上收」而不是某一道先塌。解这个比例的原料是<em>内容</em>高
+    /// （<see cref="TailIntrinsic"/> 已经把当前的留白减掉）和两档留白的账 —— 跟这一次收到哪儿无关，所以不会
+    /// 出现「收 → 尾变矮 → 算出不用收 → 放」那种来回抖。结果量化到 0.01：尾高是量出来的，会带零点几像素的
+    /// 噪声；1% 一档换算成带高不到半个像素。
+    /// </para>
+    /// </summary>
+    public double Squeeze => Crowdable
+        ? Math.Round(Math.Max(Narrow, FitShare), 2)
+        : 0;
+
+    /// <summary>
+    /// 这一页走不走窄窗口那套竖留白 —— 只有电影、剧、季的宽版式。集页整段已经合成一块板
+    /// （<see cref="HeroCard"/>），留白另有一档；紧凑版式那一套在 <see cref="DetailHero.CompactHeight"/> 里。
+    /// <para>
+    /// 沉浸档不在这里单独排除：那一档尾部的 8／8 优先（见 <see cref="TailSpacing"/> 与
+    /// <see cref="TailPanelPadding"/>），头部这两道留白仍按宽度收 —— 短窗口上本来就更该紧凑。代价是
+    /// <see cref="FitShare"/> 在那一档拿纸面坐标算出来的比例可能偏大，最多把头部收到最紧；那一档画面铺满
+    /// 整页，收一点头部不会让任何东西掉出画面。
+    /// </para>
+    /// </summary>
+    private bool Crowdable => !IsCompact && !IsEpisodePage
+        && ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
+
+    /// <summary>
+    /// 尾部这一段里有几块（文件选项、紧凑块、剧情说明）真的画着 —— <see cref="StackPanel.Spacing"/> 只算在
+    /// 可见的孩子之间，面板内边距也只有画出来的那几块才占地方。
+    /// </summary>
+    private int TailPanels =>
+        (PickersVisibility == Visibility.Visible ? 1 : 0)
+        + (CompactVisibility == Visibility.Visible ? 1 : 0)
+        + (OverviewVisibility == Visibility.Visible ? 1 : 0);
+
+    /// <summary>
+    /// 尾部这一段的竖留在某一档收口下共占多少 —— 上沿 <see cref="DetailHero.Between"/> 出来的那一道、底下固定
+    /// 的 4、可见块之间的竖距、每块面板的上下内边距。只算竖的：左右那两道不参与窄窗那笔账。
+    /// </summary>
+    private double TailVertical(double squeeze)
+    {
+        var panels = TailPanels;
+        var top = DetailHero.Between(DetailHero.TailTopRoom, DetailHero.TailTopTight, squeeze);
+        var gap = DetailHero.Between(DetailHero.TailGapRoom, DetailHero.TailGapTight, squeeze);
+        var pad = DetailHero.Between(DetailHero.TailPadRoom, DetailHero.TailPadTight, squeeze);
+
+        return top + 4 + (Math.Max(panels, 1) - 1) * gap + (panels * 2 * pad);
+    }
+
+    /// <summary>背景图下沿在滚动内容里的纵坐标 —— 和 <see cref="TailMinHeight"/> 同一个折算。</summary>
+    private double PictureBottom =>
+        DetailHero.PictureHeight(PageWidth, HeroHeightRatio, Viewport, 0) - HeaderLift;
+
+    /// <summary>
+    /// 「光靠窗口窄还不够、整页得再往上收多少」—— <see cref="DetailHero.Fit"/> 的回答，0..1。
+    /// <para>
+    /// 两档总高都用 <see cref="TailIntrinsic"/>（已经减掉当前留白的内容高），所以这个数与当前收到哪儿无关；
+    /// <see cref="DetailHero.PictureHeight"/> 的带高那一档传 0，量的是<em>图自己</em>能铺多高 —— 带子高的时候
+    /// 它会被垫到视口，拿它当「有没有画面」用就成了自己答自己。
+    /// </para>
+    /// <para>
+    /// 尾高还没量到（0）时不收：那一拍按宽度那条曲线布，量到了再补。背后没有那张图时也不收 —— 没有可躲的
+    /// 画面，拿一个并不存在的下沿去挤正文只会白收一档（宽度那条曲线照旧）。
+    /// </para>
+    /// </summary>
+    private double FitShare
+    {
+        get
+        {
+            if (!Crowdable || !BackdropShown || TailIntrinsic <= 0 || Viewport <= 0) return 0;
+
+            var intrinsic = TailIntrinsic;
+            var roomy = HeroContent + DetailHero.HeroTopRoom + DetailHero.HeroBottomRoom
+                + intrinsic + TailVertical(0);
+            var tight = HeroContent + DetailHero.HeroTopTight + DetailHero.HeroBottomTight
+                + intrinsic + TailVertical(1);
+
+            return DetailHero.Fit(roomy, tight, PictureBottom);
+        }
+    }
+
+    /// <summary>
     /// 带子里那一叠字和键四周的留白。集页把底下那道收到 16 —— 「为什么中间要留空，导致下方的剧情说明
     /// 看不到？」：底下紧跟着音轨那一行和那一带集，多留就是纯粹的空气。
     /// <para>
     /// 其余页面那道底下的留白是同一笔旧账：它本来是给「这一格铺到窗口下沿」写的（贴着窗口边读着像被截了
     /// 一截）。背景改成等比画面之后带子底下紧跟着尾部那几块，「组件不够紧凑」（2026-09-12）说的就是这一截 ——
     /// 收到 24，和页边那 60、顶上那 28 一个量级。
+    /// </para>
+    /// <para>
+    /// 2026-11-02 起那两道在电影、剧、季三页上不再是定值：窗口窄下来时按 <see cref="Squeeze"/> 从 28／24
+    /// 收到 16／12 —— 「自动将组件向上移动，窗口越窄布局越紧凑」。左右那 60 不动：它管的是压在剧照上的
+    /// 内容让开多少，跟竖排紧不紧凑是两件事。
     /// </para>
     /// <para>
     /// 紧凑版式整档换成窄边：左右 20 是参考图上那种贴边一列的留法，60 的「压在剧照上的内容多让一点」是
@@ -967,12 +1170,20 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public Thickness HeroInset => IsCompact
         ? new(20, 20, 20, 16)
-        : new(HeroCard ? 48 : 60, 28, HeroCard ? 48 : 60, HeroCard ? 0 : IsEpisodePage ? 16 : 24);
+        : HeroCard
+            ? new(48, 28, 48, 0)
+            : IsEpisodePage
+                ? new(60, 28, 60, 16)
+                : new(
+                    60,
+                    DetailHero.Between(DetailHero.HeroTopRoom, DetailHero.HeroTopTight, Squeeze),
+                    60,
+                    DetailHero.Between(DetailHero.HeroBottomRoom, DetailHero.HeroBottomTight, Squeeze));
 
     /// <summary>
     /// 带子底下那一段的内边距。同 <see cref="HeroInset"/>：集页把上面那道收到 12，那一叠键和「音频」
-    /// 之间因此只隔一小截，和那一段里几块之间的间距同一个量级；其余页面 14。底下 4 —— 和正文纸面之间
-    /// 本来就没有可看的缝，纸面自己那 20 会接着垫。
+    /// 之间因此只隔一小截，和那一段里几块之间的间距同一个量级；其余页面 14，窗口窄下来时按
+    /// <see cref="Squeeze"/> 收到 10。底下 4 —— 和正文纸面之间本来就没有可看的缝，纸面自己那 20 会接着垫。
     /// <para>
     /// 左右 20 是「组件不够紧凑」之后从 28 收下来的：24 的板内边距加在这里，字落在 44 的竖线上，和底下
     /// 纸面（20 + 24）正好同一条。
@@ -998,7 +1209,13 @@ public sealed partial class DetailViewModel : PageViewModel
         ? new(2, 12, 2, 8)
         : HeroCard
             ? new(StackLeft, 12, StackLeft, 0)
-            : new(20, IsEpisodePage ? 12 : 14, 20, 4);
+            : new(
+                20,
+                IsEpisodePage
+                    ? 12
+                    : DetailHero.Between(DetailHero.TailTopRoom, DetailHero.TailTopTight, Squeeze),
+                20,
+                4);
 
     /// <summary>
     /// 集页宽版式：剧情说明那一块的顶要落在「剩余 x 分钟」底下 —— 尾部那一段（<c>TailContent</c>）的负上边距；
@@ -1048,7 +1265,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// 尾部那几块（文件选项、播放那排键和进度、剧情说明）之间的竖距（<c>TailContent.Spacing</c>）——
-    /// 紧凑版式收一档。
+    /// 紧凑版式收一档，电影、剧、季三页的宽版式跟着窗口窄下去再收一档。
     /// <para>
     /// 2026-10-13「窄窗口下这些组件上下之间弄紧凑一点，改动包括电影、电视剧、季、集页面」：单列版式里这一段
     /// 是一条从画面下沿一路排到纸面的窄带，12 落在宽版式那 60 的页边和 24 的板内边距之间看不出来，落在紧凑
@@ -1058,8 +1275,14 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 2026-10-31「不够紧凑」：沉浸档（最大化时的电影/剧/季）也走 8 —— 那一档纸面和面板都让开了，宽版式那
     /// 24 的内边距不再衬出「板里的板」，留着只是把下方组件往下推。
     /// </para>
+    /// <para>
+    /// 2026-11-02：电影、剧、季的宽版式再走一档 <see cref="Squeeze"/>（12 收到 6）。收的是「窗口越窄布局
+    /// 越紧凑」，最紧那档比沉浸档的 8 还小 —— 那一档有纸面接着，块与块之间不需要那 2 像素的余量。
+    /// </para>
     /// </summary>
-    public double TailSpacing => IsCompact || Showcase ? 8 : 12;
+    public double TailSpacing => IsCompact || Showcase
+        ? 8
+        : DetailHero.Between(DetailHero.TailGapRoom, DetailHero.TailGapTight, Squeeze);
 
     /// <summary>
     /// 尾部那三块面板自己的上下内边距 —— <c>EgBodyPanelStyle</c> 那 24 在这里换成 <see cref="IsCompact"/> 的那一档
@@ -1076,8 +1299,19 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <para>
     /// 沉浸档同紧凑档：那一档没有纸面，24 的上下留白在模糊背景上就是一块空。
     /// </para>
+    /// <para>
+    /// 2026-11-02：电影、剧、季的宽版式在窗口窄下来时按 <see cref="Squeeze"/> 从 24 收到 8（就是紧凑档那一档，
+    /// 不是新编的数）—— 这三块横着没有底也没有框，上下那 24 是块与块之间唯一的一道缝，收它正是「越窄越紧凑」
+    /// 里最值钱的一笔。
+    /// </para>
     /// </summary>
-    public Thickness TailPanelPadding => IsCompact || Showcase ? new(24, 8, 24, 8) : new(24);
+    public Thickness TailPanelPadding => IsCompact || Showcase
+        ? new(24, 8, 24, 8)
+        : new(
+            24,
+            DetailHero.Between(DetailHero.TailPadRoom, DetailHero.TailPadTight, Squeeze),
+            24,
+            DetailHero.Between(DetailHero.TailPadRoom, DetailHero.TailPadTight, Squeeze));
 
     /// <summary>
     /// 剧情说明那一块自己的上下内边距 —— 集页宽版式底下收成 8。
@@ -1173,6 +1407,16 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
     [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
+    [NotifyPropertyChangedFor(nameof(Squeeze))]
+    [NotifyPropertyChangedFor(nameof(HeroInset))]
+    [NotifyPropertyChangedFor(nameof(HeroRoom))]
+    [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
+    [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(ScrimHeight))]
+    [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
+    [NotifyPropertyChangedFor(nameof(TailInset))]
+    [NotifyPropertyChangedFor(nameof(TailSpacing))]
+    [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
     public partial double HeaderLift { get; set; }
 
     /// <summary>
@@ -2145,9 +2389,13 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(BodyMinHeight));
         OnPropertyChanged(nameof(TailMinHeight));
         OnPropertyChanged(nameof(PaperMinHeight));
-        // 「这一页是不是电影/剧/季」也是沉浸版式（Showcase）的一句话；从一集翻到一部剧时 HeroArt 和视口
-        // 可能一个字没改，那两处的通知一次都不会来。TailMinHeight / PaperMinHeight 读它，一并重喊。
+        // 「这一页是不是电影/剧/季」也是沉浸版式（Showcase）和窄窗紧凑（Squeeze）的一句话；从一集翻到一部剧时
+        // HeroArt 和视口可能一个字没改，那两处的通知一次都不会来。TailMinHeight / PaperMinHeight 读它，一并重喊。
         OnPropertyChanged(nameof(Showcase));
+        OnPropertyChanged(nameof(NearCrop));
+        OnPropertyChanged(nameof(Narrow));
+        OnPropertyChanged(nameof(Squeeze));
+        OnPropertyChanged(nameof(HeroContent));
         OnPropertyChanged(nameof(BackdropFadeVisibility));
         OnPropertyChanged(nameof(TailSpacing));
         OnPropertyChanged(nameof(TailPanelPadding));

@@ -32,9 +32,10 @@ public static class DetailHero
     /// 一行上另占 60（44 的键加头上 16），加起来 412 —— 内容正好把这一格填满，一像素富余也不留。
     /// <para>
     /// <b>2026-09-13 起屏上不再是这个数</b>：那排键搬回片名那一栏的叠里（「排列在封面右边」），独立那一行
-    /// 退役，宽版式的带高改走 <see cref="WideHeight"/>（412 减掉 <see cref="ActionsRow"/>，再和那一叠实测
-    /// 取大）。这个 412 留着还有三个用处：WideHeight 里那笔减法的底数、罩子和标题条洗的锚点（
-    /// <see cref="ScrimSpan"/> 的上限按它算富余、<see cref="TopWash"/> 不传带高时兜底）、老测试的账本。
+    /// 退役，宽版式的带高改走 <see cref="WideHeight"/>（那一叠内容加这一格自己的上下留白，常态 352）。
+    /// 2026-11-02 起留白本身也会跟着窗口宽收（<see cref="Narrow"/>），常态 352 不再是唯一的一档。
+    /// 这个 412 留着还有两个用处：罩子和标题条洗的锚点（<see cref="ScrimSpan"/> 的上限按它算富余、
+    /// <see cref="TopWash"/> 不传带高时兜底）、老测试的账本。
     /// </para>
     /// <para>
     /// 写死而不是跟着视口走，就是「一大片空白」那句话的修法：跟着视口走的那一版在 1440 高的窗口上要留出
@@ -64,8 +65,9 @@ public static class DetailHero
     /// <summary>
     /// 那排键 2026-09-12 到 2026-09-13 两天里在带子底下独立占的那一行的行情：44 的键加头上 16 的间距，
     /// 共 60。键排回片名那一栏的叠里之后（「排列在封面右边」）这一行不存在了，宽版式的带高从
-    /// <see cref="Height"/> 的老档里把它减掉（<see cref="WideHeight"/>）—— 老档量的是「海报加键行加两道边」，
-    /// 减掉键行剩下的正好是「海报加两道边」。
+    /// <see cref="Height"/> 的老档里把它减掉 —— 老档量的是「海报加键行加两道边」，减掉键行剩下的正好是
+    /// 「海报加两道边」。2026-11-02 起带高改成「内容加留白」（<see cref="WideHeight"/>），这笔减法不再参与
+    /// 运算，这个数只留给注释和历史账。
     /// </summary>
     public const double ActionsRow = 60;
 
@@ -116,11 +118,13 @@ public static class DetailHero
     /// <summary>
     /// 这一页要不要把正文那张纸整块让开、让下方组件直接压在固定的模糊背景上 —— 「剧集页面、电影页面和季页面
     /// 进入最大化状态时，去掉下方组件的背景遮罩，并将下方组件整体上移」（2026-10-31，附参考图）；「窗口占屏幕
-    /// 五分之四面积时也要自动切换」（同日追加，见 <see cref="Spacious"/>）。
+    /// 五分之四面积时也要自动切换」（同日追加，见 <see cref="Spacious"/>）；「拉长窗口导致背景图接近被裁剪时
+    /// 自动切换」（2026-11-02，见 <see cref="NearCrop"/>）。
     /// <para>
     /// 四句话缺一不可：
     /// <list type="bullet">
-    /// <item><paramref name="spacious"/>：窗口铺开了 —— 最大化，或面积过了 <see cref="ImmersiveShare"/>；
+    /// <item><paramref name="spacious"/>：窗口铺开了 —— 最大化、面积过了 <see cref="ImmersiveShare"/>，或者
+    /// 背景图已经/即将被裁掉（<see cref="NearCrop"/>；那一句由调用方并进来，这一支不看窗口）；
     /// 收回纸面之后回到纸面版式（<see cref="PaperHeight"/>）。</item>
     /// <item><paramref name="compact"/>：窄成紧凑版式时不参与 —— 那一档是另一套单列版面。</item>
     /// <item><paramref name="artwork"/>：背后没有那张图就没有可透的东西，收掉纸面只会剩一页空黑。</item>
@@ -134,7 +138,8 @@ public static class DetailHero
     /// 错起来屏上只是「某一页没跟着变」的判断 —— 单测能盯住的正是这种。
     /// </para>
     /// </summary>
-    /// <param name="spacious">窗口这一刻铺开了没有（<see cref="Spacious"/>）：最大化，或占工作区五分之四以上。</param>
+    /// <param name="spacious">这一刻该不该让开纸面（<see cref="Spacious"/>，或者 <see cref="NearCrop"/> ——
+    /// 调用方把两条来路并成一个布尔交进来）：最大化、占工作区五分之四以上，或背景图已经/即将被裁掉。</param>
     /// <param name="compact">这一页这次走不走紧凑版式（<see cref="IsCompact"/>）。</param>
     /// <param name="artwork">服务器上有没有那张背景图 —— 同 <see cref="Height"/>：不是「位图解出来了没有」。</param>
     /// <param name="type">这一页讲的条目类型（<see cref="EmbyItemType"/> 的字符串常量）。</param>
@@ -170,21 +175,197 @@ public static class DetailHero
     }
 
     /// <summary>
-    /// 电影、剧、季那三页宽版式的带高：老档（<see cref="Height"/>，412）减掉那排键独立一行占过的
-    /// <see cref="ActionsRow"/>，再和那一叠实测要的高取大。
+    /// 电影、剧、季那三页宽版式的带高：那一叠内容（海报、片名那一栏、角图取大）加上这一格自己的上下留白。
     /// <para>
-    /// 前一半是常态：352 正好是海报 300 加两道边（28、24），一像素富余不留 —— 键进了片名那一栏的叠里，
-    /// 「下方那一行」的地方整个收回来（「向右移动剧页面和电影页面的这样按钮，不要放在封面下方 然后向上
-    /// 移动，排列在封面右边，然后调整下方组件的位置」，2026-09-13）。后一半是诚实：那一叠连键带进度条
-    /// 长过海报的时候（片名折两行、有断点的条目），带子跟着实测长 —— 封死在 352 会让那一叠从带子底下
-    /// 冒出去，压在正文上。还没量到（<paramref name="heroRoom"/> 是 0，第一次布局之前）那一拍按 352 布，
-    /// 量完只会更长不会回缩，常态下不跳。
+    /// 常态是 352 = 海报 300 加两道边（28、24），一像素富余不留 —— 键进了片名那一栏的叠里，「下方那一行」
+    /// 的地方整个收回来（「向右移动剧页面和电影页面的这样按钮，不要放在封面下方 然后向上移动，排列在封面
+    /// 右边，然后调整下方组件的位置」，2026-09-13）。从前这里拿 <see cref="Height"/> 减掉键行当底、再和实测
+    /// 取大；**留白不再是一个定值之后**（<see cref="Narrow"/> 与 <see cref="Fit"/> 会把它收到最紧），那笔减法
+    /// 交回调用方：海报那一栏的高在第一次布局之前就有默认值（<c>DetailViewModel.FitStill</c> 给的 300），
+    /// 所以「内容加留白」在第一帧就是 352，不需要另一条 352 的底。
+    /// </para>
+    /// <para>
+    /// 留白收起来时带子跟着矮，页面下方那一段整体上移 —— 这正是「窗口越窄布局越紧凑」要的那一手；封死在
+    /// 352 的话，收窄窗口时头部纹丝不动，剧情说明只能往画面外面掉。
     /// </para>
     /// </summary>
-    /// <param name="heroRoom">那一叠连上下留白实测要占多高（<c>DetailViewModel.HeroRoom</c>）。</param>
-    /// <param name="artwork">同 <see cref="Height"/>：服务器上有没有那张图。</param>
-    public static double WideHeight(double heroRoom, bool artwork) =>
-        Math.Max(Height(artwork) - ActionsRow, EpisodeHeight(heroRoom));
+    /// <param name="heroContent">那一叠内容实测要占多高，不算这一格自己的上下留白。</param>
+    /// <param name="topInset">这一格上沿的内边距，由 <see cref="Between"/> 在常态与最紧之间取。</param>
+    /// <param name="bottomInset">下沿那一道，同上。</param>
+    public static double WideHeight(double heroContent, double topInset, double bottomInset) =>
+        EpisodeHeight(Math.Max(0, heroContent) + Math.Max(0, topInset) + Math.Max(0, bottomInset));
+
+    // ============ 窄窗口的竖留白 ============
+
+    /// <summary>
+    /// 电影、剧、季三页宽版式的两道头部留白：常态（28、24）与最紧（16、12）。海报加这两道就是常态的 352。
+    /// <para>
+    /// 最紧那档与紧凑版式的 20／16 不是一个量级，因为这一档还站在剧照上：16 是片名头顶到面包屑的距离，
+    /// 再小就把一张大图顶到那行字底下。收到这里就停 —— 再往下不是「紧凑」而是「挤」。
+    /// </para>
+    /// </summary>
+    public const double HeroTopRoom = 28;
+
+    /// <inheritdoc cref="HeroTopRoom"/>
+    public const double HeroBottomRoom = 24;
+
+    /// <inheritdoc cref="HeroTopRoom"/>
+    public const double HeroTopTight = 16;
+
+    /// <inheritdoc cref="HeroTopRoom"/>
+    public const double HeroBottomTight = 12;
+
+    /// <summary>
+    /// 尾部那一段的上沿留白：常态 14、最紧 10。底下那 4 不参与 —— 它和正文纸面之间本来就没有可看的缝。
+    /// </summary>
+    public const double TailTopRoom = 14;
+
+    /// <inheritdoc cref="TailTopRoom"/>
+    public const double TailTopTight = 10;
+
+    /// <summary>
+    /// 尾部几块之间的竖距：常态 12、最紧 6。最紧那档和沉浸档的 8 不同 —— 那一档没有纸面，这一档还压着剧照，
+    /// 块与块贴得太近会让「音频」那一行和剧情说明读成一段。
+    /// </summary>
+    public const double TailGapRoom = 12;
+
+    /// <inheritdoc cref="TailGapRoom"/>
+    public const double TailGapTight = 6;
+
+    /// <summary>
+    /// 尾部件板自己的上下内边距：常态 24、最紧 8。8 就是紧凑版式与沉浸档已经用过的那一档（2026-10-13
+    /// 「窄窗口下这些组件上下之间弄紧凑一点」），不是为这一轮新编的数。
+    /// </summary>
+    public const double TailPadRoom = 24;
+
+    /// <inheritdoc cref="TailPadRoom"/>
+    public const double TailPadTight = 8;
+
+    /// <summary>
+    /// 「窗口越窄越紧凑」那条曲线的起点：宽到这个数以上一分不收。1440 是一个常见的窗口宽，也是 16:9 的图
+    /// 在下沿开始躲到纸后面之前的最后一档；再往窄走，画面条每窄一像素就矮 0.56 像素，留白才真正开始值钱。
+    /// </summary>
+    public const double NarrowFrom = 1440;
+
+    /// <summary>
+    /// 收到最紧的那条线：就是紧凑版式的断点（<see cref="CompactFloor"/>）。过线之后换的是整套单列版面，
+    /// 「再紧一点」由那一档自己的数去说，不在这条曲线里。
+    /// </summary>
+    public const double NarrowTo = CompactFloor;
+
+    /// <summary>
+    /// 这一页这一次收多紧 —— 0 是常态，1 是最紧。窗口从 <see cref="NarrowFrom"/> 收到
+    /// <see cref="NarrowTo"/>，曲线是一条 smoothstep（两头平、中间快），拖窗口时看不出起止的折角。
+    /// <para>
+    /// 它只管「窗口越窄越紧凑」这半句；「剧情说明要留在画面里」那半句是 <see cref="Fit"/>，两者取大。
+    /// </para>
+    /// </summary>
+    /// <param name="pageWidth">这一页看得见的那一段有多宽。</param>
+    public static double Narrow(double pageWidth)
+    {
+        // 0 是「还没量」（第一次布局之前），不是「窗口窄到没有」—— 那一档按宽版式布，跟 IsCompact 一个约定。
+        if (!(pageWidth > 0) || pageWidth >= NarrowFrom) return 0;
+        if (pageWidth <= NarrowTo) return 1;
+
+        var along = (NarrowFrom - pageWidth) / (NarrowFrom - NarrowTo);
+        return along * along * (3 - (2 * along));
+    }
+
+    /// <summary>
+    /// 两档之间按 <paramref name="share"/> 取一个值 —— 0 给常态、1 给最紧，中间线性。所有竖留白都走这一支，
+    /// 屏上才是「一起收」而不是某一道先塌下去。
+    /// </summary>
+    /// <param name="roomy">常态那一档。</param>
+    /// <param name="tight">最紧那一档。</param>
+    /// <param name="share"><see cref="Narrow"/> 或 <see cref="Fit"/> 给的那个 0..1。</param>
+    public static double Between(double roomy, double tight, double share)
+    {
+        var along = double.IsFinite(share) ? Math.Clamp(share, 0, 1) : 0;
+        return roomy + ((tight - roomy) * along);
+    }
+
+    /// <summary>
+    /// 收口算到哪儿为止：让背景图下沿和剧情说明那一块之间还留这么多像素。留一点而不是贴着算，一是那一段
+    /// 底下还有面板自己的内边距、贴着算读起来像被画面切了一刀；二是布局取整会让「正好为零」偶尔变成
+    /// 半像素的溢出，留在外面一点点就不必靠自检放宽判定。
+    /// </summary>
+    public const double FitMargin = 8;
+
+    /// <summary>
+    /// 为了把剧情说明留在背景图里，这一页的竖留白还要再收多少 —— 0 是不用收，1 是收到最紧。
+    /// <para>
+    /// 自变量只有三个：同一叠内容在<em>常态</em>与<em>最紧</em>两档留白下的总高
+    /// （<paramref name="roomyTotal"/>／<paramref name="tightTotal"/>），以及背景图的下沿
+    /// （<paramref name="pictureBottom"/>，折进滚动内容的坐标）。三样都在版面上、都跟「这一次收多紧」无关，
+    /// 所以这一支不会自己喂自己：留白收了之后内容本身一个像素都不变，下一拍算出来还是同一个答案。
+    /// </para>
+    /// <para>
+    /// 两档总高由调用方拼：那一叠内容（海报、片名栏、角图取大）、尾部<em>内容</em>的高（把当前的留白减掉，
+    /// 见 <c>DetailPage.OnTailContentSizeChanged</c>），再加上两档各自的竖留白。尾部内容高不由这一支改，
+    /// 所以不会出现「收 → 尾变矮 → 算出不用收 → 放 → 尾变高」那种来回抖。
+    /// </para>
+    /// <para>
+    /// 收到最紧还不够时返回 1：用户 2026-11-02 的话是「无法再收缩时允许剧情说明超出背景图范围」——
+    /// 收不动了就停手，不靠把间距压成负数去凑。
+    /// </para>
+    /// </summary>
+    /// <param name="roomyTotal">常态那一档的总高（内容 + 常态留白）。</param>
+    /// <param name="tightTotal">最紧那一档的总高（同一份内容 + 最紧留白）。</param>
+    /// <param name="pictureBottom">背景图下沿在滚动内容里的纵坐标；0 是还没量到。</param>
+    public static double Fit(double roomyTotal, double tightTotal, double pictureBottom)
+    {
+        var slack = roomyTotal - tightTotal;
+        if (!(slack > 0.5) || pictureBottom <= 0) return 0;
+
+        return Math.Clamp((roomyTotal - (pictureBottom - FitMargin)) / slack, 0, 1);
+    }
+
+    /// <summary>
+    /// 背景图「快要被裁掉」了没有 —— 按页宽铺开的高占到视口 98% 以上就算。再宽一点那张图就要按宽撑满、
+    /// 把下沿切在视口外面，而切掉的那一截正是片子自己的构图。
+    /// <para>
+    /// 这一句是「铺开」的第二条来路（第一条是最大化／占工作区五分之四，见 <see cref="Spacious"/>）：
+    /// 窗口没铺开、但画面已经快被切的时候，无遮挡版式比一张被切掉下沿的图更合适。
+    /// </para>
+    /// <para>
+    /// 只量图自己的形状，不读 <see cref="PictureHeight"/>：后者被带高垫过底，带子高的时候会把它抬到视口，
+    /// 于是「有没有画面可切」这件事被版面自己答成了「没有」。
+    /// </para>
+    /// </summary>
+    /// <param name="pageWidth">这一页看得见的那一段有多宽。</param>
+    /// <param name="heightRatio">背景那张位图的高 ÷ 宽；不成话（没解出来）按 16:9 兜底，同
+    /// <see cref="PictureHeight"/> —— 第一帧本来就用那个估值布版面。</param>
+    /// <param name="viewport">页面可视区的高；0 是「还没量」。</param>
+    public static bool NearCrop(double pageWidth, double heightRatio, double viewport)
+    {
+        if (viewport <= 0) return false;
+
+        var ratio = SaneRatio(heightRatio) ? heightRatio : 9d / 16;
+        return Math.Max(pageWidth, 0) * ratio >= viewport * CropAhead;
+    }
+
+    /// <summary>
+    /// <see cref="NearCrop"/> 的那条线：图占到视口这个比例就算「接近被裁」。2% 是「已经贴到屏幕下沿、
+    /// 再宽一点就切」那一档；放到 4%（0.96）时，1080p 屏上一扇 1440×900 的窗口（视口 832、图 810）也会
+    /// 被判进来，而那一档观众看到的仍是一整张图 —— 换版式换得太早，纸面版式反而没有立足之地。
+    /// </summary>
+    public const double CropAhead = 0.98;
+
+    /// <summary>
+    /// 背景那张图的不透明度：常态 0.9 —— 压暗那么一档，亮图不把标题栏那一行字吃掉。
+    /// </summary>
+    public const double BackdropOpacity = 0.9;
+
+    /// <summary>
+    /// 无遮挡版式（<see cref="Immersive"/>）里那张图的不透明度：0.96，比常态略微不透明一点
+    /// （2026-11-02 用户令「将页面背景图透明度略微降低（更不透明）」）。那一档没有纸面、也没有渐变挡住画面，
+    /// 图本身就是整页的底，压暗那一档的收益没有了，留一点透明度只为和窗口底色过渡。
+    /// <para>
+    /// 只抬 0.06：再往上就是「满图」，而常态那一档的 0.9 是用户看过并留下的（2026-09-12「0.9 是原来的 0.6
+    /// 抬上来的」），两档之间该看得出是同一个页面的两种状态，不是两张不同的图。
+    /// </para>
+    /// </summary>
+    public const double ShowcaseBackdropOpacity = 0.96;
 
     /// <summary>
     /// 集页那一格最矮能到多少，同时也是还没量到那一叠字和键有多高时用的那个数（见 <see cref="EpisodeHeight"/>）。
@@ -693,10 +874,11 @@ public static class DetailHero
     /// <inheritdoc cref="ScrimInset"/>
     /// <remarks>
     /// 上限，不是定值：要垫的是海报、片名和那排键那一叠东西，而那一叠多高跟窗口没关系。电影、剧、季那档
-    /// 带子常态 352（<see cref="WideHeight"/>：412 减掉键行），罩子由 <see cref="ScrimSpan"/> 收成 332
-    /// 正好坐满；上限 440 只在更高的带子上咬合（那一叠长过海报的时候，和集页按那一叠实测给的那一档，见
-    /// <see cref="EpisodeHeight"/>，片名折行时会高过 440）—— 罩子比带子还高就会从带子的上沿溢出去，屏上是
-    /// 顶边突然暗一档，而标题条那层洗照着另一套坐标算，两边就错开。
+    /// 带子常态 352（<see cref="WideHeight"/>：海报 300 加两道边），罩子由 <see cref="ScrimSpan"/> 收成 332
+    /// 正好坐满；窗口窄下来时留白收到最紧，带子 328、罩子 308，一并跟着收。上限 440 只在更高的带子上咬合
+    /// （那一叠长过海报的时候，和集页按那一叠实测给的那一档，见 <see cref="EpisodeHeight"/>，片名折行时会高过
+    /// 440）—— 罩子比带子还高就会从带子的上沿溢出去，屏上是顶边突然暗一档，而标题条那层洗照着另一套坐标算，
+    /// 两边就错开。
     /// </remarks>
     public const double ScrimHeight = 440;
 

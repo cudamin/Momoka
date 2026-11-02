@@ -90,19 +90,31 @@ internal sealed partial class ShellNavigationProbe
                     var tail = Get<StackPanel>(page, "TailContent");
                     var pickers = Get<StackPanel>(page, "PickerPanel");
                     var sheet = Get<StackPanel>(page, "BodySheet");
-                    var wantTail = page.ViewModel.IsCompact ? 8d : 12d;
+                    // 2026-11-02 起宽版式这组数不再是定值：电影、剧、季三页按窗口宽在两档之间取
+                    // （DetailHero.Narrow → DetailViewModel.Squeeze），窗口越窄越紧凑。集页和紧凑版式仍是
+                    // 原来那两档 8／8。期望值只跟视图模型那个数比，曲线的形状在 Core 的单测里钉着。
+                    var tight = page.ViewModel.IsCompact || page.ViewModel.Showcase;
+                    var wantTail = tight
+                        ? 8d
+                        : DetailHero.Between(
+                            DetailHero.TailGapRoom, DetailHero.TailGapTight, page.ViewModel.Squeeze);
+                    var wantPanel = tight
+                        ? 8d
+                        : DetailHero.Between(
+                            DetailHero.TailPadRoom, DetailHero.TailPadTight, page.ViewModel.Squeeze);
                     Require(Math.Abs(tail.Spacing - page.ViewModel.TailSpacing) < 0.01
-                            && pickers.Padding == page.ViewModel.TailPanelPadding
-                            && sheet.Padding == page.ViewModel.SheetPadding
+                            && Same(pickers.Padding, page.ViewModel.TailPanelPadding)
+                            && Same(sheet.Padding, page.ViewModel.SheetPadding)
                             && Math.Abs(sheet.Spacing - page.ViewModel.SheetSpacing) < 0.01,
                         $"{type} {width} 尾部那条窄带的紧凑度没绑上：尾部 {tail.Spacing:0.##}、面板 {pickers.Padding}、"
                             + $"纸面 {sheet.Padding}／{sheet.Spacing:0.##}");
                     Require(Math.Abs(tail.Spacing - wantTail) < 0.01
-                            && Math.Abs(pickers.Padding.Top - (page.ViewModel.IsCompact ? 8 : 24)) < 0.01,
-                        $"{type} {width} 尾部三块的竖距不对：{tail.Spacing:0.##}（该 {wantTail}）、"
-                            + $"面板 {pickers.Padding}（该上下 {(page.ViewModel.IsCompact ? 8 : 24)}）");
+                            && Math.Abs(pickers.Padding.Top - wantPanel) < 0.01,
+                        $"{type} {width} 尾部三块的竖距不对：{tail.Spacing:0.##}（该 {wantTail:0.##}）、"
+                            + $"面板 {pickers.Padding}（该上下 {wantPanel:0.##}）");
                     readings.Add($"{type} {state} {width} 窄带: 尾部 {tail.Spacing:0.##}、面板 {pickers.Padding}、"
-                        + $"纸面 {sheet.Padding}／{sheet.Spacing:0.##}、紧凑={page.ViewModel.IsCompact}");
+                        + $"纸面 {sheet.Padding}／{sheet.Spacing:0.##}、紧凑={page.ViewModel.IsCompact}、"
+                        + $"收 {page.ViewModel.Squeeze:0.##}");
 
                     await SaveProbeScreenAsync($"detail-no-art-{type}-{state}-{width}.png");
                     foreach (var suffix in new[] { "PlayButton", "RestartButton" })

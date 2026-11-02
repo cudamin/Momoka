@@ -1,8 +1,18 @@
+## 2026-11-02 详情页三页响应式：窄窗动态上移＋裁切自动无遮挡＋沉浸背景略提亮（已合入，待本批最终验证）
+
+- 用户令（三条）：①「当拉长窗口导致背景图接近被裁剪时，自动切换到最大化（无遮挡）页面状态」；②「在最大化状态下，将页面背景图透明度略微降低（更不透明）」；③「当拉窄窗口导致剧情说明接近移出背景图时，自动将组件向上移动，窗口越窄布局越紧凑（动态响应）……无法再收缩时允许剧情说明超出背景图范围」，并要求电影、剧、季三页一致。
+- 出处：承接 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-88807d45`（基准 50bebee）里做了一半的未提交改动继续完成；该树提交 `b599188`，本批合入 master。Qoder 1d88db 工作树未同步。
+- 判据与曲线在 Core `DetailHero`：`Narrow`（1440→1024 的 smoothstep，0 常态、1 最紧）、`Between`（两档线性插值）、`Fit`（按背景图下沿解还需要收多少，`FitMargin=8`，收到 1 就允许溢出）、`NearCrop`（按页宽铺开的图高 ≥ 视口 98%，`CropAhead=0.98`）、`WideHeight(heroContent, topInset, bottomInset)`；头部 28／24→16／12、尾部上沿 14→10、块间距 12→6、面板内边距 24→8，以及 `BackdropOpacity=0.9`／`ShowcaseBackdropOpacity=0.96` 也放在 Core。
+- 视图：`DetailViewModel.Squeeze` 取 `Narrow` 与 `Fit` 的较大值，只在电影/剧/季宽版式生效，四组竖留白按同一比例收；`TailIntrinsic` 从 `TailContent` 实测内容高反算（先减当前留白、间距与面板内边距），避免收放自激；`NearCrop` 并入 `Showcase`，`DetailPage.Showcase.cs` 在沉浸档把 `BackdropPicture.Opacity` 与纸面/面板一起落到 0.96，回纸面回 0.9；`WideHeight` 改为「内容 + 两道留白」，常态仍是 352、最紧 328。
+- 独立树验证：Release 整方案构建 0 警告 0 错误；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 通过；Core 全套 **3592/3592、0 失败 0 跳过**（含 7 条新增窄窗／裁切／透明度单测）。干净环境下的 `--probe-shell --probe-section library --screen 1` **21/21、退出 0**（`shell-probe-20261102-130157227-5536`），含新用例「电影/剧/季页面的窄窗紧凑与自动无遮挡」：三页在 1280／1200／1100／1024 DIP 的带高、留白、竖距、面板内边距逐档一致（1280 带 344、面板 18.72；1024 带 328、面板 8；简介下沿 533 越过画面下沿 508 时收口为 1，按用户许可溢出）；1080×651 裁切触发与最大化两档读 `BackdropPicture.Opacity=0.96`，回到 900×651 回 0.9。读数与截图在 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261102-130157227-5536/logs/detail-responsive.txt` 与同名 `detail-responsive-*`。
+- 合并后主树复验：见本批收尾记录（构建、测试与 library 探针待跑）；真实服务器与播放验证、发布件刷新仍未做。
+
 ## 2026-11-02 集页剧情说明接到「剩余 x 分钟」下方（已发布到桌面）
 
 - 用户令（附红框截图）：「把集页面下方的剧情说明移动到「剩余18分钟」下方，调整位置时保留适当的留白间距；移动完成后，自动剪裁下方多余的空白区域，同时保留少量边距，避免内容紧贴边缘。」
 - 根因：集页带高按「封面与片名那一叠取大」给（`DetailHero.EpisodeHeight`），封面 375 高过那一叠时带子底下空出几十像素；剧情说明住在带子之后那一段（`HeroTail`）里，于是它与「剩余 x 分钟」之间隔着「带子多出来的那一截 + 带子底 16 + 尾部顶 12 + 面板 24」。
 - 做法：新增 `DetailHero.OverviewGap`（32）、`CardTailGap`（16）与纯函数 `TailPull(...)`；`DetailViewModel.TailMargin` 是尾部那一段（`TailContent`）的负上边距，正好把说明顶放到「剩余 x 分钟」底下 32，提上来的量同时从尾部自己的高里扣掉 —— 板底与纸面跟着内容收（自动剪裁）。集页宽版式带子底下那道 16 收成 0（说明上去之后它只剩封面下沿的一截空气）；尾部最后补一格 16 的收尾格（`CardTailGap`）专门给板底那两个 16 的圆角撑板面，字到板底 = 说明自己的 8 + 16 = 24。紧凑版式、剧、电影、季三页一个数都没动（`TailMargin` 为 0、收尾格高 0），说明仍在原来的位置。
+- 同日修正（提交 `7e9395b`）：用户改口「不要固定间距，以封面下沿为准」。常量改为 `OverviewMinGap`（32 只在封面下沿不够低或没有封面时兜底），`TailPull` 增加 `coverBottom` 参数，说明第一行对齐左侧封面的实测下沿；封面下沿由页面实测（`DetailViewModel.CoverBottom` ← `DetailPage.MeasureCoverBottom`），不拿封面高加留白推算。探针与单测同步（对齐、兜底、封面矮过那一叠的回落）。
 - 测试：`ItemDetailTests` 补 `TailPull` 的算例（带高 403、那一叠 335 → 提 44，说明落回 32；那一叠长过封面时只提 4；没量到那一叠、没有带高、要的空过大时都是 0）；探针「集页封面与窄窗背景图和尾部间距」在 1280／1024 两档加断言「说明顶离那一排键的下沿 32、说明底到板底 24、尾部确实被提拉」，紧凑档反向断言不提拉、收尾格不占高；夹具补两条媒体源与两条音轨，让「视频：…」「音频」那一排真的画出来（与用户截图上同量级）。
 - 验证：主树 Release 全方案 **0 警告 0 错误**；主测试 **3587/3587、0 失败 0 跳过**（与 master 同一提交）；`dotnet format whitespace` 退出 0、`git diff --check` 干净。发布件 `--probe-shell --probe-section library --screen 1` **20/20、退出 0**（`shell-probe-20261102-120100227-5092`），读数 1280／1024 两档均为「提拉 −47、说明距剩余 32、板底留 24」，截图 `detail-episode-band-{1280,1024,1023,768}.png` 为实屏（含标题栏）。同一构建前一轮在 `library-tvshows-settings-1600x1040` 那一格报过「窗口放大后弹窗没有扩大」（`shell-probe-20261102-115754828-23644`），紧接复跑全绿，未改断言；该检查与详情页无关。
 - 交付：`tools/publish.ps1 -Shortcut -NoArchive` 发布验证通过（**546 文件、285.7 MB、14 GLSL／4 HOOK、批准 mpv 59 文件**），开发件与发布件 `Momoka.dll` SHA-256 同为 `4ce0d7820ed3295662895af7ac779e1dca36dfa7d7babc91cd784837d8258500`。桌面快捷方式仍指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`（脚本重写那一步被本机沙箱拒绝，目标与工作目录未变，读回 .lnk 确认）。版本保持 0.2.2，未推 origin。

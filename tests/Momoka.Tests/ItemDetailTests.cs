@@ -1445,6 +1445,106 @@ internal static class ItemDetailTests
             Assert.Equal(495d, DetailHero.CompactHeight(880, 9d / 16, 236, artwork: true));
         });
 
+        // 「当拉窄窗口导致剧情说明接近移出背景图时，自动将组件向上移动，窗口越窄布局越紧凑（动态响应），
+        // 同时保持合理美观的间距避免元素拥挤，无法再收缩时允许剧情说明超出背景图范围」（2026-11-02）。
+        // 三条曲线：窗口窄多少（Narrow）、还差多少才装得下（Fit）、两档之间怎么取（Between）。
+        Test("窄窗：窗口越窄，竖留白收得越紧", () =>
+        {
+            // 1440 以上一分不收，窄到紧凑断点收到最紧 —— 中间是一条两头平的 smoothstep。
+            Assert.Equal(0d, DetailHero.Narrow(DetailHero.NarrowFrom));
+            Assert.Equal(0d, DetailHero.Narrow(2200));
+            Assert.Equal(1d, DetailHero.Narrow(DetailHero.NarrowTo));
+            Assert.Equal(1d, DetailHero.Narrow(800));
+
+            // 0 是「还没量」，按宽版式布（同 IsCompact 的约定），不是「窄到没有」。
+            Assert.Equal(0d, DetailHero.Narrow(0));
+            Assert.Equal(0d, DetailHero.Narrow(double.NaN));
+
+            // 1280 上约三成、1200 上六成；一路窄下去只增不减，拖窗口没有台阶。
+            Assert.True(Math.Abs(DetailHero.Narrow(1280) - 0.33) < 0.005);
+            Assert.True(Math.Abs(DetailHero.Narrow(1200) - 0.6145) < 0.001);
+
+            var previous = 1d;
+            for (var width = DetailHero.NarrowTo + 1; width <= DetailHero.NarrowFrom; width += 7)
+            {
+                var now = DetailHero.Narrow(width);
+                Assert.True(now <= previous, $"{width} 上反而收得更紧了（{previous:0.###} → {now:0.###}）");
+                previous = now;
+            }
+        });
+
+        Test("窄窗：两档之间一起收，越界和没量到都夹回两头", () =>
+        {
+            Assert.Equal(DetailHero.HeroTopRoom,
+                DetailHero.Between(DetailHero.HeroTopRoom, DetailHero.HeroTopTight, 0));
+            Assert.Equal(DetailHero.HeroTopTight,
+                DetailHero.Between(DetailHero.HeroTopRoom, DetailHero.HeroTopTight, 1));
+            Assert.Equal(22d, DetailHero.Between(28, 16, 0.5));
+
+            // 越界按两头夹；NaN 当「还没量到」，给常态那一档。
+            Assert.Equal(28d, DetailHero.Between(28, 16, -1));
+            Assert.Equal(16d, DetailHero.Between(28, 16, 2));
+            Assert.Equal(28d, DetailHero.Between(28, 16, double.NaN));
+        });
+
+        Test("窄窗：剧情说明快掉出画面时，整页的竖留白一起收", () =>
+        {
+            // 常态总高 686、最紧 588（差 98）。画面下沿 652，收口还要留 8 的余量：要收掉 42，走 42/98。
+            Assert.Equal(0d, DetailHero.Fit(686, 588, 700));
+            Assert.True(Math.Abs(DetailHero.Fit(686, 588, 652) - (42d / 98d)) < 1e-9,
+                $"652 上该收 42/98，实际 {DetailHero.Fit(686, 588, 652):0.####}");
+
+            // 差得比总余量多：收到最紧就停，超出去的那一段照用户的话允许。
+            Assert.Equal(1d, DetailHero.Fit(686, 588, 560));
+
+            // 两档一样高（没有可收的）或画面下沿还没量到：不收。
+            Assert.Equal(0d, DetailHero.Fit(686, 686, 500));
+            Assert.Equal(0d, DetailHero.Fit(686, 588, 0));
+            Assert.Equal(0d, DetailHero.Fit(586, 588, 500));
+        });
+
+        Test("窄窗：带高常态 352，收到最紧 328", () =>
+        {
+            // 海报 300 加两道边（28、24），和从前那个数一像素不差。
+            Assert.Equal(352d, DetailHero.WideHeight(300, DetailHero.HeroTopRoom, DetailHero.HeroBottomRoom));
+
+            // 收到最紧：16 + 12 = 28，带子 328 —— 下方那一段整体上移 24 像素。
+            Assert.Equal(328d, DetailHero.WideHeight(300, DetailHero.HeroTopTight, DetailHero.HeroBottomTight));
+
+            // 那一叠比海报还高的时候带子跟着长，压缩只动留白。
+            Assert.Equal(472d, DetailHero.WideHeight(420, 28, 24));
+            Assert.Equal(448d, DetailHero.WideHeight(420, 16, 12));
+
+            // 还没量到内容那一下仍给下限，不给一条没有带子的页面。
+            Assert.Equal(DetailHero.EpisodeFloor, DetailHero.WideHeight(0, 0, 0));
+        });
+
+        // 「当拉长窗口导致背景图接近被裁剪时，自动切换到最大化（无遮挡）页面状态」（2026-11-02）：
+        // 视口 900、16:9 的图，宽到 1568 时图高 882（98%），再宽一点下沿就要被切掉。
+        Test("背景：图快被裁掉时算「快铺开了」", () =>
+        {
+            Assert.False(DetailHero.NearCrop(1567, 9d / 16, 900));
+            Assert.True(DetailHero.NearCrop(1568, 9d / 16, 900));
+            Assert.True(DetailHero.NearCrop(1600, 9d / 16, 900));
+
+            // 视口没量到不判；比例不成话按 16:9 兜底（同 PictureHeight 的约定）。
+            Assert.False(DetailHero.NearCrop(1600, 9d / 16, 0));
+            Assert.True(DetailHero.NearCrop(1600, 0, 900));
+
+            // 竖图更容易碰到那条线；宽度报负数不倒着算。
+            Assert.True(DetailHero.NearCrop(1000, 16d / 9, 900));
+            Assert.False(DetailHero.NearCrop(-40, 9d / 16, 900));
+        });
+
+        // 「在最大化状态下，将页面背景图透明度略微降低（更不透明）」（2026-11-02）。
+        Test("背景：沉浸档的不透明度比常态略高一点", () =>
+        {
+            Assert.True(DetailHero.ShowcaseBackdropOpacity > DetailHero.BackdropOpacity);
+            Assert.True(DetailHero.ShowcaseBackdropOpacity < 1);
+            Assert.Equal(0.9, DetailHero.BackdropOpacity);
+            Assert.Equal(0.96, DetailHero.ShowcaseBackdropOpacity);
+        });
+
         // 「窗口收窄时背景图要等比例缩放」—— 从前那支铺满整层的画刷在窄窗口上按高撑满、裁得越来越狠，
         // 屏上是越窄越放大。现在盒高跟着页宽走：宽的窗口上被视口封顶照旧铺满，窄过交点之后整张图等比缩小。
         Test("背景：宽窗铺满视口，窄窗整张等比缩", () =>
