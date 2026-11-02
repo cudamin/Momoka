@@ -1001,6 +1001,23 @@ public sealed partial class HomeViewModel : PageViewModel
             : [.. HomeCarousel.Slides(latest, slots).Select(item => new BannerSlide(item, images))];
 
     /// <summary>
+    /// 带子报上来「这一张取不到宽图」：把它从清单里去掉 —— 「刚入库的资源如果没有背景图或可用于轮播图的图片
+    /// 就不要放到轮播列表里」（2026-11-02 用户令）。服务器发下来的标签说它有背景图、真取却 404 或解不出来的
+    /// 那一类只能在这一步认出来，<see cref="HomeCarousel.Slides"/> 在 Core 里只看得到元数据。
+    /// <para>
+    /// 摘掉引起的那次 <c>Slides</c> 变更会再走一遍带子的 <c>Apply</c>；那边按条目沿用旧对象，台上那张和倒计时
+    /// 都不会重来（见 <c>HomeBanner.Apply</c>）。
+    /// </para>
+    /// </summary>
+    internal void DropSlide(EmbyItem item)
+    {
+        var key = item.IdentityKey;
+        if (!Slides.Any(slide => string.Equals(slide.Item.IdentityKey, key, StringComparison.Ordinal))) return;
+
+        Slides = Slides.Where(slide => !string.Equals(slide.Item.IdentityKey, key, StringComparison.Ordinal)).ToArray();
+    }
+
+    /// <summary>
     /// 播放 on the carousel. Straight to the shell with no parent and no sibling list, same as a card on
     /// this page: a slide is one item out of three unrelated rows, so there is no 选集 it belongs to.
     /// </summary>

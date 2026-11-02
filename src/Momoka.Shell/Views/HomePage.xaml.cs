@@ -160,6 +160,10 @@ public sealed partial class HomePage : Page, IShellContent
             PlaceScrollBar();
         };
 
+        // 带子摘掉一张取不到图的幻灯片时，视图模型这份清单也要少这一件（「没有背景图就不要放到轮播列表里」，
+        // 2026-11-02）；只摘带子自己那一份的话，下一次整页重读又会把它带回来。
+        Banner.SlideDropped += (_, slide) => ViewModel.DropSlide(slide.Item);
+
         // 矮窗档（媒体库压上轮播左下角）跟着窗口的高矮走：窗口、带子、货架尺寸变了都要重新量一遍。
         // 进度条和提示条一收一放也挪动货架的顶，一并重查。货架上下一拍才排得完（重载是清空再装回），
         // 所以集合一变先排一拍再查，不在事件里当场动。

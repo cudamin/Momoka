@@ -207,6 +207,25 @@ internal static class HomeCarouselTests
             Assert.Equal(0, HomeCarousel.Step(0, 1, 0));
             Assert.Equal(0, HomeCarousel.Step(3, -1, 0));
         });
+
+        Test("轮播：摘掉一张之后台上该是谁", () =>
+        {
+            // 摘在台上那张前面：台上那张跟着往前挪一格，人不变。
+            Assert.Equal(1, HomeCarousel.AfterDrop(0, 2, 5));
+            Assert.Equal(2, HomeCarousel.AfterDrop(2, 3, 5));
+
+            // 摘在台下那张后面：台上那张原地不动。
+            Assert.Equal(2, HomeCarousel.AfterDrop(3, 2, 5));
+            Assert.Equal(2, HomeCarousel.AfterDrop(4, 2, 5));
+
+            // 摘的正是台上那张：原位置由后面那张补上；原来最后一张被摘掉就回到第一张。
+            Assert.Equal(2, HomeCarousel.AfterDrop(2, 2, 5));
+            Assert.Equal(0, HomeCarousel.AfterDrop(4, 4, 5));
+
+            // 只剩一张：摘完就是「没有台上那张」，0 不会越界。
+            Assert.Equal(0, HomeCarousel.AfterDrop(0, 0, 1));
+            Assert.Equal(0, HomeCarousel.AfterDrop(0, 0, 0));
+        });
     }
 
     private static void RegisterHeight()

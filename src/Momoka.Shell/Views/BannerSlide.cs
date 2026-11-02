@@ -56,6 +56,17 @@ public sealed class BannerSlide : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    /// <summary>
+    /// 这一张真的取不到宽图：服务器没有、下载失败，或者解码解不出来。带子收到这一句就把这张从轮播里摘掉，
+    /// 然后由页面把同一件从清单里也去掉 —— 「刚入库的资源如果没有背景图或可用于轮播图的图片就不要放到轮播
+    /// 列表里」（2026-11-02 用户令）。
+    /// <para>
+    /// 只在图片这一趟走完之后报一次，徽标不算：它是角上一枚图章，没有徽标的那张照样是一条完整的幻灯片。
+    /// 取消（离树、换批、换账号）不算失败，不会报。
+    /// </para>
+    /// </summary>
+    public event EventHandler? PictureUnavailable;
+
     /// <summary>The item behind the slide, for whoever opens or plays it.</summary>
     public EmbyItem Item { get; }
 
@@ -102,10 +113,24 @@ public sealed class BannerSlide : INotifyPropertyChanged
     public Visibility LogoVisibility => Show(_logoImage is not null);
 
     /// <summary>
+    /// 这一张画出来的东西。整页重读会重建一批 <see cref="BannerSlide"/>，带子拿这个句子判断「还是同一张，
+    /// 只是换了个对象」并沿用旧对象 —— 台上那张的图、字幕和倒计时因此不会因为一次刷新回到第一张
+    /// （2026-11-02「进度条跑到一半回退」）。
+    /// </summary>
+    internal string Signature => string.Join('\u001f',
+        Item.IdentityKey, Title, Caption, Synopsis, PlayText,
+        _picture?.ItemId ?? "", _picture?.ImageType ?? "", _picture?.Tag ?? "",
+        _logo?.ItemId ?? "", _logo?.ImageType ?? "", _logo?.Tag ?? "");
+
+    /// <summary>
     /// Starts both loads if they have not been asked for. Idempotent and asked once per slide: the band calls
     /// this on the slide it is about to show and on its two neighbours, so a slide the reader is walking
     /// towards is already decoded when it arrives, and every slide is asked at most once no matter how many
     /// times the carousel comes back around to it.
+    /// <para>
+    /// The picture is the slide: when it cannot be had, <see cref="PictureUnavailable"/> says so and the band
+    /// drops the slide. The logo is optional and is not part of that verdict.
+    /// </para>
     /// </summary>
     public async Task EnsureAsync()
     {
@@ -114,25 +139,32 @@ public sealed class BannerSlide : INotifyPropertyChanged
         var cts = new CancellationTokenSource();
         _loading = cts;
         _asked = true;
+        var unavailable = false;
 
         try
         {
             // Sequential, and the picture first: it is the whole band, the logo is a stamp in one corner of
             // it, and the two together would otherwise race for the one connection the session holds.
             var bytes = await FetchAsync(_picture, PictureWidth, cts.Token).ConfigureAwait(true);
+            if (!StillWanted(cts)) return;
 
-            if (bytes is { Length: > 0 } && !cts.IsCancellationRequested && _scope.IsAvailable)
+            if (bytes is { Length: > 0 })
             {
                 var picture = await BannerPictureLoader.DecodeAsync(bytes, PictureWidth, cts.Token).ConfigureAwait(true);
-                if (!ReferenceEquals(_loading, cts) || cts.IsCancellationRequested || !_scope.IsAvailable) return;
+                if (!StillWanted(cts)) return;
                 Picture = picture;
             }
 
-            if (cts.IsCancellationRequested || !_scope.IsAvailable) return;
-
-            var logo = await DecodeAsync(_logo, LogoWidth, cts.Token).ConfigureAwait(true);
-            if (!ReferenceEquals(_loading, cts) || cts.IsCancellationRequested || !_scope.IsAvailable) return;
-            Logo = logo;
+            if (Picture is null)
+            {
+                unavailable = true;
+            }
+            else
+            {
+                var logo = await DecodeAsync(_logo, LogoWidth, cts.Token).ConfigureAwait(true);
+                if (!StillWanted(cts)) return;
+                Logo = logo;
+            }
         }
         catch (OperationCanceledException)
         {
@@ -142,13 +174,22 @@ public sealed class BannerSlide : INotifyPropertyChanged
             // 带 exception 而不只是 Message：这句文案（「没有检测到已安装的组件」）是 WinUI 的 0x800F1000
             // 误报 —— CBS 错误码和 XAML 撞了号，消息本身说不清是哪一层的事，只有堆栈说得清（2026-09-12 记）。
             Log.Warn(Category, $"加载轮播图片失败（{Item.Name}）：{error.Message}", error);
+
+            // 图已经到手、只是徽标那一趟失败的不算：这张幻灯片照样站得住。
+            unavailable = Picture is null && StillWanted(cts);
         }
         finally
         {
             if (ReferenceEquals(_loading, cts)) _loading = null;
             cts.Dispose();
         }
+
+        if (unavailable) PictureUnavailable?.Invoke(this, EventArgs.Empty);
     }
+
+    /// <summary>这一趟还是这一张在等：没被换下、没被取消，账号也还在。取消不是失败，不报。</summary>
+    private bool StillWanted(CancellationTokenSource cts) =>
+        ReferenceEquals(_loading, cts) && !cts.IsCancellationRequested && _scope?.IsAvailable == true;
 
     /// <summary>
     /// Drops the decoded picture and the logo, and abandons anything in flight. Called on the slides the band

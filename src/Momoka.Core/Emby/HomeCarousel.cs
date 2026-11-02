@@ -250,6 +250,26 @@ public static class HomeCarousel
     }
 
     /// <summary>
+    /// 一张幻灯片因为取不到宽图被摘掉之后，台上该是谁。<paramref name="dropped"/> 是它在旧清单里的下标，
+    /// <paramref name="current"/> 是台上那张的旧下标，<paramref name="count"/> 是摘之前的张数。
+    /// <para>
+    /// 摘的是台上那张时，这个下标处空出来的位置由它后面那张补上（原来最后一张被摘掉就回到第一张）；
+    /// 摘在台下时，台上那张不下台，只是它前面的位置少了一格。摘掉一张之后还停在原来那张（哪怕它是坏图）
+    /// 或者整条带回到第一张，都是错的 —— 「刚入库的资源如果没有背景图或可用于轮播图的图片就不要放到轮播
+    /// 列表里」（2026-11-02），这条只答「摘完之后看谁」。
+    /// </para>
+    /// </summary>
+    public static int AfterDrop(int dropped, int current, int count)
+    {
+        if (count <= 1) return 0;
+        if (dropped < current) return current - 1;
+        if (dropped > current) return current;
+
+        // 摘的正是台上这张：留下的 count-1 张里，原下标处就是下一张；原最后一张被摘掉就回到第一张。
+        return dropped % (count - 1);
+    }
+
+    /// <summary>
     /// The dim line under a slide's title: which episode it is, then the facts (<see cref="ItemDetail.Facts"/>
     /// — year, runtime, rating). An episode is billed under its show's name on the title line
     /// (<see cref="ItemDetail.Title"/>), so without this line the slide would not say which episode it is.

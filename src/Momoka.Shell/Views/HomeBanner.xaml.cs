@@ -76,8 +76,20 @@ public sealed partial class HomeBanner : UserControl
     /// <summary>「鼠标移出窗口后不会自动恢复」：翻页箭头浮出来了还得收回去，理由见 <see cref="HoverWatch"/>。</summary>
     private readonly HoverWatch _watch;
 
-    /// <summary>没人碰的时候自己走一张，每 <see cref="HomeCarousel.Dwell"/> 一步。</summary>
+    /// <summary>
+    /// 自动翻页和右下那条进度条共用的钟，见 <see cref="SyncTimer"/>。它每 <see cref="TickInterval"/> 响一次，
+    /// 按「这一张站了多久」算进度，跑满一个 <see cref="_dwell"/> 就换下一张。
+    /// </summary>
     private readonly DispatcherQueueTimer? _timer;
+
+    /// <summary>钟响一次隔多久。50 毫秒是条子走起来看不出台阶的最慢一档（160 宽、8 秒停留时一格一像素）。</summary>
+    private static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(50);
+
+    /// <summary>
+    /// 台上这张是从哪一刻开始站的（<see cref="Environment.TickCount64"/>，单调、不受改系统时间影响）。
+    /// 进度条和换片都从这一个数推出来，所以「条跑满了还没换」和「没跑满就被换」在结构上不会发生。
+    /// </summary>
+    private long _cycleStarted;
 
     // 每一种动画只有一个所有者：换片先收尾，卸载全部停止，避免上一张的 Completed 改到下一张。
     private readonly Dictionary<string, (Storyboard Board, Action Settle)> _motions = [];
@@ -190,13 +202,19 @@ public sealed partial class HomeBanner : UserControl
     private TimeSpan _dwell = HomeCarousel.Dwell;
 
     /// <summary>
-    /// 设置里那行秒数改了（或者页面刚接上设置）：按新值重摆自动翻页的钟。没在走的那几档（一张、悬停、
-    /// 不在树上）<see cref="SyncTimer"/> 自己会继续停着，下一次走的时候就是新间隔。
+    /// 设置里那行秒数改了（或者页面刚接上设置）：按新值重摆自动翻页的钟。没在走的那一档（一张、不在树上）
+    /// <see cref="SyncTimer"/> 自己会继续停着，下一次走的时候就是新时长。
+    /// <para>
+    /// 值没变就什么都不做：这一句在整页重读、拖版面这些「设置里别的行改了」的场合也会被喊到，而每喊一次就把
+    /// 进度条清零，正是 2026-11-02 那句「跑到一半回退」。
+    /// </para>
     /// </summary>
     internal void ApplyDwell(int seconds)
     {
-        _dwell = HomeCarousel.DwellFor(seconds);
-        if (_timer is not null) _timer.Interval = _dwell;
+        var dwell = HomeCarousel.DwellFor(seconds);
+        if (_dwell == dwell) return;
+
+        _dwell = dwell;
         SyncTimer();
     }
 
@@ -213,11 +231,12 @@ public sealed partial class HomeBanner : UserControl
         TextInk.Attach(CaptionInk, CaptionText);
         TextInk.Attach(SynopsisInk, SynopsisText);
 
+        // 悬停只管箭头浮不浮出来。它从前还会停掉自动翻页的钟，而指针停在窗口上半截（也就是这条带）上
+        // 是常态 —— 那条路让进度条看着像坏了（2026-11-02「经常会卡住不动」），现在钟不认指针。
         _watch = new HoverWatch(Root, up =>
         {
             _hover = up;
             SyncArrows();
-            SyncTimer();
         });
 
         // 全名一次：UserControl 自己有个同名的 DispatcherQueue 属性，简名先落在它身上，静态方法就取不到了。
@@ -225,7 +244,8 @@ public sealed partial class HomeBanner : UserControl
 
         if (_timer is not null)
         {
-            _timer.Interval = _dwell;
+            _timer.Interval = TickInterval;
+            _timer.IsRepeating = true;
             _timer.Tick += OnTick;
         }
 
@@ -254,6 +274,12 @@ public sealed partial class HomeBanner : UserControl
     public event EventHandler<BannerSlide?>? SlideChanged;
 
     /// <summary>
+    /// 一张幻灯片取不到宽图、被从这一批里摘掉了（见 <see cref="BannerSlide.PictureUnavailable"/>）。页面据此把
+    /// 同一件从视图模型那份清单里也去掉 —— 只摘带子自己这一份的话，下一次整页重读又会把它带回来。
+    /// </summary>
+    public event EventHandler<BannerSlide>? SlideDropped;
+
+    /// <summary>
     /// 这条带放哪几张。整份换掉而不是往里增删：一次读取重建一批 <see cref="BannerSlide"/>，上一批的图连着解码
     /// 出来的画面一起丢掉（<see cref="Apply"/>），这样「换了一批」就只有一个入口。
     /// </summary>
@@ -266,8 +292,14 @@ public sealed partial class HomeBanner : UserControl
     // ---- 换一批幻灯片 -------------------------------------------------------------
 
     /// <summary>
-    /// 换掉整批幻灯片：上一批的画面全丢掉，从第一张重新开始。一张都没有就把整条带收起来 —— 服务器上没有一个
-    /// 带宽图的条目时，主页顶上留一条空白的黑带比没有轮播更难解释。
+    /// 换一批幻灯片。同一个条目、同一张图、同样几行字的沿用原来那个幻灯片对象，台上那张因此不用下台；
+    /// 一张都没有就把整条带收起来 —— 服务器上没有一个带宽图的条目时，主页顶上留一条空白的黑带比没有轮播
+    /// 更难解释。
+    /// <para>
+    /// **整页重读不等于这一批换人了**：新入库的定时检查、设置里别的行改了、从别的页面回来，都会走到这里，
+    /// 而从前每次都从头造一批、从第一张开始，就是 2026-11-02 那句「进度条跑到一半回退」。现在只有台上那张
+    /// 真的不在新清单里（被删了、或者内容变了）才回到第一张并重算钟。
+    /// </para>
     /// <para>
     /// 自己改自己的 <c>Visibility</c>，所以页面那边不用为这条带再绑一个可见性；这也是主页的标记里它只有一行的
     /// 原因。<c>StackPanel</c> 的 <c>Spacing</c> 不给收起来的孩子留位置，所以收起来就是真的不占地方。
@@ -275,17 +307,51 @@ public sealed partial class HomeBanner : UserControl
     /// </summary>
     internal void Apply(IReadOnlyList<BannerSlide> slides)
     {
+        var previous = _slides;
+        var retained = new List<BannerSlide>(previous);
+        var next = new List<BannerSlide>(slides.Count);
+
+        // 同一个条目、同一张图、同样几行字 = 还是这一张：沿用原来那个幻灯片对象。整页重读（新入库的定时检查、
+        // 设置里别的行改了、从别的页面回来）不等于这一批换人了，而每次都从头造一批、Show(0)，就是 2026-11-02
+        // 那句「进度条跑到一半回退」。
+        foreach (var slide in slides)
+        {
+            var match = retained.FindIndex(old => Same(old, slide));
+            if (match < 0)
+            {
+                next.Add(slide);
+                continue;
+            }
+
+            next.Add(retained[match]);
+            retained.RemoveAt(match);
+        }
+
+        if (next.Count == previous.Count && next.SequenceEqual(previous) && next.Count > 0) return;
+
+        // 被换下去的那几张：撤掉失败订阅、放掉解码好的画面。新造的那些还没加载过，不用管。
+        foreach (var stale in retained)
+        {
+            stale.PictureUnavailable -= OnPictureUnavailable;
+            stale.Release();
+        }
+        foreach (var slide in next)
+        {
+            if (!previous.Contains(slide)) slide.PictureUnavailable += OnPictureUnavailable;
+        }
+
+        // 台上是谁要在换清单之前问：换完 _index 说的已经是新清单里的位置了。
+        var current = Current;
+
         StopMotions();
         Unwatch();
-        foreach (var slide in _slides) slide.Release();
 
-        _slides = [.. slides];
-        _index = 0;
-
+        _slides = next;
         Visibility = _slides.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         if (_slides.Count == 0)
         {
+            _index = 0;
             _second = false;
             LayerA.Opacity = 0;
             LayerB.Opacity = 0;
@@ -294,15 +360,35 @@ public sealed partial class HomeBanner : UserControl
             LogoImage.Source = null;
             LogoRow.Visibility = Visibility.Collapsed;
             SlideChanged?.Invoke(this, null);
+            SyncArrows();
+            SyncTimer();
+            return;
+        }
+
+        var keep = current is null ? -1 : next.FindIndex(slide => ReferenceEquals(slide, current));
+        if (keep < 0 && current is not null)
+        {
+            keep = next.FindIndex(slide =>
+                string.Equals(slide.Item.IdentityKey, current.Item.IdentityKey, StringComparison.Ordinal));
+        }
+
+        if (keep >= 0)
+        {
+            // 台上那张还在：位置跟着新清单走，钟不重来（字和图也没变，不重播抬升）。
+            Show(keep, animate: !ReferenceEquals(next[keep], current));
         }
         else
         {
             Show(0);
+            SyncTimer();
         }
 
         SyncArrows();
-        SyncTimer();
     }
+
+    /// <summary>两条幻灯片画出来是不是同一张。见 <see cref="BannerSlide.Signature"/>。</summary>
+    private static bool Same(BannerSlide left, BannerSlide right) =>
+        string.Equals(left.Signature, right.Signature, StringComparison.Ordinal);
 
     /// <summary>
     /// 把第 <paramref name="index"/> 张请上台：字、徽标、剧照，右下角的张数读数一起换数。
@@ -310,8 +396,12 @@ public sealed partial class HomeBanner : UserControl
     /// 字是当场就换的，剧照要等解码 —— 所以订上这张幻灯片的 <c>PropertyChanged</c>，图到了再淡进来
     /// （<see cref="OnSlideChanged"/>）。台上换人时前一张的订阅要撤掉，否则上一张的图迟到时会盖掉现在这张。
     /// </para>
+    /// <para>
+    /// <paramref name="animate"/> 是假的这一档只出现在「还是台上这张，只是整批换了个对象」的时候
+    /// （<see cref="Apply"/>）：字和图都没变，再抬一次、再淡一次就是一次白闪。
+    /// </para>
     /// </summary>
-    private void Show(int index)
+    private void Show(int index, bool animate = true)
     {
         if (_slides.Count == 0) return;
 
@@ -336,7 +426,7 @@ public sealed partial class HomeBanner : UserControl
         _current = slide;
         slide.PropertyChanged += OnSlideChanged;
 
-        Rise();
+        if (animate) Rise();
         Paint(slide.Picture);
         PaintLogo(slide);
         Prefetch();
@@ -461,6 +551,14 @@ public sealed partial class HomeBanner : UserControl
     private void PaintLogo(BannerSlide slide)
     {
         StopMotion("logo");
+
+        // 同一枚徽标又画一遍（整批重读沿用旧对象、Show(animate:false)）：不重播淡入。
+        if (ReferenceEquals(LogoImage.Source, slide.Logo) && LogoRow.Visibility == slide.LogoVisibility)
+        {
+            if (slide.Logo is not null) LogoRow.Opacity = 1;
+            return;
+        }
+
         LogoImage.Source = slide.Logo;
         LogoRow.Visibility = slide.LogoVisibility;
 
@@ -528,8 +626,11 @@ public sealed partial class HomeBanner : UserControl
     ];
 
     /// <summary>
-    /// 跑一段有明确所有者的动画。没进树、应用关闭动画、或系统关闭动画（只对
-    /// <paramref name="followAnimationSwitch"/> 那一路生效）时直接落定；完成后撤掉故事板，再写回终值。
+    /// 跑一段有明确所有者的装饰动画。没进树、应用关闭动画、或系统关闭动画时直接落定；完成后撤掉故事板，
+    /// 再写回终值。
+    /// <para>
+    /// 钟和进度条不走这里（见 <see cref="SyncTimer"/>）：它们是读数，不跟着这个开关停。
+    /// </para>
     /// <para>
     /// 自检里这份控件没有 <c>XamlRoot</c>，那时 <c>Begin()</c> 既没人看也没有意义；而故事板照样是搭出来的，
     /// 所以 <c>SetTarget</c> 拿到一个空的变换（标记里漏了一个 <c>TranslateTransform</c>）在那里就抛。
@@ -541,10 +642,9 @@ public sealed partial class HomeBanner : UserControl
     /// 终值把这事兜死。
     /// </para>
     /// </summary>
-    private void Play(Storyboard board, Action settle, string channel, bool followAnimationSwitch = true)
+    private void Play(Storyboard board, Action settle, string channel)
     {
-        if (!_active || XamlRoot is null || !HomeMotion.PreferenceEnabled
-            || (followAnimationSwitch && !HomeMotion.AnimationsEnabled))
+        if (!_active || XamlRoot is null || !HomeMotion.AnimationsEnabled)
         {
             settle();
             return;
@@ -640,45 +740,35 @@ public sealed partial class HomeBanner : UserControl
     }
 
     /// <summary>
-    /// 自动翻页的钟。指针在带上就停 —— 正在看这张的人不该被推走；只有一张、还没进树、或者一张都没有时也不走。
-    /// 每次调用都重新起算，所以人手翻一张之后是整整一个设定好的停留时长（<see cref="_dwell"/>，设置 → 主页 →
-    /// 「封面轮换秒数」）；底下那道进度条跟着钟同起同停（悬停清零，移开重跑）。
+    /// 自动翻页和进度条共用的那只钟重新起算：台上这一张从现在开始站满 <see cref="_dwell"/>，右下的条从 0 再走。
+    /// 只有一张、还没进树、或者一张都没有时停着。
     /// <para>
-    /// **钟不是动画，不吃系统的动画开关**（2026-09-13「首页的轮播图貌似不会自己滚动了」：这台机器 Windows 的
-    /// 「动画效果」是关的，而 v0.0.6 起这道闸里还站着一条 <c>AnimationsEnabled</c>，关动画的机器上钟永远起不来，
-    /// 八张剧照站成一张静画）。底下那道进度条同罪同免：同一天下午他点名「把下方那条线弄成进度条，跑满进度条
-    /// 就翻页」，而这条线在动画开关关着的机器上从前永远停在 0，看着就是一根死线 —— 它和钟是同一类东西，报的
-    /// 是「还剩几秒翻页」这个内容事实，不是装饰（<see cref="Play"/> 给系统设置留了旁路；应用自己的 UI 动画
-    /// 开关仍会关闭视觉补间）。真正的装饰 —— 换片的
-    /// 交叉淡入、字块抬升 —— 照旧跟着开关走。
+    /// **只有这一只钟，条和翻页是同一份经过时间的两个读法**（<see cref="OnTick"/>）。从前条是一段
+    /// <c>Duration = _dwell</c> 的故事板、翻页是另一只间隔 <c>_dwell</c> 的定时器，两只钟谁先到都不保证
+    /// 另一边在同一帧 —— 2026-11-02「进度条经常会卡住不动，或者跑到一半回退」。
+    /// </para>
+    /// <para>
+    /// **指针不再停表**：同一批反馈里「卡住不动」的另一半来处是悬停暂停 —— 指针停在窗口上半截（也就是这条带上）
+    /// 是常态，那条路让钟和条一起停，移开又从零起算，看着就是「跑到一半回退」。悬停现在只管箭头浮不浮出来。
+    /// 只有一张、还没进树、一张都没有，才是真的停。
+    /// </para>
+    /// <para>
+    /// **钟和条不是装饰，不吃界面的动画开关**（2026-09-13「首页的轮播图貌似不会自己滚动了」：这台机器 Windows
+    /// 的「动画效果」是关的，而 v0.0.6 起这道闸里还站着一条 <c>AnimationsEnabled</c>，关动画的机器上钟永远起不来，
+    /// 八张剧照站成一张静画；同日「把下方那条线弄成进度条，跑满进度条就翻页」）。条报的是「还剩几秒翻页」这个
+    /// 内容事实 —— 现在它是 <see cref="OnTick"/> 直接写的一格宽度，根本不过故事板，所以界面动画关着也照走。
+    /// 真正的装饰 —— 换片的交叉淡入、字块抬升 —— 照旧跟着开关走（<see cref="Play"/>）。
     /// </para>
     /// </summary>
     private void SyncTimer()
     {
-        StopMotion("countdown");
         CountdownScale.ScaleX = 0;
-        if (_timer is null) return;
+        _cycleStarted = Environment.TickCount64;
 
-        _timer.Stop();
+        _timer?.Stop();
+        if (_slides.Count <= 1 || !_active) return;
 
-        if (_slides.Count <= 1 || _hover || _focusWithin || !_active) return;
-
-        _timer.Start();
-
-        // 关闭 UI 动画仍按时换图，但不再绘制连续增长的倒计时。
-        if (!HomeMotion.PreferenceEnabled) return;
-
-        var board = new Storyboard();
-        var countdown = new DoubleAnimation
-        {
-            From = 0,
-            To = 1,
-            Duration = new Duration(_dwell)
-        };
-        Storyboard.SetTarget(countdown, CountdownScale);
-        Storyboard.SetTargetProperty(countdown, "ScaleX");
-        board.Children.Add(countdown);
-        Play(board, () => CountdownScale.ScaleX = 1, "countdown", followAnimationSwitch: false);
+        _timer?.Start();
     }
 
     /// <summary>
@@ -776,7 +866,30 @@ public sealed partial class HomeBanner : UserControl
 
     private void OnNextClicked(object sender, RoutedEventArgs e) => Advance(1);
 
-    private void OnTick(DispatcherQueueTimer sender, object args) => Advance(1);
+    /// <summary>
+    /// 钟响一拍：条按「这一张站了多久」走到该走的位置，跑满一个停留时长就是换下一张的那一拍。
+    /// 经过时间用 <see cref="Environment.TickCount64"/> 现算，界面线程忙了一拍、晚到的那一次也不会把进度
+    /// 留在半路 —— 晚到就多走一点，到点就换。
+    /// </summary>
+    private void OnTick(DispatcherQueueTimer sender, object args)
+    {
+        if (!_active || _slides.Count <= 1)
+        {
+            sender.Stop();
+            return;
+        }
+
+        var elapsed = TimeSpan.FromMilliseconds(Environment.TickCount64 - _cycleStarted);
+
+        if (elapsed >= _dwell)
+        {
+            // Advance 里的 SyncTimer 重新起算，条也从 0 再来 —— 这一帧之后台上已经换人了。
+            Advance(1);
+            return;
+        }
+
+        CountdownScale.ScaleX = elapsed / _dwell;
+    }
 
     /// <summary>
     /// 键盘翻页。箭头是悬停才浮出来的，收起来的按键接不了焦点，所以用键盘的人翻页靠这里 —— 带自己是
@@ -821,13 +934,88 @@ public sealed partial class HomeBanner : UserControl
         else if (e.PropertyName == nameof(BannerSlide.Logo)) PaintLogo(slide);
     }
 
+    /// <summary>
+    /// 一张幻灯片报上来「我取不到宽图」。排到下一拍再摘 —— 这句话可能是在 <see cref="Prefetch"/> 发起的那一趟
+    /// 里同步回来的，当场改清单会把正在跑的 <see cref="Show"/> 掀掉。
+    /// </summary>
+    private void OnPictureUnavailable(object? sender, EventArgs e)
+    {
+        if (sender is not BannerSlide slide) return;
+
+        if (!DispatcherQueue.TryEnqueue(() => DropSlide(slide))) DropSlide(slide);
+    }
+
+    /// <summary>
+    /// 把取不到图的这张从这一批里摘掉，台上那张尽量不动（见 <see cref="HomeCarousel.AfterDrop"/>）。
+    /// <para>
+    /// 「刚入库的资源如果没有背景图或可用于轮播图的图片就不要放到轮播列表里」（2026-11-02 用户令）：服务器发下来的
+    /// 标签说它有背景图、真去取却回 404 或解不出来，这种情况下留在带上的是一块深色矩形加几行字。摘掉之后还要
+    /// 通知页面（<see cref="SlideDropped"/>），让清单那一头也少这一件，下一次重读才不会再把它带回来。
+    /// </para>
+    /// </summary>
+    private void DropSlide(BannerSlide failed)
+    {
+        if (!_active) return;
+
+        var at = _slides.IndexOf(failed);
+        if (at < 0) return;
+
+        var before = _slides.Count;
+        var wasCurrent = at == _index;
+
+        failed.PictureUnavailable -= OnPictureUnavailable;
+        failed.Release();
+        _slides.RemoveAt(at);
+
+        if (_slides.Count == 0)
+        {
+            _index = 0;
+            _second = false;
+            LayerA.Opacity = 0;
+            LayerB.Opacity = 0;
+            Brush(LayerA).ImageSource = null;
+            Brush(LayerB).ImageSource = null;
+            LogoImage.Source = null;
+            LogoRow.Visibility = Visibility.Collapsed;
+            Visibility = Visibility.Collapsed;
+            SlideChanged?.Invoke(this, null);
+            SyncArrows();
+            SyncTimer();
+            SlideDropped?.Invoke(this, failed);
+            return;
+        }
+
+        if (wasCurrent)
+        {
+            _index = HomeCarousel.AfterDrop(at, at, before);
+            Show(_index);
+            SyncTimer();
+        }
+        else
+        {
+            _index = HomeCarousel.AfterDrop(at, _index, before);
+            SlideCounter.Text = $"{_index + 1:00}  /  {_slides.Count:00}";
+            AutomationProperties.SetName(Root,
+                $"主页轮播，{HomeCarousel.Position(_index, _slides.Count)}，{Current?.Title}");
+
+            // 只剩一张时读数会收起来，钟也该停；多于一张时这一下不动它 —— 摘的是台下那张，台上这张的
+            // 倒计时没有理由回退。
+            SyncSlideStatus();
+            if (_slides.Count <= 1) SyncTimer();
+        }
+
+        SyncArrows();
+        SlideDropped?.Invoke(this, failed);
+    }
+
     private void OnPointerEntered(object sender, PointerRoutedEventArgs e) => _watch.Enter();
 
     private void OnBannerGotFocus(object sender, RoutedEventArgs e)
     {
+        // 焦点只决定箭头在不在（键盘用户看不到悬停）。钟不停 —— 停在带上等一张图看完是常态，
+        // 焦点在带里等它自己走完，比「走进来时进度条突然冻住」更像这条带该有的样子（2026-11-02）。
         _focusWithin = true;
         SyncArrows();
-        SyncTimer();
     }
 
     private void OnBannerLostFocus(object sender, RoutedEventArgs e)
@@ -846,7 +1034,6 @@ public sealed partial class HomeBanner : UserControl
             }
 
             SyncArrows();
-            SyncTimer();
         });
     }
 
@@ -940,8 +1127,9 @@ public sealed partial class HomeBanner : UserControl
     private void OnAnimationPreferenceChanged()
     {
         if (!_active) return;
+
+        // 只收装饰那一批动画。钟和条是读数，不因这个开关重来 —— 重来一次就是进度条回一次零。
         StopMotions();
-        SyncTimer();
     }
 
     /// <summary>把窗口那一头的订退掉。<see langword="null"/> 进来就是「本来没订」。</summary>
