@@ -856,6 +856,64 @@ internal static class DanmakuTests
             Assert.DoesNotContain("fixture-token", Path.GetFileName(file));
             Assert.DoesNotContain("fixture-token", File.ReadAllText(file));
         }));
+
+        Test("弹幕：danmu_api 自动匹配文件名带年份，续季不自动", () =>
+        {
+            var episode = new EmbyItem
+            {
+                Type = EmbyItemType.Episode, SeriesName = "凡人修仙传", IndexNumber = 1,
+                ParentIndexNumber = 1, ProductionYear = 2020
+            };
+            Assert.True(DanmakuMatchRules.CanAutoMatch(episode));
+            Assert.Equal("凡人修仙传 (2020) S01E01", DanmakuMatchRules.MatchFileName(episode));
+            var noYear = new EmbyItem
+            {
+                Type = EmbyItemType.Episode, SeriesName = "凡人修仙传", IndexNumber = 2, ParentIndexNumber = 1
+            };
+            Assert.Equal("凡人修仙传 S01E02", DanmakuMatchRules.MatchFileName(noYear));
+
+            var movie = new EmbyItem { Type = EmbyItemType.Movie, Name = "测试电影", ProductionYear = 2024 };
+            Assert.True(DanmakuMatchRules.CanAutoMatch(movie));
+            Assert.Equal("测试电影 (2024)", DanmakuMatchRules.MatchFileName(movie));
+
+            foreach (var unavailable in new[]
+            {
+                new EmbyItem { Type = EmbyItemType.Episode, SeriesName = "测试", IndexNumber = 1, ParentIndexNumber = 2 },
+                new EmbyItem { Type = EmbyItemType.Episode, SeriesName = "测试", IndexNumber = 1, ParentIndexNumber = 0 },
+                new EmbyItem { Type = EmbyItemType.Episode, SeriesName = "测试", ParentIndexNumber = 1 },
+                new EmbyItem { Type = EmbyItemType.Series, Name = "测试" }
+            })
+                Assert.False(DanmakuMatchRules.CanAutoMatch(unavailable), unavailable.Type);
+        });
+
+        Test("弹幕：danmu_api 匹配结果核对显式集号", () =>
+        {
+            var episode = new EmbyItem
+            {
+                Type = EmbyItemType.Episode, SeriesName = "测试", IndexNumber = 1, ParentIndexNumber = 1
+            };
+            Assert.True(DanmakuMatchRules.Accepts(episode, new DandanPlayEpisode(1, "测试", "【youku】 第1集")));
+            Assert.False(DanmakuMatchRules.Accepts(episode, new DandanPlayEpisode(1, "测试", "【bilibili1】 第22话 魔道争锋1")));
+            Assert.True(DanmakuMatchRules.Accepts(episode, new DandanPlayEpisode(1, "测试", "第1话 标题")));
+            Assert.True(DanmakuMatchRules.Accepts(episode, new DandanPlayEpisode(1, "测试", "魔道争锋1")));
+            Assert.True(DanmakuMatchRules.Accepts(episode, new DandanPlayEpisode(1, "测试", "EP01 标题")));
+            Assert.False(DanmakuMatchRules.Accepts(episode, null));
+            Assert.Equal(22, DanmakuMatchRules.ExplicitEpisodeNumber("第22话 魔道争锋1"));
+            Assert.Equal(1, DanmakuMatchRules.ExplicitEpisodeNumber("【youku】 第1集"));
+            Assert.Null(DanmakuMatchRules.ExplicitEpisodeNumber("2020年"));
+            var movie = new EmbyItem { Type = EmbyItemType.Movie, Name = "测试" };
+            Assert.True(DanmakuMatchRules.Accepts(movie, new DandanPlayEpisode(1, "测试", "第22话")));
+        });
+
+        Test("弹幕：合并两源按时间排序并保留四万条上限", () =>
+        {
+            var first = new[] { new DanmakuComment(10, 1, 0xFFFFFF, "A"), new DanmakuComment(30, 1, 0xFFFFFF, "C") };
+            var second = new[] { new DanmakuComment(20, 1, 0xFFFFFF, "B"), new DanmakuComment(40, 1, 0xFFFFFF, "D") };
+            var combined = DanmakuComments.Combine(first, second);
+            Assert.Equal("10,20,30,40", string.Join(',', combined.Select(comment => comment.Time)));
+            var many = Enumerable.Range(0, 50000).Select(index => new DanmakuComment(index, 1, 0xFFFFFF, $"C{index}"));
+            Assert.Equal(40000, DanmakuComments.Combine(many).Count);
+        });
     }
 
     private static HttpResponseMessage Reply(string body, HttpStatusCode code = HttpStatusCode.OK) => new(code)

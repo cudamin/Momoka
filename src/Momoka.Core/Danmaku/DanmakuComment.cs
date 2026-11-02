@@ -34,6 +34,10 @@ public static class DanmakuComments
         return clean.Length == 0 ? null : new(time, mode, color, clean);
     }
 
+    /// <summary>把多个来源的弹幕合成一份，按时间排序并保留最终上限；跨源去重仍交给 Filter。</summary>
+    public static IReadOnlyList<DanmakuComment> Combine(params IEnumerable<DanmakuComment>[] sources) =>
+        sources.SelectMany(source => source).OrderBy(comment => comment.Time).Take(MaximumCount).ToArray();
+
     public static IReadOnlyList<DanmakuComment> Filter(IEnumerable<DanmakuComment> comments, DanmakuSettings settings)
     {
         var words = settings.BlockedWords.Split(['\n', '\r', ',', '，'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
