@@ -4,9 +4,7 @@
 
 项目播放基于https://github.com/dyphire/mpv-config 制作，感谢dyphire的开源
 
-个人 Telegram 频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
-
-[微软商店](https://apps.microsoft.com/detail/9nqjl7k0h8x0?hl=zh-CN&gl=CN)
+个人 Telegram 频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)  [微软商店](https://apps.microsoft.com/detail/9nqjl7k0h8x0?hl=zh-CN&gl=CN)
 
 QQ交流群：[1039548970](https://qm.qq.com/q/vXph3vMyFW)
 
