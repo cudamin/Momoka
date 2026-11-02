@@ -228,6 +228,34 @@ internal static partial class FnNasMediaTests
             Assert.Equal(0, empty.PosterPaths.Count);
             Assert.False(empty.ImageTags.ContainsKey("Primary"));
         });
+        Test("飞牛媒体库：Multiple 封皮取 posters 前三张拼墙，Single 只用上传的单张", () =>
+        {
+            // 实服 0.9.8：poster 为空、posters 四张、poster_type=0（Multiple），官网页端去重后取前三张并排。
+            var multiple = FnNasMediaAdapter.Library(new JsonObject
+            {
+                ["guid"] = "lib",
+                ["name"] = "电影",
+                ["category"] = "Movie",
+                ["poster"] = "",
+                ["poster_type"] = 0,
+                ["posters"] = new JsonArray("/a.webp", "/b.webp", "/a.webp", "/c.webp", "/d.webp")
+            });
+            Assert.Equal(EmbyItemType.CollectionFolder, multiple.Type);
+            Assert.Equal("/a.webp,/b.webp,/c.webp", string.Join(',', multiple.PosterPaths));
+            Assert.Equal("/a.webp", multiple.ImageTags["Primary"]);
+
+            var single = FnNasMediaAdapter.Library(new JsonObject
+            {
+                ["guid"] = "lib2",
+                ["name"] = "电视节目",
+                ["category"] = "TV",
+                ["poster"] = "/cover.webp",
+                ["poster_type"] = 1,
+                ["posters"] = new JsonArray("/a.webp", "/b.webp", "/c.webp")
+            });
+            Assert.Equal(0, single.PosterPaths.Count);
+            Assert.Equal("/cover.webp", single.ImageTags["Primary"]);
+        });
         Test("飞牛媒体：标记已看后使用季集列表选择下一集", () =>
         {
             using var fixture = new Fixture(); fixture.Login();

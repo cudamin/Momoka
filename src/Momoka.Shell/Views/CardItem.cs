@@ -120,21 +120,27 @@ public sealed class CardItem : INotifyPropertyChanged
 
     private BitmapImage? _poster;
 
-    /// <summary>飞牛文件夹封面墙：<c>poster_list</c> 最多四张，官方前端按张数拼成 1／2／3／4 格。</summary>
-    private readonly BitmapImage?[] _folderTiles = new BitmapImage?[4];
+    /// <summary>
+    /// 飞牛卡的封面拼图：文件夹的 <c>poster_list</c> 最多四张（官方按 1／2／3／4 格排版），
+    /// 媒体库的 <c>posters</c> 最多三张（官方库卡并排三份）。
+    /// </summary>
+    private readonly BitmapImage?[] _collageTiles = new BitmapImage?[4];
 
     /// <summary>服务器明说没有的那几格；与单张海报的 <see cref="_missing"/> 同理，不再反复问。</summary>
-    private readonly HashSet<int> _missingFolderTiles = [];
+    private readonly HashSet<int> _missingCollageTiles = [];
+
+    /// <summary>这一种封面墙要几张：文件夹看 <see cref="FolderTileCount"/>，库卡看 <see cref="LibraryTileCount"/>。</summary>
+    private int CollageTileCount => FolderCollage ? FolderTileCount : LibraryTileCount;
 
     /// <summary>
-    /// 文件夹封面墙的四张图：与单张海报共用同一套缓存、取消、回收和失败冷却。
-    /// 官方前端用 <c>poster_list</c> 的原始张数排版，图还没到时先留透明格，字形占位仍透出来。
+    /// 封面拼图：与单张海报共用同一套缓存、取消、回收和失败冷却。
+    /// 图还没到时先留透明格，字形占位仍透出来。
     /// </summary>
-    private async Task EnsureFolderCollageAsync()
+    private async Task EnsureCollageAsync()
     {
         if (Scope is not { IsAvailable: true } scope || _loading is not null) return;
-        if (_folderTiles.All(tile => tile is not null)) return;
-        if (_missingFolderTiles.Count >= FolderTileCount) return;
+        if (Enumerable.Range(0, CollageTileCount).All(index => _collageTiles[index] is not null)) return;
+        if (_missingCollageTiles.Count >= CollageTileCount) return;
         if (_failedAt != default && !ImageCachePolicy.WorthRetrying(_failedAt, DateTime.UtcNow)) return;
 
         var cts = new CancellationTokenSource();
@@ -142,14 +148,14 @@ public sealed class CardItem : INotifyPropertyChanged
         try
         {
             var width = _width;
-            for (var index = 0; index < FolderTileCount; index++)
+            for (var index = 0; index < CollageTileCount; index++)
             {
-                if (_folderTiles[index] is not null || _missingFolderTiles.Contains(index)) continue;
+                if (_collageTiles[index] is not null || _missingCollageTiles.Contains(index)) continue;
                 var path = _item.PosterPaths[index];
                 var key = PosterCache.Key(scope.Connection, _item.Id, EmbyImageStore.Primary, path, width);
                 if (PosterCache.TryGet(key, out var kept))
                 {
-                    SetFolderTile(index, kept);
+                    SetCollageTile(index, kept);
                     continue;
                 }
 
@@ -159,11 +165,11 @@ public sealed class CardItem : INotifyPropertyChanged
                 if (cts.IsCancellationRequested || !scope.IsAvailable) return;
                 if (bitmap is null)
                 {
-                    _missingFolderTiles.Add(index);
+                    _missingCollageTiles.Add(index);
                     continue;
                 }
                 PosterCache.Remember(key, bitmap);
-                if (_wanted) SetFolderTile(index, bitmap);
+                if (_wanted) SetCollageTile(index, bitmap);
             }
         }
         catch (OperationCanceledException)
@@ -173,7 +179,7 @@ public sealed class CardItem : INotifyPropertyChanged
         {
             if (cts.IsCancellationRequested || !scope.IsAvailable) return;
             _failedAt = DateTime.UtcNow;
-            Log.Debug(Category, $"加载文件夹封面失败（{_item.Name}）：{error.Message}");
+            Log.Debug(Category, $"加载封面拼图失败（{_item.Name}）：{error.Message}");
         }
         finally
         {
@@ -182,10 +188,29 @@ public sealed class CardItem : INotifyPropertyChanged
         }
     }
 
-    private void SetFolderTile(int index, BitmapImage bitmap)
+    /// <summary>
+    /// 两种封面墙（文件夹的四格、库卡的三格）共用同一批图，所以每一格两个属性名都要通知 ——
+    /// 只喊 Folder 那一边，库卡收到图也不会重画。
+    /// </summary>
+    private void SetCollageTile(int index, BitmapImage bitmap)
     {
-        if (ReferenceEquals(_folderTiles[index], bitmap)) return;
-        _folderTiles[index] = bitmap;
+        if (ReferenceEquals(_collageTiles[index], bitmap)) return;
+        _collageTiles[index] = bitmap;
+        RaiseCollageTile(index);
+    }
+
+    private void ClearCollageTiles()
+    {
+        for (var index = 0; index < _collageTiles.Length; index++)
+        {
+            if (_collageTiles[index] is null) continue;
+            _collageTiles[index] = null;
+            RaiseCollageTile(index);
+        }
+    }
+
+    private void RaiseCollageTile(int index)
+    {
         Raise(index switch
         {
             0 => nameof(FolderTile0),
@@ -193,22 +218,13 @@ public sealed class CardItem : INotifyPropertyChanged
             2 => nameof(FolderTile2),
             _ => nameof(FolderTile3)
         });
-    }
-
-    private void ClearFolderTiles()
-    {
-        for (var index = 0; index < _folderTiles.Length; index++)
+        if (index > 2) return;
+        Raise(index switch
         {
-            if (_folderTiles[index] is null) continue;
-            _folderTiles[index] = null;
-            Raise(index switch
-            {
-                0 => nameof(FolderTile0),
-                1 => nameof(FolderTile1),
-                2 => nameof(FolderTile2),
-                _ => nameof(FolderTile3)
-            });
-        }
+            0 => nameof(LibraryTile0),
+            1 => nameof(LibraryTile1),
+            _ => nameof(LibraryTile2)
+        });
     }
 
     /// <summary>
@@ -372,10 +388,10 @@ public sealed class CardItem : INotifyPropertyChanged
     public Visibility FolderTile1Visibility => Show(FolderTileCount > 1);
     public Visibility FolderTile2Visibility => Show(FolderTileCount > 2);
     public Visibility FolderTile3Visibility => Show(FolderTileCount > 3);
-    public BitmapImage? FolderTile0 => _folderTiles[0];
-    public BitmapImage? FolderTile1 => _folderTiles[1];
-    public BitmapImage? FolderTile2 => _folderTiles[2];
-    public BitmapImage? FolderTile3 => _folderTiles[3];
+    public BitmapImage? FolderTile0 => _collageTiles[0];
+    public BitmapImage? FolderTile1 => _collageTiles[1];
+    public BitmapImage? FolderTile2 => _collageTiles[2];
+    public BitmapImage? FolderTile3 => _collageTiles[3];
     public int FolderTile0Row => FolderTileSlot(0).Row;
     public int FolderTile0Column => FolderTileSlot(0).Column;
     public int FolderTile0RowSpan => FolderTileSlot(0).RowSpan;
@@ -409,6 +425,20 @@ public sealed class CardItem : INotifyPropertyChanged
                 : index == 0 ? (0, 0, 1, 2) : (1, index - 1, 1, 1);
         return (index / 2, index % 2, 1, 1);
     }
+
+    /// <summary>
+    /// 飞牛媒体库的封面墙（官方库卡）：<c>poster_type=Multiple</c> 时 <c>posters</c> 去重后最多三张并排，
+    /// 每张铺满三分之一。上传过单张封皮的库不走这条（见 <c>FnNasMediaAdapter.Library</c>）。
+    /// </summary>
+    public bool LibraryWall => _item.Type == EmbyItemType.CollectionFolder && _item.PosterPaths.Count > 0;
+    public Visibility LibraryWallVisibility => Show(LibraryWall);
+    public int LibraryTileCount => LibraryWall ? Math.Min(_item.PosterPaths.Count, 3) : 0;
+    public Visibility LibraryTile0Visibility => Show(LibraryTileCount > 0);
+    public Visibility LibraryTile1Visibility => Show(LibraryTileCount > 1);
+    public Visibility LibraryTile2Visibility => Show(LibraryTileCount > 2);
+    public BitmapImage? LibraryTile0 => _collageTiles[0];
+    public BitmapImage? LibraryTile1 => _collageTiles[1];
+    public BitmapImage? LibraryTile2 => _collageTiles[2];
 
     /// <summary>
     /// 官方列表卡片的 object-cover 判据（前端 <c>aB</c>）：1:1 不裁；图片宽高比在卡片比例的
@@ -585,7 +615,7 @@ public sealed class CardItem : INotifyPropertyChanged
         _loading = null;
 
         Poster = null;
-        ClearFolderTiles();
+        ClearCollageTiles();
 
         // 首图尚未返回也得重启；离屏后只是继续等旧图，不因此开启新宽度请求。
         // 容器再把它递进来时，EnsurePosterAsync 会按最新宽度取。
@@ -736,9 +766,9 @@ public sealed class CardItem : INotifyPropertyChanged
         _wanted = true;
         _resizeWanted = true;
 
-        if (FolderCollage)
+        if (FolderCollage || LibraryWall)
         {
-            await EnsureFolderCollageAsync().ConfigureAwait(true);
+            await EnsureCollageAsync().ConfigureAwait(true);
             return;
         }
 
@@ -861,7 +891,7 @@ public sealed class CardItem : INotifyPropertyChanged
         // 真正换卡才清持有者；新容器 Claim 会直接取代它，旧容器的迟到 Release 仍然无效。
 
         Poster = null;
-        ClearFolderTiles();
+        ClearCollageTiles();
     }
 
     /// <summary>这个容器是不是此刻拿着这张卡的那一个。</summary>
@@ -880,7 +910,7 @@ public sealed class CardItem : INotifyPropertyChanged
         _loading?.Cancel();
         _loading = null;
         Poster = null;
-        ClearFolderTiles();
+        ClearCollageTiles();
     }
 
     /// <summary>

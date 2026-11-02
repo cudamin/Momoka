@@ -1,3 +1,15 @@
+## 2026-11-02 飞牛按网页端拼媒体库封面（已构建、发布并核对本机）
+
+- 用户报（附网页端主页截图）：「飞牛的媒体库封面怎么跟网页端不一样，修一下」。参考图里三张库卡各由三张海报并排组成（电影＝聚焦／偷拐抢骗／用心棒，混合影片＝同一部动画左右两张＋中间红色物体）。
+- 证据（官方前端 0.9.8 源码）：库卡 `hB` 以 `poster_type` 分流 —— `Ae.Single`（1）画上传的单张 `poster`，否则用 `nB` 把 `gB(posters)`（去重、最多三张）各按 `w-1/3` 并排铺满，缝 `gap-px`。实服只读 `mediadb/list`（2026-11-02）：三个库 `poster=""`、`posters` 各 4 张、`poster_type=0`；下载电影库前三张核对为聚焦／偷拐抢骗／用心棒，与参考图次序一致。
+- 改动（Core）：`FnNasMediaAdapter.Library` 在 `poster_type != 1` 时把 `posters` 去重后取前三张写进 `EmbyItem.PosterPaths`；Single 库保持只用 `poster`。Emby／Jellyfin／Plex 的库不填这一格，行为不变。
+- 改动（Shell）：`CardItem` 把文件夹封面墙的加载、缓存、取消、回收与失败冷却推广为 `EnsureCollageAsync`，新增 `LibraryWall`／`LibraryTile0..2`；`PosterCard.xaml` 加一组三列、1 px 缝、`UniformToFill` 的库卡封面墙。文件夹 1／2／3／4 格排版与加载路径未动（共用同一批 tile 与通知）。
+- 测试与探针：全方案 Release **0 警告 0 错误**；`dotnet format whitespace ./Momoka.sln --verify-no-changes --no-restore` 退出 0；Core **3537/3537、0 失败 0 跳过**；`--probe-shell --probe-section library --screen 1` **20/20、退出 0**（`shell-probe-20261102-012944599-14804`）；R046 caller **54/54** 与 10 个源提取反例逐个按预期退出 1（`artifacts/r046-caller/verify-20261102-092619-1528`、`extractor-20261102-092631-6809`）。R046 只因 `EmbyItem.cs` 注释改动同步这一份源 hash（`cfdab01…` → `4002e5c…`）。
+- 飞牛主页探针：假库补 `poster_type=0` 与四张 `posters`，断言库卡 `LibraryWall`、三格全部载入、按顺序只请求前三张、第四张不问。
+- 实机（真实飞牛账号，只读）：主页三张库卡各显示三格封面，电影＝聚焦／偷拐抢骗／用心棒、电视节目＝死神等三张、混合影片与参考图同图；未播放、未写服务器。截图 `artifacts/ui-review/fnnas-library-wall-20261102/home-fnnas-real-screen.png`。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 通过：**546 文件、285.6 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件（50 UI／2 native）**；开发件与发布件 `Momoka.dll` SHA-256 同为 `7bb4f2c27027a56f34b67e3c95982a980390c17e8856341ffb55a2b907242a14`，桌面快捷方式指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。版本仍为 0.2.2，未推 origin。
+- 未覆盖：真实的 Single 封皮库没有样例，只按官方源码与单测核对；没有真实播放、没有服务器写入；卡片外形仍沿用 Momoka 的 16:9 库卡与卡下标题，只让封面构图与网页端一致。
+
 ## 2026-11-02 飞牛文件夹竖卡封面按官方留边、清晰度角标与封面宽度统一（已构建、发布并核对本机）
 
 - 用户令（附参考图）：①「布局为竖屏时且图片为21比9时参考上图修改飞牛库文件夹显示的封面」；②「参考emby库封面的大小统一其他库的封面大小」。参考图里 2:3 竖卡中的宽图完整保留、上下留黑，右下角写「1080」。

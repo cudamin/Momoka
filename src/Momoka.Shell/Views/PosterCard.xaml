@@ -166,6 +166,24 @@
                         <Image Source="{x:Bind Card.FolderTile3, Mode=OneWay}" Stretch="UniformToFill" />
                     </Border>
                 </Grid>
+                <!-- 飞牛媒体库的封面墙：官方库卡在 poster_type=Multiple 时把 posters 去重后最多三张并排，
+                     每张铺满三分之一、之间留 1 px。单张封皮的库走上面那张海报，不画这一层。 -->
+                <Grid ColumnSpacing="1" Visibility="{x:Bind Card.LibraryWallVisibility, Mode=OneWay}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Visibility="{x:Bind Card.LibraryTile0Visibility, Mode=OneWay}">
+                        <Image Source="{x:Bind Card.LibraryTile0, Mode=OneWay}" Stretch="UniformToFill" />
+                    </Border>
+                    <Border Grid.Column="1" Visibility="{x:Bind Card.LibraryTile1Visibility, Mode=OneWay}">
+                        <Image Source="{x:Bind Card.LibraryTile1, Mode=OneWay}" Stretch="UniformToFill" />
+                    </Border>
+                    <Border Grid.Column="2" Visibility="{x:Bind Card.LibraryTile2Visibility, Mode=OneWay}">
+                        <Image Source="{x:Bind Card.LibraryTile2, Mode=OneWay}" Stretch="UniformToFill" />
+                    </Border>
+                </Grid>
                 <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="4"
                     Margin="4" Padding="4,1" Background="{ThemeResource EgScrimBrush}"
                     Visibility="{x:Bind Card.DurationVisibility, Mode=OneWay}">

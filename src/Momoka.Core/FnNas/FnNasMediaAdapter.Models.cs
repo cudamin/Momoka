@@ -150,6 +150,10 @@ public sealed partial class FnNasMediaAdapter
             "Mix" => "mixed",
             _ => "homevideos"
         };
+        // 库封面照官方前端：poster_type=Multiple（0，默认）用 posters 拼封面墙，去重后取前三张；
+        // 上传过单张封皮（Single=1）才只画那张 poster。实服四张，网页端也是三张并排。
+        if (Integer(value, "poster_type") != 1)
+            item.PosterPaths = [.. Strings(value["posters"]).Distinct(StringComparer.Ordinal).Take(3)];
         return item;
     }
 

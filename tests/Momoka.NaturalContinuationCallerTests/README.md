@@ -1,5 +1,9 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-02：EmbyItem.cs 源 hash 再同步
+
+飞牛库卡封面墙复用 `PosterPaths`（`FnNasMediaAdapter.Library` 读 `posters`），只给 `EmbyItem.PosterPaths` 的注释补上库这一路，字段与自然接续的 identity/id、自动接集与 lease 规则未动。只同步 `EmbyItem.cs` 一项 hash（`cfdab01…` → `4002e5c…`），其余 pins 逐份保留。
+
 ## 2026-11-01：EmbyItem.cs 源 hash 同步
 
 飞牛文件夹封面改读 `poster_list`（`f9e55f3`）时在 `EmbyItem` 新增 `PosterPaths`；来源 identity/id、自动接集与 lease 规则未动。只同步 `EmbyItem.cs` 一项 hash，其余 pins 逐份保留。

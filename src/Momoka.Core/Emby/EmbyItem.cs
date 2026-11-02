@@ -827,8 +827,9 @@ public sealed class EmbyItem
     public Dictionary<string, string> ImageTags { get; set; } = [];
 
     /// <summary>
-    /// 飞牛文件夹卡的封面拼图。官方前端对文件夹读 <c>poster_list</c>，按 1／2／3／4 张分别排版
-    /// （最多四张），普通条目才用单张 <c>poster</c>；没有这一格时文件夹卡只剩一个字形占位。
+    /// 飞牛卡的封面拼图。文件夹读 <c>poster_list</c>，官方按 1／2／3／4 张分别排版（最多四张）；
+    /// 媒体库读 <c>posters</c>，官方库卡在 Multiple 封皮下取前三张并排。普通条目才用单张 <c>poster</c>；
+    /// 没有这一格时卡片只剩一个字形占位。
     /// </summary>
     public List<string> PosterPaths { get; set; } = [];
 

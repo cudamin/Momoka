@@ -22,9 +22,11 @@ internal sealed partial class ShellNavigationProbe
         var wide = await FixtureImageAsync(1280, 720);
         var lists = new List<JsonObject>();
         var details = new List<string>();
+        var uris = new List<string>();
         fixture.Transport.Reply = async (request, cancellationToken) =>
         {
             var path = request.RequestUri!.AbsolutePath;
+            uris.Add(request.RequestUri.PathAndQuery);
             // 产品探测先试 Emby 的公开信息；飞牛地址必须让这条落空，否则会被认成 Emby。
             if (path.EndsWith("/System/Info/Public", StringComparison.Ordinal))
                 return new HttpResponseMessage(HttpStatusCode.NotFound);
@@ -35,7 +37,20 @@ internal sealed partial class ShellNavigationProbe
             if (path.EndsWith("/api/v1/user/info", StringComparison.Ordinal))
                 return FnNasEnvelope(new { guid = "user", username = "user", is_admin = "1" });
             if (path.EndsWith("/api/v1/mediadb/list", StringComparison.Ordinal))
-                return FnNasEnvelope(new[] { new { guid = "fn-tv", name = "电视节目", category = "TV" } });
+                // 和真实服务器一样：库没有单张 poster，poster_type=0（Multiple），posters 四张。
+                return FnNasEnvelope(new[]
+                {
+                    new
+                    {
+                        guid = "fn-tv", name = "电视节目", category = "TV",
+                        poster = "", poster_type = 0,
+                        posters = new[]
+                        {
+                            "/library/one.webp", "/library/two.webp",
+                            "/library/three.webp", "/library/four.webp"
+                        }
+                    }
+                });
             if (path.EndsWith("/api/v1/mediadb/sum", StringComparison.Ordinal))
                 return FnNasEnvelope(new JsonObject { ["fn-tv"] = 56, ["total"] = 56 });
             if (path.EndsWith("/api/v1/play/list", StringComparison.Ordinal))
@@ -109,6 +124,24 @@ internal sealed partial class ShellNavigationProbe
             Require(shelf.Note == "56 项", $"飞牛库排读数不是库总数，而是「{shelf.Note}」");
             Require(shelf.Cards.Count == 2 && shelf.Cards.All(card => card.Item.Type == EmbyItemType.Series),
                 $"飞牛货架上混进了单集：{string.Join('、', shelf.Cards.Select(card => card.Item.Type))}");
+
+            // 库卡封面照网页端：Multiple 封皮把 posters 去重后取前三张并排，第四张不问。
+            var libraryRow = home.ViewModel.Shelves.SingleOrDefault(item => item.HomeKey == HomeLayout.Libraries)
+                ?? throw new InvalidOperationException("主页没有媒体库那一排");
+            var libraryCard = libraryRow.Cards.Single();
+            Require(libraryCard.LibraryWall && libraryCard.LibraryTileCount == 3,
+                $"飞牛库卡没有按 posters 拼三张封面墙：wall={libraryCard.LibraryWall} count={libraryCard.LibraryTileCount}");
+            await UntilAsync(() => libraryCard.LibraryTile2 is not null);
+            Require(libraryCard.LibraryTile0 is not null && libraryCard.LibraryTile1 is not null,
+                "库封面墙没有把三张图都载入");
+            var libraryImages = uris
+                .Where(uri => uri.StartsWith("/media/v/api/v1/sys/img/library/", StringComparison.Ordinal))
+                .ToArray();
+            Require(libraryImages.Length == 3
+                && libraryImages[0].Contains("one.webp", StringComparison.Ordinal)
+                && libraryImages[1].Contains("two.webp", StringComparison.Ordinal)
+                && libraryImages[2].Contains("three.webp", StringComparison.Ordinal),
+                "库封面墙没有按 posters 的顺序取前三张：" + string.Join(" | ", libraryImages));
 
             var shelfQuery = lists.FirstOrDefault(body => body["ancestor_guid"]?.GetValue<string>() == "fn-tv")
                 ?? throw new InvalidOperationException("主页没有向飞牛库问最近添加");
