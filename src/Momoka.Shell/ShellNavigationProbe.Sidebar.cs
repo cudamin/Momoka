@@ -212,6 +212,17 @@ internal sealed partial class ShellNavigationProbe
             await shell.Favorites.RefreshAsync();
             Require(Get<NavigationViewItem>(shell, "SidebarFavorites").Visibility == Visibility.Visible
                 && Get<Button>(shell, "FavoritesButton").Visibility == Visibility.Collapsed, "收藏未转移到侧栏");
+            await ToggleAsync(false);
+            foreach (var width in new[] { 1240, 760 })
+            {
+                ResizeProbeClient(width, 900);
+                await LayoutAsync(shell);
+                var heart = Get<Button>(shell, "FavoritesButton");
+                Require(heart.Visibility == Visibility.Visible && heart.Content is Viewbox { Width: 26, Height: 26 },
+                    "顶部爱心没有与相邻按钮使用同规格图形");
+                await SaveProbeScreenAsync($"toolbar-heart-{width}-screen.png");
+            }
+            await ToggleAsync(true);
             favorite = false;
             await shell.Favorites.RefreshAsync();
             Require(Get<NavigationViewItem>(shell, "SidebarFavorites").Visibility == Visibility.Collapsed, "空收藏没有隐藏");

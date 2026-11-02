@@ -111,8 +111,14 @@ internal static class Program
             Assert.Equal(writes, page.CategorySourceWrites);
             Assert.False(fixture.Labels.Contains("obsolete-plugin"));
             ShellNavigationProbe.BeginVisitForContract(page);
-            context.Await(page.RefreshForContract());
+            var renewed = fixture.Reads.HoldPlugin("a");
+            var reopened = page.RefreshForContract();
+            context.PumpUntil(() => fixture.Reads.Started(renewed));
+            renewed.Complete("current-plugin");
+            context.Await(reopened);
             Assert.True(page.Active);
+            Assert.True(fixture.Labels.Contains("current-plugin"));
+            Assert.False(fixture.Labels.Contains("obsolete-plugin"));
             Assert.True(page.CategorySourceWrites > writes);
         }));
         Test("旧 fake 空Sources是合法单服契约，补活动期后Emby三组准确出现", () => WithPage((context, fixture, page) =>
