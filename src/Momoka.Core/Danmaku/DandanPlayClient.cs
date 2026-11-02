@@ -23,6 +23,7 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
     private static readonly TimeSpan CacheLifetime = TimeSpan.FromHours(2);
     private readonly AppSettings _settings;
     private readonly IDandanPlayCredentialSource? _credentials;
+    private readonly ISecretProtector? _protector;
     private readonly string _cacheDirectory;
     private readonly HttpClient _http;
     private readonly Func<DateTimeOffset> _clock;
@@ -36,10 +37,11 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
 
     public DandanPlayClient(AppSettings settings, string cacheDirectory,
         HttpMessageHandler? handler = null, Func<DateTimeOffset>? clock = null,
-        IDandanPlayCredentialSource? credentials = null)
+        IDandanPlayCredentialSource? credentials = null, ISecretProtector? protector = null)
     {
         _settings = settings;
         _credentials = credentials;
+        _protector = protector;
         _cacheDirectory = cacheDirectory;
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
         _http = new HttpClient(handler ?? new SocketsHttpHandler
@@ -51,7 +53,11 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
         { Timeout = Timeout.InfiniteTimeSpan };
     }
 
-    public async Task<DandanPlaySearchResult> SearchAsync(string title, string? episode,
+    public Task<DandanPlaySearchResult> SearchAsync(string title, string? episode,
+        CancellationToken cancellationToken = default) =>
+        SearchAsync(title, episode, DanmakuSource.DandanPlay, cancellationToken);
+
+    public async Task<DandanPlaySearchResult> SearchAsync(string title, string? episode, DanmakuSource source,
         CancellationToken cancellationToken = default)
     {
         title = title.Trim();
@@ -63,10 +69,10 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
         cancellationToken = operation.Token;
         var path = "/api/v2/search/episodes?anime=" + Uri.EscapeDataString(title) + "&v2=true";
         if (!string.IsNullOrEmpty(episode)) path += "&episode=" + Uri.EscapeDataString(episode);
-        using var document = await GetAsync(path, comments: false, cancellationToken).ConfigureAwait(false);
+        using var document = await GetAsync(path, comments: false, source, cancellationToken).ConfigureAwait(false);
         var result = new List<DandanPlayEpisode>();
         if (!document.RootElement.TryGetProperty("animes", out var animes) || animes.ValueKind != JsonValueKind.Array)
-            throw new DandanPlayException("弹弹play 返回了无法识别的搜索结果。");
+            throw new DandanPlayException($"{DanmakuSourceRules.SourceName(source)} 返回了无法识别的搜索结果。");
         var hasMore = document.RootElement.TryGetProperty("hasMore", out var more) && more.ValueKind == JsonValueKind.True;
         var ids = new HashSet<long>();
         foreach (var anime in animes.EnumerateArray())
@@ -84,26 +90,30 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
         return new(result, hasMore);
     }
 
+    public Task<IReadOnlyList<DanmakuComment>> GetCommentsAsync(long episodeId, bool withRelated,
+        CancellationToken cancellationToken = default) =>
+        GetCommentsAsync(episodeId, withRelated, DanmakuSource.DandanPlay, cancellationToken);
+
     public async Task<IReadOnlyList<DanmakuComment>> GetCommentsAsync(long episodeId, bool withRelated,
-        CancellationToken cancellationToken = default)
+        DanmakuSource source, CancellationToken cancellationToken = default)
     {
         if (episodeId <= 0) throw new DandanPlayException("弹幕库编号无效。");
         using var operation = BeginOperation(cancellationToken);
         cancellationToken = operation.Token;
         // 缓存、凭据与闸门都可能已预热，ConfigureAwait(false) 不会强制切线程。
         // 整条读取/JSON 解析/转换/稳定排序都在同一个后台边界内，不能只包异步读盘。
-        return await Task.Run(() => ReadCommentsAsync(episodeId, withRelated, cancellationToken),
+        return await Task.Run(() => ReadCommentsAsync(episodeId, withRelated, source, cancellationToken),
             cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IReadOnlyList<DanmakuComment>> ReadCommentsAsync(long episodeId, bool withRelated,
-        CancellationToken cancellationToken)
+        DanmakuSource source, CancellationToken cancellationToken)
     {
         var path = CommentPath(episodeId, withRelated);
-        using var document = await GetAsync(path, comments: true, cancellationToken).ConfigureAwait(false);
+        using var document = await GetAsync(path, comments: true, source, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         if (!document.RootElement.TryGetProperty("comments", out var comments) || comments.ValueKind != JsonValueKind.Array)
-            throw new DandanPlayException("弹弹play 返回了无法识别的弹幕数据。");
+            throw new DandanPlayException($"{DanmakuSourceRules.SourceName(source)} 返回了无法识别的弹幕数据。");
         var result = new List<DanmakuComment>();
         foreach (var entry in comments.EnumerateArray())
         {
@@ -125,7 +135,8 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
         && uri.UserInfo.Length == 0 && (uri.IdnHost.Equals("api.dandanplay.net", StringComparison.OrdinalIgnoreCase)
             || uri.IdnHost.EndsWith(".dandanplay.net", StringComparison.OrdinalIgnoreCase));
 
-    private async Task<JsonDocument> GetAsync(string path, bool comments, CancellationToken cancellationToken)
+    private async Task<JsonDocument> GetAsync(string path, bool comments, DanmakuSource source,
+        CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(30));
@@ -135,32 +146,35 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
             await _requests.WaitAsync(deadline.Token).ConfigureAwait(false);
             entered = true;
 
-            // 内置凭据可能已被轮换：401/403 时丢掉缓存、换一份新凭据再试一次。
+            // 内置凭据可能已被轮换：401/403 时丢掉缓存、换一份新凭据再试一次。自定义来源没有可换的凭据。
             for (var attempt = 0; ; attempt++)
             {
-                var connection = await ResolveAsync(deadline.Token).ConfigureAwait(false);
+                var connection = await ResolveAsync(source, deadline.Token).ConfigureAwait(false);
                 deadline.Token.ThrowIfCancellationRequested();
-                // 应用弹幕是私有库；缓存按应用与凭据隔离，换应用不能沿用上一份数据或成功状态。
-                var cache = CachePath(connection.AppId, connection.Identity, path);
+                // 缓存按来源身份隔离：弹弹play 与 danmu_api 的 episodeId 可以重号，不能共用结果。
+                var cache = CachePath(connection.Identity, path);
                 if (TryReadCache(cache) is { } cached)
                 {
-                    try { return Parse(cached, comments, deadline.Token); }
+                    try { return Parse(cached, comments, source, deadline.Token); }
                     catch (DandanPlayException) { /* 损坏缓存不作为联网失败，重取这一份。 */ }
                 }
 
-                var uri = new Uri(ApiOrigin + path);
+                var uri = new Uri(connection.BaseUri, path.TrimStart('/'));
                 var retryAuthentication = false;
                 for (var redirects = 0; redirects <= 3; redirects++)
                 {
                     using var request = new HttpRequestMessage(HttpMethod.Get, uri);
                     request.Headers.Accept.ParseAdd("application/json");
-                    if (uri.IdnHost.Equals("api.dandanplay.net", StringComparison.OrdinalIgnoreCase))
+                    if (connection.Source == DanmakuSource.DandanPlay
+                        && uri.IdnHost.Equals("api.dandanplay.net", StringComparison.OrdinalIgnoreCase))
                     {
-                        Sign(request, connection.AppId, connection.Secret);
+                        Sign(request, connection.AppId!, connection.Secret!);
                     }
                     using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
-                    if (response.StatusCode is HttpStatusCode.MovedPermanently or HttpStatusCode.Redirect or HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect)
+                    if (IsRedirect(response.StatusCode))
                     {
+                        if (connection.Source != DanmakuSource.DandanPlay)
+                            throw new DandanPlayException("danmu_api 返回了跳转，已阻止。");
                         var location = response.Headers.Location;
                         if (!comments || location is null || redirects == 3) throw new DandanPlayException("弹弹play 返回了无效的跳转。");
                         uri = new Uri(uri, location);
@@ -169,22 +183,17 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
                     }
                     if (!response.IsSuccessStatusCode)
                     {
-                        if (attempt == 0
+                        if (connection.Source == DanmakuSource.DandanPlay && attempt == 0
                             && response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                         {
                             _credentials?.Invalidate();
                             retryAuthentication = true;
                             break;
                         }
-                        throw new DandanPlayException(response.StatusCode switch
-                        {
-                            HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => AuthenticationError(response),
-                            HttpStatusCode.TooManyRequests => "弹弹play 请求额度或频率受限，请稍后重试。",
-                            _ => $"弹弹play 请求失败（HTTP {(int)response.StatusCode}），请稍后重试。",
-                        });
+                        throw Failure(connection, response);
                     }
                     var bytes = await ReadBoundedAsync(response.Content, deadline.Token).ConfigureAwait(false);
-                    var parsed = Parse(bytes, comments, deadline.Token);
+                    var parsed = Parse(bytes, comments, source, deadline.Token);
                     TryWriteCache(cache, bytes);
                     return parsed;
                 }
@@ -194,25 +203,73 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new DandanPlayException("弹弹play 连接超时，请检查网络后重试。");
+            throw new DandanPlayException(source == DanmakuSource.DanmuApi
+                ? "danmu_api 连接超时，请检查地址与网络。"
+                : "弹弹play 连接超时，请检查网络后重试。");
         }
-        catch (HttpRequestException) { throw new DandanPlayException("无法连接弹弹play，请检查网络后重试。"); }
-        catch (IOException) { throw new DandanPlayException("读取弹弹play 响应失败，请检查网络后重试。"); }
-        catch (UriFormatException) { throw new DandanPlayException("弹弹play 返回了无效的跳转地址。"); }
+        catch (HttpRequestException)
+        {
+            throw new DandanPlayException(source == DanmakuSource.DanmuApi
+                ? "无法连接 danmu_api，请检查地址与网络。"
+                : "无法连接弹弹play，请检查网络后重试。");
+        }
+        catch (IOException)
+        {
+            throw new DandanPlayException(source == DanmakuSource.DanmuApi
+                ? "读取 danmu_api 响应失败，请检查网络后重试。"
+                : "读取弹弹play 响应失败，请检查网络后重试。");
+        }
+        catch (UriFormatException) { throw new DandanPlayException("弹幕服务返回了无效的跳转地址。"); }
         finally { if (entered) _requests.Release(); }
     }
 
-    private sealed record Connection(string AppId, string Secret, string Identity);
+    private sealed record Connection(DanmakuSource Source, Uri BaseUri, string Identity, string? AppId, string? Secret);
 
-    private async Task<Connection> ResolveAsync(CancellationToken cancellationToken)
+    private async Task<Connection> ResolveAsync(DanmakuSource source, CancellationToken cancellationToken)
     {
-        if (!_settings.Danmaku.Enabled) throw new DandanPlayException("请先在设置 → 弹幕 中开启弹弹play。");
-        if (_credentials is null) throw new DandanPlayException("内置弹幕凭据尚未配置，请稍后重试。");
-        var credential = await _credentials.GetAsync(cancellationToken).ConfigureAwait(false);
-        // 缓存按凭据身份隔离：端点换了一枚密钥，旧的搜索结果与成功状态不能继续沿用。
-        var identity = "builtin:" + credential.KeyId + ":" + Convert.ToHexStringLower(
-            SHA256.HashData(Encoding.UTF8.GetBytes(credential.Secret)));
-        return new(credential.AppId, credential.Secret, identity);
+        if (!_settings.Danmaku.Enabled) throw new DandanPlayException("请先在设置 → 弹幕 中启用弹幕。");
+        if (!DanmakuSourceRules.Includes(_settings.Danmaku.Source, source))
+            throw new DandanPlayException($"当前弹幕来源未包含 {DanmakuSourceRules.SourceName(source)}。");
+
+        if (source == DanmakuSource.DandanPlay)
+        {
+            if (_credentials is null) throw new DandanPlayException("内置弹幕凭据尚未配置，请稍后重试。");
+            var credential = await _credentials.GetAsync(cancellationToken).ConfigureAwait(false);
+            // 缓存按凭据身份隔离：端点换了一枚应用或密钥，旧的搜索结果与成功状态不能继续沿用。
+            var identity = "builtin:" + credential.KeyId + ":" + credential.AppId + ":" + Convert.ToHexStringLower(
+                SHA256.HashData(Encoding.UTF8.GetBytes(credential.Secret)));
+            return new(DanmakuSource.DandanPlay, new Uri(ApiOrigin + "/"), identity, credential.AppId, credential.Secret);
+        }
+
+        var token = DanmuApiToken.Unprotect(_protector, _settings.Danmaku.ProtectedDanmuApiToken, out var tokenError);
+        if (tokenError.Length > 0) throw new DandanPlayException(tokenError);
+        if (!DanmuApiEndpoint.TryCreate(_settings.Danmaku.DanmuApiBaseUrl, token, out var baseUri, out var addressError))
+            throw new DandanPlayException(addressError);
+        // 缓存身份包含地址和令牌摘要：换服务器或换令牌都不能复用上一份结果，也不能把令牌写进缓存名。
+        var customIdentity = "danmuapi:" + Convert.ToHexStringLower(SHA256.HashData(
+            Encoding.UTF8.GetBytes(baseUri.AbsoluteUri + "\n" + token)));
+        return new(DanmakuSource.DanmuApi, baseUri, customIdentity, null, null);
+    }
+
+    private static bool IsRedirect(HttpStatusCode status) => status is HttpStatusCode.MovedPermanently
+        or HttpStatusCode.Redirect or HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect;
+
+    private static DandanPlayException Failure(Connection connection, HttpResponseMessage response)
+    {
+        if (connection.Source == DanmakuSource.DanmuApi)
+            return new DandanPlayException(response.StatusCode switch
+            {
+                HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "danmu_api 鉴权失败，请检查访问令牌。",
+                HttpStatusCode.TooManyRequests => "danmu_api 请求过于频繁，请稍后再试。",
+                HttpStatusCode.NotFound => "danmu_api 没有找到这条弹幕库，请重新搜索。",
+                _ => $"danmu_api 请求失败（HTTP {(int)response.StatusCode}），请稍后重试。",
+            });
+        return new DandanPlayException(response.StatusCode switch
+        {
+            HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => AuthenticationError(response),
+            HttpStatusCode.TooManyRequests => "弹弹play 请求额度或频率受限，请稍后重试。",
+            _ => $"弹弹play 请求失败（HTTP {(int)response.StatusCode}），请稍后重试。",
+        });
     }
 
     private bool IsCurrent() => _settings.Danmaku.Enabled;
@@ -231,12 +288,13 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
         };
     }
 
-    private static JsonDocument Parse(byte[] bytes, bool comments, CancellationToken cancellationToken)
+    private static JsonDocument Parse(byte[] bytes, bool comments, DanmakuSource source, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        var name = DanmakuSourceRules.SourceName(source);
         JsonDocument document;
         try { document = JsonDocument.Parse(bytes); }
-        catch (JsonException) { throw new DandanPlayException("弹弹play 返回的数据不是有效的 JSON。"); }
+        catch (JsonException) { throw new DandanPlayException($"{name} 返回的数据不是有效的 JSON。"); }
         var root = document.RootElement;
         if (root.ValueKind != JsonValueKind.Object
             || root.TryGetProperty("success", out var success) && success.ValueKind == JsonValueKind.False
@@ -245,7 +303,7 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
         {
             document.Dispose();
             // 不回显服务器错误正文，避免代理把请求头或密钥夹回异常信息。
-            throw new DandanPlayException("弹弹play 拒绝了请求或返回了无效数据，请检查应用授权后重试。");
+            throw new DandanPlayException($"{name} 拒绝了请求或返回了无效数据。");
         }
         if (cancellationToken.IsCancellationRequested)
         {

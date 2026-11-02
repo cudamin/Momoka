@@ -40,14 +40,14 @@ public sealed partial class DandanPlayClient
         {
             await _requests.WaitAsync(deadline.Token).ConfigureAwait(false);
             entered = true;
-            connection = await ResolveAsync(deadline.Token).ConfigureAwait(false);
+            connection = await ResolveAsync(DanmakuSource.DandanPlay, deadline.Token).ConfigureAwait(false);
             // 排队期间可能已关闭服务；不能再向已关闭的服务发送。
             if (!IsCurrent())
                 throw new DandanPlayException("弹幕连接已改变，请重新选择弹幕库后发送。");
             using var request = new HttpRequestMessage(HttpMethod.Post,
                 new Uri(ApiOrigin + $"/api/v2/comment/{episodeId.ToString(CultureInfo.InvariantCulture)}/app"));
             request.Headers.Accept.ParseAdd("application/json");
-            Sign(request, connection.AppId, connection.Secret);
+            Sign(request, connection.AppId!, connection.Secret!);
             request.Content = new StringContent(JsonSerializer.Serialize(new
             { time, mode = 1, color = 0xFFFFFF, comment = text, userName = "Momoka" }), Encoding.UTF8, "application/json");
             deadline.Token.ThrowIfCancellationRequested();
@@ -95,7 +95,7 @@ public sealed partial class DandanPlayClient
             // 成功或结果不明都有可能写入，不能继续保留发送之前的 GET 缓存；不额外消耗一次读取额度。
             if (dispatched && connection is not null)
                 foreach (var related in new[] { false, true })
-                    try { File.Delete(CachePath(connection.AppId, connection.Identity, CommentPath(episodeId, related))); }
+                    try { File.Delete(CachePath(connection.Identity, CommentPath(episodeId, related))); }
                     catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
             if (entered) _requests.Release();
         }
@@ -112,6 +112,6 @@ public sealed partial class DandanPlayClient
     private static string CommentPath(long episodeId, bool related) =>
         $"/api/v2/comment/{episodeId.ToString(CultureInfo.InvariantCulture)}?withRelated={related.ToString().ToLowerInvariant()}&chConvert=0";
 
-    private string CachePath(string appId, string protectedSecret, string path) => Path.Combine(_cacheDirectory,
-        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(appId + "\n" + protectedSecret + "\n" + path))) + ".json");
+    private string CachePath(string identity, string path) => Path.Combine(_cacheDirectory,
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(identity + "\n" + path))) + ".json");
 }

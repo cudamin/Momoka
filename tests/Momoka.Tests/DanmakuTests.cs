@@ -728,6 +728,134 @@ internal static class DanmakuTests
             Assert.Equal("", DanmuApiToken.Unprotect(null, protectedText, out error));
             Assert.Contains("无法解密", error);
         });
+
+        Test("danmu_api：搜索走令牌路径、不签名、不碰内置凭据", () => InFixture(fixture =>
+        {
+            UseDanmuApi(fixture);
+            fixture.Transport.Response = _ => Reply(Search);
+            var result = fixture.Client.SearchAsync("测试作品", "1", DanmakuSource.DanmuApi).GetAwaiter().GetResult();
+            Assert.Equal(2, result.Episodes.Count);
+            var request = fixture.Transport.Requests.Single();
+            Assert.Equal("danmu.test", request.Uri.Host);
+            Assert.Equal(9321, request.Uri.Port);
+            Assert.Equal("/fixture-token/api/v2/search/episodes", request.Uri.AbsolutePath);
+            Assert.Contains(Uri.EscapeDataString("测试作品"), request.Uri.Query);
+            Assert.Contains("&episode=1", request.Uri.Query);
+            Assert.False(request.Headers.ContainsKey("X-AppId"));
+            Assert.False(request.Headers.ContainsKey("X-Timestamp"));
+            Assert.False(request.Headers.ContainsKey("X-Signature"));
+            Assert.False(request.Headers.ContainsKey("Authorization"));
+            Assert.DoesNotContain("fixture-secret", request.Uri.AbsoluteUri);
+        }));
+
+        Test("danmu_api：弹幕不签名，缓存按来源与地址隔离", () => InFixture(fixture =>
+        {
+            UseDanmuApi(fixture);
+            fixture.Settings.Danmaku.Source = DanmakuSourceMode.Both;
+            fixture.Transport.Response = request => request.Uri.Host == "danmu.test"
+                ? Reply("""{"count":1,"comments":[{"p":"1,1,0,[youku]","m":"来自 danmu_api"}]}""")
+                : Reply(Comments);
+            var dandan = fixture.Client.GetCommentsAsync(230001, false, DanmakuSource.DandanPlay).GetAwaiter().GetResult();
+            var custom = fixture.Client.GetCommentsAsync(230001, false, DanmakuSource.DanmuApi).GetAwaiter().GetResult();
+            Assert.Equal(3, dandan.Count);
+            Assert.Equal("来自 danmu_api", custom.Single().Text);
+            Assert.Equal(2, fixture.Transport.Requests.Count);
+            Assert.True(fixture.Transport.Requests[0].Headers.ContainsKey("X-Signature"));
+            Assert.False(fixture.Transport.Requests[1].Headers.ContainsKey("X-Signature"));
+            fixture.Client.GetCommentsAsync(230001, false, DanmakuSource.DandanPlay).GetAwaiter().GetResult();
+            fixture.Client.GetCommentsAsync(230001, false, DanmakuSource.DanmuApi).GetAwaiter().GetResult();
+            Assert.Equal(2, fixture.Transport.Requests.Count);
+            fixture.Settings.Danmaku.DanmuApiBaseUrl = "http://other.test:9321";
+            fixture.Client.GetCommentsAsync(230001, false, DanmakuSource.DanmuApi).GetAwaiter().GetResult();
+            Assert.Equal(3, fixture.Transport.Requests.Count);
+        }));
+
+        Test("danmu_api：地址无效、令牌解不开或来源未包含时不发请求", () => InFixture(fixture =>
+        {
+            fixture.Settings.Danmaku.Source = DanmakuSourceMode.DanmuApi;
+            var error = Assert.Catch<DandanPlayException>(() =>
+                fixture.Client.SearchAsync("测试", null, DanmakuSource.DanmuApi).GetAwaiter().GetResult());
+            Assert.Contains("服务地址", error.Message);
+            Assert.Equal(0, fixture.Transport.Requests.Count);
+
+            fixture.Settings.Danmaku.DanmuApiBaseUrl = "http://danmu.test:9321";
+            fixture.Settings.Danmaku.ProtectedDanmuApiToken = "not-a-cipher";
+            error = Assert.Catch<DandanPlayException>(() =>
+                fixture.Client.SearchAsync("测试", null, DanmakuSource.DanmuApi).GetAwaiter().GetResult());
+            Assert.Contains("无法解密", error.Message);
+            Assert.Equal(0, fixture.Transport.Requests.Count);
+
+            fixture.Settings.Danmaku.ProtectedDanmuApiToken = "";
+            fixture.Settings.Danmaku.Source = DanmakuSourceMode.DandanPlay;
+            error = Assert.Catch<DandanPlayException>(() =>
+                fixture.Client.SearchAsync("测试", null, DanmakuSource.DanmuApi).GetAwaiter().GetResult());
+            Assert.Contains("来源", error.Message);
+            Assert.Equal(0, fixture.Transport.Requests.Count);
+        }));
+
+        Test("danmu_api：401、403、404、限额与5xx只给来源提示，不回显正文", () => InFixture(fixture =>
+        {
+            UseDanmuApi(fixture);
+            foreach (var (status, text) in new[]
+            {
+                (HttpStatusCode.Unauthorized, "鉴权"), (HttpStatusCode.Forbidden, "鉴权"),
+                (HttpStatusCode.NotFound, "重新搜索"), (HttpStatusCode.TooManyRequests, "频繁"),
+                (HttpStatusCode.BadGateway, "HTTP 502")
+            })
+            {
+                fixture.Transport.Requests.Clear();
+                fixture.Transport.Response = _ => Reply("fixture-secret", status);
+                var error = Assert.Catch<DandanPlayException>(() =>
+                    fixture.Client.SearchAsync("测试", null, DanmakuSource.DanmuApi).GetAwaiter().GetResult());
+                Assert.Contains(text, error.Message);
+                Assert.DoesNotContain("fixture-secret", error.Message);
+                Assert.Equal(1, fixture.Transport.Requests.Count);
+            }
+        }));
+
+        Test("danmu_api：弹幕请求不跟随跳转", () => InFixture(fixture =>
+        {
+            UseDanmuApi(fixture);
+            fixture.Transport.Response = _ => Redirect("http://other.test/steal");
+            Assert.Throws<DandanPlayException>(() =>
+                fixture.Client.GetCommentsAsync(1, true, DanmakuSource.DanmuApi).GetAwaiter().GetResult());
+            Assert.Equal(1, fixture.Transport.Requests.Count);
+        }));
+
+        Test("danmu_api：match 发送 fileName，只取第一条匹配，未匹配返回空", () => InFixture(fixture =>
+        {
+            UseDanmuApi(fixture);
+            fixture.Transport.Response = _ => Reply("""
+                {"success":true,"errorCode":0,"isMatched":true,"matches":[
+                  {"episodeId":10198,"animeTitle":"测试作品(2025)","episodeTitle":"第1集"},
+                  {"episodeId":2,"animeTitle":"另一个","episodeTitle":"第1集"}]}
+                """);
+            var match = fixture.Client.MatchAsync("测试作品 (2025) S01E01").GetAwaiter().GetResult();
+            Assert.Equal(10198L, match!.EpisodeId);
+            Assert.Equal("测试作品(2025)", match.AnimeTitle);
+            var request = fixture.Transport.Requests.Single();
+            Assert.Equal(HttpMethod.Post, request.Method);
+            Assert.Equal("/fixture-token/api/v2/match", request.Uri.AbsolutePath);
+            Assert.False(request.Headers.ContainsKey("X-AppId"));
+            Assert.False(request.Headers.ContainsKey("X-Signature"));
+            using (var body = JsonDocument.Parse(request.Body))
+                Assert.Equal("测试作品 (2025) S01E01", body.RootElement.GetProperty("fileName").GetString());
+
+            fixture.Transport.Requests.Clear();
+            fixture.Transport.Response = _ => Reply("""{"success":true,"errorCode":0,"isMatched":false,"matches":[]}""");
+            Assert.Null(fixture.Client.MatchAsync("测试作品").GetAwaiter().GetResult());
+            Assert.Equal(1, fixture.Transport.Requests.Count);
+        }));
+
+        Test("danmu_api：缓存文件名和内容不含令牌", () => InFixture(fixture =>
+        {
+            UseDanmuApi(fixture);
+            fixture.Transport.Response = _ => Reply(Search);
+            fixture.Client.SearchAsync("测试", "1", DanmakuSource.DanmuApi).GetAwaiter().GetResult();
+            var file = Directory.GetFiles(fixture.Cache).Single();
+            Assert.DoesNotContain("fixture-token", Path.GetFileName(file));
+            Assert.DoesNotContain("fixture-token", File.ReadAllText(file));
+        }));
     }
 
     private static HttpResponseMessage Reply(string body, HttpStatusCode code = HttpStatusCode.OK) => new(code)
@@ -738,6 +866,14 @@ internal static class DanmakuTests
         var result = Reply("", HttpStatusCode.Redirect);
         result.Headers.Location = new Uri(url, UriKind.RelativeOrAbsolute);
         return result;
+    }
+
+    private static void UseDanmuApi(Fixture fixture, string address = "http://danmu.test:9321", string token = "fixture-token")
+    {
+        fixture.Settings.Danmaku.Source = DanmakuSourceMode.DanmuApi;
+        fixture.Settings.Danmaku.DanmuApiBaseUrl = address;
+        fixture.Settings.Danmaku.ProtectedDanmuApiToken =
+            token.Length == 0 ? "" : DanmuApiToken.Protect(fixture.Protector, token);
     }
 
     private static void InFixture(Action<Fixture> action, bool withoutCredentials = false)
@@ -774,6 +910,7 @@ internal static class DanmakuTests
         public Transport Transport { get; } = new();
         public string Cache => Path.Combine(_root, "cache");
         public FixedCredentialSource Credentials { get; } = new("fixture-app", "fixture-secret");
+        public PrefixProtector Protector { get; } = new();
         public DandanPlayBuiltInCredentialSource? BuiltIn { get; }
         public DandanPlayClient Client { get; }
 
@@ -783,11 +920,11 @@ internal static class DanmakuTests
         {
             Settings.Danmaku.Enabled = true;
             if (builtIn)
-                BuiltIn = new(new PrefixProtector(), Path.Combine(_root, "builtin-credential.bin"),
+                BuiltIn = new(Protector, Path.Combine(_root, "builtin-credential.bin"),
                     "https://credential.test/credential", BuiltInKey, Transport, () => Now);
             IDandanPlayCredentialSource? source = null;
             if (!withoutCredentials) source = BuiltIn is null ? Credentials : BuiltIn;
-            Client = new(Settings, Cache, Transport, () => Now, source);
+            Client = new(Settings, Cache, Transport, () => Now, source, Protector);
         }
 
         public void Dispose()
