@@ -209,7 +209,10 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         var readDates = order == MediaSourceOrder.NewestFirst && ids.Count > 1;
         // Only Emby's item DTO and hidden-version batch are confirmed to carry a per-file Size.
         var missing = Connection.ServerKind == MediaServerKind.Emby && item.IsPlayable
-            ? item.MediaSources.Where(source => source.Size is null or <= 0 && !string.IsNullOrWhiteSpace(source.ItemId)).ToList()
+            ? item.MediaSources.Where(source => source.Size is null or <= 0 && !string.IsNullOrWhiteSpace(source.ItemId)
+                // A later response omitting Path must not erase an already confirmed file mismatch.
+                && (source.ItemId != item.Id || string.IsNullOrEmpty(item.Path) || string.IsNullOrEmpty(source.Path)
+                    || string.Equals(item.Path, source.Path, StringComparison.Ordinal))).ToList()
             : [];
         if (!readDates && missing.Count == 0) return;
         if (!readDates) ids = missing.Select(source => source.ItemId).Distinct(StringComparer.Ordinal).ToList();

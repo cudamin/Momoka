@@ -284,6 +284,26 @@ internal static class MediaSourceSizeTests
             Assert.Equal("DateCreated", Query(replies.BatchRequests.Single())["Fields"]);
             Assert.Equal("alternate", item.MediaSources[0].Id);
         });
+        Test("版本体积补读：初始主条目路径已冲突时不被省略路径的补读覆盖", () =>
+        {
+            using var replies = new BatchReplies("""
+                {"Id":"movie","Type":"Movie","Size":1073741824,"Path":"/media/main.mkv","MediaSources":[
+                  {"Id":"file","ItemId":"movie","Path":"/media/different.mkv"}]}
+                """, """{"Items":[{"Id":"movie","Type":"Movie","Size":1073741824}]}""");
+            using var http = new EmbyHttp(replies);
+            Assert.Null(Read(http, MediaServerKind.Emby).MediaSources.Single().Size);
+            Assert.Equal(0, replies.BatchRequests.Count);
+        });
+        Test("版本体积补读：主条目缺大小但路径无冲突可按编号批补", () =>
+        {
+            using var replies = new BatchReplies("""
+                {"Id":"movie","Type":"Movie","Path":"/media/main.mkv","MediaSources":[
+                  {"Id":"file","ItemId":"movie","Path":"/media/main.mkv"}]}
+                """, """{"Items":[{"Id":"movie","Type":"Movie","Size":1073741824}]}""");
+            using var http = new EmbyHttp(replies);
+            Assert.Equal(1024L * 1024 * 1024, Read(http, MediaServerKind.Emby).MediaSources.Single().Size);
+            Assert.Equal(1, replies.BatchRequests.Count);
+        });
     }
 
     private const string MissingAlternate = """
