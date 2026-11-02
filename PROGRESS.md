@@ -1,3 +1,10 @@
+## 2026-11-02 接入 danmu_api 自部署弹幕来源（进行中，worktree feature/danmu-api）
+
+- 用户令：接入 huangxd-/danmu_api；每人自部署，Momoka 不提供服务；验收要求集成与独占实机播放可调用；与弹弹play 客户端合并。
+- 规格：可选第二来源 + 两者合并；自动匹配 `/api/v2/match` 带年份与集号核对；地址 + DPAPI 令牌；手动单源；danmu_api 下隐藏发送，合并只发弹弹play。
+- 进展：worktree `C:/Users/89400/Momoka-worktrees/danmu-api`，分支 `feature/danmu-api`。已提交 `09fc467` Core 来源/令牌、`a91a0c1` 客户端/match、`3e4a273` 匹配/合并、`02f7155` 播放页双源；设置页来源卡与探针已改。`--probe-shell --probe-section settings,playback` **33/33 通过、退出 0**（`shell-probe-20261102-072607200-18684`），覆盖来源切换、地址保存、单/双源发送栏与弹幕面板；Core 全套 **3578/3578**，Shell Release **0 警告 0 错误**，空白检查通过。
+- 待办：实机集成/独占播放（需用户指定片名与账号授权）、批次收尾发布、四道闸门、合并 master、清理 worktree；未推送 origin。
+
 ## 2026-11-02 聚合主页加载与刷新性能（已验证并交付桌面）
 
 - 用户令「优化聚合模式下的性能表现」，补充重点为「首页加载或刷新」。只改首页请求与货架更新；已有跨来源并发、内容排列、账号隔离和卡片数据刷新保留。
