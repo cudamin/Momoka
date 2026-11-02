@@ -785,8 +785,10 @@ public sealed partial class DetailPage : Page, IShellContent
         // 分界要贴在那一段最后一块的下沿上，而最后一块是哪一块跟着页面走：集页上剧情说明底下还接着同季那一带集
         // （「把集页面的剧情说明和集列表位置调换」），别的页面上剧情说明就是最后一块。问的是那一段现在真正的
         // 末尾，所以两种页面共用这一句 —— 写死读剧情说明的那一版会在集页上把这一条判成「分界没贴住」。
+        // CardTailGap 不算一块：它不是内容，是集页那块板底部给两个圆角留的一截板面（2026-11-02），下面按
+        // 「板面」把它加在该有的高里。
         var last = HeroTail.Children.OfType<FrameworkElement>()
-            .LastOrDefault(child => child.Visibility == Visibility.Visible);
+            .LastOrDefault(child => child.Visibility == Visibility.Visible && !ReferenceEquals(child, CardTailGap));
         var end = last is null
             ? tail.Bottom
             : last.TransformToVisual(root)
@@ -798,8 +800,12 @@ public sealed partial class DetailPage : Page, IShellContent
         var moved = Math.Abs(box.Top - tail.Bottom) < 0.5;
 
         // 尾部该多高：内容和「这一次该补多少」两者取大（见 DetailHero.TailHeight）。内容那一头按最后一块的
-        // 下沿加上尾部自己的下留白算 —— 那就是不撑的时候这一段的高。
-        var content = last is null ? HeroTail.ActualHeight : end - tail.Top + HeroTail.Padding.Bottom;
+        // 下沿加上尾部自己的下留白算 —— 那就是不撑的时候这一段的高。集页宽版式提拉的量可以大过尾部自己那点
+        // 内容（说明很短、封面很高时），那一块被负边距推到尾部上沿以上：竖排面板对这样的一格按 0 记账，下一块
+        // 接着排在同一个位置上，所以这里也取 0，再加上板底那一格。
+        var content = last is null
+            ? HeroTail.ActualHeight
+            : Math.Max(0, end - tail.Top) + HeroTail.Padding.Bottom + CardTailGap.ActualHeight;
         var want = Math.Max(content, ViewModel.TailMinHeight);
         var snug = Math.Abs(HeroTail.ActualHeight - want) < 0.5;
 

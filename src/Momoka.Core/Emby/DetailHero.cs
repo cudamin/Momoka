@@ -558,6 +558,56 @@ public static class DetailHero
         immersive ? 0 : TailHeight(viewport, heroHeight, artwork, paperLine, pictureBottom);
 
     /// <summary>
+    /// 「剩余 x 分钟」那一行到剧情说明之间留的空 ——「接到 剩余18分钟下面（多留点空位）」（2026-11-02）。
+    /// </summary>
+    public const double OverviewGap = 32;
+
+    /// <summary>
+    /// 集页那块板最后给圆角留的收尾高度（尾部那一段最下面一格）。
+    /// <para>
+    /// 板底那两个圆角是 16，要画出来就得在字底下真的留出 16 的板面 —— 说明被提上去之后（<see
+    /// cref="TailPull"/>）尾部自己的高可能收成一截都没有，那时候屏上看到的是一块直角的板。收尾格吃住的正是
+    /// 这一档：说明自己只留 8，<c>8 + 16 = 24</c> 就是用户 2026-11-02 那句「自动剪裁下方空位（留点空位）」
+    /// 里的「一点空位」。
+    /// </para>
+    /// </summary>
+    public const double CardTailGap = 16;
+
+    /// <summary>
+    /// 集页宽版式：尾部那一段为了让剧情说明落在「剩余 x 分钟」底下 <see cref="OverviewGap"/> 处，要往上提多少 ——
+    /// <c>TailContent</c> 的负上边距，0 表示不提。
+    /// <para>
+    /// 集页的带高按「封面和片名那一叠取大」给（<see cref="EpisodeHeight"/>）。封面高过那一叠时，多出来的那一截落在
+    /// 带子底下、片名那一栏以外的左侧；剧情说明原本接在带子下沿之后，于是它离「剩余 x 分钟」隔着一整截空气
+    /// （2026-11-02 用户圈出来的那块红框）。提的量让剧情说明的顶落在那叠底下 <paramref name="gap"/> 处：多出来的
+    /// 那一截由尾部负的上边距吃掉，尾部自己的高随之少同样多，纸面／板底跟着内容收（「自动剪裁下方空位」）。
+    /// </para>
+    /// <para>
+    /// 只算宽版式集页（调用方判）；<paramref name="stackRoom"/> 是 0（还没量到那一叠）时给 0 —— 第一拍按原版面布，
+    /// 量到之后再来一次，不拿一个猜的数把内容提上去。要的空比尾部自己那几道上边距还大时也不倒着提。
+    /// </para>
+    /// </summary>
+    /// <param name="heroHeight">带子的高（<see cref="EpisodeHeight"/> 那个数）。</param>
+    /// <param name="heroInsetTop">带子上沿到内容之间的留白（<c>DetailViewModel.HeroInset.Top</c>）。</param>
+    /// <param name="stackRoom">片名那一叠实测的高（<c>DetailViewModel.StackRoom</c>）。</param>
+    /// <param name="tailInsetTop">尾部那一段自己的上留白（<c>DetailViewModel.TailInset.Top</c>）。</param>
+    /// <param name="panelPaddingTop">剧情说明那一块自己的上内边距（<c>DetailViewModel.OverviewPanelPadding.Top</c>）。</param>
+    /// <param name="gap">「剩余 x 分钟」到剧情说明之间要留的空，通常就是 <see cref="OverviewGap"/>。</param>
+    public static double TailPull(
+        double heroHeight,
+        double heroInsetTop,
+        double stackRoom,
+        double tailInsetTop,
+        double panelPaddingTop,
+        double gap)
+    {
+        if (!(heroHeight > 0) || !(stackRoom > 0) || !(gap >= 0)) return 0;
+
+        var bandExtra = Math.Max(0, heroHeight - Math.Max(0, heroInsetTop) - stackRoom);
+        return Math.Max(0, bandExtra + Math.Max(0, tailInsetTop) + Math.Max(0, panelPaddingTop) - gap);
+    }
+
+    /// <summary>
     /// 纸面上沿那条线对应的<em>窗口</em>高，跟着显示器走 —— 用户原话（2026-09-05）：「显示器分别为4k时设定为
     /// 1920×1080 2k时1600×900 1080p时1366×768」，接在他前一句「窗口大于1600*900后开始显示下方的黑边，
     /// 小于1600*900时海报占满整个窗口」后面。判的是<em>显示器</em>（这张屏有多大），给的是<em>窗口</em>

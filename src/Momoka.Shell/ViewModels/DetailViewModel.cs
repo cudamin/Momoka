@@ -269,6 +269,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DirectorsVisibility))]
     [NotifyPropertyChangedFor(nameof(OverviewVisibility))]
+    [NotifyPropertyChangedFor(nameof(TailMargin))]
     public partial string? Directors { get; set; }
 
     [ObservableProperty]
@@ -363,6 +364,9 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroContentAlignment))]
     [NotifyPropertyChangedFor(nameof(ColumnActionsVisibility))]
     [NotifyPropertyChangedFor(nameof(WideProgressVisibility))]
+    [NotifyPropertyChangedFor(nameof(TailMargin))]
+    [NotifyPropertyChangedFor(nameof(CardTailGapHeight))]
+    [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
     public partial double PageWidth { get; set; }
 
     /// <summary>
@@ -543,6 +547,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
+    [NotifyPropertyChangedFor(nameof(TailMargin))]
     public partial double StillHeight { get; set; }
 
     /// <summary>
@@ -564,6 +569,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
+    [NotifyPropertyChangedFor(nameof(TailMargin))]
     public partial double CornerHeight { get; set; }
 
     /// <summary>
@@ -659,6 +665,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
     [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
+    [NotifyPropertyChangedFor(nameof(TailMargin))]
     public partial double StackRoom { get; set; }
 
     /// <summary>
@@ -937,10 +944,16 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 和底下 <see cref="TailInset"/> 那 48 同一竖线，海报、片名、播放键和音轨那一行因此全落在板的同一条
     /// 边上。60 那一档的讲究是「压在剧照上的内容多让一点」，而板上没有剧照要躲。
     /// </para>
+    /// <para>
+    /// 集页宽版式连底下那道 16 也收成 0（2026-11-02「自动剪裁下方多余的空白区域」）：剧情说明提上去之后
+    /// （见 <see cref="TailMargin"/>），带子底下那一道留白已经没有任何东西可隔 —— 它只剩下封面下沿到板底之间
+    /// 的一截空气。板底要的那「少量边距」由 <see cref="CardTailGapHeight"/> 那 16 和说明自己的 8 出，所以这里
+    /// 归零不会让字贴到板沿上。其余页面照旧 16／24。
+    /// </para>
     /// </summary>
     public Thickness HeroInset => IsCompact
         ? new(20, 20, 20, 16)
-        : new(HeroCard ? 48 : 60, 28, HeroCard ? 48 : 60, IsEpisodePage ? 16 : 24);
+        : new(HeroCard ? 48 : 60, 28, HeroCard ? 48 : 60, HeroCard ? 0 : IsEpisodePage ? 16 : 24);
 
     /// <summary>
     /// 带子底下那一段的内边距。同 <see cref="HeroInset"/>：集页把上面那道收到 12，那一叠键和「音频」
@@ -957,8 +970,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// <para>
     /// 集页那块板上（<see cref="HeroCard"/>）左右同样收到 48（28 的板沿加 20 的内边距，两处同一竖线），
-    /// 底下给到 20 —— 那 20 就是板和它里面最后那一块之间的缝。板底到正文纸面之间不再另留：纸面和页底色
-    /// 是同一支画刷，留一段也看不出来。
+    /// 底下给到 0 —— 那一块最后只剩剧情说明，而说明被提上去之后（见 <see cref="TailMargin"/>），板底到字之间
+    /// 只剩说明自己的 8 加尾部最后那一格的 16（<see cref="OverviewPanelPadding"/>／<see
+    /// cref="CardTailGapHeight"/>）：用户 2026-11-02 要的「剪裁下方空位、留点空位」。
     /// </para>
     /// <para>
     /// 集页的宽版式再往右挪一栏（<see cref="StackLeft"/>）：那一页这一段里只剩剧情说明（音频字幕搬进片名
@@ -969,8 +983,48 @@ public sealed partial class DetailViewModel : PageViewModel
     public Thickness TailInset => IsCompact
         ? new(2, 12, 2, 8)
         : HeroCard
-            ? new(StackLeft, 12, StackLeft, 20)
+            ? new(StackLeft, 12, StackLeft, 0)
             : new(20, IsEpisodePage ? 12 : 14, 20, 4);
+
+    /// <summary>
+    /// 集页宽版式：剧情说明那一块的顶要落在「剩余 x 分钟」底下 —— 尾部那一段（<c>TailContent</c>）的负上边距；
+    /// 别的页面、紧凑版式、没量到那一叠、没有剧情说明时都是 0。
+    /// <para>
+    /// 集页的带高按封面和片名那一叠取大（<see cref="HeroHeight"/>）；封面高过那一叠时，带子底下多出来的那一截全落在
+    /// 片名那一栏以外的左侧空气里，而剧情说明原本接在带子下沿之后 —— 它离「剩余 x 分钟」隔着一整截空气
+    /// （2026-11-02 用户圈出来的那块红框）。提的量见 <see cref="DetailHero.TailPull"/>，正好让说明的顶落在那一叠
+    /// 底下 <see cref="DetailHero.OverviewGap"/> 处；提上来的量同时从尾部自己的高里扣掉，所以板底（<c>HeroTail</c>
+    /// 的下沿）跟着内容收 ——「自动剪裁下方空位」。字底下那「一点空位」是说明自己的 <see
+    /// cref="OverviewPanelPadding"/> 那 8 加尾部最后那一格 <see cref="CardTailGapHeight"/> 的 16：单靠说明那 8
+    /// 撑不出板底那两个 16 的圆角，尾巴收成直角就不像这块板了。
+    /// </para>
+    /// <para>
+    /// 负边距把这一块画到带子下沿以上：那一段背后是集页那块大板的上半截（<c>HeroCardTop</c>，和尾部那张底同一个
+    /// 画刷），接缝看不出来；封面在左、说明在片名那一栏的竖线上，两者不重叠。
+    /// </para>
+    /// </summary>
+    public Thickness TailMargin
+    {
+        get
+        {
+            if (!HeroCard || OverviewVisibility != Visibility.Visible) return default;
+
+            var pull = DetailHero.TailPull(
+                HeroHeight, HeroInset.Top, StackRoom, TailInset.Top, OverviewPanelPadding.Top, DetailHero.OverviewGap);
+
+            return pull > 0 ? new Thickness(0, -pull, 0, 0) : default;
+        }
+    }
+
+    /// <summary>
+    /// 尾部最下面那一格的高（<c>CardTailGap</c>）—— 只在集页那块宽版式的板上出现，别的页面是 0，不占一像素。
+    /// <para>
+    /// 它不是又一段留白，是给板底那两个圆角撑出来的一截板面：<see cref="TailMargin"/> 把尾部整段往上提，提得多时
+    /// 尾部自己的高所剩无几，<c>HeroCardBottom</c> 跟着矮，屏上就是一块下沿直角的板。留 16（= 那一份圆角半径），
+    /// 圆角照旧画得出来，而字到板底仍然是 <see cref="OverviewPanelPadding"/> 那 8 加这一格的 16。
+    /// </para>
+    /// </summary>
+    public double CardTailGapHeight => HeroCard ? DetailHero.CardTailGap : 0d;
 
     /// <summary>
     /// 尾部那几块（文件选项、播放那排键和进度、剧情说明）之间的竖距（<c>TailContent.Spacing</c>）——
@@ -1004,6 +1058,16 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// </summary>
     public Thickness TailPanelPadding => IsCompact || Showcase ? new(24, 8, 24, 8) : new(24);
+
+    /// <summary>
+    /// 剧情说明那一块自己的上下内边距 —— 集页宽版式底下收成 8。
+    /// <para>
+    /// 说明被提上去之后（<see cref="TailMargin"/>），板底由尾部最后那 16 的收尾格（<c>CardTailGap</c>，专门给
+    /// 圆角留的高度）画圆角；8 + 16 = 24 就是「剪裁下方空位（留点空位）」那一句里的「一点空位」。其余页面
+    /// 用 <see cref="TailPanelPadding"/> 那一份，一个数都不动。
+    /// </para>
+    /// </summary>
+    public Thickness OverviewPanelPadding => HeroCard ? new(24, 24, 24, 8) : TailPanelPadding;
 
     /// <summary>
     /// 正文纸面那一层的内边距（<c>BodySheet.Padding</c>）—— 紧凑版式上下收一档，左右照旧 28。
@@ -1617,6 +1681,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(OverviewVisibility))]
+    [NotifyPropertyChangedFor(nameof(TailMargin))]
     public partial string? Overview { get; set; }
 
     /// <summary>
@@ -2074,6 +2139,9 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(PictureFadeMargin));
         OnPropertyChanged(nameof(HeroInset));
         OnPropertyChanged(nameof(TailInset));
+        OnPropertyChanged(nameof(TailMargin));
+        OnPropertyChanged(nameof(OverviewPanelPadding));
+        OnPropertyChanged(nameof(CardTailGapHeight));
         OnPropertyChanged(nameof(HeroRoom));
 
         // 集页那块面板、以及它替掉的两层（头图的底色和带子下沿的罩子），三句判据里都有一句是「这一页是不是

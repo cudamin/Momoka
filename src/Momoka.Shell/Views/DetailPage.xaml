@@ -958,10 +958,16 @@
                         MinHeight="{x:Bind ViewModel.TailMinHeight, Mode=OneWay}"
                         SizeChanged="OnHeroTailSizeChanged">
                     <!-- 这里从前也包着一层 Viewbox（同 HeroLayout 那层的来历）：缩放恒为 1 之后它只余变换
-                         祖先一件事，紧凑版式的文件选项下拉也在它下面，一并拆掉（2026-09-12）。 -->
+                         祖先一件事，紧凑版式的文件选项下拉也在它下面，一并拆掉（2026-09-12）。
+                         Margin 是集页宽版式那一道提拉（2026-11-02）：封面比片名那一叠高时，带子底下多出来的
+                         那一截原本全落在剧情说明头上；负的上边距把这一整段提上去，说明的顶落在「剩余 x 分钟」
+                         底下 OverviewGap 处。提上来的那一段画在板的上半截前面（同一个画刷），尾部自己的高跟着
+                         少同样多 —— 板底和纸面跟着内容收（「自动剪裁下方空位」）。别的页面／紧凑版式是 0，
+                         一个像素不动。见 DetailViewModel.TailMargin。 -->
                     <StackPanel
                         x:Name="TailContent"
                         Width="{x:Bind ViewModel.HeroLayoutWidth, Mode=OneWay}"
+                        Margin="{x:Bind ViewModel.TailMargin, Mode=OneWay}"
                         Padding="{x:Bind ViewModel.TailInset, Mode=OneWay}"
                         Spacing="{x:Bind ViewModel.TailSpacing, Mode=OneWay}">
 
@@ -1254,13 +1260,17 @@
                              这是压在图上的最后一块：用户画的那条红线就在它的下沿，往下才换成主题的纸色。所以它的
                              位置是自检要读的一个数（BodySeal：纸的上沿必须紧跟在这一块底下，只隔尾部那 8 的余量），
                              它有没有框也在那儿读（Rings）。展开简介、下拉显隐、窗口换宽都会挪动这条线，挪完由
-                             OnHeroTailSizeChanged 重画标题栏那一条。 -->
+                             OnHeroTailSizeChanged 重画标题栏那一条。
+
+                             集页的宽版式上这一块被 TailContent 的负边距提上去（2026-11-02）：说明顶落在
+                             「剩余 x 分钟」底下 32，底下收成 8 —— 加上尾部最后那一格 CardTailGap 的 16，字到板底
+                             还是 24，而那 16 同时把板底那两个圆角撑了出来。「自动剪裁下方空位」。 -->
                         <StackPanel
                             x:Name="OverviewPanel"
                             Style="{StaticResource EgBodyPanelStyle}"
                             Background="Transparent"
                             BorderThickness="0"
-                            Padding="{x:Bind ViewModel.TailPanelPadding, Mode=OneWay}"
+                            Padding="{x:Bind ViewModel.OverviewPanelPadding, Mode=OneWay}"
                             Spacing="2"
                             Visibility="{x:Bind ViewModel.OverviewVisibility, Mode=OneWay}">
                             <TextBlock
@@ -1291,6 +1301,16 @@
                                 Visibility="{x:Bind ViewModel.DirectorsVisibility, Mode=OneWay}" />
                         </StackPanel>
                     </StackPanel>
+
+                    <!-- 板底最后那一格 —— 专门给 <c>HeroCardBottom</c> 那两个 16 的圆角撑出一点板面。
+                         TailContent 被负的上边距提上去以后（2026-11-02 那一令），尾部自己的高跟着收，收得多时
+                         这一格只剩零，板底就在屏上画成了一块直角（1280 实拍看出来的那处回归）。留 16（= 圆角
+                         半径），圆角照旧画得出来；字到板底是说明自己那 8 加这一格的 16，仍是「留点空位」。
+                         不是集页那块板时高是 0，别的页面一像素都不占。判据见 DetailViewModel.CardTailGapHeight。 -->
+                    <Border
+                        x:Name="CardTailGap"
+                        Height="{x:Bind ViewModel.CardTailGapHeight, Mode=OneWay}"
+                        IsHitTestVisible="False" />
                     </StackPanel>
 
                     <!-- ============ 真正的正文纸面 ============ -->

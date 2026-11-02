@@ -51,6 +51,39 @@ internal sealed partial class ShellNavigationProbe
         episode.Name = "离线单集 · 集页封面与窄窗背景";
         episode.SeriesName = series.Name;
         episode.ParentIndexNumber = 1;
+        // 断点与一段两行的简介：宽版式上「剩余 x 分钟」那一行、以及被提上去的剧情说明都要有实底可量
+        // （2026-11-02「接到 剩余18分钟下面」）。
+        episode.RunTimeTicks = TimeSpan.FromMinutes(23).Ticks;
+        episode.UserData = new() { PlaybackPositionTicks = TimeSpan.FromMinutes(5).Ticks };
+        episode.Overview = "为了查明充满谜团的有栖的真实身份，梅和绽决定偷偷观察她的日常生活。"
+            + "没想到两人趁机翻找有栖的随身物品时，有栖竟然回来了！？这下该怎么办！？";
+        // 两条媒体源、两条音轨：用户的集页上就有「视频：…」和音频那一颗下拉（2026-11-02 那张截图），
+        // 它们把片名那一叠撑高 —— 说明提上去之后离板底还剩多少，正是在这一档上量的「自动剪裁下方空白」。
+        // 没有它们的那一版夹具里那一叠只有两百四十来高，读数上的余量比真页面上大一截。
+        episode.MediaSources =
+        [
+            new()
+            {
+                Id = "source-a",
+                Name = "离线版本 · 1080p",
+                Size = 385L * 1024 * 1024,
+                Container = "mkv",
+                MediaStreams =
+                [
+                    new() { Index = 0, Type = "Video", Codec = "h264", Width = 1920, Height = 1080 },
+                    new() { Index = 1, Type = "Audio", DisplayTitle = "Japanese · AAC stereo", IsDefault = true },
+                    new() { Index = 2, Type = "Audio", DisplayTitle = "Chinese · AAC stereo" }
+                ]
+            },
+            new()
+            {
+                Id = "source-b",
+                Name = "离线版本 · 720p",
+                Size = 180L * 1024 * 1024,
+                Container = "mkv",
+                MediaStreams = [new() { Index = 0, Type = "Video", Codec = "h264", Width = 1280, Height = 720 }]
+            }
+        ];
 
         // 封面取的是剧集那一层的主图（「集页面的封面改用剧页面的封面」），背景图借的也是剧集那一层 ——
         // 服务器把剧集的背景图挂在 ParentBackdrop 那一对字段上，单集自己是拿不到那张图的。
@@ -152,13 +185,55 @@ internal sealed partial class ShellNavigationProbe
                 var sheet = Get<StackPanel>(page, "BodySheet");
                 Require(Math.Abs(tail.Spacing - view.TailSpacing) < 0.01,
                     $"{width} 这一档尾部三块之间的竖距没绑上：控件 {tail.Spacing:0.##} 对视图模型 {view.TailSpacing:0.##}");
-                Require(pickers.Padding == view.TailPanelPadding && overview.Padding == view.TailPanelPadding,
+                Require(pickers.Padding == view.TailPanelPadding && overview.Padding == view.OverviewPanelPadding,
                     $"{width} 这一档文件选项／剧情说明的内边距没绑上：{pickers.Padding}、{overview.Padding}"
-                        + $" 对 {view.TailPanelPadding}");
+                        + $" 对 {view.TailPanelPadding}／{view.OverviewPanelPadding}");
                 Require(sheet.Padding == view.SheetPadding,
                     $"{width} 这一档纸面的内边距没绑上：{sheet.Padding} 对 {view.SheetPadding}");
                 Require(Math.Abs(sheet.Spacing - view.SheetSpacing) < 0.01,
                     $"{width} 这一档纸面上几块的竖距没绑上：控件 {sheet.Spacing:0.##} 对视图模型 {view.SheetSpacing:0.##}");
+
+                // 2026-11-02「把集页面下方的剧情说明接到 剩余18分钟下面（多留点空位），然后自动剪裁下方空位
+                // （留点空位）」：宽版式上说明的顶落在「剩余 x 分钟」底下 32，板底下沿只剩说明自己的 8 加收尾格
+                // 的 16（那 16 是给板底那两个圆角撑出来的板面）；紧凑版式不提拉（那一档的进度和说明本来就排在
+                // 同一条单列里），收尾格也不占高。
+                var overviewText = Get<TextBlock>(page, "Overview");
+                var textTop = overviewText.TransformToVisual(page).TransformPoint(default).Y;
+                var textBottom = textTop + overviewText.ActualHeight;
+                var cardGap = Get<Border>(page, "CardTailGap");
+                if (compact)
+                {
+                    Require(view.TailMargin == default,
+                        $"{width} 这一档紧凑版式不该提拉剧情说明：{view.TailMargin}");
+                    Require(Math.Abs(cardGap.ActualHeight) < 0.01,
+                        $"{width} 这一档紧凑版式那块板不存在，收尾格却占了 {cardGap.ActualHeight:0.##}");
+                }
+                else
+                {
+                    var actions = Get<StackPanel>(page, "ColumnActions");
+                    var actionsBottom = actions.TransformToVisual(page).TransformPoint(default).Y + actions.ActualHeight;
+                    var heroTail = Get<StackPanel>(page, "HeroTail");
+                    var tailTop = heroTail.TransformToVisual(page).TransformPoint(default).Y;
+                    var cardBottom = tailTop + heroTail.ActualHeight;
+                    var foot = cardGap.ActualHeight;
+                    var gap = textTop - actionsBottom;
+                    var under = cardBottom - textBottom;
+                    var wantBottom = Math.Max(tailTop + foot, textBottom + view.OverviewPanelPadding.Bottom + foot);
+                    Require(view.TailMargin.Top < -1,
+                        $"{width} 这一档宽版式没有提拉剧情说明：{view.TailMargin}");
+                    Require(Math.Abs(gap - DetailHero.OverviewGap) < 1.5,
+                        $"{width} 这一档剧情说明离「剩余 x 分钟」{gap:0.#}，该是 {DetailHero.OverviewGap:0.#}");
+                    Require(Math.Abs(foot - DetailHero.CardTailGap) < 0.01,
+                        $"{width} 这一档板底的收尾格 {foot:0.##}，该是 {DetailHero.CardTailGap:0.##}"
+                            + "（不足 16 板底那两个圆角就画不出来）");
+                    Require(Math.Abs(cardBottom - wantBottom) < 1.5,
+                        $"{width} 这一档板底下沿 {cardBottom:0.#} 没贴住内容（该是 {wantBottom:0.#}：说明底 {textBottom:0.#} 加面板的"
+                            + $" {view.OverviewPanelPadding.Bottom:0.#} 再加收尾格 {foot:0.#}，或带子底下 {tailTop:0.#}）");
+                    Require(under >= DetailHero.CardTailGap - 0.01,
+                        $"{width} 这一档字到板底只剩 {under:0.#}，板底那两个 16 的圆角画不出来");
+                    readings.Add($"{width} 提拉 {view.TailMargin.Top:0.#}，说明距剩余 {gap:0.#}，板底留 {under:0.#}"
+                        + $"（说明自己 {view.OverviewPanelPadding.Bottom:0.#}＋收尾格 {foot:0.#}）");
+                }
 
                 // 紧凑档那几个数就是用户要的那一档（8／8／14），宽版式照旧（12／24／20）。
                 var wantTail = compact ? 8d : 12d;

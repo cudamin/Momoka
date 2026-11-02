@@ -1618,6 +1618,38 @@ internal static class ItemDetailTests
             }
         });
 
+        // 「把集页面下方的剧情说明接到 剩余18分钟下面（多留点空位），然后自动剪裁下方空位（留点空位）」
+        // （2026-11-02 用户，红框圈的是带子底下那截空气）：集页的带高按封面和片名那一叠取大，封面高过那一叠时，
+        // 多出来的那一截全落在带子底下 —— 而剧情说明原本接在带子下沿之后，离「剩余 x 分钟」就隔着一整截空气。
+        // 这一支算的是尾部那一段要往上提多少，正好让说明的顶落在那一叠底下 OverviewGap 处；提上来的量同时从
+        // 尾部自己的高里扣掉，纸面／板底于是跟着内容收（「自动剪裁下方空位」）。
+        Test("集页尾部：剧情说明提到「剩余 x 分钟」底下", () =>
+        {
+            const double insetTop = 28d;   // 集页带子的上留白
+            const double tailTop = 12d;    // 尾部那一段自己的上留白
+            const double panelTop = 24d;   // 剧情说明那一块的上内边距
+
+            // 封面 375、带子上留 28、底下收到 0（带高 403），字键那一叠实量 335：带子底下多出来的 40 就是要提的
+            // 那一截。原来说明顶落在那一叠底下 40 + 12 + 24 = 76；提 44 之后落在 32。
+            Assert.Equal(44d, DetailHero.TailPull(403, insetTop, 335, tailTop, panelTop, DetailHero.OverviewGap));
+            Assert.Equal(DetailHero.OverviewGap, 40d + tailTop + panelTop - 44d);
+
+            // 那一叠长过封面时带子正好就是那一叠（没有多出来的那一截）：只剩尾部自己那两道上边距比
+            // OverviewGap 多出来的 4，提量跟着收，说明仍旧落在那一叠底下 32，而不是被带子底下的空气推下去。
+            Assert.Equal(4d, DetailHero.TailPull(380, insetTop, 352, tailTop, panelTop, DetailHero.OverviewGap));
+
+            // 还没量到那一叠（0）不提 —— 第一拍按原版面布，量到之后再来一次。
+            Assert.Equal(0d, DetailHero.TailPull(403, insetTop, 0, tailTop, panelTop, DetailHero.OverviewGap));
+            Assert.Equal(0d, DetailHero.TailPull(0, insetTop, 335, tailTop, panelTop, DetailHero.OverviewGap));
+
+            // 要的空比尾部自己那两道上边距加上带子多出来的那一截还大时也不倒着提（不出正边距把说明推下去）。
+            Assert.Equal(0d, DetailHero.TailPull(403, insetTop, 335, tailTop, panelTop, 400));
+
+            // 提上去之后说明底下只剩面板自己的 8，靠尾部最后那一格把板底撑到能画 16 的圆角：8 + 16 合起来
+            // 才是「留点空位」的那 24（DetailViewModel.OverviewPanelPadding 的底 + CardTailGap）。
+            Assert.Equal(24d, 8d + DetailHero.CardTailGap);
+        });
+
         // 「显示器分别为4k时设定为1920×1080 2k时1600×900 1080p时1366×768」—— 阈值窗口跟着显示器走。
         // 判的是显示器这张屏有多大，给的是窗口多高开始露黑边；宽度不参与（黑边是竖着的事，带鱼屏按高算）。
         Test("纸面那条线：跟着显示器分三档", () =>
