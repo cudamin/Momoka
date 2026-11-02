@@ -68,6 +68,7 @@
                     navigationEntry +
                     // The run body closes the shortcut probe windows it opened; the fixture only needs a type that closes.
                     "    private readonly System.Collections.Generic.List<FixtureProbeWindow> _shortcutProbeWindows = [];\n" +
+                    "    private readonly System.Collections.Generic.List<FixtureProbeWindow> _openingProbeWindows = [];\n" +
                     navigationRun +
                     "        async Task RunChecksAsync()\n        {\n            _window = _options.Window;\n" +
                     "            await _options.ShellBody((name, ok, section) => CaseAsync(name, () => ok ? Task.CompletedTask :\n" +

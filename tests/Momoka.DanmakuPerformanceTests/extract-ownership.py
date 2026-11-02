@@ -9,7 +9,7 @@ parser.add_argument('--output', type=Path, required=True)
 args = parser.parse_args()
 source = args.root.resolve() / 'src/Momoka.Shell/ViewModels/PlayerViewModel.Danmaku.cs'
 text = source.read_text(encoding='utf-8')
-start = '    internal async Task LoadDanmakuAsync(DandanPlayEpisode episode)'
+start = '    internal Task LoadDanmakuAsync(DandanPlayEpisode episode) =>'
 end = '    private async Task PushDanmakuAsync()'
 if text.count(start) != 1 or text.count(end) != 1:
     raise SystemExit('Production danmaku ownership method boundaries changed; inspect before updating fixture.')

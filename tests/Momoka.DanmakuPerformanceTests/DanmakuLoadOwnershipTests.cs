@@ -16,7 +16,13 @@ internal sealed partial class PlayerViewModel(DandanPlayClient client, AppSettin
     private readonly int _danmakuSerial = 1;
     private IReadOnlyList<DanmakuComment> _danmakuComments = [];
     private DandanPlayEpisode? _danmakuEpisode;
+    private DandanPlayEpisode? _danmakuDanmuApiEpisode;
     private bool _danmakuFetched;
+    private int _danmakuDandanCount;
+    private int _danmakuDanmuApiCount;
+    private string _danmakuLabel = "";
+    private string _danmakuWarning = "";
+    private string _danmakuSourceSummary = "";
     internal AppSettings Settings { get; } = settings;
     internal bool DanmakuAvailable { get; set; } = true;
     internal string DanmakuStatus { get; set; } = "";

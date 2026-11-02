@@ -217,3 +217,7 @@ PERF-04/09源提交2b3fea8只修改Events.cs的封面取消、客户端有界解
 整段收尾上限反证修复后再定点复核LibMpvBackend一项source pin：从`c26eebec5280e0ee1e647a733cd713164c6c9b195d04b84f5596a7dbc8a0611e`到`55d3403df9640de0ef94f623cd2e80c46b5149a729a144940371d7e7688d9801`，所有提取方法与其他18份来源不动。40項全handle/gate提供新的gate/quit阻塞覆盖；caller仍54项及10拒绝控制必须当前重跑。
 
 弹幕全客户端关停排空接入PlayerViewModel.ShutdownPlaybackAsync后，只同步这一份源SHA：`7981274a1cc521e66a18e16732e6f15f24388acd52dd74b63d58fadcb02494b0`→`d3279a1db368711eb22ca24adede2c1cbefa04251b6705c8eb858acedcecd3b1`。提取的caller/NowPlaying/Leave方法未改，其他18份pin一致。独立弹幕实际client+原样load52项含热缓存cancel/dispose、被替换旧加载排空与queued send/search取消；caller54与源提取反例仍当轮重验，不冒充WinUI崩溃复测。
+
+## 2026-11-02 媒体版本体积的来源复核
+
+`bfd2423` 在 `EmbyItem` 新增服务器给出的单文件 `Size` 属性，R046 实际提取的 Start／Next／NowPlaying／Leave 等方法与所有权字段未变；其余 18 份 pin 逐一核对一致。只更新 `src/Momoka.Core/Emby/EmbyItem.cs` 这一份 SHA256 从 `4002e5cdce837d2ffd390fe829a5d59c8bf3c7e9c7e7eed5b9adb3584108a537` 到 `a601a02086142487311498e713aeda359de0f7d28469a5f3fbc5b8d2ef849438`，baseCommit/date、提取规则与失败条件不动。同步后 caller 与全部源提取反例须在当前主树重跑。

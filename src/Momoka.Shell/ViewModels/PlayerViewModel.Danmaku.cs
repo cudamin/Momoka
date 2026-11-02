@@ -355,7 +355,7 @@ public sealed partial class PlayerViewModel
         _danmakuTransfer++;
         DanmakuStatus = $"正在加载{_danmakuSourceSummary} 弹幕：{_danmakuLabel}…";
         await ClearDanmakuAsync().ConfigureAwait(true);
-        if (!IsCurrentPlayback(context) || request != _danmakuRequest) return;
+        if (!DanmakuAvailable || !IsCurrentPlayback(context) || request != _danmakuRequest) return;
 
         var comments = new List<DanmakuComment>();
         var loaded = new List<string>();
@@ -369,7 +369,7 @@ public sealed partial class PlayerViewModel
                 var fetched = await _dandanPlay.GetCommentsAsync(episode.EpisodeId,
                         source == DanmakuSource.DandanPlay && Settings.Danmaku.WithRelated, source, token)
                     .ConfigureAwait(true);
-                if (!IsCurrentPlayback(context) || request != _danmakuRequest) return;
+                if (!DanmakuAvailable || !IsCurrentPlayback(context) || request != _danmakuRequest) return;
                 comments.AddRange(fetched);
                 if (source == DanmakuSource.DandanPlay)
                 {
@@ -389,14 +389,14 @@ public sealed partial class PlayerViewModel
             catch (OperationCanceledException) { return; }
             catch (DandanPlayException error)
             {
-                if (!IsCurrentPlayback(context) || request != _danmakuRequest) return;
+                if (!DanmakuAvailable || !IsCurrentPlayback(context) || request != _danmakuRequest) return;
                 var name = DanmakuSourceRules.SourceName(source);
                 errors.Add(error.Message.StartsWith(name, StringComparison.Ordinal)
                     ? error.Message
                     : $"{name}：{error.Message}");
             }
         }
-        if (!IsCurrentPlayback(context) || request != _danmakuRequest) return;
+        if (!DanmakuAvailable || !IsCurrentPlayback(context) || request != _danmakuRequest) return;
         if (loaded.Count == 0)
         {
             DanmakuStatus = errors.Count > 0 ? string.Join("；", errors) : "没有加载到弹幕。";
