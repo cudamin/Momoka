@@ -9935,3 +9935,11 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 补读边界追加复核：主条目 `Path=A`、其 `ItemId` 相同的来源 `Path=B` 已冲突，补读省略路径也不得推翻拒绝。新增反例先19绿／1红（错误补值），从缺体积补读集合排除此已知冲突后 **20/20全绿**；无冲突且原主条目缺体积仍允许批补的正例也通过。最终Core／Tests编译0警告0错误，局部空白及差异检查通过，不增加请求、UI或真实服务验证。
 
 - 最后核对查询字段：官方固定4.10.2 SDK `ItemsServiceApi.cs` 与本地4.10.1 OpenAPI `/Items.Fields` 为字符串并列出 `Path`／`DateCreated`，未列 `Size`；先前历史请求成功不能证明 `Size` 是有效Fields枚举。最终改 `Fields=Path`／`DateCreated,Path`，仅读取服务器返回的 DTO.Size，测试传输对未确认字段返回400（旧码15绿5红，最终20/20绿）。当前Core／Tests编译0警告0错误、局部空白／差异检查通过，预算和三秒截止不变，无新真实服务器验证。
+
+## 2026-11-02 聚合修复最终桌面交付
+
+- 主树产品提交 d9690ea、754564e、bfd2423；补运行契约 aa0134b；体积备选批补 bf31cdc、路径冲突 a50857d、确认查询字段 a04c7c2。Emby缺体积有版本编号时最多一趟批量读取，共用入库日期，三秒附属截止；只请求Path／DateCreated,Path，Size为响应属性，接口不提供则保留未知。
+- 最終主要测试：当前Core／Tests成功编译后完整主测3563/3563、0失败0跳过（work/aggregate-final-tests.log）；最后字段修正重编译Core／Tests并定向20/20（work/size-query-final.log），随后正式发布成功。Shell Release0警告0错误；设置生命周期55/55、设置探针契约31/31、搜索导航15/15，格式／分析器约定及UIA缺句柄0。最后字段字面量未改变设置/图标/布局，受影响体积专项重跑，未重复全部无关UI。
+- 发布件运行：初交付settings,shell37/37（shell-probe-20261102-061748456-13244），备选体积批补交付library20/20（shell-probe-20261102-063505347-21732），宽窄版本大小与爱心截图已查看；真实X／悬停退出重开2轮见前段。最后Fields修正没有新增UI或依赖，未重跑相同窗口；资料在artifacts/ui-review/aggregate-fixes-20261102。仅匿名假HTTP／内存身份，无真实服务器写入或播放；未跑全量自检（非发版/升级）。真实各服支持大小的返回仍由服务端决定。
+- tools/publish.ps1 -Shortcut -NoArchive退出0，实际主树artifacts/publish/win-x64为546文件/285.6MB、批准载荷校验通过；版本仍0.2.2。开发／发布Momoka.dll SHA256均D103E74624367BB7E377936FF2F941AF29DB1A81FCA163EDBB6E3C8536B55B26。桌面Momoka.lnk目标与工作目录均为主树发布目录，参数为空；发布时无Momoka进程，未推origin。
+- 临时树所有产品/测试内容已进入master；独立差异已核对，准备归档heart-toolbar(32baca5)、aggregate-version-size(59c12ed)、根aggregate-settings-loading(bfd2423)，当前根工作树工具可能保留附着检出，此时不绕过工具删除。独立进度记录不作为第二交付线。
