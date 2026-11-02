@@ -9943,3 +9943,5 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 发布件运行：初交付settings,shell37/37（shell-probe-20261102-061748456-13244），备选体积批补交付library20/20（shell-probe-20261102-063505347-21732），宽窄版本大小与爱心截图已查看；真实X／悬停退出重开2轮见前段。最后Fields修正没有新增UI或依赖，未重跑相同窗口；资料在artifacts/ui-review/aggregate-fixes-20261102。仅匿名假HTTP／内存身份，无真实服务器写入或播放；未跑全量自检（非发版/升级）。真实各服支持大小的返回仍由服务端决定。
 - tools/publish.ps1 -Shortcut -NoArchive退出0，实际主树artifacts/publish/win-x64为546文件/285.6MB、批准载荷校验通过；版本仍0.2.2。开发／发布Momoka.dll SHA256均D103E74624367BB7E377936FF2F941AF29DB1A81FCA163EDBB6E3C8536B55B26。桌面Momoka.lnk目标与工作目录均为主树发布目录，参数为空；发布时无Momoka进程，未推origin。
 - 临时树所有产品/测试内容已进入master；独立差异已核对，准备归档heart-toolbar(32baca5)、aggregate-version-size(59c12ed)、根aggregate-settings-loading(bfd2423)，当前根工作树工具可能保留附着检出，此时不绕过工具删除。独立进度记录不作为第二交付线。
+
+- 最终清理回执：归档heart-toolbar／aggregate-version-size被应用“protected by a pinned task or workspace”拒绝，根树被“primary checkout cannot be removed”拒绝。未绕过保护删除检出；根树已detach，临时分支已删除，本地分支仅master，三树干净且所有产品内容进入主树。
