@@ -221,9 +221,11 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         {
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             if (missing.Count > 0) deadline.CancelAfter(TimeSpan.FromSeconds(3));
+            // Size is a returned DTO property, not a documented Fields option. Only request the
+            // confirmed path/date fields and use Size when the server includes it in its response.
             var url = Url("Items",
                 ("Ids", string.Join(',', ids)),
-                ("Fields", readDates ? missing.Count > 0 ? "DateCreated,Path,Size" : "DateCreated" : "Path,Size"));
+                ("Fields", readDates ? missing.Count > 0 ? "DateCreated,Path" : "DateCreated" : "Path"));
             var result = await http.GetJsonAsync<ItemsResult>(url, Context, deadline.Token).ConfigureAwait(false);
             deadline.Token.ThrowIfCancellationRequested();
             foreach (var source in missing)

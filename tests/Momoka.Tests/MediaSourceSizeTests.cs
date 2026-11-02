@@ -171,7 +171,7 @@ internal static class MediaSourceSizeTests
             Assert.Equal(1, replies.BatchRequests.Count);
             var query = Query(replies.BatchRequests.Single());
             Assert.Equal("other", query["Ids"]);
-            Assert.Equal("Path,Size", query["Fields"]);
+            Assert.Equal("Path", query["Fields"]);
             Assert.Equal(1024L * 1024 * 1024, item.MediaSources[0].Size);
             Assert.Equal(2560L * 1024 * 1024, item.MediaSources[1].Size);
             Assert.Equal(item.MediaSources[1].Size, item.MediaSources[2].Size);
@@ -195,7 +195,7 @@ internal static class MediaSourceSizeTests
             Assert.Equal(1, replies.BatchRequests.Count);
             var query = Query(replies.BatchRequests.Single());
             Assert.Equal("movie,other", query["Ids"]);
-            Assert.Equal("DateCreated,Path,Size", query["Fields"]);
+            Assert.Equal("DateCreated,Path", query["Fields"]);
             Assert.Equal("alternate", item.MediaSources[0].Id);
             Assert.Equal(2560L * 1024 * 1024, item.MediaSources[0].Size);
             Assert.Equal("main", item.MediaSources[1].Id);
@@ -338,6 +338,10 @@ internal static class MediaSourceSizeTests
             if (batch)
             {
                 BatchRequests.Add(uri);
+                var fields = Query(uri)["Fields"];
+                if (fields.Split(',').Any(field => field is not "Path" and not "DateCreated"))
+                    return new HttpResponseMessage(HttpStatusCode.BadRequest)
+                    { Content = new StringContent("{}", Encoding.UTF8, "application/json") };
                 Started.TrySetResult();
                 if (Hang) await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
             }

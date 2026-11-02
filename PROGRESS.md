@@ -9933,3 +9933,5 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 修复前新增8条回归中的6条明确报红（缺请求／缺字段／取消边界），修复后当前 Release Core／Tests编译0警告0错误，`media-source-size-fixture` **18/18，0失败0跳过**（包含挂起请求实际三秒退出）；改动文件空白验证、`git diff --check`通过。本轮仅Core2路径与相关技能／文档／进度，不改Program，不运行Shell／桌面UI／完整主测试，不发布不推送；根代理负责最终整合后的Shell、主测试、菜单与交付验证。
 
 - 补读边界追加复核：主条目 `Path=A`、其 `ItemId` 相同的来源 `Path=B` 已冲突，补读省略路径也不得推翻拒绝。新增反例先19绿／1红（错误补值），从缺体积补读集合排除此已知冲突后 **20/20全绿**；无冲突且原主条目缺体积仍允许批补的正例也通过。最终Core／Tests编译0警告0错误，局部空白及差异检查通过，不增加请求、UI或真实服务验证。
+
+- 最后核对查询字段：官方固定4.10.2 SDK `ItemsServiceApi.cs` 与本地4.10.1 OpenAPI `/Items.Fields` 为字符串并列出 `Path`／`DateCreated`，未列 `Size`；先前历史请求成功不能证明 `Size` 是有效Fields枚举。最终改 `Fields=Path`／`DateCreated,Path`，仅读取服务器返回的 DTO.Size，测试传输对未确认字段返回400（旧码15绿5红，最终20/20绿）。当前Core／Tests编译0警告0错误、局部空白／差异检查通过，预算和三秒截止不变，无新真实服务器验证。
