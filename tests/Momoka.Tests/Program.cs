@@ -14,6 +14,12 @@ internal static class Program
             AccountMenuTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["media-source-size-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            MediaSourceSizeTests.Register();
+            return TestHarness.Run();
+        }
         if (MpvProcessTests.IsChild(args)) return MpvProcessTests.RunChildAsync(args).GetAwaiter().GetResult();
         if (args is ["selfcheck-mutex-fixture", var source, var target])
             return SelfCheckTests.RunMutexChild(source, target);
@@ -219,6 +225,7 @@ internal static class Program
         KeywordPriorityTests.Register();
         PlaybackLifecycleTests.Register();
         MediaVersionDiscoveryTests.Register();
+        MediaSourceSizeTests.Register();
         BackendLifecycleTests.Register();
         MpvCustomConfigTests.Register();
         AudioOutputTests.Register();

@@ -9914,3 +9914,9 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 爱心由字体字形改为与两旁同规格的24坐标系 PathIcon＋26 DIP Viewbox，两道闭合轮廓用 F0 保持空心，线宽约1.8；保留按钮点击、显隐、资源化名称和前景继承，详情／卡片与侧栏收藏不改变。
 - 定向回归2条在旧 FontIcon 实现均失败，新实现2/2通过（0失败0跳过）；当前Core／主测试和Shell Release构建均0警告0错误。离线几何检查爱心边界20.18×18.01，主页18.80×18.60，设置19.73×20.16；该数为生产路径的WPF几何解析，不能冒充真实WinUI像素或视觉验收。
 - 桌面UI、完整主测试、主树合入和发布由根代理串行收尾，本子代理未运行App、未读取真实账号、未起播放、未推origin。`ToolbarIconTests`已登记完整主测试，定向入口为`toolbar-icon-fixture`。实际大小、空心与线重须在收藏可见的宽窄Shell实屏复核。
+## 2026-11-02 聚合版本体积补全（独立树，待主树整合）
+
+- 本子代理只写 `aggregate-version-size/Momoka` 的 Core 体积映射、相关测试及文档，不运行桌面UI／全套主测试、不发布、不推远端。飞牛 `Sources` 原来漏掉 `stream/list.files[].size`，现在按每份文件读取正整数字节数；不经 double，未知、非正、小数、非有限及溢出仍未知。Emby／Jellyfin 原媒体源体积和 Plex 每个 Part 体积保留。
+- 接入 Emby 条目级 `Size`（官方 SDK 4.10.2.0 Release、`MediaBrowser/Emby.ApiClients` f8499bd9d0e356b8a204a27b142765494dc6f450，2026-11-02只读）后，只补属于本条目的文件：正媒体源体积优先，版本编号冲突直接拒绝，双方有路径必须准确一致；否则按明确条目编号或无歧义单来源补全。多个归属未知版本与文件夹／剧集合计不补；不新增HTTP请求。飞牛官方0.9.8前端 `x4→R.stream.list`、`gD→files.find(mediaGuid)`、`wle→currentFile.size` 已核对，Jellyfin12.2.0规格仅声明 `MediaSourceInfo.Size`，没有条目级大小；当前服务器是否提供所有文件的大小未实测。
+- 旧码定向回归先确认5红／3绿，修复后最终 `media-source-size-fixture` **10/10，0失败0跳过**；当前 Release Core／Tests／Shell编译均0警告0错误；改动文件的 `dotnet format whitespace --verify-no-changes` 与 `git diff --check`通过。测试执行真实 Core 适配器／标签，只使用匿名HTTP，覆盖四后端每版独立、字符串／大整数、未知与冲突／合计反例。
+- 待根代理：合入master后重新完整测试和适用窗口检查，核对版本菜单体积与文件名并发布到实际交付目录；本树通过不代表主树或真实播放交付。未运行真实登录、播放、服务器写入或窗口菜单。

@@ -242,6 +242,10 @@ public sealed partial class FnNasMediaAdapter
                 ItemId = itemId,
                 Path = Text(file, "path"),
                 Name = Path.GetFileName(Text(file, "path")),
+                // The official details page reads the matching stream/list file's size in bytes.
+                // Parse the integer directly so large files do not lose precision through double.
+                Size = long.TryParse(Text(file, "size"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var size)
+                    && size > 0 ? size : null,
                 DirectStreamUrl = client.GetMediaUrl(connection, id),
                 SupportsDirectPlay = true,
                 SupportsDirectStream = true

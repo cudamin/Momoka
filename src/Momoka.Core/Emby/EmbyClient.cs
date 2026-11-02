@@ -165,9 +165,29 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         if (Connection.IsPlex) return await PlexMedia.GetItemAsync(itemId, cancellationToken).ConfigureAwait(false);
         var url = Url($"Users/{Connection.UserId}/Items/{itemId}", ("Fields", fields));
         var item = await http.GetJsonAsync<EmbyItem>(url, Context, cancellationToken).ConfigureAwait(false);
+        ApplyItemFileSize(item);
         if (order == MediaSourceOrder.NewestFirst)
             await OrderVersionsByAddedAsync(item, cancellationToken).ConfigureAwait(false);
         return item;
+    }
+
+    private static void ApplyItemFileSize(EmbyItem item)
+    {
+        if (!item.IsPlayable || item.Size is not > 0) return;
+        foreach (var source in item.MediaSources)
+        {
+            if (source.Size is > 0) continue;
+            if (!string.IsNullOrEmpty(source.ItemId)
+                && !string.Equals(item.Id, source.ItemId, StringComparison.Ordinal)) continue;
+            // An item's size describes only its own file. Known paths must agree; otherwise use its
+            // explicit item ID, or the unambiguous single-source case. Never borrow another version.
+            var sameFile = !string.IsNullOrEmpty(item.Path) && !string.IsNullOrEmpty(source.Path)
+                ? string.Equals(item.Path, source.Path, StringComparison.Ordinal)
+                : !string.IsNullOrEmpty(source.ItemId)
+                    ? string.Equals(item.Id, source.ItemId, StringComparison.Ordinal)
+                    : item.MediaSources.Count == 1;
+            if (sameFile) source.Size = item.Size;
+        }
     }
 
     /// <summary>

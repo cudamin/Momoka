@@ -705,6 +705,9 @@ public sealed class EmbyItem
 
     public string? LocationType { get; set; }
 
+    /// <summary>The server's size for this item's own file, not the sum of its alternate versions.</summary>
+    public long? Size { get; set; }
+
     public string? Overview { get; set; }
 
     public int? ProductionYear { get; set; }
