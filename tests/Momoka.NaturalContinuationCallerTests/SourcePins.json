@@ -29,7 +29,7 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs",
-      "sha256": "4a9bc21bf858b0628bdad3956245ce4a330d9f6efb235f64066a8a312d961af0"
+      "sha256": "6c78a841213a74f68bebf51c5db138285941e664fae86fb880adc0f3834e812e"
     },
     {
       "path": "tests/Momoka.ShaderCommandGenerationTests/HandleFixture.cs",

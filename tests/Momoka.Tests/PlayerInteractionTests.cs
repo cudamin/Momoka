@@ -65,6 +65,23 @@ internal static class PlayerInteractionTests
             Assert.DoesNotContain("foreach (var view in Enum.GetValues<LibraryView>())", text);
             Assert.Equal(7, Momoka.Emby.LibraryDisplayCatalog.EmbyViews.Count);
         });
+        TestHarness.Test("跳过键位：Esc 归全屏，Delete 关提示、回车确认跳过", () =>
+        {
+            var code = File.ReadAllText(Path.Combine(
+                RepositoryRoot(), "src", "Momoka.Shell", "Views", "PlayerPage.Input.cs"));
+
+            Assert.Contains("case VirtualKey.Delete when ViewModel.SkipOffered:", code);
+            Assert.Contains("case VirtualKey.Enter when ViewModel.SkipOffered:", code);
+            Assert.DoesNotContain("case VirtualKey.Escape when ViewModel.SkipOffered:", code);
+            Assert.Contains("e.Key is not (VirtualKey.Enter or VirtualKey.Delete)", code);
+            Assert.Contains("or (int)VirtualKey.Delete;", code);
+
+            // 焦点掉出 XAML 岛时走的是窗口钩子；页面点头还不够，钩子自己的白名单也得放行 Delete。
+            var host = File.ReadAllText(Path.Combine(
+                RepositoryRoot(), "src", "Momoka.Shell", "Windowing", "HostWindow.cs"));
+            Assert.Contains("const int VkDelete = 0x2E;", host);
+            Assert.Contains("vk is VkSpace or VkEscape or VkReturn or VkDelete", host);
+        });
         TestHarness.Test("服务器渲染计数：按实际模板根标识，不依赖框架容器类型", () =>
         {
             var root = RepositoryRoot();

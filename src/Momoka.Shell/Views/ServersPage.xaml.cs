@@ -30,6 +30,8 @@ public sealed partial class ServersPage : Page, IShellContent
     private ServerRequest? _request;
     private EmbySession? _session;
     private ISettingsService? _settings;
+    private SettingsPriorityMotion? _serverMotion;
+    private readonly Dictionary<ListView, SettingsPriorityMotion> _accountMotions = [];
 
     public ServersPage()
     {
@@ -115,8 +117,108 @@ public sealed partial class ServersPage : Page, IShellContent
         _settings = null;
         if (_session is not null) _session.SourcesChanged -= OnSourcesChanged;
         _session = null;
+        DetachMotions();
         ViewModel.Cancel();
     }
+
+    // ---- 排序与拖拽 ------------------------------------------------------------
+
+    /// <summary>排序菜单的条目；探针读它，浮层也用它。</summary>
+    internal IReadOnlyList<string> BuildServerSortMenu()
+    {
+        var entries = ViewModel.SortEntries();
+        ServerSortList.ItemsSource = entries;
+        return [.. entries.Select(entry => entry.Label)];
+    }
+
+    private void OnServerSortMenuOpening(object sender, object e) => BuildServerSortMenu();
+
+    private void OnServerSortItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is not ServerSortEntry entry) return;
+
+        ViewModel.ChooseSort(entry.Mode);
+        ServerSortMenu.Hide();
+    }
+
+    private void OnServerSortDirectionClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: ServerSortMode mode }) return;
+
+        ViewModel.FlipSort(mode);
+        BuildServerSortMenu();
+    }
+
+    private void OnServerListLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ListView list || _serverMotion is not null) return;
+
+        _serverMotion = new SettingsPriorityMotion(list, ViewModel.Servers,
+            () => ViewModel.Servers.Cast<object>(), ViewModel.BeginServerReorder, ViewModel.EndServerReorder,
+            element => element.Tag is ServerRow, item => item is ServerRow);
+    }
+
+    private void OnServerListUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ListView list || list.IsLoaded || _serverMotion is null) return;
+
+        _serverMotion.Detach();
+        _serverMotion = null;
+    }
+
+    private void OnAccountListLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ListView list || _accountMotions.ContainsKey(list)) return;
+
+        // DataContext 是首选；Tag 里那份集合是兜底，模板实例刚挂上时 DataContext 还没落定的情况见过。
+        var row = list.DataContext as ServerRow
+            ?? ViewModel.Servers.FirstOrDefault(server => ReferenceEquals(server.Accounts, list.Tag));
+        if (row is null) return;
+
+        _accountMotions[list] = new SettingsPriorityMotion(list, row.Accounts,
+            () => row.Accounts.Cast<object>(), row.BeginAccountReorder, row.EndAccountReorder,
+            element => element.Tag is AccountRow, item => item is AccountRow);
+    }
+
+    private void OnAccountListUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ListView list || list.IsLoaded) return;
+        if (_accountMotions.Remove(list, out var motion)) motion.Detach();
+    }
+
+    private void OnServerDragStarting(object sender, DragItemsStartingEventArgs args)
+    {
+        if (_serverMotion is not null) _serverMotion.BeginDrag(args);
+        else args.Cancel = true;
+    }
+
+    private void OnServerDragCompleted(ListViewBase sender, DragItemsCompletedEventArgs args) =>
+        _serverMotion?.EndDrag();
+
+    private void OnAccountDragStarting(object sender, DragItemsStartingEventArgs args)
+    {
+        if (sender is ListView list && _accountMotions.TryGetValue(list, out var motion)) motion.BeginDrag(args);
+        else args.Cancel = true;
+    }
+
+    private void OnAccountDragCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
+    {
+        if (sender is ListView list && _accountMotions.TryGetValue(list, out var motion)) motion.EndDrag();
+    }
+
+    private void DetachMotions()
+    {
+        _serverMotion?.Detach();
+        _serverMotion = null;
+        foreach (var motion in _accountMotions.Values) motion.Detach();
+        _accountMotions.Clear();
+    }
+
+    /// <summary>探针：两层列表的换位弹簧都真的挂上了。见 <see cref="SettingsPriorityMotion"/>。</summary>
+    internal bool ServerReorderSpringWired => _serverMotion is not null;
+
+    internal bool AccountReorderSpringWired(ServerRow row) => _accountMotions.Keys.Any(list =>
+        ReferenceEquals(list.Tag, row.Accounts) || ReferenceEquals(list.DataContext, row));
 
     private void OnSettingsSaved(object? sender, EventArgs e)
     {

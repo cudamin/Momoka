@@ -188,8 +188,8 @@
     {
       "path": "mpv-ui/scripts/uosc/elements/SkipButton.lua",
       "source": "assets/mpv-ui/scripts/uosc/elements/SkipButton.lua",
-      "size": 11479,
-      "sha256": "8dd2b0bda5baeb51106e075fd2fcb3906e65d00a237343d3f816ca9c53d232f4"
+      "size": 11465,
+      "sha256": "c0fae83c7a55b191bcba0ae55a815cd424070e12e908b33ce97ee8a03f57a740"
     },
     {
       "path": "mpv-ui/scripts/uosc/elements/Speed.lua",
@@ -368,8 +368,8 @@
     {
       "path": "mpv-ui/scripts/uosc/main.lua",
       "source": "assets/mpv-ui/scripts/uosc/main.lua",
-      "size": 83627,
-      "sha256": "ee6d4fbad45153021e85778feb3a4b9b91575755f51f9997b3b4ef651b75bc3e"
+      "size": 83764,
+      "sha256": "88af8099ffc5353563d69a1cbfe668fee8fe687924f04e2da0bf00c01e4eb9f4"
     }
   ],
   "evidence": [

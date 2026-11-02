@@ -41,9 +41,48 @@ public sealed class ServerRow
 
     public string KindLabel => ServerAccess.KindName(Profile.ServerKind);
 
+    /// <summary>在线状态排序的分组键：有账号在线的一组在前，没有的一组在后。</summary>
+    public int StatusRank => Accounts.Any(account => account.IsConnected) ? 0 : 1;
+
     public ObservableCollection<AccountRow> Accounts { get; }
 
     public Visibility EmptyVisibility => Accounts.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>按当前排序方式重排账号卡；Manual 保留保存顺序，不移动集合。</summary>
+    internal void SortAccounts(ServerSortMode mode, bool descending)
+    {
+        if (mode == ServerSortMode.Manual) return;
+
+        var ordered = ServerListOrder.Apply(Accounts, mode, descending,
+            account => account.Username, account => account.StatusRank);
+        for (var index = 0; index < ordered.Count; index++)
+        {
+            var from = Accounts.IndexOf(ordered[index]);
+            if (from >= 0 && from != index) Accounts.Move(from, index);
+        }
+    }
+
+    private List<AccountRow>? _accountDragOrder;
+
+    /// <summary>拖拽换位会 Remove + Add；中间少一条的集合不写盘，完成后再提交一次最终顺序。</summary>
+    internal void BeginAccountReorder() => _accountDragOrder ??= [.. Accounts];
+
+    internal void EndAccountReorder()
+    {
+        var before = _accountDragOrder;
+        _accountDragOrder = null;
+        if (before is not null && !before.SequenceEqual(Accounts)) Owner.CommitManualOrder();
+    }
+
+    /// <summary>把屏上账号卡顺序写回这个服务器保存的账号列表；顺序没变就不动设置。</summary>
+    internal void CommitAccountOrder()
+    {
+        if (Profile.Accounts.SequenceEqual(Accounts.Select(account => account.Account))) return;
+
+        var ordered = Accounts.Select(account => account.Account).ToList();
+        Profile.Accounts.Clear();
+        Profile.Accounts.AddRange(ordered);
+    }
 }
 
 /// <summary>一个保存的账号对应一张卡片；保留所属服务器，让每个动作明确作用于这个账号。</summary>
@@ -86,7 +125,16 @@ public sealed class AccountRow
 
     public bool Aggregate { get; }
 
+    /// <summary>账号卡那颗主按钮：在线的动作是「设为默认」，离线的动作是「登录」。</summary>
+    public string LoginShortLabel => IsConnected ? "设为默认" : "登录";
+
+    /// <summary>完整提示与自动化名称；按钮上只用得下短标签。</summary>
     public string LoginLabel => IsConnected ? "设为默认管理账号" : "登录账号";
+
+    public string LoginGlyph => IsConnected ? "\uE73E" : "\uE77B";
+
+    /// <summary>状态排序的分组键：已连接 0、保存令牌 1、保存密码 2、需要登录 3。</summary>
+    public int StatusRank => IsConnected ? 0 : Account.HasSavedToken ? 1 : Account.HasSavedPassword ? 2 : 3;
 
     public string DeleteLabel => "删除账号";
 

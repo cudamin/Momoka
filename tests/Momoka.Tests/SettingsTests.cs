@@ -192,6 +192,20 @@ internal static partial class SettingsTests
             Assert.False(SettingsMigration.FromJson(saved, Protector).Ui.AnimationsEnabled);
         });
 
+        Test("设置：服务器页排序偏好默认手动，保存读回一致", () =>
+        {
+            var settings = SettingsMigration.FromJson("{\"Ui\":{}}", Protector);
+            Assert.Equal(ServerListOrder.ManualValue, settings.Ui.ServerSortBy);
+            Assert.False(settings.Ui.ServerSortDescending);
+
+            settings.Ui.ServerSortBy = ServerListOrder.NameValue;
+            settings.Ui.ServerSortDescending = true;
+            var saved = JsonSerializer.Serialize(settings, SettingsSerializer.WriteOptions);
+            var restored = SettingsMigration.FromJson(saved, Protector);
+            Assert.Equal(ServerListOrder.NameValue, restored.Ui.ServerSortBy);
+            Assert.True(restored.Ui.ServerSortDescending);
+        });
+
         Test("迁移：空文件与损坏内容都回到默认设置", () =>
         {
             foreach (var json in new[] { "", "   ", "[]", "\"文本\"" })

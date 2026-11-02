@@ -32,6 +32,27 @@
             <Setter Property="BorderThickness" Value="0" />
         </Style>
 
+        <!--
+          账号卡的主按钮：登录 / 设为默认是这张卡上唯一要读字才知道干什么的动作，所以给它文字和账号图标；
+          下线、删除留给右侧两颗图标键，靠提示说明。底色抬一档、描一圈发丝边，和卡片本身分开。
+        -->
+        <Style x:Key="ServersActionButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="CornerRadius" Value="17" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="{StaticResource EgBodyFontSize}" />
+        </Style>
+
+        <Style x:Key="ServersListContainerStyle" TargetType="ListViewItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+
         <!-- 每个账号是独立卡片。服务器模板只分组，不再套一圈服务器卡片。 -->
         <DataTemplate x:Key="AccountTemplate" x:DataType="vm:AccountRow">
             <Border Tag="{x:Bind}"
@@ -41,6 +62,7 @@
                 CornerRadius="{StaticResource EgCardCornerRadius}"
                 Margin="0,0,0,10"
                 Padding="16,12">
+                <Border.RenderTransform><TranslateTransform /></Border.RenderTransform>
                 <Border.ContextFlyout>
                     <MenuFlyout>
                         <MenuFlyoutItem
@@ -88,6 +110,8 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <local:WrapRow Spacing="8" RowSpacing="4" VerticalAlignment="Center">
+                        <TextBlock Text="≡" VerticalAlignment="Center" Opacity="0.45"
+                            ToolTipService.ToolTip="按住卡片拖动调整账号顺序" />
                         <TextBlock
                             Style="{StaticResource EgSectionTitleStyle}"
                             MaxWidth="260"
@@ -119,9 +143,12 @@
                             ToolTipService.ToolTip="{x:Bind LoginLabel}"
                             AutomationProperties.Name="{x:Bind LoginLabel}"
                             Visibility="{x:Bind LoginVisibility}"
-                            Style="{StaticResource EgIconButtonStyle}"
+                            Style="{StaticResource ServersActionButtonStyle}"
                             Command="{x:Bind Owner.LoginAccountCommand}" CommandParameter="{x:Bind}">
-                            <FontIcon Glyph="&#xE8A5;" />
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon FontSize="{StaticResource EgBodyFontSize}" Glyph="{x:Bind LoginGlyph}" />
+                                <TextBlock Text="{x:Bind LoginShortLabel}" VerticalAlignment="Center" />
+                            </StackPanel>
                         </Button>
                         <Button x:Name="AccountOfflineButton"
                             AutomationProperties.Name="下线"
@@ -146,9 +173,43 @@
 
         <DataTemplate x:Key="ServerTemplate" x:DataType="vm:ServerRow">
             <Grid Tag="{x:Bind}">
-                <ItemsControl ItemTemplate="{StaticResource AccountTemplate}" ItemsSource="{x:Bind Accounts}" />
+                <Grid.RenderTransform><TranslateTransform /></Grid.RenderTransform>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <!-- 外层拖拽的抓手：账号卡自己的拖拽归内层列表，服务器组的换位从这里按下去。 -->
+                <Grid Grid.Column="0" Background="Transparent"
+                    ToolTipService.ToolTip="按住拖动调整服务器顺序">
+                    <TextBlock Text="⋮⋮" FontSize="{StaticResource EgCaptionFontSize}"
+                        HorizontalAlignment="Center" VerticalAlignment="Top"
+                        Margin="0,12,0,0" Opacity="0.45" />
+                </Grid>
+                <ListView
+                    x:Name="AccountList"
+                    Grid.Column="1"
+                    Tag="{x:Bind Accounts}"
+                    AllowDrop="True"
+                    CanDragItems="True"
+                    CanReorderItems="True"
+                    DragItemsCompleted="OnAccountDragCompleted"
+                    DragItemsStarting="OnAccountDragStarting"
+                    IsSwipeEnabled="False"
+                    ItemContainerStyle="{StaticResource ServersListContainerStyle}"
+                    ItemsSource="{x:Bind Accounts}"
+                    ItemTemplate="{StaticResource AccountTemplate}"
+                    Loaded="OnAccountListLoaded"
+                    Margin="0"
+                    Padding="0"
+                    ReorderMode="Enabled"
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                    ScrollViewer.HorizontalScrollMode="Disabled"
+                    ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                    ScrollViewer.VerticalScrollMode="Disabled"
+                    SelectionMode="None"
+                    Unloaded="OnAccountListUnloaded" />
                 <!-- 空服务器仍有登录、删除入口；没有账号时不伪造一张账号卡。 -->
-                <Border Background="{ThemeResource EgSurfaceBrush}"
+                <Border Grid.Column="1" Background="{ThemeResource EgSurfaceBrush}"
                     BorderBrush="{ThemeResource EgBorderBrush}"
                     BorderThickness="{StaticResource EgCardBorderThickness}"
                     CornerRadius="{StaticResource EgCardCornerRadius}"
@@ -171,10 +232,13 @@
                                 VerticalAlignment="Center" />
                         </local:WrapRow>
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
-                            <Button x:Name="ServerLoginButton" Style="{StaticResource EgIconButtonStyle}"
+                            <Button x:Name="ServerLoginButton" Style="{StaticResource ServersActionButtonStyle}"
                                 AutomationProperties.Name="登录服务器" ToolTipService.ToolTip="登录服务器"
                                 Command="{x:Bind Owner.LoginServerCommand}" CommandParameter="{x:Bind}">
-                                <FontIcon Glyph="&#xE8A5;" />
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon FontSize="{StaticResource EgBodyFontSize}" Glyph="&#xE77B;" />
+                                    <TextBlock Text="登录服务器" VerticalAlignment="Center" />
+                                </StackPanel>
                             </Button>
                             <Button x:Name="ServerDeleteButton" x:Uid="ServersPage_ButtonA5"
                                 AutomationProperties.Name="删除服务器" Style="{StaticResource EgIconButtonStyle}"
@@ -235,7 +299,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                    <local:WrapRow Spacing="2" RowSpacing="2" VerticalAlignment="Center">
                         <Button
                             AutomationProperties.AutomationId="ServersAddButton"
                             Style="{StaticResource ServersToolbarButtonStyle}"
@@ -263,7 +327,73 @@
                                 <TextBlock x:Uid="ServersPage_RefreshLabel" />
                             </StackPanel>
                         </Button>
-                    </StackPanel>
+                        <Button
+                            AutomationProperties.AutomationId="ServersSortButton"
+                            AutomationProperties.Name="{x:Bind ViewModel.SortButtonLabel, Mode=OneWay}"
+                            Style="{StaticResource ServersToolbarButtonStyle}"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.SortTooltip, Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{x:Bind ViewModel.SortButtonLabel, Mode=OneWay}" VerticalAlignment="Center" />
+                                <FontIcon FontSize="{StaticResource EgCaptionFontSize}"
+                                    Glyph="{x:Bind ViewModel.SortGlyph, Mode=OneWay}" />
+                            </StackPanel>
+                            <Button.Flyout>
+                                <!-- 与库页排序菜单同一种表：选中项带勾，方向箭头只挂在当前字段上。 -->
+                                <Flyout x:Name="ServerSortMenu" Placement="Bottom" Opening="OnServerSortMenuOpening">
+                                    <Flyout.FlyoutPresenterStyle>
+                                        <Style BasedOn="{StaticResource DefaultFlyoutPresenterStyle}" TargetType="FlyoutPresenter">
+                                            <Setter Property="Padding" Value="4" />
+                                            <Setter Property="MinWidth" Value="0" />
+                                            <Setter Property="MaxWidth" Value="320" />
+                                            <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Disabled" />
+                                            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+                                        </Style>
+                                    </Flyout.FlyoutPresenterStyle>
+                                    <ListView
+                                        x:Name="ServerSortList"
+                                        x:FieldModifier="internal"
+                                        AutomationProperties.Name="排序方式"
+                                        IsItemClickEnabled="True"
+                                        ItemClick="OnServerSortItemClick"
+                                        SelectionMode="None"
+                                        Width="250">
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="MinHeight" Value="34" />
+                                                <Setter Property="Padding" Value="10,0" />
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:ServerSortEntry">
+                                                <Grid ColumnSpacing="8" MinWidth="210">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="18" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <FontIcon FontSize="{StaticResource EgCaptionFontSize}"
+                                                        Glyph="&#xE73E;" VerticalAlignment="Center"
+                                                        Visibility="{x:Bind CheckVisibility}" />
+                                                    <TextBlock Grid.Column="1" Style="{StaticResource EgBodyStyle}"
+                                                        Text="{x:Bind Label}" TextTrimming="CharacterEllipsis"
+                                                        VerticalAlignment="Center" />
+                                                    <Button Grid.Column="2"
+                                                        AutomationProperties.Name="{x:Bind ArrowName}"
+                                                        Background="Transparent" BorderThickness="0"
+                                                        Click="OnServerSortDirectionClicked" MinHeight="0"
+                                                        MinWidth="0" Padding="4" Tag="{x:Bind Mode}"
+                                                        Visibility="{x:Bind ArrowVisibility}">
+                                                        <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="{x:Bind Glyph}" />
+                                                    </Button>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                    </local:WrapRow>
 
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"
                         Visibility="{x:Bind ViewModel.AggregateOptionsVisibility, Mode=OneWay}">
@@ -355,7 +485,27 @@
                     </StackPanel>
                 </Border>
 
-                <ItemsControl ItemTemplate="{StaticResource ServerTemplate}" ItemsSource="{x:Bind ViewModel.Servers, Mode=OneWay}" />
+                <ListView
+                    x:Name="ServersList"
+                    AllowDrop="True"
+                    CanDragItems="True"
+                    CanReorderItems="True"
+                    DragItemsCompleted="OnServerDragCompleted"
+                    DragItemsStarting="OnServerDragStarting"
+                    IsSwipeEnabled="False"
+                    ItemContainerStyle="{StaticResource ServersListContainerStyle}"
+                    ItemsSource="{x:Bind ViewModel.Servers, Mode=OneWay}"
+                    ItemTemplate="{StaticResource ServerTemplate}"
+                    Loaded="OnServerListLoaded"
+                    Margin="0"
+                    Padding="0"
+                    ReorderMode="Enabled"
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                    ScrollViewer.HorizontalScrollMode="Disabled"
+                    ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                    ScrollViewer.VerticalScrollMode="Disabled"
+                    SelectionMode="None"
+                    Unloaded="OnServerListUnloaded" />
             </StackPanel>
         </ScrollView>
     </Grid>

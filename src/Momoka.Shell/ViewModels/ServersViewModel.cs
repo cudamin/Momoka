@@ -32,6 +32,10 @@ public sealed partial class ServersViewModel : PageViewModel
     /// <summary>True while <see cref="Refresh"/> seeds the switch, so filling it does not read as a user flip.</summary>
     private bool _seedingAggregate;
 
+    private ServerSortMode _sortMode = ServerSortMode.Manual;
+    private bool _sortDescending;
+    private List<ServerRow>? _serverDragOrder;
+
     /// <summary>The saved servers, rebuilt whenever any of them changes. See <see cref="ServerRow"/>.</summary>
     public ObservableCollection<ServerRow> Servers { get; } = [];
 
@@ -74,6 +78,115 @@ public sealed partial class ServersViewModel : PageViewModel
     public Visibility EmptyVisibility => Show(ShowEmpty);
 
     public Visibility DiscoveredVisibility => Show(ShowDiscovered);
+
+    /// <summary>排序按钮上的那块字；手动排序是拖拽出来的保存顺序。</summary>
+    public string SortButtonLabel => $"排序：{SortLabel}";
+
+    private string SortLabel => _sortMode switch
+    {
+        ServerSortMode.Name => "名称",
+        ServerSortMode.Status => "在线状态",
+        _ => "手动"
+    };
+
+    /// <summary>按钮右端的方向提示；手动排序显示排序字形（它没有方向）。</summary>
+    public string SortGlyph => _sortMode == ServerSortMode.Manual
+        ? "\uE8CB"
+        : _sortDescending ? "\uE70D" : "\uE70E";
+
+    public string SortTooltip => _sortMode == ServerSortMode.Manual
+        ? "手动排序：按住卡片拖动可调整顺序"
+        : _sortDescending ? "降序，点击改为升序" : "升序，点击改为降序";
+
+    /// <summary>排序菜单的条目；方向箭头只挂在当前选中的那一行，点字换字段、点箭头翻方向。</summary>
+    internal IReadOnlyList<ServerSortEntry> SortEntries()
+    {
+        var glyph = _sortDescending ? "\uE70D" : "\uE70E";
+        return
+        [
+            new(ServerSortMode.Manual, "手动排序（拖拽调整）", _sortMode == ServerSortMode.Manual,
+                CanFlip: false, Glyph: "", ArrowName: ""),
+            new(ServerSortMode.Name, "服务器与账号名称", _sortMode == ServerSortMode.Name,
+                CanFlip: true, Glyph: glyph, ArrowName: SortArrowName),
+            new(ServerSortMode.Status, "在线状态", _sortMode == ServerSortMode.Status,
+                CanFlip: true, Glyph: glyph, ArrowName: SortArrowName)
+        ];
+    }
+
+    private string SortArrowName => _sortDescending ? "降序，点击改为升序" : "升序，点击改为降序";
+
+    /// <summary>换一种排序方式。方向回到该字段的默认值（名称升序、在线在前），已选中的再点不翻方向。</summary>
+    internal void ChooseSort(ServerSortMode mode)
+    {
+        if (!Attached) return;
+
+        var descending = mode == _sortMode && mode != ServerSortMode.Manual ? _sortDescending : false;
+        ApplySort(mode, descending, refresh: true);
+    }
+
+    /// <summary>方向箭头：同一字段翻方向，菜单留在原地。</summary>
+    internal void FlipSort(ServerSortMode mode)
+    {
+        if (!Attached || mode == ServerSortMode.Manual || mode != _sortMode) return;
+        ApplySort(mode, !_sortDescending, refresh: true);
+    }
+
+    private void ApplySort(ServerSortMode mode, bool descending, bool refresh)
+    {
+        _sortMode = mode;
+        _sortDescending = descending;
+        PersistSort();
+        NotifySortChanged();
+        if (refresh) Refresh();
+    }
+
+    private void PersistSort()
+    {
+        if (!Attached) return;
+        Settings.Ui.ServerSortBy = ServerListOrder.Serialize(_sortMode);
+        Settings.Ui.ServerSortDescending = _sortDescending;
+        _settings!.Save();
+    }
+
+    private void NotifySortChanged()
+    {
+        OnPropertyChanged(nameof(SortButtonLabel));
+        OnPropertyChanged(nameof(SortGlyph));
+        OnPropertyChanged(nameof(SortTooltip));
+    }
+
+    /// <summary>拖拽开始：先记屏上顺序，完成时拿它判断有没有真的换位。</summary>
+    internal void BeginServerReorder() => _serverDragOrder ??= [.. Servers];
+
+    internal void EndServerReorder()
+    {
+        var before = _serverDragOrder;
+        _serverDragOrder = null;
+        if (before is not null && !before.SequenceEqual(Servers)) CommitManualOrder();
+    }
+
+    /// <summary>
+    /// 拖拽完成后把屏上顺序写成保存顺序：服务器组、每组账号各写一次，同时切回手动排序 ——
+    /// 用户亲手挪过之后，下一次 Refresh 必须停在刚摆好的这个次序上，而不是按旧的排序模式再排一遍。
+    /// </summary>
+    internal void CommitManualOrder()
+    {
+        if (!Attached) return;
+
+        var displayed = Servers.Select(row => row.Profile).ToList();
+        if (!Settings.Servers.SequenceEqual(displayed))
+        {
+            Settings.Servers.Clear();
+            Settings.Servers.AddRange(displayed);
+        }
+
+        foreach (var row in Servers) row.CommitAccountOrder();
+
+        _sortMode = ServerSortMode.Manual;
+        _sortDescending = false;
+        PersistSort();
+        NotifySortChanged();
+    }
 
     /// <summary>
     /// Whether the page is free to start something. One flag for the network scan and the connection test
@@ -123,8 +236,18 @@ public sealed partial class ServersViewModel : PageViewModel
     /// <inheritdoc />
     public override Task ReloadAsync()
     {
+        SeedSort();
         Refresh();
         return Task.CompletedTask;
+    }
+
+    /// <summary>进入页面时读回排序偏好；认不出的值落到手动排序，不因为手改设置文件而报错。</summary>
+    private void SeedSort()
+    {
+        if (!Attached) return;
+        _sortMode = ServerListOrder.Parse(Settings.Ui.ServerSortBy);
+        _sortDescending = Settings.Ui.ServerSortDescending;
+        NotifySortChanged();
     }
 
     /// <summary>
@@ -145,9 +268,15 @@ public sealed partial class ServersViewModel : PageViewModel
         try { AggregateMode = Settings.AggregateMode; }
         finally { _seedingAggregate = false; }
 
+        var rows = Settings.Servers
+            .Select(server => new ServerRow(this, server, ReferenceEquals(server, current), account, sources, AggregateMode))
+            .ToList();
+        foreach (var row in rows) row.SortAccounts(_sortMode, _sortDescending);
+
+        var ordered = ServerListOrder.Apply(rows, _sortMode, _sortDescending,
+            row => row.Name, row => row.StatusRank);
         Servers.Clear();
-        foreach (var server in Settings.Servers)
-            Servers.Add(new ServerRow(this, server, ReferenceEquals(server, current), account, sources, AggregateMode));
+        foreach (var row in ordered) Servers.Add(row);
         OnPropertyChanged(nameof(AggregateOptionsVisibility));
         OnPropertyChanged(nameof(NoteVisibility));
 
@@ -475,4 +604,18 @@ public sealed partial class ServersViewModel : PageViewModel
         _settings!.Save();
         Refresh();
     }
+}
+
+/// <summary>服务器页排序菜单的一行。<see cref="ArrowVisibility"/> 只在当前选中的字段上出现。</summary>
+public sealed record ServerSortEntry(
+    ServerSortMode Mode,
+    string Label,
+    bool IsChecked,
+    bool CanFlip,
+    string Glyph,
+    string ArrowName)
+{
+    public Visibility CheckVisibility => IsChecked ? Visibility.Visible : Visibility.Collapsed;
+
+    public Visibility ArrowVisibility => IsChecked && CanFlip ? Visibility.Visible : Visibility.Collapsed;
 }

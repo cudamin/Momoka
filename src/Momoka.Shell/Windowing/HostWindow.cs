@@ -20,7 +20,7 @@ namespace Momoka.Shell.Windowing;
 
 /// <summary>
 /// 键盘兜底的接键人（2026-09-15「新增esc退出全屏 按空格开始播放」）。播放页实现它，窗口的线程级
-/// WH_KEYBOARD 钩子在「键已进本线程队列、Win32 焦点却不在 XAML 岛里」时把空格和 Esc 送过来 ——
+/// WH_KEYBOARD 钩子在「键已进本线程队列、Win32 焦点却不在 XAML 岛里」时把空格、Esc、回车和 Delete 送过来 ——
 /// 那是 XAML 两条键路（页面 KeyDown、Root 上的空格拦截）都听不见的死角。
 /// <para>
 /// <see cref="WantsKey"/> 是「这一下你接不接」：菜单开着、正在打字时页面让路；<see cref="Handle"/>
@@ -2834,15 +2834,16 @@ internal sealed class HostWindow : IDisposable
     }
 
     /// <summary>
-    /// 钩子过程。只认「全新的按下」（抬起、自动重复、Alt 组合一概放行），只问空格、Esc 和回车三颗：
+    /// 钩子过程。只认「全新的按下」（抬起、自动重复、Alt 组合一概放行），只问空格、Esc、回车和 Delete 四颗：
     /// 焦点必须在本窗口的树里、又不在岛里（岛里 XAML 自己收，两条路永远只有一条出键），页面也点头
     /// （菜单开着、正在打字时它让路），这一下才被兜住并吃掉 —— 返回 1 掐断钩子链和这颗键，
     /// DefWindowProc 再没有机会把它吞进肚里。
     /// <para>
     /// 回车是 2026-09-30 加的（用户报「按回车和 esc 确认跳过不生效」）：跳过提示立着时回车＝确认跳过，
     /// 而这一颗过去在这条路上被整个丢掉 —— 焦点掉出岛时岛内两条键路都听不见，提示立着也没人接。
-    /// 它有没有事可做由页面判（<see cref="IWin32KeySink.WantsKey"/> → <c>Dispatch</c>）：提示不在时
-    /// 回车查不到动作、页面返回 false，钩子放行，一切照旧。
+    /// Delete 是 2026-11-02 随「关闭跳过提示从 Esc 改为删除键」一起补进来的，原因相同：新键若只挂在岛内，
+    /// 焦点一掉出去就关不掉提示。它们有没有事可做由页面判（<see cref="IWin32KeySink.WantsKey"/> →
+    /// <c>Dispatch</c>）：提示不在时回车/Delete 查不到动作、页面返回 false，钩子放行，一切照旧。
     /// </para>
     /// </summary>
     private IntPtr KeyboardHookProc(int code, IntPtr wParam, IntPtr lParam)
@@ -2853,13 +2854,14 @@ internal sealed class HostWindow : IDisposable
         const int VkSpace = 0x20;
         const int VkEscape = 0x1B;
         const int VkReturn = 0x0D;
+        const int VkDelete = 0x2E;
 
         if (code >= 0)
         {
             var bits = lParam.ToInt64();
             var vk = unchecked((int)(long)wParam);
             if ((bits & KfUp) == 0 && (bits & KfRepeat) == 0 && (bits & KfAltDown) == 0
-                && vk is VkSpace or VkEscape or VkReturn
+                && vk is VkSpace or VkEscape or VkReturn or VkDelete
                 && KeyFellThroughTheIsland(vk)
                 && _win32Keys?.WantsKey(vk) == true)
             {

@@ -297,7 +297,7 @@ public sealed partial class PlayerPage : IWin32KeySink
         _wakingTap = false;
 
         // 点在跳过按钮上的那一下不叫控件（用户令 2026-09-26「点击按钮跳过片头/片尾的时候 进度条会出来闪一下」）：
-        // 这一按要的是「跳」，跟回车/Esc 收提示同一句话（Dispatch 那两支 wakeChrome=false）——控件被这一按
+        // 这一按要的是「跳」，跟回车/Delete 收提示同一句话（Dispatch 那两支 wakeChrome=false）——控件被这一按
         // 叫出来、跳转后又被空闲钟收走，就是那一眼闪。与 ChromeReveal 的 Skip 支（指针压在按钮上不点亮
         // bar）闭环；offer 不在时按钮 Collapsed，<see cref="Covers"/> 自己答假，其余按下照旧。
         if (PressOnSkipButton(point)) return;
@@ -508,8 +508,8 @@ public sealed partial class PlayerPage : IWin32KeySink
         }
 
         // 有跳过片头/片尾浮层时，点画面先把它收掉，且这一下**不暂停**（用户令 2026-09-25：「点击视频画面
-        // 自动隐藏跳过按钮，不要触发暂停/开始」）。等同键盘 Esc（见 Dispatch 里 VirtualKey.Escape when
-        // SkipOffered，2026-09-26 起关闭提示归 Esc，原先归 N）—— 点画面的
+        // 自动隐藏跳过按钮，不要触发暂停/开始」）。等同键盘 Delete（见 Dispatch 里 VirtualKey.Delete when
+        // SkipOffered，2026-11-02 起关闭提示归 Delete，更早归 Esc、再早归 N）—— 点画面的
         // 意思是「别挡着，也别停」。收掉走 DismissSkip（内部 _skips.Decline），不是光把 SkipOffered 抹掉：
         // 10Hz 那拍 ApplySkipOffer 会照 SkipCoordinator 的状态把浮层再挂回来，只有 Decline 记下「这一段
         // 谢绝了」才压得住。攥着的那一下也一并作废，免得被紧接着的双击当成第一拍去撤。
@@ -625,7 +625,7 @@ public sealed partial class PlayerPage : IWin32KeySink
         // A keyboard command has no pointer behind it, so the chrome is shown wherever the pointer
         // happens to be resting — otherwise pressing Space over the middle of the picture changes the
         // playback state with nothing on screen to say so. 例外的几样不叫控件（wake=false），它们的回执
-        // 都在画面上：收提示的两颗（用户令 2026-09-26）、快退／快进、播放／暂停、全屏切换
+        // 都在画面上：收提示的两颗（回车确认 / Delete 关闭，用户令 2026-09-26 / 2026-11-02）、快退／快进、播放／暂停、全屏切换
         // （2026-10-07 / 2026-10-10）—— 判据在 <see cref="WakesChrome"/> 那张表里，Dispatch 与
         // ShortcutCommand 各取一次。姓名牌跟着 wake 走，wake 为假时鼠标根本没醒，不挂名。
         if (wake && _cursorHidden) _woke = $"按键 {e.Key}";
@@ -633,19 +633,19 @@ public sealed partial class PlayerPage : IWin32KeySink
     }
 
     /// <summary>
-    /// 这一下有没有当成播放器键位处理掉。固定键在前（原样，不查修饰键，和改造前一致）：Esc 跳过提示立着时
-    /// 先归「关闭提示」（用户令 2026-09-26「把关闭跳过按钮从 N 改成 ESC」），没提示时才是老三样 —— 全屏则退
-    /// 全屏、否则停止播放（Esc 是全局「退出」、也是设置里重绑方框的取消键）；回车只在出现跳过提示时确认跳过
-    /// （原 Y，用户令 2026-09-26「把确认跳过片头/片尾从 Y 改成回车」）—— 没提示时它落到下面那张表。
+    /// 这一下有没有当成播放器键位处理掉。固定键在前（原样，不查修饰键，和改造前一致）：Delete 跳过提示立着时
+    /// 归「关闭提示」（用户令 2026-11-02「关闭跳过片头/片尾的快捷键从 Esc 改为删除键」）；Esc 不再先抢提示，
+    /// 恢复成老三样 —— 全屏则退全屏、否则停止播放（Esc 是全局「退出」、也是设置里重绑方框的取消键）；回车只在
+    /// 出现跳过提示时确认跳过（原 Y，用户令 2026-09-26「把确认跳过片头/片尾从 Y 改成回车」）—— 没提示时它落到
+    /// 下面那张表。
     /// <para>
-    /// Esc、回车是 <see cref="ShortcutCatalog.ReservedKeys"/> 里的保留键，可重绑那张表永远不会绑上它们；
-    /// <b>N 不是</b> —— 它默认就是「下一集」（<c>next-episode</c>）。原来 N 兼管「关闭跳过提示」那一支已随
-    /// 这条改动退役：提示只立 15 秒、又多在片头/片尾，那一小段里把 Esc 让给「关闭提示」是有意的取舍 ——
-    /// 真要退全屏/下一集，提示收掉后再按一下即可。
+    /// Esc、回车、Delete 是 <see cref="ShortcutCatalog.ReservedKeys"/> 里的保留键，可重绑那张表永远不会绑上
+    /// 它们；<b>N 不是</b> —— 它默认就是「下一集」（<c>next-episode</c>）。原来 N 兼管「关闭跳过提示」那一支已随
+    /// 2026-09-26 的改动退役，Esc 的那一版也在 2026-11-02 随 Delete 接任而退役。
     /// </para>
     /// <para>
     /// <paramref name="wakeChrome"/> 答的是「这一下要不要把整套控件叫出来」。跳过提示的那两颗不要 ——
-    /// 「按回车/ESC 后会唤出进度条」（用户令 2026-09-26）说的就是它们；收提示是「别挡着」，不是「要看控件」，
+    /// 「按回车/ESC 后会唤出进度条」（用户令 2026-09-26，关闭键 2026-11-02 换成 Delete 后同样适用）说的就是它们；收提示是「别挡着」，不是「要看控件」，
     /// 与点画面收提示（OnTapped 那一支，从来不给宽限）同一句话。退全屏那一支也不要（用户令 2026-10-10
     /// 「退出全屏的时候也不要自动显示播放控件」），判据与 F 键那一半同一句 <see cref="WakesChrome"/>。
     /// 其余键照旧给宽限 —— 键盘命令没有指针在场时，控件是唯一的回执；自己的回执在画面上的那几样见
@@ -659,10 +659,10 @@ public sealed partial class PlayerPage : IWin32KeySink
     {
         switch (key)
         {
-            // 提示立着时 Esc 先归「关闭跳过提示」（用户令 2026-09-26），排在退出全屏/停止之前 ——
-            // 与点画面收提示（OnTapped 那一支）同一句话：这一下的意思是「别挡着」，不是「退出」。
-            // 这两支都不给控件宽限（wakeChrome=false）。
-            case VirtualKey.Escape when ViewModel.SkipOffered:
+            // 提示立着时 Delete 归「关闭跳过提示」（用户令 2026-11-02，原 Esc），与点画面收提示
+            // （OnTapped 那一支）同一句话：这一下的意思是「别挡着」，不是「退出」。
+            // 这一支和回车确认跳过都不给控件宽限（wakeChrome=false）。
+            case VirtualKey.Delete when ViewModel.SkipOffered:
                 ViewModel.DismissSkip();
                 wakeChrome = false;
                 return true;
@@ -861,18 +861,19 @@ public sealed partial class PlayerPage : IWin32KeySink
     // 「新增esc退出全屏 按空格开始播放」（2026-09-15）。OnKeyDown 和 OnSpaceShortcut 都只在 Win32
     // 键盘焦点落进 XAML 岛里时才响；全屏播放期间前台被 Edge、AyuGram 这类抢走过再回来，或焦点落在
     // 宿主窗口和视频子窗口上时，键被 DefWindowProc 吞掉 —— 用户日志里十三天「按键/空格」唤醒一次都
-    // 没有，全是这条。窗口的线程级 WH_KEYBOARD 钩子在焦点不在岛里时把空格和 Esc 送到这里；焦点在
+    // 没有，全是这条。窗口的线程级 WH_KEYBOARD 钩子在焦点不在岛里时把空格、Esc、回车和 Delete 送到这里；焦点在
     // 岛里时它一概放行，两条路永远只有一条出键。
 
     /// <summary>
-    /// 接不接这一下。菜单/弹层开着让路，其余只认空格、Esc 和回车三颗。
+    /// 接不接这一下。菜单/弹层开着让路，其余只认空格、Esc、回车和 Delete 四颗。
     /// <para>
     /// 回车是 2026-09-30 补进来的（用户报「按回车和 esc 确认跳过不生效」）：跳过提示立着时回车＝确认跳过
     /// （原 Y，用户令 2026-09-26），而这一颗过去在这条兜底路上被整个丢掉了 —— <c>HostWindow</c> 的钩子
     /// 根本不往上送。焦点掉出 XAML 岛（全屏期间前台被别的应用抢过、焦点落在宿主窗或视频子窗上）时，
-    /// 岛内那两条键路一条都听不见，于是提示立着、回车按下去没反应。接进来之后由
-    /// <see cref="Dispatch"/> 决定它有没有事可做 —— 提示不在时回车会落到可重绑那张表，查不到动作就返回
-    /// false、钩子照旧放行，不抢别人（比如焦点停在按钮上按回车＝按那颗按钮）的键。
+    /// 岛内那两条键路一条都听不见，于是提示立着、回车按下去没反应。Delete 2026-11-02 接替 Esc 当关闭键，
+    /// 同样补进这条兜底路 —— 否则焦点一掉出岛，新键又只在岛内有效。接进来之后由
+    /// <see cref="Dispatch"/> 决定它们有没有事可做 —— 提示不在时回车/Delete 会落到可重绑那张表，查不到
+    /// 动作就返回 false、钩子照旧放行，不抢别人（比如焦点停在按钮上按回车＝按那颗按钮）的键。
     /// </para>
     /// </summary>
     bool IWin32KeySink.WantsKey(int virtualKey)
@@ -884,7 +885,8 @@ public sealed partial class PlayerPage : IWin32KeySink
         // （它走的是收下去那一路，见 HoldPictureMenu），所以单独问一句。
         if (_holds.HasFlag(ChromeHold.Menu) || _chrome.PictureMenuOpen) return false;
 
-        return virtualKey is (int)VirtualKey.Space or (int)VirtualKey.Escape or (int)VirtualKey.Enter;
+        return virtualKey is (int)VirtualKey.Space or (int)VirtualKey.Escape or (int)VirtualKey.Enter
+            or (int)VirtualKey.Delete;
     }
 
     /// <summary>
@@ -896,8 +898,8 @@ public sealed partial class PlayerPage : IWin32KeySink
     public bool IslandKeyboardFocusAlive => FocusManager.GetFocusedElement() is not null;
 
     /// <summary>
-    /// 接。与岛内两条键路同一句话（<see cref="Dispatch"/>）：Esc 全屏则退全屏、非全屏则停止播放（提示立着
-    /// 时先归「关闭提示」）、回车只在提示立着时确认跳过；空格走可重绑表 —— 表里默认绑在 toggle-pause 上，
+    /// 接。与岛内两条键路同一句话（<see cref="Dispatch"/>）：Esc 全屏则退全屏、非全屏则停止播放；Delete
+    /// 只在提示立着时关闭提示、回车只在提示立着时确认跳过；空格走可重绑表 —— 表里默认绑在 toggle-pause 上，
     /// 重绑走了兜底路跟着走，岛内岛外永远做同一件事。
     /// </summary>
     void IWin32KeySink.Handle(int virtualKey)
@@ -913,7 +915,7 @@ public sealed partial class PlayerPage : IWin32KeySink
     }
 
     /// <summary>
-    /// 跳过提示立着时，回车／Esc 从 <see cref="Root"/> 上再兜一道（带 <c>handledEventsToo</c>）。
+    /// 跳过提示立着时，回车／Delete 从 <see cref="Root"/> 上再兜一道（带 <c>handledEventsToo</c>）。
     /// <para>
     /// <b>为什么需要这一道</b>（2026-09-30 用户报「按回车和 esc 确认跳过不生效」）：跳过提示是**常驻**
     /// 立着的，而它一立起，指针多半正压在 <c>SkipButton</c> 自己身上 —— 那颗 <c>Button</c> 是
@@ -924,13 +926,13 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// 期待的是跳，不是「再按一次这颗按钮」。
     /// </para>
     /// <para>
-    /// <b>只在提示立着时接</b>：这一道是给跳过提示开的口子，不是给回车/Esc 改规矩。提示不在时直接返回、
-    /// 不标已处理，那颗焦点按钮照旧按按钮的规矩收自己的回车；Esc 也照旧走页面那一路（退全屏/停止），
-    /// 或落进 mpv。这一道只在「提示立着」这一个状态下把两颗键收进 <see cref="Dispatch"/>。
+    /// <b>只在提示立着时接</b>：这一道是给跳过提示开的口子，不是给回车/Delete 改规矩。提示不在时直接返回、
+    /// 不标已处理，那颗焦点按钮照旧按按钮的规矩收自己的回车；Delete 也照旧落进可重绑表/mpv。这一道只在
+    /// 「提示立着」这一个状态下把两颗键收进 <see cref="Dispatch"/>。
     /// </para>
     /// <para>
     /// 与 <see cref="OnSpaceShortcut"/> 同一套防重：处理完标已处理，页面那一路（在树上更靠外、这次冒泡
-    /// 到不了）不会再走第二遍。焦点在页面上时空格那一颗只从 <see cref="OnKeyDown"/> 走；回车/Esc 这一头
+    /// 到不了）不会再走第二遍。焦点在页面上时空格那一颗只从 <see cref="OnKeyDown"/> 走；回车/Delete 这一头
     /// 现在两条路都可能到（页面那一路处理完会标已处理，就不再冒到这里），一颗键每次按键只执行一次。
     /// </para>
     /// </summary>
@@ -938,9 +940,9 @@ public sealed partial class PlayerPage : IWin32KeySink
     {
         if (!Attached || _window is null || _inputSuspended || DanmakuInputFocused) return;
 
-        if (e.Key is not (VirtualKey.Enter or VirtualKey.Escape)) return;
+        if (e.Key is not (VirtualKey.Enter or VirtualKey.Delete)) return;
 
-        // 提示不在：这一道不开，回车/Esc 的规矩一点不动。
+        // 提示不在：这一道不开，回车/Delete 的规矩一点不动。
         if (!ViewModel.SkipOffered) return;
 
         if (!Dispatch(e.Key, out var wake)) return;

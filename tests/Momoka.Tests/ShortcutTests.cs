@@ -196,14 +196,17 @@ internal static class ShortcutTests
             Assert.Equal("[", ShortcutCatalog.Format(Key("BracketLeft")));
             Assert.Equal("Ctrl + Alt + S", ShortcutCatalog.Format(Key("S", ctrl: true, alt: true)));
             Assert.Equal("Shift + Z", ShortcutCatalog.Format(Key("Z", shift: true)));
+            Assert.Equal("Del", ShortcutCatalog.Format(Key("Delete")));
             Assert.Equal("未设置", ShortcutCatalog.Format(KeyStroke.None));
         });
 
-        Test("IsReserved：Esc 和回车是保留键（连着修饰键也算），别的不是", () =>
+        Test("IsReserved：Esc、回车和 Delete 是保留键（连着修饰键也算），别的不是", () =>
         {
             Assert.True(ShortcutCatalog.IsReserved(Key("Escape")));
             Assert.True(ShortcutCatalog.IsReserved(Key("Enter")), "回车 2026-09-26 起接替 Y 当确认跳过的固定键");
             Assert.True(ShortcutCatalog.IsReserved(Key("Enter", ctrl: true)), "带修饰键的回车也保留 —— 固定的那颗确认跳过键不查修饰键");
+            Assert.True(ShortcutCatalog.IsReserved(Key("Delete")), "Delete 2026-11-02 接替 Esc 当关闭跳过提示的固定键");
+            Assert.True(ShortcutCatalog.IsReserved(Key("Delete", ctrl: true)), "带修饰键的 Delete 也保留 —— 固定键不查修饰键");
             Assert.False(ShortcutCatalog.IsReserved(Key("Y")), "Y 随确认跳过改到回车而退役，从此可以绑");
             Assert.False(ShortcutCatalog.IsReserved(Key("F")));
             Assert.False(ShortcutCatalog.IsReserved(Key("Space")));

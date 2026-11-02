@@ -1,5 +1,9 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-02：PlayerViewModel.Transport.cs 注释同步
+
+跳过关闭键从 Esc 改为 Delete，`PlayerViewModel.Transport.cs` 里 uosc 借还键的说明跟着改了措辞（只动注释，自然接续 identity、自动接集与 lease 规则未动）。只同步这一项 hash（`4a9bc21…` → `6c78a84…`），其余 pins 逐份保留。
+
 ## 2026-11-02：EmbyItem.cs 源 hash 再同步
 
 飞牛库卡封面墙复用 `PosterPaths`（`FnNasMediaAdapter.Library` 读 `posters`），只给 `EmbyItem.PosterPaths` 的注释补上库这一路，字段与自然接续的 identity/id、自动接集与 lease 规则未动。只同步 `EmbyItem.cs` 一项 hash（`cfdab01…` → `4002e5c…`），其余 pins 逐份保留。

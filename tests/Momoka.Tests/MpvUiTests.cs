@@ -786,26 +786,29 @@ internal static class MpvUiTests
             Assert.True(main.Contains("Elements.skip_button:set_offer('')"),
                 "换源没清 offer：换集途中会挂着上一集的「跳过片尾」");
 
-            // 第五头：两条无默认键的绑定（回车＝确认跳过、Esc＝关掉提示）。按键由元件按上去，
+            // 第五头：两条无默认键的绑定（回车＝确认跳过、Del＝关掉提示）。按键由元件按上去，
             // 少了这两条，keybind 指向的绑定不存在、按下去只是被 mpv 拒掉一条命令。
             Assert.True(main.Contains("bind_command('momoka-ui-skip-take'"),
                 "回车那条绑定没登记：offer 立着时回车没有落脚处");
             Assert.True(main.Contains("bind_command('momoka-ui-skip-dismiss'"),
-                "Esc 那条绑定没登记：offer 立着时 Esc 关不掉提示");
+                "Del 那条绑定没登记：offer 立着时 Del 关不掉提示");
 
             // 第六头：元件里真正借键／还键的那一段。还键尤其不能少、也不能再走 keyunbind —— 少了它
-            // 或调了内核里不存在的命令，用户按 Esc 关掉提示之后 Esc 会一直被我们占着，mpv 内建的
-            // 「退全屏/退出」再也回不来。
+            // 或调了内核里不存在的命令，用户按 Del 关掉提示之后 Del 会一直被我们占着。
             Assert.True(element.Contains("self:borrow_keys(self.caption ~= nil)"),
-                "offer 立起/收摊没有借还键：回车/Esc 要么没反应、要么关掉提示后一直被占着");
+                "offer 立起/收摊没有借还键：回车/Del 要么没反应、要么关掉提示后一直被占着");
             Assert.True(element.Contains("mp.commandv('keybind', key"),
-                "没把 ENTER/ESC 按上去：offer 立着时回车/Esc 到不了宿主（用户报的那个症状）");
+                "没把 ENTER/DEL 按上去：offer 立着时回车/Del 到不了宿主（用户报的那个症状）");
             Assert.True(element.Contains("mp.commandv('keybind', key, self.originals[key] or 'ignore')"),
-                "收摊没有把原绑定 keybind 按回去：内核没有 keyunbind，借走的键会一直不还（Esc 的退全屏被顶掉）");
+                "收摊没有把原绑定 keybind 按回去：内核没有 keyunbind，借走的键会一直不还");
             Assert.True(element.Contains("self:topmost_foreign_binding(key)"),
                 "借键前没抄原绑定：还键时无从还原，等于不还");
             Assert.True(element.Contains("KP_ENTER = 'momoka-ui-skip-take'"),
                 "小键盘回车没借：用户按 KP_ENTER 没反应（实机日志 No key binding found for key 'KP_ENTER'）");
+            Assert.True(element.Contains("DEL = 'momoka-ui-skip-dismiss'"),
+                "删除键没借：offer 立着时按 Del 没有落脚处（2026-11-02 用户令）");
+            Assert.False(element.Contains("ESC = 'momoka-ui-skip-dismiss'"),
+                "还在借 ESC：独占模式下 Esc 被提示占用，退不出全屏（2026-11-02 用户令）");
             Assert.False(element.Contains("commandv('keyunbind'"),
                 "还在调 keyunbind：随包内核没有这条命令，收摊时条条报错、键不还");
         });

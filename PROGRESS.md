@@ -1,3 +1,14 @@
+## 2026-11-02 服务器页按钮/排序拖拽＋跳过键位改移（已构建、发布并核对发布件）
+
+- 用户令（三条）：①「重新设计这个按钮 设置-管理器页面的按钮」（附「设为默认管理账号」旧文档图标截图）；②「关闭跳过片头/片尾的快捷键从 Esc 改为删除键，回车为默认跳过的快捷键，Esc 快捷键为退出全屏」；③「参考本项目的筛选功能 给服务器页面增加排序、拖拽弹簧效果功能」。
+- 账户卡按钮：登录/设为默认改成带账号图标和文字的胶囊主按钮（在线显示「设为默认」+ 勾，离线显示「登录」+ 人像，提示与 AutomationName 仍写全「设为默认管理账号／登录账号」）；下线、删除保留图标按钮；空服务器登录入口同样带文字。排序按钮进工具栏，菜单照库页排序表：手动排序（拖拽调整）／服务器与账号名称／在线状态，选中带勾、当前字段带方向箭头。
+- 排序与拖拽：新增 Core `ServerListOrder`（Manual/Name/Status，状态分组在线在前、同组名称升序，方向只翻主键）与单测；`ServerRow` 负责组内账号排序及拖拽提交，`ServersViewModel` 负责两层顺序写回 `Settings.Servers`/`AccountProfiles` 并切回手动排序；排序偏好写 `Ui.ServerSortBy`、`Ui.ServerSortDescending`，旧设置缺键落手动。外层服务器组与组内账号都改成可拖拽 ListView，复用 `SettingsPriorityMotion` 的 380 ms 换位弹簧（改成通用构造：任意集合、模板根判据、提交动作），服务器组左侧 `⋮⋮` 抓手，账号卡标题行 `≡` 抓手。窄窗工具栏改用 `WrapRow`，排序键换到第二行而不是被截断。
+- 键位：集成 `Dispatch` 改为 `Delete when SkipOffered` 关闭提示，Esc 恢复全屏则退、非全屏停止；回车仍确认跳过；Root 兜底、`IWin32KeySink.WantsKey` 与 `HostWindow` 的 WH_KEYBOARD 白名单补 Delete（焦点掉出岛时不丢键）；Delete 进 `ShortcutCatalog.ReservedKeys`，设置固定键表新增「关闭跳过提示 · Del」；提示文案改「回车跳过 · Del 关闭」。独占 uosc 的 `SkipButton` 借键从 `ENTER/KP_ENTER/ESC` 改成 `ENTER/KP_ENTER/DEL`，Esc 内建退全屏不再被顶掉；`approved-payload.json` 同步两份 Lua 的大小与哈希。
+- 验证：全方案 Release **0 警告 0 错误**；`dotnet format whitespace` 退出 0；Core **3586/3586、0 失败 0 跳过**；`Momoka.SettingsPriorityMotionTests` **24/24**；R046 caller **54/54**，10 个提取反例逐个按预期退出 1（`artifacts/r046-caller/direct-20261102-174326`、`direct-20261102-174402`、`extractor-20261102-174331-9586`；包装脚本最后一步被本机 PowerShell 中文编码误判为红，直接 no-build 运行同一 fixture 为绿，未改 pins 以外产品）。开发件 `--probe-section settings` **25/25**（含排序写回、两层拖拽顺序与弹簧接线）、`playback` **8/8**（Delete 取消、Esc 退全屏请求、回车确认）。发布件 `--probe-section settings,playback` **33/33、退出 0**（`shell-probe-20261102-100239433-7000`）。`--probe-section shortcuts` 宽窗与命令隔离通过，窄窗截图被像素守卫判「窗口被遮挡或移到屏外」为红，09:32 同一设置的上一轮曾 **3/3** 全绿；这是已知桌面遮挡环境红，未放宽守卫，也不写成通过。
+- 证据：`artifacts/ui-review/servers-sort-buttons-20261102/` 为发布件探针的元素树渲染图（`servers-summary-render.png`、`-760`、多账号、空服务器）与 `player-skip-layout.txt`，不是实屏截图；`servers-summary-render.png` 等在 1100／760 下可见账号卡主按钮、排序键与抓手。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 通过：**546 文件、285.7 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件（50 UI／2 native）**；开发件与发布件 `Momoka.dll` SHA-256 同为 `b251867782a8ce47d725c9e9dfa46d0f0130bb4eb4ce18f9288a35f3bf482b58`；桌面快捷方式指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。版本仍为 0.2.2，未推 origin。
+- 未覆盖：探针不注入真实鼠标拖拽，拖拽只走与事件相同的 VM 入口，实际按住卡片换位与弹簧观感需用户实机确认；独占 uosc 的 DEL 键只在源码/单测与批准清单层面核对，未在独占窗口真播按键；快捷键窄窗的桌面遮挡红项未转绿。
+
 ## 2026-11-02 接入 danmu_api 自部署弹幕来源（已合并、发布并实机验收）
 
 - 用户令：接入 huangxd-/danmu_api；每人自部署，Momoka 不提供服务；验收要求集成与独占实机播放可调用；与弹弹play 客户端合并。后续「随便找个，确保能正确调用」授权自选片名与当前账号实播。

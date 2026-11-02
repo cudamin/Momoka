@@ -253,6 +253,7 @@ internal static class Program
         NotificationTests.Register();
         ServerSettingsTests.Register();
         ServerAccessTests.Register();
+        ServerOrderingTests.Register();
         ShortcutTests.Register();
         SeekKeyTests.Register();
         ServiceTests.Register();

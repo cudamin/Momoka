@@ -8,7 +8,7 @@
 
   静止时中间显示当前组合键（VM 用 ShortcutCatalog.Format 算好的 display 串，经 Combo 绑进来）；点一下方框、或
   聚焦后按空格/回车，进入「按快捷键…」；抓到一个键就把 token 经 Committed 抛出去，× 抛空串表示清除。Esc 取消
-  （Esc 本来就是保留键、绑不了，正好拿来当取消）；Tab 取消并放行让焦点照常走。Esc/Y 这类保留键抓到了不收，
+  （Esc 本来就是保留键、绑不了，正好拿来当取消）；Tab 取消并放行让焦点照常走。Esc/回车/Delete 这类保留键抓到了不收，
   在框里把话说破、等一个别的键。
 -->
 <UserControl

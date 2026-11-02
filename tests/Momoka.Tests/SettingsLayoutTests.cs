@@ -117,9 +117,12 @@ internal static class SettingsLayoutTests
             var group = Template(document, "ServerTemplate").Elements().Single();
             Assert.Equal("Grid", group.Name.LocalName);
             Assert.True(group.Attribute("Background") is null, "服务器分组不再画外层卡片");
-            var accounts = group.Elements().Single(element => element.Name.LocalName == "ItemsControl");
+            var accounts = group.Elements().Single(element => element.Name.LocalName == "ListView");
             Assert.Equal("{x:Bind Accounts}", accounts.Attribute("ItemsSource")?.Value);
             Assert.Equal("{StaticResource AccountTemplate}", accounts.Attribute("ItemTemplate")?.Value);
+            Assert.Equal("True", accounts.Attribute("CanReorderItems")?.Value, "组内账号要能拖拽换位");
+            Assert.Equal("OnAccountDragStarting", accounts.Attribute("DragItemsStarting")?.Value);
+            Assert.Equal("OnAccountDragCompleted", accounts.Attribute("DragItemsCompleted")?.Value);
             Assert.False(document.Descendants().Any(element => element.Attribute("ItemsSource")?.Value == "{x:Bind Others}"));
         });
         TestHarness.Test("服务器账号：主操作明确绑定账号，整服删除只能通过右键菜单", () =>

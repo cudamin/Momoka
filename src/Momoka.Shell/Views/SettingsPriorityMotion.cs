@@ -10,29 +10,48 @@ using Windows.Foundation;
 namespace Momoka.Shell.Views;
 
 /// <summary>
-/// 关键词表的换位弹簧。只动画模板根的 TranslateTransform，不占用 WinUI 管理的容器 visual。
-/// 同一次换位让挪动项与让位项一起回弹；离树、快速换位、关闭动画都会清理旧行程。
+/// 列表换位弹簧（设置页关键词表与服务器页共用）。只动画模板根的 TranslateTransform，不占用 WinUI
+/// 管理的容器 visual。同一次换位让挪动项与让位项一起回弹；离树、快速换位、关闭动画都会清理旧行程。
 /// </summary>
 internal sealed class SettingsPriorityMotion
 {
     internal const int DurationMs = 380;
     private readonly ListView _list;
-    private readonly SettingTitleRulesRow _row;
+    private readonly INotifyCollectionChanged _collection;
+    private readonly Func<IEnumerable<object>> _items;
+    private readonly Action _beginReorder;
+    private readonly Action _endReorder;
+    private readonly Func<FrameworkElement, bool> _isRoot;
+    private readonly Func<object, bool> _isItem;
     private readonly Dictionary<FrameworkElement, Storyboard> _active = [];
-    private Dictionary<TitleRuleChoice, double> _positions = [];
-    private Dictionary<TitleRuleChoice, double>? _before;
+    private Dictionary<object, double> _positions = [];
+    private Dictionary<object, double>? _before;
     private bool _dragging;
     private bool _queued;
     private bool _detached;
     private int _generation;
 
     internal SettingsPriorityMotion(ListView list, SettingTitleRulesRow row)
+        : this(list, row.Rules, () => row.Rules.Cast<object>(), row.BeginReorder, row.EndReorder,
+            element => element.Name == "PriorityRuleRoot", item => item is TitleRuleChoice)
+    {
+    }
+
+    /// <summary>服务器页两层列表用的入口：集合、模板根判据与提交动作都由调用方给。</summary>
+    internal SettingsPriorityMotion(ListView list, INotifyCollectionChanged collection,
+        Func<IEnumerable<object>> items, Action beginReorder, Action endReorder,
+        Func<FrameworkElement, bool> isRoot, Func<object, bool>? isItem = null)
     {
         _list = list;
-        _row = row;
+        _collection = collection;
+        _items = items;
+        _beginReorder = beginReorder;
+        _endReorder = endReorder;
+        _isRoot = isRoot;
+        _isItem = isItem ?? (_ => true);
         _list.UpdateLayout();
         _positions = HomeMotion.AnimationsEnabled ? Measure() : [];
-        _row.Rules.CollectionChanged += OnChanged;
+        _collection.CollectionChanged += OnChanged;
         _list.LayoutUpdated += OnLayoutUpdated;
         HomeMotion.PreferenceChanged += OnPreferenceChanged;
     }
@@ -40,13 +59,13 @@ internal sealed class SettingsPriorityMotion
     internal bool IsAnimating => _queued || _active.Count > 0;
     internal bool HasSpring => _active.Count > 0;
 
-    private Dictionary<TitleRuleChoice, double> Measure()
+    private Dictionary<object, double> Measure()
     {
-        var positions = new Dictionary<TitleRuleChoice, double>();
-        foreach (var rule in _row.Rules)
+        var positions = new Dictionary<object, double>();
+        foreach (var item in _items())
         {
-            if (Root(rule) is not { ActualHeight: > 0 } root) continue;
-            positions[rule] = root.TransformToVisual(_list).TransformPoint(new Point()).Y;
+            if (Root(item) is not { ActualHeight: > 0 } root) continue;
+            positions[item] = root.TransformToVisual(_list).TransformPoint(new Point()).Y;
         }
         return positions;
     }
@@ -76,7 +95,7 @@ internal sealed class SettingsPriorityMotion
 
     internal void BeginDrag(DragItemsStartingEventArgs args)
     {
-        if (args.Items.Count != 1 || args.Items[0] is not TitleRuleChoice)
+        if (args.Items.Count != 1 || !_isItem(args.Items[0]))
         {
             args.Cancel = true;
             return;
@@ -92,14 +111,14 @@ internal sealed class SettingsPriorityMotion
         // 拖拽提交与动画快照是两件事：禁动画仍 Begin/EndReorder，但不测量无用的 before。
         _before = HomeMotion.AnimationsEnabled ? Measure() : null;
         _dragging = true;
-        _row.BeginReorder();
+        _beginReorder();
     }
 
     internal void EndDrag()
     {
         if (!_dragging) return;
         _dragging = false;
-        _row.EndReorder();
+        _endReorder();
         QueueSettle();
     }
 
@@ -139,12 +158,12 @@ internal sealed class SettingsPriorityMotion
         })) Stop();
     }
 
-    private FrameworkElement? Root(TitleRuleChoice rule) =>
-        _list.ContainerFromItem(rule) is DependencyObject container ? FindRoot(container) : null;
+    private FrameworkElement? Root(object item) =>
+        _list.ContainerFromItem(item) is DependencyObject container ? FindRoot(container) : null;
 
-    private static FrameworkElement? FindRoot(DependencyObject parent)
+    private FrameworkElement? FindRoot(DependencyObject parent)
     {
-        if (parent is FrameworkElement { Name: "PriorityRuleRoot" } root) return root;
+        if (parent is FrameworkElement root && _isRoot(root)) return root;
         for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
             if (FindRoot(VisualTreeHelper.GetChild(parent, index)) is { } found) return found;
         return null;
@@ -209,7 +228,7 @@ internal sealed class SettingsPriorityMotion
     {
         if (_detached) return;
         _detached = true;
-        _row.Rules.CollectionChanged -= OnChanged;
+        _collection.CollectionChanged -= OnChanged;
         _list.LayoutUpdated -= OnLayoutUpdated;
         HomeMotion.PreferenceChanged -= OnPreferenceChanged;
         EndDrag();

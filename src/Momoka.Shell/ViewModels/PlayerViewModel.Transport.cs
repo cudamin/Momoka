@@ -70,7 +70,7 @@ public sealed partial class PlayerViewModel
 
         // 独占模式那颗 uosc 按钮当场收起（与 AcceptSkip 同一句）。这一句不只是观感：uosc 那侧把
         // 「offer 立着」当运行期键绑定的开关 —— 收到空文案才 keyunbind ENTER/ESC、把内建还给 mpv
-        // （见 elements/SkipButton.lua）。少了它，用户按 Esc 关掉提示之后 Esc 会一直被我们占着。
+        // （见 elements/SkipButton.lua）。少了它，用户按 Del 关掉提示之后 Del 会一直被我们占着。
         // 集成模式白推（HeadlessPlayback 闸，见 PushSkipToVideoWindow）。
         PushSkipToVideoWindow(false, "");
     }

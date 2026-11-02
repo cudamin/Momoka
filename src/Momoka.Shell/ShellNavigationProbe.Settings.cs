@@ -980,6 +980,9 @@ internal sealed partial class ShellNavigationProbe
                 "服务器页没有画聚合模式开关");
             Require(page.FindName("ExclusiveModeRadio") is null && page.FindName("AggregateModeRadio") is null,
                 "服务器页仍然画着独占／聚合模式单选");
+            Require(page.ServerReorderSpringWired, "服务器组列表没有挂上拖拽弹簧");
+            Require(page.AccountReorderSpringWired(page.ViewModel.Servers.First()),
+                "账号列表没有挂上拖拽弹簧");
             Require(page.FindName("ServersClearCacheButton") is null,
                 "服务器页仍然画着图片缓存卡片");
             // 假身份页面里实屏截图会拍到上一张控制台页的残影（2026-10-19 多次复现，已记在 PROGRESS），
@@ -991,6 +994,40 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             await SaveRenderAsync(page, "servers-summary-760-render.png");
             ResizeInspect(1100, 900);
+            await LayoutAsync(page);
+
+            // 排序菜单与两层拖拽：这里不注入鼠标，直接走与拖拽事件相同的 VM 入口，验证顺序写回设置。
+            Require(page.BuildServerSortMenu().SequenceEqual(["手动排序（拖拽调整）", "服务器与账号名称", "在线状态"]),
+                $"服务器页排序菜单不对：{string.Join('、', page.BuildServerSortMenu())}");
+            var manualOrder = fixture.Settings.Servers.Select(server => server.Id).ToList();
+            page.ViewModel.ChooseSort(ServerSortMode.Name);
+            await LayoutAsync(page);
+            var sortedNames = page.ViewModel.Servers.Select(server => server.Name).ToList();
+            Require(sortedNames.SequenceEqual(sortedNames.OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase)),
+                $"按名称排序没有生效：{string.Join('、', sortedNames)}");
+            Require(fixture.Settings.Ui.ServerSortBy == ServerListOrder.NameValue && !fixture.Settings.Ui.ServerSortDescending,
+                "按名称排序没有写进设置");
+            page.ViewModel.FlipSort(ServerSortMode.Name);
+            await LayoutAsync(page);
+            Require(fixture.Settings.Ui.ServerSortDescending, "排序方向箭头没有写进设置");
+            page.ViewModel.ChooseSort(ServerSortMode.Manual);
+            await LayoutAsync(page);
+            Require(fixture.Settings.Servers.Select(server => server.Id).SequenceEqual(manualOrder),
+                "切回手动排序后保存顺序被排序动作改掉了");
+
+            page.ViewModel.BeginServerReorder();
+            page.ViewModel.Servers.Move(0, 1);
+            page.ViewModel.EndServerReorder();
+            Require(fixture.Settings.Servers.Select(server => server.Id)
+                    .SequenceEqual([manualOrder[1], manualOrder[0]]),
+                "服务器组拖拽没有把屏上顺序写回设置");
+            Require(fixture.Settings.Ui.ServerSortBy == ServerListOrder.ManualValue,
+                "拖拽换位之后没有切回手动排序");
+            page.ViewModel.BeginServerReorder();
+            page.ViewModel.Servers.Move(1, 0);
+            page.ViewModel.EndServerReorder();
+            Require(fixture.Settings.Servers.Select(server => server.Id).SequenceEqual(manualOrder),
+                "拖回原来的服务器顺序没有写回设置");
             await LayoutAsync(page);
 
             // 同一服务器的两个账号必须各自有卡片和动作，离线账号不能借用在线账号的状态。
@@ -1013,6 +1050,19 @@ internal sealed partial class ShellNavigationProbe
                 "同服两个账号仍然共用一张卡片，或卡片之间没有独立间隔");
             Require(offlineRow.OnlineVisibility == Visibility.Collapsed && onlineRow.OnlineVisibility == Visibility.Visible,
                 "离线账号借用了同服在线账号的标记");
+
+            var accountOrder = b.Accounts.Select(account => account.Id).ToList();
+            row.BeginAccountReorder();
+            row.Accounts.Move(0, 1);
+            row.EndAccountReorder();
+            Require(b.Accounts.Select(account => account.Id).SequenceEqual([accountOrder[1], accountOrder[0]]),
+                "组内账号拖拽没有把屏上顺序写回设置");
+            row.BeginAccountReorder();
+            row.Accounts.Move(1, 0);
+            row.EndAccountReorder();
+            Require(b.Accounts.Select(account => account.Id).SequenceEqual(accountOrder),
+                "拖回原来的账号顺序没有写回设置");
+
             await LayoutAsync(page);
             await SaveRenderAsync(page, "servers-summary-multi-account-render.png");
             ResizeInspect(760, 900);

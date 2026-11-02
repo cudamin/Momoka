@@ -3613,7 +3613,7 @@ internal static class PlaybackTests
             Assert.Equal("跳过片头", skips.Prompt.Caption);
             Assert.Equal(1, skips.Prompt.Remaining, "刚出现时倒计时是满的");
             Assert.Contains("回车跳过", skips.Prompt.Tip, "提示里写清回车是接受（2026-09-26 键位改动：Y→回车）");
-            Assert.Contains("Esc 关闭", skips.Prompt.Tip, "提示里写清 Esc 是关闭（2026-09-26 键位改动：N→Esc）");
+            Assert.Contains("Del 关闭", skips.Prompt.Tip, "提示里写清 Delete 是关闭（2026-11-02 键位改动：Esc→删除键）");
             Assert.Contains("1:30", skips.Prompt.Tip, "提示里写清落点");
             Assert.Contains("服务器标记", skips.Prompt.Tip, "区间来自 Emby 的标记，不再说成推测或章节名");
 

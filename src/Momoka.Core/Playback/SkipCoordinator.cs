@@ -180,8 +180,9 @@ public sealed class SkipCoordinator
     {
         var target = TimeFormat.Clock(TimeSpan.FromSeconds(TargetOf(section)));
         var source = section.Origin == SkipSectionOrigin.Player ? "播放器识别" : "服务器标记";
-        // 键名跟着 2026-09-26 的键位改动走（用户令）：确认跳过 Y→回车、关闭 N→Esc，画面提示与之一致。
-        return $"跳到 {target}（{source}：{section.Label}） · 回车跳过 · Esc 关闭";
+        // 键名跟着键位改动走（用户令）：确认跳过 Y→回车（2026-09-26）、关闭 N→Esc→Delete（2026-11-02），
+        // 画面提示与之一致。
+        return $"跳到 {target}（{source}：{section.Label}） · 回车跳过 · Del 关闭";
     }
 
     /// <summary>The same section, allowing for a rounding error in the reported start.</summary>

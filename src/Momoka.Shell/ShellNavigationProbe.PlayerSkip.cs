@@ -160,7 +160,7 @@ internal sealed partial class ShellNavigationProbe
             CheckLayout(fullscreen: true);
             await SaveSkipShotAsync("player-skip-fullscreen");
 
-            // Invoke 走真实 Button.Command；回车和 Esc 走页面与键盘共用的处理器，只记录假句柄命令。
+            // Invoke 走真实 Button.Command；回车、Delete 和 Esc 走页面与键盘共用的处理器，只记录假句柄命令。
             Arm(opening);
             var peer = FrameworkElementAutomationPeer.CreatePeerForElement(button) ?? new ButtonAutomationPeer(button);
             ((IInvokeProvider)peer.GetPattern(PatternInterface.Invoke)).Invoke();
@@ -175,8 +175,19 @@ internal sealed partial class ShellNavigationProbe
             // 片尾落点保留现有规则：停在总时长前半秒，由播放器自然走到 EOF。
             Require(handle.Commands.Contains("seek|1499.5|absolute+exact") && !vm.SkipOffered, "回车没有接受片尾提示或改变了原有 EOF 落点");
             Arm(opening);
+            ((IWin32KeySink)page).Handle((int)VirtualKey.Delete);
+            Require(!vm.SkipOffered && handle.Commands.Count == 0 && _window.Fullscreen,
+                "Delete 没有只取消提示，或误退出全屏/执行命令");
+            vm.ApplySkipOffer();
+            Require(!vm.SkipOffered, "取消后仍在同一区间又冒出提示");
+
+            Arm(opening);
             ((IWin32KeySink)page).Handle((int)VirtualKey.Escape);
-            Require(!vm.SkipOffered && handle.Commands.Count == 0 && _window.Fullscreen, "Esc 没有只取消提示，或误退出全屏/执行命令");
+            // 探针页面不在舞台上，窗口状态切换不会落地；这里验的是 Dispatch 发出的「退全屏」请求。
+            Require(vm.SkipOffered && Get<bool?>(page, "_fullscreenWanted") == false && handle.Commands.Count == 0,
+                "Esc 没有发出退全屏请求，或把跳过提示一起收掉了");
+            ((IWin32KeySink)page).Handle((int)VirtualKey.Delete);
+            Require(!vm.SkipOffered, "Esc 退出全屏之后 Delete 关不掉提示");
             vm.ApplySkipOffer();
             Require(!vm.SkipOffered, "取消后仍在同一区间又冒出提示");
 
@@ -191,7 +202,7 @@ internal sealed partial class ShellNavigationProbe
             Field(playback, "_current", null);
             vm.ApplySkipOffer();
             Require(button.Visibility == Visibility.Collapsed, "没有可控制播放时还显示跳过按钮");
-            report.Add("点击、回车确认、Esc 取消、暂停保持、十五秒过期和无播放隐藏均通过；未创建播放后端。");
+            report.Add("点击、回车确认、Delete 取消、Esc 退全屏、暂停保持、十五秒过期和无播放隐藏均通过；未创建播放后端。");
             File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "player-skip-layout.txt"), report, new UTF8Encoding(false));
         }
         finally

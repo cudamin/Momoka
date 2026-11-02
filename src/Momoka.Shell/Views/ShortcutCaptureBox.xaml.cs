@@ -96,9 +96,9 @@ public sealed partial class ShortcutCaptureBox : UserControl
 
         if (ShortcutCatalog.IsReserved(stroke))
         {
-            // Esc/回车这类保留键（2026-09-26 起保留键是 Esc/回车，Y 已退役）：不收，留在捕获里、把话说破，等一个别的键。
-            // （Esc 上面已经当取消处理了，这里实际拦下的是回车。）
-            ComboLabel.Text = "该键已保留（Esc / 回车）";
+            // Esc/回车/Delete 这类保留键（2026-11-02 起是这三颗，Y 早已退役）：不收，留在捕获里、把话说破，等一个别的键。
+            // （Esc 上面已经当取消处理了，这里实际拦下的是回车和 Delete。）
+            ComboLabel.Text = "该键已保留（Esc / 回车 / Delete）";
             return;
         }
 

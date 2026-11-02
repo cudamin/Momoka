@@ -1371,6 +1371,15 @@ public sealed class UiSettings
     /// <summary>界面动效开关；默认保留现有动画，关闭时直接显示最终状态。仍遵循 Windows 的动画设置。</summary>
     public bool AnimationsEnabled { get; set; } = true;
 
+    /// <summary>
+    /// 服务器页的排序方式（<see cref="Momoka.Emby.ServerListOrder"/> 那份字符串）。缺键是 manual ——
+    /// 旧设置文件读出来仍按保存顺序显示，拖拽换位直接写保存顺序，不要求迁移。
+    /// </summary>
+    public string ServerSortBy { get; set; } = Momoka.Emby.ServerListOrder.ManualValue;
+
+    /// <summary>服务器页排序方向；只对名称、在线状态两种模式有意义。</summary>
+    public bool ServerSortDescending { get; set; }
+
     /// <summary>主窗口左侧导航；默认关闭，旧配置缺少此项时继续使用标题栏入口。</summary>
     public bool SidebarMode { get; set; }
 

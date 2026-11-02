@@ -12,22 +12,23 @@ local Element = require('elements/Element')
 -- —— 与集成模式一致（片头那 15 秒里就算手没动，那颗按钮也得看得见）。curtain（≡ 菜单那种压暗
 -- 全屏的模态）升起时，本元件 render_order(6) < curtain(999) 会自动让位。
 --
--- ── MOMOKA[skip-keys] 2026-09-30：offer 立着那一段替宿主接住回车与 Esc ─────────────────────
+-- ── MOMOKA[skip-keys] 2026-09-30：offer 立着那一段替宿主接住回车与删除键 ─────────────────
 -- 用户报「按回车和 esc 确认跳过不生效」，两种模式都不生效，独占这一半的根因是**键权归属**：独占模式
--- 的键盘归 mpv（起播参数 input-default-bindings=yes、input-vo-keyboard=yes），Esc 是 mpv 内建的
--- 「退全屏/退出」、回车压根没有绑定 —— 两键都不会到 shell 的 Dispatch 那里，提示立着按了也白按。
+-- 的键盘归 mpv（起播参数 input-default-bindings=yes、input-vo-keyboard=yes），回车压根没有绑定 ——
+-- 不会到 shell 的 Dispatch 那里，提示立着按了也白按。2026-11-02 用户令「关闭跳过片头/片尾的快捷键
+-- 从 Esc 改为删除键、Esc 退出全屏」，借的键因此从 ENTER/ESC 改成 ENTER/DEL —— Esc 内建的「退全屏/
+-- 退出」不再被这段压着，没有提示时与有提示时都归 mpv。
 --
--- 修法是**只在那一段里借键**：offer 立起时（set_offer 非空）用 keybind 把 ENTER/ESC 按到比内建高一级的
+-- 修法是**只在那一段里借键**：offer 立起时（set_offer 非空）用 keybind 把 ENTER/DEL 按到比内建高一级的
 -- 优先级上、指向本元件所在脚本的两条无默认键的绑定（main.lua 的 bind_command('momoka-ui-skip-take' /
--- 'momoka-ui-skip-dismiss')），offer 收摊时（空文案，含点按钮跳过、按 Esc 关掉、15 秒到点、换集）
--- 立刻把内建行为还原 —— Esc 的「退全屏/退出」因此在没有提示的时候一字未改，其余任何时候也全归 mpv。
+-- 'momoka-ui-skip-dismiss')），offer 收摊时（空文案，含点按钮跳过、按 Del 关掉、15 秒到点、换集）
+-- 立刻把原行为还原。
 --
 -- ── MOMOKA[skip-keys-restore] 2026-10-02：还键不能走 keyunbind ───────────────────────────
 -- 用户再报同样的话、并补「点击第二屏的窗口之后就不生效」。随包内核实测（work/probe-keybind-family.py
 -- 的 command-list、work/probe-skip-keys.py 的运行实录）：这份 libmpv（v0.41.0-923）**只有 keybind、
 -- 没有 keyunbind**，2026-09-30 那版收摊时调 keyunbind 条条报「Command 'keyunbind' not found.」
--- （宿主日志 app-20261002.log 08:48:49 起两对实录），借走的键从此不还 —— 第一次 offer 收摊之后，
--- ESC 的内建「退全屏」被本元件的 dismiss 绑定永远压着，独占模式下 Esc 再也退不出全屏。
+-- （宿主日志 app-20261002.log 08:48:49 起两对实录），借走的键从此不还。
 -- 还原因此改成**原样按回**：借键前先从 input-bindings 抄下这一颗此刻最前面的「别人的」绑定，收摊时
 -- 用 keybind 原样按回去。它落在 keybind 那档优先级（实测 13）而不是内建原来的 0 —— 本项目 config=no
 -- 起播、没有用户 input.conf，13 与 0 之间没有别的绑定，行为与还原前一字不差。
@@ -41,10 +42,11 @@ local SkipButton = class(Element)
 -- KP_ENTER 2026-10-02 补：实机日志（app-20261002.log 08:48:47「No key binding found for key
 -- 'KP_ENTER'」）说明用户按的是小键盘回车 —— 集成模式里两颗回车都是 VirtualKey.Enter、走同一句
 -- Dispatch，独占这里只借 ENTER 就把小键盘那颗漏在了门外。
+-- DEL 是 mpv 对删除键的键名（2026-11-02 用户令关闭键从 ESC 换成删除键）。
 local BORROWED_KEYS = {
 	ENTER = 'momoka-ui-skip-take',
 	KP_ENTER = 'momoka-ui-skip-take',
-	ESC = 'momoka-ui-skip-dismiss',
+	DEL = 'momoka-ui-skip-dismiss',
 }
 
 function SkipButton:new() return Class.new(self) --[[@as SkipButton]] end
@@ -69,7 +71,7 @@ function SkipButton:set_offer(caption)
 	request_render()
 end
 
----offer 立着时把 ENTER/KP_ENTER/ESC 借过来，收摊时原样还回去。幂等：同一状态重复调用不发第二条命令。
+---offer 立着时把 ENTER/KP_ENTER/DEL 借过来，收摊时原样还回去。幂等：同一状态重复调用不发第二条命令。
 ---@param borrow boolean
 function SkipButton:borrow_keys(borrow)
 	if borrow == self.keys_borrowed then return end
@@ -84,7 +86,7 @@ function SkipButton:borrow_keys(borrow)
 				self.originals[key] = self:topmost_foreign_binding(key)
 			end
 			-- 不传 flags：mpv 的 keybind 默认就落在比内建高一级的优先级上（与宿主给 MBTN_RIGHT/MENU
-			-- 那两把同一个写法，见 MpvUi.MenuKeys），内建的 ESC 因此在这一段里不执行。
+			-- 那两把同一个写法，见 MpvUi.MenuKeys）。
 			mp.commandv('keybind', key, 'script-binding uosc/' .. binding)
 		else
 			-- 还原＝原样按回（keyunbind 在随包内核里不存在，见文件头 MOMOKA[skip-keys-restore]）。

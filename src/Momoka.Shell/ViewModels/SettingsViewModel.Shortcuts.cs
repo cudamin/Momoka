@@ -42,8 +42,10 @@ public sealed partial class SettingsViewModel
         _shortcutRows.Clear();
         _shortcutRows.AddRange(AvailableShortcutActions().Select(action => ShortcutRow(action, effective[action.Id])));
         _shortcutFixedRows.Clear();
-        _shortcutFixedRows.Add((Fact("退出全屏 / 停止", "固定，不可更改；跳过提示立着时先关闭提示", "Esc"),
+        _shortcutFixedRows.Add((Fact("退出全屏 / 停止", "固定，不可更改；全屏时退出全屏，非全屏时停止播放", "Esc"),
             new KeyStroke("Escape", false, false, false)));
+        _shortcutFixedRows.Add((Fact("关闭跳过提示", "固定，不可更改；只在出现跳过提示时有效", "Del"),
+            new KeyStroke("Delete", false, false, false)));
         _shortcutFixedRows.Add((Fact("确认跳过片头 / 片尾", "固定，不可更改；只在出现跳过提示时有效", "回车"),
             new KeyStroke("Enter", false, false, false)));
         _shortcutResetRow = Fact("恢复默认快捷键", "恢复全部快捷键，包括当前搜索未显示的项目；其他设置不受影响",

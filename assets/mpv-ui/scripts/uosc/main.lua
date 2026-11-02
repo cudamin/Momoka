@@ -47,14 +47,15 @@
 -- │                             两倍」＋「参考集成模式的跳过按钮修改独占模式的跳过按钮」）。
 -- │     MOMOKA[skip-keys]     同上那条 offer 的**第二半**（2026-09-30 用户报「按回车和 esc 确认
 -- │                             跳过不生效」）：offer 立着那一段，SkipButton 元件用 keybind 把
--- │                             ENTER/KP_ENTER/ESC 借到本脚本的两条无默认键绑定上（momoka-ui-skip-take /
+-- │                             ENTER/KP_ENTER/DEL 借到本脚本的两条无默认键绑定上（momoka-ui-skip-take /
 -- │                             momoka-ui-skip-dismiss，见下面的 bind_command），收摊时把原绑定
 -- │                             keybind 按回去（随包内核没有 keyunbind，2026-10-02 实测，还原写法
 -- │                             见 SkipButton 的 MOMOKA[skip-keys-restore]）。独占模式的键盘归
--- │                             mpv（input-default-bindings=yes），Esc 本来
--- │                             是内建的退全屏/退出、回车没有绑定，不借这两把键，提示立着按它们
--- │                             什么都不会发生。集成模式那半在 shell 侧（PlayerPage 的 Root 兜底
--- │                             + Win32 钩子），不走本通道。
+-- │                             mpv（input-default-bindings=yes），回车没有绑定、删除键也没有，
+-- │                             不借这两把键，提示立着按它们什么都不会发生。2026-11-02 用户令关闭键
+-- │                             从 Esc 换成删除键，Esc 不再被借，独占模式按 Esc 始终归 mpv 退全屏。
+-- │                             集成模式那半在 shell 侧（PlayerPage 的 Root 兜底 + Win32 钩子），
+-- │                             不走本通道。
 -- │     MOMOKA[topbar-subline] 宿主 → uosc 的通道：momoka-subline <文件大小·分辨率·视频编码·音频格式·组名|空>
 -- │                             写进顶栏副标题（第二行），空串＝收起。集成模式那一行是 XAML 的 SubtitleBox，
 -- │                             独占模式由 uosc 顶栏画在返回按钮正下方 —— 两模式同源同显。
