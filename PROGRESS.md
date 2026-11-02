@@ -9899,3 +9899,12 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 早期隐藏启动的两轮截图守卫因遮挡/屏外报红，保留043701738和044203657日志；改正常显示诊断窗口后截图正常，未放宽像素守卫。044807189的账号探针取到尚未挂树按钮，补等待实际身份切换及ListView按钮挂树后通过；最终报告使用后续实际运行。
 - 发布 tools/publish.ps1 -Shortcut -NoArchive 退出0，546文件/285.6MB；开发和发布 Momoka.dll SHA256相同：22809fe2af65812352b1e6bb1e48fa58f25938ae38c2266f056b8df5ef44bd32。桌面Momoka.lnk目标和工作目录均为主树artifacts/publish/win-x64，发布验证后无残留Momoka进程。版本仍0.2.2，未推origin。
 - 验证只使用临时设置、匿名假HTTP/账号，无真实服务器登录、写入或播放；高对比度与系统关闭透明效果未做实际桌面切换，回退按现有资源复核。临时分支已删除，本地仅master；本聊天的当前主检出按上一轮归档工具限制保留干净detached e5c5f46，其内容与master一致，不是未合并工作。
+
+## 2026-11-02 聚合设置窗口加载与关闭悬停修复（在途）
+
+- 用户要求修聚合设置加载慢、右上角首开与重开红闪；另两项由独立子代理处理体积和爱心。根工作树 `aggregate-settings-loading/Momoka`，仅本任务写入。
+- 设置目录同服多管理员只读所选身份一次；同身份/权限代次缓存插件，不变目录保留控件和展开状态，失效/重连/权限变化不复用旧目录。55项设置生命周期离线回归全过，新增请求合并、非空插件重开及NC清理消息红绿已记录于work；尚待最终Shell与主树重验。
+- 已静态读取实际随包 Input.dll 与 Windowing.Core.dll及微软匹配PDB；WM_NCMOUSELEAVE会被tracking门槛丢弃，WM_NCMOUSEMOVE/HTNOWHERE走区域退出并清标题按钮hover。隐藏显示前发送本窗消息，不移动鼠标，并去掉Activate前额外Show。证据 `work/caption-symbols`（ignored，本机实验，不是干净检出依赖）。
+- 中间正式窗口匿名首开约176ms，正文稳定约624ms，重开227–258ms；这些是中间代码/本机假HTTP，不是最终真实服务性能。合成HitClose两轮未画红，探针如实红且后续24项绿，未作为修复通过；改为inspect真实X与重开核验。最终截图、发布与提交待完成；未推origin、未播放或写服务器。
+
+- 本机真实输入补验：inspect 17840，正式设置窗口4853260；winapp真实hover Close画红，click Close确认窗口从可见列表消失，再真实click检查台SettingsOpeningReopen（光标离开X）截图无红；再次hover恢复红，再次click X→重开无红。2轮实际正反图片保存在 `work/caption-real2-{red,cleared,red-again,cleared-again}.png`，只对匿名假设置/服务器操作。首轮Invoke重开光标还停X导致正常红，不冒充残留；改真实点击重开让光标离开关闭区域。移除无调用者的合成红像素helper，保留消息顺序单测与正式窗口运行路径。

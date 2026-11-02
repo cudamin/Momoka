@@ -218,6 +218,7 @@ internal static partial class Native
     public const uint WmGetIcon = 0x007F;
     public const uint WmSize = 0x0005;
     public const uint WmClose = 0x0010;
+    public const uint WmNcMouseMove = 0x00A0;
     public const uint WmEraseBackground = 0x0014;
     public const uint WmGetMinMaxInfo = 0x0024;
 

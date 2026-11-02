@@ -195,6 +195,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private IServerCapabilities? _capabilities;
     private readonly LoadGeneration _administrationLoads = new();
     private bool _active;
+    private readonly Dictionary<string, (EmbySessionScope Scope, long Revision, IReadOnlyList<ServerSettingsPluginPage> Pages)> _administrationPages = new(StringComparer.Ordinal);
     private bool _disposed;
     private MoviePilotService? _moviePilot;
     private MoviePilotCredentials? _moviePilotCredentials;
@@ -672,6 +673,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         if (_disposed) return;
         Activate();
+        if (!ReferenceEquals(_capabilities, capabilities)) _administrationPages.Clear();
         _settings = settings;
         _shaders = shaders;
         _fonts = fonts;
@@ -733,10 +735,14 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 捕获作用域 —— 这正是从前只有独占模式才看得见的那批设置页，现在按服务器各归各的。
         if (sources.Select(source => source.ServerProfileId).Distinct(StringComparer.Ordinal).Count() > 1)
         {
-            ApplyMultiServerGroups(sources, new Dictionary<string, IReadOnlyList<ServerSettingsPluginPage>>(StringComparer.Ordinal));
+            // 只复用仍在线且权限代次没变的同一身份插件，避免每次开窗先删掉再补回来。
+            foreach (var key in _administrationPages.Keys.ToArray())
+                if (!sources.Any(source => source.Key == key && source.IsAvailable
+                    && _administrationPages[key].Scope.IsAvailable && source.Scope.PermissionRevision == _administrationPages[key].Revision)) _administrationPages.Remove(key);
+            ApplyMultiServerGroups(sources, _administrationPages.ToDictionary(pair => pair.Key, pair => pair.Value.Pages, StringComparer.Ordinal));
 
             var pages = new Dictionary<string, IReadOnlyList<ServerSettingsPluginPage>>(StringComparer.Ordinal);
-            await Task.WhenAll(sources
+            await Task.WhenAll(SelectServerSources(sources)
                 .Where(source => source.IsAdministrator && source.Kind is MediaServerKind.Emby or MediaServerKind.Jellyfin)
                 .Select(async source =>
                 {
@@ -745,10 +751,13 @@ public sealed partial class SettingsViewModel : PageViewModel
                 })).ConfigureAwait(true);
 
             if (!Current()) return;
+            foreach (var pair in pages) _administrationPages[pair.Key] = (sources.Single(source => source.Key == pair.Key).Scope, revisions[pair.Key], pair.Value);
             // 等待后重读每条来源的权限，不让等待前的管理员位重新打开已收起的目录。
             ApplyMultiServerGroups(capabilities.Sources, pages);
             return;
         }
+
+        _administrationPages.Clear();
 
         // 先同步已知状态，防止权限请求尚在等待时显示上一个账号、上一台服务器或上一个连接模式的管理页。
         // 产品一变立刻换上那一家的固定条目（插件页稍后补）；不能拿上一家的分组顶着新产品的名字。
@@ -810,6 +819,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         _disposed = true;
         _active = false;
+        _administrationPages.Clear();
         _administrationLoads.Dispose();
         _ = FlushSettingsAsync();
         base.Dispose();
@@ -835,14 +845,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             .Where(group => group.SourceKey is not null)
             .ToDictionary(group => group.SourceKey!, group => group.IsExpanded, StringComparer.Ordinal);
 
-        var selected = sources
-            .GroupBy(source => source.ServerProfileId, StringComparer.Ordinal)
-            .Select(group => group
-                .OrderByDescending(source => source.IsAdministrator)
-                .ThenByDescending(source => source.IsCurrent)
-                .First())
-            .OrderBy(ServerOrder)
-            .ToArray();
+        var selected = SelectServerSources(sources).OrderBy(ServerOrder).ToArray();
 
         foreach (var source in selected)
         {
@@ -862,6 +865,12 @@ public sealed partial class SettingsViewModel : PageViewModel
         _showsServerAdministration = groups.Count > 1;
         ReplaceCategories(groups);
     }
+
+    // 插件请求与目录必须选同一个账号；同服多个管理员不重复读取同一份服务器菜单。
+    private static IEnumerable<ServerSettingsSource> SelectServerSources(IReadOnlyList<ServerSettingsSource> sources) =>
+        sources.GroupBy(source => source.ServerProfileId, StringComparer.Ordinal)
+            .Select(group => group.OrderByDescending(source => source.IsAdministrator)
+                .ThenByDescending(source => source.IsCurrent).First());
 
     private int ServerOrder(ServerSettingsSource source)
     {
@@ -1027,8 +1036,19 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 重排平铺名单，同时保住当前选中项：先按新键找回同一项，找不回再按旧分类名认一次，
     /// 都不在就落到第一项。左栏与紧凑下拉共用 <see cref="SelectedEntry"/>，所以它也跟着换。
     /// </summary>
+    private static bool SameCategoryGroups(IReadOnlyList<SettingsCategoryGroup> current,
+        IReadOnlyList<SettingsCategoryGroup> desired) => current.Count == desired.Count
+        && current.Zip(desired).All(pair => pair.First.Name == pair.Second.Name
+            && pair.First.SourceKey == pair.Second.SourceKey
+            && pair.First.Collapsible == pair.Second.Collapsible
+            && pair.First.Rows.Select(row => (row.Key, row.Label, row.Route, row.CardCategory, row.IsSection))
+                .SequenceEqual(pair.Second.Rows.Select(row => (row.Key, row.Label, row.Route, row.CardCategory, row.IsSection))));
+
     private void ReplaceCategories(IReadOnlyList<SettingsCategoryGroup> groups)
     {
+        // 固定目录、插件结果和身份都没变时保留分组及其控件，避免首屏/重开重复构建。
+        if (SameCategoryGroups(_categoryGroups, groups)) return;
+
         _categoryGroups = groups;
         var desired = groups.SelectMany(group => group.Entries).ToArray();
         if (desired.Length == 0) return;

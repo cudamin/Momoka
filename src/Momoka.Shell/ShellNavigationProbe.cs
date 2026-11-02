@@ -42,6 +42,7 @@ internal sealed partial class ShellNavigationProbe
             {
                 // 最后一个框架窗口关闭会终止应用，整轮结束后统一关闭。
                 foreach (var settingsWindow in _shortcutProbeWindows) settingsWindow.Close();
+                foreach (var settingsWindow in _openingProbeWindows) settingsWindow.Close();
                 _window?.Dispose();
             },
             () => Application.Current.Exit(), code => ExitCode = code);
@@ -166,6 +167,7 @@ internal sealed partial class ShellNavigationProbe
             // 默认限时不够了 —— 与视频基础输出用例同款理由（多轮控件切换与截图设 45 秒）。
             await CaseAsync("Anime4K 固定配置组选择与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, anime4KOnly: true), 30, section: ShellProbeSections.Shaders);
             await CaseAsync("Anime4K 固定配置组选择与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, anime4KOnly: true), 30, section: ShellProbeSections.Shaders);
+            await CaseAsync("聚合设置窗口首开与缓存重开", SettingsOpeningAsync, 45, section: ShellProbeSections.Settings);
             await CaseAsync("设置分类动效与快速切换", SettingsEntranceAsync, 45);
             await CaseAsync("卡片焦点宿主与设置控件具体名称", CardFocusAndSettingNamesAsync, 45, section: ShellProbeSections.Settings);
             await CaseAsync("设置搜索、无标题分隔线与滚动条避让", SettingsSearchLayoutAsync, 60, section: ShellProbeSections.Settings);

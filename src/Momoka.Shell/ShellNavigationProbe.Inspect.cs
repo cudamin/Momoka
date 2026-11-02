@@ -99,6 +99,7 @@ internal sealed partial class ShellNavigationProbe
             frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, Episode("a")));
             return Task.CompletedTask;
         });
+        Add("InspectSettingsOpening", "聚合设置开窗", () => SettingsOpeningAsync(inspect: true));
         Add("InspectSettingsMotion", "设置动画", async () =>
         {
             if (frame.Content is IShellContent previous) previous.Release();

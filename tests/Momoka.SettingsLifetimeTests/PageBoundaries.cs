@@ -38,7 +38,11 @@ namespace Microsoft.UI.Xaml
     {
         public Microsoft.UI.Windowing.AppWindow AppWindow { get; } = new();
         public int Activations { get; private set; }
-        public void Activate() => Activations++;
+        public void Activate()
+        {
+            Activations++;
+            Momoka.Shell.Interop.Native.Events.Add("activate");
+        }
         public void Close() => AppWindow.RaiseClosing();
     }
 }
@@ -120,8 +124,17 @@ namespace Microsoft.Extensions.DependencyInjection
 
 namespace Momoka.Shell.Interop
 {
+    internal struct NativePoint { public int X; public int Y; }
     internal static class Native
     {
+        public static List<string> Events { get; } = [];
+        public const uint WmNcMouseMove = 0x00A0;
+        public static bool GetCursorPos(out NativePoint point) { point = new() { X = -13, Y = 42 }; return true; }
+        public static IntPtr SendMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam)
+        {
+            Events.Add($"move:{message}:{wParam}:{lParam.ToInt64()}");
+            return IntPtr.Zero;
+        }
         public static void DestroyIcon(IntPtr icon) => throw new InvalidOperationException("禁止原生图标调用");
     }
 }
@@ -266,6 +279,7 @@ namespace Momoka.Shell.Views
             _repaint = _ => { };
             _window.AppWindow.Closing += OnClosing;
         }
+        internal IntPtr Handle => (IntPtr)1;
         internal Microsoft.UI.Windowing.AppWindow BoundaryWindow => _window.AppWindow;
     }
 

@@ -22,6 +22,19 @@ internal static class SettingsHiddenLifetimeTests
         TestHarness.Test("R-026 隐藏后SelectedCategory通知不启动内嵌页", HiddenSelection);
         TestHarness.Test("R-026 Hide与X重复收起只发送一次Hidden", HideParity);
         TestHarness.Test("R-026 真Close也先释放订阅与目录活动期", RealClose);
+        TestHarness.Test("设置窗显现前清理旧关闭悬停而不移动光标", CaptionPointerReset);
+    }
+
+    private static void CaptionPointerReset()
+    {
+        using var context = new FixtureContext();
+        using var fixture = new LifetimeFixture();
+        var page = fixture.NewCachedPage("主页");
+        var window = new SettingsWindow(page);
+        Momoka.Shell.Interop.Native.Events.Clear();
+        window.Show(new SettingsRequest(fixture.Services, "主页"));
+        Assert.True(Momoka.Shell.Interop.Native.Events.SequenceEqual(new[] { "move:160:0:2818035", "activate" }),
+            "显现前应以HTNOWHERE清旧悬停，并保留负数屏幕坐标的低16位");
     }
 
     private static (LifetimeFixture Fixture, SettingsPage Page, SettingsWindow Window, EmbySessionScope B) OpenFnNas(FixtureContext context)

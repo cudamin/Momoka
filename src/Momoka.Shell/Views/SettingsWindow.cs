@@ -183,7 +183,16 @@ internal sealed class SettingsWindow
         // per visit with it.
         _frame.BackStack.Clear();
 
-        _window.AppWindow.Show();
+        // WinAppSDK 2.5.1 的关闭按钮在 Hide 后可能保留旧悬停区域；隐藏期间以 HTNOWHERE
+        // 发一次 NC move 触发该区域的 PointerExited。只发送本窗消息，不挪动用户光标。
+        // Input::OnNcMouseMove_Callback → CTitleBar::OnPointerExited，见 microsoft-ui-xaml #12232。
+        if (!_open && Native.GetCursorPos(out var cursor))
+        {
+            var coordinates = unchecked((cursor.Y << 16) | (cursor.X & 0xffff));
+            Native.SendMessage(Handle, Native.WmNcMouseMove, IntPtr.Zero, (IntPtr)coordinates);
+        }
+
+        // Activate 已执行 ShowWindow + UpdateWindow；避免在内容首帧前额外显窗。
         _window.Activate();
         _open = true;
     }

@@ -25,6 +25,52 @@ internal static class AdministrationLifetimeTests
         TestHarness.Test("R-018 权限Probe等待中切普通B拒绝旧后续插件请求", ProbeChangedAccount);
         TestHarness.Test("R-018 普通账号恢复管理员正常读取插件", PermissionRestored);
         TestHarness.Test("R-018 未Attach与Dispose后刷新没有HTTP和目录变动", UnattachedAndDisposed);
+        TestHarness.Test("聚合插件不变与缓存重开保留目录对象和展开状态", StableAggregateDirectories);
+        TestHarness.Test("同服多管理员只读取目录所选账号的插件", OnePluginReadPerServer);
+    }
+
+    private static void StableAggregateDirectories()
+    {
+        using var context = new FixtureContext();
+        using var fixture = new LifetimeFixture();
+        fixture.Add("second", "b", MediaServerKind.Emby);
+        var pending = fixture.Reads.HoldPlugin("a");
+        var refresh = fixture.Refresh();
+        context.PumpUntil(() => fixture.Reads.Started(pending));
+        var groups = ShellRuntime.Current.Get<object>(fixture.Vm, "CategoryGroups");
+        var group = ((System.Collections.IEnumerable)groups).Cast<object>().Last();
+        ShellRuntime.Current.Set(group, "IsExpanded", true);
+        pending.Complete();
+        context.Await(refresh);
+        Assert.True(ReferenceEquals(groups, ShellRuntime.Current.Get<object>(fixture.Vm, "CategoryGroups")),
+            "插件空表回填不应重建相同目录和控件");
+        context.Await(fixture.Refresh());
+        Assert.True(ReferenceEquals(groups, ShellRuntime.Current.Get<object>(fixture.Vm, "CategoryGroups")),
+            "缓存重开不应重建未变化的目录");
+        Assert.True(ShellRuntime.Current.Get<bool>(group, "IsExpanded"));
+        var plugin = fixture.Reads.HoldPlugin("a");
+        refresh = fixture.Refresh();
+        context.PumpUntil(() => fixture.Reads.Started(plugin));
+        plugin.Complete("同一插件");
+        context.Await(refresh);
+        groups = ShellRuntime.Current.Get<object>(fixture.Vm, "CategoryGroups");
+        plugin = fixture.Reads.HoldPlugin("a");
+        refresh = fixture.Refresh();
+        context.PumpUntil(() => fixture.Reads.Started(plugin));
+        Assert.True(ReferenceEquals(groups, ShellRuntime.Current.Get<object>(fixture.Vm, "CategoryGroups")), "重入等待不应先删掉已有插件目录");
+        plugin.Complete("同一插件");
+        context.Await(refresh);
+        Assert.True(ReferenceEquals(groups, ShellRuntime.Current.Get<object>(fixture.Vm, "CategoryGroups")), "非空插件不变应保留目录对象");
+    }
+
+    private static void OnePluginReadPerServer()
+    {
+        using var context = new FixtureContext();
+        using var fixture = new LifetimeFixture();
+        fixture.Add("server", "b", MediaServerKind.Jellyfin);
+        fixture.Add("second", "c", MediaServerKind.Emby);
+        context.Await(fixture.Refresh());
+        Assert.Equal(2, fixture.Reads.PluginReads, "两个服务器各读一次，不能按在线管理员账号重复读取");
     }
 
     private static void OrdinaryAccount(MediaServerKind kind)
