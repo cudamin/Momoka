@@ -225,7 +225,7 @@
             BorderThickness="{StaticResource EgCardBorderThickness}"
             CornerRadius="{StaticResource EgCardCornerRadius}"
             Padding="10,8">
-            <Grid RowSpacing="2">
+            <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -265,7 +265,8 @@
                         </Button>
                     </StackPanel>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"
+                        Visibility="{x:Bind ViewModel.AggregateOptionsVisibility, Mode=OneWay}">
                         <FontIcon
                             FontSize="{StaticResource EgSubheadFontSize}"
                             Foreground="{ThemeResource EgAccentBrush}"

@@ -316,35 +316,37 @@
                 <Flyout x:Name="AccountMenu" Placement="BottomEdgeAlignedRight">
                     <Flyout.FlyoutPresenterStyle>
                         <Style TargetType="FlyoutPresenter" BasedOn="{StaticResource DefaultFlyoutPresenterStyle}">
-                            <Setter Property="Padding" Value="8" />
+                            <Setter Property="Padding" Value="6" />
+                            <Setter Property="Background" Value="{ThemeResource EgFrostBrush}" />
                             <Setter Property="MinWidth" Value="0" />
                             <Setter Property="MaxWidth" Value="360" />
                             <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Disabled" />
                             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
                         </Style>
                     </Flyout.FlyoutPresenterStyle>
-                    <StackPanel x:Name="AccountMenuBody" Width="304" Spacing="4">
+                    <StackPanel x:Name="AccountMenuBody" Width="280" Spacing="2">
                         <StackPanel.Resources>
                             <Style x:Key="AccountActionStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
                                 <Setter Property="Background" Value="Transparent" />
                                 <Setter Property="BorderThickness" Value="0" />
-                                <Setter Property="Padding" Value="8,4" />
-                                <Setter Property="MinHeight" Value="36" />
+                                <Setter Property="Padding" Value="6,3" />
+                                <Setter Property="MinHeight" Value="32" />
+                                <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
                                 <Setter Property="HorizontalAlignment" Value="Stretch" />
                                 <Setter Property="HorizontalContentAlignment" Value="Left" />
                             </Style>
                         </StackPanel.Resources>
                         <TextBlock x:Name="AccountIdentityItem" AutomationProperties.AutomationId="AccountIdentityStatus"
-                            Margin="8,4" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" />
-                        <TextBlock x:Name="AccountOnlineItem" Margin="8,0" Style="{StaticResource EgCaptionStyle}" Visibility="Collapsed" />
-                        <Grid Margin="8,4" ColumnSpacing="12">
+                            Margin="6,3" Style="{StaticResource EgCaptionStyle}" FontSize="{StaticResource EgEyebrowFontSize}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="AccountOnlineItem" Margin="6,0" Style="{StaticResource EgCaptionStyle}" FontSize="{StaticResource EgEyebrowFontSize}" Visibility="Collapsed" />
+                        <Grid x:Name="AggregateModeRow" Margin="6,3" ColumnSpacing="8" Visibility="Collapsed">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="聚合模式" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
+                            <TextBlock Text="聚合模式" Style="{StaticResource EgBodyStyle}" FontSize="{StaticResource EgCaptionFontSize}" VerticalAlignment="Center" />
                             <ToggleSwitch x:Name="AggregateModeItem" Grid.Column="1" OnContent="开" OffContent="关"
-                                MinWidth="0" AutomationProperties.Name="聚合模式" Toggled="OnAggregateModeToggled">
+                                MinWidth="0" FontSize="{StaticResource EgCaptionFontSize}" AutomationProperties.Name="聚合模式" Toggled="OnAggregateModeToggled">
                                 <ToggleSwitch.Resources>
                                     <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
                                     <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgAccentBrush" />
@@ -355,12 +357,12 @@
                                 </ToggleSwitch.Resources>
                             </ToggleSwitch>
                         </Grid>
-                        <ListView x:Name="AccountProfileList" MaxHeight="280" SelectionMode="None"
+                        <ListView x:Name="AccountProfileList" MaxHeight="256" SelectionMode="None"
                             AutomationProperties.Name="服务器与账号">
                             <ListView.ItemContainerStyle>
                                 <Style TargetType="ListViewItem">
                                     <Setter Property="Padding" Value="0" />
-                                    <Setter Property="MinHeight" Value="36" />
+                                    <Setter Property="MinHeight" Value="32" />
                                     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                 </Style>
                             </ListView.ItemContainerStyle>

@@ -26,6 +26,7 @@ internal sealed partial class ShellNavigationProbe
             ? Task.FromResult(Items(0, 0)) : Task.FromResult(FakeTransport.Standard(request));
         fixture.Settings.AggregateMode = false;
         fixture.Session.ApplyAggregateMode();
+        await VerifyServersPageVisibilityAsync();
         var shell = new ShellPage();
         shell.Attach(fixture.Services);
         _root.Children.Add(shell);
@@ -41,6 +42,47 @@ internal sealed partial class ShellNavigationProbe
             var toggle = Get<ToggleSwitch>(shell, "AggregateModeItem");
             var profiles = Get<ListView>(shell, "AccountProfileList");
             var online = Get<TextBlock>(shell, "AccountOnlineItem");
+            var identity = Get<TextBlock>(shell, "AccountIdentityItem");
+            var aggregateRow = Get<Grid>(shell, "AggregateModeRow");
+            var management = new ViewModels.ServersViewModel();
+            management.Attach(fixture.Actions, fixture.SettingsService, fixture.Session);
+            var beforeVisibility = fixture.Transport.Requests.Count;
+            var originalServers = fixture.Settings.Servers.ToArray();
+            firstServer.Accounts.Add(new Momoka.Configuration.AccountProfile { Id = "offline-extra", Username = "未登录账号" });
+            try
+            {
+                foreach (var count in new[] { 0, 1, 2, 1, 2 })
+                {
+                    fixture.Settings.Servers.Clear();
+                    fixture.Settings.Servers.AddRange(originalServers.Take(count));
+                    fixture.SettingsService.Save();
+                    await LayoutAsync(shell);
+                    Require(aggregateRow.Visibility == (count > 1 ? Visibility.Visible : Visibility.Collapsed),
+                        "保存服务器变化后聚合选项未即时更新");
+                    shell.RefreshAccountMenus();
+                    management.Refresh();
+                    await UntilAsync(() => !menu.IsOpen);
+                    menu.ShowAt(Get<Button>(shell, "AccountButton"));
+                    await LayoutAsync(shell);
+                    var expected = count > 1 ? Visibility.Visible : Visibility.Collapsed;
+                    Require(aggregateRow.Visibility == expected && management.AggregateOptionsVisibility == expected
+                        && management.NoteVisibility == expected, $"{count} 台保存服务器的聚合选项或说明显隐错误");
+                    Require(!fixture.Settings.AggregateMode && fixture.Session.Sources.Count == 1,
+                        "隐藏聚合选项修改了偏好或在线会话");
+                    Require(count > 1 || aggregateRow.ActualHeight == 0, "隐藏聚合选项留下行高");
+                    if (count == 1) await SaveProbeScreenAsync($"account-menu-single-server-{_root.ActualWidth:F0}-screen.png");
+                    menu.Hide();
+                }
+                Require(fixture.Transport.Requests.Count == beforeVisibility, "仅改变聚合选项显隐发起了恢复请求");
+            }
+            finally
+            {
+                fixture.Settings.Servers.Clear();
+                fixture.Settings.Servers.AddRange(originalServers);
+                firstServer.Accounts.RemoveAt(firstServer.Accounts.Count - 1);
+                shell.RefreshAccountMenus();
+                management.Cancel();
+            }
             var selectionIds = profiles.Items.OfType<Grid>().SelectMany(row => row.Children.OfType<Button>())
                 .Select(AutomationProperties.GetAutomationId).Where(id => id.StartsWith("AccountSelect:", StringComparison.Ordinal)).Order().ToArray();
             var beforeSeed = fixture.Transport.Requests.Count;
@@ -60,8 +102,8 @@ internal sealed partial class ShellNavigationProbe
                 Require(selectionIds.SequenceEqual(profiles.Items.OfType<Grid>().SelectMany(row => row.Children.OfType<Button>())
                     .Select(AutomationProperties.GetAutomationId).Where(id => id.StartsWith("AccountSelect:", StringComparison.Ordinal)).Order()),
                     "账号上下线改变了同一行的自动化定位");
-                Require(online.Text == "2 个账号在线" && online.Visibility == Visibility.Visible,
-                    "在线数量未独立显示");
+                Require(online.Text == "2 个账号在线" && online.Visibility == Visibility.Visible && identity.Visibility == Visibility.Collapsed,
+                    "聚合菜单顶部未仅显示在线数量");
                 var aggregateWidth = await PhotographAsync("on");
                 Require(aggregateWidth <= normalWidth + 1, $"聚合菜单多出空白：关 {normalWidth:F1}，开 {aggregateWidth:F1}");
                 var stale = OfflineButtons().Single(button => button.Tag is EmbySessionScope source && source.ServerProfileId == firstServer.Id);
@@ -72,6 +114,13 @@ internal sealed partial class ShellNavigationProbe
             }
             await (Task)Call(shell, "SetAccountAggregateModeAsync", true)!;
             await SourcesReadyAsync(2);
+            fixture.Settings.Servers.Remove(secondServer);
+            shell.RefreshAccountMenus();
+            Require(aggregateRow.Visibility == Visibility.Collapsed && toggle.IsOn && fixture.Settings.AggregateMode
+                && fixture.Session.Sources.Count == 2 && OfflineButtons().Count(button => button.Visibility == Visibility.Visible) == 1,
+                "隐藏已开启的聚合选项清空了偏好或下线操作");
+            fixture.Settings.Servers.Add(secondServer);
+            shell.RefreshAccountMenus();
             foreach (var theme in Momoka.Theming.UiThemes.All)
             {
                 ThemeHost.Apply(theme);
@@ -86,6 +135,7 @@ internal sealed partial class ShellNavigationProbe
             firstSelect = profiles.Items.OfType<Grid>().SelectMany(row => row.Children.OfType<Button>())
                 .Single(button => AutomationProperties.GetName(button) == "a.invalid · 账号甲");
             ((IInvokeProvider)new ButtonAutomationPeer(firstSelect).GetPattern(PatternInterface.Invoke)).Invoke();
+            await UntilAsync(() => fixture.Session.Server?.Id == firstServer.Id && fixture.Session.Account?.Id == firstAccount.Id);
             await SourcesReadyAsync(2);
             Require(!menu.IsOpen, "选择账号后浮层没有关闭");
             Require(fixture.Session.Server?.Id == firstServer.Id && fixture.Session.Account?.Id == firstAccount.Id,
@@ -93,6 +143,9 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => !menu.IsOpen);
             menu.ShowAt(Get<Button>(shell, "AccountButton"));
             await LayoutAsync(shell);
+            // ListView 在浮层打开后才实现行；根页面完成布局不代表新一批账号按钮已经挂树。
+            await UntilAsync(() => menu.IsOpen && OfflineButtons().Any(button => button.Tag is EmbySessionScope source
+                && source.ServerProfileId == firstServer.Id && button.Parent is Grid && button.ActualWidth > 0));
             var target = OfflineButtons().Single(button => button.Tag is EmbySessionScope source && source.ServerProfileId == firstServer.Id);
             var targetSource = (EmbySessionScope)target.Tag;
             Require(AutomationProperties.GetAutomationId(target).StartsWith("AccountOffline:", StringComparison.Ordinal), "下线账号无法稳定定位");
@@ -162,7 +215,13 @@ internal sealed partial class ShellNavigationProbe
                 var presenter = VisualTreeHelper.GetOpenPopupsForXamlRoot(shell.XamlRoot)
                     .SelectMany(popup => Descendants(popup.Child)).OfType<FlyoutPresenter>().Single();
                 var actual = presenter.ActualWidth;
-                Require(actual > 0 && actual <= 360, $"账号菜单未保持紧凑：{actual:F1}");
+                Require(toggle.IsOn ? online.Visibility == Visibility.Visible && identity.Visibility == Visibility.Collapsed
+                    : online.Visibility == Visibility.Collapsed && identity.Visibility == Visibility.Visible,
+                    "账号菜单顶部身份与在线数量没有按模式切换");
+                Require(actual > 0 && actual <= 300, $"账号菜单未保持紧凑：{actual:F1}");
+                Require(presenter.Background is AcrylicBrush { AlwaysUseFallback: false }, "账号菜单背景不是亚克力");
+                Require(profiles.Items.OfType<Grid>().SelectMany(row => row.Children.OfType<Button>())
+                    .All(button => button.FontSize == 12 && button.ActualHeight <= 33), "账号行未使用较小字号或紧凑高度");
                 var knob = Descendants(toggle).OfType<Grid>().Single(element => element.Name == "SwitchKnob");
                 var knobOffset = ((TranslateTransform)knob.RenderTransform).X;
                 Require(toggle.IsOn ? knobOffset > 10 : Math.Abs(knobOffset) < 1,
@@ -182,6 +241,43 @@ internal sealed partial class ShellNavigationProbe
             shell.Favorites.Dispose();
             Call(shell, "ReleaseContent");
             shell.SignInRoot.Detach();
+        }
+
+        async Task VerifyServersPageVisibilityAsync()
+        {
+            var host = new Frame();
+            _root.Children.Add(host);
+            var originalServers = fixture.Settings.Servers.ToArray();
+            ServersPage? page = null;
+            try
+            {
+                Require(host.Navigate(typeof(ServersPage), new ServerRequest(fixture.Services)), "服务器页未导航成功");
+                page = (ServersPage)host.Content;
+                await UntilAsync(() => page.IsReady);
+                var toggle = Get<ToggleSwitch>(page, "AggregateToggle");
+                foreach (var count in new[] { 1, 2, 0, 2 })
+                {
+                    fixture.Settings.Servers.Clear();
+                    fixture.Settings.Servers.AddRange(originalServers.Take(count));
+                    fixture.SettingsService.Save();
+                    await UntilAsync(() => page.Summary.Servers == count);
+                    await LayoutAsync(page);
+                    Require(((FrameworkElement)toggle.Parent).Visibility == (count > 1 ? Visibility.Visible : Visibility.Collapsed),
+                        "服务器页保存台数变化后开关区域未同步更新");
+                }
+                page.Release();
+                fixture.Settings.Servers.RemoveAt(1);
+                fixture.SettingsService.Save();
+                await LayoutAsync(page);
+                Require(page.Summary.Servers == 2, "服务器页释放后保存通知仍修改旧页面");
+            }
+            finally
+            {
+                page?.Release();
+                _root.Children.Remove(host);
+                fixture.Settings.Servers.Clear();
+                fixture.Settings.Servers.AddRange(originalServers);
+            }
         }
     }
 }

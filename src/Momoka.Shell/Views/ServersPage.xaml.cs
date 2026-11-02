@@ -29,6 +29,7 @@ public sealed partial class ServersPage : Page, IShellContent
 
     private ServerRequest? _request;
     private EmbySession? _session;
+    private ISettingsService? _settings;
 
     public ServersPage()
     {
@@ -96,10 +97,13 @@ public sealed partial class ServersPage : Page, IShellContent
         if (_session is not null) _session.SourcesChanged -= OnSourcesChanged;
         _session = services.GetRequiredService<EmbySession>();
         _session.SourcesChanged += OnSourcesChanged;
+        if (_settings is not null) _settings.SaveStateChanged -= OnSettingsSaved;
+        _settings = services.GetRequiredService<ISettingsService>();
+        _settings.SaveStateChanged += OnSettingsSaved;
 
         ViewModel.Attach(
             services.GetRequiredService<IShellActions>(),
-            services.GetRequiredService<ISettingsService>(),
+            _settings,
             _session);
 
         _ = ViewModel.ReloadAsync();
@@ -107,9 +111,21 @@ public sealed partial class ServersPage : Page, IShellContent
 
     public void Release()
     {
+        if (_settings is not null) _settings.SaveStateChanged -= OnSettingsSaved;
+        _settings = null;
         if (_session is not null) _session.SourcesChanged -= OnSourcesChanged;
         _session = null;
         ViewModel.Cancel();
+    }
+
+    private void OnSettingsSaved(object? sender, EventArgs e)
+    {
+        var settings = _settings;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (settings is not null && ReferenceEquals(settings, _settings) && _session is not null
+                && settings.Settings.Servers.Count != ViewModel.Servers.Count) ViewModel.Refresh();
+        });
     }
 
     private void OnSourcesChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(() =>

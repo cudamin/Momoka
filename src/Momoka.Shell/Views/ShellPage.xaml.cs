@@ -447,8 +447,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>账号那颗按钮 —— 挪进标题栏之后它的收／放跟外壳一整块走，但自检还要量它在不在屏上。</summary>
     internal FrameworkElement AccountRoot => AccountButton;
 
-    /// <summary>探针读取当前身份与统一账号列表。</summary>
-    internal string AccountMenuIdentity => AccountIdentityItem.Text;
+    /// <summary>探针读取菜单当前显示的标题。</summary>
+    internal string AccountMenuIdentity => AccountIdentityItem.Visibility == Visibility.Visible ? AccountIdentityItem.Text : AccountOnlineItem.Text;
 
     internal void RefreshAccountMenus() => FillSwitchMenus();
 
@@ -567,6 +567,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _services = services;
         _session = services.GetRequiredService<EmbySession>();
         _settings = services.GetRequiredService<ISettingsService>();
+        _settings.SaveStateChanged += (_, _) => DispatcherQueue.TryEnqueue(RefreshAccountModeVisibility);
         OnSidebarPreferencesChanged(Settings.Ui);
         _capabilities = services.GetRequiredService<IServerCapabilities>();
         StartMoviePilotMonitoring(services.GetRequiredService<MoviePilotService>());
@@ -2259,7 +2260,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
             ? "尚未登录"
             : $"{session.ServerDisplayName} · {session.Account?.Username}";
         AccountOnlineItem.Text = $"{sources.Count} 个账号在线";
-        AccountOnlineItem.Visibility = sources.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        AccountIdentityItem.Visibility = aggregate ? Visibility.Collapsed : Visibility.Visible;
+        AccountOnlineItem.Visibility = aggregate ? Visibility.Visible : Visibility.Collapsed;
+        RefreshAccountModeVisibility();
         _seedingAccountMode = true;
         try { AggregateModeItem.IsOn = aggregate; }
         finally { _seedingAccountMode = false; }
@@ -2291,6 +2294,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
                 Content = new TextBlock
                 {
                     Text = identity + (source?.IsCurrent == true ? "（当前）" : source is not null ? "（在线）" : ""),
+                    Style = (Style)Application.Current.Resources["EgBodyStyle"],
+                    FontSize = (double)Application.Current.Resources["EgCaptionFontSize"],
                     TextTrimming = TextTrimming.CharacterEllipsis
                 },
                 Style = (Style)AccountMenuBody.Resources["AccountActionStyle"]
@@ -2317,6 +2322,12 @@ public sealed partial class ShellPage : UserControl, IShellActions
             row.Children.Add(offline);
             AccountProfileList.Items.Add(row);
         }
+    }
+
+    private void RefreshAccountModeVisibility()
+    {
+        // 按保存服务器数判断；非聚合通常只有一台在线，按在线数会藏掉开启入口。
+        AggregateModeRow.Visibility = _settings?.Settings.Servers.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void OnAggregateModeToggled(object sender, RoutedEventArgs e)

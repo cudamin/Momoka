@@ -31,6 +31,22 @@ internal static class AccountMenuTests
             Assert.True(shell.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "AccountOnlineItem"),
                 "在线账号数应独立呈现，不追加到身份行");
         });
+
+        TestHarness.Test("账号菜单：聚合选项可完整收起，面板使用紧凑字号与亚克力", () =>
+        {
+            var menu = Shell().Descendants().Single(element => element.Attribute(Xaml + "Name")?.Value == "AccountMenu");
+            var toggle = menu.Descendants().Single(element => element.Attribute(Xaml + "Name")?.Value == "AggregateModeItem");
+            Assert.Equal("AggregateModeRow", toggle.Parent?.Attribute(Xaml + "Name")?.Value);
+            var body = menu.Descendants().Single(element => element.Attribute(Xaml + "Name")?.Value == "AccountMenuBody");
+            Assert.True(double.Parse(body.Attribute("Width")!.Value, System.Globalization.CultureInfo.InvariantCulture) < 304,
+                "账号面板未缩小");
+            var style = body.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "AccountActionStyle");
+            Assert.True(style.Elements().Any(setter => setter.Attribute("Property")?.Value == "FontSize"
+                && setter.Attribute("Value")?.Value == "{StaticResource EgCaptionFontSize}"), "账号操作未使用较小字号");
+            var presenter = menu.Elements().Single(element => element.Name.LocalName == "Flyout.FlyoutPresenterStyle");
+            Assert.True(presenter.Descendants().Any(setter => setter.Attribute("Property")?.Value == "Background"
+                && setter.Attribute("Value")?.Value == "{ThemeResource EgFrostBrush}"), "账号浮层未使用主题亚克力");
+        });
     }
 
     private static XDocument Shell()

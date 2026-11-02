@@ -59,7 +59,9 @@ public sealed partial class ServersViewModel : PageViewModel
     /// 说明只在关着的时候占地方：开着的那一档本身就是结论，再摆一句解释只是把一行工具栏撑成两行
     /// （用户 2026-10-25：「开启…时候下方的说明要隐藏」）。
     /// </summary>
-    public Visibility NoteVisibility => Show(!AggregateMode);
+    public Visibility AggregateOptionsVisibility => Show(Attached && Settings.Servers.Count > 1);
+
+    public Visibility NoteVisibility => Show(Attached && Settings.Servers.Count > 1 && !AggregateMode);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EmptyVisibility))]
@@ -146,6 +148,8 @@ public sealed partial class ServersViewModel : PageViewModel
         Servers.Clear();
         foreach (var server in Settings.Servers)
             Servers.Add(new ServerRow(this, server, ReferenceEquals(server, current), account, sources, AggregateMode));
+        OnPropertyChanged(nameof(AggregateOptionsVisibility));
+        OnPropertyChanged(nameof(NoteVisibility));
 
         ShowEmpty = Servers.Count == 0;
         Subheading = Servers.Count == 0

@@ -29,13 +29,13 @@ internal sealed partial class ShellNavigationProbe
             await (Task)Call(shell, "EnterShellAsync")!;
             await UntilAsync(() => shell.ActiveContentReady);
 
-            // 需求 3：账号菜单第一行写身份，不写「通用界面」；单服务器单账号时就是「用户名 · 服务器名」。
-            Require(shell.AccountMenuIdentity == "离线服务器 · user",
-                $"账号菜单第一行不是服务器与账号：{shell.AccountMenuIdentity}");
+            Require(shell.AccountMenuIdentity == "1 个账号在线",
+                $"聚合账号菜单顶部不是在线数量：{shell.AccountMenuIdentity}");
             Require(Get<ToggleSwitch>(shell, "AggregateModeItem").IsOn, "聚合开关未同步当前模式");
             fixture.Settings.AggregateMode = false;
             shell.RefreshAccountMenus();
             Require(!Get<ToggleSwitch>(shell, "AggregateModeItem").IsOn, "关闭聚合后开关未更新");
+            Require(shell.AccountMenuIdentity == "离线服务器 · user", "关闭聚合后菜单没有恢复当前身份");
             fixture.Settings.AggregateMode = true;
             shell.RefreshAccountMenus();
 
