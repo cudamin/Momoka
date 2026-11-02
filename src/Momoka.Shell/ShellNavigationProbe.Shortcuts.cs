@@ -321,6 +321,21 @@ internal sealed partial class ShellNavigationProbe
             Require(vm.RunAdditionalShortcut("video-pan-reset"), "画面归零没有处理器");
             await Get<Task>(vm, "_pictureCommandTask");
             Require(handle.Commands.Contains("set|video-pan-x|0") && handle.Commands.Contains("set|video-pan-y|0"), "画面归零没有发送两轴命令");
+
+            // 字幕 → 兼容性那组快捷键（2026-11-02）：位图字幕的两条走内核的 stretch-image-subs-to-screen / sub-gray，
+            // 重载是纯命令；这里对假后端核对实际发出的命令，不加载字幕也不播放。
+            Require(vm.RunAdditionalShortcut("subtitle-pgs-margins"), "PGS 黑边没有处理器");
+            await Get<Task>(vm, "_pictureCommandTask");
+            Require(handle.Commands.Contains("cycle|stretch-image-subs-to-screen"), "PGS 黑边没有发送实际命令");
+            Require(vm.RunAdditionalShortcut("subtitle-pgs-gray"), "PGS 灰度没有处理器");
+            await Get<Task>(vm, "_pictureCommandTask");
+            Require(handle.Commands.Contains("cycle|sub-gray"), "PGS 灰度没有发送实际命令");
+            Require(vm.RunAdditionalShortcut("subtitle-render-style"), "渲染样式没有处理器");
+            await Get<Task>(vm, "_pictureCommandTask");
+            Require(handle.Commands.Contains("cycle|sub-ass-override"), "渲染样式没有发送实际命令");
+            Require(vm.RunAdditionalShortcut("subtitle-reload"), "重载字幕没有处理器");
+            await Get<Task>(vm, "_pictureCommandTask");
+            Require(handle.Commands.Contains("sub-reload"), "重载字幕没有发送实际命令");
             Require(vm.RunAdditionalShortcut("speed-double") && vm.SpeedValue == 2, "倍速快捷键没有同步 UI 状态");
             vm.SetDelay(subtitle: true, 1.2);
             Require(vm.RunAdditionalShortcut("subtitle-delay-reset") && vm.SubtitleDelay == 0 && handle.Numbers["sub-delay"] == 0, "字幕归零未同步状态和命令");

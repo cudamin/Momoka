@@ -17,9 +17,9 @@ internal static class ShortcutTests
 
     public static void Register()
     {
-        Test("快捷键表：63 个动作，Id 不重复、默认键不重复、没有一个默认落在保留键上", () =>
+        Test("快捷键表：70 个动作，Id 不重复、默认键不重复、没有一个默认落在保留键上", () =>
         {
-            Assert.Equal(63, ShortcutCatalog.Actions.Count);
+            Assert.Equal(70, ShortcutCatalog.Actions.Count);
 
             var ids = ShortcutCatalog.Actions.Select(a => a.Id).ToList();
             Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count(), "动作 Id 有重复");
@@ -37,8 +37,8 @@ internal static class ShortcutTests
             var all = ShortcutCatalog.Available(danmakuReady: true);
             var withoutDanmaku = ShortcutCatalog.Available(danmakuReady: false);
 
-            Assert.Equal(63, all.Count);
-            Assert.Equal(59, withoutDanmaku.Count);
+            Assert.Equal(70, all.Count);
+            Assert.Equal(66, withoutDanmaku.Count);
             Assert.Equal("toggle-danmaku,danmaku-delay-decrease,danmaku-delay-increase,danmaku-delay-reset",
                 string.Join(',', all.Except(withoutDanmaku).Select(action => action.Id)));
             Assert.True(withoutDanmaku.All(action => !ShortcutCatalog.IsDanmaku(action)), "收起之后还留着弹幕动作");
@@ -299,6 +299,13 @@ internal static class ShortcutTests
                 ["subtitle-scale-up"] = "add|sub-scale|0.1",
                 ["subtitle-position-up"] = "add|sub-pos|-1",
                 ["subtitle-position-down"] = "add|sub-pos|1",
+                ["subtitle-render-style"] = "cycle|sub-ass-override",
+                ["subtitle-timing-fix"] = "cycle|sub-fix-timing",
+                ["subtitle-ass-margins"] = "cycle|sub-ass-force-margins",
+                ["subtitle-srt-margins"] = "cycle|sub-use-margins",
+                ["subtitle-pgs-margins"] = "cycle|stretch-image-subs-to-screen",
+                ["subtitle-pgs-gray"] = "cycle|sub-gray",
+                ["subtitle-reload"] = "sub-reload",
                 ["toggle-ab-loop"] = "ab-loop",
                 ["toggle-loop"] = "cycle-values|loop-file|inf|no"
             };
@@ -311,6 +318,25 @@ internal static class ShortcutTests
             Assert.Null(AdditionalShortcuts.Plan("不存在的动作"));
             Assert.Null(AdditionalShortcuts.Plan("speed-double"));
             Assert.Null(AdditionalShortcuts.Plan("audio-delay-reset"));
+        });
+
+        Test("快捷键：字幕兼容性一组有默认键，PGS 两项用内核的位图字幕选项", () =>
+        {
+            KeyStroke Default(string id) => ShortcutCatalog.Actions.Single(action => action.Id == id).Default;
+
+            Assert.Equal(Key("U"), Default("subtitle-render-style"));
+            Assert.Equal(Key("U", shift: true), Default("subtitle-timing-fix"));
+            Assert.Equal(Key("A", alt: true), Default("subtitle-ass-margins"));
+            Assert.Equal(Key("S", alt: true), Default("subtitle-srt-margins"));
+            Assert.Equal(Key("P", alt: true), Default("subtitle-pgs-margins"));
+            Assert.Equal(Key("G", alt: true), Default("subtitle-pgs-gray"));
+            Assert.Equal(Key("R"), Default("subtitle-reload"));
+
+            // PGS 是位图：mpv 没有图形字幕的黑边开关，只能把字幕画布拉伸到整屏（stretch-image-subs-to-screen）；
+            // 灰度同理，只对图形字幕生效（sub-gray）。两条都实测过随包内核可当场切换。
+            Assert.Equal("stretch-image-subs-to-screen",
+                AdditionalShortcuts.Plan("subtitle-pgs-margins")!.Commands.Single()[1]);
+            Assert.Equal("sub-gray", AdditionalShortcuts.Plan("subtitle-pgs-gray")!.Commands.Single()[1]);
         });
 
         Test("快捷键命令：复位按顺序清两轴或两个循环点，不混成分号命令", () =>

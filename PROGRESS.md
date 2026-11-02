@@ -1,3 +1,14 @@
+## 2026-11-02 字幕兼容性：PGS 黑边与灰度、整组快捷键（已构建、发布并核对本机）
+
+- 用户令（三条）：①「在播放页面的右键菜单和设置的快捷键中新新增 切换pgs 字幕输出到黑边」；②「再加一个 切换pgs字幕灰度转换」；③（附兼容性子菜单截图）「给其他几个也加快捷键」。
+- 内核证据（随包 mpv `v0.41.0-1163-g270367e8a`，只读裸上下文）：PGS/VobSub 是位图，`sub/sd_lavc.c` 不读 `sub-use-margins`／`sub-ass-force-margins`；图形字幕唯一的黑边手段是 `stretch-image-subs-to-screen`（`sd_lavc.c` 把 OSD 四边距清零后缩放到整屏；`DOCS/man/options.rst` 明说代价是字幕会被拉伸）。灰度是 `sub-gray`，只作用于图形字幕。两项默认都是 `no`，实测 `set` 与 `cycle` 返回 0 并正确回读。
+- 改动（Core）：`PlayerMenuCatalog` 在「字幕 → 兼容性」新增「切换 pgs 字幕输出到黑边」（`cycle stretch-image-subs-to-screen`）与「切换 pgs 字幕灰度转换」（`cycle sub-gray`）；原有五行补 `Shortcut`。`ShortcutCatalog` 新增 7 个动作（U／Shift+U／Alt+A／Alt+S／Alt+P／Alt+G／R），总数 63→70（弹幕关闭时 66）；`AdditionalShortcuts` 补同样 7 条命令与回执。`InlineSwitch` 的逐片属性表由菜单命令自动推导，两项新状态换集照旧复位。
+- 文档：`docs/弹幕与快捷键.md` 补「字幕兼容性快捷键（2026-11-02）」与 70 个总数说明。
+- 测试：全方案 Release 0 警告 0 错误；`dotnet format whitespace` 退出 0；Core **3538/3538、0 失败 0 跳过**。`--self-check` **全部通过**：70 个动作/70 个处理器、右键画面菜单 113/113 行与快捷键 29/29 行、设置快捷键卡片 69 行（弹幕关时 66 行可重绑）。`--probe-shell --probe-section shortcuts` 宽窗与「新增快捷键命令、失败回执与队列隔离」通过（新增派发断言核对 `cycle|stretch-image-subs-to-screen`、`cycle|sub-gray`、`cycle|sub-ass-override`、`sub-reload` 真发到假后端）；窄窗 760 的搜索截图那条因像素守卫判「窗口被遮挡或移到屏外」为红，属桌面遮挡环境红，两次重跑同样，未改基线（`shell-probe-20261102-021420506-24556`）。
+- 实屏：`artifacts/ui-review/subtitle-compat-shortcuts-20261102/picture-menu-compat.png`（右键 → 字幕 → 兼容性，七行右列显示 U／Shift+U／Alt+A／Alt+S／Alt+P／Alt+G／R）；`settings-shortcuts-subtitle-all.png`（设置 → 快捷键搜索「字幕」滚到底，七行全在）；`settings-shortcuts-pgs-render.png`（搜索 pgs，Alt+P／Alt+G）。均为本机真实窗口截图，未播放。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 通过：**546 文件、285.6 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件（50 UI／2 native）**；开发件与发布件 `Momoka.dll` SHA-256 同为 `8cc57dfd2e6d84b28e9f9f9aa4af7cd8e2efaab96857df662e15f04aad077ba0`；桌面快捷方式指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。版本仍为 0.2.2，未推 origin。
+- 未覆盖：没有真实播放、没有 PGS 样片，所以「黑边里实际长什么样／灰度效果」只有内核源码与选项读写证据，没有渲染验收；独占 uosc 菜单与快捷键只在同一份目录/绑定数据上推得，未在独占窗口实按；窄窗探针红项未转绿。
+
 ## 2026-11-02 飞牛按网页端拼媒体库封面（已构建、发布并核对本机）
 
 - 用户报（附网页端主页截图）：「飞牛的媒体库封面怎么跟网页端不一样，修一下」。参考图里三张库卡各由三张海报并排组成（电影＝聚焦／偷拐抢骗／用心棒，混合影片＝同一部动画左右两张＋中间红色物体）。

@@ -5317,6 +5317,19 @@ internal static class PlaybackTests
             Assert.Equal("subtitle-seek-next", Row("跳转下一条字幕").Shortcut);
             Assert.Equal("toggle-loop", Row("开/关 循环播放").Shortcut);
 
+            // 字幕 → 兼容性整组都有可重绑快捷键。PGS 是位图字幕：黑边走 stretch-image-subs-to-screen（拉伸到
+            // 整屏、落进黑边），灰度走 sub-gray；两者都实测随包内核可在播放中切换。
+            Assert.Equal("subtitle-render-style", Row("切换 渲染样式").Shortcut);
+            Assert.Equal("subtitle-timing-fix", Row("切换 字幕时序修复").Shortcut);
+            Assert.Equal("subtitle-ass-margins", Row("切换 ass 字幕输出到黑边").Shortcut);
+            Assert.Equal("subtitle-srt-margins", Row("切换 srt 字幕输出到黑边").Shortcut);
+            Assert.Equal("subtitle-pgs-margins", Row("切换 pgs 字幕输出到黑边").Shortcut);
+            Assert.Equal("subtitle-pgs-gray", Row("切换 pgs 字幕灰度转换").Shortcut);
+            Assert.Equal("subtitle-reload", Row("重载当前字幕").Shortcut);
+            Assert.Equal("cycle stretch-image-subs-to-screen",
+                string.Join(' ', Row("切换 pgs 字幕输出到黑边").Commands[0]));
+            Assert.Equal("cycle sub-gray", string.Join(' ', Row("切换 pgs 字幕灰度转换").Commands[0]));
+
             // 没有等价按键的行不许硬凑：裁切填充、宽高比子菜单都没有快捷键。
             Assert.Null(Row("开/关 裁切填充").Shortcut);
             Assert.Null(PlayerMenuCatalog.Root.Single(node => node.Label == "画面").Children

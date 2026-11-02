@@ -288,13 +288,23 @@ public static class PlayerMenuCatalog
             Item("跳转下一条字幕", "下一条字幕", "sub-seek", "1") with { Shortcut = "subtitle-seek-next" },
             Rule,
             Group("兼容性",
-                Item("切换 渲染样式", "字幕渲染样式:${sub-ass-override}", "cycle", "sub-ass-override"),
-                Flag("切换 字幕时序修复", "字幕时序修复:${sub-fix-timing}", "sub-fix-timing", "cycle", "sub-fix-timing"),
+                Item("切换 渲染样式", "字幕渲染样式:${sub-ass-override}", "cycle", "sub-ass-override")
+                    with { Shortcut = "subtitle-render-style" },
+                Flag("切换 字幕时序修复", "字幕时序修复:${sub-fix-timing}", "sub-fix-timing", "cycle", "sub-fix-timing")
+                    with { Shortcut = "subtitle-timing-fix" },
                 Flag("切换 ass 字幕输出到黑边", "ass 字幕输出黑边:${sub-ass-force-margins}", "sub-ass-force-margins",
-                    "cycle", "sub-ass-force-margins"),
+                    "cycle", "sub-ass-force-margins") with { Shortcut = "subtitle-ass-margins" },
                 Flag("切换 srt 字幕输出到黑边", "srt 字幕输出黑边:${sub-use-margins}", "sub-use-margins",
-                    "cycle", "sub-use-margins"),
-                Item("重载当前字幕", "重载当前字幕", "sub-reload")),
+                    "cycle", "sub-use-margins") with { Shortcut = "subtitle-srt-margins" },
+                // PGS/VobSub 是位图，mpv 没有 sub-ass-force-margins / sub-use-margins 那样的图形字幕黑边开关；
+                // 唯一的内置手段是 stretch-image-subs-to-screen（图形字幕画布铺到整屏、落进黑边，代价是被拉伸）。
+                Flag("切换 pgs 字幕输出到黑边", "pgs 字幕输出黑边:${stretch-image-subs-to-screen}",
+                    "stretch-image-subs-to-screen", "cycle", "stretch-image-subs-to-screen")
+                    with { Shortcut = "subtitle-pgs-margins" },
+                Flag("切换 pgs 字幕灰度转换", "pgs 字幕灰度:${sub-gray}", "sub-gray", "cycle", "sub-gray")
+                    with { Shortcut = "subtitle-pgs-gray" },
+                Item("重载当前字幕", "重载当前字幕", "sub-reload")
+                    with { Shortcut = "subtitle-reload" }),
             // 字幕延迟 is deliberately not here: it is on the 浮层's ⚙ menu and on Z / Shift+Z, where the
             // current value is shown. 恢复初始 still resets it, because that is what 「初始」 means.
             Steps("恢复初始", "重置字幕状态",
