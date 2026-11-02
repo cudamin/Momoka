@@ -362,6 +362,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailInset))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
     [NotifyPropertyChangedFor(nameof(SheetPadding))]
     [NotifyPropertyChangedFor(nameof(SheetSpacing))]
     [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
@@ -374,7 +375,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(WideProgressVisibility))]
     [NotifyPropertyChangedFor(nameof(TailMargin))]
     [NotifyPropertyChangedFor(nameof(CardTailGapHeight))]
-    [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
     public partial double PageWidth { get; set; }
 
     /// <summary>
@@ -409,6 +409,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
     [NotifyPropertyChangedFor(nameof(SheetPadding))]
     [NotifyPropertyChangedFor(nameof(SheetSpacing))]
     [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
@@ -491,6 +492,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
     [NotifyPropertyChangedFor(nameof(SheetPadding))]
     [NotifyPropertyChangedFor(nameof(SheetSpacing))]
     [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
@@ -593,6 +595,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailInset))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
     public partial double StillHeight { get; set; }
 
     /// <summary>
@@ -623,6 +626,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailInset))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
     public partial double CornerHeight { get; set; }
 
     /// <summary>
@@ -661,6 +665,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(ScrimVisibility))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
     [NotifyPropertyChangedFor(nameof(SheetPadding))]
     [NotifyPropertyChangedFor(nameof(SheetSpacing))]
     [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
@@ -708,6 +713,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
     [NotifyPropertyChangedFor(nameof(SheetPadding))]
     [NotifyPropertyChangedFor(nameof(SheetSpacing))]
     [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
@@ -738,6 +744,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailInset))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
     public partial double StackRoom { get; set; }
 
     /// <summary>
@@ -783,6 +790,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailInset))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
     public partial double TailIntrinsic { get; set; }
 
     /// <summary>
@@ -1422,6 +1430,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailInset))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
     public partial double HeaderLift { get; set; }
 
     /// <summary>

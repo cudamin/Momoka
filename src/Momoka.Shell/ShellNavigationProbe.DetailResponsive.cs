@@ -140,15 +140,24 @@ internal sealed partial class ShellNavigationProbe
 
                     foreach (var width in widths)
                     {
-                        ResizeProbeClient(width, 900);
-                        await UntilAsync(() =>
-                        {
-                            page.UpdateLayout();
-                            return Math.Abs(page.ViewModel.PageWidth - width) < 0.6;
-                        });
+                        await ResizeResponsiveAsync(page, width, 900);
                         await LayoutAsync(page);
 
                         var view = page.ViewModel;
+                        // Squeeze 的一支读的是上一帧量到的 TailIntrinsic；它更新后 x:Bind 还要再过一次布局
+                        // 才落到控件上。等控件自己那一份追上视图模型再断言 —— 一帧的滞后不是绑定断了，但
+                        // 追不上仍然是红。
+                        for (var settle = 0; settle < 20; settle++)
+                        {
+                            page.UpdateLayout();
+                            if (Same(pickers.Padding, view.TailPanelPadding)
+                                && Same(overview.Padding, view.OverviewPanelPadding)
+                                && Same(tail.Padding, view.TailInset)
+                                && Same(heroContent.Margin, view.HeroInset))
+                                break;
+                            await Task.Delay(16);
+                        }
+
                         Require(!view.IsCompact && !view.Showcase,
                             $"{type} {width}：这一档该是纸面宽版式，实际 紧凑={view.IsCompact}、沉浸={view.Showcase}");
 
@@ -159,14 +168,19 @@ internal sealed partial class ShellNavigationProbe
                             $"{type} {width} 尾部留白没绑上：{tail.Padding} 对 {view.TailInset}");
                         Require(Math.Abs(tail.Spacing - view.TailSpacing) < 0.01,
                             $"{type} {width} 尾部竖距没绑上：{tail.Spacing:0.##} 对 {view.TailSpacing:0.##}");
-                        Require(Same(pickers.Padding, view.TailPanelPadding) && Same(overview.Padding, view.TailPanelPadding),
-                            $"{type} {width} 面板内边距没绑上：{pickers.Padding}／{overview.Padding} 对 {view.TailPanelPadding}");
+                        Require(Same(pickers.Padding, view.TailPanelPadding)
+                                && Same(overview.Padding, view.OverviewPanelPadding),
+                            $"{type} {width} 面板内边距没绑上：{pickers.Padding}／{overview.Padding}"
+                                + $" 对 {view.TailPanelPadding}／{view.OverviewPanelPadding}；收 {view.Squeeze:0.###}");
                         Require(Math.Abs(band.ActualHeight - view.HeroHeight) < 1.5,
                             $"{type} {width} 带高没按视图模型排：{band.ActualHeight:0.##} 对 {view.HeroHeight:0.##}");
 
                         // 2) 窗口越窄收得越紧，而且宽度那一条曲线至少占一部分（Fit 只会再加，不会减）。
-                        Require(view.Squeeze >= DetailHero.Narrow(width) - 0.011,
-                            $"{type} {width} 的收口比宽度曲线还松：{view.Squeeze:0.##} < {DetailHero.Narrow(width):0.##}");
+                        // 拿实际页宽算曲线，不拿名义上的 width：150% 缩放下窗口客户区会落成
+                        // 1024.几，名义值 1024 的曲线已经到 1，而实际页宽还差一点没到最紧。
+                        Require(view.Squeeze >= view.Narrow - 0.011,
+                            $"{type} {width} 的收口比宽度曲线还松：{view.Squeeze:0.##} < {view.Narrow:0.##}"
+                                + $"（页宽 {view.PageWidth:0.##}）");
                         Require(previousSqueeze < 0 || view.Squeeze >= previousSqueeze - 0.011,
                             $"{type} {width} 更窄了反而更松：{previousSqueeze:0.##} → {view.Squeeze:0.##}");
                         previousSqueeze = view.Squeeze;
@@ -282,8 +296,7 @@ internal sealed partial class ShellNavigationProbe
         if (_window!.IsMaximized) _window.ToggleMaximize();
         await SettleAsync();
 
-        ResizeProbeClient(1080, 620);
-        await WaitViewportAsync(page, ResponsiveViewport);
+        await ResizeResponsiveAsync(page, 1080, 620, ResponsiveViewport);
         await LayoutAsync(page);
         Require(!page.ViewModel.Spacious, "这一档窗口已经铺开，测不出「只因裁切才切换」那条路");
         Require(page.ViewModel.NearCrop, "1080×620 上背景图该算「快被裁掉」");
@@ -297,8 +310,7 @@ internal sealed partial class ShellNavigationProbe
             $"裁切触发后背景图该是 {DetailHero.ShowcaseBackdropOpacity}，实际 {picture.Opacity:0.###}（{state}）");
         await SaveProbeScreenAsync("detail-responsive-crop-showcase.png");
 
-        ResizeProbeClient(900, 620);
-        await WaitViewportAsync(page, ResponsiveViewport);
+        await ResizeResponsiveAsync(page, 900, 620, ResponsiveViewport);
         await LayoutAsync(page);
         Require(!page.ViewModel.NearCrop && !page.ViewModel.Showcase,
             $"900×620 上不该再算「快被裁掉」：裁切={page.ViewModel.NearCrop}、沉浸={page.ViewModel.Showcase}");
@@ -329,21 +341,37 @@ internal sealed partial class ShellNavigationProbe
     private const double ResponsiveViewport = 583;
 
     /// <summary>
-    /// 等版面把视口量到目标值；等不到就把窗口客户区和页面读数一起报出来 —— 「窗口没到那么大」和
-    /// 「版面没跟上」在一条成功/失败里长得一样，分开写得花一次运行。
+    /// 改窗口客户区并等页宽跟上。这台桌面上窗口改宽偶尔要第二次才生效（第一次的消息落在最大化
+    /// 切换或前台切换中间），所以重试两次；两次都不动就是真失败，把窗宽、客户区、最大化与缩放
+    /// 一起写进异常，别只留一句「未等到预期状态」。
     /// </summary>
-    private async Task WaitViewportAsync(DetailPage page, double wanted)
+    private async Task ResizeResponsiveAsync(DetailPage page, int width, int height, double viewport = 0)
     {
-        for (var attempt = 0; attempt < 80; attempt++)
+        for (var attempt = 0; attempt < 3; attempt++)
         {
-            page.UpdateLayout();
-            if (Math.Abs(page.ViewModel.Viewport - wanted) < 1.5) return;
-            await Task.Delay(25);
+            if (_window!.IsMaximized) _window.ToggleMaximize();
+
+            ResizeProbeClient(width, height);
+            var deadline = Environment.TickCount64 + 2500;
+            while (Environment.TickCount64 < deadline)
+            {
+                page.UpdateLayout();
+                var widthOk = Math.Abs(page.ViewModel.PageWidth - width) < 0.6;
+                var viewportOk = viewport <= 0 || Math.Abs(page.ViewModel.Viewport - viewport) < 1.5;
+                if (widthOk && viewportOk) return;
+                await Task.Delay(16);
+            }
         }
 
-        var client = _window!.ClientSize;
-        Require(false, $"窗口没有到目标视口 {wanted:0}：视口 {page.ViewModel.Viewport:0}、页宽 {page.ViewModel.PageWidth:0}、"
-            + $"客户区 {client.Width}×{client.Height}、最大化 {_window.IsMaximized}");
+        var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(
+            Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_window!.Handle));
+        var client = _window.ClientSize;
+        throw new TimeoutException(
+            $"窗口没到目标尺寸 {width}×{height}"
+                + (viewport > 0 ? $"（视口 {viewport:0.#}）" : "")
+                + $"：页宽 {page.ViewModel.PageWidth:0.#}、视口 {page.ViewModel.Viewport:0.#}、"
+                + $"客户区 {client.Width:0.#}×{client.Height:0.#}、AppWindow {appWindow.Size.Width}×{appWindow.Size.Height}、"
+                + $"最大化 {_window.IsMaximized}、缩放 {_root.XamlRoot?.RasterizationScale:0.##}");
     }
 
     /// <summary>
