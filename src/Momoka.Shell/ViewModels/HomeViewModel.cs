@@ -65,7 +65,10 @@ public sealed partial class HomeViewModel : PageViewModel
     /// 现在两家各问一条 <c>Limit=1</c> 的空查询取 <c>TotalRecordCount</c>，口径见 <see cref="LibraryTotal"/>。
     /// </para>
     /// </summary>
-    private IReadOnlyDictionary<string, int> _libraryTotals = new Dictionary<string, int>(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _libraryTotals = new(StringComparer.Ordinal);
+    private Task _supplement = Task.CompletedTask;
+    private Task _watchBaseline = Task.CompletedTask;
+    private int _watchLimit = LatestSize;
 
     private readonly HomeRefresh _refresh = new();
 
@@ -553,7 +556,7 @@ public sealed partial class HomeViewModel : PageViewModel
     internal async Task AutoRefreshAsync()
     {
         if (!Live || _session is null || _actions is null || _all.Length == 0) return;
-        if (Busy || _watchBusy) return;
+        if (Busy || _watchBusy || !_watchBaseline.IsCompleted) return;
 
         // 空页面（全不勾、轮播也关着）没有东西可换：这一拍连那一句「变了没有」都不问。
         if (!ShowsAnything) return;
@@ -651,9 +654,9 @@ public sealed partial class HomeViewModel : PageViewModel
             try
             {
                 var items = await scope
-                    .ExecuteAsync((client, ct) => client.GetLatestAsync(null, LatestSize, ct), token)
+                    .ExecuteAsync((client, ct) => client.GetLatestAsync(null, _watchLimit, ct), token)
                     .ConfigureAwait(true);
-                return (scope.Key, LibraryWatch.Stamp(items), null);
+                return (scope.Key, LibraryWatch.Stamp(items.Take(LatestSize)), null);
             }
             catch (Exception error)
             {
@@ -718,7 +721,14 @@ public sealed partial class HomeViewModel : PageViewModel
         var carouselMedia = carouselUi?.CarouselMedia ?? Emby.CarouselMediaType.All;
         var latestSize = Math.Max(LatestSize, carouselCount * 3);
 
-        var latest = refreshSlides && _banner ? FetchAsync("轮播", CarouselAsync, token) : Task.FromResult(new List<EmbyItem>());
+        var reuseCarouselStamps = refreshSlides && _banner && carouselMedia == Emby.CarouselMediaType.All
+            && carouselUi?.CarouselSource != Emby.CarouselSource.Random;
+        // 基线和下一次定时检查使用相同Limit，避免服务器按数量分组时前缀发生差异。
+        _watchLimit = reuseCarouselStamps ? latestSize : LatestSize;
+        var carouselStamps = new Dictionary<string, string>(StringComparer.Ordinal);
+        var latest = refreshSlides && _banner ? FetchAsync("轮播", CarouselAsync, token,
+            onRead: reuseCarouselStamps ? (scope, items) => carouselStamps[scope.Key] = LibraryWatch.Stamp(items.Take(LatestSize)) : null)
+            : Task.FromResult(new List<EmbyItem>());
 
         // 轮播这一趟的取数：来源和媒体类型照设置走，回来再补宽图。飞牛的列表只发 2:3 海报，宽图在条目详情里
         // （见 EmbyClient.WithCarouselArtworkAsync）—— 不补这一手，只登录飞牛的主页一张幻灯片都站不起来。
@@ -768,18 +778,22 @@ public sealed partial class HomeViewModel : PageViewModel
         // 样子」。和别的请求一起发出去，不另起一趟往返。空页面上没有可换的东西，这一句省掉 —— 否则「隐藏的行
         // 不联网」就在这一句上破功（见 ShowsAnything）。
         var watch = ShowsAnything
-            ? ProbeStampsAsync(token)
+            ? reuseCarouselStamps ? ReadCarouselStampsAsync() : ProbeStampsAsync(token)
             : Task.FromResult<Dictionary<string, string>?>(null);
 
+        async Task<Dictionary<string, string>?> ReadCarouselStampsAsync()
+        {
+            await latest.ConfigureAwait(true);
+            if (!IsCurrent(token)) return null;
+            return carouselStamps.Where(pair => _sources.Any(scope => scope.Key == pair.Key && scope.IsAvailable))
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        }
+
+        // 库总数和定时检查的基线是辅助读数：慢来源不能让已经取到的内容一直留在加载状态。
         await Task.WhenAll(perLibrary.Values.Cast<Task>()
-            .Concat(libraryTotals.Values)
-            .Append(resume).Append(nextUp).Append(latest).Append(watch)).ConfigureAwait(true);
+            .Append(resume).Append(nextUp).Append(latest)).ConfigureAwait(true);
 
         if (!IsCurrent(token)) return;
-
-        _libraryTotals = libraryTotals.ToDictionary(pair => pair.Key, pair => pair.Value.Result, StringComparer.Ordinal);
-
-        if (watch.Result is { } stamps) _watch.Reset(stamps);
 
         // 继续观看 and 接下来看 span every item the account has touched — music included. This app has no
         // music face, so a track card would open onto nothing; the rows are filtered here rather than by
@@ -843,27 +857,22 @@ public sealed partial class HomeViewModel : PageViewModel
 
         // 装到了东西的排一律横着排。媒体库也在其中 —— 2026-09-08「移除轮播图右边的媒体库」之后不再单挑出来当
         // 右栏，就跟别的几排一样站在它自己在版面表上的位置上。
-        Shelves.Clear();
-        LibraryShelf = null;
-        LibraryFlowIndex = -1;
+        var visibleShelves = _all.Where(entry => entry.Row.Visible && entry.Shelf.Cards.Count > 0)
+            .Select(entry => entry.Shelf).ToList();
+        LibraryShelf = visibleShelves.FirstOrDefault(shelf => shelf.HomeKey == HomeLayout.Libraries);
+        LibraryFlowIndex = LibraryShelf is { } libraryShelf ? visibleShelves.IndexOf(libraryShelf) : -1;
+        if (LibraryShelf is null) _libraryOnBanner = false;
+        else if (_libraryOnBanner) visibleShelves.Remove(LibraryShelf);
 
-        foreach (var (row, shelf) in _all)
+        // 保留原有行容器与位置：Clear/Add 会让页面每一声集合通知都重新计算混排并拆装所有货架。
+        for (var index = Shelves.Count - 1; index >= 0; index--)
+            if (!visibleShelves.Contains(Shelves[index])) Shelves.RemoveAt(index);
+        for (var index = 0; index < visibleShelves.Count; index++)
         {
-            if (!row.Visible || shelf.Cards.Count == 0) continue;
-
-            // 媒体库那一排记下自己和位置：矮窗档（<see cref="SetLibraryOverlay"/>）搬的就是它，回默认档时按
-            // 这个位置插回去。勾掉或者空的账号没有这一排，两个都空着，那一档整个不参与。
-            if (row.Key == HomeLayout.Libraries)
-            {
-                LibraryShelf = shelf;
-                LibraryFlowIndex = Shelves.Count;
-            }
-
-            Shelves.Add(shelf);
+            var current = Shelves.IndexOf(visibleShelves[index]);
+            if (current < 0) Shelves.Insert(index, visibleShelves[index]);
+            else if (current != index) Shelves.Move(current, index);
         }
-
-        // 矮窗档跨重载不跳：上一趟压在轮播上的，这一趟重建完立刻再摘掉（<see cref="ApplyLibraryOverlay"/>）。
-        ApplyLibraryOverlay();
 
         // 需求 5 → 2026-09-13「轮播图改用前十个最近添加」，同日下午张数进了设置：轮播不再站在继续观看上，
         // 只站设置里那个来源发回来的头若干张（筛掉没有宽图、并掉同一部剧，是 HomeCarousel 的事）。关掉轮播
@@ -880,7 +889,34 @@ public sealed partial class HomeViewModel : PageViewModel
 
         Subheading = LoadedCount == 0 ? null : $"{LoadedCount} 项";
 
+        _supplement = CompleteSupplementAsync(libraryTotals, watch, token);
         EndLoad(token);
+    }
+
+    /// <summary>辅助请求仍属于本次加载；换代、离页或来源下线后不能回填旧读数。</summary>
+    private async Task CompleteSupplementAsync(Dictionary<string, Task<int>> totals,
+        Task<Dictionary<string, string>?> watch, CancellationToken token)
+    {
+        _watchBaseline = CompleteWatchAsync();
+        await Task.WhenAll(totals.Select(pair => CompleteTotalAsync(pair.Key, pair.Value))
+            .Append(_watchBaseline)).ConfigureAwait(true);
+
+        async Task CompleteWatchAsync()
+        {
+            var stamps = await watch.ConfigureAwait(true);
+            if (!IsCurrent(token)) return;
+            if (stamps is not null) _watch.Reset(stamps);
+        }
+
+        async Task CompleteTotalAsync(string key, Task<int> request)
+        {
+            var count = await request.ConfigureAwait(true);
+            if (!IsCurrent(token)) return;
+            var (row, shelf) = _all.FirstOrDefault(entry => entry.Row.Key == key);
+            if (shelf is null || !row.Visible || shelf.Source is not { IsAvailable: true }) return;
+            _libraryTotals[key] = count;
+            shelf.NoteOverride = count > 0 ? $"{count} 项" : null;
+        }
     }
 
     /// <summary>
@@ -1085,10 +1121,11 @@ public sealed partial class HomeViewModel : PageViewModel
         string what,
         Func<EmbyClient, CancellationToken, Task<List<EmbyItem>>> operation,
         CancellationToken token,
-        EmbySessionScope? source = null)
+        EmbySessionScope? source = null,
+        Action<EmbySessionScope, List<EmbyItem>>? onRead = null)
     {
         var sources = source is not null ? [source] : _sources;
-        var results = await Task.WhenAll(sources.Select(scope => FetchSourceAsync(scope, what, operation, token))).ConfigureAwait(true);
+        var results = await Task.WhenAll(sources.Select(scope => FetchSourceAsync(scope, what, operation, token, onRead))).ConfigureAwait(true);
         var items = new List<EmbyItem>();
         // 轮流取各来源的一项，避免默认账号填满轮播或首屏，其他来源永远看不到。
         for (var index = 0; results.Any(result => result.Count > index); index++)
@@ -1130,12 +1167,15 @@ public sealed partial class HomeViewModel : PageViewModel
         EmbySessionScope scope,
         string what,
         Func<EmbyClient, CancellationToken, Task<List<EmbyItem>>> operation,
-        CancellationToken token)
+        CancellationToken token,
+        Action<EmbySessionScope, List<EmbyItem>>? onRead = null)
     {
         try
         {
             if (!Live || !scope.IsAvailable) return [];
-            return await scope.ExecuteAsync(operation, token).ConfigureAwait(true);
+            var items = await scope.ExecuteAsync(operation, token).ConfigureAwait(true);
+            onRead?.Invoke(scope, items);
+            return items;
         }
         catch (OperationCanceledException)
         {

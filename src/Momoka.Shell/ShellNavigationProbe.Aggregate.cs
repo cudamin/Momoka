@@ -102,6 +102,39 @@ internal sealed partial class ShellNavigationProbe
             }
             Require(images.ContainsKey("a.invalid") && images.ContainsKey("b.invalid"), "主页图片没有分别读取两个来源");
             var normalReply = fixture.Transport.Reply;
+            // 真页面刷新仍使用相同货架行；挂起库总数时，已读到的内容必须可用。
+            var slowTotals = Pending<bool>();
+            var totalEntered = Pending<bool>();
+            var stableRows = home.HomeRows.ToArray();
+            var rowChanges = 0;
+            System.Collections.Specialized.NotifyCollectionChangedEventHandler rowsChanged = (_, _) => rowChanges++;
+            home.HomeRows.CollectionChanged += rowsChanged;
+            fixture.Transport.Reply = (request, token) => Query(request, "Limit") == "1"
+                && request.RequestUri!.AbsolutePath.EndsWith("/Items", StringComparison.Ordinal)
+                    ? WaitForTotals() : normalReply!(request, token);
+            async Task<HttpResponseMessage> WaitForTotals()
+            {
+                totalEntered.TrySetResult(true);
+                await slowTotals.Task.ConfigureAwait(false);
+                return Items(125, 0);
+            }
+            var refreshing = home.ViewModel.ReloadAsync();
+            try
+            {
+                await totalEntered.Task;
+                await UntilAsync(() => home.IsReady && refreshing.IsCompletedSuccessfully);
+                Require(stableRows.SequenceEqual(home.HomeRows) && rowChanges == 0,
+                    "聚合主页内容刷新清空或重建了原货架行");
+                Require(home.ViewModel.LoadedCount > 0, "慢库总数阻塞了已返回的内容");
+                await SaveProbeScreenAsync("aggregate-home-refresh-slow-totals-screen.png");
+            }
+            finally
+            {
+                slowTotals.TrySetResult(true);
+                await refreshing;
+                home.HomeRows.CollectionChanged -= rowsChanged;
+                fixture.Transport.Reply = normalReply;
+            }
             fixture.Transport.Reply = (request, token) => Query(request, "ParentId") == "shared-library"
                 && request.RequestUri!.Host == "a.invalid" && request.RequestUri.AbsolutePath.EndsWith("/Items/Latest", StringComparison.Ordinal)
                     ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable))

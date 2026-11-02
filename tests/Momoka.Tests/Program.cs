@@ -75,6 +75,8 @@ internal static class Program
             return SettingsApplicabilityTests.Run(applicabilityShell, applicabilityRoot);
         if (args is ["library-resume-paging-fixture", var resumeShell, var resumeRoot])
             return LibraryResumePagingTests.Run(resumeShell, resumeRoot);
+        if (args is ["home-performance-fixture", var homeShell, var homeRoot])
+            return HomePerformanceTests.Run(homeShell, homeRoot);
         if (args is ["library-favorite-source-fixture", var favoriteShell, var favoriteRoot])
             return LibraryFavoriteSourceTests.Run(favoriteShell, favoriteRoot);
         if (args is ["settings-screenshot-restore-fixture", var screenshotShell, var screenshotRoot])

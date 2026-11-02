@@ -556,6 +556,23 @@ internal static class LibraryResumePagingTests
             return vm;
         }
 
+        public object CreateLoadingHome(EmbySession session, EmbyImageStore images, ISettingsService settings,
+            IReadOnlyList<EmbyItem> libraries)
+        {
+            var type = _viewModel.Assembly.GetType("Momoka.Shell.ViewModels.HomeViewModel", true)!;
+            var home = Activator.CreateInstance(type)!;
+            // Install only in-memory dependencies: Attach would open the real-time transport.
+            foreach (var (name, value) in new (string, object?)[]
+            {
+                ("_active", true), ("_session", session), ("_images", images), ("_settings", settings),
+                ("_scope", session.Capture()), ("_sources", session.Sources.ToArray()), ("_libraryViews", libraries),
+                ("_actions", DispatchProxy.Create(_actions, typeof(LibraryResumeActionsProxy)))
+            }) type.GetField(name, Members)!.SetValue(home, value);
+            settings.Settings.Ui.HomeRows = HomeLayout.Save(HomeLayout.Plan([], libraries, settings.Settings.Ui.ShowHomeBanner));
+            Invoke(home, "BuildShelves");
+            return home;
+        }
+
         public object? Invoke(object target, string name, params object?[] arguments)
         {
             var method = target.GetType().GetMethod(name, Members)
@@ -632,6 +649,15 @@ internal static class LibraryResumePagingTests
         public EmbySessionScope Source(string host) => _sources[host];
         public void SelectDefault(string host) => typeof(EmbySession).GetField("_current", BindingFlags.Instance | BindingFlags.NonPublic)!
             .SetValue(_session, Source(host));
+        public void RevokeHomeSource(string host)
+        {
+            var source = Source(host);
+            var registered = (Dictionary<string, EmbySessionScope>)typeof(EmbySession)
+                .GetField("_sources", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(_session)!;
+            registered.Remove(source.Key);
+            var identity = typeof(EmbySessionScope).GetProperty("IdentityState", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(source)!;
+            ((CancellationTokenSource)identity.GetType().GetProperty("Lifetime")!.GetValue(identity)!).Cancel();
+        }
         public T Get<T>(string name) => _shell.Get<T>(_vm, name);
         public int CursorConsumed => ((AggregateQueryCursor)_vm.GetType()
             .GetField("_cursor", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(_vm)!).ConsumedCount;
@@ -714,6 +740,20 @@ internal static class LibraryResumePagingTests
             return home;
         }
 
+        public object CreateLoadingHome(bool banner = false)
+        {
+            Settings.Settings.Ui.ShowHomeBanner = banner;
+            Transport.HomeReads = true;
+            var libraries = _sources.Values.Select(source => source.Bind(new EmbyItem
+            {
+                Id = "library",
+                Name = "电影",
+                CollectionType = "movies",
+                Type = EmbyItemType.CollectionFolder
+            })).ToArray();
+            return _shell.CreateLoadingHome(_session, _images, Settings, libraries);
+        }
+
         public Task HomeWatch(object home, object card) => (Task)_shell.Invoke(home, "AfterWatchedAsync", card)!;
 
         public string[] HomeIds(object home)
@@ -757,6 +797,13 @@ internal static class LibraryResumePagingTests
         public Dictionary<string, List<EmbyItem>> Rows { get; } = new(StringComparer.Ordinal);
         public Dictionary<(string Host, string Series), EmbyItem?> Next { get; } = [];
         public ConcurrentQueue<string> Requests { get; } = new();
+        public bool HomeReads { get; set; }
+        public int HomeLatestCount { get; set; } = 1;
+        public ConcurrentQueue<(string Host, string? Parent, int Limit)> HomeLatestRequests { get; } = new();
+        public Gate? HomeTotals { get; set; }
+        public Dictionary<string, Gate> HomeTotalGates { get; } = new(StringComparer.Ordinal);
+        public bool FailHomeTotals { get; set; }
+        public Gate? HomeWatch { get; set; }
         public bool FailNextResume { get; set; }
         public bool FailReleasedTag { get; set; }
         public ConcurrentQueue<(string Host, string Body)> FavoriteBodies { get; } = new();
@@ -802,7 +849,7 @@ internal static class LibraryResumePagingTests
             }
             else if (uri.AbsolutePath.EndsWith("/Shows/NextUp", StringComparison.Ordinal))
             {
-                var next = Next.GetValueOrDefault((host, query["SeriesId"]));
+                var next = Next.GetValueOrDefault((host, query.GetValueOrDefault("SeriesId") ?? ""));
                 var gate = _next;
                 if (gate is not null)
                 {
@@ -837,6 +884,34 @@ internal static class LibraryResumePagingTests
             else if (uri.AbsolutePath.EndsWith("/tag/genres", StringComparison.Ordinal)
                 || uri.AbsolutePath.EndsWith("/tag/iso3166", StringComparison.Ordinal))
                 json = "{\"code\":0,\"data\":[]}";
+            else if (HomeReads && uri.AbsolutePath.EndsWith("/Items/Latest", StringComparison.Ordinal))
+            {
+                var limit = int.Parse(query["Limit"], System.Globalization.CultureInfo.InvariantCulture);
+                HomeLatestRequests.Enqueue((host, query.GetValueOrDefault("ParentId"), limit));
+                if (!query.ContainsKey("ParentId") && HomeWatch is { } gate)
+                {
+                    gate.Entered.TrySetResult();
+                    await gate.Release.Task.ConfigureAwait(false);
+                }
+                json = JsonSerializer.Serialize(Enumerable.Range(0, Math.Min(HomeLatestCount, limit)).Select(index => new EmbyItem
+                {
+                    Id = host + "-latest-" + index,
+                    Name = "最新电影",
+                    Type = EmbyItemType.Movie,
+                    BackdropImageTags = ["fixture"]
+                }).ToArray());
+            }
+            else if (HomeReads && uri.AbsolutePath.EndsWith("/Items", StringComparison.Ordinal)
+                && query.GetValueOrDefault("Limit") == "1")
+            {
+                if (FailHomeTotals) throw new IOException("fixture total unavailable");
+                if ((HomeTotalGates.GetValueOrDefault(host) ?? HomeTotals) is { } gate)
+                {
+                    gate.Entered.TrySetResult();
+                    await gate.Release.Task.ConfigureAwait(false);
+                }
+                json = JsonSerializer.Serialize(new ItemsResult { TotalRecordCount = 125 });
+            }
             else if (uri.AbsolutePath.EndsWith("/Items", StringComparison.Ordinal))
                 json = JsonSerializer.Serialize(new ItemsResult { Items = Rows[host], TotalRecordCount = Rows[host].Count });
             else throw new AssertionException("未授权的假 HTTP 路由：" + uri.AbsolutePath);

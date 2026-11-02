@@ -192,6 +192,8 @@ internal sealed partial class ShellNavigationProbe
                 "主页归一化抹掉了隐藏来源偏好");
 
             // 牌子读数：库的总条目数，不是货架张数（2026-11-01 用户报「主页的电影和电视剧都是 24 项」）。
+            await UntilAsync(() => home.ViewModel.Shelves.Any(shelf => shelf.LibraryId == "movies" && shelf.Note == "43 项")
+                && home.ViewModel.Shelves.Any(shelf => shelf.LibraryId == "series" && shelf.Note == "55 项"));
             var notes = home.ViewModel.Shelves
                 .Where(shelf => HomeLayout.LibraryId(shelf.HomeKey) is not null)
                 .ToDictionary(shelf => HomeLayout.LibraryId(shelf.HomeKey)!, shelf => shelf.Note);
