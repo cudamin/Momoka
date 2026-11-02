@@ -314,13 +314,15 @@
                 </Grid>
             <Button.Flyout>
                 <MenuFlyout x:Name="AccountMenu" Placement="BottomEdgeAlignedRight">
-                    <!-- 当前身份：用户名 · 服务器名，多来源时再补一句账号数。不写界面风味 ——
+                    <!-- 当前身份与在线数量分行，长名字截断，不让状态文字撑宽整张菜单。不写界面风味 ——
                          「通用界面」之类的说法已经去掉了（用户令 2026-10-20）。不可点，只是把
                          「现在是谁、在哪台服务器上」说在菜单最上面。 -->
                     <MenuFlyoutItem x:Name="AccountIdentityItem"
                         AutomationProperties.AutomationId="AccountIdentityStatus"
-                        IsEnabled="False" Text="尚未登录" />
+                        MaxWidth="180" IsEnabled="False" Text="尚未登录" />
+                    <MenuFlyoutItem x:Name="AccountOnlineItem" IsEnabled="False" Visibility="Collapsed" />
                     <MenuFlyoutSeparator />
+                    <ToggleMenuFlyoutItem x:Name="AggregateModeItem" Text="聚合模式" Click="OnAggregateModeClicked" />
                     <MenuFlyoutSubItem x:Name="ServerMenu"
                 x:Uid="ShellPage_ServerMenu">
                         <MenuFlyoutSubItem.Icon>
@@ -331,6 +333,11 @@
                 x:Uid="ShellPage_UserMenu">
                         <MenuFlyoutSubItem.Icon>
                             <FontIcon Glyph="&#xE77B;" />
+                        </MenuFlyoutSubItem.Icon>
+                    </MenuFlyoutSubItem>
+                    <MenuFlyoutSubItem x:Name="OfflineMenu" Text="下线" Visibility="Collapsed">
+                        <MenuFlyoutSubItem.Icon>
+                            <FontIcon Glyph="&#xE711;" />
                         </MenuFlyoutSubItem.Icon>
                     </MenuFlyoutSubItem>
                     <MenuFlyoutSeparator />

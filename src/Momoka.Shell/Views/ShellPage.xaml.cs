@@ -103,6 +103,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private EmbySession? _session;
     private ISettingsService? _settings;
+    private readonly ServersViewModel _accountMode = new();
+    private readonly LoadGeneration _aggregateLoads = new();
     private IServerCapabilities? _capabilities;
 
     private Windowing.HostWindow? _window;
@@ -637,6 +639,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     private async Task ShutdownPlaybackAsync()
     {
+        _aggregateLoads.Cancel();
+        _accountMode.Dispose();
         _identityLoads.Cancel();
         if (_services?.GetService<Momoka.Shell.Services.SubtitleTranslationController>() is { } translation)
         {
@@ -2242,7 +2246,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// a saved token or password does not ask for anything; one that does not lands on the sign-in card with
     /// the address already filled in.
     /// <para>
-    /// 菜单第一行写当前身份，不写界面风味：只有一个来源时是「用户名 · 服务器名」，多来源时再补一句账号数。
+    /// 菜单第一行写当前身份，在线数量单独一行，不让长状态撑宽所有操作行。
     /// 聚合模式开着时登录是加法，所以两张子菜单改叫「添加」；关着时登录会替换当前来源，仍叫「切换」。
     /// </para>
     /// </summary>
@@ -2256,8 +2260,19 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         AccountIdentityItem.Text = sources.Count == 0
             ? "尚未登录"
-            : string.Join(" · ", new[] { user, server }.Where(part => !string.IsNullOrWhiteSpace(part))
-                .Concat(sources.Count > 1 ? [$"{sources.Count} 个账号在线"] : []));
+            : string.Join(" · ", new[] { user, server }.Where(part => !string.IsNullOrWhiteSpace(part)));
+        AccountOnlineItem.Text = $"{sources.Count} 个账号在线";
+        AccountOnlineItem.Visibility = sources.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        AggregateModeItem.IsChecked = aggregate;
+        OfflineMenu.Visibility = aggregate && sources.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        OfflineMenu.Items.Clear();
+        foreach (var source in sources)
+        {
+            var entry = new MenuFlyoutItem { Text = source.DisplayName, Tag = source };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(entry, "AccountOffline:" + source.Key);
+            entry.Click += OnTakeAccountOffline;
+            OfflineMenu.Items.Add(entry);
+        }
 
         ServerMenu.Text = aggregate ? "添加服务器" : "切换服务器";
         UserMenu.Text = aggregate ? "添加账号" : "切换用户";
@@ -2309,6 +2324,49 @@ public sealed partial class ShellPage : UserControl, IShellActions
         addAccount.Click += (_, _) => ShowSignIn(current, newAccount: true);
         UserMenu.Items.Add(addAccount);
         UserMenu.IsEnabled = true;
+    }
+
+    private void OnAggregateModeClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is ToggleMenuFlyoutItem toggle) _ = SetAccountAggregateModeAsync(toggle.IsChecked);
+    }
+
+    private async Task SetAccountAggregateModeAsync(bool value)
+    {
+        if (_session is null || _settings is null || _services is null) return;
+        var token = _aggregateLoads.Begin();
+        _accountMode.Attach(this, _settings, _session);
+        _sourceOperations++;
+        try
+        {
+            var change = _accountMode.SetAggregateModeAsync(value);
+            FillSwitchMenus();
+            if (value) Notify("正在开启聚合模式，连接已保存的账号…");
+            await change.ConfigureAwait(true);
+            if (!_aggregateLoads.IsCurrent(token) || Settings.AggregateMode != value) return;
+            FillSwitchMenus();
+            if (_accountMode.NoticeOpen)
+                Notify(_accountMode.NoticeMessage ?? _accountMode.NoticeTitle ?? "聚合模式已更新", _accountMode.NoticeSeverity);
+        }
+        finally { FinishChangingSources(); }
+    }
+
+    private void OnTakeAccountOffline(object sender, RoutedEventArgs e)
+    {
+        if (_session is null || !Settings.AggregateMode
+            || sender is not MenuFlyoutItem { Tag: EmbySessionScope source } || !source.IsAvailable) return;
+        var server = Settings.FindServer(source.ServerProfileId);
+        var account = server?.FindAccount(source.AccountProfileId);
+        if (server is null || account is null) return;
+        if (!_session.TakeOffline(server, account)) return;
+        _aggregateLoads.Cancel();
+        _accountMode.Cancel();
+        if ((SettingsContent ?? (Pages.Content as SettingsPage)?.CurrentPage) is ServersPage serversPage)
+            serversPage.ViewModel.Cancel();
+        FillSwitchMenus();
+        // 手动下线立即切走被撤销的来源，不等其他账号的后台自动连接结束。
+        if (_session.IsSignedIn) _ = EnterShellAsync();
+        else ShowSignIn();
     }
 
     private void OnSwitchServer(object sender, RoutedEventArgs e)
@@ -2393,11 +2451,17 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private void OnSourcesChanged()
     {
         SignIn.ViewModel.RefreshSessionText();
+        if (_accountMode.Busy && Settings.AggregateMode != _accountMode.AggregateMode)
+        {
+            _aggregateLoads.Cancel();
+            _accountMode.Cancel();
+        }
         if (_sourceOperations > 0) { _pendingSourcesChange = true; return; }
         if (_session is null || SignInVisible) return;
         if (_session.IsSignedIn)
         {
             if (_displayedSources != SourcesStamp()) _ = EnterShellAsync();
+            else if (AggregateModeItem.IsChecked != Settings.AggregateMode) FillSwitchMenus();
         }
         else ShowSignIn();
     }

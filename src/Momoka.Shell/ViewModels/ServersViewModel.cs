@@ -138,6 +138,7 @@ public sealed partial class ServersViewModel : PageViewModel
         var account = _session.Account;
         var sources = _session.Sources;
 
+        if (Busy && AggregateMode != Settings.AggregateMode) Cancel();
         _seedingAggregate = true;
         try { AggregateMode = Settings.AggregateMode; }
         finally { _seedingAggregate = false; }
@@ -167,6 +168,18 @@ public sealed partial class ServersViewModel : PageViewModel
     partial void OnAggregateModeChanged(bool value)
     {
         if (_seedingAggregate || !Attached) return;
+        _ = SetAggregateModeAsync(value);
+    }
+
+    /// <summary>服务器页与顶部账号菜单共用同一切换流程；新操作取消上一轮自动恢复。</summary>
+    internal async Task SetAggregateModeAsync(bool value)
+    {
+        if (!Attached) return;
+        Cancel();
+        ClearNotice();
+        _seedingAggregate = true;
+        try { AggregateMode = value; }
+        finally { _seedingAggregate = false; }
 
         Settings.AggregateMode = value;
         _settings!.Save();
@@ -179,10 +192,12 @@ public sealed partial class ServersViewModel : PageViewModel
             if (removed > 0)
                 Notify("已关闭聚合模式", $"其余 {removed} 个在线账号已下线；服务器、账号和保存的凭据都还在。",
                     InfoBarSeverity.Informational);
+            else
+                Notify("已关闭聚合模式", "只保留当前账号在线。", InfoBarSeverity.Informational);
             return;
         }
 
-        _ = RestoreSavedAccountsAsync();
+        await RestoreSavedAccountsAsync().ConfigureAwait(true);
     }
 
     /// <summary>
@@ -200,6 +215,7 @@ public sealed partial class ServersViewModel : PageViewModel
             if (!IsCurrent(token)) return;
 
             Refresh();
+            if (!IsCurrent(token)) return;
             var restorable = _session.RestorableAccounts;
             if (restorable > online)
                 Notify("已开启聚合模式",

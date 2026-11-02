@@ -4,6 +4,11 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["account-menu-fixture"])
+        {
+            AccountMenuTests.Register();
+            return TestHarness.Run();
+        }
         if (MpvProcessTests.IsChild(args)) return MpvProcessTests.RunChildAsync(args).GetAwaiter().GetResult();
         if (args is ["selfcheck-mutex-fixture", var source, var target])
             return SelfCheckTests.RunMutexChild(source, target);
@@ -294,6 +299,7 @@ internal static class Program
         ThemeTests.Register();
         InputControlThemeTests.Register();
         DialogChromeTests.Register();
+        AccountMenuTests.Register();
         PlayerPaletteTests.Register();
         PlayerMotionTests.Register();
         PlayerInteractionTests.Register();

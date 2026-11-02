@@ -147,8 +147,8 @@ internal sealed partial class ShellNavigationProbe
             Require(first.IsAvailable && fixture.Session.Sources.Select(source => source.ServerProfileId).Distinct().Count() == 1,
                 "同服务器第二账号登录退出了第一账号，或没有形成两个独立来源");
             shell.RefreshAccountMenus();
-            Require(shell.AccountMenuLabels.Identity.Contains("2 个账号在线", StringComparison.Ordinal),
-                $"多账号时账号菜单没有写出在线账号数：{shell.AccountMenuLabels.Identity}");
+            Require(Get<MenuFlyoutItem>(shell, "AccountOnlineItem").Text == "2 个账号在线",
+                "多账号时账号菜单没有独立显示在线账号数");
             await CheckHomeAsync(multiple, "same-server-two");
             await CheckBrowsingAsync();
             shell.GoTo("home");

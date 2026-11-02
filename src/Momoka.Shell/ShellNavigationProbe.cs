@@ -108,6 +108,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("所有账号的媒体库与最近添加、聚合搜索分页与详情来源", AggregateBrowsingAsync, 45);
             await CaseAsync("主页多账号标服务器名、浏览不标且版本仅多服务器显示", SourceCaptionTransitionsAsync, 45);
             await CaseAsync("指定账号登录、添加账号与取消返回", MultiSourceSignInAsync, 30);
+            await CaseAsync("顶部账号菜单聚合开关、下线与紧凑布局", AccountAggregateMenuAsync, 45, section: ShellProbeSections.Accounts);
             await CaseAsync("默认账号失效后保留其他来源主页", MultiSourceDefaultExpiryAsync, 30);
             // 「继续观看」那一格标记已看之后的去处（用户令 2026-10-15）：主页那一排与点进去的那一页各走一遍。
             await CaseAsync("继续观看标记已看后换成下一集或撤掉", WatchedResumeSlotAsync, 30);
