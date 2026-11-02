@@ -347,7 +347,7 @@ internal sealed partial class ShellNavigationProbe
         try
         {
             _window.TopMost = true;
-            await Task.Delay(80);
+            await Task.Delay(300);
             await CompositionPlaybackProbe.SaveScreenAsync(_window, Path.Combine(_options.Paths.LogDirectory, name));
         }
         finally { _window.TopMost = topMost; }

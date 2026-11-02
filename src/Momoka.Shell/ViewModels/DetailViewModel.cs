@@ -154,9 +154,9 @@ public sealed partial class DetailViewModel : PageViewModel
     private readonly HashSet<string> _deletedSourceIds = new(StringComparer.Ordinal);
 
     /// <summary>
-    /// 剧页、季页「其他信息」卡里的媒体信息描述的那一集（规则在 <see cref="ItemDetail.MediaInfoEpisode"/>：
-    /// 有续播取最近播放的续播集，否则当季第一集）。null 表示这一页不是剧/季页、集还没回来，或者那一集
-    /// 没有媒体源可讲。
+    /// 剧页「其他信息」卡里的媒体信息描述的那一集（规则在 <see cref="ItemDetail.MediaInfoEpisode"/>：
+    /// 有续播取最近播放的续播集，否则当季第一集）。null 表示这一页不是剧页、集还没回来，或者那一集
+    /// 没有媒体源可讲。季页不摆媒体信息（2026-11-02 用户令「季页面不要媒体信息」）。
     /// </summary>
     private EmbyItem? _infoEpisode;
 

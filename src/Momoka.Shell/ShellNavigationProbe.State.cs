@@ -430,6 +430,10 @@ internal sealed partial class ShellNavigationProbe
     {
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
+        // 前一条用例可能把窗口留在最大化上；最大化时 ResizeInspect 会被忽略，下面那组宽度就永远
+        // 到不了目标（要求 1280、实际是整块工作区）。和 DetailResponsive 开头同一句。
+        if (_window!.IsMaximized) _window.ToggleMaximize();
+        await SettleAsync();
         var image = await FixtureImageAsync();
         var series = Series();
         series.ImageTags["Primary"] = "fixture";

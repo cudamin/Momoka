@@ -346,8 +346,12 @@ internal sealed partial class ShellNavigationProbe
                     + $"类型 {string.Join('、', view.SublineGenres)}（{genres.Detail}），"
                     + $"评分 {view.Score} {view.ScoreLabel}，事实 {facts}，"
                     + $"信息卡 {infoPanel.Visibility}（媒体信息 {view.InfoRows.Count} 行）");
-                // 辅助证据：RenderTargetBitmap 不依赖窗口前台/遮挡，能把这一页自己的视觉树单独留下。
-                await SaveRenderAsync(page, "detail-season-header-1280-render.png");
+                var body = Get<ScrollView>(page, "Body");
+                var at = page.TransformToVisual(_root).TransformPoint(default);
+                readings.Add($"季页诊断：page {page.ActualWidth:0}x{page.ActualHeight:0} vis={page.Visibility} op={page.Opacity:0.##} "
+                    + $"at {at.X:0},{at.Y:0}；body {body.ActualWidth:0}x{body.ActualHeight:0} vis={body.Visibility} "
+                    + $"op={body.Opacity:0.##} offset={body.VerticalOffset:0.##} "
+                    + $"content={(body.Content as UIElement)?.Visibility.ToString() ?? "null"}");
                 await SaveProbeScreenAsync("detail-season-header-1280.png");
             }
             finally
@@ -407,7 +411,6 @@ internal sealed partial class ShellNavigationProbe
 
                 ScrollToPanel(page, seasonPanel);
                 await LayoutAsync(page);
-                await SaveRenderAsync(page, "detail-episode-seasons-1280-render.png");
                 await SaveProbeScreenAsync("detail-episode-seasons-1280.png");
             }
             finally
