@@ -1,9 +1,12 @@
-## 2026-11-02 接入 danmu_api 自部署弹幕来源（进行中，worktree feature/danmu-api）
+## 2026-11-02 接入 danmu_api 自部署弹幕来源（已合并、发布并实机验收）
 
-- 用户令：接入 huangxd-/danmu_api；每人自部署，Momoka 不提供服务；验收要求集成与独占实机播放可调用；与弹弹play 客户端合并。
+- 用户令：接入 huangxd-/danmu_api；每人自部署，Momoka 不提供服务；验收要求集成与独占实机播放可调用；与弹弹play 客户端合并。后续「随便找个，确保能正确调用」授权自选片名与当前账号实播。
 - 规格：可选第二来源 + 两者合并；自动匹配 `/api/v2/match` 带年份与集号核对；地址 + DPAPI 令牌；手动单源；danmu_api 下隐藏发送，合并只发弹弹play。
-- 进展：worktree `C:/Users/89400/Momoka-worktrees/danmu-api`，分支 `feature/danmu-api`。已提交 `09fc467` Core 来源/令牌、`a91a0c1` 客户端/match、`3e4a273` 匹配/合并、`02f7155` 播放页双源；设置页来源卡与探针已改。`--probe-shell --probe-section settings,playback` **33/33 通过、退出 0**（`shell-probe-20261102-072607200-18684`），覆盖来源切换、地址保存、单/双源发送栏与弹幕面板；Core 全套 **3578/3578**，Shell Release **0 警告 0 错误**，空白检查通过。
-- 待办：实机集成/独占播放（需用户指定片名与账号授权）、批次收尾发布、四道闸门、合并 master、清理 worktree；未推送 origin。
+- 实现：Core 新增来源模式/可用性规则、danmu_api 地址与 DPAPI 令牌、按来源隔离缓存和错误、match 协议、集号核对与 4 万条合并；Shell 播放页双源自动匹配/加载、单源失败不拖垮另一源、发送只走弹弹play；设置页「来源与聚合」卡与手动搜索来源选择；备份不导出地址/令牌。分支提交 `09fc467`、`a91a0c1`、`3e4a273`、`02f7155`、`38a5821`、`fb393e2`，快进合入 master；合并后补 `3e6f00f`（读取途中关闭弹幕时丢弃迟到结果，及测试夹具同步）、`4caf465`（示例地址去掉内网 IP）、`2bcb04b`（自动匹配改用所属剧年份）。
+- 验证：全方案 Release **0 警告 0 错误**；`dotnet format whitespace` 退出 0；主测试 **3579/3579**；弹幕性能/归属专项 **68/68**；R046 caller **54/54**、10 个源提取反例均按预期退出 1（`artifacts/r046-caller/danmu-api-20261102-verify`、`danmu-api-20261102-extractor-4`，最终年份修复未触及 pins）。发布件 `--probe-shell --probe-section settings,playback` **33/33、退出 0**（`shell-probe-20261102-082956748-28620`）；闸门 4 最终 **187/187、失败 0、消失 0、降级 0、新增 0**（`artifacts/selfcheck/run-bfda9a613afd4a48aa40299f728d6baa`）。同一构建首轮自检曾出现一次「通知页面 1 条已渲染 0」的布局时机抖动，紧接复跑全绿，之前五次同环境也全绿；未改基线。
+- 实机验收（当前账号 donxuelian · 果服，真实播放并改变观看记录）：选《凡人修仙传》S01E184（该库只有 184–198 集）。集成模式弹幕面板显示「来源：danmu_api · 凡人修仙传(2020)【动漫】from 360 · 【bilibili1】 第184集 · 已加载 835 条弹幕」，画面有滚动弹幕；独占模式 mpv 窗口同样出现弹幕。缓存 `cache/danmaku/ccef5dc8….json` 是 danmu_api 的 `{count, comments}` 载荷，835 条、`p` 四段，确认不是弹弹play。该环境弹弹play 连接超时，合并模式下由 danmu_api 单独提供；未验证两源同时成功。验收后播放管线已恢复为集成模式；设置保留「启用弹幕、两者合并、用户自部署地址、令牌留空」，地址不写入仓库。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 通过，**546 文件、285.6 MB、14 GLSL／4 HOOK、批准 mpv 59 文件**；开发件与发布件 `Momoka.dll` SHA-256 同为 `6b37fad6a3118a455ec08bb76881b233b1ae555b9cadb1d41b2bd13e3b95a156`，桌面快捷方式指向主树 `artifacts/publish/win-x64/Momoka.exe`。worktree 与临时分支收尾删除；本次交付未推送 origin。
+- 未覆盖：真实服务器上两源同时成功、令牌启用的 danmu_api、手动搜索两源切换的真实结果；DandanPlay 超时原因未查。
 
 ## 2026-11-02 聚合主页加载与刷新性能（已验证并交付桌面）
 
