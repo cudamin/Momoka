@@ -1,3 +1,11 @@
+## 2026-11-02 详情页响应式批次交付到桌面（主树发布）
+
+- 交付提交：`c34a304`（产品代码止于 `e607c66`；之后仅 PROGRESS 记录）。沿用主树最终代码的批次收尾证据：Release 全方案 0 警告 0 错误、主测试 **3594/3594、0 失败 0 跳过**、`dotnet format whitespace` 与 `git diff --check` 干净、开发件 `--probe-shell --probe-section library --screen 1` **22/22**（`shell-probe-20261102-141928216-25884`）；发布前产品代码未再变动。
+- 发布：主树 `tools/publish.ps1 -Shortcut -NoArchive` 退出 0；`artifacts/publish/win-x64` **546 文件 / 285.7 MB**，14 GLSL / 4 HOOK，批准 mpv 清单 59 文件（50 UI / 2 native），载荷校验通过。版本仍 0.2.2；开发件与发布件 `Momoka.dll` SHA-256 同为 `016937184951B11ECA6145FACBE0E5D6911E4906924095B13DAF98F745D12DEC`。发布时无 Momoka 进程，未推 origin。
+- 发布件运行：`artifacts/publish/win-x64/Momoka.exe --probe-shell --probe-section library --screen 1` 首跑「剧页面无封面播放按钮」「电影页面无封面播放按钮」两项等待超时；同一二进制紧接复跑 **22/22、0 失败**（`shell-probe-20261102-143212447-17800`），按冷启动时序抖动处理，未改断言、未放宽守卫。该区域包含本批三页响应式、集页带子与剧页单季信息卡用例，复跑全部通过。
+- 快捷方式：桌面 `Momoka.lnk` 已重写并读回确认，目标 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`、工作目录同名目录、参数为空、目标存在。
+- 未覆盖：发布件探针仍用匿名假传输与临时设置；真实服务器上的详情页观感与真实播放未在本次发布件上执行。
+
 ## 2026-11-02 工作树收尾：响应式、剧页信息卡与封面下沿合入 master
 
 - 盘点：主树之外有 11 个工作树（4 个 Codex、4 个 Qoder、3 个 WorkBuddy），stash 为空。`e5c5f46`、`bfd2423`、`50bebee`、`4924517` 已只在 master 历史里；`59c12ed`（体积补读）和 `32baca5`（爱心）是 master 上 `a04c7c2`／`754564e` 的平行副本；`49dc95` 的剧页信息卡是 `aec89b60` 的简化子集；`88807d45` 的三页响应式与 `aec89b60` 的剧页信息卡是两份完整在途工作；`059c32` 的 `7e9395b` 是封面下沿最终版。主树 20:21 的固定 48 间距迭代已被 `7e9395b` 取代，留在备份分支 `backup/main-overview-gap48-20261102`（`8eba48d`）与 `C:/Users/89400/.qoder-cn/tmp/worktree-cleanup-20261102/main-overview-gap48.patch`；`49dc95` 的未提交子集留在同目录 `49dc95-series-info-subset.patch`。
