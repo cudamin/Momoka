@@ -143,7 +143,7 @@ internal static class InputControlThemeTests
                 Assert.Equal("Center", (string?)number.Attribute("VerticalAlignment"));
             }
         });
-        Test("输入主题：集页宽版式接设置页的输入玻璃，剧/电影/季选择框仍钉窗口底色", () =>
+        Test("输入主题：集页宽版式接设置页的输入玻璃，集列表牌子不再挂下拉", () =>
         {
             var page = Read("src/Momoka.Shell/Views/DetailPage.xaml");
             var column = page.Descendants(Xaml + "StackPanel")
@@ -155,11 +155,14 @@ internal static class InputControlThemeTests
             foreach (var picker in column.Descendants().Where(element => element.Name.LocalName == "EgPicker"))
                 Assert.Equal("{StaticResource EgPickerCornerRadius}", (string?)picker.Attribute("CornerRadius"));
 
+            // 集列表牌子右端那颗季选择栏 2026-11-02 按用户令删了，连同它把六个全局下拉底钉回窗口色
+            // （EgWindowBrush）的那套局部资源 —— 这一条现在盯着「别再长回来」：牌子上再有下拉，就得重新复核
+            // 它的底色（全局那一支是实心块，压在这一页的底色上就是「贴上去的一块」）。
             var shelf = page.Descendants()
                 .Single(element => (string?)element.Attribute(X + "Name") == "EpisodeHead");
-            var shelfResources = shelf.Element(shelf.Name.Namespace + "ShelfHead.Resources")!;
-            foreach (var key in ComboBackgroundKeys)
-                AssertAlias(shelfResources, key, "EgWindowBrush");
+            Assert.Null(shelf.Element(shelf.Name.Namespace + "ShelfHead.Resources"), "集列表牌子又有了局部下拉资源");
+            Assert.False(shelf.Descendants().Any(element => element.Name.LocalName is "EgPicker" or "ComboBox"),
+                "集列表牌子的右端又长出了季选择栏");
         });
         Test("输入主题：点空白处把焦点交给卡片区，输入框回到玻璃", () =>
         {

@@ -134,6 +134,8 @@ public static class ItemDetail
     /// <summary>
     /// Where the headline leads, or null when it leads nowhere. An episode is billed under its show's
     /// name (see <see cref="Title"/>), and pressing that name is asking for the thing it names: 剧页面.
+    /// 季页的头行自 2026-11-02 起也写剧名（用户令「把季页面的剧名和季度的字体大小还有位置互换」），
+    /// 所以季也要能点回剧页面。
     /// <para>
     /// 剧而不是季 —— 「点击剧名之后应该进[入]剧页面而不是季页面，季页面只能通过[剧页面上「全部剧季」那一格]
     /// 进入」。从前这里先挑季（理由是「这一集坐在哪张单子里」更窄），可屏上那行字写的是剧名，按下去落在
@@ -151,7 +153,7 @@ public static class ItemDetail
     /// </summary>
     public static EmbyItem? TitleTarget(EmbyItem item)
     {
-        if (item.Type != EmbyItemType.Episode) return null;
+        if (item.Type is not (EmbyItemType.Episode or EmbyItemType.Season)) return null;
 
         if (item.SeriesId is { Length: > 0 } seriesId)
             return new EmbyItem
@@ -467,6 +469,23 @@ public static class ItemDetail
     }
 
     /// <summary>
+    /// 这个条目手上的媒体源够不够建音轨、字幕下拉 —— 「有媒体源」与「有轨道表」是两件事。
+    /// <para>
+    /// Emby 的集列表（<c>/Shows/{id}/Episodes</c>）会连 <c>MediaSources</c> 一起下发，但里面常常没有
+    /// <c>MediaStreams</c>：文件名、容器和时长都在，轨道表是空的。拿这一份去建下拉，自动那一行就只能说
+    /// 「自动（由 mpv 决定）」（见 <see cref="AutoLabel"/>），而同一集按 id 取详情时说的是「自动 · 简体中文」
+    /// —— 剧页、季页说「由 mpv 决定」、集页说具体轨道，就是 2026-11-02 用户报的那一条。要建下拉的页面
+    /// 因此得问这一句，缺轨道表就按 id 补取。
+    /// </para>
+    /// <para>
+    /// 按媒体源逐条看而不是只看 <c>MediaSources.Count</c>：多版本里只要有一版带轨道表，这一份就够用了
+    /// （换媒体源时轨道跟着那一条走）；全都没有时才算要补取。
+    /// </para>
+    /// </summary>
+    public static bool CarriesTracks(EmbyItem item) =>
+        item.MediaSources.Any(source => source.MediaStreams.Count > 0);
+
+    /// <summary>
     /// The audio picker's rows, 自动 first.
     /// <para>
     /// 自动 is named rather than left blank because this client, not mpv, resolves it: the settings
@@ -538,10 +557,15 @@ public static class ItemDetail
     /// </para>
     /// <para>
     /// The 着色器 decision used to be the last line and is deliberately gone. Resolving it needs the
-    /// genres of the parent show — an episode carries none of its own — and this panel is now only ever
-    /// shown on the page of the file itself, where no parent is in hand; naming a group here that
-    /// playback then did not apply is worse than not naming one. 播放信息 during playback reports the
-    /// group that actually ran, with the settings and the parent both available.
+    /// genres of the parent show — an episode carries none of its own — and the settings are not in
+    /// hand here; naming a group here that playback then did not apply is worse than not naming one.
+    /// 播放信息 during playback reports the group that actually ran, with the settings and the parent
+    /// both available.
+    /// </para>
+    /// <para>
+    /// 剧页自 2026-11-02 起也摆这张表，描述的是 <see cref="MediaInfoEpisode"/> 挑出来的那一集（有续播的
+    /// 最近一集，否则当季第一集），<paramref name="item"/> 就是那一集而不是剧本身。季页不摆（同日用户令
+    /// 「季页面不要媒体信息」）。
     /// </para>
     /// </summary>
     /// <param name="source">
@@ -807,6 +831,35 @@ public static class ItemDetail
     {
         var pool = SeasonEpisodes(episodes, season);
         return pool.FirstOrDefault(episode => episode.UserData?.Played != true) ?? pool.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// 剧页「其他信息」卡里的媒体信息该描述哪一集（2026-11-02 用户令「参考集页面的更多信息卡片给剧页面
+    /// 的更多信息卡片也加上媒体信息，没有播放记录就用第一集的，有播放记录就用播放记录那一集」）。
+    /// <para>
+    /// 播放记录指没看完的续播点（<see cref="EmbyItem.HasResumePosition"/>）。有多条时取最近播放的那一集 ——
+    /// 一部剧里同时留着几集的续播点是常事（换集、换设备），最近那一集才是读者刚离开的地方。没有续播时取
+    /// 这一季的第一集，与「第一集」这个说法一致；并进来的 air-order 特典不算第一集，理由同
+    /// <see cref="PickEpisode"/>。
+    /// </para>
+    /// <para>
+    /// 只在这一季的列表里找：剧页一次只加载当前显示的那一季，而用户挑的就是「这一页正在讲的这一季」。
+    /// 别的季里的续播点要等切过去之后才会成为这一页的答案。
+    /// </para>
+    /// </summary>
+    /// <param name="episodes">这一页当前加载的那一季的集。</param>
+    /// <param name="season">这一页正在显示的那一季；null 时整份都算。</param>
+    public static EmbyItem? MediaInfoEpisode(IReadOnlyList<EmbyItem> episodes, EmbyItem? season)
+    {
+        var pool = SeasonEpisodes(episodes, season);
+        if (pool.Count == 0) return null;
+
+        var resumed = pool
+            .Where(episode => episode.HasResumePosition)
+            .OrderByDescending(episode => episode.UserData?.LastPlayedDate ?? DateTimeOffset.MinValue)
+            .FirstOrDefault();
+
+        return resumed ?? pool[0];
     }
 
     /// <summary>

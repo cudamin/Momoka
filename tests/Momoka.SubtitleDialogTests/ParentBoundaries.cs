@@ -54,6 +54,8 @@ internal sealed partial class DetailViewModel : PageViewModel
     private void Apply(EmbyItem item) => Applied = item;
     private static Task LoadSimilarAsync(EmbyItem item, CancellationToken token) => Task.CompletedTask;
     private static Task LoadSeriesAsync(EmbyItem item, CancellationToken token) => throw new InvalidOperationException("Movie-only fixture");
+    private static Task LoadSeasonSeriesAsync(EmbyItem item, CancellationToken token) => throw new InvalidOperationException("Movie-only fixture");
+    private static Task LoadSeasonShelfAsync(EmbyItem item, CancellationToken token) => throw new InvalidOperationException("Movie-only fixture");
     private static Task LoadEpisodesAsync(EmbyItem? item, bool retarget, CancellationToken token) => throw new InvalidOperationException("Movie-only fixture");
     private void BusyChanged() { }
     private void AnnounceAffordances() { }

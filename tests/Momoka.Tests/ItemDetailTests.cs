@@ -140,10 +140,25 @@ internal static class ItemDetailTests
             Assert.Equal(EmbyItemType.Series, loose?.Type);
             Assert.Equal("某剧", loose?.Name);
 
+            // 季页的头行自 2026-11-02 起写剧名（「把季页面的剧名和季度的字体大小还有位置互换」），
+            // 所以季也要能点回剧页面。
+            var season = ItemDetail.TitleTarget(new EmbyItem
+            {
+                Id = "season2",
+                Name = "第二季",
+                Type = EmbyItemType.Season,
+                SeriesId = "series1",
+                SeriesName = "99.9刑事专业律师"
+            });
+            Assert.Equal("series1", season?.Id);
+            Assert.Equal(EmbyItemType.Series, season?.Type);
+            Assert.Equal("99.9刑事专业律师", season?.Name);
+
             // Nowhere to go disables the button rather than navigating to a page that cannot load: a movie's
             // headline is the movie, and an orphaned episode has no parent to name.
             Assert.Null(ItemDetail.TitleTarget(new EmbyItem { Id = "m1", Type = EmbyItemType.Movie }));
             Assert.Null(ItemDetail.TitleTarget(new EmbyItem { Id = "ep7", Type = EmbyItemType.Episode }));
+            Assert.Null(ItemDetail.TitleTarget(new EmbyItem { Id = "s1", Type = EmbyItemType.Season }));
 
             // 只有季的 id、没有剧的 id：不给链接，也不偷偷退回季 —— 那一行字说的是剧。
             Assert.Null(ItemDetail.TitleTarget(new EmbyItem
@@ -690,6 +705,58 @@ internal static class ItemDetailTests
             // An unrelated source with an empty id must not fall through onto the empty-id row.
             Assert.Null(ItemDetail.PickSource(rows, new MediaSource { Id = "" }));
         });
+
+        // 2026-11-02 用户报的那一条：同一集，集页面的字幕「自动」说「自动 · 简体中文」，剧页、季页却说
+        // 「自动（由 mpv 决定）」。差别只在手上那一份集 —— 集列表下发的媒体源带着文件名和容器、没有轨道表，
+        // 拿它建下拉就选不出默认轨道（ItemDetail.AutoLabel 的 null 分支）；按 id 取详情那一份才有轨道。
+        Test("媒体源：列表的空壳媒体源不算有轨道表，补取回来的那一份才算", () =>
+        {
+            // Emby 的集列表就是这样：MediaSources 有、MediaStreams 空。
+            var bare = new EmbyItem
+            {
+                MediaSources =
+                [
+                    new MediaSource
+                    {
+                        Id = "ep1",
+                        Name = "离线测试版本",
+                        Container = "mkv",
+                        Path = @"\\fixture\Shows\show\ep1.mkv",
+                        RunTimeTicks = 24 * Minute
+                    }
+                ]
+            };
+            Assert.False(ItemDetail.CarriesTracks(bare), "没有轨道表的媒体源建不出音轨、字幕下拉");
+            Assert.False(ItemDetail.CarriesTracks(new EmbyItem()), "一条媒体源都没有，也谈不上轨道表");
+
+            var full = new EmbyItem
+            {
+                MediaSources =
+                [
+                    new MediaSource
+                    {
+                        Id = "ep1",
+                        MediaStreams =
+                        [
+                            new MediaStream { Index = 0, Type = "Video", Codec = "h264" },
+                            new MediaStream { Index = 1, Type = "Audio", DisplayTitle = "国语 · AAC 2.0" }
+                        ]
+                    }
+                ]
+            };
+            Assert.True(ItemDetail.CarriesTracks(full));
+
+            // 多版本里只要有一版带轨道表就够用：下拉换源时轨道跟着那一条走，不必为了另一版再补一趟。
+            var mixed = new EmbyItem
+            {
+                MediaSources =
+                [
+                    new MediaSource { Id = "a" },
+                    new MediaSource { Id = "b", MediaStreams = [new MediaStream { Index = 0, Type = "Video" }] }
+                ]
+            };
+            Assert.True(ItemDetail.CarriesTracks(mixed));
+        });
     }
 
     private static void RegisterCast()
@@ -876,6 +943,46 @@ internal static class ItemDetailTests
             Assert.Equal("更多来自：第一季  ·  3 集，已看 2 集", ItemDetail.EpisodeHeading("第一季", episodes));
             Assert.Equal("更多单集  ·  3 集，已看 2 集", ItemDetail.EpisodeHeading(null, episodes));
             Assert.Equal("更多单集", ItemDetail.EpisodeHeading("第一季", []));
+        });
+
+        Test("媒体信息：剧页有续播取最近播放的续播集，否则取当季第一集", () =>
+        {
+            var season = Season("第 1 季", unplayed: 3, index: 1);
+            season.Id = "s1";
+
+            var special = new EmbyItem
+            {
+                Name = "OAD 1",
+                Type = EmbyItemType.Episode,
+                SeasonId = "s0",
+                ParentIndexNumber = 0,
+                IndexNumber = 1,
+                UserData = new EmbyUserData { PlayedPercentage = 40 }
+            };
+            var first = EpisodeOfSeason(season, 1, "第一集");
+            var second = EpisodeOfSeason(season, 2, "第二集");
+            var third = EpisodeOfSeason(season, 3, "第三集");
+
+            // 没有任何续播：这一季的第一集。并进来的特典不算 —— 它记在别的季。
+            Assert.Equal("第一集", ItemDetail.MediaInfoEpisode([special, first, second], season)?.Name);
+
+            // 第二集中途看了：用它，即使第一集还没看。
+            second.UserData = Resume(percent: 40, played: At(2026, 11, 1, 20));
+            Assert.Equal("第二集", ItemDetail.MediaInfoEpisode([special, first, second], season)?.Name);
+
+            // 多条续播：取最近播放的那一集，而不是列表里靠前的那一集。
+            first.UserData = Resume(percent: 20, played: At(2026, 11, 2, 9));
+            third.UserData = Resume(percent: 60, played: At(2026, 11, 2, 21));
+            Assert.Equal("第三集", ItemDetail.MediaInfoEpisode([special, first, second, third], season)?.Name);
+
+            // 快看完（≥99.5%）不算续播；只剩第一集那条时就用它。
+            second.UserData = Resume(percent: 99.6, played: At(2026, 11, 3, 9));
+            first.UserData = null;
+            third.UserData = null;
+            Assert.Equal("第一集", ItemDetail.MediaInfoEpisode([special, first, second, third], season)?.Name);
+
+            // 空列表没有可描述的集。
+            Assert.Null(ItemDetail.MediaInfoEpisode([], season));
         });
 
         Test("单集：行标题带编号，行信息只写服务器给的部分", () =>
@@ -1163,8 +1270,9 @@ internal static class ItemDetailTests
 
     /// <summary>
     /// 媒体信息, the table under 更多单集. Its heading used to name the episode a show's page was
-    /// describing (「媒体信息 · S02E07」); the panel is now only ever shown on the page of the file itself,
-    /// so the heading is a constant in markup and the only thing left to assert is the table.
+    /// describing (「媒体信息 · S02E07」); the heading is a constant in markup and the only thing left to
+    /// assert is the table. 剧页自 2026-11-02 起也摆这张表，但挑的是哪一集由
+    /// <see cref="ItemDetail.MediaInfoEpisode"/> 决定，算例在 <see cref="RegisterEpisodes"/> 里。
     /// </summary>
     private static void RegisterMediaInfo()
     {
@@ -2323,6 +2431,26 @@ internal static class ItemDetailTests
     };
 
     private static EmbyItem Unwatched(string name) => new() { Name = name, Type = EmbyItemType.Episode };
+
+    private static EmbyItem EpisodeOfSeason(EmbyItem season, int number, string name) => new()
+    {
+        Name = name,
+        Type = EmbyItemType.Episode,
+        SeasonId = season.Id,
+        SeasonName = season.Name,
+        ParentIndexNumber = season.IndexNumber,
+        IndexNumber = number
+    };
+
+    private static EmbyUserData Resume(double percent, DateTimeOffset played) => new()
+    {
+        PlaybackPositionTicks = 10 * Minute,
+        PlayedPercentage = percent,
+        LastPlayedDate = played
+    };
+
+    private static DateTimeOffset At(int year, int month, int day, int hour) =>
+        new(year, month, day, hour, 0, 0, TimeSpan.FromHours(8));
 
     /// <summary>
     /// Asserts one <see cref="ItemDetail.EpisodeScope"/> answer a field at a time, rather than comparing

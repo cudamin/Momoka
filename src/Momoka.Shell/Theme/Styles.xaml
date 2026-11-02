@@ -132,7 +132,7 @@
       ComboBox 的那一份隐式样式（generic.xaml 里那条 TargetType="ComboBox"）不会落到子类身上 —— 不接这一行，
       那几颗下拉会一个模板都没有，屏上是空的。接项目的框架派生样式以取得相同圆角；弹层开在哪棵树
       里仍由 C#（EgPicker.OnApplyTemplate）处理。
-      隐式（没有 x:Key）而不是给每颗下拉写 Style=""：七颗下拉一个样子，写七遍只会漂。
+      隐式（没有 x:Key）而不是给每颗下拉写 Style=""：同一件衣服穿在好几颗上，写几遍只会漂。
       摆在这个文件而不是 App.xaml —— 这里管形状、Palette 管颜色，一颗下拉穿什么衣服属于前者。
     -->
     <Style TargetType="local:EgPicker" BasedOn="{StaticResource EgComboBoxStyle}" />

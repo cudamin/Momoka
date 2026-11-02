@@ -224,7 +224,8 @@ internal sealed partial class ShellNavigationProbe
                             $"{type} {width}：更窄了，剧情说明反而离画面下沿更远（{previousOverflow:0.#} → {overflow:0.#}）");
                         previousOverflow = overflow;
 
-                        readings.Add($"{type} {width}: 收 {view.Squeeze:0.##}，带 {band.ActualHeight:0.##}，"
+                        var mode = view.IsCompact ? "窄窗" : view.Showcase ? "大窗" : "正常";
+                        readings.Add($"{type} {width}: 模式={mode}，收 {view.Squeeze:0.##}，带 {band.ActualHeight:0.##}，"
                             + $"头部 {view.HeroInset.Top:0.##}／{view.HeroInset.Bottom:0.##}，"
                             + $"尾部 {view.TailInset.Top:0.##}／间距 {tail.Spacing:0.##}／面板 {pickers.Padding.Top:0.##}，"
                             + $"尾高 {tail.ActualHeight:0.##}，简介下沿 {overviewBottom:0.#}，画面下沿 {pictureBottom:0.#}，"
@@ -282,8 +283,9 @@ internal sealed partial class ShellNavigationProbe
     /// <para>
     /// 窗口 1080×620：页面头上让出 68（标题栏加面包屑），而客户区报回来的高带上那条 31 的自绘标题栏
     /// （651），所以视口是 651 − 68 = 583；16:9 的图按页宽铺开是 607.5 高，583 的 98% 是 571 —— 已经过线；
-    /// 而这一扇窗口的面积离工作区五分之四还远，所以 Showcase 只可能是裁切那一条来路。收窄到 900×620 时图
-    /// 只有 506.25 高，那条线松开，回到纸面版式。
+    /// 而这一扇窗口的面积离工作区五分之四还远，所以 Showcase 只可能是裁切那一条来路。把窗口拉高到
+    /// 1080×760（视口 723）时图仍只有 607.5 高，那条线松开，回到纸面版式。宽度保持不变是为了留在宽版式里：
+    /// 收窄到 900 会跨过紧凑断点，换的是整套单列版面，不是「退出大窗」那条路。
     /// <para>
     /// 这两档都压在副屏的逻辑宽度（1080）以内，截下来是一整扇窗；再宽就只有左半边了。
     /// </para>
@@ -296,11 +298,22 @@ internal sealed partial class ShellNavigationProbe
         if (_window!.IsMaximized) _window.ToggleMaximize();
         await SettleAsync();
 
+        // 「所有路径统一动画」（2026-11-02 用户令）：拉宽触发裁切这条从前是瞬间换版，现在也要走过渡。
+        // 屏上一个已经结束的动画看不出来，只有页面自己数的次数分得清「走过」和「直接落定」。
+        var animationsBeforeEnter = page.ShowcaseAnimations;
+
         await ResizeResponsiveAsync(page, 1080, 620, ResponsiveViewport);
         await LayoutAsync(page);
         Require(!page.ViewModel.Spacious, "这一档窗口已经铺开，测不出「只因裁切才切换」那条路");
         Require(page.ViewModel.NearCrop, "1080×620 上背景图该算「快被裁掉」");
-        var state = $"裁切={page.ViewModel.NearCrop}、沉浸={page.ViewModel.Showcase}、铺开={page.ViewModel.Spacious}、"
+        if (HomeMotion.AnimationsEnabled)
+        {
+            Require(page.ShowcaseAnimations > animationsBeforeEnter,
+                "拉宽触发裁切时没有走过渡动画（ShowcaseAnimations 没有增加）");
+        }
+
+        var state = $"模式={(page.ViewModel.IsCompact ? "窄窗" : page.ViewModel.Showcase ? "大窗" : "正常")}、"
+            + $"裁切={page.ViewModel.NearCrop}、沉浸={page.ViewModel.Showcase}、铺开={page.ViewModel.Spacious}、"
             + $"紧凑={page.ViewModel.IsCompact}、有图={page.ViewModel.BackdropShown}、类型={page.ViewModel.ItemType}、"
             + $"页宽={page.ViewModel.PageWidth:0}、视口={page.ViewModel.Viewport:0}、图比={page.ViewModel.HeroHeightRatio:0.###}、"
             + $"不透明度={picture.Opacity:0.###}";
@@ -310,27 +323,50 @@ internal sealed partial class ShellNavigationProbe
             $"裁切触发后背景图该是 {DetailHero.ShowcaseBackdropOpacity}，实际 {picture.Opacity:0.###}（{state}）");
         await SaveProbeScreenAsync("detail-responsive-crop-showcase.png");
 
-        await ResizeResponsiveAsync(page, 900, 620, ResponsiveViewport);
+        var animationsBeforeExit = page.ShowcaseAnimations;
+
+        await ResizeResponsiveAsync(page, 1080, 760);
         await LayoutAsync(page);
         Require(!page.ViewModel.NearCrop && !page.ViewModel.Showcase,
-            $"900×620 上不该再算「快被裁掉」：裁切={page.ViewModel.NearCrop}、沉浸={page.ViewModel.Showcase}");
+            $"1080×760 上不该再算「快被裁掉」：裁切={page.ViewModel.NearCrop}、沉浸={page.ViewModel.Showcase}");
+        if (HomeMotion.AnimationsEnabled)
+        {
+            Require(page.ShowcaseAnimations > animationsBeforeExit,
+                "拉高退出大窗时没有走过渡动画（ShowcaseAnimations 没有增加）");
+        }
+
+        // 动画起步时读到的还是中间值，等到终点再比 —— 这里等的是过渡走完，不是放宽断言。
+        await UntilAsync(() => Math.Abs(picture.Opacity - DetailHero.BackdropOpacity) < 0.001);
         Require(Math.Abs(picture.Opacity - DetailHero.BackdropOpacity) < 0.001,
             $"回到纸面版式后背景图该是 {DetailHero.BackdropOpacity}，实际 {picture.Opacity:0.###}");
         await SaveProbeScreenAsync("detail-responsive-crop-paper.png");
 
         // 最大化那一路（窗口铺开）也走同一档、同一支不透明度；还原后回到 0.9。
+        var animationsBeforeMaximize = page.ShowcaseAnimations;
         if (!_window!.IsMaximized) _window.ToggleMaximize();
         await UntilAsync(() => page.ViewModel.Showcase
             && Math.Abs(picture.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001);
         Require(Math.Abs(picture.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001,
             $"最大化后背景图该是 {DetailHero.ShowcaseBackdropOpacity}，实际 {picture.Opacity:0.###}");
+        if (HomeMotion.AnimationsEnabled)
+        {
+            Require(page.ShowcaseAnimations > animationsBeforeMaximize,
+                "最大化进入大窗时没有走过渡动画（ShowcaseAnimations 没有增加）");
+        }
+
         await SaveProbeScreenAsync("detail-responsive-maximized.png");
 
+        var animationsBeforeRestore = page.ShowcaseAnimations;
         _window.ToggleMaximize();
         await UntilAsync(() => !page.ViewModel.Showcase
             && Math.Abs(picture.Opacity - DetailHero.BackdropOpacity) < 0.001);
         Require(Math.Abs(picture.Opacity - DetailHero.BackdropOpacity) < 0.001,
             $"还原后背景图该回到 {DetailHero.BackdropOpacity}，实际 {picture.Opacity:0.###}");
+        if (HomeMotion.AnimationsEnabled)
+        {
+            Require(page.ShowcaseAnimations > animationsBeforeRestore,
+                "从最大化还原时没有走过渡动画（ShowcaseAnimations 没有增加）");
+        }
     }
 
     /// <summary>

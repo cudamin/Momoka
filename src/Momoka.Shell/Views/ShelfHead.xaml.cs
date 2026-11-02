@@ -118,7 +118,7 @@ public sealed partial class ShelfHead : UserControl
         set => SetValue(NoteProperty, value);
     }
 
-    /// <summary>读数右边那一格，给这一带自己的控件 —— 详情页 单集 那一带的季下拉框就在这儿。</summary>
+    /// <summary>读数右边那一格，给这一带自己的控件 —— 详情页 单集 那一带原来在这儿挂季下拉框（2026-11-02 删除）。</summary>
     public object? Trailing
     {
         get => GetValue(TrailingProperty);

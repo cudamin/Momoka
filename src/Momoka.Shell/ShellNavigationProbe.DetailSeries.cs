@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using System.Net;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Documents;
 using Momoka.Emby;
@@ -17,13 +19,38 @@ internal sealed partial class ShellNavigationProbe
     /// </para>
     /// <para>
     /// ②「在剧页面的集列表下方复刻一个与集页面『其他信息』卡片一致的卡片」—— 同一块板、同一块牌子、同一行
-    /// 代码搭出来的值（类型／工作室／数据库链接）；剧没有文件，所以那张媒体信息表与它下面那条分割线都不出现，
-    /// 只剩牌子与那一行。位置在集列表正下方、全部剧季之上。
+    /// 代码搭出来的值（类型／工作室／数据库链接）。剧页自 2026-11-02 起也有媒体信息表（用户令「参考集页面的
+    /// 更多信息卡片给剧页面的更多信息卡片也加上媒体信息，没有播放记录就用第一集的，有播放记录就用播放记录
+    /// 那一集」）：单季那一份的第二集中途看了，表该说第二集（播放落点仍是第一集未看的）；多季那一份没有
+    /// 播放记录，表说第一季第一集。同日另一条令把「全部剧季」挪到了「其他信息」上面，顺序是
+    /// 单集 → 全部剧季 → 其他信息；集列表牌子右端那颗季选择栏也在这天删掉了，两种页面上都不该再找得到它。
     /// </para>
     /// <para>
-    /// 两种剧各开一页：单季那份同时验「季卡收起」与「信息卡接在集列表下面」，多季那份验「季卡还在、顺序是
-    /// 单集→其他信息→全部剧季」。截图 `detail-series-*-{1280,760}.png`，几何读数落 `detail-series-info.txt`。
-    /// 全部走假传输，不联网、不播放。
+    /// 两种剧各开一页：单季那份同时验「季卡收起」「续播集优先」与「信息卡接在集列表下面」，多季那份验
+    /// 「季卡还在、顺序是单集→全部剧季→其他信息」和「没有记录取当季第一集」。
+    /// </para>
+    /// <para>
+    /// ③ 再开一页季页，验同日的另外两条：「把季页面的剧名和季度的字体大小还有位置互换」＋「给季页面
+    /// 补上图三哪些」—— 大标题是剧名（点得回剧页面）、第二行是季名、第三行是这部剧的类型（一个一个点得动），
+    /// 评分和事实那一行（年份区间、工作室、时长、分级、共几季）也说这部剧；以及「季页面不要媒体信息」——
+    /// 媒体信息表零行，整块「其他信息」卡收起。剧的季数按夹具自己的季数给（单季 1、多季 2），
+    /// 事实那一行的「共 N 季」才对得上。
+    /// </para>
+    /// <para>
+    /// ④ 最后开一页集页（多季夹具第一季的第一集），验「集页面也加上全部剧季卡片」：两季的剧集页上那张卡在
+    /// 「其他信息」上面、高不为零，而且这一页也没有季选择栏。
+    /// </para>
+    /// <para>
+    /// ⑤ 每页顺手验同一对下拉（2026-11-02 用户报的那一条）：同一集在集页面的字幕「自动」写着具体语言，剧页、
+    /// 季页却写着「自动（由 mpv 决定）」。夹具因此按 Emby 的两种回包各做一份集 —— 集列表那一趟是**裸媒体源**
+    /// （文件名、容器、时长都在，轨道表空着），按 id 取详情那一趟才带视频／音频／字幕三条轨道。真正的判据是
+    /// 缺轨道表时页面要补取（<see cref="ItemDetail.CarriesTracks"/>）：三页的「自动」都该说「国语」「简体中文」，
+    /// 一个字都不该落到「由 mpv 决定」。
+    /// </para>
+    /// <para>
+    /// 截图 `detail-series-single-season-{1280,760}.png`、`detail-series-two-seasons-{1280,760}.png`、
+    /// `detail-series-season-before-info-1280.png`、`detail-episode-seasons-1280.png` 与
+    /// `detail-season-header-1280.png`，读数落 `detail-series-info.txt`。全部走假传输，不联网、不播放。
     /// </para>
     /// </summary>
     private async Task DetailSeriesInfoAsync()
@@ -31,25 +58,52 @@ internal sealed partial class ShellNavigationProbe
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
 
-        var single = SeriesWithInfo("show-one", "离线单季剧集", ["动画", "奇幻"], "Wit Studio");
-        var multi = SeriesWithInfo("show-two", "离线多季剧集", ["剧情"], "TBS");
+        var single = SeriesWithInfo("show-one", "离线单季剧集", ["动画", "奇幻"], "Wit Studio", seasons: 1);
+        var multi = SeriesWithInfo("show-two", "离线多季剧集", ["剧情"], "TBS", seasons: 2);
         var singleSeasons = new[] { SeasonOf(single, "one-s1", 1) };
         var multiSeasons = new[] { SeasonOf(multi, "two-s1", 1), SeasonOf(multi, "two-s2", 2) };
 
+        // 集列表按季各生成一次，当成稳定的夹具：导航到集页和运输层回包用的是同一批 id、同一批字段。
+        // **两种形状**同 id、同路径 —— 列表那一趟是裸媒体源（Emby 的 /Shows/{id}/Episodes 常见的样子），
+        // 按 id 取详情那一趟才带完整轨道。页面缺轨道表就会补取，补回来的正是详情那一份。
+        var singleEpisodes = singleSeasons.ToDictionary(season => season.Id, season => EpisodesOf(single, season));
+        var multiEpisodes = multiSeasons.ToDictionary(season => season.Id, season => EpisodesOf(multi, season));
+        var details = singleEpisodes.Values.Concat(multiEpisodes.Values)
+            .SelectMany(episodes => episodes)
+            .ToDictionary(episode => episode.Id, EpisodeDetail, StringComparer.Ordinal);
+        var known = new[] { single, multi, singleSeasons[0], multiSeasons[0], multiSeasons[1] }
+            .Concat(details.Values)
+            .ToDictionary(item => item.Id, StringComparer.Ordinal);
+
+        // 按 id 取条目的次数：缺轨道表时才该补取，而且同一集不该被问两遍（媒体信息那一集按 id 复用播放
+        // 落点已经取回的那一份）。补取本身屏上看不出来，多跑一趟只在网络上看得到 —— 这里替它记账。
+        var itemReads = new ConcurrentDictionary<string, int>(StringComparer.Ordinal);
+
         fixture.Transport.Reply = (request, token) =>
         {
-            var path = request.RequestUri!.AbsolutePath;
+            var uri = request.RequestUri!;
+            var path = uri.AbsolutePath;
 
             if (path.Contains("/Images/", StringComparison.Ordinal))
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
 
-            if (path.EndsWith("/Items/" + single.Id, StringComparison.Ordinal)) return Task.FromResult(Json(single));
-            if (path.EndsWith("/Items/" + multi.Id, StringComparison.Ordinal)) return Task.FromResult(Json(multi));
+            // 按 id 取条目：剧、季、集都走这一张表。集页那一趟读的是集自己（见 DetailViewModel.LoadAsync），
+            // 回一个空对象那一页连类型都不认得，季卡和兄弟集就都没得验。
+            var items = path.IndexOf("/Items/", StringComparison.Ordinal);
+            if (items >= 0)
+            {
+                var itemId = path[(items + "/Items/".Length)..];
+                if (known.TryGetValue(itemId, out var item))
+                {
+                    itemReads.AddOrUpdate(itemId, 1, (_, count) => count + 1);
+                    return Task.FromResult(Json(item));
+                }
+            }
 
             if (path.Contains("/Shows/" + single.Id + "/", StringComparison.Ordinal))
-                return Task.FromResult(SeriesPart(path, single, singleSeasons));
+                return Task.FromResult(SeriesPart(path, uri.Query, singleSeasons, singleEpisodes));
             if (path.Contains("/Shows/" + multi.Id + "/", StringComparison.Ordinal))
-                return Task.FromResult(SeriesPart(path, multi, multiSeasons));
+                return Task.FromResult(SeriesPart(path, uri.Query, multiSeasons, multiEpisodes));
 
             return Task.FromResult(FakeTransport.Standard(request));
         };
@@ -71,6 +125,16 @@ internal sealed partial class ShellNavigationProbe
                     $"单季夹具的季卡带不是一张：{page.ViewModel.SeasonShelf?.Cards.Count ?? -1}");
                 Require(page.ViewModel.EpisodeShelf is { Cards.Count: > 0 }, "单季夹具没有列出这一季的集");
 
+                // ⑤ 剧页的下拉：列表那一份只有空壳媒体源，页面该按 id 补取那一集的详情，自动那一行才说得出
+                // 具体轨道（2026-11-02 用户报的那一条：「自动（由 mpv 决定）」只在服务器真没给轨道表时出现）。
+                RequireAutoTracks(page, "单季剧页");
+                readings.Add($"单季 1280 下拉：音频「{page.ViewModel.AudioTracks[0].Text}」、"
+                    + $"字幕「{page.ViewModel.SubtitleTracks[0].Text}」");
+
+                // 补取只该为缺轨道表的那一份发生，一集一趟：播放落点一次，媒体信息说第二集再一次。
+                Require(Reads("one-s1-e1") == 1, $"单季剧页按 id 取了 {Reads("one-s1-e1")} 次播放落点");
+                Require(Reads("one-s1-e2") == 1, $"单季剧页按 id 取了 {Reads("one-s1-e2")} 次媒体信息那一集");
+
                 var seasonPanel = Get<StackPanel>(page, "SeasonPanel");
                 var infoPanel = Get<StackPanel>(page, "InfoPanel");
                 var episodePanel = Get<StackPanel>(page, "EpisodePanel");
@@ -83,10 +147,15 @@ internal sealed partial class ShellNavigationProbe
                 var head = Get<ShelfHead>(page, "InfoHead");
                 Require(head.Title == "其他信息" && head.Visibility == Visibility.Visible, $"信息卡的牌子写的是「{head.Title}」");
 
-                // 剧没有文件：那张媒体信息表与它下面那条分割线都不该出现，只剩牌子与那一行。
-                Require(page.ViewModel.InfoRows.Count == 0, $"剧页凭空有了 {page.ViewModel.InfoRows.Count} 行媒体信息");
-                Require(Get<Border>(page, "OtherInfoDivider").Visibility == Visibility.Collapsed,
-                    "剧页没有媒体信息表，却画了那条分割线");
+                // 第二集中途看了：表说第二集（播放落点仍是第一集未看的），两条并排才证明挑的不是播放落点。
+                Require(page.ViewModel.PlayTarget is { IndexNumber: 1 },
+                    $"单季夹具的播放落点该是第一集未看的，实际 {page.ViewModel.PlayTarget?.IndexNumber}");
+                Require(page.ViewModel.InfoRows.Count > 0,
+                    "剧页有第二集的续播记录，媒体信息表却是空的");
+                Require(Get<Border>(page, "OtherInfoDivider").Visibility == Visibility.Visible,
+                    "剧页有媒体信息表，却没有那条分割线");
+                Require(page.ViewModel.InfoRows[0].Value.Contains("one-s1-e2", StringComparison.Ordinal),
+                    $"剧页媒体信息没取续播的那一集：{page.ViewModel.InfoRows[0].Value}");
 
                 var line = Get<TextBlock>(page, "OtherInfoLine");
                 var text = string.Concat(line.Inlines.Select(InlineText));
@@ -133,7 +202,7 @@ internal sealed partial class ShellNavigationProbe
                 _root.Children.Remove(frame);
             }
 
-            // ② 多季：季卡带照旧，顺序是 单集 → 其他信息 → 全部剧季。
+            // ② 多季：季卡带照旧，顺序是 单集 → 全部剧季 → 其他信息；集列表牌子右端那颗季选择栏已经删了。
             ResizeProbeClient(1280, 900);
             var second = new Frame();
             _root.Children.Add(second);
@@ -153,16 +222,40 @@ internal sealed partial class ShellNavigationProbe
                     "两季的剧页没有了全部剧季卡");
                 Require(infoPanel.Visibility == Visibility.Visible && infoPanel.ActualHeight > 0, "多季剧页没有其他信息卡");
 
+                // 季选择栏 2026-11-02 随用户令一起删了：这一页按名字找不到那颗 EgPicker。
+                Require(!HasSeasonPicker(page), "剧页上还有季选择栏");
+
+                // ⑤ 多季剧页同一对下拉；这一页的续播集与播放落点是同一集，补取只该跑一趟（按 id 复用）。
+                RequireAutoTracks(page, "多季剧页");
+                readings.Add($"多季 1280 下拉：音频「{page.ViewModel.AudioTracks[0].Text}」、"
+                    + $"字幕「{page.ViewModel.SubtitleTracks[0].Text}」");
+
+                // 这一页的媒体信息说的就是播放落点那一集：补取那一趟被复用，没有为信息表再问一遍。
+                Require(Reads("two-s1-e1") == 1, $"多季剧页按 id 取了 {Reads("two-s1-e1")} 次第一集");
+
+                // 没有播放记录：表说这一页第一季的第一集。
+                Require(page.ViewModel.InfoRows.Count > 0,
+                    "多季剧页没有播放记录，媒体信息表却是空的");
+                Require(Get<Border>(page, "OtherInfoDivider").Visibility == Visibility.Visible,
+                    "多季剧页有媒体信息表，却没有那条分割线");
+                Require(page.ViewModel.InfoRows[0].Value.Contains("two-s1-e1", StringComparison.Ordinal),
+                    $"没有播放记录时，媒体信息没取当季第一集：{page.ViewModel.InfoRows[0].Value}");
+
                 var infoTop = Top(infoPanel, page);
                 var seasonTop = Top(seasonPanel, page);
                 Require(infoTop >= Top(episodePanel, page) + episodePanel.ActualHeight - 1,
                     "其他信息卡没有接在集列表下方");
-                Require(seasonTop >= infoTop + infoPanel.ActualHeight - 1,
-                    $"其他信息卡跑到全部剧季后面去了：信息卡 {infoTop:0}–{infoTop + infoPanel.ActualHeight:0}、"
-                        + $"季卡从 {seasonTop:0} 起");
+                Require(seasonTop + seasonPanel.ActualHeight <= infoTop + 1,
+                    $"全部剧季卡没在其他信息上面：季卡 {seasonTop:0}–{seasonTop + seasonPanel.ActualHeight:0}、"
+                        + $"信息卡从 {infoTop:0} 起");
 
-                readings.Add($"多季 1280：集带 {episodePanel.ActualHeight:0}、信息卡 {infoTop:0}–{infoTop + infoPanel.ActualHeight:0}、"
-                    + $"季卡 {seasonTop:0}–{seasonTop + seasonPanel.ActualHeight:0}");
+                readings.Add($"多季 1280：集带 {episodePanel.ActualHeight:0}、季卡 {seasonTop:0}–{seasonTop + seasonPanel.ActualHeight:0}、"
+                    + $"信息卡 {infoTop:0}–{infoTop + infoPanel.ActualHeight:0}");
+
+                // 同日那条令的实物证据：季卡顶到视口顶，它和底下那块信息卡的牌子同框，先后一眼看得出。
+                ScrollToPanel(page, seasonPanel);
+                await LayoutAsync(page);
+                await SaveProbeScreenAsync("detail-series-season-before-info-1280.png");
 
                 foreach (var width in new[] { 1280, 760 })
                 {
@@ -184,6 +277,145 @@ internal sealed partial class ShellNavigationProbe
                 _root.Children.Remove(second);
             }
 
+            // ③ 季页：2026-11-02 用户令「把季页面的剧名和季度的字体大小还有位置互换」「给季页面补上图三哪些」
+            // 「季页面不要媒体信息」。头一行是剧名（点得回剧页面）、第二行是季名、第三行是这部剧的类型；评分和
+            // 事实那一行也说这部剧；媒体信息表和整块「其他信息」卡都不出现。
+            ResizeProbeClient(1280, 900);
+            var third = new Frame();
+            _root.Children.Add(third);
+            try
+            {
+                // 季页的播放落点也要补取一趟；下面的计数只看这一页自己多出来的那一次。
+                var playReadsBefore = Reads("one-s1-e1");
+                third.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, singleSeasons[0]));
+                var page = (DetailPage)third.Content;
+                await UntilAsync(() => page.IsReady);
+                await LayoutAsync(page);
+
+                var view = page.ViewModel;
+
+                // 头行的三件事：大标题是剧名，第二行是季名，剧名点得回剧页面。标题那颗按钮的 CanExecute 是私有
+                // （CanOpenTitle），可「点得动」在这里就是「TitleLink 指着那部剧」—— 命令只认这一个数。
+                Require(view.Title == single.Name,
+                    $"季页大标题该是剧名「{single.Name}」，实际「{view.Title}」");
+                Require(view.Subline == singleSeasons[0].Name,
+                    $"季页第二行该是季名「{singleSeasons[0].Name}」，实际「{view.Subline}」");
+                var link = view.TitleLink;
+                Require(link is { Type: EmbyItemType.Series } && link.Id == single.Id,
+                    $"季页的剧名没指向剧页面：{link?.Id}（{link?.Type}）");
+
+                // 类型那一行也取这部剧 —— 季自己身上没有类型。
+                Require(view.SublineGenres.Contains("动画", StringComparer.Ordinal)
+                        && view.SublineGenres.Contains("奇幻", StringComparer.Ordinal),
+                    $"季页的类型那一行不是这部剧的：{string.Join('、', view.SublineGenres)}");
+
+                // 事实那一行：年份区间、工作室、时长、分级、共几季，五个都说这部剧。
+                var facts = view.Facts ?? "";
+                Require(facts.Contains("2014", StringComparison.Ordinal)
+                        && facts.Contains("Wit Studio", StringComparison.Ordinal)
+                        && facts.Contains("24 分钟", StringComparison.Ordinal)
+                        && facts.Contains("TV-14", StringComparison.Ordinal)
+                        && facts.Contains("共 1 季", StringComparison.Ordinal),
+                    "季页的事实那一行不是这部剧的：" + facts);
+                Require(view.Score == "7.2",
+                    $"季页的评分该取这部剧的 7.2，实际「{view.Score}」（{view.ScoreLabel}）");
+
+                // ⑤ 季页的下拉也来自那条补取的路（LoadEpisodesAsync 挑播放落点）—— 用户就是在这一页看到
+                // 「自动（由 mpv 决定）」的，而同一集在集页面上写着具体语言。
+                RequireAutoTracks(page, "季页");
+                readings.Add($"季 1280 下拉：音频「{view.AudioTracks[0].Text}」、字幕「{view.SubtitleTracks[0].Text}」");
+
+                // 季页的播放落点补取一趟，且只一趟。
+                Require(Reads("one-s1-e1") - playReadsBefore == 1,
+                    $"季页按 id 取了 {Reads("one-s1-e1") - playReadsBefore} 次第一集（该只有播放落点那一趟）");
+
+                // 屏上那一份：类型一个一个点得动、墨和副标题同一支，评分那一格画的就是这个数 —— 和自检读同一支。
+                var genres = page.GenreRead();
+                Require(genres.Ok, "季页的类型那一行没画对：" + genres.Detail);
+                var score = page.ScoreRead();
+                Require(score.Ok, "季页的评分那一格没画对：" + score.Detail);
+
+                // 季页不要媒体信息：表零行，整块「其他信息」卡（牌子、那一行、分割线）一起收起。
+                var infoPanel = Get<StackPanel>(page, "InfoPanel");
+                Require(view.InfoRows.Count == 0,
+                    $"季页不该有媒体信息表，实际 {view.InfoRows.Count} 行");
+                Require(infoPanel.Visibility == Visibility.Collapsed && infoPanel.ActualHeight == 0,
+                    $"季页的其他信息卡还占着位置：{infoPanel.Visibility}、高 {infoPanel.ActualHeight:0.#}");
+
+                readings.Add($"季 1280：标题「{view.Title}」／第二行「{view.Subline}」／可点 {link?.Id}，"
+                    + $"类型 {string.Join('、', view.SublineGenres)}（{genres.Detail}），"
+                    + $"评分 {view.Score} {view.ScoreLabel}，事实 {facts}，"
+                    + $"信息卡 {infoPanel.Visibility}（媒体信息 {view.InfoRows.Count} 行）");
+                // 辅助证据：RenderTargetBitmap 不依赖窗口前台/遮挡，能把这一页自己的视觉树单独留下。
+                await SaveRenderAsync(page, "detail-season-header-1280-render.png");
+                await SaveProbeScreenAsync("detail-season-header-1280.png");
+            }
+            finally
+            {
+                (third.Content as IShellContent)?.Release();
+                _root.Children.Remove(third);
+            }
+
+            // ④ 集页：2026-11-02 用户令「集页面也加上全部剧季卡片」。两季那部剧的一集（第一季第一集，和运输层
+            // 回包是同一份夹具）该有那张卡：两张季卡、看得见、在「其他信息」上面；同一天删掉的那格季选择栏在
+            // 这一页上也不该找得到。
+            ResizeProbeClient(1280, 900);
+            var fourth = new Frame();
+            _root.Children.Add(fourth);
+            try
+            {
+                var episode = multiEpisodes[multiSeasons[0].Id][0];
+                // 集页自己那一集只读一趟（页面本来就要按 id 取详情）；下面的计数只看这一页自己那一次。
+                var playReadsBefore = Reads(episode.Id);
+                fourth.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, episode));
+                var page = (DetailPage)fourth.Content;
+                await UntilAsync(() => page.IsReady);
+                await LayoutAsync(page);
+
+                var seasonPanel = Get<StackPanel>(page, "SeasonPanel");
+                var infoPanel = Get<StackPanel>(page, "InfoPanel");
+
+                Require(page.ViewModel.SeasonShelf is { Cards.Count: 2 },
+                    $"两季那部剧的集页，季卡带不是两张：{page.ViewModel.SeasonShelf?.Cards.Count ?? -1}");
+                Require(seasonPanel.Visibility == Visibility.Visible && seasonPanel.ActualHeight > 0,
+                    $"集页没有画出全部剧季卡：{seasonPanel.Visibility}、高 {seasonPanel.ActualHeight:0.#}");
+                Require(!HasSeasonPicker(page), "集页上还有季选择栏");
+
+                // ⑤ 集页的下拉：这一页读的是它自己那一集（按 id 取详情，回包就是带轨道的那一份），同一对
+                // 下拉在三页上说的是同一件事。
+                RequireAutoTracks(page, "集页");
+                readings.Add($"集页 1280 下拉：音频「{page.ViewModel.AudioTracks[0].Text}」、"
+                    + $"字幕「{page.ViewModel.SubtitleTracks[0].Text}」");
+
+                // 集页自己那一集只读一趟：它按 id 取详情是页面本来那一趟，不是额外补取。
+                Require(Reads(episode.Id) - playReadsBefore == 1,
+                    $"集页按 id 取了 {Reads(episode.Id) - playReadsBefore} 次这一集（该只有页面自己那一趟）");
+
+                // 信息卡在集页上照旧是有的（这一集自己的媒体信息表 + 那一行），季卡站在它上面。
+                Require(infoPanel.Visibility == Visibility.Visible && infoPanel.ActualHeight > 0,
+                    $"集页没有其他信息卡：{infoPanel.Visibility}、高 {infoPanel.ActualHeight:0.#}");
+
+                var seasonTop = Top(seasonPanel, page);
+                var infoTop = Top(infoPanel, page);
+                Require(seasonTop + seasonPanel.ActualHeight <= infoTop + 1,
+                    $"集页的季卡没在其他信息上面：季卡 {seasonTop:0}–{seasonTop + seasonPanel.ActualHeight:0}、"
+                        + $"信息卡从 {infoTop:0} 起");
+
+                readings.Add($"集页 1280：季卡 {seasonTop:0}–{seasonTop + seasonPanel.ActualHeight:0}"
+                    + $"（{page.ViewModel.SeasonShelf!.Cards.Count} 张）、信息卡 {infoTop:0}–{infoTop + infoPanel.ActualHeight:0}、"
+                    + $"季选择栏 {(HasSeasonPicker(page) ? "还在" : "没有")}");
+
+                ScrollToPanel(page, seasonPanel);
+                await LayoutAsync(page);
+                await SaveRenderAsync(page, "detail-episode-seasons-1280-render.png");
+                await SaveProbeScreenAsync("detail-episode-seasons-1280.png");
+            }
+            finally
+            {
+                (fourth.Content as IShellContent)?.Release();
+                _root.Children.Remove(fourth);
+            }
+
             Require(fixture.Actions.Plays == 0, "布局检查意外请求播放");
         }
         finally
@@ -194,6 +426,17 @@ internal sealed partial class ShellNavigationProbe
 
         static double Top(UIElement element, UIElement root) =>
             element.TransformToVisual(root).TransformPoint(default).Y;
+
+        // 某一条目被按 id 取过几次 —— 只数 /Items/{id} 那一趟（图片那条路在上面先走了 404）。屏上看不出来的
+        // 「多跑一趟」靠这几个数说话。
+        int Reads(string id) => itemReads.TryGetValue(id, out var count) ? count : 0;
+
+        // 季选择栏那颗 2026-11-02 已按用户令删掉：在视觉树里按名字/自动化 id 找 EgPicker，而不是 Get 一个不存在的
+        // 控件 —— Get 读的是页面上的私有字段，字段没了只会空引用，那和「控件被藏起来」分不出来。
+        static bool HasSeasonPicker(DetailPage page) =>
+            Descendants(page).OfType<EgPicker>().Any(picker =>
+                picker.Name == "DetailSeasonPicker"
+                || AutomationProperties.GetAutomationId(picker) == "DetailSeasonPicker");
 
         // 把某一块的顶对到视口顶 —— 和 DetailPage.ScrollToInfo 同一条算法，只是目标由调用方给。
         // 偏移在内容自己的坐标里量，量出来的数直接就是要滚到的地方。
@@ -212,10 +455,29 @@ internal sealed partial class ShellNavigationProbe
             Hyperlink link => string.Concat(link.Inlines.OfType<Run>().Select(run => run.Text)),
             _ => ""
         };
+
+        // 三页共用的一句：自动那一行要说得出具体轨道，而不是「自动（由 mpv 决定）」—— 那一行只在服务器
+        // 真没给轨道表、按 id 补取也没补到时才该出现，而夹具两者都给了。
+        static void RequireAutoTracks(DetailPage page, string where)
+        {
+            var view = page.ViewModel;
+            Require(view.AudioTracks.Count > 0, $"{where}一行音轨都没有");
+            Require(view.AudioTracks[0].Text.Contains("国语", StringComparison.Ordinal)
+                    && !view.AudioTracks[0].Text.Contains("由 mpv 决定", StringComparison.Ordinal),
+                $"{where}的音频「自动」选不出具体轨道：{view.AudioTracks[0].Text}");
+
+            Require(view.SubtitleTracks.Count > 0, $"{where}一行字幕都没有");
+            Require(view.SubtitleTracks[0].Text.Contains("简体中文", StringComparison.Ordinal)
+                    && !view.SubtitleTracks[0].Text.Contains("由 mpv 决定", StringComparison.Ordinal),
+                $"{where}的字幕「自动」选不出具体轨道：{view.SubtitleTracks[0].Text}");
+        }
     }
 
-    /// <summary>一页剧：类型、工作室、三种刮削 id。图一律没有，这一条只看正文那两块。</summary>
-    private static EmbyItem SeriesWithInfo(string id, string name, string[] genres, string studio) => new()
+    /// <summary>
+    /// 一页剧：类型、工作室、三种刮削 id，加上事实那一行要的那几个数（年份区间、时长、分级、季数）。
+    /// 图一律没有，这一条只看正文那两块和季页的头。
+    /// </summary>
+    private static EmbyItem SeriesWithInfo(string id, string name, string[] genres, string studio, int seasons) => new()
     {
         Id = id,
         Name = name,
@@ -228,7 +490,13 @@ internal sealed partial class ShellNavigationProbe
             ["Imdb"] = "tt35324004",
             ["Tvdb"] = "465020"
         },
-        ChildCount = 2
+        // 事实那一行：2014 – 2015 · 工作室 · 24 分钟 · TV-14 · 共 N 季。日期取年中，公历换当地时时区差不会跨年。
+        ProductionYear = 2014,
+        EndDate = new DateTimeOffset(2015, 6, 30, 0, 0, 0, TimeSpan.FromHours(8)),
+        RunTimeTicks = TimeSpan.FromMinutes(24).Ticks,
+        OfficialRating = "TV-14",
+        CommunityRating = 7.2f,
+        ChildCount = seasons
     };
 
     private static EmbyItem SeasonOf(EmbyItem series, string id, int number) => new()
@@ -242,37 +510,102 @@ internal sealed partial class ShellNavigationProbe
         ChildCount = 2
     };
 
-    /// <summary>季清单还是这一季的集 —— 两条接口共用一个回包函数，按路径分。</summary>
-    private static HttpResponseMessage SeriesPart(string path, EmbyItem series, IReadOnlyList<EmbyItem> seasons)
+    /// <summary>
+    /// 季清单还是这一季的集 —— 两条接口共用一个回包函数，按路径分。集按季从夹具里取（<see cref="EpisodesOf"/>
+    /// 各生成一次）：剧页那条横带和集页的兄弟集是同一批对象，而它们都是**裸媒体源**那一份；按 id 取详情
+    /// （集页自己读的那一趟、页面补取播放落点那一趟）走的是 <see cref="EpisodeDetail"/> 那份带轨道的。
+    /// </summary>
+    private static HttpResponseMessage SeriesPart(string path, string query, IReadOnlyList<EmbyItem> seasons,
+        IReadOnlyDictionary<string, EmbyItem[]> episodes)
     {
         if (path.EndsWith("/Seasons", StringComparison.Ordinal))
             return Json(new { Items = seasons, TotalRecordCount = seasons.Count });
 
-        // 集那一趟带着季 id；按季号发两集，剧页那条横带就有东西可画。
-        var season = seasons.FirstOrDefault(item => path.Contains("SeasonId=" + item.Id, StringComparison.Ordinal))
+        // 集那一趟的季 id 在查询串里（AbsolutePath 里没有，别在 path 上找）；没带季 id 就用第一季，同从前。
+        var season = seasons.FirstOrDefault(item => query.Contains("SeasonId=" + item.Id, StringComparison.Ordinal))
             ?? seasons[0];
-        return Json(new
-        {
-            Items = new[]
-            {
-                EpisodeOf(series, season, 1, "从右边数第三颗星"),
-                EpisodeOf(series, season, 2, "夜里的那班车")
-            }
-        });
+        return Json(new { Items = episodes[season.Id] });
     }
 
-    private static EmbyItem EpisodeOf(EmbyItem series, EmbyItem season, int number, string name) => new()
+    /// <summary>一季的那两集 —— 调用方按季各调一次，生成一份当夹具。</summary>
+    private static EmbyItem[] EpisodesOf(EmbyItem series, EmbyItem season) =>
+    [
+        EpisodeOf(series, season, 1, "从右边数第三颗星"),
+        EpisodeOf(series, season, 2, "夜里的那班车")
+    ];
+
+    private static EmbyItem EpisodeOf(EmbyItem series, EmbyItem season, int number, string name)
     {
-        Id = $"{season.Id}-e{number}",
-        Name = name,
-        Type = EmbyItemType.Episode,
-        SeriesId = series.Id,
-        SeriesName = series.Name,
-        SeasonId = season.Id,
-        ParentIndexNumber = season.IndexNumber,
-        IndexNumber = number,
-        RunTimeTicks = TimeSpan.FromMinutes(24).Ticks,
-        // 剧页的播放落点要挑这一季第一集未看的；带上媒体源，那一趟就不必再按 id 把这一集读一遍。
-        MediaSources = [new MediaSource { Id = "offline", Name = "离线测试版本", Container = "mkv" }]
+        var episode = new EmbyItem
+        {
+            Id = $"{season.Id}-e{number}",
+            Name = name,
+            Type = EmbyItemType.Episode,
+            SeriesId = series.Id,
+            SeriesName = series.Name,
+            SeasonId = season.Id,
+            ParentIndexNumber = season.IndexNumber,
+            IndexNumber = number,
+            RunTimeTicks = TimeSpan.FromMinutes(24).Ticks
+        };
+
+        // 集列表那一趟的媒体源是**裸的**：文件名、容器、时长都在，轨道表空着 —— Emby 的 /Shows/{id}/Episodes
+        // 就是这样下发的（2026-11-02 用户报的那一条的来由）。路径按集区分，媒体信息表的「文 件」一行才认得出
+        // 说的是哪一集；带轨道的那一份见 EpisodeDetail。
+        episode.MediaSources.Add(new MediaSource
+        {
+            Id = $"{season.Id}-e{number}",
+            Name = "离线测试版本",
+            Container = "mkv",
+            Path = $@"\\fixture\Shows\{series.Id}\{season.Id}-e{number}.mkv",
+            RunTimeTicks = TimeSpan.FromMinutes(24).Ticks
+        });
+
+        // 单季那份的第二集中途看了：媒体信息表该说第二集，而播放落点仍是第一集未看的。
+        // 多季那份不带播放记录，表说第一季第一集。
+        if (series.Id == "show-one" && number == 2)
+        {
+            episode.UserData = new EmbyUserData
+            {
+                PlaybackPositionTicks = TimeSpan.FromMinutes(10).Ticks,
+                PlayedPercentage = 40,
+                LastPlayedDate = new DateTimeOffset(2026, 11, 2, 20, 0, 0, TimeSpan.FromHours(8))
+            };
+        }
+
+        return episode;
+    }
+
+    /// <summary>
+    /// 同一集的详情那一份 —— <c>/Users/{uid}/Items/{集 id}</c> 的回包：id、路径、容器、时长和播放记录照抄，
+    /// 媒体源上补视频／音频／字幕三条轨道。Emby 的集列表只给「有媒体源、没有轨道表」，按 id 取详情才带得回来，
+    /// 探针要的正是这两份落在同一集上：页面缺轨道表就补取，三页的下拉因此都该说得出具体轨道。
+    /// </summary>
+    private static EmbyItem EpisodeDetail(EmbyItem list) => new()
+    {
+        Id = list.Id,
+        Name = list.Name,
+        Type = list.Type,
+        SeriesId = list.SeriesId,
+        SeriesName = list.SeriesName,
+        SeasonId = list.SeasonId,
+        ParentIndexNumber = list.ParentIndexNumber,
+        IndexNumber = list.IndexNumber,
+        RunTimeTicks = list.RunTimeTicks,
+        UserData = list.UserData,
+        MediaSources = [.. list.MediaSources.Select(source => new MediaSource
+        {
+            Id = source.Id,
+            Name = source.Name,
+            Container = source.Container,
+            Path = source.Path,
+            RunTimeTicks = source.RunTimeTicks,
+            MediaStreams =
+            [
+                new() { Index = 0, Type = "Video", Codec = "h264", Width = 1920, Height = 1080 },
+                new() { Index = 1, Type = "Audio", DisplayTitle = "国语 · AAC 2.0", IsDefault = true },
+                new() { Index = 2, Type = "Subtitle", DisplayTitle = "简体中文", IsDefault = true }
+            ]
+        })]
     };
 }

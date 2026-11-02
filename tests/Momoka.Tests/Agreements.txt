@@ -104,7 +104,6 @@ handle  Views/DetailPage.xaml  CompactWatchedButton
 handle  Views/DetailPage.xaml  CornerArt
 handle  Views/DetailPage.xaml  CoverButton
 handle  Views/DetailPage.xaml  DetailReadMoreButton
-handle  Views/DetailPage.xaml  DetailSeasonPicker
 handle  Views/DetailPage.xaml  EpisodeHead
 handle  Views/DetailPage.xaml  EpisodeList
 handle  Views/DetailPage.xaml  EpisodePanel

@@ -936,7 +936,7 @@ public sealed partial class DetailPage : Page, IShellContent
     internal bool PickerReady => PickerToOpen is not null;
 
     /// <summary>
-    /// 自检：这一行那几颗下拉的浮层开在<em>同一棵树</em>里没有 —— 详情页那七颗是 <see cref="EgPicker"/>，
+    /// 自检：这一行那几颗下拉的浮层开在<em>同一棵树</em>里没有 —— 详情页那六颗是 <see cref="EgPicker"/>，
     /// 它整个存在的理由就是这一件事。
     /// <para>
     /// 为什么要钉：框架的 ComboBox 把弹层设成窗口化的（<c>ShouldConstrainToRootBounds=false</c>），浮层于是开在
@@ -946,8 +946,8 @@ public sealed partial class DetailPage : Page, IShellContent
     /// 属性还在，浮层就还是实心的，而照片之外的每一条读数都不会响。
     /// </para>
     /// <para>
-    /// 只读屏上那一份三颗（同 <see cref="PickerFit"/> 的理由）。季那一颗也是 EgPicker，但它没有 x:Name
-    /// —— 它挂在 <c>ShelfHead.Trailing</c> 里、只在剧页露出来，这里够不着，靠同一份样式和同一个类。
+    /// 只读屏上那一份三颗（同 <see cref="PickerFit"/> 的理由）。季那一颗原来也是第七颗 EgPicker，2026-11-02 随
+    /// 集列表牌子右端的季选择栏一起删了（用户令），所以这一页现在只剩集页宽版式那三颗和尾部这一组三颗。
     /// </para>
     /// </summary>
     internal (bool Ok, string Detail) PickerGlass()
@@ -1670,6 +1670,10 @@ public sealed partial class DetailPage : Page, IShellContent
 
         _request = request;
 
+        // 页面实例会被导航栈复用：上一次停留时「已经排过版」的那一位不能带进新条目。等这一次的
+        // OnBodySizeChanged 量到真实宽高，再允许窗口尺寸变化插过渡。
+        _showcaseSettled = false;
+
         // Cleared so the shell's breadcrumb reads the request rather than a leftover tag; see IShellContent.
         Tag = string.Empty;
 
@@ -2073,11 +2077,27 @@ public sealed partial class DetailPage : Page, IShellContent
     /// </summary>
     private void OnBodySizeChanged(object sender, SizeChangedEventArgs e)
     {
-        ViewModel.Viewport = Body.ActualHeight;
+        // 这两个数是「窗口在变形态」的证据：宽高都写完之后由 DetailPage.Showcase.cs 一次结算。
+        // 写的过程中 Showcase 的通知先压住，免得拿写到一半的数去翻面。
+        var wasCompact = _settledCompact;
+        _sizing = true;
+        try
+        {
+            ViewModel.Viewport = Body.ActualHeight;
 
-        // 同一趟量的另一个数：这一页有多宽。紧凑版式换不换（DetailHero.IsCompact）、背景那一张画多高
-        // （DetailViewModel.PictureHeight）都问它 —— 「多宽」只有布好的版面知道。
-        ViewModel.PageWidth = Body.ActualWidth;
+            // 同一趟量的另一个数：这一页有多宽。紧凑版式换不换（DetailHero.IsCompact）、背景那一张画多高
+            // （DetailViewModel.PictureHeight）都问它 —— 「多宽」只有布好的版面知道。
+            ViewModel.PageWidth = Body.ActualWidth;
+        }
+        finally
+        {
+            _sizing = false;
+        }
+
+        // 这一次之后版面已经有真实宽高了；再往后的翻面才是用户在改窗口，可以插过渡。
+        ResolveShowcaseAfterResize(wasCompact);
+        _showcaseSettled = true;
+        _settledCompact = ViewModel.IsCompact;
         SyncCornerScale();
 
         // 宽高都变了，裁切模糊的档位跟着重算（DetailViewModel.UpdateHeroBlur）：换档它自己会用缓存的像素

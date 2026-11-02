@@ -154,6 +154,16 @@ public sealed partial class DetailViewModel : PageViewModel
     private readonly HashSet<string> _deletedSourceIds = new(StringComparer.Ordinal);
 
     /// <summary>
+    /// 剧页、季页「其他信息」卡里的媒体信息描述的那一集（规则在 <see cref="ItemDetail.MediaInfoEpisode"/>：
+    /// 有续播取最近播放的续播集，否则当季第一集）。null 表示这一页不是剧/季页、集还没回来，或者那一集
+    /// 没有媒体源可讲。
+    /// </summary>
+    private EmbyItem? _infoEpisode;
+
+    /// <summary>同 <see cref="_infoEpisode"/> —— 那一集这一次用哪一版讲。</summary>
+    private MediaSource? _infoSource;
+
+    /// <summary>
     /// Artwork has its own cancellation, separate from the page's load. Switching seasons deliberately
     /// leaves it alone — the hero belongs to the show, not to the season — so cancelling it with the
     /// load would lose the picture on every flick of the drop-down.
@@ -1563,7 +1573,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 副标题那一行画的是一行字还是一排点得动的类型：有类型就是后者（见 <see cref="SublineGenres"/>），
     /// 单集页和只剩剧名的季页还是前者。
     /// </summary>
-    public Visibility SublineVisibility => Show(!string.IsNullOrWhiteSpace(Subline) && SublineGenres.Count == 0);
+    public Visibility SublineVisibility => Show(!string.IsNullOrWhiteSpace(Subline)
+        && (SublineGenres.Count == 0 || IsSeasonPage));
 
     /// <inheritdoc cref="SublineVisibility"/>
     public Visibility GenreVisibility => Show(SublineGenres.Count > 0);
@@ -1624,6 +1635,12 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>Whether the page is about one episode — the case that moves the emphasis to the subline.</summary>
     private bool IsEpisodePage => _detail?.Type == EmbyItemType.Episode;
+
+    /// <summary>
+    /// 这一页是不是一季。季页的头行自 2026-11-02 起写剧名、第二行写季名（用户令「把季页面的剧名和季度的
+    /// 字体大小还有位置互换」），而类型那一行仍在（图三那一条），所以副标题和类型行要同时画出来。
+    /// </summary>
+    private bool IsSeasonPage => _detail?.Type == EmbyItemType.Season;
 
     /// <summary>
     /// 这一页要不要按「背后铺着一张图」那一档布（<see cref="HeroArt"/> 的判据）—— 两句话：服务器上有没有那张
@@ -1894,6 +1911,11 @@ public sealed partial class DetailViewModel : PageViewModel
     /// Only a show with more than one season gets a picker. No conjunct on the item's type, unlike the
     /// page this replaces: <see cref="LoadSeriesAsync"/> is the only thing that fills
     /// <see cref="Seasons"/> and it only runs for a series, so a non-empty list already says so.
+    /// <para>
+    /// 屏上那颗季选择栏 2026-11-02 已按用户令删掉（<c>DetailPage</c> 里原来挂在集列表牌子的右端），这一支连同
+    /// <see cref="Seasons"/>／<see cref="SelectedSeason"/>／<see cref="SwitchSeasonAsync"/> 一起留着：自检和探针
+    /// 仍在驱动切季（赋值 <see cref="SelectedSeason"/> 就是换一季的集）。删掉的只是那一格 UI，不是这个能力。
+    /// </para>
     /// </summary>
     public Visibility SeasonVisibility => Show(Seasons.Count > 1);
 
@@ -1923,8 +1945,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 而这一行是「按下播放之前挑一下」。两件事一句话说不完，所以判据也不共用。
     /// </para>
     /// <para>
-    /// 季选择器不在这一行里：它跟着那一带集走，摆在它替掉的那块内容边上。算进来的话，一部剧的选中集只有一个
-    /// 媒体源、又没有可选轨道时，屏上会剩一行空的。
+    /// 季选择器从来不在这一行里：它跟着那一带集走，摆在它替掉的那块内容边上（那一颗 2026-11-02 已删，见
+    /// <see cref="SeasonVisibility"/>）。算进来的话，一部剧的选中集只有一个媒体源、又没有可选轨道时，屏上会剩
+    /// 一行空的。
     /// </para>
     /// <para>
     /// 2026-09-12 起集页的宽版式不在这一档里：那一页把这三行搬到片名那一栏底下（「按键布局参考上方截图」，
@@ -2065,8 +2088,8 @@ public sealed partial class DetailViewModel : PageViewModel
     public Visibility OtherInfoVisibility => Show(OtherFacts.Count > 0);
 
     /// <summary>
-    /// 媒体信息表与下面那一行之间的分割线。两样都在才画：剧页没有「这个文件」可讲，表是空的，只剩一行字，
-    /// 那时候还画一条线就是牌子下面凭空一道横杠。集页与电影页两样都齐，和从前一样。
+    /// 媒体信息表与下面那一行之间的分割线。两样都在才画：剧页的集还没回来或那一集没有媒体源时只剩一行字，
+    /// 那时候还画一条线就是牌子下面凭空一道横杠。电影、剧、集三页数据齐时和从前一样；季页没有这一段。
     /// </summary>
     public Visibility OtherInfoRuleVisibility => Show(InfoRows.Count > 0 && OtherFacts.Count > 0);
 
@@ -2074,7 +2097,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// Which of the two shapes 单集 takes on this page. Both are inside the block
-    /// <see cref="EpisodeVisibility"/> governs — they share its heading and its 切换季 picker — so each one
+    /// <see cref="EpisodeVisibility"/> governs — they share its heading — so each one
     /// only has to answer 「is this page's shape mine」 on top of 「is there anything to draw」.
     /// <para>
     /// A pair of computed visibilities rather than one flag the markup inverts: a page that hid neither, or
@@ -2090,8 +2113,12 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// 全部剧季那一格画不画。两张卡以上才画：只有一季时那一格是一张通往本页已经在列的那一季的卡，摆在那里只是
-    /// 让人多点一次（用户令 2026-11-02「当剧集只有一季时，在剧页面不显示『全部剧集』卡片」）。季下拉框在同一个
-    /// 条件上收起（<see cref="SeasonVisibility"/>），两处口径一致。
+    /// 让人多点一次（用户令 2026-11-02「当剧集只有一季时，在剧页面不显示『全部剧集』卡片」）。季下拉框原来在同一个
+    /// 条件上收起（<see cref="SeasonVisibility"/>），那颗 2026-11-02 已删；判据仍然只写这一份。
+    /// <para>
+    /// 这一条对剧页和集页同时成立：集页那张卡由 <see cref="LoadSeasonShelfAsync"/> 填（同日用户令「集页面也加上
+    /// 全部剧季卡片」），单季的集页因此也不会画出这一块。电影、季两页的季卡永远是空的，整块收着。
+    /// </para>
     /// </summary>
     public Visibility SeasonShelfVisibility => Show(SeasonShelf is { Cards.Count: > 1 });
 
@@ -2100,10 +2127,9 @@ public sealed partial class DetailViewModel : PageViewModel
     public Visibility DirectorsVisibility => Show(!string.IsNullOrWhiteSpace(Directors));
 
     /// <summary>
-    /// 其他信息那一块板画不画。表和那一行只要有一样有内容就画：电影页与集页是表（加那一行），剧页只有那一行
-    /// —— 剧没有文件，媒体信息表在剧页上永远是空的，可「类型、工作室、数据库链接」照样有话说（2026-11-02
-    /// 用户令「在剧页面的集列表下方复刻一个与集页面『其他信息』卡片一致的卡片」）。两样都空时整块收起，
-    /// 季页就是那一档。
+    /// 其他信息那一块板画不画。表和那一行只要有一样有内容就画：电影、剧、集三页都是表加那一行（剧页的表
+    /// 自 2026-11-02 起也有，描述有续播的最近一集或当季第一集）。季页两样都没有（同日用户令「季页面不要
+    /// 媒体信息」），整块收起。集还没回来、那一集没有媒体源、又没有其他信息时也收起。
     /// </summary>
     public Visibility InfoVisibility => Show(InfoRows.Count > 0 || OtherFacts.Count > 0);
 
@@ -2284,13 +2310,23 @@ public sealed partial class DetailViewModel : PageViewModel
                     break;
 
                 case EmbyItemType.Season:
+                    // 季页背后那部剧与这一季的集同时起：大标题、点得回的剧名、类型和事实那一行都取剧的
+                    // （见 ApplySeasonSeries），和集那一趟互不依赖。两趟都得在 EndLoad 之前落地 —— 页面说
+                    // 自己加载完的时候，屏上那几行字就该是最终的；失败各自吞掉（剧取不到就少一行事实）。
+                    var parent = LoadSeasonSeriesAsync(detail, token);
                     await LoadEpisodesAsync(detail, retarget: true, token).ConfigureAwait(true);
+                    await parent.ConfigureAwait(true);
                     break;
 
                 // An episode page lists its own siblings, which is what anyone who just finished one is
                 // looking for. It keeps itself as the play target, so retarget is false.
                 case EmbyItemType.Episode:
+                    // 集页那张「全部剧季」卡（2026-11-02 用户令「集页面也加上全部剧季卡片」）与兄弟集那一趟同时起：
+                    // 两者互不依赖，而季清单慢一点不该把集列表拖在后面。也在 EndLoad 之前落地 —— 页面说自己加载完的
+                    // 时候，屏上该有的都在；失败各自吞掉（季清单取不到就少一张卡，不影响这一页其余内容）。
+                    var seasonShelf = LoadSeasonShelfAsync(detail, token);
                     await LoadEpisodesAsync(null, retarget: false, token).ConfigureAwait(true);
+                    await seasonShelf.ConfigureAwait(true);
                     break;
             }
 
@@ -2357,10 +2393,7 @@ public sealed partial class DetailViewModel : PageViewModel
         AnnounceShape();
 
         // 这一份和 Apply 里那一段同源，所以两处的答案不会分叉 —— 这里少的正是「卡片答不出的那几样」。
-        Title = ItemDetail.Title(seed);
-        TitleLink = ItemDetail.TitleTarget(seed);
-        Subline = ItemDetail.Subline(seed);
-        SublineGenres = ItemDetail.SublineGenres(seed);
+        ApplyHeading(seed);
         Overview = ItemDetail.Prose(seed.Overview) is { Length: > 0 } prose ? prose : "暂无简介。";
 
         Watched = seed.IsWatched;
@@ -2479,6 +2512,104 @@ public sealed partial class DetailViewModel : PageViewModel
 
         // 右上角那张艺术图只摆在集页上（见 CornerVisibility），同一句话对它也成立。
         OnPropertyChanged(nameof(CornerVisibility));
+
+        // 头两行的那两格也读「这一页是不是季页」（见 SublineVisibility：季页的季名和类型行同时画出来）。
+        // 从别的页面翻到季、或者从季翻走时，Subline 和 SublineGenres 可能一个字都没改 —— 那两处的通知
+        // 一次不会来，屏上就停在上一档：季页只剩一行孤零零的季名，类型那一行不见了。
+        OnPropertyChanged(nameof(SublineVisibility));
+        OnPropertyChanged(nameof(GenreVisibility));
+    }
+
+    /// <summary>
+    /// 头两行：这一页最大的那行字，以及它底下那一行。
+    /// <para>
+    /// 季页自 2026-11-02 起和单集页反过来（用户令「把季页面的剧名和季度的字体大小还有位置互换」）：
+    /// 大标题写剧名、点得回剧页面，第二行写季名；类型仍走第三行（图三那一条）。其余页面照旧 ——
+    /// 单集页标题写剧名、第二行写集号与集名，电影和剧的标题写自己、第二行是类型。
+    /// </para>
+    /// </summary>
+    private void ApplyHeading(EmbyItem item)
+    {
+        Title = item.Type == EmbyItemType.Season && item.SeriesName is { Length: > 0 } series
+            ? series
+            : ItemDetail.Title(item);
+        TitleLink = ItemDetail.TitleTarget(item);
+        Subline = item.Type == EmbyItemType.Season ? item.Name : ItemDetail.Subline(item);
+        SublineGenres = ItemDetail.SublineGenres(item);
+    }
+
+    /// <summary>
+    /// 评分那三件（分数、署名、自检读数）都在这一处写 —— 条目回来时写自己，季页的剧集那一层回来后再写一遍。
+    /// </summary>
+    private void ApplyScore(EmbyItem item)
+    {
+        var badge = ItemScore.Resolve(item);
+        Score = badge.Text;
+        ScoreLabel = badge.Label;
+        ScoreBadge = badge;
+        ScoreFacts = $"CommunityRating={Describe(item.CommunityRating)}"
+            + $"，CriticRating={Describe(item.CriticRating)}"
+            + $"，ProviderIds={(item.ProviderIds.Count == 0 ? "空" : string.Join('/', item.ProviderIds.Keys))}";
+    }
+
+    /// <summary>
+    /// 季页的剧集那一层到了：大标题、可点的剧名、类型和事实行改用剧的数据。季自己的类型、评分、年份
+    /// 往往都是空的，而用户要的图三那一行说的正是这部剧（2026-11-02「给季页面补上图三哪些」）。
+    /// <para>
+    /// 只改这几样，季自己的简介、演职人员、单集和季号都不动 —— 这一页讲的仍是这一季。
+    /// </para>
+    /// </summary>
+    private void ApplySeasonSeries(EmbyItem series)
+    {
+        if (!IsSeasonPage) return;
+
+        Title = series.Name;
+        TitleLink = new EmbyItem
+        {
+            Id = series.Id,
+            Source = series.Source,
+            Name = series.Name,
+            Type = EmbyItemType.Series,
+            IsStub = true
+        };
+        SublineGenres = ItemDetail.SublineGenres(series);
+        ApplyScore(series);
+        Facts = ItemDetail.Facts(series);
+    }
+
+    /// <summary>
+    /// 季页背后那部剧，为图三那一行和可点的剧名取一趟。剧集那一层可能已经在缓存里（从集页退回来、
+    /// 或同一页重读）就直接用；取失败当没有，季页少一行事实，不影响这一页的其余内容。
+    /// </summary>
+    private async Task LoadSeasonSeriesAsync(EmbyItem season, CancellationToken token)
+    {
+        if (!Attached || season.Type != EmbyItemType.Season || season.SeriesId is not { Length: > 0 } seriesId)
+            return;
+
+        if (_show is { } cached && cached.Id == seriesId)
+        {
+            ApplySeasonSeries(cached);
+            return;
+        }
+
+        try
+        {
+            var series = await _scope!
+                .ExecuteAsync((client, ct) => client.GetItemAsync(seriesId, ct), token).ConfigureAwait(true);
+            if (!IsCurrent(token) || !IsSeasonPage) return;
+
+            _show = series;
+            ApplySeasonSeries(series);
+            RefreshOtherInfo();
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception error)
+        {
+            Log.Debug(Category, $"季页取剧集那一层失败（{season.Name}）：{error.Message}");
+        }
     }
 
     /// <summary>
@@ -2495,13 +2626,17 @@ public sealed partial class DetailViewModel : PageViewModel
         // 也就是点一张封面进来看见的那一次闪。
         var keepArtwork = ItemArtwork.SamePictures(_detail, item);
 
-        // 上一页那部剧只在还是同一部剧时留着（同一页的重新读取省一趟）；换集、换剧、回电影页都作废。
-        if (_show is { } show && (item.Type != EmbyItemType.Episode || show.Id != item.SeriesId))
+        // 上一页那部剧只在还是同一部剧时留着（同一页的重新读取省一趟）：单集和季都认同一个 SeriesId ——
+        // 季页的头几行同样要这部剧（见 LoadSeasonSeriesAsync）。换集、换剧、回电影页都作废。
+        if (_show is { } show
+            && (item.Type is not (EmbyItemType.Episode or EmbyItemType.Season) || show.Id != item.SeriesId))
             _show = null;
 
         _detail = item;
         _loadedSeason = null;
         _episodes.Clear();
+        _infoEpisode = null;
+        _infoSource = null;
 
         AnnounceShape();
 
@@ -2516,19 +2651,10 @@ public sealed partial class DetailViewModel : PageViewModel
         Expanded = false;
         OverviewTrimmed = false;
 
-        Title = ItemDetail.Title(item);
-        TitleLink = ItemDetail.TitleTarget(item);
-        Subline = ItemDetail.Subline(item);
-        SublineGenres = ItemDetail.SublineGenres(item);
+        ApplyHeading(item);
         // 「显示的评分」直接画服务器给的那个数（2026-10-16 起不再有「评分来源」可选）。规则在 Core（ItemScore）：
         // 取哪个槽、写谁的名字、这一槽没有就回落到哪儿，都是有唯一正确答案的判断，而错起来屏上只是一个看着挺正常的数。
-        var badge = ItemScore.Resolve(item);
-        Score = badge.Text;
-        ScoreLabel = badge.Label;
-        ScoreBadge = badge;
-        ScoreFacts = $"CommunityRating={Describe(item.CommunityRating)}"
-            + $"，CriticRating={Describe(item.CriticRating)}"
-            + $"，ProviderIds={(item.ProviderIds.Count == 0 ? "空" : string.Join('/', item.ProviderIds.Keys))}";
+        ApplyScore(item);
         Facts = ItemDetail.Facts(item);
         Directors = ItemDetail.Directors(item);
         Overview = ItemDetail.Prose(item.Overview) is { Length: > 0 } prose ? prose : "暂无简介。";
@@ -2676,15 +2802,104 @@ public sealed partial class DetailViewModel : PageViewModel
         SelectedAudio = AudioTracks.FirstOrDefault();
         SelectedSubtitle = SubtitleTracks.FirstOrDefault();
 
-        // 媒体信息 describes a file, so it belongs on the page of a file: 电影 and 单集 get it, 剧 and 季 do
-        // not. A show's page names a next-up episode in its play button, and a table of that episode's
-        // codecs and subtitle tracks under a page about the whole show answered a question nobody asked —
-        // the reader is one click from the episode's own page, where the table is opened by default.
-        InfoRows.Clear();
-        if (!Attached || _detail is not { IsPlayable: true }) return;
+        // 媒体信息 describes a file: 电影与单集说自己这一版（当前媒体源），剧页说
+        // _infoEpisode 那一集（2026-11-02 用户令「剧页面的更多信息卡片也加上媒体信息」）。季页没有这张表
+        // （同日用户令「季页面不要媒体信息」）。三个答案都从 RefreshInfoRows 一处出，换媒体源和集列表回来
+        // 不会各写一份。
+        RefreshInfoRows(source);
+    }
 
-        var owner = _versions.FirstOrDefault(version => ReferenceEquals(version.Source, source))?.Item ?? _detail;
-        foreach (var row in ItemDetail.MediaInfo(owner, source)) InfoRows.Add(row);
+    /// <summary>
+    /// 媒体信息表该说哪个文件 —— 文件页（电影、单集）说当前媒体源那一版；剧页说
+    /// <see cref="_infoEpisode"/> 那一集，有续播取最近播放的续播集，没有就取当季第一集
+    /// （<see cref="ItemDetail.MediaInfoEpisode"/>）。季页和其他页面什么都不填。
+    /// <para>
+    /// 剧页和播放键看的是两件事：播放键从第一集未看的开始，媒体信息表按用户的话跟着「播放记录」走。
+    /// 两者指向同一集时（常态），表跟着媒体源下拉换版；指向不同集时，表始终说它自己那一集，不被另一个
+    /// 文件的下拉带着跑。
+    /// </para>
+    /// </summary>
+    private void RefreshInfoRows(MediaSource? source)
+    {
+        InfoRows.Clear();
+        if (!Attached || _detail is null) return;
+
+        if (_detail.IsPlayable)
+        {
+            var owner = _versions.FirstOrDefault(version => ReferenceEquals(version.Source, source))?.Item ?? _detail;
+            foreach (var row in ItemDetail.MediaInfo(owner, source)) InfoRows.Add(row);
+            return;
+        }
+
+        if (_detail.Type != EmbyItemType.Series || _infoEpisode is not { } episode) return;
+
+        var described = PlayTarget is { } target && target.Id == episode.Id
+            ? source ?? _infoSource
+            : _infoSource;
+        if (described is null) return;
+
+        foreach (var row in ItemDetail.MediaInfo(episode, described)) InfoRows.Add(row);
+    }
+
+    /// <summary>
+    /// 剧页那一段媒体信息要描述的那一集，从当前这一季的列表里挑
+    /// （<see cref="ItemDetail.MediaInfoEpisode"/>），再把它的媒体源取齐 —— 列表接口下发的媒体源常常不带
+    /// 轨道表（见 <see cref="ItemDetail.CarriesTracks"/>），多数时候要按 id 补一趟。
+    /// <para>
+    /// 播放落点（<see cref="PlayTarget"/>）已经在同一趟里按需取过时直接复用，不再问一遍；补取失败退回列表
+    /// 那一份（表里只剩说得清的几行），页面其余内容照旧（同取图那一头）。成功取到但服务器没给媒体源时也收起
+    /// 这张表 —— 剧页上「服务器没有返回可播放的媒体源」那一行说的是另一个问题，摆在这里只会误导。
+    /// </para>
+    /// </summary>
+    private async Task LoadInfoEpisodeAsync(
+        IReadOnlyList<EmbyItem> episodes, EmbyItem? season, EmbyItem? playTarget, CancellationToken token)
+    {
+        if (!Attached || _detail?.Type != EmbyItemType.Series) return;
+
+        _infoEpisode = null;
+        _infoSource = null;
+
+        if (ItemDetail.MediaInfoEpisode(episodes, season) is not { } picked) return;
+
+        var detail = picked;
+        if (playTarget is { } target && target.Id == picked.Id && target.MediaSources.Count > 0)
+        {
+            detail = target;
+        }
+        else if (!ItemDetail.CarriesTracks(detail))
+        {
+            detail = await FetchTracksAsync(detail, token).ConfigureAwait(true);
+            if (!IsCurrent(token) || !ReferenceEquals(_loadedSeason, season)) return;
+        }
+
+        var rules = Settings.Playback.VideoFileRules;
+        _infoEpisode = detail;
+        _infoSource = MediaVersionSwitch.Preferred(detail, rules) ?? detail.DefaultMediaSource;
+        RefreshInfoRows(SelectedSource?.Source);
+    }
+
+    /// <summary>
+    /// 列表那一份只有媒体源、没有轨道表时，按 id 补取整集详情（<see cref="ItemDetail.CarriesTracks"/>）。
+    /// 补取是锦上添花，失败不能把页面弄坏：退回列表那一份，音轨、字幕下拉退回「自动（由 mpv 决定）」，
+    /// 只在 Debug 里说明（用户 2026-11-02 那条报的就是这一行字，补不上时照实说，不编一条假轨道）。
+    /// 取消照旧冒上去 —— 那是换页，不是失败。
+    /// </summary>
+    private async Task<EmbyItem> FetchTracksAsync(EmbyItem episode, CancellationToken token)
+    {
+        try
+        {
+            return await _scope!.ExecuteAsync((client, ct) => client.GetItemAsync(
+                episode.Id, ct, order: Settings.Playback.MediaSourceOrder), token).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception error)
+        {
+            Log.Debug(Category, $"详情页补取轨道失败（{episode.Name}）：{error.Message}");
+            return episode;
+        }
     }
 
     /// <summary>
@@ -2723,6 +2938,50 @@ public sealed partial class DetailViewModel : PageViewModel
         await LoadEpisodesAsync(picked, retarget: true, token).ConfigureAwait(true);
     }
 
+    /// <summary>
+    /// 集页那张「全部剧季」卡 —— 2026-11-02 用户令「集页面也加上全部剧季卡片」。剧页那一份由
+    /// <see cref="LoadSeriesAsync"/> 顺手填好（它本来就要读这部剧的季清单去挑一季来列集）；集页没有那一趟 ——
+    /// 这一页不读这部剧自己的详情 —— 所以这里单独问一遍季清单。
+    /// <para>
+    /// **只填 <see cref="SeasonShelf"/>，不碰 <see cref="Seasons"/>**：那个集合是季选择器和自检在用的，而集页上的
+    /// 季选择器同一天已被删掉。两边都填会让自检读到的「季几行」在这一页翻倍，也会让 <see cref="SeasonVisibility"/>
+    /// 在一个没有选择器的页面上说「有」。
+    /// </para>
+    /// <para>
+    /// 卡片几张才画归 <see cref="SeasonShelfVisibility"/>（两张以上）；这里照旧全填，单季的集页据此整块收起 ——
+    /// 和剧页同一条令。
+    /// </para>
+    /// <para>
+    /// 失败当「这部剧没有季清单」：少一张卡，不是这一页加载失败（同 <see cref="LoadSimilarAsync"/>）。
+    /// </para>
+    /// </summary>
+    private async Task LoadSeasonShelfAsync(EmbyItem item, CancellationToken token)
+    {
+        if (!Attached || SeasonShelf is not { } shelf) return;
+
+        // 只有集页要这一趟：剧页的季清单在 LoadSeriesAsync 里已经回来并填好了，季页、电影页不要这张卡
+        // （用户点名的只有集页）。
+        if (item.Type != EmbyItemType.Episode || item.SeriesId is not { Length: > 0 } series) return;
+
+        try
+        {
+            var seasons = await _scope!
+                .ExecuteAsync((client, ct) => client.GetSeasonsAsync(series, ct), token).ConfigureAwait(true);
+            if (!IsCurrent(token)) return;
+
+            // 同剧页：已经删掉的那一季不再摆一张通往空页面的卡（判据在 WasDeleted）。
+            seasons.RemoveAll(WasDeleted);
+            shelf.Fill(seasons, ItemDetail.SeasonSubtitle);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception error)
+        {
+            Log.Debug(Category, $"集页取剧季失败（{item.Name}）：{error.Message}");
+        }
+    }
+
     /// <param name="retarget">
     /// True when 播放 should follow the list — the first unwatched episode of the season just loaded.
     /// False on an episode's own page, where the target is the episode the reader opened.
@@ -2744,9 +3003,19 @@ public sealed partial class DetailViewModel : PageViewModel
         EmbyItem? target = null;
         if (retarget && ItemDetail.PickEpisode(episodes, season) is { } picked)
         {
-            target = picked.MediaSources.Count > 0 ? picked
-                : await _scope!.ExecuteAsync((client, ct) => client.GetItemAsync(
-                    picked.Id, ct, order: Settings.Playback.MediaSourceOrder), token).ConfigureAwait(true);
+            // 列表接口下发的集常常有媒体源、没有轨道表（见 ItemDetail.CarriesTracks）：那一份建不出音轨和
+            // 字幕下拉，自动那一行只剩「自动（由 mpv 决定）」。缺轨道表就按 id 补取整集详情；带完整轨道的
+            // 列表条目照旧直接用，不多跑一趟。
+            target = picked;
+            if (!ItemDetail.CarriesTracks(picked))
+            {
+                // 一条媒体源都没有仍是老规矩：取不到就是这一页加载失败（那一档本来就没有东西可播）。
+                // 只是缺轨道表时才走可失败的补取，取不到退回列表那一份，页面照常加载。
+                target = picked.MediaSources.Count == 0
+                    ? await _scope!.ExecuteAsync((client, ct) => client.GetItemAsync(
+                        picked.Id, ct, order: Settings.Playback.MediaSourceOrder), token).ConfigureAwait(true)
+                    : await FetchTracksAsync(picked, token).ConfigureAwait(true);
+            }
             if (!IsCurrent(token)) return;
         }
         _loadedSeason = season;
@@ -2772,6 +3041,9 @@ public sealed partial class DetailViewModel : PageViewModel
             PlayTarget = target;
             ShowTarget(target);
         }
+
+        // 放在播放落点之后：剧/季页那张表可能复用同一趟取回来的目标集，而 ShowTarget 会先清一次表。
+        await LoadInfoEpisodeAsync(episodes, season, target, token).ConfigureAwait(true);
     }
 
     /// <summary>
@@ -2803,19 +3075,26 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     /// <summary>
-    /// Makes one episode the thing 播放 would start. Re-fetched when the list's copy carries no media
-    /// sources, which is most of the time: the fields a list asks for leave them out, and the pickers,
-    /// the video line and 媒体信息 are all about them.
+    /// Makes one episode the thing 播放 would start. Re-fetched when the list's copy carries no tracks —
+    /// most of the time, since the fields a list asks for bring media sources without their stream table
+    /// (<see cref="ItemDetail.CarriesTracks"/>) — and the pickers, the video line and 媒体信息 are all
+    /// about the tracks. 补取失败时退回列表那一份（见 <see cref="FetchTracksAsync"/>）：这条路上一次
+    /// 读失败不该变成一个报错，更不该让播放键没有落点。
     /// </summary>
     private async Task ApplyPlayTargetAsync(EmbyItem target, CancellationToken token)
     {
         if (!Attached) return;
 
-        var detail = target.MediaSources.Count > 0
-            ? target
-            : await _scope!.ExecuteAsync((client, ct) => client.GetItemAsync(
-                target.Id, ct, order: Settings.Playback.MediaSourceOrder), token)
-                .ConfigureAwait(true);
+        var detail = target;
+        if (!ItemDetail.CarriesTracks(target))
+        {
+            // 同 LoadEpisodesAsync：无媒体源那一档照旧让失败冒上去（调用方还有自己的提示），只是缺轨道表
+            // 的补取可以失败。
+            detail = target.MediaSources.Count == 0
+                ? await _scope!.ExecuteAsync((client, ct) => client.GetItemAsync(
+                    target.Id, ct, order: Settings.Playback.MediaSourceOrder), token).ConfigureAwait(true)
+                : await FetchTracksAsync(target, token).ConfigureAwait(true);
+        }
         if (!IsCurrent(token)) return;
 
         PlayTarget = detail;

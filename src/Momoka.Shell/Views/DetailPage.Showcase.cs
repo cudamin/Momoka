@@ -104,11 +104,43 @@ public sealed partial class DetailPage
     private bool _applyingShowcase;
 
     /// <summary>
+    /// 这一页已经排过第一次版。在那之前 <c>Showcase</c> 会从「没量到」那一档翻成真实答案，那是版面自己
+    /// 落位、不是窗口在变形态，不能插动画（同 <see cref="ApplyShowcase"/> 的 <c>animate:false</c>）。
+    /// 第一次 <see cref="OnBodySizeChanged"/> 写完之后置位。
+    /// </summary>
+    private bool _showcaseSettled;
+
+    /// <summary>
+    /// 版面上当前这一档（<c>Showcase</c>）是谁 —— 落定或动画起步时更新。同一个状态重复发通知时靠它挡住
+    /// 重复的落定与动画；也让「哪一次是真的翻面」只算一次。
+    /// </summary>
+    private bool _shownShowcase;
+
+    /// <summary>上一次落定时这一页是不是紧凑版式 —— 大窗与紧凑之间的翻面不插过渡，那是换了整套版面。</summary>
+    private bool _settledCompact;
+
+    /// <summary>
+    /// 正在把 <see cref="OnBodySizeChanged"/> 量到的宽高写进视图模型。只有这一段里发生的 <c>Showcase</c>
+    /// 翻面才算「窗口在变形态」，才走过渡；换条目、图到手、用户点窗口按钮各有自己的路。
+    /// </summary>
+    private bool _sizing;
+
+    /// <summary>
+    /// 这一页实际走了几次大窗过渡 —— 探针读它证明「拉宽触发裁切」那一路也真的走了动画，而不只是把终点
+    /// 写上去。屏上看不见一个已经结束的动画，只有次数分得清「走过」和「直接落定」。
+    /// </summary>
+    internal int ShowcaseAnimations { get; private set; }
+
+    /// <summary>
     /// 五块正文面板 —— 它们在标记里都挂着 <c>EgBodyPanelStyle</c>，底色和描边由样式给；这一支在构造时把两样换成
     /// 自己持有的画刷，好让颜色和透明度能动画。收 <see cref="StackPanel"/> 而不是 <see cref="FrameworkElement"/>：
     /// 换的是 <c>Background</c>／<c>BorderBrush</c> 两个专属于这个类型的属性。
+    /// <para>
+    /// 次序就是屏上从上往下的次序（<see cref="ShownPanels"/> 按它数错峰的格子）：2026-11-02 用户令把「全部剧季」
+    /// 挪到「其他信息」上面，这两块也跟着换过来 —— 这里不换，浮起那一段里靠下的那块会先动。
+    /// </para>
     /// </summary>
-    private IEnumerable<StackPanel> BodyPanels => [EpisodePanel, InfoPanel, SeasonPanel, SimilarPanel, CastPanel];
+    private IEnumerable<StackPanel> BodyPanels => [EpisodePanel, SeasonPanel, InfoPanel, SimilarPanel, CastPanel];
 
     /// <summary>
     /// 构造时准备三支画刷和五支浮起变换：纸面取主题的窗口色，面板取样式原本那两档，每块面板各装一支
@@ -181,7 +213,54 @@ public sealed partial class DetailPage
     /// </summary>
     private void OnShowcaseChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
-        if (args.PropertyName == nameof(DetailViewModel.Showcase) && !_applyingShowcase) SettleShowcase();
+        if (args.PropertyName != nameof(DetailViewModel.Showcase) || _applyingShowcase) return;
+
+        // 改尺寸那一趟由 OnBodySized 在宽高都写完之后一次结算：写到一半时量到的带高、纸面位置都是旧的，
+        // 而且一次布局可能先翻过去又翻回来。这里只处理别的来路 —— 换条目、图到手、版本切换，一律当场落定。
+        if (_sizing) return;
+
+        var now = ViewModel.Showcase;
+
+        // 第一次排版之前与重复通知：版面还没落定，或者答案根本没变 —— 不插过渡，也不重写已落定的状态。
+        if (!_showcaseSettled)
+        {
+            SettleShowcase();
+            return;
+        }
+
+        if (now == _shownShowcase) return;
+
+        SettleShowcase();
+    }
+
+    /// <summary>
+    /// 一次尺寸变化写完宽高之后的唯一结算点（<see cref="DetailPage.OnBodySizeChanged"/> 调用）。
+    /// <para>
+    /// 正常↔大窗走过渡；紧凑版式那一头当场落定 —— 换的是整套单列版面，不是纸面让开，插一段尾部滑动只会
+    /// 像是卡了一下。第一次排版的翻面也当场落定：那是版面落位，不是用户在拖窗口。
+    /// </para>
+    /// </summary>
+    /// <param name="wasCompact">上一次排版落定时是不是紧凑版式。</param>
+    private void ResolveShowcaseAfterResize(bool wasCompact)
+    {
+        var now = ViewModel.Showcase;
+
+        if (!_showcaseSettled || now == _shownShowcase)
+        {
+            // 第一次排版、或者这一趟尺寸没把状态翻过去：前者要落定成真实答案，后者什么都不用做 ——
+            // 尺寸相关的属性自己会通知，动画只在状态真的翻了才需要。
+            if (!_showcaseSettled) SettleShowcase();
+            return;
+        }
+
+        if (wasCompact || ViewModel.IsCompact
+            || !IsLoaded || XamlRoot is null || !HomeMotion.AnimationsEnabled)
+        {
+            SettleShowcase();
+            return;
+        }
+
+        AnimateShowcase(now, HeroTail.ActualHeight);
     }
 
     /// <summary>
@@ -233,8 +312,12 @@ public sealed partial class DetailPage
 
         // 系统关掉界面动画（或设置里关了这一档）就直接落到终点：错峰那一段本来就是为了好看，开关关着的时候
         // 摆在屏上的只是三百多毫秒的挪动。规矩同 <see cref="HomeMotion"/>。
+        // 「was == now」但已经有一趟在走（常见于拉宽触发裁切先起步、松手后铺开状态才追上）时交给它走完，
+        // 不能在这里落定 —— 那会把动画停在半路。
         if (!animate || was == now || !IsLoaded || XamlRoot is null || !HomeMotion.AnimationsEnabled)
         {
+            if (animate && was == now && _showcaseBoard is not null) return;
+
             SettleShowcase();
             return;
         }
@@ -303,6 +386,8 @@ public sealed partial class DetailPage
         StopShowcase();
 
         var showcase = ViewModel.Showcase;
+        _shownShowcase = showcase;
+        _settledCompact = ViewModel.IsCompact;
         _sheetBrush.Color = showcase ? WashColor : PaperColor;
         _panelFill.Opacity = showcase ? 0 : 1;
         _panelLine.Opacity = showcase ? 0 : 1;
@@ -347,6 +432,9 @@ public sealed partial class DetailPage
     /// </summary>
     private void AnimateShowcase(bool showcase, double fromTail)
     {
+        ShowcaseAnimations++;
+        _shownShowcase = showcase;
+
         var sheetFrom = _sheetBrush.Color;
         var fillFrom = _panelFill.Opacity;
         var lineFrom = _panelLine.Opacity;

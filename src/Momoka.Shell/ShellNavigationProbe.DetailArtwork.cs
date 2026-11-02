@@ -35,6 +35,10 @@ internal sealed partial class ShellNavigationProbe
                 return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(image) };
             if (path.EndsWith("/Items/" + item.Id, StringComparison.Ordinal))
                 return Json(item);
+            // 列表里的集只带空壳媒体源；2026-11-02 起剧/季页会按 id 补取那一集来建轨道下拉。
+            // 这里把同一集原样回给它，播放记录和时长才不会在补取那一趟丢掉。
+            if (path.EndsWith("/Items/" + episode.Id, StringComparison.Ordinal))
+                return Json(episode);
             if (path.EndsWith("/Episodes", StringComparison.Ordinal)) return Json(new { Items = new[] { episode } });
             return FakeTransport.Standard(request);
         };

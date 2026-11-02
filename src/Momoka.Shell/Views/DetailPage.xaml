@@ -621,8 +621,8 @@
                                 <!-- 2026-10-30 用户令：「把集页面的选择框改为设置页面的那种样式」，同一轮补一句
                                      「圆角不要改」。集页宽版式这三颗（媒体源／音频／字幕）因此接设置页那支
                                      输入玻璃（EgInputGlassBrush）；圆角沿用 EgPickerCornerRadius 的全站搜索框别名。
-                                     剧、电影、季三页尾部那一组（PickerPanel）和季选择器照 2026-10-29 钉回窗口
-                                     底色 —— 那一轮用户点名「别把剧、电影页面的选择框给改了」，这一轮只点集页。
+                                     剧、电影、季三页尾部那一组（PickerPanel）照 2026-10-29 钉回窗口底色 ——
+                                     那一轮用户点名「别把剧、电影页面的选择框给改了」，这一轮只点集页。
                                      只钉闭合态；弹层仍走全局亚克力。 -->
                                 <StackPanel.Resources>
                                     <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgInputGlassBrush" />
@@ -986,8 +986,9 @@
 
                              SelectedItem 是双向的，所以「选了哪一个」是视图模型上的一个值，而不是要去问控件的
                              一件事。音频和字幕两个下拉不再需要 SelectionChanged —— 以前那个处理器只是去重排
-                             一遍显隐，而显隐只跟行数有关，跟选了哪一行无关。季选择器在下面单集列表的标题旁，
-                             因为它替换的是那排单集，不是当前文件的轨道。
+                             一遍显隐，而显隐只跟行数有关，跟选了哪一行无关。（原来还有一颗季选择器在下面单集
+                             列表的标题旁，2026-11-02 用户令连牌子右端那一格一起删了；切季的能力仍在视图模型上，
+                             自检和探针照旧驱动它，见 DetailViewModel.SelectedSeason。）
 
                              外圈和底色都不画（「去掉音频字幕还有剧情说明周围那一圈的边框和背景」）。2026-09-12 试过两
                              次给它们加「媒体信息那种框」（那时想的是「板里的板」），他两次看完实拍都要了回来
@@ -1006,7 +1007,7 @@
                              三颗都是 local:EgPicker 而不是框架的 ComboBox —— 它是 ComboBox 的一点壳，只把弹层
                              从「开窗口」改回「同一棵树」，好让浮层那支应用内亚克力采得到底下这一页（用户
                              2026-09-27：「把音频和字幕的选择栏改成亚克力背景」；为什么这么改写在 EgPicker.cs）。
-                             同一页上另有集页宽版式那三颗和季那一颗，一共七颗，别处（设置页等）照旧。
+                             同一页上另有集页宽版式那三颗，一共六颗，别处（设置页等）照旧。
 
                              **闭合态那圈底（2026-10-09，用户：「剧页面 季页面 电影页面这三个页面的音频、
                              字幕、版本选择框背景要用透明的亚克力背景」）**：这三颗从 2026-09-25 起是不透明的
@@ -1363,30 +1364,12 @@
                             Padding="{x:Bind ViewModel.BodyPanelPadding, Mode=OneWay}"
                             Spacing="10"
                             Visibility="{x:Bind ViewModel.EpisodeVisibility, Mode=OneWay}">
-                            <!-- 季下拉框挂在牌子右端那一格里（ShelfHead.Trailing），不再是自己开一个两列 Grid：
-                                 读数、挂件、通栏线的横向关系是牌子的事，一带一带地重写一遍就会各自跑偏。这一带
-                                 不报读数 —— 季数集数已经写在标题里了（「更多来自：第一季 · 12 集，已看 3 集」）。 -->
-                            <local:ShelfHead x:Name="EpisodeHead" Title="{x:Bind ViewModel.EpisodeShelf.Title, Mode=OneWay}" ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}">
-                                <!-- 同 ColumnPickers：全局闭合下拉底改玻璃之后，季选择器钉回原来的窗口底色。 -->
-                                <local:ShelfHead.Resources>
-                                    <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgWindowBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgWindowBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgWindowBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgWindowBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgWindowBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgWindowBrush" />
-                                </local:ShelfHead.Resources>
-                                <local:ShelfHead.Trailing>
-                                    <local:EgPicker x:Uid="DetailPage_ComboBoxA4"
-                                        AutomationProperties.AutomationId="DetailSeasonPicker"
-                                        DisplayMemberPath="Name"
-                                        ItemsSource="{x:Bind ViewModel.Seasons, Mode=OneWay}"
-                                        MaxWidth="280"
-                                        MinWidth="180"
-                                        SelectedItem="{x:Bind ViewModel.SelectedSeason, Mode=TwoWay}"
-                                        Visibility="{x:Bind ViewModel.SeasonVisibility, Mode=OneWay}" />
-                                </local:ShelfHead.Trailing>
-                            </local:ShelfHead>
+                            <!-- 牌子右端那一格自 2026-11-02 起空着：用户令删掉集列表卡片右上角那颗季选择栏
+                                 （牌子右端原来挂的就是它）。切季的能力没有跟着删 —— DetailViewModel.Seasons／
+                                 SelectedSeason／SwitchSeasonAsync 照旧，自检和探针还在驱动它；只是这一页的屏上
+                                 不再有那颗下拉。这一带不报读数 —— 季数集数已经写在标题里了
+                                 （「更多来自：第一季 · 12 集，已看 3 集」）。 -->
+                            <local:ShelfHead x:Name="EpisodeHead" Title="{x:Bind ViewModel.EpisodeShelf.Title, Mode=OneWay}" ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}" />
                             <ItemsRepeater
                                 x:Name="EpisodeList"
                                 ItemTemplate="{StaticResource EpisodeRowTemplate}"
@@ -1406,16 +1389,42 @@
                                 Visibility="{x:Bind ViewModel.EpisodeStripVisibility, Mode=OneWay}" />
                         </StackPanel>
 
-                        <!-- 媒体信息与其他信息紧跟在单集下面：这一段说的是「正在放的这个文件」（文件名、格式、
+                        <!-- 全部剧季：剧集页和集页的季卡横带，点季卡进那一季自己的页面。两张季卡以上才摆 —— 只有一季时
+                             那是一张通往本页已经在列的那一季的卡（2026-11-02 用户令「当剧集只有一季时，在剧页面
+                             不显示『全部剧集』卡片」）。判据在 DetailViewModel.SeasonShelfVisibility（两张卡以上），
+                             所以单季的集页也不会画出这一块。
+                             2026-11-02 同日两条令把它挪到了这里：顺序改成 单集 → 全部剧季 → 其他信息（原来在其他
+                             信息底下），并且集页也要这一张。剧页那一趟由 LoadSeriesAsync 填，集页那一趟是
+                             LoadSeasonShelfAsync；集页没有季选择器，这一排卡在那儿只用来跳季页面。 -->
+                        <StackPanel
+                            x:Name="SeasonPanel"
+                            Style="{StaticResource EgBodyPanelStyle}"
+                            Padding="{x:Bind ViewModel.BodyPanelPadding, Mode=OneWay}"
+                            Spacing="10"
+                            Visibility="{x:Bind ViewModel.SeasonShelfVisibility, Mode=OneWay}">
+                            <local:ShelfHead
+                                ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
+                                Title="{x:Bind ViewModel.SeasonShelf.Title, Mode=OneWay}" />
+                            <local:ShelfStrip
+                                x:Name="SeasonRow"
+                                Height="{x:Bind ViewModel.SeasonShelf.RowHeight, Mode=OneWay}"
+                                ItemSpacing="16"
+                                ItemTemplate="{StaticResource CardTemplate}"
+                                ItemsSource="{x:Bind ViewModel.SeasonShelf.Cards, Mode=OneWay}" />
+                        </StackPanel>
+
+                        <!-- 媒体信息与其他信息紧跟在全部剧季下面：这一段说的是「正在放的这个文件」（文件名、格式、
                              音频、字幕），和上面那排集是同一件事的两个粒度，隔着三条卡片带就对不上了。
 
-                             摆在集列表下、全部剧季上（2026-11-02 用户令「在剧页面的集列表下方复刻一个与集页面
-                             『其他信息』卡片一致的卡片」）：剧页上这一块只有那行「其他信息」，没有媒体信息表，
-                             顺序是 单集 → 其他信息 → 全部剧季。
+                             摆在全部剧季底下（2026-11-02 用户令「在剧页面的集列表下方复刻一个与集页面
+                             『其他信息』卡片一致的卡片」）。剧页自 2026-11-02 起也有媒体信息表（用户令
+                             「剧页面的更多信息卡片也加上媒体信息，没有播放记录就用第一集的，有播放记录就用
+                             播放记录那一集」），顺序是 单集 → 全部剧季 → 其他信息（同日另一条令把全部剧季
+                             挪到了这一块上面）。
 
-                             电影页与单集页两样都有（表 + 分割线 + 那一行）；剧页只有那一行 —— 剧没有「这个文件」
-                             可讲，视图这边不判断，DetailViewModel.InfoVisibility 说的是「表或那一行至少一样有
-                             内容」，两样都空（季页）时整块收起。空的东西不该占位。
+                             电影、剧、单集三页两样都有（表 + 分割线 + 那一行）；季页两样都没有（同日用户令
+                             「季页面不要媒体信息」）。视图这边不判断：DetailViewModel.InfoVisibility 说的是
+                             「表或那一行至少一样有内容」，两样都空时整块收起。空的东西不该占位。
 
                              2026-10-31 用户令：卡片标题从「媒体信息」改名为「其他信息」，媒体信息表照旧放在
                              上面，下面一条分割线，再下一行放类型、工作室、数据库链接与上次播放日期（集页
@@ -1462,27 +1471,6 @@
                                 LineHeight="20"
                                 TextWrapping="Wrap"
                                 Visibility="{x:Bind ViewModel.OtherInfoVisibility, Mode=OneWay}" />
-                        </StackPanel>
-
-                        <!-- 全部剧季：剧集页的季卡横带，点季卡进那一季自己的页面。两张季卡以上才摆 —— 只有一季时
-                             那是一张通往本页已经在列的那一季的卡（2026-11-02 用户令「当剧集只有一季时，在剧页面
-                             不显示『全部剧集』卡片」）。判据在 DetailViewModel.SeasonShelfVisibility，和季下拉框
-                             同一条线。 -->
-                        <StackPanel
-                            x:Name="SeasonPanel"
-                            Style="{StaticResource EgBodyPanelStyle}"
-                            Padding="{x:Bind ViewModel.BodyPanelPadding, Mode=OneWay}"
-                            Spacing="10"
-                            Visibility="{x:Bind ViewModel.SeasonShelfVisibility, Mode=OneWay}">
-                            <local:ShelfHead
-                                ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
-                                Title="{x:Bind ViewModel.SeasonShelf.Title, Mode=OneWay}" />
-                            <local:ShelfStrip
-                                x:Name="SeasonRow"
-                                Height="{x:Bind ViewModel.SeasonShelf.RowHeight, Mode=OneWay}"
-                                ItemSpacing="16"
-                                ItemTemplate="{StaticResource CardTemplate}"
-                                ItemsSource="{x:Bind ViewModel.SeasonShelf.Cards, Mode=OneWay}" />
                         </StackPanel>
 
                         <!-- 更多类似。 -->
