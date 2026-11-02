@@ -63,7 +63,7 @@ public sealed partial class SettingsViewModel
                 after: RefreshDanmakuRows));
             if (DanmakuSourceRules.IncludesDanmuApi(settings.Source))
             {
-                sourceRows.Add(Text("danmu_api 地址", "http://192.168.31.230:9321",
+                sourceRows.Add(Text("danmu_api 地址", "http://192.168.1.10:9321",
                     () => settings.DanmuApiBaseUrl, value => settings.DanmuApiBaseUrl = value,
                     "只填服务根地址，不要带令牌；令牌在下一行单独填写。",
                     after: RefreshDanmakuRows));
