@@ -154,9 +154,8 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
 
     /// <summary>
     /// 取一个条目。<paramref name="order"/> 是媒体源的排法（设置页「媒体源排序」，2026-09-24）：只有点名
-    /// 「新入库在前」才去问各版本的入库时间并重排（多一次旁路请求，见 <see cref="OrderVersionsByAddedAsync"/>）；
-    /// 「默认」就是服务器给的次序，一个字节都不多问。详情页与播放器起播都从这一条拿条目，所以那两处界面
-    /// 读到的版本表次序天然一致。
+    /// 「新入库在前」去问各版本的入库时间并重排；Emby 有明确版本条目编号但缺体积时，同一趟补读
+    /// 该文件的大小。默认排序且体积齐全时不发旁路请求。详情页与播放器共用这份版本表。
     /// </summary>
     public async Task<EmbyItem> GetItemAsync(string itemId, CancellationToken cancellationToken,
         string fields = EmbyFields.Detail, MediaSourceOrder order = MediaSourceOrder.Default)
@@ -166,8 +165,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         var url = Url($"Users/{Connection.UserId}/Items/{itemId}", ("Fields", fields));
         var item = await http.GetJsonAsync<EmbyItem>(url, Context, cancellationToken).ConfigureAwait(false);
         ApplyItemFileSize(item);
-        if (order == MediaSourceOrder.NewestFirst)
-            await OrderVersionsByAddedAsync(item, cancellationToken).ConfigureAwait(false);
+        await ReadVersionFilesAsync(item, order, cancellationToken).ConfigureAwait(false);
         return item;
     }
 
@@ -191,42 +189,63 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     }
 
     /// <summary>
-    /// 多版本条目的版本表按<b>入库时间</b>重排，最新入库的排最前（2026-09-24 用户令）。只在设置点名
-    /// 「新入库在前」时被调（<see cref="GetItemAsync"/> 的 <c>order</c>）。拿不到时间就保持
-    /// 服务器给的次序 —— 一次排序的旁路请求不该绊倒详情本身，失败只记一笔。
+    /// 按版本自己的条目号批量补齐文件体积，并在设置「新入库在前」时共用该请求读取入库时间。
+    /// 补体积的附属请求最多等三秒；失败时保留已取得的详情、大小与次序，调用取消仍传播。
     /// <para>
     /// 每一版的入库时间服务器不在媒体源上给（MediaSourceInfo 一个日期字段都没有），但每一版在服务器上
     /// 本来就是一个条目（<see cref="MediaSource.ItemId"/>），它的 <c>DateCreated</c> 就是入库时间。实测
     /// （Emby 4.10，探针在 <c>work/versions-probe</c>）：备选版本条目被服务器藏起来，
     /// <c>/Users/{uid}/Items?Ids=…</c> 只回主条目；<b>不带用户前缀的 <c>/Items?Ids=…</c> 全都认</b>，
-    /// 一条请求问齐全部版本。单版本条目根本不发这一条。
+    /// 一条请求问齐全部版本；不以主条目的大小或文件名猜备选版本。
     /// </para>
     /// </summary>
-    private async Task OrderVersionsByAddedAsync(EmbyItem item, CancellationToken cancellationToken)
+    private async Task ReadVersionFilesAsync(EmbyItem item, MediaSourceOrder order, CancellationToken cancellationToken)
     {
         var ids = item.MediaSources
             .Select(source => source.ItemId)
-            .Where(id => id.Length > 0)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
             .Distinct(StringComparer.Ordinal)
             .ToList();
-        if (ids.Count < 2) return;
+        var readDates = order == MediaSourceOrder.NewestFirst && ids.Count > 1;
+        // Only Emby's item DTO and hidden-version batch are confirmed to carry a per-file Size.
+        var missing = Connection.ServerKind == MediaServerKind.Emby && item.IsPlayable
+            ? item.MediaSources.Where(source => source.Size is null or <= 0 && !string.IsNullOrWhiteSpace(source.ItemId)).ToList()
+            : [];
+        if (!readDates && missing.Count == 0) return;
+        if (!readDates) ids = missing.Select(source => source.ItemId).Distinct(StringComparer.Ordinal).ToList();
 
         try
         {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            if (missing.Count > 0) deadline.CancelAfter(TimeSpan.FromSeconds(3));
             var url = Url("Items",
                 ("Ids", string.Join(',', ids)),
-                ("Fields", "DateCreated"));
-            var result = await http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken).ConfigureAwait(false);
-            var added = result.Items
-                .Where(version => version.DateCreated is not null)
-                .ToDictionary(version => version.Id, version => version.DateCreated!.Value);
+                ("Fields", readDates ? missing.Count > 0 ? "DateCreated,Path,Size" : "DateCreated" : "Path,Size"));
+            var result = await http.GetJsonAsync<ItemsResult>(url, Context, deadline.Token).ConfigureAwait(false);
+            deadline.Token.ThrowIfCancellationRequested();
+            foreach (var source in missing)
+            {
+                if (source.Size is > 0) continue;
+                var version = result.Items.FirstOrDefault(version => version.Id == source.ItemId
+                    && version.IsPlayable && version.Size is > 0
+                    && (string.IsNullOrEmpty(source.Path) || string.IsNullOrEmpty(version.Path)
+                        || string.Equals(source.Path, version.Path, StringComparison.Ordinal)));
+                if (version is not null) source.Size = version.Size;
+            }
 
-            ItemDetail.OrderVersionsNewestFirst(item, added);
-            Log.Debug(Category, $"《{item.Name}》{item.MediaSources.Count} 版已按入库时间排好（最新在前）");
+            if (readDates)
+            {
+                var added = result.Items
+                    .Where(version => version.DateCreated is not null)
+                    .ToDictionary(version => version.Id, version => version.DateCreated!.Value);
+                ItemDetail.OrderVersionsNewestFirst(item, added);
+                Log.Debug(Category, $"《{item.Name}》{item.MediaSources.Count} 版已按入库时间排好（最新在前）");
+            }
         }
-        catch (Exception error) when (error is not OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception error)
         {
-            Log.Warn(Category, "版本的入库时间没拿到，保持服务器次序", error);
+            Log.Warn(Category, "版本的文件资料没拿到，保持已加载的体积和服务器次序", error);
         }
     }
 
