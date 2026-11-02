@@ -205,7 +205,12 @@ public sealed partial class DetailViewModel : PageViewModel
         SubtitleTracks.CollectionChanged += (_, _) => PickerChanged(nameof(SubtitleVisibility));
 
         // 媒体信息 is the same problem and not a picker: its own visibility only, without the pickers row's.
-        InfoRows.CollectionChanged += (_, _) => OnPropertyChanged(nameof(InfoVisibility));
+        // 分割线跟着这张表和下面那一行一起决定（见 OtherInfoRuleVisibility），所以这一份也归它。
+        InfoRows.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(InfoVisibility));
+            OnPropertyChanged(nameof(OtherInfoRuleVisibility));
+        };
     }
 
     // ---------------------------------------------------------------- 头部
@@ -2037,15 +2042,24 @@ public sealed partial class DetailViewModel : PageViewModel
     public ObservableCollection<InfoRow> InfoRows { get; } = [];
 
     /// <summary>
-    /// 媒体信息表下面那一行：类型、工作室、数据库链接，集页再加一条上次播放日期（判据在
-    /// <see cref="ItemDetail.OtherInfo"/>）。空表示这一页没有这一段 —— 剧页、季页，或电影页上服务器什么也
-    /// 没给。它不是集合而是整份换掉：这一行要么重排，要么空着，没有「逐项增删」这回事。
+    /// 其他信息那一行：类型、工作室、数据库链接，集页再加一条上次播放日期（判据在
+    /// <see cref="ItemDetail.OtherInfo"/>）。空表示这一页没有这一段 —— 季页，或者服务器这些项一条也没给。
+    /// 剧页自 2026-11-02 起也有这一段（说的就是这部剧自己），所以它不再是「只有文件页才有」的那一行。
+    /// 它不是集合而是整份换掉：这一行要么重排，要么空着，没有「逐项增删」这回事。
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(OtherInfoVisibility))]
+    [NotifyPropertyChangedFor(nameof(OtherInfoRuleVisibility))]
+    [NotifyPropertyChangedFor(nameof(InfoVisibility))]
     public partial IReadOnlyList<OtherFact> OtherFacts { get; set; } = [];
 
     public Visibility OtherInfoVisibility => Show(OtherFacts.Count > 0);
+
+    /// <summary>
+    /// 媒体信息表与下面那一行之间的分割线。两样都在才画：剧页没有「这个文件」可讲，表是空的，只剩一行字，
+    /// 那时候还画一条线就是牌子下面凭空一道横杠。集页与电影页两样都齐，和从前一样。
+    /// </summary>
+    public Visibility OtherInfoRuleVisibility => Show(InfoRows.Count > 0 && OtherFacts.Count > 0);
 
     public Visibility EpisodeVisibility => Show(EpisodeShelf is { Cards.Count: > 0 } || Seasons.Count > 1);
 
@@ -2065,13 +2079,24 @@ public sealed partial class DetailViewModel : PageViewModel
 
     public Visibility CastVisibility => Show(CastShelf is { Cards.Count: > 0 });
 
-    public Visibility SeasonShelfVisibility => Show(SeasonShelf is { Cards.Count: > 0 });
+    /// <summary>
+    /// 全部剧季那一格画不画。两张卡以上才画：只有一季时那一格是一张通往本页已经在列的那一季的卡，摆在那里只是
+    /// 让人多点一次（用户令 2026-11-02「当剧集只有一季时，在剧页面不显示『全部剧集』卡片」）。季下拉框在同一个
+    /// 条件上收起（<see cref="SeasonVisibility"/>），两处口径一致。
+    /// </summary>
+    public Visibility SeasonShelfVisibility => Show(SeasonShelf is { Cards.Count: > 1 });
 
     public Visibility SimilarVisibility => Show(SimilarShelf is { Cards.Count: > 0 });
 
     public Visibility DirectorsVisibility => Show(!string.IsNullOrWhiteSpace(Directors));
 
-    public Visibility InfoVisibility => Show(InfoRows.Count > 0);
+    /// <summary>
+    /// 其他信息那一块板画不画。表和那一行只要有一样有内容就画：电影页与集页是表（加那一行），剧页只有那一行
+    /// —— 剧没有文件，媒体信息表在剧页上永远是空的，可「类型、工作室、数据库链接」照样有话说（2026-11-02
+    /// 用户令「在剧页面的集列表下方复刻一个与集页面『其他信息』卡片一致的卡片」）。两样都空时整块收起，
+    /// 季页就是那一档。
+    /// </summary>
+    public Visibility InfoVisibility => Show(InfoRows.Count > 0 || OtherFacts.Count > 0);
 
     /// <summary>The episodes on screen, for the player's 下一集 and for the context menu's 本季 commands.</summary>
     internal IReadOnlyList<EmbyItem> Episodes => _episodes;
@@ -2656,9 +2681,13 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>
     /// Rebuilds the 其他信息 line. Called when a page is applied and again when the show behind an episode
     /// arrives — the series is fetched for artwork, and this line reads its genres, studio and scraper ids.
+    /// <para>
+    /// 哪些页有这一行、这一行说谁，全在 <see cref="ItemDetail.OtherInfo"/> 里（电影与剧说自己，集说剧集那一层，
+    /// 季什么也不说）；这里不另判 —— 判据分两处写就会分叉，而分叉的那一版在屏上只是「剧页少一行」。
+    /// </para>
     /// </summary>
     private void RefreshOtherInfo() =>
-        OtherFacts = _detail is { IsPlayable: true } item
+        OtherFacts = _detail is { } item
             ? ItemDetail.OtherInfo(item, item.Type == EmbyItemType.Episode ? _show : null)
             : [];
 

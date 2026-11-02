@@ -1409,9 +1409,13 @@
                         <!-- 媒体信息与其他信息紧跟在单集下面：这一段说的是「正在放的这个文件」（文件名、格式、
                              音频、字幕），和上面那排集是同一件事的两个粒度，隔着三条卡片带就对不上了。
 
-                             只在电影页和单集页出现 —— 视图这边不判断，DetailViewModel 只在页面自己就是个
-                             文件的时候才往 InfoRows / OtherFacts 里放东西，剧页和季页那一列永远是空的，
-                             这一整块也就跟着收起来。空的东西不该占位。
+                             摆在集列表下、全部剧季上（2026-11-02 用户令「在剧页面的集列表下方复刻一个与集页面
+                             『其他信息』卡片一致的卡片」）：剧页上这一块只有那行「其他信息」，没有媒体信息表，
+                             顺序是 单集 → 其他信息 → 全部剧季。
+
+                             电影页与单集页两样都有（表 + 分割线 + 那一行）；剧页只有那一行 —— 剧没有「这个文件」
+                             可讲，视图这边不判断，DetailViewModel.InfoVisibility 说的是「表或那一行至少一样有
+                             内容」，两样都空（季页）时整块收起。空的东西不该占位。
 
                              2026-10-31 用户令：卡片标题从「媒体信息」改名为「其他信息」，媒体信息表照旧放在
                              上面，下面一条分割线，再下一行放类型、工作室、数据库链接与上次播放日期（集页
@@ -1445,11 +1449,12 @@
                                     <StackLayout Orientation="Vertical" />
                                 </ItemsRepeater.Layout>
                             </ItemsRepeater>
+                            <!-- 表与那一行都在才画：剧页只剩那一行，牌子底下再横一道线就成了凭空一条杠。 -->
                             <Border
                                 x:Name="OtherInfoDivider"
                                 Margin="0,2,0,0"
                                 Style="{StaticResource EgRuleStyle}"
-                                Visibility="{x:Bind ViewModel.OtherInfoVisibility, Mode=OneWay}" />
+                                Visibility="{x:Bind ViewModel.OtherInfoRuleVisibility, Mode=OneWay}" />
                             <TextBlock
                                 x:Name="OtherInfoLine"
                                 FontSize="{StaticResource EgCaptionFontSize}"
@@ -1459,7 +1464,10 @@
                                 Visibility="{x:Bind ViewModel.OtherInfoVisibility, Mode=OneWay}" />
                         </StackPanel>
 
-                        <!-- 全部剧季：剧集页的季卡横带，点季卡进那一季自己的页面。 -->
+                        <!-- 全部剧季：剧集页的季卡横带，点季卡进那一季自己的页面。两张季卡以上才摆 —— 只有一季时
+                             那是一张通往本页已经在列的那一季的卡（2026-11-02 用户令「当剧集只有一季时，在剧页面
+                             不显示『全部剧集』卡片」）。判据在 DetailViewModel.SeasonShelfVisibility，和季下拉框
+                             同一条线。 -->
                         <StackPanel
                             x:Name="SeasonPanel"
                             Style="{StaticResource EgBodyPanelStyle}"

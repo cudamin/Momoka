@@ -599,22 +599,26 @@ public static class ItemDetail
     }
 
     /// <summary>
-    /// 其他信息 —— the one line under the 媒体信息 table: 类型, 工作室, 数据库链接 and, on an episode's own
-    /// page, 上次播放日期.
+    /// 其他信息 —— 类型, 工作室, 数据库链接 and, on an episode's own page, 上次播放日期.
     /// <para>
-    /// 集自己身上没有类型、工作室和刮削 id：实测 Emby 4.10.1 给单集的 <c>Genres</c> 与 <c>Studios</c>
-    /// 都是空数组，<c>ProviderIds</c> 只剩这一集自己的 Tvdb/IMDb。这一页的标题是剧名，所以这一行照剧集
-    /// 那一层说（<paramref name="show"/> 就是详情页为取图顺手取回来的那个条目）；剧集还没回来时宁可少说
-    /// 几项，也不拿单集自己的 id 拼一个指向剧集页面的错链接。
+    /// 电影、单集和剧集三页都有这一段。集自己身上没有类型、工作室和刮削 id：实测 Emby 4.10.1 给单集的
+    /// <c>Genres</c> 与 <c>Studios</c> 都是空数组，<c>ProviderIds</c> 只剩这一集自己的 Tvdb/IMDb。那一页的
+    /// 标题是剧名，所以这一行照剧集那一层说（<paramref name="show"/> 就是详情页为取图顺手取回来的那个条目）；
+    /// 剧集还没回来时宁可少说几项，也不拿单集自己的 id 拼一个指向剧集页面的错链接。
+    /// </para>
+    /// <para>
+    /// 剧页自 2026-11-02 起也照这套说（用户令「在剧页面的集列表下方复刻一个与集页面『其他信息』卡片一致的
+    /// 卡片」）：主语就是这部剧自己，没有上层可借，也不该借。季页不在里头 —— 那一格永远是空的，季说的是
+    /// 「第几季」而不是一部作品。
     /// </para>
     /// <para>
     /// 上次播放日期只给集页（用户令 2026-10-31「上次播放日期（集页面特有）」）：它说的是「这一集」而不是
-    /// 「这部片子」，而电影页上没有「上次看的是哪一版」这回事。
+    /// 「这部片子」，而电影页上没有「上次看的是哪一版」这回事，剧页上也没有「上次看的是哪一集」这回事。
     /// </para>
     /// </summary>
     public static IReadOnlyList<OtherFact> OtherInfo(EmbyItem item, EmbyItem? show)
     {
-        if (!item.IsPlayable) return [];
+        if (!item.IsPlayable && item.Type != EmbyItemType.Series) return [];
 
         var owner = item.Type == EmbyItemType.Episode ? show : item;
         var facts = new List<OtherFact>(4);

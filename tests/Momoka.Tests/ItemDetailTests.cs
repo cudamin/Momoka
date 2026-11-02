@@ -1378,9 +1378,46 @@ internal static class ItemDetailTests
             var facts = ItemDetail.OtherInfo(episode, null);
             Assert.Equal("上次播放日期", string.Join(',', facts.Select(fact => fact.Label)));
 
-            // 不是文件页（剧、季）没有这一段；电影没有上次播放也一样可以整段为空。
+            // 剧页自 2026-11-02 起也有这一段（说的就是这部剧本自己），可空剧集照旧什么都不说；季不是这件事的
+            // 主语（季页那一格永远空着），电影没有上次播放也一样可以整段为空。
             Assert.Equal(0, ItemDetail.OtherInfo(new EmbyItem { Type = EmbyItemType.Series }, null).Count);
+            Assert.Equal(0, ItemDetail.OtherInfo(new EmbyItem { Type = EmbyItemType.Season }, null).Count);
             Assert.Equal(0, ItemDetail.OtherInfo(new EmbyItem { Type = EmbyItemType.Movie }, null).Count);
+        });
+
+        Test("其他信息：剧页照剧自己说类型、工作室与数据库链接，不占上次播放", () =>
+        {
+            var show = new EmbyItem
+            {
+                Type = EmbyItemType.Series,
+                Genres = ["动画", "奇幻"],
+                Studios = [new EmbyStudio { Name = "Wit Studio" }],
+                ProviderIds = new()
+                {
+                    ["Tmdb"] = "286171",
+                    ["Imdb"] = "tt35324004",
+                    ["Tvdb"] = "465020",
+                    ["Douban"] = "35287623"
+                },
+                // 剧集自己身上也可能带一个上次播放时间，可那一项是「这一集」的事（集页特有），剧页不列。
+                UserData = new EmbyUserData
+                {
+                    LastPlayedDate = new DateTimeOffset(2026, 11, 1, 9, 0, 0, TimeSpan.Zero)
+                }
+            };
+
+            var facts = ItemDetail.OtherInfo(show, null);
+            Assert.Equal("类型,工作室,数据库链接", string.Join(',', facts.Select(fact => fact.Label)));
+            Assert.Equal("动画、奇幻", facts[0].Values[0].Text);
+            Assert.Equal("Wit Studio", facts[1].Values[0].Text);
+
+            // 剧的 TMDB 走 /tv/、TVDB 是剧集页 —— 和集页读剧集那一层时同一套地址。
+            var links = facts[2].Values;
+            Assert.Equal("TMDB,IMDb,TVDB,豆瓣", string.Join(',', links.Select(value => value.Text)));
+            Assert.Equal("https://www.themoviedb.org/tv/286171", links[0].Url);
+            Assert.Equal("https://www.imdb.com/title/tt35324004/", links[1].Url);
+            Assert.Equal("https://www.thetvdb.com/?tab=series&id=465020", links[2].Url);
+            Assert.Equal("https://movie.douban.com/subject/35287623/", links[3].Url);
         });
     }
 

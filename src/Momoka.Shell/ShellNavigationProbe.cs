@@ -71,6 +71,9 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("剧页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Series), 30, section: ShellProbeSections.Library);
             await CaseAsync("季页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Season), 30, section: ShellProbeSections.Library);
             await CaseAsync("电影页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Movie), 30, section: ShellProbeSections.Library);
+            // 2026-11-02 用户令：只有一季的剧页不画「全部剧季」；剧页集列表下方补一张与集页同一条规矩的
+            // 「其他信息」卡（没有媒体信息表，只剩牌子与类型/工作室/数据库链接那一行）。
+            await CaseAsync("剧页单季不画全部剧季、其他信息卡与集页一致", DetailSeriesInfoAsync, 30, section: ShellProbeSections.Library);
             // 集页封面只在宽版式里画（紧凑版式整个收掉），加上集页紧凑版式的那张背景图、以及尾部那条窄带在
             // 两档上的紧凑度：四档宽度各量一遍，截图 `detail-episode-band-<宽度>.png`。
             await CaseAsync("集页封面与窄窗背景图和尾部间距", EpisodeBandAsync, 30);
