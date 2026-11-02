@@ -86,12 +86,18 @@ public static class SettingsPreferences
         destination.SubtitleTranslation.FontSize = source.SubtitleTranslation.FontSize;
         destination.SubtitleTranslation.Position = source.SubtitleTranslation.Position;
 
-        // 弹幕外观属于偏好；总启用开关属于本机连接，绝不导出，也不被恢复配置覆盖。应用凭据 2026-10-27 起
-        // 一律由内置端点下发，设置里已经没有 AppId／密钥字段要在这里豁免。
+        // 弹幕外观属于偏好；总启用开关、来源模式、danmu_api 地址与加密令牌属于本机连接，绝不导出，
+        // 也不被恢复配置覆盖。应用凭据 2026-10-27 起一律由内置端点下发，设置里已经没有 AppId／密钥字段。
         var danmaku = destination.Danmaku;
         var danmakuEnabled = danmaku.Enabled;
+        var danmakuSource = danmaku.Source;
+        var danmakuBaseUrl = danmaku.DanmuApiBaseUrl;
+        var danmakuToken = danmaku.ProtectedDanmuApiToken;
         Overwrite(danmaku, source.Danmaku);
         danmaku.Enabled = danmakuEnabled;
+        danmaku.Source = danmakuSource;
+        danmaku.DanmuApiBaseUrl = danmakuBaseUrl;
+        danmaku.ProtectedDanmuApiToken = danmakuToken;
 
         // 音量不是设置页上的一行，是播放器上次被留在哪儿（见 AudioSettings.Volume）—— 留目的地自己的那一份。
         var volume = destination.Audio.Volume;

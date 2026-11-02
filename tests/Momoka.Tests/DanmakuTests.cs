@@ -630,6 +630,104 @@ internal static class DanmakuTests
             Assert.Equal("toggle-danmaku", native["d"]);
             Assert.Equal("show-playback-info", native["Ctrl+i"]);
         });
+
+        Test("弹幕：来源默认弹弹play，未知值归一，地址与令牌限长", () =>
+        {
+            var settings = SettingsMigration.Normalize(new AppSettings { Danmaku = null! });
+            Assert.Equal(DanmakuSourceMode.DandanPlay, settings.Danmaku.Source);
+            Assert.Equal("", settings.Danmaku.DanmuApiBaseUrl);
+            Assert.Equal("", settings.Danmaku.ProtectedDanmuApiToken);
+
+            settings.Danmaku.Source = (DanmakuSourceMode)99;
+            settings.Danmaku.DanmuApiBaseUrl = "  http://192.168.31.230:9321  ";
+            settings.Danmaku.ProtectedDanmuApiToken = new string('x', 9000);
+            SettingsMigration.Normalize(settings);
+            Assert.Equal(DanmakuSourceMode.DandanPlay, settings.Danmaku.Source);
+            Assert.Equal("http://192.168.31.230:9321", settings.Danmaku.DanmuApiBaseUrl);
+            Assert.Equal(8192, settings.Danmaku.ProtectedDanmuApiToken.Length);
+        });
+
+        Test("弹幕：备份不导出 danmu_api 地址与令牌，恢复也不覆盖本机连接", () =>
+        {
+            var live = new AppSettings();
+            live.Danmaku.Enabled = true;
+            live.Danmaku.Source = DanmakuSourceMode.Both;
+            live.Danmaku.DanmuApiBaseUrl = "http://192.168.31.230:9321";
+            live.Danmaku.ProtectedDanmuApiToken = "cipher-token";
+            live.Danmaku.Opacity = 35;
+
+            var backup = SettingsPreferences.ToBackupDocument(live);
+            Assert.Equal(DanmakuSourceMode.DandanPlay, backup.Danmaku.Source);
+            Assert.Equal("", backup.Danmaku.DanmuApiBaseUrl);
+            Assert.Equal("", backup.Danmaku.ProtectedDanmuApiToken);
+            Assert.Equal(35d, backup.Danmaku.Opacity);
+
+            SettingsPreferences.Apply(live, new AppSettings());
+            Assert.True(live.Danmaku.Enabled);
+            Assert.Equal(DanmakuSourceMode.Both, live.Danmaku.Source);
+            Assert.Equal("http://192.168.31.230:9321", live.Danmaku.DanmuApiBaseUrl);
+            Assert.Equal("cipher-token", live.Danmaku.ProtectedDanmuApiToken);
+            Assert.Equal(70d, live.Danmaku.Opacity);
+        });
+
+        Test("弹幕：来源包含关系、发送能力与可用性", () =>
+        {
+            Assert.True(DanmakuSourceRules.Includes(DanmakuSourceMode.DandanPlay, DanmakuSource.DandanPlay));
+            Assert.False(DanmakuSourceRules.Includes(DanmakuSourceMode.DandanPlay, DanmakuSource.DanmuApi));
+            Assert.True(DanmakuSourceRules.Includes(DanmakuSourceMode.DanmuApi, DanmakuSource.DanmuApi));
+            Assert.True(DanmakuSourceRules.Includes(DanmakuSourceMode.Both, DanmakuSource.DandanPlay));
+            Assert.True(DanmakuSourceRules.Includes(DanmakuSourceMode.Both, DanmakuSource.DanmuApi));
+            Assert.True(DanmakuSourceRules.CanSend(DanmakuSourceMode.DandanPlay));
+            Assert.False(DanmakuSourceRules.CanSend(DanmakuSourceMode.DanmuApi));
+            Assert.True(DanmakuSourceRules.CanSend(DanmakuSourceMode.Both));
+
+            var settings = new AppSettings();
+            Assert.False(DanmakuSourceRules.IsAvailable(settings));
+            settings.Danmaku.Enabled = true;
+            settings.Danmaku.Source = DanmakuSourceMode.DandanPlay;
+            Assert.True(DanmakuSourceRules.IsAvailable(settings));
+            settings.Danmaku.Source = DanmakuSourceMode.DanmuApi;
+            Assert.False(DanmakuSourceRules.IsAvailable(settings));
+            settings.Danmaku.DanmuApiBaseUrl = "http://192.168.31.230:9321";
+            Assert.True(DanmakuSourceRules.IsAvailable(settings));
+            settings.Danmaku.Source = DanmakuSourceMode.Both;
+            Assert.True(DanmakuSourceRules.IsAvailable(settings));
+            settings.Danmaku.DanmuApiBaseUrl = "";
+            Assert.True(DanmakuSourceRules.IsAvailable(settings));
+            settings.Danmaku.Source = DanmakuSourceMode.DanmuApi;
+            Assert.False(DanmakuSourceRules.IsAvailable(settings));
+            settings.Mpv.Backend = MpvBackendKind.ExternalMpv;
+            settings.Danmaku.DanmuApiBaseUrl = "http://192.168.31.230:9321";
+            Assert.False(DanmakuSourceRules.IsAvailable(settings));
+        });
+
+        Test("弹幕：danmu_api 地址只接受 http/https 完整地址，令牌作为独立路径段", () =>
+        {
+            Assert.True(DanmuApiEndpoint.TryCreate("http://192.168.31.230:9321", "", out var baseUri, out var error), error);
+            Assert.Equal("http://192.168.31.230:9321/", baseUri.AbsoluteUri);
+            Assert.True(DanmuApiEndpoint.TryCreate("http://192.168.31.230:9321/", "abc-123", out baseUri, out error), error);
+            Assert.Equal("http://192.168.31.230:9321/abc-123/", baseUri.AbsoluteUri);
+            Assert.True(DanmuApiEndpoint.TryCreate("https://example.test/danmu", "a/b?c", out baseUri, out error), error);
+            Assert.Equal("https://example.test/danmu/a%2Fb%3Fc/", baseUri.AbsoluteUri);
+
+            foreach (var bad in new[] { "", "192.168.31.230:9321", "ftp://host", "http://user:pass@host",
+                "http://host/?q=1", "http://host/#frag", "http:///missing" })
+                Assert.False(DanmuApiEndpoint.TryCreate(bad, "", out _, out _), bad);
+            Assert.False(DanmuApiEndpoint.TryCreate("http://host", "a\nb", out _, out _));
+            Assert.False(DanmuApiEndpoint.TryCreate("http://host", new string('x', 513), out _, out _));
+        });
+
+        Test("弹幕：danmu_api 令牌用 DPAPI 保护，空值清除，解不开要明说", () =>
+        {
+            var protector = new PrefixProtector();
+            var protectedText = DanmuApiToken.Protect(protector, " abc ");
+            Assert.Equal("cipher:" + Convert.ToBase64String(Encoding.UTF8.GetBytes("abc")), protectedText);
+            Assert.Equal("abc", DanmuApiToken.Unprotect(protector, protectedText, out var error));
+            Assert.Equal("", error);
+            Assert.Equal("", DanmuApiToken.Protect(protector, "  "));
+            Assert.Equal("", DanmuApiToken.Unprotect(null, protectedText, out error));
+            Assert.Contains("无法解密", error);
+        });
     }
 
     private static HttpResponseMessage Reply(string body, HttpStatusCode code = HttpStatusCode.OK) => new(code)

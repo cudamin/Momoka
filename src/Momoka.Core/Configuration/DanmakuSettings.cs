@@ -8,6 +8,10 @@ public sealed class DanmakuSettings
 {
     public bool Enabled { get; set; }
 
+    public DanmakuSourceMode Source { get; set; } = DanmakuSourceMode.DandanPlay;
+    public string DanmuApiBaseUrl { get; set; } = "";
+    public string ProtectedDanmuApiToken { get; set; } = "";
+
     public bool AutoMatch { get; set; } = true;
     public bool WithRelated { get; set; } = true;
     public bool Show { get; set; } = true;
@@ -26,6 +30,11 @@ public sealed class DanmakuSettings
 
     public void Normalize()
     {
+        if (!Enum.IsDefined(Source)) Source = DanmakuSourceMode.DandanPlay;
+        var address = DanmuApiBaseUrl ?? "";
+        DanmuApiBaseUrl = address[..Math.Min(address.Length, 2048)].Trim();
+        var token = ProtectedDanmuApiToken ?? "";
+        ProtectedDanmuApiToken = token[..Math.Min(token.Length, 8192)].Trim();
         var words = BlockedWords ?? "";
         BlockedWords = words[..Math.Min(words.Length, 4000)];
         Opacity = Clamp(Opacity, 10, 100, 70);

@@ -73,6 +73,12 @@ internal static class Program
             SettingsTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["danmaku-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            DanmakuTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["selfcheck-layout-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
