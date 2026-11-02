@@ -313,40 +313,63 @@
                     </Grid>
                 </Grid>
             <Button.Flyout>
-                <MenuFlyout x:Name="AccountMenu" Placement="BottomEdgeAlignedRight">
-                    <!-- 当前身份与在线数量分行，长名字截断，不让状态文字撑宽整张菜单。不写界面风味 ——
-                         「通用界面」之类的说法已经去掉了（用户令 2026-10-20）。不可点，只是把
-                         「现在是谁、在哪台服务器上」说在菜单最上面。 -->
-                    <MenuFlyoutItem x:Name="AccountIdentityItem"
-                        AutomationProperties.AutomationId="AccountIdentityStatus"
-                        MaxWidth="180" IsEnabled="False" Text="尚未登录" />
-                    <MenuFlyoutItem x:Name="AccountOnlineItem" IsEnabled="False" Visibility="Collapsed" />
-                    <MenuFlyoutSeparator />
-                    <ToggleMenuFlyoutItem x:Name="AggregateModeItem" Text="聚合模式" Click="OnAggregateModeClicked" />
-                    <MenuFlyoutSubItem x:Name="ServerMenu"
-                x:Uid="ShellPage_ServerMenu">
-                        <MenuFlyoutSubItem.Icon>
-                            <FontIcon Glyph="&#xE968;" />
-                        </MenuFlyoutSubItem.Icon>
-                    </MenuFlyoutSubItem>
-                    <MenuFlyoutSubItem x:Name="UserMenu"
-                x:Uid="ShellPage_UserMenu">
-                        <MenuFlyoutSubItem.Icon>
-                            <FontIcon Glyph="&#xE77B;" />
-                        </MenuFlyoutSubItem.Icon>
-                    </MenuFlyoutSubItem>
-                    <MenuFlyoutSubItem x:Name="OfflineMenu" Text="下线" Visibility="Collapsed">
-                        <MenuFlyoutSubItem.Icon>
-                            <FontIcon Glyph="&#xE711;" />
-                        </MenuFlyoutSubItem.Icon>
-                    </MenuFlyoutSubItem>
-                    <MenuFlyoutSeparator />
-                    <MenuFlyoutItem x:Uid="ShellPage_MenuFlyoutItem2" AutomationProperties.AutomationId="AccountSignOutItem" Click="OnSignOut">
-                        <MenuFlyoutItem.Icon>
-                            <FontIcon Glyph="&#xE7E8;" />
-                        </MenuFlyoutItem.Icon>
-                    </MenuFlyoutItem>
-                </MenuFlyout>
+                <Flyout x:Name="AccountMenu" Placement="BottomEdgeAlignedRight">
+                    <Flyout.FlyoutPresenterStyle>
+                        <Style TargetType="FlyoutPresenter" BasedOn="{StaticResource DefaultFlyoutPresenterStyle}">
+                            <Setter Property="Padding" Value="8" />
+                            <Setter Property="MinWidth" Value="0" />
+                            <Setter Property="MaxWidth" Value="360" />
+                            <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Disabled" />
+                            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+                        </Style>
+                    </Flyout.FlyoutPresenterStyle>
+                    <StackPanel x:Name="AccountMenuBody" Width="304" Spacing="4">
+                        <StackPanel.Resources>
+                            <Style x:Key="AccountActionStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                                <Setter Property="Padding" Value="8,4" />
+                                <Setter Property="MinHeight" Value="36" />
+                                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                            </Style>
+                        </StackPanel.Resources>
+                        <TextBlock x:Name="AccountIdentityItem" AutomationProperties.AutomationId="AccountIdentityStatus"
+                            Margin="8,4" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="AccountOnlineItem" Margin="8,0" Style="{StaticResource EgCaptionStyle}" Visibility="Collapsed" />
+                        <Grid Margin="8,4" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="聚合模式" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
+                            <ToggleSwitch x:Name="AggregateModeItem" Grid.Column="1" OnContent="开" OffContent="关"
+                                MinWidth="0" AutomationProperties.Name="聚合模式" Toggled="OnAggregateModeToggled">
+                                <ToggleSwitch.Resources>
+                                    <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
+                                    <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgAccentBrush" />
+                                    <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgAccentBrush" />
+                                    <StaticResource x:Key="ToggleSwitchKnobFillOn" ResourceKey="EgTextOnAccentBrush" />
+                                    <StaticResource x:Key="ToggleSwitchKnobFillOnPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                                    <StaticResource x:Key="ToggleSwitchKnobFillOnPressed" ResourceKey="EgTextOnAccentBrush" />
+                                </ToggleSwitch.Resources>
+                            </ToggleSwitch>
+                        </Grid>
+                        <ListView x:Name="AccountProfileList" MaxHeight="280" SelectionMode="None"
+                            AutomationProperties.Name="服务器与账号">
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="Padding" Value="0" />
+                                    <Setter Property="MinHeight" Value="36" />
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                        </ListView>
+                        <Button x:Name="AddServerItem" x:Uid="ShellPage_AddServerItem" Content="添加服务器…" Style="{StaticResource AccountActionStyle}" Click="OnAddServerClicked" />
+                        <Button x:Name="AddAccountItem" x:Uid="ShellPage_AddAccountItem" Content="添加账号…" Style="{StaticResource AccountActionStyle}" Click="OnAddAccountClicked" />
+                        <Button x:Name="AccountSignOutItem" x:Uid="ShellPage_AccountSignOutItem" Content="注销" Style="{StaticResource AccountActionStyle}" Click="OnSignOut" />
+                    </StackPanel>
+                </Flyout>
             </Button.Flyout>
             </Button>
 

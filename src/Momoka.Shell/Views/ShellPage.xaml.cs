@@ -105,6 +105,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private ISettingsService? _settings;
     private readonly ServersViewModel _accountMode = new();
     private readonly LoadGeneration _aggregateLoads = new();
+    private bool _seedingAccountMode;
     private IServerCapabilities? _capabilities;
 
     private Windowing.HostWindow? _window;
@@ -446,9 +447,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>账号那颗按钮 —— 挪进标题栏之后它的收／放跟外壳一整块走，但自检还要量它在不在屏上。</summary>
     internal FrameworkElement AccountRoot => AccountButton;
 
-    /// <summary>探针读的：账号菜单第一行的身份文字、两张子菜单的叫法，以及重读一遍的入口。</summary>
-    internal (string Identity, string ServerMenu, string UserMenu) AccountMenuLabels =>
-        (AccountIdentityItem.Text, ServerMenu.Text, UserMenu.Text);
+    /// <summary>探针读取当前身份与统一账号列表。</summary>
+    internal string AccountMenuIdentity => AccountIdentityItem.Text;
 
     internal void RefreshAccountMenus() => FillSwitchMenus();
 
@@ -2247,7 +2247,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// the address already filled in.
     /// <para>
     /// 菜单第一行写当前身份，在线数量单独一行，不让长状态撑宽所有操作行。
-    /// 聚合模式开着时登录是加法，所以两张子菜单改叫「添加」；关着时登录会替换当前来源，仍叫「切换」。
+    /// 服务器与账号同一行；聚合模式在线账号的下线按钮就近放在右侧。
     /// </para>
     /// </summary>
     private void FillSwitchMenus()
@@ -2255,80 +2255,85 @@ public sealed partial class ShellPage : UserControl, IShellActions
         var session = _session!;
         var sources = session.Sources;
         var aggregate = Settings.AggregateMode;
-        var user = session.Account?.Username;
-        var server = session.ServerDisplayName;
-
         AccountIdentityItem.Text = sources.Count == 0
             ? "尚未登录"
-            : string.Join(" · ", new[] { user, server }.Where(part => !string.IsNullOrWhiteSpace(part)));
+            : $"{session.ServerDisplayName} · {session.Account?.Username}";
         AccountOnlineItem.Text = $"{sources.Count} 个账号在线";
         AccountOnlineItem.Visibility = sources.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-        AggregateModeItem.IsChecked = aggregate;
-        OfflineMenu.Visibility = aggregate && sources.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-        OfflineMenu.Items.Clear();
-        foreach (var source in sources)
-        {
-            var entry = new MenuFlyoutItem { Text = source.DisplayName, Tag = source };
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(entry, "AccountOffline:" + source.Key);
-            entry.Click += OnTakeAccountOffline;
-            OfflineMenu.Items.Add(entry);
-        }
-
-        ServerMenu.Text = aggregate ? "添加服务器" : "切换服务器";
-        UserMenu.Text = aggregate ? "添加账号" : "切换用户";
-
-        ServerMenu.Items.Clear();
+        _seedingAccountMode = true;
+        try { AggregateModeItem.IsOn = aggregate; }
+        finally { _seedingAccountMode = false; }
+        AccountProfileList.Items.Clear();
         foreach (var serverProfile in Settings.Servers)
         {
-            var online = sources.Any(source => source.ServerProfileId == serverProfile.Id);
-            var entry = new MenuFlyoutItem
+            if (serverProfile.Accounts.Count == 0)
             {
-                Text = online ? $"{serverProfile.Name}（在线）" : serverProfile.Name,
-                Tag = serverProfile,
-                IsEnabled = !ReferenceEquals(serverProfile, session.Server)
-            };
-
-            entry.Click += OnSwitchServer;
-            ServerMenu.Items.Add(entry);
-        }
-
-        ServerMenu.Items.Add(new MenuFlyoutSeparator());
-        var addServer = new MenuFlyoutItem { Text = "添加服务器…", Tag = null };
-        addServer.Click += (_, _) => ShowSignIn();
-        ServerMenu.Items.Add(addServer);
-        ServerMenu.IsEnabled = true;
-
-        UserMenu.Items.Clear();
-        var current = session.Server;
-
-        if (current is not null)
-        {
-            foreach (var account in current.Accounts)
+                AddProfileRow(serverProfile, null, null);
+                continue;
+            }
+            foreach (var account in serverProfile.Accounts)
             {
-                var online = sources.Any(source => source.AccountProfileId == account.Id
-                    && source.ServerProfileId == current.Id);
-                var entry = new MenuFlyoutItem
-                {
-                    Text = online ? $"{account.Username}（在线）" : account.Username,
-                    Tag = account,
-                    IsEnabled = !ReferenceEquals(account, session.Account)
-                };
-
-                entry.Click += OnSwitchUser;
-                UserMenu.Items.Add(entry);
+                var source = sources.FirstOrDefault(source => source.AccountProfileId == account.Id
+                    && source.ServerProfileId == serverProfile.Id);
+                AddProfileRow(serverProfile, account, source);
             }
         }
 
-        UserMenu.Items.Add(new MenuFlyoutSeparator());
-        var addAccount = new MenuFlyoutItem { Text = "添加账号…", Tag = null };
-        addAccount.Click += (_, _) => ShowSignIn(current, newAccount: true);
-        UserMenu.Items.Add(addAccount);
-        UserMenu.IsEnabled = true;
+        void AddProfileRow(ServerProfile profile, AccountProfile? account, EmbySessionScope? source)
+        {
+            var key = $"{profile.Id.Length}:{profile.Id}{account?.Id}";
+            var identity = account is null ? profile.Name : $"{profile.Name} · {account.Username}";
+            var row = new Grid { ColumnSpacing = 4, Tag = key };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var select = new Button
+            {
+                Content = new TextBlock
+                {
+                    Text = identity + (source?.IsCurrent == true ? "（当前）" : source is not null ? "（在线）" : ""),
+                    TextTrimming = TextTrimming.CharacterEllipsis
+                },
+                Style = (Style)AccountMenuBody.Resources["AccountActionStyle"]
+            };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(select, "AccountSelect:" + key);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(select, identity);
+            select.Click += (_, _) =>
+            {
+                AccountMenu.Hide();
+                _ = SwitchAsync(profile, account);
+            };
+            row.Children.Add(select);
+            var offline = new Button
+            {
+                Content = "下线",
+                Tag = source,
+                Style = (Style)AccountMenuBody.Resources["AccountActionStyle"],
+                Visibility = aggregate && source is not null ? Visibility.Visible : Visibility.Collapsed
+            };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(offline, "AccountOffline:" + key);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(offline, "下线 " + identity);
+            Grid.SetColumn(offline, 1);
+            offline.Click += OnTakeAccountOffline;
+            row.Children.Add(offline);
+            AccountProfileList.Items.Add(row);
+        }
     }
 
-    private void OnAggregateModeClicked(object sender, RoutedEventArgs e)
+    private void OnAggregateModeToggled(object sender, RoutedEventArgs e)
     {
-        if (sender is ToggleMenuFlyoutItem toggle) _ = SetAccountAggregateModeAsync(toggle.IsChecked);
+        if (!_seedingAccountMode && sender is ToggleSwitch toggle) _ = SetAccountAggregateModeAsync(toggle.IsOn);
+    }
+
+    private void OnAddServerClicked(object sender, RoutedEventArgs e)
+    {
+        AccountMenu.Hide();
+        ShowSignIn();
+    }
+
+    private void OnAddAccountClicked(object sender, RoutedEventArgs e)
+    {
+        AccountMenu.Hide();
+        ShowSignIn(_session?.Server, newAccount: true);
     }
 
     private async Task SetAccountAggregateModeAsync(bool value)
@@ -2354,10 +2359,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private void OnTakeAccountOffline(object sender, RoutedEventArgs e)
     {
         if (_session is null || !Settings.AggregateMode
-            || sender is not MenuFlyoutItem { Tag: EmbySessionScope source } || !source.IsAvailable) return;
+            || sender is not Button { Tag: EmbySessionScope source } || !source.IsAvailable) return;
         var server = Settings.FindServer(source.ServerProfileId);
         var account = server?.FindAccount(source.AccountProfileId);
         if (server is null || account is null) return;
+        AccountMenu.Hide();
         if (!_session.TakeOffline(server, account)) return;
         _aggregateLoads.Cancel();
         _accountMode.Cancel();
@@ -2367,22 +2373,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // 手动下线立即切走被撤销的来源，不等其他账号的后台自动连接结束。
         if (_session.IsSignedIn) _ = EnterShellAsync();
         else ShowSignIn();
-    }
-
-    private void OnSwitchServer(object sender, RoutedEventArgs e)
-    {
-        if (_settings is null || sender is not MenuFlyoutItem { Tag: ServerProfile server }) return;
-
-        var account = _session?.PreferredAccount(server);
-        _ = SwitchAsync(server, account);
-    }
-
-    private void OnSwitchUser(object sender, RoutedEventArgs e)
-    {
-        if (_session?.Server is not { } server || sender is not MenuFlyoutItem { Tag: AccountProfile account })
-            return;
-
-        _ = SwitchAsync(server, account);
     }
 
     private async Task SwitchAsync(ServerProfile server, AccountProfile? account)
@@ -2436,6 +2426,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private void OnSignOut(object sender, RoutedEventArgs e)
     {
         if (_session is null) return;
+        AccountMenu.Hide();
 
         Log.Info(Category, "请求注销");
         _session.SignOut();
@@ -2461,7 +2452,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         if (_session.IsSignedIn)
         {
             if (_displayedSources != SourcesStamp()) _ = EnterShellAsync();
-            else if (AggregateModeItem.IsChecked != Settings.AggregateMode) FillSwitchMenus();
+            else if (AggregateModeItem.IsOn != Settings.AggregateMode) FillSwitchMenus();
         }
         else ShowSignIn();
     }

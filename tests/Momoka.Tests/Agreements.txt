@@ -629,7 +629,6 @@ handle  Views/ShellPage.xaml  NavToggleButton
 handle  Views/ShellPage.xaml  Player
 handle  Views/ShellPage.xaml  Root
 handle  Views/ShellPage.xaml  SearchButton
-handle  Views/ShellPage.xaml  ServerMenu
 handle  Views/ShellPage.xaml  SettingsButton
 handle  Views/ShellPage.xaml  Sidebar
 handle  Views/ShellPage.xaml  SidebarFavorites
@@ -648,7 +647,6 @@ handle  Views/ShellPage.xaml  TitleActions
 handle  Views/ShellPage.xaml  Toast
 handle  Views/ShellPage.xaml  Trail
 handle  Views/ShellPage.xaml  TrailBar
-handle  Views/ShellPage.xaml  UserMenu
 handle  Views/ShortcutCaptureBox.xaml  CaptureStates
 handle  Views/ShortcutCaptureBox.xaml  Capturing
 handle  Views/ShortcutCaptureBox.xaml  ClearButton

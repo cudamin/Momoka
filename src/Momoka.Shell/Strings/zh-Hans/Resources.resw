@@ -570,7 +570,7 @@
   <data name="ShellPage_HomeButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>主页</value>
   </data>
-  <data name="ShellPage_MenuFlyoutItem2.Text" xml:space="preserve">
+  <data name="ShellPage_AccountSignOutItem.Content" xml:space="preserve">
     <value>注销</value>
   </data>
   <data name="ShellPage_NavToggleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
@@ -585,8 +585,8 @@
   <data name="ShellPage_SearchButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>搜索</value>
   </data>
-  <data name="ShellPage_ServerMenu.Text" xml:space="preserve">
-    <value>切换服务器</value>
+  <data name="ShellPage_AddServerItem.Content" xml:space="preserve">
+    <value>添加服务器…</value>
   </data>
   <data name="ShellPage_SettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>设置</value>
@@ -600,8 +600,8 @@
   <data name="ShellPage_SidebarSettingsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>设置</value>
   </data>
-  <data name="ShellPage_UserMenu.Text" xml:space="preserve">
-    <value>切换用户</value>
+  <data name="ShellPage_AddAccountItem.Content" xml:space="preserve">
+    <value>添加账号…</value>
   </data>
   <data name="ShortcutCaptureBox_Clear.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>清除快捷键</value>

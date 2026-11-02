@@ -11,20 +11,23 @@ internal static class AccountMenuTests
         TestHarness.Test("账号菜单：聚合开关与下线入口可稳定定位", () =>
         {
             var menu = Shell().Descendants().Single(element => element.Attribute(Xaml + "Name")?.Value == "AccountMenu");
-            var toggle = menu.Elements().SingleOrDefault(element => element.Attribute(Xaml + "Name")?.Value == "AggregateModeItem");
+            var toggle = menu.Descendants().SingleOrDefault(element => element.Attribute(Xaml + "Name")?.Value == "AggregateModeItem");
             Assert.True(toggle is not null, "顶部账号菜单缺少聚合模式开关");
-            Assert.Equal("ToggleMenuFlyoutItem", toggle!.Name.LocalName);
-            Assert.Equal("聚合模式", toggle.Attribute("Text")?.Value);
-            Assert.Equal("OnAggregateModeClicked", toggle.Attribute("Click")?.Value);
-            Assert.True(menu.Elements().Any(element => element.Attribute(Xaml + "Name")?.Value == "OfflineMenu"),
-                "顶部账号菜单缺少按账号下线入口");
+            Assert.Equal("ToggleSwitch", toggle!.Name.LocalName);
+            Assert.Equal("开", toggle.Attribute("OnContent")?.Value);
+            Assert.Equal("关", toggle.Attribute("OffContent")?.Value);
+            Assert.Equal("OnAggregateModeToggled", toggle.Attribute("Toggled")?.Value);
+            Assert.False(menu.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "OfflineMenu"),
+                "下线应放在账号行右侧，不单独建菜单");
+            Assert.True(menu.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "AccountProfileList"),
+                "服务器与账号应共用一张列表");
         });
 
         TestHarness.Test("账号菜单：在线数量独立一行，长身份不会撑宽面板", () =>
         {
             var shell = Shell();
             var identity = shell.Descendants().Single(element => element.Attribute(Xaml + "Name")?.Value == "AccountIdentityItem");
-            Assert.Equal("180", identity.Attribute("MaxWidth")?.Value);
+            Assert.Equal("CharacterEllipsis", identity.Attribute("TextTrimming")?.Value);
             Assert.True(shell.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "AccountOnlineItem"),
                 "在线账号数应独立呈现，不追加到身份行");
         });
