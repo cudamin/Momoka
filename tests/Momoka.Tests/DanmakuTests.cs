@@ -892,6 +892,24 @@ internal static class DanmakuTests
                 Assert.False(DanmakuMatchRules.CanAutoMatch(unavailable), unavailable.Type);
         });
 
+        Test("弹幕：danmu_api 自动匹配优先使用所属剧的年份", () =>
+        {
+            var episode = new EmbyItem
+            {
+                Type = EmbyItemType.Episode,
+                SeriesName = "凡人修仙传",
+                IndexNumber = 184,
+                ParentIndexNumber = 1,
+                ProductionYear = 2026
+            };
+            Assert.Equal("凡人修仙传 (2020) S01E184", DanmakuMatchRules.MatchFileName(episode, 2020));
+            Assert.Equal("凡人修仙传 (2026) S01E184", DanmakuMatchRules.MatchFileName(episode));
+            Assert.Equal("凡人修仙传 (2026) S01E184", DanmakuMatchRules.MatchFileName(episode, 0));
+
+            var movie = new EmbyItem { Type = EmbyItemType.Movie, Name = "测试电影", ProductionYear = 2024 };
+            Assert.Equal("测试电影 (2024)", DanmakuMatchRules.MatchFileName(movie, 2020));
+        });
+
         Test("弹幕：danmu_api 匹配结果核对显式集号", () =>
         {
             var episode = new EmbyItem

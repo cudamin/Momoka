@@ -20,11 +20,15 @@ public static class DanmakuMatchRules
         _ => false
     };
 
-    public static string MatchFileName(EmbyItem item)
+    public static string MatchFileName(EmbyItem item, int? seriesYear = null)
     {
         var title = DandanPlayMatching.Title(item).Trim();
-        var year = item.ProductionYear is { } productionYear && productionYear > 0
-            ? $" ({productionYear.ToString(CultureInfo.InvariantCulture)})"
+        // 单集的 ProductionYear 是这一集的播出年；连载多年的动画要拿整部剧的首播年去匹配，否则续集匹配不到。
+        var productionYear = item.Type == EmbyItemType.Episode && seriesYear is > 0
+            ? seriesYear
+            : item.ProductionYear;
+        var year = productionYear is > 0
+            ? $" ({productionYear.Value.ToString(CultureInfo.InvariantCulture)})"
             : "";
         if (item.Type != EmbyItemType.Episode) return $"{title}{year}";
         var season = item.ParentIndexNumber ?? 0;

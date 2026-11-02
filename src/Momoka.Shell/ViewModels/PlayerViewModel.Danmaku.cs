@@ -236,7 +236,9 @@ public sealed partial class PlayerViewModel
             {
                 try
                 {
-                    var candidate = await _dandanPlay.MatchAsync(DanmakuMatchRules.MatchFileName(item), token)
+                    var seriesYear = await DanmakuSeriesYearAsync(item, token).ConfigureAwait(true);
+                    if (!DanmakuAvailable || !IsCurrentPlayback(context) || request != _danmakuSearchRequest) return;
+                    var candidate = await _dandanPlay.MatchAsync(DanmakuMatchRules.MatchFileName(item, seriesYear), token)
                         .ConfigureAwait(true);
                     if (candidate is null) customError = "danmu_api 没有找到匹配。";
                     else if (DanmakuMatchRules.Accepts(item, candidate)) customMatch = candidate;
@@ -263,6 +265,22 @@ public sealed partial class PlayerViewModel
             DanmakuStatus = notes.Count > 0 ? string.Join("；", notes) : "没有找到对应剧集，请尝试其他片名或留空集数。";
         }
         catch (OperationCanceledException) { }
+    }
+
+    private async Task<int?> DanmakuSeriesYearAsync(EmbyItem item, CancellationToken cancellationToken)
+    {
+        if (item.Type != EmbyItemType.Episode) return null;
+        if (_parent is { Type: EmbyItemType.Series, ProductionYear: > 0 } parent) return parent.ProductionYear;
+        if (string.IsNullOrWhiteSpace(item.SeriesId)) return null;
+        try
+        {
+            var series = await _session.Capture(item)
+                .ExecuteAsync((client, token) => client.GetItemAsync(item.SeriesId, token, EmbyFields.Browse), cancellationToken)
+                .ConfigureAwait(true);
+            return series.ProductionYear is > 0 ? series.ProductionYear : null;
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { return null; }
     }
 
     internal Task<DandanPlaySearchResult> SearchDanmakuAsync(string title, string? episode,
