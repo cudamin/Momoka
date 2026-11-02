@@ -4,6 +4,11 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["toolbar-icon-fixture"])
+        {
+            ToolbarIconTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["account-menu-fixture"])
         {
             AccountMenuTests.Register();
@@ -230,6 +235,7 @@ internal static class Program
         SelfCheckOutputIsolationTests.Register();
         SettingsTests.Register();
         SettingsLayoutTests.Register();
+        ToolbarIconTests.Register();
         StartupEntryTests.Register();
         NotificationTests.Register();
         ServerSettingsTests.Register();

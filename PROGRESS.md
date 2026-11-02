@@ -9908,3 +9908,9 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 中间正式窗口匿名首开约176ms，正文稳定约624ms，重开227–258ms；这些是中间代码/本机假HTTP，不是最终真实服务性能。合成HitClose两轮未画红，探针如实红且后续24项绿，未作为修复通过；改为inspect真实X与重开核验。最终截图、发布与提交待完成；未推origin、未播放或写服务器。
 
 - 本机真实输入补验：inspect 17840，正式设置窗口4853260；winapp真实hover Close画红，click Close确认窗口从可见列表消失，再真实click检查台SettingsOpeningReopen（光标离开X）截图无红；再次hover恢复红，再次click X→重开无红。2轮实际正反图片保存在 `work/caption-real2-{red,cleared,red-again,cleared-again}.png`，只对匿名假设置/服务器操作。首轮Invoke重开光标还停X导致正常红，不冒充残留；改真实点击重开让光标离开关闭区域。移除无调用者的合成红像素helper，保留消息顺序单测与正式窗口运行路径。
+## 2026-11-02 顶部收藏爱心大小与线重（子代理待主树整合）
+
+- 用户要求将左上爱心加粗、加大，使视觉与主页／设置按钮一致。独立树 `C:/Users/89400/.codex/worktrees/heart-toolbar/Momoka`，基于 master `81c2ca3`；范围为 ShellPage 顶部 FavoritesButton、主测试注册及新增 ToolbarIconTests、开发文档与本记录。
+- 爱心由字体字形改为与两旁同规格的24坐标系 PathIcon＋26 DIP Viewbox，两道闭合轮廓用 F0 保持空心，线宽约1.8；保留按钮点击、显隐、资源化名称和前景继承，详情／卡片与侧栏收藏不改变。
+- 定向回归2条在旧 FontIcon 实现均失败，新实现2/2通过（0失败0跳过）；当前Core／主测试和Shell Release构建均0警告0错误。离线几何检查爱心边界20.18×18.01，主页18.80×18.60，设置19.73×20.16；该数为生产路径的WPF几何解析，不能冒充真实WinUI像素或视觉验收。
+- 桌面UI、完整主测试、主树合入和发布由根代理串行收尾，本子代理未运行App、未读取真实账号、未起播放、未推origin。`ToolbarIconTests`已登记完整主测试，定向入口为`toolbar-icon-fixture`。实际大小、空心与线重须在收藏可见的宽窄Shell实屏复核。
