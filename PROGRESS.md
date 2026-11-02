@@ -9881,3 +9881,11 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 验证（最终代码）：Tests/Core Release 构建 0 警告 0 错误；主测试 3498/3498（0 失败 0 跳过）；`dotnet format whitespace` 退出 0。开发件实屏（尚公主 S01E18）`HDR：DolbyVision Profile 5.0`（`work/dovi-profile-inline.png`）。
 - 交付：`tools/publish.ps1 -NoArchive -Shortcut` 退出 0，`artifacts/publish/win-x64` 546 文件 / 285.4 MB、载荷校验通过；版本 `0.2.0+f19c42f8cb5985a066b97b8e61bfca474c6c1349`，`Momoka.dll` SHA256 `0787A921B29A529512A3863A5E3F5C7B87025500328DAAF1CB094C473796F5EC`；桌面快捷方式目标与工作目录均为该目录、参数为空。交付件从发布目录启动落尚公主 S01E18：UIA 读到 `HDR：` 与 `DolbyVision Profile 5.0`，「其他信息」标题在位，无单独档位行，截图 `work/delivered-dovi-profile.png`；关闭后无残留进程。
 - 未覆盖：没有真实 DV 播放、HDR 屏或独占管线验证；未推 origin、未升版本。
+# 2026-11-02 顶部账号菜单聚合开关与行内下线（已交付桌面）
+
+- 用户要求：补聚合开关与下线操作，修聚合菜单空白；随后纠正为下线直接放列表行右侧、服务器与账号同一行，并指定带「开」文字的滑动开关。
+- 产品提交：`d511862`、`bb67d8e`，均已快进合入 master。最终菜单改普通 Flyout + ToggleSwitch + 统一身份列表，按「服务器 · 账号」呈现；下线按钮只在聚合且该账号在线时显示，关闭后完整收起。身份选择与下线使用稳定 UIA 标识；下线保留凭据并取消迟到自动恢复。默认薄荷主题为截图式绿色开关，其余主题沿用各自强调色。
+- 验证：主树 Shell／Core／主测试 Release 构建 0 警告 0 错误；完整主测试串行 **3540/3540、0失败0跳过**，目录夹具 **15/15**；空白检查、自动化扫描（缺句柄0）、主树规则自测与 git diff --check 通过。此前测试与 UI 探针重叠触发同一诊断 mutex，16条隔离自检失败保留在 `work/account-row-main-tests.log`；待探针退出后串行重跑全绿（`work/account-row-main-tests-serial.log`），未改断言或互斥策略。
+- 窗口检查：主树开发件与实际发布件 `--probe-shell --probe-section accounts --screen 1` 各 **5/5**，包含1100／760菜单、开关滑块实际位置、五主题实屏、在线身份选择、行内下线、失效目标、最后账号下线与迟到连接拒绝。最终发布 run `shell-probe-20261102-041929085-21608`；截图与报告保存在 `artifacts/ui-review/account-aggregate-20261102/published/`。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 成功，546文件／285.6MB；开发件与发布件 Momoka.dll SHA256 均 `e330aa2dfe602970fd40357d1e7f5bb64c2c8a550ae1bdb2d088743994f190bc`。桌面 Momoka.lnk 指向主树 `artifacts/publish/win-x64/Momoka.exe`。版本保持0.2.2，未上传 origin。
+- 范围：只匿名假HTTP和临时设置，无真实登录、媒体播放或服务器写入；离线账号行选择、无账号服务器行及侧栏朝上浮层未做直接运行操作，仅源码复核。临时分支与工作树内容已全部进入master，分支已删除；归档工具因该检出是本聊天当前主检出而拒绝移除，保留干净的 detached 检出（bb67d8e），未绕过工具删除。
