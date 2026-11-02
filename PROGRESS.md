@@ -1,3 +1,13 @@
+## 2026-11-02 主页轮播：无可用宽图的幻灯片不再上带，进度条改用单一时钟（已合入 master 并发布）
+
+- 用户令（两条，附实屏截图）：①「刚入库的资源如果没有背景图或可用于轮播图的图片就不要放到轮播列表里」；②「轮播图有bug，进度条经常会卡住不动，或者跑到一半回退，请修复」。
+- **无图条目**：轮播候选一直只按服务器发下来的元数据筛（`ItemArtwork.Banner`：自己的背景图／艺术图／缩略图，剧集再借剧的背景图）。刚入库的条目常出现「标签说有图、真取却 404 或解不出来」，屏上就是一块深色矩形加几行字。`BannerSlide.EnsureAsync` 现在把「图片这一趟走完仍没有图」报成 `PictureUnavailable`（徽标失败不算、取消不算），`HomeBanner` 收到后把该张从这一批里摘掉；摘完台上是谁由 Core 的 `HomeCarousel.AfterDrop` 决定（摘台下不动、摘台上由后一张补位、摘下最后一张回第一张），`HomePage` 再把同一件交给 `HomeViewModel.DropSlide`，清单同步少这一件，下一次整页重读不再带回来。带子只预取台上及左右各一张，坏图通常在被翻到之前就已摘掉。
+- **进度条**：根因是两套时钟加三处清零。条是一段 `Duration = _dwell` 的故事板、翻页是另一只间隔 `_dwell` 的定时器，谁先到都不保证同一帧；悬停／焦点会停表并把条清零，移开又从零起；整页重读 `Apply` 每次 `Show(0)`，进度回到第一张。现在只有一只 50ms 的 `DispatcherQueueTimer`，按 `Environment.TickCount64` 的经过时间直接写 `CountdownScale.ScaleX`，跑满 `_dwell` 的那一拍 `Advance(1)`；悬停／焦点只决定箭头；`ApplyDwell` 值没变不重置；`Apply` 按 `BannerSlide.Signature` 沿用同一条目的旧对象，台上那张与倒计时不因一次重读回到第一张（内容真变了才重来）。
+- **测试**：`HomeCarouselTests` 新增 `AfterDrop` 四档算例；library 探针新增「轮播读秒连续、悬停不停与无图摘除」（真实 `HomeBanner` ＋ 假 HTTP）：悬停＋焦点占着时条 0.04→0.42 连续前进、3 秒到点换片并归零、交一批新对象后读数仍 02/03 且条继续走、插入 404 宽图后张数 04→03 且条不回退、只剩坏图时整条带收起，并核对 `HomeViewModel.DropSlide` 会从清单移除。读数 `home-banner-clock.txt`、实屏 `home-banner-clock-screen.png`。
+- **验证（master 最终代码 `96d5010`）**：Release 全方案 **0 警告 0 错误**；主测试 **3595/3595、0 失败 0 跳过**；`dotnet format whitespace` 与 `git diff --check` 干净；`--probe-shell --probe-section library --screen 1` 首跑 22/23（唯一红项是既有的「剧页面无封面播放按钮」冷启动超时，`shell-probe-20261102-155717773-18328`），同一二进制紧接复跑 **23/23、退出 0**（`shell-probe-20261102-160053048-20836`），新用例两轮读数一致。
+- **发布**：master `tools/publish.ps1 -Shortcut -NoArchive` 退出 0；`artifacts/publish/win-x64` **546 文件 / 285.7 MB**，14 GLSL / 4 HOOK，批准 mpv 清单 59 文件（50 UI / 2 native），载荷校验通过；开发件与发布件 `Momoka.dll` SHA-256 同为 `EEA07C06443CF50CB382F16A19D49486B2194313FE9FFCD3CC411F864108AAB6`。桌面 `Momoka.lnk` 已重写并读回。发布件 `--probe-shell --probe-section library --screen 1` **23/23、退出 0**（`shell-probe-20261102-160729380-29352`），新用例读数与开发件一致。
+- **未覆盖**：真实服务器上「刚入库、宽图还没生成」的真实 404 路径（探针用假 HTTP 404 模拟）；真实桌面上长时间连续轮播的观感；未推 origin（未获上传授权）。
+
 ## 2026-11-02 详情页响应式批次交付到桌面（主树发布）
 
 - 交付提交：`c34a304`（产品代码止于 `e607c66`；之后仅 PROGRESS 记录）。沿用主树最终代码的批次收尾证据：Release 全方案 0 警告 0 错误、主测试 **3594/3594、0 失败 0 跳过**、`dotnet format whitespace` 与 `git diff --check` 干净、开发件 `--probe-shell --probe-section library --screen 1` **22/22**（`shell-probe-20261102-141928216-25884`）；发布前产品代码未再变动。
