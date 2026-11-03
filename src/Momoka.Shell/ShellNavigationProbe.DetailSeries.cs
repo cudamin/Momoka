@@ -48,9 +48,15 @@ internal sealed partial class ShellNavigationProbe
     /// 一个字都不该落到「由 mpv 决定」。
     /// </para>
     /// <para>
+    /// ⑥ 特别篇那一页另开一次（2026-11-03）：集列表下面那排只装第 0 季的集；同日晚上第 0 季又回到「全部剧季」
+    /// 卡带，照服务器季序排在最前、点它进第 0 季页面 —— 两处并存，封面各是各的（集卡用集自己的剧照，季卡用季
+    /// 自己的海报）。
+    /// </para>
+    /// <para>
     /// 截图 `detail-series-single-season-{1280,760}.png`、`detail-series-two-seasons-{1280,760}.png`、
-    /// `detail-series-season-before-info-1280.png`、`detail-episode-seasons-1280.png` 与
-    /// `detail-season-header-1280.png`，读数落 `detail-series-info.txt`。全部走假传输，不联网、不播放。
+    /// `detail-series-season-before-info-1280.png`、`detail-episode-seasons-1280.png`、
+    /// `detail-series-specials-1280.png` 与 `detail-season-header-1280.png`，读数落 `detail-series-info.txt`。
+    /// 全部走假传输，不联网、不播放。
     /// </para>
     /// </summary>
     private async Task DetailSeriesInfoAsync()
@@ -382,6 +388,8 @@ internal sealed partial class ShellNavigationProbe
                 var specialRow = Get<ShelfStrip>(page, "SpecialRow");
                 var episodePanel = Get<StackPanel>(page, "EpisodePanel");
                 var episodeStrip = Get<ShelfStrip>(page, "EpisodeStrip");
+                var seasonPanel = Get<StackPanel>(page, "SeasonPanel");
+                var seasonRow = Get<ShelfStrip>(page, "SeasonRow");
 
                 // 2026-11-03 用户令：特别篇是集列表（第 0 季的集各自一张卡），不是季列表；它的封面是每一集
                 // 自己的封面。整块从独立面板挪进了「全部剧集」卡片，排在集带下面。
@@ -401,11 +409,18 @@ internal sealed partial class ShellNavigationProbe
                             <= Top(episodePanel, page) + episodePanel.ActualHeight + 1,
                     "特别篇没有接在集带下面、仍留在全部剧集卡片里");
 
-                // 第 0 季只在特别篇那一排出现；「全部剧季」只列正片季（这张夹具只剩一季，整块因此收起）。
-                Require(view.SeasonShelf is { Cards.Count: 1 }
-                        && view.SeasonShelf.Cards[0].Item.Id == "sp-s1"
-                        && Get<StackPanel>(page, "SeasonPanel").Visibility == Visibility.Collapsed,
-                    "第 0 季在全部剧季里又出现了一次");
+                // 同日晚上「全部剧集卡片要显示特别篇（S00季）的封面」：第 0 季回到「全部剧季」卡带，照服务器
+                // 季序排在最前；卡片走季卡自己的封面路，点它进第 0 季页面。上面那排集的快捷入口仍然只在
+                // EpisodePanel 里，两处各是各的入口。
+                Require(view.SeasonShelf is { Cards.Count: 2 }
+                        && view.SeasonShelf.Cards.Select(card => card.Item.Id).SequenceEqual(["sp-s0", "sp-s1"]),
+                    "全部剧季没有把第 0 季按服务器季序摆出来："
+                        + string.Join("、", view.SeasonShelf?.Cards.Select(card => card.Item.Id) ?? []));
+                Require(seasonPanel.Visibility == Visibility.Visible && seasonPanel.ActualHeight > 0,
+                    $"特别篇剧页的季卡带没有画出来：{seasonPanel.Visibility}、高 {seasonPanel.ActualHeight:0.#}");
+                Require(Descendants(seasonRow).OfType<PosterCard>()
+                        .Any(card => card.Card?.Item.Id == "sp-s0" && card.ActualWidth > 0 && card.ActualHeight > 0),
+                    "第 0 季的季卡没有在带子里实现出来");
 
                 Require(view.EpisodeShelf is { Cards.Count: 3 }
                         && view.EpisodeShelf.Cards.Select(card => card.Item.Id)
@@ -418,8 +433,10 @@ internal sealed partial class ShellNavigationProbe
                     $"特别篇夹具的播放落点不是最早播出的正片：{view.PlayTarget?.Id}");
 
                 var opened = fixture.Actions.Opened;
+                view.OpenCard(view.SeasonShelf!.Cards[0]);
+                Require(fixture.Actions.Opened == opened + 1, "第 0 季的季卡点不开季页面");
                 view.OpenCard(view.SpecialShelf!.Cards[0]);
-                Require(fixture.Actions.Opened == opened + 1, "特别篇集点不开集页面");
+                Require(fixture.Actions.Opened == opened + 2, "特别篇集点不开集页面");
 
                 ScrollToPanel(page, specialPanel);
                 await LayoutAsync(page);
@@ -427,6 +444,7 @@ internal sealed partial class ShellNavigationProbe
                 readings.Add($"特别篇 1280：卡 {specialRow.ActualHeight:0}、面板 {Top(specialPanel, page):0}–"
                     + $"{Top(specialPanel, page) + specialPanel.ActualHeight:0}、"
                     + $"集列表 {string.Join("→", view.EpisodeShelf?.Cards.Select(card => card.Item.Id) ?? [])}、"
+                    + $"季卡 {string.Join("→", view.SeasonShelf?.Cards.Select(card => $"{card.Item.Name}({card.CardWidth:0})") ?? [])}、"
                     + $"锚点「{view.SelectedSeason?.Name ?? "无"}」");
             }
             finally
