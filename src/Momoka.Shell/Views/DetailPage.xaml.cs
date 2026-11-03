@@ -2048,9 +2048,11 @@ public sealed partial class DetailPage : Page, IShellContent
     /// 就是它自己要的高。
     /// </para>
     /// <para>
-    /// 再把这一档的竖留白减掉，交出去的是一个跟「收到多紧」无关的内容高：它自己的上下内边距、可见块之间的
-    /// 竖距、每块面板的上下内边距。不先减掉，下一拍就会拿上一拍的答案算这一拍，收一点、尾变矮、又算出「不用
-    /// 收」—— 拖窗口时整段上下抖（视图模型那一头 <c>DetailViewModel.TailIntrinsic</c> 上写着同一句话）。
+    /// 直接累加每块面板里面的内容期望高度与固定的内部间距，不读回响应式外边距或内边距。
+    /// WinUI 会把整段 ActualHeight 取整到物理像素，但 Padding 保留小数；拿整段高度反扣 Padding，
+    /// 取整误差仍随 Squeeze 改变，再回写留白就可能在两个值之间循环，拖边框时最终触发布局循环异常。
+    /// 子元素的 DesiredSize 已包含自己的 Margin，且竖向 StackPanel 按无限高度测量孩子，父级竖留白
+    /// 不会改变这些内容高度。电影、剧、季与集页共用这一条测量路径。
     /// </para>
     /// </summary>
     private void OnTailContentSizeChanged(object sender, SizeChangedEventArgs e)
@@ -2059,13 +2061,19 @@ public sealed partial class DetailPage : Page, IShellContent
             .Where(panel => panel.Visibility == Visibility.Visible)
             .ToList();
 
-        var gaps = Math.Max(0, panels.Count - 1);
-        var pads = panels.Sum(panel => panel.Padding.Top + panel.Padding.Bottom);
-        var intrinsic = TailContent.ActualHeight
-            - TailContent.Padding.Top - TailContent.Padding.Bottom
-            - (TailContent.Spacing * gaps) - pads;
-
-        ViewModel.TailIntrinsic = Math.Max(0, intrinsic);
+        var intrinsic = 0d;
+        foreach (var panel in panels)
+        {
+            var count = 0;
+            foreach (var child in panel.Children)
+            {
+                if (child.Visibility != Visibility.Visible) continue;
+                intrinsic += child.DesiredSize.Height;
+                count++;
+            }
+            intrinsic += Math.Max(0, count - 1) * panel.Spacing;
+        }
+        ViewModel.TailIntrinsic = intrinsic;
     }
 
     /// <summary>

@@ -776,14 +776,12 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 之间的竖距和每块面板的上下内边距，由视图量给（<c>DetailPage.OnTailContentSizeChanged</c>）。
     /// 它自己不上屏，只喂 <see cref="Squeeze"/> 里那句「剧情说明快掉出画面了没有」—— <see cref="DetailHero.Fit"/>。
     /// <para>
-    /// 为什么要先减掉：<see cref="DetailHero.Fit"/> 要拿「常态留白」和「最紧留白」两档的总高去解一个比例，
-    /// 两档用的是同一份<em>内容</em>。量出来的总高里带着当前这一档的留白，不减掉就等于拿上一拍的答案算下一拍，
-    /// 收一点、尾变矮、又算出「不用收」，来回抖。视图手里有当前真实的 Padding／Spacing，减一次就得到那个不变量。
+    /// <see cref="DetailHero.Fit"/> 要拿「常态留白」和「最紧留白」两档的总高去解一个比例，两档用同一份
+    /// 内容。视图直接累加各面板里的子元素 DesiredSize 与固定内部间距，不包含响应式父级留白；不能用已取整的
+    /// 整段高度反扣未取整的 Padding，否则内容读数随留白变化，拖边框时会形成布局循环。
     /// </para>
     /// <para>
-    /// 量的是 <c>TailContent</c> 的内容高，不是 <c>HeroTail</c> 的实际高：后者有一个「补满第一屏」的下限
-    /// （<see cref="TailMinHeight"/>），量到的常常是视口而不是内容。这一叠只是竖着排、不拉伸，ActualHeight
-    /// 就是内容自己要的高。
+    /// <c>HeroTail</c> 有「补满第一屏」的下限（<see cref="TailMinHeight"/>），也不能用它的实际高测内容。
     /// </para>
     /// </summary>
     [ObservableProperty]
