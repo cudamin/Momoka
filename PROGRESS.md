@@ -6,7 +6,7 @@
 - 验证（主树最终代码 `9247c65`）：Release 全方案 **0 警告 0 错误**；主测试 **3604/3604、0 失败 0 跳过**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0；`--probe-shell --probe-section library --screen 2` **25/25、0 失败、退出 0**（`shell-probe-20261103-125616791-27040`），特别篇读数「季卡 第 0 季(170)→第 1 季(170)」，截图 `detail-series-specials-1280.png` 里「特别篇」下方已见「全部剧季」两张卡；同一用例在临时树 `9247c65` 前身也已 25/25（`shell-probe-20261103-122043692-12272`）。
 - 交付：`tools/publish.ps1 -Shortcut -NoArchive` 的发布与校验通过（`artifacts/publish/win-x64` **546 文件 / 285.8 MB**，载荷校验通过），开发件与发布件 `Momoka.dll` SHA-256 同为 `75343164211185665246AB95F14911C6B103EF31861BA68AF46E9C542075E08B`；**快捷方式重写被本机沙箱拒绝**（`UnauthorizedAccessException` 覆盖桌面 `Momoka.lnk`），`.lnk` 仍是 17:16 那一份、内部目标 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe` 未变，而该目录已刷新，所以桌面启动仍是这批代码。
 - 未覆盖：真实服务器上 S00 季是否有独立海报、真实图像比例与观感、点进 S00 季页面的真实内容都没有实屏；探针是假传输，不联网、不播放。没有跑闸门 4 自检（本轮不是发版／升级依赖）。
-- 清理：临时分支 `workbuddy/master-8475f948` 顶端 `9247c65` 已 fast-forward 合入 master（`9247c65`），无分支独有提交；工作树目录本会话退出后删盘。
+- 清理：临时分支 `workbuddy/master-8475f948` 顶端 `9247c65` 已 fast-forward 合入 master（`9247c65`），无分支独有提交，分支已删、工作树登记已注销；目录因 Windows 长路径移不进回收站（`git worktree remove` 报 `Filename too long`，剩 289 MB），待会话退出后手动删盘。
 
 ## 2026-11-03 播放页：剧集列表全季、菜单不出窗、菜单亚克力、图标影子、连播不弹提示（已合入 master、已发布桌面）
 
