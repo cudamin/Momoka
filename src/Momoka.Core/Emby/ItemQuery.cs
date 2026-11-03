@@ -238,7 +238,7 @@ public sealed class ItemQuery
         };
 
     /// <summary>
-    /// 主页「接下来看」那一排点进去的那张网格。判据是「这部剧一集都没看过」—— Emby 的 NextUp 语义落到通用
+    /// Emby 主页「接下来看」那一排点进去的那张网格。判据是「这部剧一集都没看过」—— Emby 的 NextUp 语义落到通用
     /// 查询上就是 <see cref="IsPlayed"/>=false（<c>Filters=IsUnplayed</c>）加一份把单集排除掉的类型名单：一集
     /// 继承整部剧的已看状态，单集留在名单里，一部看了一半的剧也会满足「没看完」，那一页就和「继续观看」长成
     /// 同一页了。
@@ -249,9 +249,9 @@ public sealed class ItemQuery
     /// 动了另一个。
     /// </para>
     /// <para>
-    /// 这一页此后仍走通用查询，和主页那一排的 <c>EmbyClient.GetNextUpAsync</c> 不是同一条路 —— 两边的差别没有
-    /// 继续观看那一对小（今天两边问的都是「一集都没看过的剧集」），但属于同一类隐患，2026-09-22 记进 PROGRESS
-    /// 待察：真出现「一排 N 项、进去 M 项」就照继续观看那一对的办法办。
+    /// 2026-11-03 起这只服务 Emby：Jellyfin 的「接下来看」页照网页端改问 <c>Shows/NextUp</c> 本身（逐集列下一集，
+    /// 见 <c>EmbyClient.QueryNextUpAsync</c> 与 <c>LibraryViewModel.IsJellyfinNextUpPage</c>），原来记在这里的
+    /// 「一排 N 项、进去 M 项」隐患在 Jellyfin 上就此消除。Emby 仍走通用查询，两边语义不同是有意的。
     /// </para>
     /// </summary>
     /// <param name="types">这一页认哪几种条目类型；<c>LibraryViewModel.BuildQuery</c> 递的是

@@ -442,7 +442,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     public Visibility AlphaVisibility => Show(
         !Aggregated && !IsUpcomingPage && !IsFavoritesPage && Section != LibrarySection.Recommended
-        && Section != LibrarySection.Collections
+        && Section != LibrarySection.Collections && !IsJellyfinNextUpPage
         && SupportsBrowseConditions && _request?.IsSearch != true && IsNameSortInForce
         && (!IsJellyfin || JellyfinLibrary.HasAlphabetPicker(CollectionType, Section))
         && !SortDescending && _total is > 30);
@@ -498,6 +498,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         OnPropertyChanged(nameof(TotalLabel));
         // 两颗播放键在不在，看的是这一页有没有可播的行（见 DirectPlayVisibility）。
         OnPropertyChanged(nameof(DirectPlayVisibility));
+        OnPropertyChanged(nameof(PlayRandomVisibility));
         PlayAllCommand.NotifyCanExecuteChanged();
         PlayRandomCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(AlphaVisibility));
@@ -673,7 +674,15 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 电视剧库的「节目」页装的是剧集本身，一集都播不了 —— 那种页面上两颗键没有意义，整对收起
     /// （原来它们藏在「更多」里，那个菜单 2026-10-17 按用户的话删掉了：菜单里除了这两颗常年灰着的键什么都没有）。
     /// </summary>
-    public Visibility DirectPlayVisibility => Show(
+    public Visibility DirectPlayVisibility => Show(CanDirectPlay);
+
+    /// <summary>
+    /// 随机播放那颗键。Jellyfin 的 list.js 在 nextup 页显式不收它（<c>params.type !== 'nextup'</c>），
+    /// 其余页面和「播放」同一判据。
+    /// </summary>
+    public Visibility PlayRandomVisibility => Show(CanDirectPlay && !IsJellyfinNextUpPage);
+
+    private bool CanDirectPlay =>
         // 飞牛官网页端没有这两颗键；2026-11-01 用户令「飞牛媒体库上方只留筛选／排序／布局」。
         !IsFnNas
         // list.js hides 播放/随机播放 on a CollectionFolder unless that collection is Home Videos:
@@ -684,7 +693,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         && (!IsSectionLibrary
             || (Section == LibrarySection.Folders
                 ? _firstPage && Cards.Count > 0
-                : !IsBrowseIndex && _firstPage && Cards.Any(card => card.Item.IsPlayable))));
+                : !IsBrowseIndex && _firstPage && Cards.Any(card => card.Item.IsPlayable)));
 
     /// <summary>
     /// The toolbar's count. The list page uses <c>libraryBrowser.getQueryPagingHtml</c>'s
@@ -752,7 +761,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         RefreshEmptyNotice();
 
         foreach (var name in new[] { nameof(SectionVisibility), nameof(BrowseGroupVisibility), nameof(BrowseGroupLabel),
-            nameof(DirectPlayVisibility), nameof(SortFilterVisibility), nameof(FilterVisibility),
+            nameof(DirectPlayVisibility), nameof(PlayRandomVisibility), nameof(SortFilterVisibility), nameof(FilterVisibility),
             nameof(ToolbarVisibility), nameof(SettingsVisibility), nameof(Fields),
             nameof(AlphaVisibility), nameof(FilterChipsVisibility), nameof(TotalLabel),
             nameof(LayoutVisibility), nameof(JellyfinLayoutVisibility), nameof(JellyfinMoreVisibility),
@@ -780,6 +789,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         EmptyNotice = request.IsSearch ? "输入关键字开始搜索"
             : request.Row == HomeLayout.HomeRowTarget.Resume ? "这里还没有看到一半的内容"
+            : IsJellyfinNextUpPage ? "这里还没有下一集"
             : request.Row is not null ? "这里还没有看过的内容"
             : IsJellyfin && request.Section is LibrarySection.Trailers or LibrarySection.Collections or LibrarySection.Recommended
                 ? JellyfinLibrary.EmptyNotice(request.CollectionType, request.Section)
@@ -1170,6 +1180,17 @@ public sealed partial class LibraryViewModel : PageViewModel
     private bool IsResumePage => _request?.Row == HomeLayout.HomeRowTarget.Resume;
 
     /// <summary>
+    /// 这一页是不是 Jellyfin 的「接下来看」页。网页端 <c>list.html?type=nextup</c> 问的就是
+    /// <c>Shows/NextUp</c> 本身，逐集列出每部剧的下一集；这里照办，不再是通用查询里「一集都没看过的剧集」。
+    /// <para>
+    /// 只限单来源：聚合模式开着时主页那一排整个不显示（见 <see cref="HomeLayout.ForSources"/>），多来源这一页
+    /// 没有入口；万一被打开，仍走原来的通用查询，不把几家服务器的 NextUp 拼成一份没有服务器名可认的清单。
+    /// </para>
+    /// </summary>
+    private bool IsJellyfinNextUpPage =>
+        !Aggregated && IsJellyfin && _request?.Row == HomeLayout.HomeRowTarget.NextUp;
+
+    /// <summary>
     /// 「排序」与「筛选」这两颗键在这一页在不在。
     /// <para>
     /// 继续观看那一页的次序和口径都由服务器那条 Resume 接口定（已看的不列、被移出的不列），两颗键按下去
@@ -1177,8 +1198,13 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 骗人的键（项目规矩：界面不许骗人），不如收起来；Emby 自己的继续观看也不给这两颗。视图切换留着：
     /// 那是这张网格怎么画，与服务器无关。
     /// </para>
+    /// <para>
+    /// Jellyfin 的「接下来看」页同理：网页端 <c>list.js</c> 在 nextup 页把排序键关掉、筛选目录里也没有任何一行
+    /// （<c>getVisibleFilters</c> 对 nextup 返回空数组），这边的接口只认 StartIndex/Limit 与服务器自己的次序。
+    /// </para>
     /// </summary>
-    public Visibility SortFilterVisibility => Show(HasToolbar && !IsResumePage && !Aggregated && !IsBrowseIndex
+    public Visibility SortFilterVisibility => Show(HasToolbar && !IsResumePage && !IsJellyfinNextUpPage && !Aggregated
+        && !IsBrowseIndex
         // 飞牛搜索走 /search/list，排序参数不会随搜索发出；摆一颗按了不动的排序键比不摆更糟。
         && !(IsFnNas && _request?.IsSearch == true));
 
@@ -1198,7 +1224,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     private string? FilterCollectionType => CollectionType ?? (_request?.IsSearch == true ? "movies" : null);
 
-    public Visibility FilterVisibility => Show(HasToolbar && !IsResumePage && !Aggregated && !IsBrowseIndex
+    public Visibility FilterVisibility => Show(HasToolbar && !IsResumePage && !IsJellyfinNextUpPage && !Aggregated
+        && !IsBrowseIndex
         && Section != LibrarySection.Folders && Section != LibrarySection.Collections
         && (IsJellyfin ? JellyfinFiltersSupported : SupportsFilterPanel)
         // 飞牛搜索走的是 /search/list，它没有标签参数；在搜索页摆一个不起作用的筛选比不摆更糟。
@@ -1257,7 +1284,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         // 「这里没有内容」读起来像仓库空了，而这一页是「你还没看什么」—— 一部都没看完过的时候，那两句话说的
         // 其实是两件事（2026-09-14「继续观看」那一排接通之后才有人走到这一页）。两排的空页文案也分开：继续观看
         // 那一页装的是「看到一半的」（见 BuildQuery 的 Resume 分支），空了说的是「还没开头」；接下来看那一页
-        // 装的是「没看完的剧集」，空了说的是「都看完了」。
+        // 在 Jellyfin 上装的是下一集（Shows/NextUp），空了说的是「没有下一集」；Emby 那一页仍是「没看完的剧集」。
         RefreshEmptyNotice();
         OnPropertyChanged(nameof(SearchVisibility));
         OnPropertyChanged(nameof(MoviePilotTabsVisibility));
@@ -1680,7 +1707,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     private async Task<ItemsResult?> ReadAsync(int start, CancellationToken token)
     {
         if (!_active || !SourcesAvailable) throw new OperationCanceledException();
-        if (!IsResumePage && BuildQuery(start) is null) return null;
+        // 继续观看与 Jellyfin 的「接下来看」都不发通用查询：前者整份由 Resume 接口给，后者由 Shows/NextUp 给。
+        if (!IsResumePage && !IsJellyfinNextUpPage && BuildQuery(start) is null) return null;
         return await ReadSourceAsync(_sources[0], start, token).ConfigureAwait(true);
     }
 
@@ -1711,6 +1739,13 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (IsResumePage)
             return await scope
                 .ExecuteAsync((client, ct) => client.QueryResumeAsync(start, _settings!.PageSize, ct), token)
+                .ConfigureAwait(true);
+
+        // Jellyfin 的「接下来看」页与网页端 list.html?type=nextup 同源：问 Shows/NextUp 本身，逐集列下一集。
+        // 总数打开着回来，滚动加载与「共 N 项」都靠它；排序/筛选不参与这次请求（界面上也收着）。
+        if (IsJellyfinNextUpPage)
+            return await scope
+                .ExecuteAsync((client, ct) => client.QueryNextUpAsync(start, _settings!.PageSize, ct), token)
                 .ConfigureAwait(true);
 
         if (BuildQuery(start) is not { } query) return new ItemsResult();
@@ -2725,6 +2760,11 @@ public sealed partial class LibraryViewModel : PageViewModel
                 // 剧集」。所以走自己的工厂（2026-09-14 从 Resume 拆出来的另一半），多给一个把单集排除掉的
                 // 类型名单 —— 一集继承整部剧的已看状态，单集留在里面，一部看了一半的剧也会满足「没看完」，
                 // 两页就长成同一页了。这一页的判据不跟继续观看那一页走：两页问的是两个问题。
+                //
+                // Jellyfin 不在这里：它的「接下来看」页照网页端问 Shows/NextUp 本身（见 IsJellyfinNextUpPage
+                // 与 ReadSourceAsync），没有通用查询可发 —— 这一支返回 null 是「这一页不走通用查询」，
+                // 不是「这一页没得问」。
+                HomeLayout.HomeRowTarget.NextUp when IsJellyfinNextUpPage => null,
                 HomeLayout.HomeRowTarget.NextUp =>
                     ItemQuery.NextUp(start, limit, SortKey, SortDescending, _filters,
                         [EmbyItemType.Series, EmbyItemType.Movie, EmbyItemType.Video]),

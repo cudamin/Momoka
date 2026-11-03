@@ -66,6 +66,15 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </para>
     /// </summary>
     private readonly Dictionary<string, int> _libraryTotals = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// 「接下来看」那一排的服务器总数（所有在线来源相加），牌子右端写它，不写货架上那 12 张预览。
+    /// 2026-11-03 用户报「网页端的接下来看不止 12 项，momoka 识别有误」：12 只是这一排的取数上限，
+    /// 服务器实际有多少项由 <c>Shows/NextUp</c> 回包里的 <c>TotalRecordCount</c> 说（见 FetchNextUpAsync）。
+    /// 读不出来（接口没给总数）时留在 0，牌子退回卡片张数。
+    /// </summary>
+    private int _nextUpTotal;
+
     private Task _supplement = Task.CompletedTask;
     private Task _watchBaseline = Task.CompletedTask;
     private int _watchLimit = LatestSize;
@@ -358,7 +367,9 @@ public sealed partial class HomeViewModel : PageViewModel
         }
 
         // 存档保留切走或离线来源的顺序，但当前主页只造在线来源的货架，不能把隐藏记录变成空排。
-        var plan = HomeLayout.ForSources(savedPlan, _sources.Where(source => source.IsAvailable).Select(source => source.Key));
+        // 聚合模式开着时「接下来看」整排不排（见 HomeLayout.ForSources），勾选状态留在存档里。
+        var plan = HomeLayout.ForSources(savedPlan, _sources.Where(source => source.IsAvailable).Select(source => source.Key),
+            aggregateMode: _settings?.Settings.AggregateMode == true);
 
         // 继续观看、媒体库、接下来看走 16:9 的宽卡（那三排讲的是「你在看的那一格画面」）；每个媒体库自己那一排
         // 走海报 —— 一整排新片的封面比一整排剧照读得快。媒体库那一排不上角标：一个库没有「已看」。
@@ -707,8 +718,8 @@ public sealed partial class HomeViewModel : PageViewModel
             ? FetchAsync("继续观看", (client, ct) => client.GetResumeAsync(ShelfSize, ct), token)
             : Task.FromResult(new List<EmbyItem>());
         var nextUp = Visible(HomeLayout.NextUp)
-            ? FetchAsync("接下来看", (client, ct) => client.GetNextUpAsync(ShelfSize, ct), token)
-            : Task.FromResult(new List<EmbyItem>());
+            ? FetchNextUpAsync(token)
+            : Task.FromResult((Items: new List<EmbyItem>(), Total: 0));
 
         // 轮播自己的那一次请求（2026-09-13「轮播图改用前十个最近添加」；同日补上设置里的四行 ——
         // 「新增在设置中设置轮播图要使用什么媒体，和要使用最近添加还是随机的还有数量的选项。还有封面的
@@ -800,7 +811,8 @@ public sealed partial class HomeViewModel : PageViewModel
         // asking the server, because Emby's own endpoints for these two take no type filter. Each library
         // row's own latest list is filtered the same way, at Items below.
         var resumed = WithoutMusic(resume.Result);
-        var next = WithoutMusic(nextUp.Result);
+        var next = WithoutMusic(nextUp.Result.Items);
+        _nextUpTotal = nextUp.Result.Total;
 
         // 轮播那份（见上面 latest）同样滤掉音乐类：这条带只站电影和剧集。「全部媒体」那一档音乐从来
         // 进不了最近添加的前排，这层滤网在；「随机」那一档请求侧就没有音乐，它白跑一遍。
@@ -852,7 +864,9 @@ public sealed partial class HomeViewModel : PageViewModel
                 row.Key == HomeLayout.Libraries
                     ? item => SourceCaption.Prefix(item.Name, item.Source, ShowServerNames)
                     : row.Key == HomeLayout.Resume ? HomeResumeText.Title : null);
-            shelf.NoteOverride = LibraryNote(row.Key);
+            shelf.NoteOverride = row.Key == HomeLayout.NextUp
+                ? _nextUpTotal > 0 ? $"{_nextUpTotal} 项" : null
+                : LibraryNote(row.Key);
         }
 
         // 装到了东西的排一律横着排。媒体库也在其中 —— 2026-09-08「移除轮播图右边的媒体库」之后不再单挑出来当
@@ -1128,6 +1142,44 @@ public sealed partial class HomeViewModel : PageViewModel
         _realtimeDirty = false;
         lock (_realtimeSources) _realtimeSources.Clear();
         base.Cancel();
+    }
+
+    /// <summary>
+    /// 「接下来看」那一排的取数：和别的排一样轮着取各来源的前几项，另外把每个来源回包里的
+    /// <c>TotalRecordCount</c> 加起来 —— 那一排只摆 <see cref="ShelfSize"/> 张预览，但牌子右端要说服务器
+    /// 实际的项数（见 <see cref="_nextUpTotal"/>）。失败与别的排同一套：记一条、空手回来、不拖累整页。
+    /// </summary>
+    private async Task<(List<EmbyItem> Items, int Total)> FetchNextUpAsync(CancellationToken token)
+    {
+        var reads = await Task.WhenAll(_sources.Select(ReadAsync)).ConfigureAwait(true);
+        var items = new List<EmbyItem>();
+        // 和其它排同一套轮流取法：默认账号不能填满这一排、让其他来源永远看不到。
+        for (var index = 0; reads.Any(read => read.Items.Count > index); index++)
+            foreach (var read in reads)
+                if (index < read.Items.Count) items.Add(read.Items[index]);
+        return (items, reads.Sum(read => read.Total));
+
+        async Task<(List<EmbyItem> Items, int Total)> ReadAsync(EmbySessionScope scope)
+        {
+            try
+            {
+                if (!Live || !scope.IsAvailable) return ([], 0);
+                var result = await scope
+                    .ExecuteAsync((client, ct) => client.QueryNextUpAsync(0, ShelfSize, ct), token)
+                    .ConfigureAwait(true);
+                return (result.Items, result.TotalRecordCount);
+            }
+            catch (OperationCanceledException)
+            {
+                return ([], 0);
+            }
+            catch (Exception error)
+            {
+                Log.Warn(Category, $"读取{scope.DisplayName}的接下来看失败", error);
+                if (IsCurrent(token) && !NoticeOpen) Report("接下来看", error);
+                return ([], 0);
+            }
+        }
     }
 
     /// <summary>

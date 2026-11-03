@@ -441,6 +441,26 @@ internal static class EmbyTests
                 query.ToQueryString(), "单集留在名单里，两页就长成同一页（逗号在查询串里要转义）");
         });
 
+        Test("查询：接下来看分页只带 Emby 认的参数", () =>
+        {
+            // Jellyfin 的「接下来看」页改问 Shows/NextUp 本身（见 EmbyClient.QueryNextUpAsync）；
+            // EnableTotalRecordCount 是 Jellyfin 那条规格里的参数，Emby 的 /Shows/NextUp 没有它，不能顺手发。
+            var stub = new StubTransport().Answer("Shows/NextUp", """{ "Items": [], "TotalRecordCount": 9 }""");
+            var client = new EmbyClient(
+                new EmbyHttp(stub),
+                new EmbyConnection(ApiBase, "token-1", "u1", "docuser", "果服",
+                    DeviceIdentity.Create("device-1", "3.0.0")));
+
+            var page = client.QueryNextUpAsync(40, 20, CancellationToken.None).GetAwaiter().GetResult();
+
+            var sent = stub.Only("Shows/NextUp");
+            Assert.Contains("Shows/NextUp", sent.Url);
+            Assert.Contains("StartIndex=40", sent.Url);
+            Assert.Contains("Limit=20", sent.Url);
+            Assert.DoesNotContain("EnableTotalRecordCount", sent.Url, "Emby 的规格里没有这个参数");
+            Assert.Equal(9, page.TotalRecordCount);
+        });
+
         Test("查询：媒体库根目录按自身类型递归展开", () =>
         {
             var movies = string.Join(',', ItemQuery.FlattenedTypes("movies"));

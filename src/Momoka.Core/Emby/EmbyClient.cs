@@ -363,21 +363,46 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// 接下来播放. <paramref name="seriesId"/> narrows it to one show, which is what a series page's
     /// 「尚未观看」 row is: the same endpoint the home page uses, scoped, so the two can never disagree
     /// about which episode is next.
+    /// <para>
+    /// 带分页与总数的版本给 Jellyfin 的「接下来看」页用：网页端 <c>list.html?type=nextup</c> 问的就是这条
+    /// 接口（<c>src/controllers/list.js</c> 的 <c>getNextUpEpisodes</c>），逐集列出每部剧的下一集。
+    /// </para>
     /// </summary>
-    public async Task<List<EmbyItem>> GetNextUpAsync(int limit, CancellationToken cancellationToken,
+    /// <param name="startIndex">翻页起点。Jellyfin 那边服务器按「最近看过」次序收集后在这里 Skip/Take，
+    /// 首页那一排与这一页因此是同一份清单的两个窗口。</param>
+    /// <remarks>
+    /// Jellyfin 的网页端把总数关掉（分页读数于是成了「0 的 0-0」）；这里的页面按总数滚动加载，货架角标也要
+    /// 真实总数，所以对 Jellyfin 显式发 <c>EnableTotalRecordCount=true</c>。Emby 的 <c>/Shows/NextUp</c> 规格
+    /// 没有这个参数，不能发。
+    /// </remarks>
+    public async Task<ItemsResult> QueryNextUpAsync(int startIndex, int limit, CancellationToken cancellationToken,
         string? seriesId = null, string? parentId = null)
     {
-        if (Connection.IsFnNas) return await FnNasMedia.GetNextUpAsync(seriesId, limit, cancellationToken).ConfigureAwait(false);
-        if (Connection.IsPlex) return await PlexMedia.GetNextUpAsync(seriesId, limit, cancellationToken).ConfigureAwait(false);
+        // 飞牛与 Plex 的适配只做「一部剧的下一集」，不分页也没有全服清单。
+        if (Connection.IsFnNas)
+        {
+            var items = await FnNasMedia.GetNextUpAsync(seriesId, limit, cancellationToken).ConfigureAwait(false);
+            return new ItemsResult { Items = items, TotalRecordCount = items.Count };
+        }
+        if (Connection.IsPlex)
+        {
+            var items = await PlexMedia.GetNextUpAsync(seriesId, limit, cancellationToken).ConfigureAwait(false);
+            return new ItemsResult { Items = items, TotalRecordCount = items.Count };
+        }
         var url = Url("Shows/NextUp",
             ("UserId", Connection.UserId),
             ("SeriesId", seriesId),
             ("ParentId", parentId),
+            ("StartIndex", startIndex.ToString()),
             ("Limit", limit.ToString()),
+            ("EnableTotalRecordCount", Connection.IsJellyfin ? "true" : null),
             ("Fields", EmbyFields.Browse));
-        var result = await http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken).ConfigureAwait(false);
-        return result.Items;
+        return await http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken).ConfigureAwait(false);
     }
+
+    public async Task<List<EmbyItem>> GetNextUpAsync(int limit, CancellationToken cancellationToken,
+        string? seriesId = null, string? parentId = null) =>
+        (await QueryNextUpAsync(0, limit, cancellationToken, seriesId, parentId).ConfigureAwait(false)).Items;
 
     /// <summary>
     /// The 「建议」 rows of one library: <c>GET /Movies/Recommendations</c> groups films by why they were

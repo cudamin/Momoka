@@ -19,6 +19,7 @@ Jellyfin 连接使用自己的库界面，Emby、飞牛影视与 Plex 继续走�
 - **布局**：Jellyfin 库用「布局」按钮替代 Emby 的设置齿轮；电影与电视剧六种（横幅图、列表、海报、海报卡片、缩略图、缩略图卡片），合集五种，剧集三种（列表、海报、海报卡片）。海报卡片与缩略图卡片会在图片和两行文字外面画卡片底；恢复旧显示设置时，Jellyfin 菜单认不出的形状（表格、光盘封面、徽标）退回海报。
 - **库菜单与条目菜单**：分类栏标签、筛选按钮、布局菜单都只在 Jellyfin 来源下出现；Jellyfin 的「更多」菜单使用自己的中文词条（播放、标为已播放/未播放、加入收藏、加入集合、下载、编辑元数据、修改图片、修改字幕、刮削元数据、刷新元数据、删除媒体/系列/剧集），Emby 的菜单文案与次序不变。
 - **建议页**：电影建议页是「继续观看、最新电影、为你推荐」三排，分别来自 Resume、`Items/Latest` 与 `Movies/Recommendations`；电视剧建议页是「继续观看、最新剧集、接下来看」，最后一排来自按库限定的 `Shows/NextUp`。混合内容库暂不提供建议页。
+- **主页「接下来看」**：点开那一排的标题进的是网页端 `list.html?type=nextup` 的对应页：Jellyfin 直接问 `Shows/NextUp`（`StartIndex`／`Limit` 分页，显式打开 `EnableTotalRecordCount`），逐集列出每部剧的下一集；排序、筛选、随机播放与字母条照网页端收起（`list.js` 在 nextup 页不显示它们）。首页那一排仍只预览 12 张，右端角标写服务器返回的总数。聚合模式开着时这一排整排不显示，设置里的勾选原样保留。
 - **其它**：`GroupItemsIntoCollections` 是 Emby 参数，Jellyfin 请求不再发送；Jellyfin 的合集页通过 `IncludeItemTypes=BoxSet` 查询。
 
 主页「最近添加」的每个剧集库不走 `/Items/Latest`：Jellyfin 的 Latest 只收可播放条目，一个只有剧集、还没扫出单集的库会回空表，整排会被当成空排隐藏。Jellyfin 电视剧库改为 `IncludeItemTypes=Series`、按 `DateLastContentAdded` 倒序的条目查询（`HomeLatest`）；电影库、混合库和其它服务器保持原查询。
@@ -43,7 +44,7 @@ MoviePilot 查找 Jellyfin 中已入库的对应条目时，分页读取当前�
 
 网页登录数据只写入受信服务器的 Web 路径下的本地存储，不注入其他站点；缺少服务器标识时使用网页自己的登录流程。Jellyfin 网页主题由其自身设置管理，客户端不会向它写入 Emby 专属主题键；嵌入控制台的配色只由本地皮肤覆盖。
 
-验证使用 `JellyfinProtocolTests`、`JellyfinWebConsoleTests`、`ServerAccessTests`、`ServerSettingsTests`、`LibraryBrowseTests`、`LibraryRecommendedTests`、`ItemMenuTests`，并通过 `--probe-shell` 的「非管理员账号隐藏服务器管理入口」用例检查 Jellyfin 五组目录、插件页、媒体资料管理器、非管理员隐藏、宽窄导航和切回 Emby 的恢复。Jellyfin 媒体库另有「Jellyfin 媒体库标签、排序、筛选、布局与建议」用例，使用假 Jellyfin 传输逐项检查分类栏、排序菜单与默认值、复选框筛选、布局菜单、海报卡片、合集、建议货架和剧集页，并保存界面截图；它不连接真实服务器。真实 Jellyfin 写入与真实播放按主规则的授权档另行验证；本轮在 10.10.7 服务器上以只读方式核对了公开信息、管理页路由、同文档切页和皮肤，未修改服务器设置。**新增的媒体库界面只在假传输与假数据上验证过，尚未在真实 Jellyfin 库上核对选项结果与视觉密度。**
+验证使用 `JellyfinProtocolTests`、`JellyfinWebConsoleTests`、`ServerAccessTests`、`ServerSettingsTests`、`LibraryBrowseTests`、`LibraryRecommendedTests`、`ItemMenuTests`，以及 `LibraryResumePagingTests` 的「Jellyfin 接下来看页走 Shows/NextUp 分页并收起排序／筛选／随机／字母条」与首页聚合隐藏／角标总数三条，并通过 `--probe-shell` 的「非管理员账号隐藏服务器管理入口」用例检查 Jellyfin 五组目录、插件页、媒体资料管理器、非管理员隐藏、宽窄导航和切回 Emby 的恢复。Jellyfin 媒体库另有「Jellyfin 媒体库标签、排序、筛选、布局与建议」用例，使用假 Jellyfin 传输逐项检查分类栏、排序菜单与默认值、复选框筛选、布局菜单、海报卡片、合集、建议货架和剧集页，并保存界面截图；它不连接真实服务器。真实 Jellyfin 写入与真实播放按主规则的授权档另行验证；本轮在 10.10.7 服务器上以只读方式核对了公开信息、管理页路由、同文档切页和皮肤，未修改服务器设置。**新增的媒体库界面只在假传输与假数据上验证过，尚未在真实 Jellyfin 库上核对选项结果与视觉密度。**
 
 ## 实服播放与续播（2026-10-26）
 

@@ -68,6 +68,24 @@ internal static class HomeLayoutTests
                 "不显示其它来源，不等于清空它的偏好");
         });
 
+        Test("主页排序范围：聚合模式开启时不排「接下来看」，关掉原样回来", () =>
+        {
+            // 2026-11-03 用户令「开启聚合模式后自动隐藏主页 jellyfin 的接下来看那一栏」。
+            var plan = HomeLayout.Plan(null, [Library("1", "电影")]);
+
+            var aggregate = HomeLayout.ForSources(plan, ["server"], aggregateMode: true);
+            Assert.False(aggregate.Any(row => row.Key == HomeLayout.NextUp), "聚合模式开着时「接下来看」不该上主页");
+            Assert.Equal(plan.Count - 1, aggregate.Count);
+            Assert.True(aggregate.Any(row => row.Key == HomeLayout.Resume), "别的固定排要留着");
+            Assert.True(aggregate.Any(row => row.Key == HomeLayout.Libraries), "媒体库那一排要留着");
+
+            var single = HomeLayout.ForSources(plan, ["server"], aggregateMode: false);
+            Assert.True(single.Any(row => row.Key == HomeLayout.NextUp), "关掉聚合模式后要原样回来");
+
+            // 隐藏只影响这一次排版：存档里那一行和它的勾选都还在。
+            Assert.True(HomeLayout.Same(HomeLayout.Save(plan), plan), "隐藏不该改写存档");
+        });
+
         Test("主页排序范围：聚合模式只列在线来源，同号库和同服不同账号分别保留", () =>
         {
             var first = ScopedLibrary("server", "user", "same:id", "电影");

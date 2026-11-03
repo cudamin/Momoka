@@ -2067,7 +2067,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     private IReadOnlyList<Emby.HomeRowPlan> CurrentHomeRows() => Emby.HomeLayout.ForSources(
         Emby.HomeLayout.Plan(Settings.Ui.HomeRows, null, Settings.Ui.ShowHomeBanner),
         _capabilities?.Sources.Where(source => source.IsAvailable).Select(source => source.Key) ?? [],
-        _moviePilot?.Available == true);
+        _moviePilot?.Available == true,
+        aggregateMode: Settings.AggregateMode);
 
     internal void RefreshHomeRows()
     {

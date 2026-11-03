@@ -501,6 +501,79 @@ internal static class LibraryResumePagingTests
             Assert.Equal(20, fixture.Cards.Count, "只收集清单，不改变已显示页或游标");
             Assert.True(fixture.HasMore);
         });
+
+        Case("Jellyfin 接下来看页：问 Shows/NextUp 分页列下一集，排序筛选随机与字母条收起", async () =>
+        {
+            using var fixture = new Fixture(shell, 45, firstKind: MediaServerKind.Jellyfin,
+                row: HomeLayout.HomeRowTarget.NextUp);
+            fixture.Transport.NextUpRows["a"] = Enumerable.Range(0, 45).Select(index => Item("next-" + index)).ToList();
+
+            await fixture.Load();
+
+            // 不再走通用查询「一集都没看过的剧集」：这一页与网页端 list.html?type=nextup 同源，逐集列下一集。
+            Assert.True(fixture.Ids().SequenceEqual(Enumerable.Range(0, 20).Select(index => "next-" + index)),
+                "第一页应为服务器给的下一集，而不是剧集清单");
+            Assert.Equal("共 45 项", fixture.TotalLabel);
+            Assert.True(fixture.HasMore);
+            Assert.Equal("a:0", string.Join(',', fixture.Transport.NextUpReads));
+
+            // 网页端 nextup 页：排序、筛选、随机播放、字母条都不在；播放全部在。
+            Assert.Equal("Collapsed", fixture.Visibility("SortFilterVisibility"));
+            Assert.Equal("Collapsed", fixture.Visibility("FilterVisibility"));
+            Assert.Equal("Collapsed", fixture.Visibility("PlayRandomVisibility"));
+            Assert.Equal("Collapsed", fixture.Visibility("AlphaVisibility"));
+            Assert.Equal("Visible", fixture.Visibility("DirectPlayVisibility"));
+
+            await fixture.Load(reset: false);
+
+            Assert.Equal(40, fixture.Cards.Count);
+            Assert.True(fixture.HasMore);
+            Assert.Equal("a:0,a:20", string.Join(',', fixture.Transport.NextUpReads));
+
+            await fixture.Load(reset: false);
+
+            Assert.Equal(45, fixture.Cards.Count, "第三页补齐后应列出全部 45 项，而不是停在首页 12 项");
+            Assert.False(fixture.HasMore);
+            Assert.Equal("a:0,a:20,a:40", string.Join(',', fixture.Transport.NextUpReads));
+        });
+
+        Case("主页聚合模式：接下来看整排不排，也不向服务器请求", async () =>
+        {
+            using var fixture = new Fixture(shell, 3, firstKind: MediaServerKind.Jellyfin);
+            fixture.Transport.NextUpRows["a"] = [Item("next-0")];
+            fixture.Settings.Settings.AggregateMode = true;
+            var home = fixture.CreateLoadingHome();
+            try
+            {
+                await fixture.LoadHome(home);
+
+                Assert.False(fixture.HomeShelfTitles(home).Contains("接下来看"), "聚合模式开着时不该排这一排");
+                Assert.Equal(0, fixture.Transport.NextUpReads.Count);
+                Assert.False(fixture.Transport.Requests.Any(path => path.EndsWith("/Shows/NextUp", StringComparison.Ordinal)),
+                    "隐藏的行不联网：这一排收着就不该问 NextUp");
+                Assert.True(fixture.HomeShelfTitles(home).Contains("继续观看"),
+                    "别的排照常；实际：" + string.Join('、', fixture.HomeShelfTitles(home)));
+            }
+            finally { ((IDisposable)home).Dispose(); }
+        });
+
+        Case("主页接下来看角标：写服务器总数，不写 12 张预览", async () =>
+        {
+            using var fixture = new Fixture(shell, 3, firstKind: MediaServerKind.Jellyfin);
+            fixture.Transport.NextUpRows["a"] = Enumerable.Range(0, 25).Select(index => Item("next-" + index)).ToList();
+            var home = fixture.CreateLoadingHome();
+            try
+            {
+                await fixture.LoadHome(home);
+
+                var shelf = fixture.HomeShelf(home, "接下来看");
+                Assert.Equal("25 项", fixture.Read<string>(shelf, "Note"));
+                Assert.Equal(12, ((System.Collections.IEnumerable)fixture.Read<object>(shelf, "Cards")).Cast<object>().Count(),
+                    "横排仍只摆预览张数");
+                Assert.Equal("a:0", string.Join(',', fixture.Transport.NextUpReads));
+            }
+            finally { ((IDisposable)home).Dispose(); }
+        });
     }
 
     private static void Case(string name, Func<Task> body) => TestHarness.Test(name, () => SingleThread.Run(body));
@@ -534,12 +607,13 @@ internal static class LibraryResumePagingTests
             _actions = assembly.GetType("Momoka.Shell.Views.IShellActions", throwOnError: true)!;
         }
 
-        public object Create(EmbySession session, EmbyImageStore images, ISettingsService settings, EmbySessionScope? source, bool favorites = false)
+        public object Create(EmbySession session, EmbyImageStore images, ISettingsService settings, EmbySessionScope? source,
+            bool favorites = false, HomeLayout.HomeRowTarget row = HomeLayout.HomeRowTarget.Resume)
         {
             var vm = Activator.CreateInstance(_viewModel)!;
             var request = favorites
                 ? _request.GetMethod("Favorites")!.Invoke(null, [new NoServices()])!
-                : _request.GetMethod("ForRow")!.Invoke(null, [new NoServices(), HomeLayout.HomeRowTarget.Resume, source])!;
+                : _request.GetMethod("ForRow")!.Invoke(null, [new NoServices(), row, source])!;
             if (favorites) _request.GetProperty("FavoriteAccountKey")!.SetValue(request, source?.Key);
             var actions = DispatchProxy.Create(_actions, typeof(LibraryResumeActionsProxy));
             Invoke(vm, "Attach", request, actions, settings, session, images, new ServerCapabilities(session), null);
@@ -605,7 +679,8 @@ internal static class LibraryResumePagingTests
         public string Retry => Get<object>("RetryVisibility").ToString()!;
 
         public Fixture(ShellFixture shell, int count, bool secondSource = false, bool aggregate = false,
-            bool favorites = false, MediaServerKind secondKind = MediaServerKind.Emby, bool thirdSource = false)
+            bool favorites = false, MediaServerKind secondKind = MediaServerKind.Emby, bool thirdSource = false,
+            MediaServerKind firstKind = MediaServerKind.Emby, HomeLayout.HomeRowTarget row = HomeLayout.HomeRowTarget.Resume)
         {
             _shell = shell;
             var settings = Settings;
@@ -615,12 +690,12 @@ internal static class LibraryResumePagingTests
             var device = new DeviceIdentity("fixture", "fixture", "fixture", "0");
             _session = new EmbySession(settings.Settings, new SettingsStore(paths, new NoSecrets()),
                 new CredentialVault(new NoSecrets()), device, Transport);
-            AddSource("a", count, device);
+            AddSource("a", count, device, firstKind);
             if (secondSource) AddSource("b", count, device, secondKind);
             if (thirdSource) AddSource("c", count, device, MediaServerKind.FnNas);
             SelectDefault("a");
             _images = new EmbyImageStore(_session, Path.Combine(root, "images"));
-            _vm = shell.Create(_session, _images, settings, aggregate ? null : Source("a"), favorites);
+            _vm = shell.Create(_session, _images, settings, aggregate ? null : Source("a"), favorites, row);
             Assert.Equal(0, Transport.Requests.Count, "Attach 不能登录、读取目录或保存配置");
         }
 
@@ -756,6 +831,20 @@ internal static class LibraryResumePagingTests
 
         public Task HomeWatch(object home, object card) => (Task)_shell.Invoke(home, "AfterWatchedAsync", card)!;
 
+        /// <summary>跑一趟真实 HomeViewModel.LoadAsync；首页排与请求都从真实代码走。</summary>
+        public Task LoadHome(object home) => (Task)_shell.Invoke(home, "LoadAsync", true)!;
+
+        public string[] HomeShelfTitles(object home) =>
+            ((System.Collections.IEnumerable)_shell.Get<object>(home, "Shelves")).Cast<object>()
+                .Select(shelf => _shell.Get<string>(shelf, "Title")).ToArray();
+
+        public object HomeShelf(object home, string title) =>
+            ((System.Collections.IEnumerable)_shell.Get<object>(home, "Shelves")).Cast<object>()
+                .Single(shelf => _shell.Get<string>(shelf, "Title") == title);
+
+        /// <summary>页面绑定用的 Visibility 读数，和 XAML 看到的是同一个属性。</summary>
+        public string Visibility(string name) => _shell.Get<object>(_vm, name).ToString()!;
+
         public string[] HomeIds(object home)
         {
             var shelf = ((System.Collections.IEnumerable)_shell.Get<object>(home, "Shelves")).Cast<object>().Single();
@@ -796,6 +885,9 @@ internal static class LibraryResumePagingTests
         private readonly Dictionary<string, Gate> _tags = new(StringComparer.Ordinal);
         public Dictionary<string, List<EmbyItem>> Rows { get; } = new(StringComparer.Ordinal);
         public Dictionary<(string Host, string Series), EmbyItem?> Next { get; } = [];
+        /// <summary>全服「接下来看」的假清单：有它时 <c>/Shows/NextUp</c> 按 StartIndex/Limit 分页回答。</summary>
+        public Dictionary<string, List<EmbyItem>> NextUpRows { get; } = new(StringComparer.Ordinal);
+        public ConcurrentQueue<string> NextUpReads { get; } = new();
         public ConcurrentQueue<string> Requests { get; } = new();
         public bool HomeReads { get; set; }
         public int HomeLatestCount { get; set; } = 1;
@@ -825,7 +917,8 @@ internal static class LibraryResumePagingTests
             var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
                 .Select(value => value.Split('=', 2)).ToDictionary(pair => pair[0], pair => Uri.UnescapeDataString(pair[1]), StringComparer.Ordinal);
             string json;
-            if (uri.AbsolutePath.EndsWith("/Items/Resume", StringComparison.Ordinal))
+            if (uri.AbsolutePath.EndsWith("/Items/Resume", StringComparison.Ordinal)
+                || uri.AbsolutePath.EndsWith("/UserItems/Resume", StringComparison.Ordinal))
             {
                 var offset = int.Parse(query["StartIndex"], System.Globalization.CultureInfo.InvariantCulture);
                 var limit = int.Parse(query["Limit"], System.Globalization.CultureInfo.InvariantCulture);
@@ -849,15 +942,29 @@ internal static class LibraryResumePagingTests
             }
             else if (uri.AbsolutePath.EndsWith("/Shows/NextUp", StringComparison.Ordinal))
             {
-                var next = Next.GetValueOrDefault((host, query.GetValueOrDefault("SeriesId") ?? ""));
-                var gate = _next;
-                if (gate is not null)
+                if (NextUpRows.TryGetValue(host, out var whole))
                 {
-                    gate.Entered.TrySetResult();
-                    await gate.Release.Task.ConfigureAwait(false);
-                    if (ReferenceEquals(_next, gate)) _next = null;
+                    var offset = int.Parse(query["StartIndex"], System.Globalization.CultureInfo.InvariantCulture);
+                    var limit = int.Parse(query["Limit"], System.Globalization.CultureInfo.InvariantCulture);
+                    NextUpReads.Enqueue(host + ":" + offset);
+                    json = JsonSerializer.Serialize(new ItemsResult
+                    {
+                        Items = whole.Skip(offset).Take(limit).ToList(),
+                        TotalRecordCount = whole.Count
+                    });
                 }
-                json = JsonSerializer.Serialize(new ItemsResult { Items = next is null ? [] : [next] });
+                else
+                {
+                    var next = Next.GetValueOrDefault((host, query.GetValueOrDefault("SeriesId") ?? ""));
+                    var gate = _next;
+                    if (gate is not null)
+                    {
+                        gate.Entered.TrySetResult();
+                        await gate.Release.Task.ConfigureAwait(false);
+                        if (ReferenceEquals(_next, gate)) _next = null;
+                    }
+                    json = JsonSerializer.Serialize(new ItemsResult { Items = next is null ? [] : [next] });
+                }
             }
             else if (uri.AbsolutePath.EndsWith("/favorite/list", StringComparison.Ordinal))
             {

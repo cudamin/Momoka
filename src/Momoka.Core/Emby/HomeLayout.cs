@@ -244,14 +244,21 @@ public static class HomeLayout
     /// 当前浏览范围内的版面。完整存档还保留其它服务器账号的排序，但主页与设置表不能把那些记录当成可用货架。
     /// 在线来源取自会话：非聚合模式只有当前账号，聚合模式包含所有在线账号；没有在线来源时不显示媒体库排。
     /// 未带来源的旧版库键只在有在线账号时保留，随后由 <see cref="Plan"/> 按实时库列表迁移。
+    /// <para>
+    /// <paramref name="aggregateMode"/> 开着时「接下来看」整排不排（2026-11-03 用户令「开启聚合模式后自动隐藏
+    /// 主页 jellyfin 的接下来看那一栏」）：那一排来自每个账号自己的 NextUp，聚合主页不再展示它。设置表跟着收起
+    /// 这一行，勾选状态原样留在存档里，关掉聚合模式后回来。
+    /// </para>
     /// </summary>
     public static IReadOnlyList<HomeRowPlan> ForSources(
         IReadOnlyList<HomeRowPlan> plan,
         IEnumerable<string> sourceKeys,
-        bool moviePilotAvailable = true)
+        bool moviePilotAvailable = true,
+        bool aggregateMode = false)
     {
         var sources = sourceKeys.ToHashSet(StringComparer.Ordinal);
         return plan.Where(row => IsAvailable(row.Key, moviePilotAvailable)
+            && !(aggregateMode && row.Key == NextUp)
             && (LibraryId(row.Key) is null
                 || sources.Count > 0 && (LibrarySourceKey(row.Key) is not { } source || sources.Contains(source))))
             .ToArray();

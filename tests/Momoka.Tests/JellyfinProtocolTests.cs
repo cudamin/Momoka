@@ -118,6 +118,30 @@ internal static partial class JellyfinProtocolTests
             }
             finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
         });
+        Case("Jellyfin：接下来看问 Shows/NextUp，按 StartIndex/Limit 分页并要总数", async () =>
+        {
+            // 网页端 list.html?type=nextup 走的正是这条接口；网页端自己关掉总数（分页读数成了「0 的 0-0」），
+            // 我们的页面靠总数滚动加载、货架角标也要真实项数，所以显式打开。
+            using var handler = new Transport
+            {
+                Reply = sent => sent.Path.EndsWith("Shows/NextUp", StringComparison.Ordinal)
+                    ? Json("""{"Items":[{"Id":"ep-1","Name":"下一集","Type":"Episode"}],"TotalRecordCount":23}""")
+                    : Json("{\"Items\":[]}")
+            };
+            using var http = new EmbyHttp(handler);
+            var client = Client(http);
+
+            var page = await client.QueryNextUpAsync(20, 10, default);
+
+            var sent = handler.Sent.Single(request => request.Path.EndsWith("Shows/NextUp", StringComparison.Ordinal));
+            Assert.Contains("/media/Shows/NextUp", sent.Path);
+            Assert.Contains("StartIndex=20", sent.Url);
+            Assert.Contains("Limit=10", sent.Url);
+            Assert.Contains("EnableTotalRecordCount=true", sent.Url);
+            Assert.Contains("UserId=u1", sent.Url);
+            Assert.Equal(23, page.TotalRecordCount);
+            Assert.Equal("ep-1", page.Items.Single().Id);
+        });
         Case("Jellyfin：新版用户路由、字段与字幕路径符合当前契约", async () =>
         {
             using var handler = new Transport { Reply = sent => Json(sent.Path.EndsWith("Latest", StringComparison.Ordinal) ? "[]" : "{\"Items\":[]}") };

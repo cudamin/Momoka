@@ -79,7 +79,9 @@ internal static class Program
             var initial = f.Page.CategoryGroupsSource.Source;
             var writes = f.Page.CategoryGroupsSource.Writes;
             Assert.True(ReferenceEquals(initial, HomeOrderFixture.Runtime.Get<object>(f.Vm, "CategoryGroups")));
-            HomeOrderFixture.Runtime.Invoke(f.Vm, "ApplyServerAdministration", false, MediaServerKind.Emby);
+            // 相同目录现在按设计复用（见 SettingsViewModel.ReplaceCategories）；要验证通知与重绑，必须真的换一档目录：
+            // 管理员那档会多出「通知」一行。
+            HomeOrderFixture.Runtime.Invoke(f.Vm, "ApplyServerAdministration", true, MediaServerKind.Emby);
             var current = HomeOrderFixture.Runtime.Get<object>(f.Vm, "CategoryGroups");
             Assert.False(ReferenceEquals(initial, current), "必须是实际VM重新构造的分组，不是假通知");
             Assert.True(ReferenceEquals(current, f.Page.CategoryGroupsSource.Source), "必须执行真正UpdateCategoryGroups而非空stub");
@@ -94,7 +96,8 @@ internal static class Program
             using var f = new HomeOrderFixture();
             var initial = f.Page.CategoryGroupsSource.Source;
             var writes = f.Page.CategoryGroupsSource.Writes;
-            HomeOrderFixture.Runtime.Invoke(f.Vm, "ApplyServerAdministration", false, MediaServerKind.Emby);
+            // 目录真的变了才会通知；未变化的目录按设计复用。
+            HomeOrderFixture.Runtime.Invoke(f.Vm, "ApplyServerAdministration", true, MediaServerKind.Emby);
             Assert.False(ReferenceEquals(initial, HomeOrderFixture.Runtime.Get<object>(f.Vm, "CategoryGroups")));
             Assert.True(ReferenceEquals(initial, f.Page.CategoryGroupsSource.Source));
             Assert.Equal(writes, f.Page.CategoryGroupsSource.Writes);
@@ -104,7 +107,8 @@ internal static class Program
         {
             using var f = new HomeOrderFixture();
             await f.Open();
-            HomeOrderFixture.Runtime.Invoke(f.Vm, "ApplyServerAdministration", false, MediaServerKind.Emby);
+            // 用管理员档与普通档来回切出真实的目录变化；相同目录按设计复用，不再发通知。
+            HomeOrderFixture.Runtime.Invoke(f.Vm, "ApplyServerAdministration", true, MediaServerKind.Emby);
             var active = f.Page.CategoryGroupsSource.Source;
             var writes = f.Page.CategoryGroupsSource.Writes;
             f.Page.Release();
@@ -112,7 +116,7 @@ internal static class Program
             Assert.True(ReferenceEquals(active, f.Page.CategoryGroupsSource.Source));
             Assert.Equal(writes, f.Page.CategoryGroupsSource.Writes);
             await f.Open();
-            HomeOrderFixture.Runtime.Invoke(f.Vm, "ApplyServerAdministration", false, MediaServerKind.Emby);
+            HomeOrderFixture.Runtime.Invoke(f.Vm, "ApplyServerAdministration", true, MediaServerKind.Emby);
             Assert.True(ReferenceEquals(HomeOrderFixture.Runtime.Get<object>(f.Vm, "CategoryGroups"), f.Page.CategoryGroupsSource.Source));
             Assert.Equal(writes + 1, f.Page.CategoryGroupsSource.Writes);
             f.Stable();

@@ -242,6 +242,32 @@ internal sealed partial class ShellNavigationProbe
 
             // 文件夹下钻页与库根是同一个 list 组件；区别是 itemType 为 Folder 时 list.js 会露出播放/随机播放。
             page.Release();
+
+            // 主页「接下来看」那一排点进去的页：网页端 list.html?type=nextup。Jellyfin 上直接问
+            // Shows/NextUp（分页并要总数），逐集列下一集；排序、筛选、随机播放与字母条照 list.js 收起。
+            frame.Navigate(typeof(LibraryPage), LibraryRequest.ForRow(fixture.Services, HomeLayout.HomeRowTarget.NextUp));
+            page = (LibraryPage)frame.Content;
+            await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
+            Require(page.ViewModel.Cards.Count == 1 && page.ViewModel.Cards[0].Item.Type == EmbyItemType.Episode
+                && page.ViewModel.Cards[0].Item.Id == "next",
+                "Jellyfin 接下来看页没有列出 Shows/NextUp 的下一集");
+            Require(Get<Button>(page, "SortButton").Visibility == Visibility.Collapsed
+                && Get<Button>(page, "FilterButton").Visibility == Visibility.Collapsed,
+                "Jellyfin 接下来看页仍显示排序或筛选");
+            Require(Get<Button>(page, "PlayRandomButton").Visibility == Visibility.Collapsed
+                && Get<Button>(page, "PlayAllButton").Visibility == Visibility.Visible,
+                "Jellyfin 接下来看页的播放键与网页端不同");
+            Require(Get<TextBlock>(page, "LibraryItemCount").Text == "共 1 项",
+                $"Jellyfin 接下来看页读数不对（{Get<TextBlock>(page, "LibraryItemCount").Text}）");
+            var nextRequest = fixture.Transport.Requests.LastOrDefault(
+                request => request.Contains("Shows/NextUp", StringComparison.Ordinal)) ?? "";
+            Require(nextRequest.Contains("StartIndex=0", StringComparison.Ordinal)
+                && nextRequest.Contains("EnableTotalRecordCount=true", StringComparison.Ordinal),
+                $"Jellyfin 接下来看页没有按分页和总数取数：{nextRequest}");
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync("jellyfin-nextup-page-screen.png");
+            page.Release();
+
             fixture.Transport.Reply = (request, _) =>
             {
                 if (request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal))
