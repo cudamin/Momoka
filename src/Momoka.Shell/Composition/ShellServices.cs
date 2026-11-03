@@ -81,6 +81,7 @@ internal static class ShellServices
         services.AddSingleton(provider =>
             DeviceIdentity.Create(provider.GetRequiredService<AppSettings>().DeviceId, AppIdentity.Version));
         services.AddSingleton<EmbySession>();
+        services.AddSingleton<BrowseSnapshotStore>();
 
         // The disk budget comes from the settings document rather than from a literal here: it is a row on the
         // 界面 card now, and it can change while the app runs — see EmbyImageStore.Retarget and the line in

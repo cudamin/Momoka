@@ -638,6 +638,79 @@ internal static class LibraryResumePagingTests
             }
             finally { ((IDisposable)home).Dispose(); }
         });
+        Case("媒体库暖缓存：同查询恢复不发请求，后台核对相同内容只读一页且保留卡片对象", async () =>
+        {
+            using var fixture = new Fixture(shell, 45);
+            var store = new BrowseSnapshotStore();
+            var first = fixture.CreateNormalView(store);
+            try
+            {
+                await (Task)shell.Invoke(first, "LoadAsync", true)!;
+                await (Task)shell.Invoke(first, "LoadAsync", false)!;
+                await (Task)shell.Invoke(first, "LoadAsync", false)!;
+                Assert.Equal(45, CardObjects(first).Count);
+                Assert.Equal(1, store.LibraryKeys.Count, "读取成功后应写入一份快照");
+            }
+            finally { ((IDisposable)first).Dispose(); }
+
+            var before = fixture.RequestCount;
+            var second = fixture.CreateNormalView(store);
+            try
+            {
+                Assert.True((bool)shell.Invoke(second, "RestoreSnapshot")!, "同一身份和查询应命中暖缓存");
+                Assert.Equal(45, CardObjects(second).Count);
+                Assert.Equal(before, fixture.RequestCount, "暖恢复不能先发 GET");
+
+                var kept = CardObjects(second);
+                await (Task)shell.Invoke(second, "RevalidateAsync")!;
+                Assert.Equal(before + 1, fixture.RequestCount, "首屏与总数相同只核对一页");
+                Assert.True(kept.SequenceEqual(CardObjects(second)), "内容没变时不能换卡片对象");
+            }
+            finally { ((IDisposable)second).Dispose(); }
+        });
+
+        Case("媒体库暖缓存：服务器增删后局部更新并保留未变卡片", async () =>
+        {
+            using var fixture = new Fixture(shell, 45);
+            var store = new BrowseSnapshotStore();
+            var first = fixture.CreateNormalView(store);
+            try
+            {
+                await (Task)shell.Invoke(first, "LoadAsync", true)!;
+                await (Task)shell.Invoke(first, "LoadAsync", false)!;
+                await (Task)shell.Invoke(first, "LoadAsync", false)!;
+            }
+            finally { ((IDisposable)first).Dispose(); }
+
+            var second = fixture.CreateNormalView(store);
+            try
+            {
+                Assert.True((bool)shell.Invoke(second, "RestoreSnapshot")!, "同一身份和查询应命中暖缓存");
+                var kept = CardObjects(second).Single(card => IdOf(card) == "a-10");
+
+                fixture.Transport.Rows["a"].Insert(0, Item("a-new"));
+                await (Task)shell.Invoke(second, "RevalidateAsync")!;
+                var updated = CardObjects(second);
+                Assert.Equal(46, updated.Count, "新增一项后要把原来那段读全");
+                Assert.Equal("a-new", IdOf(updated[0]));
+                Assert.True(ReferenceEquals(kept, updated.Single(card => IdOf(card) == "a-10")),
+                    "未变的卡片必须保留同一个对象");
+
+                fixture.Transport.Rows["a"].RemoveAll(item => item.Id == "a-5");
+                await (Task)shell.Invoke(second, "RevalidateAsync")!;
+                updated = CardObjects(second);
+                Assert.Equal(45, updated.Count, "删除一项后不能留着旧卡");
+                Assert.True(updated.All(card => IdOf(card) != "a-5"), "已删除条目不能继续显示");
+                Assert.True(ReferenceEquals(kept, updated.Single(card => IdOf(card) == "a-10")),
+                    "删除别的条目不应重建仍在的卡片");
+            }
+            finally { ((IDisposable)second).Dispose(); }
+
+            string IdOf(object card) => shell.Get<EmbyItem>(card, "Item").Id;
+        });
+
+        List<object> CardObjects(object vm) =>
+            ((System.Collections.IEnumerable)shell.Get<object>(vm, "Cards")).Cast<object>().ToList();
     }
 
     private static void Case(string name, Func<Task> body) => TestHarness.Test(name, () => SingleThread.Run(body));
@@ -672,7 +745,8 @@ internal static class LibraryResumePagingTests
         }
 
         public object Create(EmbySession session, EmbyImageStore images, ISettingsService settings, EmbySessionScope? source,
-            bool favorites = false, HomeLayout.HomeRowTarget row = HomeLayout.HomeRowTarget.Resume)
+            bool favorites = false, HomeLayout.HomeRowTarget row = HomeLayout.HomeRowTarget.Resume,
+            BrowseSnapshotStore? snapshots = null)
         {
             var vm = Activator.CreateInstance(_viewModel)!;
             var request = favorites
@@ -680,6 +754,7 @@ internal static class LibraryResumePagingTests
                 : _request.GetMethod("ForRow")!.Invoke(null, [new NoServices(), row, source])!;
             if (favorites) _request.GetProperty("FavoriteAccountKey")!.SetValue(request, source?.Key);
             var actions = DispatchProxy.Create(_actions, typeof(LibraryResumeActionsProxy));
+            if (snapshots is not null) Invoke(vm, "UseSnapshots", snapshots);
             Invoke(vm, "Attach", request, actions, settings, session, images, new ServerCapabilities(session), null);
             return vm;
         }
@@ -695,7 +770,7 @@ internal static class LibraryResumePagingTests
         }
 
         public object CreateLoadingHome(EmbySession session, EmbyImageStore images, ISettingsService settings,
-            IReadOnlyList<EmbyItem> libraries)
+            IReadOnlyList<EmbyItem> libraries, BrowseSnapshotStore? snapshots = null)
         {
             var type = _viewModel.Assembly.GetType("Momoka.Shell.ViewModels.HomeViewModel", true)!;
             var home = Activator.CreateInstance(type)!;
@@ -704,7 +779,9 @@ internal static class LibraryResumePagingTests
             {
                 ("_active", true), ("_session", session), ("_images", images), ("_settings", settings),
                 ("_scope", session.Capture()), ("_sources", session.Sources.ToArray()), ("_libraryViews", libraries),
-                ("_actions", DispatchProxy.Create(_actions, typeof(LibraryResumeActionsProxy)))
+                ("_actions", DispatchProxy.Create(_actions, typeof(LibraryResumeActionsProxy))),
+                ("_snapshots", snapshots),
+                ("_sourceTokens", session.Sources.Where(source => source.IsAvailable).Select(SnapshotSource.Of).ToArray())
             }) type.GetField(name, Members)!.SetValue(home, value);
             settings.Settings.Ui.HomeRows = HomeLayout.Save(HomeLayout.Plan([], libraries, settings.Settings.Ui.ShowHomeBanner));
             Invoke(home, "BuildShelves");
@@ -816,8 +893,8 @@ internal static class LibraryResumePagingTests
             _shell.CreateSearch(_session, _images, Settings, Source("a"), term);
 
         /// <summary>同一套匿名来源上再建一页普通媒体库；用来核对隐藏的最近搜索不参与这一页。</summary>
-        public object CreateNormalView() =>
-            _shell.Create(_session, _images, Settings, Source("a"));
+        public object CreateNormalView(BrowseSnapshotStore? snapshots = null) =>
+            _shell.Create(_session, _images, Settings, Source("a"), snapshots: snapshots);
 
         public int RequestCount => Transport.Requests.Count;
 
@@ -891,7 +968,7 @@ internal static class LibraryResumePagingTests
             return home;
         }
 
-        public object CreateLoadingHome(bool banner = false)
+        public object CreateLoadingHome(bool banner = false, BrowseSnapshotStore? snapshots = null)
         {
             Settings.Settings.Ui.ShowHomeBanner = banner;
             Transport.HomeReads = true;
@@ -902,7 +979,7 @@ internal static class LibraryResumePagingTests
                 CollectionType = "movies",
                 Type = EmbyItemType.CollectionFolder
             })).ToArray();
-            return _shell.CreateLoadingHome(_session, _images, Settings, libraries);
+            return _shell.CreateLoadingHome(_session, _images, Settings, libraries, snapshots);
         }
 
         public Task HomeWatch(object home, object card) => (Task)_shell.Invoke(home, "AfterWatchedAsync", card)!;

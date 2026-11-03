@@ -156,9 +156,13 @@ public sealed partial class LibraryViewModel : PageViewModel
     private EmbySessionScope? _scope;
     private EmbySessionScope? _defaultScope;
     private IReadOnlyList<EmbySessionScope> _sources = [];
+    private IReadOnlyList<SnapshotSource> _sourceTokens = [];
     private IReadOnlyList<EmbySessionScope> _favoriteAccounts = [];
     private AggregateQueryCursor? _cursor;
     private readonly HashSet<string> _resumeRead = new(StringComparer.Ordinal);
+    private BrowseSnapshotStore? _snapshots;
+    private string? _snapshotKey;
+    private bool _restoredFromCache;
     private bool Aggregated => _sources.Count > 1;
     // 单来源继续观看同样按服务器消费量计数；补入的下一集只占显示槽，不占 Resume 偏移。
     private bool UsesQueryCursor => Aggregated || IsResumePage;
@@ -177,6 +181,9 @@ public sealed partial class LibraryViewModel : PageViewModel
         FilterTooltip = "筛选";
         CardWidth = Momoka.Infrastructure.CardSize.PosterWidth;
         Cards.CollectionChanged += OnSearchCardsChanged;
+        // 每次一页真正到达之后写快照；放在事件里而不是 LoadAsync 里，让「读取」和「记住读到了什么」
+        // 各自只有一处，源链接夹具也能继续只提取加载流程。
+        PageArrived += CaptureSnapshot;
         UpdateSearchGroupMetrics();
     }
 
@@ -773,6 +780,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             nameof(RecommendedVisibility), nameof(GridVisibility), nameof(UpcomingVisibility), nameof(FavoritesVisibility),
             nameof(SearchGroupsVisibility) }) OnPropertyChanged(name);
         RefreshUpcomingState();
+        // 查询身份（分区、分组、账号）与排序／筛选／显示条件都在这里落定，缓存键跟着一起更新。
+        RefreshSnapshotKey();
     }
 
     /// <summary>
@@ -1271,6 +1280,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             if (_sources.Count == 1) _scope = _sources[0];
         }
         _request = request;
+        _sourceTokens = BrowseSnapshotKeys.Sources(_sources);
+        _restoredFromCache = false;
         _actions = actions;
         _settings = settings;
         _images = images;
@@ -1313,6 +1324,30 @@ public sealed partial class LibraryViewModel : PageViewModel
         RestoreDisplay();
         RefreshBrowseChrome();
         EnsureRecentSearches();
+    }
+
+    /// <summary>由页面在 <see cref="Attach"/> 前交给本页。</summary>
+    internal void UseSnapshots(BrowseSnapshotStore snapshots) => _snapshots = snapshots;
+
+    /// <summary>这一页的卡片是先从快照恢复的；页面据此跳过串行重读、直接落回滚动位置。</summary>
+    internal bool RestoredFromCache => _restoredFromCache;
+
+    /// <summary>
+    /// 搜索、收藏、推荐和即将播出各有自己的结构或即时语义，不进入快照；普通网格（含聚合与继续观看）
+    /// 才按查询键复用条目。收藏页按 <see cref="IsFavoritesPage"/> 判定（分区与来源），不能只看
+    /// <see cref="LibraryRequest.IsFavorites"/> —— 从详情页钻进来的收藏分区 Tag 是空的。
+    /// </summary>
+    private bool CacheEligible => _snapshots is not null && _request is { IsSearch: false }
+        && !IsFavoritesPage && !IsRecommendedPage && !IsUpcomingPage;
+
+    private void RefreshSnapshotKey()
+    {
+        _snapshotKey = null;
+        if (_request is null || _settings is null || !CacheEligible) return;
+
+        _snapshotKey = BrowseSnapshotKeys.Library(
+            _sourceTokens, _request, SortKey, SortDescending, _filters, _fnNasFilters, _display,
+            _settings.PageSize);
     }
 
     /// <summary>
@@ -1545,6 +1580,228 @@ public sealed partial class LibraryViewModel : PageViewModel
     }
 
     /// <summary>
+    /// 同一身份、同一来源集合与同一查询下，先用上次读到的条目把网格摆出来。命中时这一页不再串行重读
+    /// 之前翻过的每一页，滚动由页面按导航请求恢复；服务器是否变化交给 <see cref="RevalidateAsync"/>。
+    /// </summary>
+    internal bool RestoreSnapshot()
+    {
+        _restoredFromCache = false;
+        if (!CacheEligible || _snapshotKey is null || _snapshots is null || _request is null) return false;
+        if (!_snapshots.TryGetLibrary(_snapshotKey, _sourceTokens, out var snapshot)) return false;
+
+        // 缓存只保存有上限的条目；离开时已经翻得比它更深时按未命中处理，不把滚动恢复到被截断的位置。
+        if (!snapshot.FirstPage || _request.LoadedCount > snapshot.Items.Count) return false;
+
+        _queries.Cancel();
+        _queryToken = _queries.Begin();
+        base.Cancel();
+        foreach (var card in Cards) card.AbandonPoster();
+        Cards.Clear();
+        foreach (var item in snapshot.Items) Cards.Add(NewCard(item));
+
+        _total = snapshot.Total;
+        _firstPage = true;
+        _pageFailed = false;
+        _upcomingReadCount = snapshot.UpcomingReadCount;
+        _resumeRead.Clear();
+        foreach (var key in snapshot.ResumeRead) _resumeRead.Add(key);
+        _cursor = snapshot.Cursor?.Copy();
+        SetPageFailed(false);
+        EmptyNotice = "这里没有内容";
+        ShowEmptyNotice = Cards.Count == 0;
+        RefreshUpcomingState();
+        UpdateUpcomingDays();
+        UpdateSearchGroupMetrics();
+        IsReady = true;
+        _restoredFromCache = true;
+        RowsArrived();
+        Log.Info(Category, $"暖缓存命中：{Heading}，{Cards.Count} 项");
+        return true;
+    }
+
+    private void CaptureSnapshot()
+    {
+        if (!CacheEligible || !_active || !_firstPage || _snapshotKey is null || _snapshots is null) return;
+
+        if (Cards.Count > BrowseSnapshotStore.MaxItemsPerSnapshot)
+        {
+            _snapshots.InvalidateLibrary(_snapshotKey);
+            return;
+        }
+
+        _snapshots.StoreLibrary(_snapshotKey, _sourceTokens, new LibrarySnapshot
+        {
+            Items = [.. Cards.Select(card => card.Item)],
+            Total = _total,
+            FirstPage = _firstPage,
+            UpcomingReadCount = _upcomingReadCount,
+            ResumeRead = [.. _resumeRead],
+            Cursor = _cursor
+        });
+    }
+
+    /// <summary>
+    /// 暖缓存上屏后的核对：先读一页并比较总数与首屏指纹。相同就只续期，不重读后面几页；不同才按缓存深度
+    /// 重读到原条数并做一次增量合并。失败保留当前内容；身份／权限失效时清空，不继续展示无权读取的内容。
+    /// </summary>
+    internal async Task RevalidateAsync()
+    {
+        if (!_active || !_restoredFromCache || !CacheEligible || _snapshotKey is null || _snapshots is null) return;
+        // 用户已经开始翻页时不抢同一趟载入：后台核对可以等下一次导航，不能把正在读的下一页取消掉。
+        if (Busy) return;
+
+        var token = BeginBackgroundLoad();
+        var queryToken = _queryToken;
+        try
+        {
+            var cursor = UsesQueryCursor ? NewCursor() : null;
+            var first = await ReadFreshPageAsync(0, cursor, token).ConfigureAwait(true);
+            if (first is null || !QueryCurrent(queryToken) || !IsCurrent(token)) return;
+
+            if (first.TotalRecordCount == _total && FirstPageMatches(first.Items))
+            {
+                CaptureSnapshot();
+                return;
+            }
+
+            // 新增或删除会改变总数：按差额把原来那段读全，既不少显示一条，也不为一个新条目把上限读满。
+            var wanted = Math.Min(
+                Cards.Count + Math.Max(0, first.TotalRecordCount - _total),
+                BrowseSnapshotStore.MaxItemsPerSnapshot);
+            var items = new List<EmbyItem>(first.Items);
+            var total = first.TotalRecordCount;
+            while (items.Count < wanted)
+            {
+                var next = await ReadFreshPageAsync(items.Count, cursor, token).ConfigureAwait(true);
+                if (next is null || next.Items.Count == 0) break;
+                items.AddRange(next.Items);
+                total = next.TotalRecordCount;
+            }
+
+            if (!QueryCurrent(queryToken) || !IsCurrent(token)) return;
+            if (items.Count > wanted) items.RemoveRange(wanted, items.Count - wanted);
+
+            ApplyRefreshed(items, total, cursor);
+            Log.Info(Category, $"暖缓存后台核对：{Heading} 内容有变化，已就地更新 {Cards.Count} 项");
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception error)
+        {
+            if (!IsCurrent(token)) return;
+
+            if (!SourcesAvailable || FailureDropsContent(error))
+            {
+                _snapshots.InvalidateLibrary(_snapshotKey);
+                foreach (var card in Cards) card.AbandonPoster();
+                Cards.Clear();
+                _total = NotLoaded;
+                _firstPage = false;
+                SetPageFailed(true);
+                ShowEmptyNotice = false;
+                Report($"读取「{Heading}」失败，请刷新重试", error);
+                return;
+            }
+
+            Log.Warn(Category, "暖缓存后台核对失败，保留上次内容", error);
+            Notify(null, "后台刷新失败，仍显示上次读取的内容；可稍后刷新重试。",
+                Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning);
+        }
+        finally
+        {
+            EndLoad(token);
+        }
+    }
+
+    private async Task<ItemsResult?> ReadFreshPageAsync(int start, AggregateQueryCursor? cursor, CancellationToken token)
+    {
+        if (cursor is null) return await ReadAsync(start, token).ConfigureAwait(true);
+
+        // 核对失败必须整页失败：部分来源空回来会被当成「内容变少了」，把仍有内容的缓存删掉。
+        var page = await cursor.ReadAsync((key, offset, ct) =>
+                ReadSourceAsync(_sources.First(source => source.Key == key), offset, ct),
+            token, allowPartialFailure: false).ConfigureAwait(true);
+        return page.Result;
+    }
+
+    private bool FirstPageMatches(IReadOnlyList<EmbyItem> items)
+    {
+        if (items.Count > Cards.Count) return false;
+        for (var index = 0; index < items.Count; index++)
+            if (!ItemFingerprint.Same(Cards[index].Item, items[index])) return false;
+        return true;
+    }
+
+    /// <summary>
+    /// 把后台重新读到的条目并回现有集合：身份与展示指纹都没变的卡留着，只增删和移动真正变化的那些。
+    /// </summary>
+    private void ApplyRefreshed(IReadOnlyList<EmbyItem> items, int total, AggregateQueryCursor? cursor)
+    {
+        var existing = Cards.ToList();
+        var used = new HashSet<CardItem>();
+        var selected = new List<CardItem>(items.Count);
+        foreach (var item in items)
+        {
+            CardItem? keep = null;
+            foreach (var card in existing)
+            {
+                if (used.Contains(card)) continue;
+                if (!string.Equals(card.Item.IdentityKey, item.IdentityKey, StringComparison.Ordinal)) continue;
+                if (!ItemFingerprint.Same(card.Item, item)) continue;
+                keep = card;
+                break;
+            }
+
+            if (keep is null) keep = NewCard(item);
+            else used.Add(keep);
+            selected.Add(keep);
+        }
+
+        foreach (var card in existing)
+            if (!used.Contains(card) && !selected.Contains(card)) card.AbandonPoster();
+
+        for (var index = 0; index < selected.Count; index++)
+        {
+            var card = selected[index];
+            var current = Cards.IndexOf(card);
+            if (current < 0) Cards.Insert(index, card);
+            else if (current != index) Cards.Move(current, index);
+        }
+
+        while (Cards.Count > selected.Count)
+        {
+            var last = Cards[Cards.Count - 1];
+            Cards.RemoveAt(Cards.Count - 1);
+            if (!selected.Contains(last)) last.AbandonPoster();
+        }
+
+        _total = total;
+        _cursor = cursor;
+        _firstPage = true;
+        SetPageFailed(false);
+        if (IsResumePage)
+        {
+            _resumeRead.Clear();
+            foreach (var item in items) _resumeRead.Add(item.IdentityKey);
+        }
+
+        EmptyNotice = "这里没有内容";
+        ShowEmptyNotice = Cards.Count == 0;
+        UpdateUpcomingDays();
+        UpdateSearchGroupMetrics();
+        // RowsArrived 会写快照并通知页面补页；这里不再重复写一次。
+        RowsArrived();
+    }
+
+    private static bool FailureDropsContent(Exception error) =>
+        error is EmbyTokenExpiredException or UnauthorizedAccessException
+        || error is EmbyApiException
+        {
+            StatusCode: System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden
+        };
+
+    /// <summary>
     /// Reads one page of rows: the first, or the next.
     /// </summary>
     /// <param name="reset">
@@ -1666,6 +1923,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     public override void Cancel()
     {
+        CaptureSnapshot();
         _active = false;
         _queries.Cancel();
         _jumps.Cancel();

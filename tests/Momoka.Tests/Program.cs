@@ -277,6 +277,7 @@ internal static class Program
         HttpDiagnosticsTests.Register();
         FailurePathTests.Register();
         ImageCacheTests.Register();
+        BrowseSnapshotTests.Register();
         ImageIdentityTests.Register();
         BrowsingPreferencesTests.Register();
         LibrarySearchTests.Register();

@@ -183,6 +183,74 @@ public sealed partial class CardShelf : ObservableObject
     }
 
     /// <summary>
+    /// 暖缓存和后台刷新用的增量填充：身份和展示指纹都没变的卡留着，只增删、移动真正变了的那些。
+    /// <para>
+    /// 与 <see cref="Fill"/> 的区别只在「没变的东西不碰」：整排重来会让每张卡重新解码、重新做进场动画，
+    /// 也会把用户正在看的那一排短暂清空。调用方仍要保证这一排的尺寸、角标和覆盖文案没有换档 ——
+    /// 换档时页面会重建货架，走不到这里。
+    /// </para>
+    /// </summary>
+    internal void Apply(IReadOnlyList<EmbyItem> items, Func<EmbyItem, string?>? subtitle = null,
+        Func<EmbyItem, string?>? title = null)
+    {
+        _cardSubtitle = subtitle;
+        _cardTitle = title;
+
+        if (Cards.Count == items.Count)
+        {
+            var same = true;
+            for (var index = 0; index < items.Count; index++)
+            {
+                if (ItemFingerprint.Same(Cards[index].Item, items[index])) continue;
+                same = false;
+                break;
+            }
+            if (same) return;
+        }
+
+        var existing = Cards.ToList();
+        var used = new HashSet<CardItem>();
+        var selected = new List<CardItem>(items.Count);
+        foreach (var item in items)
+        {
+            CardItem? keep = null;
+            foreach (var card in existing)
+            {
+                if (used.Contains(card)) continue;
+                if (!string.Equals(card.Item.IdentityKey, item.IdentityKey, StringComparison.Ordinal)) continue;
+                if (!ItemFingerprint.Same(card.Item, item)) continue;
+                keep = card;
+                break;
+            }
+
+            if (keep is null) keep = NewCard(item);
+            else used.Add(keep);
+            selected.Add(keep);
+        }
+
+        foreach (var card in existing)
+        {
+            if (used.Contains(card) || selected.Contains(card)) continue;
+            card.AbandonPoster();
+        }
+
+        for (var index = 0; index < selected.Count; index++)
+        {
+            var card = selected[index];
+            var current = Cards.IndexOf(card);
+            if (current < 0) Cards.Insert(index, card);
+            else if (current != index) Cards.Move(current, index);
+        }
+
+        while (Cards.Count > selected.Count)
+        {
+            var last = Cards[Cards.Count - 1];
+            Cards.RemoveAt(Cards.Count - 1);
+            if (!selected.Contains(last)) last.AbandonPoster();
+        }
+    }
+
+    /// <summary>
     /// The same, for a row whose second line does not come from the item at all.
     /// <para>
     /// 演职人员 is the one such row: the line under a portrait is the role, which belongs to the credit

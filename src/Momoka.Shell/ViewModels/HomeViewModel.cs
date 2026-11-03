@@ -124,8 +124,16 @@ public sealed partial class HomeViewModel : PageViewModel
 
     private EmbySessionScope? _scope;
     private IReadOnlyList<EmbySessionScope> _sources = [];
+    private IReadOnlyList<SnapshotSource> _sourceTokens = [];
     private IUiDispatcher? _dispatcher;
     private bool _active;
+    private BrowseSnapshotStore? _snapshots;
+    private string? _snapshotKey;
+    private bool _restoredFromCache;
+    private bool _backgroundLoad;
+    private int _backgroundFailures;
+    private Exception? _backgroundFatal;
+    private bool _quietLoad;
     private bool Live => _active && _sources.Any(source => source.IsAvailable);
     private bool Visible(string key) => _all.Any(entry => entry.Row.Key == key && entry.Row.Visible);
 
@@ -324,6 +332,7 @@ public sealed partial class HomeViewModel : PageViewModel
         _active = true;
         _scope = images.CaptureScope();
         _sources = session.Sources.ToArray();
+        _sourceTokens = BrowseSnapshotKeys.Sources(_sources);
         // 换了一趟会话，上一次那份「服务器长什么样」不再作数（连账号都可能是另一个了）。
         _watch.Clear();
         _watchReported = false;
@@ -343,6 +352,12 @@ public sealed partial class HomeViewModel : PageViewModel
 
         BuildShelves();
     }
+
+    /// <summary>由页面在 <see cref="Attach"/> 前交给本页；暖缓存命中与否都不改变它的生命周期。</summary>
+    internal void UseSnapshots(BrowseSnapshotStore snapshots) => _snapshots = snapshots;
+
+    /// <summary>这一页是先从快照上屏的；页面据此决定首读还是后台核对。</summary>
+    internal bool RestoredFromCache => _restoredFromCache;
 
     /// <summary>
     /// 按存档里那份版面（<see cref="HomeLayout.Plan"/>）造出这一次的每一排。归一化之后的版面顺手写回设置文件 ——
@@ -408,6 +423,23 @@ public sealed partial class HomeViewModel : PageViewModel
                 Source = source
             });
         })];
+        RefreshSnapshotKey();
+    }
+
+    private void RefreshSnapshotKey()
+    {
+        if (_snapshots is null || _settings is null || _sourceTokens.Count == 0)
+        {
+            _snapshotKey = null;
+            return;
+        }
+
+        _snapshotKey = BrowseSnapshotKeys.Home(
+            _sourceTokens,
+            _libraryViews,
+            [.. _all.Select(entry => (entry.Row.Key, entry.Row.Visible))],
+            _settings.Settings.Ui,
+            _settings.Settings.AggregateMode == true);
     }
 
     /// <summary>
@@ -418,6 +450,116 @@ public sealed partial class HomeViewModel : PageViewModel
     {
         BuildShelves();
         return LoadAsync();
+    }
+
+    /// <summary>
+    /// 同一身份、同一版面和轮播配置下，先用上次的条目把货架摆出来。命中时页面立即可读，网络检查交给
+    /// <see cref="BackgroundRefreshAsync"/>；未命中照旧首读。
+    /// <para>
+    /// 只复用条目 DTO：卡片在这里按当前设置重新造，封面走磁盘与解码缓存。旧页面、旧卡片和旧位图都不跨页保留。
+    /// </para>
+    /// </summary>
+    internal bool RestoreSnapshot()
+    {
+        _restoredFromCache = false;
+        if (_snapshots is null || _snapshotKey is null || _images is null || !Live) return false;
+        if (!_snapshots.TryGetHome(_snapshotKey, _sourceTokens, out var snapshot)) return false;
+
+        foreach (var (row, shelf) in _all)
+        {
+            if (!row.Visible || snapshot.Rows.FirstOrDefault(entry => entry.Key == row.Key) is not { } cached)
+            {
+                shelf.Clear();
+                continue;
+            }
+
+            shelf.Apply(cached.Items, ShelfSubtitle(row.Key), ShelfTitle(row.Key));
+            shelf.NoteOverride = cached.Note;
+        }
+
+        Slides = snapshot.Banner
+            ? [.. snapshot.SlideItems.Select(item => new BannerSlide(item, _images))]
+            : [];
+        PublishShelves();
+        LoadedCount = snapshot.LoadedCount;
+        Subheading = snapshot.Subheading;
+        ShowEmptyNotice = Shelves.Count == 0;
+        IsReady = true;
+        _restoredFromCache = true;
+
+        Log.Info(Category, $"暖缓存命中：{Shelves.Count} 排、{LoadedCount} 项");
+        return true;
+    }
+
+    /// <summary>暖缓存上屏后的后台核对；不写加载状态，失败保留当前内容。</summary>
+    internal Task BackgroundRefreshAsync()
+    {
+        _watchBusy = true;
+        _quietLoad = true;
+        var loading = LoadAsync();
+        // LoadAsync 在第一个 await 之前已经把 quiet 读进局部变量；这里马上复位，
+        // 之后用户手动刷新或定时检查都不会被误当成后台核对。
+        _quietLoad = false;
+        return CompleteAsync(loading);
+
+        async Task CompleteAsync(Task inner)
+        {
+            try { await inner; }
+            finally { _watchBusy = false; }
+        }
+    }
+
+    private void CaptureSnapshot()
+    {
+        if (_snapshots is null || _snapshotKey is null || !_active || !IsReady || _all.Length == 0) return;
+
+        _snapshots.StoreHome(_snapshotKey, _sourceTokens, new HomeSnapshot
+        {
+            Rows = [.. _all.Where(entry => entry.Row.Visible).Select(entry => new HomeRowSnapshot(
+                entry.Row.Key, [.. entry.Shelf.Cards.Select(card => card.Item)], entry.Shelf.NoteOverride))],
+            SlideItems = [.. Slides.Select(slide => slide.Item)],
+            LoadedCount = LoadedCount,
+            Subheading = Subheading,
+            Banner = _banner
+        });
+    }
+
+    private Func<EmbyItem, string?>? ShelfSubtitle(string key) => key switch
+    {
+        HomeLayout.Libraries => _ => "",
+        HomeLayout.Resume => HomeResumeText.Subtitle,
+        _ => null
+    };
+
+    private Func<EmbyItem, string?>? ShelfTitle(string key) => key switch
+    {
+        HomeLayout.Libraries => item => SourceCaption.Prefix(item.Name, item.Source, ShowServerNames),
+        HomeLayout.Resume => HomeResumeText.Title,
+        _ => null
+    };
+
+    /// <summary>
+    /// 装到了东西的排一律横着排，并把矮窗档那一排按当前开关搬进搬出。重载和暖恢复共用这一段，
+    /// 两边各写一份就会出现「缓存恢复后媒体库没有压上轮播」。
+    /// </summary>
+    private void PublishShelves()
+    {
+        var visibleShelves = _all.Where(entry => entry.Row.Visible && entry.Shelf.Cards.Count > 0)
+            .Select(entry => entry.Shelf).ToList();
+        LibraryShelf = visibleShelves.FirstOrDefault(shelf => shelf.HomeKey == HomeLayout.Libraries);
+        LibraryFlowIndex = LibraryShelf is { } libraryShelf ? visibleShelves.IndexOf(libraryShelf) : -1;
+        if (LibraryShelf is null) _libraryOnBanner = false;
+        else if (_libraryOnBanner) visibleShelves.Remove(LibraryShelf);
+
+        // 保留原有行容器与位置：Clear/Add 会让页面每一声集合通知都重新计算混排并拆装所有货架。
+        for (var index = Shelves.Count - 1; index >= 0; index--)
+            if (!visibleShelves.Contains(Shelves[index])) Shelves.RemoveAt(index);
+        for (var index = 0; index < visibleShelves.Count; index++)
+        {
+            var current = Shelves.IndexOf(visibleShelves[index]);
+            if (current < 0) Shelves.Insert(index, visibleShelves[index]);
+            else if (current != index) Shelves.Move(current, index);
+        }
     }
 
     private new bool IsCurrent(CancellationToken token) => Live && base.IsCurrent(token);
@@ -705,12 +847,16 @@ public sealed partial class HomeViewModel : PageViewModel
 
     private async Task LoadAsync(bool refreshSlides = true)
     {
+        var quiet = _quietLoad;
         if (!Live || _session is null || _actions is null || _all.Length == 0) return;
 
-        var token = BeginLoad();
+        var token = quiet ? BeginBackgroundLoad() : BeginLoad();
+        _backgroundLoad = quiet;
+        _backgroundFailures = 0;
+        _backgroundFatal = null;
         var refreshVersion = _refresh.Begin();
         refreshSlides = _refresh.NeedsSlides(refreshSlides);
-        Subheading = "正在读取…";
+        if (!quiet) Subheading = "正在读取…";
 
         // Started together rather than awaited one after another: a round trip per row in sequence is
         // a page that takes a second per shelf, and none of them depends on another's answer.
@@ -806,6 +952,32 @@ public sealed partial class HomeViewModel : PageViewModel
 
         if (!IsCurrent(token)) return;
 
+        // 暖缓存的后台核对只要有一路读失败，就不发布这一趟：部分来源空回来会把屏上已经有效的排清掉。
+        // 首次读取保留原有语义（哪个来源失败只影响自己那一排）。
+        if (quiet && _backgroundFailures > 0)
+        {
+            Log.Warn(Category, $"后台刷新有 {_backgroundFailures} 路读取失败，保留暖缓存内容");
+
+            // 身份或权限失效时不能继续展示旧内容：这一页整体清空并让错误提示接管，等用户刷新或重新登录。
+            if (_backgroundFatal is not null)
+            {
+                if (_snapshots is not null && _snapshotKey is not null) _snapshots.InvalidateHome(_snapshotKey);
+                foreach (var (_, shelf) in _all) shelf.Clear();
+                Slides = [];
+                PublishShelves();
+                LoadedCount = 0;
+                Subheading = null;
+                ShowEmptyNotice = true;
+                EndLoad(token);
+                return;
+            }
+
+            if (!NoticeOpen)
+                Notify(null, "后台刷新失败，仍显示上次读取的内容；可稍后刷新重试。", Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning);
+            EndLoad(token);
+            return;
+        }
+
         // 继续观看 and 接下来看 span every item the account has touched — music included. This app has no
         // music face, so a track card would open onto nothing; the rows are filtered here rather than by
         // asking the server, because Emby's own endpoints for these two take no type filter. Each library
@@ -859,11 +1031,9 @@ public sealed partial class HomeViewModel : PageViewModel
             // 都不多）。空串而不是 null：null 是「按条目自己算」。多账号时卡片标题前面写服务器名，和货架标题
             // 同一份来源。
             // 继续观看的剧名在上、季集与集名在下；同一排换成下一集时沿用这两个选择器。
-            shelf.Fill(Items(row.Key), row.Key == HomeLayout.Libraries ? _ => ""
-                : row.Key == HomeLayout.Resume ? HomeResumeText.Subtitle : null,
-                row.Key == HomeLayout.Libraries
-                    ? item => SourceCaption.Prefix(item.Name, item.Source, ShowServerNames)
-                    : row.Key == HomeLayout.Resume ? HomeResumeText.Title : null);
+            // 增量填充：身份和展示指纹都没变的卡留着，只动真正变了的那些。后台刷新因此不会把整页海报
+            // 拆了重装，暖缓存命中时也只是把现成条目接回原来的集合。
+            shelf.Apply(Items(row.Key), ShelfSubtitle(row.Key), ShelfTitle(row.Key));
             shelf.NoteOverride = row.Key == HomeLayout.NextUp
                 ? _nextUpTotal > 0 ? $"{_nextUpTotal} 项" : null
                 : LibraryNote(row.Key);
@@ -871,22 +1041,7 @@ public sealed partial class HomeViewModel : PageViewModel
 
         // 装到了东西的排一律横着排。媒体库也在其中 —— 2026-09-08「移除轮播图右边的媒体库」之后不再单挑出来当
         // 右栏，就跟别的几排一样站在它自己在版面表上的位置上。
-        var visibleShelves = _all.Where(entry => entry.Row.Visible && entry.Shelf.Cards.Count > 0)
-            .Select(entry => entry.Shelf).ToList();
-        LibraryShelf = visibleShelves.FirstOrDefault(shelf => shelf.HomeKey == HomeLayout.Libraries);
-        LibraryFlowIndex = LibraryShelf is { } libraryShelf ? visibleShelves.IndexOf(libraryShelf) : -1;
-        if (LibraryShelf is null) _libraryOnBanner = false;
-        else if (_libraryOnBanner) visibleShelves.Remove(LibraryShelf);
-
-        // 保留原有行容器与位置：Clear/Add 会让页面每一声集合通知都重新计算混排并拆装所有货架。
-        for (var index = Shelves.Count - 1; index >= 0; index--)
-            if (!visibleShelves.Contains(Shelves[index])) Shelves.RemoveAt(index);
-        for (var index = 0; index < visibleShelves.Count; index++)
-        {
-            var current = Shelves.IndexOf(visibleShelves[index]);
-            if (current < 0) Shelves.Insert(index, visibleShelves[index]);
-            else if (current != index) Shelves.Move(current, index);
-        }
+        PublishShelves();
 
         // 需求 5 → 2026-09-13「轮播图改用前十个最近添加」，同日下午张数进了设置：轮播不再站在继续观看上，
         // 只站设置里那个来源发回来的头若干张（筛掉没有宽图、并掉同一部剧，是 HomeCarousel 的事）。关掉轮播
@@ -903,8 +1058,9 @@ public sealed partial class HomeViewModel : PageViewModel
 
         Subheading = LoadedCount == 0 ? null : $"{LoadedCount} 项";
 
-        _supplement = CompleteSupplementAsync(libraryTotals, watch, token);
         EndLoad(token);
+        CaptureSnapshot();
+        _supplement = CompleteSupplementAsync(libraryTotals, watch, token);
     }
 
     /// <summary>辅助请求仍属于本次加载；换代、离页或来源下线后不能回填旧读数。</summary>
@@ -914,6 +1070,7 @@ public sealed partial class HomeViewModel : PageViewModel
         _watchBaseline = CompleteWatchAsync();
         await Task.WhenAll(totals.Select(pair => CompleteTotalAsync(pair.Key, pair.Value))
             .Append(_watchBaseline)).ConfigureAwait(true);
+        if (IsCurrent(token)) CaptureSnapshot();
 
         async Task CompleteWatchAsync()
         {
@@ -1003,6 +1160,14 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     private static List<EmbyItem> WithoutMusic(List<EmbyItem> items) =>
         items.Where(item => !EmbyItemType.IsMusic(item.Type)).ToList();
+
+    /// <summary>这一趟失败是否意味着当前身份已经读不到内容，而不是服务器暂时抽风。</summary>
+    private static bool FailureDropsContent(Exception error) =>
+        error is EmbyTokenExpiredException or UnauthorizedAccessException
+        || error is EmbyApiException
+        {
+            StatusCode: System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden
+        };
 
     /// <summary>
     /// The carousel's slides, out of the batch the band asked for itself
@@ -1136,6 +1301,7 @@ public sealed partial class HomeViewModel : PageViewModel
 
     public override void Cancel()
     {
+        CaptureSnapshot();
         _active = false;
         // 这一页走了，实时通道一起收：它听的是这一页上的数据，页都不在了没人接这个结果。
         _realtime.Release();
@@ -1253,6 +1419,11 @@ public sealed partial class HomeViewModel : PageViewModel
         catch (Exception error)
         {
             Log.Warn(Category, $"读取{scope.DisplayName}的{what}失败", error);
+            if (IsCurrent(token) && _backgroundLoad)
+            {
+                _backgroundFailures++;
+                if (_backgroundFatal is null && FailureDropsContent(error)) _backgroundFatal = error;
+            }
 
             // First failure wins the bar: three stacked messages saying the server is unreachable is
             // two more than anyone needs, and the other two are in the log either way.

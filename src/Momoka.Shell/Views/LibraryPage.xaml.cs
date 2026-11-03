@@ -59,6 +59,9 @@ public sealed partial class LibraryPage : Page, IShellContent
     private int _navigation;
     private CancellationTokenSource? _typing;
 
+    /// <summary>暖缓存恢复后要落回的滚动位置；滚动器或布局还没就绪时先存着，由首次 Loaded 消费。</summary>
+    private double? _pendingScroll;
+
     /// <summary>
     /// 导航参数正在接进视图模型的这一段：属性通知只记待办，接完统一执行一次视图、分区和头部布局。
     /// 视图模型一次 Attach 会连着发十几条通知，逐条建分区等于把同一面墙拆装十几遍。
@@ -529,6 +532,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         _moviePilot = services.GetRequiredService<MoviePilotService>();
         _moviePilot.AvailabilityChanged += OnMoviePilotAvailabilityChanged;
         _settings.Settings.MoviePilot.AniBtChanged += OnAniBtSettingChanged;
+        ViewModel.UseSnapshots(services.GetRequiredService<BrowseSnapshotStore>());
         ViewModel.Attach(
             request,
             _actions,
@@ -561,11 +565,26 @@ public sealed partial class LibraryPage : Page, IShellContent
         BuildBrowseSections();
 
         if (request.IsSearch && SearchSource != 0) ViewModel.Cancel();
-        else _ = LoadNavigationAsync(request, _navigation);
+        else
+        {
+            // 同一身份与查询下有快照就先摆出来；没有才走首次读取。两条都由 LoadNavigationAsync 收尾，
+            // 区别只在它是否等待网络、是否串行补读之前的页。
+            ViewModel.RestoreSnapshot();
+            _ = LoadNavigationAsync(request, _navigation);
+        }
     }
 
     private async Task LoadNavigationAsync(LibraryRequest request, int navigation)
     {
+        if (ViewModel.RestoredFromCache)
+        {
+            // 卡片已经在集合里：先落回滚动位置，再让后台核对更新内容，不重读之前翻过的每一页。
+            _pendingScroll = request.ScrollOffset;
+            ApplyPendingScroll();
+            _ = ViewModel.RevalidateAsync();
+            return;
+        }
+
         var offset = request.ScrollOffset;
         var count = request.LoadedCount;
         var loading = ViewModel.ReloadAsync();
@@ -662,7 +681,11 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (_request is { IsSearch: true, SearchSource: 1 } search && _moviePilotPanel is { } panel)
             panel.RestoreScroll(search.MoviePilotScrollOffset);
 
-        if (_scroll is not null) return;
+        if (_scroll is not null)
+        {
+            ApplyPendingScroll();
+            return;
+        }
 
         // ItemsView exposes the scroller it owns; there is no other way to know how far down the list
         // the user is, and no other place to hang the paging trigger.
@@ -675,6 +698,25 @@ public sealed partial class LibraryPage : Page, IShellContent
         }
 
         _scroll.ViewChanged += OnViewChanged;
+        ApplyPendingScroll();
+    }
+
+    /// <summary>把暖缓存恢复后的滚动位置落下去；布局尚未就绪就等下一次 Loaded。</summary>
+    private void ApplyPendingScroll()
+    {
+        if (_pendingScroll is not { } offset) return;
+        if (offset <= 0)
+        {
+            _pendingScroll = null;
+            return;
+        }
+
+        CardWall.UpdateLayout();
+        var scroll = CardWall.ScrollView ?? _scroll;
+        if (scroll is null) return;
+
+        scroll.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+        _pendingScroll = null;
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
