@@ -108,7 +108,8 @@ internal sealed partial class ShellNavigationProbe
                         for (var step = 0; step <= 64; step++)
                         {
                             var width = round == 0 ? 760 + step * 9 : 1336 - step * 9;
-                            ResizeProbeClient(width, 760 + step % 5 * 19);
+                            var height = round == 0 ? 760 + step * 2 : 888 - step * 2;
+                            ResizeProbeClient(width, height);
                             await Task.Delay(16);
                             page.UpdateLayout();
                             compactSeen |= page.ViewModel.IsCompact;

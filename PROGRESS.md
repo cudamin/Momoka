@@ -10043,6 +10043,8 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 最终清理回执：归档heart-toolbar／aggregate-version-size被应用“protected by a pinned task or workspace”拒绝，根树被“primary checkout cannot be removed”拒绝。未绕过保护删除检出；根树已detach，临时分支已删除，本地分支仅master，三树干净且所有产品内容进入主树。
 # 2026-11-03 详情页拖边框布局循环修复
 
+- 后续用户明确「底部外边框上下跳」是看到助手跑探针，并非自行拖窗。原新增探针高度 `760 + step % 5 * 19` 每五步回跳，确为测试脚本引起；改为往程760→888、返程888→760线性变化。临时HostWindow/Inspect诊断已全部撤销。实测匿名剧页普通浏览右边拖动时outer底边恒定、边框差16×8；未复现产品外框抖动。平滑路径九组连续缩放均通过，`shell-probe-20261103-032434830-2796/logs/detail-resize.txt`。
+
 - 用户报剧详情页拖边框调整大小闪退，并追加电影与季页检查。实际日志 `app-20261103-000003.log` 09:26:10 与前日 `app-20261102-000039.log` 22:42:24 为 `LayoutCycleException`。
 - `TailContent.ActualHeight` 已经布局取整，反扣未取整的响应式 Padding/Spacing 得出的 `TailIntrinsic` 仍随留白变化，又反馈到 Squeeze 与同一布局。修复直接累加面板内真正内容的 DesiredSize 与固定内部间距，三页共用；不吞未处理异常。
 - 新离线真实窗口探针修复前失败：Series none 内容129.42而子元素内容130；修复后电影/剧/季×无图/背景/封面九组各130次尺寸变化，实际跨过宽窄断点且停窗12帧无持续内容更新。内容更新从剧页73次降至6次（封面迟到一组8次）。本树最终语义代码 library 探针25/25、正常退出；实屏三页已目检，日志 `shell-probe-20261103-030105259-16292/logs`。早期隐藏启动造成截图GuardVisible红，保留原报告；改为正常可见启动后未降低截图门槛。
