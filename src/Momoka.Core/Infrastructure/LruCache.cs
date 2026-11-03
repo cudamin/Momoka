@@ -90,6 +90,18 @@ public sealed class LruCache<TKey, TValue>
         }
     }
 
+    /// <summary>Drops one entry without touching the rest. Used when a cached query is known to be stale.</summary>
+    public bool Remove(TKey key)
+    {
+        lock (_gate)
+        {
+            if (!_entries.TryGetValue(key, out var node)) return false;
+            _order.Remove(node);
+            _entries.Remove(key);
+            return true;
+        }
+    }
+
     public void Clear()
     {
         lock (_gate)

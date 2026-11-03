@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Specialized;
+using Momoka.Emby;
 using static Momoka.Tests.LibraryResumePagingTests;
 using static Momoka.Tests.TestHarness;
 
@@ -214,6 +215,44 @@ internal static class HomePerformanceTests
                     .All(row => shell.Get<string>(row, "Note") == "1 项"));
             }
             finally { await Supplement(home); ((IDisposable)home).Dispose(); }
+        });
+        Case("主页暖缓存：同身份版面恢复不联网，后台相同内容不重建货架", async () =>
+        {
+            using var fixture = new Fixture(shell, 2, secondSource: true);
+            var store = new BrowseSnapshotStore();
+            var first = fixture.CreateLoadingHome(snapshots: store);
+            try
+            {
+                await (Task)shell.Invoke(first, "ReloadAsync")!;
+                await Supplement(first);
+                Assert.Equal(1, store.HomeKeys.Count, "整页读取成功后应写入快照");
+            }
+            finally { ((IDisposable)first).Dispose(); }
+
+            var before = fixture.RequestCount;
+            var second = fixture.CreateLoadingHome(snapshots: store);
+            try
+            {
+                Assert.True((bool)shell.Invoke(second, "RestoreSnapshot")!, "同一身份和版面应命中暖缓存");
+                Assert.Equal(before, fixture.RequestCount, "暖恢复不能先联网");
+
+                var rowsBefore = Rows(second).ToArray();
+                var cardsBefore = rowsBefore.SelectMany(row =>
+                    ((IEnumerable)shell.Get<object>(row, "Cards")).Cast<object>()).ToArray();
+                var changes = 0;
+                ((INotifyCollectionChanged)shell.Get<object>(second, "Shelves")).CollectionChanged += (_, _) => changes++;
+
+                await (Task)shell.Invoke(second, "BackgroundRefreshAsync")!;
+                await Supplement(second);
+
+                Assert.True(fixture.RequestCount > before, "后台核对仍要问一次服务器");
+                Assert.Equal(0, changes, "内容没变时不重建货架");
+                Assert.True(rowsBefore.SequenceEqual(Rows(second).ToArray()), "货架对象应保持不变");
+                var cardsAfter = Rows(second).SelectMany(row =>
+                    ((IEnumerable)shell.Get<object>(row, "Cards")).Cast<object>()).ToArray();
+                Assert.True(cardsBefore.SequenceEqual(cardsAfter), "内容没变时不应替换卡片对象");
+            }
+            finally { ((IDisposable)second).Dispose(); }
         });
         return TestHarness.Run();
 

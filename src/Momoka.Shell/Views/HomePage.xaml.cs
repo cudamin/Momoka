@@ -20,7 +20,11 @@ internal sealed record HomeRequest(
     IServiceProvider Services,
     IReadOnlyList<EmbyItem> LibraryViews,
     Windowing.HostWindow? Window,
-    Action<MoviePilotSubscription>? OpenSubscription = null);
+    Action<MoviePilotSubscription>? OpenSubscription = null)
+{
+    /// <summary>返回栈里的那一份请求记着离开时的滚动位置；暖缓存恢复后按它落回原处。</summary>
+    public double ScrollOffset { get; set; }
+}
 
 /// <summary>
 /// The home page's view. All of it: what is left here is the three translations XAML cannot do for
@@ -34,6 +38,9 @@ public sealed partial class HomePage : Page, IShellContent
     private const string Category = "主页";
 
     private HomeRequest? _request;
+
+    // 暖缓存命中后等首帧布局再落回的滚动位置；只消费一次。
+    private double? _restoredScroll;
 
     // 返回现成主页后不再补播入场；显式刷新或重新导航才开始新一轮。
     private bool _entranceSuppressed;
@@ -216,6 +223,14 @@ public sealed partial class HomePage : Page, IShellContent
         {
             if (!_entranceSuppressed) HomeMotion.Enter(this, ShelfRepeater, HomeRows.Count);
             UpdateLibraryOverlay();
+
+            // 暖缓存上屏后回到离开时的位置。布局先落定，再一次性滚过去；动画关掉，返回不该像重新进场。
+            if (_restoredScroll is { } offset)
+            {
+                _restoredScroll = null;
+                Scroller.UpdateLayout();
+                Scroller.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+            }
         };
     }
 
@@ -1359,6 +1374,7 @@ public sealed partial class HomePage : Page, IShellContent
         _homeSettings = settings;
 
         Subscriptions.Attach(services.GetRequiredService<MoviePilotService>(), request.OpenSubscription);
+        ViewModel.UseSnapshots(services.GetRequiredService<BrowseSnapshotStore>());
         ViewModel.Attach(
             _actions,
             request.LibraryViews,
@@ -1379,7 +1395,16 @@ public sealed partial class HomePage : Page, IShellContent
         // 钟只问「变了没有」，重读走的是和刷新同一条路（见 HomeViewModel.AutoRefreshAsync）。
         _watch.Start();
 
-        _ = ViewModel.ReloadAsync();
+        // 同一身份和版面下有上次的条目就先摆出来，网络核对放到后台；没有快照才走首次读取。
+        if (ViewModel.RestoreSnapshot())
+        {
+            _restoredScroll = request.ScrollOffset;
+            _ = ViewModel.BackgroundRefreshAsync();
+        }
+        else
+        {
+            _ = ViewModel.ReloadAsync();
+        }
     }
 
     public void Release()
@@ -1433,6 +1458,9 @@ public sealed partial class HomePage : Page, IShellContent
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
+        // 滚动位置跟着返回栈里的请求走：下次命中暖缓存时从这里接着看。放在导航钩子里而不是
+        // Release：Release 也被外壳的关停路径直接调用，那时没有「另一页在等这个位置」。
+        if (_request is { } request) request.ScrollOffset = Scroller.VerticalOffset;
         Release();
         base.OnNavigatedFrom(e);
     }

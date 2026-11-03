@@ -214,6 +214,9 @@ internal sealed partial class ShellNavigationProbe
             frame.Navigate(typeof(LibraryPage), request);
             page = (LibraryPage)frame.Content;
             await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
+            // 就绪只说明第一页到了；恢复滚动是它之后那一段续读的收尾。等位置真的落回去再判，
+            // 否则读的是「还没开始恢复」的零偏移。
+            await UntilAsync(() => Math.Abs(page.FavoritesScroll.VerticalOffset - offset) <= 2);
             await LayoutAsync(page);
             Require(Math.Abs(page.FavoritesScroll.VerticalOffset - offset) <= 2, "返回收藏页没有恢复滚动位置");
 

@@ -173,6 +173,12 @@ public abstract partial class PageViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
+    /// 暖缓存已上屏后的后台核对：同样取消上一趟，但不把页面打回加载状态。失败的提示由调用方决定 ——
+    /// 「刷新失败、仍显示上次内容」和首次读取失败不是同一句话。
+    /// </summary>
+    protected CancellationToken BeginBackgroundLoad() => _loads.Begin();
+
+    /// <summary>
     /// Whether the load this token came from is still the newest one. False means a later load has
     /// started, and the caller must return without touching any bound state.
     /// </summary>
