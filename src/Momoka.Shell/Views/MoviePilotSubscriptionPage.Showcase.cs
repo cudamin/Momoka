@@ -76,6 +76,12 @@ public sealed partial class MoviePilotSubscriptionPage
     /// <summary>上一次落定时是不是宽版式 —— 宽窄之间的翻面不插过渡，那是换了整套版面。</summary>
     private bool _settledWide;
 
+    /// <summary>
+    /// 正在把 <c>OnDetailScrollSizeChanged</c> 量到的宽高写进视图模型。只有这一段里发生的
+    /// <c>Showcase</c> 翻面才算「窗口在改尺寸」（裁切那条来路就在这里），才走过渡。
+    /// </summary>
+    private bool _sizing;
+
     /// <summary>这一页实际走了几次大窗过渡 —— 探针读它证明动画真的走过，而不只是把终点写上去。</summary>
     internal int ShowcaseAnimations { get; private set; }
 
@@ -314,6 +320,9 @@ public sealed partial class MoviePilotSubscriptionPage
     {
         if (args.PropertyName != nameof(MoviePilotMediaViewModel.Showcase) || _applyingShowcase) return;
 
+        // 改尺寸那一趟由 ResolveShowcaseAfterResize 在宽高都写完之后一次结算（裁切那条来路带过渡）。
+        if (_sizing) return;
+
         // 窗口形态正在翻面的那一趟交给 ApplyShowcase 统一结算：恢复窗口时宽窄版式可能先于窗口状态翻面，
         // 在这里当场落定会把过渡吃掉（探针实测：还原窗口 ShowcaseAnimations 不再增加）。
         if (_showcaseQueued || IsSpacious() != _spacious) return;
@@ -327,6 +336,31 @@ public sealed partial class MoviePilotSubscriptionPage
 
         if (now == _shownShowcase) return;
         SettleShowcase();
+    }
+
+    /// <summary>
+    /// 一次尺寸变化写完宽高之后的结算点：裁切那条来路（拉宽窗口让背景图快被裁掉）走过渡；宽窄版式翻面
+    /// 是换整套版面，当场落定；窗口形态正在翻面的那一趟交给 <see cref="ApplyShowcase"/>。
+    /// </summary>
+    private void ResolveShowcaseAfterResize()
+    {
+        var now = MediaViewModel.Showcase;
+        if (!_showcaseSettled)
+        {
+            SettleShowcase();
+            return;
+        }
+
+        if (now == _shownShowcase) return;
+        if (_showcaseQueued || IsSpacious() != _spacious) return;
+
+        if (MediaViewModel.WideLayout != _settledWide || !IsLoaded || XamlRoot is null || !HomeMotion.AnimationsEnabled)
+        {
+            SettleShowcase();
+            return;
+        }
+
+        AnimateShowcase(now, HeroSection.ActualHeight);
     }
 
     /// <summary>

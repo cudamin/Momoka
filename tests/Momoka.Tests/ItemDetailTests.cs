@@ -2414,20 +2414,29 @@ internal static class ItemDetailTests
             Assert.True(DetailHero.Spacious(true, 0));
         });
 
-        // 「给 mp 订阅页面也增强大窗模式」（2026-11-03）：订阅详情页跟详情页同一套铺开判据，但只认
-        // 「铺开、宽版式、有图」三句 —— 这一页本来就只讲电影或剧，也没有详情页那条裁切来路。
-        Test("订阅页：铺开、宽版式、有图三句缺一不可", () =>
+        // 「给 mp 订阅页面也增强大窗模式」与「拉长窗口导致背景图快要被裁切时也要自动切换」（2026-11-03）：
+        // 订阅详情页跟详情页同一套判据，没有「条目类型」这一句 —— 这一页本来就只讲电影或剧。
+        Test("订阅页：铺开或快裁切、宽版式、有图，缺一不可", () =>
         {
-            Assert.True(DetailHero.SubscriptionImmersive(true, true, true));
+            Assert.True(DetailHero.SubscriptionImmersive(true, false, true, true));
+            Assert.True(DetailHero.SubscriptionImmersive(false, true, true, true));
 
-            Assert.False(DetailHero.SubscriptionImmersive(false, true, true));
-            Assert.False(DetailHero.SubscriptionImmersive(true, false, true));
-            Assert.False(DetailHero.SubscriptionImmersive(true, true, false));
+            Assert.False(DetailHero.SubscriptionImmersive(false, false, true, true));
+            Assert.False(DetailHero.SubscriptionImmersive(true, false, false, true));
+            Assert.False(DetailHero.SubscriptionImmersive(true, false, true, false));
+
+            // 裁切那条来路也过宽版式与有图两关。
+            Assert.False(DetailHero.SubscriptionImmersive(false, true, false, true));
+            Assert.False(DetailHero.SubscriptionImmersive(false, true, true, false));
 
             // 面积那条线与详情页共用：铺开也认工作区五分之四，最大化不看面积。
-            Assert.True(DetailHero.SubscriptionImmersive(DetailHero.Spacious(false, 0.9), true, true));
-            Assert.False(DetailHero.SubscriptionImmersive(DetailHero.Spacious(false, 0.79), true, true));
-            Assert.True(DetailHero.SubscriptionImmersive(DetailHero.Spacious(true, 0), true, true));
+            Assert.True(DetailHero.SubscriptionImmersive(DetailHero.Spacious(false, 0.9), false, true, true));
+            Assert.False(DetailHero.SubscriptionImmersive(DetailHero.Spacious(false, 0.79), false, true, true));
+            Assert.True(DetailHero.SubscriptionImmersive(DetailHero.Spacious(true, 0), false, true, true));
+
+            // 裁切线的两侧交给 Core 的 NearCrop：够线就进大窗模式，差一个像素就留在纸面。
+            Assert.True(DetailHero.SubscriptionImmersive(false, DetailHero.NearCrop(1568, 9d / 16, 900), true, true));
+            Assert.False(DetailHero.SubscriptionImmersive(false, DetailHero.NearCrop(1567, 9d / 16, 900), true, true));
         });
 
         // 沉浸档背景从页顶一直铺到窗口下沿：视口加被顶上标题栏的那一截；还没量到视口时给 0，

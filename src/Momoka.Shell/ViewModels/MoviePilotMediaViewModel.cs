@@ -225,6 +225,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BackdropHeight))]
     [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
+    [NotifyPropertyChangedFor(nameof(NearCrop))]
+    [NotifyPropertyChangedFor(nameof(Showcase))]
     public partial double BackdropRatio { get; set; } = 9d / 16;
 
     /// <summary>
@@ -236,6 +238,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BackdropHeight))]
     [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
+    [NotifyPropertyChangedFor(nameof(NearCrop))]
+    [NotifyPropertyChangedFor(nameof(Showcase))]
     public partial double PageWidth { get; set; }
 
     /// <inheritdoc cref="PageWidth"/>
@@ -243,6 +247,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BackdropHeight))]
     [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
+    [NotifyPropertyChangedFor(nameof(NearCrop))]
+    [NotifyPropertyChangedFor(nameof(Showcase))]
     public partial double Viewport { get; set; }
 
     /// <summary>
@@ -311,7 +317,19 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// 正文面板的底与框淡到 0、纸面和面板的留白收紧 —— 与电影／剧／季详情页的沉浸档同一副样子。
     /// </para>
     /// </summary>
-    public bool Showcase => DetailHero.SubscriptionImmersive(Spacious, WideLayout, Backdrop is not null);
+    public bool Showcase => DetailHero.SubscriptionImmersive(
+        Spacious, NearCrop, WideLayout, Backdrop is not null);
+
+    /// <summary>
+    /// 背景图这一刻是不是已经「接近被裁掉」—— 按页宽铺开的高占到视口的 98% 以上，再宽一点那张图就要
+    /// 按宽撑满、把下沿切在视口外面（2026-11-03 用户令「拉长窗口导致背景图快要被裁切时也要自动切换」，
+    /// 与详情页同一条判据 <see cref="DetailHero.NearCrop"/>）。
+    /// <para>
+    /// 与 <see cref="Spacious"/> 并肩站着：哪一条成立都进大窗模式。它只读版面三个数（页宽、图的高宽比、
+    /// 视口），这三个数一变就自己重算，所以窗口拖宽这一路不需要另挂窗口消息；收窄回到 98% 以下就退出。
+    /// </para>
+    /// </summary>
+    public bool NearCrop => DetailHero.NearCrop(PageWidth, BackdropRatio, Viewport);
 
     /// <summary>窗口这一刻铺开了没有，由页面在挂上窗口时与每次窗口几何变化时写进来（同详情页）。</summary>
     [ObservableProperty]
@@ -326,6 +344,10 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
 
     partial void OnSpaciousChanged(bool value) => AnnounceShowcase();
     partial void OnWideLayoutChanged(bool value) => AnnounceShowcase();
+
+    // 裁切那条来路只看页宽、视口与图的高宽比：这三个数一变，Showcase 连同它派生出来的显隐与留白一起重算。
+    partial void OnPageWidthChanged(double value) => AnnounceShowcase();
+    partial void OnViewportChanged(double value) => AnnounceShowcase();
 
     /// <summary>背景那张图自己的不透明度：大窗模式里从 0.9 抬到 0.96（同详情页沉浸档）。</summary>
     public double BackdropOpacity => Showcase ? DetailHero.ShowcaseBackdropOpacity : DetailHero.BackdropOpacity;
@@ -356,6 +378,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     private void AnnounceShowcase()
     {
         OnPropertyChanged(nameof(Showcase));
+        OnPropertyChanged(nameof(NearCrop));
         OnPropertyChanged(nameof(BackdropHeight));
         OnPropertyChanged(nameof(BackdropFadeMargin));
         OnPropertyChanged(nameof(HeroMinHeight));

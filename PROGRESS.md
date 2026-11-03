@@ -8,10 +8,20 @@
 - 交付：`tools/publish.ps1 -Shortcut -NoArchive` 退出 0，`artifacts/publish/win-x64` **546 文件 / 285.8 MB**，14 GLSL / 4 HOOK，批准 mpv 清单 59 文件，载荷校验通过；开发件与发布件 `Momoka.dll` SHA-256 同为 `dcc921bcd3459559444748c6ef7ce0b60515e2636221d181fde819988795431e`；发布件 exe 版本 0.2.4.0；桌面 `Momoka.lnk` 已重写并读回，目标 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。版本未升，未推 origin（未获上传授权）。
 - 未覆盖：真实 Jellyfin 服务器上的接下来看页观感与真实聚合模式多账号组合没有实屏（探针与夹具均为假传输，不登录、不播放、不写服务器）；首页聚合隐藏只有属性与请求读数，没有另拍一张聚合主页实屏。Emby 的「接下来看」页仍是原来的「没看完的剧集」通用查询，两边语义不同是有意的。
 
+## 2026-11-03 MP 订阅页裁切前自动切换（追加；已合入 master、发布桌面）
+
+- 用户令：「拉长窗口导致背景图快要被裁切时也要自动切换」。与详情页 2026-11-02 那条同义：按页宽铺开的背景图高占到视口 98% 以上时，即使窗口没有最大化、面积也没到工作区五分之四，也进大窗模式；收窄或拉高退回 98% 以下回到纸面版式。
+- 判据与实现：`DetailHero.SubscriptionImmersive` 改为 `(spacious, nearCrop, wide, artwork)`，成立条件是 `(spacious || nearCrop) && wide && artwork`；`MoviePilotMediaViewModel.NearCrop` 直接读 `DetailHero.NearCrop(PageWidth, BackdropRatio, Viewport)`，与 `Spacious` 并肩喂 `Showcase`。`OnDetailScrollSizeChanged` 包进 `_sizing`，宽高写完后由 `ResolveShowcaseAfterResize` 统一结算：裁切那条来路走 260ms 过渡，窗口改宽高时 `Showcase` 的派生显隐与留白一并通知；宽窄版式翻面仍当场落定，窗口形态翻面仍交给 `ApplyShowcase`。
+- 测试：`ItemDetailTests` 的订阅页算例扩成四参并补裁切两侧（`NearCrop(1568, 9/16, 900)` 进、1567 不进）；Release 全方案 **0 警告 0 错误**；主测试 **3607/3607、0 失败 0 跳过**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。
+- 探针：开发件与发布件 `--probe-shell --probe-section moviepilot --screen 1` 的新用例四段全绿：大窗（动画 1）→ 纸面（2）→ **裁切：页宽 1080、视口 511、图比 0.625、纸面 alpha 184、面板 0、动画 3** → 收回（视口 731、裁切 False、纸面 alpha 255、面板 1、动画 4）。实屏补 `mp-subscription-showcase-crop.png`、`-uncropped.png`，读数 `mp-subscription-showcase.txt`。
+- 已知红：同一分区「主页媒体库与订阅混排、显隐及偏好恢复」在 06:25 之后连续报「排序表未实现订阅勾选控件」。用**本轮改动之前的发布件**（同一条目此前 35/35）复跑同一分区仍红同一条 → 归因为桌面／探针环境的既有抖动，与本改动无关；未改断言。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 退出 0；546 文件 / 285.8 MB，载荷校验通过；开发件与发布件 `Momoka.dll` SHA-256 同为 `265b745293891381a6fda7d564f6a34e4cbd40d4dee901408e2c75fe08401583`；桌面快捷方式已重写并读回。版本仍 0.2.4，未推 origin。
+- 未覆盖：真实订阅／真实剧照上的裁切切换观感与拖边手感（探针用程序改窗口尺寸与假图）；未跑 `--self-check`（非发版／升级依赖批次）。
+
 ## 2026-11-03 MP 订阅详情页大窗模式（已合入 master、发布桌面）
 
 - 用户令（一句「给 mp 订阅页面也增强大窗模式」，目标经确认是单条订阅／媒体详情页 `MoviePilotSubscriptionPage`，不是订阅列表页）：观感与电影／剧／季详情页的沉浸档一致 —— 窗口最大化或面积占所在显示器工作区五分之四时，背景铺到窗口下沿并抬到 0.96，正文纸面换成半透明洗色，面板底与框淡到 0，头部不再撑第一屏、下方组件整体上移，图下沿的黑色渐变收起；还原后全部回到纸面版式。
-- 判据（Core `DetailHero`）：`SubscriptionImmersive(spacious, wide, artwork)` 三句缺一不可 —— 窗口铺开（与详情页共用 `Spacious`／`Share`）、资料卡能并排的宽版式（内容区 ≥ 960）、背后有图；`ImmersivePictureHeight(viewport, headerLift)` 把图铺到窗下沿；沉浸档纸面留白 10／14、纸面间距 8、面板内边距 10 提为 `ShowcaseSheetTop/Bottom/Spacing/PanelPadding`，详情页 `DetailViewModel.SheetPadding/SheetSpacing/BodyPanelPadding` 同步改读这几个常量。没有接入裁切（`NearCrop`）那条来路 —— 订阅页没有详情页那张纸的同一套账，本轮不做。
+- 判据（Core `DetailHero`）：`SubscriptionImmersive(spacious, wide, artwork)` 三句缺一不可 —— 窗口铺开（与详情页共用 `Spacious`／`Share`）、资料卡能并排的宽版式（内容区 ≥ 960）、背后有图；`ImmersivePictureHeight(viewport, headerLift)` 把图铺到窗下沿；沉浸档纸面留白 10／14、纸面间距 8、面板内边距 10 提为 `ShowcaseSheetTop/Bottom/Spacing/PanelPadding`，详情页 `DetailViewModel.SheetPadding/SheetSpacing/BodyPanelPadding` 同步改读这几个常量。（同日追加：用户随后要求把详情页的「背景图快被裁切也自动切换」接上，见上一节，判据扩成四参。）
 - 实现（Shell）：`MoviePilotMediaViewModel` 新增 `Spacious`／`WideLayout`／`Showcase` 与 `BackdropOpacity`／`BackdropFadeVisibility`／`BodySheetPadding`／`BodySheetSpacing`／`BodyPanelPadding`／`ShowShelfLines`；`MoviePilotSubscriptionPage.Showcase.cs` 照详情页那一支：构造时换纸面与四块面板的画刷、给背景图定 0.9，窗口几何变化按 180ms 静默期落定铺开状态（最大化／还原当场落定），260ms 过渡同时走头部高度、纸面颜色、面板底／框透明度与背景 0.9↔0.96，四块面板按 `FloatOrder` 错峰浮起 16px；宽窄版式翻面、图到手、换条目当场落定。`ApplyHeroLayout` 把 `WideLayout` 写进视图模型；`ShellPage.AttachWindow` 的 `Navigated` 一并把窗口递给订阅详情页，主题订阅沿用详情页的上树挂／离树解。
 - 时序：`OnShowcaseChanged` 在窗口形态翻面途中不落定（`_showcaseQueued` 或 `IsSpacious() != _spacious`），交给 `ApplyShowcase` 统一结算 —— 还原窗口时宽窄版式可能先于窗口状态翻面，当场落定会把过渡吃掉（探针实测还原 `ShowcaseAnimations` 不增，已修）；拖过线又拖回时 `CommitSpacious` 按当前视图模型补一次落定。探针等 `ShowcaseAnimating` 落下再读数，避免把动画中间帧当成终点。
 - 测试：`ItemDetailTests` 新增订阅页判据（三句各自否决、面积线与最大化）与背景铺到窗下沿算例；Release 全方案 **0 警告 0 错误**；主测试 **3604/3604、0 失败 0 跳过**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0；`tools/scan-automation-ids.js` 没有新增交互控件缺句柄项（新增的 x:Name 都是非交互的面板）。

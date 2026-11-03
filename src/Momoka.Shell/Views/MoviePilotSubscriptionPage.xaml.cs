@@ -128,8 +128,17 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     /// </summary>
     private void OnDetailScrollSizeChanged(object sender, SizeChangedEventArgs args)
     {
-        if (args.NewSize.Width > 0) MediaViewModel.PageWidth = args.NewSize.Width;
-        if (args.NewSize.Height > 0) MediaViewModel.Viewport = args.NewSize.Height;
+        // 这一段里发生的 Showcase 翻面要等宽高都写完、再走「改尺寸」那一条结算（可以插过渡），
+        // 不让每一次写入各自当场落定 —— 同详情页 OnBodySizeChanged 的 _sizing。
+        _sizing = true;
+        try
+        {
+            if (args.NewSize.Width > 0) MediaViewModel.PageWidth = args.NewSize.Width;
+            if (args.NewSize.Height > 0) MediaViewModel.Viewport = args.NewSize.Height;
+        }
+        finally { _sizing = false; }
+
+        ResolveShowcaseAfterResize();
     }
 
     /// <summary>

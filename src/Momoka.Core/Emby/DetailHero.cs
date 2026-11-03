@@ -148,18 +148,20 @@ public static class DetailHero
         && type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
     /// <summary>
-    /// MoviePilot 订阅详情页的大窗模式（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」）。
+    /// MoviePilot 订阅详情页的大窗模式（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」，同日追加
+    /// 「拉长窗口导致背景图快要被裁切时也要自动切换」）。
     /// <para>
-    /// 判据与详情页同一套，只是没有「条目类型」和「裁切」两条：这一页本来就只讲电影或剧，而裁切那条线
-    /// 是详情页带着纸面一起算的，订阅页没有那张纸的同一套账。剩下三句缺一不可 —— 窗口铺开、宽版式
+    /// 判据与详情页同一套，只是没有「条目类型」这一句：这一页本来就只讲电影或剧。剩下几句缺一不可 ——
+    /// 窗口铺开（<paramref name="spacious"/>）或背景图快被裁掉（<paramref name="nearCrop"/>）、宽版式
     /// （资料卡能并排）、背后有那张图；否则收掉纸面只会剩一页空黑，或者换成另一套单列版面。
     /// </para>
     /// </summary>
     /// <param name="spacious">窗口这一刻铺开了没有（<see cref="Spacious"/>）。</param>
+    /// <param name="nearCrop">背景图按页宽铺开已经/即将高过视口（<see cref="NearCrop"/>）。</param>
     /// <param name="wide">这一页这一次的资料卡能不能并排在右端（内容区够宽）。</param>
     /// <param name="artwork">背后有没有那张背景图。</param>
-    public static bool SubscriptionImmersive(bool spacious, bool wide, bool artwork) =>
-        spacious && wide && artwork;
+    public static bool SubscriptionImmersive(bool spacious, bool nearCrop, bool wide, bool artwork) =>
+        (spacious || nearCrop) && wide && artwork;
 
     /// <summary>
     /// 订阅详情页沉浸档里背景图铺多高 —— 直接铺到窗口下沿：那一档正文纸面变成半透明洗色，背景要从片名

@@ -292,9 +292,11 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 订阅详情页的大窗模式（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」）：窗口最大化后，正文纸面
-    /// 换成半透明洗色、面板的底与框淡到 0、头部不再撑第一屏、背景铺到窗口下沿并抬到 0.96，图下沿的黑色
-    /// 渐变收起；还原窗口后全部回到纸面版式。两趟都要走过渡动画（以 <c>ShowcaseAnimations</c> 计数证明）。
+    /// 订阅详情页的大窗模式（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」，同日追加「拉长窗口导致背景图
+    /// 快要被裁切时也要自动切换」）：窗口最大化后，正文纸面换成半透明洗色、面板的底与框淡到 0、头部不再撑
+    /// 第一屏、背景铺到窗口下沿并抬到 0.96，图下沿的黑色渐变收起；还原窗口后全部回到纸面版式。另在宽版式里
+    /// 把窗口压成一扇「图快被裁掉」的横窗（窗口没铺开），确认只因裁切也进大窗模式，拉高退线后回到纸面。
+    /// 每一次翻面都要走过渡动画（以 <c>ShowcaseAnimations</c> 计数证明）。
     /// </summary>
     private async Task MoviePilotSubscriptionShowcaseAsync()
     {
@@ -307,9 +309,10 @@ internal sealed partial class ShellNavigationProbe
         var readings = new List<string>();
         try
         {
-            // 一条用例自己把窗口形态摆干净：先还原（最大化时 Resize 会被忽略），再给一扇远不到五分之四的窗口。
+            // 一条用例自己把窗口形态摆干净：先还原（最大化时 Resize 会被忽略），再给一扇宽版式、
+            // 但图还够不着视口的窗口（1200×800 DIP 下 16:10 的图约 750 高）。
             if (_window!.IsMaximized) _window.ToggleMaximize();
-            ResizeInspect(1000, 760);
+            ResizeProbeClient(1200, 800);
             page.AttachWindow(_window);
             await UntilAsync(() => page.ViewModel.IsReady && page.MediaViewModel.IsReady
                 && page.MediaViewModel.Backdrop is not null);
@@ -322,7 +325,8 @@ internal sealed partial class ShellNavigationProbe
             var hero = Get<StackPanel>(page, "HeroSection");
             var panel = Get<StackPanel>(page, "PeoplePanel");
 
-            Require(!media.Showcase && !media.Spacious, "未铺开的窗口不该进大窗模式");
+            Require(!media.Showcase && !media.Spacious && !media.NearCrop, "未铺开的窗口不该进大窗模式");
+            Require(media.WideLayout, "起始窗口不在宽版式，测不出裁切那条来路");
             Require(sheet.Background is SolidColorBrush { Color.A: 255 }, "纸面版式的正文纸不是不透明");
             Require(fade.Visibility == Visibility.Visible, "纸面版式下图下沿的黑色渐变被收起");
             Require(Math.Abs(image.Opacity - DetailHero.BackdropOpacity) < 0.001,
@@ -370,6 +374,40 @@ internal sealed partial class ShellNavigationProbe
             readings.Add($"纸面：视口 {media.Viewport:0}、图 {image.ActualHeight:0}、头部下限 {hero.MinHeight:0}、"
                 + $"纸面透明度 {restored?.Color.A}、面板 {panel.Background.Opacity:0.##}、动画 {page.ShowcaseAnimations}");
             await SaveProbeScreenAsync("mp-subscription-showcase-paper.png");
+
+            // 裁切那条来路：窗口没有铺开，但按页宽铺开的图（1080 × 0.625 ≈ 675）已经高过视口 480 的 98%。
+            var beforeCrop = page.ShowcaseAnimations;
+            ResizeProbeClient(1080, 480);
+            await UntilAsync(() => media.NearCrop && media.Showcase && !page.ShowcaseAnimating
+                && Math.Abs(image.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001);
+            Require(!media.Spacious, "裁切用例的窗口已经铺开，测不出只因裁切才切换");
+            Require(media.WideLayout, "裁切用例落进了窄版式，测不出宽版式下的大窗模式");
+            if (HomeMotion.AnimationsEnabled)
+                Require(page.ShowcaseAnimations > beforeCrop,
+                    "拉宽触发裁切时没有走过渡动画（ShowcaseAnimations 没有增加）");
+            var cropBrush = sheet.Background as SolidColorBrush;
+            Require(cropBrush is { } && cropBrush.Color.A == DetailHero.ScrimCeiling,
+                "裁切触发后正文纸没有换成半透明洗色");
+            Require(panel.Background is SolidColorBrush { Opacity: 0 }, "裁切触发后正文面板底没有淡到 0");
+            Require(fade.Visibility == Visibility.Collapsed, "裁切触发后图下沿的黑色渐变没有收起");
+            readings.Add($"裁切：页宽 {media.PageWidth:0}、视口 {media.Viewport:0}、图比 {media.BackdropRatio:0.###}、"
+                + $"纸面透明度 {cropBrush?.Color.A}、面板 {panel.Background.Opacity:0.##}、动画 {page.ShowcaseAnimations}");
+            await SaveProbeScreenAsync("mp-subscription-showcase-crop.png");
+
+            // 把窗口拉高一点、退回 98% 以下：应当回到纸面版式（仍在宽版式内，过渡计数继续增加）。
+            var beforeUncrop = page.ShowcaseAnimations;
+            ResizeProbeClient(1080, 700);
+            await UntilAsync(() => !media.NearCrop && !media.Showcase && !page.ShowcaseAnimating
+                && Math.Abs(image.Opacity - DetailHero.BackdropOpacity) < 0.001);
+            Require(media.WideLayout, "退出裁切用例落进了窄版式，测不出同一档版面内的还原");
+            if (HomeMotion.AnimationsEnabled)
+                Require(page.ShowcaseAnimations > beforeUncrop, "收回裁切线时没有走过渡动画");
+            var uncropBrush = sheet.Background as SolidColorBrush;
+            Require(uncropBrush is { } && uncropBrush.Color.A == 255, "收回裁切线后正文纸没有回到不透明");
+            Require(panel.Background is SolidColorBrush { Opacity: 1 }, "收回裁切线后正文面板的底没有回来");
+            readings.Add($"收回：页宽 {media.PageWidth:0}、视口 {media.Viewport:0}、裁切 {media.NearCrop}、"
+                + $"纸面透明度 {uncropBrush?.Color.A}、面板 {panel.Background.Opacity:0.##}、动画 {page.ShowcaseAnimations}");
+            await SaveProbeScreenAsync("mp-subscription-showcase-uncropped.png");
         }
         finally
         {
