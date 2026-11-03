@@ -1,3 +1,13 @@
+## 2026-11-03 播放页：剧集列表全季、菜单不出窗、菜单亚克力、图标影子、连播不弹提示（**未合并、未交付**）
+
+- 用户令五条：①「播放页面的本季剧集按钮的集列表菜单不要跑到窗口外面，要始终保持在窗口内」；②「本季剧集改名为剧集列表，要显示所有季度的集列表，优先按照播出时间排序」；③「集成模式下所有的菜单都要用亚克力背景」；④「给集成模式的所按钮都改为白色实心并且加上黑边（除了左上角的返回按钮，和静音按钮这些有边框的）」→ 追问后改成「算了，在原按钮的基础上加阴影就可以」；⑤「自动播放下一集时不要在画面上弄悬浮提示」。**用户明确要求改完先不合并、不交付**，随后追认②的另一半：自动连播跟随全季列表跨季走。
+- 实现（Core）：`EpisodeNavigation` 退掉「按季收窄」——`Step` 改成按位置走一步、**整份列表原样交回**，`StepQueue`／`StepInSeason`／`ResolveAdjacentAsync`／`SameSeason` 一并退役（聚合队列与全剧列表从此同一条规则）；新增 `PlayerMenuFit.MaxHeight`（菜单高度上限的纯函数）；`PlayerPalette` 新增 `MenuAlpha`（0xB3）与 `PlayerMenuBrush`。
+- 实现（视图模型）：`FillSiblingsAsync` → `LoadSeriesEpisodesAsync`，单集起播后每次都读一次全剧（`Shows/{id}/Episodes` 不带 SeasonId，按 `ItemDetail.AirOrder` 排），聚合队列不换；`ResolveNextEpisodeAsync` 只问一次全剧、季卡仍只在这一季里挑「最早没看」；`NextEpisodeToAutoPlay` 与 `StepEpisodeAsync` 都走同一条 `Step`（跨季照接、整部剧到头才 null）；自动连播命中后**不再** `Noticed`。`回退那一趟`（列表没读到/服务器新入库）改成读全剧后走同一条 Step。
+- 实现（播放页）：六个 `MenuFlyout` 与右键菜单挂 `PlayerMenuPresenterStyle`（基于框架 `DefaultMenuFlyoutPresenterStyle`，底换成 `PlayerMenuBrush`）、倍速轮盘那只 `Flyout` 挂 `DesktopAcrylicBackdrop` 且面板底同一支 —— 应用级 `Palette.xaml` 2026-10-30 把菜单底换成实心 `EgSurfaceBrush`，播放页这一份按回半透明，框架那层桌面亚克力（播放时采的就是画面）才透得上来；剧集与章节菜单在 `Opening` 里按锚点上方余量收紧 presenter 的 `MaxHeight`，超出的行交给它自己的 `ScrollViewer`（窗口化弹层不受 XamlRoot 约束，这是「不出窗口」与「要亚克力」两件事同时成立的做法）。图标影子走项目现成的 `TextInk`（DropShadow 收元素 alpha 蒙版）：17 颗压在画面上的图标把内容包进「影子宿主 ＋ 图标」一格，返回／静音／跳过按用户令不挂；`TextInk.Paint` 增加按 `TransformToVisual` 对齐，HomeBanner 那四处算出来仍是 (0,0)。
+- 测试：Release 全方案 **0 警告 0 错误**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0；主测试 **3604/3604**（改名后的剧集导航 9 关、新增「菜单高度上限」3 关）；`Momoka.NaturalContinuationCallerTests` **51/51**（新增跨季连播不弹提示，退役三条旧口径；四份源 hash 定点同步，README 记本轮）。
+- 自检：`--self-check --dump-ui --screen 2 --self-check-data <临时目录>` 跑到 **1 项失败**，就是既有的环境红「全屏让位只看画面」；「跨季相邻单集」按新判据通过（《伪恋》列表 36 集＝全剧 36 集、整份交回、播出顺序），新增「图标影子」通过（当时 17 颗按外框）。树转储证实 `FontIcon` 里是 `Grid → TextBlock`，但 `Loaded` 那一拍还没建出来，于是取蒙版再推迟到「第一次量到尺寸」，**这一版尚未重跑自检**（另一会话的 Momoka 进程一直占着自检互斥）。
+- 未完成／未覆盖：**没有合并 master、没有发布**（用户要求）；真实播放下的观感（菜单亚克力、图标影子在亮画面上的样子、长列表滚动）没有实屏——用户自己的发布件一直开着，单实例互斥下起不了第二个窗口，`tools/shot.ps1` 只给已跑着的实例拍（`-Attach`），拍不到本树构建；菜单高度上限只有纯函数单测与接线，没有真实窗口量过弹层矩形。
+
 ## 2026-11-03 导航第一轮性能：主页布局合并、媒体库 Attach 合并、最近搜索与懒面板（已合入 master、发布桌面）
 
 - 用户令：按 `work/navigation-live-20261103/调查结果.md` 只做第一轮（减少重复布局和无关初始化），修后用真实账号做只读导航计时对比；实施留在主会话，不派子代理。方案见同目录 `第一轮实施计划.md`。

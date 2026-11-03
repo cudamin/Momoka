@@ -79,7 +79,7 @@ public sealed partial class PlayerPage
         // 手上那个条目是空的，于是它必然是收起的。造一个挂着两版源的条目顶上，走完再还回去
         // （它跟着 CurrentItem 走，不是单独一格，所以还的也得是那一条）。
         // 2026-09-21：这一条是**真逮到过东西**才有的 —— 那次失败报的正是 VersionButton 没名字，
-        // 底因是 VersionControlsVisible 被 FillSiblingsAsync 的 await 之后重新算了一遍。
+        // 底因是 VersionControlsVisible 被单集列表补齐那一趟的 await 之后重新算了一遍。
         if (wasVersions == false)
         {
             ViewModel.CurrentItem = new EmbyItem

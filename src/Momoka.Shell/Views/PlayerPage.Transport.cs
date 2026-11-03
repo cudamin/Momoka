@@ -171,6 +171,9 @@ public sealed partial class PlayerPage
     {
         ChapterMenu.Items.Clear();
         if (!Attached) return;
+
+        // 章节表可以比一屏还长（一章一个文件的那种片源），与剧集列表同一条规矩：不出窗口，超出的滚动。
+        FitMenuToWindow(ChapterMenu, ChapterButton);
         var selected = ViewModel.TimelineChapters.IndexAt(ViewModel.Status.Position);
         for (var index = 0; index < ViewModel.TimelineChapters.Chapters.Count; index++)
         {

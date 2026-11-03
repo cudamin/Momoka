@@ -1,5 +1,18 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-03：全季列表与跨季连播（51 项）
+
+用户令两条：剧集列表要显示全部季、按播出时间排（「本季剧集改名为剧集列表」），自动连播跟随这份列表跨季走；同时「自动播放下一集时不要在画面上弄悬浮提示」。产品侧改动：
+
+- `EpisodeNavigation` 退掉「按季收窄」（`Step`／`StepInSeason`／`ResolveAdjacentAsync`／`SameSeason`），只留一条 `Step`：按位置走一步、**整份列表原样交回**。聚合队列与全剧列表从此同一条规则。
+- `PlayerViewModel.LoadSeriesEpisodesAsync`（原 `FillSiblingsAsync`）改成每次都读一次全剧列表（`Shows/{id}/Episodes` 不带 SeasonId，按 `ItemDetail.AirOrder` 排）；聚合队列不换。
+- `NextEpisodeToAutoPlay` 与 `StepEpisodeAsync` 都走同一条 `Step`：跨季照接，整部剧到头才 null。
+- `NextEpisodeToAutoPlay` 命中后**不再** `Noticed`。原「在提示那一拍取消」的两个模式（`cancel-lease-at-next-notice`、`cancel-stop-at-next-notice`）随之退役 —— 挂点没了；其余取消点照旧。
+
+夹具相应改动：每一次单集开播多了一趟「全剧列表」读，于是 `Fixture` 构造时给 `series` 放一条空表默认路由（产品侧原样不动列表），`AnonymousTransport.Episodes` 改为后登记者覆盖；`EpisodeLookupCases` 按调用次数把「补齐那一趟」与「跨季查询」分开，不靠先后猜；`terminal-other-season` 与 `exception-next-notice` 退役，新增 `auto-next-cross-season-without-notice`（跨季接上 B、且没有任何「自动播放…」提示）。
+
+仅定点同步本次修改的四份源 hash：`PlayerViewModel.Transport.cs`、`PlayerViewModel.cs`、`PlayerViewModel.Events.cs`、`EpisodeNavigation.cs`；其余 pins 原样保留。提取器把 `FillSiblingsAsync` 换成 `LoadSeriesEpisodesAsync`。当前 **51 项全通过**（`Run-Caller.ps1`，证据 `artifacts/r046-caller/verify-2026110…`）。
+
 ## 2026-11-02：PlayerViewModel.Transport.cs 注释同步
 
 跳过关闭键从 Esc 改为 Delete，`PlayerViewModel.Transport.cs` 里 uosc 借还键的说明跟着改了措辞（只动注释，自然接续 identity、自动接集与 lease 规则未动）。只同步这一项 hash（`4a9bc21…` → `6c78a84…`），其余 pins 逐份保留。

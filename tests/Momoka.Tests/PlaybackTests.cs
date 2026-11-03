@@ -43,6 +43,7 @@ internal static class PlaybackTests
         RegisterAspectLock();
         RegisterPlayerMenu();
         RegisterEpisodeNavigation();
+        RegisterPlayerMenuFit();
         RegisterPlaybackGate();
         RegisterDonghua();
         RegisterStopReport();
@@ -5395,14 +5396,11 @@ internal static class PlaybackTests
     }
 
     // ---- 剧集导航 --------------------------------------------------------------
-
-    /// <summary>
-    /// 上一集 / 下一集 over a whole-series episode list — the list the client asks for the moment a step
-    /// runs off the end of the season it is holding. The order is the server's
-    /// (<c>ParentIndexNumber,IndexNumber,SortName</c> ascending, verified against a real 4.9 server), so
-    /// these cases are the shapes that order really produces: a clean season boundary, a season with one
-    /// episode in it, and numbering with a hole in it.
-    /// </summary>
+    //
+    // 上一集 / 下一集 over the list the player is holding. 2026-11-03 用户令「剧集列表要显示所有季度，优先
+    // 按照播出时间排序」之后，播放器手上那份既是全剧、也是选集菜单 —— 于是这一步**不再把列表缩回落点那一季**：
+    // 缩回去的话，从季页进来的人看得到全季、走一步之后又只剩一季。自动连播与上一集/下一集走同一条
+    // <see cref="EpisodeNavigation.Step"/>（用户同日令「跟随全季列表，跨季连播」），区别只在调用方那两道闸。
     private static void RegisterEpisodeNavigation()
     {
         var episodes = new List<EmbyItem>
@@ -5418,9 +5416,7 @@ internal static class PlaybackTests
             var destination = EpisodeNavigation.Step(episodes, "s1e2", 1);
 
             Assert.Equal("s2e1", destination?.Episode.Id);
-            Assert.Equal(2, destination?.Siblings.Count ?? 0);
-            Assert.Equal("s2e1", destination?.Siblings[0].Id);
-            Assert.Equal("s2e2", destination?.Siblings[1].Id);
+            Assert.Equal(4, destination?.Siblings.Count ?? 0);
         });
 
         Test("剧集导航：季首上一集回到上一季最后一集", () =>
@@ -5428,8 +5424,7 @@ internal static class PlaybackTests
             var destination = EpisodeNavigation.Step(episodes, "s2e1", -1);
 
             Assert.Equal("s1e2", destination?.Episode.Id);
-            Assert.Equal(2, destination?.Siblings.Count ?? 0);
-            Assert.Equal("s1e1", destination?.Siblings[0].Id);
+            Assert.Equal(4, destination?.Siblings.Count ?? 0);
         });
 
         Test("剧集导航：整部剧两端没有相邻单集", () =>
@@ -5439,7 +5434,7 @@ internal static class PlaybackTests
             Assert.Null(EpisodeNavigation.Step(episodes, "missing", 1));
         });
 
-        Test("剧集导航：缺少 SeasonId 时按季号归回目标季", () =>
+        Test("剧集导航：缺少 SeasonId 时照样按位置走一步", () =>
         {
             var loose = new List<EmbyItem>
             {
@@ -5450,7 +5445,7 @@ internal static class PlaybackTests
 
             var destination = EpisodeNavigation.Step(loose, "b", 1);
             Assert.Equal("c", destination?.Episode.Id);
-            Assert.Equal(1, destination?.Siblings.Count ?? 0);
+            Assert.Equal(3, destination?.Siblings.Count ?? 0);
         });
 
         // 死神's shape on the real server: 本篇 holds one episode, 千年血战篇 starts at 41. The local
@@ -5467,11 +5462,11 @@ internal static class PlaybackTests
 
             var forward = EpisodeNavigation.Step(thin, "only", 1);
             Assert.Equal("next41", forward?.Episode.Id);
-            Assert.Equal(2, forward?.Siblings.Count ?? 0);
+            Assert.Equal(3, forward?.Siblings.Count ?? 0);
 
             var back = EpisodeNavigation.Step(thin, "next41", -1);
             Assert.Equal("only", back?.Episode.Id);
-            Assert.Equal(1, back?.Siblings.Count ?? 0);
+            Assert.Equal(3, back?.Siblings.Count ?? 0);
         });
 
         // 少年同盟's shape: season 1 runs 1..10 then jumps to 12. Walking by position keeps the missing
@@ -5489,16 +5484,17 @@ internal static class PlaybackTests
             Assert.Equal("e12", EpisodeNavigation.Step(gapped, "e13", -1)?.Episode.Id);
         });
 
-        // The picker that opens after a cross-season step has to hold that season and nothing else: it is
-        // the list 选集 shows and the list the next step walks, so a series-wide list left in place would
-        // make 选集 a menu of the whole show.
-        Test("剧集导航：跨季后的选集列表只剩目标那一季", () =>
+        // 2026-11-03 那一半：跨季一步之后，手里那份**还是全剧**。这条与「跨季后的选集只剩目标那一季」正好相反 ——
+        // 那条是 2026-09-24 为《伪恋》订的（季列表里并着 air-order 特典，缩回一季反而对得上季详情页），
+        // 用户 11-03 把整个口径改成「列表是全部季」，缩回一季成了新的错。
+        Test("剧集导航：跨季一步之后列表仍是全剧", () =>
         {
             var destination = EpisodeNavigation.Step(episodes, "s1e2", 1);
 
             Assert.NotNull(destination);
-            Assert.True(destination!.Siblings.All(sibling => sibling.SeasonId == "season2"));
-            Assert.Equal(destination.Episode.Id, destination.Siblings[0].Id);
+            Assert.True(ReferenceEquals(episodes, destination!.Siblings), "整份列表要原样交回，不是缩成某一季的副本");
+            Assert.True(destination.Siblings.Select(sibling => sibling.Id)
+                .SequenceEqual(new[] { "s1e1", "s1e2", "s2e1", "s2e2" }));
         });
 
         // Only ±1 is a step. An offset of 0 or 2 is a caller bug, and a silent answer to it would be a
@@ -5509,138 +5505,39 @@ internal static class PlaybackTests
             Assert.Throws<ArgumentOutOfRangeException>(() => EpisodeNavigation.Step(episodes, "s1e1", 2));
         });
 
-        // ---- 自动连播的季内那一步（2026-09-18） ----
-        //
-        // 「当最后一季的最后一集播放结束后，直接退出播放界面或返回，不得自动续播该最后一季的第一集」。
-        // 旧版在季末退而求其次去拿全剧列表，把下一季的第一集接上来 —— 实机日志里的
-        // 《Re：从零开始的异世界生活 S01E83 播放完毕 → 自动播放下一集：S04E12》就是这条路的产物。
-        // StepInSeason 把决策钉死在本季之内：输入哪怕装着全剧列表，季末也只可能是 null。
-
-        Test("剧集导航：自动连播在本季内接下一集", () =>
+        // 自动连播（2026-11-03 用户令「跟随全季列表，跨季连播」；2026-09-18 那条「只在季内走、季末退出」作废）。
+        // 「不得回绕到本季第一集」仍然算数 —— 整部剧走到头就是 null，播放界面随之退出。
+        Test("剧集导航：自动连播跨季照接，跑到整部剧末尾才停", () =>
         {
-            var destination = EpisodeNavigation.StepInSeason(episodes, "s1e1", 1);
+            Assert.Equal("s2e1", EpisodeNavigation.Step(episodes, "s1e2", 1)?.Episode.Id);
+            Assert.Equal("s1e2", EpisodeNavigation.Step(episodes, "s2e1", -1)?.Episode.Id);
+            Assert.Null(EpisodeNavigation.Step(episodes, "s2e2", 1));
+        });
+    }
 
-            Assert.Equal("s1e2", destination?.Episode.Id);
-            Assert.Equal(2, destination?.Siblings.Count ?? 0);
-            Assert.Equal("s1e1", destination?.Siblings[0].Id);
+    // ---- 菜单高度上限 ------------------------------------------------------------
+    //
+    // 2026-11-03 用户令「集列表菜单不要跑到窗口外面，要始终保持在窗口内」。这条算术的全部就是
+    // PlayerMenuFit.MaxHeight —— 菜单底边贴着锚点往上开，能长多高取决于锚点上沿到窗口顶边那一段。
+    private static void RegisterPlayerMenuFit()
+    {
+        Test("菜单高度：贴着锚点往上开，只占锚点上方那点余地", () =>
+        {
+            Assert.Equal(592, PlayerMenuFit.MaxHeight(600, 720));
+            Assert.Equal(392, PlayerMenuFit.MaxHeight(400, 720));
         });
 
-        Test("剧集导航：自动连播在季末返回 null，不跨季", () =>
+        Test("菜单高度：窗口比锚点还矮时按窗口收，不按锚点", () =>
         {
-            // 第 1 季的最后一集：本季到此为止，播放界面退出，第 2 季的第一集不许自动接上来。
-            Assert.Null(EpisodeNavigation.StepInSeason(episodes, "s1e2", 1));
-
-            // 最后一季的最后一集同理 —— 哪怕它同时是全剧的最后一集。
-            Assert.Null(EpisodeNavigation.StepInSeason(episodes, "s2e2", 1));
+            // 锚点读数落后于窗口（刚拖小、布局还没跑）：上限只能取窗口那一份，否则菜单照样顶出去。
+            Assert.Equal(404, PlayerMenuFit.MaxHeight(600, 420));
         });
 
-        Test("剧集导航：自动连播的列表装着全剧时也只认本季", () =>
+        Test("菜单高度：读不出锚点就退回整窗高减两道缝", () =>
         {
-            // FillSiblings 在单集记录缺 SeasonId 时会把一整部剧装进 Episodes；决策点必须自己缩回本季，
-            // 而不是指望每个调用方先把列表筛对。
-            Assert.Equal("s1e2", EpisodeNavigation.StepInSeason(episodes, "s1e1", 1)?.Episode.Id);
-            Assert.Null(EpisodeNavigation.StepInSeason(episodes, "s1e2", 1));
-
-            // 上一方向照旧在季内走：往回与往前都只在本季之内，季首再往回不越进上一季。
-            Assert.Equal("s2e1", EpisodeNavigation.StepInSeason(episodes, "s2e2", -1)?.Episode.Id);
-            Assert.Equal("s2e2", EpisodeNavigation.StepInSeason(episodes, "s2e1", 1)?.Episode.Id);
-            Assert.Null(EpisodeNavigation.StepInSeason(episodes, "s2e1", -1));
-        });
-
-        Test("剧集导航：自动连播只接受相邻一步", () =>
-        {
-            Assert.Throws<ArgumentOutOfRangeException>(() => EpisodeNavigation.StepInSeason(episodes, "s1e1", 0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => EpisodeNavigation.StepInSeason(episodes, "s1e1", 2));
-        });
-
-        // ---- 跨季落地的选集改由服务器按季返回（2026-09-24《伪恋》跨季相邻单集） ----
-        //
-        // 全剧列表里，排进 S01 播出的 air-order 特典记在 S00；按 SeasonId 本地筛 S01 只有 2 集，而服务器按季返回
-        // 会把那颗特典并进 S01。ResolveAdjacentAsync 让上一集/下一集跨季落地时的「选集」改问服务器按季要，和季详情页一致。
-
-        Test("剧集导航：跨季落地的选集改用服务器按季返回（含并进来的特典）", () =>
-        {
-            var seriesWide = new List<EmbyItem>
-            {
-                QueueEpisode("sp", "s0", 0, 1),
-                QueueEpisode("e1", "s1", 1, 1),
-                QueueEpisode("e2", "s1", 1, 2)
-            };
-
-            // 服务器按 S01 返回时把 air-order 特典并了进来 = 3 集；本地在全剧列表按 SeasonId 筛只会得到 e1、e2。
-            var serverSeason1 = new List<EmbyItem>
-            {
-                QueueEpisode("e1", "s1", 1, 1),
-                QueueEpisode("spInS1", "s1", 1, 2),
-                QueueEpisode("e2", "s1", 1, 3)
-            };
-
-            var destination = EpisodeNavigation.ResolveAdjacentAsync(
-                seriesWide, "sp", 1,
-                _ => Task.FromResult<IReadOnlyList<EmbyItem>>(serverSeason1)).GetAwaiter().GetResult();
-
-            Assert.Equal("e1", destination?.Episode.Id);
-            Assert.Equal(3, destination?.Siblings.Count ?? 0);
-            Assert.True(destination!.Siblings.Select(s => s.Id).SequenceEqual(new[] { "e1", "spInS1", "e2" }));
-        });
-
-        Test("剧集导航：服务器按季那份拿不到时退回本地筛的选集", () =>
-        {
-            var seriesWide = new List<EmbyItem>
-            {
-                QueueEpisode("sp", "s0", 0, 1),
-                QueueEpisode("e1", "s1", 1, 1),
-                QueueEpisode("e2", "s1", 1, 2)
-            };
-
-            var destination = EpisodeNavigation.ResolveAdjacentAsync(
-                seriesWide, "sp", 1,
-                _ => Task.FromResult<IReadOnlyList<EmbyItem>>([])).GetAwaiter().GetResult();
-
-            Assert.Equal("e1", destination?.Episode.Id);
-            Assert.Equal(2, destination?.Siblings.Count ?? 0);
-            Assert.True(destination!.Siblings.All(s => s.SeasonId == "s1"));
-        });
-
-        Test("剧集导航：服务器那份不含落点时也退回本地选集", () =>
-        {
-            var seriesWide = new List<EmbyItem>
-            {
-                QueueEpisode("sp", "s0", 0, 1),
-                QueueEpisode("e1", "s1", 1, 1),
-                QueueEpisode("e2", "s1", 1, 2)
-            };
-
-            // 服务器回了一份对不上落点的列表：够不着目标，宁可用本地那份，也好过没有选集。
-            var wrong = new List<EmbyItem> { QueueEpisode("other", "s1", 1, 9) };
-
-            var destination = EpisodeNavigation.ResolveAdjacentAsync(
-                seriesWide, "sp", 1,
-                _ => Task.FromResult<IReadOnlyList<EmbyItem>>(wrong)).GetAwaiter().GetResult();
-
-            Assert.Equal("e1", destination?.Episode.Id);
-            Assert.Equal(2, destination?.Siblings.Count ?? 0);
-        });
-
-        Test("剧集导航：跨季落地在两端越界返回 null，且不问服务器", () =>
-        {
-            var seriesWide = new List<EmbyItem>
-            {
-                QueueEpisode("e1", "s1", 1, 1),
-                QueueEpisode("e2", "s1", 1, 2)
-            };
-
-            var asked = false;
-            Func<string?, Task<IReadOnlyList<EmbyItem>>> fetch = _ =>
-            {
-                asked = true;
-                return Task.FromResult<IReadOnlyList<EmbyItem>>([]);
-            };
-
-            // 最后一集再往后、第一集再往前都没有相邻集：直接 null，服务器一次都不碰。
-            Assert.Null(EpisodeNavigation.ResolveAdjacentAsync(seriesWide, "e2", 1, fetch).GetAwaiter().GetResult());
-            Assert.Null(EpisodeNavigation.ResolveAdjacentAsync(seriesWide, "e1", -1, fetch).GetAwaiter().GetResult());
-            Assert.False(asked);
+            Assert.Equal(704, PlayerMenuFit.MaxHeight(double.NaN, 720));
+            Assert.Equal(0, PlayerMenuFit.MaxHeight(4, 720));
+            Assert.True(double.IsPositiveInfinity(PlayerMenuFit.MaxHeight(double.NaN, double.NaN)));
         });
     }
 

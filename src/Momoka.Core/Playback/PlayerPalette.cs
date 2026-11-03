@@ -150,6 +150,23 @@ public static class PlayerPalette
     public const string TopGlassKey = "PlayerGlassTopBrush";
 
     /// <summary>
+    /// 播放页菜单（剧集/版本/章节/音轨/字幕/右键画面菜单/倍速轮盘）底那一层的浓度：遮七成，留三成给
+    /// 弹层底下那层桌面亚克力透上来。
+    /// <para>
+    /// 2026-11-03 用户令「集成模式下所有的菜单都要用亚克力背景」。这里的「亚克力」与
+    /// <see cref="GlassAlpha"/> 那条账不冲突：控制条压在**交换链**上，应用内亚克力采不到它；而菜单是
+    /// 窗口化的独立弹层，框架给它挂的是 <c>DesktopAcrylicBackdrop</c>（采的是桌面，播放时正是那帧画面），
+    /// 所以这里只要不把底铺实，那层模糊就看得见。
+    /// </para>
+    /// <para>
+    /// 为什么不是全透：应用级的菜单底在 2026-10-30 被换成实心（用户要「读字优先」），框架那层亚克力
+    /// 的浓度跟着**系统**主题走 —— 亮色系统上会是一块浅底，配这一页的浅色字就读不出来。这七成近黑把
+    /// 底色钉住，剩下三成才是画面的模糊。显示设置里关掉透明效果时它退化成一块实心近黑，字照旧。
+    /// </para>
+    /// </summary>
+    public static byte MenuAlpha { get; } = 0xB3;
+
+    /// <summary>
     /// 左上角那几块玻璃在 <paramref name="depth"/> 这一档的浓度。<paramref name="depth"/> 是「指针离
     /// 顶边多近」：0 ＝ 与上下两条浮层同一档（<see cref="GlassAlpha"/>），1 ＝ 贴着顶边
     /// （<see cref="TopGlassAlpha"/>）。
@@ -274,6 +291,11 @@ public static class PlayerPalette
         // 上方的一大块背景」，控制条（PlayerPage.xaml 的 Bar）不再铺它，于是只剩标题条在用。
         // **它是半透明的近黑，不是亚克力** —— 为什么，见上面 GlassAlpha 的注释，那是这一条全部的理由。
         ("PlayerGlassBrush", Film.WithAlpha(GlassAlpha)),
+
+        // 播放页菜单的底（2026-11-03 用户令「集成模式下所有的菜单都要用亚克力背景」）：近黑遮七成，
+        // 留出来那三成给弹层底下的桌面亚克力。与上面那支玻璃分开一支 —— 那一支压在交换链上，
+        // 这一支压在窗口化弹层上，两种「透」不是一回事（见 MenuAlpha 的注释）。
+        ("PlayerMenuBrush", Film.WithAlpha(MenuAlpha)),
 
         // 左上角那三块（返回键 ＋ 片名两块）共用的那一支：**跟着指针高度走**（用户令 2026-09-27 傍晚
         // 「加深左上角亚克力背景的颜色，鼠标位置越靠上亚克力背景的颜色越深」）。表里给的是它最浅那一档

@@ -131,6 +131,31 @@
              空壳子，颜色由 PaintPalette 从 Core 那张表写进来。 -->
         <SolidColorBrush x:Key="PlayerGlassTopBrush" />
 
+        <!-- ================= 菜单的底 =================
+             2026-11-03 用户令「集成模式下所有的菜单都要用亚克力背景」。框架本来给的就是亚克力
+             （`MenuFlyoutPresenter` 的默认样式带 `DesktopAcrylicBackdrop`，底是 `DesktopAcrylicTransparentBrush`
+             —— 采的是**桌面**，所以播放窗口里采到的正是那帧画面）；是应用级 `Palette.xaml` 在 2026-10-30
+             把底换成了实心 `EgSurfaceBrush`（那次用户要的是「更多菜单里的一些弹窗背景不要用亚克力」，
+             读字优先，管的是应用其它页）。播放页这一份按回来：底色仍是画面那个近黑，只遮七成，
+             留出的三成给弹层底下那层桌面亚克力透上来 —— 于是菜单背后是模糊的画面，不是一块黑板。
+             空壳子，颜色由 PaintPalette 从 Core 那张表写进来（`PlayerMenuBrush`）。 -->
+        <SolidColorBrush x:Key="PlayerMenuBrush" />
+
+        <!-- 六个下拉与右键菜单共用的一支 presenter 样式。`BasedOn` 必须是框架默认那条：模板、滚动条、
+             键盘导航（MenuFlyoutPresenter 的 ScrollViewer 与 ItemsPresenter）都在它里面，只覆盖底、边线。
+             播放页的菜单都挂 `MenuFlyoutPresenterStyle="{StaticResource PlayerMenuPresenterStyle}"` 才吃到这支，
+             因为弹层是窗口化的独立 XAML 根，页面字典里的隐式样式与资源键都够不到它 ——
+             `StaticResource` 在**页面解析时**就绑到了这一份对象，弹层拿到的仍是同一个画刷实例。 -->
+        <Style x:Key="PlayerMenuPresenterStyle" TargetType="MenuFlyoutPresenter"
+               BasedOn="{StaticResource DefaultMenuFlyoutPresenterStyle}">
+            <Setter Property="Background" Value="{StaticResource PlayerMenuBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource PlayerEdgeBrush}" />
+        </Style>
+
+        <!-- 倍速轮盘那只浮层的系统底板（普通 Flyout 不像菜单那样自带一层）——没有它，半透明的面板底下
+             什么也采不到，屏上还是一块色板。 -->
+        <DesktopAcrylicBackdrop x:Key="PlayerAcrylicBackdrop" />
+
         <!-- 跳过按钮的图标与标题保留现有窗口档字号；全屏/最大化档由 ApplySkipScale 放大。
              这一组播放浮层尺寸由 PlayerPage.Chrome.cs 的 WindowSkip* 常量维护，XAML 只提供初值。
              与独占模式一样只显示图标和标题，不再提供提示行或倒计时条。 -->
@@ -439,7 +464,8 @@
              Built on first open rather than in XAML because it is a hundred-odd rows of data, and as a
              ContextFlyout rather than a RightTapped handler so the menu key and Shift+F10 reach it too. -->
         <local:PictureSurface.ContextFlyout>
-            <MenuFlyout x:Name="PictureMenu" Opening="OnPictureMenuOpening" />
+            <MenuFlyout x:Name="PictureMenu" Opening="OnPictureMenuOpening"
+                        MenuFlyoutPresenterStyle="{StaticResource PlayerMenuPresenterStyle}" />
         </local:PictureSurface.ContextFlyout>
 
         <!-- ================= 进出播放页的舞台 =================
@@ -1080,7 +1106,8 @@
                             <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="PlayerStripHoverInkBrush" />
                         </Button.Resources>
                         <FontIcon Glyph="&#xE8FD;" Style="{StaticResource TransportGlyphStyle}" />
-                        <Button.Flyout><MenuFlyout x:Name="ChapterMenu" Placement="Top" Opening="OnChapterMenuOpening" /></Button.Flyout>
+                        <Button.Flyout><MenuFlyout x:Name="ChapterMenu" Placement="Top" Opening="OnChapterMenuOpening"
+                                    MenuFlyoutPresenterStyle="{StaticResource PlayerMenuPresenterStyle}" /></Button.Flyout>
                     </Button>
                     <Button x:Name="EpisodeButton" x:Uid="PlayerPage_EpisodeButton" Style="{StaticResource TransportButtonStyle}">
                         <Button.Resources>
@@ -1090,7 +1117,8 @@
                             <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="PlayerStripHoverInkBrush" />
                         </Button.Resources>
                         <FontIcon Glyph="&#xE8F1;" Style="{StaticResource TransportGlyphStyle}" />
-                        <Button.Flyout><MenuFlyout x:Name="EpisodeMenu" Placement="Top" Opening="OnEpisodeMenuOpening" /></Button.Flyout>
+                        <Button.Flyout><MenuFlyout x:Name="EpisodeMenu" Placement="Top" Opening="OnEpisodeMenuOpening"
+                                    MenuFlyoutPresenterStyle="{StaticResource PlayerMenuPresenterStyle}" /></Button.Flyout>
                     </Button>
                     <Button x:Name="VersionButton" x:Uid="PlayerPage_VersionButton" Style="{StaticResource TransportButtonStyle}">
                         <Button.Resources>
@@ -1100,7 +1128,8 @@
                             <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="PlayerStripHoverInkBrush" />
                         </Button.Resources>
                         <FontIcon Glyph="&#xE8B7;" Style="{StaticResource TransportGlyphStyle}" />
-                        <Button.Flyout><MenuFlyout x:Name="VersionMenu" Placement="Top" Opening="OnVersionMenuOpening" /></Button.Flyout>
+                        <Button.Flyout><MenuFlyout x:Name="VersionMenu" Placement="Top" Opening="OnVersionMenuOpening"
+                                    MenuFlyoutPresenterStyle="{StaticResource PlayerMenuPresenterStyle}" /></Button.Flyout>
                     </Button>
                 </StackPanel>
                 <StackPanel x:Name="TransportMiddle" Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Bottom">
@@ -1135,7 +1164,8 @@
                             <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="PlayerStripHoverInkBrush" />
                         </Button.Resources>
                         <Button.Flyout>
-                            <Flyout x:Name="SpeedWheelFlyout" Placement="Top" Opened="OnSpeedWheelOpened" Closed="OnSpeedWheelClosed">
+                            <Flyout x:Name="SpeedWheelFlyout" Placement="Top" Opened="OnSpeedWheelOpened" Closed="OnSpeedWheelClosed"
+                                    SystemBackdrop="{StaticResource PlayerAcrylicBackdrop}">
                                 <Flyout.FlyoutPresenterStyle>
                                     <Style TargetType="FlyoutPresenter">
                                         <!-- 壳一层全部脱掉：底、边、内边距、圆角、阴影都归下面这块面板自己画，
@@ -1147,11 +1177,13 @@
                                         <Setter Property="IsDefaultShadowEnabled" Value="False" />
                                     </Style>
                                 </Flyout.FlyoutPresenterStyle>
+                                <!-- 面板的底与六个菜单同一支（2026-11-03 用户令「集成模式下所有的菜单都要用
+                                     亚克力背景」）：倍速轮盘也是菜单，它原先是音量条那支实心的牌子色。 -->
                                 <Border
                                     x:Name="SpeedWheelPanel"
                                     Width="104"
                                     Height="252"
-                                    Background="{StaticResource PlayerRailBrush}"
+                                    Background="{StaticResource PlayerMenuBrush}"
                                     CornerRadius="20">
                                     <Grid>
                                         <!-- 中线高亮带：当前值停的那一格。IsHitTestVisible=False —— 拖拽的
@@ -1196,7 +1228,8 @@
                             <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="PlayerStripHoverInkBrush" />
                         </Button.Resources>
                         <FontIcon Glyph="&#xED1E;" Style="{StaticResource TransportGlyphStyle}" />
-                        <Button.Flyout><MenuFlyout x:Name="SubtitleMenu" Placement="Top" Opening="OnSubtitleMenuOpening" /></Button.Flyout>
+                        <Button.Flyout><MenuFlyout x:Name="SubtitleMenu" Placement="Top" Opening="OnSubtitleMenuOpening"
+                                    MenuFlyoutPresenterStyle="{StaticResource PlayerMenuPresenterStyle}" /></Button.Flyout>
                     </Button>
                     <Button x:Name="AudioButton" x:Uid="PlayerPage_AudioButton" Style="{StaticResource TransportButtonStyle}" Margin="0,0,32,0" >
                         <Button.Resources>
@@ -1206,7 +1239,8 @@
                             <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="PlayerStripHoverInkBrush" />
                         </Button.Resources>
                         <FontIcon Glyph="&#xE8D6;" Style="{StaticResource TransportGlyphStyle}" />
-                        <Button.Flyout><MenuFlyout x:Name="AudioMenu" Placement="Top" Opening="OnAudioMenuOpening" /></Button.Flyout>
+                        <Button.Flyout><MenuFlyout x:Name="AudioMenu" Placement="Top" Opening="OnAudioMenuOpening"
+                                    MenuFlyoutPresenterStyle="{StaticResource PlayerMenuPresenterStyle}" /></Button.Flyout>
                     </Button>
                     <Button x:Name="FullscreenButton" x:Uid="PlayerPage_FullscreenButton" Style="{StaticResource TransportButtonStyle}" Click="OnToggleFullscreen" AutomationProperties.AcceleratorKey="F">
                         <Button.Resources>

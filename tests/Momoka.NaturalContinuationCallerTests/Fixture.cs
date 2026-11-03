@@ -54,6 +54,12 @@ internal sealed class Fixture : IAsyncDisposable
         B = Install("b");
         C = Install("c");
         Default(A);
+
+        // 2026-11-03 起每一次单集开播都会读一次「全剧列表」（播放器的剧集列表从此是全剧，见
+        // PlayerViewModel.LoadSeriesEpisodesAsync）：默认回一份空表 —— 那些「列表没变」的用例判据原样成立，
+        // 要读真列表的用例自己再登记一条（后登记者覆盖）。
+        foreach (var scope in new[] { A, B, C }) Transport.Episodes(scope, "series", []);
+
         Playback = new FakePlayback(Tape);
         Vm = new PlayerViewModel(Playback, MemorySettings, Session, Tape);
         Tape.State = () => (Vm.Hold, Vm.Idle.IsCompleted, Playback.IsPlaying, Vm.NowPlaying?.IdentityKey);

@@ -380,10 +380,10 @@
     <value>关闭</value>
   </data>
   <data name="PlayerPage_EpisodeButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
-    <value>本季剧集</value>
+    <value>剧集列表</value>
   </data>
   <data name="PlayerPage_EpisodeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>选集</value>
+    <value>剧集列表</value>
   </data>
   <data name="PlayerPage_VersionButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>切换版本</value>

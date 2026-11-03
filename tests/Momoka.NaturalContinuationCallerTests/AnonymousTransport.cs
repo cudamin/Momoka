@@ -20,10 +20,12 @@ internal sealed class AnonymousTransport(Tape tape) : HttpMessageHandler
     internal void Item(EmbySessionScope source, EmbyItem item) => Item(source, item.Id, _ => Task.FromResult<object>(item));
     internal void Seasons(EmbySessionScope source, string series, IReadOnlyList<EmbyItem> rows) =>
         _routes.Add(source.Connection.ApiBase.Host + "/emby/Shows/" + series + "/Seasons", _ => Task.FromResult<object>(new { Items = rows }));
+    // 后登记者覆盖先前的同一条路由（下标而不是 Add）：夹具在构造时给「series」放一条空表，
+    // 要读真列表的用例再登记自己那一份，不必知道默认那条存在。
     internal void Episodes(EmbySessionScope source, string series, IReadOnlyList<EmbyItem> rows) =>
-        _routes.Add(source.Connection.ApiBase.Host + "/emby/Shows/" + series + "/Episodes", _ => Task.FromResult<object>(new { Items = rows }));
+        _routes[source.Connection.ApiBase.Host + "/emby/Shows/" + series + "/Episodes"] = _ => Task.FromResult<object>(new { Items = rows });
     internal void Episodes(EmbySessionScope source, string series, Func<Read, Task<object>> response) =>
-        _routes.Add(source.Connection.ApiBase.Host + "/emby/Shows/" + series + "/Episodes", response);
+        _routes[source.Connection.ApiBase.Host + "/emby/Shows/" + series + "/Episodes"] = response;
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
