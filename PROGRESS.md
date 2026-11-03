@@ -10,7 +10,7 @@
 - 合入与交付：用户 20:12 令「合并到主树然后并交付」。`git merge --ff-only workbuddy/master-cd0bdedf` 快进 master 到 `f36a075`（32 个文件，+728/−380），主树工作区干净。合入后在**主树**重做验证：Release 全方案 0 警告 0 错误（6 分 12 秒）；主测试 3604/3604；连播夹具 51/51；`dotnet format whitespace --verify-no-changes` 退出 0。闸门 3：`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（20:26，546 个文件、285.8 MB、批准 mpv 清单 59 个文件），桌面快捷方式 `Momoka.lnk` 仍指向该目录；发布件里 `剧集列表` 在、`本季剧集` 已无，`PlayerMenuPresenterStyle`／`PlayerMenuBrush`／`PlayerMenuFit`／`LoadSeriesEpisodesAsync` 都在。
 - 闸门 4（主树交付件，`--self-check --dump-ui --screen 2`，隔离目录 `%TEMP%/momoka-main4-203943`）：**结果：全部通过**（163 项通过、36 条信息、0 跳过、0 失败）；`selfcheck-diff.ps1 -Log` 判 **绿：检查 188、失败行 0、消失 0、降级 0、新增 0**。关键读数：「跨季相邻单集」《伪恋》S01E20 → S00E01（列表 36 集＝全剧 36 集、整份交回、播出顺序）；「图标影子」17 颗全挂（按字形 8、按外框 9）；「播放层配色」28/28；「控制栏菜单」「右键画面菜单」通过。
 - UI 证据：`--probe-player-motion work/resize-bars-fixture.mp4 --screen 2` 退出 0、报告「自动断言通过」，五套主题的时间轴实屏截图与四张加载页截图齐全；控制条渲染图 1280／320 两档排得开、无压叠（`player-transport-{320,560,1280}.png`）。亮画面上量了影子的实际像素：黄底上最暗处比底色低约三成、青底上低约四成 —— 影子确实在画，而且是软边、没有方框。
-- 收尾：临时分支 `workbuddy/master-cd0bdedf`（顶端 `f36a075`，与 master 同一提交）在核对「master 已无该分支缺少的改动」后随工作树一并删除，本地只留 master。origin 未推（本轮未获上传授权；master 此前已领先 origin 22 个提交，按规则不擅自上传）。
+- 收尾：临时分支 `workbuddy/master-cd0bdedf`（顶端 `f36a075`，与 master 同一提交）在核对「master 已无该分支缺少的改动」后删除；工作树已从 `git worktree` 摘除、290 MB 内容清空，只剩一个空目录（被本会话的目录句柄占着，`rd` 与 `Directory.Delete` 都报「正由另一进程使用」），会话结束后可直接删掉。origin 未推（本轮未获上传授权；master 此前已领先 origin 22 个提交，按规则不擅自上传）。
 - 仍未覆盖：①**长列表的菜单高度只有纯函数单测与接线**，真实窗口里的弹层矩形没量过——播放页要在播一部多集剧才弹得出长列表，而真实服务器播放需授权；②菜单亚克力的观感（尤其右键菜单的二级子菜单走框架隐式样式）要用户播一集看一眼；③真实播放下的换集、跨季连播没有实屏，只有 3604 条单测与 51 项无窗口夹具。
 
 ## 2026-11-03 导航第一轮性能：主页布局合并、媒体库 Attach 合并、最近搜索与懒面板（已合入 master、发布桌面）
