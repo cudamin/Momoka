@@ -358,11 +358,11 @@ internal static partial class ShellSelfCheck
                 ? $"无可播放目标（{detail.Type}），四个选择器都是空的"
                 : $"「{detail.Target}」（{EmbyItemType.ToChinese(detail.TargetType)}）·「{detail.Play}」");
 
-        // 媒体信息 describes a file, so it is filled on the page of a file and empty everywhere else — the
-        // panel's visibility is nothing but 「are there rows」, so this one claim covers both halves. It is
-        // asked of a 剧 page here, which is the case that used to be wrong: the table named whichever
-        // episode 播放 had resolved to, under a page about the whole show.
-        var filePage = EmbyItemType.IsPlayable(detail.Type);
+        // 媒体信息 describes a file, so it is filled on the page of a file and empty everywhere else —
+        // except 剧页, which since 2026-11-02 carries a table describing the episode 播放 resolved to
+        // (and since 2026-11-03 the earliest-aired unwatched episode across the whole show). The panel's
+        // visibility is nothing but 「are there rows」, so this one claim covers both halves.
+        var filePage = EmbyItemType.IsPlayable(detail.Type) || detail.Type == EmbyItemType.Series;
 
         check("详情媒体信息", filePage ? detail.Info > 0 : detail.Info == 0,
             filePage

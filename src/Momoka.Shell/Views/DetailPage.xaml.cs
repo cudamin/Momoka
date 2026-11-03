@@ -657,7 +657,9 @@ public sealed partial class DetailPage : Page, IShellContent
         // 站在窗口上沿（LiftBackdrop），铺满那一档的下沿也落在窗口下沿上方标题栏那一条里 —— 那一刀
         // UniformToFill 的硬边没有渐变接就是「背景图下方不是黑色渐变而是一条黑边」（2026-09-12）。图还没解出来
         // 时整个盒子（连渐变一起）收着，那一拍不判。
-        var fadeWanted = ViewModel.HeroVisibility == Visibility.Visible;
+        // 判据取 BackdropFadeVisibility 而不是 HeroVisibility：沉浸档（Showcase）不画下沿渐变，
+        // 而那一档照样有头图。拿 HeroVisibility 当判据会在沉浸档的剧页上要求一条屏上故意没有的渐变。
+        var fadeWanted = ViewModel.BackdropFadeVisibility == Visibility.Visible;
         var fade = BackdropFade.Visibility == Visibility.Visible;
         var topAligned = BackdropImageBrush.Stretch == Stretch.UniformToFill
             && BackdropImageBrush.AlignmentX == AlignmentX.Center
@@ -797,7 +799,11 @@ public sealed partial class DetailPage : Page, IShellContent
         var left = box.Left <= page.Left + 0.5;
         var right = box.Right >= page.Right - 0.5;
         var below = box.Bottom >= window.Height - 0.5;
-        var opaque = BodySheet.Background is SolidColorBrush { Color.A: 255 };
+        // 沉浸档（Showcase）的纸面整块让开，底色是尾部那道半透明洗色而不是不透明的纸色；两档要的
+        // 不是同一个「不透明」。
+        var showcase = ViewModel.Showcase;
+        var opaque = BodySheet.Background is SolidColorBrush { Color.A: 255 }
+            || showcase && BodySheet.Background is SolidColorBrush { Color.A: > 0 };
         var moved = Math.Abs(box.Top - tail.Bottom) < 0.5;
 
         // 尾部该多高：内容和「这一次该补多少」两者取大（见 DetailHero.TailHeight）。内容那一头按最后一块的
@@ -824,7 +830,9 @@ public sealed partial class DetailPage : Page, IShellContent
         var byPicture = Math.Abs(ViewModel.TailMinHeight - Math.Round(pictureBottom - ViewModel.HeroHeight)) < 0.5;
         var capped = byLine || byPicture;
         var beyond = paperTop >= Body.ActualHeight - 0.5;
-        var folded = !ViewModel.HeroArt || capped || beyond;
+        // 沉浸档不撑尾部（DetailHero.TailHeight 那一档返回 0），纸面本来就从内容处开始，不该按
+        // 「第一屏外」要求它。
+        var folded = showcase || !ViewModel.HeroArt || capped || beyond;
         var joined = ViewModel.HeroCardShown
             ? HeroTail.Background is null or SolidColorBrush { Color.A: 0 }
             : HeroTail.Background is SolidColorBrush { Color: var tailColor }
@@ -1144,8 +1152,15 @@ public sealed partial class DetailPage : Page, IShellContent
 
         var offset = Body.VerticalOffset;
         var paperTop = PaperOffset();
-        var paperCover = DetailHero.PaperCover(offset, paperTop, TitleWash.ActualHeight);
-        var (painted, how) = ReadTitlePaint(offset, paperTop, tail, sheet);
+        // 沉浸档（Showcase）里纸面整块让开，标题条一直跟尾部共用那道半透明洗色，三个纸面阶段都不存在
+        // （ApplyWash 在那一档直接返回 phase 2）。这一档不能拿纸面覆盖去问标题条。
+        var showcase = ViewModel.Showcase;
+        var paperCover = showcase ? 0 : DetailHero.PaperCover(offset, paperTop, TitleWash.ActualHeight);
+        var (painted, how) = showcase
+            ? (ReferenceEquals(TitleWash.Background, HeroTail.Background)
+                    && BodySheet.Background is SolidColorBrush { Color: var wash } && tail == wash,
+                "沉浸档：标题条与尾部共用洗色")
+            : ReadTitlePaint(offset, paperTop, tail, sheet);
 
         // 页顶和头部中间都应直接接同一支黑底，纸面上沿走到标题栏正中时才切换成两色边界。
         ApplyWash(0, force: true);
@@ -1154,10 +1169,15 @@ public sealed partial class DetailPage : Page, IShellContent
         ApplyWash(halfOffset, force: true);
         var (halfOk, halfHow) = ScrimPaint();
 
-        var paperHalfOffset = paperTop + (TitleWash.ActualHeight / 2);
-        var paperHalf = DetailHero.PaperCover(paperHalfOffset, paperTop, TitleWash.ActualHeight);
-        ApplyWash(paperHalfOffset, force: true);
-        var (paperOk, paperHow) = PaperPaint(paperHalf, tail, sheet);
+        var paperOk = true;
+        var paperHow = "沉浸档不画纸面渐变";
+        if (!showcase)
+        {
+            var paperHalfOffset = paperTop + (TitleWash.ActualHeight / 2);
+            var paperHalf = DetailHero.PaperCover(paperHalfOffset, paperTop, TitleWash.ActualHeight);
+            ApplyWash(paperHalfOffset, force: true);
+            (paperOk, paperHow) = PaperPaint(paperHalf, tail, sheet);
+        }
         PaintWash(force: true);
 
         // 外壳那一层：有图就一层都不该有，见上面那段和 SyncTitleInk。
