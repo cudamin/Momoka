@@ -215,7 +215,8 @@ internal sealed partial class ShellNavigationProbe
             await PersistentSearchHeaderAsync(page);
             Get<Segmented>(page, "SourceTabs").SelectedIndex = 1;
             await page.SearchTypingAsync("");
-            var subscriptionPanel = Get<MoviePilotSearchPanel>(page, "MoviePilotPanel");
+            var subscriptionPanel = page.MoviePilotPanel
+                ?? throw new InvalidOperationException("订阅来源没有创建搜索面板");
             foreach (var width in new[] { 1040, 360 })
             {
                 var scale = _root.XamlRoot.RasterizationScale;
@@ -421,7 +422,8 @@ internal sealed partial class ShellNavigationProbe
             input.Text = "订阅关键词";
 
             await page.SubmitSearchAsync("订阅关键词");
-            var subscriptionPanel = Get<MoviePilotSearchPanel>(page, "MoviePilotPanel");
+            var subscriptionPanel = page.MoviePilotPanel
+                ?? throw new InvalidOperationException("订阅来源没有创建搜索面板");
             await UntilAsync(() => subscriptionPanel.ViewModel.Results.Count == 1);
             Require(mp.Paths.Any(path => path.Contains("media/search?title=", StringComparison.Ordinal)), "订阅未走媒体搜索");
             Require(tabs.Visibility == Visibility.Visible, "提交搜索后固定来源选项消失");
@@ -437,8 +439,10 @@ internal sealed partial class ShellNavigationProbe
             Require(Searches(mp.Paths) == quiet, $"切到资源来源时自动发出了搜索：{string.Join(';', mp.Paths)}");
             await page.SubmitSearchAsync("订阅关键词");
             await UntilAsync(() => mp.Paths.Any(path => path.Contains("search/title?keyword=", StringComparison.Ordinal)));
-            await UntilAsync(() => !Get<MoviePilotVersionsView>(page, "MoviePilotResources").ViewModel.Busy);
-            Require(Get<MoviePilotSearchPanel>(page, "MoviePilotPanel").Visibility == Visibility.Collapsed, "资源与订阅面板重叠");
+            var resourcePanel = page.MoviePilotResources
+                ?? throw new InvalidOperationException("资源来源没有创建搜索面板");
+            await UntilAsync(() => !resourcePanel.ViewModel.Busy);
+            Require(subscriptionPanel.Visibility == Visibility.Collapsed, "资源与订阅面板重叠");
 
             // 移除来源筛选后，切回订阅和重复提交仍由服务器决定搜索范围，不携带隐蔽的来源限制。
             var beforeReturnSearch = mp.Paths.Count;
@@ -453,7 +457,7 @@ internal sealed partial class ShellNavigationProbe
             Require(repeatedSearches.Count == 1 && !repeatedSearches[0].Contains("media_source=", StringComparison.Ordinal),
                 "重复提交订阅搜索改变了默认来源范围");
             tabs.SelectedIndex = 2;
-            await UntilAsync(() => !Get<MoviePilotVersionsView>(page, "MoviePilotResources").ViewModel.Busy);
+            await UntilAsync(() => !resourcePanel.ViewModel.Busy);
             await page.SearchTypingAsync("新的资源词");
             var count = mp.Paths.Count;
             await page.SubmitSearchAsync("新的资源词");
@@ -530,13 +534,14 @@ internal sealed partial class ShellNavigationProbe
         var search = Get<Border>(page, "SearchSurface");
         var sites = Get<MoviePilotSitePicker>(page, "SearchSitePicker");
         var submit = Descendants(input).OfType<Button>().Single(button => button.Name == "QueryButton");
-        var resources = Get<MoviePilotVersionsView>(page, "MoviePilotResources");
         foreach (var width in new[] { 1040, 360 })
         {
             var scale = _root.XamlRoot.RasterizationScale;
             ResizeInspect((int)(width * scale), (int)(880 * scale));
             tabs.SelectedIndex = 2;
             await LayoutAsync(page);
+            var resources = page.MoviePilotResources
+                ?? throw new InvalidOperationException("MP 资源来源没有创建面板");
             Require(tabs.Visibility == Visibility.Visible, $"{width} 宽帧的来源栏未展开");
             var expanded = search.ActualHeight;
             await page.SubmitSearchAsync("离线资源布局");

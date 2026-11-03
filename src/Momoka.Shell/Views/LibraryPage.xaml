@@ -1064,13 +1064,9 @@
             </Grid>
         </Grid>
 
-        <!-- MoviePilot 那一段，和 EmbyContent 叠在同一格，按分段切显隐（默认藏着，见 OnSourceChanged）。 -->
-        <local:MoviePilotSearchPanel
-            x:Name="MoviePilotPanel"
-            Grid.Row="2"
-            Visibility="Collapsed" />
-        <local:MoviePilotVersionsView x:Name="MoviePilotResources" Grid.Row="2" Visibility="Collapsed" />
-        <local:AniBtSearchPanel x:Name="AniBtPanel" Grid.Row="2" Visibility="Collapsed" />
+        <!-- MoviePilot / AniBT 三段和 EmbyContent 叠在同一格，按来源切显隐。面板在首次用到时才建，
+             普通媒体库不替它们付构造和隐藏控件的价钱（见 EnsureMoviePilotPanel 等）。 -->
+        <Grid x:Name="SearchSourceHost" Grid.Row="2" />
 
         <!-- 四个搜索来源固定可见；未启用或未连接时保留所选来源，说明恢复路径，不改搜媒体库。 -->
         <StackPanel x:Name="SearchUnavailableSurface" Grid.Row="2" Visibility="Collapsed"
@@ -1105,13 +1101,6 @@
                     <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgScrimBrush" />
                 </Button.Resources>
             </Button>
-            <local:FilterPanel
-                x:Name="FilterPane"
-                x:FieldModifier="internal"
-                Changed="OnFilterChanged"
-                CloseRequested="OnFilterCloseRequested"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center" />
         </Grid>
 
         <!-- 设置面板盖在整页上（网页端那颗齿轮打开的就是一块模态框）。铺满三层，压住搜索、工具栏与网格。
@@ -1140,12 +1129,6 @@
                     <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgScrimBrush" />
                 </Button.Resources>
             </Button>
-            <local:LibrarySettingsPanel
-                x:Name="SettingsPane"
-                x:FieldModifier="internal"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Changed="OnDisplayChanged" />
         </Grid>
     </Grid>
 </Page>

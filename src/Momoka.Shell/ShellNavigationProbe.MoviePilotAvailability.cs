@@ -52,12 +52,12 @@ internal sealed partial class ShellNavigationProbe
             await ConnectMoviePilotAsync(fixture);
             await UntilAsync(() => tabs.Visibility == Visibility.Visible);
             tabs.SelectedIndex = 1;
-            await UntilAsync(() => Get<MoviePilotSearchPanel>(page, "MoviePilotPanel").Visibility == Visibility.Visible);
+            await UntilAsync(() => page.MoviePilotPanel is { Visibility: Visibility.Visible });
             mp.Offline = true;
             Require(!await service.RefreshAvailabilityAsync(), "断线仍被视为可用");
             await UntilAsync(() => tabs.Visibility == Visibility.Visible && tabs.SelectedIndex == 1
                 && unavailable.Visibility == Visibility.Visible);
-            Require(Get<MoviePilotSearchPanel>(page, "MoviePilotPanel").Visibility == Visibility.Collapsed
+            Require(page.MoviePilotPanel is { Visibility: Visibility.Collapsed }
                 && Get<Grid>(page, "EmbyContent").Visibility == Visibility.Collapsed
                 && unavailable.Visibility == Visibility.Visible, "断线后没有保留来源并显示恢复说明");
             await SaveProbeScreenAsync("moviepilot-offline.png");
@@ -66,13 +66,14 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => tabs.Visibility == Visibility.Visible);
             await SaveProbeScreenAsync("moviepilot-connected.png");
             tabs.SelectedIndex = 2;
-            var versions = Get<MoviePilotVersionsView>(page, "MoviePilotResources");
+            var versions = page.MoviePilotResources;
+            if (versions is null) throw new InvalidOperationException("MP 资源来源没有创建面板");
             var picker = Get<MoviePilotSitePicker>(page, "SearchSitePicker");
             var (_, opening) = await OpenSiteDialogAsync(picker, "掉线窗口");
             fixture.Settings.MoviePilot.Enabled = false;
             await UntilAsync(() => tabs.Visibility == Visibility.Visible && tabs.SelectedIndex == 2
                 && unavailable.Visibility == Visibility.Visible);
-            Require(Get<MoviePilotVersionsView>(page, "MoviePilotResources").Visibility == Visibility.Collapsed,
+            Require(page.MoviePilotResources is null || page.MoviePilotResources.Visibility == Visibility.Collapsed,
                 "关闭设置后资源面板没有收起");
             await UntilAsync(() => picker.CurrentDialog is null);
             Require(await opening == ContentDialogResult.None, "断线后站点弹窗没有以取消收束");

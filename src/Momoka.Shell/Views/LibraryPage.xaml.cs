@@ -73,6 +73,29 @@ public sealed partial class LibraryPage : Page, IShellContent
     internal int SectionBuilds { get; private set; }
     internal int HeaderApplies { get; private set; }
 
+    // 五个面板都按首次使用创建：普通媒体库不该替 MoviePilot、AniBT、筛选和设置付构造与隐藏控件的价钱。
+    private MoviePilotSearchPanel? _moviePilotPanel;
+    private MoviePilotVersionsView? _moviePilotResources;
+    private AniBtSearchPanel? _aniBtPanel;
+    private FilterPanel? _filterPane;
+    private LibrarySettingsPanel? _settingsPane;
+
+    /// <summary>返回搜索页时先记下 MoviePilot 那段的结果，等面板真正建出来再恢复。</summary>
+    private MoviePilotSearchSnapshot? _pendingMoviePilotSearch;
+
+    internal MoviePilotSearchPanel? MoviePilotPanel => _moviePilotPanel;
+    internal MoviePilotVersionsView? MoviePilotResources => _moviePilotResources;
+    internal AniBtSearchPanel? AniBtPanel => _aniBtPanel;
+    internal bool MoviePilotPanelCreated => _moviePilotPanel is not null;
+    internal bool MoviePilotResourcesCreated => _moviePilotResources is not null;
+    internal bool AniBtPanelCreated => _aniBtPanel is not null;
+    internal bool FilterPanelCreated => _filterPane is not null;
+    internal bool SettingsPanelCreated => _settingsPane is not null;
+
+    /// <summary>探针与自检用；真正创建仍由打开面板的那条路走。</summary>
+    internal FilterPanel FilterPane => _filterPane ?? EnsureFilterPanel();
+    internal LibrarySettingsPanel SettingsPane => _settingsPane ?? EnsureSettingsPanel();
+
     /// <summary>
     /// 这一次回车有没有送到 keydown。输入法组字时没有（见 <see cref="OnSearchKeyUp"/>），
     /// 只有普通回车才会让 <see cref="AutoSuggestBox.QuerySubmitted"/> 先提交一次。
@@ -116,9 +139,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         // crashes the page. Subscribing after InitializeComponent skips that init-time firing; every later
         // change lands with the whole tree in place.
         SourceTabs.SelectionChanged += OnSourceChanged;
-
-        // 面板上那颗 ✕：面板自己不认识宿主（它也能放进别处），收起由页面做。
-        SettingsPane.CloseRequested += CloseSettings;
 
         // 换来源之后光标要能落在搜索框里：这一页唯一的输入口是那个框，而点标签会把焦点留在标签上，
         // 用户换完来源就打不了字、也按不出回车（2026-10-15 用户报的正是「按回车不触发搜索」）。只认
@@ -517,14 +537,8 @@ public sealed partial class LibraryPage : Page, IShellContent
             services.GetRequiredService<EmbyImageStore>(),
             _capabilities, _moviePilot);
 
-        // MoviePilot 连接交给面板（它自己接确认对话框）；搜索页四个来源固定存在，服务决定是否可以执行。
-        MoviePilotPanel.Attach(services.GetRequiredService<MoviePilotService>(),
-            services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), _actions.OpenMoviePilotMedia);
-        MoviePilotResources.Attach(services.GetRequiredService<MoviePilotService>(),
-            services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), sharedInput: true);
-        SearchSitePicker.Attach(MoviePilotResources.ViewModel.SearchSites);
-        AniBtPanel.Attach(services.GetRequiredService<Momoka.AniBt.AniBtService>(), _moviePilot,
-            services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>());
+        // 搜索面板只在真正切到那个来源时才建；这里只记下要恢复的 MoviePilot 结果。
+        _pendingMoviePilotSearch = request.IsSearch ? request.MoviePilotSearch : null;
         SearchCategories.SelectedItem = SearchCategories.Items.FirstOrDefault(item =>
             item.Tag is string value && value == request.SearchCategory.ToString()) ?? TopResultsCategory;
 
@@ -540,8 +554,6 @@ public sealed partial class LibraryPage : Page, IShellContent
             _suppressSourceApply = false;
         }
         ApplySource();
-        if (request.IsSearch && MoviePilotPanel.ViewModel.Restore(request.MoviePilotSearch))
-            _ = MoviePilotPanel.ViewModel.RefreshSubscriptionStatesAsync();
 
         // Attach 期间的通知只跳过不执行；依赖接完、来源也定下之后跑一次最终版面。
         _attaching = false;
@@ -613,16 +625,19 @@ public sealed partial class LibraryPage : Page, IShellContent
             {
                 request.SearchTerm = ViewModel.SearchText;
                 request.SearchSource = SearchSource;
-                request.MoviePilotScrollOffset = MoviePilotPanel.ScrollOffset;
-                request.MoviePilotSearch = MoviePilotPanel.ViewModel.Capture();
+                if (_moviePilotPanel is { } panel)
+                {
+                    request.MoviePilotScrollOffset = panel.ScrollOffset;
+                    request.MoviePilotSearch = panel.ViewModel.Capture();
+                }
             }
         }
         ViewModel.Cancel();
         ViewModel.ReleaseSearchPosters();
-        FilterPane.Dismiss();
-        MoviePilotPanel.Release();
-        MoviePilotResources.Release();
-        AniBtPanel.Release();
+        _filterPane?.Dismiss();
+        _moviePilotPanel?.Release();
+        _moviePilotResources?.Release();
+        _aniBtPanel?.Release();
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -644,8 +659,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         // Here rather than in OnNavigatedTo: nothing can take focus before it is in the tree.
         if (_request is { IsSearch: true } && ViewModel.SearchText.Length == 0)
             SearchInput.Focus(FocusState.Programmatic);
-        if (_request is { IsSearch: true, SearchSource: 1 } search)
-            MoviePilotPanel.RestoreScroll(search.MoviePilotScrollOffset);
+        if (_request is { IsSearch: true, SearchSource: 1 } search && _moviePilotPanel is { } panel)
+            panel.RestoreScroll(search.MoviePilotScrollOffset);
 
         if (_scroll is not null) return;
 
@@ -757,7 +772,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 搜索页没有标题和外卡；间距放在可见内容上，收起状态行不会留下空槽。
         var searchGap = search ? new Thickness(0, 8, 0, 0) : new Thickness(0);
         EmbyContent.Margin = headerByMargin ? contentGap : searchGap;
-        MoviePilotPanel.Margin = MoviePilotResources.Margin = AniBtPanel.Margin = searchGap;
+        ApplySearchPanelMargins(searchGap);
         LibraryBusyBar.Margin = LibraryNoticeBar.Margin = headerByMargin ? contentGap : searchGap;
         // 文件夹下钻页的面包屑已经写着「媒体库 > 文件夹名」，网页端 list.html 也把这一行放在顶栏里，
         // 页内不再重复一道大标题；标题收起后工具条独占头部，居中摆放。
@@ -787,7 +802,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchSitePicker.MaxWidth = formWidth < 520 ? 108 : 180;
         SearchSitePicker.SetCompact(SearchSitePicker.MaxWidth);
         SearchSurface.Margin = new Thickness(0, 8, 0, 0);
-        MoviePilotPanel.Margin = MoviePilotResources.Margin = AniBtPanel.Margin = searchGap;
+        ApplySearchPanelMargins(searchGap);
         SearchSurface.Width = formWidth;
         SearchSurface.MaxWidth = width;
         SearchEntry.Width = formWidth;
@@ -816,6 +831,14 @@ public sealed partial class LibraryPage : Page, IShellContent
         }
     }
 
+    /// <summary>搜索页三段共用的内容边距；只拨已经建出来的面板。</summary>
+    private void ApplySearchPanelMargins(Thickness margin)
+    {
+        if (_moviePilotPanel is { } moviePilot) moviePilot.Margin = margin;
+        if (_moviePilotResources is { } resources) resources.Margin = margin;
+        if (_aniBtPanel is { } aniBt) aniBt.Margin = margin;
+    }
+
     /// <summary>官网页端的三件顺序：筛选、排序、布局。只对飞牛库根重排，其它服务器保持原顺序。</summary>
     private void ReorderFnNasToolbar()
     {
@@ -828,10 +851,15 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (PageRoot.ActualWidth <= 0 || PageRoot.ActualHeight <= 0) return;
         var (width, height) = Momoka.Infrastructure.LibraryPanelSize.For(PageRoot.ActualWidth, PageRoot.ActualHeight);
-        foreach (var pane in new FrameworkElement[] { FilterPane, SettingsPane })
+        if (_filterPane is { } filter)
         {
-            pane.Width = width;
-            pane.Height = height;
+            filter.Width = width;
+            filter.Height = height;
+        }
+        if (_settingsPane is { } settings)
+        {
+            settings.Width = width;
+            settings.Height = height;
         }
     }
 
@@ -1231,15 +1259,15 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (_capabilities is null) return;
 
-        FilterPane.Open(ViewModel.Filters, ViewModel.FilterPreset, _capabilities.ServerVersion, ViewModel.FetchFilterValuesAsync, ViewModel.SourceServerKind,
-            ViewModel.FilterFieldsForPage());
+        EnsureFilterPanel().Open(ViewModel.Filters, ViewModel.FilterPreset, _capabilities.ServerVersion,
+            ViewModel.FetchFilterValuesAsync, ViewModel.SourceServerKind, ViewModel.FilterFieldsForPage());
     }
 
     /// <summary>收起筛选层，回到原来的网格。</summary>
     internal void CloseFilter()
     {
         FilterOverlay.Visibility = Visibility.Collapsed;
-        FilterPane.Dismiss();
+        _filterPane?.Dismiss();
     }
 
     private void OnFilterScrimClicked(object sender, RoutedEventArgs e) => CloseFilter();
@@ -1259,7 +1287,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     /// <inheritdoc cref="FilterPanel.EveryTemplateResolves"/>
     /// <remarks>Read after <see cref="BuildFilterPanel"/>: there are no blocks to ask about before it.</remarks>
-    internal bool FilterTemplatesResolve => FilterPane.EveryTemplateResolves;
+    internal bool FilterTemplatesResolve => _filterPane?.EveryTemplateResolves ?? false;
 
     /// <summary>自检：the view shape in force, by name, and whether the letter bar is showing.</summary>
     internal string ViewName => ViewModel.View.ToString();
@@ -1382,9 +1410,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         {
             ViewModel.SearchText = text;
             if (!SearchSourceAvailable) return;
-            if (SearchSource == 1) await MoviePilotPanel.PrepareSearchAsync().ConfigureAwait(true);
-            else if (SearchSource == 3) await AniBtPanel.SearchAsync("").ConfigureAwait(true);
-            else await MoviePilotResources.SearchAsync("").ConfigureAwait(true);
+            if (SearchSource == 1) await EnsureMoviePilotPanel().PrepareSearchAsync().ConfigureAwait(true);
+            else if (SearchSource == 3) await EnsureAniBtPanel().SearchAsync("").ConfigureAwait(true);
+            else await EnsureMoviePilotResources().SearchAsync("").ConfigureAwait(true);
             return;
         }
         ViewModel.PrepareSearch(text);
@@ -1415,9 +1443,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         }
         await (SearchSource switch
         {
-            1 => MoviePilotPanel.SearchAsync(text),
-            2 => MoviePilotResources.SearchAsync(text),
-            3 => AniBtPanel.SearchAsync(text),
+            1 => EnsureMoviePilotPanel().SearchAsync(text),
+            2 => EnsureMoviePilotResources().SearchAsync(text),
+            3 => EnsureAniBtPanel().SearchAsync(text),
             _ => ViewModel.SearchAsync(text, remember)
         }).ConfigureAwait(true);
     }
@@ -1490,6 +1518,90 @@ public sealed partial class LibraryPage : Page, IShellContent
         AniBtSourceTab.Visibility = Visibility.Visible;
     }
 
+    /// <summary>MoviePilot 订阅面板：首次切到这个来源时创建并接线。</summary>
+    private MoviePilotSearchPanel EnsureMoviePilotPanel()
+    {
+        if (_moviePilotPanel is { } existing) return existing;
+
+        var request = _request!;
+        var panel = new MoviePilotSearchPanel { Visibility = Visibility.Collapsed };
+        panel.Attach(request.Services.GetRequiredService<MoviePilotService>(),
+            request.Services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), _actions!.OpenMoviePilotMedia);
+        SearchSourceHost.Children.Add(panel);
+        _moviePilotPanel = panel;
+
+        if (_pendingMoviePilotSearch is { } snapshot)
+        {
+            _pendingMoviePilotSearch = null;
+            if (panel.ViewModel.Restore(snapshot)) _ = panel.ViewModel.RefreshSubscriptionStatesAsync();
+        }
+
+        return panel;
+    }
+
+    /// <summary>MoviePilot 资源面板：首次切到「MP 资源」时创建，并把站点选择器接到它的来源表。</summary>
+    private MoviePilotVersionsView EnsureMoviePilotResources()
+    {
+        if (_moviePilotResources is { } existing) return existing;
+
+        var request = _request!;
+        var panel = new MoviePilotVersionsView { Visibility = Visibility.Collapsed };
+        panel.Attach(request.Services.GetRequiredService<MoviePilotService>(),
+            request.Services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), sharedInput: true);
+        SearchSitePicker.Attach(panel.ViewModel.SearchSites);
+        SearchSourceHost.Children.Add(panel);
+        return _moviePilotResources = panel;
+    }
+
+    /// <summary>AniBT 面板：首次切到 AniBT 来源时创建。</summary>
+    private AniBtSearchPanel EnsureAniBtPanel()
+    {
+        if (_aniBtPanel is { } existing) return existing;
+
+        var request = _request!;
+        var panel = new AniBtSearchPanel { Visibility = Visibility.Collapsed };
+        panel.Attach(request.Services.GetRequiredService<Momoka.AniBt.AniBtService>(), _moviePilot!,
+            request.Services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>());
+        SearchSourceHost.Children.Add(panel);
+        return _aniBtPanel = panel;
+    }
+
+    /// <summary>筛选面板：第一次打开筛选时才创建并放进浮层。</summary>
+    private FilterPanel EnsureFilterPanel()
+    {
+        if (_filterPane is { } existing) return existing;
+
+        var panel = new FilterPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        panel.Changed += OnFilterChanged;
+        panel.CloseRequested += OnFilterCloseRequested;
+        FilterOverlay.Children.Add(panel);
+        _filterPane = panel;
+        ApplyPanelSize();
+        return panel;
+    }
+
+    /// <summary>设置面板：第一次点齿轮时才创建并放进浮层。</summary>
+    private LibrarySettingsPanel EnsureSettingsPanel()
+    {
+        if (_settingsPane is { } existing) return existing;
+
+        var panel = new LibrarySettingsPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        panel.Changed += OnDisplayChanged;
+        panel.CloseRequested += CloseSettings;
+        SettingsOverlay.Children.Add(panel);
+        _settingsPane = panel;
+        ApplyPanelSize();
+        return panel;
+    }
+
     /// <summary>
     /// 换来源只换面板，不替用户搜一次。旧行为是拿框里现有的词直接发一趟搜索，用户 2026-10-15 报的就是
     /// 它（「切换时不要自动触发搜索」）—— 词换不换、搜不搜都归用户按回车决定。所以这里只剩三件事：切
@@ -1503,12 +1615,28 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchSitePicker.ClosePopup();
         var source = SearchSource;
         var available = SearchSourceAvailable;
-        MoviePilotPanel.CancelSearch();
-        MoviePilotResources.Release();
-        AniBtPanel.Release();
-        MoviePilotPanel.Visibility = source == 1 && available ? Visibility.Visible : Visibility.Collapsed;
-        MoviePilotResources.Visibility = source == 2 && available ? Visibility.Visible : Visibility.Collapsed;
-        AniBtPanel.Visibility = source == 3 && available ? Visibility.Visible : Visibility.Collapsed;
+        _moviePilotPanel?.CancelSearch();
+        _moviePilotResources?.Release();
+        _aniBtPanel?.Release();
+
+        FrameworkElement? active = null;
+        if (available)
+        {
+            active = source switch
+            {
+                1 => EnsureMoviePilotPanel(),
+                2 => EnsureMoviePilotResources(),
+                3 => EnsureAniBtPanel(),
+                _ => null
+            };
+        }
+
+        if (_moviePilotPanel is { } moviePilot)
+            moviePilot.Visibility = ReferenceEquals(moviePilot, active) ? Visibility.Visible : Visibility.Collapsed;
+        if (_moviePilotResources is { } resources)
+            resources.Visibility = ReferenceEquals(resources, active) ? Visibility.Visible : Visibility.Collapsed;
+        if (_aniBtPanel is { } aniBt)
+            aniBt.Visibility = ReferenceEquals(aniBt, active) ? Visibility.Visible : Visibility.Collapsed;
         EmbyContent.Visibility = source == 0 ? Visibility.Visible : Visibility.Collapsed;
         SearchUnavailableSurface.Visibility = available ? Visibility.Collapsed : Visibility.Visible;
         SearchUnavailableTitle.Text = source == 3 && _settings?.Settings.MoviePilot.AniBtEnabled == false
@@ -1528,7 +1656,15 @@ public sealed partial class LibraryPage : Page, IShellContent
         ViewModel.Cancel();
         ViewModel.NoticeOpen = false;
         if (_released) return;
-        if (source == 0) ViewModel.Resume(reload: false);
+        if (source == 0)
+        {
+            ViewModel.Resume(reload: false);
+            ViewModel.SetEmbySourceActive(true);
+        }
+        else
+        {
+            ViewModel.SetEmbySourceActive(false);
+        }
     }
 
     private void OnSearchCategoryChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
@@ -1550,8 +1686,8 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnSettingsClicked(object sender, RoutedEventArgs e)
     {
-        SettingsPane.Show(ViewModel.Display, ViewModel.Section, ViewModel.SourceServerKind, ViewModel.IndexKind,
-            ViewModel.CollectionType);
+        EnsureSettingsPanel().Show(ViewModel.Display, ViewModel.Section, ViewModel.SourceServerKind,
+            ViewModel.IndexKind, ViewModel.CollectionType);
         SettingsOverlay.Visibility = Visibility.Visible;
         ApplyPanelSize();
     }

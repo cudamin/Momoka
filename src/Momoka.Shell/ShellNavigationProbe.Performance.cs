@@ -39,16 +39,35 @@ internal sealed partial class ShellNavigationProbe
         var visits = new List<object>();
         try
         {
+            // 普通库页：一次 Attach 只做一次视图/分区更新，五个懒面板一个都不建。
+            Require(frame.Navigate(typeof(LibraryPage),
+                LibraryRequest.ForRow(fixture.Services, HomeLayout.HomeRowTarget.Resume)), "真实 Frame 媒体库导航失败");
+            var normal = (LibraryPage)frame.Content!;
+            await LayoutAsync(normal);
+            Require(normal.ViewApplies == 1 && normal.SectionBuilds == 1,
+                $"一次 Attach 应只执行一次视图和分区更新：视图 {normal.ViewApplies}、分区 {normal.SectionBuilds}");
+            Require(!normal.MoviePilotPanelCreated && !normal.MoviePilotResourcesCreated && !normal.AniBtPanelCreated,
+                "普通媒体库创建了未使用的搜索面板");
+            Require(!normal.FilterPanelCreated && !normal.SettingsPanelCreated,
+                "普通媒体库创建了未使用的筛选或设置面板");
+            normal.Release();
+            frame.Content = null;
+            frame.BackStack.Clear();
+
             for (var index = 0; index < 12; index++)
             {
                 Require(frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services)), "真实 Frame 搜索导航失败");
-                var page = (LibraryPage)frame.Content;
+                var page = (LibraryPage)frame.Content!;
                 await LayoutAsync(page);
-                var panel = Get<MoviePilotSearchPanel>(page, "MoviePilotPanel");
-                Require(Get<bool>(panel, "_active"), "首次附加后搜索面板不在有效访问");
+                Require(page.MoviePilotPanel is null, "媒体库来源尚未使用时不应创建 MoviePilot 面板");
                 var tabs = Get<Segmented>(page, "SourceTabs");
                 tabs.SelectedIndex = 1;
                 await LayoutAsync(page);
+                Require(page.MoviePilotPanelCreated && !page.MoviePilotResourcesCreated && !page.AniBtPanelCreated,
+                    "切到 MoviePilot 只应创建订阅面板");
+                var panel = page.MoviePilotPanel
+                    ?? throw new InvalidOperationException("切到 MoviePilot 后没有创建搜索面板");
+                Require(Get<bool>(panel, "_active"), "首次切到 MoviePilot 后搜索面板不在有效访问");
                 tabs.SelectedIndex = 0;
                 tabs.SelectedIndex = 1;
                 Require(Get<bool>(panel, "_active"), "同页来源往返把搜索面板永久 Release");
@@ -65,10 +84,12 @@ internal sealed partial class ShellNavigationProbe
                 fixture.Settings.MoviePilot.Enabled = true;
                 Require(await service.RefreshAvailabilityAsync(), "匿名服务恢复失败");
                 Require(frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services)), "下一真实页面导航失败");
-                var next = (LibraryPage)frame.Content;
+                var next = (LibraryPage)frame.Content!;
                 await LayoutAsync(next);
-                var current = Get<MoviePilotSearchPanel>(next, "MoviePilotPanel");
                 Get<Segmented>(next, "SourceTabs").SelectedIndex = 1;
+                await LayoutAsync(next);
+                var current = next.MoviePilotPanel
+                    ?? throw new InvalidOperationException("下一真实页面切到 MoviePilot 后没有创建搜索面板");
                 await current.SearchAsync("新访问查询");
                 var latest = current.ViewModel.Results.ToArray();
                 foreach (var callback in callbacks) callback();
@@ -87,12 +108,14 @@ internal sealed partial class ShellNavigationProbe
                 next.Release();
                 Require(frame.CanGoBack, "真实 Frame 没有形成返回记录");
                 frame.GoBack();
-                var returned = (LibraryPage)frame.Content;
+                var returned = (LibraryPage)frame.Content!;
                 await LayoutAsync(returned);
-                Require(Get<bool>(Get<MoviePilotSearchPanel>(returned, "MoviePilotPanel"), "_active"), "真实返回后没有重新接线");
+                var returnedPanel = returned.MoviePilotPanel
+                    ?? throw new InvalidOperationException("真实返回后没有创建 MoviePilot 搜索面板");
+                Require(Get<bool>(returnedPanel, "_active"), "真实返回后没有重新接线");
                 returned.Release();
                 PerformanceProbeRules.ReleasedSearch(AvailabilitySubscriptions(service) - baseline,
-                    Get<MoviePilotSearchPanel>(returned, "MoviePilotPanel").ViewModel.Results.Count);
+                    returnedPanel.ViewModel.Results.Count);
                 visits.Add(new
                 {
                     visit = index + 1,

@@ -19,11 +19,18 @@ namespace Momoka.Shell.Views
         private int _navigation;
         private readonly LibraryLifetimeRequest _request = new();
         internal LibraryLifetimeViewModel ViewModel { get; } = new();
-        internal MoviePilotSearchPanel MoviePilotPanel { get; } = new();
-        internal PanelBoundary MoviePilotResources { get; } = new();
-        internal PanelBoundary AniBtPanel { get; } = new();
+        private MoviePilotSearchPanel? _moviePilotPanel;
+        private PanelBoundary? _moviePilotResources;
+        private PanelBoundary? _aniBtPanel;
+        private PickerBoundary? _filterPane;
+        internal MoviePilotSearchPanel MoviePilotPanel => _moviePilotPanel ??= new();
+        internal PanelBoundary MoviePilotResources => _moviePilotResources ??= new();
+        internal PanelBoundary AniBtPanel => _aniBtPanel ??= new();
         internal PickerBoundary SearchSitePicker { get; } = new();
-        internal PickerBoundary FilterPane { get; } = new();
+        internal PickerBoundary FilterPane => _filterPane ??= new();
+        private MoviePilotSearchPanel EnsureMoviePilotPanel() => MoviePilotPanel;
+        private PanelBoundary EnsureMoviePilotResources() => MoviePilotResources;
+        private PanelBoundary EnsureAniBtPanel() => AniBtPanel;
         internal Microsoft.UI.Xaml.Controls.ComboBox SourceTabs { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement AniBtSourceTab { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement EmbyContent { get; } = new();
@@ -76,8 +83,10 @@ namespace Momoka.Shell.Views
         internal int Cancels { get; private set; }
         internal int PosterReleases { get; private set; }
         internal int Resumes { get; private set; }
+        internal int EmbySourceChanges { get; private set; }
         public void Cancel() { Cancels++; }
         public void ReleaseSearchPosters() { PosterReleases++; }
+        public void SetEmbySourceActive(bool active) { EmbySourceChanges++; }
         public void Resume(bool reload)
         {
             if (reload) throw new InvalidOperationException("同页切来源不能自动读取");

@@ -160,9 +160,9 @@ internal static class MoviePilotLifetimeTests
             using var reader = new StreamReader(stream); var source = await reader.ReadToEndAsync();
             var release = Between(source, "    public void Release()", "    protected override void OnNavigatedFrom(");
             var switchSource = Between(source, "    private void ApplySource()", "    private void OnSearchCategoryChanged(");
-            Check.Contains("MoviePilotPanel.Release();", release);
-            Check.Contains("MoviePilotPanel.CancelSearch();", switchSource);
-            Check.False(switchSource.Contains("MoviePilotPanel.Release();", StringComparison.Ordinal));
+            Check.Contains("_moviePilotPanel?.Release();", release);
+            Check.Contains("_moviePilotPanel?.CancelSearch();", switchSource);
+            Check.False(switchSource.Contains("_moviePilotPanel?.Release();", StringComparison.Ordinal));
         });
         Test("实际搜索来源：导航不受标签显隐影响，恢复不自动搜索", async () =>
         {

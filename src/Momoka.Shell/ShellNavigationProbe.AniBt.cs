@@ -308,14 +308,15 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             await SettleAsync();
             tabs.SelectedIndex = 3;
-            var panel = Get<AniBtSearchPanel>(page, "AniBtPanel");
+            var panel = page.AniBtPanel;
+            if (panel is null) throw new InvalidOperationException("AniBT 来源没有创建面板");
             Field(panel.ViewModel, "_launcher", launcher);
             panel.ViewModel.OpenAnimeSiteCommand.Execute("anibt");
             Require(launcher.Urls.Count == 0, "未选番剧时不应打开 AniBT");
             await UntilAsync(() => panel.Visibility == Visibility.Visible);
             Require(Get<Grid>(page, "EmbyContent").Visibility == Visibility.Collapsed
-                && Get<MoviePilotSearchPanel>(page, "MoviePilotPanel").Visibility == Visibility.Collapsed
-                && Get<MoviePilotVersionsView>(page, "MoviePilotResources").Visibility == Visibility.Collapsed,
+                && (page.MoviePilotPanel is null || page.MoviePilotPanel.Visibility == Visibility.Collapsed)
+                && (page.MoviePilotResources is null || page.MoviePilotResources.Visibility == Visibility.Collapsed),
                 "AniBT 面板与其他搜索内容重叠");
             var embyRequests = fixture.Transport.Requests.Count;
             await page.SearchTypingAsync("离线动画");

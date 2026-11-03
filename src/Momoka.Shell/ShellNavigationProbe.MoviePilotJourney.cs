@@ -105,7 +105,7 @@ internal sealed partial class ShellNavigationProbe
             if (_disposed) return;
             var page = _shell.Pages.Content as FrameworkElement;
             var search = page as LibraryPage;
-            var panel = search is null ? null : Get<MoviePilotSearchPanel>(search, "MoviePilotPanel");
+            var panel = search?.MoviePilotPanel;
             var dialogs = _shell.XamlRoot is null ? [] : VisualTreeHelper.GetOpenPopupsForXamlRoot(_shell.XamlRoot)
                 .SelectMany(popup => Descendants(popup.Child)).OfType<ContentDialog>()
                 .Select(dialog => dialog.Title?.ToString() ?? dialog.GetType().Name).Distinct().ToArray();
@@ -122,9 +122,9 @@ internal sealed partial class ShellNavigationProbe
                 {
                     keyword = Get<AutoSuggestBox>(search, "SearchInput").Text,
                     source = Get<CommunityToolkit.WinUI.Controls.Segmented>(search, "SourceTabs").SelectedIndex,
-                    titles = panel!.ViewModel.Results.Select(result => result.Title).ToArray(),
-                    resultCount = panel.ViewModel.Results.Count,
-                    busy = panel.ViewModel.Busy
+                    titles = panel?.ViewModel.Results.Select(result => result.Title).ToArray() ?? [],
+                    resultCount = panel?.ViewModel.Results.Count ?? 0,
+                    busy = panel?.ViewModel.Busy ?? false
                 },
                 dialogs,
                 requests = receipt.GetProperty("requests"),
