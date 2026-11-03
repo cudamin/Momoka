@@ -43,8 +43,10 @@ namespace Momoka.Shell.Views
         internal double LibraryOverlayRightInset { get; set; } = 36;
         internal bool OverlayOn { get; private set; }
         internal double OverlayHeight { get; private set; }
+        internal int SetLibraryOverlayCalls { get; private set; }
         internal void SetLibraryOverlay(bool on, double height)
         {
+            SetLibraryOverlayCalls++;
             OverlayOn = on;
             OverlayHeight = height;
             InfoBlock.TestTop = on ? 20 : 100;
@@ -122,6 +124,7 @@ namespace Momoka.Shell.Views
         internal void Apply() => ApplyLibraryChrome();
         internal void UpdateFold() => UpdateLibraryOverlay();
         internal void QueueFold() => ScheduleFold();
+        internal void QueueOverlay() => ScheduleOverlay();
         internal void EndPlayerLayer() => OnPlayerLayerEnded();
         internal void SetPlayerLayer(bool on) => _window!.PlayerLayer = on;
         internal void ExpireSettle() => _foldPlacedAt = Environment.TickCount64 - 10000;

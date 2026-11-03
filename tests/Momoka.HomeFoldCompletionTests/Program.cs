@@ -541,6 +541,60 @@ internal static class Program
             scene.Page.QueueFold();
             Equal(1, scene.Page.DispatcherQueue.PendingCount, "later visit can schedule next fold");
         });
+        Case("page/schedule-overlay-coalesces-size-and-slide-wakeups", () =>
+        {
+            var scene = new Scene();
+            scene.Page.QueueOverlay();
+            scene.Page.QueueOverlay();
+            scene.Page.EndPlayerLayer();
+            Equal(1, scene.Page.DispatcherQueue!.PendingCount, "size/slide/fold wakeups coalesce");
+            scene.Drain();
+            Equal(0, scene.Page.DispatcherQueue.PendingCount, "drained overlay does not leave a wakeup");
+        });
+        Case("page/unchanged-chrome-skips-writes-and-forced-layout", () =>
+        {
+            var scene = new Scene();
+            var layouts = scene.Page.ForcedLayouts;
+            var overlayWrites = scene.Page.Banner.SetLibraryOverlayCalls;
+            scene.Page.Apply();
+            Equal(layouts, scene.Page.ForcedLayouts, "unchanged chrome must not force layout");
+            Equal(overlayWrites, scene.Page.Banner.SetLibraryOverlayCalls, "unchanged chrome must not rewrite banner overlay");
+            Equal(1, scene.Page.SkippedChromeWrites, "unchanged chrome records a skip");
+        });
+        Case("page/fold-still-writes-host-and-banner-once", () =>
+        {
+            var scene = new Scene();
+            var layouts = scene.Page.ForcedLayouts;
+            var overlayWrites = scene.Page.Banner.SetLibraryOverlayCalls;
+            scene.Page.ViewModel.LibraryOnBanner = true;
+            scene.Page.Apply();
+            Equal(Visibility.Visible, scene.Page.LibraryOverlay.Visibility, "overlay carrier is visible");
+            Check(ReferenceEquals(scene.Library, scene.Page.LibraryHost.Content), "host carries the library");
+            Equal(overlayWrites + 1, scene.Page.Banner.SetLibraryOverlayCalls, "banner overlay written once");
+            Check(scene.Page.ForcedLayouts > layouts, "content change forces layout");
+        });
+        Case("page/overlay-reentry-schedules-one-follow-up", () =>
+        {
+            var scene = new Scene();
+            var reentries = 0;
+            scene.Page.TestLayout = () =>
+            {
+                if (reentries++ == 0) scene.Page.QueueOverlay();
+            };
+            try
+            {
+                scene.Page.UpdateFold();
+                Equal(1, scene.Page.OverlayPasses, "direct pass counted once");
+                Equal(1, scene.Page.DispatcherQueue!.PendingCount, "reentry queues exactly one follow-up");
+                scene.Drain();
+                Equal(2, scene.Page.OverlayPasses, "follow-up pass counted");
+                Equal(0, scene.Page.DispatcherQueue.PendingCount, "stable follow-up does not feed itself");
+            }
+            finally
+            {
+                scene.Page.TestLayout = null;
+            }
+        });
         Case("page/settle-protection-retries-without-changing-animation-speed", () =>
         {
             var scene = new Scene();

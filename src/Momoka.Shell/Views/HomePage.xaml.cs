@@ -77,8 +77,30 @@ public sealed partial class HomePage : Page, IShellContent
     /// </summary>
     private readonly TypedEventHandler<UIElement, BringIntoViewRequestedEventArgs> _stayProbe;
 
-    /// <summary>矮窗档的重查已经排了一拍还没跑。防止 <see cref="ViewModel"/> 那一头一连串增删把重查排成一把。</summary>
+    /// <summary>
+    /// 矮窗档的重查已经排了一拍还没跑。防止 <see cref="ViewModel"/> 那一头一连串增删、以及页面尺寸和幻灯片
+    /// 的连续变化，把重查排成一把。
+    /// </summary>
     private bool _foldScheduled;
+
+    /// <summary>
+    /// 这一趟矮窗档重查正在量／摆。期间的再次触发由 <see cref="_overlayAgain"/> 记账，本趟结束再补排一次，
+    /// 不在同一拍里递归 —— 强制布局会让尺寸事件在量测过程中响回来。
+    /// </summary>
+    private bool _overlayRunning;
+
+    /// <summary>这一趟运行期间又被触发过；结束后补排一趟，把那一刻的变化量掉。</summary>
+    private bool _overlayAgain;
+
+    /// <summary>上一次真的写到轮播那一侧的让位开关与高度；没变就不再写、不再为它排布局。</summary>
+    private bool _bannerOverlayOn;
+    private double _bannerOverlayHeight;
+
+    /// <summary>矮窗档重排的读数，给性能探针和专项夹具看，不参与任何判定。</summary>
+    internal int OverlayPasses { get; private set; }
+    internal int ForcedLayouts { get; private set; }
+    internal int SkippedChromeWrites { get; private set; }
+    internal double OverlayPassMilliseconds { get; private set; }
 
     /// <summary>
     /// 上一次真的翻了档的时刻（毫秒，单调钟）。两次翻档之间要隔够一趟行程才许再翻一次 —— 见 <see cref="Fold"/>。
@@ -167,9 +189,11 @@ public sealed partial class HomePage : Page, IShellContent
         // 矮窗档（媒体库压上轮播左下角）跟着窗口的高矮走：窗口、带子、货架尺寸变了都要重新量一遍。
         // 进度条和提示条一收一放也挪动货架的顶，一并重查。货架上下一拍才排得完（重载是清空再装回），
         // 所以集合一变先排一拍再查，不在事件里当场动。
-        SizeChanged += (_, _) => UpdateLibraryOverlay();
-        Banner.SizeChanged += (_, _) => UpdateLibraryOverlay();
-        Banner.SlideChanged += (_, _) => UpdateLibraryOverlay();
+        // 尺寸和幻灯片变化合并到一拍里再判：拉窗口时每一下 SizeChanged 都直接量一次，等于一帧里反复
+        // 强制布局；幻灯片换人、带子高度跟着变，也会连着响两三次。合并后这些只留最后一趟。
+        SizeChanged += (_, _) => ScheduleOverlay();
+        Banner.SizeChanged += (_, _) => ScheduleOverlay();
+        Banner.SlideChanged += (_, _) => ScheduleOverlay();
         // 但**翻档自己搬那一排也会响这条事件**（HomeViewModel.ApplyLibraryOverlay）：那不是「货架集合变了」，
         // 据它再排一次重查就是自己喂自己 —— 翻档 → 重查 → 再翻档，滚起来就是 2026-09-18 两场、09-21 一场
         // 「矮窗档来回翻」把界面线程吃干的样子。搬动那一下挂的记号见 HomeViewModel.ShelvesChangeIsOverlay。
@@ -506,7 +530,7 @@ public sealed partial class HomePage : Page, IShellContent
         if (!ViewModel.LibraryOnBanner && library is null && _homeLibraryFlowIndex >= 0)
         {
             ShelfRepeater.GetOrCreateElement(_homeLibraryFlowIndex);
-            UpdateLayout();
+            ForceLayout();
             library = RowAt(_homeLibraryFlowIndex);
         }
         if (!ViewModel.LibraryOnBanner && library is { ActualHeight: > 0 }) _libraryFlowHeight = library.ActualHeight;
@@ -561,6 +585,34 @@ public sealed partial class HomePage : Page, IShellContent
     /// </summary>
     private void UpdateLibraryOverlay()
     {
+        if (_overlayRunning)
+        {
+            // 强制布局会把尺寸事件在量测过程中响回来。这里只记欠账，本趟结束再补排一趟，不递归。
+            _overlayAgain = true;
+            return;
+        }
+
+        _overlayRunning = true;
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
+            UpdateLibraryOverlayCore();
+        }
+        finally
+        {
+            _overlayRunning = false;
+            OverlayPasses++;
+            OverlayPassMilliseconds += System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+            if (_overlayAgain)
+            {
+                _overlayAgain = false;
+                ScheduleOverlay();
+            }
+        }
+    }
+
+    private void UpdateLibraryOverlayCore()
+    {
         if (XamlRoot is null) return;
 
         // 播放层占着窗口这一整段里不判（2026-09-25 用户报「全屏从播放页面退出的时候，媒体库别乱上下移动」）。
@@ -575,7 +627,7 @@ public sealed partial class HomePage : Page, IShellContent
         PlaceLibraryOverlay();
 
         // 判定吃的是排完的树：带高、货架顶都要此刻的坐标（同 FoldRead 的两拍）。
-        UpdateLayout();
+        ForceLayout();
 
         var viewport = Scroller.ActualHeight;
 
@@ -645,7 +697,7 @@ public sealed partial class HomePage : Page, IShellContent
             if (ShelfRepeater.TryGetElement(index) is not FrameworkElement filler)
             {
                 filler = (FrameworkElement)ShelfRepeater.GetOrCreateElement(index);
-                UpdateLayout();
+                ForceLayout();
             }
 
             // 那条线按默认摆法还原：补位那排此刻站在媒体库那一格上，它的顶就是**媒体库**的顶；添回媒体库整排的
@@ -683,7 +735,7 @@ public sealed partial class HomePage : Page, IShellContent
             if (ShelfRepeater.TryGetElement(below) is not FrameworkElement next)
             {
                 next = (FrameworkElement)ShelfRepeater.GetOrCreateElement(below);
-                UpdateLayout();
+                ForceLayout();
             }
 
             var head = HeadOf(next);
@@ -698,12 +750,25 @@ public sealed partial class HomePage : Page, IShellContent
         }
     }
 
-    /// <summary>
-    /// 货架集合变了（重载、矮窗档搬进搬出）之后排一拍重查：事件当场树上还是半成品，量不出数。
-    /// <see cref="_foldScheduled"/> 把排队的并成一拍。
-    /// </summary>
-    private void ScheduleFold()
+    /// <summary>统计用：页面真正跑了一趟强制布局。</summary>
+    private void ForceLayout()
     {
+        ForcedLayouts++;
+        UpdateLayout();
+    }
+
+    /// <summary>
+    /// 货架集合、页面尺寸、轮播尺寸和幻灯片变化之后排一拍重查：事件当场树上还是半成品，量不出数；
+    /// 连续的变化也只留最后一趟。<see cref="_foldScheduled"/> 把排队的并成一拍。
+    /// </summary>
+    private void ScheduleOverlay()
+    {
+        if (_overlayRunning)
+        {
+            _overlayAgain = true;
+            return;
+        }
+
         if (_foldScheduled || DispatcherQueue is not { } queue) return;
 
         _foldScheduled = true;
@@ -714,19 +779,24 @@ public sealed partial class HomePage : Page, IShellContent
         });
     }
 
+    /// <summary>货架集合变化沿用的旧名字；排队与合并的规则在 <see cref="ScheduleOverlay"/>。</summary>
+    private void ScheduleFold() => ScheduleOverlay();
+
     /// <summary>
     /// 播放层把窗口交回来那一拍：排一拍补判矮窗档。**排一拍而不是当拍判** —— 事件是在播放页的收摊里同步
     /// 发的，那时浏览页刚被放回、这一页的树还没排完；量半成品几何正是「矮窗档这一趟规划不成」那条日志。
     /// </summary>
     private void OnPlayerLayerEnded() => ScheduleFold();
 
-    /// <summary>媒体库横向视口停在轮播读数左侧；读数收起时恢复原来的右边距。</summary>
-    private void PlaceLibraryOverlay()
+    /// <summary>媒体库横向视口停在轮播读数左侧；读数收起时恢复原来的右边距。返回是否真的改了。</summary>
+    private bool PlaceLibraryOverlay()
     {
         var margin = LibraryOverlay.Margin;
         var right = Banner.LibraryOverlayRightInset;
-        if (Math.Abs(margin.Right - right) > 0.5)
-            LibraryOverlay.Margin = new Thickness(margin.Left, margin.Top, right, margin.Bottom);
+        if (Math.Abs(margin.Right - right) <= 0.5) return false;
+
+        LibraryOverlay.Margin = new Thickness(margin.Left, margin.Top, right, margin.Bottom);
+        return true;
     }
 
     /// <summary>
@@ -739,7 +809,7 @@ public sealed partial class HomePage : Page, IShellContent
     /// </summary>
     private void ApplyLibraryChrome()
     {
-        PlaceLibraryOverlay();
+        var marginChanged = PlaceLibraryOverlay();
 
         var on = ViewModel.LibraryOnBanner && ViewModel.LibraryShelf is not null;
         var shelf = ViewModel.LibraryShelf;
@@ -769,27 +839,41 @@ public sealed partial class HomePage : Page, IShellContent
 
         // 翻档那一趟宿主是动画的载体：回默认时它还得站在原地托着那一排卡滑下去（走完由 <see cref="HandBack"/>
         // 收掉），所以这一拍不能先把内容清掉 —— 清了就是「载体先没了，然后什么都没有发生」。
-        LibraryOverlay.Visibility = on || flight ? Visibility.Visible : Visibility.Collapsed;
-        LibraryHost.Content = on || flight ? shelf : null;
-        if (shelf is not null) shelf.OnScrim = on;
-        UpdateLayout();
+        var showOverlay = on || flight;
+        var visibility = showOverlay ? Visibility.Visible : Visibility.Collapsed;
+        var content = showOverlay ? shelf : null;
+        var visibilityChanged = LibraryOverlay.Visibility != visibility;
+        var contentChanged = !ReferenceEquals(LibraryHost.Content, content);
+        var scrimChanged = shelf is not null && shelf.OnScrim != on;
+
+        // 没变的控件不再写、不再为它跑强制布局：返回主页、拉窗口时一趟接一趟地走到这里，写的是同一批值。
+        if (visibilityChanged) LibraryOverlay.Visibility = visibility;
+        if (contentChanged) LibraryHost.Content = content;
+        if (scrimChanged) shelf!.OnScrim = on;
+        if (visibilityChanged || contentChanged || scrimChanged || marginChanged) ForceLayout();
 
         // 刚插回横排的那一排会自己走一遍进场（HomeMotion 挂在 ElementPrepared 上）——那 20 像素的上浮是渲染
         // 位移，会把这一拍的几何量读歪、还喂给滚动视口的锚定；回默认这一趟它的模样归矮窗档的动画管，当场按掉。
         if (!on && RowAt(_homeLibraryFlowIndex) is { } returned) HomeMotion.Stop(returned);
 
         // 排高一拍再量：宿主刚装上内容，没排过之前 ActualHeight 是 0 —— 轮播那头（字块让位）要的是排卡的总高。
-        // 量不到的那一帧退回排卡自己的高，下一拍自会校正。
-        if (on && shelf is not null)
+        // 量不到的那一帧退回排卡自己的高，下一拍自会校正。让位开关和高度都没变时，轮播那边也不用再摆一次。
+        var overlayOn = on && shelf is not null;
+        var overlayHeight = overlayOn
+            ? LibraryOverlay.ActualHeight > 0 ? LibraryOverlay.ActualHeight : shelf!.RowHeight
+            : 0;
+        var bannerChanged = _bannerOverlayOn != overlayOn
+            || Math.Abs(_bannerOverlayHeight - overlayHeight) >= 0.5;
+        if (bannerChanged)
         {
-            Banner.SetLibraryOverlay(true, LibraryOverlay.ActualHeight > 0 ? LibraryOverlay.ActualHeight : shelf.RowHeight);
-        }
-        else
-        {
-            Banner.SetLibraryOverlay(false, 0);
+            Banner.SetLibraryOverlay(overlayOn, overlayHeight);
+            _bannerOverlayOn = overlayOn;
+            _bannerOverlayHeight = overlayHeight;
+            ForceLayout();
         }
 
-        UpdateLayout();
+        if (!visibilityChanged && !contentChanged && !scrimChanged && !marginChanged && !bannerChanged)
+            SkippedChromeWrites++;
 
         if (_fold is not { } motion) return;
 
