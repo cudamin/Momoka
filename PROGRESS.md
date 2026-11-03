@@ -10043,6 +10043,8 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 最终清理回执：归档heart-toolbar／aggregate-version-size被应用“protected by a pinned task or workspace”拒绝，根树被“primary checkout cannot be removed”拒绝。未绕过保护删除检出；根树已detach，临时分支已删除，本地分支仅master，三树干净且所有产品内容进入主树。
 # 2026-11-03 详情页拖边框布局循环修复
 
+- 清理：临时分支已删，本地仅master；Codex工具将附加树标记为聊天主工作区，`archive_worktree`以“The task's primary checkout cannot be removed”拒绝移除，未绕过。该树干净、已detach在f618b5e，无主树缺少的产品内容，目录暂留；实际交付仍是主树。
+
 - 后续用户明确「底部外边框上下跳」是看到助手跑探针，并非自行拖窗。原新增探针高度 `760 + step % 5 * 19` 每五步回跳，确为测试脚本引起；改为往程760→888、返程888→760线性变化。临时HostWindow/Inspect诊断已全部撤销。实测匿名剧页普通浏览右边拖动时outer底边恒定、边框差16×8；未复现产品外框抖动。平滑路径九组连续缩放均通过，`shell-probe-20261103-032434830-2796/logs/detail-resize.txt`。
 
 - 用户报剧详情页拖边框调整大小闪退，并追加电影与季页检查。实际日志 `app-20261103-000003.log` 09:26:10 与前日 `app-20261102-000039.log` 22:42:24 为 `LayoutCycleException`。
