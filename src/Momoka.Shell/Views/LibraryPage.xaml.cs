@@ -60,6 +60,20 @@ public sealed partial class LibraryPage : Page, IShellContent
     private CancellationTokenSource? _typing;
 
     /// <summary>
+    /// 导航参数正在接进视图模型的这一段：属性通知只记待办，接完统一执行一次视图、分区和头部布局。
+    /// 视图模型一次 Attach 会连着发十几条通知，逐条建分区等于把同一面墙拆装十几遍。
+    /// </summary>
+    private bool _attaching;
+
+    /// <summary>导航时程序化设来源标签，别让 SelectionChanged 和后面的显式 ApplySource 各跑一遍。</summary>
+    private bool _suppressSourceApply;
+
+    /// <summary>这一页真正执行视图/分区/头部布局的次数，给性能探针核对一次 Attach 只做一次。</summary>
+    internal int ViewApplies { get; private set; }
+    internal int SectionBuilds { get; private set; }
+    internal int HeaderApplies { get; private set; }
+
+    /// <summary>
     /// 这一次回车有没有送到 keydown。输入法组字时没有（见 <see cref="OnSearchKeyUp"/>），
     /// 只有普通回车才会让 <see cref="AutoSuggestBox.QuerySubmitted"/> 先提交一次。
     /// </summary>
@@ -148,6 +162,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     private void BuildBrowseSections()
     {
+        SectionBuilds++;
         UpdateTabColors(ThemeHost.Current);
         LibrarySections.Children.Clear();
         foreach (var entry in ViewModel.BrowseSections)
@@ -202,6 +217,8 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (e.PropertyName == nameof(LibraryViewModel.ToolbarVisibility))
             ToolbarSurface.Visibility = _request?.IsSearch == true ? Visibility.Collapsed : ViewModel.ToolbarVisibility;
+        // Attach 那一段的通知不逐条执行：挂完之后统一跑一次最终视图、分区和头部布局。
+        if (_attaching) return;
         if (e.PropertyName == nameof(LibraryViewModel.View)) ApplyView();
         if (e.PropertyName == nameof(LibraryViewModel.Fields)) ApplyTableWidth();
         if (e.PropertyName == nameof(LibraryViewModel.SectionVisibility))
@@ -475,6 +492,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         _request = request;
         _released = false;
         _navigation++;
+        _attaching = true;
 
         // The shell reads this back to restore its pane highlight after a Frame.GoBack.
         Tag = request.Tag;
@@ -512,11 +530,21 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         // 返回搜索页时恢复来源；新请求默认仍从媒体库开始。
         ApplyAniBtTab();
-        SourceTabs.SelectedIndex = request.IsSearch ? request.SearchSource : 0;
+        _suppressSourceApply = true;
+        try
+        {
+            SourceTabs.SelectedIndex = request.IsSearch ? request.SearchSource : 0;
+        }
+        finally
+        {
+            _suppressSourceApply = false;
+        }
         ApplySource();
         if (request.IsSearch && MoviePilotPanel.ViewModel.Restore(request.MoviePilotSearch))
             _ = MoviePilotPanel.ViewModel.RefreshSubscriptionStatesAsync();
 
+        // Attach 期间的通知只跳过不执行；依赖接完、来源也定下之后跑一次最终版面。
+        _attaching = false;
         ApplyView();
         BuildBrowseSections();
 
@@ -685,8 +713,11 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// <summary>库名独占一行，分类与工具栏在下面分别居中；搜索保留自己的版式。</summary>
     private void ApplyHeaderLayout()
     {
+        if (_attaching) return;
+
         var width = HeaderLayout.ActualWidth;
         if (width <= 0) return;
+        HeaderApplies++;
 
         var search = _request?.IsSearch == true;
         var sectionLibrary = ViewModel.IsSectionLibrary;
@@ -1408,6 +1439,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     private void OnSourceChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_suppressSourceApply) return;
         ApplySource();
     }
 
@@ -1593,6 +1625,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </remarks>
     private void ApplyView()
     {
+        ViewApplies++;
         // 索引页（类型、播出平台）走的就是下面这套，没有专属分支：从 2026-10-18 起这两页的卡片就是普通
         // 海报卡，差别只在卡片自己身上 —— 方卡/宽卡的高宽比、居中的单行名字、留边不裁的台标，都由
         // CardItem 按 IndexKind 带着走（见 LibraryIndexCards 与 LibraryViewModel.NewCard）。
