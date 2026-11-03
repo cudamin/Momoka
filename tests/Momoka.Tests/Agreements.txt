@@ -1,6 +1,9 @@
 # Momoka 约定基线 —— 见 CLAUDE.md「本项目自立规则之处」，比对逻辑在 tests/Momoka.Tests/AgreementsTests.cs。
 # 这是「今天有几处」的快照，不是目标值。方向各不一样：font-size/color 只减不增、bind 只许减、
 # handle 只许增、switch/analyzer 一字不差。要改它，先读那条规则，再逐行确认。
+# 2026-11-03：LibraryPage 的 MoviePilotPanel / MoviePilotResources / AniBtPanel / FilterPane / SettingsPane 改为首次
+# 使用时创建，原 x:Name 句柄由 LibraryPage.Ensure* 里的 AutomationProperties.SetAutomationId 保留同名；
+# 「约定：懒创建的面板保留原 UIA 句柄」盯着这五个名字，对应的 LibraryPage.xaml 旧 handle 行随之移除。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C
 analyzer  Microsoft.WindowsAppSDK.Analyzers.targets  80E801C7D787248009CF365268A8DBDD16A30399806B3FE85A7FE87BADBA3727
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Cards
@@ -272,7 +275,6 @@ handle  Views/LibraryPage.xaml  FavoritesGroups
 handle  Views/LibraryPage.xaml  FavoritesScroll
 handle  Views/LibraryPage.xaml  FilterButton
 handle  Views/LibraryPage.xaml  FilterOverlay
-handle  Views/LibraryPage.xaml  FilterPane
 handle  Views/LibraryPage.xaml  FilterScrim
 handle  Views/LibraryPage.xaml  FilterText
 handle  Views/LibraryPage.xaml  HeaderGrid
@@ -283,7 +285,6 @@ handle  Views/LibraryPage.xaml  LibraryClearFiltersButton
 handle  Views/LibraryPage.xaml  LibraryRetryButton
 handle  Views/LibraryPage.xaml  LibrarySettingsButton
 handle  Views/LibraryPage.xaml  LibraryTitle
-handle  Views/LibraryPage.xaml  MoviePilotPanel
 handle  Views/LibraryPage.xaml  PageRoot
 handle  Views/LibraryPage.xaml  PlayAllButton
 handle  Views/LibraryPage.xaml  PlayRandomButton
@@ -293,7 +294,6 @@ handle  Views/LibraryPage.xaml  SearchGroupsList
 handle  Views/LibraryPage.xaml  SearchGroupsScroll
 handle  Views/LibraryPage.xaml  SearchInput
 handle  Views/LibraryPage.xaml  SettingsOverlay
-handle  Views/LibraryPage.xaml  SettingsPane
 handle  Views/LibraryPage.xaml  SettingsScrim
 handle  Views/LibraryPage.xaml  SortButton
 handle  Views/LibraryPage.xaml  SortList
@@ -724,7 +724,6 @@ handle  Views/AniBtSearchPanel.xaml  OpenAnimeResources
 handle  Views/AniBtSearchPanel.xaml  ReloadAnimeResources
 handle  Views/AniBtSearchPanel.xaml  ResourceBrowser
 handle  Views/AniBtSearchPanel.xaml  ReturnToAnime
-handle  Views/LibraryPage.xaml  AniBtPanel
 handle  Views/AniBtSearchPanel.xaml  AnimeSearchInput
 handle  Views/AniBtSearchPanel.xaml  ShowAllAnimeEpisodes
 handle  Views/MissingEpisodesDialog.xaml  SearchMissingMoviePilot

@@ -1525,6 +1525,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         var request = _request!;
         var panel = new MoviePilotSearchPanel { Visibility = Visibility.Collapsed };
+        AutomationProperties.SetAutomationId(panel, "MoviePilotPanel");
         panel.Attach(request.Services.GetRequiredService<MoviePilotService>(),
             request.Services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), _actions!.OpenMoviePilotMedia);
         SearchSourceHost.Children.Add(panel);
@@ -1546,6 +1547,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         var request = _request!;
         var panel = new MoviePilotVersionsView { Visibility = Visibility.Collapsed };
+        AutomationProperties.SetAutomationId(panel, "MoviePilotResources");
         panel.Attach(request.Services.GetRequiredService<MoviePilotService>(),
             request.Services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), sharedInput: true);
         SearchSitePicker.Attach(panel.ViewModel.SearchSites);
@@ -1560,6 +1562,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         var request = _request!;
         var panel = new AniBtSearchPanel { Visibility = Visibility.Collapsed };
+        AutomationProperties.SetAutomationId(panel, "AniBtPanel");
         panel.Attach(request.Services.GetRequiredService<Momoka.AniBt.AniBtService>(), _moviePilot!,
             request.Services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>());
         SearchSourceHost.Children.Add(panel);
@@ -1576,6 +1579,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
         };
+        AutomationProperties.SetAutomationId(panel, "FilterPane");
         panel.Changed += OnFilterChanged;
         panel.CloseRequested += OnFilterCloseRequested;
         FilterOverlay.Children.Add(panel);
@@ -1594,6 +1598,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
         };
+        AutomationProperties.SetAutomationId(panel, "SettingsPane");
         panel.Changed += OnDisplayChanged;
         panel.CloseRequested += CloseSettings;
         SettingsOverlay.Children.Add(panel);

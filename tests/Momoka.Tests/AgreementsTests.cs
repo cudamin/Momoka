@@ -85,6 +85,19 @@ internal static class AgreementsTests
                 $"winapp ui 与 UIA 脚本从此找不到这个控件；确认是有意替换之后再更新基线。");
         });
 
+        Test("约定：懒创建的面板保留原 UIA 句柄", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(RepositoryRoot(),
+                "src", "Momoka.Shell", "Views", "LibraryPage.xaml.cs"));
+            string[] names = ["MoviePilotPanel", "MoviePilotResources", "AniBtPanel", "FilterPane", "SettingsPane"];
+            var missing = names
+                .Where(name => !source.Contains($"AutomationProperties.SetAutomationId(panel, \"{name}\")", StringComparison.Ordinal))
+                .ToArray();
+            Assert.True(missing.Length == 0,
+                $"懒创建面板少了原 UIA 句柄：{string.Join('、', missing)}。这些句柄没有 x:Name 编译器盯着，" +
+                "创建时必须用 AutomationProperties.SetAutomationId 保留同名。");
+        });
+
         Test("约定：命令行开关变化要复核并同步开发文档", () =>
         {
             var added = Added("switch");
