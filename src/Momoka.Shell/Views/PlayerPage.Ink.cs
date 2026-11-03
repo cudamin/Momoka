@@ -90,28 +90,34 @@ public sealed partial class PlayerPage
 
         if (Ink(button, glyph, host)) return;
 
-        // 图标的模板还没套：那一层还不存在。**Loaded 也不一定够** —— 实测（2026-11-03 的自检树）
-        // FontIcon 里面是 `Grid → TextBlock`，而 Loaded 那一拍这层还没建出来，于是那一次必然落空。
-        // 量到尺寸就是「里面的东西已经建好了」：这时再找一次，还找不到才退回按外框那一块软影。
-        void Once(object sender, RoutedEventArgs args)
+        // **先挂按外框那一块**，而且就在这一刻挂：这一页起步是收起的，收起页里的图标根本不发 Loaded
+        // （2026-11-03 自检实测：十六颗里只有一颗走到过），而这一块不需要字形、也不需要尺寸 ——
+        // 它按图标这一格算，大小由 TextInk 跟着 SizeChanged 补。
+        TextInk.AttachHalo(host, glyph, GlyphInkBlur);
+        _haloed.Add(button);
+
+        // 真的上屏之后（第一次量到尺寸，或迟到的 Loaded）再找一次：那时 FontIcon 里的 `Grid → TextBlock`
+        // 已经建好（同日自检树转储为证），换成跟着字形走的那一层；找不到就留着外框那块，不算失败。
+        glyph.Loaded += Upgrade;
+        glyph.SizeChanged += OnSize;
+
+        void OnSize(object sender, SizeChangedEventArgs change)
         {
-            glyph.Loaded -= Once;
-            if (Ink(button, glyph, host)) return;
-
-            glyph.SizeChanged += Measured;
-
-            void Measured(object sizeSender, SizeChangedEventArgs change)
-            {
-                if (change.NewSize.Width <= 0 || change.NewSize.Height <= 0) return;
-                glyph.SizeChanged -= Measured;
-                if (Ink(button, glyph, host)) return;
-
-                TextInk.AttachHalo(host, glyph, GlyphInkBlur);
-                _haloed.Add(button);
-            }
+            if (change.NewSize.Width <= 0 || change.NewSize.Height <= 0) return;
+            Upgrade(sender, change);
         }
 
-        glyph.Loaded += Once;
+        void Upgrade(object? sender, object args)
+        {
+            if (_inked.Contains(button)) return;
+            if (InkSource(glyph) is not { } source) return;
+
+            TextInk.AttachGlyph(host, source, GlyphInkBlur);
+            _haloed.Remove(button);
+            _inked.Add(button);
+            glyph.Loaded -= Upgrade;
+            glyph.SizeChanged -= OnSize;
+        }
     }
 
     /// <summary>
