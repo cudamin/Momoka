@@ -39,12 +39,19 @@ internal sealed partial class ShellNavigationProbe
             var seasons = Get<MoviePilotResourceFacetPicker>(list, "SeasonFilter");
             Get<Flyout>(seasons, "ChoicesFlyout").ShowAt(Get<DropDownButton>(seasons, "OpenFacet"));
             await LayoutAsync(seasons);
+
+            // 弹层里的选项要等 Flyout 真把内容建出来：ShowAt 之后立刻数，机器忙时一个 ToggleButton 都还没有，
+            // Single 会抛「Sequence contains no matching element」。等到它出现，再按名字取那一颗。
+            await UntilAsync(() => Descendants(Get<ItemsControl>(seasons, "FacetChoices")).OfType<ToggleButton>()
+                .Any(box => AutomationProperties.GetName(box) == "季 · S02"));
             var chooseSeason = Descendants(Get<ItemsControl>(seasons, "FacetChoices")).OfType<ToggleButton>()
                 .Single(box => AutomationProperties.GetName(box) == "季 · S02");
             ((IToggleProvider)new ToggleButtonAutomationPeer(chooseSeason).GetPattern(PatternInterface.Toggle)).Toggle();
             seasons.ClosePopup();
             Get<Flyout>(list, "AdvancedFilters").ShowAt(Get<DropDownButton>(list, "FilterExpander"));
             await LayoutAsync(list);
+            await UntilAsync(() => Descendants(Get<ItemsControl>(list, "EpisodeFilter")).OfType<ToggleButton>()
+                .Any(button => AutomationProperties.GetName(button) == "集 · E02"));
             var chooseEpisode = Descendants(Get<ItemsControl>(list, "EpisodeFilter")).OfType<ToggleButton>()
                 .Single(button => AutomationProperties.GetName(button) == "集 · E02");
             ((IToggleProvider)new ToggleButtonAutomationPeer(chooseEpisode).GetPattern(PatternInterface.Toggle)).Toggle();

@@ -56,12 +56,23 @@ internal sealed partial class ShellNavigationProbe
                 {
                     var target = home.ViewModel.CardsOf(item).FirstOrDefault();
                     Require(target is not null, "前置条件不成立：找不到待删除条目在屏上的卡");
-                    var poster = (PosterCard?)Call(home, "PosterOf", target!);
-                    Require(poster is not null, "前置条件不成立：这张卡没有已实现的元素");
+
+                    // 容器是 ItemsRepeater 建出来的：卡片可能已经绑上条目、开始拉图，而 Loaded 还没到。
+                    // PosterCard 按自己的 _live 判能不能演，此刻开播会直接返回、屏上一点变化都没有 —— 先等它上树。
+                    PosterCard? poster = null;
+                    var mounted = await WithinAsync(() =>
+                    {
+                        poster = (PosterCard?)Call(home, "PosterOf", target!);
+                        return poster is not null && Get<bool>(poster, "_live");
+                    });
+                    Require(mounted, "前置条件不成立：这张卡的容器一直没上树");
+
                     var live = poster!;
                     var play = (Task)Call(live, "PlayRemovalAsync")!;
-                    await Task.Delay(60);
-                    Require(Get<FrameworkElement>(live, "Root").Opacity < 0.98, "离场动画没有淡出");
+
+                    // 淡出要真的看到中间状态：按帧等它掉下来，不拿固定延时当证据（机器忙时首帧会晚到）。
+                    Require(await WithinAsync(() => Get<FrameworkElement>(live, "Root").Opacity < 0.98),
+                        "离场动画没有淡出");
                     await play;
                     var motion = Get<Microsoft.UI.Xaml.Media.CompositeTransform>(live, "CardMotion");
                     Require(Get<FrameworkElement>(live, "Root").Opacity < 0.05 && motion.ScaleX < 0.95,
@@ -135,6 +146,18 @@ internal sealed partial class ShellNavigationProbe
         }
 
         static IEnumerable<CardItem> Cards(HomePage home) => home.ViewModel.Shelves.SelectMany(shelf => shelf.Cards);
+
+        /// <summary>等到条件成立为止；用在「动画/容器就绪」这类按帧推进的读数上，超时返回 false 交给调用方报错。</summary>
+        static async Task<bool> WithinAsync(Func<bool> ready)
+        {
+            for (var attempt = 0; attempt < 80; attempt++)
+            {
+                if (ready()) return true;
+                await Task.Delay(25);
+            }
+
+            return false;
+        }
     }
 
     private sealed class DeleteRefreshProbeServer : HttpMessageHandler
