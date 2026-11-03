@@ -2414,6 +2414,32 @@ internal static class ItemDetailTests
             Assert.True(DetailHero.Spacious(true, 0));
         });
 
+        // 「给 mp 订阅页面也增强大窗模式」（2026-11-03）：订阅详情页跟详情页同一套铺开判据，但只认
+        // 「铺开、宽版式、有图」三句 —— 这一页本来就只讲电影或剧，也没有详情页那条裁切来路。
+        Test("订阅页：铺开、宽版式、有图三句缺一不可", () =>
+        {
+            Assert.True(DetailHero.SubscriptionImmersive(true, true, true));
+
+            Assert.False(DetailHero.SubscriptionImmersive(false, true, true));
+            Assert.False(DetailHero.SubscriptionImmersive(true, false, true));
+            Assert.False(DetailHero.SubscriptionImmersive(true, true, false));
+
+            // 面积那条线与详情页共用：铺开也认工作区五分之四，最大化不看面积。
+            Assert.True(DetailHero.SubscriptionImmersive(DetailHero.Spacious(false, 0.9), true, true));
+            Assert.False(DetailHero.SubscriptionImmersive(DetailHero.Spacious(false, 0.79), true, true));
+            Assert.True(DetailHero.SubscriptionImmersive(DetailHero.Spacious(true, 0), true, true));
+        });
+
+        // 沉浸档背景从页顶一直铺到窗口下沿：视口加被顶上标题栏的那一截；还没量到视口时给 0，
+        // 负的抬升按 0 算（不让图缩到视口里面去）。
+        Test("订阅页：沉浸档背景铺到窗口下沿", () =>
+        {
+            Assert.Equal(887d, DetailHero.ImmersivePictureHeight(887, 0));
+            Assert.Equal(955d, DetailHero.ImmersivePictureHeight(887, 68));
+            Assert.Equal(0d, DetailHero.ImmersivePictureHeight(0, 68));
+            Assert.Equal(887d, DetailHero.ImmersivePictureHeight(887, -20));
+        });
+
         // 上移那一下的两个数：第一屏的留白不再撑，纸也不再要求至少一整屏 —— 下方组件紧跟剧情说明，
         // 背景从第一屏一直透到页尾。还原那一档一个数都不动。
         Test("最大化：第一屏留白和纸面下限一起收掉", () =>

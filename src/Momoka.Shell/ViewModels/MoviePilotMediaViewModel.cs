@@ -272,11 +272,17 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public partial double HeaderLift { get; set; }
 
     /// <summary>
-    /// 背景那一张这次画多高 —— <see cref="DetailHero.PictureHeight"/>：宽的窗口上被视口封顶、照旧铺满第一屏；
-    /// 窄到「页宽 × 图的高宽比」够不着视口之后整张等比缩小、一像素不裁。下限是头部那一叠的实测高，别让压在
-    /// 图上那几行字落到图外面去。
+    /// 背景那一张这次画多高 —— 常态走 <see cref="DetailHero.PictureHeight"/>：宽的窗口上被视口封顶、照旧铺满
+    /// 第一屏；窄到「页宽 × 图的高宽比」够不着视口之后整张等比缩小、一像素不裁。下限是头部那一叠的实测高，
+    /// 别让压在图上那几行字落到图外面去。
+    /// <para>
+    /// 大窗模式（<see cref="Showcase"/>）里直接铺到窗口下沿（<see cref="DetailHero.ImmersivePictureHeight"/>）：
+    /// 那一档正文纸面变成半透明洗色，背景要从片名一直透到页尾。
+    /// </para>
     /// </summary>
-    public double BackdropHeight => DetailHero.PictureHeight(PageWidth, BackdropRatio, Viewport, HeroBandHeight);
+    public double BackdropHeight => Showcase
+        ? DetailHero.ImmersivePictureHeight(Viewport, HeaderLift)
+        : DetailHero.PictureHeight(PageWidth, BackdropRatio, Viewport, HeroBandHeight);
 
     /// <summary>
     /// 图下沿那道黑色渐变摆多高 —— 盒子的下沿减去渐变自己的高，渐变钉在画面的下沿上、不钉在视口上：往下滚它
@@ -287,8 +293,91 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// <summary>
     /// 头部那一段自己至少要多高：把正文纸面的上沿推到图的下沿上，第一屏因此是「图 + 一条压暗的尾巴」，而不是
     /// 纸面切在画面中间（同电影详情页的 <c>HeroTail</c>）。头部那一叠本身比这还高时就按它自己的高走。
+    /// <para>
+    /// 大窗模式里归 0：纸面让开、下方组件整体上移到头部那一叠的下面（同详情页沉浸档的尾部高度）。
+    /// </para>
     /// </summary>
-    public double HeroMinHeight => Math.Max(0, BackdropHeight - HeaderLift);
+    public double HeroMinHeight => Showcase ? 0 : Math.Max(0, BackdropHeight - HeaderLift);
+
+    /// <summary>
+    /// 这一页这一刻走不走「大窗模式」（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」）。
+    /// <para>
+    /// 三句同时成立：窗口铺开（最大化，或面积占工作区五分之四以上，由页面从窗口那一侧写进
+    /// <see cref="Spacious"/>）、资料卡能并排的宽版式（<see cref="WideLayout"/>）、背后有背景图。
+    /// 判据本体在 Core（<see cref="DetailHero.SubscriptionImmersive"/>）。
+    /// </para>
+    /// <para>
+    /// 成立时：背景铺到窗口下沿并略微更不透明、图下沿的黑色渐变收起、正文纸面换成尾部那道半透明洗色、
+    /// 正文面板的底与框淡到 0、纸面和面板的留白收紧 —— 与电影／剧／季详情页的沉浸档同一副样子。
+    /// </para>
+    /// </summary>
+    public bool Showcase => DetailHero.SubscriptionImmersive(Spacious, WideLayout, Backdrop is not null);
+
+    /// <summary>窗口这一刻铺开了没有，由页面在挂上窗口时与每次窗口几何变化时写进来（同详情页）。</summary>
+    [ObservableProperty]
+    public partial bool Spacious { get; set; }
+
+    /// <summary>
+    /// 这一页这一刻是不是资料卡并排在右端的宽版式，由页面的 <c>ApplyHeroLayout</c> 按内容区宽度写进来。
+    /// 窄成单列时大窗模式不参与 —— 那是另一套版面（同详情页的紧凑档）。
+    /// </summary>
+    [ObservableProperty]
+    public partial bool WideLayout { get; set; }
+
+    partial void OnSpaciousChanged(bool value) => AnnounceShowcase();
+    partial void OnWideLayoutChanged(bool value) => AnnounceShowcase();
+
+    /// <summary>背景那张图自己的不透明度：大窗模式里从 0.9 抬到 0.96（同详情页沉浸档）。</summary>
+    public double BackdropOpacity => Showcase ? DetailHero.ShowcaseBackdropOpacity : DetailHero.BackdropOpacity;
+
+    /// <summary>图下沿那道黑色渐变只在纸面版式里画：大窗模式里那条边已经不在屏上，压一道黑只是白费。</summary>
+    public Visibility BackdropFadeVisibility => Show(Backdrop is not null && !Showcase);
+
+    /// <summary>
+    /// 正文纸面那一层的内边距（<c>BodySheet.Padding</c>）—— 常态照 <c>EgPageMargin</c>；大窗模式把上下收到
+    /// 10／14，左右不动（同详情页沉浸档）。
+    /// </summary>
+    public Thickness BodySheetPadding => Showcase
+        ? new(PageMargin.Left, DetailHero.ShowcaseSheetTop, PageMargin.Right, DetailHero.ShowcaseSheetBottom)
+        : PageMargin;
+
+    /// <summary>正文纸面上那几块之间的竖距（<c>BodySheet.Spacing</c>）—— 常态 <c>EgSpaceXL</c>，大窗模式 8。</summary>
+    public double BodySheetSpacing => Showcase ? DetailHero.ShowcaseSheetSpacing : SpaceXl;
+
+    /// <summary>正文面板自己的上下内边距 —— 大窗模式从 24 收到 10，左右不动（同详情页沉浸档）。</summary>
+    public Thickness BodyPanelPadding => Showcase
+        ? new(24, DetailHero.ShowcasePanelPadding, 24, DetailHero.ShowcasePanelPadding)
+        : new(24);
+
+    /// <summary>大窗模式里货架标题前那条强调条与底下那条通栏线都收起（同详情页）。</summary>
+    public bool ShowShelfLines => !Showcase;
+
+    /// <summary>版面上这几样都从 <see cref="Showcase"/> 派生，翻面时由这一处一起喊一声。</summary>
+    private void AnnounceShowcase()
+    {
+        OnPropertyChanged(nameof(Showcase));
+        OnPropertyChanged(nameof(BackdropHeight));
+        OnPropertyChanged(nameof(BackdropFadeMargin));
+        OnPropertyChanged(nameof(HeroMinHeight));
+        OnPropertyChanged(nameof(BackdropOpacity));
+        OnPropertyChanged(nameof(BackdropFadeVisibility));
+        OnPropertyChanged(nameof(BodySheetPadding));
+        OnPropertyChanged(nameof(BodySheetSpacing));
+        OnPropertyChanged(nameof(BodyPanelPadding));
+        OnPropertyChanged(nameof(ShowShelfLines));
+    }
+
+    /// <summary>页面内边距（<c>EgPageMargin</c>）—— 页面标记与这里读同一个资源，不在两处各写一套数。</summary>
+    private static Thickness PageMargin => Application.Current is { } app
+        && app.Resources.TryGetValue("EgPageMargin", out var value) && value is Thickness margin
+        ? margin
+        : new(32, 28, 32, 28);
+
+    /// <summary>主题刻度里的 XL（<c>EgSpaceXL</c>），读不到时退回 24。</summary>
+    private static double SpaceXl => Application.Current is { } app
+        && app.Resources.TryGetValue("EgSpaceXL", out var value) && value is double space
+        ? space
+        : 24;
 
     /// <summary>图下沿那道黑色渐变的高度 —— 同电影详情页 <c>DetailViewModel.PictureFadeHeight</c>。</summary>
     private const double FadeHeight = 64;
@@ -299,6 +388,9 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     {
         if (value is { PixelWidth: > 0, PixelHeight: > 0 })
             BackdropRatio = value.PixelHeight / (double)value.PixelWidth;
+
+        // 图的来去能翻大窗模式（没有图就没有可透的东西），版面上的派生值跟着一起喊。
+        AnnounceShowcase();
     }
     [ObservableProperty] public partial string SubscribeLabel { get; set; } = "选择订阅季";
     [ObservableProperty] public partial string GroupId { get; set; } = "";

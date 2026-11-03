@@ -1355,13 +1355,13 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 沉浸档把上下收到 10 / 14：那一档没有纸，28 只是把第一块货架从剧情说明底下推开。
     /// </para>
     /// </summary>
-    public Thickness SheetPadding => IsCompact ? new(28, 18, 28, 18) : Showcase ? new(28, 10, 28, 14) : new(28);
+    public Thickness SheetPadding => IsCompact ? new(28, 18, 28, 18) : Showcase ? new(28, DetailHero.ShowcaseSheetTop, 28, DetailHero.ShowcaseSheetBottom) : new(28);
 
     /// <summary>
     /// 纸面上那几块（单集、媒体信息、剧季、相似、演职人员）之间的竖距（<c>BodySheet.Spacing</c>）——
     /// 紧凑版式收一档，同 <see cref="TailSpacing"/>；沉浸档再紧一档（8），理由同 <see cref="TailSpacing"/>。
     /// </summary>
-    public double SheetSpacing => Showcase ? 8 : IsCompact ? 14 : 20;
+    public double SheetSpacing => Showcase ? DetailHero.ShowcaseSheetSpacing : IsCompact ? 14 : 20;
 
     /// <summary>
     /// 正文那几块货架面板自己的上下内边距（标记里每块各绑一次）—— 沉浸档从样式的 24 收到 10。
@@ -1370,7 +1370,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 只剩「把两块货架隔开」一个作用，而隔着模糊背景读起来就是一截空。左右不动，货架标题和卡片的左沿不变。
     /// </para>
     /// </summary>
-    public Thickness BodyPanelPadding => Showcase ? new(24, 10, 24, 10) : new(24);
+    public Thickness BodyPanelPadding => Showcase
+        ? new(24, DetailHero.ShowcasePanelPadding, 24, DetailHero.ShowcasePanelPadding)
+        : new(24);
 
     /// <summary>
     /// 片名那一栏里那两栏之间的一格间距（<c>HeroContent.ColumnSpacing</c>，标记里绑的是这一个数）。

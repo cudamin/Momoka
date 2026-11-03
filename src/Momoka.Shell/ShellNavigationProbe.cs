@@ -232,6 +232,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("MoviePilot 剧集组与入库状态迟到隔离", MoviePilotMediaReadRacesAsync);
             // 同时检查季折叠栏的五套主题、摘要恢复与展开/折叠实屏截图。
             await CaseAsync("MoviePilot 背景按页宽等比、下滑遮罩与纸面", MoviePilotMediaBackgroundAsync, 30);
+            await CaseAsync("MoviePilot 订阅详情大窗模式与还原", MoviePilotSubscriptionShowcaseAsync, 30);
             await CaseAsync("MoviePilot 按季提交部分失败与核对", MoviePilotSeasonPartialSubmitAsync);
             await CaseAsync("MoviePilot 字幕列表、保存路径、取消与站点变更", MoviePilotMediaSubtitlesAsync);
             await CaseAsync("季页面右侧播放图标与原播放路由", SeasonTrailingPlayAsync);

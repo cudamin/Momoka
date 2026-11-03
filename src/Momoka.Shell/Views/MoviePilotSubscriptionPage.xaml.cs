@@ -70,6 +70,9 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     {
         InitializeComponent();
         PaintBackdropFade();
+        PrepareShowcase();
+        WatchShowcaseTheme();
+        MediaViewModel.PropertyChanged += OnShowcaseChanged;
         MediaViewModel.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName is nameof(MediaViewModel.Backdrop) or nameof(MediaViewModel.DetailErrorVisibility))
@@ -164,6 +167,9 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         HeroFactColumn.Width = side ? new GridLength(FactsSideWidth) : new GridLength(0);
         HeroRow.RowSpacing = side ? 0 : FactsStackedRowSpacing;
         HeroFacts.Width = side ? FactsSideWidth : Math.Min(FactsStackedMaxWidth, width);
+
+        // 大窗模式要的是「资料卡能并排」这一档版面；窄成单列时不参与（同详情页的紧凑档）。
+        MediaViewModel.WideLayout = side;
     }
 
     private void OnHeroSizeChanged(object sender, SizeChangedEventArgs args)
@@ -437,6 +443,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     {
         _request?.SetTitleStrip?.Invoke(TitleStrip.Plain);
         _pageLifetime?.Cancel(); _pageLifetime?.Dispose(); _pageLifetime = null;
+        DetachShowcase();
+        MediaViewModel.PropertyChanged -= OnShowcaseChanged;
         _request = null; ViewModel.Cancel(); MediaViewModel.Cancel(); MediaResources.Release();
     }
     protected override void OnNavigatedFrom(NavigationEventArgs e) { Release(); base.OnNavigatedFrom(e); }

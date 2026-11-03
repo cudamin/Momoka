@@ -122,7 +122,8 @@
             Height="{x:Bind MediaViewModel.BackdropHeight, Mode=OneWay}"
             Background="{ThemeResource EgScrimBrush}" />
         <Border x:Name="DetailBackdropFade" Height="64" VerticalAlignment="Top" IsHitTestVisible="False"
-            Margin="{x:Bind MediaViewModel.BackdropFadeMargin, Mode=OneWay}">
+            Margin="{x:Bind MediaViewModel.BackdropFadeMargin, Mode=OneWay}"
+            Visibility="{x:Bind MediaViewModel.BackdropFadeVisibility, Mode=OneWay}">
             <Border.Background>
                 <LinearGradientBrush x:Name="BackdropFadeBrush" StartPoint="0.5,0" EndPoint="0.5,1" />
             </Border.Background>
@@ -311,7 +312,8 @@
               所以纸上这几块板的左右外沿与头部那一叠落在同一条竖线上。
             -->
             <StackPanel x:Name="BodySheet" Background="{ThemeResource EgWindowBrush}"
-                Padding="{StaticResource EgPageMargin}" Spacing="{StaticResource EgSpaceXL}">
+                Padding="{x:Bind MediaViewModel.BodySheetPadding, Mode=OneWay}"
+                Spacing="{x:Bind MediaViewModel.BodySheetSpacing, Mode=OneWay}">
 
             <!-- ② 季。简介与资料站链接升进了头部（用户令 2026-10-12），这里只剩季 —— 电影详情页也是把单集
                  与季留在正文纸上，头部只放身份、评分、操作与简介。
@@ -319,6 +321,7 @@
                  EgBodyPanelStyle 面板却仍在屏上留一条什么都没有的空卡 —— 那正是用户圈出来的占位条。
                  判据就用内层那一条（MediaViewModel.SeasonsVisibility，电影为收），两层同进同出。 -->
             <StackPanel x:Name="SeasonPanel" Visibility="{x:Bind MediaViewModel.SeasonsVisibility, Mode=OneWay}"
+                Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
                 Style="{StaticResource EgBodyPanelStyle}" Spacing="{StaticResource EgSpaceM}" VerticalAlignment="Top">
                 <local:MoviePilotMediaSeasonsView x:Name="MediaSeasons" />
             </StackPanel>
@@ -343,18 +346,24 @@
                  四条带同一个控件 —— 那几处的页面照旧滚得动，这一处从此也一样。
                  带子不写 Height：这几张卡的形状是固定的（142 宽的板 + 204 高的图 + 两行字），ShelfStrip 自己
                  按内容量高，翻页箭头落在图片那一带上（SyncBand 按 CardSize.Chrome 扣掉底下两行字）。 -->
-            <StackPanel Style="{StaticResource EgBodyPanelStyle}" Spacing="10" Visibility="{x:Bind MediaViewModel.PeopleVisibility, Mode=OneWay}">
-                <local:ShelfHead Title="演职员" />
+            <StackPanel x:Name="PeoplePanel" Style="{StaticResource EgBodyPanelStyle}"
+                Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
+                Spacing="10" Visibility="{x:Bind MediaViewModel.PeopleVisibility, Mode=OneWay}">
+                <local:ShelfHead Title="演职员" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
                 <local:ShelfStrip x:Name="MediaPeople" ItemsSource="{x:Bind MediaViewModel.People, Mode=OneWay}"
                     ItemSpacing="16" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
             </StackPanel>
-            <StackPanel Style="{StaticResource EgBodyPanelStyle}" Spacing="10" Visibility="{x:Bind MediaViewModel.RecommendationsVisibility, Mode=OneWay}">
-                <local:ShelfHead Title="相关推荐" />
+            <StackPanel x:Name="RecommendationsPanel" Style="{StaticResource EgBodyPanelStyle}"
+                Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
+                Spacing="10" Visibility="{x:Bind MediaViewModel.RecommendationsVisibility, Mode=OneWay}">
+                <local:ShelfHead Title="相关推荐" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
                 <local:ShelfStrip x:Name="MediaRecommendations" ItemsSource="{x:Bind MediaViewModel.Recommendations, Mode=OneWay}"
                     ItemSpacing="16" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
             </StackPanel>
-            <StackPanel Style="{StaticResource EgBodyPanelStyle}" Spacing="10" Visibility="{x:Bind MediaViewModel.SimilarVisibility, Mode=OneWay}">
-                <local:ShelfHead Title="相似作品" />
+            <StackPanel x:Name="SimilarPanel" Style="{StaticResource EgBodyPanelStyle}"
+                Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
+                Spacing="10" Visibility="{x:Bind MediaViewModel.SimilarVisibility, Mode=OneWay}">
+                <local:ShelfHead Title="相似作品" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
                 <local:ShelfStrip x:Name="MediaSimilar" ItemsSource="{x:Bind MediaViewModel.Similar, Mode=OneWay}"
                     ItemSpacing="16" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
             </StackPanel>

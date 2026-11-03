@@ -291,6 +291,96 @@ internal sealed partial class ShellNavigationProbe
         finally { page.Release(); _root.Children.Remove(page); ThemeHost.Apply(originalTheme); ResizeInspect(1420, 980); }
     }
 
+    /// <summary>
+    /// 订阅详情页的大窗模式（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」）：窗口最大化后，正文纸面
+    /// 换成半透明洗色、面板的底与框淡到 0、头部不再撑第一屏、背景铺到窗口下沿并抬到 0.96，图下沿的黑色
+    /// 渐变收起；还原窗口后全部回到纸面版式。两趟都要走过渡动画（以 <c>ShowcaseAnimations</c> 计数证明）。
+    /// </summary>
+    private async Task MoviePilotSubscriptionShowcaseAsync()
+    {
+        using var server = new SubscriptionProbeServer { Poster = await FixtureImageAsync(), Related = true };
+        var (_, service) = SubscriptionService(server);
+        var subscription = (await service.SubscriptionsAsync(CancellationToken.None)).First(item => item.IsSeries);
+        var page = new MoviePilotSubscriptionPage();
+        _root.Children.Add(page);
+        page.Attach(new(service, subscription));
+        var readings = new List<string>();
+        try
+        {
+            // 一条用例自己把窗口形态摆干净：先还原（最大化时 Resize 会被忽略），再给一扇远不到五分之四的窗口。
+            if (_window!.IsMaximized) _window.ToggleMaximize();
+            ResizeInspect(1000, 760);
+            page.AttachWindow(_window);
+            await UntilAsync(() => page.ViewModel.IsReady && page.MediaViewModel.IsReady
+                && page.MediaViewModel.Backdrop is not null);
+            await LayoutAsync(page);
+
+            var media = page.MediaViewModel;
+            var sheet = Get<StackPanel>(page, "BodySheet");
+            var image = Get<Border>(page, "DetailBackdropBand");
+            var fade = Get<Border>(page, "DetailBackdropFade");
+            var hero = Get<StackPanel>(page, "HeroSection");
+            var panel = Get<StackPanel>(page, "PeoplePanel");
+
+            Require(!media.Showcase && !media.Spacious, "未铺开的窗口不该进大窗模式");
+            Require(sheet.Background is SolidColorBrush { Color.A: 255 }, "纸面版式的正文纸不是不透明");
+            Require(fade.Visibility == Visibility.Visible, "纸面版式下图下沿的黑色渐变被收起");
+            Require(Math.Abs(image.Opacity - DetailHero.BackdropOpacity) < 0.001,
+                $"纸面版式的背景不透明度不是 {DetailHero.BackdropOpacity}：{image.Opacity:0.###}");
+
+            var beforeEnter = page.ShowcaseAnimations;
+            if (!_window.IsMaximized) _window.ToggleMaximize();
+            await UntilAsync(() => media.Showcase && !page.ShowcaseAnimating
+                && Math.Abs(image.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001
+                && hero.MinHeight <= 0.5);
+            Require(media.Showcase && media.Spacious && media.WideLayout,
+                $"最大化后没有进入大窗模式：铺开={media.Spacious}、宽版式={media.WideLayout}、大窗={media.Showcase}");
+            if (HomeMotion.AnimationsEnabled)
+                Require(page.ShowcaseAnimations > beforeEnter,
+                    "最大化进入大窗时没有走过渡动画（ShowcaseAnimations 没有增加）");
+            var sheetBrush = sheet.Background as SolidColorBrush;
+            Require(sheetBrush is { } && sheetBrush.Color.A == DetailHero.ScrimCeiling,
+                "大窗模式的正文纸不是尾部那道半透明洗色");
+            Require(panel.Background is SolidColorBrush { Opacity: 0 }, "大窗模式的正文面板底没有淡到 0");
+            Require(fade.Visibility == Visibility.Collapsed, "大窗模式下图下沿的黑色渐变没有收起");
+            Require(!media.ShowShelfLines, "大窗模式的货架标题仍然画着横线");
+            var expectedImage = DetailHero.ImmersivePictureHeight(media.Viewport, media.HeaderLift);
+            Require(Math.Abs(image.ActualHeight - expectedImage) < 2,
+                $"大窗模式的背景没有铺到窗口下沿：图 {image.ActualHeight:0}、该是 {expectedImage:0}");
+            Require(Math.Abs(hero.ActualHeight - media.HeroBandHeight) < 2,
+                $"大窗模式的头部没有收到内容高：头部 {hero.ActualHeight:0}、内容 {media.HeroBandHeight:0}");
+            readings.Add($"大窗：视口 {media.Viewport:0}、抬升 {media.HeaderLift:0}、图 {image.ActualHeight:0}、"
+                + $"头部 {hero.ActualHeight:0}、纸面透明度 {sheetBrush?.Color.A}、面板 {panel.Background.Opacity:0.##}、"
+                + $"动画 {page.ShowcaseAnimations}");
+            await SaveProbeScreenAsync("mp-subscription-showcase-maximized.png");
+
+            var beforeExit = page.ShowcaseAnimations;
+            _window.ToggleMaximize();
+            await UntilAsync(() => !media.Showcase && !media.Spacious && !page.ShowcaseAnimating
+                && Math.Abs(image.Opacity - DetailHero.BackdropOpacity) < 0.001
+                && hero.MinHeight > 0.5);
+            if (HomeMotion.AnimationsEnabled)
+                Require(page.ShowcaseAnimations > beforeExit,
+                    "从最大化还原时没有走过渡动画（ShowcaseAnimations 没有增加）");
+            var restored = sheet.Background as SolidColorBrush;
+            Require(restored is { } && restored.Color.A == 255, "还原后正文纸没有回到不透明");
+            Require(panel.Background is SolidColorBrush { Opacity: 1 }, "还原后正文面板的底没有回来");
+            Require(fade.Visibility == Visibility.Visible, "还原后图下沿的黑色渐变没有回来");
+            Require(media.ShowShelfLines, "还原后货架标题的横线没有回来");
+            readings.Add($"纸面：视口 {media.Viewport:0}、图 {image.ActualHeight:0}、头部下限 {hero.MinHeight:0}、"
+                + $"纸面透明度 {restored?.Color.A}、面板 {panel.Background.Opacity:0.##}、动画 {page.ShowcaseAnimations}");
+            await SaveProbeScreenAsync("mp-subscription-showcase-paper.png");
+        }
+        finally
+        {
+            if (_window?.IsMaximized == true) _window.ToggleMaximize();
+            page.Release();
+            _root.Children.Remove(page);
+            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "mp-subscription-showcase.txt"), readings);
+            ResizeInspect(1420, 980);
+        }
+    }
+
     private async Task MoviePilotSeasonPartialSubmitAsync()
     {
         using var server = new SubscriptionProbeServer { FailSubscriptionCreate = true };

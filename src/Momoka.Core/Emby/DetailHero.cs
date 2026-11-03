@@ -148,6 +148,43 @@ public static class DetailHero
         && type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
     /// <summary>
+    /// MoviePilot 订阅详情页的大窗模式（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」）。
+    /// <para>
+    /// 判据与详情页同一套，只是没有「条目类型」和「裁切」两条：这一页本来就只讲电影或剧，而裁切那条线
+    /// 是详情页带着纸面一起算的，订阅页没有那张纸的同一套账。剩下三句缺一不可 —— 窗口铺开、宽版式
+    /// （资料卡能并排）、背后有那张图；否则收掉纸面只会剩一页空黑，或者换成另一套单列版面。
+    /// </para>
+    /// </summary>
+    /// <param name="spacious">窗口这一刻铺开了没有（<see cref="Spacious"/>）。</param>
+    /// <param name="wide">这一页这一次的资料卡能不能并排在右端（内容区够宽）。</param>
+    /// <param name="artwork">背后有没有那张背景图。</param>
+    public static bool SubscriptionImmersive(bool spacious, bool wide, bool artwork) =>
+        spacious && wide && artwork;
+
+    /// <summary>
+    /// 订阅详情页沉浸档里背景图铺多高 —— 直接铺到窗口下沿：那一档正文纸面变成半透明洗色，背景要从片名
+    /// 一直透到页尾。加 <paramref name="headerLift"/> 是因为背景那一层被顶上了标题栏（页面给它一个负的
+    /// 上边距），盒子从窗口上沿起画，而视口高只到标题栏下面那一线 —— 差的那一截不补回来就是窗口下沿
+    /// 一条黑边（同详情页 <c>DetailViewModel.PictureHeight</c> 的沉浸档）。
+    /// </summary>
+    /// <param name="viewport">滚动视图的高（DIP）。</param>
+    /// <param name="headerLift">标题栏加面包屑让出来的那一截（DIP）。</param>
+    public static double ImmersivePictureHeight(double viewport, double headerLift) =>
+        viewport <= 0 ? 0 : Math.Round(viewport + Math.Max(0, headerLift));
+
+    /// <summary>沉浸档正文纸面上沿的留白（<c>BodySheet.Padding.Top</c>）—— 同详情页 <c>SheetPadding</c>。</summary>
+    public const double ShowcaseSheetTop = 10;
+
+    /// <summary>沉浸档正文纸面下沿的留白 —— 同详情页 <c>SheetPadding</c>。</summary>
+    public const double ShowcaseSheetBottom = 14;
+
+    /// <summary>沉浸档正文纸面上几块面板之间的竖距（<c>BodySheet.Spacing</c>）—— 同详情页 <c>SheetSpacing</c>。</summary>
+    public const double ShowcaseSheetSpacing = 8;
+
+    /// <summary>沉浸档正文面板自己的上下内边距 —— 同详情页 <c>BodyPanelPadding</c>；左右不动。</summary>
+    public const double ShowcasePanelPadding = 10;
+
+    /// <summary>
     /// 沉浸切换那一下，第几块正文面板第几个起步 —— 「设计一个过渡动画」（2026-10-31 晚间，用户在「分块错峰浮起」
     /// 与另外三种手感里选了它）。
     /// <para>

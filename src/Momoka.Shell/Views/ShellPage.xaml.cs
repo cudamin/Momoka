@@ -617,9 +617,14 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         // 详情页要认显示器多大（纸面上沿那条线跟着显示器走，见 DetailHero.PaperLineFor），挂在这一个事件上
         // 而不是 OpenDetail 里：后退/前进重建的详情页实例不走 OpenDetail，却一样要从外壳领窗口。
+        // 订阅详情页的大窗模式也要读窗口形态（最大化／占工作区五分之四），同样在这一处递。
         ContentFrame.Navigated += (_, _) =>
         {
-            if (ContentFrame.Content is DetailPage detail) detail.AttachWindow(window);
+            switch (ContentFrame.Content)
+            {
+                case DetailPage detail: detail.AttachWindow(window); break;
+                case MoviePilotSubscriptionPage subscription: subscription.AttachWindow(window); break;
+            }
         };
 
         // The buttons may well have been measured already, before there was a window to tell.
