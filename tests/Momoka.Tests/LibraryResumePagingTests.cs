@@ -1049,6 +1049,15 @@ internal static class LibraryResumePagingTests
         public Dictionary<string, Gate> HomeTotalGates { get; } = new(StringComparer.Ordinal);
         public bool FailHomeTotals { get; set; }
         public Gate? HomeWatch { get; set; }
+
+        /// <summary>按来源闸住主页「继续观看」的读取，用来观察哪一片先上屏。</summary>
+        public Dictionary<string, Gate> HomeResumeGates { get; } = new(StringComparer.Ordinal);
+
+        /// <summary>让某个来源的主页「继续观看」失败，别的来源照常返回。</summary>
+        public HashSet<string> FailHomeResumeHosts { get; } = new(StringComparer.Ordinal);
+
+        /// <summary>按来源闸住主页「接下来看」的读取。</summary>
+        public Dictionary<string, Gate> HomeNextUpGates { get; } = new(StringComparer.Ordinal);
         public bool FailNextResume { get; set; }
         public bool FailReleasedTag { get; set; }
         public ConcurrentQueue<(string Host, string Body)> FavoriteBodies { get; } = new();
@@ -1076,6 +1085,13 @@ internal static class LibraryResumePagingTests
                 var offset = int.Parse(query["StartIndex"], System.Globalization.CultureInfo.InvariantCulture);
                 var limit = int.Parse(query["Limit"], System.Globalization.CultureInfo.InvariantCulture);
                 _pages.Enqueue(host + ":" + offset);
+                if (HomeReads && FailHomeResumeHosts.Contains(host))
+                    throw new IOException("fixture home resume failure");
+                if (HomeReads && HomeResumeGates.TryGetValue(host, out var homeResumeGate))
+                {
+                    homeResumeGate.Entered.TrySetResult();
+                    await homeResumeGate.Release.Task.ConfigureAwait(false);
+                }
                 if (FailNextResume)
                 {
                     FailNextResume = false;
@@ -1095,6 +1111,11 @@ internal static class LibraryResumePagingTests
             }
             else if (uri.AbsolutePath.EndsWith("/Shows/NextUp", StringComparison.Ordinal))
             {
+                if (HomeReads && HomeNextUpGates.TryGetValue(host, out var homeNextGate))
+                {
+                    homeNextGate.Entered.TrySetResult();
+                    await homeNextGate.Release.Task.ConfigureAwait(false);
+                }
                 if (NextUpRows.TryGetValue(host, out var whole))
                 {
                     var offset = int.Parse(query["StartIndex"], System.Globalization.CultureInfo.InvariantCulture);

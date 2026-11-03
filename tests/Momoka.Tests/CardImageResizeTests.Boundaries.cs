@@ -37,6 +37,8 @@ namespace Microsoft.UI.Xaml.Media.Imaging
     public sealed class BitmapImage
     {
         public int DecodePixelWidth { get; init; }
+        public int PixelWidth { get; init; }
+        public int PixelHeight { get; init; }
         public string FixtureImage { get; init; } = "";
     }
 }

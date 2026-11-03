@@ -341,18 +341,20 @@ internal static class Program
             await f.WaitRows(6);
             f.Stable();
         });
-        Test("HomeOrder 原样缓存重入调用先开共享活动期，保留6项与真实表身份", async () =>
+        Test("HomeOrder 原样缓存重入调用先开共享活动期，保留投影后的5项与真实表身份", async () =>
         {
             using var f = new HomeOrderFixture();
+            // 与生产探针夹具一致：聚合模式开着，设置表不排「接下来看」（2026-11-03 起的行数口径）。
+            f.Settings.Settings.AggregateMode = true;
             await f.Open();
             Assert.True(await f.Connect());
             f.Drain();
             await f.Reopen();
-            Assert.Equal(6, f.Rows.Count);
+            Assert.Equal(5, f.Rows.Count);
             f.Reads.Offline = true;
             Assert.False(await f.Service.RefreshAvailabilityAsync());
             f.Drain();
-            await f.WaitRows(4);
+            await f.WaitRows(3);
             f.Stable();
         });
         Test("HomeOrder 未开启活动期的错误等待仍实际UntilAsync超时，不延时洗绿", async () =>
@@ -402,8 +404,8 @@ internal static class Program
             "movieCheck.IsChecked = false", "while (series.CanUp)",
             "choices.Single(row => row.Key == HomeLayout.Resume).DownCommand.Execute(null)",
             "before.HasNext && after.HasNext && Math.Abs(before.Line - after.Line) < 2",
-            "home.HomeRows.All(row => row is not MoviePilotHomeRow)", "await UntilAsync(() => choices.Count == 4)",
-            "await UntilAsync(() => choices.Count == 6)", "server.Writes.Count == 0"
+            "home.HomeRows.All(row => row is not MoviePilotHomeRow)", "await UntilAsync(() => choices.Count == 5)",
+            "server.Writes.Count == 0"
         }) Assert.Contains(evidence, source);
     }
 }

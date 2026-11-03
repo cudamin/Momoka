@@ -39,6 +39,11 @@ public sealed class BannerSlide : INotifyPropertyChanged
     private readonly ArtworkRef? _picture;
     private readonly ArtworkRef? _logo;
 
+    /// <summary>
+    /// 这张背景在内存缓存里的键。来源在构造时就不可用时留空 —— 不可用的来源既不该命中旧图，也不该写入。
+    /// </summary>
+    private readonly string? _backdropKey;
+
     private CancellationTokenSource? _loading;
     private bool _asked;
     private BitmapImage? _pictureImage;
@@ -52,6 +57,14 @@ public sealed class BannerSlide : INotifyPropertyChanged
         if (item.Source is null) _scope?.Bind(item);
         _picture = ItemArtwork.Banner(item);
         _logo = ItemArtwork.Plate(item);
+
+        // 返回主页会重建一批幻灯片；同一来源、同一张图、同一套处理规则就不必再解一次。这里直接装进字段，
+        // 不经过属性通知：构造期间还没有人订阅，而页面第一次 Show 会读到这张图并立即上屏。
+        if (_picture is { } picture && _scope is { IsAvailable: true } scope)
+        {
+            _backdropKey = BannerBackdropCache.Key(scope.Connection, picture, PictureWidth);
+            if (BannerBackdropCache.TryGet(_backdropKey, out var cached)) _pictureImage = cached;
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -134,7 +147,15 @@ public sealed class BannerSlide : INotifyPropertyChanged
     /// </summary>
     public async Task EnsureAsync()
     {
-        if (_asked || _loading is not null || _scope?.IsAvailable != true) return;
+        // 来源已经失效：连构造时从缓存装进来的那张也不能继续画 —— 「不能沿用旧图」说的是这个。
+        if (_scope?.IsAvailable != true)
+        {
+            Picture = null;
+            Logo = null;
+            return;
+        }
+
+        if (_asked || _loading is not null) return;
 
         var cts = new CancellationTokenSource();
         _loading = cts;
@@ -143,16 +164,27 @@ public sealed class BannerSlide : INotifyPropertyChanged
 
         try
         {
-            // Sequential, and the picture first: it is the whole band, the logo is a stamp in one corner of
-            // it, and the two together would otherwise race for the one connection the session holds.
-            var bytes = await FetchAsync(_picture, PictureWidth, cts.Token).ConfigureAwait(true);
-            if (!StillWanted(cts)) return;
+            // 被 Release 放掉之后又转回来时再查一次：缓存里还留着同一张就不必走一遍取字节和解码。
+            if (Picture is null && _backdropKey is { } cachedKey
+                && BannerBackdropCache.TryGet(cachedKey, out var cached))
+                Picture = cached;
 
-            if (bytes is { Length: > 0 })
+            if (Picture is null)
             {
-                var picture = await BannerPictureLoader.DecodeAsync(bytes, PictureWidth, cts.Token).ConfigureAwait(true);
+                // Sequential, and the picture first: it is the whole band, the logo is a stamp in one corner of
+                // it, and the two together would otherwise race for the one connection the session holds.
+                var bytes = await FetchAsync(_picture, PictureWidth, cts.Token).ConfigureAwait(true);
                 if (!StillWanted(cts)) return;
-                Picture = picture;
+
+                if (bytes is { Length: > 0 })
+                {
+                    var picture = await BannerPictureLoader.DecodeAsync(bytes, PictureWidth, cts.Token).ConfigureAwait(true);
+                    if (!StillWanted(cts)) return;
+                    Picture = picture;
+
+                    // 只在这一趟仍然有效时写入：来源在解码途中失效的，不该把画面留给下一次。
+                    if (picture is not null && _backdropKey is { } key) BannerBackdropCache.Remember(key, picture);
+                }
             }
 
             if (Picture is null)
@@ -196,8 +228,9 @@ public sealed class BannerSlide : INotifyPropertyChanged
     /// has moved away from: a backdrop is a megabyte-scale surface, and eight of them held at once is the whole
     /// reason this is a method rather than a load that happens once and stays.
     /// <para>
-    /// <see cref="_asked"/> is cleared too, so a slide that comes back around asks again — the bytes are in
-    /// the image store's disk cache by then, so the second ask is a read rather than a download.
+    /// <see cref="_asked"/> is cleared too, so a slide that comes back around asks again — the decoded
+    /// picture is in <see cref="BannerBackdropCache"/> by then, so the second ask is an in-memory lookup
+    /// rather than another decode.
     /// </para>
     /// </summary>
     public void Release()

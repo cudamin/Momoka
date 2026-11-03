@@ -2694,6 +2694,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         {
             var removed = await images.ClearAsync().ConfigureAwait(true);
             PosterCache.Clear();
+            BannerBackdropCache.Clear();
             Notify("已清除图片缓存", $"删除了 {removed:N0} 个文件。", InfoBarSeverity.Success);
         }
         catch (Exception error)

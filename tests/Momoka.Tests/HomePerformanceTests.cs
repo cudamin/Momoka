@@ -254,11 +254,222 @@ internal static class HomePerformanceTests
             }
             finally { ((IDisposable)second).Dispose(); }
         });
+        Case("聚合主页：快来源先出继续观看，慢来源到达后按轮取合并", async () =>
+        {
+            using var fixture = new Fixture(shell, 3, secondSource: true);
+            var slow = fixture.Transport.HomeResumeGates["b"] = new Gate(true);
+            var home = fixture.CreateLoadingHome();
+            var load = fixture.LoadHome(home);
+            try
+            {
+                await UntilAsync(() => HasRow(fixture, home, "继续观看") && RowIds(fixture, home, "继续观看").Length == 3,
+                    "A 来源的继续观看应先上屏");
+                Assert.True(RowIds(fixture, home, "继续观看").All(id => id.StartsWith("a-", StringComparison.Ordinal)),
+                    "慢来源到达前只应有 A 的条目");
+                Assert.False(load.IsCompleted, "慢来源还没回来时整页读取不应结束");
+
+                slow.Release.TrySetResult();
+                await load;
+
+                Assert.Equal("a-0,b-0,a-1,b-1,a-2,b-2", string.Join(',', RowIds(fixture, home, "继续观看")));
+            }
+            finally
+            {
+                slow.Release.TrySetResult();
+                await load;
+                ((IDisposable)home).Dispose();
+            }
+        });
+        Case("聚合主页：慢来源失败保留快来源内容并提示", async () =>
+        {
+            using var fixture = new Fixture(shell, 3, secondSource: true);
+            fixture.Transport.FailHomeResumeHosts.Add("b");
+            var home = fixture.CreateLoadingHome();
+            try
+            {
+                await fixture.LoadHome(home);
+
+                Assert.Equal("a-0,a-1,a-2", string.Join(',', RowIds(fixture, home, "继续观看")));
+                Assert.True(shell.Get<bool>(home, "NoticeOpen"), "慢来源失败应留下提示条");
+                Assert.Equal("继续观看", shell.Get<string>(home, "NoticeTitle"));
+            }
+            finally { ((IDisposable)home).Dispose(); }
+        });
+        Case("聚合主页：离页后慢来源迟到结果不落屏", async () =>
+        {
+            using var fixture = new Fixture(shell, 3, secondSource: true);
+            var slow = fixture.Transport.HomeResumeGates["b"] = new Gate(true);
+            var home = fixture.CreateLoadingHome();
+            var load = fixture.LoadHome(home);
+            try
+            {
+                await UntilAsync(() => HasRow(fixture, home, "继续观看") && RowIds(fixture, home, "继续观看").Length == 3,
+                    "A 来源的继续观看应先上屏");
+                var before = RowIds(fixture, home, "继续观看");
+
+                shell.Invoke(home, "Cancel");
+                slow.Release.TrySetResult();
+                await load;
+
+                Assert.True(before.SequenceEqual(RowIds(fixture, home, "继续观看")), "离页后迟到的来源结果不能补进来");
+            }
+            finally
+            {
+                slow.Release.TrySetResult();
+                await load;
+                ((IDisposable)home).Dispose();
+            }
+        });
+        Case("聚合主页：轮播清单先于慢排发布", async () =>
+        {
+            using var fixture = new Fixture(shell, 2, secondSource: true);
+            var slow = fixture.Transport.HomeResumeGates["b"] = new Gate(true);
+            var home = fixture.CreateLoadingHome(banner: true);
+            var load = fixture.LoadHome(home);
+            try
+            {
+                await UntilAsync(() => Slides(home).Any(), "轮播清单应在慢排之前发布");
+                Assert.False(load.IsCompleted, "慢来源还没回来时整页读取不应结束");
+
+                slow.Release.TrySetResult();
+                await load;
+
+                Assert.True(Slides(home).Any(), "全部完成后轮播清单仍在");
+            }
+            finally
+            {
+                slow.Release.TrySetResult();
+                await load;
+                ((IDisposable)home).Dispose();
+            }
+        });
+        Case("聚合主页：接下来看按来源先出，慢来源到达后合并总数", async () =>
+        {
+            using var fixture = new Fixture(shell, 2, secondSource: true);
+            fixture.Settings.Settings.AggregateMode = false;
+            fixture.Transport.NextUpRows["a"] = [ResumeItem("a-n0"), ResumeItem("a-n1")];
+            fixture.Transport.NextUpRows["b"] = [ResumeItem("b-n0"), ResumeItem("b-n1")];
+            var slow = fixture.Transport.HomeNextUpGates["b"] = new Gate(true);
+            var home = fixture.CreateLoadingHome();
+            var load = fixture.LoadHome(home);
+            try
+            {
+                await UntilAsync(() => HasRow(fixture, home, "接下来看") && RowIds(fixture, home, "接下来看").Length == 2,
+                    "A 来源的接下来看应先上屏");
+                Assert.Equal("a-n0,a-n1", string.Join(',', RowIds(fixture, home, "接下来看")));
+                Assert.Equal("2 项", shell.Get<string>(fixture.HomeShelf(home, "接下来看"), "Note"));
+                Assert.False(load.IsCompleted);
+
+                slow.Release.TrySetResult();
+                await load;
+
+                Assert.Equal("a-n0,b-n0,a-n1,b-n1", string.Join(',', RowIds(fixture, home, "接下来看")));
+                Assert.Equal("4 项", shell.Get<string>(fixture.HomeShelf(home, "接下来看"), "Note"));
+            }
+            finally
+            {
+                slow.Release.TrySetResult();
+                await load;
+                ((IDisposable)home).Dispose();
+            }
+        });
+        Case("聚合主页：后台核对等全部来源成功才发布", async () =>
+        {
+            using var fixture = new Fixture(shell, 2, secondSource: true);
+            var store = new BrowseSnapshotStore();
+            var first = fixture.CreateLoadingHome(snapshots: store);
+            try
+            {
+                await fixture.LoadHome(first);
+                await Supplement(first);
+            }
+            finally { ((IDisposable)first).Dispose(); }
+
+            fixture.Transport.Rows["a"].Add(ResumeItem("a-extra"));
+            var second = fixture.CreateLoadingHome(snapshots: store);
+            try
+            {
+                Assert.True((bool)shell.Invoke(second, "RestoreSnapshot")!);
+                var oldIds = RowIds(fixture, second, "继续观看");
+                var slow = fixture.Transport.HomeResumeGates["b"] = new Gate(true);
+                var refresh = (Task)shell.Invoke(second, "BackgroundRefreshAsync")!;
+                try
+                {
+                    await slow.Entered.Task;
+                    await Task.Delay(100);
+                    Assert.True(oldIds.SequenceEqual(RowIds(fixture, second, "继续观看")), "慢来源未回时不能发布部分结果");
+
+                    slow.Release.TrySetResult();
+                    await refresh;
+
+                    Assert.True(RowIds(fixture, second, "继续观看").Contains("a-extra"), "全部成功后才发布新内容");
+                }
+                finally
+                {
+                    slow.Release.TrySetResult();
+                    await refresh;
+                }
+            }
+            finally { ((IDisposable)second).Dispose(); }
+        });
+        Case("聚合主页：后台核对失败保留暖缓存内容", async () =>
+        {
+            using var fixture = new Fixture(shell, 2, secondSource: true);
+            var store = new BrowseSnapshotStore();
+            var first = fixture.CreateLoadingHome(snapshots: store);
+            try
+            {
+                await fixture.LoadHome(first);
+                await Supplement(first);
+            }
+            finally { ((IDisposable)first).Dispose(); }
+
+            var second = fixture.CreateLoadingHome(snapshots: store);
+            try
+            {
+                Assert.True((bool)shell.Invoke(second, "RestoreSnapshot")!);
+                var oldIds = RowIds(fixture, second, "继续观看");
+                fixture.Transport.FailHomeResumeHosts.Add("b");
+
+                await (Task)shell.Invoke(second, "BackgroundRefreshAsync")!;
+
+                Assert.True(oldIds.SequenceEqual(RowIds(fixture, second, "继续观看")), "失败时保留暖缓存内容");
+                Assert.True(shell.Get<bool>(second, "NoticeOpen"), "后台失败应提示");
+                Assert.Equal("继续观看", shell.Get<string>(second, "NoticeTitle"));
+            }
+            finally { ((IDisposable)second).Dispose(); }
+        });
         return TestHarness.Run();
 
         IEnumerable<object> Rows(object home) => ((IEnumerable)shell.Get<object>(home, "Shelves")).Cast<object>();
         Task Supplement(object home) => (Task)home.GetType().GetField("_supplement",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(home)!;
+        bool HasRow(Fixture fixture, object home, string title) => fixture.HomeShelfTitles(home).Contains(title);
+        string[] RowIds(Fixture fixture, object home, string title) =>
+            ((IEnumerable)shell.Get<object>(fixture.HomeShelf(home, title), "Cards")).Cast<object>()
+                .Select(card => shell.Get<EmbyItem>(card, "Item").Id).ToArray();
+        IEnumerable<object> Slides(object home) =>
+            ((IEnumerable)shell.Get<object>(home, "Slides")).Cast<object>();
+        EmbyItem ResumeItem(string id) => new()
+        {
+            Id = id,
+            Name = id,
+            Type = EmbyItemType.Episode,
+            SeriesId = "series-" + id,
+            IndexNumber = 1,
+            ParentIndexNumber = 1,
+            RunTimeTicks = TimeSpan.FromMinutes(20).Ticks,
+            UserData = new EmbyUserData { PlaybackPositionTicks = TimeSpan.FromMinutes(5).Ticks }
+        };
+        async Task UntilAsync(Func<bool> condition, string message)
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            while (!condition())
+            {
+                if (clock.Elapsed > TimeSpan.FromSeconds(15)) throw new AssertionException(message);
+                await Task.Delay(5);
+            }
+        }
     }
 
     private static void Case(string name, Func<Task> body) => Test(name, () => SingleThread.Run(body));

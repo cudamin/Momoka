@@ -70,8 +70,8 @@ public sealed partial class HomeViewModel : PageViewModel
     /// <summary>
     /// 「接下来看」那一排的服务器总数（所有在线来源相加），牌子右端写它，不写货架上那 12 张预览。
     /// 2026-11-03 用户报「网页端的接下来看不止 12 项，momoka 识别有误」：12 只是这一排的取数上限，
-    /// 服务器实际有多少项由 <c>Shows/NextUp</c> 回包里的 <c>TotalRecordCount</c> 说（见 FetchNextUpAsync）。
-    /// 读不出来（接口没给总数）时留在 0，牌子退回卡片张数。
+    /// 服务器实际有多少项由 <c>Shows/NextUp</c> 回包里的 <c>TotalRecordCount</c> 说（见
+    /// <see cref="LoadAsync"/> 里的 ReadNextUpSourceAsync）。读不出来（接口没给总数）时留在 0，牌子退回卡片张数。
     /// </summary>
     private int _nextUpTotal;
 
@@ -845,6 +845,41 @@ public sealed partial class HomeViewModel : PageViewModel
     private string SourceName(string key) =>
         _sources.FirstOrDefault(scope => scope.Key == key)?.DisplayName ?? key;
 
+    /// <summary>
+    /// 一排在这一趟里的读取状态：按来源分片，每一片到达就按现有的轮流规则合并。不是每一排都真有多个来源 ——
+    /// 媒体库自己的那几排各只有一个，媒体库那一排没有请求（<see cref="Parts"/> 为空）。
+    /// </summary>
+    private sealed class RowRead(HomeRowPlan row, CardShelf shelf, int sources)
+    {
+        public HomeRowPlan Row { get; } = row;
+        public CardShelf Shelf { get; } = shelf;
+        public List<EmbyItem>?[] Parts { get; } = new List<EmbyItem>?[sources];
+        public int Remaining { get; set; } = sources;
+
+        /// <summary>「接下来看」各来源回包里的 <c>TotalRecordCount</c> 之和；别的排不用。</summary>
+        public int Total { get; set; }
+
+        public bool Complete => Remaining == 0;
+    }
+
+    /// <summary>
+    /// 按各来源轮流取一项连成一排 —— 和 <see cref="FetchAsync"/> 一直是同一条规则，只是现在可以在来源还没到齐时
+    /// 先拿已到的几片算一遍。没到的片按空表算；最后一片到达后的结果与整排等齐时完全一致。
+    /// </summary>
+    private static List<EmbyItem> MergeParts(IReadOnlyList<List<EmbyItem>?> parts)
+    {
+        var longest = 0;
+        foreach (var part in parts)
+            if (part is { Count: > 0 }) longest = Math.Max(longest, part.Count);
+
+        var items = new List<EmbyItem>();
+        for (var index = 0; index < longest; index++)
+            foreach (var part in parts)
+                if (part is { Count: > 0 } && index < part.Count) items.Add(part[index]);
+
+        return items;
+    }
+
     private async Task LoadAsync(bool refreshSlides = true)
     {
         var quiet = _quietLoad;
@@ -858,14 +893,111 @@ public sealed partial class HomeViewModel : PageViewModel
         refreshSlides = _refresh.NeedsSlides(refreshSlides);
         if (!quiet) Subheading = "正在读取…";
 
-        // Started together rather than awaited one after another: a round trip per row in sequence is
-        // a page that takes a second per shelf, and none of them depends on another's answer.
-        var resume = Visible(HomeLayout.Resume)
-            ? FetchAsync("继续观看", (client, ct) => client.GetResumeAsync(ShelfSize, ct), token)
-            : Task.FromResult(new List<EmbyItem>());
-        var nextUp = Visible(HomeLayout.NextUp)
-            ? FetchNextUpAsync(token)
-            : Task.FromResult((Items: new List<EmbyItem>(), Total: 0));
+        // 每一排这一趟的读取状态。各排、各来源的请求照旧一起发出去；新的地方在于不再等所有请求齐了才
+        // 统一落屏 —— 哪一片先回来，就先把这一排按现有轮流合并规则重算一遍。
+        var loads = new List<RowRead>(_all.Length);
+        var loadsByKey = new Dictionary<string, RowRead>(StringComparer.Ordinal);
+        var pending = new List<Task>();
+
+        RowRead Track(HomeRowPlan row, CardShelf shelf, int sourcesCount)
+        {
+            var load = new RowRead(row, shelf, sourcesCount);
+            loads.Add(load);
+            loadsByKey[row.Key] = load;
+            return load;
+        }
+
+        // 一排装什么由它那把钥匙说，不再是「数组第几个」—— 次序现在是用户拖出来的，位置说明不了任何事。
+        // 轮播不在这张表里：它认的是 latest 那一次请求，跟这几排谁勾谁不勾、拖成什么次序都没有关系。
+        IReadOnlyList<EmbyItem> ItemsOf(RowRead load) =>
+            load.Row.Key == HomeLayout.Libraries ? _libraryViews : WithoutMusic(MergeParts(load.Parts));
+
+        IReadOnlyList<EmbyItem> Items(string key) =>
+            loadsByKey.TryGetValue(key, out var load) ? ItemsOf(load) : [];
+
+        // 库排的读数用库的总条目数，不是货架张数 —— 货架上限 24，牌子上写「24 项」会被读成
+        // 「库里只有 24 项」。飞牛读 mediadb/sum（见 FnNasMediaAdapter.GetViewsAsync）；Emby／Jellyfin 读
+        // 本趟问回来的 TotalRecordCount（见 LibraryTotal 与 FetchTotalAsync）。两边都读不出来时退回卡片张数。
+        string? LibraryNote(string key)
+        {
+            if (HomeLayout.LibraryId(key) is not { Length: > 0 }) return null;
+            if (_libraryViews.FirstOrDefault(library => HomeLayout.LibraryKey(library) == key) is not { } library) return null;
+            if (library.Source?.Connection.IsFnNas == true && library.RecursiveItemCount is > 0 and var count)
+                return $"{count} 项";
+            return _libraryTotals.TryGetValue(key, out var total) && total > 0 ? $"{total} 项" : null;
+        }
+
+        // 媒体库那一排的第二行空着：一个库自己的 CardSubtitle 就是「媒体库」三个字，而那正是这一排牌子上写的
+        // 词（同 CardItem 那个 subtitle 参数上写的演职人员那条 —— 一整排卡片底下重复一遍排名，一个字的信息
+        // 都不多）。空串而不是 null：null 是「按条目自己算」。多账号时卡片标题前面写服务器名，和货架标题
+        // 同一份来源。
+        // 继续观看的剧名在上、季集与集名在下；同一排换成下一集时沿用这两个选择器。
+        // 增量填充：身份和展示指纹都没变的卡留着，只动真正变了的那些。后台刷新因此不会把整页海报
+        // 拆了重装，暖缓存命中时也只是把现成条目接回原来的集合。
+        void ApplyShelf(HomeRowPlan row, CardShelf shelf, IReadOnlyList<EmbyItem> items)
+        {
+            shelf.Apply(items, ShelfSubtitle(row.Key), ShelfTitle(row.Key));
+            shelf.NoteOverride = row.Key == HomeLayout.NextUp
+                ? _nextUpTotal > 0 ? $"{_nextUpTotal} 项" : null
+                : LibraryNote(row.Key);
+        }
+
+        void PublishRow(RowRead load)
+        {
+            if (!IsCurrent(token)) return;
+
+            var items = ItemsOf(load);
+
+            // 慢来源还没回来时，空结果先不落屏：否则这一排会先被清掉、等最后一片回来再长回去。
+            if (items.Count == 0 && load.Parts.Length > 0 && !load.Complete) return;
+
+            ApplyShelf(load.Row, load.Shelf, items);
+            PublishShelves();
+            LoadedCount = _all.Where(entry => entry.Row.Key != HomeLayout.Libraries)
+                .Sum(entry => entry.Shelf.Cards.Count);
+        }
+
+        async Task ReadRowSourceAsync(RowRead load, int index, string what,
+            Func<EmbyClient, CancellationToken, Task<List<EmbyItem>>> operation, EmbySessionScope? source = null)
+        {
+            var scope = source ?? _sources[index];
+            var items = await FetchSourceAsync(scope, what, operation, token).ConfigureAwait(true);
+            load.Parts[index] = items;
+            load.Remaining--;
+            if (quiet || !IsCurrent(token)) return;
+            PublishRow(load);
+        }
+
+        // 「接下来看」多带一份服务器总数，错误处理保持原样：只记一条、空手回来、不拖累整页，也不计入
+        // 后台核对的失败路数（那一排天然可能是空的）。
+        async Task ReadNextUpSourceAsync(RowRead load, int index)
+        {
+            var scope = _sources[index];
+            try
+            {
+                if (!Live || !scope.IsAvailable) return;
+                var result = await scope
+                    .ExecuteAsync((client, ct) => client.QueryNextUpAsync(0, ShelfSize, ct), token)
+                    .ConfigureAwait(true);
+                load.Parts[index] = result.Items;
+                load.Total += result.TotalRecordCount;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch (Exception error)
+            {
+                Log.Warn(Category, $"读取{scope.DisplayName}的接下来看失败", error);
+                if (IsCurrent(token) && !NoticeOpen) Report("接下来看", error);
+            }
+            finally
+            {
+                load.Parts[index] ??= [];
+                load.Remaining--;
+                _nextUpTotal = loads.Where(state => state.Row.Key == HomeLayout.NextUp).Sum(state => state.Total);
+                if (!quiet && IsCurrent(token)) PublishRow(load);
+            }
+        }
 
         // 轮播自己的那一次请求（2026-09-13「轮播图改用前十个最近添加」；同日补上设置里的四行 ——
         // 「新增在设置中设置轮播图要使用什么媒体，和要使用最近添加还是随机的还有数量的选项。还有封面的
@@ -906,11 +1038,40 @@ public sealed partial class HomeViewModel : PageViewModel
         // 媒体库那几排各问一次自己那个库的最近添加。只问勾着的那几排 —— 勾掉一排就是连这次请求一起省掉。
         // 整个服务器的「最近添加」那一排 2026-09-12 从版面上退役了，但它没有断请求 —— 轮播 2026-09-13 起
         // 单独问一次（见上面 latest）。
-        var perLibrary = new Dictionary<string, Task<List<EmbyItem>>>(StringComparer.Ordinal);
         var libraryTotals = new Dictionary<string, Task<int>>(StringComparer.Ordinal);
         foreach (var (row, shelf) in _all)
         {
-            if (!row.Visible || HomeLayout.LibraryId(row.Key) is not { Length: > 0 } id) continue;
+            if (!row.Visible)
+            {
+                // 后台核对失败时要保留暖缓存内容，所以清空留到确认这一趟能发布之后。
+                if (!quiet) shelf.Clear();
+                continue;
+            }
+
+            // 媒体库那一排没有请求：这一排就是外壳已经读到的账号库列表，先把它摆出来。
+            if (row.Key == HomeLayout.Libraries)
+            {
+                var librariesLoad = Track(row, shelf, 0);
+                if (!quiet) PublishRow(librariesLoad);
+                continue;
+            }
+
+            // 继续观看和接下来看跨所有来源；每个来源一片，先到的先上屏。
+            if (row.Key is HomeLayout.Resume or HomeLayout.NextUp)
+            {
+                var load = Track(row, shelf, _sources.Count);
+                for (var index = 0; index < _sources.Count; index++)
+                {
+                    var sourceIndex = index;
+                    pending.Add(row.Key == HomeLayout.Resume
+                        ? ReadRowSourceAsync(load, sourceIndex, "继续观看",
+                            (client, ct) => client.GetResumeAsync(ShelfSize, ct))
+                        : ReadNextUpSourceAsync(load, sourceIndex));
+                }
+                continue;
+            }
+
+            if (HomeLayout.LibraryId(row.Key) is not { Length: > 0 } id) continue;
             if (_libraryViews.FirstOrDefault(library => HomeLayout.LibraryKey(library) == row.Key) is not { } library) continue;
 
             // Jellyfin 的剧集库走 /Items/Latest 会只认单集、电影：只有剧集（还没扫出单集）的库回空表，
@@ -920,11 +1081,16 @@ public sealed partial class HomeViewModel : PageViewModel
             // 飞牛的「最近添加」要带类型：不带时服务器把单集也发回来，货架上并排摆着剧和它自己的某一集
             // （2026-10-25 用户令「不要再显示单集封面」）。见 HomeLatest.LibraryTypes。
             var types = HomeLatest.LibraryTypes(library);
-            perLibrary[row.Key] = HomeLatest.UsesSeriesQuery(library)
-                ? FetchAsync(title, async (client, ct) =>
-                    (await client.GetItemsAsync(HomeLatest.SeriesQuery(id, LatestSize), ct).ConfigureAwait(true)).Items,
-                    token, source)
-                : FetchAsync(title, (client, ct) => client.GetLatestAsync(id, LatestSize, ct, types), token, source);
+            var libraryLoad = Track(row, shelf, source is null ? 0 : 1);
+            if (source is not null)
+            {
+                pending.Add(HomeLatest.UsesSeriesQuery(library)
+                    ? ReadRowSourceAsync(libraryLoad, 0, title, async (client, ct) =>
+                        (await client.GetItemsAsync(HomeLatest.SeriesQuery(id, LatestSize), ct).ConfigureAwait(true)).Items,
+                        source)
+                    : ReadRowSourceAsync(libraryLoad, 0, title,
+                        (client, ct) => client.GetLatestAsync(id, LatestSize, ct, types), source));
+            }
 
             // 牌子右端的读数：库一共有多少项，不是这一排装了多少张（见 _libraryTotals）。
             if (LibraryTotal.Query(library) is { } countQuery)
@@ -946,9 +1112,20 @@ public sealed partial class HomeViewModel : PageViewModel
                 .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
         }
 
+        // 轮播清单不等慢排：自己的列表和补图回来就发布。后台核对那一档仍走「全部成功才发布」的旧规矩，
+        // 所以这里只服务首次读取和手动刷新。
+        async Task PublishSlidesWhenReadyAsync()
+        {
+            if (quiet || !refreshSlides || !_banner) return;
+            var newest = WithoutMusic(await latest.ConfigureAwait(true));
+            if (!IsCurrent(token)) return;
+            Slides = BuildSlides(newest, carouselCount);
+        }
+
+        _ = PublishSlidesWhenReadyAsync();
+
         // 库总数和定时检查的基线是辅助读数：慢来源不能让已经取到的内容一直留在加载状态。
-        await Task.WhenAll(perLibrary.Values.Cast<Task>()
-            .Append(resume).Append(nextUp).Append(latest)).ConfigureAwait(true);
+        await Task.WhenAll(pending.Append<Task>(latest)).ConfigureAwait(true);
 
         if (!IsCurrent(token)) return;
 
@@ -978,46 +1155,10 @@ public sealed partial class HomeViewModel : PageViewModel
             return;
         }
 
-        // 继续观看 and 接下来看 span every item the account has touched — music included. This app has no
-        // music face, so a track card would open onto nothing; the rows are filtered here rather than by
-        // asking the server, because Emby's own endpoints for these two take no type filter. Each library
-        // row's own latest list is filtered the same way, at Items below.
-        var resumed = WithoutMusic(resume.Result);
-        var next = WithoutMusic(nextUp.Result.Items);
-        _nextUpTotal = nextUp.Result.Total;
+        _nextUpTotal = loadsByKey.TryGetValue(HomeLayout.NextUp, out var nextUpLoad) ? nextUpLoad.Total : 0;
 
-        // 轮播那份（见上面 latest）同样滤掉音乐类：这条带只站电影和剧集。「全部媒体」那一档音乐从来
-        // 进不了最近添加的前排，这层滤网在；「随机」那一档请求侧就没有音乐，它白跑一遍。
-        var newest = WithoutMusic(latest.Result);
-
-        // 一排装什么由它那把钥匙说，不再是「数组第几个」—— 次序现在是用户拖出来的，位置说明不了任何事。
-        // 轮播不在这张表里：它认的是 latest 那一次请求，跟这几排谁勾谁不勾、拖成什么次序都没有关系。
-        IReadOnlyList<EmbyItem> Items(string key) => key switch
-        {
-            HomeLayout.Resume => resumed,
-            HomeLayout.Libraries => _libraryViews,
-            HomeLayout.NextUp => next,
-            _ => perLibrary.TryGetValue(key, out var library) ? WithoutMusic(library.Result) : []
-        };
-
-        // 库排的读数用库的总条目数，不是货架张数 —— 货架上限 24，牌子上写「24 项」会被读成
-        // 「库里只有 24 项」。飞牛读 mediadb/sum（见 FnNasMediaAdapter.GetViewsAsync）；Emby／Jellyfin 读
-        // 本趟问回来的 TotalRecordCount（见 LibraryTotal 与 FetchTotalAsync）。两边都读不出来时退回卡片张数。
-        string? LibraryNote(string key)
-        {
-            if (HomeLayout.LibraryId(key) is not { Length: > 0 }) return null;
-            if (_libraryViews.FirstOrDefault(library => HomeLayout.LibraryKey(library) == key) is not { } library) return null;
-            if (library.Source?.Connection.IsFnNas == true && library.RecursiveItemCount is > 0 and var count)
-                return $"{count} 项";
-            return _libraryTotals.TryGetValue(key, out var total) && total > 0 ? $"{total} 项" : null;
-        }
-
-        // 各媒体库自己那排按版面次序连成的一串。从前轮播的补位从这儿来，2026-09-13 轮播改用整服最近添加
-        // （见上面 latest）之后，这一串只剩一个读者：LoadedCount 的那个数。
-        List<EmbyItem> added = [.. _all
-            .Where(entry => HomeLayout.LibraryId(entry.Row.Key) is not null)
-            .SelectMany(entry => Items(entry.Row.Key))];
-
+        // 收尾再按最终分片重算一遍：逐片回填时中途的次序只代表「当时到了哪几片」，这里落定的是与整排等齐
+        // 时完全相同的结果；后台核对成功的那一档也在这里一次性发布。
         foreach (var (row, shelf) in _all)
         {
             if (!row.Visible)
@@ -1026,22 +1167,27 @@ public sealed partial class HomeViewModel : PageViewModel
                 continue;
             }
 
-            // 媒体库那一排的第二行空着：一个库自己的 CardSubtitle 就是「媒体库」三个字，而那正是这一排牌子上写的
-            // 词（同 CardItem 那个 subtitle 参数上写的演职人员那条 —— 一整排卡片底下重复一遍排名，一个字的信息
-            // 都不多）。空串而不是 null：null 是「按条目自己算」。多账号时卡片标题前面写服务器名，和货架标题
-            // 同一份来源。
-            // 继续观看的剧名在上、季集与集名在下；同一排换成下一集时沿用这两个选择器。
-            // 增量填充：身份和展示指纹都没变的卡留着，只动真正变了的那些。后台刷新因此不会把整页海报
-            // 拆了重装，暖缓存命中时也只是把现成条目接回原来的集合。
-            shelf.Apply(Items(row.Key), ShelfSubtitle(row.Key), ShelfTitle(row.Key));
-            shelf.NoteOverride = row.Key == HomeLayout.NextUp
-                ? _nextUpTotal > 0 ? $"{_nextUpTotal} 项" : null
-                : LibraryNote(row.Key);
+            ApplyShelf(row, shelf, Items(row.Key));
         }
 
-        // 装到了东西的排一律横着排。媒体库也在其中 —— 2026-09-08「移除轮播图右边的媒体库」之后不再单挑出来当
-        // 右栏，就跟别的几排一样站在它自己在版面表上的位置上。
         PublishShelves();
+
+        // 继续观看 and 接下来看 span every item the account has touched — music included. This app has no
+        // music face, so a track card would open onto nothing; the rows are filtered here rather than by
+        // asking the server, because Emby's own endpoints for these two take no type filter. Each library
+        // row's own latest list is filtered the same way, at Items.
+        var resumed = Items(HomeLayout.Resume);
+        var next = Items(HomeLayout.NextUp);
+
+        // 轮播那份（见上面 latest）同样滤掉音乐类：这条带只站电影和剧集。「全部媒体」那一档音乐从来
+        // 进不了最近添加的前排，这层滤网在；「随机」那一档请求侧就没有音乐，它白跑一遍。
+        var newest = WithoutMusic(latest.Result);
+
+        // 各媒体库自己那排按版面次序连成的一串。从前轮播的补位从这儿来，2026-09-13 轮播改用整服最近添加
+        // （见上面 latest）之后，这一串只剩一个读者：LoadedCount 的那个数。
+        List<EmbyItem> added = [.. _all
+            .Where(entry => HomeLayout.LibraryId(entry.Row.Key) is not null)
+            .SelectMany(entry => Items(entry.Row.Key))];
 
         // 需求 5 → 2026-09-13「轮播图改用前十个最近添加」，同日下午张数进了设置：轮播不再站在继续观看上，
         // 只站设置里那个来源发回来的头若干张（筛掉没有宽图、并掉同一部剧，是 HomeCarousel 的事）。关掉轮播
@@ -1308,44 +1454,6 @@ public sealed partial class HomeViewModel : PageViewModel
         _realtimeDirty = false;
         lock (_realtimeSources) _realtimeSources.Clear();
         base.Cancel();
-    }
-
-    /// <summary>
-    /// 「接下来看」那一排的取数：和别的排一样轮着取各来源的前几项，另外把每个来源回包里的
-    /// <c>TotalRecordCount</c> 加起来 —— 那一排只摆 <see cref="ShelfSize"/> 张预览，但牌子右端要说服务器
-    /// 实际的项数（见 <see cref="_nextUpTotal"/>）。失败与别的排同一套：记一条、空手回来、不拖累整页。
-    /// </summary>
-    private async Task<(List<EmbyItem> Items, int Total)> FetchNextUpAsync(CancellationToken token)
-    {
-        var reads = await Task.WhenAll(_sources.Select(ReadAsync)).ConfigureAwait(true);
-        var items = new List<EmbyItem>();
-        // 和其它排同一套轮流取法：默认账号不能填满这一排、让其他来源永远看不到。
-        for (var index = 0; reads.Any(read => read.Items.Count > index); index++)
-            foreach (var read in reads)
-                if (index < read.Items.Count) items.Add(read.Items[index]);
-        return (items, reads.Sum(read => read.Total));
-
-        async Task<(List<EmbyItem> Items, int Total)> ReadAsync(EmbySessionScope scope)
-        {
-            try
-            {
-                if (!Live || !scope.IsAvailable) return ([], 0);
-                var result = await scope
-                    .ExecuteAsync((client, ct) => client.QueryNextUpAsync(0, ShelfSize, ct), token)
-                    .ConfigureAwait(true);
-                return (result.Items, result.TotalRecordCount);
-            }
-            catch (OperationCanceledException)
-            {
-                return ([], 0);
-            }
-            catch (Exception error)
-            {
-                Log.Warn(Category, $"读取{scope.DisplayName}的接下来看失败", error);
-                if (IsCurrent(token) && !NoticeOpen) Report("接下来看", error);
-                return ([], 0);
-            }
-        }
     }
 
     /// <summary>
