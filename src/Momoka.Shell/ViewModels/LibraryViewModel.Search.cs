@@ -235,6 +235,7 @@ public sealed partial class LibraryViewModel
         var scope = item?.Source ?? _scope;
         if (!_active || scope is not { IsAvailable: true } || _request?.IsSearch != true || _settings is null) return;
         RecentSearch.Remember(_settings.Settings.Ui, scope.Connection, SearchText, item);
+        _recentLoaded = false;
         SaveSearchHistory();
     }
 

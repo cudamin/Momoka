@@ -1336,6 +1336,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         await loading.ConfigureAwait(true);
         if (!QueryCurrent(queryToken) || !ReferenceEquals(_request, request) || request.SearchTerm != query || _pageFailed) return;
         if (remember && query.Length > 0) RememberSearch();
+        // 记住一条搜索会让按需加载失效；提交空查询时再把刚记住/刚打开过的条目摆出来。
         if (query.Length == 0) EnsureRecentSearches();
     }
 
