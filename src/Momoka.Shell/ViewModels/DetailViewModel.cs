@@ -2128,6 +2128,10 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 这一条对剧页和集页同时成立：集页那张卡由 <see cref="LoadSeasonShelfAsync"/> 填（同日用户令「集页面也加上
     /// 全部剧季卡片」），单季的集页因此也不会画出这一块。电影、季两页的季卡永远是空的，整块收着。
     /// </para>
+    /// <para>
+    /// 卡带里从 2026-11-03 晚起也列第 0 季（用户令要 S00 的封面），所以「一季正片 + 特别篇」的剧页、集页
+    /// 会画出这一块 —— 那两张卡指向两个不同的季页面，不是同一张卡摆两遍。
+    /// </para>
     /// </summary>
     public Visibility SeasonShelfVisibility => Show(SeasonShelf is { Cards.Count: > 1 });
 
@@ -2966,9 +2970,10 @@ public sealed partial class DetailViewModel : PageViewModel
         }
         finally { _syncingSeason = false; }
 
-        // 剧页的「全部剧季」只列正片季；第 0 季的集归集列表下面那张特别篇卡（2026-11-03 用户令），
-        // 没给特别篇留第二张一模一样的季卡。集页也照同一个判据。
-        SeasonShelf?.Fill(seasons.Where(season => season.IndexNumber != 0), ItemDetail.SeasonSubtitle);
+        // 「全部剧季」列服务器给的全部季，第 0 季（特别篇）也在里面 —— 2026-11-03 晚用户令「全部剧集卡片要
+        // 显示特别篇（S00季）的封面」，原先把第 0 季滤掉的那一刀因此撤掉。顺序照服务器给的那一份（第 0 季
+        // 在最前），和集列表牌子的季菜单同源；集列表下面那一排特别篇仍只装第 0 季的集，两个入口各说各的。
+        SeasonShelf?.Fill(seasons, ItemDetail.SeasonSubtitle);
 
         // 特别篇那一排由 LoadEpisodesAsync 用第 0 季的集填 —— 它手上的全季列表已经含特别篇，
         // 不必再为这一块单独问一趟季清单。没有第 0 季时那里会清空，整块在 SpecialShelfVisibility 处收起。
@@ -2985,8 +2990,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 在一个没有选择器的页面上说「有」。
     /// </para>
     /// <para>
-    /// 卡片几张才画归 <see cref="SeasonShelfVisibility"/>（两张以上）；这里只填正片季，单季的集页据此整块收起 ——
-    /// 和剧页同一条令。第 0 季归特别篇那一排，不在这张卡里重复。
+    /// 卡片几张才画归 <see cref="SeasonShelfVisibility"/>（两张以上）；列的是服务器给的全部季，第 0 季也在
+    /// 里面（2026-11-03 晚用户令要它的封面），所以「一季正片 + 特别篇」的集页也会画出这张卡。
     /// </para>
     /// <para>
     /// 失败当「这部剧没有季清单」：少一张卡，不是这一页加载失败（同 <see cref="LoadSimilarAsync"/>）。
@@ -3006,10 +3011,10 @@ public sealed partial class DetailViewModel : PageViewModel
                 .ExecuteAsync((client, ct) => client.GetSeasonsAsync(series, ct), token).ConfigureAwait(true);
             if (!IsCurrent(token)) return;
 
-            // 同剧页：已经删掉的那一季不再摆一张通往空页面的卡（判据在 WasDeleted）；第 0 季归集列表
-            // 下面那排特别篇，不在「全部剧季」里重复（2026-11-03）。
+            // 同剧页：已经删掉的那一季不再摆一张通往空页面的卡（判据在 WasDeleted）；第 0 季照旧列进来 ——
+            // 2026-11-03 晚用户令要它的封面出现在这张卡上，上面那排特别篇只是集的快捷入口，不是它的替身。
             seasons.RemoveAll(WasDeleted);
-            shelf.Fill(seasons.Where(season => season.IndexNumber != 0), ItemDetail.SeasonSubtitle);
+            shelf.Fill(seasons, ItemDetail.SeasonSubtitle);
 
             // 集页的季列表和剧页共用同一支下拉；Seasons 填上之后，SelectedSeason 才能指向清单里的真季，
             // 而不是 LoadEpisodesAsync 用这一集自己的字段拼出来的临时锚点。
