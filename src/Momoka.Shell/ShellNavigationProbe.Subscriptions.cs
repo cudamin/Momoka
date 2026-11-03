@@ -451,7 +451,7 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
-            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "mp-subscription-related-layout.txt"), relatedReadings);
+            await File.WriteAllLinesAsync(Path.Combine(_options.Paths.LogDirectory, "mp-subscription-related-layout.txt"), relatedReadings);
             page.Release(); _root.Children.Remove(page); ResizeInspect(1420, 980);
         }
     }
