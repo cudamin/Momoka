@@ -1189,6 +1189,45 @@ internal static class EmbyTests
             Assert.Equal((1380d, 1500d), (sections[1].Start, sections[1].End));
         });
 
+        Test("条目：Jellyfin 媒体段只把片头片尾折成跳过区间", () =>
+        {
+            // Jellyfin 10.10 起用 MediaSegments 发布片头片尾，章节表里没有类型可认（ChapterInfo 没有
+            // MarkerType）。Recap/Preview/Commercial 都不该变成一颗「跳过」按钮。
+            var result = System.Text.Json.JsonSerializer.Deserialize<MediaSegmentsResult>(
+                """
+                {"Items":[
+                    {"Type":"Recap","StartTicks":0,"EndTicks":30000000},
+                    {"Type":"Intro","StartTicks":50000000,"EndTicks":950000000},
+                    {"Type":"Commercial","StartTicks":6000000000,"EndTicks":6100000000},
+                    {"Type":"Outro","StartTicks":13800000000,"EndTicks":14900000000}
+                ]}
+                """,
+                EmbyHttp.Json)!;
+
+            var markers = MediaSegments.ToSkipMarkers(result);
+
+            Assert.Equal(2, markers.Count);
+            Assert.Equal((ServerSkipMarkerKind.Opening, 5d, 95d),
+                (markers[0].Kind, markers[0].StartSeconds, markers[0].EndSeconds));
+            Assert.Equal((ServerSkipMarkerKind.Ending, 1380d, 1490d),
+                (markers[1].Kind, markers[1].StartSeconds, markers[1].EndSeconds));
+        });
+
+        Test("条目：媒体段缺终点或长度非正时不产生区间", () =>
+        {
+            var result = System.Text.Json.JsonSerializer.Deserialize<MediaSegmentsResult>(
+                """
+                {"Items":[
+                    {"Type":"Intro","StartTicks":50000000,"EndTicks":50000000},
+                    {"Type":"Outro","StartTicks":13800000000},
+                    {"Type":"Intro","StartTicks":-1,"EndTicks":950000000}
+                ]}
+                """,
+                EmbyHttp.Json)!;
+
+            Assert.Equal(0, MediaSegments.ToSkipMarkers(result).Count);
+        });
+
         Test("条目：单集标题带上剧名与集号", () =>
         {
             var episode = new EmbyItem

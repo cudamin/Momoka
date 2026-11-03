@@ -80,8 +80,14 @@ public sealed partial class PlexClient(PlexHttp http)
         RootAsync(PlexEndpoint.Api(c.ApiBase, "search" + Query([new("query", query)])),
             c.Call with { Headers = Page(start, size) }, ct);
 
+    /// <summary>
+    /// One item's metadata, with the two extras the detail request is worth carrying: <c>includeChapters</c>
+    /// for the seek bar (and the player's own fallback) and <c>includeMarkers</c> for Plex's intro/credits
+    /// markers. Plex omits both unless asked by name; neither costs another round trip here.
+    /// </summary>
     public Task<JsonObject> GetMetadataAsync(PlexConnection c, string ratingKey, CancellationToken ct = default) =>
-        RootAsync(PlexEndpoint.Api(c.ApiBase, "library/metadata/" + PlexEndpoint.Segment(ratingKey)), c.Call, ct);
+        RootAsync(PlexEndpoint.Api(c.ApiBase, "library/metadata/" + PlexEndpoint.Segment(ratingKey)
+            + Query([new("includeChapters", "1"), new("includeMarkers", "1")])), c.Call, ct);
 
     /// <summary>Seasons of a show, or episodes of a season — Plex serves both from <c>children</c>.</summary>
     public Task<JsonObject> GetChildrenAsync(PlexConnection c, string ratingKey, CancellationToken ct = default) =>

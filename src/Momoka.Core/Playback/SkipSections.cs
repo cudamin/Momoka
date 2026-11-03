@@ -62,19 +62,21 @@ public readonly record struct SkipSection(
 }
 
 /// <summary>
-/// Turns chapter marks into the two sections the 跳过 offer knows about: Emby's own marker data
-/// first, then — only for the kinds Emby did not mark — the player's chapter list.
+/// Turns chapter marks into the two sections the 跳过 offer knows about: the server's own detection
+/// first, then — only for the kinds the server did not mark — the player's chapter list.
 /// <para>
-/// The Emby half reads marker data and nothing else. Emby tags the entries it detected in the item's
+/// 「The server's own detection」 has three shapes behind one entry point. Emby tags entries in the item's
 /// <c>Chapters</c> field with <see cref="ChapterInfo.MarkerType"/>: an opening is <c>IntroStart</c> to
 /// the next <c>IntroEnd</c>, and the credits run from <c>CreditsStart</c> to the end of the file.
-/// Chapter titles and lengths are not consulted here — 「OP」 written in a chapter name is a release
-/// group's label, not proof that the server found titles there.
+/// Jellyfin publishes media segments and Plex publishes markers; both carry a start and an end, and both
+/// arrive in <see cref="EmbyItem.SkipMarkers"/>. Chapter titles and lengths are not consulted for a server
+/// section — 「OP」 written in a chapter name is a release group's label, not proof that the server found
+/// titles there.
 /// </para>
 /// <para>
 /// The player half follows chapterskip.lua from dyphire/mpv-config: a chapter title announces the
 /// opening or ending, and a chapter of 80–100 seconds sitting at the very start or end is inferred
-/// when no title does. It is only consulted for a kind Emby did not provide; see <see cref="Merge"/>.
+/// when no title does. It is only consulted for a kind the server did not provide; see <see cref="Merge"/>.
 /// </para>
 /// </summary>
 public static partial class SkipSectionPlanner
@@ -94,9 +96,64 @@ public static partial class SkipSectionPlanner
     public const double PlayerChapterMinimum = 80;
     public const double PlayerChapterMaximum = 100;
 
-    /// <summary>Every section Emby marked on <paramref name="item"/>.</summary>
-    public static IReadOnlyList<SkipSection> Resolve(EmbyItem? item) =>
-        item is null ? [] : Resolve(item.Chapters, TimeFormat.ToSeconds(item.RunTimeTicks));
+    /// <summary>
+    /// Every section the server marked on <paramref name="item"/>.
+    /// <para>
+    /// Two server shapes exist and both are read here: Jellyfin's media segments and Plex's markers
+    /// arrive in <see cref="EmbyItem.SkipMarkers"/> with both ends known, while Emby's own detection is
+    /// written into its chapter list as <c>IntroStart</c>/<c>IntroEnd</c>/<c>CreditsStart</c> entries.
+    /// The two never occur on the same item, and an item carrying neither yields nothing here — that is
+    /// the case the player's own chapter rules fill in, one kind at a time (see <see cref="Merge"/>).
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<SkipSection> Resolve(EmbyItem? item)
+    {
+        if (item is null) return [];
+        var duration = TimeFormat.ToSeconds(item.RunTimeTicks);
+        return item.SkipMarkers.Count > 0 ? Resolve(item.SkipMarkers, duration) : Resolve(item.Chapters, duration);
+    }
+
+    /// <summary>
+    /// Every section a server published as a segment with both ends — Jellyfin media segments and Plex
+    /// markers — in playing order.
+    /// <para>
+    /// An ending that arrived without a usable end runs to the item's run time, which is what
+    /// <c>CreditsStart</c> has always meant. An opening without one is dropped: there is no rule to
+    /// invent where the titles stop, and a button that jumps into the episode is worse than none.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<SkipSection> Resolve(IReadOnlyList<ServerSkipMarker> markers, double duration)
+    {
+        if (markers.Count == 0) return [];
+
+        var sections = new List<SkipSection>(markers.Count);
+        foreach (var marker in markers)
+        {
+            var start = marker.StartSeconds;
+            if (!double.IsFinite(start) || start < 0) continue;
+
+            var end = marker.EndSeconds;
+            if (!double.IsFinite(end) || end <= start + 0.5)
+            {
+                if (marker.Kind == ServerSkipMarkerKind.Opening || !(duration > start + 0.5)) continue;
+                end = duration;
+            }
+            else if (marker.Kind == ServerSkipMarkerKind.Ending && duration > start + 0.5)
+            {
+                end = Math.Min(end, duration);
+            }
+
+            if (end <= start + 0.5) continue;
+            sections.Add(new SkipSection(
+                marker.Kind == ServerSkipMarkerKind.Opening ? SkipSectionKind.Opening : SkipSectionKind.Ending,
+                start,
+                end,
+                marker.Kind == ServerSkipMarkerKind.Opening ? "片头" : "片尾"));
+        }
+
+        sections.Sort((left, right) => left.Start.CompareTo(right.Start));
+        return sections;
+    }
 
     /// <summary>
     /// Every section in a file of <paramref name="duration"/> seconds whose chapters carry these Emby

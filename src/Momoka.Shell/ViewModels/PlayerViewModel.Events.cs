@@ -628,19 +628,20 @@ public sealed partial class PlayerViewModel
         if (item is not null) _versionSwitchTarget = null;
         Tracks = [];
 
-        // Converted once and kept: the preview's still reads Emby's marks on every pointer move, and the
-        // 跳过 plan reads the marker kinds on the same list.
+        // Converted once and kept: the preview's still reads the server's chapter marks on every pointer
+        // move, and the 跳过 plan reads the marker kinds on the same list.
         _embyMarks = item is null ? [] : SkipSectionPlanner.FromEmby(item.Chapters);
         var runtime = TimeFormat.ToSeconds(item?.RunTimeTicks);
         _embySkipSections = item is null ? [] : SkipSectionPlanner.Resolve(item);
         _skips.Begin(_embySkipSections, runtime);
         if (item is not null)
         {
-            var emby = string.Join("；", _embySkipSections.Select(section =>
+            var server = string.Join("；", _embySkipSections.Select(section =>
                 $"{section.Kind} {section.Start:0.#}-{section.End:0.#}"));
             Log.Debug(Category,
-                $"跳过计划：Emby {_embySkipSections.Count} 段[{emby}]，条目章节 {item.Chapters.Count} 条"
-                + $"（标记 {item.Chapters.Count(chapter => !string.IsNullOrWhiteSpace(chapter.MarkerType))} 条），"
+                $"跳过计划：服务器 {_embySkipSections.Count} 段[{server}]，条目章节 {item.Chapters.Count} 条"
+                + $"（Emby 标记 {item.Chapters.Count(chapter => !string.IsNullOrWhiteSpace(chapter.MarkerType))} 条、"
+                + $"两端的服务端区间 {item.SkipMarkers.Count} 条），"
                 + $"模式 {Settings.Playback.SkipSections}");
         }
 

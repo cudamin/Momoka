@@ -19,6 +19,8 @@ Jellyfin Web uses `web/index.html#/dashboard` and `jellyfin_credentials`. Server
 
 The reference tables below record protocol differences, not live-server results. User-prefixed routes remain documented for older Jellyfin versions; inspect the 10.x/12.x branch before changing a path. The scratch contract patch is historical and is not a prerequisite.
 
+**片头片尾不在章节里。** Jellyfin 的 `ChapterInfo` 没有 Emby 的 `MarkerType`；`Fields=Chapters` 只回无类型的断点。10.10 起可跳过内容由媒体段发布：`GET /MediaSegments/{itemId}` → `{"Items":[{"Type":"Intro","StartTicks":…,"EndTicks":…}]}`，`Type ∈ Intro/Outro/Recap/Preview/Commercial/Unknown`。`EmbyClient.GetItemAsync` 只在详情请求（`Fields` 点名 `Chapters`）且 `EmbyConnection.SupportsMediaSegments`（10.10+）时读它，折成 `EmbyItem.SkipMarkers`；404 按「这台服务器没有」处理，播放器的章节规则继续兜底。只有 `Intro`/`Outro` 变成跳过按钮，商业、回顾与预告不产生按钮。来源：Jellyfin master 的 `MediaSegmentsController` / `MediaSegmentDto` 与官方 Media segments 文档（2026-11-03 核对）。
+
 ## Four things that break on contact
 
 ### 1. Do not append `/emby/` to a Jellyfin base

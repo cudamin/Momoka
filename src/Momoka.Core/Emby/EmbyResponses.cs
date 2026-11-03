@@ -226,6 +226,14 @@ public sealed record EmbyConnection(
     public bool IsProbedProduct => IsJellyfin || IsFnNas || IsPlex;
 
     public bool UsesJellyfin12Routes => IsJellyfin && (!Version.TryParse(ServerVersion?.Split('-')[0], out var version) || version.Major >= 12);
+
+    /// <summary>
+    /// Jellyfin 10.10 起才有媒体段（片头片尾）接口。版本读不出来时照试 —— 认错版本的代价只是一趟 404，
+    /// 而漏掉它会让整台服务器的片头片尾没有服务端来源。
+    /// </summary>
+    public bool SupportsMediaSegments => IsJellyfin
+        && (!Version.TryParse(ServerVersion?.Split('-')[0], out var version) || version >= new Version(10, 10));
+
     /// <summary>
     /// 这两条连接是不是「同一台服务器上的同一个人」。令牌不算：一次重新登录换的正是令牌，而换了令牌的还是他。
     /// <para>

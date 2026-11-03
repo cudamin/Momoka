@@ -3384,6 +3384,85 @@ internal static class PlaybackTests
             Assert.Equal((600d, 690d), (sections[1].Start, sections[1].End));
         });
 
+        Test("跳过：服务端给出两端的片头片尾直接采用", () =>
+        {
+            // Jellyfin 的媒体段与 Plex 的 marker 都带终点，不该再按「片尾到片长」推。
+            var item = Episode();
+            item.SkipMarkers =
+            [
+                new ServerSkipMarker(ServerSkipMarkerKind.Opening, 5, 95),
+                new ServerSkipMarker(ServerSkipMarkerKind.Ending, 1380, 1490)
+            ];
+
+            var sections = SkipSectionPlanner.Resolve(item);
+
+            Assert.Equal(2, sections.Count);
+            Assert.Equal((SkipSectionKind.Opening, 5d, 95d), (sections[0].Kind, sections[0].Start, sections[0].End));
+            Assert.Equal((SkipSectionKind.Ending, 1380d, 1490d), (sections[1].Kind, sections[1].Start, sections[1].End));
+            Assert.Equal("跳过片头", sections[0].Caption);
+            Assert.Equal("跳过片尾", sections[1].Caption);
+        });
+
+        Test("跳过：服务端区间优先于章节标记", () =>
+        {
+            // 两边都有时听服务端的 —— 章节标记只是 Emby 自己写进章节表的另一种服务端数据。
+            var item = Episode(
+                Chapter(0, null, "IntroStart"),
+                Chapter(90, null, "IntroEnd"));
+            item.SkipMarkers = [new ServerSkipMarker(ServerSkipMarkerKind.Ending, 1380, 1490)];
+
+            var sections = SkipSectionPlanner.Resolve(item);
+
+            Assert.Equal(1, sections.Count);
+            Assert.Equal(SkipSectionKind.Ending, sections[0].Kind);
+        });
+
+        Test("跳过：服务端片尾缺终点时放到片长，片头缺终点则不要", () =>
+        {
+            var item = Episode();
+            item.RunTimeTicks = TimeSpan.FromMinutes(25).Ticks;
+            item.SkipMarkers =
+            [
+                new ServerSkipMarker(ServerSkipMarkerKind.Opening, 10, 0),
+                new ServerSkipMarker(ServerSkipMarkerKind.Ending, 1400, 0)
+            ];
+
+            var sections = SkipSectionPlanner.Resolve(item);
+
+            Assert.Equal(1, sections.Count);
+            Assert.Equal(SkipSectionKind.Ending, sections[0].Kind);
+            Assert.Equal((1400d, 1500d), (sections[0].Start, sections[0].End));
+        });
+
+        Test("跳过：服务端片尾终点越界时收在片长上", () =>
+        {
+            var item = Episode();
+            item.RunTimeTicks = TimeSpan.FromMinutes(25).Ticks;
+            item.SkipMarkers = [new ServerSkipMarker(ServerSkipMarkerKind.Ending, 1380, 1600)];
+
+            var sections = SkipSectionPlanner.Resolve(item);
+
+            Assert.Equal((1380d, 1500d), (sections[0].Start, sections[0].End));
+        });
+
+        Test("跳过：服务端只给片头，播放器仍补片尾", () =>
+        {
+            // 这条钉的是第 1 条需求的正文：服务端缺哪一类，才轮到播放器补哪一类。
+            var server = new[] { new SkipSection(SkipSectionKind.Opening, 5, 95, "片头") };
+            var player = new[]
+            {
+                new SkipSection(SkipSectionKind.Opening, 0, 90, "片头", SkipSectionOrigin.Player),
+                new SkipSection(SkipSectionKind.Ending, 1380, 1440, "片尾", SkipSectionOrigin.Player)
+            };
+
+            var merged = SkipSectionPlanner.Merge(server, player);
+
+            Assert.Equal(2, merged.Count);
+            Assert.Equal(SkipSectionOrigin.Server, merged[0].Origin);
+            Assert.Equal(SkipSectionOrigin.Player, merged[1].Origin);
+            Assert.Equal("片尾", merged[1].Label);
+        });
+
         Test("跳过：章节表保持原样，标记项也要留给章节图索引", () =>
         {
             var marks = SkipSectionPlanner.FromEmby(

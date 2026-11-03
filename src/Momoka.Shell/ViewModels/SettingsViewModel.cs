@@ -1573,8 +1573,8 @@ public sealed partial class SettingsViewModel : PageViewModel
             Number("续播自动快退（秒）", 0, 120, () => playback.ResumeRewindSeconds, value => playback.ResumeRewindSeconds = value),
             Number("进度上报间隔（秒）", 1, 60, () => playback.ProgressReportIntervalSeconds, value => playback.ProgressReportIntervalSeconds = value),
             Choice("跳过片头片尾", SkipModes, () => playback.SkipSections, value => playback.SkipSections = value,
-                "优先用服务器（Emby）识别出的片头片尾；播放器只补 Emby 没标到、且不与服务器标记重叠的片段。"
-                + "同一段两边都标了时以服务器为准")
+                "优先用服务器识别出的片头片尾（Emby 的章节标记、Jellyfin 的媒体段、Plex 的标记）；"
+                + "服务器只标了其中一类时，缺的那一类由播放器按文件章节补。同一段两边都标了时以服务器为准")
         };
 
         var seekRows = new List<SettingRow>
