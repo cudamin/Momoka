@@ -127,6 +127,70 @@ internal static class LibraryResumePagingTests
             }
         });
 
+        Case("最近搜索：只有实际展示的空搜索页加载海报", async () =>
+        {
+            using var fixture = new Fixture(shell, 2, beforeAttach: seeded =>
+            {
+                var key = BrowsingPreferences.IdentityKey(seeded.Source("a").Connection);
+                seeded.Settings.Settings.Ui.RecentSearches[key] =
+                [
+                    new RecentSearchEntry
+                    {
+                        Term = "旧搜索",
+                        ItemId = "a-0",
+                        Name = "旧搜索条目",
+                        Type = "Movie",
+                        PrimaryImageTag = "poster"
+                    }
+                ];
+            });
+
+            Assert.Equal(0, Fixture.RecentSearchCount(fixture.Vm, shell), "普通媒体库 Attach 不能构造隐藏的最近搜索行");
+            var normal = fixture.CreateNormalView();
+            try
+            {
+                Assert.Equal(0, Fixture.RecentSearchCount(normal, shell), "重新进入普通媒体库仍不能构造最近搜索行");
+                await Task.Delay(120);
+                Assert.Equal(0, fixture.RequestCount, "普通媒体库不能为隐藏的最近搜索请求海报");
+            }
+            finally { ((IDisposable)normal).Dispose(); }
+
+            var withTerm = fixture.CreateSearchView("有词");
+            try
+            {
+                Assert.Equal(0, Fixture.RecentSearchCount(withTerm, shell), "有词搜索页不能加载隐藏的最近搜索");
+            }
+            finally { ((IDisposable)withTerm).Dispose(); }
+
+            var empty = fixture.CreateSearchView("");
+            try
+            {
+                Assert.True(Fixture.RecentSearchCount(empty, shell) > 0, "空搜索页要加载最近搜索");
+                var before = fixture.RequestCount;
+                await Task.Delay(150);
+                Assert.True(fixture.RequestCount > before, "空搜索页要为最近搜索请求海报");
+            }
+            finally { ((IDisposable)empty).Dispose(); }
+
+            var gated = fixture.CreateSearchView("有词");
+            try
+            {
+                var before = fixture.RequestCount;
+                shell.Invoke(gated, "SetEmbySourceActive", false);
+                await (Task)shell.Invoke(gated, "SearchAsync", "", false)!;
+                Assert.Equal(0, Fixture.RecentSearchCount(gated, shell), "非媒体库来源不能加载最近搜索");
+                await Task.Delay(120);
+                Assert.Equal(before, fixture.RequestCount, "非媒体库来源不能请求最近搜索海报");
+
+                shell.Invoke(gated, "SetEmbySourceActive", true);
+                var loaded = Fixture.RecentSearchCount(gated, shell);
+                Assert.True(loaded > 0, "切回媒体库来源后要恢复最近搜索");
+                shell.Invoke(gated, "SetEmbySourceActive", true);
+                Assert.Equal(loaded, Fixture.RecentSearchCount(gated, shell), "重复按需加载不能重复构造最近搜索");
+            }
+            finally { ((IDisposable)gated).Dispose(); }
+        });
+
         foreach (var playedAgain in new[] { false, true })
             Case($"主页已看回填：同屏副本改未看{(playedAgain ? "再已看" : "")}后只应用最新NextUp", async () =>
             {
@@ -672,6 +736,7 @@ internal static class LibraryResumePagingTests
         private bool _viewDisposed;
         public ResumeTransport Transport { get; } = new();
         public FakeSettings Settings { get; } = new();
+        public object Vm => _vm;
         public object Request => _vm.GetType().GetField("_request", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(_vm)!;
         public List<object> Cards => ((System.Collections.IEnumerable)Get<object>("Cards")).Cast<object>().ToList();
         public bool HasMore => Get<bool>("HasMore");
@@ -680,7 +745,8 @@ internal static class LibraryResumePagingTests
 
         public Fixture(ShellFixture shell, int count, bool secondSource = false, bool aggregate = false,
             bool favorites = false, MediaServerKind secondKind = MediaServerKind.Emby, bool thirdSource = false,
-            MediaServerKind firstKind = MediaServerKind.Emby, HomeLayout.HomeRowTarget row = HomeLayout.HomeRowTarget.Resume)
+            MediaServerKind firstKind = MediaServerKind.Emby, HomeLayout.HomeRowTarget row = HomeLayout.HomeRowTarget.Resume,
+            Action<Fixture>? beforeAttach = null)
         {
             _shell = shell;
             var settings = Settings;
@@ -695,6 +761,7 @@ internal static class LibraryResumePagingTests
             if (thirdSource) AddSource("c", count, device, MediaServerKind.FnNas);
             SelectDefault("a");
             _images = new EmbyImageStore(_session, Path.Combine(root, "images"));
+            beforeAttach?.Invoke(this);
             _vm = shell.Create(_session, _images, settings, aggregate ? null : Source("a"), favorites, row);
             Assert.Equal(0, Transport.Requests.Count, "Attach 不能登录、读取目录或保存配置");
         }
@@ -747,6 +814,15 @@ internal static class LibraryResumePagingTests
         /// <summary>同一套匿名来源上再建一页搜索；页面自己的 Cards 与分组从空开始，不借用继续观看那页的状态。</summary>
         public object CreateSearchView(string term = "") =>
             _shell.CreateSearch(_session, _images, Settings, Source("a"), term);
+
+        /// <summary>同一套匿名来源上再建一页普通媒体库；用来核对隐藏的最近搜索不参与这一页。</summary>
+        public object CreateNormalView() =>
+            _shell.Create(_session, _images, Settings, Source("a"));
+
+        public int RequestCount => Transport.Requests.Count;
+
+        public static int RecentSearchCount(object vm, ShellFixture shell) =>
+            ((System.Collections.IEnumerable)shell.Get<object>(vm, "RecentSearches")).Cast<object>().Count();
 
         public async Task Remove(string id)
         {
@@ -1061,7 +1137,16 @@ internal static class LibraryResumePagingTests
     internal sealed class SingleThread : SynchronizationContext
     {
         private readonly BlockingCollection<(SendOrPostCallback Callback, object? State)> _work = new();
-        public override void Post(SendOrPostCallback callback, object? state) => _work.Add((callback, state));
+        private volatile bool _closed;
+        public override void Post(SendOrPostCallback callback, object? state)
+        {
+            // 测试主体结束后，图片等 fire-and-forget 仍可能回来。夹具已经收摊，迟到回调不再入队；
+            // 让它撞上已释放的队列只会把进程带走，和本用例的断言无关。
+            if (_closed) return;
+            try { _work.Add((callback, state)); }
+            catch (ObjectDisposedException) { }
+            catch (InvalidOperationException) { }
+        }
         public static void RunOnePost()
         {
             var pump = (SingleThread)Current!;
@@ -1094,6 +1179,7 @@ internal static class LibraryResumePagingTests
             finally
             {
                 SetSynchronizationContext(previous);
+                pump._closed = true;
                 pump._work.Dispose();
             }
         }

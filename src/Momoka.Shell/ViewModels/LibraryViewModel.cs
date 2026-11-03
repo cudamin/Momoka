@@ -1252,6 +1252,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         Cancel();
         _active = true;
+        _recentLoaded = false;
+        _embySourceActive = !request.IsSearch || request.SearchSource == 0;
         _scope = request.Source ?? images.CaptureScope();
         _defaultScope = _scope;
         _sources = request.Source is { } source ? [source]
@@ -1310,7 +1312,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         RestoreFilters();
         RestoreDisplay();
         RefreshBrowseChrome();
-        LoadRecentSearches();
+        EnsureRecentSearches();
     }
 
     /// <summary>
@@ -1334,7 +1336,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         await loading.ConfigureAwait(true);
         if (!QueryCurrent(queryToken) || !ReferenceEquals(_request, request) || request.SearchTerm != query || _pageFailed) return;
         if (remember && query.Length > 0) RememberSearch();
-        if (query.Length == 0) LoadRecentSearches();
+        if (query.Length == 0) EnsureRecentSearches();
     }
 
     public override Task ReloadAsync() => LoadAsync(reset: true);

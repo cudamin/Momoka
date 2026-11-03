@@ -31,6 +31,15 @@ public sealed partial class LibraryViewModel
     internal Func<string, Task>? SubmitRecentSearch { get; set; }
     public ObservableCollection<RecentSearchRow> RecentSearches { get; } = [];
 
+    /// <summary>
+    /// 最近搜索的海报只在真正展示那一块时才建。普通媒体库和有词的搜索页都看不到它，不该为它发图片请求；
+    /// 每次 <see cref="Attach"/> 重置，清空搜索框或切回媒体库来源时再按需恢复。
+    /// </summary>
+    private bool _recentLoaded;
+
+    /// <summary>当前搜索来源是不是「媒体库」；MoviePilot 与 AniBT 那几段看不到最近搜索。</summary>
+    private bool _embySourceActive = true;
+
     /// <summary>四个分组对象从头到尾不变；卡片对象仍由 <see cref="Cards"/> 持有，这里只是同一批对象的另一份按类型排好的清单。</summary>
     private readonly SearchResultGroup[] _searchGroupBuckets =
         [.. LibrarySearchGroups.Order.Select(kind => new SearchResultGroup(kind))];
@@ -64,6 +73,14 @@ public sealed partial class LibraryViewModel
         OnPropertyChanged(nameof(SearchGroupsVisibility));
         OnPropertyChanged(nameof(GridVisibility));
         OnPropertyChanged(nameof(EmptyVisibility));
+        if (value.Length == 0) EnsureRecentSearches();
+    }
+
+    /// <summary>搜索页切来源：只有「媒体库」那一段会显示最近搜索。</summary>
+    internal void SetEmbySourceActive(bool active)
+    {
+        _embySourceActive = active;
+        if (active) EnsureRecentSearches();
     }
 
     /// <summary>Cards 的所有增删都经过这里，分组清单因此不会与平铺清单走散。</summary>
@@ -174,8 +191,23 @@ public sealed partial class LibraryViewModel
         return ReloadAsync();
     }
 
+    /// <summary>
+    /// 空搜索页真正要展示最近搜索时才建。条件不满足时什么都不做 —— 普通媒体库和有词搜索页都走这里，
+    /// 重复调用也不会重复请求。
+    /// </summary>
+    private void EnsureRecentSearches()
+    {
+        if (_recentLoaded || _request?.IsSearch != true || SearchText.Length != 0 || !_embySourceActive
+            || _settings is null || _images is null)
+            return;
+
+        _recentLoaded = true;
+        LoadRecentSearches();
+    }
+
     private void LoadRecentSearches()
     {
+        _recentLoaded = true;
         foreach (var row in RecentSearches) row.Card.AbandonPoster();
         RecentSearches.Clear();
         if (_settings is not null && _images is not null)
