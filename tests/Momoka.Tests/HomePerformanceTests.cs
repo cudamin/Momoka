@@ -320,6 +320,29 @@ internal static class HomePerformanceTests
                 ((IDisposable)home).Dispose();
             }
         });
+        Case("聚合主页：来源退出后迟到结果不回填", async () =>
+        {
+            using var fixture = new Fixture(shell, 3, secondSource: true);
+            var slow = fixture.Transport.HomeResumeGates["b"] = new Gate(true);
+            var home = fixture.CreateLoadingHome();
+            var load = fixture.LoadHome(home);
+            try
+            {
+                await UntilAsync(() => HasRow(fixture, home, "继续观看") && RowIds(fixture, home, "继续观看").Length == 3,
+                    "A 来源的继续观看应先上屏");
+                fixture.RevokeHomeSource("b");
+                slow.Release.TrySetResult();
+                await load;
+
+                Assert.Equal("a-0,a-1,a-2", string.Join(',', RowIds(fixture, home, "继续观看")));
+            }
+            finally
+            {
+                slow.Release.TrySetResult();
+                await load;
+                ((IDisposable)home).Dispose();
+            }
+        });
         Case("聚合主页：轮播清单先于慢排发布", async () =>
         {
             using var fixture = new Fixture(shell, 2, secondSource: true);
