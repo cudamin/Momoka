@@ -1,10 +1,12 @@
-## 2026-11-03 跳过片头片尾：Jellyfin 媒体段与 Plex 标记接入（待合并、待交付）
+## 2026-11-03 跳过片头片尾：Jellyfin 媒体段与 Plex 标记接入（已合入 master、已发布桌面）
 
 - 用户令三条：①片头片尾优先用服务端数据，服务端只标了片头或只标片尾时由播放识别补齐缺的那一类；②检查其他服务端能不能拿到跳过的数据；③在设置与播放页右键菜单加自动跳过开关 —— 说明设置里已有「询问／自动跳过／关闭」三档后，用户答「已经有了那就跳过这个任务」，③不做。
 - 现状核对：①已经实现（`SkipSectionPlanner.Resolve` 服务端优先、`Merge` 按类补缺、`ConsiderPlayerSkipSections` 只在缺类时跑），本轮补「服务端只给片头、播放器补片尾」等回归测试。②Emby 能读 `Chapters` 的 `MarkerType`；Jellyfin 的 `ChapterInfo` 没有标记类型、10.10 起改由 `MediaSegments` 发布；Plex 详情请求原先没带 `includeMarkers/includeChapters`；飞牛 0.9.8 的接口没有章节或 marker 字段。
 - 实现：`EmbyItem` 新增 `SkipMarkers`（带两端的服务端片头片尾）与 `ServerSkipMarker`；`SkipSectionPlanner.Resolve(item)` 优先用它、否则回退 Emby 章节标记，片尾缺终点放到片长、片头缺终点整段丢弃、越界收在片长。Jellyfin：版本 ≥10.10 且详情请求点名字段 `Chapters` 时读 `GET /MediaSegments/{itemId}`，只把 `Intro`/`Outro` 折成区间，404/读取失败静默回退（令牌过期照常上抛）。Plex：详情请求带 `includeChapters=1&includeMarkers=1`，章节进 `EmbyItem.Chapters`（走带与播放器兜底），`Marker` 的 `intro`/`credits` 进 `SkipMarkers`（毫秒转秒，`commercial` 丢弃，单条对象与数组都认）。飞牛不猜字段，保持播放器章节兜底。设置页说明与「跳过计划」调试日志改成「服务器」口径。
 - 测试：Release 全方案 **0 警告 0 错误**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0；主测试 **3616/3616、0 失败 0 跳过**（新增 8 条：媒体段映射与非法长度、Jellyfin 10.10 读取／10.9 不发／404 降级、Plex 章节与 marker 映射、服务端两端区间优先与越界收口、缺一类由播放器补齐）；`Momoka.NaturalContinuationCallerTests` **51/51**（`EmbyItem.cs`／`PlayerViewModel.cs`／`PlayerViewModel.Events.cs` 三份源 hash 定点同步，README 记本轮）。
 - 运行检查：`--probe-shell --probe-section settings --screen 2` **24/25**；唯一红项是既有的「主页排序只列当前来源、聚合切换与偏好恢复」在聚合恢复后等 7 行时 2 秒超时（`UntilAsync` 80×25ms）。同一探针在**主树发布件**（本轮改动之前）上复现同一红项，因此判为既有探针/环境红，不是本批引入；其余 24 条（含设置布局、搜索、显隐与宽窄截图）通过。
+- 主树最终整合验证（`ab51a78`，含 master `38318b5` 的导航第二轮暖缓存批次）：Release 全方案 **0 警告 0 错误**；主测试 **3624/3624、0 失败 0 跳过**；`Momoka.NaturalContinuationCallerTests` **51/51**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 退出 0（第一次因工作区安全删除守卫报 `SAFE_DELETE_FAIL_CLOSED`，旧目录已清空，复跑成功）：`artifacts/publish/win-x64` **546 文件 / 285.8 MB**，14 GLSL / 4 HOOK，批准 mpv 清单 59 文件，载荷校验通过；开发件与发布件 `Momoka.dll` SHA-256 同为 `c1d48d04225a8bdc242617998133fd241b55533e6420c818f6b74b2537deaf2f`。快捷方式重写被本机沙箱拒绝（`UnauthorizedAccessException` 覆盖桌面 `Momoka.lnk`），`.lnk` 仍是上一批那一份、内部含 `artifacts\publish\win-x64` 目标，而该目录已刷新，所以桌面启动仍是这批代码。未推 origin（未获上传授权）。
 - 未覆盖：①Jellyfin 媒体段**没有在用户真实服务器上跑过**——读取要在应用内用保存的账号，没有为这事单独动真实设置；播一集带媒体段（Intro Skipper 等提供器）的剧，看 `%LOCALAPPDATA%\Momoka\logs` 里「跳过标记：Jellyfin 媒体段 N 条 → M 段」即可确认。②Plex 没有可用服务器，只有离线契约测试。③飞牛没有服务端数据，只能靠播放器章节，命中率取决于文件的章节名与长度。④集成/独占两管线的实际跳过按钮仍按原验证边界，未做真实播放验收。
 ## 2026-11-03 导航第二轮性能：主页与最近媒体库暖缓存、后台核对与增量回填（已合入 master、发布桌面）
 
