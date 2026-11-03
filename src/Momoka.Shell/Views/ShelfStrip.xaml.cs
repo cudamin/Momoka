@@ -201,24 +201,44 @@ public sealed partial class ShelfStrip : UserControl
     /// </summary>
     private void PaintInk(DependencyObject container)
     {
-        if (Card(container) is { } found) found.OnScrim = OnScrim;
+        if (CardIn(container) is { } found) found.OnScrim = OnScrim;
+    }
 
-        static PosterCard? Card(DependencyObject? node)
+    /// <summary>
+    /// 某张卡此刻在这条带里的元素；被虚拟化掉的那些没有容器，返回 null —— 那里本来也没有可动的像素。
+    /// 页面拿它做删除时的离场动画（<c>HomePage.RemoveAsync</c>）。
+    /// </summary>
+    internal PosterCard? CardElement(CardItem card)
+    {
+        var count = ItemCount;
+        for (var index = 0; index < count; index++)
         {
-            switch (node)
-            {
-                case null: return null;
-                case PosterCard card: return card;
-                case ContentControl { Content: DependencyObject content } when Card(content) is { } inside:
-                    return inside;
-            }
-
-            var children = VisualTreeHelper.GetChildrenCount(node);
-            for (var index = 0; index < children; index++)
-                if (Card(VisualTreeHelper.GetChild(node, index)) is { } inside) return inside;
-
-            return null;
+            if (Repeater.TryGetElement(index) is not { } container) continue;
+            if (CardIn(container) is { } poster && ReferenceEquals(poster.Card, card)) return poster;
         }
+
+        return null;
+    }
+
+    /// <summary>
+    /// 往下找这张卡：先看逻辑内容那一路（<c>ContentControl.Content</c>），因为刚建出来的容器还没套上自己的
+    /// 模板，那一刻可视树里一个孩子都没有：只走可视树的那一版会漏掉除第一张之外的每一张卡。
+    /// </summary>
+    private static PosterCard? CardIn(DependencyObject? node)
+    {
+        switch (node)
+        {
+            case null: return null;
+            case PosterCard card: return card;
+            case ContentControl { Content: DependencyObject content } when CardIn(content) is { } inside:
+                return inside;
+        }
+
+        var children = VisualTreeHelper.GetChildrenCount(node);
+        for (var index = 0; index < children; index++)
+            if (CardIn(VisualTreeHelper.GetChild(node, index)) is { } inside) return inside;
+
+        return null;
     }
 
     // ---- 规则 -------------------------------------------------------------------

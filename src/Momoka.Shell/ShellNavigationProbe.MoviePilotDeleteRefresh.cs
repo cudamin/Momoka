@@ -2,6 +2,7 @@ using System.Net;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Shell.Views;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell;
@@ -10,10 +11,11 @@ internal sealed partial class ShellNavigationProbe
 {
     /// <summary>
     /// 删记录和库文件、删记录及两端完成之后，主页不能还挂着已经删掉的海报和元数据。
-    /// 用户令 2026-10-31：这两种删除必须以「关闭回执后主页自动重读」为验收标准。
+    /// 用户令 2026-10-31：这两种删除的验收标准是「删除后主页不再显示被删内容」；2026-11-03 追加：
+    /// 不重读整页、保持当前页与滚动位置，用离场动画原地摘卡，且重读也不能把它带回来（服务器缓存要等下次扫描）。
     /// <para>
-    /// 假 Emby 在删除后**仍然**把这一条放进继续观看和最近添加：真实服务器上元数据常常比文件晚一步消失，
-    /// 只重读整页会把它原样带回来。这一条因此同时验证「确实重读了」和「这一件不会重新出现」。
+    /// 假 Emby 在删除后**仍然**把这一条放进继续观看和最近添加：真实服务器上元数据常常比文件晚一步消失。
+    /// 这一条因此同时验证「没有重读」「滚动没动」「动画真的起了」和「重读也带不回来」。
     /// </para>
     /// </summary>
     private async Task MoviePilotDeleteRefreshAsync()
@@ -45,12 +47,38 @@ internal sealed partial class ShellNavigationProbe
                     home.ViewModel.Slides.Any(slide => slide.Item.Id == DeleteRefreshProbeServer.OtherId),
                     "前置条件不成立：主页轮播没有待删除条目与对照条目");
                 await LayoutAsync(home);
+                var scope = fixture.Session.Capture();
+                var item = scope.Bind(DeleteRefreshProbeServer.Movie());
+
+                // 离场动画本身：不只看「起过一次」，还要看到卡片真的淡下去、缩进去，再能还原给回收池。
+                // 系统关掉动画时这一条走另一档（直接完成），不把系统设置当成产品缺陷。
+                if (HomeMotion.AnimationsEnabled)
+                {
+                    var target = home.ViewModel.CardsOf(item).FirstOrDefault();
+                    Require(target is not null, "前置条件不成立：找不到待删除条目在屏上的卡");
+                    var poster = (PosterCard?)Call(home, "PosterOf", target!);
+                    Require(poster is not null, "前置条件不成立：这张卡没有已实现的元素");
+                    var live = poster!;
+                    var play = (Task)Call(live, "PlayRemovalAsync")!;
+                    await Task.Delay(60);
+                    Require(Get<FrameworkElement>(live, "Root").Opacity < 0.98, "离场动画没有淡出");
+                    await play;
+                    var motion = Get<Microsoft.UI.Xaml.Media.CompositeTransform>(live, "CardMotion");
+                    Require(Get<FrameworkElement>(live, "Root").Opacity < 0.05 && motion.ScaleX < 0.95,
+                        "离场动画没有落到透明与收缩");
+                    Call(live, "ResetRemoval");
+                    Require(Math.Abs(Get<FrameworkElement>(live, "Root").Opacity - 1) < 0.001 &&
+                        Math.Abs(motion.ScaleX - 1) < 0.001, "离场动画没有还原卡片状态");
+                }
+
+                var scroller = Get<ScrollView>(home, "Scroller");
+                await ScrollProbeAsync(scroller, Math.Min(140, scroller.ScrollableHeight));
+                await LayoutAsync(home);
+                var offset = scroller.VerticalOffset;
                 var suffix = action == MoviePilotHistoryAction.DeleteAll ? "all" : "destination";
                 await SaveProbeScreenAsync($"mp-delete-refresh-{suffix}-before.png");
                 var readsBefore = server.ResumeReads;
 
-                var scope = fixture.Session.Capture();
-                var item = scope.Bind(DeleteRefreshProbeServer.Movie());
                 var operation = (Task)Call(shell, "ShowMoviePilotHistoryActionAsync", scope, item, action)!;
                 await UntilAsync(() => (dialog = Get<MoviePilotMediaManagementDialog?>(shell, "_moviePilotDialog"))
                     is { IsPrimaryButtonEnabled: true });
@@ -66,17 +94,35 @@ internal sealed partial class ShellNavigationProbe
 
                 InvokeMediaCardDialog(dialog, "CloseButton");
                 await operation;
-                await UntilAsync(() => server.ResumeReads > readsBefore);
+
+                // 用户令 2026-11-03：删除之后不重读整页、不翻页，只把那一件原地摘掉 —— 重读一页海报会把
+                // 滚动位置推回顶上。这一条同时钉住「没有重读」和「滚动位置没动」。
+                Require(server.ResumeReads == readsBefore, "删除后重读了整页；应该原地摘卡并保持当前页");
+                Require(Math.Abs(scroller.VerticalOffset - offset) < 0.6, "删除后滚动位置变了");
+                Require(home.RemovalMotions == 1, "删除没有走主页的离场动画");
                 Require(Cards(home).All(card => card.Item.Id != DeleteRefreshProbeServer.MovieId),
                     "删除后主页货架仍显示被删条目");
                 Require(Cards(home).Any(card => card.Item.Id == DeleteRefreshProbeServer.OtherId),
-                    "刷新后主页误删了没有被删的条目");
+                    "删除后主页误删了没有被删的条目");
                 Require(home.ViewModel.Slides.All(slide => slide.Item.Id != DeleteRefreshProbeServer.MovieId),
                     "删除后主页轮播仍显示被删条目");
                 Require(home.ViewModel.Slides.Any(slide => slide.Item.Id == DeleteRefreshProbeServer.OtherId),
-                    "刷新后主页轮播误删了没有被删的条目");
+                    "删除后主页轮播误删了没有被删的条目");
                 await LayoutAsync(home);
                 await SaveProbeScreenAsync($"mp-delete-refresh-{suffix}-after.png");
+
+                // 服务器元数据要等下一次扫描才消失：假 Emby 在删除后仍然返回这一条。整页重读一次，
+                // 被删的那一件必须继续藏着（本次运行内），对照条目照旧在 —— 隐藏状态只在内存里。
+                await home.ViewModel.ReloadAsync();
+                await UntilAsync(() => server.ResumeReads > readsBefore);
+                await LayoutAsync(home);
+                Require(Cards(home).All(card => card.Item.Id != DeleteRefreshProbeServer.MovieId),
+                    "重读把已删条目又带回了主页货架");
+                Require(home.ViewModel.Slides.All(slide => slide.Item.Id != DeleteRefreshProbeServer.MovieId),
+                    "重读把已删条目又带回了主页轮播");
+                Require(Cards(home).Any(card => card.Item.Id == DeleteRefreshProbeServer.OtherId),
+                    "重读误删了没有被删的条目");
+                await SaveProbeScreenAsync($"mp-delete-refresh-{suffix}-reloaded.png");
             }
             finally
             {

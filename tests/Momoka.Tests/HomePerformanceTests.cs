@@ -462,6 +462,40 @@ internal static class HomePerformanceTests
             }
             finally { ((IDisposable)second).Dispose(); }
         });
+
+        Case("主页删除：本次运行已删的条目在重读后仍藏着，对照条目照旧", async () =>
+        {
+            using var fixture = new Fixture(shell, 2, secondSource: true);
+            var home = fixture.CreateLoadingHome();
+            var removed = new RemovedMedia();
+            home.GetType().GetField("_removed", System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.NonPublic)!.SetValue(home, removed);
+            try
+            {
+                await (Task)shell.Invoke(home, "ReloadAsync")!;
+                await Supplement(home);
+                var cards = Rows(home)
+                    .SelectMany(row => ((IEnumerable)shell.Get<object>(row, "Cards")).Cast<object>()).ToArray();
+                var target = cards.First(card => ItemOf(card).Id == "a-0");
+                var item = ItemOf(target);
+
+                var matched = ((IEnumerable)shell.Invoke(home, "CardsOf", item)!).Cast<object>().ToArray();
+                Assert.True(matched.Any(card => ReferenceEquals(card, target)), "离场动画拿不到这一件的卡");
+
+                // 页面在动画之前就把这一件记进 RemovedMedia；这里直接照做，再让服务器（仍带着它）回答一次重读。
+                removed.Remember(item);
+                await (Task)shell.Invoke(home, "ReloadAsync")!;
+                await Supplement(home);
+                var after = Rows(home)
+                    .SelectMany(row => ((IEnumerable)shell.Get<object>(row, "Cards")).Cast<object>()).ToArray();
+                Assert.False(after.Any(card => ItemOf(card).Id == "a-0"), "重读把已删条目又带回了主页");
+                Assert.True(after.Length > 0, "重读把整页内容清空了");
+            }
+            finally { await Supplement(home); ((IDisposable)home).Dispose(); }
+
+            static EmbyItem ItemOf(object card) =>
+                (EmbyItem)card.GetType().GetProperty("Item")!.GetValue(card)!;
+        });
         return TestHarness.Run();
 
         IEnumerable<object> Rows(object home) => ((IEnumerable)shell.Get<object>(home, "Shelves")).Cast<object>();

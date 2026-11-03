@@ -58,6 +58,12 @@ public sealed partial class HomeViewModel : PageViewModel
     private IReadOnlyList<EmbyItem> _libraryViews = [];
 
     /// <summary>
+    /// 本次运行里已经删掉媒体库文件的条目。服务器元数据要等下一次扫描才消失，重读时这些条目仍会回来；
+    /// 这一页在装配和构建货架时把它们滤掉（见 <see cref="RemovedMedia"/>）。
+    /// </summary>
+    private RemovedMedia? _removed;
+
+    /// <summary>
     /// 每个库排右端读数用的库总数，按版面钥匙记。读不出来时这里没有那一格，读数退回「这一排装了多少张」。
     /// <para>
     /// 从前只有飞牛拿得到库总数（<c>mediadb/sum</c>），Emby／Jellyfin 的牌子上于是写着货架的张数 —— 上限 24，
@@ -356,6 +362,9 @@ public sealed partial class HomeViewModel : PageViewModel
     /// <summary>由页面在 <see cref="Attach"/> 前交给本页；暖缓存命中与否都不改变它的生命周期。</summary>
     internal void UseSnapshots(BrowseSnapshotStore snapshots) => _snapshots = snapshots;
 
+    /// <summary>由页面在 <see cref="Attach"/> 前交给本页：这一趟运行里已经删掉、不该再显示的那些条目。</summary>
+    internal void UseRemovedMedia(RemovedMedia removed) => _removed = removed;
+
     /// <summary>这一页是先从快照上屏的；页面据此决定首读还是后台核对。</summary>
     internal bool RestoredFromCache => _restoredFromCache;
 
@@ -473,12 +482,12 @@ public sealed partial class HomeViewModel : PageViewModel
                 continue;
             }
 
-            shelf.Apply(cached.Items, ShelfSubtitle(row.Key), ShelfTitle(row.Key));
+            shelf.Apply(Shown(cached.Items), ShelfSubtitle(row.Key), ShelfTitle(row.Key));
             shelf.NoteOverride = cached.Note;
         }
 
         Slides = snapshot.Banner
-            ? [.. snapshot.SlideItems.Select(item => new BannerSlide(item, _images))]
+            ? [.. Shown(snapshot.SlideItems).Select(item => new BannerSlide(item, _images))]
             : [];
         PublishShelves();
         LoadedCount = snapshot.LoadedCount;
@@ -566,33 +575,36 @@ public sealed partial class HomeViewModel : PageViewModel
 
     public override Task ReloadAsync() => LoadAsync();
 
-    internal void Remove(CardItem removed)
-    {
-        if (!Live || !removed.IsCurrent || !_all.Any(entry => entry.Shelf.Cards.Contains(removed))) return;
-        RemoveItem(removed.Item);
-    }
-
     /// <summary>
     /// 服务器已经删掉、但这一页手里还留着的那一件：把它的卡从每一排和轮播里摘掉。
     /// <para>
-    /// 与 <see cref="Remove(CardItem)"/> 同一套判据，只是手里没有当初那张卡 —— MoviePilot 的删除确认窗
-    /// 只拿着条目本身（用户令 2026-10-31：删记录和库文件、删记录及两端完成后，主页不能还挂着旧海报）。
     /// 光重读整页不够：Emby 的元数据可能还没随文件一起消失，重读会把它原样带回来；这一手保证已经删掉的
-    /// 条目在刷新完成之前也不会重新出现。
+    /// 条目在刷新完成之前也不会重新出现（用户令 2026-10-31）。真正的离场动画在页面那一头
+    /// （<c>HomePage.RemoveAsync</c>），三个删除入口共用。
     /// </para>
     /// </summary>
     internal void Remove(EmbyItem removed)
     {
+        // 记住发生在判据之前：服务器那边文件已经没了，这一页留在不在都不影响「以后不要再显示」。
+        Remember(removed);
         if (!Live) return;
         RemoveItem(removed);
     }
 
+    /// <summary>把这一件记成「本次运行里已经删掉」，之后每一次重读和暖缓存恢复都不再显示它。</summary>
+    internal void Remember(EmbyItem removed) => _removed?.Remember(removed);
+
+    /// <summary>
+    /// 这一件在屏上还占着哪几张卡（同一排最多一张，跨排可能各有一张）。页面照它找元素做离场动画，
+    /// 再交给 <see cref="Remove(EmbyItem)"/> 真正摘掉。
+    /// </summary>
+    internal IReadOnlyList<CardItem> CardsOf(EmbyItem removed) =>
+        [.. _all.SelectMany(entry => entry.Shelf.Cards).Where(card => RemovedMedia.Covers(removed, card.Item))];
+
     private void RemoveItem(EmbyItem removed)
     {
         base.Cancel();
-        bool Deleted(EmbyItem item) => item.Source?.Key == removed.Source?.Key && (item.Id == removed.Id || item.ParentId == removed.Id
-            || removed.Type == EmbyItemType.Series && item.SeriesId == removed.Id
-            || removed.Type == EmbyItemType.Season && item.SeasonId == removed.Id);
+        bool Deleted(EmbyItem item) => RemovedMedia.Covers(removed, item);
         var removedAny = false;
         foreach (var (_, shelf) in _all)
         {
@@ -909,8 +921,10 @@ public sealed partial class HomeViewModel : PageViewModel
 
         // 一排装什么由它那把钥匙说，不再是「数组第几个」—— 次序现在是用户拖出来的，位置说明不了任何事。
         // 轮播不在这张表里：它认的是 latest 那一次请求，跟这几排谁勾谁不勾、拖成什么次序都没有关系。
+        // 这一趟运行里已经删掉的条目不进屏：服务器元数据要等下一次扫描才消失，重读仍会带回来（见 RemovedMedia）。
+        // 逐片回填也走这里，所以删掉一件之后，任何一片迟到的结果都不会把它重新摆回货架。
         IReadOnlyList<EmbyItem> ItemsOf(RowRead load) =>
-            load.Row.Key == HomeLayout.Libraries ? _libraryViews : WithoutMusic(MergeParts(load.Parts));
+            load.Row.Key == HomeLayout.Libraries ? _libraryViews : WithoutMusic(Shown(MergeParts(load.Parts)));
 
         IReadOnlyList<EmbyItem> Items(string key) =>
             loadsByKey.TryGetValue(key, out var load) ? ItemsOf(load) : [];
@@ -1117,7 +1131,7 @@ public sealed partial class HomeViewModel : PageViewModel
         async Task PublishSlidesWhenReadyAsync()
         {
             if (quiet || !refreshSlides || !_banner) return;
-            var newest = WithoutMusic(await latest.ConfigureAwait(true));
+            var newest = WithoutMusic(Shown(await latest.ConfigureAwait(true)));
             if (!IsCurrent(token)) return;
             Slides = BuildSlides(newest, carouselCount);
         }
@@ -1181,7 +1195,7 @@ public sealed partial class HomeViewModel : PageViewModel
 
         // 轮播那份（见上面 latest）同样滤掉音乐类：这条带只站电影和剧集。「全部媒体」那一档音乐从来
         // 进不了最近添加的前排，这层滤网在；「随机」那一档请求侧就没有音乐，它白跑一遍。
-        var newest = WithoutMusic(latest.Result);
+        var newest = WithoutMusic(Shown(latest.Result));
 
         // 各媒体库自己那排按版面次序连成的一串。从前轮播的补位从这儿来，2026-09-13 轮播改用整服最近添加
         // （见上面 latest）之后，这一串只剩一个读者：LoadedCount 的那个数。
@@ -1306,6 +1320,13 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     private static List<EmbyItem> WithoutMusic(List<EmbyItem> items) =>
         items.Where(item => !EmbyItemType.IsMusic(item.Type)).ToList();
+
+    /// <summary>
+    /// 这一趟运行里已经删掉的那些条目不进屏。服务器元数据要等下一次扫描才消失，重读仍会带回来；
+    /// 滤在这一层，货架、轮播和快照捕获就都拿到了同一份干净清单。
+    /// </summary>
+    private List<EmbyItem> Shown(IEnumerable<EmbyItem> items) =>
+        _removed is null ? [.. items] : items.Where(item => !_removed.Hides(item)).ToList();
 
     /// <summary>这一趟失败是否意味着当前身份已经读不到内容，而不是服务器暂时抽风。</summary>
     private static bool FailureDropsContent(Exception error) =>

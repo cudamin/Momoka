@@ -1375,6 +1375,8 @@ public sealed partial class HomePage : Page, IShellContent
 
         Subscriptions.Attach(services.GetRequiredService<MoviePilotService>(), request.OpenSubscription);
         ViewModel.UseSnapshots(services.GetRequiredService<BrowseSnapshotStore>());
+        // 删掉媒体库文件的条目在本次运行里不再显示（服务器元数据要等下一次扫描才消失）。
+        ViewModel.UseRemovedMedia(services.GetRequiredService<RemovedMedia>());
         ViewModel.Attach(
             _actions,
             request.LibraryViews,
@@ -1510,12 +1512,15 @@ public sealed partial class HomePage : Page, IShellContent
     /// </summary>
     private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args) =>
         ItemCommands.Handle(_session, _actions, sender, args,
-            changed: Reload, removed: ViewModel.Remove, watched: ViewModel.MarkedWatched);
+            changed: Reload, removed: RemoveCard, watched: ViewModel.MarkedWatched);
 
     /// <summary>需求 6：the same commands from the strip that appears on a card under the pointer.</summary>
     private void OnCardActionRequested(object? sender, CardActionEventArgs args) =>
         ItemCommands.Handle(_session, _actions, sender, args,
-            changed: Reload, removed: ViewModel.Remove, watched: ViewModel.MarkedWatched);
+            changed: Reload, removed: RemoveCard, watched: ViewModel.MarkedWatched);
+
+    /// <summary>删除成功：和 MoviePilot 那两个删除范围走同一条离场动画与摘除路径。</summary>
+    private void RemoveCard(CardItem card) => _ = RemoveAsync(card.Item);
 
     /// <summary>需求 5：播放 on the carousel. Fire and forget, same as every other play on this page.</summary>
     private void OnBannerPlayRequested(object? sender, BannerSlide slide) => _ = ViewModel.PlayAsync(slide);
