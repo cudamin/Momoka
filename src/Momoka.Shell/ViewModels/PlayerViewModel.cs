@@ -267,9 +267,10 @@ public sealed partial class PlayerViewModel : ObservableObject
     private IReadOnlyList<SkipChapter> _embyMarks = [];
 
     /// <summary>
-    /// The 跳过 sections Emby's own markers produced for this file. Kept apart from the coordinator's
-    /// current list because the player may later fill in a kind Emby did not mark; Emby's kinds
-    /// always stay the ones in charge.
+    /// The 跳过 sections the server's own data produced for this file — Emby's chapter markers,
+    /// Jellyfin's media segments or Plex's markers. Kept apart from the coordinator's current list
+    /// because the player may later fill in a kind the server did not mark; the server's kinds always
+    /// stay the ones in charge.
     /// </summary>
     private IReadOnlyList<SkipSection> _embySkipSections = [];
 

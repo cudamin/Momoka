@@ -21,6 +21,8 @@ description: "Develop or review Momoka's 飞牛影视 / fnOS media backend: Core
 
 会话/DI/显隐见 [momoka-winui-shell](../momoka-winui-shell/SKILL.md)；播放请求、内置与外部后端和管线见 [momoka-playback](../momoka-playback/SKILL.md)。
 
+**没有片头片尾数据。** `item/{guid}`、`play/info`、`stream/list` 都没有章节或 marker 字段（抓包文档与官方前端 0.9.8 均未见）。跳过的「服务端一半」在飞牛上永远为空，实际只用播放器按文件章节识别；不要为一个猜出来的字段去请求不存在的路由。
+
 ## 登录与签名
 
 入口统一以 `/v/` 结尾；粘贴 `/v/login?redirect_uri=…` 时剥除页面和查询。现行登录 `POST api/v2/user/loginByPassword` 发送 `username`、`password = SHA256(明文)` 小写十六进制、`app_name = trimemedia-web`。返回 token 可用于 v1 业务接口；密码错误不能回退废弃的 v1 明文登录。

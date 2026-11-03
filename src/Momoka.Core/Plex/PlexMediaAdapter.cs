@@ -199,11 +199,15 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
     public async Task<EmbyItem> GetItemAsync(string id, CancellationToken ct)
     {
         var container = await client.GetMetadataAsync(connection, id, ct).ConfigureAwait(false);
-        var item = Item(First(container));
+        var value = First(container);
+        var item = Item(value);
         if (item.IsPlayable)
         {
-            item.MediaSources = Sources(First(container), item.Id, client, connection);
+            item.MediaSources = Sources(value, item.Id, client, connection);
             foreach (var source in item.MediaSources) source.RunTimeTicks ??= item.RunTimeTicks;
+            // 章节给走带和播放器兜底；marker 是服务端自己认出的片头片尾，优先于播放器。
+            item.Chapters = Chapters(value);
+            item.SkipMarkers = Markers(value);
         }
         return item;
     }

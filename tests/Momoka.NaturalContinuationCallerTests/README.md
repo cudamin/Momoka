@@ -1,5 +1,9 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-03：EmbyItem.cs 源 hash 同步（服务端跳过标记）
+
+Jellyfin 的媒体段与 Plex 的 marker 折成 `EmbyItem.SkipMarkers`（带两端的服务端片头片尾）；Emby 的章节标记路径不变，来源 identity/id、自动接集与 lease 规则也没动。`PlayerViewModel` 只改了两处说明与「跳过计划」调试日志的前缀（「Emby」→「服务器」，并补上两端的服务端区间条数），不改任何判定。同步三项 hash：`EmbyItem.cs`（`a601a02…` → `d87c8f9…`）、`PlayerViewModel.cs`（`5efb5fe…` → `5cf0e35…`）、`PlayerViewModel.Events.cs`（`5bd7339…` → `2176abc…`），其余 pins 逐份保留。
+
 ## 2026-11-03：全季列表与跨季连播（51 项）
 
 用户令两条：剧集列表要显示全部季、按播出时间排（「本季剧集改名为剧集列表」），自动连播跟随这份列表跨季走；同时「自动播放下一集时不要在画面上弄悬浮提示」。产品侧改动：

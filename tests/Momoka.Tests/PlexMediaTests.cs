@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json.Nodes;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -84,6 +85,18 @@ internal static partial class PlexMediaTests
             Assert.Equal("/library/metadata/10/thumb/1", item.ImageTags["Primary"]);
             Assert.Equal("/library/metadata/10/art/1", item.BackdropImageTags.Single());
 
+            // 章节给走带和播放器兜底，marker 是服务端自己认出的片头片尾（两端都有，毫秒折成秒）。
+            Assert.Equal(("OP", 0d), (item.Chapters[0].Name, item.Chapters[0].StartSeconds));
+            Assert.Equal(("正片", 90d), (item.Chapters[1].Name, item.Chapters[1].StartSeconds));
+            var skip = SkipSectionPlanner.Resolve(item);
+            Assert.Equal((SkipSectionKind.Opening, 5d, 95d), (skip[0].Kind, skip[0].Start, skip[0].End));
+            Assert.Equal((SkipSectionKind.Ending, 1380d, 1490d), (skip[1].Kind, skip[1].Start, skip[1].End));
+
+            // 这两样不点名要，Plex 不会发；缺了它们片头片尾就只剩播放器章节兜底。
+            var metadata = fixture.Transport.Requests.Last(uri => uri.AbsolutePath == "/library/metadata/10");
+            Assert.Contains("includeChapters=1", metadata.Query);
+            Assert.Contains("includeMarkers=1", metadata.Query);
+
             var source = item.MediaSources.Single();
             Assert.Equal("/media/test.mkv", source.Path);
             Assert.Equal("mkv", source.Container);
@@ -101,6 +114,24 @@ internal static partial class PlexMediaTests
             var subtitle = source.SubtitleStreams.Single();
             Assert.True(subtitle.IsExternal);
             Assert.Equal("/library/streams/3", subtitle.DeliveryUrl);
+        });
+        Test("Plex 媒体：单条章节与 marker 以对象出现也能读", () =>
+        {
+            // Plex 的 JSON 是 XML 折过来的：重复元素是数组，只有一条时可能是单个对象。
+            var value = JsonNode.Parse(
+                """{"Chapter":{"startTimeOffset":0,"tag":"OP"},"Marker":{"type":"intro","startTimeOffset":1000,"endTimeOffset":2000}}""")!.AsObject();
+
+            Assert.Equal("OP", PlexMediaAdapter.Chapters(value).Single().Name);
+            var marker = PlexMediaAdapter.Markers(value).Single();
+            Assert.Equal((ServerSkipMarkerKind.Opening, 1d, 2d), (marker.Kind, marker.StartSeconds, marker.EndSeconds));
+        });
+        Test("Plex 媒体：广告 marker 不变成跳过按钮", () =>
+        {
+            var value = JsonNode.Parse(
+                """{"Marker":[{"type":"commercial","startTimeOffset":0,"endTimeOffset":1000},{"type":"intro","startTimeOffset":1000,"endTimeOffset":2000}]}""")!.AsObject();
+
+            var marker = PlexMediaAdapter.Markers(value).Single();
+            Assert.Equal(ServerSkipMarkerKind.Opening, marker.Kind);
         });
         Test("Plex 媒体：季、集与接下来播放都来自 children 和 onDeck", () =>
         {
@@ -253,6 +284,10 @@ internal static partial class PlexMediaTests
             + "\"duration\":5400000,\"viewOffset\":12000,\"viewCount\":0,"
             + "\"thumb\":\"/library/metadata/10/thumb/1\",\"art\":\"/library/metadata/10/art/1\","
             + "\"Guid\":[{\"id\":\"imdb://tt1\"}],\"Genre\":[{\"tag\":\"动画\"}],"
+            + "\"Chapter\":[{\"index\":1,\"startTimeOffset\":0,\"endTimeOffset\":90000,\"tag\":\"OP\"},"
+            + "{\"index\":2,\"startTimeOffset\":90000,\"endTimeOffset\":1380000,\"tag\":\"正片\"}],"
+            + "\"Marker\":[{\"type\":\"intro\",\"startTimeOffset\":5000,\"endTimeOffset\":95000},"
+            + "{\"type\":\"credits\",\"startTimeOffset\":1380000,\"endTimeOffset\":1490000}],"
             + "\"Media\":[{\"bitrate\":8000,\"duration\":5400000,\"Part\":[{"
             + "\"id\":\"20\",\"key\":\"/library/parts/20/1/file.mkv\",\"file\":\"/media/test.mkv\",\"container\":\"mkv\",\"size\":1234,"
             + "\"Stream\":["

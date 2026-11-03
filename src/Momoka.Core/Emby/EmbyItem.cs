@@ -134,6 +134,33 @@ public sealed class ChapterInfo
     public double StartSeconds => TimeFormat.ToSeconds(StartPositionTicks);
 }
 
+/// <summary>Which end of the episode a server-detected skip range belongs to.</summary>
+public enum ServerSkipMarkerKind
+{
+    /// <summary>A recap and the titles before the episode proper.</summary>
+    Opening,
+
+    /// <summary>The credit roll, and anything the release puts after it.</summary>
+    Ending
+}
+
+/// <summary>
+/// A stretch the server itself marked as skippable, with both ends already known.
+/// <para>
+/// Emby writes its detection into <see cref="EmbyItem.Chapters"/> as <c>IntroStart</c>/<c>IntroEnd</c>/
+/// <c>CreditsStart</c> entries. Jellyfin (10.10+) and Plex answer with segments instead of chapters —
+/// <c>MediaSegments</c> and <c>Marker</c> respectively — and those carry an end as well, so they are
+/// kept in their own shape rather than being forced into a chapter list that has only a start.
+/// </para>
+/// </summary>
+/// <param name="Kind">Opening or ending.</param>
+/// <param name="StartSeconds">Where the section begins.</param>
+/// <param name="EndSeconds">Where it ends; 0 when the server did not say.</param>
+public readonly record struct ServerSkipMarker(
+    ServerSkipMarkerKind Kind,
+    double StartSeconds,
+    double EndSeconds);
+
 public sealed class MediaStream
 {
     [JsonIgnore]
@@ -895,6 +922,17 @@ public sealed class EmbyItem
 
     /// <summary>Chapter markers, in timeline order; empty unless the request asked for them.</summary>
     public List<ChapterInfo> Chapters { get; set; } = [];
+
+    /// <summary>
+    /// 服务端自己认出的片头片尾，带两端，来自 Jellyfin 的媒体段或 Plex 的 marker。
+    /// <para>
+    /// Emby 的标记仍然写在 <see cref="Chapters"/> 里（<c>IntroStart</c>/<c>IntroEnd</c>/<c>CreditsStart</c>），
+    /// 这一项对它为空；两者都为空时才轮到播放器按文件章节兜底，见 <c>SkipSectionPlanner</c>。
+    /// 不参与 JSON：这是把别家协议折进这份模型的结果，服务器没有这个字段。
+    /// </para>
+    /// </summary>
+    [JsonIgnore]
+    public List<ServerSkipMarker> SkipMarkers { get; set; } = [];
 
     /// <summary>
     /// Cast and crew in the server's own billing order. Emby returns this with a single-item

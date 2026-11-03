@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json.Nodes;
 using Momoka.Diagnostics;
 
@@ -166,7 +167,45 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         var item = await http.GetJsonAsync<EmbyItem>(url, Context, cancellationToken).ConfigureAwait(false);
         ApplyItemFileSize(item);
         await ReadVersionFilesAsync(item, order, cancellationToken).ConfigureAwait(false);
+        await ReadSkipMarkersAsync(item, fields, cancellationToken).ConfigureAwait(false);
         return item;
+    }
+
+    /// <summary>
+    /// Jellyfin 的片头片尾不在章节表里：10.10 起由媒体段提供（见 <see cref="MediaSegments"/>）。
+    /// <para>
+    /// 只在详情请求（<c>Fields</c> 点名了 <c>Chapters</c>）上读：浏览列表和「只要文件路径」的请求
+    /// 不该为跳过多付一趟。没有这条接口、或服务器没装段提供器，就是空表，播放器章节仍会兜底；
+    /// 令牌过期照常上抛，让会话去重登。
+    /// </para>
+    /// </summary>
+    private async Task ReadSkipMarkersAsync(EmbyItem item, string fields, CancellationToken cancellationToken)
+    {
+        if (!Connection.SupportsMediaSegments || !item.IsPlayable) return;
+        if (!fields.Split(',').Any(field => field.Trim().Equals("Chapters", StringComparison.OrdinalIgnoreCase))) return;
+
+        try
+        {
+            var segments = await http
+                .GetJsonAsync<MediaSegmentsResult>(Url($"MediaSegments/{item.Id}"), Context, cancellationToken)
+                .ConfigureAwait(false);
+            item.SkipMarkers = MediaSegments.ToSkipMarkers(segments);
+            if (item.SkipMarkers.Count > 0)
+                Log.Debug(Category, $"跳过标记：Jellyfin 媒体段 {segments.Items.Count} 条 → {item.SkipMarkers.Count} 段");
+        }
+        catch (EmbyTokenExpiredException)
+        {
+            throw;
+        }
+        catch (EmbyApiException error) when (error.StatusCode == HttpStatusCode.NotFound)
+        {
+            // 10.10 之前没有这条路由；「没有媒体段」不是详情页该报的错。
+        }
+        catch (EmbyApiException error)
+        {
+            // 段读取是补充信息，失败不该把整个条目带下水；播放器章节仍能认出片头片尾。
+            Log.Debug(Category, $"跳过标记：Jellyfin 媒体段读取失败（{error.StatusCode}），留给播放器章节兜底");
+        }
     }
 
     private static void ApplyItemFileSize(EmbyItem item)

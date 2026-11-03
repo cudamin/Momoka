@@ -75,6 +75,8 @@ Routes and parameters, including what this client does not call, are in [endpoin
 
 ## Card and detail affordances
 
+**详情请求带 `includeChapters=1&includeMarkers=1`**（`PlexClient.GetMetadataAsync`）；不点名，服务器就什么都不发。`Chapter` 折成 `EmbyItem.Chapters`（`startTimeOffset` 是毫秒，只有名字和起点，没有章节图）；`Marker` 的 `type=intro|credits` 折成 `EmbyItem.SkipMarkers`（两端都有，`commercial` 丢掉）。一部片可能有先后两条 `credits`（片中彩蛋前、片尾名单前），两条都留，播到哪条按哪条跳。Plex 的 JSON 是 XML 折过来的：重复元素是数组，单条可能是对象，读章节与 marker 时两种都要认（`PlexMediaAdapter.Elements`）。缺章节与标记时，跳过的服务端一半为空，播放器按 mpv 章节兜底。
+
 Favorites are a separate capability from watched state. `CardItem.CanFavorite` and `DetailViewModel.FavoriteActionVisibility` use the item’s captured scope and `SupportsFavorites`; they must not hide Plex scrobble/unscrobble actions with a shared UserState flag. The direct old command paths reject favorites before HTTP, state ordering, DTO updates or notices. The detail command also retains activity/Busy, seed ID and detail-source consistency during reattachment.
 
 Plex cross-library genre navigation is not implemented by this client. `DetailViewModel.CanOpenGenre` keeps its labels as plain text for Plex, rejects old clicks and never borrows the default management scope. `DetailPage` repaints after capability changes and immediately after resubscribing on reentry, even when the genre collection did not change. Emby/Jellyfin links and their routes stay intact. `Momoka.PlexAffordanceTests` executes the actual card commands, current Shell detail VM and extracted page paint/read/notification methods, with fake HTTP and inert framework values. Its template bindings and property assertions are not rendered WinUI or UIA evidence; see its repository README for commands and runtime gaps.

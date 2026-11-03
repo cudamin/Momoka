@@ -135,6 +135,65 @@ public sealed partial class PlexMediaAdapter
     }
 
     /// <summary>
+    /// Plex 的章节表：<c>includeChapters=1</c> 时随条目一起发，<c>startTimeOffset</c> 是毫秒。
+    /// 只有起点和名字，用途和 Emby 的章节一样（走带刻度、悬浮预览、播放器兜底），不带章节图。
+    /// </summary>
+    public static List<ChapterInfo> Chapters(JsonObject value)
+    {
+        var chapters = new List<ChapterInfo>();
+        foreach (var chapter in Elements(value, "Chapter"))
+        {
+            if (Number(chapter, "startTimeOffset") is not { } start || start < 0) continue;
+            chapters.Add(new ChapterInfo
+            {
+                StartPositionTicks = Ticks(start),
+                Name = Blank(Text(chapter, "tag")) ?? Blank(Text(chapter, "title"))
+            });
+        }
+
+        chapters.Sort((left, right) => left.StartPositionTicks.CompareTo(right.StartPositionTicks));
+        return chapters;
+    }
+
+    /// <summary>
+    /// Plex 的片头片尾 marker：<c>includeMarkers=1</c> 时随条目一起发，<c>type</c> 是 <c>intro</c> 或
+    /// <c>credits</c>，offset 是毫秒。广告（<c>commercial</c>）不在这里管 —— 跳过按钮只有一种动作。
+    /// <para>
+    /// 一部片可能有一条 intro 和先后两条 credits（片中彩蛋前一条、片尾名单前一条）。两条都留着：
+    /// 播放走到哪一条就按哪一条跳，和 Plex 自己的「跳过片尾」一致。
+    /// </para>
+    /// </summary>
+    public static List<ServerSkipMarker> Markers(JsonObject value)
+    {
+        var markers = new List<ServerSkipMarker>();
+        foreach (var marker in Elements(value, "Marker"))
+        {
+            var kind = Text(marker, "type") switch
+            {
+                "intro" => ServerSkipMarkerKind.Opening,
+                "credits" => ServerSkipMarkerKind.Ending,
+                _ => (ServerSkipMarkerKind?)null
+            };
+            if (kind is not { } found) continue;
+            if (Number(marker, "startTimeOffset") is not { } start || start < 0) continue;
+
+            var end = Number(marker, "endTimeOffset") is { } finish && finish > start ? finish : 0;
+            markers.Add(new ServerSkipMarker(found, start / 1000d, end / 1000d));
+        }
+
+        markers.Sort((left, right) => left.StartSeconds.CompareTo(right.StartSeconds));
+        return markers;
+    }
+
+    /// <summary>Plex 的元素：重复出现时是数组，只有一个时可能是单个对象。</summary>
+    internal static IEnumerable<JsonObject> Elements(JsonObject value, string key) => value[key] switch
+    {
+        JsonArray array => array.OfType<JsonObject>(),
+        JsonObject single => [single],
+        _ => []
+    };
+
+    /// <summary>
     /// The files behind one item, and the tracks inside them.
     /// <para>
     /// Plex nests <c>Media</c> → <c>Part</c> → <c>Stream</c>, and every part is a playable file, so one

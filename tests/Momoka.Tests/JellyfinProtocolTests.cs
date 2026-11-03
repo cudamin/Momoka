@@ -244,6 +244,46 @@ internal static partial class JellyfinProtocolTests
             Assert.Equal("AAEC/w==", handler.Sent.Single().Body);
             Assert.Equal("/media/Items/item/Images/Primary", handler.Sent.Single().Path);
         });
+        Test("Jellyfin：10.10 起详情读取媒体段，片头片尾进跳过计划", () =>
+        {
+            using var handler = new Transport
+            {
+                Reply = sent => Json(sent.Path.EndsWith("/MediaSegments/ep1", StringComparison.Ordinal)
+                    ? """{"Items":[{"Type":"Intro","StartTicks":50000000,"EndTicks":950000000},{"Type":"Outro","StartTicks":13800000000,"EndTicks":14900000000},{"Type":"Commercial","StartTicks":6000000000,"EndTicks":6100000000}]}"""
+                    : """{"Id":"ep1","Type":"Episode","RunTimeTicks":15000000000,"Chapters":[]}""")
+            };
+            using var http = new EmbyHttp(handler);
+            var item = Client(http).GetItemAsync("ep1", default).GetAwaiter().GetResult();
+
+            Assert.True(handler.Sent.Any(sent => sent.Path.EndsWith("/MediaSegments/ep1", StringComparison.Ordinal)));
+            Assert.Equal(2, item.SkipMarkers.Count);
+            var sections = SkipSectionPlanner.Resolve(item);
+            Assert.Equal((SkipSectionKind.Opening, 5d, 95d), (sections[0].Kind, sections[0].Start, sections[0].End));
+            Assert.Equal((SkipSectionKind.Ending, 1380d, 1490d), (sections[1].Kind, sections[1].Start, sections[1].End));
+        });
+        Test("Jellyfin：10.10 之前不发媒体段请求", () =>
+        {
+            using var handler = new Transport { Reply = _ => Json("""{"Id":"ep1","Type":"Episode"}""") };
+            using var http = new EmbyHttp(handler);
+            var item = Client(http, "10.9.11").GetItemAsync("ep1", default).GetAwaiter().GetResult();
+
+            Assert.Equal(0, item.SkipMarkers.Count);
+            Assert.False(handler.Sent.Any(sent => sent.Path.Contains("MediaSegments", StringComparison.Ordinal)));
+        });
+        Test("Jellyfin：媒体段接口缺失时详情照常返回", () =>
+        {
+            using var handler = new Transport
+            {
+                Reply = sent => sent.Path.Contains("MediaSegments", StringComparison.Ordinal)
+                    ? new HttpResponseMessage(HttpStatusCode.NotFound)
+                    : Json("""{"Id":"ep1","Type":"Episode"}""")
+            };
+            using var http = new EmbyHttp(handler);
+            var item = Client(http).GetItemAsync("ep1", default).GetAwaiter().GetResult();
+
+            Assert.Equal("ep1", item.Id);
+            Assert.Equal(0, item.SkipMarkers.Count);
+        });
         Test("Jellyfin：不兼容排序有显隐判据且保留身份边界", () =>
         {
             Assert.True(JellyfinQuery.SupportsSort(EmbySortBy.DateAdded));
