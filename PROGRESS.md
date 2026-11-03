@@ -1,3 +1,17 @@
+## 2026-11-03 质量工具：构建期样式、架构依赖、重复代码与 Git 变更检查（待提交）
+
+- 用户令：把「编译错误／单元测试／代码规范／复杂度／重复代码／架构依赖／格式统一／Git 变更检查」这套工具装进项目，「你觉得没必要的可以不装」。逐项核对后：4 项已有、2 项新增、2 项不装，实测数字与理由写进 docs/开发与验证.md「质量工具」。
+- 已有、未重复安装：`dotnet build`（闸门 1）、`dotnet format whitespace`（闸门 1）、`.editorconfig` + 四个 Roslyn 分析器（WindowsAppSDK／VSTHRD／BannedApi／Roslynator）、`run-regressions.ps1`（53 个专项，`dotnet test` 的等价物）。本轮把 `EnforceCodeStyleInBuild` 从 false 改为 true：全方案实测只多两处 IDE0065（MpvBaseline.cs 的两条 using 放进 namespace，已挪到文件顶部）与两处 IDE0161（两个测试夹具的块式 namespace，`[tests/**/*.cs]` 降为 suggestion）；随后全方案 0 警告 0 错误。
+- 新增 `tests/Momoka.ArchitectureTests`（NetArchTest.eNhancedEdition 1.4.5）：读当前 Release 的 Core/Shell DLL（Mono.Cecil，不加载 WinUI、不启动应用），七条规则——Core 不碰 UI 技术栈／不依赖 Shell／程序集引用表只有框架，Shell 不依赖测试程序集，Services／Media／Windowing 不依赖 Views。已登记 sln（手工最小插入，避免 `dotnet sln add` 重写整个文件）与 regression-suites.json；运行器单跑 **7/7、0 失败 0 跳过**（`arch-234428`）。`ViewModels → Views` 这类现存十几处的方向没有写成规则：那是重构目标，不是今天守得住的线。
+- 新增 `tools/check-duplication.ps1`（jscpd 5.4.2，扫 src，min-lines 12／min-tokens 80）：基线 **63 段、1122/180521 行、0.62%**，预算 70 段／1%；超预算先看新克隆，改预算要写理由。
+- 新增 `tools/check-diff.ps1`：变更文件（含未跟踪）的 CRLF、末尾换行、BOM（.ps1 必须有、其余不许）、非法 UTF-8 与 `git diff --check`。写它的时候当场逮到本轮三个文件被编辑工具写成 CRLF（.editorconfig／Directory.Build.props／Momoka.sln，.sln 还多带 BOM），已归一化；这正是 09-27 那次 167 行 CRLF 事故的防线。
+- 新增统一入口 `tools/quality.ps1`（编译＋空白＋脚本检查＋架构＋重复率＋变更检查，`-Tests` 追加全部专项）与两个新脚本的离线回归 `tools/test-quality-tools.ps1` **15/15**（临时 git 仓库与假 jscpd 报告，不联网、不构建产品）。
+- 修 `run-regressions.ps1` 三处读输入的老坑：清单 `Get-Content -Raw` 未带 `-Encoding UTF8`（936 代码页下解析失败）、子进程输出按系统代码页解码（`Build-Current` 的「0 个警告」永远不匹配）、空仓库没有 HEAD 时 `git rev-parse` 的 fatal 变成终止错误。修后架构专项经运行器 **7/7** 通过；`test-run-regressions.ps1` 在 HEAD 上本来就红（A/B：HEAD 版本在清单第 22 行 `ConvertFrom-Json` 就失败），本轮只把它修到 12/14 —— 余下 `wrapper-success` 用例依赖 DetailDeleteCommandTests 预检的新鲜 Shell 校验，匿名夹具没有这份产物，属既有漂移。该夹具保持 HEAD 原样，红项如实记在这里，未退役。
+- 不装：①SonarAnalyzer／SonarQube——Core 一个项目实测 **347 条、35 条规则**，逐条核对全是刻意写法（飞牛 MD5 签名 S4790／S6418、错误响应故意排空 S2674、降序比较交换参数 S2234）；进「0 警告」门禁只能整片压制，SonarQube 的 C# 分析还要商业版，重复率已由 jscpd 覆盖。复杂度因此没有单独门禁：Sonar 的 S3776 在 Core 零命中，内置 CA1502（圈复杂度 > 25）实测会报 50 个方法，开门禁等于先做一次 50 个方法的重构，留作独立轮。②`dotnet test`——53 个测试项目是自建控制台 runner，改 xUnit 要给每个项目加 SDK／适配器，收益只是换命令名。③`dotnet format style` 暂不进门禁：281 处测试文件 using 顺序差异（IMPORTS），留作独立清理轮。
+- 验证：Release 全方案 **0 警告 0 错误**；`dotnet format whitespace --verify-no-changes` 退出 0；`check-scripts.ps1` **54 个脚本**通过；主测试 **3631/3631、0 失败 0 跳过**；架构专项 **7/7**；重复率 **0.62%** 在预算内；`test-quality-tools` **15/15**；`check-diff` 16 个变更文件通过。
+- 并发说明：第一次主测试 16 条自检隔离用例红（「已有当前用户的自检运行中」）——另一个会话在同一棵树里跑 `tools/publish.ps1` 与 `--probe-shell`，清空了 `src/Momoka.Shell/bin` 并持有自检 mutex。等它退出后串行重跑 **3631/3631**；按「同树只有一个写入会话」，本轮不发布、不跑闸门 4。产品代码只有 using 位置与构建开关变化，没有可见行为改动。
+- 未覆盖：架构规则只证明程序集里的类型依赖与引用表，不证明运行时行为；重复率只扫 src（不含 tests／XAML）；`check-diff` 默认只看变更文件，全树体检用 `-All`；`quality.ps1 -Tests` 未跑全量专项。
+
 ## 2026-11-03 跳过片头片尾：Jellyfin 媒体段与 Plex 标记接入（已合入 master、已发布桌面）
 
 - 用户令三条：①片头片尾优先用服务端数据，服务端只标了片头或只标片尾时由播放识别补齐缺的那一类；②检查其他服务端能不能拿到跳过的数据；③在设置与播放页右键菜单加自动跳过开关 —— 说明设置里已有「询问／自动跳过／关闭」三档后，用户答「已经有了那就跳过这个任务」，③不做。

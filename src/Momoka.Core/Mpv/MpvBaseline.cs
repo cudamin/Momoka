@@ -1,7 +1,7 @@
-namespace Momoka.Mpv;
-
 using System.Globalization;
 using Momoka.Configuration;
+
+namespace Momoka.Mpv;
 
 /// <summary>
 /// The handful of mpv options the client always sets, whatever is on the settings page.

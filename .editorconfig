@@ -12,9 +12,11 @@
 # them on. That is the whole point of choosing severities this way — a style rule the code already
 # violates, set to warning, only teaches the next reader to ignore warnings.
 #
-# EnforceCodeStyleInBuild stays false in Directory.Build.props, so the `warning` severities here reach
-# the IDE and `dotnet format`, not the build. Turning it on is a separate decision with its own
-# measurement to do first: the broad IDE0### family has never been run over this tree.
+# EnforceCodeStyleInBuild is on in Directory.Build.props since 2026-11-03, so these `warning`
+# severities reach the build and gate 1, not just the IDE. That was measured first: over the whole
+# solution it surfaced two IDE0065 sites (using placement) in MpvBaseline.cs and two IDE0161 (block
+# namespaces) in test fixtures — the fix and the one test-only downgrade are recorded below. The rest
+# of the broad IDE0### family stays at `suggestion`; it has still never been run over this tree.
 
 root = true
 
@@ -203,3 +205,7 @@ dotnet_diagnostic.RCS1210.severity = suggestion
 # The test runner is one console project whose asserts read as prose; naming rules that fit production
 # types make its Chinese-named test registrations noisy for no gain.
 dotnet_diagnostic.IDE1006.severity = none
+# 两个夹具文件（PageContractTests/BannerCacheBoundaries、HomeFoldCompletionTests/PageBoundary）
+# 用块式命名空间，因为它们各是一整段「补生产类型空缺」的替身，文件内按分组排列。改成文件范围
+# 需要整文件反缩进，diff 会把真实改动埋掉；IDE 里仍提示，构建不拦。
+dotnet_diagnostic.IDE0161.severity = suggestion

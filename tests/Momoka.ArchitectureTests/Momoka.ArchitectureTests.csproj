@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    架构约束的离线执行器。它读的是已编译的 Momoka.Core.dll / Momoka.Shell.dll，不加载
+    WinUI，也不启动应用：NetArchTest 用 Mono.Cecil 直接读元数据，所以这个项目可以在没有
+    窗口、没有服务器的控制台里判断「Core 有没有伸手去摸 UI」。
+
+    这里只引用 NetArchTest.eNhancedEdition（原版 1.3.2 停更、已知 bug 未修，增强版是它的
+    维护分支，API 同源）。不引用 Core/Shell 项目：引用会让测试进程去解析 WinUI 依赖，而这
+    个项目存在的意义正是「不运行产品也能检查产品」。
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Momoka.ArchitectureTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NetArchTest.eNhancedEdition" Version="1.4.5" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+  </ItemGroup>
+
+</Project>

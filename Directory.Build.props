@@ -16,7 +16,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest</AnalysisLevel>
-    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <!--
+      2026-11-03 打开：此前 .editorconfig 里那一批 `:warning` 的 IDE 规则只到 IDE 和 dotnet format，
+      闸门 1 的「0 警告」看不见它们。先实测再开：全方案只多出两处 IDE0065（MpvBaseline.cs 的
+      using 放进 namespace，已改）和两处 IDE0161（测试夹具的块式 namespace，测试段的 suggestion
+      覆盖）。其余 IDE0### 仍是 suggestion，没有借这次开闸把它们一起提级。
+    -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>

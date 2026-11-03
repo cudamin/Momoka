@@ -36,6 +36,18 @@
       "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
     },
     {
+      "id": "Momoka.ArchitectureTests",
+      "project": "tests/Momoka.ArchitectureTests/Momoka.ArchitectureTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.ArchitectureTests/README.md",
+      "notes": "先构建当前工作树 Release 的 Core/Shell，再运行；NetArchTest 只读这两个 DLL，不加载 WinUI、不启动应用或连接服务器。"
+    },
+    {
       "id": "Momoka.AtomicFileWriteTests",
       "project": "tests/Momoka.AtomicFileWriteTests/Momoka.AtomicFileWriteTests.csproj",
       "mode": "dotnet",
@@ -230,7 +242,10 @@
       "project": "tests/Momoka.MoviePilotJourneyTests/Momoka.MoviePilotJourneyTests.csproj",
       "mode": "dotnet",
       "requiresShell": true,
-      "arguments": ["{shell}", "{root}"],
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
       "wrapper": null,
       "readme": "tests/Momoka.MoviePilotJourneyTests/README.md",
       "notes": "加载当前Shell中的匿名检查台传输，不启动窗口或真实服务器。"

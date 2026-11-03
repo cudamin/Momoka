@@ -13,6 +13,24 @@ Set-StrictMode -Version Latest
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $utf8 = [Text.UTF8Encoding]::new($false)
 
+# dotnet 按 UTF-8 写控制台，而 Windows PowerShell 5.1 默认按当前代码页（本机 936）解码：
+# 构建摘要里的「0 个警告」会先变成乱码，Build-Current 的文字判断便永远不匹配。统一按 UTF-8 解码。
+$previousOutputEncoding = [Console]::OutputEncoding
+[Console]::OutputEncoding = $utf8
+
+# 空仓库（离线夹具）没有 HEAD。返回空串，而不是让 git 的 fatal 在 Stop 模式下变成终止错误。
+function Get-TreeHead([string]$Tree) {
+    $saved = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $value = @(& git -C $Tree rev-parse HEAD 2>$null) | Select-Object -First 1
+        if ($null -eq $value) { return '' }
+        return ([string]$value).Trim()
+    } finally {
+        $ErrorActionPreference = $saved
+    }
+}
+
 function Resolve-TreePath([string]$Relative) {
     if ([IO.Path]::IsPathRooted($Relative)) { throw "清单路径必须相对工作树：$Relative" }
     $path = [IO.Path]::GetFullPath((Join-Path $root $Relative))
@@ -79,7 +97,7 @@ try {
     if (($All -and $Suite) -or ($List -and ($All -or $Suite))) { throw '-List、-Suite 和 -All 不能混用。' }
     $gitRoot = (& git -C $root rev-parse --show-toplevel).Trim()
     if ($LASTEXITCODE -ne 0 -or [IO.Path]::GetFullPath($gitRoot) -ne $root) { throw '只能运行所属 Git 工作树的脚本。' }
-    $manifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'regression-suites.json') -Raw | ConvertFrom-Json
+    $manifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'regression-suites.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($manifest.schemaVersion -ne 1) { throw '不支持的专项清单版本。' }
     $entries = @($manifest.suites)
     $ids = @{}
@@ -189,7 +207,7 @@ try {
                 if (Test-Path -LiteralPath (Join-Path $evidence 'run.log')) { $result.counts = Read-CaseCounts (Join-Path $evidence 'run.log') }
             } finally {
                 $results.Add([pscustomobject]$result)
-                $report = [ordered]@{ root = $root; head = (& git -C $root rev-parse HEAD).Trim(); sdk = $sdk;
+                $report = [ordered]@{ root = $root; head = (Get-TreeHead $root); sdk = $sdk;
                     manifestSha256 = (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'regression-suites.json') -Algorithm SHA256).Hash;
                     selected = @($selected | ForEach-Object { $_.id }); suites = @($results.ToArray()) }
                 [IO.File]::WriteAllText((Join-Path $output 'summary.json'), ($report | ConvertTo-Json -Depth 8) + "`n", $utf8)
@@ -198,6 +216,7 @@ try {
     } finally {
         Pop-Location
         foreach ($name in $savedEnvironment.Keys) { [Environment]::SetEnvironmentVariable($name, $savedEnvironment[$name], 'Process') }
+        [Console]::OutputEncoding = $previousOutputEncoding
     }
     $results | Select-Object suite, status, phase, error | Format-Table -AutoSize -Wrap
     Write-Output "报告：$(Join-Path $output 'summary.json')。各套覆盖可能重叠，不合计用例数。"
