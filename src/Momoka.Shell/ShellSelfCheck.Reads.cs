@@ -672,8 +672,8 @@ internal static partial class ShellSelfCheck
     /// 剧页的集列表与季锚点，driven the way a person drives it：页面打开在某一季，再把 SelectedSeason 换成
     /// 另一季。2026-11-03 起这一下不再按季重读 —— 剧页手上本来就是全季一条，换季只改标题和集带起点。
     /// <para>
-    /// 四件事要同时成立：列表仍是全季那一份（同一批对象）、标题跟着新季走且写的是全季总数、播放落点不变
-    /// （规则是最早播出的未看集，与当前显示哪一季无关）、<see cref="DetailViewModel.SelectEpisodeSeason"/>
+    /// 四件事要同时成立：列表仍是全季那一份（同一批对象）、标题跟着新季走（只写季名，不再带集数与已看数）、
+    /// 播放落点不变（规则是最早播出的未看集，与当前显示哪一季无关）、<see cref="DetailViewModel.SelectEpisodeSeason"/>
     /// 给出该季第一张卡的位置。打开的那一季也要对一遍「播放会起哪一集」—— 那是用户 2026-10-15 报过的
     /// S00E01 问题，现在由 <see cref="ItemDetail.PickEpisode"/> 按播出时间统一回答。
     /// </para>
@@ -740,7 +740,7 @@ internal static partial class ShellSelfCheck
             && page.SelectedSeason?.Id == target.Id
             && rows.SequenceEqual(before)
             && heading.Contains(target.Name, StringComparison.Ordinal)
-            && heading.Contains($"{before.Length} 集", StringComparison.Ordinal)
+            && !heading.Contains("集，已看", StringComparison.Ordinal)
             && page.PlayTarget?.Id == playBefore
             && index == wantedIndex;
 

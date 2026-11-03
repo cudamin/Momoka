@@ -109,6 +109,15 @@ public sealed partial class ShelfStrip : UserControl
     /// </summary>
     private int _focusedIndex = -1;
 
+    /// <summary>
+    /// 视口左沿现在是第几张卡。详情页的集带拿它把标题切到正在看的那一季（2026-11-03 用户令：
+    /// 「集列表翻页翻到第x季第1集或者最后一集时上方要自动切换为对应季」）。-1 表示还没量过。
+    /// </summary>
+    private int _leading = -1;
+
+    /// <summary>视口左沿换到了另一张卡。只在索引真的变了时发一次，滚动一帧来十几次也不重复问页面。</summary>
+    internal event Action<int>? LeadingChanged;
+
     /// <summary>正在等待布局完成后重试的焦点索引，-1 表示没有。</summary>
     private int _pendingFocusedIndex = -1;
 
@@ -304,7 +313,8 @@ public sealed partial class ShelfStrip : UserControl
 
         _requested = target;
 
-        if (target > 0)
+        // 回到第 0 张也是真滚：换季换到第一季时，带子多半已经不在开头，跳过 0 就只记了个请求。
+        if (target > 0 || Scroller.ScrollableWidth > 0)
             Scroller.ScrollTo(target, Scroller.VerticalOffset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
 
         return target;
@@ -664,7 +674,27 @@ public sealed partial class ShelfStrip : UserControl
         _watch.Leave();
     }
 
-    private void OnViewChanged(ScrollView sender, object e) => SyncArrows();
+    private void OnViewChanged(ScrollView sender, object e)
+    {
+        SyncArrows();
+        RaiseLeading();
+    }
+
+    /// <summary>
+    /// 视口左沿落在第几张卡：卡片等宽，位置就是「偏移 ÷ 间距」。取整向下 —— 半张露在左边沿时，
+    /// 那半张仍是这一屏的第一张（标题该说它所属的那一季），不是被它盖住的那一张。
+    /// </summary>
+    private void RaiseLeading()
+    {
+        var pitch = Measure();
+        if (pitch <= 0 || ItemCount == 0) return;
+
+        var index = Math.Clamp((int)Math.Floor(Scroller.HorizontalOffset / pitch + 0.01), 0, ItemCount - 1);
+        if (index == _leading) return;
+
+        _leading = index;
+        LeadingChanged?.Invoke(index);
+    }
 
     /// <summary>
     /// 带、视口或卡片行的尺寸变了。三个来源都接同一个处理器，因为要重算的东西是一样的：箭头多高（带的
@@ -678,6 +708,7 @@ public sealed partial class ShelfStrip : UserControl
         // 卡片刚长出来的那一刻也是这里：ApplyFocus 之前算不出位置，现在算得出。
         ApplyFocus();
         ApplyPendingFocusedItem();
+        RaiseLeading();
     }
 
     private static void OnItemsChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
@@ -695,6 +726,7 @@ public sealed partial class ShelfStrip : UserControl
         // 换了一批卡，上一批的定位请求（尤其是换季的强制左对齐）不该落到新列表上。
         strip._focus = -1;
         strip._align = false;
+        strip._leading = -1;
         strip.SyncArrows();
     }
 
@@ -760,6 +792,9 @@ public sealed partial class ShelfStrip : UserControl
 
     /// <summary>自检用：最近一次翻页要到的位置。</summary>
     internal double Requested => _requested;
+
+    /// <summary>自检用：带子此刻真实停在哪里（换季回到第一季时，光看请求位置分不出它有没有真滚）。</summary>
+    internal double Offset => Scroller.HorizontalOffset;
 
     /// <summary>自检用：还没落实的定位请求，-1 表示没有。<see cref="FocusIndex"/> 是要到第几张，这是还没到的那一张。</summary>
     internal int PendingFocus => _focus;

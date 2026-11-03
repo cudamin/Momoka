@@ -104,10 +104,9 @@ public sealed partial class CardShelf : ObservableObject
 
     /// <summary>
     /// The heading above the row. Settable, and observable, because one row's heading is a fact about
-    /// its contents rather than about the row: 详情页's 单集 heading reads
-    /// 「更多来自：第一季 · 12 集，已看 3 集」, and picking another season from the drop-down rewrites it
-    /// without rebuilding the shelf. The home page's four headings are assigned once and never again,
-    /// which this still allows.
+    /// its contents rather than about the row: 详情页's 单集 heading reads 「更多来自：第一季」, and scrolling
+    /// the strip into another season rewrites it without rebuilding the shelf. The home page's four
+    /// headings are assigned once and never again, which this still allows.
     /// </summary>
     [ObservableProperty]
     public partial string Title { get; set; }

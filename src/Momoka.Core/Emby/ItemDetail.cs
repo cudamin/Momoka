@@ -966,29 +966,11 @@ public static class ItemDetail
     }
 
     /// <summary>
-    /// 「12 集，已看 3 集」, or empty for a season with nothing in it. Its own function because both
-    /// headings that state it — the shelf's on an episode page and the season page's own — have to say
-    /// it the same way, and because it is the one part of either heading worth a test.
+    /// The episode shelf's heading, which names the season the strip is anchored on. 2026-11-03 用户令
+    /// 「去掉后面的xx集，已观看到0集」：数量与已看数不再写在标题里，这一行只回答「现在是哪一季」。
     /// </summary>
-    public static string EpisodeTally(IReadOnlyList<EmbyItem> episodes)
-    {
-        if (episodes.Count == 0) return "";
-
-        var played = episodes.Count(episode => episode.UserData?.Played == true);
-        return $"{episodes.Count} 集，已看 {played} 集";
-    }
-
-    /// <summary>
-    /// The episode shelf's heading, which names the season and states how much of it is watched — the
-    /// two things worth knowing before deciding whether to open the list.
-    /// </summary>
-    public static string EpisodeHeading(string? seasonName, IReadOnlyList<EmbyItem> episodes)
-    {
-        var tally = EpisodeTally(episodes);
-        if (tally.Length == 0) return "更多单集";
-
-        return seasonName is { Length: > 0 } name ? $"更多来自：{name}  ·  {tally}" : $"更多单集  ·  {tally}";
-    }
+    public static string EpisodeHeading(string? seasonName) =>
+        seasonName is { Length: > 0 } name ? $"更多来自：{name}" : "更多单集";
 
     /// <summary>
     /// An episode list row's own line: 「1. 集名」. The number goes in front of the name rather than on a
@@ -1093,7 +1075,10 @@ public static class ItemDetail
     /// <summary>
     /// 这一条遗漏集是不是「特别篇」—— 第 0 季就是 Emby 放特别篇的地方，「特别篇」那颗开关管的就是它。
     /// </summary>
-    public static bool MissingIsSpecial(EmbyItem episode) => episode.ParentIndexNumber == 0;
+    public static bool MissingIsSpecial(EmbyItem episode) => IsSpecial(episode);
+
+    /// <summary>第 0 季的集就是特别篇 —— 集列表下面那一排和遗漏集那颗开关共用这一条判据。</summary>
+    public static bool IsSpecial(EmbyItem episode) => episode.ParentIndexNumber == 0;
 
     /// <summary>
     /// 这一条遗漏集是不是「还没播出」的那一类（「预告」那颗开关管的就是它）。

@@ -2063,8 +2063,8 @@ public sealed partial class DetailViewModel : PageViewModel
     public partial CardShelf? SeasonShelf { get; set; }
 
     /// <summary>
-    /// 剧页集列表下面的特别篇卡 —— 只装第 0 季（服务器把特别篇记在那里）。没有第 0 季时整块收起；
-    /// 集页不摆这一块（用户令只点名剧页）。
+    /// 集列表下面那一排特别篇 —— 只装第 0 季的**集**（不是季卡），剧页和集页都有；没有第 0 季时整块收起。
+    /// 2026-11-03 用户令先点名剧页，随后补一句「给集页面也加上特别篇卡片」，两页因此共用这一份。
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SpecialShelfVisibility))]
@@ -2273,7 +2273,10 @@ public sealed partial class DetailViewModel : PageViewModel
         var cast = new CardShelf("演职人员", images, CardSize.CastWidth,
             wide: false, indicators: false);
         var seasons = new CardShelf("全部剧季", images, CardSize.PosterWidth, wide: false);
-        var specials = new CardShelf("特别篇", images, CardSize.PosterWidth, wide: false);
+
+        // 特别篇摆的是第 0 季的集，不是季卡：窄版海报卡会把 S0 季封面放大成一张竖图，
+        // 而用户要的是四集特别篇各自的那张封面（2026-11-03）。
+        var specials = new CardShelf("特别篇", images, CardSize.WideWidth, wide: true);
         var similar = new CardShelf("更多类似", images, CardSize.PosterWidth, wide: false);
 
         if (EpisodeShelf is { } previous) previous.Cards.CollectionChanged -= OnEpisodeCardsChanged;
@@ -2963,13 +2966,12 @@ public sealed partial class DetailViewModel : PageViewModel
         }
         finally { _syncingSeason = false; }
 
-        // 剧页的「全部剧季」只列正片季；第 0 季归下面那张特别篇卡（2026-11-03 用户令），
-        // 没给特别篇留第二张一模一样的卡。集页没有特别篇卡，季清单照旧全列。
+        // 剧页的「全部剧季」只列正片季；第 0 季的集归集列表下面那张特别篇卡（2026-11-03 用户令），
+        // 没给特别篇留第二张一模一样的季卡。集页也照同一个判据。
         SeasonShelf?.Fill(seasons.Where(season => season.IndexNumber != 0), ItemDetail.SeasonSubtitle);
 
-        // 第 0 季就是特别篇。没有就不填，整块在 SpecialShelfVisibility 处收起 —— 不是每个剧都有特典。
-        SpecialShelf?.Fill(seasons.Where(season => season.IndexNumber == 0), ItemDetail.SeasonSubtitle);
-
+        // 特别篇那一排由 LoadEpisodesAsync 用第 0 季的集填 —— 它手上的全季列表已经含特别篇，
+        // 不必再为这一块单独问一趟季清单。没有第 0 季时那里会清空，整块在 SpecialShelfVisibility 处收起。
         await LoadEpisodesAsync(picked, retarget: true, token).ConfigureAwait(true);
     }
 
@@ -2983,8 +2985,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 在一个没有选择器的页面上说「有」。
     /// </para>
     /// <para>
-    /// 卡片几张才画归 <see cref="SeasonShelfVisibility"/>（两张以上）；这里照旧全填，单季的集页据此整块收起 ——
-    /// 和剧页同一条令。
+    /// 卡片几张才画归 <see cref="SeasonShelfVisibility"/>（两张以上）；这里只填正片季，单季的集页据此整块收起 ——
+    /// 和剧页同一条令。第 0 季归特别篇那一排，不在这张卡里重复。
     /// </para>
     /// <para>
     /// 失败当「这部剧没有季清单」：少一张卡，不是这一页加载失败（同 <see cref="LoadSimilarAsync"/>）。
@@ -3004,9 +3006,10 @@ public sealed partial class DetailViewModel : PageViewModel
                 .ExecuteAsync((client, ct) => client.GetSeasonsAsync(series, ct), token).ConfigureAwait(true);
             if (!IsCurrent(token)) return;
 
-            // 同剧页：已经删掉的那一季不再摆一张通往空页面的卡（判据在 WasDeleted）。
+            // 同剧页：已经删掉的那一季不再摆一张通往空页面的卡（判据在 WasDeleted）；第 0 季归集列表
+            // 下面那排特别篇，不在「全部剧季」里重复（2026-11-03）。
             seasons.RemoveAll(WasDeleted);
-            shelf.Fill(seasons, ItemDetail.SeasonSubtitle);
+            shelf.Fill(seasons.Where(season => season.IndexNumber != 0), ItemDetail.SeasonSubtitle);
 
             // 集页的季列表和剧页共用同一支下拉；Seasons 填上之后，SelectedSeason 才能指向清单里的真季，
             // 而不是 LoadEpisodesAsync 用这一集自己的字段拼出来的临时锚点。
@@ -3095,11 +3098,19 @@ public sealed partial class DetailViewModel : PageViewModel
         if (EpisodesAsList) shelf.FillRows(episodes, _detail);
         else shelf.Fill(episodes, ItemDetail.EpisodeCardSubtitle);
 
-        // 剧页、集页的标题用锚点那一季的名字，数量是整条全季列表的总数；季页仍是这一季自己。
+        // 特别篇那一排：只装第 0 季的集，剧页和集页都有（2026-11-03 用户令「给集页面也加上特别篇卡片」）。
+        // 它是一张独立的单集卡带，不按季重排，也不把特别篇从主列表里拿走 —— 主列表仍按播出时间插在中间。
+        if (_detail.Type is EmbyItemType.Series or EmbyItemType.Episode)
+            SpecialShelf?.Fill(episodes.Where(ItemDetail.IsSpecial), ItemDetail.EpisodeCardSubtitle);
+        else
+            SpecialShelf?.Clear();
+
+        // 剧页、集页的标题用锚点那一季的名字；季页仍是这一季自己。数量与已看数不再写进标题
+        // （2026-11-03 用户令「去掉后面的xx集，已观看到0集」）。
         var heading = _detail.Type is EmbyItemType.Series or EmbyItemType.Episode
             ? SelectedSeason?.Name ?? scope.SeasonName
             : scope.SeasonName;
-        shelf.Title = ItemDetail.EpisodeHeading(heading, episodes);
+        shelf.Title = ItemDetail.EpisodeHeading(heading);
 
         // Assigned after the cards, so the strip has something to measure itself against; it keeps the
         // request until the first card is laid out either way. 剧页开在锚点那一季的第一张，集页开在
@@ -3149,7 +3160,7 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 集列表牌子的标题跟着锚点走：季名是锚点那一季，数量与已看数是整条全季列表。
+    /// 集列表牌子的标题跟着锚点走，只写锚点那一季的名字。
     /// </summary>
     private void UpdateEpisodeHeading(EmbyItem? anchor)
     {
@@ -3157,7 +3168,28 @@ public sealed partial class DetailViewModel : PageViewModel
 
         var name = anchor?.Name
             ?? (_detail is null ? null : ItemDetail.EpisodeScope(_detail, null).SeasonName);
-        shelf.Title = ItemDetail.EpisodeHeading(name, _episodes);
+        shelf.Title = ItemDetail.EpisodeHeading(name);
+    }
+
+    /// <summary>
+    /// 集带翻页时，让标题跟着带子左沿那一集走 —— 2026-11-03 用户令「集列表翻页翻到第x季第1集或者最后一集时
+    /// 上方要自动切换为对应季」。只改季锚点，不重读、不动播放落点；锚点没变时标题也不重写。
+    /// </summary>
+    internal void FollowEpisode(EmbyItem? episode)
+    {
+        if (episode is null || !Attached) return;
+        if (_detail?.Type is not (EmbyItemType.Series or EmbyItemType.Episode)) return;
+
+        if (ItemDetail.SeasonOf(Seasons, episode) is { } season)
+        {
+            if (SelectedSeason?.Id == season.Id) return;
+            SelectedSeason = season;
+            return;
+        }
+
+        // 季清单里没有这一季（例如服务器没把特别篇列进季清单）：标题照这一集自己的字段走，
+        // 但不把锚点写成清单外的一季 —— 季列表里没有它，选中标记也就无处可落。
+        UpdateEpisodeHeading(SeasonAnchor(episode));
     }
 
     /// <summary>
@@ -3882,7 +3914,7 @@ public sealed partial class DetailViewModel : PageViewModel
                     await ApplyPlayTargetAsync(next, token).ConfigureAwait(true);
             }
             if (IsCurrent(token) && _detail is { } detail && EpisodeShelf is { } episodes)
-                episodes.Title = ItemDetail.EpisodeHeading(ItemDetail.EpisodeScope(detail, _loadedSeason).SeasonName, _episodes);
+                episodes.Title = ItemDetail.EpisodeHeading(ItemDetail.EpisodeScope(detail, _loadedSeason).SeasonName);
         }
         catch (OperationCanceledException) { }
         catch (Exception error)

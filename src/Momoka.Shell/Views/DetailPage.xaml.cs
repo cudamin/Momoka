@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -87,6 +88,9 @@ public sealed partial class DetailPage : Page, IShellContent
         // 沉浸版式那一支单独订阅：OnViewModelChanged 是 Plex 入口夹具原样提取的契约正文，往里塞这一页新加的
         // 字段会让那份提取出来的类编译不过。视图模型与这一页同寿，挂着不用退订。
         ViewModel.PropertyChanged += OnShowcaseChanged;
+
+        // 集带左沿换了一张卡：把季锚点（和牌子上的季名）跟着带子走。页面这一份控件与页同寿，不用退订。
+        EpisodeStrip.LeadingChanged += OnEpisodeStripLeadingChanged;
 
         // 上树之后把背景那一层顶到窗口的上沿一次。第一次量得到「这一页坐在工作区的哪儿」就是这时候 ——
         // 构造的时候页面还不在树上，量出来的是 0。
@@ -2351,30 +2355,175 @@ public sealed partial class DetailPage : Page, IShellContent
     private void OnEpisodeHeadInvoked(object sender, EventArgs e) => OpenEpisodeSeasonMenu();
 
     /// <summary>
-    /// 弹开季列表，并把菜单交回去给自检读一读（它不点菜单里的行，只核对行数和当前季）。
-    /// 菜单行是每次现搭的：季清单会随这一页重读而替换，摆好的一张每次都得整批改字 —— 同样的活儿。
+    /// 弹开季列表（剧页、集页的全季集列表共用）。2026-11-03 用户令按参考图改成「封面 + 季名 + 简介」的
+    /// 图文菜单：每季一张海报缩略图，右端勾出当前季，菜单本身可滚。只有一季时 Offer 是假，这条事件不会来。
+    /// <para>
+    /// 菜单行是每次现搭的：季清单会随这一页重读而替换，摆好的一张每次都得整批改字。缩略图借
+    /// <see cref="CardShelf.NewCard"/> 造一张临时卡，图走同一条缓存与解码路；菜单关掉就把这几张卡放掉，
+    /// 不留一批解出来的海报。
+    /// </para>
     /// </summary>
-    internal MenuFlyout? OpenEpisodeSeasonMenu()
+    internal SeasonMenu? OpenEpisodeSeasonMenu()
     {
         var seasons = ViewModel.EpisodeSeasonChoices;
         if (seasons.Count < 2) return null;
 
-        var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
+        var flyout = new Flyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
+        var rows = new List<SeasonMenuRow>();
+        var cards = new List<CardItem>();
+        var list = new StackPanel { Spacing = 4 };
+
         foreach (var season in seasons)
         {
-            var item = new MenuFlyoutItem { Text = season.Name, Tag = season };
-            if (season.Id is { Length: > 0 } id && ViewModel.SelectedSeason?.Id == id)
-                item.Icon = new SymbolIcon(Symbol.Accept);
-
-            item.Click += (sender, _) =>
+            var card = ViewModel.SeasonShelf?.NewCard(season);
+            if (card is not null)
             {
-                if (sender is MenuFlyoutItem { Tag: EmbyItem picked }) SelectEpisodeSeason(picked);
-            };
-            menu.Items.Add(item);
+                cards.Add(card);
+                _ = card.EnsurePosterAsync();
+            }
+
+            var selected = season.Id is { Length: > 0 } id && ViewModel.SelectedSeason?.Id == id;
+            var button = BuildSeasonMenuRow(season, card, selected, flyout);
+            list.Children.Add(button);
+            rows.Add(new SeasonMenuRow(season, button, selected));
         }
 
-        menu.ShowAt(EpisodeHead);
-        return menu;
+        flyout.Content = new ScrollViewer
+        {
+            Content = list,
+            MaxHeight = 460,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Width = 340
+        };
+
+        flyout.Closed += (_, _) =>
+        {
+            foreach (var card in cards) card.AbandonPoster();
+        };
+
+        flyout.ShowAt(EpisodeHead);
+        return new SeasonMenu(flyout, rows);
+    }
+
+    /// <summary>
+    /// 季列表里的一行：左边季海报，中间季名与两三行简介，右端当前季的勾。整行是一颗按钮，点下去换锚点、
+    /// 把集带对到那一季第一张，然后收起菜单。
+    /// </summary>
+    private Button BuildSeasonMenuRow(EmbyItem season, CardItem? card, bool selected, Flyout flyout)
+    {
+        var thumb = new Grid { Width = 64, Height = 96 };
+        thumb.Children.Add(new FontIcon
+        {
+            FontSize = 22,
+            Foreground = ThemeBrush("EgTextFaintBrush"),
+            Glyph = "\uE7F4",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        if (card is not null)
+        {
+            var image = new Image { Stretch = Stretch.UniformToFill };
+            image.SetBinding(Image.SourceProperty, new Binding
+            {
+                Source = card,
+                Path = new PropertyPath(nameof(CardItem.Poster)),
+                Mode = BindingMode.OneWay
+            });
+            thumb.Children.Add(image);
+        }
+
+        var picture = new Border
+        {
+            Width = 64,
+            Height = 96,
+            Background = ThemeBrush("EgSurfaceHoverBrush"),
+            CornerRadius = new CornerRadius(6),
+            Child = thumb
+        };
+
+        var text = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(new TextBlock
+        {
+            Text = season.Name,
+            Style = (Style)Application.Current.Resources["EgSubheadStyle"],
+            MaxLines = 1,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        });
+
+        var note = string.IsNullOrWhiteSpace(season.Overview)
+            ? ItemDetail.SeasonSubtitle(season)
+            : season.Overview.Trim();
+        if (note.Length > 0)
+        {
+            text.Children.Add(new TextBlock
+            {
+                Text = note,
+                Style = (Style)Application.Current.Resources["EgCaptionStyle"],
+                LineHeight = 18,
+                MaxLines = 3,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                TextWrapping = TextWrapping.Wrap
+            });
+        }
+
+        var check = new SymbolIcon(Symbol.Accept)
+        {
+            Foreground = ThemeBrush("EgAccentBrush"),
+            Visibility = selected ? Visibility.Visible : Visibility.Collapsed,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        var row = new Grid { ColumnSpacing = 12 };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(picture, 0);
+        Grid.SetColumn(text, 1);
+        Grid.SetColumn(check, 2);
+        row.Children.Add(picture);
+        row.Children.Add(text);
+        row.Children.Add(check);
+
+        var button = new Button
+        {
+            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0)),
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(8),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            Padding = new Thickness(8),
+            Tag = season
+        };
+        button.Content = row;
+        button.Click += (_, _) =>
+        {
+            flyout.Hide();
+            SelectEpisodeSeason(season);
+        };
+
+        return button;
+    }
+
+    private static Brush ThemeBrush(string key) => (Brush)Application.Current.Resources[key];
+
+    /// <summary>一行季列表的实物，给探针读行数、当前季与一行真的长出来了没有。</summary>
+    internal sealed record SeasonMenuRow(EmbyItem Season, Button Row, bool Selected);
+
+    /// <summary>弹开的季列表，连同它这些行 —— 探针不点行，只核对行数与当前季。</summary>
+    internal sealed record SeasonMenu(Flyout Flyout, IReadOnlyList<SeasonMenuRow> Rows);
+
+    /// <summary>
+    /// 集带翻到另一季：把季锚点换成左沿那一集所属的季。加载还没报完之前不接 —— 那时带子正被
+    /// <c>FocusIndex</c> 往这一页该在的位置上摆，中途的偏移不代表读者翻到了哪儿。
+    /// </summary>
+    private void OnEpisodeStripLeadingChanged(int index)
+    {
+        if (!ViewModel.IsReady || ViewModel.Busy) return;
+
+        var episodes = ViewModel.Episodes;
+        if ((uint)index < (uint)episodes.Count) ViewModel.FollowEpisode(episodes[index]);
     }
 
     /// <summary>

@@ -1366,11 +1366,12 @@
                             Visibility="{x:Bind ViewModel.EpisodeVisibility, Mode=OneWay}">
                             <!-- 牌子右端那一格自 2026-11-02 起空着：用户令删掉集列表卡片右上角那颗季选择栏
                                  （牌子右端原来挂的就是它）。切季的能力没有跟着删 —— DetailViewModel.Seasons／
-                                 SelectedSeason／SwitchSeasonAsync 照旧，自检和探针还在驱动它；只是这一页的屏上
-                                 不再有那颗下拉。这一带不报读数 —— 季数集数已经写在标题里了
-                                 （「更多来自：第一季 · 12 集，已看 3 集」）。 -->
+                                 SelectedSeason 照旧，自检和探针还在驱动它；只是这一页的屏上
+                                 不再有那颗下拉。这一带不报读数 —— 季名已经写在标题里了（「更多来自：第一季」，
+                                 2026-11-03 用户令去掉了后面的集数与已看数）。 -->
                             <!-- 2026-11-03：剧页、集页的集列表变成全季一条之后，季选择改由这块牌子本身承担 ——
-                                 「第x季」就在标题里，点标题唤出季列表（MenuFlyout），选一季把集带对到 S0xE01。
+                                 「第x季」就在标题里，点标题唤出季列表（图文菜单），选一季把集带对到 S0xE01；
+                                 集带自己翻过季界时标题也会跟着换（见 ShelfStrip.LeadingChanged）。
                                  只有一季（或还没载入）时 Offer 为假，牌子保持不可点，也不露折角。 -->
                             <local:ShelfHead
                                 x:Name="EpisodeHead"
@@ -1396,25 +1397,25 @@
                                 ItemTemplate="{StaticResource CardTemplate}"
                                 ItemsSource="{x:Bind ViewModel.EpisodeShelf.Cards, Mode=OneWay}"
                                 Visibility="{x:Bind ViewModel.EpisodeStripVisibility, Mode=OneWay}" />
-                        </StackPanel>
 
-                        <!-- 特别篇：剧页集列表下面的单张季卡（第 0 季）。2026-11-03 用户令「在剧页的集列表下面弄个
-                             特别篇卡片（就是S00/S0季，没有就自动隐藏）」——这个面板只填第 0 季，没有就整块收起。
-                             集页不摆这一块（用户点名的只有剧页），与下面「全部剧季」那张卡带各说各的：季卡带是
-                             所有季的入口，这里只给特别篇一条捷径。 -->
-                        <StackPanel
-                            x:Name="SpecialPanel"
-                            Style="{StaticResource EgBodyPanelStyle}"
-                            Padding="{x:Bind ViewModel.BodyPanelPadding, Mode=OneWay}"
-                            Spacing="10"
-                            Visibility="{x:Bind ViewModel.SpecialShelfVisibility, Mode=OneWay}">
-                            <local:ShelfHead x:Name="SpecialHead" ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}" Title="特别篇" />
-                            <local:ShelfStrip
-                                x:Name="SpecialRow"
-                                Height="{x:Bind ViewModel.SpecialShelf.RowHeight, Mode=OneWay}"
-                                ItemSpacing="16"
-                                ItemTemplate="{StaticResource CardTemplate}"
-                                ItemsSource="{x:Bind ViewModel.SpecialShelf.Cards, Mode=OneWay}" />
+                            <!-- 特别篇：同一张「全部剧集」卡片里的第二排单集卡（第 0 季），剧页和集页都有。
+                                 2026-11-03 用户令先是「在剧页的集列表下面弄个特别篇卡片（就是S00/S0季，没有就自动
+                                 隐藏）」，随后「给集页面也加上特别篇卡片」，再一句「特别篇卡片应该是集列表，而不是
+                                 季列表，把图四的特别篇移回全部剧集卡片，特别篇卡片的封面更换为四集特别篇的封面」
+                                 —— 所以这一块从独立面板挪进 EpisodePanel，装的是第 0 季的集、用每集自己的封面，
+                                 不再是那张 S0 季卡。没有特别篇时这一块整个收起。 -->
+                            <StackPanel
+                                x:Name="SpecialPanel"
+                                Spacing="10"
+                                Visibility="{x:Bind ViewModel.SpecialShelfVisibility, Mode=OneWay}">
+                                <local:ShelfHead x:Name="SpecialHead" ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}" Title="特别篇" />
+                                <local:ShelfStrip
+                                    x:Name="SpecialRow"
+                                    Height="{x:Bind ViewModel.SpecialShelf.RowHeight, Mode=OneWay}"
+                                    ItemSpacing="16"
+                                    ItemTemplate="{StaticResource CardTemplate}"
+                                    ItemsSource="{x:Bind ViewModel.SpecialShelf.Cards, Mode=OneWay}" />
+                            </StackPanel>
                         </StackPanel>
 
                         <!-- 全部剧季：剧集页和集页的季卡横带，点季卡进那一季自己的页面。两张季卡以上才摆 —— 只有一季时
@@ -1501,26 +1502,9 @@
                                 Visibility="{x:Bind ViewModel.OtherInfoVisibility, Mode=OneWay}" />
                         </StackPanel>
 
-                        <!-- 更多类似。 -->
-                        <StackPanel
-                            x:Name="SimilarPanel"
-                            Style="{StaticResource EgBodyPanelStyle}"
-                            Padding="{x:Bind ViewModel.BodyPanelPadding, Mode=OneWay}"
-                            Spacing="10"
-                            Visibility="{x:Bind ViewModel.SimilarVisibility, Mode=OneWay}">
-                            <local:ShelfHead
-                                ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
-                                Title="{x:Bind ViewModel.SimilarShelf.Title, Mode=OneWay}" />
-                            <local:ShelfStrip
-                                x:Name="SimilarRow"
-                                Height="{x:Bind ViewModel.SimilarShelf.RowHeight, Mode=OneWay}"
-                                ItemSpacing="16"
-                                ItemTemplate="{StaticResource CardTemplate}"
-                                ItemsSource="{x:Bind ViewModel.SimilarShelf.Cards, Mode=OneWay}" />
-                        </StackPanel>
-
-                        <!-- 演职人员压在最后一段：这一排是「这部片子背后是谁」，翻它的人已经看完了上面所有
-                             关于「看什么」的东西。 -->
+                        <!-- 演职人员接在其他信息之后：这一排是「这部片子背后是谁」，先把「看什么」说完，再回答
+                             「是谁做的」。2026-11-03 用户令「所有页面，演职人员卡片和更多推荐卡片位置互换」，
+                             所以它从原先收尾的位置挪到了更多类似前面。 -->
                         <StackPanel
                             x:Name="CastPanel"
                             Style="{StaticResource EgBodyPanelStyle}"
@@ -1538,11 +1522,30 @@
                                 ItemsSource="{x:Bind ViewModel.CastShelf.Cards, Mode=OneWay}" />
                         </StackPanel>
 
+                        <!-- 更多类似压在正文最后一段 —— 同日互换之后，这一排是整页「接下来看什么」的收尾。 -->
+                        <StackPanel
+                            x:Name="SimilarPanel"
+                            Style="{StaticResource EgBodyPanelStyle}"
+                            Padding="{x:Bind ViewModel.BodyPanelPadding, Mode=OneWay}"
+                            Spacing="10"
+                            Visibility="{x:Bind ViewModel.SimilarVisibility, Mode=OneWay}">
+                            <local:ShelfHead
+                                ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
+                                Title="{x:Bind ViewModel.SimilarShelf.Title, Mode=OneWay}" />
+                            <local:ShelfStrip
+                                x:Name="SimilarRow"
+                                Height="{x:Bind ViewModel.SimilarShelf.RowHeight, Mode=OneWay}"
+                                ItemSpacing="16"
+                                ItemTemplate="{StaticResource CardTemplate}"
+                                ItemsSource="{x:Bind ViewModel.SimilarShelf.Cards, Mode=OneWay}" />
+                        </StackPanel>
+
                         <!-- 页尾那张横幅 —— 「在电影页面 剧页面 集页面的底部添加横幅」。位置是用户点的名：整页
-                             最底下、演职人员那一排之后，滑到底才看得见（问过他两处，另一处是第一屏的下沿）。
-                             用的是服务器上那张横幅图（宽约 5:1、上面写着片名），哪一张归这儿由 ItemArtwork.Footer
-                             定 —— 没有徽标的条目上剧名头上那一枚已经是这张横幅，那时候这儿空着，同一张图不在一页上
-                             出现两次。三种页面才摆（判据在 DetailViewModel.FooterVisibility，季页不在里头）。
+                             最底下、更多类似那一排之后，滑到底才看得见（2026-11-03 演职人员与更多类似互换后，
+                             收尾的换成更多类似）。用的还是服务器上那张横幅图（宽约 5:1、上面写着片名），哪一张归这儿
+                             由 ItemArtwork.Footer 定 —— 没有徽标的条目上剧名头上那一枚已经是这张横幅，那时候这儿空着，
+                             同一张图不在一页上出现两次。三种页面才摆（判据在 DetailViewModel.FooterVisibility，季页
+                             不在里头）。
                              居中、Uniform、上限 760×140：它是一处收尾而不是又一张头图，通栏铺开会读成第二块头图；
                              760 也是它的解码宽度（DetailViewModel.FooterDecodeWidth），因为这张图上的字是位图。
                              上边距 12 加上这张纸自己的 20 行距 —— 收尾和最后一排卡片之间要看得出是两件事。

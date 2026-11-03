@@ -1029,13 +1029,11 @@ internal static class ItemDetailTests
             Assert.Equal("s2", ItemDetail.SeasonOf(seasons, seasons[1])?.Id);
         });
 
-        Test("单集：标题行数出总数与已看数", () =>
+        Test("单集：标题只写锚点那一季，不写集数与已看数", () =>
         {
-            var episodes = new List<EmbyItem> { Watched("一"), Watched("二"), Unwatched("三") };
-
-            Assert.Equal("更多来自：第一季  ·  3 集，已看 2 集", ItemDetail.EpisodeHeading("第一季", episodes));
-            Assert.Equal("更多单集  ·  3 集，已看 2 集", ItemDetail.EpisodeHeading(null, episodes));
-            Assert.Equal("更多单集", ItemDetail.EpisodeHeading("第一季", []));
+            Assert.Equal("更多来自：第一季", ItemDetail.EpisodeHeading("第一季"));
+            Assert.Equal("更多单集", ItemDetail.EpisodeHeading(null));
+            Assert.Equal("更多单集", ItemDetail.EpisodeHeading(""));
         });
 
         Test("媒体信息：剧页有续播取最近播放的续播集，否则取当季第一集", () =>

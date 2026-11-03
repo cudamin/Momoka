@@ -61,9 +61,10 @@ internal sealed partial class ShellNavigationProbe
         Require(vm.Seasons.Count == 2 && vm.CanPickEpisodeSeason, "两季的剧页没有季列表可点");
         Require(vm.SelectedSeason?.Id == "a", $"剧页锚点不是第一季：{vm.SelectedSeason?.Name}");
         Require(vm.PlayTarget?.Id == "ep-a", $"播放落点不是播出最早的集：{vm.PlayTarget?.Id}");
-        Require(vm.EpisodeShelf?.Title.Contains("2 集", StringComparison.Ordinal) == true
-                && vm.EpisodeShelf.Title.Contains(vm.SelectedSeason!.Name, StringComparison.Ordinal),
-            $"集列表标题没有写全季总数或锚点季：{vm.EpisodeShelf?.Title}");
+        Require(vm.EpisodeShelf?.Title.Contains(vm.SelectedSeason!.Name, StringComparison.Ordinal) == true
+                && vm.EpisodeShelf.Title.Contains("更多来自", StringComparison.Ordinal)
+                && !vm.EpisodeShelf.Title.Contains("集，已看", StringComparison.Ordinal),
+            $"集列表标题没有写锚点季（或还带着集数）：{vm.EpisodeShelf?.Title}");
 
         var before = fixture.Transport.Requests.Count;
         vm.SelectedSeason = vm.Seasons.Last();
