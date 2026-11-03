@@ -1,4 +1,4 @@
-## 2026-11-03 详情页标题、图文季菜单、集带自动换季与特别篇改版（在途）
+## 2026-11-03 详情页标题、图文季菜单、集带自动换季与特别篇改版（已合入 master、发布 0.2.4 到桌面；GitHub／商店未发布）
 
 - 用户令（五条，附参考图）：①集列表标题去掉后面的「xx 集，已观看到 0 集」；②季列表按参考图改成封面＋季名＋简介的图文菜单；③集列表翻页到第 x 季第 1 集或最后一集时，上方标题自动切到对应季；④剧页的特别篇卡片应当是集列表而不是季列表，移回「全部剧集」卡片，封面换成四集特别篇各自的封面；随后补两条：⑤集页面也加上特别篇卡片；⑥所有页面演职人员卡片与更多推荐卡片位置互换。
 - 实现：`ItemDetail.EpisodeHeading(seasonName)` 只写「更多来自：第 x 季」／「更多单集」，删除 `EpisodeTally`；`DetailViewModel.UpdateEpisodeHeading` 只跟季锚点。`DetailPage.OpenEpisodeSeasonMenu` 从 `MenuFlyout` 换成自定义 `Flyout`：每季一张 64×96 海报缩略图（借 `CardShelf.NewCard` 造临时卡，`EnsurePosterAsync` 走既有缓存与解码）、季名（`EgSubheadStyle`）、简介（`EgCaptionStyle`，最多三行；没有简介时退回「N 集」）和当前季勾，宽 340、最大高 460、可滚，关闭时逐张 `AbandonPoster`。`ShelfStrip.LeadingChanged` 按「水平偏移 ÷ 卡片间距」向下取整报视口左沿索引，只在索引变化时发；`DetailPage.OnEpisodeStripLeadingChanged` 在 `IsReady && !Busy` 后叫 `DetailViewModel.FollowEpisode`，只换季锚点和标题，不重读、不动播放落点；`ScrollToIndex` 修正为索引 0 也真滚。`SpecialShelf` 改成 `CardSize.WideWidth` 的宽版单集卡，`LoadEpisodesAsync` 用 `ItemDetail.IsSpecial`（第 0 季）从全季列表里填集、走 `EpisodeCardSubtitle`，每张卡用自己的封面；`SpecialPanel` 从独立面板移进 `EpisodePanel`，剧页与集页共用，季页清空，集页的「全部剧季」也过滤第 0 季。`CastPanel` 移到 `SimilarPanel` 前，页尾横幅改在更多类似之后，`DetailPage.Showcase.BodyPanels` 由六块改为五块并调整错峰次序。
@@ -6,7 +6,8 @@
 - 探针：最终代码 `--probe-shell --probe-section library --screen 1` **23/24**（`shell-probe-20261103-022101649-1952`），唯一红项「集页封面与窄窗背景图和尾部间距」是像素探针 `GuardVisible` 判窗口被遮挡，环境红，未改断言；同一分区较早一跑 **24/24、退出 0**（`shell-probe-20261103-015627282-23636`）。新用例读数：多季 8 张全季列表、换季请求 1264、集带自动换季、特别篇一排 228 高且只装第 0 季的集、集页特别篇 1 集、演职人员 1645–1987 在更多类似 2007–2418 之前；菜单截图 `detail-season-menu-1280.png`、特别篇截图 `detail-series-specials-1280.png`，读数 `detail-series-info.txt`。另两跑分别因既有冷启动超时（`020219`，23/24）与进程在第六例后停住（`020615`，已手动结束自己的探针进程）未作数。
 - 自检：`--self-check --dump-ui --screen 1` 两次均为 **3 项红**（`Momoka.SelfCheck/7d50501c…`、`Momoka.SelfCheck/c588a1de…`），全部不在本次改动范围：第一次是设置行模板／日志行模板（已渲染 188/207），第二次是设置分类走查与行模板 206/207，再加「屏幕像素」检测到桌面上的 mpv 窗口遮挡（不是本进程窗口）；详情页各行（含「详情页季切换」的新标题格式）全绿。未关闭用户进程，按环境红记录。
 - 未覆盖：真实服务器上图文季菜单的海报与简介观感（假夹具无图无简介，只有占位与「N 集」）、真实集带的连续翻页手感、剧页与集页的真实特别篇封面；假传输不联网、不播放、不写真实设置。
-- 交付：待收口（合入 master、发布桌面；GitHub／商店发布需另行确认）。
+- 交付：版本升至 **0.2.4**（`Directory.Build.props`）；`tools/publish.ps1 -Shortcut -NoArchive` 退出 0，`artifacts/publish/win-x64` **546 文件 / 285.8 MB**，14 GLSL / 4 HOOK，批准 mpv 清单 59 文件，载荷校验通过；开发件与发布件 `Momoka.dll` SHA-256 同为 `81bc6f01cee872fe634c1b29e76b5d6982dc3e71b638b76dcc692fc61268474e`；发布件 exe 文件版本 **0.2.4.0**；桌面 `Momoka.lnk` 已重写并读回，目标 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`、工作目录同名目录、参数为空、目标存在。发布件 library 探针两跑均 **23/24**（`shell-probe-20261103-022931727-11936`、`-023305278-14884`），红项都是既有的冷启动「季页面无封面播放按钮」超时，新用例读数与开发件一致；`-NoArchive` 跳过 zip／安装包／商店包，GitHub 与微软商店未发布、未推 origin。
+- 清理：本批在主干 `master` 上用一个临时分支 `detail-specials-menu-20261103` 提交后 fast-forward 合入，分支已删除；`git worktree list` 仍只有主树 `C:/Users/89400/Momoka`，没有新增工作树。
 
 ## 2026-11-03 详情页全季集列表、特别篇卡与季列表跳转（已合入 master 并交付桌面）
 
