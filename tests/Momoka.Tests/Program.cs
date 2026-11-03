@@ -303,6 +303,7 @@ internal static class Program
         HomeFoldTests.Register();
         BackdropBlurTests.Register();
         HomeLayoutTests.Register();
+        RemovedMediaTests.Register();
         HomeLatestTests.Register();
         LibraryTotalTests.Register();
         HomeResumeTextTests.Register();

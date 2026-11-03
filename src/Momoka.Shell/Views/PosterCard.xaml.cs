@@ -148,6 +148,12 @@ public sealed partial class PosterCard : UserControl
     private Storyboard? _motion;
     private Storyboard? _posterFade;
 
+    /// <summary>删除确认后的离场动画；<see cref="ResetRemoval"/> 或换卡时停掉。</summary>
+    private Storyboard? _removal;
+
+    /// <summary>离场动画落定的信号。停掉动画也要兑现，等它的页面才不会一直等着。</summary>
+    private TaskCompletionSource<bool>? _removalDone;
+
     public PosterCard()
     {
         InitializeComponent();
@@ -443,6 +449,7 @@ public sealed partial class PosterCard : UserControl
         _motion = null;
         _posterFade?.Stop();
         _posterFade = null;
+        ResetRemoval();
         _hovered = _pressed = false;
         CardMotion.ScaleX = CardMotion.ScaleY = 1;
         PosterMotion.ScaleX = PosterMotion.ScaleY = 1;
@@ -451,6 +458,76 @@ public sealed partial class PosterCard : UserControl
         Hover.Visibility = Visibility.Collapsed;
         Hover.IsHitTestVisible = false;
         Paint();
+    }
+
+    /// <summary>
+    /// 删除确认之后的离场：淡出并向内收半步，给「这一张已经没了」一个看得见的落点。页面等它落定才把卡从
+    /// 集合里摘掉 —— 先摘再动的话，那一格是凭空消失的（用户令 2026-11-03：删除要有统一的 UI 反馈）。
+    /// <para>
+    /// 只动不透明度和 <see cref="CardMotion"/> 的缩放／位移，不碰宽高与 Margin：横向带子按布局尺寸摆放，
+    /// 改布局的属性在这里既贵、又会让相邻卡片跳一格。
+    /// </para>
+    /// </summary>
+    internal Task PlayRemovalAsync()
+    {
+        _motion?.Stop();
+        _motion = null;
+        _removal?.Stop();
+        _removal = null;
+        _hovered = _pressed = false;
+        Hover.IsHitTestVisible = false;
+
+        if (!_live || XamlRoot is null || !HomeMotion.AnimationsEnabled) return Task.CompletedTask;
+
+        var completion = new TaskCompletionSource<bool>();
+        var board = new Storyboard();
+        Add(Root, "Opacity", Root.Opacity, 0, EasingMode.EaseIn);
+        Add(CardMotion, "ScaleX", CardMotion.ScaleX, 0.92);
+        Add(CardMotion, "ScaleY", CardMotion.ScaleY, 0.92);
+        Add(CardMotion, "TranslateY", CardMotion.TranslateY, -8);
+
+        _removal = board;
+        _removalDone = completion;
+        board.Completed += (_, _) =>
+        {
+            if (!ReferenceEquals(_removal, board)) return;
+
+            // 不在这里 Stop：Completed 之后 Storyboard 还按 HoldEnd 握着终值，Stop 会把不透明度、
+            // 缩放一并弹回 1，等页面接上来的那一拍屏上会闪一下完整的卡。真正的复位在 ResetRemoval。
+            _removalDone = null;
+            completion.TrySetResult(true);
+        };
+        board.Begin();
+        return completion.Task;
+
+        void Add(DependencyObject target, string path, double from, double to, EasingMode easing = EasingMode.EaseOut)
+        {
+            var animation = new DoubleAnimation
+            {
+                From = from,
+                To = to,
+                Duration = new Duration(TimeSpan.FromMilliseconds(190)),
+                EasingFunction = new CubicEase { EasingMode = easing }
+            };
+            Storyboard.SetTarget(animation, target);
+            Storyboard.SetTargetProperty(animation, path);
+            board.Children.Add(animation);
+        }
+    }
+
+    /// <summary>
+    /// 把离场动画留下的状态还原。容器是回收着用的：不还原的话，下一张绑上来的卡会带着透明的底和缩过的
+    /// 尺寸出现，而屏幕上看着像「这张卡没图」。
+    /// </summary>
+    internal void ResetRemoval()
+    {
+        _removal?.Stop();
+        _removal = null;
+        _removalDone?.TrySetResult(true);
+        _removalDone = null;
+        Root.Opacity = 1;
+        CardMotion.ScaleX = CardMotion.ScaleY = 1;
+        CardMotion.TranslateY = 0;
     }
 
     private void OnPointerPressed(object sender, PointerRoutedEventArgs e)

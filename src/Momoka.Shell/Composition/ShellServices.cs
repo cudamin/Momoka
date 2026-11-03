@@ -83,6 +83,10 @@ internal static class ShellServices
         services.AddSingleton<EmbySession>();
         services.AddSingleton<BrowseSnapshotStore>();
 
+        // 本次运行里删掉媒体库文件的条目。服务器元数据要等下一次扫描才消失，这一份让主页在那之前不再展示它们；
+        // 它是单例、只有内存，程序关掉就没了（用户令 2026-11-03：隐藏状态不要持久化）。
+        services.AddSingleton<RemovedMedia>();
+
         // The disk budget comes from the settings document rather than from a literal here: it is a row on the
         // 界面 card now, and it can change while the app runs — see EmbyImageStore.Retarget and the line in
         // App.OnLaunched that hands a changed one over.
