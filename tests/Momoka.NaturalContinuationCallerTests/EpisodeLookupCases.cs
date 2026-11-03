@@ -15,8 +15,22 @@ internal static class EpisodeLookupCases
         var newResponse = f.Gate();
         var enteredA = Signals.New<AnonymousTransport.Read>();
         var enteredB = Signals.New<AnonymousTransport.Read>();
+        // 2026-11-03 起每一次单集开播都会先读一次「全剧列表」（PlayerViewModel.LoadSeriesEpisodesAsync）：
+        // 那是**另一次**请求，落在同一条路由上。它先被放行 —— 回一份不含当前集的空表，产品侧原样不动列表 ——
+        // 之后这条路由才归下面那两段跨季查询握着不放。按次数分身，不靠先后猜。
+        var filledA = Signals.New<object>();
+        var filledB = Signals.New<object>();
+        var callsA = 0;
+        var callsB = 0;
+
         f.Transport.Episodes(f.A, "series", async read =>
         {
+            if (Interlocked.Exchange(ref callsA, 1) == 0)
+            {
+                filledA.TrySetResult(new object());
+                return new { Items = Array.Empty<EmbyItem>() };
+            }
+
             enteredA.TrySetResult(read);
             // Deliberately finish after cancellation to exercise the real caller's late finally.
             await oldResponse.Task.ConfigureAwait(false);
@@ -25,6 +39,12 @@ internal static class EpisodeLookupCases
         });
         f.Transport.Episodes(f.B, "series", async read =>
         {
+            if (Interlocked.Exchange(ref callsB, 1) == 0)
+            {
+                filledB.TrySetResult(new object());
+                return new { Items = Array.Empty<EmbyItem>() };
+            }
+
             enteredB.TrySetResult(read);
             await newResponse.Task.ConfigureAwait(false);
             return new { Items = new[] { b } };
@@ -32,6 +52,7 @@ internal static class EpisodeLookupCases
         var planA = f.Plan();
         var playingA = f.Start(a, [a]);
         await Signals.Done(planA.Accepted.Task);
+        await Signals.Done(filledA.Task);
         var lookupA = f.Vm.StepForFixture(1);
         var readA = await Signals.Done(enteredA.Task);
         Check.True(f.Vm.HasEpisodeLookup, "A owns pending cross-season lookup");
@@ -51,6 +72,7 @@ internal static class EpisodeLookupCases
         var planB = f.Plan();
         var playingB = f.Start(b, mode == "local-step" ? [b, c] : [b], replace: true);
         await Signals.Done(planB.Accepted.Task);
+        await Signals.Done(filledB.Task);
         Check.True(readA.Token.IsCancellationRequested, "replacing A with B cancels A's HTTP request");
         Check.False(f.Vm.HasEpisodeLookup, "B does not inherit A's busy flag");
         planA.Result.TrySetResult(Fixture.Stopped());

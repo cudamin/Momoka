@@ -368,8 +368,10 @@ public sealed partial class PlayerViewModel
 
             if (following is not null)
             {
+                // 自动接下一集**不报**任何浮出提示（2026-11-03 用户令「自动播放下一集时不要在画面上弄悬浮
+                // 提示」）：那条黑条压在画面上，说的是用户刚刚看的东西的下一件，看得见的人不需要它，而它
+                // 恰恰盖住画面正中那几秒。换集本身有遮罩上的「正在切换…」说同一件事。
                 var followingScope = _session.Capture(following.Episode);
-                Noticed?.Invoke($"自动播放下一集：{following.Episode.ToPlaybackTitle()}", InfoBarSeverity.Informational);
                 await StartPlaybackAsync(
                         following.Episode,
                         followingScope.Key == scope.Key ? _parent : null,
@@ -408,14 +410,17 @@ public sealed partial class PlayerViewModel
     }
 
     /// <summary>
-    /// 自动播放下一集: the next episode <b>within this season</b>, or null when the season is over and the
-    /// player should simply go away.
+    /// 自动播放下一集: the next row of the list the player is holding, or null when that list has run out
+    /// and the player should simply go away.
     /// <para>
     /// 「当最后一季的最后一集播放结束后，直接退出播放界面或返回，不得自动续播该最后一季的第一集」
-    /// （用户令，2026-09-18）：旧版在季末会退而求其次去问全剧列表，把下一季的第一集接上来 ——
-    /// Re:Zero 的 S1E83（本季唯一一集）播完自动跳 S04E12 就是这条路的产物。跨季的自动接播就此取消，
-    /// <see cref="EpisodeNavigation.StepInSeason"/> 把决策钉死在本季之内；跨季仍归上一集/下一集按钮
-    /// （<see cref="StepEpisodeAsync"/> → <see cref="ResolveAdjacentEpisodeAsync"/>）。
+    /// （用户令，2026-09-18）仍然算数 —— 列表走到头返回 null、播放界面随之退出。那天订的**季内**那一半
+    /// 由 2026-11-03 的用户令翻案：「跟随全季列表，跨季连播」。播放器的列表自那天起是全剧（按播出时间排），
+    /// 于是季末不再是一个决策点：第 1 季最后一集后面就是第 2 季第一集，跨季照接。
+    /// </para>
+    /// <para>
+    /// 走的仍是 <see cref="EpisodeNavigation.Step"/> —— 上一集/下一集那颗按钮用的同一条规则，区别只在
+    /// 这里多两道闸（开关、真的放完了）。
     /// </para>
     /// </summary>
     private EpisodeDestination? NextEpisodeToAutoPlay(PlaybackResult result, EmbyItem played)
@@ -427,18 +432,14 @@ public sealed partial class PlayerViewModel
         if (result.Exit.Reason != PlaybackEndReason.EndOfFile) return null;
         if (_lifetime.IsCancellationRequested) return null;
 
-        // 季内还有下一集就连；本季到此为止（列表到头、当前集不在列表里、兄弟列表没到手）都返回 null，
-        // 走「退出播放界面」那条路 —— 见 <see cref="StartPlaybackAsync"/> 的 finally。
-        return HasAggregateQueue
-            ? EpisodeNavigation.StepQueue(Episodes, played.IdentityKey, 1)
-            : EpisodeNavigation.StepInSeason(Episodes, played.IdentityKey, 1);
+        return EpisodeNavigation.Step(Episodes, played.IdentityKey, 1);
     }
 
     /// <summary>
     /// What 「播放」 on a series or a season poster means: the earliest-aired episode nobody has watched
-    /// (or the show's earliest episode when everything is watched), together with its season's episode
-    /// list for the 「选集」 picker. Picks the same file the detail page picks, so the badge and the page
-    /// do not start different things.
+    /// (or the show's earliest episode when everything is watched), together with the episode list the
+    /// player's 剧集列表 shows. Picks the same file the detail page picks, so the badge and the page do
+    /// not start different things.
     /// </summary>
     private async Task<(EmbyItem Episode, IReadOnlyList<EmbyItem> Siblings)?> ResolveNextEpisodeAsync(
         EmbyItem item, EmbySessionScope scope, CancellationToken cancellationToken)
@@ -446,31 +447,24 @@ public sealed partial class PlayerViewModel
         var seriesId = item.Type == EmbyItemType.Series ? item.Id : item.SeriesId;
         if (string.IsNullOrEmpty(seriesId)) return null;
 
-        // A season card already says which season; a series card asks for the whole show and picks by air
-        // date. 2026-11-03 用户令「未播放的剧集默认播放的集数改为播出时间最早的集数」—— 一张剧海报和
-        // 它点进去的那一页必须起同一集，所以两边都走 ItemDetail.PickEpisode 这一条规则。
-        var season = item.Type == EmbyItemType.Season ? item : null;
-        IReadOnlyList<EmbyItem> seasons = season is null
-            ? await scope.ExecuteAsync(
-                (client, token) => client.GetSeasonsAsync(seriesId, token), cancellationToken).ConfigureAwait(true)
-            : [];
-
+        // 一次问全剧（不带 SeasonId），拿到的这一份同时是两件事的答案：挑哪一集、播放器里那份列表装什么。
+        // 2026-11-03 用户令「剧集列表要显示所有季度，优先按照播出时间排序」—— 季卡点播放也不例外：
+        // 挑的仍是**这一季**里最早没看的那一集（PickEpisode 的 season 参数），看到的是全剧列表。
         var episodes = await scope
             .ExecuteAsync(
-                (client, token) => client.GetEpisodesAsync(seriesId, season?.Id, token), cancellationToken)
+                (client, token) => client.GetEpisodesAsync(seriesId, seasonId: null, token), cancellationToken)
             .ConfigureAwait(true);
 
         if (episodes.Count == 0) return null;
 
+        var season = item.Type == EmbyItemType.Season ? item : null;
+
+        // A season card already says which season; a series card asks for the whole show and picks by air
+        // date. 2026-11-03 用户令「未播放的剧集默认播放的集数改为播出时间最早的集数」—— 一张剧海报和
+        // 它点进去的那一页必须起同一集，所以两边都走 ItemDetail.PickEpisode 这一条规则。
         if (ItemDetail.PickEpisode(episodes, season) is not { } next) return null;
 
-        // 选集那份仍只放落点所在的那一季：全剧列表只用来挑「最早播出的一集」，播放器里的选集菜单
-        // 还是按季读。找得到那一季就按它筛；找不到（服务器没给季清单）就整份交回。
-        var siblings = season is null
-            ? ItemDetail.SeasonEpisodes(episodes, ItemDetail.SeasonOf(seasons, next))
-            : episodes;
-
-        return (next, siblings);
+        return (next, ItemDetail.AirOrder(episodes));
     }
 
     /// <summary>
@@ -496,33 +490,48 @@ public sealed partial class PlayerViewModel
     }
 
     /// <summary>
-    /// Fetches the season's episode list for a playback that arrived without one, so 选集 and 上一集/下一集
-    /// work wherever the play came from rather than only from a page that happened to be holding a list.
+    /// 把播放器手上的列表换成「全剧、按播出时间排」的那一份。
+    /// <para>
+    /// 2026-11-03 用户令「本季剧集改名为剧集列表，要显示所有季度的集列表，优先按照播出时间排序」：进来时
+    /// 手上是什么列表不再要紧 —— 剧页/集页递的是全剧，季页递的是那一季，主页/媒体库的「播放全部」递的是
+    /// 一条队列。单集起播之后统一问一次服务器要全剧（<c>Shows/{id}/Episodes</c> 不带 SeasonId），按
+    /// <see cref="ItemDetail.AirOrder"/> 排好再替换。
+    /// </para>
+    /// <para>
+    /// **聚合队列不换**（<see cref="HasAggregateQueue"/>）：那是用户点「播放全部」排出来的跨媒体库队列，
+    /// 顺序是用户给定而不是播出时间，条目甚至不属于同一部剧 —— 换成「一部剧」的全集等于把队列弄丢。
+    /// </para>
     /// <para>
     /// The list is applied only if the same episode is still the one playing: the request and the file open
     /// in parallel, and a list belonging to the previous episode would have 下一集 play something out of
     /// another show. It also has to contain the playing episode, or stepping from it has no anchor.
     /// </para>
+    /// <para>
+    /// 2026-09-18 起它只在「手上没有列表」时才跑；2026-11-03 起每次都跑 —— 季页进来的人手上是季列表，
+    /// 不重读就永远只有一季。一次换集多一趟 GET（与开文件并行），换来的是列表口径只有这一处。
+    /// </para>
     /// </summary>
-    private async Task FillSiblingsAsync(EmbyItem episode, EmbySessionScope scope, long intent)
+    private async Task LoadSeriesEpisodesAsync(EmbyItem episode, EmbySessionScope scope, long intent)
     {
         if (string.IsNullOrEmpty(episode.SeriesId)) return;
+        if (HasAggregateQueue) return;
 
         try
         {
-            // A null season asks for every episode in the series, which is what an episode record with no
-            // season on it deserves: a slightly wider 选集 is better than a disabled one.
-            var siblings = await scope
+            // A null season asks for every episode in the series — the whole show, which is what the
+            // player's list is now.
+            var series = await scope
                 .ExecuteAsync(
-                    (client, token) => client.GetEpisodesAsync(episode.SeriesId!, episode.SeasonId, token),
+                    (client, token) => client.GetEpisodesAsync(episode.SeriesId!, seasonId: null, token),
                     _lifetime.Token)
                 .ConfigureAwait(true);
 
             if (!_startIntent.IsCurrent(intent)) return;
             if (!string.Equals(PlayingItemKey, episode.IdentityKey, StringComparison.Ordinal)) return;
-            if (!siblings.Any(item => string.Equals(item.IdentityKey, episode.IdentityKey, StringComparison.Ordinal))) return;
+            if (!series.Any(item => string.Equals(item.IdentityKey, episode.IdentityKey, StringComparison.Ordinal))) return;
 
-            Episodes = siblings;
+            var ordered = ItemDetail.AirOrder(series);
+            Episodes = ordered;
 
             // OnNowPlayingChanged has already decided this from an empty list by the time the answer
             // arrives, so the two buttons it governs would stay hidden over a perfectly good list.
@@ -532,18 +541,18 @@ public sealed partial class PlayerViewModel
             // uosc 那头的门已经按握手时的值开了，这里把「列表补齐」再确认一遍；值没变就是白发一条。
             NoteEpisodeCount();
 
-            Log.Debug(Category, $"补齐本季单集列表：{siblings.Count} 集");
+            Log.Debug(Category, $"补齐全剧集列表：{ordered.Count} 集（播出顺序）");
         }
         catch (OperationCanceledException)
         {
         }
         catch (Exception error)
         {
-            Log.Debug(Category, $"读取本季单集列表失败：{error.Message}");
+            Log.Debug(Category, $"读取全剧单集列表失败：{error.Message}");
         }
     }
 
-    /// <summary>切换集数, from the 选集 picker.</summary>
+    /// <summary>切换集数, from the 剧集列表 picker. 整份列表原样带走，跨季之后菜单仍是全剧。</summary>
     internal void SwitchEpisode(EmbyItem episode)
     {
         if (string.Equals(episode.IdentityKey, PlayingItemKey, StringComparison.Ordinal)) return;
@@ -626,7 +635,14 @@ public sealed partial class PlayerViewModel
         }
     }
 
-    /// <summary>上一集 / 下一集. The local season is walked first; only a boundary costs a server request.</summary>
+    /// <summary>
+    /// 上一集 / 下一集. The list in hand is walked first; only running off its end costs a server request.
+    /// <para>
+    /// 手里那份已经是全剧（见 <see cref="LoadSeriesEpisodesAsync"/>），所以「列表到头」通常就是「整部剧到头」。
+    /// 仍然留着那条问服务器的路：列表没读到（网络失败、季页递来的列表被拒），或者服务器在播放期间又入库了
+    /// 新集 —— 多问一趟，好过对着一部还有下一集的剧说「已经是最后一集」。
+    /// </para>
+    /// </summary>
     private async Task StepEpisodeAsync(int offset)
     {
         if (_episodeLookup is not null || _episodeSwitchTargetId is not null) return;
@@ -637,9 +653,7 @@ public sealed partial class PlayerViewModel
             return;
         }
 
-        var step = HasAggregateQueue
-            ? EpisodeNavigation.StepQueue(Episodes, PlayingItemKey, offset)
-            : EpisodeNavigation.Step(Episodes, PlayingItemKey, offset);
+        var step = EpisodeNavigation.Step(Episodes, PlayingItemKey, offset);
         if (step is { } local)
         {
             StartEpisode(local);
@@ -679,8 +693,8 @@ public sealed partial class PlayerViewModel
         catch (Exception error)
         {
             if (!Current()) return;
-            Log.Warn(Category, "读取跨季单集失败", error);
-            Noticed?.Invoke($"读取相邻季失败：{error.Message}", InfoBarSeverity.Warning);
+            Log.Warn(Category, "读取全剧单集列表失败", error);
+            Noticed?.Invoke($"读取单集列表失败：{error.Message}", InfoBarSeverity.Warning);
         }
         finally
         {
@@ -701,11 +715,10 @@ public sealed partial class PlayerViewModel
     {
         if (string.IsNullOrEmpty(current.SeriesId)) return null;
 
-        // A null season asks Emby for the whole series in broadcast order — the only list where a 上一集/下一集
-        // that crosses a season boundary can be found. EpisodeNavigation.ResolveAdjacentAsync then lands on the
-        // destination and, for the 选集 menu, re-asks the server for that destination's own season exactly as the
-        // detail page does, so the two paths agree on the season's episode count (air-order 特典 included).
-        var seriesEpisodes = await scope
+        // A null season asks the server for the whole show in broadcast order — the list the player's
+        // 剧集列表 shows, and the one the step walks. Nothing is narrowed to a season here: 2026-11-03 用户令
+        // 「要显示所有季度的集列表，优先按照播出时间排序」，跨季一步之后列表也不许缩回某一季。
+        var series = await scope
             .ExecuteAsync(
                 (client, token) => client.GetEpisodesAsync(
                     current.SeriesId!,
@@ -714,15 +727,10 @@ public sealed partial class PlayerViewModel
                 cancellationToken)
             .ConfigureAwait(true);
 
-        return await EpisodeNavigation
-            .ResolveAdjacentAsync(seriesEpisodes, current.IdentityKey, offset, FetchSeasonAsync)
-            .ConfigureAwait(true);
+        var ordered = ItemDetail.AirOrder(series);
+        if (EpisodeNavigation.Step(ordered, current.IdentityKey, offset) is not { } step) return null;
 
-        async Task<IReadOnlyList<EmbyItem>> FetchSeasonAsync(string? seasonId) => await scope
-            .ExecuteAsync(
-                (client, token) => client.GetEpisodesAsync(current.SeriesId!, seasonId, token),
-                cancellationToken)
-            .ConfigureAwait(true);
+        return step with { Siblings = ordered };
     }
 
     private void StartEpisode(EpisodeDestination destination)

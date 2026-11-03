@@ -163,7 +163,7 @@ public sealed class ExtractCaller : BuildTask
         foreach (var name in new[]
         {
             "PlayAsync", "PlayReplacingAsync", "StopAsync", "StopPlaybackAsync", "StartPlaybackAsync", "NextEpisodeToAutoPlay",
-            "ResolveNextEpisodeAsync", "ResolveSeriesAsync", "FillSiblingsAsync", "EnterPlayer", "LeavePlayer", "ShowCover", "HideCover",
+            "ResolveNextEpisodeAsync", "ResolveSeriesAsync", "LoadSeriesEpisodesAsync", "EnterPlayer", "LeavePlayer", "ShowCover", "HideCover",
             "StepEpisodeAsync", "ResolveAdjacentEpisodeAsync", "CancelEpisodeLookup", "StartEpisode", "StartEpisodeAsync"
         }) Emit(transport, name);
         Emit(events, "OnNowPlayingChanged");

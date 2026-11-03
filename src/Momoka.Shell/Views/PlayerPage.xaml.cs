@@ -336,6 +336,10 @@ public sealed partial class PlayerPage : UserControl
         // 指针第一次到达之前先把常态的白写下去，别让常态的颜色靠图标的默认值碰运气。
         SetTransportGlyphInk(null);
 
+        // 图标底下那层影子（2026-11-03 用户令「在原按钮的基础上加阴影就可以」，见 PlayerPage.Ink.cs）。
+        // 排在两处墨色之后：它只换包装、不碰字形，先有线色再包，读起来也顺。
+        WireGlyphInk();
+
         // 换主题时那两支画上去的颜色（退场底、以及 Palette 里那些）要跟着翻。本页没有登记进
         // ThemeHost.Register —— RequestedTheme 是写死的 Dark，见标记 —— 所以只能自己听一声。
         WireExitTheme();

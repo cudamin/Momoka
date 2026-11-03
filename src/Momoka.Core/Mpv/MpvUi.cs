@@ -254,7 +254,7 @@ public static class VideoWindowContract
     /// <para>
     /// 什么时候发：与 <see cref="VersionCount"/> 同拍 —— uosc 装载完成的握手（<see cref="Ready"/>）
     /// 那一下，以及「正在放的是不是单集」被明写的两处（新一集开播的
-    /// <c>PlayerViewModel.OnNowPlayingChanged</c>、单集列表补齐的 <c>PlayerViewModel.FillSiblingsAsync</c>）。
+    /// <c>PlayerViewModel.OnNowPlayingChanged</c>、全剧列表补齐的 <c>PlayerViewModel.LoadSeriesEpisodesAsync</c>）。
     /// 全部收在 <c>PlayerViewModel.PushEpisodeCountAsync</c> 一个出口。
     /// </para>
     /// </summary>

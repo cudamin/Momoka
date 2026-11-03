@@ -537,7 +537,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     /// **只由「手上这个条目」算出来，不从别处推**（2026-09-21）。它的三个写点全都在
     /// <see cref="CurrentItem"/> 上，于是无论谁先后动 —— 媒体信息先到、还是单集列表先补齐 —— 这一格
     /// 都是那次赋值的副产品，两处不可能互相矛盾。原先它是 <c>OnNowPlayingChanged</c> 按
-    /// <c>item.MediaSources.Count</c> 直接写的，而 <see cref="FillSiblingsAsync"/> 那个 await 之后又
+    /// <c>item.MediaSources.Count</c> 直接写的，而 <see cref="LoadSeriesEpisodesAsync"/> 那个 await 之后又
     /// 把「手上这个条目」换成了服务器的记录；两边一旦换了次序，控制条上就会出现一颗点开只有
     /// 「没有可切换的版本」的按钮（自检逮到过，见 <c>ProbeNarration</c> 的 <c>VersionButton</c>）。
     /// </para>
@@ -554,7 +554,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     /// <summary>
     /// 手上这个条目 —— 正在播的那一条，带媒体信息与媒体源。三个写点：
     /// <see cref="PlayerViewModel.Transport.StartPlaybackAsync"/> 拿到详情之后一次，
-    /// <see cref="PlayerViewModel.Transport.FillSiblingsAsync"/> 等待服务器记录之后一次（与
+    /// <see cref="PlayerViewModel.Transport.LoadSeriesEpisodesAsync"/> 等待服务器记录之后一次（与
     /// <see cref="Episodes"/> 同一拍），<see cref="PlayerViewModel.Transport.SwitchVersion"/> 换版之后一次。
     /// <para>
     /// 它存在的理由是让 <see cref="VersionControlsVisible"/> 无懈可击：列表与「有几版」是同一次赋值的
@@ -673,7 +673,13 @@ public sealed partial class PlayerViewModel : ObservableObject
     /// <summary>mpv's track list, which the 音轨 and 字幕 pickers are built from.</summary>
     internal IReadOnlyList<MpvTrack> Tracks { get; private set; } = [];
 
-    /// <summary>The siblings this playback started with, and the only list 选集 and 下一集 use.</summary>
+    /// <summary>
+    /// 播放器手上的那份列表 —— 「剧集列表」菜单、上一集/下一集、自动连播都只认它。
+    /// <para>
+    /// 单集开播后由 <see cref="Transport.LoadSeriesEpisodesAsync"/> 换成「全剧、按播出时间排」的那一份
+    /// （2026-11-03 用户令）；「播放全部」那种聚合队列则保留用户给定的顺序，不换。
+    /// </para>
+    /// </summary>
     internal IReadOnlyList<EmbyItem> Episodes { get; private set; } = [];
 
     internal string PlayingItemId { get; private set; } = "";

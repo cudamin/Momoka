@@ -7,6 +7,16 @@
 - 真实账号只读计时（同一启动钩子、私有设置与图片缓存副本；自包含 `.NET` 发布副本，生产 `settings.json` 与备份哈希前后均未变；报告 `work/navigation-live-20261103/round2-timings-Aggregate3.json`，ProductHash `B89C67EE…`）：聚合三来源两库三轮，媒体库 `DataReady` 中位数修前 **352.0 / 313.7 / 367.4 ms → 65.4 / 73.6 / 66.8 ms**，三轮都进入 200 ms 内；同步导航耗时中位数 `104.4 / 107.0 / 111.4 → 60.3 / 73.0 / 66.5 ms`。主页 `DataReady` 中位数修前 **1547.4 / 654.1 / 783.5 ms → 22.4 / 20.3 / 15.3 ms**（快照在导航同步阶段上屏），但首张轮播图仍 **1.4–3.1 s**；后台核对完成通知的读数因订阅晚于同步恢复而缺失，不能当作首图时间。媒体库首图指派中位数三轮 `352.2→854.5`、`314.1→301.1`、`367.7→243.5 ms`：有涨有跌，仍受图片解码与布局影响，不能声称首图已改善。
 - 未达成：主页第一张轮播图仍由解码／图片处理主导，留给第三轮；后台核对没有在深滚页做全量变化检测，深层外部改动依靠过期或手动刷新。没有真实人手操作与真实播放验证。
 - 待办：合入 master 后按主树最终代码重跑适用验证并发布 `artifacts/publish/win-x64`、核对桌面快捷方式；本树提交不等于已交付。临时分支与工作树按项目规则在合并交付后清理。
+## 2026-11-03 播放页：剧集列表全季、菜单不出窗、菜单亚克力、图标影子、连播不弹提示（**未合并、未交付**）
+
+- 用户令五条：①「播放页面的本季剧集按钮的集列表菜单不要跑到窗口外面，要始终保持在窗口内」；②「本季剧集改名为剧集列表，要显示所有季度的集列表，优先按照播出时间排序」；③「集成模式下所有的菜单都要用亚克力背景」；④「给集成模式的所按钮都改为白色实心并且加上黑边（除了左上角的返回按钮，和静音按钮这些有边框的）」→ 追问后改成「算了，在原按钮的基础上加阴影就可以」；⑤「自动播放下一集时不要在画面上弄悬浮提示」。**用户明确要求改完先不合并、不交付**，随后追认②的另一半：自动连播跟随全季列表跨季走。
+- 实现（Core）：`EpisodeNavigation` 退掉「按季收窄」——`Step` 改成按位置走一步、**整份列表原样交回**，`StepQueue`／`StepInSeason`／`ResolveAdjacentAsync`／`SameSeason` 一并退役（聚合队列与全剧列表从此同一条规则）；新增 `PlayerMenuFit.MaxHeight`（菜单高度上限的纯函数）；`PlayerPalette` 新增 `MenuAlpha`（0xB3）与 `PlayerMenuBrush`。
+- 实现（视图模型）：`FillSiblingsAsync` → `LoadSeriesEpisodesAsync`，单集起播后每次都读一次全剧（`Shows/{id}/Episodes` 不带 SeasonId，按 `ItemDetail.AirOrder` 排），聚合队列不换；`ResolveNextEpisodeAsync` 只问一次全剧、季卡仍只在这一季里挑「最早没看」；`NextEpisodeToAutoPlay` 与 `StepEpisodeAsync` 都走同一条 `Step`（跨季照接、整部剧到头才 null）；自动连播命中后**不再** `Noticed`。`回退那一趟`（列表没读到/服务器新入库）改成读全剧后走同一条 Step。
+- 实现（播放页）：六个 `MenuFlyout` 与右键菜单挂 `PlayerMenuPresenterStyle`（基于框架 `DefaultMenuFlyoutPresenterStyle`，底换成 `PlayerMenuBrush`）、倍速轮盘那只 `Flyout` 挂 `DesktopAcrylicBackdrop` 且面板底同一支 —— 应用级 `Palette.xaml` 2026-10-30 把菜单底换成实心 `EgSurfaceBrush`，播放页这一份按回半透明，框架那层桌面亚克力（播放时采的就是画面）才透得上来；剧集与章节菜单在 `Opening` 里按锚点上方余量收紧 presenter 的 `MaxHeight`，超出的行交给它自己的 `ScrollViewer`（窗口化弹层不受 XamlRoot 约束，这是「不出窗口」与「要亚克力」两件事同时成立的做法）。图标影子走项目现成的 `TextInk`（DropShadow 收元素 alpha 蒙版）：17 颗压在画面上的图标把内容包进「影子宿主 ＋ 图标」一格，返回／静音／跳过按用户令不挂；`TextInk.Paint` 增加按 `TransformToVisual` 对齐，HomeBanner 那四处算出来仍是 (0,0)。
+- 测试：Release 全方案 **0 警告 0 错误**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0；主测试 **3604/3604**（改名后的剧集导航 9 关、新增「菜单高度上限」3 关）；`Momoka.NaturalContinuationCallerTests` **51/51**（新增跨季连播不弹提示，退役三条旧口径；四份源 hash 定点同步，README 记本轮）。
+- 自检（最终代码）：`--self-check --dump-ui --screen 2 --self-check-data <临时目录>` **163 项全部通过**（`%TEMP%/momoka-sc6-200404/logs/selfcheck-shell.txt`）。其中「跨季相邻单集」按新判据通过（《伪恋》S01E20 → S00E01，列表 36 集＝全剧 36 集、整份交回、播出顺序）；「播放层配色」28/28（新增 `PlayerMenuBrush` 一支）；新增「图标影子」通过（17 颗都挂上：按字形 8 颗、按外框 9 颗 —— 这一页自检时是收起的，只有探针临时立起来的那几颗量到了尺寸、升级成跟着字形那一层；收起页里的图标根本不发 `Loaded`，所以外框那一块在包装时就挂上，上屏后再升级）。
+- 自检踩到的两件事写在这里，免得下一位重踩：①`FontIcon` 里是 `Grid → TextBlock`（树转储为证），但模板没套上时找不到，`Loaded` 也不一定来；②收起状态的页子里，子控件的 `Loaded` 基本不发（17 颗里只有 1 颗走到过），任何「等 Loaded 再挂」的写法都会静默漏掉。
+- 未完成／未覆盖：**没有合并 master、没有发布**（用户要求）；真实播放下的观感（菜单亚克力、图标影子在亮画面上的样子、长列表滚动）没有实屏 —— 单实例互斥一直被别的会话/发布件占着（20:06 时是 `OldStage/Momoka.exe`），`tools/shot.ps1` 只能给已跑着的实例拍，拍不到本树构建；菜单高度上限只有纯函数单测与接线，没有在真实窗口量过弹层矩形。
 
 ## 2026-11-03 导航第一轮性能：主页布局合并、媒体库 Attach 合并、最近搜索与懒面板（已合入 master、发布桌面）
 

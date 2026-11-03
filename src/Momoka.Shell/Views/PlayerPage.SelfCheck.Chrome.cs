@@ -1004,7 +1004,7 @@ public sealed partial class PlayerPage
             }
 
             // 关闭那颗**不该**跟着转（它悬停时是红的，红底上的白叉本来就是对的）。
-            if (CloseButton.Content is FontIcon closeGlyph
+            if (GlyphOf(CloseButton) is { } closeGlyph
                 && ReferenceEquals(closeGlyph.Foreground, Resources["PlayerStripHoverInkBrush"]))
                 mixed.Add($"{name}压着的时候关闭那颗也转深色了");
         }

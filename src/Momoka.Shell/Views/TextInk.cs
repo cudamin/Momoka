@@ -3,6 +3,7 @@ using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Hosting;
+using Microsoft.UI.Xaml.Shapes;
 
 namespace Momoka.Shell.Views;
 
@@ -52,8 +53,44 @@ internal static class TextInk
         Paint(host, image, image.GetAlphaMask(), blur);
 
     /// <summary>
+    /// 一颗图标（<c>FontIcon</c>、<c>PathIcon</c> 或包着它的 <c>Viewbox</c>）的影子。与上面两支同一套：
+    /// alpha 来自元素自己，所以影子是那几个笔画的形状。播放页压在画面上的那些按钮吃的是这一支
+    /// （见 <c>PlayerPage.Ink.cs</c>）—— 白图标压在亮画面上时，唯一还认得出形状的就是它周围那圈暗。
+    /// </summary>
+    internal static void AttachGlyph(FrameworkElement host, FrameworkElement glyph, double blur)
+    {
+        // 蒙版只能从这三类身上取（<c>GetAlphaMask</c> 只长在它们身上）；FontIcon／PathIcon 自己那一层
+        // 就是模板里的 TextBlock／Path，调用方已经找好了才进来。
+        var mask = glyph switch
+        {
+            TextBlock text => text.GetAlphaMask(),
+            Image image => image.GetAlphaMask(),
+            Shape shape => shape.GetAlphaMask(),
+            _ => null
+        };
+
+        if (mask is not null) Paint(host, glyph, mask, blur);
+    }
+
+    /// <summary>
+    /// 取不到字形蒙版时的退路：一块按元素外框算的软影。蒙版是一整片白，于是影子是元素那一格大小的
+    /// 模糊暗块而不是字形的形状 —— 压在画面上是一圈均匀的暗底，认得出「有影子」，但没有跟着笔画走的那种质感。
+    /// <para>
+    /// 它在播放页只用在一颗图标<b>里面找不到可采样那一层</b>的时候（见 <c>PlayerPage.Ink.cs</c>，
+    /// 自检会把两种各几颗报出来）。有蒙版的路子（<see cref="AttachGlyph"/>）永远优先。
+    /// </para>
+    /// </summary>
+    internal static void AttachHalo(FrameworkElement host, FrameworkElement source, double blur)
+    {
+        var compositor = ElementCompositionPreview.GetElementVisual(host).Compositor;
+        Paint(host, source, compositor.CreateColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF)), blur);
+    }
+
+    /// <summary>
     /// 影子挂上去。尺寸跟着源元素量出来的大小走（<c>SizeChanged</c>）—— alpha 蒙版是在源元素自己的坐标里，
-    /// 精灵视觉小一圈的话影子就会被裁掉一截；两者都在同一格里、同一个左上角，所以只要尺寸一致就对得上。
+    /// 精灵视觉小一圈的话影子就会被裁掉一截。两个元素**不要求同一个左上角**：播放页那些图标是居中摆在
+    /// 按钮里的（宿主与图标同格但不同尺寸），所以每一拍都按 <c>TransformToVisual</c> 把精灵挪到字形那一格上
+    /// —— 主页轮播那四处两者本来就同原点，算出来是 (0,0)，与从前逐像素相同。
     /// <para>
     /// 不解绑：这一层是控件自己的一部分，和控件同生共死，而订的是自己那个孩子的事件。
     /// </para>
@@ -73,11 +110,25 @@ internal static class TextInk
 
         var sprite = compositor.CreateSpriteVisual();
         sprite.Shadow = shadow;
-        sprite.Size = new Vector2((float)source.ActualWidth, (float)source.ActualHeight);
 
         ElementCompositionPreview.SetElementChildVisual(host, sprite);
 
-        source.SizeChanged += (_, args) =>
-            sprite.Size = new Vector2((float)args.NewSize.Width, (float)args.NewSize.Height);
+        Place();
+        source.SizeChanged += (_, _) => Place();
+
+        void Place()
+        {
+            sprite.Size = new Vector2((float)source.ActualWidth, (float)source.ActualHeight);
+
+            // 布局之前问不出坐标（两者还不在同一棵树里），SizeChanged 会再来一次。
+            try
+            {
+                var origin = source.TransformToVisual(host).TransformPoint(new Windows.Foundation.Point(0, 0));
+                sprite.Offset = new Vector3((float)origin.X, (float)origin.Y, 0);
+            }
+            catch (ArgumentException)
+            {
+            }
+        }
     }
 }

@@ -700,6 +700,11 @@ internal static partial class ShellSelfCheck
         var stats = player.ProbeStats();
         check("播放统计面板", stats.Ok, stats.Detail);
 
+        // 「在原按钮的基础上加阴影就可以」（2026-11-03）：影子是画在合成树上的一层，构建看不见、截图拍不出
+        // 那一圈暗是不是跟着字形；少挂一颗的样子也没有人会报。名单由 ProbeGlyphInk 现算。
+        var ink = player.ProbeGlyphInk();
+        check("图标影子", ink.Ok, ink.Detail);
+
         var picture = player.ProbePictureMenu();
         check("右键画面菜单", picture.Ok, picture.Detail);
 
