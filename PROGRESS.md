@@ -13,9 +13,9 @@
 - 用户令：「拉长窗口导致背景图快要被裁切时也要自动切换」。与详情页 2026-11-02 那条同义：按页宽铺开的背景图高占到视口 98% 以上时，即使窗口没有最大化、面积也没到工作区五分之四，也进大窗模式；收窄或拉高退回 98% 以下回到纸面版式。
 - 判据与实现：`DetailHero.SubscriptionImmersive` 改为 `(spacious, nearCrop, wide, artwork)`，成立条件是 `(spacious || nearCrop) && wide && artwork`；`MoviePilotMediaViewModel.NearCrop` 直接读 `DetailHero.NearCrop(PageWidth, BackdropRatio, Viewport)`，与 `Spacious` 并肩喂 `Showcase`。`OnDetailScrollSizeChanged` 包进 `_sizing`，宽高写完后由 `ResolveShowcaseAfterResize` 统一结算：裁切那条来路走 260ms 过渡，窗口改宽高时 `Showcase` 的派生显隐与留白一并通知；宽窄版式翻面仍当场落定，窗口形态翻面仍交给 `ApplyShowcase`。
 - 测试：`ItemDetailTests` 的订阅页算例扩成四参并补裁切两侧（`NearCrop(1568, 9/16, 900)` 进、1567 不进）；Release 全方案 **0 警告 0 错误**；主测试 **3607/3607、0 失败 0 跳过**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。
-- 探针：开发件与发布件 `--probe-shell --probe-section moviepilot --screen 1` 的新用例四段全绿：大窗（动画 1）→ 纸面（2）→ **裁切：页宽 1080、视口 511、图比 0.625、纸面 alpha 184、面板 0、动画 3** → 收回（视口 731、裁切 False、纸面 alpha 255、面板 1、动画 4）。实屏补 `mp-subscription-showcase-crop.png`、`-uncropped.png`，读数 `mp-subscription-showcase.txt`。
-- 已知红：同一分区「主页媒体库与订阅混排、显隐及偏好恢复」在 06:25 之后连续报「排序表未实现订阅勾选控件」。用**本轮改动之前的发布件**（同一条目此前 35/35）复跑同一分区仍红同一条 → 归因为桌面／探针环境的既有抖动，与本改动无关；未改断言。
-- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 退出 0；546 文件 / 285.8 MB，载荷校验通过；开发件与发布件 `Momoka.dll` SHA-256 同为 `265b745293891381a6fda7d564f6a34e4cbd40d4dee901408e2c75fe08401583`；桌面快捷方式已重写并读回。版本仍 0.2.4，未推 origin。
+- 探针：开发件与发布件 `--probe-shell --probe-section moviepilot --screen 1` 均 **35/35、0 失败**（开发件 `shell-probe-20261103-070100682-24816`，发布件 `shell-probe-20261103-071317815-25012`）。新用例四段全绿：大窗（动画 1）→ 纸面（2）→ **裁切：页宽 1080、视口 511、图比 0.625、纸面 alpha 184、面板 0、动画 3** → 收回（视口 731、裁切 False、纸面 alpha 255、面板 1、动画 4）。实屏补 `mp-subscription-showcase-crop.png`、`-uncropped.png`，读数 `mp-subscription-showcase.txt`。
+- 探针口径修正：同期主树合入 `57ac2dc`（聚合模式隐藏「接下来看」），`ShellNavigationProbe.HomeOrder` 仍按六排断言，06:25 起报红。按新语义把该用例改成五排／断线三排、主页次序与设置表投影后的可见行比较（存档仍保留「接下来看」，关掉聚合会回来）；改后本分区复跑全绿。产品代码未改。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 退出 0；546 文件 / 285.8 MB，载荷校验通过；开发件与发布件 `Momoka.dll` SHA-256 同为 `07d1b28129a82f392e76b8179a9873d5f9b26bdcc152b081fed87b20b79fb8c2`；桌面快捷方式已重写并读回。版本仍 0.2.4，未推 origin。
 - 未覆盖：真实订阅／真实剧照上的裁切切换观感与拖边手感（探针用程序改窗口尺寸与假图）；未跑 `--self-check`（非发版／升级依赖批次）。
 
 ## 2026-11-03 MP 订阅详情页大窗模式（已合入 master、发布桌面）

@@ -85,7 +85,9 @@ internal sealed partial class ShellNavigationProbe
                 var list = Descendants(settings).OfType<ListView>().Single(view => ReferenceEquals(view.ItemsSource, choices));
                 list.StartBringIntoView();
                 await LayoutAsync(settings);
-                Require(list.Items.Count == 6 && Descendants(list).OfType<CheckBox>()
+                // 探针夹具默认开着聚合模式（见 Fixture 构造），2026-11-03 起那一档不排「接下来看」：
+                // 六排固定/库/订阅的默认表因此是五排（继续观看、媒体库、库那一排、MoviePilot 两排）。
+                Require(list.Items.Count == 5 && Descendants(list).OfType<CheckBox>()
                     .Any(check => AutomationProperties.GetName(check) == HomeLayout.FixedTitle(HomeLayout.MoviePilotSeries)), "排序表未实现订阅勾选控件");
                 await SaveProbeScreenAsync($"settings-home-order-{width}.png");
             }
@@ -105,7 +107,7 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(settings);
             await SaveProbeScreenAsync("settings-home-order-offline.png");
             var hiddenList = Descendants(settings).OfType<ListView>().Single(view => ReferenceEquals(view.ItemsSource, choices));
-            Require(hiddenList.Items.Count == 4 && Math.Abs(hiddenList.ActualHeight - table.ListHeight) < 1,
+            Require(hiddenList.Items.Count == 3 && Math.Abs(hiddenList.ActualHeight - table.ListHeight) < 1,
                 "断线后排序表没有收起整行或仍有空白");
             // ListView 的回收池仍可保留旧视觉孩子；只检查当前四个有效容器，不把回收池当屏上控件。
             for (var index = 0; index < hiddenList.Items.Count; index++)
@@ -117,15 +119,15 @@ internal sealed partial class ShellNavigationProbe
             }
             transport.Offline = false;
             Require(await service.RefreshAvailabilityAsync(), "假连接未恢复");
-            await UntilAsync(() => choices.Count == 6);
+            await UntilAsync(() => choices.Count == 5);
             Require(ReferenceEquals(choices, table.Rows) && !choices.Single(row => row.Key == HomeLayout.MoviePilotMovies).Visible
                 && HomeLayout.Same(hidden, HomeLayout.Plan(fixture.Settings.Ui.HomeRows, null)), "恢复连接丢失原次序或勾选");
             settings.ReleaseHosted();
             BeginSettingsFixtureVisit(settings);
             settings.WatchMoviePilot(service);
-            await UntilAsync(() => choices.Count == 6);
+            await UntilAsync(() => choices.Count == 5);
             Require(ReferenceEquals(table, settings.ViewModel.HomeRows)
-                && ReferenceEquals(choices, table.Rows) && choices.Count == 6,
+                && ReferenceEquals(choices, table.Rows) && choices.Count == 5,
                 "缓存设置页重入未恢复订阅排序");
             await LayoutAsync(settings);
             await SaveProbeScreenAsync("settings-home-order-restored.png");
@@ -143,7 +145,8 @@ internal sealed partial class ShellNavigationProbe
                 ResizeInspect(width, 980);
                 await LayoutAsync(home);
                 var keys = home.HomeRows.Select(row => row is CardShelf shelf ? shelf.HomeKey : ((MoviePilotHomeRow)row).Key).ToArray();
-                Require(fixture.Settings.Ui.HomeRows.Where(row => row.Visible).Select(row => row.Key).SequenceEqual(keys), "主页未采用排序表次序");
+                // 聚合模式不排「接下来看」：存档里那一排还留着（关掉聚合会回来），主页采用的口径是设置表投影后的可见行。
+                Require(choices.Where(row => row.Visible).Select(row => row.Key).SequenceEqual(keys), "主页未采用排序表次序");
                 for (var index = 0; index < home.HomeRows.Count; index++)
                 {
                     if (home.HomeRows[index] is not MoviePilotHomeRow subscription) continue;
@@ -198,7 +201,7 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Add(settings);
             BeginSettingsFixtureVisit(settings);
             settings.WatchMoviePilot(service);
-            await UntilAsync(() => choices.Count == 4);
+            await UntilAsync(() => choices.Count == 3);
             Require(ReferenceEquals(table, settings.ViewModel.HomeRows)
                 && ReferenceEquals(choices, table.Rows), "关闭 MP 后重入替换了排序表");
             settings.ReleaseHosted();
@@ -209,7 +212,7 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Add(settings);
             BeginSettingsFixtureVisit(settings);
             settings.WatchMoviePilot(service);
-            await UntilAsync(() => choices.Count == 6);
+            await UntilAsync(() => choices.Count == 5);
             Require(ReferenceEquals(table, settings.ViewModel.HomeRows)
                 && ReferenceEquals(choices, table.Rows)
                 && !choices.Single(row => row.Key == HomeLayout.MoviePilotSeries).Visible, "关闭后恢复丢失电视剧勾选");
