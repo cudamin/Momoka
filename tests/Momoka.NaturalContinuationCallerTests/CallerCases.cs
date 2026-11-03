@@ -7,13 +7,18 @@ internal static class CallerCases
 {
     internal static void Register(CaseRunner runner, string output)
     {
-        foreach (var mode in new[] { "last", "empty", "missing-current", "other-season", "auto-off", "auto-off-late", "movie", "user-quit", "stopped", "error" })
+        foreach (var mode in new[] { "last", "empty", "missing-current", "auto-off", "auto-off-late", "movie", "user-quit", "stopped", "error" })
             runner.Test("terminal-" + mode, () => Terminal(output, mode));
-        foreach (var mode in new[] { "final-notice", "refresh", "next-notice", "following-capture", "release", "leave" })
+        foreach (var mode in new[] { "final-notice", "refresh", "following-capture", "release", "leave" })
             runner.Test("exception-" + mode, () => CallbackFailure(output, mode));
+
+        // 2026-11-03 用户令两条：连播跟随全季列表（跨季照接）、且不再在画面上弹「自动播放下一集」。
+        runner.Test("auto-next-cross-season-without-notice", () => AutoNext(output));
         foreach (var mode in new[] { "validate", "not-playable", "no-sources", "metadata", "no-episode" })
             runner.Test("successor-refused-" + mode, () => Refused(output, mode));
-        foreach (var mode in new[] { "scope-before-capture", "lease-at-refresh", "lease-at-next-notice", "preparation-in-cover", "intent-at-cover", "stop-at-next-notice", "lifetime-at-refresh", "lease-during-metadata", "scope-during-metadata", "stop-during-metadata", "preparation-during-metadata" })
+        // 2026-11-03 起自动连播不再发那条浮出提示，两个「在提示那一拍取消」的模式随之退役：它们的挂点没了，
+        // 剩下的取消点（refresh、封面、metadata、Stop、lifetime）各按原来的路照跑。
+        foreach (var mode in new[] { "scope-before-capture", "lease-at-refresh", "preparation-in-cover", "intent-at-cover", "lifetime-at-refresh", "lease-during-metadata", "scope-during-metadata", "stop-during-metadata", "preparation-during-metadata" })
             runner.Test("cancel-" + mode, () => Cancel(output, mode));
         runner.Test("expected-context-closed-without-cancel-callback", () => ContextClosed(output));
         runner.Test("consumed-old-dispose-finishes-while-B-pending", () => Consumed(output));
@@ -40,9 +45,9 @@ internal static class CallerCases
     {
         await using var f = new Fixture(output, "terminal-" + mode);
         var a = f.Episode("A");
-        var b = f.Episode("B", season: mode == "other-season" ? "other" : "season");
+        var b = f.Episode("B", season: "season");
         var lease = f.Lease("A");
-        IReadOnlyList<EmbyItem> rows = mode switch { "empty" => [], "missing-current" => [b], "other-season" => [a, b], _ => [a] };
+        IReadOnlyList<EmbyItem> rows = mode switch { "empty" => [], "missing-current" => [b], _ => [a] };
         if (mode == "auto-off") { f.Settings.Playback.AutoPlayNextEpisode = false; rows = [a, b]; }
         if (mode == "empty") f.Transport.Episodes(f.A, "series", []);
         if (mode == "movie") a.Type = EmbyItemType.Movie;
@@ -61,16 +66,35 @@ internal static class CallerCases
         Check.Equal(mode != "movie", f.Playback.Calls[0].Ticket.RetainForAutomaticContinuation, "real ticket retain is episode-only");
     }
 
+    /// <summary>
+    /// 2026-11-03 用户令「自动播放下一集时不要在画面上弄悬浮提示」＋「跟随全季列表，跨季连播」：跨到下一季那一集要真的
+    /// 开起来，而那条「自动播放下一集：…」不许再发。走的是真的 <c>StartPlaybackAsync</c> 递归收尾与真的
+    /// <c>NextEpisodeToAutoPlay</c>，只是播放端点是假边界。
+    /// </summary>
+    private static async Task AutoNext(string output)
+    {
+        await using var f = new Fixture(output, "auto-next");
+        var a = f.Episode("A");
+        var b = f.Episode("B", season: "other");
+        var lease = f.Lease("A");
+        f.Plan(Fixture.Eof(lease));
+        f.Plan(Fixture.Eof());      // B 那一场自己的计划：跨季接上来的那一集也要有个收尾
+        await Signals.Done(f.Start(a, [a, b])).ConfigureAwait(true);
+        f.Settled(lease, started: 2);
+        Check.Equal(2, f.Playback.Starts.Count, "cross-season next episode is started");
+        Check.True(f.Notices.All(text => !text.StartsWith("自动播放", StringComparison.Ordinal)),
+            "auto-next sends no floating notice");
+    }
+
     private static async Task CallbackFailure(string output, string mode)
     {
         await using var f = new Fixture(output, "exception-" + mode);
         var a = f.Episode("A");
         var b = f.Episode("B", mode == "following-capture" ? f.B : f.A);
         var lease = f.Lease("A");
-        var next = mode is "next-notice" or "following-capture";
+        var next = mode is "following-capture";
         if (mode == "final-notice") f.NoticeInput = _ => throw new EndpointFailure(mode);
         if (mode == "refresh") f.RefreshInput = () => throw new EndpointFailure(mode);
-        if (mode == "next-notice") f.NoticeInput = text => { if (text.StartsWith("自动播放", StringComparison.Ordinal)) throw new EndpointFailure(mode); };
         if (mode == "following-capture") f.RefreshInput = () => Fixture.Revoke(f.B);
         if (mode == "release") lease.ReleaseFailure = new EndpointFailure(mode);
         if (mode == "leave") f.LeaveInput = () => throw new EndpointFailure(mode);
@@ -121,12 +145,6 @@ internal static class CallerCases
         if (mode == "scope-before-capture") f.RefreshInput = () => Fixture.Revoke(f.A);
         if (mode == "lease-at-refresh") f.RefreshInput = () => cancel = lease.Cancel();
         if (mode == "lifetime-at-refresh") f.RefreshInput = f.Vm.CancelLifetimeForFixture;
-        if (mode is "lease-at-next-notice" or "stop-at-next-notice")
-            f.NoticeInput = text =>
-            {
-                if (!text.StartsWith("自动播放", StringComparison.Ordinal)) return;
-                cancel = mode == "lease-at-next-notice" ? lease.Cancel() : f.Vm.StopAsync();
-            };
         if (mode is "preparation-in-cover" or "intent-at-cover")
             f.Vm.CoverWait = item =>
             {
@@ -162,7 +180,7 @@ internal static class CallerCases
             await Signals.Done(cancel).ConfigureAwait(true);
             Check.True(read.Token.IsCancellationRequested, "actual captured metadata token canceled");
         }
-        if (mode is "intent-at-cover" or "stop-at-next-notice")
+        if (mode == "intent-at-cover")
             await Signals.Done(run).ConfigureAwait(true);
         else await Check.Throws<OperationCanceledException>(() => Signals.Done(run)).ConfigureAwait(true);
         await Signals.Done(cancel).ConfigureAwait(true);

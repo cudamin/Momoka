@@ -41,10 +41,43 @@ public sealed partial class PlayerPage
 
     // ---- 选集 --------------------------------------------------------------------
 
+    /// <summary>
+    /// 把这个菜单的高度收到「锚点上方那点余地」之内（2026-11-03 用户令「集列表菜单不要跑到窗口外面，要始终
+    /// 保持在窗口内」）。
+    /// <para>
+    /// 为什么不换一种弹层：这一版框架（WinUI 2.3.9）的 <c>MenuFlyout</c> 是**窗口化弹层** —— 亚克力要一个
+    /// 自己的 HWND 去采桌面，代价是它不受 <c>XamlRoot</c> 边界约束，而 <c>MenuFlyoutPresenter</c> 默认不限高。
+    /// 二十几集的列表在 720 高的窗口里必然从顶边顶出去；换成非窗口化弹层是能夹住，但那样第 3 条要的亚克力
+    /// 就没了。给它一条 <c>MaxHeight</c> 是两边都要得成的做法：presenter 模板里本来就有
+    /// <c>ScrollViewer</c>，超出的行改成滚动，菜单位置仍是「贴着按钮往上开」。
+    /// </para>
+    /// <para>
+    /// 样式必须在 <c>Opening</c> 里换：presenter 是这之后才按 <c>MenuFlyoutPresenterStyle</c> 建的，而且要先
+    /// 量出锚点位置才算得出上限。每次打开重建一支（<c>BasedOn</c> 页面里那支亚克力样式）而不是改同一支 ——
+    /// 已经用过的 <c>Style</c> 是封的。量不出来（自检直接在收起状态下调 <c>Opening</c>、窗口还没有尺寸）时
+    /// 一件事都不做，退回框架默认的不限高。
+    /// </para>
+    /// </summary>
+    private void FitMenuToWindow(MenuFlyout menu, FrameworkElement anchor)
+    {
+        if (XamlRoot is null || Root.ActualHeight <= 0) return;
+
+        var origin = anchor.TransformToVisual(Root).TransformPoint(new Windows.Foundation.Point(0, 0));
+        var max = PlayerMenuFit.MaxHeight(origin.Y, Root.ActualHeight);
+        if (!double.IsFinite(max) || max <= 0) return;
+
+        if (Resources["PlayerMenuPresenterStyle"] is not Style based) return;
+
+        var style = new Style(typeof(MenuFlyoutPresenter)) { BasedOn = based };
+        style.Setters.Add(new Setter(FrameworkElement.MaxHeightProperty, max));
+        menu.MenuFlyoutPresenterStyle = style;
+    }
+
     private void OnEpisodeMenuOpening(object sender, object e)
     {
         if (!Attached) return;
 
+        FitMenuToWindow(EpisodeMenu, EpisodeButton);
         EpisodeMenu.Items.Clear();
 
         if (ViewModel.Episodes.Count == 0)

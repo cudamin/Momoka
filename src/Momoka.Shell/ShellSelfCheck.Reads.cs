@@ -555,8 +555,8 @@ internal static partial class ShellSelfCheck
     /// Two claims live here that no fixture can make. The first is that stepping off the end of a season
     /// lands on the next season's first episode — which holds only because the server's own ordering groups
     /// episodes by season index, a property of the server and not of <see cref="EpisodeNavigation"/>. The
-    /// second is that the season list a step hands the player's 选集 menu is the very list the server
-    /// returns when asked for that season directly, id for id and in the same order.
+    /// second is that the step hands the player's 剧集列表 back **whole** (2026-11-03 用户令：列表是全部季、
+    /// 按播出时间排) — 每一行、每一个 id 都与播出顺序那一份逐条相同，而不是缩回落点那一季。
     /// </para>
     /// <para>
     /// Awaited from the timer's last tick, once it has stopped and before the report is written: the rest of
@@ -593,40 +593,33 @@ internal static partial class ShellSelfCheck
 
             foreach (var series in candidates)
             {
-                // 走产品自己那段跨季落地（ResolveAdjacentAsync），而不是直接 Step —— 这条自检核对的正是它给出的
-                // 选集（forward.Siblings）与服务端按季返回（下面独立再取的 scoped）逐个相同。back 只看落点是谁，仍用 Step。
-                async Task<IReadOnlyList<EmbyItem>> FetchSeasonAsync(string? seasonId) => await session
-                    .ExecuteAsync((client, token) => client.GetEpisodesAsync(series.Id, seasonId, token), budget.Token)
-                    .ConfigureAwait(true);
-
+                // 走产品那条路：先按播出时间排（ItemDetail.AirOrder，播放器加载全剧列表时就是这一步），
+                // 再走 EpisodeNavigation.Step。这条自检核对的是「跨季一步落到下一季第一集」以及
+                // 「列表整份交回」—— 2026-11-03 起播放器的列表是全剧，不再缩回落点那一季。
                 var episodes = await session
                     .ExecuteAsync((client, token) => client.GetEpisodesAsync(series.Id, null, token), budget.Token)
                     .ConfigureAwait(true);
+
+                episodes = [.. ItemDetail.AirOrder(episodes)];
 
                 if (Boundary(episodes) is not { } boundary) continue;
 
                 var last = episodes[boundary];
                 var first = episodes[boundary + 1];
 
-                var forward = await EpisodeNavigation
-                    .ResolveAdjacentAsync(episodes, last.IdentityKey, 1, FetchSeasonAsync)
-                    .ConfigureAwait(true);
+                var forward = EpisodeNavigation.Step(episodes, last.IdentityKey, 1);
                 var back = forward is null ? null : EpisodeNavigation.Step(episodes, forward.Episode.IdentityKey, -1);
 
-                var scoped = await session
-                    .ExecuteAsync((client, token) => client.GetEpisodesAsync(series.Id, first.SeasonId, token),
-                        budget.Token)
-                    .ConfigureAwait(true);
-
-                var seasonal = forward is not null
+                var whole = forward is not null
+                    && forward.Siblings.Count == episodes.Count
                     && forward.Siblings.Select(sibling => sibling.Id)
-                        .SequenceEqual(scoped.Select(episode => episode.Id), StringComparer.Ordinal);
+                        .SequenceEqual(episodes.Select(episode => episode.Id), StringComparer.Ordinal);
 
-                var crossOk = forward?.Episode.Id == first.Id && back?.Episode.Id == last.Id && seasonal;
+                var crossOk = forward?.Episode.Id == first.Id && back?.Episode.Id == last.Id && whole;
 
                 var cross = $"《{series.Name}》{Code(last)} → 下一集 {Code(forward?.Episode)}（应为 {Code(first)}）"
-                    + $"→ 上一集 {Code(back?.Episode)}；选集 {forward?.Siblings.Count ?? 0} 集，"
-                    + $"服务端按季返回 {scoped.Count} 集，{(seasonal ? "两者逐个相同" : "两者不一致")}";
+                    + $"→ 上一集 {Code(back?.Episode)}；列表 {forward?.Siblings.Count ?? 0} 集，"
+                    + $"全剧 {episodes.Count} 集，{(whole ? "整份交回、播出顺序" : "没整份交回")}";
 
                 var picker = await ProbePickerAsync(
                     shell, services, session, series, episodes, last.SeasonId, first.SeasonId, budget.Token)

@@ -382,8 +382,12 @@ public sealed partial class PlayerViewModel
     }
 
     /// <summary>
-    /// 把本季单集推给视频窗的 uosc 画成菜单。当前集打上 active；没有集列表（非剧集、列表没到手）也回
+    /// 把手上的单集列表推给视频窗的 uosc 画成菜单。当前集打上 active；没有集列表（非剧集、列表没到手）也回
     /// 一份菜单，放一行说明而不是让按钮看起来是死的。
+    /// <para>
+    /// 推的是 <see cref="Episodes"/> —— 与集成模式那个菜单同一份（2026-11-03 起是全剧、按播出时间排），
+    /// 标题也同一句「剧集列表」：两条管线各是各的控件栈，但用户看到的是同一份东西。
+    /// </para>
     /// </summary>
     private async Task PushEpisodeMenuAsync()
     {
@@ -398,7 +402,7 @@ public sealed partial class PlayerViewModel
                 true,
                 string.Equals(episode.IdentityKey, PlayingItemKey, StringComparison.Ordinal)))];
 
-        await SendMenuAsync("episodes", "选集", items, anchor: true).ConfigureAwait(true);
+        await SendMenuAsync("episodes", "剧集列表", items, anchor: true).ConfigureAwait(true);
     }
 
     /// <summary>
@@ -436,7 +440,7 @@ public sealed partial class PlayerViewModel
     /// 集成模式的按钮归外壳、独占模式的按钮归 uosc，而 uosc 的控件表是静态的，露不露面只能由宿主把
     /// 答案送过去（门在 Lua 那侧，<c>state.has_episodes</c>，见 assets/mpv-ui/scripts/uosc/main.lua 的
     /// MOMOKA[episode-count]）。调用点都是「那一格刚被写过」的时刻：
-    /// <c>OnNowPlayingChanged</c>（每一场开播都明写一遍）与 <c>FillSiblingsAsync</c>（单集列表补齐、
+    /// <c>OnNowPlayingChanged</c>（每一场开播都明写一遍）与 <c>LoadSeriesEpisodesAsync</c>（全剧列表补齐、
     /// 明写 true），外加视频窗装载握手的应答 —— 后一条管的是「画面还没出来就摆对」。
     /// 发不出去不算错：起播前那一次赋值天然还没有会话，静默。
     /// </para>
@@ -719,11 +723,14 @@ public sealed partial class PlayerViewModel
         // 那一份菜单自己说（只有一版时回一行「没有可切换的版本」）。
         //
         // 这一格跟着「手上这个条目」走，不在这里自己算（2026-09-21）。拿到的 item 可能是初始化对象
-        // （浏览级元数据没有媒体源），而 FillSiblingsAsync 后来会把服务器那条更全的换上去；
+        // （浏览级元数据没有媒体源），而 LoadSeriesEpisodesAsync 后来会把服务器那条更全的换上去；
         // 两边各算各的就会打架，见 CurrentItem 与 VersionControlsVisible 的注释。
         CurrentItem = item;
-        if (Episodes.Count == 0 && item.Type == EmbyItemType.Episode && _playbackScope is { } scope)
-            _ = FillSiblingsAsync(item, scope, _activeIntent);
+
+        // 每一次单集开播都重读一次「全剧、按播出时间排」的列表（2026-11-03）：季页递来的那份只有一季，
+        // 靠这一趟才变成全剧；已经拿着一份全剧列表时这一趟只是确认。换集之间它多跑一趟 GET，与开文件并行。
+        if (item.Type == EmbyItemType.Episode && _playbackScope is { } scope)
+            _ = LoadSeriesEpisodesAsync(item, scope, _activeIntent);
         _ = LoadVersionsAsync(item, _generation, ++_versionDiscovery);
 
         // Before the player is shown rather than after: the window is reshaped for the picture while the

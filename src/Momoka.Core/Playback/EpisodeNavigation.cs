@@ -2,12 +2,13 @@ using Momoka.Emby;
 
 namespace Momoka.Playback;
 
-/// <summary>The episode to play after a step, together with the season list its picker should show.</summary>
+/// <summary>The episode to play after a step, together with the list its picker should show.</summary>
 public sealed record EpisodeDestination(EmbyItem Episode, IReadOnlyList<EmbyItem> Siblings);
 
 /// <summary>
-/// Resolves 上一集 / 下一集 from a series-wide episode list. The server owns the ordering; this rule only
-/// walks that order and narrows the result back to one season so the player's 选集 menu stays seasonal.
+/// Resolves 上一集 / 下一集 over the list the player is actually holding. The server owns the ordering;
+/// this rule only walks that order and hands the <b>same</b> list back, so the picker never changes shape
+/// because someone stepped off the end of a season.
 /// </summary>
 public static class EpisodeNavigation
 {
@@ -22,103 +23,33 @@ public static class EpisodeNavigation
     public static bool HasMultipleSources(IReadOnlyList<EmbyItem> episodes) => episodes.Count > 1
         && episodes.Skip(1).Any(item => item.Source?.Key != episodes[0].Source?.Key);
 
-    /// <summary>显式的聚合播放列表按用户给定顺序前进，保留整个队列且不回绕。</summary>
-    public static EpisodeDestination? StepQueue(IReadOnlyList<EmbyItem> episodes, string currentIdentityKey, int offset)
-    {
-        if (offset is not (-1 or 1)) throw new ArgumentOutOfRangeException(nameof(offset));
-        var index = IndexOf(episodes, currentIdentityKey);
-        if (index < 0 || index + offset < 0 || index + offset >= episodes.Count) return null;
-        return new(episodes[index + offset], episodes);
-    }
-
+    /// <summary>
+    /// 上一集 / 下一集：在手上那份列表里按位置走一步，到两端返回 null（不回绕）。
+    /// <para>
+    /// **整份列表原样交回**（<c>Siblings</c> 就是 <paramref name="episodes"/>）。这既是聚合播放队列
+    /// （主页「播放全部」那种跨媒体库队列，按用户给定顺序前进）的规矩，也是 2026-11-03 起的剧集规矩：
+    /// 播放器的「剧集列表」从那天起装着<b>全剧</b>（按播出时间排，见 <see cref="ItemDetail.AirOrder"/>），
+    /// 于是跨季一步不再把列表缩回某一季 —— 缩回去的话，从季页进来的人看得到全季，走一步之后又只剩一季。
+    /// </para>
+    /// <para>
+    /// 2026-09-18 那条「自动连播只在本季内走、季末直接退出」同日作废：用户 2026-11-03 令「跟随全季列表，
+    /// 跨季连播」。自动连播与上一集/下一集从此走同一条 <see cref="Step"/>，区别只在调用方是否放行
+    /// （<c>NextEpisodeToAutoPlay</c> 还额外要求「真的放完了」与开关打开）。
+    /// </para>
+    /// <para>
+    /// 那一天一起退役的还有「跨季落地时按落点那一季重新问服务器」那一段：它存在的理由是季列表里并着
+    /// air-order 特典（《伪恋》S01 = 23 集），本地按 <c>SeasonId</c> 筛会少几条。列表改成全剧之后，
+    /// 特典本就在它播出位置的那一行上，没有「重问一次才对齐」这回事了。
+    /// </para>
+    /// </summary>
     public static EpisodeDestination? Step(
         IReadOnlyList<EmbyItem> episodes,
         string currentIdentityKey,
         int offset)
     {
-        if (StepQueue(episodes, currentIdentityKey, offset) is not { } step) return null;
-        var siblings = episodes.Where(candidate => SameSeason(candidate, step.Episode)).ToList();
-        return step with { Siblings = siblings.Count > 0 ? siblings : [step.Episode] };
-    }
-
-    /// <summary>
-    /// 上一集 / 下一集 跨季落地时的「选集」那一份：<see cref="Step"/> 只负责在全剧列表里把「下一集是谁」定下来，
-    /// 选集列表改由 <paramref name="fetchSeasonEpisodes"/> 按落点那一季问服务器要 —— 与季详情页
-    /// <c>DetailViewModel.LoadEpisodesAsync</c> 同走 <c>GetEpisodesAsync(seriesId, seasonId)</c> 这一条路。
-    /// <para>
-    /// 为什么不直接用 <see cref="Step"/> 回来的 <c>Siblings</c>：服务器按季返回时，会把「按播出顺序排进这一季」的
-    /// air-order 特典并进来（《伪恋》S01 = 23 集）；而 <see cref="Step"/> 是在全剧列表上按 <c>SeasonId</c> 本地筛，
-    /// 那些特典记在 S00、会被筛掉（= 20 集）。于是从 S00 的特典跨进 S01 起播，选集只剩 20，比季详情页少了并进来的
-    /// 特典 —— 同一季、两条路给出的选集对不上（2026-09-24 用户报的《伪恋》跨季相邻单集）。按季问服务器，两条路才一致。
-    /// </para>
-    /// <para>
-    /// 服务器那一份为空、或没带上落点（够不着目标）时，退回 <see cref="Step"/> 本地筛出来的那份：选集略宽好过没有落点。
-    /// <paramref name="offset"/> 的取值校验与越界返回 null 都随 <see cref="Step"/>；越界时压根不问服务器。
-    /// </para>
-    /// </summary>
-    public static async Task<EpisodeDestination?> ResolveAdjacentAsync(
-        IReadOnlyList<EmbyItem> seriesEpisodes,
-        string currentIdentityKey,
-        int offset,
-        Func<string?, Task<IReadOnlyList<EmbyItem>>> fetchSeasonEpisodes)
-    {
-        if (Step(seriesEpisodes, currentIdentityKey, offset) is not { } step) return null;
-
-        var target = step.Episode;
-        var season = await fetchSeasonEpisodes(target.SeasonId).ConfigureAwait(false);
-
-        if (season.Count > 0 && season.Any(episode => string.Equals(episode.IdentityKey, target.IdentityKey, StringComparison.Ordinal)))
-            return step with { Siblings = season };
-
-        return step;
-    }
-
-    /// <summary>
-    /// 自动连播用的「本季之内」的那一步：先把自己缩进当前单集所在的那一季，再走一步。
-    /// <para>
-    /// 「当最后一季的最后一集播放结束后，直接退出播放界面，不得自动续播该最后一季的第一集」（用户令，
-    /// 2026-09-18）—— 旧版在季末会退而求其次去拿全剧列表，把下一季的第一集接上来（Re:Zero 的 S1E83
-    /// 播完自动跳 S04E12 就是这么来的）。自动连播从此只在季内走：季末返回 null，播放界面随之退出。
-    /// 跨季的一步留给上一集/下一集按钮（<c>StepEpisodeAsync</c> 的全剧回退）。
-    /// </para>
-    /// <para>
-    /// 输入的列表是什么不再要紧：哪怕调用方手里的列表因服务器没给 SeasonId 而装着全剧，这里也只认
-    /// 当前单集的那一季 —— 回绕与跨季在决策点上失去立足点，而不是指望每个调用方先把列表筛对。
-    /// </para>
-    /// </summary>
-    public static EpisodeDestination? StepInSeason(
-        IReadOnlyList<EmbyItem> episodes,
-        string currentIdentityKey,
-        int offset)
-    {
         if (offset is not (-1 or 1)) throw new ArgumentOutOfRangeException(nameof(offset));
-
         var index = IndexOf(episodes, currentIdentityKey);
-        if (index < 0) return null;
-        var current = episodes[index];
-
-        var season = episodes.Where(candidate => SameSeason(candidate, current)).ToList();
-
-        return Step(season, currentIdentityKey, offset);
-    }
-
-    private static bool SameSeason(EmbyItem candidate, EmbyItem target)
-    {
-        if (candidate.Source?.Key != target.Source?.Key) return false;
-        if (candidate.SeriesId is { Length: > 0 } candidateSeries && target.SeriesId is { Length: > 0 } targetSeries
-            && !string.Equals(candidateSeries, targetSeries, StringComparison.Ordinal)) return false;
-        if (candidate.SeasonId is { Length: > 0 } candidateSeason
-            && target.SeasonId is { Length: > 0 } targetSeason)
-            return string.Equals(candidateSeason, targetSeason, StringComparison.Ordinal);
-
-        if (candidate.ParentIndexNumber is { } candidateIndex
-            && target.ParentIndexNumber is { } targetIndex)
-            return candidateIndex == targetIndex;
-
-        if (candidate.SeasonName is { Length: > 0 } candidateName
-            && target.SeasonName is { Length: > 0 } targetName)
-            return string.Equals(candidateName, targetName, StringComparison.Ordinal);
-
-        return string.Equals(candidate.IdentityKey, target.IdentityKey, StringComparison.Ordinal);
+        if (index < 0 || index + offset < 0 || index + offset >= episodes.Count) return null;
+        return new(episodes[index + offset], episodes);
     }
 }

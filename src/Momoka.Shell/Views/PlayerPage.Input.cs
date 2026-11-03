@@ -1207,12 +1207,16 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// <summary>指针离开这一排（或落在排里的空处）—— 余下的几颗一起抬回白。</summary>
     private void OnTransportPointerExited(object sender, PointerRoutedEventArgs e) => SetTransportGlyphInk(null);
 
-    /// <summary>这一排的按钮与各自内容里那颗 FontIcon，按行序排（倍速键的内容是文字，进不了这份名单）。</summary>
+    /// <summary>
+    /// 这一排的按钮与各自内容里那颗 FontIcon，按行序排（倍速键的内容是文字，进不了这份名单）。
+    /// 取图标走 <see cref="GlyphOf"/>：2026-11-03 起按钮内容外面包了一格影子宿主（见 PlayerPage.Ink.cs），
+    /// 直接 <c>Content is FontIcon</c> 会一颗都找不到 —— 那时整排的悬停变色会静默失灵。
+    /// </summary>
     private IEnumerable<(Button Button, FontIcon Glyph)> TransportGlyphs()
     {
         foreach (var group in new[] { TransportLeft, TransportMiddle, TransportRight })
             foreach (var child in group.Children)
-                if (child is Button button && button.Content is FontIcon glyph)
+                if (child is Button button && GlyphOf(button) is { } glyph)
                     yield return (button, glyph);
     }
 

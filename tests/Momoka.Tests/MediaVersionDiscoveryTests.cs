@@ -259,19 +259,19 @@ internal static partial class MediaVersionDiscoveryTests
             Assert.True(EpisodeNavigation.HasMultipleSources(queue));
             Assert.Equal(1, EpisodeNavigation.IndexOf(queue, second.IdentityKey));
             Assert.Equal(-1, EpisodeNavigation.IndexOf(queue, second.Id), "绑定来源后不能按裸 ID 命中另一条");
-            var next = EpisodeNavigation.StepQueue(queue, first.IdentityKey, 1);
+            var next = EpisodeNavigation.Step(queue, first.IdentityKey, 1);
             Assert.NotNull(next);
             Assert.Equal(second.IdentityKey, next!.Episode.IdentityKey);
             Assert.True(ReferenceEquals(queue, next.Siblings));
             fixture.Session.SelectSource(firstScope);
             Assert.Equal(secondScope.Key, fixture.Session.Capture(next.Episode).Key);
-            Assert.Equal(first.IdentityKey, EpisodeNavigation.StepQueue(queue, second.IdentityKey, -1)?.Episode.IdentityKey);
-            Assert.Equal(third.IdentityKey, EpisodeNavigation.StepQueue(queue, second.IdentityKey, 1)?.Episode.IdentityKey);
-            Assert.Null(EpisodeNavigation.StepQueue(queue, third.IdentityKey, 1));
-            Assert.Null(EpisodeNavigation.StepQueue(queue, first.IdentityKey, -1));
+            Assert.Equal(first.IdentityKey, EpisodeNavigation.Step(queue, second.IdentityKey, -1)?.Episode.IdentityKey);
+            Assert.Equal(third.IdentityKey, EpisodeNavigation.Step(queue, second.IdentityKey, 1)?.Episode.IdentityKey);
+            Assert.Null(EpisodeNavigation.Step(queue, third.IdentityKey, 1));
+            Assert.Null(EpisodeNavigation.Step(queue, first.IdentityKey, -1));
         });
 
-        Case("聚合单集：同季重号不能跨账号自动串集，错误来源的季列表不能替换落点", async () =>
+        Case("聚合单集：同季重号不能跨账号自动串集，别的账号的同名条目进不了落点", async () =>
         {
             using var fixture = new Fixture();
             var firstScope = await fixture.AddAsync("a", "one.invalid");
@@ -282,16 +282,19 @@ internal static partial class MediaVersionDiscoveryTests
             third.Id = "next";
             third.IndexNumber = 2;
             IReadOnlyList<EmbyItem> queue = [first, second, third];
-            Assert.Null(EpisodeNavigation.StepInSeason(queue, first.IdentityKey, 1));
-            var next = EpisodeNavigation.StepInSeason(queue, second.IdentityKey, 1);
+
+            // 走一步只认列表位置与身份键：同一个季号、同一集号，也不许顺着「同季下一集」溜到另一个账号那一条上。
+            Assert.Equal(second.IdentityKey, EpisodeNavigation.Step(queue, first.IdentityKey, 1)?.Episode.IdentityKey);
+            var next = EpisodeNavigation.Step(queue, second.IdentityKey, 1);
             Assert.Equal(third.IdentityKey, next?.Episode.IdentityKey);
-            Assert.Equal(2, next?.Siblings.Count ?? 0);
+            Assert.True(ReferenceEquals(queue, next?.Siblings), "整份列表原样交回（2026-11-03 起跨季也不再缩回一季）");
+
+            // 另一个账号的同名条目（id 相撞、来源不同）：身份键不同 —— 按裸 id 找不到它，按身份键才找得到。
+            // 位置那一走法是「用户给的顺序」说了算，所以这里只钉身份键，不替 Step 编一条按季挑邻居的规矩。
             var wrong = firstScope.Bind(Episode());
             wrong.Id = third.Id;
-            var adjacent = await EpisodeNavigation.ResolveAdjacentAsync([second, third], second.IdentityKey, 1,
-                _ => Task.FromResult<IReadOnlyList<EmbyItem>>([wrong]));
-            Assert.Equal(third.IdentityKey, adjacent?.Episode.IdentityKey);
-            Assert.Equal(2, adjacent?.Siblings.Count ?? 0, "同名条目来自别的账号时保留原来源的季列表");
+            Assert.Equal(-1, EpisodeNavigation.IndexOf([second, wrong], wrong.Id));
+            Assert.Equal(1, EpisodeNavigation.IndexOf([second, wrong], wrong.IdentityKey));
         });
     }
 

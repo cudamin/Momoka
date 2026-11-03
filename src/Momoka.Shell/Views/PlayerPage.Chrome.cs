@@ -552,8 +552,9 @@ public sealed partial class PlayerPage
                     button.Width = fullscreen ? FullscreenSpeedButtonWidth : WindowSpeedButtonWidth;
                     continue;
                 }
-                // 那一排其余每颗的内容都是一个 FontIcon；图标与格一起摆（独占全屏连格一起涨）。
-                if (button.Content is FontIcon icon) icon.FontSize = glyph;
+                // 那一排其余每颗的内容都是一个 FontIcon（外面包着影子那一格，见 GlyphOf）；图标与格一起摆
+                // （独占全屏连格一起涨）。
+                if (GlyphOf(button) is { } icon) icon.FontSize = glyph;
                 button.Width = button.MinWidth = cell;
                 button.Height = button.MinHeight = cell;
                 button.CornerRadius = new CornerRadius(corner);
