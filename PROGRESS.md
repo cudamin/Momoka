@@ -1,3 +1,14 @@
+## 2026-11-03 导航第一轮性能：主页布局合并、媒体库 Attach 合并、最近搜索与懒面板（已合入 master、发布桌面）
+
+- 用户令：按 `work/navigation-live-20261103/调查结果.md` 只做第一轮（减少重复布局和无关初始化），修后用真实账号做只读导航计时对比；实施留在主会话，不派子代理。方案见同目录 `第一轮实施计划.md`。
+- 实现（四项）：①主页把页面尺寸、轮播尺寸和幻灯片变化合并成一次 `ScheduleOverlay()`，`UpdateLibraryOverlay` 增加运行中守卫与补排，`ApplyLibraryChrome` 只在宿主／内容／遮罩／让位高度真变时写入并布局，统一经 `ForceLayout()` 计数；翻档旧落点与动画起终点不变。②媒体库 Attach 期间视图、分区、头部布局只记待办，Attach 结束各执行一次；普通库页 `ViewApplies=1`、`SectionBuilds=1`。③最近搜索只在「实际展示的空搜索页」加载，普通库与有词搜索不发历史和海报请求，`RememberSearch` 后清空查询会重建隐藏清单。④MoviePilot 搜索／资源、AniBT、筛选、设置五个面板改为首次使用时创建，释放与未创建访问全部空判；五个面板用 `AutomationProperties.SetAutomationId` 保留原 UIA 句柄，约定基线去掉 4 条旧 XAML 句柄并新增一条源码约定检查。
+- 测试：Release 全方案 **0 警告 0 错误**（4:42）；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0；主测试 **3608/3608、0 失败 0 跳过**；`Momoka.HomeFoldCompletionTests` **56/56**、`Momoka.SearchLifetimeTests` **42/42**、`library-resume-paging-fixture` **36/36**（新增最近搜索只在实际展示的空搜索页加载；普通库页隐藏历史图片请求为 0）。
+- 探针：主树六分区 `performance,library,search,moviepilot,anibt,accounts` **83 例、3 红**（`shell-probe-20261103-085130569-22524`）：文件选项窗口宽度 1024→1008、主页标题悬停超时、输入框 oled-black/password 焦点外圈；三者均为历史同形环境／时序波动。发布件 `library,search` 复跑 **35/35、0 失败、退出 0**（`shell-probe-20261103-091818892-16672`），三颗红项全部通过。性能用例核对普通库页五面板未创建、视图／分区各 1 次，以及 12 次搜索页往返的来源切换、释放与迟到通知隔离。
+- 真实账号只读计时（同一助手、私有设置与图片缓存副本；生产 `settings.json` 与备份哈希前后未变）：同样本数对比，Jellyfin 媒体库 `DataReady 497.6→215.0 ms`、加载完成通知 `159.8→80.1 ms`，主页 `DataReady 646.4→380.6 ms`、通知 `643.4→155.1 ms`、首图 `817.9→548.6 ms`；聚合三来源媒体库 `342.7→324.0 ms`、通知 `180.8→110.1 ms`，主页 `608.1→643.5 ms`、通知 `602.7→253.1 ms`、首图 `1395.4→1329.0 ms`。Emby／飞牛修后样本数多于修前，只作方向参考（媒体库 `564.2→263.2`、`367.3→301.2 ms`）。
+- 未达成与风险：暖缓存返回 **200 ms** 的拟验收目标未达成，最接近的 Jellyfin 媒体库仍 215 ms；主页第一张轮播图仍由图片解码／缓存主导（0.55–1.33 s），聚合主页中位数未降。无真实人手操作与真实播放验证；假传输不登录、不写服务器。下一轮候选：主页与媒体库内容快照复用、轮播背景解码缓存、聚合模式逐排回填。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 退出 0；`artifacts/publish/win-x64` **546 文件 / 285.8 MB**，14 GLSL / 4 HOOK，批准 mpv 清单 59 文件（50 UI / 2 native），载荷校验通过；开发件与发布件 `Momoka.dll` SHA-256 同为 `24361e602c3047b138cddbb34386a765102b1ebbec3f2c0fe83db7024ed579e4`；发布件 exe 版本 **0.2.4.0**；桌面 `Momoka.lnk` 已重写并读回，目标 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。版本未升，未推 origin（未获上传授权）。
+- 清理：临时分支 `perf-nav-round1-20261103` 已 fast-forward 合入 master（`a5472bc`），无分支独有提交；工作树 `C:/Users/89400/.qoder-cn/worktrees/app/e283a2/Momoka` 在交付收尾删除，若目录被当前会话占用则注销登记并留待退出后删盘。
+
 ## 2026-11-03 聚合模式隐藏「接下来看」、Jellyfin 接下来看页照网页端列下一集与角标总数（已发布桌面）
 
 - 用户令（原话）：①「开启聚合模式后 自动隐藏主页jellyfin的 接下来看 那一栏」；②「参考网页端的源码修改本项目的jellyfin 接下来看 媒体库」，并给出 `list.html?type=nextup` 参考；随后澄清「网页端的接下来看不止 12 项，momoka 识别有误」。三处口径经确认：聚合模式开启时整排不显示；点进去的页按网页端列「下一集」；首页横排仍只预览 12 张、右端角标写服务器总数。
