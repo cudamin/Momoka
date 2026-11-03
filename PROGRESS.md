@@ -1,3 +1,13 @@
+## 2026-11-03 聚合模式隐藏「接下来看」、Jellyfin 接下来看页照网页端列下一集与角标总数（已发布桌面）
+
+- 用户令（原话）：①「开启聚合模式后 自动隐藏主页jellyfin的 接下来看 那一栏」；②「参考网页端的源码修改本项目的jellyfin 接下来看 媒体库」，并给出 `list.html?type=nextup` 参考；随后澄清「网页端的接下来看不止 12 项，momoka 识别有误」。三处口径经确认：聚合模式开启时整排不显示；点进去的页按网页端列「下一集」；首页横排仍只预览 12 张、右端角标写服务器总数。
+- 源码核对：读留档/上游 `jellyfin-web v10.10.7` 的 `src/controllers/list.js`（nextup 走 `getNextUpEpisodes`；排序键 `params.type !== 'nextup'` 才显示、`getVisibleFilters` 对 nextup 返回空、`btnShuffle` 不收、默认缩略图）与 `jellyfin v10.10.7` 的 `TVSeriesManager.GetNextUp/GetResult`（每部剧一条下一集，按最近观看收集后按 StartIndex/Limit 切页；`EnableTotalRecordCount` 打开才回总数）。Emby 4.10.1.0 的 `/Shows/NextUp` 规格没有 `EnableTotalRecordCount`，所以只对 Jellyfin 发。
+- 实现：Core `HomeLayout.ForSources` 新增 `aggregateMode` 档，聚合模式开着时「接下来看」整排不排（首页与设置表同用；勾选与次序原样留在存档，关掉聚合模式后回来）。`EmbyClient.QueryNextUpAsync` 带 `StartIndex`/`Limit` 与 Jellyfin 的 `EnableTotalRecordCount=true`，`GetNextUpAsync` 改为它的薄包装。`LibraryViewModel` 只在单来源 Jellyfin 上把「接下来看」页改问 `Shows/NextUp` 分页（`BuildQuery` 返回 null，不再走「一集都没看过的剧集」通用查询），排序／筛选／随机播放／字母条照 `list.js` 收起，空页文案「这里还没有下一集」，播放全部保留。首页 `FetchNextUpAsync` 汇总各来源 `TotalRecordCount`，货架 `NoteOverride` 写总数，横排仍 12 张预览。
+- 测试：Release 全方案 **0 警告 0 错误**；主测试 **3607/3607、0 失败 0 跳过**；`library-resume-paging-fixture` **35/35**（新增 Jellyfin 接下来看页 45 条按 20 条分页、控件收起，首页聚合隐藏且零 NextUp 请求，角标 25 项而横排 12 张）；`Momoka.HomeOrderProbeTests` **19/19**（其中 3 条旧断言按 11-02「相同设置目录复用、不重复通知」的现行语义改成用管理员／普通目录来回切换，HEAD 上原本就因夹具过期而红，非本轮引入）；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。
+- 探针：发布件 `--probe-shell --probe-section library --screen 1` **25/25、0 失败**（`shell-probe-20261103-060748195-6948`）。`JellyfinLibraryAsync` 新用例「Jellyfin 接下来看页」核对：卡片为 `Shows/NextUp` 的下一集（离线 next / S01E07）、读数「共 1 项」、排序／筛选／随机播放收起而播放保留、请求带 `StartIndex=0` 与 `EnableTotalRecordCount=true`；实屏 `jellyfin-nextup-page-screen.png` 已看，版式正常。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 退出 0，`artifacts/publish/win-x64` **546 文件 / 285.8 MB**，14 GLSL / 4 HOOK，批准 mpv 清单 59 文件，载荷校验通过；开发件与发布件 `Momoka.dll` SHA-256 同为 `dcc921bcd3459559444748c6ef7ce0b60515e2636221d181fde819988795431e`；发布件 exe 版本 0.2.4.0；桌面 `Momoka.lnk` 已重写并读回，目标 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。版本未升，未推 origin（未获上传授权）。
+- 未覆盖：真实 Jellyfin 服务器上的接下来看页观感与真实聚合模式多账号组合没有实屏（探针与夹具均为假传输，不登录、不播放、不写服务器）；首页聚合隐藏只有属性与请求读数，没有另拍一张聚合主页实屏。Emby 的「接下来看」页仍是原来的「没看完的剧集」通用查询，两边语义不同是有意的。
+
 ## 2026-11-03 MP 订阅详情页大窗模式（已合入 master、发布桌面）
 
 - 用户令（一句「给 mp 订阅页面也增强大窗模式」，目标经确认是单条订阅／媒体详情页 `MoviePilotSubscriptionPage`，不是订阅列表页）：观感与电影／剧／季详情页的沉浸档一致 —— 窗口最大化或面积占所在显示器工作区五分之四时，背景铺到窗口下沿并抬到 0.96，正文纸面换成半透明洗色，面板底与框淡到 0，头部不再撑第一屏、下方组件整体上移，图下沿的黑色渐变收起；还原后全部回到纸面版式。
