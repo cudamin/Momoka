@@ -8,6 +8,16 @@
 - 主树最终整合验证（`ab51a78`，含 master `38318b5` 的导航第二轮暖缓存批次）：Release 全方案 **0 警告 0 错误**；主测试 **3624/3624、0 失败 0 跳过**；`Momoka.NaturalContinuationCallerTests` **51/51**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。
 - 交付：`tools/publish.ps1 -Shortcut -NoArchive` 退出 0（第一次因工作区安全删除守卫报 `SAFE_DELETE_FAIL_CLOSED`，旧目录已清空，复跑成功）：`artifacts/publish/win-x64` **546 文件 / 285.8 MB**，14 GLSL / 4 HOOK，批准 mpv 清单 59 文件，载荷校验通过；开发件与发布件 `Momoka.dll` SHA-256 同为 `c1d48d04225a8bdc242617998133fd241b55533e6420c818f6b74b2537deaf2f`。快捷方式重写被本机沙箱拒绝（`UnauthorizedAccessException` 覆盖桌面 `Momoka.lnk`），`.lnk` 仍是上一批那一份、内部含 `artifacts\publish\win-x64` 目标，而该目录已刷新，所以桌面启动仍是这批代码。未推 origin（未获上传授权）。
 - 未覆盖：①Jellyfin 媒体段**没有在用户真实服务器上跑过**——读取要在应用内用保存的账号，没有为这事单独动真实设置；播一集带媒体段（Intro Skipper 等提供器）的剧，看 `%LOCALAPPDATA%\Momoka\logs` 里「跳过标记：Jellyfin 媒体段 N 条 → M 段」即可确认。②Plex 没有可用服务器，只有离线契约测试。③飞牛没有服务端数据，只能靠播放器章节，命中率取决于文件的章节名与长度。④集成/独占两管线的实际跳过按钮仍按原验证边界，未做真实播放验收。
+## 2026-11-03 导航第三轮性能：轮播背景解码缓存与聚合主页逐排回填（待主树合并、待发布）
+
+- 用户令：按 `work/navigation-live-20261103/调查结果.md` 做第三轮（轮播图片复用与聚合逐排显示）；方案见同目录 `第三轮实施计划.md`。只读真实服务器，不启动播放、不写服务器。
+- 实现（轮播）：Core 新增 `BudgetCache`（字节预算 LRU，单条超预算不写入）；Shell 新增 `BannerBackdropCache`，预算 48 MB，键含服务器基址／用户／条目／图种／tag／请求宽度／扩边规则，成本按解码像素×4；`BannerSlide` 构造和 `EnsureAsync` 先查缓存，解码成功才写入，`Release` 保留缓存，来源失效不命中也不继续画旧图；设置「清除图片缓存」同清。
+- 实现（聚合主页）：`LoadAsync` 改为每排 `RowRead` 按来源分片；每个来源完成即按现有轮流规则合并并 `Apply` 到货架，慢来源未回时不用空结果清掉已有内容；媒体库排立即回填；轮播清单在自己的请求完成后独立发布；后台核对仍全体成功才发布；`EndLoad`、快照、`LoadedCount` 与最终合并顺序保持原语义；来源退出／离页／换代后的迟到结果不落屏。
+- 测试：Release 全方案 **0 个代码错误**（46 条 NU1900 是 nuget.org 不可达的还原环境警告，非源码警告）；主测试 **3631/3631、0 失败 0 跳过**；`BudgetCacheTests` 7/7；`PageContractTests` **116/116**（新增轮播缓存 7 条）；`home-performance-fixture` **18/18**（新增快来源先出、慢来源失败保留、离页拒绝、来源退出拒绝、轮播先发布、接下来看合并、后台全体成功、后台失败保留）；`library-resume-paging-fixture` **38/38**；`HomeFoldCompletionTests` 56/56；`PerfListDiagnosticsTests` 71/71；`HomeOrderProbeTests` 19/19（同步聚合模式五排行数口径，修的是上一批探针已改、夹具未跟的旧漂移）；`dotnet format whitespace` 与 `git diff --check` 通过；`--probe-shell --probe-section library --screen 1` **25/25、0 失败**。
+- 真实账号只读计时（同一启动钩子、私有设置与图片缓存副本，自包含发布副本；生产 settings.json 与备份前后哈希一致；`work/navigation-live-20261103/round3-before` 为 0.2.4 发布件，`round3-after-final` 为本轮最终代码，ProductHash `F7A91B6A…`）：聚合三来源九个媒体库各返回主页九次，第一张轮播图 `FirstPictureAssignedMs` 中位数 **1703.9 → 552.2 ms**（第二轮及以后暖返回 **2668.4 → 445.6 ms**）；每次返回前后缓存条目均为 3，返回没有新增解码；`BannerLoadedMs` 中位数约 **499.9 ms**，与首图中位基本重合，说明剩余等待主要是页面／Banner 加载，不再是图片解码。主页 `DataReady` 中位数约 **26.1 → 22.1 ms**。首图仍未到「即时」，200 ms 首图目标未达成。
+- 未覆盖：没有真实人手操作与真实播放；动画时长与 Jellyfin PNG 质量未调整（计时显示它们不是当前主瓶颈）；真实服务器上轮播背景 tag 轮换与来源撤销只有夹具／缓存键覆盖，没有实屏。
+- 代价与风险：跨来源行在慢来源到达时会按最终轮流次序重排一次（已有卡片移动但不重建），这是「快来源先出现」的代价；后台核对仍保持全体成功才发布；轮播缓存上限 48 MB。
+
 ## 2026-11-03 导航第二轮性能：主页与最近媒体库暖缓存、后台核对与增量回填（已合入 master、发布桌面）
 
 - 用户令：按 `work/navigation-live-20261103/调查结果.md` 做第二轮（有限复用主页和最近媒体库内容）；方案见同目录 `第二轮实施计划.md`。只读真实服务器，不启动播放、不写服务器。
