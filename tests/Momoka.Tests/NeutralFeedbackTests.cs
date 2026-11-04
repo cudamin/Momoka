@@ -47,12 +47,12 @@ internal static class NeutralFeedbackTests
             Assert.Equal("OnOpen", cover.Attribute("Click")?.Value);
         });
 
-        Test("中性反馈：播放键默认按钮玻璃，保留圆形尺寸与播放路由", () =>
+        Test("中性反馈：播放键默认灰底白字，保留圆形尺寸与播放路由", () =>
         {
             var card = View("PosterCard.xaml");
             var style = card.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgCardPlayButtonStyle");
             Assert.Equal("{StaticResource DefaultButtonStyle}", style.Attribute("BasedOn")?.Value);
-            Assert.Equal("{ThemeResource EgActionGlassBrush}", Setter(style, "Background"));
+            Assert.Equal("{ThemeResource EgSurfaceHoverBrush}", Setter(style, "Background"));
             Assert.Equal("{ThemeResource EgTextBrush}", Setter(style, "Foreground"));
             Assert.Equal("48", Setter(style, "Width"));
             Assert.Equal("48", Setter(style, "Height"));
@@ -77,8 +77,7 @@ internal static class NeutralFeedbackTests
         Test("中性反馈：播放键探针先应用模板，异常时也恢复默认态", () =>
         {
             var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "PosterCard.xaml.cs"));
-            var begin = code.IndexOf("    private (bool GlassRest, Windows.UI.Color Active) ProbePlay()", StringComparison.Ordinal);
-            Assert.True(begin >= 0, "播放键探针签名变了");
+            var begin = code.IndexOf("    private (Windows.UI.Color Still, Windows.UI.Color Active) ProbePlay()", StringComparison.Ordinal);
             var end = code.IndexOf("    private static Windows.UI.Color Colour(", begin, StringComparison.Ordinal);
             var probe = code[begin..end];
             var template = probe.IndexOf("PlayButton.ApplyTemplate();", StringComparison.Ordinal);
@@ -125,13 +124,12 @@ internal static class NeutralFeedbackTests
             Assert.Contains("来源胶囊被改成方形的反例未被检测", probe);
         });
 
-        Test("中性反馈：自检同时核对无外圈及播放键玻璃，不再要求封面变主题色", () =>
+        Test("中性反馈：自检同时核对无外圈及播放键两态，不再要求封面变主题色", () =>
         {
             var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "ShellSelfCheck.Reads.cs"));
             Assert.Contains("corner.FrameBorderless", code);
             Assert.Contains("Format(corner.FrameActive) == Format(corner.FrameRest)", code);
-            Assert.Contains("corner.ActionGlass", code);
-            Assert.Contains("corner.PlayGlassRest", code);
+            Assert.Contains("Format(corner.PlayRest) == ColorOf(\"EgSurfaceHoverBrush\")", code);
             Assert.Contains("Format(corner.PlayHover) == accent", code);
             Assert.False(code.Contains("Format(corner.FrameActive) == accent", StringComparison.Ordinal));
         });

@@ -180,10 +180,10 @@ internal sealed partial class ShellNavigationProbe
                                 .FirstOrDefault(card => card.Card?.Item.Type == EmbyItemType.Movie);
                             Require(poster is not null, "货架没有可播放卡片");
                             var hover = poster!.ProbeHover();
-                            Require(hover.ActionGlass && hover.PlayGlassRest,
-                                "海报悬停播放键或右下操作组未使用按钮亚克力");
-                            reads.Add($"{theme.Id}/{width}/海报卡：操作组三态玻璃={hover.ActionGlass}，"
-                                + $"播放键常态玻璃={hover.PlayGlassRest}，指针强调色={hover.PlayHover}");
+                            Require(!hover.Chrome && hover.PlayRest == ThemeHost.ToColor(theme.Colors.SurfaceHover),
+                                "海报悬停按钮仍画底色或播放键未回到中性灰底");
+                            reads.Add($"{theme.Id}/{width}/海报卡：右下三颗{(hover.Chrome ? "仍有底色" : "三态都不画底色")}，"
+                                + $"播放键常态={hover.PlayRest}，指针强调色={hover.PlayHover}");
                             if (samples)
                             {
                                 // 受控样本：把悬停层亮一帧拍照，不代表真实指针手势。
@@ -198,7 +198,7 @@ internal sealed partial class ShellNavigationProbe
                                     layer.Opacity = 1;
                                     shade.Opacity = 0.78;
                                     await LayoutAsync(poster);
-                                    await SaveProbeScreenAsync("acrylic-poster-actions-screen.png");
+                                    await SaveProbeScreenAsync("poster-actions-restored-screen.png");
                                 }
                                 finally
                                 {

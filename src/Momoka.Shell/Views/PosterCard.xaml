@@ -15,22 +15,20 @@
             <Setter Property="BorderThickness" Value="{StaticResource EgOutlineThickness}" />
             <Setter Property="BorderBrush" Value="{ThemeResource EgAccentBrush}" />
         </Style>
-        <!-- 保留平台按钮模板与焦点反馈；右下操作是一小块玻璃，把图标从复杂海报上分离出来。
-             常态由样式给按钮亚克力，悬停／按下由 Actions 的局部 ActionButtons 字典换同族三态。 -->
+        <!-- 保留平台按钮模板与焦点反馈；右下操作仅画图标，遮罩负责照片上的对比度。 -->
         <Style x:Key="EgCardActionButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Width" Value="32" />
             <Setter Property="Height" Value="32" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="CornerRadius" Value="8" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Background" Value="Transparent" />
             <Setter Property="Foreground" Value="{ThemeResource EgOnScrimBrush}" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <!-- 播放键常态也是那块亚克力（只模糊键下这一小圈，海报本体不动）；按钮自身悬停／按下才变强调色，
-             不随整张封面的悬停换色。框架模板从 ButtonBackgroundPointerOver 等主题键取色，因此覆盖放在按钮自己的 Resources。 -->
+        <!-- 播放键默认中性色；按钮自身悬停／按下才变强调色，不随整张封面的悬停换色。
+             框架模板从 ButtonBackgroundPointerOver 等主题键取色，因此覆盖放在按钮自己的 Resources。 -->
         <Style x:Key="EgCardPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Width" Value="48" />
             <Setter Property="Height" Value="48" />
@@ -38,7 +36,7 @@
             <Setter Property="Padding" Value="0" />
             <Setter Property="CornerRadius" Value="24" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceHoverBrush}" />
             <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
             <Setter Property="FocusVisualPrimaryBrush" Value="{ThemeResource EgTextBrush}" />
             <Setter Property="FocusVisualSecondaryBrush" Value="{ThemeResource EgSurfaceBrush}" />
@@ -290,26 +288,10 @@
                         Spacing="4"
                         VerticalAlignment="Bottom">
                         <StackPanel.Resources>
-                            <ResourceDictionary>
-                                <!-- 三颗图标自带一块玻璃底；平台模板的悬停／按下由这字典按主题换同族三态。 -->
-                                <ResourceDictionary.MergedDictionaries>
-                                    <ResourceDictionary Source="ms-appx:///Theme/ActionButtons.xaml" />
-                                </ResourceDictionary.MergedDictionaries>
-                                <ResourceDictionary.ThemeDictionaries>
-                                    <ResourceDictionary x:Key="Dark">
-                                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
-                                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimDimBrush" />
-                                    </ResourceDictionary>
-                                    <ResourceDictionary x:Key="Light">
-                                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
-                                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimDimBrush" />
-                                    </ResourceDictionary>
-                                    <ResourceDictionary x:Key="HighContrast">
-                                        <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{ThemeResource SystemColorWindowTextColor}" />
-                                        <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{ThemeResource SystemColorWindowTextColor}" />
-                                    </ResourceDictionary>
-                                </ResourceDictionary.ThemeDictionaries>
-                            </ResourceDictionary>
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
+                            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
+                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
+                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimDimBrush" />
                         </StackPanel.Resources>
                         <Button
                             x:Name="WatchedButton"

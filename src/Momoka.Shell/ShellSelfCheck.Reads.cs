@@ -249,19 +249,19 @@ internal static partial class ShellSelfCheck
 
         // 贴角，同样是像素的说法：一组居中的按钮和一组贴在右下角的按钮，在截图里差着半张封面。上限给到 16
         // 像素，是那 6,4 的外边距加上封面自己那圈 1 像素描边还有得剩；下限是 0，越出封面就不叫贴在角上了。
-        // 底色则要三个态都问过才算数 —— 这个月三颗按钮各带一小块亚克力，正好把图标从复杂海报上分离出来。
-        // 指针那一问是第三件：那十赫兹的一拍要是量不到光标和封面的相对位置，它就是白跑，而白跑没有任何症状。
+        // 底色则要三个态都问过才算数 —— 悬停那一态的灰片是框架给的，不在这张卡的标记里。指针那一问是第三件：
+        // 那十赫兹的一拍要是量不到光标和封面的相对位置，它就是白跑，而白跑没有任何症状。
         //
-        // 后四问是封面那圈线与中间那颗播放键（2026-10-27 用户令，2026-11-04 换玻璃）：指针上来前后框线必须
-        // 是同一支色、且都不是强调色（封面不再画绿框）；播放键停着是按钮亚克力、指针压到键上才回到强调色。
-        // 四样都是看不准的 —— 1 像素的线在截图里认不出色号，而焦点那一半在自检里根本没有焦点可看。
+        // 后四问是封面那圈线与中间那颗播放键（2026-10-27 用户令）：指针上来前后框线必须是同一支色、且都不是
+        // 强调色（封面不再画绿框）；播放键停着是灰色角色、指针压到键上才是强调色。四样都是看不准的 ——
+        // 1 像素的线在截图里认不出色号，而焦点那一半在自检里根本没有焦点可看。
         var accent = ColorOf("EgAccentBrush");
 
         foreach (var group in new[] { library, playable })
         {
             if (group is not { } corner) continue;
 
-            ok &= corner.ActionGlass
+            ok &= !corner.Chrome
                 && corner.HostSurfaceTransparent
                 && corner.InsetRight is > 0 and <= 16
                 && corner.InsetBottom is > 0 and <= 16
@@ -271,7 +271,7 @@ internal static partial class ShellSelfCheck
                 && Format(corner.FrameRest) != accent
                 && corner.FrameRest.A > 0
                 && corner.FrameFocus
-                && (!corner.Play || corner.PlayGlassRest
+                && (!corner.Play || Format(corner.PlayRest) == ColorOf("EgSurfaceHoverBrush")
                     && Format(corner.PlayHover) == accent);
         }
 
@@ -293,11 +293,11 @@ internal static partial class ShellSelfCheck
                 + (card.Play ? $"（{card.Size:0} 像素圆按钮，中心偏封面中心 {card.OffsetX:0.#},{card.OffsetY:0.#}）" : "")
                 + $"、已观看 {Had(card.Watched)}、收藏 {Had(card.Favorite)}、更多 {Had(card.More)}"
                 + $"，图标组离封面右下 {card.InsetRight:0.#},{card.InsetBottom:0.#} 像素、"
-                + (card.ActionGlass ? "三态都是按钮亚克力" : "按钮玻璃缺失或落错档")
+                + (card.Chrome ? "仍有按钮画底色" : "三态都不画底色")
                 + (card.HostSurfaceTransparent ? "、外层按钮三态透明" : "、外层按钮底色检查失败")
                 + (card.Watch ? "、指针位置查得出来" : "、查不到指针位置")
                 + $"，封面无外圈 {Had(card.FrameBorderless)}，框线角色 {Format(card.FrameRest)} → 指针 {Format(card.FrameActive)}"
-                + $"，播放键玻璃 {Had(card.PlayGlassRest)} → 指针 {Format(card.PlayHover)}"
+                + $"，播放键 {Format(card.PlayRest)} → 指针 {Format(card.PlayHover)}"
                 + (card.FrameFocus ? "、焦点接在外层容器上" : "、找不到能接焦点的容器");
 
         static string Had(bool present) => present ? "有" : "无";

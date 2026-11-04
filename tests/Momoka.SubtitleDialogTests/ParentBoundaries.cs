@@ -25,6 +25,8 @@ internal sealed partial class DetailViewModel : PageViewModel
 {
     private const string Category = "ui";
     private bool _active;
+    // 提取的 Cancel／LoadAsync 会写这支 P1 动作门；本夹具不执行详情命令，所以没有读取方。
+    internal bool _actionsReady;
     private EmbySessionScope? _scope;
     private EmbyItem? _seed;
     private FixtureSettings? _settings;
