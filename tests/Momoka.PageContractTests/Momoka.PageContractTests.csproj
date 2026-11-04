@@ -16,6 +16,8 @@
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
     <Compile Include="..\Momoka.Tests\DiagnosticsTests.cs" Link="DiagnosticsTests.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\CardShelf.cs" Link="Production\CardShelf.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\CardCollection.cs" Link="Production\CardCollection.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\BannerSlide.cs" Link="Production\BannerSlide.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Media\BannerBackdropCache.cs" Link="Production\BannerBackdropCache.cs" />

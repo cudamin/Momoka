@@ -1,3 +1,10 @@
+# 2026-11-04 P3 长剧卡片按需创建（Task1 开发树，待整合）
+
+- native 工作树 `C:/Users/89400/.codex/worktrees/p3-long-series/Momoka`，分支 `codex/p3-long-series`，基线 `3670858195194dfee09fd0147263346021211b45`。写入范围：CardShelf／CardCollection／ResumeSlot、详情集列表及离线与运行探针；主代理 ba08 独立负责普通库深返回。没有发布、上传、启动桌面 UI 或触碰其它进程。
+- 集合 RED 使用实际 CardShelf.NewCard 的文案回调计数：2000 集发布／索引 1500／Clear／删除未实现季各为期望 0 或 1、实际 2000，普通货架仍通过。实现可索引的非泛型 IList + 泛型 IList + 变化通知；普通 Fill 保持即时造卡，详情 FillDeferred 只发布 DTO 槽位。Clear／Contains／IndexOf／DTO 删除不创建未访问项，标准枚举仍返回全量。
+- 直接核读 WinUI `controls/dev/Repeater/InspectingDataSource.cpp`，pin `693f472aeaf89c6dff66256ee6fcd453e5d553b8`：IVector → IBindableVector → IVectorView 优先，只有 Iterable 时 WrapIterable 会全量复制；主代理核实当前发布 Microsoft.UI.Xaml.dll FileVersion `3.2.0.2511` 含同 pin，SHA256 `AAD12524765E6FB63F0AE26A45A9BA3104F24FDE66413D8A3036FBED74A1E990`。源码说明路径，实际 WinRT／Frame 实现数仍待主代理串行运行确认。
+- 本树新鲜 Shell Release 编译 0 警告 0 错误；现有真 VM LibraryResume38/38、HomePerformance19/19 通过。PageContract 基线116/116，本轮集合122/122；补充普通IList操作与30次重新填充后复验。详情VM取消与菜单测试处于实现中；未合入 master、未刷新交付目录，最终 P3 由主代理集成验证和发布。
+
 # 2026-11-04 P2 浏览恢复与详情背景复用（已合入、验证并发布）
 
 - 树 `C:/Users/89400/.codex/worktrees/ba08/Momoka`，分支 `codex/p2-browse-image-cost`，基于master834a21d。写入范围：匿名计时、Home/Library恢复、详情背景及相关夹具和文档；[实施计划](docs/superpowers/plans/2026-11-04-p2-browse-image-cost.md)。

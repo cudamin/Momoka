@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -120,7 +119,7 @@ public sealed partial class CardShelf : ObservableObject
     [ObservableProperty]
     public partial bool OnScrim { get; set; }
 
-    public ObservableCollection<CardItem> Cards { get; } = [];
+    public CardCollection Cards { get; } = new();
 
     /// <summary>
     /// 牌子右端的读数覆盖值。飞牛的库排要写库里的条目总数而不是货架张数（货架有上限），
@@ -154,7 +153,7 @@ public sealed partial class CardShelf : ObservableObject
     {
         // AbandonPoster 而不是 ReleasePoster：这一批卡整个作废，在路上那几趟的结果没有任何人在等
         // （两者的分工见 CardItem.ReleasePoster 上那段）。
-        foreach (var card in Cards) card.AbandonPoster();
+        foreach (var card in Cards.Materialized) card.AbandonPoster();
         Cards.Clear();
         NoteOverride = null;
         _cardSubtitle = null;
@@ -180,6 +179,19 @@ public sealed partial class CardShelf : ObservableObject
 
         foreach (var item in items)
             Cards.Add(NewCard(item));
+    }
+
+    /// <summary>Publish the full episode index once; only layout access creates its card state.</summary>
+    internal void FillDeferred(IReadOnlyList<EmbyItem> items, Func<EmbyItem, string?>? subtitle = null,
+        EmbyItem? page = null)
+    {
+        foreach (var card in Cards.Materialized) card.AbandonPoster();
+        NoteOverride = null;
+        _cardSubtitle = subtitle;
+        _cardTitle = null;
+        Cards.ResetDeferred(items, item => new CardItem(item, _images, _width, _wide,
+            subtitle?.Invoke(item), _indicators, page is not null && ItemDetail.IsCurrentEpisode(item, page),
+            sourceLine: _sourceLine));
     }
 
     /// <summary>
