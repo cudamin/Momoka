@@ -1,3 +1,11 @@
+# 2026-11-05 已合入工作树清理
+
+- 用户要求盘点、按内容判断保留并整合验证，随后明确「合并过的独立工作树直接删」。本次 fetch 后主树为 `f4f1b600678e54552d2dd58280a5ccc5f240eddd`，仅有 master 本地分支；主树及18棵附加树均无 tracked/untracked 未提交改动。14棵附加树顶端为 master 祖先，另外4棵经逐提交、逐文件核对已等效吸收或被后续修正取代，无需新增产品合并。
+- 等效核对：2a99 `fb6959350cfe371bb653c4f56fd196f4da3d2915` 的字幕夹具和详情改版分别由59b57c0/c5defef保留；detail-layout-settings `05aafd82bbae0288cdb5003c7716162d5ec10c13` 的6文件规则由46c2fd5保留；detail-appearance `0a5f2275522e4f067e2d28c475c2739f3cf604ed` 的22文件最终内容由a1c1e42/e550665整合并更新；navigation-latency-audit `89c74a012ddef6bbc16a622aeddaf6ff9837d11a` 对应9373843，原165行方案和实质进度记录完整保留。详情子树证据按既有主树交付记录已外存；其余ignored文件未完成逐项价值核对，按用户直接删除要求一并清理旧树产物。
+- 已执行18棵附加树的 git worktree remove，Git登记最终只剩主树。实际目录完全删除6棵（04a2、acrylic-controls、detail-appearance、detail-layout-settings、navigation-latency-audit、qoder ed67b4）；7棵只剩被占用空目录（2a99、3b75、714e、a0eb、ba08、def5、f98d）；5处因Git路径过长有文件残留（detail-window-crash、qoder 24e59f/8a6f50/9705d2、WorkBuddy master-ff7b5a12）。针对明确残留路径的PowerShell删除被自动审批以「blocked by policy」拒绝，未换工具绕过、未关闭其他进程；不称目录清理全部完成。
+- 本轮主树新鲜Release Core/Tests编译0警告0错误，完整主测试3697/3697、0失败0跳过、退出0；规则文档一致性3文件/21拒绝反例通过。无产品变更，不重跑UI或发布；11月4日交付文件哈希与主树记录一致、桌面快捷方式仍指主树。此前季页断点回退红与设置截图遮挡缺口继续保留，不能据此称四道闸门全绿。
+- 本地盘点与逐目录结果保留于 `C:/Users/89400/Momoka/work/tree-integration-20261104/before.json`、`after.json`；编译/测试日志同目录。只提交本次进度记录，未上传。
+
 # 2026-11-04 详情自定义实际交付与 GitHub 上传
 
 - 用户在上一条明确获知主树UI61/62及暂未交付后，恢复要求「交付，提交代码到github」。按当次明确范围刷新当前已合入版本，保留已知季页断点回退失败，不称适用运行全绿。产品40bf8c5已推origin/master；发布脚本修复bb5b2ba随后推送，未生成新版本/安装包或商店提交。
