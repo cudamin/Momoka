@@ -1401,6 +1401,7 @@ public sealed partial class HomePage : Page, IShellContent
         // 轮播的停留秒数（设置 → 主页 → 「封面轮换秒数」，2026-09-13）页面一进来就同步一次 —— 带子自己
         // 没有设置，它等的是这句话。
         Banner.ApplyDwell(settings.Settings.Ui.CarouselSeconds);
+        Banner.ApplyAppearance(settings.Settings.Ui);
         NavigationTiming.Mark("attach-end");
 
         // 版面（拖拽出来的次序、勾掉的那几排）改完当场生效：设置页在另一个窗口里，它改完喊一声，这一页重排。

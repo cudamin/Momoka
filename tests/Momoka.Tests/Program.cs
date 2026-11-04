@@ -4,6 +4,13 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["detail-customization-fixture"])
+        {
+            DetailLayoutTests.Register();
+            GaussianBackdropTests.Register();
+            SettingsLayoutTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["toolbar-icon-fixture"])
         {
             ToolbarIconTests.Register();
@@ -339,7 +346,9 @@ internal static class Program
         HomeCarouselTests.Register();
         HomeFoldTests.Register();
         BackdropBlurTests.Register();
+        GaussianBackdropTests.Register();
         HomeLayoutTests.Register();
+        DetailLayoutTests.Register();
         RemovedMediaTests.Register();
         HomeLatestTests.Register();
         LibraryTotalTests.Register();

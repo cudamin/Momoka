@@ -120,6 +120,51 @@ internal sealed partial class ShellNavigationProbe
             });
             await SaveProbeScreenAsync("performance-long-series-deep-1280-screen.png");
 
+            // 合并后的详情排序会重挂同一面板。深处的索引和滚动状态不能因此退回首屏或物化整个前缀。
+            var originalLayout = fixture.Settings.Ui.SeriesCards;
+            fixture.Settings.Ui.SeriesCards = DetailLayout.For(fixture.Settings.Ui, show.Type).Reverse()
+                .Select(card => new Momoka.Configuration.DetailCardSetting { Key = card.Key, Visible = card.Visible }).ToList();
+            var episodePreference = fixture.Settings.Ui.SeriesCards.Single(card => card.Key == "episodes");
+            var scroller = Get<ScrollView>(strip, "Scroller");
+            var deepOffset = scroller.HorizontalOffset;
+            var deepSeason = view.SelectedSeason?.Id;
+            try
+            {
+                ShellPrefs.ApplyDetailLayout(fixture.Settings.Ui);
+                ScrollLongEpisodePanel(series);
+                await LayoutAsync(series);
+                Require(ReferenceEquals(Get<ShelfStrip>(series, "EpisodeStrip"), strip)
+                    && Math.Abs(scroller.HorizontalOffset - deepOffset) < 1,
+                    "深处重排重建了集带或丢失横向位置");
+                episodePreference.Visible = false;
+                ShellPrefs.ApplyDetailLayout(fixture.Settings.Ui);
+                await LayoutAsync(series);
+                Require(Get<StackPanel>(series, "EpisodePanel").Visibility == Visibility.Collapsed, "长剧集卡未隐藏");
+                episodePreference.Visible = true;
+                fixture.Settings.Ui.SeriesCards = originalLayout;
+                ShellPrefs.ApplyDetailLayout(fixture.Settings.Ui);
+                ScrollLongEpisodePanel(series);
+                await LayoutAsync(series);
+                Require(scroller.HorizontalOffset > 0 && Math.Abs(scroller.HorizontalOffset - deepOffset) < 1
+                    && view.SelectedSeason?.Id == deepSeason, "恢复长剧集卡丢失深处位置或季索引");
+                Require(cards.Count == 2000 && cards.MaterializedCount < 240
+                    && repeater.ItemsSourceView!.GetAt(1500) is CardItem { Item.Id: "p3-series-episode-1500" },
+                    "长剧自定义布局物化整个前缀或改变全局索引");
+                evidence.Add(new
+                {
+                    phase = "deep-customization-restored",
+                    materialized = cards.MaterializedCount,
+                    horizontalOffset = scroller.HorizontalOffset,
+                    season = deepSeason
+                });
+                await SaveProbeScreenAsync("performance-long-series-customization-restored-screen.png");
+            }
+            finally
+            {
+                fixture.Settings.Ui.SeriesCards = originalLayout;
+                ShellPrefs.ApplyDetailLayout(fixture.Settings.Ui);
+            }
+
             series.SelectEpisodeSeason(seasons[0]);
             await LayoutAsync(series);
             Require(view.SelectedSeason?.Id == seasons[0].Id, "季菜单跳到S00失败");

@@ -140,7 +140,11 @@ public sealed partial class SettingsPage
     private void StopSettingsContentMotion()
     {
         foreach (var motion in _rowMotions.Values) motion.Stop();
-        foreach (var motion in _priorityMotions.Values) motion.Stop();
+        foreach (var motion in _priorityMotions.Values)
+        {
+            motion.EndDrag();
+            motion.Stop();
+        }
     }
 
     private void DetachSettingsContentMotion()

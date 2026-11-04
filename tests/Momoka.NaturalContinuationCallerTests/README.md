@@ -1,5 +1,9 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-04：主树弹幕修改的来源同步
+
+合入详情自定义时，全方案构建检测到主树已有 `3263b67`／`17b0c59` 的两份来源漂移。逐字核对 `2150ba2` 后，`PlayerViewModel.cs` 仅构造函数新增弹幕字体服务，`Events.cs` 仅未提取的独占窗口设置菜单改为按弹幕可用性过滤；提取的自然接续成员、`NowPlaying` 与跳过判断完整文本不变，另外 17 份 pin 一致。只同步这两项 SHA256（`be81be1…` → `96a902f…`、`37bd6c8…` → `d607380…`），不改基点、提取器、断言或失败条件。当前 caller 与十个非法提取反例在主树重新验证，具体结果见 PROGRESS。
+
 ## 2026-11-04：src using 顺序清理的源 hash 同步
 
 本轮只做 `dotnet format style` 的 using 重排，不改任何判定。R046 实际提取的 `PlayerViewModel` 成员与来源字节除 using 顺序外未变，逐份核对后只更新四份 hash：`PlayerViewModel.Transport.cs`（`80e6772…` → `c951b4c…`）、`PlayerViewModel.cs`（`5cf0e35…` → `be81be1…`）、`PlayerViewModel.Events.cs`（`2176abc…` → `37bd6c8…`）、`PlayerViewModel.Versions.cs`（`9a93529…` → `22df617…`）；其余 pins 原样保留。另修 `Run-Caller.ps1` 的构建摘要编码：捕获 `dotnet build` 前临时把控制台输出设为 UTF-8，避免中文「0 个警告」按本机代码页变乱码导致误判。

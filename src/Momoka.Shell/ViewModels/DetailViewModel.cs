@@ -457,7 +457,40 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <c>HeroHeightRatio</c> 的通知名单里，条目种类那一路在 <see cref="AnnounceShape"/> 里补一句。
     /// </para>
     /// </summary>
-    public bool Showcase => DetailHero.Immersive(Spacious || NearCrop, IsCompact, BackdropShown, ItemType);
+    public bool Showcase => DetailHero.Immersive(Spacious || NearCrop, IsCompact, BackdropShown, ItemType,
+        _settings?.Settings.Ui.AlwaysImmersive == true);
+
+    internal double ControlBackgroundOpacity => _settings?.Settings.Ui.ControlBackgroundOpacity ?? 0;
+
+    internal bool UseAcrylicControls => _settings?.Settings.Ui.UseAcrylicControls == true;
+    public bool UseGaussianBackdrop => _settings?.Settings.Ui.UseGaussianBackdrop == true;
+    public bool GaussianBackdropApplied => _heroRenderedGaussian && HeroImage is not null;
+    internal bool GaussianBackdropReady => UseGaussianBackdrop == _heroRenderedGaussian && !_heroRendering && HeroImage is not null;
+    private bool _heroRenderedGaussian;
+    private bool _heroRequestedGaussian;
+    private bool _heroRendering;
+
+    public double BackdropOpacity => AppearanceOpacity.Backdrop(_settings?.Settings.Ui.BackdropOpacity ?? 0, Showcase);
+
+    internal void RefreshAppearance()
+    {
+        OnPropertyChanged(nameof(UseGaussianBackdrop));
+        UpdateHeroBlur();
+        OnPropertyChanged(nameof(Showcase));
+        OnPropertyChanged(nameof(TailMinHeight));
+        OnPropertyChanged(nameof(PaperMinHeight));
+        OnPropertyChanged(nameof(PictureHeight));
+        OnPropertyChanged(nameof(PictureFadeMargin));
+        OnPropertyChanged(nameof(BackdropFadeVisibility));
+        OnPropertyChanged(nameof(TailSpacing));
+        OnPropertyChanged(nameof(TailPanelPadding));
+        OnPropertyChanged(nameof(OverviewPanelPadding));
+        OnPropertyChanged(nameof(SheetPadding));
+        OnPropertyChanged(nameof(SheetSpacing));
+        OnPropertyChanged(nameof(BodyPanelPadding));
+        OnPropertyChanged(nameof(ShowShelfLines));
+        OnPropertyChanged(nameof(BackdropOpacity));
+    }
 
     /// <summary>
     /// 货架标题前那条短强调线和底下那条通栏线画不画 —— 沉浸档都不画（2026-10-31 用户令「把线条去掉」）。
@@ -542,7 +575,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>当前的模糊档位 —— 裁切占比（<see cref="DetailHero.PictureCrop"/>）换算的半径。电影和剧没有
     /// 基础半径，裁多少加多少；集页只在紧凑版式里画这张图，宽版式上裁切占比算出来照样有值，只是没有一层画它。</summary>
-    private int HeroBlurTarget => BackdropBlur.CropRadius(
+    private int HeroBlurTarget => UseGaussianBackdrop ? GaussianBackdrop.Sigma : BackdropBlur.CropRadius(
         DetailHero.PictureCrop(PageWidth, HeroHeightRatio, Viewport), CropBlurStart, 0, CropBlurExtra, CropBlurStep);
 
     /// <summary>
@@ -555,41 +588,49 @@ public sealed partial class DetailViewModel : PageViewModel
         if (!Attached || _heroPixels is null) return;
 
         var target = HeroBlurTarget;
-        if (target == _heroBlurRadius) return;
+        if (target == _heroBlurRadius && _heroRequestedGaussian == UseGaussianBackdrop) return;
 
         var generation = ++_heroBlurGeneration;
         _heroBlurRadius = target;
+        _heroRequestedGaussian = UseGaussianBackdrop;
+        _heroRendering = true;
 
-        _ = RenderBlurAsync(generation, _heroPixels, target);
+        _ = RenderBlurAsync(generation, _heroPixels, target, _heroRequestedGaussian);
     }
 
     private async Task<BitmapImage?> RenderHeroAsync(HeroPictureLoader.HeroPixels pixels, int radius,
-        CancellationToken token, DetailHeroCache.Ticket? ticket, NavigationTimingRun? timing)
+        CancellationToken token, DetailHeroCache.Ticket? ticket, NavigationTimingRun? timing, bool gaussian)
     {
         token.ThrowIfCancellationRequested();
         ticket?.Scope.ThrowIfNotAvailable();
         var cache = _heroCache;
-        if (cache is not null && ticket is not null && cache.TryGetPicture(ticket, pixels, radius, out var kept))
+        if (cache is not null && ticket is not null && cache.TryGetPicture(ticket, pixels, radius, out var kept, gaussian))
         {
             timing?.Mark("hero-picture-hit", 1);
             return kept;
         }
-        var picture = await HeroPictureLoader.RenderAsync(pixels, radius, token, timing).ConfigureAwait(true);
+        var picture = await HeroPictureLoader.RenderAsync(pixels, radius, token, timing, gaussian).ConfigureAwait(true);
         token.ThrowIfCancellationRequested();
         ticket?.Scope.ThrowIfNotAvailable();
         if (picture is not null && cache is not null && ticket is not null)
-            cache.RememberPicture(ticket, pixels, radius, picture);
+            cache.RememberPicture(ticket, pixels, radius, picture, gaussian);
         return picture;
     }
 
-    private async Task RenderBlurAsync(int generation, HeroPictureLoader.HeroPixels pixels, int radius)
+    private async Task RenderBlurAsync(int generation, HeroPictureLoader.HeroPixels pixels, int radius, bool gaussian)
     {
         try
         {
-            var picture = await RenderHeroAsync(pixels, radius, _art?.Token ?? default, _heroCacheTicket, _heroTiming)
+            var picture = await RenderHeroAsync(pixels, radius, _art?.Token ?? default, _heroCacheTicket, _heroTiming, gaussian)
                 .ConfigureAwait(true);
 
-            if (Attached && generation == _heroBlurGeneration && picture is not null) HeroImage = picture;
+            if (Attached && generation == _heroBlurGeneration && gaussian == UseGaussianBackdrop && picture is not null)
+            {
+                _heroRenderedGaussian = gaussian;
+                _heroRendering = false;
+                HeroImage = picture;
+                OnPropertyChanged(nameof(GaussianBackdropApplied));
+            }
         }
         catch (OperationCanceledException)
         {
@@ -597,6 +638,14 @@ public sealed partial class DetailViewModel : PageViewModel
         catch (Exception error)
         {
             Log.Debug(Category, $"背景图按裁切重糊失败：{error.Message}");
+        }
+        finally
+        {
+            if (generation == _heroBlurGeneration && _heroRendering)
+            {
+                _heroRendering = false;
+                _heroBlurRadius = -1;
+            }
         }
     }
 
@@ -1064,7 +1113,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 「黑色渐变的高度太高了，降低一些，它的主要作用是隐藏背景图下方的分界线」收到 64：藏住那条硬边就够了，
     /// 再往上多出来的只是压在剧情说明背后的一段黑。停点前载（四成二处已到六成五），矮盒子上的斜率照样平滑。
     /// </summary>
-    private const double PictureFadeHeight = 64;
+    public double PictureFadeHeight => GaussianBackdrop.FadeHeight;
 
     /// <summary>
     /// 这一档版面要不要封面 —— 规则在 Core（<see cref="DetailHero.ShowsStill"/>）：紧凑版式下一律不画
@@ -2117,7 +2166,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public Visibility OtherInfoRuleVisibility => Show(InfoRows.Count > 0 && OtherFacts.Count > 0);
 
-    public Visibility EpisodeVisibility => Show(EpisodeShelf is { Cards.Count: > 0 } || Seasons.Count > 1);
+    public Visibility EpisodeVisibility => Show(CardVisible("episodes") && (EpisodeShelf is { Cards.Count: > 0 } || Seasons.Count > 1));
 
     /// <summary>
     /// Which of the two shapes 单集 takes on this page. Both are inside the block
@@ -2133,7 +2182,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     public Visibility EpisodeStripVisibility => Show(EpisodeShelf is { Cards.Count: > 0 } && !EpisodesAsList);
 
-    public Visibility CastVisibility => Show(CastShelf is { Cards.Count: > 0 });
+    public Visibility CastVisibility => Show(CardVisible("cast") && CastShelf is { Cards.Count: > 0 });
 
     /// <summary>
     /// 全部剧季那一格画不画。两张卡以上才画：只有一季时那一格是一张通往本页已经在列的那一季的卡，摆在那里只是
@@ -2148,7 +2197,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 会画出这一块 —— 那两张卡指向两个不同的季页面，不是同一张卡摆两遍。
     /// </para>
     /// </summary>
-    public Visibility SeasonShelfVisibility => Show(SeasonShelf is { Cards.Count: > 1 });
+    public Visibility SeasonShelfVisibility => Show(CardVisible("seasons") && SeasonShelf is { Cards.Count: > 1 });
 
     /// <summary>
     /// 集列表牌子能不能点开季列表。剧页和集页的集列表现在是全剧一条（按播出时间排），所以两页都要能按季
@@ -2162,7 +2211,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>季列表里要列出哪些季 —— 服务器给的那一份，包含第 0 季。</summary>
     internal IReadOnlyList<EmbyItem> EpisodeSeasonChoices => [.. Seasons];
 
-    public Visibility SimilarVisibility => Show(SimilarShelf is { Cards.Count: > 0 });
+    public Visibility SimilarVisibility => Show(CardVisible("similar") && SimilarShelf is { Cards.Count: > 0 });
 
     public Visibility DirectorsVisibility => Show(!string.IsNullOrWhiteSpace(Directors));
 
@@ -2171,7 +2220,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 自 2026-11-02 起也有，描述有续播的最近一集或当季第一集）。季页两样都没有（同日用户令「季页面不要
     /// 媒体信息」），整块收起。集还没回来、那一集没有媒体源、又没有其他信息时也收起。
     /// </summary>
-    public Visibility InfoVisibility => Show(InfoRows.Count > 0 || OtherFacts.Count > 0);
+    public Visibility InfoVisibility => Show(CardVisible("info") && (InfoRows.Count > 0 || OtherFacts.Count > 0));
 
     /// <summary>The episodes on screen, for the player's 下一集 and for the context menu's 本季 commands.</summary>
     internal IReadOnlyList<EmbyItem> Episodes => _episodes;
@@ -2291,6 +2340,7 @@ public sealed partial class DetailViewModel : PageViewModel
         _actions = actions;
         _seed = request.Item;
         _settings = settings;
+        RefreshCardLayout();
         _session = session;
         _images = images;
 
@@ -2519,6 +2569,7 @@ public sealed partial class DetailViewModel : PageViewModel
         if (type is not null && type == _announcedShapeType) return;
         _announcedShapeType = null;
         var lifetime = _lifetime;
+        RefreshCardLayout();
 
         // 单集 changes shape with the kind of page this is, and that is a fact about the item rather than
         // about the shelf — no collection has changed here, so nothing else would say it. Raised right after
@@ -2777,6 +2828,8 @@ public sealed partial class DetailViewModel : PageViewModel
             _heroPixels = null;
             _heroBlurRadius = -1;
             _heroBlurGeneration++;
+            _heroRendering = false;
+            _heroRenderedGaussian = false;
 
             _art?.Cancel();
             _art?.Dispose();
@@ -3462,10 +3515,17 @@ public sealed partial class DetailViewModel : PageViewModel
             var radius = HeroBlurTarget;
             var generation = ++_heroBlurGeneration;
             _heroBlurRadius = radius;
+            var gaussian = UseGaussianBackdrop;
+            _heroRequestedGaussian = gaussian;
+            _heroRendering = true;
 
-            var rendered = await RenderHeroAsync(source, radius, token, selectedTicket, _heroTiming).ConfigureAwait(true);
+            var rendered = await RenderHeroAsync(source, radius, token, selectedTicket, _heroTiming, gaussian).ConfigureAwait(true);
             if (rendered is null || !Attached || !Fresh(art, page) || generation != _heroBlurGeneration) return;
+            if (gaussian != UseGaussianBackdrop) return;
+            _heroRenderedGaussian = gaussian;
+            _heroRendering = false;
             ShowHero(rendered);
+            OnPropertyChanged(nameof(GaussianBackdropApplied));
             NavigationTiming.Mark("hero-image-assign", 1);
         }
 

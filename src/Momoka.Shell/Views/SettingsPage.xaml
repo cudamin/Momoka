@@ -1078,6 +1078,11 @@
                             Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
 
                         <ListView
+                            x:Name="CardOrderList"
+                            Tag="{x:Bind}"
+                            Loaded="OnHomeLayoutListLoaded"
+                            Unloaded="OnPriorityListUnloaded"
+                            DragItemsCompleted="OnPriorityDragCompleted"
                             AllowDrop="True"
                             CanDragItems="True"
                             CanReorderItems="True"
@@ -1088,7 +1093,10 @@
                             SelectionMode="None">
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="vm:HomeRowChoice">
-                                    <Grid ColumnSpacing="10">
+                                    <Grid x:Name="CardOrderRoot" ColumnSpacing="10">
+                                        <Grid.RenderTransform>
+                                            <TranslateTransform />
+                                        </Grid.RenderTransform>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />

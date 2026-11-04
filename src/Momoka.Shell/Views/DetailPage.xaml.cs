@@ -85,12 +85,25 @@ public sealed partial class DetailPage : Page, IShellContent
         NavigationTiming.Mark("init-begin");
         InitializeComponent();
         NavigationTiming.Mark("init-end");
+        TextInk.Attach(DetailTitleInk, TitleText, TextInk.TitleBlur);
+        TextInk.Attach(DetailPlateInk, TitlePlate, TextInk.PlateBlur);
+        TextInk.Attach(DetailGenreInk, GenreLine);
+        TextInk.Attach(DetailFactsInk, HeroFacts);
+        TextInk.Attach(DetailOverviewInk, Overview);
+        TextInk.Attach(DetailScoreInk, ScoreText);
+        TextInk.Attach(DetailScoreSourceInk, ScoreSourceText);
+        TextInk.Attach(DetailVideoInk, DetailVideoText);
+        TextInk.Attach(DetailDirectorsInk, DetailDirectorsText);
+        PrepareAppearance();
         PaintScrim();
+        PaintBackdropFade();
         PrepareShowcase();
+        PrepareCardLayout();
 
         // 沉浸版式那一支单独订阅：OnViewModelChanged 是 Plex 入口夹具原样提取的契约正文，往里塞这一页新加的
         // 字段会让那份提取出来的类编译不过。视图模型与这一页同寿，挂着不用退订。
         ViewModel.PropertyChanged += OnShowcaseChanged;
+        ViewModel.PropertyChanged += OnBackdropEffectChanged;
 
         // 集带左沿换了一张卡：把季锚点（和牌子上的季名）跟着带子走。页面这一份控件与页同寿，不用退订。
         EpisodeStrip.LeadingChanged += OnEpisodeStripLeadingChanged;
@@ -105,6 +118,7 @@ public sealed partial class DetailPage : Page, IShellContent
             LiftBackdrop();
             ThemeHost.Changed -= OnThemeChanged;
             ThemeHost.Changed += OnThemeChanged;
+            WatchAppearance();
         };
 
         // Disposed rather than only cancelled, which the other pages do not need to do: this view model
@@ -114,6 +128,7 @@ public sealed partial class DetailPage : Page, IShellContent
         Unloaded += (_, _) =>
         {
             ThemeHost.Changed -= OnThemeChanged;
+            StopAppearance();
             StopShowcase();
             StopSpaciousWatch();
             if (_window is not null)
@@ -130,6 +145,8 @@ public sealed partial class DetailPage : Page, IShellContent
     private void OnThemeChanged(UiTheme theme)
     {
         RefreshShowcaseBrushes();
+        PaintBackdropFade();
+        foreach (var brushes in _controlBackgrounds) brushes.Apply(ViewModel.ControlBackgroundOpacity, ViewModel.UseAcrylicControls);
         PaintWash(force: true);
     }
 
@@ -164,7 +181,8 @@ public sealed partial class DetailPage : Page, IShellContent
         // 而且它会把板涂回罩子的末色 —— 板上那几块小面板的底边就对不上了。
         HeroTail.Background = ViewModel.HeroCardShown
             ? null
-            : new SolidColorBrush(HeroScrimBrush.GradientStops[^1].Color);
+            : new SolidColorBrush(ViewModel.GaussianBackdropApplied && ViewModel.BackdropShown
+                ? Color.FromArgb(0, ink.R, ink.G, ink.B) : HeroScrimBrush.GradientStops[^1].Color);
 
         // 剧、季、电影的图上从标题栏到说明区只压同一档黑；旧 HeroScrim 在有图时收起，避免叠加。
         HeroBand.Background = ViewModel.BackdropShown ? HeroTail.Background : null;
@@ -1735,8 +1753,7 @@ public sealed partial class DetailPage : Page, IShellContent
         _paintPhase = -1;
         _washedInk = false;
 
-        // 集带永远在纸的第一块（标记里就那么摆的），所以这里只是「万一不在」补一下；尾部那一段的底色跟着
-        // 「这一页有没有那块板」走，而那一句要等 Apply 才知道种类（那时会再来一次通知，见 OnViewModelChanged）。
+        // 复用页面先按当前类型重排既有卡片；主体返回修正类型后再对齐一次。尾部底色仍由页面形状决定。
         PaintScrim();
         PaintWash(force: true);
         PlaceEpisodes();
@@ -1904,7 +1921,12 @@ public sealed partial class DetailPage : Page, IShellContent
         }
     }
 
-    public void Release() => ViewModel.Cancel();
+    public void Release()
+    {
+        StopAppearance();
+        StopCardLayout();
+        ViewModel.Cancel();
+    }
 
     /// <summary>
     /// 其他信息那一行：类型、工作室、数据库链接、上次播放日期排成一条。和 <see cref="PaintGenres"/> 同一套
@@ -2084,29 +2106,22 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     /// <summary>
-    /// 同季那一带集永远是正文那张纸的第一块 —— 媒体信息紧跟在它后面（见 BodySheet 那段注释）。
-    /// <para>
-    /// <b>它从前会搬家，2026-09-12 起不搬了。</b>旧版：集页那一档压在头图底下那段画面里、排在剧情说明后面
-    /// （「把集页面的剧情说明和集列表位置调换」），别的页面上在纸上。集页整段上方合成一块大面板（<c>HeroCard</c>）
-    /// 之后，一带集再压在那一格里就成了「板里套板」，他一句「集的框要和上面分开」定了这一版 —— 那一带对所有页面
-    /// 都回到纸上，和剧页面那一带站在同一层、同一套墨、同一圈框（那也正是他要的「剧页面那种样式」）。
-    /// </para>
-    /// <para>
-    /// 旧账记在这儿，因为它买过两个 bug：搬家（`d34275d`，2026-09-01）留下过「点击开始播放后点左上角返回，
-    /// 集列表会跑到下方去」—— 停止播放时外壳先照着当前页面重新导航一遍、之后才把外壳放回来，那一趟
-    /// <c>OnNavigatedTo</c> 在一棵收着的树上跑完；而「现在在哪一层」从前只能读 <c>Parent</c>（要等 <c>Loaded</c>，
-    /// 那时候还没有值），于是搬家那一步悄悄什么都不做。现在不搬家，这一整类竞态不存在了。
-    /// </para>
-    /// <para>
-    /// 标记里就是那么摆的（<c>EpisodePanel</c> 写在 <c>BodySheet</c> 的第一个），所以这一句现在只是把
-    /// 「万一它不在那儿」补上 —— 页面实例会复用，搬过家的旧版本留下的位置不该跟着进下一页。
-    /// </para>
+    /// 按页面自己的卡片偏好调整正文次序，复用原实例和货架内容。所有卡片仍属于 BodySheet，
+    /// 不在头图和正文之间搬家；以 Children 的实际下标判断位置，未 Loaded 时也有效。装饰尾图始终留在末尾。
     /// </summary>
     private void PlaceEpisodes()
     {
-        if (BodySheet.Children.Contains(EpisodePanel)) return;
-
-        BodySheet.Children.Insert(0, EpisodePanel);
+        var index = 0;
+        foreach (var card in ViewModel.CardLayout)
+        {
+            var panel = PanelFor(card.Key);
+            if (BodySheet.Children.IndexOf(panel) != index)
+            {
+                BodySheet.Children.Remove(panel);
+                BodySheet.Children.Insert(index, panel);
+            }
+            index++;
+        }
     }
 
     /// <summary>
@@ -2212,6 +2227,19 @@ public sealed partial class DetailPage : Page, IShellContent
     private void ApplyWash(double offset, bool force)
     {
         var artwork = ViewModel.BackdropShown;
+
+        if (artwork && ViewModel.GaussianBackdropApplied)
+        {
+            // 图上不再加黑洗色；实体正文纸面滚入标题栏时仍按原来的几何接管。
+            if (ViewModel.Showcase)
+            {
+                _paperCover = 0;
+                _paintPhase = 2;
+                SyncTitleInk(0);
+                TitleWash.Background = null;
+                return;
+            }
+        }
 
         // 沉浸档（最大化、电影/剧/季、有背景图）：正文那张纸整块让开，任何时候都没有纸面往标题栏上盖 ——
         // 整条一直是尾部那道半透明黑上的浅墨。纸面接管的三个阶段（3、4 和那道硬边渐变）在这一档都不存在。

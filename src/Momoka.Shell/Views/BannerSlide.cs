@@ -49,6 +49,14 @@ public sealed class BannerSlide : INotifyPropertyChanged
     private BitmapImage? _pictureImage;
     private BitmapImage? _logoImage;
     private readonly EmbySessionScope? _scope;
+    private HeroPictureLoader.HeroPixels? _backdropPixels;
+    private bool _useGaussian;
+    private bool _renderedGaussian;
+    private int _effectGeneration;
+    private CancellationTokenSource? _effect;
+    private Task? _effectTask;
+    internal bool GaussianBackdropApplied => _renderedGaussian && Picture is not null;
+    internal bool GaussianBackdropReady => _useGaussian == _renderedGaussian && _effect is null && Picture is not null;
     public BannerSlide(EmbyItem item, EmbyImageStore images)
     {
         Item = item;
@@ -68,6 +76,7 @@ public sealed class BannerSlide : INotifyPropertyChanged
                 _pictureImage = cached;
                 NavigationTiming.Mark("banner-memory-hit", 1);
             }
+            if (BannerBackdropCache.TryGetPixels(_backdropKey, out var pixels)) _backdropPixels = pixels;
         }
     }
 
@@ -165,30 +174,45 @@ public sealed class BannerSlide : INotifyPropertyChanged
         _loading = cts;
         _asked = true;
         var unavailable = false;
+        var cacheGeneration = BannerBackdropCache.Generation;
 
         try
         {
             // 被 Release 放掉之后又转回来时再查一次：缓存里还留着同一张就不必走一遍取字节和解码。
             if (Picture is null && _backdropKey is { } cachedKey
-                && BannerBackdropCache.TryGet(cachedKey, out var cached))
+                && BannerBackdropCache.TryGet(cachedKey, _useGaussian, out var cached))
+            {
+                _renderedGaussian = _useGaussian;
                 Picture = cached;
+            }
 
-            if (Picture is null)
+            if (Picture is null || _renderedGaussian != _useGaussian)
             {
                 // Sequential, and the picture first: it is the whole band, the logo is a stamp in one corner of
                 // it, and the two together would otherwise race for the one connection the session holds.
-                var bytes = await FetchAsync(_picture, PictureWidth, cts.Token).ConfigureAwait(true);
-                if (!StillWanted(cts)) return;
-
-                if (bytes is { Length: > 0 })
+                if (_backdropKey is { } pixelsKey && BannerBackdropCache.TryGetPixels(pixelsKey, out var keptPixels))
+                    _backdropPixels = keptPixels;
+                else
                 {
-                    var picture = await BannerPictureLoader.DecodeAsync(bytes, PictureWidth, cts.Token).ConfigureAwait(true);
+                    var bytes = await FetchAsync(_picture, PictureWidth, cts.Token).ConfigureAwait(true);
                     if (!StillWanted(cts)) return;
-                    Picture = picture;
-
-                    // 只在这一趟仍然有效时写入：来源在解码途中失效的，不该把画面留给下一次。
-                    if (picture is not null && _backdropKey is { } key) BannerBackdropCache.Remember(key, picture);
+                    if (bytes is { Length: > 0 })
+                    {
+                        var pixels = await BannerPictureLoader.DecodePixelsAsync(bytes, PictureWidth, cts.Token).ConfigureAwait(true);
+                        if (!StillWanted(cts)) return;
+                        _backdropPixels = pixels;
+                        if (pixels is not null && _backdropKey is { } key) BannerBackdropCache.RememberPixels(key, pixels, cacheGeneration);
+                    }
                 }
+                if (_backdropPixels is not null)
+                {
+                    _effectTask = RenderBackdropAsync(cacheGeneration);
+                    await _effectTask.ConfigureAwait(true);
+                    // 切模式会取消旧渲染并替换任务；首读必须等当前后继，不把旧取消当作「图片缺失」。
+                    while (StillWanted(cts) && _effectTask is { } pending && !pending.IsCompleted)
+                        await pending.ConfigureAwait(true);
+                }
+                if (!StillWanted(cts)) return;
             }
 
             if (Picture is null)
@@ -227,6 +251,53 @@ public sealed class BannerSlide : INotifyPropertyChanged
     private bool StillWanted(CancellationTokenSource cts) =>
         ReferenceEquals(_loading, cts) && !cts.IsCancellationRequested && _scope?.IsAvailable == true;
 
+    internal void SetGaussianBackdrop(bool enabled)
+    {
+        if (_useGaussian == enabled) return;
+        _useGaussian = enabled;
+        _effectGeneration++;
+        _effect?.Cancel();
+        if (_scope?.IsAvailable != true) { Release(); return; }
+        // 非活动幻灯片只记偏好；台上与预取邻居才处理，不同时重糊整个轮播目录。
+        if (!_asked) return;
+        if (_backdropKey is { } key && BannerBackdropCache.TryGet(key, enabled, out var cached))
+        {
+            _renderedGaussian = enabled;
+            Picture = cached;
+            return;
+        }
+        if (_backdropPixels is null && _backdropKey is { } sourceKey
+            && BannerBackdropCache.TryGetPixels(sourceKey, out var source)) _backdropPixels = source;
+        if (_backdropPixels is not null) _effectTask = RenderBackdropAsync();
+    }
+
+    private async Task RenderBackdropAsync(long? requestGeneration = null)
+    {
+        if (_backdropPixels is not { } pixels || _scope?.IsAvailable != true) return;
+        var generation = ++_effectGeneration;
+        _effect?.Cancel();
+        var effect = new CancellationTokenSource();
+        _effect = effect;
+        var gaussian = _useGaussian;
+        var cacheGeneration = requestGeneration ?? BannerBackdropCache.Generation;
+        try
+        {
+            var picture = await BannerPictureLoader.RenderAsync(pixels, gaussian, effect.Token).ConfigureAwait(true);
+            if (generation != _effectGeneration || effect.IsCancellationRequested || _scope?.IsAvailable != true
+                || gaussian != _useGaussian || picture is null) return;
+            _renderedGaussian = gaussian;
+            if (_backdropKey is { } key) BannerBackdropCache.Remember(key, picture, gaussian, cacheGeneration);
+            Picture = picture;
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error) { Log.Debug(Category, $"背景图处理失败：{error.Message}"); }
+        finally
+        {
+            if (ReferenceEquals(_effect, effect)) _effect = null;
+            effect.Dispose();
+        }
+    }
+
     /// <summary>
     /// Drops the decoded picture and the logo, and abandons anything in flight. Called on the slides the band
     /// has moved away from: a backdrop is a megabyte-scale surface, and eight of them held at once is the whole
@@ -242,6 +313,12 @@ public sealed class BannerSlide : INotifyPropertyChanged
         _loading?.Cancel();
         _loading = null;
         _asked = false;
+        _effectGeneration++;
+        _effect?.Cancel();
+        _effect = null;
+        _effectTask = null;
+        _backdropPixels = null;
+        _renderedGaussian = false;
         Picture = null;
         Logo = null;
     }

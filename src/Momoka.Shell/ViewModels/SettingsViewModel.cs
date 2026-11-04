@@ -1139,9 +1139,12 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 主页版面）、播放行为五张（播放行为 / 跳转与步长 / 音轨 / 资源筛选 / 截图）、视频输出四张（基础输出 /
         // 画质与着色器 / HDR / 补帧）、音频输出三张（输出设备 / 响度 / 直通）、字幕四张（字幕 / 字幕外观 /
         // 编码与画面 / 实时字幕翻译）、弹幕三张、关于四张。视频输出按用户指定次序：着色器在 HDR 上方，补帧在最后。
+        DetailCards.Clear();
         Sections.Clear();
         AddCards(HomeSections());
         Sections.Add(InterfaceCard());
+        Sections.Add(DetailAppearanceCard());
+        AddCards(DetailLayoutCards());
         Sections.Add(PlayerCard());
         if (MpvCustomConfig.IsBuiltInBackend(Settings.Mpv)) Sections.Add(CustomMpvConfigCard());
         AddCards(PlaybackSections());
@@ -1297,7 +1300,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         foreach (var section in Sections)
         {
             section.IsVisible = string.Equals(section.Category, sectionCategory, StringComparison.Ordinal);
-            if (section.Category == "界面")
+            if (section.Category == "界面" && section.Title is "界面" or FnNasAppearanceCategory)
                 section.Retitle(string.Equals(category, FnNasAppearanceCategory, StringComparison.Ordinal) ? FnNasAppearanceCategory : "界面");
         }
 
@@ -2567,8 +2570,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             Fact("客户端版本", null, AboutFacts.Client),
             Fact("构建时间", null, AboutFacts.BuiltAt(Path.Combine(home, "Momoka.exe"))),
             Fact("播放内核", null, AboutFacts.PlaybackCore(home)),
-            Fact(AboutFacts.StarLabel, "你的 Star 是对项目的支持，谢谢！", "", "去 GitHub 点星", () => _launcher?.OpenUrl(AboutFacts.ProjectUrl)),
-            Fact("弹弹play 开放弹幕网络", "弹幕数据来源与服务提供方。", "", "弹弹play 官网", () => _launcher?.OpenUrl(Momoka.Danmaku.DandanPlayClient.WebsiteUrl))
+            Fact(AboutFacts.StarLabel, "你的 Star 是对项目的支持，谢谢！", "", "去 GitHub 点星", () => _launcher?.OpenUrl(AboutFacts.ProjectUrl))
         };
 
         // 「在设置中新增开启应用后自动检查有没有新版本的功能」。开关和下面那颗手动按钮是同一件事的两半：

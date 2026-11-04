@@ -10,6 +10,12 @@ internal static class BannerPictureLoader
 {
     public static async Task<BitmapImage?> DecodeAsync(byte[] bytes, int maxWidth, CancellationToken token)
     {
+        var pixels = await DecodePixelsAsync(bytes, maxWidth, token).ConfigureAwait(true);
+        return pixels is null ? null : await RenderAsync(pixels, false, token).ConfigureAwait(true);
+    }
+
+    public static async Task<HeroPictureLoader.HeroPixels?> DecodePixelsAsync(byte[] bytes, int maxWidth, CancellationToken token)
+    {
         if (bytes.Length == 0) return null;
         token.ThrowIfCancellationRequested();
 
@@ -50,23 +56,9 @@ internal static class BannerPictureLoader
         // 像素采样离开 UI 线程，拖动窗口和快速翻页不必等这段循环完成。
         var extended = await Task.Run(() => CarouselBackdrop.ExtendLeft(pixels, width, height), token);
         token.ThrowIfCancellationRequested();
-
-        // BMP 是内存中的无损交接，不写缓存、不做有损二次压缩。保持 BitmapImage，现有画刷和尺寸自检可复用。
-        using var rendered = new InMemoryRandomAccessStream();
-        var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.BmpEncoderId, rendered);
-        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore,
-            (uint)extended.Width, (uint)height, 96, 96, extended.Pixels);
-        await encoder.FlushAsync();
-        token.ThrowIfCancellationRequested();
-
-        rendered.Seek(0);
-        var picture = new BitmapImage
-        {
-            DecodePixelType = DecodePixelType.Physical,
-            DecodePixelWidth = extended.Width
-        };
-        await picture.SetSourceAsync(rendered);
-        token.ThrowIfCancellationRequested();
-        return picture;
+        return new HeroPictureLoader.HeroPixels(extended.Pixels, extended.Width, height);
     }
+
+    public static Task<BitmapImage?> RenderAsync(HeroPictureLoader.HeroPixels pixels, bool gaussian, CancellationToken token) =>
+        HeroPictureLoader.RenderAsync(pixels, gaussian ? GaussianBackdrop.Sigma : 0, token, null, gaussian);
 }

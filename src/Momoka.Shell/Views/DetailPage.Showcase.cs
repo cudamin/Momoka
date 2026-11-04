@@ -141,7 +141,7 @@ public sealed partial class DetailPage
     /// </para>
     /// </summary>
     private IEnumerable<StackPanel> BodyPanels =>
-        [EpisodePanel, InfoPanel, SeasonPanel, CastPanel, SimilarPanel];
+        BodySheet.Children.OfType<StackPanel>();
 
     /// <summary>
     /// 构造时准备三支画刷和五支浮起变换：纸面取主题的窗口色，面板取样式原本那两档，每块面板各装一支
@@ -153,10 +153,8 @@ public sealed partial class DetailPage
         _sheetBrush.Color = PaperColor;
         BodySheet.Background = _sheetBrush;
 
-        // 背景那张图的两档不透明度在 Core（DetailHero.BackdropOpacity／ShowcaseBackdropOpacity）：标记里写的
-        // 那一个只是第一帧，这里和 SettleShowcase 才是真正落值的地方 —— 沉浸档要把它抬高一点（更不透明），
-        // 而那个过渡由 AnimateShowcase 一起走。
-        BackdropPicture.Opacity = DetailHero.BackdropOpacity;
+        // 背景设置按原来的普通/沉浸两档比例缩放；标记里的值只是第一帧，这里与过渡、收尾都读同一结果。
+        BackdropPicture.Opacity = ViewModel.BackdropOpacity;
 
         RefreshPanelBrushes();
         foreach (var panel in BodyPanels)
@@ -199,7 +197,8 @@ public sealed partial class DetailPage
     /// 尾部最浓那一档的颜色 —— 沉浸档的纸面用它，正文和上方那一段因此同色，接缝看不出来。取的是屏上那支
     /// 画刷真正的颜色，不是另抄一遍 <see cref="DetailHero.ScrimCeiling"/>：两处各写一个数就是两处会分叉。
     /// </summary>
-    private Color WashColor => HeroTail.Background is SolidColorBrush { Color: var color }
+    private Color WashColor => ViewModel.GaussianBackdropApplied ? Color.FromArgb(0, 0, 0, 0)
+        : HeroTail.Background is SolidColorBrush { Color: var color }
         ? color
         : Color.FromArgb(DetailHero.ScrimCeiling, DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B);
 
@@ -392,12 +391,10 @@ public sealed partial class DetailPage
         _sheetBrush.Color = showcase ? WashColor : PaperColor;
         _panelFill.Opacity = showcase ? 0 : 1;
         _panelLine.Opacity = showcase ? 0 : 1;
+        PaintBackdropReading();
 
-        // 背景那张图：沉浸档略微更不透明（2026-11-02 用户令）。这一句和标记里那个 0.9、过渡里那条动画读的
-        // 是 Core 的同一对常量，三处不会各说各话。
-        BackdropPicture.Opacity = showcase
-            ? DetailHero.ShowcaseBackdropOpacity
-            : DetailHero.BackdropOpacity;
+        // 收尾读最新偏好，不能把滑块刚设置的浓度写回旧默认。
+        BackdropPicture.Opacity = ViewModel.BackdropOpacity;
 
         // 浮起位移的底值就是起步时种下的那 16px；停掉动画只是把它交回来，还得再写一次 0 才算落定。
         foreach (var panel in BodyPanels)
@@ -461,9 +458,9 @@ public sealed partial class DetailPage
         Track(board, _panelFill, "Opacity", fillFrom, showcase ? 0 : 1, ease, dependent: true);
         Track(board, _panelLine, "Opacity", lineFrom, showcase ? 0 : 1, ease, dependent: true);
 
-        // 3.5) 背景那张图：0.9 ↔ 0.96。Opacity 是合成属性，不用 EnableDependentAnimation。
+        // 3.5) 背景图沿最新偏好过渡；默认仍为 0.9 ↔ 0.96。
         Track(board, BackdropPicture, "Opacity", backdropFrom,
-            showcase ? DetailHero.ShowcaseBackdropOpacity : DetailHero.BackdropOpacity, ease);
+            ViewModel.BackdropOpacity, ease);
 
         // 4) 每块正文各自浮起那 16px 归位，一块错后一块。停在半路的接着走，停在终点的才种上方向。
         for (var slot = 0; slot < panels.Count; slot++)

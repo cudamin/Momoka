@@ -1371,6 +1371,30 @@ public sealed class UiSettings
     /// <summary>界面动效开关；默认保留现有动画，关闭时直接显示最终状态。仍遵循 Windows 的动画设置。</summary>
     public bool AnimationsEnabled { get; set; } = true;
 
+    /// <summary>剧详情页正文卡片的排序与显示偏好，缺项按当前目录补全。</summary>
+    public List<DetailCardSetting> SeriesCards { get; set; } = [];
+
+    /// <summary>单集详情页正文卡片的排序与显示偏好，与剧页各自保存。</summary>
+    public List<DetailCardSetting> EpisodeCards { get; set; } = [];
+
+    /// <summary>电影详情页正文卡片的排序与显示偏好。</summary>
+    public List<DetailCardSetting> MovieCards { get; set; } = [];
+
+    /// <summary>详情按钮与选择框底色的不透明度增量；0 保留现有底色，100 完全不透明。</summary>
+    public double ControlBackgroundOpacity { get; set; }
+
+    /// <summary>详情背景图的不透明度增量；0 保留普通与沉浸默认值，100 完全不透明。</summary>
+    public double BackdropOpacity { get; set; }
+
+    /// <summary>按钮与选择框使用应用内亚克力；缺键保留现有底色。</summary>
+    public bool UseAcrylicControls { get; set; }
+
+    /// <summary>用真正高斯模糊替换背景图上的文字暗色遮罩，仍保留短主题收边渐变。</summary>
+    public bool UseGaussianBackdrop { get; set; }
+
+    /// <summary>电影、剧与季的宽版式固定使用沉浸模式；仍要求背景图且不进入紧凑版式。</summary>
+    public bool AlwaysImmersive { get; set; }
+
     /// <summary>
     /// 服务器页的排序方式（<see cref="Momoka.Emby.ServerListOrder"/> 那份字符串）。缺键是 manual ——
     /// 旧设置文件读出来仍按保存顺序显示，拖拽换位直接写保存顺序，不要求迁移。

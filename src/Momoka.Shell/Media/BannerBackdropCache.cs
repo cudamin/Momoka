@@ -35,7 +35,13 @@ internal static class BannerBackdropCache
     /// </summary>
     private const string Rule = "carousel-backdrop-v1";
 
-    private static readonly BudgetCache<string, BitmapImage> Decoded = new(BudgetBytes, Cost);
+    private sealed record Entry(HeroPictureLoader.HeroPixels? Pixels, BitmapImage? Original, BitmapImage? Gaussian)
+    {
+        public long Cost => (Pixels?.Pixels.LongLength ?? 0) + (Original is null ? 0 : ImageCost(Original))
+            + (Gaussian is null ? 0 : ImageCost(Gaussian));
+    }
+    private static readonly BudgetCache<string, Entry> Decoded = new(BudgetBytes, entry => entry.Cost);
+    public static long Generation { get; private set; }
 
     /// <summary>缓存现在按成本记了多少字节。测试和读数用，不参与命中判断。</summary>
     public static long Bytes => Decoded.Bytes;
@@ -54,19 +60,58 @@ internal static class BannerBackdropCache
         + "|" + Rule
         + "|" + CarouselBackdrop.LeftExtensionShare.ToString("0.###", CultureInfo.InvariantCulture);
 
-    public static bool TryGet(string key, [MaybeNullWhen(false)] out BitmapImage bitmap) =>
-        Decoded.TryGet(key, out bitmap);
+    public static bool TryGet(string key, [MaybeNullWhen(false)] out BitmapImage bitmap) => TryGet(key, false, out bitmap);
 
-    public static void Remember(string key, BitmapImage bitmap) => Decoded.Set(key, bitmap);
+    public static bool TryGet(string key, bool gaussian, [MaybeNullWhen(false)] out BitmapImage bitmap)
+    {
+        if (Decoded.TryGet(key, out var entry) && (gaussian ? entry.Gaussian : entry.Original) is { } image)
+        {
+            bitmap = image;
+            return true;
+        }
+        bitmap = null;
+        return false;
+    }
+
+    public static bool TryGetPixels(string key, [MaybeNullWhen(false)] out HeroPictureLoader.HeroPixels pixels)
+    {
+        if (Decoded.TryGet(key, out var entry) && entry.Pixels is { } source)
+        {
+            pixels = source;
+            return true;
+        }
+        pixels = null;
+        return false;
+    }
+
+    public static void RememberPixels(string key, HeroPictureLoader.HeroPixels pixels, long? generation = null)
+    {
+        if (generation is { } expected && expected != Generation) return;
+        var entry = Decoded.TryGet(key, out var kept) ? kept : new Entry(null, null, null);
+        Decoded.Set(key, entry with { Pixels = pixels });
+    }
+
+    public static void Remember(string key, BitmapImage bitmap) => Remember(key, bitmap, false);
+
+    public static void Remember(string key, BitmapImage bitmap, bool gaussian, long? generation = null)
+    {
+        if (generation is { } expected && expected != Generation) return;
+        var entry = Decoded.TryGet(key, out var kept) ? kept : new Entry(null, null, null);
+        Decoded.Set(key, gaussian ? entry with { Gaussian = bitmap } : entry with { Original = bitmap });
+    }
 
     /// <summary>设置里「清除图片缓存」也要忘掉这些，否则屏上还会从内存里画出来。</summary>
-    public static void Clear() => Decoded.Clear();
+    public static void Clear()
+    {
+        Generation++;
+        Decoded.Clear();
+    }
 
     /// <summary>
     /// 解码后的表面按 BGRA 每像素四字节算。正常路径上 <see cref="BitmapImage.PixelWidth"/> 就是 BMP 的
     /// 实际尺寸；万一运行时还没填这个数，就退回解码请求宽度，宁可多算一点也不少算。
     /// </summary>
-    private static long Cost(BitmapImage image)
+    private static long ImageCost(BitmapImage image)
     {
         var width = image.PixelWidth > 0 ? image.PixelWidth : image.DecodePixelWidth;
         var height = image.PixelHeight > 0 ? image.PixelHeight : Math.Max(1, width * 9 / 16);

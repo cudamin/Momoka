@@ -233,7 +233,7 @@
                  它跟着那条边待在原地，正文那张纸盖过来把它收走，不存在「一道固定的黑跟着滚动条挡内容」的事。 -->
             <Border
                 x:Name="BackdropFade"
-                Height="64"
+                Height="{x:Bind ViewModel.PictureFadeHeight, Mode=OneWay}"
                 Margin="{x:Bind ViewModel.PictureFadeMargin, Mode=OneWay}"
                 IsHitTestVisible="False"
                 VerticalAlignment="Top"
@@ -472,6 +472,9 @@
                               让给内容 300，而这一叠连键加完还是两百八上下，海报那 300 照旧是高的那个；集页的带高
                               是按这一叠实测给的（DetailHero.EpisodeHeight），所以它跟着长 6。
                             -->
+                            <Grid x:Name="DetailPlateRow"
+                                Visibility="{x:Bind ViewModel.PlateVisibility, Mode=OneWay}">
+                                <Border x:Name="DetailPlateInk" IsHitTestVisible="False" Visibility="Collapsed" />
                             <Image
                                 x:Name="TitlePlate"
                                 AutomationProperties.AccessibilityView="Raw"
@@ -482,6 +485,7 @@
                                 Source="{x:Bind ViewModel.PlateImage, Mode=OneWay}"
                                 Stretch="Uniform"
                                 Visibility="{x:Bind ViewModel.PlateVisibility, Mode=OneWay}" />
+                            </Grid>
 
                             <!-- 标题在单集页上是剧名（「99.9 刑事专业律师」压在「S2:E7 - …」上面），点它进这部剧
                                  自己的页面 —— 剧名是个能兑现的承诺（「点击剧名之后应该进[入]剧页面而不是季页面」）。
@@ -524,6 +528,8 @@
                                          字号、字体、字色、行高全在 EgHeroTitleStyle 里 —— 2026-09-12 之前这里用的是
                                          轮播那一支（52，和轮播上那个片名同一个键）：长片名折两行时，Bahnschrift 的行距
                                          装不下雅黑的字，两行直接叠在一起（见 Styles.xaml 上那个键）。 -->
+                                    <Grid>
+                                        <Border x:Name="DetailTitleInk" IsHitTestVisible="False" Visibility="Collapsed" />
                                     <TextBlock
                                         x:Name="TitleText"
                                         Style="{StaticResource EgHeroTitleStyle}"
@@ -532,6 +538,7 @@
                                     Text="{x:Bind ViewModel.Title, Mode=OneWay}"
                                     TextTrimming="CharacterEllipsis"
                                     TextWrapping="Wrap" />
+                                    </Grid>
                                 </Button>
 
                             <!-- 副标题：单集页上是「S2:E7 - 集名」，也就是人真正来看的那一行，所以字号、字重
@@ -549,6 +556,8 @@
                                 TextTrimming="CharacterEllipsis"
                                 Visibility="{x:Bind ViewModel.SublineVisibility, Mode=OneWay}" />
 
+                            <Grid Visibility="{x:Bind ViewModel.GenreVisibility, Mode=OneWay}">
+                                <Border x:Name="DetailGenreInk" IsHitTestVisible="False" Visibility="Collapsed" />
                             <TextBlock
                                 x:Name="GenreLine"
                                 FontSize="{x:Bind ViewModel.SublineFontSize, Mode=OneWay}"
@@ -556,6 +565,7 @@
                                 MaxLines="1"
                                 TextTrimming="CharacterEllipsis"
                                 Visibility="{x:Bind ViewModel.GenreVisibility, Mode=OneWay}" />
+                            </Grid>
 
                             <!-- 评分和那行读数：★ 后面跟等宽的分数，不再是一颗红色圆角药丸 —— 药丸是「徽章」
                                  的写法，而这里要的是仪表上的一个读数，况且那颗药丸的红色和「危险」共用一支
@@ -577,31 +587,44 @@
                                         FontSize="12"
                                         Foreground="{ThemeResource EgAccentBrush}"
                                         Glyph="&#xE735;" />
+                                    <Grid>
+                                        <Border x:Name="DetailScoreInk" IsHitTestVisible="False" Visibility="Collapsed" />
                                     <TextBlock
                                         x:Name="ScoreText"
                                         VerticalAlignment="Center"
                                         Style="{StaticResource EgOnScrimDataStrongStyle}"
                                         Text="{x:Bind ViewModel.Score, Mode=OneWay}" />
+                                    </Grid>
+                                    <Grid>
+                                        <Border x:Name="DetailScoreSourceInk" IsHitTestVisible="False" Visibility="Collapsed" />
                                     <TextBlock
                                         x:Name="ScoreSourceText"
                                         VerticalAlignment="Center"
                                         Style="{StaticResource EgOnScrimDataStyle}"
                                         Text="{x:Bind ViewModel.ScoreLabel, Mode=OneWay}" />
+                                    </Grid>
                                 </StackPanel>
 
+                                <Grid>
+                                    <Border x:Name="DetailFactsInk" IsHitTestVisible="False" Visibility="Collapsed" />
                                 <TextBlock
                                     x:Name="HeroFacts"
                                     VerticalAlignment="Center"
                                     Style="{StaticResource EgOnScrimDataStyle}"
                                     Text="{x:Bind ViewModel.Facts, Mode=OneWay}" />
+                                </Grid>
                             </StackPanel>
 
                             <!-- 「视频：…」那一行的独立一份 —— 集页的宽版式不画它（那一页它下到文件选项那排
                                  chips 里了，和音频、字幕一起换行），其余版式照旧在这里。 -->
+                            <Grid Visibility="{x:Bind ViewModel.VideoLineVisibility, Mode=OneWay}">
+                                <Border x:Name="DetailVideoInk" IsHitTestVisible="False" Visibility="Collapsed" />
                             <TextBlock
+                                x:Name="DetailVideoText"
                                 Style="{StaticResource EgOnScrimDataStyle}"
                                 Text="{x:Bind ViewModel.VideoLine, Mode=OneWay}"
                                 Visibility="{x:Bind ViewModel.VideoLineVisibility, Mode=OneWay}" />
+                            </Grid>
 
                             <!-- 文件选项的三行 —— 集页的宽版式摆在这里，竖着排（「音频移到视频下面，字幕
                                  移动到音频下面」，2026-09-12）：「视频：…」一句、音频、字幕各占一行，标签在
@@ -762,12 +785,8 @@
                                         Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
                                         <!-- 勾上只换图标那一支色：底按回不带勾的三档（常／悬／按），Foreground 取 accent
                                              而字自己钉在浅墨上 —— 那支 accent 于是只落在没写 Foreground 的 FontIcon 上。
-                                             别名指的就是模板自己读的那三个键（UiThemes 每一套都是深色，所以这里
-                                             解析出来的和不带勾那份是同一支刷子）。 -->
+                                             背景三态由 PrepareAppearance 一次添加局部画刷，不能在这里再声明别名。 -->
                                         <ToggleButton.Resources>
-                                            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ToggleButtonBackground" />
-                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ToggleButtonBackgroundPointerOver" />
-                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ToggleButtonBackgroundPressed" />
                                             <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
                                             <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
                                             <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
@@ -1144,9 +1163,6 @@
                                     Style="{StaticResource EgPillToggleButtonStyle}"
                                     Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
                                     <ToggleButton.Resources>
-                                        <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ToggleButtonBackground" />
-                                        <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ToggleButtonBackgroundPointerOver" />
-                                        <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ToggleButtonBackgroundPressed" />
                                         <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
                                         <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
                                         <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
@@ -1252,6 +1268,8 @@
                             Padding="{x:Bind ViewModel.OverviewPanelPadding, Mode=OneWay}"
                             Spacing="2"
                             Visibility="{x:Bind ViewModel.OverviewVisibility, Mode=OneWay}">
+                            <Grid>
+                                <Border x:Name="DetailOverviewInk" IsHitTestVisible="False" Visibility="Collapsed" />
                             <TextBlock
                                 x:Name="Overview"
                                 FontSize="{StaticResource EgBodyFontSize}"
@@ -1265,6 +1283,7 @@
                                 Text="{x:Bind ViewModel.Overview, Mode=OneWay}"
                                 TextTrimming="{x:Bind ViewModel.OverviewTrimming, Mode=OneWay}"
                                 TextWrapping="Wrap" />
+                            </Grid>
                             <HyperlinkButton
                                 AutomationProperties.AutomationId="DetailReadMoreButton"
                                 Command="{x:Bind ViewModel.ToggleOverviewCommand}"
@@ -1272,12 +1291,15 @@
                                 Padding="0,4,0,4"
                                 Visibility="{x:Bind ViewModel.ReadMoreVisibility, Mode=OneWay}" />
                             <!-- 导演 prose 行，Emby 的详情页把导演放在简介底下而不是只埋在演职人员里。 -->
+                            <Grid Margin="0,6,0,0" Visibility="{x:Bind ViewModel.DirectorsVisibility, Mode=OneWay}">
+                                <Border x:Name="DetailDirectorsInk" IsHitTestVisible="False" Visibility="Collapsed" />
                             <TextBlock
-                                Margin="0,6,0,0"
+                                x:Name="DetailDirectorsText"
                                 FontSize="{StaticResource EgBodyFontSize}"
                                 Foreground="{StaticResource EgOnScrimDimBrush}"
                                 Text="{x:Bind ViewModel.Directors, Mode=OneWay}"
                                 Visibility="{x:Bind ViewModel.DirectorsVisibility, Mode=OneWay}" />
+                            </Grid>
                         </StackPanel>
                     </StackPanel>
 
