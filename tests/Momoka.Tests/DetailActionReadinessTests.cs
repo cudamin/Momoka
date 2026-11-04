@@ -13,7 +13,7 @@ using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
 
-internal static class DetailActionReadinessTests
+internal static partial class DetailActionReadinessTests
 {
     private const BindingFlags Members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
@@ -30,6 +30,7 @@ internal static class DetailActionReadinessTests
             AssemblyLoadContext.Default.Resolving += (context, name) => File.Exists(Path.Combine(directory, name.Name + ".dll"))
                 ? context.LoadFromAssemblyPath(Path.Combine(directory, name.Name + ".dll")) : null;
             var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(dll);
+            RegisterShapeTests(assembly, root);
 
             Test("P1 主体Apply前不提前放开按钮", () =>
             {
@@ -171,7 +172,7 @@ internal static class DetailActionReadinessTests
         }
     }
 
-    private enum Shape { Movie, Episode, Series }
+    private enum Shape { Movie, Episode, Series, Season }
 
     private sealed class Fixture : IDisposable
     {
@@ -183,9 +184,10 @@ internal static class DetailActionReadinessTests
         public ReadinessTransport Transport { get; } = new();
         public DetailDeleteActionsProxy Actions { get; }
         public object Vm { get; }
+        public EmbyItem Seed { get; }
         public bool Busy => Get("Busy") is true;
 
-        public Fixture(Assembly assembly, string root, Shape shape)
+        public Fixture(Assembly assembly, string root, Shape shape, bool stub = false)
         {
             _assembly = assembly;
             var device = new DeviceIdentity("fixture", "fixture", "fixture", "0");
@@ -252,7 +254,14 @@ internal static class DetailActionReadinessTests
                 Type = EmbyItemType.Movie
             }));
 
-            var item = shape switch { Shape.Episode => episode, Shape.Series => series, _ => movie };
+            Seed = shape switch { Shape.Episode => episode, Shape.Series => series, Shape.Season => season, _ => movie };
+            Seed.IsStub = stub;
+            Reattach(Seed);
+        }
+
+        public void Reattach(EmbyItem item)
+        {
+            var assembly = _assembly;
             var request = Activator.CreateInstance(assembly.GetType("Momoka.Shell.Views.DetailRequest", true)!, nonPublic: true)!;
             request.GetType().GetProperty("Item")!.SetValue(request, item);
             Invoke(Vm, "Attach", request, Actions, _settings, _session, _images);

@@ -1,0 +1,156 @@
+using System.ComponentModel;
+using System.Reflection;
+using Momoka.Emby;
+using static Momoka.Tests.TestHarness;
+
+namespace Momoka.Tests;
+
+internal static partial class DetailActionReadinessTests
+{
+    private static void RegisterShapeTests(Assembly assembly, string root)
+    {
+        foreach (var shape in new[] { Shape.Movie, Shape.Episode, Shape.Series, Shape.Season })
+            Test($"P1 {shape}预览与完整主体同类型只通知一次版式", () =>
+            {
+                using var f = new Fixture(assembly, root, shape);
+                f.Transport.HoldDetail = true;
+                var notices = Watch(f, "ContinueVisibility");
+                var load = f.Load();
+                f.Transport.WaitForDetail();
+                Assert.Equal(1, notices.Count, "预览必须先确定版式");
+                f.Transport.DetailRelease.TrySetResult(true);
+                Await(load);
+                Assert.Equal(1, notices.Count, "同类型完整主体不应重复宣布版式");
+                Assert.True(f.Get("IsReady") is true);
+                Assert.True(f.Can("PlayCommand"));
+            });
+
+        Test("P1 同类型刷新保留能力通知与内容更新", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Movie);
+            Await(f.Load());
+            var shape = Watch(f, "ContinueVisibility");
+            var affordance = Watch(f, "CanOpenGenre");
+            f.Transport.Catalog["movie"].Name = "updated anonymous movie";
+            f.Transport.Catalog["movie"].MediaSources.Clear();
+            Await(f.Load());
+            Assert.Equal(0, shape.Count, "同类型刷新不重新宣布版式");
+            Assert.True(affordance.Count > 0, "能力仍需重新通知");
+            Assert.Equal("updated anonymous movie", (string)f.Get("Title")!);
+            Assert.Equal(0, ((System.Collections.ICollection)f.Get("Sources")!).Count);
+        });
+
+        Test("P1 存根首次主体仍通知版式", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Movie, stub: true);
+            f.Transport.HoldDetail = true;
+            var notices = Watch(f, "ContinueVisibility");
+            var load = f.Load();
+            f.Transport.WaitForDetail();
+            Assert.Equal(0, notices.Count, "存根不能冒充预览");
+            f.Transport.DetailRelease.TrySetResult(true);
+            Await(load);
+            Assert.Equal(1, notices.Count);
+            Assert.Equal("Collapsed", f.Get("ContinueVisibility")!.ToString());
+        });
+
+        Test("P1 同一预览对象被更正类型仍通知新布局", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Movie);
+            f.Transport.HoldDetail = true;
+            var notices = Watch(f, "ContinueVisibility");
+            var load = f.Load();
+            f.Transport.WaitForDetail();
+            Assert.Equal(1, notices.Count);
+            // Preview 持有的正是这个可变 DTO，比较 Apply 前后的对象属性会漏掉此更正。
+            f.Seed.Type = EmbyItemType.Episode;
+            f.Transport.DetailRelease.TrySetResult(true);
+            Await(load);
+            Assert.Equal(2, notices.Count);
+            Assert.Equal("Visible", f.Get("ContinueVisibility")!.ToString());
+        });
+
+        Test("P1 同类型重新Attach仍重建本访问版式", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Movie);
+            Await(f.Load());
+            f.Reattach(f.Seed);
+            var notices = Watch(f, "ContinueVisibility");
+            Await(f.Load());
+            Assert.Equal(1, notices.Count, "旧访问的通知不能代表新访问已就绪");
+            Assert.True(f.Can("PlayCommand"));
+        });
+
+        Test("P1 版式通知中断后同类型重试必须补齐", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Movie);
+            PropertyChangedEventHandler fail = (_, args) =>
+            {
+                if (args.PropertyName == "HeroHeight") throw new InvalidOperationException("anonymous notification failure");
+            };
+            var observable = (INotifyPropertyChanged)f.Vm;
+            observable.PropertyChanged += fail;
+            Await(f.Load());
+            observable.PropertyChanged -= fail;
+            Assert.True(f.Get("NoticeOpen") is true);
+            var notices = Watch(f, "ContinueVisibility");
+            Await(f.Load());
+            Assert.Equal(1, notices.Count, "失败的半批通知不能标记为已宣布");
+            Assert.True(f.Can("PlayCommand"));
+        });
+
+        Test("P1 空类型主体不会命中未初始化的版式记录", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Movie, stub: true);
+            f.Seed.Type = null!;
+            var notices = Watch(f, "ContinueVisibility");
+            Await(f.Load());
+            Assert.Equal(1, notices.Count);
+        });
+
+        Test("P1 更正类型通知中断后恢复旧类型也要补齐版式", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Movie);
+            Await(f.Load());
+            f.Seed.Type = EmbyItemType.Episode;
+            PropertyChangedEventHandler fail = (_, args) =>
+            {
+                if (args.PropertyName == "HeroHeight") throw new InvalidOperationException("anonymous type correction failure");
+            };
+            var observable = (INotifyPropertyChanged)f.Vm;
+            observable.PropertyChanged += fail;
+            Await(f.Load());
+            observable.PropertyChanged -= fail;
+            Assert.True(f.Get("NoticeOpen") is true);
+            f.Seed.Type = EmbyItemType.Movie;
+            var notices = Watch(f, "ContinueVisibility");
+            Await(f.Load());
+            Assert.Equal(1, notices.Count, "中途失败后即使恢复旧类型，也不能复用上一批记录");
+            Assert.True(f.Can("PlayCommand"));
+        });
+
+        Test("P1 同类型剧集刷新仍通知清空与重填集带", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Series);
+            Await(f.Load());
+            var shape = Watch(f, "ContinueVisibility");
+            var episodes = Watch(f, "EpisodeStripVisibility");
+            f.Transport.Episodes.Clear();
+            Await(f.Load());
+            Assert.Equal(0, shape.Count);
+            Assert.True(episodes.Count > 0);
+            Assert.Equal("Collapsed", f.Get("EpisodeStripVisibility")!.ToString());
+            Assert.False(f.Can("PlayCommand"));
+        });
+    }
+
+    private static List<string?> Watch(Fixture fixture, string property)
+    {
+        var notices = new List<string?>();
+        ((INotifyPropertyChanged)fixture.Vm).PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == property) notices.Add(args.PropertyName);
+        };
+        return notices;
+    }
+}

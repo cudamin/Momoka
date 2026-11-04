@@ -120,6 +120,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>The item as the server describes it in full — the thing the whole page is about.</summary>
     private EmbyItem? _detail;
+    private string? _announcedShapeType;
 
     /// <summary>
     /// 集页背后那部剧，随取图那一趟一起回来（见 <see cref="LoadShowAsync"/>）。其他信息那一行要的类型、工作室
@@ -2270,6 +2271,7 @@ public sealed partial class DetailViewModel : PageViewModel
         _deletedItems.Clear();
         _deletedSourceIds.Clear();
         _actionsReady = false;
+        _announcedShapeType = null;
         _active = true;
         _scope = images.CaptureScope(request.Item);
         _actions = actions;
@@ -2486,8 +2488,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// 「这一页讲的是哪一类东西」变了之后要重新问一遍的那一批算得属性。<see cref="Preview"/> 和
-    /// <see cref="Apply"/> 各喊一次 —— 前者是第一次（在这之前 <see cref="_detail"/> 是 null，那几个属性答的是
-    /// 「没有条目」那一档，屏上就是一格算错高的带子），后者是完整条目到手之后。
+    /// <see cref="Apply"/> 都会核对 —— 前者是第一次（在这之前 <see cref="_detail"/> 是 null，那几个属性答的是
+    /// 「没有条目」那一档），后者只在完整条目更正了类型时再通知。同类型刷新由字段和集合自己的通知更新内容。
     /// <para>
     /// 一处集中而不是散在两边：这几个属性的共同点是它们跟着**条目的种类**走，不跟着任何一个字段走，所以生成的
     /// setter 一个都不会替它们通知。少喊一个的下场是屏上某一格停在上一档 —— 编译看不见，测试也进不来。
@@ -2502,6 +2504,14 @@ public sealed partial class DetailViewModel : PageViewModel
     private void AnnounceShape()
     {
         AnnounceAffordances();
+        // 能力跟来源和活动状态走，每次都重问；版式只在本访问首次确定或类型改变时整批通知。
+        // 不能读 ItemType：它会回退到 seed，让存根首次 Apply 被误认为已经通知过。
+        // 单独记字符串也能发现同一个可变 DTO 的 Type 被原地更正。
+        var type = _detail?.Type;
+        if (type is not null && type == _announcedShapeType) return;
+        _announcedShapeType = null;
+        var lifetime = _lifetime;
+
         // 单集 changes shape with the kind of page this is, and that is a fact about the item rather than
         // about the shelf — no collection has changed here, so nothing else would say it. Raised right after
         // the assignment, before anything can read a visibility off the item that is no longer showing.
@@ -2580,6 +2590,9 @@ public sealed partial class DetailViewModel : PageViewModel
         // 一次不会来，屏上就停在上一档：季页只剩一行孤零零的季名，类型那一行不见了。
         OnPropertyChanged(nameof(SublineVisibility));
         OnPropertyChanged(nameof(GenreVisibility));
+
+        // 中途通知失败不能记成完成；处理器若重新 Attach，也不能把旧访问的类型写回新访问。
+        if (lifetime == _lifetime) _announcedShapeType = type;
     }
 
     /// <summary>
