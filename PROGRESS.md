@@ -1,3 +1,13 @@
+# 2026-11-04 详情自定义实际交付与 GitHub 上传
+
+- 用户在上一条明确获知主树UI61/62及暂未交付后，恢复要求「交付，提交代码到github」。按当次明确范围刷新当前已合入版本，保留已知季页断点回退失败，不称适用运行全绿。产品40bf8c5已推origin/master；发布脚本修复bb5b2ba随后推送，未生成新版本/安装包或商店提交。
+- 实际 `tools/publish.ps1 -Shortcut -NoArchive` 首次已编译和写入主树交付目录，但旧外壳检查regex把 `Momoka.AppearanceOpacityTests` 的前缀误判为 `Momoka.App`。bb5b2ba改为完整Project名称/目录边界；新增四个真实调用正反例，整套fresh发布布局27/27、0失败0跳过。初次红测试运行中修改脚本使后续项受语法实验干扰，13/27红保留，不把它们作为产品回归证据；fresh测试无干扰且全过，PowerShell2文件BOM/LF/语法及diff通过。
+- 不再重复编译相同产品，最终直接执行当前 `verify-publish.ps1 -PublishRoot C:/Users/89400/Momoka/artifacts/publish/win-x64 -RepositoryRoot C:/Users/89400/Momoka -SelfContained` 完整成功：546文件、300072767字节，14GLSL/4HOOK许可及59份批准mpv载荷校验。重新执行shortcut.ps1；桌面目标与工作目录回读均为主树artifacts/publish/win-x64、参数空。Shell发布/构建SHA256同为 `D60381165956E960750BF2ACA5E807125E21CA76645774FFB742AEFF86FD55B7`；Core `9B1992E16CCFC521E5510D3EBF4F17380D388D83F0118A2795E7AA26F7471EF3`。
+- 实际发布件 `shell-probe-20261104-150017715-13100` inspect两条Case：设置一条因截图窗口被遮挡/屏外失败，详情一条通过，不能称2/2。详情覆盖三页、颜色/亚克力/高斯、主题收边及主页；实际截图已目视。完整主树3697测试和61/62运行证据来自前轮同产品源码，仍保留季页断点回退红项；本轮没有修改任何产品源码/断言。13100通过InspectDone退出，未播放或写真实用户/服务器设置。
+- REA原生调用跟踪不可用（Frida native bindings缺失），未安装依赖或改工具配置，不将缺失证据归为框架原因。Git push首轮过期WorkBuddy凭据helper报错但系统manager成功完成；之后单命令使用已有manager，不改全局凭据、不输出令牌，remote master回读核对。
+- 分支e550665已全部进入master，本聊天主开发树快进bb5b2ba后转detached，临时分支已安全删除；平台主工作目录保留。三个子树独有证据及嵌套研究缓存已在merge-main-evidence保留；detail-layout-settings与detail-appearance原生归档被「Another active task still uses this worktree」拒绝，保留不绕过。detail-gaussian-backdrop已请求原生归档。必要后续是季页断点回退诊断及设置窗口遮挡复核，未将用户此次交付要求改写成验证全绿。
+- 新证据 `C:/Users/89400/.codex/visualizations/2026/11/04/01a1a5e5-c8d2-7961-b3b8-2ded36c39a8a/delivery-evidence`，含发布/校验/快捷方式、fresh27case、失败与发布件截图；旧红仍在merge-main-evidence。代码与当前交付内容一致，没有额外真实播放或网络写入。
+
 # 2026-11-04 详情卡片与外观自定义主树合并（桌面交付受阻）
 
 - 用户恢复指示「合并」，将开发分支 `codex/detail-customization` 产品 `a1c1e42`／`e550665` 合入当时干净的 master `f34f182`。两处文档冲突保留双方记录；代码自动合并。按需集卡、弹幕设置、现有输入编辑保护均保留，独立审查无确定产品冲突。未获上传授权，不推送。
