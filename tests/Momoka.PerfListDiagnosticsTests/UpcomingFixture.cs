@@ -28,6 +28,11 @@ public sealed partial class LibraryViewModel : PageViewModel
     private readonly int _upcomingCardWidth = LibraryUpcoming.CardWidth;
     private readonly EmbyImageStore _images;
     private IReadOnlyList<EmbySessionScope> _sources = [];
+    // P3 windows belong to ordinary roots. This fixture only drives Upcoming; its prefix starts at zero.
+    private string? _snapshotKey;
+    private int _windowStart;
+    private bool _windowNeedsPrefix;
+    internal bool _windowRejected;
 
     internal LibraryViewModel(EmbyImageStore images)
     {
@@ -46,6 +51,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     private bool SourcesAvailable => _request?.Source?.IsAvailable ?? true;
     private bool HasMore => _total < 0 || _upcomingReadCount < _total;
     private bool Aggregated => false;
+    private bool WindowEligible => false;
+    private int WindowEnd => _windowStart + Cards.Count;
     private List<FavoriteBoundary> FavoriteRows { get; } = [];
     private string? EmptyNotice { get; set; }
     private bool ShowEmptyNotice { get; set; }
@@ -88,6 +95,18 @@ public sealed partial class LibraryViewModel : PageViewModel
     private void SetPageFailed(bool value) => _pageFailed = value;
     private void RowsArrived() { }
     private void ResetCursor() { _cursor = null; _resumeRead.Clear(); }
+    private void RefreshSnapshotKey() => _snapshotKey = null;
+    private void ClearAnchor()
+    {
+        _request!.AnchorIndex = -1;
+        _request.AnchorIdentityKey = null;
+        _request.AnchorQueryKey = null;
+        _request.AnchorY = 0;
+        _request.ScrollOffset = 0;
+        _request.LoadedCount = 0;
+    }
+    private Task<bool> RefreshWindowAsync(CancellationToken query, bool background) =>
+        throw new InvalidOperationException("非预告窗口路由");
     private Task<ItemsResult?> ReadAsync(int start, CancellationToken token) => Read(start, token);
     private AggregateQueryCursor NewCursor() => throw new InvalidOperationException("非预告路由");
     private Task<ItemsResult> ReadCursorAsync(AggregateQueryCursor cursor, CancellationToken token) =>

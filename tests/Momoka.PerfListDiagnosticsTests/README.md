@@ -20,6 +20,7 @@
 - 完整编译链接 DiagnosticsViewModel、PageViewModel、UpcomingDay、UpcomingListDiff、CardItem、PosterCache、LibraryRequest；MVVM 使用与 Shell 相同已钉版 CommunityToolkit.Mvvm 8.4.2。
 - 每次构建逐字抽取当前 LibraryViewModel.UpdateUpcomingDays / LoadAsync，并核对 QueryCurrent 表达式；SourceLinkTests 比较实际输入 SHA256 和当轮生成产物。源码改变必须重编译，不接受旧输出。
 - Core 日期算法、LoadGeneration 和匿名 EmbySessionScope 实际执行。Library 夹具只替代无副作用读取端点、无关页面 chrome 与其他路由；SourcesAvailable 使用真实 scope.IsAvailable，不复制被测算法。
+- P3 普通库窗口在本 Upcoming 夹具固定不适用；`WindowEnd` 使用真实卡集合数量与零起点，新增快照／锚点接口仅补编译边界，窗口读取若被误调用直接失败。真实 `LoadAsync` 仍由当轮生产源码逐字抽取，不在夹具重写窗口或分页算法。
 - HTTP handler 一律拒绝；卡片不请求图片，解码边界一律拒绝；PlaybackService allowPlayback=false，后台工厂一律拒绝。没有登录、真实设置读写、DPAPI、账户或真实日志访问。
 - 复用既有 DiagnosticsTests 39 项，不运行主套件；其中磁盘日志用例仍使用其原有独立随机临时目录。新增本题 / 源码关联 31 项，独立入口总计 70 项；诊断 Core 与父主套件重叠，不可叠加成不同覆盖。
 - 不创建 WinUI 窗口或 Frame，不证明真实 dispatcher、渲染、选择、滚动、历史导航或用户体验。集合身份和通知操作断言不是 UI 验收。
@@ -48,5 +49,7 @@
 源码抽取负例可传 build 参数 -p:PerfUpcomingSourcePath=<本树独立负例文件绝对路径>。缺方法 / 改query-source guard必须拒绝构建且不覆盖合法生成源；正常构建不传此参数。两种负例均实际运行，再编译正常入口，拒绝日志不算产品检查红项。
 
 ## 当前证据
+
+2026-11-04：P3 新增窗口接口后，本树抽取编译先红（缺 17 个边界引用）；只补 Upcoming 不使用的窄边界，未改产品或抽取算法。最终 Release 0 警告 0 错误，确切独立入口 **71/71**、失败 0、跳过 0；日志在 `work/p3-deep-return/perf-boundary-red-build.log`、`perf-boundary-final-build.log` 和 `perf-boundary-final.log`，交主代理整合后重验。
 
 2026-10-30当前Release Shell / Core及定向套件0警告0错误；70/70、失败0、跳过0。日志在本树ignored work/perf-list-diagnostics/：shell-build-final.log、suite-build-final.log、suite-final.log、missing-method.log、changed-guard.log。中间比较数和Remove筛选重入失败已定位修复，不放宽断言；原始审查证据仍保留在用户指定的performance-audit目录。父代理按最终提交另行编译、真实UI队列和主树验收。
