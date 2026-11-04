@@ -101,16 +101,23 @@ internal sealed partial class ShellNavigationProbe
                 await page.ViewModel.LoadUntilAsync(1500);
                 await LayoutAsync(page);
                 var wall = Get<ItemsView>(page, "CardWall");
+                var anchorKey = page.ViewModel.Cards[page.ViewModel.LocalIndexOf(1500)].Item.IdentityKey;
                 wall.StartBringItemIntoView(page.ViewModel.LocalIndexOf(1500), new BringIntoViewOptions
                 { AnimationDesired = false, VerticalAlignmentRatio = 0 });
-                await UntilAsync(() => IsRealized(page, "deep-1500"));
+                // A recycled element may still have a nonzero size far outside the viewport. Wait for
+                // the requested row to actually reach the top before making the partial-row offset.
+                await UntilAsync(() => IsRealized(page, anchorKey, identity: true)
+                    && Math.Abs(AnchorY(page, anchorKey)) < 3);
                 await ScrollProbeAsync(wall.ScrollView!, wall.ScrollView!.VerticalOffset + 17);
                 await LayoutAsync(page);
-                var anchorKey = page.ViewModel.Cards[page.ViewModel.LocalIndexOf(1500)].Item.IdentityKey;
+                await UntilAsync(() => IsRealized(page, anchorKey, identity: true)
+                    && Math.Abs(AnchorY(page, anchorKey) + 17) < 3);
                 var beforeY = AnchorY(page, anchorKey);
-                page.ViewModel.CaptureAnchor(page.ViewModel.LocalIndexOf(1500), beforeY, page.ViewModel.GridColumns);
+                await SaveProbeScreenAsync($"performance-deep-before-{kind}-1280-screen.png");
                 page.Release();
-                Require(request.AnchorIndex >= 1400, "页面 Release 未捕获中段滚动锚点");
+                Require(request.AnchorIdentityKey == anchorKey && request.AnchorIndex == 1500
+                    && Math.Abs(request.AnchorY - beforeY) < 3,
+                    $"页面 Release 未捕获第1500项与局部偏移：index={request.AnchorIndex}, y={request.AnchorY}, expectedY={beforeY}");
                 var savedKey = request.AnchorIdentityKey!;
                 var savedY = request.AnchorY;
                 Require(frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services)), "深返回中间页面导航失败");
@@ -155,7 +162,7 @@ internal sealed partial class ShellNavigationProbe
                         ? reads[beforeRead].Start <= end && end < reads[beforeRead].Start + reads[beforeRead].Limit
                         : reads[beforeRead].Start == end,
                     "真实下翻起点未使用绝对窗口尾部");
-                evidence.Add(new { backend = kind.ToString(), savedY, beforeY, windowStart = returned.ViewModel.WindowStart,
+                evidence.Add(new { backend = kind.ToString(), savedIndex = request.AnchorIndex, savedY, beforeY, windowStart = returned.ViewModel.WindowStart,
                     windowEnd = returned.ViewModel.WindowEnd, snapshotItems = snapshot.Items.Count,
                     requests = reads.Select(read => new { start = read.Start, limit = read.Limit }).ToArray(), realFrame = true });
                 Require(fixture.Actions.Plays == 0, "深返回探针触发了播放动作");
@@ -188,8 +195,11 @@ internal sealed partial class ShellNavigationProbe
         static bool IsRealized(LibraryPage page, string key, bool identity = false)
         {
             var card = page.ViewModel.Cards.FirstOrDefault(card => identity ? card.Item.IdentityKey == key : card.Item.Id == key);
-            return card is not null && Descendants(Get<ItemsView>(page, "CardWall")).OfType<PosterCard>()
-                .Any(poster => ReferenceEquals(poster.Card, card) && poster.ActualHeight > 0);
+            var scroll = Get<ItemsView>(page, "CardWall").ScrollView;
+            return card is not null && scroll is not null && Descendants(Get<ItemsView>(page, "CardWall")).OfType<PosterCard>()
+                .Any(poster => ReferenceEquals(poster.Card, card) && poster.ActualHeight > 0
+                    && poster.TransformToVisual(scroll).TransformPoint(new Point(0, 0)).Y < scroll.ViewportHeight
+                    && poster.TransformToVisual(scroll).TransformPoint(new Point(0, 0)).Y + poster.ActualHeight > 0);
         }
         static double AnchorY(LibraryPage page, string identity)
         {
