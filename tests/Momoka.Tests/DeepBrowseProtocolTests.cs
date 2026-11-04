@@ -101,6 +101,7 @@ internal static class DeepBrowseProtocolTests
             Assert.Equal("SortName", query["SortBy"]);
             Assert.Equal("Descending", query["SortOrder"]);
             Assert.Equal("Movie", query["IncludeItemTypes"]);
+            if (expectedPath == "/Items") Assert.Equal("user", query["UserId"]);
             Starts.Add(start);
             var result = new ItemsResult
             {
