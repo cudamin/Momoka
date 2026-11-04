@@ -314,8 +314,10 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
+                <!-- 分类胶囊和下面两条搜索容器都是页面上的一层低透明度玻璃：tint 与设置卡片同族，
+                     压在纯色页面上只透出一点模糊和噪点，字和圆角保持原样。 -->
                 <Border x:Name="LibrarySectionsSurface" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Background="{ThemeResource EgSurfaceHoverBrush}" CornerRadius="18" Padding="3"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="18" Padding="3"
                     Visibility="{x:Bind ViewModel.SectionVisibility, Mode=OneWay}">
                     <local:WrapRow x:Name="LibrarySections" Spacing="0" RowSpacing="4" CenterRows="True" />
                 </Border>
@@ -396,7 +398,7 @@
                             </local:SearchSourceTabs.Resources>
                             <local:SearchSourceTabs.Style>
                                 <Style TargetType="local:SearchSourceTabs" BasedOn="{StaticResource ButtonSegmentedStyle}">
-                                    <Setter Property="Background" Value="{ThemeResource EgSurfaceHoverBrush}" />
+                                    <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
                                     <Setter Property="Padding" Value="4" />
                                     <Setter Property="CornerRadius" Value="16" />
                                 </Style>
@@ -758,9 +760,10 @@
             </local:WrapRow>
 
             <!-- 飞牛筛选：官网页端展开在工具栏下面的那一条，不是 Emby 那种盖住整页的浮层。
-                 行和值都来自 /tag/list，题材、地区再经官方映射表换成中文。 -->
+                 行和值都来自 /tag/list，题材、地区再经官方映射表换成中文。
+                 底色与设置卡片同一层低透明度亚克力，边线、圆角和展开行为不变。 -->
             <Border x:Name="FnNasFilterPanel" Grid.Row="2" Margin="0,0,0,4" Padding="16,12"
-                Background="{ThemeResource EgSurfaceBrush}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource EgBorderBrush}"
                 BorderThickness="1"
                 CornerRadius="12"

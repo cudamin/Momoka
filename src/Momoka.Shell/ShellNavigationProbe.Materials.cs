@@ -5,7 +5,9 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Momoka.AniBt;
 using Momoka.Emby;
+using Momoka.MoviePilot;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Momoka.Theming;
@@ -73,6 +75,11 @@ internal sealed partial class ShellNavigationProbe
         var keys = new[] { "EgActionGlassBrush", "EgActionGlassHoverBrush", "EgActionGlassPressedBrush" };
         var frame = new Frame();
         var holder = new Grid { Margin = new Thickness(24), VerticalAlignment = VerticalAlignment.Top };
+        MoviePilotSearchProgressView? progressCard = null;
+        MoviePilotResourceBrowser? moviePilotCards = null;
+        AniBtResourceBrowser? aniBtProgress = null;
+        AniBtResourceBrowser? aniBtResources = null;
+        string? builtCardStage = null;
         var cards = new ObservableCollection<CardItem>(movies.Select(item => new CardItem(item, fixture.Images, 210)));
         var strip = new ShelfStrip { ItemsSource = cards, ItemSpacing = 16 };
         var fallback = keys.Append("CardBackgroundFillColorDefaultBrush").Select(key =>
@@ -89,7 +96,7 @@ internal sealed partial class ShellNavigationProbe
                 && detail.ViewModel.PlayTarget?.HasResumePosition == true);
             strip.ItemTemplate = (DataTemplate)detail.Resources["CardTemplate"];
             holder.Children.Add(strip);
-            foreach (var stage in new[] { "detail", "shelf", "servers", "notifications" })
+            foreach (var stage in new[] { "detail", "shelf", "servers", "notifications", "library", "mpcards", "anibtcards" })
             {
                 if (stage == "shelf") { _root.Children.Remove(frame); _root.Children.Add(holder); }
                 if (stage == "servers")
@@ -105,13 +112,34 @@ internal sealed partial class ShellNavigationProbe
                     await UntilAsync(() => ((NotificationsPage)frame.Content).IsReady
                         && ((NotificationsPage)frame.Content).ViewModel.Entries.Count == 1);
                 }
+                if (stage == "library")
+                {
+                    _root.Children.Remove(holder);
+                    _root.Children.Remove(frame);
+                    _root.Children.Add(frame);
+                    Require(frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services)), "媒体库搜索页导航失败");
+                    await UntilAsync(() => ((LibraryPage)frame.Content).IsReady);
+                }
+                if (stage is "mpcards" or "anibtcards")
+                {
+                    _root.Children.Remove(frame);
+                    _root.Children.Remove(holder);
+                    if (builtCardStage != stage)
+                    {
+                        holder.Children.Clear();
+                        holder.Children.Add(stage == "mpcards" ? BuildMoviePilotCards() : BuildAniBtCards());
+                        builtCardStage = stage;
+                    }
+                    _root.Children.Add(holder);
+                }
                 foreach (var theme in UiThemes.All)
                     foreach (var width in new[] { 1280, 760 })
                     {
                         ThemeHost.Apply(theme);
                         _root.Background = new SolidColorBrush(ThemeHost.ToColor(theme.Colors.Window));
-                        ResizeProbeClient(width, 700);
-                        var page = stage == "shelf" ? (FrameworkElement)holder : (FrameworkElement)frame.Content;
+                        ResizeProbeClient(width, stage == "mpcards" ? 920 : 700);
+                        var page = stage is "shelf" or "mpcards" or "anibtcards"
+                            ? (FrameworkElement)holder : (FrameworkElement)frame.Content;
                         await LayoutAsync(page);
                         Require(Math.Abs(_root.ActualWidth - width) < 1, "客户区未到达目标宽度");
                         CheckRoles(theme);
@@ -137,6 +165,37 @@ internal sealed partial class ShellNavigationProbe
                             strip.JumpTo(0);
                             await UntilAsync(() => strip.Offset < 1 && Descendants(strip).OfType<PosterCard>()
                                 .Any(card => card.Card?.Poster is not null));
+                            var poster = Descendants(strip).OfType<PosterCard>()
+                                .FirstOrDefault(card => card.Card?.Item.Type == EmbyItemType.Movie);
+                            Require(poster is not null, "货架没有可播放卡片");
+                            var hover = poster!.ProbeHover();
+                            Require(hover.ActionGlass && hover.PlayGlassRest,
+                                "海报悬停播放键或右下操作组未使用按钮亚克力");
+                            reads.Add($"{theme.Id}/{width}/海报卡：操作组三态玻璃={hover.ActionGlass}，"
+                                + $"播放键常态玻璃={hover.PlayGlassRest}，指针强调色={hover.PlayHover}");
+                            if (samples)
+                            {
+                                // 受控样本：把悬停层亮一帧拍照，不代表真实指针手势。
+                                var layer = Get<Grid>(poster, "Hover");
+                                var shade = Get<Border>(poster, "HoverShade");
+                                var previousVisibility = layer.Visibility;
+                                var previousOpacity = layer.Opacity;
+                                var previousShade = shade.Opacity;
+                                try
+                                {
+                                    layer.Visibility = Visibility.Visible;
+                                    layer.Opacity = 1;
+                                    shade.Opacity = 0.78;
+                                    await LayoutAsync(poster);
+                                    await SaveProbeScreenAsync("acrylic-poster-actions-screen.png");
+                                }
+                                finally
+                                {
+                                    layer.Visibility = previousVisibility;
+                                    layer.Opacity = previousOpacity;
+                                    shade.Opacity = previousShade;
+                                }
+                            }
                             Field(strip, "_hover", true); Call(strip, "SyncArrows");
                             Require(!strip.PrevShown && strip.NextShown, "货架开头箭头显隐不正确");
                             var next = Get<Button>(strip, "Next");
@@ -170,7 +229,13 @@ internal sealed partial class ShellNavigationProbe
                             CheckCard(Descendants(servers).OfType<Border>().Single(border =>
                                 AutomationProperties.GetAutomationId(border) == "ServersAggregateCard"));
                         }
-                        else
+                        else if (stage == "library")
+                            CheckLibraryMaterials((LibraryPage)page, theme);
+                        else if (stage == "mpcards")
+                            await CheckMoviePilotCardsAsync(theme);
+                        else if (stage == "anibtcards")
+                            await CheckAniBtCardsAsync(theme);
+                        else if (stage == "notifications")
                         {
                             var notifications = (NotificationsPage)page;
                             var toggle = Get<ToggleSwitch>(notifications, "StopReportToggle");
@@ -182,6 +247,18 @@ internal sealed partial class ShellNavigationProbe
                             var action = Descendants(row).OfType<Button>().First(button => button.CommandParameter is NotificationRow);
                             CheckCard(EnclosingCard(action));
                             Require(notifications.StopReport.Bound && notifications.NoteState.Follows, "通知卡原有绑定失效");
+                        }
+                        if (samples && stage is "library" or "mpcards" or "anibtcards")
+                        {
+                            var cardGlass = (AcrylicBrush)dark["CardBackgroundFillColorDefaultBrush"];
+                            var previous = cardGlass.AlwaysUseFallback;
+                            try
+                            {
+                                cardGlass.AlwaysUseFallback = true;
+                                await LayoutAsync((FrameworkElement)page);
+                                await SaveProbeScreenAsync($"acrylic-{stage}-fallback-card-screen.png");
+                            }
+                            finally { cardGlass.AlwaysUseFallback = previous; }
                         }
                         reads.Add($"{stage}/{theme.Id}/{width}: 客户区 {_root.ActualWidth:0}×{_root.ActualHeight:0}; 模板与角色通过");
                         await SaveProbeScreenAsync($"acrylic-{stage}-{theme.Id}-{width}-screen.png");
@@ -221,6 +298,161 @@ internal sealed partial class ShellNavigationProbe
                         && ThemeHost.ColorOf(dictionary, keys[index]) == ThemeHost.ToColor(colors[index]),
                         $"{theme.Id}/{dictionary}/{keys[index]} tint 或回退未随主题变化");
                 }
+
+            // 低优先级卡片复用设置卡片那支亚克力：tint 与实色回退同样要跟着主题走，回退必须整块不透明。
+            foreach (var dictionary in new[] { "Dark", "Light" })
+            {
+                var entries = (ResourceDictionary)palette.ThemeDictionaries[dictionary];
+                Require(entries["CardBackgroundFillColorDefaultBrush"] is AcrylicBrush card
+                    && card.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceHover)
+                    && card.FallbackColor == ThemeHost.ToColor(theme.Colors.SurfaceHover)
+                    && card.FallbackColor.A == 0xFF
+                    && ThemeHost.ColorOf(dictionary, "CardBackgroundFillColorDefaultBrush")
+                        == ThemeHost.ToColor(theme.Colors.SurfaceHover),
+                    $"{theme.Id}/{dictionary}/CardBackgroundFillColorDefaultBrush 未随主题变化或回退仍半透明");
+            }
+        }
+        void CheckLibraryMaterials(LibraryPage page, UiTheme theme)
+        {
+            CheckCardMaterial(Get<Border>(page, "LibrarySectionsSurface"), "媒体库分类胶囊", theme);
+            CheckCardMaterial(Get<Border>(page, "FnNasFilterPanel"), "飞牛筛选面板", theme);
+            CheckCardMaterial(Get<SearchSourceTabs>(page, "SourceTabs"), "搜索来源栏", theme);
+        }
+        async Task CheckMoviePilotCardsAsync(UiTheme theme)
+        {
+            await UntilAsync(() => progressCard is not null && moviePilotCards is not null
+                && Descendants(moviePilotCards).OfType<Grid>()
+                    .Any(grid => grid.Name == "ResourceCard" && grid.ActualWidth > 100));
+            CheckCardMaterial(Get<Border>(progressCard!, "ProgressCard"), "MoviePilot 搜索进度卡", theme);
+            CheckCardMaterial(Descendants(moviePilotCards!).OfType<Grid>().First(grid =>
+                grid.Name == "ResourceCard" && grid.ActualWidth > 100), "MoviePilot 资源卡", theme);
+        }
+        async Task CheckAniBtCardsAsync(UiTheme theme)
+        {
+            await UntilAsync(() => aniBtProgress is not null && aniBtResources is not null
+                && Descendants(aniBtProgress).OfType<Border>()
+                    .Any(border => border.Name == "ProgressCard" && border.ActualWidth > 100)
+                && Descendants(aniBtResources).OfType<Expander>()
+                    .Any(expander => expander.Name == "ReleaseGroup" && expander.ActualWidth > 100));
+            CheckCardMaterial(Descendants(aniBtProgress!).OfType<Border>().First(border =>
+                border.Name == "ProgressCard" && border.ActualWidth > 100), "AniBT 进度卡", theme);
+            CheckCardMaterial(Descendants(aniBtResources!).OfType<Expander>().First(expander =>
+                expander.Name == "ReleaseGroup" && expander.ActualWidth > 100), "AniBT 资源卡", theme);
+        }
+        void CheckCardMaterial(FrameworkElement element, string what, UiTheme theme)
+        {
+            bool Correct()
+            {
+                var background = Background();
+                return ReferenceEquals(background, dark["CardBackgroundFillColorDefaultBrush"])
+                    && background is AcrylicBrush acrylic
+                    && acrylic.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceHover)
+                    && acrylic.FallbackColor == ThemeHost.ToColor(theme.Colors.SurfaceHover);
+            }
+            Brush? Background() => element switch
+            {
+                Border border => border.Background,
+                Panel panel => panel.Background,
+                Control control => control.Background,
+                _ => null
+            };
+            void Set(Brush? brush)
+            {
+                switch (element)
+                {
+                    case Border border: border.Background = brush; break;
+                    case Panel panel: panel.Background = brush; break;
+                    case Control control: control.Background = brush; break;
+                }
+            }
+
+            Require(Correct(), what + "未使用设置卡片亚克力或未随主题更新");
+            var original = Background();
+            try
+            {
+                Set((Brush)dark["EgSurfaceBrush"]);
+                Require(!Correct(), what + " 检查未拒绝实色反例");
+            }
+            finally { Set(original); }
+            Require(Correct(), what + " 反例恢复失败");
+            reads.Add($"{ThemeHost.Current.Id}/{what}: 卡片亚克力 tint={((AcrylicBrush)dark["CardBackgroundFillColorDefaultBrush"]).TintColor}，实色反例已拒绝");
+        }
+        FrameworkElement BuildMoviePilotCards()
+        {
+            progressCard = new MoviePilotSearchProgressView();
+            progressCard.Attach(new MoviePilotSearchProgressViewModel
+            {
+                IsActive = true,
+                IsIndeterminate = false,
+                Value = 54,
+                PercentText = "54%",
+                Status = "已完成 9 / 15 个搜索来源",
+                TitleText = "离线电影：用于材质探针的长标题",
+                YearText = "年份：2026"
+            });
+            moviePilotCards = new MoviePilotResourceBrowser { Height = 620 };
+            var browser = new MoviePilotResourceBrowserViewModel();
+            browser.SetResults([new MoviePilotResourceRow(new MoviePilotResource
+            {
+                Title = "离线资源 S01E01 2026 2160p WEB-DL HDR10 HEVC AAC 中字-离线组",
+                SiteName = "离线站点",
+                Description = "用于材质探针的长文本资源描述，标题、标签和资源信息应保持可读。",
+                Size = 8L * 1024 * 1024 * 1024,
+                Seeders = 88,
+                Peers = 3,
+                Resolution = "2160p",
+                VideoCodec = "HEVC",
+                Edition = "WEB-DL",
+                ReleaseGroup = "离线组",
+                ResourceType = "WEB-DL",
+                ResourceEffect = "HDR10",
+                Labels = ["中字"],
+                PublishedAt = DateTimeOffset.Now,
+                PageUrl = "https://moviepilot.invalid/details",
+                TorrentInfo = System.Text.Json.JsonSerializer.SerializeToElement(new { title = "fixture" })
+            }, _ => Task.CompletedTask, _ => { })], autoEpisode: null);
+            moviePilotCards.Attach(browser);
+            return new StackPanel { Spacing = 12, Children = { progressCard, moviePilotCards } };
+        }
+        FrameworkElement BuildAniBtCards()
+        {
+            var release = new AniBtRelease("rel-1", "离线番剧 第01集 1080p WEB-DL 简中",
+                new Uri("https://anibt.invalid/download/rel-1"),
+                new Uri("https://anibt.invalid/release/rel-1"),
+                Size: 1_500_000_000,
+                PublishedAt: DateTimeOffset.Now.AddHours(-2),
+                GroupName: "离线字幕组",
+                EpisodeKey: "1",
+                Resolution: "1080p",
+                Format: "WEB-DL",
+                Languages: ["简中"],
+                Subtitle: "内嵌",
+                Tags: ["合集"]);
+            var resource = new MoviePilotResource
+            {
+                Title = release.Title,
+                Size = 1_500_000_000,
+                SiteName = "AniBT",
+                ReleaseGroup = "离线字幕组",
+                Resolution = "1080p",
+                PageUrl = "https://anibt.invalid/release/rel-1",
+                TorrentInfo = System.Text.Json.JsonSerializer.SerializeToElement(new { title = "fixture" })
+            };
+            var row = new AniBtResourceRow(new AniBtResource(release, resource), _ => Task.CompletedTask, _ => { });
+            var source = new AniBtReleaseGroup("group-1", "离线字幕组", "offline", [1, 2, 3, 4], 4, [release]);
+            var anime = new AniBtAnime("anime-1", 1, "离线番剧", EpisodeCount: 12);
+            AniBtResourceBrowser Build(int view)
+            {
+                var model = new AniBtBrowserViewModel();
+                model.SetResults([row], "", [source], anime);
+                model.ViewIndex = view;
+                var browser = new AniBtResourceBrowser { Height = 300 };
+                browser.Attach(model);
+                return browser;
+            }
+            aniBtProgress = Build(0);
+            aniBtResources = Build(1);
+            return new StackPanel { Spacing = 12, Children = { aniBtProgress, aniBtResources } };
         }
         void CheckCard(Border card)
         {

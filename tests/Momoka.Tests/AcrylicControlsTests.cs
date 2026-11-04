@@ -208,6 +208,68 @@ internal static class AcrylicControlsTests
             }
         });
 
+        Test("卡片亚克力：海报播放键与右下操作组接按钮玻璃", () =>
+        {
+            var card = Read("Views/PosterCard.xaml");
+            var resources = card.Root!.Element(Xaml + "UserControl.Resources")!;
+            var play = Resource(resources, "EgCardPlayButtonStyle");
+            Assert.Equal("{ThemeResource EgActionGlassBrush}", Setter(play, "Background"));
+            var action = Resource(resources, "EgCardActionButtonStyle");
+            Assert.Equal("{ThemeResource EgActionGlassBrush}", Setter(action, "Background"));
+            Assert.Equal("8", Setter(action, "CornerRadius"));
+
+            foreach (var name in new[] { "WatchedButton", "FavoriteButton", "MoreButton" })
+            {
+                var button = Named(card, name);
+                for (var index = 0; index < States.Length; index++)
+                    Assert.Equal(GlassKeys[index], LocalAlias(button, "ButtonBackground" + States[index]));
+                Assert.Equal("EgOnScrimBrush", FindLocalResource(button, "ButtonForegroundPointerOver")
+                    ?.Attribute("ResourceKey")?.Value);
+                Assert.Equal("EgOnScrimDimBrush", FindLocalResource(button, "ButtonForegroundPressed")
+                    ?.Attribute("ResourceKey")?.Value);
+                Assert.Null(FindLocalResource(button, "ButtonBackgroundDisabled"), "禁用态保留平台实色");
+            }
+
+            var actions = Named(card, "Actions").Element(Xaml + "StackPanel.Resources")!
+                .Element(Xaml + "ResourceDictionary")!;
+            Assert.True(actions.Element(Xaml + "ResourceDictionary.MergedDictionaries")!.Elements().Any(
+                element => (string?)element.Attribute("Source") == "ms-appx:///Theme/ActionButtons.xaml"),
+                "右下操作组没有合入 ActionButtons 字典");
+            var contrast = actions.Element(Xaml + "ResourceDictionary.ThemeDictionaries")!
+                .Elements(Xaml + "ResourceDictionary")
+                .Single(element => (string?)element.Attribute(X + "Key") == "HighContrast");
+            foreach (var key in new[] { "ButtonForegroundPointerOver", "ButtonForegroundPressed" })
+                Assert.Equal("{ThemeResource SystemColorWindowTextColor}",
+                    (string?)Resource(contrast, key).Attribute("Color"));
+        });
+
+        Test("卡片亚克力：媒体库分类胶囊、搜索来源栏和飞牛筛选复用设置卡片刷子", () =>
+        {
+            var page = Read("Views/LibraryPage.xaml");
+            Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}",
+                (string?)Named(page, "LibrarySectionsSurface").Attribute("Background"));
+            Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}",
+                (string?)Named(page, "FnNasFilterPanel").Attribute("Background"));
+            var style = Named(page, "SourceTabs").Elements()
+                .Single(element => element.Name.LocalName == "SearchSourceTabs.Style")
+                .Elements().Single(element => element.Name.LocalName == "Style");
+            Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", Setter(style, "Background"));
+            Assert.Equal("16", Setter(style, "CornerRadius"), "来源栏圆角应保持原样");
+        });
+
+        Test("卡片亚克力：MoviePilot 与 AniBT 资源卡、进度卡复用设置卡片刷子", () =>
+        {
+            foreach (var (file, name) in new[]
+            {
+                ("Views/MoviePilotResourceBrowser.xaml", "ResourceCard"),
+                ("Views/MoviePilotSearchProgressView.xaml", "ProgressCard"),
+                ("Views/AniBtResourceBrowser.xaml", "ProgressCard"),
+                ("Views/AniBtResourceBrowser.xaml", "ReleaseGroup")
+            })
+                Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}",
+                    (string?)Named(Read(file), name).Attribute("Background"), file + "/" + name);
+        });
+
         Test("按钮亚克力：局部按钮资源不覆盖全局菜单、正文和输入", () =>
         {
             foreach (var theme in new[] { "Dark", "Light" })
@@ -241,12 +303,18 @@ internal static class AcrylicControlsTests
             Assert.Equal(1, runner.Split("AcrylicControlsAsync,", StringSplitOptions.None).Length - 1);
             Assert.Contains("AcrylicControlsAsync, 180, section: ShellProbeSections.Materials", runner);
             var source = Source("ShellNavigationProbe.Materials.cs");
-            Assert.Contains("new[] { \"detail\", \"shelf\", \"servers\", \"notifications\" }", source);
+            Assert.Contains("new[] { \"detail\", \"shelf\", \"servers\", \"notifications\", \"library\", \"mpcards\", \"anibtcards\" }", source);
             Assert.Contains("foreach (var theme in UiThemes.All)", source);
             Assert.Contains("foreach (var width in new[] { 1280, 760 })", source);
             Assert.Contains("CheckRoles(theme);", source);
             Assert.Contains("detail.ViewModel.PlayTarget?.HasResumePosition == true", source);
             Assert.Contains("== 6);", source);
+            Assert.Contains("hover.ActionGlass && hover.PlayGlassRest", source);
+            Assert.Contains("acrylic-poster-actions-screen.png", source);
+            Assert.Contains("CheckLibraryMaterials", source);
+            Assert.Contains("CheckMoviePilotCardsAsync", source);
+            Assert.Contains("CheckAniBtCardsAsync", source);
+            Assert.Contains("acrylic-{stage}-fallback-card-screen.png", source);
             Assert.Contains("acrylic-{stage}-{theme.Id}-{width}-screen.png", source);
             Assert.Contains("acrylic-controls.txt", source);
         });
@@ -273,6 +341,9 @@ internal static class AcrylicControlsTests
             Assert.Contains("HomeMotion.ApplyPreference(savedMotion); ThemeHost.Apply(savedTheme); _root.Background = savedBackground", source);
         });
     }
+
+    private static string? Setter(XElement style, string property) => style.Elements(Xaml + "Setter")
+        .SingleOrDefault(element => (string?)element.Attribute("Property") == property)?.Attribute("Value")?.Value;
 
     private static string LocalAlias(XElement element, string key)
     {

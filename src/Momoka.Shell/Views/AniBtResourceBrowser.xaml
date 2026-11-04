@@ -69,7 +69,8 @@
             <ItemsRepeater.Layout><StackLayout Spacing="8" /></ItemsRepeater.Layout>
             <ItemsRepeater.ItemTemplate>
                 <DataTemplate x:DataType="vm:AniBtResourceGroup">
-                    <Border Padding="12" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="{StaticResource EgCardCornerRadius}">
+                    <!-- 进度卡与资源折叠组都复用设置卡片的低透明度亚克力；格子、标签和长标题的层级不变。 -->
+                    <Border x:Name="ProgressCard" Padding="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource EgCardCornerRadius}">
                         <StackPanel Spacing="6">
                             <local:WrapRow Spacing="14" RowSpacing="8">
                                 <Border x:Name="GroupLogoSurface" Width="24" Height="24" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}"
@@ -104,7 +105,7 @@
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="vm:AniBtResourceGroup">
                         <Expander x:Name="ReleaseGroup" IsExpanded="{x:Bind IsOpen, Mode=TwoWay}" HorizontalAlignment="Stretch"
-                            HorizontalContentAlignment="Stretch" Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
+                            HorizontalContentAlignment="Stretch" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
                             AutomationProperties.Name="{x:Bind Name}">
                             <Expander.Header>
                                 <local:WrapRow Spacing="10" RowSpacing="8">

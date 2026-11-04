@@ -194,7 +194,7 @@
                     <DataTemplate x:DataType="vm:MoviePilotResourceRow">
                         <ItemContainer AutomationProperties.Name="{x:Bind CardAutomationName, Mode=OneWay}"
                             AutomationProperties.HelpText="{x:Bind CardHint, Mode=OneWay}">
-                            <Grid x:Name="ResourceCard" Height="364" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="8"
+                            <Grid x:Name="ResourceCard" Height="364" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8"
                                 ToolTipService.ToolTip="{x:Bind CardHint, Mode=OneWay}">
                                 <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                 <Grid Padding="14,14,14,8" RowSpacing="6">

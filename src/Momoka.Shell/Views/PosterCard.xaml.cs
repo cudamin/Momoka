@@ -13,15 +13,15 @@ namespace Momoka.Shell.Views;
 /// the artwork's centre, so 「in the middle of the cover」 is 0,0 and nothing else;
 /// <paramref name="InsetRight"/> and <paramref name="InsetBottom"/> are the three icons' bottom-right
 /// corner measured from the artwork's, so 「贴在封面的右下角」 is a small number and centred is half a
-/// card. <paramref name="Chrome"/> is whether any of the three still paints a background in any of its
-/// three states — the grey circles and the black pill that 「仅保留白色的图标按钮」 took away.
+/// card. <paramref name="ActionGlass"/> is whether the three corner buttons paint the shared action
+/// glass in all three states — the small glass chips that pull the icons off a busy poster.
 /// <paramref name="Watch"/> is whether the card can tell where the cursor really is, which is what takes
 /// the buttons back down when the pointer leaves the window without saying so.
 /// <para>
 /// 封面框线、中间播放键与无描边读数分开记录。<paramref name="FrameBorderless"/> 核三态都不画线。<paramref name="FrameRest"/> 是静止时的框线色，
 /// <paramref name="FrameActive"/> 是指针上来之后的色 —— 2026-10-27 起两者必须相同：封面不再画那圈绿框。
-/// <paramref name="PlayRest"/> 是播放键停着的底色（灰），<paramref name="PlayHover"/> 是指针压到键上的底色
-/// （强调色）—— 48 像素的圆在截图里认得出颜色，但「是不是调色板里那一支」还得靠读数。
+/// <paramref name="PlayGlassRest"/> 是播放键停着时的底（与详情操作排同一块按钮亚克力），
+/// <paramref name="PlayHover"/> 是指针压到键上时的强调色 —— 「是不是调色板里那一支」还得靠读数。
 /// <paramref name="FrameFocus"/> 是键盘那一半接上了没有：卡片自己接不到焦点，得往上找到外层容器，找不到的
 /// 话焦点那一半整个不存在，而那是完全没有症状的。
 /// </para>
@@ -39,12 +39,12 @@ internal sealed record CardHoverProbe(
     double ArtHeight,
     double InsetRight,
     double InsetBottom,
-    bool Chrome,
+    bool ActionGlass,
     bool HostSurfaceTransparent,
     bool Watch,
     Windows.UI.Color FrameRest,
     Windows.UI.Color FrameActive,
-    Windows.UI.Color PlayRest,
+    bool PlayGlassRest,
     Windows.UI.Color PlayHover,
     bool FrameFocus,
     bool FrameBorderless);
@@ -614,7 +614,7 @@ public sealed partial class PosterCard : UserControl
             .TransformPoint(new Windows.Foundation.Point(Actions.ActualWidth, Actions.ActualHeight));
 
         var (rest, hovered, borderless) = ProbeFrame();
-        var (playRest, playHover) = ProbePlay();
+        var (playGlass, playHover) = ProbePlay();
 
         var probe = new CardHoverProbe(
             Card?.Title ?? "",
@@ -629,12 +629,12 @@ public sealed partial class PosterCard : UserControl
             Art.ActualHeight,
             Art.ActualWidth - corner.X,
             Art.ActualHeight - corner.Y,
-            Paints(WatchedButton) || Paints(FavoriteButton) || Paints(MoreButton),
+            ActionGlass(WatchedButton) && ActionGlass(FavoriteButton) && ActionGlass(MoreButton),
             HostSurfaceIsTransparent(),
             _watch.Probe(),
             rest,
             hovered,
-            playRest,
+            playGlass,
             playHover,
             _focus.Probe(),
             borderless);
@@ -679,32 +679,26 @@ public sealed partial class PosterCard : UserControl
     /// <summary>
     /// 自检：中间那颗播放键停着与指针压上去的底色，都是照实读回来的。
     /// <para>
-    /// 停着那一档读按钮自己的 <c>Background</c>（样式给的那支灰）；指针那一档得问模板 —— 框架在
+    /// 停着那一档读按钮自己的 <c>Background</c>（样式给的那块按钮亚克力）；指针那一档得问模板 —— 框架在
     /// <c>PointerOver</c> 里把底色画在模板根上，按钮自己的 <c>Background</c> 一个字都不变。切完照原样放回
     /// <c>Normal</c>，免得自检在屏上留下一颗亮着的键。
     /// </para>
     /// </summary>
-    private (Windows.UI.Color Still, Windows.UI.Color Active) ProbePlay()
+    private (bool GlassRest, Windows.UI.Color Active) ProbePlay()
     {
         PlayButton.ApplyTemplate();
-        var still = Colour(PlayButton.Background);
+        var glass = IsGlass(PlayButton.Background, ThemeHost.Current.Colors.SurfaceElevated);
         try
         {
             var applied = VisualStateManager.GoToState(PlayButton, "PointerOver", false);
-            var active = applied ? Colour(Presenter(PlayButton)?.Background) : default;
-            return (still, active);
+            var active = applied ? Colour(ButtonPresenter(PlayButton)?.Background) : default;
+            return (glass, active);
         }
         finally
         {
             VisualStateManager.GoToState(PlayButton, "Normal", false);
         }
 
-        static ContentPresenter? Presenter(Button button)
-        {
-            return VisualTreeHelper.GetChildrenCount(button) > 0
-                ? VisualTreeHelper.GetChild(button, 0) as ContentPresenter
-                : null;
-        }
     }
 
     /// <summary>
@@ -714,41 +708,50 @@ public sealed partial class PosterCard : UserControl
         brush is SolidColorBrush solid ? solid.Color : default;
 
     /// <summary>
-    /// 自检：whether one of the three corner buttons still fills itself in any of the states the pointer
-    /// puts it through — 「仅保留白色的图标按钮」 with nothing behind the glyph.
+    /// 自检：右下三颗按钮在常态、悬停和按下都画着那支按钮亚克力，且三档浓度各是它们那一档。
     /// <para>
-    /// The button's own <c>Background</c> answers only for the resting state; the other two are the
-    /// template's, set from theme resources that a Style cannot reach and that this card overrides in the
-    /// group's own <c>Resources</c> instead. So each state is switched on and the template root — which
-    /// for Button *is* the ContentPresenter the states paint — is read back. Getting one of those key
-    /// names wrong is silent, and its only symptom is the grey chip coming back under the pointer.
+    /// 按钮自己的 <c>Background</c> 只回答常态；悬停和按下是模板从 <c>ButtonBackgroundPointerOver</c> 等
+    /// 主题键取色，所以每一档都切进模板再读模板根。键名或局部字典接错时没有别的症状，只会在指针下露出
+    /// 一块透明或错档的底。
     /// </para>
     /// </summary>
-    private static bool Paints(Button button)
+    private static bool ActionGlass(Button button)
     {
-        if (button.BorderThickness is { Left: > 0 } or { Top: > 0 } or { Right: > 0 } or { Bottom: > 0 })
-            return true;
-
-        var painted = false;
-
-        foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
+        button.ApplyTemplate();
+        var states = new[] { "Normal", "PointerOver", "Pressed" };
+        var roles = new[]
         {
-            VisualStateManager.GoToState(button, state, false);
-            painted |= Filled(Root(button));
+            ThemeHost.Current.Colors.SurfaceElevated,
+            ThemeHost.Current.Colors.SurfaceHover,
+            ThemeHost.Current.Colors.SurfaceAlt
+        };
+
+        try
+        {
+            for (var index = 0; index < states.Length; index++)
+            {
+                if (!VisualStateManager.GoToState(button, states[index], false)
+                    || !IsGlass(ButtonPresenter(button)?.Background, roles[index])) return false;
+            }
+
+            return true;
         }
-
-        VisualStateManager.GoToState(button, "Normal", false);
-
-        // The button's own brush as well, in case the template has no ContentPresenter to read.
-        return painted || Filled(button.Background);
-
-        static Brush? Root(Button button) => VisualTreeHelper.GetChildrenCount(button) > 0
-            ? (VisualTreeHelper.GetChild(button, 0) as ContentPresenter)?.Background
-            : null;
-
-        // Transparent is a brush, and one that paints nothing; null is no brush at all.
-        static bool Filled(Brush? brush) => brush is not null and not SolidColorBrush { Color.A: 0 };
+        finally
+        {
+            VisualStateManager.GoToState(button, "Normal", false);
+        }
     }
+
+    /// <summary>那一格画的是不是按钮亚克力：tint 与不透明回退都落在这一档主题角色上。</summary>
+    private static bool IsGlass(Brush? brush, Momoka.Theming.ThemeColor role) =>
+        brush is AcrylicBrush acrylic
+        && acrylic.TintColor == ThemeHost.ToColor(role)
+        && acrylic.FallbackColor == ThemeHost.ToColor(role);
+
+    private static ContentPresenter? ButtonPresenter(Button button) =>
+        VisualTreeHelper.GetChildrenCount(button) > 0
+            ? VisualTreeHelper.GetChild(button, 0) as ContentPresenter
+            : null;
 
     private void OnPlayClicked(object sender, RoutedEventArgs e) => Raise(sender, CardAction.Play);
 
