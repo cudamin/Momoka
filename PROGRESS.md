@@ -1,3 +1,14 @@
+## 2026-11-04 测试文件 using 顺序清理（IMPORTS，已提交）
+
+- 用户令：只做 `dotnet format style` 的 IMPORTS 清理，先用 `--verify-no-changes` 留基线，分批自动修复测试文件，每批编译 + 跑受影响专项，最后闸门 1、主测试与 `check-diff`，单独提交；不碰产品代码，不夹带 Sonar 或 CA1502。
+- 基线核对：当前全方案 **283 条** IMPORTS。旧记录「281 处测试文件」口径不准——`work/format-style-check.log` 的 281 条实际是 **38 条测试 + 243 条 src**，0.2.5 新增 2 个 src 文件后为 **38 测试 + 245 src**（Shell 243、Core 2）。经用户确认只清测试范围。
+- 修复：39 个测试文件、16 个测试项目（基线 38 个，加 `tests/Momoka.Tests/ItemUserStateOrderTests.Boundaries.cs`——它经 `Compile Include` 链接进 AniBtEntry/PlexAffordance 的条件编译区，solution 级基线看不到）。全部改动是 `using` 重排与 `extern alias` 后空行归一，没有产品代码或逻辑改动；`git diff` 自检 39 个文件、0 条非 using 变更行。
+- 批量方式：项目级 `dotnet format style` 会连带格式化 `ProjectReference` 的 Shell 源文件，首次在批次 B 触发了 6 个 src 文件；核对 diff 后用反向补丁撤回，后续批次改用 solution 级 `--include` 只指定测试文件，src 保持零改动。
+- 验证：`tests` 范围 `dotnet format style --verify-no-changes --include tests` 退出 0；全方案复测只剩 **245 条 src IMPORTS**（另 1 条 `ShellSelfCheck.cs` 的 IDE1006 命名告警，非 IMPORTS，构建仍 0 警告）。Release 全方案构建 **0 警告 0 错误**（`work/gate1-build-20261104.log`）；`dotnet format whitespace --verify-no-changes` 退出 0；主测试 **3636/3636、0 失败 0 跳过**（`work/main-tests-20261104.log`）；`tools/check-diff.ps1` 代码改动 **39 个测试文件通过**（`work/check-diff-20261104.log`），加入 3 个文档文件后最终 **42 个文件通过**（`work/check-diff-final-20261104.log`）。
+- 受影响专项：批次 A `media-source-size` 20/20、`composition-readiness` 32/32、`plex-protocol` 148/148；批次 B DetailDelete／SubtitleDialog／SubtitleDropOwnership 通过，PlexAffordance **58/68**；批次 C AniBtEntry／SearchLifetime／DashboardNavigation／ImagePerformance 全过（ImagePerformance 41/41）；批次 D NaturalContinuationCaller／NaturalEpisodeContinuation／PageContract／SettingsPersistence／FrameInterpolation／TransferSubmission 通过，CurrentPermissionSnapshot **53/54**、SettingsProbeContract **0/31**。
+- 红项归因：PlexAffordance 10 条（详情 VM 的 HTTP 越界计数）、CurrentPermissionSnapshot 1 条、SettingsProbeContract 31 条都是 HEAD 既有——把对应测试文件临时还原到 HEAD 后重建复跑，红项与计数一致；直接原因是当前 Shell 已没有 `SettingTextRow` 的旧构造签名，Plex 侧疑似 0.2.5 之后详情请求白名单未跟。本轮未修，未放宽断言。
+- 未覆盖：src 的 245 处 IMPORTS 未清（用户限定不碰产品代码）；没跑 UI 探针、闸门 3/4（非发版）；`dotnet format style` 仍不进门禁。
+
 ## 2026-11-04 发版 0.2.5：GitHub Release 与微软商店上架包（已发布 GitHub、商店未上传）
 
 - 用户令：提交代码到 GitHub、更新版本打包发布到 GitHub、生成微软商店安装包。版本升至 **0.2.5**（`Directory.Build.props` 三处同步），发版提交 `2ff1224`；master 已推送（54 个提交，`74ac23d..2ff1224`），tag `v0.2.5` 已推送。

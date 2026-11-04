@@ -1,7 +1,7 @@
 using Momoka.Configuration;
 using Momoka.Emby;
-using Momoka.Playback;
 using Momoka.NaturalContinuationCallerTests;
+using Momoka.Playback;
 
 namespace Momoka.Shell.ViewModels;
 

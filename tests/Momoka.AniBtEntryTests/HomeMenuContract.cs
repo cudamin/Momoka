@@ -1,6 +1,6 @@
+using Microsoft.UI.Xaml;
 using Momoka.Emby;
 using Momoka.Shell.Views;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.Views;
 

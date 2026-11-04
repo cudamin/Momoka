@@ -1,5 +1,5 @@
-using Momoka.Emby;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Emby;
 using static Momoka.Tests.Program;
 
 namespace Momoka.Tests;

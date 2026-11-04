@@ -1,6 +1,6 @@
-using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.Shell.Views;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;

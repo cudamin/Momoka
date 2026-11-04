@@ -1,7 +1,7 @@
 #if ITEM_USER_STATE_ORDER_FIXTURE
-using Momoka.Emby;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.Emby;
 
 // Only framework values, click dispatch and unrelated commands are substitutes.
 // ItemCommands.cs, CardItem.cs, IShellActions.cs and the shared request helpers are real sources.

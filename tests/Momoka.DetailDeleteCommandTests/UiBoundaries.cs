@@ -1,8 +1,8 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Momoka.Emby;
 using Momoka.FnNas;
 using Momoka.Shell.ViewModels;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 
 // UI values, dialog choices and unused visual decoding are boundaries only.
 // Actual command method slices, ConfirmDialog and CardItem execute unchanged.

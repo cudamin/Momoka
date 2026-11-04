@@ -1,10 +1,10 @@
+using Microsoft.UI.Xaml.Controls;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Playback;
 using Momoka.Shell.Views;
-using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell.ViewModels;
 

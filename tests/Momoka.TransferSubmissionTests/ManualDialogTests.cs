@@ -1,7 +1,7 @@
 using System.Xml.Linq;
+using Microsoft.UI.Xaml;
 using Momoka.MoviePilot;
 using Momoka.Shell.Views;
-using Microsoft.UI.Xaml;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;

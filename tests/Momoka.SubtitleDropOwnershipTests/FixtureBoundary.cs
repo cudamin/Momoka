@@ -1,15 +1,15 @@
 using System.Reflection;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
+using Momoka.Mpv;
 using Momoka.Playback;
 using Momoka.Services;
-using Momoka.Mpv;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Momoka.Shell.Windowing;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 

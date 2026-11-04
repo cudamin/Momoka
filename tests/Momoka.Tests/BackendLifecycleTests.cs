@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
-using Momoka.Diagnostics;
 using Momoka.Configuration;
+using Momoka.Diagnostics;
 using Momoka.Mpv;
 using Momoka.Playback;
 using static Momoka.Tests.TestHarness;

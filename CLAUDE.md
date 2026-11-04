@@ -97,7 +97,7 @@
 - **字号与颜色**：文本使用 `Theme/Styles.xaml` 的项目刻度与 `Eg*Style`，主题颜色使用角色键；`FontIcon` 的数字是字形度量，按实际需要处理。`font-size` / `color` 基线逐文件记录内联数字和颜色，只减不增；必要例外或文件搬迁需复核后更新，计数减少不证明视觉正确。
 - **命令行**：`switch` 基线检查源码中的开关集合；变更时同步 [开发文档中的开关说明](docs/开发与验证.md#命令行开关)，并验证组合与实际用法。
 - **分析器载荷**：构建使用仓库 `tools/analyzers` 的副本，`analyzer` 基线核对文件与哈希。`Directory.Build.props` 的 `Condition=Exists` 会让缺载荷的构建继续，所以“0 警告”与载荷基线检查都必须通过。
-- **质量工具**：`tools/quality.ps1` 是统一入口，串起编译与空白、脚本检查、架构依赖、重复代码与 Git 变更检查；每项也可单独运行。架构规则在 `tests/Momoka.ArchitectureTests`（NetArchTest 读当前 Release 的 Core/Shell DLL，守 Core 不碰 UI、不反向依赖 Shell、程序集引用只有框架）；重复率预算在 `tools/check-duplication.ps1`（jscpd，当前基线 63 段 / 0.62%，预算 70 段 / 1%）；变更文件的行尾、BOM 与末尾换行在 `tools/check-diff.ps1`。**不引入 SonarAnalyzer/SonarQube**：2026-11-03 实测 Core 一个项目 347 条告警、35 条规则，逐条核对全是刻意写法（飞牛 MD5 签名、错误响应故意排空、降序比较交换参数）；SonarQube 的 C# 分析要商业版，重复率已由 jscpd 覆盖。`dotnet format style` 仍有 281 处测试文件的 using 顺序差异，属于单独清理轮，暂不进门禁。
+- **质量工具**：`tools/quality.ps1` 是统一入口，串起编译与空白、脚本检查、架构依赖、重复代码与 Git 变更检查；每项也可单独运行。架构规则在 `tests/Momoka.ArchitectureTests`（NetArchTest 读当前 Release 的 Core/Shell DLL，守 Core 不碰 UI、不反向依赖 Shell、程序集引用只有框架）；重复率预算在 `tools/check-duplication.ps1`（jscpd，当前基线 63 段 / 0.62%，预算 70 段 / 1%）；变更文件的行尾、BOM 与末尾换行在 `tools/check-diff.ps1`。**不引入 SonarAnalyzer/SonarQube**：2026-11-03 实测 Core 一个项目 347 条告警、35 条规则，逐条核对全是刻意写法（飞牛 MD5 签名、错误响应故意排空、降序比较交换参数）；SonarQube 的 C# 分析要商业版，重复率已由 jscpd 覆盖。`dotnet format style` 的测试文件 using 顺序已于 2026-11-04 清理（`--include tests` 校验 0 差异）；src 仍有 245 处（Shell 243、Core 2）待单独清理轮，暂不进门禁。
 
 ## 依赖与分析器升级
 

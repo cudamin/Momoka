@@ -8,12 +8,12 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
+using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Services;
 using Momoka.Shell.Views;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Tests;
 
