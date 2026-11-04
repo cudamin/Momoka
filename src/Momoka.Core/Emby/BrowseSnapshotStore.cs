@@ -39,6 +39,9 @@ public sealed class LibrarySnapshot
 {
     public required IReadOnlyList<EmbyItem> Items { get; init; }
 
+    /// <summary>Absolute server offset of Items[0]; old prefix snapshots keep the default zero.</summary>
+    public int StartIndex { get; init; }
+
     public required int Total { get; init; }
 
     public required bool FirstPage { get; init; }
@@ -61,7 +64,7 @@ public sealed class LibrarySnapshot
 /// </summary>
 public sealed class BrowseSnapshotStore
 {
-    /// <summary>Four pages at the shipped page size. Deeper reads are deliberately not cached.</summary>
+    /// <summary>A bounded DTO window; deep library returns keep this many items around their anchor.</summary>
     public const int MaxItemsPerSnapshot = 400;
 
     public const int DefaultHomeCapacity = 3;
@@ -164,7 +167,7 @@ public sealed class BrowseSnapshotStore
         ArgumentNullException.ThrowIfNull(sources);
         ArgumentNullException.ThrowIfNull(snapshot);
 
-        if (snapshot.Items.Count > MaxItemsPerSnapshot)
+        if (snapshot.Items.Count > MaxItemsPerSnapshot || snapshot.StartIndex < 0)
         {
             _libraries.Remove(key);
             return;
@@ -173,6 +176,7 @@ public sealed class BrowseSnapshotStore
         var copy = new LibrarySnapshot
         {
             Items = [.. snapshot.Items],
+            StartIndex = snapshot.StartIndex,
             Total = snapshot.Total,
             FirstPage = snapshot.FirstPage,
             UpcomingReadCount = snapshot.UpcomingReadCount,

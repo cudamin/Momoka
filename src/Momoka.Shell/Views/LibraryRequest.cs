@@ -55,6 +55,13 @@ internal sealed record LibraryRequest
 
     public int LoadedCount { get; set; }
 
+    /// <summary>Scroll anchor belongs to this exact source/query generation, never to a new sort or login.</summary>
+    public string? AnchorQueryKey { get; set; }
+    public int AnchorIndex { get; set; } = -1;
+    public string? AnchorIdentityKey { get; set; }
+    public double AnchorY { get; set; }
+    public int AnchorColumns { get; set; } = 1;
+
     /// <summary>标题栏收藏页筛选的账号；null 为全部在线账号。随返回栈保留，重新进入时仍看同一个账号。</summary>
     public string? FavoriteAccountKey { get; set; }
 
