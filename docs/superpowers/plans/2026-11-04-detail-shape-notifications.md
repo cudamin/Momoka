@@ -1,6 +1,6 @@
 # 详情同类型版式通知去重实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 完成导航延迟方案 P1 的一个小片：同一次详情访问中，预览、完整主体及刷新类型相同时，不重复发布整批版式通知。
 
@@ -35,16 +35,19 @@
 
 **Interfaces:** 复用 `detail-action-readiness-fixture <当前树 Release Shell DLL> <当前树根>`，原有 7 项仍执行；不新增产品开关。
 
-- [ ] 在真实 VM 的 PropertyChanged 边界观察 `ContinueVisibility`，电影/剧/季/单集 Preview→Apply 同类型只发布一次；完整刷新不再发布相同类型批次。
-- [ ] 覆盖存根、服务器改类型、VM 重新 Attach、同对象类型修改、能力通知与集合/播放目标刷新。
-- [ ] 构建现有 Shell 和修改后的测试，运行夹具，保存因重复通知失败的 RED 输出。
-- [ ] 实现本访问的类型记录及去重；保持 44 个原版式通知与所有调用位置，能力通知在去重判断之前。
-- [ ] 重新构建并运行扩展夹具、删除夹具和完整主测试，检查零失败零跳过；保存 GREEN 与构建输出。
-- [ ] 运行 performance/library 匿名 UI 检查，查看真实截图；既有环境红保留原报告，不靠循环重跑洗绿。
-- [ ] 独立审查差异，修复必要问题，完成空白和文档链接检查后提交。
+- [x] 在真实 VM 的 PropertyChanged 边界观察 `ContinueVisibility`，电影/剧/季/单集 Preview→Apply 同类型只发布一次；完整刷新不再发布相同类型批次。
+- [x] 覆盖存根、服务器改类型、VM 重新 Attach、同对象类型修改、能力通知与集合/播放目标刷新。
+- [x] 构建现有 Shell 和修改后的测试，运行夹具，保存因重复通知失败的 RED 输出。
+- [x] 实现本访问的类型记录及去重；保持 44 个原版式通知与所有调用位置，能力通知在去重判断之前。
+- [x] 重新构建并运行扩展夹具、删除夹具和完整主测试，检查零失败零跳过；保存 GREEN 与构建输出。
+- [x] 运行 performance/library 匿名 UI 检查，查看真实截图；历史红项保留原报告，区分已查明的旧断言误报与原因未定的尺寸超时。
+- [x] 独立审查差异，修复必要问题，完成空白和文档链接检查后提交。
 
 ## Task 2: 主树整合与桌面交付
 
-- [ ] 核对主树干净、无冲突在途写入后合并；重新构建最终主树、运行受影响夹具/主测试/UI 检查。
-- [ ] 按规则发布至主树 `artifacts/publish/win-x64`，核对快捷方式、输出哈希及发布结果。
-- [ ] 记录实测通知次数、运行检查与未覆盖的实际帧延迟；删除已整合临时分支，按应用保护处理工作树。不推送远端。
+- [x] 核对主树干净、无冲突在途写入后合并；重新构建最终主树、运行受影响夹具/主测试/UI 检查。
+- [x] 按规则发布至主树 `artifacts/publish/win-x64`，核对快捷方式、输出哈希及发布结果。
+- [x] 记录实测通知次数、运行检查与未覆盖的实际帧延迟；未推送远端。
+- [ ] 所属聊天确认清理：核对独有文档与证据后删除已整合临时分支，按应用保护处理工作树。
+
+最终交付证据见原方案第 9.3 节与 `8738491`；首次材质超时原因未定，原报告保留，当前诊断版检查通过。
