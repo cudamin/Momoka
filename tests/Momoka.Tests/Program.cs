@@ -33,6 +33,12 @@ internal static class Program
             ArtworkPreviewTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["navigation-timing-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            NavigationTimingTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["performance-probe-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -323,6 +329,7 @@ internal static class Program
         UiLifecycleTests.Register();
         StartIntentTests.Register();
         DiagnosticsTests.Register();
+        NavigationTimingTests.Register();
         ScreenTests.Register();
         CardStripTests.Register();
         NeutralFeedbackTests.Register();

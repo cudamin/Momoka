@@ -167,10 +167,16 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>标题栏那一条底下是什么，见 <see cref="SetTitleStrip"/>。</summary>
     private TitleStrip _titleStrip;
 
+    /// <summary>The gesture that owns the navigation in flight; only set when stage timing is enabled.</summary>
+    private NavigationTimingRun? _navigationRun;
+
     public ShellPage()
     {
         InitializeComponent();
         InitializeSidebar();
+
+        ContentFrame.Navigating += (_, args) => BeginNavigation(args.SourcePageType);
+        ContentFrame.Navigated += (_, _) => CompleteNavigation();
 
         // 深浅跟着当前主题走。登记之后换主题会连带把这棵树翻过去 —— 框架自己那些没被调色板覆盖的刷子
         // 只认 ElementTheme，不登记的话浅色主题下就是「白面配深色控件」。
@@ -231,9 +237,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
         switch (e.GetCurrentPoint(this).Properties.PointerUpdateKind)
         {
             case PointerUpdateKind.XButton1Pressed:
+                NavigationTiming.Click("back-button");
                 GoBack();
                 break;
             case PointerUpdateKind.XButton2Pressed:
+                NavigationTiming.Click("forward-button");
                 GoForward();
                 break;
         }
@@ -1836,6 +1844,61 @@ public sealed partial class ShellPage : UserControl, IShellActions
         ? new EntranceNavigationTransitionInfo()
         : new SuppressNavigationTransitionInfo();
 
+    private void BeginNavigation(Type page)
+    {
+        var run = NavigationTiming.Capture();
+        if (run is null || run.ElapsedMs > 5000) return;
+        _navigationRun = run;
+        run.Mark("navigate-begin");
+        run.Mark(page == typeof(DetailPage) ? "target-detail"
+            : page == typeof(HomePage) ? "target-home"
+            : page == typeof(LibraryPage) ? "target-library"
+            : "target-other");
+    }
+
+    private void CompleteNavigation()
+    {
+        var run = _navigationRun;
+        if (run is null) return;
+        _navigationRun = null;
+        run.Mark("navigate-end");
+        run.Mark(ContentFrame.Content switch
+        {
+            DetailPage => "content-detail",
+            HomePage => "content-home",
+            LibraryPage => "content-library",
+            _ => "content-other"
+        });
+
+        if (ContentFrame.Content is FrameworkElement page)
+        {
+            if (page.IsLoaded) run.Mark("page-loaded");
+            else
+            {
+                void Loaded(object sender, RoutedEventArgs e)
+                {
+                    page.Loaded -= Loaded;
+                    run.Mark("page-loaded");
+                }
+                page.Loaded += Loaded;
+            }
+        }
+
+        void Layout(object? sender, object e)
+        {
+            ContentFrame.LayoutUpdated -= Layout;
+            run.Mark("first-layout");
+        }
+        ContentFrame.LayoutUpdated += Layout;
+
+        void Rendering(object? sender, object e)
+        {
+            CompositionTarget.Rendering -= Rendering;
+            run.Mark("first-render");
+        }
+        CompositionTarget.Rendering += Rendering;
+    }
+
     /// <summary>A top-level destination: one crumb and a synced navigation state.</summary>
 
     private void Open(Type page, object parameter, string title, string tag)
@@ -1952,7 +2015,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private void OnSettingsClicked(object sender, RoutedEventArgs e) => ShowSettings();
 
     /// <summary>需求 1 的第二颗：「点击后进入搜索页面，直接在当前窗口跳转」 — a page in this frame, not a window.</summary>
-    private void OnSearchClicked(object sender, RoutedEventArgs e) => OpenSearch();
+    private void OnSearchClicked(object sender, RoutedEventArgs e)
+    {
+        NavigationTiming.Click("search-button");
+        OpenSearch();
+    }
 
     /// <summary>
     /// 需求 6 的那颗「主页」：回到主页那一屏。顶上标签栏 2026-09-08 删掉之后，回主页只此一颗
@@ -1961,6 +2028,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void OnHomeClicked(object sender, RoutedEventArgs e)
     {
+        NavigationTiming.Click("home-button");
         if (SignInVisible && _session?.IsSignedIn == true)
         {
             _ = EnterShellAsync();
@@ -1971,7 +2039,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
         else GoTo("home");
     }
 
-    private void OnFavoritesClicked(object sender, RoutedEventArgs e) => GoTo(LibraryRequest.FavoritesTag);
+    private void OnFavoritesClicked(object sender, RoutedEventArgs e)
+    {
+        NavigationTiming.Click("favorites-button");
+        GoTo(LibraryRequest.FavoritesTag);
+    }
 
     public void RefreshFavorites(EmbyItem? changed = null)
     {
@@ -1993,9 +2065,17 @@ public sealed partial class ShellPage : UserControl, IShellActions
     }
 
     /// <summary>The row's own arrows. Same walk as the keyboard's and the mouse's, so none can drift.</summary>
-    private void OnBackClicked(object sender, RoutedEventArgs e) => GoBack();
+    private void OnBackClicked(object sender, RoutedEventArgs e)
+    {
+        NavigationTiming.Click("back-button");
+        GoBack();
+    }
 
-    private void OnForwardClicked(object sender, RoutedEventArgs e) => GoForward();
+    private void OnForwardClicked(object sender, RoutedEventArgs e)
+    {
+        NavigationTiming.Click("forward-button");
+        GoForward();
+    }
 
     /// <summary>
     /// One step back: the frame, the trail and the tab highlight. Reached from the row's own button, from

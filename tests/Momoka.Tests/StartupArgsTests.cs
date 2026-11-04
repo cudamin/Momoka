@@ -74,6 +74,13 @@ internal static class StartupArgsTests
             }
         });
 
+        Test("导航阶段计时：独立开关按普通开关读取", () =>
+        {
+            Assert.True(StartupArgs.Has(["--navigation-timing"], "--navigation-timing"));
+            Assert.True(StartupArgs.Has(["/Navigation-Timing"], "--navigation-timing"));
+            Assert.False(StartupArgs.Has(["--navigation"], "--navigation-timing"));
+        });
+
         Test("命令行：开关在不在，横线斜杠大小写都不算数", () =>
         {
             string[] args = ["--self-check", "-dump-ui", "/Screen", "2"];

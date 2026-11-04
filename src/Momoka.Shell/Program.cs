@@ -32,6 +32,12 @@ public sealed record StartupOptions
 
     public bool InspectShell { get; init; }
 
+    /// <summary>
+    /// Tooling only: write anonymous stage timestamps for navigation gestures. Normal startup is otherwise
+    /// unchanged; the output contains no server address, token or item name.
+    /// </summary>
+    public bool NavigationTiming { get; init; }
+
     /// <summary>Null runs every shell-probe case; otherwise the selected <c>--probe-section</c> areas.</summary>
     public IReadOnlySet<string>? ProbeSections { get; init; }
 
@@ -450,6 +456,7 @@ internal static class Program
             ProbeShell = RequestsShellProbe(args),
             InspectShell = Text(args, "--probe-shell") == "inspect",
             ProbeSections = StartupArgs.ShellProbeSectionFilter(args),
+            NavigationTiming = Has(args, "--navigation-timing"),
             ProbeSubtitles = RequestsSubtitleProbe(args),
             InspectSubtitles = Text(args, "--probe-subtitles") == "inspect",
             ProbeComposition = CompositionPlaybackProbe.IsRequested(args),
@@ -485,11 +492,22 @@ internal static class Program
                 || Has(args, "--show-osd") || Has(args, "--hide-cursor") || Has(args, "--show-settings")
                 || Has(args, "--show-detail") || Has(args, "--show-episode") || Has(args, "--show-cover")
                 || Has(args, "--show-missing") || Has(args, "--show-identify") || Has(args, "--show-refresh")
-                || Has(args, "--show-picker") || Has(args, "--play") || Text(args, "--theme") is not null,
+                || Has(args, "--show-picker") || Has(args, "--play") || Has(args, "--navigation-timing")
+                || Text(args, "--theme") is not null,
 
             Theme = Text(args, "--theme"),
             Paths = paths
         };
+
+        NavigationTimingFileSink? navigationTiming = null;
+        if (options.NavigationTiming)
+        {
+            var directory = Path.Combine(paths.LogDirectory,
+                $"navigation-timing-{DateTime.UtcNow:yyyyMMdd-HHmmssfff}-{Environment.ProcessId}");
+            navigationTiming = new NavigationTimingFileSink(Path.Combine(directory, "navigation-timing.ndjson"));
+            NavigationTiming.Start(new NavigationTimingRecorder(navigationTiming));
+            Log.Info(Category, $"导航阶段计时已启用：{Path.Combine(directory, "navigation-timing.ndjson")}");
+        }
 
         try
         {
@@ -522,6 +540,15 @@ internal static class Program
         {
             Log.Error(Category, "启动失败", error);
             return 1;
+        }
+        finally
+        {
+            NavigationTiming.Stop();
+            if (navigationTiming is not null)
+            {
+                navigationTiming.Flush();
+                navigationTiming.Dispose();
+            }
         }
     }
 

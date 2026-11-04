@@ -692,6 +692,7 @@ handle  Views/SubtitleDialog.xaml  Tracks
 switch  --dump-ui
 switch  --hide-cursor
 switch  --maximized
+switch  --navigation-timing
 switch  --play
 switch  --probe-composition
 switch  --probe-cursor

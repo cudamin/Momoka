@@ -161,7 +161,9 @@ public sealed partial class HomePage : Page, IShellContent
 
     public HomePage()
     {
+        NavigationTiming.Mark("page-ctor-begin");
         InitializeComponent();
+        NavigationTiming.Mark("init-end");
         _stayProbe = (_, _) => _stayAsked++;
 
         // 定时看看服务器上有没有新入库的东西（见 HomeViewModel.AutoRefreshAsync）。播放层占着窗口的那一段
@@ -1351,6 +1353,7 @@ public sealed partial class HomePage : Page, IShellContent
         _entranceSuppressed = false;
         _window = request.Window;
         Tag = "home";
+        NavigationTiming.Mark("attach-begin");
 
         // 播放层把窗口交回来的那一拍补判一次矮窗档 —— 它占着窗口的那一段里尺寸量测全是中间态、一律不判
         // （见 UpdateLibraryOverlay 开头那道门与 HostWindow.PlayerLayer）。先退订再挂：Attach 有可能被喊第二次。
@@ -1388,6 +1391,7 @@ public sealed partial class HomePage : Page, IShellContent
         // 轮播的停留秒数（设置 → 主页 → 「封面轮换秒数」，2026-09-13）页面一进来就同步一次 —— 带子自己
         // 没有设置，它等的是这句话。
         Banner.ApplyDwell(settings.Settings.Ui.CarouselSeconds);
+        NavigationTiming.Mark("attach-end");
 
         // 版面（拖拽出来的次序、勾掉的那几排）改完当场生效：设置页在另一个窗口里，它改完喊一声，这一页重排。
         ShellPrefs.Changed -= OnShellPrefsChanged;
@@ -1398,7 +1402,10 @@ public sealed partial class HomePage : Page, IShellContent
         _watch.Start();
 
         // 同一身份和版面下有上次的条目就先摆出来，网络核对放到后台；没有快照才走首次读取。
-        if (ViewModel.RestoreSnapshot())
+        var restored = ViewModel.RestoreSnapshot();
+        NavigationTiming.Mark(restored ? "snapshot-hit" : "snapshot-miss");
+        NavigationTiming.Mark("reload-start");
+        if (restored)
         {
             _restoredScroll = request.ScrollOffset;
             _ = ViewModel.BackgroundRefreshAsync();
@@ -1469,7 +1476,9 @@ public sealed partial class HomePage : Page, IShellContent
 
     private void OnCardClicked(object sender, RoutedEventArgs e)
     {
-        if (sender is Button { Content: PosterCard { Card: { } card } }) ViewModel.Open(card);
+        if (sender is not Button { Content: PosterCard { Card: { } card } }) return;
+        NavigationTiming.Click("card");
+        ViewModel.Open(card);
     }
 
     /// <summary>
@@ -1490,6 +1499,7 @@ public sealed partial class HomePage : Page, IShellContent
         if (sender is ShelfHead { Tag: CardShelf shelf })
         {
             Log.Info(Category, $"牌子点击：{shelf.Title}（目标 {shelf.Target}，可进 {shelf.CanOpen}）");
+            NavigationTiming.Click("shelf-head");
             ViewModel.OpenShelf(shelf);
         }
         else if (sender is ShelfHead head)
