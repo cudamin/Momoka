@@ -42,6 +42,19 @@ function Snapshot([string]$Root) {
     })-join "`n")
 }
 Check 'complete fixed-source synthetic payload' $true
+$solutionPath=Get-ChildPath $fixture.repository 'Momoka.sln'
+$solutionCases=@(
+    @{name='appearance test project is not the retired shell';success=$true;text='Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.AppearanceOpacityTests", "tests\Momoka.AppearanceOpacityTests\Momoka.AppearanceOpacityTests.csproj", "{4ADF4F81-60D3-4C38-8AC1-0559986C0215}"'},
+    @{name='retired shell exact project name rejected';success=$false;text='Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.App", "old\Legacy.csproj", "{4ADF4F81-60D3-4C38-8AC1-0559986C0215}"'},
+    @{name='retired shell directory with renamed project rejected';success=$false;text='Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Legacy", "src\Momoka.App\Legacy.csproj", "{4ADF4F81-60D3-4C38-8AC1-0559986C0215}"'},
+    @{name='retired shell forward slash path rejected';success=$false;text='Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Legacy", "src/Momoka.App/Legacy.csproj", "{4ADF4F81-60D3-4C38-8AC1-0559986C0215}"'}
+)
+try {
+    foreach($case in $solutionCases){
+        [IO.File]::WriteAllText($solutionPath,$case.text+"`n",$encoding)
+        Check $case.name $case.success $(if($case.success){''}else{'WinForms'})
+    }
+} finally { Remove-Item -LiteralPath $solutionPath -Force }
 $assetsPath=Get-ChildPath $fixture.repository 'src/Momoka.Shell/obj/project.assets.json'
 $assetsBytes=[IO.File]::ReadAllBytes($assetsPath)
 $assets=Get-Content -LiteralPath $assetsPath -Raw|ConvertFrom-Json

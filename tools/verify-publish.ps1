@@ -134,7 +134,8 @@ if (Test-Path -LiteralPath $legacyApp) {
 }
 if (Test-Path -LiteralPath $solution -PathType Leaf) {
     $solutionText = Get-Content -LiteralPath $solution -Raw
-    if ($solutionText -match 'Momoka\.App|src[\\/]Momoka\.App') {
+    if ($solutionText -match '(?m)^Project\([^\r\n]+\)\s*=\s*"Momoka\.App"\s*,' -or
+        $solutionText -match '(?m)^Project\([^\r\n]+\)\s*=\s*"[^"]+"\s*,\s*"src[\\/]Momoka\.App[\\/]') {
         throw "发布验证失败：解决方案仍包含已移除的 WinForms 外壳。"
     }
 }
