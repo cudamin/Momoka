@@ -2052,8 +2052,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// 单集, drawn either as a vertical list of rows or as a horizontal paging strip of cards — one shelf
-    /// for both, filled through <see cref="CardShelf.FillRows"/> for the first and
-    /// <see cref="CardShelf.Fill(IEnumerable{EmbyItem}, Func{EmbyItem, string?})"/> for the second. Which
+    /// for both, filled through <see cref="CardShelf.FillDeferred"/> without creating offscreen cards. Which
     /// of the two is <see cref="ItemDetail.EpisodesAsList"/>, asked of this page's own item. Nullable
     /// because the shelf cannot exist before <see cref="Attach"/> — it needs the image store and the card
     /// width from 设置 — and the page binds to it from the moment it is constructed.
@@ -3098,28 +3097,44 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </param>
     private async Task LoadEpisodesAsync(EmbyItem? season, bool retarget, CancellationToken token)
     {
-        if (!Attached || _detail is null || EpisodeShelf is not { } shelf) return;
+        if (!IsCurrent(token) || _detail is not { } page || EpisodeShelf is not { } shelf) return;
+        var source = _scope!;
+        var lifetime = _lifetime;
+        var timing = NavigationTiming.Capture();
+        bool Current() => IsCurrent(token) && lifetime == _lifetime && ReferenceEquals(source, _scope)
+            && ReferenceEquals(page, _detail) && ReferenceEquals(shelf, EpisodeShelf);
 
-        var scope = ItemDetail.EpisodeScope(_detail, season);
+        var scope = ItemDetail.EpisodeScope(page, season);
 
         // 剧页和集页要的是「所有季连起来」的那一条（网页端的样子），所以不带 SeasonId 问全剧；
         // 季页读的是这一季自己的清单，照旧按季问。三种入口的差别只写在这里。
-        var allSeasons = _detail.Type is EmbyItemType.Series or EmbyItemType.Episode;
-        var episodes = await _scope!
+        var allSeasons = page.Type is EmbyItemType.Series or EmbyItemType.Episode;
+        var episodes = await source
             .ExecuteAsync((client, ct) => client.GetEpisodesAsync(
                 scope.SeriesId, allSeasons ? null : scope.SeasonId, ct), token)
             .ConfigureAwait(true);
-        if (!IsCurrent(token)) return;
+        if (!Current()) return;
         episodes.RemoveAll(WasDeleted);
 
         // 剧页、集页按播出时间排：特典落在它实际播出的位置，而不是因为记在第 0 季就永远排在最前。
         // 季页保留服务器按季给的顺序 —— 那一页的清单本身就是「这一季有哪些集」。
-        if (allSeasons) episodes = [.. ItemDetail.AirOrder(episodes)];
+        timing?.Mark("episodes-sort-begin", episodes.Count);
+        if (allSeasons)
+        {
+            // The response list is private until publication. AirOrder only reads immutable scalar
+            // ordering fields; no CardItem, shared UserData or page-owned collection is touched here.
+            var response = episodes;
+            episodes = await Task.Run(() => ItemDetail.AirOrder(response).ToList(), token).ConfigureAwait(true);
+            if (!Current()) return;
+            // A confirmed deletion may have happened while sorting. Read the UI-owned set only here.
+            episodes.RemoveAll(WasDeleted);
+        }
+        timing?.Mark("episodes-sort-end", episodes.Count);
 
         // 播放目标也要读齐才提交，不能把新列表与旧目标组合成可播放状态。剧页从全剧里挑播出时间最早的
         // 未看集；季页仍只从这一季里挑。两种都走 ItemDetail.PickEpisode，规则只写一份。
         EmbyItem? target = null;
-        var picked = _detail.Type == EmbyItemType.Series
+        var picked = page.Type == EmbyItemType.Series
             ? ItemDetail.PickEpisode(episodes, null)
             : ItemDetail.PickEpisode(episodes, season);
         if (retarget && picked is { } choice)
@@ -3133,18 +3148,19 @@ public sealed partial class DetailViewModel : PageViewModel
                 // 一条媒体源都没有仍是老规矩：取不到就是这一页加载失败（那一档本来就没有东西可播）。
                 // 只是缺轨道表时才走可失败的补取，取不到退回列表那一份，页面照常加载。
                 target = choice.MediaSources.Count == 0
-                    ? await _scope!.ExecuteAsync((client, ct) => client.GetItemAsync(
+                    ? await source.ExecuteAsync((client, ct) => client.GetItemAsync(
                         choice.Id, ct, order: Settings.Playback.MediaSourceOrder), token).ConfigureAwait(true)
                     : await FetchTracksAsync(choice, token).ConfigureAwait(true);
             }
-            if (!IsCurrent(token)) return;
+            if (!Current()) return;
         }
 
         // 剧页的锚点是挑中的那一季；集页先从这一集自己的字段拼一个临时锚点，季清单回来后换成真季。
         // 季页不参与季下拉，_loadedSeason 只是这一页加载的是哪一季这个事实。
         _loadedSeason = season;
-        if (_detail.Type == EmbyItemType.Series) AdoptEpisodeAnchor(season);
-        else if (_detail.Type == EmbyItemType.Episode) AdoptEpisodeAnchor(SeasonAnchor(_detail));
+        if (page.Type == EmbyItemType.Series) AdoptEpisodeAnchor(season);
+        else if (page.Type == EmbyItemType.Episode) AdoptEpisodeAnchor(SeasonAnchor(page));
+        if (!Current()) return;
 
         _episodes.Clear();
         _episodes.AddRange(episodes);
@@ -3153,27 +3169,33 @@ public sealed partial class DetailViewModel : PageViewModel
         // page can mark itself, which on any other page matches nothing and marks nothing. Cards everywhere
         // else, where the second line is 「第 7 集 · 46 分钟」 rather than the card default's 「S02E09 ·
         // 剧名」: both halves of that are already on this page.
-        if (EpisodesAsList) shelf.FillRows(episodes, _detail);
-        else shelf.Fill(episodes, ItemDetail.EpisodeCardSubtitle);
+        timing?.Mark("episodes-publish-begin", episodes.Count);
+        shelf.FillDeferred(episodes, EpisodesAsList ? null : ItemDetail.EpisodeCardSubtitle, page);
+        if (!Current()) return;
+        timing?.Mark("episodes-publish-end", episodes.Count);
 
         // 剧页、集页的标题用锚点那一季的名字；季页仍是这一季自己。数量与已看数不再写进标题
         // （2026-11-03 用户令「去掉后面的xx集，已观看到0集」）。
-        var heading = _detail.Type is EmbyItemType.Series or EmbyItemType.Episode
+        var heading = page.Type is EmbyItemType.Series or EmbyItemType.Episode
             ? SelectedSeason?.Name ?? scope.SeasonName
             : scope.SeasonName;
         shelf.Title = ItemDetail.EpisodeHeading(heading);
+        if (!Current()) return;
 
         // Assigned after the cards, so the strip has something to measure itself against; it keeps the
         // request until the first card is laid out either way. 剧页开在锚点那一季的第一张，集页开在
         // 正在看的那一集；季页是竖列表，这个数不参与排版。
-        EpisodeFocus = _detail.Type == EmbyItemType.Series
+        EpisodeFocus = page.Type == EmbyItemType.Series
             ? Math.Max(0, ItemDetail.FirstEpisodeIndex(episodes, season))
-            : ItemDetail.EpisodeFocus(episodes, _detail);
+            : ItemDetail.EpisodeFocus(episodes, page);
+        if (!Current()) return;
 
         if (retarget)
         {
             PlayTarget = target;
+            if (!Current()) return;
             ShowTarget(target);
+            if (!Current()) return;
         }
 
         // 放在播放落点之后：剧/季页那张表可能复用同一趟取回来的目标集，而 ShowTarget 会先清一次表。
@@ -3840,11 +3862,25 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     internal EmbyItem? OpenFirstEpisode()
     {
-        if (EpisodeShelf?.Cards.FirstOrDefault(card => card.Item.Type == EmbyItemType.Episode) is not { } card)
-            return null;
+        if (!Attached || EpisodeShelf is not { } shelf) return null;
+        var index = _episodes.FindIndex(item => item.Type == EmbyItemType.Episode);
+        if (index < 0 || index >= shelf.Cards.Count) return null;
+        var card = shelf.Cards[index];
 
         OpenCard(card);
         return card.Item;
+    }
+
+    /// <summary>
+    /// A full-detail More menu owns a temporary card. Keep only that episode's shelf card alive so its
+    /// confirmed state group still updates the deferred DTO after the menu and its card are released.
+    /// </summary>
+    internal void EnsureCurrentEpisodeCard()
+    {
+        if (!Attached || _detail?.Type != EmbyItemType.Episode || EpisodeShelf is not { } shelf) return;
+        var identity = _detail.IdentityKey;
+        var index = _episodes.FindIndex(item => item.IdentityKey == identity);
+        if (index >= 0 && index < shelf.Cards.Count) _ = shelf.Cards[index];
     }
 
     /// <summary>What a context menu calls after it has changed something on the server.</summary>
@@ -3949,24 +3985,22 @@ public sealed partial class DetailViewModel : PageViewModel
         if (!_episodes.Any(WasDeleted) && !Seasons.Any(WasDeleted) && (PlayTarget is null || !WasDeleted(PlayTarget)))
         {
             if (SimilarShelf is { } similar)
-                foreach (var card in similar.Cards.Where(card => WasDeleted(card.Item)).ToArray())
-                {
-                    card.AbandonPoster();
-                    similar.Cards.Remove(card);
-                }
+                similar.Cards.RemoveWhere(WasDeleted);
             return;
         }
         bool Deleted(EmbyItem item) => WasDeleted(item);
         var token = BeginLoad();
         try
         {
-            foreach (var shelf in shelves.OfType<CardShelf>())
-                foreach (var card in shelf.Cards.Where(card => Deleted(card.Item)).ToArray())
-                {
-                    card.AbandonPoster();
-                    shelf.Cards.Remove(card);
-                }
+            if (!IsCurrent(token)) return;
+            // Collection notifications can move the strip's leading index immediately. Publish the
+            // matching business index first so that callback cannot read the deleted season's DTO.
             _episodes.RemoveAll(Deleted);
+            foreach (var shelf in shelves.OfType<CardShelf>())
+            {
+                shelf.Cards.RemoveWhere(Deleted);
+                if (!IsCurrent(token)) return;
+            }
             _syncingSeason = true;
             try
             {
@@ -4015,6 +4049,9 @@ public sealed partial class DetailViewModel : PageViewModel
         _lifetime++;
         base.Cancel();
         _art?.Cancel();
+        // Frame can still measure the departing page. Clearing this deferred source prevents a late
+        // GetAt from creating a new current-account card and restarting its image request after leave.
+        EpisodeShelf?.Clear();
         BusyChanged();
         AnnounceAffordances();
         _heroTiming = null;

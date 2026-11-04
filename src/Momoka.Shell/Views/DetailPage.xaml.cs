@@ -1287,6 +1287,7 @@ public sealed partial class DetailPage : Page, IShellContent
             || ViewModel.CurrentItem is not { } item)
             return false;
 
+        ViewModel.EnsureCurrentEpisodeCard();
         var card = new CardItem(item, images, CardSize.PosterWidth);
 
         ItemCommands.Run(ItemCommand.ChangeCover, session, actions, this, card,

@@ -111,6 +111,8 @@ internal static class Program
             return LibraryResumePagingTests.Run(resumeShell, resumeRoot);
         if (args is ["home-performance-fixture", var homeShell, var homeRoot])
             return HomePerformanceTests.Run(homeShell, homeRoot);
+        if (args is ["detail-deferred-cards-fixture", var detailShell, var detailRoot])
+            return DetailDeferredCardsTests.Run(detailShell, detailRoot);
         if (args is ["budget-cache-fixture"])
         {
             BudgetCacheTests.Register();
