@@ -1,11 +1,12 @@
-## 2026-11-04 详情操作与附属加载解耦 P1（已实现、已测，待合并与交付）
+## 2026-11-04 详情操作与附属加载解耦 P1（已合入 master、已测；未发布）
 
 - 用户选择 P1 第一片「详情操作解耦」。分支 `p1-detail-actions` 基于 `998d9ce`，产品提交 `59b7154`；只改详情命令门控，不动加载顺序、相似／剧集请求、转场或 Busy 进度条。
 - 实现：主体 Apply 完成后设置 `_actionsReady` 并通知已观看、收藏、播放、重播命令；`CanAct` 不再要求整页 `!Busy`。播放／重播仍等 `PlayTarget`，剧集播放目标仍来自集列表；首次读取、换条目、取消和主体失败保持禁用，已有内容刷新失败保留原操作。新增匿名 `actions-ready` 计时标记。
 - 测试：新夹具 `detail-action-readiness-fixture` **7/7**（电影、单集、剧集目标依赖、Apply 前不放开、主体失败、相似失败、离页取消）；`detail-subject-removal-fixture` **22/22**；完整主测试 **3664/3664、0 失败 0 跳过**；Release Tests／Core／Shell 0 警告 0 错误；whitespace、`git diff --check`、变更文件编码／行尾检查通过。
 - 真实库只读复测：两轮共 **36** 次有效详情导航（17+19，每轮脚本目标 20 次，少数点击未形成导航）；`actions-ready` 中位 **121.4 ms**、`EndLoad` **260.3 ms**、首渲染 **279.1 ms**；36/36 的 `actions-ready` 早于 `EndLoad` 与首渲染，中位提前 **108.6／117.1 ms**。绝对耗时受本机负载和 UI 自动化影响，不能与 P0 直接相减当提速；能确认按钮不再等附属链。
-- 运行检查：performance 分区 **6/6、退出 0**；library 分区 **24/25**，唯一红项在 `ShellNavigationProbe.HomeHeader.cs:162`「封面悬停把播放键提前变成强调色」，属物理指针停在播放键上的环境红，不在本次改动路径；红报告保留，未洗绿。真实库测量和探针期间没有播放、服务器写入或修改设置。
-- 证据：`work/p1-detail-actions/`（两份 NDJSON、p1-summary.json、详情截图与 UIA 树、performance／library 探针报告、20 次复现脚本），不入 Git、未上传。未覆盖：按钮从禁用到可用的逐帧视觉瞬间、一个账号／一个单集入口、长剧／多季页播放目标等待；`Busy`／`IsReady` 仍等完整附属链，进度条会比按钮晚消失。
+- 运行检查：分支上 performance 分区 **6/6、退出 0**；library 分区 **24/25**，唯一红项是「主页标题点击范围与封面悬停态」在 `ShellNavigationProbe.HomeHeader.cs:162` 报「封面悬停把播放键提前变成强调色」，属物理指针停在播放键上的环境红，不在本次改动路径；红报告保留，未洗绿。真实库测量和探针期间没有播放、服务器写入或修改设置。
+- 合并与主树复验：`--no-ff` 合并提交 `a6831a2`；主树 Release Tests／Core／Shell **0 警告 0 错误**，完整主测试 **3664/3664、0 失败 0 跳过**，两个详情夹具 **7/7、22/22**，`format whitespace` 与 `git diff --check` 退出 0，performance 分区 **6/6**。主树 library 分区 **23/25**：除同一指针红项外，另有「文件选项长名称、断点与隐藏行」要求页面宽度 1064、实际 1024 的环境红；两项均不涉及本次改动路径，保留红报告，不宣称完整 library 分区通过。未发布、未推送；临时分支 `p1-detail-actions` 已删除，本聊天工作树按 primary checkout 保护 detached 到合并提交，未绕过删除。
+- 证据：`work/p1-detail-actions/`（两份 NDJSON、p1-summary.json、详情截图与 UIA 树、分支与主树 performance／library 探针报告、20 次复现脚本、verification-main.txt），不入 Git、未上传。未覆盖：按钮从禁用到可用的逐帧视觉瞬间、一个账号／一个单集入口、长剧／多季页播放目标等待；`Busy`／`IsReady` 仍等完整附属链，进度条会比按钮晚消失。
 
 ## 2026-11-04 剩余亚克力材质：海报操作、媒体库容器与资源卡（已合入 master、已发布桌面）
 
