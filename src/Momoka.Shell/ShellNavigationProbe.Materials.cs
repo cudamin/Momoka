@@ -179,9 +179,19 @@ internal sealed partial class ShellNavigationProbe
                                 (control is Button or ToggleButton) && control.Visibility == Visibility.Visible).ToArray();
                             Require(controls.Length == 6, "详情操作排缺少按钮或连播");
                             foreach (var control in controls)
+                                await CheckRestoredActionAsync(control);
+                            if (samples)
                             {
-                                await CheckStatesAsync(control, false, samples && (control is ToggleButton
-                                    || AutomationProperties.GetAutomationId(control) == "ColumnPlayButton"));
+                                var play = controls.Single(control =>
+                                    AutomationProperties.GetAutomationId(control) == "ColumnPlayButton");
+                                try
+                                {
+                                    Require(VisualStateManager.GoToState(play, "PointerOver", false),
+                                        "播放键 PointerOver 状态不存在");
+                                    await LayoutAsync(detail);
+                                    await SaveProbeScreenAsync("detail-actions-restored-screen.png");
+                                }
+                                finally { VisualStateManager.GoToState(play, "Normal", false); }
                             }
                         }
                         else if (stage == "shelf")
@@ -511,6 +521,34 @@ internal sealed partial class ShellNavigationProbe
                     && border.CornerRadius == (CornerRadius)Application.Current.Resources["EgCardCornerRadius"]) return border;
             throw new InvalidOperationException("未找到通知条目或接管卡的实际外层 Border");
         }
+        async Task CheckRestoredActionAsync(Control control)
+        {
+            control.ApplyTemplate();
+            var handle = AutomationProperties.GetAutomationId(control);
+            if (string.IsNullOrEmpty(handle)) handle = control.Name;
+            var states = control is ToggleButton
+                ? new[] { "Normal", "PointerOver", "Pressed", "Checked", "CheckedPointerOver", "CheckedPressed" }
+                : new[] { "Normal", "PointerOver", "Pressed" };
+            var restore = control is ToggleButton { IsChecked: true } ? "Checked" : "Normal";
+            var platform = new Windows.UI.Color?[3];
+            try
+            {
+                for (var index = 0; index < states.Length; index++)
+                {
+                    Require(VisualStateManager.GoToState(control, states[index], false), "模板状态不存在：" + states[index]);
+                    await UntilAsync(() => Fill() is SolidColorBrush);
+                    var fill = (SolidColorBrush)Fill()!;
+                    Require(!keys.Any(key => ReferenceEquals(fill, dark[key])), "详情操作按钮仍接共享玻璃");
+                    if (index < 3) platform[index] = fill.Color;
+                    else Require(fill.Color == platform[index - 3], "连播勾选底色未按回未勾选的三档");
+                    reads.Add($"{ThemeHost.Current.Id}/{handle}/{states[index]}: 平台默认底 {fill.Color}");
+                }
+            }
+            finally { VisualStateManager.GoToState(control, restore, false); }
+            Brush? Fill() => Descendants(control).OfType<ContentPresenter>()
+                .First(presenter => presenter.Name == "ContentPresenter").Background;
+        }
+
         async Task CheckStatesAsync(Control control, bool circle, bool shots)
         {
             control.ApplyTemplate();

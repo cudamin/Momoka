@@ -25,7 +25,6 @@
              圆角都取词表 —— 以前是写死的 38 配 19，19 是「一半高」也就是药丸，而这一版里圆角只有两档：
              图是 0，你会去按的东西是 8。两个都必须 BasedOn 框架自己的样式，否则连模板都拿不到。 -->
         <Style x:Key="EgPillButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
@@ -33,12 +32,11 @@
         </Style>
 
         <!-- 播放键和上面那颗是同一个外形，区别只在它是「这一页最要紧那颗」—— 但它和连播站在同一块底上
-             （2026-10-11）：「播放按钮背景要和连播一致」，两颗现在共用同一支亚克力底，压在图上透得回剧照。
-             原来是 AccentButtonStyle 给的整块实心强调色，和旁边几颗药丸一个亮一个暗、两块底对不上。
-             底交给共享按钮亚克力之后，强调色从**面上**挪到了**图标上**
+             （2026-10-11）：「播放按钮背景要和连播一致」，连播那个半透明的药丸（DefaultButtonStyle 给的那支
+             底，压在图上透得回剧照）就正是这个底。原来是 AccentButtonStyle 给的整块实心强调色，和旁边几颗
+             药丸一个亮一个暗、两块底对不上。底交给框架默认那一档之后，强调色从**面上**挪到了**图标上**
              —— 底下那颗回转图标就是它亮的地方（有断点时取 accent，见两颗 Button 里的写法）。 -->
         <Style x:Key="EgPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
@@ -50,10 +48,9 @@
 
         <!-- 连播那颗的样式：和带字的药丸键同一个外形。它是个开关，可「开着」在屏上只落在一颗图标上 ——
              勾上时**只有图标换色**（2026-10-11，参考图里那颗回转图标是绿的、药丸和字原样不动）：
-             底那三档按回不带勾时的那三支（常／悬／按，见局部 ActionButtons 字典），
+             底那三档按回不带勾时的那三支（常／悬／按，见两颗 ToggleButton 各自的 Resources），
              字钉死在压在图上那支浅墨上，于是 Foreground 一路继承下来只剩那颗 FontIcon 跟着走。 -->
         <Style x:Key="EgPillToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
@@ -61,7 +58,6 @@
         </Style>
 
         <Style x:Key="EgRoundButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="Width" Value="{StaticResource EgActionHeight}" />
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
@@ -721,13 +717,6 @@
                                 Spacing="12"
                                 Visibility="{x:Bind ViewModel.ColumnActionsVisibility, Mode=OneWay}">
                                 <local:WrapRow RowSpacing="10" Spacing="10">
-                                    <local:WrapRow.Resources>
-                                        <ResourceDictionary>
-                                            <ResourceDictionary.MergedDictionaries>
-                                                <ResourceDictionary Source="ms-appx:///Theme/ActionButtons.xaml" />
-                                            </ResourceDictionary.MergedDictionaries>
-                                        </ResourceDictionary>
-                                    </local:WrapRow.Resources>
                                     <Button
                                         AutomationProperties.AutomationId="ColumnPlayButton"
                                         Command="{x:Bind ViewModel.PlayCommand}"
@@ -741,12 +730,12 @@
                                             <FontIcon
                                                 FontSize="14"
                                                 Glyph="&#xE768;"
-                                                Foreground="{ThemeResource EgOnScrimBrush}"
+                                                Foreground="{StaticResource EgOnScrimBrush}"
                                                 Visibility="{x:Bind ViewModel.NotResumePlay, Mode=OneWay}" />
                                             <FontIcon
                                                 FontSize="14"
                                                 Glyph="&#xE768;"
-                                                Foreground="{ThemeResource EgAccentBrush}"
+                                                Foreground="{StaticResource EgAccentBrush}"
                                                 Visibility="{x:Bind ViewModel.ResumePlay, Mode=OneWay}" />
                                             <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
                                         </StackPanel>
@@ -774,11 +763,19 @@
                                         Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
                                         <!-- 勾上只换图标那一支色：底按回不带勾的三档（常／悬／按），Foreground 取 accent
                                              而字自己钉在浅墨上 —— 那支 accent 于是只落在没写 Foreground 的 FontIcon 上。
-                                             ActionButtons 字典把模板的勾选/未勾选三态指向同一组亚克力，
-                                             这里仍只指定勾选时的图标墨色。 -->
+                                             别名指的就是模板自己读的那三个键（UiThemes 每一套都是深色，所以这里
+                                             解析出来的和不带勾那份是同一支刷子）。 -->
+                                        <ToggleButton.Resources>
+                                            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ToggleButtonBackground" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ToggleButtonBackgroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ToggleButtonBackgroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
+                                        </ToggleButton.Resources>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <FontIcon FontSize="14" Glyph="&#xE8EE;" />
-                                            <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{ThemeResource EgOnScrimBrush}" />
+                                            <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{StaticResource EgOnScrimBrush}" />
                                         </StackPanel>
                                     </ToggleButton>
 
@@ -1133,13 +1130,6 @@
                             Spacing="10"
                             Visibility="{x:Bind ViewModel.CompactVisibility, Mode=OneWay}">
                             <local:WrapRow RowSpacing="10" Spacing="10">
-                                <local:WrapRow.Resources>
-                                    <ResourceDictionary>
-                                        <ResourceDictionary.MergedDictionaries>
-                                            <ResourceDictionary Source="ms-appx:///Theme/ActionButtons.xaml" />
-                                        </ResourceDictionary.MergedDictionaries>
-                                    </ResourceDictionary>
-                                </local:WrapRow.Resources>
                                 <Button
                                     AutomationProperties.AutomationId="CompactPlayButton"
                                     Command="{x:Bind ViewModel.PlayCommand}"
@@ -1151,12 +1141,12 @@
                                         <FontIcon
                                             FontSize="14"
                                             Glyph="&#xE768;"
-                                            Foreground="{ThemeResource EgOnScrimBrush}"
+                                            Foreground="{StaticResource EgOnScrimBrush}"
                                             Visibility="{x:Bind ViewModel.NotResumePlay, Mode=OneWay}" />
                                         <FontIcon
                                             FontSize="14"
                                             Glyph="&#xE768;"
-                                            Foreground="{ThemeResource EgAccentBrush}"
+                                            Foreground="{StaticResource EgAccentBrush}"
                                             Visibility="{x:Bind ViewModel.ResumePlay, Mode=OneWay}" />
                                         <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
                                     </StackPanel>
@@ -1182,9 +1172,17 @@
                                     IsChecked="{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}"
                                     Style="{StaticResource EgPillToggleButtonStyle}"
                                     Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
+                                    <ToggleButton.Resources>
+                                        <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ToggleButtonBackground" />
+                                        <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ToggleButtonBackgroundPointerOver" />
+                                        <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ToggleButtonBackgroundPressed" />
+                                        <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
+                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
+                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
+                                    </ToggleButton.Resources>
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <FontIcon FontSize="14" Glyph="&#xE8EE;" />
-                                        <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{ThemeResource EgOnScrimBrush}" />
+                                        <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{StaticResource EgOnScrimBrush}" />
                                     </StackPanel>
                                 </ToggleButton>
 

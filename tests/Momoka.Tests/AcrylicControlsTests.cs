@@ -72,10 +72,12 @@ internal static class AcrylicControlsTests
         });
 
         foreach (var name in new[] { "ColumnActions", "CompactBlock" })
-            Test($"按钮亚克力：{name} 六颗操作保留平台模板且三态接玻璃", () =>
+            Test($"详情操作：{name} 六颗键回到平台默认底，不再接玻璃", () =>
             {
                 var page = Read("Views/DetailPage.xaml");
                 var actions = Named(page, name).Elements().First(element => element.Name.LocalName == "WrapRow");
+                Assert.False(actions.Elements().Any(element => element.Name.LocalName == "WrapRow.Resources"),
+                    name + " 仍带局部材质字典");
                 var buttons = actions.Elements().Where(element => element.Name.LocalName is "Button" or "ToggleButton").ToArray();
                 Assert.Equal(6, buttons.Length, name + " 的动作范围变了");
                 foreach (var button in buttons)
@@ -85,17 +87,14 @@ internal static class AcrylicControlsTests
                     var style = Resource(page.Root!.Element(Xaml + "Page.Resources")!, styleKey);
                     Assert.Equal("{StaticResource Default" + type + "Style}", (string?)style.Attribute("BasedOn"));
                     Assert.False(style.Descendants(Xaml + "ControlTemplate").Any(), "详情按钮不应重写平台模板");
-                    var background = style.Elements(Xaml + "Setter").SingleOrDefault(element =>
-                        (string?)element.Attribute("Property") == "Background");
-                    Assert.NotNull(background, name + "/" + styleKey + " 的常态没有玻璃");
-                    Assert.Equal("{ThemeResource EgActionGlassBrush}", (string?)background!.Attribute("Value"));
-                    for (var index = 0; index < States.Length; index++)
-                        Assert.Equal(GlassKeys[index], LocalAlias(button, type + "Background" + States[index]));
-                    Assert.Null(FindLocalResource(button, type + "BackgroundDisabled"), "禁用态保留平台实色");
+                    Assert.Null(Setter(style, "Background"), name + "/" + styleKey + " 仍自设固定背景");
                 }
+                Assert.False(page.Descendants().Any(element =>
+                        (string?)element.Attribute("Source") == "ms-appx:///Theme/ActionButtons.xaml"),
+                    "详情页仍合入按钮亚克力字典");
             });
 
-        Test("按钮亚克力：连播勾选保持同底，强调色只交给图标", () =>
+        Test("详情操作：连播勾选保持同底，强调色只交给图标", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             foreach (var button in page.Descendants(Xaml + "ToggleButton").Where(element =>
@@ -103,16 +102,17 @@ internal static class AcrylicControlsTests
             {
                 for (var index = 0; index < States.Length; index++)
                 {
-                    Assert.Equal(GlassKeys[index], LocalAlias(button, "ToggleButtonBackgroundChecked" + States[index]));
-                    Assert.Equal("EgAccentBrush", LocalAlias(button, "ToggleButtonForegroundChecked" + States[index]));
+                    Assert.Equal("ToggleButtonBackground" + States[index],
+                        LocalTarget(button, "ToggleButtonBackgroundChecked" + States[index]));
+                    Assert.Equal("EgAccentBrush", LocalTarget(button, "ToggleButtonForegroundChecked" + States[index]));
                 }
                 Assert.Null(FindLocalResource(button, "ToggleButtonBackgroundCheckedDisabled"));
                 var label = button.Descendants(Xaml + "TextBlock").Single();
-                Assert.Equal("{ThemeResource EgOnScrimBrush}", (string?)label.Attribute("Foreground"));
+                Assert.Equal("{StaticResource EgOnScrimBrush}", (string?)label.Attribute("Foreground"));
             }
         });
 
-        Test("按钮亚克力：高对比度的播放字、连播字和状态图标可跟随系统文字色", () =>
+        Test("按钮亚克力：货架翻页字典的高对比度文字与图标仍跟随系统色", () =>
         {
             var aliases = Read("Theme/ActionButtons.xaml");
             var contrast = aliases.Descendants(Xaml + "ResourceDictionary")
@@ -120,23 +120,6 @@ internal static class AcrylicControlsTests
             foreach (var key in new[] { "EgOnScrimBrush", "EgAccentBrush", "EgDangerBrush",
                 "ToggleButtonForegroundChecked", "ToggleButtonForegroundCheckedPointerOver", "ToggleButtonForegroundCheckedPressed" })
                 Assert.Equal("{ThemeResource SystemColorWindowTextColor}", (string?)Resource(contrast, key).Attribute("Color"));
-
-            var page = Read("Views/DetailPage.xaml");
-            var play = Resource(page.Root!.Element(Xaml + "Page.Resources")!, "EgPlayButtonStyle");
-            Assert.Equal("{ThemeResource EgOnScrimBrush}", (string?)play.Elements(Xaml + "Setter")
-                .Single(element => (string?)element.Attribute("Property") == "Foreground").Attribute("Value"));
-            foreach (var name in new[] { "ColumnActions", "CompactBlock" })
-            {
-                var actions = Named(page, name).Elements().First(element => element.Name.LocalName == "WrapRow");
-                foreach (var foreground in actions.Descendants().Attributes("Foreground"))
-                    Assert.True(foreground.Value.StartsWith("{ThemeResource ", StringComparison.Ordinal),
-                        name + " 的前景仍固定在浅墨，系统白底上会消失");
-                foreach (var button in actions.Elements(Xaml + "ToggleButton"))
-                    foreach (var state in States)
-                        Assert.Null(button.Element(Xaml + "ToggleButton.Resources")?.Elements().FirstOrDefault(element =>
-                            (string?)element.Attribute(X + "Key") == "ToggleButtonForegroundChecked" + state),
-                            "勾选前景的无主题本地别名挡住高对比度字典");
-            }
         });
 
         Test("按钮亚克力：左右翻页圆的三态填充接玻璃，禁用态保留平台实色", () =>
@@ -305,6 +288,8 @@ internal static class AcrylicControlsTests
             Assert.Contains("详情操作排未在时限内出现", source);
             Assert.Contains("海报悬停按钮仍画底色或播放键未回到中性灰底", source);
             Assert.Contains("poster-actions-restored-screen.png", source);
+            Assert.Contains("详情操作按钮仍接共享玻璃", source);
+            Assert.Contains("detail-actions-restored-screen.png", source);
             Assert.Contains("CheckLibraryMaterials", source);
             Assert.Contains("CheckMoviePilotCardsAsync", source);
             Assert.Contains("CheckAniBtCardsAsync", source);
@@ -347,6 +332,9 @@ internal static class AcrylicControlsTests
         Assert.NotNull(target, key + " 应复用共享刷子");
         return GlassKeys.Contains(target) || target == "EgAccentBrush" ? target! : LocalAlias(element, target!);
     }
+
+    private static string? LocalTarget(XElement element, string key) =>
+        (string?)FindLocalResource(element, key)?.Attribute("ResourceKey");
 
     private static XElement? FindLocalResource(XElement element, string key) =>
         element.AncestorsAndSelf().SelectMany(owner => owner.Elements(owner.Name.Namespace + (owner.Name.LocalName + ".Resources")))
