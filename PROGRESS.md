@@ -1,10 +1,14 @@
-# 2026-11-04 P2 浏览恢复与详情背景复用（在途）
+# 2026-11-04 P2 浏览恢复与详情背景复用（已合入、验证并发布）
 
 - 树 `C:/Users/89400/.codex/worktrees/ba08/Momoka`，分支 `codex/p2-browse-image-cost`，基于master834a21d。写入范围：匿名计时、Home/Library恢复、详情背景及相关夹具和文档；[实施计划](docs/superpowers/plans/2026-11-04-p2-browse-image-cost.md)。
 - 基线主测试3664/3664。Task1恢复断言先红后绿，Home19/19、Library38/38、计时守卫15/15、导航9/9、HomeFold56/56、SearchLifetime42/42；Shell0警告错误。performance首次6/7为新增日志读写共享错误，关闭sink再读后7/7退出0，原红保留。
 - 完成24MiB详情背景缓存：精确登录owner、图片owner/type/tag、解码宽度和最近半径，原像素与输出一起记账；退出主动剔除，清除代次覆盖整条失败候选链，取消和旧访问不回填。共享坏图恢复首等待取消后的持久化缺口也由确定红例修复，原GET3次→2次。
 - 两轮同宿主1422×800/96DPI真实只读访问各24详情／24库／23主页，设置/备份前后哈希不变；排除首访后各23次详情，背景交付中位279.483→63.004ms，原像素和位图23/23命中、XAML交接23→0；首Rendering171.205→161.128ms但p95变差，不声称整页长尾改善。Home/Library恢复本来仅0.36/0.17ms，未重做集合或去掉近零耗时布局。
 - 当前分支主测试3665/3665、详情19/19、删除22/22、ImagePerformance48/48+原22/22、PageContract116/116、SettingsLifetime55/55；performance7/7（`shell-probe-20261104-085959315-34084`）。30次Frame重复29次同背景，7372800字节稳定，实际Settings Clear与新半径重糊拒回填。误写不存在的详情专项参数导致回退全测，恰与本聊天measure锁重叠16项红；停止measure后串行3665/3665，原红保留。待整合主树重验/发布；未上传。
+- 整合完成：产品536d82f、计时a2c0601经963dbcc合入，保留同期选择框/主页文字b5255cc；字幕提取夹具缺两个Cancel字段，c283943补齐后36/36，完整主树Release方案0警告0错误。主树主测试3666/3666、详情19/19、删除22/22、Home19/19、Library38/38、Images48/48+22/22、Page116/116、Settings55/55、Search42/42、HomeFold56/56、Plex68/68均通过。
+- 主树运行：`shell-probe-20261104-094622188-25268` performance/library/settings共56/57；唯一HomeSources聚合恢复错误等7行，现行隐藏NextUp应6行。f322a64同步旧期望并补隐藏/恢复/表对象稳定断言，`shell-probe-20261104-095946307-24168` library25/25退出0；前轮其余32项通过，103项未执行，不称全探针。构建曾与本聊天运行的EXE锁冲突失败，进程正常退出后重编0/0，未杀用户进程或放宽时限。
+- 发布：`tools/publish.ps1 -Shortcut -NoArchive`退出0，546文件/286.0MB，桌面Momoka.lnk目标及工作目录为主树artifacts/publish/win-x64、参数空；Shell SHA256 `C14425B1A203DDFC3A9D0CADD4C9C3E44E90423BFD573E9ED7C1D778E075EBDE`，Core `89FE0924C9543333383C390AEC65539BFF73FC5D892D8ADED4D6E44AD191FFBB`。未上传、未打安装包。
+- 测量限制补记：第一轮“after”期间误参数回退的全测与其重叠，之后也观测到其他会话编译。279→63ms仅是受负载影响的观察值，不能作为受控提速或因果证据；确定的是重复23/23命中、23次XAML交接减少为0。追加无并行负载的脚本在发现其他构建时停止，未得到补测结果，保留首Rendering/p95没有改善的结论。所有原日志/图/宿主回执归档在`C:/Users/89400/.codex/visualizations/2026/11/04/01a1a514-9f88-7262-9ae6-e1206b8bdc93/momoka-p2-evidence`。
 
 ## 2026-11-04 文件选择框与按钮同底、首页详情文字（已合入 master、已测、已发布桌面）
 
