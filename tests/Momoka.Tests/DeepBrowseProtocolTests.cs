@@ -15,6 +15,30 @@ internal static class DeepBrowseProtocolTests
 {
     public static void Register()
     {
+        foreach (var (kind, version, path) in new[]
+        {
+            (MediaServerKind.Emby, "4.10.1.0", "/emby/Users/user/Items"),
+            (MediaServerKind.Jellyfin, "10.10.7", "/Users/user/Items"),
+            (MediaServerKind.Jellyfin, "12.0.0", "/Items")
+        })
+        {
+            Test($"深返回协议：{kind} {version} 保留起点、大小和查询条件", () =>
+            {
+                using var transport = new EmbyRangeTransport(path);
+                using var http = new EmbyHttp(transport);
+                var connection = new EmbyConnection(new Uri("https://range.invalid/" + (kind == MediaServerKind.Emby ? "emby/" : "")),
+                    "fixture-only", "user", "user", "fixture", new DeviceIdentity("fixture", "fixture", "fixture", "0"))
+                { ServerKind = kind, ServerVersion = version };
+                var client = new EmbyClient(http, connection);
+                foreach (var start in new[] { 1497, 1993, 2000 })
+                {
+                    var result = client.GetLibraryItemsAsync("movies", LibrarySection.Items, null, Query(start, 40), default)
+                        .GetAwaiter().GetResult();
+                    CheckResult(result, start, 40);
+                }
+                Assert.True(transport.Starts.SequenceEqual([1497, 1993, 2000]), "每次仅发出指定区间的一个请求");
+            });
+        }
         foreach (var (start, size, requests) in new[] { (1480, 40, 1), (1497, 40, 2), (1993, 40, 1), (2000, 40, 1) })
         {
             Test($"深返回协议：飞牛从 {start} 有界读取 {size} 项", () =>
@@ -56,6 +80,37 @@ internal static class DeepBrowseProtocolTests
         Assert.Equal(2000, result.TotalRecordCount, "总数仍是整个库而不是窗口长度");
         Assert.Equal(string.Join(',', Enumerable.Range(start, Math.Max(0, Math.Min(size, 2000 - start)))),
             string.Join(',', result.Items.Select(item => item.Id)), "返回绝对区间不能有缺口或重复");
+    }
+
+    private sealed class EmbyRangeTransport(string expectedPath) : HttpMessageHandler
+    {
+        public List<int> Starts { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Assert.Equal("range.invalid", request.RequestUri!.Host);
+            Assert.Equal(HttpMethod.Get, request.Method);
+            Assert.Equal(expectedPath, request.RequestUri.AbsolutePath);
+            var query = request.RequestUri.Query.TrimStart('?').Split('&')
+                .Select(part => part.Split('=', 2)).ToDictionary(part => Uri.UnescapeDataString(part[0]),
+                    part => Uri.UnescapeDataString(part[1]), StringComparer.Ordinal);
+            var start = int.Parse(query["StartIndex"], CultureInfo.InvariantCulture);
+            var size = int.Parse(query["Limit"], CultureInfo.InvariantCulture);
+            Assert.Equal(40, size);
+            Assert.Equal("library", query["ParentId"]);
+            Assert.Equal("SortName", query["SortBy"]);
+            Assert.Equal("Descending", query["SortOrder"]);
+            Assert.Equal("Movie", query["IncludeItemTypes"]);
+            Starts.Add(start);
+            var result = new ItemsResult
+            {
+                TotalRecordCount = 2000,
+                Items = Enumerable.Range(start, Math.Max(0, Math.Min(size, 2000 - start)))
+                    .Select(index => new EmbyItem { Id = index.ToString(CultureInfo.InvariantCulture), Type = EmbyItemType.Movie }).ToList()
+            };
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            { Content = new StringContent(JsonSerializer.Serialize(result), Encoding.UTF8, "application/json") });
+        }
     }
 
     private sealed class RangeTransport(bool fnnas) : HttpMessageHandler
