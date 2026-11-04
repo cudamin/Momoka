@@ -21,6 +21,14 @@ public sealed class DanmakuSettings
     public double Speed { get; set; } = 1;
     public double Area { get; set; } = 50;
     public int Density { get; set; } = 40;
+    public bool ScaleWithWindow { get; set; } = true;
+    public bool AvoidSubtitles { get; set; }
+    public bool PreventOverlap { get; set; } = true;
+    public bool SpeedSyncPlayback { get; set; } = true;
+    public string FontFamily { get; set; } = "Microsoft YaHei";
+    public bool Bold { get; set; }
+    public int BorderStyle { get; set; }
+    public int DensityMode { get; set; }
     public bool Scroll { get; set; } = true;
     public bool Top { get; set; } = true;
     public bool Bottom { get; set; } = true;
@@ -42,6 +50,30 @@ public sealed class DanmakuSettings
         Speed = Clamp(Speed, 0.5, 2, 1);
         Area = Clamp(Area, 25, 100, 50);
         Density = Math.Clamp(Density, 10, 100);
+        var font = (FontFamily ?? "").Trim();
+        FontFamily = font.Length is > 0 and <= 128 && !font.Any(character => char.IsControl(character) || character is '{' or '}' or '\\')
+            ? font : "Microsoft YaHei";
+        if (BorderStyle is < 0 or > 2) BorderStyle = 0;
+        if (DensityMode is < 0 or > 2) DensityMode = 0;
+    }
+
+    /// <summary>只重置画面外观；服务、来源、匹配、显示开关和屏蔽列表都保留。</summary>
+    public void RestoreAppearance()
+    {
+        var defaults = new DanmakuSettings();
+        Opacity = defaults.Opacity;
+        FontSize = defaults.FontSize;
+        Speed = defaults.Speed;
+        Area = defaults.Area;
+        Density = defaults.Density;
+        ScaleWithWindow = defaults.ScaleWithWindow;
+        AvoidSubtitles = defaults.AvoidSubtitles;
+        PreventOverlap = defaults.PreventOverlap;
+        SpeedSyncPlayback = defaults.SpeedSyncPlayback;
+        FontFamily = defaults.FontFamily;
+        Bold = defaults.Bold;
+        BorderStyle = defaults.BorderStyle;
+        DensityMode = defaults.DensityMode;
     }
 
     private static double Clamp(double value, double min, double max, double fallback) =>

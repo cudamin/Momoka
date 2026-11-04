@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Momoka.Configuration;
 
 namespace Momoka.Mpv;
 
@@ -19,6 +20,26 @@ public static class MpvDanmaku
     public const string InputResult = "momoka-danmaku-input-result";
     public const string Send = "momoka-danmaku-send";
     public const string Visibility = "momoka-danmaku-visibility";
+    public const string Shown = "momoka-danmaku-shown";
+
+    public static string RenderOptions(DanmakuSettings settings, double delay) => JsonSerializer.Serialize(new
+    {
+        show = settings.Show,
+        opacity = settings.Opacity,
+        fontSize = settings.FontSize,
+        speed = settings.Speed,
+        area = settings.Area,
+        density = settings.Density,
+        delay,
+        scaleWithWindow = settings.ScaleWithWindow,
+        avoidSubtitles = settings.AvoidSubtitles,
+        preventOverlap = settings.PreventOverlap,
+        speedSyncPlayback = settings.SpeedSyncPlayback,
+        fontFamily = settings.FontFamily,
+        bold = settings.Bold,
+        borderStyle = settings.BorderStyle,
+        densityMode = settings.DensityMode
+    });
 
     public sealed record SendRequest(string Context, string RequestId, string Text);
 

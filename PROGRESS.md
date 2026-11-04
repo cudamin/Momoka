@@ -18,6 +18,9 @@
 - 适用范围为普通 root `Items`、movies／tvshows／mixed／homevideos；聚合、Resume、NextUp、搜索、收藏、推荐、Upcoming、Random、Season／Episode 和未知 children 保留旧路径。异常单集结果保留原可读窗口并反馈，显式刷新退回 0 和旧单集上下文。刷新先以纯 `WindowAnchorRequested` 捕获实际锚点，最终结果确定后才 `WindowChanging` 挂 UI 恢复，其后不跨 await；旧响应拒绝不得污染当前回退标志。
 - 新鲜 Release Shell／Core、Tests 编译 0 警告 0 错误；最终深返回 **16/16**、续播／暖缓存 **38/38**，收藏来源 **13/13**、Home **19/19**。初始 10 项全红、新入口／单集回退及审查的刷新锚点／迟到单集两项先红后绿，尾部夹紧曾 15/16，修正后最终 16/16；日志均保留于本树 `work/p3-deep-return/`，不覆盖失败记录。
 - 四后端真实 Frame 深返回探针已编译但独立树未运行；760／1280 实屏、上翻 identity／相对 Y、下翻绝对起点需主代理在整合最终代码执行。匿名占位卡不是实际封面加载或真实服务器证据。未运行 UI／全测共享诊断、未真实播放／写服务器、未发布／上传／合主树，待统一交付。
+- 2026-11-04 弹幕渲染独立审查修正（同树94514b后）：720→360固定字号立即更新可见row几何/字形clip并隐藏超区域行，过渡期只检查可见碰撞，保留四万条resize合批；同file外观/过滤/clear换库保留倍速历史，只有file/seek/sync模式变化重建时钟。四条首红与clear替换红修后Lua42/42、性能50/50（10次resize只1次重排）、原生timer3/3，相关翻译17/17+3/3；实libass验证settle前描边/重墨/45度投影完整字形及行间/区域，编码空白通过，无真播放/用户设置。证据work/danmaku-renderer-review-*；此条纠正上一条“配置重推清历史”的旧限制。
+
+- 2026-11-04 弹幕渲染子任务，独立树 C:/Users/89400/.codex/worktrees/danmaku-renderer/Momoka：仅 momoka_danmaku.lua 与 Lua 回归；按宿主新契约实现固定像素/随窗缩放、选中可见主/第二字幕底部20%避让、本地防重叠与正常/较多/重叠密度、字体/粗体/描边/重墨/45度投影、独立倍速时钟补偿。官方 mpv 固定270367e8af 的 player/command.c sid GET、options/options.c visibility/speed、player/lua/defaults.lua get_osd_size 与 sub/osd_libass.c/sub/ass_mp.c overlay bounds 已核。基线15/15；新增首轮14预期红与两条真实边界红修后35/35；四万条缩放/缓存/所有权43/43、原生定时器3/3，相关翻译17/17+3/3；本树Core/主Tests Release编译0警告0错误，弹幕Core夹具56/56。证据 work/danmaku-renderer-*；所有媒体/画布均合成，无窗口、真播放、账号或用户设置，主树整合及UI/载荷哈希交付由根会话负责。倍速中途变化保持活动弹幕移动连续，seek/配置重推会按当前倍率重建历史；字幕是保守区域预留，不声称文字/人物识别。
 
 # 2026-11-04 P2 浏览恢复与详情背景复用（已合入、验证并发布）
 
@@ -10367,3 +10370,17 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 独立树验证：全方案Release构建0警告0错误（artifacts/detail-layout-build-final.log），串行主测试3664/3664、0失败0跳过（detail-layout-tests-serial.log），字幕契约36/36（detail-subtitle-contract.log）。旧树基线HomeHeader不识别亚克力，临时补严格材质检查后library,materials运行23244为26/26、退出0，详情宽窄与S00季页检查通过；截图已查看：信息卡在季卡上方、额外特别篇排消失。证据 C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261104-064717754-23244/logs。
 - 验证期间用户另一个任务已将海报播放/操作恢复旧样，master现为f65ac10，故撤下本树临时HomeHeader修正（diff清零），不把它带入最终主树。此变化要求整合后的library,materials重新验证，不能把本树26/26冒充最新master结果。
 - 统一收尾由聊天“统一 WebView2 服务端设置风格并修复显示不全”（01a1a527-7870-7bb1-aa16-fd7800927854）负责：本树提交后暂缓主树合并/构建/测试/发布，无Momoka进程23244占用，适用运行复验由本聊天按协调顺序执行，最终主测试/WebView专项/发布/快捷方式由协调聊天执行。未推远端。
+# 2026-11-04 弹幕控制在途
+
+本批在 `def5/Momoka`、临时分支 `codex/danmaku-controls-20261104` 实现外观设置/面板与消息契约；Lua与播放按钮/菜单分别在本次独立树隔离开发。用户选择本地防重叠和共用屏蔽词，不接B站账号。Core新增归一化/恢复外观失败测试先红后绿，当前弹幕专项59项通过。基线全套3666项中16项因另一会话自检占用共用mutex红，保留 `work/danmaku-controls/baseline-tests.log`；最终代码仍待整合、完整测试、UI实屏、合入主树及发布，不能视为交付。仅本地提交，不上传。
+# 2026-11-04 弹幕播放页独立开关与菜单显隐（待根会话整合验收）
+
+- 独立工作树 `C:/Users/89400/.codex/worktrees/danmaku-player-controls/Momoka`；仅负责播放控制、两侧菜单、uosc 与对应测试/探针。根产品依赖 `3263b67` 在本树挑入为 `6dbf617`；设置、弹幕面板与配置字段没有重复修改。
+- 保留原 `DanmakuButton` 打开匹配面板，旁边加 `DanmakuToggleButton`：开启有浅底高亮，读屏与悬停提示为「关闭弹幕／开启弹幕」，关闭显示仍保留恢复开关。宽度预算、全屏尺寸、图标阴影与指针墨色同步。独占新增 ManagedButton 发既有 `momoka-shortcut toggle-danmaku`，360px × 1.3 缩放优先保留恢复按钮。
+- 集成/独占的播放设置行共用 `PlayerSettingsLinks.Available`；全局禁用、来源地址未配置及外部后端隐藏相关入口并守卫迟到点击。能力失去时收起已开 picture 菜单；集成弹幕浮层同步关闭，恢复保留 Show/外观偏好。
+- 验证：Lua 先红 47/49（缺 Show 接收、旧菜单未关闭），宽窄新增后再红 48/49（360px×1.3 开关被挤掉），最终 `work/danmaku-controls-narrow-final/results.json` 49/49、errors=0；Core 设置入口先红 30/31，最终 `work/danmaku-tests-final.log` 31/31；相关弹幕 59/59。Release Core/Tests 与 Shell 编译 0 警告 0 错误（`work/danmaku-tests-final-build.log`、`work/danmaku-shell-build-2.log`）。第一次 Shell 编译为新增 probe 漏 Automation 命名空间导致 CS0103/WMC 连锁，补 using 后重编通过，原红日志保留。
+- 新播放探针在 `ShellNavigationProbe.DanmakuSend.cs` 覆盖1100/760/420/360宽的实际按钮/UIA显示开关、全局禁用后旧菜单与迟到行、来源/后端恢复及实屏；本树遵守串行约束未启动 UI，根会话执行并检查截图。自动化扫描无缺句柄；18个变更文本行尾/BOM/空白通过；定向 format verify 退出0，工具提示工作区载入warning。没有真实播放、网络发送、发布、修改真实设置或上传。
+
+## 2026-11-04 弹幕批次整合验证
+
+产品提交3263b67、08848d9、3a31c94、17b0c59、8910922、337edff已整合。独立树最终Release主测3670/3670、Lua42/42、uosc49/49、性能71/71（含Lua性能50与定时器3）、真实设置行31/31、设置行消费者45/45；Shell0警告0错误、字体/显隐/菜单/倍速/缩窗独立审查完成。最终settings,playback实屏33/33、退出0，证据shell-probe-20261104-123546173-35856，开关宽窄、关闭全局后隐藏、字体和恢复默认截图已检查。早期UI主页聚合夹具与active图标旧判据红已按真实条件修正，不降低断言。主树当前正在完成重新构建、串行主测与适用探针，待发布实际目录、核对快捷方式后才交付；不上传。

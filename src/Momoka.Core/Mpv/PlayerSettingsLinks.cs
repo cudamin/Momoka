@@ -41,6 +41,11 @@ public static class PlayerSettingsLinks
         new("弹弹play", "danmaku", "弹幕"),
     ];
 
+    /// <summary>按当前弹幕能力返回右键菜单里的设置入口，保留全局设置目录与原行身份。</summary>
+    public static IReadOnlyList<PlayerSettingsLink> Available(bool danmakuAvailable) => danmakuAvailable
+        ? All
+        : All.Where(link => link.Token != "danmaku").ToArray();
+
     /// <summary>
     /// 令牌对得上哪一行；认不出给 null。<see cref="VideoWindowContract.Parse"/> 用它当值域闸：菜单行的
     /// <c>value</c> 是视频窗里那棵 Lua 树发回来的，乱码与旧版本残留都从这里被挡掉。

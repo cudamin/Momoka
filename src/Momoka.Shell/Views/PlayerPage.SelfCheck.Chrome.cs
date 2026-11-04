@@ -1079,7 +1079,7 @@ public sealed partial class PlayerPage
 
             foreach (var (other, otherGlyph) in transport)
             {
-                var want = ReferenceEquals(button, other)
+                var want = ReferenceEquals(button, other) || ReferenceEquals(other, DanmakuToggleButton) && ViewModel.DanmakuShown
                     ? "PlayerStripHoverInkBrush"
                     : "PlayerInkBrush";
 
@@ -1091,10 +1091,12 @@ public sealed partial class PlayerPage
         SetTransportGlyphInk(null);
 
         var transportLeftWhite = transport
-            .Count(pair => !ReferenceEquals(pair.Glyph.Foreground, Resources["PlayerInkBrush"]));
+            .Count(pair => !ReferenceEquals(pair.Glyph.Foreground,
+                Resources[ReferenceEquals(pair.Button, DanmakuToggleButton) && ViewModel.DanmakuShown
+                    ? "PlayerStripHoverInkBrush" : "PlayerInkBrush"]));
 
         report.Add(transportMixed.Count == 0 && transportLeftWhite == 0
-            ? $"底部一排 {transport.Count} 颗的图标一格一格换（压着的那颗转深色、其余几颗白）"
+            ? $"底部一排 {transport.Count} 颗的图标与悬停/弹幕开启底色匹配"
             : $"底部图标不对：{string.Join('、', transportMixed)}"
               + (transportLeftWhite == 0
                   ? string.Empty

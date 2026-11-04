@@ -79,6 +79,20 @@ internal sealed partial class ShellNavigationProbe
             opacity.Value = 55;
             await LayoutAsync(page);
             Require(fixture.Settings.Danmaku.Opacity == 55, "真实滑块未写回偏好");
+            var scale = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "弹幕随窗口缩放");
+            scale.IsOn = false;
+            var subtitles = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "防挡字幕");
+            subtitles.IsOn = true;
+            var densityRow = DanmakuRows(page).OfType<SettingChoiceRow>().Single(row => row.Label == "弹幕密度");
+            densityRow.Selected = densityRow.Choices.Single(choice => choice.Label == "重叠");
+            await UntilAsync(() => page.IsContentMotionSettled);
+            Require(!fixture.Settings.Danmaku.ScaleWithWindow && fixture.Settings.Danmaku.AvoidSubtitles && fixture.Settings.Danmaku.DensityMode == 2,
+                "新外观控件未保存偏好");
+            Require(!DanmakuRows(page).Any(row => row.Label == "智能防挡弹幕"), "重叠档应隐藏无效的防重叠开关");
+            densityRow.Selected = densityRow.Choices.Single(choice => choice.Label == "正常");
+            await UntilAsync(() => page.IsContentMotionSettled);
+            Require(DanmakuRows(page).Any(row => row.Label == "智能防挡弹幕"), "恢复正常密度没有恢复防重叠开关");
+            Require(DanmakuRows(page).OfType<SettingFontRow>().Any(row => row.Label == "弹幕字体"), "未接入本机字体选择");
             await SaveProbeScreenAsync($"settings-danmaku-on-{width}-screen.png");
 
             var inputToggle = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "显示弹幕输入栏");
@@ -105,6 +119,12 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.IsContentMotionSettled);
             Require(DanmakuRows(page).OfType<SettingSliderRow>().Any(), "重新启用没有恢复外观设置");
             var block = Descendants(page).OfType<TextBox>().Single(control => AutomationProperties.GetName(control) == "屏蔽词");
+            block.Focus(FocusState.Programmatic);
+            block.Text = "未提交的草稿";
+            page.ViewModel.OnDanmakuPreferencesChanged();
+            Require(block.Text == "未提交的草稿", "外观同步覆盖了正在编辑的屏蔽词");
+            enabled.Focus(FocusState.Programmatic);
+            await LayoutAsync(block);
             block.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.9 });
             await LayoutAsync(block);
             await SaveProbeScreenAsync($"settings-danmaku-bottom-{width}-screen.png");
@@ -254,6 +274,19 @@ internal sealed partial class ShellNavigationProbe
             var opacity = Get<Slider>(panel, "OpacitySlider");
             opacity.Value = 45;
             Require(fixture.Settings.Danmaku.Opacity == 45, "面板滑块未写回与设置页同一偏好");
+            var scaleCheck = Get<CheckBox>(panel, "ScaleCheck");
+            ((IToggleProvider)new CheckBoxAutomationPeer(scaleCheck).GetPattern(PatternInterface.Toggle)).Toggle();
+            Require(!fixture.Settings.Danmaku.ScaleWithWindow, "缩放开关没有独立保存");
+            var boldCheck = Get<CheckBox>(panel, "BoldCheck");
+            ((IToggleProvider)new CheckBoxAutomationPeer(boldCheck).GetPattern(PatternInterface.Toggle)).Toggle();
+            Require(fixture.Settings.Danmaku.Bold, "粗体开关没有独立保存");
+            Get<ComboBox>(panel, "DensityModeBox").SelectedIndex = 2;
+            Require(!fixture.Settings.Danmaku.ScaleWithWindow && fixture.Settings.Danmaku.Bold && fixture.Settings.Danmaku.DensityMode == 2,
+                "面板新外观选择没有写回偏好");
+            Require(Get<CheckBox>(panel, "OverlapCheck").Visibility == Visibility.Collapsed, "重叠档仍显示无效防重叠开关");
+            Get<ComboBox>(panel, "BorderStyleBox").SelectedIndex = 2;
+            vm.ChangeDanmakuPreferences(settings => settings.BlockedWords = "测试屏蔽词");
+            Require(Get<TextBox>(panel, "BlockBox").Text == "测试屏蔽词", "外部修改屏蔽词没有同步到面板");
             var show = Get<ToggleSwitch>(panel, "ShowToggle");
             show.IsOn = false;
             await LayoutAsync(panel);
@@ -266,6 +299,11 @@ internal sealed partial class ShellNavigationProbe
             block.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 1 });
             await LayoutAsync(block);
             await SaveProbeScreenAsync($"player-danmaku-panel-bottom-{width}-screen.png");
+            Call(panel, "OnRestoreAppearance", Get<Button>(panel, "RestoreAppearanceButton"), new RoutedEventArgs());
+            Require(fixture.Settings.Danmaku.Enabled && fixture.Settings.Danmaku.BlockedWords == "测试屏蔽词"
+                && fixture.Settings.Danmaku.Opacity == 70 && !fixture.Settings.Danmaku.Bold && fixture.Settings.Danmaku.ScaleWithWindow,
+                "恢复外观没有复位，或清空了启用/屏蔽词");
+            opacity.Value = 45;
             Field(vm, "_generation", 1);
             opacity.Value = 50;
             Require(fixture.Settings.Danmaku.Opacity == 45, "过期面板修改了新一场播放的设置");

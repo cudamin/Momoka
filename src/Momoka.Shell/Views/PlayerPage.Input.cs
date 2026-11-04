@@ -1221,17 +1221,20 @@ public sealed partial class PlayerPage : IWin32KeySink
     }
 
     /// <summary>
-    /// 底部一排的图标此刻各是什么色：<paramref name="hot"/> 那一颗（指针压着的）用深色，其余几颗回白；
-    /// 传 null 就是全白（指针不在这一排上）。与 <see cref="SetStripGlyphInk"/> 同一句话的另一份名单 ——
-    /// 那一份管右上（关闭那颗例外），这一份管底部（没有例外）。
+    /// 底部一排的图标此刻各是什么色：<paramref name="hot"/> 那一颗（指针压着的）用深色，其余几颗回白。
+    /// 弹幕显示开关开启时也有常驻浅底，图标保持深色；刷新开关时保留当前指针所在的那颗。
     /// </summary>
+    private Button? _transportHotButton;
+
     internal void SetTransportGlyphInk(Button? hot)
     {
+        _transportHotButton = hot;
         if (Resources["PlayerStripHoverInkBrush"] is not Brush ink) return;
         if (Resources["PlayerInkBrush"] is not Brush rest) return;
 
         foreach (var (button, glyph) in TransportGlyphs())
-            glyph.Foreground = ReferenceEquals(hot, button) ? ink : rest;
+            glyph.Foreground = ReferenceEquals(hot, button)
+                || ReferenceEquals(button, DanmakuToggleButton) && Attached && ViewModel.DanmakuShown ? ink : rest;
     }
 
     private void OnMinimizeWindow(object sender, RoutedEventArgs e) => _window?.Minimize();

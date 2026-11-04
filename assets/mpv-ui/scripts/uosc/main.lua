@@ -216,7 +216,7 @@ defaults = {
 	--     只会让人点错；要看 mpv 的剪辑版本，≡ 菜单的「工具 → 剪辑版本」还在）。
 	-- 播放列表/目录导航、打开文件、单曲循环（宿主裁定连播归宿主）、流画质（外部脚本）不设。
 	controls =
-	'<video,audio>momoka-ui-prev,<video,audio>momoka-ui-next,command:analytics:script-binding stats/cycle-stats?统计：播放统计 → 着色器统计 → 关闭,<has_danmaku>momoka-ui-danmaku,<has_chapter>chapters,<has_episodes>momoka-ui-episodes,<has_many_versions>momoka-ui-versions,space,<has_chapter>command:skip_previous:add chapter -1?上一章节,<video,audio>speed,<has_chapter>command:skip_next:add chapter 1?下一章节,space,<video,audio>subtitles,audio,gap:1,fullscreen',
+	'<video,audio>momoka-ui-prev,<video,audio>momoka-ui-next,command:analytics:script-binding stats/cycle-stats?统计：播放统计 → 着色器统计 → 关闭,<has_danmaku>momoka-ui-danmaku,<has_danmaku>momoka-ui-danmaku-toggle,<has_chapter>chapters,<has_episodes>momoka-ui-episodes,<has_many_versions>momoka-ui-versions,space,<has_chapter>command:skip_previous:add chapter -1?上一章节,<video,audio>speed,<has_chapter>command:skip_next:add chapter 1?下一章节,space,<video,audio>subtitles,audio,gap:1,fullscreen',
 	controls_size = 32,
 	controls_margin = 8,
 	controls_spacing = 2,
@@ -634,6 +634,7 @@ state = {
 	-- 就会把真答案送过来。默认不画的另一面是「播电影时它不在屏上」（2026-09-26 用户令）。
 	has_episodes = false,
 	has_danmaku = false,
+	danmaku_shown = false,
 	has_playlist = false,
 	shuffle = options.shuffle,
 	---@type nil|{pos: number; paths: string[]}
@@ -1194,17 +1195,34 @@ mp.register_script_message('momoka-danmaku-input-result', function(json)
 end)
 
 -- Enabled/configured capability comes from the host, never guessed by Lua.
+local function update_danmaku_toggle()
+	buttons:set('momoka-danmaku-toggle', {
+		icon = 'subtitles',
+		active = state.danmaku_shown,
+		tooltip = state.danmaku_shown and '关闭弹幕' or '开启弹幕',
+		command = state.has_danmaku and 'script-message momoka-shortcut toggle-danmaku' or nil,
+	})
+end
+update_danmaku_toggle()
 mp.register_script_message('momoka-danmaku-visibility', function(value)
 	local available = value == 'yes'
 	if state.has_danmaku == available then return end
 	set_state('has_danmaku', available)
+	update_danmaku_toggle()
+	if not available and Menu:is_open('picture') then Menu:close() end
 	Elements:trigger('dispositions')
+end)
+mp.register_script_message('momoka-danmaku-shown', function(value)
+	state.danmaku_shown = value == 'yes'
+	update_danmaku_toggle()
 end)
 mp.add_key_binding(nil, 'momoka-ui-danmaku', function()
 	if state.has_danmaku then mp.commandv('script-message', 'momoka-danmaku-menu', 'open') end
 end)
 mp.register_event('start-file', function()
+	state.danmaku_shown = false
 	if state.has_danmaku then set_state('has_danmaku', false); Elements:trigger('dispositions') end
+	update_danmaku_toggle()
 end)
 
 -- MOMOKA[topbar-subline] — 宿主 → uosc 的通道：左上角第二行那句文件信息（文件大小 · 分辨率 · 视频编码 · 音频格式 ·

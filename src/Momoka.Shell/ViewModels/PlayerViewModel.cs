@@ -302,7 +302,8 @@ public sealed partial class PlayerViewModel : ObservableObject
         EmbyImageStore images,
         ShaderGroupResolver shaders,
         IUiDispatcher ui,
-        DandanPlayClient dandanPlay)
+        DandanPlayClient dandanPlay,
+        FontLibrary? fonts = null)
     {
         _playback = playback;
         _settings = settings;
@@ -311,6 +312,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         _shaders = shaders;
         _ui = ui;
         _dandanPlay = dandanPlay;
+        _danmakuFonts = fonts ?? new FontLibrary();
 
         // Every number the bar shows starts from the same empty snapshot the stop path returns it to, so
         // the clock reads 0:00 and the glyph reads 播放 before anything has ever played.

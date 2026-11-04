@@ -98,8 +98,8 @@
     {
       "path": "mpv-ui/scripts/momoka_danmaku.lua",
       "source": "assets/mpv-ui/scripts/momoka_danmaku.lua",
-      "size": 13070,
-      "sha256": "322dac8a8404885c676934c8d3b46475c82667a4016c0806bef591a2a6b2ef59"
+      "size": 21531,
+      "sha256": "907c5c072aeebfcda966fa9fb9d4435c68f6f194ca03df5ee995940a40867a0e"
     },
     {
       "path": "mpv-ui/scripts/momoka_subtitle_translation.lua",
@@ -134,8 +134,8 @@
     {
       "path": "mpv-ui/scripts/uosc/elements/Controls.lua",
       "source": "assets/mpv-ui/scripts/uosc/elements/Controls.lua",
-      "size": 18426,
-      "sha256": "48207f0d97ade98185391372d3e2c46597c84f2ca5e71fdd2543302d17403998"
+      "size": 18774,
+      "sha256": "baf0a30535a6575d2597150094bb66326ab48e1f526f473e8602049f77bdbbd1"
     },
     {
       "path": "mpv-ui/scripts/uosc/elements/Curtain.lua",
@@ -368,8 +368,8 @@
     {
       "path": "mpv-ui/scripts/uosc/main.lua",
       "source": "assets/mpv-ui/scripts/uosc/main.lua",
-      "size": 83764,
-      "sha256": "88af8099ffc5353563d69a1cbfe668fee8fe687924f04e2da0bf00c01e4eb9f4"
+      "size": 84433,
+      "sha256": "6c92c19459a6583aa74b9372df577ace622be1a262a14f5e31ead9f9204680c2"
     }
   ],
   "evidence": [

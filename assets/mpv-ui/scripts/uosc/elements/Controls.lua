@@ -57,6 +57,7 @@ function Controls:init_options()
 		['momoka-ui-next'] = 'command:skip_next:script-binding uosc/momoka-ui-next?' .. t('Next'),
 		['momoka-ui-episodes'] = 'command:list_alt:script-binding uosc/momoka-ui-episodes?选集',
 		['momoka-ui-danmaku'] = 'command:comment:script-binding uosc/momoka-ui-danmaku?弹幕 · 弹弹play',
+		['momoka-ui-danmaku-toggle'] = 'button:momoka-danmaku-toggle',
 		-- MOMOKA[controls] — 控制条上补的两颗（2026-09-23）：版本与画面菜单。两者都只是把宿主那两条
 		-- 既有通道摆到按钮上 —— 画面菜单与集成模式的「更多」按钮、独占模式的右键点画面是同一份
 		-- PlayerMenuCatalog（绑定同一个 uosc/momoka-ui-picture-menu）；版本菜单向宿主要这一条目的媒体源。
@@ -209,6 +210,7 @@ function Controls:init_options()
 					on_hide = function() self:reflow() end,
 				})
 				table_assign(control, {element = element, sizing = 'static', scale = 1, ratio = 1})
+				if params[1] == 'momoka-danmaku-toggle' then self.danmaku_toggle = element end
 			end
 		elseif kind == 'speed' then
 			if not Elements.speed then
@@ -375,7 +377,9 @@ function Controls:update_dimensions()
 			i = i + (a * (a % 2 == 0 and 1 or -1))
 			local control = self.layout[i]
 
-			if control.sizing ~= 'gap' and control.sizing ~= 'space' then
+			-- Leave the independent danmaku recovery toggle reachable before hiding other controls.
+			local danmaku_toggle = control.element and control.element == self.danmaku_toggle
+			if control.sizing ~= 'gap' and control.sizing ~= 'space' and not danmaku_toggle then
 				control.hide = true
 				if control.element then control.element.enabled = false end
 				if control.sizing == 'static' then

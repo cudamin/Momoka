@@ -47,6 +47,10 @@
 
             <StackPanel x:Name="Appearance" Spacing="12">
                 <TextBlock Text="显示设置" Style="{StaticResource EgBodyStyle}" />
+                <CheckBox x:Name="ScaleCheck" Content="弹幕随窗口缩放" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
+                <CheckBox x:Name="SubtitleCheck" Content="防挡字幕" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
+                <ComboBox x:Name="DensityModeBox" Header="弹幕密度" SelectionChanged="OnAppearanceChoiceChanged" HorizontalAlignment="Stretch" />
+                <CheckBox x:Name="OverlapCheck" Content="智能防挡弹幕（避免重叠）" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
                 <StackPanel Spacing="2">
                     <TextBlock x:Name="OpacityLabel" Style="{StaticResource EgCaptionStyle}" />
                     <Slider x:Name="OpacitySlider" Minimum="10" Maximum="100" StepFrequency="5" SnapsTo="StepValues" ValueChanged="OnStyleChanged" AutomationProperties.Name="弹幕不透明度" />
@@ -59,6 +63,10 @@
                     <TextBlock x:Name="SpeedLabel" Style="{StaticResource EgCaptionStyle}" />
                     <Slider x:Name="SpeedSlider" Minimum="0.5" Maximum="2" StepFrequency="0.1" SnapsTo="StepValues" ValueChanged="OnStyleChanged" AutomationProperties.Name="弹幕速度" />
                 </StackPanel>
+                <CheckBox x:Name="SpeedSyncCheck" Content="弹幕速度同步播放倍数" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
+                <ComboBox x:Name="FontFamilyBox" Header="弹幕字体" SelectionChanged="OnAppearanceChoiceChanged" HorizontalAlignment="Stretch" />
+                <CheckBox x:Name="BoldCheck" Content="粗体" Checked="OnAppearanceChanged" Unchecked="OnAppearanceChanged" />
+                <ComboBox x:Name="BorderStyleBox" Header="描边类型" SelectionChanged="OnAppearanceChoiceChanged" HorizontalAlignment="Stretch" />
                 <StackPanel Spacing="2">
                     <TextBlock x:Name="AreaLabel" Style="{StaticResource EgCaptionStyle}" />
                     <Slider x:Name="AreaSlider" Minimum="25" Maximum="100" StepFrequency="25" SnapsTo="StepValues" ValueChanged="OnStyleChanged" AutomationProperties.Name="弹幕显示区域" />
@@ -84,6 +92,8 @@
                     <CheckBox x:Name="RepeatCheck" Grid.Row="2" Grid.ColumnSpan="2" Content="合并 10 秒内的重复弹幕" Click="OnFiltersChanged" />
                 </Grid>
                 <TextBox x:Name="BlockBox" Header="屏蔽词" PlaceholderText="多个词用逗号分隔" MaxLength="4000" LostFocus="OnBlockLostFocus" AutomationProperties.Name="弹幕屏蔽词" />
+                <TextBlock Text="屏蔽词与设置页共用并同步保存本机列表。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                <Button x:Name="RestoreAppearanceButton" Content="恢复弹幕外观默认" Click="OnRestoreAppearance" HorizontalAlignment="Stretch" />
             </StackPanel>
             <Button x:Name="SettingsButton" Content="更多弹幕设置与连接配置" Click="OnSettings" HorizontalAlignment="Stretch" />
         </StackPanel>

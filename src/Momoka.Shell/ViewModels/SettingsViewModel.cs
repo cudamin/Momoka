@@ -1255,6 +1255,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         // The row may have been rebuilt while the scan ran — a second visit to the page does that — so the
         // current one is asked for rather than the one captured above.
         _subtitleFont?.Fill(catalogue);
+        _danmakuFont?.Fill(catalogue);
         FontsReady = true;
     }
 

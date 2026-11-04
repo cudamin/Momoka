@@ -42,6 +42,24 @@ internal static class SettingsPageStateTests
     public static void Register(string shellAssemblyPath, string sourceRoot)
     {
         var fixture = new ShellFixture(shellAssemblyPath, sourceRoot);
+        TestHarness.Test("弹幕屏蔽词：从共享偏好重载真实文本行不再提交或重复保存", () =>
+        {
+            var commits = 0;
+            var saves = 0;
+            var row = fixture.NewRow("SettingTextRow", "屏蔽词", null, "多个词", "旧词",
+                (Func<string, string>)(value => { commits++; return value; }), (Action)(() => saves++), (Action?)null);
+            fixture.Invoke(row, "Reseed", "新词");
+            Assert.Equal("新词", fixture.Get<string>(row, "Text"));
+            Assert.Equal(0, commits);
+            Assert.Equal(0, saves);
+            fixture.Set(row, "IsEditing", true);
+            fixture.Invoke(row, "Reseed", "外部消息");
+            Assert.Equal("新词", fixture.Get<string>(row, "Text"));
+            fixture.Set(row, "IsEditing", false);
+            fixture.Set(row, "Text", "用户修改");
+            Assert.Equal(1, commits);
+            Assert.Equal(1, saves);
+        });
         TestHarness.Test("R-073 缓存 built 分支接上轻量同步，不重读整页（源码接线）", () =>
         {
             Assert.True(fixture.CachedCalls.Contains(SaveStateMethod, StringComparer.Ordinal), "缓存分支必须同步共享保存状态");

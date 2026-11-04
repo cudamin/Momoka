@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
@@ -52,6 +53,7 @@ internal sealed partial class ShellNavigationProbe
         var windows = Get<FrameworkElement>(page, "WindowButtons");
         try
         {
+            await PlayerDanmakuControlsAsync(page, vm, fixture.Settings);
             var item = new EmbyItem { Type = EmbyItemType.Movie, Name = "测试作品" };
             await (Task)Call(vm, "AutoMatchDanmakuAsync", item)!;
             Require(vm.DanmakuStatus.Contains("搜索结果过多", StringComparison.Ordinal) && transport.GetComments == 0,
@@ -144,6 +146,127 @@ internal sealed partial class ShellNavigationProbe
             page.ReleaseVideoSurface();
             await vm.ShutdownAsync();
         }
+
+        Rect Bounds(FrameworkElement element)
+        {
+            var point = element.TransformToVisual(page).TransformPoint(new Point());
+            return new(point.X, point.Y, element.ActualWidth, element.ActualHeight);
+        }
+    }
+
+    private async Task PlayerDanmakuControlsAsync(PlayerPage page, PlayerViewModel vm, AppSettings settings)
+    {
+        var panelButton = Get<Button>(page, "DanmakuButton");
+        var toggle = Descendants(page).OfType<Button>().SingleOrDefault(control => control.Name == "DanmakuToggleButton")
+            ?? throw new InvalidOperationException("播放页缺少独立的一键弹幕开关");
+        var input = Get<StackPanel>(page, "DanmakuInputBar");
+        var pictureMenu = Get<MenuFlyout>(page, "PictureMenu");
+        var opacity = settings.Danmaku.Opacity;
+        var layout = new List<string>();
+        foreach (var width in new[] { 1100, 760, 420, 360 })
+        {
+            ResizeProbeClient(width, 720);
+            await LayoutAsync(page);
+            page.ShowChromeForShot("playing");
+            Call(page, "ArrangeTransport");
+            await LayoutAsync(page);
+            Require(panelButton.Visibility == Visibility.Visible && toggle.Visibility == Visibility.Visible,
+                $"{width}: 启用弹幕后面板与一键按钮未同时显示");
+            var controls = new FrameworkElement[] { Get<FrameworkElement>(page, "PlayButton"),
+                Get<FrameworkElement>(page, "TransportStatsButton"), panelButton, toggle,
+                Get<FrameworkElement>(page, "SpeedStrip"), Get<FrameworkElement>(page, "SpeedButton"),
+                Get<FrameworkElement>(page, "SubtitleButton"), Get<FrameworkElement>(page, "AudioButton"),
+                Get<FrameworkElement>(page, "FullscreenButton") };
+            Rect? previous = null;
+            foreach (var control in controls.Where(control => control.Visibility == Visibility.Visible))
+            {
+                var bounds = Bounds(control);
+                Require(bounds.Left >= -1 && bounds.Right <= width + 1 && bounds.Width > 0,
+                    $"{width}: {control.Name}越界或无尺寸");
+                Require(previous is not { } before || before.Right <= bounds.Left + 1,
+                    $"{width}: {control.Name}与前一按钮重叠");
+                previous = bounds;
+            }
+            Require(Math.Abs(toggle.ActualWidth - panelButton.ActualWidth) < 1
+                && Math.Abs(toggle.ActualHeight - panelButton.ActualHeight) < 1, "弹幕两颗按钮缩放不同步");
+            Require(AutomationProperties.GetName(toggle) == "关闭弹幕", "开启状态读屏操作不明确");
+            Require(ReferenceEquals(toggle.Background, page.Resources["PlayerStripHoverBrush"]), "开启状态没有高亮");
+            ((IInvokeProvider)new ButtonAutomationPeer(toggle).GetPattern(PatternInterface.Invoke)).Invoke();
+            await LayoutAsync(page);
+            Require(!settings.Danmaku.Show && toggle.Visibility == Visibility.Visible && input.Visibility == Visibility.Collapsed,
+                "一键关闭未停止显示，或把恢复按钮一起隐藏");
+            Require(AutomationProperties.GetName(toggle) == "开启弹幕"
+                && !ReferenceEquals(toggle.Background, page.Resources["PlayerStripHoverBrush"]), "关闭状态提示或高亮未同步");
+            Require(Get<object?>(page, "_danmakuPanel") is null, "一键开关打开了搜索面板");
+            await SaveProbeScreenAsync($"player-danmaku-toggle-off-{width}-screen.png");
+            ((IInvokeProvider)new ButtonAutomationPeer(toggle).GetPattern(PatternInterface.Invoke)).Invoke();
+            await LayoutAsync(page);
+            Require(settings.Danmaku.Show && input.Visibility == Visibility.Visible, "一键恢复未更新弹幕或输入栏");
+            await SaveProbeScreenAsync($"player-danmaku-toggle-on-{width}-screen.png");
+            layout.Add($"{width}: panel={Bounds(panelButton)}; toggle={Bounds(toggle)}; state={settings.Danmaku.Show}");
+        }
+
+        Call(page, "OnPictureMenuOpening", page, new object());
+        Require(MenuDanmakuRows().Count == 2, "启用后右键缺少面板或弹幕设置入口");
+        var settingsGroup = pictureMenu.Items.OfType<MenuFlyoutSubItem>().Single(group => group.Text == PlayerSettingsLinks.MenuLabel);
+        var staleSettingsRow = settingsGroup.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is PlayerSettingsLink { Token: "danmaku" });
+        var settingsRequests = 0;
+        void Requested(PlayerSettingsLink link) { if (link.Token == "danmaku") settingsRequests++; }
+        vm.SettingsRequested += Requested;
+        try
+        {
+            pictureMenu.ShowAt(page);
+            await LayoutAsync(page);
+            settings.Danmaku.Enabled = false;
+            ShellPrefs.ApplyDanmaku();
+            await LayoutAsync(page);
+            Require(!pictureMenu.IsOpen, "关闭全局弹幕后旧右键菜单仍打开");
+            Require(panelButton.Visibility == Visibility.Collapsed && toggle.Visibility == Visibility.Collapsed
+                && input.Visibility == Visibility.Collapsed, "关闭全局弹幕后仍有弹幕播放控件");
+            Call(page, "OnPictureMenuOpening", page, new object());
+            Require(MenuDanmakuRows().Count == 0, "关闭全局弹幕后右键仍泄漏相关入口");
+            Call(page, "OnPictureSettingsRow", staleSettingsRow, new RoutedEventArgs());
+            Call(page, "OnDanmakuToggleClick", toggle, new RoutedEventArgs());
+            Require(settingsRequests == 0 && settings.Danmaku.Show && settings.Danmaku.Opacity == opacity,
+                "旧弹幕入口仍执行或隐藏清空了偏好");
+            await SaveProbeScreenAsync("player-danmaku-disabled-screen.png");
+            settings.Danmaku.Enabled = true;
+            ShellPrefs.ApplyDanmaku();
+            await LayoutAsync(page);
+            Call(page, "OnPictureMenuOpening", page, new object());
+            Require(toggle.Visibility == Visibility.Visible && MenuDanmakuRows().Count == 2, "重新启用未恢复播放入口");
+
+            settings.Danmaku.Source = DanmakuSourceMode.DanmuApi;
+            settings.Danmaku.DanmuApiBaseUrl = "";
+            ShellPrefs.ApplyDanmaku();
+            await LayoutAsync(page);
+            Call(page, "OnPictureMenuOpening", page, new object());
+            Require(toggle.Visibility == Visibility.Collapsed && MenuDanmakuRows().Count == 0,
+                "来源地址未配置仍显示弹幕操作");
+            settings.Danmaku.Source = DanmakuSourceMode.DandanPlay;
+            settings.Mpv.Backend = MpvBackendKind.ExternalMpv;
+            ShellPrefs.ApplyDanmaku();
+            await LayoutAsync(page);
+            Call(page, "OnPictureMenuOpening", page, new object());
+            Require(toggle.Visibility == Visibility.Collapsed && MenuDanmakuRows().Count == 0, "外部后端仍显示弹幕操作");
+            settings.Mpv.Backend = MpvBackendKind.BuiltInLibMpv;
+            ShellPrefs.ApplyDanmaku();
+            await LayoutAsync(page);
+            Call(page, "OnPictureMenuOpening", page, new object());
+            Require(toggle.Visibility == Visibility.Visible && MenuDanmakuRows().Count == 2
+                && settings.Danmaku.Opacity == opacity && settings.Danmaku.Show, "恢复内置后端未恢复原值与入口");
+            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "danmaku-toggle-layout.txt"), layout);
+        }
+        finally
+        {
+            vm.SettingsRequested -= Requested;
+            pictureMenu.Hide();
+        }
+
+        List<MenuFlyoutItem> MenuDanmakuRows() => pictureMenu.Items.OfType<MenuFlyoutItem>()
+            .Where(row => row.Text.Contains("弹幕", StringComparison.Ordinal)).Concat(
+                pictureMenu.Items.OfType<MenuFlyoutSubItem>().SelectMany(group => group.Items.OfType<MenuFlyoutItem>())
+                    .Where(row => row.Tag is PlayerSettingsLink { Token: "danmaku" })).ToList();
 
         Rect Bounds(FrameworkElement element)
         {
