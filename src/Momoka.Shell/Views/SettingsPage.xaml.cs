@@ -290,6 +290,8 @@ public sealed partial class SettingsPage : Page, IShellContent
     private void OnHomeRowDragStarting(object sender, DragItemsStartingEventArgs e)
     {
         if (e.Items.OfType<HomeRowChoice>().Any(row => row.Pinned)) e.Cancel = true;
+        if (!e.Cancel && sender is ListView { Tag: SettingHomeLayoutRow { EnableSpring: true } })
+            OnPriorityDragStarting(sender, e);
     }
 
     /// <summary>
@@ -925,6 +927,7 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// <summary>同上，数主页版面那张表画出来的行。见 <see cref="MeasureHomeRows"/>。</summary>
     private static void CountHomeRows(DependencyObject node, ref int rows)
     {
+        if (node is ListView { Tag: SettingHomeLayoutRow { EnableSpring: true } }) return;
         if (node is ContentPresenter { Content: HomeRowChoice }) rows++;
 
         var children = VisualTreeHelper.GetChildrenCount(node);
@@ -938,7 +941,8 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </summary>
     private static ListView? FindHomeList(DependencyObject node)
     {
-        if (node is ListView list && list.Items.Count > 0 && list.Items[0] is HomeRowChoice) return list;
+        if (node is ListView list && list.Tag is not SettingHomeLayoutRow { EnableSpring: true }
+            && list.Items.Count > 0 && list.Items[0] is HomeRowChoice) return list;
 
         var children = VisualTreeHelper.GetChildrenCount(node);
         for (var index = 0; index < children; index++)

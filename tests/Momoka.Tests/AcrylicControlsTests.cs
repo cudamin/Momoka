@@ -109,8 +109,9 @@ internal static class AcrylicControlsTests
             {
                 for (var index = 0; index < States.Length; index++)
                 {
-                    Assert.Equal("ToggleButtonBackground" + States[index],
-                        LocalTarget(button, "ToggleButtonBackgroundChecked" + States[index]));
+                    // 背景现在由 ControlBackgroundBrushes 构造时提供，源链接专项覆盖三态与选中态共用副本。
+                    // 本地 XAML 不能再声明别名，否则 WinUI 原地覆盖会按对象删错键。
+                    Assert.Null(FindLocalResource(button, "ToggleButtonBackgroundChecked" + States[index]));
                     Assert.Equal("EgAccentBrush", LocalTarget(button, "ToggleButtonForegroundChecked" + States[index]));
                 }
                 Assert.Null(FindLocalResource(button, "ToggleButtonBackgroundCheckedDisabled"));

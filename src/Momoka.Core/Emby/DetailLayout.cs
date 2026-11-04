@@ -17,10 +17,10 @@ public static class DetailLayout
     public static string Title(string key) => key switch
     {
         Episodes => "集列表",
-        Info => "更多信息",
+        Info => "其他信息",
         Seasons => "全部剧季",
-        Cast => "演职员",
-        Similar => "相似作品",
+        Cast => "演职人员",
+        Similar => "更多类似",
         _ => ""
     };
 

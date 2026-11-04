@@ -113,6 +113,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.MoviePilotJourneyTes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ArchitectureTests", "tests\Momoka.ArchitectureTests\Momoka.ArchitectureTests.csproj", "{D980A657-2A89-4751-99F4-C7B027FF16E1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.AppearanceOpacityTests", "tests\Momoka.AppearanceOpacityTests\Momoka.AppearanceOpacityTests.csproj", "{4ADF4F81-60D3-4C38-8AC1-0559986C0215}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -122,6 +124,10 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4ADF4F81-60D3-4C38-8AC1-0559986C0215}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4ADF4F81-60D3-4C38-8AC1-0559986C0215}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4ADF4F81-60D3-4C38-8AC1-0559986C0215}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4ADF4F81-60D3-4C38-8AC1-0559986C0215}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D980A657-2A89-4751-99F4-C7B027FF16E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D980A657-2A89-4751-99F4-C7B027FF16E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D980A657-2A89-4751-99F4-C7B027FF16E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -332,6 +338,7 @@ Global
 		{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{4ADF4F81-60D3-4C38-8AC1-0559986C0215} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{D980A657-2A89-4751-99F4-C7B027FF16E1} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{42B28CCE-29FC-419B-8248-69D77314874F} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{4AD193CB-4DE2-448B-85B6-BFED5335A8B6} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}

@@ -1,3 +1,14 @@
+# 2026-11-04 详情卡片与外观自定义（已实现提交，用户要求先不合并）
+
+- 当前树 `C:/Users/89400/.codex/worktrees/3b75/Momoka`，基于963dbcc，开发期间同步master到d20a832。用户最后明确「做完先不合并」，本批留在当前树，不合主树、不上传、不刷新桌面交付目录。主树仍是d20a832。
+- 关于移除弹弹play来源行；设置→界面新增剧／单集／电影正文卡片顺序与显隐，季不新增独立配置；复用现有ListView勾选/箭头与380ms弹簧，拖拽两阶段保存、取消/缺项恢复及隐藏窗口收尾。页面原实例重排，数据空态继续自动隐藏，错峰动画遵循实际卡片顺序。
+- 用户更正后的两条滑块：默认0保留原状，向上只增不透明度，100全不透明。详情普通背景0.9、沉浸0.96向1增加；按钮／选择框／首页详情按钮使用原薄白层加主题深色底，避免100白块白字。主题切换即时重算，文字图标不变，不触发首页请求。固定沉浸保留窄窗／无图／单集适用边界。导入、备份、恢复默认覆盖新偏好。
+- 当前主测试3677/3677（work-zero-full-tests.log），外观源链接31/31（work-readable-appearance.log），配置与模板专项21/21、材质静态19/19、弹簧生命周期24/24、真实详情VM19/19、设置状态30/30、搜索14/14、设置页源码契约31/31。最后Shell Release构建0警告0错误（work-shell-readable-build.log）；变更whitespace检查退出0但工作区加载有提示，check-diff与自动化扫描通过，非模板缺句柄0。
+- 最终功能运行：`shell-probe-20261104-111509060-33780` inspect入口运行两个正式Case均通过；实际三页自定义顺序、隐藏后继上移／恢复、三态及连播选中态0/37/100、普通／沉浸背景增量45/100、窄窗、五主题截图、恢复默认、主页无额外请求。已检查100深色底截图。`105452855-35624`中真实winapp鼠标拖拽(895,522)→(895,642)，UIA与隔离settings一致从episodes,info,seasons,cast,similar变为info,seasons,episodes,cast,similar；只用假数据，无播放。
+- 初轮发现WinUI延迟资源别名替换COM键冲突、重建枚举别名冲突，已改成XAML不再声明代码负责的背景键、构造只新增一次；回归准确先红后绿。隐藏后ActualHeight保留RenderSize的误报改为后继卡片实际位移。初轮CloseMainWindow导致随后NullRef属于我提前关验证窗口，原记录保留，不当产品缺陷。
+- 扩展运行尚有红项：`103833616-13304` settings/library/materials 51/53，隐藏高度误报已由最终Case消除；材质例library/oled-black窗口请求760但客户区停1280。最终仅materials复验 `111723916-30828` 0/1，notifications/midnight请求1280但客户区停760，最大化false。详情材质五主题截图已完成；不能宣称整条扩展材质检查通过，未改时限／未洗绿。最后另一个聊天ba08的探针启动，后续桌面验证仍须串行。
+- 证据（含失败）已归档 `C:/Users/89400/.codex/visualizations/2026/11/04/01a1a5e5-c8d2-7961-b3b8-2ded36c39a8a/detail-customization-evidence`；本树构建仍可运行。合并与发布等待用户恢复指示；桌面快捷方式仍是旧版。
+
 # 2026-11-04 P2 浏览恢复与详情背景复用（已合入、验证并发布）
 
 - 树 `C:/Users/89400/.codex/worktrees/ba08/Momoka`，分支 `codex/p2-browse-image-cost`，基于master834a21d。写入范围：匿名计时、Home/Library恢复、详情背景及相关夹具和文档；[实施计划](docs/superpowers/plans/2026-11-04-p2-browse-image-cost.md)。

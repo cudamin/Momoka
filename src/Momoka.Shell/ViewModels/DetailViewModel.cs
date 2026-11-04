@@ -457,7 +457,30 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <c>HeroHeightRatio</c> 的通知名单里，条目种类那一路在 <see cref="AnnounceShape"/> 里补一句。
     /// </para>
     /// </summary>
-    public bool Showcase => DetailHero.Immersive(Spacious || NearCrop, IsCompact, BackdropShown, ItemType);
+    public bool Showcase => DetailHero.Immersive(Spacious || NearCrop, IsCompact, BackdropShown, ItemType,
+        _settings?.Settings.Ui.AlwaysImmersive == true);
+
+    internal double ControlBackgroundOpacity => _settings?.Settings.Ui.ControlBackgroundOpacity ?? 0;
+
+    public double BackdropOpacity => AppearanceOpacity.Backdrop(_settings?.Settings.Ui.BackdropOpacity ?? 0, Showcase);
+
+    internal void RefreshAppearance()
+    {
+        OnPropertyChanged(nameof(Showcase));
+        OnPropertyChanged(nameof(TailMinHeight));
+        OnPropertyChanged(nameof(PaperMinHeight));
+        OnPropertyChanged(nameof(PictureHeight));
+        OnPropertyChanged(nameof(PictureFadeMargin));
+        OnPropertyChanged(nameof(BackdropFadeVisibility));
+        OnPropertyChanged(nameof(TailSpacing));
+        OnPropertyChanged(nameof(TailPanelPadding));
+        OnPropertyChanged(nameof(OverviewPanelPadding));
+        OnPropertyChanged(nameof(SheetPadding));
+        OnPropertyChanged(nameof(SheetSpacing));
+        OnPropertyChanged(nameof(BodyPanelPadding));
+        OnPropertyChanged(nameof(ShowShelfLines));
+        OnPropertyChanged(nameof(BackdropOpacity));
+    }
 
     /// <summary>
     /// 货架标题前那条短强调线和底下那条通栏线画不画 —— 沉浸档都不画（2026-10-31 用户令「把线条去掉」）。
@@ -2118,7 +2141,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public Visibility OtherInfoRuleVisibility => Show(InfoRows.Count > 0 && OtherFacts.Count > 0);
 
-    public Visibility EpisodeVisibility => Show(EpisodeShelf is { Cards.Count: > 0 } || Seasons.Count > 1);
+    public Visibility EpisodeVisibility => Show(CardVisible("episodes") && (EpisodeShelf is { Cards.Count: > 0 } || Seasons.Count > 1));
 
     /// <summary>
     /// Which of the two shapes 单集 takes on this page. Both are inside the block
@@ -2134,7 +2157,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     public Visibility EpisodeStripVisibility => Show(EpisodeShelf is { Cards.Count: > 0 } && !EpisodesAsList);
 
-    public Visibility CastVisibility => Show(CastShelf is { Cards.Count: > 0 });
+    public Visibility CastVisibility => Show(CardVisible("cast") && CastShelf is { Cards.Count: > 0 });
 
     /// <summary>
     /// 全部剧季那一格画不画。两张卡以上才画：只有一季时那一格是一张通往本页已经在列的那一季的卡，摆在那里只是
@@ -2149,7 +2172,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 会画出这一块 —— 那两张卡指向两个不同的季页面，不是同一张卡摆两遍。
     /// </para>
     /// </summary>
-    public Visibility SeasonShelfVisibility => Show(SeasonShelf is { Cards.Count: > 1 });
+    public Visibility SeasonShelfVisibility => Show(CardVisible("seasons") && SeasonShelf is { Cards.Count: > 1 });
 
     /// <summary>
     /// 集列表牌子能不能点开季列表。剧页和集页的集列表现在是全剧一条（按播出时间排），所以两页都要能按季
@@ -2163,7 +2186,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>季列表里要列出哪些季 —— 服务器给的那一份，包含第 0 季。</summary>
     internal IReadOnlyList<EmbyItem> EpisodeSeasonChoices => [.. Seasons];
 
-    public Visibility SimilarVisibility => Show(SimilarShelf is { Cards.Count: > 0 });
+    public Visibility SimilarVisibility => Show(CardVisible("similar") && SimilarShelf is { Cards.Count: > 0 });
 
     public Visibility DirectorsVisibility => Show(!string.IsNullOrWhiteSpace(Directors));
 
@@ -2172,7 +2195,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 自 2026-11-02 起也有，描述有续播的最近一集或当季第一集）。季页两样都没有（同日用户令「季页面不要
     /// 媒体信息」），整块收起。集还没回来、那一集没有媒体源、又没有其他信息时也收起。
     /// </summary>
-    public Visibility InfoVisibility => Show(InfoRows.Count > 0 || OtherFacts.Count > 0);
+    public Visibility InfoVisibility => Show(CardVisible("info") && (InfoRows.Count > 0 || OtherFacts.Count > 0));
 
     /// <summary>The episodes on screen, for the player's 下一集 and for the context menu's 本季 commands.</summary>
     internal IReadOnlyList<EmbyItem> Episodes => _episodes;
@@ -2292,6 +2315,7 @@ public sealed partial class DetailViewModel : PageViewModel
         _actions = actions;
         _seed = request.Item;
         _settings = settings;
+        RefreshCardLayout();
         _session = session;
         _images = images;
 
@@ -2520,6 +2544,7 @@ public sealed partial class DetailViewModel : PageViewModel
         if (type is not null && type == _announcedShapeType) return;
         _announcedShapeType = null;
         var lifetime = _lifetime;
+        RefreshCardLayout();
 
         // 单集 changes shape with the kind of page this is, and that is a fact about the item rather than
         // about the shelf — no collection has changed here, so nothing else would say it. Raised right after

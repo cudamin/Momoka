@@ -189,10 +189,16 @@ internal sealed partial class ShellNavigationProbe
         episode.ImageTags["Primary"] = "fixture";
         var movie = new EmbyItem
         {
-            Id = "custom-movie", Name = "卡片自定义电影", Type = EmbyItemType.Movie,
-            Overview = series.Overview, People = series.People, MediaSources = episode.MediaSources,
-            BackdropImageTags = ["fixture"], ImageTags = new() { ["Primary"] = "fixture" },
-            Genres = ["剧情"], RunTimeTicks = TimeSpan.FromMinutes(90).Ticks
+            Id = "custom-movie",
+            Name = "卡片自定义电影",
+            Type = EmbyItemType.Movie,
+            Overview = series.Overview,
+            People = series.People,
+            MediaSources = episode.MediaSources,
+            BackdropImageTags = ["fixture"],
+            ImageTags = new() { ["Primary"] = "fixture" },
+            Genres = ["剧情"],
+            RunTimeTicks = TimeSpan.FromMinutes(90).Ticks
         };
         var known = new[] { series, movie, episode }.Concat(seasons)
             .Concat(episodes.Values.SelectMany(items => items).Where(item => item.Id != episode.Id).Select(EpisodeDetail))
@@ -231,6 +237,10 @@ internal sealed partial class ShellNavigationProbe
                 var originalPanels = sheet.Children.OfType<StackPanel>().ToArray();
                 var expected = DetailLayout.For(fixture.Settings.Ui, item.Type).Reverse()
                     .Select(card => new DetailCardSetting { Key = card.Key, Visible = card.Visible }).ToList();
+                // 信息卡置于中间，隐藏后用后继卡片的位置验证不占位，也覆盖电影页。
+                var infoSetting = expected.Single(card => card.Key == "info");
+                expected.Remove(infoSetting);
+                expected.Insert(1, infoSetting);
                 SetCards(item.Type, expected);
                 ShellPrefs.ApplyDetailLayout(fixture.Settings.Ui);
                 await LayoutAsync(page);
@@ -245,11 +255,22 @@ internal sealed partial class ShellNavigationProbe
                     RequireCardOrder(page, expected.Select(card => card.Key));
                     var info = Get<StackPanel>(page, "InfoPanel");
                     Require(info.Visibility == Visibility.Visible && info.ActualHeight > 0, "信息卡未呈现夹具内容");
+                    var infoIndex = sheet.Children.IndexOf(info);
+                    var following = sheet.Children.Skip(infoIndex + 1).OfType<FrameworkElement>()
+                        .FirstOrDefault(element => element.Visibility == Visibility.Visible);
+                    var previousTop = following?.TransformToVisual(sheet).TransformPoint(default).Y;
+                    var previousHeight = info.ActualHeight;
                     var before = expected.Select(card => card.Key).ToArray();
                     expected.Single(card => card.Key == "info").Visible = false;
                     ShellPrefs.ApplyDetailLayout(fixture.Settings.Ui);
                     await LayoutAsync(page);
-                    Require(info.Visibility == Visibility.Collapsed && info.ActualHeight == 0, "隐藏信息卡仍占布局高度");
+                    Require(info.Visibility == Visibility.Collapsed, "信息卡未隐藏");
+                    // Collapsed 的 ActualHeight 可能保留旧 RenderSize；量下一可见兄弟的真实位置，证明空位也收走了。
+                    if (following is not null && previousTop is { } top)
+                    {
+                        var nextTop = following.TransformToVisual(sheet).TransformPoint(default).Y;
+                        Require(nextTop <= top - previousHeight + 1, "隐藏信息卡后后续卡片没有上移");
+                    }
                     RequireCardOrder(page, before);
                     await ScrollProbeAsync(Get<ScrollView>(page, "Body"), 0);
                     await SaveProbeScreenAsync($"detail-customization-{item.Type}-{width}-hidden.png");
@@ -257,6 +278,9 @@ internal sealed partial class ShellNavigationProbe
                     ShellPrefs.ApplyDetailLayout(fixture.Settings.Ui);
                     await LayoutAsync(page);
                     Require(info.Visibility == Visibility.Visible && info.ActualHeight > 0, "恢复信息卡未原位出现");
+                    if (following is not null && previousTop is { } restoredTop)
+                        Require(Math.Abs(following.TransformToVisual(sheet).TransformPoint(default).Y - restoredTop) < 1,
+                            "恢复信息卡后后继卡片没有返回原位置");
                     RequireCardOrder(page, before);
                     var scroll = Get<ScrollView>(page, "Body");
                     var first = sheet.Children.OfType<FrameworkElement>().First(element => element.Visibility == Visibility.Visible);
@@ -273,7 +297,7 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
                 Require(!page.ViewModel.Showcase, "普通尺寸不应触发沉浸布局");
                 var picture = Get<Border>(page, "BackdropPicture");
-                Require(Math.Abs(picture.Opacity - 0.45) < 0.001, "背景图设置没有立即落到实际图片层");
+                Require(Math.Abs(picture.Opacity - 0.945) < 0.001, "背景图增量没有立即落到实际图片层");
                 await CheckControlBackgroundOpacityAsync(page, fixture.Settings.Ui);
                 fixture.Settings.Ui.AlwaysImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
@@ -281,7 +305,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(page.ViewModel.Showcase == (item.Type != EmbyItemType.Episode),
                     "固定沉浸没有按剧/电影及单集适用边界生效");
                 if (item.Type != EmbyItemType.Episode)
-                    Require(Math.Abs(picture.Opacity - 0.48) < 0.001, "沉浸背景不透明度没有按同一偏好计算");
+                    Require(Math.Abs(picture.Opacity - 0.978) < 0.001, "沉浸背景不透明度没有按同一增量计算");
                 foreach (var theme in UiThemes.All)
                 {
                     ThemeHost.Apply(theme);
@@ -295,7 +319,10 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
                 Require(!page.ViewModel.Showcase, "关闭固定沉浸没有恢复自动模式");
-                readings.Add($"{item.Type}：{string.Join(',', expected.Select(card => card.Key))}，隐藏恢复同实例，背景45%，窄窗保留紧凑布局");
+                fixture.Settings.Ui.BackdropOpacity = 100;
+                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                Require(Math.Abs(picture.Opacity - 1) < 0.001, "背景增量100未完全不透明");
+                readings.Add($"{item.Type}：{string.Join(',', expected.Select(card => card.Key))}，隐藏恢复同实例，背景增量45/100，窄窗保留紧凑布局");
             }
             // 季页使用原有顺序；剧与单集的自定义不应连带改掉它。
             ResizeProbeClient(1100, 820);
@@ -343,8 +370,11 @@ internal sealed partial class ShellNavigationProbe
     {
         var names = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["EpisodePanel"] = "episodes", ["InfoPanel"] = "info", ["SeasonPanel"] = "seasons",
-            ["CastPanel"] = "cast", ["SimilarPanel"] = "similar"
+            ["EpisodePanel"] = "episodes",
+            ["InfoPanel"] = "info",
+            ["SeasonPanel"] = "seasons",
+            ["CastPanel"] = "cast",
+            ["SimilarPanel"] = "similar"
         };
         var wanted = expected.ToArray();
         var panels = Get<StackPanel>(page, "BodySheet").Children.OfType<FrameworkElement>()
@@ -380,7 +410,7 @@ internal sealed partial class ShellNavigationProbe
             {
                 foreach (var state in states)
                 {
-                    ui.ControlBackgroundOpacity = 100;
+                    ui.ControlBackgroundOpacity = 0;
                     ShellPrefs.ApplyAppearance(ui);
                     Require(VisualStateManager.GoToState(control, state, false), "控件缺少状态：" + state);
                     await LayoutAsync(control);
@@ -393,10 +423,18 @@ internal sealed partial class ShellNavigationProbe
                     ShellPrefs.ApplyAppearance(ui);
                     Require(VisualStateManager.GoToState(control, state, false), "外观调整后控件丢失状态：" + state);
                     await LayoutAsync(control);
-                    Require(Fill() is SolidColorBrush adjusted && adjusted.Color == color
-                        && Math.Abs(adjusted.Opacity - opacity * 0.37) < 0.001, control.Name + "/" + state + " 底色不透明度未按比例变化");
+                    Require(Fill() is SolidColorBrush adjusted && Math.Abs(adjusted.Opacity * adjusted.Color.A / 255d
+                            - (opacity * color.A / 255d + (1 - opacity * color.A / 255d) * 0.37)) < 0.001,
+                        control.Name + "/" + state + " 底色没有从原浓度增加不透明度");
                     Require(control.Opacity == 1 && ReferenceEquals(control.Foreground, foreground),
                         "底色调节改变了整个控件或文字画刷");
+                    ui.ControlBackgroundOpacity = 100;
+                    ShellPrefs.ApplyAppearance(ui);
+                    Require(Fill() is SolidColorBrush opaque && opaque.Color.A == 255 && opaque.Opacity == 1,
+                        "底色增量100未完全不透明");
+                    Require(Fill() is SolidColorBrush readable && readable.Color.R < 128
+                        && readable.Color.G < 128 && readable.Color.B < 128,
+                        "不透明底色变成亮白，无法读取浅色文字");
                 }
             }
             finally { VisualStateManager.GoToState(control, restore, false); }
@@ -422,8 +460,8 @@ internal sealed partial class ShellNavigationProbe
             var baselineReads = requestCount();
             foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
             {
-                ui.ControlBackgroundOpacity = 100;
-                ui.BackdropOpacity = 90;
+                ui.ControlBackgroundOpacity = 0;
+                ui.BackdropOpacity = 0;
                 ShellPrefs.ApplyAppearance(ui);
                 Require(VisualStateManager.GoToState(button, state, false), "首页详情按钮缺少状态：" + state);
                 await LayoutAsync(banner);
@@ -438,12 +476,18 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(ui);
                 Require(VisualStateManager.GoToState(button, state, false), "首页详情按钮外观调整后丢失状态：" + state);
                 await LayoutAsync(banner);
-                Require(presenter.Background is SolidColorBrush adjusted && adjusted.Color == color
-                    && Math.Abs(adjusted.Opacity - opacity * 0.37) < 0.001, "首页详情按钮底色没有跟随不透明度");
+                Require(presenter.Background is SolidColorBrush adjusted && Math.Abs(adjusted.Opacity * adjusted.Color.A / 255d
+                        - (opacity * color.A / 255d + (1 - opacity * color.A / 255d) * 0.37)) < 0.001,
+                    "首页详情按钮底色没有从原浓度增加不透明度");
                 Require(button.Opacity == 1 && ReferenceEquals(presenter.Foreground, foreground), "首页详情文字跟着底色变透明");
                 foreach (var layer in new[] { Get<Grid>(banner, "LayerA"), Get<Grid>(banner, "LayerB") })
-                    Require(layer.Background is ImageBrush picture && Math.Abs(picture.Opacity - 0.5) < 0.001,
-                        "主页轮播背景图没有跟随不透明度，或改动了淡入淡出层");
+                    Require(layer.Background is ImageBrush picture && Math.Abs(picture.Opacity - 1) < 0.001,
+                        "主页原本不透明的背景图变淡，或改动了淡入淡出层");
+                ui.ControlBackgroundOpacity = 100;
+                ShellPrefs.ApplyAppearance(ui);
+                Require(presenter.Background is SolidColorBrush opaque && opaque.Color.A == 255 && opaque.Opacity == 1
+                    && opaque.Color.R < 128 && opaque.Color.G < 128 && opaque.Color.B < 128,
+                    "主页详情按钮的100档底色没有完全不透明，或亮到看不清文字");
             }
             Require(requestCount() == baselineReads, "仅修改首页外观重新请求了图片或媒体");
             VisualStateManager.GoToState(button, "Normal", false);

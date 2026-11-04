@@ -100,6 +100,19 @@ internal sealed partial class ShellNavigationProbe
             return Task.CompletedTask;
         });
         Add("InspectSettingsOpening", "聚合设置开窗", () => SettingsOpeningAsync(inspect: true));
+        Add("InspectDetailCustomization", "详情自定义", async () =>
+        {
+            if (frame.Content is IShellContent previous) previous.Release();
+            layout.Visibility = Visibility.Collapsed;
+            try
+            {
+                await CaseAsync("详情自定义设置：卡片排序、隐藏、拖拽提交与重入", DetailCustomizationSettingsAsync, 90,
+                    section: ShellProbeSections.Settings);
+                await CaseAsync("详情自定义页面：实际顺序、隐藏恢复、不透明度与固定沉浸", DetailCustomizationPagesAsync, 120,
+                    section: ShellProbeSections.Library);
+            }
+            finally { layout.Visibility = Visibility.Visible; }
+        });
         Add("InspectSettingsMotion", "设置动画", async () =>
         {
             if (frame.Content is IShellContent previous) previous.Release();

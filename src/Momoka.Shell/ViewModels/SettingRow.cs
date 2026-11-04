@@ -823,8 +823,8 @@ public sealed partial class SettingFactRow : SettingRow
 }
 
 /// <summary>
-/// 主页版面那一行：一张可以换次序、每一项自己带一个勾的表 —— 「新增页里拖拽决定这些列表的顺序，勾选显示
-/// 或者不勾选取消显示」。
+/// 主页与详情卡片共用的版面表：拖拽或箭头换序、勾选显隐。详情表启用弹簧和完整拖拽提交，
+/// 主页保留原有固定项规则。
 /// <para>
 /// 和别的行不一样，它管的不是一个开关而是一份有序清单，所以读写那一对换成了「拿到这一份」和「这一份变了」：换过
 /// 一次次序、或者点过一个勾，都当场写回设置并喊一声（见 <see cref="SettingsViewModel"/> 里造它的那一段）。
@@ -848,15 +848,20 @@ public sealed partial class SettingHomeLayoutRow : SettingRow
 {
     private readonly Action<IReadOnlyList<HomeRowChoice>> _changed;
     private bool _quiet;
+    private HomeRowChoice[]? _beforeReorder;
+
+    public bool EnableSpring { get; }
 
     internal SettingHomeLayoutRow(
         string label,
         string? note,
         IEnumerable<HomeRowChoice> rows,
-        Action<IReadOnlyList<HomeRowChoice>> changed)
+        Action<IReadOnlyList<HomeRowChoice>> changed,
+        bool enableSpring = false)
         : base(label, note)
     {
         _changed = changed;
+        EnableSpring = enableSpring;
 
         foreach (var row in rows) Adopt(row);
 
@@ -911,15 +916,47 @@ public sealed partial class SettingHomeLayoutRow : SettingRow
 
     private void Save()
     {
-        if (_quiet) return;
+        if (_quiet || _beforeReorder is not null) return;
 
         _changed([.. Rows]);
+    }
+
+    internal void BeginReorder() => _beforeReorder ??= [.. Rows];
+
+    internal void EndReorder() => EndReorder(save: true);
+
+    private void EndReorder(bool save)
+    {
+        if (_beforeReorder is not { } before) return;
+        _beforeReorder = null;
+        // 原生拖拽先 Remove 再 Add；离页或取消落在中间时还原完整集合，不保存缺项快照。
+        if (Rows.Count != before.Length || before.Any(row => !Rows.Contains(row)))
+        {
+            _quiet = true;
+            try
+            {
+                Rows.Clear();
+                foreach (var row in before) Rows.Add(row);
+            }
+            finally { _quiet = false; }
+            MarkEnds();
+            return;
+        }
+        MarkEnds();
+        if (save && !Rows.SequenceEqual(before)) Save();
+    }
+
+    private void SaveEdit()
+    {
+        // Esc 或拖出窗口可能漏掉完成事件；下一次明确编辑先结束旧拖拽，不能让之后的修改一直被吞掉。
+        EndReorder(save: false);
+        Save();
     }
 
     /// <summary>把一项收进表里，接上它那两根线：勾变了要写盘，箭头按了要换位。</summary>
     private void Adopt(HomeRowChoice row)
     {
-        row.Changed = Save;
+        row.Changed = SaveEdit;
         row.Shift = Shift;
         Rows.Add(row);
     }
@@ -934,6 +971,7 @@ public sealed partial class SettingHomeLayoutRow : SettingRow
     private void Shift(HomeRowChoice row, int delta)
     {
         if (row.Pinned) return;
+        EndReorder(save: false);
 
         var from = Rows.IndexOf(row);
         var to = from + delta;

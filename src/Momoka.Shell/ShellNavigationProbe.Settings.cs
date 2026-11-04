@@ -641,12 +641,15 @@ internal sealed partial class ShellNavigationProbe
                 page.SelectedCategory = SettingsViewModel.FnNasAppearanceCategory;
                 await LayoutAsync(page);
                 Require(page.CurrentPage is SettingsPage
-                    && page.ViewModel.Sections.Count(section => section.IsVisible) == 1
-                    && page.ViewModel.Sections.Single(section => section.IsVisible) is { Category: "界面", Title: "外观" },
+                    && page.ViewModel.Sections.Where(section => section.IsVisible).All(section => section.Category == "界面")
+                    && page.ViewModel.Sections.Count(section => section.IsVisible && section.Title == "外观") == 1
+                    && page.ViewModel.Sections.Where(section => section.IsVisible).Select(section => section.Title)
+                        .Contains("剧页面卡片"),
                     "飞牛「外观」没有落到 Momoka 的「界面」卡，或卡抬头没有跟着写「外观」");
                 page.SelectedCategory = "界面";
                 await LayoutAsync(page);
-                Require(page.ViewModel.Sections.Single(section => section.IsVisible) is { Category: "界面", Title: "界面" },
+                Require(page.ViewModel.Sections.Count(section => section.IsVisible && section.Title == "界面") == 1
+                    && !page.ViewModel.Sections.Any(section => section.IsVisible && section.Title == "外观"),
                     "回到「界面」后卡抬头仍写着「外观」");
             }
             finally { Field(page, "_request", null); }

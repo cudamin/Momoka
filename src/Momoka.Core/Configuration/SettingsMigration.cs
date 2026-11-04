@@ -457,9 +457,9 @@ public static class SettingsMigration
         settings.Ui.EpisodeCards = [.. DetailLayout.Plan(EmbyItemType.Episode, settings.Ui.EpisodeCards)];
         settings.Ui.MovieCards = [.. DetailLayout.Plan(EmbyItemType.Movie, settings.Ui.MovieCards)];
         settings.Ui.ControlBackgroundOpacity = double.IsFinite(settings.Ui.ControlBackgroundOpacity)
-            ? Math.Clamp(settings.Ui.ControlBackgroundOpacity, 0, 100) : 100;
+            ? Math.Clamp(settings.Ui.ControlBackgroundOpacity, 0, 100) : 0;
         settings.Ui.BackdropOpacity = double.IsFinite(settings.Ui.BackdropOpacity)
-            ? Math.Clamp(settings.Ui.BackdropOpacity, 0, 100) : 90;
+            ? Math.Clamp(settings.Ui.BackdropOpacity, 0, 100) : 0;
 
         // 海报缓存的磁盘上限。范围和「MB 换字节」都在淘汰规则那一头（Emby.ImageCachePolicy），设置页那一行也读
         // 同一对常量 —— 一个比设置窄的框会显示一个文件里没有的数并在下次触碰时写回去，一个比设置宽的框会让人填进

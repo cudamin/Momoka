@@ -18,8 +18,8 @@ internal static class DetailLayoutTests
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
             Assert.Equal("info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Movie)));
             Assert.True(DetailLayout.For(ui, EmbyItemType.Series).All(row => row.Visible));
-            Assert.Equal(100d, ui.ControlBackgroundOpacity);
-            Assert.Equal(90d, ui.BackdropOpacity);
+            Assert.Equal(0d, ui.ControlBackgroundOpacity);
+            Assert.Equal(0d, ui.BackdropOpacity);
             Assert.False(ui.AlwaysImmersive);
         });
 
@@ -36,7 +36,7 @@ internal static class DetailLayoutTests
             Assert.False(plan[0].Visible);
             Assert.False(plan[1].Visible);
             Assert.True(plan.Skip(2).All(row => row.Visible));
-            Assert.Equal("演职员", DetailLayout.Title(plan[0].Key));
+            Assert.Equal("演职人员", DetailLayout.Title(plan[0].Key));
         });
 
         Test("详情卡片：电影忽略集列表和剧季键，不产生不可用选项", () =>
@@ -102,7 +102,7 @@ internal static class DetailLayoutTests
             foreach (var (input, controls, backdrop) in new (double, double, double)[]
             {
                 (-1, 0, 0), (101, 100, 100), (0, 0, 0), (37.5, 37.5, 37.5), (100, 100, 100),
-                (double.NaN, 100, 90), (double.PositiveInfinity, 100, 90), (double.NegativeInfinity, 100, 90)
+                (double.NaN, 0, 0), (double.PositiveInfinity, 0, 0), (double.NegativeInfinity, 0, 0)
             })
             {
                 var settings = new AppSettings { Ui = new UiSettings { ControlBackgroundOpacity = input, BackdropOpacity = input } };
@@ -135,8 +135,8 @@ internal static class DetailLayoutTests
             SettingsPreferences.Apply(live, new AppSettings());
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(live.Ui.SeriesCards));
             Assert.True(live.Ui.SeriesCards.All(row => row.Visible));
-            Assert.Equal(100d, live.Ui.ControlBackgroundOpacity);
-            Assert.Equal(90d, live.Ui.BackdropOpacity);
+            Assert.Equal(0d, live.Ui.ControlBackgroundOpacity);
+            Assert.Equal(0d, live.Ui.BackdropOpacity);
             Assert.False(live.Ui.AlwaysImmersive);
             Assert.Equal(1500d, live.Ui.WindowWidth);
             Assert.Equal(900d, live.Ui.WindowHeight);

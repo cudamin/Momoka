@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Configuration;
 using Momoka.Emby;
 using Windows.System;
 using Windows.UI.ViewManagement;
@@ -96,6 +97,10 @@ public sealed partial class HomeBanner : UserControl
     private bool _settingsObserved;
     private bool _focusWithin;
     private bool _active;
+
+    private readonly ControlBackgroundBrushes _openBackground;
+    private UiSettings? _appearanceSettings;
+    private int _appearanceLifetime;
 
     private List<BannerSlide> _slides = [];
 
@@ -220,6 +225,7 @@ public sealed partial class HomeBanner : UserControl
     public HomeBanner()
     {
         InitializeComponent();
+        _openBackground = ControlBackgroundBrushes.ForBanner(OpenButton, Resources);
 
         // 字底下那层跟着字形走的影子（见 TextInk）。四行各一层，宿主是同一格里排在字前面那个空 Border。
         // 装在构造里而不是 Loaded 里：这四层是这块字的一部分，不是「进树之后才有的装饰」，而自检里那份
@@ -251,6 +257,35 @@ public sealed partial class HomeBanner : UserControl
         SizeChanged += OnResized;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
+    }
+
+    /// <summary>外观只重画底色和两支图片画刷，翻页动画继续独占图片层的 Opacity。</summary>
+    internal void ApplyAppearance(UiSettings ui)
+    {
+        _appearanceSettings = ui;
+        _openBackground.Apply(ui.ControlBackgroundOpacity);
+        Brush(LayerA).Opacity = AppearanceOpacity.HomeBackdrop(ui.BackdropOpacity);
+        Brush(LayerB).Opacity = AppearanceOpacity.HomeBackdrop(ui.BackdropOpacity);
+    }
+
+    private void OnAppearanceChanged(UiSettings ui)
+    {
+        if (!_active) return;
+        if (DispatcherQueue.HasThreadAccess)
+        {
+            ApplyAppearance(ui);
+            return;
+        }
+        var lifetime = _appearanceLifetime;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (_active && lifetime == _appearanceLifetime) ApplyAppearance(ui);
+        });
+    }
+
+    private void OnAppearanceThemeChanged(Momoka.Theming.UiTheme theme)
+    {
+        if (_active && _appearanceSettings is { } ui) OnAppearanceChanged(ui);
     }
 
     /// <summary>按下播放键的那张幻灯片。</summary>
@@ -1066,6 +1101,11 @@ public sealed partial class HomeBanner : UserControl
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         _active = true;
+        ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
+        ShellPrefs.AppearanceChanged += OnAppearanceChanged;
+        ThemeHost.Changed -= OnAppearanceThemeChanged;
+        ThemeHost.Changed += OnAppearanceThemeChanged;
+        if (_appearanceSettings is { } appearance) ApplyAppearance(appearance);
         if (!_settingsObserved)
         {
             _uiSettings.AnimationsEnabledChanged += OnAnimationsEnabledChanged;
@@ -1099,7 +1139,10 @@ public sealed partial class HomeBanner : UserControl
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
         _active = false;
+        _appearanceLifetime++;
+        ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         _focusWithin = false;
+        ThemeHost.Changed -= OnAppearanceThemeChanged;
         _timer?.Stop();
         _watch.Leave();
         Unwatch();

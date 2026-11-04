@@ -29,6 +29,15 @@ public static class ShellPrefs
 
     public static void ApplySidebar(UiSettings ui) => SidebarChanged?.Invoke(ui);
 
+    /// <summary>按钮底色、背景图和固定沉浸模式只更新画面，不触发主页重新查询。</summary>
+    public static event Action<UiSettings>? AppearanceChanged;
+
+    public static void ApplyAppearance(UiSettings ui) => AppearanceChanged?.Invoke(ui);
+
+    public static event Action<UiSettings>? DetailLayoutChanged;
+
+    public static void ApplyDetailLayout(UiSettings ui) => DetailLayoutChanged?.Invoke(ui);
+
     public static event Action? ShortcutsChanged;
 
     public static void ApplyShortcuts() => ShortcutsChanged?.Invoke();
@@ -46,6 +55,8 @@ public static class ShellPrefs
     {
         Views.HomeMotion.ApplyPreference(ui.AnimationsEnabled);
         ApplySidebar(ui);
+        ApplyAppearance(ui);
+        ApplyDetailLayout(ui);
         Changed?.Invoke(ui);
     }
 }

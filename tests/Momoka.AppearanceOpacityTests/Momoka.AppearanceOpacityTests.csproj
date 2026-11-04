@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
+    <Compile Include="../../src/Momoka.Shell/AppearanceOpacity.cs" Link="AppearanceOpacity.cs" />
+    <Compile Include="../../src/Momoka.Shell/ShellPrefs.cs" Link="ShellPrefs.cs" />
+    <Compile Include="../../src/Momoka.Shell/Views/ControlBackgroundBrushes.cs" Link="ControlBackgroundBrushes.cs" />
+  </ItemGroup>
+</Project>

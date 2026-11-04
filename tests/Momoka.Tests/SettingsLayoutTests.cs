@@ -9,6 +9,21 @@ internal static class SettingsLayoutTests
 
     internal static void Register()
     {
+        TestHarness.Test("详情卡片排序表：弹簧拖拽有完整开始结束与卸载处理", () =>
+        {
+            var document = Page("SettingsPage.xaml");
+            var list = Named(document, "CardOrderList");
+            Assert.Equal("True", list.Attribute("CanReorderItems")?.Value);
+            Assert.Equal("OnHomeRowDragStarting", list.Attribute("DragItemsStarting")?.Value);
+            Assert.Equal("OnPriorityDragCompleted", list.Attribute("DragItemsCompleted")?.Value);
+            Assert.Equal("OnHomeLayoutListLoaded", list.Attribute("Loaded")?.Value);
+            Assert.Equal("OnPriorityListUnloaded", list.Attribute("Unloaded")?.Value);
+            Assert.Equal("{x:Bind}", list.Attribute("Tag")?.Value);
+            Assert.True(Named(document, "CardOrderRoot").Ancestors().Contains(list));
+            Assert.True(Named(document, "CardOrderRoot").Elements().Any(element =>
+                element.Name.LocalName == "Grid.RenderTransform" && element.Elements().Any(transform =>
+                    transform.Name.LocalName == "TranslateTransform")), "弹簧需要模板根自身的位移变换");
+        });
         TestHarness.Test("设置布局：左上搜索与原分类共用无卡片侧栏", () =>
         {
             var document = Page("SettingsPage.xaml");

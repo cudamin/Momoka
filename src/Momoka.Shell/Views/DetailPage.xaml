@@ -762,12 +762,8 @@
                                         Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
                                         <!-- 勾上只换图标那一支色：底按回不带勾的三档（常／悬／按），Foreground 取 accent
                                              而字自己钉在浅墨上 —— 那支 accent 于是只落在没写 Foreground 的 FontIcon 上。
-                                             别名指的就是模板自己读的那三个键（UiThemes 每一套都是深色，所以这里
-                                             解析出来的和不带勾那份是同一支刷子）。 -->
+                                             背景三态由 PrepareAppearance 一次添加局部画刷，不能在这里再声明别名。 -->
                                         <ToggleButton.Resources>
-                                            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ToggleButtonBackground" />
-                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ToggleButtonBackgroundPointerOver" />
-                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ToggleButtonBackgroundPressed" />
                                             <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
                                             <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
                                             <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
@@ -1144,9 +1140,6 @@
                                     Style="{StaticResource EgPillToggleButtonStyle}"
                                     Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
                                     <ToggleButton.Resources>
-                                        <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ToggleButtonBackground" />
-                                        <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ToggleButtonBackgroundPointerOver" />
-                                        <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ToggleButtonBackgroundPressed" />
                                         <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
                                         <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
                                         <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />

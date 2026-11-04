@@ -364,8 +364,6 @@
                             Style="{StaticResource EgBannerGhostStyle}"
                             Click="OnOpenClicked">
                             <Button.Resources>
-                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgBannerGhostHoverBrush" />
-                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgBannerGhostPressBrush" />
                                 <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
                                 <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimBrush" />
                             </Button.Resources>
