@@ -183,6 +183,12 @@ internal static class Program
             PlexMediaTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["deep-browse-protocol-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            DeepBrowseProtocolTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["plex-login-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -298,6 +304,7 @@ internal static class Program
         ImageCacheTests.Register();
         BudgetCacheTests.Register();
         BrowseSnapshotTests.Register();
+        DeepBrowseProtocolTests.Register();
         ImageIdentityTests.Register();
         BrowsingPreferencesTests.Register();
         LibrarySearchTests.Register();
