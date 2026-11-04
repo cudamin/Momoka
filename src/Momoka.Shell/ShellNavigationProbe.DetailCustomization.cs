@@ -316,6 +316,8 @@ internal sealed partial class ShellNavigationProbe
             ShellPrefs.Apply(fixture.Settings.Ui);
             await LayoutAsync(reopened);
             RequireCardOrder(reopened, new[] { "episodes", "info", "seasons", "cast", "similar" });
+            reopened.Release();
+            _root.Children.Remove(frame);
             await CheckHomeBackgroundOpacityAsync(fixture, movie, () => reads);
             Require(fixture.Actions.Plays == 0, "详情自定义探针意外请求播放");
 
