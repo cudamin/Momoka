@@ -26,6 +26,9 @@ internal sealed partial class DetailViewModel : PageViewModel
     private const string Category = "ui";
     private bool _active;
     private bool _actionsReady;
+    // The extracted Cancel path also drops image diagnostics/cache tickets; this fixture has no images.
+    internal object? _heroTiming;
+    internal object? _heroCacheTicket;
     private EmbySessionScope? _scope;
     private EmbyItem? _seed;
     private FixtureSettings? _settings;
