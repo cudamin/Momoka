@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Shell.Views;
@@ -52,7 +51,7 @@ internal static class ResumeSlot
     /// <param name="build">造新卡。两处的卡片参数各在自己那一头（货架的尺寸／角标、网格当前的视图形状）。</param>
     /// <returns>那一格现在装着谁；<see langword="null"/> 是撤掉了。</returns>
     internal static EmbyItem? Apply(
-        ObservableCollection<CardItem> cards,
+        IList<CardItem> cards,
         CardItem watched,
         EmbyItem? next,
         Func<EmbyItem, CardItem> build)
