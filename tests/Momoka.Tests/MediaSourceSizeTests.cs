@@ -1,6 +1,6 @@
+using System.Diagnostics;
 using System.Net;
 using System.Text;
-using System.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Playback;

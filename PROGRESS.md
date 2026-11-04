@@ -10,7 +10,32 @@
 - 最终交付：产品提交 `edc5a78fb0c2640dcff26d38d0807e4428191121` 快进合入 master；主树重新编译 Tests/Core 0警告0错误、完整主测试3651/3651（0失败/0跳过），定向空白与差异检查退出0（工作区加载提示单列留存）。主树自包含发布546文件/285.9MB，桌面Momoka.lnk目标与工作目录均回读为 `C:/Users/89400/Momoka/artifacts/publish/win-x64`。主树材料探针 `shell-probe-20261104-025437909-28392` 退出0、1/1通过；五主题/两档宽度四页面40张＋状态/回退13张全部保留并查看，其他157项Shell检查未执行。证据保留 `work/acrylic-controls/` 与 `work/acrylic-main-*.log`；没有播放、上传远端、重打安装包或提交Store。发布Momoka.dll SHA256 `96B2DA3BBB23B9E33446C030398C91272ACEC21CFA03955328D14BD80C331632`；Core `2608F7506262F5F5EB584AA638721C4CD60B788FA84522B68339EA1D5EB2D369`。本聊天用户指定的外部 `审查建议.md` 已追加四类实际改动、未实施建议和最终交付记录。
 - 收尾：产品内容已完整进入 master，临时分支 `codex/acrylic-controls` 已删除；独立树已转为 detached edc5a78。原生归档工具拒绝删除当前聊天的 primary checkout（“The task's primary checkout cannot be removed”），因此遵守保护暂留该目录，未绕过保护。临时树所有需要的日志与截图已复制到主树 `work/acrylic-controls/`。
 
+## 2026-11-04 src using 顺序清理（IMPORTS，245 个文件，已提交）
 
+- 用户令：继续按计划清 src 的 245 处 IMPORTS，只做 using 重排，不夹带其他规则。
+- 实施：solution 级 `--include src` 没生效（0 改动），改按项目跑 `src/Momoka.Core` 与 `src/Momoka.Shell`；245 个文件、640/641 行增删，全部是 using 重排与空行归一，tests 零改动。
+- 钉值：R046 的 `SourcePins.json` 有 4 份 PlayerViewModel 源 hash 随 using 顺序变化，逐份核对后更新（Transport / PlayerViewModel / Events / Versions），其余 pins 原样；README 记本轮。另修 `Run-Caller.ps1`：捕获 `dotnet build` 前临时把控制台输出设为 UTF-8，否则中文「0 个警告」按 GBK 变乱码，构建摘要判断永远失败。
+- 验证：全方案 `dotnet format style --verify-no-changes` **0 条 IMPORTS**（仅剩 1 条 `ShellSelfCheck.cs` 的 IDE1006 命名告警，非本轮范围）；Release 全方案 **0 警告 0 错误**；`format whitespace` 退出 0；主测试 **3636/3636、0 失败 0 跳过**；源提取/哈希相关专项 20 个通过（`ServerSettingsTabs.Tests` 因缺 Node/Playwright/Chromium 预检跳过，未算通过）；R046 反例 **10/10 预期拒绝**，其后 caller **51/51**；`check-diff` 250 个文件通过（加入本记录为 251）。
+- 未覆盖：`dotnet format style` 仍未进门禁；IDE1006 未处理；ServerSettingsTabs 的完整 DOM 专项未跑；纯格式化改动没有 UI/播放验收。
+
+## 2026-11-04 夹具漂移修复：SettingTextRow 构造签名与 Plex 详情请求白名单（已提交）
+
+- 用户令：修上一轮发现的三个既有红专项，恢复覆盖。
+- 根因一：`SettingTextRow` 构造函数新增第 7 个可选参数 `Action? after`；测试用 `Activator.CreateInstance` 按精确参数个数匹配，不会自动补可选参数，旧 6 参调用抛 `MissingMethodException`。修 `Momoka.SettingsLifetimeTests/ShellRuntime.cs`（同时被 SettingsProbeContractTests 链接）、`Momoka.CurrentPermissionSnapshotTests/ShellRuntime.cs`、`Momoka.Tests/SettingsPageStateTests.cs` 三处，显式传 `(Action?)null`。
+- 根因二：PlexAffordanceTests 的假 HTTP 白名单落后于当前 Shell 详情读取——Emby 详情会读 `Shows/{id}/Seasons`，Jellyfin 详情会读 `MediaSegments/{id}`；补两条只读空结果路由（季列表返回空 `ItemsResult`，媒体段返回空 `MediaSegmentsResult`），并把越界请求 URI 加进 Dispose 断言消息，后续再漂移能直接看到方法+URL。
+- 验证：三个设置专项全绿（SettingsLifetime、CurrentPermissionSnapshot、SettingsProbeContract），`settings-page-state-fixture` **30/30**（主套件不跑这条），PlexAffordance **68/68**；Release 全方案 **0 警告 0 错误**；`format whitespace` 退出 0；tests 范围 `format style` 退出 0；主测试 **3636/3636、0 失败 0 跳过**；`check-diff` 4 个文件通过。
+- 未覆盖：只改测试夹具，没动产品代码；Plex 的季／媒体段返回空数据，只证明请求被允许、详情 VM 继续走，不证明真实服务器的季列表或媒体段内容。
+
+## 2026-11-04 测试文件 using 顺序清理（IMPORTS，已提交）
+
+- 用户令：只做 `dotnet format style` 的 IMPORTS 清理，先用 `--verify-no-changes` 留基线，分批自动修复测试文件，每批编译 + 跑受影响专项，最后闸门 1、主测试与 `check-diff`，单独提交；不碰产品代码，不夹带 Sonar 或 CA1502。
+- 基线核对：当前全方案 **283 条** IMPORTS。旧记录「281 处测试文件」口径不准——`work/format-style-check.log` 的 281 条实际是 **38 条测试 + 243 条 src**，0.2.5 新增 2 个 src 文件后为 **38 测试 + 245 src**（Shell 243、Core 2）。经用户确认只清测试范围。
+- 修复：39 个测试文件、16 个测试项目（基线 38 个，加 `tests/Momoka.Tests/ItemUserStateOrderTests.Boundaries.cs`——它经 `Compile Include` 链接进 AniBtEntry/PlexAffordance 的条件编译区，solution 级基线看不到）。全部改动是 `using` 重排与 `extern alias` 后空行归一，没有产品代码或逻辑改动；`git diff` 自检 39 个文件、0 条非 using 变更行。
+- 批量方式：项目级 `dotnet format style` 会连带格式化 `ProjectReference` 的 Shell 源文件，首次在批次 B 触发了 6 个 src 文件；核对 diff 后用反向补丁撤回，后续批次改用 solution 级 `--include` 只指定测试文件，src 保持零改动。
+- 验证：`tests` 范围 `dotnet format style --verify-no-changes --include tests` 退出 0；全方案复测只剩 **245 条 src IMPORTS**（另 1 条 `ShellSelfCheck.cs` 的 IDE1006 命名告警，非 IMPORTS，构建仍 0 警告）。Release 全方案构建 **0 警告 0 错误**（`work/gate1-build-20261104.log`）；`dotnet format whitespace --verify-no-changes` 退出 0；主测试 **3636/3636、0 失败 0 跳过**（`work/main-tests-20261104.log`）；`tools/check-diff.ps1` 代码改动 **39 个测试文件通过**（`work/check-diff-20261104.log`），加入 3 个文档文件后最终 **42 个文件通过**（`work/check-diff-final-20261104.log`）。
+- 受影响专项：批次 A `media-source-size` 20/20、`composition-readiness` 32/32、`plex-protocol` 148/148；批次 B DetailDelete／SubtitleDialog／SubtitleDropOwnership 通过，PlexAffordance **58/68**；批次 C AniBtEntry／SearchLifetime／DashboardNavigation／ImagePerformance 全过（ImagePerformance 41/41）；批次 D NaturalContinuationCaller／NaturalEpisodeContinuation／PageContract／SettingsPersistence／FrameInterpolation／TransferSubmission 通过，CurrentPermissionSnapshot **53/54**、SettingsProbeContract **0/31**。
+- 红项归因：PlexAffordance 10 条（详情 VM 的 HTTP 越界计数）、CurrentPermissionSnapshot 1 条、SettingsProbeContract 31 条都是 HEAD 既有——把对应测试文件临时还原到 HEAD 后重建复跑，红项与计数一致；直接原因是当前 Shell 已没有 `SettingTextRow` 的旧构造签名，Plex 侧疑似 0.2.5 之后详情请求白名单未跟。本轮未修，未放宽断言。
+- 未覆盖：src 的 245 处 IMPORTS 未清（用户限定不碰产品代码）；没跑 UI 探针、闸门 3/4（非发版）；`dotnet format style` 仍不进门禁。
 ## 2026-11-04 发版 0.2.5：GitHub Release 与微软商店上架包（已发布 GitHub、商店未上传）
 
 - 用户令：提交代码到 GitHub、更新版本打包发布到 GitHub、生成微软商店安装包。版本升至 **0.2.5**（`Directory.Build.props` 三处同步），发版提交 `2ff1224`；master 已推送（54 个提交，`74ac23d..2ff1224`），tag `v0.2.5` 已推送。

@@ -1,4 +1,6 @@
 using System.Net;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -9,8 +11,6 @@ using Momoka.Services;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Momoka.Updates;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell;
 

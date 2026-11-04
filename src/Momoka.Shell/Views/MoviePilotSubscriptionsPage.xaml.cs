@@ -1,9 +1,9 @@
-using Momoka.Emby;
-using Momoka.MoviePilot;
-using Momoka.Shell.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using Momoka.Emby;
+using Momoka.MoviePilot;
+using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
 

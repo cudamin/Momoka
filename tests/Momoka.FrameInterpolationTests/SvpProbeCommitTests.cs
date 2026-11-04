@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
-using Momoka.Shell;
-using Momoka.Shell.ViewModels;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Momoka.Shell;
+using Momoka.Shell.ViewModels;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;

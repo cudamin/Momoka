@@ -1,8 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using Momoka.Diagnostics;
-using Momoka.Infrastructure;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.Diagnostics;
+using Momoka.Infrastructure;
 
 namespace Momoka.Shell.ViewModels;
 

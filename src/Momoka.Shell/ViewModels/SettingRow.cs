@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
 using Momoka.Infrastructure;
 using Momoka.Playback;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Media;
 using Windows.UI.Text;
 
 namespace Momoka.Shell.ViewModels;

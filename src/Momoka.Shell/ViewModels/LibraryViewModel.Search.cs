@@ -1,9 +1,9 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Momoka.Emby;
 using Momoka.Shell.Views;
-using Microsoft.UI.Xaml;
 using CardMetrics = Momoka.Infrastructure.CardSize;
 
 namespace Momoka.Shell.ViewModels;

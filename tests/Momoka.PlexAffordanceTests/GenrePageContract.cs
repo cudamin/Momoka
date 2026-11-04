@@ -1,8 +1,8 @@
 using System.ComponentModel;
-using Momoka.Emby;
-using Momoka.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Documents;
+using Momoka.Emby;
+using Momoka.Services;
 
 namespace Momoka.Tests;
 

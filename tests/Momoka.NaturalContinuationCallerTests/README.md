@@ -1,5 +1,11 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-04：src using 顺序清理的源 hash 同步
+
+本轮只做 `dotnet format style` 的 using 重排，不改任何判定。R046 实际提取的 `PlayerViewModel` 成员与来源字节除 using 顺序外未变，逐份核对后只更新四份 hash：`PlayerViewModel.Transport.cs`（`80e6772…` → `c951b4c…`）、`PlayerViewModel.cs`（`5cf0e35…` → `be81be1…`）、`PlayerViewModel.Events.cs`（`2176abc…` → `37bd6c8…`）、`PlayerViewModel.Versions.cs`（`9a93529…` → `22df617…`）；其余 pins 原样保留。另修 `Run-Caller.ps1` 的构建摘要编码：捕获 `dotnet build` 前临时把控制台输出设为 UTF-8，避免中文「0 个警告」按本机代码页变乱码导致误判。
+
+同步后 `Run-Caller.ps1` **51/51、0 失败 0 跳过**；`Test-SourceExtraction.ps1` **10 个反例均按预期退出 1**，之后当前源重新 0 警告 0 错误构建并回归 **51/51**。
+
 ## 2026-11-03：EmbyItem.cs 源 hash 同步（服务端跳过标记）
 
 Jellyfin 的媒体段与 Plex 的 marker 折成 `EmbyItem.SkipMarkers`（带两端的服务端片头片尾）；Emby 的章节标记路径不变，来源 identity/id、自动接集与 lease 规则也没动。`PlayerViewModel` 只改了两处说明与「跳过计划」调试日志的前缀（「Emby」→「服务器」，并补上两端的服务端区间条数），不改任何判定。同步三项 hash：`EmbyItem.cs`（`a601a02…` → `d87c8f9…`）、`PlayerViewModel.cs`（`5efb5fe…` → `5cf0e35…`）、`PlayerViewModel.Events.cs`（`5bd7339…` → `2176abc…`），其余 pins 逐份保留。

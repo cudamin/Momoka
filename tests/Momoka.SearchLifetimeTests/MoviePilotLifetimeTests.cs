@@ -1,10 +1,10 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.MoviePilot;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
-using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace Momoka.Tests;
 

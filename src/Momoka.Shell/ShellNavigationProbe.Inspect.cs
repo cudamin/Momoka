@@ -1,15 +1,15 @@
-using Momoka.Emby;
-using Momoka.Configuration;
-using Momoka.FnNas;
-using Momoka.Playback;
-using Momoka.Infrastructure;
-using Momoka.MoviePilot;
-using Momoka.Mpv;
-using Momoka.Shell.Views;
+using System.Text.Json.Nodes;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-using System.Text.Json.Nodes;
+using Momoka.Configuration;
+using Momoka.Emby;
+using Momoka.FnNas;
+using Momoka.Infrastructure;
+using Momoka.MoviePilot;
+using Momoka.Mpv;
+using Momoka.Playback;
+using Momoka.Shell.Views;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
 

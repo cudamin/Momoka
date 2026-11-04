@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
@@ -9,7 +10,6 @@ using Momoka.Shell.Interop;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Momoka.Shell.Windowing;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Momoka.Shell;
 

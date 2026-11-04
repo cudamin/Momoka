@@ -92,7 +92,7 @@ internal sealed class ShellRuntime
     public object Draft(object vm)
     {
         var row = New("SettingTextRow", "草稿", "不执行保存", "", "尚未输完",
-            (Func<string, string>)(value => value), (Action)(() => { }));
+            (Func<string, string>)(value => value), (Action)(() => { }), (Action?)null);
         var rows = Array.CreateInstance(Type("SettingRow"), 1);
         rows.SetValue(row, 0);
         var section = New("SettingSection", "主页", "离线草稿卡", "只验证缓存身份", rows);

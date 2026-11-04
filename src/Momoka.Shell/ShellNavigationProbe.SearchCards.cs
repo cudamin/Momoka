@@ -1,16 +1,16 @@
-using System.Text.Json;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using Momoka.MoviePilot;
-using Momoka.Shell.ViewModels;
-using Momoka.Shell.Views;
-using Momoka.Theming;
+using System.Text.Json;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Momoka.MoviePilot;
+using Momoka.Shell.ViewModels;
+using Momoka.Shell.Views;
+using Momoka.Theming;
 
 namespace Momoka.Shell;
 

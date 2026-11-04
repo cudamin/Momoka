@@ -1,9 +1,3 @@
-using Momoka.Diagnostics;
-using Momoka.Infrastructure;
-using Momoka.Mpv;
-using Momoka.Playback;
-using Momoka.Shell.Platform;
-using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
@@ -11,6 +5,12 @@ using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Diagnostics;
+using Momoka.Infrastructure;
+using Momoka.Mpv;
+using Momoka.Playback;
+using Momoka.Shell.Platform;
+using Momoka.Shell.Views;
 
 namespace Momoka.Shell;
 

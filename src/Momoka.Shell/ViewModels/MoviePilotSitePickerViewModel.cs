@@ -1,9 +1,9 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.MoviePilot;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.ViewModels;
 

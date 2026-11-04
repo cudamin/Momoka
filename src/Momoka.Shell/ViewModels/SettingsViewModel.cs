@@ -1,11 +1,13 @@
-using Momoka.Infrastructure;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
+using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Mpv;
 using Momoka.Playback;
@@ -14,8 +16,6 @@ using Momoka.Shell.Media;
 using Momoka.Shell.Security;
 using Momoka.Theming;
 using Momoka.Updates;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell.ViewModels;
 

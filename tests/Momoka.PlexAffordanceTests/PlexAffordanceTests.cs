@@ -2,10 +2,10 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Text;
 using System.Windows.Input;
+using Microsoft.UI.Xaml;
 using Momoka.Emby;
 using Momoka.Playback;
 using Momoka.Shell.Views;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Tests;
 

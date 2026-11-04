@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using Momoka.Tests;
 using Momoka.Emby;
 using Momoka.Playback;
 using Momoka.Shell.ViewModels;
+using Momoka.Tests;
 using static Momoka.Tests.Program;
 
 namespace Momoka.Tests

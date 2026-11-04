@@ -1,11 +1,11 @@
-using Momoka.Diagnostics;
-using Momoka.Playback;
-using Momoka.Shell.Interop;
-using Momoka.Shell.Windowing;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
+using Momoka.Diagnostics;
+using Momoka.Playback;
+using Momoka.Shell.Interop;
+using Momoka.Shell.Windowing;
 
 namespace Momoka.Shell.Views;
 

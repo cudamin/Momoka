@@ -1,4 +1,7 @@
 using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Input;
+using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Playback;
@@ -6,9 +9,6 @@ using Momoka.Shell.Composition;
 using Momoka.Shell.Interop;
 using Momoka.Shell.Views;
 using Momoka.Shell.Windowing;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Input;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell;
 

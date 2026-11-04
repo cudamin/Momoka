@@ -1,5 +1,5 @@
-using Momoka.Emby;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Emby;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
 

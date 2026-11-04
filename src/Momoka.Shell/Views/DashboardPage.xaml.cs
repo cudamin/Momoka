@@ -1,14 +1,14 @@
 using System.Text.Json;
-using Momoka.Diagnostics;
-using Momoka.Emby;
-using Momoka.Infrastructure;
-using Momoka.Shell.Platform;
-using Momoka.Theming;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.Web.WebView2.Core;
+using Momoka.Diagnostics;
+using Momoka.Emby;
+using Momoka.Infrastructure;
+using Momoka.Shell.Platform;
+using Momoka.Theming;
 
 namespace Momoka.Shell.Views;
 

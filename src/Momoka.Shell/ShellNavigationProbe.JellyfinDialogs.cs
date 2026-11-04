@@ -1,8 +1,8 @@
-using Momoka.Emby;
-using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.Emby;
+using Momoka.Shell.Views;
 
 namespace Momoka.Shell;
 

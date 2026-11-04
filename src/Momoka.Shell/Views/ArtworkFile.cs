@@ -1,6 +1,6 @@
-using Momoka.Diagnostics;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
+using Momoka.Diagnostics;
 using Windows.Storage.Pickers;
 
 namespace Momoka.Shell.Views;

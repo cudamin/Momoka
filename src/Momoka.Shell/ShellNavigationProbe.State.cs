@@ -1,9 +1,9 @@
 using System.Net;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Momoka.Emby;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Windows.Foundation;
 
 namespace Momoka.Shell;

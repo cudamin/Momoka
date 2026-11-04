@@ -60,8 +60,11 @@ try {
     & $dotnet restore $project --source $feed --packages $env:NUGET_PACKAGES -p:RestoreDisableParallel=true @flags 2>&1 |
         Tee-Object -FilePath (Join-Path $output 'restore.log')
     if ($LASTEXITCODE -ne 0) { throw '离线固定包 restore 失败；未运行旧测试。' }
+    $previousEncoding = [Console]::OutputEncoding
+    [Console]::OutputEncoding = $utf8
     & $dotnet build $project -c Release --no-restore @flags 2>&1 | Tee-Object -FilePath (Join-Path $output 'build.log')
     $buildExit = $LASTEXITCODE
+    [Console]::OutputEncoding = $previousEncoding
     $buildLog = Get-Content -LiteralPath (Join-Path $output 'build.log') -Raw
     if ($buildExit -ne 0 -or $buildLog -notmatch '(?m)^\s*0 (个警告|Warning\(s\))\s*$' -or $buildLog -notmatch '(?m)^\s*0 (个错误|Error\(s\))\s*$') {
         throw '当前 Release 构建不是零警告零错误；禁止 no-build。'

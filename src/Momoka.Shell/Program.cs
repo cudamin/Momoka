@@ -1,9 +1,9 @@
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
 using Momoka.Diagnostics;
 using Momoka.Infrastructure;
 using Momoka.Shell.Interop;
 using Momoka.Shell.Security;
-using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml;
 using static Momoka.Infrastructure.StartupArgs;
 
 // Read without launching the executable by selfcheck-diff.ps1. Older binaries must not be

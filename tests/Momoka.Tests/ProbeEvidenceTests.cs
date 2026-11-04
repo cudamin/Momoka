@@ -1,5 +1,5 @@
-using Momoka.Shell;
 using System.Security.Cryptography;
+using Momoka.Shell;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;

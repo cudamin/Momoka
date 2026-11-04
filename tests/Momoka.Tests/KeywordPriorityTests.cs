@@ -1,6 +1,6 @@
+using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Playback;
-using Momoka.Configuration;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;

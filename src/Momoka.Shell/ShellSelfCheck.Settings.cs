@@ -1,11 +1,11 @@
-using Momoka.Diagnostics;
 using System.Text;
+using Microsoft.UI.Xaml.Controls;
+using Momoka.Diagnostics;
 using Momoka.Playback;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Momoka.Shell.Windowing;
 using Momoka.Updates;
-using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell;
 

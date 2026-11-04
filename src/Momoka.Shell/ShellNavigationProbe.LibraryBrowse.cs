@@ -1,16 +1,16 @@
 using System.Net;
 using System.Reflection;
-using Momoka.Configuration;
-using Momoka.Emby;
-using Momoka.Shell.ViewModels;
-using Momoka.Shell.Views;
-using Momoka.Theming;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Momoka.Configuration;
+using Momoka.Emby;
+using Momoka.Shell.ViewModels;
+using Momoka.Shell.Views;
+using Momoka.Theming;
 
 namespace Momoka.Shell;
 

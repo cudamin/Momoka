@@ -1,5 +1,5 @@
-using Momoka.Emby;
 using Microsoft.Extensions.DependencyInjection;
+using Momoka.Emby;
 
 namespace Momoka.Shell.Views;
 

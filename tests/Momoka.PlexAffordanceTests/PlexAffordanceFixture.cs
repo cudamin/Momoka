@@ -8,12 +8,12 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
+using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Services;
 using Momoka.Shell.Views;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Tests;
 
@@ -118,7 +118,7 @@ internal sealed class PlexAffordanceFixture : IDisposable
     {
         Session.Dispose();
         foreach (var lifetime in _lifetimes.Values) lifetime.Dispose();
-        Assert.Equal(0, Transport.Unexpected, "只允许本项占位 HTTP，任何越界即失败");
+        Assert.Equal(0, Transport.Unexpected, "只允许本项占位 HTTP，任何越界即失败：" + string.Join("、", Transport.UnexpectedRequests));
         Assert.Equal(0, Settings.SaveCalls, "不能持久化用户设置");
     }
 
@@ -151,6 +151,7 @@ internal sealed class AffordanceTransport : HttpMessageHandler
     public List<(string Host, string Path, string Method)> Requests { get; } = [];
     public int Writes { get; private set; }
     public int Unexpected { get; private set; }
+    public List<string> UnexpectedRequests { get; } = [];
     public bool FailWrites { get; set; }
     public bool FailDetailRead { get; set; }
 
@@ -210,8 +211,10 @@ internal sealed class AffordanceTransport : HttpMessageHandler
             if (kind == MediaServerKind.Jellyfin && route == "Items") return Json(new ItemsResult { Items = [], TotalRecordCount = 0 });
             if (parts.Length == 3 && parts[0] == "Users" && parts[2] == "Items"
                 || parts.Length == 3 && parts[0] == "Items" && parts[2] == "Similar"
-                || parts.Length == 3 && parts[0] == "Shows" && parts[2] == "Episodes")
+                || parts.Length == 3 && parts[0] == "Shows" && parts[2] is "Episodes" or "Seasons")
                 return Json(new ItemsResult { Items = [], TotalRecordCount = 0 });
+            if (kind == MediaServerKind.Jellyfin && parts.Length == 2 && parts[0] == "MediaSegments")
+                return Json(new MediaSegmentsResult());
         }
         throw UnexpectedRequest(request);
     }
@@ -238,6 +241,7 @@ internal sealed class AffordanceTransport : HttpMessageHandler
     private Exception UnexpectedRequest(HttpRequestMessage request)
     {
         Unexpected++;
+        UnexpectedRequests.Add(request.Method + " " + request.RequestUri);
         return new AssertionException("本项不允许的假HTTP：" + request.Method + " " + request.RequestUri!.AbsolutePath);
     }
     private static HttpResponseMessage Json<T>(T body) => new(HttpStatusCode.OK)

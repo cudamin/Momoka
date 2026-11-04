@@ -1,12 +1,12 @@
 using System.Text;
-using Momoka.Emby;
-using Momoka.Shell.Views;
-using Momoka.Theming;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Emby;
+using Momoka.Shell.Views;
+using Momoka.Theming;
 
 namespace Momoka.Shell;
 

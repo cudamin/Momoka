@@ -1,6 +1,6 @@
-using Momoka.Shell.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
 

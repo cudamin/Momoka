@@ -1,9 +1,9 @@
-using Momoka.AniBt;
-using Momoka.Emby;
-using Momoka.Diagnostics;
-using Momoka.MoviePilot;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.AniBt;
+using Momoka.Diagnostics;
+using Momoka.Emby;
+using Momoka.MoviePilot;
 
 namespace Momoka.Shell.Views;
 

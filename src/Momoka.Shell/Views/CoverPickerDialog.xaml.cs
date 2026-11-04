@@ -1,10 +1,10 @@
 using System.ComponentModel;
-using Momoka.Diagnostics;
-using Momoka.Emby;
-using Momoka.Shell.Media;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Diagnostics;
+using Momoka.Emby;
+using Momoka.Shell.Media;
 
 namespace Momoka.Shell.Views;
 

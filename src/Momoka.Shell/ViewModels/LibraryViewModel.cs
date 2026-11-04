@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
@@ -8,7 +9,6 @@ using Momoka.FnNas;
 using Momoka.Infrastructure;
 using Momoka.Services;
 using Momoka.Shell.Views;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.ViewModels;
 

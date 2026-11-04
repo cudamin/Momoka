@@ -1,8 +1,8 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Momoka.MoviePilot;
 using Microsoft.UI.Xaml;
+using Momoka.MoviePilot;
 
 namespace Momoka.Shell.ViewModels;
 

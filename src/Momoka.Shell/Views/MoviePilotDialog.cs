@@ -1,5 +1,5 @@
-using Momoka.MoviePilot;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.MoviePilot;
 
 namespace Momoka.Shell.Views;
 

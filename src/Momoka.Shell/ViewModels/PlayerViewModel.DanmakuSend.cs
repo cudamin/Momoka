@@ -1,10 +1,10 @@
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.Danmaku;
 using Momoka.Mpv;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.ViewModels;
 

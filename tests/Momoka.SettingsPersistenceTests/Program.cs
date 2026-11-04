@@ -1,5 +1,4 @@
 extern alias ConfigurationCore;
-
 using System.Reflection;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -10,8 +9,8 @@ using Momoka.Services;
 using Momoka.Shell.ViewModels;
 using AppPaths = ConfigurationCore::Momoka.Infrastructure.AppPaths;
 using AppSettings = ConfigurationCore::Momoka.Configuration.AppSettings;
-using SettingsStore = ConfigurationCore::Momoka.Configuration.SettingsStore;
 using SettingsService = ConfigurationCore::Momoka.Services.SettingsService;
+using SettingsStore = ConfigurationCore::Momoka.Configuration.SettingsStore;
 
 namespace Momoka.Tests;
 

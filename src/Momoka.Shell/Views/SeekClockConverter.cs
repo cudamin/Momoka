@@ -1,5 +1,5 @@
-using Momoka.Infrastructure;
 using Microsoft.UI.Xaml.Data;
+using Momoka.Infrastructure;
 
 namespace Momoka.Shell.Views;
 
