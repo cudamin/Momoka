@@ -40,8 +40,12 @@ handlers, not that every real upstream component or version was exercised.
 
 - Emby `headerMiddle` inside or beside `headerTop`, dynamically inserted by the tabs manager.
 - Jellyfin React/MUI AppBar and legacy `headerTabs`, including absolute-positioned old route views.
-- All ancestor branches that contain page tablists, not a route/name whitelist; duplicate global
-  title, navigation, drawer/backdrop and footer stay hidden.
+- All ancestor branches that contain page tablists, not a route/name whitelist; global navigation, drawer/backdrop and footer stay hidden. Real page headings, back and help actions
+  keep their original nodes and handlers.
+- Emby 4.10 combined `skinHeader/headerTop`, `contain: strict`, Headroom independent translation,
+  docked-drawer offsets, positive header geometry and actual tab hit testing/clicks.
+- Page headings/actions without tabs and upstream hiding/restoration; no idle class mutation loop.
+- Long wrapping group headings, narrow editable controls and MUI notched-outline fieldset exclusion.
 - SPA insertion after startup retry timers, removal, page reentry and repeated script installation.
 - Upstream per-tab `.hide`, `hidden`, inline/style-sheet hiding, parent permission changes and restore;
   zero available tabs collapse their header and offset. React's hidden legacy mirror remains hidden.

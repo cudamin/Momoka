@@ -316,7 +316,9 @@ internal static class ServerSettingsTests
                 Assert.DoesNotContain("innerHTML", script, "不能重建/复制页签与其事件");
                 Assert.DoesNotContain("cloneNode", script);
                 Assert.DoesNotContain("removeChild", script);
-                Assert.DoesNotContain("classList.remove", script, "不能解除 upstream 的 hide/权限类");
+                // Headroom's scrolling classes are presentation, not permission. DOM regressions
+                // exercise upstream class/inline/ancestor hiding and restoration with real scripts.
+                Assert.DoesNotContain("classList.remove(\"hide\"", script, "不能解除 upstream 的 hide/权限类");
                 Assert.DoesNotContain("display: block", script, "不能强制显示服务器自己隐藏的页签父级");
                 Assert.DoesNotContain("display: flex", script);
                 Assert.DoesNotContain("api_key", script);
@@ -369,14 +371,14 @@ internal static class ServerSettingsTests
             Assert.DoesNotContain("token", script, "脚本里不该有凭据");
 
             var skin = EmbyWebConsole.NativeSkinScript(UiThemes.Default.Colors);
-            Assert.Contains("Segoe UI Variable Text", skin, "网页要换成 WinUI 的字体");
+            Assert.Contains("Microsoft YaHei UI", skin, "网页要换成 WinUI 的字体");
             Assert.Contains("--momoka-accent", skin);
             Assert.Contains("#6EE7C5", skin, "皮肤要带当前主题的强调色");
             Assert.Contains("fieldset", skin, "设置页的分组要变成卡片");
             Assert.Contains(".emby-input", skin);
             Assert.Contains(".toggleSwitch", skin);
             Assert.Contains(".button-submit", skin);
-            Assert.Contains("gap: 12px", skin, "卡片之间要紧凑");
+            Assert.Contains("gap: 16px", skin, "卡片之间要紧凑");
             Assert.Contains("border: 0 !important", skin, "卡片不要白边");
             Assert.Contains("::-webkit-scrollbar", skin);
             Assert.Contains("if (!root) return", skin);
@@ -393,7 +395,7 @@ internal static class ServerSettingsTests
             Assert.DoesNotContain("token", route, "脚本里不该有凭据");
 
             var jellyfin = EmbyWebConsole.JellyfinNativeSkinScript(UiThemes.Default.Colors);
-            Assert.Contains("Segoe UI Variable Text", jellyfin);
+            Assert.Contains("Microsoft YaHei UI", jellyfin);
             Assert.Contains("--momoka-window", jellyfin);
             Assert.Contains("#6EE7C5", jellyfin, "皮肤要带当前主题的强调色");
             Assert.Contains("MuiDrawer-root", jellyfin, "网页自己的抽屉要收起");

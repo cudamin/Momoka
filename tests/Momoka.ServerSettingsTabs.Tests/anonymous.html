@@ -16,6 +16,14 @@ body { margin: 0; background: #15191d; color: #eef0f2; font: 14px "Segoe UI", sa
 .headerLeft, .headerRight { display: flex; gap: 16px; }
 .headerMiddle { min-width: 0; }
 .headerTop .headerMiddle { flex: 1; }
+/* Emby 4.10.1.0 index.html combines skinHeader and headerTop. layout.css's strict
+   containment and headroom.css's independent translate must survive in this fixture. */
+.upstreamHeader { contain: strict; flex-direction: row; flex-wrap: wrap; }
+.upstreamHeader .headerLeft { width: 70%; }
+.upstreamHeader .headerMiddle { flex-basis: 100%; order: 3; height: 3em; overflow: hidden; }
+.headroom-hidden { translate: 0 -100%; }
+.headroom-hidden.headroom-scrolling .headerSection { visibility: hidden; }
+@media (min-width: 960px) { .page-withFullDrawer { position: absolute; left: 231px; inset-inline-start: 231px; right: 0; } }
 @media (min-width: 1600px) { .headerTabs { margin-top: -4.3em; align-self: center; } }
 .tabs-viewmenubar { overflow-x: auto; overflow-y: hidden; max-width: 100%; }
 .emby-tabs-slider { display: flex; white-space: nowrap; width: max-content; min-width: 100%; }
@@ -54,9 +62,12 @@ body.dashboardDocument main { padding-top: 128px; }
   const nested = options.get('nested') !== 'false';
   const legacy = options.get('legacy') === 'true';
   const absolute = options.get('absolute') === 'true';
+  const realHeader = options.get('realHeader') === 'true';
   const isMui = product === 'jellyfin' && !legacy;
   document.body.classList.toggle('dashboardDocument', product === 'jellyfin');
-  const header = isMui
+  const header = realHeader
+    ? '<div id="globalHeader" class="skinHeader headerTop upstreamHeader"><div class="headerLeft headerSection"><button id="globalMenu" class="btnOpenNavDrawer">菜单</button><button id="pageBack" class="headerBackButton">返回</button><h2 id="pageHeading" class="pageTitle">下载</h2><button id="pageHelp" class="headerHelpButton">帮助</button></div><div id="tabsHost" class="headerMiddle headerSection"></div><div id="globalUser" class="headerRight headerSection">用户导航</div></div>'
+    : isMui
     ? '<header id="globalHeader" class="MuiPaper-root MuiAppBar-root"><div class="MuiToolbar-root"><button id="globalMenu">服务器网页菜单</button><h1 id="globalTitle">服务器全局标题</h1><div id="tabsHost"></div><div id="globalUser">用户导航</div></div></header>'
     : '<div id="globalHeader" class="skinHeader skinHeader-withBackground"><div class="headerTop"><div class="headerLeft"><button id="globalMenu" class="btnOpenNavDrawer">服务器网页菜单</button><h1 id="globalTitle">服务器全局标题</h1></div>' +
       (nested && !legacy ? '<div id="tabsHost" class="headerMiddle"></div>' : '') +

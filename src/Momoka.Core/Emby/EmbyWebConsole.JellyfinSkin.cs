@@ -51,7 +51,7 @@ public static partial class EmbyWebConsole
             }
 
             body {
-              font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif !important;
+              font-family: "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif !important;
               color: var(--momoka-text) !important;
               -webkit-font-smoothing: antialiased;
             }
@@ -72,7 +72,7 @@ public static partial class EmbyWebConsole
             }
 
             h1, h2, h3, .sectionTitle, .pageTitle, .MuiTypography-h4, .MuiTypography-h5, .MuiTypography-h6 {
-              font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif !important;
+              font-family: "Bahnschrift SemiCondensed", "Microsoft YaHei UI", sans-serif !important;
               color: var(--momoka-text) !important;
               letter-spacing: 0 !important;
               text-shadow: none !important;
@@ -140,34 +140,35 @@ public static partial class EmbyWebConsole
               margin-bottom: 12px !important;
             }
             .fieldsets {
-              gap: 12px !important;
+              gap: 16px !important;
+              min-width: 0 !important;
             }
-            fieldset {
-              position: relative !important;
-              background: var(--momoka-surface) !important;
+            /* MUI uses a fieldset/legend to draw the input notch, not a settings group. */
+            fieldset:not(.MuiOutlinedInput-notchedOutline) {
+              min-width: 0 !important;
+              background: var(--momoka-surface-hover) !important;
               border: 0 !important;
               border-radius: 12px !important;
               margin: 0 !important;
               padding: 16px 20px !important;
               box-sizing: border-box !important;
             }
-            fieldset:has(> legend) {
-              padding-top: 48px !important;
-            }
-            fieldset > legend {
-              position: absolute !important;
-              top: 15px !important;
-              left: 20px !important;
-              display: block !important;
-              float: none !important;
-              width: auto !important;
-              margin: 0 !important;
+            fieldset:not(.MuiOutlinedInput-notchedOutline) > legend {
+              position: static !important;
+              float: left !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 0 16px !important;
               padding: 0 !important;
-              font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif !important;
-              font-size: 16px !important;
+              white-space: normal !important;
+              overflow-wrap: anywhere !important;
+              font-family: "Bahnschrift SemiCondensed", "Microsoft YaHei UI", sans-serif !important;
+              font-size: 18px !important;
+              line-height: 1.5 !important;
               font-weight: 600 !important;
               color: var(--momoka-text) !important;
             }
+            fieldset:not(.MuiOutlinedInput-notchedOutline) > legend ~ * { clear: both; }
             .fieldset-fields { margin: 0 !important; }
             .fieldset-field { margin: 0 0 18px !important; }
             .fieldset-fields > :last-child { margin-bottom: 0 !important; }
@@ -175,22 +176,22 @@ public static partial class EmbyWebConsole
             .emby-toggle-label > span:first-of-type, .MuiInputLabel-root, .MuiFormLabel-root {
               display: block !important;
               color: var(--momoka-text) !important;
-              font-size: 14px !important;
-              font-weight: 400 !important;
+              font-size: 15px !important;
+              font-weight: 500 !important;
               margin-bottom: 6px !important;
             }
 
-            /* 输入框、下拉、文本域：WinUI 的 32 高、4 圆角。 */
+            /* 输入框、下拉、文本域：WinUI 的 32 最小高、10 圆角。 */
             .emby-input, .emby-select, .emby-select-withcolor, .emby-textarea,
             .MuiInputBase-root, .MuiOutlinedInput-root {
               box-sizing: border-box !important;
               width: 100% !important;
               min-height: 32px !important;
               padding: 0 12px !important;
-              background: var(--momoka-surface-alt) !important;
+              background: var(--momoka-surface-hover) !important;
               color: var(--momoka-text) !important;
               border: 1px solid var(--momoka-border) !important;
-              border-radius: 4px !important;
+              border-radius: 10px !important;
               box-shadow: none !important;
               font-family: inherit !important;
               font-size: 14px !important;
@@ -205,18 +206,43 @@ public static partial class EmbyWebConsole
             }
             .emby-input:focus, .emby-select:focus, .emby-select-withcolor:focus, .emby-textarea:focus,
             .MuiInputBase-root.Mui-focused, .MuiOutlinedInput-root.Mui-focused {
-              border-color: var(--momoka-accent) !important;
-              box-shadow: 0 0 0 1px var(--momoka-accent) !important;
+              border-color: var(--momoka-border-strong) !important;
+              box-shadow: none !important;
               outline: none !important;
             }
             .emby-select-withcolor > option {
               color: var(--momoka-text) !important;
-              background: var(--momoka-surface-alt) !important;
+              background: var(--momoka-surface-hover) !important;
             }
             .emby-input::placeholder, .emby-textarea::placeholder,
             .MuiInputBase-input::placeholder { color: var(--momoka-text-faint) !important; }
             .selectContainer, .inputContainer, .toggleContainer { margin-bottom: 18px !important; }
             .MuiInputBase-input, .MuiSelect-select { color: var(--momoka-text) !important; }
+
+            .emby-input:focus, .emby-textarea:focus,
+            .MuiInputBase-root.Mui-focused:not(.MuiSelect-root) {
+              background: var(--momoka-window) !important;
+            }
+            .MuiOutlinedInput-notchedOutline { border-color: var(--momoka-border) !important; }
+            .Mui-focused > .MuiOutlinedInput-notchedOutline { border-color: var(--momoka-border-strong) !important; }
+            .fieldDescription, .MuiFormHelperText-root { font-size: 13px !important; line-height: 1.5 !important; }
+            .MuiTypography-root, .MuiInputBase-root, .MuiInputLabel-root, .MuiButton-root, .MuiTab-root {
+              font-family: inherit !important;
+            }
+            /* Insets belong to the scrolling page once, not to every nested settings wrapper. */
+            .scrollSlider .settingsContainer, .scrollSlider .dashboardContainer,
+            .scrollSlider .configPage, .content-primary .settingsContainer {
+              padding: 0 !important;
+              box-sizing: border-box !important;
+              min-width: 0 !important;
+            }
+            @media (max-width: 600px) {
+              .view > .scrollSlider, .settingsContainer, .dashboardContainer, .configPage, .content-primary {
+                padding-inline: 16px !important;
+              }
+              .scrollSlider .settingsContainer, .scrollSlider .dashboardContainer,
+              .scrollSlider .configPage, .content-primary .settingsContainer { padding-inline: 0 !important; }
+            }
 
             /* 开关：WinUI 的 40×20。MUI 的开关是同一件事的另一套类名。 */
             .toggleSwitch {
@@ -353,6 +379,25 @@ public static partial class EmbyWebConsole
               outline: 2px solid var(--momoka-accent) !important;
               outline-offset: 2px !important;
             }
+
+            .skinHeader .tabs-viewmenubar {
+              font-size: 14px !important;
+              padding: 4px 20px !important;
+              border-radius: 0 !important;
+              background: transparent !important;
+              backdrop-filter: none !important;
+              max-width: 100% !important;
+              box-sizing: border-box !important;
+            }
+            .skinHeader .main-tab-button {
+              min-height: 32px !important;
+              height: auto !important;
+              color: var(--momoka-text-dim) !important;
+              font-weight: 500 !important;
+            }
+            .skinHeader .emby-tab-button-active { color: var(--momoka-text) !important; }
+            .skinHeader .emby-tabs-selected-background { background: var(--momoka-surface-hover) !important; }
+            .skinHeader .emby-tabs-focus-background { background: var(--momoka-surface-alt) !important; }
 
             /* 标签页与分段条。 */
             .emby-tab-button { color: var(--momoka-text-dim) !important; }

@@ -51,6 +51,15 @@ internal static class Program
             coreAssembly = core,
             coreHash = Hash(core),
             sources,
+            themes = UiThemes.All.Select(theme => new
+            {
+                theme.Id,
+                scripts = new Dictionary<string, string[]>
+                {
+                    ["emby"] = [EmbyWebConsole.NativeSkinScript(theme.Colors), EmbyWebConsole.HideDrawerScript()],
+                    ["jellyfin"] = [EmbyWebConsole.JellyfinNativeSkinScript(theme.Colors), EmbyWebConsole.HideJellyfinDrawerScript()]
+                }
+            }),
             scripts = new Dictionary<string, string[]>
             {
                 ["emby"] = [EmbyWebConsole.NativeSkinScript(colors), EmbyWebConsole.HideDrawerScript()],

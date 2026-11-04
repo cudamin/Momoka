@@ -6,7 +6,7 @@ namespace Momoka.Emby;
 public static partial class EmbyWebConsole
 {
     /// <summary>
-    /// 把网页端那套 Material／Emby 皮肤往 WinUI 的样子拉：Segoe 字体、卡片分组、32 高的输入框和下拉、
+    /// 把网页端那套 Material／Emby 皮肤往 WinUI 的样子拉：当前设置页字体、卡片分组、32 高的输入框和下拉、
     /// 40×20 的开关、4 圆角按钮、平铺的设备卡片、系统滚动条。只改这个 WebView 里的样式，不写服务器。
     /// <para>
     /// 选择器来自这台服务器 4.10 的真实页面结构（设置页的 <c>fieldset</c>／<c>fieldset-field</c>、
@@ -50,7 +50,7 @@ public static partial class EmbyWebConsole
             }
 
             body {
-              font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif !important;
+              font-family: "Microsoft YaHei UI", "Segoe UI", system-ui, sans-serif !important;
               color: var(--momoka-text) !important;
               -webkit-font-smoothing: antialiased;
             }
@@ -74,7 +74,7 @@ public static partial class EmbyWebConsole
             }
 
             h1, h2, h3, .sectionTitle, .serverNameHeader, .pageTitle {
-              font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif !important;
+              font-family: "Bahnschrift SemiCondensed", "Microsoft YaHei UI", sans-serif !important;
               color: var(--momoka-text) !important;
               letter-spacing: 0 !important;
               text-shadow: none !important;
@@ -101,34 +101,35 @@ public static partial class EmbyWebConsole
 
             /* ---- 设置页：每个 fieldset 一张卡片 ---- */
             .fieldsets {
-              gap: 12px !important;
+              gap: 16px !important;
+              min-width: 0 !important;
             }
-            fieldset {
-              position: relative !important;
-              background: var(--momoka-surface) !important;
+            /* MUI uses a fieldset/legend to draw the input notch, not a settings group. */
+            fieldset:not(.MuiOutlinedInput-notchedOutline) {
+              min-width: 0 !important;
+              background: var(--momoka-surface-hover) !important;
               border: 0 !important;
               border-radius: 12px !important;
               margin: 0 !important;
               padding: 16px 20px !important;
               box-sizing: border-box !important;
             }
-            fieldset:has(> legend) {
-              padding-top: 48px !important;
-            }
-            fieldset > legend {
-              position: absolute !important;
-              top: 15px !important;
-              left: 20px !important;
-              display: block !important;
-              float: none !important;
-              width: auto !important;
-              margin: 0 !important;
+            fieldset:not(.MuiOutlinedInput-notchedOutline) > legend {
+              position: static !important;
+              float: left !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 0 16px !important;
               padding: 0 !important;
-              font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif !important;
-              font-size: 16px !important;
+              white-space: normal !important;
+              overflow-wrap: anywhere !important;
+              font-family: "Bahnschrift SemiCondensed", "Microsoft YaHei UI", sans-serif !important;
+              font-size: 18px !important;
+              line-height: 1.5 !important;
               font-weight: 600 !important;
               color: var(--momoka-text) !important;
             }
+            fieldset:not(.MuiOutlinedInput-notchedOutline) > legend ~ * { clear: both; }
             .fieldset-fields {
               margin: 0 !important;
             }
@@ -142,12 +143,12 @@ public static partial class EmbyWebConsole
             .emby-toggle-label > span:first-of-type {
               display: block !important;
               color: var(--momoka-text) !important;
-              font-size: 14px !important;
-              font-weight: 400 !important;
+              font-size: 15px !important;
+              font-weight: 500 !important;
               margin-bottom: 6px !important;
             }
             .fieldDescription {
-              font-size: 12px !important;
+              font-size: 13px !important;
               line-height: 1.45 !important;
               margin-top: 6px !important;
             }
@@ -159,10 +160,10 @@ public static partial class EmbyWebConsole
               height: 32px !important;
               min-height: 32px !important;
               padding: 0 12px !important;
-              background: var(--momoka-surface-alt) !important;
+              background: var(--momoka-surface-hover) !important;
               color: var(--momoka-text) !important;
               border: 1px solid var(--momoka-border) !important;
-              border-radius: 4px !important;
+              border-radius: 10px !important;
               box-shadow: none !important;
               font-family: inherit !important;
               font-size: 14px !important;
@@ -175,8 +176,8 @@ public static partial class EmbyWebConsole
               line-height: 1.45 !important;
             }
             .emby-input:focus, .emby-select:focus, .emby-textarea:focus {
-              border-color: var(--momoka-accent) !important;
-              box-shadow: 0 0 0 1px var(--momoka-accent) !important;
+              border-color: var(--momoka-border-strong) !important;
+              box-shadow: none !important;
               outline: none !important;
             }
             .emby-input::placeholder, .emby-textarea::placeholder {
@@ -187,6 +188,31 @@ public static partial class EmbyWebConsole
             }
             .selectContainer, .inputContainer, .toggleContainer {
               margin-bottom: 18px !important;
+            }
+
+            .emby-input:focus, .emby-textarea:focus,
+            .MuiInputBase-root.Mui-focused:not(.MuiSelect-root) {
+              background: var(--momoka-window) !important;
+            }
+            .MuiOutlinedInput-notchedOutline { border-color: var(--momoka-border) !important; }
+            .Mui-focused > .MuiOutlinedInput-notchedOutline { border-color: var(--momoka-border-strong) !important; }
+            .fieldDescription, .MuiFormHelperText-root { font-size: 13px !important; line-height: 1.5 !important; }
+            .MuiTypography-root, .MuiInputBase-root, .MuiInputLabel-root, .MuiButton-root, .MuiTab-root {
+              font-family: inherit !important;
+            }
+            /* Insets belong to the scrolling page once, not to every nested settings wrapper. */
+            .scrollSlider .settingsContainer, .scrollSlider .dashboardContainer,
+            .scrollSlider .configPage, .content-primary .settingsContainer {
+              padding: 0 !important;
+              box-sizing: border-box !important;
+              min-width: 0 !important;
+            }
+            @media (max-width: 600px) {
+              .view > .scrollSlider, .settingsContainer, .dashboardContainer, .configPage, .content-primary {
+                padding-inline: 16px !important;
+              }
+              .scrollSlider .settingsContainer, .scrollSlider .dashboardContainer,
+              .scrollSlider .configPage, .content-primary .settingsContainer { padding-inline: 0 !important; }
             }
 
             /* ---- 开关：WinUI 的 40×20 轨道 ---- */
@@ -476,6 +502,25 @@ public static partial class EmbyWebConsole
               background: var(--momoka-surface-elevated) !important;
               border: 1px solid var(--momoka-border) !important;
             }
+
+            .skinHeader .tabs-viewmenubar {
+              font-size: 14px !important;
+              padding: 4px 20px !important;
+              border-radius: 0 !important;
+              background: transparent !important;
+              backdrop-filter: none !important;
+              max-width: 100% !important;
+              box-sizing: border-box !important;
+            }
+            .skinHeader .main-tab-button {
+              min-height: 32px !important;
+              height: auto !important;
+              color: var(--momoka-text-dim) !important;
+              font-weight: 500 !important;
+            }
+            .skinHeader .emby-tab-button-active { color: var(--momoka-text) !important; }
+            .skinHeader .emby-tabs-selected-background { background: var(--momoka-surface-hover) !important; }
+            .skinHeader .emby-tabs-focus-background { background: var(--momoka-surface-alt) !important; }
 
             /* ---- 系统滚动条 ---- */
             ::-webkit-scrollbar {

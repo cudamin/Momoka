@@ -49,6 +49,7 @@ async function createPage(product, options = {}) {
   if (options.nested === false) url.searchParams.set('nested', 'false');
   if (options.legacy) url.searchParams.set('legacy', 'true');
   if (options.absolute) url.searchParams.set('absolute', 'true');
+  if (options.realHeader) url.searchParams.set('realHeader', 'true');
   await page.goto(url.href);
   if (managerSource && product === 'emby' && !options.withoutManager) await page.evaluate(source => fixture.installManager(source), managerSource);
   return page;
@@ -78,6 +79,90 @@ async function contentBelowHeader(page) {
 }
 
 try {
+  await test('emby: actual contained header, page actions, headroom and drawer offsets remain usable', async () => {
+    const page = await createPage('emby', { realHeader: true });
+    try {
+      await page.evaluate(() => {
+        fixture.setTabs(['下载', '设置']);
+        document.querySelector('.view').classList.add('page-withFullDrawer');
+        window.backClicks = 0;
+        document.getElementById('pageBack').addEventListener('click', () => backClicks++);
+      });
+      await tick(page);
+      const check = async () => {
+        const geometry = await page.evaluate(() => {
+          const header = document.getElementById('globalHeader').getBoundingClientRect();
+          const tab = fixture.tabs[1];
+          const rect = tab.getBoundingClientRect();
+          return { height: header.height, top: rect.top, bottom: rect.bottom, headerBottom: header.bottom,
+            hit: tab.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)),
+            left: document.querySelector('.view').getBoundingClientRect().left };
+        });
+        assert(geometry.height > 0 && geometry.top >= 0 && geometry.bottom <= geometry.headerBottom && geometry.hit,
+          `Original tabs must be painted and receive input inside the header: ${JSON.stringify(geometry)}`);
+        assert.equal(geometry.left, 0, 'A hidden docked drawer must return its width to content');
+        assert.equal(await visible(page, '#pageHeading'), true);
+        assert.equal(await visible(page, '#globalMenu'), false);
+        assert.equal(await visible(page, '#globalUser'), false);
+        await page.locator('#tabsHost .emby-tab-button').nth(1).click();
+        assert.equal(await page.locator('#panels .is-active').getAttribute('data-panel-index'), '1');
+        await contentBelowHeader(page);
+      };
+      await check();
+      await page.evaluate(() => document.getElementById('globalHeader').classList.add('headroom-hidden', 'headroom-scrolling'));
+      await tick(page); await check();
+      await page.locator('#pageBack').click();
+      assert.equal(await page.evaluate(() => backClicks), 1);
+      await page.screenshot({ path: path.join(output, 'emby-actual-header-wide.png') });
+      await page.setViewportSize({ width: 360, height: 640 }); await tick(page); await check();
+      await page.screenshot({ path: path.join(output, 'emby-actual-header-narrow.png') });
+      await page.evaluate(() => { fixture.clear(); document.getElementById('pageHeading').textContent = '插件设置'; });
+      await tick(page);
+      assert.equal(await visible(page, '#pageHeading'), true, 'A page without tabs still owns its heading/actions');
+      await page.evaluate(() => document.querySelector('.headerLeft').classList.add('hide'));
+      await tick(page);
+      assert.equal(await visible(page, '#globalHeader'), false, 'Upstream permissions also own title/actions');
+      await page.evaluate(() => document.querySelector('.headerLeft').classList.remove('hide'));
+      await tick(page);
+      assert.equal(await visible(page, '#pageHelp'), true);
+      const idleMutations = await page.evaluate(() => new Promise(resolve => {
+        let count = 0;
+        const observer = new MutationObserver(records => count += records.length);
+        observer.observe(document.getElementById('globalHeader'), { attributes: true, attributeFilter: ['class'] });
+        let frames = 0;
+        function frame() {
+          if (++frames < 8) requestAnimationFrame(frame);
+          else { observer.disconnect(); resolve(count); }
+        }
+        requestAnimationFrame(frame);
+      }));
+      assert.equal(idleMutations, 0, 'An idle page must not rewrite header classes every animation frame');
+    } finally { await page.close(); }
+  });
+  for (const product of ['emby', 'jellyfin']) await test(`${product}: long group headings and outlined inputs keep their content`, async () => {
+    const page = await createPage(product, { width: 320 });
+    try {
+      await page.evaluate(() => {
+        document.getElementById('pageContent').innerHTML = '<form class="dashboardGeneralForm"><div class="fieldsets"><fieldset id="settingCard"><legend id="longHeading">下载与转换设置：保留非常长的插件分组标题，窄窗口也要完整显示</legend><div class="fieldset-fields"><div class="fieldset-field"><label class="inputLabel" for="settingInput">下载保存目录</label><input class="emby-input" id="settingInput"><p class="fieldDescription">输入内容和功能说明应保持可见。</p></div></div></fieldset></div><div class="MuiOutlinedInput-root"><input aria-label="MUI input"><fieldset class="MuiOutlinedInput-notchedOutline" id="muiOutline"><legend><span>服务端地址</span></legend></fieldset></div></form>';
+      });
+      await tick(page);
+      const geometry = await page.evaluate(() => {
+        const title = document.getElementById('longHeading').getBoundingClientRect();
+        const label = document.querySelector('.inputLabel').getBoundingClientRect();
+        const input = document.getElementById('settingInput').getBoundingClientRect();
+        const outline = getComputedStyle(document.getElementById('muiOutline'));
+        return { titleBottom: title.bottom, labelTop: label.top, inputRight: input.right,
+          viewport: innerWidth, overflow: document.documentElement.scrollWidth, outlinePadding: outline.paddingTop };
+      });
+      assert(geometry.titleBottom <= geometry.labelTop, `Wrapped group heading must not overlap the first field: ${JSON.stringify(geometry)}`);
+      assert(geometry.inputRight <= geometry.viewport && geometry.overflow <= geometry.viewport + 1,
+        `Nested settings padding must not push controls beyond the viewport: ${JSON.stringify(geometry)}`);
+      assert.notEqual(geometry.outlinePadding, '48px', 'MUI outlined borders are not settings cards');
+      await page.locator('#settingInput').fill('保留编辑中的目录');
+      assert.equal(await page.locator('#settingInput').inputValue(), '保留编辑中的目录');
+      await page.screenshot({ path: path.join(output, `${product}-settings-form-narrow.png`) });
+    } finally { await page.close(); }
+  });
   for (const product of ['emby', 'jellyfin']) {
     for (const options of product === 'emby' ? [{}, { nested: false }] : [{}, { legacy: true }, { legacy: true, absolute: true }]) {
       const label = product + (options.absolute ? '-legacy-absolute' : options.legacy ? '-legacy' : options.nested === false ? '-middle-sibling' : '-nested');

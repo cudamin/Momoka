@@ -185,7 +185,7 @@ public static partial class EmbyWebConsole
     }
 
     /// <summary>
-    /// 顶栏同时承载全局导航和页面级页签，不能整段隐藏。只保留通向原网页页签的父容器分支，
+    /// 顶栏同时承载全局导航和页面功能，不能整段隐藏。保留原网页页签、标题、返回与帮助的父容器分支，
     /// 不复制/搬动节点、不覆盖 display，不取消服务器的 hide、权限和隐藏父级；没有可用页签时收起宿主。
     /// Emby 的 headerMiddle、旧 Jellyfin 的 headerTabs 与 React/MUI AppBar 共用这条规则，和路由无关。
     /// </summary>
@@ -202,6 +202,9 @@ public static partial class EmbyWebConsole
                 position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important;
                 width: 100% !important; height: auto !important; min-height: 0 !important;
                 margin: 0 !important; padding: 0 !important; transform: none !important;
+                /* Emby 4.10 layout.css uses contain:strict: auto height otherwise collapses to zero
+                   and paint containment clips every tab. headroom.css also uses independent translate. */
+                contain: none !important; translate: none !important;
                 background: var(--momoka-window, transparent) !important;
                 border-radius: 0 !important; box-shadow: none !important;
               }
@@ -212,6 +215,17 @@ public static partial class EmbyWebConsole
               [data-momoka-tabs-branch] { min-width: 0 !important; max-width: 100% !important; }
               /* Legacy wide layouts lift headerTabs over the global title row. That row is gone. */
               .skinHeader [data-momoka-tabs-branch] { margin-top: 0 !important; margin-bottom: 0 !important; }
+              .skinHeader .headerLeft[data-momoka-tabs-branch] {
+                flex: 0 0 100% !important; width: 100% !important; max-width: 100% !important;
+                min-height: 40px !important; padding-inline: 20px !important; gap: 8px !important;
+              }
+              .skinHeader .headerMiddle[data-momoka-tabs-branch] {
+                flex: 1 1 100% !important; width: 100% !important; justify-content: flex-start !important;
+              }
+              .skinHeader .pageTitle[data-momoka-tabs-branch] {
+                white-space: normal !important; overflow-wrap: anywhere !important;
+                font-size: 18px !important; line-height: 1.5 !important;
+              }
             `;
             var frame = 0;
             var resize = typeof ResizeObserver === "function" ? new ResizeObserver(schedule) : null;
@@ -263,6 +277,10 @@ public static partial class EmbyWebConsole
                 var mui = header.classList.contains("MuiAppBar-root");
                 // A content toolbar or dialog AppBar is not the dashboard's global navigation.
                 if (mui && header.closest("main, .view, .mainAnimatedPages, .content-primary, [role='dialog']")) continue;
+                // Embedded page controls stay reachable while scrolling. Remove only Headroom's
+                // presentation classes, never override a server's visibility/permission declaration.
+                if (header.classList.contains("headroom-hidden") || header.classList.contains("headroom-scrolling"))
+                  header.classList.remove("headroom-hidden", "headroom-scrolling");
                 header.setAttribute("data-momoka-tabs-header", mui ? "mui" : "legacy");
                 var groups = header.querySelectorAll(".tabs-viewmenubar, .MuiTabs-root, [role='tablist']");
                 var containers = [];
@@ -271,10 +289,20 @@ public static partial class EmbyWebConsole
                   if (!groups[g].matches(".MuiTabs-root") && groups[g].closest(".MuiTabs-root")) continue;
                   containers.push(groups[g]);
                 }
+                // AppHeader.setTitle updates the real page heading. Logos/global account navigation
+                // have no page meaning; retaining these nodes also retains upstream back/help handlers.
+                var actions = header.querySelectorAll(".pageTitle:not(.pageTitleWithLogo), .headerBackButton, .headerHelpButton");
+                for (var a = 0; a < actions.length; a++) {
+                  if (!actions[a].matches(".pageTitle") || actions[a].textContent.trim()) containers.push(actions[a]);
+                }
                 header.setAttribute("data-momoka-page-tabs", "");
                 branches(header, containers);
                 var usable = [];
                 for (var c = 0; c < containers.length; c++) {
+                  if (containers[c].matches(".pageTitle, .headerBackButton, .headerHelpButton")) {
+                    if (available(containers[c])) usable.push(containers[c]);
+                    continue;
+                  }
                   var tabs = containers[c].querySelectorAll(".emby-tab-button, [role='tab']");
                   for (var t = 0; t < tabs.length; t++) {
                     if (available(tabs[t])) { usable.push(containers[c]); break; }
@@ -328,6 +356,7 @@ public static partial class EmbyWebConsole
             var css = [
               ".mainDrawer { display: none !important; }",
               ".drawer-backdrop { display: none !important; }",
+              ".page-withFullDrawer, .page-withMiniDrawer { left: 0 !important; inset-inline-start: 0 !important; }",
               ".appfooter { display: none !important; }",
               ".btnOpenNavDrawer, .btnToggleNavDrawer, .btnPinNavDrawer { display: none !important; }",
               ".padded-top-page { padding-top: var(--momoka-page-tabs-height, 0px) !important; }",
