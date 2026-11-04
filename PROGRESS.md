@@ -8,7 +8,7 @@
 - 合并与主树复验：`--no-ff` 合并提交 `a6831a2`；主树 Release Tests／Core／Shell **0 警告 0 错误**，完整主测试 **3664/3664、0 失败 0 跳过**，两个详情夹具 **7/7、22/22**，`format whitespace` 与 `git diff --check` 退出 0，performance 分区 **6/6**。主树 library 分区 **23/25**：除同一指针红项外，另有「文件选项长名称、断点与隐藏行」要求页面宽度 1064、实际 1024 的环境红；两项均不涉及本次改动路径，保留红报告，不宣称完整 library 分区通过。未推送；临时分支 `p1-detail-actions` 已删除，本聊天工作树按 primary checkout 保护 detached 到最终 master，未绕过删除。
 - 桌面交付：`tools/publish.ps1 -Shortcut -NoArchive` 退出 0，`artifacts/publish/win-x64` **546 文件／285.9 MB**，14 个 GLSL／4 个 HOOK，标准 mpv 清单 59 文件；快捷方式目标与工作目录均回读为 `C:/Users/89400/Momoka/artifacts/publish/win-x64`，参数为空。发布 Shell SHA256 `4D9CA66F6E959486EF5BE21EF5D8D9AE02734731051821D04EB489994389F6A7`、Core `D43E90C311DD18F6684C47F1EDB214F1073D028E9811C10936535F933938B0B2`，与主树 Release 构建输出一致；发布件 performance 探针 **6/6、退出 0**（`shell-probe-20261104-053142250-27536`）。未生成新安装包、未提交微软商店、未推送 origin。
 - 证据：`work/p1-detail-actions/`（两份 NDJSON、p1-summary.json、详情截图与 UIA 树、分支／主树／发布件 performance 与 library 探针报告、20 次复现脚本、发布日志与 verification-main.txt），不入 Git、未上传。未覆盖：按钮从禁用到可用的逐帧视觉瞬间、一个账号／一个单集入口、长剧／多季页播放目标等待；`Busy`／`IsReady` 仍等完整附属链，进度条会比按钮晚消失。
-- 交接状态（2026-11-04 换窗口前）：master `1a01f6a` 已包含产品、记录与桌面发布提交；主树干净，无 Momoka 进程；临时分支 `p1-detail-actions` 已删除，本聊天工作树 detached 到 `1a01f6a`。若要继续整份 P1，尚未做的是媒体库首布局归因、主页返回重建、原生转场归因和长剧／深返回；主树 library 探针的两个环境红（指针停在播放键、页面宽度 1064 对 1024）应在干净桌面复跑确认，不能算产品通过。未推送 origin、未生成安装包或提交商店。
+- 交接状态（2026-11-04 换窗口前）：产品与发布提交 `1a01f6a` 已进入 master；主树干净，无 Momoka 进程；临时分支 `p1-detail-actions` 已删除，本聊天工作树 detached 到最新 master。若要继续整份 P1，尚未做的是媒体库首布局归因、主页返回重建、原生转场归因和长剧／深返回；主树 library 探针的两个环境红（指针停在播放键、页面宽度 1064 对 1024）应在干净桌面复跑确认，不能算产品通过。未推送 origin、未生成安装包或提交商店。
 
 ## 2026-11-04 剩余亚克力材质：海报操作、媒体库容器与资源卡（已合入 master、已发布桌面）
 
