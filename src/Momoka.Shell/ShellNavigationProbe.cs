@@ -77,6 +77,8 @@ internal sealed partial class ShellNavigationProbe
             // 「其他信息」卡，媒体信息表跟着播放记录走（有续播取最近播放的续播集，否则当季第一集）。
             // 同日追加：季页面不要媒体信息（整块其他信息卡收起）。
             await CaseAsync("剧页单季不画全部剧季、其他信息卡与集页一致", DetailSeriesInfoAsync, 30, section: ShellProbeSections.Library);
+            await CaseAsync("详情自定义设置：卡片排序、隐藏、拖拽提交与重入", DetailCustomizationSettingsAsync, 90, section: ShellProbeSections.Settings);
+            await CaseAsync("详情自定义页面：实际顺序、隐藏恢复、不透明度与固定沉浸", DetailCustomizationPagesAsync, 120, section: ShellProbeSections.Library);
             // 集页封面只在宽版式里画（紧凑版式整个收掉），加上集页紧凑版式的那张背景图、以及尾部那条窄带在
             // 两档上的紧凑度：四档宽度各量一遍，截图 `detail-episode-band-<宽度>.png`。
             await CaseAsync("集页封面与窄窗背景图和尾部间距", EpisodeBandAsync, 30);
