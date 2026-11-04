@@ -8,7 +8,7 @@
 - 发布件材质探针 **1/1 Passed=true、退出 0**（`shell-probe-20261104-071327272-11988`，七个阶段 × 五主题 × 1280／760 共 70 张页面实屏，另 12 张三态、4 张回退与 1 张海报悬停样本，合计 **87 张**）；五主题宽窄读数均为「右下三颗三态都不画底色」、播放键常态等于各自 SurfaceHover、指针仍取主题强调色；详情页操作排仍为亚克力。已目视检查 `poster-actions-restored-screen.png` 与详情宽窄实屏。证据复制到 `work/poster-restore-20261104/`。
 - 首次发布件探针在 midnight/760 窗口 resize 超时（另一工作树的运行时同时在跑并占设置锁），其后一次启动又因设置被占用而拒绝；对方进程退出后重跑通过。失败记录保留在 `shell-probe-20261104-070638340-31016`，未洗绿。未覆盖：真实鼠标悬停／按下、真实 OS 高对比度、材质性能；未上传远端、未生成安装包。
 
-## 2026-11-04 服务端设置 WebView2 页签与 WinUI 皮肤（已合入，统一发布中）
+## 2026-11-04 服务端设置 WebView2 页签与 WinUI 皮肤（已合入、统一发布完成）
 
 - 本聊天独立工作树 `C:/Users/89400/.codex/worktrees/714e/Momoka`，写入范围为 `EmbyWebConsole` 三份源码、服务器网页专项、相关测试和文档。用户要求对齐当前 WinUI 并修复网页端存在、Momoka 缺失的下载页功能。
 - 依据当前服务器公开 Emby 4.10.1.0 前端：`layout.css` 的 `contain: strict` 与自动高度冲突导致顶栏为0；`headroom.css` 的独立 translate 和 docked drawer 正文偏移也是遗漏。修复保留原页签、页面标题、返回/帮助与权限隐藏；空闲不改写 class。字体、输入圆角10、标签15/说明13/组标题18、分组间距16对齐当前设置；长 legend 自然排版，排除 MUI notchedOutline。
@@ -20,6 +20,10 @@
 - 稳定整合代码主测试最终 **3664/3664、0失败0跳过**（`work/web-console-release-tests.log`）；详情19/19、删除22/22、字幕36/36；主树网页契约14/14、DOM25/25、WebView Runtime五主题十组实屏/命中/输入通过（`work/web-console-main/`、`work/webview-runtime-main-final/`）。31个变更文本编码/空白检查通过，定向format退出0但提示工作区载入warning。
 - 跨聊天最终运行：`c5defef`性能7/7、媒体库25/25；材质首轮0/1（`shell-probe-20261104-070723610-21164`）在detail/oled-black从1280到760宽度等待超时，原因未定，保留红报告。诊断`d2b25f9→927d022`仅在原8秒超时分支记录几何与原异常，实际异常分支夹具通过；同产品诊断版材质1/1退出0、87实屏（`shell-probe-20261104-071438198-29332`），旧红不解释为已证实环境原因。没有改断言或等待时限。
 - 混合版本检查未作最终证据：主树合并期间Shell编译缺PerformanceDetailShapeAsync并级联27错误；另一轮主测3643/3664含16共享mutex拒绝与5海报样式旧断言。稳定代码重编与串行主测已全过，未重置用户设置或停止其他聊天进程。
+
+- 交付完成：最终诊断Shell编译0警告0错误；`tools/publish.ps1 -Shortcut -NoArchive`退出0，546文件/285.9 MB、14 GLSL/4 HOOK及mpv59文件校验通过。桌面`Momoka.lnk`目标与工作目录回读为主树`artifacts/publish/win-x64`，参数空；Shell哈希`50C7DD01CA3C2666EC2D7161823269FDA6C7C84F6F21DB698D2DACBC197F8132`、Core`625C9E56429EBF5F4E5434D443B24F2495AA1704C712B3B1530898F8F263FE19`均与主树最终构建一致，发布日志`work/web-console-publish.log`。
+- 发布件真实只读验收：进程21100/设置窗口5245242实际加载已配置Emby，下载标题、返回及下载/设置页签可见；点击原网页设置页签后临时文件路径、全速转换开关与保存按钮完整呈现。实屏`work/web-console-live-downloads-screen.png`、`web-console-live-settings-screen.png`；本次仅导航读取，未编辑输入、拨开关、保存、选择目录或播放。Jellyfin仍为匿名DOM验证，不宣称实服验收。正式发布件留在下载设置供用户查看。
+- 没有上传远端、生成新安装包或提交商店；版本号不变。本聊天工作树detached已提交，无临时分支；其他聊天临时树由所属聊天核对独有文档后收尾，未跨会话删除未保留内容。
 
 ## 2026-11-04 详情同类型版式通知去重 P1（分支验证中）
 
