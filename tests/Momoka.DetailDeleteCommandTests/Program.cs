@@ -108,6 +108,7 @@ internal sealed class DetailVmBridge(object vm, EmbyImageStore images)
 {
     public object Vm { get; } = vm;
     public EmbyItem? CurrentItem => ShellRuntime.Get(Vm, "CurrentItem") as EmbyItem;
+    public void EnsureCurrentEpisodeCard() => ShellRuntime.Invoke(Vm, "EnsureCurrentEpisodeCard");
     public IReadOnlyList<EmbyItem> Episodes => (IReadOnlyList<EmbyItem>)ShellRuntime.Get(Vm, "Episodes")!;
     public void Reload() => ShellRuntime.Invoke(Vm, "Reload");
     public Action CaptureReload() => Vm.GetType().GetMethod("CaptureReload", ShellRuntime.Members) is { } factory

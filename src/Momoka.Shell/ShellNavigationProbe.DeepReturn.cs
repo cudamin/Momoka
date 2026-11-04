@@ -20,6 +20,7 @@ internal sealed partial class ShellNavigationProbe
         {
             using var fixture = CreateFixture();
             var reads = new List<(int Start, int Limit)>();
+            var totalItems = 2000;
             var poster = await FixtureImageAsync(170, 255);
             fixture.Transport.Reply = async (message, _) =>
             {
@@ -42,8 +43,8 @@ internal sealed partial class ShellNavigationProbe
                         reads.Add((start, limit));
                         return FnNasEnvelope(new
                         {
-                            total = 2000,
-                            list = Enumerable.Range(start, Math.Max(0, Math.Min(limit, 2000 - start)))
+                            total = totalItems,
+                            list = Enumerable.Range(start, Math.Max(0, Math.Min(limit, totalItems - start)))
                                 .Select(index => new { guid = "deep-" + index, title = "匿名电影 " + index, type = "Movie" }).ToArray()
                         });
                     }
@@ -59,12 +60,15 @@ internal sealed partial class ShellNavigationProbe
                         var start = int.Parse(message.Headers.GetValues("X-Plex-Container-Start").Single(), System.Globalization.CultureInfo.InvariantCulture);
                         var limit = int.Parse(message.Headers.GetValues("X-Plex-Container-Size").Single(), System.Globalization.CultureInfo.InvariantCulture);
                         reads.Add((start, limit));
-                        return Json(new { MediaContainer = new
+                        return Json(new
                         {
-                            totalSize = 2000,
-                            Metadata = Enumerable.Range(start, Math.Max(0, Math.Min(limit, 2000 - start)))
+                            MediaContainer = new
+                            {
+                                totalSize = totalItems,
+                                Metadata = Enumerable.Range(start, Math.Max(0, Math.Min(limit, totalItems - start)))
                                 .Select(index => new { ratingKey = "deep-" + index, title = "匿名电影 " + index, type = "movie" }).ToArray()
-                        } });
+                            }
+                        });
                     }
                     return Json(new { MediaContainer = new { friendlyName = "匿名 Plex", version = "1.41.2", machineIdentifier = "machine" } });
                 }
@@ -75,8 +79,8 @@ internal sealed partial class ShellNavigationProbe
                     reads.Add((start, limit));
                     return Json(new ItemsResult
                     {
-                        TotalRecordCount = 2000,
-                        Items = Enumerable.Range(start, Math.Max(0, Math.Min(limit, 2000 - start)))
+                        TotalRecordCount = totalItems,
+                        Items = Enumerable.Range(start, Math.Max(0, Math.Min(limit, totalItems - start)))
                             .Select(index => new EmbyItem { Id = "deep-" + index, Name = "匿名电影 " + index, Type = EmbyItemType.Movie }).ToList()
                     });
                 }
@@ -90,8 +94,11 @@ internal sealed partial class ShellNavigationProbe
             {
                 var request = new LibraryRequest
                 {
-                    Services = fixture.Services, Title = "匿名深返回库", Source = fixture.Session.Capture(),
-                    ParentId = "library", CollectionType = "movies"
+                    Services = fixture.Services,
+                    Title = "匿名深返回库",
+                    Source = fixture.Session.Capture(),
+                    ParentId = "library",
+                    CollectionType = "movies"
                 };
                 ResizeProbeClient(1280, 800);
                 Require(frame.Navigate(typeof(LibraryPage), request), "深返回首个 Frame 导航失败");
@@ -162,10 +169,42 @@ internal sealed partial class ShellNavigationProbe
                         ? reads[beforeRead].Start <= end && end < reads[beforeRead].Start + reads[beforeRead].Limit
                         : reads[beforeRead].Start == end,
                     "真实下翻起点未使用绝对窗口尾部");
-                evidence.Add(new { backend = kind.ToString(), savedIndex = request.AnchorIndex, savedY, beforeY, windowStart = returned.ViewModel.WindowStart,
-                    windowEnd = returned.ViewModel.WindowEnd, snapshotItems = snapshot.Items.Count,
-                    requests = reads.Select(read => new { start = read.Start, limit = read.Limit }).ToArray(), realFrame = true });
+                evidence.Add(new
+                {
+                    backend = kind.ToString(),
+                    savedIndex = request.AnchorIndex,
+                    savedY,
+                    beforeY,
+                    windowStart = returned.ViewModel.WindowStart,
+                    windowEnd = returned.ViewModel.WindowEnd,
+                    snapshotItems = snapshot.Items.Count,
+                    requests = reads.Select(read => new { start = read.Start, limit = read.Limit }).ToArray(),
+                    realFrame = true
+                });
                 Require(fixture.Actions.Plays == 0, "深返回探针触发了播放动作");
+
+                // Empty library is a real window update, followed by a fresh readable first page.
+                // The actual page must release its pending anchor so scrolling can load the next page.
+                totalItems = 0;
+                await returned.ViewModel.RevalidateAsync();
+                await LayoutAsync(returned);
+                Require(returned.ViewModel.Cards.Count == 0 && !Get<bool>(returned, "_restoringAnchor")
+                    && Get<object?>(returned, "_pendingAnchor") is null, "空库仍持有滚动恢复状态");
+                totalItems = 2000;
+                await returned.ViewModel.ReloadAsync();
+                await LayoutAsync(returned);
+                var refilledEnd = returned.ViewModel.WindowEnd;
+                var refilledScroll = Get<ItemsView>(returned, "CardWall").ScrollView!;
+                await ScrollProbeAsync(refilledScroll, refilledScroll.ExtentHeight);
+                await UntilAsync(() => returned.ViewModel.WindowEnd > refilledEnd && !returned.ViewModel.Busy);
+                evidence.Add(new
+                {
+                    backend = kind.ToString(),
+                    phase = "empty-refill-scroll",
+                    beforeEnd = refilledEnd,
+                    afterEnd = returned.ViewModel.WindowEnd,
+                    pendingAnchorReleased = true
+                });
 
                 // Deterministic owner cancellation: old queued restoration clears only its own pending state.
                 var query = returned.ViewModel.QueryToken;

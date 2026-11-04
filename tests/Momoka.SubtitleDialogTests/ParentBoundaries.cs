@@ -29,6 +29,8 @@ internal sealed partial class DetailViewModel : PageViewModel
     // The extracted Cancel path also drops image diagnostics/cache tickets; this fixture has no images.
     internal object? _heroTiming;
     internal object? _heroCacheTicket;
+    // Movies have no episode shelf; retain the real Cancel call without constructing a UI collection.
+    private EpisodeShelfBoundary? EpisodeShelf => null;
     private EmbySessionScope? _scope;
     private EmbyItem? _seed;
     private FixtureSettings? _settings;
@@ -68,4 +70,8 @@ internal sealed partial class DetailViewModel : PageViewModel
     private void BusyChanged() { }
     private void AnnounceAffordances() { }
     private sealed record FixtureSettings(AppSettings Settings);
+    private sealed class EpisodeShelfBoundary
+    {
+        public void Clear() => throw new InvalidOperationException("Movie-only fixture has no episode shelf");
+    }
 }
