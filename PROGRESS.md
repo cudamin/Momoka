@@ -6,6 +6,7 @@
 - 实机探针：最终发布件 `--probe-shell --probe-section materials --screen 1` **1/1 Passed=true、退出 0**（`shell-probe-20261104-042048585-14456`）；七阶段（详情、货架、服务器、通知、媒体库、MoviePilot 卡、AniBT 卡）× 五主题 × 1280／760 共 **70 张页面实屏**，另 16 张三态／回退与 1 张海报悬停操作样本，合计 **87 张**；`acrylic-controls.txt` 记录每处卡片 glass tint、实色反例拒绝结果与海报卡三态读数。发布件冷启动下窗口 resize 与卡片实绘偶发超过原 2 秒等待，探针改为 8 秒有界等待并整轮置顶，断言未放松。证据复制到 `work/acrylic-remaining/`；已目视放大检查海报播放键／右下操作组、MoviePilot／AniBT 卡与搜索来源栏。日志 `work/acrylic-remaining-main-tests.log`、`acrylic-remaining-publish.log`、`acrylic-remaining-probe.log`。
 - 未覆盖：真实 OS 高对比度未切换，只核对资源字典；悬停／按下是模板与受控样本，不代表真实鼠标手势；材质性能未测；其余 157 项 Shell 检查未运行。未登录真实服务器、未写入、未播放。
 - 交付：`tools/publish.ps1 -Shortcut -NoArchive` 退出 0，`artifacts/publish/win-x64` **546 文件／285.9 MB**，发布校验通过；桌面 `Momoka.lnk` 目标与工作目录均回读为 `C:/Users/89400/Momoka/artifacts/publish/win-x64`，参数为空。发布 `Momoka.dll` SHA256 `058e0e0bb4d4fc3f04ac41f1b722d0c0af4dd325f8669244c54225cee957c6b1`，与主树构建输出一致；版本号仍为 0.2.5。没有生成新安装包、上传远端或提交微软商店。
+- 收尾：临时分支 `acrylic-remaining-materials` 已删除（was `bca5f4e`），本地仅保留 `master`；本聊天工作树已 detached 到最终 master，因 primary checkout 保护暂留目录，未绕过删除。所有产品内容已进入 master，未推送 origin。
 
 ## 2026-11-04 页面切换与封面响应延迟审查（仅文档）
 
