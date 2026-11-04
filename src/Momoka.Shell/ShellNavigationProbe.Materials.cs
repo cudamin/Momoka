@@ -21,6 +21,10 @@ internal sealed partial class ShellNavigationProbe
     private async Task AcrylicControlsAsync()
     {
         if (_window!.IsMaximized) _window.ToggleMaximize();
+        // 整轮保持置顶：被其他窗口遮住时 DWM 会节流布局，窗口 resize 偶发不落实；截图本身也要求本窗在屏上。
+        var windowTopMost = _window.TopMost;
+        _window.TopMost = true;
+        _window.Activate();
         using var fixture = CreateFixture();
         var reads = new List<string>();
         var savedTheme = ThemeHost.Current;
@@ -289,6 +293,7 @@ internal sealed partial class ShellNavigationProbe
             (frame.Content as IShellContent)?.Release();
             _root.Children.Remove(frame); _root.Children.Remove(holder);
             HomeMotion.ApplyPreference(savedMotion); ThemeHost.Apply(savedTheme); _root.Background = savedBackground;
+            _window.TopMost = windowTopMost;
             File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "acrylic-controls.txt"), reads);
         }
 
