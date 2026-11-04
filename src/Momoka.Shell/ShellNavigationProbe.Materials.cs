@@ -142,11 +142,11 @@ internal sealed partial class ShellNavigationProbe
                             ? (FrameworkElement)holder : (FrameworkElement)frame.Content;
                         await LayoutAsync(page);
                         // 窗口尺寸变更由系统异步落实；等目标宽度到位再量，不把遮挡或渲染节流当成产品尺寸不同。
-                        await UntilAsync(() =>
+                        await WaitForLayoutAsync(() =>
                         {
                             _root.UpdateLayout();
                             return Math.Abs(_root.ActualWidth - width) < 1;
-                        });
+                        }, "客户区未在时限内到达目标宽度");
                         Require(Math.Abs(_root.ActualWidth - width) < 1, "客户区未到达目标宽度");
                         CheckRoles(theme);
                         var samples = theme.Id == UiThemes.DefaultId && width == 1280;
@@ -154,9 +154,10 @@ internal sealed partial class ShellNavigationProbe
                         {
                             await ScrollProbeAsync(Get<ScrollView>(detail, "Body"), 0);
                             var group = Get<StackPanel>(detail, width == 1280 ? "ColumnActions" : "CompactBlock");
-                            await UntilAsync(() => group.Visibility == Visibility.Visible
+                            await WaitForLayoutAsync(() => group.Visibility == Visibility.Visible
                                 && Descendants(group).OfType<Control>().Count(control =>
-                                    (control is Button or ToggleButton) && control.Visibility == Visibility.Visible) == 6);
+                                    (control is Button or ToggleButton) && control.Visibility == Visibility.Visible) == 6,
+                                "详情操作排未在时限内出现");
                             var controls = Descendants(group).OfType<Control>().Where(control =>
                                 (control is Button or ToggleButton) && control.Visibility == Visibility.Visible).ToArray();
                             Require(controls.Length == 6, "详情操作排缺少按钮或连播");
@@ -326,24 +327,34 @@ internal sealed partial class ShellNavigationProbe
         }
         async Task CheckMoviePilotCardsAsync(UiTheme theme)
         {
-            await UntilAsync(() => progressCard is not null && moviePilotCards is not null
+            await WaitForLayoutAsync(() => progressCard is not null && moviePilotCards is not null
                 && Descendants(moviePilotCards).OfType<Grid>()
-                    .Any(grid => grid.Name == "ResourceCard" && grid.ActualWidth > 100));
+                    .Any(grid => grid.Name == "ResourceCard" && grid.ActualWidth > 100), "MoviePilot 资源卡未在时限内实绘");
             CheckCardMaterial(Get<Border>(progressCard!, "ProgressCard"), "MoviePilot 搜索进度卡", theme);
             CheckCardMaterial(Descendants(moviePilotCards!).OfType<Grid>().First(grid =>
                 grid.Name == "ResourceCard" && grid.ActualWidth > 100), "MoviePilot 资源卡", theme);
         }
         async Task CheckAniBtCardsAsync(UiTheme theme)
         {
-            await UntilAsync(() => aniBtProgress is not null && aniBtResources is not null
+            await WaitForLayoutAsync(() => aniBtProgress is not null && aniBtResources is not null
                 && Descendants(aniBtProgress).OfType<Border>()
                     .Any(border => border.Name == "ProgressCard" && border.ActualWidth > 100)
                 && Descendants(aniBtResources).OfType<Expander>()
-                    .Any(expander => expander.Name == "ReleaseGroup" && expander.ActualWidth > 100));
+                    .Any(expander => expander.Name == "ReleaseGroup" && expander.ActualWidth > 100), "AniBT 卡片未在时限内实绘");
             CheckCardMaterial(Descendants(aniBtProgress!).OfType<Border>().First(border =>
                 border.Name == "ProgressCard" && border.ActualWidth > 100), "AniBT 进度卡", theme);
             CheckCardMaterial(Descendants(aniBtResources!).OfType<Expander>().First(expander =>
                 expander.Name == "ReleaseGroup" && expander.ActualWidth > 100), "AniBT 资源卡", theme);
+        }
+        async Task WaitForLayoutAsync(Func<bool> ready, string message)
+        {
+            // 发布件冷启动、主题切换与 ItemsView 回收都比开发件慢一拍；仍按同一组断言，只把等待上限放到 8 秒。
+            for (var attempt = 0; attempt < 320; attempt++)
+            {
+                if (ready()) return;
+                await Task.Delay(25);
+            }
+            throw new TimeoutException(message);
         }
         void CheckCardMaterial(FrameworkElement element, string what, UiTheme theme)
         {
