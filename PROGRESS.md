@@ -1,3 +1,5 @@
+- 2026-11-04 弹幕渲染子任务，独立树 C:/Users/89400/.codex/worktrees/danmaku-renderer/Momoka：仅 momoka_danmaku.lua 与 Lua 回归；按宿主新契约实现固定像素/随窗缩放、选中可见主/第二字幕底部20%避让、本地防重叠与正常/较多/重叠密度、字体/粗体/描边/重墨/45度投影、独立倍速时钟补偿。官方 mpv 固定270367e8af 的 player/command.c sid GET、options/options.c visibility/speed、player/lua/defaults.lua get_osd_size 与 sub/osd_libass.c/sub/ass_mp.c overlay bounds 已核。基线15/15；新增首轮14预期红与两条真实边界红修后35/35；四万条缩放/缓存/所有权43/43、原生定时器3/3，相关翻译17/17+3/3；本树Core/主Tests Release编译0警告0错误，弹幕Core夹具56/56。证据 work/danmaku-renderer-*；所有媒体/画布均合成，无窗口、真播放、账号或用户设置，主树整合及UI/载荷哈希交付由根会话负责。倍速中途变化保持活动弹幕移动连续，seek/配置重推会按当前倍率重建历史；字幕是保守区域预留，不声称文字/人物识别。
+
 # 2026-11-04 P2 浏览恢复与详情背景复用（已合入、验证并发布）
 
 - 树 `C:/Users/89400/.codex/worktrees/ba08/Momoka`，分支 `codex/p2-browse-image-cost`，基于master834a21d。写入范围：匿名计时、Home/Library恢复、详情背景及相关夹具和文档；[实施计划](docs/superpowers/plans/2026-11-04-p2-browse-image-cost.md)。
