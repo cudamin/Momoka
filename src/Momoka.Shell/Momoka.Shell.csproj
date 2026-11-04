@@ -70,13 +70,13 @@
     here rather than solution-wide so Core and the test project keep the full set. The analyzer is wired
     in by Directory.Build.props; see the comment there for why.
 
-    Nineteen sites are flagged, all of them 「shelf leaf」 bindings (DetailPage's five 货架, including
-    the 2026-11-03 特别篇 shelf below 单集; HomePage's right rail went with that rail's removal on
+    The remaining flagged sites are 「shelf leaf」 bindings (DetailPage's four 货架;
+    the duplicate 特别篇 shelf was removed on 2026-11-04; HomePage's right rail went with that rail's removal on
     2026-09-08) and one on PlayerViewModel.SubtitleFont. What the rule cannot see:
 
     * SubtitleFont is `internal SettingFontRow SubtitleFont { get; }`, assigned in the constructor and
       never null. That one is a plain false positive.
-    * The five shelf properties are `CardShelf?` on purpose, and the class comment on
+    * The four shelf properties are `CardShelf?` on purpose, and the class comment on
       DetailViewModel.EpisodeShelf says why: a shelf needs the image store and the card width from 设置,
       so it cannot exist before Attach, and the page binds to it from the moment it is constructed. They
       are assigned exactly once, in Attach, and never set back to null.

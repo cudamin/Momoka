@@ -1400,62 +1400,16 @@
                                 ItemsSource="{x:Bind ViewModel.EpisodeShelf.Cards, Mode=OneWay}"
                                 Visibility="{x:Bind ViewModel.EpisodeStripVisibility, Mode=OneWay}" />
 
-                            <!-- 特别篇：同一张「全部剧集」卡片里的第二排单集卡（第 0 季），剧页和集页都有。
-                                 2026-11-03 用户令先是「在剧页的集列表下面弄个特别篇卡片（就是S00/S0季，没有就自动
-                                 隐藏）」，随后「给集页面也加上特别篇卡片」，再一句「特别篇卡片应该是集列表，而不是
-                                 季列表，把图四的特别篇移回全部剧集卡片，特别篇卡片的封面更换为四集特别篇的封面」
-                                 —— 所以这一块从独立面板挪进 EpisodePanel，装的是第 0 季的集、用每集自己的封面，
-                                 不再是那张 S0 季卡。没有特别篇时这一块整个收起。
-                                 同日晚上用户又令「全部剧集卡片要显示特别篇（S00季）的封面」：S00 的季卡因此回到
-                                 下面「全部剧季」那张卡带里（它才是季封面），这一排仍是集的列表，两者并存。 -->
-                            <StackPanel
-                                x:Name="SpecialPanel"
-                                Spacing="10"
-                                Visibility="{x:Bind ViewModel.SpecialShelfVisibility, Mode=OneWay}">
-                                <local:ShelfHead x:Name="SpecialHead" ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}" Title="特别篇" />
-                                <local:ShelfStrip
-                                    x:Name="SpecialRow"
-                                    Height="{x:Bind ViewModel.SpecialShelf.RowHeight, Mode=OneWay}"
-                                    ItemSpacing="16"
-                                    ItemTemplate="{StaticResource CardTemplate}"
-                                    ItemsSource="{x:Bind ViewModel.SpecialShelf.Cards, Mode=OneWay}" />
-                            </StackPanel>
                         </StackPanel>
 
-                        <!-- 全部剧季：剧集页和集页的季卡横带，点季卡进那一季自己的页面。两张季卡以上才摆 —— 只有一季时
-                             那是一张通往本页已经在列的那一季的卡（2026-11-02 用户令「当剧集只有一季时，在剧页面
-                             不显示『全部剧集』卡片」）。判据在 DetailViewModel.SeasonShelfVisibility（两张卡以上），
-                             所以单季的集页也不会画出这一块。
-                             2026-11-02 同日两条令把它挪到了这里：顺序改成 单集 → 全部剧季 → 其他信息（原来在其他
-                             信息底下），并且集页也要这一张。剧页那一趟由 LoadSeriesAsync 填，集页那一趟是
-                             LoadSeasonShelfAsync；集页没有季选择器，这一排卡在那儿只用来跳季页面。
-                             2026-11-03 晚用户令「全部剧集卡片要显示特别篇（S00季）的封面」：两处填充都不再滤掉
-                             第 0 季，季卡带照服务器季序（第 0 季在最前）把特别篇的封面摆出来，点它进第 0 季页面。 -->
-                        <StackPanel
-                            x:Name="SeasonPanel"
-                            Style="{StaticResource EgBodyPanelStyle}"
-                            Padding="{x:Bind ViewModel.BodyPanelPadding, Mode=OneWay}"
-                            Spacing="10"
-                            Visibility="{x:Bind ViewModel.SeasonShelfVisibility, Mode=OneWay}">
-                            <local:ShelfHead
-                                ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
-                                Title="{x:Bind ViewModel.SeasonShelf.Title, Mode=OneWay}" />
-                            <local:ShelfStrip
-                                x:Name="SeasonRow"
-                                Height="{x:Bind ViewModel.SeasonShelf.RowHeight, Mode=OneWay}"
-                                ItemSpacing="16"
-                                ItemTemplate="{StaticResource CardTemplate}"
-                                ItemsSource="{x:Bind ViewModel.SeasonShelf.Cards, Mode=OneWay}" />
-                        </StackPanel>
-
-                        <!-- 媒体信息与其他信息紧跟在全部剧季下面：这一段说的是「正在放的这个文件」（文件名、格式、
+                        <!-- 媒体信息与其他信息紧跟在单集列表下面：这一段说的是「正在放的这个文件」（文件名、格式、
                              音频、字幕），和上面那排集是同一件事的两个粒度，隔着三条卡片带就对不上了。
 
-                             摆在全部剧季底下（2026-11-02 用户令「在剧页面的集列表下方复刻一个与集页面
+                             原来摆在全部剧季底下（2026-11-02 用户令「在剧页面的集列表下方复刻一个与集页面
                              『其他信息』卡片一致的卡片」）。剧页自 2026-11-02 起也有媒体信息表（用户令
                              「剧页面的更多信息卡片也加上媒体信息，没有播放记录就用第一集的，有播放记录就用
                              播放记录那一集」），顺序是 单集 → 全部剧季 → 其他信息（同日另一条令把全部剧季
-                             挪到了这一块上面）。
+                             挪到了这一块上面）；2026-11-04 再按用户要求互换为 单集 → 其他信息 → 全部剧季。
 
                              电影、剧、单集三页两样都有（表 + 分割线 + 那一行）；季页两样都没有（同日用户令
                              「季页面不要媒体信息」）。视图这边不判断：DetailViewModel.InfoVisibility 说的是
@@ -1508,7 +1462,26 @@
                                 Visibility="{x:Bind ViewModel.OtherInfoVisibility, Mode=OneWay}" />
                         </StackPanel>
 
-                        <!-- 演职人员接在其他信息之后：这一排是「这部片子背后是谁」，先把「看什么」说完，再回答
+                        <!-- 全部剧季：2026-11-04 与其他信息互换，接在信息卡下方。剧页和集页共用这块季封面卡；
+                             保留第 0 季，季卡少于两张时整块收起，点卡片进入对应季页面。 -->
+                        <StackPanel
+                            x:Name="SeasonPanel"
+                            Style="{StaticResource EgBodyPanelStyle}"
+                            Padding="{x:Bind ViewModel.BodyPanelPadding, Mode=OneWay}"
+                            Spacing="10"
+                            Visibility="{x:Bind ViewModel.SeasonShelfVisibility, Mode=OneWay}">
+                            <local:ShelfHead
+                                ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
+                                Title="{x:Bind ViewModel.SeasonShelf.Title, Mode=OneWay}" />
+                            <local:ShelfStrip
+                                x:Name="SeasonRow"
+                                Height="{x:Bind ViewModel.SeasonShelf.RowHeight, Mode=OneWay}"
+                                ItemSpacing="16"
+                                ItemTemplate="{StaticResource CardTemplate}"
+                                ItemsSource="{x:Bind ViewModel.SeasonShelf.Cards, Mode=OneWay}" />
+                        </StackPanel>
+
+                        <!-- 演职人员接在全部剧季之后：这一排是「这部片子背后是谁」，先把「看什么」说完，再回答
                              「是谁做的」。2026-11-03 用户令「所有页面，演职人员卡片和更多推荐卡片位置互换」，
                              所以它从原先收尾的位置挪到了更多类似前面。 -->
                         <StackPanel

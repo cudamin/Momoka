@@ -136,13 +136,12 @@ public sealed partial class DetailPage
     /// 自己持有的画刷，好让颜色和透明度能动画。收 <see cref="StackPanel"/> 而不是 <see cref="FrameworkElement"/>：
     /// 换的是 <c>Background</c>／<c>BorderBrush</c> 两个专属于这个类型的属性。
     /// <para>
-    /// 次序就是屏上从上往下的次序（<see cref="ShownPanels"/> 按它数错峰的格子）：2026-11-02 用户令把「全部剧季」
-    /// 挪到「其他信息」上面，这两块也跟着换过来 —— 这里不换，浮起那一段里靠下的那块会先动。2026-11-03 特别篇
-    /// 回到单集那张卡里（不再是独立面板），演职人员与更多类似互换，次序跟着屏上重排。
+    /// 次序就是屏上从上往下的次序（<see cref="ShownPanels"/> 按它数错峰的格子）：2026-11-04 信息卡与季卡互换，
+    /// 这里同样重排，保证浮起动画按实际版面从上往下进行。
     /// </para>
     /// </summary>
     private IEnumerable<StackPanel> BodyPanels =>
-        [EpisodePanel, SeasonPanel, InfoPanel, CastPanel, SimilarPanel];
+        [EpisodePanel, InfoPanel, SeasonPanel, CastPanel, SimilarPanel];
 
     /// <summary>
     /// 构造时准备三支画刷和五支浮起变换：纸面取主题的窗口色，面板取样式原本那两档，每块面板各装一支

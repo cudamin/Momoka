@@ -2063,14 +2063,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(CanPickEpisodeSeason))]
     public partial CardShelf? SeasonShelf { get; set; }
 
-    /// <summary>
-    /// 集列表下面那一排特别篇 —— 只装第 0 季的**集**（不是季卡），剧页和集页都有；没有第 0 季时整块收起。
-    /// 2026-11-03 用户令先点名剧页，随后补一句「给集页面也加上特别篇卡片」，两页因此共用这一份。
-    /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SpecialShelfVisibility))]
-    public partial CardShelf? SpecialShelf { get; set; }
-
     /// <summary>更多类似, the recommendations row Emby's own detail page carries under the cast.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SimilarVisibility))]
@@ -2135,8 +2127,6 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// </summary>
     public Visibility SeasonShelfVisibility => Show(SeasonShelf is { Cards.Count: > 1 });
-
-    public Visibility SpecialShelfVisibility => Show(SpecialShelf is { Cards.Count: > 0 });
 
     /// <summary>
     /// 集列表牌子能不能点开季列表。剧页和集页的集列表现在是全剧一条（按播出时间排），所以两页都要能按季
@@ -2289,27 +2279,21 @@ public sealed partial class DetailViewModel : PageViewModel
             wide: false, indicators: false);
         var seasons = new CardShelf("全部剧季", images, CardSize.PosterWidth, wide: false);
 
-        // 特别篇摆的是第 0 季的集，不是季卡：窄版海报卡会把 S0 季封面放大成一张竖图，
-        // 而用户要的是四集特别篇各自的那张封面（2026-11-03）。
-        var specials = new CardShelf("特别篇", images, CardSize.WideWidth, wide: true);
         var similar = new CardShelf("更多类似", images, CardSize.PosterWidth, wide: false);
 
         if (EpisodeShelf is { } previous) previous.Cards.CollectionChanged -= OnEpisodeCardsChanged;
         if (CastShelf is { } before) before.Cards.CollectionChanged -= OnCastCardsChanged;
         if (SeasonShelf is { } oldSeasons) oldSeasons.Cards.CollectionChanged -= OnSeasonShelfChanged;
-        if (SpecialShelf is { } oldSpecials) oldSpecials.Cards.CollectionChanged -= OnSpecialShelfChanged;
         if (SimilarShelf is { } oldSimilar) oldSimilar.Cards.CollectionChanged -= OnSimilarCardsChanged;
 
         episodes.Cards.CollectionChanged += OnEpisodeCardsChanged;
         cast.Cards.CollectionChanged += OnCastCardsChanged;
         seasons.Cards.CollectionChanged += OnSeasonShelfChanged;
-        specials.Cards.CollectionChanged += OnSpecialShelfChanged;
         similar.Cards.CollectionChanged += OnSimilarCardsChanged;
 
         EpisodeShelf = episodes;
         CastShelf = cast;
         SeasonShelf = seasons;
-        SpecialShelf = specials;
         SimilarShelf = similar;
         AnnounceAffordances();
     }
@@ -2722,7 +2706,6 @@ public sealed partial class DetailViewModel : PageViewModel
         EpisodeShelf?.Clear();
         CastShelf?.Clear();
         SeasonShelf?.Clear();
-        SpecialShelf?.Clear();
         SimilarShelf?.Clear();
         Seasons.Clear();
 
@@ -3019,11 +3002,9 @@ public sealed partial class DetailViewModel : PageViewModel
 
         // 「全部剧季」列服务器给的全部季，第 0 季（特别篇）也在里面 —— 2026-11-03 晚用户令「全部剧集卡片要
         // 显示特别篇（S00季）的封面」，原先把第 0 季滤掉的那一刀因此撤掉。顺序照服务器给的那一份（第 0 季
-        // 在最前），和集列表牌子的季菜单同源；集列表下面那一排特别篇仍只装第 0 季的集，两个入口各说各的。
+        // 在最前），和集列表牌子的季菜单同源。2026-11-04 删除重复的特别篇单集排后，季封面入口仍保留。
         SeasonShelf?.Fill(seasons, ItemDetail.SeasonSubtitle);
 
-        // 特别篇那一排由 LoadEpisodesAsync 用第 0 季的集填 —— 它手上的全季列表已经含特别篇，
-        // 不必再为这一块单独问一趟季清单。没有第 0 季时那里会清空，整块在 SpecialShelfVisibility 处收起。
         await LoadEpisodesAsync(picked, retarget: true, token).ConfigureAwait(true);
     }
 
@@ -3059,7 +3040,7 @@ public sealed partial class DetailViewModel : PageViewModel
             if (!IsCurrent(token)) return;
 
             // 同剧页：已经删掉的那一季不再摆一张通往空页面的卡（判据在 WasDeleted）；第 0 季照旧列进来 ——
-            // 2026-11-03 晚用户令要它的封面出现在这张卡上，上面那排特别篇只是集的快捷入口，不是它的替身。
+            // 第 0 季的封面入口保留，和主集列表中的特别篇共用原有导航。
             seasons.RemoveAll(WasDeleted);
             shelf.Fill(seasons, ItemDetail.SeasonSubtitle);
 
@@ -3149,13 +3130,6 @@ public sealed partial class DetailViewModel : PageViewModel
         // 剧名」: both halves of that are already on this page.
         if (EpisodesAsList) shelf.FillRows(episodes, _detail);
         else shelf.Fill(episodes, ItemDetail.EpisodeCardSubtitle);
-
-        // 特别篇那一排：只装第 0 季的集，剧页和集页都有（2026-11-03 用户令「给集页面也加上特别篇卡片」）。
-        // 它是一张独立的单集卡带，不按季重排，也不把特别篇从主列表里拿走 —— 主列表仍按播出时间插在中间。
-        if (_detail.Type is EmbyItemType.Series or EmbyItemType.Episode)
-            SpecialShelf?.Fill(episodes.Where(ItemDetail.IsSpecial), ItemDetail.EpisodeCardSubtitle);
-        else
-            SpecialShelf?.Clear();
 
         // 剧页、集页的标题用锚点那一季的名字；季页仍是这一季自己。数量与已看数不再写进标题
         // （2026-11-03 用户令「去掉后面的xx集，已观看到0集」）。
@@ -3641,9 +3615,6 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(CanPickEpisodeSeason));
     }
 
-    private void OnSpecialShelfChanged(object? sender, NotifyCollectionChangedEventArgs args) =>
-        OnPropertyChanged(nameof(SpecialShelfVisibility));
-
     private void OnSimilarCardsChanged(object? sender, NotifyCollectionChangedEventArgs args) =>
         OnPropertyChanged(nameof(SimilarVisibility));
 
@@ -3919,7 +3890,7 @@ public sealed partial class DetailViewModel : PageViewModel
     internal async Task RemoveAsync(CardItem removed)
     {
         if (!Attached || !removed.IsCurrent) return;
-        CardShelf?[] shelves = [EpisodeShelf, SeasonShelf, SpecialShelf, SimilarShelf];
+        CardShelf?[] shelves = [EpisodeShelf, SeasonShelf, SimilarShelf];
         if (!shelves.Any(shelf => shelf?.Cards.Contains(removed) == true)) return;
         _deletedItems.Add(removed.Item.Id);
         // 推荐卡不参与单集或播放目标时，只移除推荐；不能撤销仍在读取的剧季或补选目标。

@@ -10283,3 +10283,14 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 本树Release Shell 0警告0错误；主测试串行3602/3602、0失败0跳过。曾并行碰诊断互斥锁16项失败，待探针退出后串行全绿。只用匿名假传输，未登录真实账号、不播放；尺寸API不证明物理鼠标输入。独立代码审查通过。
 - 主树已合入 `a5213c1`（布局修复）、`f618b5e`（平滑探针）。最终主树Release Shell/测试均0警告0错误，主测试3602/3602、0失败0跳过（`work/detail-resize-smooth-main-tests.log`）；最终发布件library探针25/25、正常退出，九组1170次缩放及停窗稳定断言全绿，三页实屏已目检（`shell-probe-20261103-033201233-12836/logs`）。主树发布校验通过：546文件285.8MB；11:30桌面快捷方式已核对指向`artifacts/publish/win-x64/Momoka.exe`。最终Momoka.dll SHA-256 `8F0106A33129CFF73B19D8C9899ED09329496C230E07E4ABDF4D92B20592DE7D`。不升级版本、不上传GitHub或商店。临时树内容与master一致，记录顶端f618b5e后收尾清理。
 
+
+## 2026-11-04 详情页特别篇移除与信息卡换位（2a99 独立树）
+
+- 本树负责 DetailPage、DetailViewModel、Showcase 次序、对应运行回归和绑定约定；移除额外 SpecialPanel 与 SpecialShelf，S00 季封面及主集列表的 OAD 保留，正文改为单集→其他信息→全部剧季。独立审查通过；旧界面已被新回归识别为失败。
+- 验证收尾发现两项既有遗漏：字幕父夹具未同步生产 Cancel 的动作就绪字段；HomeHeader 仍按实色断言新版亚克力。补夹具与严格材质断言，不更改产品行为或整份基线。初主测试3664项中16项因另一会话持有自检互斥锁失败，保留 artifacts/detail-layout-tests.log，等待串行重验。
+- 最终构建、串行主测、library/materials实屏与主树整合发布待完成；主树当前由其他聊天正在整合详情性能通知与网页设置，不覆盖其未提交工作，不上传远端。
+
+
+- 独立树验证：全方案Release构建0警告0错误（artifacts/detail-layout-build-final.log），串行主测试3664/3664、0失败0跳过（detail-layout-tests-serial.log），字幕契约36/36（detail-subtitle-contract.log）。旧树基线HomeHeader不识别亚克力，临时补严格材质检查后library,materials运行23244为26/26、退出0，详情宽窄与S00季页检查通过；截图已查看：信息卡在季卡上方、额外特别篇排消失。证据 C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261104-064717754-23244/logs。
+- 验证期间用户另一个任务已将海报播放/操作恢复旧样，master现为f65ac10，故撤下本树临时HomeHeader修正（diff清零），不把它带入最终主树。此变化要求整合后的library,materials重新验证，不能把本树26/26冒充最新master结果。
+- 统一收尾由聊天“统一 WebView2 服务端设置风格并修复显示不全”（01a1a527-7870-7bb1-aa16-fd7800927854）负责：本树提交后暂缓主树合并/构建/测试/发布，无Momoka进程23244占用，适用运行复验由本聊天按协调顺序执行，最终主测试/WebView专项/发布/快捷方式由协调聊天执行。未推远端。
