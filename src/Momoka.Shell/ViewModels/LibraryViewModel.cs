@@ -502,6 +502,9 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// event for this exact moment.</summary>
     internal void RowsArrived()
     {
+        OnPropertyChanged(nameof(WindowStart));
+        OnPropertyChanged(nameof(WindowEnd));
+        OnPropertyChanged(nameof(HasPrevious));
         OnPropertyChanged(nameof(TotalLabel));
         // 两颗播放键在不在，看的是这一页有没有可播的行（见 DirectPlayVisibility）。
         OnPropertyChanged(nameof(DirectPlayVisibility));
@@ -711,7 +714,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     public string TotalLabel => _total < 0
         ? _pageFailed ? "加载失败" : "正在加载"
         : IsJellyfinListPage
-            ? $"{_total} 的 {(Cards.Count > 0 ? 1 : 0)}-{Math.Min(_total, Cards.Count)}"
+            ? $"{_total} 的 {(Cards.Count > 0 ? WindowStart + 1 : 0)}-{Math.Min(_total, WindowEnd)}"
             : $"共 {_total} 项";
 
     /// <summary>库页载入失败后提示条上的「重试」在不在；成功重载或开始重载时收起。</summary>
@@ -807,7 +810,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             : "这里没有内容";
     }
 
-    internal int LoadedCount => Cards.Count;
+    internal int LoadedCount => WindowEnd;
 
     /// <summary>The first row this grid loaded, for <c>--play</c>. Null before the first page arrives.</summary>
     internal EmbyItem? FirstItem => Cards.Count > 0 ? Cards[0].Item : null;
@@ -817,7 +820,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 「nothing has been asked」 and 「everything has arrived」 must not look the same to the pager.
     /// </summary>
     internal bool HasMore => !IsRecommendedPage && !IsFavoritesPage && !(_request?.IsSearch == true && string.IsNullOrWhiteSpace(_request.SearchTerm))
-        && (UsesQueryCursor ? _cursor?.HasMore ?? true : _total < 0 || (IsUpcomingPage ? _upcomingReadCount : Cards.Count) < _total);
+        && (UsesQueryCursor ? _cursor?.HasMore ?? true : _total < 0 || (IsUpcomingPage ? _upcomingReadCount : WindowEnd) < _total);
 
     // ---------------------------------------------------------------- 推荐页（若干排货架）
 
@@ -1282,6 +1285,9 @@ public sealed partial class LibraryViewModel : PageViewModel
         _request = request;
         _sourceTokens = BrowseSnapshotKeys.Sources(_sources);
         _restoredFromCache = false;
+        _windowStart = 0;
+        _windowRejected = false;
+        _windowNeedsPrefix = false;
         _actions = actions;
         _settings = settings;
         _images = images;
@@ -1348,6 +1354,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         _snapshotKey = BrowseSnapshotKeys.Library(
             _sourceTokens, _request, SortKey, SortDescending, _filters, _fnNasFilters, _display,
             _settings.PageSize);
+        if (_request.AnchorQueryKey is not null && _request.AnchorQueryKey != _snapshotKey) ClearAnchor();
     }
 
     /// <summary>
@@ -1383,7 +1390,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (!QueryCurrent(queryToken) || !Cards.Contains(card)) return false;
         if (IsFavoritesPage) return await RemoveFavoriteAsync(card, deleted).ConfigureAwait(true);
         // 容器会连带删除未加载的后代；查询刚切换时屏上也可能仍是旧排序，不能据旧集合推算新分页。
-        if (Aggregated || !_firstPage || deleted && (card.Item.IsFolder || card.Item.Type is EmbyItemType.Series
+        if (WindowEligible || Aggregated || !_firstPage || deleted && (card.Item.IsFolder || card.Item.Type is EmbyItemType.Series
             or EmbyItemType.Season or EmbyItemType.Folder or EmbyItemType.BoxSet or EmbyItemType.Playlist))
             return await RefreshAfterRemovalAsync(queryToken).ConfigureAwait(true);
         base.Cancel();
@@ -1513,6 +1520,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     private async Task<bool> RefreshAfterRemovalAsync(CancellationToken queryToken)
     {
+        if (WindowEligible) return await RefreshWindowAsync(queryToken, background: false).ConfigureAwait(true);
         var wanted = Math.Max(Cards.Count, _settings!.PageSize);
         _firstPage = false;
         _jumps.Cancel();
@@ -1597,9 +1605,12 @@ public sealed partial class LibraryViewModel : PageViewModel
         _restoredFromCache = false;
         if (!CacheEligible || _snapshotKey is null || _snapshots is null || _request is null) return false;
         if (!_snapshots.TryGetLibrary(_snapshotKey, _sourceTokens, out var snapshot)) return false;
+        if (snapshot.StartIndex > 0 && !HasSavedAnchor) return false;
 
         // 缓存只保存有上限的条目；离开时已经翻得比它更深时按未命中处理，不把滚动恢复到被截断的位置。
-        if (!snapshot.FirstPage || _request.LoadedCount > snapshot.Items.Count) return false;
+        if (!snapshot.FirstPage || !WindowEligible && (snapshot.StartIndex != 0 || _request.LoadedCount > snapshot.Items.Count)) return false;
+        if (WindowEligible && HasSavedAnchor
+            && (_request.AnchorIndex < snapshot.StartIndex || _request.AnchorIndex >= snapshot.StartIndex + snapshot.Items.Count)) return false;
 
         _queries.Cancel();
         _queryToken = _queries.Begin();
@@ -1608,6 +1619,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         timing?.Mark("library-cards-begin");
         foreach (var card in Cards) card.AbandonPoster();
         Cards.Clear();
+        _windowStart = snapshot.StartIndex;
         foreach (var item in snapshot.Items) Cards.Add(NewCard(item));
         timing?.Mark("library-cards-end", Cards.Count);
 
@@ -1635,15 +1647,17 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (!CacheEligible || !_active || !_firstPage || _snapshotKey is null || _snapshots is null) return;
 
-        if (Cards.Count > BrowseSnapshotStore.MaxItemsPerSnapshot)
+        if (!WindowEligible && Cards.Count > BrowseSnapshotStore.MaxItemsPerSnapshot)
         {
             _snapshots.InvalidateLibrary(_snapshotKey);
             return;
         }
 
+        var window = WindowEligible ? SnapshotWindow() : (LocalStart: 0, Count: Cards.Count);
         _snapshots.StoreLibrary(_snapshotKey, _sourceTokens, new LibrarySnapshot
         {
-            Items = [.. Cards.Select(card => card.Item)],
+            Items = [.. Cards.Skip(window.LocalStart).Take(window.Count).Select(card => card.Item)],
+            StartIndex = _windowStart + window.LocalStart,
             Total = _total,
             FirstPage = _firstPage,
             UpcomingReadCount = _upcomingReadCount,
@@ -1661,6 +1675,11 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (!_active || !_restoredFromCache || !CacheEligible || _snapshotKey is null || _snapshots is null) return;
         // 用户已经开始翻页时不抢同一趟载入：后台核对可以等下一次导航，不能把正在读的下一页取消掉。
         if (Busy) return;
+        if (WindowEligible)
+        {
+            await RefreshWindowAsync(_queryToken, background: true).ConfigureAwait(true);
+            return;
+        }
 
         var token = BeginBackgroundLoad();
         var queryToken = _queryToken;
@@ -1708,6 +1727,7 @@ public sealed partial class LibraryViewModel : PageViewModel
                 _snapshots.InvalidateLibrary(_snapshotKey);
                 foreach (var card in Cards) card.AbandonPoster();
                 Cards.Clear();
+                _windowStart = 0;
                 _total = NotLoaded;
                 _firstPage = false;
                 SetPageFailed(true);
@@ -1791,6 +1811,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         _total = total;
         _cursor = cursor;
         _firstPage = true;
+        ReconcileAnchor();
         SetPageFailed(false);
         if (IsResumePage)
         {
@@ -1854,6 +1875,19 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (!reset && (Busy || !HasMore || !_firstPage || _pageFailed)) return;
         if (reset)
         {
+            var previousKey = _snapshotKey;
+            RefreshSnapshotKey();
+            if (!_windowNeedsPrefix && WindowEligible && _firstPage && _windowStart > 0 && previousKey == _snapshotKey)
+            {
+                _queryToken = _queries.Begin();
+                _jumps.Cancel();
+                await RefreshWindowAsync(_queryToken, background: false).ConfigureAwait(true);
+                return;
+            }
+            _windowStart = 0;
+            _windowRejected = false;
+            _windowNeedsPrefix = false;
+            ClearAnchor();
             _favoriteLoads.Cancel();
             foreach (var row in FavoriteRows) row.Loading = false;
             _queryToken = _queries.Begin();
@@ -1876,7 +1910,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         RefreshUpcomingState();
         try
         {
-            var start = reset ? 0 : IsUpcomingPage ? _upcomingReadCount : Cards.Count;
+            var start = reset ? 0 : IsUpcomingPage ? _upcomingReadCount : WindowEnd;
             // HTTP 可以先完成而页面接收回调仍在队列里。读取只消费副本，在同一 UI 提交点确认
             // 查询/载入仍有效后，才把新游标和它的卡片一起发布；已看/删除取消旧页时原账不受影响。
             var cursor = UsesQueryCursor ? (_cursor ?? NewCursor()).Copy() : null;
@@ -1891,6 +1925,15 @@ public sealed partial class LibraryViewModel : PageViewModel
                 Cards.Clear();
             }
             _total = result?.TotalRecordCount ?? 0;
+            if (WindowEligible && result?.Items.Any(item => item.Type == EmbyItemType.Episode) == true)
+            {
+                if (_windowStart > 0)
+                {
+                    _windowNeedsPrefix = true;
+                    throw new IOException("媒体库返回了单集，请刷新后重新进入");
+                }
+                _windowRejected = true;
+            }
             if (result is not null)
             {
                 // Upcoming pages share one identity set for the whole append, including duplicates
@@ -1905,7 +1948,7 @@ public sealed partial class LibraryViewModel : PageViewModel
                     Cards.Add(NewCard(item));
                 }
                 if (IsUpcomingPage) _upcomingReadCount += result.Items.Count;
-                if (result.Items.Count == 0 && !UsesQueryCursor) _total = IsUpcomingPage ? _upcomingReadCount : Cards.Count;
+                if (result.Items.Count == 0 && !UsesQueryCursor) _total = IsUpcomingPage ? _upcomingReadCount : WindowEnd;
             }
             UpdateUpcomingDays();
             _firstPage = true;
@@ -2021,7 +2064,12 @@ public sealed partial class LibraryViewModel : PageViewModel
                 .ExecuteAsync((client, ct) => client.QueryNextUpAsync(start, _settings!.PageSize, ct), token)
                 .ConfigureAwait(true);
 
-        if (BuildQuery(start) is not { } query) return new ItemsResult();
+        return await ReadSourceRangeAsync(scope, start, _settings!.PageSize, token).ConfigureAwait(true);
+    }
+
+    private async Task<ItemsResult> ReadSourceRangeAsync(EmbySessionScope scope, int start, int limit, CancellationToken token)
+    {
+        if (BuildRangeQuery(start, limit) is not { } query) return new ItemsResult();
 
         if (IsSectionLibrary)
         {
@@ -2053,8 +2101,13 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     internal async Task LoadUntilAsync(int index)
     {
+        if (WindowEligible && (index < WindowStart || index >= WindowEnd))
+        {
+            await LoadWindowAtAsync(index).ConfigureAwait(true);
+            return;
+        }
         var queryToken = _queryToken;
-        while (QueryCurrent(queryToken) && !Busy && HasMore && _firstPage && !_pageFailed && Cards.Count <= index)
+        while (QueryCurrent(queryToken) && !Busy && HasMore && _firstPage && !_pageFailed && WindowEnd <= index)
         {
             var count = Cards.Count;
             await LoadAsync(reset: false).ConfigureAwait(true);
@@ -2208,7 +2261,9 @@ public sealed partial class LibraryViewModel : PageViewModel
     private async Task<(List<EmbyItem> Items, CancellationToken Token)> PlayableItemsAsync()
     {
         var loaded = Cards.Select(card => card.Item).ToList();
-        var hasMore = HasMore;
+        var hasMore = HasMore || HasPrevious;
+        if (HasPrevious) loaded.Clear();
+        var queryToken = _queryToken;
         var token = BeginLoad();
         try
         {
@@ -2230,7 +2285,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             var items = await PlayableList.CollectAsync(
                 loaded, hasMore,
                 IsResumePage ? async (start, ct) => await ReadSourceAsync(_sources[0], start, ct).ConfigureAwait(true) : ReadAsync,
-                () => IsCurrent(token), token, startIndex: IsResumePage ? _cursor?.ConsumedCount : null).ConfigureAwait(true);
+                () => IsCurrent(token) && QueryCurrent(queryToken), token,
+                startIndex: IsResumePage ? _cursor?.ConsumedCount : HasPrevious ? 0 : null).ConfigureAwait(true);
             return (IsResumePage ? items.DistinctBy(item => item.IdentityKey).ToList() : items, token);
         }
         finally
@@ -2283,8 +2339,9 @@ public sealed partial class LibraryViewModel : PageViewModel
             if (!QueryCurrent(queryToken) || token.IsCancellationRequested) return null;
             var index = Math.Clamp((int)(total - before), 0, Math.Max(0, (int)total - 1));
             await LoadUntilAsync(index).ConfigureAwait(true);
-            if (!QueryCurrent(queryToken) || token.IsCancellationRequested || index >= Cards.Count) return null;
-            return (index, CurrentLetterOf(index));
+            var local = LocalIndexOf(index);
+            if (!QueryCurrent(queryToken) || token.IsCancellationRequested || local < 0 || local >= Cards.Count) return null;
+            return (local, CurrentLetterOf(local));
         }
         catch (OperationCanceledException) { return null; }
         catch (Exception error)
@@ -2992,15 +3049,19 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     private ItemQuery? BuildQuery(int start)
     {
-        var query = BuildQueryCore(start);
+        return BuildRangeQuery(start, _settings!.PageSize);
+    }
+
+    private ItemQuery? BuildRangeQuery(int start, int limit)
+    {
+        var query = BuildQueryCore(start, limit);
         if (query is not null) query.FnNasFilters = IsFnNas ? _fnNasFilters.Clone() : null;
         return query;
     }
 
-    private ItemQuery? BuildQueryCore(int start)
+    private ItemQuery? BuildQueryCore(int start, int limit)
     {
         var request = _request!;
-        var limit = _settings!.PageSize;
 
         if (request.IsSearch)
         {

@@ -1,3 +1,11 @@
+# 2026-11-04 P3 普通库深返回窗口（独立树待整合）
+
+- 工作树 `C:/Users/89400/.codex/worktrees/p3-deep-return/Momoka`，分支 `codex/p3-deep-return`，基线 `3670858`。写入范围：BrowseSnapshotStore、LibraryRequest、Library VM／页面、16 项真实 VM 回归与真实 Frame 探针；主代理统一整合、运行 UI 检查及发布，独立树不写主树。
+- 普通稳定库根保存锚点附近最多 400 DTO 的快照及绝对起点；前后分页、计数、字母跳转、播放全部、删除回填和后台核对理解窗口。活动 Cards 原集合可随用户实际浏览增长，400 是快照和后台范围预算。锚点绑定来源登录 owner 与 query key，保存 identity、绝对索引、相对 Y 及列数；新打开同库无锚点不能误用中段快照，过期只在同查询锚点有效时直接读附近。
+- 适用范围为普通 root `Items`、movies／tvshows／mixed／homevideos；聚合、Resume、NextUp、搜索、收藏、推荐、Upcoming、Random、Season／Episode 和未知 children 保留旧路径。异常单集结果保留原可读窗口并反馈，显式刷新退回 0 和旧单集上下文。刷新先以纯 `WindowAnchorRequested` 捕获实际锚点，最终结果确定后才 `WindowChanging` 挂 UI 恢复，其后不跨 await；旧响应拒绝不得污染当前回退标志。
+- 新鲜 Release Shell／Core、Tests 编译 0 警告 0 错误；最终深返回 **16/16**、续播／暖缓存 **38/38**，收藏来源 **13/13**、Home **19/19**。初始 10 项全红、新入口／单集回退及审查的刷新锚点／迟到单集两项先红后绿，尾部夹紧曾 15/16，修正后最终 16/16；日志均保留于本树 `work/p3-deep-return/`，不覆盖失败记录。
+- 四后端真实 Frame 深返回探针已编译但独立树未运行；760／1280 实屏、上翻 identity／相对 Y、下翻绝对起点需主代理在整合最终代码执行。匿名占位卡不是实际封面加载或真实服务器证据。未运行 UI／全测共享诊断、未真实播放／写服务器、未发布／上传／合主树，待统一交付。
+
 # 2026-11-04 P2 浏览恢复与详情背景复用（已合入、验证并发布）
 
 - 树 `C:/Users/89400/.codex/worktrees/ba08/Momoka`，分支 `codex/p2-browse-image-cost`，基于master834a21d。写入范围：匿名计时、Home/Library恢复、详情背景及相关夹具和文档；[实施计划](docs/superpowers/plans/2026-11-04-p2-browse-image-cost.md)。

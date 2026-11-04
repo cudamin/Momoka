@@ -109,6 +109,8 @@ internal static class Program
             return SettingsApplicabilityTests.Run(applicabilityShell, applicabilityRoot);
         if (args is ["library-resume-paging-fixture", var resumeShell, var resumeRoot])
             return LibraryResumePagingTests.Run(resumeShell, resumeRoot);
+        if (args is ["library-deep-return-fixture", var deepShell, var deepRoot])
+            return LibraryDeepReturnTests.Run(deepShell, deepRoot);
         if (args is ["home-performance-fixture", var homeShell, var homeRoot])
             return HomePerformanceTests.Run(homeShell, homeRoot);
         if (args is ["budget-cache-fixture"])

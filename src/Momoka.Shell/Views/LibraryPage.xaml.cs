@@ -133,6 +133,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         // Before the first load can raise it. The view model asks for one more page when it has just
         // added one; whether the window is full is the one thing only the view can answer.
         ViewModel.PageArrived += PumpIfShort;
+        ViewModel.WindowChanging += BeforeWindowChange;
+        ViewModel.WindowChanged += AfterWindowChange;
+        ViewModel.WindowAnchorRequested += () => RememberScrollAnchor();
 
         // The view shape is the view model's, applying it to the live controls is the view's — the
         // template and the menu ticks are both named elements, which is exactly what a view model
@@ -587,7 +590,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (ViewModel.RestoredFromCache)
         {
             // 卡片已经在集合里：先落回滚动位置，再让后台核对更新内容，不重读之前翻过的每一页。
-            _pendingScroll = request.ScrollOffset;
+            if (ViewModel.HasSavedAnchor) _pendingAnchor = SavedScrollAnchor();
+            else _pendingScroll = request.ScrollOffset;
             ApplyPendingScroll();
             _ = ViewModel.RevalidateAsync();
             return;
@@ -595,13 +599,19 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         var offset = request.ScrollOffset;
         var count = request.LoadedCount;
-        var loading = ViewModel.ReloadAsync();
+        var anchored = ViewModel.HasSavedAnchor;
+        var loading = ViewModel.LoadForNavigationAsync();
         var queryToken = ViewModel.QueryToken;
         await loading.ConfigureAwait(true);
         if (_released || navigation != _navigation || !ViewModel.QueryCurrent(queryToken)) return;
-        if (count > 0 && !ViewModel.IsFavoritesPage) await ViewModel.LoadUntilAsync(count - 1).ConfigureAwait(true);
+        if (!anchored && count > 0 && !ViewModel.IsFavoritesPage) await ViewModel.LoadUntilAsync(count - 1).ConfigureAwait(true);
         if (_released || navigation != _navigation || !ViewModel.QueryCurrent(queryToken)) return;
-        if (ViewModel.IsUpcomingPage)
+        if (anchored && ViewModel.HasSavedAnchor)
+        {
+            _pendingAnchor = SavedScrollAnchor();
+            ApplyPendingScroll();
+        }
+        else if (ViewModel.IsUpcomingPage)
         {
             UpcomingScroll.UpdateLayout();
             UpcomingScroll.ChangeView(null, offset, null, disableAnimation: true);
@@ -647,8 +657,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchSitePicker.ClosePopup();
         if (_request is { } request)
         {
+            RememberScrollAnchor(allowReleased: true);
             request.ScrollOffset = ContentScrollOffset;
-            request.LoadedCount = ViewModel.Cards.Count;
+            request.LoadedCount = ViewModel.LoadedCount;
             if (request.IsSearch)
             {
                 request.SearchTerm = ViewModel.SearchText;
@@ -661,6 +672,9 @@ public sealed partial class LibraryPage : Page, IShellContent
             }
         }
         ViewModel.Cancel();
+        _pendingAnchor = null;
+        _pendingScroll = null;
+        _restoringAnchor = false;
         ViewModel.ReleaseSearchPosters();
         _filterPane?.Dismiss();
         _moviePilotPanel?.Release();
@@ -713,6 +727,11 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// <summary>把暖缓存恢复后的滚动位置落下去；布局尚未就绪就等下一次 Loaded。</summary>
     private void ApplyPendingScroll()
     {
+        if (_pendingAnchor is not null)
+        {
+            RestorePendingAnchor();
+            return;
+        }
         if (_pendingScroll is not { } offset) return;
         if (offset <= 0)
         {
@@ -751,7 +770,14 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnWallWidthChanged()
     {
+        var anchor = ViewModel.WindowStart > 0 && !_restoringAnchor ? ReadScrollAnchor() : null;
+        var columns = ViewModel.GridColumns;
         ApplyWallMetrics();
+        if (anchor is not null && columns != ViewModel.GridColumns)
+        {
+            _pendingAnchor = anchor;
+            ApplyPendingScroll();
+        }
 
         _gridResize.Stop();
         _gridResize.Start();
@@ -923,7 +949,12 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnViewChanged(ScrollView sender, object args)
     {
-        if (_removingCard) return;
+        if (_removingCard || _restoringAnchor || _pendingAnchor is not null || _released) return;
+        if (ViewModel.HasPrevious && sender.VerticalOffset < sender.ViewportHeight)
+        {
+            _ = ViewModel.LoadPreviousAsync();
+            return;
+        }
         var remaining = sender.ExtentHeight - (sender.VerticalOffset + sender.ViewportHeight);
         if (remaining < sender.ViewportHeight) ViewModel.LoadMore();
 
@@ -980,7 +1011,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
         {
-            if (_released || _removingCard || !ViewModel.HasMore) return;
+            if (_released || _removingCard || _restoringAnchor || _pendingAnchor is not null || !ViewModel.HasMore) return;
             if (ViewModel.IsUpcomingPage)
             {
                 if (UpcomingScroll.ScrollableHeight < UpcomingScroll.ViewportHeight) ViewModel.LoadMore();
@@ -1081,6 +1112,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (_released || !ViewModel.QueryCurrent(token)) return;
         var version = ++_removalVersion;
         var offset = ContentScrollOffset;
+        var anchor = ReadScrollAnchor();
         _removingCard = true;
         var removed = await ViewModel.RemoveAsync(card, token, deleted).ConfigureAwait(true);
         if (version != _removalVersion) return;
@@ -1106,8 +1138,16 @@ public sealed partial class LibraryPage : Page, IShellContent
         }
         else
         {
-            CardWall.UpdateLayout();
-            _scroll?.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+            if (anchor is not null)
+            {
+                _pendingAnchor = anchor;
+                ApplyPendingScroll();
+            }
+            else
+            {
+                CardWall.UpdateLayout();
+                _scroll?.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+            }
         }
         DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
         {

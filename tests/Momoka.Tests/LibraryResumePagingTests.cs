@@ -774,6 +774,28 @@ internal static class LibraryResumePagingTests
             return vm;
         }
 
+        public object CreateLibrary(EmbySession session, EmbyImageStore images, ISettingsService settings,
+            EmbySessionScope source, BrowseSnapshotStore? snapshots, object? savedRequest,
+            string? collectionType, string? parentType, LibrarySection section)
+        {
+            var vm = Activator.CreateInstance(_viewModel)!;
+            var request = savedRequest ?? Activator.CreateInstance(_request)!;
+            if (savedRequest is null)
+            {
+                Set(request, "Services", new NoServices());
+                Set(request, "Title", "匿名媒体库");
+                Set(request, "Source", source);
+                Set(request, "ParentId", "library");
+                if (collectionType is not null) Set(request, "CollectionType", collectionType);
+                if (parentType is not null) Set(request, "ParentType", parentType);
+                Set(request, "Section", section);
+            }
+            if (snapshots is not null) Invoke(vm, "UseSnapshots", snapshots);
+            var actions = DispatchProxy.Create(_actions, typeof(LibraryResumeActionsProxy));
+            Invoke(vm, "Attach", request, actions, settings, session, images, new ServerCapabilities(session), null);
+            return vm;
+        }
+
         public object CreateLoadingHome(EmbySession session, EmbyImageStore images, ISettingsService settings,
             IReadOnlyList<EmbyItem> libraries, BrowseSnapshotStore? snapshots = null)
         {
@@ -900,6 +922,11 @@ internal static class LibraryResumePagingTests
         /// <summary>同一套匿名来源上再建一页普通媒体库；用来核对隐藏的最近搜索不参与这一页。</summary>
         public object CreateNormalView(BrowseSnapshotStore? snapshots = null) =>
             _shell.Create(_session, _images, Settings, Source("a"), snapshots: snapshots);
+
+        public object CreateLibraryView(BrowseSnapshotStore? snapshots = null, object? savedRequest = null,
+            string? collectionType = "movies", string? parentType = null, LibrarySection section = LibrarySection.Items) =>
+            _shell.CreateLibrary(_session, _images, Settings, Source("a"), snapshots, savedRequest,
+                collectionType, parentType, section);
 
         public int RequestCount => Transport.Requests.Count;
 
@@ -1065,6 +1092,9 @@ internal static class LibraryResumePagingTests
         public Dictionary<string, Gate> HomeNextUpGates { get; } = new(StringComparer.Ordinal);
         public bool FailNextResume { get; set; }
         public bool FailReleasedTag { get; set; }
+        public ConcurrentQueue<(string Host, int Start, int Limit)> LibraryReads { get; } = new();
+        public Gate? LibraryGate { get; set; }
+        public System.Net.HttpStatusCode? LibraryFailure { get; set; }
         public ConcurrentQueue<(string Host, string Body)> FavoriteBodies { get; } = new();
         public ConcurrentQueue<string> TagHosts { get; } = new();
         private readonly ConcurrentQueue<string> _pages = new();
@@ -1199,7 +1229,30 @@ internal static class LibraryResumePagingTests
                 json = JsonSerializer.Serialize(new ItemsResult { TotalRecordCount = 125 });
             }
             else if (uri.AbsolutePath.EndsWith("/Items", StringComparison.Ordinal))
-                json = JsonSerializer.Serialize(new ItemsResult { Items = Rows[host], TotalRecordCount = Rows[host].Count });
+            {
+                var offset = query.TryGetValue("StartIndex", out var rawStart) ? int.Parse(rawStart, System.Globalization.CultureInfo.InvariantCulture) : 0;
+                var limit = query.TryGetValue("Limit", out var rawLimit) ? int.Parse(rawLimit, System.Globalization.CultureInfo.InvariantCulture) : Rows[host].Count;
+                LibraryReads.Enqueue((host, offset, limit));
+                string Page()
+                {
+                    var items = query.TryGetValue("NameStartsWithOrGreater", out var letter)
+                        ? Rows[host].Where(item => string.Compare(item.Name, letter, StringComparison.Ordinal) >= 0).ToList()
+                        : Rows[host];
+                    return JsonSerializer.Serialize(new ItemsResult { Items = items.Skip(offset).Take(limit).ToList(), TotalRecordCount = items.Count });
+                }
+                var gate = LibraryGate;
+                var before = gate?.CaptureBefore == true ? Page() : null;
+                if (gate is not null)
+                {
+                    gate.Entered.TrySetResult();
+                    await gate.Release.Task.ConfigureAwait(false);
+                    if (ReferenceEquals(LibraryGate, gate)) LibraryGate = null;
+                }
+                if (LibraryFailure is { } status) return new HttpResponseMessage(status)
+                { Content = new StringContent("fixture read rejected") };
+                // Deliberately ignore cancellation: the real VM must reject the late response.
+                json = before ?? Page();
+            }
             else throw new AssertionException("未授权的假 HTTP 路由：" + uri.AbsolutePath);
             return new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json") };
         }
@@ -1215,7 +1268,8 @@ internal static class LibraryResumePagingTests
     internal sealed class FakeSettings : ISettingsService
     {
         public AppSettings Settings { get; } = new();
-        public int PageSize => 20;
+        public int TestPageSize { get; set; } = 20;
+        public int PageSize => TestPageSize;
         public event EventHandler? SaveStateChanged { add { } remove { } }
         public bool HasUnsavedChanges => false;
         public bool TrySave() => throw new AssertionException("禁止保存配置");
