@@ -67,9 +67,14 @@ public static class ThemeHost
         ("EgInfoBrush", theme => theme.Colors.Info),
         ("EgScrimBrush", theme => theme.Colors.Scrim),
 
-        // 详情页正文那张亚克力（唯一一支不是 SolidColorBrush 的角色，见 Apply 里那个分支）。取窗口底色 ——
+        // 详情页正文那张亚克力（见 Apply 里的亚克力分支）。取窗口底色 ——
         // 它是这一页正文本来的底，亚克力只是让背后那张剧照透上来一点点，不是换一种颜色。
         ("EgFrostBrush", theme => theme.Colors.Window),
+
+        // 详情操作和货架翻页的三态玻璃；tint 与实色回退一起更新，已经打开的模板握住同一个对象。
+        ("EgActionGlassBrush", theme => theme.Colors.SurfaceElevated),
+        ("EgActionGlassHoverBrush", theme => theme.Colors.SurfaceHover),
+        ("EgActionGlassPressedBrush", theme => theme.Colors.SurfaceAlt),
 
         // 悬停/按下的叠加层。不取自主题的任何一个角色 —— 它按深浅在白和黑之间翻，因为它要压在
         // *下面那层是什么* 上面，而不是配合某个色相。数字和 HostWindow.PaintCaption 给系统窗口按钮

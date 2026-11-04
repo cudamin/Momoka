@@ -47,6 +47,12 @@ internal static class Program
             NeutralFeedbackTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["acrylic-controls-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            AcrylicControlsTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["input-theme-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -326,6 +332,7 @@ internal static class Program
         StartupArgsTests.Register();
         ThemeTests.Register();
         InputControlThemeTests.Register();
+        AcrylicControlsTests.Register();
         DialogChromeTests.Register();
         AccountMenuTests.Register();
         PlayerPaletteTests.Register();

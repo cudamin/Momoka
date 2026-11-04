@@ -15,7 +15,7 @@
             <Setter Property="BorderBrush" Value="{ThemeResource EgBorderStrongBrush}" />
             <Setter Property="CornerRadius" Value="24" />
             <Setter Property="VerticalAlignment" Value="Top" />
-            <Setter Property="Background" Value="{ThemeResource EgSurfaceElevatedBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -123,12 +123,31 @@
                 <TranslateTransform x:Name="PrevMotion" />
             </Button.RenderTransform>
             <Button.Resources>
-                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgSurfaceHoverBrush" />
-                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
-                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentBrush" />
-                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextBrush" />
-                <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
-                <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="EgBorderStrongBrush" />
+                <ResourceDictionary>
+                    <ResourceDictionary.MergedDictionaries>
+                        <ResourceDictionary Source="ms-appx:///Theme/ActionButtons.xaml" />
+                    </ResourceDictionary.MergedDictionaries>
+                    <ResourceDictionary.ThemeDictionaries>
+                        <ResourceDictionary x:Key="Dark">
+                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentBrush" />
+                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="EgBorderStrongBrush" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="Light">
+                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentBrush" />
+                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="EgBorderStrongBrush" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="HighContrast">
+                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{ThemeResource SystemColorWindowTextColor}" />
+                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{ThemeResource SystemColorWindowTextColor}" />
+                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{ThemeResource SystemColorWindowTextColor}" />
+                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{ThemeResource SystemColorWindowTextColor}" />
+                        </ResourceDictionary>
+                    </ResourceDictionary.ThemeDictionaries>
+                </ResourceDictionary>
             </Button.Resources>
             <FontIcon FontSize="16" Glyph="&#xE76B;" />
         </Button>
@@ -145,12 +164,31 @@
                 <TranslateTransform x:Name="NextMotion" />
             </Button.RenderTransform>
             <Button.Resources>
-                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgSurfaceHoverBrush" />
-                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
-                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentBrush" />
-                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextBrush" />
-                <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
-                <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="EgBorderStrongBrush" />
+                <ResourceDictionary>
+                    <ResourceDictionary.MergedDictionaries>
+                        <ResourceDictionary Source="ms-appx:///Theme/ActionButtons.xaml" />
+                    </ResourceDictionary.MergedDictionaries>
+                    <ResourceDictionary.ThemeDictionaries>
+                        <ResourceDictionary x:Key="Dark">
+                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentBrush" />
+                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="EgBorderStrongBrush" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="Light">
+                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgAccentBrush" />
+                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
+                            <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="EgBorderStrongBrush" />
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="HighContrast">
+                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{ThemeResource SystemColorWindowTextColor}" />
+                            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{ThemeResource SystemColorWindowTextColor}" />
+                            <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="{ThemeResource SystemColorWindowTextColor}" />
+                            <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="{ThemeResource SystemColorWindowTextColor}" />
+                        </ResourceDictionary>
+                    </ResourceDictionary.ThemeDictionaries>
+                </ResourceDictionary>
             </Button.Resources>
             <FontIcon FontSize="16" Glyph="&#xE76C;" />
         </Button>

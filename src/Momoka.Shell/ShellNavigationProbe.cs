@@ -65,6 +65,7 @@ internal sealed partial class ShellNavigationProbe
                 await SearchPreviewAsync();
                 return;
             }
+            await CaseAsync("亚克力操作按钮、翻页圆钮与手写设置卡片", AcrylicControlsAsync, 180, section: ShellProbeSections.Materials);
             await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
             await CaseAsync("侧边栏模式、导航与宽窄布局", SidebarAsync, 45);
             await CaseAsync("侧栏 MoviePilot 订阅入口、可用性显隐与订阅列表页", MoviePilotSidebarAsync, 45);

@@ -97,7 +97,7 @@
             <SolidColorBrush x:Key="EgScrimBrush" Color="{StaticResource EgScrimColor}" />
 
             <!-- 详情页正文那几块玻璃 —— 「把下面的板块也坐上亚克力效果」。
-                 唯一一支不是 SolidColorBrush 的角色：亚克力要的就是「透出背后那张图，但透得看不清」，而它
+                 这支亚克力要的就是「透出背后那张图，但透得看不清」，而它
                  背后那张图是固定在页面背景里的剧照（见 DetailPage 的 Backdrop 那一层），正文从它上面滑过去。
                  WinUI 3 只有应用内亚克力（采样的是同一棵树里画在它后面的东西），而这里要的正是这一种。
                  两个 Opacity 一高一低分工：Tint 那个是这层色本身的浓度，Luminosity 那个管背后的明暗透上来
@@ -114,6 +114,27 @@
                 FallbackColor="{StaticResource EgWindowColor}"
                 TintColor="{StaticResource EgWindowColor}"
                 TintLuminosityOpacity="0.62"
+                TintOpacity="0.55" />
+
+            <!-- 详情操作和货架翻页共用的三态玻璃；禁用态仍走平台实色。
+                 tint 按既有浮起/悬停/次面分档，FallbackColor 同色且不透明，ThemeHost 换色不替换对象。 -->
+            <AcrylicBrush
+                x:Key="EgActionGlassBrush"
+                FallbackColor="{StaticResource EgSurfaceElevatedColor}"
+                TintColor="{StaticResource EgSurfaceElevatedColor}"
+                TintLuminosityOpacity="0.5"
+                TintOpacity="0.55" />
+            <AcrylicBrush
+                x:Key="EgActionGlassHoverBrush"
+                FallbackColor="{StaticResource EgSurfaceHoverColor}"
+                TintColor="{StaticResource EgSurfaceHoverColor}"
+                TintLuminosityOpacity="0.5"
+                TintOpacity="0.55" />
+            <AcrylicBrush
+                x:Key="EgActionGlassPressedBrush"
+                FallbackColor="{StaticResource EgSurfaceAltColor}"
+                TintColor="{StaticResource EgSurfaceAltColor}"
+                TintLuminosityOpacity="0.5"
                 TintOpacity="0.55" />
 
             <!-- 菜单和浮出层（2026-10-30 用户：「更多菜单里的一些弹窗背景不要用亚克力，卡片和按钮等可以用」）。
@@ -374,6 +395,26 @@
                 TintLuminosityOpacity="0.9"
                 TintOpacity="0.62" />
 
+            <!-- 同 Dark 的按钮玻璃，浅色收浓度以保持深色前景清楚。 -->
+            <AcrylicBrush
+                x:Key="EgActionGlassBrush"
+                FallbackColor="{StaticResource EgSurfaceElevatedColor}"
+                TintColor="{StaticResource EgSurfaceElevatedColor}"
+                TintLuminosityOpacity="0.9"
+                TintOpacity="0.8" />
+            <AcrylicBrush
+                x:Key="EgActionGlassHoverBrush"
+                FallbackColor="{StaticResource EgSurfaceHoverColor}"
+                TintColor="{StaticResource EgSurfaceHoverColor}"
+                TintLuminosityOpacity="0.9"
+                TintOpacity="0.8" />
+            <AcrylicBrush
+                x:Key="EgActionGlassPressedBrush"
+                FallbackColor="{StaticResource EgSurfaceAltColor}"
+                TintColor="{StaticResource EgSurfaceAltColor}"
+                TintLuminosityOpacity="0.9"
+                TintOpacity="0.8" />
+
             <!-- 同 Dark 那份：菜单与普通浮出层的底改回实心面色和主题边线。 -->
             <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="EgSurfaceBrush" />
             <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="EgBorderBrush" />
@@ -531,6 +572,9 @@
                  输入玻璃同理：设置页把它接到输入框的静止底色上，这里退回系统窗口色。 -->
             <SolidColorBrush x:Key="EgFrostBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgInputGlassBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgActionGlassBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgActionGlassHoverBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgActionGlassPressedBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgOverlayHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="EgOverlayPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
         </ResourceDictionary>

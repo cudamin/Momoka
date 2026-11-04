@@ -21,12 +21,13 @@ public static class ShellProbeSections
     public const string Playback = "playback";
     public const string Metadata = "metadata";
     public const string Performance = "performance";
+    public const string Materials = "materials";
     /// <summary>手动离线试用，不属于自动全量探针，也不计自动检查通过数。</summary>
     public const string SearchPreview = "search-preview";
 
     public static readonly IReadOnlyList<string> All =
     [
-        Shell, Settings, Shortcuts, Shaders, Svp, Library, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback, Metadata, Performance,
+        Shell, Settings, Shortcuts, Shaders, Svp, Library, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback, Metadata, Performance, Materials,
     ];
 
     public static bool IsKnown(string name) =>

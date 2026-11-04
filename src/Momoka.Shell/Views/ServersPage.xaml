@@ -56,7 +56,7 @@
         <!-- 每个账号是独立卡片。服务器模板只分组，不再套一圈服务器卡片。 -->
         <DataTemplate x:Key="AccountTemplate" x:DataType="vm:AccountRow">
             <Border Tag="{x:Bind}"
-                Background="{ThemeResource EgSurfaceBrush}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource EgBorderBrush}"
                 BorderThickness="{StaticResource EgCardBorderThickness}"
                 CornerRadius="{StaticResource EgCardCornerRadius}"
@@ -284,7 +284,7 @@
         <Border
             AutomationProperties.AutomationId="ServersAggregateCard"
             Grid.Row="1"
-            Background="{ThemeResource EgSurfaceBrush}"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
             BorderBrush="{ThemeResource EgBorderBrush}"
             BorderThickness="{StaticResource EgCardBorderThickness}"
             CornerRadius="{StaticResource EgCardCornerRadius}"

@@ -1,3 +1,13 @@
+## 2026-11-04 详情操作、翻页圆钮与手写设置卡片亚克力（临时树验证通过，待合入 master）
+
+- 用户在本聊天看过范围后授权「可以你做吧」。本批只改详情宽窄两排操作按钮、ShelfStrip 左右翻页圆钮、服务器账号／聚合工具卡、通知接管／条目卡；正文、普通弹窗与菜单、输入区及播放器材质保持原样。独立树 `codex/acrylic-controls`，基线 `d34a0c4`。
+- 实现：新增按钮常态／悬停／按下三支亚克力角色及局部 `Theme/ActionButtons.xaml`，`ThemeHost` 原位更新 tint 与不透明回退色；Dark／Light 首帧和 HighContrast 实色齐全。详情保留平台模板、命令、尺寸、显隐与焦点，连播勾选仍同底、只改图标色。翻页钮保留同一个 Ellipse、48 DIP 和 2 DIP 描边，四张手写卡只接既有设置卡片刷子。
+- 高对比度审查反馈已修：两排操作内的浅墨和状态图标跟系统 WindowText；Button／ToggleButton 三态前景与系统 Window 底配对；两颗圆钮本地前景／边线别名分 Dark／Light／HighContrast，系统色不再被无主题别名挡住。五套普通深色主题仍用既有前景角色。状态截图加入控件句柄，避免详情与翻页按钮互相覆盖。
+- 测试：先观察材质缺失的预期红（`work/acrylic-controls/material-tests-red-final.log`），高对比度检查也先红再绿（`material-tests-hc-red.log`／`material-tests-hc-feedback-red.log`）。最终 `acrylic-controls-fixture` **15/15、0 失败 0 跳过**；原输入主题 **28/28**。首次完整主测试旧账号卡背景契约报红（3649/3650），仅更新其背景预期，保留分组／账号绑定／拖拽检查；最终完整主测试 **3651/3651、0 失败 0 跳过**（`main-tests-final.log`）。Tests／Core 当前 Release 编译 **0 警告 0 错误**，Shell x64 Release 编译 **0 警告 0 错误**，变更文件 whitespace、编码／行尾及 `git diff --check` 通过。
+- 参考依据：已读当前 NuGet WinUI 2.3.9 `generic.xaml` 的 Button／ToggleButton `ContentPresenter` 三态与高对比度卡片实色、Gallery 的 AcrylicBrush `Rectangle.Fill` 源例；保留 Shelf 原矢量圆，未改依赖。新增 `materials` 全量分区、源接线回归和开发命令，假服务只接受 GET／HEAD，断言零播放／零服务器写入；只读审查结论 ready（`work/acrylic-controls/review.md`）。
+- 隔离发布与运行：`tools/publish.ps1 -NoArchive` 已通过，**546 文件／285.9 MB**（`work/acrylic-controls/isolated-publish-final.log`）；实际 `--probe-shell --probe-section materials --screen 1` 报告 **1/1 Passed=true**。运行日志目录 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261104-024644346-28092/logs`，五主题四页面各 1280／760 DIP 共 **40 张页面实屏**，另 **13 张三态／回退截图**及 `acrylic-controls.txt`；程序正常退出。模板实际背景及 tint／回退更新、连播 checked 同底、圆钮翻页显隐、卡片实色反例和恢复均经过运行断言。
+- 限制与待办：高对比度只核对资源字典，未切换真实 OS 高对比度；悬停／按下是模板状态样本，不能代表真实鼠标输入；没有真实服务器登录、写入或播放。当前只验证临时树，尚未合入 master／刷新桌面交付目录，未上传远端。主代理继续合入、重新验证最终主树、发布快捷方式目标并清理临时树；完整实现报告在 `work/acrylic-controls/implementation-report.md`。
+
 ## 2026-11-04 发版 0.2.5：GitHub Release 与微软商店上架包（已发布 GitHub、商店未上传）
 
 - 用户令：提交代码到 GitHub、更新版本打包发布到 GitHub、生成微软商店安装包。版本升至 **0.2.5**（`Directory.Build.props` 三处同步），发版提交 `2ff1224`；master 已推送（54 个提交，`74ac23d..2ff1224`），tag `v0.2.5` 已推送。

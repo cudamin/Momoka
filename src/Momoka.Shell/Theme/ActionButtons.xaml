@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 只在详情操作排和货架翻页按钮中合入，平台模板的三态保持同一层玻璃。
+     别名按主题分别解析，避免静态别名把深色亚克力留在高对比度里。禁用态继续由平台提供实色。 -->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+            <StaticResource x:Key="ButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+            <StaticResource x:Key="ButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="HighContrast">
+            <!-- 固定浅墨只适合深色头图；系统白底时图标和标签一起改用系统文字色。 -->
+            <SolidColorBrush x:Key="EgOnScrimBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="EgAccentBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="EgDangerBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="ButtonForeground" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="ButtonForegroundPressed" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="ToggleButtonForeground" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundPointerOver" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundPressed" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundChecked" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPointerOver" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPressed" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="ButtonBackground" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ToggleButtonBackground" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="{ThemeResource SystemColorWindowColor}" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

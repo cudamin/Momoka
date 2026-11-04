@@ -20,7 +20,7 @@
     <Page.Resources>
         <DataTemplate x:Key="EntryTemplate" x:DataType="vm:NotificationRow">
             <Border
-                Background="{ThemeResource EgSurfaceBrush}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource EgBorderBrush}"
                 BorderThickness="{StaticResource EgCardBorderThickness}"
                 CornerRadius="{StaticResource EgCardCornerRadius}"
@@ -129,7 +129,7 @@
                   最后一集。所以它落在 settings.json，一个字节都不上服务器，阈值也不在这一页 —— 它读的就是
                   「播放行为」里那两行。
                 -->
-                <Border Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
                     BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="20,16" Margin="0,0,0,12">
                     <Grid ColumnSpacing="16">
                         <Grid.ColumnDefinitions>

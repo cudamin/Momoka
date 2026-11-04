@@ -111,7 +111,7 @@ internal static class SettingsLayoutTests
             var card = account.Elements().Single();
             Assert.Equal("Border", card.Name.LocalName);
             Assert.Equal("{x:Bind}", card.Attribute("Tag")?.Value);
-            Assert.Equal("{ThemeResource EgSurfaceBrush}", card.Attribute("Background")?.Value);
+            Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", card.Attribute("Background")?.Value);
             Assert.True(card.Descendants().Any(element => element.Attribute("Text")?.Value == "{x:Bind ServerName}"));
             Assert.True(card.Descendants().Any(element => element.Attribute("Text")?.Value == "{x:Bind Username}"));
             var group = Template(document, "ServerTemplate").Elements().Single();
