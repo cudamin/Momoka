@@ -17,6 +17,7 @@
 - 钉值：R046 的 `SourcePins.json` 有 4 份 PlayerViewModel 源 hash 随 using 顺序变化，逐份核对后更新（Transport / PlayerViewModel / Events / Versions），其余 pins 原样；README 记本轮。另修 `Run-Caller.ps1`：捕获 `dotnet build` 前临时把控制台输出设为 UTF-8，否则中文「0 个警告」按 GBK 变乱码，构建摘要判断永远失败。
 - 验证：全方案 `dotnet format style --verify-no-changes` **0 条 IMPORTS**（仅剩 1 条 `ShellSelfCheck.cs` 的 IDE1006 命名告警，非本轮范围）；Release 全方案 **0 警告 0 错误**；`format whitespace` 退出 0；主测试 **3636/3636、0 失败 0 跳过**；源提取/哈希相关专项 20 个通过（`ServerSettingsTabs.Tests` 因缺 Node/Playwright/Chromium 预检跳过，未算通过）；R046 反例 **10/10 预期拒绝**，其后 caller **51/51**；`check-diff` 250 个文件通过（加入本记录为 251）。
 - 未覆盖：`dotnet format style` 仍未进门禁；IDE1006 未处理；ServerSettingsTabs 的完整 DOM 专项未跑；纯格式化改动没有 UI/播放验收。
+- 合并后主树复验：master 的亚克力批次新增 `ShellNavigationProbe.Materials.cs` 带 1 条 IMPORTS，已在主树补清（4 行 using 重排）；全方案 IMPORTS 保持 0 条。
 
 ## 2026-11-04 夹具漂移修复：SettingTextRow 构造签名与 Plex 详情请求白名单（已提交）
 

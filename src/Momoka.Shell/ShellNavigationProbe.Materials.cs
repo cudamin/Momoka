@@ -1,14 +1,14 @@
 using System.Collections.ObjectModel;
 using System.Net;
-using Momoka.Emby;
-using Momoka.Shell.ViewModels;
-using Momoka.Shell.Views;
-using Momoka.Theming;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Emby;
+using Momoka.Shell.ViewModels;
+using Momoka.Shell.Views;
+using Momoka.Theming;
 using Ellipse = Microsoft.UI.Xaml.Shapes.Ellipse;
 
 namespace Momoka.Shell;
