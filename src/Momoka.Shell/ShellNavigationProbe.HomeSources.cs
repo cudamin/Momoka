@@ -122,6 +122,7 @@ internal sealed partial class ShellNavigationProbe
                         $"{state}：真实控件仍绑定旧来源");
                 }
                 Require(ReferenceEquals(choices, table.Rows), "来源变化替换了绑定集合对象");
+                Require(ReferenceEquals(table, settings.ViewModel.HomeRows), "来源变化替换了排序表对象");
             }
 
             foreach (var width in new[] { 1100, 760 })
@@ -149,7 +150,9 @@ internal sealed partial class ShellNavigationProbe
             var server = fixture.Settings.Servers.Single(server => server.Id == other.ServerProfileId);
             var account = server.Accounts.Single(account => account.Id == other.AccountProfileId);
             Require(await fixture.Session.TryRestoreAsync(server, account, CancellationToken.None), "聚合恢复来源失败");
-            await CheckTableAsync(7, "聚合恢复");
+            // 聚合模式按现行规则收起 NextUp：四个库加两条固定行，共六行。
+            await CheckTableAsync(6, "聚合恢复");
+            Require(choices.All(row => row.Key != HomeLayout.NextUp), "聚合排序表仍包含接下来看");
             // 这一条夹具关着轮播图（Fixture 默认 ShowHomeBanner=false），媒体库那一排不固定，次序照存档。
             Require(choices[0].Key == hidden.Key && !choices[0].Visible, "恢复来源没有还原原排序和勾选");
             Require(choices.Any(row => row.Key == HomeLayout.LibraryKey(currentLibraries[0]))
@@ -164,6 +167,7 @@ internal sealed partial class ShellNavigationProbe
             Require(fixture.Settings.Ui.HomeRows.Single(row => row.Key == staleSeries.Key).Visible,
                 "来源切换期间的旧控件覆盖了隐藏来源偏好");
             await CheckTableAsync(4, "切到另一服务器");
+            Require(choices.Any(row => row.Key == HomeLayout.NextUp), "退出聚合后接下来看没有恢复");
             Require(choices[0].Key == hidden.Key && !choices[0].Visible
                 && choices.All(row => currentLibraries.All(library => HomeLayout.LibraryKey(library) != row.Key)),
                 "切到另一服务器仍列出了之前的三个库");
