@@ -2207,7 +2207,13 @@ public sealed partial class DetailViewModel : PageViewModel
                         : "，图多于 1 次 —— 完整条目回来把图白重取了一遍"));
     }
 
-    private bool CanAct => Attached && !Busy;
+    /// <summary>
+    /// 按钮跟的是「主体已经确认」而不是整页 Busy：剧集／相似推荐这些附属链还在读时，
+    /// 已经成立的播放目标、已观看和收藏不该跟着一起等。首次读取、换条目和读取失败仍从 false 开始。
+    /// </summary>
+    private bool _actionsReady;
+
+    private bool CanAct => Attached && _actionsReady;
 
     private bool CanFavorite => CanAct && FavoritesApplicable && _detail is { } item
         && item.Id == _seed?.Id && (item.Source is null || item.Source.Key == _scope!.Key);
@@ -2222,7 +2228,9 @@ public sealed partial class DetailViewModel : PageViewModel
     private bool CanOpenTitle => TitleLink is not null;
 
     /// <inheritdoc />
-    protected override void BusyChanged()
+    protected override void BusyChanged() => NotifyActionAvailability();
+
+    private void NotifyActionAvailability()
     {
         PlayCommand.NotifyCanExecuteChanged();
         RestartCommand.NotifyCanExecuteChanged();
@@ -2261,6 +2269,7 @@ public sealed partial class DetailViewModel : PageViewModel
         Cancel();
         _deletedItems.Clear();
         _deletedSourceIds.Clear();
+        _actionsReady = false;
         _active = true;
         _scope = images.CaptureScope(request.Item);
         _actions = actions;
@@ -2765,6 +2774,10 @@ public sealed partial class DetailViewModel : PageViewModel
 
         // 放在最后：它读的是刚写好的 _detail，而 _show 可能早在取图那一趟就已经回来了。
         RefreshOtherInfo();
+
+        _actionsReady = true;
+        NotifyActionAvailability();
+        NavigationTiming.Mark("actions-ready");
     }
 
     /// <summary>
@@ -3961,6 +3974,7 @@ public sealed partial class DetailViewModel : PageViewModel
     public override void Cancel()
     {
         _active = false;
+        _actionsReady = false;
         _versionLoad?.Cancel();
         _lifetime++;
         base.Cancel();

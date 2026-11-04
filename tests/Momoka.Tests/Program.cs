@@ -216,6 +216,8 @@ internal static class Program
         }
         if (args is ["detail-subject-removal-fixture", var removalShell, var removalRoot])
             return DetailSubjectRemovalTests.Run(removalShell, removalRoot);
+        if (args is ["detail-action-readiness-fixture", var readinessShell, var readinessRoot])
+            return DetailActionReadinessTests.Run(readinessShell, readinessRoot);
         if (args is ["marked-watched-source-fixture"])
             return MarkedWatchedSourceTests.Run();
         if (args is ["moviepilot-episode-group-playback-fixture"])
