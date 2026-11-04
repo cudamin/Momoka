@@ -71,8 +71,12 @@ internal static class DeepBrowseProtocolTests
 
     private static ItemQuery Query(int start, int size) => new()
     {
-        ParentId = "library", StartIndex = start, Limit = size,
-        SortBy = EmbySortBy.Name, Descending = true, IncludeItemTypes = [EmbyItemType.Movie]
+        ParentId = "library",
+        StartIndex = start,
+        Limit = size,
+        SortBy = EmbySortBy.Name,
+        Descending = true,
+        IncludeItemTypes = [EmbyItemType.Movie]
     };
 
     private static void CheckResult(ItemsResult result, int start, int size)
