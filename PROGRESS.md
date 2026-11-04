@@ -1,3 +1,12 @@
+## 2026-11-04 发版 0.2.5：GitHub Release 与微软商店上架包（已发布 GitHub、商店未上传）
+
+- 用户令：提交代码到 GitHub、更新版本打包发布到 GitHub、生成微软商店安装包。版本升至 **0.2.5**（`Directory.Build.props` 三处同步），发版提交 `2ff1224`；master 已推送（54 个提交，`74ac23d..2ff1224`），tag `v0.2.5` 已推送。
+- 四道闸门（最终代码）：Release 全方案构建 **0 警告 0 错误**（`work/release-0.2.5/gate1-build.log`）；`dotnet format whitespace` 通过；脚本检查、架构 7/7、重复率 63 段 / 0.62%（预算 70 段 / 1%）、`check-diff` 全通过（`artifacts/quality/20261104-020649`）；主测试 **3636/3636、0 失败 0 跳过**（`work/release-0.2.5/gate2-tests.log`）；发布件自检 **188 项、失败 0、消失 0、降级 0、新增 0**（`work/release-0.2.5/gate4-selfcheck.log`，运行目录 `artifacts/selfcheck/run-d37aed69e0ed40d4b60bdd1207377860`）。
+- 交付件：`artifacts/publish/win-x64` **546 文件 / 285.9 MB**，14 GLSL / 4 HOOK，批准 mpv 59（50 UI / 2 native），`verify-publish` 通过；程序集 `0.2.5.0`，ProductVersion `0.2.5+2ff12246dcb5fead3591e32f647e8881e2e090be`；桌面 `Momoka.lnk` 已重写并读回（目标与工作目录均为该发布目录、参数为空）。安装包 `artifacts/Momoka_windows-x64_0.2.5.exe` **83,923,078 字节**，SHA256 `be9d290cb10b3aa3178562d07464930d4e014e1ca31c41203864cfe66dd23a4d`；ZIP `Momoka-0.2.5-win-x64.zip` 117,793,525 字节。
+- 微软商店包：`artifacts/Momoka-0.2.5-win-x64-store.msix` **120,608,723 字节**，未签名，身份 `MOMOKA.Momoka` / `CN=1AA8C022-887D-4E5B-BB1D-970781A617A5`，版本 `0.2.5.0`、x64（包内 AppxManifest 已回读核对）。未上传 Partner Center、未提审，需用户在 Partner Center → 产品版本 → 包上传。
+- GitHub：[Release v0.2.5](https://github.com/cudamin/Momoka/releases/tag/v0.2.5)（pre-release，tag → `2ff1224`）已上传 `Momoka_windows-x64_0.2.5.exe` 与 `SHA256SUMS.txt`；回读资产字节数一致，安装包远端 digest `sha256:be9d290c…` 与本地一致，下载链接返回 83,923,078 字节。远端当前没有 v0.2.3 Release（API 与 tag 均无），本次按 0.2.2 之后的累积更新发布。
+- 环境与注意：本机 WinApp CLI 0.7.0、Inno Setup 6，工作区完整性标签为 Medium，发布前无 Momoka 进程；Release 文案见 `work/release-notes-0.2.5.md`（未入库）。0.2.3 的商店包与安装包仍留在 artifacts，未删除。
+
 ## 2026-11-03 主页删除：原地摘卡与离场动画、删库文件后的相关媒体在本次运行内隐藏（已合入 master、已发布桌面）
 
 - 用户令三条：①「删记录和库文件」「删除记录及两端」删除后自动隐藏相关媒体；服务器缓存要等下次扫描才清，隐藏状态不持久化、关闭 Momoka 即清空；②主页删除完成后不自动翻页，保持当前页与滚动位置，自动衔接 UI 动画；③主页删除动画同时适用于「删记录和库文件」「删除记录及两端」「删除（服务端的）」三种入口，交互反馈统一。
