@@ -199,6 +199,56 @@ internal static class LibraryDeepReturnTests
             finally { ((IDisposable)vm).Dispose(); }
         });
 
+        Case("深返回：二次HTTP期间A到B到C的最新锚点不被旧返回窗口覆盖", async () =>
+        {
+            using var fixture = Movies(shell);
+            var (vm, _) = await Window(fixture, 1500);
+            try
+            {
+                while (shell.Get<int>(vm, "WindowEnd") < 2000) await Load(vm, false);
+                var retained = Cards(vm).ToArray();
+                var originalStart = shell.Get<int>(vm, "WindowStart");
+                var captures = 0;
+                var first = fixture.Transport.LibraryGate = new Gate(true);
+                var second = new Gate(true);
+                var anchorRequested = vm.GetType().GetEvent("WindowAnchorRequested", BindingFlags.NonPublic | BindingFlags.Instance)!;
+                Action capture = () =>
+                {
+                    captures++;
+                    var id = captures == 1 ? "movie-1500" : captures == 2 ? "movie-1900" : "movie-1600";
+                    var local = Cards(vm).FindIndex(card => Id(card) == id);
+                    Assert.True(local >= 0, "三次锚点都必须来自当前实际已载卡片");
+                    shell.Invoke(vm, "CaptureAnchor", local, -31d, 4);
+                    if (captures == 2) fixture.Transport.LibraryGate = second;
+                };
+                anchorRequested.GetAddMethod(true)!.Invoke(vm, [capture]);
+                var before = fixture.Transport.LibraryReads.Count;
+                try
+                {
+                    var refresh = (Task)shell.Invoke(vm, "RevalidateAsync")!;
+                    await first.Entered.Task;
+                    first.Release.TrySetResult();
+                    await second.Entered.Task;
+                    Assert.Equal(2, captures, "二次请求必须按HTTP后新捕获的B锚点选择范围");
+                    second.Release.TrySetResult();
+                    await refresh;
+                    Assert.Equal(3, captures, "二次HTTP后也要纯捕获当前C锚点");
+                    Assert.True(Cards(vm).SequenceEqual(retained), "C在二次返回区间外，保留原卡片与当前位置");
+                    Assert.Equal(originalStart, shell.Get<int>(vm, "WindowStart"));
+                    Assert.Equal(1600, shell.Get<int>(Request(vm), "AnchorIndex"));
+                    Assert.Equal(-31d, shell.Get<double>(Request(vm), "AnchorY"));
+                    Assert.Equal(2, fixture.Transport.LibraryReads.Count - before, "最多重读一次，不继续追逐滚动请求");
+                }
+                finally
+                {
+                    first.Release.TrySetResult();
+                    second.Release.TrySetResult();
+                    anchorRequested.GetRemoveMethod(true)!.Invoke(vm, [capture]);
+                }
+            }
+            finally { ((IDisposable)vm).Dispose(); }
+        });
+
         Case("深返回：旧单集响应排队后换查询不污染新窗口的刷新路径", async () =>
         {
             using var fixture = Movies(shell);

@@ -157,8 +157,19 @@ public sealed partial class LibraryViewModel
             {
                 var current = SnapshotWindow();
                 start = _windowStart + current.LocalStart;
+                var requestedAnchor = _request!.AnchorIndex;
+                var requestedIdentity = _request.AnchorIdentityKey;
                 result = await ReadWindowAsync(start, wanted, token).ConfigureAwait(true);
                 if (!QueryCurrent(query) || !IsCurrent(token)) return false;
+                WindowAnchorRequested?.Invoke();
+                if (!QueryCurrent(query) || !IsCurrent(token)) return false;
+                // A second HTTP may outlive another scroll. Keep the live window rather than chase a
+                // third range. An unchanged anchor outside a shortened/empty result still applies and
+                // clamps normally; only a genuinely moved viewport rejects this second response.
+                if (HasSavedAnchor && (_request.AnchorIndex != requestedAnchor
+                    || _request.AnchorIdentityKey != requestedIdentity)
+                    && (_request.AnchorIndex < result.Start || _request.AnchorIndex >= result.Start + result.Items.Count))
+                    return false;
             }
             WindowChanging?.Invoke();
             if (!QueryCurrent(query) || !IsCurrent(token)) return false;
