@@ -674,6 +674,8 @@
                         </StackPanel>
                         <TextBox
                             x:Name="SettingTextInput"
+                            GotFocus="OnSettingTextGotFocus"
+                            LostFocus="OnSettingTextLostFocus"
                             Grid.Column="1"
                             HorizontalAlignment="Stretch"
                             MinWidth="260"

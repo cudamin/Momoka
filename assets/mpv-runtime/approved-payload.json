@@ -98,8 +98,8 @@
     {
       "path": "mpv-ui/scripts/momoka_danmaku.lua",
       "source": "assets/mpv-ui/scripts/momoka_danmaku.lua",
-      "size": 13070,
-      "sha256": "322dac8a8404885c676934c8d3b46475c82667a4016c0806bef591a2a6b2ef59"
+      "size": 19707,
+      "sha256": "931c8f8480a326cb799810a515e8c465e38500aead381e5cb7152ab126501479"
     },
     {
       "path": "mpv-ui/scripts/momoka_subtitle_translation.lua",

@@ -48,6 +48,16 @@ internal sealed record SettingsRequest(IServiceProvider Services, string Categor
 /// </summary>
 public sealed partial class SettingsPage : Page, IShellContent
 {
+    private void OnSettingTextGotFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender is TextBox { DataContext: SettingTextRow row }) row.IsEditing = true;
+    }
+
+    private void OnSettingTextLostFocus(object sender, RoutedEventArgs e)
+    {
+        if (sender is TextBox { DataContext: SettingTextRow row }) row.IsEditing = false;
+    }
+
     private const string Category = "设置";
 
     // DefaultListViewItemStyle 的 ListViewItemMinHeight（generic.xaml）。展开的条目用默认行高；

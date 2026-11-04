@@ -119,6 +119,12 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.IsContentMotionSettled);
             Require(DanmakuRows(page).OfType<SettingSliderRow>().Any(), "重新启用没有恢复外观设置");
             var block = Descendants(page).OfType<TextBox>().Single(control => AutomationProperties.GetName(control) == "屏蔽词");
+            block.Focus(FocusState.Programmatic);
+            block.Text = "未提交的草稿";
+            page.ViewModel.OnDanmakuPreferencesChanged();
+            Require(block.Text == "未提交的草稿", "外观同步覆盖了正在编辑的屏蔽词");
+            enabled.Focus(FocusState.Programmatic);
+            await LayoutAsync(block);
             block.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.9 });
             await LayoutAsync(block);
             await SaveProbeScreenAsync($"settings-danmaku-bottom-{width}-screen.png");

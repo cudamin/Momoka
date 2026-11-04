@@ -24,11 +24,20 @@ public static class MpvDanmaku
 
     public static string RenderOptions(DanmakuSettings settings, double delay) => JsonSerializer.Serialize(new
     {
-        show = settings.Show, opacity = settings.Opacity, fontSize = settings.FontSize,
-        speed = settings.Speed, area = settings.Area, density = settings.Density, delay,
-        scaleWithWindow = settings.ScaleWithWindow, avoidSubtitles = settings.AvoidSubtitles,
-        preventOverlap = settings.PreventOverlap, speedSyncPlayback = settings.SpeedSyncPlayback,
-        fontFamily = settings.FontFamily, bold = settings.Bold, borderStyle = settings.BorderStyle,
+        show = settings.Show,
+        opacity = settings.Opacity,
+        fontSize = settings.FontSize,
+        speed = settings.Speed,
+        area = settings.Area,
+        density = settings.Density,
+        delay,
+        scaleWithWindow = settings.ScaleWithWindow,
+        avoidSubtitles = settings.AvoidSubtitles,
+        preventOverlap = settings.PreventOverlap,
+        speedSyncPlayback = settings.SpeedSyncPlayback,
+        fontFamily = settings.FontFamily,
+        bold = settings.Bold,
+        borderStyle = settings.BorderStyle,
         densityMode = settings.DensityMode
     });
 

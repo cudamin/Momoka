@@ -588,6 +588,7 @@ public sealed partial class SettingSliderRow : SettingRow
 /// </summary>
 public sealed partial class SettingTextRow : SettingRow
 {
+    internal bool IsEditing { get; set; }
     private readonly Func<string, string> _commit;
     private readonly Action _save;
     private readonly Action? _after;
@@ -613,6 +614,7 @@ public sealed partial class SettingTextRow : SettingRow
 
     internal void Reseed(string value)
     {
+        if (IsEditing) return;
         _committing = true;
         try { Text = value; }
         finally { _committing = false; }

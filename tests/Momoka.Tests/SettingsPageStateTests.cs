@@ -52,6 +52,10 @@ internal static class SettingsPageStateTests
             Assert.Equal("新词", fixture.Get<string>(row, "Text"));
             Assert.Equal(0, commits);
             Assert.Equal(0, saves);
+            fixture.Set(row, "IsEditing", true);
+            fixture.Invoke(row, "Reseed", "外部消息");
+            Assert.Equal("新词", fixture.Get<string>(row, "Text"));
+            fixture.Set(row, "IsEditing", false);
             fixture.Set(row, "Text", "用户修改");
             Assert.Equal(1, commits);
             Assert.Equal(1, saves);
