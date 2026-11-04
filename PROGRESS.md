@@ -1,3 +1,11 @@
+## 2026-11-04 夹具漂移修复：SettingTextRow 构造签名与 Plex 详情请求白名单（已提交）
+
+- 用户令：修上一轮发现的三个既有红专项，恢复覆盖。
+- 根因一：`SettingTextRow` 构造函数新增第 7 个可选参数 `Action? after`；测试用 `Activator.CreateInstance` 按精确参数个数匹配，不会自动补可选参数，旧 6 参调用抛 `MissingMethodException`。修 `Momoka.SettingsLifetimeTests/ShellRuntime.cs`（同时被 SettingsProbeContractTests 链接）、`Momoka.CurrentPermissionSnapshotTests/ShellRuntime.cs`、`Momoka.Tests/SettingsPageStateTests.cs` 三处，显式传 `(Action?)null`。
+- 根因二：PlexAffordanceTests 的假 HTTP 白名单落后于当前 Shell 详情读取——Emby 详情会读 `Shows/{id}/Seasons`，Jellyfin 详情会读 `MediaSegments/{id}`；补两条只读空结果路由（季列表返回空 `ItemsResult`，媒体段返回空 `MediaSegmentsResult`），并把越界请求 URI 加进 Dispose 断言消息，后续再漂移能直接看到方法+URL。
+- 验证：三个设置专项全绿（SettingsLifetime、CurrentPermissionSnapshot、SettingsProbeContract），`settings-page-state-fixture` **30/30**（主套件不跑这条），PlexAffordance **68/68**；Release 全方案 **0 警告 0 错误**；`format whitespace` 退出 0；tests 范围 `format style` 退出 0；主测试 **3636/3636、0 失败 0 跳过**；`check-diff` 4 个文件通过。
+- 未覆盖：只改测试夹具，没动产品代码；Plex 的季／媒体段返回空数据，只证明请求被允许、详情 VM 继续走，不证明真实服务器的季列表或媒体段内容。
+
 ## 2026-11-04 测试文件 using 顺序清理（IMPORTS，已提交）
 
 - 用户令：只做 `dotnet format style` 的 IMPORTS 清理，先用 `--verify-no-changes` 留基线，分批自动修复测试文件，每批编译 + 跑受影响专项，最后闸门 1、主测试与 `check-diff`，单独提交；不碰产品代码，不夹带 Sonar 或 CA1502。
