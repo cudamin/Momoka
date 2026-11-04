@@ -53,7 +53,7 @@ internal sealed class PermissionShellRuntime
 
     internal void AddDraft(object vm)
     {
-        var row = New("SettingTextRow", "未完成输入", "匿名草稿", "", "pending-draft", (Func<string, string>)(value => value), (Action)(() => { }));
+        var row = New("SettingTextRow", "未完成输入", "匿名草稿", "", "pending-draft", (Func<string, string>)(value => value), (Action)(() => { }), (Action?)null);
         var rows = Array.CreateInstance(Type("SettingRow"), 1);
         rows.SetValue(row, 0);
         var section = New("SettingSection", "主页", "草稿卡", "不写入", rows);

@@ -210,7 +210,7 @@ internal static class SettingsPageStateTests
         var saves = 0;
         const string draft = "  \"C:\\输入还没打完";
         var text = fixture.NewRow("SettingTextRow", "草稿", null, "路径", draft,
-            (Func<string, string>)(value => { commits++; return value; }), (Action)(() => saves++));
+            (Func<string, string>)(value => { commits++; return value; }), (Action)(() => saves++), (Action?)null);
         var number = fixture.NewRow("SettingNumberRow", "未完成数字", null, 0d, 100d, 17d,
             (Action<double>)(_ => commits++), (Func<double>)(() => 17d), (Action)(() => saves++), null);
         fixture.Set(number, "Value", double.NaN);
