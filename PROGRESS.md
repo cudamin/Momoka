@@ -10,6 +10,8 @@
 - 发布：`tools/publish.ps1 -Shortcut -NoArchive`退出0，546文件/286.0MB，桌面Momoka.lnk目标及工作目录为主树artifacts/publish/win-x64、参数空；Shell SHA256 `C14425B1A203DDFC3A9D0CADD4C9C3E44E90423BFD573E9ED7C1D778E075EBDE`，Core `89FE0924C9543333383C390AEC65539BFF73FC5D892D8ADED4D6E44AD191FFBB`。未上传、未打安装包。
 - 测量限制补记：第一轮“after”期间误参数回退的全测与其重叠，之后也观测到其他会话编译。279→63ms仅是受负载影响的观察值，不能作为受控提速或因果证据；确定的是重复23/23命中、23次XAML交接减少为0。追加无并行负载的脚本在发现其他构建时停止，未得到补测结果，保留首Rendering/p95没有改善的结论。所有原日志/图/宿主回执归档在`C:/Users/89400/.codex/visualizations/2026/11/04/01a1a514-9f88-7262-9ae6-e1206b8bdc93/momoka-p2-evidence`。
 
+- 清理：P2原顶端536d82f已整合；ba08快进同步70a259a后转detached，临时分支已删除。该聊天主检出此前被应用标记为不可归档，保留干净目录，未绕过删除。证据归档2180文件约290MB，含失败日志；本轮无需继续UI或重发。
+
 ## 2026-11-04 文件选择框与按钮同底、首页详情文字（已合入 master、已测、已发布桌面）
 
 - 范围：本树 a0eb 基于 80868ff；DetailPage 两组各三颗版本／音频／字幕选择框闭合背景改为上方按钮同一支 ButtonBackground，悬停／按压按对应按钮三态；聚焦／失焦回常态，圆角与全局亚克力弹层保持原样。HomeBanner 的详情键补默认 Content，保留本地化资源与当前条目导航。
