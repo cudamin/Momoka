@@ -179,6 +179,7 @@ public sealed partial class SettingsViewModel
             foreach (var section in DanmakuSections())
                 existing.FirstOrDefault(current => current.Title == section.Title)?.UpdateRows(section.Rows);
         _danmakuFont = existing.SelectMany(section => section.Rows).OfType<SettingFontRow>().FirstOrDefault();
+        _danmakuFont?.Reseed(Settings.Danmaku.FontFamily);
         RefreshShortcutAvailability();
     }
 

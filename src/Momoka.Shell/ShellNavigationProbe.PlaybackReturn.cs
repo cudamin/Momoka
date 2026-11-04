@@ -16,6 +16,8 @@ internal sealed partial class ShellNavigationProbe
     private async Task HomePlaybackReturnAsync()
     {
         using var fixture = CreateFixture();
+        // 此单来源动效场景需要 NextUp 形成多排；聚合模式按产品规则隐藏它，不属于返回动效的验收条件。
+        fixture.Settings.AggregateMode = false;
         await fixture.SelectAsync();
         fixture.Settings.Ui.ShowHomeBanner = true;
         var picture = await FixtureImageAsync();

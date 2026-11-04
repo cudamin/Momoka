@@ -98,9 +98,6 @@ public sealed partial class SettingSection : ObservableObject
                 case (SettingSliderRow current, SettingSliderRow updated):
                     current.Reseed(updated.Value);
                     break;
-                case (SettingFontRow current, SettingFontRow updated):
-                    current.Reseed(updated.Value);
-                    break;
                 case (SettingShortcutRow current, SettingShortcutRow updated):
                     current.ComboText = updated.ComboText;
                     break;
