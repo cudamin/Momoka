@@ -10346,3 +10346,6 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 独立树验证：全方案Release构建0警告0错误（artifacts/detail-layout-build-final.log），串行主测试3664/3664、0失败0跳过（detail-layout-tests-serial.log），字幕契约36/36（detail-subtitle-contract.log）。旧树基线HomeHeader不识别亚克力，临时补严格材质检查后library,materials运行23244为26/26、退出0，详情宽窄与S00季页检查通过；截图已查看：信息卡在季卡上方、额外特别篇排消失。证据 C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261104-064717754-23244/logs。
 - 验证期间用户另一个任务已将海报播放/操作恢复旧样，master现为f65ac10，故撤下本树临时HomeHeader修正（diff清零），不把它带入最终主树。此变化要求整合后的library,materials重新验证，不能把本树26/26冒充最新master结果。
 - 统一收尾由聊天“统一 WebView2 服务端设置风格并修复显示不全”（01a1a527-7870-7bb1-aa16-fd7800927854）负责：本树提交后暂缓主树合并/构建/测试/发布，无Momoka进程23244占用，适用运行复验由本聊天按协调顺序执行，最终主测试/WebView专项/发布/快捷方式由协调聊天执行。未推远端。
+# 2026-11-04 弹幕控制在途
+
+本批在 `def5/Momoka`、临时分支 `codex/danmaku-controls-20261104` 实现外观设置/面板与消息契约；Lua与播放按钮/菜单分别在本次独立树隔离开发。用户选择本地防重叠和共用屏蔽词，不接B站账号。Core新增归一化/恢复外观失败测试先红后绿，当前弹幕专项59项通过。基线全套3666项中16项因另一会话自检占用共用mutex红，保留 `work/danmaku-controls/baseline-tests.log`；最终代码仍待整合、完整测试、UI实屏、合入主树及发布，不能视为交付。仅本地提交，不上传。

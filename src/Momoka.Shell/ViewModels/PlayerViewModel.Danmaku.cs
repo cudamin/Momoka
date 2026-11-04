@@ -5,12 +5,15 @@ using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.Danmaku;
 using Momoka.Emby;
+using Momoka.Infrastructure;
 using Momoka.Mpv;
+using Momoka.Services;
 
 namespace Momoka.Shell.ViewModels;
 
 public sealed partial class PlayerViewModel
 {
+    private readonly FontLibrary _danmakuFonts;
     private readonly DandanPlayClient _dandanPlay;
     private CancellationTokenSource? _danmakuLoad;
     private CancellationTokenSource? _danmakuSearch;
@@ -38,10 +41,12 @@ public sealed partial class PlayerViewModel
     public bool DanmakuAvailable => DanmakuSourceRules.IsAvailable(Settings) && Embedded;
     public Visibility DanmakuControlsVisibility => DanmakuAvailable ? Visibility.Visible : Visibility.Collapsed;
     public bool DanmakuShown => Settings.Danmaku.Show;
+    public string DanmakuToggleLabel => DanmakuShown ? "关闭弹幕" : "开启弹幕";
     public bool DanmakuSendSupported => DanmakuSourceRules.CanSend(Settings.Danmaku.Source);
     internal string DanmakuSearchTitle => _nowPlaying is { } item ? DandanPlayMatching.Title(item) : "";
     internal string DanmakuSearchEpisode => _nowPlaying is { } item ? DandanPlayMatching.EpisodeNumber(item) ?? "" : "";
     internal DanmakuSettings DanmakuPreferences => Settings.Danmaku;
+    internal Task<FontCatalogue> DanmakuFontsAsync() => _danmakuFonts.LoadAsync();
 
     internal IReadOnlyList<DanmakuSourceOption> DanmakuSearchSources() =>
         [.. DanmakuSourceRules.AvailableSources(Settings)
@@ -118,6 +123,7 @@ public sealed partial class PlayerViewModel
         OnPropertyChanged(nameof(DanmakuAvailable));
         OnPropertyChanged(nameof(DanmakuControlsVisibility));
         OnPropertyChanged(nameof(DanmakuShown));
+        OnPropertyChanged(nameof(DanmakuToggleLabel));
         OnPropertyChanged(nameof(DanmakuSendSupported));
         RefreshDanmakuInput();
     }
@@ -184,9 +190,13 @@ public sealed partial class PlayerViewModel
     private Task<bool> ClearDanmakuAsync() => _playback.CommandAsync("script-message-to", MpvDanmaku.ScriptName, MpvDanmaku.Clear,
         _danmakuSerial.ToString(CultureInfo.InvariantCulture), _danmakuTransfer.ToString(CultureInfo.InvariantCulture));
 
-    private Task<bool> PushDanmakuVisibilityAsync() => HeadlessPlayback
-        ? _playback.CommandAsync("script-message", MpvDanmaku.Visibility, DanmakuAvailable ? "yes" : "no")
-        : Task.FromResult(false);
+    private async Task<bool> PushDanmakuVisibilityAsync()
+    {
+        if (!HeadlessPlayback) return false;
+        var available = await _playback.CommandAsync("script-message", MpvDanmaku.Visibility, DanmakuAvailable ? "yes" : "no").ConfigureAwait(true);
+        await _playback.CommandAsync("script-message", MpvDanmaku.Shown, DanmakuShown ? "yes" : "no").ConfigureAwait(true);
+        return available;
+    }
 
     private DanmakuSource DefaultSearchSource() =>
         DanmakuSourceRules.IncludesDandanPlay(Settings.Danmaku.Source)
@@ -444,16 +454,7 @@ public sealed partial class PlayerViewModel
         var serial = _danmakuSerial;
         var transfer = ++_danmakuTransfer;
         var settings = Settings.Danmaku;
-        var options = JsonSerializer.Serialize(new
-        {
-            show = settings.Show,
-            opacity = settings.Opacity,
-            fontSize = settings.FontSize,
-            speed = settings.Speed,
-            area = settings.Area,
-            density = settings.Density,
-            delay = _danmakuDelay,
-        });
+        var options = MpvDanmaku.RenderOptions(settings, _danmakuDelay);
         var filtered = DanmakuComments.Filter(_danmakuComments, settings);
         bool Current() => IsCurrentPlayback(context) && serial == _danmakuSerial && transfer == _danmakuTransfer && DanmakuAvailable;
         async Task<bool> Send(string message, string? data = null)

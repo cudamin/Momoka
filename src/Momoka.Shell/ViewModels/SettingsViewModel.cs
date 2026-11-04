@@ -98,6 +98,9 @@ public sealed partial class SettingSection : ObservableObject
                 case (SettingSliderRow current, SettingSliderRow updated):
                     current.Reseed(updated.Value);
                     break;
+                case (SettingFontRow current, SettingFontRow updated):
+                    current.Reseed(updated.Value);
+                    break;
                 case (SettingShortcutRow current, SettingShortcutRow updated):
                     current.ComboText = updated.ComboText;
                     break;
@@ -1255,6 +1258,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         // The row may have been rebuilt while the scan ran — a second visit to the page does that — so the
         // current one is asked for rather than the one captured above.
         _subtitleFont?.Fill(catalogue);
+        _danmakuFont?.Fill(catalogue);
         FontsReady = true;
     }
 

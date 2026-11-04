@@ -611,6 +611,13 @@ public sealed partial class SettingTextRow : SettingRow
     [ObservableProperty]
     public partial string Text { get; set; }
 
+    internal void Reseed(string value)
+    {
+        _committing = true;
+        try { Text = value; }
+        finally { _committing = false; }
+    }
+
     partial void OnTextChanged(string value)
     {
         if (!_seeded || _committing) return;

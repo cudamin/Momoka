@@ -18,6 +18,65 @@ internal static class DanmakuTests
 
     internal static void Register()
     {
+        Test("弹幕：新增外观字段从旧配置补齐，非法字体和档位不能进入渲染", () =>
+        {
+            var settings = JsonSerializer.Deserialize<DanmakuSettings>("""{"FontFamily":"bad\\\\font{tag}","BorderStyle":99,"DensityMode":-1}""")!;
+            settings.Normalize();
+            var json = JsonSerializer.SerializeToElement(settings);
+            Assert.True(json.TryGetProperty("ScaleWithWindow", out var scale), "缺少随窗口缩放偏好");
+            Assert.True(scale.GetBoolean());
+            Assert.True(json.GetProperty("PreventOverlap").GetBoolean());
+            Assert.True(json.GetProperty("SpeedSyncPlayback").GetBoolean());
+            Assert.Equal("Microsoft YaHei", json.GetProperty("FontFamily").GetString());
+            Assert.Equal(0, json.GetProperty("BorderStyle").GetInt32());
+            Assert.Equal(0, json.GetProperty("DensityMode").GetInt32());
+        });
+
+        Test("弹幕：只恢复显示外观，来源、启用、匹配和屏蔽词不改变", () =>
+        {
+            var settings = JsonSerializer.Deserialize<DanmakuSettings>("""{"Enabled":true,"Show":false,"Source":1,"DanmuApiBaseUrl":"http://127.0.0.1:9321","ProtectedDanmuApiToken":"cipher","AutoMatch":false,"BlockedWords":"spoiler","Opacity":20,"Bold":true,"FontFamily":"Arial","DensityMode":2}""")!;
+            var restore = typeof(DanmakuSettings).GetMethod("RestoreAppearance");
+            Assert.True(restore is not null, "缺少仅恢复外观的操作");
+            restore!.Invoke(settings, null);
+            var json = JsonSerializer.SerializeToElement(settings);
+            Assert.True(settings.Enabled);
+            Assert.False(settings.Show);
+            Assert.False(settings.AutoMatch);
+            Assert.Equal("spoiler", settings.BlockedWords);
+            Assert.Equal("http://127.0.0.1:9321", settings.DanmuApiBaseUrl);
+            Assert.Equal("cipher", settings.ProtectedDanmuApiToken);
+            Assert.Equal(70d, settings.Opacity);
+            Assert.False(json.GetProperty("Bold").GetBoolean());
+            Assert.Equal("Microsoft YaHei", json.GetProperty("FontFamily").GetString());
+            Assert.Equal(0, json.GetProperty("DensityMode").GetInt32());
+        });
+
+        Test("弹幕：外观消息把用户选择原样下发给独立叠加层，备份恢复也保留新偏好", () =>
+        {
+            var live = new AppSettings();
+            live.Danmaku.ScaleWithWindow = false;
+            live.Danmaku.AvoidSubtitles = true;
+            live.Danmaku.PreventOverlap = false;
+            live.Danmaku.SpeedSyncPlayback = false;
+            live.Danmaku.FontFamily = "Arial";
+            live.Danmaku.Bold = true;
+            live.Danmaku.BorderStyle = 2;
+            live.Danmaku.DensityMode = 1;
+            var restored = new AppSettings();
+            SettingsPreferences.Apply(restored, SettingsPreferences.ToBackupDocument(live));
+            using var document = JsonDocument.Parse(MpvDanmaku.RenderOptions(restored.Danmaku, 2.5));
+            var json = document.RootElement;
+            Assert.False(json.GetProperty("scaleWithWindow").GetBoolean());
+            Assert.True(json.GetProperty("avoidSubtitles").GetBoolean());
+            Assert.False(json.GetProperty("preventOverlap").GetBoolean());
+            Assert.False(json.GetProperty("speedSyncPlayback").GetBoolean());
+            Assert.Equal("Arial", json.GetProperty("fontFamily").GetString());
+            Assert.True(json.GetProperty("bold").GetBoolean());
+            Assert.Equal(2, json.GetProperty("borderStyle").GetInt32());
+            Assert.Equal(1, json.GetProperty("densityMode").GetInt32());
+            Assert.Equal(2.5, json.GetProperty("delay").GetDouble());
+        });
+
         Test("弹幕：旧设置无字段默认关闭，非法和非有限外观值归一化", () =>
         {
             var settings = SettingsMigration.Normalize(new AppSettings { Danmaku = null! });

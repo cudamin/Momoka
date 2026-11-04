@@ -6,6 +6,9 @@ namespace Momoka.Shell.ViewModels;
 public sealed partial class SettingsViewModel
 {
     private const string DanmakuCategory = "弹幕";
+    private SettingFontRow? _danmakuFont;
+    private static readonly (string Label, int Value)[] DanmakuDensityModes = [("正常", 0), ("较多", 1), ("重叠", 2)];
+    private static readonly (string Label, int Value)[] DanmakuBorderStyles = [("描边", 0), ("重墨", 1), ("45° 投影", 2)];
 
     private static readonly (string Label, DanmakuSourceMode Value)[] DanmakuSources =
     [
@@ -86,21 +89,42 @@ public sealed partial class SettingsViewModel
             {
                 displayRows.Add(Toggle("显示弹幕输入栏", "在播放器顶部影片标题右侧显示输入栏；关闭不影响观看弹幕。",
                     () => settings.ShowInput, value => settings.ShowInput = value, after: RefreshDanmakuRows));
+                displayRows.Add(Toggle("弹幕随窗口缩放", "开启时随画面高度缩放；关闭时保持固定像素字号。",
+                    () => settings.ScaleWithWindow, value => settings.ScaleWithWindow = value, after: ApplyDanmakuSettings));
+                displayRows.Add(Toggle("防挡字幕", "字幕可见时为底部预留 20% 的画面；关闭字幕后自动恢复显示区域。",
+                    () => settings.AvoidSubtitles, value => settings.AvoidSubtitles = value, after: ApplyDanmakuSettings));
+                displayRows.Add(Choice("弹幕密度", DanmakuDensityModes, () => settings.DensityMode, value => settings.DensityMode = value,
+                    "正常优先留出行距，较多缩小行距，重叠允许复用已占用的行；均保留同屏上限。", after: RefreshDanmakuRows));
+                if (settings.DensityMode != 2)
+                    displayRows.Add(Toggle("智能防挡弹幕", "在本地避免弹幕相互重叠和追尾。",
+                        () => settings.PreventOverlap, value => settings.PreventOverlap = value, after: ApplyDanmakuSettings));
                 displayRows.Add(Slider("不透明度（%）", 10, 100, 5, () => settings.Opacity, value => settings.Opacity = value, after: ApplyDanmakuSettings));
                 displayRows.Add(Slider("字号", 20, 64, 2, () => settings.FontSize, value => settings.FontSize = value,
-                    "按画面高度等比例缩放，独立于字幕字号。", after: ApplyDanmakuSettings));
+                    "独立于字幕字号；缩放方式由「弹幕随窗口缩放」控制。", after: ApplyDanmakuSettings));
                 displayRows.Add(Slider("弹幕速度（倍）", 0.5, 2, 0.1, () => settings.Speed, value => settings.Speed = value, after: ApplyDanmakuSettings));
+                displayRows.Add(Toggle("弹幕速度同步播放倍数", "开启时弹幕随播放倍数加速；关闭时补偿播放倍数，保持弹幕移动速度。",
+                    () => settings.SpeedSyncPlayback, value => settings.SpeedSyncPlayback = value, after: ApplyDanmakuSettings));
+                displayRows.Add(DanmakuFont(settings));
+                displayRows.Add(Toggle("弹幕粗体", "使用所选字体的粗体。", () => settings.Bold, value => settings.Bold = value, after: ApplyDanmakuSettings));
+                displayRows.Add(Choice("描边类型", DanmakuBorderStyles, () => settings.BorderStyle, value => settings.BorderStyle = value,
+                    "描边、加粗黑边或右下方 45° 投影。", after: ApplyDanmakuSettings));
                 displayRows.Add(Slider("显示区域（%）", 25, 100, 25, () => settings.Area, value => settings.Area = value,
                     "25% 顶部四分之一、50% 半屏、75% 四分之三、100% 全屏。", after: ApplyDanmakuSettings));
                 displayRows.Add(Slider("同屏弹幕上限", 10, 100, 10, () => settings.Density, value => settings.Density = (int)value,
-                    "遇到拥挤时优先避免重叠，不保证所有弹幕都能显示。", after: ApplyDanmakuSettings));
+                    "达到上限后丢弃新弹幕，不保证所有弹幕都能显示。", after: ApplyDanmakuSettings));
+                displayRows.Add(Fact("恢复弹幕外观默认", "只恢复显示外观，保留来源连接、显示开关和屏蔽词。", "", "恢复默认", () =>
+                {
+                    settings.RestoreAppearance();
+                    Save();
+                    RefreshDanmakuRows();
+                }));
 
                 typeRows.Add(Toggle("滚动弹幕", "显示从右向左移动的弹幕。", () => settings.Scroll, value => settings.Scroll = value, after: ApplyDanmakuSettings));
                 typeRows.Add(Toggle("顶部弹幕", "显示固定在顶部的弹幕。", () => settings.Top, value => settings.Top = value, after: ApplyDanmakuSettings));
                 typeRows.Add(Toggle("底部弹幕", "显示固定在所选显示区域底部的弹幕。", () => settings.Bottom, value => settings.Bottom = value, after: ApplyDanmakuSettings));
                 typeRows.Add(Toggle("彩色弹幕", "关闭后屏蔽非白色弹幕。", () => settings.Color, value => settings.Color = value, after: ApplyDanmakuSettings));
                 typeRows.Add(Toggle("合并重复弹幕", "相同内容在 10 秒内只保留第一条。", () => settings.Deduplicate, value => settings.Deduplicate = value, after: ApplyDanmakuSettings));
-                typeRows.Add(new SettingTextRow("屏蔽词", "多个词用逗号分隔，不区分英文大小写。", "输入不想看到的词", settings.BlockedWords,
+                typeRows.Add(new SettingTextRow("屏蔽词", "多个词用逗号分隔，不区分英文大小写；与播放面板共用并同步保存同一份本机列表。", "输入不想看到的词", settings.BlockedWords,
                     typed => { settings.BlockedWords = typed; settings.Normalize(); return settings.BlockedWords; }, () => { Save(); ApplyDanmakuSettings(); }));
             }
         }
@@ -119,6 +143,15 @@ public sealed partial class SettingsViewModel
             new SettingSection(DanmakuCategory, "类型与屏蔽",
                 "哪几种弹幕显示出来，以及不想看到的词。", typeRows)
         ];
+    }
+
+    private SettingFontRow DanmakuFont(DanmakuSettings settings)
+    {
+        var row = new SettingFontRow("弹幕字体", "搜索这台机器安装的字体；与字幕字体独立。", settings.FontFamily,
+            value => settings.FontFamily = value, () => { Save(); ApplyDanmakuSettings(); });
+        if (_fonts is { Ready.Families.Count: > 0 } library) row.Fill(library.Ready);
+        _danmakuFont = row;
+        return row;
     }
 
     private bool TrySaveDanmuApiToken()
@@ -145,6 +178,7 @@ public sealed partial class SettingsViewModel
         if (existing.Length > 0)
             foreach (var section in DanmakuSections())
                 existing.FirstOrDefault(current => current.Title == section.Title)?.UpdateRows(section.Rows);
+        _danmakuFont = existing.SelectMany(section => section.Rows).OfType<SettingFontRow>().FirstOrDefault();
         RefreshShortcutAvailability();
     }
 
@@ -180,7 +214,10 @@ public sealed partial class SettingsViewModel
 
     internal void OnDanmakuPreferencesChanged()
     {
-        if (_settings is not null && IsReady) RefreshDanmakuPresentation();
+        if (_settings is null || !IsReady) return;
+        RefreshDanmakuPresentation();
+        foreach (var row in Sections.Where(section => section.Category == DanmakuCategory).SelectMany(section => section.Rows).OfType<SettingTextRow>())
+            if (row.Label == "屏蔽词") row.Reseed(Settings.Danmaku.BlockedWords);
     }
 
     private static void ApplyDanmakuSettings() => ShellPrefs.ApplyDanmaku();

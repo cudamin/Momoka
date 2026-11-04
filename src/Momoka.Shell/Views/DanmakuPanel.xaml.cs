@@ -20,10 +20,14 @@ public sealed partial class DanmakuPanel : UserControl
     private DanmakuSource _searchSource = DanmakuSource.DandanPlay;
     private bool _closed;
     private int _searchRequest;
+    private readonly ObservableCollection<string> _fontFamilies = [];
 
     public DanmakuPanel()
     {
         InitializeComponent();
+        DensityModeBox.ItemsSource = new[] { "正常", "较多", "重叠" };
+        BorderStyleBox.ItemsSource = new[] { "描边", "重墨", "45° 投影" };
+        FontFamilyBox.ItemsSource = _fontFamilies;
         Results.ItemsSource = _results;
         Loaded += (_, _) =>
         {
@@ -33,6 +37,7 @@ public sealed partial class DanmakuPanel : UserControl
                 _viewModel.PropertyChanged -= OnPlayerChanged;
                 _viewModel.PropertyChanged += OnPlayerChanged;
             }
+            _ = LoadFontsAsync();
         };
         Unloaded += (_, _) =>
         {
@@ -69,6 +74,10 @@ public sealed partial class DanmakuPanel : UserControl
         if (!_closed && _viewModel is { DanmakuAvailable: true } vm && vm.IsCurrentPlayback(_context)) return true;
         SessionMessage.Text = "播放或弹幕连接已切换，请重新打开面板。";
         SessionMessage.Visibility = Visibility.Visible;
+        ShowToggle.Visibility = Visibility.Collapsed;
+        TitleBox.Visibility = Visibility.Collapsed;
+        EpisodeBox.Visibility = Visibility.Collapsed;
+        SettingsButton.Visibility = Visibility.Collapsed;
         Appearance.Visibility = Visibility.Collapsed;
         SourceBox.Visibility = Visibility.Collapsed;
         SearchButton.Visibility = Visibility.Collapsed;
@@ -80,6 +89,7 @@ public sealed partial class DanmakuPanel : UserControl
     private void OnPlayerChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(PlayerViewModel.DanmakuShown) && Current()) Seed();
+        else if (e.PropertyName == nameof(PlayerViewModel.DanmakuAvailable) && _viewModel is { DanmakuAvailable: false }) Current();
     }
 
     private void Seed()
@@ -96,6 +106,16 @@ public sealed partial class DanmakuPanel : UserControl
             SpeedSlider.Value = settings.Speed;
             AreaSlider.Value = settings.Area;
             DensitySlider.Value = settings.Density;
+            ScaleCheck.IsChecked = settings.ScaleWithWindow;
+            SubtitleCheck.IsChecked = settings.AvoidSubtitles;
+            OverlapCheck.IsChecked = settings.PreventOverlap;
+            OverlapCheck.Visibility = settings.DensityMode == 2 ? Visibility.Collapsed : Visibility.Visible;
+            SpeedSyncCheck.IsChecked = settings.SpeedSyncPlayback;
+            BoldCheck.IsChecked = settings.Bold;
+            DensityModeBox.SelectedIndex = settings.DensityMode;
+            BorderStyleBox.SelectedIndex = settings.BorderStyle;
+            if (!_fontFamilies.Contains(settings.FontFamily)) _fontFamilies.Insert(0, settings.FontFamily);
+            FontFamilyBox.SelectedItem = settings.FontFamily;
             ScrollCheck.IsChecked = settings.Scroll;
             TopCheck.IsChecked = settings.Top;
             BottomCheck.IsChecked = settings.Bottom;
@@ -105,6 +125,21 @@ public sealed partial class DanmakuPanel : UserControl
             Labels();
         }
         finally { _seeding = false; }
+    }
+
+    private async Task LoadFontsAsync()
+    {
+        if (_viewModel is null) return;
+        var catalogue = await _viewModel.DanmakuFontsAsync().ConfigureAwait(true);
+        if (_closed || _viewModel is null || XamlRoot is null) return;
+        _seeding = true;
+        try
+        {
+            _fontFamilies.Clear();
+            foreach (var family in catalogue.Families) _fontFamilies.Add(family.Name);
+        }
+        finally { _seeding = false; }
+        if (Current()) Seed();
     }
 
     private async void OnSearch(object sender, RoutedEventArgs e)
@@ -207,6 +242,30 @@ public sealed partial class DanmakuPanel : UserControl
     {
         if (!_seeding && _viewModel is not null && Current())
             _viewModel.ChangeDanmakuPreferences(settings => settings.BlockedWords = BlockBox.Text);
+    }
+
+    private void OnAppearanceChoiceChanged(object sender, SelectionChangedEventArgs e) => ApplyAppearance();
+    private void OnAppearanceChanged(object sender, RoutedEventArgs e) => ApplyAppearance();
+
+    private void ApplyAppearance()
+    {
+        if (_seeding || _viewModel is null || !Current()) return;
+        _viewModel.ChangeDanmakuPreferences(settings =>
+        {
+            settings.ScaleWithWindow = ScaleCheck.IsChecked == true;
+            settings.AvoidSubtitles = SubtitleCheck.IsChecked == true;
+            settings.PreventOverlap = OverlapCheck.IsChecked == true;
+            settings.SpeedSyncPlayback = SpeedSyncCheck.IsChecked == true;
+            settings.Bold = BoldCheck.IsChecked == true;
+            settings.DensityMode = DensityModeBox.SelectedIndex;
+            settings.BorderStyle = BorderStyleBox.SelectedIndex;
+            if (FontFamilyBox.SelectedItem is string font) settings.FontFamily = font;
+        });
+    }
+
+    private void OnRestoreAppearance(object sender, RoutedEventArgs e)
+    {
+        if (Current()) _viewModel?.ChangeDanmakuPreferences(settings => settings.RestoreAppearance());
     }
 
     private void OnSettings(object sender, RoutedEventArgs e) => _viewModel?.RequestSettings(PlayerSettingsLinks.For("danmaku")!);
