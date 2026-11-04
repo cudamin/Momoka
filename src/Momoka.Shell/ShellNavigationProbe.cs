@@ -245,6 +245,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("对话框构造自检路径", DialogConstructionAsync);
             await CaseAsync("性能：匿名导航阶段计时、顺序与隐私边界", PerformanceNavigationTimingAsync, 60, section: ShellProbeSections.Performance);
             await CaseAsync("性能：详情同类型通知去重与真实绑定更新", PerformanceDetailShapeAsync, 30, section: ShellProbeSections.Performance);
+            await CaseAsync("性能：2000集长剧按需卡、全局季跳与长季首屏", PerformanceLongSeriesAsync, 90, section: ShellProbeSections.Performance);
             await CaseAsync("性能：真实搜索页往返退订、来源切换与迟到通知", PerformanceSearchVisitsAsync, 45, section: ShellProbeSections.Performance);
             await CaseAsync("资源：真实飞牛匹配框关闭取消、重入与迟到结果", PerformanceMatchCloseAsync, 30, section: ShellProbeSections.Performance);
             await CaseAsync("性能：真实诊断 UI 队列洪峰合并、拒绝与访问归属", PerformanceDiagnosticsAsync, 30, section: ShellProbeSections.Performance);

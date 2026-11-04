@@ -4,6 +4,9 @@
 - 集合 RED 使用实际 CardShelf.NewCard 的文案回调计数：2000 集发布／索引 1500／Clear／删除未实现季各为期望 0 或 1、实际 2000，普通货架仍通过。实现可索引的非泛型 IList + 泛型 IList + 变化通知；普通 Fill 保持即时造卡，详情 FillDeferred 只发布 DTO 槽位。Clear／Contains／IndexOf／DTO 删除不创建未访问项，标准枚举仍返回全量。
 - 直接核读 WinUI `controls/dev/Repeater/InspectingDataSource.cpp`，pin `693f472aeaf89c6dff66256ee6fcd453e5d553b8`：IVector → IBindableVector → IVectorView 优先，只有 Iterable 时 WrapIterable 会全量复制；主代理核实当前发布 Microsoft.UI.Xaml.dll FileVersion `3.2.0.2511` 含同 pin，SHA256 `AAD12524765E6FB63F0AE26A45A9BA3104F24FDE66413D8A3036FBED74A1E990`。源码说明路径，实际 WinRT／Frame 实现数仍待主代理串行运行确认。
 - 本树新鲜 Shell Release 编译 0 警告 0 错误；现有真 VM LibraryResume38/38、HomePerformance19/19 通过。PageContract 基线116/116，本轮集合122/122；补充普通IList操作与30次重新填充后复验。详情VM取消与菜单测试处于实现中；未合入 master、未刷新交付目录，最终 P3 由主代理集成验证和发布。
+- 集合最终 PageContract124/124、空白与差异检查通过，提交 `84afb400ae6d977808be041d5cf55955ebeb2ade`；主代理已接入 ba08。详情真VM7项先2/7（取消/换页原有正确），实现后7/7：2000 DTO发布0卡、深处getter1卡、Cancel清源、旧读取不回填、同步通知取消不提交目标、未访问整季删除及More当前集状态。只在More前按身份创建当前一槽保住原状态组，不给全部DTO注册，未改CardItem全局状态规则。
+- 全剧私有响应的AirOrder移到Task.Run；每await及可重入通知后验证token／source／page／lifetime／shelf。新增episodes-sort与episodes-publish捕获原导航run；PickEpisode／MediaInfoEpisode重复UI排序仍在，HTTP仍全剧，不宣称这两项已优化。新性能Frame探针编译中，运行待主代理串行执行；单个Reset取消夹具不证明原生WinUI支持任意INCC重入修改。
+- 补足删项通知的业务索引一致性：先红期望1900／实际2000，原 RemoveWhere 通知先于 `_episodes.RemoveAll`，同步带子回调可能仍读旧季。调整先移除业务DTO，再发布卡片Reset；新鲜Release真详情7/7复验通过。最终本树Shell编译0警告0错误、定点空白/差异通过，原动作19/19与主体删除22/22通过。新增性能探针已编译；实际Frame/长季无界量测、焦点与宽窄截图待主代理串行运行，未声称已经交付。
 
 # 2026-11-04 P2 浏览恢复与详情背景复用（已合入、验证并发布）
 
