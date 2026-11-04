@@ -215,7 +215,7 @@ internal static class LibraryDeepReturnTests
                 Action capture = () =>
                 {
                     captures++;
-                    var id = captures == 1 ? "movie-1500" : captures == 2 ? "movie-1900" : "movie-1600";
+                    var id = captures == 1 ? "movie-1500" : captures == 2 ? "movie-1900" : "movie-1550";
                     var local = Cards(vm).FindIndex(card => Id(card) == id);
                     Assert.True(local >= 0, "三次锚点都必须来自当前实际已载卡片");
                     shell.Invoke(vm, "CaptureAnchor", local, -31d, 4);
@@ -235,7 +235,7 @@ internal static class LibraryDeepReturnTests
                     Assert.Equal(3, captures, "二次HTTP后也要纯捕获当前C锚点");
                     Assert.True(Cards(vm).SequenceEqual(retained), "C在二次返回区间外，保留原卡片与当前位置");
                     Assert.Equal(originalStart, shell.Get<int>(vm, "WindowStart"));
-                    Assert.Equal(1600, shell.Get<int>(Request(vm), "AnchorIndex"));
+                    Assert.Equal(1550, shell.Get<int>(Request(vm), "AnchorIndex"));
                     Assert.Equal(-31d, shell.Get<double>(Request(vm), "AnchorY"));
                     Assert.Equal(2, fixture.Transport.LibraryReads.Count - before, "最多重读一次，不继续追逐滚动请求");
                 }

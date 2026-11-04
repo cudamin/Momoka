@@ -1,6 +1,6 @@
 # 2026-11-04 P3 长剧卡片按需创建（Task1 开发树，待整合）
 
-- 集成审查 P2 补修在此独立树 ff 到 `8881c0b` 后进行，仅改 LibraryViewModel.Window／LibraryDeepReturnTests：受控 A1500→B1900→C1600 两个 HTTP 先红（期望第三次纯捕获3、实际2），二次请求返回后再次捕获锚点；仅当该期间用户锚点确实改变且已在返回区间外时保留原 Cards／起点／相对Y，最多两次读取。总数缩短或空库但锚点未移动仍按原规则应用并夹紧。新鲜Shell／Tests Release0警告0错误，深返回17/17、定点空白与差异检查通过；不运行桌面或共享全测，集成验证由主代理继续。
+- 集成审查 P2 补修在此独立树 ff 到 `8881c0b` 后进行，仅改 LibraryViewModel.Window／LibraryDeepReturnTests：二次请求返回后再次捕获锚点；仅当该期间用户锚点确实改变且已在返回区间外时保留原 Cards／起点／相对Y，最多两次读取。总数缩短或空库但锚点未移动仍按原规则应用并夹紧。初始旧代码17项16/17红为缺第三次捕获（期望3、实际2）；首轮修后16/17仍红，C1600恰在二读返回窗口内，测试错误要求拒绝有效范围。助手过早提交 `8dfc365` 并错误记录17/17，现明确纠正；C改为已加载且在二读范围外的1550后，新鲜Tests构建0警告0错误、完整深返回17/17通过，含原尾部缩短与空库路径；定点空白/差异检查通过。当前产品Shell Release0警告0错误；不运行桌面或共享全测。
 - native 工作树 `C:/Users/89400/.codex/worktrees/p3-long-series/Momoka`，分支 `codex/p3-long-series`，基线 `3670858195194dfee09fd0147263346021211b45`。写入范围：CardShelf／CardCollection／ResumeSlot、详情集列表及离线与运行探针；主代理 ba08 独立负责普通库深返回。没有发布、上传、启动桌面 UI 或触碰其它进程。
 - 集合 RED 使用实际 CardShelf.NewCard 的文案回调计数：2000 集发布／索引 1500／Clear／删除未实现季各为期望 0 或 1、实际 2000，普通货架仍通过。实现可索引的非泛型 IList + 泛型 IList + 变化通知；普通 Fill 保持即时造卡，详情 FillDeferred 只发布 DTO 槽位。Clear／Contains／IndexOf／DTO 删除不创建未访问项，标准枚举仍返回全量。
 - 直接核读 WinUI `controls/dev/Repeater/InspectingDataSource.cpp`，pin `693f472aeaf89c6dff66256ee6fcd453e5d553b8`：IVector → IBindableVector → IVectorView 优先，只有 Iterable 时 WrapIterable 会全量复制；主代理核实当前发布 Microsoft.UI.Xaml.dll FileVersion `3.2.0.2511` 含同 pin，SHA256 `AAD12524765E6FB63F0AE26A45A9BA3104F24FDE66413D8A3036FBED74A1E990`。源码说明路径，实际 WinRT／Frame 实现数仍待主代理串行运行确认。
