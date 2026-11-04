@@ -1386,6 +1386,12 @@ public sealed class UiSettings
     /// <summary>详情背景图的不透明度增量；0 保留普通与沉浸默认值，100 完全不透明。</summary>
     public double BackdropOpacity { get; set; }
 
+    /// <summary>按钮与选择框使用应用内亚克力；缺键保留现有底色。</summary>
+    public bool UseAcrylicControls { get; set; }
+
+    /// <summary>用真正高斯模糊替换背景图上的文字暗色遮罩，仍保留短主题收边渐变。</summary>
+    public bool UseGaussianBackdrop { get; set; }
+
     /// <summary>电影、剧与季的宽版式固定使用沉浸模式；仍要求背景图且不进入紧凑版式。</summary>
     public bool AlwaysImmersive { get; set; }
 

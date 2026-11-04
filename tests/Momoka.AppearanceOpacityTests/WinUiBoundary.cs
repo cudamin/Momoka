@@ -70,6 +70,16 @@ namespace Microsoft.UI.Xaml.Media
     {
         public Windows.UI.Color Color { get; set; }
     }
+
+    public sealed class AcrylicBrush : Brush
+    {
+        public Windows.UI.Color TintColor { get; set; }
+        public Windows.UI.Color FallbackColor { get; set; }
+        public double TintOpacity { get; set; }
+        public double? TintLuminosityOpacity { get; set; }
+        public bool AlwaysUseFallback { get; set; }
+        public TimeSpan TintTransitionDuration { get; set; }
+    }
 }
 
 namespace Windows.UI

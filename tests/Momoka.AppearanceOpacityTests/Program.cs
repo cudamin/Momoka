@@ -87,7 +87,7 @@ Check("新增背景不枚举原资源且保留延迟前景与附属字典", () =
     dictionary.RejectEnumeration = false;
     foreach (var suffix in new[] { "", "PointerOver", "Pressed" })
     {
-        var copy = (SolidColorBrush)control.Resources["ToggleButtonBackgroundChecked" + suffix];
+        var copy = (AcrylicBrush)control.Resources["ToggleButtonBackgroundChecked" + suffix];
         var source = (SolidColorBrush)resources["ToggleButtonBackground" + suffix];
         Increased(source, copy, 45, TargetFor(suffix));
     }
@@ -123,7 +123,7 @@ foreach (var (control, prefix) in new (Control, string)[]
         foreach (var suffix in new[] { "Background", "BackgroundPointerOver", "BackgroundPressed", "BackgroundDisabled" })
         {
             var source = (SolidColorBrush)resources[sourcePrefix + suffix];
-            var copy = (SolidColorBrush)control.Resources[prefix + suffix];
+            var copy = (AcrylicBrush)control.Resources[prefix + suffix];
             if (ReferenceEquals(source, copy)) throw new InvalidOperationException("局部底色没有独立复制");
             Increased(source, copy, 45, TargetFor(suffix["Background".Length..]));
         }
@@ -137,12 +137,12 @@ foreach (var (control, prefix) in new (Control, string)[]
         brushes!.Apply(0);
         var source = (SolidColorBrush)resources[(control is ToggleButton ? "ToggleButton" : "Button") + "Background"];
         Equal(source.Opacity, control.Background!.Opacity);
-        if (((SolidColorBrush)control.Background).Color != source.Color)
+        if (((AcrylicBrush)control.Background).FallbackColor != source.Color)
             throw new InvalidOperationException("零档没有完整恢复原画刷");
         source.Color = 0x30112233;
         brushes.Apply(0);
         Equal(source.Opacity, control.Background.Opacity);
-        if (((SolidColorBrush)control.Background).Color != source.Color)
+        if (((AcrylicBrush)control.Background).FallbackColor != source.Color)
             throw new InvalidOperationException("切换主题后副本仍显示旧颜色");
     });
 }
@@ -174,15 +174,15 @@ Check("主页详情按钮单独复制三态底色", () =>
     var control = new Button();
     var brushes = ControlBackgroundBrushes.ForBanner(control, bannerResources);
     brushes.Apply(30);
-    Increased((SolidColorBrush)bannerResources["EgBannerGhostRestBrush"], (SolidColorBrush)control.Background!, 30, TargetFor(""));
+    Increased((SolidColorBrush)bannerResources["EgBannerGhostRestBrush"], (AcrylicBrush)control.Background!, 30, TargetFor(""));
     Increased((SolidColorBrush)bannerResources["EgBannerGhostHoverBrush"],
-        (SolidColorBrush)control.Resources["ButtonBackgroundPointerOver"], 30, TargetFor("PointerOver"));
+        (AcrylicBrush)control.Resources["ButtonBackgroundPointerOver"], 30, TargetFor("PointerOver"));
     Increased((SolidColorBrush)bannerResources["EgBannerGhostPressBrush"],
-        (SolidColorBrush)control.Resources["ButtonBackgroundPressed"], 30, TargetFor("Pressed"));
+        (AcrylicBrush)control.Resources["ButtonBackgroundPressed"], 30, TargetFor("Pressed"));
     Equal(1, ((SolidColorBrush)bannerResources["EgBannerGhostRestBrush"]).Opacity);
     brushes.Apply(100);
     Equal(1, control.Background!.Opacity);
-    Equal(255, ((SolidColorBrush)control.Background).Color.A);
+    Equal(255, ((AcrylicBrush)control.Background).FallbackColor.A);
 });
 Check("按钮全程单调增加且100档消除颜色和画刷双重透明", () =>
 {
@@ -192,8 +192,8 @@ Check("按钮全程单调增加且100档消除颜色和画刷双重透明", () =
     foreach (var percent in new[] { 0d, 0.001, 1, 10, 30, 45, 70, 99, 100 })
     {
         brushes.Apply(percent);
-        var copy = (SolidColorBrush)control.Background!;
-        var alpha = copy.Color.A / 255d * copy.Opacity;
+        var copy = (AcrylicBrush)control.Background!;
+        var alpha = copy.FallbackColor.A / 255d * copy.Opacity;
         if (alpha < previous) throw new InvalidOperationException("滑块增加时底色更透明了");
         previous = alpha;
     }
@@ -202,7 +202,7 @@ Check("按钮全程单调增加且100档消除颜色和画刷双重透明", () =
     brushes.Apply(double.NaN);
     var source = (SolidColorBrush)resources["ButtonBackground"];
     Equal(source.Opacity, control.Background!.Opacity);
-    if (((SolidColorBrush)control.Background).Color != source.Color)
+    if (((AcrylicBrush)control.Background).FallbackColor != source.Color)
         throw new InvalidOperationException("非法值没有回到零档原始外观");
 });
 Check("薄白背景增强到100仍为深色且三态保持差别", () =>
@@ -220,17 +220,17 @@ Check("薄白背景增强到100仍为深色且三态保持差别", () =>
     foreach (var (suffix, sourceKey) in new[] { ("", "EgBannerGhostRestBrush"),
         ("PointerOver", "EgBannerGhostHoverBrush"), ("Pressed", "EgBannerGhostPressBrush") })
     {
-        var copy = (SolidColorBrush)control.Resources["ButtonBackground" + suffix];
+        var copy = (AcrylicBrush)control.Resources["ButtonBackground" + suffix];
         Equal(1, copy.Opacity);
-        Equal(255, copy.Color.A);
-        if (copy.Color.R >= 128 || copy.Color.G >= 128 || copy.Color.B >= 128)
+        Equal(255, copy.FallbackColor.A);
+        if (copy.FallbackColor.R >= 128 || copy.FallbackColor.G >= 128 || copy.FallbackColor.B >= 128)
             throw new InvalidOperationException(suffix + " 增强到100出现白块，白字无法保持可读");
         Increased((SolidColorBrush)bannerResources[sourceKey], copy, 100, TargetFor(suffix));
-        colors.Add(copy.Color);
+        colors.Add(copy.FallbackColor);
     }
     if (colors.Distinct().Count() != 3) throw new InvalidOperationException("增强到100丢失了三态底色差别");
     brushes.Apply(0);
-    if (((SolidColorBrush)control.Background!).Color != ((SolidColorBrush)bannerResources["EgBannerGhostRestBrush"]).Color)
+    if (((AcrylicBrush)control.Background!).FallbackColor != ((SolidColorBrush)bannerResources["EgBannerGhostRestBrush"]).Color)
         throw new InvalidOperationException("混色后零档没有恢复原颜色");
 });
 Check("增强中的底色跟随主题目标变化", () =>
@@ -242,12 +242,12 @@ Check("增强中的底色跟随主题目标变化", () =>
     try
     {
         brushes.Apply(75);
-        var before = ((SolidColorBrush)control.Background!).Color;
+        var before = ((AcrylicBrush)control.Background!).FallbackColor;
         target.Color = 0xFF35472B;
         brushes.Apply(75);
-        var after = ((SolidColorBrush)control.Background).Color;
+        var after = ((AcrylicBrush)control.Background).FallbackColor;
         if (before == after) throw new InvalidOperationException("新主题目标没有参与增强配色");
-        Increased((SolidColorBrush)resources["ButtonBackground"], (SolidColorBrush)control.Background, 75, target);
+        Increased((SolidColorBrush)resources["ButtonBackground"], (AcrylicBrush)control.Background, 75, target);
     }
     finally { target.Color = previousTarget; }
 });
@@ -286,6 +286,60 @@ Check("外观通知不重新查询主页且导入默认通知全部", () =>
     }
 });
 
+Check("材质切换不重写资源键，亚克力100档回实底", () =>
+{
+    var control = new ToggleButton();
+    var brushes = ControlBackgroundBrushes.ForDetail(control);
+    var method = typeof(ControlBackgroundBrushes).GetMethod("Apply", [typeof(double), typeof(bool)])
+        ?? throw new InvalidOperationException("缺少可切换的亚克力背景");
+    var keys = control.Resources.Keys.ToArray();
+    method.Invoke(brushes, [0d, true]);
+    if (control.Background is not AcrylicBrush { AlwaysUseFallback: false } glass)
+        throw new InvalidOperationException("亚克力选项没有启用实际材质");
+    Equal(0.55, glass.TintOpacity);
+    Equal(1, glass.Opacity);
+    method.Invoke(brushes, [100d, true]);
+    if (!glass.AlwaysUseFallback || glass.FallbackColor.A != 255 || glass.Opacity != 1)
+        throw new InvalidOperationException("亚克力100档未完全不透明");
+    method.Invoke(brushes, [0d, false]);
+    var source = (SolidColorBrush)resources["ToggleButtonBackground"];
+    if (!glass.AlwaysUseFallback || glass.FallbackColor != source.Color)
+        throw new InvalidOperationException("现有底色零档未还原");
+    Equal(source.Opacity, glass.Opacity);
+    if (!keys.SequenceEqual(control.Resources.Keys) || !ReferenceEquals(glass, control.Background))
+        throw new InvalidOperationException("切换材质替换了资源字典或画刷");
+});
+Check("亚克力三态与checked、主题和回退独立", () =>
+{
+    foreach (var control in new Control[] { new Button(), new ToggleButton(), new ComboBox() })
+    {
+        var prefix = control is ComboBox ? "ComboBox" : control is ToggleButton ? "ToggleButton" : "Button";
+        var backgrounds = ControlBackgroundBrushes.ForDetail(control);
+        backgrounds.Apply(45, true);
+        foreach (var suffix in new[] { "", "PointerOver", "Pressed", "Disabled" })
+        {
+            var glass = (AcrylicBrush)control.Resources[prefix + "Background" + suffix];
+            var target = TargetFor(suffix);
+            if (glass.TintColor != target.Color || glass.FallbackColor != target.Color || glass.AlwaysUseFallback)
+                throw new InvalidOperationException(prefix + suffix + " 亚克力未跟主题或已提前回退");
+            Equal(0.55 + 0.45 * 0.45, glass.TintOpacity);
+            Equal(0.5 + 0.5 * 0.45, glass.TintLuminosityOpacity ?? -1);
+            if (control is ToggleButton && !ReferenceEquals(glass, control.Resources[prefix + "BackgroundChecked" + suffix]))
+                throw new InvalidOperationException("选中态没有沿用对应亚克力");
+            var before = target.Color;
+            try
+            {
+                target.Color = 0xFF38492B;
+                backgrounds.Apply(45, true);
+                if (glass.TintColor != target.Color || glass.FallbackColor != target.Color)
+                    throw new InvalidOperationException("亚克力切主题保留旧色");
+            }
+            finally { target.Color = before; }
+        }
+        Equal(1, control.Opacity);
+    }
+});
+
 Console.WriteLine($"外观透明度：{passed} 通过，{failed} 失败。");
 Console.WriteLine($"TOTAL {passed + failed}; PASS {passed}; FAIL {failed}; SKIP 0");
 return failed == 0 ? 0 : 1;
@@ -311,15 +365,15 @@ static void Equal(double expected, double actual)
         throw new InvalidOperationException($"期望 {expected}，实际 {actual}");
 }
 
-static void Increased(SolidColorBrush source, SolidColorBrush copy, double percent, SolidColorBrush target)
+static void Increased(SolidColorBrush source, AcrylicBrush copy, double percent, SolidColorBrush target)
 {
     var baseline = source.Color.A / 255d * source.Opacity;
     var added = (1 - baseline) * percent / 100;
     var expected = baseline + added;
-    var actual = copy.Color.A / 255d * copy.Opacity;
+    var actual = copy.FallbackColor.A / 255d * copy.Opacity;
     Equal(expected, actual);
-    var pairs = new[] { (source.Color.R, target.Color.R, copy.Color.R),
-        (source.Color.G, target.Color.G, copy.Color.G), (source.Color.B, target.Color.B, copy.Color.B) };
+    var pairs = new[] { (source.Color.R, target.Color.R, copy.FallbackColor.R),
+        (source.Color.G, target.Color.G, copy.FallbackColor.G), (source.Color.B, target.Color.B, copy.FallbackColor.B) };
     foreach (var (original, surface, result) in pairs)
     {
         var channel = (original * baseline + surface * added) / expected;

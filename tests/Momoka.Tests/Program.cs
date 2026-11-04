@@ -7,6 +7,7 @@ internal static class Program
         if (args is ["detail-customization-fixture"])
         {
             DetailLayoutTests.Register();
+            GaussianBackdropTests.Register();
             SettingsLayoutTests.Register();
             return TestHarness.Run();
         }
@@ -328,6 +329,7 @@ internal static class Program
         HomeCarouselTests.Register();
         HomeFoldTests.Register();
         BackdropBlurTests.Register();
+        GaussianBackdropTests.Register();
         HomeLayoutTests.Register();
         DetailLayoutTests.Register();
         RemovedMediaTests.Register();

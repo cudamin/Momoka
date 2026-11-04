@@ -462,10 +462,20 @@ public sealed partial class DetailViewModel : PageViewModel
 
     internal double ControlBackgroundOpacity => _settings?.Settings.Ui.ControlBackgroundOpacity ?? 0;
 
+    internal bool UseAcrylicControls => _settings?.Settings.Ui.UseAcrylicControls == true;
+    public bool UseGaussianBackdrop => _settings?.Settings.Ui.UseGaussianBackdrop == true;
+    public bool GaussianBackdropApplied => _heroRenderedGaussian && HeroImage is not null;
+    internal bool GaussianBackdropReady => UseGaussianBackdrop == _heroRenderedGaussian && !_heroRendering && HeroImage is not null;
+    private bool _heroRenderedGaussian;
+    private bool _heroRequestedGaussian;
+    private bool _heroRendering;
+
     public double BackdropOpacity => AppearanceOpacity.Backdrop(_settings?.Settings.Ui.BackdropOpacity ?? 0, Showcase);
 
     internal void RefreshAppearance()
     {
+        OnPropertyChanged(nameof(UseGaussianBackdrop));
+        UpdateHeroBlur();
         OnPropertyChanged(nameof(Showcase));
         OnPropertyChanged(nameof(TailMinHeight));
         OnPropertyChanged(nameof(PaperMinHeight));
@@ -565,7 +575,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>当前的模糊档位 —— 裁切占比（<see cref="DetailHero.PictureCrop"/>）换算的半径。电影和剧没有
     /// 基础半径，裁多少加多少；集页只在紧凑版式里画这张图，宽版式上裁切占比算出来照样有值，只是没有一层画它。</summary>
-    private int HeroBlurTarget => BackdropBlur.CropRadius(
+    private int HeroBlurTarget => UseGaussianBackdrop ? GaussianBackdrop.Sigma : BackdropBlur.CropRadius(
         DetailHero.PictureCrop(PageWidth, HeroHeightRatio, Viewport), CropBlurStart, 0, CropBlurExtra, CropBlurStep);
 
     /// <summary>
@@ -578,41 +588,49 @@ public sealed partial class DetailViewModel : PageViewModel
         if (!Attached || _heroPixels is null) return;
 
         var target = HeroBlurTarget;
-        if (target == _heroBlurRadius) return;
+        if (target == _heroBlurRadius && _heroRequestedGaussian == UseGaussianBackdrop) return;
 
         var generation = ++_heroBlurGeneration;
         _heroBlurRadius = target;
+        _heroRequestedGaussian = UseGaussianBackdrop;
+        _heroRendering = true;
 
-        _ = RenderBlurAsync(generation, _heroPixels, target);
+        _ = RenderBlurAsync(generation, _heroPixels, target, _heroRequestedGaussian);
     }
 
     private async Task<BitmapImage?> RenderHeroAsync(HeroPictureLoader.HeroPixels pixels, int radius,
-        CancellationToken token, DetailHeroCache.Ticket? ticket, NavigationTimingRun? timing)
+        CancellationToken token, DetailHeroCache.Ticket? ticket, NavigationTimingRun? timing, bool gaussian)
     {
         token.ThrowIfCancellationRequested();
         ticket?.Scope.ThrowIfNotAvailable();
         var cache = _heroCache;
-        if (cache is not null && ticket is not null && cache.TryGetPicture(ticket, pixels, radius, out var kept))
+        if (cache is not null && ticket is not null && cache.TryGetPicture(ticket, pixels, radius, out var kept, gaussian))
         {
             timing?.Mark("hero-picture-hit", 1);
             return kept;
         }
-        var picture = await HeroPictureLoader.RenderAsync(pixels, radius, token, timing).ConfigureAwait(true);
+        var picture = await HeroPictureLoader.RenderAsync(pixels, radius, token, timing, gaussian).ConfigureAwait(true);
         token.ThrowIfCancellationRequested();
         ticket?.Scope.ThrowIfNotAvailable();
         if (picture is not null && cache is not null && ticket is not null)
-            cache.RememberPicture(ticket, pixels, radius, picture);
+            cache.RememberPicture(ticket, pixels, radius, picture, gaussian);
         return picture;
     }
 
-    private async Task RenderBlurAsync(int generation, HeroPictureLoader.HeroPixels pixels, int radius)
+    private async Task RenderBlurAsync(int generation, HeroPictureLoader.HeroPixels pixels, int radius, bool gaussian)
     {
         try
         {
-            var picture = await RenderHeroAsync(pixels, radius, _art?.Token ?? default, _heroCacheTicket, _heroTiming)
+            var picture = await RenderHeroAsync(pixels, radius, _art?.Token ?? default, _heroCacheTicket, _heroTiming, gaussian)
                 .ConfigureAwait(true);
 
-            if (Attached && generation == _heroBlurGeneration && picture is not null) HeroImage = picture;
+            if (Attached && generation == _heroBlurGeneration && gaussian == UseGaussianBackdrop && picture is not null)
+            {
+                _heroRenderedGaussian = gaussian;
+                _heroRendering = false;
+                HeroImage = picture;
+                OnPropertyChanged(nameof(GaussianBackdropApplied));
+            }
         }
         catch (OperationCanceledException)
         {
@@ -620,6 +638,14 @@ public sealed partial class DetailViewModel : PageViewModel
         catch (Exception error)
         {
             Log.Debug(Category, $"背景图按裁切重糊失败：{error.Message}");
+        }
+        finally
+        {
+            if (generation == _heroBlurGeneration && _heroRendering)
+            {
+                _heroRendering = false;
+                _heroBlurRadius = -1;
+            }
         }
     }
 
@@ -1087,7 +1113,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 「黑色渐变的高度太高了，降低一些，它的主要作用是隐藏背景图下方的分界线」收到 64：藏住那条硬边就够了，
     /// 再往上多出来的只是压在剧情说明背后的一段黑。停点前载（四成二处已到六成五），矮盒子上的斜率照样平滑。
     /// </summary>
-    private const double PictureFadeHeight = 64;
+    public double PictureFadeHeight => GaussianBackdrop.FadeHeight;
 
     /// <summary>
     /// 这一档版面要不要封面 —— 规则在 Core（<see cref="DetailHero.ShowsStill"/>）：紧凑版式下一律不画
@@ -2803,6 +2829,8 @@ public sealed partial class DetailViewModel : PageViewModel
             _heroPixels = null;
             _heroBlurRadius = -1;
             _heroBlurGeneration++;
+            _heroRendering = false;
+            _heroRenderedGaussian = false;
 
             _art?.Cancel();
             _art?.Dispose();
@@ -3465,10 +3493,17 @@ public sealed partial class DetailViewModel : PageViewModel
             var radius = HeroBlurTarget;
             var generation = ++_heroBlurGeneration;
             _heroBlurRadius = radius;
+            var gaussian = UseGaussianBackdrop;
+            _heroRequestedGaussian = gaussian;
+            _heroRendering = true;
 
-            var rendered = await RenderHeroAsync(source, radius, token, selectedTicket, _heroTiming).ConfigureAwait(true);
+            var rendered = await RenderHeroAsync(source, radius, token, selectedTicket, _heroTiming, gaussian).ConfigureAwait(true);
             if (rendered is null || !Attached || !Fresh(art, page) || generation != _heroBlurGeneration) return;
+            if (gaussian != UseGaussianBackdrop) return;
+            _heroRenderedGaussian = gaussian;
+            _heroRendering = false;
             ShowHero(rendered);
+            OnPropertyChanged(nameof(GaussianBackdropApplied));
             NavigationTiming.Mark("hero-image-assign", 1);
         }
 

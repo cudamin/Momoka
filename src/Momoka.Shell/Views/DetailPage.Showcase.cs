@@ -197,7 +197,8 @@ public sealed partial class DetailPage
     /// 尾部最浓那一档的颜色 —— 沉浸档的纸面用它，正文和上方那一段因此同色，接缝看不出来。取的是屏上那支
     /// 画刷真正的颜色，不是另抄一遍 <see cref="DetailHero.ScrimCeiling"/>：两处各写一个数就是两处会分叉。
     /// </summary>
-    private Color WashColor => HeroTail.Background is SolidColorBrush { Color: var color }
+    private Color WashColor => ViewModel.GaussianBackdropApplied ? Color.FromArgb(0, 0, 0, 0)
+        : HeroTail.Background is SolidColorBrush { Color: var color }
         ? color
         : Color.FromArgb(DetailHero.ScrimCeiling, DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B);
 
@@ -390,6 +391,7 @@ public sealed partial class DetailPage
         _sheetBrush.Color = showcase ? WashColor : PaperColor;
         _panelFill.Opacity = showcase ? 0 : 1;
         _panelLine.Opacity = showcase ? 0 : 1;
+        PaintBackdropReading();
 
         // 收尾读最新偏好，不能把滑块刚设置的浓度写回旧默认。
         BackdropPicture.Opacity = ViewModel.BackdropOpacity;

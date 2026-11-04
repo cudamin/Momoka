@@ -47,6 +47,28 @@ public sealed partial class ShelfHead : UserControl
         typeof(ShelfHead),
         new PropertyMetadata(false, OnScrimChanged));
 
+    /// <summary>只有透明高斯背景上的标题需要字形软影；其他货架默认不改变外观。</summary>
+    public static readonly DependencyProperty InkProperty = DependencyProperty.Register(
+        nameof(Ink), typeof(bool), typeof(ShelfHead), new PropertyMetadata(false, OnInkChanged));
+
+    public bool Ink
+    {
+        get => (bool)GetValue(InkProperty);
+        set => SetValue(InkProperty, value);
+    }
+
+    private bool _inkAttached;
+    private static void OnInkChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
+    {
+        var head = (ShelfHead)sender;
+        if ((bool)args.NewValue && !head._inkAttached)
+        {
+            TextInk.Attach(head.TitleInk, head.TitleText);
+            head._inkAttached = true;
+        }
+        head.TitleInk.Visibility = (bool)args.NewValue ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     /// <summary>
     /// 这一带可以进去（首页媒体库那一排），标题后面跟一个大于号，标题组变成按钮。
     /// 2026-09-13：用户原话「在最近添加右边添加一个大于号，点击标题后可以进入对应媒体库」。

@@ -580,12 +580,14 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(picker);
                     var expected = Descendants(reference).OfType<ContentPresenter>()
                         .Single(presenter => presenter.Name == "ContentPresenter").Background;
-                    Require(expected is SolidColorBrush expectedColor && background.Background is SolidColorBrush actual
-                        && actual.Color == expectedColor.Color, $"{picker.Name}/{state} 与上方按钮背景不同");
+                    Require(expected is AcrylicBrush { AlwaysUseFallback: true } expectedColor
+                        && background.Background is AcrylicBrush { AlwaysUseFallback: true } actual
+                        && actual.FallbackColor == expectedColor.FallbackColor, $"{picker.Name}/{state} 与上方按钮背景不同");
                     reads.Add($"{ThemeHost.Current.Id}/{picker.Name}/{state}: 与播放按钮同底");
                 }
-                Require(picker.Background is SolidColorBrush resting && highlight.Background is SolidColorBrush focused
-                    && focused.Color == resting.Color, picker.Name + " 聚焦底色没有回到按钮常态");
+                Require(picker.Background is AcrylicBrush { AlwaysUseFallback: true } resting
+                    && highlight.Background is AcrylicBrush { AlwaysUseFallback: true } focused
+                    && focused.FallbackColor == resting.FallbackColor, picker.Name + " 聚焦底色没有回到按钮常态");
             }
             finally
             {
@@ -609,12 +611,12 @@ internal sealed partial class ShellNavigationProbe
                 for (var index = 0; index < states.Length; index++)
                 {
                     Require(VisualStateManager.GoToState(control, states[index], false), "模板状态不存在：" + states[index]);
-                    await UntilAsync(() => Fill() is SolidColorBrush);
-                    var fill = (SolidColorBrush)Fill()!;
+                    await UntilAsync(() => Fill() is AcrylicBrush { AlwaysUseFallback: true });
+                    var fill = (AcrylicBrush)Fill()!;
                     Require(!keys.Any(key => ReferenceEquals(fill, dark[key])), "详情操作按钮仍接共享玻璃");
-                    if (index < 3) platform[index] = fill.Color;
-                    else Require(fill.Color == platform[index - 3], "连播勾选底色未按回未勾选的三档");
-                    reads.Add($"{ThemeHost.Current.Id}/{handle}/{states[index]}: 平台默认底 {fill.Color}");
+                    if (index < 3) platform[index] = fill.FallbackColor;
+                    else Require(fill.FallbackColor == platform[index - 3], "连播勾选底色未按回未勾选的三档");
+                    reads.Add($"{ThemeHost.Current.Id}/{handle}/{states[index]}: 平台默认底 {fill.FallbackColor}");
                 }
             }
             finally { VisualStateManager.GoToState(control, restore, false); }

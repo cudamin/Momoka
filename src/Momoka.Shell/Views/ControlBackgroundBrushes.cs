@@ -6,13 +6,13 @@ using Microsoft.UI.Xaml.Media;
 namespace Momoka.Shell.Views;
 
 /// <summary>
-/// 控件自己的底色副本。以主题深色表面补足不透明度，文字、图标、边线与弹层沿用控件的原有状态。
+/// 每态固定一支材质画刷：现有底色走精确实色回退，亚克力走原生材质。文字、图标、边线与弹层沿用原有状态。
 /// 框架 2.3.9 的 DefaultButtonStyle/DefaultToggleButtonStyle 在三种状态分别读取这些资源键，
 /// 所以必须提供整组三态，不能只给 Background 填一支刷子。
 /// </summary>
 internal sealed class ControlBackgroundBrushes
 {
-    private readonly List<(SolidColorBrush Source, SolidColorBrush Target, SolidColorBrush Copy)> _brushes = [];
+    private readonly List<(SolidColorBrush Source, SolidColorBrush Target, AcrylicBrush Copy)> _brushes = [];
 
     private ControlBackgroundBrushes(Control control, string prefix,
         SolidColorBrush normal, SolidColorBrush hover, SolidColorBrush pressed, SolidColorBrush disabled)
@@ -57,16 +57,29 @@ internal sealed class ControlBackgroundBrushes
             (SolidColorBrush)resources["EgBannerGhostHoverBrush"], (SolidColorBrush)resources["EgBannerGhostPressBrush"],
             Resource("ButtonBackgroundDisabled"));
 
-    public void Apply(double percent)
+    public void Apply(double percent, bool useAcrylic = false)
     {
         var amount = AppearanceOpacity.ControlBackground(percent);
         foreach (var (source, target, copy) in _brushes)
         {
+            if (useAcrylic && amount < 1)
+            {
+                // 0 沿用项目动作亚克力的材质浓度，向上补到实底。画刷本身保持不透明，
+                // 系统关闭透明效果时 FallbackColor 仍是一块可读的主题表面。
+                copy.TintColor = target.Color;
+                copy.FallbackColor = target.Color;
+                copy.TintOpacity = 0.55 + 0.45 * amount;
+                copy.TintLuminosityOpacity = 0.5 + 0.5 * amount;
+                copy.Opacity = 1;
+                copy.AlwaysUseFallback = false;
+                continue;
+            }
             var color = source.Color;
             if (amount == 0)
             {
-                copy.Color = color;
+                copy.FallbackColor = color;
                 copy.Opacity = source.Opacity;
+                copy.AlwaysUseFallback = true;
                 continue;
             }
             // 原底色常为一层薄白，直接变浓会成白块白字。补上的不透明层用当前主题的深色表面，
@@ -79,14 +92,30 @@ internal sealed class ControlBackgroundBrushes
             color.G = Channel(color.G, surface.G, baseline, added, opacity);
             color.B = Channel(color.B, surface.B, baseline, added, opacity);
             color.A = byte.MaxValue;
-            copy.Color = color;
+            copy.FallbackColor = color;
             copy.Opacity = opacity;
+            copy.AlwaysUseFallback = true;
+            if (amount == 1)
+            {
+                // 极近 100 的小数档可能已经被平台按 alpha 舍入成实底；先跨过不透明状态，
+                // 再落到完全不透明，确保结束平台尚在执行的 fallback 过渡。
+                copy.TintOpacity = 0;
+                copy.TintColor = color;
+                copy.TintLuminosityOpacity = 1;
+                copy.TintOpacity = 1;
+            }
         }
     }
 
-    private SolidColorBrush Copy(SolidColorBrush source, string targetKey)
+    private AcrylicBrush Copy(SolidColorBrush source, string targetKey)
     {
-        var copy = new SolidColorBrush { Color = source.Color, Opacity = source.Opacity };
+        var copy = new AcrylicBrush
+        {
+            FallbackColor = source.Color,
+            Opacity = source.Opacity,
+            AlwaysUseFallback = true,
+            TintTransitionDuration = TimeSpan.Zero
+        };
         _brushes.Add((source, Resource(targetKey), copy));
         return copy;
     }

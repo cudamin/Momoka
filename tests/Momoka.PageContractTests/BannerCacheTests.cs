@@ -143,8 +143,111 @@ internal static class BannerCacheTests
             await fixture.Slide("tag-one").EnsureAsync();
             await fixture.Slide("tag-two").EnsureAsync();
 
-            const long expected = 1280L * 720 * 4 * 2;
+            const long expected = 1280L * 720 * 4 * 2 + 6; // 两份原料字节也计入预算。
             Assert.Equal(expected, BannerBackdropCache.Bytes);
+        });
+        Case("轮播高斯：模式切换只重渲染，原像素与两档缓存不发HTTP", async () =>
+        {
+            using var fixture = new BannerFixture();
+            fixture.Seed("banner-tag", "same-picture");
+            var slide = fixture.Slide("banner-tag");
+            await slide.EnsureAsync();
+            var original = slide.Picture;
+            slide.SetGaussianBackdrop(true);
+            for (var retry = 0; retry < 100 && !slide.GaussianBackdropReady; retry++) await Task.Delay(1);
+            Assert.True(slide.GaussianBackdropApplied);
+            Assert.Equal("same-picture|gaussian", slide.Picture!.FixtureImage);
+            Assert.Equal(1, BannerPictureLoader.Decodes);
+            slide.SetGaussianBackdrop(false);
+            Assert.True(ReferenceEquals(original, slide.Picture));
+            Assert.False(slide.GaussianBackdropApplied);
+            Assert.Equal(1, BannerPictureLoader.Decodes);
+        });
+        Case("轮播高斯：旧模式迟到与Release不回填", async () =>
+        {
+            using var fixture = new BannerFixture();
+            fixture.Seed("banner-tag", "same-picture");
+            var slide = fixture.Slide("banner-tag");
+            await slide.EnsureAsync();
+            var original = slide.Picture;
+            var hold = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            BannerPictureLoader.HoldRender = hold;
+            slide.SetGaussianBackdrop(true);
+            slide.SetGaussianBackdrop(false);
+            hold.TrySetResult(true);
+            await Task.Delay(20);
+            Assert.True(ReferenceEquals(original, slide.Picture));
+            Assert.False(slide.GaussianBackdropApplied);
+            BannerPictureLoader.HoldRender = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            var secondHold = BannerPictureLoader.HoldRender;
+            slide.SetGaussianBackdrop(true);
+            slide.Release();
+            secondHold.TrySetResult(true);
+            await Task.Delay(20);
+            Assert.Null(slide.Picture);
+        });
+        Case("轮播高斯：清缓存中的旧渲染不会重新填充缓存", async () =>
+        {
+            using var fixture = new BannerFixture();
+            fixture.Seed("banner-tag", "same-picture");
+            var slide = fixture.Slide("banner-tag");
+            await slide.EnsureAsync();
+            var hold = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            BannerPictureLoader.HoldRender = hold;
+            slide.SetGaussianBackdrop(true);
+            BannerBackdropCache.Clear();
+            hold.TrySetResult(true);
+            for (var retry = 0; retry < 100 && !slide.GaussianBackdropReady; retry++) await Task.Delay(1);
+            Assert.True(slide.GaussianBackdropApplied);
+            Assert.Equal(0L, BannerBackdropCache.Bytes);
+        });
+        Case("轮播高斯：暖缓存首次打开就遵循高斯偏好，不沿用构造中的原图", async () =>
+        {
+            using var fixture = new BannerFixture();
+            fixture.Seed("banner-tag", "same-picture");
+            var first = fixture.Slide("banner-tag");
+            await first.EnsureAsync();
+            var returned = fixture.Slide("banner-tag");
+            Assert.NotNull(returned.Picture);
+            returned.SetGaussianBackdrop(true);
+            await returned.EnsureAsync();
+            Assert.True(returned.GaussianBackdropApplied);
+            Assert.Equal("same-picture|gaussian", returned.Picture!.FixtureImage);
+            Assert.Equal(1, BannerPictureLoader.Decodes);
+        });
+        Case("轮播高斯：冷图处理时切模式不把有效后继当缺图删除", async () =>
+        {
+            using var fixture = new BannerFixture();
+            fixture.Seed("banner-tag", "same-picture");
+            var slide = fixture.Slide("banner-tag");
+            var original = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var gaussian = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            BannerPictureLoader.HoldByMode = enabled => enabled ? gaussian.Task : original.Task;
+            var missing = 0;
+            slide.PictureUnavailable += (_, _) => { missing++; slide.Release(); };
+            var load = slide.EnsureAsync();
+            for (var retry = 0; retry < 100 && BannerPictureLoader.Renders == 0; retry++) await Task.Delay(1);
+            slide.SetGaussianBackdrop(true);
+            original.TrySetResult(true);
+            await Task.Delay(20);
+            Assert.Equal(0, missing, "原模式取消不代表高斯后继图片缺失");
+            gaussian.TrySetResult(true);
+            await load;
+            for (var retry = 0; retry < 100 && !slide.GaussianBackdropReady; retry++) await Task.Delay(1);
+            Assert.True(slide.GaussianBackdropApplied);
+            Assert.Equal("same-picture|gaussian", slide.Picture!.FixtureImage);
+        });
+        Case("轮播高斯：真实图片处理失败仍报告缺图", async () =>
+        {
+            using var fixture = new BannerFixture();
+            fixture.Seed("banner-tag", "same-picture");
+            BannerPictureLoader.RenderFails = true;
+            var slide = fixture.Slide("banner-tag");
+            var missing = 0;
+            slide.PictureUnavailable += (_, _) => missing++;
+            await slide.EnsureAsync();
+            Assert.Equal(1, missing);
+            Assert.Null(slide.Picture);
         });
     }
 

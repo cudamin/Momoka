@@ -85,14 +85,25 @@ public sealed partial class DetailPage : Page, IShellContent
         NavigationTiming.Mark("init-begin");
         InitializeComponent();
         NavigationTiming.Mark("init-end");
+        TextInk.Attach(DetailTitleInk, TitleText, TextInk.TitleBlur);
+        TextInk.Attach(DetailPlateInk, TitlePlate, TextInk.PlateBlur);
+        TextInk.Attach(DetailGenreInk, GenreLine);
+        TextInk.Attach(DetailFactsInk, HeroFacts);
+        TextInk.Attach(DetailOverviewInk, Overview);
+        TextInk.Attach(DetailScoreInk, ScoreText);
+        TextInk.Attach(DetailScoreSourceInk, ScoreSourceText);
+        TextInk.Attach(DetailVideoInk, DetailVideoText);
+        TextInk.Attach(DetailDirectorsInk, DetailDirectorsText);
         PrepareAppearance();
         PaintScrim();
+        PaintBackdropFade();
         PrepareShowcase();
         PrepareCardLayout();
 
         // 沉浸版式那一支单独订阅：OnViewModelChanged 是 Plex 入口夹具原样提取的契约正文，往里塞这一页新加的
         // 字段会让那份提取出来的类编译不过。视图模型与这一页同寿，挂着不用退订。
         ViewModel.PropertyChanged += OnShowcaseChanged;
+        ViewModel.PropertyChanged += OnBackdropEffectChanged;
 
         // 集带左沿换了一张卡：把季锚点（和牌子上的季名）跟着带子走。页面这一份控件与页同寿，不用退订。
         EpisodeStrip.LeadingChanged += OnEpisodeStripLeadingChanged;
@@ -134,7 +145,8 @@ public sealed partial class DetailPage : Page, IShellContent
     private void OnThemeChanged(UiTheme theme)
     {
         RefreshShowcaseBrushes();
-        foreach (var brushes in _controlBackgrounds) brushes.Apply(ViewModel.ControlBackgroundOpacity);
+        PaintBackdropFade();
+        foreach (var brushes in _controlBackgrounds) brushes.Apply(ViewModel.ControlBackgroundOpacity, ViewModel.UseAcrylicControls);
         PaintWash(force: true);
     }
 
@@ -169,7 +181,8 @@ public sealed partial class DetailPage : Page, IShellContent
         // 而且它会把板涂回罩子的末色 —— 板上那几块小面板的底边就对不上了。
         HeroTail.Background = ViewModel.HeroCardShown
             ? null
-            : new SolidColorBrush(HeroScrimBrush.GradientStops[^1].Color);
+            : new SolidColorBrush(ViewModel.GaussianBackdropApplied && ViewModel.BackdropShown
+                ? Color.FromArgb(0, ink.R, ink.G, ink.B) : HeroScrimBrush.GradientStops[^1].Color);
 
         // 剧、季、电影的图上从标题栏到说明区只压同一档黑；旧 HeroScrim 在有图时收起，避免叠加。
         HeroBand.Background = ViewModel.BackdropShown ? HeroTail.Background : null;
@@ -2214,6 +2227,19 @@ public sealed partial class DetailPage : Page, IShellContent
     private void ApplyWash(double offset, bool force)
     {
         var artwork = ViewModel.BackdropShown;
+
+        if (artwork && ViewModel.GaussianBackdropApplied)
+        {
+            // 图上不再加黑洗色；实体正文纸面滚入标题栏时仍按原来的几何接管。
+            if (ViewModel.Showcase)
+            {
+                _paperCover = 0;
+                _paintPhase = 2;
+                SyncTitleInk(0);
+                TitleWash.Background = null;
+                return;
+            }
+        }
 
         // 沉浸档（最大化、电影/剧/季、有背景图）：正文那张纸整块让开，任何时候都没有纸面往标题栏上盖 ——
         // 整条一直是尾部那道半透明黑上的浅墨。纸面接管的三个阶段（3、4 和那道硬边渐变）在这一档都不存在。

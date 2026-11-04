@@ -10,6 +10,28 @@ internal static class DetailHeroCacheTests
 {
     internal static void Register()
     {
+        Test("详情背景缓存：相同半径的盒式与真高斯隔离且清除旧票双模式均拒绝", async () =>
+        {
+            await using var fixture = new StoreFixture();
+            using var cache = new DetailHeroCache(fixture.Session);
+            BitmapImage.ExpectedThread = Environment.CurrentManagedThreadId;
+            var pixels = new HeroPictureLoader.HeroPixels(new byte[64], 4, 4);
+            var ticket = cache.Begin(fixture.Scope, new ArtworkRef("a", "Backdrop", "tag"), 1280);
+            cache.RememberPixels(ticket, pixels);
+            cache.RememberPicture(ticket, pixels, 12, new BitmapImage());
+            Assert.True(cache.TryGetPicture(ticket, pixels, 12, out _));
+            Assert.False(cache.TryGetPicture(ticket, pixels, 12, out _, gaussian: true));
+            cache.RememberPicture(ticket, pixels, 12, new BitmapImage(), gaussian: true);
+            Assert.True(cache.TryGetPicture(ticket, pixels, 12, out _, gaussian: true));
+            Assert.False(cache.TryGetPicture(ticket, pixels, 12, out _));
+            Assert.Equal(128L, cache.Bytes);
+            cache.Clear();
+            cache.RememberPicture(ticket, pixels, 12, new BitmapImage(), gaussian: true);
+            cache.RememberPicture(ticket, pixels, 12, new BitmapImage());
+            Assert.False(cache.TryGetPicture(ticket, pixels, 12, out _, gaussian: true));
+            Assert.False(cache.TryGetPicture(ticket, pixels, 12, out _));
+            Assert.Equal(0L, cache.Bytes);
+        });
         Test("详情背景缓存：清除发生在失败候选后，整条旧候选链不能借新代次回填", async () =>
         {
             await using var fixture = new StoreFixture();
