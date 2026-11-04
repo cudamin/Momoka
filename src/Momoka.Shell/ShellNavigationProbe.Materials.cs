@@ -146,11 +146,24 @@ internal sealed partial class ShellNavigationProbe
                             ? (FrameworkElement)holder : (FrameworkElement)frame.Content;
                         await LayoutAsync(page);
                         // 窗口尺寸变更由系统异步落实；等目标宽度到位再量，不把遮挡或渲染节流当成产品尺寸不同。
-                        await WaitForLayoutAsync(() =>
+                        try
                         {
-                            _root.UpdateLayout();
-                            return Math.Abs(_root.ActualWidth - width) < 1;
-                        }, "客户区未在时限内到达目标宽度");
+                            await WaitForLayoutAsync(() =>
+                            {
+                                _root.UpdateLayout();
+                                return Math.Abs(_root.ActualWidth - width) < 1;
+                            }, "客户区未在时限内到达目标宽度");
+                        }
+                        catch (TimeoutException error)
+                        {
+                            var client = _window!.ClientSize;
+                            var geometry = $"{stage}/{theme.Id}: 目标宽度 {width}、原生客户区 {client.Width}×{client.Height}、"
+                                + $"root {_root.ActualWidth:0.0}×{_root.ActualHeight:0.0}、"
+                                + $"page {page.ActualWidth:0.0}×{page.ActualHeight:0.0}、"
+                                + $"scale {_root.XamlRoot.RasterizationScale:0.00}、最大化 {_window.IsMaximized}";
+                            reads.Add(geometry);
+                            throw new TimeoutException(geometry, error);
+                        }
                         Require(Math.Abs(_root.ActualWidth - width) < 1, "客户区未到达目标宽度");
                         CheckRoles(theme);
                         var samples = theme.Id == UiThemes.DefaultId && width == 1280;
