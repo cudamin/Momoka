@@ -24,6 +24,17 @@ internal static class DetailDeferredCardsTests
         try
         {
             var shell = new ShellFixture(shellPath, root);
+            Test("P3 入口契约：更多菜单先保留当前集，封面入口不物化集卡", () =>
+            {
+                var source = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "DetailPage.xaml.cs"));
+                var more = MethodSource(source, "private void OnMoreClicked(");
+                var ensure = more.IndexOf("ViewModel.EnsureCurrentEpisodeCard();", StringComparison.Ordinal);
+                var construct = more.IndexOf("new CardItem(", StringComparison.Ordinal);
+                Assert.True(ensure >= 0 && construct > ensure,
+                    "实际OnMoreClicked必须在构造临时菜单CardItem前保留当前集状态卡");
+                Assert.False(MethodSource(source, "internal bool OpenCoverPanel(")
+                    .Contains("EnsureCurrentEpisodeCard", StringComparison.Ordinal), "封面入口不负责更多菜单状态保留");
+            });
             Case("P3 真详情：2000集保留播放全量索引，深处只按需造卡", async () =>
             {
                 using var fixture = new Fixture(shell, 2000);
@@ -113,8 +124,9 @@ internal static class DetailDeferredCardsTests
             {
                 using var fixture = new Fixture(shell, 2000);
                 await fixture.Load();
-                // This is the actual OnMoreClicked VM entry; the menu still builds its full-detail
-                // CardItem separately, as production ItemCommands does before confirmed publication.
+                // Exercise the actual VM state-preservation method with real CardItem publication.
+                // The source contract above separately checks the OnMoreClicked caller ordering;
+                // neither check claims rendered menu or physical input coverage.
                 fixture.EnsureCurrentEpisode();
                 var temporary = PublishMenuState(fixture);
                 GC.Collect();
@@ -133,6 +145,20 @@ internal static class DetailDeferredCardsTests
             Console.Error.WriteLine(error);
             return 1;
         }
+    }
+
+    private static string MethodSource(string source, string signature)
+    {
+        var start = source.IndexOf(signature, StringComparison.Ordinal);
+        Assert.True(start >= 0, "真实详情页缺少入口：" + signature);
+        var body = source.IndexOf('{', start);
+        var depth = 0;
+        for (var index = body; index < source.Length; index++)
+        {
+            if (source[index] == '{') depth++;
+            else if (source[index] == '}' && --depth == 0) return source[start..(index + 1)];
+        }
+        throw new AssertionException("真实入口的源码边界不完整：" + signature);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

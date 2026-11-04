@@ -7,6 +7,8 @@
 - 集合最终 PageContract124/124、空白与差异检查通过，提交 `84afb400ae6d977808be041d5cf55955ebeb2ade`；主代理已接入 ba08。详情真VM7项先2/7（取消/换页原有正确），实现后7/7：2000 DTO发布0卡、深处getter1卡、Cancel清源、旧读取不回填、同步通知取消不提交目标、未访问整季删除及More当前集状态。只在More前按身份创建当前一槽保住原状态组，不给全部DTO注册，未改CardItem全局状态规则。
 - 全剧私有响应的AirOrder移到Task.Run；每await及可重入通知后验证token／source／page／lifetime／shelf。新增episodes-sort与episodes-publish捕获原导航run；PickEpisode／MediaInfoEpisode重复UI排序仍在，HTTP仍全剧，不宣称这两项已优化。新性能Frame探针编译中，运行待主代理串行执行；单个Reset取消夹具不证明原生WinUI支持任意INCC重入修改。
 - 补足删项通知的业务索引一致性：先红期望1900／实际2000，原 RemoveWhere 通知先于 `_episodes.RemoveAll`，同步带子回调可能仍读旧季。调整先移除业务DTO，再发布卡片Reset；新鲜Release真详情7/7复验通过。最终本树Shell编译0警告0错误、定点空白/差异通过，原动作19/19与主体删除22/22通过。新增性能探针已编译；实际Frame/长季无界量测、焦点与宽窄截图待主代理串行运行，未声称已经交付。
+- 审查发现当前集状态保留误接在 OpenCoverPanel，OnMoreClicked 未调用；原GC用例直接调用VM只能证明状态机制。新增实际菜单入口源码边界与调用先后契约先红7/8，移到OnMoreClicked完整CurrentItem守卫之后、临时CardItem之前，并移除封面入口调用。源码契约与真实VM机制分开报告，不把它们称作实际菜单UI验证。
+- 主代理整合时增量构建的Home/Detail/LibraryPage.g.cs残留旧ObservableCollection签名，产生CardCollection CS1503；由整合树Shell Rebuild刷新生成metadata，不手改生成文件。主树整合同样注意该构建缓存差异。
 
 # 2026-11-04 P2 浏览恢复与详情背景复用（已合入、验证并发布）
 
