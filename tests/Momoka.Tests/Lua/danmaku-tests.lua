@@ -366,4 +366,112 @@ check('compensated rate changes preserve safe visible survivors until their actu
     fixture_properties['time-pos']=15; render()
     require_true(not overlay.data:find('Keep',1,true), 'survivor remains at duration boundary')
 end)
+check('fixed pixel shrink retains the full real glyph before deferred planning including diagonal shadow', function()
+    for _, style in ipairs({0,1,2}) do
+        restart(); fixture_properties['time-pos'] = 1
+        load({comment(0,'完整字形😀',5)}, {show=true,fontSize=36,area=100,scaleWithWindow=false,borderStyle=style})
+        local original_rebuild, rebuilds = rebuild, 0
+        rebuild = function(...) rebuilds = rebuilds + 1; return original_rebuild(...) end
+        fixture_canvas = {640,360}; render()
+        rebuild = original_rebuild
+        require_true(rebuilds == 0 and pending_resize ~= nil, 'fixed font resize scans the full library before settle')
+        require_true(math.abs(visual_font_pixels()-36)<0.01, 'shrink changed requested physical pixel size')
+        local clipped = real_bounds()
+        local unclipped = real_bounds((overlay.data:gsub('\\clip%([^)]*%)', '')))
+        require_true(math.abs(clipped.y0-unclipped.y0)<=1 and math.abs(clipped.y1-unclipped.y1)<=1,
+            'old lane clip cuts a resized glyph or diagonal shadow')
+    end
+end)
+check('fixed pixel shrink immediately separates visible rows and hides lines outside the region', function()
+    restart(); fixture_properties['time-pos']=1
+    load({comment(0,'第一行😀',5),comment(0,'第二行😀',5),comment(0,'第三行😀',5)},
+        {show=true,fontSize=36,area=25,scaleWithWindow=false,bold=true,borderStyle=2})
+    fixture_canvas={640,360}; render()
+    require_true(overlay.data:find('第一行',1,true), 'safe resized first row was lost')
+    require_true(not overlay.data:find('第二行',1,true), 'out-of-area row remains partially clipped instead of hidden')
+    local visible = real_bounds()
+    require_true(visible.y0>=0 and visible.y1<=180, 'resized visible row escapes the selected region')
+    load({comment(0,'第一行😀',5),comment(0,'第二行😀',5)},
+        {show=true,fontSize=36,area=100,scaleWithWindow=false,bold=true,borderStyle=2}, 2)
+    fixture_canvas={1280,720}; fire('seek')
+    fixture_canvas={640,360}; render()
+    local bounds={}
+    for data in overlay.data:gmatch('[^\n]+') do
+        local clipped=real_bounds(data)
+        local full=real_bounds((data:gsub('\\clip%([^)]*%)','')))
+        require_true(math.abs(clipped.y0-full.y0)<=1 and math.abs(clipped.y1-full.y1)<=1, 'one resized row is clipped')
+        bounds[#bounds+1]=full
+    end
+    require_true(#bounds==2 and bounds[1].y1<=bounds[2].y0, 'resized rows overlap before deferred planning')
+end)
+check('same-file appearance retransmission preserves compensated positions across multiple playback rates', function()
+    restart(); fixture_properties.speed=1
+    load({comment(0,'透明度不移动')}, {show=true,speedSyncPlayback=false})
+    fixture_properties['time-pos']=2; render()
+    fixture_properties.speed=2; fixture_observers.speed()
+    fixture_properties['time-pos']=8; render()
+    local before=visible_x()
+    load({comment(0,'透明度不移动')}, {show=true,speedSyncPlayback=false,opacity=35}, 2)
+    require_true(math.abs(before-visible_x())<0.01, 'appearance reload resets the compensated clock')
+    local first_alpha=overlay.data:match('\\alpha&H(%x+)&')
+    require_true(first_alpha=='A6', 'new opacity was not applied')
+    load({comment(0,'滚动连续')}, {show=true,speedSyncPlayback=false}, 3)
+    local position=visible_x()
+    load({comment(0,'滚动连续')}, {show=true,speedSyncPlayback=false,opacity=85}, 4)
+    require_true(math.abs(visible_x()-position)<0.01, 'data/filter replacement rewinds active scrolling')
+end)
+check('same-file appearance retransmission never revives an expired compensated comment', function()
+    restart(); fixture_properties.speed=1
+    load({comment(0,'不能复活')}, {show=true,speedSyncPlayback=false})
+    fixture_properties['time-pos']=8; render()
+    require_true(not overlay.data:find('不能复活',1,true), 'comment has not reached its original expiry')
+    fixture_properties.speed=2; fixture_observers.speed()
+    fixture_properties['time-pos']=10; render()
+    require_true(not overlay.data:find('不能复活',1,true))
+    load({comment(0,'不能复活')}, {show=true,speedSyncPlayback=false,opacity=50}, 2)
+    require_true(not overlay.data:find('不能复活',1,true), 'opacity reload revives an expired comment')
+end)
+check('fixed pixel resize checks only visible scroll collisions until the deferred full rebuild', function()
+    restart(); fixture_properties['time-pos']=0
+    load({comment(0,'AAAA'),comment(1,'BBBB')},
+        {show=true,fontSize=64,area=25,scaleWithWindow=false,preventOverlap=true})
+    fixture_properties['time-pos']=2; render()
+    fixture_canvas={1280,1440}; render()
+    local count=0
+    for _ in overlay.data:gmatch('[^\n]+') do count=count+1 end
+    require_true(count==1, 'resize leaves temporarily intersecting scroll comments visible')
+    load({comment(0,'AAAA'),comment(1,'BBBB')},
+        {show=true,fontSize=64,area=25,scaleWithWindow=false,preventOverlap=false}, 2)
+    fixture_canvas={1280,720}; fire('seek')
+    fixture_canvas={1280,1440}; render()
+    count=0
+    for _ in overlay.data:gmatch('[^\n]+') do count=count+1 end
+    require_true(count==2, 'resize enforces overlap prevention when the user turned it off')
+end)
+check('sync mode and file changes deliberately reset compensated clocks without preserving old owners', function()
+    restart(); fixture_properties.speed=1
+    load({comment(0,'换模式')}, {show=true,speedSyncPlayback=false})
+    fixture_properties['time-pos']=2; render()
+    fixture_properties.speed=2; fixture_observers.speed()
+    fixture_properties['time-pos']=10; render()
+    require_true(overlay.data:find('换模式',1,true), 'mixed rate comment is not active')
+    load({comment(0,'换模式')}, {show=true,speedSyncPlayback=true}, 2)
+    require_true(not overlay.data:find('换模式',1,true), 'switch to synchronized motion keeps compensated time')
+    load({comment(0,'换模式')}, {show=true,speedSyncPlayback=false}, 3)
+    require_true(overlay.data:find('换模式',1,true), 'switch back did not start a new compensated owner')
+    restart(); fixture_properties.speed=2; fixture_properties['time-pos']=10
+    load({comment(0,'新文件')}, {show=true,speedSyncPlayback=false})
+    require_true(overlay.data:find('新文件',1,true), 'previous file retained speed history')
+end)
+check('same-file clear and replacement preserve compensated time while old data and overlay are removed', function()
+    restart(); fixture_properties.speed=1
+    load({comment(0,'替换来源')}, {show=true,speedSyncPlayback=false})
+    fixture_properties['time-pos']=2; render()
+    fixture_properties.speed=2; fixture_observers.speed()
+    fixture_properties['time-pos']=8; render(); local before=visible_x()
+    call('momoka-danmaku-clear',tostring(serial),'2')
+    require_true(#comments==0 and #layout==0 and overlay.removed and not timer.enabled, 'clear retains the old library')
+    load({comment(0,'替换来源')}, {show=true,speedSyncPlayback=false}, 3)
+    require_true(math.abs(visible_x()-before)<0.01, 'same-file clear rewinds playback-rate history')
+end)
 fixture_native_command('script-message', 'fixture-result', utils.format_json(checks))

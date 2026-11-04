@@ -173,6 +173,7 @@ local function rebuild()
                 local entry = layout[layout_count] or {}
                 entry.start, entry.duration, entry.width, entry.mode = start, duration, comment_width, comment.mode
                 entry.media_start = media_start
+                entry.row = offset + chosen
                 entry.y, entry.text, entry.color = 8 + (offset + chosen - 1) * line, comment.escaped_text, comment.color
                 entry.clip_top, entry.clip_bottom = math.max(0, entry.y - 4), math.min(area, entry.y + glyph_height)
                 lane_set[chosen] = entry
@@ -264,6 +265,11 @@ render = function(force_resize)
     height = 720
     local ass = {}
     local font = font_size(canvas_height)
+    local glyph_height = font_extent(font)
+    local line = glyph_height + (options.densityMode == 1 and 2 or 8)
+    local rows = math.max(0, math.floor((planned_area - 16) / line))
+    local transition = math.abs(font - planned_font) > 0.01 or math.abs(virtual_width - width) > 1
+    local occupied = transition and options.preventOverlap and options.densityMode ~= 2 and {} or nil
     local motion = motion_time(position)
     local border = options.borderStyle == 1 and 3 or options.borderStyle == 2 and 0 or 1.5
     local shadow = options.borderStyle == 2 and 3 or 0
@@ -272,15 +278,27 @@ render = function(force_resize)
         local entry = layout[index]
         if entry.start > motion then break end
         local elapsed = motion - entry.start
-        if elapsed >= 0 and elapsed < entry.duration then
-            local x = entry.mode == 1 and virtual_width - elapsed * (virtual_width + entry.width) / entry.duration or virtual_width / 2
-            local alignment = entry.mode == 1 and 7 or 8
-            local color = entry.color
-            local red, green, blue = math.floor(color / 65536), math.floor(color / 256) % 256, color % 256
-            -- Clip to the selected area, including strokes/fallback glyphs with unusual metrics.
-            ass[#ass + 1] = string.format('{\\an%d\\pos(%.2f,%.2f)\\fn%s\\fs%.2f\\b%d\\bord%.1f\\shad%d\\q2\\clip(0,%.2f,%.2f,%.2f)\\alpha&H%02X&\\1c&H%02X%02X%02X&}%s',
-                alignment, x, entry.y, options.fontFamily, font, options.bold and 1 or 0, border, shadow,
-                entry.clip_top, virtual_width, entry.clip_bottom, alpha, blue, green, red, entry.text)
+        if elapsed >= 0 and elapsed < entry.duration and entry.row <= rows then
+            -- The full schedule stays deferred, but visible lane geometry follows the new font now.
+            -- Cached widths have a constant padding; scale only their text part until the rebuild.
+            local padding = 8 + (options.borderStyle == 1 and 6 or 3)
+            local entry_width = (entry.width - padding) * font / planned_font + padding
+            local x = entry.mode == 1 and virtual_width - elapsed * (virtual_width + entry_width) / entry.duration or virtual_width / 2
+            local left, right = entry.mode == 1 and x or x - entry_width / 2,
+                entry.mode == 1 and x + entry_width or x + entry_width / 2
+            local y = 8 + (entry.row - 1) * line
+            -- A taller font or changed aspect can invalidate a previously safe scroll gap.
+            -- Check only the bounded visible entries; the 40,000-comment schedule still rebuilds once.
+            if not occupied or not occupied[entry.row] or left >= occupied[entry.row] + 12 then
+                if occupied then occupied[entry.row] = right end
+                local alignment = entry.mode == 1 and 7 or 8
+                local color = entry.color
+                local red, green, blue = math.floor(color / 65536), math.floor(color / 256) % 256, color % 256
+                -- Clip to the selected area, including strokes/fallback glyphs with unusual metrics.
+                ass[#ass + 1] = string.format('{\\an%d\\pos(%.2f,%.2f)\\fn%s\\fs%.2f\\b%d\\bord%.1f\\shad%d\\q2\\clip(0,%.2f,%.2f,%.2f)\\alpha&H%02X&\\1c&H%02X%02X%02X&}%s',
+                    alignment, x, y, options.fontFamily, font, options.bold and 1 or 0, border, shadow,
+                    math.max(0, y - 4), virtual_width, math.min(planned_area, y + glyph_height), alpha, blue, green, red, entry.text)
+            end
         end
     end
     overlay.res_x, overlay.res_y, overlay.data = virtual_width, height, table.concat(ass, '\n')
@@ -294,9 +312,10 @@ local function sync_timer()
     render()
 end
 
-local function reset()
+local function reset(preserve_clock)
     cancel_resize()
-    comments, layout, transfer, speed_segments = {}, {}, nil, {}
+    comments, layout, transfer = {}, {}, nil
+    if preserve_clock ~= true then speed_segments = {} end
     options.show = false
     overlay:remove()
     if timer then timer:kill() end
@@ -316,7 +335,10 @@ mp.register_script_message('momoka-danmaku-begin', function(file, id, json)
         or number <= highest_transfer or #json > 4096 then return end
     local value = utils.parse_json(json)
     if type(value) ~= 'table' then return end
-    reset()
+    -- Same-file appearance/filter transfers replace data without rewinding ongoing motion.
+    -- File boundaries already discarded this owner; changing sync mode resets it.
+    local preserve_clock = #speed_segments > 0 and options.speedSyncPlayback == (value.speedSyncPlayback ~= false)
+    reset(preserve_clock)
     highest_transfer = number
     transfer = tostring(id)
     options = {show = value.show == true, opacity = clamp(value.opacity, 10, 100, 70),
@@ -327,7 +349,7 @@ mp.register_script_message('momoka-danmaku-begin', function(file, id, json)
         speedSyncPlayback = value.speedSyncPlayback ~= false, fontFamily = font_family(value.fontFamily),
         bold = value.bold == true, borderStyle = (value.borderStyle == 1 or value.borderStyle == 2) and value.borderStyle or 0,
         densityMode = (value.densityMode == 1 or value.densityMode == 2) and value.densityMode or 0}
-    reset_speed_clock()
+    if not preserve_clock then reset_speed_clock() end
 end)
 
 mp.register_script_message('momoka-danmaku-chunk', function(file, id, json)
@@ -362,7 +384,7 @@ mp.register_script_message('momoka-danmaku-clear', function(file, id)
     local number = tonumber(id)
     if tonumber(file) == serial and finite(number) and number >= highest_transfer then
         highest_transfer = number
-        reset()
+        reset(true)
     end
 end)
 
