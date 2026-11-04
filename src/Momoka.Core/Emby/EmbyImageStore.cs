@@ -20,6 +20,10 @@ public readonly record struct ImageCacheUsage(int Files, long Bytes);
 /// </summary>
 public sealed class EmbyImageStore
 {
+    // A normal miss may join a recovery download whose original decoder subsequently cancels.
+    // Weak keys label only those unpersisted byte arrays, without retaining image data or making
+    // every successful ordinary cache hit reread/write its file.
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], object> _recoveryBytes = new();
     private const string Category = "images";
 
     /// <summary>
@@ -165,7 +169,7 @@ public sealed class EmbyImageStore
                 NavigationTiming.Mark("decode-end");
                 scope.ThrowIfUnavailable();
                 cancellationToken.ThrowIfCancellationRequested();
-                if (attempt > 0 && image is not null)
+                if (image is not null && (attempt > 0 || _recoveryBytes.TryGetValue(bytes, out _)))
                     await UpdateRejectedCacheAsync(scope, path, rejected, bytes, cancellationToken).ConfigureAwait(true);
                 scope.ThrowIfUnavailable();
                 cancellationToken.ThrowIfCancellationRequested();
@@ -324,6 +328,7 @@ public sealed class EmbyImageStore
                 }
 
                 if (persist) CountCachedDownload();
+                else _recoveryBytes.GetValue(bytes, static _ => new object());
 
                 return bytes;
             }

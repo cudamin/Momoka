@@ -43,6 +43,7 @@ internal sealed partial class ShellNavigationProbe
         using var services = new ServiceCollection()
             .AddSingleton(fixture.SettingsService).AddSingleton(paths)
             .AddSingleton(fixture.Session).AddSingleton(fixture.Images)
+            .AddSingleton(fixture.Services.GetRequiredService<Media.DetailHeroCache>())
             .AddSingleton<IServerCapabilities>(fixture.Capabilities)
             .AddSingleton<ISecretProtector>(PassthroughSecretProtector.Instance)
             .AddSingleton<ISystemLauncher>(fixture.Launcher).AddSingleton<IStartupRegistration>(fixture.Startup)
@@ -60,6 +61,7 @@ internal sealed partial class ShellNavigationProbe
         window.Show(new SettingsRequest(services, "界面"));
         timing.Add($"首次导航和显示 {watch.ElapsedMilliseconds} ms");
         var page = window.Page ?? throw new InvalidOperationException("正式设置页未导航");
+        Require(Get<Action?>(page.ViewModel, "_clearHeroCache") is not null, "初次设置页未绑定详情背景清理");
         await LayoutAsync(page);
         await WaitForSettingsSettledAsync(page);
         await WaitForDiagnosticsFrameAsync();

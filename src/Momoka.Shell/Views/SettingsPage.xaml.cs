@@ -473,6 +473,7 @@ public sealed partial class SettingsPage : Page, IShellContent
                 request.Services.GetRequiredService<EmbyImageStore>(),
                 request.Services.GetService(typeof(SubtitleTranslationCredentials)) as SubtitleTranslationCredentials,
                 request.Services.GetRequiredService<ISecretProtector>());
+            ViewModel.UseHeroCacheClear(request.Services.GetRequiredService<Media.DetailHeroCache>().Clear);
             _ = ViewModel.ReloadAsync();
         }
 

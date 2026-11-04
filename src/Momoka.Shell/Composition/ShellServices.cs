@@ -7,6 +7,7 @@ using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Playback;
 using Momoka.Services;
+using Momoka.Shell.Media;
 using Momoka.Shell.Platform;
 using Momoka.Shell.Security;
 using Momoka.Shell.ViewModels;
@@ -81,6 +82,7 @@ internal static class ShellServices
         services.AddSingleton(provider =>
             DeviceIdentity.Create(provider.GetRequiredService<AppSettings>().DeviceId, AppIdentity.Version));
         services.AddSingleton<EmbySession>();
+        services.AddSingleton(provider => new DetailHeroCache(provider.GetRequiredService<EmbySession>()));
         services.AddSingleton<BrowseSnapshotStore>();
 
         // 本次运行里删掉媒体库文件的条目。服务器元数据要等下一次扫描才消失，这一份让主页在那之前不再展示它们；

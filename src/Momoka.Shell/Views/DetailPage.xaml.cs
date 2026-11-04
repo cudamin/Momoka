@@ -1715,6 +1715,7 @@ public sealed partial class DetailPage : Page, IShellContent
         _images = images;
         _launcher = services.GetRequiredService<ISystemLauncher>();
 
+        ViewModel.UseHeroCache(services.GetRequiredService<Media.DetailHeroCache>());
         ViewModel.Attach(
             request,
             _actions,

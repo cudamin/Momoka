@@ -267,6 +267,7 @@ internal sealed partial class ShellNavigationProbe
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
             new MoviePilotCredentials(PassthroughSecretProtector.Instance), new UpdateClient(new RejectNetwork()),
             fixture.Capabilities, fixture.Images);
+        page.ViewModel.UseHeroCacheClear(((Media.DetailHeroCache)fixture.Services.GetService(typeof(Media.DetailHeroCache))!).Clear);
         return page;
     }
 

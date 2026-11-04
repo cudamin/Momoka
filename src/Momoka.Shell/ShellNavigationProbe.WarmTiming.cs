@@ -111,6 +111,7 @@ internal sealed partial class ShellNavigationProbe
                 realNetwork = false,
                 mediaLoaded = false
             });
+            await PerformanceHeroCacheAsync(fixture, frame);
         }
         finally
         {

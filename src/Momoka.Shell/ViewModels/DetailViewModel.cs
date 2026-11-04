@@ -520,6 +520,10 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>解好的头图原图像素 —— 裁切模糊的原料。导航换条目、换图时整个作废。</summary>
     private HeroPictureLoader.HeroPixels? _heroPixels;
     private NavigationTimingRun? _heroTiming;
+    private DetailHeroCache? _heroCache;
+    private DetailHeroCache.Ticket? _heroCacheTicket;
+
+    internal void UseHeroCache(DetailHeroCache cache) => _heroCache = cache;
 
     /// <summary>
     /// 解好的封面（集页那张剧海报、其余页面的海报）原图像素 —— 按图收窄那一格的原料
@@ -548,7 +552,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public void UpdateHeroBlur()
     {
-        if (_heroPixels is null) return;
+        if (!Attached || _heroPixels is null) return;
 
         var target = HeroBlurTarget;
         if (target == _heroBlurRadius) return;
@@ -559,15 +563,33 @@ public sealed partial class DetailViewModel : PageViewModel
         _ = RenderBlurAsync(generation, _heroPixels, target);
     }
 
+    private async Task<BitmapImage?> RenderHeroAsync(HeroPictureLoader.HeroPixels pixels, int radius,
+        CancellationToken token, DetailHeroCache.Ticket? ticket, NavigationTimingRun? timing)
+    {
+        token.ThrowIfCancellationRequested();
+        ticket?.Scope.ThrowIfNotAvailable();
+        var cache = _heroCache;
+        if (cache is not null && ticket is not null && cache.TryGetPicture(ticket, pixels, radius, out var kept))
+        {
+            timing?.Mark("hero-picture-hit", 1);
+            return kept;
+        }
+        var picture = await HeroPictureLoader.RenderAsync(pixels, radius, token, timing).ConfigureAwait(true);
+        token.ThrowIfCancellationRequested();
+        ticket?.Scope.ThrowIfNotAvailable();
+        if (picture is not null && cache is not null && ticket is not null)
+            cache.RememberPicture(ticket, pixels, radius, picture);
+        return picture;
+    }
+
     private async Task RenderBlurAsync(int generation, HeroPictureLoader.HeroPixels pixels, int radius)
     {
         try
         {
-            var picture = await HeroPictureLoader
-                .RenderAsync(pixels, radius, _art?.Token ?? default, _heroTiming)
+            var picture = await RenderHeroAsync(pixels, radius, _art?.Token ?? default, _heroCacheTicket, _heroTiming)
                 .ConfigureAwait(true);
 
-            if (generation == _heroBlurGeneration && picture is not null) HeroImage = picture;
+            if (Attached && generation == _heroBlurGeneration && picture is not null) HeroImage = picture;
         }
         catch (OperationCanceledException)
         {
@@ -2264,6 +2286,8 @@ public sealed partial class DetailViewModel : PageViewModel
         _actionsReady = false;
         _announcedShapeType = null;
         _active = true;
+        _heroCacheTicket = null;
+        _heroTiming = null;
         _scope = images.CaptureScope(request.Item);
         _actions = actions;
         _seed = request.Item;
@@ -3377,23 +3401,48 @@ public sealed partial class DetailViewModel : PageViewModel
         // （DetailHero.CompactHeight / PictureHeight）；量不成话（0 或负）就不动兜底的那 0.5625。
         async Task HeroAsync(EmbyItem page, CancellationToken token)
         {
+            var cache = _heroCache;
+            var cacheGeneration = cache?.Generation;
+            var scope = _scope!;
+            DetailHeroCache.Ticket? selectedTicket = null;
             var source = await ArtworkCandidates.FirstAsync<ArtworkRef, HeroPictureLoader.HeroPixels>(
                 ItemArtwork.Hero(page), async (picture, candidateToken) =>
                 {
-                    return await _images!.GetDecodedAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
-                        EmbyImageStore.RequestWidth(HeroDecodeWidth),
-                        bytes => HeroPictureLoader.DecodePixelsAsync(bytes, HeroDecodeWidth, candidateToken), candidateToken)
-                        .ConfigureAwait(true);
+                    candidateToken.ThrowIfCancellationRequested();
+                    scope.ThrowIfNotAvailable();
+                    var ticket = cache?.Begin(scope, picture, HeroDecodeWidth, cacheGeneration);
+                    HeroPictureLoader.HeroPixels? decoded;
+                    if (ticket is not null && cache!.TryGetPixels(ticket, out var kept))
+                    {
+                        decoded = kept;
+                        NavigationTiming.Mark("hero-pixels-hit", 1);
+                    }
+                    else
+                    {
+                        decoded = await _images!.GetDecodedAsync(scope, picture.ItemId, picture.ImageType, picture.Tag,
+                            EmbyImageStore.RequestWidth(HeroDecodeWidth),
+                            bytes => HeroPictureLoader.DecodePixelsAsync(bytes, HeroDecodeWidth, candidateToken), candidateToken)
+                            .ConfigureAwait(true);
+                    }
+                    candidateToken.ThrowIfCancellationRequested();
+                    scope.ThrowIfNotAvailable();
+                    if (decoded is not null)
+                    {
+                        selectedTicket = ticket;
+                        if (ticket is not null) cache!.RememberPixels(ticket, decoded);
+                    }
+                    return decoded;
                 }, token).ConfigureAwait(true);
-            if (source is null || !Fresh(art, page)) return;
+            if (source is null || !Attached || !Fresh(art, page)) return;
 
             _heroPixels = source;
+            _heroCacheTicket = selectedTicket;
             var radius = HeroBlurTarget;
             var generation = ++_heroBlurGeneration;
             _heroBlurRadius = radius;
 
-            var rendered = await HeroPictureLoader.RenderAsync(source, radius, token).ConfigureAwait(true);
-            if (rendered is null || generation != _heroBlurGeneration) return;
+            var rendered = await RenderHeroAsync(source, radius, token, selectedTicket, _heroTiming).ConfigureAwait(true);
+            if (rendered is null || !Attached || !Fresh(art, page) || generation != _heroBlurGeneration) return;
             ShowHero(rendered);
             NavigationTiming.Mark("hero-image-assign", 1);
         }
@@ -3968,6 +4017,8 @@ public sealed partial class DetailViewModel : PageViewModel
         _art?.Cancel();
         BusyChanged();
         AnnounceAffordances();
+        _heroTiming = null;
+        _heroCacheTicket = null;
     }
 
     /// <inheritdoc />
@@ -3980,5 +4031,6 @@ public sealed partial class DetailViewModel : PageViewModel
         _art?.Dispose();
         _art = null;
         _heroTiming = null;
+        _heroCacheTicket = null;
     }
 }
