@@ -1,5 +1,6 @@
 # 2026-11-04 P3 普通库深返回窗口（独立树待整合）
 
+- 空库补修：完整生产 `LibraryPage.Anchor.cs` 源链接到已有 PageContractTests；修前 3 项 1 过 2 败（空库残留标志、旧回调未失效），清空时释放当前锚点并推进版本后 **3/3**。随后读回内容可恢复，旧排队回调不能清新 owner；默认 PageContract **116/116**、编译 0 警告 0 错误。日志 `work/p3-deep-return/empty-anchor-*`，真实 Frame/滚动仍由主代理验收。
 - 工作树 `C:/Users/89400/.codex/worktrees/p3-deep-return/Momoka`，分支 `codex/p3-deep-return`，基线 `3670858`。写入范围：BrowseSnapshotStore、LibraryRequest、Library VM／页面、16 项真实 VM 回归与真实 Frame 探针；主代理统一整合、运行 UI 检查及发布，独立树不写主树。
 - 普通稳定库根保存锚点附近最多 400 DTO 的快照及绝对起点；前后分页、计数、字母跳转、播放全部、删除回填和后台核对理解窗口。活动 Cards 原集合可随用户实际浏览增长，400 是快照和后台范围预算。锚点绑定来源登录 owner 与 query key，保存 identity、绝对索引、相对 Y 及列数；新打开同库无锚点不能误用中段快照，过期只在同查询锚点有效时直接读附近。
 - 适用范围为普通 root `Items`、movies／tvshows／mixed／homevideos；聚合、Resume、NextUp、搜索、收藏、推荐、Upcoming、Random、Season／Episode 和未知 children 保留旧路径。异常单集结果保留原可读窗口并反馈，显式刷新退回 0 和旧单集上下文。刷新先以纯 `WindowAnchorRequested` 捕获实际锚点，最终结果确定后才 `WindowChanging` 挂 UI 恢复，其后不跨 await；旧响应拒绝不得污染当前回退标志。

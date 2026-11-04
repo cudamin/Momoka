@@ -26,8 +26,18 @@ namespace Microsoft.UI.Xaml.Controls
     public class UserControl : Control;
     public sealed class Button : Primitives.ButtonBase;
     public sealed class ItemContainer : Control;
-    public sealed class ItemsView : Control;
-    public sealed class ScrollView : Control;
+    public sealed class ItemsView : Control
+    {
+        public int BringCalls { get; private set; }
+        public bool TryGetItemIndex(double x, double y, out int index) { index = 0; return Children.Count > 0; }
+        public void UpdateLayout() { }
+        public void StartBringItemIntoView(int index, BringIntoViewOptions options) => BringCalls++;
+    }
+    public sealed class ScrollView : Control
+    {
+        public double VerticalOffset { get; set; }
+        public void ScrollTo(double _, double y, ScrollingScrollOptions options) => VerticalOffset = y;
+    }
 }
 
 namespace Microsoft.UI.Xaml.Controls.Primitives
@@ -45,6 +55,12 @@ namespace Microsoft.UI.Xaml.Media
 
 namespace Momoka.Shell.Views
 {
-    public sealed class PosterCard : Microsoft.UI.Xaml.Controls.UserControl;
-    public sealed class EpisodeRow : Microsoft.UI.Xaml.Controls.UserControl;
+    public sealed class PosterCard : Microsoft.UI.Xaml.Controls.UserControl
+    {
+        public CardItem? Card { get; set; }
+    }
+    public sealed class EpisodeRow : Microsoft.UI.Xaml.Controls.UserControl
+    {
+        public CardItem? Card { get; set; }
+    }
 }

@@ -81,7 +81,16 @@ public sealed partial class LibraryPage
     /// </summary>
     private void RestorePendingAnchor()
     {
-        if (_released || _pendingAnchor is not { } anchor || _scroll is null || ViewModel.Cards.Count == 0) return;
+        if (_released || _pendingAnchor is not { } anchor) return;
+        if (ViewModel.Cards.Count == 0)
+        {
+            _anchorVersion++;
+            _pendingAnchor = null;
+            _restoringAnchor = false;
+            _anchorAttempts = 0;
+            return;
+        }
+        if (_scroll is null) return;
         var local = -1;
         for (var index = 0; index < ViewModel.Cards.Count; index++)
             if (ViewModel.Cards[index].Item.IdentityKey == anchor.IdentityKey) { local = index; break; }

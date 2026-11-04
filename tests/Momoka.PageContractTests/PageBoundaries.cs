@@ -4,7 +4,19 @@ using Momoka.MoviePilot;
 // claiming rendered layout/input coverage. Nothing creates a window, contacts a server or reads config.
 namespace Microsoft.UI.Xaml
 {
-    public class FrameworkElement : DependencyObject { public object? Tag { get; set; } }
+    public class FrameworkElement : DependencyObject
+    {
+        public object? Tag { get; set; }
+        public object? DataContext { get; set; }
+        public double ActualHeight { get; set; } = 100;
+        public double Y { get; set; }
+        public List<DependencyObject> Children { get; } = [];
+        public LibraryAnchorTransform TransformToVisual(FrameworkElement? _) => new(Y);
+    }
+    public sealed class LibraryAnchorTransform(double y)
+    {
+        public Windows.Foundation.Point TransformPoint(Windows.Foundation.Point _) => new(0, y);
+    }
     public class RoutedEventArgs : EventArgs;
     public enum Visibility { Visible, Collapsed }
     public sealed class Application

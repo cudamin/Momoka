@@ -7,8 +7,9 @@ namespace Momoka.Tests;
 
 internal static class Program
 {
-    private static int Main()
+    private static int Main(string[] args)
     {
+        if (args is ["library-anchor-page-fixture"]) return LibraryAnchorTests.Run();
         Console.OutputEncoding = Encoding.UTF8;
         Console.WriteLine("页面源码控制流契约（无 WinUI 窗口／布局或真实服务）");
         foreach (var key in new[] { HomeLayout.MoviePilotMovies, HomeLayout.MoviePilotSeries })
