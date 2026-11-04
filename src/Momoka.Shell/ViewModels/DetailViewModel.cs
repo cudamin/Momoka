@@ -519,6 +519,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>解好的头图原图像素 —— 裁切模糊的原料。导航换条目、换图时整个作废。</summary>
     private HeroPictureLoader.HeroPixels? _heroPixels;
+    private NavigationTimingRun? _heroTiming;
 
     /// <summary>
     /// 解好的封面（集页那张剧海报、其余页面的海报）原图像素 —— 按图收窄那一格的原料
@@ -563,7 +564,7 @@ public sealed partial class DetailViewModel : PageViewModel
         try
         {
             var picture = await HeroPictureLoader
-                .RenderAsync(pixels, radius, _art?.Token ?? default)
+                .RenderAsync(pixels, radius, _art?.Token ?? default, _heroTiming)
                 .ConfigureAwait(true);
 
             if (generation == _heroBlurGeneration && picture is not null) HeroImage = picture;
@@ -3313,6 +3314,7 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         if (!Attached) return;
         NavigationTiming.Mark("art-load-begin");
+        _heroTiming = NavigationTiming.Capture();
 
         // 左上角那一格封面（「集页面的封面改用剧页面的封面」，2026-09-12）：集页取剧集那一层的 Primary ——
         // 就是剧页面上那张 2:3 海报，借的也是同一条路（show 在 WhenAll 外头就已经在路上了）；借不到（没有
@@ -3393,6 +3395,7 @@ public sealed partial class DetailViewModel : PageViewModel
             var rendered = await HeroPictureLoader.RenderAsync(source, radius, token).ConfigureAwait(true);
             if (rendered is null || generation != _heroBlurGeneration) return;
             ShowHero(rendered);
+            NavigationTiming.Mark("hero-image-assign", 1);
         }
 
         // 头图多带一个数上屏：这张图自己的高÷宽。紧凑版式的带高和背景那张的盒高都按它算
@@ -3976,5 +3979,6 @@ public sealed partial class DetailViewModel : PageViewModel
         _art?.Cancel();
         _art?.Dispose();
         _art = null;
+        _heroTiming = null;
     }
 }

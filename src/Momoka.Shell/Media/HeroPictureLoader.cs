@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Diagnostics;
 using Momoka.Emby;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
@@ -25,6 +26,8 @@ internal static class HeroPictureLoader
     {
         if (bytes.Length == 0) return null;
         token.ThrowIfCancellationRequested();
+        var timing = NavigationTiming.Capture();
+        timing?.Mark("hero-stream-begin");
 
         using var source = new InMemoryRandomAccessStream();
         using (var writer = new DataWriter(source))
@@ -36,6 +39,8 @@ internal static class HeroPictureLoader
         }
 
         source.Seek(0);
+        timing?.Mark("hero-stream-end", bytes.Length);
+        timing?.Mark("hero-decode-begin");
         var decoder = await BitmapDecoder.CreateAsync(source);
         token.ThrowIfCancellationRequested();
 
@@ -55,10 +60,13 @@ internal static class HeroPictureLoader
 
         var width = decoded.PixelWidth;
         var height = decoded.PixelHeight;
+        timing?.Mark("hero-decode-end", checked(width * height));
+        timing?.Mark("hero-pixels-begin");
         var buffer = new Windows.Storage.Streams.Buffer(checked((uint)(width * height * 4)));
         decoded.CopyToBuffer(buffer);
         var pixels = new byte[buffer.Length];
         using (var reader = DataReader.FromBuffer(buffer)) reader.ReadBytes(pixels);
+        timing?.Mark("hero-pixels-end", pixels.Length);
 
         return new HeroPixels(pixels, width, height);
     }
@@ -67,24 +75,38 @@ internal static class HeroPictureLoader
     /// 按半径模糊（在像素副本上，原料不动）并重编码成 <see cref="BitmapImage"/>。模糊离开 UI 线程：
     /// 1280 宽的剧照三趟盒式模糊是二十来兆次整数运算，拖窗口和换季不等它。
     /// </summary>
-    public static async Task<BitmapImage?> RenderAsync(HeroPixels source, int blurRadius, CancellationToken token)
+    public static Task<BitmapImage?> RenderAsync(HeroPixels source, int blurRadius, CancellationToken token) =>
+        RenderAsync(source, blurRadius, token, NavigationTiming.Capture());
+
+    public static async Task<BitmapImage?> RenderAsync(HeroPixels source, int blurRadius, CancellationToken token,
+        NavigationTimingRun? timing)
     {
         token.ThrowIfCancellationRequested();
 
+        timing?.Mark("hero-copy-begin");
         var pixels = new byte[source.Pixels.Length];
         Array.Copy(source.Pixels, pixels, pixels.Length);
-        await Task.Run(() => BackdropBlur.BoxBlur(pixels, source.Width, source.Height, blurRadius), token);
+        timing?.Mark("hero-copy-end", pixels.Length);
+        await Task.Run(() =>
+        {
+            timing?.Mark("hero-blur-begin", blurRadius);
+            BackdropBlur.BoxBlur(pixels, source.Width, source.Height, blurRadius);
+            timing?.Mark("hero-blur-end", blurRadius);
+        }, token);
         token.ThrowIfCancellationRequested();
 
         // BMP 是内存中的无损交接，不写缓存、不做有损二次压缩。保持 BitmapImage，现有画刷和尺寸自检可复用。
+        timing?.Mark("hero-encode-begin");
         using var rendered = new InMemoryRandomAccessStream();
         var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.BmpEncoderId, rendered);
         encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore,
             (uint)source.Width, (uint)source.Height, 96, 96, pixels);
         await encoder.FlushAsync();
         token.ThrowIfCancellationRequested();
+        timing?.Mark("hero-encode-end", checked((int)rendered.Size));
 
         rendered.Seek(0);
+        timing?.Mark("hero-xaml-begin");
         var picture = new BitmapImage
         {
             DecodePixelType = DecodePixelType.Physical,
@@ -92,6 +114,7 @@ internal static class HeroPictureLoader
         };
         await picture.SetSourceAsync(rendered);
         token.ThrowIfCancellationRequested();
+        timing?.Mark("hero-xaml-end", checked(source.Width * source.Height));
         return picture;
     }
 }

@@ -233,7 +233,15 @@ internal static class HomePerformanceTests
             var second = fixture.CreateLoadingHome(snapshots: store);
             try
             {
-                Assert.True((bool)shell.Invoke(second, "RestoreSnapshot")!, "同一身份和版面应命中暖缓存");
+                using (var timing = new BrowseTimingCapture())
+                {
+                    Assert.True((bool)shell.Invoke(second, "RestoreSnapshot")!, "同一身份和版面应命中暖缓存");
+                    var restoredRows = Rows(second).ToArray();
+                    var restoredCards = restoredRows.Sum(row => ((ICollection)shell.Get<object>(row, "Cards")).Count);
+                    timing.RequireSpan("home-restore", restoredCards);
+                    timing.RequireSpan("home-cards", restoredCards);
+                    timing.RequireSpan("home-shelves", restoredRows.Length);
+                }
                 Assert.Equal(before, fixture.RequestCount, "暖恢复不能先联网");
 
                 var rowsBefore = Rows(second).ToArray();

@@ -470,10 +470,21 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     internal bool RestoreSnapshot()
     {
+        var timing = NavigationTiming.Capture();
+        if (timing is null) return RestoreSnapshotCore();
+        timing.Mark("home-restore-begin");
+        try { return RestoreSnapshotCore(); }
+        finally { timing.Mark("home-restore-end", _all.Sum(entry => entry.Shelf.Cards.Count)); }
+    }
+
+    private bool RestoreSnapshotCore()
+    {
         _restoredFromCache = false;
         if (_snapshots is null || _snapshotKey is null || _images is null || !Live) return false;
         if (!_snapshots.TryGetHome(_snapshotKey, _sourceTokens, out var snapshot)) return false;
 
+        var timing = NavigationTiming.Capture();
+        timing?.Mark("home-cards-begin");
         foreach (var (row, shelf) in _all)
         {
             if (!row.Visible || snapshot.Rows.FirstOrDefault(entry => entry.Key == row.Key) is not { } cached)
@@ -485,10 +496,13 @@ public sealed partial class HomeViewModel : PageViewModel
             shelf.Apply(Shown(cached.Items), ShelfSubtitle(row.Key), ShelfTitle(row.Key));
             shelf.NoteOverride = cached.Note;
         }
+        timing?.Mark("home-cards-end", _all.Sum(entry => entry.Shelf.Cards.Count));
 
+        timing?.Mark("home-slides-begin");
         Slides = snapshot.Banner
             ? [.. Shown(snapshot.SlideItems).Select(item => new BannerSlide(item, _images))]
             : [];
+        timing?.Mark("home-slides-end", Slides.Count);
         PublishShelves();
         LoadedCount = snapshot.LoadedCount;
         Subheading = snapshot.Subheading;
@@ -553,6 +567,8 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     private void PublishShelves()
     {
+        var timing = NavigationTiming.Capture();
+        timing?.Mark("home-shelves-begin");
         var visibleShelves = _all.Where(entry => entry.Row.Visible && entry.Shelf.Cards.Count > 0)
             .Select(entry => entry.Shelf).ToList();
         LibraryShelf = visibleShelves.FirstOrDefault(shelf => shelf.HomeKey == HomeLayout.Libraries);
@@ -569,6 +585,7 @@ public sealed partial class HomeViewModel : PageViewModel
             if (current < 0) Shelves.Insert(index, visibleShelves[index]);
             else if (current != index) Shelves.Move(current, index);
         }
+        timing?.Mark("home-shelves-end", Shelves.Count);
     }
 
     private new bool IsCurrent(CancellationToken token) => Live && base.IsCurrent(token);

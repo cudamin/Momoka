@@ -14,6 +14,7 @@ namespace Momoka.Shell.Views
     public sealed partial class LibraryPage
     {
         private bool _released;
+        internal Momoka.Diagnostics.NavigationTimingRun? _timing;
         private Momoka.MoviePilot.MoviePilotService? _moviePilot;
         private Momoka.Services.ISettingsService? _settings = null; // Unused owner boundary; no saved settings in this fixture.
         private int _navigation;

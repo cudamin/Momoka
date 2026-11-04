@@ -10317,3 +10317,8 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 独立树验证：全方案Release构建0警告0错误（artifacts/detail-layout-build-final.log），串行主测试3664/3664、0失败0跳过（detail-layout-tests-serial.log），字幕契约36/36（detail-subtitle-contract.log）。旧树基线HomeHeader不识别亚克力，临时补严格材质检查后library,materials运行23244为26/26、退出0，详情宽窄与S00季页检查通过；截图已查看：信息卡在季卡上方、额外特别篇排消失。证据 C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261104-064717754-23244/logs。
 - 验证期间用户另一个任务已将海报播放/操作恢复旧样，master现为f65ac10，故撤下本树临时HomeHeader修正（diff清零），不把它带入最终主树。此变化要求整合后的library,materials重新验证，不能把本树26/26冒充最新master结果。
 - 统一收尾由聊天“统一 WebView2 服务端设置风格并修复显示不全”（01a1a527-7870-7bb1-aa16-fd7800927854）负责：本树提交后暂缓主树合并/构建/测试/发布，无Momoka进程23244占用，适用运行复验由本聊天按协调顺序执行，最终主测试/WebView专项/发布/快捷方式由协调聊天执行。未推远端。
+# 2026-11-04 P2 浏览恢复与详情背景复用（在途）
+
+- 树 `C:/Users/89400/.codex/worktrees/ba08/Momoka`，分支 `codex/p2-browse-image-cost`，基于master834a21d。写入范围：匿名计时、Home/Library恢复、详情背景及相关夹具和文档；[实施计划](docs/superpowers/plans/2026-11-04-p2-browse-image-cost.md)。
+- 基线主测试3664/3664。Task1恢复断言先红后绿，Home19/19、Library38/38、计时守卫15/15、导航9/9、HomeFold56/56、SearchLifetime42/42；Shell0警告错误。performance首次6/7为新增日志读写共享错误，关闭sink再读后7/7退出0，原红保留。
+- 隔离真实库24次详情／24次库／23次主页，设置及备份哈希不变；Home/Library恢复中位0.36/0.17ms，背景XAML交接197.82ms（含await等待）。选择24MiB有限详情背景复用，尚待Task2实现、对照复测、最终全测、合入和主树发布。未上传。

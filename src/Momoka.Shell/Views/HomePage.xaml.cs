@@ -38,6 +38,7 @@ public sealed partial class HomePage : Page, IShellContent
     private const string Category = "主页";
 
     private HomeRequest? _request;
+    private NavigationTimingRun? _timing;
 
     // 暖缓存命中后等首帧布局再落回的滚动位置；只消费一次。
     private double? _restoredScroll;
@@ -230,7 +231,9 @@ public sealed partial class HomePage : Page, IShellContent
             if (_restoredScroll is { } offset)
             {
                 _restoredScroll = null;
+                _timing?.Mark("home-scroll-layout-begin");
                 Scroller.UpdateLayout();
+                _timing?.Mark("home-scroll-layout-end", 1);
                 Scroller.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
             }
         };
@@ -610,6 +613,8 @@ public sealed partial class HomePage : Page, IShellContent
         }
 
         _overlayRunning = true;
+        var timing = _timing;
+        timing?.Mark("home-overlay-begin");
         var started = System.Diagnostics.Stopwatch.GetTimestamp();
         try
         {
@@ -620,6 +625,7 @@ public sealed partial class HomePage : Page, IShellContent
             _overlayRunning = false;
             OverlayPasses++;
             OverlayPassMilliseconds += System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+            timing?.Mark("home-overlay-end", 1);
             if (_overlayAgain)
             {
                 _overlayAgain = false;
@@ -771,7 +777,10 @@ public sealed partial class HomePage : Page, IShellContent
     private void ForceLayout()
     {
         ForcedLayouts++;
+        var timing = _timing;
+        timing?.Mark("home-force-layout-begin");
         UpdateLayout();
+        timing?.Mark("home-force-layout-end", 1);
     }
 
     /// <summary>
@@ -1350,6 +1359,7 @@ public sealed partial class HomePage : Page, IShellContent
         }
 
         _request = request;
+        _timing = NavigationTiming.Capture();
         _entranceSuppressed = false;
         _window = request.Window;
         Tag = "home";
@@ -1418,6 +1428,7 @@ public sealed partial class HomePage : Page, IShellContent
 
     public void Release()
     {
+        _timing = null;
         _homeSettings = null;
         // 这一页走了，新入库的钟一起停：它问的是这一页上的数据，页都不在了没人接结果。
         _watch.Stop();

@@ -63,7 +63,11 @@ public sealed class BannerSlide : INotifyPropertyChanged
         if (_picture is { } picture && _scope is { IsAvailable: true } scope)
         {
             _backdropKey = BannerBackdropCache.Key(scope.Connection, picture, PictureWidth);
-            if (BannerBackdropCache.TryGet(_backdropKey, out var cached)) _pictureImage = cached;
+            if (BannerBackdropCache.TryGet(_backdropKey, out var cached))
+            {
+                _pictureImage = cached;
+                NavigationTiming.Mark("banner-memory-hit", 1);
+            }
         }
     }
 

@@ -657,7 +657,12 @@ internal static class LibraryResumePagingTests
             var second = fixture.CreateNormalView(store);
             try
             {
-                Assert.True((bool)shell.Invoke(second, "RestoreSnapshot")!, "同一身份和查询应命中暖缓存");
+                using (var timing = new BrowseTimingCapture())
+                {
+                    Assert.True((bool)shell.Invoke(second, "RestoreSnapshot")!, "同一身份和查询应命中暖缓存");
+                    timing.RequireSpan("library-restore", 45);
+                    timing.RequireSpan("library-cards", 45);
+                }
                 Assert.Equal(45, CardObjects(second).Count);
                 Assert.Equal(before, fixture.RequestCount, "暖恢复不能先发 GET");
 

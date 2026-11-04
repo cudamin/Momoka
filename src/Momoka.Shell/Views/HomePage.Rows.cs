@@ -17,6 +17,8 @@ public sealed partial class HomePage
     private void RefreshHomeRows()
     {
         if (_homeSettings is null) return;
+        var timing = _timing;
+        timing?.Mark("home-rows-begin");
         var shelves = ViewModel.Shelves.ToDictionary(shelf => shelf.HomeKey, shelf => (object)shelf, StringComparer.Ordinal);
         // 完整次序包含已压上轮播的媒体库，才能找回它在混合列表中的插入位置。
         if (ViewModel.LibraryOnBanner && ViewModel.LibraryShelf is { Cards.Count: > 0 } library)
@@ -36,6 +38,7 @@ public sealed partial class HomePage
             if (current < 0) HomeRows.Insert(index, ordered[index]);
             else if (current != index) HomeRows.Move(current, index);
         }
+        timing?.Mark("home-rows-end", HomeRows.Count);
     }
 
     private static double RowHeightOf(object row) => row switch
@@ -62,7 +65,10 @@ public sealed partial class HomePage
         if (below >= HomeRows.Count) return (0, false);
         var target = Math.Min(below + 1, HomeRows.Count - 1);
         var element = (FrameworkElement)(ShelfRepeater.TryGetElement(target) ?? ShelfRepeater.GetOrCreateElement(target));
+        var timing = _timing;
+        timing?.Mark("home-mixed-layout-begin");
         UpdateLayout();
+        timing?.Mark("home-mixed-layout-end", 1);
         if (HomeFoldMotion.Find<ShelfStrip>(element) is not { ActualHeight: > 0 } strip) return null;
         var line = ScreenTopAtScrollZero(strip);
         // 新实现的货架可能正在入场或补位；阈值取布局坐标，不把动画位移算进来。
