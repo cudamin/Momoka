@@ -39,6 +39,8 @@
                     "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
                     "src/Momoka.Shell/ViewModels/CoverBackdropImage.cs",
                     "src/Momoka.Shell/ViewModels/CoverBackdropSize.cs",
+                    "src/Momoka.Shell/Media/HeroPictureLoader.cs",
+                    "src/Momoka.Shell/Media/DetailHeroCache.cs",
                     "src/Momoka.Core/Emby/EmbyImageStore.cs",
                     "src/Momoka.Core/Infrastructure/SharedWork.cs",
                     "src/Momoka.Core/Infrastructure/SharedWorkBudget.cs" }) {

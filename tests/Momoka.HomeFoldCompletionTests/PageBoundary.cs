@@ -96,6 +96,7 @@ namespace Momoka.Shell.Views
     public sealed partial class HomePage
     {
         private const string Category = "主页";
+        private Momoka.Diagnostics.NavigationTimingRun? _timing;
         private readonly DispatcherQueueTimer _watch = new();
         private TestWindow? _window = new();
         private TestShellActions? _actions = new();

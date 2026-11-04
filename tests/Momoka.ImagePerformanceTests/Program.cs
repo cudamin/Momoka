@@ -58,6 +58,7 @@ internal static class Program
         StoreBudgetTests.Register();
         CoverDecodeTests.Register();
         CoverCallerTests.Register();
+        DetailHeroCacheTests.Register();
         var log = new Momoka.Diagnostics.RingBufferLogSink(100);
         log.Written += entry => { if (entry.Category == "perf-image-fixture") Console.WriteLine($"CALLER_LOG: {entry.Message}"); };
         Momoka.Diagnostics.Log.UseSink(log);

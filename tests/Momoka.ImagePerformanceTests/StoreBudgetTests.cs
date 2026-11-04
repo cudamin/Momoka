@@ -159,8 +159,8 @@ internal static class StoreBudgetTests
             await using var fixture = new StoreFixture();
             fixture.Handler.Respond = (_, call, _) => Task.FromResult(ImageHandler.Bytes(call == 1 ? new byte[] { 1 } : new byte[] { 9 }));
             await fixture.Get("recovery");
-            var gate = Pending<HttpResponseMessage>();
-            fixture.Handler.Respond = (_, _, token) => gate.Task.WaitAsync(token);
+            var gate = Pending<byte[]>();
+            fixture.Handler.Respond = async (_, _, token) => ImageHandler.Bytes(await gate.Task.WaitAsync(token));
             var decodes = 0;
             Task<object?> Decode(byte[] bytes)
             {
@@ -171,16 +171,20 @@ internal static class StoreBudgetTests
             using var source = new CancellationTokenSource();
             var first = fixture.Images.GetDecodedAsync(fixture.Scope, "recovery", EmbyImageStore.Backdrop,
                 "tag", 1280, Decode, source.Token);
+            // The second caller arrives after invalidation and joins as a normal cache miss.
+            // Both-recovery callers do not exercise ownership when the only recovery waiter leaves.
+            await Eventually(() => fixture.Handler.Active == 1, "坏缓存已失效且恢复请求已开始");
             var staying = fixture.Images.GetDecodedAsync(fixture.Scope, "recovery", EmbyImageStore.Backdrop,
                 "tag", 1280, Decode, CancellationToken.None);
             await Eventually(() => fixture.Handler.Active == 1 && fixture.Downloads.Demands == 2, "恢复与普通取图共享一键");
             source.Cancel();
             await Cancelled(first);
-            gate.TrySetResult(ImageHandler.Bytes([9]));
+            gate.TrySetResult([9]);
             Assert.NotNull(await staying.WaitAsync(Deadline));
             await Eventually(() => fixture.Downloads.Running == 0, "恢复退场");
             Assert.Equal(2, fixture.Handler.Total);
             Assert.True((await fixture.Get("recovery"))!.SequenceEqual(new byte[] { 9 }));
+            Assert.Equal(2, fixture.Handler.Total, "恢复字节必须已持久化，普通读取不能再发 GET");
             Assert.True(decodes >= 2);
         });
 

@@ -2675,6 +2675,10 @@ public sealed partial class SettingsViewModel : PageViewModel
         row.Value = DescribeImageCache(usage, images.MaxBytes);
     }
 
+    private Action? _clearHeroCache;
+
+    internal void UseHeroCacheClear(Action clear) => _clearHeroCache = clear;
+
     /// <summary>
     /// 「关于」卡上那颗「清除」：删掉已下载的海报与缩略图。问一次 —— 删掉之后下次浏览要重新下载，网络慢的
     /// 服务器上这件事看得见。已解码的那些也要清，否则屏幕上正在显示的封面会继续从内存里画出来，而提示说已经清了。
@@ -2692,6 +2696,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         row.Value = "正在清除…";
         try
         {
+            // Invalidate outstanding background tickets before the asynchronous disk clear begins.
+            _clearHeroCache?.Invoke();
             var removed = await images.ClearAsync().ConfigureAwait(true);
             PosterCache.Clear();
             BannerBackdropCache.Clear();

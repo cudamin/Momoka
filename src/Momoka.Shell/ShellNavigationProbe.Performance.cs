@@ -120,6 +120,7 @@ internal sealed partial class ShellNavigationProbe
                 realNetwork = false,
                 mediaLoaded = false
             });
+            await PerformanceWarmTimingAsync(fixture, frame);
         }
         finally
         {

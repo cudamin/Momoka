@@ -13,6 +13,8 @@
         <!-- Full production decoder/geometry, real Windows Runtime, no XAML or app launch. -->
         <Compile Include="..\..\src\Momoka.Shell\ViewModels\CoverBackdropImage.cs" Link="Production\CoverBackdropImage.cs" />
         <Compile Include="..\..\src\Momoka.Shell\ViewModels\CoverBackdropSize.cs" Link="Production\CoverBackdropSize.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Media\HeroPictureLoader.cs" Link="Production\HeroPictureLoader.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Media\DetailHeroCache.cs" Link="Production\DetailHeroCache.cs" />
         <Compile Include="..\Momoka.Tests\ImageCacheTests.cs" Link="Existing\ImageCacheTests.cs" />
         <Compile Include="..\Momoka.Tests\CoverArtworkTests.cs" Link="Existing\CoverArtworkTests.cs" />
         <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="Existing\TestHarness.cs" />

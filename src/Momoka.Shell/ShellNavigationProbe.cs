@@ -243,7 +243,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("日志淘汰后显示空态", DiagnosticsEmptyAsync);
             await CaseAsync("运行状态紧凑布局、筛选与详情", DiagnosticsLayoutAsync, 30);
             await CaseAsync("对话框构造自检路径", DialogConstructionAsync);
-            await CaseAsync("性能：匿名导航阶段计时、顺序与隐私边界", PerformanceNavigationTimingAsync, 30, section: ShellProbeSections.Performance);
+            await CaseAsync("性能：匿名导航阶段计时、顺序与隐私边界", PerformanceNavigationTimingAsync, 60, section: ShellProbeSections.Performance);
             await CaseAsync("性能：详情同类型通知去重与真实绑定更新", PerformanceDetailShapeAsync, 30, section: ShellProbeSections.Performance);
             await CaseAsync("性能：真实搜索页往返退订、来源切换与迟到通知", PerformanceSearchVisitsAsync, 45, section: ShellProbeSections.Performance);
             await CaseAsync("资源：真实飞牛匹配框关闭取消、重入与迟到结果", PerformanceMatchCloseAsync, 30, section: ShellProbeSections.Performance);
@@ -405,6 +405,7 @@ internal sealed partial class ShellNavigationProbe
                 // 注册进去的就是那个具体类型。
                 .AddSingleton(Images).AddSingleton<IServerCapabilities>(Capabilities).AddSingleton(vault).AddSingleton(moviePilot)
                 .AddSingleton<BrowseSnapshotStore>()
+                .AddSingleton(_ => new Media.DetailHeroCache(Session))
                 .AddSingleton<RemovedMedia>()
                 .AddSingleton<ISecretProtector>(PassthroughSecretProtector.Instance)
                 .AddSingleton<IShellActions>(Actions).AddSingleton(Launcher).AddSingleton<IStartupRegistration>(Startup)
@@ -433,6 +434,7 @@ internal sealed partial class ShellNavigationProbe
         public DetailViewModel Detail()
         {
             var vm = new DetailViewModel();
+            vm.UseHeroCache(Services.GetRequiredService<Media.DetailHeroCache>());
             vm.Attach(DetailRequest.For(Services, Series()), Actions, SettingsService, Session, Images);
             return vm;
         }

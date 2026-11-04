@@ -173,6 +173,7 @@ namespace Momoka.Shell.ViewModels
 
     public sealed class SettingsViewModel
     {
+        public void UseHeroCacheClear(Action clear) => Runtime.Invoke(Inner, "UseHeroCacheClear", clear);
         internal object Inner { get; } = ShellRuntime.Current.TakePageViewModel();
         private ShellRuntime Runtime => ShellRuntime.Current;
         public event PropertyChangedEventHandler? PropertyChanged
@@ -236,6 +237,16 @@ namespace Momoka.Shell.ViewModels
         public void Attach(EmbySession session, string? sourceKey) => ShellRuntime.Current.Invoke(Inner, "Attach", session, sourceKey);
         public Task ReloadAsync() => LastRead = (Task)ShellRuntime.Current.Invoke(Inner, "ReloadAsync")!;
         public void Cancel() => ShellRuntime.Current.Invoke(Inner, "Cancel");
+    }
+}
+
+namespace Momoka.Shell.Media
+{
+    // The cached-page lifetime fixture never constructs this service; P2 cache behavior is tested
+    // through its actual production source and the actual initial SettingsPage runtime path.
+    public sealed class DetailHeroCache
+    {
+        public void Clear() => throw new InvalidOperationException("Unexpected initial cache binding in cached-page fixture");
     }
 }
 

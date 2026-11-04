@@ -67,6 +67,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// 视图模型一次 Attach 会连着发十几条通知，逐条建分区等于把同一面墙拆装十几遍。
     /// </summary>
     private bool _attaching;
+    private NavigationTimingRun? _timing;
 
     /// <summary>导航时程序化设来源标签，别让 SelectionChanged 和后面的显式 ApplySource 各跑一遍。</summary>
     private bool _suppressSourceApply;
@@ -519,6 +520,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         _navigation++;
         _attaching = true;
         NavigationTiming.Mark("attach-begin");
+        _timing = NavigationTiming.Capture();
 
         // The shell reads this back to restore its pane highlight after a Frame.GoBack.
         Tag = request.Tag;
@@ -634,6 +636,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     public void Release()
     {
         if (_released) return;
+        _timing = null;
         _released = true;
         if (_moviePilot is { } moviePilot) moviePilot.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;
         _moviePilot = null;
@@ -717,7 +720,10 @@ public sealed partial class LibraryPage : Page, IShellContent
             return;
         }
 
+        var timing = _timing;
+        timing?.Mark("library-scroll-layout-begin");
         CardWall.UpdateLayout();
+        timing?.Mark("library-scroll-layout-end", 1);
         var scroll = CardWall.ScrollView ?? _scroll;
         if (scroll is null) return;
 

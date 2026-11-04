@@ -1585,6 +1585,15 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     internal bool RestoreSnapshot()
     {
+        var timing = NavigationTiming.Capture();
+        if (timing is null) return RestoreSnapshotCore();
+        timing.Mark("library-restore-begin");
+        try { return RestoreSnapshotCore(); }
+        finally { timing.Mark("library-restore-end", Cards.Count); }
+    }
+
+    private bool RestoreSnapshotCore()
+    {
         _restoredFromCache = false;
         if (!CacheEligible || _snapshotKey is null || _snapshots is null || _request is null) return false;
         if (!_snapshots.TryGetLibrary(_snapshotKey, _sourceTokens, out var snapshot)) return false;
@@ -1595,9 +1604,12 @@ public sealed partial class LibraryViewModel : PageViewModel
         _queries.Cancel();
         _queryToken = _queries.Begin();
         base.Cancel();
+        var timing = NavigationTiming.Capture();
+        timing?.Mark("library-cards-begin");
         foreach (var card in Cards) card.AbandonPoster();
         Cards.Clear();
         foreach (var item in snapshot.Items) Cards.Add(NewCard(item));
+        timing?.Mark("library-cards-end", Cards.Count);
 
         _total = snapshot.Total;
         _firstPage = true;
