@@ -308,7 +308,8 @@ internal static class AcrylicControlsTests
             Assert.Contains("foreach (var width in new[] { 1280, 760 })", source);
             Assert.Contains("CheckRoles(theme);", source);
             Assert.Contains("detail.ViewModel.PlayTarget?.HasResumePosition == true", source);
-            Assert.Contains("== 6);", source);
+            Assert.Contains("== 6,", source);
+            Assert.Contains("详情操作排未在时限内出现", source);
             Assert.Contains("hover.ActionGlass && hover.PlayGlassRest", source);
             Assert.Contains("acrylic-poster-actions-screen.png", source);
             Assert.Contains("CheckLibraryMaterials", source);
