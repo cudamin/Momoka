@@ -1,4 +1,4 @@
-## 2026-11-04 详情操作、翻页圆钮与手写设置卡片亚克力（临时树验证通过，待合入 master）
+## 2026-11-04 详情操作、翻页圆钮与手写设置卡片亚克力（已合入 master、已发布桌面）
 
 - 用户在本聊天看过范围后授权「可以你做吧」。本批只改详情宽窄两排操作按钮、ShelfStrip 左右翻页圆钮、服务器账号／聚合工具卡、通知接管／条目卡；正文、普通弹窗与菜单、输入区及播放器材质保持原样。独立树 `codex/acrylic-controls`，基线 `d34a0c4`。
 - 实现：新增按钮常态／悬停／按下三支亚克力角色及局部 `Theme/ActionButtons.xaml`，`ThemeHost` 原位更新 tint 与不透明回退色；Dark／Light 首帧和 HighContrast 实色齐全。详情保留平台模板、命令、尺寸、显隐与焦点，连播勾选仍同底、只改图标色。翻页钮保留同一个 Ellipse、48 DIP 和 2 DIP 描边，四张手写卡只接既有设置卡片刷子。
@@ -7,6 +7,8 @@
 - 参考依据：已读当前 NuGet WinUI 2.3.9 `generic.xaml` 的 Button／ToggleButton `ContentPresenter` 三态与高对比度卡片实色、Gallery 的 AcrylicBrush `Rectangle.Fill` 源例；保留 Shelf 原矢量圆，未改依赖。新增 `materials` 全量分区、源接线回归和开发命令，假服务只接受 GET／HEAD，断言零播放／零服务器写入；只读审查结论 ready（`work/acrylic-controls/review.md`）。
 - 隔离发布与运行：`tools/publish.ps1 -NoArchive` 已通过，**546 文件／285.9 MB**（`work/acrylic-controls/isolated-publish-final.log`）；实际 `--probe-shell --probe-section materials --screen 1` 报告 **1/1 Passed=true**。运行日志目录 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261104-024644346-28092/logs`，五主题四页面各 1280／760 DIP 共 **40 张页面实屏**，另 **13 张三态／回退截图**及 `acrylic-controls.txt`；程序正常退出。模板实际背景及 tint／回退更新、连播 checked 同底、圆钮翻页显隐、卡片实色反例和恢复均经过运行断言。
 - 限制与待办：高对比度只核对资源字典，未切换真实 OS 高对比度；悬停／按下是模板状态样本，不能代表真实鼠标输入；没有真实服务器登录、写入或播放。当前只验证临时树，尚未合入 master／刷新桌面交付目录，未上传远端。主代理继续合入、重新验证最终主树、发布快捷方式目标并清理临时树；完整实现报告在 `work/acrylic-controls/implementation-report.md`。
+- 最终交付：产品提交 `edc5a78fb0c2640dcff26d38d0807e4428191121` 快进合入 master；主树重新编译 Tests/Core 0警告0错误、完整主测试3651/3651（0失败/0跳过），定向空白与差异检查退出0（工作区加载提示单列留存）。主树自包含发布546文件/285.9MB，桌面Momoka.lnk目标与工作目录均回读为 `C:/Users/89400/Momoka/artifacts/publish/win-x64`。主树材料探针 `shell-probe-20261104-025437909-28392` 退出0、1/1通过；五主题/两档宽度四页面40张＋状态/回退13张全部保留并查看，其他157项Shell检查未执行。证据保留 `work/acrylic-controls/` 与 `work/acrylic-main-*.log`；没有播放、上传远端、重打安装包或提交Store。发布Momoka.dll SHA256 `96B2DA3BBB23B9E33446C030398C91272ACEC21CFA03955328D14BD80C331632`；Core `2608F7506262F5F5EB584AA638721C4CD60B788FA84522B68339EA1D5EB2D369`。本聊天用户指定的外部 `审查建议.md` 已追加四类实际改动、未实施建议和最终交付记录。
+
 
 ## 2026-11-04 发版 0.2.5：GitHub Release 与微软商店上架包（已发布 GitHub、商店未上传）
 
