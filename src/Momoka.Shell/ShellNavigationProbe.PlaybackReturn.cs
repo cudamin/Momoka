@@ -1,11 +1,11 @@
 using System.Net;
 using System.Runtime.InteropServices.WindowsRuntime;
-using Momoka.Emby;
-using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Emby;
+using Momoka.Shell.Views;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
 

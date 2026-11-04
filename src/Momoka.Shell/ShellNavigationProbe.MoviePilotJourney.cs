@@ -1,6 +1,10 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Navigation;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.MoviePilot;
@@ -8,10 +12,6 @@ using Momoka.Playback;
 using Momoka.Shell.Platform;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
 
 namespace Momoka.Shell;
 

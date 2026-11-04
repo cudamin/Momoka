@@ -1,9 +1,9 @@
-using Momoka.Diagnostics;
-using Momoka.Shell.ViewModels;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Diagnostics;
+using Momoka.Shell.ViewModels;
 using Windows.Foundation;
 
 namespace Momoka.Shell.Views;

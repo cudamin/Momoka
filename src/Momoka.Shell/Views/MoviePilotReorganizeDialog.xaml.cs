@@ -1,8 +1,8 @@
 using System.Collections.ObjectModel;
-using Momoka.Diagnostics;
-using Momoka.MoviePilot;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.Diagnostics;
+using Momoka.MoviePilot;
 
 namespace Momoka.Shell.Views;
 

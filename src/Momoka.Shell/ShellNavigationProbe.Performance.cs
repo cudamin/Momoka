@@ -1,26 +1,26 @@
 using System.Collections;
-using System.Reflection;
-using System.Net;
-using CommunityToolkit.WinUI.Controls;
-using Momoka.Diagnostics;
-using Momoka.Configuration;
-using Momoka.Services;
-using Momoka.Updates;
 using System.Diagnostics;
+using System.Net;
+using System.Reflection;
+using CommunityToolkit.WinUI.Controls;
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Momoka.Configuration;
 using Momoka.Danmaku;
+using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.FnNas;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Mpv;
 using Momoka.Playback;
+using Momoka.Services;
 using Momoka.Shell.Platform;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
-using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
+using Momoka.Updates;
 
 namespace Momoka.Shell;
 

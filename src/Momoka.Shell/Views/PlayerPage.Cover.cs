@@ -1,10 +1,10 @@
 using System.ComponentModel;
-using Momoka.Diagnostics;
-using Momoka.Playback;
-using Momoka.Shell.ViewModels;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Animation;
+using Momoka.Diagnostics;
+using Momoka.Playback;
+using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
 

@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
 using Momoka.Infrastructure;
-using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace Momoka.Shell.Media;
 

@@ -1,8 +1,8 @@
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Shell.ViewModels;
-using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.Views;
 

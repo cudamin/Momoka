@@ -1,8 +1,8 @@
+using Microsoft.UI.Xaml.Controls;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Playback;
-using Microsoft.UI.Xaml.Controls;
 namespace Momoka.Shell.Views;
 
 /// <summary>

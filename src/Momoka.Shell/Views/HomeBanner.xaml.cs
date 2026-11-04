@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using Momoka.Emby;
 using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -9,9 +8,9 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Emby;
 using Windows.System;
 using Windows.UI.ViewManagement;
-
 // 上面那两个命名空间各有一个 DispatcherQueueTimer。Windows.System 在这里只为 VirtualKey 而来，计时器要的是
 // Microsoft.UI 那个（WinUI 的 DispatcherQueue 发的就是它），所以指名一次，省下每处的全名。
 using DispatcherQueueTimer = Microsoft.UI.Dispatching.DispatcherQueueTimer;

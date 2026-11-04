@@ -1,6 +1,6 @@
-using Momoka.Theming;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Theming;
 using Windows.UI;
 
 namespace Momoka.Shell;

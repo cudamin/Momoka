@@ -1,10 +1,10 @@
 using System.Net;
-using Momoka.Emby;
-using Momoka.MoviePilot;
-using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Emby;
+using Momoka.MoviePilot;
+using Momoka.Shell.Views;
 
 namespace Momoka.Shell;
 

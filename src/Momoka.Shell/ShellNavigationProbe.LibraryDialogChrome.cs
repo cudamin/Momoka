@@ -1,11 +1,11 @@
 using System.Text.Json.Nodes;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
 using Momoka.Shell.Media;
 using Momoka.Shell.Views;
 using Momoka.Theming;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace Momoka.Shell;
 

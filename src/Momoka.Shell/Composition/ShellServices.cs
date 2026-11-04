@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Dispatching;
 using Momoka.Configuration;
 using Momoka.Danmaku;
 using Momoka.Emby;
@@ -10,8 +12,6 @@ using Momoka.Shell.Security;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Momoka.Updates;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Dispatching;
 
 namespace Momoka.Shell.Composition;
 

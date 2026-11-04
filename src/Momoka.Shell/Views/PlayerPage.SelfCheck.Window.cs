@@ -1,13 +1,13 @@
 using System.Threading;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Configuration;
 using Momoka.Infrastructure;
 using Momoka.Playback;
 using Momoka.Shell.Interop;
 using Momoka.Shell.Windowing;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace Momoka.Shell.Views;
 

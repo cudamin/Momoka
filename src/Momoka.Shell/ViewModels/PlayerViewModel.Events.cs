@@ -1,12 +1,15 @@
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices.WindowsRuntime;
-using System.Text.Json;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
@@ -16,9 +19,6 @@ using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.Media;
 using Momoka.Shell.Platform;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace Momoka.Shell.ViewModels;
 

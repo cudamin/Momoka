@@ -1,18 +1,18 @@
-using Momoka.Configuration;
-using Momoka.Infrastructure;
-using Momoka.MoviePilot;
-using Momoka.Mpv;
-using Momoka.Playback;
-using Momoka.Services;
-using Momoka.Updates;
-using Momoka.Shell.ViewModels;
-using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Configuration;
+using Momoka.Infrastructure;
+using Momoka.MoviePilot;
+using Momoka.Mpv;
+using Momoka.Playback;
+using Momoka.Services;
+using Momoka.Shell.ViewModels;
+using Momoka.Shell.Views;
+using Momoka.Updates;
 
 namespace Momoka.Shell;
 

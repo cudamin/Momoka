@@ -2,9 +2,9 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
 using Momoka.AniBt;
 using Momoka.MoviePilot;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.ViewModels;
 

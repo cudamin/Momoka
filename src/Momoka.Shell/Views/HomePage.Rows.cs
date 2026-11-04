@@ -1,8 +1,8 @@
 using System.Collections.ObjectModel;
+using Microsoft.UI.Xaml;
 using Momoka.Emby;
 using Momoka.Services;
 using Momoka.Shell.ViewModels;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.Views;
 

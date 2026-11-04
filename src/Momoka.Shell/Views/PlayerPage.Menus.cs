@@ -1,10 +1,10 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Momoka.Emby;
 using Momoka.Mpv;
 using Momoka.Playback;
 using Momoka.Shell.ViewModels;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace Momoka.Shell.Views;
 

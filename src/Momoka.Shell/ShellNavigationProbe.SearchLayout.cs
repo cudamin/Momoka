@@ -1,12 +1,12 @@
 using CommunityToolkit.WinUI.Controls;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Shell.Views;
 using Momoka.Theming;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Windows.Foundation;
 
 namespace Momoka.Shell;

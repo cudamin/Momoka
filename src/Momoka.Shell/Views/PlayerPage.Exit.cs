@@ -1,7 +1,7 @@
-using Momoka.Diagnostics;
-using Momoka.Playback;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Diagnostics;
+using Momoka.Playback;
 using Windows.UI;
 
 namespace Momoka.Shell.Views;

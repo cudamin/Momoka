@@ -1,14 +1,14 @@
 using System.Net;
 using System.Text.Json;
-using Momoka.Emby;
-using Momoka.MoviePilot;
-using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Emby;
+using Momoka.MoviePilot;
+using Momoka.Shell.Views;
 
 namespace Momoka.Shell;
 

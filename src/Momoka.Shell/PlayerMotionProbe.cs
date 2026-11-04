@@ -1,5 +1,9 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Infrastructure;
@@ -8,10 +12,6 @@ using Momoka.Shell.Composition;
 using Momoka.Shell.Interop;
 using Momoka.Shell.Views;
 using Momoka.Shell.Windowing;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace Momoka.Shell;
 

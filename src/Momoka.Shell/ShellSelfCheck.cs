@@ -1,11 +1,11 @@
+using Microsoft.UI.Dispatching;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Momoka.Shell.Windowing;
-using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace Momoka.Shell;
 

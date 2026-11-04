@@ -6,9 +6,9 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.AniBt;
+using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.MoviePilot;
-using Momoka.Diagnostics;
 using Momoka.Shell.Media;
 
 namespace Momoka.Shell.ViewModels;

@@ -1,15 +1,15 @@
-using Momoka.Playback;
-using Momoka.Mpv;
-using Momoka.Infrastructure;
 using System.Collections.ObjectModel;
 using System.Net;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
+using Momoka.Infrastructure;
+using Momoka.Mpv;
+using Momoka.Playback;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell;
 

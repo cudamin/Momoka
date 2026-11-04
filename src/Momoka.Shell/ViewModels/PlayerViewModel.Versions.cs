@@ -1,7 +1,7 @@
+using Microsoft.UI.Xaml.Controls;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Playback;
-using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell.ViewModels;
 

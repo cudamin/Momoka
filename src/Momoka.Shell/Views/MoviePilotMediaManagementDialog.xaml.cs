@@ -1,13 +1,13 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using Momoka.Diagnostics;
-using Momoka.Emby;
-using Momoka.MoviePilot;
-using Momoka.Shell.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using Momoka.Diagnostics;
+using Momoka.Emby;
+using Momoka.MoviePilot;
+using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
 

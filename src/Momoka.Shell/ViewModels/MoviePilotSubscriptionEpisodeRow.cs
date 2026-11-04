@@ -1,10 +1,10 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Momoka.MoviePilot;
-using Momoka.Infrastructure;
-using Momoka.Shell.Media;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Infrastructure;
+using Momoka.MoviePilot;
+using Momoka.Shell.Media;
 
 namespace Momoka.Shell.ViewModels;
 

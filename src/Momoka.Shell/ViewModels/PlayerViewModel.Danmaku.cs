@@ -1,11 +1,11 @@
 using System.Globalization;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.Danmaku;
 using Momoka.Emby;
 using Momoka.Mpv;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.ViewModels;
 

@@ -1,3 +1,8 @@
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Navigation;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -5,11 +10,6 @@ using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.Platform;
 using Momoka.Shell.ViewModels;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
 
 namespace Momoka.Shell.Views;
 

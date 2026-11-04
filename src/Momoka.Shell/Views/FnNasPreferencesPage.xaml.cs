@@ -1,8 +1,8 @@
-using Momoka.Emby;
-using Momoka.Shell.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using Momoka.Emby;
+using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
 

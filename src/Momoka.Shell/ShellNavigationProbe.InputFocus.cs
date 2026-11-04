@@ -1,10 +1,10 @@
 using System.Text;
-using Momoka.Shell.Interop;
-using Momoka.Shell.Views;
-using Momoka.Theming;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Shell.Interop;
+using Momoka.Shell.Views;
+using Momoka.Theming;
 using Windows.UI;
 
 namespace Momoka.Shell;

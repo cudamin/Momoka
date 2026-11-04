@@ -1,7 +1,7 @@
-using Momoka.Emby;
-using Momoka.Shell.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.Emby;
+using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
 

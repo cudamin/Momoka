@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -7,7 +8,6 @@ using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.Platform;
 using Momoka.Shell.Views;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Momoka.Shell;
 

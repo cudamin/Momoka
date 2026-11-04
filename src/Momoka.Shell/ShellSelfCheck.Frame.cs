@@ -1,8 +1,8 @@
 using System.Linq;
+using Microsoft.UI.Xaml.Controls;
 using Momoka.Shell.Interop;
 using Momoka.Shell.Views;
 using Momoka.Shell.Windowing;
-using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell;
 

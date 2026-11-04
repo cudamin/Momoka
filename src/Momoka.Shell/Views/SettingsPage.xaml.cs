@@ -1,14 +1,4 @@
 using System.ComponentModel;
-using Momoka.Infrastructure;
-using Momoka.Configuration;
-using Momoka.Diagnostics;
-using Momoka.Emby;
-using Momoka.MoviePilot;
-using Momoka.Playback;
-using Momoka.Services;
-using Momoka.Shell;
-using Momoka.Shell.ViewModels;
-using Momoka.Updates;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -16,6 +6,16 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using Momoka.Configuration;
+using Momoka.Diagnostics;
+using Momoka.Emby;
+using Momoka.Infrastructure;
+using Momoka.MoviePilot;
+using Momoka.Playback;
+using Momoka.Services;
+using Momoka.Shell;
+using Momoka.Shell.ViewModels;
+using Momoka.Updates;
 
 namespace Momoka.Shell.Views;
 

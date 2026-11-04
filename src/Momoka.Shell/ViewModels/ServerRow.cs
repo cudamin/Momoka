@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
+using Microsoft.UI.Xaml;
 using Momoka.Configuration;
 using Momoka.Emby;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.ViewModels;
 

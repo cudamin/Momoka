@@ -1,8 +1,8 @@
+using Microsoft.UI.Input;
+using Microsoft.UI.Xaml;
 using Momoka.Playback;
 using Momoka.Shell.Interop;
 using Momoka.Shell.Windowing;
-using Microsoft.UI.Input;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.Views;
 

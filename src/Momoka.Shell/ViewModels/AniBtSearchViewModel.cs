@@ -2,12 +2,12 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Momoka.AniBt;
-using Momoka.MoviePilot;
-using Momoka.Shell.Platform;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.AniBt;
+using Momoka.MoviePilot;
+using Momoka.Shell.Platform;
 
 namespace Momoka.Shell.ViewModels;
 

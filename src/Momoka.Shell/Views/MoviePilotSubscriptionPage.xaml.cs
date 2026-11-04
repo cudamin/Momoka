@@ -1,13 +1,13 @@
-using Momoka.AniBt;
-using Momoka.MoviePilot;
-using Momoka.Emby;
-using Momoka.Shell.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using Momoka.AniBt;
+using Momoka.Emby;
+using Momoka.MoviePilot;
 using Momoka.Shell.Platform;
+using Momoka.Shell.ViewModels;
 using Windows.UI;
 
 namespace Momoka.Shell.Views;

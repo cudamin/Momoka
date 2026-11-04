@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.UI.Xaml;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Services;
 using Momoka.Shell.Platform;
 using Momoka.Shell.Views;
-using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.ViewModels;
 

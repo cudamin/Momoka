@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using System.Net;
-using Momoka.Emby;
-using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.Emby;
+using Momoka.Shell.Views;
 
 namespace Momoka.Shell;
 

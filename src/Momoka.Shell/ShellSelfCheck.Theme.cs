@@ -1,13 +1,13 @@
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Momoka.Services;
 using Momoka.Shell.Interop;
 using Momoka.Shell.Views;
 using Momoka.Shell.Windowing;
 using Momoka.Theming;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace Momoka.Shell;
 
