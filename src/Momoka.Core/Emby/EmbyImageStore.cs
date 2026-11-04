@@ -160,7 +160,9 @@ public sealed class EmbyImageStore
             {
                 scope.ThrowIfUnavailable();
                 cancellationToken.ThrowIfCancellationRequested();
+                NavigationTiming.Mark("decode-begin");
                 var image = await decode(bytes).ConfigureAwait(true);
+                NavigationTiming.Mark("decode-end");
                 scope.ThrowIfUnavailable();
                 cancellationToken.ThrowIfCancellationRequested();
                 if (attempt > 0 && image is not null)
@@ -256,6 +258,7 @@ public sealed class EmbyImageStore
         // exactly the stutter a fast scroll showed. Off the thread, the scroll keeps moving.
         if (await ReadCachedAsync(path, cancellationToken).ConfigureAwait(false) is { } cached)
         {
+            NavigationTiming.Mark("image-hit");
             // 看过一眼就把这张的时间戳往前推 —— 淘汰按的就是这个时间（见 Prune）。不这么做的话「最旧」说的是
             // 「最早下载的」，于是天天看的那部剧的海报因为下得早，会先于上个月下过一次再没碰过的那张被删掉。
             //
@@ -272,6 +275,7 @@ public sealed class EmbyImageStore
         // download belongs to nobody, so a caller that walks away no longer empties the answer the
         // caller beside it was waiting for.
         using var demand = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, scope.Lifetime);
+        NavigationTiming.Mark("image-download");
         var bytes = await _downloads
             .RunAsync(key, shared => DownloadAsync(scope, download, description, path, shared), demand.Token)
             .ConfigureAwait(false);

@@ -118,7 +118,9 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     public LibraryPage()
     {
+        NavigationTiming.Mark("page-ctor-begin");
         InitializeComponent();
+        NavigationTiming.Mark("init-end");
 
         // 这一面墙一格多宽是按窗口宽度算的（见 LibraryViewModel.ResizeGrid）：窗口一停就把新宽度推过去。
         // 计时器在这里建，是因为「停下来」这件事只有页面知道 —— 尺寸变化本身不带「这是最后一帧」。
@@ -516,6 +518,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         _released = false;
         _navigation++;
         _attaching = true;
+        NavigationTiming.Mark("attach-begin");
 
         // The shell reads this back to restore its pane highlight after a Frame.GoBack.
         Tag = request.Tag;
@@ -563,13 +566,16 @@ public sealed partial class LibraryPage : Page, IShellContent
         _attaching = false;
         ApplyView();
         BuildBrowseSections();
+        NavigationTiming.Mark("attach-end");
 
         if (request.IsSearch && SearchSource != 0) ViewModel.Cancel();
         else
         {
             // 同一身份与查询下有快照就先摆出来；没有才走首次读取。两条都由 LoadNavigationAsync 收尾，
             // 区别只在它是否等待网络、是否串行补读之前的页。
-            ViewModel.RestoreSnapshot();
+            var restored = ViewModel.RestoreSnapshot();
+            NavigationTiming.Mark(restored ? "snapshot-hit" : "snapshot-miss");
+            NavigationTiming.Mark("reload-start");
             _ = LoadNavigationAsync(request, _navigation);
         }
     }
@@ -985,6 +991,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (args.InvokedItem is not CardItem card) return;
         if (ConsumeActionInvoke(card)) return;
+        NavigationTiming.Click("card");
         ViewModel.Open(card);
     }
 
@@ -1024,7 +1031,10 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnShelfCardClicked(object sender, RoutedEventArgs e)
     {
         if (sender is Button { Content: PosterCard { Card: { } card } } && !ConsumeActionInvoke(card))
+        {
+            NavigationTiming.Click("card");
             ViewModel.Open(card);
+        }
     }
 
     /// <summary>

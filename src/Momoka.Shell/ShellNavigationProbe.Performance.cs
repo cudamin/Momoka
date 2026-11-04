@@ -2,6 +2,7 @@ using System.Collections;
 using System.Diagnostics;
 using System.Net;
 using System.Reflection;
+using System.Text.Json;
 using CommunityToolkit.WinUI.Controls;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -27,6 +28,110 @@ namespace Momoka.Shell;
 /// <summary>Actual WinUI frames/dialogs/dispatcher with anonymous data; no real library or playback.</summary>
 internal sealed partial class ShellNavigationProbe
 {
+    private async Task PerformanceNavigationTimingAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        var path = Path.Combine(_options.Paths.LogDirectory, "navigation-timing-probe.ndjson");
+        var sink = new NavigationTimingFileSink(path);
+        var frame = new Frame();
+        _root.Children.Add(frame);
+        try
+        {
+            NavigationTiming.Start(new NavigationTimingRecorder(sink));
+            NavigationTiming.Press("probe-card");
+            var run = NavigationTiming.Click("probe-card")
+                ?? throw new InvalidOperationException("探针没有启动导航计时运行");
+            run.Mark("navigate-begin");
+            Require(frame.Navigate(typeof(LibraryPage),
+                LibraryRequest.ForRow(fixture.Services, HomeLayout.HomeRowTarget.Resume)), "真实 Frame 导航失败");
+            run.Mark("navigate-end");
+            var page = (LibraryPage)frame.Content!;
+            await LayoutAsync(page);
+            run.Mark("first-layout");
+
+            if (page.IsLoaded) run.Mark("page-loaded");
+            else
+            {
+                void Loaded(object sender, RoutedEventArgs e)
+                {
+                    page.Loaded -= Loaded;
+                    run.Mark("page-loaded");
+                }
+                page.Loaded += Loaded;
+            }
+
+            var rendered = Pending<bool>();
+            void Rendering(object? sender, object args)
+            {
+                CompositionTarget.Rendering -= Rendering;
+                run.Mark("first-render");
+                rendered.TrySetResult(true);
+            }
+            CompositionTarget.Rendering += Rendering;
+            await rendered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+
+            page.Release();
+            frame.Content = null;
+            frame.BackStack.Clear();
+            NavigationTiming.Stop();
+            sink.Flush();
+            sink.Dispose();
+
+            var lines = File.ReadAllLines(path);
+            var stages = new List<string>();
+            var runIds = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var line in lines)
+            {
+                using var document = JsonDocument.Parse(line);
+                stages.Add(document.RootElement.GetProperty("stage").GetString()!);
+                runIds.Add(document.RootElement.GetProperty("runId").GetString()!);
+            }
+            Require(stages.Count >= 8, $"导航计时事件过少：{stages.Count}");
+            Require(stages.All(stage => stage == "invalid" || stage.All(character =>
+                    char.IsAsciiLetterOrDigit(character) || character == '-')),
+                "导航计时阶段名越过了白名单");
+            var stageArray = stages.ToArray();
+            Require(stages.Contains("page-ctor-begin") && stages.Contains("init-end")
+                && stages.Contains("attach-begin") && stages.Contains("attach-end")
+                && stages.Contains("reload-start") && stages.Contains("navigate-end")
+                && stages.Contains("page-loaded") && stages.Contains("first-render"),
+                "匿名导航缺少页面构造、Attach、加载或首帧阶段：" + string.Join(",", stages));
+            Require(Array.IndexOf(stageArray, "page-ctor-begin") < Array.IndexOf(stageArray, "init-end")
+                && Array.IndexOf(stageArray, "init-end") < Array.IndexOf(stageArray, "attach-begin")
+                && Array.IndexOf(stageArray, "attach-begin") < Array.IndexOf(stageArray, "attach-end")
+                && Array.IndexOf(stageArray, "attach-end") < Array.IndexOf(stageArray, "navigate-end")
+                && Array.IndexOf(stageArray, "navigate-end") < Array.IndexOf(stageArray, "first-render"),
+                "匿名导航阶段顺序不正确：" + string.Join(",", stages));
+            Require(runIds.Count == 1 && runIds.Contains(run.RunId), "匿名导航阶段没有共享同一运行 ID");
+            Require(lines.All(line => !line.Contains("http", StringComparison.OrdinalIgnoreCase)
+                    && !line.Contains("token", StringComparison.OrdinalIgnoreCase)
+                    && !line.Contains("server", StringComparison.OrdinalIgnoreCase)),
+                "导航计时文件包含地址、令牌或服务器字段");
+
+            await WritePerformanceEvidenceAsync("performance-navigation-timing.json", new
+            {
+                runId = run.RunId,
+                events = stages.Count,
+                stages,
+                pageLoaded = stages.Contains("page-loaded"),
+                firstRender = stages.Contains("first-render"),
+                privacyChecked = true,
+                realNetwork = false,
+                mediaLoaded = false
+            });
+        }
+        finally
+        {
+            NavigationTiming.Stop();
+            if (frame.Content is IShellContent content) content.Release();
+            frame.Content = null;
+            frame.BackStack.Clear();
+            _root.Children.Remove(frame);
+            sink.Dispose();
+        }
+    }
+
     private async Task PerformanceSearchVisitsAsync()
     {
         using var fixture = CreateFixture(new PerformanceSearchTransport());

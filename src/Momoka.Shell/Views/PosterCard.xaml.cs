@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Diagnostics;
 
 namespace Momoka.Shell.Views;
 
@@ -533,6 +534,7 @@ public sealed partial class PosterCard : UserControl
     private void OnPointerPressed(object sender, PointerRoutedEventArgs e)
     {
         if (!e.GetCurrentPoint(Root).Properties.IsLeftButtonPressed) return;
+        NavigationTiming.Press("card");
         _pressed = true;
         AnimateCard();
     }

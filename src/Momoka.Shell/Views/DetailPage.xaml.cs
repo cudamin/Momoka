@@ -77,11 +77,14 @@ public sealed partial class DetailPage : Page, IShellContent
 
     public DetailPage()
     {
+        NavigationTiming.Mark("page-ctor-begin");
         // Constructed with the page rather than in OnNavigatedTo, so x:Bind never has a null root: the
         // bindings are evaluated by InitializeComponent below, and a view model that arrives afterwards
         // would leave every one of them showing nothing until the first property changed.
         ViewModel = new DetailViewModel();
+        NavigationTiming.Mark("init-begin");
         InitializeComponent();
+        NavigationTiming.Mark("init-end");
         PaintScrim();
         PrepareShowcase();
 
@@ -1704,6 +1707,7 @@ public sealed partial class DetailPage : Page, IShellContent
 
         // The one place this page resolves anything. Deliberately a single block: it is the line that goes
         // when the shell stops handing a container around.
+        NavigationTiming.Mark("attach-begin");
         var services = request.Services;
         _session = services.GetRequiredService<EmbySession>();
         _actions = services.GetRequiredService<IShellActions>();
@@ -1735,6 +1739,8 @@ public sealed partial class DetailPage : Page, IShellContent
         PaintScrim();
         PaintWash(force: true);
         PlaceEpisodes();
+        NavigationTiming.Mark("attach-end");
+        NavigationTiming.Mark("reload-start");
 
         _ = ViewModel.ReloadAsync();
     }
@@ -2347,7 +2353,11 @@ public sealed partial class DetailPage : Page, IShellContent
             _ => null
         };
 
-        if (card is not null) ViewModel.OpenCard(card);
+        if (card is not null)
+        {
+            NavigationTiming.Click("card");
+            ViewModel.OpenCard(card);
+        }
     }
 
     private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args) =>

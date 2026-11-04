@@ -2314,20 +2314,27 @@ public sealed partial class DetailViewModel : PageViewModel
         if (!Attached || _seed is not { } seed) return;
 
         var token = BeginLoad();
+        NavigationTiming.Mark("load-begin");
 
         try
         {
             // 先用点进来那张卡片画一屏，**在这一趟往返之前**。片名、副标题那一行类型、简介、已看和收藏、还有那四张
             // 图，卡片手上全都有（列表接口那份字段集就带着 Overview / ProductionYear / Genres / ImageTags），从前
             // 它们一律在等详情接口 —— 于是点一张封面进来先看一屏「正在读取」，而这是整个客户端里点得最多的动作。
+            NavigationTiming.Mark("preview-begin");
             Preview(seed);
+            NavigationTiming.Mark("preview-end");
 
+            NavigationTiming.Mark("get-begin");
             var detail = await _scope!
                 .ExecuteAsync((client, ct) => client.GetItemAsync(
                     seed.Id, ct, order: Settings.Playback.MediaSourceOrder), token).ConfigureAwait(true);
+            NavigationTiming.Mark("get-end");
             if (!IsCurrent(token)) return;
 
+            NavigationTiming.Mark("apply-begin");
             Apply(detail);
+            NavigationTiming.Mark("apply-end");
 
             // 更多类似 only needs the item this page is about, so it has no business waiting behind the
             // 剧季 → 单集 → 播放目标 chain — which is three round trips on a series page. Started here and
@@ -2336,6 +2343,7 @@ public sealed partial class DetailViewModel : PageViewModel
             // it fills.
             var similar = LoadSimilarAsync(detail, token);
 
+            NavigationTiming.Mark("branch-begin");
             switch (detail.Type)
             {
                 case EmbyItemType.Series:
@@ -2362,17 +2370,23 @@ public sealed partial class DetailViewModel : PageViewModel
                     await seasonShelf.ConfigureAwait(true);
                     break;
             }
+            NavigationTiming.Mark("branch-end");
 
             // Cannot throw: it swallows its own failures, on purpose — see its own note.
+            NavigationTiming.Mark("similar-wait-begin");
             await similar.ConfigureAwait(true);
+            NavigationTiming.Mark("similar-wait-end");
 
+            NavigationTiming.Mark("end-load-begin");
             EndLoad(token);
+            NavigationTiming.Mark("end-load-end");
         }
         catch (OperationCanceledException)
         {
         }
         catch (Exception error)
         {
+            NavigationTiming.Mark("load-error");
             Log.Warn(Category, "加载详情失败", error);
             if (!IsCurrent(token)) return;
 
@@ -2388,7 +2402,9 @@ public sealed partial class DetailViewModel : PageViewModel
 
             // Ready, not stuck: IsReady means the first load finished, whether it found anything or not,
             // and the startup self-check waits on it before it reads the page.
+            NavigationTiming.Mark("end-load-begin");
             EndLoad(token);
+            NavigationTiming.Mark("end-load-end");
         }
     }
 
@@ -2423,7 +2439,9 @@ public sealed partial class DetailViewModel : PageViewModel
 
         // 这一页讲的是哪一类东西，从这一拍起就定了 —— 带子的高、名牌落哪个角、那一行文件选项开不开。少喊这一句的
         // 下场是第一屏用「没有条目」那一档的答案画，详情回来再跳一次。
+        NavigationTiming.Mark("announce-begin");
         AnnounceShape();
+        NavigationTiming.Mark("announce-end");
 
         // 这一份和 Apply 里那一段同源，所以两处的答案不会分叉 —— 这里少的正是「卡片答不出的那几样」。
         ApplyHeading(seed);
@@ -2444,6 +2462,7 @@ public sealed partial class DetailViewModel : PageViewModel
         _art?.Dispose();
         _art = new CancellationTokenSource();
         _artStarts++;
+        NavigationTiming.Mark("art-start");
         _ = LoadArtworkAsync(seed, _art);
 
         _previewed = Title;
@@ -2672,7 +2691,9 @@ public sealed partial class DetailViewModel : PageViewModel
         _infoEpisode = null;
         _infoSource = null;
 
+        NavigationTiming.Mark("announce-begin");
         AnnounceShape();
+        NavigationTiming.Mark("announce-end");
 
         EpisodeFocus = 0;
 
@@ -3291,6 +3312,7 @@ public sealed partial class DetailViewModel : PageViewModel
     private async Task LoadArtworkAsync(EmbyItem item, CancellationTokenSource art)
     {
         if (!Attached) return;
+        NavigationTiming.Mark("art-load-begin");
 
         // 左上角那一格封面（「集页面的封面改用剧页面的封面」，2026-09-12）：集页取剧集那一层的 Primary ——
         // 就是剧页面上那张 2:3 海报，借的也是同一条路（show 在 WhenAll 外头就已经在路上了）；借不到（没有
@@ -3329,12 +3351,18 @@ public sealed partial class DetailViewModel : PageViewModel
             Log.Debug(Category, $"加载详情图片失败：{error.Message}");
         }
 
+        NavigationTiming.Mark("art-load-end");
+
         // Every one of the four ends the same way: show it if it arrived and if this page is still the
         // page that asked. Both halves of that check matter — see Fresh.
         async Task Paint(Task<BitmapImage?> decode, Action<BitmapImage> assign)
         {
             var picture = await decode.ConfigureAwait(true);
-            if (Fresh(art, item) && picture is not null) assign(picture);
+            if (Fresh(art, item) && picture is not null)
+            {
+                assign(picture);
+                NavigationTiming.Mark("image-assign");
+            }
         }
 
         // 电影和剧的头图：解到像素存起来（_heroPixels —— 裁切模糊的原料），按当前的模糊档位渲染上屏，自己
