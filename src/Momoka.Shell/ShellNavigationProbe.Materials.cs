@@ -141,6 +141,12 @@ internal sealed partial class ShellNavigationProbe
                         var page = stage is "shelf" or "mpcards" or "anibtcards"
                             ? (FrameworkElement)holder : (FrameworkElement)frame.Content;
                         await LayoutAsync(page);
+                        // 窗口尺寸变更由系统异步落实；等目标宽度到位再量，不把遮挡或渲染节流当成产品尺寸不同。
+                        await UntilAsync(() =>
+                        {
+                            _root.UpdateLayout();
+                            return Math.Abs(_root.ActualWidth - width) < 1;
+                        });
                         Require(Math.Abs(_root.ActualWidth - width) < 1, "客户区未到达目标宽度");
                         CheckRoles(theme);
                         var samples = theme.Id == UiThemes.DefaultId && width == 1280;
