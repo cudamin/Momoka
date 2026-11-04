@@ -25,8 +25,7 @@ internal sealed partial class DetailViewModel : PageViewModel
 {
     private const string Category = "ui";
     private bool _active;
-    // 提取的 Cancel／LoadAsync 会写这支 P1 动作门；本夹具不执行详情命令，所以没有读取方。
-    internal bool _actionsReady;
+    private bool _actionsReady;
     private EmbySessionScope? _scope;
     private EmbyItem? _seed;
     private FixtureSettings? _settings;
@@ -38,10 +37,12 @@ internal sealed partial class DetailViewModel : PageViewModel
     internal EmbyItem? PlayTarget { get; private set; }
     private void ShowTarget(EmbyItem? target) => PlayTarget = target;
     internal EmbyItem? Applied { get; private set; }
+    internal bool FixtureActionsReady => _actionsReady;
 
     internal void FixtureAttach(EmbySessionScope scope, EmbyItem item)
     {
         _active = true;
+        _actionsReady = true;
         _scope = scope;
         _seed = item;
         _settings = new(new AppSettings());
@@ -51,7 +52,11 @@ internal sealed partial class DetailViewModel : PageViewModel
 
     // Rendering/other media-type loads are outside this movie-only contract and cannot send requests.
     private void Preview(EmbyItem seed) { }
-    private void Apply(EmbyItem item) => Applied = item;
+    private void Apply(EmbyItem item)
+    {
+        Applied = item;
+        _actionsReady = true;
+    }
     private static Task LoadSimilarAsync(EmbyItem item, CancellationToken token) => Task.CompletedTask;
     private static Task LoadSeriesAsync(EmbyItem item, CancellationToken token) => throw new InvalidOperationException("Movie-only fixture");
     private static Task LoadSeasonSeriesAsync(EmbyItem item, CancellationToken token) => throw new InvalidOperationException("Movie-only fixture");

@@ -197,7 +197,9 @@ internal static class Program
                 using var f = new SubtitleFixture();
                 await f.OpenAsync();
                 await Mutate(f, ui, mutation);
+                Assert.True(f.Parent.FixtureActionsReady);
                 f.Parent.Cancel();
+                Assert.False(f.Parent.FixtureActionsReady, "The real Cancel revokes action readiness");
                 await f.CloseAsync();
                 Assert.Equal(1, f.Changed, "Caller hands off once; the real parent lifetime entry refuses inactive loading");
                 Assert.Equal(InitialReads(mutation), f.Transport.Reads);
