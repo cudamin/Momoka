@@ -24,6 +24,7 @@
 - 交付完成：最终诊断Shell编译0警告0错误；`tools/publish.ps1 -Shortcut -NoArchive`退出0，546文件/285.9 MB、14 GLSL/4 HOOK及mpv59文件校验通过。桌面`Momoka.lnk`目标与工作目录回读为主树`artifacts/publish/win-x64`，参数空；Shell哈希`50C7DD01CA3C2666EC2D7161823269FDA6C7C84F6F21DB698D2DACBC197F8132`、Core`625C9E56429EBF5F4E5434D443B24F2495AA1704C712B3B1530898F8F263FE19`均与主树最终构建一致，发布日志`work/web-console-publish.log`。
 - 发布件真实只读验收：进程21100/设置窗口5245242实际加载已配置Emby，下载标题、返回及下载/设置页签可见；点击原网页设置页签后临时文件路径、全速转换开关与保存按钮完整呈现。实屏`work/web-console-live-downloads-screen.png`、`web-console-live-settings-screen.png`；本次仅导航读取，未编辑输入、拨开关、保存、选择目录或播放。Jellyfin仍为匿名DOM验证，不宣称实服验收。正式发布件留在下载设置供用户查看。
 - 没有上传远端、生成新安装包或提交商店；版本号不变。本聊天工作树detached已提交，无临时分支；其他聊天临时树由所属聊天核对独有文档后收尾，未跨会话删除未保留内容。
+- 2a99 清理回执：所属聊天已逐文件核对 `fb69593` 的详情布局与 `7e27ac1` 的字幕夹具均等效进入 master；本轮复查其工作树干净且 detached，必要日志、报告与截图已保存到 `C:/Users/89400/.codex/visualizations/2026/11/04/01a1a530-a3bb-7830-9c3a-2b6e774840ac/detail-layout-verification`。所属聊天调用原生归档工具被 `The task's primary checkout cannot be removed` 拒绝，按保护保留干净目录，未绕过删除。本次只补文档并检查差异，不构建、不发布。
 
 ## 2026-11-04 详情同类型版式通知去重 P1（分支验证中）
 
