@@ -452,6 +452,15 @@ public static class SettingsMigration
         settings.EnsureDeviceId();
         settings.Ui.PageSize = Math.Clamp(settings.Ui.PageSize, 20, 500);
 
+        // 三页各自保存；null、重复或旧版不认识的卡片统一收口，缺项按当前目录恢复默认显示。
+        settings.Ui.SeriesCards = [.. DetailLayout.Plan(EmbyItemType.Series, settings.Ui.SeriesCards)];
+        settings.Ui.EpisodeCards = [.. DetailLayout.Plan(EmbyItemType.Episode, settings.Ui.EpisodeCards)];
+        settings.Ui.MovieCards = [.. DetailLayout.Plan(EmbyItemType.Movie, settings.Ui.MovieCards)];
+        settings.Ui.ControlBackgroundOpacity = double.IsFinite(settings.Ui.ControlBackgroundOpacity)
+            ? Math.Clamp(settings.Ui.ControlBackgroundOpacity, 0, 100) : 100;
+        settings.Ui.BackdropOpacity = double.IsFinite(settings.Ui.BackdropOpacity)
+            ? Math.Clamp(settings.Ui.BackdropOpacity, 0, 100) : 90;
+
         // 海报缓存的磁盘上限。范围和「MB 换字节」都在淘汰规则那一头（Emby.ImageCachePolicy），设置页那一行也读
         // 同一对常量 —— 一个比设置窄的框会显示一个文件里没有的数并在下次触碰时写回去，一个比设置宽的框会让人填进
         // 一个保存时被悄悄搬走的数。缺键（从旧版本升上来）读出来是 0，ClampMegabytes 把 0 当「按装机默认」。

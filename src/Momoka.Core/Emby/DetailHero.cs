@@ -124,7 +124,8 @@ public static class DetailHero
     /// 四句话缺一不可：
     /// <list type="bullet">
     /// <item><paramref name="spacious"/>：窗口铺开了 —— 最大化、面积过了 <see cref="ImmersiveShare"/>，或者
-    /// 背景图已经/即将被裁掉（<see cref="NearCrop"/>；那一句由调用方并进来，这一支不看窗口）；
+    /// 背景图已经/即将被裁掉（<see cref="NearCrop"/>；那一句由调用方并进来，这一支不看窗口），或
+    /// <paramref name="always"/> 已固定使用沉浸模式；
     /// 收回纸面之后回到纸面版式（<see cref="PaperHeight"/>）。</item>
     /// <item><paramref name="compact"/>：窄成紧凑版式时不参与 —— 那一档是另一套单列版面。</item>
     /// <item><paramref name="artwork"/>：背后没有那张图就没有可透的东西，收掉纸面只会剩一页空黑。</item>
@@ -143,8 +144,9 @@ public static class DetailHero
     /// <param name="compact">这一页这次走不走紧凑版式（<see cref="IsCompact"/>）。</param>
     /// <param name="artwork">服务器上有没有那张背景图 —— 同 <see cref="Height"/>：不是「位图解出来了没有」。</param>
     /// <param name="type">这一页讲的条目类型（<see cref="EmbyItemType"/> 的字符串常量）。</param>
-    public static bool Immersive(bool spacious, bool compact, bool artwork, string type) =>
-        spacious && !compact && artwork
+    /// <param name="always">固定使用沉浸模式时不再要求大窗；紧凑版式、背景图与条目类型限制仍生效。</param>
+    public static bool Immersive(bool spacious, bool compact, bool artwork, string type, bool always = false) =>
+        (spacious || always) && !compact && artwork
         && type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
     /// <summary>
