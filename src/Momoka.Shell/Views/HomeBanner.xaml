@@ -359,7 +359,8 @@
 
                         <Button
                             x:Name="OpenButton"
-                    x:Uid="HomeBanner_OpenButton"
+                            x:Uid="HomeBanner_OpenButton"
+                            Content="详情"
                             Style="{StaticResource EgBannerGhostStyle}"
                             Click="OnOpenClicked">
                             <Button.Resources>

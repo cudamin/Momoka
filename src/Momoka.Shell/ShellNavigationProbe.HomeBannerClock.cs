@@ -1,5 +1,7 @@
 using System.Net;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation.Peers;
+using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
@@ -73,6 +75,8 @@ internal sealed partial class ShellNavigationProbe
 
         var readings = new List<string>();
         var dropped = new List<string>();
+        BannerSlide? opened = null;
+        banner.OpenRequested += (_, slide) => opened = slide;
         banner.SlideDropped += (_, slide) => dropped.Add(slide.Item.Id);
         try
         {
@@ -82,6 +86,24 @@ internal sealed partial class ShellNavigationProbe
             banner.Apply(slides);
             await WaitAsync(() => slides.All(slide => slide.Picture is not null), 8000);
             await LayoutAsync(banner);
+            var open = Get<Button>(banner, "OpenButton");
+            Require(open.Content is string { Length: > 0 } text && text == "详情"
+                && open.ActualWidth > open.Padding.Left + open.Padding.Right + 2
+                && Descendants(open).OfType<TextBlock>().Any(block => block.Text == "详情" && block.ActualWidth > 0),
+                "首页详情按钮没有呈现文字");
+            foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
+            {
+                Require(VisualStateManager.GoToState(open, state, false), "详情按钮缺少状态：" + state);
+                await LayoutAsync(banner);
+                var presenter = Descendants(open).OfType<ContentPresenter>().Single(part => part.Name == "ContentPresenter");
+                Require(presenter.Foreground is SolidColorBrush ink && ink.Color.A == byte.MaxValue,
+                    "详情按钮文字在 " + state + " 变透明");
+            }
+            VisualStateManager.GoToState(open, "Normal", false);
+            ((IInvokeProvider)new ButtonAutomationPeer(open).GetPattern(PatternInterface.Invoke)).Invoke();
+            await SettleAsync();
+            Require(ReferenceEquals(opened, slides[0]) && fixture.Actions.Plays == 0,
+                "首页详情按钮没有交给当前条目，或意外请求播放");
             await SaveProbeScreenAsync("home-banner-clock-screen.png");
 
             var scale = Get<ScaleTransform>(banner, "CountdownScale");

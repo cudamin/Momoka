@@ -143,17 +143,30 @@ internal static class InputControlThemeTests
                 Assert.Equal("Center", (string?)number.Attribute("VerticalAlignment"));
             }
         });
-        Test("输入主题：集页宽版式接设置页的输入玻璃，集列表牌子不再挂下拉", () =>
+        Test("输入主题：详情文件选项与上方按钮同底，集列表牌子不再挂下拉", () =>
         {
             var page = Read("src/Momoka.Shell/Views/DetailPage.xaml");
-            var column = page.Descendants(Xaml + "StackPanel")
-                .Single(element => (string?)element.Attribute(X + "Name") == "ColumnPickers");
-            var columnResources = column.Element(Xaml + "StackPanel.Resources")!;
-            foreach (var key in ComboBackgroundKeys)
-                AssertAlias(columnResources, key, "EgInputGlassBrush");
-            // 详情页继续用自己的 12 DIP；设置页的局部输入圆角不影响这三颗。
-            foreach (var picker in column.Descendants().Where(element => element.Name.LocalName == "EgPicker"))
-                Assert.Equal("{StaticResource EgPickerCornerRadius}", (string?)picker.Attribute("CornerRadius"));
+            foreach (var name in new[] { "ColumnPickers", "PickerPanel" })
+            {
+                var panel = page.Descendants(Xaml + "StackPanel")
+                    .Single(element => (string?)element.Attribute(X + "Name") == name);
+                var resources = panel.Element(Xaml + "StackPanel.Resources")!;
+                foreach (var key in ComboBackgroundKeys)
+                {
+                    var state = key["ComboBoxBackground".Length..];
+                    var target = "ButtonBackground" + (state is "Focused" or "Unfocused" ? "" : state);
+                    AssertAlias(resources, key, target);
+                }
+                Assert.False(resources.Elements().Any(element =>
+                    (string?)element.Attribute(X + "Key") == "ComboBoxDropDownBackground"), "弹层背景被局部覆盖");
+                var pickers = panel.Descendants().Where(element => element.Name.LocalName == "EgPicker").ToArray();
+                Assert.Equal(3, pickers.Length, name + " 的文件选项范围变了");
+                foreach (var picker in pickers)
+                {
+                    Assert.Equal("{ThemeResource ButtonBackground}", (string?)picker.Attribute("Background"));
+                    Assert.Equal("{StaticResource EgPickerCornerRadius}", (string?)picker.Attribute("CornerRadius"));
+                }
+            }
 
             // 集列表牌子右端那颗季选择栏 2026-11-02 按用户令删了，连同它把六个全局下拉底钉回窗口色
             // （EgWindowBrush）的那套局部资源 —— 这一条现在盯着「别再长回来」：牌子上再有下拉，就得重新复核

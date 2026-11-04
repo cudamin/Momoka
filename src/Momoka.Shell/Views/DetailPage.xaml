@@ -618,19 +618,15 @@
                                 x:Name="ColumnPickers"
                                 Spacing="10"
                                 Visibility="{x:Bind ViewModel.ColumnPickersVisibility, Mode=OneWay}">
-                                <!-- 2026-10-30 用户令：「把集页面的选择框改为设置页面的那种样式」，同一轮补一句
-                                     「圆角不要改」。集页宽版式这三颗（媒体源／音频／字幕）因此接设置页那支
-                                     输入玻璃（EgInputGlassBrush）；圆角沿用 EgPickerCornerRadius 的全站搜索框别名。
-                                     剧、电影、季三页尾部那一组（PickerPanel）照 2026-10-29 钉回窗口底色 ——
-                                     那一轮用户点名「别把剧、电影页面的选择框给改了」，这一轮只点集页。
-                                     只钉闭合态；弹层仍走全局亚克力。 -->
+                                <!-- 文件选项复用上方按钮的常态、悬停与按压背景；聚焦和失焦回常态。
+                                     圆角与弹层仍沿用选择框自己的资源。 -->
                                 <StackPanel.Resources>
-                                    <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgInputGlassBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgInputGlassBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgInputGlassBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgInputGlassBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgInputGlassBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgInputGlassBrush" />
+                                    <StaticResource x:Key="ComboBoxBackground" ResourceKey="ButtonBackground" />
+                                    <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOver" />
+                                    <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="ButtonBackgroundPressed" />
+                                    <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="ButtonBackground" />
+                                    <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="ButtonBackground" />
+                                    <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="ButtonBackgroundDisabled" />
                                 </StackPanel.Resources>
                                 <TextBlock
                                     VerticalAlignment="Center"
@@ -651,6 +647,7 @@
                                         Foreground="{StaticResource EgOnScrimBrush}" />
                                     <local:EgPicker
                                         x:Name="ColumnSourcePicker"
+                                        Background="{ThemeResource ButtonBackground}"
                                         Grid.Column="1"
                                         HorizontalAlignment="Left"
                                         CornerRadius="{StaticResource EgPickerCornerRadius}"
@@ -672,6 +669,7 @@
                                         Foreground="{StaticResource EgOnScrimBrush}" />
                                     <local:EgPicker
                                         x:Name="ColumnAudioPicker"
+                                        Background="{ThemeResource ButtonBackground}"
                                         Grid.Column="1"
                                         HorizontalAlignment="Left"
                                         CornerRadius="{StaticResource EgPickerCornerRadius}"
@@ -693,6 +691,7 @@
                                         Foreground="{StaticResource EgOnScrimBrush}" />
                                     <local:EgPicker
                                         x:Name="ColumnSubtitlePicker"
+                                        Background="{ThemeResource ButtonBackground}"
                                         Grid.Column="1"
                                         HorizontalAlignment="Left"
                                         CornerRadius="{StaticResource EgPickerCornerRadius}"
@@ -1009,36 +1008,8 @@
                              2026-09-27：「把音频和字幕的选择栏改成亚克力背景」；为什么这么改写在 EgPicker.cs）。
                              同一页上另有集页宽版式那三颗，一共六颗，别处（设置页等）照旧。
 
-                             **闭合态那圈底（2026-10-09，用户：「剧页面 季页面 电影页面这三个页面的音频、
-                             字幕、版本选择框背景要用透明的亚克力背景」）**：这三颗从 2026-09-25 起是不透明的
-                             实心块（`ComboBoxBackground` = 抬升一档的面色），浮在压暗的剧照上就是
-                             「贴上去的一块」。用户在截图里圈的就是这一块，要它跟这一页正文那几块玻璃同一种
-                             材料。覆盖写在这颗 StackPanel 的 Resources 里，不去动 Palette 那两个全局键 ——
-                             `ComboBoxBackground` 一族是设置页、诊断页等处每一颗下拉共用的，用户点名的是
-                             剧、季、电影这三页；「按页面点名的范围改，改一处记一处」是这一族的老规矩
-                             （同 EgPicker 那一段、首页那支收窄的滚动条）。元素级覆盖也正好是 HomePage 给
-                             自己那颗 ScrollView 换滚动条用的手法。
-
-                             指向的是 `EgPickerGlassBrush`（`Palette.xaml` 里新开的一支：两个 tint 参数留小、
-                             浓度由画笔自己的 `Opacity` 定 —— 为什么是这么个形状、每一档屏上量出来是什么样，
-                             写在那一支的注释里）。第一版直接指到浮层那支 `ComboBoxDropDownBackground`
-                             （0.55/0.55），用户看完一句「不够透明」。
-                             五个背景键一起指过去（含 PointerOver/Pressed/Focused/Unfocused）：只改静止态的
-                             话，指针一压上去就跳回实心块。悬停的反馈仍由框线和那颗下拉箭头给，同「选完落回来
-                             像什么都没发生过」那套（见 Palette 里闭合态五件套的说明）。
-                             边框不碰：那一圈是「哪儿能点」的读法，用户要去掉的从来只是底色。
-
-                             **只有闭合态走这一支（2026-10-16 用户两条令：「收起时候保持原来的透明度，展开后
-                             背景切换为亚克力材质」）**。此前弹层那支也一并指过来（2026-10-09 的第三条令：
-                             「展开后背景要和未展开一样」），那是为了让点开那一下浓度不跳档；这一轮反过来 ——
-                             列表开着的时候底下压着轨道名、邻座那颗下拉和剧情说明，透成那样读不清，用户要的是
-                             「展开＝亚克力」。所以这里只留五个闭合态的键，**`ComboBoxDropDownBackground`
-                             不再覆盖**，弹层回到 `Palette.xaml` 全局那一支（0.55/0.55 的 `AcrylicBrush`，
-                             2026-09-27 他验收过的那一支）；设置页、诊断页的弹层本来就走全局那支，一并照旧。
-                             弹层与闭合态因此不是同一种材料，这是用户点名的取舍，不是漏配。
-
-                             集页那三颗（ColumnPickers）不在内 —— 它们压在片名底下那张剧照上，而这三颗底下是
-                             压暗了七成二的画面；用户这一轮点名的也是电影、剧、季三页。 -->
+                             闭合表面与头图上方按钮共用背景三态，电影、剧、季、集和紧凑布局保持一致。
+                             展开列表继续使用全局亚克力，边线与圆角沿用选择框样式。 -->
                         <StackPanel
                             x:Name="PickerPanel"
                             Style="{StaticResource EgBodyPanelStyle}"
@@ -1047,20 +1018,18 @@
                             Padding="{x:Bind ViewModel.TailPanelPadding, Mode=OneWay}"
                             Visibility="{x:Bind ViewModel.PickersVisibility, Mode=OneWay}">
                             <StackPanel.Resources>
-                                <!-- 只有闭合态那五件套：展开态那支 ComboBoxDropDownBackground 不覆盖，
-                                     弹层走 Palette 全局的亚克力（2026-10-16 用户令，理由见上一段）。 -->
-                                <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgPickerGlassBrush" />
-                                <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgPickerGlassBrush" />
-                                <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgPickerGlassBrush" />
-                                <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgPickerGlassBrush" />
-                                <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgPickerGlassBrush" />
-                                <!-- 2026-10-29：全局 Disabled 底也换成了玻璃；这一排补钉一枚，
-                                     停用态才不会在页面的玻璃语言里落下一块别的颜色。 -->
-                                <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgPickerGlassBrush" />
+                                <!-- 同集页宽版式：闭合表面与上方按钮同底，弹层继续用全局亚克力。 -->
+                                <StaticResource x:Key="ComboBoxBackground" ResourceKey="ButtonBackground" />
+                                <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="ButtonBackgroundPointerOver" />
+                                <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="ButtonBackgroundPressed" />
+                                <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="ButtonBackground" />
+                                <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="ButtonBackground" />
+                                <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="ButtonBackgroundDisabled" />
                             </StackPanel.Resources>
                             <local:WrapRow RowSpacing="10" Spacing="14">
                                 <local:EgPicker
                                     x:Name="SourcePicker"
+                                    Background="{ThemeResource ButtonBackground}"
                                     CornerRadius="{StaticResource EgPickerCornerRadius}"
                                     DisplayMemberPath="Text"
                                     ItemsSource="{x:Bind ViewModel.Sources, Mode=OneWay}"
@@ -1073,6 +1042,7 @@
                                 </local:EgPicker>
                                 <local:EgPicker
                                     x:Name="AudioPicker"
+                                    Background="{ThemeResource ButtonBackground}"
                                     CornerRadius="{StaticResource EgPickerCornerRadius}"
                                     DisplayMemberPath="Text"
                                     ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
@@ -1085,6 +1055,7 @@
                                 </local:EgPicker>
                                 <local:EgPicker
                                     x:Name="SubtitlePicker"
+                                    Background="{ThemeResource ButtonBackground}"
                                     CornerRadius="{StaticResource EgPickerCornerRadius}"
                                     DisplayMemberPath="Text"
                                     ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}"

@@ -15,6 +15,13 @@ internal static class AcrylicControlsTests
 
     public static void Register()
     {
+        Test("主页轮播：详情按钮有默认文字并保留本地化与导航", () =>
+        {
+            var button = Named(Read("Views/HomeBanner.xaml"), "OpenButton");
+            Assert.Equal("详情", (string?)button.Attribute("Content"));
+            Assert.Equal("HomeBanner_OpenButton", (string?)button.Attribute(X + "Uid"));
+            Assert.Equal("OnOpenClicked", (string?)button.Attribute("Click"));
+        });
         foreach (var theme in new[] { "Dark", "Light" })
             Test($"按钮亚克力：{theme} 首帧三态有主题 tint 和不透明回退", () =>
             {

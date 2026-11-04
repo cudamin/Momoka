@@ -38,7 +38,12 @@ internal sealed partial class ShellNavigationProbe
         var episode = Episode("a");
         episode.RunTimeTicks = TimeSpan.FromMinutes(45).Ticks;
         episode.UserData = new() { PlaybackPositionTicks = TimeSpan.FromMinutes(20).Ticks };
-        episode.MediaSources = [new() { Id = "offline", Name = "离线版本", Container = "mkv" }];
+        episode.MediaSources = [new()
+        {
+            Id = "offline", Name = "离线版本", Container = "mkv",
+            MediaStreams = [new() { Index = 1, Type = "Audio", DisplayTitle = "中文音轨" },
+                new() { Index = 2, Type = "Subtitle", DisplayTitle = "简体中文字幕" }]
+        }, new() { Id = "offline-alt", Name = "另一版本", Container = "mkv" }];
         var movies = Enumerable.Range(0, 7).Select(index => new EmbyItem
         {
             Id = "material-" + index,
@@ -180,6 +185,17 @@ internal sealed partial class ShellNavigationProbe
                             Require(controls.Length == 6, "详情操作排缺少按钮或连播");
                             foreach (var control in controls)
                                 await CheckRestoredActionAsync(control);
+                            var reference = controls.OfType<Button>().Single(control =>
+                                AutomationProperties.GetAutomationId(control) == (width == 1280
+                                    ? "ColumnPlayButton" : "CompactPlayButton"));
+                            var pickers = Get<StackPanel>(detail, detail.ViewModel.ColumnPickersVisibility == Visibility.Visible
+                                ? "ColumnPickers" : "PickerPanel");
+                            var visiblePickers = Descendants(pickers).OfType<EgPicker>()
+                                .Where(picker => picker.Visibility == Visibility.Visible).ToArray();
+                            Require(visiblePickers.Length == 3, "详情材质夹具没有显示版本、音频和字幕");
+                            foreach (var picker in visiblePickers)
+                                await CheckPickerBackgroundAsync(picker, reference);
+                            await SaveProbeScreenAsync($"detail-selectors-{theme.Id}-{width}-screen.png");
                             if (samples)
                             {
                                 var play = controls.Single(control =>
@@ -192,6 +208,35 @@ internal sealed partial class ShellNavigationProbe
                                     await SaveProbeScreenAsync("detail-actions-restored-screen.png");
                                 }
                                 finally { VisualStateManager.GoToState(play, "Normal", false); }
+                            }
+                            if (width == 1280)
+                            {
+                                var episodeFrame = new Frame();
+                                ThemeHost.Register(episodeFrame);
+                                _root.Children.Add(episodeFrame);
+                                try
+                                {
+                                    Require(episodeFrame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, episode)),
+                                        "集页文件选项导航失败");
+                                    var episodePage = (DetailPage)episodeFrame.Content;
+                                    await UntilAsync(() => episodePage.IsReady
+                                        && episodePage.ViewModel.ColumnPickersVisibility == Visibility.Visible);
+                                    await LayoutAsync(episodePage);
+                                    var episodePlay = Descendants(Get<StackPanel>(episodePage, "ColumnActions")).OfType<Button>()
+                                        .Single(button => AutomationProperties.GetAutomationId(button) == "ColumnPlayButton");
+                                    foreach (var picker in Descendants(Get<StackPanel>(episodePage, "ColumnPickers")).OfType<EgPicker>())
+                                    {
+                                        Require(picker.Visibility == Visibility.Visible, picker.Name + " 未在集页显示");
+                                        await CheckPickerBackgroundAsync(picker, episodePlay);
+                                    }
+                                    await SaveProbeScreenAsync($"detail-column-selectors-{theme.Id}-screen.png");
+                                }
+                                finally
+                                {
+                                    (episodeFrame.Content as IShellContent)?.Release();
+                                    _root.Children.Remove(episodeFrame);
+                                }
+                                await LayoutAsync(detail);
                             }
                         }
                         else if (stage == "shelf")
@@ -521,6 +566,34 @@ internal sealed partial class ShellNavigationProbe
                     && border.CornerRadius == (CornerRadius)Application.Current.Resources["EgCardCornerRadius"]) return border;
             throw new InvalidOperationException("未找到通知条目或接管卡的实际外层 Border");
         }
+        async Task CheckPickerBackgroundAsync(EgPicker picker, Button reference)
+        {
+            picker.ApplyTemplate();
+            var background = Descendants(picker).OfType<Border>().Single(border => border.Name == "Background");
+            var highlight = Descendants(picker).OfType<Border>().Single(border => border.Name == "HighlightBackground");
+            try
+            {
+                foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
+                {
+                    Require(VisualStateManager.GoToState(reference, state, false)
+                        && VisualStateManager.GoToState(picker, state, false), "按钮或选择框缺少状态：" + state);
+                    await LayoutAsync(picker);
+                    var expected = Descendants(reference).OfType<ContentPresenter>()
+                        .Single(presenter => presenter.Name == "ContentPresenter").Background;
+                    Require(expected is SolidColorBrush expectedColor && background.Background is SolidColorBrush actual
+                        && actual.Color == expectedColor.Color, $"{picker.Name}/{state} 与上方按钮背景不同");
+                    reads.Add($"{ThemeHost.Current.Id}/{picker.Name}/{state}: 与播放按钮同底");
+                }
+                Require(picker.Background is SolidColorBrush resting && highlight.Background is SolidColorBrush focused
+                    && focused.Color == resting.Color, picker.Name + " 聚焦底色没有回到按钮常态");
+            }
+            finally
+            {
+                VisualStateManager.GoToState(reference, "Normal", false);
+                VisualStateManager.GoToState(picker, "Normal", false);
+            }
+        }
+
         async Task CheckRestoredActionAsync(Control control)
         {
             control.ApplyTemplate();
