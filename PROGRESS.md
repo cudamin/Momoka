@@ -15,13 +15,14 @@
 - 审查覆盖同步 Frame 导航／详情构造与通知、Busy 附属请求耦合、图片重解码、快照重建、长剧与深返回；以发布 WinUI DLL 版本提交核对官方转场源码。方案按阶段计时、首屏瘦身、有限缓存与按需加载排列，明确CPU/ETW/HTTP分段、其他服务器及长剧未验证。纯文档完成链接、数据与差异一致性检查，未实施优化。
 - 收尾：文档提交 `9373843` 已进入 master；主树复核21个本地链接、9组数据、UTF-8/LF与diff通过，工作区干净，未上传。隔离树文档与主树逐文件相同且无未提交内容；原生 `archive_worktree` 拒绝删除本聊天 primary checkout（“The task's primary checkout cannot be removed”），按保护暂留该 detached 目录，未绕过删除。实机发布版留在电影媒体库页，测量观察器已退出。
 
-## 2026-11-04 导航阶段计时 P0（已实现、已测基线，待评审）
+## 2026-11-04 导航阶段计时 P0（已实现、已测基线、已合入 master）
 
 - 用户选择 P0 阶段计时 + 真实库 + 匿名探针，要求以正式开关落地。分支 `navigation-timing-p0` 基于 `b4ac77a`；产品提交 `c82b59e`。新增 `--navigation-timing`、Core 匿名记录器与 NDJSON 输出、页面／手势／详情加载／图片阶段埋点、performance 匿名探针与 switch 基线；普通启动不带开关时零写入，输出不含地址、令牌或条目名。
 - 验证：Release Core／Shell 0 警告 0 错误；主测试 3661/3661、0 失败 0 跳过；`--probe-shell --probe-section performance` 6/6、退出 0；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。未播放媒体、未写服务器、未改设置。
 - 基线（真实库，20 次重复的中位数）：单集详情 Click→Navigate 0.3 ms、Init 44.0、Navigate 总 52.8、GET 37.5、Apply 2.6、剧集分支 131.1、Click→首渲染 249.1、图片结束 454.9；电影媒体库 Init 31.8、Navigate 总 47.7、Attach 2.1、Click→首布局 285.9、首渲染 312.1。首次详情首渲染 534.4、图片结束 650.4，约重复两倍。
 - 录屏对齐（单独排除）：鼠标松开→Click 46.0 ms；应用内 Click→Navigate 0.3、Init 70.1、首渲染 487.8；逐帧按压反馈约松开后 34 ms，明显转场在 664–698 ms，旧页一直留到那时。managed CPU 采样以等待为主，UI 堆栈见 PosterCard 构造／InitializeComponent、MeasureOverride、LoadComponent 与 Frame.Navigate；原生 XAML／GPU 栈未采（本机无 WPA），不把 managed 百分比当总耗时。
 - 证据：`C:\Users\89400\Momoka\artifacts\ui-review\navigation-timing-20261104\`（基线 NDJSON、p0-baseline.json、录屏与逐帧、contact、nettrace／speedscope、截图与复现脚本），不入 Git、未上传。方案文档第 7 节已写入落点、基线、录屏对齐、CPU 边界与未覆盖项；P1 候选是首屏同步工作、媒体库首轮布局、首次创建，以及原生转场归因。
+- 合并与主树复验：`--no-ff` 合并提交 `c071bcd`；主树 Release Core／Shell 0 警告；完整主测试 **3664/3664、0 失败 0 跳过**（含同期亚克力批次）；performance 分区 **6/6**；`format whitespace` 与 `git diff --check` 退出 0。未发布、未推送；临时分支 `navigation-timing-p0`（was `824a86d`）已删除，本聊天工作树按 primary checkout 保护 detached 保留。
 
 ## 2026-11-04 详情操作、翻页圆钮与手写设置卡片亚克力（已合入 master、已发布桌面）
 
