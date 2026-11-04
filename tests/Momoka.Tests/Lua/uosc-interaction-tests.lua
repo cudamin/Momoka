@@ -469,6 +469,62 @@ do
 				emit('start-file')
 				assert(not state.has_danmaku, 'file switch retained previous capability')
 			end)
+			test('danmaku toggle is separate from matching and follows the host show state', function()
+				local shown = fixture_messages['momoka-danmaku-shown']
+				assert(shown, 'host show state has no receiver')
+				fixture_messages['momoka-danmaku-visibility']('yes')
+				shown('yes')
+				local toggle
+				for _, control in ipairs(Elements.controls.layout) do
+					if control.element and control.element.tooltip == '关闭弹幕' then toggle = control.element end
+				end
+				assert(toggle and toggle.active, 'shown danmaku has no active toggle button')
+				local matching = false
+				for _, control in ipairs(Elements.controls.layout) do
+					if control.element and control.element.tooltip == '弹幕 · 弹弹play' then matching = true end
+				end
+				assert(matching, 'adding the toggle removed the matching button')
+				toggle:handle_cursor_click(); advance(0.02)
+				require_equal(count_command('command', 'script-message momoka-shortcut toggle-danmaku'), 1)
+				require_equal(count_command('script-message', 'momoka-danmaku-menu'), 0, 'toggle opened matching')
+				shown('no')
+				assert(not toggle.active, 'hidden danmaku retained the active highlight')
+				require_equal(toggle.tooltip, '开启弹幕')
+				local visible = false
+				for _, control in ipairs(Elements.controls.layout) do
+					if control.element == toggle then visible = true end
+				end
+				assert(visible, 'show off hid the recovery toggle')
+				for _, scale in ipairs({1, 1.3}) do
+					state.scale = scale
+					for _, width in ipairs({1100, 760, 420, 360}) do
+						display.width, display.bx = width, width
+						Elements.controls:reflow()
+						assert(toggle.enabled and toggle.ax >= 0 and toggle.bx <= width,
+							'narrow toggle: width=' .. width .. ' scale=' .. scale .. ' enabled=' .. tostring(toggle.enabled) .. ' bounds=' .. toggle.ax .. '-' .. toggle.bx)
+					end
+				end
+				toggle:handle_cursor_click(); advance(0.02)
+				require_equal(count_command('command', 'script-message momoka-shortcut toggle-danmaku'), 2)
+				fixture_messages['momoka-danmaku-visibility']('no')
+				for _, control in ipairs(Elements.controls.layout) do
+					assert(control.element ~= toggle, 'disabled service retained its toggle')
+				end
+				fixture_messages['momoka-danmaku-visibility']('yes')
+				shown('no')
+				assert(not toggle.active and toggle.tooltip == '开启弹幕', 'restoring capability erased the show preference')
+			end)
+			test('losing danmaku capability closes an open picture menu and releases its input', function()
+				fixture_messages['momoka-danmaku-visibility']('yes')
+				menu({type = 'picture', items = {{title = 'Danmaku settings', value = 1}}})
+				fixture_messages['momoka-danmaku-visibility']('no')
+				assert(not Menu:is_open('picture'), 'disabled danmaku retained the old picture menu')
+				require_equal(#Elements.curtain.dependents, 0, 'disabled menu retained the curtain')
+				menu()
+				fixture_messages['momoka-danmaku-visibility']('yes')
+				fixture_messages['momoka-danmaku-visibility']('no')
+				assert(Menu:is_open('fixture'), 'danmaku disabled an unrelated menu')
+			end)
 			local function input_state(values)
 				local data = {visible = true, canSend = true, busy = false, context = 'fixture-episode-1'}
 				for key, value in pairs(values or {}) do data[key] = value end

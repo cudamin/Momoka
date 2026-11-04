@@ -1098,6 +1098,18 @@
                         </Button.Resources>
                         <FontIcon Glyph="&#xE8F2;" Style="{StaticResource TransportGlyphStyle}" />
                     </Button>
+                    <Button x:Name="DanmakuToggleButton" Style="{StaticResource TransportButtonStyle}"
+                            Click="OnDanmakuToggleClick" Visibility="{x:Bind ViewModel.DanmakuControlsVisibility, Mode=OneWay}"
+                            AutomationProperties.Name="{x:Bind ViewModel.DanmakuToggleLabel, Mode=OneWay}"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.DanmakuToggleLabel, Mode=OneWay}">
+                        <Button.Resources>
+                            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerStripHoverBrush" />
+                            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="PlayerStripPressedBrush" />
+                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="PlayerStripHoverInkBrush" />
+                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="PlayerStripHoverInkBrush" />
+                        </Button.Resources>
+                        <FontIcon Glyph="&#xE8A7;" Style="{StaticResource TransportGlyphStyle}" />
+                    </Button>
                     <Button x:Name="ChapterButton"  Style="{StaticResource TransportButtonStyle}" AutomationProperties.Name="章节" ToolTipService.ToolTip="章节">
                         <Button.Resources>
                             <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerStripHoverBrush" />

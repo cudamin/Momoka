@@ -10351,3 +10351,10 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 # 2026-11-04 弹幕控制在途
 
 本批在 `def5/Momoka`、临时分支 `codex/danmaku-controls-20261104` 实现外观设置/面板与消息契约；Lua与播放按钮/菜单分别在本次独立树隔离开发。用户选择本地防重叠和共用屏蔽词，不接B站账号。Core新增归一化/恢复外观失败测试先红后绿，当前弹幕专项59项通过。基线全套3666项中16项因另一会话自检占用共用mutex红，保留 `work/danmaku-controls/baseline-tests.log`；最终代码仍待整合、完整测试、UI实屏、合入主树及发布，不能视为交付。仅本地提交，不上传。
+# 2026-11-04 弹幕播放页独立开关与菜单显隐（待根会话整合验收）
+
+- 独立工作树 `C:/Users/89400/.codex/worktrees/danmaku-player-controls/Momoka`；仅负责播放控制、两侧菜单、uosc 与对应测试/探针。根产品依赖 `3263b67` 在本树挑入为 `6dbf617`；设置、弹幕面板与配置字段没有重复修改。
+- 保留原 `DanmakuButton` 打开匹配面板，旁边加 `DanmakuToggleButton`：开启有浅底高亮，读屏与悬停提示为「关闭弹幕／开启弹幕」，关闭显示仍保留恢复开关。宽度预算、全屏尺寸、图标阴影与指针墨色同步。独占新增 ManagedButton 发既有 `momoka-shortcut toggle-danmaku`，360px × 1.3 缩放优先保留恢复按钮。
+- 集成/独占的播放设置行共用 `PlayerSettingsLinks.Available`；全局禁用、来源地址未配置及外部后端隐藏相关入口并守卫迟到点击。能力失去时收起已开 picture 菜单；集成弹幕浮层同步关闭，恢复保留 Show/外观偏好。
+- 验证：Lua 先红 47/49（缺 Show 接收、旧菜单未关闭），宽窄新增后再红 48/49（360px×1.3 开关被挤掉），最终 `work/danmaku-controls-narrow-final/results.json` 49/49、errors=0；Core 设置入口先红 30/31，最终 `work/danmaku-tests-final.log` 31/31；相关弹幕 59/59。Release Core/Tests 与 Shell 编译 0 警告 0 错误（`work/danmaku-tests-final-build.log`、`work/danmaku-shell-build-2.log`）。第一次 Shell 编译为新增 probe 漏 Automation 命名空间导致 CS0103/WMC 连锁，补 using 后重编通过，原红日志保留。
+- 新播放探针在 `ShellNavigationProbe.DanmakuSend.cs` 覆盖1100/760/420/360宽的实际按钮/UIA显示开关、全局禁用后旧菜单与迟到行、来源/后端恢复及实屏；本树遵守串行约束未启动 UI，根会话执行并检查截图。自动化扫描无缺句柄；18个变更文本行尾/BOM/空白通过；定向 format verify 退出0，工具提示工作区载入warning。没有真实播放、网络发送、发布、修改真实设置或上传。

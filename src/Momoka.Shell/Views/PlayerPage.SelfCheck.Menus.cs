@@ -103,7 +103,7 @@ public sealed partial class PlayerPage
     /// 独占模式共用这张表与执行出口，但这里的控件检查只覆盖集成菜单。
     /// </para>
     /// </summary>
-    private static (bool Ok, string Detail) ProbeSettingsRows(IEnumerable<MenuFlyoutItemBase> items)
+    private (bool Ok, string Detail) ProbeSettingsRows(IEnumerable<MenuFlyoutItemBase> items)
     {
         var roots = items.ToList();
         var groups = roots.OfType<MenuFlyoutSubItem>()
@@ -115,12 +115,13 @@ public sealed partial class PlayerPage
             .ToList();
 
         var trouble = new List<string>();
+        var available = PlayerSettingsLinks.Available(ViewModel.DanmakuAvailable);
         if (roots.OfType<MenuFlyoutItem>().Any(item => item.Tag is PlayerSettingsLink))
             trouble.Add("设置入口仍在根菜单平铺");
-        if (!rows.Select(item => item.Text).SequenceEqual(PlayerSettingsLinks.All.Select(link => link.Label)))
+        if (!rows.Select(item => item.Text).SequenceEqual(available.Select(link => link.Label)))
             trouble.Add("播放设置子项的顺序与设置表不一致");
 
-        foreach (var link in PlayerSettingsLinks.All)
+        foreach (var link in available)
         {
             var row = rows.FirstOrDefault(item => string.Equals(item.Text, link.Label, StringComparison.Ordinal));
             if (row is null)
@@ -136,12 +137,12 @@ public sealed partial class PlayerPage
                 trouble.Add($"「{link.Label}」指向的设置卡「{link.Category}」不在卡片名单里");
         }
 
-        if (rows.Count != PlayerSettingsLinks.All.Count)
-            trouble.Add($"菜单里 {rows.Count} 行设置入口，表上 {PlayerSettingsLinks.All.Count} 行");
+        if (rows.Count != available.Count)
+            trouble.Add($"菜单里 {rows.Count} 行设置入口，当前可用 {available.Count} 行");
 
         return (trouble.Count == 0,
             trouble.Count == 0
-                ? $"{rows.Count} 行都在「{PlayerSettingsLinks.MenuLabel}」内、都落在一张真卡上（{string.Join('、', PlayerSettingsLinks.All.Select(link => link.Label))}）"
+                ? $"{rows.Count} 行都在「{PlayerSettingsLinks.MenuLabel}」内、都落在一张真卡上（{string.Join('、', available.Select(link => link.Label))}）"
                 : string.Join('、', trouble));
     }
 

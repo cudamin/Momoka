@@ -57,7 +57,7 @@ public sealed partial class PlayerPage
         foreach (var button in new Button[]
                  {
                      // 控制条上方那一排（左下到右下，次序同 XAML）
-                     PreviousButton, PlayButton, NextButton, TransportStatsButton, DanmakuButton,
+                     PreviousButton, PlayButton, NextButton, TransportStatsButton, DanmakuButton, DanmakuToggleButton,
                      ChapterButton, EpisodeButton, VersionButton, PreviousChapterButton, NextChapterButton,
                      SubtitleButton, AudioButton, FullscreenButton,
 
@@ -169,7 +169,7 @@ public sealed partial class PlayerPage
         (string Name, Button Button)[] wanted =
         [
             ("上一集", PreviousButton), ("播放/暂停", PlayButton), ("下一集", NextButton), ("统计", TransportStatsButton),
-            ("弹幕", DanmakuButton), ("章节", ChapterButton), ("剧集列表", EpisodeButton), ("版本", VersionButton),
+            ("弹幕", DanmakuButton), ("弹幕开关", DanmakuToggleButton), ("章节", ChapterButton), ("剧集列表", EpisodeButton), ("版本", VersionButton),
             ("上一章节", PreviousChapterButton), ("下一章节", NextChapterButton), ("字幕", SubtitleButton),
             ("音轨", AudioButton), ("全屏", FullscreenButton),
             ("置顶", PinButton), ("最小化", MinimizeButton), ("最大化", MaximizeButton), ("关闭", CloseButton)

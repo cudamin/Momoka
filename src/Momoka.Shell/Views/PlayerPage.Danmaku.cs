@@ -78,6 +78,21 @@ public sealed partial class PlayerPage
     private Flyout? _danmakuFlyout;
     private DanmakuPanel? _danmakuPanel;
 
+    private void OnDanmakuToggleClick(object sender, RoutedEventArgs e)
+    {
+        if (!Attached || !ViewModel.DanmakuAvailable) return;
+        ViewModel.ToggleDanmaku();
+    }
+
+    private void RefreshDanmakuToggle()
+    {
+        if (!Attached) return;
+        if (ViewModel.DanmakuShown)
+            DanmakuToggleButton.Background = (Brush)Resources["PlayerStripHoverBrush"];
+        else DanmakuToggleButton.ClearValue(Button.BackgroundProperty);
+        SetTransportGlyphInk(_transportHotButton);
+    }
+
     private void OnDanmakuClick(object sender, RoutedEventArgs e)
     {
         if (!Attached || !ViewModel.DanmakuAvailable) return;

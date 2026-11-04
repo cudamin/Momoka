@@ -28,6 +28,19 @@ public sealed partial class PlayerPage
         // 页面展示接线；跳过按钮的显隐和文案直接绑定，不再需要倒计时插值的页面计时器。
         switch (e.PropertyName)
         {
+            case nameof(PlayerViewModel.DanmakuAvailable):
+                if (!ViewModel.DanmakuAvailable)
+                {
+                    CloseDanmakuPanel();
+                    PictureMenu.Hide();
+                }
+                break;
+            case nameof(PlayerViewModel.DanmakuControlsVisibility):
+                ArrangeTransport();
+                break;
+            case nameof(PlayerViewModel.DanmakuShown):
+                RefreshDanmakuToggle();
+                break;
             case nameof(PlayerViewModel.DanmakuInputVisible):
             case nameof(PlayerViewModel.DanmakuCanSend):
                 ArrangeDanmakuInput();

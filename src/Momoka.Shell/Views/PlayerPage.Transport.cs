@@ -31,7 +31,7 @@ public sealed partial class PlayerPage
         SpeedButton.RightTapped += OnSpeedReset;
         SeekSlider.ValueChanged += OnTransportValueChanged;
         VolumeSlider.ValueChanged += OnTransportValueChanged;
-        foreach (var button in new ButtonBase[] { TransportStatsButton, PreviousChapterButton, NextChapterButton })
+        foreach (var button in new ButtonBase[] { TransportStatsButton, DanmakuToggleButton, PreviousChapterButton, NextChapterButton })
             button.Click += OnChromeClick;
         ChapterMenu.Opened += (_, _) => Hold(true, ChromeHold.Menu);
         ChapterMenu.Closed += (_, _) => Hold(false, ChromeHold.Menu);
@@ -66,6 +66,7 @@ public sealed partial class PlayerPage
     private void ArrangeTransport()
     {
         if (TransportRow is null || !Attached) return;
+        RefreshDanmakuToggle();
         // An explicit width is used by resize/layout probes and can arrive one layout pass before
         // ActualWidth. Use the tighter current constraint; ordinary responsive UI keeps Width=NaN.
         var width = double.IsFinite(Root.Width) && Root.Width > 0
@@ -99,6 +100,7 @@ public sealed partial class PlayerPage
         var gap = BigChrome ? FullscreenTransportGap : WindowTransportGap;
         var narrowSlots = (PlayButton.Visibility == Visibility.Visible ? cell : 0)
             + (DanmakuButton.Visibility == Visibility.Visible ? cell + gap : 0)
+            + (DanmakuToggleButton.Visibility == Visibility.Visible ? cell + gap : 0)
             + (minimal ? cell : cell * 4) + gap * 5;
         var speedRoom = width - TransportRow.Margin.Left - TransportRow.Margin.Right - narrowSlots;
         if (tiny && SpeedStrip.Visibility == Visibility.Visible && SpeedStrip.Width > speedRoom)

@@ -723,6 +723,19 @@ internal static class MpvUiTests
                     $"「{link.Label}」指向的设置卡「{link.Category}」不在卡片名单里（{string.Join('、', cards)}）");
         });
 
+        TestHarness.Test("播放设置弹幕入口随能力隐藏并恢复，其他三项与行身份保留", () =>
+        {
+            foreach (var available in new[] { false, true, false, true })
+            {
+                var rows = PlayerSettingsLinks.Available(available);
+                Assert.Equal(available ? "subtitle,video,audio,danmaku" : "subtitle,video,audio",
+                    string.Join(',', rows.Select(link => link.Token)));
+                foreach (var row in rows)
+                    Assert.True(ReferenceEquals(row, PlayerSettingsLinks.For(row.Token)), "显隐不能重建或修改设置落点");
+            }
+            Assert.NotNull(PlayerSettingsLinks.For("danmaku"), "菜单隐藏不能退役全局设置恢复入口");
+        });
+
         // 设置页那几处截图说明指的菜单名，必须就是右键菜单里真有那一组的名字。菜单早就不叫「画面」了
         // （用户令 2026-09-26 把标题撤掉，那三档住在「截屏」组里，见 PlayerMenuCatalog），说明却还写着
         // 「画面」菜单 —— 用户照着屏上找不到的名字找，就找不到存图的地方。名字以 Core 这张表为准，

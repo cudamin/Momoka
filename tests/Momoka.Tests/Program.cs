@@ -91,6 +91,12 @@ internal static class Program
             DanmakuTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["mpv-ui-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            MpvUiTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["selfcheck-layout-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
