@@ -18,6 +18,10 @@ namespace Momoka.Shell.Views
         private Momoka.MoviePilot.MoviePilotService? _moviePilot;
         private Momoka.Services.ISettingsService? _settings = null; // Unused owner boundary; no saved settings in this fixture.
         private int _navigation;
+        // Search never owns a library window anchor; real Release still clears these inactive slots.
+        internal object? _pendingAnchor;
+        internal double? _pendingScroll;
+        internal bool _restoringAnchor;
         private readonly LibraryLifetimeRequest _request = new();
         internal LibraryLifetimeViewModel ViewModel { get; } = new();
         private MoviePilotSearchPanel? _moviePilotPanel;
@@ -51,6 +55,7 @@ namespace Momoka.Shell.Views
         private void CancelTyping() { TypingCancellations++; }
         private void CancelImeSubmit() { ImeCancellations++; }
         private void ApplyHeaderLayout() { HeaderUpdates++; }
+        private void RememberScrollAnchor(bool allowReleased = false) { }
         private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args) { }
         private void OnAniBtSettingChanged(object? sender, EventArgs args) { }
         internal void AttachFixture(Momoka.MoviePilot.MoviePilotService service)
@@ -79,6 +84,7 @@ namespace Momoka.Shell.Views
         public Microsoft.UI.Xaml.Visibility MoviePilotTabsVisibility { get; set; } = Microsoft.UI.Xaml.Visibility.Visible;
         public Microsoft.UI.Xaml.Visibility ToolbarVisibility { get; set; } = Microsoft.UI.Xaml.Visibility.Visible;
         public List<object> Cards { get; } = [new(), new(), new()];
+        public int LoadedCount => Cards.Count;
         public bool NoticeOpen { get; set; }
         public string SearchText { get; set; } = "";
         internal int Cancels { get; private set; }

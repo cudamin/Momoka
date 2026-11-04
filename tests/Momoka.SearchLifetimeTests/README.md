@@ -16,6 +16,8 @@
   只替换 HTTP endpoint，禁止网络备援。
 - 每次编译从当前 `LibraryPage.xaml.cs` 原样提取 `Release/OnNavigatedFrom/SearchSource/ApplySource`。
   除 MoviePilot panel/VM 外的页面控制器是惰性边界，但接线控制流不抄写、不重新模拟。
+- P3 普通库窗口在搜索路径不适用：锚点保存为无操作，待恢复槽保持 null／false，
+  `LoadedCount` 取当前 Cards.Count；新增字段只补原样 `Release` 的编译边界，不引入窗口逻辑。
 - 提取的 start/end 锚点必须存在且唯一，否则直接编译失败；生成文件在本项目 `obj` 下。
   `FnNasMatchDialog.xaml` 及完整 LibraryPage 源码作为资源保留。
 
@@ -78,6 +80,10 @@ Shell 的完整编译另外执行当前树 `src/Momoka.Shell/Momoka.Shell.csproj
 
 ## 不可宣称的覆盖
 
+- 2026-11-04 本树补边界验证：先编译复现新增 5 个接口缺失，补齐后 Release 0 警告、0 错误，
+  确切 DLL 入口 **42/42**、失败 0、跳过 0；帮助退出 0、未知参数退出 2。
+  日志保留在 `work/p3-deep-return/search-boundary-red-build.log`、`search-boundary-green-build.log`
+  及 `search-boundary-green.log`，不代表完整主树或真实 UI 验收。
 - WinUI/XAML 控件、图片解码/下载、XamlRoot、Frame 历史栈、焦点/滚动和原生窗口均为值边界；
   WeakReference 证明托管引用根，不证明 WinRT 图片内存曲线、GPU 资源或真实 Frame 回收。
   这些证据由父代理的 `ShellNavigationProbe.Performance.cs` 在共享桌面串行取得。
