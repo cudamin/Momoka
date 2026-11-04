@@ -1,6 +1,6 @@
 # 详情同类型版式通知去重实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 完成导航延迟方案 P1 的一个小片：同一次详情访问中，预览、完整主体及刷新类型相同时，不重复发布整批版式通知。
 
@@ -48,6 +48,6 @@
 - [x] 核对主树干净、无冲突在途写入后合并；重新构建最终主树、运行受影响夹具/主测试/UI 检查。
 - [x] 按规则发布至主树 `artifacts/publish/win-x64`，核对快捷方式、输出哈希及发布结果。
 - [x] 记录实测通知次数、运行检查与未覆盖的实际帧延迟；未推送远端。
-- [ ] 所属聊天确认清理：核对独有文档与证据后删除已整合临时分支，按应用保护处理工作树。
+- [x] 所属聊天已核对独有文档与证据并删除临时分支；工作树因 primary checkout 保护干净保留于 `b726000`，恢复包与清单见 PROGRESS。
 
 最终交付证据见原方案第 9.3 节与 `8738491`；首次材质超时原因未定，原报告保留，当前诊断版检查通过。
