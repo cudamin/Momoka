@@ -1,11 +1,11 @@
-## 2026-11-04 剩余亚克力材质：海报操作、媒体库容器与资源卡（待主树整合）
+## 2026-11-04 剩余亚克力材质：海报操作、媒体库容器与资源卡（已合入 master、已发布桌面）
 
-- 用户令：实施外部 `审查建议.md` 里剩余三组建议，优先海报悬停操作按钮。独立树 `acrylic-remaining-materials`，已 rebase 到 master `b4ac77a`；产品提交 `021b542`，探针尺寸等待修正 `9bb86c1`。**尚未合入 master、未发布桌面**。
+- 用户令：实施外部 `审查建议.md` 里剩余三组建议，优先海报悬停操作按钮；随后授权合入、重验与发布桌面。独立树 `acrylic-remaining-materials`，已 rebase 到 master `b4ac77a`；产品提交 `c92f8ae`，探针等待修正 `0ff59e6`／`222089b`，整轮置顶 `8aa7754`，探针文案断言校正 `bca5f4e`，记录提交 `3240be8`。master 最终 `bca5f4e`，已快进合入。
 - 实现：海报播放键常态和右下三颗操作按钮三态均接既有按钮亚克力（32×32、圆角 8；播放键保留强调色悬停／按下；高对比度前景配系统 WindowText）；媒体库分类胶囊、搜索来源栏和飞牛筛选面板复用设置卡片亚克力；MoviePilot 资源卡／搜索进度卡与 AniBT 进度卡／资源折叠组复用同一低透明度材质。普通菜单、对话框、详情正文、固定侧栏、输入区、播放器材质和海报本体保持原样。
-- 测试：卡片自检改为核对操作组三态玻璃与播放键常态玻璃；完整主测试 **3654/3654、0 失败 0 跳过**（原 3651 加 3 条材质接线测试）；Shell x64 Release 编译 **0 警告 0 错误**；受影响文件 `format whitespace`、`format style`（IMPORTS 0，遗留 1 条 IDE1006）和 `git diff --check` 通过。
-- 实机探针：最终代码 `--probe-shell --probe-section materials --screen 1` **1/1 Passed=true、退出 0**（`shell-probe-20261104-034838827-21260`）；七阶段（详情、货架、服务器、通知、媒体库、MoviePilot 卡、AniBT 卡）× 五主题 × 1280／760 共 **70 张页面实屏**，另 16 张三态／回退与 1 张海报悬停操作样本，合计 **87 张**；`acrylic-controls.txt` 记录每处卡片 glass tint、实色反例拒绝结果与海报卡三态读数。证据目录 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261104-034838827-21260/logs`；已目视放大检查海报播放键／右下操作组、MoviePilot／AniBT 卡与搜索来源栏。
+- 测试：卡片自检改为核对操作组三态玻璃与播放键常态玻璃；完整主测试 **3654/3654、0 失败 0 跳过**（原 3651 加 3 条材质接线测试）。中途一次 3653/3654 是本批探针多行改写后源码断言仍找旧字面量，修正 `bca5f4e` 后全绿；不是产品回归。Shell x64 Release 编译 **0 警告 0 错误**；受影响文件 `format whitespace`、`format style`（IMPORTS 0，遗留 1 条 IDE1006）和 `git diff --check` 通过。
+- 实机探针：最终发布件 `--probe-shell --probe-section materials --screen 1` **1/1 Passed=true、退出 0**（`shell-probe-20261104-042048585-14456`）；七阶段（详情、货架、服务器、通知、媒体库、MoviePilot 卡、AniBT 卡）× 五主题 × 1280／760 共 **70 张页面实屏**，另 16 张三态／回退与 1 张海报悬停操作样本，合计 **87 张**；`acrylic-controls.txt` 记录每处卡片 glass tint、实色反例拒绝结果与海报卡三态读数。发布件冷启动下窗口 resize 与卡片实绘偶发超过原 2 秒等待，探针改为 8 秒有界等待并整轮置顶，断言未放松。证据复制到 `work/acrylic-remaining/`；已目视放大检查海报播放键／右下操作组、MoviePilot／AniBT 卡与搜索来源栏。日志 `work/acrylic-remaining-main-tests.log`、`acrylic-remaining-publish.log`、`acrylic-remaining-probe.log`。
 - 未覆盖：真实 OS 高对比度未切换，只核对资源字典；悬停／按下是模板与受控样本，不代表真实鼠标手势；材质性能未测；其余 157 项 Shell 检查未运行。未登录真实服务器、未写入、未播放。
-- 待办：把 master fast-forward 到本批提交后，重新编译、完整主测试与 materials 探针，再发布到 `artifacts/publish/win-x64` 并核对桌面快捷方式；当前桌面仍是旧材质版本，版本号仍为 0.2.5。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 退出 0，`artifacts/publish/win-x64` **546 文件／285.9 MB**，发布校验通过；桌面 `Momoka.lnk` 目标与工作目录均回读为 `C:/Users/89400/Momoka/artifacts/publish/win-x64`，参数为空。发布 `Momoka.dll` SHA256 `058e0e0bb4d4fc3f04ac41f1b722d0c0af4dd325f8669244c54225cee957c6b1`，与主树构建输出一致；版本号仍为 0.2.5。没有生成新安装包、上传远端或提交微软商店。
 
 ## 2026-11-04 页面切换与封面响应延迟审查（仅文档）
 
