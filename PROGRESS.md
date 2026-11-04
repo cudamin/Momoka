@@ -8,6 +8,7 @@
 - 隔离发布与运行：`tools/publish.ps1 -NoArchive` 已通过，**546 文件／285.9 MB**（`work/acrylic-controls/isolated-publish-final.log`）；实际 `--probe-shell --probe-section materials --screen 1` 报告 **1/1 Passed=true**。运行日志目录 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261104-024644346-28092/logs`，五主题四页面各 1280／760 DIP 共 **40 张页面实屏**，另 **13 张三态／回退截图**及 `acrylic-controls.txt`；程序正常退出。模板实际背景及 tint／回退更新、连播 checked 同底、圆钮翻页显隐、卡片实色反例和恢复均经过运行断言。
 - 限制与待办：高对比度只核对资源字典，未切换真实 OS 高对比度；悬停／按下是模板状态样本，不能代表真实鼠标输入；没有真实服务器登录、写入或播放。临时树阶段证据已保留在 `work/acrylic-controls/isolated-evidence/`；最终主树验证与交付见下一条，未上传远端。
 - 最终交付：产品提交 `edc5a78fb0c2640dcff26d38d0807e4428191121` 快进合入 master；主树重新编译 Tests/Core 0警告0错误、完整主测试3651/3651（0失败/0跳过），定向空白与差异检查退出0（工作区加载提示单列留存）。主树自包含发布546文件/285.9MB，桌面Momoka.lnk目标与工作目录均回读为 `C:/Users/89400/Momoka/artifacts/publish/win-x64`。主树材料探针 `shell-probe-20261104-025437909-28392` 退出0、1/1通过；五主题/两档宽度四页面40张＋状态/回退13张全部保留并查看，其他157项Shell检查未执行。证据保留 `work/acrylic-controls/` 与 `work/acrylic-main-*.log`；没有播放、上传远端、重打安装包或提交Store。发布Momoka.dll SHA256 `96B2DA3BBB23B9E33446C030398C91272ACEC21CFA03955328D14BD80C331632`；Core `2608F7506262F5F5EB584AA638721C4CD60B788FA84522B68339EA1D5EB2D369`。本聊天用户指定的外部 `审查建议.md` 已追加四类实际改动、未实施建议和最终交付记录。
+- 收尾：产品内容已完整进入 master，临时分支 `codex/acrylic-controls` 已删除；独立树已转为 detached edc5a78。原生归档工具拒绝删除当前聊天的 primary checkout（“The task's primary checkout cannot be removed”），因此遵守保护暂留该目录，未绕过保护。临时树所有需要的日志与截图已复制到主树 `work/acrylic-controls/`。
 
 
 ## 2026-11-04 发版 0.2.5：GitHub Release 与微软商店上架包（已发布 GitHub、商店未上传）
