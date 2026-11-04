@@ -1,3 +1,12 @@
+## 2026-11-04 详情操作排恢复平台默认底（已合入 master、已测、已发布桌面）
+
+- 用户令：「这些按钮也要还原」并附详情操作排参考图（继续播放／从头开始／连播／未看／爱心／更多）。范围是详情宽版式 `ColumnActions` 与紧凑版式 `CompactBlock` 两排六颗键，保留按钮、命令和显隐；货架翻页圆钮不在本令内。此前海报卡悬停键已单独恢复。分支 `detail-actions-default-fill` 基于 `f525a28`，产品提交 `a5eae7a`，rebase 到 `b726000` 后以 `809f734` 快进合入 master。
+- 实现：`EgPillButtonStyle`／`EgPlayButtonStyle`／`EgPillToggleButtonStyle`／`EgRoundButtonStyle` 去掉 `EgActionGlassBrush` 底；两排 `WrapRow` 不再合入 `ActionButtons.xaml`；播放与连播字的前景、两处连播的勾选别名回到原来的静态接线，勾选三态仍按回未勾选的三态、强调色只落图标。货架翻页仍接按钮亚克力。
+- 测试：离线新增「详情操作六颗键回到平台默认底／连播勾选同底」断言，亚克力夹具 **18/18**；完整主测试 **3664/3664、0 失败 0 跳过**；SubtitleDialogTests **36/36**；主树 Release 全方案 **0 警告 0 错误**；`format whitespace` 退出 0，工作区干净。
+- 探针：开发树材质探针首轮在 servers/graphite 从 760 到 1280 的窗口 resize 超时（`shell-probe-20261104-073124479-22092`，几何已记录，详情阶段此前已全过），未改断言或等待时限；重跑退出 0（`shell-probe-20261104-073220031-34724`）。发布件材质探针 **1/1、退出 0**（`shell-probe-20261104-074937901-29280`），**210** 条详情三态读数为平台默认底（常态 `#0FFFFFFF`、悬停 `#15FFFFFF`、按下 `#08FFFFFF`），五主题宽窄的连播勾选三态均与未勾选同色；detail 阶段 10 组宽窄全部通过，货架翻页仍读共享玻璃。整轮 79 张实屏（70 页面 + 3 货架三态 + 4 回退 + 2 受控样本），已目视检查 `detail-actions-restored-screen.png` 与五主题宽窄详情实屏。证据复制到 `work/detail-actions-restore-20261104/`。
+- 发布：用户确认后结束上一轮留在发布目录的旧版进程（PID 21100，锁住文件）；主树 `tools/publish.ps1 -Shortcut -NoArchive` 退出 0，`artifacts/publish/win-x64` **546 文件／285.9 MB**；快捷方式目标与工作目录均回读为 `C:/Users/89400/Momoka/artifacts/publish/win-x64`，参数为空。发布 Shell SHA256 `54E58B04295D8D0406BBD335EFBD91E1EF4C63E8000967DABB6575B7581CF049`、Core `AB57C3D7318D869141F2D9DADC394B58E5B3176050F2F523414F49E464150593`，与主树 Release 构建一致。
+- 未覆盖：真实鼠标悬停／按下、真实 OS 高对比度、材质性能；未上传远端、未生成安装包。
+
 ## 2026-11-04 海报卡悬停按钮恢复旧样（已合入 master、已测、已发布桌面）
 
 - 用户令：参考图里的详情操作排保持现状；「封面下方按钮」指海报卡片封面底部的悬停按钮，恢复加亚克力之前的样子，按钮保留。分支 `detail-actions-flat` 基于 `baf5314`，产品提交 `d87a8f3`，rebase 到 `76fe1fa` 后以 `f65ac10` 快进合入 master。
