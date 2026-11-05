@@ -426,7 +426,8 @@ public sealed partial class HomeViewModel : PageViewModel
             return (row, new CardShelf(
                 title, images, width, wide, badges,
                 HomeLayout.LibraryId(row.Key), HomeLayout.TargetOf(row.Key),
-                sourceLine: row.Key == HomeLayout.Resume && ShowServerNames)
+                sourceLine: row.Key == HomeLayout.Resume && ShowServerNames,
+                mediaTitles: row.Key != HomeLayout.Libraries)
             {
                 HomeKey = row.Key,
                 Source = source

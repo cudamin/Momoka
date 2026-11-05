@@ -78,6 +78,15 @@ public static class CardSize
     /// </summary>
     public const int Chrome = 59;
 
+    /// <summary>Only media titles reserve a second 20 DIP line; directory/person and MP cards keep their chrome.</summary>
+    public const int MediaTitleExtra = 20;
+
+    public const int MediaTitleHeight = 40;
+
+    public static bool HasMediaTitle(string type) => type is
+        Emby.EmbyItemType.Movie or Emby.EmbyItemType.Series or Emby.EmbyItemType.Season
+        or Emby.EmbyItemType.Episode or Emby.EmbyItemType.Video or Emby.EmbyItemType.BoxSet;
+
     /// <summary>
     /// 第三行来源文字的额外高度。多账号主页的继续观看卡在季集那一行下面再写一行服务器名，这一排的
     /// <c>RowHeight</c> 要把它算进去，否则末行会被下一排压掉。

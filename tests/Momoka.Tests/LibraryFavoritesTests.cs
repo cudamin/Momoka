@@ -134,8 +134,8 @@ internal static class LibraryFavoritesTests
             Assert.Equal(120, LibraryFavorites.WidthFor(true, 120));
             Assert.Equal(1, LibraryFavorites.WidthFor(false, -10));
             Assert.Equal(216, LibraryFavorites.WidthFor(true, double.NaN));
-            Assert.Equal(262d, LibraryFavorites.RowHeight(148, false));
-            Assert.Equal(162d, LibraryFavorites.RowHeight(216, true));
+            Assert.Equal(282d, LibraryFavorites.RowHeight(148, false));
+            Assert.Equal(182d, LibraryFavorites.RowHeight(216, true));
         });
         Test("媒体库弹窗：比旧宽度大，宽高随可用窗口改变且不越界", () =>
         {

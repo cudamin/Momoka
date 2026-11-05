@@ -4,6 +4,16 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["card-presentation-fixture"])
+        {
+            CardSizeTests.Register();
+            HomeResumeTextTests.Register();
+            LibraryUpcomingTests.Register();
+            LibraryFavoritesTests.Register();
+            LibraryDisplayTests.Register();
+            SelfCheckLayoutRulesTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["episode-removal-fixture"])
         {
             EpisodeRemovalTests.Register();

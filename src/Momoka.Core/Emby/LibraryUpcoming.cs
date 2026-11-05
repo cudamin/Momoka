@@ -10,7 +10,7 @@ public static class LibraryUpcoming
 {
     public const int PageSize = 100;
     public const int CardWidth = 248;
-    public const int CardChrome = 40;
+    public const int CardChrome = 40 + CardSize.MediaTitleExtra;
 
     public static ItemQuery Query(string parentId, int start, int limit = PageSize) => new()
     {

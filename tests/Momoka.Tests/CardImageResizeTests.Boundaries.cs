@@ -77,7 +77,8 @@ namespace Momoka.Shell.Media
         public int Width { get; } = width;
         public Task<BitmapImage?> Result => _result.Task;
         public void Fail(Exception error) => _result.TrySetException(error);
-        public void Complete() => _result.TrySetResult(new BitmapImage { DecodePixelWidth = Width, FixtureImage = Image });
+        public void Complete() => _result.TrySetResult(new BitmapImage
+            { DecodePixelWidth = Width, PixelWidth = Width, PixelHeight = Width, FixtureImage = Image });
     }
 }
 
@@ -99,7 +100,7 @@ namespace Momoka.Tests
         public EmbyItem Item { get; }
         public List<string> Changes { get; } = [];
 
-        public CardImageFixture(bool artwork = true)
+        public CardImageFixture(bool artwork = true, MediaServerKind kind = MediaServerKind.Emby)
         {
             Directory.CreateDirectory(_root); // Current test output only; retain files for inspection.
             PosterCache.Clear();
@@ -114,7 +115,7 @@ namespace Momoka.Tests
             // server detection, account lifecycle or credential exchange is executed by this fixture.
             var http = (EmbyHttp)typeof(EmbySession).GetField("_http", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(_session)!;
             var connection = new EmbyConnection(new Uri("http://card-image.invalid/emby/"), "",
-                "image-fixture", "image-fixture", "image-fixture", device);
+                "image-fixture", "image-fixture", "image-fixture", device) { ServerKind = kind };
             var identity = new EmbySessionScope.Identity(new EmbyClient(http, connection),
                 new ServerProfile { Id = "image-server" }, new AccountProfile { Id = "image-account" });
             Scope = new EmbySessionScope(_session, identity);

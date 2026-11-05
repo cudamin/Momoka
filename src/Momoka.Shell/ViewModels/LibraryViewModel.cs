@@ -228,7 +228,9 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <see cref="CardShelf.RowHeight"/>, for the same reason.
     /// </summary>
     public double RowHeight => LibraryCardMetrics.Height(View, CardBuildWidth, Section, IndexKind)
-        + (IndexKind == LibraryIndexKind.None ? Momoka.Infrastructure.CardSize.Chrome : LibraryIndexCards.TextHeight)
+        + (IndexKind == LibraryIndexKind.None
+            ? Momoka.Infrastructure.CardSize.Chrome + Momoka.Infrastructure.CardSize.MediaTitleExtra
+            : LibraryIndexCards.TextHeight)
         + NoteHeight
         + (IsCardFrameView ? LibraryCardMetrics.CardFrameChrome : 0);
 
@@ -1508,7 +1510,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             folderFrame: Section == LibrarySection.Folders && View == LibraryView.Poster,
             cardLayout: IsCardFrameView,
             // 搜索结果里的单集用另一档框线（见 PosterCard 的 EpisodeFrameStyle）；别的页面不动。
-            episodeFrame: _request?.IsSearch == true);
+            episodeFrame: _request?.IsSearch == true,
+            resume: IsResumePage);
 
     /// <summary>
     /// 卡片底下那一行字。勾了字段就按勾的拼；一项能说的都没有时交回卡片自己的副标题（

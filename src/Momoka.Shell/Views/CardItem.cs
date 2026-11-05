@@ -79,6 +79,7 @@ public sealed class CardItem : INotifyPropertyChanged
     /// <summary>What to write on the second line instead of the item's own; null to use the item's.</summary>
     private readonly string? _subtitle;
     private readonly string? _title;
+    private readonly bool _fnNasResume;
     private readonly ArtworkRef? _artwork;
 
     /// <summary>第三行：勾了宣传语或概要才有，null 就是这一行整行收起。</summary>
@@ -197,6 +198,7 @@ public sealed class CardItem : INotifyPropertyChanged
         if (ReferenceEquals(_collageTiles[index], bitmap)) return;
         _collageTiles[index] = bitmap;
         RaiseCollageTile(index);
+        RefreshArtworkVisibility();
     }
 
     private void ClearCollageTiles()
@@ -207,6 +209,7 @@ public sealed class CardItem : INotifyPropertyChanged
             _collageTiles[index] = null;
             RaiseCollageTile(index);
         }
+        RefreshArtworkVisibility();
     }
 
     private void RaiseCollageTile(int index)
@@ -304,7 +307,8 @@ public sealed class CardItem : INotifyPropertyChanged
         bool sourceLine = false,
         bool fnNasWide = false,
         bool cardLayout = false,
-        bool episodeFrame = false)
+        bool episodeFrame = false,
+        bool resume = false)
     {
         _item = item;
         _images = images;
@@ -317,9 +321,10 @@ public sealed class CardItem : INotifyPropertyChanged
         _wide = wide;
         _subtitle = subtitle;
         _title = title;
+        _fnNasResume = resume && Scope?.Connection.IsFnNas == true;
         _artwork = artwork;
         IsUpcoming = upcoming;
-        CenteredText = upcoming || centeredText;
+        CenteredText = !_fnNasResume && (upcoming || centeredText);
         FolderFrame = folderFrame;
         _aspect = aspect;
         _fnNasWide = fnNasWide;
@@ -374,7 +379,20 @@ public sealed class CardItem : INotifyPropertyChanged
         _userState.Publish(state, Scope!.ConfirmUserStateChange());
     }
 
-    public string Title => _title ?? _item.Name;
+    public string Title => DisplayTitle(_fnNasResume ? HomeResumeText.Title(_item) : _title ?? _item.Name);
+    public int TitleMaxLines => CardSize.HasMediaTitle(_item.Type) ? 2 : 1;
+    public double TitleBlockHeight => TitleMaxLines == 2 ? CardSize.MediaTitleHeight : double.NaN;
+    public double TitleLineHeight => CardSize.MediaTitleExtra;
+    public string PlaceholderTitle => DisplayTitle(string.IsNullOrWhiteSpace(Title) ? _item.Name : Title) is { Length: > 0 } title
+        && !string.IsNullOrWhiteSpace(title) ? title : _item.DisplayTypeName;
+    public Visibility PlaceholderVisibility => Show(!HasDecodedArtwork);
+    private bool HasDecodedArtwork => Poster is { PixelWidth: > 0 }
+        || _collageTiles.Any(tile => tile is { PixelWidth: > 0 });
+
+    private string DisplayTitle(string title) => Scope?.Connection.IsJellyfin == true && CardSize.HasMediaTitle(_item.Type)
+        ? CardDisplayTitle.Clean(title, _item.ProductionYear) : title;
+
+    internal void RefreshArtworkVisibility() => Raise(nameof(PlaceholderVisibility));
     public bool IsUpcoming { get; }
     public bool CenteredText { get; }
     public bool FolderFrame { get; }
@@ -560,7 +578,7 @@ public sealed class CardItem : INotifyPropertyChanged
     /// <summary>The accent bar down the row's left edge, which is how <see cref="IsCurrentEpisode"/> reads.</summary>
     public Visibility CurrentVisibility => Show(IsCurrentEpisode);
 
-    public string Subtitle => _subtitle ?? _item.CardSubtitle;
+    public string Subtitle => _fnNasResume ? HomeResumeText.Subtitle(_item) : _subtitle ?? _item.CardSubtitle;
 
     /// <summary>
     /// 第三行：这一项属于哪台服务器。空串时整行收起。只有多账号主页的继续观看卡会传
@@ -633,6 +651,7 @@ public sealed class CardItem : INotifyPropertyChanged
             if (ReferenceEquals(_poster, value)) return;
             _poster = value;
             Raise();
+            RefreshArtworkVisibility();
         }
     }
 

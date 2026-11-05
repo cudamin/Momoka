@@ -117,7 +117,7 @@ internal static class LibraryUpcomingTests
             Assert.Equal(196, LibraryUpcoming.WidthFor(196.5));
             Assert.Equal(248, LibraryUpcoming.WidthFor(double.NaN));
             Assert.Equal(1, LibraryUpcoming.WidthFor(0));
-            Assert.Equal(180d, LibraryUpcoming.RowHeight(248));
+            Assert.Equal(200d, LibraryUpcoming.RowHeight(248));
         });
         Test("电视预告：Emby 请求使用独立接口和播出升序", () => RequestsAsync(MediaServerKind.Emby).GetAwaiter().GetResult());
         Test("电视预告：Jellyfin 请求只带此接口声明的参数", () => RequestsAsync(MediaServerKind.Jellyfin).GetAwaiter().GetResult());

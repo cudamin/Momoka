@@ -35,6 +35,26 @@ internal static class LibraryResumePagingTests
 
     private static void Register(ShellFixture shell)
     {
+        Case("飞牛继续观看：真实 VM 造卡按条目来源展示剧名，不借默认账号", () =>
+        {
+            using var fixture = new Fixture(shell, 0, secondSource: true, aggregate: true,
+                firstKind: MediaServerKind.FnNas);
+            fixture.SelectDefault("b");
+            var item = fixture.Source("a").Bind(new EmbyItem { Id = "fn-caption", Type = EmbyItemType.Episode,
+                Name = "延康双雄", SeriesName = "牧神记", ParentIndexNumber = 1, IndexNumber = 96 });
+            var card = fixture.Invoke("NewCard", item)!;
+            Assert.Equal("牧神记", shell.Get<string>(card, "Title"));
+            Assert.Equal("S01E96 - 延康双雄", shell.Get<string>(card, "Subtitle"));
+            Assert.Equal("Left", shell.Get<object>(card, "TitleAlignment").ToString());
+            Assert.True(ReferenceEquals(item, shell.Get<EmbyItem>(card, "Item")));
+            Assert.Equal("延康双雄", item.Name);
+            var emby = fixture.Source("b").Bind(new EmbyItem { Id = "emby-caption", Type = EmbyItemType.Episode,
+                Name = "原标题", SeriesName = "另一部剧", ParentIndexNumber = 1, IndexNumber = 2 });
+            Assert.Equal("原标题", shell.Get<string>(fixture.Invoke("NewCard", emby)!, "Title"));
+            Assert.Equal(0, fixture.Transport.Requests.Count, "展示投影不应为剧名追加网络请求");
+            return Task.CompletedTask;
+        });
+
         Case("首页继续观看文案：真实货架 Fill、换集与重新填充保持各自格式", async () =>
         {
             using var fixture = new Fixture(shell, 1);
@@ -985,7 +1005,7 @@ internal static class LibraryResumePagingTests
             var home = Activator.CreateInstance(type)!;
             var shelfType = assembly.GetType("Momoka.Shell.ViewModels.CardShelf", true)!;
             var shelf = Activator.CreateInstance(shelfType, BindingFlags.Instance | BindingFlags.NonPublic,
-                null, ["继续观看", _images, 170, true, true, null, HomeLayout.HomeRowTarget.Resume, false], null)!;
+                null, ["继续观看", _images, 170, true, true, null, HomeLayout.HomeRowTarget.Resume, false, true], null)!;
             ((System.Collections.IList)_shell.Get<object>(shelf, "Cards")).Add(card);
             // Only inject the already-loaded presentation state. Calling Attach would start the
             // real-time channel; the actual AfterWatched/ResumeSlot/CardShelf methods remain intact.

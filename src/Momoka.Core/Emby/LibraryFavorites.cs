@@ -15,7 +15,7 @@ public static class LibraryFavorites
     public const int PageSize = 100;
     public const int PosterWidth = 148;
     public const int EpisodeWidth = 216;
-    public const int CardChrome = 40;
+    public const int CardChrome = 40 + CardSize.MediaTitleExtra;
 
     public static int WidthFor(bool wide, double viewportWidth) =>
         (int)Math.Clamp(Math.Floor(double.IsFinite(viewportWidth) ? viewportWidth : wide ? EpisodeWidth : PosterWidth),
