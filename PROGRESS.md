@@ -10534,3 +10534,7 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 ## 2026-11-05 审查修复 R29：Plex 默认端口候选
 
 共享 Gateway 在裸 HTTP 入口不可达时继续独立的 Plex 32400 候选，显式端口和 HTTPS 不改写，取消立即停止；全部失败保留原不可达分类。专项先红（首例 EmbyUnreachableException）后绿，当前 fresh Release 0 警告/0 错误，R28 8例及 R29 7例全过。只有匿名内存传输，不证明真实 Plex 服务。待父会话整合全批验证，无主树合并/推送/发布。
+
+## 2026-11-05 审查修复 R17：在线身份权限缓存
+
+菜单权限缓存同时绑定UserStateOwner和PermissionRevision，同配置账号重新登录不继承旧限制；旧来源撤销后迟到读仍由IsAvailable守卫丢弃。新专项执行实际恢复/下线/重新恢复、失败与成功探测及迟到旧身份响应，修前重登断言红、修后全部通过，当前Release 0警告0错误。无真实服务器与UI，待父会话全批集成。

@@ -99,7 +99,7 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
     private bool? _administrator;
     private long _permissionRevision = -1;
     private long _generation;
-    private readonly Dictionary<string, (ItemMenuPermissions Permissions, long Revision)> _sourcePermissions =
+    private readonly Dictionary<string, (ItemMenuPermissions Permissions, object Owner, long Revision)> _sourcePermissions =
         new(StringComparer.Ordinal);
 
     /// <inheritdoc />
@@ -147,6 +147,7 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
         lock (_gate)
         {
             if (_sourcePermissions.TryGetValue(sourceKey, out var cached)
+                && ReferenceEquals(cached.Owner, source.UserStateOwner)
                 && cached.Revision == source.PermissionRevision) return cached.Permissions;
         }
 
@@ -298,7 +299,7 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
                 lock (_gate)
                 {
                     if (source.IsAvailable && source.PermissionRevision == revision)
-                        _sourcePermissions[source.Key] = (permissions, revision);
+                        _sourcePermissions[source.Key] = (permissions, source.UserStateOwner, revision);
                 }
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
