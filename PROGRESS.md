@@ -10638,3 +10638,9 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 本地composition17132自动断言通过，弹幕可见/清除实屏已看；无媒体服务器登录和观看上报。motion32112最初漏参数启动前拒绝；21840在既有浏览位置恢复失败，实际恢复1422x800但坐标曾为783,351。仅增expected/actual/saved诊断、不改断言/产品，5016完整通过：三值均569,296；R18窗口化26有效样本rect577,296,1406x792、全屏70样本rect0,0,2560x1440均一致。旧坐标漂移未定因，不能用后一轮绿宣称根因修复或归因环境，原日志保留。
 - R8原生无媒体证据来自播放子树，三相关源hash与主树一致，真实libmpv/handle/service恢复deband=no；不是当前主树DLL原生重跑。外部mpv/独占实播/条件profile/真实服务及翻译服务未验证。
 - 全证据work/review-fixes-20261105-main，当前正在发布实际artifacts/publish/win-x64；发布完成与快捷方式核对另记。诊断日志变更对应专项22/22和当前Shell0警告0错误。
+
+## 2026-11-05 六轮审查修复桌面发布完成
+
+产品d6ea5e7已发布到主树artifacts/publish/win-x64，publish/verify退出0：546文件、286.3MB、59项mpv批准载荷/许可通过。桌面Momoka.lnk目标和工作目录均指该目录、参数空。发布与构建Shell SHA256 DA8D175E4BFF47BFC7C381F09B281C31B40CE0AAC500DB899DDBB5367C294ED7，Core BC1E45C119D47E4171C9CDFF45EBE3263F4D8ACA0D44C890EE580A06F8F1AA9D，一致。未推送、未打MSIX/商店提交。发布回执work/review-fixes-20261105-main/publish-receipt.json；验证范围及motion旧位置漂移未定因仍按上一节，不能称全量探针或真实服务通过。
+
+子树review-playback-fixes(8efdc78)、review-server-settings(d77ff9d)、review-danmaku-moviepilot(61eefa4)全部产品/测试已进入主树，逐文件除共享追加注册/记录及本树诊断外仅格式差异，工作树均干净。必要日志与R8原生证据已外存至本记录目录agent-evidence，后续使用原生归档回收本次子树，不删除其他聊天工作树。
