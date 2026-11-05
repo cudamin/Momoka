@@ -189,7 +189,7 @@ public sealed partial class AniBtSearchViewModel : PageViewModel
     private bool CanReloadResources => CanReturnToResults && !Busy && ConnectionMatches;
 
     // An empty stamp is allowed before the first search. Every populated result is tied to its captured connection.
-    internal bool ConnectionMatches => _moviePilot?.Available == true
+    internal bool ConnectionMatches => _moviePilot?.AniBtAvailable == true
         && (_connection.Length == 0 || _moviePilot.IsCurrentConnection(_connection));
 
     internal void Attach(AniBtService service, MoviePilotService moviePilot, ISystemLauncher launcher)
@@ -223,10 +223,10 @@ public sealed partial class AniBtSearchViewModel : PageViewModel
         AnnounceScope();
         _keyword = keyword.Trim();
         if (_keyword.Length == 0) return Task.CompletedTask;
-        if (_service is null || _moviePilot?.Available != true)
+        if (_service is null || _moviePilot?.AniBtAvailable != true)
         {
-            EmptyTitle = "MoviePilot 未连接";
-            EmptyNotice = "MoviePilot 尚未连接，请在设置中启用并连接后再试";
+            EmptyTitle = "AniBT 当前不可用";
+            EmptyNotice = "请在设置中启用 AniBT，并连接 MoviePilot 后再试";
             ShowEmptyNotice = true;
             return Task.CompletedTask;
         }
@@ -293,7 +293,7 @@ public sealed partial class AniBtSearchViewModel : PageViewModel
 
     private async Task LoadSearchAsync(bool append = false)
     {
-        if (!_active || _service is null || _moviePilot?.Available != true) return;
+        if (!_active || _service is null || _moviePilot?.AniBtAvailable != true) return;
         if (append && !ConnectionMatches) return;
         var token = BeginLoad();
         _query = token;

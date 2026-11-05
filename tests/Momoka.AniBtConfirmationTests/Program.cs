@@ -56,6 +56,46 @@ internal static class Program
 
     private static void CoreCases()
     {
+        AsyncCase("R27 关闭后已预览计划不提交且重新开启仍失效", async _ =>
+        {
+            using var f = new AnonymousFixture();
+            var prepared = await f.PrepareActualAsync();
+            f.Settings.MoviePilot.AniBtEnabled = false;
+            Assert.True(await CaptureAsync(() => f.SubmitActualAsync(prepared!)) is MoviePilotOperationBlockedException);
+            f.AssertZeroWrites();
+            f.Settings.MoviePilot.AniBtEnabled = true;
+            Assert.True(await CaptureAsync(() => f.SubmitActualAsync(prepared!)) is MoviePilotOperationBlockedException);
+            f.AssertZeroWrites();
+        });
+        AsyncCase("R27 Apply后关闭只保留已发请求，不继续Refresh", async _ =>
+        {
+            using var f = new AnonymousFixture();
+            var prepared = await f.PrepareActualAsync();
+            f.Handler.OnRequest = request =>
+            {
+                if (request.Path.Contains("RemoteSearch/Apply", StringComparison.Ordinal))
+                    f.Settings.MoviePilot.AniBtEnabled = false;
+            };
+            await CaptureAsync(() => f.SubmitActualAsync(prepared!));
+            Assert.Equal(1, f.Handler.ApplyCount);
+            Assert.Equal(0, f.Handler.RefreshCount);
+            f.Settings.MoviePilot.AniBtEnabled = true;
+            Assert.True(await CaptureAsync(() => f.SubmitActualAsync(prepared!)) is MoviePilotOperationBlockedException);
+            Assert.Equal(1, f.Handler.ApplyCount);
+        });
+        AsyncCase("R27 整理复核期间关闭不会开始实际传输", async _ =>
+        {
+            using var f = new AnonymousFixture(1);
+            var prepared = await f.PrepareActualAsync();
+            f.Handler.OnRequest = request =>
+            {
+                if (request.Path.Contains("history/transfer", StringComparison.Ordinal))
+                    f.Settings.MoviePilot.AniBtEnabled = false;
+            };
+            await CaptureAsync(() => f.SubmitActualAsync(prepared!));
+            f.AssertZeroWrites();
+        });
+
         AsyncCase("R037 实际 Core 准备只读，年份传真实 RemoteSearch", async _ =>
         {
             using var f = new AnonymousFixture();

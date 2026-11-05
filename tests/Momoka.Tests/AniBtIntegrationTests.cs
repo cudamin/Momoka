@@ -19,6 +19,76 @@ internal static class AniBtIntegrationTests
 
     public static void Register()
     {
+        Test("AniBT 服务边界：关闭阻止新请求，开关往返废弃旧连接", () =>
+        {
+            var settings = Settings();
+            settings.MoviePilot.AniBtEnabled = true;
+            using var transport = BaseTransport();
+            using var service = Service(transport, settings);
+            using var aniTransport = new StubTransport().Answer("api/animes", """{"page":[],"isDone":true,"continueCursor":""}""");
+            using var client = new AniBtClient(aniTransport);
+            var ani = new AniBtService(client, service);
+            var connection = service.CaptureAniBtConnection();
+            settings.MoviePilot.AniBtEnabled = false;
+            Assert.Throws<MoviePilotOperationBlockedException>(() => ani.SearchAsync("anonymous", 1, default).GetAwaiter().GetResult());
+            Assert.Equal(0, aniTransport.Total);
+            Assert.True(service.Available, "普通 MoviePilot 连接继续可用");
+            settings.MoviePilot.AniBtEnabled = true;
+            Assert.Throws<MoviePilotOperationBlockedException>(() => service.CheckAniBtConnection(connection, default));
+            service.CheckAniBtConnection(service.CaptureAniBtConnection(), default);
+        });
+        Test("AniBT 服务边界：关闭拒绝迟到搜索结果", () =>
+        {
+            var settings = Settings();
+            settings.MoviePilot.AniBtEnabled = true;
+            using var transport = BaseTransport();
+            using var service = Service(transport, settings);
+            using var aniTransport = new StubTransport().Answer("api/animes", """{"page":[],"isDone":true,"continueCursor":""}""")
+                .When("api/animes", () => settings.MoviePilot.AniBtEnabled = false);
+            using var client = new AniBtClient(aniTransport);
+            var ani = new AniBtService(client, service);
+            Assert.Throws<OperationCanceledException>(() => ani.SearchAsync("anonymous", 1, default).GetAwaiter().GetResult());
+            Assert.Equal(1, aniTransport.Total);
+        });
+
+        Test("AniBT 服务边界：关闭取消在途传输", () =>
+        {
+            var settings = Settings();
+            using var transport = BaseTransport();
+            using var service = Service(transport, settings);
+            using var aniTransport = new PendingAniBtTransport();
+            using var client = new AniBtClient(aniTransport);
+            var ani = new AniBtService(client, service);
+            var read = ani.SearchAsync("anonymous", 1, default);
+            aniTransport.Entered.Task.GetAwaiter().GetResult();
+            settings.MoviePilot.AniBtEnabled = false;
+            Assert.True(aniTransport.Token.IsCancellationRequested, "取消须抵达实际 HTTP 边界");
+            Assert.Throws<OperationCanceledException>(() => read.GetAwaiter().GetResult());
+        });
+
+        Test("AniBT 服务边界：关闭后资源不能下载，重新开启不解除已提交防重", () =>
+        {
+            var settings = Settings();
+            using var transport = BaseTransport().Answer("media/source", Sources).Answer("media/42?", Media)
+                .Answer("download/", """{"success":true,"data":{"download_id":"fixture"}}""");
+            using var service = Service(transport, settings);
+            var resource = service.AniBtResourcesAsync(Anime, [Release()], service.CaptureAniBtConnection(), default)
+                .GetAwaiter().GetResult().Single();
+            settings.MoviePilot.AniBtEnabled = false;
+            Assert.Throws<MoviePilotOperationBlockedException>(() => service.DownloadAsync(resource, default).GetAwaiter().GetResult());
+            Assert.Equal(0, transport.Count("download/"));
+            settings.MoviePilot.AniBtEnabled = true;
+            Assert.Throws<MoviePilotOperationBlockedException>(() => service.DownloadAsync(resource, default).GetAwaiter().GetResult());
+            var fresh = service.AniBtResourcesAsync(Anime, [Release()], service.CaptureAniBtConnection(), default)
+                .GetAwaiter().GetResult().Single();
+            service.DownloadAsync(fresh, default).GetAwaiter().GetResult();
+            settings.MoviePilot.AniBtEnabled = false;
+            settings.MoviePilot.AniBtEnabled = true;
+            var repeated = service.AniBtResourcesAsync(Anime, [Release()], service.CaptureAniBtConnection(), default)
+                .GetAwaiter().GetResult().Single();
+            Assert.Throws<MoviePilotOperationBlockedException>(() => service.DownloadAsync(repeated, default).GetAwaiter().GetResult());
+            Assert.Equal(1, transport.Count("download/"));
+        });
         Test("AniBT 菜单：动画电影、剧、季、集仅在 MP 可用时出现", () =>
         {
             foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode })
@@ -1085,6 +1155,19 @@ internal static class AniBtIntegrationTests
             [identity, new MoviePilotSession(new Uri("http://192.0.2.10:3001/"), "", "fixture-user", true)], null);
         typeof(MoviePilotService).GetField("_session", flags)!.SetValue(service, cached);
         typeof(MoviePilotService).GetField("_availableIdentity", flags)!.SetValue(service, identity);
+    }
+
+    private sealed class PendingAniBtTransport : HttpMessageHandler
+    {
+        internal TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal CancellationToken Token { get; private set; }
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            Token = token;
+            Entered.SetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, token).ConfigureAwait(false);
+            throw new AssertionException("匿名挂起传输不应自然完成");
+        }
     }
 
     private sealed class RejectSecretAccess : ISecretProtector

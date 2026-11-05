@@ -252,6 +252,9 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     public partial int FilterIndex { get; set; }
     public string FilterNotice => _episodes.Count > 0 && Episodes.Count == 0
         ? FilterIndex == 1 ? "当前范围内暂无已入库的集。" : "当前范围内没有缺集或未入库的集。" : "";
+    public MoviePilotSubscriptionIdentity? SelectedIdentity => Selected is { } selected
+        ? MoviePilotSubscriptionIdentity.Of(selected.Subscription) : null;
+
     public bool CanManage => Live && _service?.Available == true && !Working && !Busy && !Deleted;
     public bool CanWriteSelected => CanManage && Selected is { } selected && !NeedsReview(selected);
     partial void OnFilterIndexChanged(int value) => ApplyFilter();
@@ -343,7 +346,10 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
                 RefreshCommands();
                 var current = await _service.SubscriptionAsync(selected.Subscription, pending.Token);
                 if (!IsCurrent(token) || !Live) return;
+                var previousIdentity = MoviePilotSubscriptionIdentity.Of(selected.Subscription);
                 selected.Update(current);
+                if (previousIdentity != MoviePilotSubscriptionIdentity.Of(current))
+                    OnPropertyChanged(nameof(SelectedIdentity));
                 _ = selected.LoadPosterAsync(_service);
                 _ = selected.LoadBackdropAsync(_service);
                 var files = await _service.SubscriptionFilesAsync(current, pending.Token);

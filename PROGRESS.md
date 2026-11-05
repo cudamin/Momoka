@@ -10598,3 +10598,14 @@ R1在Plex适配层按100条原始页扫描，过滤后返回真实总数及Start
 已读审查留档的官方Jellyfin v10.10.7 ItemUpdateController Tags数组赋值及SqliteItemRepository竖线存储源码。列表按双引号包裹含标点项，双引号自身双写；未改列表保原JSON数组，未闭合引号拒绝保存。Jellyfin表保存用deferral与原JSON克隆，成功关闭、失败保留输入可重试，在飞时阻止关闭并显示进度；取消不写。
 
 实际EditAsync/GuardAsync/AskAsync/TellAsync逐次源码提取+完整MetadataDialog链接，5场景（原样/标题/列表/503重试/取消）先红后绿，另4类标点往返及未闭合校验通过。通知未知事件ID增加第6场景红绿，沿用范围集合原值保留规则。当前新专项全过，Core原Emby元数据61项、日期96项通过；最新Shell Release 0警告0错误，scan-automation-ids无无句柄控件，31文件check-diff通过。一次在Shell编译未结束时重编Core碰到本树XAML编译器占用而失败，后续等待其退出并用成功当前Core进行fresh专项编译，未以旧失败输出冒充成功。未运行真实WinUI/桌面/服务器写入/DPAPI/播放，待父会话全批整合。
+## 2026-11-05 审查修复 R27/R34/R35（独立树）
+
+- AniBT 入口和执行边界统一检查当前开关，开关代次隔离旧计划/资源；独立搜索面板监听关闭并撤销，实际 Core 操作以短期事件注册取消在途HTTP，整理窗口关闭撤销预览/后续操作。已提交/未知账本不随开关清空，Apply后关闭不再Refresh，普通MoviePilot连接保留。
+- 下载仅识别 success:false + data.requires_confirmation:true 为官方确认的未下载回执，归还可修正状态并提示高级媒体核对；HTTP丢失、非布尔true、其他业务失败仍保持未知防重。没有加入未知媒体强制下载流程。
+- 订阅卡原地更新后通知实际身份变化，季视图撤销旧宿主并重新匹配，媒体侧只在季/组身份变化时同步并由原Reload重建组、季及订阅状态；普通关键词修改不刷新媒体。
+- 官方默认v3当前后端4cd64d684b0cd7e198728ffb26c9eb3321db8672、前端f39250447616b586abfc7d7ed278ca277d778ef0；适用tag v3.2.3后端5662004d/前端12555631。已重读download.py、AddDownloadDialog.vue、SubscribeEditDialog.vue、SubscribeCard.vue；requires_confirmation在下载链前返回，编辑成功通知父组件刷新一致。未读取真实账号确认服务器版本；v2不是本修复适用分支。
+- 匿名行为先红：确认回执/关闭新请求/迟到响应3项、HTTP取消1项、换季换组2项。最终专项92/92、AniBT确认57/57、来源契约40/40、订阅身份3组0失败；构建/完整主测结果见本树 work/review-fixes。首轮季测试生成缺#nullable的10警告已修正，红日志保留。未真实网络写入、播放、UI或发布；根会话负责整合验证。
+
+- 最终关闭边界复核又以匿名登录挂起前件复现下载发送，已把AniBT资源下载绑定同一开关取消；高级媒体/选项读取后重核资源代次。首次完整主测3756/3756全绿；此末轮改动后的专项和全套另留final日志，未覆盖真实UI。
+
+- 本树最终主测试3757/3757、0失败0跳过（final-full-main-tests.log）；Shell/Core Release0警告0错误。最终AniBT确认57/57、来源契约40/40，订阅身份3组0失败；27个变更文本行尾/BOM/空白通过。所有核验为匿名离线，本批未做桌面UI、真实播放或服务器写入。

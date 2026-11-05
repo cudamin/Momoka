@@ -61,7 +61,6 @@ public sealed partial class ShellPage
 
     private void OnMoviePilotAniBtChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
     {
-        if (!Settings.MoviePilot.AniBtEnabled && _moviePilotDialog is AniBtScrapeDialog dialog) dialog.Hide();
         MoviePilotAvailabilityChanged?.Invoke(this, EventArgs.Empty);
     });
 

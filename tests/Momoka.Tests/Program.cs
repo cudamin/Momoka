@@ -4,6 +4,12 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["moviepilot-boundary-fixture"])
+        {
+            MoviePilotSafetyTests.Register();
+            AniBtIntegrationTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["episode-removal-fixture"])
         {
             EpisodeRemovalTests.Register();

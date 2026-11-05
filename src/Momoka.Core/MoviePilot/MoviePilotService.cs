@@ -31,9 +31,14 @@ public sealed partial class MoviePilotService : IDisposable
         _saveSettings = saveSettings;
         _configuration = ReadConfiguration();
         settings.MoviePilot.ConnectionChanged += OnConnectionChanged;
+        settings.MoviePilot.AniBtChanged += OnAniBtChanged;
     }
 
-    public void Dispose() => _settings.MoviePilot.ConnectionChanged -= OnConnectionChanged;
+    public void Dispose()
+    {
+        _settings.MoviePilot.ConnectionChanged -= OnConnectionChanged;
+        _settings.MoviePilot.AniBtChanged -= OnAniBtChanged;
+    }
     private const string Category = "moviepilot";
 
     /// <summary>一次只让一趟登录在飞，省得同时来两次搜索各登一次。</summary>
@@ -198,15 +203,19 @@ public sealed partial class MoviePilotService : IDisposable
     /// </summary>
     public async Task DownloadAsync(MoviePilotResource resource, CancellationToken cancellationToken, MoviePilotDownloadOptions? options = null)
     {
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var registration = resource.AniBtGeneration is not null ? ObserveAniBtOperation(operation) : null;
+        cancellationToken = operation.Token;
         var identity = RequireResultConnection(resource.ConnectionStamp);
         if (resource.ConnectionGeneration is { } generation && generation != identity.Generation)
             throw new MoviePilotOperationBlockedException("MoviePilot 配置曾发生变化，请重新搜索 AniBT 资源");
         if (options?.Media is { } media && media.ConnectionGeneration != identity.Generation)
             throw new MoviePilotOperationBlockedException("MoviePilot 连接曾发生变化，请重新核对下载媒体");
+        CheckAniBtResource(resource);
         var body = MoviePilotMediaParser.DownloadBody(resource, options);
         var path = body.ContainsKey("media_in") ? "download/" : "download/add";
         await WriteAsync(identity, [DownloadKey(resource)], (apiBase, token) =>
-            _client.PostAsync(apiBase, token, path, body, cancellationToken), cancellationToken)
+            _client.PostDownloadAsync(apiBase, token, path, body, cancellationToken), cancellationToken)
             .ConfigureAwait(false);
 
         Log.Info(Category, $"已把资源「{resource.Title}」加入 MoviePilot 下载");

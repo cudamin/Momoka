@@ -56,7 +56,11 @@ public sealed partial class AniBtSearchPanel : UserControl
     internal void Release()
     {
         _attachment++;
-        if (_observing && _moviePilot is { } service) service.AvailabilityChanged -= OnAvailabilityChanged;
+        if (_observing && _moviePilot is { } service)
+        {
+            service.AvailabilityChanged -= OnAvailabilityChanged;
+            service.AniBtAvailabilityChanged -= OnAvailabilityChanged;
+        }
         _observing = false;
         ViewModel.Cancel();
     }
@@ -66,6 +70,7 @@ public sealed partial class AniBtSearchPanel : UserControl
         if (_observing || _moviePilot is null) return;
         _attachment++;
         _moviePilot.AvailabilityChanged += OnAvailabilityChanged;
+        _moviePilot.AniBtAvailabilityChanged += OnAvailabilityChanged;
         _observing = true;
     }
 

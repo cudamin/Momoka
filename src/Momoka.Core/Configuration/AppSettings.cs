@@ -1295,7 +1295,7 @@ public sealed class MoviePilotSettings
 
     /// <summary>
     /// AniBT 识别、AniBT 搜索与「搜索不同版本」里的 AniBT 来源是否出现在界面上。默认开：老设置文件没有这一项时
-    /// 行为不变。关闭只收入口，不删已保存的连接、不解除整理防重，也不影响 MoviePilot 其他功能。
+    /// 行为不变。关闭收起入口并撤销在途 AniBT 操作，不删已保存的连接、不解除整理防重，也不影响 MoviePilot 其他功能。
     /// </summary>
     public bool AniBtEnabled
     {
