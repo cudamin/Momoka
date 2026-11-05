@@ -197,6 +197,13 @@ public sealed partial class DetailViewModel : PageViewModel
         StillWidth = PosterStillWidth;
         StillHeight = PosterStillHeight;
 
+        PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is nameof(HeroContent) or nameof(TailIntrinsic)
+                or nameof(OverviewVisibility) or nameof(PickersVisibility) or nameof(HeaderLift) or nameof(PaperLine))
+                RefreshContentCrop();
+        };
+
         // Four rows whose visibility is a count. [NotifyPropertyChangedFor] cannot watch a collection's
         // Count — it hangs off a property's setter, and these collections are never re-assigned — so the
         // notification is hung off the collection itself, where it cannot be forgotten at a call site.
@@ -215,7 +222,13 @@ public sealed partial class DetailViewModel : PageViewModel
             OnPropertyChanged(nameof(VideoVisibility));
         };
 
-        AudioTracks.CollectionChanged += (_, _) => PickerChanged(nameof(AudioVisibility));
+        AudioTracks.CollectionChanged += (_, _) =>
+        {
+            PickerChanged(nameof(AudioVisibility));
+            OnPropertyChanged(nameof(AudioRowVisibility));
+            OnPropertyChanged(nameof(SingleAudioVisibility));
+            OnPropertyChanged(nameof(SingleAudioText));
+        };
         SubtitleTracks.CollectionChanged += (_, _) => PickerChanged(nameof(SubtitleVisibility));
 
         // 媒体信息 is the same problem and not a picker: its own visibility only, without the pickers row's.
@@ -294,11 +307,12 @@ public sealed partial class DetailViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(VideoVisibility))]
     [NotifyPropertyChangedFor(nameof(VideoLineVisibility))]
+    [NotifyPropertyChangedFor(nameof(ColumnVideoVisibility))]
+    [NotifyPropertyChangedFor(nameof(ColumnPickersVisibility))]
     public partial string? VideoLine { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HeroVisibility))]
-    [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
     public partial ImageSource? HeroImage { get; set; }
 
     [ObservableProperty]
@@ -353,7 +367,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(NearCrop))]
     [NotifyPropertyChangedFor(nameof(Narrow))]
     [NotifyPropertyChangedFor(nameof(Squeeze))]
-    [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutWidth))]
     [NotifyPropertyChangedFor(nameof(BackdropShown))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
@@ -363,7 +376,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(PaperMinHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
-    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroArtVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroPlainVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroCardVisibility))]
@@ -384,6 +396,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(ColumnPickersVisibility))]
     [NotifyPropertyChangedFor(nameof(PickersVisibility))]
     [NotifyPropertyChangedFor(nameof(VideoLineVisibility))]
+    [NotifyPropertyChangedFor(nameof(ColumnVideoVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroContentAlignment))]
     [NotifyPropertyChangedFor(nameof(ColumnActionsVisibility))]
     [NotifyPropertyChangedFor(nameof(WideProgressVisibility))]
@@ -419,8 +432,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(PaperMinHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
-    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
-    [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
     [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
@@ -430,27 +441,56 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(ShowShelfLines))]
     public partial bool Spacious { get; set; }
 
-    /// <summary>
-    /// 背景图这一刻是不是已经「接近被裁掉」—— 按页宽铺开的高占到视口的 98% 以上，再宽一点那张图就要
-    /// 按宽撑满、把下沿切在视口外面（2026-11-02 用户令「当拉长窗口导致背景图接近被裁剪时，自动切换到最大化
-    /// （无遮挡）页面状态」）。
-    /// <para>
-    /// 判据在 Core（<see cref="DetailHero.NearCrop"/>）：两句话（这里的「快被切了」和 <see cref="Spacious"/>
-    /// 的「窗口铺开了」）在 <see cref="Showcase"/> 那一行并肩站着，哪一条成立都走无遮挡版式。
-    /// </para>
-    /// <para>
-    /// 不跟着窗口消息走、只读版面三个数（页宽、图的高宽比、视口）：这三个数一变就自己重算，于是它和窗口形态
-    /// 那一路（<see cref="Spacious"/>，由页面按拖动停顿落定）互不牵连。收窄回到 98% 以下就退出，不需要迟滞 ——
-    /// 触发点在「图几乎铺满第一屏」上，那一档纸面本来就已经退到屏幕下沿，翻面时第一屏里几乎看不出动静。
-    /// </para>
-    /// </summary>
-    public bool NearCrop => DetailHero.NearCrop(PageWidth, HeroHeightRatio, Viewport);
+    /// <summary>三页共用普通剧页集卡副标题下沿；与当前沉浸位置、滚动位置无关。</summary>
+    public bool NearCrop => DetailHero.ContentNearCrop(SeriesContentBottom, Viewport);
+
+    // 页面用项目字体测出集带标题与两行文字的高度。电影、季页也使用这份参考集带。
+    private double _seriesShelfTextBottom;
+    internal void SetSeriesShelfTextBottom(double height)
+    {
+        if (!double.IsFinite(height) || height <= 0 || Math.Abs(height - _seriesShelfTextBottom) < 0.5) return;
+        _seriesShelfTextBottom = height;
+        RefreshContentCrop();
+    }
+
+    public double SeriesContentBottom
+    {
+        get
+        {
+            if (_seriesShelfTextBottom <= 0 || IsCompact) return 0;
+            var hero = DetailHero.WideHeight(HeroContent,
+                DetailHero.Between(DetailHero.HeroTopRoom, DetailHero.HeroTopTight, Squeeze),
+                DetailHero.Between(DetailHero.HeroBottomRoom, DetailHero.HeroBottomTight, Squeeze));
+            var picture = DetailHero.PictureHeight(PageWidth, HeroHeightRatio, Viewport, hero);
+            var tail = Math.Max(TailIntrinsic + TailVertical(Squeeze),
+                DetailHero.TailHeight(Viewport, hero, BackdropShown, PaperLine, picture - HeaderLift, false));
+            return hero + tail + _seriesShelfTextBottom;
+        }
+    }
+
+    private void RefreshContentCrop()
+    {
+        OnPropertyChanged(nameof(SeriesContentBottom));
+        OnPropertyChanged(nameof(NearCrop));
+        OnPropertyChanged(nameof(Showcase));
+        OnPropertyChanged(nameof(TailMinHeight));
+        OnPropertyChanged(nameof(PaperMinHeight));
+        OnPropertyChanged(nameof(PictureHeight));
+        OnPropertyChanged(nameof(TailSpacing));
+        OnPropertyChanged(nameof(TailPanelPadding));
+        OnPropertyChanged(nameof(OverviewPanelPadding));
+        OnPropertyChanged(nameof(SheetPadding));
+        OnPropertyChanged(nameof(SheetSpacing));
+        OnPropertyChanged(nameof(BodyPanelPadding));
+        OnPropertyChanged(nameof(ShowShelfLines));
+        OnPropertyChanged(nameof(BackdropOpacity));
+    }
 
     /// <summary>
-    /// 这一页这一刻走不走「沉浸版式」—— 窗口铺开或背景图快被裁掉时，把正文那张不透明的纸整块让开，
+    /// 这一页这一刻走不走「沉浸版式」—— 窗口铺开或参考集卡文字快被裁掉时，把正文那张不透明的纸整块让开，
     /// 单集/剧季/相似/演职人员直接压在固定的模糊背景上，并且不再撑第一屏的留白（2026-10-31 用户令，附参考图）。
     /// <para>
-    /// 判据在 Core（<see cref="DetailHero.Immersive"/>）：铺开（最大化、过五分之四，或背景图快被裁 ——
+    /// 判据在 Core（<see cref="DetailHero.Immersive"/>）：铺开（最大化、过五分之四，或参考集卡文字快被裁 ——
     /// <see cref="Spacious"/> 与 <see cref="NearCrop"/> 两条来路）、宽版式、背后有图、条目是电影/剧/季。
     /// 这里只是把页面的四个现状交过去 —— 哪几种页面算这一档是一个有唯一正确答案的判断，写在 Core 里才测得住。
     /// </para>
@@ -483,8 +523,6 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(TailMinHeight));
         OnPropertyChanged(nameof(PaperMinHeight));
         OnPropertyChanged(nameof(PictureHeight));
-        OnPropertyChanged(nameof(PictureFadeMargin));
-        OnPropertyChanged(nameof(BackdropFadeVisibility));
         OnPropertyChanged(nameof(TailSpacing));
         OnPropertyChanged(nameof(TailPanelPadding));
         OnPropertyChanged(nameof(OverviewPanelPadding));
@@ -530,13 +568,11 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
-    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(PaperMinHeight))]
     [NotifyPropertyChangedFor(nameof(Showcase))]
     [NotifyPropertyChangedFor(nameof(NearCrop))]
     [NotifyPropertyChangedFor(nameof(Squeeze))]
-    [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
     [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
@@ -675,7 +711,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMargin))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
-    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     [NotifyPropertyChangedFor(nameof(Squeeze))]
     [NotifyPropertyChangedFor(nameof(HeroInset))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
@@ -706,7 +741,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMargin))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
-    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     [NotifyPropertyChangedFor(nameof(Squeeze))]
     [NotifyPropertyChangedFor(nameof(HeroInset))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
@@ -734,7 +768,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BackdropShown))]
     [NotifyPropertyChangedFor(nameof(Showcase))]
-    [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
     [NotifyPropertyChangedFor(nameof(Squeeze))]
     [NotifyPropertyChangedFor(nameof(HeroInset))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
@@ -745,7 +778,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(PaperMinHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
-    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroArtVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroPlainVisibility))]
     [NotifyPropertyChangedFor(nameof(ScrimVisibility))]
@@ -792,11 +824,9 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(PaperMinHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
-    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     [NotifyPropertyChangedFor(nameof(Showcase))]
     [NotifyPropertyChangedFor(nameof(NearCrop))]
     [NotifyPropertyChangedFor(nameof(Squeeze))]
-    [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
     [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
@@ -823,7 +853,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
-    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     [NotifyPropertyChangedFor(nameof(TailMargin))]
     [NotifyPropertyChangedFor(nameof(Squeeze))]
     [NotifyPropertyChangedFor(nameof(HeroInset))]
@@ -870,7 +899,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
-    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
@@ -1101,22 +1129,6 @@ public sealed partial class DetailViewModel : PageViewModel
     public double PictureHeight => Showcase && Viewport > 0
         ? Math.Round(Viewport + Math.Max(0, HeaderLift))
         : DetailHero.PictureHeight(PageWidth, HeroHeightRatio, Viewport, HeroHeight);
-
-    /// <summary>
-    /// 背景盒子下沿那道黑色渐变摆多高 —— 盒子的下沿减去渐变自己的高（<see cref="PictureFadeHeight"/>），渐变的
-    /// 底边正好压在画面的下沿上。它必须画在背景盒子<em>外面</em>：盒子带着 0.9 的不透明度，垫在里面的话
-    /// 「满墨」其实只有九成，亮图上那半成透出来就是「还是能看到分界线」（2026-09-12 他指着的那条）—— 单独
-    /// 一层才是真的满墨。显隐在标记里跟着 <see cref="HeroVisibility"/> 走（缘由记在 DetailPage 那一层的注释
-    /// 里）：铺满那一档的下沿也在屏上，两档都靠这道渐变接缝。
-    /// </summary>
-    public Thickness PictureFadeMargin => new(0, Math.Max(0, PictureHeight - PictureFadeHeight), 0, 0);
-
-    /// <summary>
-    /// 下沿渐变自己的高。矮了压不住亮图的边，高了把画面吃掉一大截 —— 120 从前在两者之间；2026-09-13 他一句
-    /// 「黑色渐变的高度太高了，降低一些，它的主要作用是隐藏背景图下方的分界线」收到 64：藏住那条硬边就够了，
-    /// 再往上多出来的只是压在剧情说明背后的一段黑。停点前载（四成二处已到六成五），矮盒子上的斜率照样平滑。
-    /// </summary>
-    public double PictureFadeHeight => GaussianBackdrop.FadeHeight;
 
     /// <summary>
     /// 这一档版面要不要封面 —— 规则在 Core（<see cref="DetailHero.ShowsStill"/>）：紧凑版式下一律不画
@@ -1505,7 +1517,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
-    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     [NotifyPropertyChangedFor(nameof(Squeeze))]
     [NotifyPropertyChangedFor(nameof(HeroInset))]
     [NotifyPropertyChangedFor(nameof(HeroRoom))]
@@ -1569,7 +1580,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
-    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
     [NotifyPropertyChangedFor(nameof(BodyMinHeight))]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
@@ -1776,6 +1786,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 片名那一栏里那行「视频：…」显不显 —— 集页的宽版式不画（那一页它下到文件选项那排 chips 里了，见
     /// <see cref="VideoVisibility"/>），其余版式照旧。
     /// </summary>
+    public Visibility ColumnVideoVisibility => Show(VideoShown && HeroCard);
+
     public Visibility VideoLineVisibility => Show(VideoShown && !HeroCard);
 
     /// <summary>
@@ -1784,16 +1796,6 @@ public sealed partial class DetailViewModel : PageViewModel
     /// there is one value and the question is asked of it.
     /// </summary>
     public Visibility HeroVisibility => Show(HeroImage is not null);
-
-    /// <summary>
-    /// 背景图下沿那道黑色渐变显不显。沉浸版式（最大化时的电影/剧/季）里不画 —— 2026-10-31 用户令
-    /// 「最大化的时候背景图下方的黑色渐变去掉」。
-    /// <para>
-    /// 那道渐变只干一件事：藏住背景图下沿与页底色之间的硬边（见 <see cref="PictureFadeHeight"/>）。沉浸档里画面
-    /// 按视口高铺满、下沿就是窗口的下沿，没有硬边可藏；留着它只是在页尾压出一条谁也没要的黑带。
-    /// </para>
-    /// </summary>
-    public Visibility BackdropFadeVisibility => Show(!Showcase && HeroImage is not null);
 
     /// <summary>
     /// 固定在背景里那一层画不画 —— 「当前任务的背景要用亚克力遮罩，固定在背景中……占满标题栏」里那一层
@@ -1997,56 +1999,23 @@ public sealed partial class DetailViewModel : PageViewModel
 
     public Visibility SourceVisibility => Show(Sources.Count > 1);
 
-    /// <summary>One row is 自动 alone, which is not a choice.</summary>
-    public Visibility AudioVisibility => Show(AudioTracks.Count > AutoRows);
+    /// <summary>自动不算实际音轨；至少两条实际音轨才提供选择。</summary>
+    public Visibility AudioVisibility => Show(AudioTracks.Count > AutoRows + 1);
+
+    public Visibility AudioRowVisibility => Show(AudioTracks.Count > AutoRows);
+    public Visibility SingleAudioVisibility => Show(AudioTracks.Count == AutoRows + 1);
+    public string SingleAudioText => AudioTracks.Count == AutoRows + 1 ? AudioTracks[AutoRows].Text : "";
 
     /// <summary>Two rows are 自动 and 不使用字幕, which is not a choice either.</summary>
     public Visibility SubtitleVisibility => Show(SubtitleTracks.Count > AutoRows + 1);
 
-    /// <summary>
-    /// 头图底下那一行文件选项画不画。两句话都得成立：播放键指着一个文件，而且那一行里真有的可选。
-    /// <para>
-    /// 判据是<em>播放键的落点</em>，不是「这一页自己是不是一个文件」（用户 2026-09-02：「给剧页面加上音频字幕
-    /// 等等的选择项」）。剧页和季页的播放键指着解析出来的那一集，而那一集的源和轨道这一页早就问全了 —— 从前那一版
-    /// 照读不照画，收起来的只是屏上那一行，于是「从剧页按下播放」用的是默认轨道而没有任何地方能改。同一页上「视频：
-    /// 1080p · H264 · MKV」那一行讲的也正是这个文件，所以摆在一起并不突兀。
-    /// </para>
-    /// <para>
-    /// 落点是空的时候一定要收起来（人物页，或者一部剧的集还没回来）：那时候 <see cref="Sources"/> 那几个集合是
-    /// 上一个条目留下的，画出来就是拿另一个文件的轨道让人挑。<see cref="ShowTarget"/> 会清空它们，可清空和这一句
-    /// 之间隔着一趟往返。
-    /// </para>
-    /// <para>
-    /// 媒体信息 那张表照旧只在文件页上（见 <see cref="ShowSource"/>）：那是一整张表在讲某个文件的来龙去脉，
-    /// 而这一行是「按下播放之前挑一下」。两件事一句话说不完，所以判据也不共用。
-    /// </para>
-    /// <para>
-    /// 季选择器从来不在这一行里：它跟着那一带集走，摆在它替掉的那块内容边上（那一颗 2026-11-02 已删，见
-    /// <see cref="SeasonVisibility"/>）。算进来的话，一部剧的选中集只有一个媒体源、又没有可选轨道时，屏上会剩
-    /// 一行空的。
-    /// </para>
-    /// <para>
-    /// 2026-09-12 起集页的宽版式不在这一档里：那一页把这三行搬到片名那一栏底下（「按键布局参考上方截图」，
-    /// 见 <see cref="ColumnPickersVisibility"/>），尾部那一份在这一页上收着 —— 两份只有一份在屏上，尾部那份
-    /// 归这里的判据管，栏里那份归 <see cref="ColumnPickersVisibility"/>。
-    /// </para>
-    /// </summary>
-    public Visibility PickersVisibility => Show(!HeroCard && Pickable);
+    /// <summary>紧凑版式的文件选项，位于尾部播放操作之前。</summary>
+    public Visibility PickersVisibility => Show(IsCompact && Pickable);
 
-    /// <summary>
-    /// 片名那一栏里那一行文件选项（集页的宽版式）显不显 —— <see cref="PickersVisibility"/> 的另一半。
-    /// <para>
-    /// 「按键布局参考上方截图」（2026-09-12）：那一页的音频、字幕和那排键一路排在片名底下，所以那一份标记在
-    /// <c>HeroStack</c> 里、标签在下拉的左边（尾部那一份的标签在下拉头上，是另一种排法）。判据和尾部那一份
-    /// 同一句，只是各自要「是不是集页的宽版式」这一半。
-    /// </para>
-    /// </summary>
-    public Visibility ColumnPickersVisibility => Show(HeroCard && Pickable);
+    /// <summary>宽版式四种详情页共用片名栏内的选择框，紧邻播放操作上方。</summary>
+    public Visibility ColumnPickersVisibility => Show(!IsCompact && (Pickable || HeroCard && VideoShown));
 
-    /// <summary>
-    /// 那一行文件选项真有的可选且播放键指着一个文件 —— 两份共用的那一半判据（见
-    /// <see cref="PickersVisibility"/> 上那几段）。
-    /// </summary>
+    /// <summary>有播放目标及版本、音频信息或字幕选项时显示文件栏。</summary>
     private bool Pickable =>
         PlayTarget is not null
         && (Sources.Count > 1 || AudioTracks.Count > AutoRows || SubtitleTracks.Count > AutoRows + 1);
@@ -2604,7 +2573,6 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(Narrow));
         OnPropertyChanged(nameof(Squeeze));
         OnPropertyChanged(nameof(HeroContent));
-        OnPropertyChanged(nameof(BackdropFadeVisibility));
         OnPropertyChanged(nameof(TailSpacing));
         OnPropertyChanged(nameof(TailPanelPadding));
         OnPropertyChanged(nameof(SheetPadding));
@@ -2612,7 +2580,6 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(BodyPanelPadding));
         OnPropertyChanged(nameof(ShowShelfLines));
         OnPropertyChanged(nameof(PictureHeight));
-        OnPropertyChanged(nameof(PictureFadeMargin));
         OnPropertyChanged(nameof(HeroInset));
         OnPropertyChanged(nameof(TailInset));
         OnPropertyChanged(nameof(TailMargin));
@@ -2638,6 +2605,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(WideProgressVisibility));
         OnPropertyChanged(nameof(ColumnPickersVisibility));
         OnPropertyChanged(nameof(VideoLineVisibility));
+        OnPropertyChanged(nameof(ColumnVideoVisibility));
 
         // 那一行文件选项跟着播放键的落点开合（见 PickersVisibility）：落点是空的（人物页、集还没回来）就收起来。
         // 轨道那几个集合是上一个条目留下的，从一部剧翻到一集时它们可能一个都没变，那边的通知一次不会来。
@@ -3775,6 +3743,7 @@ public sealed partial class DetailViewModel : PageViewModel
         // 「视频：…」那一句跟媒体源的下拉互斥（见 VideoShown）：源多起来它让位给下拉，两边都得重问一遍。
         OnPropertyChanged(nameof(VideoVisibility));
         OnPropertyChanged(nameof(VideoLineVisibility));
+        OnPropertyChanged(nameof(ColumnVideoVisibility));
     }
 
     // ---------------------------------------------------------------- 命令

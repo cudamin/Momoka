@@ -45,7 +45,7 @@
                             <DataTemplate x:DataType="vm:AniBtAnimeRow">
                                 <Button x:Name="OpenAnimeResources" Command="{x:Bind OpenCommand}" AutomationProperties.Name="{x:Bind OpenAutomationName}"
                                     HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
-                                    Padding="4" Background="{ThemeResource EgSurfaceBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
+                                    Padding="4" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
                                     CornerRadius="{StaticResource EgPosterCornerRadius}">
                                     <Grid RowSpacing="7">
                                         <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="82" /></Grid.RowDefinitions>
@@ -86,7 +86,7 @@
             <ScrollViewer x:Name="AnimeDetailScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                 Visibility="{x:Bind ViewModel.ResourcesVisibility, Mode=OneWay}">
                 <StackPanel x:Name="AnimeResourcesView" Spacing="8" Padding="0,0,20,8">
-                    <Border Background="{ThemeResource EgSurfaceBrush}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="12">
+                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="12">
                         <Grid x:Name="AnimeHero" ColumnSpacing="16" RowSpacing="8" SizeChanged="OnHeroSizeChanged">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>

@@ -254,6 +254,20 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => page.IsReady && page.ViewModel.HeroImage is not null);
                 var sheet = Get<StackPanel>(page, "BodySheet");
                 var originalPanels = sheet.Children.OfType<StackPanel>().ToArray();
+                foreach (var panel in originalPanels)
+                    Require(panel.Background is AcrylicBrush, "详情卡片没有使用亚克力：" + panel.Name);
+                var materialSource = Get<Border>(page, "CardMaterialSource");
+                var originalMaterial = materialSource.Background;
+                var privateMaterial = Get<AcrylicBrush>(page, "_panelFill");
+                try
+                {
+                    materialSource.Background = new SolidColorBrush(Microsoft.UI.Colors.White);
+                    Require(privateMaterial.AlwaysUseFallback && privateMaterial.FallbackColor == Microsoft.UI.Colors.White,
+                        "卡片没有随系统资源切换到实色");
+                }
+                finally { materialSource.Background = originalMaterial; }
+                Require(!privateMaterial.AlwaysUseFallback && privateMaterial.TintColor == ((AcrylicBrush)originalMaterial).TintColor,
+                    "卡片资源恢复后仍锁在实色");
                 var expected = DetailLayout.For(fixture.Settings.Ui, item.Type).Reverse()
                     .Select(card => new DetailCardSetting { Key = card.Key, Visible = card.Visible }).ToList();
                 // 信息卡置于中间，隐藏后用后继卡片的位置验证不占位，也覆盖电影页。
@@ -307,7 +321,7 @@ internal sealed partial class ShellNavigationProbe
                     await ScrollProbeAsync(scroll, first.TransformToVisual(content).TransformPoint(default).Y);
                     await SaveProbeScreenAsync($"detail-customization-{item.Type}-{width}-restored.png");
                 }
-                ResizeProbeClient(1100, 820);
+                ResizeProbeClient(1100, 1120);
                 await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
                 await ScrollProbeAsync(Get<ScrollView>(page, "Body"), 0);
                 fixture.Settings.Ui.BackdropOpacity = 45;
@@ -326,7 +340,7 @@ internal sealed partial class ShellNavigationProbe
                 if (item.Type != EmbyItemType.Episode)
                     Require(Math.Abs(picture.Opacity - 0.978) < 0.001, "沉浸背景不透明度没有按同一增量计算");
                 await CheckGaussianBackdropAsync(page, fixture.Settings.Ui, () => reads);
-                ResizeProbeClient(1100, 820);
+                ResizeProbeClient(1100, 1120);
                 await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
                 fixture.Settings.Ui.AlwaysImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
@@ -335,6 +349,8 @@ internal sealed partial class ShellNavigationProbe
                     ThemeHost.Apply(theme);
                     await LayoutAsync(page);
                     await SaveProbeScreenAsync($"detail-customization-{item.Type}-{theme.Id}-screen.png");
+                    if (item.Type == EmbyItemType.Movie)
+                        await CheckDetailMenuAcrylicAsync(page, fixture, theme.Id);
                 }
                 ResizeProbeClient(760, 820);
                 await UntilAsync(() => { page.UpdateLayout(); return page.ViewModel.IsCompact; });
@@ -349,7 +365,7 @@ internal sealed partial class ShellNavigationProbe
                 readings.Add($"{item.Type}：{string.Join(',', expected.Select(card => card.Key))}，隐藏恢复同实例，背景增量45/100，窄窗保留紧凑布局");
             }
             // 季页使用原有顺序；剧与单集的自定义不应连带改掉它。
-            ResizeProbeClient(1100, 820);
+            ResizeProbeClient(1100, 1120);
             Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, seasons[0])), "季页导航失败");
             var seasonPage = (DetailPage)frame.Content;
             await UntilAsync(() => seasonPage.IsReady);
@@ -457,24 +473,13 @@ internal sealed partial class ShellNavigationProbe
             Require(tail.Background is null or SolidColorBrush { Color.A: 0 }, "高斯模式尾部仍叠暗色遮罩");
             Require(Get<Border>(page, "TitleWash").Background is null or SolidColorBrush { Color.A: 0 },
                 "高斯模式标题栏仍压暗图片");
-            var fade = Get<Border>(page, "BackdropFade");
-            Require(fade.Height == 40 && fade.Background is LinearGradientBrush, "背景收边渐变没有缩短");
-            var target = ThemeHost.ToColor(theme.Colors.Window);
-            var stops = ((LinearGradientBrush)fade.Background).GradientStops;
-            Require(stops.Count > 1 && stops.All(stop => stop.Color.R == target.R
-                    && stop.Color.G == target.G && stop.Color.B == target.B)
-                && stops[^1].Color.A == 255, "背景收边渐变没有自然接到主题底色");
-            Require(fade.Visibility == Visibility.Visible, "高斯紧凑背景没有显示收边渐变");
-            var root = page.XamlRoot.Content;
-            var picture = Get<Border>(page, "BackdropPicture");
-            var fadeBottom = fade.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point(0, fade.ActualHeight)).Y;
-            var pictureBottom = picture.TransformToVisual(root).TransformPoint(new Windows.Foundation.Point(0, picture.ActualHeight)).Y;
-            Require(Math.Abs(fadeBottom - pictureBottom) < 1, "收边渐变实际位置未覆盖背景图底部");
+            Require(!Descendants(Get<Grid>(page, "Backdrop")).OfType<FrameworkElement>()
+                .Any(element => element.Name == "BackdropFade"), "背景下沿仍有旧渐变层");
             await SaveProbeScreenAsync($"detail-gaussian-{page.ViewModel.ItemType}-{theme.Id}-screen.png");
         }
         if (page.ViewModel.ItemType != EmbyItemType.Episode)
         {
-            ResizeProbeClient(1100, 820);
+            ResizeProbeClient(1100, 1120);
             await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
             ui.AlwaysImmersive = true;
             ShellPrefs.ApplyAppearance(ui);
@@ -484,8 +489,8 @@ internal sealed partial class ShellNavigationProbe
             var sheet = Get<StackPanel>(page, "BodySheet");
             Require(sheet.Children.OfType<StackPanel>().SelectMany(panel => panel.Children.OfType<ShelfHead>()).All(head => head.Ink),
                 "高斯沉浸货架标题缺少字形保护");
-            Require(Get<StackPanel>(page, "InfoPanel").Background is SolidColorBrush { Color.A: 255 },
-                "高斯沉浸信息表没有保持可读实体卡面");
+            Require(Get<StackPanel>(page, "InfoPanel").Background is AcrylicBrush { FallbackColor.A: 255 },
+                "高斯沉浸信息表没有保持可读深色亚克力卡面");
             await SaveProbeScreenAsync($"detail-gaussian-immersive-{page.ViewModel.ItemType}-screen.png");
             ui.AlwaysImmersive = false;
             ResizeProbeClient(760, 820);
@@ -620,6 +625,54 @@ internal sealed partial class ShellNavigationProbe
             Brush? Fill() => control is EgPicker
                 ? Descendants(control).OfType<Border>().Single(border => border.Name == "Background").Background
                 : Descendants(control).OfType<ContentPresenter>().Single(presenter => presenter.Name == "ContentPresenter").Background;
+        }
+    }
+
+    private async Task CheckDetailMenuAcrylicAsync(DetailPage page, Fixture fixture, string theme)
+    {
+        var originalTopMost = _window!.TopMost;
+        var enabled = fixture.Actions.MoviePilotEnabled;
+        try
+        {
+            _window.TopMost = true;
+            _window.Activate();
+            fixture.Actions.MoviePilotEnabled = true;
+            var anchor = Get<Button>(page, "ColumnMoreButton");
+            Call(page, "OnMoreClicked", anchor, new RoutedEventArgs());
+            await LayoutAsync(page);
+            var presenters = Presenters();
+            Require(presenters.Length == 1, "详情更多菜单没有打开");
+            Check(presenters[0]);
+            var material = (DetailMenuBackdrop)presenters[0].SystemBackdrop;
+            // 自动走查可能在用户操作其他窗口时运行。记录实际状态，并核对回退仍为卡片色；
+            // Active 透底由独立检查入口和前台屏幕证据验证，不能把 Fallback 当作透明成功。
+            Require(material.UsesCardColor, "菜单染色或回退色没有跟随当前卡片色：" + material.MaterialState);
+            File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "detail-menu-material.txt"),
+                $"{theme}: {material.MaterialState}\n");
+            await SaveProbeScreenAsync($"detail-menu-acrylic-{theme}-screen.png");
+            var submenu = Descendants(presenters[0]).OfType<MenuFlyoutSubItem>().First();
+            ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(submenu)
+                .GetPattern(PatternInterface.ExpandCollapse)).Expand();
+            await UntilAsync(() => Presenters().Length == 2);
+            foreach (var presenter in Presenters()) Check(presenter);
+            await SaveProbeScreenAsync($"detail-submenu-acrylic-{theme}-screen.png");
+        }
+        finally
+        {
+            foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(page.XamlRoot).ToArray()) popup.IsOpen = false;
+            fixture.Actions.MoviePilotEnabled = enabled;
+            _window.TopMost = originalTopMost;
+        }
+
+        MenuFlyoutPresenter[] Presenters() => VisualTreeHelper.GetOpenPopupsForXamlRoot(page.XamlRoot)
+            .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutPresenter>().ToArray();
+        static void Check(MenuFlyoutPresenter presenter)
+        {
+            Require(ReferenceEquals(presenter.Style, Application.Current.Resources["EgDetailMenuPresenterStyle"]),
+                "详情菜单或子菜单丢失局部材质样式");
+            Require(presenter.Background is SolidColorBrush { Color.A: 0 }, "详情菜单实色背景遮住了系统亚克力");
+            Require(presenter.SystemBackdrop is DetailMenuBackdrop,
+                "详情菜单未使用轻透系统亚克力背景");
         }
     }
 

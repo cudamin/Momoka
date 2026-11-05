@@ -46,12 +46,13 @@ internal static partial class ItemCommands
         IReadOnlyList<EmbyItem>? siblings = null,
         Action? changed = null,
         Action<CardItem>? removed = null,
-        Action<CardItem>? watched = null)
+        Action<CardItem>? watched = null,
+        Style? presenterStyle = null)
     {
         if (session is null || shell is null || sender is not FrameworkElement owner) return;
         if (Card(owner) is not { } card) return;
 
-        Show(session, shell, owner, card, args.TryGetPosition(owner, out var point) ? point : null, siblings, changed, removed, watched);
+        Show(session, shell, owner, card, args.TryGetPosition(owner, out var point) ? point : null, siblings, changed, removed, watched, presenterStyle);
 
         // Handled, or the request keeps bubbling and the page behind opens its own menu over ours.
         args.Handled = true;
@@ -71,7 +72,8 @@ internal static partial class ItemCommands
         IReadOnlyList<EmbyItem>? siblings = null,
         Action? changed = null,
         Action<CardItem>? removed = null,
-        Action<CardItem>? watched = null)
+        Action<CardItem>? watched = null,
+        Style? presenterStyle = null)
     {
         if (session is null || shell is null) return;
 
@@ -95,7 +97,7 @@ internal static partial class ItemCommands
                 ToggleFavorite(session, shell, card);
                 break;
             default:
-                Show(session, shell, args.Anchor, card, position: null, siblings, changed, removed, watched);
+                Show(session, shell, args.Anchor, card, position: null, siblings, changed, removed, watched, presenterStyle);
                 break;
         }
     }
@@ -134,7 +136,8 @@ internal static partial class ItemCommands
         IReadOnlyList<EmbyItem>? siblings = null,
         Action? changed = null,
         Action<CardItem>? removed = null,
-        Action<CardItem>? watched = null)
+        Action<CardItem>? watched = null,
+        Style? presenterStyle = null)
     {
         var invalidated = 0;
         bool CanContinue() => Volatile.Read(ref invalidated) == 0;
@@ -143,6 +146,7 @@ internal static partial class ItemCommands
             if (CanContinue()) Invoke(command, shell, owner, card, siblings, changed, removed, watched);
         }
         var menu = Build(session, shell, owner, card, siblings, changed, removed, watched, CanContinue);
+        if (presenterStyle is not null) menu.MenuFlyoutPresenterStyle = presenterStyle;
         menu.Closed += (_, _) => Interlocked.Exchange(ref invalidated, 1);
 
         // 季、集的 Genres 常留在所属剧集上，菜单打开后只补查这一份元数据。

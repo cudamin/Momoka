@@ -17,6 +17,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Momoka.Shell.Views">
 
+    <!-- 详情媒体菜单使用轻透的系统亚克力，透明底让背景颜色透出。 -->
+    <Style x:Key="EgDetailMenuPresenterStyle" TargetType="MenuFlyoutPresenter"
+           BasedOn="{StaticResource DefaultMenuFlyoutPresenterStyle}">
+        <Setter Property="Background" Value="{ThemeResource DesktopAcrylicTransparentBrush}" />
+        <Setter Property="SystemBackdrop">
+            <Setter.Value><local:DetailMenuBackdrop /></Setter.Value>
+        </Setter>
+        <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
+    </Style>
+
     <!-- ============================ 三种字 ============================ -->
 
     <!--
@@ -516,23 +526,9 @@
         <Setter Property="BorderBrush" Value="{ThemeResource EgAccentBrush}" />
     </Style>
 
-    <!--
-      正文里的一块板 —— 详情页那几个板块（媒体源、简介、单集、剧季、相似、演职人员）各是一块。
-
-      形状和底色都照设置页那些卡片抄（内边距 24、1px 发丝框、圆角 8、EgSurfaceAltBrush）：整个界面上
-      「一块能放东西的板」只有一种长相。内容因此落在页边 24 + 框 1 + 内边距 24 = 49 上，和设置页每一张
-      卡里的字同一条线。**那个 24 是间距刻度里的 XL**，2026-09-06 从 18 换过来的（18 不在 4 的格纸上）。
-
-      底色是实心的，不是亚克力 ——「滑到下面不用显示背景了，五颜六色的太丑了」。中间那一版让每块板都透着
-      背后那张固定的剧照、块与块之间留缝漏图，读起来就是一页花的：板上的字压在剧照的颜色上，缝里露出的是
-      被切成条的画面。图现在只在头上那一格露着，正文是一张不透明的纸（见 DetailPage 的 BodySheet）。
-
-      给 StackPanel 而不是 Border：正文那几块本来就是 StackPanel（一叠东西，自带 Spacing），包一层
-      Border 会让每一块多一级嵌套，而 WinUI 的 StackPanel 自己就有 Background/BorderBrush/Padding/
-      CornerRadius 这四样 —— Panel 没有 Padding，所以 TargetType 只能是 StackPanel。
-    -->
+    <!-- 正文分组卡与设置卡共用深色亚克力；外层页面纸面保持自己的滚动遮挡规则。 -->
     <Style x:Key="EgBodyPanelStyle" TargetType="StackPanel">
-        <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
+        <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
         <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
         <Setter Property="BorderThickness" Value="{StaticResource EgCardBorderThickness}" />
         <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />

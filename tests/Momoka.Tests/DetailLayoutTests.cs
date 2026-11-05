@@ -10,6 +10,16 @@ internal static class DetailLayoutTests
 {
     public static void Register()
     {
+        Test("详情内容裁切：按内容位置预留百分之二，不再受背景比例影响", () =>
+        {
+            foreach (var (anchor, viewport, expected) in new (double, double, bool)[]
+            {
+                (0, 800, false), (783, 800, false), (784, 800, true), (900, 800, true),
+                (900, 0, false), (double.NaN, 800, false), (800, double.PositiveInfinity, false)
+            })
+                Assert.Equal(expected, DetailHero.ContentNearCrop(anchor, viewport));
+        });
+
         Test("详情卡片：旧配置缺键保留三个页面的默认顺序与可见性", () =>
         {
             var ui = SettingsMigration.FromJson("{\"SchemaVersion\":26,\"Ui\":{}}",

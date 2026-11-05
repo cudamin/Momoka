@@ -96,7 +96,7 @@ public sealed partial class DetailPage : Page, IShellContent
         TextInk.Attach(DetailDirectorsInk, DetailDirectorsText);
         PrepareAppearance();
         PaintScrim();
-        PaintBackdropFade();
+        MeasureSeriesShelf();
         PrepareShowcase();
         PrepareCardLayout();
 
@@ -145,7 +145,7 @@ public sealed partial class DetailPage : Page, IShellContent
     private void OnThemeChanged(UiTheme theme)
     {
         RefreshShowcaseBrushes();
-        PaintBackdropFade();
+        MeasureSeriesShelf();
         foreach (var brushes in _controlBackgrounds) brushes.Apply(ViewModel.ControlBackgroundOpacity, ViewModel.UseAcrylicControls);
         PaintWash(force: true);
     }
@@ -678,29 +678,20 @@ public sealed partial class DetailPage : Page, IShellContent
         var sized = Math.Abs(picture.Height - ViewModel.PictureHeight) < 1.5 && picture.Top < 1.5;
         var strip = ViewModel.PictureHeight < window.Height - 1.5;
 
-        // 下沿那道黑色渐变（「背景图下方的衔接处要用黑色渐变」）跟着图走，两档都在：盒高被视口封顶，盒子却
-        // 站在窗口上沿（LiftBackdrop），铺满那一档的下沿也落在窗口下沿上方标题栏那一条里 —— 那一刀
-        // UniformToFill 的硬边没有渐变接就是「背景图下方不是黑色渐变而是一条黑边」（2026-09-12）。图还没解出来
-        // 时整个盒子（连渐变一起）收着，那一拍不判。
-        // 判据取 BackdropFadeVisibility 而不是 HeroVisibility：沉浸档（Showcase）不画下沿渐变，
-        // 而那一档照样有头图。拿 HeroVisibility 当判据会在沉浸档的剧页上要求一条屏上故意没有的渐变。
-        var fadeWanted = ViewModel.BackdropFadeVisibility == Visibility.Visible;
-        var fade = BackdropFade.Visibility == Visibility.Visible;
         var topAligned = BackdropImageBrush.Stretch == Stretch.UniformToFill
             && BackdropImageBrush.AlignmentX == AlignmentX.Center
             && BackdropImageBrush.AlignmentY == AlignmentY.Top;
 
-        return (wide && tall && top && full && sized && fade == fadeWanted && topAligned,
+        return (wide && tall && top && full && sized && topAligned,
             detail + $"、背景层 {box.Left:0},{box.Top:0} 到 {box.Right:0},{box.Bottom:0}、"
                 + $"图盒 {picture.Width:0}×{picture.Height:0.##}（该 {ViewModel.PictureHeight:0.##}，上沿 {picture.Top:0.##}，"
-                + $"{(strip ? "等比画面条" : "铺满视口")}，下沿渐变{(fade ? "在" : "不在")}（{(fadeWanted ? "该在" : "该不在")}），"
+                + $"{(strip ? "等比画面条" : "铺满视口")}），"
                 + $"窗口 {window.Width:0}×{window.Height:0}，已滚到底）"
                 + (wide ? "" : "，没通到两边")
                 + (tall ? "" : $"，高该是 {want:0}")
                 + (top ? "" : "，背景层没顶到窗口上沿（跟着滚走了？）")
                 + (full ? "" : "，背景层没铺到窗口下沿")
                 + (sized ? "" : "，图盒的高度或上沿不是视图模型算的那个（绑丢了？）")
-                + (fade == fadeWanted ? "" : "，下沿渐变的显隐和背景图对不上")
                 + (topAligned ? "，背景图铺满裁切、顶部对齐、上下不留边" : "，背景图不是铺满裁切加顶部对齐（上下会留黑边）"));
     }
 
@@ -902,16 +893,10 @@ public sealed partial class DetailPage : Page, IShellContent
         && panel.BorderThickness is { Left: > 0, Top: > 0, Right: > 0, Bottom: > 0 };
 
     /// <summary>
-    /// 这一页那一行文件选项此刻是哪一份 —— 集页的宽版式在片名那一栏里（<c>ColumnPickers</c>，标签在下拉左边，
-    /// 2026-09-12「按键布局参考上方截图」），其余页面和紧凑版式在尾部那一段（<c>PickerPanel</c>，标签在下拉
-    /// 头上）。两份只有一份在屏上，判据是 <see cref="DetailViewModel.ColumnPickersVisibility"/> 那两半。
-    /// <para>
-    /// 自检读它是因为读数不能写死读哪一份：写死尾部那一份的那一版在集页上会读到「这一条目没有音轨」，而那一行
-    /// 明明就在片名底下；反过来写死片名那一份的，在电影页和紧凑版式上读不到东西。
-    /// </para>
+    /// 宽版式使用片名栏内的文件选项，紧凑版式使用尾部播放操作之前的一份。
     /// </summary>
     private (FrameworkElement Panel, Thickness Padding, ComboBox Source, ComboBox Audio, ComboBox Subtitle) PickerSet =>
-        ViewModel.HeroCardShown
+        !ViewModel.IsCompact
             ? (ColumnPickers, default, ColumnSourcePicker, ColumnAudioPicker, ColumnSubtitlePicker)
             : (PickerPanel, PickerPanel.Padding, SourcePicker, AudioPicker, SubtitlePicker);
 
@@ -950,7 +935,8 @@ public sealed partial class DetailPage : Page, IShellContent
         {
             var (_, _, source, audio, subtitle) = PickerSet;
             foreach (var picker in new[] { subtitle, audio, source })
-                if (picker.Visibility == Visibility.Visible && picker.Items.Count > 0)
+                if (picker.Visibility == Visibility.Visible && picker.Items.Count > 0
+                    && (ViewModel.IsCompact || ((FrameworkElement)picker.Parent).Visibility == Visibility.Visible))
                     return picker;
 
             return null;
@@ -1113,7 +1099,7 @@ public sealed partial class DetailPage : Page, IShellContent
             if (picker.Visibility != Visibility.Visible) continue;
 
             // 集页把显隐绑在带标签的父行；隐藏行里的控件仍是 Visible，不能拿它的零尺寸作读数。
-            var row = ViewModel.HeroCardShown ? (FrameworkElement)picker.Parent : picker;
+            var row = !ViewModel.IsCompact ? (FrameworkElement)picker.Parent : picker;
             if (row.Visibility != Visibility.Visible) continue;
 
             var box = picker.TransformToVisual(root)
@@ -1139,7 +1125,7 @@ public sealed partial class DetailPage : Page, IShellContent
 
         return (ok, $"{string.Join("、", read)}，可用 {contentLeft:0}–{edge:0}"
             + $"（窗口宽 {window.Width:0}），摆成 {rows.Count} 行"
-            + $"，在{(ViewModel.HeroCardShown ? "片名那一栏" : "尾部")}"
+            + $"，在{(!ViewModel.IsCompact ? "片名那一栏" : "尾部")}"
             + (drift < 1.5 ? "，整排贴着左边" : $"，整排偏离左沿 {drift:0}"));
     }
 
@@ -2364,7 +2350,8 @@ public sealed partial class DetailPage : Page, IShellContent
             position: null,
             siblings: ViewModel.Episodes,
             changed: ViewModel.CaptureReload(),
-            removed: ViewModel.CaptureRemoval());
+            removed: ViewModel.CaptureRemoval(),
+            presenterStyle: (Style)Application.Current.Resources["EgDetailMenuPresenterStyle"]);
     }
 
     /// <summary>
@@ -2391,10 +2378,12 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.Reload, ViewModel.Remove);
+        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.Reload, ViewModel.Remove,
+            presenterStyle: (Style)Application.Current.Resources["EgDetailMenuPresenterStyle"]);
 
     private void OnCardActionRequested(object? sender, CardActionEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.Reload, ViewModel.Remove);
+        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.Reload, ViewModel.Remove,
+            presenterStyle: (Style)Application.Current.Resources["EgDetailMenuPresenterStyle"]);
 
     /// <summary>
     /// 集列表牌子上那一下：季列表从牌子上弹出（剧页、集页的全季集列表共用）。只有一季时 Offer 是假，

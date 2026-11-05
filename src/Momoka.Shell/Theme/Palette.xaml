@@ -224,20 +224,19 @@
             <SolidColorBrush x:Key="LayerFillColorDefaultBrush" Color="#FF0C1116" />
             <SolidColorBrush x:Key="LayerFillColorAltBrush" Color="#FF141B22" />
 
-            <!-- 设置页每一张卡的面色（2026-10-29 用户令：「所有的卡片也要用亚克力」）。卡片的底就是页面
-                 底色上的一层玻璃：tint 取 SurfaceHover、0.55 的浓度压过页面，实拍落在 (29,36,44) 一带
-                 （原来的实心卡是 (28,37,46)），噪点由亚克力自己带。ThemeHost 换主题时改 tint 与
-                 FallbackColor；FallbackColor 取同一个 tint，关掉透明效果时是一块实心的亮面，仍读得出是卡。
-
-                 框架的 Expander 也读这颗键，但详情页和 MoviePilot 的折叠栏各自在本地把表头和底色钉回
-                 EgSurfaceAltBrush，所以这一改不会让它们的头变玻璃。 -->
+            <!-- 卡片与详情菜单共用深色染色浓度；关闭透明效果时回退到同主题卡片色。 -->
             <AcrylicBrush
                 x:Key="CardBackgroundFillColorDefaultBrush"
-                FallbackColor="{StaticResource EgSurfaceHoverColor}"
-                TintColor="{StaticResource EgSurfaceHoverColor}"
-                TintLuminosityOpacity="0.5"
-                TintOpacity="0.55" />
-            <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="#FF20262D" />
+                FallbackColor="{StaticResource EgSurfaceAltColor}"
+                TintColor="{StaticResource EgSurfaceAltColor}"
+                TintLuminosityOpacity="0.45"
+                TintOpacity="0.65" />
+            <AcrylicBrush
+                x:Key="CardBackgroundFillColorSecondaryBrush"
+                FallbackColor="{StaticResource EgSurfaceAltColor}"
+                TintColor="{StaticResource EgSurfaceAltColor}"
+                TintLuminosityOpacity="0.45"
+                TintOpacity="0.65" />
             <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush" Color="{StaticResource EgBorderStrongColor}" />
@@ -476,11 +475,16 @@
             <!-- 同 Dark 那份的卡片玻璃：浅色这边 tint 取白面（原来的卡面），浓度 0.8。 -->
             <AcrylicBrush
                 x:Key="CardBackgroundFillColorDefaultBrush"
-                FallbackColor="{StaticResource EgSurfaceColor}"
-                TintColor="{StaticResource EgSurfaceColor}"
-                TintLuminosityOpacity="0.9"
-                TintOpacity="0.8" />
-            <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="#FFF1F3F6" />
+                FallbackColor="{StaticResource EgSurfaceAltColor}"
+                TintColor="{StaticResource EgSurfaceAltColor}"
+                TintLuminosityOpacity="0.45"
+                TintOpacity="0.65" />
+            <AcrylicBrush
+                x:Key="CardBackgroundFillColorSecondaryBrush"
+                FallbackColor="{StaticResource EgSurfaceAltColor}"
+                TintColor="{StaticResource EgSurfaceAltColor}"
+                TintLuminosityOpacity="0.45"
+                TintOpacity="0.65" />
             <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="ControlStrokeColorSecondaryBrush" Color="{StaticResource EgBorderStrongColor}" />
@@ -546,6 +550,8 @@
         <!-- High contrast takes the system's own colours; overriding them here would be exactly the
              wrong thing to do. Only the app's role names are mapped, onto system brushes. -->
         <ResourceDictionary x:Key="HighContrast">
+            <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgWindowBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgSurfaceBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgSurfaceAltBrush" Color="{ThemeResource SystemColorWindowColor}" />

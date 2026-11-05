@@ -202,13 +202,13 @@ internal static class InputControlThemeTests
                 "ShortcutCaptureBox" })
                 Assert.Contains(control, guard);
         });
-        Test("输入主题：设置卡片改用亚克力，深色 tint 与浅色 tint 各按字典", () =>
+        Test("输入主题：设置卡片亚克力统一使用卡片主题色", () =>
         {
             foreach (var dictionary in Dictionaries())
             {
                 var card = Resource(dictionary, "CardBackgroundFillColorDefaultBrush");
                 var themeName = dictionary.Attribute(X + "Key")?.Value;
-                var role = themeName == "Light" ? "EgSurfaceColor" : "EgSurfaceHoverColor";
+                var role = "EgSurfaceAltColor";
                 Assert.Equal("AcrylicBrush", card.Name.LocalName);
                 Assert.Equal($"{{StaticResource {role}}}", (string?)card.Attribute("TintColor"), themeName + "/卡片 tint");
                 Assert.Equal($"{{StaticResource {role}}}", (string?)card.Attribute("FallbackColor"), themeName + "/卡片回退色");

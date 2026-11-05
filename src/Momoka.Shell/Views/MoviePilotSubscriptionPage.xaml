@@ -98,6 +98,9 @@
     </Page.Resources>
 
     <Grid Loaded="OnDetailLoaded" SizeChanged="OnDetailSizeChanged">
+        <!-- 零尺寸资源接收器：系统主题替换卡片画刷时，同步用于沉浸动画的私有副本。 -->
+        <Border x:Name="CardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
     <!--
       背景：固定在滚动内容外，铺满视口并延伸至标题栏。这一层照电影详情页（DetailPage 的 Backdrop）那一套
       （用户令 2026-10-13「参考电影页面的背景图修改订阅页面的背景图」），三件东西自上而下：
@@ -260,7 +263,7 @@
                      透得出底下那张图。没有订阅时评分星与订阅那几行一起收起，卡上只剩媒体信息。媒体评分不在
                      这儿 —— 它跟着片名走（见 HeroContent 里那颗 MediaRating）。 -->
                 <StackPanel x:Name="HeroFacts" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Top"
-                    Style="{StaticResource EgBodyPanelStyle}" Background="{ThemeResource EgFrostBrush}"
+                    Style="{StaticResource EgBodyPanelStyle}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     Spacing="{StaticResource EgSpaceM}">
                     <StackPanel x:Name="SubscriptionRating" Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}"
                         Visibility="{x:Bind SubscriptionSectionVisibility(ViewModel.Deleted), Mode=OneWay}">
@@ -430,7 +433,7 @@
     <Grid x:Name="DetailLoading" Background="{ThemeResource EgScrimBrush}" IsHitTestVisible="False"
         Visibility="{x:Bind MediaViewModel.InitialLoadingVisibility, Mode=OneWay}">
         <Border HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24,16"
-            Background="{ThemeResource EgSurfaceElevatedBrush}" CornerRadius="{StaticResource EgCardCornerRadius}">
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="{StaticResource EgCardCornerRadius}">
             <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceM}" VerticalAlignment="Center">
                 <ProgressRing x:Name="DetailLoadingRing" Width="28" Height="28"
                     IsActive="{x:Bind MediaViewModel.InitialLoading, Mode=OneWay}"

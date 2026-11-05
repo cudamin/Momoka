@@ -15,6 +15,46 @@ internal static class AcrylicControlsTests
 
     public static void Register()
     {
+        Test("卡片材质：共用深色染色和浓度，高对比度保留系统实色", () =>
+        {
+            foreach (var theme in new[] { "Dark", "Light" })
+                foreach (var key in new[] { "CardBackgroundFillColorDefaultBrush", "CardBackgroundFillColorSecondaryBrush" })
+                {
+                    var brush = Resource(Theme(theme), key);
+                    Assert.Equal("AcrylicBrush", brush.Name.LocalName);
+                    Assert.Equal("{StaticResource EgSurfaceAltColor}", (string?)brush.Attribute("TintColor"));
+                    Assert.Equal("{StaticResource EgSurfaceAltColor}", (string?)brush.Attribute("FallbackColor"));
+                    Assert.Equal("0.65", (string?)brush.Attribute("TintOpacity"));
+                    Assert.Equal("0.45", (string?)brush.Attribute("TintLuminosityOpacity"));
+                    Assert.Equal("SolidColorBrush", Resource(Theme("HighContrast"), key).Name.LocalName);
+                }
+            Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}",
+                Setter(Resource(Read("Theme/Styles.xaml").Root!, "EgBodyPanelStyle"), "Background"));
+            foreach (var name in new[] { "FnNasPassword", "FnNasPreferences", "FnNasLibraries", "FnNasSettings", "FnNasTasks", "FnNasUsers" })
+            {
+                var page = Read("Views/" + name + "Page.xaml");
+                var card = page.Descendants(Xaml + "Style").Single(row => (string?)row.Attribute(X + "Key") == "FnNasCard");
+                Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", Setter(card, "Background"));
+            }
+        });
+        Test("详情音视频行：文字与选择框统一正文字号", () =>
+        {
+            var page = Read("Views/DetailPage.xaml");
+            foreach (var name in new[] { "ColumnSourcePicker", "ColumnAudioPicker", "ColumnSubtitlePicker", "SourcePicker", "AudioPicker", "SubtitlePicker" })
+                Assert.Equal("{StaticResource EgBodyFontSize}", (string?)Named(page, name).Attribute("FontSize"));
+            foreach (var name in new[] { "DetailVideoText", "ColumnAudioText", "AudioText" })
+                Assert.Equal("{StaticResource EgOnScrimBodyStyle}", (string?)Named(page, name).Attribute("Style"));
+        });
+        Test("详情菜单：透明表面使用轻透系统亚克力，背景下沿渐变已移除", () =>
+        {
+            var style = Resource(Read("Theme/Styles.xaml").Root!, "EgDetailMenuPresenterStyle");
+            Assert.Equal("{StaticResource DefaultMenuFlyoutPresenterStyle}", (string?)style.Attribute("BasedOn"));
+            Assert.Equal("{ThemeResource DesktopAcrylicTransparentBrush}",
+                (string?)style.Elements().Single(row => (string?)row.Attribute("Property") == "Background").Attribute("Value"));
+            Assert.False(style.Elements().Any(row => (string?)row.Attribute("Property") == "Template"));
+            Assert.True(style.Descendants().Any(row => row.Name.LocalName == "DetailMenuBackdrop"));
+            Assert.False(Read("Views/DetailPage.xaml").Descendants().Any(row => (string?)row.Attribute(X + "Name") == "BackdropFade"));
+        });
         Test("主页轮播：详情按钮有默认文字并保留本地化与导航", () =>
         {
             var button = Named(Read("Views/HomeBanner.xaml"), "OpenButton");
@@ -313,7 +353,7 @@ internal static class AcrylicControlsTests
             Assert.Equal(1, runner.Split("AcrylicControlsAsync,", StringSplitOptions.None).Length - 1);
             Assert.Contains("AcrylicControlsAsync, 180, section: ShellProbeSections.Materials", runner);
             var source = Source("ShellNavigationProbe.Materials.cs");
-            Assert.Contains("new[] { \"detail\", \"shelf\", \"servers\", \"notifications\", \"library\", \"mpcards\", \"anibtcards\" }", source);
+            Assert.Contains("new[] { \"detail\", \"shelf\", \"servers\", \"notifications\", \"library\", \"mpcards\", \"anibtcards\", \"fnnas\" }", source);
             Assert.Contains("foreach (var theme in UiThemes.All)", source);
             Assert.Contains("foreach (var width in new[] { 1280, 760 })", source);
             Assert.Contains("CheckRoles(theme);", source);

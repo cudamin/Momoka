@@ -311,6 +311,7 @@ internal sealed partial class ShellNavigationProbe
                 [
                     new() { Index = 0, Type = "Video", Codec = "hevc", Width = 3840, Height = 2160 },
                     new() { Index = 1, Type = "Audio", DisplayTitle = "English · DTS-HD Master Audio 7.1 · 导演评论及制作团队特别解说完整音轨", IsDefault = true },
+                new() { Index = 3, Type = "Audio", DisplayTitle = "中文 · AAC 2.0" },
                     new() { Index = 2, Type = "Subtitle", DisplayTitle = "简体中文／English · 双语特效字幕", IsDefault = true },
                     new() { Index = 3, Type = "Audio", DisplayTitle = "Chinese · FLAC stereo · 默认" },
                     new() { Index = 4, Type = "Audio", DisplayTitle = "Chinese · DTS-HD MA 5.1" },
@@ -341,7 +342,7 @@ internal sealed partial class ShellNavigationProbe
             var scale = _root.XamlRoot.RasterizationScale;
             ResizeInspect((int)Math.Ceiling(1280 * scale), (int)Math.Ceiling(900 * scale));
             await LayoutAsync(page);
-            var audio = Get<EgPicker>(page, "AudioPicker");
+            var audio = Get<EgPicker>(page, vm.IsCompact ? "AudioPicker" : "ColumnAudioPicker");
             // 第 0 条是最长的（它自己就比 MinWidth 宽）、第 5 条是最短的（闭合时正好贴在 MinWidth 上）——
             // 用户那张实拍里塌下去的正是后一种。
             foreach (var index in new[] { 0, 5 })
@@ -406,6 +407,7 @@ internal sealed partial class ShellNavigationProbe
             [
                 new() { Index = 0, Type = "Video", Codec = "hevc", Width = 3840, Height = 2160 },
                 new() { Index = 1, Type = "Audio", DisplayTitle = "English · DTS-HD Master Audio 7.1 · 导演评论及制作团队特别解说完整音轨", IsDefault = true },
+                new() { Index = 3, Type = "Audio", DisplayTitle = "中文 · AAC 2.0" },
                 new() { Index = 2, Type = "Subtitle", DisplayTitle = "简体中文／English · 双语特效字幕 · 完整对白、歌曲翻译及制作人员说明", IsDefault = true }
             ]
         };

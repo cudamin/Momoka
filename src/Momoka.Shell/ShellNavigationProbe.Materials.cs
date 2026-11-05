@@ -42,7 +42,8 @@ internal sealed partial class ShellNavigationProbe
         {
             Id = "offline", Name = "离线版本", Container = "mkv",
             MediaStreams = [new() { Index = 1, Type = "Audio", DisplayTitle = "中文音轨" },
-                new() { Index = 2, Type = "Subtitle", DisplayTitle = "简体中文字幕" }]
+                new() { Index = 2, Type = "Subtitle", DisplayTitle = "简体中文字幕" },
+                new() { Index = 3, Type = "Audio", DisplayTitle = "日语音轨" }]
         }, new() { Id = "offline-alt", Name = "另一版本", Container = "mkv" }];
         var movies = Enumerable.Range(0, 7).Select(index => new EmbyItem
         {
@@ -105,7 +106,7 @@ internal sealed partial class ShellNavigationProbe
                 && detail.ViewModel.PlayTarget?.HasResumePosition == true);
             strip.ItemTemplate = (DataTemplate)detail.Resources["CardTemplate"];
             holder.Children.Add(strip);
-            foreach (var stage in new[] { "detail", "shelf", "servers", "notifications", "library", "mpcards", "anibtcards" })
+            foreach (var stage in new[] { "detail", "shelf", "servers", "notifications", "library", "mpcards", "anibtcards", "fnnas" })
             {
                 if (stage == "shelf") { _root.Children.Remove(frame); _root.Children.Add(holder); }
                 if (stage == "servers")
@@ -140,6 +141,19 @@ internal sealed partial class ShellNavigationProbe
                         builtCardStage = stage;
                     }
                     _root.Children.Add(holder);
+                }
+                if (stage == "fnnas")
+                {
+                    _root.Children.Remove(holder);
+                    _root.Children.Add(frame);
+                    fixture.Transport.Reply = (request, token) =>
+                    {
+                        Require(request.Method == HttpMethod.Get || request.Method == HttpMethod.Head,
+                            "飞牛卡片材质检查拒绝写入");
+                        return FnNasSettingsReply(request, token);
+                    };
+                    await fixture.SelectAsync("fn.invalid", "fn-user", MediaServerKind.FnNas);
+                    frame.Navigate(typeof(FnNasPasswordPage), new FnNasPasswordRequest(fixture.Services));
                 }
                 foreach (var theme in UiThemes.All)
                     foreach (var width in new[] { 1280, 760 })
@@ -191,7 +205,8 @@ internal sealed partial class ShellNavigationProbe
                             var pickers = Get<StackPanel>(detail, detail.ViewModel.ColumnPickersVisibility == Visibility.Visible
                                 ? "ColumnPickers" : "PickerPanel");
                             var visiblePickers = Descendants(pickers).OfType<EgPicker>()
-                                .Where(picker => picker.Visibility == Visibility.Visible).ToArray();
+                                .Where(picker => picker.Visibility == Visibility.Visible
+                                    && (width != 1280 || ((FrameworkElement)picker.Parent).Visibility == Visibility.Visible)).ToArray();
                             Require(visiblePickers.Length == 3, "详情材质夹具没有显示版本、音频和字幕");
                             foreach (var picker in visiblePickers)
                                 await CheckPickerBackgroundAsync(picker, reference);
@@ -308,6 +323,14 @@ internal sealed partial class ShellNavigationProbe
                             CheckCard(Descendants(servers).OfType<Border>().Single(border =>
                                 AutomationProperties.GetAutomationId(border) == "ServersAggregateCard"));
                         }
+                        else if (stage == "fnnas")
+                        {
+                            var password = (FnNasPasswordPage)page;
+                            var field = Get<PasswordBox>(password, "FnNasPasswordNew");
+                            await UntilAsync(() => password.ViewModel.ContentVisibility == Visibility.Visible
+                                && field.ActualWidth > 0);
+                            CheckCard(EnclosingCard(field));
+                        }
                         else if (stage == "library")
                             CheckLibraryMaterials((LibraryPage)page, theme);
                         else if (stage == "mpcards")
@@ -343,8 +366,41 @@ internal sealed partial class ShellNavigationProbe
                         await SaveProbeScreenAsync($"acrylic-{stage}-{theme.Id}-{width}-screen.png");
                     }
             }
+            _root.Children.Remove(frame);
+            _root.Children.Remove(holder);
+            using (var moviePilot = new MoviePilotClient(new RejectNetwork()))
+            {
+                var paths = new Momoka.Infrastructure.AppPaths(Path.Combine(_options.Paths.Root, "card-settings"));
+                paths.EnsureCreated();
+                var settingsPage = CreateMotionSettingsPage(fixture, moviePilot, paths);
+                _root.Children.Add(settingsPage);
+                try
+                {
+                    BeginSettingsFixtureVisit(settingsPage);
+                    await settingsPage.ViewModel.ReloadAsync();
+                    settingsPage.SelectedCategory = "界面";
+                    foreach (var theme in UiThemes.All)
+                    {
+                        ThemeHost.Apply(theme);
+                        ResizeProbeClient(1100, 900);
+                        await LayoutAsync(settingsPage);
+                        await WaitForSettingsSettledAsync(settingsPage);
+                        var settingsCards = Descendants(settingsPage).OfType<ItemsControl>()
+                            .Where(control => control.Name == "SettingsRowsList" && control.ActualWidth > 0)
+                            .Select(control => VisualTreeHelper.GetParent(control)).OfType<Border>().ToArray();
+                        Require(settingsCards.Length > 0, "设置卡片没有实际呈现");
+                        foreach (var card in settingsCards) CheckCardMaterial(card, "设置卡片", theme);
+                        await SaveProbeScreenAsync($"acrylic-settings-{theme.Id}-screen.png");
+                    }
+                }
+                finally
+                {
+                    settingsPage.Release();
+                    _root.Children.Remove(settingsPage);
+                }
+            }
             var highContrast = (ResourceDictionary)palette.ThemeDictionaries["HighContrast"];
-            foreach (var key in keys) Require(highContrast[key] is SolidColorBrush, "高对比度角色不是实色：" + key);
+            foreach (var key in keys.Concat(new[] { "CardBackgroundFillColorDefaultBrush", "CardBackgroundFillColorSecondaryBrush" })) Require(highContrast[key] is SolidColorBrush, "高对比度角色不是实色：" + key);
             var aliases = new ResourceDictionary { Source = new Uri("ms-appx:///Theme/ActionButtons.xaml") };
             var contrastAliases = (ResourceDictionary)aliases.ThemeDictionaries["HighContrast"];
             foreach (var key in new[] { "ButtonBackground", "ButtonBackgroundPointerOver", "ButtonBackgroundPressed",
@@ -384,11 +440,11 @@ internal sealed partial class ShellNavigationProbe
             {
                 var entries = (ResourceDictionary)palette.ThemeDictionaries[dictionary];
                 Require(entries["CardBackgroundFillColorDefaultBrush"] is AcrylicBrush card
-                    && card.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceHover)
-                    && card.FallbackColor == ThemeHost.ToColor(theme.Colors.SurfaceHover)
+                    && card.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceAlt)
+                    && card.FallbackColor == ThemeHost.ToColor(theme.Colors.SurfaceAlt)
                     && card.FallbackColor.A == 0xFF
                     && ThemeHost.ColorOf(dictionary, "CardBackgroundFillColorDefaultBrush")
-                        == ThemeHost.ToColor(theme.Colors.SurfaceHover),
+                        == ThemeHost.ToColor(theme.Colors.SurfaceAlt),
                     $"{theme.Id}/{dictionary}/CardBackgroundFillColorDefaultBrush 未随主题变化或回退仍半透明");
             }
         }
@@ -436,8 +492,10 @@ internal sealed partial class ShellNavigationProbe
                 var background = Background();
                 return ReferenceEquals(background, dark["CardBackgroundFillColorDefaultBrush"])
                     && background is AcrylicBrush acrylic
-                    && acrylic.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceHover)
-                    && acrylic.FallbackColor == ThemeHost.ToColor(theme.Colors.SurfaceHover);
+                    && acrylic.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceAlt)
+                    && acrylic.FallbackColor == ThemeHost.ToColor(theme.Colors.SurfaceAlt)
+                    && Math.Abs(acrylic.TintOpacity - 0.65) < 0.001
+                    && Math.Abs((acrylic.TintLuminosityOpacity ?? 0) - 0.45) < 0.001;
             }
             Brush? Background() => element switch
             {

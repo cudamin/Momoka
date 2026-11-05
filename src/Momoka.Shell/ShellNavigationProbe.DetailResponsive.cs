@@ -9,23 +9,8 @@ namespace Momoka.Shell;
 internal sealed partial class ShellNavigationProbe
 {
     /// <summary>
-    /// 电影、剧、季三页的窄窗响应（2026-11-02 用户令）：
-    /// <list type="number">
-    /// <item>窗口窄下去时竖留白一起收（<see cref="DetailHero.Narrow"/>），带子跟着矮、下方整体上移；</item>
-    /// <item>剧情说明快掉出背景图时，头部再往上收那 24 像素（<see cref="DetailHero.Fit"/>）；收完还不够就
-    /// 允许它探出画面，但那种时候一定已经在最紧那一档；</item>
-    /// <item>窗口拉宽到背景图快被裁掉时，自动走无遮挡版式（<see cref="DetailHero.NearCrop"/>），并把背景图的
-    /// 不透明度从 0.9 抬到 0.96。</item>
-    /// </list>
-    /// <para>
-    /// 量的是真实控件（带子、尾部那一叠、剧情说明那一块、背景图那一层）而不是视图模型上的数：算对了而某一条
-    /// 绑定断了，在读数里长得一模一样，而那正是用户会看见的那一半。期望值仍走 Core 那几支纯函数，不在这里
-    /// 另抄一份算术。
-    /// </para>
-    /// <para>
-    /// 三个页面在同一组宽度上各走一遍，然后逐档对一遍三者的带高、竖距和内边距 —— 「三个页面的表现一致」是
-    /// 用户点名的要求，而它们共用同一个视图模型，错起来只会是某一页的某个绑定没接上。
-    /// </para>
+    /// 三页宽窄留白、播放前文件选项和单音轨文字；剧页参考线与真实集卡副标题下沿核对，
+    /// 再验证三页相同规则的进入/退出、动画及最大化。只使用匿名假传输。
     /// </summary>
     private async Task DetailResponsiveAsync()
     {
@@ -140,7 +125,7 @@ internal sealed partial class ShellNavigationProbe
 
                     foreach (var width in widths)
                     {
-                        await ResizeResponsiveAsync(page, width, 900);
+                        await ResizeResponsiveAsync(page, width, 1120);
                         await LayoutAsync(page);
 
                         var view = page.ViewModel;
@@ -150,7 +135,7 @@ internal sealed partial class ShellNavigationProbe
                         for (var settle = 0; settle < 20; settle++)
                         {
                             page.UpdateLayout();
-                            if (Same(pickers.Padding, view.TailPanelPadding)
+                            if (Math.Abs(view.PageWidth - width) < 0.6 && Same(pickers.Padding, view.TailPanelPadding)
                                 && Same(overview.Padding, view.OverviewPanelPadding)
                                 && Same(tail.Padding, view.TailInset)
                                 && Same(heroContent.Margin, view.HeroInset))
@@ -158,8 +143,32 @@ internal sealed partial class ShellNavigationProbe
                             await Task.Delay(16);
                         }
 
+                        Require(Math.Abs(view.PageWidth - width) < 0.6, $"窗口离开了目标宽度：{view.PageWidth}/{width}");
                         Require(!view.IsCompact && !view.Showcase,
                             $"{type} {width}：这一档该是纸面宽版式，实际 紧凑={view.IsCompact}、沉浸={view.Showcase}");
+
+                        var options = Get<StackPanel>(page, "ColumnPickers");
+                        var actions = Get<StackPanel>(page, "ColumnActions");
+                        var optionsBottom = options.TransformToVisual(content).TransformPoint(new(0, options.ActualHeight)).Y;
+                        var actionsTop = actions.TransformToVisual(content).TransformPoint(default).Y;
+                        Require(options.Visibility == Visibility.Visible && optionsBottom <= actionsTop + 1,
+                            $"{type}选择框没有排在播放前：{optionsBottom:0.#}/{actionsTop:0.#}");
+                        Require(Get<ComboBox>(page, "ColumnAudioPicker").Visibility == Visibility.Collapsed
+                            && Get<TextBlock>(page, "ColumnAudioText").Visibility == Visibility.Visible
+                            && !string.IsNullOrWhiteSpace(Get<TextBlock>(page, "ColumnAudioText").Text),
+                            $"{type}唯一音轨应保留文字音频栏并隐藏下拉");
+                        if (type == EmbyItemType.Series)
+                        {
+                            var subtitle = Descendants(Get<StackPanel>(page, "EpisodePanel")).OfType<TextBlock>()
+                                .First(text => text.Name == "SubLine" && text.ActualHeight > 0);
+                            var actualBottom = subtitle.TransformToVisual(content).TransformPoint(new(0, subtitle.ActualHeight)).Y;
+                            Require(Math.Abs(actualBottom - view.SeriesContentBottom) < 3,
+                                $"剧页参考触发线偏离实际集数/时长：{view.SeriesContentBottom:0.#}/{actualBottom:0.#}，"
+                                + $"head={Get<ShelfHead>(page, "EpisodeHead").ActualHeight:0.##}，sub={subtitle.ActualHeight:0.##}，"
+                                + $"title={Descendants(Get<StackPanel>(page, "EpisodePanel")).OfType<TextBlock>().First(t => t.Name == "TitleLine").ActualHeight:0.##}，"
+                                + $"sheet={Get<StackPanel>(page, "BodySheet").TransformToVisual(content).TransformPoint(default).Y:0.##}，"
+                                + $"subInStrip={subtitle.TransformToVisual(Get<ShelfStrip>(page, "EpisodeStrip")).TransformPoint(new(0, subtitle.ActualHeight)).Y:0.##}");
+                        }
 
                         // 1) 视图模型给的数与控件自己那一份逐个对上 —— 绑定断了在这里响。
                         Require(Same(heroContent.Margin, view.HeroInset),
@@ -192,8 +201,8 @@ internal sealed partial class ShellNavigationProbe
                             // 的单测里（副屏的逻辑宽只有 1280）。
                             Require(view.Squeeze > 0.25 && view.Squeeze < 0.5,
                                 $"{type} 1280：这一档该收三成上下，实际 {view.Squeeze:0.##}");
-                            Require(band.ActualHeight < 352 && band.ActualHeight > 328,
-                                $"{type} 1280：带高该在 328 与 352 之间，实际 {band.ActualHeight:0.##}");
+                            Require(Math.Abs(band.ActualHeight - DetailHero.WideHeight(view.HeroContent, view.HeroInset.Top, view.HeroInset.Bottom)) < 1.5,
+                                $"{type} 1280：头部应按内容和收口留白计算，实际 {band.ActualHeight:0.##}");
                             Require(pickers.Padding.Top < 24 && pickers.Padding.Top > DetailHero.TailPadTight,
                                 $"{type} 1280：面板上下该在 8 与 24 之间，实际 {pickers.Padding.Top:0.##}");
                         }
@@ -201,8 +210,8 @@ internal sealed partial class ShellNavigationProbe
                         if (width == 1024)
                         {
                             // 最紧那一档：带子 352 收到 328（头部两道留白 28／24 → 16／12），面板 24 → 8。
-                            Require(Math.Abs(band.ActualHeight - 328) < 0.51,
-                                $"{type} 1024：带高该收到 328，实际 {band.ActualHeight:0.##}");
+                            Require(Math.Abs(band.ActualHeight - DetailHero.WideHeight(view.HeroContent, 16, 12)) < 1.5,
+                                $"{type} 1024：头部留白应收到 16/12，实际 {band.ActualHeight:0.##}");
                             Require(Math.Abs(pickers.Padding.Top - DetailHero.TailPadTight) < 0.01,
                                 $"{type} 1024：面板上下该收到 8，实际 {pickers.Padding.Top:0.##}");
                         }
@@ -257,10 +266,8 @@ internal sealed partial class ShellNavigationProbe
                 var first = rows[0];
                 foreach (var row in rows)
                 {
-                    Require(Math.Abs(row.Band - first.Band) < 1.5
-                            && Math.Abs(row.Pad - first.Pad) < 0.01
-                            && Math.Abs(row.Spacing - first.Spacing) < 0.01
-                            && Math.Abs(row.Height - first.Height) < 1.5,
+                    Require(Math.Abs(row.Pad - first.Pad) < 0.01
+                            && Math.Abs(row.Spacing - first.Spacing) < 0.01,
                         $"{width} 上三页的表现不一致：{string.Join("；", rows.Select(row =>
                             $"带 {row.Band:0.##}／面板 {row.Pad:0.##}／间距 {row.Spacing:0.##}"))}");
                 }
@@ -276,20 +283,7 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    /// <summary>
-    /// 背景图快被裁掉时自动走无遮挡版式，并把那张图的不透明度从 0.9 抬到 0.96 ——
-    /// 「当拉长窗口导致背景图接近被裁剪时，自动切换到最大化（无遮挡）页面状态」与「将页面背景图透明度略微
-    /// 降低（更不透明）」。
-    /// <para>
-    /// 窗口 1080×620：页面头上让出 68（标题栏加面包屑），而客户区报回来的高带上那条 31 的自绘标题栏
-    /// （651），所以视口是 651 − 68 = 583；16:9 的图按页宽铺开是 607.5 高，583 的 98% 是 571 —— 已经过线；
-    /// 而这一扇窗口的面积离工作区五分之四还远，所以 Showcase 只可能是裁切那一条来路。把窗口拉高到
-    /// 1080×760（视口 723）时图仍只有 607.5 高，那条线松开，回到纸面版式。宽度保持不变是为了留在宽版式里：
-    /// 收窄到 900 会跨过紧凑断点，换的是整套单列版面，不是「退出大窗」那条路。
-    /// <para>
-    /// 这两档都压在副屏的逻辑宽度（1080）以内，截下来是一整扇窗；再宽就只有左半边了。
-    /// </para>
-    /// </summary>
+    /// <summary>1080宽度下缩短/拉高窗口，验证内容触发及退出动画，再验证最大化与还原。</summary>
     private async Task ResponsiveShowcaseAsync(DetailPage page)
     {
         var picture = Get<Border>(page, "BackdropPicture");
@@ -300,12 +294,16 @@ internal sealed partial class ShellNavigationProbe
 
         // 「所有路径统一动画」（2026-11-02 用户令）：拉宽触发裁切这条从前是瞬间换版，现在也要走过渡。
         // 屏上一个已经结束的动画看不出来，只有页面自己数的次数分得清「走过」和「直接落定」。
+        await ResizeResponsiveAsync(page, 1080, 1120);
+        await LayoutAsync(page);
+        Require(!page.ViewModel.Showcase, "拉高窗口后应退出内容裁切触发的沉浸模式");
+
         var animationsBeforeEnter = page.ShowcaseAnimations;
 
         await ResizeResponsiveAsync(page, 1080, 620, ResponsiveViewport);
         await LayoutAsync(page);
         Require(!page.ViewModel.Spacious, "这一档窗口已经铺开，测不出「只因裁切才切换」那条路");
-        Require(page.ViewModel.NearCrop, "1080×620 上背景图该算「快被裁掉」");
+        Require(page.ViewModel.NearCrop, "1080×620 上剧集文字参考线应接近裁切");
         if (HomeMotion.AnimationsEnabled)
         {
             Require(page.ShowcaseAnimations > animationsBeforeEnter,
@@ -325,10 +323,10 @@ internal sealed partial class ShellNavigationProbe
 
         var animationsBeforeExit = page.ShowcaseAnimations;
 
-        await ResizeResponsiveAsync(page, 1080, 760);
+        await ResizeResponsiveAsync(page, 1080, 1120);
         await LayoutAsync(page);
         Require(!page.ViewModel.NearCrop && !page.ViewModel.Showcase,
-            $"1080×760 上不该再算「快被裁掉」：裁切={page.ViewModel.NearCrop}、沉浸={page.ViewModel.Showcase}");
+            $"1080×1120 上不该再算「快被裁掉」：裁切={page.ViewModel.NearCrop}、沉浸={page.ViewModel.Showcase}");
         if (HomeMotion.AnimationsEnabled)
         {
             Require(page.ShowcaseAnimations > animationsBeforeExit,

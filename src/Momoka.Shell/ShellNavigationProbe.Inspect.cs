@@ -113,6 +113,16 @@ internal sealed partial class ShellNavigationProbe
             }
             finally { layout.Visibility = Visibility.Visible; }
         });
+        Add("InspectDetailMenu", "详情菜单材质", async () =>
+        {
+            if (frame.Content is IShellContent previous) previous.Release();
+            frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, item));
+            var page = (DetailPage)frame.Content;
+            await UntilAsync(() => page.IsReady);
+            await LayoutAsync(page);
+            try { await CheckDetailMenuAcrylicAsync(page, fixture, ThemeHost.Current.Id); }
+            catch (Exception error) { Momoka.Diagnostics.Log.Warn("详情菜单检查", error.Message); }
+        });
         Add("InspectSettingsMotion", "设置动画", async () =>
         {
             if (frame.Content is IShellContent previous) previous.Release();

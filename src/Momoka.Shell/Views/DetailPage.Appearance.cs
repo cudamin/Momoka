@@ -64,7 +64,6 @@ public sealed partial class DetailPage
         DetailVideoInk.Visibility = DetailTitleInk.Visibility;
         DetailDirectorsInk.Visibility = DetailTitleInk.Visibility;
         PaintScrim();
-        PaintBackdropFade();
         // 滑块也要更新正在动画中的目标；停止旧故事板后按最新偏好落定，避免收尾又写回旧浓度。
         SettleShowcase();
     }
@@ -85,23 +84,6 @@ public sealed partial class DetailPage
         SettleShowcase();
     }
 
-    private void PaintBackdropFade()
-    {
-        var color = PaperColor;
-        var brush = new Microsoft.UI.Xaml.Media.LinearGradientBrush
-        {
-            StartPoint = new Windows.Foundation.Point(0.5, 0),
-            EndPoint = new Windows.Foundation.Point(0.5, 1)
-        };
-        foreach (var (offset, alpha) in new[] { (0d, (byte)0), (0.42, (byte)166), (0.78, (byte)232), (1d, byte.MaxValue) })
-            brush.GradientStops.Add(new Microsoft.UI.Xaml.Media.GradientStop
-            {
-                Offset = offset,
-                Color = Windows.UI.Color.FromArgb(alpha, color.R, color.G, color.B)
-            });
-        BackdropFade.Background = brush;
-    }
-
     private void PaintBackdropReading()
     {
         foreach (var panel in BodySheet.Children.OfType<Microsoft.UI.Xaml.Controls.StackPanel>())
@@ -111,8 +93,8 @@ public sealed partial class DetailPage
                 head.Ink = floating;
                 head.OnScrim = floating;
             }
-        // 信息卡的逐行标签、内联链接与数据统一留在实体深色卡面上，避免整段文字另做蒙版寿命管理。
+        // 信息卡的逐行标签、内联链接与数据统一留在深色亚克力卡面上，避免整段文字另做蒙版寿命管理。
         InfoPanel.Background = ViewModel.GaussianBackdropApplied && ViewModel.Showcase
-            ? (Microsoft.UI.Xaml.Media.Brush)Microsoft.UI.Xaml.Application.Current.Resources["EgSurfaceAltBrush"] : _panelFill;
+            ? CardMaterialSource.Background : _panelFill;
     }
 }

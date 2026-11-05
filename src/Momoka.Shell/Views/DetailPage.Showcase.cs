@@ -66,7 +66,7 @@ public sealed partial class DetailPage
     private readonly SolidColorBrush _sheetBrush = new();
 
     /// <summary>五块正文面板的底 —— 沉浸档里淡到 0，纸面让开之后不再有「板里的板」那一层。</summary>
-    private readonly SolidColorBrush _panelFill = new();
+    private readonly AcrylicBrush _panelFill = new();
 
     /// <summary>五块正文面板的描边，同 <see cref="_panelFill"/>。</summary>
     private readonly SolidColorBrush _panelLine = new();
@@ -156,6 +156,12 @@ public sealed partial class DetailPage
         // 背景设置按原来的普通/沉浸两档比例缩放；标记里的值只是第一帧，这里与过渡、收尾都读同一结果。
         BackdropPicture.Opacity = ViewModel.BackdropOpacity;
 
+        // 监听本页的 ThemeResource 替换，覆盖系统高对比度；不订阅需要 CoreWindow 的系统事件。
+        CardMaterialSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) =>
+        {
+            RefreshPanelBrushes();
+            PaintBackdropReading();
+        });
         RefreshPanelBrushes();
         foreach (var panel in BodyPanels)
         {
@@ -177,7 +183,19 @@ public sealed partial class DetailPage
 
     private void RefreshPanelBrushes()
     {
-        _panelFill.Color = BrushColor("EgSurfaceAltBrush");
+        if (CardMaterialSource.Background is AcrylicBrush template)
+        {
+            _panelFill.AlwaysUseFallback = template.AlwaysUseFallback;
+            _panelFill.TintColor = template.TintColor;
+            _panelFill.FallbackColor = template.FallbackColor;
+            _panelFill.TintOpacity = template.TintOpacity;
+            _panelFill.TintLuminosityOpacity = template.TintLuminosityOpacity;
+        }
+        else if (CardMaterialSource.Background is SolidColorBrush contrast)
+        {
+            _panelFill.AlwaysUseFallback = true;
+            _panelFill.FallbackColor = contrast.Color;
+        }
         _panelLine.Color = BrushColor("EgBorderBrush");
     }
 

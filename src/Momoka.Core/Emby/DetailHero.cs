@@ -392,6 +392,12 @@ public static class DetailHero
     /// </summary>
     public const double CropAhead = 0.98;
 
+    /// <summary>参考内容下沿接近视口底部；忽略未测量或无效的几何值。</summary>
+    public static bool ContentNearCrop(double contentBottom, double viewport) =>
+        double.IsFinite(contentBottom) && double.IsFinite(viewport)
+        && contentBottom > 0 && viewport > 0 && contentBottom >= viewport * CropAhead;
+
+
     /// <summary>
     /// 背景那张图的不透明度：常态 0.9 —— 压暗那么一档，亮图不把标题栏那一行字吃掉。
     /// </summary>

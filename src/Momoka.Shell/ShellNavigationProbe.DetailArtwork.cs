@@ -84,6 +84,12 @@ internal sealed partial class ShellNavigationProbe
                         page.UpdateLayout();
                         return scroll.VerticalOffset < 1;
                     });
+                    // 图片重排/滚动锚点恢复可能晚一拍带回上一档宽度；重新落实原目标，不放宽断点断言。
+                    if (width > 0 && Math.Abs(page.ViewModel.PageWidth - width) >= 0.6)
+                    {
+                        await ResizeResponsiveAsync(page, width, 900);
+                        await LayoutAsync(page);
+                    }
                     Require(width == 0 || Math.Abs(page.ViewModel.PageWidth - width) < 0.6,
                         $"没有到达目标页面宽度 {width}，实际 {page.ViewModel.PageWidth:0.0}");
 

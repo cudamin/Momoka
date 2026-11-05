@@ -157,7 +157,7 @@
                     </Grid>
                 </Border>
 
-                <Border Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
                     BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="32"
                     Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
                     <StackPanel HorizontalAlignment="Center" Spacing="16" MaxWidth="420">

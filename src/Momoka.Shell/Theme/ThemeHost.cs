@@ -118,8 +118,8 @@ public static class ThemeHost
         // 浅色取白面 —— 两边的浓度都归 Palette 的两份字典，这里只管「这套主题该用哪个色」。
         ("LayerFillColorDefaultBrush", theme => theme.Colors.Window),
         ("LayerFillColorAltBrush", theme => theme.Colors.Surface),
-        ("CardBackgroundFillColorDefaultBrush", theme => theme.IsDark ? theme.Colors.SurfaceHover : theme.Colors.Surface),
-        ("CardBackgroundFillColorSecondaryBrush", theme => theme.Colors.SurfaceElevated),
+        ("CardBackgroundFillColorDefaultBrush", theme => theme.Colors.SurfaceAlt),
+        ("CardBackgroundFillColorSecondaryBrush", theme => theme.Colors.SurfaceAlt),
         ("CardStrokeColorDefaultBrush", theme => theme.Colors.Border),
         ("ControlStrokeColorDefaultBrush", theme => theme.Colors.Border),
         ("ControlStrokeColorSecondaryBrush", theme => theme.Colors.BorderStrong),

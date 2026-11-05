@@ -209,7 +209,7 @@
                     SelectionMode="None"
                     Unloaded="OnAccountListUnloaded" />
                 <!-- 空服务器仍有登录、删除入口；没有账号时不伪造一张账号卡。 -->
-                <Border Grid.Column="1" Background="{ThemeResource EgSurfaceBrush}"
+                <Border Grid.Column="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource EgBorderBrush}"
                     BorderThickness="{StaticResource EgCardBorderThickness}"
                     CornerRadius="{StaticResource EgCardCornerRadius}"
@@ -474,7 +474,7 @@
 
         <ScrollView Grid.Row="4" Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto">
             <StackPanel>
-                <Border Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
+                <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
                     BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="32"
                     Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
                     <StackPanel HorizontalAlignment="Center" Spacing="16" MaxWidth="400">

@@ -21,8 +21,8 @@ bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Cards
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Note
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.RowHeight
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Title
-color  Theme/Palette.xaml  80
-color  Views/DetailPage.xaml  16
+color  Theme/Palette.xaml  78
+color  Views/DetailPage.xaml  12
 color  Views/HomeBanner.xaml  23
 color  Views/HtmlColorPicker.xaml  11
 color  Views/PlayerPage.xaml  2
@@ -78,7 +78,6 @@ handle  Views/DashboardPage.xaml  Readout
 handle  Views/DashboardPage.xaml  Web
 handle  Views/DetailPage.xaml  AudioPicker
 handle  Views/DetailPage.xaml  Backdrop
-handle  Views/DetailPage.xaml  BackdropFade
 handle  Views/DetailPage.xaml  BackdropImageBrush
 handle  Views/DetailPage.xaml  BackdropPicture
 handle  Views/DetailPage.xaml  Body

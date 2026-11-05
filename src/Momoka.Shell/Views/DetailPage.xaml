@@ -179,6 +179,9 @@
     </Page.Resources>
 
     <Grid>
+        <!-- 零尺寸资源接收器：系统主题替换卡片画刷时，同步用于沉浸动画的私有副本。 -->
+        <Border x:Name="CardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
 
         <!-- ============ 固定在背景里的那张剧照 ============ -->
         <!-- 「当前任务的背景要用亚克力遮罩，固定在背景中，而不是往下翻页就消失了，而且要跟主页一样，占满标题栏」
@@ -215,36 +218,6 @@
                         AlignmentX="Center"
                         AlignmentY="Top"
                         Stretch="UniformToFill" />
-                </Border.Background>
-            </Border>
-
-            <!-- 盒子下沿那道黑色渐变 —— 「背景图下方的衔接处要用黑色渐变」，加一档「渐变不够浓，还是能看到
-                 分界线」（同日）。它必须是盒子外面单独的一层：盒子带着 0.9 的不透明度，垫在里面的话「满墨」
-                 只有九成，亮图上那半成透出来，分界线还站在原处。上沿由 PictureFadeMargin 给（盒高减 64，
-                 见 DetailViewModel.PictureFadeHeight），底边正好压在画面的下沿上；三段停点让浓度先爬后收，
-                 最后一段压到满墨。120 收到 64：「黑色渐变的高度太高了，降低一些，它的主要作用是隐藏背景图
-                 下方的分界线」（2026-09-13）—— 藏住那条硬边就够了，再高只是压在剧情说明背后的一段黑。
-                 两档都在 —— 显隐跟着 HeroVisibility（以及「沉浸版式里不画」，见 BackdropFadeVisibility）：从前写「只在
-                 画面条那一档出现」，依据是「铺满那一档图连到视口外，下沿根本不在屏上」，这笔账算错了 —— 盒高
-                 被视口封顶，盒子却站在窗口的上沿（LiftBackdrop 往上顶的那截），两数相差的那一截正是标题栏加
-                 面包屑：铺满那一档的下沿落在窗口下沿上方这一条里，从来就没出过屏。那一档 UniformToFill 裁的
-                 还是画面中间的一刀，没有这道渐变就是一条硬边（「电影页面背景图下方怎么不是黑色渐变而是一条
-                 黑边」，2026-09-12 —— 铺满那一档整条缝都是它）。渐变钉在画面的下沿上，不钉在视口上：往下滚
-                 它跟着那条边待在原地，正文那张纸盖过来把它收走，不存在「一道固定的黑跟着滚动条挡内容」的事。 -->
-            <Border
-                x:Name="BackdropFade"
-                Height="{x:Bind ViewModel.PictureFadeHeight, Mode=OneWay}"
-                Margin="{x:Bind ViewModel.PictureFadeMargin, Mode=OneWay}"
-                IsHitTestVisible="False"
-                VerticalAlignment="Top"
-                Visibility="{x:Bind ViewModel.BackdropFadeVisibility, Mode=OneWay}">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
-                        <GradientStop Color="#000C0E11" Offset="0" />
-                        <GradientStop Color="#A60C0E11" Offset="0.42" />
-                        <GradientStop Color="#E80C0E11" Offset="0.78" />
-                        <GradientStop Color="#FF0C0E11" Offset="1" />
-                    </LinearGradientBrush>
                 </Border.Background>
             </Border>
 
@@ -621,22 +594,12 @@
                                 <Border x:Name="DetailVideoInk" IsHitTestVisible="False" Visibility="Collapsed" />
                             <TextBlock
                                 x:Name="DetailVideoText"
-                                Style="{StaticResource EgOnScrimDataStyle}"
+                                Style="{StaticResource EgOnScrimBodyStyle}"
                                 Text="{x:Bind ViewModel.VideoLine, Mode=OneWay}"
                                 Visibility="{x:Bind ViewModel.VideoLineVisibility, Mode=OneWay}" />
                             </Grid>
 
-                            <!-- 文件选项的三行 —— 集页的宽版式摆在这里，竖着排（「音频移到视频下面，字幕
-                                 移动到音频下面」，2026-09-12）：「视频：…」一句、音频、字幕各占一行，标签在
-                                 下拉的左边。从前这一份是横向 WrapRow（装不下就换行），他看完窄窗口的换行
-                                 实拍后要的就是这三行上下站好，不再横着挤。
-                                 两份只有一份在屏上：这一份的判据是 ColumnPickersVisibility，尾部那一份是
-                                 PickersVisibility，两半都问同一个 Pickable。一份标记两处是省不掉的 —— 一份
-                                 在头图那一格的 Grid 里（跟片名同栏）、一份在尾部那一段里，父级不同，而运行时
-                                 搬家的那一路这个文件已经付过两次代价（见 PlaceEpisodes 上那段旧账）。
-                                 标签取固定的浅墨（EgOnScrim*）同尾部那一份：这两处压的都是深色底（板上／暗罩
-                                 上）。外壳不用 WrapRow 了：竖排一列装不下也只会是各占一行，横排的换行算术
-                                 在这里没有事做。三颗下拉的 EgPickerCornerRadius 已接全站搜索框的 10 DIP 圆角。 -->
+                            <!-- 四种详情宽窗共用播放按钮上方的文件选项。唯一音轨显示文字，有多个音轨才提供下拉。 -->
                             <StackPanel
                                 x:Name="ColumnPickers"
                                 Spacing="10"
@@ -653,9 +616,9 @@
                                 </StackPanel.Resources>
                                 <TextBlock
                                     VerticalAlignment="Center"
-                                    Style="{StaticResource EgOnScrimDataStyle}"
+                                    Style="{StaticResource EgOnScrimBodyStyle}"
                                     Text="{x:Bind ViewModel.VideoLine, Mode=OneWay}"
-                                    Visibility="{x:Bind ViewModel.VideoVisibility, Mode=OneWay}" />
+                                    Visibility="{x:Bind ViewModel.ColumnVideoVisibility, Mode=OneWay}" />
                                 <!-- Auto 标签 + 剩余宽度：长名称不能把选择框撑出片名栏。 -->
                                 <Grid
                                     ColumnSpacing="10"
@@ -666,10 +629,12 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock
                                         x:Uid="DetailPage_TextBlock2"
+                                        Style="{StaticResource EgOnScrimBodyStyle}"
                                         VerticalAlignment="Center"
                                         Foreground="{StaticResource EgOnScrimBrush}" />
                                     <local:EgPicker
                                         x:Name="ColumnSourcePicker"
+                                        FontSize="{StaticResource EgBodyFontSize}"
                                         Background="{ThemeResource ButtonBackground}"
                                         Grid.Column="1"
                                         HorizontalAlignment="Left"
@@ -681,17 +646,19 @@
                                 </Grid>
                                 <Grid
                                     ColumnSpacing="10"
-                                    Visibility="{x:Bind ViewModel.AudioVisibility, Mode=OneWay}">
+                                    Visibility="{x:Bind ViewModel.AudioRowVisibility, Mode=OneWay}">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock
                                         x:Uid="DetailPage_TextBlock3"
+                                        Style="{StaticResource EgOnScrimBodyStyle}"
                                         VerticalAlignment="Center"
                                         Foreground="{StaticResource EgOnScrimBrush}" />
                                     <local:EgPicker
                                         x:Name="ColumnAudioPicker"
+                                        FontSize="{StaticResource EgBodyFontSize}"
                                         Background="{ThemeResource ButtonBackground}"
                                         Grid.Column="1"
                                         HorizontalAlignment="Left"
@@ -699,7 +666,16 @@
                                         DisplayMemberPath="Text"
                                         ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
                                         MinWidth="0"
+                                        Visibility="{x:Bind ViewModel.AudioVisibility, Mode=OneWay}"
                                         SelectedItem="{x:Bind ViewModel.SelectedAudio, Mode=TwoWay}" />
+                                    <TextBlock
+                                        x:Name="ColumnAudioText"
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        Style="{StaticResource EgOnScrimBodyStyle}"
+                                        Text="{x:Bind ViewModel.SingleAudioText, Mode=OneWay}"
+                                        TextWrapping="Wrap"
+                                        Visibility="{x:Bind ViewModel.SingleAudioVisibility, Mode=OneWay}" />
                                 </Grid>
                                 <Grid
                                     ColumnSpacing="10"
@@ -710,10 +686,12 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock
                                         x:Uid="DetailPage_TextBlock4"
+                                        Style="{StaticResource EgOnScrimBodyStyle}"
                                         VerticalAlignment="Center"
                                         Foreground="{StaticResource EgOnScrimBrush}" />
                                     <local:EgPicker
                                         x:Name="ColumnSubtitlePicker"
+                                        FontSize="{StaticResource EgBodyFontSize}"
                                         Background="{ThemeResource ButtonBackground}"
                                         Grid.Column="1"
                                         HorizontalAlignment="Left"
@@ -1048,6 +1026,7 @@
                             <local:WrapRow RowSpacing="10" Spacing="14">
                                 <local:EgPicker
                                     x:Name="SourcePicker"
+                                    FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
                                     CornerRadius="{StaticResource EgPickerCornerRadius}"
                                     DisplayMemberPath="Text"
@@ -1056,11 +1035,12 @@
                                     SelectedItem="{x:Bind ViewModel.SelectedSource, Mode=TwoWay}"
                                     Visibility="{x:Bind ViewModel.SourceVisibility, Mode=OneWay}">
                                     <local:EgPicker.Header>
-                                        <TextBlock x:Uid="DetailPage_TextBlock2" Foreground="{StaticResource EgOnScrimBrush}" />
+                                        <TextBlock x:Uid="DetailPage_TextBlock2" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
                                     </local:EgPicker.Header>
                                 </local:EgPicker>
                                 <local:EgPicker
                                     x:Name="AudioPicker"
+                                    FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
                                     CornerRadius="{StaticResource EgPickerCornerRadius}"
                                     DisplayMemberPath="Text"
@@ -1069,11 +1049,21 @@
                                     SelectedItem="{x:Bind ViewModel.SelectedAudio, Mode=TwoWay}"
                                     Visibility="{x:Bind ViewModel.AudioVisibility, Mode=OneWay}">
                                     <local:EgPicker.Header>
-                                        <TextBlock x:Uid="DetailPage_TextBlock3" Foreground="{StaticResource EgOnScrimBrush}" />
+                                        <TextBlock x:Uid="DetailPage_TextBlock3" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
                                     </local:EgPicker.Header>
                                 </local:EgPicker>
+                                <StackPanel Spacing="8" MinWidth="200"
+                                            Visibility="{x:Bind ViewModel.SingleAudioVisibility, Mode=OneWay}">
+                                    <TextBlock x:Uid="DetailPage_TextBlock3" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
+                                    <TextBlock
+                                        x:Name="AudioText"
+                                        Style="{StaticResource EgOnScrimBodyStyle}"
+                                        Text="{x:Bind ViewModel.SingleAudioText, Mode=OneWay}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
                                 <local:EgPicker
                                     x:Name="SubtitlePicker"
+                                    FontSize="{StaticResource EgBodyFontSize}"
                                     Background="{ThemeResource ButtonBackground}"
                                     CornerRadius="{StaticResource EgPickerCornerRadius}"
                                     DisplayMemberPath="Text"
@@ -1082,7 +1072,7 @@
                                     SelectedItem="{x:Bind ViewModel.SelectedSubtitle, Mode=TwoWay}"
                                     Visibility="{x:Bind ViewModel.SubtitleVisibility, Mode=OneWay}">
                                     <local:EgPicker.Header>
-                                        <TextBlock x:Uid="DetailPage_TextBlock4" Foreground="{StaticResource EgOnScrimBrush}" />
+                                        <TextBlock x:Uid="DetailPage_TextBlock4" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
                                     </local:EgPicker.Header>
                                 </local:EgPicker>
                             </local:WrapRow>

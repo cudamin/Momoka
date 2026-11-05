@@ -9,6 +9,78 @@ internal static partial class DetailActionReadinessTests
 {
     private static void RegisterShapeTests(Assembly assembly, string root)
     {
+        Test("单集唯一音轨隐藏仍保留视频读数", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Episode);
+            var source = f.Transport.Catalog["episode"].MediaSources[0];
+            source.MediaStreams = [new() { Type = "Audio", Index = 1, Codec = "aac" }];
+            source.Container = "mkv";
+            Await(f.Load());
+            f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 1200d);
+            Assert.Equal("Collapsed", f.Get("AudioVisibility")!.ToString());
+            Assert.Equal("Visible", f.Get("ColumnPickersVisibility")!.ToString());
+            Assert.Equal("Visible", f.Get("ColumnVideoVisibility")!.ToString());
+        });
+
+        Test("三类详情直接共用剧集卡下沿，沉浸不改变阈值且内容变化会通知", () =>
+        {
+            var bottoms = new List<double>();
+            foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season })
+            {
+                using var f = new Fixture(assembly, root, shape);
+                Await(f.Load());
+                void Set(string name, double value) => f.Vm.GetType().GetProperty(name)!.SetValue(f.Vm, value);
+                Set("PageWidth", 1200);
+                Set("Viewport", 1000);
+                Set("PaperLine", 550);
+                Set("HeaderLift", 60);
+                Set("StackRoom", 300);
+                Set("StillHeight", 300);
+                Set("TailIntrinsic", 100);
+                f.Vm.GetType().GetMethod("SetSeriesShelfTextBottom", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .Invoke(f.Vm, [320d]);
+                var bottom = (double)f.Get("SeriesContentBottom")!;
+                bottoms.Add(bottom);
+                Assert.False((bool)f.Get("NearCrop")!);
+                f.Vm.GetType().GetProperty("Spacious")!.SetValue(f.Vm, true);
+                Assert.Equal(bottom, (double)f.Get("SeriesContentBottom")!);
+                f.Vm.GetType().GetProperty("Spacious")!.SetValue(f.Vm, false);
+                Set("Viewport", 700);
+                Assert.True((bool)f.Get("NearCrop")!);
+                Set("Viewport", 1000);
+                Assert.False((bool)f.Get("NearCrop")!);
+                var notices = Watch(f, "Showcase");
+                Set("TailIntrinsic", 400);
+                Assert.True((bool)f.Get("NearCrop")!);
+                Assert.True(notices.Count > 0);
+            }
+            Assert.True(bottoms.All(bottom => Math.Abs(bottom - bottoms[0]) < 0.01));
+        });
+
+        foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season })
+            Test($"详情 {shape} 唯一音轨显示文字、增加音轨恢复下拉，宽窄选择框在播放前", () =>
+            {
+                using var f = new Fixture(assembly, root, shape);
+                Await(f.Load());
+                var source = f.Transport.Catalog[shape == Shape.Movie ? "movie" : "episode"].MediaSources[0];
+                source.MediaStreams = [new() { Type = "Audio", Index = 1, Codec = "aac" }];
+                Await(f.Load());
+                Assert.Equal("Collapsed", f.Get("AudioVisibility")!.ToString());
+                Assert.Equal("Visible", f.Get("AudioRowVisibility")!.ToString());
+                Assert.Equal("Visible", f.Get("SingleAudioVisibility")!.ToString());
+                Assert.True(!string.IsNullOrWhiteSpace((string)f.Get("SingleAudioText")!));
+                source.MediaStreams.Add(new() { Type = "Audio", Index = 2, Codec = "aac" });
+                Await(f.Load());
+                Assert.Equal("Visible", f.Get("AudioVisibility")!.ToString());
+                Assert.Equal("Collapsed", f.Get("SingleAudioVisibility")!.ToString());
+                f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 1200d);
+                Assert.Equal("Visible", f.Get("ColumnPickersVisibility")!.ToString());
+                Assert.Equal("Collapsed", f.Get("PickersVisibility")!.ToString());
+                f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 760d);
+                Assert.Equal("Collapsed", f.Get("ColumnPickersVisibility")!.ToString());
+                Assert.Equal("Visible", f.Get("PickersVisibility")!.ToString());
+            });
+
         foreach (var shape in new[] { Shape.Movie, Shape.Episode, Shape.Series, Shape.Season })
             Test($"P1 {shape}预览与完整主体同类型只通知一次版式", () =>
             {

@@ -20,6 +20,7 @@ namespace Microsoft.UI.Xaml
     {
         public Thickness(double value) : this(value, value, value, value) { }
     }
+    public sealed class Style;
     public class FrameworkElement
     {
         public object? DataContext { get; set; }
@@ -113,6 +114,7 @@ namespace Microsoft.UI.Xaml.Controls
     }
     public sealed class MenuFlyout
     {
+        public Style? MenuFlyoutPresenterStyle { get; set; }
         public Controls.Primitives.FlyoutPlacementMode Placement { get; set; }
         public List<MenuFlyoutItemBase> Items { get; } = [];
         public event EventHandler? Opened;

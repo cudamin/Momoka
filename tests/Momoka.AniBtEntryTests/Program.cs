@@ -1,3 +1,5 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.Configuration;
 using Momoka.Emby;
@@ -28,6 +30,40 @@ internal static class Program
 
     private static void Register()
     {
+        foreach (var entry in new[] { "show", "context", "poster", "episode" })
+            foreach (var styled in new[] { false, true })
+                Case($"详情菜单外观传递 {entry}/{styled}", () =>
+                {
+                    using var f = new EntryFixture(_root, knownAnime: true);
+                    var style = styled ? new Style() : null;
+                    MenuFlyout? shown = null;
+                    MenuFlyout.ShownForFixture = menu => shown = menu;
+                    try
+                    {
+                        if (entry == "show")
+                            ItemCommands.Show(f.Session, f.Actions, f.Owner, f.Card, null, presenterStyle: style);
+                        else if (entry == "context")
+                        {
+                            var args = new ContextRequestedEventArgs();
+                            ItemCommands.Handle(f.Session, f.Actions, new FrameworkElement { DataContext = f.Card }, args, presenterStyle: style);
+                            Assert.True(args.Handled);
+                        }
+                        else
+                            ItemCommands.Handle(f.Session, f.Actions,
+                                entry == "poster" ? (object)new PosterCard { Card = f.Card } : new EpisodeRow { Card = f.Card },
+                                new CardActionEventArgs(CardAction.More, f.Owner), presenterStyle: style);
+                        Assert.True(shown is not null);
+                        Assert.True(ReferenceEquals(style, shown!.MenuFlyoutPresenterStyle));
+                        Assert.Equal(0, f.Transport.Reads + f.Transport.Writes + f.Transport.Unexpected);
+                    }
+                    finally
+                    {
+                        shown?.Hide();
+                        MenuFlyout.ShownForFixture = null;
+                    }
+                    return Task.CompletedTask;
+                });
+
         foreach (var kind in new[] { MediaServerKind.FnNas, MediaServerKind.Plex })
             Case($"{kind}独立版本搜索进入真实命令且不开放识别写入", () =>
             {

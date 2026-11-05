@@ -29,6 +29,7 @@ namespace Microsoft.UI.Xaml
         public static Application Current { get; } = new();
         public Dictionary<string, object> Resources { get; } = new()
         {
+            ["EgDetailMenuPresenterStyle"] = new Style(),
             ["EgLibraryDialogSurfaceStyle"] = new Style(),
             ["LayerFillColorDefaultBrush"] = new object()
         };
@@ -111,7 +112,7 @@ namespace Momoka.Shell.Views
         internal static ItemCommand NextCommand { get; set; } = ItemCommand.Delete;
         internal static void Show(EmbySession session, IShellActions shell, FrameworkElement owner, CardItem card,
             Windows.Foundation.Point? position, IReadOnlyList<EmbyItem>? siblings = null, Action? changed = null,
-            Action<CardItem>? removed = null, Action<CardItem>? watched = null)
+            Action<CardItem>? removed = null, Action<CardItem>? watched = null, Style? presenterStyle = null)
         {
             Invoke(NextCommand, shell, owner, card, siblings, changed, removed, watched);
         }

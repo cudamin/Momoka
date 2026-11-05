@@ -323,7 +323,8 @@ internal sealed class ShellAssembly
         .GetMethod("ForGenre", BindingFlags.Static | BindingFlags.Public)!.Invoke(null, [new NoServices(), genre, scope])!;
     private sealed class NoServices : IServiceProvider
     {
-        public object? GetService(Type serviceType) => throw new AssertionException("不启动容器/App");
+        public object? GetService(Type serviceType) => serviceType == typeof(RemovedMedia)
+            ? null : throw new AssertionException("不启动容器/App");
     }
 }
 

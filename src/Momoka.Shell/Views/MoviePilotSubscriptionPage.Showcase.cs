@@ -43,7 +43,7 @@ public sealed partial class MoviePilotSubscriptionPage
     private readonly SolidColorBrush _sheetBrush = new();
 
     /// <summary>正文四块面板的底与框 —— 沉浸档里淡到 0。</summary>
-    private readonly SolidColorBrush _panelFill = new();
+    private readonly AcrylicBrush _panelFill = new();
     private readonly SolidColorBrush _panelLine = new();
 
     /// <summary>这一趟的 Storyboard；换向或收尾时整份停掉。</summary>
@@ -107,6 +107,8 @@ public sealed partial class MoviePilotSubscriptionPage
         BodySheet.Background = _sheetBrush;
         DetailBackdropBand.Opacity = DetailHero.BackdropOpacity;
 
+        // 监听本页的 ThemeResource 替换，覆盖系统高对比度；不订阅需要 CoreWindow 的系统事件。
+        CardMaterialSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => RefreshPanelBrushes());
         RefreshPanelBrushes();
         foreach (var panel in BodyPanels)
         {
@@ -139,7 +141,19 @@ public sealed partial class MoviePilotSubscriptionPage
 
     private void RefreshPanelBrushes()
     {
-        _panelFill.Color = BrushColor("EgSurfaceAltBrush");
+        if (CardMaterialSource.Background is AcrylicBrush template)
+        {
+            _panelFill.AlwaysUseFallback = template.AlwaysUseFallback;
+            _panelFill.TintColor = template.TintColor;
+            _panelFill.FallbackColor = template.FallbackColor;
+            _panelFill.TintOpacity = template.TintOpacity;
+            _panelFill.TintLuminosityOpacity = template.TintLuminosityOpacity;
+        }
+        else if (CardMaterialSource.Background is SolidColorBrush contrast)
+        {
+            _panelFill.AlwaysUseFallback = true;
+            _panelFill.FallbackColor = contrast.Color;
+        }
         _panelLine.Color = BrushColor("EgBorderBrush");
     }
 
