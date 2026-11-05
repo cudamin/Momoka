@@ -20,21 +20,34 @@ internal static class Program
             Assert.Equal(28d, page.EmbyContent.Margin.Top);
             Assert.Equal("EgSectionTitleStyle", page.LibraryTitle.Style!.Key);
         });
-        Test("非搜索分类与工具栏在各后端和内容页保持左对齐", () =>
+        Test("Emby和Jellyfin分类与操作栏恢复原来的居中版式", () =>
         {
-            foreach (var kind in new[] { "emby", "jellyfin", "fnnas", "favorites", "upcoming" })
+            foreach (var kind in new[] { "emby", "jellyfin", "mixed", "favorites", "upcoming" })
             {
                 var page = new LibraryPage();
-                page.ViewModel.IsSectionLibrary = kind != "fnnas";
-                page.ViewModel.IsFnNas = kind == "fnnas";
+                page.ViewModel.IsSectionLibrary = kind != "mixed";
+                page.ViewModel.IsJellyfinListPage = kind == "mixed";
                 page.ViewModel.IsFavoritesPage = kind == "favorites";
                 page.ViewModel.IsUpcomingPage = kind == "upcoming";
                 page.Apply();
-                Assert.Equal(HorizontalAlignment.Left, page.LibrarySectionsSurface.HorizontalAlignment, kind);
-                Assert.Equal(HorizontalAlignment.Left, page.ToolbarSurface.HorizontalAlignment, kind);
-                Assert.False(page.LibrarySections.CenterRows, kind);
-                Assert.False(page.Toolbar.CenterRows, kind);
+                Assert.Equal(HorizontalAlignment.Center, page.LibrarySectionsSurface.HorizontalAlignment, kind);
+                Assert.Equal(HorizontalAlignment.Center, page.LibraryBrowseGroup.HorizontalAlignment, kind);
+                Assert.Equal(HorizontalAlignment.Center, page.ToolbarSurface.HorizontalAlignment, kind);
+                Assert.True(page.LibrarySections.CenterRows, kind);
+                Assert.True(page.Toolbar.CenterRows, kind);
                 Assert.Equal(28d, page.EmbyContent.Margin.Top, kind);
+            }
+        });
+        Test("飞牛库根与继续观看保留原来的左对齐工具栏", () =>
+        {
+            foreach (var fnNas in new[] { false, true })
+            {
+                var page = new LibraryPage();
+                page.ViewModel.IsFnNas = fnNas;
+                page.Apply();
+                Assert.Equal(HorizontalAlignment.Left, page.ToolbarSurface.HorizontalAlignment);
+                Assert.False(page.Toolbar.CenterRows);
+                Assert.Equal(28d, page.EmbyContent.Margin.Top);
             }
         });
         Test("文件夹由面包屑承担标题且工具栏不留隐藏标题间距", () =>
@@ -45,6 +58,8 @@ internal static class Program
             Assert.Equal(Visibility.Collapsed, page.LibraryTitle.Visibility);
             Assert.Equal(0d, page.ToolbarSurface.Margin.Top);
             Assert.Equal(0, page.ToolbarSurface.Row);
+            Assert.Equal(HorizontalAlignment.Center, page.ToolbarSurface.HorizontalAlignment);
+            Assert.True(page.Toolbar.CenterRows);
         });
         Test("搜索保留顶部安全区与独立内容间距并能恢复普通浏览", () =>
         {

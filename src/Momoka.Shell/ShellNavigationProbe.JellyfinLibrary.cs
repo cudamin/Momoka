@@ -206,8 +206,8 @@ internal sealed partial class ShellNavigationProbe
             var mixedToolbar = Get<Grid>(page, "ToolbarSurface");
             var mixedToolbarBox = mixedToolbar.TransformToVisual(page)
                 .TransformBounds(new(0, 0, mixedToolbar.ActualWidth, mixedToolbar.ActualHeight));
-            Require(Math.Abs(mixedToolbarBox.Left - Get<Grid>(page, "PageRoot").Margin.Left) <= 2,
-                "混合内容工具条没有左对齐");
+            Require(Math.Abs(mixedToolbarBox.Left + mixedToolbarBox.Width / 2 - page.ActualWidth / 2) <= 2,
+                "混合内容工具条没有居中");
 
             page.ShowFilterPanel();
             await SettleAsync();

@@ -316,13 +316,13 @@
                 </Grid.ColumnDefinitions>
                 <!-- 分类胶囊和下面两条搜索容器都是页面上的一层低透明度玻璃：tint 与设置卡片同族，
                      压在纯色页面上只透出一点模糊和噪点，字和圆角保持原样。 -->
-                <Border x:Name="LibrarySectionsSurface" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Left" VerticalAlignment="Center"
+                <Border x:Name="LibrarySectionsSurface" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="18" Padding="3"
                     Visibility="{x:Bind ViewModel.SectionVisibility, Mode=OneWay}">
-                    <local:WrapRow x:Name="LibrarySections" Spacing="0" RowSpacing="4" />
+                    <local:WrapRow x:Name="LibrarySections" Spacing="0" RowSpacing="4" CenterRows="True" />
                 </Border>
                 <HyperlinkButton x:Name="LibraryBrowseGroup" Grid.Row="3" Grid.ColumnSpan="2"
-                    HorizontalAlignment="Left" Content="{x:Bind ViewModel.BrowseGroupLabel, Mode=OneWay}"
+                    HorizontalAlignment="Center" Content="{x:Bind ViewModel.BrowseGroupLabel, Mode=OneWay}"
                     Visibility="{x:Bind ViewModel.BrowseGroupVisibility, Mode=OneWay}"
                     ToolTipService.ToolTip="返回分类列表" Click="OnBrowseGroupBack" />
                 <TextBlock x:Name="LibraryTitle" Text="{x:Bind ViewModel.Heading, Mode=OneWay}" Visibility="{x:Bind local:LibraryPage.BrowseHintVisibility(ViewModel.SearchVisibility), Mode=OneWay}" Style="{StaticResource EgSectionTitleStyle}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind ViewModel.Heading, Mode=OneWay}" />

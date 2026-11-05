@@ -104,7 +104,7 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => Descendants(page.FavoritesGroups).OfType<PosterCard>().Count() >= 2);
                 var header = Get<Border>(page, "LibrarySectionsSurface");
                 var box = header.TransformToVisual(page).TransformBounds(new(0, 0, header.ActualWidth, header.ActualHeight));
-                Require(Math.Abs(box.Left - Get<Grid>(page, "PageRoot").Margin.Left) <= 2, "收藏分类栏未左对齐");
+                Require(Math.Abs(box.Left + box.Width / 2 - page.ActualWidth / 2) <= 2, "收藏分类栏不居中");
                 for (var index = 0; index < page.ViewModel.VisibleFavoriteRows.Count; index++)
                 {
                     var group = (FrameworkElement)page.FavoritesGroups.TryGetElement(index)!;

@@ -805,7 +805,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         ViewModel.ResizeGrid(width);
     }
 
-    /// <summary>非搜索页按可见行留间距并左对齐；搜索保留自己的版式。</summary>
+    /// <summary>按可见行留间距，分类与工具栏保留原居中分支；搜索保留自己的版式。</summary>
     private void ApplyHeaderLayout()
     {
         if (_attaching) return;
@@ -852,14 +852,16 @@ public sealed partial class LibraryPage : Page, IShellContent
         LibraryTitle.Visibility = search || folderDrillDown ? Visibility.Collapsed : Visibility.Visible;
         LibraryTitle.Style = (Style)Application.Current.Resources["EgSectionTitleStyle"];
         LibrarySectionsSurface.MaxWidth = width;
-        LibrarySectionsSurface.HorizontalAlignment = HorizontalAlignment.Left;
-        LibrarySections.CenterRows = false;
-        LibraryBrowseGroup.HorizontalAlignment = HorizontalAlignment.Left;
+        LibrarySectionsSurface.HorizontalAlignment = HorizontalAlignment.Center;
+        LibrarySections.CenterRows = true;
+        LibraryBrowseGroup.HorizontalAlignment = HorizontalAlignment.Center;
         Grid.SetRow(LibrarySectionsSurface, 1);
         Grid.SetColumn(LibrarySectionsSurface, 0);
         Grid.SetColumnSpan(LibrarySectionsSurface, 2);
-        ToolbarSurface.HorizontalAlignment = search ? HorizontalAlignment.Right : HorizontalAlignment.Left;
-        Toolbar.CenterRows = false;
+        ToolbarSurface.HorizontalAlignment = search ? HorizontalAlignment.Right
+            : fnNasRoot ? HorizontalAlignment.Left
+            : sectionLibrary || folderDrillDown || jellyfinList ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+        Toolbar.CenterRows = !fnNasRoot && (sectionLibrary || folderDrillDown || jellyfinList);
         // Jellyfin 的索引占自己的 Auto 列；绑定收起或内部低高度隐藏后，空列自然归零。
         // Emby 继续在第 0 列覆盖，保留它自己的布局。
         Grid.SetColumn(Alpha, ViewModel.IsJellyfin ? 1 : 0);
