@@ -4,7 +4,10 @@
 - 上游依据：WinUI 2.3.9 generic.xaml 的 DefaultButtonStyle 通过 ContentPresenter 绘制背景/边线/圆角；microsoft-ui-xaml main e07d43f54d1360ea3abe6be236f8fc9059669168 的 hwwalk.cpp、VisualContentRenderer.cpp、shape.cpp 与 HWCompNodeWinRT.cpp 核对 Rectangle/ShapeVisual 可直接接 CompositionBrush，与 ContentPresenter 的圆角蒙版分路不同。上游源码只作渲染路径依据，最终效果另用真实屏幕对照。
 - 5d96 树 Shell/Tests Release 编译均 0 警告 0 错误；主测试 3744/3744、0 跳过，局部材质20/20。移除本次矢量模板的反例19/20，恢复后20/20，证明新增契约拒绝旧模板。格式检查退出0（工作区加载提示保留）；Git差异/编码检查通过。
 - 实际运行 shell-probe-20261105-035719820-6956：materials+library 29项28过1败，退出1；新圆角专项通过，80个宽窄/五主题/实底与亚克力/四态组合，23张同帧旧模板（左）与矢量模板（右）实屏已目视，当前缩放为100%。旧模板替换/恢复及匿名UIA详情导航通过，未注入鼠标、未播放真实媒体或写服务器。详情透明度/材质和轮播时钟通过。唯一红为无关筛选弹层复选行宽为0；不修改该断言，不称整分区全绿。
-- 产品待合入 master 并发布；5d96 为平台管理detached树，证据 work/button-edges 与上述运行logs。主树在开发中仅增加进度提交487fc3c；合入时保留。未获本次上传授权，不推送。
+- 产品c48011b已挑入master为7d870ae，保留主树进度487fc3c。最终主树Tests/Core Release编译0警告0错误，3744/3744、0跳过；publish/verify成功546文件286.2MB，桌面快捷方式Target与WorkingDirectory均为主树artifacts/publish/win-x64、参数空。未上传。
+- 发布件首轮042238074-24428的新用例虽报通过，目视为空白图，拒绝当作视觉证据；新增窗口激活及实际标题BrightPixels守卫。042736861-21700正确拒绝空白；显式Normal启动042952750-14392三态截图正常，原禁用文字亮度守卫误报，改为始终亮的标题判断后完成重验，不调整按钮禁用颜色。上述红报告保留。
+- 最终发布件shell-probe-20261105-043554445-14904：新按钮专项通过，80状态组合、23实屏与五主题接触表已目视；旧模板/恢复与详情导航通过。materials另一个扩大用例在mpcards/emby-dark宽760缩放超时，最终分区1过1败、退出1，不能称完整材质分区绿。产品修复及相关首页/外观测试通过，未真实播放/服务器写入；只补探针像素守卫不改无关超时断言。
+- 最终发布Momoka.dll SHA256=1389B70E5531990C184ED7647F851B3D8B50DB7BA1C7CD1950063D937E46FE5B。证据主树work/button-edges-delivery、5d96的work/button-edges、上述运行logs与聊天visualizations/button-edge-evidence。5d96为平台管理detached树，没有本会话创建的临时分支；产品内容已进入master，探针守卫补充在主树另提交。
 
 # 2026-11-05 单集剧情说明上方留白
 

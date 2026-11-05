@@ -22,6 +22,7 @@ internal sealed partial class ShellNavigationProbe
         var savedTheme = ThemeHost.Current;
         var savedTopMost = _window!.TopMost;
         _window.TopMost = true;
+        _window.Activate();
         var item = new EmbyItem { Id = "button-edge", Name = "圆角按钮检查", Type = EmbyItemType.Movie, BackdropImageTags = ["fixture"] };
         fixture.Session.Capture().Bind(item);
         var image = await FixtureImageAsync(1280, 720);
@@ -101,6 +102,11 @@ internal sealed partial class ShellNavigationProbe
                             if (state == "Normal" || width == 1280 && theme == UiThemes.All[0] && !acrylic)
                             {
                                 var name = $"home-button-edge-{theme.Id}-{width}-{acrylic}-{state}-screen.png";
+                                // 禁用态文字刻意变暗；用始终可见的标题确认窗口已提交画面。
+                                var bounds = Box(Get<TextBlock>(banner, "TitleText"));
+                                var scale = _root.XamlRoot.RasterizationScale;
+                                var pixels = new Windows.Foundation.Rect(bounds.X * scale, bounds.Y * scale, bounds.Width * scale, bounds.Height * scale);
+                                await UntilAsync(() => CompositionPlaybackProbe.BrightPixels(_window, pixels) > 10);
                                 await SaveProbeScreenAsync(name);
                                 reads.Add($"{name}: 左=旧模板，右=矢量模板；实际首页按钮={Box(button)}；缩放={_root.XamlRoot.RasterizationScale}");
                             }
