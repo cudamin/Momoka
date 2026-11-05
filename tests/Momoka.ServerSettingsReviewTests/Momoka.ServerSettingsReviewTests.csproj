@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
+    <Compile Include="../../src/Momoka.Shell/Views/NotificationEditDialog.xaml.cs" Link="Production/NotificationEditDialog.cs" />
   </ItemGroup>
   <UsingTask TaskName="ExtractServerConnectionTest" TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
@@ -31,5 +32,31 @@
     <ExtractServerConnectionTest Source="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ViewModels/ServersViewModel.cs"
                                  Output="$(IntermediateOutputPath)ServerConnection.g.cs" />
     <ItemGroup><Compile Include="$(IntermediateOutputPath)ServerConnection.g.cs" /></ItemGroup>
+  </Target>
+  <UsingTask TaskName="ExtractNotificationContext" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var text = File.ReadAllText(Source).Replace("\r\n", "\n");
+        var start = text.IndexOf("    private static async Task<List<T>", StringComparison.Ordinal);
+        var finish = text.IndexOf("\n}\n", start, StringComparison.Ordinal);
+        var record = text.IndexOf("public sealed record NotificationEditorContext(", StringComparison.Ordinal);
+        if (start < 0 || finish <= start || record <= finish) throw new InvalidOperationException("Notification source boundaries changed");
+        File.WriteAllText(Output, "#nullable enable\nusing Momoka.Emby;\nusing Momoka.Diagnostics;\nnamespace Momoka.Shell.ViewModels;\n" + text.Substring(record) +
+            "\ninternal static class NotificationFetch\n{\nprivate const string Category = \"notification\";\n" + text.Substring(start, finish-start) +
+            "\ninternal static async Task<IReadOnlyList<T>?> Fetch<T>(Func<CancellationToken, Task<List<T>>> read) => await TryAsync(read, \"fixture\", default);\n}\n");
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="ExtractProductionNotificationContext" BeforeTargets="CoreCompile">
+    <ExtractNotificationContext Source="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ViewModels/NotificationsViewModel.cs"
+                                Output="$(IntermediateOutputPath)NotificationContext.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)NotificationContext.g.cs" /></ItemGroup>
   </Target>
 </Project>

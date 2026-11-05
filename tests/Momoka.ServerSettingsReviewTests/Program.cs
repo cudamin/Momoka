@@ -68,6 +68,7 @@ await PermissionCache.RunAsync();
 await PlexSearch.RunAsync();
 await FnNasArtwork.RunAsync();
 DisplaySettings.Run();
+await NotificationEditor.RunAsync();
 
 sealed class OpaqueProtector : ISecretProtector
 {
@@ -114,13 +115,13 @@ sealed class ChangedServer(string returnedId) : HttpMessageHandler
 
 namespace Momoka.Shell.ViewModels
 {
-    internal enum InfoBarSeverity { Error, Success }
     internal sealed record ServerRow(ServerProfile Profile);
 
     // Only UI load/notice boundaries are replaced. The contested TestAsync method is extracted
     // verbatim; the actual session, gateway, vault, store and HTTP implementations remain in Core.
     internal sealed partial class ServersViewModel(EmbySession session, ISettingsService settings)
     {
+        private enum InfoBarSeverity { Error, Success }
         private const string Category = "服务器";
         private readonly EmbySession _session = session;
         private readonly ISettingsService _settings = settings;

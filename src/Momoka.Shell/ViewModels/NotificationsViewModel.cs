@@ -372,14 +372,14 @@ public sealed partial class NotificationsViewModel : PageViewModel
             });
     }
 
-    private static async Task<List<T>> TryAsync<T>(Func<CancellationToken, Task<List<T>>> fetch, string what, CancellationToken token)
+    private static async Task<List<T>?> TryAsync<T>(Func<CancellationToken, Task<List<T>>> fetch, string what, CancellationToken token)
     {
         try { return await fetch(token).ConfigureAwait(true); }
         catch (OperationCanceledException) { throw; }
         catch (Exception)
         {
-            Log.Warn(Category, $"读取{what}名单失败，编辑器里这一栏留空");
-            return [];
+            Log.Warn(Category, $"读取{what}名单失败，编辑器保留已有范围限制");
+            return null;
         }
     }
 }
@@ -395,8 +395,8 @@ public sealed record NotificationEditorContext(
     UserNotificationInfo Entry,
     bool IsNew,
     List<NotificationCategoryInfo> Categories,
-    IReadOnlyList<NotificationUser> Users,
-    IReadOnlyList<NotificationLibrary> Libraries,
-    IReadOnlyList<NotificationDevice> Devices,
+    IReadOnlyList<NotificationUser>? Users,
+    IReadOnlyList<NotificationLibrary>? Libraries,
+    IReadOnlyList<NotificationDevice>? Devices,
     Func<UserNotificationInfo, Task> SaveAsync,
     Func<UserNotificationInfo, Task<bool>> TestAsync);
