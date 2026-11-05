@@ -10555,3 +10555,8 @@ R1在Plex适配层按100条原始页扫描，过滤后返回真实总数及Start
 - 工作树：`review-playback-fixes/Momoka`；普通话音轨先排除明确粤语标题，字幕标题已收窄候选时保留明确选择，完整未知简繁池仍交回 mpv。
 - 回归先红：381 项中 R32 两例和 R33 一例失败；修复后当前 Release Core/Tests 编译 0 警告 0 错误，`playback-review-fixture` 381/381，失败/跳过 0。
 - 上游：已读固定 mpv `270367e8af/player/loadfile.c` 的 `compare_track/select_default_track`（539–733），自动选择会遍历全部轨并偏向 default；使用第一手固定源码留档；未通过 web 工具重新获取。没有原生播放或真实 UI；主树合入、批次验证和发布归父会话。
+
+### 2026-11-05 审查修复 R2（独立播放组，待父批次整合）
+
+- 音频延迟从入场即捕获文件代次，排队写入与提示沿用该代次；服务交接空档拒绝旧操作。
+- 实际 Service/LibMpvHandle/gate 匿名边界先红 44/46（旧写与旧提示各一例），修后当前 Release 编译 0 警告 0 错误，ShaderCommandGenerationTests 46/46，0 跳过。含第二笔排队旧操作与 B 新操作恢复。没有加载 libmpv、播放或桌面验收。

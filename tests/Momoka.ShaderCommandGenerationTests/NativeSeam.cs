@@ -55,7 +55,10 @@ internal static partial class LibMpvNative
     }
     internal static int mpv_get_property_double(IntPtr context, string name, int format, out double data)
     {
-        For(context).NoteRead(name);
+        var owner = For(context);
+        owner.NoteRead(name);
+        if (name == "audio-delay" && double.TryParse(owner.Values.GetValueOrDefault(name),
+            System.Globalization.CultureInfo.InvariantCulture, out data)) return 0;
         data = 0;
         return -10;
     }

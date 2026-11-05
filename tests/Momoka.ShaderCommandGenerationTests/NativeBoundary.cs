@@ -19,7 +19,8 @@ internal sealed class NativeBoundary
         ["linear-downscaling"] = "no",
         ["correct-downscaling"] = "no",
         ["sigmoid-upscaling"] = "no",
-        ["deband"] = "yes"
+        ["deband"] = "yes",
+        ["audio-delay"] = "0"
     };
     internal List<NativeCommand> Commands { get; } = [];
     internal List<string> Reads { get; } = [];
