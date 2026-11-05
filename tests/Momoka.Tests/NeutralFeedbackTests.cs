@@ -47,13 +47,13 @@ internal static class NeutralFeedbackTests
             Assert.Equal("OnOpen", cover.Attribute("Click")?.Value);
         });
 
-        Test("中性反馈：播放键默认灰底白字，保留圆形尺寸与播放路由", () =>
+        Test("中性反馈：播放键默认高对比中性色，保留圆形尺寸与播放路由", () =>
         {
             var card = View("PosterCard.xaml");
             var style = card.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgCardPlayButtonStyle");
             Assert.Equal("{StaticResource DefaultButtonStyle}", style.Attribute("BasedOn")?.Value);
-            Assert.Equal("{ThemeResource EgSurfaceHoverBrush}", Setter(style, "Background"));
-            Assert.Equal("{ThemeResource EgTextBrush}", Setter(style, "Foreground"));
+            Assert.Equal("{ThemeResource EgTextBrush}", Setter(style, "Background"));
+            Assert.Equal("{ThemeResource EgWindowBrush}", Setter(style, "Foreground"));
             Assert.Equal("48", Setter(style, "Width"));
             Assert.Equal("48", Setter(style, "Height"));
             Assert.Equal("24", Setter(style, "CornerRadius"));
@@ -129,7 +129,7 @@ internal static class NeutralFeedbackTests
             var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "ShellSelfCheck.Reads.cs"));
             Assert.Contains("corner.FrameBorderless", code);
             Assert.Contains("Format(corner.FrameActive) == Format(corner.FrameRest)", code);
-            Assert.Contains("Format(corner.PlayRest) == ColorOf(\"EgSurfaceHoverBrush\")", code);
+            Assert.Contains("Format(corner.PlayRest) == ColorOf(\"EgTextBrush\")", code);
             Assert.Contains("Format(corner.PlayHover) == accent", code);
             Assert.False(code.Contains("Format(corner.FrameActive) == accent", StringComparison.Ordinal));
         });

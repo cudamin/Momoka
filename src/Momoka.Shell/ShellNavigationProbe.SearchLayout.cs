@@ -112,7 +112,8 @@ internal sealed partial class ShellNavigationProbe
                 var tabs = Get<Segmented>(page, "SourceTabs");
                 Require(tabs.ActualWidth <= search.ActualWidth, "来源切换超出搜索区");
                 Require(tabs.CornerRadius == new CornerRadius(16) && tabs.BorderThickness == new Thickness(0)
-                    && Colour(tabs.Background) == Role("EgSurfaceHoverBrush"), "来源栏仍是长方形边框");
+                    && ReferenceEquals(tabs.Background, Application.Current.Resources["CardBackgroundFillColorDefaultBrush"]),
+                    "来源栏圆角或现有卡片材质不正确");
                 Require(tabs.ActualWidth <= 480 && tabs.ActualHeight == 32,
                     $"{width} 来源栏没有缩小到 480 DIP 内、32 DIP 高");
                 var selected = (SegmentedItem)tabs.Items[tabs.SelectedIndex];

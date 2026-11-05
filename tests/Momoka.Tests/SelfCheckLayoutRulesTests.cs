@@ -129,6 +129,18 @@ internal static class SelfCheckLayoutRulesTests
             Assert.True(width > 900 && width < 1560,
                 "同一表格在真实900视口应溢出，在旧1560视口不溢出是合法的，不能放宽原断言");
         });
+        Test("界面探针：自绘标题栏按实际非客户区差值缩放并保留失败守卫", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(Root(), "src/Momoka.Shell/ShellNavigationProbe.cs"));
+            var first = source.IndexOf("    private void ResizeProbeClient", StringComparison.Ordinal);
+            var last = source.IndexOf("    private async Task SaveProbeScreenAsync", first, StringComparison.Ordinal);
+            var method = source[first..last];
+            Assert.Contains("GetClientRect(handle, out var client)", method);
+            Assert.Contains("outer.Width - client.Width", method);
+            Assert.Contains("outer.Height - client.Height", method);
+            Assert.Contains("Require(Interop.Native.SetWindowPos", method);
+            Assert.False(method.Contains("window.ResizeClient", StringComparison.Ordinal));
+        });
         Test("探针收尾：飞牛库释放页面并移除本次Frame，不污染后续服务器页", () =>
         {
             var source = File.ReadAllText(Path.Combine(Root(), "src/Momoka.Shell/ShellNavigationProbe.FnNasLibrary.cs"));

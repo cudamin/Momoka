@@ -257,15 +257,45 @@ internal sealed partial class ShellNavigationProbe
         Add("InspectMoviePilotJourney", "MP 订阅操作", async () => moviePilotJourney = await InspectMoviePilotJourneyAsync(frame));
         Add("InspectMoviePilotSnapshot", "记录 MP 状态", () => { moviePilotJourney?.Capture(); return Task.CompletedTask; }, keepJourney: true);
         Add("InspectMoviePilotMediaManagement", "MP 媒体管理", InspectMediaManagementAsync);
+        AddCheck("InspectHomePolish", "首页排版验证", HomeBannerLibrariesAsync);
+        AddCheck("InspectCardsPolish", "卡片展示验证", CardPresentationAsync);
+        AddCheck("InspectHeaderPolish", "库页排版验证", LibraryHeaderPolishAsync);
+        AddCheck("InspectBrowsePolish", "分类与工具栏验证", LibraryBrowseAsync);
+        AddCheck("InspectHomeCardPolish", "首页按钮与主题验证", HomeHeaderAsync);
+        AddCheck("InspectJellyfinPolish", "Jellyfin列表验证", JellyfinLibraryAsync);
+        AddCheck("InspectFnNasPolish", "飞牛列表验证", FnNasLibrarySpacingAsync);
+        AddCheck("InspectSearchPolish", "搜索布局回归", SearchHeaderLayoutAsync);
         Add("InspectDone", "结束检查", () => { finished.TrySetResult(); return Task.CompletedTask; });
         frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services, "离线示例"));
         await LayoutAsync(layout);
         File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "shell-probe-ready.txt"), Environment.ProcessId.ToString());
+        // 到时若仍有一项检查在飞，先等它收尾再释放宿主，避免检查触及已销毁的XAML。
         await Task.WhenAny(finished.Task, Task.Delay(TimeSpan.FromMinutes(8)));
+        while (busy) await Task.Delay(100);
         moviePilotJourney?.Dispose();
         if (frame.Content is IShellContent page) page.Release();
         _root.Children.Remove(layout);
         HomeMotion.ApplyPreference(animationPreference);
+
+        void AddCheck(string id, string label, Func<Task> check) => Add(id, label, async () =>
+        {
+            layout.Visibility = Visibility.Collapsed;
+            Task? running = null;
+            try
+            {
+                await CaseAsync(label, () => running = check(), 180, section: ShellProbeSections.Library);
+            }
+            finally
+            {
+                // WaitAsync的超时只结束等待；实际检查和finally仍拥有窗口，不能交给下一项。
+                if (running is not null)
+                {
+                    try { await running; }
+                    catch { /* CaseAsync已经记录失败；这里仅等待真实收尾。 */ }
+                }
+                layout.Visibility = Visibility.Visible;
+            }
+        });
     }
 
     private void ResizeInspect(int width, int height)

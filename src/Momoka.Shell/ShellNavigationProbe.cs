@@ -347,8 +347,17 @@ internal sealed partial class ShellNavigationProbe
     private void ResizeProbeClient(int width, int height)
     {
         var scale = _root.XamlRoot.RasterizationScale;
-        var window = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_window!.Handle));
-        window.ResizeClient(new Windows.Graphics.SizeInt32((int)Math.Round(width * scale), (int)Math.Round(height * scale)));
+        var handle = _window!.Handle;
+        Require(Interop.Native.GetClientRect(handle, out var client)
+            && Interop.Native.GetWindowRect(handle, out _), "探针无法读取窗口尺寸");
+        Interop.Native.GetWindowRect(handle, out var outer);
+        // HostWindow 自绘标题栏，AppWindow.ResizeClient 按系统标题栏重复增加了31px。
+        // 只按当前真实非客户区差值换算，避免高矮断点和屏外守卫验证了错误尺寸。
+        Require(Interop.Native.SetWindowPos(handle, IntPtr.Zero, 0, 0,
+            (int)Math.Round(width * scale) + outer.Width - client.Width,
+            (int)Math.Round(height * scale) + outer.Height - client.Height,
+            Interop.Native.SwpNoMove | Interop.Native.SwpNoZOrder | Interop.Native.SwpNoActivate),
+            "探针窗口缩放失败");
     }
 
     private async Task SaveProbeScreenAsync(string name)

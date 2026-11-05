@@ -96,6 +96,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(Get<TextBlock>(banner, "TitleText").FontSize == (double)Application.Current.Resources["EgDisplayFontSize"],
                     "常规窗口标题未恢复原来的显示刻度");
                 readings.Add($"{width}×{height}：横幅高={banner.ActualHeight:0.0}，后续货架顶={Bounds(Get<Grid>(home, "Overlay")).Top:0.0}");
+                await SettleBannerForCaptureAsync();
                 await SaveProbeScreenAsync($"home-banner-libraries-{width}-wide-screen.png");
             }
 
@@ -129,6 +130,7 @@ internal sealed partial class ShellNavigationProbe
                     Require(title.MaxLines == 1 && status.Visibility == Visibility.Collapsed,
                         "紧凑窗口没有收紧标题或收起读数");
                     readings.Add($"{width}/compact：字幕顶={Bounds(info).Top:0.0}，媒体库货架顶={Bounds(libraryRow).Top:0.0}，偏好保留");
+                    await SettleBannerForCaptureAsync();
                     await SaveProbeScreenAsync($"home-banner-libraries-{width}-compact-screen.png");
                     continue;
                 }
@@ -235,6 +237,15 @@ internal sealed partial class ShellNavigationProbe
 
             Rect Bounds(FrameworkElement element) => element.TransformToVisual(_root)
                 .TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+
+            async Task SettleBannerForCaptureAsync()
+            {
+                // 仍让真实轮播和翻档运行；只在截图前等当前淡入/淡出结束，并留出取样时间。
+                banner.ApplyDwell(60);
+                await UntilAsync(() => Get<Grid>(banner, "TitleRow").Opacity >= 0.999
+                    && Get<StackPanel>(banner, "Actions").Opacity >= 0.999);
+                await LayoutAsync(banner);
+            }
         }
         finally
         {

@@ -268,12 +268,12 @@ internal static class AcrylicControlsTests
             }
         });
 
-        Test("海报卡悬停操作：播放键回到中性灰底，右下三颗不再画亚克力", () =>
+        Test("海报卡悬停操作：播放键保留高对比中性色，右下三颗不再画亚克力", () =>
         {
             var card = Read("Views/PosterCard.xaml");
             var resources = card.Root!.Element(Xaml + "UserControl.Resources")!;
             var play = Resource(resources, "EgCardPlayButtonStyle");
-            Assert.Equal("{ThemeResource EgSurfaceHoverBrush}", Setter(play, "Background"));
+            Assert.Equal("{ThemeResource EgTextBrush}", Setter(play, "Background"));
             var action = Resource(resources, "EgCardActionButtonStyle");
             Assert.Equal("Transparent", Setter(action, "Background"));
             Assert.Null(Setter(action, "CornerRadius"), "右下操作组不再带玻璃圆角");
