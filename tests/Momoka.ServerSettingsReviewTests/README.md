@@ -11,3 +11,5 @@ Run after restore and a fresh Release build:
 ```
 
 This is not real WinUI, DPAPI, configured-server or playback evidence. No desktop or real account is used.
+
+R29 executes the actual gateway for bare hosts, HTTP bare hosts, explicit 32400, explicit 80, HTTPS, unreachable-all and canceled probes. It retains the original protocol routes and tests only the candidate control flow.

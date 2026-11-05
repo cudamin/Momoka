@@ -63,6 +63,7 @@ foreach (var hasAccount in new[] { false, true })
         throw new InvalidOperationException("Connection test sent credentials");
 }
 Console.WriteLine("R28: 8 anonymous connection-test and restore cases passed.");
+await PlexDiscovery.RunAsync();
 
 sealed class OpaqueProtector : ISecretProtector
 {

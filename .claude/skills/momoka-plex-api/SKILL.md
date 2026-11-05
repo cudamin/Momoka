@@ -57,6 +57,8 @@ The same applies to the response envelope: everything the **server** answers is 
 
 Plex pages with `X-Plex-Container-Start` / `X-Plex-Container-Size` **headers**, not query keys, which is why `PlexClient` owns the paging mechanism and `PlexMediaAdapter.Query` deliberately does not produce those two.
 
+The shared gateway continues to the separate Plex default-port candidate after an unreachable bare HTTP endpoint. Explicit ports and HTTPS keep their origin, cancellation stops the sequence, and an unsuccessful sequence retains the original unreachable result. `Momoka.ServerSettingsReviewTests` exercises the actual gateway with anonymous transport; it does not establish a live server response.
+
 A container's array is named for what is inside it: `Metadata` for films and episodes, `Directory` for shows, seasons and library sections, `Video` for some episode lists. `PlexMediaAdapter.Items` reads all three. Reading only `Metadata` is the classic mistake — it silently returns an empty show library.
 
 Library sections are not media entries: `Library` assigns the section's `key` to `EmbyItem.Id` and throws `InvalidDataException` when that key is missing, null or blank, rather than returning a clickable empty-ID library. Do not fall back to `ratingKey` for a section or change `Item` to read `key` globally: films, shows and seasons still use their media `ratingKey`. `PlexMediaTests.Libraries` feeds `GetViews` results directly into browse, per-library recently-added and random-carousel requests, and checks distinct section IDs and source-scoped navigation keys without signing in.

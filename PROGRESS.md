@@ -10530,3 +10530,7 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 新增 `Momoka.ServerSettingsReviewTests`，编译时提取当前完整 `ServersViewModel.TestAsync` 并运行实际 Core session/gateway/store。修前真实控制流在替换服务器先测试后恢复时触发失败断言；修后 8 个匿名案例通过，fresh Release 0 警告/0 错误，`git diff --check` 通过。
 - 所有凭据均为占位，HTTP 为内存替身、设置目录位于本树测试输出。不操作真实账号/服务器/桌面/播放。方案注册和批次全量验证由集成会话完成；本提交尚未合入主树、发布或推送。
 
+
+## 2026-11-05 审查修复 R29：Plex 默认端口候选
+
+共享 Gateway 在裸 HTTP 入口不可达时继续独立的 Plex 32400 候选，显式端口和 HTTPS 不改写，取消立即停止；全部失败保留原不可达分类。专项先红（首例 EmbyUnreachableException）后绿，当前 fresh Release 0 警告/0 错误，R28 8例及 R29 7例全过。只有匿名内存传输，不证明真实 Plex 服务。待父会话整合全批验证，无主树合并/推送/发布。
