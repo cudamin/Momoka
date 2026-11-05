@@ -100,12 +100,32 @@ internal sealed partial class ShellNavigationProbe
         var alpha = Get<AlphaBar>(page, "Alpha");
         var rail = Get<Border>(alpha, "Rail");
         var host = (Grid)alpha.Parent;
+        await RecordIndexStateAsync("loaded", 0, 0);
+        Require(page.ViewModel.IsJellyfin && page.ViewModel.SortKey == "SortName,ProductionYear"
+            && !page.ViewModel.SortDescending && page.ViewModel.TotalLabel == "共 36 项"
+            && page.ViewModel.AlphaVisibility == Visibility.Visible,
+            "索引夹具没有处在Jellyfin名称升序、36项且可显示字母条的状态；见jellyfin-index-lane-state.txt");
         foreach (var size in new[] { (Width: 1132, Height: 1084), (Width: 600, Height: 560), (Width: 1132, Height: 1084) })
         {
+            var expected = size.Height == 560 ? Visibility.Collapsed : Visibility.Visible;
+            await RecordIndexStateAsync("before-resize", size.Width, size.Height);
             ResizeProbeClient(size.Width, size.Height);
-            await LayoutAsync(page);
-            Require(rail.Visibility == (size.Height == 560 ? Visibility.Collapsed : Visibility.Visible),
-                "字母条没有随高矮窗口切换实际显示状态");
+            try
+            {
+                // LayoutAsync只保证旧页面尺寸非零；这里等到目标客户区和真正的索引状态均已落地。
+                await UntilAsync(() =>
+                {
+                    page.UpdateLayout();
+                    return Math.Abs(_root.ActualWidth - size.Width) <= 2
+                        && Math.Abs(_root.ActualHeight - size.Height) <= 2
+                        && alpha.Visibility == Visibility.Visible && page.ViewModel.AlphaVisibility == Visibility.Visible
+                        && rail.Visibility == expected;
+                });
+                await LayoutAsync(page);
+            }
+            finally { await RecordIndexStateAsync("after-resize-wait", size.Width, size.Height); }
+            Require(rail.Visibility == expected,
+                "字母条没有随高矮窗口切换实际显示状态；见jellyfin-index-lane-state.txt");
             if (rail.Visibility == Visibility.Visible)
             {
                 Require(host.ColumnDefinitions[1].ActualWidth > 0, "字母条可见但未占独立列");
@@ -119,14 +139,47 @@ internal sealed partial class ShellNavigationProbe
         }
         total = 1;
         await page.ViewModel.ReloadAsync();
-        await LayoutAsync(page);
+        try
+        {
+            await UntilAsync(() =>
+            {
+                page.UpdateLayout();
+                return !page.ViewModel.Busy && alpha.Visibility == Visibility.Collapsed && host.ColumnDefinitions[1].ActualWidth <= 1;
+            });
+        }
+        finally { await RecordIndexStateAsync("one-item", 1132, 1084); }
         Require(alpha.Visibility == Visibility.Collapsed && host.ColumnDefinitions[1].ActualWidth <= 1,
             "少于31项后字母条未收起或仍占空间");
         total = 36;
         await page.ViewModel.ReloadAsync();
-        await LayoutAsync(page);
+        try
+        {
+            await UntilAsync(() =>
+            {
+                page.UpdateLayout();
+                return !page.ViewModel.Busy && alpha.Visibility == Visibility.Visible
+                    && rail.Visibility == Visibility.Visible && host.ColumnDefinitions[1].ActualWidth > 0;
+            });
+        }
+        finally { await RecordIndexStateAsync("restored-items", 1132, 1084); }
         Require(alpha.Visibility == Visibility.Visible && host.ColumnDefinitions[1].ActualWidth > 0,
             "字母条重新可用后没有恢复独立空间");
+
+        async Task RecordIndexStateAsync(string stage, int width, int height)
+        {
+            var innerRoot = Get<Grid>(alpha, "Root");
+            var groups = VisualStateManager.GetVisualStateGroups(alpha);
+            var state = string.Join(',', groups.Select(group => group.Name + "=" + group.CurrentState?.Name));
+            var detail = $"{stage}; requested={width}x{height}; root={_root.ActualWidth:F1}x{_root.ActualHeight:F1}; "
+                + $"page={page.ActualWidth:F1}x{page.ActualHeight:F1}; host={host.ActualWidth:F1}x{host.ActualHeight:F1}; "
+                + $"sort={page.ViewModel.SortKey}; descending={page.ViewModel.SortDescending}; total={page.ViewModel.TotalLabel}; "
+                + $"cards={page.ViewModel.Cards.Count}; busy={page.ViewModel.Busy}; vmAlpha={page.ViewModel.AlphaVisibility}; "
+                + $"alpha={alpha.Visibility}/{alpha.ActualWidth:F1}x{alpha.ActualHeight:F1}/desired={alpha.DesiredSize}; "
+                + $"innerRoot={innerRoot.Visibility}/{innerRoot.ActualWidth:F1}x{innerRoot.ActualHeight:F1}; "
+                + $"rail={rail.Visibility}/{rail.ActualWidth:F1}x{rail.ActualHeight:F1}; "
+                + $"columns={host.ColumnDefinitions[0].ActualWidth:F1},{host.ColumnDefinitions[1].ActualWidth:F1}; state={state}\n";
+            await File.AppendAllTextAsync(Path.Combine(_options.Paths.LogDirectory, "jellyfin-index-lane-state.txt"), detail);
+        }
     }
 
     private static void RequireResumeGap(LibraryPage page, double toolbarBottom) =>
