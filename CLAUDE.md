@@ -38,6 +38,7 @@
 
 按任务读取随代码入库的技能：
 
+- [momoka-code-review](.claude/skills/momoka-code-review/SKILL.md)：审查当前改动、指定模块及修复后的复审；只报告有证据的必要缺陷，允许零发现，避免不必要抽象和反复扩大审查范围。
 - [momoka-winui-shell](.claude/skills/momoka-winui-shell/SKILL.md)：修改或审查 C# / XAML 前读取，说明分层、DI、Attach、功能可用性显隐与 UI 陷阱。
 - [momoka-emby-api](.claude/skills/momoka-emby-api/SKILL.md)：与 Emby 服务器对话的协议面——请求基址与鉴权头、重定向与凭据边界、错误语义、接口清单与规格缺口。
 - [momoka-jellyfin-api](.claude/skills/momoka-jellyfin-api/SKILL.md)：接 Jellyfin 服务器时与 Emby 不同的那一半——不带 `/emby/` 的基址、`Authorization: MediaBrowser` 鉴权头与 Jellyfin 12 默认停用的旧式凭据、用户作用域路由搬到顶层，以及接口逐条对照与版本漂移。
