@@ -66,6 +66,63 @@
             <Setter Property="BorderBrush" Value="{StaticResource EgBannerDotBrush}" />
             <Setter Property="Background" Value="{StaticResource EgBannerGhostRestBrush}" />
             <Setter Property="Foreground" Value="{StaticResource EgOnScrimBrush}" />
+            <!-- 同货架圆钮，用同一条矢量轮廓画底色和边线，避免亚克力圆角背景与边线分别裁剪。
+                 16 DIP 圆角和 1 DIP 线宽与上方样式一致；内容仍保留原边线占位与按钮语义。 -->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="Transparent">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal" />
+                                    <VisualState x:Name="PointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="Surface.Fill" Value="{ThemeResource ButtonBackgroundPointerOver}" />
+                                            <Setter Target="Surface.Stroke" Value="{ThemeResource ButtonBorderBrushPointerOver}" />
+                                            <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundPointerOver}" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="Surface.Fill" Value="{ThemeResource ButtonBackgroundPressed}" />
+                                            <Setter Target="Surface.Stroke" Value="{ThemeResource ButtonBorderBrushPressed}" />
+                                            <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundPressed}" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="Surface.Fill" Value="{ThemeResource ButtonBackgroundDisabled}" />
+                                            <Setter Target="Surface.Stroke" Value="{ThemeResource ButtonBorderBrushDisabled}" />
+                                            <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundDisabled}" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <Rectangle
+                                x:Name="Surface"
+                                Fill="{TemplateBinding Background}"
+                                Stroke="{TemplateBinding BorderBrush}"
+                                StrokeThickness="1"
+                                RadiusX="16"
+                                RadiusY="16"
+                                Stretch="Fill"
+                                IsHitTestVisible="False"
+                                UseLayoutRounding="False" />
+                            <ContentPresenter
+                                x:Name="ContentPresenter"
+                                Content="{TemplateBinding Content}"
+                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                ContentTransitions="{TemplateBinding ContentTransitions}"
+                                Foreground="{TemplateBinding Foreground}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                AutomationProperties.AccessibilityView="Raw" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
 

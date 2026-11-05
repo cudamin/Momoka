@@ -22,6 +22,32 @@ internal static class AcrylicControlsTests
             Assert.Equal("HomeBanner_OpenButton", (string?)button.Attribute(X + "Uid"));
             Assert.Equal("OnOpenClicked", (string?)button.Attribute("Click"));
         });
+        Test("主页轮播：详情圆角底色与边线共用矢量轮廓，内容不再绘制圆角背景", () =>
+        {
+            var page = Read("Views/HomeBanner.xaml");
+            var style = Resource(page.Root!.Element(Xaml + "UserControl.Resources")!, "EgBannerGhostStyle");
+            var surface = style.Descendants(Xaml + "Rectangle").Single();
+            Assert.Equal("{TemplateBinding Background}", (string?)surface.Attribute("Fill"));
+            Assert.Equal("{TemplateBinding BorderBrush}", (string?)surface.Attribute("Stroke"));
+            Assert.Equal(Setter(style, "BorderThickness"), (string?)surface.Attribute("StrokeThickness"));
+            var radius = Resource(Read("Theme/Styles.xaml").Root!, "EgCardCornerRadius").Value.Trim();
+            Assert.Equal(radius, (string?)surface.Attribute("RadiusX"));
+            Assert.Equal(radius, (string?)surface.Attribute("RadiusY"));
+            Assert.Equal("False", (string?)surface.Attribute("UseLayoutRounding"));
+            Assert.Equal("False", (string?)surface.Attribute("IsHitTestVisible"));
+            var presenter = style.Descendants(Xaml + "ContentPresenter").Single();
+            Assert.Null(presenter.Attribute("Background"));
+            Assert.Null(presenter.Attribute("BorderBrush"));
+            Assert.Null(presenter.Attribute("CornerRadius"));
+            Assert.Equal("{TemplateBinding BorderThickness}", (string?)presenter.Attribute("BorderThickness"));
+            foreach (var state in new[] { "PointerOver", "Pressed", "Disabled" })
+            {
+                var visual = style.Descendants(Xaml + "VisualState").Single(element => (string?)element.Attribute(X + "Name") == state);
+                Assert.True(visual.Descendants(Xaml + "Setter").Any(element =>
+                    (string?)element.Attribute("Target") == "Surface.Fill"
+                    && (string?)element.Attribute("Value") == "{ThemeResource ButtonBackground" + state + "}"));
+            }
+        });
         foreach (var theme in new[] { "Dark", "Light" })
             Test($"按钮亚克力：{theme} 首帧三态有主题 tint 和不透明回退", () =>
             {

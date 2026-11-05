@@ -644,8 +644,9 @@ internal sealed partial class ShellNavigationProbe
                 Require(VisualStateManager.GoToState(button, state, false), "首页详情按钮缺少状态：" + state);
                 await LayoutAsync(banner);
                 var presenter = Descendants(button).OfType<ContentPresenter>().Single(part => part.Name == "ContentPresenter");
-                Require(presenter.Background is AcrylicBrush { AlwaysUseFallback: true }, "首页详情按钮没有实际底色");
-                var baseline = (AcrylicBrush)presenter.Background;
+                var surface = Descendants(button).OfType<Microsoft.UI.Xaml.Shapes.Rectangle>().Single(part => part.Name == "Surface");
+                Require(surface.Fill is AcrylicBrush { AlwaysUseFallback: true }, "首页详情按钮没有实际底色");
+                var baseline = (AcrylicBrush)surface.Fill;
                 var color = baseline.FallbackColor;
                 var opacity = baseline.Opacity;
                 var foreground = presenter.Foreground;
@@ -654,7 +655,7 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(ui);
                 Require(VisualStateManager.GoToState(button, state, false), "首页详情按钮外观调整后丢失状态：" + state);
                 await LayoutAsync(banner);
-                Require(presenter.Background is AcrylicBrush { AlwaysUseFallback: true } adjusted && Math.Abs(adjusted.Opacity * adjusted.FallbackColor.A / 255d
+                Require(surface.Fill is AcrylicBrush { AlwaysUseFallback: true } adjusted && Math.Abs(adjusted.Opacity * adjusted.FallbackColor.A / 255d
                         - (opacity * color.A / 255d + (1 - opacity * color.A / 255d) * 0.37)) < 0.001,
                     "首页详情按钮底色没有从原浓度增加不透明度");
                 Require(button.Opacity == 1 && ReferenceEquals(presenter.Foreground, foreground), "首页详情文字跟着底色变透明");
@@ -663,21 +664,21 @@ internal sealed partial class ShellNavigationProbe
                         "主页原本不透明的背景图变淡，或改动了淡入淡出层");
                 ui.ControlBackgroundOpacity = 100;
                 ShellPrefs.ApplyAppearance(ui);
-                Require(presenter.Background is AcrylicBrush { AlwaysUseFallback: true } opaque && opaque.FallbackColor.A == 255 && opaque.Opacity == 1
+                Require(surface.Fill is AcrylicBrush { AlwaysUseFallback: true } opaque && opaque.FallbackColor.A == 255 && opaque.Opacity == 1
                     && opaque.FallbackColor.R < 128 && opaque.FallbackColor.G < 128 && opaque.FallbackColor.B < 128,
                     "主页详情按钮的100档底色没有完全不透明，或亮到看不清文字");
-                var owned = presenter.Background;
+                var owned = surface.Fill;
                 ui.ControlBackgroundOpacity = 0;
                 ui.UseAcrylicControls = true;
                 ShellPrefs.ApplyAppearance(ui);
                 await LayoutAsync(banner);
-                Require(ReferenceEquals(owned, presenter.Background)
-                    && presenter.Background is AcrylicBrush { AlwaysUseFallback: false, Opacity: 1 },
+                Require(ReferenceEquals(owned, surface.Fill)
+                    && surface.Fill is AcrylicBrush { AlwaysUseFallback: false, Opacity: 1 },
                     "主页详情按钮没有即时切换亚克力");
                 Require(ReferenceEquals(presenter.Foreground, foreground), "主页材质切换修改了文字");
                 ui.ControlBackgroundOpacity = 100;
                 ShellPrefs.ApplyAppearance(ui);
-                Require(presenter.Background is AcrylicBrush { AlwaysUseFallback: true, Opacity: 1, FallbackColor.A: 255 },
+                Require(surface.Fill is AcrylicBrush { AlwaysUseFallback: true, Opacity: 1, FallbackColor.A: 255 },
                     "主页亚克力100档未回到实底");
                 ui.UseAcrylicControls = false;
                 ShellPrefs.ApplyAppearance(ui);
