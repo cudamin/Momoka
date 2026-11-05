@@ -877,6 +877,7 @@ internal static class PlayerMotionProbe
             Require(surface.PlacedRect.Width == 0, "退场收摊后 SpriteVisual 已拆掉（画面不留残影）");
             Require(!surface.IsRetained, "退场收摊后保留态结束");
             Native.GetWindowRect(window.Handle, out var restored);
+            Write($"退出几何核对：expected={browse.Left},{browse.Top},{browse.Width}x{browse.Height}; actual={restored.Left},{restored.Top},{restored.Width}x{restored.Height}; maximized={window.IsMaximized}; saved={window.BrowseBounds.Left},{window.BrowseBounds.Top},{window.BrowseBounds.Width}x{window.BrowseBounds.Height}");
             Require(!window.IsMaximized && restored.Left == browse.Left && restored.Top == browse.Top
                 && restored.Width == browse.Width && restored.Height == browse.Height, "退出回到播放前的浏览几何");
 

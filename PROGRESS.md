@@ -10629,3 +10629,12 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 
 - 新增ShellNavigationProbe.ReviewSettings.cs并在settings分区注册1100/760两档：真实SettingsPage、真实ComboBox切换Smooth→Off和DanmuApi→DandanPlay，核行模型/实际文字/交互控件消失恢复、audio及ShowInput偏好；四阶段各保存宽窄实屏。复用CreateMotionSettingsPage匿名服务、隔离路径及现有页面活动期/布局等待，未创建播放实例或真实HTTP。
 - 相关source contract先红17项中1项（注册缺失），后17/17；该契约只守探针接线，不冒充运行证据。中断前Shell日志未完成并保留；恢复后fresh Release Shell 0警告0错误（work/review-fixes/review-settings-shell-build-resumed.log），契约复跑17/17；根会话统一运行桌面与目检截图，本树未执行。
+
+## 2026-11-05 六轮审查修复主树验证与交付收尾
+
+- R1–R35及第一轮八接线已快进master 8d7fcfc；无用户改动覆盖，未推送。当前主树全方案Release0警告0错误，format whitespace退出0（工作区加载有提示），139变更文本编码/空白通过，普通交互缺句柄0。三组交叉复审无必要新增缺陷。
+- 主树55普通专项均取得通过结果：原批次54绿，SettingsPersistence因我的自定义runner把输出放work触发目录保护，改规定artifacts新目录后42/42；原红保留。caller包装54/54，实际删除命令用成功全方案构建证明19/19，14契约+25DOM且网络/页面错误0；脚本维护16、发布合成31、quality依赖4、runner19均绿。主测先被035a共享mutex占用导致16红；协调授权时段后完整3764/3764、0失败0跳过，main-tests-final.log。
+- 实际主树匿名UI五区settings/metadata/moviepilot/anibt/playback共82/82；未执行11区89检查不当全探针。新增编辑器/设置16张宽窄实屏已逐类查看；失败草稿/通知限制/Smooth及danmu_api恢复通过，报告shell-probe-20261105-125053918-29676。
+- 本地composition17132自动断言通过，弹幕可见/清除实屏已看；无媒体服务器登录和观看上报。motion32112最初漏参数启动前拒绝；21840在既有浏览位置恢复失败，实际恢复1422x800但坐标曾为783,351。仅增expected/actual/saved诊断、不改断言/产品，5016完整通过：三值均569,296；R18窗口化26有效样本rect577,296,1406x792、全屏70样本rect0,0,2560x1440均一致。旧坐标漂移未定因，不能用后一轮绿宣称根因修复或归因环境，原日志保留。
+- R8原生无媒体证据来自播放子树，三相关源hash与主树一致，真实libmpv/handle/service恢复deband=no；不是当前主树DLL原生重跑。外部mpv/独占实播/条件profile/真实服务及翻译服务未验证。
+- 全证据work/review-fixes-20261105-main，当前正在发布实际artifacts/publish/win-x64；发布完成与快捷方式核对另记。诊断日志变更对应专项22/22和当前Shell0警告0错误。
