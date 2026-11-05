@@ -31,6 +31,13 @@ internal static class Program
 
             (string Name, Func<Task> Body)[] cases =
             [
+                ("R18 可见本进程覆盖层实际矩形一致才记录一致", () => OverlayAsync("match")),
+                ("R18 整屏越界矩形被记录为不符", () => OverlayAsync("mismatch")),
+                ("R18 零采样明确报告缺口", () => OverlayAsync("missing")),
+                ("R18 外进程同类窗口不算证据", () => OverlayAsync("foreign")),
+                ("R18 不同类窗口不算证据", () => OverlayAsync("wrong-class")),
+                ("R18 矩形读取失败不算证据", () => OverlayAsync("unreadable")),
+                ("R18 原停止异常传播且结束采样", () => OverlayAsync("stop-error")),
                 ("实际完成可同步通过，不再硬等 500/400ms", CompletedAsync),
                 ("超过旧 500ms 后到达的同一完成序列可正确通过", LateCompletionAsync),
                 ("姿势已归位仍须等真实窗口事务", WindowTransactionAsync),
@@ -47,6 +54,7 @@ internal static class Program
                 ("真实窗口事务不完成会超时失败", WindowTimeoutAsync),
                 ("pose/合成交接不完成会超时失败", MotionTimeoutAsync)
             ];
+            CheckStopHandoffWiring(root);
             var failed = 0;
             foreach (var (name, body) in cases)
             {
@@ -63,6 +71,48 @@ internal static class Program
         }
     }
 
+    private static async Task OverlayAsync(string mode)
+    {
+        var expected = new NativeRect { Left = 100, Top = 120, Right = 900, Bottom = 570 };
+        Native.OverlayVisible = false;
+        Native.OverlayRead = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Native.ForeignOverlay = mode == "foreign";
+        Native.WrongOverlayClass = mode == "wrong-class";
+        Native.OverlayReadFails = mode == "unreadable";
+        Native.OverlayBounds = mode == "mismatch" ? new NativeRect { Right = 1920, Bottom = 1080 } : expected;
+        var report = new List<string>();
+        try
+        {
+            await PlayerMotionProbe.ObserveForFixture(async () =>
+            {
+                Native.OverlayVisible = mode != "missing";
+                if (mode is "match" or "mismatch" or "stop-error")
+                    await Native.OverlayRead.Task.WaitAsync(TimeSpan.FromSeconds(2));
+                await Task.Delay(30);
+                if (mode == "stop-error") throw new InvalidOperationException("original-stop-error");
+                Native.OverlayVisible = false;
+            }, expected, report.Add, default);
+            Check(mode != "stop-error", "停止异常被吞掉");
+        }
+        catch (InvalidOperationException error) when (mode == "stop-error" && error.Message == "original-stop-error") { }
+        finally { Native.OverlayVisible = false; }
+        var text = string.Join("\n", report);
+        if (mode is "match" or "stop-error") Check(text.Contains("矩形一致", StringComparison.Ordinal), "实际可見窗口矩形未记录");
+        else if (mode == "mismatch") Check(text.Contains("矩形不符", StringComparison.Ordinal), "错误矩形未被记录：" + text);
+        else Check(text.Contains("采样缺口", StringComparison.Ordinal) && !text.Contains("矩形一致", StringComparison.Ordinal), "缺证据被标为通过");
+    }
+
+    private static void CheckStopHandoffWiring(string root)
+    {
+        var source = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/PlayerMotionProbe.cs"));
+        Check(source.Contains("await ObserveStopHandoffAsync(page.ViewModel.PrepareStopAsync!, stopClient, Write, token)", StringComparison.Ordinal),
+            "R18 停止前必须实际调用覆盖层观察");
+        Check(source.Contains("var stopClient = VideoFrameOverlay.ClientRect(window.Handle)", StringComparison.Ordinal),
+            "R18 必须捕获停止前客户区");
+        Check(source.Contains("Native.NextWindow(IntPtr.Zero, after, \"MomokaVideoFrame\", null)", StringComparison.Ordinal),
+            "R18 必须枚举真实覆盖层窗口");
+    }
+
     private static void VerifySource(string root, bool baseline)
     {
         Check(Path.IsPathFullyQualified(root), "仓库根必须是绝对路径");
@@ -76,6 +126,11 @@ internal static class Program
             Check(string.Equals(Path.GetFullPath(PlayerMotionProbe.SourcePath),
                 Path.Combine(Path.GetFullPath(root), "src", "Momoka.Shell", "PlayerMotionProbe.cs"),
                 StringComparison.OrdinalIgnoreCase), "current 回归必须编译本树正式探针，不能传不同诊断源冒充");
+        Check(string.Equals(Path.GetFullPath(PlayerMotionProbe.OverlaySourcePath),
+            Path.Combine(Path.GetFullPath(root), "src", "Momoka.Shell", "PlayerMotionProbe.cs"), StringComparison.OrdinalIgnoreCase),
+            "覆盖层观测必须来自本树当前源");
+        Check(string.Equals(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(PlayerMotionProbe.OverlaySourcePath))),
+            PlayerMotionProbe.OverlaySourceHash, StringComparison.OrdinalIgnoreCase), "覆盖层观测源已变，必须重新编译");
         var hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(PlayerMotionProbe.SourcePath)));
         Check(string.Equals(hash, PlayerMotionProbe.SourceHash, StringComparison.OrdinalIgnoreCase),
             "测试之后源文件已变，必须先编译当前源");
