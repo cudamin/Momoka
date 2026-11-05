@@ -16,6 +16,8 @@
     xmlns:vm="using:Momoka.Shell.ViewModels">
 
     <UserControl.Resources>
+        <ResourceDictionary>
+
         <!-- 一行控件的标签。比正文小一档、比背景亮一档：它是控件的名字，不是一段话。 -->
         <Style x:Key="EgFilterLabelStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
@@ -40,6 +42,29 @@
             <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
             <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
+        </Style>
+
+        <Style x:Key="EgFilterFlyoutStyle" TargetType="FlyoutPresenter" BasedOn="{StaticResource DefaultFlyoutPresenterStyle}">
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MaxWidth" Value="Infinity" />
+            <Setter Property="Background" Value="{ThemeResource LayerFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
+        </Style>
+
+        <Style x:Key="EgFilterOptionStyle" TargetType="CheckBox" BasedOn="{StaticResource DefaultCheckBoxStyle}">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+
+        <Style x:Key="EgFilterValueTextStyle" TargetType="TextBlock" BasedOn="{StaticResource EgBodyStyle}">
             <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
         </Style>
 
@@ -91,7 +116,6 @@
                         <TextBlock Style="{StaticResource EgFilterLabelStyle}" Text="{x:Bind Label}" />
                         <Button
                             AutomationProperties.Name="{x:Bind Label}"
-                            Click="OnValuesClicked"
                             Style="{StaticResource EgFilterPickerStyle}"
                             ToolTipService.ToolTip="{x:Bind Summary, Mode=OneWay}">
                             <Grid ColumnSpacing="8">
@@ -113,27 +137,77 @@
                                 <!-- 第一次打开才去问服务器（见 FilterValuesRow.OnIsOpenChanged）。 -->
                                 <Flyout
                                     Placement="BottomEdgeAlignedLeft"
+                                    FlyoutPresenterStyle="{StaticResource EgFilterFlyoutStyle}"
+                                    Opening="OnValuesOpening"
                                     Closed="OnValuesClosed">
-                                    <ScrollViewer MaxHeight="320" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
-                                        <StackPanel Width="240" Spacing="4">
+                                    <Grid x:Name="FilterValuesSurface" MaxHeight="368">
+                                        <Grid.Resources>
+                                            <!-- Popup content has no visual parent in FilterPanel. Keep the
+                                                 platform checkbox state brushes on the actual popup root. -->
+                                            <ResourceDictionary>
+                                                <ResourceDictionary.ThemeDictionaries>
+                                                    <ResourceDictionary x:Key="Dark">
+                                                        <StaticResource x:Key="CheckBoxCheckBackgroundFillChecked" ResourceKey="EgAccentBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" ResourceKey="EgAccentHoverBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckBackgroundFillCheckedPressed" ResourceKey="EgAccentPressedBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckBackgroundStrokeChecked" ResourceKey="EgAccentBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" ResourceKey="EgAccentHoverBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" ResourceKey="EgAccentPressedBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckGlyphForegroundChecked" ResourceKey="EgTextOnAccentBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" ResourceKey="EgTextOnAccentBrush" />
+                                                    </ResourceDictionary>
+                                                    <ResourceDictionary x:Key="Light">
+                                                        <StaticResource x:Key="CheckBoxCheckBackgroundFillChecked" ResourceKey="EgAccentBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" ResourceKey="EgAccentHoverBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckBackgroundFillCheckedPressed" ResourceKey="EgAccentPressedBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckBackgroundStrokeChecked" ResourceKey="EgAccentBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" ResourceKey="EgAccentHoverBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" ResourceKey="EgAccentPressedBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckGlyphForegroundChecked" ResourceKey="EgTextOnAccentBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                                                        <StaticResource x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" ResourceKey="EgTextOnAccentBrush" />
+                                                    </ResourceDictionary>
+                                                    <ResourceDictionary x:Key="HighContrast" />
+                                                </ResourceDictionary.ThemeDictionaries>
+                                            </ResourceDictionary>
+                                        </Grid.Resources>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <ScrollViewer x:Name="FilterValuesScroll" MaxHeight="320" VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled">
+                                        <StackPanel>
                                             <TextBlock
                                                 Style="{StaticResource EgFilterLabelStyle}"
                                                 Text="{x:Bind Note, Mode=OneWay}"
                                                 TextWrapping="Wrap"
                                                 Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                                             <ItemsControl ItemsSource="{x:Bind Values, Mode=OneWay}">
+                                                <ItemsControl.ItemContainerStyle>
+                                                    <Style TargetType="ContentPresenter">
+                                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                                    </Style>
+                                                </ItemsControl.ItemContainerStyle>
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate x:DataType="vm:FilterCheck">
                                                         <CheckBox
-                                                            Content="{x:Bind Label}"
+                                                            AutomationProperties.Name="{x:Bind Label}"
                                                             IsChecked="{x:Bind IsChecked, Mode=TwoWay}"
-                                                            MinWidth="0"
-                                                            Padding="8,4,0,4" />
+                                                            VerticalContentAlignment="Center"
+                                                            Style="{StaticResource EgFilterOptionStyle}">
+                                                            <TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" Style="{StaticResource EgFilterValueTextStyle}"
+                                                                VerticalAlignment="Center" />
+                                                        </CheckBox>
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
                                         </StackPanel>
-                                    </ScrollViewer>
+                                        </ScrollViewer>
+                                        <HyperlinkButton x:Name="FilterValuesSelectAll" Grid.Row="1" Content="全选"
+                                            AutomationProperties.Name="{x:Bind SelectAllLabel}" Click="OnValuesSelectAll"
+                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" MinHeight="32" />
+                                    </Grid>
                                 </Flyout>
                             </Button.Flyout>
                         </Button>
@@ -168,6 +242,7 @@
                 </DataTemplate>
             </local:FilterSectionTemplates.Checks>
         </local:FilterSectionTemplates>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Border x:Name="LibraryDialogSurface" Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource EgCardCornerRadius}">

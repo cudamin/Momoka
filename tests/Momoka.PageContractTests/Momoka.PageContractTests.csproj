@@ -14,6 +14,8 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\DiagnosticsViewModel.cs" Link="Production\DiagnosticsViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\FilterSection.cs" Link="Production\FilterSection.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\FilterPanelViewModel.cs" Link="Production\FilterPanelViewModel.cs" />
     <Compile Include="..\Momoka.Tests\DiagnosticsTests.cs" Link="DiagnosticsTests.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\CardShelf.cs" Link="Production\CardShelf.cs" />

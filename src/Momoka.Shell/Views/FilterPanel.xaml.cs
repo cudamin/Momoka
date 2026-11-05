@@ -80,14 +80,56 @@ public sealed partial class FilterPanel : UserControl
     /// time this happens rather than when the panel opens: five lists nobody looked at is five requests
     /// nobody needed.
     /// </summary>
-    private void OnValuesClicked(object sender, RoutedEventArgs e)
+    private void OnValuesOpening(object sender, object e)
     {
-        if (sender is FrameworkElement { DataContext: FilterValuesRow row }) row.IsOpen = true;
+        if (sender is not Flyout flyout) return;
+        // Target is not populated yet on the first Opening; locate the trigger in this panel.
+        var target = flyout.Target ?? FindValuesButton(this, flyout);
+        if (target?.XamlRoot is null) return;
+        // The default presenter has its own maximum width and padding. Size the entire surface, not
+        // an inner StackPanel, so its edges follow the field even after opening in a narrower window.
+        var width = Math.Min(target.ActualWidth, Math.Max(0, target.XamlRoot.Size.Width - 16));
+        var style = new Style(typeof(FlyoutPresenter)) { BasedOn = (Style)Resources["EgFilterFlyoutStyle"] };
+        style.Setters.Add(new Setter(WidthProperty, width));
+        style.Setters.Add(new Setter(MaxWidthProperty, width));
+        flyout.FlyoutPresenterStyle = style;
+        if (flyout.Content is FrameworkElement content)
+        {
+            // Opening is too late to replace the first presenter's Style. Size the measured content
+            // as well; the declarative presenter below removes the platform's 456-DIP maximum.
+            content.Width = Math.Max(0, width - 10);
+            content.MaxHeight = Math.Max(80, Math.Min(368, target.XamlRoot.Size.Height - 80));
+            content.Tag = flyout;
+        }
+        if (target.DataContext is FilterValuesRow row) row.IsOpen = true;
+    }
+
+    private static Button? FindValuesButton(DependencyObject parent, Flyout flyout)
+    {
+        if (parent is Button button && ReferenceEquals(button.Flyout, flyout)) return button;
+        for (var index = 0; index < Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChildrenCount(parent); index++)
+            if (FindValuesButton(Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChild(parent, index), flyout) is { } found)
+                return found;
+        return null;
+    }
+
+    private void OnValuesSelectAll(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: FilterValuesRow row } element) return;
+        row.SelectAll();
+        // The footer belongs to the current popup; never find a row by index after panel rebuilding.
+        for (DependencyObject? parent = element; parent is not null; parent = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(parent))
+            if (parent is FrameworkElement { Tag: Flyout flyout })
+            {
+                flyout.Hide();
+                row.IsOpen = false;
+                break;
+            }
     }
 
     private void OnValuesClosed(object? sender, object e)
     {
-        if ((sender as Flyout)?.Target is FrameworkElement { DataContext: FilterValuesRow row })
+        if (sender is Flyout flyout && (flyout.Target ?? FindValuesButton(this, flyout)) is FrameworkElement { DataContext: FilterValuesRow row })
             row.IsOpen = false;
     }
 }

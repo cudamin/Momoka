@@ -68,6 +68,7 @@ internal static class Program
         FocusWatchTests.Register();
         SettingsControlNameTests.Register();
         DeferredCardsTests.Register();
+        FilterValuesTests.Register();
         return TestHarness.Run();
     }
 

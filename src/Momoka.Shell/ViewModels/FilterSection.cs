@@ -234,7 +234,6 @@ public sealed partial class FilterChecksRow : FilterRow
 /// when the flyout is first opened rather than when the panel is.
 /// </para>
 /// </summary>
-/// </summary>
 public sealed partial class FilterValuesRow : FilterRow
 {
     private const string Category = "筛选";
@@ -269,6 +268,19 @@ public sealed partial class FilterValuesRow : FilterRow
     public partial bool IsOpen { get; set; }
 
     public Visibility NoteVisibility => Note.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+
+    public string SelectAllLabel => $"全选：{Label}";
+
+    /// <summary>Emby actionsheet's 全选 means no restriction, rather than enumerating every value.</summary>
+    public void SelectAll()
+    {
+        var chosen = _selection.Values(_list.Key);
+        var changed = chosen.Count > 0;
+        chosen.Clear();
+        foreach (var check in Values) check.Set(false);
+        ShowSummary();
+        if (changed) _owner.Notify();
+    }
 
     internal override IEnumerable<string> Labels => [Label];
 
