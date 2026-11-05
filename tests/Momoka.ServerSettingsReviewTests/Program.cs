@@ -70,6 +70,7 @@ await FnNasArtwork.RunAsync();
 DisplaySettings.Run();
 await NotificationEditor.RunAsync();
 await MetadataEditor.RunAsync();
+ReviewEditorProbeContract.Run();
 
 sealed class OpaqueProtector : ISecretProtector
 {

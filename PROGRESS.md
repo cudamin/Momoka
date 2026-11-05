@@ -10609,3 +10609,7 @@ R1在Plex适配层按100条原始页扫描，过滤后返回真实总数及Start
 - 最终关闭边界复核又以匿名登录挂起前件复现下载发送，已把AniBT资源下载绑定同一开关取消；高级媒体/选项读取后重核资源代次。首次完整主测3756/3756全绿；此末轮改动后的专项和全套另留final日志，未覆盖真实UI。
 
 - 本树最终主测试3757/3757、0失败0跳过（final-full-main-tests.log）；Shell/Core Release0警告0错误。最终AniBT确认57/57、来源契约40/40，订阅身份3组0失败；27个变更文本行尾/BOM/空白通过。所有核验为匿名离线，本批未做桌面UI、真实播放或服务器写入。
+
+## 2026-11-05 审查编辑器正式运行探针
+
+新增单个ShellNavigationProbe.ReviewEditors.cs及metadata两条case：真实MetadataDialog匿名保存失败保草稿/重试成功/取消零写/在飞关闭保护；真实NotificationEditDialog匿名保存事件ID、未知事件及名单失败/缺项范围保留。1100/760宽度，UIA Invoke/Toggle操作实际控件，文本属性赋值，无指针注入、会话、HTTP或通知发送，保存8张review-metadata/review-notification截图。新源契约检查注册、实际控件及匿名能力边界，连原ServerSettingsReview专项通过；当前Shell Release 0警告0错误，变更check-diff通过。按父会话要求未启动桌面，实际case与截图由根代理串行执行，不能把编译/源契约称作运行通过。

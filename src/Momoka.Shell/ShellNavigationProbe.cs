@@ -93,6 +93,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("Emby 元数据表单字段、锁定和宽窄布局", MetadataLayoutAsync, 75, section: ShellProbeSections.Metadata);
             await CaseAsync("Emby 元数据列表编辑、重排和取消", MetadataListsAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("Emby 元数据保存失败、取消和重试", MetadataSaveAsync, 45, section: ShellProbeSections.Metadata);
+            await CaseAsync("Jellyfin 元数据草稿、标签与宽窄保存（匿名UIA）", ReviewMetadataEditorAsync, 60, section: ShellProbeSections.Metadata);
+            await CaseAsync("通知事件、失败名单与宽窄保存（匿名UIA）", ReviewNotificationEditorAsync, 60, section: ShellProbeSections.Metadata);
             await CaseAsync("媒体库弹窗五主题圆角和侧栏底色，MP保持原样", LibraryDialogChromeAsync, 120, section: ShellProbeSections.Metadata);
             // 2026-10-29 用户令：所有弹窗点外面就关，字幕管理右上角一颗 ✕、右下角那颗去掉。真模板真弹窗，
             // 遮罩那一层只能验到「找得到、铺满、不在弹窗树里」；真实按下那一米归 UIA 鼠标回归（见 DialogDismissAsync 头上那段）。
