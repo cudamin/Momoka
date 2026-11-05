@@ -329,8 +329,8 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
                 Require(!page.ViewModel.Showcase, "普通尺寸不应触发沉浸布局");
-                var picture = Get<Border>(page, "BackdropPicture");
-                Require(Math.Abs(picture.Opacity - 0.945) < 0.001, "背景图增量没有立即落到实际图片层");
+                var backdrop = Get<Grid>(page, "Backdrop");
+                Require(Math.Abs(backdrop.Opacity - 0.45) < 0.001, "背景图不透明度没有立即落到背景整层");
                 await CheckControlBackgroundOpacityAsync(page, fixture.Settings.Ui);
                 fixture.Settings.Ui.AlwaysImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
@@ -338,7 +338,18 @@ internal sealed partial class ShellNavigationProbe
                 Require(page.ViewModel.Showcase == (item.Type != EmbyItemType.Episode),
                     "固定沉浸没有按剧/电影及单集适用边界生效");
                 if (item.Type != EmbyItemType.Episode)
-                    Require(Math.Abs(picture.Opacity - 0.978) < 0.001, "沉浸背景不透明度没有按同一增量计算");
+                    Require(Math.Abs(backdrop.Opacity - 0.45) < 0.001, "沉浸版式把背景图浓度改掉了");
+                var band = Get<Grid>(page, "HeroBand");
+                var heroHeight = band.ActualHeight;
+                fixture.Settings.Ui.BackdropOpacity = 0;
+                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                await LayoutAsync(page);
+                Require(backdrop.Opacity == 0, "零档背景图没有完全透明");
+                // 关掉背景图只收画面，版式不动：海报、片名和那排键还在原位。
+                Require(Math.Abs(band.ActualHeight - heroHeight) < 0.5, "关掉背景图改变了头图那一格的高");
+                await SaveProbeScreenAsync($"detail-customization-{item.Type}-backdrop-off.png");
+                fixture.Settings.Ui.BackdropOpacity = 45;
+                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await CheckGaussianBackdropAsync(page, fixture.Settings.Ui, () => reads);
                 ResizeProbeClient(1100, 1120);
                 await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
@@ -361,8 +372,8 @@ internal sealed partial class ShellNavigationProbe
                 Require(!page.ViewModel.Showcase, "关闭固定沉浸没有恢复自动模式");
                 fixture.Settings.Ui.BackdropOpacity = 100;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-                Require(Math.Abs(picture.Opacity - 1) < 0.001, "背景增量100未完全不透明");
-                readings.Add($"{item.Type}：{string.Join(',', expected.Select(card => card.Key))}，隐藏恢复同实例，背景增量45/100，窄窗保留紧凑布局");
+                Require(Math.Abs(backdrop.Opacity - 1) < 0.001, "背景图100档未完全不透明");
+                readings.Add($"{item.Type}：{string.Join(',', expected.Select(card => card.Key))}，隐藏恢复同实例，背景图0/45/100，窄窗保留紧凑布局");
             }
             // 季页使用原有顺序；剧与单集的自定义不应连带改掉它。
             ResizeProbeClient(1100, 1120);
@@ -577,24 +588,29 @@ internal sealed partial class ShellNavigationProbe
                     ShellPrefs.ApplyAppearance(ui);
                     Require(VisualStateManager.GoToState(control, state, false), "控件缺少状态：" + state);
                     await LayoutAsync(control);
-                    var baseline = Fill();
-                    Require(baseline is AcrylicBrush { AlwaysUseFallback: true }, "实际控件底色不是可调画刷");
-                    var color = ((AcrylicBrush)baseline!).FallbackColor;
-                    var opacity = baseline!.Opacity;
+                    var zero = Fill();
+                    Require(zero is AcrylicBrush { AlwaysUseFallback: true }, "实际控件底色不是可调画刷");
+                    var color = ((AcrylicBrush)zero!).FallbackColor;
+                    var opacity = zero!.Opacity;
+                    var baseline = opacity * color.A / 255d;
+                    var feedback = state is "PointerOver" or "Pressed" or "CheckedPointerOver" or "CheckedPressed";
+                    // 0 档：常态什么底都不画，悬停与按下仍留原来那层薄白（指针的手感，不是底色）。
+                    Require(feedback ? baseline > 0 : baseline == 0 && color.A == 0,
+                        control.Name + "/" + state + (feedback ? " 零档丢了悬停的薄白" : " 零档还画着底色"));
                     var foreground = control.Foreground;
                     ui.ControlBackgroundOpacity = 37;
                     ShellPrefs.ApplyAppearance(ui);
                     Require(VisualStateManager.GoToState(control, state, false), "外观调整后控件丢失状态：" + state);
                     await LayoutAsync(control);
-                    Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } adjusted && Math.Abs(adjusted.Opacity * adjusted.FallbackColor.A / 255d
-                            - (opacity * color.A / 255d + (1 - opacity * color.A / 255d) * 0.37)) < 0.001,
-                        control.Name + "/" + state + " 底色没有从原浓度增加不透明度");
+                    Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } adjusted
+                            && Math.Abs(adjusted.Opacity * adjusted.FallbackColor.A / 255d - Math.Max(0.37, baseline)) < 0.001,
+                        control.Name + "/" + state + " 底色浓度不是滑块读数");
                     Require(control.Opacity == 1 && ReferenceEquals(control.Foreground, foreground),
                         "底色调节改变了整个控件或文字画刷");
                     ui.ControlBackgroundOpacity = 100;
                     ShellPrefs.ApplyAppearance(ui);
                     Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } opaque && opaque.FallbackColor.A == 255 && opaque.Opacity == 1,
-                        "底色增量100未完全不透明");
+                        "底色100档未完全不透明");
                     Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } readable && readable.FallbackColor.R < 128
                         && readable.FallbackColor.G < 128 && readable.FallbackColor.B < 128,
                         "不透明底色变成亮白，无法读取浅色文字");
@@ -604,12 +620,12 @@ internal sealed partial class ShellNavigationProbe
                     ShellPrefs.ApplyAppearance(ui);
                     await LayoutAsync(control);
                     Require(ReferenceEquals(Fill(), owned) && Fill() is AcrylicBrush { AlwaysUseFallback: false } glass
-                        && Math.Abs(glass.TintOpacity - 0.55) < 0.001 && glass.FallbackColor.A == 255,
-                        control.Name + "/" + state + " 亚克力没有使用固定画刷和主题回退");
+                        && Math.Abs(glass.TintOpacity) < 0.001 && glass.FallbackColor.A == 255,
+                        control.Name + "/" + state + " 亚克力零档不是完全透明或丢了主题回退");
                     ui.ControlBackgroundOpacity = 37;
                     ShellPrefs.ApplyAppearance(ui);
                     Require(Fill() is AcrylicBrush { AlwaysUseFallback: false } thicker
-                        && Math.Abs(thicker.TintOpacity - (0.55 + 0.45 * 0.37)) < 0.001,
+                        && Math.Abs(thicker.TintOpacity - 0.37) < 0.001,
                         "亚克力没有随不透明度增加");
                     ui.ControlBackgroundOpacity = 99.9;
                     ShellPrefs.ApplyAppearance(ui);
@@ -712,9 +728,10 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(ui);
                 Require(VisualStateManager.GoToState(button, state, false), "首页详情按钮外观调整后丢失状态：" + state);
                 await LayoutAsync(banner);
-                Require(surface.Fill is AcrylicBrush { AlwaysUseFallback: true } adjusted && Math.Abs(adjusted.Opacity * adjusted.FallbackColor.A / 255d
-                        - (opacity * color.A / 255d + (1 - opacity * color.A / 255d) * 0.37)) < 0.001,
-                    "首页详情按钮底色没有从原浓度增加不透明度");
+                Require(surface.Fill is AcrylicBrush { AlwaysUseFallback: true } adjusted
+                        && Math.Abs(adjusted.Opacity * adjusted.FallbackColor.A / 255d
+                            - Math.Max(0.37, opacity * color.A / 255d)) < 0.001,
+                    "首页详情按钮底色浓度不是滑块读数");
                 Require(button.Opacity == 1 && ReferenceEquals(presenter.Foreground, foreground), "首页详情文字跟着底色变透明");
                 foreach (var layer in new[] { Get<Grid>(banner, "LayerA"), Get<Grid>(banner, "LayerB") })
                     Require(layer.Background is ImageBrush picture && Math.Abs(picture.Opacity - 1) < 0.001,

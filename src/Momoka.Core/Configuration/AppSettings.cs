@@ -12,7 +12,7 @@ namespace Momoka.Configuration;
 /// </summary>
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 26;
+    public const int CurrentSchemaVersion = 27;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -1380,11 +1380,29 @@ public sealed class UiSettings
     /// <summary>电影详情页正文卡片的排序与显示偏好。</summary>
     public List<DetailCardSetting> MovieCards { get; set; } = [];
 
-    /// <summary>详情按钮与选择框底色的不透明度增量；0 保留现有底色，100 完全不透明。</summary>
+    /// <summary>
+    /// 详情按钮与选择框底色的不透明度（%）：0 完全透明（没有底色），100 完全不透明。
+    /// <para>
+    /// 2026-11-06 用户令「0 改为完全透明，100 改为完全不透明」：这一格从「在原底色上再加多少」改成直接读数，
+    /// 所以 0 档真的什么都不画。悬停与按下仍保留原来那层薄白 —— 那是按钮的手感，不是底色。
+    /// </para>
+    /// </summary>
     public double ControlBackgroundOpacity { get; set; }
 
-    /// <summary>详情背景图的不透明度增量；0 保留普通与沉浸默认值，100 完全不透明。</summary>
-    public double BackdropOpacity { get; set; }
+    /// <summary>
+    /// 详情背景图的不透明度（%）：0 完全透明（背景图不参与画面），100 完全不透明；普通与沉浸版式共用这一档。
+    /// <para>
+    /// 同样在 2026-11-06 改成直接读数。缺键的旧文件由 <c>SettingsMigration</c> 按旧的增量语义换算，
+    /// 落在 <see cref="DefaultBackdropOpacity"/>。
+    /// </para>
+    /// </summary>
+    public double BackdropOpacity { get; set; } = DefaultBackdropOpacity;
+
+    /// <summary>
+    /// 背景图出厂浓度（%）。旧版是普通 0.9／沉浸 0.96 两档写死，用户令「降低默认的背景图不透明度」，
+    /// 出厂降到这一档；滑块仍可拖到 100。
+    /// </summary>
+    public const double DefaultBackdropOpacity = 40;
 
     /// <summary>按钮与选择框使用应用内亚克力；缺键保留现有底色。</summary>
     public bool UseAcrylicControls { get; set; }

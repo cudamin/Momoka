@@ -31,7 +31,7 @@ internal static class GaussianBackdropTests
             SettingsPreferences.Apply(live, new AppSettings());
             Assert.False(live.Ui.UseGaussianBackdrop);
             Assert.False(live.Ui.UseAcrylicControls);
-            Assert.Equal(0d, live.Ui.BackdropOpacity);
+            Assert.Equal(UiSettings.DefaultBackdropOpacity, live.Ui.BackdropOpacity);
             Assert.Equal(1280d, live.Ui.WindowWidth);
         });
         Test("真高斯：单点响应符合归一化指数核而非盒式", () =>

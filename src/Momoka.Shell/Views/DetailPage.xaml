@@ -194,23 +194,23 @@
              它走了，而是因为正文那张纸不透明，压着它过去（「滑到下面不用显示背景了，五颜六色的太丑了」，见下面
              BodySheet）。
              整层跟着「服务器上有没有这张图」开合，不是跟着「位图解出来了没有」（见 HeroArtVisibility）：层先站好，
-             罩子就先压住了标题栏那行字，图到了只是这一层里多一张画面。 -->
-        <Grid x:Name="Backdrop" Visibility="{x:Bind ViewModel.HeroArtVisibility, Mode=OneWay}">
+             罩子就先压住了标题栏那行字，图到了只是这一层里多一张画面。
+             右上角那个 0.4 只是第一帧和设计时的值：真正的一档来自设置（UiSettings.BackdropOpacity，出厂 40%），
+             构造函数里落到这一层上，滑块与沉浸切换都改同一个数 —— 两处各写一个数就是两处会分叉。
+             不透明度写在最外层，是因为「0 档完全透明」要连图上的阅读遮罩、底部收边和标题栏那条洗色一起收走；
+             只淡图片会留下一块比纸面更深的底。 -->
+        <Grid x:Name="Backdrop" Opacity="0.4" Visibility="{x:Bind ViewModel.HeroArtVisibility, Mode=OneWay}">
 
             <!-- 盒子的高由 PictureHeight 给（Core 那一支纯函数），顶对齐：宽的窗口上它跟视口一样高，照旧铺满
                  第一屏；窄到「页宽 × 图的高宽比」够不着视口之后盒高就跟着页宽走 —— 「窗口收窄时背景图要等比例
                  缩放」，整张图等比缩小、一像素不裁，盒子底下多出来的那段露出层底，交给压暗的尾部（站在正文那
                  一叠里的 HeroTail，同宽模式下它底下透着的是这张图）。UniformToFill 在跟图同形的盒子里画的就是
                  完整一张；从前的「越窄裁得越狠」是盒子永远跟视口一样高、按高撑满的错，不是拉伸方式的错。
-                 0.9 是原来的 0.6 抬上来的 —— 要压暗的是站着字的那两块，那件事交给两道罩子，不该整张图陪着
-                 一起暗。解码宽度见 DetailViewModel.HeroDecodeWidth。
-                 这里写的 0.9 只是第一帧和设计时的值：真正的两档在 Core（DetailHero.BackdropOpacity 与
-                 ShowcaseBackdropOpacity），构造函数里落成常态那一档，沉浸档的过渡由 DetailPage.Showcase.cs
-                 改这一个属性 —— 两处各写一个数就是两处会分叉。 -->
+                 解码宽度见 DetailViewModel.HeroDecodeWidth。
+                 这张图自己不压暗也不调透明度：浓度由外面那一层的 Opacity 给。 -->
             <Border
                 x:Name="BackdropPicture"
                 Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
-                Opacity="0.9"
                 VerticalAlignment="Top"
                 Visibility="{x:Bind ViewModel.HeroVisibility, Mode=OneWay}">
                 <Border.Background>

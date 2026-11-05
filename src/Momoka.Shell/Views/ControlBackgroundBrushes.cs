@@ -9,18 +9,22 @@ namespace Momoka.Shell.Views;
 /// 每态固定一支材质画刷：现有底色走精确实色回退，亚克力走原生材质。文字、图标、边线与弹层沿用原有状态。
 /// 框架 2.3.9 的 DefaultButtonStyle/DefaultToggleButtonStyle 在三种状态分别读取这些资源键，
 /// 所以必须提供整组三态，不能只给 Background 填一支刷子。
+/// <para>
+/// 滑块的读数就是底色自己的不透明度（2026-11-06 用户令「0 改为完全透明，100 改为完全不透明」）：0 档常态什么
+/// 都不画，悬停与按下仍留原来那层薄白 —— 那是指针的手感，不是要关掉的那块板。
+/// </para>
 /// </summary>
 internal sealed class ControlBackgroundBrushes
 {
-    private readonly List<(SolidColorBrush Source, SolidColorBrush Target, AcrylicBrush Copy)> _brushes = [];
+    private readonly List<(SolidColorBrush Source, SolidColorBrush Target, AcrylicBrush Copy, bool Feedback)> _brushes = [];
 
     private ControlBackgroundBrushes(Control control, string prefix,
         SolidColorBrush normal, SolidColorBrush hover, SolidColorBrush pressed, SolidColorBrush disabled)
     {
-        var rest = Copy(normal, "EgSurfaceElevatedBrush");
-        var over = Copy(hover, "EgSurfaceHoverBrush");
-        var down = Copy(pressed, "EgSurfaceAltBrush");
-        var off = Copy(disabled, "EgSurfaceElevatedBrush");
+        var rest = Copy(normal, "EgSurfaceElevatedBrush", feedback: false);
+        var over = Copy(hover, "EgSurfaceHoverBrush", feedback: true);
+        var down = Copy(pressed, "EgSurfaceAltBrush", feedback: true);
+        var off = Copy(disabled, "EgSurfaceElevatedBrush", feedback: false);
         // XAML 不声明下面这些键；此处仅在构造时新增一次，以后只修改画刷。
         // WinUI 的别名重写按对象移除，可能报 0x800F0902；资源枚举也不能作为别名复制依据。
         // 保留原字典与所有前景资源，避免重写、移除或枚举已经存在的别名。
@@ -60,54 +64,61 @@ internal sealed class ControlBackgroundBrushes
     public void Apply(double percent, bool useAcrylic = false)
     {
         var amount = AppearanceOpacity.ControlBackground(percent);
-        foreach (var (source, target, copy) in _brushes)
+        foreach (var (source, target, copy, feedback) in _brushes)
         {
             if (useAcrylic && amount < 1)
             {
-                // 0 沿用项目动作亚克力的材质浓度，向上补到实底。画刷本身保持不透明，
-                // 系统关闭透明效果时 FallbackColor 仍是一块可读的主题表面。
+                // 亚克力跟着同一档浓度：0 档是一块什么都不画的玻璃，向右补到 100 的实底（由下面那条路接手）。
+                // 画刷本身保持不透明，系统关闭透明效果时 FallbackColor 仍是一块可读的主题表面。
                 copy.TintColor = target.Color;
                 copy.FallbackColor = target.Color;
-                copy.TintOpacity = 0.55 + 0.45 * amount;
-                copy.TintLuminosityOpacity = 0.5 + 0.5 * amount;
+                copy.TintOpacity = amount;
+                copy.TintLuminosityOpacity = amount;
                 copy.Opacity = 1;
                 copy.AlwaysUseFallback = false;
                 continue;
             }
             var color = source.Color;
+            // 原底色那一层薄白的有效浓度 —— 悬停与按下在它以下时仍然是那层白，不是一块淡掉的深色板。
+            var floor = feedback ? color.A / 255d * source.Opacity : 0;
             if (amount == 0)
             {
+                // 0 档常态没有底色。悬停与按下的副本仍留着原来那层薄白：指到按钮上要看得见反应。
+                var clear = color;
+                clear.A = 0;
+                copy.FallbackColor = feedback ? color : clear;
+                copy.Opacity = feedback ? source.Opacity : 0;
+                copy.AlwaysUseFallback = true;
+                continue;
+            }
+            if (amount <= floor)
+            {
+                // 滑块还没爬过原底色那一档：颜色和浓度照旧，免得悬停手感在零档附近忽然断掉。
                 copy.FallbackColor = color;
                 copy.Opacity = source.Opacity;
                 copy.AlwaysUseFallback = true;
                 continue;
             }
-            // 原底色常为一层薄白，直接变浓会成白块白字。补上的不透明层用当前主题的深色表面，
-            // 按各层有效 alpha 混色；趋近零档时仍连续，100 档既完全不透明也保留三态区别。
-            var baseline = color.A / 255d * source.Opacity;
-            var added = (1 - baseline) * amount;
-            var opacity = baseline + added;
+            // 底色就是主题那一档表面色，浓度直接等于百分比。旧版把原底色的 alpha 当起点往上加，
+            // 于是 1% 一上来就是一层薄白、读数说不清；2026-11-06 起读数就是屏上的浓度。
             var surface = target.Color;
-            color.R = Channel(color.R, surface.R, baseline, added, opacity);
-            color.G = Channel(color.G, surface.G, baseline, added, opacity);
-            color.B = Channel(color.B, surface.B, baseline, added, opacity);
-            color.A = byte.MaxValue;
-            copy.FallbackColor = color;
-            copy.Opacity = opacity;
+            surface.A = byte.MaxValue;
+            copy.FallbackColor = surface;
+            copy.Opacity = amount;
             copy.AlwaysUseFallback = true;
             if (amount == 1)
             {
                 // 极近 100 的小数档可能已经被平台按 alpha 舍入成实底；先跨过不透明状态，
                 // 再落到完全不透明，确保结束平台尚在执行的 fallback 过渡。
                 copy.TintOpacity = 0;
-                copy.TintColor = color;
+                copy.TintColor = surface;
                 copy.TintLuminosityOpacity = 1;
                 copy.TintOpacity = 1;
             }
         }
     }
 
-    private AcrylicBrush Copy(SolidColorBrush source, string targetKey)
+    private AcrylicBrush Copy(SolidColorBrush source, string targetKey, bool feedback)
     {
         var copy = new AcrylicBrush
         {
@@ -116,13 +127,10 @@ internal sealed class ControlBackgroundBrushes
             AlwaysUseFallback = true,
             TintTransitionDuration = TimeSpan.Zero
         };
-        _brushes.Add((source, Resource(targetKey), copy));
+        _brushes.Add((source, Resource(targetKey), copy, feedback));
         return copy;
     }
 
     private static SolidColorBrush Resource(string key) => (SolidColorBrush)Application.Current.Resources[key];
-
-    private static byte Channel(byte source, byte target, double baseline, double added, double opacity) =>
-        (byte)Math.Clamp(Math.Round((source * baseline + target * added) / opacity), 0, 255);
 
 }

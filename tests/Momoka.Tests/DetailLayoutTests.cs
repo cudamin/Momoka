@@ -22,15 +22,33 @@ internal static class DetailLayoutTests
 
         Test("详情卡片：旧配置缺键保留三个页面的默认顺序与可见性", () =>
         {
-            var ui = SettingsMigration.FromJson("{\"SchemaVersion\":26,\"Ui\":{}}",
+            var ui = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{}}",
                 PassthroughSecretProtector.Instance).Ui;
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Series)));
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
             Assert.Equal("info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Movie)));
             Assert.True(DetailLayout.For(ui, EmbyItemType.Series).All(row => row.Visible));
             Assert.Equal(0d, ui.ControlBackgroundOpacity);
-            Assert.Equal(0d, ui.BackdropOpacity);
+            Assert.Equal(UiSettings.DefaultBackdropOpacity, ui.BackdropOpacity);
             Assert.False(ui.AlwaysImmersive);
+        });
+
+        Test("详情透明度：v26 的增量读数换算成直接不透明度，旧的 0 落到新出厂浓度", () =>
+        {
+            foreach (var (stored, expected) in new (double, double)[]
+            {
+                (0, UiSettings.DefaultBackdropOpacity), (43, 65.8), (100, 100), (37.5, 62.5), (-5, 40), (250, 100)
+            })
+            {
+                var ui = SettingsMigration.FromJson(
+                    "{\"SchemaVersion\":26,\"Ui\":{\"BackdropOpacity\":" + stored.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "}}",
+                    PassthroughSecretProtector.Instance).Ui;
+                Assert.Equal(expected, ui.BackdropOpacity);
+            }
+            // 已经是 v27 的文件原样保留：用户自己拖出来的 0 就是「关掉背景图」。
+            var current = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{\"BackdropOpacity\":0}}",
+                PassthroughSecretProtector.Instance).Ui;
+            Assert.Equal(0d, current.BackdropOpacity);
         });
 
         Test("详情卡片：重复和无效键不占位，补全遗漏且不改变用户隐藏状态", () =>
@@ -87,7 +105,7 @@ internal static class DetailLayoutTests
         {
             var settings = SettingsMigration.FromJson("""
                 {
-                  "SchemaVersion":26,
+                  "SchemaVersion":27,
                   "Ui": {
                     "SeriesCards":null,
                     "EpisodeCards":[null,{"Key":"cast","Visible":false},{"Key":"cast"},{"Key":"bad"}],
@@ -146,7 +164,7 @@ internal static class DetailLayoutTests
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(live.Ui.SeriesCards));
             Assert.True(live.Ui.SeriesCards.All(row => row.Visible));
             Assert.Equal(0d, live.Ui.ControlBackgroundOpacity);
-            Assert.Equal(0d, live.Ui.BackdropOpacity);
+            Assert.Equal(UiSettings.DefaultBackdropOpacity, live.Ui.BackdropOpacity);
             Assert.False(live.Ui.AlwaysImmersive);
             Assert.Equal(1500d, live.Ui.WindowWidth);
             Assert.Equal(900d, live.Ui.WindowHeight);

@@ -286,7 +286,7 @@ internal sealed partial class ShellNavigationProbe
     /// <summary>1080宽度下缩短/拉高窗口，验证内容触发及退出动画，再验证最大化与还原。</summary>
     private async Task ResponsiveShowcaseAsync(DetailPage page)
     {
-        var picture = Get<Border>(page, "BackdropPicture");
+        var backdrop = Get<Grid>(page, "Backdrop");
 
         // 前一条用例若把窗口留在最大化上，ResizeClient 会被忽略 —— 先还原再量，免得把「窗口没动」当成版面没跟上。
         if (_window!.IsMaximized) _window.ToggleMaximize();
@@ -314,11 +314,12 @@ internal sealed partial class ShellNavigationProbe
             + $"裁切={page.ViewModel.NearCrop}、沉浸={page.ViewModel.Showcase}、铺开={page.ViewModel.Spacious}、"
             + $"紧凑={page.ViewModel.IsCompact}、有图={page.ViewModel.BackdropShown}、类型={page.ViewModel.ItemType}、"
             + $"页宽={page.ViewModel.PageWidth:0}、视口={page.ViewModel.Viewport:0}、图比={page.ViewModel.HeroHeightRatio:0.###}、"
-            + $"不透明度={picture.Opacity:0.###}";
+            + $"不透明度={backdrop.Opacity:0.###}";
         Require(page.ViewModel.Showcase, "裁切那条线没有触发无遮挡版式：" + state);
-        await UntilAsync(() => Math.Abs(picture.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001);
-        Require(Math.Abs(picture.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001,
-            $"裁切触发后背景图该是 {DetailHero.ShowcaseBackdropOpacity}，实际 {picture.Opacity:0.###}（{state}）");
+        await UntilAsync(() => !page.ShowcaseAnimating);
+        // 2026-11-06 起背景图浓度只由设置给，翻面不再改它 —— 两种版式读同一个数。
+        Require(Math.Abs(backdrop.Opacity - page.ViewModel.BackdropOpacity) < 0.001,
+            $"裁切触发后背景整层不再是设置里那一档：实际 {backdrop.Opacity:0.###}、设置 {page.ViewModel.BackdropOpacity:0.###}（{state}）");
         await SaveProbeScreenAsync("detail-responsive-crop-showcase.png");
 
         var animationsBeforeExit = page.ShowcaseAnimations;
@@ -333,19 +334,18 @@ internal sealed partial class ShellNavigationProbe
                 "拉高退出大窗时没有走过渡动画（ShowcaseAnimations 没有增加）");
         }
 
-        // 动画起步时读到的还是中间值，等到终点再比 —— 这里等的是过渡走完，不是放宽断言。
-        await UntilAsync(() => Math.Abs(picture.Opacity - DetailHero.BackdropOpacity) < 0.001);
-        Require(Math.Abs(picture.Opacity - DetailHero.BackdropOpacity) < 0.001,
-            $"回到纸面版式后背景图该是 {DetailHero.BackdropOpacity}，实际 {picture.Opacity:0.###}");
+        // 过渡收尾也读同一档：动画停下不能把浓度写回某种旧值。
+        await UntilAsync(() => !page.ShowcaseAnimating);
+        Require(Math.Abs(backdrop.Opacity - page.ViewModel.BackdropOpacity) < 0.001,
+            $"回到纸面版式后背景整层不再是设置里那一档：实际 {backdrop.Opacity:0.###}");
         await SaveProbeScreenAsync("detail-responsive-crop-paper.png");
 
-        // 最大化那一路（窗口铺开）也走同一档、同一支不透明度；还原后回到 0.9。
+        // 最大化那一路（窗口铺开）走同一档，浓度照旧不动。
         var animationsBeforeMaximize = page.ShowcaseAnimations;
         if (!_window!.IsMaximized) _window.ToggleMaximize();
-        await UntilAsync(() => page.ViewModel.Showcase
-            && Math.Abs(picture.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001);
-        Require(Math.Abs(picture.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001,
-            $"最大化后背景图该是 {DetailHero.ShowcaseBackdropOpacity}，实际 {picture.Opacity:0.###}");
+        await UntilAsync(() => page.ViewModel.Showcase && !page.ShowcaseAnimating);
+        Require(Math.Abs(backdrop.Opacity - page.ViewModel.BackdropOpacity) < 0.001,
+            $"最大化后背景整层不再是设置里那一档：实际 {backdrop.Opacity:0.###}");
         if (HomeMotion.AnimationsEnabled)
         {
             Require(page.ShowcaseAnimations > animationsBeforeMaximize,
@@ -356,10 +356,9 @@ internal sealed partial class ShellNavigationProbe
 
         var animationsBeforeRestore = page.ShowcaseAnimations;
         _window.ToggleMaximize();
-        await UntilAsync(() => !page.ViewModel.Showcase
-            && Math.Abs(picture.Opacity - DetailHero.BackdropOpacity) < 0.001);
-        Require(Math.Abs(picture.Opacity - DetailHero.BackdropOpacity) < 0.001,
-            $"还原后背景图该回到 {DetailHero.BackdropOpacity}，实际 {picture.Opacity:0.###}");
+        await UntilAsync(() => !page.ViewModel.Showcase && !page.ShowcaseAnimating);
+        Require(Math.Abs(backdrop.Opacity - page.ViewModel.BackdropOpacity) < 0.001,
+            $"还原后背景整层不再是设置里那一档：实际 {backdrop.Opacity:0.###}");
         if (HomeMotion.AnimationsEnabled)
         {
             Require(page.ShowcaseAnimations > animationsBeforeRestore,
@@ -368,11 +367,14 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 这一条要的那个视口高。窗口客户区报回来是 651（620 加上那条 31 的自绘标题栏），页面在探针里又让出
-    /// 68（标题栏加面包屑），所以滚动视图是 583；<c>ResizeProbeClient</c> 写 620 只是拿它当「希望的高度」，
-    /// 真正落地的是客户区的最小高。
+    /// 这一条要的那个视口高：客户区 620 让出 68（自绘标题栏加面包屑）就是 552。
+    /// <para>
+    /// 2026-11-05 22:13 起 <c>ResizeProbeClient</c> 按真实非客户区差值设窗口，<c>ResizeProbeClient(1080, 620)</c>
+    /// 落地的就是客户区 620（此前按 <c>AppWindow.ResizeClient</c> 会被系统标题栏重复加 31，落成 651）。这里的
+    /// 期望值跟着改成 552 —— 不改的话尺寸本身是对的、断言却在等一个再也到不了的数。
+    /// </para>
     /// </summary>
-    private const double ResponsiveViewport = 583;
+    private const double ResponsiveViewport = 552;
 
     /// <summary>
     /// 改窗口客户区并等页宽跟上。这台桌面上窗口改宽偶尔要第二次才生效（第一次的消息落在最大化

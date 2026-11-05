@@ -400,6 +400,10 @@ public static class DetailHero
 
     /// <summary>
     /// 背景那张图的不透明度：常态 0.9 —— 压暗那么一档，亮图不把标题栏那一行字吃掉。
+    /// <para>
+    /// 2026-11-06 起只有 MoviePilot 订阅／媒体页还读它：Emby 详情页那一档改成用户设置里的直接读数
+    /// （<c>UiSettings.BackdropOpacity</c>，出厂 40%），普通与沉浸共用同一个数。
+    /// </para>
     /// </summary>
     public const double BackdropOpacity = 0.9;
 

@@ -132,6 +132,12 @@ public sealed partial class DetailPage
     internal int ShowcaseAnimations { get; private set; }
 
     /// <summary>
+    /// 这一页这一刻还有没有翻面过渡在走 —— 和上面那个计数配成一对：计数回答「走没走过」，这一句回答「走完没有」。
+    /// 探针等的是后者（同 <c>MoviePilotSubscriptionPage.ShowcaseAnimating</c>）。
+    /// </summary>
+    internal bool ShowcaseAnimating => _showcaseBoard is not null;
+
+    /// <summary>
     /// 五块正文面板 —— 它们在标记里都挂着 <c>EgBodyPanelStyle</c>，底色和描边由样式给；这一支在构造时把两样换成
     /// 自己持有的画刷，好让颜色和透明度能动画。收 <see cref="StackPanel"/> 而不是 <see cref="FrameworkElement"/>：
     /// 换的是 <c>Background</c>／<c>BorderBrush</c> 两个专属于这个类型的属性。
@@ -153,8 +159,9 @@ public sealed partial class DetailPage
         _sheetBrush.Color = PaperColor;
         BodySheet.Background = _sheetBrush;
 
-        // 背景设置按原来的普通/沉浸两档比例缩放；标记里的值只是第一帧，这里与过渡、收尾都读同一结果。
-        BackdropPicture.Opacity = ViewModel.BackdropOpacity;
+        // 背景整层（图、阅读遮罩、底部收边、标题栏洗色）读设置里那一档；标记里的值只是第一帧。
+        // 2026-11-06 起普通与沉浸共用同一个数，翻面不再改它。
+        Backdrop.Opacity = ViewModel.BackdropOpacity;
 
         // 监听本页的 ThemeResource 替换，覆盖系统高对比度；不订阅需要 CoreWindow 的系统事件。
         CardMaterialSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) =>
@@ -409,7 +416,7 @@ public sealed partial class DetailPage
         PaintBackdropReading();
 
         // 收尾读最新偏好，不能把滑块刚设置的浓度写回旧默认。
-        BackdropPicture.Opacity = ViewModel.BackdropOpacity;
+        Backdrop.Opacity = ViewModel.BackdropOpacity;
 
         // 浮起位移的底值就是起步时种下的那 16px；停掉动画只是把它交回来，还得再写一次 0 才算落定。
         foreach (var panel in BodyPanels)
@@ -451,7 +458,6 @@ public sealed partial class DetailPage
         var sheetFrom = _sheetBrush.Color;
         var fillFrom = _panelFill.Opacity;
         var lineFrom = _panelLine.Opacity;
-        var backdropFrom = BackdropPicture.Opacity;
         var panels = ShownPanels();
         var driftFrom = new double[panels.Count];
         for (var slot = 0; slot < panels.Count; slot++)
@@ -474,9 +480,7 @@ public sealed partial class DetailPage
         Track(board, _panelFill, "Opacity", fillFrom, showcase ? 0 : 1, ease, dependent: true);
         Track(board, _panelLine, "Opacity", lineFrom, showcase ? 0 : 1, ease, dependent: true);
 
-        // 3.5) 背景图沿最新偏好过渡；默认仍为 0.9 ↔ 0.96。
-        Track(board, BackdropPicture, "Opacity", backdropFrom,
-            ViewModel.BackdropOpacity, ease);
+        // 3.5) 背景整层不跟版式走 —— 2026-11-06 起它就是设置里那一档，翻面不改它，所以这里没有过渡。
 
         // 4) 每块正文各自浮起那 16px 归位，一块错后一块。停在半路的接着走，停在终点的才种上方向。
         for (var slot = 0; slot < panels.Count; slot++)

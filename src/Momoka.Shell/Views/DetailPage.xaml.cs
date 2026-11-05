@@ -173,6 +173,9 @@ public sealed partial class DetailPage : Page, IShellContent
         // 末色」读的就是这个）。取表上最后那一档而不是 ScrimCeiling：表要是哪天不以最浓收尾，这里跟着走。
         // 集页那块板上这一层不画（HeroCardShown）：那一段的底由 HeroCardBottom 给，再压一层近乎同色的黑白费，
         // 而且它会把板涂回罩子的末色 —— 板上那几块小面板的底边就对不上了。
+        // 有图的那一档这一层是阅读遮罩，浓度不跟背景图那一格走：背景整层淡的是图与它自己里面那两道罩子，这一层
+        // 站在滚动区里；按百分比缩它会让集页比剧页亮出一截（同一档下图的可见度是 p×(1−遮罩)，缩过就变成
+        // p×(1−遮罩×p)），两页就不同一个滑块了。
         HeroTail.Background = ViewModel.HeroCardShown
             ? null
             : new SolidColorBrush(UsesBackdropFade || ViewModel.GaussianBackdropApplied && ViewModel.BackdropShown

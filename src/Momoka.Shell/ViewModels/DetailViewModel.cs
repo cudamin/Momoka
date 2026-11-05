@@ -513,7 +513,8 @@ public sealed partial class DetailViewModel : PageViewModel
     private bool _heroRequestedGaussian;
     private bool _heroRendering;
 
-    public double BackdropOpacity => AppearanceOpacity.Backdrop(_settings?.Settings.Ui.BackdropOpacity ?? 0, Showcase);
+    public double BackdropOpacity => AppearanceOpacity.Backdrop(
+        _settings?.Settings.Ui.BackdropOpacity ?? UiSettings.DefaultBackdropOpacity);
 
     internal void RefreshAppearance()
     {

@@ -162,11 +162,12 @@ internal sealed partial class ShellNavigationProbe
         var backdrop = Get<Grid>(page, "Backdrop");
         var picture = Get<Border>(page, "BackdropPicture");
         var image = picture.Background;
-        var opacity = picture.Opacity;
+        var opacity = backdrop.Opacity;
         try
         {
+            // 像素预期按「图满不透明」算，所以连背景整层那一档一起放到 1；收尾两处都写回去。
+            backdrop.Opacity = 1;
             picture.Background = new SolidColorBrush(Microsoft.UI.Colors.White);
-            picture.Opacity = 1;
             await LayoutAsync(page);
             var bitmap = new RenderTargetBitmap();
             await bitmap.RenderAsync(backdrop);
@@ -206,7 +207,7 @@ internal sealed partial class ShellNavigationProbe
                 }
             }
         }
-        finally { picture.Background = image; picture.Opacity = opacity; }
+        finally { picture.Background = image; backdrop.Opacity = opacity; }
         await LayoutAsync(page);
     }
 }
