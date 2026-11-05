@@ -65,6 +65,8 @@ foreach (var hasAccount in new[] { false, true })
 Console.WriteLine("R28: 8 anonymous connection-test and restore cases passed.");
 await PlexDiscovery.RunAsync();
 await PermissionCache.RunAsync();
+await PlexSearch.RunAsync();
+await FnNasArtwork.RunAsync();
 
 sealed class OpaqueProtector : ISecretProtector
 {

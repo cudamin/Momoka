@@ -213,7 +213,7 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
         {
             return Item(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false));
         }
-        catch (FnNasApiException error) when (!ct.IsCancellationRequested)
+        catch (FnNasApiException error) when (!ct.IsCancellationRequested && error.CanSkipOptionalRead)
         {
             Log.Warn("fnnas", $"轮播底图读取失败：{id}", error);
             return null;
