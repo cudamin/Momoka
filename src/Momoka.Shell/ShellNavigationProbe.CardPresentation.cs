@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
@@ -63,8 +64,16 @@ internal sealed partial class ShellNavigationProbe
                     "成功解码后占位仍然显示");
                 var longTitle = Get<TextBlock>(left, "TitleLine");
                 var shortTitle = Get<TextBlock>(right, "TitleLine");
-                Require(longTitle.MaxLines == 2 && longTitle.ActualHeight == 40
-                    && shortTitle.ActualHeight == 40, "长短媒体片名没有保留同高两行区域");
+                var titleRead = string.Join(Environment.NewLine,
+                    $"theme={theme.Id}; assembly={typeof(PosterCard).Assembly.Location}; root={Box(_root)}; holder={Box(holder)}",
+                    TitleRead("long", left), TitleRead("short", right));
+                File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "card-presentation-layout.txt"),
+                    titleRead + Environment.NewLine);
+                var titlesFit = longTitle.MaxLines == 2 && longTitle.ActualHeight == 40
+                    && shortTitle.ActualHeight == 40;
+                if (!titlesFit)
+                    await SaveProbeScreenAsync($"card-presentation-{theme.Id}-title-failed-screen.png");
+                Require(titlesFit, "长短媒体片名没有保留同高两行区域" + Environment.NewLine + titleRead);
                 var firstSub = Get<TextBlock>(left, "SubLine").TransformToVisual(holder).TransformPoint(new(0, 0)).Y;
                 var secondSub = Get<TextBlock>(right, "SubLine").TransformToVisual(holder).TransformPoint(new(0, 0)).Y;
                 Require(Math.Abs(firstSub - secondSub) < 1, "短片名把年份向上挤动");
@@ -130,6 +139,38 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(holder);
             HomeMotion.ApplyPreference(savedMotion);
             ThemeHost.Apply(savedTheme);
+        }
+
+        string TitleRead(string label, PosterCard card)
+        {
+            var title = Get<TextBlock>(card, "TitleLine");
+            var subtitle = Get<TextBlock>(card, "SubLine");
+            var ancestors = new List<string>();
+            for (DependencyObject? node = title; node is FrameworkElement element; node = VisualTreeHelper.GetParent(node))
+            {
+                ancestors.Add(Box(element));
+                if (ReferenceEquals(node, holder)) break;
+            }
+            return $"{label}: item={card.Card?.Item.Id}/{card.Card?.Item.Type}; "
+                + $"model-lines={card.Card?.TitleMaxLines}; model-height={card.Card?.TitleBlockHeight:R}; "
+                + $"card-width={card.CardWidth:R}; poster-height={card.PosterHeight:R}; "
+                + $"text={title.Text}; max-lines={title.MaxLines}; height-local={title.ReadLocalValue(FrameworkElement.HeightProperty)}; "
+                + $"line-height={title.LineHeight:R}; line-strategy={title.LineStackingStrategy}; wrapping={title.TextWrapping}; "
+                + $"font={title.FontFamily.Source}/{title.FontSize:R}; text-scale-enabled={title.IsTextScaleFactorEnabled}; "
+                + $"dpi-scale={card.XamlRoot?.RasterizationScale:R}; subtitle-y={subtitle.TransformToVisual(card).TransformPoint(new(0, 0)).Y:R}"
+                + Environment.NewLine + string.Join(Environment.NewLine, ancestors);
+        }
+
+        static string Box(FrameworkElement element)
+        {
+            var slot = LayoutInformation.GetLayoutSlot(element);
+            return $"{element.GetType().Name}#{element.Name}: declared={element.Width:R}x{element.Height:R}; "
+                + $"actual={element.ActualWidth:R}x{element.ActualHeight:R}; "
+                + $"desired={element.DesiredSize.Width:R}x{element.DesiredSize.Height:R}; "
+                + $"slot={slot.X:R},{slot.Y:R},{slot.Width:R},{slot.Height:R}; "
+                + $"height-limits={element.MinHeight:R}/{element.MaxHeight:R}; "
+                + $"align={element.HorizontalAlignment}/{element.VerticalAlignment}; "
+                + $"visibility={element.Visibility}; rounding={element.UseLayoutRounding}; margin={element.Margin}";
         }
     }
 }
