@@ -20,13 +20,14 @@ public sealed class MoviePilotHistoryPlan
     public const int MaxFiles = 1000;
     private int _claimed;
     internal MoviePilotHistoryPlan(string title, MoviePilotHistoryAction action, bool batch,
-        string connectionStamp, IReadOnlyList<MoviePilotTransferHistory> histories)
+        string connectionStamp, IReadOnlyList<MoviePilotTransferHistory> histories, IReadOnlyList<string>? libraryPaths = null)
     {
         Title = title;
         Action = action;
         Batch = batch;
         ConnectionStamp = connectionStamp;
         Histories = Array.AsReadOnly(histories.ToArray());
+        LibraryPaths = Array.AsReadOnly((libraryPaths ?? histories.Select(history => history.TargetPath).ToArray()).ToArray());
     }
 
     public string Title { get; }
@@ -34,6 +35,8 @@ public sealed class MoviePilotHistoryPlan
     public bool Batch { get; }
     public string ConnectionStamp { get; }
     public IReadOnlyList<MoviePilotTransferHistory> Histories { get; }
+    /// <summary>当前条目的完整库文件范围；缩小勾选记录不能把未选版本从这个范围移除。</summary>
+    public IReadOnlyList<string> LibraryPaths { get; }
     public bool Claimed => Volatile.Read(ref _claimed) != 0;
     public bool DeleteSource => Action is MoviePilotHistoryAction.DeleteSource or MoviePilotHistoryAction.DeleteAll;
     public bool DeleteDestination => Action is MoviePilotHistoryAction.DeleteDestination or MoviePilotHistoryAction.DeleteAll;
@@ -69,7 +72,7 @@ public sealed class MoviePilotHistoryPlan
             throw new MoviePilotOperationBlockedException("选择包含未核对的整理记录，请重新读取确认范围");
         // 与直接提交争用同一个消费位；并行派生或原计划提交只能有一方取得确认。
         Claim();
-        return new MoviePilotHistoryPlan(Title, Action, Batch, ConnectionStamp, histories);
+        return new MoviePilotHistoryPlan(Title, Action, Batch, ConnectionStamp, histories, LibraryPaths);
     }
 
     internal void Claim()
@@ -122,6 +125,28 @@ public sealed record MoviePilotHistoryReceipt(long Id, string Source, string Des
 public sealed record MoviePilotHistoryResult(bool Smart, string ProgressKey, IReadOnlyList<long> AcceptedIds,
     IReadOnlyList<MoviePilotHistoryReceipt> Receipts, int RequestedCount, string Problem = "")
 {
+    /// <summary>只返回明确完成的库文件删除；源步骤失败仍保留已完成目标，未知回执不推定文件消失。</summary>
+    public IReadOnlyList<string> RemovedLibraryPaths(MoviePilotHistoryPlan plan)
+    {
+        if (Smart || !plan.DeleteDestination) return [];
+        var removed = new List<string>();
+        foreach (var receipt in Receipts.Where(receipt => receipt.Destination is "deleted" or "already_missing"))
+        {
+            var history = plan.Histories.FirstOrDefault(history => history.Id == receipt.Id);
+            if (history is null || string.IsNullOrWhiteSpace(history.TargetPath) ||
+                removed.Any(path => MoviePilotTransfer.SamePath(path, history.TargetPath))) continue;
+            removed.Add(history.TargetPath);
+        }
+        return removed.AsReadOnly();
+    }
+
+    public bool RemovesSubject(MoviePilotHistoryPlan plan)
+    {
+        var removed = RemovedLibraryPaths(plan);
+        return plan.LibraryPaths.Count > 0 && plan.LibraryPaths.All(path => !string.IsNullOrWhiteSpace(path) &&
+            removed.Any(target => MoviePilotTransfer.SamePath(path, target)));
+    }
+
     public bool NeedsReview => Problem.Length > 0 || Receipts.Any(receipt => !receipt.Complete);
     public string Summary => Smart
         ? $"已交给 MoviePilot 智能助手处理 {AcceptedIds.Count} 条整理记录；提交成功不代表文件已整理完成，请在 MP 查看进度和整理历史。"

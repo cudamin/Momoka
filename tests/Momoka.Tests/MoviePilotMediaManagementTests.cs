@@ -337,15 +337,217 @@ internal static class MoviePilotMediaManagementTests
                 Assert.Equal(0, f.Transport.Writes.Count);
             });
         }
-        Test("MP 媒体管理准备：路径歧义和媒体编号冲突不猜测记录", () =>
+        Test("MP 媒体管理准备：媒体编号冲突仍拒绝自动删除", () =>
         {
-            foreach (var fault in new[] { "ambiguous", "changed" })
+            using var f = new HistoryFixture();
+            f.Transport.Fault = "changed";
+            Assert.Throws<MoviePilotException>(() => f.Prepare(MoviePilotHistoryAction.DeleteAll));
+            Assert.Equal(0, f.Transport.Writes.Count);
+        });
+        foreach (var action in new[] { MoviePilotHistoryAction.DeleteRecord, MoviePilotHistoryAction.DeleteSource,
+            MoviePilotHistoryAction.DeleteDestination, MoviePilotHistoryAction.DeleteAll })
+        {
+            Test("MP 删除重复目标：" + action + " 两条同文件历史可选择，已不存在的第二次文件删除也完成", () =>
             {
                 using var f = new HistoryFixture();
-                f.Transport.Fault = fault;
-                Assert.Throws<MoviePilotException>(() => f.Prepare(MoviePilotHistoryAction.DeleteAll));
+                f.Transport.Fault = "duplicate-target";
+                var original = f.Prepare(action);
+                Assert.Equal("99|1", string.Join("|", original.Histories.Select(history => history.Id)));
+                Assert.Equal(0, f.Transport.Writes.Count);
+                var selected = original.SelectRecords([1, 99]);
+                var result = f.Submit(selected);
+                Assert.Equal("{\"id\":99}|{\"id\":1}", string.Join("|", f.Transport.Writes.Select(write => write.Body)));
+                Assert.False(result.NeedsReview);
+                Assert.Equal(2, result.Receipts.Count);
+                Assert.True(result.Receipts.All(receipt => receipt.Complete));
+                Assert.Equal(selected.DeleteDestination ? "already_missing" : "not_requested", result.Receipts[1].Destination);
+                Assert.Equal(selected.DeleteSource ? "already_missing" : "not_requested", result.Receipts[1].Source);
+            });
+        }
+        Test("MP 删除候选：同目标多记录可以只选一条，重新整理仍要求唯一原记录", () =>
+        {
+            using var f = new HistoryFixture();
+            f.Transport.Fault = "duplicate-target";
+            Assert.Throws<MoviePilotException>(() => f.Prepare(MoviePilotHistoryAction.SmartReorganize));
+            var selected = f.Prepare(MoviePilotHistoryAction.DeleteDestination).SelectRecords([1]);
+            Assert.Equal(0, f.Transport.Writes.Count);
+            Assert.False(f.Submit(selected).NeedsReview);
+            Assert.Equal("{\"id\":1}", f.Transport.Writes.Single().Body);
+        });
+        Test("MP 单集删除：成功及失败软链记录有不同源、同一目标，全部可选且仅删除唯一库文件", () =>
+        {
+            using var f = new HistoryFixture();
+            f.Transport.Fault = "mixed-status-target";
+            var context = new MoviePilotTransferContext("Fixture", "电视剧", "1", 1, "5", [new("episode", "/library/one.mkv")]);
+            var plan = f.Service.PrepareHistoryActionAsync(context, MoviePilotHistoryAction.DeleteDestination, false,
+                f.Service.ConnectionStamp, CancellationToken.None).GetAwaiter().GetResult();
+            Assert.Equal("99|1", string.Join("|", plan.Histories.Select(history => history.Id)));
+            Assert.True(plan.Histories.Any(history => history.Success) && plan.Histories.Any(history => !history.Success));
+            Assert.Equal(2, plan.Histories.Select(history => history.SourcePath).Distinct().Count());
+            Assert.Equal("/library/one.mkv", string.Join("|", plan.LibraryPaths));
+            Assert.Equal(0, f.Transport.Writes.Count);
+            var result = f.Submit(plan.SelectRecords([1, 99]));
+            Assert.False(result.NeedsReview);
+            Assert.True(result.RemovesSubject(plan));
+            Assert.Equal("/library/one.mkv", string.Join("|", result.RemovedLibraryPaths(plan)));
+            Assert.Equal("already_missing", result.Receipts[1].Destination);
+            Assert.True(f.Transport.Writes.All(write => write.Query == "?deletesrc=false&deletedest=true"));
+        });
+        Test("MP 删除匹配：精确目标优先于后续源，保留每个文件候选并按记录 ID 去重", () =>
+        {
+            var context = new MoviePilotTransferContext("Fixture", "电影", "1", null, "",
+                [new("one", "/library/one.mkv"), new("two", "/library/two.mkv")]);
+            MoviePilotTransferHistory[] histories =
+            [
+                new() { Id = 1, SourcePath = "/downloads/one.mkv", TargetPath = "/library/one.mkv" },
+                new() { Id = 99, SourcePath = "/downloads/one.mkv", TargetPath = "/library/one.mkv" },
+                new() { Id = 100, SourcePath = "/library/one.mkv", TargetPath = "/library/other.mkv" },
+                new() { Id = 2, SourcePath = "/library/two.mkv", TargetPath = "/library/two.mkv" }
+            ];
+            var matched = MoviePilotTransferHistoryMatch.RequireDeletionMatches(context, histories);
+            Assert.Equal("99|1|2", string.Join("|", matched.Select(history => history.Id)));
+            Assert.Throws<MoviePilotException>(() => MoviePilotTransferHistoryMatch.RequireDeletionMatches(
+                context with { Files = [new("missing", "/library/missing.mkv")] }, histories));
+        });
+        foreach (var action in new[] { MoviePilotHistoryAction.DeleteSource, MoviePilotHistoryAction.DeleteAll })
+        {
+            Test("MP 删除共享源：" + action + " 同目标重复记录可准备，另有不同目标的软链接仍在提交前保护", () =>
+            {
+                using var f = new HistoryFixture();
+                f.Transport.Fault = "duplicate-with-other-target";
+                var plan = f.Prepare(action).SelectRecords([1, 99]);
+                Assert.Equal(0, f.Transport.Writes.Count);
+                Assert.Throws<MoviePilotOperationBlockedException>(() => f.Submit(plan));
+                Assert.Equal(0, f.Transport.Writes.Count);
+            });
+        }
+        Test("MP 删除目标：其它版本共用下载源不会阻止仅删库文件，引用库文件的下游链接仍受保护", () =>
+        {
+            using (var f = new HistoryFixture())
+            {
+                f.Transport.Fault = "duplicate-with-other-target";
+                var result = f.Submit(f.Prepare(MoviePilotHistoryAction.DeleteDestination).SelectRecords([1, 99]));
+                Assert.False(result.NeedsReview);
+                Assert.Equal(2, f.Transport.Writes.Count);
+            }
+            using (var f = new HistoryFixture())
+            {
+                f.Transport.Fault = "dependency";
+                var plan = f.Prepare(MoviePilotHistoryAction.DeleteDestination);
+                Assert.Equal(0, f.Transport.Writes.Count);
+                Assert.Throws<MoviePilotOperationBlockedException>(() => f.Submit(plan));
                 Assert.Equal(0, f.Transport.Writes.Count);
             }
+        });
+        Test("MP 删除共享源：无法核对其它软链接目标时不能当作同目标重复记录", () =>
+        {
+            using var f = new HistoryFixture();
+            f.Transport.Fault = "source-with-unknown-target";
+            var plan = f.Prepare(MoviePilotHistoryAction.DeleteSource);
+            Assert.Equal(0, f.Transport.Writes.Count);
+            Assert.Throws<MoviePilotOperationBlockedException>(() => f.Submit(plan));
+            Assert.Equal(0, f.Transport.Writes.Count);
+        });
+        Test("MP 删除共享源：其它存储里的同名目标仍是另一份软链接，不允许删除其共享源", () =>
+        {
+            using var f = new HistoryFixture();
+            f.Transport.Fault = "source-with-other-storage";
+            var plan = f.Prepare(MoviePilotHistoryAction.DeleteSource);
+            Assert.Equal(0, f.Transport.Writes.Count);
+            Assert.Throws<MoviePilotOperationBlockedException>(() => f.Submit(plan));
+            Assert.Equal(0, f.Transport.Writes.Count);
+        });
+        Test("MP 删除范围：选择单版保留完整条目文件清单，只删一版不会报告整条移除", () =>
+        {
+            using var f = new HistoryFixture();
+            f.Transport.Count = 2;
+            var original = f.Prepare(MoviePilotHistoryAction.DeleteDestination, true);
+            var selected = original.SelectRecords([1]);
+            Assert.Equal("/library/one.mkv|/library/two.mkv", string.Join("|", original.LibraryPaths));
+            Assert.Equal("/library/one.mkv|/library/two.mkv", string.Join("|", selected.LibraryPaths));
+            Assert.Throws<NotSupportedException>(() => ((IList<string>)selected.LibraryPaths)[0] = "/library/changed.mkv");
+            var result = f.Submit(selected);
+            Assert.Equal("/library/one.mkv", string.Join("|", result.RemovedLibraryPaths(selected)));
+            Assert.False(result.RemovesSubject(selected));
+        });
+        Test("MP 删除范围：所有库版本的目标步骤完成后才报告整条移除", () =>
+        {
+            using var f = new HistoryFixture();
+            f.Transport.Count = 2;
+            var plan = f.Prepare(MoviePilotHistoryAction.DeleteDestination, true);
+            var result = f.Submit(plan);
+            Assert.Equal("/library/one.mkv|/library/two.mkv", string.Join("|", result.RemovedLibraryPaths(plan)));
+            Assert.True(result.RemovesSubject(plan));
+        });
+        Test("MP 删除范围：两条历史同一目标只记一次，任一明确目标回执即可证明唯一文件已移除", () =>
+        {
+            using var f = new HistoryFixture();
+            f.Transport.Fault = "duplicate-target";
+            var selected = f.Prepare(MoviePilotHistoryAction.DeleteDestination).SelectRecords([1, 99]);
+            var result = f.Submit(selected);
+            Assert.Equal("/library/one.mkv", string.Join("|", result.RemovedLibraryPaths(selected)));
+            Assert.True(result.RemovesSubject(selected));
+        });
+        Test("MP 删除范围：目标已删除但源删除失败时保留警告，同时准确报告库文件已移除", () =>
+        {
+            using var f = new HistoryFixture();
+            var plan = f.Prepare(MoviePilotHistoryAction.DeleteAll);
+            var result = new MoviePilotHistoryResult(false, "", [], [new(1, "failed", "deleted", "retained", "源删除失败")], 1);
+            Assert.True(result.NeedsReview);
+            Assert.Equal("/library/one.mkv", string.Join("|", result.RemovedLibraryPaths(plan)));
+            Assert.True(result.RemovesSubject(plan));
+        });
+        Test("MP 删除范围：未知、失败、仅删记录与未请求目标均不能摘除条目", () =>
+        {
+            using var f = new HistoryFixture();
+            foreach (var action in new[] { MoviePilotHistoryAction.DeleteRecord, MoviePilotHistoryAction.DeleteSource,
+                MoviePilotHistoryAction.DeleteDestination, MoviePilotHistoryAction.DeleteAll })
+            {
+                var plan = f.Prepare(action);
+                foreach (var destination in new[] { "unknown", "failed", "not_requested" })
+                {
+                    var result = new MoviePilotHistoryResult(false, "", [], [new(1, "deleted", destination, "deleted", "")], 1);
+                    Assert.Equal(0, result.RemovedLibraryPaths(plan).Count);
+                    Assert.False(result.RemovesSubject(plan));
+                }
+            }
+        });
+        Test("MP 删除范围：仅删记录、仅删源及智能回执不接受伪造库删除步骤", () =>
+        {
+            using var f = new HistoryFixture();
+            foreach (var action in new[] { MoviePilotHistoryAction.DeleteRecord, MoviePilotHistoryAction.DeleteSource,
+                MoviePilotHistoryAction.SmartReorganize })
+            {
+                var plan = f.Prepare(action);
+                var result = new MoviePilotHistoryResult(false, "", [], [new(1, "deleted", "deleted", "deleted", "")], 1);
+                Assert.Equal(0, result.RemovedLibraryPaths(plan).Count);
+                Assert.False(result.RemovesSubject(plan));
+            }
+            var deletion = f.Prepare(MoviePilotHistoryAction.DeleteDestination);
+            var smartResult = new MoviePilotHistoryResult(true, "progress", [1], [new(1, "deleted", "deleted", "deleted", "")], 1);
+            Assert.Equal(0, smartResult.RemovedLibraryPaths(deletion).Count);
+            Assert.False(smartResult.RemovesSubject(deletion));
+        });
+        Test("MP 删除范围：Windows 路径归一化能确认删除，远端大小写区别仍保留", () =>
+        {
+            var history = new MoviePilotTransferHistory { Id = 1, TargetPath = "C:\\Library\\One.mkv" };
+            var plan = new MoviePilotHistoryPlan("Fixture", MoviePilotHistoryAction.DeleteDestination, false, "fixture", [history],
+                ["c:/library/one.mkv"]);
+            var result = new MoviePilotHistoryResult(false, "", [], [new(1, "not_requested", "already_missing", "deleted", "")], 1);
+            Assert.True(result.RemovesSubject(plan));
+            var remote = new MoviePilotHistoryPlan("Fixture", MoviePilotHistoryAction.DeleteDestination, false, "fixture",
+                [history with { TargetPath = "/Library/One.mkv" }], ["/library/one.mkv"]);
+            Assert.False(result.RemovesSubject(remote));
+        });
+        Test("MP 删除范围：其它记录或未发送版本的回执不能扩大已移除范围", () =>
+        {
+            using var f = new HistoryFixture();
+            f.Transport.Count = 2;
+            var plan = f.Prepare(MoviePilotHistoryAction.DeleteAll, true);
+            var result = new MoviePilotHistoryResult(false, "", [],
+                [new(1, "deleted", "deleted", "deleted", ""), new(999, "deleted", "deleted", "deleted", "")], 2);
+            Assert.Equal("/library/one.mkv", string.Join("|", result.RemovedLibraryPaths(plan)));
+            Assert.False(result.RemovesSubject(plan));
         });
         Test("MP 文件删除范围：目录和非本地存储不能伪装媒体文件", () =>
         {
@@ -455,6 +657,7 @@ internal static class MoviePilotMediaManagementTests
             Assert.Equal(0, f.Transport.Writes.Count);
         });
     }
+
 }
 
 internal sealed class HistoryFixture : IDisposable
@@ -514,7 +717,12 @@ internal sealed class HistoryTransport : HttpMessageHandler
             HistoryQueries.Add(Uri.UnescapeDataString(query));
             var dependency = Uri.UnescapeDataString(url.Query).Contains("title=/", StringComparison.Ordinal);
             var records = Fault == "missing" || Fault == "renamed" && Uri.UnescapeDataString(query) == "Fixture" ? [] : Enumerable.Range(1, Count).Select(id => History(id)).ToList();
-            if (Fault == "ambiguous") records.Add(History(99, dest: "/library/one.mkv"));
+            if (Fault == "ambiguous" || Fault.StartsWith("duplicate-", StringComparison.Ordinal))
+                records.Add(History(99, dest: "/library/one.mkv", source: "/downloads/one.mkv"));
+            if (Fault == "mixed-status-target") records.Add(History(99, dest: "/library/one.mkv", source: "/downloads/failed-version.mkv"));
+            if (Fault == "duplicate-with-other-target") records.Add(History(100, dest: "/library/other.mkv", source: "/downloads/one.mkv"));
+            if (Fault == "source-with-unknown-target") records.Add(History(100, dest: "", source: "/downloads/one.mkv"));
+            if (Fault == "source-with-other-storage" && dependency) records.Add(History(100, dest: "/library/one.mkv", source: "/downloads/one.mkv"));
             if (Fault == "dependency" && dependency) records.Add(History(99, source: "/library/one.mkv"));
             return Json(new { list = records, total = records.Count });
         }
@@ -537,13 +745,14 @@ internal sealed class HistoryTransport : HttpMessageHandler
             var source = url.Query.Contains("deletesrc=true", StringComparison.Ordinal);
             var dest = url.Query.Contains("deletedest=true", StringComparison.Ordinal);
             var partial = Fault == "partial";
+            var alreadyMissing = (Fault.StartsWith("duplicate-", StringComparison.Ordinal) || Fault == "mixed-status-target") && Writes.Count > 1;
             return Reply(JsonSerializer.Serialize(new
             {
                 success = !partial,
                 data = new
                 {
-                    source = new { status = source ? "deleted" : "not_requested", message = "" },
-                    destination = new { status = dest ? partial ? "failed" : "deleted" : "not_requested", message = partial ? "fixture failure" : "" },
+                    source = new { status = source ? alreadyMissing ? "already_missing" : "deleted" : "not_requested", message = "" },
+                    destination = new { status = dest ? partial ? "failed" : alreadyMissing ? "already_missing" : "deleted" : "not_requested", message = partial ? "fixture failure" : "" },
                     history = partial ? "retained" : "deleted",
                     message = ""
                 }
@@ -555,15 +764,15 @@ internal sealed class HistoryTransport : HttpMessageHandler
     {
         id,
         title = Fault == "renamed" ? "DifferentTitle" : "Fixture",
-        type = "电影",
+        type = Fault == "mixed-status-target" ? "电视剧" : "电影",
         media_source = "themoviedb",
         media_id = Fault == "changed" ? "2" : "1",
-        status = true,
+        status = Fault != "mixed-status-target" || id != 99,
         mode = "softlink",
         src = source ?? (Fault == "selected-dependency" && id == 2 ? "/library/one.mkv" : $"/downloads/{HistoryFixture.Name(id)}.mkv"),
         dest = dest ?? $"/library/{HistoryFixture.Name(id)}.mkv",
         src_fileitem = new { storage = Fault == "remote-storage" ? "cloud" : "local", type = Fault == "source-dir" ? "dir" : "file", path = source ?? (Fault == "selected-dependency" && id == 2 ? "/library/one.mkv" : $"/downloads/{HistoryFixture.Name(id)}.mkv") },
-        dest_fileitem = new { storage = "local", type = Fault == "target-dir" ? "dir" : "file", path = dest ?? $"/library/{HistoryFixture.Name(id)}.mkv" }
+        dest_fileitem = new { storage = Fault == "source-with-other-storage" && id == 100 ? "cloud" : "local", type = Fault == "target-dir" ? "dir" : "file", path = dest ?? $"/library/{HistoryFixture.Name(id)}.mkv" }
     };
     private static HttpResponseMessage Json(object value) => Reply(JsonSerializer.Serialize(new { success = true, data = value }));
     private static HttpResponseMessage Reply(string body, HttpStatusCode status = HttpStatusCode.OK) => new(status)

@@ -125,4 +125,20 @@ public static class MoviePilotTransferHistoryMatch
             throw new MoviePilotException("多个文件对应同一条整理记录，已停止，避免重复提交");
         return matched;
     }
+
+    /// <summary>删除按明确文件收集全部原记录供选择；同一目标的多条历史不等于多个文件版本。</summary>
+    public static IReadOnlyList<MoviePilotTransferHistory> RequireDeletionMatches(
+        MoviePilotTransferContext context, IEnumerable<MoviePilotTransferHistory> histories)
+    {
+        var records = histories.ToList();
+        var matched = new List<MoviePilotTransferHistory>();
+        foreach (var file in context.Files)
+        {
+            var candidates = Candidates(records, file.Path);
+            if (candidates.Count == 0)
+                throw new MoviePilotException($"没有找到此文件的原整理记录：{file.Path}。请先在 MoviePilot 核对整理历史及路径映射；不会改为删除父目录。");
+            matched.AddRange(candidates);
+        }
+        return matched.DistinctBy(history => history.Id).ToList();
+    }
 }

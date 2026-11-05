@@ -97,7 +97,9 @@ public sealed partial class MoviePilotService
                     throw new MoviePilotOperationBlockedException("整理记录在查找过程中发生变化，请重新查询");
             }
         }
-        var histories = MoviePilotTransferHistoryMatch.RequireMatches(context, found);
+        var histories = action == MoviePilotHistoryAction.SmartReorganize
+            ? MoviePilotTransferHistoryMatch.RequireMatches(context, found)
+            : MoviePilotTransferHistoryMatch.RequireDeletionMatches(context, found);
         foreach (var history in histories)
         {
             if (history.Snapshot.ValueKind != JsonValueKind.Object || history.ConnectionStamp != connectionStamp)
@@ -107,8 +109,10 @@ public sealed partial class MoviePilotService
                 (!string.Equals(history.MediaSource, "themoviedb", StringComparison.OrdinalIgnoreCase) || history.MediaId != context.MediaId))
                 throw new MoviePilotOperationBlockedException("原整理记录的媒体身份与当前作品不一致，请先在 MoviePilot 核对");
         }
-        var plan = new MoviePilotHistoryPlan(context.Title, action, batch, connectionStamp, histories);
-        await ValidateHistoryPlanAsync(plan, identity, cancellationToken).ConfigureAwait(false);
+        var plan = new MoviePilotHistoryPlan(context.Title, action, batch, connectionStamp, histories,
+            context.Files.Select(file => file.Path).ToArray());
+        // 删除候选尚未选择：先封存精确文件和快照，引用保护在最终选择提交前核对。
+        await ValidateHistoryPlanAsync(plan, identity, cancellationToken, validateReferences: plan.Smart).ConfigureAwait(false);
         CheckIdentity(identity, cancellationToken);
         lock (_operationGate)
             if (HistoryOperationKeys(plan).Any(_operations.ContainsKey))
@@ -193,7 +197,8 @@ public sealed partial class MoviePilotService
             throw new MoviePilotOperationBlockedException("MoviePilot 智能助手未启用，本次没有提交");
     }
 
-    private async Task ValidateHistoryPlanAsync(MoviePilotHistoryPlan plan, SessionIdentity identity, CancellationToken cancellationToken)
+    private async Task ValidateHistoryPlanAsync(MoviePilotHistoryPlan plan, SessionIdentity identity,
+        CancellationToken cancellationToken, bool validateReferences = true)
     {
         foreach (var history in plan.Histories)
         {
@@ -213,18 +218,23 @@ public sealed partial class MoviePilotService
                     throw new MoviePilotOperationBlockedException("原整理记录已经改变，请重新查询并确认；本次没有提交");
             }
         }
-        if (plan.Action == MoviePilotHistoryAction.DeleteRecord) return;
+        if (plan.Action == MoviePilotHistoryAction.DeleteRecord || !validateReferences) return;
         // 源和目标都可能被其它软链接复用；不自动级联删除或让助手接管未确认的作品。
-        var paths = plan.Histories.SelectMany(history => (plan.Smart
-                ? new[] { history.SourcePath, history.TargetPath }
-                : new[] { plan.DeleteSource ? history.SourcePath : "", plan.DeleteDestination ? history.TargetPath : "" })
-            .Where(path => path.Length > 0).Select(path => (Path: path, history.Id))).ToArray();
+        var paths = plan.Histories.SelectMany(history => new[]
+            {
+                (Path: plan.DeleteSource || plan.Smart ? history.SourcePath : "", History: history, IsSource: true),
+                (Path: plan.DeleteDestination || plan.Smart ? history.TargetPath : "", History: history, IsSource: false)
+            }.Where(value => value.Path.Length > 0)).ToArray();
         foreach (var group in paths.GroupBy(value => value.Path, StringComparer.Ordinal))
         {
             var related = await FindTransferHistoriesAsync(group.Key, cancellationToken).ConfigureAwait(false);
             CheckIdentity(identity, cancellationToken);
             if (related.Any(history => history.Success && history.Mode == "softlink" &&
-                MoviePilotTransfer.SamePath(history.SourcePath, group.Key) && group.Any(value => value.Id != history.Id)))
+                MoviePilotTransfer.SamePath(history.SourcePath, group.Key) && group.Any(value => value.History.Id != history.Id &&
+                    // 同一目标重复记录只描述同一份链接；不同目标共用源与库文件作为下游源仍须保护。
+                    (plan.Smart || !value.IsSource || history.TargetStorage is not ("" or "local") ||
+                        value.History.TargetStorage is not ("" or "local") ||
+                        !MoviePilotTransfer.SamePath(history.TargetPath, value.History.TargetPath)))))
                 throw new MoviePilotOperationBlockedException("要处理的文件仍被其他软链接整理记录引用（包括本批次内引用），请先在 MoviePilot 处理引用关系；本次没有提交");
         }
     }
