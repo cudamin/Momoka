@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
+  </ItemGroup>
+  <UsingTask TaskName="ExtractLibraryHeader" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var source = File.ReadAllText(Source);
+        const string begin = "    private void ApplyHeaderLayout()";
+        const string end = "    /// <summary>官网页端的三件顺序";
+        var first = source.IndexOf(begin, StringComparison.Ordinal);
+        var last = source.IndexOf(end, StringComparison.Ordinal);
+        if (first < 0 || last <= first || source.IndexOf(begin, first + begin.Length, StringComparison.Ordinal) >= 0)
+            throw new InvalidOperationException("Missing or ambiguous LibraryPage header region");
+        var generated = "// Verbatim current production methods; do not edit.\n#nullable enable\n" +
+            "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nnamespace Momoka.Shell.Views;\n" +
+            "public sealed partial class LibraryPage\n{\n" + source.Substring(first, last - first) + "\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(Output));
+        if (!File.Exists(Output) || File.ReadAllText(Output) != generated)
+            File.WriteAllText(Output, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateLibraryHeader" BeforeTargets="CoreCompile">
+    <ExtractLibraryHeader Source="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/Views/LibraryPage.xaml.cs"
+                          Output="$(IntermediateOutputPath)LibraryPage.Header.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)LibraryPage.Header.g.cs" /></ItemGroup>
+  </Target>
+</Project>

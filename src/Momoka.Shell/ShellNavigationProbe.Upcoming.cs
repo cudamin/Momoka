@@ -80,7 +80,7 @@ internal sealed partial class ShellNavigationProbe
                 var surface = Get<Border>(page, "LibrarySectionsSurface");
                 var header = surface.TransformToVisual(page).TransformBounds(new(0, 0, surface.ActualWidth, surface.ActualHeight));
                 Require(header.Left >= -1 && header.Right <= page.ActualWidth + 1
-                    && Math.Abs(header.Left + header.Width / 2 - page.ActualWidth / 2) <= 2, "预告分类栏不居中或被裁切");
+                    && Math.Abs(header.Left - Get<Grid>(page, "PageRoot").Margin.Left) <= 2, "预告分类栏未左对齐或被裁切");
                 await SaveProbeScreenAsync($"library-tvshows-upcoming-{width}-screen.png");
                 var visible = 0;
                 for (var groupIndex = 0; groupIndex < page.ViewModel.UpcomingDays.Count; groupIndex++)

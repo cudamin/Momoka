@@ -316,16 +316,16 @@
                 </Grid.ColumnDefinitions>
                 <!-- 分类胶囊和下面两条搜索容器都是页面上的一层低透明度玻璃：tint 与设置卡片同族，
                      压在纯色页面上只透出一点模糊和噪点，字和圆角保持原样。 -->
-                <Border x:Name="LibrarySectionsSurface" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center"
+                <Border x:Name="LibrarySectionsSurface" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Left" VerticalAlignment="Center"
                     Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="18" Padding="3"
                     Visibility="{x:Bind ViewModel.SectionVisibility, Mode=OneWay}">
-                    <local:WrapRow x:Name="LibrarySections" Spacing="0" RowSpacing="4" CenterRows="True" />
+                    <local:WrapRow x:Name="LibrarySections" Spacing="0" RowSpacing="4" />
                 </Border>
                 <HyperlinkButton x:Name="LibraryBrowseGroup" Grid.Row="3" Grid.ColumnSpan="2"
-                    HorizontalAlignment="Center" Content="{x:Bind ViewModel.BrowseGroupLabel, Mode=OneWay}"
+                    HorizontalAlignment="Left" Content="{x:Bind ViewModel.BrowseGroupLabel, Mode=OneWay}"
                     Visibility="{x:Bind ViewModel.BrowseGroupVisibility, Mode=OneWay}"
                     ToolTipService.ToolTip="返回分类列表" Click="OnBrowseGroupBack" />
-                <TextBlock x:Name="LibraryTitle" Text="{x:Bind ViewModel.Heading, Mode=OneWay}" Visibility="{x:Bind local:LibraryPage.BrowseHintVisibility(ViewModel.SearchVisibility), Mode=OneWay}" Style="{StaticResource EgPageTitleStyle}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind ViewModel.Heading, Mode=OneWay}" />
+                <TextBlock x:Name="LibraryTitle" Text="{x:Bind ViewModel.Heading, Mode=OneWay}" Visibility="{x:Bind local:LibraryPage.BrowseHintVisibility(ViewModel.SearchVisibility), Mode=OneWay}" Style="{StaticResource EgSectionTitleStyle}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind ViewModel.Heading, Mode=OneWay}" />
 
                 <!-- 搜索框与来源胶囊各自成形；这个布局载体不再画外卡或留内边距。 -->
                 <Border x:Name="SearchSurface" Grid.ColumnSpan="2" Padding="0" BorderThickness="0"
@@ -843,10 +843,11 @@
         <!-- Emby 结果区整块（网格 + 字母条 + 空态）包进 EmbyContent，好被「MoviePilot」分段一处切走
              （见 OnSourceChanged）。 -->
         <Grid x:Name="EmbyContent" Grid.Row="2">
-            <!-- Grid so the letter bar can sit over the scroller's right edge without taking a column
-                 away from it（Emby 的 alphaPicker 是 position:fixed 的覆盖层，不是布局成员）。 -->
+            <!-- Jellyfin 的字母条进入 Auto 列，避免覆盖最后一列；Emby 仍放第 0 列作为覆盖层。
+                 不给 Auto 列或 Alpha 外层固定宽度，内部 Rail 隐藏后不留下空槽。 -->
             <Grid RowSpacing="16">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <SelectorBar x:Name="SearchCategories" HorizontalAlignment="Center"
                     Visibility="{x:Bind ViewModel.SearchCategoriesVisibility, Mode=OneWay}">
                     <SelectorBarItem x:Name="TopResultsCategory" Text="热门结果" IsSelected="True" Tag="TopResults" />

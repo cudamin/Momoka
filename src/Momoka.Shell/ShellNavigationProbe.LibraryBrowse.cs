@@ -155,13 +155,13 @@ internal sealed partial class ShellNavigationProbe
                     var box = surface.TransformToVisual(page).TransformBounds(new(0, 0, surface.ActualWidth, surface.ActualHeight));
                     Require(box.Left >= -1 && box.Right <= page.ActualWidth + 1, "分类栏被裁切");
                     Require(box.Top >= titleBox.Bottom - 1, "分类栏没有落到库名下方");
-                    Require(Math.Abs(box.Left + box.Width / 2 - page.ActualWidth / 2) <= 2, "分类栏没有居中");
+                    Require(Math.Abs(box.Left - titleBox.Left) <= 2, "分类栏没有与库名左对齐");
                     foreach (var line in tabs.Children.OfType<ToggleButton>().GroupBy(tab =>
                         Math.Round(tab.TransformToVisual(page).TransformPoint(new(0, 0)).Y)))
                     {
                         var bounds = line.Select(tab => tab.TransformToVisual(page).TransformBounds(new(0, 0, tab.ActualWidth, tab.ActualHeight))).ToArray();
-                        Require(Math.Abs((bounds.Min(value => value.Left) + bounds.Max(value => value.Right)) / 2 - page.ActualWidth / 2) <= 2,
-                            "分类栏换行之后该行没有居中");
+                        Require(Math.Abs(bounds.Min(value => value.Left) - box.Left - surface.Padding.Left) <= 2,
+                            "分类栏换行之后该行没有左对齐");
                     }
                     foreach (var tab in tabs.Children.OfType<ToggleButton>())
                     {
@@ -171,7 +171,7 @@ internal sealed partial class ShellNavigationProbe
                     var toolbar = Get<Grid>(page, "ToolbarSurface");
                     var controls = toolbar.TransformToVisual(page).TransformBounds(new(0, 0, toolbar.ActualWidth, toolbar.ActualHeight));
                     Require(controls.Left >= -1 && controls.Right <= page.ActualWidth + 1 && controls.Top >= box.Bottom, "工具栏未在分类下方或被裁切");
-                    Require(Math.Abs(controls.Left + controls.Width / 2 - page.ActualWidth / 2) <= 2, "工具栏没有居中");
+                    Require(Math.Abs(controls.Left - titleBox.Left) <= 2, "工具栏没有与库名左对齐");
                     // 2026-10-19 用户令「emby 库封面和上方组件的空挡太大了，缩短」：收起的选择栏、筛选条、
                     // 状态条与浏览分组从前仍按 RowSpacing 占位，工具栏到封面空出 100 像素。量活元素：
                     // 工具栏下沿到第一张封面之间的距离应当就是一档内容间距，而不是一串空行之和。
@@ -179,8 +179,8 @@ internal sealed partial class ShellNavigationProbe
                         .Select(card => card.TransformToVisual(page).TransformPoint(new(0, 0)).Y)
                         .DefaultIfEmpty(double.NaN).Min();
                     var coverGap = posterTop - controls.Bottom;
-                    Require(coverGap >= 8 && coverGap <= 24,
-                        $"封面离上方工具栏的空白是 {coverGap:0} 像素，期望 20 像素左右（收起行仍在占间距？）");
+                    Require(Math.Abs(coverGap - 28) <= 2,
+                        $"封面离上方工具栏的空白是 {coverGap:0} DIP，期望 28 DIP（收起行仍在占间距？）");
                     await SaveReturnFrameAsync(page, $"library-{collection}-{width}.png");
                 }
                 ResizeProbeClient(900, 700);
@@ -902,8 +902,8 @@ internal sealed partial class ShellNavigationProbe
             var folderToolbar = Get<Grid>(page, "ToolbarSurface");
             var folderToolbarBox = folderToolbar.TransformToVisual(page)
                 .TransformBounds(new(0, 0, folderToolbar.ActualWidth, folderToolbar.ActualHeight));
-            Require(Math.Abs(folderToolbarBox.Left + folderToolbarBox.Width / 2 - page.ActualWidth / 2) <= 2,
-                "文件夹下钻页工具栏没有居中");
+            Require(Math.Abs(folderToolbarBox.Left - Get<Grid>(page, "PageRoot").Margin.Left) <= 2,
+                "文件夹下钻页工具栏没有左对齐");
             Require(Get<Button>(page, "FilterButton").Visibility == Visibility.Visible,
                 "文件夹下钻页没有筛选键（网页端 list.html 的 btnFilter）");
             Require(Get<Button>(page, "LibrarySettingsButton").Visibility == Visibility.Visible,

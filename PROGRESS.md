@@ -1,3 +1,7 @@
+# 2026-11-05 UI 整理 Task3（独立树待整合）
+
+- ui-polish-library 树只改非搜索 LibraryPage 页头与相关回归：20 DIP标题、可见行间距、分类/工具栏左对齐、28 DIP正文距离；Jellyfin字母条使用可收回Auto列，Emby覆盖模式、文件夹面包屑与搜索布局保留。精准方法契约7/7，原红6项1过5败；当前Shell/Core/Tests Release均0警告0错误，继续观看真实VM38/38、收藏切源13/13、搜索生命周期42/42。修改文件及专项格式检查退出0；Shell格式工具的Debug工作区缺Core.Debug程序集告警保留，Release编译正常。根代理统一运行修改后的library/search UI探针（含新空档反例与索引高度/条数恢复）、整合及发布；本树未运行UI、未合入master、未发布或上传。
+
 # 2026-11-05 详情文件栏与内容触发、卡片菜单亚克力
 
 - 交付完成：2026-11-05 17:46主树publish/verify通过，546文件、286.2MB；主程序程序集发布与构建SHA256一致。快捷方式Target/WorkingDirectory均为主树artifacts/publish/win-x64、Arguments空。产品d017af8、验证8648911；未上传。实屏已检查设置/飞牛/详情与Active菜单，系统高对比开关未实切（资源替换/恢复路径已实跑）。
