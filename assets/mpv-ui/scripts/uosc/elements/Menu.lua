@@ -1259,11 +1259,11 @@ function Menu:search_query_delete(event, word_mode)
 	if word_mode then
 		tail_cursor = find_string_segment_bound(tail, 0, 1) + 1
 	else
-		-- The while loop is for skipping utf8 continuation bytes
-		while tail_cursor < #tail and tail:byte(tail_cursor) >= 0x80 and tail:byte(tail_cursor) <= 0xbf do
+		-- Skip the character's leading byte, then all of its UTF-8 continuation bytes.
+		tail_cursor = tail_cursor + 1
+		while tail_cursor <= #tail and tail:byte(tail_cursor) >= 0x80 and tail:byte(tail_cursor) <= 0xbf do
 			tail_cursor = tail_cursor + 1
 		end
-		tail_cursor = tail_cursor + 1
 	end
 
 	local new_query = head .. tail:sub(tail_cursor)

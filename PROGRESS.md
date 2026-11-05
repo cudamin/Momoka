@@ -10560,3 +10560,9 @@ R1在Plex适配层按100条原始页扫描，过滤后返回真实总数及Start
 
 - 音频延迟从入场即捕获文件代次，排队写入与提示沿用该代次；服务交接空档拒绝旧操作。
 - 实际 Service/LibMpvHandle/gate 匿名边界先红 44/46（旧写与旧提示各一例），修后当前 Release 编译 0 警告 0 错误，ShaderCommandGenerationTests 46/46，0 跳过。含第二笔排队旧操作与 B 新操作恢复。没有加载 libmpv、播放或桌面验收。
+
+### 2026-11-05 审查修复 R10/R11（独立播放组，待父批次整合）
+
+- uosc 搜索 Delete 先跨首字节再跳 UTF-8 续字节；音量拖动在 cursor.leave 与无效坐标时结束且不发音量命令。
+- 新离线入口 `py -X utf8 tools/test-uosc-review.py --lua <可信 Lua 5.1 DLL>` 加载实际 Menu/Volume/cursor/Element 模块，实际 key dispatch、mouse leave 流程。先红 2/8、修后 8/8；使用现有 `C:/Program Files/HexChat/lua51.dll` 解释器，未启动 HexChat/mpv、窗口或媒体。
+- 首跑输出因 GBK 不支持 emoji 失败；入口已显式 UTF-8，最终重复运行 8/8。父批次仍需完整 Lua/原生和桌面适用验证。
