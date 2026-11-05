@@ -521,6 +521,8 @@ internal sealed class LibMpvHandle(
     Func<PlaybackRequest, PlaybackLaunchSignature>? signatureFor) : IPlaybackHandle, IPlayerControl, IPlayerHostMessages, IFileScopedPlayerControl
 {
     internal MpvCustomConfig? CustomConfig { get; init; }
+    public bool UsesCustomConfig => signature?.UsesCustomConfig == true;
+    public IReadOnlyDictionary<string, string>? ShaderRestoreOptions { get; private set; }
     internal IDisposable? SvpLease { get; init; }
     private const string Category = "mpv";
     private const int ClientMessageMaxArgs = 32;
@@ -645,6 +647,7 @@ internal sealed class LibMpvHandle(
         // 换片要用的「出厂值」在这一拍读：事件线程还没起来，没有任何并发，而且此刻还没有任何一集
         // 改过这些属性（见 InlineSwitch.FilmScoped 的说明）。
         _filmDefaults = ReadFilmDefaults();
+        CaptureShaderRestoreOptions();
 
         Observe(ObserveTimePos, "time-pos", LibMpvNative.FormatDouble);
         Observe(ObserveDuration, "duration", LibMpvNative.FormatDouble);
@@ -806,6 +809,20 @@ internal sealed class LibMpvHandle(
         }
 
         return defaults;
+    }
+
+    internal void CaptureShaderRestoreOptions()
+    {
+        if (UsesCustomConfig)
+        {
+            var restore = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var (name, _) in ShaderGroupCatalog.NeutralOptions)
+            {
+                if (name == "glsl-shaders") continue;
+                if (ReadText(name) is { } value) restore[name] = value;
+            }
+            ShaderRestoreOptions = restore;
+        }
     }
 
     /// <summary>一条属性的文本值（同步，走 API 闸门）；读不到就是 null。</summary>

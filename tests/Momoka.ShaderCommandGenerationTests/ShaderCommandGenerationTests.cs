@@ -10,6 +10,16 @@ internal static partial class ShaderCommandGenerationTests
     private static ShaderGroup Group => ShaderGroupCatalog.For(GpuTier.Low)[1];
     public static void Register()
     {
+        Case("R8 真实句柄在临时命令前固定配置恢复值", async () =>
+        {
+            await using var f = new HandleFixture(custom: true);
+            f.Native.Values["deband"] = "no";
+            f.Handle.CaptureShaderRestoreOptions();
+            Assert.True(f.Handle.UsesCustomConfig);
+            Assert.Equal("no", f.Handle.ShaderRestoreOptions!["deband"]);
+            Assert.True(await f.Handle.CommandAsync(["set", "deband", "yes"], default));
+            Assert.Equal("no", f.Handle.ShaderRestoreOptions["deband"]);
+        });
         Case("R2 音频延迟写入前换片拒绝旧操作及排队操作", () => AudioDelayRaceAsync(1));
         Case("R2 音频延迟提示前换片拒绝旧提示", () => AudioDelayRaceAsync(2));
         Case("R051 根因：最后 Current 后、真实 native 捕获前交接，B 无旧写也无回滚", () => RaceAsync(1, false));

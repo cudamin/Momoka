@@ -32,6 +32,12 @@ public interface IPlaybackHandle : IAsyncDisposable
     /// </summary>
     bool? PictureInHostWindow => null;
 
+    /// <summary>True when custom configuration replaced the planner's ordinary picture options.</summary>
+    bool UsesCustomConfig => false;
+
+    /// <summary>Effective startup picture values captured before any temporary player command.</summary>
+    IReadOnlyDictionary<string, string>? ShaderRestoreOptions => null;
+
     bool IsPaused { get; }
 
     /// <summary>Position in seconds, or null when it cannot be known.</summary>

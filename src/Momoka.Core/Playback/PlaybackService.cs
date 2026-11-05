@@ -436,6 +436,16 @@ public sealed partial class PlaybackService(
                 throw new InvalidOperationException("目标着色器链缺少文件，未改变当前配置");
             var launch = _launchOptions;
             var chainCount = _launchGroupOptionCount;
+            if (handle.UsesCustomConfig)
+            {
+                // The planner precedes mpv.conf; only the handle's pre-command snapshot can restore it.
+                var restore = handle.ShaderRestoreOptions;
+                if (restore is null || ShaderGroupCatalog.NeutralOptions.Any(option =>
+                    option.Key != "glsl-shaders" && !restore.ContainsKey(option.Key)))
+                    throw new InvalidOperationException("读不到自定义配置的画质恢复基线");
+                launch = restore.ToArray();
+                chainCount = 0;
+            }
             var profiles = await handle.GetTextAsync("profile-list", CancellationToken.None).ConfigureAwait(false);
             if (!Current()) return false;
             var defaults = new Dictionary<string, string>(StringComparer.Ordinal);
