@@ -10577,3 +10577,8 @@ R1在Plex适配层按100条原始页扫描，过滤后返回真实总数及Start
 
 - 原生句柄在初始化后、事件订阅和任何临时操作前捕获实际普通画质恢复值；自定义配置切链使用此快照，不再用读取配置前的 planner 值。快照缺失时零写入拒绝，不覆盖配置。glsl-shaders 的关闭语义保留。
 - 已读 mpv 固定 `7b8915bc1` 的 client.c/parse_configfile.c/m_config_frontend.c 配置覆盖和顶层 profile 清空实现。服务回归先红46/47，修后49/49，含真实句柄快照后临时写入不污染恢复值、快照缺失拒绝。当前 Release 0 警告0错误，0跳过。未执行原生配置加载或真实GLSL，父批次统一整合验证/发布。
+
+### 2026-11-05 审查修复 R9（独立播放组，待父批次整合）
+
+- Smooth 隐藏基础输出的视频同步行，退出为 Off/CPU 模式恢复原 audio 偏好；CPU 素材回退仍可选，SVP既有只读行保持。
+- 真实 Shell VM 首红 R9；修后 `video-sync-review-fixture <本树当前Shell DLL> <本树根>` 2/2，当前 Shell/Tests Release 0 警告0错误。完整适用性首次25/32，另外6个旧失败是 FakeSettings 未实现 SaveDeferred、落回 Save 的拒绝边界；已移交父代理，没有放宽断言。未运行 WinUI渲染或桌面。

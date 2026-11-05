@@ -165,6 +165,8 @@ internal static class Program
             SvpRuntimeTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["video-sync-review-fixture", var videoShell, var videoRoot])
+            return SettingsApplicabilityTests.Run(videoShell, videoRoot, videoOnly: true);
         if (args is ["playback-review-fixture"])
         {
             PlaybackTests.Register();
