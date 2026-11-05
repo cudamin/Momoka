@@ -15,6 +15,20 @@ internal static class MoviePilotEpisodeDeleteTests
 {
     internal static void Register()
     {
+        foreach (var multiple in new[] { "duplicate", "versions" })
+            foreach (var action in new[] { MoviePilotHistoryAction.DeleteRecord, MoviePilotHistoryAction.DeleteSource,
+                MoviePilotHistoryAction.DeleteDestination, MoviePilotHistoryAction.DeleteAll })
+                Test("单集删除：" + multiple + " 打开选择列表，取消不提交 " + action, () =>
+                {
+                    using var fixture = new EpisodeDeleteFixture();
+                    fixture.History.Multiple = multiple;
+                    var dialogs = MoviePilotMediaManagementDialog.Constructions;
+                    Complete(fixture.Invoke(action));
+                    Assert.Equal(dialogs + 1, MoviePilotMediaManagementDialog.Constructions);
+                    Assert.Equal(0, fixture.History.Writes.Count);
+                    Assert.Equal(0, fixture.Shell.Notices.Count);
+                    AssertReleased(fixture);
+                });
         foreach (var action in new[] { MoviePilotHistoryAction.DeleteRecord, MoviePilotHistoryAction.DeleteSource,
             MoviePilotHistoryAction.DeleteDestination, MoviePilotHistoryAction.DeleteAll })
         {
@@ -170,7 +184,7 @@ internal sealed class EpisodeDeleteFixture : IDisposable
         var paths = new AppPaths(Path.Combine(Path.GetTempPath(), "momoka-unused-episode-delete-" + Guid.NewGuid().ToString("N")));
         var store = new SettingsStore(paths, _secrets);
         Session = (EmbySession)Activator.CreateInstance(typeof(EmbySession), Members, null,
-            [Settings, store, new CredentialVault(_secrets), new DeviceIdentity("anonymous", "fixture", "fixture", "0"), new EpisodeMediaTransport()], null)!;
+            [Settings, store, new CredentialVault(_secrets), new DeviceIdentity("anonymous", "fixture", "fixture", "0"), new EpisodeMediaTransport(Transport)], null)!;
         Scope = InstallScope("original");
         typeof(EmbySession).GetField("_current", Members)!.SetValue(Session, Scope);
         Shell = new(Service, Session);
@@ -210,6 +224,7 @@ internal sealed class EpisodeDeleteFixture : IDisposable
 
 internal sealed class EpisodeHistoryTransport : HttpMessageHandler
 {
+    internal string Multiple { get; set; } = "";
     internal string Fault { get; set; } = "";
     internal List<(HttpMethod Method, string Path, string Query, string Body)> Writes { get; } = [];
     internal int HistoryReads { get; private set; }
@@ -235,14 +250,24 @@ internal sealed class EpisodeHistoryTransport : HttpMessageHandler
                 await Release.Task; // Deliberately late response: the actual lifetime must still refuse submission.
             }
             token.ThrowIfCancellationRequested();
-            object[] records = Fault == "missing" ? [] : [new
+            object Record(int id, string target) => new
             {
-                id = 1, title = "Fixture", type = "电视剧", media_source = "themoviedb", media_id = "1",
-                status = true, mode = "softlink", seasons = "S01", episodes = "E01",
-                src = "/downloads/one.mkv", dest = "/library/one.mkv",
+                id,
+                title = "Fixture",
+                type = "电视剧",
+                media_source = "themoviedb",
+                media_id = "1",
+                status = true,
+                mode = "softlink",
+                seasons = "S01",
+                episodes = "E01",
+                src = "/downloads/one.mkv",
+                dest = target,
                 src_fileitem = new { storage = "local", type = "file", path = "/downloads/one.mkv" },
-                dest_fileitem = new { storage = "local", type = "file", path = "/library/one.mkv" }
-            }];
+                dest_fileitem = new { storage = "local", type = "file", path = target }
+            };
+            object[] records = Fault == "missing" ? [] : Multiple.Length == 0 ? [Record(1, "/library/one.mkv")]
+                : [Record(1, "/library/one.mkv"), Record(2, Multiple == "duplicate" ? "/library/one.mkv" : "/library/two.mkv")];
             return Json(new { total = records.Length, list = records });
         }
         if (path == "/api/v1/history/transfer" && request.Method == HttpMethod.Delete)
@@ -265,7 +290,7 @@ internal sealed class EpisodeHistoryTransport : HttpMessageHandler
     { Content = new StringContent(JsonSerializer.Serialize(new { success = true, data }), System.Text.Encoding.UTF8, "application/json") };
 }
 
-internal sealed class EpisodeMediaTransport : HttpMessageHandler
+internal sealed class EpisodeMediaTransport(EpisodeHistoryTransport history) : HttpMessageHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
     {
@@ -280,6 +305,8 @@ internal sealed class EpisodeMediaTransport : HttpMessageHandler
                 Name = "第 1 集",
                 Type = EmbyItemType.Episode,
                 Path = "/library/one.mkv",
+                MediaSources = history.Multiple == "versions" ?
+                    [new() { Id = "one", Path = "/library/one.mkv" }, new() { Id = "two", Path = "/library/two.mkv" }] : [],
                 SeriesId = "series",
                 IndexNumber = 1,
                 ParentIndexNumber = 1

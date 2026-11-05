@@ -77,21 +77,25 @@ namespace Momoka.Shell.Views
         internal void StopForFixture() => _moviePilotEpisodeDelete?.Cancel();
         private void Notify(string message, InfoBarSeverity severity) => Notices.Add((message, severity));
         // 页面重读归外壳探针；这里只验证提交与防重，不让主页/详情页类型进入提取范围。
-        private Task RefreshAfterMoviePilotLibraryDeleteAsync(EmbyItem item) => Task.CompletedTask;
+        private Task RefreshAfterMoviePilotLibraryDeleteAsync(EmbyItem item,
+            IReadOnlyCollection<string> removedPaths, bool subjectRemoved) => Task.CompletedTask;
     }
 
-    // No implementation of the dialog: a direct deletion must never reach this boundary.
+    // Native dialog boundary only: observing cancellation must never submit a request.
     public sealed class MoviePilotMediaManagementDialog : ContentDialog
     {
         internal static int Constructions { get; private set; }
         internal bool LibraryFilesRemovalSubmitted { get; set; }
+        internal IReadOnlyList<string> RemovedLibraryPaths { get; } = [];
+        internal bool LibrarySubjectRemoved { get; }
+        internal MoviePilotHistoryResult? CompletedResult { get; }
         internal MoviePilotMediaManagementDialog(MoviePilotService service, EmbySessionScope scope, EmbyItem item,
-            MoviePilotHistoryAction action, Frame frame, EmbySession? sourceSession)
+            MoviePilotHistoryAction action, Frame frame, EmbySession? sourceSession, MoviePilotHistoryPlan? preparedPlan = null,
+            CancellationToken ownerLifetime = default)
         {
             Constructions++;
-            throw new InvalidOperationException("单集直接删除不应创建确认对话框");
         }
-        internal Task ShowAsync() => throw new InvalidOperationException("单集直接删除不应打开确认对话框");
+        internal Task ShowAsync() => Task.CompletedTask;
     }
 }
 

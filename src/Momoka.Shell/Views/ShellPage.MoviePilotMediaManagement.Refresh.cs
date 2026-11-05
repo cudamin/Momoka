@@ -19,9 +19,6 @@ public sealed partial class ShellPage
     /// 来测提交与防重，那里没有主页、详情页和 Frame 的替身；刷新是真实页面的职责，由外壳探针验收。
     /// </para>
     /// </summary>
-    private Task RefreshAfterMoviePilotLibraryDeleteAsync(EmbyItem item) =>
-        RefreshAfterMoviePilotLibraryDeleteAsync(item, [], subjectRemoved: true);
-
     private async Task RefreshAfterMoviePilotLibraryDeleteAsync(EmbyItem item,
         IReadOnlyCollection<string> removedPaths, bool subjectRemoved)
     {

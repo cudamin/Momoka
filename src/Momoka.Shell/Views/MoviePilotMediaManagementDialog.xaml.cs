@@ -28,6 +28,9 @@ public sealed partial class MoviePilotMediaManagementDialog : ContentDialog
     private bool _submitting;
     private int _revoked;
     private bool _updatingSelection;
+    private readonly bool _closeAfterSuccess;
+    private readonly CancellationToken _ownerLifetime;
+    private CancellationTokenRegistration _ownerCancellation;
     public ObservableCollection<MoviePilotHistoryRecordRow> Records { get; } = [];
 
     /// <summary>
@@ -35,9 +38,13 @@ public sealed partial class MoviePilotMediaManagementDialog : ContentDialog
     /// 服务器上的文件也可能已经少了，页面同样不能继续展示旧海报。
     /// </summary>
     internal bool LibraryFilesRemovalSubmitted { get; private set; }
+    internal IReadOnlyList<string> RemovedLibraryPaths { get; private set; } = [];
+    internal bool LibrarySubjectRemoved { get; private set; }
+    internal MoviePilotHistoryResult? CompletedResult { get; private set; }
 
     internal MoviePilotMediaManagementDialog(MoviePilotService service, EmbySessionScope scope, EmbyItem item,
-        MoviePilotHistoryAction action, Frame? frame = null, EmbySession? sourceSession = null)
+        MoviePilotHistoryAction action, Frame? frame = null, EmbySession? sourceSession = null,
+        MoviePilotHistoryPlan? preparedPlan = null, CancellationToken ownerLifetime = default)
     {
         _service = service;
         _scope = scope;
@@ -46,7 +53,10 @@ public sealed partial class MoviePilotMediaManagementDialog : ContentDialog
         _frame = frame;
         _page = frame?.Content;
         _sourceSession = sourceSession;
-        _stamp = service.ConnectionStamp;
+        _stamp = preparedPlan?.ConnectionStamp ?? service.ConnectionStamp;
+        _plan = preparedPlan;
+        _closeAfterSuccess = preparedPlan is not null && item.Type == EmbyItemType.Episode;
+        _ownerLifetime = ownerLifetime;
         InitializeComponent();
         RequestedTheme = ThemeHost.Current.IsDark ? ElementTheme.Dark : ElementTheme.Light;
         Title = action == MoviePilotHistoryAction.SmartReorganize
@@ -65,7 +75,8 @@ public sealed partial class MoviePilotMediaManagementDialog : ContentDialog
     }
 
     private bool Owns() => !_closed && Volatile.Read(ref _revoked) == 0 && !_lifetime.IsCancellationRequested &&
-        _scope.IsAvailable && (_frame is null || ReferenceEquals(_frame.Content, _page)) && _service.Available && _service.IsCurrentConnection(_stamp);
+        !_ownerLifetime.IsCancellationRequested && _scope.IsAvailable &&
+        (_frame is null || ReferenceEquals(_frame.Content, _page)) && _service.Available && _service.IsCurrentConnection(_stamp);
 
     private async void OnOpened(ContentDialog sender, ContentDialogOpenedEventArgs args)
     {
@@ -75,10 +86,11 @@ public sealed partial class MoviePilotMediaManagementDialog : ContentDialog
         _service.HistoryCapabilitiesChanged += OnAvailabilityChanged;
         if (_frame is not null) _frame.Navigating += OnNavigating;
         if (_sourceSession is not null) _sourceSession.SourcesChanged += OnSourcesChanged;
+        _ownerCancellation = _ownerLifetime.Register(Revoke);
         try
         {
             if (!Owns()) return;
-            _plan = await _service.PrepareItemHistoryActionAsync(_scope, _item, _action, _stamp, _lifetime.Token);
+            _plan ??= await _service.PrepareItemHistoryActionAsync(_scope, _item, _action, _stamp, _lifetime.Token);
             if (!Owns()) return;
             CountText.Text = $"{_plan.Histories.Count} 条记录 · {_plan.ActionLabel}";
             WarningText.Text = _plan.Smart ? _plan.Warning : _plan.DeleteSource || _plan.DeleteDestination
@@ -125,6 +137,9 @@ public sealed partial class MoviePilotMediaManagementDialog : ContentDialog
             if (plan.DeleteDestination) LibraryFilesRemovalSubmitted = true;
             var result = await _service.SubmitItemHistoryActionAsync(_scope, plan, _lifetime.Token);
             if (_closed) return;
+            CompletedResult = result;
+            RemovedLibraryPaths = result.RemovedLibraryPaths(plan);
+            LibrarySubjectRemoved = result.RemovesSubject(plan);
             ShowResult(plan, result);
             PrimaryButtonText = "";
             CloseButtonText = "关闭";
@@ -149,6 +164,7 @@ public sealed partial class MoviePilotMediaManagementDialog : ContentDialog
                 RecordList.IsEnabled = true;
             }
         }
+        if (_closeAfterSuccess && CompletedResult is { NeedsReview: false } && Owns()) Hide();
     }
 
     private void ShowRecords(MoviePilotHistoryPlan plan, MoviePilotHistoryResult? result = null)
@@ -299,6 +315,7 @@ public sealed partial class MoviePilotMediaManagementDialog : ContentDialog
     private void OnClosed(ContentDialog sender, ContentDialogClosedEventArgs args)
     {
         _closed = true;
+        _ownerCancellation.Dispose();
         foreach (var row in Records)
         {
             row.Media.PropertyChanged -= OnSelectionChanged;

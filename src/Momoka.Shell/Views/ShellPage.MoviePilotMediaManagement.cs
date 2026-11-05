@@ -27,7 +27,9 @@ public sealed partial class ShellPage
         }
         _moviePilotHistoryShowing = true;
         MoviePilotMediaManagementDialog? dialog = null;
-        var libraryFilesRemoved = false;
+        var originalPage = ContentFrame.Content;
+        IReadOnlyList<string> removedPaths = [];
+        var subjectRemoved = false;
         try
         {
             if (directDelete)
@@ -40,7 +42,8 @@ public sealed partial class ShellPage
             { XamlRoot = XamlRoot };
             _moviePilotDialog = dialog;
             await dialog.ShowAsync().AsTask();
-            libraryFilesRemoved = dialog.LibraryFilesRemovalSubmitted;
+            removedPaths = dialog.RemovedLibraryPaths;
+            subjectRemoved = dialog.LibrarySubjectRemoved;
         }
         catch (Exception error)
         {
@@ -55,10 +58,10 @@ public sealed partial class ShellPage
 
         // 确认窗关掉之后才动页面：在窗开着的时候导航会把回执一起关掉。删除媒体库文件之后，主页的货架和
         // 轮播已经不代表服务器上的样子（用户令 2026-10-31：删除完成后必须自动刷新或回主页）。
-        if (!libraryFilesRemoved) return;
+        if (removedPaths.Count == 0 || !scope.IsAvailable || !ReferenceEquals(ContentFrame.Content, originalPage)) return;
         try
         {
-            await RefreshAfterMoviePilotLibraryDeleteAsync(item);
+            await RefreshAfterMoviePilotLibraryDeleteAsync(item, removedPaths, subjectRemoved);
         }
         catch (Exception error)
         {
@@ -67,7 +70,7 @@ public sealed partial class ShellPage
         }
     }
 
-    /// <summary>单集菜单已选定删除范围，直接提交；核对、权限与防重仍由原服务负责。</summary>
+    /// <summary>单候选直接删除，多记录或多版本沿用主页选择表；核对、权限与防重由原服务负责。</summary>
     private async Task DeleteMoviePilotEpisodeAsync(MoviePilotService service, EmbySessionScope scope,
         EmbyItem item, MoviePilotHistoryAction action)
     {
@@ -118,15 +121,51 @@ public sealed partial class ShellPage
             if (!OwnsOperation()) return;
             var plan = await service.PrepareItemHistoryActionAsync(scope, item, action, stamp, lifetime.Token);
             if (!OwnsOperation()) return;
+            if (plan.Histories.Count > 1)
+            {
+                var dialog = new MoviePilotMediaManagementDialog(service, scope, item, action,
+                    frame, sourceSession, plan, lifetime.Token)
+                { XamlRoot = XamlRoot };
+                _moviePilotDialog = dialog;
+                try
+                {
+                    await dialog.ShowAsync().AsTask();
+                    if (!OwnsPage()) return;
+                    if (dialog.CompletedResult is { } completed)
+                    {
+                        submitting = true;
+                        Notify($"「{item.Name}」{completed.Summary}",
+                            completed.NeedsReview ? InfoBarSeverity.Warning : InfoBarSeverity.Success);
+                    }
+                    if (dialog.RemovedLibraryPaths.Count > 0)
+                    {
+                        try
+                        {
+                            await RefreshAfterMoviePilotLibraryDeleteAsync(item, dialog.RemovedLibraryPaths, dialog.LibrarySubjectRemoved);
+                        }
+                        catch (Exception error)
+                        {
+                            Log.Warn("moviepilot", "单集选择删除后刷新页面失败", error);
+                            if (OwnsPage()) Notify("删除结果已收到，但页面未能刷新；请重新进入查看", InfoBarSeverity.Warning);
+                        }
+                    }
+                }
+                finally
+                {
+                    if (ReferenceEquals(_moviePilotDialog, dialog)) _moviePilotDialog = null;
+                }
+                return;
+            }
             submitting = true;
             var result = await service.SubmitItemHistoryActionAsync(scope, plan, lifetime.Token);
             if (OwnsPage()) Notify($"「{item.Name}」{result.Summary}",
                 result.NeedsReview ? InfoBarSeverity.Warning : InfoBarSeverity.Success);
-            if (plan.DeleteDestination && OwnsPage())
+            var removed = result.RemovedLibraryPaths(plan);
+            if (removed.Count > 0 && OwnsPage())
             {
                 try
                 {
-                    await RefreshAfterMoviePilotLibraryDeleteAsync(item);
+                    await RefreshAfterMoviePilotLibraryDeleteAsync(item, removed, result.RemovesSubject(plan));
                 }
                 catch (Exception error)
                 {
