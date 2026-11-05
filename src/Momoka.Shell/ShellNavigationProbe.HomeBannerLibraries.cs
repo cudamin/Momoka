@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
+using Momoka.Shell.Interop;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Windows.Foundation;
@@ -53,6 +54,11 @@ internal sealed partial class ShellNavigationProbe
         };
         var frame = new Frame();
         var readings = new List<string>();
+        var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(
+            Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_window!.Handle));
+        var originalPosition = appWindow.Position;
+        var workArea = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(appWindow.Id,
+            Microsoft.UI.Windowing.DisplayAreaFallback.Nearest).WorkArea;
         _root.Children.Add(frame);
         HomePage? home = null;
         try
@@ -73,6 +79,18 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(width, height);
                 await LayoutAsync(home);
                 await UntilAsync(() => Math.Abs(banner.ActualHeight - expectedBand) < 1);
+                // 改客户区尺寸不会把原先居中的窗口搬回来。按实测客户区原点校正，
+                // 宽屏截图完整落在所选屏幕上；保留像素归属守卫，不把屏外区域当成证据。
+                Require(Native.GetClientRect(_window.Handle, out var client), "首页探针无法读取客户区");
+                Require(client.Width <= workArea.Width && client.Height <= workArea.Height,
+                    "当前屏幕无法容纳首页宽屏验证尺寸");
+                var clientOrigin = new NativePoint();
+                Require(Native.ClientToScreen(_window.Handle, ref clientOrigin), "首页探针无法定位客户区");
+                appWindow.Move(new Windows.Graphics.PointInt32(
+                    appWindow.Position.X + workArea.X - clientOrigin.X,
+                    appWindow.Position.Y + workArea.Y - clientOrigin.Y));
+                _window.Activate();
+                await LayoutAsync(home);
                 Require(banner.ActualHeight <= 640 && Bounds(Get<Grid>(home, "Overlay")).Top < height,
                     "宽屏横幅过高，后续货架没有进入第一屏");
                 Require(Get<TextBlock>(banner, "TitleText").FontSize == (double)Application.Current.Resources["EgDisplayFontSize"],
@@ -224,6 +242,7 @@ internal sealed partial class ShellNavigationProbe
             home?.Release();
             _root.Children.Remove(frame);
             ResizeProbeClient(1420, 980);
+            appWindow.Move(originalPosition);
         }
     }
 }
