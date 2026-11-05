@@ -7,6 +7,7 @@
         <RootNamespace>Momoka.Tests</RootNamespace>
         <IsPackable>false</IsPackable>
         <StartupObject>Momoka.Tests.Program</StartupObject>
+        <InspectOwnerSource Condition="'$(InspectOwnerSource)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.Inspect.cs</InspectOwnerSource>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
@@ -22,6 +23,7 @@
             <ScheduleSource ParameterType="System.String" Required="true" />
             <SubtitleSource ParameterType="System.String" Required="true" />
             <NavigationSource ParameterType="System.String" Required="true" />
+            <InspectSource ParameterType="System.String" Required="true" />
             <OutputSource ParameterType="System.String" Required="true" />
         </ParameterGroup>
         <Task>
@@ -78,6 +80,12 @@
                     "using System.Text;\nusing Momoka.Infrastructure;\nusing HostWindow = Momoka.Shell.ProbeHostWindow;\n" +
                     "using Application = Momoka.Shell.ProbeApplication;\nusing Grid = Momoka.Shell.ProbeGrid;\n" +
                     "using MoviePilotClient = Momoka.Shell.ProbeClientResource;\nusing UpdateClient = Momoka.Shell.ProbeClientResource;\n") + probeCallers;
+                var inspect = File.ReadAllText(InspectSource).Replace("\r\n", "\n");
+                var addCheck = between(inspect, "        void AddCheck(string id, string label, Func<Task> check)", "\n    }\n\n    private void ResizeInspect(");
+                generated += "\ninternal sealed partial class InspectCheckFixture\n{\n" +
+                    "    internal void Register()\n    {\n        var layout = Layout;\n" +
+                    "        void Add(string id, string label, Func<Task> action) => Action = action;\n" +
+                    addCheck + "\n        AddCheck(\"fixture\", \"inspect ownership\", Check);\n    }\n}\n";
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
                     File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
@@ -90,6 +98,7 @@
             ScheduleSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.cs"
             SubtitleSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\SubtitleSettingsProbe.cs"
             NavigationSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.cs"
+            InspectSource="$(InspectOwnerSource)"
             OutputSource="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />
         <ItemGroup>
             <Compile Include="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />

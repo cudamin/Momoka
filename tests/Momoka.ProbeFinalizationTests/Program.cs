@@ -6,7 +6,7 @@ using Momoka.Shell;
 
 namespace Momoka.Tests;
 
-internal static class Program
+internal static partial class Program
 {
     private static readonly List<(string Name, Func<Task> Run)> Cases = [];
     private static readonly List<object> Results = [];
@@ -26,6 +26,7 @@ internal static class Program
         RegisterShellScope();
         RegisterActualProbeCallers();
         RegisterFinalizerBoundaries();
+        RegisterInspectOwnership();
         var failures = 0;
         foreach (var (name, run) in Cases)
         {

@@ -1,5 +1,19 @@
 # R-071 / R-072 报告收尾专项
 
+## 2026-11-05 Inspect 检查所有权增补
+
+新增2个真实异步回归，当前套件69/69、0失败、0跳过。构建时原样提取 `ShellNavigationProbe.Inspect.cs` 的局部 `AddCheck`，复用真实 `ShellProbeReport.CaseAsync` 和写入路径；只有布局属性、操作注册及180秒→1秒的超时参数使用边界替身。检查任务在超时后仍挂起时，验证返回Task未完成、控制区仍Collapsed；报告writer在该超时节点抛IOException时也须等待实际任务的finally完成，再恢复Visible并传播原报告异常。这里不复制AddCheck实现，也不把源码字符串匹配作为行为断言。
+
+默认提取当前树产品源；可在构建时传入 `-p:InspectOwnerSource=<绝对源路径>` 进行修前反例或提取边界检查。缺失/重复的AddCheck起点和缺失的ResizeInspect结束边界会使构建失败。只提取局部函数，不编译WinUI或整个Inspect页面。
+
+本轮隔离树基点 `43c4515` 尚无AddCheck，已将根035a未提交的修复方法定点补入本树产品文件作为不提交的编译依赖。方法来源 `C:\Users\89400\.codex\worktrees\035a\Momoka\src\Momoka.Shell\ShellNavigationProbe.Inspect.cs`，保存方法副本SHA256为 `3E57C46DBDD2E2A46F3433CABAAAEACB141575D769D5D6CAD375CC1AAB32F2B4`。根代理整合本测试提交时须同时保留该产品修复；不能只合测试到不含AddCheck的基线，也不要复制本树整个Inspect文件。
+
+本树 `work/ui-polish/probe-tests/red-build.log` / `red-tests.log` 为移除实际finally等待（仅将 `await running` 改为 `_ = running`）的预期反例：构建0警告0错误，69项67过2败，退出1，失败仅新增两条；`green-build.log` / `green-tests.log` 为原样方法69/69、0跳过、退出0。红源为ignored `legacy-Inspect.cs`，通过InspectOwnerSource指向该文件构建，再用正常build恢复。首次试验使用GetAwaiter导致1条RS0030，已换为无等待赋值反例并重新零警告编译；最终红日志不含该试验警告。
+
+提取拒绝反例 `missing-extraction.log` 和 `duplicate-extraction.log` 均按预期构建失败，指出AddCheck起点缺失或歧义；随后正常当前源重新编译0警告0错误。这两条是构建拒绝证据，不计入69项行为回归。受影响C#格式检查退出0，5个测试文件差异/编码检查通过。
+
+本增补不启动UI、不运行全测、不读用户设置或操作真实服务器，也未覆盖WinUI窗口像素、按钮Click重入与外层busy标志；它证明AddCheck返回前仍持有真实检查Task，因此正常外层await不会提前清除busy。真实UI重验由交付会话完成。
+
 独立无窗口控制台项目，已由主线程接入 Momoka.sln 构建映射与开发文档的独立验证命令；不修改公共 Momoka.Tests Program、csproj或报告基线。普通 Core / 页面契约运行不会自动执行本项目。入口为 `Momoka.Tests.Program.Main()`；独立计数，不能把内部断言或重叠覆盖加成其它套件的用例数。
 
 ## 验证真实生产控制流
