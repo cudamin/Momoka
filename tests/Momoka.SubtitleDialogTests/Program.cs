@@ -10,6 +10,20 @@ internal static class Program
 
     private static int Main()
     {
+        Case("已删除主体的父刷新不再读取或恢复播放目标", async ui =>
+        {
+            using var f = new SubtitleFixture();
+            await f.OpenAsync();
+            f.Parent.FixtureRemove(f.Item);
+            f.Dialog.FixtureRefresh();
+            await ui.IdleAsync();
+            await f.CloseAsync();
+            Assert.True(f.Parent.FixtureDeleted);
+            Assert.Null(f.Parent.Applied);
+            Assert.Null(f.Parent.PlayTarget);
+            Assert.Equal(2, f.Transport.Reads, "Dialog refresh reads once, removed parent must not read again");
+            Assert.Equal(0, f.Transport.Writes);
+        });
         foreach (var mutation in Enum.GetValues<Mutation>())
         {
             Case(mutation + " 首笔响应丢失直接Closed交父一次", async ui =>

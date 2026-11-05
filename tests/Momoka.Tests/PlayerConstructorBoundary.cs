@@ -11,13 +11,15 @@ namespace Momoka.Tests;
 /// <summary>Checks the real Shell constructor without loading UI or silently nulling a new dependency.</summary>
 internal static class PlayerConstructorBoundary
 {
-    private static readonly string[] Names = ["playback", "settings", "session", "images", "shaders", "ui", "dandanPlay"];
+    private static readonly string[] Names = ["playback", "settings", "session", "images", "shaders", "ui", "dandanPlay", "fonts"];
 
     internal static ConstructorInfo Require(Type viewModel, Type dispatcher)
     {
         var constructors = viewModel.GetConstructors();
         Assert.Equal(1, constructors.Length, "the actual PlayerViewModel constructor must be unambiguous");
         RequireParameters(Shape(constructors[0]), dispatcher);
+        var fonts = constructors[0].GetParameters()[^1];
+        Assert.True(fonts.IsOptional && fonts.DefaultValue is null, "the reviewed font dependency must remain optional with null default");
         return constructors[0];
     }
 
@@ -27,7 +29,7 @@ internal static class PlayerConstructorBoundary
     private static void RequireParameters(IReadOnlyList<(string? Name, Type Type)> parameters, Type dispatcher)
     {
         Type[] types = [typeof(PlaybackService), typeof(ISettingsService), typeof(EmbySession), typeof(EmbyImageStore),
-            typeof(ShaderGroupResolver), dispatcher, typeof(DandanPlayClient)];
+            typeof(ShaderGroupResolver), dispatcher, typeof(DandanPlayClient), typeof(FontLibrary)];
         Assert.Equal(Names.Length, parameters.Count, "an unreviewed mandatory constructor parameter must fail closed");
         for (var index = 0; index < Names.Length; index++)
         {
@@ -38,15 +40,17 @@ internal static class PlayerConstructorBoundary
 
     internal static object Create(ConstructorInfo constructor, params object?[] arguments)
     {
-        Assert.Equal(Names.Length, arguments.Length, "preserve all six original dependencies plus real DandanPlayClient");
-        Assert.True(arguments[^1] is DandanPlayClient, "a null or unrelated seventh dependency must be rejected before invoking the VM");
-        return constructor.Invoke(arguments);
+        Assert.True(arguments.Length == Names.Length - 1 || arguments.Length == Names.Length, "preserve seven mandatory dependencies and the reviewed optional font library");
+        Assert.True(arguments[6] is DandanPlayClient, "a null or unrelated seventh dependency must be rejected before invoking the VM");
+        if (arguments.Length == Names.Length)
+            Assert.True(arguments[7] is null or FontLibrary, "only the reviewed font library can occupy the optional eighth slot");
+        return constructor.Invoke(arguments.Length == Names.Length ? arguments : [.. arguments, null]);
     }
 
     internal static void Register(Type viewModel, Type dispatcher)
     {
-        TestHarness.Test("播放器构造边界：真实七参数名称类型顺序与唯一构造器", () => _ = Require(viewModel, dispatcher));
-        TestHarness.Test("播放器构造边界：旧六参数与未审核新增必需尾参数均拒绝", () =>
+        TestHarness.Test("播放器构造边界：七项必需依赖和可选字体依赖名称类型顺序", () => _ = Require(viewModel, dispatcher));
+        TestHarness.Test("播放器构造边界：旧七参数签名与未审核新增尾参数均拒绝", () =>
         {
             var parameters = Shape(Require(viewModel, dispatcher));
             Assert.Throws<AssertionException>(() => RequireParameters(parameters[..^1], dispatcher));

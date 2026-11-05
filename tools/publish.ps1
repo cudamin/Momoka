@@ -20,7 +20,7 @@ param(
     # 它只够在本机测试 —— 而且**装这个包之前还要用管理员终端信任这张证书一次**：
     #     winapp cert install .\artifacts\devcert.pfx
     # 那一步这个脚本做不到（要提权），所以签完会把这行命令印出来。
-    # 生产签名传 -CertPath 指一张真证书，并且用 -Timestamp 加时间戳，否则证书一过期签名就失效。
+    # 生产签名传 -CertPath 指一张真证书（隐含 -Sign），并且用 -Timestamp 加时间戳，否则证书一过期签名就失效。
     [switch]$Sign,
 
     [string]$CertPath,
@@ -68,6 +68,7 @@ if ($Store) { $Msix = $true }
 if ($Store -and ($Sign -or -not [string]::IsNullOrWhiteSpace($CertPath))) {
     throw '-Store 与 -Sign / -CertPath 不能同时用：上架包必须未签名，由 Partner Center 用预留身份的证书重签。'
 }
+if (-not [string]::IsNullOrWhiteSpace($CertPath)) { $Sign = $true }
 
 if (-not (Test-Path -LiteralPath $project -PathType Leaf)) {
     throw "找不到 WinUI Shell 项目：$project"

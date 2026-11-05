@@ -12,6 +12,8 @@
     用法：
         powershell -NoProfile -ExecutionPolicy Bypass -File tools/backup.ps1
         powershell -NoProfile -ExecutionPolicy Bypass -File tools/backup.ps1 -Label 重绘界面前
+
+    每次使用独立名称；临时归档完整回读后才发布，失败不覆盖已有备份。
 #>
 [CmdletBinding()]
 param(
@@ -30,11 +32,10 @@ $skip = @('bin', 'obj', 'artifacts', '.vs')
 
 if (-not (Test-Path $OutputRoot)) { New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null }
 
-$stamp = $started.ToString('yyyyMMdd-HHmm')
+$stamp = $started.ToString('yyyyMMdd-HHmmssfff') + '-' + [guid]::NewGuid().ToString('N')
 $name = if ($Label) { "Momoka-$stamp-$Label.zip" } else { "Momoka-$stamp.zip" }
 $target = Join-Path $OutputRoot $name
-
-if (Test-Path $target) { Remove-Item $target -Force }
+$temporary = Join-Path $OutputRoot ('.' + [guid]::NewGuid().ToString('N') + '.partial')
 
 Write-Host "备份 $root"
 Write-Host "挡在外面的目录：$($skip -join '、')"
@@ -67,36 +68,51 @@ git：HEAD $head，工作树里有 $dirty 个文件与 HEAD 不同（这棵树�
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem | Out-Null
 
-$zip = [System.IO.Compression.ZipFile]::Open($target, 'Create')
-try
-{
-    foreach ($file in $files)
-    {
-        $entry = $file.FullName.Substring($root.Length + 1).Replace('\', '/')
-        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $file.FullName, $entry, 'Optimal') | Out-Null
-    }
-
-    $stream = $zip.CreateEntry('备份说明.txt', 'Optimal').Open()
+try {
+    $zip = [System.IO.Compression.ZipFile]::Open($temporary, 'Create')
     try
     {
-        $writer = New-Object System.IO.StreamWriter($stream, (New-Object System.Text.UTF8Encoding $true))
-        $writer.Write($notes)
-        $writer.Flush()
-        $writer.Dispose()
-    }
-    finally { $stream.Dispose() }
-}
-finally { $zip.Dispose() }
+        foreach ($file in $files)
+        {
+            $entry = $file.FullName.Substring($root.Length + 1).Replace('\', '/')
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $file.FullName, $entry, 'Optimal') | Out-Null
+        }
 
-# 立刻回读一遍：压完没打开过的压缩包等于没备份。
-$check = [System.IO.Compression.ZipFile]::OpenRead($target)
-$entries = $check.Entries.Count
-$check.Dispose()
+        $stream = $zip.CreateEntry('备份说明.txt', 'Optimal').Open()
+        try
+        {
+            $writer = New-Object System.IO.StreamWriter($stream, (New-Object System.Text.UTF8Encoding $true))
+            $writer.Write($notes)
+            $writer.Flush()
+            $writer.Dispose()
+        }
+        finally { $stream.Dispose() }
+    }
+    finally { $zip.Dispose() }
+
+    # 立刻回读一遍：压完没打开过的压缩包等于没备份。
+    $check = [System.IO.Compression.ZipFile]::OpenRead($temporary)
+    try {
+        $entries = $check.Entries.Count
+        if ($entries -ne ($files.Count + 1)) { throw "备份不完整：打包 $($files.Count) 个文件，回读只有 $entries 条" }
+        foreach ($file in $files) {
+            $nameInArchive = $file.FullName.Substring($root.Length + 1).Replace('\', '/')
+            $entry = $check.GetEntry($nameInArchive)
+            if ($null -eq $entry -or $entry.Length -ne $file.Length) { throw "备份文件不完整：$nameInArchive" }
+            $stream = $entry.Open()
+            try { $stream.CopyTo([IO.Stream]::Null) } finally { $stream.Dispose() }
+        }
+        if ($null -eq $check.GetEntry('备份说明.txt')) { throw '备份缺少说明。' }
+    } finally { $check.Dispose() }
+
+    # 同目录原子发布；Move 不覆盖已有目标，失败不会损坏任何有效备份。
+    [IO.File]::Move($temporary, $target)
+} finally {
+    if (Test-Path -LiteralPath $temporary -PathType Leaf) { Remove-Item -LiteralPath $temporary -Force }
+}
 
 $size = (Get-Item $target).Length
 $took = (Get-Date) - $started
-
-if ($entries -ne ($files.Count + 1)) { throw "备份不完整：打包 $($files.Count) 个文件，回读只有 $entries 条" }
 
 Write-Host ("备份完成：{0}" -f $target)
 Write-Host ("回读 {0} 条（{1} 个文件 + 1 张说明），{2:N1} MB，用了 {3:N0} 秒" -f $entries, $files.Count, ($size / 1MB), $took.TotalSeconds)

@@ -412,7 +412,10 @@ Write-Output ''
 Write-Output ("签名完成：成功 {0}，失败 {1}" -f $ok, $failed)
 Write-Output ''
 Write-Output '==== 复核（签名状态与链）===='
+$invalid = 0
 foreach ($t in $targets) {
     $sig = Get-AuthenticodeSignature -LiteralPath $t
     Write-Output ("  {0}`n    状态 {1}   签名者 {2}" -f $t, $sig.Status, $(if ($sig.SignerCertificate) { $sig.SignerCertificate.Subject } else { '（无）' }))
+    if ($sig.Status -ne 'Valid' -or $null -eq $sig.SignerCertificate -or $sig.SignerCertificate.Thumbprint -ne $cert.Thumbprint) { $invalid++ }
 }
+if ($failed -gt 0 -or $invalid -gt 0) { throw "签名未完成：工具失败 $failed 个，最终签名或签名者不符 $invalid 个。" }

@@ -19,7 +19,7 @@ function Write-Fixture([string]$Relative, [string]$Text) {
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'run-regressions.ps1') -Destination (Join-Path $fixture 'tools/run-regressions.ps1')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'regression-suites.json') -Destination (Join-Path $fixture 'tools/regression-suites.json')
 Copy-Item -LiteralPath (Join-Path $root 'global.json') -Destination (Join-Path $fixture 'global.json')
-$manifest = Get-Content -LiteralPath (Join-Path $fixture 'tools/regression-suites.json') -Raw | ConvertFrom-Json
+$manifest = [IO.File]::ReadAllText((Join-Path $fixture 'tools/regression-suites.json')) | ConvertFrom-Json
 foreach ($entry in $manifest.suites) {
     Write-Fixture $entry.project '<Project />'
     Write-Fixture $entry.readme 'Anonymous runner fixture. No production code is executed.'
@@ -81,6 +81,9 @@ Invoke-Case 'list' 'ok' @('-List') 0 @()
 Invoke-Case 'default-list' 'ok' @() 0 @()
 Invoke-Case 'success' 'ok' @('-Suite', $suite) 0 @('--version', 'restore', 'build', 'run')
 Invoke-Case 'site-dialog-flow' 'ok' @('-Suite', 'Momoka.SiteDialogFlowTests') 0 @('--version', 'restore', 'build', 'run')
+Invoke-Case 'architecture-current-products' 'ok' @('-Suite', 'Momoka.ArchitectureTests') 0 @('--version', 'restore', 'build', 'restore', 'build', 'run')
+$architectureCalls = @(Get-Content -LiteralPath (Join-Path $fixture 'calls.log') | Where-Object { $_ })
+Check ($architectureCalls[2].Contains('Momoka.Shell.csproj')) '架构专项必须先构建当前 Shell 及其 Core 引用。'
 Invoke-Case 'restore-failure' 'restore-fail' @('-Suite', $suite) 1 @('--version', 'restore')
 Invoke-Case 'build-failure' 'build-fail' @('-Suite', $suite) 1 @('--version', 'restore', 'build')
 Invoke-Case 'build-warning' 'warning' @('-Suite', $suite) 1 @('--version', 'restore', 'build')
@@ -150,5 +153,9 @@ foreach ($kind in @('unknown', 'shell')) {
 
 Write-Fixture 'tests/Momoka.NewUnregistered/Momoka.NewUnregistered.csproj' '<Project />'
 Invoke-Case 'manifest-incomplete' 'ok' @('-Suite', $suite) 1 @()
+# Unlike the anonymous tree above, this checks the real repository project inventory.
+& $hostExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'run-regressions.ps1') -List *> (Join-Path $output 'actual-manifest.log')
+Check ($LASTEXITCODE -eq 0) '实际仓库的顶层测试项目必须全部登记。'
+$cases.Add([pscustomobject]@{ name = 'actual-manifest-complete'; exit = 0; passed = $true })
 [IO.File]::WriteAllText((Join-Path $output 'results.json'), ($cases.ToArray() | ConvertTo-Json -Depth 5) + "`n", $utf8)
 Write-Output "共 $($cases.Count) 项，通过 $($cases.Count)，失败 0，跳过 0。匿名脚本边界，不执行 .NET 或生产测试；证据 $output"

@@ -69,7 +69,7 @@
     },
     {
       "path": "src/Momoka.Core/Playback/EpisodeNavigation.cs",
-      "sha256": "4c6d9b16470ba73386af8649d01f9a898ef233a3e1431800211d571230da1da5"
+      "sha256": "fdb7370640ba707946a4d701dbd4dbc68efdade4b678d22baacfc1e2ab277ad3"
     },
     {
       "path": "src/Momoka.Core/Playback/StartIntent.cs",
