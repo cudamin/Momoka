@@ -67,6 +67,7 @@ await PlexDiscovery.RunAsync();
 await PermissionCache.RunAsync();
 await PlexSearch.RunAsync();
 await FnNasArtwork.RunAsync();
+DisplaySettings.Run();
 
 sealed class OpaqueProtector : ISecretProtector
 {

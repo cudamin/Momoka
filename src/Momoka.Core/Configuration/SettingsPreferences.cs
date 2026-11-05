@@ -110,7 +110,7 @@ public static class SettingsPreferences
         var (left, top, width, height, maximized) =
             (ui.WindowLeft, ui.WindowTop, ui.WindowWidth, ui.WindowHeight, ui.WindowMaximized);
         var lastLibraryId = ui.LastLibraryId;
-        var (sort, filters, views) = (ui.Sort, ui.Filters, ui.Views);
+        var (sort, filters, views, display) = (ui.Sort, ui.Filters, ui.Views, ui.Display);
         var (homeIdentity, homeHistory) = (ui.HomeRowsIdentity, ui.HomeRowsByIdentity);
         var recentSearches = ui.RecentSearches;
 
@@ -125,6 +125,7 @@ public static class SettingsPreferences
         ui.Sort = sort;
         ui.Filters = filters;
         ui.Views = views;
+        ui.Display = display;
         ui.HomeRowsIdentity = homeIdentity;
         ui.HomeRowsByIdentity = homeHistory;
         ui.RecentSearches = recentSearches;

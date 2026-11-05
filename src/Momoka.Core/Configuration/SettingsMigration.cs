@@ -411,11 +411,15 @@ public static class SettingsMigration
         if (settings.Ui.Sort is null) settings.Ui.Sort = new(StringComparer.Ordinal);
         if (settings.Ui.Filters is null) settings.Ui.Filters = new(StringComparer.Ordinal);
         if (settings.Ui.Views is null) settings.Ui.Views = new(StringComparer.Ordinal);
+        if (settings.Ui.Display is null) settings.Ui.Display = new(StringComparer.Ordinal);
 
         // Only these two: Views holds an enum, so a null value there is a JsonException on the way in —
         // which SettingsStore already treats as a corrupt file.
         DropNullValues(settings.Ui.Sort);
         DropNullValues(settings.Ui.Filters);
+        DropNullValues(settings.Ui.Display);
+        foreach (var display in settings.Ui.Display.Values)
+            display.Fields ??= [.. LibraryDisplayCatalog.DefaultFields];
 
         // 快捷键那张 Id→token 表：null 的那份先扔掉（string 值，和 Sort/Filters 同一条规矩）。认不出的动作 Id、
         // 解析不了的写法、落到保留键上的，留给 Normalize 里的 ShortcutCatalog.Clean 收。
