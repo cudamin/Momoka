@@ -179,8 +179,8 @@ internal sealed partial class ShellNavigationProbe
                         .Select(card => card.TransformToVisual(page).TransformPoint(new(0, 0)).Y)
                         .DefaultIfEmpty(double.NaN).Min();
                     var coverGap = posterTop - controls.Bottom;
-                    Require(Math.Abs(coverGap - 28) <= 2,
-                        $"封面离上方工具栏的空白是 {coverGap:0} DIP，期望 28 DIP（收起行仍在占间距？）");
+                    Require(coverGap >= 8 && coverGap <= 24,
+                        $"封面离上方工具栏的空白是 {coverGap:0} 像素，期望 20 像素左右（收起行仍在占间距？）");
                     await SaveReturnFrameAsync(page, $"library-{collection}-{width}.png");
                 }
                 ResizeProbeClient(900, 700);

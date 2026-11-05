@@ -91,7 +91,6 @@ internal sealed partial class ShellNavigationProbe
             // 截图 `detail-responsive-<类型>-<宽度>.png` 与 `detail-responsive-crop-*`／`-maximized`。
             await CaseAsync("电影/剧/季页面的窄窗紧凑与自动无遮挡", DetailResponsiveAsync, 150);
             await CaseAsync("电视媒体库封面显示网页版年份", SeriesCardDatesAsync, 30);
-            await CaseAsync("卡片两行标题、缺图与回收恢复五主题", CardPresentationAsync, 75, section: ShellProbeSections.Library);
             await CaseAsync("Emby 元数据表单字段、锁定和宽窄布局", MetadataLayoutAsync, 75, section: ShellProbeSections.Metadata);
             await CaseAsync("Emby 元数据列表编辑、重排和取消", MetadataListsAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("Emby 元数据保存失败、取消和重试", MetadataSaveAsync, 45, section: ShellProbeSections.Metadata);
@@ -103,7 +102,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("弹窗点外面关闭与字幕弹窗右上角关闭钮", DialogDismissAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("电影与电视剧网页分类、工具栏、作用域及主题", LibraryBrowseAsync, 120);
             await CaseAsync("Jellyfin 媒体库标签、排序、筛选、布局与建议", JellyfinLibraryAsync, 90);
-            await CaseAsync("继续观看紧凑页头与Jellyfin索引留边恢复", LibraryHeaderPolishAsync, 90, section: ShellProbeSections.Library);
+            await CaseAsync("Emby与Jellyfin继续观看紧凑页头", LibraryHeaderPolishAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("飞牛媒体库工具栏到封面的间距与筛选面板", FnNasLibrarySpacingAsync, 45);
             await CaseAsync("飞牛混合库与文件夹页的列表类型、父级参数和筛选行", FnNasMixedLibraryAsync, 60);
             await CaseAsync("飞牛剧集卡片右上角的集数角标", FnNasEpisodeCountAsync, 45);

@@ -15,8 +15,7 @@ internal static class SelfCheckLayoutRules
         // Jellyfin's own library probes (PROGRESS.md, 自检过期断言与控制条窄窗复核 2026-10-26).
         var views = LibraryDisplayCatalog.EmbyViews;
         if (!restored || walk.Count != views.Count
-            || textHeight != CardSize.Chrome + CardSize.MediaTitleExtra
-                && textHeight != CardSize.Chrome + CardSize.MediaTitleExtra + 18) return false;
+            || textHeight != CardSize.Chrome && textHeight != CardSize.Chrome + 18) return false;
         for (var index = 0; index < views.Count; index++)
         {
             var view = views[index];

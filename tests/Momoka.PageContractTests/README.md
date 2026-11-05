@@ -6,7 +6,6 @@
 - P3 长剧测试编译链接真实 `CardShelf`、`CardCollection` 与 `CardItem`：2000 项计数与深处索引只创建被访问卡，删除未访问季、清理及 30 次重新填充不创建隐藏卡；非泛型 `IList` 增删改、移动、完整枚举和复制保留原语义。这里不证明 WinRT 的 `IBindableVector` 投影及 `ItemsRepeater` 布局访问数量，真实 Frame 检查由性能探针执行。
 - 诊断页编译链接真实 `DiagnosticsViewModel` 与 `PageViewModel`，使用 Shell 已钉住的 `CommunityToolkit.Mvvm` 8.4.2 生成器，不升级依赖。`DIAGNOSTICS_VM_FIXTURE` 仅在本测试项目启用，主套件只登记 Core 日志测试。项目输出明确选 `Program` 为入口。
 - 卡片测试以 `CARD_IMAGE_RESIZE_FIXTURE` 隔离，边界只替代 WinUI 值类型和位图解码；真实 Core 图片存储、SharedWork 和来源寿命仍执行。假图片 handler 只接受占位图片 GET，不运行登录或探测。R-014 继续使用真实图片存储与卡片源码，受控解码只用文本假字节，不证明实际 WinRT 的异常形态或画面。所有新夹具文件在本树测试输出下保留。
-- `CardPresentationTests` 执行真实 CardItem 的 Jellyfin 尾缀清理、飞牛继续观看上下文、两行媒体标题、目录/人物单行以及占位随解码、404、释放和缓存恢复；不替代实际 ImageOpened 与 XAML 回收验证。实际五主题控件检查在 `--probe-shell --probe-section library` 的“卡片两行标题、缺图与回收恢复五主题”，使用假服务并保存 `card-presentation-*.png`。
 - 本项目的诊断 Core 部分与主套件重叠；同时报告两边结果时不能把重叠项累加成不同覆盖。
 - 焦点测试编译链接实际 `FocusWatch`，用可控父子关系和事件边界验证海报／剧集行越过自身，选中外层 Button／ItemContainer、拒绝整张列表或滚动器、退订及重挂；设置名称测试解析真实模板与资源，验证行标签绑定不会被通用资源覆盖，并执行两种负向检查。真实 WinUI 焦点与 UIA 名称由 `--probe-shell --probe-section settings` 的「卡片焦点宿主与设置控件具体名称」用例补齐，不以这些边界测试代替。
 - `library-anchor-page-fixture` 编译链接完整生产 `LibraryPage.Anchor.cs`，以真实 CardItem 和可控调度队列覆盖空库清理、读回内容后恢复、旧空库回调不清新锚点以及查询替换。外层 VM、视觉坐标和 XAML 控件只作边界，不能证明真实 ItemsView 滚动或 Frame 布局；它与默认 116 项分别运行。
@@ -23,3 +22,5 @@
 & "$HOME/.dotnet/dotnet.exe" run --project ./tests/Momoka.PageContractTests/Momoka.PageContractTests.csproj -c Release --no-build
 & "$HOME/.dotnet/dotnet.exe" run --project ./tests/Momoka.PageContractTests/Momoka.PageContractTests.csproj -c Release --no-build --no-restore -- library-anchor-page-fixture
 ```
+
+`CardPresentationTests` verifies the restored server titles, FnNas centered text and single-line card markup after the selective UI rollback.

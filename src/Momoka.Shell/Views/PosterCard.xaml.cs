@@ -21,7 +21,7 @@ namespace Momoka.Shell.Views;
 /// <para>
 /// 封面框线、中间播放键与无描边读数分开记录。<paramref name="FrameBorderless"/> 核三态都不画线。<paramref name="FrameRest"/> 是静止时的框线色，
 /// <paramref name="FrameActive"/> 是指针上来之后的色 —— 2026-10-27 起两者必须相同：封面不再画那圈绿框。
-/// <paramref name="PlayRest"/> 是播放键停着的高对比中性底色，<paramref name="PlayHover"/> 是指针压到键上的底色
+/// <paramref name="PlayRest"/> 是播放键停着的底色（灰），<paramref name="PlayHover"/> 是指针压到键上的底色
 /// （强调色）—— 48 像素的圆在截图里认得出颜色，但「是不是调色板里那一支」还得靠读数。
 /// <paramref name="FrameFocus"/> 是键盘那一半接上了没有：卡片自己接不到焦点，得往上找到外层容器，找不到的
 /// 话焦点那一半整个不存在，而那是完全没有症状的。
@@ -209,7 +209,6 @@ public sealed partial class PosterCard : UserControl
     /// </summary>
     private void OnPosterOpened(object sender, RoutedEventArgs e)
     {
-        Card?.RefreshArtworkVisibility();
         _posterFade?.Stop();
         _posterFade = null;
 

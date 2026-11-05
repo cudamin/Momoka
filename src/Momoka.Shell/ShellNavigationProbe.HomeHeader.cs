@@ -72,11 +72,6 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(width, 760);
                 await LayoutAsync(home);
                 await Task.Delay(450);
-                Require(Math.Abs(rule.Opacity - 0.25) < 0.01, "货架分隔线未使用淡化的透明度");
-                head.OnScrim = true;
-                Require(Math.Abs(rule.Opacity - 0.25) < 0.01, "剧照上的分隔线透明度不一致");
-                head.OnScrim = false;
-                Require(Math.Abs(rule.Opacity - 0.25) < 0.01, "返回普通背景后分隔线未恢复淡化");
                 foreach (var caption in new[] { initialTitle, "离线服务器 · 最近添加 · 纪录片" })
                 {
                     head.Title = caption;
@@ -128,8 +123,8 @@ internal sealed partial class ShellNavigationProbe
                 var scroller = Get<ScrollView>(strip, "Scroller");
                 scroller.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
                 await UntilAsync(() => scroller.HorizontalOffset < 1);
-                Field(strip, "_hover", true);
-                Call(strip, "SyncArrows");
+                Get<HoverWatch>(strip, "_watch").Leave();
+                SetStripHover(true);
                 await Task.Delay(300);
                 var next = Get<Button>(strip, "Next");
                 Require(next.Visibility == Visibility.Visible && next.ActualWidth == 48 && next.ActualHeight == 48,
@@ -164,7 +159,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(art.BorderThickness == new Thickness(0), "键盘焦点仍让封面出现主题色外圈");
                 Require(Colour(host.FocusVisualPrimaryBrush) == Role("EgTextBrush")
                     && Colour(host.FocusVisualSecondaryBrush) == Role("EgWindowBrush"), "主页卡片焦点提示不是中性色");
-                Require(Colour(play.Background) == Role("EgTextBrush"), "封面悬停没有保留高对比播放底色");
+                Require(Colour(play.Background) == Role("EgSurfaceHoverBrush"), "封面悬停把播放键提前变成强调色");
                 await SaveProbeScreenAsync($"home-card-neutral-{width}-screen.png");
                 if (width == 1280)
                 {
@@ -174,7 +169,7 @@ internal sealed partial class ShellNavigationProbe
                         await LayoutAsync(home);
                         Require(VisualStateManager.GoToState(play, "Normal", false), "播放按钮缺少默认状态");
                         await LayoutAsync(play);
-                        Require(Colour(Presenter(play)?.Background) == Role("EgTextBrush"), "播放键默认没有使用高对比中性色");
+                        Require(Colour(Presenter(play)?.Background) == Role("EgSurfaceHoverBrush"), "播放键默认不是中性面色");
                         await SaveProbeScreenAsync($"home-card-play-normal-{theme.Id}-screen.png");
                         Require(VisualStateManager.GoToState(play, "PointerOver", false), "播放按钮缺少指针状态");
                         await LayoutAsync(play);
@@ -186,7 +181,7 @@ internal sealed partial class ShellNavigationProbe
                         Require(Colour(Presenter(play)?.Background) == Role("EgAccentPressedBrush"), "播放键按下状态没有使用主题色");
                         VisualStateManager.GoToState(play, "Normal", false);
                         await LayoutAsync(play);
-                        Require(Colour(Presenter(play)?.Background) == Role("EgTextBrush"), "播放键离开后未恢复高对比中性色");
+                        Require(Colour(Presenter(play)?.Background) == Role("EgSurfaceHoverBrush"), "播放键离开后未恢复中性色");
                         var check = ShellSelfCheck.ReadCards(home);
                         Require(check is { Ok: true }, "实际封面自检不通过：" + check?.Detail);
                     }
@@ -204,19 +199,45 @@ internal sealed partial class ShellNavigationProbe
                 Get<Grid>(card, "Hover").Visibility = Visibility.Collapsed;
                 Get<Grid>(card, "Hover").Opacity = 0;
                 Require(art.BorderThickness == new Thickness(0), "离开封面后仍有边框");
+                SetStripHover(true);
                 ((IInvokeProvider)new ButtonAutomationPeer(next).GetPattern(PatternInterface.Invoke)).Invoke();
                 await UntilAsync(() => scroller.HorizontalOffset > 1);
                 var previous = Get<Button>(strip, "Prev");
-                await UntilAsync(() => previous.Visibility == Visibility.Visible);
+                // 本检查模拟悬停，不占用真实鼠标；先确认离开会收起，再持有模拟前件等动画完成。
+                await UntilAsync(() =>
+                {
+                    SetStripHover(false);
+                    return previous.Visibility == Visibility.Collapsed && next.Visibility == Visibility.Collapsed;
+                });
+                try
+                {
+                    await UntilAsync(() =>
+                    {
+                        SetStripHover(true);
+                        return previous.Visibility == Visibility.Visible && previous.IsHitTestVisible && previous.Opacity >= 0.99;
+                    });
+                }
+                finally
+                {
+                    await File.AppendAllTextAsync(System.IO.Path.Combine(_options.Paths.LogDirectory, "home-arrow-state.txt"),
+                        $"width={width}; hover={Get<bool>(strip, "_hover")}; offset={scroller.HorizontalOffset}; scrollable={scroller.ScrollableWidth}; "
+                        + $"prev={previous.Visibility}/{previous.IsHitTestVisible}/{previous.Opacity}; requested={strip.Requested}\n");
+                }
                 await LayoutAsync(previous);
                 Require(Descendants(previous).OfType<Ellipse>().Single().StrokeThickness == 2, "左翻页按钮未加粗");
                 ((IInvokeProvider)new ButtonAutomationPeer(previous).GetPattern(PatternInterface.Invoke)).Invoke();
                 await UntilAsync(() => scroller.HorizontalOffset < 1);
-                Field(strip, "_hover", false);
-                Call(strip, "SyncArrows");
+                SetStripHover(false);
             }
             Require(fixture.Actions.Plays == 0, "标题与边框检查意外触发播放");
             File.WriteAllLines(System.IO.Path.Combine(_options.Paths.LogDirectory, "home-header-hit-area.txt"), readings);
+
+            void SetStripHover(bool visible)
+            {
+                // 真实 HoverWatch 可能在布局/主题切换时清掉反射前件；这里只控制本夹具的模拟状态。
+                Field(strip, "_hover", visible);
+                Call(strip, "SyncArrows");
+            }
 
             Point Center(FrameworkElement element) => element.TransformToVisual(_root)
                 .TransformPoint(new Point(element.ActualWidth / 2, element.ActualHeight / 2));

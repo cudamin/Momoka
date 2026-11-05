@@ -2324,7 +2324,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
         var episodes = new CardShelf("更多单集", images, CardSize.WideWidth, wide: true);
         var cast = new CardShelf("演职人员", images, CardSize.CastWidth,
-            wide: false, indicators: false, mediaTitles: false);
+            wide: false, indicators: false);
         var seasons = new CardShelf("全部剧季", images, CardSize.PosterWidth, wide: false);
 
         var similar = new CardShelf("更多类似", images, CardSize.PosterWidth, wide: false);

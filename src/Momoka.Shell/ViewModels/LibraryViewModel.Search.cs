@@ -159,7 +159,7 @@ public sealed partial class LibraryViewModel
             group.CardWidth = CardWidth;
             // 单集结果按 16:9 的剧照摆（用户令 2026-11-01），和其它组的竖版海报不是同一档高度。
             group.RowHeight = group.Kind == LibrarySearchGroupKind.Episode
-                ? CardMetrics.HeightFor(CardWidth, wide: true) + CardMetrics.Chrome + CardMetrics.MediaTitleExtra
+                ? CardMetrics.HeightFor(CardWidth, wide: true) + CardMetrics.Chrome
                 : posterHeight;
         }
     }

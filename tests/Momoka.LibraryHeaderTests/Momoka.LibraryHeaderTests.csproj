@@ -6,7 +6,7 @@
   <ItemGroup>
     <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
     <Compile Include="../Momoka.Tests/AgreementsTests.cs" Link="AgreementsTests.cs" />
-    <Compile Include="../../src/Momoka.Shell/Views/AlphaBar.xaml.cs" Link="AlphaBar.xaml.cs" />
+    <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
   </ItemGroup>
   <UsingTask TaskName="ExtractLibraryHeader" TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
@@ -27,7 +27,7 @@
         if (first < 0 || last <= first || source.IndexOf(begin, first + begin.Length, StringComparison.Ordinal) >= 0)
             throw new InvalidOperationException("Missing or ambiguous LibraryPage header region");
         var generated = "// Verbatim current production methods; do not edit.\n#nullable enable\n" +
-            "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nnamespace Momoka.Shell.Views;\n" +
+            "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Momoka.Emby;\nnamespace Momoka.Shell.Views;\n" +
             "public sealed partial class LibraryPage\n{\n" + source.Substring(first, last - first) + "\n}\n";
         Directory.CreateDirectory(Path.GetDirectoryName(Output));
         if (!File.Exists(Output) || File.ReadAllText(Output) != generated)

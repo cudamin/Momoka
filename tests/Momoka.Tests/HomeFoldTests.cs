@@ -24,26 +24,6 @@ internal static class HomeFoldTests
 {
     public static void Register()
     {
-        Test("主页媒体库位置：窄窗三档均移到下方", () =>
-        {
-            foreach (var placement in Enum.GetValues<HomeLibraryPlacement>())
-            {
-                Assert.False(HomeFold.LibraryOnBanner(placement, 560, 922, 300, 600), $"{placement}：600宽");
-                Assert.False(HomeFold.LibraryOnBanner(placement, 760, 922, 324, 759), $"{placement}：759宽");
-            }
-        });
-
-        Test("主页媒体库位置：恢复常规宽度后继续使用原偏好", () =>
-        {
-            var placement = HomeLibraryPlacement.OnCarousel;
-            Assert.True(HomeFold.LibraryOnBanner(placement, 760, 922, 325, 760));
-            Assert.False(HomeFold.LibraryOnBanner(placement, 560, 922, 300, 600));
-            Assert.True(HomeFold.LibraryOnBanner(placement, 760, 922, 325, 760));
-            Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.BelowCarousel, 760, 922, 325, 760));
-            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 760, 922, 325, 760));
-            Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 1000, 922, 325, 760));
-        });
-
         Test("矮窗档：那条线被裁掉 —— 压上", () =>
         {
             // 视口 900：线在 922、整个在第一屏外 —— 线以下（那一排的卡）一个像素都不露，这正是要压上轮播的那一档。

@@ -271,7 +271,7 @@ internal static partial class ShellSelfCheck
                 && Format(corner.FrameRest) != accent
                 && corner.FrameRest.A > 0
                 && corner.FrameFocus
-                && (!corner.Play || Format(corner.PlayRest) == ColorOf("EgTextBrush")
+                && (!corner.Play || Format(corner.PlayRest) == ColorOf("EgSurfaceHoverBrush")
                     && Format(corner.PlayHover) == accent);
         }
 
@@ -336,7 +336,7 @@ internal static partial class ShellSelfCheck
             library.ViewName,
             views,
             restored,
-            CardSize.Chrome + CardSize.MediaTitleExtra + (library.ViewModel.Fields.Contains(LibraryField.Tagline)
+            CardSize.Chrome + (library.ViewModel.Fields.Contains(LibraryField.Tagline)
                 || library.ViewModel.Fields.Contains(LibraryField.Overview) ? 18 : 0),
             library.AlphaShown,
             library.ArtworkCensus,

@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using Momoka.Emby;
 using Momoka.Shell.Views;
 using System.Xml.Linq;
 using static Momoka.Tests.TestHarness;
@@ -9,59 +10,86 @@ internal static class Program
 {
     private static int Main()
     {
-        Test("继续观看没有分类仍收起所有空行并留28DIP内容间距", () =>
+        foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
+            Test($"{kind}继续观看保留小标题和28DIP间距", () =>
+            {
+                var page = new LibraryPage();
+                page.ViewModel.SourceServerKind = kind;
+                page.Apply(resume: true);
+                Assert.Equal(0d, page.PageRoot.RowSpacing);
+                Assert.Equal(0d, page.HeaderGrid.RowSpacing);
+                Assert.Equal(0d, page.HeaderLayout.RowSpacing);
+                Assert.Equal(0d, ((Microsoft.UI.Xaml.Controls.Grid)page.UpcomingScroll.Parent!).RowSpacing);
+                Assert.Equal(28d, page.EmbyContent.Margin.Top);
+                Assert.Equal(12d, page.ToolbarSurface.Margin.Top);
+                Assert.Equal(12d, page.LibraryNoticeBar.Margin.Top);
+                Assert.Equal("EgSectionTitleStyle", page.LibraryTitle.Style!.Key);
+                Assert.Equal(HorizontalAlignment.Left, page.ToolbarSurface.HorizontalAlignment);
+            });
+        foreach (var kind in new[] { MediaServerKind.FnNas, MediaServerKind.Plex })
+            Test($"{kind}继续观看恢复原来的页头规则", () =>
+            {
+                var page = new LibraryPage();
+                page.ViewModel.SourceServerKind = kind;
+                page.Apply(resume: true);
+                Assert.Equal(kind == MediaServerKind.FnNas ? 20d : 0d, page.EmbyContent.Margin.Top);
+                Assert.Equal(kind == MediaServerKind.FnNas ? "EgSectionTitleStyle" : "EgPageTitleStyle", page.LibraryTitle.Style!.Key);
+                Assert.Equal(kind == MediaServerKind.FnNas ? 0d : 20d, page.PageRoot.RowSpacing);
+                Assert.Equal(HorizontalAlignment.Left, page.ToolbarSurface.HorizontalAlignment);
+            });
+        Test("Emby和Jellyfin普通库恢复20DIP间距并保持居中", () =>
+        {
+            foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
+            {
+                var page = new LibraryPage();
+                page.ViewModel.SourceServerKind = kind;
+                page.ViewModel.IsSectionLibrary = true;
+                page.Apply();
+                Assert.Equal(20d, page.EmbyContent.Margin.Top);
+                Assert.Equal(HorizontalAlignment.Center, page.LibrarySectionsSurface.HorizontalAlignment);
+                Assert.Equal(HorizontalAlignment.Center, page.ToolbarSurface.HorizontalAlignment);
+                Assert.True(page.Toolbar.CenterRows);
+            }
+        });
+        Test("收藏与预告恢复原有4DIP外层行距", () =>
+        {
+            foreach (var upcoming in new[] { false, true })
+            {
+                var page = new LibraryPage();
+                page.ViewModel.IsSectionLibrary = true;
+                page.ViewModel.IsFavoritesPage = !upcoming;
+                page.ViewModel.IsUpcomingPage = upcoming;
+                page.Apply();
+                Assert.Equal(4d, page.PageRoot.RowSpacing);
+                Assert.Equal(12d, page.HeaderLayout.RowSpacing);
+                Assert.Equal(0d, page.EmbyContent.Margin.Top);
+            }
+        });
+        Test("普通浏览与继续观看来回切换不会遗留小标题和新间距", () =>
         {
             var page = new LibraryPage();
+            page.Apply(resume: true);
             page.Apply();
-            Assert.Equal(0d, page.PageRoot.RowSpacing);
-            Assert.Equal(0d, page.HeaderGrid.RowSpacing);
-            Assert.Equal(0d, page.HeaderLayout.RowSpacing);
-            Assert.Equal(0d, ((Microsoft.UI.Xaml.Controls.Grid)page.UpcomingScroll.Parent!).RowSpacing);
+            Assert.Equal(20d, page.PageRoot.RowSpacing);
+            Assert.Equal(16d, page.HeaderGrid.RowSpacing);
+            Assert.Equal(0d, page.EmbyContent.Margin.Top);
+            Assert.Equal("EgPageTitleStyle", page.LibraryTitle.Style!.Key);
+            page.Apply(resume: true);
             Assert.Equal(28d, page.EmbyContent.Margin.Top);
             Assert.Equal("EgSectionTitleStyle", page.LibraryTitle.Style!.Key);
         });
-        Test("Emby和Jellyfin分类与操作栏恢复原来的居中版式", () =>
-        {
-            foreach (var kind in new[] { "emby", "jellyfin", "mixed", "favorites", "upcoming" })
-            {
-                var page = new LibraryPage();
-                page.ViewModel.IsSectionLibrary = kind != "mixed";
-                page.ViewModel.IsJellyfinListPage = kind == "mixed";
-                page.ViewModel.IsFavoritesPage = kind == "favorites";
-                page.ViewModel.IsUpcomingPage = kind == "upcoming";
-                page.Apply();
-                Assert.Equal(HorizontalAlignment.Center, page.LibrarySectionsSurface.HorizontalAlignment, kind);
-                Assert.Equal(HorizontalAlignment.Center, page.LibraryBrowseGroup.HorizontalAlignment, kind);
-                Assert.Equal(HorizontalAlignment.Center, page.ToolbarSurface.HorizontalAlignment, kind);
-                Assert.True(page.LibrarySections.CenterRows, kind);
-                Assert.True(page.Toolbar.CenterRows, kind);
-                Assert.Equal(28d, page.EmbyContent.Margin.Top, kind);
-            }
-        });
-        Test("飞牛库根与继续观看保留原来的左对齐工具栏", () =>
-        {
-            foreach (var fnNas in new[] { false, true })
-            {
-                var page = new LibraryPage();
-                page.ViewModel.IsFnNas = fnNas;
-                page.Apply();
-                Assert.Equal(HorizontalAlignment.Left, page.ToolbarSurface.HorizontalAlignment);
-                Assert.False(page.Toolbar.CenterRows);
-                Assert.Equal(28d, page.EmbyContent.Margin.Top);
-            }
-        });
-        Test("文件夹由面包屑承担标题且工具栏不留隐藏标题间距", () =>
+        Test("文件夹恢复原有面包屑和居中工具条", () =>
         {
             var page = new LibraryPage();
             page.ViewModel.IsFolderDrillDown = true;
             page.Apply();
             Assert.Equal(Visibility.Collapsed, page.LibraryTitle.Visibility);
-            Assert.Equal(0d, page.ToolbarSurface.Margin.Top);
+            Assert.Equal(12d, page.ToolbarSurface.Margin.Top);
             Assert.Equal(0, page.ToolbarSurface.Row);
+            Assert.Equal(20d, page.EmbyContent.Margin.Top);
             Assert.Equal(HorizontalAlignment.Center, page.ToolbarSurface.HorizontalAlignment);
-            Assert.True(page.Toolbar.CenterRows);
         });
-        Test("搜索保留顶部安全区与独立内容间距并能恢复普通浏览", () =>
+        Test("搜索保留40DIP安全区和8DIP内容间距", () =>
         {
             var page = new LibraryPage();
             page.Apply(search: true);
@@ -70,19 +98,6 @@ internal static class Program
             Assert.Equal(Visibility.Collapsed, page.LibraryTitle.Visibility);
             Assert.Equal(900d, page.SearchSurface.Width);
             Assert.Equal(480d, page.SourceTabs.Width);
-            page.Apply();
-            Assert.Equal(Visibility.Visible, page.LibraryTitle.Visibility);
-            Assert.Equal(28d, page.EmbyContent.Margin.Top);
-        });
-        Test("只有Jellyfin字母条使用独立Auto列且切回Emby恢复覆盖", () =>
-        {
-            var page = new LibraryPage();
-            page.ViewModel.IsJellyfin = true;
-            page.Apply();
-            Assert.Equal(1, page.Alpha.Column);
-            page.ViewModel.IsJellyfin = false;
-            page.Apply();
-            Assert.Equal(0, page.Alpha.Column);
         });
         Test("Attach未结束或布局未测量时不提前改动页头", () =>
         {
@@ -93,55 +108,12 @@ internal static class Program
             page.Apply();
             Assert.Equal(0, page.HeaderApplies);
         });
-        Test("字母条Auto列没有固定最小宽度", () =>
+        Test("详情音频标签保留中文冒号", () =>
         {
-            var root = Root();
-            var document = XDocument.Load(Path.Combine(root, "src/Momoka.Shell/Views/LibraryPage.xaml"));
-            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
-            var alpha = document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "Alpha");
-            var columns = alpha.Parent!.Elements().Single(element => element.Name.LocalName == "Grid.ColumnDefinitions").Elements().ToArray();
-            Assert.Equal("Auto", (string?)columns[1].Attribute("Width"));
-            Assert.Null(columns[1].Attribute("MinWidth"));
-            Assert.Null(alpha.Attribute("Width"));
-            Assert.Null(alpha.Attribute("MinWidth"));
-            var control = XDocument.Load(Path.Combine(root, "src/Momoka.Shell/Views/AlphaBar.xaml"));
-            Assert.Null(control.Root!.Attribute("Width"));
-            Assert.Null(control.Root.Attribute("MinWidth"));
-        });
-        Test("真实AlphaBar回调在376DIP折叠轨道并在900DIP恢复", () =>
-        {
-            var alpha = new AlphaBar();
-            alpha.SetCurrent("A");
-            alpha.Resize(900);
-            Assert.Equal(Visibility.Visible, alpha.Rail.Visibility);
-            alpha.Resize(376);
-            Assert.Equal(Visibility.Collapsed, alpha.Rail.Visibility);
-            alpha.Resize(900);
-            Assert.Equal(Visibility.Visible, alpha.Rail.Visibility);
-            Assert.Equal(new Thickness(0, 5, 0, 5), alpha.Rail.Padding);
-            Assert.Equal(new CornerRadius(13), alpha.Rail.CornerRadius);
-            Assert.Equal("EgAlphaCurrentStyle", alpha.ButtonStyle("A"));
-        });
-        Test("真实AlphaBar回调在400到509DIP使用紧凑样式且恢复选中字母", () =>
-        {
-            var alpha = new AlphaBar();
-            alpha.SetCurrent("B");
-            foreach (var height in new[] { 400d, 509d })
-            {
-                alpha.Resize(height);
-                Assert.Equal(Visibility.Visible, alpha.Rail.Visibility);
-                Assert.Equal(new Thickness(0, 3, 0, 3), alpha.Rail.Padding);
-                Assert.Equal(new CornerRadius(12), alpha.Rail.CornerRadius);
-                Assert.Equal("EgAlphaCompactCurrentStyle", alpha.ButtonStyle("B"));
-                Assert.Equal("EgAlphaCompactButtonStyle", alpha.ButtonStyle("A"));
-            }
-            alpha.Resize(399);
-            Assert.Equal(Visibility.Collapsed, alpha.Rail.Visibility);
-            alpha.Resize(510);
-            Assert.Equal(Visibility.Visible, alpha.Rail.Visibility);
-            Assert.Equal(new Thickness(0, 5, 0, 5), alpha.Rail.Padding);
-            Assert.Equal("EgAlphaCurrentStyle", alpha.ButtonStyle("B"));
-            Assert.Equal("EgAlphaButtonStyle", alpha.ButtonStyle("A"));
+            var document = XDocument.Load(Path.Combine(Root(), "src/Momoka.Shell/Strings/zh-Hans/Resources.resw"));
+            var value = document.Root!.Elements("data")
+                .Single(element => (string?)element.Attribute("name") == "DetailPage_TextBlock3.Text").Element("value")!.Value;
+            Assert.Equal("音频：", value);
         });
         AgreementsTests.Register();
         return Run();

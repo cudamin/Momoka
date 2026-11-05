@@ -1,14 +1,5 @@
 # Library header contract
 
-This fixture compiles the current `LibraryPage.ApplyHeaderLayout` and its search margin method verbatim at every build, and compile-links the entire production `AlphaBar.xaml.cs`. Small value-only WinUI boundaries record property assignments; they do not simulate XAML layout. The tests cover resume pages without a parent library, each non-search header shape, folder breadcrumb ownership, search restoration, Jellyfin-only column routing, initialization guards, and the actual AlphaBar height callback across full/compact/hidden/restored states with the selected letter retained. A markup contract checks that the index's Auto column has no fixed-width floor. Auto-column measured zero width and recovery remain real-window probe assertions.
+This fixture extracts the current LibraryPage header methods at build time and runs them with value-only WinUI boundaries. It checks that only Emby/Jellyfin Resume keeps the compact title and 28 DIP gap; FnNas, Plex, ordinary libraries, favorites, upcoming, folders and search retain their earlier layout rules. It also covers page-kind restoration, initialization guards and the audio colon resource.
 
-From this worktree, after restore:
-
-```powershell
-& "$HOME/.dotnet/dotnet.exe" build tests/Momoka.LibraryHeaderTests/Momoka.LibraryHeaderTests.csproj -c Release --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false
-& "$HOME/.dotnet/dotnet.exe" run --project tests/Momoka.LibraryHeaderTests/Momoka.LibraryHeaderTests.csproj -c Release --no-build --no-restore
-```
-
-Actual gap measurements, wrapped rows, index non-overlap and height/count hiding and restoration are covered separately by `--probe-shell --probe-section library,search --screen 1`. This fixture starts no window, reads no user settings and performs no server requests or playback. Passing it does not establish rendered layout or actual Auto-column collapse.
-
-The project also runs the existing seven `AgreementsTests` contracts without starting the full main runner. Removing the ineffective height VisualStateGroup intentionally retires only its four state/group names; the real `Rail`, `Root` and `Letters` elements remain. These seven cases overlap the main suite and must not be counted twice.
+Build this project in Release, then run it with --no-build. Seven AgreementsTests overlap the main suite and must not be counted twice. Real layout and screenshots are covered by the offline inspect entry InspectHeaderPolish, with 1132/760/600 DIP widths and a deliberate 128 DIP gap that must fail the assertion. Source-linked tests do not prove rendered layout. No real accounts, server writes or playback are used.

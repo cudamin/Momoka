@@ -98,8 +98,8 @@ internal sealed partial class ShellNavigationProbe
             var panel = Get<Border>(page, "FnNasFilterPanel");
             Require(panel.Visibility == Visibility.Collapsed, "筛选面板默认应收起");
             var closedGap = PosterTop(page) - controls.Bottom;
-            Require(Math.Abs(closedGap - 28) <= 2,
-                $"收起筛选时封面离工具栏 {closedGap:0} DIP，期望 28 DIP");
+            Require(closedGap is >= 8 and <= 24,
+                $"收起筛选时封面离工具栏 {closedGap:0} 像素，期望 20 像素左右");
             await SaveProbeScreenAsync("library-fnnas-spacing-closed-screen.png");
 
             var invoke = new ButtonAutomationPeer(Get<Button>(page, "FilterButton"));
@@ -112,8 +112,8 @@ internal sealed partial class ShellNavigationProbe
             Require(panelGap is >= 12 and <= 20,
                 $"筛选面板离工具栏 {panelGap:0} 像素，期望 16 像素左右");
             var openGap = PosterTop(page) - panelBox.Bottom;
-            Require(Math.Abs(openGap - 28) <= 2,
-                $"展开筛选后封面离面板 {openGap:0} DIP，期望 28 DIP");
+            Require(openGap is >= 20 and <= 30,
+                $"展开筛选后封面离面板 {openGap:0} 像素，期望 24 像素左右");
             await SaveProbeScreenAsync("library-fnnas-spacing-open-screen.png");
         }
         finally

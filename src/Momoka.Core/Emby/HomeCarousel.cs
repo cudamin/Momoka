@@ -98,12 +98,6 @@ public static class HomeCarousel
     /// </summary>
     public const double MinHeight = 300;
 
-    /// <summary>宽屏封面仍为后续货架留出第一屏空间。</summary>
-    public const double MaxHeight = 640;
-
-    /// <summary>窄窗字幕与媒体库共用的紧凑布局界线；尚未量到宽度时保留默认布局。</summary>
-    public static bool IsCompact(double width) => width > 0 && width < 760;
-
     /// <summary>
     /// 第一帧尚未量到宽度时使用默认 1422 宽对应的高度，避免布局完成前后跳动。
     /// </summary>
@@ -171,8 +165,8 @@ public static class HomeCarousel
     /// 常数**：带子多高，图就裁多少 —— 带宽一拉，带高跟着变，裁的量跟着变，而图一个像素都不变形。
     /// </para>
     /// <para>
-    /// 带高同时受视口和 <see cref="MaxHeight"/> 限制：宽屏最高 640 DIP，让后续货架露出。
-    /// 下限 <see cref="MinHeight"/> 保留标题与操作所需空间，窄窗由 <see cref="IsCompact"/> 共用紧凑判定。
+    /// 一屏是上限而不是目标：超宽屏上按比例换算的高度可能超过一屏，那时带高被一屏封住。下限
+    /// <see cref="MinHeight"/> 兜的是矮到不像话的窗口（那一档字块会伸出下沿，<c>HomeBanner.State</c> 报得出来）。
     /// </para>
     /// <para>
     /// 量不到带宽的那一下（第一帧、还有自检里那份没上树的控件）用 <see cref="UnmeasuredHeight"/>，那就是开窗那一
@@ -186,14 +180,13 @@ public static class HomeCarousel
         if (width <= 0) return UnmeasuredHeight;
 
         var band = Math.Round(width * BandHeightShare / WindowAspect);
-        var ceiling = viewport > 0 ? Math.Clamp(Math.Round(viewport), MinHeight, MaxHeight) : MaxHeight;
+        var ceiling = viewport > 0 ? Math.Max(MinHeight, Math.Round(viewport)) : double.MaxValue;
 
         return Math.Clamp(band, MinHeight, ceiling);
     }
 
     /// <summary>
-    /// 带子按设计形状的高：随宽度换算、由 <see cref="MinHeight"/> 和 <see cref="MaxHeight"/> 限制，
-    /// 不受视口限制的那一份。矮窗档判
+    /// 带子按设计形状的高：随宽度换算、<see cref="MinHeight"/> 兜底，**不被一屏封住**的那一份。矮窗档判
     /// 「轮播上下裁切有没有超出默认形状」（<see cref="HomeFold.LibraryOnBanner"/>）用的就是它：一屏够不到
     /// 这一份，带子就被压矮，剧照上下多裁出一截。
     /// </summary>

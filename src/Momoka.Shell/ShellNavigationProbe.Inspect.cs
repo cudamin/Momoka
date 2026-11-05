@@ -262,9 +262,8 @@ internal sealed partial class ShellNavigationProbe
         Add("InspectMoviePilotJourney", "MP 订阅操作", async () => moviePilotJourney = await InspectMoviePilotJourneyAsync(frame));
         Add("InspectMoviePilotSnapshot", "记录 MP 状态", () => { moviePilotJourney?.Capture(); return Task.CompletedTask; }, keepJourney: true);
         Add("InspectMoviePilotMediaManagement", "MP 媒体管理", InspectMediaManagementAsync);
-        AddCheck("InspectHomePolish", "首页排版验证", HomeBannerLibrariesAsync);
-        AddCheck("InspectCardsPolish", "卡片展示验证", CardPresentationAsync);
-        AddCheck("InspectHeaderPolish", "库页排版验证", LibraryHeaderPolishAsync);
+        AddCheck("InspectHomePolish", "首页原版布局验证", HomeBannerLibrariesAsync);
+        AddCheck("InspectHeaderPolish", "继续观看页头验证", LibraryHeaderPolishAsync);
         AddCheck("InspectBrowsePolish", "分类与工具栏验证", LibraryBrowseAsync);
         AddCheck("InspectHomeCardPolish", "首页按钮与主题验证", HomeHeaderAsync);
         AddCheck("InspectJellyfinPolish", "Jellyfin列表验证", JellyfinLibraryAsync);

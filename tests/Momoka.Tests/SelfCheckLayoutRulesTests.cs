@@ -8,22 +8,20 @@ namespace Momoka.Tests;
 /// <summary>Actual production diagnostic predicates; malformed readings cannot self-approve.</summary>
 internal static class SelfCheckLayoutRulesTests
 {
-    private const int MediaChrome = CardSize.Chrome + CardSize.MediaTitleExtra;
-
     public static void Register()
     {
         Test("自检布局：七种真实视图与原选择恢复", () =>
         {
-            Assert.True(SelfCheckLayoutRules.LibraryViews(Views(), true, MediaChrome));
-            Assert.False(SelfCheckLayoutRules.LibraryViews(Views(), false, MediaChrome));
+            Assert.True(SelfCheckLayoutRules.LibraryViews(Views(), true, CardSize.Chrome));
+            Assert.False(SelfCheckLayoutRules.LibraryViews(Views(), false, CardSize.Chrome));
         });
         Test("自检布局：概要行统一保留且不能各视图漂移", () =>
         {
-            Assert.True(SelfCheckLayoutRules.LibraryViews(Views(18), true, MediaChrome + 18));
+            Assert.True(SelfCheckLayoutRules.LibraryViews(Views(18), true, CardSize.Chrome + 18));
             var readings = Views();
             var thumb = readings[Slot(LibraryView.Thumb)];
             readings[Slot(LibraryView.Thumb)] = (thumb.Label, thumb.Layout, thumb.Cell, thumb.Row + 18);
-            Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, MediaChrome));
+            Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome));
         });
         foreach (var view in LibraryDisplayCatalog.EmbyViews)
         {
@@ -31,29 +29,29 @@ internal static class SelfCheckLayoutRulesTests
             {
                 var readings = Views();
                 Assert.False(SelfCheckLayoutRules.LibraryViews(
-                    readings.Where((_, index) => index != Slot(view)).ToArray(), true, MediaChrome));
+                    readings.Where((_, index) => index != Slot(view)).ToArray(), true, CardSize.Chrome));
                 readings[Slot(view)] = ("错误视图", readings[Slot(view)].Layout, readings[Slot(view)].Cell, readings[Slot(view)].Row);
-                Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, MediaChrome));
+                Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome));
             });
             Test($"自检布局：{view} 布局类型或行高损坏不能通过", () =>
             {
                 var readings = Views();
                 var original = readings[Slot(view)];
                 readings[Slot(view)] = (original.Label, "错误布局", original.Cell, original.Row);
-                Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, MediaChrome));
+                Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome));
                 readings[Slot(view)] = (original.Label, original.Layout, original.Cell, original.Row + 4);
-                Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, MediaChrome));
+                Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome));
             });
         }
         Test("自检布局：多余视图和无效格宽不能通过", () =>
         {
             var readings = Views();
-            Assert.False(SelfCheckLayoutRules.LibraryViews([.. readings, readings[0]], true, MediaChrome));
+            Assert.False(SelfCheckLayoutRules.LibraryViews([.. readings, readings[0]], true, CardSize.Chrome));
             foreach (var invalid in new[] { double.NaN, double.PositiveInfinity, 0, -1, 170.5 })
             {
                 var changed = Views();
                 changed[0] = (changed[0].Label, changed[0].Layout, invalid, changed[0].Row);
-                Assert.False(SelfCheckLayoutRules.LibraryViews(changed, true, MediaChrome));
+                Assert.False(SelfCheckLayoutRules.LibraryViews(changed, true, CardSize.Chrome));
             }
         });
         Test("自检布局：九值枚举下七条读数通过，多一条或按九值计数判为失败", () =>
@@ -65,26 +63,26 @@ internal static class SelfCheckLayoutRulesTests
             Assert.Equal(9, Enum.GetValues<LibraryView>().Length);
             Assert.Equal(7, LibraryDisplayCatalog.EmbyViews.Count);
             Assert.Equal(LibraryDisplayCatalog.EmbyViews.Count, readings.Length);
-            Assert.True(SelfCheckLayoutRules.LibraryViews(readings, true, MediaChrome));
+            Assert.True(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome));
             Assert.False(readings.Length == Enum.GetValues<LibraryView>().Length,
                 "七条读数与九值枚举等长，说明读数又按整个枚举生成");
 
             // 多一条（例如把 Jellyfin 的 海报卡片 也排进走查）不能通过。
             var extra = readings.Append((LibraryDisplayCatalog.LabelOf(LibraryView.PosterCard), "UniformGridLayout",
-                192d, LibraryCardMetrics.Height(LibraryView.PosterCard, 192) + MediaChrome)).ToArray();
-            Assert.False(SelfCheckLayoutRules.LibraryViews(extra, true, MediaChrome));
+                192d, LibraryCardMetrics.Height(LibraryView.PosterCard, 192) + CardSize.Chrome)).ToArray();
+            Assert.False(SelfCheckLayoutRules.LibraryViews(extra, true, CardSize.Chrome));
 
             // 连 缩略图卡片 一起排满九条，正好是「按九值枚举要求数量」的那一份，同样不能通过。
             var nine = extra.Append((LibraryDisplayCatalog.LabelOf(LibraryView.ThumbCard), "UniformGridLayout",
-                330d, LibraryCardMetrics.Height(LibraryView.ThumbCard, 330) + MediaChrome)).ToArray();
+                330d, LibraryCardMetrics.Height(LibraryView.ThumbCard, 330) + CardSize.Chrome)).ToArray();
             Assert.Equal(Enum.GetValues<LibraryView>().Length, nine.Length);
-            Assert.False(SelfCheckLayoutRules.LibraryViews(nine, true, MediaChrome));
+            Assert.False(SelfCheckLayoutRules.LibraryViews(nine, true, CardSize.Chrome));
         });
         Test("自检布局：模型正确但实际MinItemHeight仍旧时拒绝", () =>
         {
             var readings = Views(18);
-            Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, MediaChrome));
-            Assert.True(SelfCheckLayoutRules.LibraryViews(readings, true, MediaChrome + 18));
+            Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome));
+            Assert.True(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome + 18));
         });
         Test("自检HDR：SDR映射精确四项，HDR和自动精确五项", () =>
         {
@@ -198,7 +196,7 @@ internal static class SelfCheckLayoutRulesTests
             if (view is LibraryView.List or LibraryView.Table)
                 return (LibraryDisplayCatalog.LabelOf(view), "StackLayout", 0d, 0d);
             var width = view is LibraryView.Poster or LibraryView.Disc ? 192 : 330;
-            var height = LibraryCardMetrics.Height(view, width) + MediaChrome + noteHeight;
+            var height = LibraryCardMetrics.Height(view, width) + CardSize.Chrome + noteHeight;
             return (LibraryDisplayCatalog.LabelOf(view), "UniformGridLayout", (double)width, height);
         }).ToArray();
 

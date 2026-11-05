@@ -258,7 +258,7 @@ public sealed partial class ShelfHead : UserControl
 
     /// <summary>
     /// 换那一套墨。标题和读数换样式（两个键都 <c>BasedOn</c> 主题那一套、只改前景，所以字体字号不变），
-    /// 分隔线保留原来的角色画刷，普通背景与剧照背景都使用较淡的透明度。
+    /// 那条线改成同一支浅墨压到三成半 —— 和头图尾部那条进度轨同一个写法，理由也一样。
     /// </summary>
     private static void OnScrimChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
@@ -273,7 +273,7 @@ public sealed partial class ShelfHead : UserControl
         if (scrim)
         {
             head.Rule.Background = Resource<Microsoft.UI.Xaml.Media.Brush>("EgOnScrimDimBrush");
-            head.Rule.Opacity = 0.25;
+            head.Rule.Opacity = 0.35;
             head.NoteCapsule.Background = Resource<Microsoft.UI.Xaml.Media.Brush>("EgScrimBrush");
             return;
         }
@@ -281,7 +281,7 @@ public sealed partial class ShelfHead : UserControl
         // Border 自己那支，不是这个 UserControl 继承来的 Control.Background —— 两个是不同的依赖属性，
         // 清错一个的症状是那条线在回到纸面之后一直是浅墨。
         head.Rule.ClearValue(Border.BackgroundProperty);
-        head.Rule.Opacity = 0.25;
+        head.Rule.Opacity = 0.45;
         head.NoteCapsule.ClearValue(Border.BackgroundProperty);
     }
 

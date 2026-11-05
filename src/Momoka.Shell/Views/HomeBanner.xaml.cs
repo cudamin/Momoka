@@ -118,9 +118,6 @@ public sealed partial class HomeBanner : UserControl
     /// </summary>
     private bool _slim;
 
-    /// <summary>小于 760 DIP 的紧凑字幕布局，与首页媒体库位置共用同一条宽度界线。</summary>
-    private bool _compact;
-
     /// <summary>压上来的那一排总高（牌子 ＋ 空当 ＋ 一排卡）。页面量了递进来，字块的下边距就是它。</summary>
     private double _slimShelfHeight;
 
@@ -161,7 +158,7 @@ public sealed partial class HomeBanner : UserControl
     /// 右下读数（<see cref="SyncSlideStatus"/>）、简介的高度线（<see cref="SynopsisVisibility"/>）。
     /// </summary>
     private void PlaceInfo() =>
-        Info.Margin = new Thickness(InfoInset, _compact ? HomePage.ChromeHeight : 0, 0, _slim ? _slimShelfHeight : 0);
+        Info.Margin = new Thickness(InfoInset, 0, 0, _slim ? _slimShelfHeight : 0);
 
     /// <summary>
     /// 右下的张数读数：多张、带够宽。**矮窗档照常显示**（2026-09-13「媒体库压在轮播图上的时候不用隐藏图二
@@ -189,9 +186,9 @@ public sealed partial class HomeBanner : UserControl
     /// </summary>
     private Visibility SynopsisVisibility(Visibility wanted)
     {
-        var textHeight = Root.Height - (_compact ? HomePage.ChromeHeight : 0) - (_slim ? _slimShelfHeight : 0);
+        var textHeight = Root.Height - (_slim ? _slimShelfHeight : 0);
 
-        return _compact || textHeight < 340 ? Visibility.Collapsed : wanted;
+        return textHeight < 340 ? Visibility.Collapsed : wanted;
     }
 
     /// <summary>
@@ -463,7 +460,7 @@ public sealed partial class HomeBanner : UserControl
         CaptionText.Text = slide.Caption;
         CaptionRow.Visibility = slide.CaptionVisibility;
         SynopsisText.Text = slide.Synopsis;
-        SynopsisRow.Visibility = SynopsisVisibility(slide.SynopsisVisibility);
+        SynopsisRow.Visibility = Root.Height < 340 ? Visibility.Collapsed : slide.SynopsisVisibility;
         PlayText.Text = slide.PlayText;
         SlideCounter.Text = $"{_index + 1:00}  /  {_slides.Count:00}";
         SyncSlideStatus();
@@ -824,8 +821,8 @@ public sealed partial class HomeBanner : UserControl
     }
 
     /// <summary>
-    /// 带多高、渐变幕站在哪儿、字块多宽。带高走 <see cref="HomeCarousel.Height"/>：带宽按 16:9 换算的 76%，
-    /// 受视口和 640 DIP 上限限制。小于 760 DIP 时标题缩小、字块让出顶栏。剧照的几何这里一句都不写 ——
+    /// 带多高、渐变幕站在哪儿、字块多宽。带高走 <see cref="HomeCarousel.Height"/>：带宽按 16:9 算出来的高的六成
+    /// （「把轮播图弄扁一些」，2026-09-09），也就是带子自己的形状 2.96:1；**剧照的几何这里一句都不写** ——
     /// 两层是 <c>Stretch="UniformToFill"</c>、对齐没有写（默认 Stretch），它们自己撑满 Band 的内沿、图按自己
     /// 的比例放大到盖住整格。
     /// <para>
@@ -857,15 +854,15 @@ public sealed partial class HomeBanner : UserControl
     /// 随「占满窗口的上半部分（包括窗口标题）」作废。
     /// </para>
     /// <para>
-    /// 带高也受客户区高度限制，问的是 <c>XamlRoot.Size</c> —— 和自检里 <c>BleedRead</c> 问的同一个数；
-    /// 量不到（自检里这份控件没有 XamlRoot）就是 0，那时仍保留 640 DIP 的宽屏上限。
+    /// 一屏是带高的上限（超宽屏上「带宽 × 六成 ÷ 16 × 9」算出来会比一屏还高），问的是 <c>XamlRoot.Size</c>，
+    /// 也就是整个客户区 —— 和自检里 <c>BleedRead</c> 问的同一个数；量不到（自检里这份控件没有 XamlRoot）就是 0，
+    /// 那时不封顶。
     /// </para>
     /// </summary>
     internal void Resize(double width)
     {
         var viewport = XamlRoot?.Size ?? default;
         var height = HomeCarousel.Height(viewport.Height, width);
-        _compact = HomeCarousel.IsCompact(width);
 
         // 还没量过时高度是 NaN，而 NaN 参与的比较全是假 —— 少了这一句，第一次布局就设不上高度。
         if (double.IsNaN(Root.Height) || Math.Abs(Root.Height - height) > 0.5) Root.Height = height;
@@ -879,11 +876,10 @@ public sealed partial class HomeBanner : UserControl
         // 几何这一层 2026-09-11 简化过一道：框成卡片那一版这里要按 Frame 那圈发丝线的内沿算（差一圈就是图左沿
         // 那道两像素的亮缝），现在 Frame 又是个没有线、没有留白的 Grid，内沿就是控件自己的宽，那一整段连同
         // 「按内沿算」的说法一起删了。
-        Info.MaxWidth = Math.Min(Math.Max(0, width - InfoInset - 28), _compact ? 620 : Math.Clamp(width * 0.48, 280, 620));
-        Info.Spacing = _compact || height < 360 ? 8 : 12;
-        LogoImage.MaxHeight = _compact || height < 360 ? 32 : 44;
-        TitleText.FontSize = (double)Application.Current.Resources[_compact ? "EgHeaderFontSize" : "EgDisplayFontSize"];
-        TitleText.MaxLines = !_compact && height >= 440 ? 2 : 1;
+        Info.MaxWidth = Math.Min(Math.Max(0, width - InfoInset - 28), Math.Clamp(width * 0.48, 280, 620));
+        Info.Spacing = height < 360 ? 8 : 12;
+        LogoImage.MaxHeight = height < 360 ? 32 : 44;
+        TitleText.MaxLines = height >= 440 ? 2 : 1;
         SynopsisRow.Visibility = SynopsisVisibility(Current?.SynopsisVisibility ?? Visibility.Collapsed);
         SyncSlideStatus();
 
@@ -1237,7 +1233,7 @@ public sealed partial class HomeBanner : UserControl
         var quiet = banner.Visibility == Visibility.Collapsed && !banner.Ticking;
 
         // 带高落到布局上，而不只是算出来：扩展到原快捷区域后，1100 宽的封面为 470 高。
-        // 这份控件没有 XamlRoot，量不到视口；640 DIP 的宽屏上限仍参与，但1100宽尚未到上限。
+        // 这份控件没有 XamlRoot，量不到一屏有多高，所以那道「不超过一屏」的封顶这一趟不参与。
         banner.Resize(1100);
         var height = HomeCarousel.Height(0, 1100);
         var width = 1100d;
@@ -1344,7 +1340,7 @@ public sealed partial class HomeBanner : UserControl
 
         return (ok,
             $"没有幻灯片时{(quiet ? "整条带收起、钟不走" : "带还在屏上或钟在走")}；"
-                + $"带高＝带宽×{HomeCarousel.BandHeightShare:0%}÷16×9（上限640与视口、下限 {HomeCarousel.MinHeight:0}）："
+                + $"带高＝带宽×{HomeCarousel.BandHeightShare:0%}÷16×9（上限一屏、下限 {HomeCarousel.MinHeight:0}）："
                 + $"带宽 1100→{height:0}；"
                 + (framed
                     ? "带子没有框：圆角、发丝线、卡片边一概没有，铺到窗口的三条边上；"
@@ -1487,12 +1483,12 @@ public sealed partial class HomeBanner : UserControl
             var height = double.IsNaN(Root.Height) ? 0 : Root.Height;
             var viewport = _viewport?.Size.Height ?? 0;
             var fade = double.IsNaN(Fade.Width) ? 0 : Fade.Width;
-            var spare = (height - Info.Margin.Top - Info.Margin.Bottom - Info.ActualHeight) / 2;
+            var spare = (height - Info.ActualHeight) / 2;
             var bandShape = Band.ActualHeight > 0 ? Band.ActualWidth / Band.ActualHeight : 0;
 
             return $"带高 {height:0}、剧照左侧采色延长 10% 后铺满整条带{Describe(FrontPicture as BitmapImage, bandShape)}"
                 + $"（渐变幕 {fade:0} 宽）、字块宽 {Info.MaxWidth:0}、"
-                + $"字块高 {Info.ActualHeight:0} 竖向居中（顶栏让位 {Info.Margin.Top:0}、媒体库让位 {Info.Margin.Bottom:0}，余下上下各 {spare:0}）、"
+                + $"字块高 {Info.ActualHeight:0} 竖向居中（上下各 {spare:0}）、"
                 + $"带 {bandShape:0.00}:1"
                 + $"（窗口高 {viewport:0}）、"
                 + $"{HomeCarousel.Position(_index, _slides.Count)}、"
@@ -1616,7 +1612,7 @@ public sealed partial class HomeBanner : UserControl
         var display = Face("EgDisplayFontFamily");
         var data = Face("EgDataFontFamily");
         var ui = Face("EgUiFontFamily");
-        var size = Number(_compact ? "EgHeaderFontSize" : "EgDisplayFontSize");
+        var size = Number("EgDisplayFontSize");
         var height = Number("EgActionHeight");
 
         var ok = TitleText.FontFamily.Source == display

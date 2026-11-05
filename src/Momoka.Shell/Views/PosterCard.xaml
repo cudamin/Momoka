@@ -27,7 +27,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <!-- 播放键默认高对比中性色；按钮自身悬停／按下才变强调色，不随整张封面的悬停换色。
+        <!-- 播放键默认中性色；按钮自身悬停／按下才变强调色，不随整张封面的悬停换色。
              框架模板从 ButtonBackgroundPointerOver 等主题键取色，因此覆盖放在按钮自己的 Resources。 -->
         <Style x:Key="EgCardPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Width" Value="48" />
@@ -36,8 +36,8 @@
             <Setter Property="Padding" Value="0" />
             <Setter Property="CornerRadius" Value="24" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Background" Value="{ThemeResource EgTextBrush}" />
-            <Setter Property="Foreground" Value="{ThemeResource EgWindowBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceHoverBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
             <Setter Property="FocusVisualPrimaryBrush" Value="{ThemeResource EgTextBrush}" />
             <Setter Property="FocusVisualSecondaryBrush" Value="{ThemeResource EgSurfaceBrush}" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
@@ -84,14 +84,10 @@
             Padding="{x:Bind Card.ArtworkPadding, Mode=OneWay}"
             Style="{StaticResource EgFrameStyle}">
             <Grid>
-                <StackPanel x:Name="Placeholder" Margin="16" Spacing="10" VerticalAlignment="Center"
-                    IsHitTestVisible="False" Visibility="{x:Bind Card.PlaceholderVisibility, Mode=OneWay}">
-                    <FontIcon FontSize="32" Foreground="{ThemeResource EgTextFaintBrush}"
-                        Glyph="{x:Bind Card.Glyph, Mode=OneWay}" />
-                    <TextBlock x:Name="PlaceholderTitle" Text="{x:Bind Card.PlaceholderTitle, Mode=OneWay}"
-                        Style="{StaticResource EgCaptionStyle}" TextAlignment="Center" TextWrapping="Wrap"
-                        MaxLines="2" TextTrimming="CharacterEllipsis" />
-                </StackPanel>
+                <FontIcon
+                    FontSize="32"
+                    Foreground="{ThemeResource EgTextFaintBrush}"
+                    Glyph="{x:Bind Card.Glyph, Mode=OneWay}" />
                 <!-- 飞牛横卡的底：同一张海报放大、压暗，竖版封面摆在正中（见 CardItem.FnNasWide）。 -->
                 <Grid Visibility="{x:Bind Card.FnNasWideVisibility, Mode=OneWay}">
                     <Image
@@ -216,11 +212,10 @@
 
                 <Border
                     Style="{StaticResource EgCornerBadgeStyle}"
-                    Background="{ThemeResource EgSurfaceHoverBrush}"
                     Visibility="{x:Bind Card.WatchedBadgeVisibility, Mode=OneWay}">
                     <FontIcon
                         FontSize="12"
-                        Foreground="{ThemeResource EgTextBrush}"
+                        Foreground="{ThemeResource EgTextOnAccentBrush}"
                         Glyph="&#xE73E;" />
                 </Border>
                 <Border
@@ -338,11 +333,7 @@
             <TextBlock
                 x:Name="TitleLine"
                 FontWeight="SemiBold"
-                MaxLines="{x:Bind Card.TitleMaxLines, Mode=OneWay}"
-                Height="{x:Bind Card.TitleBlockHeight, Mode=OneWay}"
-                LineHeight="{x:Bind Card.TitleLineHeight, Mode=OneWay}"
-                LineStackingStrategy="BlockLineHeight"
-                TextWrapping="Wrap"
+                MaxLines="1"
                 Style="{StaticResource EgBodyStyle}"
                 Text="{x:Bind Card.Title, Mode=OneWay}"
                 Visibility="{x:Bind Card.TitleVisibility, Mode=OneWay}"

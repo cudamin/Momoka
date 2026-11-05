@@ -364,11 +364,6 @@ public sealed partial class ShelfStrip : UserControl
     {
         var band = Math.Max(MinBandHeight, ActualHeight - CardSize.Chrome - Scroller.Padding.Top);
         var top = Scroller.Padding.Top + (band - MinBandHeight) / 2;
-        // Text chrome differs for two-line media, source captions and one-line directory cards.
-        // Use an already-realized picture; never materialize another item just to place an arrow.
-        if (CardIn(Repeater)?.FindName("Art") is FrameworkElement { ActualHeight: > 0 } art)
-            top = art.TransformToVisual(this).TransformPoint(new(0, 0)).Y
-                + (art.ActualHeight - MinBandHeight) / 2;
 
         Prev.Height = Next.Height = MinBandHeight;
         Prev.Margin = new Thickness(8, top, 0, 0);

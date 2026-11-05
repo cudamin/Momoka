@@ -666,15 +666,6 @@ public sealed partial class HomePage : Page, IShellContent
         }
 
         var placement = ViewModel.LibraryPlacement;
-        var width = Banner.ActualWidth;
-        if (HomeCarousel.IsCompact(width))
-        {
-            // 小窗不把媒体库压进字幕区域；仅调整当前布局，保存的位置偏好留待恢复宽度后使用。
-            Fold(false);
-            ApplyLibraryChrome();
-            return;
-        }
-
         var gap = ShelfRepeater.Layout is StackLayout stack ? stack.Spacing : 0;
         var hasNext = true;
         var nextRowLine = 0.0;
@@ -691,7 +682,7 @@ public sealed partial class HomePage : Page, IShellContent
         // 它，带子就被压矮、剧照上下裁切超出默认档 —— 那是回默认的线（2026-09-13「轮播图上下裁切过多时隐藏」）。
         var bandNatural = HomeCarousel.NaturalHeight(Banner.ActualWidth);
 
-        var decided = hasNext && HomeFold.LibraryOnBanner(placement, viewport, nextRowLine, bandNatural, width);
+        var decided = hasNext && HomeFold.LibraryOnBanner(placement, viewport, nextRowLine, bandNatural);
 
         // 翻档前后各记一条线的账：验收这一档时不用去猜界线落在哪一排（<see cref="HomeFold.CoversLine"/>）。
         // 被「等上一趟落地」拦下的那一次也记 —— 那条日志正好说明这一拍量到的是哪条线。

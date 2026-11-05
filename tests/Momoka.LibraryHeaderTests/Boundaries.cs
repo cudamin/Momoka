@@ -93,22 +93,17 @@ namespace CommunityToolkit.WinUI.Controls
 }
 namespace Momoka.Shell.Views
 {
-    public sealed partial class AlphaBar
+    public sealed class HeaderRequest
     {
-        internal Border Rail { get; } = new() { Padding = new Thickness(0, 5, 0, 5), CornerRadius = new CornerRadius(13) };
-        internal ContentControl Letters { get; } = new();
-        private void InitializeComponent()
-        {
-            foreach (var name in new[] { "EgAlphaButtonStyle", "EgAlphaCurrentStyle", "EgAlphaCompactButtonStyle", "EgAlphaCompactCurrentStyle" })
-                Resources[name] = new Style(name);
-        }
-        internal void Resize(double height) => OnSizeChanged(this, new SizeChangedEventArgs(height));
-        internal string ButtonStyle(string letter) => _buttons[letter].Style!.Key;
+        public bool IsSearch { get; set; }
+        public Momoka.Emby.HomeLayout.HomeRowTarget? Row { get; set; }
     }
-    public sealed class HeaderRequest { public bool IsSearch { get; set; } }
     public sealed class HeaderViewModel
     {
-        public bool IsSectionLibrary, IsFolderDrillDown, IsFnNas, IsJellyfinListPage, IsUpcomingPage, IsFavoritesPage, IsJellyfin;
+        public bool IsSectionLibrary, IsFolderDrillDown, IsJellyfinListPage, IsUpcomingPage, IsFavoritesPage;
+        public Momoka.Emby.MediaServerKind SourceServerKind { get; set; }
+        public bool IsFnNas => SourceServerKind == Momoka.Emby.MediaServerKind.FnNas;
+        public bool IsJellyfin => SourceServerKind == Momoka.Emby.MediaServerKind.Jellyfin;
         public Visibility MoviePilotTabsVisibility { get; set; }
     }
     public sealed class HeaderTabs : FrameworkElement
@@ -148,9 +143,10 @@ namespace Momoka.Shell.Views
         public int SearchSource { get; set; }
         public bool SearchSourceAvailable { get; set; }
         public int HeaderApplies { get; private set; }
-        public void Apply(bool search = false, bool attaching = false)
+        public void Apply(bool search = false, bool attaching = false, bool resume = false)
         {
             _request.IsSearch = search;
+            _request.Row = resume ? Momoka.Emby.HomeLayout.HomeRowTarget.Resume : null;
             _attaching = attaching;
             ApplyHeaderLayout();
         }

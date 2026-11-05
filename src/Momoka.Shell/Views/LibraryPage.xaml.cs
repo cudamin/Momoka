@@ -805,7 +805,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         ViewModel.ResizeGrid(width);
     }
 
-    /// <summary>按可见行留间距，分类与工具栏保留原居中分支；搜索保留自己的版式。</summary>
+    /// <summary>库名独占一行，分类与工具栏在下面分别居中；搜索保留自己的版式。</summary>
     private void ApplyHeaderLayout()
     {
         if (_attaching) return;
@@ -819,11 +819,20 @@ public sealed partial class LibraryPage : Page, IShellContent
         var folderDrillDown = ViewModel.IsFolderDrillDown;
         // 飞牛库根：只留筛选、排序、布局，摆到左上角（2026-11-01 用户令，照官网页端）。
         var fnNasRoot = ViewModel.IsFnNas && !folderDrillDown && !search;
-        // Jellyfin 混合内容根没有分区签；文件夹下钻页标题仍由面包屑承担。
+        // Jellyfin 的混合内容库根沿用网页端 list.html：没有分区签，工具条居中；页内标题照旧留着，
+        // 但落到分区库那一档字号（36 → 20，2026-11-01 用户令）。文件夹下钻页标题仍由面包屑承担。
         var jellyfinList = ViewModel.IsJellyfinListPage;
-        // 所有头部空行都不占位置，包括没有 ParentId 的「继续观看」与收藏/预告货架。
-        // Grid.RowSpacing 会在 Collapsed 行之间照样累加，间距必须跟可见元素一起收起。
-        var contentGap = new Thickness(0, search ? 8 : 28, 0, 0);
+        var contentPage = ViewModel.IsUpcomingPage || ViewModel.IsFavoritesPage;
+        // 截图整理仅保留 Emby/Jellyfin 继续观看的小标题与紧凑留白，其他页面沿用原版。
+        var compactResume = !search && _request?.Row == HomeLayout.HomeRowTarget.Resume
+            && ViewModel.SourceServerKind is MediaServerKind.Emby or MediaServerKind.Jellyfin;
+        // 分区库（Emby／Jellyfin／飞牛）的头部有一批只在特定状态下出现的行：浏览分组、筛选条、状态条、
+        // 搜索分类栏、飞牛的筛选面板。Grid 的 RowSpacing 连收起的行也照算，工具栏到封面因此空出 100 像素。
+        // 这一档把这些间距改由元素自己的外边距表达：行收起就一个像素不占，显示时仍是原来的 12／16。
+        // 文件夹下钻页同理：页内大标题收起，工具条是头部唯一的一行。Jellyfin list 页没有分区签，
+        // 也不该被 Grid 里那两行空位撑出百来像素的空白，所以同样改由外边距控制。
+        var headerByMargin = fnNasRoot || (sectionLibrary && !contentPage) || folderDrillDown || jellyfinList || compactResume;
+        var contentGap = new Thickness(0, compactResume ? 28 : 20, 0, 0);
         var pageMargin = (Thickness)Application.Current.Resources["EgPageMargin"];
         // 顶部 32 DIP 供原生窗口按钮使用，再留 8 DIP；去掉搜索标题后内容仍整体上移。
         // 库根、Jellyfin 的 list 根与所有文件夹下钻页都用库页这 20 边距：卡片宽度是「可用宽 ÷ 列数」，
@@ -831,30 +840,31 @@ public sealed partial class LibraryPage : Page, IShellContent
         // （2026-11-01 用户令「参考 emby 库封面的大小统一其他库的封面大小」）。
         PageRoot.Margin = search ? new Thickness(pageMargin.Left, 40, pageMargin.Right, pageMargin.Bottom)
             : sectionLibrary || fnNasRoot || folderDrillDown || jellyfinList ? new Thickness(20) : pageMargin;
-        PageRoot.RowSpacing = 0;
-        HeaderGrid.RowSpacing = 0;
-        HeaderLayout.RowSpacing = 0;
-        ((Grid)UpcomingScroll.Parent).RowSpacing = 0;
+        PageRoot.RowSpacing = search ? 0 : contentPage ? 4 : headerByMargin ? 0 : 20;
+        HeaderGrid.RowSpacing = search || contentPage || headerByMargin ? 0 : 16;
+        HeaderLayout.RowSpacing = search || headerByMargin ? 0 : sectionLibrary ? 12 : 20;
+        ((Grid)UpcomingScroll.Parent).RowSpacing = search || contentPage || headerByMargin ? 0 : 16;
         SearchCategories.Margin = search ? new Thickness(0, 0, 0, 12) : new Thickness(0);
-        LibrarySectionsSurface.Margin = search ? new Thickness(0) : new Thickness(0, 12, 0, 0);
-        ToolbarSurface.Margin = search || folderDrillDown ? new Thickness(0) : new Thickness(0, 12, 0, 0);
-        LibraryBrowseGroup.Margin = search ? new Thickness(0) : new Thickness(0, 12, 0, 0);
-        LibraryFilterChips.Margin = search ? new Thickness(0) : new Thickness(0, 16, 0, 0);
-        FnNasFilterPanel.Margin = search ? new Thickness(0) : new Thickness(0, 16, 0, 0);
+        LibrarySectionsSurface.Margin = headerByMargin ? new Thickness(0, 12, 0, 0) : new Thickness(0);
+        ToolbarSurface.Margin = headerByMargin ? new Thickness(0, 12, 0, 0) : new Thickness(0);
+        LibraryBrowseGroup.Margin = headerByMargin ? new Thickness(0, 12, 0, 0) : new Thickness(0);
+        LibraryFilterChips.Margin = headerByMargin ? new Thickness(0, 16, 0, 0) : new Thickness(0);
+        // 飞牛的筛选面板也在头部那一列里，但它有自己的 4 像素下边距；展开时补 16 上边距，
+        // 收起时整行不占位置。
+        FnNasFilterPanel.Margin = headerByMargin ? new Thickness(0, 16, 0, 4) : new Thickness(0, 0, 0, 4);
         // 搜索页没有标题和外卡；间距放在可见内容上，收起状态行不会留下空槽。
         var searchGap = search ? new Thickness(0, 8, 0, 0) : new Thickness(0);
-        EmbyContent.Margin = contentGap;
+        EmbyContent.Margin = headerByMargin ? contentGap : searchGap;
         ApplySearchPanelMargins(searchGap);
-        // 状态反馈和正文各自只与紧邻的可见区域留间距，不把内容的 28 DIP 复制到状态条上。
-        LibraryBusyBar.Margin = LibraryNoticeBar.Margin = new Thickness(0, search ? 8 : 12, 0, 0);
+        LibraryBusyBar.Margin = LibraryNoticeBar.Margin = compactResume ? new Thickness(0, 12, 0, 0)
+            : headerByMargin ? contentGap : searchGap;
         // 文件夹下钻页的面包屑已经写着「媒体库 > 文件夹名」，网页端 list.html 也把这一行放在顶栏里，
-        // 页内不再重复一道大标题；标题收起后工具条独占头部。
+        // 页内不再重复一道大标题；标题收起后工具条独占头部，居中摆放。
         LibraryTitle.Visibility = search || folderDrillDown ? Visibility.Collapsed : Visibility.Visible;
-        LibraryTitle.Style = (Style)Application.Current.Resources["EgSectionTitleStyle"];
+        LibraryTitle.Style = (Style)Application.Current.Resources[sectionLibrary || fnNasRoot || folderDrillDown || jellyfinList || compactResume
+            ? "EgSectionTitleStyle" : "EgPageTitleStyle"];
         LibrarySectionsSurface.MaxWidth = width;
         LibrarySectionsSurface.HorizontalAlignment = HorizontalAlignment.Center;
-        LibrarySections.CenterRows = true;
-        LibraryBrowseGroup.HorizontalAlignment = HorizontalAlignment.Center;
         Grid.SetRow(LibrarySectionsSurface, 1);
         Grid.SetColumn(LibrarySectionsSurface, 0);
         Grid.SetColumnSpan(LibrarySectionsSurface, 2);
@@ -862,9 +872,6 @@ public sealed partial class LibraryPage : Page, IShellContent
             : fnNasRoot ? HorizontalAlignment.Left
             : sectionLibrary || folderDrillDown || jellyfinList ? HorizontalAlignment.Center : HorizontalAlignment.Left;
         Toolbar.CenterRows = !fnNasRoot && (sectionLibrary || folderDrillDown || jellyfinList);
-        // Jellyfin 的索引占自己的 Auto 列；绑定收起或内部低高度隐藏后，空列自然归零。
-        // Emby 继续在第 0 列覆盖，保留它自己的布局。
-        Grid.SetColumn(Alpha, ViewModel.IsJellyfin ? 1 : 0);
         Grid.SetRow(SearchSurface, search ? 0 : 1);
         Grid.SetRow(LibraryTitle, 0);
         Grid.SetColumnSpan(LibraryTitle, search ? 1 : 2);

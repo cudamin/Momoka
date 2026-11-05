@@ -65,7 +65,7 @@ public sealed partial class CardShelf : ObservableObject
     /// </param>
     internal CardShelf(string title, EmbyImageStore images, int width, bool wide, bool indicators = true,
         string? libraryId = null, HomeLayout.HomeRowTarget target = HomeLayout.HomeRowTarget.None,
-        bool sourceLine = false, bool mediaTitles = true)
+        bool sourceLine = false)
     {
         Title = title;
         _images = images;
@@ -77,7 +77,6 @@ public sealed partial class CardShelf : ObservableObject
         Target = target;
 
         RowHeight = CardSize.HeightFor(width, wide) + CardSize.Chrome
-            + (mediaTitles ? CardSize.MediaTitleExtra : 0)
             + (sourceLine ? CardSize.SourceLine : 0);
 
         // 读数跟着内容走。挂在集合的事件上而不是在 Clear/Fill/FillRows 里各喊一遍：那三个方法之外还有
