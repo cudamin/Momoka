@@ -192,7 +192,10 @@ public sealed partial class PlayerViewModel
         scope.Bind(item);
         if (parent?.Source is { } parentSource && parentSource.Key != scope.Key) parent = null;
         if (episodes is not null)
-            episodes = episodes.Select(episode => episode.Source is null ? scope.Bind(episode) : episode).ToArray();
+        {
+            var boundEpisodes = episodes.Select(episode => episode.Source is null ? scope.Bind(episode) : episode);
+            episodes = episodes is UserPlaybackQueue ? new UserPlaybackQueue(boundEpisodes) : boundEpisodes.ToArray();
+        }
         var previousItem = _nowPlaying;
         FlushVolume(settled: false);
         using var preparation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, continuationCancellation);

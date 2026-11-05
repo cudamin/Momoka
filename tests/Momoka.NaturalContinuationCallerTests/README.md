@@ -256,3 +256,9 @@ PERF-04/09源提交2b3fea8只修改Events.cs的封面取消、客户端有界解
 ## 2026-11-02 媒体版本体积的来源复核
 
 `bfd2423` 在 `EmbyItem` 新增服务器给出的单文件 `Size` 属性，R046 实际提取的 Start／Next／NowPlaying／Leave 等方法与所有权字段未变；其余 18 份 pin 逐一核对一致。只更新 `src/Momoka.Core/Emby/EmbyItem.cs` 这一份 SHA256 从 `4002e5cdce837d2ffd390fe829a5d59c8bf3c7e9c7e7eed5b9adb3584108a537` 到 `a601a02086142487311498e713aeda359de0f7d28469a5f3fbc5b8d2ef849438`，baseCommit/date、提取规则与失败条件不动。同步后 caller 与全部源提取反例须在当前主树重跑。
+
+## 2026-11-05 R21 用户队列及本批次来源复核
+
+新增真实 Start/NowPlaying/LoadSeriesEpisodes/自动和手动下一项回归：显式跨剧或随机队列保持顺序且零全剧补齐，普通季列表仍补齐。`UserPlaybackQueue` 以只读列表携带入口意图，账号绑定和递归续播保留该类型，列表末端不得追加服务器顺序。
+
+仅更新六份已审来源 pin：IPlaybackBackend/LibMpvBackend/HandleFixture 为 R8 的启动恢复快照；PlayerViewModel/Transport 为 R21 队列保留；EpisodeNavigation 为本轮开始时已有的 AfterRemoval 追加，原 Step/HasMultipleSources 未改。提取规则、完整成员校验与拒绝条件均未修改，新增测试运行真实提取正文。

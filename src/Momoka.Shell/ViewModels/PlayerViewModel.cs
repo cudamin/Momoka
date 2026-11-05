@@ -689,7 +689,7 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     internal string PlayingItemKey => _nowPlaying?.IdentityKey ?? "";
 
-    private bool HasAggregateQueue => EpisodeNavigation.HasMultipleSources(Episodes);
+    private bool HasAggregateQueue => Episodes is UserPlaybackQueue || EpisodeNavigation.HasMultipleSources(Episodes);
 
     internal string EpisodeMenuLabel(EmbyItem episode) => episode.ToPlaybackTitle();
 
