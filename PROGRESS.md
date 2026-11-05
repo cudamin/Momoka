@@ -10613,3 +10613,15 @@ R1在Plex适配层按100条原始页扫描，过滤后返回真实总数及Start
 ## 2026-11-05 审查编辑器正式运行探针
 
 新增单个ShellNavigationProbe.ReviewEditors.cs及metadata两条case：真实MetadataDialog匿名保存失败保草稿/重试成功/取消零写/在飞关闭保护；真实NotificationEditDialog匿名保存事件ID、未知事件及名单失败/缺项范围保留。1100/760宽度，UIA Invoke/Toggle操作实际控件，文本属性赋值，无指针注入、会话、HTTP或通知发送，保存8张review-metadata/review-notification截图。新源契约检查注册、实际控件及匿名能力边界，连原ServerSettingsReview专项通过；当前Shell Release 0警告0错误，变更check-diff通过。按父会话要求未启动桌面，实际case与截图由根代理串行执行，不能把编译/源契约称作运行通过。
+
+## 2026-11-05 六轮修复整合与离线验证
+
+R1–R35全部修复已整合到本树，三个领域组交叉只读复审没有必要新缺陷。R18另在根树完成。新增四个行为专项和既有Gaussian登记到方案/runner；只更新已实际修改的三条Lua批准size/hash，原生批准未变。已从主树按批准hash/大小供应本树libmpv，未以待验DLL生成新批准。
+
+当前整合Release方案0警告0错误；主测试3764/3764、0失败0跳过；实际SettingsVM适用性32/32，修正FakeSettings的SaveDeferred边界保原保存失败断言；源码提取10反例全部拒绝后当前caller重编54/54。网页14契约+25 DOM全部过、HTTP0/页面错误0；AtomicFile35产品+4对照均通过；脚本维护16、发布缺依赖31、quality依赖4、runner19、其他质量15通过。各专项重叠不相加。
+
+补帧专项在新编辑器探针注册后检测SharedHash变化，拒绝旧二进制并退出；fresh重编后45/45通过，未改断言。首次DOM用no-build缺本树产物，未运行，改完整wrapper成功。中断前部分专项还在执行，恢复后只重跑未完和受影响项；中断不算通过。格式校验只定点整理八个报错文件（含一处已有BannerCacheBoundaries缩进），产品控制流未改；后续按最终文件重编复验。
+
+R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner yes；真实LibMpvHandle快照和PlaybackService关闭临时链恢复no，空playlist、path=null、vo/ao=null、scripts禁用，无窗口/账号/HTTP。来源和DLLhash见artifacts/review-fixes-20261105/native-r8-evidence.json，条件profile及画面观感不在此证据中。
+
+尚待最终增补探针、主树整合复验和实际目录发布，快捷方式仍旧。未上传远端。

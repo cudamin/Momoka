@@ -58,39 +58,39 @@ internal static class Program
             Momoka.Tests.Assert.True(panel.SearchEnabled);
         });
         foreach (var change in new[] { "related", "address", "token" })
-        foreach (var dandan in new[] { false, true })
-            Momoka.Tests.TestHarness.Test($"danmaku reload identity {change} dandan={dandan}", () =>
-            {
-                var settings = Settings();
-                settings.Danmaku.Source = dandan ? DanmakuSourceMode.Both : DanmakuSourceMode.DanmuApi;
-                var host = new Host(settings);
-                host.Seed(new DandanPlayEpisode(10002, "anonymous A result", "episode 1"));
-                if (dandan) host.SeedDandan(new DandanPlayEpisode(20001, "dandan result", "episode 1"));
-                if (change == "address") settings.Danmaku.DanmuApiBaseUrl = "https://source-b.invalid/";
-                else if (change == "token") settings.Danmaku.ProtectedDanmuApiToken = "different anonymous token";
-                else settings.Danmaku.WithRelated = !settings.Danmaku.WithRelated;
-                host.Change();
-                Momoka.Tests.Assert.Equal(change == "related", host.LoadSelections.Any(x => x.Source == DanmakuSource.DanmuApi));
-                Momoka.Tests.Assert.Equal(dandan, host.LoadSelections.Any(x => x.Source == DanmakuSource.DandanPlay));
-                Momoka.Tests.Assert.Equal(change != "related" && !dandan ? 1 : 0, host.AutoMatches);
-                Momoka.Tests.Assert.Equal((0, 0, "", ""), host.ResetSnapshot);
-            });
+            foreach (var dandan in new[] { false, true })
+                Momoka.Tests.TestHarness.Test($"danmaku reload identity {change} dandan={dandan}", () =>
+                {
+                    var settings = Settings();
+                    settings.Danmaku.Source = dandan ? DanmakuSourceMode.Both : DanmakuSourceMode.DanmuApi;
+                    var host = new Host(settings);
+                    host.Seed(new DandanPlayEpisode(10002, "anonymous A result", "episode 1"));
+                    if (dandan) host.SeedDandan(new DandanPlayEpisode(20001, "dandan result", "episode 1"));
+                    if (change == "address") settings.Danmaku.DanmuApiBaseUrl = "https://source-b.invalid/";
+                    else if (change == "token") settings.Danmaku.ProtectedDanmuApiToken = "different anonymous token";
+                    else settings.Danmaku.WithRelated = !settings.Danmaku.WithRelated;
+                    host.Change();
+                    Momoka.Tests.Assert.Equal(change == "related", host.LoadSelections.Any(x => x.Source == DanmakuSource.DanmuApi));
+                    Momoka.Tests.Assert.Equal(dandan, host.LoadSelections.Any(x => x.Source == DanmakuSource.DandanPlay));
+                    Momoka.Tests.Assert.Equal(change != "related" && !dandan ? 1 : 0, host.AutoMatches);
+                    Momoka.Tests.Assert.Equal((0, 0, "", ""), host.ResetSnapshot);
+                });
         foreach (var pipeline in new[] { VideoPipelineKind.Integrated, VideoPipelineKind.Standalone })
-        foreach (var source in new[] { DanmakuSourceMode.DandanPlay, DanmakuSourceMode.DanmuApi, DanmakuSourceMode.Both })
-            Momoka.Tests.TestHarness.Test($"danmaku input preference {pipeline} {source}", () =>
-            {
-                var settings = Settings();
-                settings.Danmaku.Source = source;
-                settings.Mpv.Pipeline = pipeline;
-                settings.Danmaku.ShowInput = true;
-                Momoka.Tests.Assert.Equal(DanmakuSourceRules.CanSend(source), new SettingsRows(settings).Labels().Contains("显示弹幕输入栏"));
-                settings.Danmaku.Show = false;
-                Momoka.Tests.Assert.False(new SettingsRows(settings).Labels().Contains("显示弹幕输入栏"));
-                settings.Danmaku.Source = DanmakuSourceMode.DandanPlay;
-                settings.Danmaku.Show = true;
-                Momoka.Tests.Assert.True(new SettingsRows(settings).Labels().Contains("显示弹幕输入栏"));
-                Momoka.Tests.Assert.True(settings.Danmaku.ShowInput);
-            });
+            foreach (var source in new[] { DanmakuSourceMode.DandanPlay, DanmakuSourceMode.DanmuApi, DanmakuSourceMode.Both })
+                Momoka.Tests.TestHarness.Test($"danmaku input preference {pipeline} {source}", () =>
+                {
+                    var settings = Settings();
+                    settings.Danmaku.Source = source;
+                    settings.Mpv.Pipeline = pipeline;
+                    settings.Danmaku.ShowInput = true;
+                    Momoka.Tests.Assert.Equal(DanmakuSourceRules.CanSend(source), new SettingsRows(settings).Labels().Contains("显示弹幕输入栏"));
+                    settings.Danmaku.Show = false;
+                    Momoka.Tests.Assert.False(new SettingsRows(settings).Labels().Contains("显示弹幕输入栏"));
+                    settings.Danmaku.Source = DanmakuSourceMode.DandanPlay;
+                    settings.Danmaku.Show = true;
+                    Momoka.Tests.Assert.True(new SettingsRows(settings).Labels().Contains("显示弹幕输入栏"));
+                    Momoka.Tests.Assert.True(settings.Danmaku.ShowInput);
+                });
         return Momoka.Tests.TestHarness.Run();
     }
 

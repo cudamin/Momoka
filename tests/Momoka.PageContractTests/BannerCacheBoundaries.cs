@@ -36,7 +36,9 @@ namespace Momoka.Shell.Media
             if (RenderFails) throw new InvalidDataException("anonymous rendering failure");
             return new BitmapImage
             {
-                DecodePixelWidth = pixels.Width, PixelWidth = pixels.Width, PixelHeight = pixels.Height,
+                DecodePixelWidth = pixels.Width,
+                PixelWidth = pixels.Width,
+                PixelHeight = pixels.Height,
                 FixtureImage = Encoding.UTF8.GetString(pixels.Pixels) + (gaussian ? "|gaussian" : "")
             };
         }

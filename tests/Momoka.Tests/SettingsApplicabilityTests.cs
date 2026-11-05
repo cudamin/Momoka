@@ -452,6 +452,7 @@ internal static class SettingsApplicabilityTests
         public event EventHandler? SaveStateChanged { add { } remove { } }
         public bool HasUnsavedChanges { get; private set; }
         public bool TrySave() { Saves++; HasUnsavedChanges = !SaveSucceeds; return SaveSucceeds; }
+        public void SaveDeferred() => TrySave();
         public void Save() => throw new InvalidOperationException("只允许假 TrySave");
         public ServerProfile ResolveServer(string url) => throw new InvalidOperationException("禁止登录路径");
         public AccountProfile ResolveAccount(ServerProfile server, string username) => throw new InvalidOperationException("禁止账号路径");

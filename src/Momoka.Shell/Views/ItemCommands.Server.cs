@@ -203,7 +203,8 @@ internal static partial class ItemCommands
                 await TellAsync(session, (client, token) => client.UpdateItemAsync(item.Id, updated, token))
                     .ConfigureAwait(true);
                 return true;
-            }) { XamlRoot = root };
+            })
+            { XamlRoot = root };
 
             if (await dialog.ShowAsync() != ContentDialogResult.Primary || !dialog.Changed) return;
 

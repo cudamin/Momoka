@@ -27,7 +27,9 @@ internal static class MoviePilotSafetyTests
             using var service = Service(transport, settings);
             var resource = new MoviePilotResource
             {
-                Title = "Anonymous AniBT torrent", ConnectionStamp = service.ConnectionStamp, AniBtGeneration = 0,
+                Title = "Anonymous AniBT torrent",
+                ConnectionStamp = service.ConnectionStamp,
+                AniBtGeneration = 0,
                 TorrentInfo = Json("""{"title":"Anonymous AniBT torrent","enclosure":"https://example.invalid/torrent"}""")
             };
             Assert.Throws<OperationCanceledException>(() => service.DownloadAsync(resource, default).GetAwaiter().GetResult());

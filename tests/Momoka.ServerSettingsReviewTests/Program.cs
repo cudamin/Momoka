@@ -9,59 +9,74 @@ using Momoka.Shell.ViewModels;
 
 var observations = new List<object>();
 foreach (var returnedId in new[] { "server-a", "server-b" })
-foreach (var testFirst in new[] { false, true })
-{
-    var settings = new AppSettings();
-    var server = new ServerProfile { Id = "profile", Url = "https://identity-review.invalid", Name = "Saved A", ServerId = "server-a" };
-    var account = new AccountProfile
+    foreach (var testFirst in new[] { false, true })
     {
-        Id = "account", Username = "anonymous", UserId = "user-a", AutoConnect = true,
-        ProtectedAccessToken = "opaque-token", ProtectedPassword = "opaque-password", RememberPassword = true
-    };
-    server.Accounts.Add(account);
-    settings.Servers.Add(server);
-    var isolated = Path.Combine(AppContext.BaseDirectory, "isolated-settings", returnedId + (testFirst ? "-tested" : "-untested"));
-    var protector = new OpaqueProtector();
-    var store = new SettingsStore(new AppPaths(isolated), protector);
-    using var service = new SettingsService(store, settings);
-    using var handler = new ChangedServer(returnedId);
-    using var session = new EmbySession(settings, store, new CredentialVault(protector),
-        DeviceIdentity.Create("review-six-identity", "1"), handler);
-    var boundary = new ServersViewModel(session, service);
-    if (testFirst) await boundary.RunTest(new ServerRow(server));
-    var idBeforeRestore = server.ServerId;
-    var restored = await session.TryRestoreAsync(server, account, CancellationToken.None);
-    var credentialsExpected = returnedId == "server-a";
-    if (handler.TokenRequests != (credentialsExpected ? 1 : 0) || handler.PasswordRequests != (credentialsExpected ? 1 : 0))
-        throw new InvalidOperationException("Credential request count differs from source expectation");
-    if (restored) throw new InvalidOperationException("Scripted authentication rejection must not restore");
-    if (testFirst && boundary.Notice != (returnedId == "server-a" ? "连接成功" : "连接失败")) throw new InvalidOperationException("Unexpected connection test feedback");
-    observations.Add(new { returnedId, testFirst, originalServerId = "server-a", idBeforeRestore,
-        restored, handler.AnonymousRequests, handler.TokenRequests, handler.PasswordRequests,
-        profileIdChanged = idBeforeRestore != "server-a", testNotice = boundary.Notice });
-}
+        var settings = new AppSettings();
+        var server = new ServerProfile { Id = "profile", Url = "https://identity-review.invalid", Name = "Saved A", ServerId = "server-a" };
+        var account = new AccountProfile
+        {
+            Id = "account",
+            Username = "anonymous",
+            UserId = "user-a",
+            AutoConnect = true,
+            ProtectedAccessToken = "opaque-token",
+            ProtectedPassword = "opaque-password",
+            RememberPassword = true
+        };
+        server.Accounts.Add(account);
+        settings.Servers.Add(server);
+        var isolated = Path.Combine(AppContext.BaseDirectory, "isolated-settings", returnedId + (testFirst ? "-tested" : "-untested"));
+        var protector = new OpaqueProtector();
+        var store = new SettingsStore(new AppPaths(isolated), protector);
+        using var service = new SettingsService(store, settings);
+        using var handler = new ChangedServer(returnedId);
+        using var session = new EmbySession(settings, store, new CredentialVault(protector),
+            DeviceIdentity.Create("review-six-identity", "1"), handler);
+        var boundary = new ServersViewModel(session, service);
+        if (testFirst) await boundary.RunTest(new ServerRow(server));
+        var idBeforeRestore = server.ServerId;
+        var restored = await session.TryRestoreAsync(server, account, CancellationToken.None);
+        var credentialsExpected = returnedId == "server-a";
+        if (handler.TokenRequests != (credentialsExpected ? 1 : 0) || handler.PasswordRequests != (credentialsExpected ? 1 : 0))
+            throw new InvalidOperationException("Credential request count differs from source expectation");
+        if (restored) throw new InvalidOperationException("Scripted authentication rejection must not restore");
+        if (testFirst && boundary.Notice != (returnedId == "server-a" ? "连接成功" : "连接失败")) throw new InvalidOperationException("Unexpected connection test feedback");
+        observations.Add(new
+        {
+            returnedId,
+            testFirst,
+            originalServerId = "server-a",
+            idBeforeRestore,
+            restored,
+            handler.AnonymousRequests,
+            handler.TokenRequests,
+            handler.PasswordRequests,
+            profileIdChanged = idBeforeRestore != "server-a",
+            testNotice = boundary.Notice
+        });
+    }
 Console.WriteLine(JsonSerializer.Serialize(new { passed = 4, actualNetworkRequests = 0, observations }, new JsonSerializerOptions { WriteIndented = true }));
 
 foreach (var returnedId in new[] { "", "server-b" })
-foreach (var hasAccount in new[] { false, true })
-{
-    var settings = new AppSettings();
-    var server = new ServerProfile { Url = "https://identity-review.invalid", ServerId = "server-a" };
-    if (hasAccount) server.Accounts.Add(new AccountProfile { Id = "account" });
-    settings.Servers.Add(server);
-    var protector = new OpaqueProtector();
-    var store = new SettingsStore(new AppPaths(Path.Combine(AppContext.BaseDirectory, "isolated-settings", Guid.NewGuid().ToString("N"))), protector);
-    using var service = new SettingsService(store, settings);
-    using var handler = new ChangedServer(returnedId);
-    using var session = new EmbySession(settings, store, new CredentialVault(protector), DeviceIdentity.Create("review-identity", "1"), handler);
-    var boundary = new ServersViewModel(session, service);
-    await boundary.RunTest(new ServerRow(server));
-    var expectedId = !hasAccount && returnedId.Length > 0 ? returnedId : "server-a";
-    if (server.ServerId != expectedId || boundary.Notice != (hasAccount ? "连接失败" : "连接成功"))
-        throw new InvalidOperationException("Empty identity or account-free probe broke the saved identity contract");
-    if (handler.TokenRequests != 0 || handler.PasswordRequests != 0)
-        throw new InvalidOperationException("Connection test sent credentials");
-}
+    foreach (var hasAccount in new[] { false, true })
+    {
+        var settings = new AppSettings();
+        var server = new ServerProfile { Url = "https://identity-review.invalid", ServerId = "server-a" };
+        if (hasAccount) server.Accounts.Add(new AccountProfile { Id = "account" });
+        settings.Servers.Add(server);
+        var protector = new OpaqueProtector();
+        var store = new SettingsStore(new AppPaths(Path.Combine(AppContext.BaseDirectory, "isolated-settings", Guid.NewGuid().ToString("N"))), protector);
+        using var service = new SettingsService(store, settings);
+        using var handler = new ChangedServer(returnedId);
+        using var session = new EmbySession(settings, store, new CredentialVault(protector), DeviceIdentity.Create("review-identity", "1"), handler);
+        var boundary = new ServersViewModel(session, service);
+        await boundary.RunTest(new ServerRow(server));
+        var expectedId = !hasAccount && returnedId.Length > 0 ? returnedId : "server-a";
+        if (server.ServerId != expectedId || boundary.Notice != (hasAccount ? "连接失败" : "连接成功"))
+            throw new InvalidOperationException("Empty identity or account-free probe broke the saved identity contract");
+        if (handler.TokenRequests != 0 || handler.PasswordRequests != 0)
+            throw new InvalidOperationException("Connection test sent credentials");
+    }
 Console.WriteLine("R28: 8 anonymous connection-test and restore cases passed.");
 await PlexDiscovery.RunAsync();
 await PermissionCache.RunAsync();

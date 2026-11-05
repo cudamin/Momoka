@@ -115,6 +115,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ArchitectureTests", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.AppearanceOpacityTests", "tests\Momoka.AppearanceOpacityTests\Momoka.AppearanceOpacityTests.csproj", "{4ADF4F81-60D3-4C38-8AC1-0559986C0215}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ServerSettingsReviewTests", "tests\Momoka.ServerSettingsReviewTests\Momoka.ServerSettingsReviewTests.csproj", "{D2673E8A-C459-4488-8C7E-CA56B3BFBD20}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.DanmakuSourceBoundaryTests", "tests\Momoka.DanmakuSourceBoundaryTests\Momoka.DanmakuSourceBoundaryTests.csproj", "{08BDA07E-9E33-4E43-AFD7-076282243E5F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SubscriptionIdentityTests", "tests\Momoka.SubscriptionIdentityTests\Momoka.SubscriptionIdentityTests.csproj", "{297F9EFA-D3DD-47CB-B8B6-F317BB39FC8A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.PlayerExitHandoffTests", "tests\Momoka.PlayerExitHandoffTests\Momoka.PlayerExitHandoffTests.csproj", "{7D7300BF-DD38-4FD3-9E95-843D3D003A6D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.GaussianBackdropTests", "tests\Momoka.GaussianBackdropTests\Momoka.GaussianBackdropTests.csproj", "{EB08EE27-A918-4679-8ACF-147A8BE53DA4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -124,6 +134,26 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D2673E8A-C459-4488-8C7E-CA56B3BFBD20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2673E8A-C459-4488-8C7E-CA56B3BFBD20}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2673E8A-C459-4488-8C7E-CA56B3BFBD20}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2673E8A-C459-4488-8C7E-CA56B3BFBD20}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08BDA07E-9E33-4E43-AFD7-076282243E5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08BDA07E-9E33-4E43-AFD7-076282243E5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08BDA07E-9E33-4E43-AFD7-076282243E5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08BDA07E-9E33-4E43-AFD7-076282243E5F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{297F9EFA-D3DD-47CB-B8B6-F317BB39FC8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{297F9EFA-D3DD-47CB-B8B6-F317BB39FC8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{297F9EFA-D3DD-47CB-B8B6-F317BB39FC8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{297F9EFA-D3DD-47CB-B8B6-F317BB39FC8A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D7300BF-DD38-4FD3-9E95-843D3D003A6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D7300BF-DD38-4FD3-9E95-843D3D003A6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D7300BF-DD38-4FD3-9E95-843D3D003A6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D7300BF-DD38-4FD3-9E95-843D3D003A6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB08EE27-A918-4679-8ACF-147A8BE53DA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB08EE27-A918-4679-8ACF-147A8BE53DA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB08EE27-A918-4679-8ACF-147A8BE53DA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB08EE27-A918-4679-8ACF-147A8BE53DA4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4ADF4F81-60D3-4C38-8AC1-0559986C0215}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4ADF4F81-60D3-4C38-8AC1-0559986C0215}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4ADF4F81-60D3-4C38-8AC1-0559986C0215}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -338,6 +368,11 @@ Global
 		{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{D2673E8A-C459-4488-8C7E-CA56B3BFBD20} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
+		{08BDA07E-9E33-4E43-AFD7-076282243E5F} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
+		{297F9EFA-D3DD-47CB-B8B6-F317BB39FC8A} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
+		{7D7300BF-DD38-4FD3-9E95-843D3D003A6D} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
+		{EB08EE27-A918-4679-8ACF-147A8BE53DA4} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{4ADF4F81-60D3-4C38-8AC1-0559986C0215} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{D980A657-2A89-4751-99F4-C7B027FF16E1} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{42B28CCE-29FC-419B-8248-69D77314874F} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}

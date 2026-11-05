@@ -61,10 +61,21 @@ foreach (var changeKind in new[] { "season", "group", "keyword-control" })
     view.Attach(media, files);
     var hostAfterReattach = HostSeason(media);
     if (hostAfterReattach != expectedHost) throw new InvalidOperationException("Reattach control failed");
-    observations.Add(new { changeKind, selectedSeason = selected.Media.Season, selectedGroup = selected.EpisodeGroup,
-        mediaGroup = media.GroupId, hostBeforeEdit = before, hostAfterEdit, expectedHost, visibleEpisodeTitle,
-        sameSelectedCard = ReferenceEquals(card, files.Selected), selectedNotification = notifications.Contains("Selected"),
-        hostAfterReattach, handler.Writes });
+    observations.Add(new
+    {
+        changeKind,
+        selectedSeason = selected.Media.Season,
+        selectedGroup = selected.EpisodeGroup,
+        mediaGroup = media.GroupId,
+        hostBeforeEdit = before,
+        hostAfterEdit,
+        expectedHost,
+        visibleEpisodeTitle,
+        sameSelectedCard = ReferenceEquals(card, files.Selected),
+        selectedNotification = notifications.Contains("Selected"),
+        hostAfterReattach,
+        handler.Writes
+    });
     media.SyncSubscriptionIdentity(selected);
     if (media.OldGroupCancelled != (changeKind != "keyword-control")) failures.Add("old group request ownership was not preserved");
     if (media.GroupId != selected.EpisodeGroup || media.Reloads != (changeKind == "keyword-control" ? 0 : 1))
@@ -87,9 +98,16 @@ internal sealed class AnonymousSubscriptions : HttpMessageHandler
 {
     private readonly Dictionary<string, object?> _subscription = new()
     {
-        ["id"] = 12, ["name"] = "Anonymous series", ["type"] = "电视剧", ["media_source"] = "themoviedb",
-        ["media_id"] = "42", ["season"] = 1, ["episode_group"] = "", ["total_episode"] = 1,
-        ["start_episode"] = 1, ["state"] = "R"
+        ["id"] = 12,
+        ["name"] = "Anonymous series",
+        ["type"] = "电视剧",
+        ["media_source"] = "themoviedb",
+        ["media_id"] = "42",
+        ["season"] = 1,
+        ["episode_group"] = "",
+        ["total_episode"] = 1,
+        ["start_episode"] = 1,
+        ["state"] = "R"
     };
     internal int Writes { get; private set; }
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -107,8 +125,11 @@ internal sealed class AnonymousSubscriptions : HttpMessageHandler
         }
         if (path == "subscribe/") return Reply(new[] { _subscription });
         if (path == "subscribe/12") return Reply(_subscription);
-        if (path == "subscribe/files/12") return Reply(new { subscribe = _subscription,
-            episodes = new Dictionary<string, object> { ["1"] = new { title = $"Season {_subscription["season"]} group {_subscription["episode_group"]}", library = Array.Empty<object>(), download = Array.Empty<object>() } } });
+        if (path == "subscribe/files/12") return Reply(new
+        {
+            subscribe = _subscription,
+            episodes = new Dictionary<string, object> { ["1"] = new { title = $"Season {_subscription["season"]} group {_subscription["episode_group"]}", library = Array.Empty<object>(), download = Array.Empty<object>() } }
+        });
         if (path.StartsWith("tmdb/", StringComparison.Ordinal)) return Reply(Array.Empty<object>());
         throw new InvalidOperationException("Unexpected anonymous route: " + request.Method + " " + path);
     }
