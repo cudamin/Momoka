@@ -473,8 +473,7 @@ internal sealed partial class ShellNavigationProbe
             Require(tail.Background is null or SolidColorBrush { Color.A: 0 }, "高斯模式尾部仍叠暗色遮罩");
             Require(Get<Border>(page, "TitleWash").Background is null or SolidColorBrush { Color.A: 0 },
                 "高斯模式标题栏仍压暗图片");
-            Require(!Descendants(Get<Grid>(page, "Backdrop")).OfType<FrameworkElement>()
-                .Any(element => element.Name == "BackdropFade"), "背景下沿仍有旧渐变层");
+            RequireDetailBackdropFade(page);
             await SaveProbeScreenAsync($"detail-gaussian-{page.ViewModel.ItemType}-{theme.Id}-screen.png");
         }
         if (page.ViewModel.ItemType != EmbyItemType.Episode)
@@ -486,6 +485,7 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(page.ViewModel.Showcase && page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady,
                 "固定沉浸没有保留高斯图片");
+            RequireDetailBackdropFade(page);
             var sheet = Get<StackPanel>(page, "BodySheet");
             Require(sheet.Children.OfType<StackPanel>().SelectMany(panel => panel.Children.OfType<ShelfHead>()).All(head => head.Ink),
                 "高斯沉浸货架标题缺少字形保护");
@@ -502,7 +502,11 @@ internal sealed partial class ShellNavigationProbe
         ShellPrefs.ApplyAppearance(ui);
         await UntilAsync(() => !page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady);
         Require(page.ViewModel.HeroImage is not null, "切回遮罩模式丢失背景图");
-        Require(Get<Grid>(page, "HeroBand").Background is SolidColorBrush { Color.A: > 0 }, "切回后暗色遮罩未恢复");
+        RequireDetailBackdropFade(page);
+        Require(page.ViewModel.ItemType == EmbyItemType.Episode
+            ? Get<Grid>(page, "HeroBand").Background is SolidColorBrush { Color.A: > 0 }
+            : Get<Border>(page, "BackdropShade").Visibility == Visibility.Visible,
+            "切回后暗色遮罩未恢复");
         // 快速来回切换：晚到的旧模式不能覆盖当前高斯结果。
         ui.UseGaussianBackdrop = true;
         ShellPrefs.ApplyAppearance(ui);
@@ -753,11 +757,7 @@ internal sealed partial class ShellNavigationProbe
                     && Get<Border>(banner, "Fade").Visibility == Visibility.Collapsed
                     && Get<Border>(banner, "RightShade").Visibility == Visibility.Collapsed,
                     "主页高斯仍保留图片暗色遮罩");
-                var bottom = Get<Border>(banner, "BackdropBottomFade");
-                var color = ThemeHost.ToColor(theme.Colors.Window);
-                Require(bottom.Height == 40 && bottom.Background is LinearGradientBrush gradient
-                    && gradient.GradientStops.All(stop => stop.Color.R == color.R && stop.Color.G == color.G && stop.Color.B == color.B)
-                    && gradient.GradientStops[^1].Color.A == 255, "主页收边渐变没有缩短或没有衔接主题");
+                RequireHomeWithoutBottomFade(banner);
                 await SaveProbeScreenAsync($"home-gaussian-{theme.Id}-screen.png");
             }
             ui.UseGaussianBackdrop = false;
@@ -765,6 +765,7 @@ internal sealed partial class ShellNavigationProbe
             ShellPrefs.ApplyAppearance(ui);
             await UntilAsync(() => !banner.GaussianBackdropApplied && banner.GaussianBackdropReady);
             Require(Get<Border>(banner, "Fade").Visibility == Visibility.Visible, "主页切回后遮罩没有恢复");
+            RequireHomeWithoutBottomFade(banner);
             Require(requestCount() == baselineReads, "主页高斯切换重新请求了图片或媒体");
         }
         finally { _root.Children.Remove(banner); }

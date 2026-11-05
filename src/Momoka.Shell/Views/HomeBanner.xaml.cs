@@ -226,7 +226,6 @@ public sealed partial class HomeBanner : UserControl
     {
         InitializeComponent();
         _openBackground = ControlBackgroundBrushes.ForBanner(OpenButton, Resources);
-        PaintBottomFade();
 
         // 字底下那层跟着字形走的影子（见 TextInk）。四行各一层，宿主是同一格里排在字前面那个空 Border。
         // 装在构造里而不是 Loaded 里：这四层是这块字的一部分，不是「进树之后才有的装饰」，而自检里那份
@@ -267,7 +266,6 @@ public sealed partial class HomeBanner : UserControl
         _openBackground.Apply(ui.ControlBackgroundOpacity, ui.UseAcrylicControls);
         Brush(LayerA).Opacity = AppearanceOpacity.HomeBackdrop(ui.BackdropOpacity);
         Brush(LayerB).Opacity = AppearanceOpacity.HomeBackdrop(ui.BackdropOpacity);
-        PaintBottomFade();
         foreach (var slide in _slides) slide.SetGaussianBackdrop(ui.UseGaussianBackdrop);
         PaintBackdropShade();
     }
@@ -281,17 +279,6 @@ public sealed partial class HomeBanner : UserControl
         Top.Visibility = shading;
         Fade.Visibility = shading;
         RightShade.Visibility = shading;
-    }
-
-    private void PaintBottomFade()
-    {
-        var theme = ((SolidColorBrush)Application.Current.Resources["EgWindowBrush"]).Color;
-        var brush = new LinearGradientBrush { StartPoint = new Windows.Foundation.Point(0.5, 0), EndPoint = new Windows.Foundation.Point(0.5, 1) };
-        brush.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(0, theme.R, theme.G, theme.B), Offset = 0 });
-        brush.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(166, theme.R, theme.G, theme.B), Offset = 0.42 });
-        brush.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(232, theme.R, theme.G, theme.B), Offset = 0.78 });
-        brush.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(255, theme.R, theme.G, theme.B), Offset = 1 });
-        BackdropBottomFade.Background = brush;
     }
 
     private void OnAppearanceChanged(UiSettings ui)
@@ -1304,24 +1291,12 @@ public sealed partial class HomeBanner : UserControl
             && Math.Abs(banner.Info.Margin.Top) < 0.01
             && Math.Abs(banner.Info.Margin.Bottom) < 0.01;
 
-        // 带上四层黑渐变，各判各的形状。左边那道渐变幕（2026-09-10）：从带子自己的左沿起（Margin.Left 是 0）、
-        // 宽按「字块左沿 + 字块最宽 + ScrimBreath」算（Width 是 Resize 按这笔账写的，这里再对一遍）—— 而且左头
-        // 近实心（#E6、九成压住，图还透得出来）、往图里走到全透明（Melts）。它一头在带子的边上、一头按字块算，
-        // 所以不跟下、右两条走 Rims 那句「半张之前散尽」。**它 09-11 没跟另外两条一起动**：那两条压的是带子的边
-        // （他说的「黑边」是这两条底下的纯色底，不是幕），幕压的是字底下的图。
-        //
-        // **顶上那条 120 高的 `Top` 是 2026-09-10 删掉、09-11 找回来的**（通栏之后标题栏又浮在剧照上），它跟下、
-        // 右两条一样是「贴边最浓、半张之前散尽」的边缘渐变，所以照样进 edges、照样走 Rims —— Rims 量的就是这件事
-        // 本身，不关心那一层在带子的哪条边上。下、右两条还是 2026-09-05「给轮播页面边缘加上黑色的渐变」那一版
-        // （来回过两趟：原先三层 → 全删 → 只压边缘）。
-        //
-        // 谁把某一层的形状改回去，或者多加／少加一层压在带子里的 Border，这一条当场红，而张数、带高、字块那几行
-        // 读数一个都不会动。
+        // 三层阅读遮罩：左侧按文字范围散尽，顶侧保护标题栏，右侧只压边缘。底部不再添加渐变。
         var scrims = banner.Band.Children.OfType<Border>().ToList();
         var sized = scrims.Where(one => double.IsNaN(one.Height) && !double.IsNaN(one.Width)).ToList();
         var edges = scrims.Where(one => double.IsNaN(one.Height) && double.IsNaN(one.Width)).ToList();
         var topped = scrims.Where(one => one.VerticalAlignment == VerticalAlignment.Top && !double.IsNaN(one.Height)).ToList();
-        var bare = scrims.Count == 4
+        var bare = scrims.Count == 3
             && sized is [{ } fade]
             && fade.HorizontalAlignment == HorizontalAlignment.Left
             && Math.Abs(fade.Margin.Left) < 0.01
@@ -1332,8 +1307,7 @@ public sealed partial class HomeBanner : UserControl
             && Caps(top)
             && edges.Count == 1
             && edges.TrueForAll(Rims)
-            && Math.Abs(banner.BackdropBottomFade.Height - GaussianBackdrop.FadeHeight) < 0.01
-            && banner.BackdropBottomFade.VerticalAlignment == VerticalAlignment.Bottom;
+            && scrims.All(one => one.VerticalAlignment != VerticalAlignment.Bottom);
 
         // 翻页箭头和字块不同列（「翻页的按钮会挡住字体」）。箭头贴着带的左右边沿、在竖向正中；字块贴着左上角，
         // 左箭头贴边占的那条窄栏在另一列 —— 所以这一条判的仍然是列，不是高度。
@@ -1389,9 +1363,9 @@ public sealed partial class HomeBanner : UserControl
                 + (bare
                     ? $"（一道渐变幕，从 {sized[0].Margin.Left:0} 起、"
                         + $"宽 {sized[0].Width:0} ＝ min(页宽, 字块右沿 {InfoInset:0}+{wide:0}＋{ScrimBreath:0})，"
-                        + $"左头九成浓往图里散尽；顶上给标题栏垫底的一条 {topped[0].Height:0} 高；下、右两条各压一条边、半张之前散尽："
+                        + $"左头九成浓往图里散尽；顶上给标题栏垫底的一条 {topped[0].Height:0} 高；右侧只压边缘，底部没有渐变："
                         + $"{string.Join('、', edges.Select(RimRead))}）"
-                    : "（该是四层：顶上一条给标题栏垫底、一道渐变幕、下和右两条只压边缘的 —— 形状或位置对不上）")
+                    : "（该是三层：顶上一条给标题栏垫底、一道左侧渐变幕和右侧边缘，底部不加渐变）")
                 + "；"
                 + $"箭头占到 {strip:0}、字块从 {banner.Info.Margin.Left:0} 起"
                 + $"{(apart ? "，两边不同列" : "，压到字了")}；"

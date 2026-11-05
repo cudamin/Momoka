@@ -113,6 +113,13 @@ internal sealed partial class ShellNavigationProbe
             }
             finally { layout.Visibility = Visibility.Visible; }
         });
+        Add("InspectBackdropFade", "背景主题渐变", async () =>
+        {
+            if (frame.Content is IShellContent previous) previous.Release();
+            layout.Visibility = Visibility.Collapsed;
+            try { await CaseAsync("详情背景主题渐变、沉浸收起与主页底边", BackdropFadeAsync, 120, section: ShellProbeSections.Library); }
+            finally { layout.Visibility = Visibility.Visible; }
+        });
         Add("InspectSubscriptionMaterial", "订阅卡片材质", async () =>
         {
             if (frame.Content is IShellContent previous) previous.Release();

@@ -209,8 +209,8 @@
                 </Grid>
 
                 <!--
-                  带上的黑渐变一共四层：顶上给标题栏垫底的一条（Top）、左边那道渐变幕（Fade）、下和右两条只压边缘
-                  的。前四层都摆在两层剧照之后、字块之前，所以压得到图、压不到字。颜色全是写死的 ARGB
+                  带上的阅读遮罩保留三层：标题栏顶罩（Top）、左侧字块渐变（Fade）和右侧边缘。
+                  三层摆在剧照之后、字块之前，只压图；底部不加渐变。颜色使用固定 ARGB
                   （#0C0E11，同 EgOnScrim* 那一族）：高对比度那本词典里只有画刷没有颜色键，写颜色键会在运行时抛。
 
                   **顶上那条 120 高的（Top）是 2026-09-10 删掉、2026-09-11 找回来的**：通栏之后标题栏那一行
@@ -223,23 +223,6 @@
                             <GradientStop Offset="0" Color="#70101217" />
                             <GradientStop Offset="0.45" Color="#28101217" />
                             <GradientStop Offset="1" Color="#00101217" />
-                        </LinearGradientBrush>
-                    </Border.Background>
-                </Border>
-
-                <!--
-                  下边那一条。铺满整条带、按比例取渐变，而不是写死高度：字块最宽的那一档尾巴挨着下沿，右下角的
-                  张数读数又站在图上 —— 这两样都得这一条托着，而带高在 240 到一屏之间变。**到 0.35 处已经全透明**
-                  （第三趟从 0.5 收进来的），所以它压不到字块上半截那两行（徽标和片名）。
-                -->
-                <Border x:Name="BackdropBottomFade" Height="40" VerticalAlignment="Bottom">
-                    <Border.Background>
-                        <LinearGradientBrush StartPoint="0.5,1" EndPoint="0.5,0">
-                            <GradientStop Offset="0" Color="#990C0E11" />
-                            <GradientStop Offset="0.14" Color="#660C0E11" />
-                            <GradientStop Offset="0.25" Color="#330C0E11" />
-                            <GradientStop Offset="0.35" Color="#000C0E11" />
-                            <GradientStop Offset="1" Color="#000C0E11" />
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>

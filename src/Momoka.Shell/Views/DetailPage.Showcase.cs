@@ -212,13 +212,9 @@ public sealed partial class DetailPage
         };
 
     /// <summary>
-    /// 尾部最浓那一档的颜色 —— 沉浸档的纸面用它，正文和上方那一段因此同色，接缝看不出来。取的是屏上那支
-    /// 画刷真正的颜色，不是另抄一遍 <see cref="DetailHero.ScrimCeiling"/>：两处各写一个数就是两处会分叉。
+    /// 沉浸档的纸面与阅读遮罩同色；普通模式的透明尾部不能成为进入沉浸时的取色来源。
     /// </summary>
-    private Color WashColor => ViewModel.GaussianBackdropApplied ? Color.FromArgb(0, 0, 0, 0)
-        : HeroTail.Background is SolidColorBrush { Color: var color }
-        ? color
-        : Color.FromArgb(DetailHero.ScrimCeiling, DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B);
+    private Color WashColor => ReadingShadeColor;
 
     /// <summary>
     /// 沉浸版式（窗口铺开时正文让开）跟着条目种类、页宽跨断点和背景图翻档三处翻面。这三处都不是「用户按了
@@ -403,6 +399,7 @@ public sealed partial class DetailPage
     {
         StopShowcase();
 
+        PaintScrim();
         var showcase = ViewModel.Showcase;
         _shownShowcase = showcase;
         _settledCompact = ViewModel.IsCompact;
@@ -462,6 +459,7 @@ public sealed partial class DetailPage
 
         StopShowcase();
 
+        PaintScrim();
         var board = new Storyboard();
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
 

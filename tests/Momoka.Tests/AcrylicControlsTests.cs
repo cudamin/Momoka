@@ -45,7 +45,7 @@ internal static class AcrylicControlsTests
             foreach (var name in new[] { "DetailVideoText", "ColumnAudioText", "AudioText" })
                 Assert.Equal("{StaticResource EgOnScrimBodyStyle}", (string?)Named(page, name).Attribute("Style"));
         });
-        Test("详情菜单：透明表面使用轻透系统亚克力，背景下沿渐变已移除", () =>
+        Test("详情菜单：透明表面使用轻透系统亚克力", () =>
         {
             var style = Resource(Read("Theme/Styles.xaml").Root!, "EgDetailMenuPresenterStyle");
             Assert.Equal("{StaticResource DefaultMenuFlyoutPresenterStyle}", (string?)style.Attribute("BasedOn"));
@@ -53,7 +53,30 @@ internal static class AcrylicControlsTests
                 (string?)style.Elements().Single(row => (string?)row.Attribute("Property") == "Background").Attribute("Value"));
             Assert.False(style.Elements().Any(row => (string?)row.Attribute("Property") == "Template"));
             Assert.True(style.Descendants().Any(row => row.Name.LocalName == "DetailMenuBackdrop"));
-            Assert.False(Read("Views/DetailPage.xaml").Descendants().Any(row => (string?)row.Attribute(X + "Name") == "BackdropFade"));
+        });
+        Test("详情背景：主题收边与图片同高，位于图片透明度及阅读遮罩之外", () =>
+        {
+            var page = Read("Views/DetailPage.xaml");
+            var backdrop = Named(page, "Backdrop");
+            var picture = Named(page, "BackdropPicture");
+            var shade = Named(page, "BackdropShade");
+            var fade = Named(page, "BackdropFade");
+            Assert.Equal(backdrop, fade.Parent);
+            Assert.Equal(backdrop, shade.Parent);
+            Assert.Equal((string?)picture.Attribute("Height"), (string?)fade.Attribute("Height"));
+            Assert.Equal((string?)picture.Attribute("Height"), (string?)shade.Attribute("Height"));
+            Assert.Equal("Top", (string?)fade.Attribute("VerticalAlignment"));
+            Assert.Equal("False", (string?)fade.Attribute("IsHitTestVisible"));
+            Assert.Null(fade.Attribute("Opacity"));
+            Assert.True(backdrop.Elements().ToList().IndexOf(fade) > backdrop.Elements().ToList().IndexOf(shade));
+            Assert.True(backdrop.Elements().ToList().IndexOf(shade) > backdrop.Elements().ToList().IndexOf(picture));
+        });
+        Test("主页轮播：底边没有渐变层，保留标题和侧边阅读遮罩", () =>
+        {
+            var banner = Read("Views/HomeBanner.xaml");
+            var shades = Named(banner, "Band").Elements(Xaml + "Border").ToList();
+            Assert.False(shades.Any(row => (string?)row.Attribute("VerticalAlignment") == "Bottom"));
+            Assert.Equal(3, shades.Count);
         });
         Test("主页轮播：详情按钮有默认文字并保留本地化与导航", () =>
         {
