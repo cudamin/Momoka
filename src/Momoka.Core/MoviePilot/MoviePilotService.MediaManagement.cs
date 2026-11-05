@@ -7,6 +7,7 @@ public sealed partial class MoviePilotService
 {
     private readonly SemaphoreSlim _historyCapabilityRead = new(1, 1);
     private MoviePilotHistoryCapabilities? _historyCapabilities;
+    private readonly Dictionary<(object Owner, string Stamp, string ItemId), List<string>> _removedItemLibraryPaths = [];
     public event EventHandler? HistoryCapabilitiesChanged;
 
     private void SetHistoryCapabilities(MoviePilotHistoryCapabilities? value)
@@ -68,8 +69,20 @@ public sealed partial class MoviePilotService
         scope.ExecuteAsync(async (client, token) =>
         {
             var context = await MoviePilotTransferCollect.CollectAsync(client, item, token, seriesFiles: true, maxFiles: MoviePilotHistoryPlan.MaxFiles).ConfigureAwait(false);
-            return await PrepareHistoryActionAsync(context, action, item.Type is Emby.EmbyItemType.Series or Emby.EmbyItemType.Season,
+            // MP 删除历史可能先于媒体服务器刷新；本进程明确移除的同条目版本不再要求重复匹配、提交。
+            if (action is MoviePilotHistoryAction.DeleteDestination or MoviePilotHistoryAction.DeleteAll)
+            {
+                lock (_operationGate)
+                    if (_removedItemLibraryPaths.TryGetValue((scope.UserStateOwner, connectionStamp, item.Id), out var removed))
+                        context = context with
+                        {
+                            Files = context.Files.Where(file => !removed.Any(path => MoviePilotTransfer.SamePath(path, file.Path))).ToArray()
+                        };
+            }
+            var plan = await PrepareHistoryActionAsync(context, action, item.Type is Emby.EmbyItemType.Series or Emby.EmbyItemType.Season,
                 connectionStamp, token).ConfigureAwait(false);
+            return new MoviePilotHistoryPlan(plan.Title, plan.Action, plan.Batch, plan.ConnectionStamp, plan.Histories,
+                plan.LibraryPaths, scope.UserStateOwner, item.Id);
         }, cancellationToken);
 
     public async Task<MoviePilotHistoryPlan> PrepareHistoryActionAsync(MoviePilotTransferContext context,
@@ -99,7 +112,8 @@ public sealed partial class MoviePilotService
         }
         var histories = action == MoviePilotHistoryAction.SmartReorganize
             ? MoviePilotTransferHistoryMatch.RequireMatches(context, found)
-            : MoviePilotTransferHistoryMatch.RequireDeletionMatches(context, found);
+            : MoviePilotTransferHistoryMatch.RequireDeletionMatches(context, found,
+                requireDestination: action is MoviePilotHistoryAction.DeleteDestination or MoviePilotHistoryAction.DeleteAll);
         foreach (var history in histories)
         {
             if (history.Snapshot.ValueKind != JsonValueKind.Object || history.ConnectionStamp != connectionStamp)
@@ -122,7 +136,29 @@ public sealed partial class MoviePilotService
 
     public Task<MoviePilotHistoryResult> SubmitItemHistoryActionAsync(Emby.EmbySessionScope scope,
         MoviePilotHistoryPlan plan, CancellationToken cancellationToken) =>
-        scope.ExecuteAsync((_, token) => SubmitHistoryActionAsync(plan, token), cancellationToken);
+        scope.ExecuteAsync(async (_, token) =>
+        {
+            if (plan.ItemOwner is not null && !ReferenceEquals(plan.ItemOwner, scope.UserStateOwner))
+                throw new MoviePilotOperationBlockedException("删除计划所属的媒体服务器账号已改变，请重新查询");
+            var result = await SubmitHistoryActionAsync(plan, token).ConfigureAwait(false);
+            if (plan.ItemOwner is not null && plan.ItemId.Length > 0 && IsCurrentConnection(plan.ConnectionStamp))
+            {
+                var paths = result.RemovedLibraryPaths(plan)
+                    .Where(path => plan.LibraryPaths.Any(file => MoviePilotTransfer.SamePath(path, file))).ToArray();
+                if (paths.Length > 0)
+                {
+                    lock (_operationGate)
+                    {
+                        var key = (plan.ItemOwner, plan.ConnectionStamp, plan.ItemId);
+                        if (!_removedItemLibraryPaths.TryGetValue(key, out var removed))
+                            _removedItemLibraryPaths.Add(key, removed = []);
+                        foreach (var path in paths)
+                            if (!removed.Any(existing => MoviePilotTransfer.SamePath(existing, path))) removed.Add(path);
+                    }
+                }
+            }
+            return result;
+        }, cancellationToken);
 
     public async Task<MoviePilotHistoryResult> SubmitHistoryActionAsync(MoviePilotHistoryPlan plan, CancellationToken cancellationToken)
     {

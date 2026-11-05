@@ -20,7 +20,8 @@ public sealed class MoviePilotHistoryPlan
     public const int MaxFiles = 1000;
     private int _claimed;
     internal MoviePilotHistoryPlan(string title, MoviePilotHistoryAction action, bool batch,
-        string connectionStamp, IReadOnlyList<MoviePilotTransferHistory> histories, IReadOnlyList<string>? libraryPaths = null)
+        string connectionStamp, IReadOnlyList<MoviePilotTransferHistory> histories, IReadOnlyList<string>? libraryPaths = null,
+        object? itemOwner = null, string itemId = "")
     {
         Title = title;
         Action = action;
@@ -28,6 +29,8 @@ public sealed class MoviePilotHistoryPlan
         ConnectionStamp = connectionStamp;
         Histories = Array.AsReadOnly(histories.ToArray());
         LibraryPaths = Array.AsReadOnly((libraryPaths ?? histories.Select(history => history.TargetPath).ToArray()).ToArray());
+        ItemOwner = itemOwner;
+        ItemId = itemId;
     }
 
     public string Title { get; }
@@ -37,6 +40,8 @@ public sealed class MoviePilotHistoryPlan
     public IReadOnlyList<MoviePilotTransferHistory> Histories { get; }
     /// <summary>当前条目的完整库文件范围；缩小勾选记录不能把未选版本从这个范围移除。</summary>
     public IReadOnlyList<string> LibraryPaths { get; }
+    internal object? ItemOwner { get; }
+    internal string ItemId { get; }
     public bool Claimed => Volatile.Read(ref _claimed) != 0;
     public bool DeleteSource => Action is MoviePilotHistoryAction.DeleteSource or MoviePilotHistoryAction.DeleteAll;
     public bool DeleteDestination => Action is MoviePilotHistoryAction.DeleteDestination or MoviePilotHistoryAction.DeleteAll;
@@ -72,7 +77,7 @@ public sealed class MoviePilotHistoryPlan
             throw new MoviePilotOperationBlockedException("选择包含未核对的整理记录，请重新读取确认范围");
         // 与直接提交争用同一个消费位；并行派生或原计划提交只能有一方取得确认。
         Claim();
-        return new MoviePilotHistoryPlan(Title, Action, Batch, ConnectionStamp, histories, LibraryPaths);
+        return new MoviePilotHistoryPlan(Title, Action, Batch, ConnectionStamp, histories, LibraryPaths, ItemOwner, ItemId);
     }
 
     internal void Claim()
