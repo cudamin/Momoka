@@ -10519,3 +10519,8 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - R15：架构专项先构建当前Shell/Core；quality构建失败或告警后记未执行，SkipBuild只跳过全方案仍走架构专项fresh构建。四场景脚本4/4；runner匿名19/19（包含实际项目清单检查）。首次PS5读取UTF-8清单失败已修，测试单值数组传参边界修正；原日志保留，不算产品失败。
 - 根证据 artifacts/review-fixes-20261105/；维护16例、载荷31例各另有机器结果。变更文本24项编码/行尾和10脚本语法初次通过，新增R18后需重验。尚未批次最终全测、主树合并或桌面发布，快捷方式仍是旧版。
 - Compose实现依据：compose-spec/compose-go v2.9.0 paths/resolve.go，SHA256 BE5CB7104D1AAB02D87436DB0180EE2A5D2CB70A83128997337D25E09AA92E1C，实际curl下载并读ResolveRelativePaths/absVolumeMount；源码与规格不代表运行Docker验收。PowerShell网络获取先遇EOF，改curl成功。上游内容保存于本树证据目录。
+
+# 2026-11-05 R18 退出播放客户区交接
+
+- 窗口移动前捕获原客户区，交接层使用该矩形；全屏客户区仍自然铺满屏幕。保留抓帧、身份/代次检查、两帧等待和finally释放。
+- 构建时逐字提取实际方法，普通窗口/全屏/负坐标副屏先1过2败，修后3/3；当前Shell Release 0警告0错误。未执行真实DWM/WinUI或本地播放，批次收尾仍待隔离运行。

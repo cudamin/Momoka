@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <UsingTask TaskName="ExtractPlayerExitHandoff" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup><Source ParameterType="System.String" Required="true" /><Output ParameterType="System.String" Required="true" /></ParameterGroup>
+    <Task><Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var text = File.ReadAllText(Source).Replace("\r\n", "\n");
+        var start = "    internal async Task ReturnToBrowseBeforeStopAsync()\n";
+        var end = "    private void StopPlayerMotion()\n";
+        var begin = text.IndexOf(start, StringComparison.Ordinal);
+        var finish = text.IndexOf(end, StringComparison.Ordinal);
+        if (begin < 0 || finish <= begin || text.IndexOf(start, begin + start.Length, StringComparison.Ordinal) >= 0 || text.IndexOf(end, finish + end.Length, StringComparison.Ordinal) >= 0)
+            throw new InvalidOperationException("Player exit extraction boundary changed.");
+        var generated = "#nullable enable\nnamespace Momoka.PlayerExitHandoffTests;\ninternal sealed partial class PlayerPage\n{\n" + text.Substring(begin, finish - begin) + "}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(Output));
+        File.WriteAllText(Output, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GeneratePlayerExitHandoff" BeforeTargets="CoreCompile">
+    <ExtractPlayerExitHandoff Source="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\PlayerPage.Transition.cs" Output="$(IntermediateOutputPath)PlayerExit.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)PlayerExit.g.cs" /></ItemGroup>
+  </Target>
+</Project>
