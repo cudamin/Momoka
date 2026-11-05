@@ -17,23 +17,6 @@
     IsTabStop="False"
     SizeChanged="OnSizeChanged">
 
-    <VisualStateManager.VisualStateGroups>
-        <VisualStateGroup x:Name="HeightStates">
-            <VisualState x:Name="Full" />
-            <VisualState x:Name="Compact">
-                <VisualState.Setters>
-                    <Setter Target="Rail.Padding" Value="0,3" />
-                    <Setter Target="Rail.CornerRadius" Value="12" />
-                </VisualState.Setters>
-            </VisualState>
-            <VisualState x:Name="Hidden">
-                <VisualState.Setters>
-                    <Setter Target="Rail.Visibility" Value="Collapsed" />
-                </VisualState.Setters>
-            </VisualState>
-        </VisualStateGroup>
-    </VisualStateManager.VisualStateGroups>
-
     <UserControl.Resources>
         <!-- 一个字母按钮。BasedOn 必须有：Button 的模板来自框架的隐式样式，不 BasedOn 就没模板。 -->
         <Style x:Key="EgAlphaButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">

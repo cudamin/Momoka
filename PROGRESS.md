@@ -1,5 +1,6 @@
 # 2026-11-05 UI 整理 Task3（独立树待整合）
 
+- 索引真因与修复：25416实际日志已到600×560，Alpha高376但Rail仍Visible、Auto列30且HeightStates当前态为空；AlphaBar改为真实SizeChanged直接设置轨道显隐/紧凑Padding/CornerRadius，沿用原400/510阈值与按钮样式，去掉无效VSM。整份生产AlphaBar源码链接回归先红9项7过2败、修后9/9，覆盖376/900隐藏恢复及399/400/509/510边界、选中字母恢复；追加运行既有7项约定，只有已删除VSM的4个非交互状态名报红，逐行移除对应handle基线，保留Rail/Root/Letters。最终16/16、Shell编译0警告0错误；真实Auto列归零仍交根代理保留的窗口探针确认。
 - 后续索引探针诊断：主代理33788真实运行的1132×1084索引截图已显示36项、名称升序和独立字母条，失败发生在600×560缩小阶段。补充目标客户区/实际显隐条件等待，finally记录VM、根/页面/Alpha/内部Root/Rail实际尺寸及Visibility、Auto列宽与VSM状态；保留原断言，未改产品。根代理继续串行运行以取得缩小失败的真实读数。
 - ui-polish-library 树只改非搜索 LibraryPage 页头与相关回归：20 DIP标题、可见行间距、分类/工具栏左对齐、28 DIP正文距离；Jellyfin字母条使用可收回Auto列，Emby覆盖模式、文件夹面包屑与搜索布局保留。精准方法契约7/7，原红6项1过5败；当前Shell/Core/Tests Release均0警告0错误，继续观看真实VM38/38、收藏切源13/13、搜索生命周期42/42。修改文件及专项格式检查退出0；Shell格式工具的Debug工作区缺Core.Debug程序集告警保留，Release编译正常。根代理统一运行修改后的library/search UI探针（含新空档反例与索引高度/条数恢复）、整合及发布；本树未运行UI、未合入master、未发布或上传。
 # 2026-11-05 UI整理 Task2：卡片展示（待整合与UI验证）

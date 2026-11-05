@@ -78,7 +78,7 @@ internal static class Program
             page.Apply();
             Assert.Equal(0, page.HeaderApplies);
         });
-        Test("字母条Auto列没有固定最小宽度且低高度隐藏发生在内部Rail", () =>
+        Test("字母条Auto列没有固定最小宽度", () =>
         {
             var root = Root();
             var document = XDocument.Load(Path.Combine(root, "src/Momoka.Shell/Views/LibraryPage.xaml"));
@@ -92,10 +92,43 @@ internal static class Program
             var control = XDocument.Load(Path.Combine(root, "src/Momoka.Shell/Views/AlphaBar.xaml"));
             Assert.Null(control.Root!.Attribute("Width"));
             Assert.Null(control.Root.Attribute("MinWidth"));
-            var hidden = control.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "Hidden");
-            Assert.True(hidden.Descendants().Any(element => (string?)element.Attribute("Target") == "Rail.Visibility"
-                && (string?)element.Attribute("Value") == "Collapsed"));
         });
+        Test("真实AlphaBar回调在376DIP折叠轨道并在900DIP恢复", () =>
+        {
+            var alpha = new AlphaBar();
+            alpha.SetCurrent("A");
+            alpha.Resize(900);
+            Assert.Equal(Visibility.Visible, alpha.Rail.Visibility);
+            alpha.Resize(376);
+            Assert.Equal(Visibility.Collapsed, alpha.Rail.Visibility);
+            alpha.Resize(900);
+            Assert.Equal(Visibility.Visible, alpha.Rail.Visibility);
+            Assert.Equal(new Thickness(0, 5, 0, 5), alpha.Rail.Padding);
+            Assert.Equal(new CornerRadius(13), alpha.Rail.CornerRadius);
+            Assert.Equal("EgAlphaCurrentStyle", alpha.ButtonStyle("A"));
+        });
+        Test("真实AlphaBar回调在400到509DIP使用紧凑样式且恢复选中字母", () =>
+        {
+            var alpha = new AlphaBar();
+            alpha.SetCurrent("B");
+            foreach (var height in new[] { 400d, 509d })
+            {
+                alpha.Resize(height);
+                Assert.Equal(Visibility.Visible, alpha.Rail.Visibility);
+                Assert.Equal(new Thickness(0, 3, 0, 3), alpha.Rail.Padding);
+                Assert.Equal(new CornerRadius(12), alpha.Rail.CornerRadius);
+                Assert.Equal("EgAlphaCompactCurrentStyle", alpha.ButtonStyle("B"));
+                Assert.Equal("EgAlphaCompactButtonStyle", alpha.ButtonStyle("A"));
+            }
+            alpha.Resize(399);
+            Assert.Equal(Visibility.Collapsed, alpha.Rail.Visibility);
+            alpha.Resize(510);
+            Assert.Equal(Visibility.Visible, alpha.Rail.Visibility);
+            Assert.Equal(new Thickness(0, 5, 0, 5), alpha.Rail.Padding);
+            Assert.Equal("EgAlphaCurrentStyle", alpha.ButtonStyle("B"));
+            Assert.Equal("EgAlphaButtonStyle", alpha.ButtonStyle("A"));
+        });
+        AgreementsTests.Register();
         return Run();
     }
 

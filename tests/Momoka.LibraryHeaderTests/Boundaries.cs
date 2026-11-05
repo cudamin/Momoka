@@ -6,6 +6,17 @@ namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
     public enum HorizontalAlignment { Left, Center, Right, Stretch }
+    public enum FocusState { Keyboard }
+    public readonly record struct CornerRadius(double Value);
+    public sealed class SizeChangedEventArgs(double height) : EventArgs
+    {
+        public (double Width, double Height) NewSize => (30, height);
+    }
+    public static class VisualStateManager
+    {
+        // Characterized by the 25416 real-window log: states on this UserControl were never entered.
+        public static bool GoToState(object control, string state, bool transitions) => false;
+    }
     public readonly record struct Thickness(double Left, double Top, double Right, double Bottom)
     {
         public Thickness(double value) : this(value, value, value, value) { }
@@ -23,6 +34,7 @@ namespace Microsoft.UI.Xaml
         public HorizontalAlignment HorizontalAlignment { get; set; }
         public Thickness Margin { get; set; }
         public Thickness Padding { get; set; }
+        public CornerRadius CornerRadius { get; set; }
         public Style? Style { get; set; }
         public object Parent { get; set; } = null!;
         internal int Row, Column, Span;
@@ -40,6 +52,24 @@ namespace Microsoft.UI.Xaml
 }
 namespace Microsoft.UI.Xaml.Controls
 {
+    public class UserControl : FrameworkElement { public Dictionary<string, object> Resources { get; } = new(); }
+    public class Border : FrameworkElement;
+    public class ContentControl : FrameworkElement { public object? Content { get; set; } }
+    public sealed class StackPanel : FrameworkElement
+    {
+        public double Spacing { get; set; }
+        public List<FrameworkElement> Children { get; } = [];
+    }
+    public sealed class Button : ContentControl
+    {
+        public int TabIndex { get; set; }
+        public bool UseSystemFocusVisuals { get; set; }
+        public event EventHandler? Click;
+        public event Action<object, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs>? KeyDown;
+        public bool Focus(FocusState state) => true;
+        public void Invoke() => Click?.Invoke(this, EventArgs.Empty);
+        public void Press(Microsoft.UI.Xaml.Input.KeyRoutedEventArgs args) => KeyDown?.Invoke(this, args);
+    }
     public class Grid : Microsoft.UI.Xaml.FrameworkElement
     {
         public static void SetRow(Microsoft.UI.Xaml.FrameworkElement item, int value) => item.Row = value;
@@ -48,12 +78,33 @@ namespace Microsoft.UI.Xaml.Controls
     }
     public class TextBlock : Microsoft.UI.Xaml.FrameworkElement { public string Text { get; set; } = ""; }
 }
+namespace Microsoft.UI.Xaml.Input
+{
+    public sealed class KeyRoutedEventArgs : EventArgs
+    {
+        public Windows.System.VirtualKey Key { get; set; }
+        public bool Handled { get; set; }
+    }
+}
+namespace Windows.System { public enum VirtualKey { Up, Down, Left, Right, Home, End } }
 namespace CommunityToolkit.WinUI.Controls
 {
     public sealed class SegmentedItem : Microsoft.UI.Xaml.FrameworkElement { public object? Content { get; set; } }
 }
 namespace Momoka.Shell.Views
 {
+    public sealed partial class AlphaBar
+    {
+        internal Border Rail { get; } = new() { Padding = new Thickness(0, 5, 0, 5), CornerRadius = new CornerRadius(13) };
+        internal ContentControl Letters { get; } = new();
+        private void InitializeComponent()
+        {
+            foreach (var name in new[] { "EgAlphaButtonStyle", "EgAlphaCurrentStyle", "EgAlphaCompactButtonStyle", "EgAlphaCompactCurrentStyle" })
+                Resources[name] = new Style(name);
+        }
+        internal void Resize(double height) => OnSizeChanged(this, new SizeChangedEventArgs(height));
+        internal string ButtonStyle(string letter) => _buttons[letter].Style!.Key;
+    }
     public sealed class HeaderRequest { public bool IsSearch { get; set; } }
     public sealed class HeaderViewModel
     {

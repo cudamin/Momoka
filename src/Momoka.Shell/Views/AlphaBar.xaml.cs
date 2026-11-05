@@ -78,10 +78,13 @@ public sealed partial class AlphaBar : UserControl
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
         var height = e.NewSize.Height;
-        var state = height < HiddenHeight ? "Hidden" : height < CompactHeight ? "Compact" : "Full";
-        var compact = state == "Compact";
-
-        VisualStateManager.GoToState(this, state, false);
+        var hidden = height < HiddenHeight;
+        var compact = !hidden && height < CompactHeight;
+        // UserControl 根上的 HeightStates 没有被 GoToState 找到（2026-11-05 真窗日志状态始终空）。
+        // 高度已由当前回调给出，直接改变这三项，隐藏时 Auto 列也能随 Rail 一起归零。
+        Rail.Visibility = hidden ? Visibility.Collapsed : Visibility.Visible;
+        Rail.Padding = new Thickness(0, compact ? 3 : 5, 0, compact ? 3 : 5);
+        Rail.CornerRadius = new CornerRadius(compact ? 12 : 13);
 
         if (_compact == compact) return;
 
