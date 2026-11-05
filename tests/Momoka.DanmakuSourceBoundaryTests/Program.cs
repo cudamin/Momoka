@@ -91,6 +91,21 @@ internal static class Program
                     Momoka.Tests.Assert.True(new SettingsRows(settings).Labels().Contains("显示弹幕输入栏"));
                     Momoka.Tests.Assert.True(settings.Danmaku.ShowInput);
                 });
+        Momoka.Tests.TestHarness.Test("review settings probe registration and restoration contract", () =>
+        {
+            var root = new DirectoryInfo(AppContext.BaseDirectory);
+            while (root is not null && !File.Exists(Path.Combine(root.FullName, "Momoka.sln"))) root = root.Parent;
+            Momoka.Tests.Assert.NotNull(root);
+            var probe = File.ReadAllText(Path.Combine(root!.FullName, "src/Momoka.Shell/ShellNavigationProbe.ReviewSettings.cs"));
+            var runner = File.ReadAllText(Path.Combine(root.FullName, "src/Momoka.Shell/ShellNavigationProbe.cs"));
+            foreach (var width in new[] { 760, 1100 })
+                Momoka.Tests.Assert.Contains($"ReviewSettingsAvailabilityAsync({width}), 60, section: ShellProbeSections.Settings", runner);
+            foreach (var contract in new[] { "CreateMotionSettingsPage", "BeginSettingsFixtureVisit", "SelectRow", "AssertRow", "FrameInterpolationMode.Smooth",
+                "FrameInterpolationMode.Off", "DanmakuSourceMode.DanmuApi", "DanmakuSourceMode.DandanPlay", "settings.Video.VideoSync == \"audio\"",
+                "settings.Danmaku.ShowInput", "new RejectNetwork()", "SaveProbeScreenAsync", "page.Release()" })
+                Momoka.Tests.Assert.Contains(contract, probe);
+            Momoka.Tests.Assert.DoesNotContain("PlayAsync(", probe);
+        });
         return Momoka.Tests.TestHarness.Run();
     }
 

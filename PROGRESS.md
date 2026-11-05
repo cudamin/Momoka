@@ -10625,3 +10625,7 @@ R1–R35全部修复已整合到本树，三个领域组交叉只读复审没有
 R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner yes；真实LibMpvHandle快照和PlaybackService关闭临时链恢复no，空playlist、path=null、vo/ao=null、scripts禁用，无窗口/账号/HTTP。来源和DLLhash见artifacts/review-fixes-20261105/native-r8-evidence.json，条件profile及画面观感不在此证据中。
 
 尚待最终增补探针、主树整合复验和实际目录发布，快捷方式仍旧。未上传远端。
+## 2026-11-05 R9/R26 设置实屏探针补齐
+
+- 新增ShellNavigationProbe.ReviewSettings.cs并在settings分区注册1100/760两档：真实SettingsPage、真实ComboBox切换Smooth→Off和DanmuApi→DandanPlay，核行模型/实际文字/交互控件消失恢复、audio及ShowInput偏好；四阶段各保存宽窄实屏。复用CreateMotionSettingsPage匿名服务、隔离路径及现有页面活动期/布局等待，未创建播放实例或真实HTTP。
+- 相关source contract先红17项中1项（注册缺失），后17/17；该契约只守探针接线，不冒充运行证据。中断前Shell日志未完成并保留；恢复后fresh Release Shell 0警告0错误（work/review-fixes/review-settings-shell-build-resumed.log），契约复跑17/17；根会话统一运行桌面与目检截图，本树未执行。
