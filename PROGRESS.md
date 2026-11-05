@@ -10592,3 +10592,9 @@ R1在Plex适配层按100条原始页扫描，过滤后返回真实总数及Start
 - Library 的全部/随机入口用 `UserPlaybackQueue` 固定用户顺序；原IShellActions列表传递不增参数，VM绑定保留该类型。普通季列表仍补齐全剧，显式队列的自动/手动下一项及末端均不替换或追加服务器全剧顺序。
 - 完整真实VM caller 首红52/54（同账号跨剧与随机），修后54/54，0跳过，含普通季页补齐对照、自动/手动续播、末端不补齐。最终Release Core/caller及Shell均0警告0错误。首红并发Shell编译曾造成9条MSB3026复制重试，随后串行当前重编零警告；未终止进程。
 - 仅六个实际改动/已复核来源pin同步，细节见caller README；提取规则与拒绝不变。原Test-SourceExtraction.ps1反例由父整合批次运行。38条变更路径的行尾/BOM/空白检查通过（37文本）。所有提交待父树整合、全量测试及发布；没有真实窗口、播放或服务器写入。R18已交父代理单独修复。
+
+## 2026-11-05 审查修复 R24/R25：元数据列表与失败草稿
+
+已读审查留档的官方Jellyfin v10.10.7 ItemUpdateController Tags数组赋值及SqliteItemRepository竖线存储源码。列表按双引号包裹含标点项，双引号自身双写；未改列表保原JSON数组，未闭合引号拒绝保存。Jellyfin表保存用deferral与原JSON克隆，成功关闭、失败保留输入可重试，在飞时阻止关闭并显示进度；取消不写。
+
+实际EditAsync/GuardAsync/AskAsync/TellAsync逐次源码提取+完整MetadataDialog链接，5场景（原样/标题/列表/503重试/取消）先红后绿，另4类标点往返及未闭合校验通过。通知未知事件ID增加第6场景红绿，沿用范围集合原值保留规则。当前新专项全过，Core原Emby元数据61项、日期96项通过；最新Shell Release 0警告0错误，scan-automation-ids无无句柄控件，31文件check-diff通过。一次在Shell编译未结束时重编Core碰到本树XAML编译器占用而失败，后续等待其退出并用成功当前Core进行fresh专项编译，未以旧失败输出冒充成功。未运行真实WinUI/桌面/服务器写入/DPAPI/播放，待父会话全批整合。

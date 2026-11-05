@@ -11,7 +11,7 @@ internal static class NotificationEditor
     public static async Task RunAsync()
     {
         var failures = new List<string>();
-        foreach (var mode in new[] { "normal", "fail", "missing", "empty", "edit" })
+        foreach (var mode in new[] { "normal", "fail", "missing", "empty", "edit", "unknown-event" })
         {
             using var handler = new Capture();
             using var http = new EmbyHttp(handler);
@@ -23,6 +23,7 @@ internal static class NotificationEditor
             var libraries = await Load<NotificationLibrary>([new() { Guid = "l" + suffix, Name = "Library" }]);
             var devices = await Load<NotificationDevice>([new() { Id = "d" + suffix, Name = "Device" }]);
             var entry = new UserNotificationInfo { NotifierKey = "anonymous", EventIds = ["stop"], UserIds = ["u1"], LibraryIds = ["l1"], DeviceIds = ["d1"] };
+            if (mode == "unknown-event") entry.EventIds.Add("unlisted-event");
             var context = new NotificationEditorContext(entry.Clone(), false,
                 [new() { Id = "playback", Events = [new() { Id = "stop", Name = "Stop" }, new() { Id = "start", Name = "Start" }] }],
                 users!, libraries!, devices!, value => client.SaveNotificationAsync(value, default), _ => Task.FromResult(true));
@@ -38,12 +39,13 @@ internal static class NotificationEditor
             dialog.RaisePrimary();
             await handler.Saved.Task.WaitAsync(TimeSpan.FromSeconds(5));
             var saved = handler.Body!;
-            if (saved["EventIds"]!.ToJsonString() != (mode == "edit" ? "[\"start\"]" : "[\"stop\"]")) failures.Add(mode + " lost event identity");
+            var expectedEvents = mode == "edit" ? new[] { "start" } : mode == "unknown-event" ? ["stop", "unlisted-event"] : ["stop"];
+            if (!saved["EventIds"]!.AsArray().Select(value => value?.GetValue<string>()).Order().SequenceEqual(expectedEvents.Order())) failures.Add(mode + " lost event identity");
             foreach (var (key, id) in new[] { ("UserIds", "u1"), ("LibraryIds", "l1"), ("DeviceIds", "d1") })
                 if (saved[key]!.ToJsonString() != (mode == "edit" ? "[]" : "[\"" + id + "\"]")) failures.Add(mode + " changed " + key);
         }
         if (failures.Count > 0) throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
-        Console.WriteLine("R30/R31: 5 linked notification editor/HTTP cases passed.");
+        Console.WriteLine("R30/R31: 6 linked notification editor/HTTP cases passed.");
     }
     private sealed class Capture : HttpMessageHandler
     {

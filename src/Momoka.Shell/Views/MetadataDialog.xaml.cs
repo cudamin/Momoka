@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Momoka.Diagnostics;
 using Momoka.Emby;
 
 namespace Momoka.Shell.Views;
@@ -16,13 +17,19 @@ namespace Momoka.Shell.Views;
 /// </summary>
 public sealed partial class MetadataDialog : ContentDialog
 {
+    private readonly Func<ItemMetadataEdit, Task<bool>> _save;
+    private bool _saving;
+    public bool Changed { get; private set; }
     /// <param name="item">
     /// The item being edited. Needed for two things the form cannot infer from the values: whose name to
     /// put in the subtitle, and whether 季号/集号 apply at all.
     /// </param>
-    public MetadataDialog(EmbyItem item, ItemMetadataEdit edit)
+    public MetadataDialog(EmbyItem item, ItemMetadataEdit edit, Func<ItemMetadataEdit, Task<bool>>? save = null)
     {
+        _save = save ?? (_ => Task.FromResult(false));
         InitializeComponent();
+        PrimaryButtonClick += OnSave;
+        Closing += OnClosing;
 
         // 同 ConfirmDialog 里那段说明：对话框摆在 XamlRoot 的浮层根上，从提出它的那棵树上继承不到主题，不点明
         // 就按 Windows 的应用模式来 —— 用户在晴昼（唯一那套浅色）下会得到一张深色的表。
@@ -69,7 +76,7 @@ public sealed partial class MetadataDialog : ContentDialog
         Validate();
     }
 
-    /// <summary>The form as it now stands. Read after the dialog closes, and by <see cref="Validate"/>.</summary>
+    /// <summary>The form as it now stands, captured before each save and read by <see cref="Validate"/>.</summary>
     public ItemMetadataEdit Edit => new()
     {
         Name = NameBox.Text,
@@ -95,10 +102,49 @@ public sealed partial class MetadataDialog : ContentDialog
     /// </summary>
     private void Validate()
     {
+        if (_saving) return;
         var problem = Edit.Problem;
 
         Problem.Message = problem ?? string.Empty;
         Problem.IsOpen = problem is not null;
         IsPrimaryButtonEnabled = problem is null;
+    }
+
+    private async void OnSave(ContentDialog sender, ContentDialogButtonClickEventArgs args)
+    {
+        args.Cancel = true;
+        if (_saving) return;
+        var edit = Edit;
+        if (edit.Problem is not null) { Validate(); return; }
+        var deferral = args.GetDeferral();
+        _saving = true;
+        IsPrimaryButtonEnabled = false;
+        EditorScroll.IsEnabled = false;
+        SavingProgress.Visibility = Visibility.Visible;
+        Problem.IsOpen = false;
+        try
+        {
+            Changed = await _save(edit).ConfigureAwait(true);
+            args.Cancel = false;
+        }
+        catch (Exception error)
+        {
+            Log.Warn("ui", "编辑元数据保存失败", error);
+            Problem.Message = $"保存失败：{Failure.Describe(error)}。输入已保留，可以重试或取消。";
+            Problem.IsOpen = true;
+        }
+        finally
+        {
+            _saving = false;
+            EditorScroll.IsEnabled = true;
+            SavingProgress.Visibility = Visibility.Collapsed;
+            IsPrimaryButtonEnabled = Edit.Problem is null;
+            deferral.Complete();
+        }
+    }
+
+    private void OnClosing(ContentDialog sender, ContentDialogClosingEventArgs args)
+    {
+        if (_saving) args.Cancel = true;
     }
 }

@@ -190,15 +190,10 @@ public sealed partial class NotificationEditDialog : ContentDialog
             entry.Options["EnableMultipartFormData"] = RequestType.SelectedIndex == 1 ? "true" : "false";
         }
 
-        entry.EventIds =
-        [
-            .. _eventGroups
-                .SelectMany(group => group.Children)
-                .Where(box => box.IsChecked == true)
-                .Select(box => box.Tag as string)
-                .OfType<string>()
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-        ];
+        var events = _eventGroups.SelectMany(group => group.Children)
+            .Where(box => box.Tag is string id && !string.IsNullOrWhiteSpace(id))
+            .Select(box => (Box: box, Id: (string)box.Tag!)).ToList();
+        entry.EventIds = [.. Collect(events, entry.EventIds).Where(id => !string.IsNullOrWhiteSpace(id))];
 
         entry.UserIds = [.. Collect(_userChecks, entry.UserIds)];
         entry.LibraryIds = [.. Collect(_libraryChecks, entry.LibraryIds)];

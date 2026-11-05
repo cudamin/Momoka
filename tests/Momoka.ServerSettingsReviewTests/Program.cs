@@ -69,6 +69,7 @@ await PlexSearch.RunAsync();
 await FnNasArtwork.RunAsync();
 DisplaySettings.Run();
 await NotificationEditor.RunAsync();
+await MetadataEditor.RunAsync();
 
 sealed class OpaqueProtector : ISecretProtector
 {

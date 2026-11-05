@@ -195,21 +195,17 @@ internal static partial class ItemCommands
             var json = await AskAsync(session, (client, token) => client.GetItemJsonAsync(item.Id, token))
                 .ConfigureAwait(true);
 
-            var dialog = new MetadataDialog(item, ItemMetadataEdit.Read(json)) { XamlRoot = root };
-
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-
-            // Nothing to send is a success, not a no-op to report: the user opened the form, looked, and
-            // pressed 保存. Saying 「已保存」 for a request that never went out would be a lie, and an
-            // error for it would be nonsense.
-            if (!dialog.Edit.ApplyTo(json))
+            var dialog = new MetadataDialog(item, ItemMetadataEdit.Read(json), async edit =>
             {
-                Log.Debug(Category, $"编辑元数据：{item.Name} 没有改动");
-                return;
-            }
+                // A failed request must not mutate the baseline and make the retry look unchanged.
+                var updated = (System.Text.Json.Nodes.JsonObject)json.DeepClone();
+                if (!edit.ApplyTo(updated)) return false;
+                await TellAsync(session, (client, token) => client.UpdateItemAsync(item.Id, updated, token))
+                    .ConfigureAwait(true);
+                return true;
+            }) { XamlRoot = root };
 
-            await TellAsync(session, (client, token) => client.UpdateItemAsync(item.Id, json, token))
-                .ConfigureAwait(true);
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary || !dialog.Changed) return;
 
             shell.Notify($"已保存「{dialog.Edit.Name}」的元数据");
 

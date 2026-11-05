@@ -7,6 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
     <Compile Include="../../src/Momoka.Shell/Views/NotificationEditDialog.xaml.cs" Link="Production/NotificationEditDialog.cs" />
+    <Compile Include="../../src/Momoka.Shell/Views/MetadataDialog.xaml.cs" Link="Production/MetadataDialog.cs" />
   </ItemGroup>
   <UsingTask TaskName="ExtractServerConnectionTest" TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
@@ -32,6 +33,24 @@
     <ExtractServerConnectionTest Source="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ViewModels/ServersViewModel.cs"
                                  Output="$(IntermediateOutputPath)ServerConnection.g.cs" />
     <ItemGroup><Compile Include="$(IntermediateOutputPath)ServerConnection.g.cs" /></ItemGroup>
+  </Target>
+  <UsingTask TaskName="ExtractMetadataCommand" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup><Source ParameterType="System.String" Required="true" /><Output ParameterType="System.String" Required="true" /></ParameterGroup>
+    <Task><Using Namespace="System" /><Using Namespace="System.IO" /><Code Type="Fragment" Language="cs"><![CDATA[
+      var text = File.ReadAllText(Source).Replace("\r\n", "\n");
+      var start = text.IndexOf("    private static Task EditAsync(", StringComparison.Ordinal);
+      var end = text.IndexOf("    /// <summary>\n    /// 添加到合集", start, StringComparison.Ordinal);
+      if (start < 0 || end <= start || text.IndexOf("    private static Task EditAsync(", start + 1, StringComparison.Ordinal) >= 0) throw new InvalidOperationException("Metadata command boundaries changed");
+      var guard = text.IndexOf("    private static async Task GuardAsync(", StringComparison.Ordinal);
+      var helpersEnd = text.IndexOf("    /// <summary>\n    /// 取一段字节", guard, StringComparison.Ordinal);
+      if (guard < 0 || helpersEnd <= guard) throw new InvalidOperationException("Metadata IO helpers changed");
+      File.WriteAllText(Output, "#nullable enable\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Momoka.Emby;\nusing Momoka.Diagnostics;\nusing Momoka.Infrastructure;\nnamespace Momoka.Shell.Views;\ninternal static partial class ItemCommands\n{\n" + text.Substring(guard, helpersEnd-guard) + text.Substring(start, end-start) + "}\n");
+    ]]></Code></Task>
+  </UsingTask>
+  <Target Name="ExtractProductionMetadataCommand" BeforeTargets="CoreCompile">
+    <ExtractMetadataCommand Source="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/Views/ItemCommands.Server.cs" Output="$(IntermediateOutputPath)MetadataCommand.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)MetadataCommand.g.cs" /></ItemGroup>
   </Target>
   <UsingTask TaskName="ExtractNotificationContext" TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
