@@ -4,9 +4,9 @@ namespace Momoka.Emby;
 /// 主页第一屏上媒体库那一排摆在哪 —— 设置 → 主页 → 「主页媒体库位置」（2026-10-16 前在界面卡上、叫「首页媒体库
 /// 位置」）。
 /// <para>
-/// 三档里的后两档是「钉住」：<see cref="OnCarousel"/> 和 <see cref="BelowCarousel"/> 不看窗口高矮，用户说了
-/// 算；<see cref="Auto"/> 才是从 2026-09-13 起一直有的那一档 —— 由 <see cref="HomeFold.LibraryOnBanner"/> 按量
-/// 出来的几何自己翻。
+/// 常规宽度时，后两档是「钉住」：<see cref="OnCarousel"/> 和 <see cref="BelowCarousel"/> 不看窗口高矮；
+/// <see cref="Auto"/> 按量出的几何自己翻。2026-11-05 小于 760 DIP 的紧凑窗口统一放到轮播下方，避免挤压字幕，
+/// 保存的偏好不变，恢复宽度后再次按原偏好布局。
 /// </para>
 /// <para>
 /// 枚举存整数（同 <see cref="CarouselSource"/> 那条规矩），<see cref="Auto"/> 必须是 0：缺键的旧设置文件读出来
@@ -18,7 +18,7 @@ public enum HomeLibraryPlacement
     /// <summary>随窗口高度变换（装机默认）：窗口矮到那条线被第一屏裁掉时压上轮播，拉高又落回轮播下面。</summary>
     Auto = 0,
 
-    /// <summary>固定在轮播图中：只要轮播在，媒体库那一排就压在封面的左下角，不看窗口高矮。</summary>
+    /// <summary>常规宽度固定在轮播图中：不看窗口高矮；紧凑窗口临时放到下方，恢复宽度后重新压上。</summary>
     OnCarousel = 1,
 
     /// <summary>固定在轮播图下方：媒体库那一排始终站在横排里，一次都不压上轮播。</summary>
@@ -68,7 +68,7 @@ public enum HomeLibraryPlacement
 /// 这两条边界只管 <see cref="HomeLibraryPlacement.Auto"/>（「随窗口高度变换」）那一档。2026-10-12 起设置里
 /// 多了一行「主页媒体库位置」，另两档由用户钉死：<see cref="HomeLibraryPlacement.OnCarousel"/> 压着不放、
 /// <see cref="HomeLibraryPlacement.BelowCarousel"/> 一次不压 —— 那两档下这里两条边界都不参与，见
-/// <see cref="LibraryOnBanner(HomeLibraryPlacement, double, double, double)"/>。
+/// <see cref="LibraryOnBanner"/>。紧凑窗口优先按类型开头说明放在轮播下方。
 /// </para>
 /// </summary>
 public static class HomeFold
@@ -92,14 +92,16 @@ public static class HomeFold
     /// <param name="viewport">第一屏的高（窗口客户区）。</param>
     /// <param name="nextRowLine">那条线在第一屏里的位置（默认摆法的几何），见 <see cref="CoversLine"/>。只在默认档用。</param>
     /// <param name="bandHeight">轮播带按设计形状的高（<see cref="HomeCarousel.NaturalHeight"/>，不被一屏封住）。只在默认档用。</param>
+    /// <param name="width">轮播宽度；紧凑窗口统一放在下方。0 保留旧调用的常规宽度语义。</param>
     public static bool LibraryOnBanner(
         HomeLibraryPlacement placement,
         double viewport,
         double nextRowLine,
-        double bandHeight)
+        double bandHeight,
+        double width = 0)
     {
         // 量不到视口、或者带子这一拍收着（页面那头先把这两档挡掉了）：没有左下角可压，钉也钉不住。
-        if (viewport <= 0) return false;
+        if (viewport <= 0 || HomeCarousel.IsCompact(width)) return false;
 
         return placement switch
         {

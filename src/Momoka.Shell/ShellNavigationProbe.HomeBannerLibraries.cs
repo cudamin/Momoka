@@ -35,7 +35,7 @@ internal sealed partial class ShellNavigationProbe
         var items = Enumerable.Range(0, 10).Select(index => new EmbyItem
         {
             Id = "banner-movie-" + index,
-            Name = "离线影片 " + (index + 1),
+            Name = index == 0 ? "离线长片名：在异世界相遇的我们与尚未结束的旅程" : "离线影片 " + (index + 1),
             Type = EmbyItemType.Movie,
             ImageTags = new() { ["Primary"] = "poster" },
             BackdropImageTags = ["backdrop"]
@@ -68,13 +68,56 @@ internal sealed partial class ShellNavigationProbe
             var counter = Get<TextBlock>(banner, "SlideCounter");
             var countdown = Get<Border>(banner, "CountdownBar");
 
-            // 连续跨越原有800 DIP显隐界线，不能只量启动时的宽度。
-            foreach (var width in new[] { 1280, 800, 760, 801, 1100 })
+            foreach (var (width, height, expectedBand) in new[] { (2560, 1392, 640), (1132, 1084, 484) })
             {
-                ResizeProbeClient(width, 760);
+                ResizeProbeClient(width, height);
                 await LayoutAsync(home);
+                await UntilAsync(() => Math.Abs(banner.ActualHeight - expectedBand) < 1);
+                Require(banner.ActualHeight <= 640 && Bounds(Get<Grid>(home, "Overlay")).Top < height,
+                    "宽屏横幅过高，后续货架没有进入第一屏");
+                Require(Get<TextBlock>(banner, "TitleText").FontSize == (double)Application.Current.Resources["EgDisplayFontSize"],
+                    "常规窗口标题未恢复原来的显示刻度");
+                readings.Add($"{width}×{height}：横幅高={banner.ActualHeight:0.0}，后续货架顶={Bounds(Get<Grid>(home, "Overlay")).Top:0.0}");
+                await SaveProbeScreenAsync($"home-banner-libraries-{width}-wide-screen.png");
+            }
+
+            // 连续跨越紧凑布局760和读数800 DIP界线，不能只量启动时的宽度。
+            foreach (var width in new[] { 1280, 800, 760, 759, 600, 760, 801, 1100 })
+            {
+                ResizeProbeClient(width, width < 760 ? 560 : 760);
+                await LayoutAsync(home);
+                if (width < 760)
+                {
+                    await UntilAsync(() => !home.ViewModel.LibraryOnBanner && overlay.Visibility == Visibility.Collapsed);
+                    Require(fixture.Settings.Ui.HomeLibraryPlacement == HomeLibraryPlacement.OnCarousel,
+                        "紧凑窗口改写了媒体库位置偏好");
+                    var libraryIndex = home.HomeRows.ToList().FindIndex(row => ReferenceEquals(row, home.ViewModel.LibraryShelf));
+                    Require(libraryIndex >= 0, "紧凑窗口没有把媒体库恢复到普通货架");
+                    var repeater = Get<ItemsRepeater>(home, "ShelfRepeater");
+                    var libraryRow = (FrameworkElement)repeater.GetOrCreateElement(libraryIndex);
+                    await LayoutAsync(libraryRow);
+                    Require(Bounds(libraryRow).Top >= Bounds(banner).Bottom,
+                        "紧凑窗口媒体库仍位于轮播图中");
+                    var info = Get<StackPanel>(banner, "Info");
+                    var title = Get<TextBlock>(banner, "TitleText");
+                    var actions = Get<StackPanel>(banner, "Actions");
+                    Require(Bounds(info).Top >= Bounds(banner).Top + HomePage.ChromeHeight,
+                        "紧凑窗口字幕侵入40 DIP顶栏");
+                    Require(Bounds(actions).Bottom <= Bounds(banner).Bottom + 1
+                        && Bounds(actions).Right <= Bounds(banner).Right + 1,
+                        "紧凑窗口操作超出横幅");
+                    Require(title.FontSize == (double)Application.Current.Resources["EgHeaderFontSize"],
+                        "紧凑窗口标题未使用较小的现有刻度");
+                    Require(title.MaxLines == 1 && status.Visibility == Visibility.Collapsed,
+                        "紧凑窗口没有收紧标题或收起读数");
+                    readings.Add($"{width}/compact：字幕顶={Bounds(info).Top:0.0}，媒体库货架顶={Bounds(libraryRow).Top:0.0}，偏好保留");
+                    await SaveProbeScreenAsync($"home-banner-libraries-{width}-compact-screen.png");
+                    continue;
+                }
                 await UntilAsync(() => overlay.Visibility == Visibility.Visible
                     && Math.Abs(overlay.Margin.Right - (width >= 800 ? 244 : 36)) < 1);
+                Require(fixture.Settings.Ui.HomeLibraryPlacement == HomeLibraryPlacement.OnCarousel,
+                    "恢复宽窗后媒体库偏好改变");
                 var strip = HomeFoldMotion.Find<ShelfStrip>(overlay)
                     ?? throw new InvalidOperationException("轮播上的媒体库横排没有实现");
                 await LayoutAsync(strip);

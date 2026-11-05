@@ -72,6 +72,11 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(width, 760);
                 await LayoutAsync(home);
                 await Task.Delay(450);
+                Require(Math.Abs(rule.Opacity - 0.25) < 0.01, "货架分隔线未使用淡化的透明度");
+                head.OnScrim = true;
+                Require(Math.Abs(rule.Opacity - 0.25) < 0.01, "剧照上的分隔线透明度不一致");
+                head.OnScrim = false;
+                Require(Math.Abs(rule.Opacity - 0.25) < 0.01, "返回普通背景后分隔线未恢复淡化");
                 foreach (var caption in new[] { initialTitle, "离线服务器 · 最近添加 · 纪录片" })
                 {
                     head.Title = caption;

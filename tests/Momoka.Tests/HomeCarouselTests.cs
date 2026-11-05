@@ -230,11 +230,22 @@ internal static class HomeCarouselTests
 
     private static void RegisterHeight()
     {
+        Test("轮播：窄窗紧凑布局只在已量到且小于760时启用", () =>
+        {
+            Assert.True(HomeCarousel.IsCompact(600));
+            Assert.True(HomeCarousel.IsCompact(759));
+            Assert.False(HomeCarousel.IsCompact(760));
+            Assert.False(HomeCarousel.IsCompact(761));
+            Assert.False(HomeCarousel.IsCompact(1132));
+            Assert.False(HomeCarousel.IsCompact(0));
+            Assert.False(HomeCarousel.IsCompact(-1));
+        });
+
         Test("轮播：封面扩展到原快捷入口区域，仍按整幅宽度换算高度", () =>
         {
             Assert.Equal(455d, HomeCarousel.Height(2000, 1064));
             Assert.Equal(470d, HomeCarousel.Height(2000, 1100));
-            Assert.Equal(821d, HomeCarousel.Height(2000, 1920));
+            Assert.Equal(640d, HomeCarousel.Height(2000, 1920));
             Assert.Equal(0.76d, HomeCarousel.BandHeightShare);
             Assert.Equal(HomeCarousel.UnmeasuredHeight, HomeCarousel.Height(800, 0));
             Assert.Equal(HomeCarousel.UnmeasuredHeight, HomeCarousel.Height(800, -100));
@@ -243,9 +254,12 @@ internal static class HomeCarouselTests
             Assert.Equal(HomeCarousel.MinHeight, HomeCarousel.Height(2000, 640));
         });
 
-        Test("轮播：一屏是上限，超出去带子就不再长高", () =>
+        Test("轮播：宽屏最高640，较矮视口仍限制带高", () =>
         {
-            Assert.Equal(800d, HomeCarousel.Height(800, 3111));
+            Assert.Equal(640d, HomeCarousel.Height(800, 3111));
+            Assert.Equal(640d, HomeCarousel.Height(1392, 2560));
+            Assert.Equal(640d, HomeCarousel.NaturalHeight(2560));
+            Assert.Equal(560d, HomeCarousel.Height(560, 2560));
             Assert.Equal(470d, HomeCarousel.Height(700, 1100));
             Assert.Equal(371d, HomeCarousel.Height(371, 1100));
             Assert.Equal(360d, HomeCarousel.Height(360, 1100));
@@ -253,16 +267,19 @@ internal static class HomeCarouselTests
             Assert.Equal(HomeCarousel.MinHeight, HomeCarousel.Height(100, 1100));
         });
 
-        Test("轮播：改变宽度时封面保持同一形状，图片不变形", () =>
+        Test("轮播：达到高度上限之前随宽度换算，之后保持640", () =>
         {
             var shape = HomeCarousel.WindowAspect / HomeCarousel.BandHeightShare;
-            for (var width = 760d; width <= 3600; width += 20)
+            for (var width = 760d; width <= 1480; width += 20)
             {
                 var band = HomeCarousel.Height(2400, width);
                 Assert.Equal(Math.Round(width * HomeCarousel.BandHeightShare / HomeCarousel.WindowAspect), band);
                 Assert.True(Math.Abs(width / band - shape) < 0.01,
                     $"带宽 {width} 时带子的形状是 {width / band:0.000}:1，不是 {shape:0.000}:1");
             }
+
+            Assert.Equal(640d, HomeCarousel.Height(2400, 1500));
+            Assert.Equal(640d, HomeCarousel.Height(2400, 3600));
         });
 
         Test("轮播：开窗那一档的页面正好是 16:9", () =>
