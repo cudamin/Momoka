@@ -782,11 +782,14 @@ public static class DetailHero
     /// <summary>
     /// 「剩余 x 分钟」那一行到剧情说明之间至少留的空 ——「接到 剩余18分钟下面（多留点空位）」（2026-11-02）。
     /// <para>
-    /// 同一天再一句「不要固定间距，以封面下沿为准」之后，它只是兜底：封面画出来时说明的第一行对齐封面的下沿
+    /// 同一天再一句「不要固定间距，以封面下沿为准」之后，它只是兜底：封面画出来时说明的第一行跟随封面的下沿
     /// （见 <see cref="TailPull"/>），只有封面下沿离那一行比这个数还近（或者没有封面）时才用它撑开。
     /// </para>
     /// </summary>
-    public const double OverviewMinGap = 32;
+    public const double OverviewMinGap = 32 + OverviewExtraGap;
+
+    /// <summary>集页剧情说明上方增加的留白；封面下沿与播放进度两种定位都多让 8（2026-11-05 用户令）。</summary>
+    public const double OverviewExtraGap = 8;
 
     /// <summary>
     /// 集页那块板最后给圆角留的收尾高度（尾部那一段最下面一格）。
@@ -805,8 +808,8 @@ public static class DetailHero
     /// <para>
     /// 集页的带高按「封面和片名那一叠取大」给（<see cref="EpisodeHeight"/>）。封面高过那一叠时，多出来的那一截落在
     /// 带子底下、片名那一栏以外的左侧；剧情说明原本接在带子下沿之后，于是它离「剩余 x 分钟」隔着一整截空气
-    /// （2026-11-02 用户圈出来的那块红框）。提的量让剧情说明的第一行落在<em>封面下沿</em>那条线上
-    /// （2026-11-02 同日：「不要固定间距，以封面下沿为准」）；封面下沿离「剩余 x 分钟」比
+    /// （2026-11-02 用户圈出来的那块红框）。提的量让剧情说明的第一行跟随<em>封面下沿</em>
+    /// （2026-11-02 同日：「不要固定间距，以封面下沿为准」，2026-11-05 再往下留 8）；封面下沿离「剩余 x 分钟」比
     /// <paramref name="minGap"/> 还近、或者没有封面时，才退回那一行底下 <paramref name="minGap"/> 处。
     /// 多出来的那一截由尾部负的上边距吃掉，尾部自己的高随之少同样多，纸面／板底跟着内容收
     /// （「自动剪裁下方空位」）。
@@ -839,7 +842,7 @@ public static class DetailHero
         // 说明的第一行（带顶 − 提量 + 尾部与面板的上留白）要落的 y。有封面时以封面下沿为准，只有它比
         // 「那一叠底下 minGap」还高时才退到后者 —— 封面矮过那一叠时第一行本来就在封面下面，不能反过来倒挂。
         var stackBottom = Math.Max(0, heroInsetTop) + stackRoom;
-        var target = Math.Max(stackBottom + minGap, coverBottom > 0 ? coverBottom : 0);
+        var target = Math.Max(stackBottom + minGap, coverBottom > 0 ? coverBottom + OverviewExtraGap : 0);
         var inset = Math.Max(0, tailInsetTop) + Math.Max(0, panelPaddingTop);
 
         return Math.Max(0, heroHeight + inset - target);

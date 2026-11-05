@@ -1320,9 +1320,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <para>
     /// 集页的带高按封面和片名那一叠取大（<see cref="HeroHeight"/>）；封面高过那一叠时，带子底下多出来的那一截全落在
     /// 片名那一栏以外的左侧空气里，而剧情说明原本接在带子下沿之后 —— 它离「剩余 x 分钟」隔着一整截空气
-    /// （2026-11-02 用户圈出来的那块红框）。提的量见 <see cref="DetailHero.TailPull"/>：有封面时说明的第一行对齐
+    /// （2026-11-02 用户圈出来的那块红框）。提的量见 <see cref="DetailHero.TailPull"/>：有封面时说明的第一行跟随
     /// <see cref="CoverBottom"/> 那条线（2026-11-02 同日「不要固定间距，以封面下沿为准」），封面下沿离那一行比
-    /// <see cref="DetailHero.OverviewMinGap"/> 还近、或者没有封面时才退回那一行底下同样的 32 处。提上来的量同时从尾部
+    /// <see cref="DetailHero.OverviewMinGap"/> 还近、或者没有封面时才退回那一行底下的最小间距。2026-11-05 两种定位都再多留 8。提上来的量同时从尾部
     /// 自己的高里扣掉，所以板底（<c>HeroTail</c> 的下沿）跟着内容收 ——「自动剪裁下方空位」。字底下那「一点空位」
     /// 是说明自己的 <see cref="OverviewPanelPadding"/> 那 8 加尾部最后那一格 <see cref="CardTailGapHeight"/> 的 16：
     /// 单靠说明那 8 撑不出板底那两个 16 的圆角，尾巴收成直角就不像这块板了。
@@ -1418,7 +1418,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 用 <see cref="TailPanelPadding"/> 那一份，一个数都不动。
     /// </para>
     /// </summary>
-    public Thickness OverviewPanelPadding => HeroCard ? new(24, 24, 24, 8) : TailPanelPadding;
+    public Thickness OverviewPanelPadding => HeroCard ? new(24, 24 + DetailHero.OverviewExtraGap, 24, 8) : TailPanelPadding;
 
     /// <summary>
     /// 正文纸面那一层的内边距（<c>BodySheet.Padding</c>）—— 紧凑版式上下收一档，左右照旧 28。

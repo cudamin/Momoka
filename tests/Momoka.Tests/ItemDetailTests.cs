@@ -1964,39 +1964,40 @@ internal static class ItemDetailTests
         {
             const double insetTop = 28d;   // 集页带子的上留白
             const double tailTop = 12d;    // 尾部那一段自己的上留白
-            const double panelTop = 24d;   // 剧情说明那一块的上内边距
+            const double panelTop = 32d;   // 剧情说明上方再增加 8
             const double coverBottom = 403d; // 封面 375 加带子上留 28：封面下沿正好是带子下沿
 
-            // 带高 403、字键那一叠实量 335（下沿 363）：说明的第一行落在封面下沿 403，离那一叠 40，
-            // 不再是一个固定数。提量 403 + 36 − 403 = 36。
+            // 带高 403、字键那一叠实量 335（下沿 363）：说明的第一行落在封面下沿再加 8 的 411，离那一叠 48，
+            // 不再是一个固定数。提量 403 + 44 − 411 = 36。
             Assert.Equal(36d, DetailHero.TailPull(
                 403, insetTop, 335, tailTop, panelTop, DetailHero.OverviewMinGap, coverBottom));
-            Assert.Equal(coverBottom, 403d - 36d + tailTop + panelTop);
-            Assert.Equal(coverBottom - (insetTop + 335), 403d - 36d + tailTop + panelTop - (insetTop + 335));
+            Assert.Equal(coverBottom + 8, 403d - 36d + tailTop + panelTop);
+            Assert.Equal(coverBottom + 8 - (insetTop + 335), 403d - 36d + tailTop + panelTop - (insetTop + 335));
 
-            // 那一叠更矮时（300）第一行仍旧落在封面下沿 403，间距自己变成 75 —— 这就是「以封面下沿为准」
-            // 与固定 32 的区别。
+            // 那一叠更矮时（300）第一行落在封面下沿再加 8 的 411，间距自己变成 83 —— 这就是「以封面下沿为准」
+            // 与固定 40 的区别。
             Assert.Equal(36d, DetailHero.TailPull(
                 403, insetTop, 300, tailTop, panelTop, DetailHero.OverviewMinGap, coverBottom));
-            Assert.Equal(coverBottom, 403d - 36d + tailTop + panelTop);
+            Assert.Equal(coverBottom + 8, 403d - 36d + tailTop + panelTop);
 
-            // 同样那一叠、没有封面可画时退回 OverviewMinGap：说明落在 328 + 32 = 360，提 79。
+            // 同样那一叠、没有封面可画时退回 OverviewMinGap：说明落在 328 + 40 = 368，提 79。
             Assert.Equal(79d, DetailHero.TailPull(
                 403, insetTop, 300, tailTop, panelTop, DetailHero.OverviewMinGap, 0));
+            Assert.Equal(40d, DetailHero.OverviewMinGap);
             Assert.Equal(insetTop + 300 + DetailHero.OverviewMinGap, 403d - 79d + tailTop + panelTop);
 
-            // 封面下沿比那一叠只低一点（370 对 378）时也退回 OverviewMinGap：第一行落在 410，仍在封面下面。
+            // 封面下沿比那一叠只低一点（370 对 378）时也退回 OverviewMinGap：第一行落在 418，仍在封面下面。
             Assert.Equal(29d, DetailHero.TailPull(
                 403, insetTop, 350, tailTop, panelTop, DetailHero.OverviewMinGap, 370));
             Assert.Equal(insetTop + 350 + DetailHero.OverviewMinGap, 403d - 29d + tailTop + panelTop);
             Assert.True(403d - 29d + tailTop + panelTop > 370d);
 
-            // 那一叠长过封面时带子正好就是那一叠（没有多出来的那一截）：说明落在那一叠底下 32（提 4），
+            // 那一叠长过封面时带子正好就是那一叠（没有多出来的那一截）：说明落在那一叠底下 40（提 4），
             // 不是被带子底下的空气推下去。
             Assert.Equal(4d, DetailHero.TailPull(
                 380, insetTop, 352, tailTop, panelTop, DetailHero.OverviewMinGap, 0));
 
-            // 带子多出来的那一截只剩 27 时（带高 400、那一叠 345），提量跟着收：27 + 36 − 32 = 31。
+            // 带子多出来的那一截只剩 27 时（带高 400、那一叠 345），提量跟着收：27 + 44 − 40 = 31。
             Assert.Equal(31d, DetailHero.TailPull(
                 400, insetTop, 345, tailTop, panelTop, DetailHero.OverviewMinGap, 0));
 
