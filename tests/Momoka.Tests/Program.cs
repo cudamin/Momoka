@@ -165,6 +165,12 @@ internal static class Program
             SvpRuntimeTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["playback-review-fixture"])
+        {
+            PlaybackTests.Register();
+            SubtitleBehaviorTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["audio-output-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
