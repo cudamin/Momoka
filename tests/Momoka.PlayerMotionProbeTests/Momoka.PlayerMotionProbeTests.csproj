@@ -14,6 +14,8 @@
         <ParameterGroup>
             <Source ParameterType="System.String" Required="true" />
             <SourceHash ParameterType="System.String" Required="true" />
+            <OverlaySource ParameterType="System.String" Required="true" />
+            <OverlayHash ParameterType="System.String" Required="true" />
             <Output ParameterType="System.String" Required="true" />
         </ParameterGroup>
         <Task>
@@ -34,6 +36,10 @@
                 };
                 var stage = between("            Write(\"阶段：加载页直接进入全屏再退出\");",
                     "            Write(\"阶段：自动全屏起播，首帧与窗口交接同时到达\");");
+                var stageSource = source;
+                source = File.ReadAllText(OverlaySource).Replace("\r\n", "\n");
+                var overlay = between("    private sealed record StopOverlaySample", "    private static async Task RunScoped");
+                source = stageSource;
                 var assertions = between("        void Write(string message)",
                     "        /// <summary>\n        /// 保留态那一帧摆到哪儿");
                 var sourcePath = Path.GetFullPath(Source).Replace("\"", "\"\"");
@@ -42,9 +48,12 @@
                 var generated = "// Verbatim current probe caller/assertions; no WinUI/native/network execution.\n#nullable enable\n" +
                     "using System.Diagnostics;\nusing Momoka.Diagnostics;\nusing Momoka.Shell.Interop;\n" +
                     "using Momoka.Shell.Views;\nusing Momoka.Shell.Windowing;\nnamespace Momoka.Shell;\n" +
-                    "internal static class PlayerMotionProbe\n{\n" +
+                    "internal static class PlayerMotionProbe\n{\n" + overlay +
+                    "    internal static Task ObserveForFixture(Func<Task> stop, NativeRect expected, Action<string> write, CancellationToken token) => ObserveStopHandoffAsync(stop, expected, write, token);\n" +
                     "    internal const string SourcePath = @\"" + sourcePath + "\";\n" +
                     "    internal const string SourceHash = \"" + SourceHash + "\";\n" +
+                    "    internal const string OverlaySourcePath = @\"" + Path.GetFullPath(OverlaySource).Replace("\"", "\"\"") + "\";\n" +
+                    "    internal const string OverlaySourceHash = \"" + OverlayHash + "\";\n" +
                     "    internal static async Task RunFullscreenStageAsync(PlayerPage page, HostWindow window,\n" +
                     "        ProbeTimer layoutSample, NativeRect browse, TextWriter report, CancellationToken token)\n    {\n" +
                     "        NativeRect restored;\n        _ = (Func<Func<bool>, string, Task>)Until;\n" + stage + assertions + "    }\n}\n";
@@ -58,7 +67,12 @@
         <GetFileHash Files="$(MotionProbeSource)" Algorithm="SHA256">
             <Output TaskParameter="Items" ItemName="MotionProbeSourceHash" />
         </GetFileHash>
+        <GetFileHash Files="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\PlayerMotionProbe.cs" Algorithm="SHA256">
+            <Output TaskParameter="Items" ItemName="MotionOverlaySourceHash" />
+        </GetFileHash>
         <ExtractPlayerMotionProbeStage Source="$(MotionProbeSource)"
+            OverlaySource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\PlayerMotionProbe.cs"
+            OverlayHash="@(MotionOverlaySourceHash->'%(FileHash)')"
             SourceHash="@(MotionProbeSourceHash->'%(FileHash)')"
             Output="$(IntermediateOutputPath)PlayerMotionProbeStage.g.cs" />
         <ItemGroup>

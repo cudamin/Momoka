@@ -12,6 +12,14 @@ internal static class ShaderTransactionTests
 {
     public static void Register()
     {
+        Test("R8 自定义配置的实际普通画质基线跨切链和关闭保留", () => CustomConfigBaseline().GetAwaiter().GetResult());
+        Test("R8 自定义配置缺恢复快照拒绝切链且不写任何属性", () =>
+        {
+            using var f = new Fixture();
+            f.Handle.UsesCustomConfig = true;
+            Assert.False(f.Service.SetShaderGroupAsync(null).GetAwaiter().GetResult());
+            Assert.Equal(0, f.Handle.Commands.Count);
+        });
         Test("着色器事务：缺失目标文件时不得关闭旧处理或报告成功", () => MissingFile().GetAwaiter().GetResult());
         Test("着色器事务：回滚失败时明确标记状态未知，重新应用可恢复", () => FailedRollback().GetAwaiter().GetResult());
         Test("着色器事务：中途拒绝恢复旧链与全部前置参数", () => Rejected(false).GetAwaiter().GetResult());
@@ -24,6 +32,20 @@ internal static class ShaderTransactionTests
         Test("着色器事务：同片同时切链必须串行，最终保持完整一套", () => Serial().GetAwaiter().GetResult());
         Test("着色器事务：读取默认值时换片，停止剩余读写", () => ChangedFilm().GetAwaiter().GetResult());
         Test("着色器事务：失败回滚不能写进同句柄的新代次", () => RollbackGeneration().GetAwaiter().GetResult());
+    }
+
+    private static async Task CustomConfigBaseline()
+    {
+        using var f = new Fixture();
+        f.Handle.UsesCustomConfig = true;
+        f.Handle.Values["deband"] = "no";
+        f.Handle.ShaderRestoreOptions = new Dictionary<string, string>(f.Handle.Values);
+        Field(f.Service, "_launchOptions", new KeyValuePair<string, string>[] { new("deband", "yes") });
+        Assert.True(await f.Service.SetShaderGroupAsync(null));
+        Assert.Equal("no", f.Handle.Values["deband"]);
+        Assert.True(await f.Service.SetShaderGroupAsync(ShaderGroupCatalog.For(GpuTier.Low)[1]));
+        Assert.True(await f.Service.SetShaderGroupAsync(null));
+        Assert.Equal("no", f.Handle.Values["deband"]);
     }
 
     private static async Task MissingFile()
@@ -219,6 +241,8 @@ internal static class ShaderTransactionTests
         internal string? Missing;
         internal Func<int, Task>? BeforeCommand;
         internal Func<string, Task>? BeforeRead;
+        public bool UsesCustomConfig { get; set; }
+        public IReadOnlyDictionary<string, string>? ShaderRestoreOptions { get; set; }
         public bool HasControlChannel => true;
         public bool IsPaused => true;
         public PlayerStatus Status => new();

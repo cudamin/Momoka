@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json.Nodes;
 
 namespace Momoka.Emby;
@@ -22,7 +23,7 @@ namespace Momoka.Emby;
 /// </summary>
 public sealed record ItemMetadataEdit
 {
-    /// <summary>What a list field is joined with when read, and every character it may be split on.</summary>
+    /// <summary>Displayed between list entries; delimiters inside double-quoted entries remain content.</summary>
     private const string ListJoin = "、";
 
     private static readonly char[] ListSplit = [',', '，', '、', ';', '；'];
@@ -108,6 +109,7 @@ public sealed record ItemMetadataEdit
             if (Index(ParentIndexNumber) is null && ParentIndexNumber.Trim().Length > 0) return "季号要填非负整数";
             if (Moment(PremiereDate) is null && PremiereDate.Trim().Length > 0)
                 return "发行日期要填成 2024-05-01 这样的年-月-日";
+            if (Split(Genres) is null || Split(Tags) is null) return "类型或标签的双引号未闭合";
             return null;
         }
     }
@@ -140,8 +142,8 @@ public sealed record ItemMetadataEdit
         changed |= SetNumber(item, "ParentIndexNumber", Index(ParentIndexNumber));
 
         changed |= SetDate(item, "PremiereDate", Moment(PremiereDate));
-        changed |= SetList(item, "Genres", Split(Genres));
-        changed |= SetList(item, "Tags", Split(Tags));
+        changed |= SetList(item, "Genres", Genres);
+        changed |= SetList(item, "Tags", Tags);
 
         return changed;
     }
@@ -162,8 +164,11 @@ public sealed record ItemMetadataEdit
         Parse(item[key]) is { } moment ? moment.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : "";
 
     private static string List(JsonObject item, string key) => item[key] is JsonArray array
-        ? string.Join(ListJoin, array.Select(entry => entry?.ToString() ?? "").Where(entry => entry.Length > 0))
+        ? string.Join(ListJoin, array.Select(entry => entry?.ToString() ?? "").Where(entry => entry.Length > 0).Select(QuoteListValue))
         : "";
+
+    private static string QuoteListValue(string value) => value.IndexOfAny(ListSplit) >= 0 || value.Contains('"')
+        ? "\"" + value.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"" : value;
 
     private static DateTimeOffset? Parse(JsonNode? node) =>
         node is JsonValue value
@@ -221,15 +226,31 @@ public sealed record ItemMetadataEdit
     /// Splits a list field. Duplicates are dropped rather than sent: Emby keeps them, and a genre listed
     /// twice is the kind of thing an editor should not be able to produce by accident.
     /// </summary>
-    private static List<string> Split(string text)
+    private static List<string>? Split(string text)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new List<string>();
-
-        foreach (var part in text.Split(ListSplit, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            if (seen.Add(part))
-                result.Add(part);
-
+        var part = new StringBuilder();
+        var quoted = false;
+        void Add()
+        {
+            var value = part.ToString().Trim();
+            if (value.Length > 0 && seen.Add(value)) result.Add(value);
+            part.Clear();
+        }
+        for (var index = 0; index < text.Length; index++)
+        {
+            var ch = text[index];
+            if (ch == '"')
+            {
+                if (quoted && index + 1 < text.Length && text[index + 1] == '"') { part.Append('"'); index++; }
+                else quoted = !quoted;
+            }
+            else if (!quoted && ListSplit.Contains(ch)) Add();
+            else part.Append(ch);
+        }
+        if (quoted) return null;
+        Add();
         return result;
     }
 
@@ -264,9 +285,11 @@ public sealed record ItemMetadataEdit
         return Set(item, key, JsonValue.Create(text));
     }
 
-    private static bool SetList(JsonObject item, string key, List<string> values)
+    private static bool SetList(JsonObject item, string key, string text)
     {
-        if (List(item, key) == string.Join(ListJoin, values)) return false;
+        if (List(item, key) == text) return false;
+        var values = Split(text)!;
+        if (List(item, key) == string.Join(ListJoin, values.Select(QuoteListValue))) return false;
 
         item[key] = new JsonArray(values.Select(value => (JsonNode?)JsonValue.Create(value)).ToArray());
         return true;

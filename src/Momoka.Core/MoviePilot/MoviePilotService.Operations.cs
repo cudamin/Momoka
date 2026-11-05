@@ -67,7 +67,7 @@ public sealed partial class MoviePilotService
         }
         catch (Exception error)
         {
-            var rejected = error is MoviePilotException
+            var rejected = error is MoviePilotDownloadConfirmationRequiredException || error is MoviePilotException
             {
                 Status: System.Net.HttpStatusCode.BadRequest or
                     System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden or

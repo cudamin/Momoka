@@ -96,6 +96,7 @@ public sealed partial class DetailPage : Page, IShellContent
         TextInk.Attach(DetailDirectorsInk, DetailDirectorsText);
         PrepareAppearance();
         PaintScrim();
+        BackdropThemeSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => PaintBackdropFade());
         MeasureSeriesShelf();
         PrepareShowcase();
         PrepareCardLayout();
@@ -145,21 +146,14 @@ public sealed partial class DetailPage : Page, IShellContent
     private void OnThemeChanged(UiTheme theme)
     {
         RefreshShowcaseBrushes();
+        PaintBackdropFade();
         MeasureSeriesShelf();
         foreach (var brushes in _controlBackgrounds) brushes.Apply(ViewModel.ControlBackgroundOpacity, ViewModel.UseAcrylicControls);
         PaintWash(force: true);
     }
 
     /// <summary>
-    /// 无图版式保留 Core 表里的渐变；有图版式让整个头部与尾部共用该表末档的半透明黑底。
-    /// <para>
-    /// 在构造里画而不是在 <c>Loaded</c> 里：这一页的实例会被复用，而这些数一辈子不变，画一次就够；上树之后才画
-    /// 的话第一帧是一格没有罩子的亮画面，压在上面的白字那一帧读不出来。
-    /// </para>
-    /// <para>
-    /// 不跟主题走，所以也不挂 <see cref="ThemeHost.Changed"/>：这道罩子压的是一张剧照，剧照不会因为用户挑了
-    /// 浅色主题就变亮（同 <see cref="DetailHero.ScrimInk"/> 上那一段）。
-    /// </para>
+    /// 无图版式保留原渐变；普通三类详情把阅读遮罩放在固定背景，沉浸沿用滚动区的共享洗色。
     /// </summary>
     private void PaintScrim()
     {
@@ -181,11 +175,12 @@ public sealed partial class DetailPage : Page, IShellContent
         // 而且它会把板涂回罩子的末色 —— 板上那几块小面板的底边就对不上了。
         HeroTail.Background = ViewModel.HeroCardShown
             ? null
-            : new SolidColorBrush(ViewModel.GaussianBackdropApplied && ViewModel.BackdropShown
+            : new SolidColorBrush(UsesBackdropFade || ViewModel.GaussianBackdropApplied && ViewModel.BackdropShown
                 ? Color.FromArgb(0, ink.R, ink.G, ink.B) : HeroScrimBrush.GradientStops[^1].Color);
 
-        // 剧、季、电影的图上从标题栏到说明区只压同一档黑；旧 HeroScrim 在有图时收起，避免叠加。
+        // 普通三页透明：下层已经完成遮罩与主题收边，避免末端被二次压黑。
         HeroBand.Background = ViewModel.BackdropShown ? HeroTail.Background : null;
+        PaintBackdropFade();
     }
 
     internal DetailViewModel ViewModel { get; }
@@ -842,8 +837,8 @@ public sealed partial class DetailPage : Page, IShellContent
         // 「正好在画面下沿封顶」的那一档会差出半个像素 —— 页宽 × 高宽比一路带着小数，每一张有剧照的页面都
         // 可能踩中。画面的下沿在内容坐标里是盒高减标题栏那一截（DetailViewModel.TailMinHeight），别拿盒高原样去比。
         var pictureBottom = ViewModel.PictureHeight - ViewModel.HeaderLift;
-        var byLine = Math.Abs(ViewModel.TailMinHeight - Math.Round(ViewModel.PaperLine - ViewModel.HeroHeight)) < 0.5;
-        var byPicture = Math.Abs(ViewModel.TailMinHeight - Math.Round(pictureBottom - ViewModel.HeroHeight)) < 0.5;
+        var byLine = Math.Abs(ViewModel.TailMinHeight - Math.Round(Math.Max(0, ViewModel.PaperLine - ViewModel.HeroHeight))) < 0.5;
+        var byPicture = Math.Abs(ViewModel.TailMinHeight - Math.Round(Math.Max(0, pictureBottom - ViewModel.HeroHeight))) < 0.5;
         var capped = byLine || byPicture;
         var beyond = paperTop >= Body.ActualHeight - 0.5;
         // 沉浸档不撑尾部（DetailHero.TailHeight 那一档返回 0），纸面本来就从内容处开始，不该按
@@ -852,7 +847,9 @@ public sealed partial class DetailPage : Page, IShellContent
         var joined = ViewModel.HeroCardShown
             ? HeroTail.Background is null or SolidColorBrush { Color.A: 0 }
             : HeroTail.Background is SolidColorBrush { Color: var tailColor }
-                && tailColor == HeroScrimBrush.GradientStops[^1].Color;
+                && tailColor == (UsesBackdropFade || ViewModel.GaussianBackdropApplied
+                    ? Color.FromArgb(0, DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B)
+                    : HeroScrimBrush.GradientStops[^1].Color);
         // 音轨那一行和剧情说明都不带框 ——「移除音频和剧情说明那两个栏的框」（2026-09-12）。它们站在那块大板上，
         // 板本身就是一层，再给每一块描一圈发丝线就成了一层套一层；只剩集带那一圈（「剧页面那种样式」）。
         var bare = !Rings(PickerSet.Panel) && !Rings(OverviewPanel);
@@ -1235,13 +1232,14 @@ public sealed partial class DetailPage : Page, IShellContent
     private (bool Ok, string How) ScrimPaint()
     {
         var ink = DetailHero.ScrimInk;
-        var expected = Color.FromArgb(DetailHero.ScrimStops[^1].Alpha, ink.R, ink.G, ink.B);
+        var expected = Color.FromArgb(UsesBackdropFade || ViewModel.GaussianBackdropApplied
+            ? (byte)0 : DetailHero.ScrimStops[^1].Alpha, ink.R, ink.G, ink.B);
         var same = HeroTail.Background is SolidColorBrush { Color: var color } && color == expected
             && ReferenceEquals(TitleWash.Background, HeroTail.Background)
             && ReferenceEquals(HeroBand.Background, HeroTail.Background)
             && HeroBand.ActualHeight > 0 && HeroBand.ActualWidth > 0
             && HeroScrim.Visibility == Visibility.Collapsed;
-        return (same, same ? $"标题栏、片名与尾部共用 {Hex(expected)}，无叠加渐变" : "图上三段未接成同一层黑底");
+        return (same, same ? $"标题栏、片名与尾部共用 {Hex(expected)}，固定背景收边={UsesBackdropFade}" : "图上三段未接成同一层洗色");
     }
 
     /// <summary>核对正文纸面上沿在标题栏里的真实位置，以及硬边两侧的颜色。</summary>

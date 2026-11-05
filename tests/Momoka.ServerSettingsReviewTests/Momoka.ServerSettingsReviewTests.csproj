@@ -1,0 +1,81 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Momoka.Tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
+    <Compile Include="../../src/Momoka.Shell/Views/NotificationEditDialog.xaml.cs" Link="Production/NotificationEditDialog.cs" />
+    <Compile Include="../../src/Momoka.Shell/Views/MetadataDialog.xaml.cs" Link="Production/MetadataDialog.cs" />
+  </ItemGroup>
+  <UsingTask TaskName="ExtractServerConnectionTest" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var text = File.ReadAllText(Source).Replace("\r\n", "\n");
+        const string marker = "    private async Task TestAsync(ServerRow? row)";
+        var start = text.IndexOf(marker, StringComparison.Ordinal);
+        var finish = text.IndexOf("    /// <summary>没有保存账号的服务器仍可直接打开登录页。</summary>", start, StringComparison.Ordinal);
+        if (start < 0 || finish <= start || text.IndexOf(marker, start + marker.Length, StringComparison.Ordinal) >= 0)
+            throw new InvalidOperationException("Server test production member is missing or ambiguous");
+        File.WriteAllText(Output, "#nullable enable\nusing Momoka.Emby;\nusing Momoka.Diagnostics;\nnamespace Momoka.Shell.ViewModels;\ninternal sealed partial class ServersViewModel\n{\n" + text.Substring(start, finish - start) + "}\n");
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="ExtractProductionServerTest" BeforeTargets="CoreCompile">
+    <ExtractServerConnectionTest Source="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ViewModels/ServersViewModel.cs"
+                                 Output="$(IntermediateOutputPath)ServerConnection.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)ServerConnection.g.cs" /></ItemGroup>
+  </Target>
+  <UsingTask TaskName="ExtractMetadataCommand" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup><Source ParameterType="System.String" Required="true" /><Output ParameterType="System.String" Required="true" /></ParameterGroup>
+    <Task><Using Namespace="System" /><Using Namespace="System.IO" /><Code Type="Fragment" Language="cs"><![CDATA[
+      var text = File.ReadAllText(Source).Replace("\r\n", "\n");
+      var start = text.IndexOf("    private static Task EditAsync(", StringComparison.Ordinal);
+      var end = text.IndexOf("    /// <summary>\n    /// 添加到合集", start, StringComparison.Ordinal);
+      if (start < 0 || end <= start || text.IndexOf("    private static Task EditAsync(", start + 1, StringComparison.Ordinal) >= 0) throw new InvalidOperationException("Metadata command boundaries changed");
+      var guard = text.IndexOf("    private static async Task GuardAsync(", StringComparison.Ordinal);
+      var helpersEnd = text.IndexOf("    /// <summary>\n    /// 取一段字节", guard, StringComparison.Ordinal);
+      if (guard < 0 || helpersEnd <= guard) throw new InvalidOperationException("Metadata IO helpers changed");
+      File.WriteAllText(Output, "#nullable enable\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Momoka.Emby;\nusing Momoka.Diagnostics;\nusing Momoka.Infrastructure;\nnamespace Momoka.Shell.Views;\ninternal static partial class ItemCommands\n{\n" + text.Substring(guard, helpersEnd-guard) + text.Substring(start, end-start) + "}\n");
+    ]]></Code></Task>
+  </UsingTask>
+  <Target Name="ExtractProductionMetadataCommand" BeforeTargets="CoreCompile">
+    <ExtractMetadataCommand Source="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/Views/ItemCommands.Server.cs" Output="$(IntermediateOutputPath)MetadataCommand.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)MetadataCommand.g.cs" /></ItemGroup>
+  </Target>
+  <UsingTask TaskName="ExtractNotificationContext" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var text = File.ReadAllText(Source).Replace("\r\n", "\n");
+        var start = text.IndexOf("    private static async Task<List<T>", StringComparison.Ordinal);
+        var finish = text.IndexOf("\n}\n", start, StringComparison.Ordinal);
+        var record = text.IndexOf("public sealed record NotificationEditorContext(", StringComparison.Ordinal);
+        if (start < 0 || finish <= start || record <= finish) throw new InvalidOperationException("Notification source boundaries changed");
+        File.WriteAllText(Output, "#nullable enable\nusing Momoka.Emby;\nusing Momoka.Diagnostics;\nnamespace Momoka.Shell.ViewModels;\n" + text.Substring(record) +
+            "\ninternal static class NotificationFetch\n{\nprivate const string Category = \"notification\";\n" + text.Substring(start, finish-start) +
+            "\ninternal static async Task<IReadOnlyList<T>?> Fetch<T>(Func<CancellationToken, Task<List<T>>> read) => await TryAsync(read, \"fixture\", default);\n}\n");
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="ExtractProductionNotificationContext" BeforeTargets="CoreCompile">
+    <ExtractNotificationContext Source="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ViewModels/NotificationsViewModel.cs"
+                                Output="$(IntermediateOutputPath)NotificationContext.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)NotificationContext.g.cs" /></ItemGroup>
+  </Target>
+</Project>

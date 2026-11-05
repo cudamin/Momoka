@@ -73,9 +73,9 @@ public sealed partial class SettingsViewModel
             Mpv("色彩范围", MpvOutputOptions.OutputLevels, () => video.OutputLevels, value => video.OutputLevels = value,
                 "video-output-levels", "与显示设备的输入范围保持一致。电脑显示器通常选全范围；范围不匹配会造成灰黑或暗部细节丢失。"),
             Mpv("反交错", MpvOutputOptions.DeinterlaceModes, () => video.DeinterlaceMode, value => video.DeinterlaceMode = value,
-                "deinterlace", "用于消除隔行视频运动边缘的梳齿。老电视片源可选自动；普通逐行视频保持关闭。"),
-            sync
+                "deinterlace", "用于消除隔行视频运动边缘的梳齿。老电视片源可选自动；普通逐行视频保持关闭。")
         ]);
+        if (svp || frames.Mode != FrameInterpolationMode.Smooth) rows.Add(sync);
         if (svp)
         {
             rows.Add(Fact("插值", "本次补帧交给 SVP；相邻帧混合关闭，保存的插值偏好保留。", "关闭（SVP）"));

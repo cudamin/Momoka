@@ -81,6 +81,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("剧页单季不画全部剧季、其他信息卡与集页一致", DetailSeriesInfoAsync, 30, section: ShellProbeSections.Library);
             await CaseAsync("详情自定义设置：卡片排序、隐藏、拖拽提交与重入", DetailCustomizationSettingsAsync, 90, section: ShellProbeSections.Settings);
             await CaseAsync("详情自定义页面：实际顺序、隐藏恢复、不透明度与固定沉浸", DetailCustomizationPagesAsync, 120, section: ShellProbeSections.Library);
+            await CaseAsync("详情背景主题渐变、沉浸收起与主页底边", BackdropFadeAsync, 120, section: ShellProbeSections.Library);
             // 集页封面只在宽版式里画（紧凑版式整个收掉），加上集页紧凑版式的那张背景图、以及尾部那条窄带在
             // 两档上的紧凑度：四档宽度各量一遍，截图 `detail-episode-band-<宽度>.png`。
             await CaseAsync("集页封面与窄窗背景图和尾部间距", EpisodeBandAsync, 30);
@@ -94,6 +95,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("Emby 元数据表单字段、锁定和宽窄布局", MetadataLayoutAsync, 75, section: ShellProbeSections.Metadata);
             await CaseAsync("Emby 元数据列表编辑、重排和取消", MetadataListsAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("Emby 元数据保存失败、取消和重试", MetadataSaveAsync, 45, section: ShellProbeSections.Metadata);
+            await CaseAsync("Jellyfin 元数据草稿、标签与宽窄保存（匿名UIA）", ReviewMetadataEditorAsync, 60, section: ShellProbeSections.Metadata);
+            await CaseAsync("通知事件、失败名单与宽窄保存（匿名UIA）", ReviewNotificationEditorAsync, 60, section: ShellProbeSections.Metadata);
             await CaseAsync("媒体库弹窗五主题圆角和侧栏底色，MP保持原样", LibraryDialogChromeAsync, 120, section: ShellProbeSections.Metadata);
             // 2026-10-29 用户令：所有弹窗点外面就关，字幕管理右上角一颗 ✕、右下角那颗去掉。真模板真弹窗，
             // 遮罩那一层只能验到「找得到、铺满、不在弹窗树里」；真实按下那一米归 UIA 鼠标回归（见 DialogDismissAsync 头上那段）。
@@ -195,6 +198,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("新增快捷键命令、失败回执与队列隔离", PlayerAdditionalShortcutsAsync, 30, section: ShellProbeSections.Shortcuts);
             await CaseAsync("弹弹play 设置、凭据、显隐、快捷键与关于（宽窗）", () => SettingsDanmakuAsync(1100), 60, section: ShellProbeSections.Settings);
             await CaseAsync("弹弹play 设置、凭据、显隐、快捷键与关于（窄窗）", () => SettingsDanmakuAsync(760), 60, section: ShellProbeSections.Settings);
+            await CaseAsync("审查修复设置显隐与偏好恢复（宽窗）", () => ReviewSettingsAvailabilityAsync(1100), 60, section: ShellProbeSections.Settings);
+            await CaseAsync("审查修复设置显隐与偏好恢复（窄窗）", () => ReviewSettingsAvailabilityAsync(760), 60, section: ShellProbeSections.Settings);
             await CaseAsync("弹幕输入栏、发送回执与截断搜索", DanmakuSendAsync, 60, section: ShellProbeSections.Playback);
             await CaseAsync("播放弹幕面板与过期交互（宽窗）", () => DanmakuPanelAsync(1100), 30, section: ShellProbeSections.Playback);
             await CaseAsync("播放弹幕面板与过期交互（窄窗）", () => DanmakuPanelAsync(360), 30, section: ShellProbeSections.Playback);

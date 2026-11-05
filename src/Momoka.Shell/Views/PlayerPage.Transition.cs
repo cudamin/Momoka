@@ -519,7 +519,7 @@ public sealed partial class PlayerPage
         bool Current() => generation == _presentationGeneration && _window == window
             && window.Handle == handle && Attached && ViewModel.IsCurrentInteraction(context);
 
-        // ① 先抓一帧，铺成一块**不随窗口变形**的整屏覆盖层（2026-09-25 用户令「退出播放窗口化的一瞬间会有
+        // ① 先抓一帧，铺成一块**不随窗口变形**的原客户区覆盖层（2026-09-25 用户令「退出播放窗口化的一瞬间会有
         //    视频的残留画面，不能直接切回主页吗」）。从前这一趟是让画面跟着窗口一起缩、缩完再逐拍溶解 ——
         //    全屏视频缩进小窗的那一截就是用户说的「残留画面」。覆盖层由 DWM 直接合成、定位在屏幕上，
         //    窗口怎么缩它都不动，于是「窗口化」这件事发生在一张静止的画底下，谁也看不见。
@@ -531,12 +531,13 @@ public sealed partial class PlayerPage
             {
                 try
                 {
+                    var handoffBounds = VideoFrameOverlay.ClientRect(handle);
                     var frame = await _videoTarget.CaptureFrameAsync().WaitAsync(TimeSpan.FromMilliseconds(750));
                     if (!Current() || !_onStage) return;
                     if (frame is not null)
                     {
                         handoff = new VideoFrameOverlay(handle, frame);
-                        handoff.Show(VideoFrameOverlay.FullscreenRect(handle), topmost: true);
+                        handoff.Show(handoffBounds, topmost: true);
                         VideoFrameOverlay.Flush();
                     }
                 }

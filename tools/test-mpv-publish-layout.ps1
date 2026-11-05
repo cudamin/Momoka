@@ -42,6 +42,15 @@ function Snapshot([string]$Root) {
     })-join "`n")
 }
 Check 'complete fixed-source synthetic payload' $true
+foreach ($required in @('Momoka.dll', 'Momoka.Core.dll', 'Microsoft.WindowsAppRuntime.Bootstrap.dll')) {
+    Mutate ("missing required assembly $required") (Get-ChildPath $fixture.publish $required) { param($path) Remove-Item -LiteralPath $path } '发布缺少'
+}
+$mainAssembly=Get-ChildPath $fixture.publish 'Momoka.dll'
+$mainBytes=[IO.File]::ReadAllBytes($mainAssembly)
+try {
+    Remove-Item -LiteralPath $mainAssembly
+    Check 'self-contained missing main assembly' $false '发布缺少' -SelfContained
+} finally { [IO.File]::WriteAllBytes($mainAssembly,$mainBytes) }
 $solutionPath=Get-ChildPath $fixture.repository 'Momoka.sln'
 $solutionCases=@(
     @{name='appearance test project is not the retired shell';success=$true;text='Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.AppearanceOpacityTests", "tests\Momoka.AppearanceOpacityTests\Momoka.AppearanceOpacityTests.csproj", "{4ADF4F81-60D3-4C38-8AC1-0559986C0215}"'},

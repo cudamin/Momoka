@@ -33,6 +33,9 @@ internal sealed partial class DetailViewModel : PageViewModel
     private EpisodeShelfBoundary? EpisodeShelf => null;
     private EmbySessionScope? _scope;
     private EmbyItem? _seed;
+    private readonly RemovedMedia _removed = new();
+    internal bool FixtureDeleted { get; private set; }
+    internal void FixtureRemove(EmbyItem item) => _removed.Remember(item);
     private FixtureSettings? _settings;
     private long _lifetime;
     private readonly CancellationTokenSource? _versionLoad = null;
@@ -57,6 +60,13 @@ internal sealed partial class DetailViewModel : PageViewModel
 
     // Rendering/other media-type loads are outside this movie-only contract and cannot send requests.
     private void Preview(EmbyItem seed) { }
+    // The real LoadAsync chooses this terminal presentation boundary before issuing any GET.
+    private void ClearDeletedSubject()
+    {
+        Cancel();
+        _seed = Applied = PlayTarget = null;
+        FixtureDeleted = true;
+    }
     private void Apply(EmbyItem item)
     {
         Applied = item;

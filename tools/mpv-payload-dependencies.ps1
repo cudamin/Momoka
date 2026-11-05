@@ -170,6 +170,7 @@ function Assert-TrustedDependencies([string]$Repository, [string]$Publish, $Proj
         } finally { $zip.Dispose() }
         Add-Dependency ([IO.Path]::GetFileName($Relative)) $source $AssetKey
     }
+    $requiredSelectedAssets=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     # 可信构建 selected deps 的每个资产还须由 selected restore 包/项目输出解释，不能信任任意同名 DLL。
     foreach ($library in $trustedDeps.targets.$active.PSObject.Properties) {
         $selectedLibrary=$selected.($library.Name)
@@ -178,6 +179,7 @@ function Assert-TrustedDependencies([string]$Repository, [string]$Publish, $Proj
                 if ($kind -eq 'runtimeTargets' -and $asset.Value.rid -cne $rid) { continue }
                 $key=$library.Name+'|'+$kind+'|'+$asset.Name
                 $name=[IO.Path]::GetFileName($asset.Name)
+                $null=$requiredSelectedAssets.Add($name)
                 if ($selectedLibrary.type -ceq 'package') {
                     if (-not $selectedLibrary.$kind.PSObject.Properties[$asset.Name]) { Fail-Payload "构建资产不属于 selected restore：$key" }
                     Add-PackageAsset $library.Name $asset.Name $key
@@ -291,6 +293,11 @@ function Assert-TrustedDependencies([string]$Repository, [string]$Publish, $Proj
     # packages also index optional/copied-on-demand assets; retain their existing mode-specific rules.
     foreach ($relative in $requiredRuntimepackAssets) {
         if (-not (Test-Path -LiteralPath (Get-ChildPath $Publish $relative) -PathType Leaf)) { Fail-Payload "发布缺少可信运行时资产：$relative" }
+    }
+    # The selected dependency graph is a requirement, not just an allowlist for files that happen
+    # to exist. SDK optional content outside this graph keeps its existing mode-specific policy.
+    foreach ($relative in $requiredSelectedAssets) {
+        if (-not (Test-Path -LiteralPath (Get-ChildPath $Publish $relative) -PathType Leaf)) { Fail-Payload "发布缺少必要依赖：$relative" }
     }
     # DLLs and executables both have exact locations and bytes; a basename never approves subdirectories.
     # 发布树里的每个 DLL 都核对完整相对位置；根目录的批准值不能放行 shaders/foo.dll 或旧内核副本。

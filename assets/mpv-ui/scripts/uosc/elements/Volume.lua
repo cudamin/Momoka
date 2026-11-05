@@ -32,6 +32,10 @@ function VolumeSlider:set_volume(volume)
 end
 
 function VolumeSlider:set_from_cursor()
+	if type(cursor.y) ~= 'number' or cursor.y ~= cursor.y or math.abs(cursor.y) == math.huge then
+		self.pressed = false
+		return
+	end
 	local volume_fraction = (self.by - cursor.y - self.border_size) / (self.by - self.ay - self.border_size)
 	self:set_volume(volume_fraction * state.volume_max)
 end
@@ -46,6 +50,7 @@ function VolumeSlider:on_coordinates()
 	self.draw_nudge = self.ay < self.nudge_y
 	self.spacing = round(width * 0.2)
 end
+function VolumeSlider:on_global_mouse_leave() self.pressed = false end
 function VolumeSlider:on_global_mouse_move()
 	if self.pressed then self:set_from_cursor() end
 end

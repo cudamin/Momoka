@@ -4,7 +4,7 @@ using Momoka.AniBt;
 
 namespace Momoka.MoviePilot;
 
-internal sealed record MoviePilotAniBtConnection(string Stamp, long Generation);
+internal sealed record MoviePilotAniBtConnection(string Stamp, long Generation, long AniBtGeneration);
 
 internal sealed record MoviePilotAniBtTransfer(MoviePilotTransferRequest Request, JsonElement File);
 
@@ -17,16 +17,66 @@ internal sealed record MoviePilotAniBtTarget(string MediaSource, string MediaId,
 
 public sealed partial class MoviePilotService
 {
+    private long _aniBtGeneration;
+    public bool AniBtAvailable => _settings.MoviePilot.AniBtEnabled && Available;
+    public event EventHandler? AniBtAvailabilityChanged;
+
+    private void OnAniBtChanged(object? sender, EventArgs args)
+    {
+        Interlocked.Increment(ref _aniBtGeneration);
+        AniBtAvailabilityChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    internal IDisposable ObserveAniBtOperation(CancellationTokenSource cancellation)
+    {
+        void Changed(object? sender, EventArgs args)
+        {
+            try { cancellation.Cancel(); }
+            catch (ObjectDisposedException) { } // A captured event can arrive after this operation unsubscribed.
+        }
+        AniBtAvailabilityChanged += Changed;
+        try
+        {
+            CheckAniBtEnabled();
+            return new AniBtOperationRegistration(() => AniBtAvailabilityChanged -= Changed);
+        }
+        catch
+        {
+            AniBtAvailabilityChanged -= Changed;
+            throw;
+        }
+    }
+
+    private sealed class AniBtOperationRegistration(Action release) : IDisposable
+    {
+        public void Dispose() => release();
+    }
+
+    private void CheckAniBtEnabled(long? generation = null)
+    {
+        if (!_settings.MoviePilot.AniBtEnabled)
+            throw new MoviePilotOperationBlockedException("AniBT 已关闭，请在设置中启用后重新搜索或识别");
+        if (generation is { } expected && expected != Volatile.Read(ref _aniBtGeneration))
+            throw new MoviePilotOperationBlockedException("AniBT 设置已改变，请重新搜索或识别");
+    }
+
+    private void CheckAniBtResource(MoviePilotResource resource)
+    {
+        if (resource.AniBtGeneration is { } generation) CheckAniBtEnabled(generation);
+    }
+
     internal MoviePilotAniBtConnection CaptureAniBtConnection()
     {
+        CheckAniBtEnabled();
         var identity = CaptureIdentity();
         CheckIdentity(identity, CancellationToken.None);
         if (!Available) throw new MoviePilotOperationBlockedException("MoviePilot 尚未连接，请先在设置中测试连接");
-        return new(TransferConnectionStamp(identity), identity.Generation);
+        return new(TransferConnectionStamp(identity), identity.Generation, Volatile.Read(ref _aniBtGeneration));
     }
 
     internal void CheckAniBtConnection(MoviePilotAniBtConnection connection, CancellationToken cancellationToken)
     {
+        CheckAniBtEnabled(connection.AniBtGeneration);
         var identity = RequireResultConnection(connection.Stamp);
         CheckIdentity(identity, cancellationToken);
         if (identity.Generation != connection.Generation)
@@ -82,7 +132,8 @@ public sealed partial class MoviePilotService
                 MediaType = media.ValueKind == JsonValueKind.Object ? type : null,
                 MediaInfo = media,
                 ConnectionStamp = connection.Stamp,
-                ConnectionGeneration = connection.Generation
+                ConnectionGeneration = connection.Generation,
+                AniBtGeneration = connection.AniBtGeneration
             });
         }
         CheckAniBtConnection(connection, cancellationToken);

@@ -14,6 +14,12 @@ internal static class Program
             SelfCheckLayoutRulesTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["moviepilot-boundary-fixture"])
+        {
+            MoviePilotSafetyTests.Register();
+            AniBtIntegrationTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["episode-removal-fixture"])
         {
             EpisodeRemovalTests.Register();
@@ -173,6 +179,14 @@ internal static class Program
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             SvpTests.Register();
             SvpRuntimeTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["video-sync-review-fixture", var videoShell, var videoRoot])
+            return SettingsApplicabilityTests.Run(videoShell, videoRoot, videoOnly: true);
+        if (args is ["playback-review-fixture"])
+        {
+            PlaybackTests.Register();
+            SubtitleBehaviorTests.Register();
             return TestHarness.Run();
         }
         if (args is ["audio-output-fixture"])

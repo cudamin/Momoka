@@ -8,6 +8,17 @@
 
 - 独立树 `ui-polish-cards` / `codex/ui-polish-cards`：Jellyfin仅清理已确认tmdbid尾缀及一致年份；飞牛继续观看复用HomeResumeText并按条目来源左对齐；媒体标题独立增加20 DIP，保留人物/目录/MP原尺寸；缺图片名随已解码图、拼图、回收与缓存切换；勾选弱化、数量保强调、播放键高对比。PageContract先红10项后绿160/160，定向Core90/90、真实Resume VM39/39，Shell与测试Release零警告；证据 `work/ui-polish/`。新增五主题CardPresentation探针已编译，未在此会话运行UI；由交付会话合入后跑library/UI与最终检查，再主树发布。无上传、播放或真实服务器写入。
 
+# 2026-11-05 详情主题渐变与主页底边（主树交付完成）
+
+- 产品acba679已在修复交付342f9dc之后无冲突挑入master为862b730。主树Shell／Tests Release均0警告错误，主测3766/3766、外观25/25，定向格式与12个产品文本差异检查通过；关键背景与轮播代码与开发树逐文件一致。
+- 主树实际16576最终专项1/1通过：三页五主题两效果像素、两模式沉浸进入退出、BodySeal/WashRead与主页底边，45张实屏已目视。2026-11-05 21:46 publish/verify通过，546文件286.3MB；快捷方式Target/WorkingDirectory均为主树artifacts/publish/win-x64、Arguments空，Shell/Core发布与当前构建SHA256一致。未上传，未播放真实媒体。
+
+- 用户指定：普通剧／季／电影背景复刻Emby Theater底部过渡，颜色必须接当前主题；沉浸不加，主页移除底部渐变。安装包3.0.20-3.0的item.css:309使用元素底部30%透明度蒙版；本次采用等效主题色合成，阅读黑罩移到固定背景，滚动头尾透明，避免末端被再次压暗。图片布局／请求／沉浸判据不变。
+- 本树基点4089e59，产品与测试在本树隔离修改。Shell和Tests Release 0警告错误；主测试3750/3750、外观25/25（旧实现23/25红）、自定义27/27、页面契约133/133、Plex入口68/68。格式校验退出0（工作区加载提示保留），17个变更文本编码／LF／差异通过；独立审查未发现必要产品缺陷。
+- 实际33612的详情设置／页面两项通过，覆盖单集／无图、两效果与五主题。最终1900的渐变专项1/1通过：三类详情×五主题×普通/高斯，像素60%/85%/99.5%与主题末色、两模式沉浸切回、正文滚动BodySeal/WashRead、透明末端反例拒绝、主页底边及不额外请求；45张实屏与接触表已目视。均匿名假服务，不播放真实媒体。
+- 原红保留：12308/23896为WinUI停点0.7回读0.699999988误判；33612/4792为RTB按绘制边界428高捕获，却用容器851高推比例，实测底行12/17/22正确；33616为旧BodySeal遗漏TailHeight下限0。修正检查而未改渐变参数／放宽像素误差；最终实际检查通过。
+- 证据：C:/Users/89400/.codex/visualizations/2026/11/05/01a1aba6-4344-7271-8575-99de40662495/backdrop-fade-evidence，含main-runtime-16576与各轮红记录。共享桌面已协调并释放。4d25为平台给定detached工作区、无临时命名分支；产物已交付主树，保留平台工作区，不手动删除。
+
 # 2026-11-05 详情文件栏与内容触发、卡片菜单亚克力
 
 - 交付完成：2026-11-05 17:46主树publish/verify通过，546文件、286.2MB；主程序程序集发布与构建SHA256一致。快捷方式Target/WorkingDirectory均为主树artifacts/publish/win-x64、Arguments空。产品d017af8、验证8648911；未上传。实屏已检查设置/飞牛/详情与Active菜单，系统高对比开关未实切（资源替换/恢复路径已实跑）。
@@ -10519,3 +10530,138 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 实际artifacts/publish/win-x64发布验证通过：546文件、286.2MB，native/UI/依赖/许可逐文件批准通过。桌面快捷方式目标和工作目录核对；发布Momoka.dll SHA256 24A6002283A3059BDC73E215E48052EA92500A518C21C384618727FD0BFD7414。版本不变，未上传。
 - 主树发布件library完整分区27/27、退出0，证据 C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261105-033707008-26340/logs；新增下拉1100/760/360、单字段全选/单次通知/实际popup关闭、五主题实际矩形填色与正文色通过，实屏逐一查看。临时树上一轮季页面目标宽未落定26/27红项保留，最终发布件此项已通过。该分区外124项未执行，不冒全量探针。
 - 所有操作为匿名假服务及隔离设置，没有真实播放、服务器写入或删除；UIA语义调用不代表真实鼠标/键盘输入。当前聊天原始c454检出仍保持干净，未创建临时分支；产品内容已全部进入master，未绕过平台删除当前检出目录。
+
+# 2026-11-05 六轮审查修复：验证接线和维护工具（整合中）
+
+- 当前树 8cae，起点 4089e59；按用户提供六轮报告修复 R1–R35 和八项验证接线，不将未证实候选扩大为修复。播放、服务器设置、弹幕MoviePilot分别在原生隔离树提交，根树统一整合，未上传。
+- 第一轮接线：字幕删除状态依赖及终止回归37/37；连播EpisodeNavigation pin仅核对0f3657d新增AfterRemoval，原caller51/51；资源计划八参和c92f8ae亚克力模板174/174；订阅Thickness74/74；Plex受限RemovedMedia68/68；PlayerVM七必需+可选FontLibrary精确边界、ShaderMonitor32/32；Gaussian登记5/5。所有对应项目当前Release成功，0警告/0错误；原方案3个错误日志保留。
+- R4/R5/R6/R7：独立临时ZIP回读后发布，失败保留旧档；签名工具/最终状态/签名者失败非零；CertPath隐含Sign仍拒绝Store；Compose挂载改为项目相对路径。真实脚本匿名端点16/16（完整脚本，签名仅替换发现/签名状态端点）；备份锁文件场景实际执行。未读真实证书、未签名、未运行Docker。
+- R14：当前可信deps选中的程序集必须存在，保留图外可选SDK内容规则。实际完整发布验证匿名载荷31/31，新增Momoka/Core/Bootstrap缺失及自包含缺主程序集拒绝；夹具本身补原来漏掉的主程序集。旧红对照过程中后续用例受脚本修正影响，仅前两个明确缺主程序集假绿作为有效红证据；最终31项为独立新运行。
+- R15：架构专项先构建当前Shell/Core；quality构建失败或告警后记未执行，SkipBuild只跳过全方案仍走架构专项fresh构建。四场景脚本4/4；runner匿名19/19（包含实际项目清单检查）。首次PS5读取UTF-8清单失败已修，测试单值数组传参边界修正；原日志保留，不算产品失败。
+- 根证据 artifacts/review-fixes-20261105/；维护16例、载荷31例各另有机器结果。变更文本24项编码/行尾和10脚本语法初次通过，新增R18后需重验。尚未批次最终全测、主树合并或桌面发布，快捷方式仍是旧版。
+- Compose实现依据：compose-spec/compose-go v2.9.0 paths/resolve.go，SHA256 BE5CB7104D1AAB02D87436DB0180EE2A5D2CB70A83128997337D25E09AA92E1C，实际curl下载并读ResolveRelativePaths/absVolumeMount；源码与规格不代表运行Docker验收。PowerShell网络获取先遇EOF，改curl成功。上游内容保存于本树证据目录。
+
+# 2026-11-05 R18 退出播放客户区交接
+
+- 窗口移动前捕获原客户区，交接层使用该矩形；全屏客户区仍自然铺满屏幕。保留抓帧、身份/代次检查、两帧等待和finally释放。
+- 构建时逐字提取实际方法，普通窗口/全屏/负坐标副屏先1过2败，修后3/3；当前Shell Release 0警告0错误。未执行真实DWM/WinUI或本地播放，批次收尾仍待隔离运行。
+# 2026-11-05 审查修复分组：服务器与设置 R28
+
+- 独立工作树 `review-server-settings/Momoka`，起点 `4089e59`。连接测试对已有账号的已知服务器身份执行一致性校验，拒绝身份替换或丢失，保留原绑定；无账号的探测仍可识别新服务器，空 ID 不擦掉已知值。
+- 新增 `Momoka.ServerSettingsReviewTests`，编译时提取当前完整 `ServersViewModel.TestAsync` 并运行实际 Core session/gateway/store。修前真实控制流在替换服务器先测试后恢复时触发失败断言；修后 8 个匿名案例通过，fresh Release 0 警告/0 错误，`git diff --check` 通过。
+- 所有凭据均为占位，HTTP 为内存替身、设置目录位于本树测试输出。不操作真实账号/服务器/桌面/播放。方案注册和批次全量验证由集成会话完成；本提交尚未合入主树、发布或推送。
+
+
+## 2026-11-05 审查修复 R29：Plex 默认端口候选
+
+共享 Gateway 在裸 HTTP 入口不可达时继续独立的 Plex 32400 候选，显式端口和 HTTPS 不改写，取消立即停止；全部失败保留原不可达分类。专项先红（首例 EmbyUnreachableException）后绿，当前 fresh Release 0 警告/0 错误，R28 8例及 R29 7例全过。只有匿名内存传输，不证明真实 Plex 服务。待父会话整合全批验证，无主树合并/推送/发布。
+
+## 2026-11-05 审查修复 R17：在线身份权限缓存
+
+菜单权限缓存同时绑定UserStateOwner和PermissionRevision，同配置账号重新登录不继承旧限制；旧来源撤销后迟到读仍由IsAvailable守卫丢弃。新专项执行实际恢复/下线/重新恢复、失败与成功探测及迟到旧身份响应，修前重登断言红、修后全部通过，当前Release 0警告0错误。无真实服务器与UI，待父会话全批集成。
+
+## 2026-11-05 审查修复 R1/R20：分类分页与补图恢复
+
+R1在Plex适配层按100条原始页扫描，过滤后返回真实总数及StartIndex/Limit窗口，单源和聚合偏移一致；每次分类页会重读原始搜索，宽泛搜索请求量增长，无持久缓存。10例覆盖21/121条、零匹配前页、混排不重、取消及后页失败。R20把飞牛轮播补图纳入现有可降级白名单，实际session在候选成功后-2/401重认证并重做操作，500保留降级，共3例。均先红后绿；新专项fresh Release 0警告0错误，原Plex专项148/148。只用匿名内存HTTP与独立设置，无真实服务/播放/UI；待父会话整合。
+
+## 2026-11-05 审查修复 R12/R13/R16：显示配置与只读选源
+
+恢复默认/导入保留Ui.Display本地对象，导出不带本地显示身份；加载修复Display空字典/空条目/Fields:null，显式Fields:[]保持空。只读ResolveProfile在有主文件或备份时保持当前源，不绕过SelfCheckRun缺主有备份的严格错误。8例实际Core恢复/导入/导出、Store加载、只读选源先红后绿。一次我组旧失败进程尚未退出导致复制DLL重试10警告，已等待退出后重新fresh Release 0警告0错误并验证全部专项通过；未触真实配置/桌面/服务器，自检互斥及完整UI未运行。待父会话整合批次验证。
+
+## 2026-11-05 审查修复 R30/R31：通知编辑保存
+
+事件复选框绑定实际ID，保存拒绝空ID；名单读取失败使用null区分成功空表，界面明示保留原限制。限制集合只按实际展示的框应用编辑，未取得/已缺失的选项保持原值。完整源码链接对话框与真实HTTP保存，提取当前TryAsync和context；原代码5场景14处断言红，修后5场景全绿（原样/失败/缺项/空表/主动改选），fresh Release 0警告0错误。UI为惰性边界无真实WinUI或发送。待父批次整合。
+### 2026-11-05 审查修复 R32/R33（独立播放组，待父批次整合）
+
+- 工作树：`review-playback-fixes/Momoka`；普通话音轨先排除明确粤语标题，字幕标题已收窄候选时保留明确选择，完整未知简繁池仍交回 mpv。
+- 回归先红：381 项中 R32 两例和 R33 一例失败；修复后当前 Release Core/Tests 编译 0 警告 0 错误，`playback-review-fixture` 381/381，失败/跳过 0。
+- 上游：已读固定 mpv `270367e8af/player/loadfile.c` 的 `compare_track/select_default_track`（539–733），自动选择会遍历全部轨并偏向 default；使用第一手固定源码留档；未通过 web 工具重新获取。没有原生播放或真实 UI；主树合入、批次验证和发布归父会话。
+
+### 2026-11-05 审查修复 R2（独立播放组，待父批次整合）
+
+- 音频延迟从入场即捕获文件代次，排队写入与提示沿用该代次；服务交接空档拒绝旧操作。
+- 实际 Service/LibMpvHandle/gate 匿名边界先红 44/46（旧写与旧提示各一例），修后当前 Release 编译 0 警告 0 错误，ShaderCommandGenerationTests 46/46，0 跳过。含第二笔排队旧操作与 B 新操作恢复。没有加载 libmpv、播放或桌面验收。
+
+### 2026-11-05 审查修复 R10/R11（独立播放组，待父批次整合）
+
+- uosc 搜索 Delete 先跨首字节再跳 UTF-8 续字节；音量拖动在 cursor.leave 与无效坐标时结束且不发音量命令。
+- 新离线入口 `py -X utf8 tools/test-uosc-review.py --lua <可信 Lua 5.1 DLL>` 加载实际 Menu/Volume/cursor/Element 模块，实际 key dispatch、mouse leave 流程。先红 2/8、修后 8/8；使用现有 `C:/Program Files/HexChat/lua51.dll` 解释器，未启动 HexChat/mpv、窗口或媒体。
+- 首跑输出因 GBK 不支持 emoji 失败；入口已显式 UTF-8，最终重复运行 8/8。父批次仍需完整 Lua/原生和桌面适用验证。
+
+### 2026-11-05 审查修复 R3/R19（独立播放组，待父批次整合）
+
+- seek 将修订号放入同一原子字幕 cue，主机可见同句清屏并由缓存恢复；旧 revision 的回包在 Lua 拒绝。字体/位置更新通过本场 presentation 快照重绘，不取消请求或清空缓存；语言、服务、端点、模型、密钥变化仍完整重启。
+- 当前 Runtime+完整 Controller 编译链接 19/19，0 失败/跳过；先红三例分别复现同句不恢复、已有译文和在途请求被重启。最初测试同步阻塞有两条分析器警告，改为异步收集后 Release 0 警告0错误。Shell Release 0 警告0错误。
+- 实际生产 Lua 通过 `tools/test-uosc-review.py --suite translation` 加可信 Lua5.1 DLL：3/3，验证修订发布/旧回包拒绝、跨句拒绝和外观重绘。无原生播放器、实际图层像素、翻译联网或真实账号。
+
+### 2026-11-05 审查修复 R8（独立播放组，待父批次整合）
+
+- 原生句柄在初始化后、事件订阅和任何临时操作前捕获实际普通画质恢复值；自定义配置切链使用此快照，不再用读取配置前的 planner 值。快照缺失时零写入拒绝，不覆盖配置。glsl-shaders 的关闭语义保留。
+- 已读 mpv 固定 `7b8915bc1` 的 client.c/parse_configfile.c/m_config_frontend.c 配置覆盖和顶层 profile 清空实现。服务回归先红46/47，修后49/49，含真实句柄快照后临时写入不污染恢复值、快照缺失拒绝。当前 Release 0 警告0错误，0跳过。未执行原生配置加载或真实GLSL，父批次统一整合验证/发布。
+
+### 2026-11-05 审查修复 R9（独立播放组，待父批次整合）
+
+- Smooth 隐藏基础输出的视频同步行，退出为 Off/CPU 模式恢复原 audio 偏好；CPU 素材回退仍可选，SVP既有只读行保持。
+- 真实 Shell VM 首红 R9；修后 `video-sync-review-fixture <本树当前Shell DLL> <本树根>` 2/2，当前 Shell/Tests Release 0 警告0错误。完整适用性首次25/32，另外6个旧失败是 FakeSettings 未实现 SaveDeferred、落回 Save 的拒绝边界；已移交父代理，没有放宽断言。未运行 WinUI渲染或桌面。
+## 2026-11-05 审查修复 R22/R23/R26（独立树）
+
+- 弹幕面板切源撤销在途搜索并恢复按钮，加载绑定产生结果的来源与连接代次；改自部署地址/令牌丢弃该实例集号，保留弹弹play与同连接读取参数的选择。纯 danmu_api 隐藏无效输入栏偏好，恢复来源后保留原值。
+- 新 source-linked 专项先红14项中7项，再绿16/16；当前 Release Core与Shell 0警告0错误，证据 work/review-fixes/danmaku-*.log。danmu_api 固定9fa67ad5 cache-util.js实例内编号分配已重读。未实际UI/播放/网络发送；主树整合验证由根会话执行。
+
+### 2026-11-05 审查修复 R21（独立播放组，待父批次整合）
+
+- Library 的全部/随机入口用 `UserPlaybackQueue` 固定用户顺序；原IShellActions列表传递不增参数，VM绑定保留该类型。普通季列表仍补齐全剧，显式队列的自动/手动下一项及末端均不替换或追加服务器全剧顺序。
+- 完整真实VM caller 首红52/54（同账号跨剧与随机），修后54/54，0跳过，含普通季页补齐对照、自动/手动续播、末端不补齐。最终Release Core/caller及Shell均0警告0错误。首红并发Shell编译曾造成9条MSB3026复制重试，随后串行当前重编零警告；未终止进程。
+- 仅六个实际改动/已复核来源pin同步，细节见caller README；提取规则与拒绝不变。原Test-SourceExtraction.ps1反例由父整合批次运行。38条变更路径的行尾/BOM/空白检查通过（37文本）。所有提交待父树整合、全量测试及发布；没有真实窗口、播放或服务器写入。R18已交父代理单独修复。
+
+## 2026-11-05 审查修复 R24/R25：元数据列表与失败草稿
+
+已读审查留档的官方Jellyfin v10.10.7 ItemUpdateController Tags数组赋值及SqliteItemRepository竖线存储源码。列表按双引号包裹含标点项，双引号自身双写；未改列表保原JSON数组，未闭合引号拒绝保存。Jellyfin表保存用deferral与原JSON克隆，成功关闭、失败保留输入可重试，在飞时阻止关闭并显示进度；取消不写。
+
+实际EditAsync/GuardAsync/AskAsync/TellAsync逐次源码提取+完整MetadataDialog链接，5场景（原样/标题/列表/503重试/取消）先红后绿，另4类标点往返及未闭合校验通过。通知未知事件ID增加第6场景红绿，沿用范围集合原值保留规则。当前新专项全过，Core原Emby元数据61项、日期96项通过；最新Shell Release 0警告0错误，scan-automation-ids无无句柄控件，31文件check-diff通过。一次在Shell编译未结束时重编Core碰到本树XAML编译器占用而失败，后续等待其退出并用成功当前Core进行fresh专项编译，未以旧失败输出冒充成功。未运行真实WinUI/桌面/服务器写入/DPAPI/播放，待父会话全批整合。
+## 2026-11-05 审查修复 R27/R34/R35（独立树）
+
+- AniBT 入口和执行边界统一检查当前开关，开关代次隔离旧计划/资源；独立搜索面板监听关闭并撤销，实际 Core 操作以短期事件注册取消在途HTTP，整理窗口关闭撤销预览/后续操作。已提交/未知账本不随开关清空，Apply后关闭不再Refresh，普通MoviePilot连接保留。
+- 下载仅识别 success:false + data.requires_confirmation:true 为官方确认的未下载回执，归还可修正状态并提示高级媒体核对；HTTP丢失、非布尔true、其他业务失败仍保持未知防重。没有加入未知媒体强制下载流程。
+- 订阅卡原地更新后通知实际身份变化，季视图撤销旧宿主并重新匹配，媒体侧只在季/组身份变化时同步并由原Reload重建组、季及订阅状态；普通关键词修改不刷新媒体。
+- 官方默认v3当前后端4cd64d684b0cd7e198728ffb26c9eb3321db8672、前端f39250447616b586abfc7d7ed278ca277d778ef0；适用tag v3.2.3后端5662004d/前端12555631。已重读download.py、AddDownloadDialog.vue、SubscribeEditDialog.vue、SubscribeCard.vue；requires_confirmation在下载链前返回，编辑成功通知父组件刷新一致。未读取真实账号确认服务器版本；v2不是本修复适用分支。
+- 匿名行为先红：确认回执/关闭新请求/迟到响应3项、HTTP取消1项、换季换组2项。最终专项92/92、AniBT确认57/57、来源契约40/40、订阅身份3组0失败；构建/完整主测结果见本树 work/review-fixes。首轮季测试生成缺#nullable的10警告已修正，红日志保留。未真实网络写入、播放、UI或发布；根会话负责整合验证。
+
+- 最终关闭边界复核又以匿名登录挂起前件复现下载发送，已把AniBT资源下载绑定同一开关取消；高级媒体/选项读取后重核资源代次。首次完整主测3756/3756全绿；此末轮改动后的专项和全套另留final日志，未覆盖真实UI。
+
+- 本树最终主测试3757/3757、0失败0跳过（final-full-main-tests.log）；Shell/Core Release0警告0错误。最终AniBT确认57/57、来源契约40/40，订阅身份3组0失败；27个变更文本行尾/BOM/空白通过。所有核验为匿名离线，本批未做桌面UI、真实播放或服务器写入。
+
+## 2026-11-05 审查编辑器正式运行探针
+
+新增单个ShellNavigationProbe.ReviewEditors.cs及metadata两条case：真实MetadataDialog匿名保存失败保草稿/重试成功/取消零写/在飞关闭保护；真实NotificationEditDialog匿名保存事件ID、未知事件及名单失败/缺项范围保留。1100/760宽度，UIA Invoke/Toggle操作实际控件，文本属性赋值，无指针注入、会话、HTTP或通知发送，保存8张review-metadata/review-notification截图。新源契约检查注册、实际控件及匿名能力边界，连原ServerSettingsReview专项通过；当前Shell Release 0警告0错误，变更check-diff通过。按父会话要求未启动桌面，实际case与截图由根代理串行执行，不能把编译/源契约称作运行通过。
+
+## 2026-11-05 六轮修复整合与离线验证
+
+R1–R35全部修复已整合到本树，三个领域组交叉只读复审没有必要新缺陷。R18另在根树完成。新增四个行为专项和既有Gaussian登记到方案/runner；只更新已实际修改的三条Lua批准size/hash，原生批准未变。已从主树按批准hash/大小供应本树libmpv，未以待验DLL生成新批准。
+
+当前整合Release方案0警告0错误；主测试3764/3764、0失败0跳过；实际SettingsVM适用性32/32，修正FakeSettings的SaveDeferred边界保原保存失败断言；源码提取10反例全部拒绝后当前caller重编54/54。网页14契约+25 DOM全部过、HTTP0/页面错误0；AtomicFile35产品+4对照均通过；脚本维护16、发布缺依赖31、quality依赖4、runner19、其他质量15通过。各专项重叠不相加。
+
+补帧专项在新编辑器探针注册后检测SharedHash变化，拒绝旧二进制并退出；fresh重编后45/45通过，未改断言。首次DOM用no-build缺本树产物，未运行，改完整wrapper成功。中断前部分专项还在执行，恢复后只重跑未完和受影响项；中断不算通过。格式校验只定点整理八个报错文件（含一处已有BannerCacheBoundaries缩进），产品控制流未改；后续按最终文件重编复验。
+
+R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner yes；真实LibMpvHandle快照和PlaybackService关闭临时链恢复no，空playlist、path=null、vo/ao=null、scripts禁用，无窗口/账号/HTTP。来源和DLLhash见artifacts/review-fixes-20261105/native-r8-evidence.json，条件profile及画面观感不在此证据中。
+
+尚待最终增补探针、主树整合复验和实际目录发布，快捷方式仍旧。未上传远端。
+## 2026-11-05 R9/R26 设置实屏探针补齐
+
+- 新增ShellNavigationProbe.ReviewSettings.cs并在settings分区注册1100/760两档：真实SettingsPage、真实ComboBox切换Smooth→Off和DanmuApi→DandanPlay，核行模型/实际文字/交互控件消失恢复、audio及ShowInput偏好；四阶段各保存宽窄实屏。复用CreateMotionSettingsPage匿名服务、隔离路径及现有页面活动期/布局等待，未创建播放实例或真实HTTP。
+- 相关source contract先红17项中1项（注册缺失），后17/17；该契约只守探针接线，不冒充运行证据。中断前Shell日志未完成并保留；恢复后fresh Release Shell 0警告0错误（work/review-fixes/review-settings-shell-build-resumed.log），契约复跑17/17；根会话统一运行桌面与目检截图，本树未执行。
+
+## 2026-11-05 六轮审查修复主树验证与交付收尾
+
+- R1–R35及第一轮八接线已快进master 8d7fcfc；无用户改动覆盖，未推送。当前主树全方案Release0警告0错误，format whitespace退出0（工作区加载有提示），139变更文本编码/空白通过，普通交互缺句柄0。三组交叉复审无必要新增缺陷。
+- 主树55普通专项均取得通过结果：原批次54绿，SettingsPersistence因我的自定义runner把输出放work触发目录保护，改规定artifacts新目录后42/42；原红保留。caller包装54/54，实际删除命令用成功全方案构建证明19/19，14契约+25DOM且网络/页面错误0；脚本维护16、发布合成31、quality依赖4、runner19均绿。主测先被035a共享mutex占用导致16红；协调授权时段后完整3764/3764、0失败0跳过，main-tests-final.log。
+- 实际主树匿名UI五区settings/metadata/moviepilot/anibt/playback共82/82；未执行11区89检查不当全探针。新增编辑器/设置16张宽窄实屏已逐类查看；失败草稿/通知限制/Smooth及danmu_api恢复通过，报告shell-probe-20261105-125053918-29676。
+- 本地composition17132自动断言通过，弹幕可见/清除实屏已看；无媒体服务器登录和观看上报。motion32112最初漏参数启动前拒绝；21840在既有浏览位置恢复失败，实际恢复1422x800但坐标曾为783,351。仅增expected/actual/saved诊断、不改断言/产品，5016完整通过：三值均569,296；R18窗口化26有效样本rect577,296,1406x792、全屏70样本rect0,0,2560x1440均一致。旧坐标漂移未定因，不能用后一轮绿宣称根因修复或归因环境，原日志保留。
+- R8原生无媒体证据来自播放子树，三相关源hash与主树一致，真实libmpv/handle/service恢复deband=no；不是当前主树DLL原生重跑。外部mpv/独占实播/条件profile/真实服务及翻译服务未验证。
+- 全证据work/review-fixes-20261105-main，当前正在发布实际artifacts/publish/win-x64；发布完成与快捷方式核对另记。诊断日志变更对应专项22/22和当前Shell0警告0错误。
+
+## 2026-11-05 六轮审查修复桌面发布完成
+
+产品d6ea5e7已发布到主树artifacts/publish/win-x64，publish/verify退出0：546文件、286.3MB、59项mpv批准载荷/许可通过。桌面Momoka.lnk目标和工作目录均指该目录、参数空。发布与构建Shell SHA256 DA8D175E4BFF47BFC7C381F09B281C31B40CE0AAC500DB899DDBB5367C294ED7，Core BC1E45C119D47E4171C9CDFF45EBE3263F4D8ACA0D44C890EE580A06F8F1AA9D，一致。未推送、未打MSIX/商店提交。发布回执work/review-fixes-20261105-main/publish-receipt.json；验证范围及motion旧位置漂移未定因仍按上一节，不能称全量探针或真实服务通过。
+
+子树review-playback-fixes(8efdc78)、review-server-settings(d77ff9d)、review-danmaku-moviepilot(61eefa4)全部产品/测试已进入主树，逐文件除共享追加注册/记录及本树诊断外仅格式差异，工作树均干净。必要日志与R8原生证据已外存至本记录目录agent-evidence，后续使用原生归档回收本次子树，不删除其他聊天工作树。

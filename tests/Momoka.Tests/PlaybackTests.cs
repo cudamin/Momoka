@@ -26,6 +26,36 @@ internal static class PlaybackTests
         RegisterIpc();
         RegisterPlanner();
         RegisterTrackSelection();
+        foreach (var language in new[] { "zh-HK", "zh", "chi", "yue" })
+        {
+            Test($"R32 普通话优先排除明确粤语标题（{language}）", () =>
+            {
+                var cantonese = Stream(1, "Audio", language: language, title: "粤语");
+                cantonese.IsDefault = true;
+                var source = SourceWith(cantonese, Stream(2, "Audio", language: "cmn", title: "普通话"));
+                source.DefaultAudioStreamIndex = 1;
+                Assert.Equal(2, TrackSelection.ChooseAudio(new PlaybackSettings { AudioLanguages = ["普通话"] }, source)!.Index);
+                Assert.True(TrackLanguagePriority.Matches("普通话", "zh", null, null));
+                Assert.True(TrackLanguagePriority.Matches("中文", language, null, "粤语"));
+            });
+        }
+        Test("R33 多条优先字幕不能把候补默认轨交回自动选择", () =>
+        {
+            var effect = Stream(3, "Subtitle", language: "chi", title: "中文特效");
+            effect.IsDefault = true;
+            var source = SourceWith(Stream(1, "Subtitle", language: "chi", title: "中文一"),
+                Stream(2, "Subtitle", language: "chi", title: "中文二"), effect);
+            source.DefaultSubtitleStreamIndex = 3;
+            var settings = Playback(subtitles: ["简体中文", "中文"]);
+            settings.SubtitleTitleRules = [new("特效", TitlePreference.Exclude)];
+            var choice = TrackSelection.Resolve(settings, source).Subtitle;
+            Assert.NotNull(choice.Stream);
+            Assert.Equal(1, choice.Stream!.Index);
+            settings.SubtitleTitleRules = [];
+            Assert.Null(TrackSelection.Resolve(settings, source).Subtitle.Stream,
+                "完整候选池都可接受时仍由 mpv 辨认未知简繁");
+        });
+
         RegisterOutputOptions();
         RegisterSkipSections();
         RegisterChapterTimeline();

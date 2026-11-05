@@ -49,7 +49,7 @@
       "id": "Momoka.ArchitectureTests",
       "project": "tests/Momoka.ArchitectureTests/Momoka.ArchitectureTests.csproj",
       "mode": "dotnet",
-      "requiresShell": false,
+      "requiresShell": true,
       "arguments": [
         "{root}"
       ],
@@ -592,6 +592,56 @@
       "wrapper": null,
       "readme": "tests/Momoka.TransferSubmissionTests/README.md",
       "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.GaussianBackdropTests",
+      "project": "tests/Momoka.GaussianBackdropTests/Momoka.GaussianBackdropTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.GaussianBackdropTests/README.md",
+      "notes": "真实Core高斯卷积和配置恢复；不启动窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.PlayerExitHandoffTests",
+      "project": "tests/Momoka.PlayerExitHandoffTests/Momoka.PlayerExitHandoffTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.PlayerExitHandoffTests/README.md",
+      "notes": "原样退出交接方法与客户区边界；不运行DWM或真实播放。"
+    },
+    {
+      "id": "Momoka.ServerSettingsReviewTests",
+      "project": "tests/Momoka.ServerSettingsReviewTests/Momoka.ServerSettingsReviewTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.ServerSettingsReviewTests/README.md",
+      "notes": "当前生产控制流与匿名边界回归；不运行真实服务器或播放。"
+    },
+    {
+      "id": "Momoka.DanmakuSourceBoundaryTests",
+      "project": "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.DanmakuSourceBoundaryTests/README.md",
+      "notes": "当前生产控制流与匿名边界回归；不运行真实服务器或播放。"
+    },
+    {
+      "id": "Momoka.SubscriptionIdentityTests",
+      "project": "tests/Momoka.SubscriptionIdentityTests/Momoka.SubscriptionIdentityTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SubscriptionIdentityTests/README.md",
+      "notes": "真实订阅VM和季视图的身份更新；匿名边界，不播放。"
     }
   ]
 }

@@ -182,6 +182,8 @@
         <!-- 零尺寸资源接收器：系统主题替换卡片画刷时，同步用于沉浸动画的私有副本。 -->
         <Border x:Name="CardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+        <Border x:Name="BackdropThemeSource" Width="0" Height="0" IsHitTestVisible="False"
+                Background="{ThemeResource EgWindowBrush}" />
 
         <!-- ============ 固定在背景里的那张剧照 ============ -->
         <!-- 「当前任务的背景要用亚克力遮罩，固定在背景中，而不是往下翻页就消失了，而且要跟主页一样，占满标题栏」
@@ -220,6 +222,12 @@
                         Stretch="UniformToFill" />
                 </Border.Background>
             </Border>
+
+            <!-- 普通剧/季/电影：阅读遮罩先合成，随后让图片底部融入当前主题；渐变不继承图片透明度。 -->
+            <Border x:Name="BackdropShade" Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
+                    VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
+            <Border x:Name="BackdropFade" Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
+                    VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
 
             <!-- 标题栏和面包屑直接接片名区域的半透明黑底，不再叠一层独立的顶部渐变。
                  LiftBackdrop 量出这一条的实际高度；PaintWash 在图上复用 HeroBand / HeroTail 的画刷，

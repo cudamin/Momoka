@@ -7,6 +7,7 @@ using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.FnNas;
 using Momoka.Infrastructure;
+using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.Views;
 
@@ -2231,7 +2232,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (items.Count == 0 || !IsCurrent(token)) return;
 
         Log.Info(Category, $"播放全部：{items.Count} 项，从「{items[0].Name}」开始");
-        await _actions.PlayAsync(items[0], episodes: items).ConfigureAwait(true);
+        await _actions.PlayAsync(items[0], episodes: new UserPlaybackQueue(items)).ConfigureAwait(true);
     }
 
     /// <summary>
@@ -2253,7 +2254,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         }
 
         Log.Info(Category, $"随机播放：{items.Count} 项，从「{items[0].Name}」开始");
-        await _actions.PlayAsync(items[0], episodes: items).ConfigureAwait(true);
+        await _actions.PlayAsync(items[0], episodes: new UserPlaybackQueue(items)).ConfigureAwait(true);
     }
 
     /// <summary>

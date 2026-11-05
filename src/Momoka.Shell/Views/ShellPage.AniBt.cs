@@ -39,7 +39,17 @@ public sealed partial class ShellPage
         try
         {
             var dialog = new AniBtScrapeDialog(_services.GetRequiredService<AniBtService>(), scope, item) { XamlRoot = XamlRoot };
-            await MoviePilotDialog.ShowAsync(dialog, moviePilot);
+            void AniBtChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
+            {
+                dialog.ViewModel.Cancel();
+                dialog.Hide();
+            });
+            moviePilot.AniBtAvailabilityChanged += AniBtChanged;
+            try
+            {
+                if (moviePilot.AniBtAvailable) await MoviePilotDialog.ShowAsync(dialog, moviePilot);
+            }
+            finally { moviePilot.AniBtAvailabilityChanged -= AniBtChanged; }
         }
         catch (Exception error) { Notify(Failure.Describe(error), InfoBarSeverity.Warning); }
         finally { _aniBtScrapeShowing = false; }

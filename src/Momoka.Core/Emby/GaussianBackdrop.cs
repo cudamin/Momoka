@@ -5,7 +5,6 @@ public static class GaussianBackdrop
 {
     // 1280宽原料上sigma12足以柔化文字背后的细节，同时保留构图；不随窗口裁切重算。
     public const int Sigma = 12;
-    public const double FadeHeight = 40;
 
     /// <summary>按归一化 exp(-x²/(2σ²)) 核先横再纵卷积，3σ外截断，边缘夹取防止黑圈。</summary>
     public static void Apply(byte[] pixels, int width, int height, double sigma, CancellationToken token = default)

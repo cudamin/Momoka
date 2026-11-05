@@ -279,12 +279,13 @@ internal static class ResourceFilterCardTests
             Assert.True(remove.Descendants().Any(node => node.Name.LocalName == "FontIcon" && node.Attribute("Glyph")?.Value == "\uE711"));
             Assert.Equal("True", remove.Attribute("UseSystemFocusVisuals")?.Value);
         });
-        Test("资源筛选卡片：资源结果ItemTemplate与base完全一致", () =>
+        Test("资源筛选卡片：已审核亚克力模板与交互结构保持", () =>
         {
             var xml = Load(sourceRoot, "MoviePilotResourceBrowser.xaml");
             var template = Named(xml, "ResourceList").Elements().Single(node => node.Name.LocalName == "ItemsView.ItemTemplate");
             var canonical = string.Concat(template.ToString(SaveOptions.DisableFormatting).Where(character => !char.IsWhiteSpace(character)));
-            Assert.Equal("D03A2BF8CB72563373E1570CF39D17E5AE2C3F9BDA6942A636DDBB8DFB6F75D7", Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))));
+            Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", Named(xml, "ResourceCard").Attribute("Background")?.Value);
+            Assert.Equal("D51477DBB1D37698A365639A4E3B759A5FE349CF3EA5AA4C36E63753CC1BB82E", Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical))));
         });
         foreach (var width in new[] { 240d, 280d })
         {

@@ -10,6 +10,18 @@ internal static partial class ShaderCommandGenerationTests
     private static ShaderGroup Group => ShaderGroupCatalog.For(GpuTier.Low)[1];
     public static void Register()
     {
+        Case("R8 真实句柄在临时命令前固定配置恢复值", async () =>
+        {
+            await using var f = new HandleFixture(custom: true);
+            f.Native.Values["deband"] = "no";
+            f.Handle.CaptureShaderRestoreOptions();
+            Assert.True(f.Handle.UsesCustomConfig);
+            Assert.Equal("no", f.Handle.ShaderRestoreOptions!["deband"]);
+            Assert.True(await f.Handle.CommandAsync(["set", "deband", "yes"], default));
+            Assert.Equal("no", f.Handle.ShaderRestoreOptions["deband"]);
+        });
+        Case("R2 音频延迟写入前换片拒绝旧操作及排队操作", () => AudioDelayRaceAsync(1));
+        Case("R2 音频延迟提示前换片拒绝旧提示", () => AudioDelayRaceAsync(2));
         Case("R051 根因：最后 Current 后、真实 native 捕获前交接，B 无旧写也无回滚", () => RaceAsync(1, false));
         Case("R051 根因：已写一项后入口交接，B 无下一笔旧写", () => RaceAsync(2, false));
         Case("R051 根因：拒绝后逆序回滚入口交接，B 无旧 rollback", () => RaceAsync(3, true));
@@ -40,6 +52,30 @@ internal static partial class ShaderCommandGenerationTests
     }
 
     private static void Case(string name, Func<Task> run) => Test(name, () => run().GetAwaiter().GetResult());
+
+    private static async Task AudioDelayRaceAsync(int pauseAt)
+    {
+        await using var f = new ServiceFixture();
+        await f.StartAsync();
+        using var pause = new CommandPause();
+        f.Handle.Pause = pause;
+        f.Handle.PauseAt = pauseAt;
+        var old = Task.Run(() => f.Service.ChangeAudioDelayAsync(0.25, relative: false, notice: true));
+        Task<double?>? queued = null;
+        try
+        {
+            await pause.WaitAsync();
+            queued = f.Service.ChangeAudioDelayAsync(0.5, relative: false, notice: true);
+            await f.SwapAsync();
+            pause.Release();
+            Assert.Null(await old.WaitAsync(TimeSpan.FromSeconds(5)));
+            Assert.Null(await queued.WaitAsync(TimeSpan.FromSeconds(5)));
+            Assert.Equal(0, f.NativeHandle.Native.Commands.Count(command => command.File == "B"
+                && (command.Arguments[0] == "show-text" || command.Arguments.ElementAtOrDefault(1) == "audio-delay")));
+            Assert.Equal(0d, await f.Service.ChangeAudioDelayAsync(0, relative: false, notice: true));
+        }
+        finally { pause.Release(); }
+    }
 
     private static async Task RaceAsync(int pauseAt, bool rollback)
     {

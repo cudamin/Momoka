@@ -30,6 +30,8 @@ public sealed partial class PlayerViewModel
     private int _danmakuDanmuApiCount;
     private double _danmakuDelay;
     private string _danmakuConnection = "";
+    private string _danmuApiConnection = "";
+    internal int DanmakuConnectionVersion { get; private set; }
     private string _danmakuSourceSummary = "弹弹play";
     private string _danmakuLabel = "";
     private string _danmakuWarning = "";
@@ -88,6 +90,8 @@ public sealed partial class PlayerViewModel
         _danmakuWarning = "";
         _danmakuSourceSummary = DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source);
         _danmakuConnection = DanmakuConnection();
+        _danmuApiConnection = DanmuApiConnection();
+        DanmakuConnectionVersion++;
         ResetDanmakuInput();
         RefreshDanmakuProperties();
         DanmakuStatus = DefaultDanmakuStatus;
@@ -118,6 +122,9 @@ public sealed partial class PlayerViewModel
         $"{DanmakuAvailable}\n{Settings.Danmaku.WithRelated}\n{Settings.Danmaku.Source}\n"
         + $"{Settings.Danmaku.DanmuApiBaseUrl}\n{Settings.Danmaku.ProtectedDanmuApiToken}";
 
+    private string DanmuApiConnection() =>
+        $"{Settings.Danmaku.DanmuApiBaseUrl}\n{Settings.Danmaku.ProtectedDanmuApiToken}";
+
     private void RefreshDanmakuProperties()
     {
         OnPropertyChanged(nameof(DanmakuAvailable));
@@ -136,8 +143,12 @@ public sealed partial class PlayerViewModel
         if (connection != _danmakuConnection)
         {
             _danmakuConnection = connection;
+            DanmakuConnectionVersion++;
+            var customConnection = DanmuApiConnection();
             var chosenDandan = _danmakuEpisode;
-            var chosenCustom = _danmakuDanmuApiEpisode;
+            // 自部署集号只在分配它的实例/凭据范围内有效；读取选项变化仍保留选择。
+            var chosenCustom = customConnection == _danmuApiConnection ? _danmakuDanmuApiEpisode : null;
+            _danmuApiConnection = customConnection;
             CancelDanmakuRequests();
             _danmakuComments = [];
             _danmakuEpisode = null;

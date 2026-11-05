@@ -75,6 +75,7 @@ public sealed partial class NotificationEditDialog : ContentDialog
                 .Select(@event => new CheckBox
                 {
                     Content = @event.Name,
+                    Tag = @event.Id,
                     IsChecked = subscribed.Contains(@event.Id, StringComparer.Ordinal),
                     Margin = new Thickness(24, 0, 0, 0),
                     MinWidth = 0
@@ -133,21 +134,21 @@ public sealed partial class NotificationEditDialog : ContentDialog
     /// <summary>用户/媒体库/设备三个限定名单。名单拿不到时那一节写明拿不到，不画空架子。</summary>
     private void BuildFilterLists()
     {
-        BuildFilterSection(FilterList, "用户", _context.Users.Select(u => (u.Name, u.Id)), _context.Entry.UserIds, _userChecks);
-        BuildFilterSection(FilterList, "媒体库", _context.Libraries.Select(l => (l.Name, l.PickId)), _context.Entry.LibraryIds, _libraryChecks);
-        BuildFilterSection(FilterList, "设备", _context.Devices.Select(d => (d.Name, d.Id)), _context.Entry.DeviceIds, _deviceChecks);
+        BuildFilterSection(FilterList, "用户", _context.Users?.Select(u => (u.Name, u.Id)), _context.Entry.UserIds, _userChecks);
+        BuildFilterSection(FilterList, "媒体库", _context.Libraries?.Select(l => (l.Name, l.PickId)), _context.Entry.LibraryIds, _libraryChecks);
+        BuildFilterSection(FilterList, "设备", _context.Devices?.Select(d => (d.Name, d.Id)), _context.Entry.DeviceIds, _deviceChecks);
     }
 
     private void BuildFilterSection(
         StackPanel host,
         string title,
-        IEnumerable<(string Name, string Id)> items,
+        IEnumerable<(string Name, string Id)>? items,
         List<string> selected,
         List<(CheckBox Box, string Id)> checks)
     {
         host.Children.Add(new TextBlock { Text = title, Style = _noteStyle });
 
-        var boxes = items
+        var boxes = (items ?? [])
             .Select(item => (Box: new CheckBox
             {
                 Content = item.Name,
@@ -161,7 +162,7 @@ public sealed partial class NotificationEditDialog : ContentDialog
         {
             host.Children.Add(new TextBlock
             {
-                Text = "（名单没取到 —— 这一栏留空，不限定）",
+                Text = items is null ? "名单读取失败，已保留原有范围限制" : "名单为空，已保留原有范围限制",
                 Style = _faintStyle,
                 Margin = new Thickness(12, 0, 0, 0)
             });
@@ -189,24 +190,23 @@ public sealed partial class NotificationEditDialog : ContentDialog
             entry.Options["EnableMultipartFormData"] = RequestType.SelectedIndex == 1 ? "true" : "false";
         }
 
-        entry.EventIds =
-        [
-            .. _eventGroups
-                .SelectMany(group => group.Children)
-                .Where(box => box.IsChecked == true)
-                .Select(box => (string)box.Tag!)
-        ];
+        var events = _eventGroups.SelectMany(group => group.Children)
+            .Where(box => box.Tag is string id && !string.IsNullOrWhiteSpace(id))
+            .Select(box => (Box: box, Id: (string)box.Tag!)).ToList();
+        entry.EventIds = [.. Collect(events, entry.EventIds).Where(id => !string.IsNullOrWhiteSpace(id))];
 
-        entry.UserIds = [.. Collect(_userChecks)];
-        entry.LibraryIds = [.. Collect(_libraryChecks)];
-        entry.DeviceIds = [.. Collect(_deviceChecks)];
+        entry.UserIds = [.. Collect(_userChecks, entry.UserIds)];
+        entry.LibraryIds = [.. Collect(_libraryChecks, entry.LibraryIds)];
+        entry.DeviceIds = [.. Collect(_deviceChecks, entry.DeviceIds)];
         entry.GroupItems = _groupItems?.IsChecked == true;
         return entry;
     }
 
     /// <summary>筛选框的值在建框时就记进元组（id 与框同行），收集只是把勾着的挑出来。</summary>
-    private static IEnumerable<string> Collect(List<(CheckBox Box, string Id)> checks) =>
-        checks.Where(one => one.Box.IsChecked == true).Select(one => one.Id);
+    private static IEnumerable<string> Collect(List<(CheckBox Box, string Id)> checks, List<string> selected) =>
+        selected.Where(id => !checks.Any(one => one.Id == id))
+            .Concat(checks.Where(one => one.Box.IsChecked == true).Select(one => one.Id))
+            .Distinct(StringComparer.Ordinal);
 
     private async void OnPrimary(ContentDialog sender, ContentDialogButtonClickEventArgs args)
     {

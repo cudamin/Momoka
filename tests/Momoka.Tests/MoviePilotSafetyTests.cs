@@ -20,6 +20,53 @@ internal static class MoviePilotSafetyTests
 
     private static void OperationTests()
     {
+        Test("AniBT 下载边界：等待登录期间关闭不得继续提交", () =>
+        {
+            var settings = Settings();
+            using var transport = OperationTransport().When("login/access-token", () => settings.MoviePilot.AniBtEnabled = false);
+            using var service = Service(transport, settings);
+            var resource = new MoviePilotResource
+            {
+                Title = "Anonymous AniBT torrent",
+                ConnectionStamp = service.ConnectionStamp,
+                AniBtGeneration = 0,
+                TorrentInfo = Json("""{"title":"Anonymous AniBT torrent","enclosure":"https://example.invalid/torrent"}""")
+            };
+            Assert.Throws<OperationCanceledException>(() => service.DownloadAsync(resource, default).GetAwaiter().GetResult());
+            Assert.Equal(0, transport.Count("download/add"));
+            Assert.Equal(MoviePilotOperationState.Idle, service.DownloadState(resource));
+        });
+
+        Test("MoviePilot 确认回执：未识别媒体不锁下载，修正后可以提交", () =>
+        {
+            using var transport = OperationTransport()
+                .Answer("download/add", """{"success":false,"data":{"requires_confirmation":true}}""")
+                .Answer("media/42?", """{"media_source":"themoviedb","media_id":"42","type":"电视剧","title":"Verified title"}""")
+                .Answer("download/", """{"success":true,"data":{"download_id":"accepted"}}""");
+            using var service = Service(transport);
+            var resource = service.SearchByKeywordAsync("Target", default).GetAwaiter().GetResult().Single();
+            var error = Assert.Catch<MoviePilotException>(() => service.DownloadAsync(resource, default).GetAwaiter().GetResult());
+            Assert.False(error is MoviePilotOperationUncertainException);
+            Assert.Equal(MoviePilotOperationState.Idle, service.DownloadState(resource));
+            var second = service.SearchByKeywordAsync("Target", default).GetAwaiter().GetResult().Single();
+            var corrected = service.ResolveDownloadMediaAsync(second, "themoviedb", "42", "电视剧", default).GetAwaiter().GetResult();
+            service.DownloadAsync(second, default, new(Media: corrected)).GetAwaiter().GetResult();
+            Assert.Equal(MoviePilotOperationState.Submitted, service.DownloadState(second));
+            Assert.Equal(1, transport.Count("download/add"));
+            Assert.Equal(1, transport.Count("download/"));
+            Assert.Contains("media_in", transport.SentTo("download/").Last().Body);
+        });
+        foreach (var flag in new[] { "false", "\"true\"", "null" })
+            Test($"MoviePilot 确认回执：非布尔true仍保留未知保护 {flag}", () =>
+            {
+                using var transport = OperationTransport().Answer("download/add",
+                    "{\"success\":false,\"data\":{\"requires_confirmation\":" + flag + "}}");
+                using var service = Service(transport);
+                var resource = service.SearchByKeywordAsync("Target", default).GetAwaiter().GetResult().Single();
+                Assert.Throws<MoviePilotOperationUncertainException>(() => service.DownloadAsync(resource, default).GetAwaiter().GetResult());
+                Assert.Equal(MoviePilotOperationState.Uncertain, service.DownloadState(resource));
+            });
+
         Test("MoviePilot 操作归属：旧搜索结果不能在新连接订阅", () =>
         {
             using var transport = OperationTransport();

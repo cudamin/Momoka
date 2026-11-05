@@ -411,6 +411,13 @@ public static class TrackLanguagePriority
         if (trimmed == Any) return true;
 
         var entry = ByToken.GetValueOrDefault(trimmed);
+        // Spoken variants outrank a broad Chinese tag when the audio title identifies the voice.
+        // Subtitles deliberately ignore title hints; an unlabelled zh track keeps the existing fallback.
+        if (includeTitle && entry?.Label is "普通话" or "粤语")
+        {
+            var other = ByToken[entry.Label == "普通话" ? "粤语" : "普通话"];
+            if (ContainsHint(title, other.Hints) && !ContainsHint(title, entry.Hints)) return false;
+        }
         var codes = entry?.Codes ?? [trimmed];
         if (CodeMatches(language, codes) || CodeMatches(displayLanguage, codes)) return true;
 

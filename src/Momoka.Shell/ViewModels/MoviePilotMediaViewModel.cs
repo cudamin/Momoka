@@ -494,6 +494,17 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         AniBtSearch = false;
     }
 
+    internal void SyncSubscriptionIdentity(MoviePilotSubscription subscription)
+    {
+        if (!Live || _media is null || !MoviePilotSubscriptionPlan.SameMedia(_media, subscription.Media)
+            || MoviePilotSubscriptionIdentity.Of(_media, GroupId) == MoviePilotSubscriptionIdentity.Of(subscription)) return;
+        _groupLoad?.Cancel();
+        _media = subscription.Media;
+        GroupId = subscription.EpisodeGroup;
+        // Reload owns cancellation/generation checks and rebuilds both season membership and group choices.
+        _ = ReloadAsync();
+    }
+
     public override async Task ReloadAsync()
     {
         if (_lifetime is not { IsCancellationRequested: false } || _media is null || _service is null || Submitting

@@ -24,12 +24,12 @@ internal static class SettingsApplicabilityTests
     private static readonly string[] ShaderDependents = ["显卡档位", "手动指定档位", "自动识别动画", "老片源修复", "8K 片源关闭着色器"];
     private static readonly string[] BackRows = ["底板颜色", "底板不透明度（%）"];
 
-    internal static int Run(string shellAssemblyPath, string sourceRoot)
+    internal static int Run(string shellAssemblyPath, string sourceRoot, bool videoOnly = false)
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         try
         {
-            Register(shellAssemblyPath, sourceRoot);
+            Register(shellAssemblyPath, sourceRoot, videoOnly);
             return TestHarness.Run();
         }
         catch (Exception error)
@@ -39,7 +39,7 @@ internal static class SettingsApplicabilityTests
         }
     }
 
-    public static void Register(string shellAssemblyPath, string sourceRoot)
+    public static void Register(string shellAssemblyPath, string sourceRoot, bool videoOnly = false)
     {
         var shell = new ShellFixture(shellAssemblyPath, sourceRoot);
         TestHarness.Test("适用性：初建与 cached 重入接线使用相同规则（源码检查，非 UI）", () =>
@@ -48,6 +48,23 @@ internal static class SettingsApplicabilityTests
             Assert.Contains("Sections.Add(ApplicableHdrCard());", shell.Source);
             Assert.Contains("RefreshSettingsApplicability();", shell.Source);
         });
+        TestHarness.Test("R9 平滑插值隐藏视频同步，退出模式恢复原偏好", () =>
+        {
+            var state = shell.Create(settings =>
+            {
+                settings.Video.VideoSync = "audio";
+                settings.Video.FrameInterpolationMode = FrameInterpolationMode.Smooth;
+            });
+            Assert.False(state.Labels("基础输出").Contains("视频同步"));
+            state.Settings.Settings.Video.FrameInterpolationMode = FrameInterpolationMode.MotionCompensated;
+            state.Reenter();
+            Assert.True(state.Labels("基础输出").Contains("视频同步"), "运动补偿可能因素材退出，保留同步选择");
+            state.Settings.Settings.Video.FrameInterpolationMode = FrameInterpolationMode.Off;
+            state.Reenter();
+            Assert.True(state.Labels("基础输出").Contains("视频同步"));
+            Assert.Equal("audio", state.Settings.Settings.Video.VideoSync);
+        });
+        if (videoOnly) return;
         TestHarness.Test("SVP 实际设置VM：缓存重入更新补帧及基础输出，偏好不被隐藏清空", () =>
         {
             var state = shell.Create(settings =>
@@ -435,6 +452,7 @@ internal static class SettingsApplicabilityTests
         public event EventHandler? SaveStateChanged { add { } remove { } }
         public bool HasUnsavedChanges { get; private set; }
         public bool TrySave() { Saves++; HasUnsavedChanges = !SaveSucceeds; return SaveSucceeds; }
+        public void SaveDeferred() => TrySave();
         public void Save() => throw new InvalidOperationException("只允许假 TrySave");
         public ServerProfile ResolveServer(string url) => throw new InvalidOperationException("禁止登录路径");
         public AccountProfile ResolveAccount(ServerProfile server, string username) => throw new InvalidOperationException("禁止账号路径");

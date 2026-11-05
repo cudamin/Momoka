@@ -217,20 +217,25 @@ public sealed partial class PlaybackService(
         var generation = Generation;
         if (!double.IsFinite(value) || handle is not IPlayerControl control || !handle.HasControlChannel) return null;
 
-        bool Current() => ReferenceEquals(_current, handle) && generation == Generation && handle.HasControlChannel;
+        var fileControl = control as IFileScopedPlayerControl;
+        var fileGeneration = fileControl?.FileGeneration;
+        bool Current() => ReferenceEquals(_current, handle) && generation == Generation && handle.HasControlChannel
+            && (fileControl is null || _active is { Ending: false } && fileGeneration == fileControl.FileGeneration);
+        Task<bool> CommandAsync(IReadOnlyList<string> arguments) => fileControl is null
+            ? control.CommandAsync(arguments, CancellationToken.None)
+            : fileControl.CommandForFileAsync(fileGeneration!.Value, arguments, CancellationToken.None);
         await _audioDelayGate.WaitAsync().ConfigureAwait(false);
         try
         {
             if (!Current()) return null;
-            var accepted = await control.CommandAsync(
-                [relative ? "add" : "set", "audio-delay", value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)],
-                CancellationToken.None).ConfigureAwait(false);
+            var accepted = await CommandAsync(
+                [relative ? "add" : "set", "audio-delay", value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)]).ConfigureAwait(false);
             if (!accepted || !Current()) return null;
             var actual = await handle.GetNumberAsync("audio-delay", CancellationToken.None).ConfigureAwait(false);
             if (!Current() || actual is not { } seconds || !double.IsFinite(seconds)) return null;
             if (notice)
-                await control.CommandAsync(
-                    ["show-text", "音频延迟：${audio-delay} 秒", "1200"], CancellationToken.None).ConfigureAwait(false);
+                await CommandAsync(
+                    ["show-text", "音频延迟：${audio-delay} 秒", "1200"]).ConfigureAwait(false);
             return Current() ? seconds : null;
         }
         catch (Exception error)
@@ -431,6 +436,16 @@ public sealed partial class PlaybackService(
                 throw new InvalidOperationException("目标着色器链缺少文件，未改变当前配置");
             var launch = _launchOptions;
             var chainCount = _launchGroupOptionCount;
+            if (handle.UsesCustomConfig)
+            {
+                // The planner precedes mpv.conf; only the handle's pre-command snapshot can restore it.
+                var restore = handle.ShaderRestoreOptions;
+                if (restore is null || ShaderGroupCatalog.NeutralOptions.Any(option =>
+                    option.Key != "glsl-shaders" && !restore.ContainsKey(option.Key)))
+                    throw new InvalidOperationException("读不到自定义配置的画质恢复基线");
+                launch = restore.ToArray();
+                chainCount = 0;
+            }
             var profiles = await handle.GetTextAsync("profile-list", CancellationToken.None).ConfigureAwait(false);
             if (!Current()) return false;
             var defaults = new Dictionary<string, string>(StringComparer.Ordinal);

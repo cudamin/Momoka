@@ -192,8 +192,9 @@ public static class TrackSelection
             // 分不开时把决定交给 mpv（不传 sid，只给 slang）：客户端手里只有 Emby 那份元数据，而容器里的
             // 语言标记（zh-Hans／zh-Hant）与 default 标记只有 mpv 看得见。只对「点名了简/繁」的场合这么做：
             // 没点名时按默认轨/库序取一条仍是用户要的语义，而「其他字幕」本来就是「随便哪条都行」。
-            // 强制字幕模式也除外：那里必须落在一条 forced 轨上。
-            if (namesVariant && !forcedOnly && ranked.Count > 1
+            // 强制字幕模式也除外：那里必须落在一条 forced 轨上。标题已缩小候选集时同样明确选择；
+            // mpv 的自动选择看不到标题过滤，交回它会重新选中已退为候补的默认轨。
+            if (namesVariant && !forcedOnly && ranked.Count > 1 && ranked.Count == matches.Count
                 && TrackLanguagePriority.Canonical(language) != TrackLanguagePriority.Any) return SubtitleChoice.None;
 
             return new SubtitleChoice(TrackPreference.Best(ranked, source.DefaultSubtitleStreamIndex, forcedOnly), false);

@@ -25,11 +25,39 @@ namespace Momoka.Shell.Interop
         internal static NativeRect Bounds { get; set; }
         internal static int Reads { get; set; }
 
-        internal static void GetWindowRect(IntPtr handle, out NativeRect bounds)
+        internal static volatile bool OverlayVisible;
+        internal static bool ForeignOverlay;
+        internal static bool WrongOverlayClass;
+        internal static bool OverlayReadFails;
+        internal static NativeRect OverlayBounds;
+        internal static TaskCompletionSource OverlayRead { get; set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal static readonly IntPtr OverlayWindow = new(2);
+        internal static IntPtr NextWindow(IntPtr parent, IntPtr after, string? className, string? title) =>
+            after == IntPtr.Zero && OverlayVisible ? OverlayWindow : IntPtr.Zero;
+        internal static bool IsWindowVisible(IntPtr handle) => handle == OverlayWindow && OverlayVisible;
+        internal static uint GetWindowThreadProcessId(IntPtr handle, out uint process)
         {
+            process = ForeignOverlay ? uint.MaxValue : (uint)Environment.ProcessId;
+            return 1;
+        }
+        internal static int GetClassName(IntPtr handle, char[] buffer, int capacity)
+        {
+            var name = WrongOverlayClass ? "OtherWindow" : "MomokaVideoFrame";
+            name.CopyTo(0, buffer, 0, name.Length);
+            return name.Length;
+        }
+        internal static bool GetWindowRect(IntPtr handle, out NativeRect bounds)
+        {
+            if (handle == OverlayWindow)
+            {
+                bounds = OverlayBounds;
+                OverlayRead.TrySetResult();
+                return !OverlayReadFails;
+            }
             if (handle != new IntPtr(1)) throw new InvalidOperationException("Unexpected fixture window");
             Reads++;
             bounds = Bounds;
+            return true;
         }
     }
 }

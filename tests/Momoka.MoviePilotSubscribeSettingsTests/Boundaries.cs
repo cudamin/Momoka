@@ -12,7 +12,10 @@ namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
     public enum ElementTheme { Default, Light, Dark }
-    public readonly record struct Thickness(double Left, double Top, double Right, double Bottom);
+    public readonly record struct Thickness(double Left, double Top, double Right, double Bottom)
+    {
+        public Thickness(double uniform) : this(uniform, uniform, uniform, uniform) { }
+    }
     public sealed class XamlRoot;
     public sealed class ResourceDictionary : System.Collections.Generic.Dictionary<object, object>;
     public sealed class Application

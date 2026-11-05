@@ -44,6 +44,7 @@ public sealed partial class MoviePilotService
         string source, string id, string type, CancellationToken cancellationToken)
     {
         if (resource.DownloadProblem is { } problem) throw new MoviePilotOperationBlockedException(problem);
+        CheckAniBtResource(resource);
         var identity = RequireResultConnection(resource.ConnectionStamp);
         if (resource.ConnectionGeneration is { } generation && generation != identity.Generation)
             throw new MoviePilotOperationBlockedException("MoviePilot 配置曾发生变化，请重新搜索资源");
@@ -62,6 +63,7 @@ public sealed partial class MoviePilotService
         var media = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken),
             cancellationToken, identity).ConfigureAwait(false);
         CheckIdentity(identity, cancellationToken);
+        CheckAniBtResource(resource);
         var title = MoviePilotTransfer.Text(media, "title");
         if (media.ValueKind != JsonValueKind.Object ||
             MoviePilotTransfer.Text(media, "media_source") != source ||
@@ -75,12 +77,14 @@ public sealed partial class MoviePilotService
     /// <summary>目录与资源绑定到同一连接，只投影显示需要的名称和下载路径。</summary>
     public async Task<MoviePilotDownloadChoices> DownloadChoicesAsync(MoviePilotResource resource, CancellationToken cancellationToken)
     {
+        CheckAniBtResource(resource);
         var identity = RequireResultConnection(resource.ConnectionStamp);
         if (resource.ConnectionGeneration is { } generation && generation != identity.Generation)
             throw new MoviePilotOperationBlockedException("MoviePilot 配置曾发生变化，请重新搜索 AniBT 资源");
         var clients = CallAsync((address, token) => _client.GetAsync(address, token, "download/clients", cancellationToken), cancellationToken, identity);
         var paths = CallAsync((address, token) => _client.GetAsync(address, token, "download/paths", cancellationToken), cancellationToken, identity);
         await Task.WhenAll(clients, paths).ConfigureAwait(false);
+        CheckAniBtResource(resource);
         return new(Values(await clients.ConfigureAwait(false), "name"), Values(await paths.ConfigureAwait(false), "save_path"));
     }
 

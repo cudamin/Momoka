@@ -18,6 +18,8 @@ public sealed partial class DanmakuPanel : UserControl
     private bool _seeding;
     private bool _sourceSeeding;
     private DanmakuSource _searchSource = DanmakuSource.DandanPlay;
+    private DanmakuSource? _resultsSource;
+    private int _resultsConnectionVersion;
     private bool _closed;
     private int _searchRequest;
     private readonly ObservableCollection<string> _fontFamilies = [];
@@ -146,12 +148,16 @@ public sealed partial class DanmakuPanel : UserControl
     {
         if (!Current() || _viewModel is null) return;
         var request = ++_searchRequest;
+        var source = _searchSource;
+        var connectionVersion = _viewModel.DanmakuConnectionVersion;
         SearchButton.IsEnabled = false;
         try
         {
-            var matches = await _viewModel.SearchDanmakuAsync(TitleBox.Text, EpisodeBox.Text.Trim(), _searchSource).ConfigureAwait(true);
-            if (request != _searchRequest || !Current()) return;
+            var matches = await _viewModel.SearchDanmakuAsync(TitleBox.Text, EpisodeBox.Text.Trim(), source).ConfigureAwait(true);
+            if (request != _searchRequest || !Current() || connectionVersion != _viewModel.DanmakuConnectionVersion) return;
             _results.Clear();
+            _resultsSource = source;
+            _resultsConnectionVersion = connectionVersion;
             foreach (var match in matches.Episodes) _results.Add(match);
             Results.Visibility = _results.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         }
@@ -163,9 +169,11 @@ public sealed partial class DanmakuPanel : UserControl
 
     private async void OnLoad(object sender, RoutedEventArgs e)
     {
-        if (!Current() || _viewModel is null || Results.SelectedItem is not DandanPlayEpisode episode) return;
+        if (!Current() || _viewModel is null || Results.SelectedItem is not DandanPlayEpisode episode
+            || _resultsSource is not { } source || !_results.Contains(episode)
+            || _resultsConnectionVersion != _viewModel.DanmakuConnectionVersion) return;
         LoadButton.IsEnabled = false;
-        try { await _viewModel.LoadDanmakuAsync(episode, _searchSource).ConfigureAwait(true); }
+        try { await _viewModel.LoadDanmakuAsync(episode, source).ConfigureAwait(true); }
         finally { if (!_closed) LoadButton.IsEnabled = true; }
     }
 
@@ -188,6 +196,10 @@ public sealed partial class DanmakuPanel : UserControl
     private void OnSourceChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_sourceSeeding || SourceBox.SelectedItem is not DanmakuSourceOption option) return;
+        _searchRequest++;
+        _viewModel?.CancelDanmakuSearch();
+        _resultsSource = null;
+        SearchButton.IsEnabled = true;
         _searchSource = option.Source;
         SearchButton.Content = $"搜索{option.Label}";
         _results.Clear();

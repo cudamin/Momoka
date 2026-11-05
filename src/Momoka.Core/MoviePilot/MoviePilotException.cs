@@ -30,6 +30,10 @@ public sealed class MoviePilotOperationBlockedException(string message) : MovieP
 
 public sealed class MoviePilotMediaNotRecognizedException() : MoviePilotException("未识别到媒体信息。");
 
+/// <summary>服务端确认尚未加入下载；用户可在高级选项核对媒体后重新提交。</summary>
+public sealed class MoviePilotDownloadConfirmationRequiredException()
+    : MoviePilotException("MoviePilot 尚未识别此资源，未加入下载；请重新打开下载，在高级选项核对媒体后提交。");
+
 public sealed class MoviePilotOperationUncertainException(string message) : MoviePilotException(message);
 
 /// <summary>Nothing answered at that address, or it answered too slowly. The one failure worth retrying.</summary>

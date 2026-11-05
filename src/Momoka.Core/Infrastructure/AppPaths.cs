@@ -273,7 +273,9 @@ public sealed class AppPaths
             catch (Exception) { continue; }
 
             first ??= paths;
-            if (File.Exists(paths.SettingsFile)) return paths;
+            // Diagnostics must keep the current profile's recovery problem visible. Choosing an older
+            // main file would bypass SelfCheckRun's strict "restore the current backup first" guard.
+            if (File.Exists(paths.SettingsFile) || File.Exists(paths.SettingsBackupFile)) return paths;
         }
 
         return first ?? Default;

@@ -54,15 +54,22 @@ public sealed partial class MoviePilotMediaSeasonsView : UserControl
 
     private void FlagSubscriptionSeason()
     {
-        if (_files?.Selected is not { } card) return;
-        var season = card.Subscription.Media.Season;
+        var card = _files?.Selected;
+        var season = card?.Subscription.Media.Season;
         foreach (var row in ViewModel.Seasons)
         {
-            var host = !_files.Deleted && !row.IsMovie && row.Season.Number == season
+            var host = _files is not null && card is not null && !_files.Deleted && !row.IsMovie && row.Season.Number == season
                 && ViewModel.GroupId == card.Subscription.EpisodeGroup;
             row.Files = host ? _files : null;
-            if (!host) continue;
-            row.FilesSummary = _files.FileSummary;
+            if (!host)
+            {
+                row.FilesEpisodes = null;
+                row.FilesSummary = "";
+                row.FilesPlaybackStatus = "";
+                row.FilesEmptyNotice = "";
+                continue;
+            }
+            row.FilesSummary = _files!.FileSummary;
             row.FilesPlaybackStatus = _files.PlaybackStatus;
             row.FilesEmptyNotice = _files.FilterNotice;
             row.FilesFilterIndex = _files.FilterIndex;
@@ -74,7 +81,7 @@ public sealed partial class MoviePilotMediaSeasonsView : UserControl
     private void OnFilesPropertyChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (_files is null) return;
-        if (args.PropertyName is nameof(MoviePilotSubscriptionsViewModel.Deleted) or nameof(MoviePilotSubscriptionsViewModel.Selected))
+        if (args.PropertyName is nameof(MoviePilotSubscriptionsViewModel.Deleted) or nameof(MoviePilotSubscriptionsViewModel.Selected) or nameof(MoviePilotSubscriptionsViewModel.SelectedIdentity))
         {
             FlagSubscriptionSeason();
             return;

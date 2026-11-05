@@ -317,7 +317,7 @@
     <value>类型</value>
   </data>
   <data name="MetadataDialog_GenresBox.PlaceholderText" xml:space="preserve">
-    <value>用、或逗号分开</value>
+    <value>用、或逗号分开；单项含标点时用双引号包住</value>
   </data>
   <data name="MetadataDialog_IndexBox.Header" xml:space="preserve">
     <value>集号</value>
@@ -353,7 +353,7 @@
     <value>标签</value>
   </data>
   <data name="MetadataDialog_TagsBox.PlaceholderText" xml:space="preserve">
-    <value>用、或逗号分开</value>
+    <value>用、或逗号分开；单项含标点时用双引号包住</value>
   </data>
   <data name="MissingEpisodesDialog_ContentDialog1.CloseButtonText" xml:space="preserve">
     <value>关闭</value>

@@ -129,6 +129,9 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
 {
     public async Task<AniBtSearchPage> SearchAsync(string term, int page, CancellationToken cancellationToken)
     {
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var registration = moviePilot.ObserveAniBtOperation(operation);
+        cancellationToken = operation.Token;
         var connection = moviePilot.CaptureAniBtConnection();
         var result = await client.SearchAsync(term, page, cancellationToken).ConfigureAwait(false);
         moviePilot.CheckAniBtConnection(connection, cancellationToken);
@@ -137,6 +140,9 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
 
     public async Task<AniBtSearchPage> SearchCatalogAsync(string term, string? cursor, CancellationToken cancellationToken)
     {
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var registration = moviePilot.ObserveAniBtOperation(operation);
+        cancellationToken = operation.Token;
         var connection = moviePilot.CaptureAniBtConnection();
         var result = await client.SearchCatalogAsync(term, cursor, cancellationToken).ConfigureAwait(false);
         moviePilot.CheckAniBtConnection(connection, cancellationToken);
@@ -145,6 +151,9 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
 
     public async Task<AniBtBrowsePage> BrowseAsync(AniBtAnime anime, CancellationToken cancellationToken)
     {
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var registration = moviePilot.ObserveAniBtOperation(operation);
+        cancellationToken = operation.Token;
         var connection = moviePilot.CaptureAniBtConnection();
         var page = await client.GroupPageAsync(anime, cancellationToken).ConfigureAwait(false);
         moviePilot.CheckAniBtConnection(connection, cancellationToken);
@@ -158,6 +167,9 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
 
     public async Task<IReadOnlyList<AniBtResource>> ResourcesAsync(AniBtAnime anime, CancellationToken cancellationToken, int? episode = null)
     {
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var registration = moviePilot.ObserveAniBtOperation(operation);
+        cancellationToken = operation.Token;
         var connection = moviePilot.CaptureAniBtConnection();
         var releases = await client.ReleasePageAsync(anime, cancellationToken, episode).ConfigureAwait(false);
         moviePilot.CheckAniBtConnection(connection, cancellationToken);
@@ -167,6 +179,9 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
 
     public async Task<AniBtScrapePlan> PrepareAsync(EmbyClient emby, EmbyItem item, CancellationToken cancellationToken)
     {
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var registration = moviePilot.ObserveAniBtOperation(operation);
+        cancellationToken = operation.Token;
         var started = Stopwatch.GetTimestamp();
         var connection = moviePilot.CaptureAniBtConnection();
         if (!AniBtEligibility.CanIdentify(item)
@@ -249,6 +264,9 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
     public async Task<AniBtPreparedScrapePlan> PrepareForConfirmationAsync(EmbyClient emby, AniBtScrapePlan plan,
         IReadOnlyList<AniBtAnime> choices, CancellationToken cancellationToken, Func<bool>? canContinue = null)
     {
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var registration = moviePilot.ObserveAniBtOperation(operation);
+        cancellationToken = operation.Token;
         var started = Stopwatch.GetTimestamp();
         moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
         plan.EnsureNotSubmitted();
@@ -402,8 +420,17 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
     public async Task<IReadOnlyList<AniBtScrapeResult>> SubmitAsync(EmbyClient emby, AniBtPreparedScrapePlan prepared,
         CancellationToken cancellationToken, Func<bool>? canContinue = null)
     {
+        using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var registration = moviePilot.ObserveAniBtOperation(operation);
+        cancellationToken = operation.Token;
         var started = Stopwatch.GetTimestamp();
         var plan = prepared.Plan;
+        var callerCanContinue = canContinue;
+        canContinue = () =>
+        {
+            moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
+            return callerCanContinue?.Invoke() != false;
+        };
         try
         {
             if (!ReferenceEquals(prepared.Owner, this))

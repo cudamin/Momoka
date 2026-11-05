@@ -29,6 +29,8 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
     {
         var plain = EmbyServerAddress.Normalize(address, MediaServerKind.Jellyfin);
         var emby = EmbyServerAddress.Normalize(address);
+        var plex = Momoka.Plex.PlexEndpoint.Normalize(address);
+        var hasSeparatePlexEndpoint = !embyFamilyOnly && !EmbyHttpRedirect.SameOrigin(plain, plex);
         var candidates = new[] { plain, emby }.Distinct();
         EmbyApiException? failure = null;
         foreach (var candidate in candidates)
@@ -47,6 +49,13 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
             {
                 failure = error;
             }
+            catch (EmbyUnreachableException error) when (hasSeparatePlexEndpoint)
+            {
+                // A bare HTTP host also has a Plex candidate on 32400. Refusal on port 80 says
+                // nothing about that endpoint; retain the original failure if no candidate answers.
+                failure = error;
+                break;
+            }
         }
         if (embyFamilyOnly) throw failure ?? new EmbyApiException("无法确认 Emby 或 Jellyfin 服务器信息");
         try
@@ -56,7 +65,8 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
         catch (Momoka.FnNas.FnNasApiException error)
         {
             // 路由不存在仍可继续探测 Plex；已返回的身份／签名／服务故障必须保留，不能被最后一个 404 覆盖。
-            if (error.StatusCode != System.Net.HttpStatusCode.NotFound && error.Code is not (-6 or -13 or -60))
+            if (failure is not EmbyUnreachableException
+                && error.StatusCode != System.Net.HttpStatusCode.NotFound && error.Code is not (-6 or -13 or -60))
                 failure = Momoka.FnNas.FnNasMediaAdapter.Translate(error);
         }
         try

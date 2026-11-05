@@ -72,6 +72,12 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         PaintBackdropFade();
         PrepareShowcase();
         WatchShowcaseTheme();
+        ViewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(MoviePilotSubscriptionsViewModel.SelectedIdentity)
+                && ViewModel.Selected is { } selected)
+                MediaViewModel.SyncSubscriptionIdentity(selected.Subscription);
+        };
         MediaViewModel.PropertyChanged += OnShowcaseChanged;
         MediaViewModel.PropertyChanged += (_, args) =>
         {

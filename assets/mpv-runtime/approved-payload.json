@@ -104,8 +104,8 @@
     {
       "path": "mpv-ui/scripts/momoka_subtitle_translation.lua",
       "source": "assets/mpv-ui/scripts/momoka_subtitle_translation.lua",
-      "size": 6035,
-      "sha256": "fd5bad91dcfca38a01a0d6364ad923c8c7dc8549afd32e5fb637f01a82ffe1ae"
+      "size": 6201,
+      "sha256": "dc23e104bdfcdb710eeb8816a8dc07f03dd91dbfc4f19e49f1d1aa47cedc10fc"
     },
     {
       "path": "mpv-ui/scripts/stats.lua",
@@ -176,8 +176,8 @@
     {
       "path": "mpv-ui/scripts/uosc/elements/Menu.lua",
       "source": "assets/mpv-ui/scripts/uosc/elements/Menu.lua",
-      "size": 77541,
-      "sha256": "bb782f73152c688f484862977c1021054175f7590473b3fc2584527c41c0e479"
+      "size": 77564,
+      "sha256": "c466d090de73ce413b58342e5b7290284ba5a2f8e1ea35b405c3187ea15a4167"
     },
     {
       "path": "mpv-ui/scripts/uosc/elements/PauseIndicator.lua",
@@ -212,8 +212,8 @@
     {
       "path": "mpv-ui/scripts/uosc/elements/Volume.lua",
       "source": "assets/mpv-ui/scripts/uosc/elements/Volume.lua",
-      "size": 10558,
-      "sha256": "f5ce15bc7b3f74ecef35e2cdaa00188657867556d731d85aa5d8c353511f9d0a"
+      "size": 10761,
+      "sha256": "8d87a12b401eb49f9d92e13b87ad2752243fbd498e044dd9913faa553d06f371"
     },
     {
       "path": "mpv-ui/scripts/uosc/elements/WindowBorder.lua",

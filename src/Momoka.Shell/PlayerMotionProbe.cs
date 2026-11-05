@@ -57,6 +57,84 @@ internal static class PlayerMotionProbe
         finally { Marshal.FreeHGlobal(buffer); }
     }
 
+    private sealed record StopOverlaySample(IntPtr Window, uint Process, string ClassName, NativeRect Bounds);
+
+    private static IReadOnlyList<StopOverlaySample> ReadStopOverlays()
+    {
+        var samples = new List<StopOverlaySample>();
+        var seen = new HashSet<IntPtr>();
+        var after = IntPtr.Zero;
+        // FindWindowEx visits top-level windows; cap enumeration if windows change during a sample.
+        for (var index = 0; index < 64; index++)
+        {
+            after = Native.NextWindow(IntPtr.Zero, after, "MomokaVideoFrame", null);
+            if (after == IntPtr.Zero || !seen.Add(after)) break;
+            if (!Native.IsWindowVisible(after)) continue;
+            Native.GetWindowThreadProcessId(after, out var process);
+            if (process != (uint)Environment.ProcessId) continue;
+            var name = new char[64];
+            var length = Native.GetClassName(after, name, name.Length);
+            if (length <= 0 || new string(name, 0, length) != "MomokaVideoFrame") continue;
+            if (!Native.GetWindowRect(after, out var bounds) || bounds.Width <= 0 || bounds.Height <= 0) continue;
+            // The HWND could disappear between calls; only retain a still-visible same-process sample.
+            Native.GetWindowThreadProcessId(after, out var confirmedProcess);
+            if (confirmedProcess == process && Native.IsWindowVisible(after))
+                samples.Add(new(after, process, new string(name, 0, length), bounds));
+        }
+        return samples;
+    }
+
+    private static string StopOverlayEvidence(NativeRect expected, IReadOnlyList<StopOverlaySample> samples, string? failure)
+    {
+        if (failure is not null) return $"R18 覆盖层采样缺口：{failure}；不计为通过";
+        if (samples.Count == 0) return "R18 覆盖层采样缺口：停止调用期间未观察到可见的本进程 MomokaVideoFrame；不计为通过";
+        var matches = samples.All(sample => sample.Process == (uint)Environment.ProcessId
+            && sample.ClassName == "MomokaVideoFrame" && sample.Bounds.Left == expected.Left
+            && sample.Bounds.Top == expected.Top && sample.Bounds.Right == expected.Right && sample.Bounds.Bottom == expected.Bottom);
+        return $"R18 覆盖层矩形{(matches ? "一致" : "不符")}：{samples.Count} 次可见本进程窗口采样；"
+            + $"预期客户区={expected.Left},{expected.Top},{expected.Width}x{expected.Height}；"
+            + (matches ? "仅为独立运行诊断，不替代画面验收" : "未通过诊断，检查下方实际矩形");
+    }
+
+    private static async Task ObserveStopHandoffAsync(Func<Task> prepareStop, NativeRect expected,
+        Action<string> write, CancellationToken token)
+    {
+        using var sampling = CancellationTokenSource.CreateLinkedTokenSource(token);
+        sampling.CancelAfter(TimeSpan.FromSeconds(6));
+        var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var observed = new List<StopOverlaySample>();
+        string? failure = null;
+        var sampler = Task.Run(async () =>
+        {
+            try
+            {
+                // Existing transition overlays are not evidence of the stop handoff being observed.
+                var previous = ReadStopOverlays().Select(sample => sample.Window).ToHashSet();
+                ready.TrySetResult();
+                while (!sampling.IsCancellationRequested)
+                {
+                    observed.AddRange(ReadStopOverlays().Where(sample => !previous.Contains(sample.Window)));
+                    await Task.Delay(4, sampling.Token).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException) when (sampling.IsCancellationRequested) { }
+            catch (Exception error) { failure = error.GetType().Name; }
+            finally { ready.TrySetResult(); }
+        }, CancellationToken.None);
+        await ready.Task;
+        try { await prepareStop(); }
+        finally
+        {
+            sampling.Cancel();
+            await sampler;
+            write(StopOverlayEvidence(expected, observed, failure));
+            foreach (var sample in observed.DistinctBy(sample => (sample.Window, sample.Bounds.Left, sample.Bounds.Top,
+                sample.Bounds.Right, sample.Bounds.Bottom)))
+                write($"R18 覆盖层实际窗口 HWND=0x{sample.Window:X} PID={sample.Process} class={sample.ClassName} "
+                    + $"rect={sample.Bounds.Left},{sample.Bounds.Top},{sample.Bounds.Width}x{sample.Bounds.Height}");
+        }
+    }
+
     private static async Task RunScoped(StartupOptions options)
     {
         Directory.CreateDirectory(options.Paths.LogDirectory);
@@ -799,6 +877,7 @@ internal static class PlayerMotionProbe
             Require(surface.PlacedRect.Width == 0, "退场收摊后 SpriteVisual 已拆掉（画面不留残影）");
             Require(!surface.IsRetained, "退场收摊后保留态结束");
             Native.GetWindowRect(window.Handle, out var restored);
+            Write($"退出几何核对：expected={browse.Left},{browse.Top},{browse.Width}x{browse.Height}; actual={restored.Left},{restored.Top},{restored.Width}x{restored.Height}; maximized={window.IsMaximized}; saved={window.BrowseBounds.Left},{window.BrowseBounds.Top},{window.BrowseBounds.Width}x{window.BrowseBounds.Height}");
             Require(!window.IsMaximized && restored.Left == browse.Left && restored.Top == browse.Top
                 && restored.Width == browse.Width && restored.Height == browse.Height, "退出回到播放前的浏览几何");
 
@@ -919,7 +998,8 @@ internal static class PlayerMotionProbe
                 await Task.Delay(350, token);
 
                 Require(page.ViewModel.PrepareStopAsync is not null, "停止前的页面交接已经接线");
-                await page.ViewModel.PrepareStopAsync!();
+                var stopClient = VideoFrameOverlay.ClientRect(window.Handle);
+                await ObserveStopHandoffAsync(page.ViewModel.PrepareStopAsync!, stopClient, Write, token);
                 Require(control.Status.Loaded, "先返回浏览页时后端仍有视频，尚未发送停止");
                 Require(!page.PlayerVisible && shell.SignInVisible && !window.PlaybackTitleBar && !window.Fullscreen,
                     "停止前浏览页已显示，播放器及全屏已收回");

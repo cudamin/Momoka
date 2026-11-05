@@ -60,6 +60,7 @@ function Invoke-ChildScript([string]$Name, [string]$File, [string[]]$Arguments) 
 
 Push-Location -LiteralPath $root
 try {
+    $buildPassed = $false
     if (-not $SkipBuild) {
         Invoke-Step '编译（Release，0 警告 0 错误）' {
             $log = Join-Path $evidence 'build.log'
@@ -79,6 +80,7 @@ try {
             $errors = @($lines | Where-Object { "$_" -match ': error ' }).Count
             if ($warnings -gt 0 -or $errors -gt 0) { throw "构建有 $warnings 条警告、$errors 条错误，日志 $log" }
         }
+        $buildPassed = $results[$results.Count - 1].Ok
 
         Invoke-Step '空白检查（dotnet format whitespace）' {
             $log = Join-Path $evidence 'format-whitespace.log'
@@ -95,12 +97,18 @@ try {
 
     Invoke-ChildScript 'PowerShell 脚本检查' 'tools/check-scripts.ps1' @()
 
-    Invoke-Step '架构依赖（NetArchTest）' {
+    if (-not $SkipBuild -and -not $buildPassed) {
+        $results.Add([pscustomobject]@{ Name = '架构依赖（NetArchTest）'; Ok = $false; Detail = '未执行：当前产品构建未通过。' })
+        Write-Output '[未执行] 架构依赖：当前产品构建未通过，不能使用旧 DLL。'
+    } elseif ($SkipBuild) {
+        # Skipping the whole solution build does not authorize trusting stale product assemblies.
+        Invoke-ChildScript '架构依赖（当前产品编译后）' 'tools/run-regressions.ps1' @('-Suite', 'Momoka.ArchitectureTests')
+    } else { Invoke-Step '架构依赖（NetArchTest）' {
         $log = Join-Path $evidence 'architecture.log'
         & $dotnet run --project ./tests/Momoka.ArchitectureTests/Momoka.ArchitectureTests.csproj `
             -c Release --no-build --no-restore -- $root *> $log
         Get-Content -LiteralPath $log -Tail 12 | ForEach-Object { Write-Output $_ }
-    }
+    } }
 
     if (-not $SkipDuplication) {
         Invoke-ChildScript '重复代码（jscpd 预算）' 'tools/check-duplication.ps1' @('-ReportDirectory', (Join-Path $evidence 'duplication'))

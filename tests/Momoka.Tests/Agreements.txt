@@ -23,7 +23,7 @@ bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.RowHeight
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Title
 color  Theme/Palette.xaml  78
 color  Views/DetailPage.xaml  12
-color  Views/HomeBanner.xaml  23
+color  Views/HomeBanner.xaml  18
 color  Views/HtmlColorPicker.xaml  11
 color  Views/PlayerPage.xaml  2
 font-size  Theme/Styles.xaml  2

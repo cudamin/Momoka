@@ -84,6 +84,6 @@ internal static class MediaManagementCardTests
             Success = true
         };
         return (MoviePilotHistoryPlan)Activator.CreateInstance(typeof(MoviePilotHistoryPlan), BindingFlags.Instance | BindingFlags.NonPublic,
-            null, ["长标题", action, true, "fixture", new[] { history }], null)!;
+            null, ["长标题", action, true, "fixture", new[] { history }, new[] { history.TargetPath }, new object(), "fixture-item"], null)!;
     }
 }

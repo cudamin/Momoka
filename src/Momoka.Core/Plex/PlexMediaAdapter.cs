@@ -144,6 +144,8 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
         if (query.IsResumable) return await QueryResumeAsync(query.StartIndex, query.Limit, ct).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {
+            if (query.IncludeItemTypes.Count > 0)
+                return await SearchFilteredAsync(query, ct).ConfigureAwait(false);
             var container = await client.SearchAsync(connection, query.SearchTerm.Trim(), query.StartIndex, query.Limit, ct)
                 .ConfigureAwait(false);
             var found = Items(container).Select(Item).Where(item => query.IncludeItemTypes.Count == 0
@@ -157,6 +159,25 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
             .ConfigureAwait(false);
         var values = Items(page).Select(Item).ToList();
         return new ItemsResult { Items = values, TotalRecordCount = Integer(page, "totalSize") ?? values.Count };
+    }
+
+    private async Task<ItemsResult> SearchFilteredAsync(ItemQuery query, CancellationToken ct)
+    {
+        // /search pages all types. Keep its raw offset local and expose an offset/count in the
+        // filtered result space, so ordinary and aggregate cursors both consume the same sequence.
+        var found = new List<EmbyItem>();
+        var offset = 0;
+        const int pageSize = 100;
+        while (true)
+        {
+            var page = await client.SearchAsync(connection, query.SearchTerm!.Trim(), offset, pageSize, ct).ConfigureAwait(false);
+            var raw = Items(page).ToList();
+            if (raw.Count == 0) break;
+            found.AddRange(raw.Select(Item).Where(item => query.IncludeItemTypes.Contains(item.Type, StringComparer.Ordinal)));
+            offset = checked(offset + raw.Count);
+            if (Integer(page, "totalSize") is { } total ? offset >= total : raw.Count < pageSize) break;
+        }
+        return new ItemsResult { Items = [.. found.Skip(query.StartIndex).Take(query.Limit)], TotalRecordCount = found.Count };
     }
 
     public async Task<List<EmbyItem>> GetLatestAsync(string? parentId, int limit, string? types, CancellationToken ct) =>

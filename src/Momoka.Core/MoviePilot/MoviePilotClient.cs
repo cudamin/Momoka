@@ -272,6 +272,18 @@ public sealed partial class MoviePilotClient : IDisposable
         return reply.Data;
     }
 
+    // 此回执由上游在调用下载链之前返回；仅下载入口可将它归为尚未发送。
+    internal async Task<JsonElement> PostDownloadAsync(Uri apiBase, string token, string path, object body,
+        CancellationToken cancellationToken)
+    {
+        var reply = await PostReplyAsync(apiBase, token, path, body, cancellationToken).ConfigureAwait(false);
+        if (!reply.Success && reply.Data.ValueKind == JsonValueKind.Object
+            && reply.Data.TryGetProperty("requires_confirmation", out var confirmation)
+            && confirmation.ValueKind == JsonValueKind.True)
+            throw new MoviePilotDownloadConfirmationRequiredException();
+        return DataOrThrow(reply);
+    }
+
     // 整理允许部分成功，保留失败信封里的逐文件回执，不能因此重试整批。
     private static async Task<MoviePilotReply> ReadReplyAsync(
         HttpResponseMessage response,

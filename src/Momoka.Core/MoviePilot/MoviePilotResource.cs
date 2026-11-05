@@ -11,6 +11,7 @@ public sealed record MoviePilotResource
     public string DisplayTitle => string.IsNullOrWhiteSpace(RecognizedTitle) ? Title : RecognizedTitle;
     internal string ConnectionStamp { get; init; } = "";
     internal long? ConnectionGeneration { get; init; }
+    internal long? AniBtGeneration { get; init; }
     public string? Description { get; init; }
     public string? SiteName { get; init; }
     public long Size { get; init; }

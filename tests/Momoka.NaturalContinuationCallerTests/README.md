@@ -1,5 +1,9 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-05：删除后导航的来源同步
+
+核对 `0f3657d`：`EpisodeNavigation.cs` 只新增删除后的 `AfterRemoval`，原 `Step` 与自然续播提取成员未变；定点更新此文件 SHA256，保留完整源校验和提取器。当前实际 caller 51/51，调用参数必须是本树根和 `artifacts/r046-caller` 下的新输出目录。第一次遗漏参数的运行退出2，未计为行为回归失败或通过。
+
 ## 2026-11-04：主树弹幕修改的来源同步
 
 合入详情自定义时，全方案构建检测到主树已有 `3263b67`／`17b0c59` 的两份来源漂移。逐字核对 `2150ba2` 后，`PlayerViewModel.cs` 仅构造函数新增弹幕字体服务，`Events.cs` 仅未提取的独占窗口设置菜单改为按弹幕可用性过滤；提取的自然接续成员、`NowPlaying` 与跳过判断完整文本不变，另外 17 份 pin 一致。只同步这两项 SHA256（`be81be1…` → `96a902f…`、`37bd6c8…` → `d607380…`），不改基点、提取器、断言或失败条件。当前 caller 与十个非法提取反例在主树重新验证，具体结果见 PROGRESS。
@@ -252,3 +256,9 @@ PERF-04/09源提交2b3fea8只修改Events.cs的封面取消、客户端有界解
 ## 2026-11-02 媒体版本体积的来源复核
 
 `bfd2423` 在 `EmbyItem` 新增服务器给出的单文件 `Size` 属性，R046 实际提取的 Start／Next／NowPlaying／Leave 等方法与所有权字段未变；其余 18 份 pin 逐一核对一致。只更新 `src/Momoka.Core/Emby/EmbyItem.cs` 这一份 SHA256 从 `4002e5cdce837d2ffd390fe829a5d59c8bf3c7e9c7e7eed5b9adb3584108a537` 到 `a601a02086142487311498e713aeda359de0f7d28469a5f3fbc5b8d2ef849438`，baseCommit/date、提取规则与失败条件不动。同步后 caller 与全部源提取反例须在当前主树重跑。
+
+## 2026-11-05 R21 用户队列及本批次来源复核
+
+新增真实 Start/NowPlaying/LoadSeriesEpisodes/自动和手动下一项回归：显式跨剧或随机队列保持顺序且零全剧补齐，普通季列表仍补齐。`UserPlaybackQueue` 以只读列表携带入口意图，账号绑定和递归续播保留该类型，列表末端不得追加服务器顺序。
+
+仅更新六份已审来源 pin：IPlaybackBackend/LibMpvBackend/HandleFixture 为 R8 的启动恢复快照；PlayerViewModel/Transport 为 R21 队列保留；EpisodeNavigation 为本轮开始时已有的 AfterRemoval 追加，原 Step/HasMultipleSources 未改。提取规则、完整成员校验与拒绝条件均未修改，新增测试运行真实提取正文。

@@ -78,6 +78,8 @@ node --test worker/credential.test.mjs
 
 3. 打开飞牛「Docker → Compose → 新建项目」，工作目录选上面的 `momoka-site`，使用其中的 `docker-compose.yml` 部署。
 
+   两个挂载源使用 Compose 文件所在目录的 `./dist` 和 `./nginx.conf`，上传到其他项目目录也无需修改固定宿主路径。
+
    或者在 NAS 的 SSH 里执行：
 
    ```bash
