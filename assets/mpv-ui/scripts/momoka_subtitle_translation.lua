@@ -6,6 +6,7 @@ local overlay = mp.create_osd_overlay('ass-events')
 overlay.z = -5 -- Keep interactive uosc and normal OSD above the translation.
 local active, loaded = nil, false
 local published = ''
+local revision = 0
 local rendered_value, rendered_width, timer
 
 local function finite(value)
@@ -22,7 +23,8 @@ local function number_matches(property, expected)
     return finite(current) and math.abs(current - expected) < 0.001
 end
 local function current_cue(value)
-    return loaded and mp.get_property_native('sub-visibility', false)
+    return loaded and (value.revision == nil or value.revision == revision)
+        and mp.get_property_native('sub-visibility', false)
         and tostring(mp.get_property_native('sid', 'no')) == value.sid
         and mp.get_property('sub-text', '') == value.original
         and number_matches('sub-start', value.start) and number_matches('sub-end', value['end'])
@@ -38,8 +40,8 @@ local function publish_cue()
             local start, ending = mp.get_property_number('sub-start'), mp.get_property_number('sub-end')
             start, ending = finite(start) and start or nil, finite(ending) and ending or nil
             if type(published) == 'table' and published.text == text and published.sid == sid
-                and published.start == start and published['end'] == ending then return end
-            published = {text = text, sid = sid, start = start, ['end'] = ending}
+                and published.start == start and published['end'] == ending and published.revision == revision then return end
+            published = {text = text, sid = sid, start = start, ['end'] = ending, revision = revision}
             mp.set_property_native('user-data/momoka-subtitle-translation/cue', published)
             return
         end
@@ -92,7 +94,7 @@ mp.register_event('start-file', function() loaded = false; clear(); publish_cue(
 mp.register_event('file-loaded', function() loaded = true; clear(); publish_cue(); sync_timer() end)
 mp.register_event('end-file', function() loaded = false; clear(); publish_cue(); sync_timer() end)
 mp.register_event('shutdown', function() loaded = false; clear(); publish_cue(); sync_timer() end)
-mp.register_event('seek', function() clear(); publish_cue() end)
+mp.register_event('seek', function() revision = revision + 1; clear(); publish_cue() end)
 local function cue_changed() publish_cue(); if active then render() end end
 mp.observe_property('sub-text', 'string', cue_changed)
 mp.observe_property('sid', 'native', cue_changed)

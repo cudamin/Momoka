@@ -23,6 +23,7 @@ public static class MpvSubtitleTranslation
             start = cue.Start,
             end = cue.End,
             sid = cue.SubtitleId,
+            revision = cue.Revision,
             text = translated,
             fontSize = Math.Clamp(fontSize, 20, 64),
             position = Math.Clamp(position, 10, 90)

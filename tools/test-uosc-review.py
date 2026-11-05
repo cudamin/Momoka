@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--suite', choices=['uosc', 'translation'], default='uosc')
 parser.add_argument('--lua', type=Path, required=True, help='Path to a trusted Lua 5.1 shared library')
 args = parser.parse_args()
 sys.stdout.reconfigure(encoding='utf-8')
@@ -27,7 +28,7 @@ def text(state, index):
     return ctypes.string_at(value, size.value).decode('utf-8', 'replace') if value else ''
 
 source = "fixture_root = [=[" + root.as_posix() + "]=]\n"
-source += (root / 'tests/Momoka.Tests/Lua/uosc-review-tests.lua').read_text(encoding='utf-8')
+source += (root / ('tests/Momoka.Tests/Lua/' + args.suite + '-review-tests.lua')).read_text(encoding='utf-8')
 state = lib.luaL_newstate()
 try:
     lib.luaL_openlibs(state)

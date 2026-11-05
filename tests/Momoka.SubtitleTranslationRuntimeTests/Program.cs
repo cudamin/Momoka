@@ -38,6 +38,19 @@ internal static class Program
             await Until(() => session.Shown.Count == 1); await Task.Delay(450); stop.Cancel(); await work;
             Assert.Equal(1, calls); Assert.Equal("你好", session.Shown[0].Text);
         }));
+        Test("R3 同句 seek 修订恢复缓存译文，不重复请求", () => Run(async () =>
+        {
+            var session = new FakeSession { Cue = Cue("same") }; using var stop = new CancellationTokenSource(); var calls = 0;
+            var work = Start(session, stop.Token, (_, _, _, _) => { calls++; return Task.FromResult("相同台词"); });
+            try
+            {
+                await Until(() => session.Shown.Count == 1);
+                session.Cue = SubtitleTranslationCue.FromNativeJson("{\"text\":\"same\",\"sid\":\"2\",\"start\":1,\"end\":3,\"revision\":1}");
+                await Until(() => session.Shown.Count == 2);
+                Assert.Equal(1, calls);
+            }
+            finally { stop.Cancel(); await work; }
+        }));
         Test("字幕翻译：不同时间重复台词使用内存缓存", () => Run(async () =>
         {
             var session = new FakeSession { Cue = Cue("same", 1, 3) }; using var stop = new CancellationTokenSource(); var calls = 0;
@@ -135,6 +148,7 @@ internal static class Program
             var cue = SubtitleTranslationCue.FromNativeJson("{\"text\":\"x\",\"sid\":\"2\",\"start\":\"oops\",\"end\":null}");
             Assert.NotNull(cue); Assert.Null(cue!.Start); Assert.Null(cue.End);
         });
+        await ControllerTests.RegisterAsync();
         foreach (var (name, work) in AsyncCases)
         {
             Exception? failure = null;

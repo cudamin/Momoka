@@ -5,6 +5,8 @@ namespace Momoka.Translation;
 /// <summary>从同一播放文件读取的字幕句；时间用于区分前后相同台词。</summary>
 public sealed record SubtitleTranslationCue(string Text, string SubtitleId, double? Start, double? End)
 {
+    public long Revision { get; init; }
+
     /// <summary>mpv serializes the native user-data map as JSON; strings/arrays/unknown tracks are not cues.</summary>
     public static SubtitleTranslationCue? FromNativeJson(string? json)
     {
@@ -21,7 +23,11 @@ public sealed record SubtitleTranslationCue(string Text, string SubtitleId, doub
             var sid = sidValue.GetString();
             if (string.IsNullOrWhiteSpace(text) || text.Length > SubtitleTranslationClient.MaxTextLength
                 || sid is null or "no" or "auto" or "-1" || sid.Length > 20) return null;
-            return new(text, sid, ReadNumber("start"), ReadNumber("end"));
+            return new(text, sid, ReadNumber("start"), ReadNumber("end"))
+            {
+                Revision = root.TryGetProperty("revision", out var revision) && revision.ValueKind == JsonValueKind.Number && revision.TryGetInt64(out var number)
+                    && number >= 0 ? number : 0
+            };
 
             double? ReadNumber(string name) => root.TryGetProperty(name, out var value)
                 && value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number) && double.IsFinite(number) ? number : null;

@@ -19,6 +19,8 @@ public sealed class SubtitleTranslationController(
     private Task _work = Task.CompletedTask;
     private bool _attached;
     private bool _disposed;
+    private Presentation? _presentation;
+    private ISubtitleTranslationPlaybackSession? _session;
     public event Action<string>? Noticed;
 
     public void Attach()
@@ -34,7 +36,33 @@ public sealed class SubtitleTranslationController(
     {
         if (update.Generation == playback.Generation) Restart();
     });
-    private void PreferencesChanged() => ui.Run(Restart);
+    private void PreferencesChanged() => ui.Run(() =>
+    {
+        var snapshot = Snapshot();
+        if (_run is not null && _session?.IsCurrent == true && _presentation is { } presentation
+            && SameRequest(presentation.Settings, snapshot))
+        {
+            Volatile.Write(ref presentation.Settings, snapshot);
+            return;
+        }
+        Restart();
+    });
+
+    private SubtitleTranslationSettings Snapshot() => JsonSerializer.Deserialize<SubtitleTranslationSettings>(
+        JsonSerializer.Serialize(settings.Settings.SubtitleTranslation))!;
+
+    private static bool SameRequest(SubtitleTranslationSettings left, SubtitleTranslationSettings right) =>
+        left.Enabled == right.Enabled && left.Provider == right.Provider
+        && left.SourceLanguage == right.SourceLanguage && left.TargetLanguage == right.TargetLanguage
+        && left.GoogleEndpoint == right.GoogleEndpoint && left.MicrosoftEndpoint == right.MicrosoftEndpoint
+        && left.MicrosoftRegion == right.MicrosoftRegion && left.AiEndpoint == right.AiEndpoint
+        && left.AiModel == right.AiModel && left.ProtectedGoogleApiKey == right.ProtectedGoogleApiKey
+        && left.ProtectedMicrosoftApiKey == right.ProtectedMicrosoftApiKey && left.ProtectedAiApiKey == right.ProtectedAiApiKey;
+
+    private sealed class Presentation(SubtitleTranslationSettings settings)
+    {
+        public SubtitleTranslationSettings Settings = settings;
+    }
 
     private void Restart()
     {
@@ -45,17 +73,19 @@ public sealed class SubtitleTranslationController(
         var session = playback.CaptureSubtitleTranslationSession();
         if (session is null) return;
         // The settings document remains editable; a request always keeps one coherent service snapshot.
-        var snapshot = JsonSerializer.Deserialize<SubtitleTranslationSettings>(
-            JsonSerializer.Serialize(settings.Settings.SubtitleTranslation))!;
+        var snapshot = Snapshot();
+        var presentation = new Presentation(snapshot);
+        _presentation = presentation;
+        _session = session;
         var key = credentials.GetApiKey(snapshot, snapshot.Provider);
         var source = new CancellationTokenSource();
         _run = source;
         var previous = _work;
-        _work = RunAfterPreviousAsync(previous, session, snapshot, key, source);
+        _work = RunAfterPreviousAsync(previous, session, snapshot, key, source, presentation);
     }
 
     private async Task RunAfterPreviousAsync(Task previous, ISubtitleTranslationPlaybackSession session,
-        SubtitleTranslationSettings snapshot, string key, CancellationTokenSource source)
+        SubtitleTranslationSettings snapshot, string key, CancellationTokenSource source, Presentation presentation)
     {
         try
         {
@@ -65,7 +95,7 @@ public sealed class SubtitleTranslationController(
             await SubtitleTranslationRuntime.RunAsync(session, snapshot, key,
                 MpvSubtitleTranslation.ScriptPath(AppContext.BaseDirectory), client.TranslateAsync,
                 message => { if (!source.IsCancellationRequested && session.IsCurrent && !_disposed) Noticed?.Invoke(message); },
-                source.Token).ConfigureAwait(false);
+                source.Token, () => Volatile.Read(ref presentation.Settings)).ConfigureAwait(false);
         }
         finally
         {

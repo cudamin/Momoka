@@ -11,7 +11,8 @@ public static class SubtitleTranslationRuntime
     public static async Task RunAsync(ISubtitleTranslationPlaybackSession session,
         SubtitleTranslationSettings settings, string apiKey, string scriptPath,
         Func<SubtitleTranslationSettings, string, string, CancellationToken, Task<string>> translate,
-        Action<string> notify, CancellationToken cancellationToken)
+        Action<string> notify, CancellationToken cancellationToken,
+        Func<SubtitleTranslationSettings>? currentAppearance = null)
     {
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, session.Lifetime);
         var token = lifetime.Token;
@@ -21,6 +22,8 @@ public static class SubtitleTranslationRuntime
         SubtitleTranslationCue? lastAttempt = null;
         var failures = 0;
         var retryAfter = DateTimeOffset.MinValue;
+        var fontSize = settings.FontSize;
+        var position = settings.Position;
         try
         {
             if (!settings.Enabled || !session.IsCurrent) return;
@@ -36,6 +39,14 @@ public static class SubtitleTranslationRuntime
             }
             while (session.IsCurrent && !token.IsCancellationRequested)
             {
+                var appearance = currentAppearance?.Invoke() ?? settings;
+                if (appearance.FontSize != fontSize || appearance.Position != position)
+                {
+                    fontSize = appearance.FontSize;
+                    position = appearance.Position;
+                    // Redraw cached text, or let the already-running request complete with this style.
+                    if (current is not null && cache.ContainsKey(current.Text)) lastAttempt = null;
+                }
                 var cue = await session.ReadCueAsync(token).ConfigureAwait(false);
                 if (cue != current)
                 {
@@ -56,7 +67,7 @@ public static class SubtitleTranslationRuntime
                             cache[finished.Cue.Text] = translated;
                             failures = 0;
                             if (finished.Cue == current && session.IsCurrent)
-                                await session.ShowAsync(finished.Cue, translated, settings.FontSize, settings.Position, token)
+                                await session.ShowAsync(finished.Cue, translated, fontSize, position, token)
                                     .ConfigureAwait(false);
                         }
                     }
@@ -77,7 +88,7 @@ public static class SubtitleTranslationRuntime
                     if (cache.TryGetValue(next.Text, out var saved))
                     {
                         lastAttempt = next;
-                        await session.ShowAsync(next, saved, settings.FontSize, settings.Position, token).ConfigureAwait(false);
+                        await session.ShowAsync(next, saved, fontSize, position, token).ConfigureAwait(false);
                     }
                     else if (DateTimeOffset.UtcNow >= retryAfter)
                     {

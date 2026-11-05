@@ -10566,3 +10566,9 @@ R1在Plex适配层按100条原始页扫描，过滤后返回真实总数及Start
 - uosc 搜索 Delete 先跨首字节再跳 UTF-8 续字节；音量拖动在 cursor.leave 与无效坐标时结束且不发音量命令。
 - 新离线入口 `py -X utf8 tools/test-uosc-review.py --lua <可信 Lua 5.1 DLL>` 加载实际 Menu/Volume/cursor/Element 模块，实际 key dispatch、mouse leave 流程。先红 2/8、修后 8/8；使用现有 `C:/Program Files/HexChat/lua51.dll` 解释器，未启动 HexChat/mpv、窗口或媒体。
 - 首跑输出因 GBK 不支持 emoji 失败；入口已显式 UTF-8，最终重复运行 8/8。父批次仍需完整 Lua/原生和桌面适用验证。
+
+### 2026-11-05 审查修复 R3/R19（独立播放组，待父批次整合）
+
+- seek 将修订号放入同一原子字幕 cue，主机可见同句清屏并由缓存恢复；旧 revision 的回包在 Lua 拒绝。字体/位置更新通过本场 presentation 快照重绘，不取消请求或清空缓存；语言、服务、端点、模型、密钥变化仍完整重启。
+- 当前 Runtime+完整 Controller 编译链接 19/19，0 失败/跳过；先红三例分别复现同句不恢复、已有译文和在途请求被重启。最初测试同步阻塞有两条分析器警告，改为异步收集后 Release 0 警告0错误。Shell Release 0 警告0错误。
+- 实际生产 Lua 通过 `tools/test-uosc-review.py --suite translation` 加可信 Lua5.1 DLL：3/3，验证修订发布/旧回包拒绝、跨句拒绝和外观重绘。无原生播放器、实际图层像素、翻译联网或真实账号。
