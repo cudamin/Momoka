@@ -87,8 +87,9 @@ public sealed partial class SettingsViewModel
                 () => settings.Show, value => settings.Show = value, after: RefreshDanmakuRows));
             if (settings.Show)
             {
-                displayRows.Add(Toggle("显示弹幕输入栏", "在播放器顶部影片标题右侧显示输入栏；关闭不影响观看弹幕。",
-                    () => settings.ShowInput, value => settings.ShowInput = value, after: RefreshDanmakuRows));
+                if (DanmakuSourceRules.CanSend(settings.Source))
+                    displayRows.Add(Toggle("显示弹幕输入栏", "在播放器顶部影片标题右侧显示输入栏；关闭不影响观看弹幕。",
+                        () => settings.ShowInput, value => settings.ShowInput = value, after: RefreshDanmakuRows));
                 displayRows.Add(Toggle("弹幕随窗口缩放", "开启时随画面高度缩放；关闭时保持固定像素字号。",
                     () => settings.ScaleWithWindow, value => settings.ScaleWithWindow = value, after: ApplyDanmakuSettings));
                 displayRows.Add(Toggle("防挡字幕", "字幕可见时为底部预留 20% 的画面；关闭字幕后自动恢复显示区域。",

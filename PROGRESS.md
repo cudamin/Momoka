@@ -10582,3 +10582,7 @@ R1在Plex适配层按100条原始页扫描，过滤后返回真实总数及Start
 
 - Smooth 隐藏基础输出的视频同步行，退出为 Off/CPU 模式恢复原 audio 偏好；CPU 素材回退仍可选，SVP既有只读行保持。
 - 真实 Shell VM 首红 R9；修后 `video-sync-review-fixture <本树当前Shell DLL> <本树根>` 2/2，当前 Shell/Tests Release 0 警告0错误。完整适用性首次25/32，另外6个旧失败是 FakeSettings 未实现 SaveDeferred、落回 Save 的拒绝边界；已移交父代理，没有放宽断言。未运行 WinUI渲染或桌面。
+## 2026-11-05 审查修复 R22/R23/R26（独立树）
+
+- 弹幕面板切源撤销在途搜索并恢复按钮，加载绑定产生结果的来源与连接代次；改自部署地址/令牌丢弃该实例集号，保留弹弹play与同连接读取参数的选择。纯 danmu_api 隐藏无效输入栏偏好，恢复来源后保留原值。
+- 新 source-linked 专项先红14项中7项，再绿16/16；当前 Release Core与Shell 0警告0错误，证据 work/review-fixes/danmaku-*.log。danmu_api 固定9fa67ad5 cache-util.js实例内编号分配已重读。未实际UI/播放/网络发送；主树整合验证由根会话执行。
