@@ -185,9 +185,106 @@ internal static class DetailSubjectRemovalTests
                 var route = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "ItemCommands.cs"));
                 Assert.Contains("FnNasVersionsAsync(scope, shell, owner, card, changed, removed)", route);
             });
+            foreach (var kind in new[] { MediaServerKind.FnNas, MediaServerKind.Emby, MediaServerKind.Jellyfin })
+            {
+                Test("MP 库文件版本删除：精确撤已删路径，保留同条目的另一个版本 " + kind, () =>
+                {
+                    using var f = new Fixture(assembly, root, kind);
+                    f.TwoVersions();
+                    var item = (EmbyItem)f.Get("CurrentItem")!;
+                    RemoveLibraryFiles(f, item, ["/anonymous/one.mkv"]);
+                    Assert.True(ReferenceEquals(item, f.Get("CurrentItem")), "删除一版不应清除整个主体");
+                    Assert.Equal("version-2", f.SelectedSourceId());
+                    Assert.Equal(1, item.MediaSources.Count);
+                    Assert.True(f.CanPlay());
+                    Assert.Equal(0, f.Transport.Requests, "本地撤文件不额外写入或重读");
+                });
+                Test("MP 库文件版本删除：晚到同主体响应不能复活已删路径或旧版本行 " + kind, () =>
+                {
+                    using var f = new Fixture(assembly, root, kind);
+                    f.TwoVersions();
+                    var oldRow = f.FirstSourceRow();
+                    RemoveLibraryFiles(f, (EmbyItem)f.Get("CurrentItem")!, ["/anonymous/one.mkv"]);
+                    f.ReplaceWithStaleSources();
+                    Assert.Equal("version-2", f.SelectedSourceId());
+                    Assert.Equal(1, ((EmbyItem)f.Get("CurrentItem")!).MediaSources.Count);
+                    f.SelectSourceRow(oldRow);
+                    f.Start();
+                    Assert.Equal(0, f.Actions.Plays);
+                });
+            }
+            Test("MP 库文件版本删除：已选外源副本保留，即使路径与被删文件相同", () =>
+            {
+                using var f = new Fixture(assembly, root, MediaServerKind.Emby);
+                f.TwoVersions();
+                f.SelectForeignVersion();
+                var copy = (EmbyItem)f.Get("PlayTarget")!;
+                copy.MediaSources[0].Path = "/anonymous/one.mkv";
+                RemoveLibraryFiles(f, (EmbyItem)f.Get("CurrentItem")!, ["/anonymous/one.mkv"]);
+                Assert.Equal("foreign-item", ((EmbyItem)f.Get("PlayTarget")!).Id);
+                Assert.Equal("version-1", f.SelectedSourceId());
+                Assert.Equal(2, ((System.Collections.ICollection)f.Get("Sources")!).Count);
+                Assert.True(f.CanPlay());
+            });
+            Test("MP 库文件版本删除：空路径、其它来源或其它条目不撤当前文件", () =>
+            {
+                using var f = new Fixture(assembly, root, MediaServerKind.Emby);
+                var item = (EmbyItem)f.Get("CurrentItem")!;
+                RemoveLibraryFiles(f, item, []);
+                f.SelectForeignVersion();
+                RemoveLibraryFiles(f, (EmbyItem)f.Get("PlayTarget")!, ["/anonymous/one.mkv"]);
+                f.Reattach("new-item");
+                RemoveLibraryFiles(f, item, ["/anonymous/one.mkv"]);
+                Assert.Equal("new-item", ((EmbyItem)f.Get("CurrentItem")!).Id);
+                Assert.Equal("version-1", f.SelectedSourceId());
+                Assert.True(f.CanPlay());
+            });
+            Test("MP 库文件版本删除：跨访问重新附加同条目恢复服务器权威文件", () =>
+            {
+                using var f = new Fixture(assembly, root, MediaServerKind.Emby);
+                var item = (EmbyItem)f.Get("CurrentItem")!;
+                RemoveLibraryFiles(f, item, ["/anonymous/one.mkv"]);
+                Assert.False(f.CanPlay());
+                f.Reattach(item.Id);
+                Assert.Equal("version-1", f.SelectedSourceId());
+                Assert.True(f.CanPlay());
+            });
+            Test("MP 已删主体记忆：新详情访问仍过滤旧单集，同ID外源保留", () =>
+            {
+                using var f = new Fixture(assembly, root, MediaServerKind.Emby);
+                var item = (EmbyItem)f.Get("CurrentItem")!;
+                item.Type = EmbyItemType.Episode;
+                f.Removed.Remember(item);
+                Assert.True((bool)Invoke(f.Vm, "WasDeleted", item)!);
+                f.SelectForeignVersion();
+                var copy = (EmbyItem)f.Get("PlayTarget")!;
+                copy.Id = item.Id;
+                Assert.False((bool)Invoke(f.Vm, "WasDeleted", copy)!, "另一来源相同ID不受影响");
+                f.Reattach("new-item");
+                Assert.True((bool)Invoke(f.Vm, "WasDeleted", item)!, "换页面不能清空进程内已删记忆");
+            });
+            Test("MP 已删主体记忆：返回旧详情不恢复播放或发送新的详情读取", () =>
+            {
+                using var f = new Fixture(assembly, root, MediaServerKind.Emby);
+                var item = (EmbyItem)f.Get("CurrentItem")!;
+                f.Removed.Remember(item);
+                f.Reattach(item.Id);
+                f.Reload();
+                Assert.Null(f.Get("CurrentItem"));
+                Assert.Null(f.Get("PlayTarget"));
+                Assert.False(f.CanPlay());
+                Assert.Equal(0, f.Transport.Requests);
+                Assert.True(f.Get("NoticeOpen") is true);
+            });
             return TestHarness.Run();
         }
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }
+    }
+    private static void RemoveLibraryFiles(Fixture fixture, EmbyItem item, IReadOnlyCollection<string> paths)
+    {
+        var method = fixture.Vm.GetType().GetMethod("RemoveLibraryFiles", Members);
+        Assert.NotNull(method, "精确库文件撤销入口尚未实现");
+        method!.Invoke(fixture.Vm, [item, paths]);
     }
     private static object? Invoke(object target, string name, params object?[] args)
     {
@@ -202,6 +299,7 @@ internal static class DetailSubjectRemovalTests
         private readonly EmbySession _session;
         private readonly EmbySessionScope _scope;
         private readonly EmbyImageStore _images;
+        public RemovedMedia Removed { get; } = new();
         public DeleteTransport Transport { get; } = new();
         public DetailDeleteActionsProxy Actions { get; }
         public object Vm { get; }
@@ -239,6 +337,7 @@ internal static class DetailSubjectRemovalTests
             });
             var request = Activator.CreateInstance(_assembly.GetType("Momoka.Shell.Views.DetailRequest", true)!, nonPublic: true)!;
             request.GetType().GetProperty("Item")!.SetValue(request, item);
+            request.GetType().GetProperty("Services")!.SetValue(request, new RemovedServices(Removed));
             Invoke(Vm, "Attach", request, Actions, _settings, _session, _images);
             Invoke(Vm, "Apply", item); // Actual detail publication; no login or initial HTTP is needed.
             var cardType = _assembly.GetType("Momoka.Shell.Views.CardItem", true)!;
@@ -344,6 +443,10 @@ internal static class DetailSubjectRemovalTests
             public AccountProfile ResolveAccount(ServerProfile server, string username) => throw new AssertionException("不得读取账号");
             public void ExportPreferences(string path) => throw new AssertionException("不得设置IO");
             public AppSettings ReadBackup(string path) => throw new AssertionException("不得设置IO");
+        }
+        private sealed class RemovedServices(RemovedMedia removed) : IServiceProvider
+        {
+            public object? GetService(Type serviceType) => serviceType == typeof(RemovedMedia) ? removed : null;
         }
         private sealed class NoSecrets : ISecretProtector
         {

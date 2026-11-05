@@ -11,6 +11,7 @@ using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
+using Momoka.MoviePilot;
 using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.Media;
@@ -114,6 +115,7 @@ public sealed partial class DetailViewModel : PageViewModel
     private ISettingsService? _settings;
     private EmbySession? _session;
     private EmbyImageStore? _images;
+    private RemovedMedia? _removed;
 
     /// <summary>What the grid or shelf handed over. Used for its id; everything else is re-fetched.</summary>
     private EmbyItem? _seed;
@@ -152,6 +154,7 @@ public sealed partial class DetailViewModel : PageViewModel
     private readonly List<EmbyItem> _episodes = [];
     private readonly HashSet<string> _deletedItems = new(StringComparer.Ordinal);
     private readonly HashSet<string> _deletedSourceIds = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _deletedSourcePaths = new(StringComparer.Ordinal);
 
     /// <summary>
     /// 剧页「其他信息」卡里的媒体信息描述的那一集（规则在 <see cref="ItemDetail.MediaInfoEpisode"/>：
@@ -2331,6 +2334,7 @@ public sealed partial class DetailViewModel : PageViewModel
         Cancel();
         _deletedItems.Clear();
         _deletedSourceIds.Clear();
+        _deletedSourcePaths.Clear();
         _actionsReady = false;
         _announcedShapeType = null;
         _active = true;
@@ -2343,6 +2347,7 @@ public sealed partial class DetailViewModel : PageViewModel
         RefreshCardLayout();
         _session = session;
         _images = images;
+        _removed = request.Services?.GetService(typeof(RemovedMedia)) as RemovedMedia;
 
         // 版面高在这一句就定了下来，早于任何一次网络往返 —— 「点击主页封面后窗口会闪一下」说的就是这一句以前
         // 得等图。列表接口回来的条目已经带着 ImageTags，而这一页正是从那张列表上点进来的。
@@ -2381,6 +2386,11 @@ public sealed partial class DetailViewModel : PageViewModel
     private async Task LoadAsync(string? committedNotice = null)
     {
         if (!Attached || _seed is not { } seed) return;
+        if (_removed?.Hides(seed) == true)
+        {
+            ClearDeletedSubject();
+            return;
+        }
 
         var token = BeginLoad();
         NavigationTiming.Mark("load-begin");
@@ -2754,7 +2764,7 @@ public sealed partial class DetailViewModel : PageViewModel
     private void Apply(EmbyItem item)
     {
         if (item.Id == _seed?.Id && item.Source?.Key == _scope?.Key)
-            item.MediaSources.RemoveAll(source => _deletedSourceIds.Contains(source.Id));
+            item.MediaSources.RemoveAll(SourceWasDeleted);
         // 这一趟要不要重取那四张图：<see cref="Preview"/> 刚用卡片那一份起过一次，而完整条目回来时那几个图片标签
         // 通常一个字都没变 —— 那时候整批留着。重取的代价不是一次下载（缓存都在），是屏上的图先被清空再回来，
         // 也就是点一张封面进来看见的那一次闪。
@@ -2840,7 +2850,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
         CastShelf?.Fill(ItemDetail.Cast(item).Select(credit => (credit.Card, (string?)credit.Credit)));
 
-        var knownSourceRemoved = _deletedSourceIds.Count > 0 && item.Id == _seed?.Id
+        var knownSourceRemoved = (_deletedSourceIds.Count > 0 || _deletedSourcePaths.Count > 0) && item.Id == _seed?.Id
             && item.Source?.Key == _scope?.Key && item.MediaSources.Count == 0;
         PlayTarget = item.IsPlayable && !knownSourceRemoved ? item : null;
         ShowTarget(PlayTarget);
@@ -2901,7 +2911,7 @@ public sealed partial class DetailViewModel : PageViewModel
                 Settings.Playback.MediaSourceOrder, cancellation.Token).ConfigureAwait(true);
             if (!Attached || generation != _versionGeneration || lifetime != _lifetime) return;
             _versions = result.Versions.Where(version => version.Item.Id != _seed?.Id || version.Item.Source?.Key != _scope?.Key
-                || !_deletedSourceIds.Contains(version.Source.Id)).ToArray();
+                || !SourceWasDeleted(version.Source)).ToArray();
             foreach (var version in _versions.Skip(Sources.Count))
                 Sources.Add(new SourceRow(version.Source, version.LabelFor(MediaVersionDiscovery.HasMultipleServers(_session!.Sources))));
             if (result.FailedSources.Count > 0)
@@ -3969,22 +3979,27 @@ public sealed partial class DetailViewModel : PageViewModel
             // A confirmed subject deletion is not an ordinary failed refresh. End all target/version
             // owners before clearing their data, so a late read cannot restore executable old media.
             _deletedItems.Add(removed.Item.Id);
-            Cancel();
-            _detail = _seed = null;
-            PlayTarget = null;
-            ShowTarget(null);
-            TitleLink = null;
-            _episodes.Clear();
-            Seasons.Clear();
-            SelectedSeason = _loadedSeason = null;
-            EpisodeShelf?.Clear();
-            SeasonShelf?.Clear();
-            CastShelf?.Clear();
-            SimilarShelf?.Clear();
-            AnnounceShape();
-            IsReady = true;
-            Notify("条目已删除", "此条目已从服务器移除，请返回媒体库查看其它内容。", InfoBarSeverity.Informational);
+            ClearDeletedSubject();
         };
+    }
+
+    private void ClearDeletedSubject()
+    {
+        Cancel();
+        _detail = _seed = null;
+        PlayTarget = null;
+        ShowTarget(null);
+        TitleLink = null;
+        _episodes.Clear();
+        Seasons.Clear();
+        SelectedSeason = _loadedSeason = null;
+        EpisodeShelf?.Clear();
+        SeasonShelf?.Clear();
+        CastShelf?.Clear();
+        SimilarShelf?.Clear();
+        AnnounceShape();
+        IsReady = true;
+        Notify("条目已删除", "此条目已从服务器移除，请返回媒体库查看其它内容。", InfoBarSeverity.Informational);
     }
 
     internal Action CaptureReload()
@@ -4030,10 +4045,38 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>封面删除只移除受影响的卡片；播放目标若被删除，再读取剩余单集的目标。</summary>
     internal void Remove(CardItem removed) => _ = RemoveAsync(removed);
 
-    private bool WasDeleted(EmbyItem item) => _deletedItems.Contains(item.Id)
+    private bool WasDeleted(EmbyItem item) => _removed?.Hides(item) == true || _deletedItems.Contains(item.Id)
         || item.ParentId is { } parent && _deletedItems.Contains(parent)
         || item.SeriesId is { } series && _deletedItems.Contains(series)
         || item.SeasonId is { } season && _deletedItems.Contains(season);
+
+    private bool SourceWasDeleted(MediaSource source) => _deletedSourceIds.Contains(source.Id)
+        || source.Path is { Length: > 0 } path && _deletedSourcePaths.Any(deleted => MoviePilotTransfer.SamePath(deleted, path));
+
+    /// <summary>删除一个库文件版本时保留主体，只撤已确认路径及其旧下拉入口，晚到响应也不能恢复它。</summary>
+    internal void RemoveLibraryFiles(EmbyItem item, IReadOnlyCollection<string> removedPaths)
+    {
+        if (!Attached || removedPaths.Count == 0 || item.Source?.Key != _scope?.Key
+            || _detail is not { } detail || detail.Id != item.Id || detail.Source?.Key != _scope?.Key) return;
+        foreach (var path in removedPaths.Where(path => !string.IsNullOrWhiteSpace(path))) _deletedSourcePaths.Add(path);
+        if (_deletedSourcePaths.Count == 0) return;
+        _versionLoad?.Cancel();
+        _versionGeneration++;
+        detail.MediaSources.RemoveAll(SourceWasDeleted);
+        var discarded = _versions.Where(version => version.Item.Id == detail.Id && version.Item.Source?.Key == _scope?.Key
+            && SourceWasDeleted(version.Source)).ToArray();
+        _versions = _versions.Except(discarded).ToArray();
+        foreach (var row in Sources.Where(row => discarded.Any(version => ReferenceEquals(version.Source, row.Source))).ToArray())
+            Sources.Remove(row);
+        if (PlayTarget is { } target && target.Id == detail.Id && target.Source?.Key == _scope?.Key)
+        {
+            target.MediaSources.RemoveAll(SourceWasDeleted);
+            if (target.MediaSources.Count == 0) PlayTarget = null;
+        }
+        if (SelectedSource is { } selected && !Sources.Contains(selected)) SelectedSource = Sources.FirstOrDefault();
+        ShowSource(SelectedSource?.Source);
+        NotifyActionAvailability();
+    }
 
     internal async Task RemoveAsync(CardItem removed)
     {

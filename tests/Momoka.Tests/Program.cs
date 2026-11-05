@@ -4,6 +4,11 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["episode-removal-fixture"])
+        {
+            EpisodeRemovalTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["detail-customization-fixture"])
         {
             DetailLayoutTests.Register();
@@ -269,6 +274,7 @@ internal static class Program
         TestHarnessTests.Register();
         ActivationListenerTests.Register();
         PlaybackTests.Register();
+        EpisodeRemovalTests.Register();
         MarkedWatchedSourceTests.Register();
         KeywordPriorityTests.Register();
         PlaybackLifecycleTests.Register();

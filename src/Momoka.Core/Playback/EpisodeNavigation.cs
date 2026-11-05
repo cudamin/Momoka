@@ -52,4 +52,28 @@ public static class EpisodeNavigation
         if (index < 0 || index + offset < 0 || index + offset >= episodes.Count) return null;
         return new(episodes[index + offset], episodes);
     }
+
+    /// <summary>确认删除当前单集后，按原有顺序先找同来源同剧的上一集；首集才改找下一集。</summary>
+    public static EmbyItem? AfterRemoval(EmbyItem removed, IReadOnlyList<EmbyItem> episodes)
+    {
+        if (removed.Type != EmbyItemType.Episode || removed.Id.Length == 0) return null;
+        var index = IndexOf(episodes, removed.IdentityKey);
+        if (index < 0) return null;
+        for (var previous = index - 1; previous >= 0; previous--)
+            if (SameWork(episodes[previous])) return episodes[previous];
+        for (var next = index + 1; next < episodes.Count; next++)
+            if (SameWork(episodes[next])) return episodes[next];
+        return null;
+
+        bool SameWork(EmbyItem candidate)
+        {
+            if (candidate.Type != EmbyItemType.Episode || candidate.IdentityKey == removed.IdentityKey
+                || candidate.Source?.Key != removed.Source?.Key) return false;
+            if (removed.SeriesId is { Length: > 0 } series && candidate.SeriesId is { Length: > 0 } other)
+                return series == other;
+            var season = removed.SeasonId is { Length: > 0 } id ? id : removed.ParentId;
+            var candidateSeason = candidate.SeasonId is { Length: > 0 } value ? value : candidate.ParentId;
+            return !string.IsNullOrEmpty(season) && season == candidateSeason;
+        }
+    }
 }
