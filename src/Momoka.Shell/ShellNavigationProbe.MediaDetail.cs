@@ -345,7 +345,7 @@ internal sealed partial class ShellNavigationProbe
             var sheetBrush = sheet.Background as SolidColorBrush;
             Require(sheetBrush is { } && sheetBrush.Color.A == DetailHero.ScrimCeiling,
                 "大窗模式的正文纸不是尾部那道半透明洗色");
-            Require(panel.Background is SolidColorBrush { Opacity: 0 }, "大窗模式的正文面板底没有淡到 0");
+            Require(panel.Background is AcrylicBrush { Opacity: 0 }, "大窗模式的正文面板底没有淡到 0");
             Require(fade.Visibility == Visibility.Collapsed, "大窗模式下图下沿的黑色渐变没有收起");
             Require(!media.ShowShelfLines, "大窗模式的货架标题仍然画着横线");
             var expectedImage = DetailHero.ImmersivePictureHeight(media.Viewport, media.HeaderLift);
@@ -368,7 +368,7 @@ internal sealed partial class ShellNavigationProbe
                     "从最大化还原时没有走过渡动画（ShowcaseAnimations 没有增加）");
             var restored = sheet.Background as SolidColorBrush;
             Require(restored is { } && restored.Color.A == 255, "还原后正文纸没有回到不透明");
-            Require(panel.Background is SolidColorBrush { Opacity: 1 }, "还原后正文面板的底没有回来");
+            Require(panel.Background is AcrylicBrush { Opacity: 1 }, "还原后正文面板的底没有回来");
             Require(fade.Visibility == Visibility.Visible, "还原后图下沿的黑色渐变没有回来");
             Require(media.ShowShelfLines, "还原后货架标题的横线没有回来");
             readings.Add($"纸面：视口 {media.Viewport:0}、图 {image.ActualHeight:0}、头部下限 {hero.MinHeight:0}、"
@@ -388,7 +388,7 @@ internal sealed partial class ShellNavigationProbe
             var cropBrush = sheet.Background as SolidColorBrush;
             Require(cropBrush is { } && cropBrush.Color.A == DetailHero.ScrimCeiling,
                 "裁切触发后正文纸没有换成半透明洗色");
-            Require(panel.Background is SolidColorBrush { Opacity: 0 }, "裁切触发后正文面板底没有淡到 0");
+            Require(panel.Background is AcrylicBrush { Opacity: 0 }, "裁切触发后正文面板底没有淡到 0");
             Require(fade.Visibility == Visibility.Collapsed, "裁切触发后图下沿的黑色渐变没有收起");
             readings.Add($"裁切：页宽 {media.PageWidth:0}、视口 {media.Viewport:0}、图比 {media.BackdropRatio:0.###}、"
                 + $"纸面透明度 {cropBrush?.Color.A}、面板 {panel.Background.Opacity:0.##}、动画 {page.ShowcaseAnimations}");
@@ -404,7 +404,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(page.ShowcaseAnimations > beforeUncrop, "收回裁切线时没有走过渡动画");
             var uncropBrush = sheet.Background as SolidColorBrush;
             Require(uncropBrush is { } && uncropBrush.Color.A == 255, "收回裁切线后正文纸没有回到不透明");
-            Require(panel.Background is SolidColorBrush { Opacity: 1 }, "收回裁切线后正文面板的底没有回来");
+            Require(panel.Background is AcrylicBrush { Opacity: 1 }, "收回裁切线后正文面板的底没有回来");
             readings.Add($"收回：页宽 {media.PageWidth:0}、视口 {media.Viewport:0}、裁切 {media.NearCrop}、"
                 + $"纸面透明度 {uncropBrush?.Color.A}、面板 {panel.Background.Opacity:0.##}、动画 {page.ShowcaseAnimations}");
             await SaveProbeScreenAsync("mp-subscription-showcase-uncropped.png");

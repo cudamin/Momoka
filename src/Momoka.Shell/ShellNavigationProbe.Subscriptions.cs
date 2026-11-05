@@ -381,16 +381,16 @@ internal sealed partial class ShellNavigationProbe
                         $"{name} 那一段不是「板 + 牌子 + 货架带」：父级 {section?.GetType().Name ?? "空"}，子项 "
                             + string.Join("、", parts.Select(part => part.GetType().Name)));
                     var panel = section!;
-                    var panelFill = panel.Background as Microsoft.UI.Xaml.Media.SolidColorBrush;
+                    var panelFill = panel.Background as Microsoft.UI.Xaml.Media.AcrylicBrush;
                     // 2026-10-19 用户令「界面的卡片不要加白边」把 EgBodyPanelStyle 的静止描边收成 0，
                     // 这里仍要求板底，但不再要求外圈 —— 那根线是用户点名去掉的。
-                    Require(panelFill is not null && panelFill.Color.A > 0,
+                    Require(panelFill is not null && panelFill.FallbackColor.A > 0,
                         $"{name} 那一段没有板底（用户要的就是这个背景）");
                     Require(Descendants(strip).OfType<ScrollViewer>().Count() == 0 && Descendants(strip).OfType<ScrollView>().Any(),
                         $"{name} 里还有内层 ScrollViewer —— 指针停在带上时它会吃掉整页的竖向滚轮");
                     Require(strip.Visibility == Visibility.Visible && ReferenceEquals(strip.ItemsSource, cards),
                         $"{name} 没有装着夹具那六条内容（或整段收着）：{strip.Visibility}");
-                    relatedReadings.Add($"{width} 宽 {name}：板底 {panelFill!.Color}、带高 {strip.ActualHeight:0.0}、"
+                    relatedReadings.Add($"{width} 宽 {name}：板底 {panelFill!.TintColor}、带高 {strip.ActualHeight:0.0}、"
                         + $"牌子「{head!.Title}」、内层滚动面 ScrollView（无 ScrollViewer）");
                 }
                 Require(media.People.Count == 6 && media.Recommendations.Count == 6 && media.Similar.Count == 6,

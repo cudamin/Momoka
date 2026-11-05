@@ -113,6 +113,17 @@ internal sealed partial class ShellNavigationProbe
             }
             finally { layout.Visibility = Visibility.Visible; }
         });
+        Add("InspectSubscriptionMaterial", "订阅卡片材质", async () =>
+        {
+            if (frame.Content is IShellContent previous) previous.Release();
+            layout.Visibility = Visibility.Collapsed;
+            try
+            {
+                await CaseAsync("订阅详情卡片材质", MoviePilotSubscriptionDetailAsync, 60);
+                await CaseAsync("订阅卡片沉浸切换", MoviePilotSubscriptionShowcaseAsync, 60);
+            }
+            finally { layout.Visibility = Visibility.Visible; }
+        });
         Add("InspectDetailMenu", "详情菜单材质", async () =>
         {
             if (frame.Content is IShellContent previous) previous.Release();
