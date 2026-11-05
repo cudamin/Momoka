@@ -69,14 +69,37 @@ internal sealed partial class ShellNavigationProbe
                     TitleRead("long", left), TitleRead("short", right));
                 File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "card-presentation-layout.txt"),
                     titleRead + Environment.NewLine);
-                var titlesFit = longTitle.MaxLines == 2 && longTitle.ActualHeight == 40
-                    && shortTitle.ActualHeight == 40;
+                // TextBlock.ActualHeight measures the ink (20 for one line). Its declared height
+                // and layout slot reserve 40, which is what keeps the following year aligned.
+                var titlesFit = HasTwoLineSlot(longTitle) && HasTwoLineSlot(shortTitle);
                 if (!titlesFit)
                     await SaveProbeScreenAsync($"card-presentation-{theme.Id}-title-failed-screen.png");
                 Require(titlesFit, "长短媒体片名没有保留同高两行区域" + Environment.NewLine + titleRead);
                 var firstSub = Get<TextBlock>(left, "SubLine").TransformToVisual(holder).TransformPoint(new(0, 0)).Y;
                 var secondSub = Get<TextBlock>(right, "SubLine").TransformToVisual(holder).TransformPoint(new(0, 0)).Y;
                 Require(Math.Abs(firstSub - secondSub) < 1, "短片名把年份向上挤动");
+                if (theme.Id == UiThemes.DefaultId)
+                {
+                    var savedHeight = shortTitle.ReadLocalValue(FrameworkElement.HeightProperty);
+                    try
+                    {
+                        shortTitle.Height = 20;
+                        await LayoutAsync(holder);
+                        Require(LayoutInformation.GetLayoutSlot(shortTitle).Height == 20,
+                            "标题布局负例没有实际收缩到20 DIP");
+                        Require(!HasTwoLineSlot(shortTitle), "标题布局判据接受了只剩一行的20 DIP槽");
+                    }
+                    finally
+                    {
+                        if (ReferenceEquals(savedHeight, DependencyProperty.UnsetValue))
+                            shortTitle.ClearValue(FrameworkElement.HeightProperty);
+                        else shortTitle.SetValue(FrameworkElement.HeightProperty, savedHeight);
+                        await LayoutAsync(holder);
+                    }
+                    Require(HasTwoLineSlot(longTitle) && HasTwoLineSlot(shortTitle), "标题负例恢复后未回到40 DIP槽");
+                    var restoredSub = Get<TextBlock>(right, "SubLine").TransformToVisual(holder).TransformPoint(new(0, 0)).Y;
+                    Require(Math.Abs(firstSub - restoredSub) < 1, "标题负例恢复后年份仍未对齐");
+                }
                 foreach (var card in new[] { left, right })
                 {
                     var source = Get<TextBlock>(card, "SourceLine");
@@ -140,6 +163,9 @@ internal sealed partial class ShellNavigationProbe
             HomeMotion.ApplyPreference(savedMotion);
             ThemeHost.Apply(savedTheme);
         }
+
+        static bool HasTwoLineSlot(TextBlock title) =>
+            title.MaxLines == 2 && title.Height == 40 && LayoutInformation.GetLayoutSlot(title).Height == 40;
 
         string TitleRead(string label, PosterCard card)
         {
