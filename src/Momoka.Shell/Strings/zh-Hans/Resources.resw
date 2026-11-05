@@ -148,7 +148,7 @@
     <value>媒体源</value>
   </data>
   <data name="DetailPage_TextBlock3.Text" xml:space="preserve">
-    <value>音频</value>
+    <value>音频：</value>
   </data>
   <data name="DetailPage_TextBlock4.Text" xml:space="preserve">
     <value>字幕</value>

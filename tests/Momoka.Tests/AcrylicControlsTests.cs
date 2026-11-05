@@ -40,6 +40,9 @@ internal static class AcrylicControlsTests
         Test("详情音视频行：文字与选择框统一正文字号", () =>
         {
             var page = Read("Views/DetailPage.xaml");
+            var audioLabel = Read("Strings/zh-Hans/Resources.resw").Descendants("data")
+                .Single(row => (string?)row.Attribute("name") == "DetailPage_TextBlock3.Text");
+            Assert.Equal("音频：", audioLabel.Element("value")?.Value);
             foreach (var name in new[] { "ColumnSourcePicker", "ColumnAudioPicker", "ColumnSubtitlePicker", "SourcePicker", "AudioPicker", "SubtitlePicker" })
                 Assert.Equal("{StaticResource EgBodyFontSize}", (string?)Named(page, name).Attribute("FontSize"));
             foreach (var name in new[] { "DetailVideoText", "ColumnAudioText", "AudioText" })
