@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Momoka.Tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
+  </ItemGroup>
+  <UsingTask TaskName="ExtractServerConnectionTest" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var text = File.ReadAllText(Source).Replace("\r\n", "\n");
+        const string marker = "    private async Task TestAsync(ServerRow? row)";
+        var start = text.IndexOf(marker, StringComparison.Ordinal);
+        var finish = text.IndexOf("    /// <summary>没有保存账号的服务器仍可直接打开登录页。</summary>", start, StringComparison.Ordinal);
+        if (start < 0 || finish <= start || text.IndexOf(marker, start + marker.Length, StringComparison.Ordinal) >= 0)
+            throw new InvalidOperationException("Server test production member is missing or ambiguous");
+        File.WriteAllText(Output, "#nullable enable\nusing Momoka.Emby;\nusing Momoka.Diagnostics;\nnamespace Momoka.Shell.ViewModels;\ninternal sealed partial class ServersViewModel\n{\n" + text.Substring(start, finish - start) + "}\n");
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="ExtractProductionServerTest" BeforeTargets="CoreCompile">
+    <ExtractServerConnectionTest Source="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ViewModels/ServersViewModel.cs"
+                                 Output="$(IntermediateOutputPath)ServerConnection.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)ServerConnection.g.cs" /></ItemGroup>
+  </Target>
+</Project>

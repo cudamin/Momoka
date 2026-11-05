@@ -502,9 +502,16 @@ public sealed partial class ServersViewModel : PageViewModel
 
             if (!IsCurrent(token)) return;
 
+            // A read-only connection test must never rebind saved credentials to a replacement server.
+            // Missing identity is not confirmation either: keep the known binding for the restore guard.
+            if (row.Profile.Accounts.Count > 0 && !string.IsNullOrWhiteSpace(row.Profile.ServerId)
+                && (!string.Equals(row.Profile.ServerId, info.Id, StringComparison.Ordinal)
+                    || row.Profile.ServerKind != info.ServerKind))
+                throw new EmbyApiException("服务器身份与已保存账号不一致，请重新添加服务器并确认登录；原账号绑定已保留");
+
             row.Profile.ServerKind = info.ServerKind;
             row.Profile.ServerVersion = info.Version;
-            row.Profile.ServerId = info.Id;
+            if (!string.IsNullOrWhiteSpace(info.Id)) row.Profile.ServerId = info.Id;
             row.Profile.Url = EmbyServerAddress.ToDisplayString(info.ApiBase!, info.ServerKind);
             _settings!.Save();
 

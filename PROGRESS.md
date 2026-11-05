@@ -10524,3 +10524,9 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 
 - 窗口移动前捕获原客户区，交接层使用该矩形；全屏客户区仍自然铺满屏幕。保留抓帧、身份/代次检查、两帧等待和finally释放。
 - 构建时逐字提取实际方法，普通窗口/全屏/负坐标副屏先1过2败，修后3/3；当前Shell Release 0警告0错误。未执行真实DWM/WinUI或本地播放，批次收尾仍待隔离运行。
+# 2026-11-05 审查修复分组：服务器与设置 R28
+
+- 独立工作树 `review-server-settings/Momoka`，起点 `4089e59`。连接测试对已有账号的已知服务器身份执行一致性校验，拒绝身份替换或丢失，保留原绑定；无账号的探测仍可识别新服务器，空 ID 不擦掉已知值。
+- 新增 `Momoka.ServerSettingsReviewTests`，编译时提取当前完整 `ServersViewModel.TestAsync` 并运行实际 Core session/gateway/store。修前真实控制流在替换服务器先测试后恢复时触发失败断言；修后 8 个匿名案例通过，fresh Release 0 警告/0 错误，`git diff --check` 通过。
+- 所有凭据均为占位，HTTP 为内存替身、设置目录位于本树测试输出。不操作真实账号/服务器/桌面/播放。方案注册和批次全量验证由集成会话完成；本提交尚未合入主树、发布或推送。
+
