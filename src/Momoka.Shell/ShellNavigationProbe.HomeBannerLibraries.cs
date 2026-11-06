@@ -150,8 +150,8 @@ internal sealed partial class ShellNavigationProbe
                     && synopsis.Opacity >= 0.99 && Get<Grid>(banner, "TitleRow").Opacity >= 0.99
                     && (Get<Grid>(banner, "CaptionRow").Visibility != Visibility.Visible
                         || Get<Grid>(banner, "CaptionRow").Opacity >= 0.99));
-                Require(Math.Abs(synopsis.ActualWidth - info.MaxWidth * 0.95) < 1,
-                    $"剧情说明没有单独向左收窄5%：Info实际/上限={info.ActualWidth}/{info.MaxWidth}，简介实际/指定={synopsis.ActualWidth}/{synopsis.Width}，窗口={banner.ActualWidth}");
+                Require(Math.Abs(synopsis.ActualWidth - info.MaxWidth * 0.90) < 1,
+                    $"剧情说明没有单独向左收窄10%：Info实际/上限={info.ActualWidth}/{info.MaxWidth}，简介实际/指定={synopsis.ActualWidth}/{synopsis.Width}，窗口={banner.ActualWidth}");
                 Require(Math.Abs(Bounds(synopsis).Left - Bounds(info).Left) < 1,
                     "剧情说明收窄时改变了左侧起点");
                 var finalWidth = synopsis.Width;

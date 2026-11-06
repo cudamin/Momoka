@@ -878,7 +878,7 @@ public sealed partial class HomeBanner : UserControl
         // 「按内沿算」的说法一起删了。
         Info.MaxWidth = Math.Min(Math.Max(0, width - InfoInset - 28), Math.Clamp(width * 0.48, 280, 620));
         // 固定简介这行的宽度，避免按文字内容测量时只改 MaxWidth 却没有实际收缩；其他行仍按原规则排版。
-        SynopsisRow.Width = Info.MaxWidth * 0.95;
+        SynopsisRow.Width = Info.MaxWidth * 0.90;
         Info.Spacing = height < 360 ? 8 : 12;
         LogoImage.MaxHeight = height < 360 ? 32 : 44;
         TitleText.MaxLines = height >= 440 ? 2 : 1;
@@ -1241,7 +1241,7 @@ public sealed partial class HomeBanner : UserControl
         var width = 1100d;
         var wide = banner.Info.MaxWidth;
         var tall = Math.Abs(banner.Root.Height - height) < 0.01 && wide <= 620
-            && Math.Abs(banner.SynopsisRow.Width - wide * 0.95) < 0.01
+            && Math.Abs(banner.SynopsisRow.Width - wide * 0.90) < 0.01
             && banner.SynopsisRow.HorizontalAlignment == HorizontalAlignment.Left;
 
         // 框没有了（「占满窗口的上半部分（包括窗口标题）」，2026-09-11）：带子铺到窗口的三条边上，贴着窗口的
