@@ -631,6 +631,8 @@ internal static class AniBtIntegrationTests
         {
             const string next = "/library/Anime S01E02.mkv";
             using var transport = TransferTransport(Target, next)
+                // Both sealed histories must also exist in the server's current complete reply.
+                .Answer("history/transfer", HistoriesJson((7, Target), (8, next)))
                 .Answer("media/42?", """{"title":"アオのハコ Season 2","original_title":"アオのハコ Season 2","names":["Blue Box Season 2"],"media_source":"bangumi","media_id":"42","type":"电视剧"}""")
                 .Answer("storage/list", JsonSerializer.Serialize(new { success = true, data = new[] { Target, next }.Select(path => new { storage = "local", type = "file", path }) }))
                 .Sequence("transfer/manual?", (HttpStatusCode.OK, PreviewReply(Target)), (HttpStatusCode.OK, PreviewReply(next)))
