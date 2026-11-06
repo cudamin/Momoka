@@ -30,6 +30,14 @@ internal static class AppearanceOpacity
         return (byte)Math.Clamp(Math.Round(normalized * byte.MaxValue * share), 0, 255);
     }
 
+    /// <summary>
+    /// 模糊只去掉细节，不降低亮度。启用时用固定深罩托住最淡的卡片字幕，白底是最坏输入；
+    /// 零档仍完全关闭处理，高斯满档也保留背景，不变成不透明遮罩。
+    /// </summary>
+    public static byte ReadingShadeAlpha(double strength, bool gaussian) => gaussian
+        ? GaussianBackdrop.SigmaFor(strength) > 0 ? (byte)0xE0 : (byte)0
+        : ScrimAlpha(DetailHero.ScrimCeiling, strength);
+
     // 主页轮播那张图原本就是满不透明的一层，滑块不归它管（设置里那行说明也只写详情页）。
     public static double HomeBackdrop(double percent) => 1;
 

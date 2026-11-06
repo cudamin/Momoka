@@ -184,6 +184,7 @@ internal static partial class DetailActionReadinessTests
         public ReadinessTransport Transport { get; } = new();
         public DetailDeleteActionsProxy Actions { get; }
         public object Vm { get; }
+        public UiSettings Ui => _settings.Settings.Ui;
         public EmbyItem Seed { get; }
         public bool Busy => Get("Busy") is true;
 

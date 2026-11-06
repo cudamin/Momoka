@@ -1409,7 +1409,7 @@ public sealed class UiSettings
     /// <summary>按钮与选择框使用应用内亚克力；缺键保留现有底色。</summary>
     public bool UseAcrylicControls { get; set; }
 
-    /// <summary>用真正高斯模糊替换背景图上的文字暗色遮罩，仍保留短主题收边渐变。</summary>
+    /// <summary>仅电影、剧与季的沉浸背景使用真正高斯模糊，并保留深色阅读保护；不影响首页轮播。</summary>
     public bool UseGaussianBackdrop { get; set; }
 
     /// <summary>电影、剧与季的宽版式固定使用沉浸模式；仍要求背景图且不进入紧凑版式。</summary>

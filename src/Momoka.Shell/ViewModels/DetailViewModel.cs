@@ -199,6 +199,11 @@ public sealed partial class DetailViewModel : PageViewModel
 
         PropertyChanged += (_, args) =>
         {
+            if (args.PropertyName == nameof(Showcase))
+            {
+                OnPropertyChanged(nameof(UseGaussianBackdrop));
+                UpdateHeroBlur();
+            }
             if (args.PropertyName is nameof(HeroContent) or nameof(TailIntrinsic)
                 or nameof(OverviewVisibility) or nameof(PickersVisibility) or nameof(HeaderLift) or nameof(PaperLine))
                 RefreshContentCrop();
@@ -506,8 +511,8 @@ public sealed partial class DetailViewModel : PageViewModel
     internal double ControlBackgroundOpacity => _settings?.Settings.Ui.ControlBackgroundOpacity ?? 0;
 
     internal bool UseAcrylicControls => _settings?.Settings.Ui.UseAcrylicControls == true;
-    public bool UseGaussianBackdrop => _settings?.Settings.Ui.UseGaussianBackdrop == true;
-    public bool GaussianBackdropApplied => _heroRenderedGaussian && HeroImage is not null;
+    public bool UseGaussianBackdrop => Showcase && _settings?.Settings.Ui.UseGaussianBackdrop == true;
+    public bool GaussianBackdropApplied => UseGaussianBackdrop && _heroRenderedGaussian && HeroImage is not null;
     internal bool GaussianBackdropReady => UseGaussianBackdrop == _heroRenderedGaussian && !_heroRendering && HeroImage is not null;
     private bool _heroRenderedGaussian;
     private bool _heroRequestedGaussian;

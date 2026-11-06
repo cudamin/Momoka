@@ -266,7 +266,8 @@ public sealed partial class HomeBanner : UserControl
         _openBackground.Apply(ui.ControlBackgroundOpacity, ui.UseAcrylicControls);
         Brush(LayerA).Opacity = AppearanceOpacity.HomeBackdrop(ui.BackdropOpacity);
         Brush(LayerB).Opacity = AppearanceOpacity.HomeBackdrop(ui.BackdropOpacity);
-        foreach (var slide in _slides) slide.SetGaussianBackdrop(ui.UseGaussianBackdrop);
+        // 全图高斯仅供详情沉浸布局；首页保留原图及左侧扩边过渡。
+        foreach (var slide in _slides) slide.SetGaussianBackdrop(false);
         PaintBackdropShade();
     }
 
@@ -394,7 +395,7 @@ public sealed partial class HomeBanner : UserControl
         Unwatch();
 
         _slides = next;
-        foreach (var slide in _slides) slide.SetGaussianBackdrop(_appearanceSettings?.UseGaussianBackdrop == true);
+        foreach (var slide in _slides) slide.SetGaussianBackdrop(false);
         Visibility = _slides.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         if (_slides.Count == 0)

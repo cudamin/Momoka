@@ -483,6 +483,22 @@ internal sealed partial class ShellNavigationProbe
         ui.UseAcrylicControls = true;
         ui.ControlBackgroundOpacity = 0;
         ShellPrefs.ApplyAppearance(ui);
+        await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
+        Require(ReferenceEquals(normal, page.ViewModel.HeroImage), "普通详情被高斯偏好重新处理");
+        if (page.ViewModel.ItemType == EmbyItemType.Episode)
+        {
+            Require(!page.ViewModel.UseGaussianBackdrop, "单集页面错误启用沉浸高斯");
+            Require(requestCount() == baselineReads, "单集切换外观重新请求图片或媒体");
+            ui.UseGaussianBackdrop = false;
+            ui.BackdropOpacity = 45;
+            ui.UseAcrylicControls = false;
+            ShellPrefs.ApplyAppearance(ui);
+            return;
+        }
+        ResizeProbeClient(1100, 1120);
+        await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
+        ui.AlwaysImmersive = true;
+        ShellPrefs.ApplyAppearance(ui);
         await UntilAsync(() => page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady
             && !ReferenceEquals(normal, page.ViewModel.HeroImage));
         Require(!ReferenceEquals(normal, page.ViewModel.HeroImage), "高斯背景没有渲染新的图片");
@@ -529,12 +545,15 @@ internal sealed partial class ShellNavigationProbe
                 && acrylic.FallbackColor == ThemeHost.ToColor(theme.Colors.SurfaceElevated), "亚克力没有跟随当前主题");
             Require(ReferenceEquals(settled, page.ViewModel.HeroImage), "切主题重新处理高斯图片");
             Require(Get<FrameworkElement>(page, "HeroBand") is Panel { Background: null }
-                or Panel { Background: SolidColorBrush { Color.A: 0 } }, "高斯模式仍在头图叠暗色遮罩");
+                or Panel { Background: SolidColorBrush { Color.A: 0 } }, "高斯头部重复叠暗");
             var tail = Get<StackPanel>(page, "HeroTail");
-            Require(tail.Background is null or SolidColorBrush { Color.A: 0 }, "高斯模式尾部仍叠暗色遮罩");
+            Require(tail.Background is null or SolidColorBrush { Color.A: 0 }, "高斯尾部重复叠暗");
             Require(Get<Border>(page, "TitleWash").Background is null or SolidColorBrush { Color.A: 0 },
-                "高斯模式标题栏仍压暗图片");
+                "高斯标题栏重复叠暗");
+            Require(ScrimAlphaOf(page) == ScrimExpected(page) && ScrimAlphaOf(page) > 0,
+                "亮背景没有固定的深色阅读保护");
             RequireDetailBackdropFade(page);
+            await CheckBackdropFadePixelsAsync(page);
             await SaveProbeScreenAsync($"detail-gaussian-{page.ViewModel.ItemType}-{theme.Id}-screen.png");
         }
         if (page.ViewModel.ItemType != EmbyItemType.Episode)
@@ -558,6 +577,8 @@ internal sealed partial class ShellNavigationProbe
             ResizeProbeClient(760, 820);
             await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 760) < 1; });
             ShellPrefs.ApplyAppearance(ui);
+            await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
+            Require(ui.UseGaussianBackdrop, "退出沉浸清空了高斯偏好");
             await LayoutAsync(page);
         }
         ui.UseGaussianBackdrop = false;
@@ -570,6 +591,9 @@ internal sealed partial class ShellNavigationProbe
             : ScrimAlphaOf(page) > 0,
             "切回后暗色遮罩未恢复");
         // 快速来回切换：晚到的旧模式不能覆盖当前高斯结果。
+        ResizeProbeClient(1100, 1120);
+        await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
+        ui.AlwaysImmersive = true;
         ui.UseGaussianBackdrop = true;
         ShellPrefs.ApplyAppearance(ui);
         ui.UseGaussianBackdrop = false;
@@ -580,13 +604,14 @@ internal sealed partial class ShellNavigationProbe
         Require(requestCount() == baselineReads, "背景效果切换重新请求媒体或图片");
         ui.UseGaussianBackdrop = false;
         ui.UseAcrylicControls = false;
+        ui.AlwaysImmersive = false;
         ShellPrefs.ApplyAppearance(ui);
         await UntilAsync(() => !page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady);
     }
 
     /// <summary>这一页按设置该画出来的遮罩 alpha —— 探针比的是这个数，不自己另算一遍公式。</summary>
     private static byte ScrimExpected(DetailPage page) =>
-        AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, page.ViewModel.BackdropStrength);
+        AppearanceOpacity.ReadingShadeAlpha(page.ViewModel.BackdropStrength, page.ViewModel.GaussianBackdropApplied);
 
     /// <summary>
     /// 屏上这一刻真正画着的那层遮罩的 alpha —— 普通三页读背景层那道整块阅读遮罩，沉浸档读滚动区那一支
@@ -661,9 +686,19 @@ internal sealed partial class ShellNavigationProbe
                     var opacity = zero!.Opacity;
                     var baseline = opacity * color.A / 255d;
                     var feedback = state is "PointerOver" or "Pressed" or "CheckedPointerOver" or "CheckedPressed";
-                    // 0 档：常态什么底都不画，悬停与按下仍留原来那层薄白（指针的手感，不是底色）。
-                    Require(feedback ? baseline > 0 : baseline == 0 && color.A == 0,
-                        control.Name + "/" + state + (feedback ? " 零档丢了悬停的薄白" : " 零档还画着底色"));
+                    if (controls.Contains(control))
+                    {
+                        // 操作按钮按最新 v0.2.1 要求保留平台默认底；选择框仍用零档全透明的约定。
+                        var prefix = control is ToggleButton ? "ToggleButton" : "Button";
+                        var key = prefix + (state.Contains("PointerOver", StringComparison.Ordinal) ? "BackgroundPointerOver"
+                            : state.Contains("Pressed", StringComparison.Ordinal) ? "BackgroundPressed" : "Background");
+                        var expected = (SolidColorBrush)Application.Current.Resources[key];
+                        Require(color == expected.Color && Math.Abs(opacity - expected.Opacity) < 0.001,
+                            control.Name + "/" + state + " 零档未保留平台默认半透明底");
+                    }
+                    else
+                        Require(feedback ? baseline > 0 : baseline == 0 && color.A == 0,
+                            control.Name + "/" + state + (feedback ? " 零档丢了悬停的薄白" : " 零档还画着底色"));
                     var foreground = control.Foreground;
                     ui.ControlBackgroundOpacity = 37;
                     ShellPrefs.ApplyAppearance(ui);
@@ -829,18 +864,20 @@ internal sealed partial class ShellNavigationProbe
             await SaveProbeScreenAsync("home-detail-opacity-screen.png");
             ui.ControlBackgroundOpacity = 0;
             ui.UseAcrylicControls = true;
+            var homePicture = banner.FrontPicture;
             ui.UseGaussianBackdrop = true;
             ShellPrefs.ApplyAppearance(ui);
-            await UntilAsync(() => banner.GaussianBackdropApplied && banner.GaussianBackdropReady);
+            await UntilAsync(() => !banner.GaussianBackdropApplied && banner.GaussianBackdropReady);
+            Require(ReferenceEquals(homePicture, banner.FrontPicture), "高斯偏好改动了首页轮播图片");
             foreach (var theme in UiThemes.All)
             {
                 ThemeHost.Apply(theme);
                 await LayoutAsync(banner);
                 await UntilAsync(() => Math.Abs(banner.FrontLayer.Opacity - 1) < 0.001);
-                Require(Get<Border>(banner, "Top").Visibility == Visibility.Collapsed
-                    && Get<Border>(banner, "Fade").Visibility == Visibility.Collapsed
-                    && Get<Border>(banner, "RightShade").Visibility == Visibility.Collapsed,
-                    "主页高斯仍保留图片暗色遮罩");
+                Require(Get<Border>(banner, "Top").Visibility == Visibility.Visible
+                    && Get<Border>(banner, "Fade").Visibility == Visibility.Visible
+                    && Get<Border>(banner, "RightShade").Visibility == Visibility.Visible,
+                    "详情高斯偏好撤掉了主页轮播原遮罩");
                 RequireHomeWithoutBottomFade(banner);
                 await SaveProbeScreenAsync($"home-gaussian-{theme.Id}-screen.png");
             }

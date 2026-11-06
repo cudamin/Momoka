@@ -81,7 +81,8 @@ public sealed partial class DetailPage
         DetailVideoInk.Visibility = DetailTitleInk.Visibility;
         DetailDirectorsInk.Visibility = DetailTitleInk.Visibility;
         PaintScrim();
-        SettleShowcase();
+        // 缓存命中可同步完成渲染；尺寸和窗口状态仍在写入时，留给统一布局结算。
+        if (!_sizing && !_applyingShowcase) SettleShowcase();
     }
 
     private void PaintBackdropReading()

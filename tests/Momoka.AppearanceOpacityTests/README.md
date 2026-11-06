@@ -9,3 +9,5 @@
 材质扩展：每态固定 AcrylicBrush，现有底色用 AlwaysUseFallback 与原有效 alpha 精确呈现，亚克力使用主题 tint；覆盖三态、checked/focused、零档与100、主题、来回切换和资源对象稳定性。亚克力的 0 档同样是什么都不画（tint 与 luminosity 都是 0），100 档回实底。替身不模拟合成器过渡，99.9→100及真实材质仍由运行截图核对。平台 BrushTransition 仅支持 SolidColorBrush，固定材质刷不再提供原83ms背景换色缓动。
 
 背景图那一档：`AppearanceOpacity.Backdrop` 0..1 是强度，`ScrimAlpha` 把遮罩表上每一档按 255/0xB8 归一后乘强度（0 → 0，184/255 → 原表，1 → 255），`GaussianBackdrop.SigmaFor` 把同一档换成 sigma（0 → 0，1 → `MaxSigma` 24）。两者都覆盖百分比、越界与非有限值；遮罩表五档在「老观感」那一档逐个还原成原值。真高斯的并行实现由主测试与实屏探针覆盖，这里只测换算。
+
+沉浸高斯的 `ReadingShadeAlpha` 非零档保留 alpha 224 深罩，零档仍关闭；纯白最亮输入下核对五主题正文及卡片字幕对比。普通模式仍读线性暗罩，首页不启用全图高斯。

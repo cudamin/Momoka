@@ -825,7 +825,8 @@ public sealed partial class DetailPage : Page, IShellContent
         // 不是同一个「不透明」。
         var showcase = ViewModel.Showcase;
         var opaque = BodyPaper.Background is SolidColorBrush { Color.A: 255 }
-            || showcase && BodyPaper.Background is SolidColorBrush { Color.A: > 0 };
+            || showcase && BodyPaper.Background is SolidColorBrush { Color: var paperColor }
+                && paperColor == WashColor;
         var moved = Math.Abs(box.Top - tail.Bottom) < 0.5;
 
         // 尾部该多高：内容和「这一次该补多少」两者取大（见 DetailHero.TailHeight）。内容那一头按最后一块的
@@ -2226,19 +2227,6 @@ public sealed partial class DetailPage : Page, IShellContent
     private void ApplyWash(double offset, bool force)
     {
         var artwork = ViewModel.BackdropShown;
-
-        if (artwork && ViewModel.GaussianBackdropApplied)
-        {
-            // 图上不再加黑洗色；实体正文纸面滚入标题栏时仍按原来的几何接管。
-            if (ViewModel.Showcase)
-            {
-                _paperCover = 0;
-                _paintPhase = 2;
-                SyncTitleInk(0);
-                TitleWash.Background = null;
-                return;
-            }
-        }
 
         // 沉浸档（最大化、电影/剧/季、有背景图）：正文那张纸整块让开，任何时候都没有纸面往标题栏上盖 ——
         // 整条一直是尾部那道半透明黑上的浅墨。纸面接管的三个阶段（3、4 和那道硬边渐变）在这一档都不存在。

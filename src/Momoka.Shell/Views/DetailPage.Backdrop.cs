@@ -7,17 +7,13 @@ namespace Momoka.Shell.Views;
 
 public sealed partial class DetailPage
 {
-    // 保留既有容器及阅读遮罩归属；去掉下沿渐变后，不能把遮罩搬回滚动区再次叠暗。
-    private bool UsesBackdropFade => ViewModel.BackdropShown && !ViewModel.Showcase
+    // 阅读保护固定在图片层，滚动内容和标题栏不再重复叠暗。沉浸背景也必须压住任意位置的亮部。
+    private bool UsesBackdropFade => ViewModel.BackdropShown
         && ViewModel.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
-    // 整张图上的阅读遮罩。老版固定 0xB8；2026-11-06 起浓度读设置里那一档（0 不遮、100 完全不透明），
-    // 最浓档就是 ScrimCeiling 那一格 —— 见 AppearanceOpacity.ScrimAlpha。高斯模糊那一档不画它（模糊自己压细节）。
-    private Color ReadingShadeColor => ViewModel.GaussianBackdropApplied
-        ? Color.FromArgb(0, 0, 0, 0)
-        : Color.FromArgb(
-            AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, ViewModel.BackdropStrength),
-            DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B);
+    private Color ReadingShadeColor => Color.FromArgb(
+        AppearanceOpacity.ReadingShadeAlpha(ViewModel.BackdropStrength, ViewModel.GaussianBackdropApplied),
+        DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B);
 
     private void PaintBackdropFade()
     {

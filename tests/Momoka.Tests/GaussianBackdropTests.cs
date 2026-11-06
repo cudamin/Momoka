@@ -11,6 +11,22 @@ internal static class GaussianBackdropTests
 {
     public static void Register()
     {
+        Test("高斯背景：仅详情沉浸生效，普通版式和首页不读取高斯偏好", () =>
+        {
+            var root = Root();
+            var model = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/ViewModels/DetailViewModel.cs"));
+            Assert.Contains("public bool UseGaussianBackdrop => Showcase &&", model);
+            var home = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/Views/HomeBanner.xaml.cs"));
+            Assert.False(home.Contains("slide.SetGaussianBackdrop(ui.UseGaussianBackdrop)", StringComparison.Ordinal));
+            Assert.False(home.Contains("slide.SetGaussianBackdrop(_appearanceSettings?.UseGaussianBackdrop", StringComparison.Ordinal));
+        });
+        Test("高斯背景：固定背景承担阅读遮罩，模糊不再撤掉保护", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(Root(), "src/Momoka.Shell/Views/DetailPage.Backdrop.cs"));
+            Assert.Contains("AppearanceOpacity.ReadingShadeAlpha", source);
+            Assert.Contains("ViewModel.GaussianBackdropApplied", source);
+            Assert.False(source.Contains("? Color.FromArgb(0, 0, 0, 0)", StringComparison.Ordinal));
+        });
         Test("高斯背景：缺键默认暗罩和原底色，两模式JSON与恢复独立保存", () =>
         {
             var settings = SettingsMigration.FromJson("{\"SchemaVersion\":26,\"Ui\":{}}", PassthroughSecretProtector.Instance);

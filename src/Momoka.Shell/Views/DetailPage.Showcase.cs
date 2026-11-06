@@ -221,7 +221,9 @@ public sealed partial class DetailPage
     /// <summary>
     /// 沉浸档的纸面与阅读遮罩同色；普通模式的透明尾部不能成为进入沉浸时的取色来源。
     /// </summary>
-    private Color WashColor => ReadingShadeColor;
+    private Color WashColor => UsesBackdropFade
+        ? Color.FromArgb(0, DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B)
+        : ReadingShadeColor;
 
     /// <summary>
     /// 沉浸版式（窗口铺开时正文让开）跟着条目种类、页宽跨断点和背景图翻档三处翻面。这三处都不是「用户按了

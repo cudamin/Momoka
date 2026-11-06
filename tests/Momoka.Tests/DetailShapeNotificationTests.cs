@@ -9,6 +9,29 @@ internal static partial class DetailActionReadinessTests
 {
     private static void RegisterShapeTests(Assembly assembly, string root)
     {
+        Test("高斯偏好仅在电影剧季沉浸生效，普通窄窗无图及单集保留偏好", () =>
+        {
+            foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
+            {
+                using var f = new Fixture(assembly, root, shape);
+                Await(f.Load());
+                f.Ui.UseGaussianBackdrop = true;
+                void Set(string name, object value) => f.Vm.GetType().GetProperty(name)!.SetValue(f.Vm, value);
+                Set("PageWidth", 1200d);
+                Set("Viewport", 2000d);
+                Set("HeroArt", true);
+                Set("Spacious", false);
+                Assert.False((bool)f.Get("UseGaussianBackdrop")!, "普通版式不得启用高斯");
+                Set("Spacious", true);
+                Assert.Equal(shape != Shape.Episode, (bool)f.Get("UseGaussianBackdrop")!);
+                Set("PageWidth", 760d);
+                Assert.False((bool)f.Get("UseGaussianBackdrop")!, "紧凑版式不得启用高斯");
+                Set("PageWidth", 1200d);
+                Set("HeroArt", false);
+                Assert.False((bool)f.Get("UseGaussianBackdrop")!, "无图不得启用高斯");
+                Assert.True(f.Ui.UseGaussianBackdrop, "退出适用模式不能清空偏好");
+            }
+        });
         Test("单集唯一音轨隐藏仍保留视频读数", () =>
         {
             using var f = new Fixture(assembly, root, Shape.Episode);

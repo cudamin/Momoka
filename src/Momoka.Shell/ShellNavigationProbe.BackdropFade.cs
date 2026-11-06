@@ -17,7 +17,7 @@ internal sealed partial class ShellNavigationProbe
 {
     private static void RequireDetailBackdropFade(DetailPage page)
     {
-        var expected = page.ViewModel.BackdropShown && !page.ViewModel.Showcase
+        var expected = page.ViewModel.BackdropShown
             && page.ViewModel.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
         var fade = Get<Border>(page, "BackdropFade");
         Require((fade.Visibility == Visibility.Visible) == expected, "底部渐变显隐不符合页面及沉浸模式");
@@ -29,7 +29,7 @@ internal sealed partial class ShellNavigationProbe
             && Math.Abs(fade.ActualWidth - picture.ActualWidth) < 0.01, "渐变没有独立覆盖实际图片盒子");
         var ink = DetailHero.ScrimInk;
         Require(fade.Background is SolidColorBrush brush
-            && brush.Color.A == (page.ViewModel.GaussianBackdropApplied ? 0 : ScrimExpected(page))
+            && brush.Color.A == ScrimExpected(page)
             && (brush.Color.A == 0 || brush.Color.R == ink.R && brush.Color.G == ink.G && brush.Color.B == ink.B),
             "背景应只保留原均匀阅读遮罩，不得再画下沿渐变");
         Require(Get<Grid>(page, "HeroBand").Background is SolidColorBrush { Color.A: 0 }
@@ -82,17 +82,14 @@ internal sealed partial class ShellNavigationProbe
                 var rendered = await ReadBackdropPixelsAsync(page.ViewModel.HeroImage!);
                 Require(original.Width == rendered.Width && original.Height == rendered.Height,
                     "底边模糊改变了解码尺寸");
-                var clearLength = (int)Math.Floor(rendered.Height * 0.95) * rendered.Width * 4;
-                Require(original.Pixels.AsSpan(0, clearLength).SequenceEqual(rendered.Pixels.AsSpan(0, clearLength)),
-                    "底边模糊污染了上方95%画面");
-                Require(!original.Pixels.AsSpan(clearLength).SequenceEqual(rendered.Pixels.AsSpan(clearLength)),
-                    "图片下沿没有实际高斯模糊");
+                Require(original.Pixels.AsSpan().SequenceEqual(rendered.Pixels),
+                    "普通背景仍有局部接缝模糊或全图高斯");
                 foreach (var gaussian in new[] { false, true })
                 {
                     fixture.Settings.Ui.UseGaussianBackdrop = gaussian;
                     fixture.Settings.Ui.AlwaysImmersive = false;
                     ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-                    await UntilAsync(() => page.ViewModel.GaussianBackdropReady && page.ViewModel.GaussianBackdropApplied == gaussian);
+                    await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
                     var baseline = reads;
                     foreach (var theme in UiThemes.All)
                     {
@@ -144,6 +141,7 @@ internal sealed partial class ShellNavigationProbe
                     await SaveProbeScreenAsync($"backdrop-fade-{type}-{gaussian}-immersive-screen.png");
                     ResizeProbeClient(760, 820);
                     await UntilAsync(() => { page.UpdateLayout(); return page.ViewModel.IsCompact; });
+                    await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
                     await LayoutAsync(page);
                     RequireDetailBackdropFade(page);
                 }
@@ -209,8 +207,7 @@ internal sealed partial class ShellNavigationProbe
                 var y = Math.Clamp((int)(picture.ActualHeight * scale * along), 0, bitmap.PixelHeight - 1);
                 var at = (y * bitmap.PixelWidth + x) * 4;
                 var ink = DetailHero.ScrimInk;
-                var alpha = page.ViewModel.GaussianBackdropApplied ? 0
-                    : AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, page.ViewModel.BackdropStrength) / 255d;
+                var alpha = ScrimExpected(page) / 255d;
                 var expected = new[] { ink.B, ink.G, ink.R };
                 for (var channel = 0; channel < 3; channel++)
                 {
@@ -219,6 +216,8 @@ internal sealed partial class ShellNavigationProbe
                         $"渐变真实像素 {along:0.###}/{channel}={pixels[at + channel]}，预期{value:0.##}");
                 }
             }
+            if (page.ViewModel.GaussianBackdropApplied)
+                await SaveProbeScreenAsync($"detail-gaussian-white-{page.ViewModel.ItemType}-{ThemeHost.Current.Id}-screen.png");
         }
         finally { picture.Background = image; }
         await LayoutAsync(page);

@@ -222,7 +222,7 @@
                 </Border.Background>
             </Border>
 
-            <!-- 普通剧/季/电影的全图阅读遮罩。 -->
+            <!-- 剧/季/电影的固定阅读遮罩，沉浸高斯同样保留，滚动内容不重复叠暗。 -->
             <Border x:Name="BackdropFade" Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
                     VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
 
