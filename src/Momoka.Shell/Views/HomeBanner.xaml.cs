@@ -1586,7 +1586,7 @@ public sealed partial class HomeBanner : UserControl
         return (covers && oneAxis,
             $"剧照铺满整条带 {drawn.Width:0}×{drawn.Height:0}（画刷那层就是整格，左 {left:0.#}、上 {at.Y:0.#}）"
                 + (sourceShape > 0
-                    ? $"；背景位图 {source!.PixelWidth}×{source!.PixelHeight} = {sourceShape:0.00}:1（左侧 {CarouselBackdrop.LeftExtensionShare:0%} 采色扩边，高斯向原图伸入 {CarouselBackdrop.BlurIntoPictureShare:0%} 并随图缩放）"
+                    ? $"；背景位图 {source!.PixelWidth}×{source!.PixelHeight} = {sourceShape:0.00}:1（左侧 {CarouselBackdrop.LeftExtensionShare:0%} 采色扩边，高斯限于延长区并随图缩放，原图保持清晰）"
                         + (cropX > 0
                             ? $" 比带子宽，左右各裁 {cropX:P0}"
                             : cropY > 0 ? $" 比带子窄，上下各裁 {cropY:P0}" : " 和带子同形，一个像素都不裁")

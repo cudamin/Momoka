@@ -238,10 +238,11 @@ internal sealed partial class ShellNavigationProbe
         var picture = banner.FrontPicture as Microsoft.UI.Xaml.Media.Imaging.BitmapImage
             ?? throw new InvalidOperationException("轮播模糊图尚未解码");
         var pixels = await ReadBackdropPixelsAsync(picture);
-        // 夹具在整幅背景上有一道清晰山脊；原图左5%位于全模糊区，原图中央应继续清晰。
+        // 夹具在整幅背景上有一道清晰山脊；延长区平滑，原图左5%与中央都必须继续清晰。
         var sourceWidth = picture.PixelWidth / (1 + CarouselBackdrop.LeftExtensionShare);
         var extension = sourceWidth * CarouselBackdrop.LeftExtensionShare;
-        var blurredX = (int)Math.Round((extension + sourceWidth * 0.05) / picture.PixelWidth * pixels.Width);
+        var blurredX = (int)Math.Round(extension * 0.50 / picture.PixelWidth * pixels.Width);
+        var originalLeftX = (int)Math.Round((extension + sourceWidth * 0.05) / picture.PixelWidth * pixels.Width);
         var clearX = (int)Math.Round((extension + sourceWidth * 0.50) / picture.PixelWidth * pixels.Width);
         double Edge(int x)
         {
@@ -257,10 +258,11 @@ internal sealed partial class ShellNavigationProbe
             return maximum;
         }
         var blurredEdge = Edge(blurredX);
+        var originalLeftEdge = Edge(originalLeftX);
         var clearEdge = Edge(clearX);
-        Require(clearEdge > 20 && blurredEdge < clearEdge * 0.6,
-            $"模糊没有向右覆盖原图或把整幅图一起糊掉：左侧边界={blurredEdge:0.00}，中央={clearEdge:0.00}");
-        readings.Add($"blur-pixels：原图左5%边界={blurredEdge:0.00}，中央={clearEdge:0.00}");
+        Require(clearEdge > 20 && originalLeftEdge > clearEdge * 0.6 && blurredEdge < clearEdge * 0.6,
+            $"模糊越过延长区或没有平滑延长区：扩边={blurredEdge:0.00}，原图左5%={originalLeftEdge:0.00}，中央={clearEdge:0.00}");
+        readings.Add($"blur-pixels：扩边={blurredEdge:0.00}，原图左5%={originalLeftEdge:0.00}，中央={clearEdge:0.00}");
         Call(banner, "StopMotion", "camera");
         var transform = (ScaleTransform)banner.FrontLayer.RenderTransform;
         var originalX = transform.ScaleX;

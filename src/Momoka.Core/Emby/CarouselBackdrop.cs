@@ -1,10 +1,9 @@
 namespace Momoka.Emby;
 
-/// <summary>轮播背景图：左侧采色延长15%，高斯连续覆盖扩边和原图左10%，随整幅图缩放。</summary>
+/// <summary>轮播背景图：左侧采色延长15%，高斯仅处理新增区域，随整幅图缩放，原图像素保持原样。</summary>
 public static class CarouselBackdrop
 {
     public const double LeftExtensionShare = 0.15;
-    public const double BlurIntoPictureShare = 0.10;
 
     /// <summary>延长量按原图宽度计算；像素取整最多相差半个像素。</summary>
     public static int ExtensionWidth(int width)
@@ -15,8 +14,8 @@ public static class CarouselBackdrop
 
     /// <summary>
     /// 输入为顶行在前的 BGRA 像素。新增部分使用左侧 2% 的颜色、沿高度大窗口柔化（上下四分之一高度混在一起，
-    /// 「边缘的色彩上下要混合，别只是简单的拉长」）后向原图左边缘过渡。高斯跨过接缝继续向右，
-    /// 在原图左10%的后半段逐渐回到清晰画面；该范围以右及所有alpha保持原样。
+    /// 「边缘的色彩上下要混合，别只是简单的拉长」）后向原图左边缘过渡。高斯在延长区内淡出，
+    /// 非延长区域逐字节保持原图，不改变任何alpha。
     /// </summary>
     public static (byte[] Pixels, int Width) ExtendLeft(ReadOnlySpan<byte> source, int width, int height, CancellationToken token = default)
     {
@@ -74,17 +73,16 @@ public static class CarouselBackdrop
             }
         }
 
-        // 模糊和原图合成同一张位图，UniformToFill和慢镜头缩放一起作用于它们。跨过原图起点才羽化，
-        // 避免旧版在扩边末端露出清晰竖条。右侧多取3σ作为卷积边界，但不把模糊混到规定范围之外。
-        var intoPicture = Math.Max(1, (int)Math.Round(width * BlurIntoPictureShare));
-        var blurWidth = extension + intoPicture;
+        // 模糊和原图合成同一张位图，UniformToFill和慢镜头缩放一起作用于它们。羽化严格留在扩边内。
+        // 右侧多取3σ仅用于卷积采样，混回循环永远不写原图。
+        var blurWidth = extension;
         var sampleBlurWidth = Math.Min(extendedWidth, blurWidth + GaussianBackdrop.Sigma * 3);
         var blurStride = checked(sampleBlurWidth * 4);
         var blurred = new byte[checked(blurStride * height)];
         for (var y = 0; y < height; y++)
             pixels.AsSpan(y * extendedStride, blurStride).CopyTo(blurred.AsSpan(y * blurStride));
         GaussianBackdrop.Apply(blurred, sampleBlurWidth, height, GaussianBackdrop.Sigma, token);
-        var seamWidth = Math.Max(1, (int)Math.Round(intoPicture * 0.50));
+        var seamWidth = Math.Max(1, (int)Math.Round(extension * 0.20));
         for (var y = 0; y < height; y++)
         {
             token.ThrowIfCancellationRequested();
