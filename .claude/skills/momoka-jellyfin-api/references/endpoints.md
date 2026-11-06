@@ -129,6 +129,12 @@ That last row is the reason this skill exists as a sibling rather than a paragra
 
 ## Version drift and what it costs
 
+### Subtitle version targets (2026-11-07)
+
+Fixed Jellyfin 10.10.7 (`aefb9b2cffca3ccb7a95d89af0d9fb2040de6ed3`) and 12.4 (`83d0d0e7f76e23e2e085c8ff67d28b772d35967d`) `BaseItem.GetVersionInfo` set each file source's `Id` to its own version item's GUID. Search and download use `Items/{versionItemId}/RemoteSearch/Subtitles/...`; deletion uses `Videos/{versionItemId}/Subtitles/{index}`. Their subtitle controllers consume the route ID and have no `MediaSourceId` query parameter. `UserLibraryController.GetItem` also reads that exact version, including the legacy user-prefixed forwarding route.
+
+`ServerSubtitles` captures a nonempty GUID source ID as its Jellyfin operation target, uses it for search/download/delete/readback, and still requires a unique source with the original ID/path and unchanged complete subtitle snapshot before deletion. It never falls back to the parent item when the source is unavailable. 10.10.7 can sort a non-3D alternate ahead of a 3D main file; 12.4 prioritizes the queried item, but an explicitly chosen alternate still needs this target binding. The anonymous `subtitle-target-fixture` covers both DTO orders; it does not execute server sorting or real file deletion. R04-004's unreliable download 204 confirmation remains outside this repair.
+
 Jellyfin 12.0 (2026-09-07) is the release that moved the API surface this skill describes. What its notes say, verbatim where it matters:
 
 - "Support for the legacy `/emby/` and `/mediabrowser/` addresses has been removed, and the deprecated way of signing in is now disabled, including on existing servers."

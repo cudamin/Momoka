@@ -154,9 +154,10 @@ internal static partial class JellyfinProtocolTests
             await client.QueryResumeAsync(0, 4, default);
             await client.MarkPlayedAsync("item", default);
             await client.SetFavoriteAsync("item", true, default);
-            await client.DeleteSubtitleAsync("item", 2, default);
+            await client.DeleteSubtitleAsync("item", "source", 2, default);
             var expected = new[] { "/media/UserViews", "/media/Items", "/media/Items/item", "/media/Items/Latest", "/media/UserItems/Resume", "/media/UserPlayedItems/item", "/media/UserFavoriteItems/item", "/media/Videos/item/Subtitles/2" };
             Assert.Equal(string.Join('|', expected), string.Join('|', handler.Sent.Select(sent => sent.Path)));
+            Assert.DoesNotContain("MediaSourceId", handler.Sent[^1].Url);
             Assert.DoesNotContain("ProductionYear", handler.Sent[1].Url);
             Assert.DoesNotContain("PremiereDate", handler.Sent[1].Url);
             Assert.Contains("UserId=u1", handler.Sent[1].Url);

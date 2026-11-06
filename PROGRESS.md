@@ -10,6 +10,12 @@
 - 正式真实VM/Core专项105全过，恢复86全过，输入128全过，均0失败0跳过；final串行Shell/CoreTests/输入编译0警告0错误。首38红10过28败、产品族55红45过10败、复审Core83红55过28败和全部原日志保留，见artifacts/r03-001-signin-binding/final-evidence.json及tests/Momoka.Tests/README.SignInServerBinding.md。
 - 当前仅独立树源码提交供主代理整合；尚未合master/最终全主回归/真实UI/交付，未发布、push或改快捷方式。初输入边界CS0246已补异常替身后重编译；format退出0但有workspace提示，未冒充完整空白门禁。
 
+# 2026-11-07 R04-001 与 FINAL-T02 隔离修复待整合
+
+- 工作树 `C:/Users/89400/.codex/worktrees/subtitle-target-fix/Momoka`，基点5e971ae；Jellyfin字幕搜索/下载/删除/复读绑定已确认版本，Emby删除补必需MediaSourceId；正式字幕Dialog夹具补无blur任务边界并保留完整生产Cancel提取。见[修复记录](docs/superpowers/reviews/2026-11-05-full-code-review/R04-001-fix.md)。
+- 有效红：主Tests编译0/0，40项24过16败；正式Dialog CS0103缺_blurCancel。绿：两Release/x64编译0/0，协议/管理99过，正式Dialog原37过，均0失败0跳；日志均在本树artifacts/r04-subtitle-target。R04-004独立未修。
+- 提交待主代理整合与最终组合验证；未跑全主套件/方案/Shell/真实UI/账号/服务/播放，未发布/改快捷方式/上传，本树通过不等于交付。主树写入与批次交付由根会话独占。
+
 # 2026-11-06 全项目审查文档主树整合
 
 - 审查记录提交b7c3a61纯文档整合到主树，整合前master=3f1dd4fd577d164fd4a00a0952569321488e98d1；72审查产物、计划及本次进度记录进入当前主树，原主树PROGRESS尾部逐字节保留。

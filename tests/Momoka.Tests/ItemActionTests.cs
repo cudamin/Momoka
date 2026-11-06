@@ -428,11 +428,13 @@ internal static class ItemActionTests
                 var client = Client(stub);
                 Assert.Throws<ArgumentException>(() => Wait(client.SearchSubtitlesAsync(id, "source", "chi", CancellationToken.None)));
                 Assert.Throws<ArgumentException>(() => Wait(client.DownloadSubtitleAsync(id, "source", "candidate", CancellationToken.None)));
-                Assert.Throws<ArgumentException>(() => Wait(client.DeleteSubtitleAsync(id, 3, CancellationToken.None)));
+                Assert.Throws<ArgumentException>(() => Wait(client.DeleteSubtitleAsync(id, "source", 3, CancellationToken.None)));
             }
             var invalid = Client(new StubTransport());
             Assert.Throws<ArgumentException>(() => Wait(invalid.SearchSubtitlesAsync("m1", " ", "chi", CancellationToken.None)));
             Assert.Throws<ArgumentException>(() => Wait(invalid.SearchSubtitlesAsync("m1", "source", " ", CancellationToken.None)));
+            Assert.Throws<ArgumentException>(() => Wait(invalid.DownloadSubtitleAsync("m1", " ", "candidate", CancellationToken.None)));
+            Assert.Throws<ArgumentException>(() => Wait(invalid.DeleteSubtitleAsync("m1", " ", 3, CancellationToken.None)));
         });
 
         Test("字幕候选：结果行显示提供方、格式、哈希匹配及强制字幕标记", () =>
@@ -466,11 +468,11 @@ internal static class ItemActionTests
         Test("更多菜单：删字幕按轨道序号，DELETE 一趟", () =>
         {
             var stub = new StubTransport().Answer("Subtitles/3", "");
-            Wait(Client(stub).DeleteSubtitleAsync("m1", 3, CancellationToken.None));
+            Wait(Client(stub).DeleteSubtitleAsync("m1", "src-1", 3, CancellationToken.None));
 
             var sent = stub.Only("Subtitles/3");
             Assert.Equal("DELETE", sent.Method);
-            Assert.Equal($"{Base}Items/m1/Subtitles/3", sent.Url);
+            Assert.Equal($"{Base}Items/m1/Subtitles/3?MediaSourceId=src-1", sent.Url);
         });
     }
 

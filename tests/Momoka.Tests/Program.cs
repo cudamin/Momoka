@@ -17,6 +17,14 @@ internal static class Program
             SignInServerBindingTests.RegisterCore();
             return TestHarness.Run();
         }
+        if (args is ["subtitle-target-fixture"])
+        {
+            SubtitleManagementTests.Register();
+            SubtitleTargetTests.Register();
+            ItemActionTests.Register();
+            JellyfinProtocolTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["moviepilot-boundary-fixture"])
         {
             MoviePilotSafetyTests.Register();
@@ -319,6 +327,7 @@ internal static class Program
         SubtitleBehaviorTests.Register();
         SubtitleForcedOnlyTests.Register();
         SubtitleManagementTests.Register();
+        SubtitleTargetTests.Register();
         MpvProcessTests.Register();
         SelfCheckTests.Register();
         SelfCheckOutputIsolationTests.Register();

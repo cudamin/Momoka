@@ -146,6 +146,7 @@ internal static class SubtitleManagementTests
             await operations.DeleteAsync(fixture.Track);
             var deletion = fixture.Transport.Requests.Single(request => request.Method == "DELETE");
             Assert.Equal("/emby/Items/fixture/Subtitles/3", deletion.Path);
+            Assert.Contains("MediaSourceId=source", deletion.Query);
             Assert.Equal("a.invalid", deletion.Host);
         }));
 

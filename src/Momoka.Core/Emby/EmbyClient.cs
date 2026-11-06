@@ -1129,7 +1129,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         ArgumentException.ThrowIfNullOrWhiteSpace(search.Language);
         return http.GetJsonAsync<List<RemoteSubtitleInfo>>(
             Url($"Items/{SubtitleItemId(itemId)}/RemoteSearch/Subtitles/{Uri.EscapeDataString(search.Language)}",
-                ("MediaSourceId", mediaSourceId),
+                ("MediaSourceId", Connection.IsJellyfin ? null : mediaSourceId),
                 ("IsForced", search.ForcedOnly ? "true" : null)),
             Context,
             cancellationToken);
@@ -1153,17 +1153,24 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         string itemId,
         string mediaSourceId,
         string subtitleId,
-        CancellationToken cancellationToken) =>
-        http.PostForJsonAsync<SubtitleDownloadResult>(
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(mediaSourceId);
+        return http.PostForJsonAsync<SubtitleDownloadResult>(
             Url($"Items/{SubtitleItemId(itemId)}/RemoteSearch/Subtitles/{Uri.EscapeDataString(subtitleId)}",
-                ("MediaSourceId", mediaSourceId)),
+                ("MediaSourceId", Connection.IsJellyfin ? null : mediaSourceId)),
             null,
             Context,
             cancellationToken);
+    }
 
     /// <summary>删掉一条外挂字幕。内嵌在容器里的那些删不掉，服务器会拒绝。</summary>
-    public Task DeleteSubtitleAsync(string itemId, int index, CancellationToken cancellationToken) =>
-        http.DeleteAsync(Url($"{(Connection.IsJellyfin ? "Videos" : "Items")}/{SubtitleItemId(itemId)}/Subtitles/{index}"), Context, cancellationToken);
+    public Task DeleteSubtitleAsync(string itemId, string mediaSourceId, int index, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(mediaSourceId);
+        return http.DeleteAsync(Url($"{(Connection.IsJellyfin ? "Videos" : "Items")}/{SubtitleItemId(itemId)}/Subtitles/{index}",
+            ("MediaSourceId", Connection.IsJellyfin ? null : mediaSourceId)), Context, cancellationToken);
+    }
 
     // ---- 下载到设备 -----------------------------------------------------------
 

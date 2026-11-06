@@ -1,5 +1,7 @@
 # R056 字幕写响应不明的父页刷新欠项
 
+2026-11-07 的 FINAL-T02 修复在 `ParentBoundaries` 补上电影夹具的无重糊任务边界 `_blurCancel = null`，保留每次构建原样提取的完整生产 `Cancel()`。正式 Release/x64 构建和当前全部37项已复验；这只核对父页加载期和字幕交接，不证明图片重糊取消、真实 WinUI 或服务器写入。R04-001 多版本目标另由主 runner 的 `subtitle-target-fixture` 覆盖。
+
 这是独立、定向的离线源码夹具，已最小注册到方案构建，仍需单独运行；不注册 Core runner，也不运行全 Core、SelfCheck 或用户级 mutex。[Program.cs](Program.cs) 正式注册36项；本树首次枚举没有现成 Momoka.SubtitleDialogTests，所以新建此项目，不猜测或依赖 ignored 历史工具。
 
 ## 执行的是真实方法

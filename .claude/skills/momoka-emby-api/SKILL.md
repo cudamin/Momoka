@@ -86,6 +86,8 @@ Videos/{itemId}/stream{ext}?Static=true&MediaSourceId=…
 
 For the More menu's subtitle editor, pass an immutable `ServerSubtitleSearch` through `ServerSubtitles` to `EmbyClient.SearchSubtitlesAsync`. Keep `MediaSourceId` bound to the file captured when the dialog opened. Send `IsForced=true` only when “仅强制字幕” is on; omit the query when it is off, rather than excluding forced subtitles with `false`. The current Emby web editor has no hash-match toggle: do not restore it from the older screenshots in the manual-download article or send `IsPerfectMatch` from this editor. See [the subtitle endpoint notes](references/endpoints.md#字幕) for the dated protocol evidence and the Jellyfin difference.
 
+Deletion requires that same captured `MediaSourceId`; never call the Emby subtitle DELETE with only the parent item and stream index. `subtitle-target-fixture` covers per-file routing and snapshot/path changes through actual Core operations. Jellyfin file-source IDs represent version item IDs and select the route instead of this query parameter.
+
 ## Native Emby metadata editor
 
 `EmbyMetadataEditor` owns scope-bound full JSON reads and saves; `EmbyClient.Metadata.cs` owns the Emby-only `Items/{ItemId}/MetadataEditor` catalog endpoint. Reuse `ExternalIdInfo` rather than guessing provider IDs or cloning the SDK model. `EmbyMetadataEdit` preserves untouched JSON, date precision, unknown locks and original credit/studio identity across list edits. The whole-item lock is `LockData`, not the `IsLocked` query filter. Saving is administrator-gated and a true no-op sends no POST. Details and dated evidence are in [the endpoint notes](references/endpoints.md#emby-原生元数据编辑目录2026-10-28).

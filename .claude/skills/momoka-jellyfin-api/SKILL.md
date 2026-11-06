@@ -96,6 +96,8 @@ The snapshot behind this skill is `work/jellyfin/openapi.json`, byte-identical (
 
 ## Verification
 
+Subtitle management binds file-source `Id` to the version item's GUID for all three actions and readback. Do not use the parent item's route with a `MediaSourceId` query: the fixed 10.10.7/12.4 controllers ignore that unsupported query and select the route item. See [the endpoint notes](references/endpoints.md#subtitle-version-targets-2026-11-07). `subtitle-target-fixture` verifies both source orders, source/path/snapshot changes and the separate Emby source parameter through actual Core operations; no real subtitle write is covered.
+
 - Route claims here are static: they come from an OpenAPI document and from Jellyfin's own source. They are not evidence that a request succeeds against a running server. Say which of the two you have.
 - When adding or changing a path, fetch the target server's `/openapi.json` and compare by **structure**, not by literal grep — parameter names differ between products and between Jellyfin versions (`{itemId}` vs `{Id}`, `{routeItemId}`).
 - Anything touching `EmbyHttp` headers, redirect handling, error classification or `EmbyUrl` has unit coverage; run the test project rather than only UI checks. Jellyfin transport, versioned routes and administration guards have offline tests; report real-server coverage separately.

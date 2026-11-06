@@ -15,10 +15,14 @@ public sealed class ServerSubtitles
 
     public ServerSubtitles(EmbySessionScope scope, EmbyItem item, MediaSource source)
     {
-        if (string.IsNullOrWhiteSpace(item.Id) || !item.MediaSources.Contains(source))
+        if (string.IsNullOrWhiteSpace(item.Id) || string.IsNullOrWhiteSpace(source.Id) || !item.MediaSources.Contains(source))
             throw new InvalidOperationException("字幕管理缺少有效的媒体文件");
+        // Jellyfin's file-source Id is its version item's GUID. Its subtitle controllers only use
+        // the route item, so validating B while writing the parent A would target a different file.
+        if (scope.Connection.IsJellyfin && (!Guid.TryParse(source.Id, out var versionId) || versionId == Guid.Empty))
+            throw new InvalidOperationException("字幕管理缺少有效的版本条目，请在服务器管理界面核对");
         _scope = scope;
-        _itemId = item.Id;
+        _itemId = scope.Connection.IsJellyfin ? source.Id : item.Id;
         _sourceId = source.Id;
         _sourcePath = source.Path;
         _source = source;
@@ -64,7 +68,7 @@ public sealed class ServerSubtitles
             throw new InvalidOperationException("服务器字幕列表已变化，未执行删除；请刷新后重新确认");
         _scope.ThrowIfNotCurrent();
         await _scope.ExecuteAsync((client, token) =>
-            client.DeleteSubtitleAsync(_itemId, expected.Index, token), CancellationToken.None).ConfigureAwait(false);
+            client.DeleteSubtitleAsync(_itemId, _sourceId, expected.Index, token), CancellationToken.None).ConfigureAwait(false);
         _scope.ThrowIfNotCurrent();
     }
 
