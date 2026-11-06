@@ -137,7 +137,7 @@ internal sealed partial class ShellNavigationProbe
             })
             {
                 var row = appearance.Rows.OfType<SettingChoiceRow>().Single(item => item.Label == label);
-                Require(row.Choices.Count == 2, label + " 没有两项选择");
+                Require(row.Choices.Count == (label == "背景图效果" ? 3 : 2), label + " 缺少背景效果选择");
                 var host = Descendants(page).OfType<ContentPresenter>().Single(item => ReferenceEquals(item.Content, row));
                 host.StartBringIntoView();
                 await LayoutAsync(host);
@@ -148,6 +148,15 @@ internal sealed partial class ShellNavigationProbe
             }
             Require(fixture.Settings.Ui.UseAcrylicControls && fixture.Settings.Ui.UseGaussianBackdrop,
                 "材质选择没有写回设置");
+            var effectRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "背景图效果");
+            effectRow.Selected = effectRow.Choices.Single(choice => choice.Label == "亚克力");
+            Require(fixture.Settings.Ui.UseAcrylicBackdrop && !fixture.Settings.Ui.UseGaussianBackdrop,
+                "亚克力选择未保存或与高斯同时开启");
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync("settings-backdrop-acrylic-choice-screen.png");
+            effectRow.Selected = effectRow.Choices.Single(choice => choice.Label == "高斯模糊");
+            Require(!fixture.Settings.Ui.UseAcrylicBackdrop && fixture.Settings.Ui.UseGaussianBackdrop,
+                "切回高斯未关闭亚克力");
             foreach (var (label, value) in new[]
             {
                 ("按钮与选择框底色不透明度（%）", 37d), ("背景图不透明度（%）", 45d)
@@ -541,8 +550,9 @@ internal sealed partial class ShellNavigationProbe
             var play = Descendants(Get<StackPanel>(page, "CompactBlock")).OfType<Button>().First();
             var action = Descendants(play).OfType<ContentPresenter>().Single(part => part.Name == "ContentPresenter").Background;
             Require(action is AcrylicBrush { AlwaysUseFallback: false } acrylic
-                && acrylic.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceElevated)
-                && acrylic.FallbackColor == ThemeHost.ToColor(theme.Colors.SurfaceElevated), "亚克力没有跟随当前主题");
+                && acrylic.TintColor == ((SolidColorBrush)Application.Current.Resources["EgDetailActionBrush"]).Color
+                && acrylic.FallbackColor == ((SolidColorBrush)Application.Current.Resources["EgDetailActionBrush"]).Color,
+                "浅色操作亚克力没有保留当前浅色面");
             Require(ReferenceEquals(settled, page.ViewModel.HeroImage), "切主题重新处理高斯图片");
             Require(Get<FrameworkElement>(page, "HeroBand") is Panel { Background: null }
                 or Panel { Background: SolidColorBrush { Color.A: 0 } }, "高斯头部重复叠暗");
@@ -688,13 +698,12 @@ internal sealed partial class ShellNavigationProbe
                     var feedback = state is "PointerOver" or "Pressed" or "CheckedPointerOver" or "CheckedPressed";
                     if (controls.Contains(control))
                     {
-                        // 操作按钮按最新 v0.2.1 要求保留平台默认底；选择框仍用零档全透明的约定。
-                        var prefix = control is ToggleButton ? "ToggleButton" : "Button";
-                        var key = prefix + (state.Contains("PointerOver", StringComparison.Ordinal) ? "BackgroundPointerOver"
-                            : state.Contains("Pressed", StringComparison.Ordinal) ? "BackgroundPressed" : "Background");
+                        // 浅色操作面保持可读；选择框继续由浓度滑块控制。
+                        var key = state.Contains("PointerOver", StringComparison.Ordinal) ? "EgDetailActionHoverBrush"
+                            : state.Contains("Pressed", StringComparison.Ordinal) ? "EgDetailActionPressedBrush" : "EgDetailActionBrush";
                         var expected = (SolidColorBrush)Application.Current.Resources[key];
                         Require(color == expected.Color && Math.Abs(opacity - expected.Opacity) < 0.001,
-                            control.Name + "/" + state + " 零档未保留平台默认半透明底");
+                            control.Name + "/" + state + " 未保留浅色操作底");
                     }
                     else
                         Require(feedback ? baseline > 0 : baseline == 0 && color.A == 0,
@@ -713,21 +722,22 @@ internal sealed partial class ShellNavigationProbe
                     ShellPrefs.ApplyAppearance(ui);
                     Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } opaque && opaque.FallbackColor.A == 255 && opaque.Opacity == 1,
                         "底色100档未完全不透明");
-                    Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } readable && readable.FallbackColor.R < 128
-                        && readable.FallbackColor.G < 128 && readable.FallbackColor.B < 128,
-                        "不透明底色变成亮白，无法读取浅色文字");
+                    Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } readable && (controls.Contains(control)
+                        ? readable.FallbackColor.R > 128 && readable.FallbackColor.G > 128 && readable.FallbackColor.B > 128
+                        : readable.FallbackColor.R < 128 && readable.FallbackColor.G < 128 && readable.FallbackColor.B < 128),
+                        "操作按钮或选择框的不透明底色不符合各自配色");
                     var owned = Fill();
                     ui.ControlBackgroundOpacity = 0;
                     ui.UseAcrylicControls = true;
                     ShellPrefs.ApplyAppearance(ui);
                     await LayoutAsync(control);
                     Require(ReferenceEquals(Fill(), owned) && Fill() is AcrylicBrush { AlwaysUseFallback: false } glass
-                        && Math.Abs(glass.TintOpacity) < 0.001 && glass.FallbackColor.A == 255,
+                        && Math.Abs(glass.TintOpacity - (controls.Contains(control) ? 0.72 : 0)) < 0.001 && glass.FallbackColor.A == 255,
                         control.Name + "/" + state + " 亚克力零档不是完全透明或丢了主题回退");
                     ui.ControlBackgroundOpacity = 37;
                     ShellPrefs.ApplyAppearance(ui);
                     Require(Fill() is AcrylicBrush { AlwaysUseFallback: false } thicker
-                        && Math.Abs(thicker.TintOpacity - 0.37) < 0.001,
+                        && Math.Abs(thicker.TintOpacity - (controls.Contains(control) ? 0.72 : 0.37)) < 0.001,
                         "亚克力没有随不透明度增加");
                     ui.ControlBackgroundOpacity = 99.9;
                     ShellPrefs.ApplyAppearance(ui);

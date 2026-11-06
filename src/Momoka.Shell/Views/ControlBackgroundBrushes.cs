@@ -12,22 +12,24 @@ namespace Momoka.Shell.Views;
 /// <para>
 /// 滑块的读数就是底色自己的不透明度（2026-11-06 用户令「0 改为完全透明，100 改为完全不透明」）：0 档常态什么
 /// 都不画，悬停与按下仍留原来那层薄白 —— 那是指针的手感，不是要关掉的那块板。
-/// 详情操作按钮按用户最新要求恢复0.2.1默认半透明底，零档保留平台原三态；选择框和主页按钮仍用原滑块语义。
+/// 详情操作按钮使用浅色面与深墨，默认实底；亚克力保持最低阅读浓度。选择框和主页按钮沿用滑块语义。
 /// </para>
 /// </summary>
 internal sealed class ControlBackgroundBrushes
 {
     private readonly List<(SolidColorBrush Source, SolidColorBrush Target, AcrylicBrush Copy, bool Feedback)> _brushes = [];
     private readonly bool _preserveDefault;
+    private readonly bool _lightSurface;
 
     private ControlBackgroundBrushes(Control control, string prefix,
         SolidColorBrush normal, SolidColorBrush hover, SolidColorBrush pressed, SolidColorBrush disabled,
-        bool preserveDefault = false)
+        bool preserveDefault = false, bool lightSurface = false)
     {
         _preserveDefault = preserveDefault;
-        var rest = Copy(normal, "EgSurfaceElevatedBrush", feedback: false);
-        var over = Copy(hover, "EgSurfaceHoverBrush", feedback: true);
-        var down = Copy(pressed, "EgSurfaceAltBrush", feedback: true);
+        _lightSurface = lightSurface;
+        var rest = Copy(normal, lightSurface ? "EgDetailActionBrush" : "EgSurfaceElevatedBrush", feedback: false);
+        var over = Copy(hover, lightSurface ? "EgDetailActionHoverBrush" : "EgSurfaceHoverBrush", feedback: true);
+        var down = Copy(pressed, lightSurface ? "EgDetailActionPressedBrush" : "EgSurfaceAltBrush", feedback: true);
         var off = Copy(disabled, "EgSurfaceElevatedBrush", feedback: false);
         // XAML 不声明下面这些键；此处仅在构造时新增一次，以后只修改画刷。
         // WinUI 的别名重写按对象移除，可能报 0x800F0902；资源枚举也不能作为别名复制依据。
@@ -52,12 +54,14 @@ internal sealed class ControlBackgroundBrushes
         control.Background = rest;
     }
 
-    public static ControlBackgroundBrushes ForDetail(Control control, bool preserveDefault = false)
+    public static ControlBackgroundBrushes ForDetail(Control control, bool preserveDefault = false, bool lightSurface = false)
     {
         var prefix = control is ComboBox ? "ComboBox" : control is ToggleButton ? "ToggleButton" : "Button";
         var source = control is ToggleButton ? "ToggleButton" : "Button";
-        return new(control, prefix, Resource(source + "Background"), Resource(source + "BackgroundPointerOver"),
-            Resource(source + "BackgroundPressed"), Resource(source + "BackgroundDisabled"), preserveDefault);
+        return new(control, prefix, Resource(lightSurface ? "EgDetailActionBrush" : source + "Background"),
+            Resource(lightSurface ? "EgDetailActionHoverBrush" : source + "BackgroundPointerOver"),
+            Resource(lightSurface ? "EgDetailActionPressedBrush" : source + "BackgroundPressed"),
+            Resource(source + "BackgroundDisabled"), preserveDefault, lightSurface);
     }
 
     public static ControlBackgroundBrushes ForBanner(Button button, ResourceDictionary resources) =>
@@ -70,14 +74,22 @@ internal sealed class ControlBackgroundBrushes
         var amount = AppearanceOpacity.ControlBackground(percent);
         foreach (var (source, target, copy, feedback) in _brushes)
         {
+            // 浅色操作面自带可读底色；旧浓度滑块继续控制选择框，不能把浅底退回深色主题表面。
+            if (_lightSurface && !useAcrylic)
+            {
+                copy.FallbackColor = source.Color;
+                copy.Opacity = 1;
+                copy.AlwaysUseFallback = true;
+                continue;
+            }
             if (useAcrylic && amount < 1)
             {
                 // 亚克力跟着同一档浓度：0 档是一块什么都不画的玻璃，向右补到 100 的实底（由下面那条路接手）。
                 // 画刷本身保持不透明，系统关闭透明效果时 FallbackColor 仍是一块可读的主题表面。
                 copy.TintColor = target.Color;
                 copy.FallbackColor = target.Color;
-                copy.TintOpacity = amount;
-                copy.TintLuminosityOpacity = amount;
+                copy.TintOpacity = _lightSurface ? Math.Max(0.72, amount) : amount;
+                copy.TintLuminosityOpacity = _lightSurface ? Math.Max(0.72, amount) : amount;
                 copy.Opacity = 1;
                 copy.AlwaysUseFallback = false;
                 continue;

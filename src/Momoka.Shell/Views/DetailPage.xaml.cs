@@ -96,7 +96,11 @@ public sealed partial class DetailPage : Page, IShellContent
         TextInk.Attach(DetailDirectorsInk, DetailDirectorsText);
         PrepareAppearance();
         PaintScrim();
-        BackdropThemeSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => PaintBackdropFade());
+        BackdropThemeSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) =>
+        {
+            PaintBackdropFade();
+            if (_appearanceObserved) ApplyAppearance();
+        });
         MeasureSeriesShelf();
         PrepareShowcase();
         PrepareCardLayout();

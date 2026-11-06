@@ -17,7 +17,35 @@ public sealed partial class DetailPage
 
     private void PaintBackdropFade()
     {
-        BackdropFade.Background = new SolidColorBrush(ReadingShadeColor);
+        // smoothstep 两端斜率归零；同一主题RGB只改变alpha，避开透明黑造成的脏边。
+        var color = _actionAccessibility.HighContrast
+            ? _actionUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Background)
+            : ThemeHost.ToColor(ThemeHost.Current.Colors.Window);
+        BackdropEdgeBrush.GradientStops.Clear();
+        BackdropEdgeBrush.GradientStops.Add(new GradientStop { Offset = 0, Color = Color.FromArgb(0, color.R, color.G, color.B) });
+        for (var step = 0; step <= 32; step++)
+        {
+            var t = step / 32d;
+            var alpha = (byte)Math.Round(255 * t * t * (3 - 2 * t));
+            BackdropEdgeBrush.GradientStops.Add(new GradientStop
+            {
+                Offset = 0.8 + 0.2 * t,
+                Color = Color.FromArgb(alpha, color.R, color.G, color.B)
+            });
+        }
+        BackdropEdgeFade.Visibility = ViewModel.Showcase ? Visibility.Collapsed : Visibility.Visible;
+        BackdropFade.Background = ViewModel.UseAcrylicBackdrop
+            ? new AcrylicBrush
+            {
+                TintColor = color,
+                FallbackColor = color,
+                TintOpacity = ViewModel.BackdropStrength,
+                TintLuminosityOpacity = ViewModel.BackdropStrength,
+                Opacity = ViewModel.BackdropStrength == 0 ? 0 : 1,
+                AlwaysUseFallback = ViewModel.BackdropStrength == 1,
+                TintTransitionDuration = TimeSpan.Zero
+            }
+            : new SolidColorBrush(ReadingShadeColor);
         BackdropFade.Visibility = UsesBackdropFade ? Visibility.Visible : Visibility.Collapsed;
     }
 }

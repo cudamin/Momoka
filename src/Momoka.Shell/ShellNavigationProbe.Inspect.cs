@@ -118,6 +118,11 @@ internal sealed partial class ShellNavigationProbe
             if (frame.Content is IShellContent previous) previous.Release();
             await BackdropFadeAsync();
         });
+        AddCheck("InspectActionMaterials", "详情按钮材质", async () =>
+        {
+            if (frame.Content is IShellContent previous) previous.Release();
+            await AcrylicControlsAsync();
+        });
         Add("InspectSubscriptionMaterial", "订阅卡片材质", async () =>
         {
             if (frame.Content is IShellContent previous) previous.Release();

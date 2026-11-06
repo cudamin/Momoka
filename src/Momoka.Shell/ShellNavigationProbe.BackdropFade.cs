@@ -28,10 +28,31 @@ internal sealed partial class ShellNavigationProbe
             && fade.Opacity == 1 && Math.Abs(fade.ActualHeight - picture.ActualHeight) < 0.01
             && Math.Abs(fade.ActualWidth - picture.ActualWidth) < 0.01, "渐变没有独立覆盖实际图片盒子");
         var ink = DetailHero.ScrimInk;
-        Require(fade.Background is SolidColorBrush brush
+        Require(page.ViewModel.UseAcrylicBackdrop
+            ? fade.Background is AcrylicBrush acrylic
+                && acrylic.TintColor == ThemeHost.ToColor(ThemeHost.Current.Colors.Window)
+                && acrylic.FallbackColor == acrylic.TintColor
+                && acrylic.TintOpacity == page.ViewModel.BackdropStrength
+                && acrylic.Opacity == (page.ViewModel.BackdropStrength == 0 ? 0 : 1)
+                && acrylic.AlwaysUseFallback == (page.ViewModel.BackdropStrength == 1)
+            : fade.Background is SolidColorBrush brush
             && brush.Color.A == ScrimExpected(page)
             && (brush.Color.A == 0 || brush.Color.R == ink.R && brush.Color.G == ink.G && brush.Color.B == ink.B),
-            "背景应只保留原均匀阅读遮罩，不得再画下沿渐变");
+            "背景阅读遮罩浓度或颜色错误");
+        var edge = Get<Border>(page, "BackdropEdgeFade");
+        Require((edge.Visibility == Visibility.Visible) == !page.ViewModel.Showcase, "收边应在普通与窄窗生效");
+        if (!page.ViewModel.Showcase)
+        {
+            Require(edge.Parent == picture.Parent && Math.Abs(edge.ActualHeight - picture.ActualHeight) < 0.01,
+                "收边未随实际图片高度缩放");
+            var stops = ((LinearGradientBrush)edge.Background).GradientStops;
+            var color = ThemeHost.ToColor(ThemeHost.Current.Colors.Window);
+            Require(stops.Count > 16 && stops[0].Color.A == 0 && Math.Abs(stops[1].Offset - 0.8) < 0.000001
+                && stops[1].Color.A == 0 && stops[^1].Offset == 1 && stops[^1].Color == color,
+                $"图片最后20%未从透明平滑收向主题底色：count={stops.Count}、起点={stops[1].Offset}/{stops[1].Color}、末点={stops[^1].Offset}/{stops[^1].Color}、主题={color}");
+            Require(stops.All(stop => stop.Color.R == color.R && stop.Color.G == color.G && stop.Color.B == color.B),
+                "渐变中间混入了非主题颜色");
+        }
         Require(Get<Grid>(page, "HeroBand").Background is SolidColorBrush { Color.A: 0 }
             && Get<StackPanel>(page, "HeroTail").Background is SolidColorBrush { Color.A: 0 },
             "滚动内容再次压暗主题收边");
@@ -86,19 +107,24 @@ internal sealed partial class ShellNavigationProbe
                     "普通背景仍有局部接缝模糊或全图高斯");
                 foreach (var gaussian in new[] { false, true })
                 {
+                    ResizeProbeClient(760, 1120);
+                    await UntilAsync(() => { page.UpdateLayout(); return page.ViewModel.IsCompact; });
                     fixture.Settings.Ui.UseGaussianBackdrop = gaussian;
                     fixture.Settings.Ui.AlwaysImmersive = false;
                     ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                     await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
                     var baseline = reads;
                     foreach (var theme in UiThemes.All)
-                    {
-                        ThemeHost.Apply(theme);
-                        await LayoutAsync(page);
-                        RequireDetailBackdropFade(page);
-                        await CheckBackdropFadePixelsAsync(page);
-                        await SaveProbeScreenAsync($"backdrop-fade-{type}-{gaussian}-{theme.Id}-screen.png");
-                    }
+                        foreach (var width in new[] { 760, 1280 })
+                        {
+                            ResizeProbeClient(width, 1120);
+                            ThemeHost.Apply(theme);
+                            await LayoutAsync(page);
+                            await UntilAsync(() => Math.Abs(page.ViewModel.PageWidth - width) < 1);
+                            RequireDetailBackdropFade(page);
+                            await CheckBackdropFadePixelsAsync(page);
+                            await SaveProbeScreenAsync($"backdrop-fade-{type}-{gaussian}-{theme.Id}-{width}-screen.png");
+                        }
                     Require(reads == baseline, "切主题重新请求了媒体或图片");
                 }
                 foreach (var strength in new[] { 0d, 40, 100 })
@@ -126,6 +152,23 @@ internal sealed partial class ShellNavigationProbe
                     Require(rejected, "背景检查没有拒绝错误遮罩浓度反例");
                 }
                 finally { brush.Color = last; }
+
+                foreach (var width in new[] { 760, 1280 })
+                    foreach (var strength in new[] { 0d, 40d, 100d })
+                    {
+                        ResizeProbeClient(width, 1120);
+                        fixture.Settings.Ui.UseAcrylicBackdrop = true;
+                        fixture.Settings.Ui.UseGaussianBackdrop = false;
+                        fixture.Settings.Ui.BackdropOpacity = strength;
+                        ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                        await LayoutAsync(page);
+                        await UntilAsync(() => Math.Abs(page.ViewModel.PageWidth - width) < 1);
+                        RequireDetailBackdropFade(page);
+                        await SaveProbeScreenAsync($"backdrop-acrylic-{type}-{width}-{strength:0}-screen.png");
+                    }
+                fixture.Settings.Ui.UseAcrylicBackdrop = false;
+                fixture.Settings.Ui.BackdropOpacity = 40;
+                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
 
                 foreach (var gaussian in new[] { false, true })
                 {
@@ -202,16 +245,21 @@ internal sealed partial class ShellNavigationProbe
                     var at = (row * bitmap.PixelWidth + x) * 4;
                     return $"y={row}: {pixels[at + 2]},{pixels[at + 1]},{pixels[at]},{pixels[at + 3]}";
                 })));
-            foreach (var along in new[] { 0.6, 0.8, 0.94, 0.96, 0.995 })
+            foreach (var along in new[] { 0.6, 0.8, 0.85, 0.9, 0.94, 0.96, 0.995 })
             {
                 var y = Math.Clamp((int)(picture.ActualHeight * scale * along), 0, bitmap.PixelHeight - 1);
                 var at = (y * bitmap.PixelWidth + x) * 4;
                 var ink = DetailHero.ScrimInk;
                 var alpha = ScrimExpected(page) / 255d;
                 var expected = new[] { ink.B, ink.G, ink.R };
+                var color = ThemeHost.ToColor(ThemeHost.Current.Colors.Window);
+                var themeChannels = new[] { color.B, color.G, color.R };
+                var t = page.ViewModel.Showcase ? 0 : Math.Clamp((along - 0.8) / 0.2, 0, 1);
+                var edgeAlpha = t * t * (3 - 2 * t);
                 for (var channel = 0; channel < 3; channel++)
                 {
-                    var value = 255 * (1 - alpha) + expected[channel] * alpha;
+                    var shade = 255 * (1 - alpha) + expected[channel] * alpha;
+                    var value = shade * (1 - edgeAlpha) + themeChannels[channel] * edgeAlpha;
                     Require(Math.Abs(pixels[at + channel] - value) < 5,
                         $"渐变真实像素 {along:0.###}/{channel}={pixels[at + channel]}，预期{value:0.##}");
                 }

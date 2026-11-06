@@ -636,12 +636,10 @@ internal sealed partial class ShellNavigationProbe
                     Require(VisualStateManager.GoToState(reference, state, false)
                         && VisualStateManager.GoToState(picker, state, false), "按钮或选择框缺少状态：" + state);
                     await LayoutAsync(picker);
-                    var expected = Descendants(reference).OfType<ContentPresenter>()
-                        .Single(presenter => presenter.Name == "ContentPresenter").Background;
-                    Require(expected is AcrylicBrush { AlwaysUseFallback: true } expectedColor
-                        && background.Background is AcrylicBrush { AlwaysUseFallback: true } actual
-                        && actual.FallbackColor == expectedColor.FallbackColor, $"{picker.Name}/{state} 与上方按钮背景不同");
-                    reads.Add($"{ThemeHost.Current.Id}/{picker.Name}/{state}: 与播放按钮同底");
+                    var key = "ComboBoxBackground" + (state == "Normal" ? "" : state);
+                    Require(background.Background is AcrylicBrush { AlwaysUseFallback: true } actual
+                        && ReferenceEquals(actual, picker.Resources[key]), $"{picker.Name}/{state} 未保持独立的选择框背景");
+                    reads.Add($"{ThemeHost.Current.Id}/{picker.Name}/{state}: 保持选择框底色");
                 }
                 Require(picker.Background is AcrylicBrush { AlwaysUseFallback: true } resting
                     && highlight.Background is AcrylicBrush { AlwaysUseFallback: true } focused
@@ -671,6 +669,10 @@ internal sealed partial class ShellNavigationProbe
                     Require(VisualStateManager.GoToState(control, states[index], false), "模板状态不存在：" + states[index]);
                     await UntilAsync(() => Fill() is AcrylicBrush { AlwaysUseFallback: true });
                     var fill = (AcrylicBrush)Fill()!;
+                    var lightKeys = new[] { "EgDetailActionBrush", "EgDetailActionHoverBrush", "EgDetailActionPressedBrush" };
+                    var expected = (SolidColorBrush)Application.Current.Resources[lightKeys[index % 3]];
+                    Require(fill.FallbackColor == expected.Color && fill.Opacity == 1,
+                        "详情操作按钮未使用浅色三态背景");
                     Require(!keys.Any(key => ReferenceEquals(fill, dark[key])), "详情操作按钮仍接共享玻璃");
                     if (index < 3) platform[index] = fill.FallbackColor;
                     else Require(fill.FallbackColor == platform[index - 3], "连播勾选底色未按回未勾选的三档");

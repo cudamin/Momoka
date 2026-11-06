@@ -7,13 +7,29 @@ public sealed partial class DetailPage
     private readonly List<ControlBackgroundBrushes> _controlBackgrounds = [];
     private bool _appearanceObserved;
     private int _appearanceLifetime;
+    private readonly Windows.UI.ViewManagement.AccessibilitySettings _actionAccessibility = new();
+    private readonly Windows.UI.ViewManagement.UISettings _actionUiSettings = new();
+    private readonly List<(Microsoft.UI.Xaml.Media.SolidColorBrush Brush, Windows.UI.Color Original)> _actionColors = [];
 
     private void PrepareAppearance()
     {
+        foreach (var key in new[] { "EgDetailActionBrush", "EgDetailActionHoverBrush", "EgDetailActionPressedBrush",
+            "EgDetailActionTextBrush", "EgDetailActionAccentBrush" })
+        {
+            var brush = (Microsoft.UI.Xaml.Media.SolidColorBrush)Microsoft.UI.Xaml.Application.Current.Resources[key];
+            _actionColors.Add((brush, brush.Color));
+        }
         foreach (var group in new[] { ColumnActions, CompactBlock })
             foreach (var row in group.Children.OfType<WrapRow>())
                 foreach (var control in row.Children.OfType<Microsoft.UI.Xaml.Controls.Control>())
-                    _controlBackgrounds.Add(ControlBackgroundBrushes.ForDetail(control, preserveDefault: true));
+                {
+                    var prefix = control is Microsoft.UI.Xaml.Controls.Primitives.ToggleButton ? "ToggleButton" : "Button";
+                    var ink = Microsoft.UI.Xaml.Application.Current.Resources["EgDetailActionTextBrush"];
+                    foreach (var suffix in new[] { "", "PointerOver", "Pressed" })
+                        control.Resources[prefix + "Foreground" + suffix] = ink;
+                    control.Foreground = (Microsoft.UI.Xaml.Media.Brush)ink;
+                    _controlBackgrounds.Add(ControlBackgroundBrushes.ForDetail(control, lightSurface: true));
+                }
 
         foreach (var picker in new[] { ColumnSourcePicker, ColumnAudioPicker, ColumnSubtitlePicker,
             SourcePicker, AudioPicker, SubtitlePicker })
@@ -52,6 +68,13 @@ public sealed partial class DetailPage
 
     private void ApplyAppearance()
     {
+        var contrast = _actionAccessibility.HighContrast;
+        for (var index = 0; index < _actionColors.Count; index++)
+        {
+            var (brush, original) = _actionColors[index];
+            brush.Color = contrast ? _actionUiSettings.GetColorValue(index < 3
+                ? Windows.UI.ViewManagement.UIColorType.Background : Windows.UI.ViewManagement.UIColorType.Foreground) : original;
+        }
         foreach (var brushes in _controlBackgrounds) brushes.Apply(ViewModel.ControlBackgroundOpacity, ViewModel.UseAcrylicControls);
         ViewModel.RefreshAppearance();
         DetailTitleInk.Visibility = ViewModel.GaussianBackdropApplied ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;

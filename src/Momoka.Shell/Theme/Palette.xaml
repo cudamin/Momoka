@@ -550,6 +550,11 @@
         <!-- High contrast takes the system's own colours; overriding them here would be exactly the
              wrong thing to do. Only the app's role names are mapped, onto system brushes. -->
         <ResourceDictionary x:Key="HighContrast">
+            <SolidColorBrush x:Key="EgDetailActionBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgDetailActionHoverBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgDetailActionPressedBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="EgDetailActionAccentBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgWindowBrush" Color="{ThemeResource SystemColorWindowColor}" />
@@ -591,6 +596,12 @@
 
     <!-- 详情页头图上的文字。头图永远是一张压了深色遮罩的剧照，所以这两个刷子故意不进
          ThemeDictionaries：跟着主题走的话，浅色主题下就是深色字压在深色遮罩上。 -->
+    <!-- 详情操作用浅面深墨：任意剧照都不能冲淡按钮，三态与正文的深色表面分开。 -->
+    <SolidColorBrush x:Key="EgDetailActionBrush" Color="#FFE4E8EC" />
+    <SolidColorBrush x:Key="EgDetailActionHoverBrush" Color="#FFF4F6F8" />
+    <SolidColorBrush x:Key="EgDetailActionPressedBrush" Color="#FFCBD2D9" />
+    <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="#FF1B232B" />
+    <SolidColorBrush x:Key="EgDetailActionAccentBrush" Color="#FF176F57" />
     <SolidColorBrush x:Key="EgOnScrimBrush" Color="#FFF3F5F8" />
     <SolidColorBrush x:Key="EgOnScrimDimBrush" Color="#FFC9D0D9" />
 

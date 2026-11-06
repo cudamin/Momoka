@@ -21,7 +21,7 @@ bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Cards
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Note
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.RowHeight
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Title
-color  Theme/Palette.xaml  78
+color  Theme/Palette.xaml  81
 color  Views/DetailPage.xaml  12
 color  Views/HomeBanner.xaml  18
 color  Views/HtmlColorPicker.xaml  11

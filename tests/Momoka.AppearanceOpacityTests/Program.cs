@@ -110,6 +110,32 @@ foreach (var prefix in new[] { "Button", "ToggleButton" })
 resources["EgSurfaceElevatedBrush"] = new SolidColorBrush { Color = 0xFF20262D };
 resources["EgSurfaceHoverBrush"] = new SolidColorBrush { Color = 0xFF2C343D };
 resources["EgSurfaceAltBrush"] = new SolidColorBrush { Color = 0xFF1C252E };
+resources["EgDetailActionBrush"] = new SolidColorBrush { Color = 0xFFE4E8EC };
+resources["EgDetailActionHoverBrush"] = new SolidColorBrush { Color = 0xFFF4F6F8 };
+resources["EgDetailActionPressedBrush"] = new SolidColorBrush { Color = 0xFFCBD2D9 };
+foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Button"), (new ToggleButton(), "ToggleButton") })
+    Check(prefix + "浅色背景不受深色主题和底色滑块压暗，选中状态共底", () =>
+    {
+        var brushes = ControlBackgroundBrushes.ForDetail(control, lightSurface: true);
+        foreach (var amount in new[] { 0d, 45d, 100d })
+        {
+            brushes.Apply(amount);
+            var keys = new[] { "EgDetailActionBrush", "EgDetailActionHoverBrush", "EgDetailActionPressedBrush" };
+            var states = new[] { "", "PointerOver", "Pressed" };
+            for (var index = 0; index < states.Length; index++)
+            {
+                var brush = (AcrylicBrush)control.Resources[prefix + "Background" + states[index]];
+                if (brush.FallbackColor != ((SolidColorBrush)resources[keys[index]]).Color || brush.Opacity != 1)
+                    throw new InvalidOperationException("浅色操作键仍取深色平台底或被透明度冲淡");
+                if (control is ToggleButton && !ReferenceEquals(brush, control.Resources[prefix + "BackgroundChecked" + states[index]]))
+                    throw new InvalidOperationException("连播选中时未共用浅色底");
+            }
+        }
+        brushes.Apply(45, useAcrylic: true);
+        var acrylic = (AcrylicBrush)control.Background!;
+        if (acrylic.AlwaysUseFallback || acrylic.TintColor != (Windows.UI.Color)0xFFE4E8EC)
+            throw new InvalidOperationException("亚克力操作键没有保留浅色染色");
+    });
 Check("延迟连播别名在原字典重写时能复现键冲突", () =>
 {
     var dictionary = new ResourceDictionary();

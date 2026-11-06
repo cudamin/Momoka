@@ -511,7 +511,8 @@ public sealed partial class DetailViewModel : PageViewModel
     internal double ControlBackgroundOpacity => _settings?.Settings.Ui.ControlBackgroundOpacity ?? 0;
 
     internal bool UseAcrylicControls => _settings?.Settings.Ui.UseAcrylicControls == true;
-    public bool UseGaussianBackdrop => Showcase && _settings?.Settings.Ui.UseGaussianBackdrop == true;
+    public bool UseGaussianBackdrop => Showcase && !UseAcrylicBackdrop && _settings?.Settings.Ui.UseGaussianBackdrop == true;
+    public bool UseAcrylicBackdrop => _settings?.Settings.Ui.UseAcrylicBackdrop == true;
     public bool GaussianBackdropApplied => UseGaussianBackdrop && _heroRenderedGaussian && HeroImage is not null;
     internal bool GaussianBackdropReady => UseGaussianBackdrop == _heroRenderedGaussian && !_heroRendering && HeroImage is not null;
     private bool _heroRenderedGaussian;
@@ -528,6 +529,7 @@ public sealed partial class DetailViewModel : PageViewModel
     internal void RefreshAppearance()
     {
         OnPropertyChanged(nameof(UseGaussianBackdrop));
+        OnPropertyChanged(nameof(UseAcrylicBackdrop));
         UpdateHeroBlur();
         OnPropertyChanged(nameof(Showcase));
         OnPropertyChanged(nameof(TailMinHeight));

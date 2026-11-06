@@ -43,7 +43,7 @@
             <Setter Property="Padding" Value="18,0,20,2" />
             <!-- 底半透明了，字得回到压在图上那支浅墨上 —— 从前那支深墨（EgTextOnAccent）是给实心强调色面
                  配的，现在底是暗的，深墨压上去读不出来。 -->
-            <Setter Property="Foreground" Value="{ThemeResource EgOnScrimBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgDetailActionTextBrush}" />
         </Style>
 
         <!-- 连播那颗的样式：和带字的药丸键同一个外形。它是个开关，可「开着」在屏上只落在一颗图标上 ——
@@ -225,6 +225,13 @@
             <!-- 剧/季/电影的固定阅读遮罩，沉浸高斯同样保留，滚动内容不重复叠暗。 -->
             <Border x:Name="BackdropFade" Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
                     VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
+            <!-- 阅读遮罩之上只在图片最后20%收边，末色精确接主题底色。 -->
+            <Border x:Name="BackdropEdgeFade" Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
+                    VerticalAlignment="Top" IsHitTestVisible="False">
+                <Border.Background>
+                    <LinearGradientBrush x:Name="BackdropEdgeBrush" StartPoint="0.5,0" EndPoint="0.5,1" />
+                </Border.Background>
+            </Border>
 
             <!-- 标题栏和面包屑直接接片名区域的半透明黑底，不再叠一层独立的顶部渐变。
                  LiftBackdrop 量出这一条的实际高度；PaintWash 在图上复用 HeroBand / HeroTail 的画刷，
@@ -736,12 +743,12 @@
                                             <FontIcon
                                                 FontSize="14"
                                                 Glyph="&#xE768;"
-                                                Foreground="{StaticResource EgOnScrimBrush}"
+                                                Foreground="{StaticResource EgDetailActionTextBrush}"
                                                 Visibility="{x:Bind ViewModel.NotResumePlay, Mode=OneWay}" />
                                             <FontIcon
                                                 FontSize="14"
                                                 Glyph="&#xE768;"
-                                                Foreground="{StaticResource EgAccentBrush}"
+                                                Foreground="{StaticResource EgDetailActionAccentBrush}"
                                                 Visibility="{x:Bind ViewModel.ResumePlay, Mode=OneWay}" />
                                             <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
                                         </StackPanel>
@@ -771,13 +778,13 @@
                                              而字自己钉在浅墨上 —— 那支 accent 于是只落在没写 Foreground 的 FontIcon 上。
                                              背景三态由 PrepareAppearance 一次添加局部画刷，不能在这里再声明别名。 -->
                                         <ToggleButton.Resources>
-                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
-                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
-                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgDetailActionAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgDetailActionAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgDetailActionAccentBrush" />
                                         </ToggleButton.Resources>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <FontIcon FontSize="14" Glyph="&#xE8EE;" />
-                                            <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{StaticResource EgOnScrimBrush}" />
+                                            <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{ThemeResource EgDetailActionTextBrush}" />
                                         </StackPanel>
                                     </ToggleButton>
 
@@ -792,7 +799,7 @@
                                                 Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
                                             <FontIcon
                                                 FontSize="15"
-                                                Foreground="{ThemeResource EgAccentBrush}"
+                                                Foreground="{ThemeResource EgDetailActionAccentBrush}"
                                                 Glyph="&#xE73E;"
                                                 Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
                                             <TextBlock x:Uid="DetailPage_WatchedOn" Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
@@ -1130,12 +1137,12 @@
                                         <FontIcon
                                             FontSize="14"
                                             Glyph="&#xE768;"
-                                            Foreground="{StaticResource EgOnScrimBrush}"
+                                            Foreground="{StaticResource EgDetailActionTextBrush}"
                                             Visibility="{x:Bind ViewModel.NotResumePlay, Mode=OneWay}" />
                                         <FontIcon
                                             FontSize="14"
                                             Glyph="&#xE768;"
-                                            Foreground="{StaticResource EgAccentBrush}"
+                                            Foreground="{StaticResource EgDetailActionAccentBrush}"
                                             Visibility="{x:Bind ViewModel.ResumePlay, Mode=OneWay}" />
                                         <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
                                     </StackPanel>
@@ -1162,13 +1169,13 @@
                                     Style="{StaticResource EgPillToggleButtonStyle}"
                                     Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
                                     <ToggleButton.Resources>
-                                        <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
-                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
-                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
+                                        <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgDetailActionAccentBrush" />
+                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgDetailActionAccentBrush" />
+                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgDetailActionAccentBrush" />
                                     </ToggleButton.Resources>
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <FontIcon FontSize="14" Glyph="&#xE8EE;" />
-                                        <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{StaticResource EgOnScrimBrush}" />
+                                        <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{ThemeResource EgDetailActionTextBrush}" />
                                     </StackPanel>
                                 </ToggleButton>
 
@@ -1183,7 +1190,7 @@
                                             Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
                                         <FontIcon
                                             FontSize="15"
-                                            Foreground="{ThemeResource EgAccentBrush}"
+                                            Foreground="{ThemeResource EgDetailActionAccentBrush}"
                                             Glyph="&#xE73E;"
                                             Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
                                         <TextBlock x:Uid="DetailPage_WatchedOn" Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />

@@ -57,7 +57,7 @@ internal static class AcrylicControlsTests
             Assert.False(style.Elements().Any(row => (string?)row.Attribute("Property") == "Template"));
             Assert.True(style.Descendants().Any(row => row.Name.LocalName == "DetailMenuBackdrop"));
         });
-        Test("详情背景：阅读遮罩保持单层，底部不画渐变", () =>
+        Test("详情背景：阅读遮罩保持单层，底部独立收向主题底色", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             var backdrop = Named(page, "Backdrop");
@@ -72,9 +72,9 @@ internal static class AcrylicControlsTests
             Assert.True(backdrop.Elements().ToList().IndexOf(fade) > backdrop.Elements().ToList().IndexOf(picture));
             var code = Source("Views/DetailPage.Backdrop.cs");
             Assert.Contains("new SolidColorBrush(ReadingShadeColor)", code);
-            Assert.False(code.Contains("LinearGradientBrush", StringComparison.Ordinal));
+            Assert.Contains("BackdropEdgeFade", code);
         });
-        Test("详情接缝：移除底部渐变，纸面和正文布局保持原位", () =>
+        Test("详情接缝：图片底部渐变不移动纸面和正文布局", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             var body = Named(page, "BodySheet");
@@ -82,17 +82,20 @@ internal static class AcrylicControlsTests
             Assert.Equal(body.Parent, paper.Parent);
             Assert.Null(body.Attribute("Background"));
             Assert.Null(paper.Attribute("Margin"));
+            var edge = Named(page, "BackdropEdgeFade");
+            Assert.Equal(Named(page, "BackdropPicture").Parent, edge.Parent);
+            Assert.Equal("False", (string?)edge.Attribute("IsHitTestVisible"));
+            Assert.True(edge.Descendants(Xaml + "LinearGradientBrush").Any());
             Assert.False(page.Descendants().Any(element =>
-                (string?)element.Attribute(X + "Name") is "BackdropEdgeFade" or "BodyEdgeFade" or "BackdropSeam"));
-            Assert.False(Named(page, "Backdrop").Descendants(Xaml + "LinearGradientBrush").Any());
+                (string?)element.Attribute(X + "Name") is "BodyEdgeFade" or "BackdropSeam"));
             var code = Source("Views/DetailPage.xaml.cs");
             Assert.False(code.Contains("PrepareBackdropEdgeFade", StringComparison.Ordinal));
             Assert.False(code.Contains("UpdateBackdropEdgeFade", StringComparison.Ordinal));
         });
-        Test("详情操作：0.2.1默认背景仅恢复到操作按钮，选择框保持现有设置", () =>
+        Test("详情操作：浅色背景仅用于操作按钮，选择框保持现有设置", () =>
         {
             var code = Source("Views/DetailPage.Appearance.cs");
-            Assert.Contains("ForDetail(control, preserveDefault: true)", code);
+            Assert.Contains("ForDetail(control, lightSurface: true)", code);
             Assert.Contains("ForDetail(picker)", code);
         });
         Test("详情正文：卡片给滚动条预留车道，背景纸面仍铺满", () =>
@@ -205,7 +208,7 @@ internal static class AcrylicControlsTests
         });
 
         foreach (var name in new[] { "ColumnActions", "CompactBlock" })
-            Test($"详情操作：{name} 六颗键回到平台默认底，不再接玻璃", () =>
+            Test($"详情操作：{name} 六颗键共用浅色背景和平台模板", () =>
             {
                 var page = Read("Views/DetailPage.xaml");
                 var actions = Named(page, name).Elements().First(element => element.Name.LocalName == "WrapRow");
@@ -238,11 +241,11 @@ internal static class AcrylicControlsTests
                     // 背景现在由 ControlBackgroundBrushes 构造时提供，源链接专项覆盖三态与选中态共用副本。
                     // 本地 XAML 不能再声明别名，否则 WinUI 原地覆盖会按对象删错键。
                     Assert.Null(FindLocalResource(button, "ToggleButtonBackgroundChecked" + States[index]));
-                    Assert.Equal("EgAccentBrush", LocalTarget(button, "ToggleButtonForegroundChecked" + States[index]));
+                    Assert.Equal("EgDetailActionAccentBrush", LocalTarget(button, "ToggleButtonForegroundChecked" + States[index]));
                 }
                 Assert.Null(FindLocalResource(button, "ToggleButtonBackgroundCheckedDisabled"));
                 var label = button.Descendants(Xaml + "TextBlock").Single();
-                Assert.Equal("{StaticResource EgOnScrimBrush}", (string?)label.Attribute("Foreground"));
+                Assert.Equal("{ThemeResource EgDetailActionTextBrush}", (string?)label.Attribute("Foreground"));
             }
         });
 
