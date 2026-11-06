@@ -174,8 +174,9 @@ $bytes=[IO.File]::ReadAllBytes($missing)
 try {Remove-Item -LiteralPath $missing;Check 'P2 missing trusted restore cannot fall back to publish deps' $false '可信 restore'}
 finally {[IO.File]::WriteAllBytes($missing,$bytes)}
 $core=Join-Path $fixture.publish 'Momoka.Core.dll'
+$coreBytes=[IO.File]::ReadAllBytes($core)
 try {Copy-Item -LiteralPath (Join-Path $fixture.repository 'src\Momoka.Core\bin\Release\net10.0\Momoka.Core.dll') -Destination $core;Check 'P2 normal current trusted project output accepts' $true}
-finally {Remove-Item -LiteralPath $core}
+finally {[IO.File]::WriteAllBytes($core,$coreBytes)}
 Check 'complete synthetic trusted payload restored' $true
 $failed=@($results|Where-Object{-not $_.passed}).Count
 $summary=@{phase=$Phase;date=(Get-Date -Format 'yyyy-MM-dd HH:mm:ss K');timezone='Asia/Shanghai';total=$results.Count;

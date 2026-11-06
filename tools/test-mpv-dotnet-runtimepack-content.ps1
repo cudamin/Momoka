@@ -435,8 +435,12 @@ try {
     $coreAnyCpu = Fixture-Path $fixture.repository 'src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll'
     $coreX64 = Fixture-Path $fixture.repository 'src/Momoka.Core/bin/x64/Release/net10.0/Momoka.Core.dll'
     $corePublish = Fixture-Path $fixture.publish 'Momoka.Core.dll'
-    Write-FixtureBytes $corePublish ($assetEncoding.GetBytes('registered dependency fixture')) -New
-    Write-FixtureBytes (Fixture-Path $fixture.publish 'Momoka.dll') ($assetEncoding.GetBytes('R067 fixed synthetic compiled Momoka DLL -- never launch')) -New
+    if ([Convert]::ToBase64String([IO.File]::ReadAllBytes($corePublish)) -cne
+        [Convert]::ToBase64String($assetEncoding.GetBytes('registered dependency fixture')) -or
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes((Fixture-Path $fixture.publish 'Momoka.dll'))) -cne
+        [Convert]::ToBase64String($assetEncoding.GetBytes('R067 fixed synthetic compiled Momoka DLL -- never launch'))) {
+        throw '既有 fixture 的固定主程序集副本字节不匹配。'
+    }
     if (-not (Test-Path -LiteralPath $apphost -PathType Leaf) -or -not (Test-Path -LiteralPath $coreCopy -PathType Leaf)) {
         throw '需要更新后的既有 fixture，固定主 apphost/Core 引用副本缺失。'
     }

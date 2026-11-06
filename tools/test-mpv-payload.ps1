@@ -139,8 +139,10 @@ Invoke-FileMutation 'dependencies do not grant approval to old Lua DLL' (Join-Pa
 } 'lua51.dll'
 Remove-Item -LiteralPath (Assert-FixtureTarget (Join-Path $fixture.publish 'lua51.dll'))
 $framework = Assert-FixtureTarget (Join-Path $fixture.publish 'Momoka.Core.dll')
+$frameworkBytes = [IO.File]::ReadAllBytes($framework)
 try { [IO.File]::WriteAllText($framework, 'registered dependency fixture'); Invoke-Check 'registered framework dependency remains compatible' $true }
-finally { Remove-Item -LiteralPath $framework }
+finally { [IO.File]::WriteAllBytes($framework, $frameworkBytes) }
+Invoke-Check 'complete synthetic payload restored after framework mutation' $true
 
 Invoke-ManifestMutation 'empty UI manifest array' { param($m); $m.files=@() } '非空数组'
 Invoke-ManifestMutation 'empty native manifest array' { param($m); $m.native=@() } '非空数组'
