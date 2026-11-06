@@ -1737,13 +1737,9 @@ public sealed partial class DetailViewModel : PageViewModel
         IsEpisodePage ? FontWeights.SemiBold : FontWeights.Normal;
 
     /// <summary>
-    /// 副标题的颜色，同 <see cref="SublineFontSize"/> 的道理往下推一步：单集页上这一行是人真正来看的
-    /// 东西，它不该比它上面那行只说了剧名的标题更暗。其余页上这一行是背景信息，暗一档正合适。
-    /// <para>
-    /// 两支都是 EgOnScrim 画刷，不跟主题走 —— 头图上永远压着写死的黑罩子。
-    /// </para>
+    /// 头图副标题与视频、音频共用白色文字。遮罩与高斯模式统一，不改变主题色链接和图标。
     /// </summary>
-    public Brush SublineBrush => Painted(IsEpisodePage ? "EgOnScrimBrush" : "EgOnScrimDimBrush");
+    public Brush SublineBrush => Painted("EgOnScrimBrush");
 
     /// <summary>
     /// The 标题按钮's tooltip, or null when there is nowhere to go. Null rather than empty on purpose:

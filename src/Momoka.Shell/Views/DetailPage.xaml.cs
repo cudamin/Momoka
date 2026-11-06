@@ -152,7 +152,7 @@ public sealed partial class DetailPage : Page, IShellContent
         RefreshShowcaseBrushes();
         PaintBackdropFade();
         MeasureSeriesShelf();
-        foreach (var brushes in _controlBackgrounds) brushes.Apply(ViewModel.ControlBackgroundOpacity, ViewModel.UseAcrylicControls);
+        if (_appearanceObserved) ApplyAppearance();
         PaintWash(force: true);
     }
 

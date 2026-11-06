@@ -587,6 +587,7 @@
                                         x:Name="ScoreSourceText"
                                         VerticalAlignment="Center"
                                         Style="{StaticResource EgOnScrimDataStyle}"
+                                        Foreground="{StaticResource EgOnScrimBrush}"
                                         Text="{x:Bind ViewModel.ScoreLabel, Mode=OneWay}" />
                                     </Grid>
                                 </StackPanel>
@@ -597,6 +598,7 @@
                                     x:Name="HeroFacts"
                                     VerticalAlignment="Center"
                                     Style="{StaticResource EgOnScrimDataStyle}"
+                                    Foreground="{StaticResource EgOnScrimBrush}"
                                     Text="{x:Bind ViewModel.Facts, Mode=OneWay}" />
                                 </Grid>
                             </StackPanel>
@@ -1279,7 +1281,7 @@
                             <TextBlock
                                 x:Name="Overview"
                                 FontSize="{StaticResource EgBodyFontSize}"
-                                Foreground="{StaticResource EgOnScrimDimBrush}"
+                                Foreground="{StaticResource EgOnScrimBrush}"
                                 HorizontalAlignment="Left"
                                 IsTextSelectionEnabled="True"
                                 IsTextTrimmedChanged="OnOverviewTrimmedChanged"

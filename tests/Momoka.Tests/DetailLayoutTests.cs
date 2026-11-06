@@ -10,6 +10,14 @@ internal static class DetailLayoutTests
 {
     public static void Register()
     {
+        Test("详情控件：新建与缺键默认25%，显式零仍保留", () =>
+        {
+            Assert.Equal(25d, new UiSettings().ControlBackgroundOpacity);
+            Assert.Equal(25d, UiSettings.DefaultControlBackgroundOpacity);
+            var ui = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{\"ControlBackgroundOpacity\":0}}",
+                PassthroughSecretProtector.Instance).Ui;
+            Assert.Equal(0d, ui.ControlBackgroundOpacity);
+        });
         Test("详情内容裁切：按内容位置预留百分之二，不再受背景比例影响", () =>
         {
             foreach (var (anchor, viewport, expected) in new (double, double, bool)[]
@@ -28,7 +36,7 @@ internal static class DetailLayoutTests
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
             Assert.Equal("info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Movie)));
             Assert.True(DetailLayout.For(ui, EmbyItemType.Series).All(row => row.Visible));
-            Assert.Equal(0d, ui.ControlBackgroundOpacity);
+            Assert.Equal(25d, ui.ControlBackgroundOpacity);
             Assert.Equal(UiSettings.DefaultBackdropOpacity, ui.BackdropOpacity);
             Assert.False(ui.AlwaysImmersive);
         });
@@ -163,7 +171,7 @@ internal static class DetailLayoutTests
             SettingsPreferences.Apply(live, new AppSettings());
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(live.Ui.SeriesCards));
             Assert.True(live.Ui.SeriesCards.All(row => row.Visible));
-            Assert.Equal(0d, live.Ui.ControlBackgroundOpacity);
+            Assert.Equal(25d, live.Ui.ControlBackgroundOpacity);
             Assert.Equal(UiSettings.DefaultBackdropOpacity, live.Ui.BackdropOpacity);
             Assert.False(live.Ui.AlwaysImmersive);
             Assert.Equal(1500d, live.Ui.WindowWidth);

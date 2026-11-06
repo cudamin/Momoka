@@ -596,12 +596,12 @@
 
     <!-- 详情页头图上的文字。头图永远是一张压了深色遮罩的剧照，所以这两个刷子故意不进
          ThemeDictionaries：跟着主题走的话，浅色主题下就是深色字压在深色遮罩上。 -->
-    <!-- 详情操作用浅面深墨：任意剧照都不能冲淡按钮，三态与正文的深色表面分开。 -->
-    <SolidColorBrush x:Key="EgDetailActionBrush" Color="#FFE4E8EC" />
-    <SolidColorBrush x:Key="EgDetailActionHoverBrush" Color="#FFF4F6F8" />
-    <SolidColorBrush x:Key="EgDetailActionPressedBrush" Color="#FFCBD2D9" />
-    <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="#FF1B232B" />
-    <SolidColorBrush x:Key="EgDetailActionAccentBrush" Color="#FF176F57" />
+    <!-- 用户批准的详情灰底白字；浓度独立由滑块控制，默认25%，不叠文字阴影。 -->
+    <SolidColorBrush x:Key="EgDetailActionBrush" Color="#FFB0B0B0" />
+    <SolidColorBrush x:Key="EgDetailActionHoverBrush" Color="#FFC3C3C3" />
+    <SolidColorBrush x:Key="EgDetailActionPressedBrush" Color="#FF9B9B9B" />
+    <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="EgDetailActionAccentBrush" Color="#FFFFFFFF" />
     <SolidColorBrush x:Key="EgOnScrimBrush" Color="#FFF3F5F8" />
     <SolidColorBrush x:Key="EgOnScrimDimBrush" Color="#FFC9D0D9" />
 

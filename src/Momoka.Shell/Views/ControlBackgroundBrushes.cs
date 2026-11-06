@@ -12,7 +12,7 @@ namespace Momoka.Shell.Views;
 /// <para>
 /// 滑块的读数就是底色自己的不透明度（2026-11-06 用户令「0 改为完全透明，100 改为完全不透明」）：0 档常态什么
 /// 都不画，悬停与按下仍留原来那层薄白 —— 那是指针的手感，不是要关掉的那块板。
-/// 详情操作按钮使用浅色面与深墨，默认实底；亚克力保持最低阅读浓度。选择框和主页按钮沿用滑块语义。
+/// 详情操作按钮与选择框使用中性灰底、白字；常态按滑块读数，悬停与按下增加少量反馈。
 /// </para>
 /// </summary>
 internal sealed class ControlBackgroundBrushes
@@ -74,12 +74,17 @@ internal sealed class ControlBackgroundBrushes
         var amount = AppearanceOpacity.ControlBackground(percent);
         foreach (var (source, target, copy, feedback) in _brushes)
         {
-            // 浅色操作面自带可读底色；旧浓度滑块继续控制选择框，不能把浅底退回深色主题表面。
-            if (_lightSurface && !useAcrylic)
+            if (_lightSurface)
             {
-                copy.FallbackColor = source.Color;
-                copy.Opacity = 1;
-                copy.AlwaysUseFallback = true;
+                // 颜色与浓度分开：不能为了浅色面钉实底或72%的下限。零与满档按精确实色处理。
+                var feedbackAmount = ReferenceEquals(source, Resource("EgDetailActionPressedBrush")) ? 0.12 : 0.06;
+                var strength = Math.Min(1, amount + (feedback ? feedbackAmount : 0));
+                copy.TintColor = target.Color;
+                copy.FallbackColor = target.Color;
+                copy.TintOpacity = strength;
+                copy.TintLuminosityOpacity = 0;
+                copy.Opacity = useAcrylic && strength is > 0 and < 1 ? 1 : strength;
+                copy.AlwaysUseFallback = !useAcrylic || strength is 0 or 1;
                 continue;
             }
             if (useAcrylic && amount < 1)
@@ -88,8 +93,8 @@ internal sealed class ControlBackgroundBrushes
                 // 画刷本身保持不透明，系统关闭透明效果时 FallbackColor 仍是一块可读的主题表面。
                 copy.TintColor = target.Color;
                 copy.FallbackColor = target.Color;
-                copy.TintOpacity = _lightSurface ? Math.Max(0.72, amount) : amount;
-                copy.TintLuminosityOpacity = _lightSurface ? Math.Max(0.72, amount) : amount;
+                copy.TintOpacity = amount;
+                copy.TintLuminosityOpacity = amount;
                 copy.Opacity = 1;
                 copy.AlwaysUseFallback = false;
                 continue;

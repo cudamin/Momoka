@@ -261,6 +261,10 @@ internal sealed partial class ShellNavigationProbe
                 var page = (DetailPage)frame.Content;
                 page.AttachWindow(_window);
                 await UntilAsync(() => page.IsReady && page.ViewModel.HeroImage is not null);
+                var white = (SolidColorBrush)Application.Current.Resources["EgOnScrimBrush"];
+                foreach (var name in new[] { "ScoreText", "ScoreSourceText", "HeroFacts", "Overview", "DetailVideoText", "GenreLine" })
+                    Require(Get<TextBlock>(page, name).Foreground is SolidColorBrush text && text.Color == white.Color,
+                        name + " 头图文字与视频/音频颜色不同");
                 var sheet = Get<StackPanel>(page, "BodySheet");
                 var originalPanels = sheet.Children.OfType<StackPanel>().ToArray();
                 foreach (var panel in originalPanels)
@@ -490,7 +494,7 @@ internal sealed partial class ShellNavigationProbe
         ui.BackdropOpacity = 100;
         ui.UseGaussianBackdrop = true;
         ui.UseAcrylicControls = true;
-        ui.ControlBackgroundOpacity = 0;
+        ui.ControlBackgroundOpacity = 25;
         ShellPrefs.ApplyAppearance(ui);
         await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
         Require(ReferenceEquals(normal, page.ViewModel.HeroImage), "普通详情被高斯偏好重新处理");
@@ -553,6 +557,9 @@ internal sealed partial class ShellNavigationProbe
                 && acrylic.TintColor == ((SolidColorBrush)Application.Current.Resources["EgDetailActionBrush"]).Color
                 && acrylic.FallbackColor == ((SolidColorBrush)Application.Current.Resources["EgDetailActionBrush"]).Color,
                 "浅色操作亚克力没有保留当前浅色面");
+            Require(Get<TextBlock>(page, "Overview").Foreground is SolidColorBrush text
+                && text.Color == ((SolidColorBrush)Application.Current.Resources["EgOnScrimBrush"]).Color,
+                "高斯简介文字没有保持视频/音频的白色");
             Require(ReferenceEquals(settled, page.ViewModel.HeroImage), "切主题重新处理高斯图片");
             Require(Get<FrameworkElement>(page, "HeroBand") is Panel { Background: null }
                 or Panel { Background: SolidColorBrush { Color.A: 0 } }, "高斯头部重复叠暗");
@@ -698,12 +705,12 @@ internal sealed partial class ShellNavigationProbe
                     var feedback = state is "PointerOver" or "Pressed" or "CheckedPointerOver" or "CheckedPressed";
                     if (controls.Contains(control) || control is EgPicker)
                     {
-                        // 浅色操作面保持可读；选择框继续由浓度滑块控制。
                         var key = state.Contains("PointerOver", StringComparison.Ordinal) ? "EgDetailActionHoverBrush"
                             : state.Contains("Pressed", StringComparison.Ordinal) ? "EgDetailActionPressedBrush" : "EgDetailActionBrush";
                         var expected = (SolidColorBrush)Application.Current.Resources[key];
-                        Require(color == expected.Color && Math.Abs(opacity - expected.Opacity) < 0.001,
-                            control.Name + "/" + state + " 未保留浅色操作底");
+                        var expectedOpacity = state.Contains("Pressed", StringComparison.Ordinal) ? 0.12 : feedback ? 0.06 : 0;
+                        Require(color == expected.Color && Math.Abs(opacity - expectedOpacity) < 0.001,
+                            control.Name + "/" + state + " 灰底零档或反馈不正确");
                     }
                     else
                         Require(feedback ? baseline > 0 : baseline == 0 && color.A == 0,
@@ -714,7 +721,7 @@ internal sealed partial class ShellNavigationProbe
                     Require(VisualStateManager.GoToState(control, state, false), "外观调整后控件丢失状态：" + state);
                     await LayoutAsync(control);
                     Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } adjusted
-                            && Math.Abs(adjusted.Opacity * adjusted.FallbackColor.A / 255d - Math.Max(0.37, baseline)) < 0.001,
+                            && Math.Abs(adjusted.Opacity * adjusted.FallbackColor.A / 255d - Math.Min(1, 0.37 + baseline)) < 0.001,
                         control.Name + "/" + state + " 底色浓度不是滑块读数");
                     Require(control.Opacity == 1 && ReferenceEquals(control.Foreground, foreground),
                         "底色调节改变了整个控件或文字画刷");
@@ -731,13 +738,14 @@ internal sealed partial class ShellNavigationProbe
                     ui.UseAcrylicControls = true;
                     ShellPrefs.ApplyAppearance(ui);
                     await LayoutAsync(control);
-                    Require(ReferenceEquals(Fill(), owned) && Fill() is AcrylicBrush { AlwaysUseFallback: false } glass
-                        && Math.Abs(glass.TintOpacity - (controls.Contains(control) || control is EgPicker ? 0.72 : 0)) < 0.001 && glass.FallbackColor.A == 255,
+                    Require(ReferenceEquals(Fill(), owned) && Fill() is AcrylicBrush glass
+                        && (feedback ? !glass.AlwaysUseFallback && Math.Abs(glass.TintOpacity - baseline) < 0.001
+                            : glass.AlwaysUseFallback && glass.Opacity == 0) && glass.FallbackColor.A == 255,
                         control.Name + "/" + state + " 亚克力零档不是完全透明或丢了主题回退");
                     ui.ControlBackgroundOpacity = 37;
                     ShellPrefs.ApplyAppearance(ui);
                     Require(Fill() is AcrylicBrush { AlwaysUseFallback: false } thicker
-                        && Math.Abs(thicker.TintOpacity - (controls.Contains(control) || control is EgPicker ? 0.72 : 0.37)) < 0.001,
+                        && Math.Abs(thicker.TintOpacity - Math.Min(1, 0.37 + baseline)) < 0.001,
                         "亚克力没有随不透明度增加");
                     ui.ControlBackgroundOpacity = 99.9;
                     ShellPrefs.ApplyAppearance(ui);

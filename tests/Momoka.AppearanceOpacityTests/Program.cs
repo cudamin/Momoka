@@ -110,31 +110,43 @@ foreach (var prefix in new[] { "Button", "ToggleButton" })
 resources["EgSurfaceElevatedBrush"] = new SolidColorBrush { Color = 0xFF20262D };
 resources["EgSurfaceHoverBrush"] = new SolidColorBrush { Color = 0xFF2C343D };
 resources["EgSurfaceAltBrush"] = new SolidColorBrush { Color = 0xFF1C252E };
-resources["EgDetailActionBrush"] = new SolidColorBrush { Color = 0xFFE4E8EC };
-resources["EgDetailActionHoverBrush"] = new SolidColorBrush { Color = 0xFFF4F6F8 };
-resources["EgDetailActionPressedBrush"] = new SolidColorBrush { Color = 0xFFCBD2D9 };
+resources["EgDetailActionBrush"] = new SolidColorBrush { Color = 0xFFB0B0B0 };
+resources["EgDetailActionHoverBrush"] = new SolidColorBrush { Color = 0xFFC3C3C3 };
+resources["EgDetailActionPressedBrush"] = new SolidColorBrush { Color = 0xFF9B9B9B };
 foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Button"), (new ToggleButton(), "ToggleButton"), (new ComboBox(), "ComboBox") })
-    Check(prefix + "浅色背景不受深色主题和底色滑块压暗，选中状态共底", () =>
+    Check(prefix + "详情灰底按百分比连续调节，两种材质和选中态共底", () =>
     {
         var brushes = ControlBackgroundBrushes.ForDetail(control, lightSurface: true);
-        foreach (var amount in new[] { 0d, 45d, 100d })
-        {
-            brushes.Apply(amount);
-            var keys = new[] { "EgDetailActionBrush", "EgDetailActionHoverBrush", "EgDetailActionPressedBrush" };
-            var states = new[] { "", "PointerOver", "Pressed" };
-            for (var index = 0; index < states.Length; index++)
+        var original = control.Background;
+        foreach (var useAcrylic in new[] { false, true, false })
+            foreach (var amount in new[] { 0d, 19d, 25d, 50d, 72d, 100d, 25d, 0d })
             {
-                var brush = (AcrylicBrush)control.Resources[prefix + "Background" + states[index]];
-                if (brush.FallbackColor != ((SolidColorBrush)resources[keys[index]]).Color || brush.Opacity != 1)
-                    throw new InvalidOperationException("浅色操作键仍取深色平台底或被透明度冲淡");
-                if (control is ToggleButton && !ReferenceEquals(brush, control.Resources[prefix + "BackgroundChecked" + states[index]]))
-                    throw new InvalidOperationException("连播选中时未共用浅色底");
+                brushes.Apply(amount, useAcrylic);
+                var keys = new[] { "EgDetailActionBrush", "EgDetailActionHoverBrush", "EgDetailActionPressedBrush" };
+                var states = new[] { "", "PointerOver", "Pressed" };
+                for (var index = 0; index < states.Length; index++)
+                {
+                    var brush = (AcrylicBrush)control.Resources[prefix + "Background" + states[index]];
+                    var expected = Math.Min(1, amount / 100 + index * 0.06);
+                    if (brush.FallbackColor != ((SolidColorBrush)resources[keys[index]]).Color)
+                        throw new InvalidOperationException("详情控件未使用对应灰色");
+                    if (useAcrylic && expected is > 0 and < 1)
+                    {
+                        if (brush.AlwaysUseFallback) throw new InvalidOperationException("亚克力中间档使用实色");
+                        Equal(expected, brush.TintOpacity);
+                        Equal(0, brush.TintLuminosityOpacity ?? -1);
+                    }
+                    else
+                    {
+                        if (!brush.AlwaysUseFallback) throw new InvalidOperationException("零档或满档未按精确实色处理");
+                        Equal(expected, brush.Opacity);
+                    }
+                    if (control is ToggleButton && !ReferenceEquals(brush, control.Resources[prefix + "BackgroundChecked" + states[index]]))
+                        throw new InvalidOperationException("连播选中时未共用灰底");
+                }
+                if (!ReferenceEquals(original, control.Background)) throw new InvalidOperationException("材质切换重建画刷");
+                Equal(1, control.Opacity);
             }
-        }
-        brushes.Apply(45, useAcrylic: true);
-        var acrylic = (AcrylicBrush)control.Background!;
-        if (acrylic.AlwaysUseFallback || acrylic.TintColor != (Windows.UI.Color)0xFFE4E8EC)
-            throw new InvalidOperationException("亚克力操作键没有保留浅色染色");
     });
 Check("延迟连播别名在原字典重写时能复现键冲突", () =>
 {

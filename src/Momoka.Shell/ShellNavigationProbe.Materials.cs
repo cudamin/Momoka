@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Configuration;
 using Momoka.AniBt;
 using Momoka.Emby;
 using Momoka.MoviePilot;
@@ -217,7 +218,7 @@ internal sealed partial class ShellNavigationProbe
                                 await LayoutAsync(openPicker);
                                 Require(openPicker.Foreground is SolidColorBrush ink
                                     && ink.Color == ((SolidColorBrush)Application.Current.Resources["EgDetailActionTextBrush"]).Color,
-                                    "浅色选择框没有深色文字");
+                                    "灰色选择框没有白色文字");
                                 await SaveProbeScreenAsync($"detail-picker-open-{theme.Id}-{width}-screen.png");
                             }
                             finally { openPicker.IsDropDownOpen = false; }
@@ -682,8 +683,9 @@ internal sealed partial class ShellNavigationProbe
                     var fill = (AcrylicBrush)Fill()!;
                     var lightKeys = new[] { "EgDetailActionBrush", "EgDetailActionHoverBrush", "EgDetailActionPressedBrush" };
                     var expected = (SolidColorBrush)Application.Current.Resources[lightKeys[index % 3]];
-                    Require(fill.FallbackColor == expected.Color && fill.Opacity == 1,
-                        "详情操作按钮未使用浅色三态背景");
+                    var expectedOpacity = Math.Min(1, UiSettings.DefaultControlBackgroundOpacity / 100 + index % 3 * 0.06);
+                    Require(fill.FallbackColor == expected.Color && Math.Abs(fill.Opacity - expectedOpacity) < 0.001,
+                        "详情操作按钮未使用灰色三态与默认25%浓度");
                     Require(!keys.Any(key => ReferenceEquals(fill, dark[key])), "详情操作按钮仍接共享玻璃");
                     if (index < 3) platform[index] = fill.FallbackColor;
                     else Require(fill.FallbackColor == platform[index - 3], "连播勾选底色未按回未勾选的三档");

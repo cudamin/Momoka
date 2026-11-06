@@ -18,7 +18,7 @@ public sealed partial class SettingsViewModel
                 after: () => ShellPrefs.ApplyAppearance(ui)),
             Slider("按钮与选择框底色不透明度（%）", 0, 100, 1,
                 () => ui.ControlBackgroundOpacity, value => ui.ControlBackgroundOpacity = value,
-                "主页详情按钮：0 完全透明，100 完全不透明。详情按钮与选择框保留浅色底；选择亚克力时可调材质浓度。",
+                "默认25%。两种材质都可调：0完全透明，100完全不透明；详情按钮与选择框使用灰底白字。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
             Choice("背景图效果", new[] { ("暗色遮罩", 0), ("高斯模糊", 1), ("亚克力", 2) },
                 () => ui.UseAcrylicBackdrop ? 2 : ui.UseGaussianBackdrop ? 1 : 0,

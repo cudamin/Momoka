@@ -93,7 +93,8 @@ public sealed partial class DetailPage
             brush.Color = contrast ? _actionUiSettings.GetColorValue(index < 3
                 ? Windows.UI.ViewManagement.UIColorType.Background : Windows.UI.ViewManagement.UIColorType.Foreground) : original;
         }
-        foreach (var brushes in _controlBackgrounds) brushes.Apply(ViewModel.ControlBackgroundOpacity, ViewModel.UseAcrylicControls);
+        foreach (var brushes in _controlBackgrounds)
+            brushes.Apply(contrast ? 100 : ViewModel.ControlBackgroundOpacity, !contrast && ViewModel.UseAcrylicControls);
         ViewModel.RefreshAppearance();
         DetailTitleInk.Visibility = ViewModel.GaussianBackdropApplied ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
         DetailPlateInk.Visibility = DetailTitleInk.Visibility;

@@ -48,6 +48,18 @@ internal static class AcrylicControlsTests
             foreach (var name in new[] { "DetailVideoText", "ColumnAudioText", "AudioText" })
                 Assert.Equal("{StaticResource EgOnScrimBodyStyle}", (string?)Named(page, name).Attribute("Style"));
         });
+        Test("详情头图：分类和固定说明统一视频白色，主题链接与星标不变", () =>
+        {
+            var page = Read("Views/DetailPage.xaml");
+            foreach (var name in new[] { "ScoreSourceText", "HeroFacts", "Overview" })
+                Assert.Equal("{StaticResource EgOnScrimBrush}", (string?)Named(page, name).Attribute("Foreground"));
+            Assert.Contains("public Brush SublineBrush => Painted(\"EgOnScrimBrush\")", Source("ViewModels/DetailViewModel.cs"));
+            var readMore = page.Descendants(Xaml + "HyperlinkButton").Single(element =>
+                (string?)element.Attribute("AutomationProperties.AutomationId") == "DetailReadMoreButton");
+            Assert.Null(readMore.Attribute("Foreground"));
+            Assert.Equal("{ThemeResource EgAccentBrush}", (string?)Named(page, "ScoreStack")
+                .Elements(Xaml + "FontIcon").Single().Attribute("Foreground"));
+        });
         Test("详情菜单：透明表面使用轻透系统亚克力", () =>
         {
             var style = Resource(Read("Theme/Styles.xaml").Root!, "EgDetailMenuPresenterStyle");
@@ -92,11 +104,16 @@ internal static class AcrylicControlsTests
             Assert.False(code.Contains("PrepareBackdropEdgeFade", StringComparison.Ordinal));
             Assert.False(code.Contains("UpdateBackdropEdgeFade", StringComparison.Ordinal));
         });
-        Test("详情操作：按钮与媒体选择框都使用浅色背景", () =>
+        Test("详情操作：按钮与媒体选择框都使用中性灰背景和白色前景", () =>
         {
             var code = Source("Views/DetailPage.Appearance.cs");
             Assert.Contains("ForDetail(control, lightSurface: true)", code);
             Assert.Contains("ForDetail(picker, lightSurface: true)", code);
+            foreach (var (key, color) in new[] { ("EgDetailActionBrush", "#FFB0B0B0"),
+                ("EgDetailActionHoverBrush", "#FFC3C3C3"), ("EgDetailActionPressedBrush", "#FF9B9B9B"),
+                ("EgDetailActionTextBrush", "#FFFFFFFF"), ("EgDetailActionAccentBrush", "#FFFFFFFF") })
+                Assert.Equal(color, (string?)Resource(Read("Theme/Palette.xaml").Root!, key).Attribute("Color"));
+            Assert.False(Source("Views/DetailPage.Appearance.cs").Contains("TextInk.Attach", StringComparison.Ordinal));
         });
         Test("详情正文：卡片给滚动条预留车道，背景纸面仍铺满", () =>
         {
@@ -208,7 +225,7 @@ internal static class AcrylicControlsTests
         });
 
         foreach (var name in new[] { "ColumnActions", "CompactBlock" })
-            Test($"详情操作：{name} 六颗键共用浅色背景和平台模板", () =>
+            Test($"详情操作：{name} 六颗键共用灰色背景和平台模板", () =>
             {
                 var page = Read("Views/DetailPage.xaml");
                 var actions = Named(page, name).Elements().First(element => element.Name.LocalName == "WrapRow");
@@ -230,7 +247,7 @@ internal static class AcrylicControlsTests
                     "详情页仍合入按钮亚克力字典");
             });
 
-        Test("详情操作：连播勾选保持同底，强调色只交给图标", () =>
+        Test("详情操作：连播勾选保持同底，文字与图标均使用白色", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             foreach (var button in page.Descendants(Xaml + "ToggleButton").Where(element =>

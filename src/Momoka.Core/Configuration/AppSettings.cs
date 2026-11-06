@@ -1387,7 +1387,10 @@ public sealed class UiSettings
     /// 所以 0 档真的什么都不画。悬停与按下仍保留原来那层薄白 —— 那是按钮的手感，不是底色。
     /// </para>
     /// </summary>
-    public double ControlBackgroundOpacity { get; set; }
+    public double ControlBackgroundOpacity { get; set; } = DefaultControlBackgroundOpacity;
+
+    /// <summary>用户批准的详情灰色控件底色出厂不透明度（%）。已有显式偏好保持原值。</summary>
+    public const double DefaultControlBackgroundOpacity = 25;
 
     /// <summary>
     /// 详情背景图上那层处理的强度（%）：0 关闭遮罩、模糊与亚克力（背景图原样清晰），100 遮罩或亚克力完全
