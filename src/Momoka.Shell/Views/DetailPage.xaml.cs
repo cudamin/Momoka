@@ -99,6 +99,7 @@ public sealed partial class DetailPage : Page, IShellContent
         BackdropThemeSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => PaintBackdropFade());
         MeasureSeriesShelf();
         PrepareShowcase();
+        PrepareSeam();
         PrepareCardLayout();
 
         // 沉浸版式那一支单独订阅：OnViewModelChanged 是 Plex 入口夹具原样提取的契约正文，往里塞这一页新加的
@@ -824,8 +825,8 @@ public sealed partial class DetailPage : Page, IShellContent
         // 沉浸档（Showcase）的纸面整块让开，底色是尾部那道半透明洗色而不是不透明的纸色；两档要的
         // 不是同一个「不透明」。
         var showcase = ViewModel.Showcase;
-        var opaque = BodySheet.Background is SolidColorBrush { Color.A: 255 }
-            || showcase && BodySheet.Background is SolidColorBrush { Color.A: > 0 };
+        var opaque = BodyPaper.Background is SolidColorBrush { Color.A: 255 }
+            || showcase && BodyPaper.Background is SolidColorBrush { Color.A: > 0 };
         var moved = Math.Abs(box.Top - tail.Bottom) < 0.5;
 
         // 尾部该多高：内容和「这一次该补多少」两者取大（见 DetailHero.TailHeight）。内容那一头按最后一块的
@@ -1160,7 +1161,7 @@ public sealed partial class DetailPage : Page, IShellContent
         if (!ViewModel.HeroArt) return (true, "这一条目没有剧照，标题栏那一条不用洗");
         if (HeroTail.Background is not SolidColorBrush { Color: var tail })
             return (false, "头图尾部不是一支纯色画刷");
-        if (BodySheet.Background is not SolidColorBrush { Color: var sheet })
+        if (BodyPaper.Background is not SolidColorBrush { Color: var sheet })
             return (false, "正文那张纸不是一支纯色画刷");
 
         // 标题栏让出来的那一格有多高：背景层往上顶的就是这个数，那一条盖的也是这个数。见 LiftBackdrop。
@@ -1177,7 +1178,7 @@ public sealed partial class DetailPage : Page, IShellContent
         var paperCover = showcase ? 0 : DetailHero.PaperCover(offset, paperTop, TitleWash.ActualHeight);
         var (painted, how) = showcase
             ? (ReferenceEquals(TitleWash.Background, HeroTail.Background)
-                    && BodySheet.Background is SolidColorBrush { Color: var wash } && tail == wash,
+                    && BodyPaper.Background is SolidColorBrush { Color: var wash } && tail == wash,
                 "沉浸档：标题条与尾部共用洗色")
             : ReadTitlePaint(offset, paperTop, tail, sheet);
 
@@ -1225,7 +1226,7 @@ public sealed partial class DetailPage : Page, IShellContent
         var cover = DetailHero.PaperCover(offset, paperTop, TitleWash.ActualHeight);
         if (cover >= 1)
         {
-            var same = ReferenceEquals(TitleWash.Background, BodySheet.Background);
+            var same = ReferenceEquals(TitleWash.Background, BodyPaper.Background);
             return (same, same ? "纸面已盖满，整条复用正文画刷" : "纸面已盖满，可标题栏没有复用正文画刷");
         }
 
@@ -1736,6 +1737,7 @@ public sealed partial class DetailPage : Page, IShellContent
             services.GetRequiredService<ISettingsService>(),
             _session,
             images);
+        _seamLive = IsLoaded;
 
         // 标题栏那几处的字得跟着这一页有没有背景图翻墨色 —— 图现在画进标题栏了（见 LiftBackdrop），黑字压在
         // 一张亮剧照上读不出来。订阅是为了「图是后到的」那一路；这一句显式的调用是为了「页面被复用」那一路：
@@ -1919,6 +1921,7 @@ public sealed partial class DetailPage : Page, IShellContent
 
     public void Release()
     {
+        StopSeam();
         StopAppearance();
         StopCardLayout();
         ViewModel.Cancel();
@@ -2212,7 +2215,11 @@ public sealed partial class DetailPage : Page, IShellContent
     /// <param name="force">
     /// 换主题、换条目、量完高度之后要重画一遍 —— 那几处滚动位置没动，可是颜色或高度动了。
     /// </param>
-    private void PaintWash(bool force = false) => ApplyWash(Body.VerticalOffset, force);
+    private void PaintWash(bool force = false)
+    {
+        ApplyWash(Body.VerticalOffset, force);
+        UpdateSeam();
+    }
 
     /// <summary>真正主题纸面在滚动内容里的纵坐标：头图带子加上黑色尾部的实测高度。</summary>
     private double PaperOffset() => BandHeight + HeroTail.ActualHeight;
@@ -2273,12 +2280,12 @@ public sealed partial class DetailPage : Page, IShellContent
         }
 
         if (HeroTail.Background is not SolidColorBrush { Color: var tail }
-            || BodySheet.Background is not SolidColorBrush { Color: var sheet })
+            || BodyPaper.Background is not SolidColorBrush { Color: var sheet })
             return;
 
         if (phase == 4)
         {
-            TitleWash.Background = BodySheet.Background;
+            TitleWash.Background = BodyPaper.Background;
             return;
         }
 

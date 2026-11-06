@@ -225,6 +225,7 @@
             <!-- 普通剧/季/电影：只画原阅读遮罩，下沿5%高斯在图片像素中完成，不加渐变。 -->
             <Border x:Name="BackdropFade" Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
                     VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
+            <Border x:Name="BackdropSeam" VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
 
             <!-- 标题栏和面包屑直接接片名区域的半透明黑底，不再叠一层独立的顶部渐变。
                  LiftBackdrop 量出这一条的实际高度；PaintWash 在图上复用 HeroBand / HeroTail 的画刷，
@@ -928,6 +929,11 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
+                    <!-- 纸色与接缝高斯在文字下面绘制；接缝上下各2.5%，正文不再盖住下半条。 -->
+                    <Border x:Name="BodyPaper" Grid.Row="1" IsHitTestVisible="False" />
+                    <Border x:Name="BodySeam" Grid.Row="1" VerticalAlignment="Top"
+                            IsHitTestVisible="False" Visibility="Collapsed" />
+
                     <!-- 集页整段上方那一块面板的下半截（上半截是头图那一格里的 HeroCardTop）。两块的左右留白
                          完全一样（各 28），下沿就贴在尾部这一格的底上 —— 板底到正文纸面之间不再留缝：纸面和
                          页底色是同一支画刷，留一段也看不出来。圆角只有下边那两个，上边那两个在 HeroCardTop 上。
@@ -1325,7 +1331,6 @@
                         Grid.Row="1"
                         MinHeight="{x:Bind ViewModel.PaperMinHeight, Mode=OneWay}"
                         Padding="{x:Bind ViewModel.SheetPadding, Mode=OneWay}"
-                        Background="{ThemeResource EgWindowBrush}"
                         Spacing="{x:Bind ViewModel.SheetSpacing, Mode=OneWay}">
                         <!-- 单集：季页一行一集的竖置列表，剧页和集页一条横向翻页带 ——「只有季页的集使用竖置
                              列表列表就好，另外两个页面使用竖置翻页」。两种形状共用上面这一个标题和季切换（切换

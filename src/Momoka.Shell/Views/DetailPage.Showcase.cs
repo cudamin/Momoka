@@ -157,7 +157,8 @@ public sealed partial class DetailPage
     private void PrepareShowcase()
     {
         _sheetBrush.Color = PaperColor;
-        BodySheet.Background = _sheetBrush;
+        BodyPaper.Background = _sheetBrush;
+        BodySheet.Background = null;
 
         // 背景整层不调不透明度：设置里那一档落在图上那道遮罩（PaintScrim／PaintBackdropFade），
         // 2026-11-06 起普通与沉浸共用同一个数，翻面不再改图本身。

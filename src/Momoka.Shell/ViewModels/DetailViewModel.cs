@@ -596,6 +596,14 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>解好的头图原图像素 —— 裁切模糊的原料。导航换条目、换图时整个作废。</summary>
     private HeroPictureLoader.HeroPixels? _heroPixels;
+
+    internal (int Width, int Height)? HeroPixelSize => _heroPixels is { } pixels ? (pixels.Width, pixels.Height) : null;
+
+    internal Task<BitmapImage?> RenderBackdropSeamAsync(int boundary, int rows, byte[] paper, byte shade,
+        int imageEnd, CancellationToken token) => Attached && _heroPixels is { } pixels
+        ? HeroPictureLoader.RenderSeamAsync(pixels, _heroBlurRadius, _heroRenderedGaussian,
+            boundary, rows, paper, shade, imageEnd, token)
+        : Task.FromResult<BitmapImage?>(null);
     private NavigationTimingRun? _heroTiming;
     private DetailHeroCache? _heroCache;
     private DetailHeroCache.Ticket? _heroCacheTicket;

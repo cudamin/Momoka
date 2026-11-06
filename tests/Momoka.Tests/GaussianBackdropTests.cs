@@ -11,6 +11,28 @@ internal static class GaussianBackdropTests
 {
     public static void Register()
     {
+        Test("背景接缝：高斯跨图片和界面两侧，总范围5%且两端接原色", () =>
+        {
+            const int width = 4, height = 200;
+            var pixels = Enumerable.Repeat((byte)240, width * height * 4).ToArray();
+            var strip = GaussianBackdrop.Seam(pixels, width, height, 180, 10, [12, 17, 22], 0);
+            Assert.Equal(width * 10 * 4, strip.Length);
+            Assert.Equal((byte)240, strip[0]);
+            Assert.True(strip[4 * width * 4] < 240);
+            Assert.True(strip[5 * width * 4] > 12);
+            Assert.Equal((byte)12, strip[^4]);
+            Assert.Equal((byte)17, strip[^3]);
+            Assert.Equal((byte)22, strip[^2]);
+            Assert.True(Enumerable.Range(0, width * 10).All(index => strip[index * 4 + 3] == 255));
+            Assert.True(pixels.All(value => value == 240));
+            Assert.Throws<OperationCanceledException>(() => GaussianBackdrop.Seam(pixels, width, height, 180, 10,
+                [12, 17, 22], 0, new CancellationToken(true)));
+            var textured = new byte[width * height * 4];
+            for (var i = 0; i < width * height; i++) textured[i * 4] = (byte)(i % width % 2 == 0 ? 255 : 0);
+            var textureSeam = GaussianBackdrop.Seam(textured, width, height, 180, 10, [12, 17, 22], 0);
+            Assert.Equal((byte)255, textureSeam[0]);
+            Assert.True(textureSeam[width * 4] > 230);
+        });
         Test("高斯背景：缺键默认暗罩和原底色，两模式JSON与恢复独立保存", () =>
         {
             var settings = SettingsMigration.FromJson("{\"SchemaVersion\":26,\"Ui\":{}}", PassthroughSecretProtector.Instance);
