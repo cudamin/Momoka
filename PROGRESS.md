@@ -1,3 +1,9 @@
+## 2026-11-07 优先修复已完成主树本地交付
+
+原审查选定15项（6P1、9P2）及验收新增账号开关视觉问题已修，产品875f6cc、最终账号探针收尾97a8a69。完整主Tests3943/3943、0失败0跳过，适用四分区UI60/60；发布件附加账号检查首轮超时，阶段诊断确认按钮未Loaded及IsOpen=false早于Presenter卸载，工具改等真实按钮和Closed后最终开发账号5/5、实际发布件账号5/5（PID3048正常退出），原报告保留。主树发布546文件286.4MB，批准载荷/许可校验通过，版本仍0.2.5.0；桌面Momoka.lnk实际指向artifacts/publish/win-x64/Momoka.exe。证据artifacts/priority-fixes-master/publish-final.log、delivery-final-receipt.json、publish-ui-final-receipt.json；子树原红/绿复制至preserved逐文件哈希核对。无外部上传、真实账号写入或播放；其他114个探针未执行、原清单未纳本批的问题不自动关闭。客户端预检不是服务端CAS/原子事务。
+
+以下为本轮中间状态及调查历史。
+
 ## 2026-11-07 优先修复最终验证通过，待本地发布
 
 原审查15项已整合；验收另确认账号聚合开关快关后On动画残留，最小补当前模板Off的X=0终态，不改基础位置或偏好。探针初始化先接入未Attach登录页并等待实际Rendered，移除/取消/Dispose后执行原用例；所有诊断实验和原红保留。最终Shell/Tests构建0/0，主Tests重新完整3943/3943、零失败零跳过；shell/accounts/moviepilot/metadata真实UI60/60，PID31196正常退出，其他114项未执行。账号重复加载幂等及4档快关全过，实屏确认；元数据、字幕、MP删除刷新均通过。CompactImages源码提取界限误含新增初始化的22编译错误已定点修提取终界，重新编译和完整测试，不删测试。日志artifacts/priority-fixes-master及shell-probe-20261106-190348771-31196/logs。待最后主树本地发布/快捷方式；无远程上传或真实服务器写入播放。

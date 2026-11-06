@@ -2,7 +2,9 @@
 
 本台账基于主树5e971ae，记录用户授权后的修复。原133项是累计审查发现，旧报告保留原红证据，不覆盖为当前通过。
 
-当前状态（2026-11-07）：原审查选定15个唯一问题（6项P1、9项P2）已整合至master f58cdc0；验收另修账号聚合开关终态及探针就绪，详见[新增界面修正](UI-acceptance-repairs.md)。主树最终Shell/Tests构建0警告0错误，完整主Tests再次3943/3943、0失败0跳过；主树六源码链接专项18/128/37/84/57/137、真实登录VM105和订阅VM33已全过。最终shell/accounts/moviepilot/metadata UI 60/60，PID31196正常退出；其他114项未执行，不称全量探针通过。证据artifacts/priority-fixes-master/ui-final-receipt.json、tests-final-build2.log、main-final.log及shell-probe-20261106-190348771-31196/logs。共享发布和快捷方式尚待最后刷新。
+当前状态（2026-11-07）：原审查选定15个唯一问题（6项P1、9项P2）已整合至master；验收另修账号聚合开关终态及探针就绪，产品提交875f6cc，最终工具提交97a8a69，详见[新增界面修正](UI-acceptance-repairs.md)。主树Shell/Tests构建0警告0错误，完整主Tests再次3943/3943、0失败0跳过；主树六源码链接专项18/128/37/84/57/137、真实登录VM105和订阅VM33已全过。四分区shell/accounts/moviepilot/metadata UI 60/60，PID31196正常退出；其后仅账号工具收尾修改，最终开发构建账号5/5及实际发布件账号5/5（PID3048正常退出）。其他114项未执行，不称全量探针通过。证据artifacts/priority-fixes-master/ui-final-receipt.json、tests-final-build2.log、main-final.log、publish-ui-final-receipt.json。
+
+本地日常交付已完成：artifacts/publish/win-x64/Momoka.exe，版本0.2.5.0（未升版本），546文件、286.4MB、批准载荷和许可完整验证通过；桌面Momoka.lnk实际指向此处。发布日志publish-final.log及delivery-final-receipt.json核实当前文件与快捷方式。未生成ZIP/MSIX、未上传外部站点。原始子树证据已复制到artifacts/priority-fixes-master/preserved并逐文件核SHA256。
 
 原UI红：首轮60项4败、就绪修正53项3败、后续诊断组均保留。紧凑图片夹具按文本终界提取时误收入新的窗口初始化，当前只把提取终界调整到初始化之前，完整主测试重新编译通过；tests-final-build.log的22个编译错误保留，不使用旧产物。
 
