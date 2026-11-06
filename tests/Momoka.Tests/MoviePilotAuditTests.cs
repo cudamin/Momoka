@@ -10,6 +10,16 @@ internal static class MoviePilotAuditTests
 {
     public static void Register()
     {
+        Test("MoviePilot 原记录：不同存储同路径不是软链接依赖", () =>
+        {
+            var original = History(20, "/downloads/source.mp4", "/library/S00E07.mp4") with
+            {
+                TargetStorage = "rclone",
+                TargetFile = Json("""{"storage":"rclone","type":"file","path":"/library/S00E07.mp4"}""")
+            };
+            var unrelated = History(26, original.TargetPath, "/elsewhere/S04E24.mp4") with { SourceStorage = "local" };
+            Assert.Equal(0, MoviePilotTransferHistoryMatch.Dependents([original], [original, unrelated]).Count);
+        });
         MoviePilotSafetyTests.Register();
         MoviePilotQuerySafetyTests.Register();
         MoviePilotResourceSortTests.Register();

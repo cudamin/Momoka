@@ -90,12 +90,28 @@ public sealed record MoviePilotTransferHistoryPage(IReadOnlyList<MoviePilotTrans
 
 public static class MoviePilotTransferHistoryMatch
 {
+    /// <summary>Storage belongs to file identity; contradictory snapshots cannot authorize file operations.</summary>
+    internal static string Storage(MoviePilotTransferHistory history, bool source)
+    {
+        var file = source ? history.SourceFile : history.TargetFile;
+        var declared = source ? history.SourceStorage : history.TargetStorage;
+        var embedded = MoviePilotTransfer.Text(file, "storage");
+        if (declared.Length > 0 && embedded.Length > 0 && declared != embedded)
+            throw new MoviePilotException("整理记录的文件存储身份互相矛盾，请先在 MoviePilot 核对");
+        return declared.Length > 0 ? declared : embedded.Length > 0 ? embedded
+            : file.ValueKind == JsonValueKind.Object ? "local" : "";
+    }
+
+    internal static bool SameStorage(string left, string right) =>
+        left.Length == 0 || right.Length == 0 || left == right;
+
     public static IReadOnlyList<MoviePilotTransferHistory> Dependents(
         IEnumerable<MoviePilotTransferHistory> selected, IEnumerable<MoviePilotTransferHistory> all)
     {
         var chosen = selected.ToList();
         return all.Where(history => history.Success && history.Mode == "softlink" &&
             chosen.Any(original => original.Id != history.Id && original.TargetPath.Length > 0 &&
+                SameStorage(Storage(history, source: true), Storage(original, source: false)) &&
                 MoviePilotTransfer.SamePath(history.SourcePath, original.TargetPath))).ToList();
     }
 
@@ -143,4 +159,5 @@ public static class MoviePilotTransferHistoryMatch
         }
         return matched.DistinctBy(history => history.Id).ToList();
     }
+
 }
