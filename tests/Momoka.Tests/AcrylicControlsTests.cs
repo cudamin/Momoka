@@ -57,7 +57,7 @@ internal static class AcrylicControlsTests
             Assert.False(style.Elements().Any(row => (string?)row.Attribute("Property") == "Template"));
             Assert.True(style.Descendants().Any(row => row.Name.LocalName == "DetailMenuBackdrop"));
         });
-        Test("详情背景：仅保留单层阅读遮罩，不画下沿黑色渐变", () =>
+        Test("详情背景：阅读遮罩保持单层，底边渐变单独取主题色", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             var backdrop = Named(page, "Backdrop");
@@ -74,21 +74,30 @@ internal static class AcrylicControlsTests
             Assert.Contains("new SolidColorBrush(ReadingShadeColor)", code);
             Assert.False(code.Contains("LinearGradientBrush", StringComparison.Ordinal));
         });
-        Test("详情接缝：渐变贴着正文上沿，纸面和文字保持原位", () =>
+        Test("详情接缝：5%渐变固定在图片底部并随主题换色", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             var body = Named(page, "BodySheet");
             var paper = Named(page, "BodyPaper");
-            var seam = Named(page, "BodyEdgeFade");
+            var seam = Named(page, "BackdropEdgeFade");
+            var backdrop = Named(page, "Backdrop");
             Assert.Equal(body.Parent, paper.Parent);
-            Assert.Equal(body.Parent, seam.Parent);
+            Assert.Equal(backdrop, seam.Parent);
             Assert.Null(body.Attribute("Background"));
-            Assert.True(body.Parent!.Elements().ToList().IndexOf(seam) < body.Parent.Elements().ToList().IndexOf(body));
+            Assert.True(backdrop.Elements().ToList().IndexOf(seam) > backdrop.Elements().ToList().IndexOf(Named(page, "BackdropFade")));
             Assert.Equal("False", (string?)seam.Attribute("IsHitTestVisible"));
-            Assert.Equal("1", (string?)seam.Attribute("Grid.Row"));
+            Assert.Equal("Top", (string?)seam.Attribute("VerticalAlignment"));
+            Assert.Null(seam.Attribute("Grid.Row"));
             Assert.Null(paper.Attribute("Margin"));
-            Assert.False(Named(page, "Backdrop").Descendants().Any(element =>
-                (string?)element.Attribute(X + "Name") is "BodyEdgeFade" or "BackdropSeam"));
+            Assert.False(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "BodyEdgeFade"));
+            var code = Source("Views/DetailPage.BackdropEdgeFade.cs");
+            Assert.Contains("BackdropEdgeFadeShare = 0.05", code);
+            Assert.Contains("new Thickness(0, pictureHeight - height, 0, 0)", code);
+            Assert.Contains("BackdropThemeSource.Background is SolidColorBrush theme ? theme.Color : PaperColor", code);
+            Assert.Contains("Color.FromArgb(0, color.R, color.G, color.B)", code);
+            Assert.Contains("brush.GradientStops[1].Color = color", code);
+            Assert.Contains("RegisterPropertyChangedCallback(Border.BackgroundProperty", code);
+            Assert.False(code.Contains("TranslateTransform", StringComparison.Ordinal));
         });
         Test("详情正文：卡片给滚动条预留车道，背景纸面仍铺满", () =>
         {

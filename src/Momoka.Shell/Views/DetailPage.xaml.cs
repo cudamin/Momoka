@@ -99,7 +99,7 @@ public sealed partial class DetailPage : Page, IShellContent
         BackdropThemeSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => PaintBackdropFade());
         MeasureSeriesShelf();
         PrepareShowcase();
-        PrepareBodyFade();
+        PrepareBackdropEdgeFade();
         PrepareCardLayout();
 
         // 沉浸版式那一支单独订阅：OnViewModelChanged 是 Plex 入口夹具原样提取的契约正文，往里塞这一页新加的
@@ -147,6 +147,7 @@ public sealed partial class DetailPage : Page, IShellContent
     private void OnThemeChanged(UiTheme theme)
     {
         RefreshShowcaseBrushes();
+        UpdateBackdropEdgeFade();
         PaintBackdropFade();
         MeasureSeriesShelf();
         foreach (var brushes in _controlBackgrounds) brushes.Apply(ViewModel.ControlBackgroundOpacity, ViewModel.UseAcrylicControls);
@@ -2216,7 +2217,6 @@ public sealed partial class DetailPage : Page, IShellContent
     private void PaintWash(bool force = false)
     {
         ApplyWash(Body.VerticalOffset, force);
-        UpdateBodyFade();
     }
 
     /// <summary>真正主题纸面在滚动内容里的纵坐标：头图带子加上黑色尾部的实测高度。</summary>
