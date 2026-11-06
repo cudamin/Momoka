@@ -341,7 +341,7 @@ internal sealed partial class ShellNavigationProbe
                 {
                     Require(ScrimAlphaOf(page) == expectedScrim,
                         $"背景图遮罩没有立即按 45% 落下（{ScrimAlphaOf(page)}，该是 {expectedScrim}）；"
-                        + $"shade={Get<Border>(page, "BackdropShade").Visibility}、"
+                        + $"fade={Get<Border>(page, "BackdropFade").Visibility}、"
                         + $"tail={(Get<StackPanel>(page, "HeroTail").Background as SolidColorBrush)?.Color}、"
                         + $"有图={page.ViewModel.BackdropShown}、沉浸={page.ViewModel.Showcase}、"
                         + $"高斯={page.ViewModel.GaussianBackdropApplied}、强度={page.ViewModel.BackdropStrength:0.###}");
@@ -543,6 +543,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
             ui.AlwaysImmersive = true;
             ShellPrefs.ApplyAppearance(ui);
+            await UntilAsync(() => page.ViewModel.GaussianBackdropReady);
             await LayoutAsync(page);
             Require(page.ViewModel.Showcase && page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady,
                 "固定沉浸没有保留高斯图片");
@@ -566,7 +567,7 @@ internal sealed partial class ShellNavigationProbe
         RequireDetailBackdropFade(page);
         Require(page.ViewModel.ItemType == EmbyItemType.Episode
             ? Get<Grid>(page, "HeroBand").Background is SolidColorBrush { Color.A: > 0 }
-            : Get<Border>(page, "BackdropShade").Visibility == Visibility.Visible,
+            : ScrimAlphaOf(page) > 0,
             "切回后暗色遮罩未恢复");
         // 快速来回切换：晚到的旧模式不能覆盖当前高斯结果。
         ui.UseGaussianBackdrop = true;
@@ -593,9 +594,9 @@ internal sealed partial class ShellNavigationProbe
     /// </summary>
     private static byte ScrimAlphaOf(DetailPage page)
     {
-        var shade = Get<Border>(page, "BackdropShade");
-        if (shade.Visibility == Visibility.Visible && shade.Background is SolidColorBrush solid)
-            return solid.Color.A;
+        var fade = Get<Border>(page, "BackdropFade");
+        if (fade.Visibility == Visibility.Visible && fade.Background is LinearGradientBrush brush)
+            return brush.GradientStops[0].Color.A;
         return Get<StackPanel>(page, "HeroTail").Background is SolidColorBrush tail ? tail.Color.A : (byte)0;
     }
 

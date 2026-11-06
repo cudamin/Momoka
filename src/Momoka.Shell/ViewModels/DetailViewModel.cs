@@ -613,6 +613,13 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>上一次渲染用的模糊档位；-1 是「还没出过图」。</summary>
     private int _heroBlurRadius = -1;
+    private double _heroBottomEnd = -1;
+
+    // 顶对齐的实际可见图下沿；按源图行量化，缩放微小抖动不重跑高斯。沉浸页没有纸面衔接。
+    private double HeroBottomEnd => !Showcase && _heroPixels is { } pixels
+        && ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season
+        ? Math.Round(Math.Clamp(PictureHeight / Math.Max(1, PageWidth * pixels.Height / pixels.Width), 0, 1)
+            * pixels.Height) / pixels.Height : 0;
 
     /// <summary>重糊的生代号：谁后到谁算数，路上换了档就作废先回来那一张。</summary>
     private int _heroBlurGeneration;
@@ -643,10 +650,12 @@ public sealed partial class DetailViewModel : PageViewModel
         if (!Attached || _heroPixels is null) return;
 
         var target = HeroBlurTarget;
-        if (target == _heroBlurRadius && _heroRequestedGaussian == UseGaussianBackdrop) return;
+        var bottomEnd = HeroBottomEnd;
+        if (target == _heroBlurRadius && _heroRequestedGaussian == UseGaussianBackdrop && bottomEnd == _heroBottomEnd) return;
 
         var generation = ++_heroBlurGeneration;
         _heroBlurRadius = target;
+        _heroBottomEnd = bottomEnd;
         _heroRequestedGaussian = UseGaussianBackdrop;
         _heroRendering = true;
 
@@ -655,34 +664,34 @@ public sealed partial class DetailViewModel : PageViewModel
         _blurCancel = new CancellationTokenSource();
         var token = CancellationTokenSource.CreateLinkedTokenSource(
             _art?.Token ?? CancellationToken.None, _blurCancel.Token).Token;
-        _ = RenderBlurAsync(generation, _heroPixels, target, _heroRequestedGaussian, token);
+        _ = RenderBlurAsync(generation, _heroPixels, target, _heroRequestedGaussian, token, bottomEnd);
     }
 
     private async Task<BitmapImage?> RenderHeroAsync(HeroPictureLoader.HeroPixels pixels, int radius,
-        CancellationToken token, DetailHeroCache.Ticket? ticket, NavigationTimingRun? timing, bool gaussian)
+        CancellationToken token, DetailHeroCache.Ticket? ticket, NavigationTimingRun? timing, bool gaussian, double bottomEnd)
     {
         token.ThrowIfCancellationRequested();
         ticket?.Scope.ThrowIfNotAvailable();
         var cache = _heroCache;
-        if (cache is not null && ticket is not null && cache.TryGetPicture(ticket, pixels, radius, out var kept, gaussian))
+        if (cache is not null && ticket is not null && cache.TryGetPicture(ticket, pixels, radius, out var kept, gaussian, bottomEnd))
         {
             timing?.Mark("hero-picture-hit", 1);
             return kept;
         }
-        var picture = await HeroPictureLoader.RenderAsync(pixels, radius, token, timing, gaussian).ConfigureAwait(true);
+        var picture = await HeroPictureLoader.RenderAsync(pixels, radius, token, timing, gaussian, bottomEnd).ConfigureAwait(true);
         token.ThrowIfCancellationRequested();
         ticket?.Scope.ThrowIfNotAvailable();
         if (picture is not null && cache is not null && ticket is not null)
-            cache.RememberPicture(ticket, pixels, radius, picture, gaussian);
+            cache.RememberPicture(ticket, pixels, radius, picture, gaussian, bottomEnd);
         return picture;
     }
 
     private async Task RenderBlurAsync(int generation, HeroPictureLoader.HeroPixels pixels, int radius, bool gaussian,
-        CancellationToken token)
+        CancellationToken token, double bottomEnd)
     {
         try
         {
-            var picture = await RenderHeroAsync(pixels, radius, token, _heroCacheTicket, _heroTiming, gaussian)
+            var picture = await RenderHeroAsync(pixels, radius, token, _heroCacheTicket, _heroTiming, gaussian, bottomEnd)
                 .ConfigureAwait(true);
 
             if (Attached && generation == _heroBlurGeneration && gaussian == UseGaussianBackdrop && picture is not null)
@@ -2826,6 +2835,7 @@ public sealed partial class DetailViewModel : PageViewModel
             // 裁切模糊的原料和档位跟着这一批图一起作废：在路上的重糊回来时生代号对不上，自己会扔。
             _heroPixels = null;
             _heroBlurRadius = -1;
+            _heroBottomEnd = -1;
             _heroBlurGeneration++;
             _heroRendering = false;
             _heroRenderedGaussian = false;
@@ -3509,16 +3519,20 @@ public sealed partial class DetailViewModel : PageViewModel
                 }, token).ConfigureAwait(true);
             if (source is null || !Attached || !Fresh(art, page)) return;
 
+            // 先用解码后的真实比例排图，再算可见下沿；初次加载不能沿用16:9兜底。
+            HeroHeightRatio = source.Height / (double)source.Width;
             _heroPixels = source;
             _heroCacheTicket = selectedTicket;
             var radius = HeroBlurTarget;
             var generation = ++_heroBlurGeneration;
             _heroBlurRadius = radius;
+            var bottomEnd = HeroBottomEnd;
+            _heroBottomEnd = bottomEnd;
             var gaussian = UseGaussianBackdrop;
             _heroRequestedGaussian = gaussian;
             _heroRendering = true;
 
-            var rendered = await RenderHeroAsync(source, radius, token, selectedTicket, _heroTiming, gaussian).ConfigureAwait(true);
+            var rendered = await RenderHeroAsync(source, radius, token, selectedTicket, _heroTiming, gaussian, bottomEnd).ConfigureAwait(true);
             if (rendered is null || !Attached || !Fresh(art, page) || generation != _heroBlurGeneration) return;
             if (gaussian != UseGaussianBackdrop) return;
             _heroRenderedGaussian = gaussian;

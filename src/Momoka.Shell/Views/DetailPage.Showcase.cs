@@ -233,7 +233,9 @@ public sealed partial class DetailPage
     /// </summary>
     private void OnShowcaseChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
-        if (args.PropertyName != nameof(DetailViewModel.Showcase) || _applyingShowcase) return;
+        if (args.PropertyName != nameof(DetailViewModel.Showcase)) return;
+        if (!_sizing) ViewModel.UpdateHeroBlur();
+        if (_applyingShowcase) return;
 
         // 改尺寸那一趟由 OnBodySized 在宽高都写完之后一次结算：写到一半时量到的带高、纸面位置都是旧的，
         // 而且一次布局可能先翻过去又翻回来。这里只处理别的来路 —— 换条目、图到手、版本切换，一律当场落定。

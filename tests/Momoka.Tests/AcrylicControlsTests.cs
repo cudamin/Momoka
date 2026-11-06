@@ -57,22 +57,19 @@ internal static class AcrylicControlsTests
             Assert.False(style.Elements().Any(row => (string?)row.Attribute("Property") == "Template"));
             Assert.True(style.Descendants().Any(row => row.Name.LocalName == "DetailMenuBackdrop"));
         });
-        Test("详情背景：主题收边与图片同高，位于图片透明度及阅读遮罩之外", () =>
+        Test("详情背景：阅读遮罩和主题收边共用一层，图片保持不透明", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             var backdrop = Named(page, "Backdrop");
             var picture = Named(page, "BackdropPicture");
-            var shade = Named(page, "BackdropShade");
             var fade = Named(page, "BackdropFade");
             Assert.Equal(backdrop, fade.Parent);
-            Assert.Equal(backdrop, shade.Parent);
+            Assert.False(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "BackdropShade"));
             Assert.Equal((string?)picture.Attribute("Height"), (string?)fade.Attribute("Height"));
-            Assert.Equal((string?)picture.Attribute("Height"), (string?)shade.Attribute("Height"));
             Assert.Equal("Top", (string?)fade.Attribute("VerticalAlignment"));
             Assert.Equal("False", (string?)fade.Attribute("IsHitTestVisible"));
             Assert.Null(fade.Attribute("Opacity"));
-            Assert.True(backdrop.Elements().ToList().IndexOf(fade) > backdrop.Elements().ToList().IndexOf(shade));
-            Assert.True(backdrop.Elements().ToList().IndexOf(shade) > backdrop.Elements().ToList().IndexOf(picture));
+            Assert.True(backdrop.Elements().ToList().IndexOf(fade) > backdrop.Elements().ToList().IndexOf(picture));
         });
         Test("主页轮播：底边没有渐变层，保留标题和侧边阅读遮罩", () =>
         {

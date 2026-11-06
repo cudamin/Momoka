@@ -79,7 +79,7 @@ internal static class HeroPictureLoader
         RenderAsync(source, blurRadius, token, NavigationTiming.Capture());
 
     public static async Task<BitmapImage?> RenderAsync(HeroPixels source, int blurRadius, CancellationToken token,
-        NavigationTimingRun? timing, bool gaussian = false)
+        NavigationTimingRun? timing, bool gaussian = false, double bottomEnd = 0)
     {
         token.ThrowIfCancellationRequested();
 
@@ -92,6 +92,8 @@ internal static class HeroPictureLoader
             timing?.Mark("hero-blur-begin", blurRadius);
             if (gaussian) GaussianBackdrop.Apply(pixels, source.Width, source.Height, blurRadius, token);
             else BackdropBlur.BoxBlur(pixels, source.Width, source.Height, blurRadius);
+            if (bottomEnd > 0) GaussianBackdrop.ApplyBottom(pixels, source.Width, source.Height,
+                GaussianBackdrop.Sigma, token, bottomEnd);
             timing?.Mark("hero-blur-end", blurRadius);
         }, token);
         token.ThrowIfCancellationRequested();

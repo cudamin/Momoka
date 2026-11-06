@@ -36,7 +36,7 @@ internal sealed class DetailHeroCache : IDisposable
     internal sealed record Ticket(EmbySessionScope Scope, Key Key, string Tag, long Generation);
 
     private sealed record Entry(Ticket Ticket, HeroPictureLoader.HeroPixels Pixels,
-        int Radius, bool Gaussian, BitmapImage? Picture, long Cost);
+        int Radius, bool Gaussian, double BottomEnd, BitmapImage? Picture, long Cost);
 
     internal Ticket Begin(EmbySessionScope scope, ArtworkRef artwork, int width, long? generation = null)
     {
@@ -80,12 +80,14 @@ internal sealed class DetailHeroCache : IDisposable
         }
     }
 
-    internal bool TryGetPicture(Ticket ticket, HeroPictureLoader.HeroPixels pixels, int radius, out BitmapImage picture, bool gaussian = false)
+    internal bool TryGetPicture(Ticket ticket, HeroPictureLoader.HeroPixels pixels, int radius, out BitmapImage picture,
+        bool gaussian = false, double bottomEnd = 0)
     {
         lock (_gate)
         {
             if (Valid(ticket) && _entries.TryGet(ticket.Key, out var entry)
-                && ReferenceEquals(entry.Pixels, pixels) && entry.Radius == radius && entry.Gaussian == gaussian && entry.Picture is { } kept)
+                && ReferenceEquals(entry.Pixels, pixels) && entry.Radius == radius && entry.Gaussian == gaussian
+                && entry.BottomEnd == bottomEnd && entry.Picture is { } kept)
             {
                 picture = kept;
                 return true;
@@ -101,11 +103,12 @@ internal sealed class DetailHeroCache : IDisposable
         {
             if (!Valid(ticket)) return;
             if (_entries.TryGet(ticket.Key, out var existing) && ReferenceEquals(existing.Pixels, pixels)) return;
-            _entries.Set(ticket.Key, new(ticket, pixels, -1, false, null, pixels.Pixels.LongLength));
+            _entries.Set(ticket.Key, new(ticket, pixels, -1, false, 0, null, pixels.Pixels.LongLength));
         }
     }
 
-    internal void RememberPicture(Ticket ticket, HeroPictureLoader.HeroPixels pixels, int radius, BitmapImage picture, bool gaussian = false)
+    internal void RememberPicture(Ticket ticket, HeroPictureLoader.HeroPixels pixels, int radius, BitmapImage picture,
+        bool gaussian = false, double bottomEnd = 0)
     {
         lock (_gate)
         {
@@ -113,7 +116,7 @@ internal sealed class DetailHeroCache : IDisposable
             // HeroPictureLoader always passes a same-size BMP to Physical-width BitmapImage. Use
             // those known dimensions, never UI-affine bitmap getters in the shared bookkeeping.
             var cost = pixels.Pixels.LongLength + (long)pixels.Width * pixels.Height * 4;
-            _entries.Set(ticket.Key, new(ticket, pixels, radius, gaussian, picture, cost));
+            _entries.Set(ticket.Key, new(ticket, pixels, radius, gaussian, bottomEnd, picture, cost));
         }
     }
 

@@ -8,6 +8,8 @@ using Momoka.Emby;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Momoka.Theming;
+using Windows.Graphics.Imaging;
+using Windows.Storage.Streams;
 
 namespace Momoka.Shell;
 
@@ -18,24 +20,25 @@ internal sealed partial class ShellNavigationProbe
         var expected = page.ViewModel.BackdropShown && !page.ViewModel.Showcase
             && page.ViewModel.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
         var fade = Get<Border>(page, "BackdropFade");
-        var shade = Get<Border>(page, "BackdropShade");
         Require((fade.Visibility == Visibility.Visible) == expected, "底部渐变显隐不符合页面及沉浸模式");
-        Require((shade.Visibility == Visibility.Visible) == (expected && !page.ViewModel.GaussianBackdropApplied),
-            "固定阅读遮罩显隐错误");
+        Require(!Descendants(page).OfType<Border>().Any(border => border.Name == "BackdropShade"), "重复阅读遮罩仍然存在");
         if (!expected) return;
         var picture = Get<Border>(page, "BackdropPicture");
         var color = ((SolidColorBrush)Get<Border>(page, "BackdropThemeSource").Background).Color;
-        Require(fade.Parent == picture.Parent && shade.Parent == picture.Parent
+        Require(fade.Parent == picture.Parent
             && fade.Opacity == 1 && Math.Abs(fade.ActualHeight - picture.ActualHeight) < 0.01
             && Math.Abs(fade.ActualWidth - picture.ActualWidth) < 0.01, "渐变没有独立覆盖实际图片盒子");
         Require(fade.Background is LinearGradientBrush brush
             && brush.StartPoint == new Windows.Foundation.Point(0.5, 0)
             && brush.EndPoint == new Windows.Foundation.Point(0.5, 1)
-            && brush.GradientStops.Count == 3
-            && brush.GradientStops[0].Offset == 0 && brush.GradientStops[0].Color.A == 0
-            && Math.Abs(brush.GradientStops[1].Offset - 0.7) < 0.000001 && brush.GradientStops[1].Color.A == 0
-            && brush.GradientStops[2].Offset == 1 && brush.GradientStops[2].Color.A == 255
-            && brush.GradientStops.All(stop => stop.Color.R == color.R && stop.Color.G == color.G && stop.Color.B == color.B),
+            && brush.GradientStops.Count >= 18
+            && brush.GradientStops[0].Offset == 0
+            && brush.GradientStops[0].Color.A == (page.ViewModel.GaussianBackdropApplied ? 0 : ScrimExpected(page))
+            && brush.GradientStops.Any(stop => Math.Abs(stop.Offset - 5d / 6) < 0.000001
+                && stop.Color == brush.GradientStops[0].Color)
+            && brush.GradientStops[^1].Offset == 1 && brush.GradientStops[^1].Color == color
+            && brush.GradientStops.All(stop => Math.Abs(stop.Color.A / 255d
+                - Math.Max(brush.GradientStops[0].Color.A / 255d, Math.Clamp((stop.Offset - 5d / 6) * 6, 0, 1))) < 0.005),
             $"渐变范围或主题末色不正确：主题{color}；"
             + (fade.Background is LinearGradientBrush actual
                 ? $"方向{actual.StartPoint}→{actual.EndPoint}；{string.Join(';', actual.GradientStops.Select(stop => $"{stop.Offset:R}:{stop.Color}"))}"
@@ -54,7 +57,8 @@ internal sealed partial class ShellNavigationProbe
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
         if (_window!.IsMaximized) _window.ToggleMaximize();
-        var image = await FixtureImageAsync(1600, 900);
+        // 非16:9图覆盖首次解码比例从兜底切到真实值的时序。
+        var image = await BackdropEdgeImageAsync();
         var item = Series();
         item.Name = "主题渐变 · 离线背景验证";
         item.BackdropImageTags = ["fixture"];
@@ -83,6 +87,17 @@ internal sealed partial class ShellNavigationProbe
                 var page = (DetailPage)frame.Content;
                 page.AttachWindow(_window);
                 await UntilAsync(() => page.IsReady && page.ViewModel.HeroImage is not null && page.ViewModel.GaussianBackdropReady);
+                var originalImage = new BitmapImage();
+                using (var stream = new MemoryStream(image).AsRandomAccessStream()) await originalImage.SetSourceAsync(stream);
+                var original = await ReadBackdropPixelsAsync(originalImage);
+                var rendered = await ReadBackdropPixelsAsync(page.ViewModel.HeroImage!);
+                Require(original.Width == rendered.Width && original.Height == rendered.Height,
+                    "底边模糊改变了解码尺寸");
+                var clearLength = (int)Math.Floor(rendered.Height * 5d / 6) * rendered.Width * 4;
+                Require(original.Pixels.AsSpan(0, clearLength).SequenceEqual(rendered.Pixels.AsSpan(0, clearLength)),
+                    "底边模糊污染了上方五分之六画面");
+                Require(!original.Pixels.AsSpan(clearLength).SequenceEqual(rendered.Pixels.AsSpan(clearLength)),
+                    "图片下沿没有实际高斯模糊");
                 foreach (var gaussian in new[] { false, true })
                 {
                     fixture.Settings.Ui.UseGaussianBackdrop = gaussian;
@@ -100,6 +115,19 @@ internal sealed partial class ShellNavigationProbe
                     }
                     Require(reads == baseline, "切主题重新请求了媒体或图片");
                 }
+                foreach (var strength in new[] { 0d, 40, 100 })
+                {
+                    fixture.Settings.Ui.UseGaussianBackdrop = false;
+                    fixture.Settings.Ui.BackdropOpacity = strength;
+                    ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                    await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
+                    await LayoutAsync(page);
+                    RequireDetailBackdropFade(page);
+                    await CheckBackdropFadePixelsAsync(page);
+                    await SaveProbeScreenAsync($"backdrop-fade-{type}-shade-{strength:0}-screen.png");
+                }
+                fixture.Settings.Ui.BackdropOpacity = 40;
+                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 var fade = Get<Border>(page, "BackdropFade");
                 var brush = (LinearGradientBrush)fade.Background;
                 var last = brush.GradientStops[^1].Color;
@@ -188,19 +216,20 @@ internal sealed partial class ShellNavigationProbe
                     var at = (row * bitmap.PixelWidth + x) * 4;
                     return $"y={row}: {pixels[at + 2]},{pixels[at + 1]},{pixels[at]},{pixels[at + 3]}";
                 })));
-            foreach (var along in new[] { 0.6, 0.85, 0.995 })
+            foreach (var along in new[] { 0.6, 0.8, 0.832, 0.85, 0.92, 0.995 })
             {
                 var y = Math.Clamp((int)(picture.ActualHeight * scale * along), 0, bitmap.PixelHeight - 1);
                 var at = (y * bitmap.PixelWidth + x) * 4;
-                var amount = Math.Clamp((along - 0.7) / 0.3, 0, 1);
+                var amount = Math.Clamp((along - 5d / 6) * 6, 0, 1);
                 var ink = DetailHero.ScrimInk;
                 var alpha = page.ViewModel.GaussianBackdropApplied ? 0
                     : AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, page.ViewModel.BackdropStrength) / 255d;
                 var expected = new[] { (ink.B, color.B), (ink.G, color.G), (ink.R, color.R) };
                 for (var channel = 0; channel < 3; channel++)
                 {
-                    var under = 255 * (1 - alpha) + expected[channel].Item1 * alpha;
-                    var value = under * (1 - amount) + expected[channel].Item2 * amount;
+                    var opacity = Math.Max(alpha, amount);
+                    var tint = expected[channel].Item1 * (1 - amount) + expected[channel].Item2 * amount;
+                    var value = 255 * (1 - opacity) + tint * opacity;
                     Require(Math.Abs(pixels[at + channel] - value) < 5,
                         $"渐变真实像素 {along:0.###}/{channel}={pixels[at + channel]}，预期{value:0.##}");
                 }
@@ -208,5 +237,32 @@ internal sealed partial class ShellNavigationProbe
         }
         finally { picture.Background = image; }
         await LayoutAsync(page);
+    }
+
+    private static async Task<byte[]> BackdropEdgeImageAsync()
+    {
+        const int width = 1200, height = 900;
+        var pixels = new byte[width * height * 4];
+        for (var y = 0; y < height; y++)
+            for (var x = 0; x < width; x++)
+            {
+                var at = (y * width + x) * 4;
+                // 全图高频纹理，尤其最下沿；原来的夹具下半是纯色，无法见证局部高斯。
+                var bright = (x / 8 + y / 8) % 2 == 0;
+                pixels[at] = (byte)(bright ? 220 : 50);
+                pixels[at + 1] = (byte)(bright ? 185 : 85);
+                pixels[at + 2] = (byte)(bright ? 245 : 100);
+                pixels[at + 3] = 255;
+            }
+        using var stream = new InMemoryRandomAccessStream();
+        var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
+        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Straight, width, height, 96, 96, pixels);
+        await encoder.FlushAsync();
+        stream.Seek(0);
+        using var reader = new DataReader(stream);
+        await reader.LoadAsync((uint)stream.Size);
+        var bytes = new byte[stream.Size];
+        reader.ReadBytes(bytes);
+        return bytes;
     }
 }

@@ -24,6 +24,10 @@ internal static class DetailHeroCacheTests
             cache.RememberPicture(ticket, pixels, 12, new BitmapImage(), gaussian: true);
             Assert.True(cache.TryGetPicture(ticket, pixels, 12, out _, gaussian: true));
             Assert.False(cache.TryGetPicture(ticket, pixels, 12, out _));
+            cache.RememberPicture(ticket, pixels, 12, new BitmapImage(), gaussian: true, bottomEnd: 0.8);
+            Assert.True(cache.TryGetPicture(ticket, pixels, 12, out _, gaussian: true, bottomEnd: 0.8));
+            Assert.False(cache.TryGetPicture(ticket, pixels, 12, out _, gaussian: true));
+            Assert.False(cache.TryGetPicture(ticket, pixels, 12, out _, gaussian: true, bottomEnd: 1));
             Assert.Equal(128L, cache.Bytes);
             cache.Clear();
             cache.RememberPicture(ticket, pixels, 12, new BitmapImage(), gaussian: true);

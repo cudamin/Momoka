@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
+using Momoka.Theming;
 using Windows.Foundation;
 using Windows.UI;
 
@@ -11,17 +12,10 @@ public sealed partial class DetailPage
     private readonly LinearGradientBrush _backdropFadeBrush = new()
     {
         StartPoint = new Point(0.5, 0),
-        EndPoint = new Point(0.5, 1),
-        GradientStops =
-        {
-            new GradientStop { Offset = 0 },
-            new GradientStop { Offset = 0.7 },
-            new GradientStop { Offset = 1 }
-        }
+        EndPoint = new Point(0.5, 1)
     };
 
-    // Emby Theater 3.0.20-3.0 www/item/item.css 的蒙版在元素底部30%淡出。
-    // 此处把已压暗的背景合成到主题底色；不能在其上再叠滚动区的黑罩。
+    // 2026-11-06：底部六分之一；遮罩与渐变取较大alpha，不能先遮一次再叠渐变。
     private bool UsesBackdropFade => ViewModel.BackdropShown && !ViewModel.Showcase
         && ViewModel.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
@@ -36,16 +30,24 @@ public sealed partial class DetailPage
     private void PaintBackdropFade()
     {
         var color = BackdropThemeSource.Background is SolidColorBrush theme ? theme.Color : PaperColor;
-        for (var index = 0; index < _backdropFadeBrush.GradientStops.Count; index++)
-            _backdropFadeBrush.GradientStops[index].Color = Color.FromArgb(index == 2 ? (byte)255 : (byte)0,
-                color.R, color.G, color.B);
-
-        // 底部那道主题收边不跟强度走：它接的是正文那张纸，不是压在图上给人降亮度的那一层。0 档也留着，
-        // 否则图的下沿会硬切在纸的上沿上；100 档图被遮罩吃掉，这一道看不出来。
+        var reading = ReadingShadeColor;
+        var shade = new ThemeColor(reading.A, reading.R, reading.G, reading.B);
+        var paper = new ThemeColor(color.A, color.R, color.G, color.B);
+        _backdropFadeBrush.GradientStops.Clear();
+        // alpha在渐变超过遮罩浓度时才继续增加；加上该交点保证浓度不会再次叠加。
+        var offsets = new[] { 0d, DetailBackdrop.FadeStart + reading.A / 255d / 6 }
+            .Concat(Enumerable.Range(0, 17).Select(step => DetailBackdrop.FadeStart + step / 96d))
+            .Distinct().Order();
+        foreach (var offset in offsets)
+        {
+            var stop = DetailBackdrop.Shade(shade, paper, offset);
+            _backdropFadeBrush.GradientStops.Add(new GradientStop
+            {
+                Offset = offset,
+                Color = Color.FromArgb(stop.A, stop.R, stop.G, stop.B)
+            });
+        }
         BackdropFade.Background = _backdropFadeBrush;
         BackdropFade.Visibility = UsesBackdropFade ? Visibility.Visible : Visibility.Collapsed;
-        BackdropShade.Background = new SolidColorBrush(ReadingShadeColor);
-        BackdropShade.Visibility = UsesBackdropFade && !ViewModel.GaussianBackdropApplied
-            ? Visibility.Visible : Visibility.Collapsed;
     }
 }

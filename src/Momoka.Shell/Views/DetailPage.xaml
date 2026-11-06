@@ -222,9 +222,7 @@
                 </Border.Background>
             </Border>
 
-            <!-- 普通剧/季/电影：阅读遮罩先合成，随后让图片底部融入当前主题；渐变不继承图片透明度。 -->
-            <Border x:Name="BackdropShade" Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
-                    VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
+            <!-- 普通剧/季/电影：阅读遮罩与底部六分之一的主题收边只画一次。 -->
             <Border x:Name="BackdropFade" Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
                     VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
 

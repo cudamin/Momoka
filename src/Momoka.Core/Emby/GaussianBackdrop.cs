@@ -26,6 +26,40 @@ public static class GaussianBackdrop
         return (int)Math.Round(MaxSigma * share);
     }
 
+    /// <summary>只提交背景下沿六分之一的高斯结果，起点平滑混合；end 是图片实际可见下沿。</summary>
+    public static void ApplyBottom(byte[] pixels, int width, int height, double sigma,
+        CancellationToken token = default, double end = 1)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        if (pixels.Length != checked(width * height * 4)) throw new ArgumentException("像素数与尺寸不一致。", nameof(pixels));
+        token.ThrowIfCancellationRequested();
+        if (sigma <= 0 || end <= 0) return;
+        if (!double.IsFinite(sigma) || sigma > 128) throw new ArgumentOutOfRangeException(nameof(sigma));
+        if (!double.IsFinite(end) || end > 1) throw new ArgumentOutOfRangeException(nameof(end));
+        var start = end * DetailBackdrop.FadeStart;
+        var first = Math.Clamp((int)Math.Floor(start * height), 0, height - 1);
+        // 核的上方采样仍取原图，不能把渐变起点当成卷积边界。
+        var from = Math.Max(0, first - (int)Math.Ceiling(sigma * 3));
+        var count = Math.Min(height, (int)Math.Ceiling(end * height) + (int)Math.Ceiling(sigma * 3)) - from;
+        var stride = checked(width * 4);
+        var blurred = pixels.AsSpan(from * stride, count * stride).ToArray();
+        Apply(blurred, width, count, sigma, token);
+        token.ThrowIfCancellationRequested();
+        for (var y = first; y < Math.Min(height, (int)Math.Ceiling(end * height)); y++)
+        {
+            var t = Math.Clamp(((y + 0.5) / height - start) / (end - start), 0, 1);
+            var weight = t * t * (3 - 2 * t);
+            for (var x = 0; x < width; x++)
+                for (var channel = 0; channel < 3; channel++)
+                {
+                    var at = y * stride + x * 4 + channel;
+                    var softened = blurred[(y - from) * stride + x * 4 + channel];
+                    pixels[at] = (byte)Math.Round(pixels[at] + (softened - pixels[at]) * weight);
+                }
+        }
+    }
+
     /// <summary>按归一化 exp(-x²/(2σ²)) 核先横再纵卷积，3σ外截断，边缘夹取防止黑圈。</summary>
     public static void Apply(byte[] pixels, int width, int height, double sigma, CancellationToken token = default)
     {
