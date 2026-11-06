@@ -24,25 +24,14 @@ internal sealed partial class ShellNavigationProbe
         Require(!Descendants(page).OfType<Border>().Any(border => border.Name == "BackdropShade"), "重复阅读遮罩仍然存在");
         if (!expected) return;
         var picture = Get<Border>(page, "BackdropPicture");
-        var color = ((SolidColorBrush)Get<Border>(page, "BackdropThemeSource").Background).Color;
         Require(fade.Parent == picture.Parent
             && fade.Opacity == 1 && Math.Abs(fade.ActualHeight - picture.ActualHeight) < 0.01
             && Math.Abs(fade.ActualWidth - picture.ActualWidth) < 0.01, "渐变没有独立覆盖实际图片盒子");
-        Require(fade.Background is LinearGradientBrush brush
-            && brush.StartPoint == new Windows.Foundation.Point(0.5, 0)
-            && brush.EndPoint == new Windows.Foundation.Point(0.5, 1)
-            && brush.GradientStops.Count >= 18
-            && brush.GradientStops[0].Offset == 0
-            && brush.GradientStops[0].Color.A == (page.ViewModel.GaussianBackdropApplied ? 0 : ScrimExpected(page))
-            && brush.GradientStops.Any(stop => Math.Abs(stop.Offset - 5d / 6) < 0.000001
-                && stop.Color == brush.GradientStops[0].Color)
-            && brush.GradientStops[^1].Offset == 1 && brush.GradientStops[^1].Color == color
-            && brush.GradientStops.All(stop => Math.Abs(stop.Color.A / 255d
-                - Math.Max(brush.GradientStops[0].Color.A / 255d, Math.Clamp((stop.Offset - 5d / 6) * 6, 0, 1))) < 0.005),
-            $"渐变范围或主题末色不正确：主题{color}；"
-            + (fade.Background is LinearGradientBrush actual
-                ? $"方向{actual.StartPoint}→{actual.EndPoint}；{string.Join(';', actual.GradientStops.Select(stop => $"{stop.Offset:R}:{stop.Color}"))}"
-                : "不是渐变画刷"));
+        var ink = DetailHero.ScrimInk;
+        Require(fade.Background is SolidColorBrush brush
+            && brush.Color.A == (page.ViewModel.GaussianBackdropApplied ? 0 : ScrimExpected(page))
+            && (brush.Color.A == 0 || brush.Color.R == ink.R && brush.Color.G == ink.G && brush.Color.B == ink.B),
+            "背景应只保留原均匀阅读遮罩，不得再画下沿渐变");
         Require(Get<Grid>(page, "HeroBand").Background is SolidColorBrush { Color.A: 0 }
             && Get<StackPanel>(page, "HeroTail").Background is SolidColorBrush { Color.A: 0 },
             "滚动内容再次压暗主题收边");
@@ -93,9 +82,9 @@ internal sealed partial class ShellNavigationProbe
                 var rendered = await ReadBackdropPixelsAsync(page.ViewModel.HeroImage!);
                 Require(original.Width == rendered.Width && original.Height == rendered.Height,
                     "底边模糊改变了解码尺寸");
-                var clearLength = (int)Math.Floor(rendered.Height * 5d / 6) * rendered.Width * 4;
+                var clearLength = (int)Math.Floor(rendered.Height * 0.95) * rendered.Width * 4;
                 Require(original.Pixels.AsSpan(0, clearLength).SequenceEqual(rendered.Pixels.AsSpan(0, clearLength)),
-                    "底边模糊污染了上方五分之六画面");
+                    "底边模糊污染了上方95%画面");
                 Require(!original.Pixels.AsSpan(clearLength).SequenceEqual(rendered.Pixels.AsSpan(clearLength)),
                     "图片下沿没有实际高斯模糊");
                 foreach (var gaussian in new[] { false, true })
@@ -129,17 +118,17 @@ internal sealed partial class ShellNavigationProbe
                 fixture.Settings.Ui.BackdropOpacity = 40;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 var fade = Get<Border>(page, "BackdropFade");
-                var brush = (LinearGradientBrush)fade.Background;
-                var last = brush.GradientStops[^1].Color;
+                var brush = (SolidColorBrush)fade.Background;
+                var last = brush.Color;
                 try
                 {
-                    brush.GradientStops[^1].Color = Windows.UI.Color.FromArgb(10, last.R, last.G, last.B);
+                    brush.Color = Windows.UI.Color.FromArgb(10, last.R, last.G, last.B);
                     var rejected = false;
                     try { RequireDetailBackdropFade(page); }
                     catch (InvalidOperationException) { rejected = true; }
-                    Require(rejected, "渐变检查没有拒绝透明末端反例");
+                    Require(rejected, "背景检查没有拒绝错误遮罩浓度反例");
                 }
-                finally { brush.GradientStops[^1].Color = last; }
+                finally { brush.Color = last; }
 
                 foreach (var gaussian in new[] { false, true })
                 {
@@ -198,7 +187,6 @@ internal sealed partial class ShellNavigationProbe
             var bitmap = new RenderTargetBitmap();
             await bitmap.RenderAsync(backdrop);
             var pixels = (await bitmap.GetPixelsAsync()).ToArray();
-            var color = ((SolidColorBrush)Get<Border>(page, "BackdropThemeSource").Background).Color;
             // RTB 使用绘制边界：Backdrop 布局高851时，图和渐变仅428高，返帧就是428高。
             // 不能由返帧高/容器布局高推缩放，否则85%误采到图的43%。
             var scale = page.XamlRoot.RasterizationScale;
@@ -216,20 +204,17 @@ internal sealed partial class ShellNavigationProbe
                     var at = (row * bitmap.PixelWidth + x) * 4;
                     return $"y={row}: {pixels[at + 2]},{pixels[at + 1]},{pixels[at]},{pixels[at + 3]}";
                 })));
-            foreach (var along in new[] { 0.6, 0.8, 0.832, 0.85, 0.92, 0.995 })
+            foreach (var along in new[] { 0.6, 0.8, 0.94, 0.96, 0.995 })
             {
                 var y = Math.Clamp((int)(picture.ActualHeight * scale * along), 0, bitmap.PixelHeight - 1);
                 var at = (y * bitmap.PixelWidth + x) * 4;
-                var amount = Math.Clamp((along - 5d / 6) * 6, 0, 1);
                 var ink = DetailHero.ScrimInk;
                 var alpha = page.ViewModel.GaussianBackdropApplied ? 0
                     : AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, page.ViewModel.BackdropStrength) / 255d;
-                var expected = new[] { (ink.B, color.B), (ink.G, color.G), (ink.R, color.R) };
+                var expected = new[] { ink.B, ink.G, ink.R };
                 for (var channel = 0; channel < 3; channel++)
                 {
-                    var opacity = Math.Max(alpha, amount);
-                    var tint = expected[channel].Item1 * (1 - amount) + expected[channel].Item2 * amount;
-                    var value = 255 * (1 - opacity) + tint * opacity;
+                    var value = 255 * (1 - alpha) + expected[channel] * alpha;
                     Require(Math.Abs(pixels[at + channel] - value) < 5,
                         $"渐变真实像素 {along:0.###}/{channel}={pixels[at + channel]}，预期{value:0.##}");
                 }

@@ -222,7 +222,7 @@
                 </Border.Background>
             </Border>
 
-            <!-- 普通剧/季/电影：阅读遮罩与底部六分之一的主题收边只画一次。 -->
+            <!-- 普通剧/季/电影：只画原阅读遮罩，下沿5%高斯在图片像素中完成，不加渐变。 -->
             <Border x:Name="BackdropFade" Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
                     VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
 

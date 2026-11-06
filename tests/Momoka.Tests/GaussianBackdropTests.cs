@@ -3,7 +3,6 @@ using System.Xml.Linq;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
-using Momoka.Theming;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
@@ -12,20 +11,6 @@ internal static class GaussianBackdropTests
 {
     public static void Register()
     {
-        Test("背景收边：渐变不超过底部六分之一，遮罩浓度只取较大值并接主题", () =>
-        {
-            var paper = ThemeColor.Rgb(20, 30, 40);
-            foreach (var alpha in new byte[] { 0, 102, 255 })
-            {
-                var reading = DetailHero.ScrimInk.WithAlpha(alpha);
-                Assert.Equal(reading, DetailBackdrop.Shade(reading, paper, 0.8));
-                Assert.Equal(reading, DetailBackdrop.Shade(reading, paper, 5d / 6));
-                var middle = DetailBackdrop.Shade(reading, paper, 11d / 12);
-                Assert.Equal((byte)Math.Max((int)alpha, 128), middle.A);
-                Assert.Equal(paper, DetailBackdrop.Shade(reading, paper, 1));
-                Assert.Equal(reading, DetailBackdrop.Shade(reading, paper, double.NaN));
-            }
-        });
         Test("高斯背景：缺键默认暗罩和原底色，两模式JSON与恢复独立保存", () =>
         {
             var settings = SettingsMigration.FromJson("{\"SchemaVersion\":26,\"Ui\":{}}", PassthroughSecretProtector.Instance);
@@ -64,7 +49,7 @@ internal static class GaussianBackdropTests
                 Assert.Equal((byte)255, pixels[x * 4 + 3]);
             }
         });
-        Test("背景收边：只模糊底部六分之一，保留上方像素和alpha", () =>
+        Test("背景收边：只模糊底部5%，保留上方95%像素和alpha", () =>
         {
             const int width = 24, height = 60;
             var pixels = new byte[width * height * 4];
@@ -77,7 +62,7 @@ internal static class GaussianBackdropTests
                 }
             var original = pixels.ToArray();
             GaussianBackdrop.ApplyBottom(pixels, width, height, 2);
-            Assert.True(original.AsSpan(0, width * 50 * 4).SequenceEqual(pixels.AsSpan(0, width * 50 * 4)));
+            Assert.True(original.AsSpan(0, width * 57 * 4).SequenceEqual(pixels.AsSpan(0, width * 57 * 4)));
             Assert.True(pixels[(height - 1) * width * 4 + 8 * 4] < 200);
             for (var at = 3; at < pixels.Length; at += 4) Assert.Equal(original[at], pixels[at]);
             var before = pixels.ToArray();
@@ -85,7 +70,7 @@ internal static class GaussianBackdropTests
             Assert.True(before.AsSpan().SequenceEqual(pixels));
             var cropped = original.ToArray();
             GaussianBackdrop.ApplyBottom(cropped, width, height, 2, end: 0.8);
-            Assert.True(original.AsSpan(0, width * 40 * 4).SequenceEqual(cropped.AsSpan(0, width * 40 * 4)));
+            Assert.True(original.AsSpan(0, width * 45 * 4).SequenceEqual(cropped.AsSpan(0, width * 45 * 4)));
             Assert.True(original.AsSpan(width * 48 * 4).SequenceEqual(cropped.AsSpan(width * 48 * 4)));
             Assert.True(cropped[width * 47 * 4 + 8 * 4] < 200);
             var uniform = Enumerable.Repeat((byte)73, width * height * 4).ToArray();

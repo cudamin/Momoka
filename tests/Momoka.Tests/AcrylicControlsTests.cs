@@ -57,7 +57,7 @@ internal static class AcrylicControlsTests
             Assert.False(style.Elements().Any(row => (string?)row.Attribute("Property") == "Template"));
             Assert.True(style.Descendants().Any(row => row.Name.LocalName == "DetailMenuBackdrop"));
         });
-        Test("详情背景：阅读遮罩和主题收边共用一层，图片保持不透明", () =>
+        Test("详情背景：仅保留单层阅读遮罩，不画下沿黑色渐变", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             var backdrop = Named(page, "Backdrop");
@@ -70,6 +70,9 @@ internal static class AcrylicControlsTests
             Assert.Equal("False", (string?)fade.Attribute("IsHitTestVisible"));
             Assert.Null(fade.Attribute("Opacity"));
             Assert.True(backdrop.Elements().ToList().IndexOf(fade) > backdrop.Elements().ToList().IndexOf(picture));
+            var code = Source("Views/DetailPage.Backdrop.cs");
+            Assert.Contains("new SolidColorBrush(ReadingShadeColor)", code);
+            Assert.False(code.Contains("LinearGradientBrush", StringComparison.Ordinal));
         });
         Test("主页轮播：底边没有渐变层，保留标题和侧边阅读遮罩", () =>
         {

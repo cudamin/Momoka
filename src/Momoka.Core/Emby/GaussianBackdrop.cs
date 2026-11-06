@@ -7,6 +7,9 @@ public static class GaussianBackdrop
     // 主页轮播（BannerPictureLoader）读这一档，详情页那一档改成跟设置里的强度走（见 SigmaFor）。
     public const int Sigma = 12;
 
+    /// <summary>用户在效果demo中选定的背景下沿模糊范围：仅5%，不画黑色渐变。</summary>
+    public const double BottomShare = 0.05;
+
     /// <summary>
     /// 详情页背景图模糊拉满时的 sigma（设置里那一行拖到 100）。
     /// <para>
@@ -26,7 +29,7 @@ public static class GaussianBackdrop
         return (int)Math.Round(MaxSigma * share);
     }
 
-    /// <summary>只提交背景下沿六分之一的高斯结果，起点平滑混合；end 是图片实际可见下沿。</summary>
+    /// <summary>只提交背景下沿5%的高斯结果，起点平滑混合；end 是图片实际可见下沿。</summary>
     public static void ApplyBottom(byte[] pixels, int width, int height, double sigma,
         CancellationToken token = default, double end = 1)
     {
@@ -37,7 +40,7 @@ public static class GaussianBackdrop
         if (sigma <= 0 || end <= 0) return;
         if (!double.IsFinite(sigma) || sigma > 128) throw new ArgumentOutOfRangeException(nameof(sigma));
         if (!double.IsFinite(end) || end > 1) throw new ArgumentOutOfRangeException(nameof(end));
-        var start = end * DetailBackdrop.FadeStart;
+        var start = end * (1 - BottomShare);
         var first = Math.Clamp((int)Math.Floor(start * height), 0, height - 1);
         // 核的上方采样仍取原图，不能把渐变起点当成卷积边界。
         var from = Math.Max(0, first - (int)Math.Ceiling(sigma * 3));

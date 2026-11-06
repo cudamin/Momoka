@@ -595,8 +595,8 @@ internal sealed partial class ShellNavigationProbe
     private static byte ScrimAlphaOf(DetailPage page)
     {
         var fade = Get<Border>(page, "BackdropFade");
-        if (fade.Visibility == Visibility.Visible && fade.Background is LinearGradientBrush brush)
-            return brush.GradientStops[0].Color.A;
+        if (fade.Visibility == Visibility.Visible && fade.Background is SolidColorBrush brush)
+            return brush.Color.A;
         return Get<StackPanel>(page, "HeroTail").Background is SolidColorBrush tail ? tail.Color.A : (byte)0;
     }
 
