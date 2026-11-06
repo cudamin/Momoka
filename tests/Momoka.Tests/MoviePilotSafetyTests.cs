@@ -207,7 +207,8 @@ internal static class MoviePilotSafetyTests
         {
             var original = HistoryJson();
             var dependent = HistoryJson(2, title: "Unrelated", source: "/library/original.mkv", target: "/elsewhere/renamed.mkv");
-            using var transport = TransferTransport()
+            using var transport = new StubTransport().Answer("login/access-token", Session)
+                .Answer("transfer/manual", "{\"success\":true,\"data\":" + PreviewData + "}")
                 .Answer("title=" + Uri.EscapeDataString("/library/original.mkv"), Page(2, original, dependent))
                 .Answer("history/transfer", Page(1, original));
             var service = Service(transport);
@@ -390,6 +391,7 @@ internal static class MoviePilotSafetyTests
 
     private static StubTransport TransferTransport() => new StubTransport()
         .Answer("login/access-token", Session)
+        .Answer("history/transfer", """{"success":true,"data":{"total":0,"list":[]}}""")
         .Answer("transfer/manual", "{\"success\":true,\"data\":" + PreviewData + "}");
 
     private static JsonElement Json(string value) => JsonSerializer.Deserialize<JsonElement>(value);

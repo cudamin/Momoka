@@ -150,6 +150,7 @@ public sealed partial class MoviePilotService
             Histories = Array.AsReadOnly(request.Histories.ToArray())
         };
         var resolved = Array.AsReadOnly(files.Select(file => file.Clone()).ToArray());
+        await ValidateTransferCleanupAsync(snapshot, resolved, identity, cancellationToken).ConfigureAwait(false);
         var result = await TransferRunAsync(snapshot, resolved, background: false, preview: true, cancellationToken, identity)
             .ConfigureAwait(false);
         CheckIdentity(identity, cancellationToken);
@@ -177,6 +178,7 @@ public sealed partial class MoviePilotService
             CheckIdentity(identity, cancellationToken);
             preview.ClaimSubmission(TransferConnectionStamp(identity));
             ValidateHistoryConnection(preview.Request.Histories, identity);
+            await ValidateTransferCleanupAsync(preview.Request, preview.Files, identity, cancellationToken).ConfigureAwait(false);
             foreach (var group in preview.Request.Histories.GroupBy(history => history.Title))
             {
                 CheckIdentity(identity, cancellationToken);
@@ -227,6 +229,52 @@ public sealed partial class MoviePilotService
     private static string TransferConnectionStamp(SessionIdentity identity) => Convert.ToHexString(
         System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
             $"{identity.ApiBase}\n{identity.Username}\n{identity.ProtectedPassword}")));
+
+    private async Task ValidateTransferCleanupAsync(MoviePilotTransferRequest request, IReadOnlyList<JsonElement> files,
+        SessionIdentity identity, CancellationToken cancellationToken)
+    {
+        _ = request.Body(files, preview: true);
+        for (var index = 0; index < files.Count; index++)
+        {
+            CheckIdentity(identity, cancellationToken);
+            var path = MoviePilotTransfer.Text(files[index], "path");
+            MoviePilotTransfer.RequireFile(files[index], path);
+            var selected = request.Histories.Count > 0 ? request.Histories[index] : null;
+            var all = await FindTransferHistoriesAsync(path, cancellationToken).ConfigureAwait(false);
+            CheckIdentity(identity, cancellationToken);
+            // Fixed upstream 48874bc selects history again by source storage/path at execution;
+            // a logid is not a cleanup boundary. Without a server-side compare-and-set, reject
+            // ambiguous or unconfirmed candidates instead of guessing which record is removed.
+            var candidates = all.Where(history =>
+                MoviePilotTransfer.SamePath(history.SourcePath, path) &&
+                    (MoviePilotTransferHistoryMatch.Storage(history, source: true) is "local" or "") ||
+                history.Success && history.Mode.Contains("move", StringComparison.Ordinal) &&
+                    MoviePilotTransfer.SamePath(history.TargetPath, path) &&
+                    (MoviePilotTransferHistoryMatch.Storage(history, source: false) is "local" or "")).ToArray();
+            foreach (var history in all)
+            {
+                var rawSource = MoviePilotTransferHistory.Scalar(history.Snapshot, "src");
+                var rawTarget = MoviePilotTransferHistory.Scalar(history.Snapshot, "dest");
+                _ = MoviePilotTransferHistoryMatch.Storage(history, source: true);
+                _ = MoviePilotTransferHistoryMatch.Storage(history, source: false);
+                if (rawSource.Length > 0 && !MoviePilotTransfer.SamePath(rawSource, history.SourcePath) ||
+                    rawTarget.Length > 0 && !MoviePilotTransfer.SamePath(rawTarget, history.TargetPath))
+                    throw new MoviePilotTransferBlockedException("原记录的路径身份互相矛盾，请先在 MoviePilot 核对");
+            }
+            foreach (var history in candidates)
+            {
+                if (history.Success && history.Mode.Contains("move", StringComparison.Ordinal)) continue;
+                if (history.TargetFile.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) continue;
+                if (history.TargetFile.ValueKind != JsonValueKind.Object ||
+                    MoviePilotTransfer.Text(history.TargetFile, "type") != "file" ||
+                    history.TargetPath.Length == 0 || MoviePilotTransferHistoryMatch.Storage(history, source: false).Length == 0)
+                    throw new MoviePilotTransferBlockedException("旧目标不是已核对的单个文件，不能授权目录或未知范围清理；请先在 MoviePilot 核对");
+            }
+            if (candidates.Length > 1 || candidates.Any(history => selected is null || history.Id != selected.Id) ||
+                selected is not null && candidates.Length == 0)
+                throw new MoviePilotTransferBlockedException("同源文件存在未确认或不明确的清理记录，请先在 MoviePilot 处理，不能扩大本次整理范围");
+        }
+    }
 
     private async Task<MoviePilotTransferResult> TransferRunAsync(
         MoviePilotTransferRequest request,

@@ -12,6 +12,42 @@ internal static class MoviePilotTransferSubmissionTests
 {
     public static void Register()
     {
+        foreach (var background in new[] { false, true })
+            Test("整理清理范围：预览后新增同源另一目标历史必须阻止 " + background, () =>
+            {
+                using var fixture = new TransferSubmissionFixture();
+                var preview = fixture.Preview();
+                fixture.Transport.OtherSourceHistory = true;
+                Assert.Throws<MoviePilotTransferBlockedException>(() => fixture.Submit(preview, background: background));
+                Assert.Equal(0, fixture.Transport.Writes);
+                Assert.False(preview.CanSubmit);
+            });
+        Test("整理清理范围：已知同源另一目标不能生成可确认预览", () =>
+        {
+            using var fixture = new TransferSubmissionFixture();
+            fixture.Transport.OtherSourceHistory = true;
+            Assert.Throws<MoviePilotTransferBlockedException>(() => fixture.Preview());
+            Assert.Equal(0, fixture.Transport.Writes);
+        });
+        foreach (var type in new[] { "dir", "" })
+            Test("整理清理范围：旧目标类型不能授权文件清理 " + type, () =>
+            {
+                using var fixture = new TransferSubmissionFixture();
+                fixture.Transport.TargetType = type;
+                Assert.Throws<MoviePilotTransferBlockedException>(() => fixture.Preview());
+                Assert.Equal(0, fixture.Transport.Writes);
+                fixture.Transport.TargetType = "file";
+                fixture.Submit(fixture.Preview());
+                Assert.Equal(1, fixture.Transport.Writes, "前置拒绝未写，恢复真实文件后允许新确认");
+            });
+        Test("整理清理范围：预览后旧目标变目录必须零写", () =>
+        {
+            using var fixture = new TransferSubmissionFixture();
+            var preview = fixture.Preview();
+            fixture.Transport.TargetType = "dir";
+            Assert.Throws<MoviePilotTransferBlockedException>(() => fixture.Submit(preview));
+            Assert.Equal(0, fixture.Transport.Writes);
+        });
         foreach (var failure in new[] { "history-404", "history-json", "history-schema", "history-timeout", "history-500", "dependency-404" })
         {
             Test("整理提交前：" + failure + " 明确未写且预览不可复用", () =>
@@ -146,7 +182,7 @@ internal sealed class TransferSubmissionFixture : IDisposable
         typeof(MoviePilotService).GetField("_availableIdentity", flags)!.SetValue(Service, identity);
     }
 
-    public MoviePilotTransferHistory History() => Complete(Service.FindTransferHistoriesAsync("Original", CancellationToken.None)).Single();
+    public MoviePilotTransferHistory History() => Complete(Service.FindTransferHistoriesAsync("Original", CancellationToken.None)).Single(history => history.Id == 1);
 
     public MoviePilotTransferPreview Preview()
     {
@@ -203,6 +239,8 @@ internal sealed class TransferSubmissionTransport : HttpMessageHandler
 {
     public string Failure { get; set; } = "";
     public bool DuplicateHistory { get; set; }
+    public bool OtherSourceHistory { get; set; }
+    public string TargetType { get; set; } = "file";
     public Action? OnHistoryRead { get; set; }
     public int Reads { get; private set; }
     public int Previews { get; private set; }
@@ -233,6 +271,13 @@ internal sealed class TransferSubmissionTransport : HttpMessageHandler
             if (Failure == "history-500") return Reply("server-error", HttpStatusCode.InternalServerError);
             if (Failure == "history-timeout") throw new HttpRequestException("anonymous fixture read interrupted");
             var history = HistoryJson(changed: Failure == "history-changed");
+            if (TargetType != "file")
+                history = history.Replace("\"dest_fileitem\":{\"storage\":\"local\",\"type\":\"file\"",
+                    "\"dest_fileitem\":{\"storage\":\"local\",\"type\":\"" + TargetType + "\"", StringComparison.Ordinal);
+            if (OtherSourceHistory)
+                return Reply("{\"success\":true,\"data\":{\"total\":2,\"list\":[" + history + "," +
+                    history.Replace("\"id\":1,", "\"id\":2,", StringComparison.Ordinal)
+                        .Replace("/library/original.mkv", "/library/other-unconfirmed.mkv", StringComparison.Ordinal) + "]}}");
             if (DuplicateHistory)
                 return Reply("{\"success\":true,\"data\":{\"total\":2,\"list\":[" + history + "," +
                     history.Replace("\"id\":1,", "\"id\":2,", StringComparison.Ordinal) + "]}}");

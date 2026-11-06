@@ -322,6 +322,7 @@ internal static class MoviePilotTransferTests
         {
             var transport = new StubTransport()
                 .Answer("login/access-token", Session)
+                .Answer("history/transfer", """{"success":true,"data":{"total":0,"list":[]}}""")
                 .Answer("transfer/manual?background=false",
                     """{"success":true,"data":{"items":[{"source":"/x/a.mkv","target":"/media/a.mkv","success":true}]}}""")
                 .Answer("transfer/manual?background=true",
@@ -347,6 +348,7 @@ internal static class MoviePilotTransferTests
         {
             var transport = new StubTransport()
                 .Answer("login/access-token", Session)
+                .Answer("history/transfer", """{"success":true,"data":{"total":0,"list":[]}}""")
                 .Answer("transfer/manual?background=false",
                     """{"success":true,"data":{"items":[{"source":"/x/a.mkv","target":"/media/a.mkv","success":true}]}}""");
 

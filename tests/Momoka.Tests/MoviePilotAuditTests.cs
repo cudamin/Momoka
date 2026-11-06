@@ -266,6 +266,7 @@ internal static class MoviePilotAuditTests
         Test("MoviePilot 提交：换连接不能把旧预览发到新服务器", () =>
         {
             var transport = new StubTransport().Answer("login/access-token", Session)
+                .Answer("history/transfer", """{"success":true,"data":{"total":0,"list":[]}}""")
                 .Answer("transfer/manual", """{"success":true,"data":{"items":[{"source":"/source.mp4","target":"/dest.mp4","success":true}]}}""");
             var settings = Settings();
             var service = Service(transport, settings);
