@@ -10848,3 +10848,9 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 
 - 最终主树交付完成：产品dad5b89；补齐纸面边界检查改读BodyPaper为ef624af，避免正文右侧20 DIP车道使旧纸面铺满检查误判。补齐后当前Tests/Core Release零警告零错误，材质27/27再次通过；此前最终产品全量3774/3774与图片22+49项通过、无跳过，补齐仅改变检查读数未重复全量。两文件编码/差异通过。未执行GUI、探针、自检及真实播放。
 - 19:02发布最终ef624af，publish/verify退出0，546文件286.3MB；Shell/Core与本次x64 Release发布构建SHA256一致，桌面Momoka.lnk Target/WorkingDirectory均主树artifacts/publish/win-x64、Arguments为空。证据work/body-edge-gradient/publish-final.txt、publish-receipt.json、full-tests.txt、layers-tests-final.txt、image-tests.txt。未上传GitHub。开发树5e711ba/edcdfc4产品内容已与master一致；平台primary聊天工作树保留，无临时分支。
+## 2026-11-06 详情浅色控件、20%平滑收边与背景亚克力（已主树交付）
+
+- 用户要求详情操作按钮和媒体源/音频/字幕选择栏改浅色，普通与窄窗图片最后20%平滑接主题底色，并在背景图效果加入亚克力。浅面深墨覆盖闭合框、下拉列表、选中与悬停；收边32段smoothstep、同主题RGB透明到实色，沉浸时收起。新增UseAcrylicBackdrop保存偏好，与旧高斯字段互斥；高斯仍仅沉浸，亚克力在普通/窄窗可用，0关100实底。
+- 产品4864f6a、9ed8d24、d7bb68d已快进合入master。主树Shell/Core/Tests Release零警告零错误，主测试3781/3781、外观45/45、零失败零跳过；18文本diff及变更whitespace通过。逐项登记Palette角色颜色基线78→81，未整体接受快照。首次主测试与探针并发触发16个自检mutex失败，探针结束后串行全套重跑通过；开发过程事件订阅错误、浮点停点误断、旧深底断言和构建文件锁红记录保留，已修复或解除后重验。
+- 主树22488渐变及材质通过，8776最终选择框材质通过：五主题1280/760实屏、下拉列表、像素采样、亚克力0/40/100、错误遮罩反例均核验；截图已看。发布件10772设置和实际页面2/2通过；22488最后关闭窗口造成清理NRE不算通过，发布件重新验证通过。全量Shell/selfcheck未运行，未改变OS高对比度设置、未覆盖真实随机媒体图和真实播放/服务器写入。
+- 2026-11-06 22:07主树publish/verify通过，546文件286.4MB；Shell/Core发布哈希与当前构建一致，桌面快捷方式目标/工作目录正确、参数空。证据work/detail-light-fade及其中final-ui。无新依赖、无远程上传；当前聊天托管树保留，配置子树产品已整合后归档。
