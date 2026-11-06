@@ -218,16 +218,16 @@ public static class DetailHero
     /// <summary>
     /// 电影、剧、季那三页宽版式的带高：那一叠内容（海报、片名那一栏、角图取大）加上这一格自己的上下留白。
     /// <para>
-    /// 常态是 352 = 海报 300 加两道边（28、24），一像素富余不留 —— 键进了片名那一栏的叠里，「下方那一行」
+    /// 常态是 344 = 海报 300 加两道边（20、24），一像素富余不留 —— 键进了片名那一栏的叠里，「下方那一行」
     /// 的地方整个收回来（「向右移动剧页面和电影页面的这样按钮，不要放在封面下方 然后向上移动，排列在封面
     /// 右边，然后调整下方组件的位置」，2026-09-13）。从前这里拿 <see cref="Height"/> 减掉键行当底、再和实测
     /// 取大；**留白不再是一个定值之后**（<see cref="Narrow"/> 与 <see cref="Fit"/> 会把它收到最紧），那笔减法
     /// 交回调用方：海报那一栏的高在第一次布局之前就有默认值（<c>DetailViewModel.FitStill</c> 给的 300），
-    /// 所以「内容加留白」在第一帧就是 352，不需要另一条 352 的底。
+    /// 所以「内容加留白」在第一帧就是 344，不需要另一条固定高度的底。
     /// </para>
     /// <para>
     /// 留白收起来时带子跟着矮，页面下方那一段整体上移 —— 这正是「窗口越窄布局越紧凑」要的那一手；封死在
-    /// 352 的话，收窄窗口时头部纹丝不动，剧情说明只能往画面外面掉。
+    /// 带高的话，收窄窗口时头部纹丝不动，剧情说明只能往画面外面掉。
     /// </para>
     /// </summary>
     /// <param name="heroContent">那一叠内容实测要占多高，不算这一格自己的上下留白。</param>
@@ -239,19 +239,18 @@ public static class DetailHero
     // ============ 窄窗口的竖留白 ============
 
     /// <summary>
-    /// 电影、剧、季三页宽版式的两道头部留白：常态（28、24）与最紧（16、12）。海报加这两道就是常态的 352。
+    /// 电影、剧、季三页宽版式的两道头部留白：常态（20、24）与最紧（8、12）。海报加这两道就是常态的 344。
     /// <para>
-    /// 最紧那档与紧凑版式的 20／16 不是一个量级，因为这一档还站在剧照上：16 是片名头顶到面包屑的距离，
-    /// 再小就把一张大图顶到那行字底下。收到这里就停 —— 再往下不是「紧凑」而是「挤」。
+    /// 2026-11-06 将宽版式组件向上移 8；最紧仍保留 8，避免片名贴住面包屑。
     /// </para>
     /// </summary>
-    public const double HeroTopRoom = 28;
+    public const double HeroTopRoom = 20;
 
     /// <inheritdoc cref="HeroTopRoom"/>
     public const double HeroBottomRoom = 24;
 
     /// <inheritdoc cref="HeroTopRoom"/>
-    public const double HeroTopTight = 16;
+    public const double HeroTopTight = 8;
 
     /// <inheritdoc cref="HeroTopRoom"/>
     public const double HeroBottomTight = 12;

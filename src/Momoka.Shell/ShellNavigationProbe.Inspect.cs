@@ -269,6 +269,8 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectJellyfinPolish", "Jellyfin列表验证", JellyfinLibraryAsync);
         AddCheck("InspectFnNasPolish", "飞牛列表验证", FnNasLibrarySpacingAsync);
         AddCheck("InspectSearchPolish", "搜索布局回归", SearchHeaderLayoutAsync);
+        AddCheck("InspectDetailResponsive", "详情布局回归", DetailResponsiveAsync);
+        AddCheck("InspectDetailResize", "详情连续缩放回归", DetailResizeAsync);
         Add("InspectDone", "结束检查", () => { finished.TrySetResult(); return Task.CompletedTask; });
         frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services, "离线示例"));
         await LayoutAsync(layout);

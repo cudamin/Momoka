@@ -1279,9 +1279,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 收到 24，和页边那 60、顶上那 28 一个量级。
     /// </para>
     /// <para>
-    /// 2026-11-02 起那两道在电影、剧、季三页上不再是定值：窗口窄下来时按 <see cref="Squeeze"/> 从 28／24
-    /// 收到 16／12 —— 「自动将组件向上移动，窗口越窄布局越紧凑」。左右那 60 不动：它管的是压在剧照上的
-    /// 内容让开多少，跟竖排紧不紧凑是两件事。
+    /// 电影、剧、季宽版式随窗口收窄压缩留白；2026-11-06 整体再上移 8、左移 16。
+    /// 左沿取剧情说明的实际文字左沿；右侧补回同样的距离，保持封面、片名与按钮区域原有宽度。
     /// </para>
     /// <para>
     /// 紧凑版式整档换成窄边：左右 20 是参考图上那种贴边一列的留法，60 的「压在剧照上的内容多让一点」是
@@ -1306,9 +1305,9 @@ public sealed partial class DetailViewModel : PageViewModel
             : IsEpisodePage
                 ? new(60, 28, 60, 16)
                 : new(
-                    60,
+                    TailInset.Left + OverviewPanelPadding.Left,
                     DetailHero.Between(DetailHero.HeroTopRoom, DetailHero.HeroTopTight, Squeeze),
-                    60,
+                    76,
                     DetailHero.Between(DetailHero.HeroBottomRoom, DetailHero.HeroBottomTight, Squeeze));
 
     /// <summary>

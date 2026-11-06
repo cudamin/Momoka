@@ -183,6 +183,47 @@ internal sealed partial class ShellNavigationProbe
                                 + $" 对 {view.TailPanelPadding}／{view.OverviewPanelPadding}；收 {view.Squeeze:0.###}");
                         Require(Math.Abs(band.ActualHeight - view.HeroHeight) < 1.5,
                             $"{type} {width} 带高没按视图模型排：{band.ActualHeight:0.##} 对 {view.HeroHeight:0.##}");
+                        var posterControl = Get<Border>(page, "PosterStill");
+                        var prose = Get<TextBlock>(page, "Overview");
+                        var posterLeft = posterControl.TransformToVisual(content).TransformPoint(default).X;
+                        var proseLeft = prose.TransformToVisual(content).TransformPoint(default).X;
+                        var heroTop = heroContent.TransformToVisual(content).TransformPoint(default).Y;
+                        Require(Math.Abs(posterLeft - proseLeft) < 1 && Math.Abs(posterLeft - 44) < 1,
+                            $"{type} {width} 剧情说明未与封面左沿对齐：封面 {posterLeft:0.##}／说明 {proseLeft:0.##}");
+                        Require(Math.Abs(heroTop - DetailHero.Between(20, 8, view.Squeeze)) < 1,
+                            $"{type} {width} 头部未上移 8：顶 {heroTop:0.##}");
+
+                        if (width == 1280)
+                        {
+                            // 还原旧位置，确认实际几何检查拒绝原布局，再恢复并保存两张真实屏幕。
+                            var finalInset = heroContent.Margin;
+                            var heroLayout = Get<Grid>(page, "HeroLayout");
+                            var finalLayoutHeight = heroLayout.Height;
+                            var finalBandHeight = band.Height;
+                            try
+                            {
+                                // 内容在带子里靠下对齐；旧带高也补回8，才能还原旧坐标而不挤压内容。
+                                band.Height = finalBandHeight + 8;
+                                heroLayout.Height = finalLayoutHeight + 8;
+                                heroContent.Margin = new Thickness(60, finalInset.Top + 8, 60, finalInset.Bottom);
+                                await LayoutAsync(page);
+                                var oldLeft = posterControl.TransformToVisual(content).TransformPoint(default).X;
+                                var oldTop = heroContent.TransformToVisual(content).TransformPoint(default).Y;
+                                Require(Math.Abs(oldLeft - proseLeft) > 15 && Math.Abs(oldTop - heroTop - 8) < 1,
+                                    $"{type} 旧布局反例没有产生左偏16／上偏8：{oldLeft:0.##}／{oldTop:0.##}");
+                                await SaveProbeScreenAsync($"detail-position-{type}-before.png");
+                            }
+                            finally
+                            {
+                                heroContent.Margin = finalInset;
+                                heroLayout.Height = finalLayoutHeight;
+                                band.Height = finalBandHeight;
+                            }
+                            await LayoutAsync(page);
+                            Require(Math.Abs(posterControl.TransformToVisual(content).TransformPoint(default).X - proseLeft) < 1,
+                                $"{type} 旧位置反例后未恢复对齐");
+                            await SaveProbeScreenAsync($"detail-position-{type}-after.png");
+                        }
 
                         // 2) 窗口越窄收得越紧，而且宽度那一条曲线至少占一部分（Fit 只会再加，不会减）。
                         // 拿实际页宽算曲线，不拿名义上的 width：150% 缩放下窗口客户区会落成
@@ -197,7 +238,7 @@ internal sealed partial class ShellNavigationProbe
                         if (width == 1280)
                         {
                             // 1280 是这一组里最宽的一档：宽度曲线已经起了头（约三成），但还没收到最紧 ——
-                            // 带子比 352 矮、比 328 高，面板在 24 与 8 之间。1440 以上一分不收那一段在 Core
+                            // 带子比 344 矮、比 320 高，面板在 24 与 8 之间。1440 以上一分不收那一段在 Core
                             // 的单测里（副屏的逻辑宽只有 1280）。
                             Require(view.Squeeze > 0.25 && view.Squeeze < 0.5,
                                 $"{type} 1280：这一档该收三成上下，实际 {view.Squeeze:0.##}");
@@ -209,9 +250,9 @@ internal sealed partial class ShellNavigationProbe
 
                         if (width == 1024)
                         {
-                            // 最紧那一档：带子 352 收到 328（头部两道留白 28／24 → 16／12），面板 24 → 8。
-                            Require(Math.Abs(band.ActualHeight - DetailHero.WideHeight(view.HeroContent, 16, 12)) < 1.5,
-                                $"{type} 1024：头部留白应收到 16/12，实际 {band.ActualHeight:0.##}");
+                            // 最紧那一档：头部两道留白 20／24 → 8／12，面板 24 → 8。
+                            Require(Math.Abs(band.ActualHeight - DetailHero.WideHeight(view.HeroContent, 8, 12)) < 1.5,
+                                $"{type} 1024：头部留白应收到 8/12，实际 {band.ActualHeight:0.##}");
                             Require(Math.Abs(pickers.Padding.Top - DetailHero.TailPadTight) < 0.01,
                                 $"{type} 1024：面板上下该收到 8，实际 {pickers.Padding.Top:0.##}");
                         }
@@ -239,6 +280,7 @@ internal sealed partial class ShellNavigationProbe
                             + $"尾部 {view.TailInset.Top:0.##}／间距 {tail.Spacing:0.##}／面板 {pickers.Padding.Top:0.##}，"
                             + $"尾高 {tail.ActualHeight:0.##}，简介下沿 {overviewBottom:0.#}，画面下沿 {pictureBottom:0.#}，"
                             + $"差 {overflow:0.#}");
+                        readings.Add($"{type} {width}: 封面左={posterLeft:0.##}，剧情左={proseLeft:0.##}，头部顶={heroTop:0.##}");
 
                         if (!metrics.TryGetValue(width, out var rows))
                         {
