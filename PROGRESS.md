@@ -10753,3 +10753,7 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 先红：Core新增三项在旧service失败（8次逐项set）；真实提取handle新增四项在旧handle失败。最终Core3772/3772、执行点59/59、Monitor32/32，0跳过；Core/Tests/Shell与专项最终0警告0错误、差异/定向空白通过。首轮全套19红含新增3项及其他会话占用自检mutex，锁释放后的完整复验全绿；早期并行Shell/Monitor构建3条文件锁重试警告保留，串行最终0警告。wrapper原37项计数已同步59，实际wrapper通过。
 - 实际当前Core SHA256 62CC4F47…调用随包mpv无媒体验证：Anime4K/关闭/中文与引号及分号路径接受并无损读回，invalid scale返回失败，stale generation零写，临时文件清除。独立D3D11本地FFV1对照每次Anime4K renderer更新3→1，首次DXBC compile66→63，两种处理图逐像素相同且退出恢复原图；首次至截图4920→4158ms，第二次108/233ms，两者0编译，性能波动不作固定改善承诺。证据work/shader-native-20261106/report.json及core-native/actual-core-report.json；没有真实服务器播放、HDR、独占/外部实播或产品Composition切链实帧验收。
 - 本树基点00e6c49，独立只读审查未发现必要缺陷。产品提交、主树整合与发布待本批次收尾确认；首次冷编译和目标CNN运算成本仍存在，不称完全无卡顿。
+
+- 主树整合：产品1dcb33b＋格式31d82c7，保留同期详情/轮播改动，PROGRESS追加冲突只保留两边记录。主树最终Shell/Core/Tests零警告零错误，3772/3772、native59/59、Monitor32/32；定向空白通过。16:22集成composition本地探针通过起播/视频轨/首位置/进度/弹幕命令后，像素检查因窗口被遮挡判失败，未放宽守卫、没有将其标绿；其他会话仍连续占用桌面，切链产品实帧验收缺口保留。正在发布实际主树目录，未上传。
+
+- 16:28主树发布完成：产品1dcb33b/31d82c7，publish/verify退出0，546文件286.3MB；Shell/Core发布与本次发布构建SHA256分别1A438B7F…/4D7FE684…一致，桌面快捷方式Target/WorkingDirectory均主树artifacts/publish/win-x64、参数空。回执work/shader-switch-delivery/publish-receipt.json，分支红绿/native证据已复制该目录；未上传，未打安装包。真实服务器播放未运行，产品Composition像素探针失败缺口仍保留。14e4为平台管理的detached树、无临时分支，产品逐文件已与master一致，不手工删除应用管理树。
