@@ -56,7 +56,7 @@ internal sealed partial class ShellNavigationProbe
                     await SaveProbeScreenAsync($"mp-episode-delete-{scenario}-selection-1280.png");
                     if (scenario == "cancel")
                     {
-                        InvokeMediaCardDialog(dialog, "CloseButton");
+                        await InvokeMediaCardDialogAsync(dialog, "CloseButton");
                         await operation;
                         Require(server.Writes == 0 && ReferenceEquals(frame.Content, before),
                             "取消选择仍删除或切页");
@@ -69,14 +69,14 @@ internal sealed partial class ShellNavigationProbe
                         await LayoutAsync(dialog);
                         await SaveProbeScreenAsync("mp-episode-delete-versions-selection-760.png");
                     }
-                    InvokeMediaCardDialog(dialog, "PrimaryButton");
+                    await InvokeMediaCardDialogAsync(dialog, "PrimaryButton");
                     await UntilAsync(() => operation.IsCompleted || dialog.PrimaryButtonText.Length == 0);
                     if (scenario == "failed")
                     {
                         Require(dialog.CompletedResult is { NeedsReview: true } && ReferenceEquals(frame.Content, before),
                             "目标文件删除失败仍自动关闭或导航");
                         await SaveProbeScreenAsync("mp-episode-delete-failed.png");
-                        InvokeMediaCardDialog(dialog, "CloseButton");
+                        await InvokeMediaCardDialogAsync(dialog, "CloseButton");
                     }
                 }
                 await UntilAsync(() => operation.IsCompleted);

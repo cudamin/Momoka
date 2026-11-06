@@ -207,7 +207,7 @@
             "namespace Momoka.Shell;\ninternal sealed partial class ShellNavigationProbe\n{\n" +
             between(compact, "    private static async Task PrepareSubscriptionImagesAsync(", "\n}") +
             between(shared, "    private static void Require(bool condition, string message)", "\n    private static object? Call") +
-            between(shared, "    private static async Task UntilAsync(Func<bool> ready)", "\n    /// <summary>ScrollTo") +
+            between(shared, "    private static async Task UntilAsync(Func<bool> ready)", "\n    private async Task InitializeProbeWindowAsync()") +
             between(shared, "    private static IEnumerable<DependencyObject> Descendants(", "\n    private sealed class Fixture") +
             "\n    internal static Task PrepareCompactImagesForFixture(MoviePilotMediaSeasonsView seasons, System.Collections.IEnumerable rows, params int[] indices) => PrepareSubscriptionImagesAsync(seasons, rows, indices);\n}\n";
         var compactHashes = new StringBuilder();

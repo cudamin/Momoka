@@ -220,6 +220,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         {
             if (_session?.IsSignedIn == true && !SignInVisible) FillSwitchMenus();
         };
+        AggregateModeItem.Loaded += (_, _) => EnsureAccountToggleOffState();
 
         _toast.Tick += (_, _) =>
         {

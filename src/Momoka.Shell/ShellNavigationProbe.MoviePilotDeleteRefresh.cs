@@ -95,7 +95,7 @@ internal sealed partial class ShellNavigationProbe
                     is { IsPrimaryButtonEnabled: true });
                 Require(dialog is not null && !dialog.LibraryFilesRemovalSubmitted,
                     "还没确认就把页面当成已删除媒体库文件");
-                InvokeMediaCardDialog(dialog!, "PrimaryButton");
+                await InvokeMediaCardDialogAsync(dialog!, "PrimaryButton");
                 await UntilAsync(() => server.Writes == 1 && dialog!.PrimaryButtonText.Length == 0 &&
                     dialog.CloseButtonText == "关闭");
                 Require(server.LastQuery.Contains(action == MoviePilotHistoryAction.DeleteAll
@@ -103,7 +103,7 @@ internal sealed partial class ShellNavigationProbe
                     "删除范围与所选档位不一致");
                 Require(dialog!.LibraryFilesRemovalSubmitted, "删除媒体库文件的确认没有通知外壳刷新");
 
-                InvokeMediaCardDialog(dialog, "CloseButton");
+                await InvokeMediaCardDialogAsync(dialog, "CloseButton");
                 await operation;
 
                 // 用户令 2026-11-03：删除之后不重读整页、不翻页，只把那一件原地摘掉 —— 重读一页海报会把

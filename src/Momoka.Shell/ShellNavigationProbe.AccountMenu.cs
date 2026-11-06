@@ -4,7 +4,9 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Momoka.Emby;
+using Momoka.Diagnostics;
 using Momoka.Infrastructure;
 using Momoka.Shell.Views;
 
@@ -21,7 +23,9 @@ internal sealed partial class ShellNavigationProbe
         await fixture.SelectAsync("b.invalid", "账号乙");
         var secondServer = fixture.Session.Server!;
         var secondAccount = fixture.Session.Account!;
-        fixture.Transport.Reply = (request, _) => request.RequestUri!.AbsolutePath.Contains("/Items", StringComparison.Ordinal)
+        fixture.Transport.Reply = (request, _) => request.RequestUri!.AbsolutePath.EndsWith("/Items/Latest", StringComparison.Ordinal)
+            ? Task.FromResult(Json(Array.Empty<EmbyItem>()))
+            : request.RequestUri.AbsolutePath.Contains("/Items", StringComparison.Ordinal)
             || request.RequestUri.AbsolutePath.EndsWith("/Shows/NextUp", StringComparison.Ordinal)
             ? Task.FromResult(Items(0, 0)) : Task.FromResult(FakeTransport.Standard(request));
         fixture.Settings.AggregateMode = false;
@@ -90,7 +94,29 @@ internal sealed partial class ShellNavigationProbe
             Require(fixture.Transport.Requests.Count == beforeSeed, "刷新开关状态意外重新登录");
             Require(!toggle.IsOn && OfflineButtons().All(button => button.Visibility == Visibility.Collapsed) && online.Visibility == Visibility.Collapsed,
                 "非聚合模式仍显示下线或在线数量占位");
-            foreach (var width in new[] { 1100, 760 })
+            menu.ShowAt(Get<Button>(shell, "AccountButton"));
+            await UntilAsync(() => toggle.IsLoaded);
+            var off = Get<VisualState>(shell, "_accountOffState");
+            var reset = Get<DoubleAnimation>(shell, "_accountOffAnimation");
+            Require(off.Storyboard.Children.Contains(reset) && reset.To == 0 && reset.Duration == TimeSpan.Zero
+                && Storyboard.GetTargetProperty(reset) == "X", "账号开关关态未安装明确终值");
+            var animationCount = off.Storyboard.Children.Count;
+            var requestCount = fixture.Transport.Requests.Count;
+            var changes = 0;
+            void OnToggled(object sender, RoutedEventArgs args) => changes++;
+            toggle.Toggled += OnToggled;
+            try
+            {
+                Call(shell, "EnsureAccountToggleOffState");
+                Call(shell, "EnsureAccountToggleOffState");
+                Require(ReferenceEquals(off, Get<VisualState>(shell, "_accountOffState"))
+                    && ReferenceEquals(reset, Get<DoubleAnimation>(shell, "_accountOffAnimation"))
+                    && off.Storyboard.Children.Count == animationCount && changes == 0 && !toggle.IsOn
+                    && !fixture.Settings.AggregateMode && fixture.Transport.Requests.Count == requestCount,
+                    "账号开关重复加载增加动画、改变偏好或触发请求");
+            }
+            finally { toggle.Toggled -= OnToggled; menu.Hide(); }
+            foreach (var width in new[] { 1100, 760, 1100, 760 })
             {
                 ResizeProbeClient(width, 850);
                 await LayoutAsync(shell);
@@ -144,8 +170,15 @@ internal sealed partial class ShellNavigationProbe
             menu.ShowAt(Get<Button>(shell, "AccountButton"));
             await LayoutAsync(shell);
             // ListView 在浮层打开后才实现行；根页面完成布局不代表新一批账号按钮已经挂树。
-            await UntilAsync(() => menu.IsOpen && OfflineButtons().Any(button => button.Tag is EmbySessionScope source
-                && source.ServerProfileId == firstServer.Id && button.Parent is Grid && button.ActualWidth > 0));
+            await UntilAsync(() =>
+            {
+                profiles.ApplyTemplate();
+                profiles.UpdateLayout();
+                foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(shell.XamlRoot))
+                    if (popup.Child is FrameworkElement content) content.UpdateLayout();
+                return menu.IsOpen && profiles.IsLoaded && OfflineButtons().Any(button => button.Tag is EmbySessionScope source
+                    && source.ServerProfileId == firstServer.Id && button.IsLoaded && button.Parent is Grid && button.ActualWidth > 0);
+            });
             var target = OfflineButtons().Single(button => button.Tag is EmbySessionScope source && source.ServerProfileId == firstServer.Id);
             var targetSource = (EmbySessionScope)target.Tag;
             Require(AutomationProperties.GetAutomationId(target).StartsWith("AccountOffline:", StringComparison.Ordinal), "下线账号无法稳定定位");
@@ -223,10 +256,30 @@ internal sealed partial class ShellNavigationProbe
                 Require(profiles.Items.OfType<Grid>().SelectMany(row => row.Children.OfType<Button>())
                     .All(button => button.FontSize == 12 && button.ActualHeight <= 33), "账号行未使用较小字号或紧凑高度");
                 var knob = Descendants(toggle).OfType<Grid>().Single(element => element.Name == "SwitchKnob");
+                var expected = toggle.IsOn;
+                var readings = new List<string>();
+                var stable = 0;
+                var waited = System.Diagnostics.Stopwatch.StartNew();
+                while (waited.ElapsedMilliseconds < 2000 && stable < 3)
+                {
+                    var offset = ((TranslateTransform)knob.RenderTransform).X;
+                    if (readings.Count < 12)
+                        readings.Add($"{waited.ElapsedMilliseconds}:{offset:0.0}");
+                    stable = menu.IsOpen && toggle.IsLoaded && knob.IsLoaded && toggle.IsOn == expected
+                        && (expected ? offset > 10 : Math.Abs(offset) < 1) ? stable + 1 : 0;
+                    await Task.Delay(25);
+                }
                 var knobOffset = ((TranslateTransform)knob.RenderTransform).X;
-                Require(toggle.IsOn ? knobOffset > 10 : Math.Abs(knobOffset) < 1,
-                    $"滑动开关文字与滑块位置不一致：{toggle.IsOn}/{knobOffset:F1}");
+                Log.Info("外壳探针", $"账号开关：{state} width={_root.ActualWidth:0} isOn={toggle.IsOn} "
+                    + $"offset={knobOffset:0.0} waited={waited.ElapsedMilliseconds}ms "
+                    + $"base={((TranslateTransform)knob.RenderTransform).GetAnimationBaseValue(TranslateTransform.XProperty)}");
                 await SaveProbeScreenAsync($"account-menu-{state}-{_root.ActualWidth:F0}-screen.png");
+                knobOffset = ((TranslateTransform)knob.RenderTransform).X;
+                Require(stable == 3 && toggle.IsOn == expected && (expected ? knobOffset > 10 : Math.Abs(knobOffset) < 1),
+                    $"滑动开关文字与滑块位置不一致：{toggle.IsOn}/{knobOffset:F1} loaded={toggle.IsLoaded}/{knob.IsLoaded} "
+                        + $"base={((TranslateTransform)knob.RenderTransform).GetAnimationBaseValue(TranslateTransform.XProperty)} "
+                        + $"knobs={Descendants(toggle).OfType<Grid>().Count(element => element.Name == "SwitchKnob")} "
+                        + $"{ProbeHostState(toggle)} waited={waited.ElapsedMilliseconds}ms samples={string.Join(",", readings)}");
                 Require(VisualTreeHelper.GetOpenPopupsForXamlRoot(shell.XamlRoot).Count > 0, "截图时账号菜单已意外关闭");
                 menu.Hide();
                 await UntilAsync(() => !menu.IsOpen);

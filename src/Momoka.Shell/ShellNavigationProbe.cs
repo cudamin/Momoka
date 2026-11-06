@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
+using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
@@ -50,9 +51,7 @@ internal sealed partial class ShellNavigationProbe
         async Task RunChecksAsync()
         {
             ThemeHost.Apply(_options.Theme ?? "midnight");
-            _window = new HostWindow { Content = _root, FreeSizing = true };
-            _window.Show(false, _options.Screen, new WindowBounds(80, 80, 1420, 980));
-            await LayoutAsync(_root);
+            await InitializeProbeWindowAsync();
             // inspect 是留给人手点的那一版检查台：它自己建假身份和假数据，前面的整套用例既拖时间又
             // 会占着同一块桌面。直接进检查台，截图和手动操作都只针对它。
             if (_options.InspectShell)
@@ -129,7 +128,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("所有账号的媒体库与最近添加、聚合搜索分页与详情来源", AggregateBrowsingAsync, 45);
             await CaseAsync("主页多账号标服务器名、浏览不标且版本仅多服务器显示", SourceCaptionTransitionsAsync, 45);
             await CaseAsync("指定账号登录、添加账号与取消返回", MultiSourceSignInAsync, 30);
-            await CaseAsync("顶部账号菜单聚合开关、下线与紧凑布局", AccountAggregateMenuAsync, 45, section: ShellProbeSections.Accounts);
+            await CaseAsync("顶部账号菜单聚合开关、下线与紧凑布局", AccountAggregateMenuAsync, 60, section: ShellProbeSections.Accounts);
             await CaseAsync("默认账号失效后保留其他来源主页", MultiSourceDefaultExpiryAsync, 30);
             // 「继续观看」那一格标记已看之后的去处（用户令 2026-10-15）：主页那一排与点进去的那一页各走一遍。
             await CaseAsync("继续观看标记已看后换成下一集或撤掉", WatchedResumeSlotAsync, 30);
@@ -304,26 +303,101 @@ internal sealed partial class ShellNavigationProbe
         await Task.Delay(150);
     }
 
+    private async Task InitializeProbeWindowAsync()
+    {
+        // 正式启动先有 ShellPage 再接入岛。空根岛仅有 Loaded/Rendering 时尚未建立可呈现的内容；
+        // 用未 Attach 的真实登录页复现启动前件，等待提交后移除，不靠动画或位图渲染催过断言。
+        var motion = HomeMotion.PreferenceEnabled;
+        var page = new SignInPage();
+        var rendered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnRendered(object? sender, RenderedEventArgs args) => rendered.TrySetResult();
+        CompositionTarget.Rendered += OnRendered;
+        try
+        {
+            HomeMotion.ApplyPreference(false);
+            _root.Children.Add(page);
+            _window = new HostWindow { Content = _root, FreeSizing = true };
+            _window.Show(false, _options.Screen, new WindowBounds(80, 80, 1420, 980));
+            await LayoutAsync(page);
+            await rendered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Require(page.IsLoaded && _root.IsLoaded && _root.XamlRoot.IsHostVisible,
+                "探针窗口没有完成可见内容初始化：" + ProbeHostState(_root));
+            Log.Info("外壳探针", "窗口显示前件：" + ProbeHostState(_root));
+        }
+        finally
+        {
+            CompositionTarget.Rendered -= OnRendered;
+            _root.Children.Remove(page);
+            page.Detach();
+            page.ViewModel.Dispose();
+            HomeMotion.ApplyPreference(motion);
+        }
+    }
+
     /// <summary>ScrollTo 是异步操作；按返回的关联号等完成，不把固定延时当成已经滚到目标。</summary>
     private static async Task ScrollProbeAsync(ScrollView scroll, double verticalOffset)
     {
+        scroll.ApplyTemplate();
+        await UntilAsync(() =>
+        {
+            scroll.UpdateLayout();
+            return scroll.IsLoaded && scroll.ScrollPresenter is { IsLoaded: true }
+                && scroll.Content is not null && scroll.ViewportHeight > 0;
+        });
+        await WaitForDiagnosticsFrameAsync();
+        var target = Math.Clamp(verticalOffset, 0, scroll.ScrollableHeight);
         var completed = Pending<bool>();
         var seen = new HashSet<int>();
         var correlation = -1;
+        var trace = new List<string>();
+        void Record(string what)
+        {
+            var content = scroll.Content as FrameworkElement;
+            var focus = Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(scroll.XamlRoot) as FrameworkElement;
+            if (trace.Count < 40)
+                trace.Add($"{what}: offset={scroll.VerticalOffset:0.0} presenter={scroll.ScrollPresenter?.VerticalOffset:0.0} "
+                    + $"extent={scroll.ExtentHeight:0.0} viewport={scroll.ViewportHeight:0.0} content={content?.ActualHeight:0.0} "
+                    + $"focus={focus?.Name} {ProbeHostState(scroll)}");
+        }
+        void OnChanged(ScrollView sender, object args) => Record("ViewChanged");
+        void OnBringing(ScrollView sender, ScrollingBringingIntoViewEventArgs args) =>
+            Record($"BringIntoView {args.CorrelationId} target={args.TargetVerticalOffset:0.0} element={(args.RequestEventArgs.TargetElement as FrameworkElement)?.Name}");
         void OnCompleted(ScrollView sender, ScrollingScrollCompletedEventArgs args)
         {
+            Record($"Completed {args.CorrelationId}");
             seen.Add(args.CorrelationId);
             if (args.CorrelationId == correlation) completed.TrySetResult(true);
         }
         scroll.ScrollCompleted += OnCompleted;
+        scroll.ViewChanged += OnChanged;
+        scroll.BringingIntoView += OnBringing;
         try
         {
-            correlation = scroll.ScrollTo(0, verticalOffset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+            Record("Before");
+            correlation = scroll.ScrollTo(0, target, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
             if (correlation != -1 && !seen.Contains(correlation))
                 await completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
             scroll.UpdateLayout();
+            Require(Math.Abs(scroll.VerticalOffset - target) < 1,
+                $"滚动请求未到达目标：id={correlation} loaded={scroll.IsLoaded} visibility={scroll.Visibility} "
+                + $"offset={scroll.VerticalOffset:0.0} target={target:0.0}/{scroll.ScrollableHeight:0.0} "
+                + $"viewport={scroll.ViewportHeight:0.0} state={scroll.State}\n" + string.Join("\n", trace));
         }
-        finally { scroll.ScrollCompleted -= OnCompleted; }
+        finally
+        {
+            scroll.ScrollCompleted -= OnCompleted;
+            scroll.ViewChanged -= OnChanged;
+            scroll.BringingIntoView -= OnBringing;
+        }
+    }
+
+    private static string ProbeHostState(FrameworkElement element)
+    {
+        var root = element.XamlRoot;
+        var island = root?.ContentIsland;
+        return $"host={root?.IsHostVisible} size={root?.Size} connected={island?.IsConnected} "
+            + $"visible={island?.IsIslandVisible}/{island?.IsSiteVisible} enabled={island?.IsIslandEnabled}/{island?.IsSiteEnabled} "
+            + $"islandSize={island?.ActualSize} opacity={element.Opacity:0.0}";
     }
 
     /// <summary>设置页使用标准 ScrollViewer；复验实际最终偏移，不把 ChangeView 受理当作完成。</summary>

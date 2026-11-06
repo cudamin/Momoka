@@ -94,7 +94,7 @@ internal sealed partial class ShellNavigationProbe
                             Get<CheckBox>(dialog, "SelectAllRecords").IsChecked is null, "取消个别记录没有更新选择");
                     }
                     var expected = dialog.Records.Where(row => row.Media.Selected).Select(row => row.Id).ToArray();
-                    InvokeMediaCardDialog(dialog, "PrimaryButton");
+                    await InvokeMediaCardDialogAsync(dialog, "PrimaryButton");
                     await UntilAsync(() => dialog.PrimaryButtonText.Length == 0);
                     Require(dialog.LibraryFilesRemovalSubmitted, "剧集删除媒体库文件后没有通知外壳刷新页面");
                     await LayoutAsync(dialog);
@@ -111,7 +111,7 @@ internal sealed partial class ShellNavigationProbe
                         Require(dialog.Records.Skip(1).All(row => row.Message.Contains("未取得回执", StringComparison.Ordinal)), "未取得回执的行被当成成功");
                     }
                     await SaveProbeScreenAsync($"mp-media-cards-result-{(fault.Length == 0 ? "success" : fault)}-screen.png");
-                    InvokeMediaCardDialog(dialog, "CloseButton");
+                    await InvokeMediaCardDialogAsync(dialog, "CloseButton");
                     await showing;
                 }
                 finally { dialog.Hide(); await showing; }
@@ -135,11 +135,19 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    private static void InvokeMediaCardDialog(ContentDialog dialog, string name)
+    private static async Task InvokeMediaCardDialogAsync(ContentDialog dialog, string name)
     {
         var text = name == "PrimaryButton" ? dialog.PrimaryButtonText : dialog.CloseButtonText;
-        var button = Descendants(dialog).OfType<Button>().Single(value => value.Name == name && Equals(value.Content, text) && !new ButtonAutomationPeer(value).IsOffscreen());
-        ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)).Invoke();
+        Button? button = null;
+        await UntilAsync(() =>
+        {
+            dialog.ApplyTemplate();
+            dialog.UpdateLayout();
+            button = Descendants(dialog).OfType<Button>().SingleOrDefault(value => value.Name == name
+                && Equals(value.Content, text) && value.IsLoaded && value.ActualWidth > 0 && !new ButtonAutomationPeer(value).IsOffscreen());
+            return button is not null;
+        });
+        ((IInvokeProvider)new ButtonAutomationPeer(button!).GetPattern(PatternInterface.Invoke)).Invoke();
     }
 
     private sealed class MediaCardsProbeServer : HttpMessageHandler

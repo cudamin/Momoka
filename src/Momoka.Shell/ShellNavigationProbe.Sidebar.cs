@@ -137,10 +137,17 @@ internal sealed partial class ShellNavigationProbe
             var libraryPage = (LibraryPage)frame.Content;
             var history = frame.BackStack.Count;
             var forward = frame.ForwardStack.Count;
-            var scroll = Get<ItemsView>(libraryPage, "CardWall").ScrollView!;
             ResizeProbeClient(760, 650);
             await LayoutAsync(shell);
             await LayoutAsync(libraryPage);
+            var wall = Get<ItemsView>(libraryPage, "CardWall");
+            wall.ApplyTemplate();
+            await UntilAsync(() =>
+            {
+                wall.UpdateLayout();
+                return wall.IsLoaded && wall.Visibility == Visibility.Visible && wall.ScrollView is not null;
+            });
+            var scroll = wall.ScrollView!;
             Require(scroll.ScrollableHeight > 0,
                 $"侧栏滚动夹具没有可滚内容：cards={libraryPage.ViewModel.Cards.Count}；view={libraryPage.ViewModel.View}；extent={scroll.ExtentHeight:0.0}；viewport={scroll.ViewportHeight:0.0}");
             await ScrollProbeAsync(scroll, Math.Min(120, scroll.ScrollableHeight));
