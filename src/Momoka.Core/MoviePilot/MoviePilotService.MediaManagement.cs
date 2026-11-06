@@ -98,7 +98,11 @@ public sealed partial class MoviePilotService
         var found = (await FindTransferHistoriesAsync(context.Title, cancellationToken).ConfigureAwait(false)).ToList();
         foreach (var file in context.Files)
         {
-            if (MoviePilotTransferHistoryMatch.Candidates(found, file.Path).Count != 0) continue;
+            var matches = action == MoviePilotHistoryAction.SmartReorganize
+                ? MoviePilotTransferHistoryMatch.Candidates(found, file.Path)
+                : MoviePilotTransferHistoryMatch.DeletionCandidates(found, file.Path,
+                    action is MoviePilotHistoryAction.DeleteDestination or MoviePilotHistoryAction.DeleteAll);
+            if (matches.Count != 0) continue;
             // MP 和媒体服务器可能显示不同片名。补查具体文件路径，不退回父目录，也不采用同名候选。
             var byPath = await FindTransferHistoriesAsync(file.Path, cancellationToken).ConfigureAwait(false);
             CheckIdentity(identity, cancellationToken);
@@ -238,6 +242,9 @@ public sealed partial class MoviePilotService
     {
         foreach (var history in plan.Histories)
         {
+            if (!plan.Smart && !plan.LibraryPaths.Any(path =>
+                MoviePilotTransferHistoryMatch.DeletionCandidates([history], path, plan.DeleteDestination).Count == 1))
+                throw new MoviePilotOperationBlockedException("原记录不能证明属于当前本地库文件，请重新核对；本次没有提交");
             if (plan.DeleteSource || plan.Smart) MoviePilotTransfer.RequireFile(history.SourceFile, history.SourcePath);
             if (plan.DeleteDestination || plan.Smart && history.TargetPath.Length > 0)
                 MoviePilotTransfer.RequireFile(history.TargetFile, history.TargetPath);
@@ -267,6 +274,8 @@ public sealed partial class MoviePilotService
             CheckIdentity(identity, cancellationToken);
             if (related.Any(history => history.Success && history.Mode == "softlink" &&
                 MoviePilotTransfer.SamePath(history.SourcePath, group.Key) && group.Any(value => value.History.Id != history.Id &&
+                    MoviePilotTransferHistoryMatch.SameStorage(MoviePilotTransferHistoryMatch.Storage(history, source: true),
+                        MoviePilotTransferHistoryMatch.Storage(value.History, value.IsSource)) &&
                     // 同一目标重复记录只描述同一份链接；不同目标共用源与库文件作为下游源仍须保护。
                     (plan.Smart || !value.IsSource || history.TargetStorage is not ("" or "local") ||
                         value.History.TargetStorage is not ("" or "local") ||

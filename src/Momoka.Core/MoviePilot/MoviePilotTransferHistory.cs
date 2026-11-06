@@ -150,9 +150,7 @@ public static class MoviePilotTransferHistoryMatch
         var matched = new List<MoviePilotTransferHistory>();
         foreach (var file in context.Files)
         {
-            var candidates = requireDestination
-                ? Candidates(records.Where(history => MoviePilotTransfer.SamePath(history.TargetPath, file.Path)), file.Path)
-                : Candidates(records, file.Path);
+            var candidates = DeletionCandidates(records, file.Path, requireDestination);
             if (candidates.Count == 0)
                 throw new MoviePilotException($"没有找到此文件的原整理记录：{file.Path}。请先在 MoviePilot 核对整理历史及路径映射；不会改为删除父目录。");
             matched.AddRange(candidates);
@@ -160,4 +158,24 @@ public static class MoviePilotTransferHistoryMatch
         return matched.DistinctBy(history => history.Id).ToList();
     }
 
+    internal static IReadOnlyList<MoviePilotTransferHistory> DeletionCandidates(
+        IEnumerable<MoviePilotTransferHistory> histories, string path, bool requireDestination = false)
+    {
+        var records = histories.DistinctBy(history => history.Id).ToArray();
+        var targets = records.Where(history => MatchesLocalFile(history, source: false, path)).ToArray();
+        return (targets.Length > 0 || requireDestination ? targets
+            : records.Where(history => MatchesLocalFile(history, source: true, path)))
+            .OrderByDescending(history => history.Id).ToArray();
+    }
+
+    private static bool MatchesLocalFile(MoviePilotTransferHistory history, bool source, string path)
+    {
+        var file = source ? history.SourceFile : history.TargetFile;
+        var rawPath = MoviePilotTransferHistory.Scalar(history.Snapshot, source ? "src" : "dest");
+        if (rawPath.Length > 0 && !MoviePilotTransfer.SamePath(rawPath, MoviePilotTransfer.Text(file, "path")))
+            throw new MoviePilotException("整理记录的文件路径身份互相矛盾，请先在 MoviePilot 核对");
+        return file.ValueKind == JsonValueKind.Object && MoviePilotTransfer.Text(file, "type") == "file" &&
+            Storage(history, source) == "local" && MoviePilotTransfer.IsAbsolutePath(path) &&
+            MoviePilotTransfer.SamePath(MoviePilotTransfer.Text(file, "path"), path);
+    }
 }

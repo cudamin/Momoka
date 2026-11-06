@@ -15,6 +15,15 @@ internal static class MoviePilotMediaManagementTests
 {
     public static void Register()
     {
+        foreach (var action in new[] { MoviePilotHistoryAction.DeleteRecord, MoviePilotHistoryAction.DeleteSource,
+            MoviePilotHistoryAction.DeleteDestination, MoviePilotHistoryAction.DeleteAll })
+            Test("MP 删除归属：云端同路径目标不证明当前本地文件 " + action, () =>
+            {
+                using var f = new HistoryFixture();
+                f.Transport.Fault = "cloud-matching-target";
+                Assert.Throws<MoviePilotException>(() => f.Prepare(action));
+                Assert.Equal(0, f.Transport.Writes.Count);
+            });
         Test("MP 媒体管理菜单：重新整理分组在前、媒体管理紧随、四个删除范围且不套品牌", () =>
         {
             foreach (var backend in new[] { "Emby", "Jellyfin", "FnNas", "Plex" })
@@ -400,10 +409,10 @@ internal static class MoviePilotMediaManagementTests
                 [new("one", "/library/one.mkv"), new("two", "/library/two.mkv")]);
             MoviePilotTransferHistory[] histories =
             [
-                new() { Id = 1, SourcePath = "/downloads/one.mkv", TargetPath = "/library/one.mkv" },
-                new() { Id = 99, SourcePath = "/downloads/one.mkv", TargetPath = "/library/one.mkv" },
-                new() { Id = 100, SourcePath = "/library/one.mkv", TargetPath = "/library/other.mkv" },
-                new() { Id = 2, SourcePath = "/library/two.mkv", TargetPath = "/library/two.mkv" }
+                Parsed(1, "/downloads/one.mkv", "/library/one.mkv"),
+                Parsed(99, "/downloads/one.mkv", "/library/one.mkv"),
+                Parsed(100, "/library/one.mkv", "/library/other.mkv"),
+                Parsed(2, "/library/two.mkv", "/library/two.mkv")
             ];
             var matched = MoviePilotTransferHistoryMatch.RequireDeletionMatches(context, histories);
             Assert.Equal("99|1|2", string.Join("|", matched.Select(history => history.Id)));
@@ -686,7 +695,9 @@ internal static class MoviePilotMediaManagementTests
                 f.Transport.Fault = fault;
                 Assert.Throws<MoviePilotException>(() => f.Prepare(MoviePilotHistoryAction.DeleteAll));
                 Assert.Equal(0, f.Transport.Writes.Count);
-                Assert.Equal(1, f.Prepare(MoviePilotHistoryAction.DeleteRecord).Histories.Count);
+                if (fault == "target-dir")
+                    Assert.Throws<MoviePilotException>(() => f.Prepare(MoviePilotHistoryAction.DeleteRecord));
+                else Assert.Equal(1, f.Prepare(MoviePilotHistoryAction.DeleteRecord).Histories.Count);
             }
         });
         Test("MP 媒体管理匹配：片名不同只补查精确文件，不扩大到目录", () =>
@@ -787,6 +798,16 @@ internal static class MoviePilotMediaManagementTests
         });
     }
 
+    private static MoviePilotTransferHistory Parsed(long id, string source, string target)
+    {
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(new
+        {
+            id, src = source, dest = target,
+            src_fileitem = new { storage = "local", type = "file", path = source },
+            dest_fileitem = new { storage = "local", type = "file", path = target }
+        }));
+        return MoviePilotTransferHistory.Parse(document.RootElement)!;
+    }
 }
 
 internal sealed class HistoryFixture : IDisposable
@@ -1004,7 +1025,7 @@ internal sealed class HistoryTransport : HttpMessageHandler
         src = source ?? (Fault == "shared-download-source" ? "/downloads/shared.mkv" : Fault == "selected-dependency" && id == 2 ? "/library/one.mkv" : $"/downloads/{HistoryFixture.Name(id)}.mkv"),
         dest = dest ?? $"/library/{HistoryFixture.Name(id)}.mkv",
         src_fileitem = new { storage = Fault == "remote-storage" ? "cloud" : "local", type = Fault == "source-dir" ? "dir" : "file", path = source ?? (Fault == "shared-download-source" ? "/downloads/shared.mkv" : Fault == "selected-dependency" && id == 2 ? "/library/one.mkv" : $"/downloads/{HistoryFixture.Name(id)}.mkv") },
-        dest_fileitem = new { storage = Fault == "source-with-other-storage" && id == 100 ? "cloud" : "local", type = Fault == "target-dir" ? "dir" : "file", path = dest ?? $"/library/{HistoryFixture.Name(id)}.mkv" }
+        dest_fileitem = new { storage = Fault == "cloud-matching-target" || Fault == "source-with-other-storage" && id == 100 ? "cloud" : "local", type = Fault == "target-dir" ? "dir" : "file", path = dest ?? $"/library/{HistoryFixture.Name(id)}.mkv" }
     };
     private static HttpResponseMessage Json(object value) => Reply(JsonSerializer.Serialize(new { success = true, data = value }));
     private static HttpResponseMessage Reply(string body, HttpStatusCode status = HttpStatusCode.OK) => new(status)
