@@ -4,6 +4,12 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["verification-harness-fixture"])
+        {
+            TestHarnessTests.Register();
+            StubTransportTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["moviepilot-boundary-fixture"])
         {
             MoviePilotSafetyTests.Register();
@@ -286,6 +292,7 @@ internal static class Program
         Console.WriteLine();
 
         TestHarnessTests.Register();
+        StubTransportTests.Register();
         ActivationListenerTests.Register();
         PlaybackTests.Register();
         EpisodeRemovalTests.Register();

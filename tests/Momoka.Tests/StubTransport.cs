@@ -35,7 +35,7 @@ internal sealed class StubTransport : HttpMessageHandler
     {
         get
         {
-            lock (_gate) return _asked.Values.Sum();
+            lock (_gate) return _sent.Count;
         }
     }
 

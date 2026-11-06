@@ -15,6 +15,10 @@ internal static class TestHarness
 
     public static void Test(string name, Action run) => Cases.Add((name, run));
 
+    /// <summary>异步用例必须结清任务，异常与取消仍计入原用例。</summary>
+    public static void Test(string name, Func<Task> run) =>
+        Test(name, (Action)(() => run().GetAwaiter().GetResult()));
+
     /// <summary>登记前记录独立跳过项；运行中归属当前用例，不把一次用例同时算作通过和跳过。</summary>
     public static void Skip(string name, string reason)
     {

@@ -9,6 +9,22 @@ internal static class TestHarnessTests
 {
     public static void Register()
     {
+        Test("测试运行器：异步完成后才执行后续用例", () =>
+        {
+            var result = RunFixture("async-success");
+            Assert.Equal(0, result.ExitCode);
+            Assert.Contains("共 2 项，通过 2，失败 0，跳过 0", result.Output);
+        });
+        foreach (var scenario in new[] { "async-failure", "async-cancel" })
+        {
+            Test("测试运行器：" + scenario + "归属失败且后项继续", () =>
+            {
+                var result = RunFixture(scenario);
+                Assert.Equal(1, result.ExitCode);
+                Assert.Contains("共 2 项，通过 1，失败 1，跳过 0", result.Output);
+                Assert.Contains("通过  normal passes", result.Output);
+            });
+        }
         Test("测试运行器：运行中跳过不能同时计为通过，后续用例仍执行", () =>
         {
             var result = RunFixture("runtime-skip");
@@ -78,6 +94,25 @@ internal static class TestHarnessTests
         Console.OutputEncoding = Encoding.UTF8;
         switch (scenario)
         {
+            case "async-success":
+                var completed = false;
+                Test("async completes", async () =>
+                {
+                    await Task.Yield();
+                    completed = true;
+                });
+                Test("observes async completion", () => Assert.True(completed));
+                break;
+            case "async-failure":
+            case "async-cancel":
+                Test("async fails", async () =>
+                {
+                    await Task.Yield();
+                    if (scenario == "async-cancel") throw new OperationCanceledException("fixture-cancel");
+                    throw new AssertionException("fixture-error");
+                });
+                RegisterPass();
+                break;
             case "runtime-skip":
                 RegisterRuntimeSkip();
                 RegisterPass();
