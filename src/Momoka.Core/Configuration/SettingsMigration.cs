@@ -287,13 +287,14 @@ public static class SettingsMigration
             settings.Playback.SubtitleBold = storedWeight >= 550;
         }
 
-        // v27 turns 详情背景图不透明度 into a direct reading (2026-11-06, 「0 改为完全透明，100 改为完全不透明，
-        // 当前数值设为默认值，降低默认的背景图不透明度」). Up to v26 the number was an increment on top of two
-        // hard-coded baselines — 0.9 normally, 0.96 in the immersive layout — so the shipped 0 still drew a
-        // nearly opaque picture and 100 meant 「1.0」. Now 0 means the picture contributes nothing and 100
-        // means fully opaque, with one value for both layouts. The stored 0 is the value nobody picked (it is
-        // the shipped default), so it lands on the new default; 1–100 meant 「more opaque than the default」
-        // and keeps that meaning by spreading over the new default→100 range.
+        // v27 turns 详情背景图那一格 into a direct reading of the scrim/blur strength (2026-11-06,
+        // 「百分之一百，遮罩完全不透明，高斯模糊拉到最模糊；百分之 0 关闭遮罩，关闭高斯模糊」). Up to v26 the
+        // number was an increment on top of two hard-coded picture opacities — 0.9 normally, 0.96 in the
+        // immersive layout — so the shipped 0 still drew a dimmed picture and 100 meant 「1.0」. Now 0 draws no
+        // scrim and no blur at all, 100 takes the scrim to fully opaque (and the blur to its maximum), with one
+        // value for both layouts. The stored 0 is the value nobody picked (it is the shipped default), so it
+        // lands on the new default; 1–100 meant 「stronger than the default」 and keeps that meaning by
+        // spreading over the new default→100 range.
         if (version < 27)
         {
             var raised = double.IsFinite(settings.Ui.BackdropOpacity)

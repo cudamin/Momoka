@@ -25,9 +25,13 @@ public sealed partial class DetailPage
     private bool UsesBackdropFade => ViewModel.BackdropShown && !ViewModel.Showcase
         && ViewModel.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
+    // 整张图上的阅读遮罩。老版固定 0xB8；2026-11-06 起浓度读设置里那一档（0 不遮、100 完全不透明），
+    // 最浓档就是 ScrimCeiling 那一格 —— 见 AppearanceOpacity.ScrimAlpha。高斯模糊那一档不画它（模糊自己压细节）。
     private Color ReadingShadeColor => ViewModel.GaussianBackdropApplied
         ? Color.FromArgb(0, 0, 0, 0)
-        : Color.FromArgb(DetailHero.ScrimCeiling, DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B);
+        : Color.FromArgb(
+            AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, ViewModel.BackdropStrength),
+            DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B);
 
     private void PaintBackdropFade()
     {
@@ -35,6 +39,9 @@ public sealed partial class DetailPage
         for (var index = 0; index < _backdropFadeBrush.GradientStops.Count; index++)
             _backdropFadeBrush.GradientStops[index].Color = Color.FromArgb(index == 2 ? (byte)255 : (byte)0,
                 color.R, color.G, color.B);
+
+        // 底部那道主题收边不跟强度走：它接的是正文那张纸，不是压在图上给人降亮度的那一层。0 档也留着，
+        // 否则图的下沿会硬切在纸的上沿上；100 档图被遮罩吃掉，这一道看不出来。
         BackdropFade.Background = _backdropFadeBrush;
         BackdropFade.Visibility = UsesBackdropFade ? Visibility.Visible : Visibility.Collapsed;
         BackdropShade.Background = new SolidColorBrush(ReadingShadeColor);

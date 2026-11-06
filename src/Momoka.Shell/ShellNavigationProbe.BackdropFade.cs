@@ -162,11 +162,9 @@ internal sealed partial class ShellNavigationProbe
         var backdrop = Get<Grid>(page, "Backdrop");
         var picture = Get<Border>(page, "BackdropPicture");
         var image = picture.Background;
-        var opacity = backdrop.Opacity;
         try
         {
-            // 像素预期按「图满不透明」算，所以连背景整层那一档一起放到 1；收尾两处都写回去。
-            backdrop.Opacity = 1;
+            // 图本身是满不透明的一层（滑块只管图上那道遮罩），换成白色当底，像素预期才只剩遮罩与收边两道。
             picture.Background = new SolidColorBrush(Microsoft.UI.Colors.White);
             await LayoutAsync(page);
             var bitmap = new RenderTargetBitmap();
@@ -196,7 +194,8 @@ internal sealed partial class ShellNavigationProbe
                 var at = (y * bitmap.PixelWidth + x) * 4;
                 var amount = Math.Clamp((along - 0.7) / 0.3, 0, 1);
                 var ink = DetailHero.ScrimInk;
-                var alpha = page.ViewModel.GaussianBackdropApplied ? 0 : 184 / 255d;
+                var alpha = page.ViewModel.GaussianBackdropApplied ? 0
+                    : AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, page.ViewModel.BackdropStrength) / 255d;
                 var expected = new[] { (ink.B, color.B), (ink.G, color.G), (ink.R, color.R) };
                 for (var channel = 0; channel < 3; channel++)
                 {
@@ -207,7 +206,7 @@ internal sealed partial class ShellNavigationProbe
                 }
             }
         }
-        finally { picture.Background = image; backdrop.Opacity = opacity; }
+        finally { picture.Background = image; }
         await LayoutAsync(page);
     }
 }

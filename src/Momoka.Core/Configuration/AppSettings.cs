@@ -1390,17 +1390,19 @@ public sealed class UiSettings
     public double ControlBackgroundOpacity { get; set; }
 
     /// <summary>
-    /// 详情背景图的不透明度（%）：0 完全透明（背景图不参与画面），100 完全不透明；普通与沉浸版式共用这一档。
+    /// 详情背景图上那层处理的强度（%）：0 关掉遮罩、也不加高斯模糊（背景图原样清晰），100 遮罩完全不透明
+    /// （选高斯模糊时模糊拉满）；普通与沉浸版式共用这一档。
     /// <para>
-    /// 同样在 2026-11-06 改成直接读数。缺键的旧文件由 <c>SettingsMigration</c> 按旧的增量语义换算，
+    /// 2026-11-06 定稿：这一格管的是<b>压在图上的遮罩／模糊</b>，不是图片自己的透明度。老版把它当「在原浓度上
+    /// 再加多少」，0 档仍是一张压到 0.9 的图。缺键的旧文件由 <c>SettingsMigration</c> 按旧的增量语义换算，
     /// 落在 <see cref="DefaultBackdropOpacity"/>。
     /// </para>
     /// </summary>
     public double BackdropOpacity { get; set; } = DefaultBackdropOpacity;
 
     /// <summary>
-    /// 背景图出厂浓度（%）。旧版是普通 0.9／沉浸 0.96 两档写死，用户令「降低默认的背景图不透明度」，
-    /// 出厂降到这一档；滑块仍可拖到 100。
+    /// 背景图那层处理的出厂强度（%）。旧版是普通 0.9／沉浸 0.96 两档图的不透明度写死（遮罩最浓 0xB8），
+    /// 用户令「降低默认的背景图不透明度」：出厂降到这一档，遮罩比老观感淡、图比原来清楚；滑块仍可拖到 100。
     /// </summary>
     public const double DefaultBackdropOpacity = 40;
 

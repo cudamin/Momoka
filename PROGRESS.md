@@ -1,11 +1,14 @@
 ## 详情页不透明度滑块改成直接读数（2026-11-06，已交付）
 
-- 用户令：「0 改为完全透明，100 改为完全不透明（也就是关掉背景图），当前数值设为默认值，降低默认的背景图不透明度」。追问确认：两条滑块都按真实不透明度走；出厂默认取「很淡的背景图」那一档（35%~40%）。
-- 产品：按钮与选择框底色 0 档常态不画底色（悬停、按下仍留原来那层薄白 —— 那是指针的手感，不是底色），100 档主题深色实底；亚克力读同一档，0 档什么都不画。背景图不透明度落到 `Backdrop` 整层，图、阅读遮罩、底部收边和标题栏洗色一起淡；普通与沉浸共用一档（沉浸不再另抬到 0.96）；0 档等于关掉背景图，海报、片名与那排键的位置不动。滚动区里那条尾部洗色不跟滑块走（按百分比缩它会让集页比剧页亮出一截），产品里留了注释说明取舍。
-- 默认与迁移：背景图出厂 `UiSettings.DefaultBackdropOpacity` = 40%，按钮底色仍 0；`CurrentSchemaVersion` 26→27，旧文件的增量读数按 40~100 换算（0→40、43→65.8、100→100、越界夹取），v27 之后再存的 0 就是用户自己关掉的。备份、导入、恢复默认跟着新默认。
-- 验证：主测试 **3768/3768、0 失败 0 跳过**（新增 v26→v27 换算用例）；`Momoka.AppearanceOpacityTests` **31/31**；`--probe-shell --probe-section settings,library` **57/57、退出 0**（`shell-probe-20261105-174638446-21716`）——「详情自定义页面」「详情背景主题渐变」「电影/剧/季页面的窄窗紧凑与自动无遮挡」三项在旧读数下是红的，改完转绿。实屏目视：`detail-customization-Movie-backdrop-off.png` 页面回到窗口底色、按钮内部像素与页面底完全一致（21,18,28）；`detail-customization-*-*-screen.png` 五主题 45% 与 `backdrop-fade-*` 40% 无接缝；设置页两行说明与读数（0／40）已核对。
-- 顺手修掉上一轮遗留的探针常数：`ResizeProbeClient` 2026-11-05 22:13 改成按真实非客户区差值设窗口后（30b7ba25），`ResponsiveViewport` 仍等着 651 客户区（583），`DetailResponsiveAsync` 从那时起一直红；改成 552 并重跑通过。闸门 1 另有一条既有红：`tests/Momoka.PageContractTests/CardPresentationTests.cs` 6 处空白错误（7b469c0 带来），本轮没动它，照实报红。
-- 01:59 publish 到 `artifacts/publish/win-x64`（546 文件、286.3 MB，Momoka.dll 与构建 SHA-256 一致），桌面快捷方式仍指该目录、参数为空；未上传 GitHub。待实机：两条滑块的手感、40% 出厂在真实剧照上的观感、0 档在集页与亚克力组合下的样子。
+- 用户令：「0 改为完全透明，100 改为完全不透明（也就是关掉背景图），当前数值设为默认值，降低默认的背景图不透明度」。同日看图纠正背景图那一行：「百分之一百，遮罩完全不透明，高斯模糊拉到最模糊；百分之 0 关闭遮罩，关闭高斯模糊」—— 它调的是压在图上的那层处理，不是图片自己的透明度。上午那版按图片透明度做（0 档整张图收走），已整体回退。
+- 按钮与选择框底色：0 档常态不画底色（悬停、按下仍留原来那层薄白 —— 指针的手感），100 档主题深色实底；亚克力读同一档，0 档什么都不画。详情操作排、六个文件选择框和主页轮播「详情」按钮共用。
+- 背景图那一档（`UiSettings.BackdropOpacity`，0..100 → `AppearanceOpacity.Backdrop` 0..1）：暗色遮罩 alpha = `AppearanceOpacity.ScrimAlpha(ScrimCeiling, strength)`，遮罩表按 255/0xB8 归一后乘强度 —— 0 一点都不遮（图原样清晰），100 抬到 255（遮罩完全不透明），表上最浓的 0xB8 对应 72 档（老观感）。普通三页画在 `BackdropShade`，沉浸档画在 `HeroTail`／`HeroBand`，尾部、头部与阅读遮罩同一个 alpha；`Backdrop` 整层与 `BackdropPicture` 不再调不透明度，沉浸那两处 `Backdrop.Opacity` 过渡已删。高斯模糊：`GaussianBackdrop.SigmaFor` 把同一档换成 sigma，0 → 0（`Apply` 直接返回原图），100 → `MaxSigma` 24（老版固定 12，对应 50 档）。不跟滑块走的只有无图版式那道头部渐变（`HeroScrim`）与底部主题收边（`BackdropFade`）。
+- 性能：`GaussianBackdrop.Apply` 改成按行 `Parallel.For`（1280×720：σ=12 2.1s→0.40s、σ=24 4.7s→0.87s），`DetailViewModel.UpdateHeroBlur` 每次换档先取消上一趟（`_blurCancel`），拖滑块不再排队，`Cancel`／`Dispose` 也收它。
+- 默认与迁移：背景图出厂 `UiSettings.DefaultBackdropOpacity` = 40（遮罩 alpha 102、模糊 sigma 10），比老版 0xB8／sigma 12 都轻；按钮底色仍 0。`CurrentSchemaVersion` 26→27 沿用：旧文件的增量读数按 40~100 换算（0→40、43→65.8、100→100、越界夹取），v27 之后再存的 0 就是用户自己关掉的。备份、导入、恢复默认跟着新默认。
+- 验证：主测试 **3768/3768、0 失败 0 跳过**；`Momoka.AppearanceOpacityTests` **39/39**（新增遮罩表五档在「老观感」档位逐个还原、ScrimAlpha 与 SigmaFor 的越界／非有限值）；`--probe-shell --probe-section settings,library` **57/57、退出 0**（`shell-probe-20261106-035259573-25668`）。探针的详情自定义读屏上真正画着的遮罩 alpha（0／45／100，沉浸同档，并断言图片层 `Opacity` 恒为 1），高斯检查按 100／45／0 三档读渲染像素的纹理方差（0.214→0.259→原图），集页宽版式（板替掉图）单独处理；渐变检查按 `ScrimAlpha` 算像素预期。实屏目视：0 档 `detail-customization-*-backdrop-clear.png` 图原样清晰、无压暗；45% `detail-customization-Series-plum-screen.png` 与 40% `backdrop-fade-Movie-False-emby-dark-screen.png` 文字清楚、下沿无接缝。
+- 顺手修：`ResponsiveViewport` 改成 552（2026-11-05 22:13 的 30b7ba25 把 `ResizeProbeClient` 改成按真实非客户区差值设窗口后，`DetailResponsiveAsync` 一直在等一个再也到不了的 651 客户区，那条从那时起就是红的）。
+- 闸门 1 仍只有既有红 `tests/Momoka.PageContractTests/CardPresentationTests.cs` 6 处空白（7b469c0 带来），本轮没动它。
+- 04:10 publish 到 `artifacts/publish/win-x64`（546 文件、286.3 MB，Momoka.dll 与构建同 SHA-256 57a3bdf6…），桌面快捷方式仍指该目录、参数为空；未上传 GitHub。待实机：拖滑块的手感（高斯档每档重糊约 0.9 秒）、100 档在沉浸页只有头部变黑（遮罩范围跟版式走）、0 档亮图上浅色标题的可读性。
 
 ## 截图整理选择性回退（2026-11-06，已交付）
 

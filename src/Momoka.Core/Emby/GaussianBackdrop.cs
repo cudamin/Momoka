@@ -4,7 +4,27 @@ namespace Momoka.Emby;
 public static class GaussianBackdrop
 {
     // 1280宽原料上sigma12足以柔化文字背后的细节，同时保留构图；不随窗口裁切重算。
+    // 主页轮播（BannerPictureLoader）读这一档，详情页那一档改成跟设置里的强度走（见 SigmaFor）。
     public const int Sigma = 12;
+
+    /// <summary>
+    /// 详情页背景图模糊拉满时的 sigma（设置里那一行拖到 100）。
+    /// <para>
+    /// 24 是 12 的两倍：12 还留得住「这是哪部片子」的构图，24 连人和景都糊成色块 —— 用户要的「拉到最模糊」
+    /// 就是这一档。再往上（40 出头）只剩一团匀色，屏幕上已经看不出还模糊过一次，只是多等一次卷积。
+    /// </para>
+    /// </summary>
+    public const int MaxSigma = 24;
+
+    /// <summary>
+    /// 设置里那一档强度（0..1）换算成 sigma：0 是「不加模糊」（返回 0，<see cref="Apply"/> 直接返回原图），
+    /// 1 是 <see cref="MaxSigma"/>，中间线性。非有限值按 0 算 —— 与另外两条滑块的兜底一致。
+    /// </summary>
+    public static int SigmaFor(double strength)
+    {
+        var share = double.IsFinite(strength) ? Math.Clamp(strength, 0, 1) : 0;
+        return (int)Math.Round(MaxSigma * share);
+    }
 
     /// <summary>按归一化 exp(-x²/(2σ²)) 核先横再纵卷积，3σ外截断，边缘夹取防止黑圈。</summary>
     public static void Apply(byte[] pixels, int width, int height, double sigma, CancellationToken token = default)
@@ -30,9 +50,13 @@ public static class GaussianBackdrop
         for (var i = 0; i < kernel.Length; i++) kernel[i] /= total;
         var temp = new float[checked(width * height * 3)];
         var result = pixels.ToArray();
-        for (var y = 0; y < height; y++)
+
+        // 大图按行并行：每一行只读写自己那一段 temp/result，行与行互不重叠；小图（测试里那种十几像素的）
+        // 走单线程，省一次调度。σ=24 在 1280×720 上单线程要 4.7 秒，拖动滑块根本等不起 —— 并行之后
+        // 大致能压到一秒上下，配上调用方的取消，中途换档不排队。
+        var parallel = width * height >= 64 * 64;
+        void Horizontal(int y)
         {
-            token.ThrowIfCancellationRequested();
             for (var x = 0; x < width; x++)
                 for (var channel = 0; channel < 3; channel++)
                 {
@@ -42,9 +66,8 @@ public static class GaussianBackdrop
                     temp[(y * width + x) * 3 + channel] = (float)sum;
                 }
         }
-        for (var y = 0; y < height; y++)
+        void Vertical(int y)
         {
-            token.ThrowIfCancellationRequested();
             for (var x = 0; x < width; x++)
                 for (var channel = 0; channel < 3; channel++)
                 {
@@ -53,6 +76,25 @@ public static class GaussianBackdrop
                         sum += temp[(Math.Clamp(y + k, 0, height - 1) * width + x) * 3 + channel] * kernel[k + radius];
                     result[(y * width + x) * 4 + channel] = (byte)Math.Clamp(Math.Round(sum), 0, 255);
                 }
+        }
+        if (parallel)
+        {
+            var options = new ParallelOptions { CancellationToken = token };
+            Parallel.For(0, height, options, Horizontal);
+            Parallel.For(0, height, options, Vertical);
+        }
+        else
+        {
+            for (var y = 0; y < height; y++)
+            {
+                token.ThrowIfCancellationRequested();
+                Horizontal(y);
+            }
+            for (var y = 0; y < height; y++)
+            {
+                token.ThrowIfCancellationRequested();
+                Vertical(y);
+            }
         }
         token.ThrowIfCancellationRequested();
         result.CopyTo(pixels, 0);

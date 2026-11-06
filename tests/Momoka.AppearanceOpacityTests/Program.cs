@@ -20,10 +20,10 @@ Check("非有限按钮值回到零档", () =>
     foreach (var value in new[] { double.NaN, double.NegativeInfinity, double.PositiveInfinity })
         Equal(0, AppearanceOpacity.ControlBackground(value));
 });
-Check("零档背景图完全透明", () => Equal(0, AppearanceOpacity.Backdrop(0)));
-Check("出厂四十档背景图是四成", () => Equal(0.4, AppearanceOpacity.Backdrop(UiSettings.DefaultBackdropOpacity)));
-Check("背景图浓度就是百分比", () => Equal(0.45, AppearanceOpacity.Backdrop(45)));
-Check("满档背景图完全不透明", () =>
+Check("零档背景强度是不遮不糊", () => Equal(0, AppearanceOpacity.Backdrop(0)));
+Check("出厂四十档强度是四成", () => Equal(0.4, AppearanceOpacity.Backdrop(UiSettings.DefaultBackdropOpacity)));
+Check("背景强度就是百分比", () => Equal(0.45, AppearanceOpacity.Backdrop(45)));
+Check("满档背景强度拉满", () =>
 {
     Equal(1, AppearanceOpacity.Backdrop(100));
     Equal(1, AppearanceOpacity.Backdrop(140));
@@ -33,6 +33,45 @@ Check("非有限背景值回到零档", () =>
     foreach (var value in new[] { double.NaN, double.NegativeInfinity, double.PositiveInfinity })
         Equal(0, AppearanceOpacity.Backdrop(value));
 });
+Check("遮罩强度归一到老观感那一档", () =>
+{
+    // 表上最浓的 0xB8 就是老版写死的浓度：强度 184/255 时它原样画出来。
+    Equal((byte)0xB8, AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, DetailHero.ScrimCeiling / 255d));
+});
+Check("遮罩强度 100 完全不透明", () => Equal(byte.MaxValue, AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, 1)));
+Check("遮罩强度 0 一点不遮", () => Equal((byte)0, AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, 0)));
+Check("遮罩表的浅档按同一比例", () =>
+{
+    var share = DetailHero.ScrimCeiling / 255d;
+    foreach (var (_, alpha) in DetailHero.ScrimStops)
+        Equal(alpha, AppearanceOpacity.ScrimAlpha(alpha, share));
+    Equal((byte)0, AppearanceOpacity.ScrimAlpha(0, 1));
+});
+Check("遮罩强度线性：45 是满档的四成半", () =>
+{
+    var full = AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, 1);
+    var at45 = AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, 0.45);
+    Equal((byte)Math.Round(full * 0.45), at45);
+});
+Check("非有限遮罩强度按零档", () =>
+{
+    foreach (var value in new[] { double.NaN, double.NegativeInfinity, double.PositiveInfinity })
+        Equal((byte)0, AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, value));
+    Equal((byte)0, AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, -1));
+    Equal(byte.MaxValue, AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, 2));
+});
+Check("高斯模糊强度换算：0 不糊、100 最糊", () =>
+{
+    Equal(0, GaussianBackdrop.SigmaFor(0));
+    Equal(GaussianBackdrop.MaxSigma, GaussianBackdrop.SigmaFor(1));
+    Equal(GaussianBackdrop.MaxSigma / 2, GaussianBackdrop.SigmaFor(0.5));
+    Equal(0, GaussianBackdrop.SigmaFor(double.NaN));
+    Equal(0, GaussianBackdrop.SigmaFor(-1));
+    Equal(GaussianBackdrop.MaxSigma, GaussianBackdrop.SigmaFor(3));
+});
+Check("出厂四十档的模糊比老版默认略轻", () =>
+    Equal((int)Math.Round(GaussianBackdrop.MaxSigma * 0.4),
+        GaussianBackdrop.SigmaFor(UiSettings.DefaultBackdropOpacity / 100)));
 Check("零档主页图片保留原始浓度", () => Equal(1, AppearanceOpacity.HomeBackdrop(0)));
 Check("主页图片本已不透明继续保留", () => Equal(1, AppearanceOpacity.HomeBackdrop(45)));
 Check("主页图片各档与无效值都保持不透明", () =>

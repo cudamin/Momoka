@@ -483,7 +483,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(SheetSpacing));
         OnPropertyChanged(nameof(BodyPanelPadding));
         OnPropertyChanged(nameof(ShowShelfLines));
-        OnPropertyChanged(nameof(BackdropOpacity));
+        OnPropertyChanged(nameof(BackdropStrength));
     }
 
     /// <summary>
@@ -513,7 +513,11 @@ public sealed partial class DetailViewModel : PageViewModel
     private bool _heroRequestedGaussian;
     private bool _heroRendering;
 
-    public double BackdropOpacity => AppearanceOpacity.Backdrop(
+    /// <summary>
+    /// 背景图上那层处理的强度 0..1（设置里「背景图不透明度」那一行）：0 关掉遮罩、也不加模糊，图原样清晰；
+    /// 1 遮罩完全不透明，选高斯模糊时模糊拉满。普通与沉浸版式共用这一个数。
+    /// </summary>
+    public double BackdropStrength => AppearanceOpacity.Backdrop(
         _settings?.Settings.Ui.BackdropOpacity ?? UiSettings.DefaultBackdropOpacity);
 
     internal void RefreshAppearance()
@@ -531,7 +535,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(SheetSpacing));
         OnPropertyChanged(nameof(BodyPanelPadding));
         OnPropertyChanged(nameof(ShowShelfLines));
-        OnPropertyChanged(nameof(BackdropOpacity));
+        OnPropertyChanged(nameof(BackdropStrength));
     }
 
     /// <summary>
@@ -613,15 +617,26 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>重糊的生代号：谁后到谁算数，路上换了档就作废先回来那一张。</summary>
     private int _heroBlurGeneration;
 
-    /// <summary>当前的模糊档位 —— 裁切占比（<see cref="DetailHero.PictureCrop"/>）换算的半径。电影和剧没有
-    /// 基础半径，裁多少加多少；集页只在紧凑版式里画这张图，宽版式上裁切占比算出来照样有值，只是没有一层画它。</summary>
-    private int HeroBlurTarget => UseGaussianBackdrop ? GaussianBackdrop.Sigma : BackdropBlur.CropRadius(
+    /// <summary>
+    /// 这一趟重糊的取消牌。拖滑块一次换十几档，旧的一趟要当场停下 —— 1280×720 上一趟 σ=24 的卷积是秒级的，
+    /// 不取消就会攒成一队，屏上停在几秒前的读数。条目离开也走它（<see cref="Cancel"/>）。
+    /// </summary>
+    private CancellationTokenSource? _blurCancel;
+
+    /// <summary>当前的模糊档位 —— 高斯模糊那一路读设置里的强度（<see cref="GaussianBackdrop.SigmaFor"/>，0 档
+    /// 不模糊）；暗色遮罩那一路按裁切占比（<see cref="DetailHero.PictureCrop"/>）换算半径。电影和剧没有基础
+    /// 半径，裁多少加多少；集页只在紧凑版式里画这张图，宽版式上裁切占比算出来照样有值，只是没有一层画它。</summary>
+    private int HeroBlurTarget => UseGaussianBackdrop ? GaussianBackdrop.SigmaFor(BackdropStrength) : BackdropBlur.CropRadius(
         DetailHero.PictureCrop(PageWidth, HeroHeightRatio, Viewport), CropBlurStart, 0, CropBlurExtra, CropBlurStep);
 
     /// <summary>
     /// 窗口形状变了（<c>DetailPage.OnBodySizeChanged</c> 量完宽高顺手喊一声）：按新的裁切占比算模糊档位，
     /// 换档就用缓存的那批像素重糊一遍。生代号让「谁后到谁算数」—— 重糊还在路上又换了一档，先回来那一张
     /// 作废。不做可等待：拖窗口不等一次几十毫秒的像素活，屏上短暂停在上一档是这条路的正常形态。
+    /// <para>
+    /// 2026-11-06：设置里那一档也跟着模糊程度走，拖一次滑块会换十几档，光靠「后到算数」会让十几趟卷积排队，
+    /// 屏上停在几秒前的读数。所以每一次换档先把上一趟取消（<see cref="_blurCancel"/>），只留最后那一趟跑完。
+    /// </para>
     /// </summary>
     public void UpdateHeroBlur()
     {
@@ -635,7 +650,12 @@ public sealed partial class DetailViewModel : PageViewModel
         _heroRequestedGaussian = UseGaussianBackdrop;
         _heroRendering = true;
 
-        _ = RenderBlurAsync(generation, _heroPixels, target, _heroRequestedGaussian);
+        _blurCancel?.Cancel();
+        _blurCancel?.Dispose();
+        _blurCancel = new CancellationTokenSource();
+        var token = CancellationTokenSource.CreateLinkedTokenSource(
+            _art?.Token ?? CancellationToken.None, _blurCancel.Token).Token;
+        _ = RenderBlurAsync(generation, _heroPixels, target, _heroRequestedGaussian, token);
     }
 
     private async Task<BitmapImage?> RenderHeroAsync(HeroPictureLoader.HeroPixels pixels, int radius,
@@ -657,11 +677,12 @@ public sealed partial class DetailViewModel : PageViewModel
         return picture;
     }
 
-    private async Task RenderBlurAsync(int generation, HeroPictureLoader.HeroPixels pixels, int radius, bool gaussian)
+    private async Task RenderBlurAsync(int generation, HeroPictureLoader.HeroPixels pixels, int radius, bool gaussian,
+        CancellationToken token)
     {
         try
         {
-            var picture = await RenderHeroAsync(pixels, radius, _art?.Token ?? default, _heroCacheTicket, _heroTiming, gaussian)
+            var picture = await RenderHeroAsync(pixels, radius, token, _heroCacheTicket, _heroTiming, gaussian)
                 .ConfigureAwait(true);
 
             if (Attached && generation == _heroBlurGeneration && gaussian == UseGaussianBackdrop && picture is not null)
@@ -4122,6 +4143,8 @@ public sealed partial class DetailViewModel : PageViewModel
         _lifetime++;
         base.Cancel();
         _art?.Cancel();
+        // 还在路上的那趟重糊也别让它回来把图换掉 —— 页面都走了。
+        _blurCancel?.Cancel();
         // Frame can still measure the departing page. Clearing this deferred source prevents a late
         // GetAt from creating a new current-account card and restarting its image request after leave.
         EpisodeShelf?.Clear();
@@ -4140,6 +4163,9 @@ public sealed partial class DetailViewModel : PageViewModel
         _art?.Cancel();
         _art?.Dispose();
         _art = null;
+        _blurCancel?.Cancel();
+        _blurCancel?.Dispose();
+        _blurCancel = null;
         _heroTiming = null;
         _heroCacheTicket = null;
     }

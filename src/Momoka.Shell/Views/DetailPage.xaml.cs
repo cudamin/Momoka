@@ -153,6 +153,14 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     /// <summary>
+    /// 有背景图时压在图上的那层墨色 —— 浓度读设置里那一档：0 一点都不遮（图原样清晰），100 完全不透明。
+    /// 尾部、头部那一格和阅读遮罩都取这一个色，接缝才不会有第二档。
+    /// </summary>
+    private Color ScrimColor => Color.FromArgb(
+        AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, ViewModel.BackdropStrength),
+        DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B);
+
+    /// <summary>
     /// 无图版式保留原渐变；普通三类详情把阅读遮罩放在固定背景，沉浸沿用滚动区的共享洗色。
     /// </summary>
     private void PaintScrim()
@@ -161,6 +169,8 @@ public sealed partial class DetailPage : Page, IShellContent
 
         // 高不在这里设：它跟着带子走（集页那一格按里面那一叠实测给，比 460 矮），所以绑在 ViewModel.ScrimHeight
         // 上。停点是比例，收窄不改它们，所以这五个仍然画一次就够。
+        // 这一支画刷只服务「没有剧照」那一档的版面渐变（ScrimVisibility）：那一档没有背景图，设置里那一行管不着
+        // 它，所以这里照原表画，不按强度缩 —— 缩到 0 就是把这个版面的底一起收走，字会浮在纸面上。
         HeroScrimBrush.GradientStops.Clear();
         foreach (var (along, alpha) in DetailHero.ScrimStops)
             HeroScrimBrush.GradientStops.Add(new GradientStop
@@ -170,16 +180,14 @@ public sealed partial class DetailPage : Page, IShellContent
             });
 
         // 尾部接的是罩子的末档 —— 同一个 alpha 同一个色，否则两块之间横着一道明暗接缝（自检里「尾部接住头图
-        // 末色」读的就是这个）。取表上最后那一档而不是 ScrimCeiling：表要是哪天不以最浓收尾，这里跟着走。
+        // 末色」读的就是这个）。有背景图的几档里它跟设置里那一档走（ScrimColor）：0 档图不遮，这一层也不留一块
+        // 比纸面更深的底；100 档一路压到完全不透明。普通三页这一层透明，遮罩由背景层那道阅读遮罩画。
         // 集页那块板上这一层不画（HeroCardShown）：那一段的底由 HeroCardBottom 给，再压一层近乎同色的黑白费，
         // 而且它会把板涂回罩子的末色 —— 板上那几块小面板的底边就对不上了。
-        // 有图的那一档这一层是阅读遮罩，浓度不跟背景图那一格走：背景整层淡的是图与它自己里面那两道罩子，这一层
-        // 站在滚动区里；按百分比缩它会让集页比剧页亮出一截（同一档下图的可见度是 p×(1−遮罩)，缩过就变成
-        // p×(1−遮罩×p)），两页就不同一个滑块了。
         HeroTail.Background = ViewModel.HeroCardShown
             ? null
             : new SolidColorBrush(UsesBackdropFade || ViewModel.GaussianBackdropApplied && ViewModel.BackdropShown
-                ? Color.FromArgb(0, ink.R, ink.G, ink.B) : HeroScrimBrush.GradientStops[^1].Color);
+                ? Color.FromArgb(0, ink.R, ink.G, ink.B) : ScrimColor);
 
         // 普通三页透明：下层已经完成遮罩与主题收边，避免末端被二次压黑。
         HeroBand.Background = ViewModel.BackdropShown ? HeroTail.Background : null;
@@ -852,7 +860,7 @@ public sealed partial class DetailPage : Page, IShellContent
             : HeroTail.Background is SolidColorBrush { Color: var tailColor }
                 && tailColor == (UsesBackdropFade || ViewModel.GaussianBackdropApplied
                     ? Color.FromArgb(0, DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B)
-                    : HeroScrimBrush.GradientStops[^1].Color);
+                    : ScrimColor);
         // 音轨那一行和剧情说明都不带框 ——「移除音频和剧情说明那两个栏的框」（2026-09-12）。它们站在那块大板上，
         // 板本身就是一层，再给每一块描一圈发丝线就成了一层套一层；只剩集带那一圈（「剧页面那种样式」）。
         var bare = !Rings(PickerSet.Panel) && !Rings(OverviewPanel);
@@ -1236,7 +1244,8 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         var ink = DetailHero.ScrimInk;
         var expected = Color.FromArgb(UsesBackdropFade || ViewModel.GaussianBackdropApplied
-            ? (byte)0 : DetailHero.ScrimStops[^1].Alpha, ink.R, ink.G, ink.B);
+            ? (byte)0 : AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, ViewModel.BackdropStrength),
+            ink.R, ink.G, ink.B);
         var same = HeroTail.Background is SolidColorBrush { Color: var color } && color == expected
             && ReferenceEquals(TitleWash.Background, HeroTail.Background)
             && ReferenceEquals(HeroBand.Background, HeroTail.Background)

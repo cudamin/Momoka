@@ -159,9 +159,8 @@ public sealed partial class DetailPage
         _sheetBrush.Color = PaperColor;
         BodySheet.Background = _sheetBrush;
 
-        // 背景整层（图、阅读遮罩、底部收边、标题栏洗色）读设置里那一档；标记里的值只是第一帧。
-        // 2026-11-06 起普通与沉浸共用同一个数，翻面不再改它。
-        Backdrop.Opacity = ViewModel.BackdropOpacity;
+        // 背景整层不调不透明度：设置里那一档落在图上那道遮罩（PaintScrim／PaintBackdropFade），
+        // 2026-11-06 起普通与沉浸共用同一个数，翻面不再改图本身。
 
         // 监听本页的 ThemeResource 替换，覆盖系统高对比度；不订阅需要 CoreWindow 的系统事件。
         CardMaterialSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) =>
@@ -414,9 +413,6 @@ public sealed partial class DetailPage
         _panelFill.Opacity = showcase ? 0 : 1;
         _panelLine.Opacity = showcase ? 0 : 1;
         PaintBackdropReading();
-
-        // 收尾读最新偏好，不能把滑块刚设置的浓度写回旧默认。
-        Backdrop.Opacity = ViewModel.BackdropOpacity;
 
         // 浮起位移的底值就是起步时种下的那 16px；停掉动画只是把它交回来，还得再写一次 0 才算落定。
         foreach (var panel in BodyPanels)

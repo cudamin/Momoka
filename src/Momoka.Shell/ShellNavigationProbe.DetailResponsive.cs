@@ -286,8 +286,6 @@ internal sealed partial class ShellNavigationProbe
     /// <summary>1080宽度下缩短/拉高窗口，验证内容触发及退出动画，再验证最大化与还原。</summary>
     private async Task ResponsiveShowcaseAsync(DetailPage page)
     {
-        var backdrop = Get<Grid>(page, "Backdrop");
-
         // 前一条用例若把窗口留在最大化上，ResizeClient 会被忽略 —— 先还原再量，免得把「窗口没动」当成版面没跟上。
         if (_window!.IsMaximized) _window.ToggleMaximize();
         await SettleAsync();
@@ -314,12 +312,12 @@ internal sealed partial class ShellNavigationProbe
             + $"裁切={page.ViewModel.NearCrop}、沉浸={page.ViewModel.Showcase}、铺开={page.ViewModel.Spacious}、"
             + $"紧凑={page.ViewModel.IsCompact}、有图={page.ViewModel.BackdropShown}、类型={page.ViewModel.ItemType}、"
             + $"页宽={page.ViewModel.PageWidth:0}、视口={page.ViewModel.Viewport:0}、图比={page.ViewModel.HeroHeightRatio:0.###}、"
-            + $"不透明度={backdrop.Opacity:0.###}";
+            + $"遮罩={ScrimAlphaOf(page)}";
         Require(page.ViewModel.Showcase, "裁切那条线没有触发无遮挡版式：" + state);
         await UntilAsync(() => !page.ShowcaseAnimating);
-        // 2026-11-06 起背景图浓度只由设置给，翻面不再改它 —— 两种版式读同一个数。
-        Require(Math.Abs(backdrop.Opacity - page.ViewModel.BackdropOpacity) < 0.001,
-            $"裁切触发后背景整层不再是设置里那一档：实际 {backdrop.Opacity:0.###}、设置 {page.ViewModel.BackdropOpacity:0.###}（{state}）");
+        // 2026-11-06 定稿：滑块管的是图上那层遮罩，翻面不改它 —— 两种版式画出同一个 alpha。
+        Require(ScrimAlphaOf(page) == ScrimExpected(page),
+            $"裁切触发后遮罩不是设置里那一档：实际 {ScrimAlphaOf(page)}、该是 {ScrimExpected(page)}（{state}）");
         await SaveProbeScreenAsync("detail-responsive-crop-showcase.png");
 
         var animationsBeforeExit = page.ShowcaseAnimations;
@@ -334,18 +332,18 @@ internal sealed partial class ShellNavigationProbe
                 "拉高退出大窗时没有走过渡动画（ShowcaseAnimations 没有增加）");
         }
 
-        // 过渡收尾也读同一档：动画停下不能把浓度写回某种旧值。
+        // 过渡收尾也读同一档：动画停下不能把遮罩写回某种旧值。
         await UntilAsync(() => !page.ShowcaseAnimating);
-        Require(Math.Abs(backdrop.Opacity - page.ViewModel.BackdropOpacity) < 0.001,
-            $"回到纸面版式后背景整层不再是设置里那一档：实际 {backdrop.Opacity:0.###}");
+        Require(ScrimAlphaOf(page) == ScrimExpected(page),
+            $"回到纸面版式后遮罩不是设置里那一档：实际 {ScrimAlphaOf(page)}、该是 {ScrimExpected(page)}");
         await SaveProbeScreenAsync("detail-responsive-crop-paper.png");
 
         // 最大化那一路（窗口铺开）走同一档，浓度照旧不动。
         var animationsBeforeMaximize = page.ShowcaseAnimations;
         if (!_window!.IsMaximized) _window.ToggleMaximize();
         await UntilAsync(() => page.ViewModel.Showcase && !page.ShowcaseAnimating);
-        Require(Math.Abs(backdrop.Opacity - page.ViewModel.BackdropOpacity) < 0.001,
-            $"最大化后背景整层不再是设置里那一档：实际 {backdrop.Opacity:0.###}");
+        Require(ScrimAlphaOf(page) == ScrimExpected(page),
+            $"最大化后遮罩不是设置里那一档：实际 {ScrimAlphaOf(page)}、该是 {ScrimExpected(page)}");
         if (HomeMotion.AnimationsEnabled)
         {
             Require(page.ShowcaseAnimations > animationsBeforeMaximize,
@@ -357,8 +355,8 @@ internal sealed partial class ShellNavigationProbe
         var animationsBeforeRestore = page.ShowcaseAnimations;
         _window.ToggleMaximize();
         await UntilAsync(() => !page.ViewModel.Showcase && !page.ShowcaseAnimating);
-        Require(Math.Abs(backdrop.Opacity - page.ViewModel.BackdropOpacity) < 0.001,
-            $"还原后背景整层不再是设置里那一档：实际 {backdrop.Opacity:0.###}");
+        Require(ScrimAlphaOf(page) == ScrimExpected(page),
+            $"还原后遮罩不是设置里那一档：实际 {ScrimAlphaOf(page)}、该是 {ScrimExpected(page)}");
         if (HomeMotion.AnimationsEnabled)
         {
             Require(page.ShowcaseAnimations > animationsBeforeRestore,

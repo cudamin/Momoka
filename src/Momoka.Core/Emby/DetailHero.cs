@@ -401,8 +401,8 @@ public static class DetailHero
     /// <summary>
     /// 背景那张图的不透明度：常态 0.9 —— 压暗那么一档，亮图不把标题栏那一行字吃掉。
     /// <para>
-    /// 2026-11-06 起只有 MoviePilot 订阅／媒体页还读它：Emby 详情页那一档改成用户设置里的直接读数
-    /// （<c>UiSettings.BackdropOpacity</c>，出厂 40%），普通与沉浸共用同一个数。
+    /// 2026-11-06 起只有 MoviePilot 订阅／媒体页还读它：Emby 详情页那一格改成用户设置里的强度
+    /// （<c>UiSettings.BackdropOpacity</c>，出厂 40%，0 不遮不糊、100 遮罩完全不透明），普通与沉浸共用同一个数。
     /// </para>
     /// </summary>
     public const double BackdropOpacity = 0.9;
@@ -414,6 +414,10 @@ public static class DetailHero
     /// <para>
     /// 只抬 0.06：再往上就是「满图」，而常态那一档的 0.9 是用户看过并留下的（2026-09-12「0.9 是原来的 0.6
     /// 抬上来的」），两档之间该看得出是同一个页面的两种状态，不是两张不同的图。
+    /// </para>
+    /// <para>
+    /// 2026-11-06 起 Emby 详情页不再读它（那一档改成设置里的强度，普通与沉浸共用一个数）；留着的是 MoviePilot
+    /// 媒体页那条按图铺底的版式，它没有用户设置可读。
     /// </para>
     /// </summary>
     public const double ShowcaseBackdropOpacity = 0.96;
