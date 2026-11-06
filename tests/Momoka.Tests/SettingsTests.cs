@@ -48,6 +48,7 @@ internal static partial class SettingsTests
             finally { Directory.Delete(directory, recursive: true); }
         });
         RegisterMigration();
+        RegisterReviewMigration();
         RegisterNormalize();
         RegisterReset();
         RegisterBackup();

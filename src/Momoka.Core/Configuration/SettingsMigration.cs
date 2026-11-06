@@ -247,6 +247,7 @@ public static class SettingsMigration
             // 加粗=on deserialized it into SubtitleBold already, and this must override that to off.
             var priorBold = version >= 13
                 && root.TryGetProperty("Playback", out var priorPlayback)
+                && priorPlayback.ValueKind == JsonValueKind.Object
                 && (ReadBool(priorPlayback, "SubtitleBold") ?? false);
             settings.Playback.SubtitleBold = priorBold;
         }
@@ -297,8 +298,17 @@ public static class SettingsMigration
         // spreading over the new default→100 range.
         if (version < 27)
         {
-            var raised = double.IsFinite(settings.Ui.BackdropOpacity)
-                ? Math.Clamp(settings.Ui.BackdropOpacity, 0, 100) : 0;
+            // Repair/initializer already supplied today's 40 for an absent old field. The old
+            // default was zero; use the original document so a missing value is not raised twice.
+            var priorUi = root.EnumerateObject().LastOrDefault(property =>
+                property.Name.Equals("Ui", StringComparison.OrdinalIgnoreCase)).Value;
+            var priorOpacity = priorUi.ValueKind == JsonValueKind.Object
+                ? priorUi.EnumerateObject().LastOrDefault(property =>
+                    property.Name.Equals("BackdropOpacity", StringComparison.OrdinalIgnoreCase)).Value : default;
+            var raised = priorOpacity.ValueKind == JsonValueKind.Number
+                && priorOpacity.TryGetDouble(out var storedOpacity)
+                && double.IsFinite(storedOpacity)
+                    ? Math.Clamp(storedOpacity, 0, 100) : 0;
             settings.Ui.BackdropOpacity = Math.Round(
                 UiSettings.DefaultBackdropOpacity
                     + (100 - UiSettings.DefaultBackdropOpacity) * raised / 100, 1);
