@@ -188,10 +188,10 @@ internal sealed partial class ShellNavigationProbe
                         var posterLeft = posterControl.TransformToVisual(content).TransformPoint(default).X;
                         var proseLeft = prose.TransformToVisual(content).TransformPoint(default).X;
                         var heroTop = heroContent.TransformToVisual(content).TransformPoint(default).Y;
-                        Require(Math.Abs(posterLeft - proseLeft) < 1 && Math.Abs(posterLeft - 44) < 1,
+                        Require(Math.Abs(posterLeft - proseLeft) < 1 && Math.Abs(posterLeft - 32) < 1,
                             $"{type} {width} 剧情说明未与封面左沿对齐：封面 {posterLeft:0.##}／说明 {proseLeft:0.##}");
-                        Require(Math.Abs(heroTop - DetailHero.Between(12, 0, view.Squeeze)) < 1,
-                            $"{type} {width} 头部未再次上移 8：顶 {heroTop:0.##}");
+                        Require(Math.Abs(heroTop - 20) < 1,
+                            $"{type} {width} 头部未保持面包屑等距留白：顶 {heroTop:0.##}");
                         var posterTop = posterControl.TransformToVisual(content).TransformPoint(default).Y;
                         Require(posterTop >= -0.5 && heroTop >= -0.5,
                             $"{type} {width} 上移后内容超出页面顶边：封面 {posterTop:0.##}／头部 {heroTop:0.##}");
@@ -203,17 +203,21 @@ internal sealed partial class ShellNavigationProbe
                             var heroLayout = Get<Grid>(page, "HeroLayout");
                             var finalLayoutHeight = heroLayout.Height;
                             var finalBandHeight = band.Height;
+                            var coverButton = Get<Button>(page, "CoverButton");
+                            var finalAlignment = coverButton.VerticalAlignment;
                             try
                             {
-                                // 内容在带子里靠下对齐；旧带高也补回8，才能还原旧坐标而不挤压内容。
-                                band.Height = finalBandHeight + 8;
-                                heroLayout.Height = finalLayoutHeight + 8;
-                                heroContent.Margin = new Thickness(finalInset.Left, finalInset.Top + 8, finalInset.Right, finalInset.Bottom);
+                                var oldInset = DetailHero.Between(12, 0, view.Squeeze);
+                                var delta = oldInset - finalInset.Top;
+                                band.Height = finalBandHeight + delta;
+                                heroLayout.Height = finalLayoutHeight + delta;
+                                heroContent.Margin = new Thickness(44, oldInset, 76, finalInset.Bottom);
+                                coverButton.VerticalAlignment = VerticalAlignment.Center;
                                 await LayoutAsync(page);
                                 var oldLeft = posterControl.TransformToVisual(content).TransformPoint(default).X;
                                 var oldTop = heroContent.TransformToVisual(content).TransformPoint(default).Y;
-                                Require(Math.Abs(oldLeft - proseLeft) < 1 && Math.Abs(oldTop - heroTop - 8) < 1,
-                                    $"{type} 上一版布局反例没有产生上偏8或左沿改变：{oldLeft:0.##}／{oldTop:0.##}");
+                                Require(Math.Abs(oldLeft - proseLeft - 12) < 1 && Math.Abs(oldTop - heroTop - delta) < 1,
+                                    $"{type} 上一版布局反例没有还原44左沿与旧顶边：{oldLeft:0.##}／{oldTop:0.##}");
                                 await SaveProbeScreenAsync($"detail-position-{type}-before.png");
                             }
                             finally
@@ -221,6 +225,7 @@ internal sealed partial class ShellNavigationProbe
                                 heroContent.Margin = finalInset;
                                 heroLayout.Height = finalLayoutHeight;
                                 band.Height = finalBandHeight;
+                                coverButton.VerticalAlignment = finalAlignment;
                             }
                             await LayoutAsync(page);
                             Require(Math.Abs(posterControl.TransformToVisual(content).TransformPoint(default).X - proseLeft) < 1,
@@ -241,7 +246,7 @@ internal sealed partial class ShellNavigationProbe
                         if (width == 1280)
                         {
                             // 1280 是这一组里最宽的一档：宽度曲线已经起了头（约三成），但还没收到最紧 ——
-                            // 带子比 336 矮、比 312 高，面板在 24 与 8 之间。1440 以上一分不收那一段在 Core
+                            // 面板在24与8之间，顶部等距留白固定；1440以上不收底部的那段在Core。
                             // 的单测里（副屏的逻辑宽只有 1280）。
                             Require(view.Squeeze > 0.25 && view.Squeeze < 0.5,
                                 $"{type} 1280：这一档该收三成上下，实际 {view.Squeeze:0.##}");
@@ -253,9 +258,9 @@ internal sealed partial class ShellNavigationProbe
 
                         if (width == 1024)
                         {
-                            // 最紧那一档：头部两道留白 12／24 → 0／12，面板 24 → 8。
-                            Require(Math.Abs(band.ActualHeight - DetailHero.WideHeight(view.HeroContent, 0, 12)) < 1.5,
-                                $"{type} 1024：头部留白应收到 0/12，实际 {band.ActualHeight:0.##}");
+                            // 最紧那一档：顶部20固定，底部24→12，面板24→8。
+                            Require(Math.Abs(band.ActualHeight - DetailHero.WideHeight(view.HeroContent, 20, 12)) < 1.5,
+                                $"{type} 1024：头部留白应为20/12，实际 {band.ActualHeight:0.##}");
                             Require(Math.Abs(pickers.Padding.Top - DetailHero.TailPadTight) < 0.01,
                                 $"{type} 1024：面板上下该收到 8，实际 {pickers.Padding.Top:0.##}");
                         }

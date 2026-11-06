@@ -1119,6 +1119,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public VerticalAlignment HeroContentAlignment => HeroCard ? VerticalAlignment.Top : VerticalAlignment.Bottom;
 
+    /// <summary>默认宽详情封面顶对齐，避免较高的信息列把封面居中下推；单集保留原布局。</summary>
+    public VerticalAlignment CoverAlignment => IsEpisodePage ? VerticalAlignment.Center : VerticalAlignment.Top;
+
     /// <summary>
     /// 右上角艺术图这一次的上限盒宽，默认 360，窗口超过 1280 后逐步放大至 540，
     /// （<see cref="DetailHero.CornerWidth"/>，这个数只在那里写一遍），以下让位给题栏
@@ -1288,7 +1291,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 收到 24，和页边那 60、顶上那 28 一个量级。
     /// </para>
     /// <para>
-    /// 电影、剧、季宽版式随窗口收窄压缩留白；2026-11-06 左移16，上移8后追加再上移8。
+    /// 默认宽详情封面与剧情左沿统一32；顶部20接面包屑模板留白，封面上距与左距一致。
     /// 左沿取剧情说明的实际文字左沿；右侧补回同样的距离，保持封面、片名与按钮区域原有宽度。
     /// </para>
     /// <para>
@@ -1316,7 +1319,7 @@ public sealed partial class DetailViewModel : PageViewModel
                 : new(
                     TailInset.Left + OverviewPanelPadding.Left,
                     DetailHero.Between(DetailHero.HeroTopRoom, DetailHero.HeroTopTight, Squeeze),
-                    76,
+                    88,
                     DetailHero.Between(DetailHero.HeroBottomRoom, DetailHero.HeroBottomTight, Squeeze));
 
     /// <summary>
@@ -1349,11 +1352,11 @@ public sealed partial class DetailViewModel : PageViewModel
         : HeroCard
             ? new(StackLeft, 12, StackLeft, 0)
             : new(
-                20,
+                8,
                 IsEpisodePage
                     ? 12
                     : DetailHero.Between(DetailHero.TailTopRoom, DetailHero.TailTopTight, Squeeze),
-                20,
+                32,
                 4);
 
     /// <summary>
@@ -2626,6 +2629,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
         // 片名那一叠靠上还是靠下（HeroContentAlignment）也是这句「是不是集页」的一句话，同一宗。
         OnPropertyChanged(nameof(HeroContentAlignment));
+        OnPropertyChanged(nameof(CoverAlignment));
 
         // 片名那一栏里的那排键和那一条断点进度（ColumnActions/WideProgress）如今只按宽窄收放
         // （PageWidth 那一头有通知），跟「是不是集页」不再相干；还相干的是「视频：…」那一行让不让位给

@@ -271,6 +271,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectSearchPolish", "搜索布局回归", SearchHeaderLayoutAsync);
         AddCheck("InspectDetailResponsive", "详情布局回归", DetailResponsiveAsync);
         AddCheck("InspectDetailResize", "详情连续缩放回归", DetailResizeAsync);
+        AddCheck("InspectDetailCoverGap", "详情封面等距", DetailCoverGapAsync);
         Add("InspectDone", "结束检查", () => { finished.TrySetResult(); return Task.CompletedTask; });
         frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services, "离线示例"));
         await LayoutAsync(layout);

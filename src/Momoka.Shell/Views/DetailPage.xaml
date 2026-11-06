@@ -382,6 +382,7 @@
                             MinHeight="0"
                             MinWidth="0"
                             Padding="0"
+                            VerticalAlignment="{x:Bind ViewModel.CoverAlignment, Mode=OneWay}"
                             ToolTipService.ToolTip="{x:Bind ViewModel.TitleTip, Mode=OneWay}">
                             <Button.Resources>
                                 <SolidColorBrush x:Key="ButtonBackground" Color="Transparent" />
