@@ -39,14 +39,14 @@ internal sealed partial class ShellNavigationProbe
 
         var series = Series();
         series.Overview = ResponsiveOverview;
-        series.People = [new() { Name = "离线导演", Type = "Director" }];
+        series.People = [new() { Id = "person", Name = "离线导演", Type = "Director" }];
         series.BackdropImageTags.Add("fixture");
         series.ImageTags["Primary"] = "fixture";
         series.ImageTags["Art"] = "fixture";
 
         var season = Season("a");
         season.Overview = ResponsiveOverview;
-        season.People = [new() { Name = "离线导演", Type = "Director" }];
+        season.People = [new() { Id = "person", Name = "离线导演", Type = "Director" }];
         season.BackdropImageTags.Add("fixture");
         season.ImageTags["Primary"] = "fixture";
         season.ImageTags["Art"] = "fixture";
@@ -57,7 +57,7 @@ internal sealed partial class ShellNavigationProbe
             Name = "离线测试电影 · 窄窗响应",
             Type = EmbyItemType.Movie,
             Overview = ResponsiveOverview,
-            People = [new() { Name = "离线导演", Type = "Director" }],
+            People = [new() { Id = "person", Name = "离线导演", Type = "Director" }],
             RunTimeTicks = TimeSpan.FromMinutes(45).Ticks
         };
         movie.BackdropImageTags.Add("fixture");
@@ -84,6 +84,7 @@ internal sealed partial class ShellNavigationProbe
             if (path.EndsWith("/Items/show", StringComparison.Ordinal)) return Task.FromResult(Json(series));
             if (path.EndsWith("/Episodes", StringComparison.Ordinal))
                 return Task.FromResult(Json(new { Items = new[] { episode } }));
+            if (path.EndsWith("/Similar", StringComparison.Ordinal)) return Task.FromResult(Items(2, 2, "similar"));
             return Task.FromResult(FakeTransport.Standard(request));
         };
 
@@ -190,6 +191,14 @@ internal sealed partial class ShellNavigationProbe
                         var heroTop = heroContent.TransformToVisual(content).TransformPoint(default).Y;
                         Require(Math.Abs(posterLeft - proseLeft) < 1 && Math.Abs(posterLeft - 32) < 1,
                             $"{type} {width} 剧情说明未与封面左沿对齐：封面 {posterLeft:0.##}／说明 {proseLeft:0.##}");
+                        var sheet = Get<StackPanel>(page, "BodySheet");
+                        foreach (var panel in sheet.Children.OfType<StackPanel>().Where(panel => panel.Visibility == Visibility.Visible))
+                        {
+                            var head = panel.Children.OfType<ShelfHead>().First();
+                            var left = head.TransformToVisual(content).TransformPoint(default).X;
+                            Require(Math.Abs(left - posterLeft) < 1,
+                                $"{type} {width} 下方{panel.Name}未与封面对齐：{left:0.##}/{posterLeft:0.##}");
+                        }
                         Require(Math.Abs(heroTop - 20) < 1,
                             $"{type} {width} 头部未保持面包屑等距留白：顶 {heroTop:0.##}");
                         var posterTop = posterControl.TransformToVisual(content).TransformPoint(default).Y;
@@ -401,6 +410,13 @@ internal sealed partial class ShellNavigationProbe
         }
 
         await SaveProbeScreenAsync("detail-responsive-maximized.png");
+        var maximizedSheet = Get<StackPanel>(page, "BodySheet");
+        foreach (var panel in maximizedSheet.Children.OfType<StackPanel>().Where(panel => panel.Visibility == Visibility.Visible))
+        {
+            var head = panel.Children.OfType<ShelfHead>().First();
+            Require(Math.Abs(head.TransformToVisual(page).TransformPoint(default).X - 32) < 1,
+                $"最大化下方{panel.Name}未与封面对齐");
+        }
 
         var animationsBeforeRestore = page.ShowcaseAnimations;
         _window.ToggleMaximize();

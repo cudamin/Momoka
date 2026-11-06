@@ -25,6 +25,7 @@ internal sealed partial class ShellNavigationProbe
         series.ProductionYear = 2014;
         series.CommunityRating = 7.2f;
         series.OfficialRating = "TV-14";
+        series.People = [new() { Id = "person", Name = "离线演员", Type = "Actor", PrimaryImageTag = "fixture" }];
         series.BackdropImageTags.Add("fixture");
         series.ImageTags["Primary"] = "fixture";
         series.ImageTags["Logo"] = "fixture";
@@ -56,6 +57,7 @@ internal sealed partial class ShellNavigationProbe
             if (path.EndsWith("/Items/show", StringComparison.Ordinal)) return Task.FromResult(Json(series));
             if (path.EndsWith("/Episodes", StringComparison.Ordinal))
                 return Task.FromResult(Json(new { Items = new[] { episode } }));
+            if (path.EndsWith("/Similar", StringComparison.Ordinal)) return Task.FromResult(Items(2, 2, "similar"));
             return Task.FromResult(FakeTransport.Standard(request));
         };
         var shell = new ShellPage();
@@ -70,7 +72,8 @@ internal sealed partial class ShellNavigationProbe
             shell.OpenDetail(DetailRequest.For(fixture.Services, series));
             var page = (DetailPage)Get<Frame>(shell, "ContentFrame").Content;
             page.AttachWindow(_window);
-            await UntilAsync(() => page.IsReady && page.ViewModel.StillImage is not null && page.ViewModel.PlateImage is not null);
+            await UntilAsync(() => page.IsReady && page.ViewModel.StillImage is not null && page.ViewModel.PlateImage is not null
+                && page.ViewModel.CastVisibility == Visibility.Visible && page.ViewModel.SimilarVisibility == Visibility.Visible);
             shell.SetTitleStrip(TitleStrip.OnScrim);
             var visit = 0;
             foreach (var width in new[] { 1280, 1100, 1024, 1280 })
@@ -89,9 +92,53 @@ internal sealed partial class ShellNavigationProbe
                 Require(Math.Abs(box.Left - (box.Top - crumb.Bottom)) < 1 && Math.Abs(box.Left - 32) < 1,
                     $"{width} 封面左右/上方留白不等：左{box.Left:0.##}，上{box.Top - crumb.Bottom:0.##}");
                 Require(Math.Abs(prose.Left - box.Left) < 1, $"{width} 剧情未与封面左沿对齐");
+                var sheet = Get<StackPanel>(page, "BodySheet");
+                var head = Get<ShelfHead>(page, "EpisodeHead");
+                var strip = Get<ShelfStrip>(page, "EpisodeStrip");
+                Require(Math.Abs(Bounds(head, shell).Left - box.Left) < 1
+                    && Math.Abs(Bounds(strip, shell).Left - box.Left) < 1,
+                    $"{width} 下方集列表标题与卡片未和封面对齐");
+                var panels = sheet.Children.OfType<StackPanel>().Where(panel => panel.Visibility == Visibility.Visible).ToArray();
+                Require(panels.Length == 5, $"下方五个组件未全部装载：{panels.Length}");
+                foreach (var bodyPanel in panels)
+                {
+                    var bodyHead = bodyPanel.Children.OfType<ShelfHead>().First();
+                    Require(Math.Abs(Bounds(bodyHead, shell).Left - box.Left) < 1,
+                        $"{width} {bodyPanel.Name} 标题起点未对齐封面");
+                    foreach (var row in bodyPanel.Children.OfType<ShelfStrip>())
+                        Require(Math.Abs(Bounds(row, shell).Left - box.Left) < 1,
+                            $"{width} {bodyPanel.Name} 卡片起点未对齐封面");
+                    readings.Add($"{width} {bodyPanel.Name}: 标题起点={Bounds(bodyHead, shell).Left:0.##}");
+                }
+                Require(Math.Abs(Bounds(Get<ItemsRepeater>(page, "InfoTable"), shell).Left - box.Left) < 1,
+                    $"{width} 信息表起点未对齐封面");
                 readings.Add($"{width}: 左距={box.Left:0.##}，上距={box.Top - crumb.Bottom:0.##}，封面顶={box.Top:0.##}，字底={crumb.Bottom:0.##}，头部顶={hero.Top:0.##}，剧情左={prose.Left:0.##}");
                 if (visit++ == 0)
                 {
+                    var finalPadding = sheet.Padding;
+                    try
+                    {
+                        sheet.Padding = new Thickness(28, finalPadding.Top, 28, finalPadding.Bottom);
+                        await LayoutAsync(shell);
+                        var oldHead = Bounds(head, shell);
+                        Require(Math.Abs(oldHead.Left - box.Left - 20) < 1,
+                            "旧正文留白没有被左对齐检查拒绝");
+                        await SaveProbeScreenAsync("detail-body-alignment-before.png");
+                    }
+                    finally { sheet.Padding = finalPadding; }
+                    await LayoutAsync(shell);
+                    Require(Math.Abs(Bounds(head, shell).Left - box.Left) < 1,
+                        "正文反例后左沿没有恢复");
+                    await SaveProbeScreenAsync("detail-body-alignment-after.png");
+                    var bodyScroll = Get<ScrollView>(page, "Body");
+                    foreach (var bodyPanel in panels)
+                    {
+                        await ScrollProbeAsync(bodyScroll, Bounds(bodyPanel, (UIElement)bodyScroll.Content).Top);
+                        await LayoutAsync(shell);
+                        await SaveProbeScreenAsync($"detail-body-alignment-{bodyPanel.Name}.png");
+                    }
+                    await ScrollProbeAsync(bodyScroll, 0);
+                    await LayoutAsync(shell);
                     var band = Get<Grid>(page, "HeroBand");
                     var layout = Get<Grid>(page, "HeroLayout");
                     var heroContent = Get<Grid>(page, "HeroContent");
