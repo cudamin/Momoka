@@ -79,7 +79,7 @@ internal static class HeroPictureLoader
         RenderAsync(source, blurRadius, token, NavigationTiming.Capture());
 
     public static async Task<BitmapImage?> RenderAsync(HeroPixels source, int blurRadius, CancellationToken token,
-        NavigationTimingRun? timing, bool gaussian = false, double bottomEnd = 0)
+        NavigationTimingRun? timing, bool gaussian = false)
     {
         token.ThrowIfCancellationRequested();
 
@@ -92,7 +92,7 @@ internal static class HeroPictureLoader
             timing?.Mark("hero-blur-begin", blurRadius);
             if (gaussian) GaussianBackdrop.Apply(pixels, source.Width, source.Height, blurRadius, token);
             else BackdropBlur.BoxBlur(pixels, source.Width, source.Height, blurRadius);
-            // 接缝高斯由页面的独立背景条跨图片与正文两侧绘制，不能先把图片内部重复模糊。
+            // 这里只处理全图效果；正文上沿的渐变由页面绘制，不改图片像素。
             timing?.Mark("hero-blur-end", blurRadius);
         }, token);
         token.ThrowIfCancellationRequested();
@@ -117,36 +117,6 @@ internal static class HeroPictureLoader
         await picture.SetSourceAsync(rendered);
         token.ThrowIfCancellationRequested();
         timing?.Mark("hero-xaml-end", checked(source.Width * source.Height));
-        return picture;
-    }
-
-    public static async Task<BitmapImage?> RenderSeamAsync(HeroPixels source, int blurRadius, bool gaussian,
-        int boundary, int rows, byte[] paper, byte shade, int imageEnd, CancellationToken token)
-    {
-        var pixels = await Task.Run(() =>
-        {
-            // 只预处理接缝核需要的源行，滚动一行不能重新卷整张图。
-            var reach = (gaussian ? (int)Math.Ceiling(Math.Max(0, blurRadius) * 3d) : Math.Max(0, blurRadius) * 3)
-                + rows * 2;
-            var from = Math.Clamp(boundary - reach, 0, source.Height - 1);
-            var end = Math.Clamp(boundary + reach, from + 1, source.Height);
-            var processed = source.Pixels.AsSpan(from * source.Width * 4, (end - from) * source.Width * 4).ToArray();
-            if (gaussian) GaussianBackdrop.Apply(processed, source.Width, end - from, blurRadius, token);
-            else BackdropBlur.BoxBlur(processed, source.Width, end - from, blurRadius);
-            return GaussianBackdrop.Seam(processed, source.Width, end - from, boundary - from, rows, paper, shade,
-                token, imageEnd - from);
-        }, token);
-        token.ThrowIfCancellationRequested();
-        using var stream = new InMemoryRandomAccessStream();
-        var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.BmpEncoderId, stream);
-        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore,
-            (uint)source.Width, (uint)Math.Max(2, rows), 96, 96, pixels);
-        await encoder.FlushAsync();
-        token.ThrowIfCancellationRequested();
-        stream.Seek(0);
-        var picture = new BitmapImage();
-        await picture.SetSourceAsync(stream);
-        token.ThrowIfCancellationRequested();
         return picture;
     }
 }

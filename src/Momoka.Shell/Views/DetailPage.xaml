@@ -222,10 +222,9 @@
                 </Border.Background>
             </Border>
 
-            <!-- 普通剧/季/电影：只画原阅读遮罩，下沿5%高斯在图片像素中完成，不加渐变。 -->
+            <!-- 普通剧/季/电影的全图阅读遮罩；正文上沿的5%渐变属于下面的 BodyRegion。 -->
             <Border x:Name="BackdropFade" Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
                     VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
-            <Border x:Name="BackdropSeam" VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
 
             <!-- 标题栏和面包屑直接接片名区域的半透明黑底，不再叠一层独立的顶部渐变。
                  LiftBackdrop 量出这一条的实际高度；PaintWash 在图上复用 HeroBand / HeroTail 的画刷，
@@ -929,10 +928,8 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <!-- 纸色与接缝高斯在文字下面绘制；接缝上下各2.5%，正文不再盖住下半条。 -->
+                    <!-- 渐变末端贴住正文上沿并向上延伸5%，不改变纸面和内容的位置。 -->
                     <Border x:Name="BodyPaper" Grid.Row="1" IsHitTestVisible="False" />
-                    <Border x:Name="BodySeam" Grid.Row="1" VerticalAlignment="Top"
-                            IsHitTestVisible="False" Visibility="Collapsed" />
 
                     <!-- 集页整段上方那一块面板的下半截（上半截是头图那一格里的 HeroCardTop）。两块的左右留白
                          完全一样（各 28），下沿就贴在尾部这一格的底上 —— 板底到正文纸面之间不再留缝：纸面和
@@ -1326,9 +1323,12 @@
                          这里的 Background 只是第一帧和设计时的值：构造函数里会换成 DetailPage 自己持有的那支
                          画刷（DetailPage.Showcase.cs），沉浸档要把它淡成尾部那道半透明黑，全局的 EgWindowBrush
                          不能改。几个面板的内边距同理（BodyPanelPadding）。 -->
+                    <Border x:Name="BodyEdgeFade" Grid.Row="1" VerticalAlignment="Top"
+                            IsHitTestVisible="False" Visibility="Collapsed" />
                     <StackPanel
                         x:Name="BodySheet"
                         Grid.Row="1"
+                        Margin="{StaticResource EgScrollBarLane}"
                         MinHeight="{x:Bind ViewModel.PaperMinHeight, Mode=OneWay}"
                         Padding="{x:Bind ViewModel.SheetPadding, Mode=OneWay}"
                         Spacing="{x:Bind ViewModel.SheetSpacing, Mode=OneWay}">

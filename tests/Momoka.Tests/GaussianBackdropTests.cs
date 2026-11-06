@@ -11,28 +11,6 @@ internal static class GaussianBackdropTests
 {
     public static void Register()
     {
-        Test("背景接缝：高斯跨图片和界面两侧，总范围5%且两端接原色", () =>
-        {
-            const int width = 4, height = 200;
-            var pixels = Enumerable.Repeat((byte)240, width * height * 4).ToArray();
-            var strip = GaussianBackdrop.Seam(pixels, width, height, 180, 10, [12, 17, 22], 0);
-            Assert.Equal(width * 10 * 4, strip.Length);
-            Assert.Equal((byte)240, strip[0]);
-            Assert.True(strip[4 * width * 4] < 240);
-            Assert.True(strip[5 * width * 4] > 12);
-            Assert.Equal((byte)12, strip[^4]);
-            Assert.Equal((byte)17, strip[^3]);
-            Assert.Equal((byte)22, strip[^2]);
-            Assert.True(Enumerable.Range(0, width * 10).All(index => strip[index * 4 + 3] == 255));
-            Assert.True(pixels.All(value => value == 240));
-            Assert.Throws<OperationCanceledException>(() => GaussianBackdrop.Seam(pixels, width, height, 180, 10,
-                [12, 17, 22], 0, new CancellationToken(true)));
-            var textured = new byte[width * height * 4];
-            for (var i = 0; i < width * height; i++) textured[i * 4] = (byte)(i % width % 2 == 0 ? 255 : 0);
-            var textureSeam = GaussianBackdrop.Seam(textured, width, height, 180, 10, [12, 17, 22], 0);
-            Assert.Equal((byte)255, textureSeam[0]);
-            Assert.True(textureSeam[width * 4] > 230);
-        });
         Test("高斯背景：缺键默认暗罩和原底色，两模式JSON与恢复独立保存", () =>
         {
             var settings = SettingsMigration.FromJson("{\"SchemaVersion\":26,\"Ui\":{}}", PassthroughSecretProtector.Instance);
@@ -70,34 +48,6 @@ internal static class GaussianBackdropTests
                 Assert.Equal((byte)expected, pixels[x * 4]);
                 Assert.Equal((byte)255, pixels[x * 4 + 3]);
             }
-        });
-        Test("背景收边：只模糊底部5%，保留上方95%像素和alpha", () =>
-        {
-            const int width = 24, height = 60;
-            var pixels = new byte[width * height * 4];
-            for (var y = 0; y < height; y++)
-                for (var x = 0; x < width; x++)
-                {
-                    var at = (y * width + x) * 4;
-                    pixels[at] = (byte)(x % 2 == 0 ? 255 : 0);
-                    pixels[at + 3] = (byte)(y + 100);
-                }
-            var original = pixels.ToArray();
-            GaussianBackdrop.ApplyBottom(pixels, width, height, 2);
-            Assert.True(original.AsSpan(0, width * 57 * 4).SequenceEqual(pixels.AsSpan(0, width * 57 * 4)));
-            Assert.True(pixels[(height - 1) * width * 4 + 8 * 4] < 200);
-            for (var at = 3; at < pixels.Length; at += 4) Assert.Equal(original[at], pixels[at]);
-            var before = pixels.ToArray();
-            Assert.Throws<OperationCanceledException>(() => GaussianBackdrop.ApplyBottom(pixels, width, height, 2, new CancellationToken(true)));
-            Assert.True(before.AsSpan().SequenceEqual(pixels));
-            var cropped = original.ToArray();
-            GaussianBackdrop.ApplyBottom(cropped, width, height, 2, end: 0.8);
-            Assert.True(original.AsSpan(0, width * 45 * 4).SequenceEqual(cropped.AsSpan(0, width * 45 * 4)));
-            Assert.True(original.AsSpan(width * 48 * 4).SequenceEqual(cropped.AsSpan(width * 48 * 4)));
-            Assert.True(cropped[width * 47 * 4 + 8 * 4] < 200);
-            var uniform = Enumerable.Repeat((byte)73, width * height * 4).ToArray();
-            GaussianBackdrop.ApplyBottom(uniform, width, height, 2);
-            Assert.True(uniform.All(value => value == 73));
         });
         Test("真高斯：纯色与alpha不变，边缘夹取没有黑圈", () =>
         {

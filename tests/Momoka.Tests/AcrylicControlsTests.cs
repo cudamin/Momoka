@@ -74,24 +74,30 @@ internal static class AcrylicControlsTests
             Assert.Contains("new SolidColorBrush(ReadingShadeColor)", code);
             Assert.False(code.Contains("LinearGradientBrush", StringComparison.Ordinal));
         });
-        Test("详情接缝：高斯位于正文文字下方，纸面让出下半带且固定图片也有跨边载体", () =>
+        Test("详情接缝：渐变贴着正文上沿，纸面和文字保持原位", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             var body = Named(page, "BodySheet");
             var paper = Named(page, "BodyPaper");
-            var seam = Named(page, "BodySeam");
-            var fixedSeam = Named(page, "BackdropSeam");
+            var seam = Named(page, "BodyEdgeFade");
             Assert.Equal(body.Parent, paper.Parent);
             Assert.Equal(body.Parent, seam.Parent);
             Assert.Null(body.Attribute("Background"));
             Assert.True(body.Parent!.Elements().ToList().IndexOf(seam) < body.Parent.Elements().ToList().IndexOf(body));
             Assert.Equal("False", (string?)seam.Attribute("IsHitTestVisible"));
-            Assert.Equal(Named(page, "Backdrop"), fixedSeam.Parent);
-            var code = Source("Views/DetailPage.Seam.cs");
-            Assert.Contains("BodyPaper.Margin = new Thickness(0, height / 2, 0, 0)", code);
-            Assert.Contains("key.PictureHeight - height / 2", code);
-            Assert.Contains("key.PictureHeight + height / 2 - paperTop", code);
-            Assert.Contains("TransformToVisual(Backdrop)", code);
+            Assert.Equal("1", (string?)seam.Attribute("Grid.Row"));
+            Assert.Null(paper.Attribute("Margin"));
+            Assert.False(Named(page, "Backdrop").Descendants().Any(element =>
+                (string?)element.Attribute(X + "Name") is "BodyEdgeFade" or "BackdropSeam"));
+        });
+        Test("详情正文：卡片给滚动条预留车道，背景纸面仍铺满", () =>
+        {
+            var page = Read("Views/DetailPage.xaml");
+            Assert.Equal("{StaticResource EgScrollBarLane}", (string?)Named(page, "BodySheet").Attribute("Margin"));
+            Assert.Null(Named(page, "BodyPaper").Attribute("Margin"));
+            Assert.Null(Named(page, "Body").Attribute("Padding"));
+            var styles = Read("Theme/Styles.xaml");
+            Assert.Equal("0,0,20,0", Resource(styles.Root!, "EgScrollBarLane").Value);
         });
         Test("主页轮播：底边没有渐变层，保留标题和侧边阅读遮罩", () =>
         {

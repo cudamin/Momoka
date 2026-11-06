@@ -99,7 +99,7 @@ public sealed partial class DetailPage : Page, IShellContent
         BackdropThemeSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => PaintBackdropFade());
         MeasureSeriesShelf();
         PrepareShowcase();
-        PrepareSeam();
+        PrepareBodyFade();
         PrepareCardLayout();
 
         // 沉浸版式那一支单独订阅：OnViewModelChanged 是 Plex 入口夹具原样提取的契约正文，往里塞这一页新加的
@@ -1737,7 +1737,6 @@ public sealed partial class DetailPage : Page, IShellContent
             services.GetRequiredService<ISettingsService>(),
             _session,
             images);
-        _seamLive = IsLoaded;
 
         // 标题栏那几处的字得跟着这一页有没有背景图翻墨色 —— 图现在画进标题栏了（见 LiftBackdrop），黑字压在
         // 一张亮剧照上读不出来。订阅是为了「图是后到的」那一路；这一句显式的调用是为了「页面被复用」那一路：
@@ -1921,7 +1920,6 @@ public sealed partial class DetailPage : Page, IShellContent
 
     public void Release()
     {
-        StopSeam();
         StopAppearance();
         StopCardLayout();
         ViewModel.Cancel();
@@ -2218,7 +2216,7 @@ public sealed partial class DetailPage : Page, IShellContent
     private void PaintWash(bool force = false)
     {
         ApplyWash(Body.VerticalOffset, force);
-        UpdateSeam();
+        UpdateBodyFade();
     }
 
     /// <summary>真正主题纸面在滚动内容里的纵坐标：头图带子加上黑色尾部的实测高度。</summary>
