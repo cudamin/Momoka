@@ -4,6 +4,8 @@
 
 以下为本轮中间状态及调查历史。
 
+开发树收尾：moviepilot-priority-fixes顶端ec843cd已逐项核34个非重叠文件等于主树，Program差异只增加其他批次入口，源树干净，原证据已复制并核哈希，已由应用归档。review-priority-fixes顶端f58cdc0为主树祖先且干净，所需忽略证据同样保存；应用拒绝归档，原文“The task's primary checkout cannot be removed.”，当前仍是本聊天受保护的主工作树，未用文件系统绕过删除。主树交付不受影响；本地分支仅master。
+
 ## 2026-11-07 优先修复最终验证通过，待本地发布
 
 原审查15项已整合；验收另确认账号聚合开关快关后On动画残留，最小补当前模板Off的X=0终态，不改基础位置或偏好。探针初始化先接入未Attach登录页并等待实际Rendered，移除/取消/Dispose后执行原用例；所有诊断实验和原红保留。最终Shell/Tests构建0/0，主Tests重新完整3943/3943、零失败零跳过；shell/accounts/moviepilot/metadata真实UI60/60，PID31196正常退出，其他114项未执行。账号重复加载幂等及4档快关全过，实屏确认；元数据、字幕、MP删除刷新均通过。CompactImages源码提取界限误含新增初始化的22编译错误已定点修提取终界，重新编译和完整测试，不删测试。日志artifacts/priority-fixes-master及shell-probe-20261106-190348771-31196/logs。待最后主树本地发布/快捷方式；无远程上传或真实服务器写入播放。
