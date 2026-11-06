@@ -1739,13 +1739,13 @@ internal static class ItemDetailTests
             Assert.Equal(0d, DetailHero.Fit(586, 588, 500));
         });
 
-        Test("窄窗：头部上移后带高常态 344，收到最紧 320", () =>
+        Test("窄窗：头部再次上移后带高常态 336，收到最紧 312", () =>
         {
-            // 海报尺寸保留；只将头部上边距减少 8。
-            Assert.Equal(344d, DetailHero.WideHeight(300, DetailHero.HeroTopRoom, DetailHero.HeroBottomRoom));
+            // 海报尺寸保留；在上次基础上将头部上边距再减少 8。
+            Assert.Equal(336d, DetailHero.WideHeight(300, DetailHero.HeroTopRoom, DetailHero.HeroBottomRoom));
 
-            // 收到最紧：8 + 12 = 20，带子 320；宽窄两档的收口余量仍是 24。
-            Assert.Equal(320d, DetailHero.WideHeight(300, DetailHero.HeroTopTight, DetailHero.HeroBottomTight));
+            // 收到最紧：0 + 12 = 12，带子 312；宽窄两档的收口余量仍是 24。
+            Assert.Equal(312d, DetailHero.WideHeight(300, DetailHero.HeroTopTight, DetailHero.HeroBottomTight));
 
             // 那一叠比海报还高的时候带子跟着长，压缩只动留白。
             Assert.Equal(472d, DetailHero.WideHeight(420, 28, 24));
