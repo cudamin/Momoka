@@ -75,7 +75,7 @@ internal sealed partial class ShellNavigationProbe
                         "隐藏聚合选项修改了偏好或在线会话");
                     Require(count > 1 || aggregateRow.ActualHeight == 0, "隐藏聚合选项留下行高");
                     if (count == 1) await SaveProbeScreenAsync($"account-menu-single-server-{_root.ActualWidth:F0}-screen.png");
-                    menu.Hide();
+                    await HideMenuAsync();
                 }
                 Require(fixture.Transport.Requests.Count == beforeVisibility, "仅改变聚合选项显隐发起了恢复请求");
             }
@@ -115,7 +115,9 @@ internal sealed partial class ShellNavigationProbe
                     && !fixture.Settings.AggregateMode && fixture.Transport.Requests.Count == requestCount,
                     "账号开关重复加载增加动画、改变偏好或触发请求");
             }
-            finally { toggle.Toggled -= OnToggled; menu.Hide(); }
+            catch { menu.Hide(); throw; }
+            finally { toggle.Toggled -= OnToggled; }
+            await HideMenuAsync();
             foreach (var width in new[] { 1100, 760, 1100, 760 })
             {
                 ResizeProbeClient(width, 850);
@@ -160,15 +162,32 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(shell);
             firstSelect = profiles.Items.OfType<Grid>().SelectMany(row => row.Children.OfType<Button>())
                 .Single(button => AutomationProperties.GetName(button) == "a.invalid · 账号甲");
-            ((IInvokeProvider)new ButtonAutomationPeer(firstSelect).GetPattern(PatternInterface.Invoke)).Invoke();
+            await UntilAsync(() => menu.IsOpen && firstSelect.IsLoaded && firstSelect.ActualWidth > 0
+                && !new ButtonAutomationPeer(firstSelect).IsOffscreen());
+            Log.Info("外壳探针", $"账号选择前：loaded={firstSelect.IsLoaded} width={firstSelect.ActualWidth:0.0} "
+                + $"offscreen={new ButtonAutomationPeer(firstSelect).IsOffscreen()}");
+            // IsOpen=false 先于 Presenter 卸载；要等 Closed，才能再次 ShowAt 同一个浮层。
+            var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            void OnClosed(object? sender, object args) => closed.TrySetResult();
+            menu.Closed += OnClosed;
+            try
+            {
+                ((IInvokeProvider)new ButtonAutomationPeer(firstSelect).GetPattern(PatternInterface.Invoke)).Invoke();
+                await closed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            }
+            finally { menu.Closed -= OnClosed; }
             await UntilAsync(() => fixture.Session.Server?.Id == firstServer.Id && fixture.Session.Account?.Id == firstAccount.Id);
+            Log.Info("外壳探针", "账号选择身份已提交");
             await SourcesReadyAsync(2);
+            Log.Info("外壳探针", "账号选择来源已就绪");
             Require(!menu.IsOpen, "选择账号后浮层没有关闭");
             Require(fixture.Session.Server?.Id == firstServer.Id && fixture.Session.Account?.Id == firstAccount.Id,
                 "点击身份行没有切换到对应服务器账号");
             await UntilAsync(() => !menu.IsOpen);
             menu.ShowAt(Get<Button>(shell, "AccountButton"));
             await LayoutAsync(shell);
+            Log.Info("外壳探针", $"账号下线菜单重开：open={menu.IsOpen} loaded={profiles.IsLoaded} "
+                + $"items={profiles.Items.Count} buttons={OfflineButtons().Length}");
             // ListView 在浮层打开后才实现行；根页面完成布局不代表新一批账号按钮已经挂树。
             await UntilAsync(() =>
             {
@@ -180,6 +199,7 @@ internal sealed partial class ShellNavigationProbe
                     && source.ServerProfileId == firstServer.Id && button.IsLoaded && button.Parent is Grid && button.ActualWidth > 0);
             });
             var target = OfflineButtons().Single(button => button.Tag is EmbySessionScope source && source.ServerProfileId == firstServer.Id);
+            Log.Info("外壳探针", "账号下线按钮已就绪");
             var targetSource = (EmbySessionScope)target.Tag;
             Require(AutomationProperties.GetAutomationId(target).StartsWith("AccountOffline:", StringComparison.Ordinal), "下线账号无法稳定定位");
             var targetRow = (Grid)target.Parent;
@@ -231,8 +251,20 @@ internal sealed partial class ShellNavigationProbe
                 menu.ShowAt(Get<Button>(shell, "AccountButton"));
                 await LayoutAsync(shell);
                 ((IToggleProvider)new ToggleSwitchAutomationPeer(toggle).GetPattern(PatternInterface.Toggle)).Toggle();
-                menu.Hide();
-                await UntilAsync(() => !menu.IsOpen);
+                await HideMenuAsync();
+            }
+
+            async Task HideMenuAsync()
+            {
+                var closed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                void OnClosed(object? sender, object args) => closed.TrySetResult();
+                menu.Closed += OnClosed;
+                try
+                {
+                    menu.Hide();
+                    await closed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+                }
+                finally { menu.Closed -= OnClosed; }
             }
 
             Task SourcesReadyAsync(int count) => UntilAsync(() => fixture.Session.Sources.Count == count
@@ -281,8 +313,7 @@ internal sealed partial class ShellNavigationProbe
                         + $"knobs={Descendants(toggle).OfType<Grid>().Count(element => element.Name == "SwitchKnob")} "
                         + $"{ProbeHostState(toggle)} waited={waited.ElapsedMilliseconds}ms samples={string.Join(",", readings)}");
                 Require(VisualTreeHelper.GetOpenPopupsForXamlRoot(shell.XamlRoot).Count > 0, "截图时账号菜单已意外关闭");
-                menu.Hide();
-                await UntilAsync(() => !menu.IsOpen);
+                await HideMenuAsync();
                 return actual;
             }
         }
