@@ -1469,7 +1469,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 正文纸面那一层的内边距（<c>BodySheet.Padding</c>）—— 默认宽详情左8加面板24，内容与封面左沿32对齐。
     /// <para>
     /// 纸面上沿紧跟着尾部最后一块（剧情说明），28 加上底下第一块自己的 24 就是「简介到 更多来自 之间那一大段
-    /// 空」的大半（2026-10-13 的截图里最显眼的一处）。右侧补20保持内容宽度；单集和紧凑档保留原左右28。
+    /// 空」的大半（2026-10-13 的截图里最显眼的一处）。左右同为8，配面板内24形成对称32的内容留白；单集和紧凑档保留原左右28。
     /// </para>
     /// <para>
     /// 沉浸档把上下收到 10 / 14：那一档没有纸，28 只是把第一块货架从剧情说明底下推开。
@@ -1477,8 +1477,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public Thickness SheetPadding => IsCompact ? new(28, 18, 28, 18)
         : IsEpisodePage ? new(28)
-        : Showcase ? new(8, DetailHero.ShowcaseSheetTop, 48, DetailHero.ShowcaseSheetBottom)
-        : new(8, 28, 48, 28);
+        : Showcase ? new(8, DetailHero.ShowcaseSheetTop, 8, DetailHero.ShowcaseSheetBottom)
+        : new(8, 28, 8, 28);
 
     /// <summary>
     /// 纸面上那几块（单集、媒体信息、剧季、相似、演职人员）之间的竖距（<c>BodySheet.Spacing</c>）——

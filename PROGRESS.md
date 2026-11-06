@@ -10780,3 +10780,9 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 075f85f先行publish/verify成功、546文件286.3MB、Shell4E1521CA/Core48A4FE9C与发布构建一致；最新正文改动仍须发布后才算桌面最终交付。证据work/detail-cover-gap-delivery与work/detail-body-align；只假HTTP和临时设置，未真实播放/写入、未上传，不是完整探针。接下来提交本轮正文改动并更新主树实际交付目录。
 
 - 主树最终桌面交付完成：产品a65261b，publish/verify退出0、546文件286.3MB，发布与发布过程的当前构建Shell/Core哈希一致；桌面快捷方式Target/WorkingDirectory均主树artifacts/publish/win-x64、参数空。回执work/detail-body-align/publish-receipt.json；定向实屏来自开发件，未冒称发布件实跑；无真实播放/写入，未上传。
+
+## 详情正文右侧留白收窄（2026-11-06，主树验证通过待发布）
+
+- 用户指出下方卡片右侧空位过大：默认宽页Sheet右48→8，左8保留；五面板右内24使内容右72→32，与左32对称，可用宽度扩40。头部、单集与紧凑分支保留。
+- 主树Shell/Tests Release零警告错误，3774/3774、0失败0跳过，四文件编码/差异通过，独立只读复审未见必要缺陷。匿名31408定向3/3：五面板外右8、标题/卡片/信息表左右32，真实Scroller.ViewportWidth同步展开；旧8/48反例左不变右縮40/恢复通过，前后及信息表实屏已目视，普通宽档/最大化/还原、三页九组130次缩放稳定。证据work/detail-right-gap；只假HTTP和临时设置，无真实播放/写入，不是完整探针。
+- 桌面发布件15084当前仍运行，已请用户关闭后继续最终发布，不擅自终止；快捷方式暂仍为a65261b。未上传。

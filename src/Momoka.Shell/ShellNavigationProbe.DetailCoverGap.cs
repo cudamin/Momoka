@@ -100,35 +100,49 @@ internal sealed partial class ShellNavigationProbe
                     $"{width} 下方集列表标题与卡片未和封面对齐");
                 var panels = sheet.Children.OfType<StackPanel>().Where(panel => panel.Visibility == Visibility.Visible).ToArray();
                 Require(panels.Length == 5, $"下方五个组件未全部装载：{panels.Length}");
+                var sheetRight = Bounds(sheet, shell).Right;
                 foreach (var bodyPanel in panels)
                 {
                     var bodyHead = bodyPanel.Children.OfType<ShelfHead>().First();
                     Require(Math.Abs(Bounds(bodyHead, shell).Left - box.Left) < 1,
                         $"{width} {bodyPanel.Name} 标题起点未对齐封面");
+                    Require(Math.Abs(sheetRight - Bounds(bodyPanel, shell).Right - 8) < 1
+                        && Math.Abs(sheetRight - Bounds(bodyHead, shell).Right - 32) < 1,
+                        $"{width} {bodyPanel.Name} 右侧留白未与左侧一致");
                     foreach (var row in bodyPanel.Children.OfType<ShelfStrip>())
+                    {
                         Require(Math.Abs(Bounds(row, shell).Left - box.Left) < 1,
                             $"{width} {bodyPanel.Name} 卡片起点未对齐封面");
-                    readings.Add($"{width} {bodyPanel.Name}: 标题起点={Bounds(bodyHead, shell).Left:0.##}");
+                        Require(Math.Abs(sheetRight - Bounds(row, shell).Right - 32) < 1
+                            && Math.Abs(Get<ScrollView>(row, "Scroller").ViewportWidth - row.ActualWidth) < 1,
+                            $"{width} {bodyPanel.Name} 卡片右沿或滚动视口未展开");
+                    }
+                    readings.Add($"{width} {bodyPanel.Name}: 左距={Bounds(bodyHead, shell).Left:0.##}，右距={sheetRight - Bounds(bodyHead, shell).Right:0.##}");
                 }
-                Require(Math.Abs(Bounds(Get<ItemsRepeater>(page, "InfoTable"), shell).Left - box.Left) < 1,
-                    $"{width} 信息表起点未对齐封面");
+                var infoBox = Bounds(Get<ItemsRepeater>(page, "InfoTable"), shell);
+                Require(Math.Abs(infoBox.Left - box.Left) < 1 && Math.Abs(sheetRight - infoBox.Right - 32) < 1,
+                    $"{width} 信息表左右留白未对齐");
                 readings.Add($"{width}: 左距={box.Left:0.##}，上距={box.Top - crumb.Bottom:0.##}，封面顶={box.Top:0.##}，字底={crumb.Bottom:0.##}，头部顶={hero.Top:0.##}，剧情左={prose.Left:0.##}");
                 if (visit++ == 0)
                 {
                     var finalPadding = sheet.Padding;
+                    var finalHead = Bounds(head, shell);
                     try
                     {
-                        sheet.Padding = new Thickness(28, finalPadding.Top, 28, finalPadding.Bottom);
+                        sheet.Padding = new Thickness(8, finalPadding.Top, 48, finalPadding.Bottom);
                         await LayoutAsync(shell);
                         var oldHead = Bounds(head, shell);
-                        Require(Math.Abs(oldHead.Left - box.Left - 20) < 1,
-                            "旧正文留白没有被左对齐检查拒绝");
+                        Require(Math.Abs(oldHead.Left - finalHead.Left) < 1
+                            && Math.Abs(finalHead.Right - oldHead.Right - 40) < 1,
+                            "旧正文右侧空位没有被对称留白检查拒绝");
+                        readings.Add($"旧正文: 左距={oldHead.Left:0.##}，右距={sheetRight - oldHead.Right:0.##}；右侧扩展={finalHead.Right - oldHead.Right:0.##}");
                         await SaveProbeScreenAsync("detail-body-alignment-before.png");
                     }
                     finally { sheet.Padding = finalPadding; }
                     await LayoutAsync(shell);
-                    Require(Math.Abs(Bounds(head, shell).Left - box.Left) < 1,
-                        "正文反例后左沿没有恢复");
+                    Require(Math.Abs(Bounds(head, shell).Left - box.Left) < 1
+                        && Math.Abs(Bounds(head, shell).Right - finalHead.Right) < 1,
+                        "正文反例后左右沿没有恢复");
                     await SaveProbeScreenAsync("detail-body-alignment-after.png");
                     var bodyScroll = Get<ScrollView>(page, "Body");
                     foreach (var bodyPanel in panels)

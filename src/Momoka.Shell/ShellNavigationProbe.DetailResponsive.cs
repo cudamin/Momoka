@@ -198,6 +198,9 @@ internal sealed partial class ShellNavigationProbe
                             var left = head.TransformToVisual(content).TransformPoint(default).X;
                             Require(Math.Abs(left - posterLeft) < 1,
                                 $"{type} {width} 下方{panel.Name}未与封面对齐：{left:0.##}/{posterLeft:0.##}");
+                            var right = head.TransformToVisual(content).TransformPoint(new(head.ActualWidth, 0)).X;
+                            Require(Math.Abs(view.PageWidth - right - 32) < 1,
+                                $"{type} {width} 下方{panel.Name}右侧空位未收至32：{view.PageWidth - right:0.##}");
                         }
                         Require(Math.Abs(heroTop - 20) < 1,
                             $"{type} {width} 头部未保持面包屑等距留白：顶 {heroTop:0.##}");
@@ -416,6 +419,9 @@ internal sealed partial class ShellNavigationProbe
             var head = panel.Children.OfType<ShelfHead>().First();
             Require(Math.Abs(head.TransformToVisual(page).TransformPoint(default).X - 32) < 1,
                 $"最大化下方{panel.Name}未与封面对齐");
+            var right = head.TransformToVisual(page).TransformPoint(new(head.ActualWidth, 0)).X;
+            Require(Math.Abs(page.ViewModel.PageWidth - right - 32) < 1,
+                $"最大化下方{panel.Name}右侧留白未与左侧一致");
         }
 
         var animationsBeforeRestore = page.ShowcaseAnimations;
