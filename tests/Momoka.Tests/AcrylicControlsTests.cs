@@ -57,7 +57,7 @@ internal static class AcrylicControlsTests
             Assert.False(style.Elements().Any(row => (string?)row.Attribute("Property") == "Template"));
             Assert.True(style.Descendants().Any(row => row.Name.LocalName == "DetailMenuBackdrop"));
         });
-        Test("详情背景：阅读遮罩保持单层，底边渐变单独取主题色", () =>
+        Test("详情背景：阅读遮罩保持单层，底部不画渐变", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             var backdrop = Named(page, "Backdrop");
@@ -74,35 +74,20 @@ internal static class AcrylicControlsTests
             Assert.Contains("new SolidColorBrush(ReadingShadeColor)", code);
             Assert.False(code.Contains("LinearGradientBrush", StringComparison.Ordinal));
         });
-        Test("详情接缝：0.2.1四段64DIP渐变固定在图片底部并随主题换色", () =>
+        Test("详情接缝：移除底部渐变，纸面和正文布局保持原位", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             var body = Named(page, "BodySheet");
             var paper = Named(page, "BodyPaper");
-            var seam = Named(page, "BackdropEdgeFade");
-            var backdrop = Named(page, "Backdrop");
             Assert.Equal(body.Parent, paper.Parent);
-            Assert.Equal(backdrop, seam.Parent);
             Assert.Null(body.Attribute("Background"));
-            Assert.True(backdrop.Elements().ToList().IndexOf(seam) > backdrop.Elements().ToList().IndexOf(Named(page, "BackdropFade")));
-            Assert.Equal("False", (string?)seam.Attribute("IsHitTestVisible"));
-            Assert.Equal("Top", (string?)seam.Attribute("VerticalAlignment"));
-            Assert.Null(seam.Attribute("Grid.Row"));
             Assert.Null(paper.Attribute("Margin"));
-            Assert.False(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "BodyEdgeFade"));
-            var code = Source("Views/DetailPage.BackdropEdgeFade.cs");
-            Assert.Contains("BackdropEdgeFadeHeight = 64", code);
-            Assert.Contains("Math.Min(pictureHeight, BackdropEdgeFadeHeight)", code);
-            Assert.Contains("Offset = 0.42", code);
-            Assert.Contains("Offset = 0.78", code);
-            Assert.Contains("new Thickness(0, pictureHeight - height, 0, 0)", code);
-            Assert.Contains("BackdropThemeSource.Background is SolidColorBrush theme ? theme.Color : PaperColor", code);
-            Assert.Contains("Color.FromArgb(0, color.R, color.G, color.B)", code);
-            Assert.Contains("Color.FromArgb(0xA6, color.R, color.G, color.B)", code);
-            Assert.Contains("Color.FromArgb(0xE8, color.R, color.G, color.B)", code);
-            Assert.Contains("brush.GradientStops[3].Color = color", code);
-            Assert.Contains("RegisterPropertyChangedCallback(Border.BackgroundProperty", code);
-            Assert.False(code.Contains("TranslateTransform", StringComparison.Ordinal));
+            Assert.False(page.Descendants().Any(element =>
+                (string?)element.Attribute(X + "Name") is "BackdropEdgeFade" or "BodyEdgeFade" or "BackdropSeam"));
+            Assert.False(Named(page, "Backdrop").Descendants(Xaml + "LinearGradientBrush").Any());
+            var code = Source("Views/DetailPage.xaml.cs");
+            Assert.False(code.Contains("PrepareBackdropEdgeFade", StringComparison.Ordinal));
+            Assert.False(code.Contains("UpdateBackdropEdgeFade", StringComparison.Ordinal));
         });
         Test("详情操作：0.2.1默认背景仅恢复到操作按钮，选择框保持现有设置", () =>
         {

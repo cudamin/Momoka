@@ -226,10 +226,6 @@
             <Border x:Name="BackdropFade" Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
                     VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
 
-            <!-- 参考0.2.1的64 DIP四段渐深，末端接主题底色，与图片一起固定在背景中。 -->
-            <Border x:Name="BackdropEdgeFade" VerticalAlignment="Top"
-                    IsHitTestVisible="False" Visibility="Collapsed" />
-
             <!-- 标题栏和面包屑直接接片名区域的半透明黑底，不再叠一层独立的顶部渐变。
                  LiftBackdrop 量出这一条的实际高度；PaintWash 在图上复用 HeroBand / HeroTail 的画刷，
                  正文滚上来时再按纸面位置接色。不接指针，保留标题栏拖动。 -->
