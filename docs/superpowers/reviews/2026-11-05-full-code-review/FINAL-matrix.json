@@ -1,0 +1,2291 @@
+{
+  "reviewHead": "042cea9e8c06c6ec7bdcd52dd8b90b9d0a48143a",
+  "masterSnapshot": "4d3d60b66456f2db89a60f9bba1b58f924fab6cf",
+  "projects": [
+    {
+      "index": 1,
+      "project": "src/Momoka.Core/Momoka.Core.csproj",
+      "kind": "production",
+      "inSolution": true,
+      "registered": false,
+      "stableStatus": "当前FINAL匿名观察随真实Core Release编译0/0；R17旧专项编译另存；非全量",
+      "originalStatus": "R17随专项当前Release编译0/0；不是全量/交付",
+      "history": [
+        {
+          "status": "R02当前Release构建通过；0警告/0错误，无产品启动",
+          "evidence": "R02.md"
+        },
+        {
+          "status": "R03当前bc3f62d产品Release编译通过，0警告/0错误；不启动产品",
+          "evidence": "R03.md"
+        },
+        {
+          "status": "R04当前Release编译0警告0错误；Core SHA256 773fcc0f，产品未改",
+          "evidence": "R04.md",
+          "productBase": "bc3f62d756efa886a14f9b58fb207adec1a0da11",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R04/20261106-first"
+        },
+        {
+          "status": "R04最终5951bba组合Release编译0警告0错误；Core SHA256 363104c8，本会话未改产品；另一会话漂移后复编并定向复跑，见final-current；原同项不重复计数",
+          "evidence": "R04.md",
+          "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35"
+        },
+        {
+          "status": "R05当前5951bba产品Release重新编译0警告0错误；匿名反例11项成立，未修产品",
+          "evidence": "R05.md",
+          "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35"
+        },
+        {
+          "status": "R06源码无漂移，复用R05当前Release编译并核DLL哈希；211项Core子集通过、9条匿名反例成立，未修",
+          "evidence": "R06.md",
+          "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+        },
+        {
+          "status": "R07最终b8c1d61/ac4e3fa组合复编复跑；R07当前Release重新编译0警告0错误；386项Core子集通过；产品未修",
+          "evidence": "R07.md"
+        },
+        {
+          "partition": "R08",
+          "status": "R08 当前Release随主Tests重编0警告0错误；11个完整Register238执行全过",
+          "evidence": "R08.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+        },
+        {
+          "partition": "R09",
+          "status": "R09随主Tests当前Release重编0警告0错误；匿名定向683执行含重叠全过，8组缺陷采证成立",
+          "evidence": "R09.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        {
+          "partition": "R10",
+          "status": "R10本轮Release重编0警告0错误；6入口413执行全过含重叠，8项问题匿名采证成立但未修",
+          "evidence": "R10.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+        },
+        {
+          "partition": "R11",
+          "status": "R11当前Release重编0警告0错误；19Register202及18Playback方法153通过；实际Core匿名include反例成立，4问题未修",
+          "evidence": "R11.md",
+          "productBase": "12e99d88193b44e7dce4410ecfe3f098d5bb4701",
+          "evidenceRoot": "artifacts/review/12e99d8/R11/20261106-first"
+        },
+        {
+          "status": "R11当前Release重编0警告0错误；19Register202及18Playback方法153通过；实际Core匿名include反例成立，4问题未修",
+          "evidence": "R11.md"
+        },
+        {
+          "partition": "R12",
+          "status": "R12当前Release/x64编译0警告0错误；音视频/Shader定向151过及匿名反例成立；5P2未修",
+          "evidence": "R12.md",
+          "productBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+          "evidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+        },
+        {
+          "status": "R12当前Release/x64编译0警告0错误；音视频/Shader定向151过及匿名反例成立；5P2未修",
+          "evidence": "R12.md"
+        },
+        {
+          "partition": "R14",
+          "previousStatus": "R13当前Release/x64编译0警告0错误；subtitle定向/原生观察，7P2+1P3未修",
+          "evidence": "R14-verification.json"
+        },
+        {
+          "status": "R14当前Release编译0警告0错误；非全方案/交付",
+          "evidence": "R14-verification.json"
+        },
+        {
+          "preservedCurrentMetadata": {
+            "currentProductBase": "a998403dbab9cd9e7caf34777ec23a64a3189526",
+            "currentEvidenceRoot": "artifacts/review/a998403/R14/20261106-first"
+          },
+          "evidence": "R15当前字段更新前"
+        },
+        {
+          "status": "R15当前Release/x64编译0警告0错误；匿名管理/通知/重鉴权实际链观察，不是全量/交付",
+          "evidence": "R15-verification.json",
+          "productBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+          "evidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R16当前Release/x64编译0/0；正式匿名357执行与反射76分列，非全量/交付",
+            "reviewEvidence": "R16-verification.json",
+            "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+            "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": [
+        "FINAL-verification.json",
+        "R17-verification.json"
+      ],
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 2,
+      "project": "src/Momoka.Shell/Momoka.Shell.csproj",
+      "kind": "production",
+      "inSolution": true,
+      "registered": false,
+      "stableStatus": "R17编译120秒超时124，未采用旧DLL；R16编译0/0仅历史",
+      "originalStatus": "R17当前Shell编译外层120s超时124；未采用旧DLL；不更新旧通过为绿",
+      "history": [
+        {
+          "status": "R02当前x64 Release构建通过；0警告/0错误，无App/WinUI启动",
+          "evidence": "R02.md"
+        },
+        {
+          "status": "R03接入master后x64 Release Rebuild通过0/0；实际VM匿名运行，不是WinUI",
+          "evidence": "R03.md",
+          "productBase": null
+        },
+        {
+          "status": "R05当前5951bba产品Release重新编译0警告0错误；仅托管DLL供68项Plex能力夹具，不启动WinUI",
+          "evidence": "R05.md",
+          "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35"
+        },
+        {
+          "status": "R06源码无漂移，复用R05当前Release并核哈希；真实VM四专项87项通过，反例见报告；非UI验收",
+          "evidence": "R06.md",
+          "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+        },
+        {
+          "status": "R07最终b8c1d61/ac4e3fa组合复编复跑；R07原删除wrapper内当前Release重编0警告0错误；实际托管VM及原样命令采证，非UI验收",
+          "evidence": "R07.md"
+        },
+        {
+          "partition": "R08",
+          "status": "R08 当前x64 Release重编0警告0错误；匿名反射/检查台接线，不启动WinUI",
+          "evidence": "R08.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+        },
+        {
+          "partition": "R09",
+          "status": "R09源码未变复用R08当前Release同哈希；生成绑定17过；真实LibraryVM匿名重读采证，非WinUI",
+          "evidence": "R09.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        {
+          "partition": "R11",
+          "status": "R11主责Shell全文和共享成员已读；本轮未构建/加载Shell，提取完整暂停方法边界观察不是WinUI验收",
+          "evidence": "R11.md",
+          "productBase": "12e99d88193b44e7dce4410ecfe3f098d5bb4701",
+          "evidenceRoot": "artifacts/review/12e99d8/R11/20261106-first"
+        },
+        {
+          "status": "R11主责Shell全文和共享成员已读；本轮未构建/加载Shell，提取完整暂停方法边界观察不是WinUI验收",
+          "evidence": "R11.md"
+        },
+        {
+          "partition": "R12",
+          "status": "R12当前Release/x64编译0警告0错误；真实VM监视器32、音量35、截图14通过；无实际WinUI窗口",
+          "evidence": "R12.md",
+          "productBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+          "evidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+        },
+        {
+          "status": "R12当前Release/x64编译0警告0错误；真实VM监视器32、音量35、截图14通过；无实际WinUI窗口",
+          "evidence": "R12.md"
+        },
+        {
+          "partition": "R14",
+          "previousStatus": "R13当前Release/x64编译0警告0错误；实际VM15+R05514过；无真实WinUI",
+          "evidence": "R14-verification.json"
+        },
+        {
+          "status": "R14当前Release编译0警告0错误；非全方案/交付",
+          "evidence": "R14-verification.json"
+        },
+        {
+          "preservedCurrentMetadata": {
+            "currentProductBase": "a998403dbab9cd9e7caf34777ec23a64a3189526",
+            "currentEvidenceRoot": "artifacts/review/a998403/R14/20261106-first"
+          },
+          "evidence": "R15当前字段更新前"
+        },
+        {
+          "status": "R15当前Release/x64编译0警告0错误；标准Shell DLL实际VM观察；无真实WinUI",
+          "evidence": "R15-verification.json",
+          "productBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+          "evidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R16当前Release/x64编译0/0；无真实窗口/材质/滚动/UIA",
+            "reviewEvidence": "R16-verification.json",
+            "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+            "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 3,
+      "project": "tests/Momoka.AniBtConfirmationTests/Legacy/Momoka.Tests.csproj",
+      "kind": "support",
+      "inSolution": false,
+      "registered": false,
+      "stableStatus": "旧支持未执行",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "未执行",
+            "reviewEvidence": null,
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 4,
+      "project": "tests/Momoka.AniBtConfirmationTests/Momoka.AniBtConfirmationTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R09正式57过，匿名无窗口",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R09",
+          "status": "R09当前缓存restore/Release编译0警告0错误；实际入口57过0败0跳过；匿名无窗口",
+          "evidence": "R09.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R09当前缓存restore/Release编译0警告0错误；实际入口57过0败0跳过；匿名无窗口",
+            "reviewEvidence": "R09.md",
+            "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+            "currentEvidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 5,
+      "project": "tests/Momoka.AniBtEntryTests/Momoka.AniBtEntryTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R09正式51过",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R09",
+          "status": "R09当前缓存restore/Release编译0警告0错误；实际入口51过0败0跳过；匿名无窗口",
+          "evidence": "R09.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R09当前缓存restore/Release编译0警告0错误；实际入口51过0败0跳过；匿名无窗口",
+            "reviewEvidence": "R09.md",
+            "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+            "currentEvidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 6,
+      "project": "tests/Momoka.AniBtSourceContractTests/Momoka.AniBtSourceContractTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R09正式40过，额外模式没有据此补绿",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R09",
+          "status": "R09当前缓存restore/Release编译0警告0错误；实际入口40过0败0跳过；匿名无窗口",
+          "evidence": "R09.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R09当前缓存restore/Release编译0警告0错误；实际入口40过0败0跳过；匿名无窗口",
+            "reviewEvidence": "R09.md",
+            "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+            "currentEvidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 7,
+      "project": "tests/Momoka.AppearanceOpacityTests/Momoka.AppearanceOpacityTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R16本树正式39过；固定master副本42过另列，非材质像素",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null,
+          "evidenceRoot": null
+        },
+        {
+          "status": "R07最终b8c1d61/ac4e3fa组合复编复跑；R07缓存restore/Release构建0警告0错误；39过0败0跳过；无真实绘制",
+          "evidence": "R07.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R07/20261106-first/final-current"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R16本树标准39过；固定master d984ac9副本完整42过，非真实材质像素；原失败保留",
+            "reviewEvidence": "R16-verification.json",
+            "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+            "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 8,
+      "project": "tests/Momoka.ArchitectureTests/Momoka.ArchitectureTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "未执行；输出选择边界未验证",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "未执行",
+            "reviewEvidence": null,
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 9,
+      "project": "tests/Momoka.AtomicFileWriteTests/Momoka.AtomicFileWriteTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R02原wrapper完整35生产契约+4对照过",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R02原wrapper完整35/35生产契约+4/4对照，0跳过",
+            "reviewEvidence": "R02.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 10,
+      "project": "tests/Momoka.CurrentPermissionSnapshotTests/AccountCompatibility/AccountCompatibility.csproj",
+      "kind": "support",
+      "inSolution": true,
+      "registered": false,
+      "stableStatus": "旧支持未执行",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "未执行",
+            "reviewEvidence": null,
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 11,
+      "project": "tests/Momoka.CurrentPermissionSnapshotTests/Momoka.CurrentPermissionSnapshotTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R03正式54过；额外帐号wrapper未跑",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R03接入master后当前编译0/0，54/54失败0跳过0，含实际SettingsVM；其他wrapper/帐号支持项目本轮未运行",
+            "reviewEvidence": "R03.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 12,
+      "project": "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R14标准py9009红；ignored原提取器绝对py适配71过，正式未绿",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R14",
+          "previousStatus": "未执行",
+          "evidence": "R14-verification.json"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R14标准py构建9009环境红；ignored绝对py原样提取器适配Release0/0，71过0败0跳过含主Danmaku重叠；Lua另列",
+            "reviewEvidence": "R14-verification.json",
+            "currentProductBase": "a998403dbab9cd9e7caf34777ec23a64a3189526",
+            "currentEvidenceRoot": "artifacts/review/a998403/R14/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 13,
+      "project": "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R14标准py9009红；ignored适配17过，正式未绿",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R14",
+          "previousStatus": "未执行",
+          "evidence": "R14-verification.json"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R14标准py构建9009环境红；ignored绝对py原样提取器适配Release0/0，17过0败0跳过；非真实UI",
+            "reviewEvidence": "R14-verification.json",
+            "currentProductBase": "a998403dbab9cd9e7caf34777ec23a64a3189526",
+            "currentEvidenceRoot": "artifacts/review/a998403/R14/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 14,
+      "project": "tests/Momoka.DashboardNavigation.Tests/Momoka.DashboardNavigation.Tests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R15正式69过，非真实WebView",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R15标准69过/0败/0跳；完整导航方法，Start/credential另匿名观察，非WebView",
+            "reviewEvidence": "R15-verification.json",
+            "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+            "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 15,
+      "project": "tests/Momoka.DetailDeleteCommandTests/Momoka.DetailDeleteCommandTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R07正式wrapper19过，非真实删除",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null,
+          "evidenceRoot": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R07最终b8c1d61/ac4e3fa组合复编复跑；R07原Run-Fixture.ps1重编并生成载荷证明；19过0败0跳过；非真实删除",
+            "reviewEvidence": "R07.md",
+            "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+            "currentEvidenceRoot": "artifacts/review/6ba7a7f/R07/20261106-first/final-current"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 16,
+      "project": "tests/Momoka.DialogDismissTests/Momoka.DialogDismissTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R16正式10过，非真实遮罩按下",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null,
+          "evidenceRoot": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R16标准10过/0败/0跳；实际DialogDismiss＋Press/WinUI边界，不是真实遮罩输入",
+            "reviewEvidence": "R16-verification.json",
+            "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+            "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 17,
+      "project": "tests/Momoka.FnNasAccountEditTests/Momoka.FnNasAccountEditTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R15正式68过，非生产密码持久化",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R15标准68过/0败/0跳；真账户VM/固定生成器、确认服务替身，非生产密码持久化",
+            "reviewEvidence": "R15-verification.json",
+            "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+            "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 18,
+      "project": "tests/Momoka.FnNasDefaultPermissionTests/Momoka.FnNasDefaultPermissionTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R05正式36过，匿名管理",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R05当前Release重新编译；36/36、0失败0跳过，实际VM与匿名HTTP，不运行真实管理写",
+            "reviewEvidence": "R05.md",
+            "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+            "currentEvidenceRoot": "artifacts/review/6ba7a7f/R05/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 19,
+      "project": "tests/Momoka.FnNasErrorClassificationTests/Momoka.FnNasErrorClassificationTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R05正式21过，匿名HTTP",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R05当前Release重新编译；21/21、0失败0跳过，假HTTP错误分类，不是实服认证",
+            "reviewEvidence": "R05.md",
+            "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+            "currentEvidenceRoot": "artifacts/review/6ba7a7f/R05/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 20,
+      "project": "tests/Momoka.FrameInterpolationTests/Momoka.FrameInterpolationTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R12默认45/regression23/native受控184分列，无实际补帧帧输出",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R12",
+          "status": "R12默认45、regression23通过；真实DLL无媒体native184断言通过；无帧输出/真实SVP",
+          "evidence": "R12.md",
+          "productBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+          "evidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R12默认45、regression23通过；真实DLL无媒体native184断言通过；无帧输出/真实SVP",
+            "reviewEvidence": "R12.md",
+            "currentProductBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+            "currentEvidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 21,
+      "project": "tests/Momoka.GaussianBackdropTests/Momoka.GaussianBackdropTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R16本树正式5过；固定master副本7过另列，无并行/取消数值验收",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null,
+          "evidenceRoot": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R16本树标准5过；固定master副本7过；1280×720仅计时无并行数值/在途取消断言",
+            "reviewEvidence": "R16-verification.json",
+            "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+            "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 22,
+      "project": "tests/Momoka.HomeDirectoryTests/Momoka.HomeDirectoryTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R06正式15过，源码提取非WinUI",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "status": "R03接入master后当前编译0/0，15/15失败0跳过0；另确认历史空目录反例，未真实Frame",
+          "evidence": "R03.md",
+          "productBase": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R06本轮缓存restore/Release build0警告0错误，15通过0失败0跳过；源码提取，不是WinUI",
+            "reviewEvidence": "R06.md",
+            "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+            "currentEvidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 23,
+      "project": "tests/Momoka.HomeFoldCompletionTests/Momoka.HomeFoldCompletionTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R06正式56过",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R06本轮缓存restore/Release build0警告0错误，56通过0失败0跳过；README52为过时当前计数，51是历史",
+            "reviewEvidence": "R06.md",
+            "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+            "currentEvidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 24,
+      "project": "tests/Momoka.HomeOrderProbeTests/Momoka.HomeOrderProbeTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "未执行，R17新Shell超时",
+      "originalStatus": "R17未运行：新Shell编译超时，旧证据保留",
+      "history": [
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "未执行",
+            "reviewEvidence": null,
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 25,
+      "project": "tests/Momoka.ImagePerformanceTests/Momoka.ImagePerformanceTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R16 perf-images22/新增专项49分列，Core/WinRT与XAML替身区分",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null,
+          "evidenceRoot": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R16精确perf-images当前22旧例＋49专项全过；真实Core/WinRT与调用方XAML替身分列",
+            "reviewEvidence": "R16-verification.json",
+            "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+            "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 26,
+      "project": "tests/Momoka.ItemUserStateOrderTests/Momoka.ItemUserStateOrderTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R07正式最终73过",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null,
+          "evidenceRoot": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R07最终b8c1d61/ac4e3fa组合复编复跑；R07缓存restore/Release构建0警告0错误；73过0败0跳过",
+            "reviewEvidence": "R07.md",
+            "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+            "currentEvidenceRoot": "artifacts/review/6ba7a7f/R07/20261106-first/final-current"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 27,
+      "project": "tests/Momoka.LibMpvEndFileTests/Momoka.LibMpvEndFileTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R10正式40过，匿名native事件",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R10",
+          "status": "R10本轮固定缓存restore/Release构建0警告0错误，40通过0失败0跳过；匿名边界见R10",
+          "evidence": "R10.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R10本轮固定缓存restore/Release构建0警告0错误，40通过0失败0跳过；匿名边界见R10",
+            "reviewEvidence": "R10.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 28,
+      "project": "tests/Momoka.LibraryHeaderTests/Momoka.LibraryHeaderTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": false,
+      "stableStatus": "R06正式18过；registry未登记，FINAL修正输入盘点",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R06本轮缓存restore/Release build0警告0错误，18通过0失败0跳过，含7 Agreements；非真实布局",
+            "reviewEvidence": "R06.md",
+            "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+            "currentEvidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 29,
+      "project": "tests/Momoka.MissingEpisodesAvailabilityTests/Momoka.MissingEpisodesAvailabilityTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R09正式58过；R17提取10过含9预期拒绝",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R09",
+          "status": "R09当前缓存restore/Release编译0警告0错误；实际入口58过0败0跳过；匿名无窗口",
+          "evidence": "R09.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R09当前缓存restore/Release编译0警告0错误；实际入口58过0败0跳过；匿名无窗口",
+            "reviewEvidence": "R09.md",
+            "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+            "currentEvidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 30,
+      "project": "tests/Momoka.MoviePilotJourneyTests/Momoka.MoviePilotJourneyTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R08正式21过",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R08",
+          "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口21通过0失败0跳过；匿名/无真实WinUI",
+          "evidence": "R08.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口21通过0失败0跳过；匿名/无真实WinUI",
+            "reviewEvidence": "R08.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 31,
+      "project": "tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": false,
+      "registered": true,
+      "stableStatus": "R08正式74过，方案外",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R08",
+          "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口74通过0失败0跳过；匿名/无真实WinUI",
+          "evidence": "R08.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口74通过0失败0跳过；匿名/无真实WinUI",
+            "reviewEvidence": "R08.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 32,
+      "project": "tests/Momoka.MoviePilotSubscribeSettingsTests/Regression/Momoka.Tests.csproj",
+      "kind": "support",
+      "inSolution": false,
+      "registered": false,
+      "stableStatus": "旧支持未执行，方案外",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "未执行",
+            "reviewEvidence": null,
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 33,
+      "project": "tests/Momoka.NaturalContinuationCallerTests/Momoka.NaturalContinuationCallerTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R10原caller wrapper54过/19pin；未跑额外10拒绝",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R10",
+          "status": "R10本轮固定缓存restore/Release构建0警告0错误，54通过0失败0跳过；匿名边界见R10",
+          "evidence": "R10.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R10本轮固定缓存restore/Release构建0警告0错误，54通过0失败0跳过；匿名边界见R10",
+            "reviewEvidence": "R10.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 34,
+      "project": "tests/Momoka.NaturalContinuationCallerTests/SourceExtractor/SourceExtractor.csproj",
+      "kind": "support",
+      "inSolution": true,
+      "registered": false,
+      "stableStatus": "随R10父项构建/19pin，不重复业务计数",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R10",
+          "status": "R10随原Run-Caller wrapper重编并验证19源pins/完整方法；54动态通过，10拒绝反例本轮未跑，交R17",
+          "evidence": "R10.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R10随原Run-Caller wrapper重编并验证19源pins/完整方法；54动态通过，10拒绝反例本轮未跑，交R17",
+            "reviewEvidence": "R10.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 35,
+      "project": "tests/Momoka.NaturalEpisodeContinuationTests/Momoka.NaturalEpisodeContinuationTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R10正式27过",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R10",
+          "status": "R10本轮固定缓存restore/Release构建0警告0错误，27通过0失败0跳过；匿名边界见R10",
+          "evidence": "R10.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R10本轮固定缓存restore/Release构建0警告0错误，27通过0失败0跳过；匿名边界见R10",
+            "reviewEvidence": "R10.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 36,
+      "project": "tests/Momoka.PageContractTests/Momoka.PageContractTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R16默认137过；library-anchor-page-fixture未跑，非Frame/滚动",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null,
+          "evidenceRoot": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R16标准默认137过；不含library-anchor-page-fixture；实际CardItem/Cache与控件边界分列",
+            "reviewEvidence": "R16-verification.json",
+            "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+            "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 37,
+      "project": "tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R17 x64 69过2败；默认71过；两配置编译0/0，x64红保留",
+      "originalStatus": "当前Release两配置编译0/0；x64 69过2败，默认71过；固定根层数缺陷未修",
+      "history": [
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "未执行",
+            "reviewEvidence": null,
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 38,
+      "project": "tests/Momoka.PlaybackSourceRevocationTests/Momoka.PlaybackSourceRevocationTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R10正式31过",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R10",
+          "status": "R10本轮固定缓存restore/Release构建0警告0错误，31通过0失败0跳过；匿名边界见R10",
+          "evidence": "R10.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R10本轮固定缓存restore/Release构建0警告0错误，31通过0失败0跳过；匿名边界见R10",
+            "reviewEvidence": "R10.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 39,
+      "project": "tests/Momoka.PlayerExitHandoffTests/Momoka.PlayerExitHandoffTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R10正式3过，非窗口",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R10",
+          "status": "R10本轮固定缓存restore/Release构建0警告0错误，3通过0失败0跳过；匿名边界见R10",
+          "evidence": "R10.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R10本轮固定缓存restore/Release构建0警告0错误，3通过0失败0跳过；匿名边界见R10",
+            "reviewEvidence": "R10.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 40,
+      "project": "tests/Momoka.PlayerMotionProbeTests/Momoka.PlayerMotionProbeTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R17当前22过，非实机",
+      "originalStatus": "当前Release/x64编译0/0，22过0败0跳，source-linked motion，非实机",
+      "history": [
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "未执行",
+            "reviewEvidence": null,
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 41,
+      "project": "tests/Momoka.PlexAffordanceTests/Momoka.PlexAffordanceTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R05正式68过，非WinUI",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R05当前Release专项+Shell重新编译；68/68、0失败0跳过；非实际WinUI，README67为历史",
+            "reviewEvidence": "R05.md",
+            "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+            "currentEvidenceRoot": "artifacts/review/6ba7a7f/R05/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 42,
+      "project": "tests/Momoka.ProbeFinalizationTests/Momoka.ProbeFinalizationTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R17当前69过，真finalizer+UI/IO替身",
+      "originalStatus": "当前Release/x64编译0/0，69过0败0跳；真finalizer＋UI/IO边界，无实际WinUI",
+      "history": [
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "未执行",
+            "reviewEvidence": null,
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 43,
+      "project": "tests/Momoka.ResourceBrowserTests/Momoka.ResourceBrowserTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R08默认174过；SiteGrid12未注册/未执行（R17-011）",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R08",
+          "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口174通过0失败0跳过；匿名/无真实WinUI",
+          "evidence": "R08.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+        },
+        {
+          "partition": "R09",
+          "status": "R09源码未变沿用R08完整174通过证据；本轮联读SeriesResource/AniBt界面测试，不重复运行或计入683",
+          "evidence": "R09.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R09源码未变沿用R08完整174通过证据；本轮联读SeriesResource/AniBt界面测试，不重复运行或计入683",
+            "reviewEvidence": "R09.md",
+            "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+            "currentEvidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 44,
+      "project": "tests/Momoka.ResourceBudgetTests/Momoka.ResourceBudgetTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R16仅fonts14过；R04 websocket26历史；all/logs/compatibility未完整通过",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "status": "R04还原/Release编译0/0；websocket子集26/26；不含compatibility/logs/fonts",
+          "evidence": "R04.md",
+          "productBase": "bc3f62d756efa886a14f9b58fb207adec1a0da11",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R04/20261106-first"
+        },
+        {
+          "status": "R04还原/Release编译0/0；websocket子集26/26；不含compatibility/logs/fonts；另一会话漂移后复编并定向复跑，见final-current；原同项不重复计数",
+          "evidence": "R04.md",
+          "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R04/20261106-first/final-current"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R16标准fonts14过；不含WS/log/compatibility，全量旧记录保持",
+            "reviewEvidence": "R16-verification.json",
+            "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+            "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 45,
+      "project": "tests/Momoka.SearchLifetimeTests/Momoka.SearchLifetimeTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R06正式42过，惰性边界",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R06本轮缓存restore/Release build0警告0错误，42通过0失败0跳过；LibraryVM惰性边界不覆盖本轮查询代次/词错配",
+            "reviewEvidence": "R06.md",
+            "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+            "currentEvidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 46,
+      "project": "tests/Momoka.ServerSettingsReviewTests/Momoka.ServerSettingsReviewTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R15原完整入口退出0；无统一总数，保持null",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null,
+          "productBase": null
+        },
+        {
+          "status": "R05当前Release重新编译，反射完整PlexDiscovery7/PlexSearch10/FnNasArtwork3方法均通过；正式完整入口未跑",
+          "evidence": "R05.md"
+        },
+        {
+          "preservedCurrentMetadata": {
+            "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+            "currentEvidenceRoot": "artifacts/review/6ba7a7f/R05/20261106-first"
+          },
+          "evidence": "R15当前字段更新前"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R15标准入口退出0，全部原注册组通过；未统一输出总断言数，不补造总数；notification6分组",
+            "reviewEvidence": "R15-verification.json",
+            "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+            "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 47,
+      "project": "tests/Momoka.ServerSettingsTabs.Tests/Momoka.ServerSettingsTabs.Tests.csproj",
+      "kind": "top-level-test",
+      "inSolution": false,
+      "registered": true,
+      "stableStatus": "R15完整DOM wrapper contracts14/DOM25过；无可选EmbyManager，非WebView",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R15完整官方DOM wrapper通过：合同14与DOM25/0/0、请求0/页面异常0；无可选EmbyManager；非真实WebView",
+            "reviewEvidence": "R15-verification.json",
+            "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+            "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 48,
+      "project": "tests/Momoka.SettingsDeferredSaveTests/Momoka.SettingsDeferredSaveTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R02正式24过",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R02当前Shell夹具24/24，0跳过；无真实UI",
+            "reviewEvidence": "R02.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 49,
+      "project": "tests/Momoka.SettingsLifetimeTests/Momoka.SettingsLifetimeTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R15当前Shell55过；首旧Shell55不重复",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "R02当前Shell夹具55/55，0跳过；无真实UI",
+          "evidence": "R02.md"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R15标准当前Shell55过/0败/0跳；首次旧Shell同55另保留不计最终覆盖；非真实窗口",
+            "reviewEvidence": "R15-verification.json",
+            "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+            "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 50,
+      "project": "tests/Momoka.SettingsPersistenceTests/BaselineCore/Momoka.SettingsPersistenceBaselineCore.csproj",
+      "kind": "support",
+      "inSolution": false,
+      "registered": false,
+      "stableStatus": "R02旧baseline编译11错误/退出1/0运行",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R02固定9f07bbd旧Store/Service模式：restore通过，编译11错误退出1，未运行",
+            "reviewEvidence": "R02.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 51,
+      "project": "tests/Momoka.SettingsPersistenceTests/Momoka.SettingsPersistenceTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R02当前模式42过；baseline另红",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R02当前模式42/42，0跳过；匿名确认与非秘密持久化",
+            "reviewEvidence": "R02.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 52,
+      "project": "tests/Momoka.SettingsPriorityMotionTests/Momoka.SettingsPriorityMotionTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": false,
+      "registered": true,
+      "stableStatus": "R15正式24过，动画端点替身",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R15标准24过/0败/0跳；生产回弹方法/拖拽边界替身",
+            "reviewEvidence": "R15-verification.json",
+            "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+            "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 53,
+      "project": "tests/Momoka.SettingsProbeContractTests/Momoka.SettingsProbeContractTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "未执行；R17新Shell超时，core-settings无新完整执行",
+      "originalStatus": "R17未运行：新Shell编译超时，旧证据保留",
+      "history": [
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "未执行",
+            "reviewEvidence": null,
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 54,
+      "project": "tests/Momoka.SettingsRowsMotionTests/Momoka.SettingsRowsMotionTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": false,
+      "registered": true,
+      "stableStatus": "R15正式46过",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R15标准46过/0败/0跳；生产行布局方法，非真实动画帧时间",
+            "reviewEvidence": "R15-verification.json",
+            "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+            "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 55,
+      "project": "tests/Momoka.SettingsSearchNavigationTests/Momoka.SettingsSearchNavigationTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": false,
+      "registered": true,
+      "stableStatus": "R15正式15过",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R15标准15过/0败/0跳；实际搜索定位方法及布局/焦点端点替身",
+            "reviewEvidence": "R15-verification.json",
+            "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+            "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 56,
+      "project": "tests/Momoka.ShaderCommandGenerationTests/Momoka.ShaderCommandGenerationTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R17内部49过，原wrapper认37退出1；主树59仅静态，R12固定副本59历史",
+      "originalStatus": "当前默认Release编译0/0，49过，原wrapper因37摘要退出1；master59仅静态核",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R12",
+          "status": "R12本树49全过；master固定snapshot新增batch后59全过，均managed native seam；不冒实际GPU",
+          "evidence": "R12.md",
+          "productBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+          "evidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R12本树49全过；master固定snapshot新增batch后59全过，均managed native seam；不冒实际GPU",
+            "reviewEvidence": "R12.md",
+            "currentProductBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+            "currentEvidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 57,
+      "project": "tests/Momoka.ShaderMonitorPolicyTests/Momoka.ShaderMonitorPolicyTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R12正式32过，非实际GPU/显示器",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R12",
+          "status": "R12本树当前x64 Shell/同hash Core：32全过；未实际换显示器/GPU",
+          "evidence": "R12.md",
+          "productBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+          "evidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R12本树当前x64 Shell/同hash Core：32全过；未实际换显示器/GPU",
+            "reviewEvidence": "R12.md",
+            "currentProductBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+            "currentEvidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 58,
+      "project": "tests/Momoka.SignInInputGenerationTests/Momoka.SignInInputGenerationTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R03正式128过；额外绑定17+8 wrapper未跑",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R03当前源码编译0/0，128/128失败0跳过0；此项目及链接输入未随master改变，复用该证据；17+8生成wrapper本轮未运行",
+            "reviewEvidence": "R03.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 59,
+      "project": "tests/Momoka.SiteDialogFlowTests/Momoka.SiteDialogFlowTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": false,
+      "registered": true,
+      "stableStatus": "R08正式13过",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R08",
+          "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口13通过0失败0跳过；匿名/无真实WinUI",
+          "evidence": "R08.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口13通过0失败0跳过；匿名/无真实WinUI",
+            "reviewEvidence": "R08.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 60,
+      "project": "tests/Momoka.SubscriptionEditorTests/Momoka.SubscriptionEditorTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R08正式19过",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R08",
+          "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口19通过0失败0跳过；匿名/无真实WinUI",
+          "evidence": "R08.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口19通过0失败0跳过；匿名/无真实WinUI",
+            "reviewEvidence": "R08.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 61,
+      "project": "tests/Momoka.SubscriptionIdentityTests/Momoka.SubscriptionIdentityTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R08正式3过；当区py成功，不能沿R14故障判红",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R08",
+          "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口3通过0失败0跳过；匿名/无真实WinUI",
+          "evidence": "R08.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口3通过0失败0跳过；匿名/无真实WinUI",
+            "reviewEvidence": "R08.md",
+            "currentProductBase": null,
+            "currentEvidenceRoot": null
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 62,
+      "project": "tests/Momoka.SubtitleDialogTests/Momoka.SubtitleDialogTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R13正式CS0103/_blurCancel编译红未运行；ignored37另列",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "status": "R04首次缺assets编译失败保留；还原后编译0/0，37/37；完整源码链接+控件替身，非WinUI",
+          "evidence": "R04.md",
+          "productBase": "bc3f62d756efa886a14f9b58fb207adec1a0da11",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R04/20261106-first"
+        },
+        {
+          "status": "R04首次缺assets编译失败保留；还原后编译0/0，37/37；完整源码链接+控件替身，非WinUI；另一会话漂移后复编并定向复跑，见final-current；原同项不重复计数",
+          "evidence": "R04.md"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R13正式当前Release/x64编译红CS0103缺_blurCancel，未跑旧DLL；ignored诊断null字段37过另列，正式未修",
+            "reviewEvidence": "R13.md",
+            "currentProductBase": "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f",
+            "currentEvidenceRoot": "artifacts/review/8e8619e/R13/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 63,
+      "project": "tests/Momoka.SubtitleDropOwnershipTests/Momoka.SubtitleDropOwnershipTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R13默认Platform正式74过；首x64 MSB4062红保留",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R13按默认Platform当前Release编译0/0，74通过；首x64调用任务路径MSB4062保留",
+            "reviewEvidence": "R13.md",
+            "currentProductBase": "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f",
+            "currentEvidenceRoot": "artifacts/review/8e8619e/R13/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 64,
+      "project": "tests/Momoka.SubtitleDropOwnershipTests/SourceExtractor/SourceExtractor.csproj",
+      "kind": "support",
+      "inSolution": true,
+      "registered": false,
+      "stableStatus": "随R13默认父项编译0/0/7输入；x64旧路径红保留，不累计业务",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R13默认Platform当前Release构建0/0；真实7输入manifest，不冒native/WinRT",
+            "reviewEvidence": "R13.md",
+            "currentProductBase": "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f",
+            "currentEvidenceRoot": "artifacts/review/8e8619e/R13/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 65,
+      "project": "tests/Momoka.SubtitleTranslationRuntimeTests/Momoka.SubtitleTranslationRuntimeTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R13正式19过，Controller/替身会话",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R13当前Release/x64编译0/0；19通过，Controller完整/替身会话；实际Shell队列观察另列",
+            "reviewEvidence": "R13.md",
+            "currentProductBase": "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f",
+            "currentEvidenceRoot": "artifacts/review/8e8619e/R13/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 66,
+      "project": "tests/Momoka.SubtitleTranslationTests/Momoka.SubtitleTranslationTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R13正式119过，无云请求/费用/真实密钥",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "未执行",
+          "evidence": null
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R13当前Release/x64编译0/0；119通过，无真实云请求或密钥",
+            "reviewEvidence": "R13.md",
+            "currentProductBase": "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f",
+            "currentEvidenceRoot": "artifacts/review/8e8619e/R13/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 67,
+      "project": "tests/Momoka.Tests/Momoka.Tests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "多区定向/显式模式，R16最新编译0/0；无参全套未跑；R07 fnnas29过3败仍红",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "status": "R02仅settings-storage-fixture 145/145，0跳过；无参/其他模式未执行",
+          "evidence": "R02.md"
+        },
+        {
+          "status": "R03主树接入后当前编译0/0；定向Session/Identity/Startup/Ordering/Access187/187；接入前未变输入启动状态61/61、激活6子命令退出0；不是完整主测",
+          "evidence": "R03.md"
+        },
+        {
+          "status": "R04当前Release编译0/0；定向184/184及另33/33，0失败/跳过；不是完整主套件",
+          "evidence": "R04.md",
+          "productBase": "bc3f62d756efa886a14f9b58fb207adec1a0da11",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R04/20261106-first"
+        },
+        {
+          "status": "R04最终5951bba组合Release编译0/0；定向184/184及另33/33，0失败/跳过；不是完整主套件；另一会话漂移后复编并定向复跑，见final-current；原同项不重复计数",
+          "evidence": "R04.md",
+          "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35"
+        },
+        {
+          "status": "R05当前Release编译后，FnNas定向121/121、Plex定向148/148（含V2Login不重复）；完整主套件未跑",
+          "evidence": "R05.md",
+          "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35"
+        },
+        {
+          "status": "R06复用已核哈希的当前Release；四实际VM入口38+13+17+19与16组Register211项通过；未跑完整无参入口",
+          "evidence": "R06.md",
+          "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+        },
+        {
+          "status": "R07最终b8c1d61/ac4e3fa组合复编复跑；R07当前Release重编；七显式入口含fnnas-user-state 29过3败，另9组Register386过；不是完整无参入口",
+          "evidence": "R07.md"
+        },
+        {
+          "partition": "R08",
+          "status": "R08 当前Release重编；43/58/31三个实际参数入口及238 Core子集全过，含重叠，不是完整主套件",
+          "evidence": "R08.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+        },
+        {
+          "partition": "R09",
+          "status": "R09当前Release重编0警告0错误；显式三入口166/81/44与四组完整Register108通过；不代表完整主套件",
+          "evidence": "R09.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        {
+          "partition": "R10",
+          "status": "R10本轮Release重编0警告0错误；7完整Register及6指定注册方法258过0败0跳过；未跑完整主套件",
+          "evidence": "R10.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+        },
+        {
+          "partition": "R11",
+          "status": "R11当前Release重编0警告0错误；19Register202及18Playback方法153通过；实际Core匿名include反例成立，4问题未修",
+          "evidence": "R11.md",
+          "productBase": "12e99d88193b44e7dce4410ecfe3f098d5bb4701",
+          "evidenceRoot": "artifacts/review/12e99d8/R11/20261106-first"
+        },
+        {
+          "status": "R11当前Release重编0警告0错误；19Register202及18Playback方法153通过；实际Core匿名include反例成立，4问题未修",
+          "evidence": "R11.md"
+        },
+        {
+          "partition": "R12",
+          "status": "R12当前Release/x64重编0/0；151定向、SVP31、真实VM音量35/截图14过；未跑完整主Tests；两个音量/截图匿名反例成立",
+          "evidence": "R12.md",
+          "productBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+          "evidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+        },
+        {
+          "status": "R12当前Release/x64重编0/0；151定向、SVP31、真实VM音量35/截图14过；未跑完整主Tests；两个音量/截图匿名反例成立",
+          "evidence": "R12.md"
+        },
+        {
+          "partition": "R14",
+          "previousStatus": "R13当前Release/x64编译0/0；15+22+100+7+14通过含重叠，非完整主套件",
+          "evidence": "R14-verification.json"
+        },
+        {
+          "status": "R14当前x64 Release0/0；显式danmaku-fixture59过0败0跳过；完整主套件未运行",
+          "evidence": "R14-verification.json"
+        },
+        {
+          "preservedCurrentMetadata": {
+            "currentProductBase": "a998403dbab9cd9e7caf34777ec23a64a3189526",
+            "currentEvidenceRoot": "artifacts/review/a998403/R14/20261106-first"
+          },
+          "evidence": "R15当前字段更新前"
+        },
+        {
+          "status": "R15当前Release/x64编译0/0；search14/page-state31/applicability32全过，非无参完整主套件",
+          "evidence": "R15-verification.json",
+          "productBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+          "evidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R16当前Release/x64编译0/0；正式focus21/acrylic25/input28/budget7；7完整Register及字体3成员反射76另列",
+            "reviewEvidence": "R16-verification.json",
+            "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+            "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    },
+    {
+      "index": 68,
+      "project": "tests/Momoka.TransferSubmissionTests/Momoka.TransferSubmissionTests.csproj",
+      "kind": "top-level-test",
+      "inSolution": true,
+      "registered": true,
+      "stableStatus": "R09正式78过，匿名无实际整理",
+      "originalStatus": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+      "history": [
+        {
+          "partition": "R09",
+          "status": "R09当前缓存restore/Release编译0警告0错误；实际入口78过0败0跳过；匿名无窗口",
+          "evidence": "R09.md",
+          "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        {
+          "partition": "R17",
+          "preservedBefore": {
+            "status": "R09当前缓存restore/Release编译0警告0错误；实际入口78过0败0跳过；匿名无窗口",
+            "reviewEvidence": "R09.md",
+            "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+            "currentEvidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+          },
+          "evidence": "R17-verification.json"
+        }
+      ],
+      "evidence": "R17-verification.json",
+      "runtimeBoundary": "不是最终主树完整执行/真实UI/服务/播放验收"
+    }
+  ],
+  "counts": {
+    "total": 68,
+    "production": 2,
+    "topTests": 60,
+    "support": 6,
+    "registered": 59,
+    "extractionProjects": 33,
+    "inputKinds": {
+      "ProjectReference": 55,
+      "Compile": 336,
+      "UsingTask": 26,
+      "Exec": 3,
+      "Import": 7
+    },
+    "mainArgs": 62,
+    "singleArgs": 38,
+    "shellArgs": 19,
+    "nativeArgs": 1,
+    "internalArgs": 4
+  },
+  "notInSolution": [
+    "tests/Momoka.AniBtConfirmationTests/Legacy/Momoka.Tests.csproj",
+    "tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj",
+    "tests/Momoka.MoviePilotSubscribeSettingsTests/Regression/Momoka.Tests.csproj",
+    "tests/Momoka.ServerSettingsTabs.Tests/Momoka.ServerSettingsTabs.Tests.csproj",
+    "tests/Momoka.SettingsPersistenceTests/BaselineCore/Momoka.SettingsPersistenceBaselineCore.csproj",
+    "tests/Momoka.SettingsPriorityMotionTests/Momoka.SettingsPriorityMotionTests.csproj",
+    "tests/Momoka.SettingsRowsMotionTests/Momoka.SettingsRowsMotionTests.csproj",
+    "tests/Momoka.SettingsSearchNavigationTests/Momoka.SettingsSearchNavigationTests.csproj",
+    "tests/Momoka.SiteDialogFlowTests/Momoka.SiteDialogFlowTests.csproj"
+  ],
+  "wrappers": "R17全文处置18个PowerShell wrapper/检查脚本；统一runner只使用其中2个，额外参数/拒绝路径仍部分未执行",
+  "languagesAndTools": {
+    "lua": "R11 uosc49；R13字幕Lua9；R14弹幕42/性能50/翻译17/timer3+3；review临时fixture与Lua5.1 wrapper分开",
+    "worker": "R14匿名4过；未部署、未证明Cloudflare静态调度",
+    "dom": "R15完整wrapper14+25过，请求0/pageerror0；不代WebView",
+    "native": "R12受控184/24/options33、4零信号音频；R13本地静音WAV/SRT/null输出；不代GPU媒体/设备/VO/外部IPC",
+    "documents": "R18正式26过、policy21负例拒绝/匿名真实main.js17过；15技能2metadata未校验warning；FINAL文档检查另存",
+    "ui": "无当前真实WinUI/WebView/UIA/截图/指针/滚轮；静态598交互456定位不代132模板4样式6重复控件定位"
+  },
+  "retainedRed": [
+    "R01 payload146/4及boundaries49/1，dotnet-runtimepack0case初始化失败",
+    "R02旧BaselineCore编译11错",
+    "R07 fnnas29/3",
+    "R13正式Dialog编译红及早期日志被覆盖限制",
+    "R14标准py9009",
+    "R17 Perf x64两败，wrapper旧37红，Shell120s/124未跑依赖，NoProfile Get-FileHash不可用",
+    "FINAL schema27匿名观察6符合4不符退出1",
+    "主树R046三个pin失配静态确认，未运行"
+  ],
+  "neverClaimPassed": [
+    "完整方案",
+    "无参主测试套件",
+    "统一全回归",
+    "完整ShellProbe/自检",
+    "真实UI/服务/媒体",
+    "主树交付四闸门",
+    "发布/安装/签名"
+  ],
+  "executionCountsAreNotUniqueCoverage": true
+}

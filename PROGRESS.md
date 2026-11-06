@@ -1,3 +1,173 @@
+# 2026-11-06 全项目审查文档主树整合
+
+- 审查记录提交b7c3a61纯文档整合到主树，整合前master=3f1dd4fd577d164fd4a00a0952569321488e98d1；72审查产物、计划及本次进度记录进入当前主树，原主树PROGRESS尾部逐字节保留。
+- 本次133项确认问题及51产品/测试增量终核对应固定4d3d60b；后来透明度d176cc2所属批次未纳本轮产品审查，最新产品/测试/规则保持。文档检查与差异通过后提交，未运行产品/发布/push/改快捷方式。
+- 总报告docs/superpowers/reviews/2026-11-05-full-code-review/SUMMARY.md；所有原失败保留，审查完成后自动暂停，不启动修复。
+
+# 2026-11-06 全项目分区审查：最终收尾完成后暂停
+
+- 第0批、R01–R18及最终终核完成，见[总报告](docs/superpowers/reviews/2026-11-05-full-code-review/SUMMARY.md)、[133项唯一问题](docs/superpowers/reviews/2026-11-05-full-code-review/FINDINGS.md)、[验证矩阵](docs/superpowers/reviews/2026-11-05-full-code-review/FINAL-matrix.json)。6P1/117P2/10P3；产品/交付104、测试/验证19、文档10。本会话未修产品。
+- 原1876台账身份/blob/hash保持；def8原1941跟踪文件+2删除身份已闭合。当前主树51产品/测试差异按33同hash、4固定shader、14新范围1594行终核；schema27新增FINAL-001，旧缺键40再次换算64，真实当前Core匿名10输入6符合4不符/退出1，构建0/0，不冒正式测试通过。
+- R03-006/R17-013去重；旧未编号维护问题补FINAL-T01/T02并统一P2。R17-010固定主树59计数静态已修，def8仍37；R16-001主树收窄到主页，浅色详情/picker最低浓度是新明示行为。保留全部旧红、历史日志限制和具体运行缺口，无全方案/无参主套件/统一回归/真实UI/服务/播放/交付四闸门。
+- 纯审查文档整合按master唯一写入与clean/HEAD检查进行；产品分支不合并，不push/发布/改快捷方式，不操作用户/其他会话进程。最终整合凭据见FINAL-verification与本轮ignored integration-receipt，历史R01–R18记录保持。已自动暂停，不启动修复。
+
+# 2026-11-06 全项目分区审查：R18完成后暂停
+
+- 仅执行R18；def8开始/验证d82df28，原220主责＋64审查产物共284处置（124全文13,103行；其余结构/历史/二进制/副本），22联审。5P2+5P3均未修，见[报告](docs/superpowers/reviews/2026-11-05-full-code-review/R18.md)、[验证](docs/superpowers/reviews/2026-11-05-full-code-review/R18-verification.json)、[漂移](docs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r18.json)。
+- 问题包括公开外发披露、共享截图目录删除指导、4历史文件6处内网地址、实时URL令牌旧指导、退役应用凭据兜底，以及搜索来源/飞牛管理/全剧选集/覆盖计数旧说明、错误技能参考链接。只保存位置类别/hash，不转录地址或账号。9历史图片已查看，home/detail名称是否演示未确认，不冒当前UI。
+- 8工具入口均退出0；正式工具26过、policy21负例拒绝、官网匿名DOM17断言过单列；15技能0error但2条metadata未校验warning。6部署副本相等，81JSON/JSONL解析，1386本地链接1359存在27缺失，其中1现行错误其余26旧出处限制。未部署、真实账号/Secret/播放/服务器/费用/UI或应用构建。
+- 固定master4d3d60b 56选定目录差异未接入（R18原主责4及新增shader计划1）。R03-006与R17-013同退出码根因，最终沿R03-006、原报告计数保留。R02schema27、历次54/19/20及R17后六方法/当前master产品待最终跨区复核；R01/R07/R13/R14/R17全部旧红保持。
+- 18分区报告齐全，用户指定每区完成自动暂停；第8节最终跨区终核、总报告和文档主树整合尚未执行。只提交审查文档，留def8待后续整合；未合主树/push/发布，快捷方式仍是此前版本。
+
+# 2026-11-06 全项目分区审查：R17完成后暂停
+
+- 仅执行R17，def8开始/验证15c4204；781主责（751全文证据、15叙述/基线、14历史、1删除身份）及全部测试输入/调用/提取/边界处置。旧全文hash一致才复用，原41局部中的26C#已补齐；1876原身份/68矩阵runner保持。13P2+2P3本树未修，见[报告](docs/superpowers/reviews/2026-11-05-full-code-review/R17.md)、[验证](docs/superpowers/reviews/2026-11-05-full-code-review/R17-verification.json)、[边界](docs/superpowers/reviews/2026-11-05-full-code-review/R17-lifetimes.md)。
+- 主要问题：异步Action提前通过、未知HTTP计数漏、错参数进默认套件、最终IO/局部清理/退出不可信、服务失败变通过、外窗颜色混入渲染、Inspect吞已失败、存档同尺寸误红、x64源码路径误定位、Shader旧汇总、SiteGrid漏注册、临时播放页/Rendering泄订阅、普通关闭退出1、初始诊断片名遗漏、指针工具目标/采样前提缺失。
+- 正式托管282次280过2败＋工具70过，352/350/2含配置/共享重复；ProbeFinalization69/PlayerMotion22/默认Perf71/Shader49过，x64Perf69过2败。Shader原wrapper仍因37摘要红；清单漏LibraryHeader与Get-FileHash宿主命令不可用红保持。Shell还原过、120秒外层编译超时124，未采用旧DLL，SettingsProbeContract/HomeOrderProbe未跑。片段匿名观察与正式测试分列，未真实UI/账号/Secret/播放/服务调用。
+- master初d984；固定9ed8d24 53总体/27R17差异已核未接入，Shader主树59摘要已修、本树旧红保留；R046三个pin失配不可拿本树19匹配作主树绿。后来d7bb六路径增量仅登记，不冒新方法已审。R01工具红/R07三败/R13Dialog红/R14py9009/R02schema27及54/19/20增量保持。
+- 只提交审查文档，不修产品、不合主树/push/发布/改快捷方式；记录留def8待完整计划后整合。R17完成后自动暂停，R18未开始。
+
+# 2026-11-06 全项目分区审查：R16完成后暂停
+
+- 用户继续后仅执行R16，def8开始/验证9532593，主责59（58文本全文10,298行及1PNG）、81全文/34成员联审、174原台账追加，1876历史身份/68矩阵runner保持。确认4P2均未修，见[报告](docs/superpowers/reviews/2026-11-05-full-code-review/R16.md)、[验证](docs/superpowers/reviews/2026-11-05-full-code-review/R16-verification.json)、[资源边界](docs/superpowers/reviews/2026-11-05-full-code-review/R16-lifetimes.md)。
+- 必要问题：亚克力0档仍有材料/系统回退实底；坏轮播盘缓存不重取；海报首图404不试有效备用图；拼图后续缓存命中回填已失去容器旧卡。匿名真实Core/WinRT及完整CardItem/Slide十观察含holder对照；固定微软稳定2.3.1与main源码同内容核亚克力，随包2.3.9精确revision及实际像素未得。
+- 当前Core/Shell/主Tests Release/x64及各专项编译0/0；正式具名357次执行含重叠全过，另反射76；固定最终master副本Opacity42/Gaussian7过，不能冒充主树整机交付。自动化扫描598交互、456有句柄、无句柄0；模板/重复控件仍需UIA。无真实WinUI、HC/文字缩放/滚轮帧时间、保存账号/Secret/播放/服务器写入。
+- master初4b1a506、终d984ac9；49选定目录总体差异/7本区主责差异登记未接入，背景相关增量已只读核及固定副本检查。Hero首次比例通知在新主树有补救，本树旧候选未决；四缺陷仍适用，原R07/R06/R13/R15问题沿号。文档留def8待全计划后整合，无主树写入/push/发布/快捷方式修改。
+- 临时宿主编译/错误DLL/反射入口红、固定副本archive/漏输入编译与41过1败均保留，补齐固定输入后通过不抹红；只有工具输出的404/runpy/初archive错误说明限制。R01工具红、R07飞牛3败、R13正式Dialog红/早期日志覆盖限制、R14标准py9009、R02schema27和54/19/20历史增量保持。R16完成后自动暂停，R17未开始。
+
+# 2026-11-06 全项目分区审查：R15完成后暂停
+
+- 用户继续后仅执行R15，def8开始/验证HEAD6fc7f0d。61主责全文17,524行、73全文/17成员联审、151原台账追加，1876历史项保持。确认8P2均未修，见[报告](docs/superpowers/reviews/2026-11-05-full-code-review/R15.md)、[验证](docs/superpowers/reviews/2026-11-05-full-code-review/R15-verification.json)、[边界](docs/superpowers/reviews/2026-11-05-full-code-review/R15-lifetimes.md)。
+- 必要问题：控制台重鉴权后旧令牌播种；原生管理回执丢弃后来草稿/误报完整保存；通知保存后补读失败回退编辑基底；在飞通知关闭、旧请求干扰新编辑；字体目录清搜索；说明模板漏显隐；自动数值未隐藏手动框；皮肤恢复上游隐藏保存按钮。原R03权限/R06轮播/R02密钥/R14弹幕沿号，未增加重复发现。
+- 当前Core/Shell/主Tests Release/x64编译0/0；具名正式托管354次含重叠全过，ServerSettingsReview全部原注册组退出0但无统一断言总数，不补造计数；官方DOM wrapper合同14/DOM25全过，请求0/页面异常0，无可选EmbyManager。首55用旧Shell单列，当前Shell重编后55复跑，不重复计最终覆盖。匿名实际VM/Client/Session/FnNas、原样完整Start/Dialog与上游onTypeChange反例另列，不能当真实窗口/服务器验收。
+- master固定4b1a506，主责无漂移，41其他差异登记未接入；本轮取得固定Jellyfin-Web10.10.7与apiclient1.11.0实际发布源码，未安装/运行上游。Emby网页与官方飞牛管理原件未取得，manager自改密/GroupItems真实缺目录条件保留未决。三张匿名CSS图已查看，不是应用截图。
+- 临时宿主首CS0535/CS0136及路由/上下文、CSS正则失败完整日志保留，最后定点边界0/0；未登记observe-startup模式只有工具输出无独立日志。R01工具红、R07飞牛3败、R13Dialog正式编译红/R13早期日志覆盖限制、R14标准py9009、R02schema27与54/19/20旧增量继续保持。无真实设置/Secret/账号/发送/播放/UI/发布。
+- 本轮产品与正式测试未改，文档留def8待完整计划后整合；不合主树、不push/发布/刷新快捷方式。R15完成后自动暂停，R16未开始。
+
+# 2026-11-06 全项目分区审查：R14完成后暂停
+
+- 用户继续后仅执行R14，def8开始/验证HEADa998403。24主责全文3537行、38全文/25成员联审、87原台账追加，1876历史项保留。确认6P2均未修：旧凭据删盘失败复活、C1输入无回执、关服务丢草稿、开面板来源陈旧、旧Close取消新自动匹配、空自部署地址无效设置仍显示。见[报告](docs/superpowers/reviews/2026-11-05-full-code-review/R14.md)、[验证](docs/superpowers/reviews/2026-11-05-full-code-review/R14-verification.json)、[边界](docs/superpowers/reviews/2026-11-05-full-code-review/R14-lifetimes.md)。
+- 当前Core/Shell/主Tests Release0警告0错误；主59、适配SourceBoundary17/Performance71共147执行通过含重叠。两个标准专项py9009环境失败及PATH/禁server重试红完整保留，最后仅ignored Targets改绝对Python调用相同提取器，不改产品/正式断言。Worker4、原Lua42、性能弹幕50/翻译17、实际timer3/3、uosc49原断言+1C1观察分别列，不冒独立全覆盖。
+- 完整Client/凭据源匿名文件锁确认401两次旧签名、端点0；解锁后实际Worker匿名密文C#新身份接受端点1。实际VM服务off/on清草稿；实际VM+原样Panel/source与Close确认有效新来源无入口、新AutoMatch内存HTTP被取消；正式提取设置labels无效项仍显示；真实Lua通知带C1且parser拒，编辑不能解除pending。新场次用generation/item模拟，控件/剪贴板/HTTP为替身，无真实窗口/媒体/账号/密钥或发送。
+- master固定116454f主责无差异，39其他增量另记未接入；shader普通消息契约已联核。官方swagger固定hash；danmu_api上游9fa67ad以git固定后codeload读取，GitHub API限流保留。主库发送未实现；原始40000预算等候选撤回；R10旧父信息沿原号。R01工具红、R07飞牛3败、R13正式Dialog编译红、R02schema27与54/19/20旧增量全部保持。
+- 初辅助root错误完整日志保留；临时Worker import路径失败仅工具输出、无独立原日志；初观察CS0414一警告保留、最终0/0。初/终JSON和Lua夹具分开保留。R15/R16接显隐/模板，R17接工具与翻译夹具revision维护，R18接陈旧说明与部署验证缺口。未改产品/正式测试，不合主树、不push/发布/刷新快捷方式；文档留def8待全计划完成整合。R14完成后自动暂停，R15未开始。
+
+# 2026-11-06 全项目分区审查：R13完成后暂停
+
+- 用户继续后仅执行R13，def8开始/验证HEAD8e8619e。21主责源码2770行全部全文阅读，77全文+48成员联审；146原台账追加hash/证据/历史，保留1876项。确认7P2+1P3均未修，见[报告](docs/superpowers/reviews/2026-11-05-full-code-review/R13.md)、[验证](docs/superpowers/reviews/2026-11-05-full-code-review/R13-verification.json)、[任务边界](docs/superpowers/reviews/2026-11-05-full-code-review/R13-lifetimes.md)。
+- 必要缺陷：非默认在线来源字幕管理取消、旧外观命令跨native同窗换片、外挂失败预测ID错选、隐藏后集成选轨不恢复、菜单重置后字幕delay旧缓存、不可加载字幕灰行、合法长中文译文超过Lua预算、关闭翻译后旧warning迟到。R04字幕目标/204与R02凭据原号保持；没有产品或正式测试修复。
+- 当前Core/Shell/主Tests及成功专项Release编译0警告错误；x64Core副本hash一致。正式托管370次通过含重叠、批准native Lua9通过；正式Dialog缺_blurCancel编译红、不跑旧DLL，ignored仅null字段诊断37过另列。Drop首x64调用任务目录不匹配红保留，按默认Platform当前74通过；非完整主套件/主树交付。
+- 完整Service/实际native handle+managed endpoints确认旧force覆盖B复位；实际VM/正式匿名构造确认隐藏选轨只sid和delay0→旧缓存0.6；真实Controller/Client+原样ShellQueue确认关翻译后旧warning；真实Payload/Lua parser large120094静默拒绝、short24099正常。native只本树临时静音WAV/SRT、null输出/禁配置脚本网络，外挂missing/second/third请求sid2实际third；无用户媒体/实机显示/服务器写/费用。
+- master固定ef624af，相关diff已核R13主责无变化；后续背景详情改动另记差异台账。不接入产品、不合主树、不推送/发布或改快捷方式；审查文档留def8待全计划完成整合。
+- 初匿名VM无active导致零写和只读Handle属性错误的独立日志保留；queue初restore/build、Lua初对照revision不匹配日志被后次同名输出覆盖，仅原退出/hash记录保留，验证JSON明确缺失。只修ignored宿主，不改正式断言/基线。旧R01工具红、R07飞牛29过3败、R02schema27与54/19/20历史增量、R10–R12未修保持。R15/R16接说明模板，R17接正式测试红，R14未开始；R13完成后自动暂停。
+
+# 2026-11-06 全项目分区审查：R12完成后暂停
+
+- 用户继续后仅执行R12，def8开始/验证HEAD11921ff。45主责全部处置：40C#/shader源码22,560行、5说明/许可923行，36全文+42成员联审；原台账123条追加证据/历史，保留全部1876原项。确认5P2均未修：外部gpu不适用HDR算法、未知/在途重置音量非绝对100、迟到旧status覆盖相对确认并保存、截图多步组覆盖/跨片、实际setter失败仍Success。见[报告](docs/superpowers/reviews/2026-11-05-full-code-review/R12.md)、[验证](docs/superpowers/reviews/2026-11-05-full-code-review/R12-verification.json)、[shader](docs/superpowers/reviews/2026-11-05-full-code-review/R12-shaders.md)。
+- 18shader执行语句/pass全文及权重/texture全字节数值/结构/来源核对，17与固定上游同字节、adaptive一处已声明修改；clean libplacebo1dd0226绑定时点支持现链，随包dirty补丁未核，不宣称画质/性能。补帧45/原回归23、文件代次49、真实VM Monitor32、SVP31、音量35、截图14、定向151全部过，合380次含重叠。当前Core/Shell/主Tests/专项Release编译0/0；主Tests以x64重编后Core与Shell一致，相关VM及反例复跑。
+- native无媒体184+24断言、33唯一受控shader配置接受/标量读回、音频21候选/4零信号采集分列。失效端点无AO并报预期no sound原始证据保留；无听感/热拔插/独占验证。匿名实际VM/Service观察8条成立，未执行完整Core启动/原生竞态/WinUI输入；产品未修。
+- master其他会话切链增量取固定f71883d的Git archive，仅在ignored副本审真实新Service/handle/config/正式测试59过。最终记录master50fab2f，与切链快照相关部分无变化；[38差异台账](docs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r12.json)含其余背景/详情/probe后续owner复核，未接入本树。不合主树、不推送/发布或改快捷方式。
+- 临时观察宿主缺using两CS0246、定向宿主资源基目录145过6败、初始AnyCPU/x64 Core hash不同、固定上游同名路径拒绝均留原日志；只修ignored采证并按当前x64重编，不改正式断言/基线洗绿。完整主套件/方案/全回归/提取器10反例/发布反例/真实UI/GPU媒体/HDR/SVP/外部mpv/服务器未验证。R01工具旧红、R07飞牛29过3败、R02schema27与54/19/20历史增量、R10/R11未修保持。
+- R13接字幕多步写与退出，R14接弹幕；R15/R18接音频旧注释/选项文案，R17接验证可信度。审查记录留def8待全计划结束后主树整合；仅提交文档。R12完成后自动暂停，R13未开始。
+- 提交前master635babf收尾另9个详情/背景/测试路径变化追加到R12增量台账，含DetailPage.Seam.cs；R12相关源/切链专项仍与固定f71883d无新变化，其他区后续复核，不重复本区已过检查。
+
+# 2026-11-06 全项目分区审查：R11完成后暂停
+
+- 用户继续后仅执行R11；def8开始/验证HEAD12e99d8，144主责全部处置，124源码全文41,156行、13JSON及5说明/许可、2字体来源/hash；44全文和14成员联审，202条原台账更新。确认4P2均未修：首次UI发布丢拖边恢复、EOF旧倍速/音量拖动写新片、合法固定长度include阻断起播、集成统计尾部无滚动入口，见[报告](docs/superpowers/reviews/2026-11-05-full-code-review/R11.md)。
+- 当前Core/Tests Release重新构建0警告0错误；19Register202+18Playback方法153+随包uosc49全过，原review8项fixture在随包LuaJIT替代执行全过，合412执行含重叠，原独立Lua5.1 wrapper未跑。补充uosc51中2条反例失败保留；managed5/stat2/native配置2观察成立，不代表修复通过。证据artifacts/review/12e99d8/R11/20261106-first，完整源码/输入/日志hash见验证JSON。
+- 主树其他会话的12个主页/详情产品测试差异登记，快照a03ff5d；R11主责无漂移，未接入本树。[增量](docs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r11.json)待R07/R16/R17/R18复核。取得固定mpv/uosc源码；缺失本树DLL从主树读取批准hash匹配后复制到ignored根，无新运行时升级。
+- 临时定向宿主90秒超时（base目录与fake-mpv启动契约不符）、stats结果序列化错误/生成引用错误和首次TLS失败均保留，修临时采证后完成。未改正式产品/测试/基线，没有Shell重编、真实窗口/键鼠/GPU媒体播放/服务写入/发布上传。
+- Watchdog迟到复活ticker只证额外轮询，Pulse圆角/旧章节Flyout/Button延时保有界未决；R01旧工具红、R07飞牛29过3败、R02 schema27、54/19/20历史增量保持。审查记录待全计划结束后主树整合；R11完成自动暂停，R12未开始。
+
+# 2026-11-06 全项目分区审查：R10完成后暂停
+
+- 用户继续后仅执行R10。def8开始/验证HEAD aa631ff7，产品与master ac4e3fa一致，未新增产品漂移。28主责全文7,532行、26全文及40成员联审完成，94条原台账更新；确认8项P2均未修，见docs/superpowers/reviews/2026-11-05-full-code-review/R10.md。涉及跨剧父信息、换版队列/起点、失败替换续播及展示恢复、起停/暂停上报顺序、跳过兜底。
+- 五专项当前Release构建0警告0错误：自然接续27、原caller wrapper54、退出3、来源撤销31、end-file40全过；主Tests/Core重编后指定注册组258全过，合6入口413执行，重叠不作独立覆盖。临时完整caller12条观察/6组、真实Service2组反例成立；人工音量Swap反例缺当前独占用户入口，撤回确认分类。临时编译失败、音量采证遗漏Ready事件导致的两次收尾失败均保留，最终临时采证构建/执行通过。证据artifacts/review/aa631ff/R10/20261106-first，原wrapper输出artifacts/r046-caller/review-r10-20261106-first。
+- 不执行真实媒体/服务器写入/凭据DPAPI/WinUI窗口；没有全方案/完整主套件/统一全回归/提取器10拒绝反例/Shell重编/发布上传。章节旧菜单和飞牛parent_guid链等未决交R11/R17；R01/R07旧红、54/19/20增量、R02 schema27待复核保持。仅公网读取固定源码，无用户数据。
+- 本轮只提交审查文档，无独有产品代码；审查记录待全计划结束后整合主树，保留本树和未完记录。R10完成后自动暂停，R11未开始。
+
+# 2026-11-06 全项目分区审查：R09完成后暂停
+
+- 用户继续后仅执行R09；def8开始/验证HEAD861f48b，产品与masterac4e3fa一致，44主责全文8,120行。新增2项P1、6项P2均未修，见[报告](docs/superpowers/reviews/2026-11-05-full-code-review/R09.md)：同源历史误清理、跨存储误删源、已完成回执丢失、多版本集号、实际源文件展示、缺集AniBT显隐、依赖存储误判及删除后库卡重现。
+- 5专项缓存restore/Release编译、主Tests/Core重编均0警告0错误；9入口683执行全过，另17生成绑定通过。Shell复用R08同源码/同哈希产物；ResourceBrowser174沿R08证据不重复计数。8组匿名反例成立，同源清理另用原样上游函数+模拟存储确认；临时采证器序列化失败日志保留，后续最终复跑通过。证据artifacts/review/861f48b/R09/20261106-first。
+- 官方后端48874bc、前端fad61c3重新固定并核可执行链/界面；用户部署版本未知。AniBT仅取得公开主页/wiki/规格，后端源码及内部目录兼容仍缺。没有真实配置/凭据/账号/整理/删除/扫库/播放/WinUI/截图/发布/推送。
+- R01/R07红项、54/19/20增量与R02 schema27待复核保持；Emby来源ABA模态可达性保留有界未知，旧R-024沿原根因。仅审查文档提交，无独有产品代码，审查记录待全计划结束后主树整合。R09完成后自动暂停，R10未开始。
+
+# 2026-11-06 全项目分区审查：R08完成后暂停
+
+- 用户继续后仅执行R08；def8开始/验证HEAD7e83ad2，产品与masterac4e3fa一致。89主责全文13,346行完成；1项P1与5项P2均未修，详见[报告](docs/superpowers/reviews/2026-11-05-full-code-review/R08.md)。问题为资源Cookie跨端口、80/443被改写、MFA挑战错误提示、文件统计跨订阅身份、站点失败取消及AniBT显隐。
+- 当前Release Core/主Tests/Shell及6专项构建0警告0错误；10入口674执行全过，含重叠不作独立覆盖累加。6组匿名反例成立，未修产品/正式测试；临时runner引用路径错误日志保留。证据artifacts/review/6ba7a7f/R08/20261106-first。
+- 官方后端4cd64d6、前端c78efcf4固定源码及界面对照已读；部署版本未读。仅匿名handler与默认传输双回环，无真实凭据/账号/服务写入/播放/WinUI/UIA/截图/发布/推送。R01/R07红项、54/19/20历史增量和R02 schema27待复核保持，不因本轮通过消除。
+- 仅提交审查文档；无独有产品代码，审查记录待全计划结束后整合主树，保留本树及未完记录。R08完成后自动暂停，R09未开始。
+
+# 2026-11-06 全项目分区审查：R07完成后暂停
+
+- 用户继续后仅执行R07；def8开始HEADf1e7d74；收尾另一会话接入背景处理20文件，最终HEADb8c1d61、产品与masterac4e3fa一致。56主责全文19,203行已读。新增8项P2、1项P3产品缺陷及1项测试维护问题，均未修，详见docs/superpowers/reviews/2026-11-05-full-code-review/R07.md。主要涉及同名下载覆盖、货架删除后的详情失效、用户状态同步、无源起点、识别寿命、飞牛草稿和权限。
+- 当前Release Core/主Tests/Shell及删除/状态顺序/外观专项构建0警告0错误；最终重编复跑12入口804执行、801过3败0跳过，不作独立覆盖累加。原fnnas-user-state夹具漏主体就绪前提，29过3败保持红；正常Apply后两方向及500失败对照成立。8组匿名反例/对照成立，不表示产品修复通过。证据artifacts/review/6ba7a7f/R07/20261106-first，临时采证器构建失败日志全保留。
+- 匿名HTTP/临时载荷/托管VM与原样方法，无真实凭据、账号、服务器写入/删除/播放、WinUI/UIA/截图/发布/推送。删除wrapper仅固定packages目录、不限制restore源；未升级依赖。R05-002/005与R06-007沿原号，R02 schema27和54/19历史增量保留，另20项增量已登记，7项R07影响复核完成；新增暗色强度0仍裁切模糊R07-009。
+- 只更新并提交审查文档；本树无独有产品代码，审查记录待全计划结束后主树整合，保留未完工作和本树。完成R07后自动暂停，R08未开始。
+
+# 2026-11-06 全项目分区审查：R06完成后暂停
+
+- 用户继续后只执行R06；def8开始及验证HEAD62e20d9，产品与master5951bba一致。82存活主责全文已读，CardDisplayTitle按历史删除处置1项。新增11项P2全部未修，详见docs/superpowers/reviews/2026-11-05-full-code-review/R06.md；重点为分页漏项、搜索恢复、收藏错源缓存、首页后台失败、推荐删除及展示状态。
+- 四专项本轮缓存restore/Release构建0警告0错误；Core/Tests/Shell复用R05同源码产物并核哈希。9个现有入口429通过/0失败/0跳过（不声称互不重叠），9条匿名反例采证成立，另2项源码确认。临时反射夹具失败完整保留，最后repro-final-4退出0，不表示产品修复。证据artifacts/review/6ba7a7f/R06/20261106-first。
+- 仅匿名HTTP/内存来源与当前托管VM，不读真实配置/凭据/DPAPI、不真实服务器/写入/播放/WinUI/UIA/截图、不完整全方案/主套件/发布/推送。四来源显隐例外符合规则，实际结果恢复存在缺陷。R03-004、R04-003、R05-003/005等保留原号；R02 schema27增量仍待复核，54/19项历史增量不改写。
+- 只更新并提交审查文档；本树无独有产品改动，审查记录仍待全计划完成后主树整合，保留树与未完记录。R06后自动暂停，R07未开始。
+
+# 2026-11-06 全项目分区审查：R05完成后暂停
+
+- 用户继续后只执行R05，def8开始及验证HEAD8a39ab2，产品与master5951bba一致，22个主责文件分飞牛/Plex两子批全文已读。确认5项P2：飞牛跨版本时长混用；Plex已看写入与读回捆绑、下一集漏后页、码率低1000倍、整剧/季已看状态映射错误。全部未修，报告docs/superpowers/reviews/2026-11-05-full-code-review/R05.md。
+- 当前Release Core/主Tests/Shell及4专项编译0警告0错误；定向121+148+21+36+68=394项、0失败0跳过；独立完整方法覆盖Plex发现7/搜索10/飞牛底图3场景。11项匿名反例/对照采证成立，不表示缺陷已修。固定PlexDesktop4.163.0源码已核单位和容器状态；飞牛官方原件本轮未取得，上游一致性不重申通过。证据artifacts/review/6ba7a7f/R05/20261106-first；临时runner初次编译2错误和错误play/info路径拒绝保留，最终修正的是夹具。
+- 仅假HTTP/占位身份/本树隔离保存，没有真实账号、DPAPI、服务器写入/播放、WinUI或截图，没有发布/上传。PlexAffordance执行当前托管Shell DLL及源码提取边界，不能当渲染验收；完整主套件、全方案和ServerSettingsReview正式整入口未跑。
+- 本轮只提交审查文档；报告保留本树接续全项目审查，未合回master，无独有产品改动。R05-001交R10、002/005交R07、003/005联R06、004联R16，R17接测试缺口。R02 schema27增量及R01–R04历史红项保持；完成R05后自动暂停，R06尚未开始。
+
+# 2026-11-06 全项目分区审查：R04完成后暂停
+
+- 用户继续后只执行R04 Emby/Jellyfin协议与实时连接；def8开始HEAD f21c00b/master bc3f62d；收尾另一会话带入不透明度提交，当前HEAD e72ec27/master 5951bba产品一致，新增19项差异已单列，15项主责全文已读且未变。确认P1字幕多版本错目标，以及P2中文设备头、最新剧集GroupItems=false遗漏、Jellyfin字幕204假成功，共4项全部未修。报告docs/superpowers/reviews/2026-11-05-full-code-review/R04.md；高后果字幕链已独立复核。
+- 当前Release Core/主Tests/SubtitleDialog/ResourceBudget与匿名夹具最终0警告0错误；定向184/184、关联33/33、字幕对话框37/37、WebSocket预算26/26，0失败/跳过。22条匿名反例/对照采证成功不是产品通过；上游固定Jellyfin10.10.7/12.4与EmbySDK4.10.2源码已核。首次字幕项目缺assets编译失败保留，restore后重建通过。证据artifacts/review/6ba7a7f/R04/20261106-first；final-current是漂移后重新编译和复跑结果（同项不重复计数），旧日志原样保留。首次当前组合构建中断无完成证据，独立final日志重建通过；首次文档校验拒绝HEAD漂移亦保留。
+- 无真实账号、WinUI、服务器/字幕写入、UDP广播或播放；没有发布/安装/签名/上传。实际HTTP/WebSocket只连接匿名回环；源顺序/服务器结果是经官方源码核对的输入模型，不冒充上游运行。实时无新增必要缺陷，Emby别名/完整头鉴权及实服覆盖缺口保留。
+- 只更新审查报告/台账/矩阵/计划/进度并提交，报告保留本树供全项目审查接续，未回合主树；无独有产品改动。R06/R13/R18按原编号接续问题；R02新schema27增量待复核，外观/探针交R07/R16/R17。R01–R03历史红项和另一会话下方交付条目均保留，不算本轮验收。完成本区后自动暂停，R05尚未开始。
+
+## 详情页不透明度滑块改成直接读数（2026-11-06，已交付）
+
+- 用户令：「0 改为完全透明，100 改为完全不透明（也就是关掉背景图），当前数值设为默认值，降低默认的背景图不透明度」。同日看图纠正背景图那一行：「百分之一百，遮罩完全不透明，高斯模糊拉到最模糊；百分之 0 关闭遮罩，关闭高斯模糊」—— 它调的是压在图上的那层处理，不是图片自己的透明度。上午那版按图片透明度做（0 档整张图收走），已整体回退。
+- 按钮与选择框底色：0 档常态不画底色（悬停、按下仍留原来那层薄白 —— 指针的手感），100 档主题深色实底；亚克力读同一档，0 档什么都不画。详情操作排、六个文件选择框和主页轮播「详情」按钮共用。
+- 背景图那一档（`UiSettings.BackdropOpacity`，0..100 → `AppearanceOpacity.Backdrop` 0..1）：暗色遮罩 alpha = `AppearanceOpacity.ScrimAlpha(ScrimCeiling, strength)`，遮罩表按 255/0xB8 归一后乘强度 —— 0 一点都不遮（图原样清晰），100 抬到 255（遮罩完全不透明），表上最浓的 0xB8 对应 72 档（老观感）。普通三页画在 `BackdropShade`，沉浸档画在 `HeroTail`／`HeroBand`，尾部、头部与阅读遮罩同一个 alpha；`Backdrop` 整层与 `BackdropPicture` 不再调不透明度，沉浸那两处 `Backdrop.Opacity` 过渡已删。高斯模糊：`GaussianBackdrop.SigmaFor` 把同一档换成 sigma，0 → 0（`Apply` 直接返回原图），100 → `MaxSigma` 24（老版固定 12，对应 50 档）。不跟滑块走的只有无图版式那道头部渐变（`HeroScrim`）与底部主题收边（`BackdropFade`）。
+- 性能：`GaussianBackdrop.Apply` 改成按行 `Parallel.For`（1280×720：σ=12 2.1s→0.40s、σ=24 4.7s→0.87s），`DetailViewModel.UpdateHeroBlur` 每次换档先取消上一趟（`_blurCancel`），拖滑块不再排队，`Cancel`／`Dispose` 也收它。
+- 默认与迁移：背景图出厂 `UiSettings.DefaultBackdropOpacity` = 40（遮罩 alpha 102、模糊 sigma 10），比老版 0xB8／sigma 12 都轻；按钮底色仍 0。`CurrentSchemaVersion` 26→27 沿用：旧文件的增量读数按 40~100 换算（0→40、43→65.8、100→100、越界夹取），v27 之后再存的 0 就是用户自己关掉的。备份、导入、恢复默认跟着新默认。
+- 验证：主测试 **3768/3768、0 失败 0 跳过**；`Momoka.AppearanceOpacityTests` **39/39**（新增遮罩表五档在「老观感」档位逐个还原、ScrimAlpha 与 SigmaFor 的越界／非有限值）；`--probe-shell --probe-section settings,library` **57/57、退出 0**（`shell-probe-20261106-035259573-25668`）。探针的详情自定义读屏上真正画着的遮罩 alpha（0／45／100，沉浸同档，并断言图片层 `Opacity` 恒为 1），高斯检查按 100／45／0 三档读渲染像素的纹理方差（0.214→0.259→原图），集页宽版式（板替掉图）单独处理；渐变检查按 `ScrimAlpha` 算像素预期。实屏目视：0 档 `detail-customization-*-backdrop-clear.png` 图原样清晰、无压暗；45% `detail-customization-Series-plum-screen.png` 与 40% `backdrop-fade-Movie-False-emby-dark-screen.png` 文字清楚、下沿无接缝。
+- 顺手修：`ResponsiveViewport` 改成 552（2026-11-05 22:13 的 30b7ba25 把 `ResizeProbeClient` 改成按真实非客户区差值设窗口后，`DetailResponsiveAsync` 一直在等一个再也到不了的 651 客户区，那条从那时起就是红的）。
+- 闸门 1 仍只有既有红 `tests/Momoka.PageContractTests/CardPresentationTests.cs` 6 处空白（7b469c0 带来），本轮没动它。
+- 04:10 publish 到 `artifacts/publish/win-x64`（546 文件、286.3 MB，Momoka.dll 与构建同 SHA-256 57a3bdf6…），桌面快捷方式仍指该目录、参数为空；未上传 GitHub。待实机：拖滑块的手感（高斯档每档重糊约 0.9 秒）、100 档在沉浸页只有头部变黑（遮罩范围跟版式走）、0 档亮图上浅色标题的可读性。
+
+# 2026-11-06 全项目分区审查：R03完成，接入最新master后暂停
+
+- 用户继续后仅执行R03启动/会话/权限/导航；def8开始HEAD37b0f9a、产品基点6ba7a7f，32主责全文已读。确认1项P1（失败新登录重绑旧凭据）及5项P2（显式管理权限、同服并发纠正漏恢复、历史空目录、关闭未取消登录、普通退出码1），全部未修。报告docs/superpowers/reviews/2026-11-05-full-code-review/R03.md及R03-verification.json。
+- 原基点和随后bc3f62d组合均用匿名反例核对。接入后Shell/Core/主Tests/权限/目录编译0警告错误，Session定向187/187、权限54/54、目录15/15；未漂移的SignIn128/128、启动状态61/61、激活6子命令退出0沿用本轮接入前结果，不重复加总。六项反例仍成立；全部假HTTP/占位凭据/本树临时目录，无真实账号、DPAPI、UI、播放或写服务器。首次Core hash拒绝和关闭夹具反射错误保留；不是产品红绿。
+- 接收035a会话UI回退交接并核master=bc3f62d（产品7b469c0）；54项差异已入增量台账。仅保留音频冒号及Emby/Jellyfin继续观看小标题/28DIP/状态12DIP，其他美化已按用户撤回；不得用旧报告或旧断言恢复。合并只PROGRESS冲突，保留双方条目，所有产品/正式测试与master一致。原1,876条blob台账保留，后续按bc3f62d及增量审查；R03主责32项无变动。
+- 本轮只新增审查记录并将现有master同步到审查树；报告未回合主树、未上传/发布，无独有产品改动。桌面交付是其他会话2026-11-06 01:00回退版，本轮未覆盖。证据artifacts/review/6ba7a7f/R03/20261106-first，最终检查在post-integration。完成本区后自动暂停，R04尚未开始。
+
+# 2026-11-06 全项目分区审查：R02完成后暂停
+
+- 用户“继续”后仅执行R02设置持久化、迁移与凭据，仍按每区完成自动暂停。工作树def8，开始HEAD988a0a5、产品基点6ba7a7f，规则与产品未漂移；24项主责全文已读，关联成员/测试范围写入台账，R03及后续尚未开始。
+- R02确认4项P2产品缺陷：schema13–17空Playback使整份配置隔离回退；旧主文件复制失败仍返回迁移成功；MoviePilot空密文字段使设置卡构建异常；字幕密钥加密失败异常类型与输入行不匹配。4项均用本树新编译Core/Shell和匿名输入复现。另P3两项：旧BaselineCore被新增Queue依赖破坏（实际编译11错误退出1）；标为v2的测试实际序列化schema26。未修产品/正式测试，报告docs/superpowers/reviews/2026-11-05-full-code-review/R02.md。
+- 本轮Core/Shell、主测试及Persistence/Deferred/Lifetime编译0警告0错误；定向存储145/145、持久化42/42、延迟保存24/24、设置寿命55/55、Atomic原wrapper35/35生产契约+4/4对照，均0失败/跳过。占位DPAPI当前用户往返与非法Base64边界通过；不证明真实凭据、跨用户、App/WinUI、服务器或播放。根libmpv仍缺，Shell已restore；R01红项保留。证据artifacts/review/6ba7a7f/R02/20261106-first及报告列出的Atomic独立目录。
+- 仅审查文档/台账/计划/进度提交；未合并主树、未上传、未发布，无待交付产品改动。报告提交后保留本平台树接续，等待用户继续R03；本轮所有验证任务结束后暂停。
+
+# 2026-11-05 全项目分区审查：第0批与R01完成后暂停
+
+- 用户要求每完成一个分区自动暂停；本轮仅第0批和R01，工作树`def8`，审查基点`6ba7a7f`。1,876个跟踪文件逐项登记blob/hash/主责/状态，未归属0；66个测试项目、63个主测试参数分支及wrapper/语言/原生前置已登记。报告位于`docs/superpowers/reviews/2026-11-05-full-code-review/R01.md`，其余17区保持未审查，下一步R02需用户继续。
+- R01确认7项待修：junction穿越发布清理(P1)；Status+Path继续签名、Inno SkipPublish绕过载荷验收、MOTW失败退出0、MSIX/AppX被PE谓词排除、公共载荷夹具改动后3个调用方未适配、Debug发布与固定Release验收冲突(均P2)。前5项以匿名源链接夹具复现，并经独立复核；更新关闭任务候选证据不足，交R15待核。另实际复现回归清单缺LibraryHeader导致List退出1，交R17。
+- 实际运行：56脚本编码/语法通过；maintenance13/13、release-maintenance16/16、发布布局31/31、Windows SDK runtimepack25/25、shader28/28、smoke14/14；payload146/150、boundaries49/50，dotnet-runtimepack在首case前重复CreateNew中止，均保留红项。未修产品或正式测试、未改基线；没有Core/Shell产品编译、UI、真实服务器/播放、真实发布/安装/签名。证据`artifacts/review/6ba7a7f/R01/20261105-first`及报告所列独立目录。
+- 本轮仅审查文档与证据，报告提交后保留在当前平台树供后续分区接续；未合并到主树、未上传。用户的分区暂停边界优先，等待继续；没有待交付产品改动。
+
+## 截图整理选择性回退（2026-11-06，已交付）
+
+- 用户要求只保留“音频：”与第4、9项 Emby/Jellyfin 继续观看；原建议明确为缩小页标题、按钮至卡片约24–32间距。
+- 在035a树以主树6ba7a7f为起点定点撤销本轮UI变化；其他会话功能修复和详情主题渐变保留。继续观看限定Emby/Jellyfin并保留28DIP；首页、卡片、飞牛文案和Jellyfin索引恢复e35905e产品版本。
+- 离线实屏：继续观看宽窄、首页原版、分类工具栏、Jellyfin、飞牛和搜索6项通过；卡片五主题颜色和单行标题截图已检查。首页按钮检查共享鼠标前件曾超时，另轮诊断通过，修模拟前件并增加收起恢复反例后，28032运行1/1通过（1280/760，五主题）；主树7b469c0重新编译0警告0错误、3767/3767及三个专项通过；24464七项实屏通过，发布件13124继续观看1/1通过。2026-11-06 01:00已更新桌面版546文件286.3MB，未上传。红绿证据与交付回执保留work/ui-polish-rollback/verification.md；主树并行编译时出现一项外层计时失败，隔离32/32与完整主测复验通过，旧红日志保留。
+- 验证工具的客户区尺寸、Inspect任务收尾、搜索材质断言修复继续保留；旧卡片/索引美化断言按用户撤销的产品范围移除。已先运行新页头回归，原版6处边界失败，修后18/18通过；主测试3767/3767、PageContract137/137、ProbeFinalization69/69、Release相关项目0警告0错误。
+
 ## 2026-11-06 灰底控件透明度与统一头图文字（已主树交付）
 
 - 用户批准真实缓存背景Demo：中性灰三态B0/C3/9B、白字白图标、控件无阴影，默认25%。移除详情实底及亚克力72%下限，常态0透明100实底，中间连续；悬停/按下增加6/12个百分点。已有显式偏好保留，高对比度实底且主题重画走统一路径。

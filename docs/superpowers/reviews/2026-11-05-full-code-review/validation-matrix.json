@@ -1,0 +1,5199 @@
+[
+  {
+    "project": "src/Momoka.Core/Momoka.Core.csproj",
+    "kind": "production",
+    "inSolution": true,
+    "registered": false,
+    "runner": null,
+    "buildInputs": [],
+    "status": "R17随专项当前Release编译0/0；不是全量/交付",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewEvidence": "R17-verification.json",
+    "reviewHistory": [
+      {
+        "status": "R02当前Release构建通过；0警告/0错误，无产品启动",
+        "evidence": "R02.md"
+      },
+      {
+        "status": "R03当前bc3f62d产品Release编译通过，0警告/0错误；不启动产品",
+        "evidence": "R03.md"
+      },
+      {
+        "status": "R04当前Release编译0警告0错误；Core SHA256 773fcc0f，产品未改",
+        "evidence": "R04.md",
+        "productBase": "bc3f62d756efa886a14f9b58fb207adec1a0da11",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R04/20261106-first"
+      },
+      {
+        "status": "R04最终5951bba组合Release编译0警告0错误；Core SHA256 363104c8，本会话未改产品；另一会话漂移后复编并定向复跑，见final-current；原同项不重复计数",
+        "evidence": "R04.md",
+        "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35"
+      },
+      {
+        "status": "R05当前5951bba产品Release重新编译0警告0错误；匿名反例11项成立，未修产品",
+        "evidence": "R05.md",
+        "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35"
+      },
+      {
+        "status": "R06源码无漂移，复用R05当前Release编译并核DLL哈希；211项Core子集通过、9条匿名反例成立，未修",
+        "evidence": "R06.md",
+        "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+      },
+      {
+        "status": "R07最终b8c1d61/ac4e3fa组合复编复跑；R07当前Release重新编译0警告0错误；386项Core子集通过；产品未修",
+        "evidence": "R07.md"
+      },
+      {
+        "partition": "R08",
+        "status": "R08 当前Release随主Tests重编0警告0错误；11个完整Register238执行全过",
+        "evidence": "R08.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+      },
+      {
+        "partition": "R09",
+        "status": "R09随主Tests当前Release重编0警告0错误；匿名定向683执行含重叠全过，8组缺陷采证成立",
+        "evidence": "R09.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+      },
+      {
+        "partition": "R10",
+        "status": "R10本轮Release重编0警告0错误；6入口413执行全过含重叠，8项问题匿名采证成立但未修",
+        "evidence": "R10.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+      },
+      {
+        "partition": "R11",
+        "status": "R11当前Release重编0警告0错误；19Register202及18Playback方法153通过；实际Core匿名include反例成立，4问题未修",
+        "evidence": "R11.md",
+        "productBase": "12e99d88193b44e7dce4410ecfe3f098d5bb4701",
+        "evidenceRoot": "artifacts/review/12e99d8/R11/20261106-first"
+      },
+      {
+        "status": "R11当前Release重编0警告0错误；19Register202及18Playback方法153通过；实际Core匿名include反例成立，4问题未修",
+        "evidence": "R11.md"
+      },
+      {
+        "partition": "R12",
+        "status": "R12当前Release/x64编译0警告0错误；音视频/Shader定向151过及匿名反例成立；5P2未修",
+        "evidence": "R12.md",
+        "productBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+        "evidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+      },
+      {
+        "status": "R12当前Release/x64编译0警告0错误；音视频/Shader定向151过及匿名反例成立；5P2未修",
+        "evidence": "R12.md"
+      },
+      {
+        "partition": "R14",
+        "previousStatus": "R13当前Release/x64编译0警告0错误；subtitle定向/原生观察，7P2+1P3未修",
+        "evidence": "R14-verification.json"
+      },
+      {
+        "status": "R14当前Release编译0警告0错误；非全方案/交付",
+        "evidence": "R14-verification.json"
+      },
+      {
+        "preservedCurrentMetadata": {
+          "currentProductBase": "a998403dbab9cd9e7caf34777ec23a64a3189526",
+          "currentEvidenceRoot": "artifacts/review/a998403/R14/20261106-first"
+        },
+        "evidence": "R15当前字段更新前"
+      },
+      {
+        "status": "R15当前Release/x64编译0警告0错误；匿名管理/通知/重鉴权实际链观察，不是全量/交付",
+        "evidence": "R15-verification.json",
+        "productBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+        "evidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R16当前Release/x64编译0/0；正式匿名357执行与反射76分列，非全量/交付",
+          "reviewEvidence": "R16-verification.json",
+          "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+          "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "documentationReviews": [
+      {
+        "partition": "R18",
+        "evidence": "R18-verification.json",
+        "status": "规则/README/入口说明核对；本轮未构建或运行此项目，旧实际执行状态原样保持",
+        "productBase": "d82df28a1b08c12536b584d71da8e7ba5285ce85"
+      }
+    ],
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "src/Momoka.Shell/Momoka.Shell.csproj",
+    "kind": "production",
+    "inSolution": true,
+    "registered": false,
+    "runner": null,
+    "buildInputs": [
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17当前Shell编译外层120s超时124；未采用旧DLL；不更新旧通过为绿",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewEvidence": "R17-verification.json",
+    "reviewHistory": [
+      {
+        "status": "R02当前x64 Release构建通过；0警告/0错误，无App/WinUI启动",
+        "evidence": "R02.md"
+      },
+      {
+        "status": "R03接入master后x64 Release Rebuild通过0/0；实际VM匿名运行，不是WinUI",
+        "evidence": "R03.md",
+        "productBase": null
+      },
+      {
+        "status": "R05当前5951bba产品Release重新编译0警告0错误；仅托管DLL供68项Plex能力夹具，不启动WinUI",
+        "evidence": "R05.md",
+        "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35"
+      },
+      {
+        "status": "R06源码无漂移，复用R05当前Release并核哈希；真实VM四专项87项通过，反例见报告；非UI验收",
+        "evidence": "R06.md",
+        "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+      },
+      {
+        "status": "R07最终b8c1d61/ac4e3fa组合复编复跑；R07原删除wrapper内当前Release重编0警告0错误；实际托管VM及原样命令采证，非UI验收",
+        "evidence": "R07.md"
+      },
+      {
+        "partition": "R08",
+        "status": "R08 当前x64 Release重编0警告0错误；匿名反射/检查台接线，不启动WinUI",
+        "evidence": "R08.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+      },
+      {
+        "partition": "R09",
+        "status": "R09源码未变复用R08当前Release同哈希；生成绑定17过；真实LibraryVM匿名重读采证，非WinUI",
+        "evidence": "R09.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+      },
+      {
+        "partition": "R11",
+        "status": "R11主责Shell全文和共享成员已读；本轮未构建/加载Shell，提取完整暂停方法边界观察不是WinUI验收",
+        "evidence": "R11.md",
+        "productBase": "12e99d88193b44e7dce4410ecfe3f098d5bb4701",
+        "evidenceRoot": "artifacts/review/12e99d8/R11/20261106-first"
+      },
+      {
+        "status": "R11主责Shell全文和共享成员已读；本轮未构建/加载Shell，提取完整暂停方法边界观察不是WinUI验收",
+        "evidence": "R11.md"
+      },
+      {
+        "partition": "R12",
+        "status": "R12当前Release/x64编译0警告0错误；真实VM监视器32、音量35、截图14通过；无实际WinUI窗口",
+        "evidence": "R12.md",
+        "productBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+        "evidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+      },
+      {
+        "status": "R12当前Release/x64编译0警告0错误；真实VM监视器32、音量35、截图14通过；无实际WinUI窗口",
+        "evidence": "R12.md"
+      },
+      {
+        "partition": "R14",
+        "previousStatus": "R13当前Release/x64编译0警告0错误；实际VM15+R05514过；无真实WinUI",
+        "evidence": "R14-verification.json"
+      },
+      {
+        "status": "R14当前Release编译0警告0错误；非全方案/交付",
+        "evidence": "R14-verification.json"
+      },
+      {
+        "preservedCurrentMetadata": {
+          "currentProductBase": "a998403dbab9cd9e7caf34777ec23a64a3189526",
+          "currentEvidenceRoot": "artifacts/review/a998403/R14/20261106-first"
+        },
+        "evidence": "R15当前字段更新前"
+      },
+      {
+        "status": "R15当前Release/x64编译0警告0错误；标准Shell DLL实际VM观察；无真实WinUI",
+        "evidence": "R15-verification.json",
+        "productBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+        "evidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R16当前Release/x64编译0/0；无真实窗口/材质/滚动/UIA",
+          "reviewEvidence": "R16-verification.json",
+          "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+          "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "documentationReviews": [
+      {
+        "partition": "R18",
+        "evidence": "R18-verification.json",
+        "status": "规则/README/入口说明核对；本轮未构建或运行此项目，旧实际执行状态原样保持",
+        "productBase": "d82df28a1b08c12536b584d71da8e7ba5285ce85"
+      }
+    ],
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.AniBtConfirmationTests/Legacy/Momoka.Tests.csproj",
+    "kind": "support",
+    "inSolution": false,
+    "registered": false,
+    "runner": null,
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\AniBtTests.cs",
+        "Link": "Regression\\AniBtTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\AniBtIntegrationTests.cs",
+        "Link": "Regression\\AniBtIntegrationTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\AniBtReceiptStateTests.cs",
+        "Link": "Regression\\AniBtReceiptStateTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\MoviePilotTransferSubmissionTests.cs",
+        "Link": "Regression\\TransferSubmissionFixture.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\StubTransport.cs",
+        "Link": "StubTransport.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "未执行",
+          "reviewEvidence": null,
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.AniBtConfirmationTests/Momoka.AniBtConfirmationTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.AniBtConfirmationTests",
+      "project": "tests/Momoka.AniBtConfirmationTests/Momoka.AniBtConfirmationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.AniBtConfirmationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Remove": "Legacy\\**"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\**\\*.cs",
+        "Exclude": "..\\..\\src\\Momoka.Core\\bin\\**;..\\..\\src\\Momoka.Core\\obj\\**;..\\..\\src\\Momoka.Core\\AniBt\\AniBtService.cs",
+        "Link": "Production\\Core\\%(RecursiveDir)%(Filename)%(Extension)"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(AniBtSourceRoot)\\src\\Momoka.Core\\AniBt\\AniBtService.cs",
+        "Link": "Production\\AniBtService.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(AniBtSourceRoot)\\src\\Momoka.Shell\\ViewModels\\AniBtScrapeViewModel.cs",
+        "Link": "Production\\AniBtScrapeViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(AniBtSourceRoot)\\src\\Momoka.Shell\\Views\\AniBtScrapeDialog.xaml.cs",
+        "Link": "Production\\AniBtScrapeDialog.xaml.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.SubtitleDialogTests\\UiQueue.cs",
+        "Link": "UiQueue.cs"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewEvidence": "R17-verification.json",
+    "reviewHistory": [
+      {
+        "partition": "R09",
+        "status": "R09当前缓存restore/Release编译0警告0错误；实际入口57过0败0跳过；匿名无窗口",
+        "evidence": "R09.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R09当前缓存restore/Release编译0警告0错误；实际入口57过0败0跳过；匿名无窗口",
+          "reviewEvidence": "R09.md",
+          "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "currentEvidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.AniBtEntryTests/Momoka.AniBtEntryTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.AniBtEntryTests",
+      "project": "tests/Momoka.AniBtEntryTests/Momoka.AniBtEntryTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.AniBtEntryTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\ItemCommands.cs",
+        "Link": "Production\\ItemCommands.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\CardItem.cs",
+        "Link": "Production\\CardItem.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Media\\PosterCache.cs",
+        "Link": "Production\\PosterCache.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\IShellActions.cs",
+        "Link": "Production\\IShellActions.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\ItemUserStateOrderTests.Boundaries.cs",
+        "Link": "FrameworkBoundaries.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.SubtitleDialogTests\\UiQueue.cs",
+        "Link": "UiQueue.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)AniBtEntrySources.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractAniBtEntrySources",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewEvidence": "R17-verification.json",
+    "reviewHistory": [
+      {
+        "partition": "R09",
+        "status": "R09当前缓存restore/Release编译0警告0错误；实际入口51过0败0跳过；匿名无窗口",
+        "evidence": "R09.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R09当前缓存restore/Release编译0警告0错误；实际入口51过0败0跳过；匿名无窗口",
+          "reviewEvidence": "R09.md",
+          "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "currentEvidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.AniBtSourceContractTests/Momoka.AniBtSourceContractTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.AniBtSourceContractTests",
+      "project": "tests/Momoka.AniBtSourceContractTests/Momoka.AniBtSourceContractTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.AniBtSourceContractTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "Program.cs;SettingsStoreBoundary.cs;SourceFixture.cs;CoreSourceContractTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "CallerSourceContractTests.cs;ShellProbeContractTests.cs",
+        "Condition": "'$(R042Legacy)' != 'true'"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\**\\*.cs",
+        "Exclude": "..\\..\\src\\Momoka.Core\\bin\\**;..\\..\\src\\Momoka.Core\\obj\\**;..\\..\\src\\Momoka.Core\\Configuration\\SettingsStore.cs;..\\..\\src\\Momoka.Core\\AniBt\\AniBtService.cs",
+        "Link": "Production\\Core\\%(RecursiveDir)%(Filename)%(Extension)"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(R042SourceRoot)\\src\\Momoka.Core\\AniBt\\AniBtService.cs",
+        "Link": "Production\\AniBtService.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(R042SourceRoot)\\src\\Momoka.Shell\\ViewModels\\AniBtScrapeViewModel.cs",
+        "Link": "Production\\AniBtScrapeViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(R042SourceRoot)\\src\\Momoka.Shell\\Views\\AniBtScrapeDialog.xaml.cs",
+        "Link": "Production\\AniBtScrapeDialog.xaml.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.AniBtConfirmationTests\\AnonymousFixture.cs",
+        "Link": "Boundaries\\AnonymousFixture.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.AniBtConfirmationTests\\DialogBoundary.cs",
+        "Link": "Boundaries\\DialogBoundary.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.AniBtConfirmationTests\\ThemeBoundary.cs",
+        "Link": "Boundaries\\ThemeBoundary.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.AniBtConfirmationTests\\UiControls.cs",
+        "Link": "Boundaries\\UiControls.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.AniBtConfirmationTests\\UiValues.cs",
+        "Link": "Boundaries\\UiValues.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.SubtitleDialogTests\\UiQueue.cs",
+        "Link": "Boundaries\\UiQueue.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)AniBtShellProbe.g.cs"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractAniBtShellProbe",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewEvidence": "R17-verification.json",
+    "reviewHistory": [
+      {
+        "partition": "R09",
+        "status": "R09当前缓存restore/Release编译0警告0错误；实际入口40过0败0跳过；匿名无窗口",
+        "evidence": "R09.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R09当前缓存restore/Release编译0警告0错误；实际入口40过0败0跳过；匿名无窗口",
+          "reviewEvidence": "R09.md",
+          "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "currentEvidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.AppearanceOpacityTests/Momoka.AppearanceOpacityTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.AppearanceOpacityTests",
+      "project": "tests/Momoka.AppearanceOpacityTests/Momoka.AppearanceOpacityTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.AppearanceOpacityTests/README.md",
+      "notes": "源链接实际透明度转换、控件画刷及通知；不启动窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "../../src/Momoka.Shell/AppearanceOpacity.cs",
+        "Link": "AppearanceOpacity.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "../../src/Momoka.Shell/ShellPrefs.cs",
+        "Link": "ShellPrefs.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "../../src/Momoka.Shell/Views/ControlBackgroundBrushes.cs",
+        "Link": "ControlBackgroundBrushes.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "../../src/Momoka.Core/Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null,
+        "evidenceRoot": null
+      },
+      {
+        "status": "R07最终b8c1d61/ac4e3fa组合复编复跑；R07缓存restore/Release构建0警告0错误；39过0败0跳过；无真实绘制",
+        "evidence": "R07.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R07/20261106-first/final-current"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R16本树标准39过；固定master d984ac9副本完整42过，非真实材质像素；原失败保留",
+          "reviewEvidence": "R16-verification.json",
+          "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+          "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.ArchitectureTests/Momoka.ArchitectureTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.ArchitectureTests",
+      "project": "tests/Momoka.ArchitectureTests/Momoka.ArchitectureTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.ArchitectureTests/README.md",
+      "notes": "先构建当前工作树 Release 的 Core/Shell，再运行；NetArchTest 只读这两个 DLL，不加载 WinUI、不启动应用或连接服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "未执行",
+          "reviewEvidence": null,
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.AtomicFileWriteTests/Momoka.AtomicFileWriteTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.AtomicFileWriteTests",
+      "project": "tests/Momoka.AtomicFileWriteTests/Momoka.AtomicFileWriteTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.AtomicFileWriteTests/README.md",
+      "notes": "真实本地文件系统测试；默认只写项目 outputs 独立目录，要求 Windows>=14393/非重解析固定盘。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "$(AtomicFileSource)",
+        "Link": "Production\\AtomicFile.cs"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewEvidence": "R17-verification.json",
+    "reviewHistory": [
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R02原wrapper完整35/35生产契约+4/4对照，0跳过",
+          "reviewEvidence": "R02.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.CurrentPermissionSnapshotTests/AccountCompatibility/AccountCompatibility.csproj",
+    "kind": "support",
+    "inSolution": true,
+    "registered": false,
+    "runner": null,
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "$(AccountPasswordSource)",
+        "Link": "Production\\FnNasPasswordViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(AccountPersistenceSource)",
+        "Condition": "'$(AccountPersistenceSource)' != ''",
+        "Link": "Production\\ISettingsPersistence.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasPreferencesViewModel.cs",
+        "Link": "Production\\FnNasPreferencesViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasSessionViewModel.cs",
+        "Link": "Production\\FnNasSessionViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasAdminRows.cs",
+        "Link": "Production\\FnNasAdminRows.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\..\\src\\Momoka.Core\\Infrastructure\\LoadGeneration.cs",
+        "Link": "Production\\LoadGeneration.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\..\\src\\Momoka.Core\\Diagnostics\\Failure.cs",
+        "Link": "Production\\Failure.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\..\\src\\Momoka.Core\\Emby\\EmbyApiException.cs",
+        "Link": "Production\\EmbyApiException.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\UiEnums.cs",
+        "Link": "UiEnums.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.SubtitleDialogTests\\UiQueue.cs",
+        "Link": "UiQueue.cs"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "未执行",
+          "reviewEvidence": null,
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.CurrentPermissionSnapshotTests/Momoka.CurrentPermissionSnapshotTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.CurrentPermissionSnapshotTests",
+      "project": "tests/Momoka.CurrentPermissionSnapshotTests/Momoka.CurrentPermissionSnapshotTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{root}",
+        "{shell}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.CurrentPermissionSnapshotTests/README.md",
+      "notes": "包含可选 Shell 设置VM覆盖；仅托管匿名夹具。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Remove": "AccountCompatibility\\**\\*.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasSessionViewModel.cs",
+        "Link": "Production\\FnNasSessionViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasAdminViewModel.cs",
+        "Link": "Production\\FnNasAdminViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasLibrariesViewModel.cs",
+        "Link": "Production\\FnNasLibrariesViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasUsersViewModel.cs",
+        "Link": "Production\\FnNasUsersViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasSettingsViewModel.cs",
+        "Link": "Production\\FnNasSettingsViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasTasksViewModel.cs",
+        "Link": "Production\\FnNasTasksViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasAdminRows.cs",
+        "Link": "Production\\FnNasAdminRows.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)PermissionPage.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractPermissionPageSources",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R03接入master后当前编译0/0，54/54失败0跳过0，含实际SettingsVM；其他wrapper/帐号支持项目本轮未运行",
+          "reviewEvidence": "R03.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.DanmakuPerformanceTests",
+      "project": "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "--output",
+        "{output}/dynamic"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.DanmakuPerformanceTests/README.md",
+      "notes": "实际Core弹幕与原样宿主Load方法；匿名合成缓存和内存HTTP，Lua运行另走独立工具。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\DanmakuTests.cs",
+        "Link": "DanmakuTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)PlayerViewModel.Danmaku.Load.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "Exec",
+        "Command": "py \"$(MSBuildThisFileDirectory)extract-ownership.py\" --root \"$(MSBuildThisFileDirectory)..\\..\" --output \"$(MSBuildProjectDirectory)\\$(IntermediateOutputPath)PlayerViewModel.Danmaku.Load.g.cs\""
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R14",
+        "previousStatus": "未执行",
+        "evidence": "R14-verification.json"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R14标准py构建9009环境红；ignored绝对py原样提取器适配Release0/0，71过0败0跳过含主Danmaku重叠；Lua另列",
+          "reviewEvidence": "R14-verification.json",
+          "currentProductBase": "a998403dbab9cd9e7caf34777ec23a64a3189526",
+          "currentEvidenceRoot": "artifacts/review/a998403/R14/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.DanmakuSourceBoundaryTests",
+      "project": "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.DanmakuSourceBoundaryTests/README.md",
+      "notes": "当前生产控制流与匿名边界回归；不运行真实服务器或播放。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "../Momoka.Tests/TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)Panel.g.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)Host.g.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)Settings.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "../../src/Momoka.Core/Momoka.Core.csproj"
+      },
+      {
+        "kind": "Exec",
+        "Command": "py \"$(MSBuildThisFileDirectory)extract.py\" --output \"$(MSBuildProjectDirectory)/$(IntermediateOutputPath).\""
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R14",
+        "previousStatus": "未执行",
+        "evidence": "R14-verification.json"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R14标准py构建9009环境红；ignored绝对py原样提取器适配Release0/0，17过0败0跳过；非真实UI",
+          "reviewEvidence": "R14-verification.json",
+          "currentProductBase": "a998403dbab9cd9e7caf34777ec23a64a3189526",
+          "currentEvidenceRoot": "artifacts/review/a998403/R14/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.DashboardNavigation.Tests/Momoka.DashboardNavigation.Tests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.DashboardNavigation.Tests",
+      "project": "tests/Momoka.DashboardNavigation.Tests/Momoka.DashboardNavigation.Tests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.DashboardNavigation.Tests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)DashboardPage.Lifecycle.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractDashboardNavigation",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R15标准69过/0败/0跳；完整导航方法，Start/credential另匿名观察，非WebView",
+          "reviewEvidence": "R15-verification.json",
+          "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+          "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.DetailDeleteCommandTests/Momoka.DetailDeleteCommandTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.DetailDeleteCommandTests",
+      "project": "tests/Momoka.DetailDeleteCommandTests/Momoka.DetailDeleteCommandTests.csproj",
+      "mode": "wrapper",
+      "requiresShell": true,
+      "arguments": [
+        "-Dotnet",
+        "{dotnet}",
+        "-Packages",
+        "{packages}",
+        "-EvidenceRoot",
+        "{output}/delete"
+      ],
+      "wrapper": "tests/Momoka.DetailDeleteCommandTests/Run-Fixture.ps1",
+      "readme": "tests/Momoka.DetailDeleteCommandTests/README.md",
+      "notes": "原 wrapper 构建 Shell/fixture 并生成源码及DLL证明；不执行真实删除。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\CardItem.cs",
+        "Link": "Production\\CardItem.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\IShellActions.cs",
+        "Link": "Production\\IShellActions.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\ConfirmDialog.cs",
+        "Link": "Production\\ConfirmDialog.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Media\\PosterCache.cs",
+        "Link": "Production\\PosterCache.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)DetailDeleteCommandSources.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractDetailDeleteCommandSources",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null,
+        "evidenceRoot": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R07最终b8c1d61/ac4e3fa组合复编复跑；R07原Run-Fixture.ps1重编并生成载荷证明；19过0败0跳过；非真实删除",
+          "reviewEvidence": "R07.md",
+          "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "currentEvidenceRoot": "artifacts/review/6ba7a7f/R07/20261106-first/final-current"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.DialogDismissTests/Momoka.DialogDismissTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.DialogDismissTests",
+      "project": "tests/Momoka.DialogDismissTests/Momoka.DialogDismissTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.DialogDismissTests/README.md",
+      "notes": "现有统一点外关闭生产实现源链接回归；不注入真实指针或启动窗口。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\DialogDismiss.cs",
+        "Link": "Production\\DialogDismiss.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null,
+        "evidenceRoot": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R16标准10过/0败/0跳；实际DialogDismiss＋Press/WinUI边界，不是真实遮罩输入",
+          "reviewEvidence": "R16-verification.json",
+          "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+          "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.FnNasAccountEditTests/Momoka.FnNasAccountEditTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.FnNasAccountEditTests",
+      "project": "tests/Momoka.FnNasAccountEditTests/Momoka.FnNasAccountEditTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.FnNasAccountEditTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "$(AccountEditSourceRoot)\\FnNasPasswordViewModel.cs",
+        "Link": "Production\\FnNasPasswordViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(AccountEditSourceRoot)\\FnNasPreferencesViewModel.cs",
+        "Link": "Production\\FnNasPreferencesViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasSessionViewModel.cs",
+        "Link": "Production\\FnNasSessionViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasAdminRows.cs",
+        "Link": "Production\\FnNasAdminRows.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Services\\ISettingsPersistence.cs",
+        "Link": "Production\\ISettingsPersistence.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Infrastructure\\LoadGeneration.cs",
+        "Link": "Production\\LoadGeneration.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Diagnostics\\Failure.cs",
+        "Link": "Production\\Failure.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Emby\\EmbyApiException.cs",
+        "Link": "Production\\EmbyApiException.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.SubtitleDialogTests\\UiQueue.cs",
+        "Link": "UiQueue.cs"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R15标准68过/0败/0跳；真账户VM/固定生成器、确认服务替身，非生产密码持久化",
+          "reviewEvidence": "R15-verification.json",
+          "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+          "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.FnNasDefaultPermissionTests/Momoka.FnNasDefaultPermissionTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.FnNasDefaultPermissionTests",
+      "project": "tests/Momoka.FnNasDefaultPermissionTests/Momoka.FnNasDefaultPermissionTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.FnNasDefaultPermissionTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasUsersViewModel.cs",
+        "Link": "Production\\FnNasUsersViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasSessionViewModel.cs",
+        "Link": "Production\\FnNasSessionViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasAdminViewModel.cs",
+        "Link": "Production\\FnNasAdminViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasAdminRows.cs",
+        "Link": "Production\\FnNasAdminRows.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R05当前Release重新编译；36/36、0失败0跳过，实际VM与匿名HTTP，不运行真实管理写",
+          "reviewEvidence": "R05.md",
+          "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+          "currentEvidenceRoot": "artifacts/review/6ba7a7f/R05/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.FnNasErrorClassificationTests/Momoka.FnNasErrorClassificationTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.FnNasErrorClassificationTests",
+      "project": "tests/Momoka.FnNasErrorClassificationTests/Momoka.FnNasErrorClassificationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.FnNasErrorClassificationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.SubtitleDialogTests\\UiQueue.cs",
+        "Link": "UiQueue.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R05当前Release重新编译；21/21、0失败0跳过，假HTTP错误分类，不是实服认证",
+          "reviewEvidence": "R05.md",
+          "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+          "currentEvidenceRoot": "artifacts/review/6ba7a7f/R05/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.FrameInterpolationTests/Momoka.FrameInterpolationTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.FrameInterpolationTests",
+      "project": "tests/Momoka.FrameInterpolationTests/Momoka.FrameInterpolationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.FrameInterpolationTests/README.md",
+      "notes": "仅无参规则/界面源码测试；native 本地 DLL 入口须按 README 另跑。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Mpv\\MpvListValue.cs",
+        "Link": "Production\\MpvListValue.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\VideoOutputTests.cs",
+        "Link": "Regression\\VideoOutputTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\InlineSwitchTests.cs",
+        "Link": "Regression\\InlineSwitchTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\SettingsViewModel.FrameInterpolation.cs",
+        "Link": "Production\\SettingsViewModel.FrameInterpolation.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)FrameInterpolationUi.g.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)FrameInterpolationRegression.g.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)SvpProbeCommit.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractFrameInterpolationUi",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R12",
+        "status": "R12默认45、regression23通过；真实DLL无媒体native184断言通过；无帧输出/真实SVP",
+        "evidence": "R12.md",
+        "productBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+        "evidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R12默认45、regression23通过；真实DLL无媒体native184断言通过；无帧输出/真实SVP",
+          "reviewEvidence": "R12.md",
+          "currentProductBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+          "currentEvidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.GaussianBackdropTests/Momoka.GaussianBackdropTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.GaussianBackdropTests",
+      "project": "tests/Momoka.GaussianBackdropTests/Momoka.GaussianBackdropTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.GaussianBackdropTests/README.md",
+      "notes": "真实Core高斯卷积和配置恢复；不启动窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "../Momoka.Tests/GaussianBackdropTests.cs",
+        "Link": "GaussianBackdropTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "../Momoka.Tests/TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "../../src/Momoka.Core/Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null,
+        "evidenceRoot": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R16本树标准5过；固定master副本7过；1280×720仅计时无并行数值/在途取消断言",
+          "reviewEvidence": "R16-verification.json",
+          "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+          "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.HomeDirectoryTests/Momoka.HomeDirectoryTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.HomeDirectoryTests",
+      "project": "tests/Momoka.HomeDirectoryTests/Momoka.HomeDirectoryTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.HomeDirectoryTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)HomeDirectorySources.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractHomeDirectorySources",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "status": "R03接入master后当前编译0/0，15/15失败0跳过0；另确认历史空目录反例，未真实Frame",
+        "evidence": "R03.md",
+        "productBase": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R06本轮缓存restore/Release build0警告0错误，15通过0失败0跳过；源码提取，不是WinUI",
+          "reviewEvidence": "R06.md",
+          "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+          "currentEvidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.HomeFoldCompletionTests/Momoka.HomeFoldCompletionTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.HomeFoldCompletionTests",
+      "project": "tests/Momoka.HomeFoldCompletionTests/Momoka.HomeFoldCompletionTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.HomeFoldCompletionTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\HomeFoldMotion.cs",
+        "Link": "Production\\HomeFoldMotion.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)HomeFoldPage.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractHomeFoldSources",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R06本轮缓存restore/Release build0警告0错误，56通过0失败0跳过；README52为过时当前计数，51是历史",
+          "reviewEvidence": "R06.md",
+          "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+          "currentEvidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.HomeOrderProbeTests/Momoka.HomeOrderProbeTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.HomeOrderProbeTests",
+      "project": "tests/Momoka.HomeOrderProbeTests/Momoka.HomeOrderProbeTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.HomeOrderProbeTests/README.md",
+      "notes": "加载本树当前 Release Shell DLL 执行托管夹具；不启动 App/WinUI。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.SettingsLifetimeTests\\ShellRuntime.cs",
+        "Link": "ShellRuntime.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\IShellContent.cs",
+        "Link": "Production\\IShellContent.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\ISessionScopedPage.cs",
+        "Link": "Production\\ISessionScopedPage.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)HomeOrderProbe.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractHomeOrderProbeSources",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17未运行：新Shell编译超时，旧证据保留",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "未执行",
+          "reviewEvidence": null,
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.ImagePerformanceTests/Momoka.ImagePerformanceTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.ImagePerformanceTests",
+      "project": "tests/Momoka.ImagePerformanceTests/Momoka.ImagePerformanceTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "perf-images"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.ImagePerformanceTests/README.md",
+      "notes": "实际WinRT有界解码和原样封面caller，匿名HTTP预算与取消；严格perf-images入口，不开窗口/播放。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\CoverBackdropImage.cs",
+        "Link": "Production\\CoverBackdropImage.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\CoverBackdropSize.cs",
+        "Link": "Production\\CoverBackdropSize.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Media\\HeroPictureLoader.cs",
+        "Link": "Production\\HeroPictureLoader.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Media\\DetailHeroCache.cs",
+        "Link": "Production\\DetailHeroCache.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\ImageCacheTests.cs",
+        "Link": "Existing\\ImageCacheTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\CoverArtworkTests.cs",
+        "Link": "Existing\\CoverArtworkTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "Existing\\TestHarness.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "Import",
+        "Project": "ExtractProductionSources.targets"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null,
+        "evidenceRoot": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R16精确perf-images当前22旧例＋49专项全过；真实Core/WinRT与调用方XAML替身分列",
+          "reviewEvidence": "R16-verification.json",
+          "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+          "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "documentationReviews": [
+      {
+        "partition": "R18",
+        "evidence": "R18-verification.json",
+        "status": "规则/README/入口说明核对；本轮未构建或运行此项目，旧实际执行状态原样保持",
+        "productBase": "d82df28a1b08c12536b584d71da8e7ba5285ce85"
+      }
+    ],
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.ItemUserStateOrderTests/Momoka.ItemUserStateOrderTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.ItemUserStateOrderTests",
+      "project": "tests/Momoka.ItemUserStateOrderTests/Momoka.ItemUserStateOrderTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.ItemUserStateOrderTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\ItemCommands.cs",
+        "Link": "Production\\ItemCommands.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\CardItem.cs",
+        "Link": "Production\\CardItem.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Media\\PosterCache.cs",
+        "Link": "Production\\PosterCache.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\IShellActions.cs",
+        "Link": "Production\\IShellActions.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\ItemUserStateOrderTests*.cs",
+        "Link": "%(Filename)%(Extension)"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)ItemUserStateHelpers.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractItemUserStateFixtureSources",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null,
+        "evidenceRoot": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R07最终b8c1d61/ac4e3fa组合复编复跑；R07缓存restore/Release构建0警告0错误；73过0败0跳过",
+          "reviewEvidence": "R07.md",
+          "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "currentEvidenceRoot": "artifacts/review/6ba7a7f/R07/20261106-first/final-current"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.LibMpvEndFileTests/Momoka.LibMpvEndFileTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.LibMpvEndFileTests",
+      "project": "tests/Momoka.LibMpvEndFileTests/Momoka.LibMpvEndFileTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.LibMpvEndFileTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Mpv\\LibMpvNodes.cs",
+        "Link": "Production\\LibMpvNodes.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Mpv\\LibMpvFrame.cs",
+        "Link": "Production\\LibMpvFrame.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)R048\\LibMpvHandle.g.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)R048\\LibMpvCommand.g.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)R048\\LibMpvAbi.g.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)R048\\AutoNextBoundary.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractLibMpvEndFileSources",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R10",
+        "status": "R10本轮固定缓存restore/Release构建0警告0错误，40通过0失败0跳过；匿名边界见R10",
+        "evidence": "R10.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R10本轮固定缓存restore/Release构建0警告0错误，40通过0失败0跳过；匿名边界见R10",
+          "reviewEvidence": "R10.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.LibraryHeaderTests/Momoka.LibraryHeaderTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": false,
+    "runner": null,
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "../Momoka.Tests/TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "../Momoka.Tests/AgreementsTests.cs",
+        "Link": "AgreementsTests.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "../../src/Momoka.Core/Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractLibraryHeader",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)LibraryPage.Header.g.cs"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R06本轮缓存restore/Release build0警告0错误，18通过0失败0跳过，含7 Agreements；非真实布局",
+          "reviewEvidence": "R06.md",
+          "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+          "currentEvidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "inputReviewHistory": [
+      {
+        "partition": "FINAL",
+        "previousBuildInputs": [
+          {
+            "kind": "Compile",
+            "Include": "../Momoka.Tests/TestHarness.cs",
+            "Link": "TestHarness.cs"
+          },
+          {
+            "kind": "Compile",
+            "Include": "../Momoka.Tests/AgreementsTests.cs",
+            "Link": "AgreementsTests.cs"
+          },
+          {
+            "kind": "Compile",
+            "Include": "../../src/Momoka.Shell/Views/AlphaBar.xaml.cs",
+            "Link": "AlphaBar.xaml.cs"
+          },
+          {
+            "kind": "Compile",
+            "Include": "$(IntermediateOutputPath)LibraryPage.Header.g.cs"
+          },
+          {
+            "kind": "UsingTask",
+            "TaskName": "ExtractLibraryHeader",
+            "TaskFactory": "RoslynCodeTaskFactory",
+            "AssemblyFile": "$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll"
+          }
+        ],
+        "evidence": "FINAL-verification.json"
+      }
+    ],
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.MissingEpisodesAvailabilityTests/Momoka.MissingEpisodesAvailabilityTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.MissingEpisodesAvailabilityTests",
+      "project": "tests/Momoka.MissingEpisodesAvailabilityTests/Momoka.MissingEpisodesAvailabilityTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.MissingEpisodesAvailabilityTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\MissingEpisodesDialog.xaml.cs",
+        "Link": "Production\\MissingEpisodesDialog.xaml.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "Import",
+        "Project": "ExtractMissingEpisodesSources.targets"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewEvidence": "R17-verification.json",
+    "reviewHistory": [
+      {
+        "partition": "R09",
+        "status": "R09当前缓存restore/Release编译0警告0错误；实际入口58过0败0跳过；匿名无窗口",
+        "evidence": "R09.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R09当前缓存restore/Release编译0警告0错误；实际入口58过0败0跳过；匿名无窗口",
+          "reviewEvidence": "R09.md",
+          "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "currentEvidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.MoviePilotJourneyTests/Momoka.MoviePilotJourneyTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.MoviePilotJourneyTests",
+      "project": "tests/Momoka.MoviePilotJourneyTests/Momoka.MoviePilotJourneyTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.MoviePilotJourneyTests/README.md",
+      "notes": "加载当前Shell中的匿名检查台传输，不启动窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R08",
+        "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口21通过0失败0跳过；匿名/无真实WinUI",
+        "evidence": "R08.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口21通过0失败0跳过；匿名/无真实WinUI",
+          "reviewEvidence": "R08.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": false,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.MoviePilotSubscribeSettingsTests",
+      "project": "tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.MoviePilotSubscribeSettingsTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Remove": "Regression\\**\\*.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotSearchViewModel.cs",
+        "Link": "Production\\MoviePilotSearchViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotSearchSnapshot.cs",
+        "Link": "Production\\MoviePilotSearchSnapshot.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotMediaViewModel.cs",
+        "Link": "Production\\MoviePilotMediaViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotMediaViewModel.Related.cs",
+        "Link": "Production\\MoviePilotMediaViewModel.Related.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotEpisodeGroupRow.cs",
+        "Link": "Production\\MoviePilotEpisodeGroupRow.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\MoviePilotSeasonPicker.xaml.cs",
+        "Link": "Production\\MoviePilotSeasonPicker.xaml.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\MoviePilotDialog.cs",
+        "Link": "Production\\MoviePilotDialog.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R08",
+        "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口74通过0失败0跳过；匿名/无真实WinUI",
+        "evidence": "R08.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口74通过0失败0跳过；匿名/无真实WinUI",
+          "reviewEvidence": "R08.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.MoviePilotSubscribeSettingsTests/Regression/Momoka.Tests.csproj",
+    "kind": "support",
+    "inSolution": false,
+    "registered": false,
+    "runner": null,
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\StubTransport.cs",
+        "Link": "StubTransport.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\MoviePilotTests.cs",
+        "Link": "MoviePilotTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\MoviePilotLoginRedirectTests.cs",
+        "Link": "MoviePilotLoginRedirectTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\MoviePilotMediaDetailTests.cs",
+        "Link": "MoviePilotMediaDetailTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\MoviePilotAvailabilityTests.cs",
+        "Link": "MoviePilotAvailabilityTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\MoviePilotSubscriptionTests.cs",
+        "Link": "MoviePilotSubscriptionTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\MoviePilotSafetyTests.cs",
+        "Link": "MoviePilotSafetyTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\Momoka.Tests\\MoviePilotQuerySafetyTests.cs",
+        "Link": "MoviePilotQuerySafetyTests.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "未执行",
+          "reviewEvidence": null,
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.NaturalContinuationCallerTests/Momoka.NaturalContinuationCallerTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.NaturalContinuationCallerTests",
+      "project": "tests/Momoka.NaturalContinuationCallerTests/Momoka.NaturalContinuationCallerTests.csproj",
+      "mode": "wrapper",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": "tests/Momoka.NaturalContinuationCallerTests/Run-Caller.ps1",
+      "readme": "tests/Momoka.NaturalContinuationCallerTests/README.md",
+      "notes": "原 wrapper 核对 SourcePins、离线还原和当前编译，使用其默认 artifacts/r046-caller 新目录；另有提取器反例，见 README。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Remove": "SourceExtractor\\**\\*.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "SourceExtractor\\SourceExtractor.csproj",
+        "ReferenceOutputAssembly": "false"
+      },
+      {
+        "kind": "Import",
+        "Project": "ExtractProductionSources.targets"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R10",
+        "status": "R10本轮固定缓存restore/Release构建0警告0错误，54通过0失败0跳过；匿名边界见R10",
+        "evidence": "R10.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R10本轮固定缓存restore/Release构建0警告0错误，54通过0失败0跳过；匿名边界见R10",
+          "reviewEvidence": "R10.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.NaturalContinuationCallerTests/SourceExtractor/SourceExtractor.csproj",
+    "kind": "support",
+    "inSolution": true,
+    "registered": false,
+    "runner": null,
+    "buildInputs": [],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R10",
+        "status": "R10随原Run-Caller wrapper重编并验证19源pins/完整方法；54动态通过，10拒绝反例本轮未跑，交R17",
+        "evidence": "R10.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R10随原Run-Caller wrapper重编并验证19源pins/完整方法；54动态通过，10拒绝反例本轮未跑，交R17",
+          "reviewEvidence": "R10.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.NaturalEpisodeContinuationTests/Momoka.NaturalEpisodeContinuationTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.NaturalEpisodeContinuationTests",
+      "project": "tests/Momoka.NaturalEpisodeContinuationTests/Momoka.NaturalEpisodeContinuationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.NaturalEpisodeContinuationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Mpv\\LibMpvNodes.cs",
+        "Link": "Production\\LibMpvNodes.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Mpv\\LibMpvFrame.cs",
+        "Link": "Production\\LibMpvFrame.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Mpv\\MpvListValue.cs",
+        "Link": "Production\\MpvListValue.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.ShaderCommandGenerationTests\\HandleFixture.cs;..\\Momoka.ShaderCommandGenerationTests\\ServiceFixture.cs;..\\Momoka.ShaderCommandGenerationTests\\NativeBoundary.cs;..\\Momoka.ShaderCommandGenerationTests\\NativeSeam.cs;..\\Momoka.ShaderCommandGenerationTests\\ShaderChoiceBoundary.cs",
+        "Link": "%(Filename)%(Extension)"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "Import",
+        "Project": "..\\Momoka.ShaderCommandGenerationTests\\ExtractNativeControl.targets"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R10",
+        "status": "R10本轮固定缓存restore/Release构建0警告0错误，27通过0失败0跳过；匿名边界见R10",
+        "evidence": "R10.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R10本轮固定缓存restore/Release构建0警告0错误，27通过0失败0跳过；匿名边界见R10",
+          "reviewEvidence": "R10.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.PageContractTests/Momoka.PageContractTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.PageContractTests",
+      "project": "tests/Momoka.PageContractTests/Momoka.PageContractTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.PageContractTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\DiagnosticsViewModel.cs",
+        "Link": "Production\\DiagnosticsViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FilterSection.cs",
+        "Link": "Production\\FilterSection.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FilterPanelViewModel.cs",
+        "Link": "Production\\FilterPanelViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\DiagnosticsTests.cs",
+        "Link": "DiagnosticsTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\CardItem.cs",
+        "Link": "Production\\CardItem.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\CardShelf.cs",
+        "Link": "Production\\CardShelf.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\CardCollection.cs",
+        "Link": "Production\\CardCollection.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\BannerSlide.cs",
+        "Link": "Production\\BannerSlide.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Media\\PosterCache.cs",
+        "Link": "Production\\PosterCache.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Media\\BannerBackdropCache.cs",
+        "Link": "Production\\BannerBackdropCache.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\CardImageResizeTests*.cs",
+        "Link": "%(Filename)%(Extension)"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\ImageRecoveryTests.cs",
+        "Link": "ImageRecoveryTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\MoviePilotSubscriptionsPage.xaml.cs",
+        "Link": "Production\\MoviePilotSubscriptionsPage.xaml.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\IShellContent.cs",
+        "Link": "Production\\IShellContent.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\FocusWatch.cs",
+        "Link": "Production\\FocusWatch.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\LibraryPage.Anchor.cs",
+        "Link": "Production\\LibraryPage.Anchor.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null,
+        "evidenceRoot": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R16标准默认137过；不含library-anchor-page-fixture；实际CardItem/Cache与控件边界分列",
+          "reviewEvidence": "R16-verification.json",
+          "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+          "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "documentationReviews": [
+      {
+        "partition": "R18",
+        "evidence": "R18-verification.json",
+        "status": "规则/README/入口说明核对；本轮未构建或运行此项目，旧实际执行状态原样保持",
+        "productBase": "d82df28a1b08c12536b584d71da8e7ba5285ce85"
+      }
+    ],
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.PerfListDiagnosticsTests",
+      "project": "tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.PerfListDiagnosticsTests/README.md",
+      "notes": "完整诊断VM和原样预告分页更新；有界/弱引用/访问归属，假UI，不是WinUI运行。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\DiagnosticsViewModel.cs",
+        "Link": "Production\\DiagnosticsViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\UpcomingDay.cs",
+        "Link": "Production\\UpcomingDay.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\UpcomingListDiff.cs",
+        "Link": "Production\\UpcomingListDiff.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\CardItem.cs",
+        "Link": "Production\\CardItem.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\LibraryRequest.cs",
+        "Link": "Production\\LibraryRequest.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotSearchSnapshot.cs",
+        "Link": "Production\\MoviePilotSearchSnapshot.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Media\\PosterCache.cs",
+        "Link": "Production\\PosterCache.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\DiagnosticsTests.cs",
+        "Link": "Existing\\DiagnosticsTests.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "Import",
+        "Project": "ExtractUpcomingSources.targets"
+      }
+    ],
+    "status": "当前Release两配置编译0/0；x64 69过2败，默认71过；固定根层数缺陷未修",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "未执行",
+          "reviewEvidence": null,
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.PlaybackSourceRevocationTests/Momoka.PlaybackSourceRevocationTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.PlaybackSourceRevocationTests",
+      "project": "tests/Momoka.PlaybackSourceRevocationTests/Momoka.PlaybackSourceRevocationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.PlaybackSourceRevocationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R10",
+        "status": "R10本轮固定缓存restore/Release构建0警告0错误，31通过0失败0跳过；匿名边界见R10",
+        "evidence": "R10.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R10本轮固定缓存restore/Release构建0警告0错误，31通过0失败0跳过；匿名边界见R10",
+          "reviewEvidence": "R10.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.PlayerExitHandoffTests/Momoka.PlayerExitHandoffTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.PlayerExitHandoffTests",
+      "project": "tests/Momoka.PlayerExitHandoffTests/Momoka.PlayerExitHandoffTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.PlayerExitHandoffTests/README.md",
+      "notes": "原样退出交接方法与客户区边界；不运行DWM或真实播放。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)PlayerExit.g.cs"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractPlayerExitHandoff",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R10",
+        "status": "R10本轮固定缓存restore/Release构建0警告0错误，3通过0失败0跳过；匿名边界见R10",
+        "evidence": "R10.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R10本轮固定缓存restore/Release构建0警告0错误，3通过0失败0跳过；匿名边界见R10",
+          "reviewEvidence": "R10.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.PlayerMotionProbeTests/Momoka.PlayerMotionProbeTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.PlayerMotionProbeTests",
+      "project": "tests/Momoka.PlayerMotionProbeTests/Momoka.PlayerMotionProbeTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.PlayerMotionProbeTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)PlayerMotionProbeStage.g.cs"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractPlayerMotionProbeStage",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "当前Release/x64编译0/0，22过0败0跳，source-linked motion，非实机",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "未执行",
+          "reviewEvidence": null,
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.PlexAffordanceTests/Momoka.PlexAffordanceTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.PlexAffordanceTests",
+      "project": "tests/Momoka.PlexAffordanceTests/Momoka.PlexAffordanceTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.PlexAffordanceTests/README.md",
+      "notes": "加载本树当前 Release Shell DLL 执行托管夹具；不启动 App/WinUI。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\ItemCommands.cs",
+        "Link": "Production\\ItemCommands.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\CardItem.cs",
+        "Link": "Production\\CardItem.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Media\\PosterCache.cs",
+        "Link": "Production\\PosterCache.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\IShellActions.cs",
+        "Link": "Production\\IShellActions.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\ItemUserStateOrderTests.Boundaries.cs",
+        "Link": "FrameworkBoundaries.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\AgreementsTests.cs",
+        "Link": "AgreementsTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)PlexAffordanceSources.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractPlexAffordanceSources",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R05当前Release专项+Shell重新编译；68/68、0失败0跳过；非实际WinUI，README67为历史",
+          "reviewEvidence": "R05.md",
+          "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+          "currentEvidenceRoot": "artifacts/review/6ba7a7f/R05/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.ProbeFinalizationTests/Momoka.ProbeFinalizationTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.ProbeFinalizationTests",
+      "project": "tests/Momoka.ProbeFinalizationTests/Momoka.ProbeFinalizationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.ProbeFinalizationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ProbeReports.cs",
+        "Link": "Production\\ProbeReports.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ShellSelfCheck.Finalization.cs",
+        "Link": "Production\\ShellSelfCheck.Finalization.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractProbeFinalizationSources",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "当前Release/x64编译0/0，69过0败0跳；真finalizer＋UI/IO边界，无实际WinUI",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "未执行",
+          "reviewEvidence": null,
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.ResourceBrowserTests/Momoka.ResourceBrowserTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.ResourceBrowserTests",
+      "project": "tests/Momoka.ResourceBrowserTests/Momoka.ResourceBrowserTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.ResourceBrowserTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\AniBtResourceViewModel.cs",
+        "Link": "Production\\AniBtResourceViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotResourceViewModel.cs",
+        "Link": "Production\\MoviePilotResourceViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotVersionsViewModel.cs",
+        "Link": "Production\\MoviePilotVersionsViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotSearchProgressViewModel.cs",
+        "Link": "Production\\MoviePilotSearchProgressViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotResourceBrowserViewModel.cs",
+        "Link": "Production\\MoviePilotResourceBrowserViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotResourceGroup.cs",
+        "Link": "Production\\MoviePilotResourceGroup.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotResourceFacet.cs",
+        "Link": "Production\\MoviePilotResourceFacet.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotSitePickerViewModel.cs",
+        "Link": "Production\\MoviePilotSitePickerViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Platform\\SystemLauncher.cs",
+        "Link": "Production\\SystemLauncher.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotSeriesReorganizeViewModel.cs",
+        "Link": "Production\\MoviePilotSeriesReorganizeViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotSeriesTransferRow.cs",
+        "Link": "Production\\MoviePilotSeriesTransferRow.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotHistoryRecordRow.cs",
+        "Link": "Production\\MoviePilotHistoryRecordRow.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotSeriesTransferGroup.cs",
+        "Link": "Production\\MoviePilotSeriesTransferGroup.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R08",
+        "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口174通过0失败0跳过；匿名/无真实WinUI",
+        "evidence": "R08.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+      },
+      {
+        "partition": "R09",
+        "status": "R09源码未变沿用R08完整174通过证据；本轮联读SeriesResource/AniBt界面测试，不重复运行或计入683",
+        "evidence": "R09.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R09源码未变沿用R08完整174通过证据；本轮联读SeriesResource/AniBt界面测试，不重复运行或计入683",
+          "reviewEvidence": "R09.md",
+          "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "currentEvidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.ResourceBudgetTests/Momoka.ResourceBudgetTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.ResourceBudgetTests",
+      "project": "tests/Momoka.ResourceBudgetTests/Momoka.ResourceBudgetTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "all"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.ResourceBudgetTests/README.md",
+      "notes": "真实Core消息/log/font预算；匿名回环socket、临时文件/私有子进程，不是真实库或系统字体扫描。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "Compatibility\\TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\FontTests.cs",
+        "Link": "Compatibility\\FontTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\DiagnosticsTests.cs",
+        "Link": "Compatibility\\DiagnosticsTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\EmbyRealtimeTests.cs",
+        "Link": "Compatibility\\EmbyRealtimeTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\EmbyRealtimeTests.Transport.cs",
+        "Link": "Compatibility\\EmbyRealtimeTests.Transport.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\EmbyRealtimeTests.Redirect.cs",
+        "Link": "Compatibility\\EmbyRealtimeTests.Redirect.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "status": "R04还原/Release编译0/0；websocket子集26/26；不含compatibility/logs/fonts",
+        "evidence": "R04.md",
+        "productBase": "bc3f62d756efa886a14f9b58fb207adec1a0da11",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R04/20261106-first"
+      },
+      {
+        "status": "R04还原/Release编译0/0；websocket子集26/26；不含compatibility/logs/fonts；另一会话漂移后复编并定向复跑，见final-current；原同项不重复计数",
+        "evidence": "R04.md",
+        "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R04/20261106-first/final-current"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R16标准fonts14过；不含WS/log/compatibility，全量旧记录保持",
+          "reviewEvidence": "R16-verification.json",
+          "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+          "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SearchLifetimeTests/Momoka.SearchLifetimeTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SearchLifetimeTests",
+      "project": "tests/Momoka.SearchLifetimeTests/Momoka.SearchLifetimeTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SearchLifetimeTests/README.md",
+      "notes": "完整实际搜索VM/Panel/Dialog与原样LibraryPage接线；匿名内存边界，无窗口或真实播放。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotSearchViewModel.cs",
+        "Link": "Production\\MoviePilotSearchViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotSearchSnapshot.cs",
+        "Link": "Production\\MoviePilotSearchSnapshot.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\MoviePilotSearchPanel.xaml.cs",
+        "Link": "Production\\MoviePilotSearchPanel.xaml.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\FnNasMatchDialog.xaml.cs",
+        "Link": "Production\\FnNasMatchDialog.xaml.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)SearchLifetimeCommands.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractSearchLifetimeCommands",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R06本轮缓存restore/Release build0警告0错误，42通过0失败0跳过；LibraryVM惰性边界不覆盖本轮查询代次/词错配",
+          "reviewEvidence": "R06.md",
+          "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+          "currentEvidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.ServerSettingsReviewTests/Momoka.ServerSettingsReviewTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.ServerSettingsReviewTests",
+      "project": "tests/Momoka.ServerSettingsReviewTests/Momoka.ServerSettingsReviewTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.ServerSettingsReviewTests/README.md",
+      "notes": "当前生产控制流与匿名边界回归；不运行真实服务器或播放。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "../../src/Momoka.Shell/Views/NotificationEditDialog.xaml.cs",
+        "Link": "Production/NotificationEditDialog.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "../../src/Momoka.Shell/Views/MetadataDialog.xaml.cs",
+        "Link": "Production/MetadataDialog.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)ServerConnection.g.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)MetadataCommand.g.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)NotificationContext.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "../../src/Momoka.Core/Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractServerConnectionTest",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractMetadataCommand",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractNotificationContext",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null,
+        "productBase": null
+      },
+      {
+        "status": "R05当前Release重新编译，反射完整PlexDiscovery7/PlexSearch10/FnNasArtwork3方法均通过；正式完整入口未跑",
+        "evidence": "R05.md"
+      },
+      {
+        "preservedCurrentMetadata": {
+          "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+          "currentEvidenceRoot": "artifacts/review/6ba7a7f/R05/20261106-first"
+        },
+        "evidence": "R15当前字段更新前"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R15标准入口退出0，全部原注册组通过；未统一输出总断言数，不补造总数；notification6分组",
+          "reviewEvidence": "R15-verification.json",
+          "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+          "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.ServerSettingsTabs.Tests/Momoka.ServerSettingsTabs.Tests.csproj",
+    "kind": "top-level-test",
+    "inSolution": false,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.ServerSettingsTabs.Tests",
+      "project": "tests/Momoka.ServerSettingsTabs.Tests/Momoka.ServerSettingsTabs.Tests.csproj",
+      "mode": "external",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.ServerSettingsTabs.Tests/README.md",
+      "notes": "完整 DOM 专项需要显式 Node、Playwright 目录与 Chromium。请按 README 调用 Run-Fixture.ps1；不以 contracts 子集冒充整套。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\ServerSettingsTests.cs",
+        "Link": "ServerSettingsTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\StubTransport.cs",
+        "Link": "StubTransport.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R15完整官方DOM wrapper通过：合同14与DOM25/0/0、请求0/页面异常0；无可选EmbyManager；非真实WebView",
+          "reviewEvidence": "R15-verification.json",
+          "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+          "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SettingsDeferredSaveTests/Momoka.SettingsDeferredSaveTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SettingsDeferredSaveTests",
+      "project": "tests/Momoka.SettingsDeferredSaveTests/Momoka.SettingsDeferredSaveTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsDeferredSaveTests/README.md",
+      "notes": "当前Shell真实VM/MVVM值与Core设置单保存队列；原样退出/隐藏flush，匿名临时文件不启动UI。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.SubtitleDialogTests\\UiQueue.cs",
+        "Link": "UiQueue.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.SettingsLifetimeTests\\ShellRuntime.cs",
+        "Link": "ShellRuntime.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)SettingsFlush.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractSettingsFlushBoundaries",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewEvidence": "R17-verification.json",
+    "reviewHistory": [
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R02当前Shell夹具24/24，0跳过；无真实UI",
+          "reviewEvidence": "R02.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SettingsLifetimeTests/Momoka.SettingsLifetimeTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SettingsLifetimeTests",
+      "project": "tests/Momoka.SettingsLifetimeTests/Momoka.SettingsLifetimeTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsLifetimeTests/README.md",
+      "notes": "加载本树当前 Release Shell DLL 执行托管夹具；不启动 App/WinUI。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\FnNasPreferencesPage.xaml.cs",
+        "Link": "Production\\FnNasPreferencesPage.xaml.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\IShellContent.cs",
+        "Link": "Production\\IShellContent.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\ISessionScopedPage.cs",
+        "Link": "Production\\ISessionScopedPage.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)SettingsLifetime.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractSettingsLifetimeSources",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewEvidence": "R17-verification.json",
+    "reviewHistory": [
+      {
+        "status": "R02当前Shell夹具55/55，0跳过；无真实UI",
+        "evidence": "R02.md"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R15标准当前Shell55过/0败/0跳；首次旧Shell同55另保留不计最终覆盖；非真实窗口",
+          "reviewEvidence": "R15-verification.json",
+          "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+          "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SettingsPersistenceTests/BaselineCore/Momoka.SettingsPersistenceBaselineCore.csproj",
+    "kind": "support",
+    "inSolution": false,
+    "registered": false,
+    "runner": null,
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\..\\src\\Momoka.Core\\**\\*.cs",
+        "Exclude": "..\\..\\..\\src\\Momoka.Core\\bin\\**;..\\..\\..\\src\\Momoka.Core\\obj\\**;..\\..\\..\\src\\Momoka.Core\\Configuration\\SettingsStore.cs;..\\..\\..\\src\\Momoka.Core\\Services\\SettingsService.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(PersistenceBaselineSourceRoot)\\SettingsStore.cs",
+        "Link": "Baseline\\SettingsStore.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(PersistenceBaselineSourceRoot)\\SettingsService.cs",
+        "Link": "Baseline\\SettingsService.cs"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewEvidence": "R17-verification.json",
+    "reviewHistory": [
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R02固定9f07bbd旧Store/Service模式：restore通过，编译11错误退出1，未运行",
+          "reviewEvidence": "R02.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SettingsPersistenceTests/Momoka.SettingsPersistenceTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SettingsPersistenceTests",
+      "project": "tests/Momoka.SettingsPersistenceTests/Momoka.SettingsPersistenceTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "{output}/fixtures"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsPersistenceTests/README.md",
+      "notes": "匿名真实文件锁与保存反馈测试；显式本树 artifacts 隔离目录。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "$(PersistencePasswordSource)",
+        "Link": "Production\\FnNasPasswordViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\FnNasSessionViewModel.cs",
+        "Link": "Production\\FnNasSessionViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Services\\ISettingsPersistence.cs",
+        "Link": "Production\\ISettingsPersistence.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Infrastructure\\LoadGeneration.cs",
+        "Link": "Production\\LoadGeneration.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Diagnostics\\Failure.cs",
+        "Link": "Production\\Failure.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Emby\\EmbyApiException.cs",
+        "Link": "Production\\EmbyApiException.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.FnNasAccountEditTests\\Boundaries.cs",
+        "Link": "Fixture\\ConfirmationBoundary.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.SubtitleDialogTests\\UiQueue.cs",
+        "Link": "UiQueue.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj",
+        "Aliases": "ConfigurationCore",
+        "Condition": "'$(PersistenceBaselineSourceRoot)' == ''"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "BaselineCore\\Momoka.SettingsPersistenceBaselineCore.csproj",
+        "Aliases": "ConfigurationCore",
+        "Condition": "'$(PersistenceBaselineSourceRoot)' != ''"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewEvidence": "R17-verification.json",
+    "reviewHistory": [
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R02当前模式42/42，0跳过；匿名确认与非秘密持久化",
+          "reviewEvidence": "R02.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SettingsPriorityMotionTests/Momoka.SettingsPriorityMotionTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": false,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SettingsPriorityMotionTests",
+      "project": "tests/Momoka.SettingsPriorityMotionTests/Momoka.SettingsPriorityMotionTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsPriorityMotionTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\SettingsPriorityMotion.cs",
+        "Link": "Production\\SettingsPriorityMotion.cs"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R15标准24过/0败/0跳；生产回弹方法/拖拽边界替身",
+          "reviewEvidence": "R15-verification.json",
+          "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+          "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SettingsProbeContractTests/Momoka.SettingsProbeContractTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SettingsProbeContractTests",
+      "project": "tests/Momoka.SettingsProbeContractTests/Momoka.SettingsProbeContractTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsProbeContractTests/README.md",
+      "notes": "加载本树当前 Release Shell DLL 执行托管夹具；不启动 App/WinUI。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.SettingsLifetimeTests\\ShellRuntime.cs",
+        "Link": "Support\\ShellRuntime.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.SettingsLifetimeTests\\LifetimeFixture.cs",
+        "Link": "Support\\LifetimeFixture.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(SettingsProbeSourceRoot)\\src\\Momoka.Shell\\Views\\IShellContent.cs",
+        "Link": "Production\\IShellContent.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(SettingsProbeSourceRoot)\\src\\Momoka.Shell\\Views\\ISessionScopedPage.cs",
+        "Link": "Production\\ISessionScopedPage.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(SettingsProbeSourceRoot)\\src\\Momoka.Shell\\Views\\SettingsPage.Motion.cs",
+        "Link": "Production\\SettingsPage.Motion.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(SettingsProbeSourceRoot)\\src\\Momoka.Shell\\Views\\SettingsRowsMotion.cs",
+        "Link": "Production\\SettingsRowsMotion.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(SettingsProbeSourceRoot)\\src\\Momoka.Shell\\Views\\HomeMotion.cs",
+        "Link": "Production\\HomeMotion.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)SettingsProbeContracts.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractSettingsProbeContracts",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17未运行：新Shell编译超时，旧证据保留",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "未执行",
+          "reviewEvidence": null,
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SettingsRowsMotionTests/Momoka.SettingsRowsMotionTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": false,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SettingsRowsMotionTests",
+      "project": "tests/Momoka.SettingsRowsMotionTests/Momoka.SettingsRowsMotionTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsRowsMotionTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\SettingsRowsMotion.cs",
+        "Link": "Production\\SettingsRowsMotion.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R15标准46过/0败/0跳；生产行布局方法，非真实动画帧时间",
+          "reviewEvidence": "R15-verification.json",
+          "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+          "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SettingsSearchNavigationTests/Momoka.SettingsSearchNavigationTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": false,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SettingsSearchNavigationTests",
+      "project": "tests/Momoka.SettingsSearchNavigationTests/Momoka.SettingsSearchNavigationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "docs/开发与验证.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "$(SourceRoot)\\src\\Momoka.Shell\\Views\\SettingsPage.Search.cs",
+        "Link": "Production\\SettingsPage.Search.cs"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R15标准15过/0败/0跳；实际搜索定位方法及布局/焦点端点替身",
+          "reviewEvidence": "R15-verification.json",
+          "currentProductBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+          "currentEvidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.ShaderCommandGenerationTests/Momoka.ShaderCommandGenerationTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.ShaderCommandGenerationTests",
+      "project": "tests/Momoka.ShaderCommandGenerationTests/Momoka.ShaderCommandGenerationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.ShaderCommandGenerationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Mpv\\LibMpvNodes.cs",
+        "Link": "Production\\LibMpvNodes.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Mpv\\LibMpvFrame.cs",
+        "Link": "Production\\LibMpvFrame.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Mpv\\MpvListValue.cs",
+        "Link": "Production\\MpvListValue.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\ShaderTransactionTests.cs",
+        "Link": "ShaderTransactionTests.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "$(ShaderCoreProject)"
+      },
+      {
+        "kind": "Import",
+        "Project": "ExtractNativeControl.targets"
+      }
+    ],
+    "status": "当前默认Release编译0/0，49过，原wrapper因37摘要退出1；master59仅静态核",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R12",
+        "status": "R12本树49全过；master固定snapshot新增batch后59全过，均managed native seam；不冒实际GPU",
+        "evidence": "R12.md",
+        "productBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+        "evidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R12本树49全过；master固定snapshot新增batch后59全过，均managed native seam；不冒实际GPU",
+          "reviewEvidence": "R12.md",
+          "currentProductBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+          "currentEvidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.ShaderMonitorPolicyTests/Momoka.ShaderMonitorPolicyTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.ShaderMonitorPolicyTests",
+      "project": "tests/Momoka.ShaderMonitorPolicyTests/Momoka.ShaderMonitorPolicyTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.ShaderMonitorPolicyTests/README.md",
+      "notes": "加载本树当前 Release Shell DLL 执行托管夹具；不启动 App/WinUI。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\PlayerConstructorBoundary.cs",
+        "Link": "PlayerConstructorBoundary.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.SubtitleDialogTests\\UiQueue.cs",
+        "Link": "UiQueue.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R12",
+        "status": "R12本树当前x64 Shell/同hash Core：32全过；未实际换显示器/GPU",
+        "evidence": "R12.md",
+        "productBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+        "evidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R12本树当前x64 Shell/同hash Core：32全过；未实际换显示器/GPU",
+          "reviewEvidence": "R12.md",
+          "currentProductBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+          "currentEvidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SignInInputGenerationTests/Momoka.SignInInputGenerationTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SignInInputGenerationTests",
+      "project": "tests/Momoka.SignInInputGenerationTests/Momoka.SignInInputGenerationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SignInInputGenerationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Remove": "obj\\**;bin\\**"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(SignInSourcePath)",
+        "Link": "Production\\SignInViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(SignInPageSourcePath)",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Infrastructure\\LoadGeneration.cs",
+        "Link": "Production\\LoadGeneration.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Emby\\EmbySignInIdentity.cs",
+        "Link": "Production\\EmbySignInIdentity.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Emby\\EmbyServerAddress.cs",
+        "Link": "Production\\EmbyServerAddress.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\FnNas\\FnNasEndpoint.cs",
+        "Link": "Production\\FnNasEndpoint.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Core\\Plex\\PlexEndpoint.cs",
+        "Link": "Production\\PlexEndpoint.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.SubtitleDialogTests\\UiQueue.cs",
+        "Link": "UiQueue.cs"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R03当前源码编译0/0，128/128失败0跳过0；此项目及链接输入未随master改变，复用该证据；17+8生成wrapper本轮未运行",
+          "reviewEvidence": "R03.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SiteDialogFlowTests/Momoka.SiteDialogFlowTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": false,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SiteDialogFlowTests",
+      "project": "tests/Momoka.SiteDialogFlowTests/Momoka.SiteDialogFlowTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SiteDialogFlowTests/README.md",
+      "notes": "实际站点选择对话流程的匿名托管夹具；不启动 WinUI 或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotSitePickerViewModel.cs",
+        "Link": "Production\\MoviePilotSitePickerViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\MoviePilotSitePicker.xaml.cs",
+        "Link": "Production\\MoviePilotSitePicker.xaml.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\MoviePilotSiteDialog.xaml.cs",
+        "Link": "Production\\MoviePilotSiteDialog.xaml.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R08",
+        "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口13通过0失败0跳过；匿名/无真实WinUI",
+        "evidence": "R08.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口13通过0失败0跳过；匿名/无真实WinUI",
+          "reviewEvidence": "R08.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SubscriptionEditorTests/Momoka.SubscriptionEditorTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SubscriptionEditorTests",
+      "project": "tests/Momoka.SubscriptionEditorTests/Momoka.SubscriptionEditorTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SubscriptionEditorTests/README.md",
+      "notes": "实际Core和编辑VM的匿名订阅字段及目录回归。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\PageViewModel.cs",
+        "Link": "Production\\PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ViewModels\\MoviePilotSubscriptionEditorViewModel.cs",
+        "Link": "Production\\MoviePilotSubscriptionEditorViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.MoviePilotSubscribeSettingsTests\\Fixture.cs",
+        "Link": "Fixture.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R08",
+        "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口19通过0失败0跳过；匿名/无真实WinUI",
+        "evidence": "R08.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口19通过0失败0跳过；匿名/无真实WinUI",
+          "reviewEvidence": "R08.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SubscriptionIdentityTests/Momoka.SubscriptionIdentityTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SubscriptionIdentityTests",
+      "project": "tests/Momoka.SubscriptionIdentityTests/Momoka.SubscriptionIdentityTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SubscriptionIdentityTests/README.md",
+      "notes": "真实订阅VM和季视图的身份更新；匿名边界，不播放。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "../../src/Momoka.Shell/ViewModels/PageViewModel.cs",
+        "Link": "Production/PageViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "../../src/Momoka.Shell/ViewModels/MoviePilotSubscriptionsViewModel.cs",
+        "Link": "Production/MoviePilotSubscriptionsViewModel.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "../../src/Momoka.Shell/ViewModels/MoviePilotSubscriptionEpisodeRow.cs",
+        "Link": "Production/MoviePilotSubscriptionEpisodeRow.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "../../src/Momoka.Shell/Views/MoviePilotMediaSeasonsView.xaml.cs",
+        "Link": "Production/MoviePilotMediaSeasonsView.xaml.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)MediaRows.g.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)SubscriptionSync.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "../../src/Momoka.Core/Momoka.Core.csproj"
+      },
+      {
+        "kind": "Exec",
+        "Command": "py \"$(MSBuildThisFileDirectory)extract.py\" --output \"$(MSBuildProjectDirectory)/$(IntermediateOutputPath).\""
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R08",
+        "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口3通过0失败0跳过；匿名/无真实WinUI",
+        "evidence": "R08.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R08 本轮缓存restore及Release构建0警告0错误；完整入口3通过0失败0跳过；匿名/无真实WinUI",
+          "reviewEvidence": "R08.md",
+          "currentProductBase": null,
+          "currentEvidenceRoot": null
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SubtitleDialogTests/Momoka.SubtitleDialogTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SubtitleDialogTests",
+      "project": "tests/Momoka.SubtitleDialogTests/Momoka.SubtitleDialogTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SubtitleDialogTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "$(R056DialogSource)",
+        "Link": "Production\\SubtitleDialog.xaml.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)SubtitleCallerSources.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractSubtitleCallerSources",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "status": "R04首次缺assets编译失败保留；还原后编译0/0，37/37；完整源码链接+控件替身，非WinUI",
+        "evidence": "R04.md",
+        "productBase": "bc3f62d756efa886a14f9b58fb207adec1a0da11",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R04/20261106-first"
+      },
+      {
+        "status": "R04首次缺assets编译失败保留；还原后编译0/0，37/37；完整源码链接+控件替身，非WinUI；另一会话漂移后复编并定向复跑，见final-current；原同项不重复计数",
+        "evidence": "R04.md"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R13正式当前Release/x64编译红CS0103缺_blurCancel，未跑旧DLL；ignored诊断null字段37过另列，正式未修",
+          "reviewEvidence": "R13.md",
+          "currentProductBase": "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f",
+          "currentEvidenceRoot": "artifacts/review/8e8619e/R13/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SubtitleDropOwnershipTests/Momoka.SubtitleDropOwnershipTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SubtitleDropOwnershipTests",
+      "project": "tests/Momoka.SubtitleDropOwnershipTests/Momoka.SubtitleDropOwnershipTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SubtitleDropOwnershipTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Remove": "SourceExtractor\\**\\*.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "SourceExtractor\\SourceExtractor.csproj",
+        "ReferenceOutputAssembly": "false"
+      },
+      {
+        "kind": "Import",
+        "Project": "ExtractProductionSources.targets"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R13按默认Platform当前Release编译0/0，74通过；首x64调用任务路径MSB4062保留",
+          "reviewEvidence": "R13.md",
+          "currentProductBase": "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f",
+          "currentEvidenceRoot": "artifacts/review/8e8619e/R13/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SubtitleDropOwnershipTests/SourceExtractor/SourceExtractor.csproj",
+    "kind": "support",
+    "inSolution": true,
+    "registered": false,
+    "runner": null,
+    "buildInputs": [],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R13默认Platform当前Release构建0/0；真实7输入manifest，不冒native/WinRT",
+          "reviewEvidence": "R13.md",
+          "currentProductBase": "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f",
+          "currentEvidenceRoot": "artifacts/review/8e8619e/R13/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SubtitleTranslationRuntimeTests/Momoka.SubtitleTranslationRuntimeTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SubtitleTranslationRuntimeTests",
+      "project": "tests/Momoka.SubtitleTranslationRuntimeTests/Momoka.SubtitleTranslationRuntimeTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SubtitleTranslationRuntimeTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "../Momoka.Tests/TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "../../src/Momoka.Shell/Services/SubtitleTranslationController.cs",
+        "Link": "SubtitleTranslationController.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "../../src/Momoka.Core/Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R13当前Release/x64编译0/0；19通过，Controller完整/替身会话；实际Shell队列观察另列",
+          "reviewEvidence": "R13.md",
+          "currentProductBase": "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f",
+          "currentEvidenceRoot": "artifacts/review/8e8619e/R13/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.SubtitleTranslationTests/Momoka.SubtitleTranslationTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.SubtitleTranslationTests",
+      "project": "tests/Momoka.SubtitleTranslationTests/Momoka.SubtitleTranslationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SubtitleTranslationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "ProjectReference",
+        "Include": "../../src/Momoka.Core/Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewHistory": [
+      {
+        "status": "未执行",
+        "evidence": null
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R13当前Release/x64编译0/0；119通过，无真实云请求或密钥",
+          "reviewEvidence": "R13.md",
+          "currentProductBase": "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f",
+          "currentEvidenceRoot": "artifacts/review/8e8619e/R13/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "reviewEvidence": "R17-verification.json",
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.Tests/Momoka.Tests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.Tests",
+      "project": "tests/Momoka.Tests/Momoka.Tests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.Tests/README.md",
+      "notes": "完整 Core 离线主套件；有匿名回环、子进程与同用户 SelfCheckRun mutex，须与其他诊断串行。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\ActivationListener.cs",
+        "Link": "Shell\\ActivationListener.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Platform\\StartupRegistration.cs",
+        "Link": "Shell\\StartupRegistration.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\SelfCheckLayoutRules.cs",
+        "Link": "Shell\\SelfCheckLayoutRules.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\PerformanceProbeRules.cs",
+        "Link": "Shell\\PerformanceProbeRules.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\CompositionPositionReadiness.cs",
+        "Link": "Shell\\CompositionPositionReadiness.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\CompositionProbePixels.cs",
+        "Link": "Shell\\CompositionProbePixels.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Theme\\InputControlTheme.cs",
+        "Link": "Shell\\InputControlTheme.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)StartupAvailability.g.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)ProbeEvidence.g.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "$(IntermediateOutputPath)CompactImagesProbe.g.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractStartupAvailability",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      },
+      {
+        "kind": "UsingTask",
+        "TaskName": "ExtractProbeEvidence",
+        "TaskFactory": "RoslynCodeTaskFactory",
+        "AssemblyFile": "$(MSBuildToolsPath)\\Microsoft.Build.Tasks.Core.dll"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewEvidence": "R17-verification.json",
+    "reviewHistory": [
+      {
+        "status": "R02仅settings-storage-fixture 145/145，0跳过；无参/其他模式未执行",
+        "evidence": "R02.md"
+      },
+      {
+        "status": "R03主树接入后当前编译0/0；定向Session/Identity/Startup/Ordering/Access187/187；接入前未变输入启动状态61/61、激活6子命令退出0；不是完整主测",
+        "evidence": "R03.md"
+      },
+      {
+        "status": "R04当前Release编译0/0；定向184/184及另33/33，0失败/跳过；不是完整主套件",
+        "evidence": "R04.md",
+        "productBase": "bc3f62d756efa886a14f9b58fb207adec1a0da11",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R04/20261106-first"
+      },
+      {
+        "status": "R04最终5951bba组合Release编译0/0；定向184/184及另33/33，0失败/跳过；不是完整主套件；另一会话漂移后复编并定向复跑，见final-current；原同项不重复计数",
+        "evidence": "R04.md",
+        "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35"
+      },
+      {
+        "status": "R05当前Release编译后，FnNas定向121/121、Plex定向148/148（含V2Login不重复）；完整主套件未跑",
+        "evidence": "R05.md",
+        "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35"
+      },
+      {
+        "status": "R06复用已核哈希的当前Release；四实际VM入口38+13+17+19与16组Register211项通过；未跑完整无参入口",
+        "evidence": "R06.md",
+        "productBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R06/20261106-first"
+      },
+      {
+        "status": "R07最终b8c1d61/ac4e3fa组合复编复跑；R07当前Release重编；七显式入口含fnnas-user-state 29过3败，另9组Register386过；不是完整无参入口",
+        "evidence": "R07.md"
+      },
+      {
+        "partition": "R08",
+        "status": "R08 当前Release重编；43/58/31三个实际参数入口及238 Core子集全过，含重叠，不是完整主套件",
+        "evidence": "R08.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+      },
+      {
+        "partition": "R09",
+        "status": "R09当前Release重编0警告0错误；显式三入口166/81/44与四组完整Register108通过；不代表完整主套件",
+        "evidence": "R09.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+      },
+      {
+        "partition": "R10",
+        "status": "R10本轮Release重编0警告0错误；7完整Register及6指定注册方法258过0败0跳过；未跑完整主套件",
+        "evidence": "R10.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/aa631ff/R10/20261106-first"
+      },
+      {
+        "partition": "R11",
+        "status": "R11当前Release重编0警告0错误；19Register202及18Playback方法153通过；实际Core匿名include反例成立，4问题未修",
+        "evidence": "R11.md",
+        "productBase": "12e99d88193b44e7dce4410ecfe3f098d5bb4701",
+        "evidenceRoot": "artifacts/review/12e99d8/R11/20261106-first"
+      },
+      {
+        "status": "R11当前Release重编0警告0错误；19Register202及18Playback方法153通过；实际Core匿名include反例成立，4问题未修",
+        "evidence": "R11.md"
+      },
+      {
+        "partition": "R12",
+        "status": "R12当前Release/x64重编0/0；151定向、SVP31、真实VM音量35/截图14过；未跑完整主Tests；两个音量/截图匿名反例成立",
+        "evidence": "R12.md",
+        "productBase": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+        "evidenceRoot": "artifacts/review/11921ff/R12/20261106-first"
+      },
+      {
+        "status": "R12当前Release/x64重编0/0；151定向、SVP31、真实VM音量35/截图14过；未跑完整主Tests；两个音量/截图匿名反例成立",
+        "evidence": "R12.md"
+      },
+      {
+        "partition": "R14",
+        "previousStatus": "R13当前Release/x64编译0/0；15+22+100+7+14通过含重叠，非完整主套件",
+        "evidence": "R14-verification.json"
+      },
+      {
+        "status": "R14当前x64 Release0/0；显式danmaku-fixture59过0败0跳过；完整主套件未运行",
+        "evidence": "R14-verification.json"
+      },
+      {
+        "preservedCurrentMetadata": {
+          "currentProductBase": "a998403dbab9cd9e7caf34777ec23a64a3189526",
+          "currentEvidenceRoot": "artifacts/review/a998403/R14/20261106-first"
+        },
+        "evidence": "R15当前字段更新前"
+      },
+      {
+        "status": "R15当前Release/x64编译0/0；search14/page-state31/applicability32全过，非无参完整主套件",
+        "evidence": "R15-verification.json",
+        "productBase": "6fc7f0dfb8e699ca03f0aeae52a1133e59081807",
+        "evidenceRoot": "artifacts/review/6fc7f0d/R15/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R16当前Release/x64编译0/0；正式focus21/acrylic25/input28/budget7；7完整Register及字体3成员反射76另列",
+          "reviewEvidence": "R16-verification.json",
+          "currentProductBase": "95325933704340887d0cee5939d62934e84f1cb9",
+          "currentEvidenceRoot": "artifacts/review/9532593/R16/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  },
+  {
+    "project": "tests/Momoka.TransferSubmissionTests/Momoka.TransferSubmissionTests.csproj",
+    "kind": "top-level-test",
+    "inSolution": true,
+    "registered": true,
+    "runner": {
+      "id": "Momoka.TransferSubmissionTests",
+      "project": "tests/Momoka.TransferSubmissionTests/Momoka.TransferSubmissionTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.TransferSubmissionTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    "buildInputs": [
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\MoviePilotReorganizeDialog.xaml.cs",
+        "Link": "Production\\MoviePilotReorganizeDialog.xaml.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\MoviePilotReorganizeDialog.Form.cs",
+        "Link": "Production\\MoviePilotReorganizeDialog.Form.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\..\\src\\Momoka.Shell\\Views\\ShellPage.MoviePilotMediaManagement.cs",
+        "Link": "Production\\ShellPage.MoviePilotMediaManagement.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\MoviePilotTransferSubmissionTests.cs",
+        "Link": "MoviePilotTransferSubmissionTests.cs"
+      },
+      {
+        "kind": "Compile",
+        "Include": "..\\Momoka.Tests\\TestHarness.cs",
+        "Link": "TestHarness.cs"
+      },
+      {
+        "kind": "ProjectReference",
+        "Include": "..\\..\\src\\Momoka.Core\\Momoka.Core.csproj"
+      }
+    ],
+    "status": "R17框架/输入/入口已审；本轮未运行该专项，旧实际读数见reviewHistory；非交付通过",
+    "output": "默认本树bin/obj；runner或wrapper输出见runner字段及entrypoints.md",
+    "reviewEvidence": "R17-verification.json",
+    "reviewHistory": [
+      {
+        "partition": "R09",
+        "status": "R09当前缓存restore/Release编译0警告0错误；实际入口78过0败0跳过；匿名无窗口",
+        "evidence": "R09.md",
+        "productBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+        "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+      },
+      {
+        "partition": "R17",
+        "preservedBefore": {
+          "status": "R09当前缓存restore/Release编译0警告0错误；实际入口78过0败0跳过；匿名无窗口",
+          "reviewEvidence": "R09.md",
+          "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+          "currentEvidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+        },
+        "evidence": "R17-verification.json"
+      }
+    ],
+    "currentProductBase": "15c42045a637c592ed5dea42e972e46c9f2a2e0c",
+    "currentEvidenceRoot": "artifacts/review/15c4204/R17/20261106-first",
+    "finalSummaryEvidence": "FINAL-matrix.json"
+  }
+]

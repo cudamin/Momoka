@@ -1,0 +1,2120 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "status": "审查完成，2P1+6P2未修；按区暂停",
+  "startHead": "861f48bf080b69937d13a4a66078ce82461dd64e",
+  "verificationHead": "861f48bf080b69937d13a4a66078ce82461dd64e",
+  "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+  "productSourceMatchesMaster": true,
+  "productFixesApplied": false,
+  "reviewComplete": true,
+  "pauseAfter": "R09",
+  "nextPartition": "R10",
+  "ruleSha256": "6b825aec89b7cea678a5b8033d3effc8364a9ecd52ac20059b66b4d9b0f872c6",
+  "ledgerBaseFiles": 1876,
+  "historicalDeltaFiles": [
+    54,
+    19,
+    20
+  ],
+  "thisPartitionProductDeltaFiles": 0,
+  "matrixProjects": 68,
+  "matrixEntriesUpdated": 9,
+  "matrixUpdatedProjects": [
+    "tests/Momoka.AniBtEntryTests/Momoka.AniBtEntryTests.csproj",
+    "tests/Momoka.AniBtConfirmationTests/Momoka.AniBtConfirmationTests.csproj",
+    "tests/Momoka.AniBtSourceContractTests/Momoka.AniBtSourceContractTests.csproj",
+    "tests/Momoka.TransferSubmissionTests/Momoka.TransferSubmissionTests.csproj",
+    "tests/Momoka.MissingEpisodesAvailabilityTests/Momoka.MissingEpisodesAvailabilityTests.csproj",
+    "src/Momoka.Core/Momoka.Core.csproj",
+    "src/Momoka.Shell/Momoka.Shell.csproj",
+    "tests/Momoka.Tests/Momoka.Tests.csproj",
+    "tests/Momoka.ResourceBrowserTests/Momoka.ResourceBrowserTests.csproj"
+  ],
+  "planChecked": 16,
+  "ownerFilesRead": 44,
+  "ownerLinesRead": 8120,
+  "fullJointFilesRead": 20,
+  "partialJointFilesRead": 31,
+  "ledgerRowsUpdated": 95,
+  "reviewedFiles": [
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtClient.Catalog.cs",
+      "sha256": "4d7c8734a6a706ef57541f7d9ff112bef0395c7ab267aac2d5e04f178b389b6e",
+      "lines": 149,
+      "oldSha256": "4d7c8734a6a706ef57541f7d9ff112bef0395c7ab267aac2d5e04f178b389b6e",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtClient.cs",
+      "sha256": "b31beb4c9c94eed89cc1a73f56b7dd89d9cbe407ce51be908fbd117fef17bde9",
+      "lines": 274,
+      "oldSha256": "b31beb4c9c94eed89cc1a73f56b7dd89d9cbe407ce51be908fbd117fef17bde9",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtEligibility.cs",
+      "sha256": "22c2ce5dc4ba2bbb4088f251b3d3c241c3c6a56fad6091114d24d40abcf17c2b",
+      "lines": 53,
+      "oldSha256": "22c2ce5dc4ba2bbb4088f251b3d3c241c3c6a56fad6091114d24d40abcf17c2b",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtModels.cs",
+      "sha256": "dd339c39302cdfc6e0c203691fa87dcb7de8142fe37715df3854696861a5921a",
+      "lines": 87,
+      "oldSha256": "dd339c39302cdfc6e0c203691fa87dcb7de8142fe37715df3854696861a5921a",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtReleaseLabels.cs",
+      "sha256": "48b852dd0726989319398d3f33d5d474e9bd0905b50f20eb6058d359e9dfb349",
+      "lines": 65,
+      "oldSha256": "48b852dd0726989319398d3f33d5d474e9bd0905b50f20eb6058d359e9dfb349",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtScrapeNumbering.cs",
+      "sha256": "9b49efb4b1bfcf367641d0cc432a0fabdbff16b478382c698ea3bc145d488701",
+      "lines": 46,
+      "oldSha256": "9b49efb4b1bfcf367641d0cc432a0fabdbff16b478382c698ea3bc145d488701",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtSearchQuery.cs",
+      "sha256": "f2225529f9423b8f20fd942138fd2981192e61177ae2d4f32b4f46d0da6f081b",
+      "lines": 16,
+      "oldSha256": "f2225529f9423b8f20fd942138fd2981192e61177ae2d4f32b4f46d0da6f081b",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtSeriesIdentity.cs",
+      "sha256": "08c0be606347b6ac11b793d326f0b7750502e4c404e988594955a8c5ce357e15",
+      "lines": 47,
+      "oldSha256": "08c0be606347b6ac11b793d326f0b7750502e4c404e988594955a8c5ce357e15",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtService.cs",
+      "sha256": "08e3adbc68034ddae47dfc091896a8f87f9128145ef40b8dae463562eae660ec",
+      "lines": 758,
+      "oldSha256": "08e3adbc68034ddae47dfc091896a8f87f9128145ef40b8dae463562eae660ec",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotHistoryPlan.cs",
+      "sha256": "247c807116e9308d83c7b09ae2897938881ffb171d583ff8ab5ef1b2a23365f0",
+      "lines": 159,
+      "oldSha256": "247c807116e9308d83c7b09ae2897938881ffb171d583ff8ab5ef1b2a23365f0",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotSeriesTransfer.cs",
+      "sha256": "da33ed2dbbd536256d8682264ca90e20fdccb9dfb72fe51c609d7948fd626dab",
+      "lines": 58,
+      "oldSha256": "da33ed2dbbd536256d8682264ca90e20fdccb9dfb72fe51c609d7948fd626dab",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.AniBt.cs",
+      "sha256": "4efcd55227803ae1eefdd9acff75ff9812c373a8677120558c2e5bffa3c7fa3e",
+      "lines": 272,
+      "oldSha256": "4efcd55227803ae1eefdd9acff75ff9812c373a8677120558c2e5bffa3c7fa3e",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.History.cs",
+      "sha256": "4982ea57471add4820002071a0d097fee09c526dbfdaa3b45f733a8aa83df87f",
+      "lines": 126,
+      "oldSha256": "4982ea57471add4820002071a0d097fee09c526dbfdaa3b45f733a8aa83df87f",
+      "reviewer": "management",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.MediaManagement.cs",
+      "sha256": "7490afee1d4001fa966593bfbc5982b3728072b319b781f55056009d1ef675ec",
+      "lines": 287,
+      "oldSha256": "7490afee1d4001fa966593bfbc5982b3728072b319b781f55056009d1ef675ec",
+      "reviewer": "management",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Transfer.cs",
+      "sha256": "ba6a4058bfadcba3759cae69317c77f110a73db82693ea59373ab30d7cc1cdff",
+      "lines": 269,
+      "oldSha256": "ba6a4058bfadcba3759cae69317c77f110a73db82693ea59373ab30d7cc1cdff",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotTransfer.cs",
+      "sha256": "53799a3daf09e310d3a2ba03eedf8479c228a562fb1c13ddb5b152461ce9adba",
+      "lines": 433,
+      "oldSha256": "53799a3daf09e310d3a2ba03eedf8479c228a562fb1c13ddb5b152461ce9adba",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotTransferCollect.cs",
+      "sha256": "5e3bd14c742f265c37e21d0c18cc31bb8c103ec53e634670ef1e62acdf05fe94",
+      "lines": 158,
+      "oldSha256": "5e3bd14c742f265c37e21d0c18cc31bb8c103ec53e634670ef1e62acdf05fe94",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotTransferHistory.cs",
+      "sha256": "3ff6c8853ca0a5baff5414a05350f902e7517d089f95b9fe13edb19f54718159",
+      "lines": 146,
+      "oldSha256": "3ff6c8853ca0a5baff5414a05350f902e7517d089f95b9fe13edb19f54718159",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotTransferHistoryView.cs",
+      "sha256": "06a3c16a7baade128f83804b89fbe23b84095996fdbfe5035d8245a02ff45ec1",
+      "lines": 95,
+      "oldSha256": "06a3c16a7baade128f83804b89fbe23b84095996fdbfe5035d8245a02ff45ec1",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/AniBtResourceViewModel.cs",
+      "sha256": "623c5ee5eb6acb5a49dc90ebe246850fc408cb1e9aa517949c073483efae400f",
+      "lines": 239,
+      "oldSha256": "623c5ee5eb6acb5a49dc90ebe246850fc408cb1e9aa517949c073483efae400f",
+      "reviewer": "root",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/AniBtScrapeViewModel.cs",
+      "sha256": "198048b01323ed1569067585e9af3ad6f02296e38ba5b53395b80b673d4a2e5f",
+      "lines": 278,
+      "oldSha256": "198048b01323ed1569067585e9af3ad6f02296e38ba5b53395b80b673d4a2e5f",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/AniBtSearchViewModel.cs",
+      "sha256": "01f50d7be22ed80db3e4da87b587e70baf4758a2f3cb7010983b9414fb3d08aa",
+      "lines": 508,
+      "oldSha256": "01f50d7be22ed80db3e4da87b587e70baf4758a2f3cb7010983b9414fb3d08aa",
+      "reviewer": "root",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotHistoryRecordRow.cs",
+      "sha256": "f9951ab2b1da108db4aaa0921123f32161065df813b717906cc4218ce14904f1",
+      "lines": 93,
+      "oldSha256": "f9951ab2b1da108db4aaa0921123f32161065df813b717906cc4218ce14904f1",
+      "reviewer": "management",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotSeriesReorganizeViewModel.cs",
+      "sha256": "3f16f6389df6ea641af8be63fca09ed4d225ac4abbcdb887804bfe01534edfea",
+      "lines": 226,
+      "oldSha256": "3f16f6389df6ea641af8be63fca09ed4d225ac4abbcdb887804bfe01534edfea",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotSeriesTransferGroup.cs",
+      "sha256": "bbf0e7aa70d2a6fdbdfc173f4362ed58d3c0f6fdc73577d0e87aaa97bd527a78",
+      "lines": 32,
+      "oldSha256": "bbf0e7aa70d2a6fdbdfc173f4362ed58d3c0f6fdc73577d0e87aaa97bd527a78",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotSeriesTransferRow.cs",
+      "sha256": "2a4fad1bcee5402d6280d20661babbb3864a3a2dc6336727c17ce0b729fd76ad",
+      "lines": 68,
+      "oldSha256": "2a4fad1bcee5402d6280d20661babbb3864a3a2dc6336727c17ce0b729fd76ad",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/AniBtResourceBrowser.xaml",
+      "sha256": "be44e43f4faf4cde4bdb948234b65ed71fe42e87a391b7e25df3a931276aeb4e",
+      "lines": 137,
+      "oldSha256": "be44e43f4faf4cde4bdb948234b65ed71fe42e87a391b7e25df3a931276aeb4e",
+      "reviewer": "root",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/AniBtResourceBrowser.xaml.cs",
+      "sha256": "0031da93e04b2ee838fce9313beaedb9b840d6a4f5299c33e35f1f221d3c431e",
+      "lines": 27,
+      "oldSha256": "0031da93e04b2ee838fce9313beaedb9b840d6a4f5299c33e35f1f221d3c431e",
+      "reviewer": "root",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/AniBtScrapeDialog.xaml",
+      "sha256": "2c39db9da0480718369ef9ba6e26a3fa4c445ccd2d44bcf59468369ffe289d48",
+      "lines": 99,
+      "oldSha256": "2c39db9da0480718369ef9ba6e26a3fa4c445ccd2d44bcf59468369ffe289d48",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/AniBtScrapeDialog.xaml.cs",
+      "sha256": "67b6253a31c9e85adc4b2aaed13b5bedc424e584b33e93fb909354d754290f1f",
+      "lines": 43,
+      "oldSha256": "67b6253a31c9e85adc4b2aaed13b5bedc424e584b33e93fb909354d754290f1f",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/AniBtSearchPanel.xaml",
+      "sha256": "77547495abddf1ecc021560897eafdde19cd5f0f79edcdfbbb93189354e4ea2c",
+      "lines": 148,
+      "oldSha256": "77547495abddf1ecc021560897eafdde19cd5f0f79edcdfbbb93189354e4ea2c",
+      "reviewer": "root",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/AniBtSearchPanel.xaml.cs",
+      "sha256": "3bdab93f74ed60a920f067ab9760684e40dd72b459fd104748c8a69e9108f734",
+      "lines": 118,
+      "oldSha256": "3bdab93f74ed60a920f067ab9760684e40dd72b459fd104748c8a69e9108f734",
+      "reviewer": "root",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MissingEpisodesDialog.xaml",
+      "sha256": "03f6662d1bd5007b1f69e7df71b0f1f7f6db8470ea71f73810abdfa4cb1cc8a4",
+      "lines": 130,
+      "oldSha256": "03f6662d1bd5007b1f69e7df71b0f1f7f6db8470ea71f73810abdfa4cb1cc8a4",
+      "reviewer": "root",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MissingEpisodesDialog.xaml.cs",
+      "sha256": "e0a6340883eb9deffd04b8bb13098fc41b6c1c144c3adf4ee312a62063c9c809",
+      "lines": 225,
+      "oldSha256": "e0a6340883eb9deffd04b8bb13098fc41b6c1c144c3adf4ee312a62063c9c809",
+      "reviewer": "root",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotMediaManagementDialog.xaml",
+      "sha256": "bcced981894851f52771147cdff5dd5fe299d403f32f39b011f172ae0747387f",
+      "lines": 123,
+      "oldSha256": "bcced981894851f52771147cdff5dd5fe299d403f32f39b011f172ae0747387f",
+      "reviewer": "management",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotMediaManagementDialog.xaml.cs",
+      "sha256": "5c164834dc3379e346a6236bb5555d4b2e11e2be4d3b8f31165f9e5ae4408832",
+      "lines": 331,
+      "oldSha256": "5c164834dc3379e346a6236bb5555d4b2e11e2be4d3b8f31165f9e5ae4408832",
+      "reviewer": "management",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotReorganizeDialog.Form.cs",
+      "sha256": "b491d32a9912394d3440193e9a3a50a7b152db0327f85e7e026137e47de4a465",
+      "lines": 324,
+      "oldSha256": "b491d32a9912394d3440193e9a3a50a7b152db0327f85e7e026137e47de4a465",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotReorganizeDialog.xaml",
+      "sha256": "37bb35331539a2d910abb0f3ca721086b37e32899baedf15c8afbf95106b2d0e",
+      "lines": 300,
+      "oldSha256": "37bb35331539a2d910abb0f3ca721086b37e32899baedf15c8afbf95106b2d0e",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotReorganizeDialog.xaml.cs",
+      "sha256": "fb08bbbed34f182c89d1362c97cdce12b1fecc9eb9b8c3c7c2cbd2c1ef513178",
+      "lines": 472,
+      "oldSha256": "fb08bbbed34f182c89d1362c97cdce12b1fecc9eb9b8c3c7c2cbd2c1ef513178",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSeriesReorganizeDialog.xaml",
+      "sha256": "9be8fc242e033d6012c30714df4384854765429bccbb7f90ccd54e7e05b42142",
+      "lines": 244,
+      "oldSha256": "9be8fc242e033d6012c30714df4384854765429bccbb7f90ccd54e7e05b42142",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSeriesReorganizeDialog.xaml.cs",
+      "sha256": "4c2dbc2189b6d397f87703dd9ad753a79ec7eac51afa0f3fe7cd3b5e954de074",
+      "lines": 129,
+      "oldSha256": "4c2dbc2189b6d397f87703dd9ad753a79ec7eac51afa0f3fe7cd3b5e954de074",
+      "reviewer": "transfer",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.AniBt.cs",
+      "sha256": "419e3c3bd54ea901ef52d53a10717aef8498f932aea19d92842437fe5896c5e9",
+      "lines": 59,
+      "oldSha256": "419e3c3bd54ea901ef52d53a10717aef8498f932aea19d92842437fe5896c5e9",
+      "reviewer": "anibt",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.MoviePilotMediaManagement.Refresh.cs",
+      "sha256": "8eebfd0723c8a0e6350fda0673d16ddb63ed3b014864b8cbd4c77270ac4574ba",
+      "lines": 70,
+      "oldSha256": "8eebfd0723c8a0e6350fda0673d16ddb63ed3b014864b8cbd4c77270ac4574ba",
+      "reviewer": "management",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.MoviePilotMediaManagement.cs",
+      "sha256": "c23c841e69f19fe29d44bad91d51445b4ae5d110b4040d72e255667d40ae8e10",
+      "lines": 199,
+      "oldSha256": "c23c841e69f19fe29d44bad91d51445b4ae5d110b4040d72e255667d40ae8e10",
+      "reviewer": "management",
+      "scope": "全文",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Operations.cs",
+      "sha256": "606635400f82ca100b7e111dc39b1bb80a5efdd7d2bb1f46834c13ae4b40f2ad",
+      "lines": 114,
+      "scope": "联审全文",
+      "reviewer": "transfer/anibt",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+      "sha256": "ea7931946e0cdcee210fd1736136f69fdb708b193ed02974cee74051f95d8fa5",
+      "lines": 104,
+      "scope": "联审全文",
+      "reviewer": "anibt/management",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/RemovedMedia.cs",
+      "sha256": "f177a5fac66a861783b502853a52cb524545e3967a3022b5ba68cd30dc4fe5a6",
+      "lines": 63,
+      "scope": "联审全文",
+      "reviewer": "root/management",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PageViewModel.cs",
+      "sha256": "7571679ac96effd2234a59b3f08c79bc9283d630f1eb33bfe9d812a254811b1a",
+      "lines": 226,
+      "scope": "联审全文",
+      "reviewer": "transfer/anibt",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotDialog.cs",
+      "sha256": "f4c3002ee463a946088440229c759c34619b89a356e2da6649e3c21205d203c6",
+      "lines": 31,
+      "scope": "联审全文",
+      "reviewer": "transfer/anibt",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotTransferTests.cs",
+      "sha256": "5a1cee77cda101637470a8197493f51f6ea686386f69014ce2a6111f58e8c431",
+      "lines": 600,
+      "scope": "联审全文",
+      "reviewer": "transfer",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotTransferSubmissionTests.cs",
+      "sha256": "72b99903e13df8971be1f09f7a80944ea842bd377796f1e223edc61f45984b5f",
+      "lines": 305,
+      "scope": "联审全文",
+      "reviewer": "transfer",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotSeriesTransferTests.cs",
+      "sha256": "0f7e33c84f7ffe2e1873fdab45462c31d2cf9049910b488626c249f68b82446a",
+      "lines": 252,
+      "scope": "联审全文",
+      "reviewer": "transfer",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotTransferHistoryViewTests.cs",
+      "sha256": "8f672894b526c19b604f8059bd8ff95891a2e5754ba5aaa831b8f6f1e385e32f",
+      "lines": 107,
+      "scope": "联审全文",
+      "reviewer": "transfer",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.Tests/AniBtPrepareConcurrencyTests.cs",
+      "sha256": "d8c24ea6150cedf37b753d44cdc0bde657a7e66d7bdfb84c8eb3d5c2be49c8a5",
+      "lines": 245,
+      "scope": "联审全文",
+      "reviewer": "anibt",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.Tests/AniBtSeriesIdentityTests.cs",
+      "sha256": "55874383cbed9b45ebfbbb9f4365a45475252877c0176057c0b86de5a30ab772",
+      "lines": 32,
+      "scope": "联审全文",
+      "reviewer": "anibt",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.TransferSubmissionTests/ManualDialogTests.cs",
+      "sha256": "09a235c401f09de4f95bd8157ce16287859e7f00381987527f29329a0c9b0bb3",
+      "lines": 331,
+      "scope": "联审全文",
+      "reviewer": "transfer",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.TransferSubmissionTests/Program.cs",
+      "sha256": "118194b1a2ec329500a1af4f3acf15810659f632efec1fa8b182fd5f886aca20",
+      "lines": 140,
+      "scope": "联审全文",
+      "reviewer": "transfer",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.ResourceBrowserTests/SeriesResourceViewTests.cs",
+      "sha256": "294666f44c5349ea2eb56bdedc316598785bdc9b136afbb56cace1e6e48e8fd5",
+      "lines": 322,
+      "scope": "联审全文",
+      "reviewer": "transfer",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.AniBtConfirmationTests/AnonymousFixture.cs",
+      "sha256": "825d06d3d5d5e2d3ffbf201df293089ddcdb3020fa842deeaa188aee927b8be6",
+      "lines": 313,
+      "scope": "联审全文",
+      "reviewer": "anibt/root",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.AniBtSourceContractTests/CoreSourceContractTests.cs",
+      "sha256": "c27720e19896ac6d2737dfa7fb0cd6612cc7a242387b2d27b8b46a25ab9234dc",
+      "lines": 240,
+      "scope": "联审全文",
+      "reviewer": "anibt",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.AniBtSourceContractTests/CallerSourceContractTests.cs",
+      "sha256": "8dad0f28c71e3651b52b3c60dbd07103a5e092102f426a5f555b99d38b688161",
+      "lines": 225,
+      "scope": "联审全文",
+      "reviewer": "anibt",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.AniBtConfirmationTests/Momoka.AniBtConfirmationTests.csproj",
+      "sha256": "9e783cda5669164680f53e8fa73714b0c68f7dbe510ab9dca23c1ce60a6bae3d",
+      "lines": 27,
+      "scope": "联审全文",
+      "reviewer": "anibt/root",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.AniBtSourceContractTests/Momoka.AniBtSourceContractTests.csproj",
+      "sha256": "97853cf9e4285856ee9f46fd8b237b15c12d3a8679144088da8a0402ad499f94",
+      "lines": 114,
+      "scope": "联审全文",
+      "reviewer": "anibt",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.MissingEpisodesAvailabilityTests/Momoka.MissingEpisodesAvailabilityTests.csproj",
+      "sha256": "0231d4ab9ea78dc53ccfc7790a701487d6e927499007e7a805e7029985f55783",
+      "lines": 17,
+      "scope": "联审全文",
+      "reviewer": "root",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.cs",
+      "sha256": "91945e19717632195f46ae93454e361d35e812cc09cd4c62464c6e9ddf978a8f",
+      "lines": 364,
+      "scope": "联审成员：26-41,238-364",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Availability.cs",
+      "sha256": "1c1ae70f2b365a51b27b9c0c20816086f03687c4b8ccf86a90556aa544b0357e",
+      "lines": 126,
+      "scope": "联审成员：1-115",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySession.cs",
+      "sha256": "48e5a109f693a9512263d77595c26fd5d598a0f3dfcaf0856112c9040ec450f4",
+      "lines": 829,
+      "scope": "联审成员：81-143,466-600",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+      "sha256": "872e2d283f3e7e25a761cd3bb16aab8b06abf104e126c4b7427ee5670d3b9770",
+      "lines": 1185,
+      "scope": "联审成员：694-826",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyItem.cs",
+      "sha256": "d87c8f96be2806fc0f60681e3419f1a5edcd832304a139c9171ac5bc6137b69f",
+      "lines": 1053,
+      "scope": "联审成员：751-767",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+      "sha256": "637c298c52fb397326114c2ae7a9f2764142e8f6347a9897a83414147df85ba4",
+      "lines": 3197,
+      "scope": "联审成员：1386,1910-1960; RemovedMedia全文引用检索",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/ServersViewModel.cs",
+      "sha256": "131878cd955e1b300fc31a4b1a2e0df7d7c157239b396a826313376d8adb7280",
+      "lines": 628,
+      "scope": "联审成员：544-577",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "sha256": "3138187621e0f42476f506acba62a6313f3bbb9641cfe4e9e755a039d5e88f4b",
+      "lines": 2624,
+      "scope": "联审成员：1240-1382,2231-2311,2526-2575",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.MoviePilot.cs",
+      "sha256": "6aae40d602f5170733ac63b2c6dfd91763db2986083d848319a3379a15439790",
+      "lines": 118,
+      "scope": "联审成员：19-98",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+      "sha256": "5c4005193e4ac48517ca80dc1bb94ac3c3ab98efa69405eed21f2081354539de",
+      "lines": 806,
+      "scope": "联审成员：484-520",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+      "sha256": "55b94767455ac916c78bd77d1f2b5b1ac0a1a6c510af773330ace3bbb117ce1a",
+      "lines": 632,
+      "scope": "联审成员：57-75",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsWindow.cs",
+      "sha256": "ac2a8bd0407f2b42c72fadb30ff498a82811e9895b5408a01fae3bcfa1e4fa40",
+      "lines": 361,
+      "scope": "联审成员：191-285",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Composition/ShellServices.cs",
+      "sha256": "abdb27efff5c3ec7c431a2bdb260e9132fd884004cba9dac191f9035156dc443",
+      "lines": 218,
+      "scope": "联审成员：142-154",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "src/Momoka.Shell/Theme/Styles.xaml",
+      "sha256": "9652ff6d37dad55056c555fbc90be6c0f44b113b05d63ca9c29fee5613ee19a6",
+      "lines": 998,
+      "scope": "联审成员：198-203,235-237",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.Tests/AniBtTests.cs",
+      "sha256": "edc554c7a04c82cdcb2a228ff189eba0cb877055e311f80e7e348a359a782bca",
+      "lines": 546,
+      "scope": "联审成员：1-87",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.Tests/AniBtIntegrationTests.cs",
+      "sha256": "2cd8f7a099f40b825de7c8450a429ce1ee52bb4fc0acf6149094348afc93d792",
+      "lines": 1193,
+      "scope": "联审成员：805-811,900-981",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.Tests/AniBtReceiptStateTests.cs",
+      "sha256": "5d48c0b8babcda4c7fc6e279dfae6474025d4c192998d3ddf303f43b9f6a4553",
+      "lines": 610,
+      "scope": "联审成员：1-120,286-384,505-592",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotAuditTests.cs",
+      "sha256": "e8549959ee6bac4657fd3b9c176c8c2c06258c3e856df4e640de01208a1445c2",
+      "lines": 315,
+      "scope": "联审成员：82-185,256-315",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotMediaManagementTests.cs",
+      "sha256": "08c267b4bc49ab23a8c5f1a79970eed566ce54b4a77603658f3f12db0e9d6411",
+      "lines": 1012,
+      "scope": "联审成员：176-237,380-530,574-835; 删除及回执关联断言",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryResumePagingTests.cs",
+      "sha256": "77b1a580a95e1c1c8bae1708cb80043abaa41ecae839fc85fddabd73abd76f15",
+      "lines": 1351,
+      "scope": "联审成员：723-1024;匿名当前Shell载入/电影库/Reload边界",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.Tests/Program.cs",
+      "sha256": "bb6feb7f7c97e1c5e76da303b42e4a8efeb60df3227bee10410d8569e162d48c",
+      "lines": 441,
+      "scope": "联审成员：1-25,74-98,245-291,416-428",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.AniBtEntryTests/Program.cs",
+      "sha256": "52cfa5fa17341136791258a3dee9ea4c17dfb14c2b7d1ff8e8febc7570da584f",
+      "lines": 431,
+      "scope": "联审成员：1-35",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.AniBtConfirmationTests/Program.cs",
+      "sha256": "2149eaa5220c2fe51645ad1f64d695733a76e694e2651184ee18c08cfd2afc06",
+      "lines": 764,
+      "scope": "联审成员：1-110,118-428,591-635,691-732,745-764",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.AniBtSourceContractTests/SourceFixture.cs",
+      "sha256": "6f55c03a84e4a44bae8f3441d9755c0ed238e8454bfe8b12a5a53739a14790d5",
+      "lines": 276,
+      "scope": "联审成员：1-174",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.AniBtSourceContractTests/Program.cs",
+      "sha256": "013fa0c41c6e36b545f60a601d27b88e46d949308798609238e272452277cdb1",
+      "lines": 40,
+      "scope": "联审成员：1-42",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.AniBtConfirmationTests/Run-Fixture.ps1",
+      "sha256": "50f8abaa454ffaedfe4623ceaf560981f4885a568a5de58bf8aafe127cbb7ef3",
+      "lines": 107,
+      "scope": "联审成员：1-107",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.AniBtConfirmationTests/Test-GeneratedBindings.ps1",
+      "sha256": "30c8049e53ff1dafce4559fe9a7169a3388433394c78c131bab09a6afaa6fc44",
+      "lines": 54,
+      "scope": "联审成员：1-45; 实际运行17断言",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.AniBtConfirmationTests/Test-GeneratorBoundary.ps1",
+      "sha256": "fee2736de1c849d3d402ffa4aaf2a27d63384f34b167cba5bb869bbdb56db46b",
+      "lines": 32,
+      "scope": "联审成员：1-35;本轮未运行",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.MissingEpisodesAvailabilityTests/Program.cs",
+      "sha256": "0b4489bb05f5738b9f22f8db7b5c129810c96fa8d741b6d6a6fc18178edf2160",
+      "lines": 521,
+      "scope": "联审成员：1-70",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.MissingEpisodesAvailabilityTests/MissingEpisodesFixture.cs",
+      "sha256": "91f470cf19097e4bcfa77f27557b723091c84c1efc3560273d74a145ece745b8",
+      "lines": 308,
+      "scope": "联审成员：18-134,178-202",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    },
+    {
+      "path": "tests/Momoka.ResourceBrowserTests/AniBtResourceLayoutTests.cs",
+      "sha256": "123ebaf77ba53890b824b4d571021c688b3554f44aefeff4969b3eaa72b0531b",
+      "lines": 305,
+      "scope": "联审成员：1-150,最后头像容器与Row工厂；断言联读",
+      "reviewer": "root/领域代理",
+      "partition": "R09"
+    }
+  ],
+  "upstream": {
+    "checkedAt": "2026-11-06T12:57:57.344936+08:00",
+    "repositories": [
+      {
+        "repository": "jxxghp/MoviePilot",
+        "branch": "v3",
+        "commit": "48874bc08a3c1cb5247f17c8845a6918976c0d22",
+        "zipSha256": "d02c8e41e741325410964448ceb1311661751bcd90cfe1f2681c2953de388552",
+        "bytes": 10849008
+      },
+      {
+        "repository": "jxxghp/MoviePilot-Frontend",
+        "branch": "v3",
+        "commit": "fad61c3ed951d09504694d21e462f8ef99a9f342",
+        "zipSha256": "a58026bee0f5e98978208fe6c963b7794d05e500c49b8598f29c83760decec95",
+        "bytes": 16099619
+      }
+    ]
+  },
+  "upstreamFiles": [
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/api/endpoints/transfer.py",
+      "sha256": "c9fbe6750718f4b0a0d6f9a1076f8c40b61bddd7dd574809f2b662e995dcc1e9",
+      "lines": 1134,
+      "readRanges": "190-226,576-746,774-1092"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/api/endpoints/transferhistory.py",
+      "sha256": "da3ef8b20afd5590eb4b9ab411c5b68fe8f0452a5879e91f3c306d88734f3d06",
+      "lines": 118,
+      "readRanges": "1-118"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/schemas/transfer.py",
+      "sha256": "ed6fee8d69f434a1d545db7aaaf69685f07efaeb5c89c1ef7bb3418fc4f9903b",
+      "lines": 604,
+      "readRanges": "337-447,519-594"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/chain/transfer/history.py",
+      "sha256": "f7fe35533e6a112cb81b199523a31bca3b1aa15b5e635526c32d7e170fea2b11",
+      "lines": 504,
+      "readRanges": "74-99,193-327"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/chain/transfer/workflow.py",
+      "sha256": "e7df031919af6e4d7952a87b0ed47369ab9f6d2348a136a4365376a3917bbc96",
+      "lines": 1211,
+      "readRanges": "328-355,566-614,671-710,756-886"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/chain/transfer/records.py",
+      "sha256": "ca80e2d753a0d4c75259e1d5fcfac427a6ac6c0309f81d3479aee8c783f327fc",
+      "lines": 613,
+      "readRanges": "433-533,539-613"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/chain/transfer/execution.py",
+      "sha256": "55ca6229b8fee7f439e610363938365398b0ebe9604372ba6a02b638dd43d1dc",
+      "lines": 713,
+      "readRanges": "465-493,596-628,674-712"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/chain/transfer/plan.py",
+      "sha256": "a3d5c89e25ecc35d4ab3a33375f0e91e635bfff33d258174a23c170346a44ae1",
+      "lines": 980,
+      "readRanges": "442-457,504-532,701-726"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/application/history/retry.py",
+      "sha256": "942c184c654124717338dc5c0c2fd2e1b7b536b7878739259de5beb934a30f05",
+      "lines": 407,
+      "readRanges": "291-303"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/db/adapters/history/transfer.py",
+      "sha256": "ec76a4afccc31637bbbe7f0be098ef2995bc1bf5b4fce9ca2cad2812d41373b9",
+      "lines": 594,
+      "readRanges": "215-228"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/db/oper/transferhistory.py",
+      "sha256": "ff30b11f074df43f88871b2a15e8f68d0fc654abede23022c37d2cfea366412e",
+      "lines": 680,
+      "readRanges": "271-283"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/db/models/transferhistory.py",
+      "sha256": "f2fb2c983a17b09f874f8f6a0b3236e86253af751fe1fd8b5fc4c1659a852d20",
+      "lines": 893,
+      "readRanges": "273-289"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/schemas/file.py",
+      "sha256": "0670887f16b96ff84114415896c5c74de6c8f94de7c152f28cacb7f2e17fa5dc",
+      "lines": 111,
+      "readRanges": "23-31"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/schemas/types.py",
+      "sha256": "7e890ad837f855cfebed048ad16c66861e2504f3a3c047a467ac284316ce8ed0",
+      "lines": 907,
+      "readRanges": "758-772"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/chain/storage.py",
+      "sha256": "a95949dbcb54ae2c4979dab0733bc99938edb459c14da7d02f4c53980cc4381f",
+      "lines": 242,
+      "readRanges": "108-114,191-242"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/api/endpoints/history.py",
+      "sha256": "9a89b929610677c653632b4d801a40eed04adc7d2ebe4572b7e44404d8cb36d6",
+      "lines": 613,
+      "readRanges": "389-413"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/api/dependencies/history.py",
+      "sha256": "61ebc87a350beb463c25ec6d5b4c334f354de267d8c970d5441125cfb922c8fe",
+      "lines": 164,
+      "readRanges": "134-163"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/application/history/mutation.py",
+      "sha256": "0055ab5fc4504942911ba4baa9ab63fb88f0a96e8c71c6dce3b1caf9c71dd59d",
+      "lines": 439,
+      "readRanges": "315-348"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "app/application/formatting.py",
+      "sha256": "8301660ea17f055482b7a29d5b46149eafac0624eb53edd2c52c62bb1f90d10b",
+      "lines": 1617,
+      "readRanges": "103-234"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "tests/test_transfer_history_gate.py",
+      "sha256": "7d52f0e2b977c93297f136d9d11a2519cc7cf4740c8b1d190bf41854bf646592",
+      "lines": 684,
+      "readRanges": "533-583"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "tests/test_manual_transfer_history.py",
+      "sha256": "62b5abd8eecba295b5755114b14b980a3c7b0e936bafbcacdb337249072ed5a1",
+      "lines": 1269,
+      "readRanges": "104-150,969-1014,1155-1196"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "tests/test_transfer_history_retransfer.py",
+      "sha256": "bb03872766fc24f01d6bee761275fd9fc2ef6612bebe400a9f237c8eeb13506f",
+      "lines": 1059,
+      "readRanges": "290-400,814-865"
+    },
+    {
+      "repository": "jxxghp/MoviePilot",
+      "path": "tests/test_history_mutation_command.py",
+      "sha256": "a749386ba8624053da9e2a422b50d5d808fb473d40915d346a8fd8912bc14335",
+      "lines": 349,
+      "readRanges": "274-349"
+    },
+    {
+      "repository": "jxxghp/MoviePilot-Frontend",
+      "path": "src/components/dialog/ReorganizeDialog.vue",
+      "sha256": "a70edad61110908556ba1607baefa4f3413afa592e93f96c80ae914358dfd229",
+      "lines": 3334,
+      "readRanges": "1-224,583-641,664-850,1275-1319,1351-1398,1414-1756,1812-2006,2025-2460,2638-2668"
+    },
+    {
+      "repository": "jxxghp/MoviePilot-Frontend",
+      "path": "src/components/dialog/TransferHistoryDeleteDialog.vue",
+      "sha256": "b4af876da0a61024e97e0efc4dedf60a2e89c9989c5ee400e72a67f5ed567108",
+      "lines": 56,
+      "readRanges": "1-56"
+    },
+    {
+      "repository": "jxxghp/MoviePilot-Frontend",
+      "path": "src/views/reorganize/TransferHistoryView.vue",
+      "sha256": "2a7f8e784dae030a7d31fb73702cc1b1cb67b6b7a33a62b116a97918763e8a17",
+      "lines": 3920,
+      "readRanges": "182-289,425-448,709-740,754-848,1045-1164,1182-1203,1509-1517,1761-1787"
+    },
+    {
+      "repository": "jxxghp/MoviePilot-Frontend",
+      "path": "src/components/dialog/__tests__/ReorganizeDialog.spec.ts",
+      "sha256": "5b8dcb6b20287ff17dff634492d68fc1a724954d48a36b217f24a91730e65214",
+      "lines": 2091,
+      "readRanges": "828-857,970-1045,1287-1319,1360-1447"
+    },
+    {
+      "repository": "jxxghp/MoviePilot-Frontend",
+      "path": "src/views/reorganize/__tests__/TransferHistoryView.spec.ts",
+      "sha256": "37ec9fbc2753e94ce441d3515b08dd28c043ab84c0e77a723126ace40a8366d1",
+      "lines": 2133,
+      "readRanges": "874-901,1065-1092,1128-1154,1855-1899"
+    }
+  ],
+  "aniBtPublicAccess": [
+    {
+      "label": "anibt-home",
+      "url": "https://anibt.net/",
+      "sha256": "98e4fcb296ebdc00995952ecfffa13d8db4d7fb05151112de939bb8a5ac3dfef",
+      "bytes": 352154
+    },
+    {
+      "label": "anibt-wiki",
+      "url": "https://wiki.anibt.net/",
+      "sha256": "8fd8c342df2c789b93dce5c4908bcb84b229151e6ae0134191f50b3fe9aeff66",
+      "bytes": 75528
+    },
+    {
+      "label": "anibt-openapi",
+      "url": "https://wiki.anibt.net/openapi.yaml",
+      "sha256": "dbf1d7073898373057b6ffe80941d5c9494b39cfee1e1784ccacfa4a439e377e",
+      "bytes": 185583
+    }
+  ],
+  "execution": {
+    "entries": [
+      {
+        "entry": "AniBtEntryTests",
+        "passed": 51,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "entry": "AniBtConfirmationTests",
+        "passed": 57,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "entry": "AniBtSourceContractTests",
+        "passed": 40,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "entry": "TransferSubmissionTests",
+        "passed": 78,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "entry": "MissingEpisodesAvailabilityTests",
+        "passed": 58,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "entry": "moviepilot-series-transfer-fixture",
+        "passed": 166,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "entry": "moviepilot-media-management-fixture",
+        "passed": 81,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "entry": "anibt-receipt-state-fixture",
+        "passed": 44,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "entry": "完整AniBt四组Register",
+        "passed": 108,
+        "failed": 0,
+        "skipped": 0
+      }
+    ],
+    "totalExecutions": 683,
+    "passed": 683,
+    "failed": 0,
+    "skipped": 0,
+    "overlappingCoverage": true,
+    "generatedBindings": 17,
+    "reusedResourceBrowser": 174,
+    "reusedResourceBrowserIncludedInTotal": false,
+    "shellRebuiltThisPartition": false
+  },
+  "commands": [
+    {
+      "name": "sdk",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "--version"
+      ],
+      "exitCode": 0,
+      "seconds": 0.19,
+      "log": "sdk.log",
+      "logSha256": "4b509237900912ac8385460ada8a1332f7cfcca46d8728bf019800de733c535f"
+    },
+    {
+      "name": "AniBtEntryTests-restore",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "restore",
+        "tests/Momoka.AniBtEntryTests/Momoka.AniBtEntryTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\nuget.config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "seconds": 2.48,
+      "log": "AniBtEntryTests-restore.log",
+      "logSha256": "ab0912bdccba55f89d49481e70f0a6eada49d389f485b8ee95e29d87b45206f0"
+    },
+    {
+      "name": "AniBtEntryTests-build",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "tests/Momoka.AniBtEntryTests/Momoka.AniBtEntryTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 16.97,
+      "log": "AniBtEntryTests-build.log",
+      "logSha256": "2ac5a8cdc289463fca2951cbe18bfe685e2ef8e97171112dee05a16967cd41a8"
+    },
+    {
+      "name": "AniBtEntryTests-run",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.AniBtEntryTests/Momoka.AniBtEntryTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.36,
+      "log": "AniBtEntryTests-run.log",
+      "logSha256": "0b4cef683388d6c1c4f3b13b598d3c410a5bf7137d854d8449c7ed168702027c"
+    },
+    {
+      "name": "AniBtConfirmationTests-restore",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "restore",
+        "tests/Momoka.AniBtConfirmationTests/Momoka.AniBtConfirmationTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\nuget.config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "seconds": 2.41,
+      "log": "AniBtConfirmationTests-restore.log",
+      "logSha256": "44c10d776e97bb9f5f4649965fff9bae393f801a4f8ba5483df80c66854333e9"
+    },
+    {
+      "name": "AniBtConfirmationTests-build",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "tests/Momoka.AniBtConfirmationTests/Momoka.AniBtConfirmationTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 11.49,
+      "log": "AniBtConfirmationTests-build.log",
+      "logSha256": "eb34eeef2694e0e328ea2c305f8418cd9ea70a8fed3e6498b282a6a2fe931874"
+    },
+    {
+      "name": "AniBtConfirmationTests-run",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.AniBtConfirmationTests/Momoka.AniBtConfirmationTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--"
+      ],
+      "exitCode": 0,
+      "seconds": 1.78,
+      "log": "AniBtConfirmationTests-run.log",
+      "logSha256": "4feed4c7d6d6de8580467746e30dae5c86057706c45931aa6d397d7064e85eac"
+    },
+    {
+      "name": "AniBtSourceContractTests-restore",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "restore",
+        "tests/Momoka.AniBtSourceContractTests/Momoka.AniBtSourceContractTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\nuget.config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.23,
+      "log": "AniBtSourceContractTests-restore.log",
+      "logSha256": "c3d3f8affc25e4b296f51ce52eedc2f4b1623a3ad2e032cbd160d8f0d7da124e"
+    },
+    {
+      "name": "AniBtSourceContractTests-build",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "tests/Momoka.AniBtSourceContractTests/Momoka.AniBtSourceContractTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 12.36,
+      "log": "AniBtSourceContractTests-build.log",
+      "logSha256": "d076b118ea56c67c30e2e51ea88abd79e690f595d129927215e2e4b5907b0a0a"
+    },
+    {
+      "name": "AniBtSourceContractTests-run",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.AniBtSourceContractTests/Momoka.AniBtSourceContractTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--"
+      ],
+      "exitCode": 0,
+      "seconds": 1.63,
+      "log": "AniBtSourceContractTests-run.log",
+      "logSha256": "64b121e250030b99c2afa8afb10bedc6d050a596134c5218d75d7383779bf2b4"
+    },
+    {
+      "name": "TransferSubmissionTests-restore",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "restore",
+        "tests/Momoka.TransferSubmissionTests/Momoka.TransferSubmissionTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\nuget.config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.22,
+      "log": "TransferSubmissionTests-restore.log",
+      "logSha256": "948c80c1ebb19e793ec0dd31bbc9fb7db05025b9c1366cbd1c2802fe4363d1b2"
+    },
+    {
+      "name": "TransferSubmissionTests-build",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "tests/Momoka.TransferSubmissionTests/Momoka.TransferSubmissionTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 4.68,
+      "log": "TransferSubmissionTests-build.log",
+      "logSha256": "f61d611a4e651576598f0306f3bf8ee533e15cf3c7313dcd792df0add0890608"
+    },
+    {
+      "name": "TransferSubmissionTests-run",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.TransferSubmissionTests/Momoka.TransferSubmissionTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--"
+      ],
+      "exitCode": 0,
+      "seconds": 2.15,
+      "log": "TransferSubmissionTests-run.log",
+      "logSha256": "ed17d9ac706675315e30893e27ceeda371f7833b6c1aeb89e23312363f9f195a"
+    },
+    {
+      "name": "MissingEpisodesAvailabilityTests-restore",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "restore",
+        "tests/Momoka.MissingEpisodesAvailabilityTests/Momoka.MissingEpisodesAvailabilityTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\nuget.config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.74,
+      "log": "MissingEpisodesAvailabilityTests-restore.log",
+      "logSha256": "dbf9d168204cb9023a819198b7d7290712c0e6228983a1e72405c884718d44f0"
+    },
+    {
+      "name": "MissingEpisodesAvailabilityTests-build",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "tests/Momoka.MissingEpisodesAvailabilityTests/Momoka.MissingEpisodesAvailabilityTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 5.08,
+      "log": "MissingEpisodesAvailabilityTests-build.log",
+      "logSha256": "bb31165593cdb0862548450bfab8edb93d4e6d5388fb8feec49fad1d53f1435d"
+    },
+    {
+      "name": "MissingEpisodesAvailabilityTests-run",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.MissingEpisodesAvailabilityTests/Momoka.MissingEpisodesAvailabilityTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--"
+      ],
+      "exitCode": 0,
+      "seconds": 1.41,
+      "log": "MissingEpisodesAvailabilityTests-run.log",
+      "logSha256": "7a7c0bffaf74dd02cf684afe50c026ebee74e2ed23f7ef627619194424528fa4"
+    },
+    {
+      "name": "main-tests-build",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "tests/Momoka.Tests/Momoka.Tests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 11.02,
+      "log": "main-tests-build.log",
+      "logSha256": "8a28dc45d086b75052f7d1ce4c4b122c61863a1066c8bb6ca316ff8cd9761911"
+    },
+    {
+      "name": "moviepilot-series-transfer-fixture",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.Tests/Momoka.Tests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "moviepilot-series-transfer-fixture"
+      ],
+      "exitCode": 0,
+      "seconds": 1.67,
+      "log": "moviepilot-series-transfer-fixture.log",
+      "logSha256": "29f9ee34d88a94045d51ce278cfcf4a4e314fe25dd1d83f191b3f5788a21259e"
+    },
+    {
+      "name": "moviepilot-media-management-fixture",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.Tests/Momoka.Tests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "moviepilot-media-management-fixture"
+      ],
+      "exitCode": 0,
+      "seconds": 1.29,
+      "log": "moviepilot-media-management-fixture.log",
+      "logSha256": "4bc1b3bd947a34550e2877aff090ff0fe43562984f338e7987b527f485cd6e49"
+    },
+    {
+      "name": "anibt-receipt-state-fixture",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.Tests/Momoka.Tests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "anibt-receipt-state-fixture"
+      ],
+      "exitCode": 0,
+      "seconds": 1.24,
+      "log": "anibt-receipt-state-fixture.log",
+      "logSha256": "22ba09abea87d1b23d2f9976b2773d7054f72ba5e3a1174f30ffd81b8ead4b24"
+    },
+    {
+      "name": "anibt-runner-restore",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "restore",
+        "artifacts/review/861f48b/R09/20261106-first/anibt-runner/Runner.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\nuget.config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.15,
+      "log": "anibt-runner-restore.log",
+      "logSha256": "dbacaf4cd3e0c66474926a1782826d202c7b40bd87f2c70e12d31c05b2e37864"
+    },
+    {
+      "name": "anibt-runner-build",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "artifacts/review/861f48b/R09/20261106-first/anibt-runner/Runner.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 9.66,
+      "log": "anibt-runner-build.log",
+      "logSha256": "b5f75c84f716816dd850241d333efa3763540e66cf0b9a41064583820a0684b8"
+    },
+    {
+      "name": "anibt-runner-run",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "artifacts/review/861f48b/R09/20261106-first/anibt-runner/Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.34,
+      "log": "anibt-runner-run.log",
+      "logSha256": "2208e5d2f0a9c5d5ae782cf84cdfa3c538685f51d6cd2ce40b26d76c0ceb48c1"
+    },
+    {
+      "name": "runner-restore",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\nuget.config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.1,
+      "log": "runner-restore.log",
+      "logSha256": "143588a6c3acd1ac33771791036d86eec0e998b3e62381bcd31218f2feb4161f"
+    },
+    {
+      "name": "runner-build-2",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 3.44,
+      "log": "runner-build-2.log",
+      "logSha256": "8cfd3e7960a3f9ce3e9342bd8191f944eba6c86c729e5bac5f8c04cf09d0bc20"
+    },
+    {
+      "name": "transfer-final",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "transfer",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.2,
+      "log": "transfer-final.log",
+      "logSha256": "e73076c1698bb4111b44f0b4ea19ce82a36ca2bcba1d49c599a04150f5803e52"
+    },
+    {
+      "name": "storage-final",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "storage",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 3762504530,
+      "seconds": 6.02,
+      "log": "storage-final.log",
+      "logSha256": "c04933308b905b26ff65f4596ccc79034d1c62216a5ab65bf4fe7b92c6cd60ea"
+    },
+    {
+      "name": "missing-final",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "missing",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.03,
+      "log": "missing-final.log",
+      "logSha256": "a78f06ecd91ab082177ddc0579fabbf40c61c1ba700c4faab0d41f9d09971fa2"
+    },
+    {
+      "name": "core-final",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "core",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.46,
+      "log": "core-final.log",
+      "logSha256": "aa35912f114ca3b4c7d467a2637af252624cf756d5b3eb98810fda60da5cfeeb"
+    },
+    {
+      "name": "anibt-runner-build-2",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\anibt-runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 9.06,
+      "log": "anibt-runner-build-2.log",
+      "logSha256": "23e5f14dece0da491f9bc7ed367fad43cc09967f2cc74985557525ea91e3debe"
+    },
+    {
+      "name": "anibt-final",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\anibt-runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.36,
+      "log": "anibt-final.log",
+      "logSha256": "cec4a51247cda43f812f6365d76c76128329f9864e0568f5302a0c726ea1856f"
+    },
+    {
+      "name": "runner-build-3",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 3.58,
+      "log": "runner-build-3.log",
+      "logSha256": "c7fee1b0f403077609973464fb0f73c1bda54b3265d523db271c42f314f34bea"
+    },
+    {
+      "name": "storage-final-2",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "storage",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.12,
+      "log": "storage-final-2.log",
+      "logSha256": "682247528b75ed724e29356a6f95d5285934b22af9b51455f35ebf1cea1d7979"
+    },
+    {
+      "name": "transfer-final-2",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "transfer",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.06,
+      "log": "transfer-final-2.log",
+      "logSha256": "c5e66dbb0cdc69eeba3b5ee69bfac2f08cf9454074243cf8648f06446e665a0c"
+    },
+    {
+      "name": "dependents-final-2",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "dependents",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 0.92,
+      "log": "dependents-final-2.log",
+      "logSha256": "7ebd3b83466e3ce45c62717613ababbd7bcaa1d586235f975e5c188b7815f09a"
+    },
+    {
+      "name": "generated-bindings",
+      "args": [
+        "pwsh",
+        "-NoProfile",
+        "-File",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.AniBtConfirmationTests\\Test-GeneratedBindings.ps1"
+      ],
+      "exitCode": 0,
+      "seconds": 0.63,
+      "log": "generated-bindings.log",
+      "logSha256": "83c33768b4fd3544f8f52aa0f9c2e1a78466ca66fcf3fc1d4a343d3e215f819f"
+    },
+    {
+      "name": "runner-build-4",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 3.37,
+      "log": "runner-build-4.log",
+      "logSha256": "3ef4693da0761ee49bcda9190c587ffd2297460e5d3ad8a45252c7848dc1b4fe"
+    },
+    {
+      "name": "library-final",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "library",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.27,
+      "log": "library-final.log",
+      "logSha256": "4cbf41d9cf539b97a32a27160c9fab1d7d3dc662a0e4f37f888f00d23b6285a0"
+    },
+    {
+      "name": "verified-core",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "core",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.44,
+      "log": "verified-core.log",
+      "logSha256": "b7952a96371d790f3b5df2a518920baa377a0ca8ce6402261b929356ec91e0b9"
+    },
+    {
+      "name": "verified-transfer",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "transfer",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.11,
+      "log": "verified-transfer.log",
+      "logSha256": "c5e66dbb0cdc69eeba3b5ee69bfac2f08cf9454074243cf8648f06446e665a0c"
+    },
+    {
+      "name": "verified-storage",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "storage",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.12,
+      "log": "verified-storage.log",
+      "logSha256": "682247528b75ed724e29356a6f95d5285934b22af9b51455f35ebf1cea1d7979"
+    },
+    {
+      "name": "verified-missing",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "missing",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 0.95,
+      "log": "verified-missing.log",
+      "logSha256": "a78f06ecd91ab082177ddc0579fabbf40c61c1ba700c4faab0d41f9d09971fa2"
+    },
+    {
+      "name": "verified-dependents",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "dependents",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.06,
+      "log": "verified-dependents.log",
+      "logSha256": "7ebd3b83466e3ce45c62717613ababbd7bcaa1d586235f975e5c188b7815f09a"
+    },
+    {
+      "name": "verified-library",
+      "args": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\runner\\Runner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "library",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.26,
+      "log": "verified-library.log",
+      "logSha256": "4cbf41d9cf539b97a32a27160c9fab1d7d3dc662a0e4f37f888f00d23b6285a0"
+    },
+    {
+      "name": "upstream-functions",
+      "args": [
+        "py",
+        "-X",
+        "utf8",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\861f48b\\R09\\20261106-first\\upstream-repro.py"
+      ],
+      "exitCode": 0,
+      "seconds": 0.17,
+      "log": "upstream-functions.log",
+      "logSha256": "04808b8e68311503e467708fc6cd9d4a84baf02f9469571dc389af227201b3af"
+    }
+  ],
+  "assemblies": [
+    {
+      "path": "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll",
+      "sha256": "8688816cbe6001d2b8d35051c9428cdfbd81cc6b35b12b4cbbfe87fc721821cb"
+    },
+    {
+      "path": "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.dll",
+      "sha256": "9ea60545b3c51e5247bb501a62a0d9f0a4730005a3b9473756f4f08139edd9fc"
+    },
+    {
+      "path": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
+      "sha256": "8a53814e14af70459f93d0a860179fafd7dc978795645dcd22f518dc85bc46f1"
+    },
+    {
+      "path": "artifacts/review/861f48b/R09/20261106-first/runner/bin/Release/net10.0/Runner.dll",
+      "sha256": "adc249e4221843d4ccd805be10d1fff53db5048c6c9ed0c3dbecd06f81d07ea5"
+    },
+    {
+      "path": "artifacts/review/861f48b/R09/20261106-first/anibt-runner/bin/Release/net10.0/Momoka.Tests.dll",
+      "sha256": "090ea6b3024d80f604eebc62e26b9157131ecc4d7f85f99e4ad89f955e946e71"
+    }
+  ],
+  "reproductions": [
+    {
+      "name": "transfer",
+      "path": "transfer-repro.json",
+      "sha256": "542765f02daac8591f2ded0920a05db91abfed0eea05d9bd8ddabd099ff3f8b2"
+    },
+    {
+      "name": "upstream",
+      "path": "upstream-repro.json",
+      "sha256": "9200eb6739dd4a879360914c90f85e68af1406c9ffb9fb7494f8117de4abc2f5"
+    },
+    {
+      "name": "storage",
+      "path": "storage-repro.json",
+      "sha256": "d96585c17d0d49372afc727d599e25196d285ad33a54608032ad37318d7b5e3d"
+    },
+    {
+      "name": "anibt",
+      "path": "anibt-repro.json",
+      "sha256": "86c3b842a47440085ecf53bb8b8e2bf5d61597a2cae28125e5b81cd9e474699b"
+    },
+    {
+      "name": "missing",
+      "path": "missing-repro.json",
+      "sha256": "902775cb836aab3ef5ac07766800aa2c2d9f47aa27504796d9ea4a68c29bd2c6"
+    },
+    {
+      "name": "dependents",
+      "path": "dependents-repro.json",
+      "sha256": "6e0ce5eed397574779b835a67bee33b4172ab60d4602631397a354d057267a90"
+    },
+    {
+      "name": "library",
+      "path": "library-repro.json",
+      "sha256": "d17f5c141ee47016454704b5a4e183aabde36986a93c281ef9544a81da8c63a7"
+    }
+  ],
+  "findings": [
+    {
+      "id": "R09-001",
+      "priority": "P1",
+      "status": "未修"
+    },
+    {
+      "id": "R09-002",
+      "priority": "P1",
+      "status": "未修"
+    },
+    {
+      "id": "R09-003",
+      "priority": "P2",
+      "status": "未修"
+    },
+    {
+      "id": "R09-004",
+      "priority": "P2",
+      "status": "未修"
+    },
+    {
+      "id": "R09-005",
+      "priority": "P2",
+      "status": "未修"
+    },
+    {
+      "id": "R09-006",
+      "priority": "P2",
+      "status": "未修"
+    },
+    {
+      "id": "R09-007",
+      "priority": "P2",
+      "status": "未修"
+    },
+    {
+      "id": "R09-008",
+      "priority": "P2",
+      "status": "未修"
+    }
+  ],
+  "retainedFailures": [
+    "storage-final.log：临时runner序列化Undefined JsonElement退出3762504530；仅临时初值修正，最终复跑通过",
+    "R01历史工具失败",
+    "R07正式飞牛夹具29过3败",
+    "R02 schema27迁移增量待复核"
+  ],
+  "notRun": [
+    "完整主Tests/全方案/统一全回归",
+    "真实WinUI/UIA/输入/截图",
+    "真实AniBT服务查询及后端源码",
+    "用户MoviePilot部署版本/账号/DPAPI",
+    "真实整理/删除/扫库/下载/播放",
+    "发布/推送/主树整合"
+  ],
+  "evidenceRoot": "artifacts/review/861f48b/R09/20261106-first"
+}

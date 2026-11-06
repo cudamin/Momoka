@@ -1,0 +1,639 @@
+{
+  "reviewHead": "042cea9e8c06c6ec7bdcd52dd8b90b9d0a48143a",
+  "masterSnapshot": "4d3d60b66456f2db89a60f9bba1b58f924fab6cf",
+  "productAndTestDifferences": 51,
+  "newRanges": 14,
+  "priorHashEqual": 33,
+  "r12ShaderHashEqual": 4,
+  "newRangeLines": 1594,
+  "records": [
+    {
+      "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+      "sha": "2082d422077b2330fed018df2af99c0a20d03e176bc6b2b924e46ff8132eb29e",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "227f5f92d5c796f03ee7ba75b23800e6c1aa0466fbec8b2fbee49e472bd7db57",
+      "range": "1–67/1383–1420",
+      "linesRead": 105,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+      "sha": "a71dd015d787831884ca0b909dade41d465ea9d7239ff7e3c527d42db58c85a8",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "f0406427b80a61a0dbd3feb9a387e2b68ba55d43b0ca18e8e4b5ac8411e581de",
+      "range": "16–309/326–331/360–483/684–685/873–917",
+      "linesRead": 471,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/CarouselBackdrop.cs",
+      "sha": "7c4d4dda3a086dea4077e69a195c57fa4c84fc47a7ff5018fd6846b542b9c9c8",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "18cfcc45cd9217fbb2da18719f0863d5f908739fa4d16d90e75f9fec6ea890d4",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/DetailHero.cs",
+      "sha": "de026ec5a36d91d68ec4273cdff23bdf4dd378e0d70332a6824599afba3caa5f",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "d017b88cf50903fdfc0c93e1286351251084c3e126c6d8326202cdaa2d26003e",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/ShaderSwitch.cs",
+      "sha": "ed04e4f2325a87a8424c3cd97723064ab7af31854a712ce50926f5d71495d815",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "1cee648dc76b1bc7149c6791a8147dd006a77dd94746aab5bd163a4c3ea27719",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行",
+      "fixedSource": "f71883d1174b8558f88d7cf333a5c54fc49c07e5"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/IPlaybackBackend.cs",
+      "sha": "c507f868b13b2ac0b444bf73224ecb8b8181963b1ff23b86f7ebd0257f4c3399",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "07f85a40d012a7a8f4e88a3a699aa37964fee4a6c2cf3c3d3019f6653a81b9e6",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行",
+      "fixedSource": "f71883d1174b8558f88d7cf333a5c54fc49c07e5"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
+      "sha": "59b5ab7f9037197614c91ef4f9cab7497c9e673ab3065e6e9a83a7ad2a9e4e36",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "fb7e5ffa0abb167d19caeca8ede5d77cc18c7c95199b94834c23268b3e500cb6",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行",
+      "fixedSource": "f71883d1174b8558f88d7cf333a5c54fc49c07e5"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.cs",
+      "sha": "f1ded1ca4a0796fdd572f309d850b70cc51af496367b7e5a72e655b5d14d8712",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "c953417680d8b08828e3d6487577a6f82c5ab9bb82af25550a176000bb7d23de",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行",
+      "fixedSource": "f71883d1174b8558f88d7cf333a5c54fc49c07e5"
+    },
+    {
+      "path": "src/Momoka.Shell/AppearanceOpacity.cs",
+      "sha": "e1786f31e55fc066d4bd0cd93cc059b81b75f695a6dc4f148b632c6f6ea53b3d",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "2c9ad2485f1a13f2b0fbad87a50a2fdf92506121833ecc0f1aef407e8b81eb4b",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/BannerBackdropCache.cs",
+      "sha": "ffd14de59f5777338751d674b4abe4ddcd3d0214cd57ecfda3d0d80d1f75ed1f",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "1a0a6cda6569e9342cb9d1ef63f2915b408702d48394bea34a5595b463ed6364",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/BannerPictureLoader.cs",
+      "sha": "dae72f6a45c5e985cd07c9d574dd9f42d844ad0d6fb646598e7139e944402d6f",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "f83b3f25a7ca8bfce1623506607d791e290b86c1c649ba2b79dbf61b22955c29",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/DetailHeroCache.cs",
+      "sha": "194ae4e9b973a7939cbc9d021536f6b9295ef56b430df2277de37aada42af88e",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "5dc69e1a2e0b2a839c95cd542f418cf74c5abbb155abfde7b04b0502bb5bb0bc",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/HeroPictureLoader.cs",
+      "sha": "6ade229e5e96e6cc49682b54ebe52bee332966be7c690849f59d4489375024ef",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "021b77374bdce9714cb382d598bf892e4d5d8b598e02fc001f2bfdd6086f5d2f",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.BackdropFade.cs",
+      "sha": "938921ce907c6f939dffd133d0e802092e8bcb59da8e5d516f86712ecd94f98d",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "046191514b6f15477d14fefbae22a6b43426f11cbd598c200e2a4fb33ed9dada",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.DetailCoverGap.cs",
+      "sha": "98df6aaaa365e59e63bd93a8d714a5fccaabf37d7f4942a0babd34789cc17680",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": null,
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.DetailCustomization.cs",
+      "sha": "b2135c1f829d6375c4c900083aca4124dd0831171e4f159ccc399a779fa3229e",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "9026e90a2847cc37c7ff5f5592e8f42dddde5904beeaee7421eece081c0206dc",
+      "range": "670–761，完整CheckControlBackgroundOpacityAsync",
+      "linesRead": 92,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.DetailResponsive.cs",
+      "sha": "3fa755844ffb5a7b5ca374d9b6ea0ecef50f187422b8a1f251f39b1b54ee166b",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "18b020f4f525fee6d2f38076a76797609fb7d1513bf091dab9f61b521b3e5c1a",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.HomeBannerLibraries.cs",
+      "sha": "1f85ffced57683c35119448d7fa524c4ffa2c61d368657799c39da6d5b22a892",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "c999a0aa8acaa3a055684ac130d6156473343bcf933666ebc6d4741f5d31c520",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.Inspect.cs",
+      "sha": "956c8ba71ffba30aaf4e11e8a3c5544d0223c9ed282fcdb5124872f18b73d96c",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "b161a5cf6559a9afc1851dd0c9f4193b9b2d9d6d31b6de3b4f0f814b1309e663",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.Materials.cs",
+      "sha": "4d26c4fb2f3f3b8675aafcfe305d4cea4c5e205b3d1b5ad82ea9cd3839aaa93d",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "c77b962b0c4d9e15f7d06e8c63d8be4a8ece27060a6728587a8f3d775cac64d1",
+      "range": "180–224/638–664",
+      "linesRead": 72,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.cs",
+      "sha": "cabbb419c9f347e27eac3e402b1d6c1a0cc5415fc8d66ecca484824db297cbd5",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "4057bcfffd9b5ae32f4dfb52be96c5f1563acd703899a935988003b69f298a19",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Shell/Theme/Palette.xaml",
+      "sha": "ea63f756036c1cfc83c1a4390f93b8d60ed5a4dda4b5fa384b706ee4aceb9d3c",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "39cda86daaacaedfd446914725879110a0706081a0a4d4aea8216fd3407b0674",
+      "range": "552–557/597–606",
+      "linesRead": 16,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+      "sha": "e434c67c5853c513e588ab74bd65739c09ab77d3380a6deb1833e9a35f6edc9c",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "3e5c6785c3645eea0e80595167b51e576315ff22ba4df8b5fa3177c4ba19f3f0",
+      "range": "511–546/634–686",
+      "linesRead": 89,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.DetailCustomization.cs",
+      "sha": "f1d4a2ade77fb088d2a4182c3ec0095d4d2d6a9427bc0d0a11139fe7a9c504c7",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "1d4097e2963382e87743612c900fc39a73a332c1d07dd183b4223b1d1a92f343",
+      "range": "全文1–71",
+      "linesRead": 71,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ControlBackgroundBrushes.cs",
+      "sha": "5e9d84bd12484ceced2e373ef4dd1fbe8546b20b5675716f0de48bc00db994dc",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "341fb3ccc754bd17f9ebf94fae382617a08be4ca14a48594be82c46494dffcf1",
+      "range": "全文1–160",
+      "linesRead": 160,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.Appearance.cs",
+      "sha": "dc35eb3483754690bb09c0c7d135b5d2f487015dd7cd623f0e02a32d70adc662",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "850b218b5188a2f07bee7117e54a4004efd98c50564bc95732e8da4ab860d0b2",
+      "range": "全文1–142",
+      "linesRead": 142,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.Backdrop.cs",
+      "sha": "4c819977058667d6ba8da17ae89a7edf8571375262e4117a270992c056d01c1a",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "544f71a9a83947e1d7718f2b19c219bc3bceafa92ba844126ff3edac9dd39ece",
+      "range": "全文1–51",
+      "linesRead": 51,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.Showcase.cs",
+      "sha": "18f257fd2a2229f1ed6711e5b92a38141330bad6eca8afbbffe7d89647f2cf13",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "1b6de71c76d89a53dfb4512472e93cf0a1fa09ae1ad85d869cdd7396532a332a",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.xaml",
+      "sha": "68d8f8f0a69a324ea4f118edcf5701494f5ac167282d71c5100641c03251f681",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "ed28fd9764b34446f9b6dc6381e3bf06f66fece0da915bf8a3f3b41b4dd0d141",
+      "range": "36–51/212–245/743–754/770–811/1130–1149/1166–1197",
+      "linesRead": 156,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.xaml.cs",
+      "sha": "9d238c9e70590a8b89f7f699f6d05b92a91f3b31c80b17fc3863cc1a14933d94",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "97ff8b10678fc023cbd127ce5b4d5e0b641872beeaa19045c4621495d7f9c79b",
+      "range": "84–147/160–199",
+      "linesRead": 104,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeBanner.xaml",
+      "sha": "779d7b693db8cc40a7ea631f71538290285f9c7375133533b2b613775a9a337e",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "0c50ab05fdb4b63e30f2fd546600d8696d7f7226059480204cff17324f3cf62a",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeBanner.xaml.cs",
+      "sha": "05750bd13e823580e159388faf3893e40b6931224c7a8b90a82fdd89958b4e05",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "ae74cd06324e949e594522146cd6a4b947b57581836ea81aa3aa769774ab2a47",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.AppearanceOpacityTests/Program.cs",
+      "sha": "be0890b8642b3ec81100339dcb87df080222beacc5046e0f671a220ad05c1456",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "3a29e6698b53d2357ead1a00aa69d5adbb721492d9f23bf66a18cdef1a771e7c",
+      "range": "102–138/417–438",
+      "linesRead": 59,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "tests/Momoka.AppearanceOpacityTests/README.md",
+      "sha": "97d52cac5002c93f39ecaccd67ed3625f023dd2dc4446c825133aaf4201c23e2",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "1a389530b7460c953d222546c029c5a9c470da50f43ffd02afcbb117c2badb3a",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.GaussianBackdropTests/README.md",
+      "sha": "26861bc335d7925f2080f51e425bb6061857a19d9a11e7053ff5b3f3617ac8d7",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "d01629c230a001df2c4c14f77756a56d628fcbc5d843b74f4d30eda387eaa147",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.ImagePerformanceTests/DetailHeroCacheTests.cs",
+      "sha": "d2d3bb43912bd1518cf9d4d5ce47225e09ed46664f40037e96a457b8552e020f",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "6f356ff8bd61b67ca7625e95f41fdac64e89e3e31c9ab506b632530758892379",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/HandleFixture.cs",
+      "sha": "c9544e22c49eed5df4687b9fa87ef6a6249fcd7fea61a2abb5862ecdb096018a",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "a5b7ab1039a94b6ed177aa8c4504c84c5810b855de87dc7c7d6134cdfcd175f0",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/NativeBoundary.cs",
+      "sha": "fddb5e29424374845cbcb3c929e664d90c52ec40bf581b1e4199d73815387c34",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "df29f8adbcd55ed4a9fbb3643be0510ccca9b56a8527d5ca525c49ea7595cfaa",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/NativeSeam.cs",
+      "sha": "a07d6e3e0863c017e67e053ba875b777b2080a89a00871aea8d7eea42964bbd8",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "49096734065a11be9a755fb499b23efd480844f9c9d6a098f2a74d3ed9be6704",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/Program.cs",
+      "sha": "9ec3cd346140b6d0ad3480ebf956333675e7458576a8b54dc30cca03df7294b2",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "14ba26cf7d4223edfb88e5f5e5a34e7ff5e87a2548df95431189c24d589a650d",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/README.md",
+      "sha": "f9e0a91456576d73ed9d36e53e004dad2325625101d726755c1f0b2897f6d790",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "7afabfa3de6bb9bcccef5123ea6a80c817d7034ed9b69ce4a8c4283fe84c4a26",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/Run-Fixture.ps1",
+      "sha": "330d106dc3336115bc01fb2df8dec17ed57afa022b6d616ffbdf645c23d568b6",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "000dbbe5dd492a4061cc5f237697e76055806dc5fc083aa57dc1eb979467bf3f",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/ShaderBatchTests.cs",
+      "sha": "1c92181561b8707aa752687af8a4355c199927d303988bd04cfafebfd1773076",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": null,
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.Tests/AcrylicControlsTests.cs",
+      "sha": "3cdd680de2b150f0b58816764c2a9726bbac13b07807825b663e6e0f79bc83ab",
+      "mode": "new",
+      "evidence": [
+        "FINAL-increments.json"
+      ],
+      "reviewSha256": "e5df671fde1d7a78839ef7b62c080c4217d175fed32b8e6d99575f904c85fc31",
+      "range": "95–100",
+      "linesRead": 6,
+      "reviewer": "final_increments；主代理核diff及迁移/存储链"
+    },
+    {
+      "path": "tests/Momoka.Tests/Agreements.txt",
+      "sha": "c01db8013a7b35e5d687fc75eeca2a0ea03948968abefc55d3a73b21164a7910",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "5066fcf392932295e86f7bdd73f6a36ed3559969726d40e968805f49ef2a17a8",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.Tests/DetailActionReadinessTests.cs",
+      "sha": "d884bf0746894f4dff2564d72a1c2ef7678b1b310260363dd162ee3c8b7668e5",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "f6e88ea8272db35f436b4f65d510e7f2d124a8e3542c088632e112819c281d31",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.Tests/DetailShapeNotificationTests.cs",
+      "sha": "9bd688c0ac490c4428cb5045ad2e1138b796799592df614ba862d0ab0066d2df",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "98730e138842c15267c948976ce69583ff346b9f7c67a654bdf37a5ede569c20",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.Tests/GaussianBackdropTests.cs",
+      "sha": "dc1e7fd557ee34975ecfa78ac52bbefa66ab5926593b93c287d94fe349802408",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "ca70e4011e588308189e9b0d1d56d35b5e905c57dc83be8d9cf36cdaa0ed7392",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.Tests/HomeCarouselTests.cs",
+      "sha": "08808444c939a775f01e327838f609af449027a619d717b9c8a7e46aa52e471b",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "b64e180204f0b2e22f732b004323b8a61e68cc068ead752b4e36ae19b7f8e468",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.Tests/ItemDetailTests.cs",
+      "sha": "184b4b18f681bca0d7d5642c76f35e8f959cf7a0bf9df0fbfbff464409616376",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "2df70f45c3e2eb52fef5b1f92f9e0ffb7c85b43d4409a2fe68acdf659e92b05c",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    },
+    {
+      "path": "tests/Momoka.Tests/ShaderTransactionTests.cs",
+      "sha": "e304af8d1f9fcd1c854febee12ea0e39743831f13cf5be9f3fcc392f94334e9c",
+      "mode": "reused",
+      "evidence": [
+        "file-delta-20261106-r12.json",
+        "file-delta-20261106-r16.json",
+        "file-delta-20261106-r17.json"
+      ],
+      "reviewSha256": "69562b230d551445edd0cbe5d1a098bc3552d5560ac4443322ddedc7a3056b8a",
+      "readMethod": "固定内容hash相等复用旧源码审查；不复用为最终执行"
+    }
+  ],
+  "additionalReads": [
+    {
+      "path": "tests/Momoka.Tests/DetailLayoutTests.cs",
+      "lines": 200,
+      "sha256": "c7a8c44c0840790dc884eb6452f2a3077ba26c5be958e71e933f59d38f8615ca",
+      "scope": "全文；旧缺键测试只schema27，旧schema26仅显式读数"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsStore.cs",
+      "scope": "WriteSnapshot195–200及加载/反序列化/偏好路径；FINAL-001持久化影响"
+    }
+  ],
+  "commits": [
+    "e72ec27",
+    "b8c1d61",
+    "4864f6a",
+    "9ed8d24",
+    "d7bb68d41b3ab55dfafe75fa1d214d37a0eabdee"
+  ],
+  "findings": {
+    "R07-009": "主树非高斯CropRadius分支仍忽略0强度，新亚克力也受影响",
+    "R16-001": "主树影响收窄到主页详情按钮；详情操作键及六picker的浅底/最低0.72为当前明示行为",
+    "R17-010": "固定主树59摘要已静态处理；没有最终主树执行证明；def8仍37"
+  },
+  "newFinding": "FINAL-001/P2；schema27静态+匿名实际Core确认；未修",
+  "unrun": [
+    "最终主树完整构建/正式回归",
+    "真实WinUI/HC动态/ComboBox模板/材质像素/VO/媒体"
+  ],
+  "documentationDifferences": "视频技能/开发说明及shader计划由R18核；本轮新增计划台账身份。"
+}

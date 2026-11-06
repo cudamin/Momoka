@@ -1,0 +1,94 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "reviewHead": "12e99d88193b44e7dce4410ecfe3f098d5bb4701",
+  "masterSnapshot": "a03ff5d48a0e15da53754d5798f77b9dfbcca577",
+  "reviewTreeChanged": false,
+  "r11OwnerDelta": 0,
+  "files": [
+    {
+      "path": "src/Momoka.Core/Emby/CarouselBackdrop.cs",
+      "owner": "R16",
+      "reviewTreeSha256": "18cfcc45cd9217fbb2da18719f0863d5f908739fa4d16d90e75f9fec6ea890d4",
+      "masterSha256": "7c4d4dda3a086dea4077e69a195c57fa4c84fc47a7ff5018fd6846b542b9c9c8",
+      "disposition": "主树其他会话增量；未接入本审查树；R11主责无差异，所属区后续复核"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/DetailHero.cs",
+      "owner": "R07",
+      "reviewTreeSha256": "d017b88cf50903fdfc0c93e1286351251084c3e126c6d8326202cdaa2d26003e",
+      "masterSha256": "c10832d19450be5f6ab67e370a41640d15bb9f86cbb1aab24a2b9a16540be9fe",
+      "disposition": "主树其他会话增量；未接入本审查树；R11主责无差异，所属区后续复核"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/BannerBackdropCache.cs",
+      "owner": "R16",
+      "reviewTreeSha256": "1a0a6cda6569e9342cb9d1ef63f2915b408702d48394bea34a5595b463ed6364",
+      "masterSha256": "ffd14de59f5777338751d674b4abe4ddcd3d0214cd57ecfda3d0d80d1f75ed1f",
+      "disposition": "主树其他会话增量；未接入本审查树；R11主责无差异，所属区后续复核"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/BannerPictureLoader.cs",
+      "owner": "R16",
+      "reviewTreeSha256": "f83b3f25a7ca8bfce1623506607d791e290b86c1c649ba2b79dbf61b22955c29",
+      "masterSha256": "dae72f6a45c5e985cd07c9d574dd9f42d844ad0d6fb646598e7139e944402d6f",
+      "disposition": "主树其他会话增量；未接入本审查树；R11主责无差异，所属区后续复核"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.DetailResponsive.cs",
+      "owner": "R17",
+      "reviewTreeSha256": "18b020f4f525fee6d2f38076a76797609fb7d1513bf091dab9f61b521b3e5c1a",
+      "masterSha256": "9c4e59404784041d95a3c42b0febc8e995d752b59789e191fbaf255318fca0fb",
+      "disposition": "主树其他会话增量；未接入本审查树；R11主责无差异，所属区后续复核"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.HomeBannerLibraries.cs",
+      "owner": "R17",
+      "reviewTreeSha256": "c999a0aa8acaa3a055684ac130d6156473343bcf933666ebc6d4741f5d31c520",
+      "masterSha256": "59b4cb0737036b33b91bb394a5b16df8126a3e4f415991e443c2ead3fa853eba",
+      "disposition": "主树其他会话增量；未接入本审查树；R11主责无差异，所属区后续复核"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.Inspect.cs",
+      "owner": "R17",
+      "reviewTreeSha256": "b161a5cf6559a9afc1851dd0c9f4193b9b2d9d6d31b6de3b4f0f814b1309e663",
+      "masterSha256": "a29125a215b305f3f9c157b9892f366ace3082b7a165c07e8b05a77243dbed03",
+      "disposition": "主树其他会话增量；未接入本审查树；R11主责无差异，所属区后续复核"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+      "owner": "R07",
+      "reviewTreeSha256": "3e5c6785c3645eea0e80595167b51e576315ff22ba4df8b5fa3177c4ba19f3f0",
+      "masterSha256": "722482a4cd7a3c63b75ec5bdfadedfccd215e80a669d79ed7eec355b9870ef57",
+      "disposition": "主树其他会话增量；未接入本审查树；R11主责无差异，所属区后续复核"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeBanner.xaml",
+      "owner": "R06",
+      "reviewTreeSha256": "0c50ab05fdb4b63e30f2fd546600d8696d7f7226059480204cff17324f3cf62a",
+      "masterSha256": "87706614ea5ae692913182919165e42ec0ea7afaa56d8b072169007c682eb15e",
+      "disposition": "主树其他会话增量；未接入本审查树；R11主责无差异，所属区后续复核"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeBanner.xaml.cs",
+      "owner": "R06",
+      "reviewTreeSha256": "ae74cd06324e949e594522146cd6a4b947b57581836ea81aa3aa769774ab2a47",
+      "masterSha256": "8908eaf1a1fe8a242ba78151724ba47f808e610df7bd6154e916c30ce65f4ac3",
+      "disposition": "主树其他会话增量；未接入本审查树；R11主责无差异，所属区后续复核"
+    },
+    {
+      "path": "tests/Momoka.Tests/HomeCarouselTests.cs",
+      "owner": "R17",
+      "reviewTreeSha256": "b64e180204f0b2e22f732b004323b8a61e68cc068ead752b4e36ae19b7f8e468",
+      "masterSha256": "08808444c939a775f01e327838f609af449027a619d717b9c8a7e46aa52e471b",
+      "disposition": "主树其他会话增量；未接入本审查树；R11主责无差异，所属区后续复核"
+    },
+    {
+      "path": "tests/Momoka.Tests/ItemDetailTests.cs",
+      "owner": "R17",
+      "reviewTreeSha256": "2df70f45c3e2eb52fef5b1f92f9e0ffb7c85b43d4409a2fe68acdf659e92b05c",
+      "masterSha256": "380a3671079c043faa937bacfec66d2dc486bb4cc0811da53b8b657bffcb1639",
+      "disposition": "主树其他会话增量；未接入本审查树；R11主责无差异，所属区后续复核"
+    }
+  ]
+}

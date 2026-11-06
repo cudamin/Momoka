@@ -8,7 +8,39 @@
 
 **技术范围：** C# / WinUI 3 / XAML、PowerShell、Python、JavaScript / HTML / CSS、Lua / uosc、GLSL / HOOK、MSBuild 与部署配置。
 
-**需求依据：** 用户要求“制定计划分区审查项目所有代码”；[CLAUDE.md](../../../CLAUDE.md)、[开发与验证](../../开发与验证.md)、[审查技能](../../../.claude/skills/momoka-code-review/SKILL.md)。本轮仅制定计划；以下审查与验证步骤均待执行。
+**需求依据：** 用户要求“制定计划分区审查项目所有代码”；[CLAUDE.md](../../../CLAUDE.md)、[开发与验证](../../开发与验证.md)、[审查技能](../../../.claude/skills/momoka-code-review/SKILL.md)。原轮次仅制定计划；执行状态以下方记录和复选框为准。
+
+**执行记录（2026-11-06，最终收尾）：** 第0批、R01–R18及第8节终核完成。原身份保持、跨区8场景均有结论或具体缺条件，51当前master产品/测试差异闭合；新增schema27缺键迁移FINAL-001，去重/补编号后133问题（6P1/117P2/10P3），未修与主树静态差别分列。见[总报告](../reviews/2026-11-05-full-code-review/SUMMARY.md)、[完整问题](../reviews/2026-11-05-full-code-review/FINDINGS.md)、[最终验证](../reviews/2026-11-05-full-code-review/FINAL-verification.json)。保留全部旧红/未运行；纯文档整合不代表产品验证交付，完成后自动暂停，不启动修复。
+
+**历史执行记录（2026-11-06，R18）：** 用户继续后完成第0批及R01–R18。原220主责＋64本轮审查产物共284处置，124全文13,103行，其余按结构/二进制/相等部署副本处置，22联审；5P2+5P3未修，见[R18](../reviews/2026-11-05-full-code-review/R18.md)、[验证](../reviews/2026-11-05-full-code-review/R18-verification.json)。开始/验证d82df28，master固定4d3d60b 56选定目录差异未接入。8工具入口退出0、正式工具26过、policy21负例拒绝、匿名官网17断言过；2未校验metadata警告及旧红保持。6部署副本相等、81JSON解析、本地链接1386/1359存在/27缺失。只提交文档；R18完成后自动暂停，第8节最终跨区终核/总报告未执行。
+
+**历史执行记录（2026-11-06，R17）：** 用户继续后完成第0批及R01–R17。781主责（751全文证据、15叙述/基线、14历史证据、1删除身份），全部框架/提取/调用/报告及补读完成；13P2+2P3本树未修，见[R17](../reviews/2026-11-05-full-code-review/R17.md)、[验证](../reviews/2026-11-05-full-code-review/R17-verification.json)、[资源边界](../reviews/2026-11-05-full-code-review/R17-lifetimes.md)。开始/验证15c4204；正式托管282次280过2败＋工具70，全352/350/2含重叠；Shader49内部过但wrapper旧37红，Shell编译120秒超时/未跑依赖，不沿用旧DLL。master固定9ed8d24共53/27差异未接入，后d7bb六路径仅登记；主树R046三pin失配。原红保持，仅提交审查记录，R17完成后自动暂停，R18未开始。
+
+**历史执行记录（2026-11-06，R16）：** 用户继续后完成第0批及R01–R16。59主责处置（58文本全文10,298行＋1PNG），81全文/34成员联审，174台账追加；确认4P2均未修，见[R16](../reviews/2026-11-05-full-code-review/R16.md)、[验证](../reviews/2026-11-05-full-code-review/R16-verification.json)、[资源边界](../reviews/2026-11-05-full-code-review/R16-lifetimes.md)。开始/验证9532593；master初4b1a506、终d984ac9，49总体/7主责差异登记未接入，相关背景增量已核。当前Release/x64编译0/0；正式具名357次含重叠全过，反射76及固定主树副本42/7另列。实际匿名图片/WinRT与原样CardItem/Slide观察确认三图片根因；亚克力零档经固定微软源码核语义，无实际材质/窗口/滚动/HC证据。旧红保持，只提交审查记录，R16完成后自动暂停，R17未开始。
+
+**历史执行记录（2026-11-06，R15）：** 用户继续后完成第0批及R01–R15。61主责全文17,524行、73全文/17成员联审、151台账追加，确认8P2均未修，见[R15](../reviews/2026-11-05-full-code-review/R15.md)、[验证](../reviews/2026-11-05-full-code-review/R15-verification.json)、[任务边界](../reviews/2026-11-05-full-code-review/R15-lifetimes.md)。开始/验证6fc7f0d；master固定4b1a506主责无漂移，41其他差异另记未接入。当前Release/x64编译0/0，正式具名托管354次含重叠全过，ServerSettingsReview全部注册组过但无统一总数，完整DOM wrapper合同14/DOM25过。实际匿名VM/Client/Session、完整Start和Dialog及真实上游onTypeChange观察，未真实WinUI/WebView/账号/发送；旧红保持。仅提交审查文档，R15完成后自动暂停，R16未开始。
+
+**历史执行记录（2026-11-06，R14）：** 用户继续后完成第0批及R01–R14。24主责全文3537行，38全文/25成员联审、87台账更新；确认6P2均未修，见[R14](../reviews/2026-11-05-full-code-review/R14.md)、[验证](../reviews/2026-11-05-full-code-review/R14-verification.json)、[任务边界](../reviews/2026-11-05-full-code-review/R14-lifetimes.md)。开始/验证a998403，master固定116454f主责无漂移、39其他差异另登记未接入。托管147次含重叠通过，标准两专项py9009环境红、ignored原提取器绝对py适配17/71过；Worker4，Lua42及性能50/17、timer3/3、uosc49原断言+1观察分列。匿名真实Client/VM/原样Panel和Lua采证，无产品修复/真实UI/服务器发送/密钥/部署/发布；旧红保留，仅提交审查文档，R14完成后自动暂停，R15未开始。
+
+**历史执行记录（2026-11-06，R13）：** 用户继续后完成第0批及R01–R13。21主责全文2770行，77全文/48成员联审、146台账更新；确认7P2+1P3均未修，另1正式测试边界维护。见[R13](../reviews/2026-11-05-full-code-review/R13.md)、[验证](../reviews/2026-11-05-full-code-review/R13-verification.json)、[生命期](../reviews/2026-11-05-full-code-review/R13-lifetimes.md)。开始/验证8e8619e；master固定ef624af字幕主责无漂移，背景/shader增量另登记未接入。正式托管370次全过含重叠、Lua9；正式Dialog编译红，ignored诊断37另列。native临时静音WAV/SRT及多步样式/显式选择/延迟/来源/载荷/旧warning匿名采证；无真实UI/服务器写/收费翻译/发布。旧红保持，仅提交审查文档，R13完成后自动暂停，R14未开始。
+
+**历史执行记录（2026-11-06，R12）：** 用户继续后完成第0批及R01–R12。45主责全部处置，40源码22,560行及说明/许可923行；18shader每pass/来源/权重结构已核，36全文和42成员联审，123台账更新。确认5项P2均未修，见[R12](../reviews/2026-11-05-full-code-review/R12.md)、[验证](../reviews/2026-11-05-full-code-review/R12-verification.json)和[shader表](../reviews/2026-11-05-full-code-review/R12-shaders.md)。本树开始/验证11921ff；主树整批切链固定f71883d另审59项，38总体增量登记未接入本树。当前Release/x64编译0/0；正式定向380次执行全过含重叠，native184/24及33受控方案、4无声采集单列；8匿名观察确认音量/HDR/截图边界。初始临时宿主失败/hash差异及旧红保持，无产品修复/真实UI/GPU媒体/SVP/发布。仅提交审查记录，R12完成后自动暂停，R13未开始。
+
+**历史执行记录（2026-11-06，R11）：** 用户继续后完成第0批及R01–R11。144主责全部处置，其中124源码全文41,156行，数据/说明3,482行，字体2份；44全文与14成员联审。确认4项P2均未修，见[R11](../reviews/2026-11-05-full-code-review/R11.md)、[验证](../reviews/2026-11-05-full-code-review/R11-verification.json)及[后端边界](../reviews/2026-11-05-full-code-review/R11-lifetimes.md)。开始/验证HEAD12e99d8，R11无漂移；主树其他区12文件增量登记，未接入本树。当前Release重编0/0；202+153注册与49随包Lua全过，原8项review fixture在随包LuaJIT补跑，总412执行含重叠，不冒充独立Lua5.1 wrapper。两条EOF手势反例保持红，暂停/配置/统计观察成立；实机缺口与旧红/增量保留。仅提交审查文档，R11后自动暂停，R12未开始。
+
+**历史执行记录（2026-11-06，R10）：** 用户继续后完成第0批及R01–R10。28主责全文7,532行、26全文联审与40成员联审；确认8项P2均未修，见[R10](../reviews/2026-11-05-full-code-review/R10.md)、[验证](../reviews/2026-11-05-full-code-review/R10-verification.json)及[生命周期表](../reviews/2026-11-05-full-code-review/R10-lifetimes.md)。开始/验证HEAD aa631ff7，产品与master ac4e3fa一致，无漂移。6入口413执行全过，12条caller观察与2条真实Service观察覆盖8组问题；人工音量Swap反例缺当前独占用户入口，撤回确认分类。真实UI/native/服务器与旧红项、54/19/20增量、R02 schema27待复核保留。只提交审查文档，R10后自动暂停，R11未开始。
+
+**历史执行记录（2026-11-06，R09）：** 用户继续后完成第0批及R01–R09。44主责全文8,120行；确认2项P1及6项P2，均未修，见[R09](../reviews/2026-11-05-full-code-review/R09.md)、[验证](../reviews/2026-11-05-full-code-review/R09-verification.json)和[上游对照](../reviews/2026-11-05-full-code-review/R09-upstream.md)。开始/验证HEAD861f48b，产品与masterac4e3fa一致，无漂移。9入口683执行全过，另17生成绑定通过；8组匿名反例成立，同源误清理另经原样上游函数采证。新官方后端48874bc/前端fad61c3已核，用户部署版本/真实UI未验。旧红项、54/19/20增量、R02 schema27待复核保留。仅提交审查文档，R09后自动暂停，R10未开始。
+
+**历史执行记录（2026-11-06，R08）：** 用户继续后完成第0批及R01–R08。89主责全文13,346行；确认1项P1及5项P2，均未修，见[R08](../reviews/2026-11-05-full-code-review/R08.md)、[验证](../reviews/2026-11-05-full-code-review/R08-verification.json)和[官方源码对照](../reviews/2026-11-05-full-code-review/R08-upstream.md)。开始/验证HEAD7e83ad2，产品与masterac4e3fa一致，无产品漂移。10入口674执行全部通过，含重叠；6组补充反例采证成立。部署版本/真实UI与服务未验证；旧红项、54/19/20增量及R02 schema27待复核保留。仅提交审查文档，R08后自动暂停，R09未开始。
+
+**历史执行记录（2026-11-06，R07）：** 用户继续后完成第0批及R01–R07。56项主责全文19,203行；确认8项P2、1项P3产品缺陷和1项测试维护问题，均未修，见[R07](../reviews/2026-11-05-full-code-review/R07.md)及[验证](../reviews/2026-11-05-full-code-review/R07-verification.json)。开始HEADf1e7d74；收尾另一会话接入[20项背景改动](../reviews/2026-11-05-full-code-review/file-delta-20261106-r07.json)，最终HEADb8c1d61产品与masterac4e3fa一致，7个R07变更已复核并重编复跑。12入口804执行、801过3败0跳过；旧飞牛夹具缺就绪前提保持红，8组匿名观察成立。54/19旧增量和R02 schema27待复核保留。仅提交审查文档，R07后自动暂停，R08未开始。
+
+**历史执行记录（2026-11-06，R06）：** 用户继续后完成第0批及R01–R06。R06原83项中82存活主责全文已读，1项按历史删除处置；新增11项P2均未修，见[R06报告](../reviews/2026-11-05-full-code-review/R06.md)和[验证记录](../reviews/2026-11-05-full-code-review/R06-verification.json)。开始及验证HEAD62e20d9，产品仍与master5951bba一致。9个现有入口429项通过、无失败/跳过；9条匿名反例采证成立，2项另有源码确认。既有问题和54/19项增量保留，R02 schema27仍待复核。当前完成R06后自动暂停，R07尚未开始；只提交审查文档。
+
+**历史执行记录（2026-11-06，R05）：** 用户继续后完成第0批及R01–R05。R05飞牛/Plex两个子批共22主责全文已读，确认5项P2、均未修；见[R05报告](../reviews/2026-11-05-full-code-review/R05.md)与[验证记录](../reviews/2026-11-05-full-code-review/R05-verification.json)。开始及验证HEAD8a39ab2，产品仍与master5951bba一致，无本轮产品漂移；394项定向与20场景通过，11项匿名反例采证成立。R01–R04历史证据及54/19项增量台账保留，R02 schema27增量仍待复核。当前完成R05后自动暂停，R06尚未开始；只更新审查文档。
+
+**历史执行记录（2026-11-06，R04）：** 用户指定每完成一个分区自动暂停。工作树 `def8` 已完成第0批及R01–R04，本轮R04结束后暂停，R05尚未开始。R04确认1项P1及3项P2、均未修；见[R04报告](../reviews/2026-11-05-full-code-review/R04.md)与[R04验证](../reviews/2026-11-05-full-code-review/R04-verification.json)。收尾接入另一会话的不透明度提交，当前产品与master `5951bba`一致，15项R04主责无漂移；[新增19项差异](../reviews/2026-11-05-full-code-review/file-delta-20261106-r04.json)已登记，R02的schema27增量待复核，外观/测试分别交R07/R16/R17。当前组合已重新编译与定向复验。原1,876项[文件台账](../reviews/2026-11-05-full-code-review/file-ledger.jsonl)保留历史基点，54项主树变化仍见[增量台账](../reviews/2026-11-05-full-code-review/file-delta-20261106.json)及[交接](../reviews/2026-11-05-full-code-review/master-handoff-20261106.md)。[R01](../reviews/2026-11-05-full-code-review/R01.md)、[R02](../reviews/2026-11-05-full-code-review/R02.md)、[R03](../reviews/2026-11-05-full-code-review/R03.md)与[验证矩阵](../reviews/2026-11-05-full-code-review/validation-matrix.json)保留历史证据；本轮仅更新审查记录。
 
 ## 1. 范围基线与已知前置条件
 
@@ -56,13 +88,13 @@
 
 ## 3. 第 0 批：建立可核对的范围与验证清单
 
-- [ ] 记录当前 Git 根目录、HEAD、分支、工作树状态及规则版本；列出基点后变化。只有发生内容漂移的文件重新审查。
-- [ ] 用 `git -c core.quotePath=false ls-files` 建立逐文件台账；加入当前未跟踪的自有代码，单列忽略目录内实际被构建或发布引用的资源。
-- [ ] 每行填写 `path / blob或内容hash / 内容类型 / 主责R编号 / 联审分区 / 阅读状态 / 测试入口 / 证据 / 例外说明`。所有文件必须有主责；共享文件按方法或成员登记联审范围，不能仅由匹配到的前缀自动判定完成。
-- [ ] 按下面 18 区分配全部文件；`AppSettings.cs`、`EmbyClient.cs`、`ShellServices.cs`、`SettingsViewModel.cs`、`MpvOutputOptions.cs` 等共享入口拆成明确的成员清单。未归属数量必须为 0。
-- [ ] 对比全部 csproj、方案与回归清单；登记上述差异。仅审查阶段将修复建议入报告；若已获修复授权，补清单及对应拒绝反例后再使用统一回归入口，不删除守卫绕过差异。
-- [ ] 建立“项目 + 模式/参数 + 被测产品文件 + Shell/原生/浏览器前置 + 输出目录”的验证矩阵；包括 wrapper、源码提取器、Lua、Worker、技能脚本以及主测试显式入口。
-- [ ] 为后续运行分配全新证据目录，例如本树 `artifacts/review/<基点短SHA>/<批次>/<运行ID>`；保留失败、跳过和环境原因，不覆盖旧报告。
+- [x] 记录当前 Git 根目录、HEAD、分支、工作树状态及规则版本；列出基点后变化。只有发生内容漂移的文件重新审查。
+- [x] 用 `git -c core.quotePath=false ls-files` 建立逐文件台账；加入当前未跟踪的自有代码，单列忽略目录内实际被构建或发布引用的资源。
+- [x] 每行填写 `path / blob或内容hash / 内容类型 / 主责R编号 / 联审分区 / 阅读状态 / 测试入口 / 证据 / 例外说明`。所有文件必须有主责；共享文件按方法或成员登记联审范围，不能仅由匹配到的前缀自动判定完成。
+- [x] 按下面 18 区分配全部文件；`AppSettings.cs`、`EmbyClient.cs`、`ShellServices.cs`、`SettingsViewModel.cs`、`MpvOutputOptions.cs` 等共享入口拆成明确的成员清单。未归属数量必须为 0。
+- [x] 对比全部 csproj、方案与回归清单；登记上述差异。仅审查阶段将修复建议入报告；若已获修复授权，补清单及对应拒绝反例后再使用统一回归入口，不删除守卫绕过差异。
+- [x] 建立“项目 + 模式/参数 + 被测产品文件 + Shell/原生/浏览器前置 + 输出目录”的验证矩阵；包括 wrapper、源码提取器、Lua、Worker、技能脚本以及主测试显式入口。
+- [x] 为后续运行分配全新证据目录，例如本树 `artifacts/review/<基点短SHA>/<批次>/<运行ID>`；保留失败、跳过和环境原因，不覆盖旧报告。
 
 **本批产物：** 文件台账、验证矩阵、待核对清单。可使用 JSON 或 Markdown，不要求新增审查框架或产品依赖。台账初始必须为“未审查”，盘点数量不能自动变成完成数。
 
@@ -78,7 +110,7 @@
 
 **测试入口：** `Momoka.ArchitectureTests`、主测试 Update/Agreements、`tools/test-mpv-*.ps1`、`test-shader-publish.ps1`、`test-release-maintenance.ps1`、`test-smoke.ps1`。合成载荷检查与真实发布验证分别记录；审查不运行发布/签名命令。
 
-- [ ] 审完全部构建和系统修改路径；标出 ignored 的根 `libmpv-2.dll` 等实际依赖与来源证据。
+- [x] 审完全部构建和系统修改路径；标出 ignored 的根 `libmpv-2.dll` 等实际依赖与来源证据。R01有待修缺陷与运行缺口，见报告；勾选只表示审查完成。
 
 ### R02 设置持久化、迁移与凭据
 
@@ -88,7 +120,7 @@
 
 **测试入口：** `Momoka.SettingsPersistenceTests`、`Momoka.SettingsDeferredSaveTests`、`Momoka.AtomicFileWriteTests`、主测试 Settings/SettingsSaveSnapshot。
 
-- [ ] 核对加载→编辑→保存→重新加载与失败恢复完整链路，检查支持项目的旧 schema 夹具是否真实对应迁移输入。
+- [x] 核对加载→编辑→保存→重新加载与失败恢复完整链路，检查支持项目的旧 schema 夹具是否真实对应迁移输入。 R02确认4项产品缺陷及2项测试维护问题，均未修；勾选只表示审查完成。
 
 ### R03 启动、会话、权限与导航生命周期
 
@@ -98,7 +130,7 @@
 
 **测试入口：** `Momoka.SignInInputGenerationTests`、`Momoka.CurrentPermissionSnapshotTests`、主测试 Session/Identity/Activation/Startup。
 
-- [ ] 给身份创建、替换、撤销和导航返回分别画出状态归属，交给 R04–R15 作为联审依据。
+- [x] 给身份创建、替换、撤销和导航返回分别画出状态归属，交给 R04–R15 作为联审依据。R03确认6项未修缺陷；状态表与实际验证见报告，勾选仅表示审查完成。
 
 ### R04 Emby / Jellyfin 协议与实时连接
 
@@ -108,7 +140,7 @@
 
 **测试入口：** 主测试 HttpRedirect/HttpDeadline/HttpDownloadError、JellyfinProtocol、EmbyRealtime；上游核对用项目 Emby/Jellyfin 技能。
 
-- [ ] 分别完成两个产品的请求与失败矩阵，不能以一种产品的成功推定另一种兼容。
+- [x] 分别完成两个产品的请求与失败矩阵，不能以一种产品的成功推定另一种兼容。R04确认4项未修缺陷并保留实时/实服缺口；勾选仅表示审查完成。
 
 ### R05 飞牛 / Plex 协议与能力映射
 
@@ -118,7 +150,7 @@
 
 **测试入口：** `Momoka.FnNasErrorClassificationTests`、`Momoka.FnNasDefaultPermissionTests`、`Momoka.PlexAffordanceTests`、主测试 FnNasProtocol/FnNasMedia/PlexProtocol/PlexMedia/PlexV2Login。
 
-- [ ] 对两个产品分别提交接口、映射和不支持能力清单，联审浏览、写操作和播放调用者。
+- [x] 对两个产品分别提交接口、映射和不支持能力清单，联审浏览、写操作和播放调用者。R05确认5项P2均未修，实服/上游缺口见报告；勾选仅表示审查完成。
 
 ### R06 首页、媒体库、搜索、收藏与状态同步
 
@@ -128,7 +160,7 @@
 
 **测试入口：** `Momoka.HomeDirectoryTests`、`Momoka.HomeFoldCompletionTests`、`Momoka.LibraryHeaderTests`、`Momoka.SearchLifetimeTests`、主测试 `library-resume-paging-fixture`、`library-favorite-source-fixture`、`library-deep-return-fixture`。
 
-- [ ] 展开 Home、Library、Detail 的数据交接表；搜索四来源入口始终显示的例外单独核对。
+- [x] 展开 Home、Library、Detail 的数据交接表；搜索四来源入口始终显示的例外单独核对。R06新增11项P2均未修，82项存活主责及1项删除处置完成；勾选只表示审查完成。
 
 ### R07 详情、条目写入、元数据与删除
 
@@ -138,7 +170,7 @@
 
 **测试入口：** `Momoka.ItemUserStateOrderTests`、`Momoka.DetailDeleteCommandTests` 的原 wrapper、主测试 Metadata/RemovedMedia/DetailSubjectRemoval。
 
-- [ ] 使用匿名传输或源码链证明写入边界，禁止通过真实删除制造证据；与 R06/R10 联审旧卡片和旧播放目标。
+- [x] 使用匿名传输或源码链证明写入边界，禁止通过真实删除制造证据；与 R06/R10 联审旧卡片和旧播放目标。R07确认9项产品缺陷及1项测试维护问题，均未修；勾选仅表示审查完成，3项正式夹具失败保留。
 
 ### R08 MoviePilot 搜索、资源、下载与订阅
 
@@ -148,7 +180,7 @@
 
 **测试入口：** `Momoka.MoviePilotJourneyTests`、`Momoka.ResourceBrowserTests`、`Momoka.SubscriptionEditorTests`、`Momoka.SubscriptionIdentityTests`、`Momoka.MoviePilotSubscribeSettingsTests`、`Momoka.SiteDialogFlowTests`。
 
-- [ ] 按 MoviePilot 技能核对官方前后端源码，记录提交；仅凭截图或旧文档不能判定本地错误。
+- [x] 按 MoviePilot 技能核对官方前后端源码，记录提交；仅凭截图或旧文档不能判定本地错误。R08确认1项P1和5项P2均未修，部署版本/真实UI缺口保留；勾选仅表示审查完成。
 
 ### R09 AniBT 与 MoviePilot 整理、历史和媒体管理
 
@@ -158,7 +190,7 @@
 
 **测试入口：** `Momoka.AniBtEntryTests`、`Momoka.AniBtConfirmationTests`、`Momoka.AniBtSourceContractTests`、`Momoka.TransferSubmissionTests`、主测试 AniBtPrepareConcurrency/MoviePilotTransfer。
 
-- [ ] 从“预览/准备→确认→提交→结果”连读，不执行真实整理或删除；高后果候选由第二名审查者复核。
+- [x] 从“预览/准备→确认→提交→结果”连读，不执行真实整理或删除；高后果候选由第二名审查者复核。R09确认2项P1、6项P2均未修，部署/UI及来源ABA缺口保留；勾选仅表示审查完成。
 
 ### R10 播放意图、队列、版本与生命周期
 
@@ -168,7 +200,7 @@
 
 **测试入口：** `Momoka.NaturalEpisodeContinuationTests`、`Momoka.NaturalContinuationCallerTests` 原 wrapper、`Momoka.PlayerExitHandoffTests`、`Momoka.PlaybackSourceRevocationTests`、`Momoka.LibMpvEndFileTests`。
 
-- [ ] 给每个异步回调标出所属播放会话和资源释放者；与 R11–R14 联审换片后的选项和任务清理。
+- [x] 给异步回调和资源登记所属播放会话及释放者，见R10生命周期表；R11–R14接续换片选项和任务清理。R10确认8项P2均未修，真实运行缺口保留；勾选仅表示本分区审查完成。
 
 ### R11 播放后端、原生互操作、窗口与 uosc
 
@@ -178,7 +210,7 @@
 
 **测试入口：** 主测试 BackendLifecycle/MpvProcess/MpvUi/InlineSwitch、`tools/test-uosc.py`、`tools/test-uosc-review.py`、对应 Lua 夹具；隔离本地播放探针按项目规则安排。
 
-- [ ] 分开记录 libmpv / 外部进程与集成 / 独占两个维度；三条集成管线探针不能替代独占、uosc 或外部后端证据。
+- [x] 分开记录 libmpv / 外部进程与集成 / 独占两个维度，见R11边界表。144主责处置，4项P2均未修；运行替身/原生Lua与真实窗口分列。三条集成管线探针不能替代独占、uosc或真正外部后端证据；R11完成后暂停，R12未开始。
 
 ### R12 视频、HDR、着色器、补帧与音频输出
 
@@ -190,7 +222,7 @@
 
 **测试入口：** `Momoka.FrameInterpolationTests`、`Momoka.ShaderCommandGenerationTests`、`Momoka.ShaderMonitorPolicyTests`、主测试 AudioOutput/VideoOutput/ShaderTransaction、音频技能无声原生探针。
 
-- [ ] 全部 18 个 shader 逐个核 `HOOK/WHEN/BIND`、来源和宿主设置；无声或无媒体探针不声称证明听感、画质或真实播放。
+- [x] 全部18个shader逐pass核HOOK/WHEN/BIND、来源/许可/嵌入数据和宿主前置，见R12-shaders。45主责处置，5项P2未修；无声/无媒体/托管边界分列，不证明听感、画质或真实播放；R12完成后暂停，R13未开始。
 
 ### R13 字幕选择、管理与翻译
 
@@ -200,7 +232,7 @@
 
 **测试入口：** `Momoka.SubtitleDialogTests`、`Momoka.SubtitleDropOwnershipTests`、`Momoka.SubtitleTranslationTests`、`Momoka.SubtitleTranslationRuntimeTests`、`tools/test-subtitle-translation.py` 与主测试字幕夹具。
 
-- [ ] 完整检查主次字幕、关闭字幕、同窗换片与翻译开关的恢复路径；真实字幕写入单列授权和验证缺口。
+- [x] 完整检查主次字幕、关闭字幕、同窗换片与翻译开关恢复；21主责全文已读，7P2+1P3未修，正式Dialog编译红与诊断37分列。真实字幕写入/收费翻译/WinUI未验；见R13报告，R13完成后暂停，R14未开始。
 
 ### R14 弹幕获取、匹配、发送与凭据端点
 
@@ -210,7 +242,7 @@
 
 **测试入口：** `Momoka.DanmakuSourceBoundaryTests`、`Momoka.DanmakuPerformanceTests`、主测试 Danmaku、`tools/test-danmaku.py`、`website/worker/credential.test.mjs`。
 
-- [ ] 用占位凭据核协议，不读取或打印真实 Secret，不执行真实发送或部署；与 R11 联审输入协议和退出取消。
+- [x] 24主责全部全文审查，用占位凭据核协议；6P2均未修，输入/退出/来源与Worker联审见R14报告。标准专项环境红与适配通过分列，不读取真实Secret、不发送或部署；R14完成后自动暂停，R15未开始。
 
 ### R15 设置体验、通知与服务器管理界面
 
@@ -220,7 +252,7 @@
 
 **测试入口：** `Momoka.SettingsLifetimeTests`、SettingsSearchNavigation/RowsMotion/PriorityMotion、`Momoka.DashboardNavigation.Tests`、`Momoka.ServerSettingsTabs.Tests` 完整 DOM wrapper、`Momoka.ServerSettingsReviewTests`、`Momoka.FnNasAccountEditTests`。
 
-- [ ] 设置显示与真实生效分别验证；匿名 Dashboard 探针、DOM 夹具和真实 WebView 结果分开报告。
+- [x] 61主责全文及设置/通知/原生管理/网页链已审；8P2均未修。匿名实际VM/Start/Dialog与DOM分列；合同14、DOM25及具名托管354次通过，真实WinUI/WebView/服务器缺口及旧红保持。见R15报告，完成后自动暂停，R16未开始。
 
 ### R16 共享 UI、主题、图片缓存与性能
 
@@ -230,7 +262,7 @@
 
 **测试入口：** `Momoka.DialogDismissTests`、`Momoka.AppearanceOpacityTests`、`Momoka.GaussianBackdropTests`、`Momoka.ImagePerformanceTests`、`Momoka.ResourceBudgetTests`、`Momoka.PageContractTests`、自动化句柄扫描。
 
-- [ ] 公共机制只报告一个根因，逐消费页面核影响；源码契约不能替代真实窗口布局、透明效果和可访问性检查。
+- [x] 59主责全部处置；4P2均未修，公共根因逐消费核影响，见R16报告。正式357次、反射76与主树副本42/7分列；源码/匿名WinRT不能代替真实布局、材质、HC、滚动和UIA。完成后自动暂停，R17未开始。
 
 ### R17 测试、诊断、自检与验证工具的可信度
 
@@ -240,7 +272,7 @@
 
 **测试入口：** `Momoka.ProbeFinalizationTests`、SettingsProbeContract/HomeOrderProbe/PlayerMotionProbe/PerfListDiagnostics、`tools/test-run-regressions.ps1`、`test-quality-tools.ps1`、`test-quality-dependencies.ps1`、`test-selfcheck-diff.ps1`。
 
-- [ ] 60 个顶层项目及其参数、6 个辅助项目的调用者均有归属；明确跳过、不完整、环境失败与产品失败，不降低断言或基线来结束审查。
+- [x] 60顶层/6辅助/59登记及全部框架输入已核，781主责处置完成，13P2+2P3本树未修；正式352执行350过2败含重叠、Shell超时及旧红保持。见R17，勾选仅审查完成；完成后自动暂停，R18未开始。
 
 ### R18 官网、文档、技能、配置与历史入库内容
 
@@ -250,7 +282,7 @@
 
 **测试入口：** 技能 `check-skill.py` / `test-check-skill.py`、`tools/check-server-support-docs.py`、`tests/test_server_support_docs.py`、`tools/check-main-tree-policy.py`、文档链接/文本差异检查。
 
-- [ ] 全部剩余 tracked 文件均有处置；纯叙述、图片和旧证据注明内容类型，不冒充当前可执行代码或通过证据。
+- [x] R18剩余原220项及64本轮审查产物均已处置；5P2+5P3未修，叙述/结构/历史图片与执行分开。完成后自动暂停；第8节跨区最终总报告尚未执行。
 
 ## 5. 批次顺序与并行安排
 
@@ -332,12 +364,12 @@ node --test website/worker/credential.test.mjs
 
 ## 8. 完成与停止条件
 
-- [ ] 每个跟踪文件及被实际引用的本地依赖已分区；全部可审源码已读，非代码/生成/二进制的处理方式有据可查。
-- [ ] 18 区报告齐全，跨区场景全部有结论或明确未决条件；无“待分配”“忘记查看”的文件。
-- [ ] 确认缺陷有优先级、证据、最小修正方向和建议回归；待核实事项没有被包装成缺陷，也没有被隐藏。
-- [ ] 测试入口矩阵覆盖项目、参数、wrapper、提取器、Lua、Worker、DOM、原生与 UI；每项有实际状态，跳过不算通过。
-- [ ] 第 0 批与结束时对比文件/提交差异；新改动只复核其影响范围，旧结论未被无依据复用。
-- [ ] 交付一份总报告：已审范围、必要缺陷、验证结果、尚缺条件和建议处理顺序。已确认缺陷可以处于“待修复”，但必须如实列出。
+- [x] 每个跟踪文件及被实际引用的本地依赖已分区；全部可审源码已读，非代码/生成/二进制的处理方式有据可查。
+- [x] 18 区报告齐全，跨区场景全部有结论或明确未决条件；无“待分配”“忘记查看”的文件。
+- [x] 确认缺陷有优先级、证据、最小修正方向和建议回归；待核实事项没有被包装成缺陷，也没有被隐藏。
+- [x] 测试入口矩阵覆盖项目、参数、wrapper、提取器、Lua、Worker、DOM、原生与 UI；每项有实际状态，跳过不算通过。
+- [x] 第 0 批与结束时对比文件/提交差异；新改动只复核其影响范围，旧结论未被无依据复用。
+- [x] 交付一份总报告：已审范围、必要缺陷、验证结果、尚缺条件和建议处理顺序。已确认缺陷可以处于“待修复”，但必须如实列出。
 
 **审查完成**表示约定范围已检查并形成完整、诚实的报告，允许存在明确列出的待修缺陷和运行缺口；它不表示代码没有缺陷。**修复完成、所有验证通过、主树交付完成**是另外三个状态，不能用“18 区已审完”替代。可选的风格或抽象建议不延长本次审查。
 

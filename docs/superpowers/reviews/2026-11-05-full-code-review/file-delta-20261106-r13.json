@@ -1,0 +1,323 @@
+{
+  "date": "2026-11-06",
+  "reviewHead": "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f",
+  "masterSnapshot": "ef624af33497a41541ced41fe61500414afa11cd",
+  "reviewTreeChanged": false,
+  "r13OwnerDelta": 0,
+  "files": [
+    {
+      "path": ".claude/skills/momoka-video-output/SKILL.md",
+      "status": "M",
+      "owner": "R18",
+      "reviewTreeSha256": "cfd68732b690ab6180ef973df3e3f503dbf11eb02744417c63d3fe46c1701c31",
+      "masterSha256": "b22c1e5f45506dc939fe42923e8063f442bf8aaee831ebfd1a9da23776f9d913",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "docs/开发与验证.md",
+      "status": "M",
+      "owner": "R18",
+      "reviewTreeSha256": "a6db40a42ff3d6b7deb73270ee37e9f8c36019db761d320adcb1c56f6a252e0c",
+      "masterSha256": "afd05956ab531a7b406d67490241f75d5b4981c74dd71749bec696888ed0afe1",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/CarouselBackdrop.cs",
+      "status": "M",
+      "owner": "R16",
+      "reviewTreeSha256": "18cfcc45cd9217fbb2da18719f0863d5f908739fa4d16d90e75f9fec6ea890d4",
+      "masterSha256": "7c4d4dda3a086dea4077e69a195c57fa4c84fc47a7ff5018fd6846b542b9c9c8",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/DetailHero.cs",
+      "status": "M",
+      "owner": "R07",
+      "reviewTreeSha256": "d017b88cf50903fdfc0c93e1286351251084c3e126c6d8326202cdaa2d26003e",
+      "masterSha256": "de026ec5a36d91d68ec4273cdff23bdf4dd378e0d70332a6824599afba3caa5f",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/ShaderSwitch.cs",
+      "status": "M",
+      "owner": "R12",
+      "reviewTreeSha256": "1cee648dc76b1bc7149c6791a8147dd006a77dd94746aab5bd163a4c3ea27719",
+      "masterSha256": "ed04e4f2325a87a8424c3cd97723064ab7af31854a712ce50926f5d71495d815",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/IPlaybackBackend.cs",
+      "status": "M",
+      "owner": "R11",
+      "reviewTreeSha256": "07f85a40d012a7a8f4e88a3a699aa37964fee4a6c2cf3c3d3019f6653a81b9e6",
+      "masterSha256": "c507f868b13b2ac0b444bf73224ecb8b8181963b1ff23b86f7ebd0257f4c3399",
+      "disposition": "R13关联成员/方法diff已核，不导入；其他主责区继续复核"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
+      "status": "M",
+      "owner": "R11",
+      "reviewTreeSha256": "fb7e5ffa0abb167d19caeca8ede5d77cc18c7c95199b94834c23268b3e500cb6",
+      "masterSha256": "59b5ab7f9037197614c91ef4f9cab7497c9e673ab3065e6e9a83a7ad2a9e4e36",
+      "disposition": "R13关联成员/方法diff已核，不导入；其他主责区继续复核"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.cs",
+      "status": "M",
+      "owner": "R10",
+      "reviewTreeSha256": "c953417680d8b08828e3d6487577a6f82c5ab9bb82af25550a176000bb7d23de",
+      "masterSha256": "f1ded1ca4a0796fdd572f309d850b70cc51af496367b7e5a72e655b5d14d8712",
+      "disposition": "R13关联成员/方法diff已核，不导入；其他主责区继续复核"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/BannerBackdropCache.cs",
+      "status": "M",
+      "owner": "R16",
+      "reviewTreeSha256": "1a0a6cda6569e9342cb9d1ef63f2915b408702d48394bea34a5595b463ed6364",
+      "masterSha256": "ffd14de59f5777338751d674b4abe4ddcd3d0214cd57ecfda3d0d80d1f75ed1f",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/BannerPictureLoader.cs",
+      "status": "M",
+      "owner": "R16",
+      "reviewTreeSha256": "f83b3f25a7ca8bfce1623506607d791e290b86c1c649ba2b79dbf61b22955c29",
+      "masterSha256": "dae72f6a45c5e985cd07c9d574dd9f42d844ad0d6fb646598e7139e944402d6f",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/DetailHeroCache.cs",
+      "status": "M",
+      "owner": "R16",
+      "reviewTreeSha256": "5dc69e1a2e0b2a839c95cd542f418cf74c5abbb155abfde7b04b0502bb5bb0bc",
+      "masterSha256": "194ae4e9b973a7939cbc9d021536f6b9295ef56b430df2277de37aada42af88e",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/HeroPictureLoader.cs",
+      "status": "M",
+      "owner": "R16",
+      "reviewTreeSha256": "021b77374bdce9714cb382d598bf892e4d5d8b598e02fc001f2bfdd6086f5d2f",
+      "masterSha256": "6ade229e5e96e6cc49682b54ebe52bee332966be7c690849f59d4489375024ef",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.BackdropFade.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "046191514b6f15477d14fefbae22a6b43426f11cbd598c200e2a4fb33ed9dada",
+      "masterSha256": "a7474ed97e4b226f97083877d173bfbd1efe8fbb1565ca8a04926901cb6dc287",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.DetailCoverGap.cs",
+      "status": "A",
+      "owner": "R17",
+      "reviewTreeSha256": null,
+      "masterSha256": "98df6aaaa365e59e63bd93a8d714a5fccaabf37d7f4942a0babd34789cc17680",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.DetailCustomization.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "9026e90a2847cc37c7ff5f5592e8f42dddde5904beeaee7421eece081c0206dc",
+      "masterSha256": "17f33c4b512ed8fc9c4ddf53e7e6cfa9a5fdb99422982fb931aecf40710f5f19",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.DetailResponsive.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "18b020f4f525fee6d2f38076a76797609fb7d1513bf091dab9f61b521b3e5c1a",
+      "masterSha256": "3fa755844ffb5a7b5ca374d9b6ea0ecef50f187422b8a1f251f39b1b54ee166b",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.HomeBannerLibraries.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "c999a0aa8acaa3a055684ac130d6156473343bcf933666ebc6d4741f5d31c520",
+      "masterSha256": "1f85ffced57683c35119448d7fa524c4ffa2c61d368657799c39da6d5b22a892",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.Inspect.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "b161a5cf6559a9afc1851dd0c9f4193b9b2d9d6d31b6de3b4f0f814b1309e663",
+      "masterSha256": "6a95efa57772d3fe4428a061a9bce109d1bcb4526dbc31ffbcbc5fcd48eb91fc",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "4057bcfffd9b5ae32f4dfb52be96c5f1563acd703899a935988003b69f298a19",
+      "masterSha256": "cabbb419c9f347e27eac3e402b1d6c1a0cc5415fc8d66ecca484824db297cbd5",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+      "status": "M",
+      "owner": "R07",
+      "reviewTreeSha256": "3e5c6785c3645eea0e80595167b51e576315ff22ba4df8b5fa3177c4ba19f3f0",
+      "masterSha256": "1c11eaafe1bc0c8c339b6764b3df5e372b496c1167f71d96db8f771b2cb9f1b3",
+      "disposition": "R13关联成员/方法diff已核，不导入；其他主责区继续复核"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.Backdrop.cs",
+      "status": "M",
+      "owner": "R07",
+      "reviewTreeSha256": "544f71a9a83947e1d7718f2b19c219bc3bceafa92ba844126ff3edac9dd39ece",
+      "masterSha256": "8cfc7fe32cedd35ca0f6f74d19f39f1f24ad94ca8502545d08b12c607917b1c0",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.BodyFade.cs",
+      "status": "A",
+      "owner": "R16",
+      "reviewTreeSha256": null,
+      "masterSha256": "031e2139e37d2ac078cea9509cda2a6157ff51af1eb7870750a0bff1cb61e805",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.Showcase.cs",
+      "status": "M",
+      "owner": "R07",
+      "reviewTreeSha256": "1b6de71c76d89a53dfb4512472e93cf0a1fa09ae1ad85d869cdd7396532a332a",
+      "masterSha256": "6987fcb40fa2844913874669a3187a58251ac2d47d4bca6d8db1042f9c0e8a5f",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.xaml",
+      "status": "M",
+      "owner": "R07",
+      "reviewTreeSha256": "ed28fd9764b34446f9b6dc6381e3bf06f66fece0da915bf8a3f3b41b4dd0d141",
+      "masterSha256": "f3e6f9b93623803c0c6623db44393ece7421e9c7905a16c1b48aa8a3f0687e55",
+      "disposition": "R13关联成员/方法diff已核，不导入；其他主责区继续复核"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.xaml.cs",
+      "status": "M",
+      "owner": "R07",
+      "reviewTreeSha256": "97ff8b10678fc023cbd127ce5b4d5e0b641872beeaa19045c4621495d7f9c79b",
+      "masterSha256": "3afcc1e424234a7af3abf0057ff8ccdc41f19b411881a062760eb9d0a5e3b4de",
+      "disposition": "R13关联成员/方法diff已核，不导入；其他主责区继续复核"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeBanner.xaml",
+      "status": "M",
+      "owner": "R06",
+      "reviewTreeSha256": "0c50ab05fdb4b63e30f2fd546600d8696d7f7226059480204cff17324f3cf62a",
+      "masterSha256": "779d7b693db8cc40a7ea631f71538290285f9c7375133533b2b613775a9a337e",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeBanner.xaml.cs",
+      "status": "M",
+      "owner": "R06",
+      "reviewTreeSha256": "ae74cd06324e949e594522146cd6a4b947b57581836ea81aa3aa769774ab2a47",
+      "masterSha256": "d47d8458af5b293a8b4b9ffc9d3eb802c35046b4d3dfce0c182403b15b1d9bb0",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "tests/Momoka.ImagePerformanceTests/DetailHeroCacheTests.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "6f356ff8bd61b67ca7625e95f41fdac64e89e3e31c9ab506b632530758892379",
+      "masterSha256": "d2d3bb43912bd1518cf9d4d5ce47225e09ed46664f40037e96a457b8552e020f",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/HandleFixture.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "a5b7ab1039a94b6ed177aa8c4504c84c5810b855de87dc7c7d6134cdfcd175f0",
+      "masterSha256": "c9544e22c49eed5df4687b9fa87ef6a6249fcd7fea61a2abb5862ecdb096018a",
+      "disposition": "R13关联成员/方法diff已核，不导入；其他主责区继续复核"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/NativeBoundary.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "df29f8adbcd55ed4a9fbb3643be0510ccca9b56a8527d5ca525c49ea7595cfaa",
+      "masterSha256": "fddb5e29424374845cbcb3c929e664d90c52ec40bf581b1e4199d73815387c34",
+      "disposition": "R13关联成员/方法diff已核，不导入；其他主责区继续复核"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/NativeSeam.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "49096734065a11be9a755fb499b23efd480844f9c9d6a098f2a74d3ed9be6704",
+      "masterSha256": "a07d6e3e0863c017e67e053ba875b777b2080a89a00871aea8d7eea42964bbd8",
+      "disposition": "R13关联成员/方法diff已核，不导入；其他主责区继续复核"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/Program.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "14ba26cf7d4223edfb88e5f5e5a34e7ff5e87a2548df95431189c24d589a650d",
+      "masterSha256": "9ec3cd346140b6d0ad3480ebf956333675e7458576a8b54dc30cca03df7294b2",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/README.md",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "7afabfa3de6bb9bcccef5123ea6a80c817d7034ed9b69ce4a8c4283fe84c4a26",
+      "masterSha256": "f9e0a91456576d73ed9d36e53e004dad2325625101d726755c1f0b2897f6d790",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/Run-Fixture.ps1",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "000dbbe5dd492a4061cc5f237697e76055806dc5fc083aa57dc1eb979467bf3f",
+      "masterSha256": "330d106dc3336115bc01fb2df8dec17ed57afa022b6d616ffbdf645c23d568b6",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/ShaderBatchTests.cs",
+      "status": "A",
+      "owner": "R17",
+      "reviewTreeSha256": null,
+      "masterSha256": "1c92181561b8707aa752687af8a4355c199927d303988bd04cfafebfd1773076",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "tests/Momoka.Tests/AcrylicControlsTests.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "e5df671fde1d7a78839ef7b62c080c4217d175fed32b8e6d99575f904c85fc31",
+      "masterSha256": "a87d3e6dc377d4196c10c3ea176a5243e98b4a690df593d60ff221823894ce4a",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "tests/Momoka.Tests/HomeCarouselTests.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "b64e180204f0b2e22f732b004323b8a61e68cc068ead752b4e36ae19b7f8e468",
+      "masterSha256": "08808444c939a775f01e327838f609af449027a619d717b9c8a7e46aa52e471b",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "tests/Momoka.Tests/ItemDetailTests.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "2df70f45c3e2eb52fef5b1f92f9e0ffb7c85b43d4409a2fe68acdf659e92b05c",
+      "masterSha256": "184b4b18f681bca0d7d5642c76f35e8f959cf7a0bf9df0fbfbff464409616376",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    },
+    {
+      "path": "tests/Momoka.Tests/ShaderTransactionTests.cs",
+      "status": "M",
+      "owner": "R17",
+      "reviewTreeSha256": "69562b230d551445edd0cbe5d1a098bc3552d5560ac4443322ddedc7a3056b8a",
+      "masterSha256": "e304af8d1f9fcd1c854febee12ea0e39743831f13cf5be9f3fcc392f94334e9c",
+      "disposition": "历史/新外观或shader增量，后续主责复核；未接入本树"
+    }
+  ],
+  "previousDelta": "file-delta-20261106-r12.json",
+  "overlap": "与历史增量有重叠，不能按次数相加为唯一文件数"
+}

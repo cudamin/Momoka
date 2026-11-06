@@ -1,0 +1,1732 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "status": "R14审查完成；6P2未修；完成后暂停",
+  "startHead": "a998403dbab9cd9e7caf34777ec23a64a3189526",
+  "verificationHead": "a998403dbab9cd9e7caf34777ec23a64a3189526",
+  "masterSnapshot": "116454fd051b07b41614e8351f7df247b90eb257",
+  "ruleSha256": "6b825aec89b7cea678a5b8033d3effc8364a9ecd52ac20059b66b4d9b0f872c6",
+  "productFixesApplied": false,
+  "reviewComplete": true,
+  "pauseAfter": "R14",
+  "nextPartition": "R15",
+  "planChecked": 21,
+  "counts": {
+    "ownerFiles": 24,
+    "ownerSourceLines": 3537,
+    "fullJointFiles": 38,
+    "memberJointFiles": 25,
+    "ledgerRowsUpdated": 87
+  },
+  "reviewedFiles": [
+    {
+      "path": ".claude/skills/momoka-dandanplay/references/credential-endpoint.md",
+      "sha256": "f8c5e6d1388e37a30fdd87a87f5f6a91364071e36c211af03c9c7dc87f590e93",
+      "lines": 131,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "协议/部署全文；旧自定义凭据和镜像描述交R18"
+    },
+    {
+      "path": ".claude/skills/momoka-dandanplay/references/protocol.md",
+      "sha256": "fda6e2f98459b895cba55783c992fa759540e603af76190cda2fbdba8cd17b12",
+      "lines": 140,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "协议全文；旧自定义凭据措辞交R18"
+    },
+    {
+      "path": "assets/mpv-ui/scripts/momoka_danmaku.lua",
+      "sha256": "907c5c072aeebfcda966fa9fb9d4435c68f6f194ca03df5ee995940a40867a0e",
+      "lines": 428,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/DanmakuInput.lua",
+      "sha256": "059888cb2a564d37f234e5905a29a42f962ff99316c3e6b8e7caa317851e5921",
+      "lines": 245,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/TopBar.lua",
+      "sha256": "00897c39ac66c7ad77b89c4f8312b4e41cea1b1c8b4caffefc18a86f96740905",
+      "lines": 475,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "214-230；377-402输入布局"
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/text.lua",
+      "sha256": "f4e040412b2e3c2d276d8098aa1eea01e020e916123336470dd2480a5968eb07",
+      "lines": 660,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "65-119 Unicode文本工具"
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/utils.lua",
+      "sha256": "0600988af1e5e86becef7fab8bd542bff09454d687e5e95e0b063d52b284ad6c",
+      "lines": 980,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "275-290转义；795-830剪贴板"
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/main.lua",
+      "sha256": "6c92c19459a6583aa74b9372df577ace622be1a262a14f5e31ead9f9204680c2",
+      "lines": 1588,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "144通知；1189-1224消息/输入；1549实例化"
+    },
+    {
+      "path": "docs/弹幕与快捷键.md",
+      "sha256": "3004bd8bf8ff381aa5605851b27a22c85ac15c10d5c9c0063299764ec5cb26f3",
+      "lines": 159,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "24-62来源/输入/草稿/主库产品约定"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+      "sha256": "227f5f92d5c796f03ee7ba75b23800e6c1aa0466fbec8b2fbee49e472bd7db57",
+      "lines": 1690,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "49 Danmaku成员；R02归一化/持久化沿原报告"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/DanmakuSettings.cs",
+      "sha256": "27c767addedc33493160aeb9c574d750131013917c51d887e677120cb1c852a5",
+      "lines": 81,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/DanmakuSourceMode.cs",
+      "sha256": "f28485819c60ee69ae0922a9fe72ae24f11ace81ac8fafab6b45f8443a577595",
+      "lines": 9,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/DanmuApiToken.cs",
+      "sha256": "1fe7cffa4e57a19b2457417c2021464ede56f36e24285c52be74d9d6e788b8d2",
+      "lines": 42,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/ISecretProtector.cs",
+      "sha256": "3ce5b666ac35998a1c287a49502045f257ba5fb96edfad2ddd637820ab265858",
+      "lines": 22,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/DandanPlayBuiltIn.cs",
+      "sha256": "a06fbce6a0e2fc2fce27a027f54b9da6e1ed8fd0d3ab748aec04b747d762d0bb",
+      "lines": 26,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/DandanPlayBuiltInCredentialSource.cs",
+      "sha256": "fb7cf96d802b930071237e478338df14212ce61649e23b695616815355776330",
+      "lines": 323,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/DandanPlayClient.Match.cs",
+      "sha256": "b946a103e4248beaf431214326da50a3a1c2d79d527267d48bf29275c8c12d0a",
+      "lines": 74,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/DandanPlayClient.Send.cs",
+      "sha256": "3e3b86018fb782fe5295a0e19621e05884509fa5b5bb80431b3a257ae61aa070",
+      "lines": 117,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/DandanPlayClient.cs",
+      "sha256": "10afc5346f649a6f4ff3fc36f02f9d0a14cccb149732274b17b84278f59c2437",
+      "lines": 421,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/DandanPlayMatching.cs",
+      "sha256": "53da68f08eee4e0934202f369e1fc9da498d4f09c3a779a064f82105abab764f",
+      "lines": 34,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/DanmakuComment.cs",
+      "sha256": "3a40cc40535d130d63a7dda3fc19e397d76e7c447b2a9e74e7f644bee9ed96c7",
+      "lines": 58,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/DanmakuMatchRules.cs",
+      "sha256": "d87e5dcb1708308f9998cace722d529fc47fd2d36d33090fe1f0fec3c3ef8fff",
+      "lines": 60,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/DanmakuSource.cs",
+      "sha256": "dd9b47bc5d428ab09b468f76aa29ec5204d584cac779b33d7631f9c781236daa",
+      "lines": 8,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/DanmakuSourceRules.cs",
+      "sha256": "edfebd5712f3726fd7d452472aa9cb2e4f7c24ec1bd4121e2bd21387c4ca69a9",
+      "lines": 63,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/DanmuApiEndpoint.cs",
+      "sha256": "89fc5b21abccabdec858ce0a32ea86036040015be6c001aa4ef07a0cb1fffe8c",
+      "lines": 47,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/IDandanPlayCredentialSource.cs",
+      "sha256": "9b80479aa91b6222517eda290f639a401694d51ffd5ba4b72de42142244ed7e2",
+      "lines": 17,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvDanmaku.cs",
+      "sha256": "0b755936047f4c924dd751e13b2fb22fa1a9ec450a9a5ce455338e9aa35a9d4b",
+      "lines": 72,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvUi.cs",
+      "sha256": "3f706fbd0bf4e363abd486d3afde689407b662b05c826d006f008e4e3ed1a4a8",
+      "lines": 367,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "330-341弹幕消息解析"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/IPlaybackBackend.cs",
+      "sha256": "07f85a40d012a7a8f4e88a3a699aa37964fee4a6c2cf3c3d3019f6653a81b9e6",
+      "lines": 212,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "IPlayerControl/IFileScopedPlayerControl以及master批shader新增契约"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
+      "sha256": "fb7e5ffa0abb167d19caeca8ede5d77cc18c7c95199b94834c23268b3e500cb6",
+      "lines": 1832,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "680-825载入/HandOver/Swap；895-990文件；1140-1163消息；1397-1419命令"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.Lifecycle.cs",
+      "sha256": "8b3426f7b338b0db3677ae3cdbae46c082a031502f6073a9fff347fc94fcd7ec",
+      "lines": 428,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "160-190 Stop；235-337 established/NowPlaying；395-425 host"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.cs",
+      "sha256": "c953417680d8b08828e3d6487577a6f82c5ab9bb82af25550a176000bb7d23de",
+      "lines": 527,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "408-417普通命令；master批shader diff联核未影响R14"
+    },
+    {
+      "path": "src/Momoka.Shell/Composition/ShellServices.cs",
+      "sha256": "abdb27efff5c3ec7c431a2bdb260e9132fd884004cba9dac191f9035156dc443",
+      "lines": 218,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "46-63 凭据/Client注册及保存闭包"
+    },
+    {
+      "path": "src/Momoka.Shell/Security/DpapiSecretProtector.cs",
+      "sha256": "69aa6a4811db669e07dcaf60c4428bd7734762867928d0b224a842e5ef98f489",
+      "lines": 42,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.Danmaku.cs",
+      "sha256": "03f03f1aa311ca9bf54de9504e2863be6ab0998d35bcc020fcd389907c3c08e9",
+      "lines": 367,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.DanmakuSend.cs",
+      "sha256": "64d40ae205c3a660ce1e99fe07f1e2c7622f8702231fb575c1ff077814432341",
+      "lines": 324,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellPrefs.cs",
+      "sha256": "209f78fec5ece0ad6f4ebb9513506133629cab93dffb698bd68dbedec774e0c0",
+      "lines": 62,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Danmaku.cs",
+      "sha256": "8ad325936a85ba5f861530ce5ca39c4fd888f7e5dabe7a012e5ed7904923dc21",
+      "lines": 525,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.DanmakuSend.cs",
+      "sha256": "e273a608a8465ca66e4b5317bac0df7029642f08254b95b781f6b1215a6bb309",
+      "lines": 145,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+      "sha256": "d607380c54505c114c48e4075a7ad21e739d11a2cb31c29b2307b5b53e69eb8a",
+      "lines": 1520,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "68-91消息；581-630状态/轨道/NowPlaying/ResetDanmaku"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Interaction.cs",
+      "sha256": "6641d835e62339943c375eb7a735af918951f6b51cf27ed537ae76610101e7d0",
+      "lines": 73,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs",
+      "sha256": "3dc6853e56887c716028df34923a0d55148f01f24caa21aa38e7949603dd5351",
+      "lines": 883,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "137-160 Stop；210-245 start；348-403连播/替换"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.cs",
+      "sha256": "81f4354d1a1aac77d3bba3c2a07f2b2f6f3dc27c66b800fca1b71f037c45c817",
+      "lines": 968,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "300-342构造/Connect；361-384 Shutdown；835-845 Embedded；874-909 Picture/Headless"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.Danmaku.cs",
+      "sha256": "7ce9c8ea39ab77f2481498c0a708febd3c01cccdad65d3d0e353a761143d3777",
+      "lines": 226,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "sha256": "391bba844ab6496ff68de2ac595060b899c106e3932334cf8c91d63ff5b45948",
+      "lines": 3176,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1148-1171建卡；1393-1400切后端；2834-2910恢复/导入"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DanmakuPanel.xaml",
+      "sha256": "f4cf4cb67c459b0bf0d1425a8af149e46be23a62dc517f624e93e26bf7dc8bcc",
+      "lines": 101,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DanmakuPanel.xaml.cs",
+      "sha256": "c46abadb1b2f3b993414be89fb6f8b358f1ff8884d293a93b568b68a09828a64",
+      "lines": 284,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Cover.cs",
+      "sha256": "d2a951106cfd3ae8d77c2f7c6de52645abaf6096ee49f2e3ecfd62783866dcc8",
+      "lines": 198,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "26-47弹幕消费"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Danmaku.cs",
+      "sha256": "0251a651faaecd147b23dde6997c44e2ec5f51800ba5e06f9b1eaa770b76fe19",
+      "lines": 133,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.xaml",
+      "sha256": "d85ebba0a608db62e4cfbadf79616a3092f97a93885fe06155d421191adc58db",
+      "lines": 1482,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "692-729输入与发送绑定"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "sha256": "3138187621e0f42476f506acba62a6313f3bbb9641cfe4e9e755a039d5e88f4b",
+      "lines": 2624,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "769-788独占弹幕对话框"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/.gitignore",
+      "sha256": "32dae3052f331ee34d628ef535709b301259a45df7c7522c4d35dcf49873f00b",
+      "lines": 1,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/DanmakuClientLifetimeTests.cs",
+      "sha256": "bdfece513054ef32280eaa56622c20a9616a47d181713cbe959fc0c868c1b4c8",
+      "lines": 133,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/DanmakuFixture.cs",
+      "sha256": "5ffa673f6f956d2ace52085fb29e4cc2bf56effb20586b7c2bd78d91b0518b6e",
+      "lines": 145,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/DanmakuLoadOwnershipTests.cs",
+      "sha256": "16d5810619d90dbfc2e2662489b371ec30ae97a1608d900abe78abe5db36ebde",
+      "lines": 143,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/DanmakuPerformanceTests.cs",
+      "sha256": "aef318a12ca1b73e34282fa652082633e6af74fbe0b8faac6b1a370156878401",
+      "lines": 158,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/Directory.Build.props",
+      "sha256": "029324ccf3e2b0035ef30f5f10050434440ab61084259bbafde5eaa088963456",
+      "lines": 9,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/Lua/danmaku-performance-tests.lua",
+      "sha256": "3194a1812540ab8ca7fd1218bbbd111fac5bd9017f9edc60327c0ecbb94bf49f",
+      "lines": 188,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/Lua/danmaku-real-timer-tests.lua",
+      "sha256": "78db0c35ad794136872936118b51614163069a15807aa5789cd2738c69ee02b3",
+      "lines": 48,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/Lua/translation-performance-tests.lua",
+      "sha256": "69fbcda5d26105190eac4a7f1ea7fdc92e5dd9e2da046d597d44cef37caae7b2",
+      "lines": 109,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/Lua/translation-real-timer-tests.lua",
+      "sha256": "94f3b8c66cccd1f62d8f63cb69fff1d2ed8f09451f71a8475e74e1d1966c97da",
+      "lines": 47,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+      "sha256": "3e82035e18a4e7c5ac777a7b934ac3acac4710d9591ac584e1abece4df7aa92d",
+      "lines": 18,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/NuGet.Config",
+      "sha256": "b46e67053bebc2b005a5c5da8a67a40581f61b0ea679ea253c8a314684fa2e1d",
+      "lines": 5,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/Program.cs",
+      "sha256": "c839bd9b3402048693676f6e9d4b9b070a9adca70255902550e8a11ee6476c1c",
+      "lines": 53,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/README.md",
+      "sha256": "b12c333c6b78990fe92e61f75f2890582768a6eb2746512edaec2348b9cac365",
+      "lines": 56,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/extract-ownership.py",
+      "sha256": "7d0aaaa4eac5cf4e00ae3389f30257095e226c6ebe3130dd494e63ea457f7c83",
+      "lines": 24,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/run-lua.py",
+      "sha256": "6f7f67fe5c7032419d19e6248f889938db078b4ce64d02775cb42e15383f2203",
+      "lines": 229,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+      "sha256": "212c2bf08d0fe09a3985ead1920273616e752112aba57d62eaa66ce82b50e597",
+      "lines": 17,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuSourceBoundaryTests/Program.cs",
+      "sha256": "c1201db3c7e33aa695fbc5c71f5c10169ffdf74ab7c4ec5723adf6e4e8ca062e",
+      "lines": 225,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuSourceBoundaryTests/README.md",
+      "sha256": "1456e49271f76aae5843eb3c6f2b799533a2e6a4049c5ff5ac6013d721dffac9",
+      "lines": 5,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuSourceBoundaryTests/SettingsBoundary.cs",
+      "sha256": "3fa1f62d9b1b3d237f481d1ffd7bd4121a30a94b4ff224260346a01f11f3a1d1",
+      "lines": 49,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuSourceBoundaryTests/extract.py",
+      "sha256": "d69afc31054de26fc8d3e334379adeb0d97f0efc17e20860876cfef9fd244347",
+      "lines": 39,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/DanmakuTests.cs",
+      "sha256": "8aedd0b9428a2da50a47e7fef348d4c60382ab1df81719b55c77a2fb6b4b1fa4",
+      "lines": 1115,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/Lua/danmaku-tests.lua",
+      "sha256": "bf6560de3cb4cf6fa3d1aeb35e78e8c5f7879905d517395a045e2a945e64c5fb",
+      "lines": 477,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/Lua/uosc-interaction-tests.lua",
+      "sha256": "d3e07ef9bf91d1efca6f6d981876eaad68ea63a7c3f101c48efddd9540e56fae",
+      "lines": 719,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "527-704弹幕输入断言；本轮49原断言实际随native执行"
+    },
+    {
+      "path": "tests/Momoka.Tests/PlayerConstructorBoundary.cs",
+      "sha256": "c9053e8e2fd8b2d8b658f2bb2ef325103ef0642b4b112746854cc990d6927103",
+      "lines": 112,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "实际VM构造参数核查与匿名依赖"
+    },
+    {
+      "path": "tests/Momoka.Tests/PlayerVolumeGestureTests.Boundaries.cs",
+      "sha256": "8ff585faf72df51ebba63ed00448e6f3dc3953748b2a5cd8c334d9f1bad73e46",
+      "lines": 412,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "17-65实际Shell载入；69-209匿名State/原控制流"
+    },
+    {
+      "path": "tests/Momoka.Tests/Program.cs",
+      "sha256": "bb6feb7f7c97e1c5e76da303b42e4a8efeb60df3227bee10410d8569e162d48c",
+      "lines": 441,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "106-111 danmaku-fixture注册"
+    },
+    {
+      "path": "tools/test-danmaku.py",
+      "sha256": "18803fabf673f68b44bf34f905aea8ed7b6d071c137021abea83dde18593b6cf",
+      "lines": 109,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tools/test-uosc.py",
+      "sha256": "57efc598739eb523cec364dd250d5098949facdc9e81f14fe3e3e6e26f4ef64a",
+      "lines": 103,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "website/README.md",
+      "sha256": "b6b5f1e38bb28f8d4921565859fb67778658d48973b04c0d468a6b4215e17872",
+      "lines": 197,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "website/docker-compose.yml",
+      "sha256": "7af411de65b5c104dc1d4823d2bc20057a55d377568351540c754f2734a38f2e",
+      "lines": 10,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "website/nginx.conf",
+      "sha256": "3d0c0044177d27f4459191946a31ff24948c3ba2003d1360d3560a1eac66d660",
+      "lines": 44,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "website/worker/credential.js",
+      "sha256": "75201cd45c724cb079ff7a3c362960e11e4afc1c8e8e0e9f325373e37c8b435d",
+      "lines": 55,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "website/worker/credential.test.mjs",
+      "sha256": "d38281e7724ce627580ef6a74c6d5e31f7f97a911eefa3dee012ef6509f1c82d",
+      "lines": 63,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "website/worker/index.js",
+      "sha256": "9163555b9066ca46178d938f6ef6122aa72d0821acd5f3311fc4bd98440cc466",
+      "lines": 12,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "website/wrangler.jsonc",
+      "sha256": "8f388a70edc27ba01ab01ed8535e4f68b6ebadbddedf80dc83a088998b98a2fa",
+      "lines": 9,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    }
+  ],
+  "checks": [
+    {
+      "name": "sdk",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "--version"
+      ],
+      "exitCode": 0,
+      "seconds": 0.16,
+      "log": "sdk.log",
+      "sha256": "4b509237900912ac8385460ada8a1332f7cfcca46d8728bf019800de733c535f"
+    },
+    {
+      "name": "Worker",
+      "args": [
+        "C:/Program Files/nodejs/node.exe",
+        "--test",
+        "website/worker/credential.test.mjs"
+      ],
+      "exitCode": 1,
+      "seconds": 0.07,
+      "log": "Worker.log",
+      "sha256": "737d95a77f5ab833f7fd00769b1e4e91d745ed0434aae0f4524f59a8da1c54df"
+    },
+    {
+      "name": "DanmakuSourceBoundary-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\NuGet.Config",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 0.29,
+      "log": "DanmakuSourceBoundary-restore.log",
+      "sha256": "ccdfd5c96e70b43ebf7242e33d950c24da201ec43567946f547b6d266980d1c6"
+    },
+    {
+      "name": "DanmakuPerformance-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\NuGet.Config",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 0.2,
+      "log": "DanmakuPerformance-restore.log",
+      "sha256": "d4c88f0c6a881e0824d1456f6d50d763561293f52206444b2f5bcc0ca2794554"
+    },
+    {
+      "name": "MainTests-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "tests/Momoka.Tests/Momoka.Tests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\NuGet.Config",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 0.2,
+      "log": "MainTests-restore.log",
+      "sha256": "e5cb95e60485e4916fbed620c98ffb7df21dde538975859aa8b5070113f4f157"
+    },
+    {
+      "name": "Shell-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "src/Momoka.Shell/Momoka.Shell.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\NuGet.Config",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 0.2,
+      "log": "Shell-restore.log",
+      "sha256": "c3dc51b895a573644697b5f3c982dca284c2f7418eabaa8b3e6b23f461837e5d"
+    },
+    {
+      "name": "root-verified-sdk",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "--version"
+      ],
+      "exitCode": 0,
+      "seconds": 0.16,
+      "log": "root-verified-sdk.log",
+      "sha256": "4b509237900912ac8385460ada8a1332f7cfcca46d8728bf019800de733c535f"
+    },
+    {
+      "name": "root-verified-Worker",
+      "args": [
+        "C:/Program Files/nodejs/node.exe",
+        "--test",
+        "website/worker/credential.test.mjs"
+      ],
+      "exitCode": 0,
+      "seconds": 0.18,
+      "log": "root-verified-Worker.log",
+      "sha256": "29e5792487861c66b59d9fcc4c588bdf902ce03788abe7043bc2391b8ad80bdb"
+    },
+    {
+      "name": "root-verified-DanmakuSourceBoundary-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\NuGet.Config",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.99,
+      "log": "root-verified-DanmakuSourceBoundary-restore.log",
+      "sha256": "87932be78a233d1557e0c5f6d9dd1138660a310a6632497a1c5b31c7ae4e1f57"
+    },
+    {
+      "name": "root-verified-DanmakuSourceBoundary-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 9.24,
+      "log": "root-verified-DanmakuSourceBoundary-build.log",
+      "sha256": "333059c62a175bd2e389d83a3646c96c470f7ef983e003c239ca6517e296fcb3"
+    },
+    {
+      "name": "root-verified-DanmakuPerformance-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\NuGet.Config",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.11,
+      "log": "root-verified-DanmakuPerformance-restore.log",
+      "sha256": "b8c92735ef2324d0f1d4a18dbc160516a22549d5930f411544258c141ec1ed93"
+    },
+    {
+      "name": "root-verified-DanmakuPerformance-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 1.23,
+      "log": "root-verified-DanmakuPerformance-build.log",
+      "sha256": "70f3c8ef8158c6025d991c6f0fa90ee4f5c79ec10b966d984eb1a75c3dc1749e"
+    },
+    {
+      "name": "root-verified-MainTests-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "tests/Momoka.Tests/Momoka.Tests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\NuGet.Config",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.11,
+      "log": "root-verified-MainTests-restore.log",
+      "sha256": "2526ab7472c7715d3b4bbc28eea7d2dee2bd4702e010be5a2b4c016be68a2a54"
+    },
+    {
+      "name": "root-verified-MainTests-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.Tests/Momoka.Tests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 21.51,
+      "log": "root-verified-MainTests-build.log",
+      "sha256": "e013a766db06bf6db96e2ec5dffd89880eaa0fa0243580b9dc53fd3968a8317c"
+    },
+    {
+      "name": "root-verified-Danmaku-main",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "tests/Momoka.Tests/bin/x64/Release/net10.0/Momoka.Tests.dll",
+        "danmaku-fixture"
+      ],
+      "exitCode": 0,
+      "seconds": 0.96,
+      "log": "root-verified-Danmaku-main.log",
+      "sha256": "6a2851e904134ba9069c0ef5fc487dfb24427b58c3549db0e81e4a3613c64006"
+    },
+    {
+      "name": "root-verified-Shell-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "src/Momoka.Shell/Momoka.Shell.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\NuGet.Config",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 12.2,
+      "log": "root-verified-Shell-restore.log",
+      "sha256": "88c39a5f4f43562a6fd8fbda817377cf7d19b4a1c9b4120f9696ff4ab60fcedc"
+    },
+    {
+      "name": "root-verified-Shell-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "src/Momoka.Shell/Momoka.Shell.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 122.08,
+      "log": "root-verified-Shell-build.log",
+      "sha256": "6227b46e64d23a4b6b9d85f30fa0c253ff35cedec6d40b1a7d173fecbb20dfaf"
+    },
+    {
+      "name": "root-verified-DanmakuSourceBoundary-py-path-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 1.49,
+      "log": "root-verified-DanmakuSourceBoundary-py-path-build.log",
+      "sha256": "ab3443c6f37283bf8ed8c67839b3596aa0b1e6a7e0a71289fbb4aca10c33f34c"
+    },
+    {
+      "name": "root-verified-DanmakuPerformance-py-path-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 1.33,
+      "log": "root-verified-DanmakuPerformance-py-path-build.log",
+      "sha256": "faad0b38132c287cf71726de99ab4b580b016a3244ebeb76457a5566e4ae6cfc"
+    },
+    {
+      "name": "root-verified-Danmaku-lua",
+      "args": [
+        "py",
+        "-X",
+        "utf8",
+        "tools/test-danmaku.py",
+        "--root",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "--output",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\danmaku-lua"
+      ],
+      "exitCode": 0,
+      "seconds": 0.62,
+      "log": "root-verified-Danmaku-lua.log",
+      "sha256": "c4b7e1cc648a5f7ce8746fcf58346e17a565fe74135bda2696619adfce58a1d0"
+    },
+    {
+      "name": "root-verified-Danmaku-perf-lua",
+      "args": [
+        "py",
+        "-X",
+        "utf8",
+        "tests/Momoka.DanmakuPerformanceTests/run-lua.py",
+        "--root",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "--output",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\performance-lua"
+      ],
+      "exitCode": 0,
+      "seconds": 1.16,
+      "log": "root-verified-Danmaku-perf-lua.log",
+      "sha256": "4a04f07bb261a47eeae47e0e649276b3068337cb038b4bea627ac9984c6bf8b3"
+    },
+    {
+      "name": "root-verified-Danmaku-real-timers",
+      "args": [
+        "py",
+        "-X",
+        "utf8",
+        "tests/Momoka.DanmakuPerformanceTests/run-lua.py",
+        "--root",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "--output",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\performance-real-timers",
+        "--real-timers"
+      ],
+      "exitCode": 0,
+      "seconds": 1.7,
+      "log": "root-verified-Danmaku-real-timers.log",
+      "sha256": "309603c8a120c9fb4200c828fd360a10cf04fd5b4b7996b1e40b3819e90f3eb2"
+    },
+    {
+      "name": "root-verified-DanmakuSourceBoundary-normalized-path-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 1.39,
+      "log": "root-verified-DanmakuSourceBoundary-normalized-path-build.log",
+      "sha256": "66940f4f5fd7b77f14fe79aae1f5ab02eea3de3cc478acdc2e46e2ce9c677568"
+    },
+    {
+      "name": "root-verified-DanmakuPerformance-normalized-path-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 1.25,
+      "log": "root-verified-DanmakuPerformance-normalized-path-build.log",
+      "sha256": "b05f989b16034924f4a8748c5626b7e6936a83a1520a18a56cfe472fbed626e9"
+    },
+    {
+      "name": "root-verified-DanmakuSourceBoundary-windows-path-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 1.33,
+      "log": "root-verified-DanmakuSourceBoundary-windows-path-build.log",
+      "sha256": "e5db3aab54739db6ffe987bb7cd7eb05d3748d6b0afadd8a97c9a6c705d01ee7"
+    },
+    {
+      "name": "root-verified-DanmakuPerformance-windows-path-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 1.18,
+      "log": "root-verified-DanmakuPerformance-windows-path-build.log",
+      "sha256": "eade2103baf179baccf9ec42096a302f34b7aee9cb99e2a156bf78a2084c7603"
+    },
+    {
+      "name": "root-verified-DanmakuSourceBoundary-no-server-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "--disable-build-servers",
+        "-nr:false",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 1.18,
+      "log": "root-verified-DanmakuSourceBoundary-no-server-build.log",
+      "sha256": "81c4336f0ec8928b9e4b8d651a10ab9f1d0360edc5a63a2a07964c027ec5f4fa"
+    },
+    {
+      "name": "root-verified-DanmakuPerformance-no-server-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "--disable-build-servers",
+        "-nr:false",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 1.19,
+      "log": "root-verified-DanmakuPerformance-no-server-build.log",
+      "sha256": "d4ed61de7eb915d35f1918d27262b9edf537124ca2c2d33ddebabb423f9d494c"
+    },
+    {
+      "name": "root-verified-DanmakuSourceBoundary-absolute-py-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:DirectoryBuildTargetsPath=C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\Python.targets",
+        "-nr:false",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 28.49,
+      "log": "root-verified-DanmakuSourceBoundary-absolute-py-build.log",
+      "sha256": "4a779c80d2fd28ca1d22e836374facb7d07a73416755e149905a755eb888ceb4"
+    },
+    {
+      "name": "root-verified-DanmakuSourceBoundary-absolute-py-run",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.DanmakuSourceBoundaryTests/Momoka.DanmakuSourceBoundaryTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--"
+      ],
+      "exitCode": 0,
+      "seconds": 1.3,
+      "log": "root-verified-DanmakuSourceBoundary-absolute-py-run.log",
+      "sha256": "04f204b7ecd49cdbe0cece1e8f1ed8491797a2eae686818f024072357f94e435"
+    },
+    {
+      "name": "root-verified-DanmakuPerformance-absolute-py-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:DirectoryBuildTargetsPath=C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\Python.targets",
+        "-nr:false",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 4.32,
+      "log": "root-verified-DanmakuPerformance-absolute-py-build.log",
+      "sha256": "f4abdcf652f277f079dea1affb32f6b233c19a3283205d2697a1dad6f0c45c52"
+    },
+    {
+      "name": "root-verified-DanmakuPerformance-absolute-py-run",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "--output",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\performance-results"
+      ],
+      "exitCode": 0,
+      "seconds": 5.57,
+      "log": "root-verified-DanmakuPerformance-absolute-py-run.log",
+      "sha256": "94cf772e78191dd221918fc46bbb2a51daf8105da94c9d1bc86df025b6e86994"
+    },
+    {
+      "name": "root-verified-worker-vector",
+      "args": [
+        "C:/Program Files/nodejs/node.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\make-credential.mjs"
+      ],
+      "exitCode": 0,
+      "seconds": 0.13,
+      "log": "root-verified-worker-vector.log",
+      "sha256": "e6b374fc118df5fed6770fbbdd567ce76b64241025fa4d614350b6b3e048649f"
+    },
+    {
+      "name": "root-verified-observations-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\observations\\observations.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\NuGet.Config",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.75,
+      "log": "root-verified-observations-restore.log",
+      "sha256": "07229ecae3b10aef4631da34634c31e40c98bee23eeed343ad936e383eb51cdd"
+    },
+    {
+      "name": "root-verified-observations-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\observations\\observations.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 5.23,
+      "log": "root-verified-observations-build.log",
+      "sha256": "1020a0c01d3f11879a83f0d6bad710e390ffe0a2587735045d48b46effe0ebf0"
+    },
+    {
+      "name": "root-verified-observations-run",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\observations\\bin\\x64\\Release\\net10.0\\observations.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first"
+      ],
+      "exitCode": 0,
+      "seconds": 0.7,
+      "log": "root-verified-observations-run.log",
+      "sha256": "69cc089c621d986a075dd0639bbd727be71848e6f8a8c8d7cda66274a7473ac6"
+    },
+    {
+      "name": "root-verified-observations-final-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\observations\\observations.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 3.71,
+      "log": "root-verified-observations-final-build.log",
+      "sha256": "3fe16d6fe607dc8d23e1549d0036e2c7b19d099cdb645323386cc15767497700"
+    },
+    {
+      "name": "root-verified-observations-final-run",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\observations\\bin\\x64\\Release\\net10.0\\observations.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first"
+      ],
+      "exitCode": 0,
+      "seconds": 0.34,
+      "log": "root-verified-observations-final-run.log",
+      "sha256": "9316f8a2cd79590be66871af3ac986e213a29d42e6e67302b6a37c4273a00eb7"
+    },
+    {
+      "name": "root-verified-uosc-C1-final",
+      "args": [
+        "C:/Windows/py.exe",
+        "-X",
+        "utf8",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\a998403\\R14\\20261106-first\\input-observations.py"
+      ],
+      "exitCode": 0,
+      "seconds": 0.85,
+      "log": "root-verified-uosc-C1-final.log",
+      "sha256": "7c05863c8cf640ec76de8b267015b989886259caf90169594b018c2770f85a98"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "src/Momoka.Core/bin/x64/Release/net10.0/Momoka.Core.dll",
+      "sha256": "fbeb299075278f33485e85482c95243970b60f6e7ff06e89237befc6fa72d809",
+      "bytes": 2334720
+    },
+    {
+      "path": "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll",
+      "sha256": "21b9c69467011f82d2a5cc55f5bc5c4933dcfea945abf5dd9f1cd55409b0dd2c",
+      "bytes": 2335232
+    },
+    {
+      "path": "tests/Momoka.Tests/bin/x64/Release/net10.0/Momoka.Tests.dll",
+      "sha256": "3646f18921e2d951a2462fad31d7520a1c200c858aa0d8e52b2584ac0a0c0181",
+      "bytes": 3582464
+    },
+    {
+      "path": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
+      "sha256": "796ca308bbd648e92e35f14c32ba672674bb4e9c67234da7b47eaf0feb3232c7",
+      "bytes": 6860288
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/observations/bin/x64/Release/net10.0/Momoka.Core.dll",
+      "sha256": "fbeb299075278f33485e85482c95243970b60f6e7ff06e89237befc6fa72d809",
+      "bytes": 2334720
+    },
+    {
+      "path": "tests/Momoka.DanmakuSourceBoundaryTests/bin/Release/net10.0/Momoka.DanmakuSourceBoundaryTests.dll",
+      "sha256": "137c754890d5493da4f7d48806567afc9ab4d12eca141c1a2d0c827ea39963f6",
+      "bytes": 46080
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/bin/Release/net10.0/Momoka.DanmakuPerformanceTests.dll",
+      "sha256": "3ebbb2d556e5a3d4c087e681618e4687ae218a9b27808a9ad70d79004dab164e",
+      "bytes": 140800
+    },
+    {
+      "path": "libmpv-2.dll",
+      "sha256": "fe583af31036bf3f3adacf6659e1bd448b568091b0334675573a3e303ec89d17",
+      "bytes": 101242880
+    },
+    {
+      "path": "assets/mpv-runtime/vulkan-1.dll",
+      "sha256": "13dd448a97495763b5cce84b8ade84cd2fa13c71f7e871f3c7d509eca845ad0f",
+      "bytes": 581120
+    }
+  ],
+  "results": [
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/managed-observations.json",
+      "sha256": "ae61b24d58cf39e904d2931b49304e9ba03c91316a2f0080790760439238b802"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/panel-inputs.json",
+      "sha256": "df2c5839a5f4088f04bb598412c161d70beff7248c177c5d4898b97a62c38c37"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/danmaku-lua/results.json",
+      "sha256": "35d028e4731ad3bf3fc7bc6ef537caa95c26814ab770bc7cb18a741ddfc9ae23"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/performance-lua/danmaku-results.json",
+      "sha256": "8f2008a9b885677a454034e821352c92906792024ffe41d98cdfce379219bf3b"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/performance-lua/translation-results.json",
+      "sha256": "0be56747ea0017472443ecea5766256dacc72309236942a0103ba3cd417370e7"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/performance-real-timers/danmaku-results.json",
+      "sha256": "0738081f6ba09171dda951cd8c4db6d9e3985fbf992ac2c17763aaa81afe43a6"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/performance-real-timers/translation-results.json",
+      "sha256": "2c27fd1467400579f7119fe1f46ef9aad83b6e8a9857233290e8127b52e9a8c9"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/input-lua-final/results.json",
+      "sha256": "7355d9f69047e45a26200c239549cf557dd2c4aefbdf392636f2816459ccdd10"
+    }
+  ],
+  "findings": [
+    {
+      "id": "R14-001",
+      "priority": "P2",
+      "fixed": false,
+      "title": "凭据失效删盘失败后复活旧身份"
+    },
+    {
+      "id": "R14-002",
+      "priority": "P2",
+      "fixed": false,
+      "title": "C1粘贴被宿主静默拒绝而输入卡在pending"
+    },
+    {
+      "id": "R14-003",
+      "priority": "P2",
+      "fixed": false,
+      "title": "关服务清空同视频草稿"
+    },
+    {
+      "id": "R14-004",
+      "priority": "P2",
+      "fixed": false,
+      "title": "打开面板不重算新有效搜索来源"
+    },
+    {
+      "id": "R14-005",
+      "priority": "P2",
+      "fixed": false,
+      "title": "旧面板关闭取消新片自动匹配"
+    },
+    {
+      "id": "R14-006",
+      "priority": "P2",
+      "fixed": false,
+      "title": "空自部署地址仍展开无效设置"
+    }
+  ],
+  "limits": [
+    "无真实WinUI/剪贴板/像素/服务器弹幕获取发送/生产端点/密钥/部署/外部mpv/媒体播放",
+    "主套件与全方案/统一回归未执行；R01工具红/R07飞牛3败/R13正式Dialog编译红与R02schema27及历史增量均保留",
+    "标准专项命令py9009环境失败；ignored Targets只改绝对启动器与-X utf8，不改生产/测试源或断言，17/71诊断适配通过不得冒标准调用通过",
+    "首次runchecks根目录错误保留全部日志；后PATH/禁build-server尝试失败均保留；最终绝对py提取成功",
+    "初观察宿主CS0414一警告保留；仅使用该边界字段读数后最终0/0。初/终观察JSON分别保留",
+    "TTL使用旧now仅有弱缓存窗口，未作为必要缺陷；raw40000预算/上游dot token/首匹配/集过滤撤回",
+    "CF静态资源路由部署未实测；官方服务端未取到源码，swagger仅协议依据，不证明应用层级额度",
+    "临时Worker import失败仅工具输出保留，独立完整日志未保存；MSBuild py环境原因未最终归因。",
+    "收尾master264653a追加6项外观/测试增量，无R14主责变化；增量台账保留，不并入本树。文档检查初扫PROGRESS历史失效链接失败，仅工具输出保留；后限定本轮新内容链接，未改历史链接。"
+  ],
+  "upstream": [
+    {
+      "name": "swagger",
+      "url": "https://api.dandanplay.net/swagger/v2/swagger.json",
+      "status": 200,
+      "sha256": "3dc106e2e1e4f22877a7ad5da382fd2384488ccd54b7db13160abdb2093c8599",
+      "bytes": 144349
+    },
+    {
+      "name": "repositories",
+      "url": "https://api.github.com/search/repositories?q=danmu_api&per_page=5",
+      "status": 200,
+      "sha256": "1484a482590bbe1e78d88b810dd7f7af100f0d02cc245273a11afdb46272069b",
+      "bytes": 26951
+    },
+    {
+      "error": "HTTP Error 403: rate limit exceeded"
+    },
+    {
+      "url": "https://codeload.github.com/huangxd-/danmu_api/zip/9fa67ad5d72e15f5c65339bad7e609fa14511412",
+      "file": "danmu.zip",
+      "commit": "9fa67ad5d72e15f5c65339bad7e609fa14511412",
+      "revisionSource": "git ls-remote refs/heads/main",
+      "sha256": "b6c8141cbe81e0ca7f78f97ea8b4d265ca1411352278fc1bd87a7d741708ae34",
+      "files": 204
+    }
+  ],
+  "formalManagedExecution": {
+    "main": 59,
+    "sourceBoundary": 17,
+    "performance": 71,
+    "total": 147,
+    "overlap": true,
+    "adaptation": "两个专项仅ignored绝对py调用原提取器"
+  },
+  "luaExecution": {
+    "danmaku": 42,
+    "danmakuPerformance": 50,
+    "translationPerformance": 17,
+    "realTimerDanmaku": 3,
+    "realTimerTranslation": 3,
+    "uoscExistingAssertions": 49,
+    "uoscC1Observation": 1,
+    "notIndependentCoverage": true
+  },
+  "masterDelta": "file-delta-20261106-r14.json",
+  "evidenceRoot": "artifacts/review/a998403/R14/20261106-first",
+  "documentCheck": {
+    "path": "artifacts/review/a998403/R14/20261106-first/document-check.json",
+    "sha256": "c3de0a325da3d9bc4a5ae43808e9875866d09305b9f8c75402d1655117f13515",
+    "assertions": 2134,
+    "linksChecked": 13,
+    "documents": 10,
+    "scope": "本轮10文档编码/LF/空白及新增13链接，2134断言含1876历史记录和runner/buildInputs保留；不重写历史失效链接"
+  },
+  "finalMasterSnapshot": "264653a836c68657ca0317b23f47b2c3a8d6314e",
+  "finalMasterDrift": "M\tsrc/Momoka.Shell/Views/ControlBackgroundBrushes.cs\nM\tsrc/Momoka.Shell/Views/DetailPage.Appearance.cs\nM\tsrc/Momoka.Shell/Views/DetailPage.BackdropEdgeFade.cs\nM\tsrc/Momoka.Shell/Views/DetailPage.xaml\nM\ttests/Momoka.AppearanceOpacityTests/Program.cs\nM\ttests/Momoka.Tests/AcrylicControlsTests.cs\n",
+  "upstreamReadFiles": [
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/upstream/danmu/danmu_api-9fa67ad5d72e15f5c65339bad7e609fa14511412/danmu_api/worker.js",
+      "sha256": "b9d4d87095837e61aec7a0fb3dcad66ad11ca89e0e73d54012260e00feb92c5a",
+      "ranges": "1-83,85-155,254-317,390-441"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/upstream/danmu/danmu_api-9fa67ad5d72e15f5c65339bad7e609fa14511412/danmu_api/configs/envs.js",
+      "sha256": "de3693cafdf6d3a75e7e497f0d6a31643a5085858a6cab7dbbfac1643eea65c6",
+      "ranges": "1-118,146-208,320-410,600-655,773-793"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/upstream/danmu/danmu_api-9fa67ad5d72e15f5c65339bad7e609fa14511412/danmu_api/apis/dandan-api.js",
+      "sha256": "f8be6051a64e11309002fb5595c2893094cf650da7a7037176b529fd261e9d4e",
+      "ranges": "1744-2285"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/upstream/danmu/danmu_api-9fa67ad5d72e15f5c65339bad7e609fa14511412/danmu_api/models/dandan-model.js",
+      "sha256": "dcad490ec0fb56d2892e53734abadeadb4eb0e082a303cad61885630292d5b4a",
+      "ranges": "1-140"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/upstream/danmu/danmu_api-9fa67ad5d72e15f5c65339bad7e609fa14511412/danmu_api/tests/worker-api.test.js",
+      "sha256": "f59ace87310515acfaed9c542c94378fda49167ade403cdc7968333a46d33057",
+      "ranges": "1010-1057"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/upstream/swagger.json",
+      "sha256": "3dc106e2e1e4f22877a7ad5da382fd2384488ccd54b7db13160abdb2093c8599",
+      "ranges": "完整search/episodes及comment/episodeId/app操作对象与字段引用",
+      "sourceKind": "公开协议描述，服务端实现未取得"
+    }
+  ],
+  "localEvidenceSources": [
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/runchecks.py",
+      "sha256": "9b27a017f1b875a93123f9fa49b01a0ef8c84f311a51009656c0cb560eb7b152"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/Python.targets",
+      "sha256": "db4fb31e9ca513549498a49e3a2966b513e2c615aa577db821e85570e8d7e0da"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/observations/Program.cs",
+      "sha256": "83be8395fb23b4bd361be45d7aa661e42edb82e575e0841da6c8018631843ded"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/observations/Panel.cs",
+      "sha256": "158afa16e5af51ad8cc8cd01fb4c044a69ed9cfa57bb7de1d9043fc701414c17"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/input-observations.py",
+      "sha256": "69c15fe83f6a995e2e4c0f8bd766d670b6be34ff74986b26162794bee19a5969"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/uosc-observation-tests.lua",
+      "sha256": "3544718d3500046d32db1305d1f355da25118736df1f5c132c6173b687d7afce"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/uosc-observation-runner.py",
+      "sha256": "5e7ac324f0ff0d61de4d7020de8462cdf5642a73a1a5e1410ace24cf3dfbe0b1"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/make-credential.mjs",
+      "sha256": "f777956a9ce6301f71e0b60263d6f8633d58f813a4a70ad91b8a1d79c4739897"
+    },
+    {
+      "path": "artifacts/review/a998403/R14/20261106-first/worker-vector.json",
+      "sha256": "fdf986850b586a5f870a5739514ebc529ab5534b19ec4e28269f1abe979ec143"
+    },
+    {
+      "path": "tests/Momoka.DanmakuSourceBoundaryTests/obj/Release/net10.0/source-evidence.json",
+      "sha256": "729ec2b86ed8de7d85919ea3af20f79c9f21fc01fd61c972b0e32fe0ac54d611"
+    }
+  ],
+  "coreVariantNotes": "当前x64 Core与主Tests/Shell/观察输出一致；默认Platform专项的AnyCPU Core独立hash，不混称同一程序集。",
+  "withdrawn": [
+    {
+      "candidate": "UniqueMatch不再次核集",
+      "reason": "官方协议与固定danmu_api搜索按episode过滤，无可达误集证据"
+    },
+    {
+      "candidate": "Match首项歧义",
+      "reason": "固定上游生成唯一单元素matches"
+    },
+    {
+      "candidate": "Combine先限再过滤",
+      "reason": "现行原始40000预算明确，不凭过滤后数量少扩大范围"
+    },
+    {
+      "candidate": "dot token",
+      "reason": "固定上游自身URL也规范化，不是本客户端独有故障"
+    },
+    {
+      "candidate": "TTL旧now",
+      "reason": "客户端缓存期限短窗口，Secret本身不必失效，未证必要用户后果"
+    },
+    {
+      "candidate": "非对象JSON异常",
+      "reason": "安全Text及短路/ValueKind守卫已核"
+    }
+  ],
+  "independentFinalReview": {
+    "agent": "r14_protocol",
+    "result": "6P2保留；源码/block/39日志hash核对一致；增强input-lua-final仅作50断言和C1反例观察",
+    "limits": "控件/新场/剪贴板/HTTP为边界；标准入口红不被适配冲销"
+  }
+}

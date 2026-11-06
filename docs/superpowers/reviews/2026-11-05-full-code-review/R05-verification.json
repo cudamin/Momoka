@@ -1,0 +1,888 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "status": "document-evidence-consistency-passed",
+  "startHead": "8a39ab23021f28dae902ac3944994679f8f1a18d",
+  "verificationHead": "8a39ab23021f28dae902ac3944994679f8f1a18d",
+  "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+  "productSourceMatchesMaster": true,
+  "productFixesApplied": false,
+  "reviewComplete": "R05",
+  "nextPartition": "R06",
+  "pauseAfter": "R05",
+  "ruleSha256": "6b825aec89b7cea678a5b8033d3effc8364a9ecd52ac20059b66b4d9b0f872c6",
+  "ledgerBaseFiles": 1876,
+  "historicalDeltaFiles": [
+    54,
+    19
+  ],
+  "thisPartitionProductDeltaFiles": 0,
+  "matrixProjects": 68,
+  "matrixEntriesUpdated": 7,
+  "planChecked": 12,
+  "ownerFilesRead": 22,
+  "fullJointFilesRead": 59,
+  "partialJointFilesRead": 21,
+  "reviewedFiles": [
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasApiException.cs",
+      "scope": "主责全文",
+      "sha256": "341cca45b685a4aaf04d262433411c2ae82de1224a1c7a10f8bae9eb69588812",
+      "lines": 40
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasClient.Management.cs",
+      "scope": "主责全文",
+      "sha256": "ac0169e49a225fe1e99cb8b55b40d9935e0672fc9a3958f9fb33969512687ecf",
+      "lines": 154
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasClient.cs",
+      "scope": "主责全文",
+      "sha256": "1ff3824f2fbbad9e6eeb78b4de9eb4a86a8502e54aeb2b802b701e858c722feb",
+      "lines": 205
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasEndpoint.cs",
+      "scope": "主责全文",
+      "sha256": "25d705b5f5db0329742835b5c768906bad72378e84e3becc37ae52fef97f24a1",
+      "lines": 68
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasFilters.cs",
+      "scope": "主责全文",
+      "sha256": "f245cbb9b7686c930f1cd4d8348cbbc3dfcd432db2bd1d983732059ea667d10d",
+      "lines": 197
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasHttp.cs",
+      "scope": "主责全文",
+      "sha256": "a372b690efcf5a2cf308164a0dc2ef712b376a0160643f360388f0ff878ca91b",
+      "lines": 136
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasItemActions.cs",
+      "scope": "主责全文",
+      "sha256": "fc8083f6c20f747e74316776e313420a430beff305a1628ece282d8ec229a526",
+      "lines": 169
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasLibraryInput.cs",
+      "scope": "主责全文",
+      "sha256": "eb526962730ab815f4619d70d85c2da25a6419b14018189bcd68a51d6142889d",
+      "lines": 93
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasLibraryQuery.cs",
+      "scope": "主责全文",
+      "sha256": "5d315a60409077f78b20ac7afc38284a8aa258f9fe31bbf995c8aa78046dc5d8",
+      "lines": 48
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.Models.cs",
+      "scope": "主责全文",
+      "sha256": "24769532656e256e5517dc5ce6ea3366dff63a14eb6d295510d9149dcbd63f2e",
+      "lines": 359
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.cs",
+      "scope": "主责全文",
+      "sha256": "d12574317cb8727bd9ff66212925cb330835ece2d28f93999e37fad80bd5dd92",
+      "lines": 326
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasMetadataEdit.cs",
+      "scope": "主责全文",
+      "sha256": "469955a9c1d8f66b7c8e503c6d87448893ba4fcdfcb6b2e7d8218b36339dfd9f",
+      "lines": 109
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasPlaybackSelection.cs",
+      "scope": "主责全文",
+      "sha256": "7500c64c6fca80ba6f4e45b7fece4bdc13ba1451ae99f7296e42249bb3e7e434",
+      "lines": 70
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasSigner.cs",
+      "scope": "主责全文",
+      "sha256": "6a25534f5c35dca68f30de576858551a3a2aa80fe647edaa7c57f3f0a233f59f",
+      "lines": 47
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasSortCatalog.cs",
+      "scope": "主责全文",
+      "sha256": "61e2823ea2adaddd45162edc74c54be6df10e397d60a449e719d358a6bbfcd33",
+      "lines": 23
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexApiException.cs",
+      "scope": "主责全文",
+      "sha256": "4521b0ecb0cf820930bddf2b5b5fe921d8e6e6b603b6c5ac1a1a04b7dcae3c22",
+      "lines": 31
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexClient.cs",
+      "scope": "主责全文",
+      "sha256": "c94f17113932fb03ebc2e9abf070c6071214b2c2004f51dce32f999df05ddd9f",
+      "lines": 179
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexEndpoint.cs",
+      "scope": "主责全文",
+      "sha256": "e67f28d8f79abfdc031fb0ea69371febcbd70154bbce5c66c035e78baa40d1d6",
+      "lines": 146
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexHttp.cs",
+      "scope": "主责全文",
+      "sha256": "90f1e7ceeee39bb19f37bcb6fe9ab360618ff022cd80f3f92a11499b1eb2bac3",
+      "lines": 210
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexMediaAdapter.Models.cs",
+      "scope": "主责全文",
+      "sha256": "c6e97f824a604ed2afbc3db6b32870c825ffebd7570b6ee86521bbdc3644fc59",
+      "lines": 343
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexMediaAdapter.cs",
+      "scope": "主责全文",
+      "sha256": "c562713d7bb961444468e4208100eb750af8c47ae7bad63fca32c58a053f932c",
+      "lines": 318
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexPlaybackSelection.cs",
+      "scope": "主责全文",
+      "sha256": "96459643957d0dfd40d9876d3ca0523d9863813ee39b71428bc81dce2f94e43e",
+      "lines": 39
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.LibraryBrowse.cs",
+      "scope": "联审全文",
+      "sha256": "53a8fe8ff5727aed95bb1df55f83d12cc01e3aa829b3282b1e99833b4884f2dc",
+      "lines": 51
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.Protocol.cs",
+      "scope": "联审全文",
+      "sha256": "2049ee83da9c0d7a357661c04c93f5536dee2f9658b7838de12fa8a6102c13b9",
+      "lines": 57
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyServerAddress.cs",
+      "scope": "联审全文",
+      "sha256": "f1717b186c115987a8b582a49291b84372f421661991ebb2a3f0ef825a8a443f",
+      "lines": 90
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+      "scope": "联审全文",
+      "sha256": "1e329290979a7ecc3868772fb45b60bf2358f06b98da3dba51f9f96cc830fae6",
+      "lines": 180
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+      "scope": "联审全文",
+      "sha256": "ea7931946e0cdcee210fd1736136f69fdb708b193ed02974cee74051f95d8fa5",
+      "lines": 104
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemMenu.cs",
+      "scope": "联审全文",
+      "sha256": "ad74d922baf1051d5e611094d5a92bbb1087cf23089780f8a32792f81118e417",
+      "lines": 492
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemUserStateOrder.cs",
+      "scope": "联审全文",
+      "sha256": "9a20c6a6e6a10407df231b900c91da5ad0c051c227dcaa713a31b501cfd40f2e",
+      "lines": 142
+    },
+    {
+      "path": "src/Momoka.Core/Emby/MediaServerKind.cs",
+      "scope": "联审全文",
+      "sha256": "715fe494275237bceffb304fb928d230dfe648317ef6ea4780dc3e22b17f30f8",
+      "lines": 53
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ResumeRow.cs",
+      "scope": "联审全文",
+      "sha256": "b7d3ce6cc7ba32073dda85b49e622f9a6d4a5fdac579006a7497411b3cf2477a",
+      "lines": 36
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ServerAccess.cs",
+      "scope": "联审全文",
+      "sha256": "0ba708827e799b8a4d4230276a6d929f675fe7f88ff03b9d4ec4a0f2ac0e1c47",
+      "lines": 75
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvTrackMap.cs",
+      "scope": "联审全文",
+      "sha256": "7aabc0567f0540bd2c4bb639e24d3a6390e1588fd76715bd124e7390f20cdac6",
+      "lines": 138
+    },
+    {
+      "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+      "scope": "联审全文",
+      "sha256": "c73553f62648c4e59dd23b39267b74fb173b8d094a3cf413739b98baac0e6356",
+      "lines": 315
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasAdminRows.cs",
+      "scope": "联审全文",
+      "sha256": "f90ee10dee517598c1bcccb57719e6af56280afd95098a9591e35a2c94a1308e",
+      "lines": 104
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasAdminViewModel.cs",
+      "scope": "联审全文",
+      "sha256": "6565b05fed3cb6c792dcbd5c66b73bccc2613380bc0d3598555edaa85750b98f",
+      "lines": 12
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasSessionViewModel.cs",
+      "scope": "联审全文",
+      "sha256": "92d28cf848cd172cb06d849721ffc2098d5bd4c9b85b091a37c737cb06041781",
+      "lines": 201
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasUsersViewModel.cs",
+      "scope": "联审全文",
+      "sha256": "43a47e180051d293e341b4cd08acb9889309049c09a0df38089042832e40d1be",
+      "lines": 239
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/ResumeSlot.cs",
+      "scope": "联审全文",
+      "sha256": "b54147e55922e847bd674aa3b9cf25115cd9f92e8ab9a7bcbfed2b079b74c4b9",
+      "lines": 75
+    },
+    {
+      "path": "tests/Momoka.FnNasDefaultPermissionTests/Momoka.FnNasDefaultPermissionTests.csproj",
+      "scope": "联审全文",
+      "sha256": "07a024bb7bea2d51a3e6fc749fa676afc15d571f28976740275e7877f171a648",
+      "lines": 20
+    },
+    {
+      "path": "tests/Momoka.FnNasDefaultPermissionTests/Program.cs",
+      "scope": "联审全文",
+      "sha256": "32835ad5dfee2e0821d39233e266fe36db9159d516385da780067156150a39c6",
+      "lines": 658
+    },
+    {
+      "path": "tests/Momoka.FnNasDefaultPermissionTests/README.md",
+      "scope": "联审全文",
+      "sha256": "0dc41f4a9b6e7a0f287e8934e0b5b789f836285ce35889b1f99af3b5c1679074",
+      "lines": 44
+    },
+    {
+      "path": "tests/Momoka.FnNasDefaultPermissionTests/UiEnums.cs",
+      "scope": "联审全文",
+      "sha256": "20bfa8b64e7cd08e54366754574e87c10f52edf1a41beac699a975c55c6931dc",
+      "lines": 10
+    },
+    {
+      "path": "tests/Momoka.FnNasErrorClassificationTests/Momoka.FnNasErrorClassificationTests.csproj",
+      "scope": "联审全文",
+      "sha256": "f3e24bd6eaf898ea72cdba8b161fa33badf245bbbfa4374e7df1e2763028e8ab",
+      "lines": 14
+    },
+    {
+      "path": "tests/Momoka.FnNasErrorClassificationTests/Program.cs",
+      "scope": "联审全文",
+      "sha256": "50ff161fdce0a37aeeac185b2e3af51bf71aab99f570c883695cafe12b7f20bb",
+      "lines": 113
+    },
+    {
+      "path": "tests/Momoka.FnNasErrorClassificationTests/README.md",
+      "scope": "联审全文",
+      "sha256": "2a94eefbaa8fadb8e6d0ba3215fcc831179df5ff7b711bc5652874b24e8aff20",
+      "lines": 28
+    },
+    {
+      "path": "tests/Momoka.PlexAffordanceTests/GenrePageContract.cs",
+      "scope": "联审全文",
+      "sha256": "2a13f7b4eb1f39c35cce0d2fb5715e1a1fb495ac512cac39b9aa56d1d961685e",
+      "lines": 86
+    },
+    {
+      "path": "tests/Momoka.PlexAffordanceTests/InlineBoundaries.cs",
+      "scope": "联审全文",
+      "sha256": "449730a5473a1e5b722f81ddb2d60f4dd13538aa8d06de5be9e62df702674c5f",
+      "lines": 17
+    },
+    {
+      "path": "tests/Momoka.PlexAffordanceTests/Momoka.PlexAffordanceTests.csproj",
+      "scope": "联审全文",
+      "sha256": "3ed8972bc247e69112f5974502b459cfb76f20e4a2662499d61da7e4035a958f",
+      "lines": 72
+    },
+    {
+      "path": "tests/Momoka.PlexAffordanceTests/PlexAffordanceFixture.cs",
+      "scope": "联审全文",
+      "sha256": "f4e0b751c86564427df39518090d5a4a3ffa8f4df3c85fc0c8bb24732f2994d5",
+      "lines": 397
+    },
+    {
+      "path": "tests/Momoka.PlexAffordanceTests/PlexAffordanceTests.cs",
+      "scope": "联审全文",
+      "sha256": "ac4cfb5a19de3884075fa00ec649589a8892130b7d4e75972cfd198c15f05ff5",
+      "lines": 571
+    },
+    {
+      "path": "tests/Momoka.PlexAffordanceTests/README.md",
+      "scope": "联审全文",
+      "sha256": "7737279c36686b7de211da9bc1eaa5f9bd56063010fdf0cfb83639fae8f7dfa0",
+      "lines": 76
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/DialogBoundaries.cs",
+      "scope": "联审全文",
+      "sha256": "8055584eba70264ceb5a22d2ab7b9277179221b62a077edfce6abc8937daa3e7",
+      "lines": 128
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/DisplaySettings.cs",
+      "scope": "联审全文",
+      "sha256": "d5530cebb85441319d385c6714da7271e36e9d34e66605c8cf7771a0a35ef747",
+      "lines": 57
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/FnNasArtwork.cs",
+      "scope": "联审全文",
+      "sha256": "7bed91e16f4d13782a18316cc7937394aed83e279f168023c50002c700ac439c",
+      "lines": 75
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/MetadataCommandsBoundary.cs",
+      "scope": "联审全文",
+      "sha256": "a4883060314b42469e0f69a5b552c87489f5a3767bd40496f51cd74ea2eddfe3",
+      "lines": 16
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/MetadataEditor.cs",
+      "scope": "联审全文",
+      "sha256": "e6dba3063248fc2d1e310e941b86495bfc352a1003ac3b0df8034611c6a8d862",
+      "lines": 100
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/Momoka.ServerSettingsReviewTests.csproj",
+      "scope": "联审全文",
+      "sha256": "d653620b41bcd2315782522338fa296322d1d27373987ad37e8a9dda63f10188",
+      "lines": 81
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/NotificationEditor.cs",
+      "scope": "联审全文",
+      "sha256": "4f40b4c9ccf3a786c9e690d2e8d960dca45082562b0b5c67435bddf788261b4d",
+      "lines": 62
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/PermissionCache.cs",
+      "scope": "联审全文",
+      "sha256": "88231e8edfdcfaff6d44d0c6d609708a35a70abbdc0a6db498e24d79c28580ba",
+      "lines": 84
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/PlexDiscovery.cs",
+      "scope": "联审全文",
+      "sha256": "7ea3c94278bfb80232e9773ccdac5512da75302aecc499decbef607e70211e05",
+      "lines": 63
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/PlexSearch.cs",
+      "scope": "联审全文",
+      "sha256": "71b48cf5a441094fc2789ed68fc0f8820c5a1c153c7cd9460d46915bf2688268",
+      "lines": 87
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/Program.cs",
+      "scope": "联审全文",
+      "sha256": "b38618c1dc5a0fa9c21fe2db79e5b63200a619b9e3b0b6f76c91e8994348ba79",
+      "lines": 156
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/README.md",
+      "scope": "联审全文",
+      "sha256": "59f710b6740912639537c5af732dae50a7660dbe646c719f12233afd923fb9b4",
+      "lines": 21
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/ReviewEditorProbeContract.cs",
+      "scope": "联审全文",
+      "sha256": "0a3e4f262e66fe2fea232dc0d6f59b1cab395e98ae2565df47d0f9010948440d",
+      "lines": 20
+    },
+    {
+      "path": "tests/Momoka.SubtitleDialogTests/UiQueue.cs",
+      "scope": "联审全文",
+      "sha256": "db471cc4c3cbaacf289a10de8e156d53e9f05651b377ff032b5de10f170ebafe",
+      "lines": 54
+    },
+    {
+      "path": "tests/Momoka.Tests/DeepBrowseProtocolTests.cs",
+      "scope": "联审全文",
+      "sha256": "b612ab8b56138ab494dda9525e8cc85cf3622650b7b7c7a04a3b6a97ad41753d",
+      "lines": 163
+    },
+    {
+      "path": "tests/Momoka.Tests/FnNasLibraryEditorTests.cs",
+      "scope": "联审全文",
+      "sha256": "2d3d918c795cd0ba87d3cb1adf8cb0c6e101f54d4ecca9bcb03893384214dc2f",
+      "lines": 348
+    },
+    {
+      "path": "tests/Momoka.Tests/FnNasLibraryInputTests.cs",
+      "scope": "联审全文",
+      "sha256": "079d98ff13233e6640df771266b5706eb41cd5a152daa74c4e5a13c0270d38bc",
+      "lines": 56
+    },
+    {
+      "path": "tests/Momoka.Tests/FnNasMediaTests.Recovery.cs",
+      "scope": "联审全文",
+      "sha256": "40ebb319369d15aa505cfb120397e9fc749cb482988d448e80615c976b7f934f",
+      "lines": 132
+    },
+    {
+      "path": "tests/Momoka.Tests/FnNasMediaTests.cs",
+      "scope": "联审全文",
+      "sha256": "cc42375a1e11a7d96f8813422bfec25dfd766291370f9e8486d940df4e45dcc2",
+      "lines": 959
+    },
+    {
+      "path": "tests/Momoka.Tests/FnNasProtocolTests.Transfer.cs",
+      "scope": "联审全文",
+      "sha256": "8ee49419cb4edad9e7c7e8528ef353bfbdf2445983bebd65e2e8a782f23fd647",
+      "lines": 90
+    },
+    {
+      "path": "tests/Momoka.Tests/FnNasProtocolTests.cs",
+      "scope": "联审全文",
+      "sha256": "1b139d157bf834ebcbb181a51670583f0a3dc3cd2912557f45369f99e2610506",
+      "lines": 218
+    },
+    {
+      "path": "tests/Momoka.Tests/FnNasUserStateWriteTests.cs",
+      "scope": "联审全文",
+      "sha256": "295dbfd0b6b226a7a6e483e0f140c5642ccba9de03e9b5942b95eb759af3c7fe",
+      "lines": 388
+    },
+    {
+      "path": "tests/Momoka.Tests/ItemUserStateOrderTests.Boundaries.cs",
+      "scope": "联审全文",
+      "sha256": "e9bf0573adfde6215d50c3ca9297b9fc404d6f89e8d3edf4a5e010a8b6461467",
+      "lines": 181
+    },
+    {
+      "path": "tests/Momoka.Tests/PlexMediaTests.Libraries.cs",
+      "scope": "联审全文",
+      "sha256": "4c7e1a86e01439328c42615de5d58cea0494aef88306d238b8afdb1dffe1404c",
+      "lines": 177
+    },
+    {
+      "path": "tests/Momoka.Tests/PlexMediaTests.cs",
+      "scope": "联审全文",
+      "sha256": "598053d7ce2b8ec6d4cf0e1a6c0f60833fb1c4c96765a300128a2478b76cde28",
+      "lines": 300
+    },
+    {
+      "path": "tests/Momoka.Tests/PlexProtocolTests.Endpoint.cs",
+      "scope": "联审全文",
+      "sha256": "965ae9ededd6f2ad7470ffbcbd6a262e034b727bae7a277391d17df985c6b5f2",
+      "lines": 94
+    },
+    {
+      "path": "tests/Momoka.Tests/PlexProtocolTests.cs",
+      "scope": "联审全文",
+      "sha256": "df931bd02f99e604ab85173bd63ed066f82397517e965e900d98d366840e7195",
+      "lines": 201
+    },
+    {
+      "path": "tests/Momoka.Tests/PlexV2LoginTests.cs",
+      "scope": "联审全文",
+      "sha256": "a21b6eca7daf8ae332911353eee4b2b280bf1dcd0fb8ac20e9fc80f1c066e184",
+      "lines": 431
+    },
+    {
+      "path": "tests/Momoka.Tests/TestHarness.cs",
+      "scope": "联审全文",
+      "sha256": "4c1d3fc967eb2a8cddb728466e21ed79c0ffbb366e5eaff44d3701bc4aa89435",
+      "lines": 154
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+      "scope": "ServerProfile/AccountProfile 94-159；仅来源与保存字段，不含schema27迁移",
+      "sha256": "5cf584338cdb16b8f34d087543a3cc87ceb563c58b224b673d630dc87685078a",
+      "lines": 1688
+    },
+    {
+      "path": "src/Momoka.Shell/Composition/ShellServices.cs",
+      "scope": "Build 44-97的设置、DeviceIdentity、共享Session注册",
+      "sha256": "abdb27efff5c3ec7c431a2bdb260e9132fd884004cba9dac191f9035156dc443",
+      "lines": 218
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+      "scope": "两产品连接/适配分支、浏览/详情/季集/NextUp、状态写读、图像/URL、系统信息和播放上报；业务全义仍归其主责",
+      "sha256": "872e2d283f3e7e25a761cd3bb16aab8b06abf104e126c4b7427ee5670d3b9770",
+      "lines": 1185
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySession.cs",
+      "scope": "密码确认、恢复身份、CurrentPermissions/ReplaceClient、Execute/Invoke与重认证及恢复校验",
+      "sha256": "48e5a109f693a9512263d77595c26fd5d598a0f3dfcaf0856112c9040ec450f4",
+      "lines": 829
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+      "scope": "FnNas/Plex HTTP客户端持有与Dispose、调用边界",
+      "sha256": "46d41a7948cf6517f44eb008b08a2e785c1f8d5d50d73bdb780fe3d0a71eb201",
+      "lines": 484
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyResponses.cs",
+      "scope": "完整EmbyConnection类型176-252",
+      "sha256": "1d7446c6df38694bc839d3dcfc2ca2685de6b6d3eb44e4e402f90e2638d55778",
+      "lines": 437
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyItem.cs",
+      "scope": "TracksUserState/IsWatched/ResumeTicks/ProgressFraction/DefaultMediaSource",
+      "sha256": "d87c8f96be2806fc0f60681e3419f1a5edcd832304a139c9171ac5bc6137b69f",
+      "lines": 1053
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemDetail.cs",
+      "scope": "MediaInfo及Bitrate/Track格式化",
+      "sha256": "9f4fd180c482aba4d2f9418b647dd2f5c629a18c2e57f1724c6d44655f844470",
+      "lines": 1182
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackPlanner.cs",
+      "scope": "Plan的源/轨道/外部字幕与FnNas/Plex选择，时长101-122",
+      "sha256": "e274d7ecefecf92ecd25c870040d9bdff3bc75b28b12c3fb997316a3082b8599",
+      "lines": 269
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.Reporting.cs",
+      "scope": "324-389终止时间、已看阈值与报告选择",
+      "sha256": "3f684ec32a94968579e4af2d45f6d4ae5dd496eef5398a72f4bf54e88f76d9af",
+      "lines": 412
+    },
+    {
+      "path": "src/Momoka.Core/Playback/TrackLanguagePriority.cs",
+      "scope": "轨道语言匹配消费入口",
+      "sha256": "ac05ead24419b50d008b08ef6fa9c150211dbd239544f0bd5000f3c7ec6b4ccb",
+      "lines": 489
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+      "scope": "Build/Invoke来源权限、Toggle/SetWatched/Favorite、Patch、RefreshFnNasUserState、Run/RunUserState/RunAsync",
+      "sha256": "5c4005193e4ac48517ca80dc1bb94ac3c3ab98efa69405eed21f2081354539de",
+      "lines": 806
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+      "scope": "GuardAsync/AskAsync/TellAsync/FetchAsync/ReloadAsync 38-98",
+      "sha256": "55b94767455ac916c78bd77d1f2b5b1ac0a1a6c510af773330ace3bbb117ce1a",
+      "lines": 632
+    },
+    {
+      "path": "src/Momoka.Shell/Views/CardItem.cs",
+      "scope": "scope构造、UserStateOrder/ApplyUserState、Watched/进度/收藏显隐、RefreshUserData/UserStateGroup；图片释放仅必要入口",
+      "sha256": "ad510e9fb61c0ee178a250672094158611e0d27a9d4a6cdcf7dc00303428d340",
+      "lines": 1053
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+      "scope": "来源能力/Attach/Load/Preview/Apply状态/AnnounceAffordances、Start、ToggleWatched/Favorite、Cancel/Dispose",
+      "sha256": "985eb39520872f3707ea8c361f0d42412c53c847c416eb7e29c3dbd7d18f4276",
+      "lines": 4146
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "scope": "产品管理目录、SelectedSourceKey/OpensFnNasPage、RefreshAdministration与Activate/Cancel/Dispose、来源目录与能力守卫",
+      "sha256": "391bba844ab6496ff68de2ac595060b899c106e3932334cf8c91d63ff5b45948",
+      "lines": 3176
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasLibrariesViewModel.cs",
+      "scope": "98-224库草稿、IPTV来源保留/替换、保存及删除入口",
+      "sha256": "ac5bdb6e1ad0760771b5eb20b2dbfd15085e7d1bc270131359a0eb9da312f495",
+      "lines": 396
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.xaml.cs",
+      "scope": "OnNavigatedTo/OnViewModelChanged/GenreRead/PaintGenres/Release",
+      "sha256": "a7de23d139468282fb11e1470645f1a10281cf310e6a611ecf23fd15cebd735a",
+      "lines": 2576
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+      "scope": "ShowHosted 667-758、CurrentPage及ReleaseHosted入口",
+      "sha256": "0baa77b31226bc74afa1c04a154200469d1b18489c84adeeeb9110956f7e9678",
+      "lines": 963
+    },
+    {
+      "path": "tests/Momoka.CurrentPermissionSnapshotTests/Program.cs",
+      "scope": "179-324,437-534管理员权限寿命与确认期间切换；其余未全文",
+      "sha256": "f951ec43433a0e72f425e81586b82d491e0b9447a55dbdbd737e2ede3f20bfed",
+      "lines": 709
+    },
+    {
+      "path": "tests/Momoka.CurrentPermissionSnapshotTests/README.md",
+      "scope": "权限专项边界和运行说明",
+      "sha256": "01af1ec58f402adf02f97bb6fb2d60683dee1fbe9aea6f00b7ba7a3e7886ed73",
+      "lines": 67
+    }
+  ],
+  "reviewedFilesAbsentFromOriginalLedger": [],
+  "findings": {
+    "P1": 0,
+    "P2": 5,
+    "fixed": 0
+  },
+  "builds": [
+    {
+      "log": "main-build.log",
+      "exit": 0,
+      "warnings": 0,
+      "errors": 0,
+      "sha256": "143b055742e8ff27673d0562c5e78857af41711aed8d0dbfe00f2240d933af55"
+    },
+    {
+      "log": "shell-build.log",
+      "exit": 0,
+      "warnings": 0,
+      "errors": 0,
+      "sha256": "3566e204b09ebe95ca0094b2fdff60e2f38fb5e3bbfe2836767316a6fd10162c"
+    },
+    {
+      "log": "Momoka.FnNasErrorClassificationTests-build.log",
+      "exit": 0,
+      "warnings": 0,
+      "errors": 0,
+      "sha256": "99d8ffba3b252363dac41f51003ca4b3d388a2b472627c986e387d6bf69e1324"
+    },
+    {
+      "log": "Momoka.FnNasDefaultPermissionTests-build.log",
+      "exit": 0,
+      "warnings": 0,
+      "errors": 0,
+      "sha256": "f6df576de86b40beb1fced3dd6398ba0fd3575b83aee6deeb893074becb25574"
+    },
+    {
+      "log": "Momoka.PlexAffordanceTests-build.log",
+      "exit": 0,
+      "warnings": 0,
+      "errors": 0,
+      "sha256": "09840e3503e3e32ee8c7fed5837fef93cffbef36daeea4878275c4d8f18c7445"
+    },
+    {
+      "log": "Momoka.ServerSettingsReviewTests-build.log",
+      "exit": 0,
+      "warnings": 0,
+      "errors": 0,
+      "sha256": "58791e6f0ea34cd684ef0e702227d57da215dcc2aacf17a2b3d6b3ae7ec68642"
+    },
+    {
+      "log": "runner-build.log",
+      "exit": 0,
+      "warnings": 0,
+      "errors": 0,
+      "sha256": "b881f0faa7147a97cb3ee7160a34745a7c2f9993547b71181012ac19d0fb2bc9"
+    },
+    {
+      "log": "repro-build-02.log",
+      "exit": 0,
+      "warnings": 0,
+      "errors": 0,
+      "sha256": "8a3f0bf39fd0109ba3d4cee4bd043313bb93202d4884ca4e4eae1bf7c6237bff"
+    },
+    {
+      "log": "repro-build-03.log",
+      "exit": 0,
+      "warnings": 0,
+      "errors": 0,
+      "sha256": "22058c1430161fb549b891267f237dc3a2622fa71b509e785e9ade0b327a2933"
+    },
+    {
+      "log": "repro-build-final.log",
+      "exit": 0,
+      "warnings": 0,
+      "errors": 0,
+      "sha256": "df24003a9dd184708077f0f0bf3628dd754abbdc2ecf3dc18ba2a876d9a78fef"
+    }
+  ],
+  "runs": [
+    {
+      "log": "fnnas.log",
+      "exit": 0,
+      "passed": 121,
+      "failed": 0,
+      "skipped": 0,
+      "sha256": "8d9d3d9b981c737deead848c1f84050617be2c73e3f22cb733a8f530fda889b7"
+    },
+    {
+      "log": "plex.log",
+      "exit": 0,
+      "passed": 148,
+      "failed": 0,
+      "skipped": 0,
+      "sha256": "0ebf3497797ebd39b580a692328fa2434ac7395c101d828c0d558cc3fd1b0ef3"
+    },
+    {
+      "log": "error-classification.log",
+      "exit": 0,
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0,
+      "sha256": "0732ef1926dbc10f4f0cd9ea69d786b69d23fbb2c4cc392882d6a40d4919922f"
+    },
+    {
+      "log": "default-permission.log",
+      "exit": 0,
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "sha256": "8201af72667f15edbbca6186dfd5bb3ac73fa54384c8051244b2da4038c6ca47"
+    },
+    {
+      "log": "plex-affordance.log",
+      "exit": 0,
+      "passed": 68,
+      "failed": 0,
+      "skipped": 0,
+      "sha256": "026a4d937a0cb3f906a31a6a61999c447c4e85ebad7497e15e20695fa69d5903"
+    }
+  ],
+  "crossRun": {
+    "log": "cross.log",
+    "exit": 0,
+    "scenarios": {
+      "PlexDiscovery": 7,
+      "PlexSearch": 10,
+      "FnNasArtwork": 3
+    },
+    "fullProjectEntryExecuted": false
+  },
+  "repro": {
+    "log": "repro-final.log",
+    "results": "repro-final/repro-results.json",
+    "exit": 0,
+    "cases": 11,
+    "meaning": "反例与对照成立，不是产品已修"
+  },
+  "retainedFailures": [
+    {
+      "log": "repro-build.log",
+      "exit": 1,
+      "errors": 2,
+      "cause": "临时runner缺required字段及内部构造器调用"
+    },
+    {
+      "log": "repro.log",
+      "exit": -532462766,
+      "cause": "临时runner误写play/info路径，未知端点被拒绝"
+    },
+    {
+      "log": "document-check.log",
+      "exit": 1,
+      "cause": "首次文档检查拒绝错误源码锚点，修正537为538及其它锚点后通过"
+    }
+  ],
+  "assemblies": [
+    {
+      "path": "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll",
+      "sha256": "9088af403764695f2412c0a35516fbcb34ee25912e7fc3912ed469696a4a9b90"
+    },
+    {
+      "path": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
+      "sha256": "5333fba1ae9be637ec411bae321be33aaa778cff6e1186178844ac2a94cece79"
+    },
+    {
+      "path": "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.dll",
+      "sha256": "c96ac621c0588b54e6fdc26c9069527b225e3801fa42f4ddad7488fd07f5b073"
+    },
+    {
+      "path": "tests/Momoka.FnNasErrorClassificationTests/bin/Release/net10.0/Momoka.FnNasErrorClassificationTests.dll",
+      "sha256": "f671d2603b4f8db8d5a04326a9d226d97913083c2ed72cf571258efd38ea39fd"
+    },
+    {
+      "path": "tests/Momoka.FnNasDefaultPermissionTests/bin/Release/net10.0/Momoka.FnNasDefaultPermissionTests.dll",
+      "sha256": "f6022ad73278d767b6c855572b066accc9bd57830159dbc2265827275e333daf"
+    },
+    {
+      "path": "tests/Momoka.PlexAffordanceTests/bin/Release/net10.0/Momoka.PlexAffordanceTests.dll",
+      "sha256": "30021eed63aa4455a7bd9ef6596404217aa5b9818b0d85058bf4bc2feaa832e0"
+    },
+    {
+      "path": "tests/Momoka.ServerSettingsReviewTests/bin/Release/net10.0/Momoka.Tests.dll",
+      "sha256": "30f075d766aeb74d6dd1163aa93b105e25ce035b2be08350fb08697fee1425c1"
+    },
+    {
+      "path": "artifacts/review/6ba7a7f/R05/20261106-first/runner/bin/Release/net10.0/runner.dll",
+      "sha256": "6e9c6d84304b2e26ebb79518777a7f177a56e0654d761bc94682d9de7ddfcb30"
+    }
+  ],
+  "upstream": {
+    "url": "https://app.plex.tv/desktop/js/main-8792-0fadf59092c873ab638b-plex-4.163.0-8246fd2.js",
+    "version": "4.163.0 / 8246fd2",
+    "sha256": "bdb3e4ce5d49b5eb6be48e11a4aea0f33a357561f8bf1e1303d31255f701cd97",
+    "localFile": "artifacts/review/6ba7a7f/R05/20261106-first/plex-desktop-4.163.0.js",
+    "markers": [
+      {
+        "name": "bitrate-unit",
+        "unicodeCodePointOffset": 772841,
+        "utf16Offset": 772841,
+        "snippet": "stURL:\"URL\",codecID:\"Codec ID\"},et={frameRate:\" fps\",dialogNorm:\" dB\",bitrate:\" kbps\",samplingRate:\" Hz\"},tt=function(e,t){const r={properties:[]};for(const n in e){if(n===t||-1!==w().indexOf(Ye,n))continue;let i=Xe[n],s=e[n];\"level\"===n&&(s=qe(s,e.codec)),Ze[n]&&(",
+        "snippetSha256": "03612119bebdc1ce69377fe928cc8f96ab21ad4859544549fe6676821ba43de5"
+      },
+      {
+        "name": "container-write",
+        "unicodeCodePointOffset": 279820,
+        "utf16Offset": 279820,
+        "snippet": "ction E(e,t,r){const n=(0,d.EB)(e,t);if(n)if((0,u.SE)(n.get(\"type\"))){n.set({viewedLeafCount:r?n.get(\"leafCount\"):0});const i=(0,l.A)(c.Xp,n.get(\"childrenKey\"),t.providerEntityID||t.serverEntityID),s=(0,d.N6)(e,{metadataListEntityID:i});s&&s.get(\"metadataItems\").forEach(n=>{const i=S(b({},t),{met",
+        "snippetSha256": "1eed043ab402e8e0de029ca98c698c68934cb7a2640e72198db3c44a426b5348"
+      },
+      {
+        "name": "container-type",
+        "unicodeCodePointOffset": 561237,
+        "utf16Offset": 561237,
+        "snippet": ")=>b,Kq:()=>p,M:()=>P,MOVIE:()=>a,Nt:()=>T,Ot:()=>d,Ql:()=>w,Rj:()=>m,SE:()=>k,SEASON:()=>l,Zr:()=>y,_O:()=>o,nP:()=>f,oV:()=>v,s$:()=>A,vk:()=>O,vo:()=>h,wv:()=>S});var n=r(46772),i=r(52483),s=r(79393);const a=\"movie\",o=\"show\",l=\"season\",c=\"episode\",d=\"artist\",u=\"album\"",
+        "snippetSha256": "c93fd78a1ef712cd1b6938a6e505eaf0f93608768418fec087447e213a7f76a4"
+      },
+      {
+        "name": "container-test",
+        "unicodeCodePointOffset": 563990,
+        "utf16Offset": 563990,
+        "snippet": "(e),n=C(e),i=[...t,r];return n?D(n.id,i):i}function M(e){return!!C(e)}function k(e){const t=E.get(e);return!!t&&t.mediaType===s.x3}},27433:(e,t,r)=>{\"use strict\";r.d(t,{FY:()=>n,G_:()=>i,vo:()=>s});const n=\"audio\",i=\"video\",s=\"photo\"},49684:(e,t,r)=>{\"use strict\";r.d(t,{Ay:()=>h,BI:()=>p,Ii:()=>m,TV:()=>c,oT:(",
+        "snippetSha256": "26c288e3196cf0a762ab1b73ccf0a8894db0502fdce4d518a0e1865e3198816d"
+      }
+    ],
+    "liveServerVerified": false,
+    "downloadCaveat": "curl ssl-no-revoke保留证书/主机校验；不证明在线撤销检查"
+  },
+  "fnnasUpstream": "本轮未取得官方前端原件，历史0.9.8/0.8.43仅定位，未重验当前上游一致性",
+  "missingExecution": [
+    "完整主测试/全方案",
+    "ServerSettingsReview正式整入口",
+    "真实WinUI/UIA/截图",
+    "真实账号/PMS/FnNas/DPAPI/管理写/字幕写/播放",
+    "发布/签名/安装/上传"
+  ],
+  "commands": {
+    "build": "C:/Users/89400/.dotnet/dotnet.exe build <project> -c Release --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false",
+    "restore": "C:/Users/89400/.dotnet/dotnet.exe restore <project> --source C:/Users/89400/.nuget/packages --disable-parallel -p:NuGetAudit=false -m:1 -p:BuildInParallel=false",
+    "runner": "dotnet E/runner/bin/Release/net10.0/runner.dll <absolute-root> <evidence-root> fnnas|plex|cross|repro",
+    "specialties": "dotnet <current-specialty-DLL>；DefaultPermission追加root；PlexAffordance追加当前ShellDLL及root"
+  },
+  "buildSchedulingNote": "产品/专项构建串行；Shell编译中曾编译仅引用Core DLL的临时runner，随后核Core和被测程序集哈希一致；未并行修改产品",
+  "sdk": "10.0.400",
+  "runtime": "10.0.11",
+  "sourceAnchorsChecked": 14,
+  "localLinksChecked": 4,
+  "ledgerRowsUpdated": 102,
+  "documentFilesChecked": 8
+}

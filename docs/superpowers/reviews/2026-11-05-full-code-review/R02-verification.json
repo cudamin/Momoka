@@ -1,0 +1,182 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "base": "6ba7a7f99e2b3840f68d63ff1c705b44659e7697",
+  "startHead": "988a0a596a9ebae536e265f4433291ff46beefeb",
+  "status": "document-and-evidence-consistency-passed",
+  "productCodeChanged": false,
+  "ledgerBaseFiles": 1876,
+  "unchangedFileHashesChecked": 1874,
+  "r02OwnerFilesRead": 24,
+  "fullJointFilesRead": 41,
+  "partialJointFilesRead": 20,
+  "matrixProjects": 68,
+  "matrixEntriesUpdated": 8,
+  "planChecked": 9,
+  "findingCount": 6,
+  "productFindingsP2": 4,
+  "testMaintenanceFindingsP3": 2,
+  "builds": [
+    {
+      "project": "Momoka.Shell",
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "log": "Momoka.Shell-build.log"
+    },
+    {
+      "project": "Momoka.Tests",
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "log": "Momoka.Tests-build.log"
+    },
+    {
+      "project": "Momoka.SettingsPersistenceTests",
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "log": "Momoka.SettingsPersistenceTests-build.log"
+    },
+    {
+      "project": "Momoka.SettingsDeferredSaveTests",
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "log": "Momoka.SettingsDeferredSaveTests-build.log"
+    },
+    {
+      "project": "Momoka.SettingsLifetimeTests",
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "log": "Momoka.SettingsLifetimeTests-build.log"
+    }
+  ],
+  "runs": [
+    {
+      "mode": "storage",
+      "total": 145,
+      "passed": 145,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0
+    },
+    {
+      "mode": "persistence",
+      "total": 42,
+      "passed": 42,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0
+    },
+    {
+      "mode": "deferred",
+      "total": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0
+    },
+    {
+      "mode": "lifetime",
+      "total": 55,
+      "passed": 55,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0
+    }
+  ],
+  "atomic": {
+    "complete": true,
+    "contractsExecuted": true,
+    "allRequiredContractsExecuted": true,
+    "scope": "all",
+    "productPassed": 35,
+    "productFailed": 0,
+    "productRequired": 35,
+    "productSelected": 35,
+    "productNotExecuted": 0,
+    "controlsRequired": 4,
+    "controlsNotExecuted": 0,
+    "controlsPassed": 4,
+    "controlsFailed": 0,
+    "skipped": 0,
+    "firstProductFailure": null,
+    "exitCode": 0,
+    "finishedAt": "2026-11-06T00:12:13.0424604+08:00"
+  },
+  "atomicEvidence": "tests/Momoka.AtomicFileWriteTests/outputs/20261106-000937-r02-review-a7a41d7bf42f47d8a8b5bf4d0171ac55",
+  "anonymousProductReproductions": 4,
+  "baselineBuild": {
+    "revision": "9f07bbddbc1795b9e426cb6a25d0650dd60c8d9c",
+    "warnings": 0,
+    "errors": 11,
+    "exit": 1,
+    "casesRun": 0
+  },
+  "dpapi": "synthetic-current-user-roundtrip-only",
+  "localLinksChecked": 12,
+  "locationAnchorsChecked": 11,
+  "evidenceRoot": "artifacts/review/6ba7a7f/R02/20261106-first",
+  "pauseAfter": "R02",
+  "nextPartition": "R03",
+  "notRun": [
+    "full-solution/full-main-suite",
+    "real-WinUI",
+    "real-accounts-or-servers",
+    "real-playback",
+    "publish/install/sign",
+    "cross-user-DPAPI"
+  ],
+  "newReportFiles": [
+    "R02.md",
+    "R02-verification.json"
+  ],
+  "documentHashes": {
+    "PROGRESS.md": "ef848440f6fefbf3f92adfde6138a72ef2c5000e4462aee454c60362fb545ea3",
+    "docs/superpowers/plans/2026-11-05-full-code-review.md": "9add05ba502f3f8624b0958772cc671145ec23f15d4f53a43b0c5d36f861b810",
+    "docs/superpowers/reviews/2026-11-05-full-code-review/R02.md": "57026385a0d895e7d7185e51b7cdb92bc46fbaaebf6553ab562bc04285d0693a",
+    "docs/superpowers/reviews/2026-11-05-full-code-review/file-ledger.jsonl": "c1ee85609ff9a3084fcd02deafbce3c4ec393e7012ced3482c011731db9a1c16",
+    "docs/superpowers/reviews/2026-11-05-full-code-review/shared-members.md": "366f582339766af0f3d0d9c97869445c7b8dd82f51fc86c636572b27b6882ddc",
+    "docs/superpowers/reviews/2026-11-05-full-code-review/validation-matrix.json": "8dd2b02d4715f2adcaf51c86b98cc97463e8d3a0e4307a8126d85d80c52c12aa"
+  },
+  "evidenceHashes": {
+    "atomic-wrapper.log": "655bce60a59a5f1e476aafcd4eadfe08c3914c298e5ac08d0c42cfe558e2a55d",
+    "baseline-build.log": "5b5b3d0aedaadcc00474ada970c18a72b6c1db5d2006ef8cd47064ab9ed08723",
+    "baseline-restore.log": "90a16ef21fd5f3d88a739a983eec4cd96697c3c3cda736893ad577ffaf40e86b",
+    "baseline-source/manifest.json": "e73ef3766e183480e2b9f2f81ef3e9e3d4c93c9204221b99145581ce670f061e",
+    "baseline-source/SettingsService.cs": "bb68c0b91e17f64145253261ee6aa5a01db98bd7559b33fa828d2219fc1b044e",
+    "baseline-source/SettingsStore.cs": "cd4f505f1e05ccf8a4de0396b4dcede5ac973c1b174f83716bf59f6c7d39a022",
+    "deferred-run.log": "1af895707d9cf9c64f67003a2d262689ca494fa146ffdf14d713f7d731b85282",
+    "extract_baseline.py": "eeff815dfee9f6125744a0b4323c33360bc3507f6bdbb872366714e04b1d357e",
+    "lifetime-run.log": "2e43bfade4859639a9add1e1a163dad459a5b8e51520cbcf6a023456213110e0",
+    "Momoka.SettingsDeferredSaveTests-build.log": "64157e208136fe640b9b633e685b7d835e32f3e9e6e690a998e57de2c5f2125d",
+    "Momoka.SettingsDeferredSaveTests-restore.log": "779b7fb23069f1299d60f9e14659ed9eb96df38250bcbb82515b232ead468e11",
+    "Momoka.SettingsLifetimeTests-build.log": "eda38a7228d0980fa73e3747bfed9d5b51ceb0684cad7bffab807fd939f9818d",
+    "Momoka.SettingsLifetimeTests-restore.log": "5edaa46e1f48206b0da9176cb5e29a1f5df6575febb9967c0991b48d45611f97",
+    "Momoka.SettingsPersistenceTests-build.log": "d24030ce77f049a074492bb05651392a47ca0b421e825663508b59cda814a984",
+    "Momoka.SettingsPersistenceTests-restore.log": "6d85b3860fb4c97518ceab55d935f25971a122f58d388a24ffc94ed4d6c35dd2",
+    "Momoka.Shell-build.log": "5ed59a08f682e2aa0e139bbf8496164b1470c050af19be6da7bc7ce5f11d93b1",
+    "Momoka.Shell-restore.log": "f67b4a769a9073f31056ca4d8c172231ce739f06bf8d3d4a713678c2b027cc30",
+    "Momoka.Tests-build.log": "400f840f3a7392be784cd2b589fb742a98a60523b500454e791ecb6be5757ca2",
+    "Momoka.Tests-restore.log": "481417524df2eb6b80915fd3f3da81ea6ef97602c85c759fea46c4be7a385c42",
+    "persistence-run.log": "b04586810f95517d564ca7e4de87380156cd52edcec979f3f013d51202f28594",
+    "ProtectedData-package-source.cs": "229387abaf1c73f26101b650f3523fe731533d15d2164095c5a50334d3d9bfc4",
+    "ProtectedData-v10.0.0.cs": "229387abaf1c73f26101b650f3523fe731533d15d2164095c5a50334d3d9bfc4",
+    "repro/Program.cs": "dbd2883f54d778f55cc496b87788d30a88c4a36476b3ceed27bf120dcbec394c",
+    "repro/repro.csproj": "0855c920530f9fbc1670f9389c09ad17c2e670b43d787656bbc45759c4dd4e09",
+    "repro-build.log": "19e5ab9568884954adf5507fa6e2f33b8454337d2766202e6813b54d44a191a7",
+    "repro-restore.log": "c1a6949e636ffd37959d5664e7d0d6759552896e257ab2bf230c37fc9a5fa0eb",
+    "repro-results/directory-copy/first/settings.json": "40193d1a8e05312e004384fe948f2cfb70e193106eaf8e9777faa2663ae11ecd",
+    "repro-results/directory-copy/second/settings.json": "40193d1a8e05312e004384fe948f2cfb70e193106eaf8e9777faa2663ae11ecd",
+    "repro-results/null-moviepilot/settings.json": "ff0859230a9cd50bbff5ed7d56044133e409fa4579b6e507acb5e52ce0a7c499",
+    "repro-results/results.json": "c7bfb4af52299fbf564fe692701991598179e63f1ea93259cadb828aad9fa14b",
+    "repro-run.log": "42056bfc5f89641d3534e44d3c4e94377890b5df210f40f690c6cf9e41137194",
+    "slider-results.json": "969ae50683e2473742521a10dfb0401d95fdb8bf3ddecb08b1e37262f0a477eb",
+    "storage-run.log": "ac7b24fbf094c6a79ecafed1859f38d2477fe14ecf6bcdd3613ca356b1de9c25",
+    "unhandled-exception.md": "492924dad7a3d9f8a34fc56c40c2bbe8c09bbb2cbfe9eb91c5bbe76fee209cca",
+    "update_review.py": "09f5a3bcff5dbd4fdadb6658b6dae7b848e537ee4033032698aad16e716d55e3",
+    "verify_r02.py": "6f87f434b5affa9da6572480838a070b9068d2a10478508ef6fc1df699d67dc6"
+  }
+}

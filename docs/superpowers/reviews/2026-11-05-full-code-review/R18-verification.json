@@ -1,0 +1,4465 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "status": "R18审查完成后自动暂停；最终跨区总报告未执行",
+  "startHead": "d82df28a1b08c12536b584d71da8e7ba5285ce85",
+  "verificationHead": "d82df28a1b08c12536b584d71da8e7ba5285ce85",
+  "masterSnapshot": "4d3d60b66456f2db89a60f9bba1b58f924fab6cf",
+  "ruleSha256": "6b825aec89b7cea678a5b8033d3effc8364a9ecd52ac20059b66b4d9b0f872c6",
+  "reviewComplete": true,
+  "productFixesApplied": false,
+  "pauseAfter": "R18",
+  "nextPhase": "全计划最终跨区终核与总报告",
+  "planChecked": 25,
+  "findingCounts": {
+    "P2": 5,
+    "P3": 5
+  },
+  "findings": [
+    {
+      "id": "R18-001",
+      "priority": 2,
+      "title": "公开隐私披露未同步实际外发",
+      "locations": [
+        "website/index.html:329",
+        "website/dist/index.html:329",
+        "README.md:82",
+        "PRIVACY.md:101"
+      ],
+      "fixed": false
+    },
+    {
+      "id": "R18-002",
+      "priority": 2,
+      "title": "删除数据指导覆盖共享截图目录",
+      "locations": [
+        "PRIVACY.md:74",
+        "PRIVACY.md:109"
+      ],
+      "fixed": false
+    },
+    {
+      "id": "R18-003",
+      "priority": 2,
+      "title": "历史实服报告包含真实内网地址",
+      "locations": [
+        ".qoder/team-runs/20261025-032101-8172a0/results/T4.md:72",
+        ".qoder/team-runs/20261025-032101-8172a0/run.json:154",
+        ".qoder/team-runs/20261025-032101-8172a0/trajectory.jsonl:14",
+        "PROGRESS.md:3344",
+        "PROGRESS.md:5290"
+      ],
+      "fixed": false
+    },
+    {
+      "id": "R18-004",
+      "priority": 2,
+      "title": "实时连接文档指导查询串带令牌",
+      "locations": [
+        "docs/开发与验证.md:199"
+      ],
+      "fixed": false
+    },
+    {
+      "id": "R18-005",
+      "priority": 2,
+      "title": "技能推荐退役的自有应用凭据",
+      "locations": [
+        ".claude/skills/momoka-dandanplay/SKILL.md:70",
+        ".claude/skills/momoka-dandanplay/references/credential-endpoint.md:66"
+      ],
+      "fixed": false
+    },
+    {
+      "id": "R18-006",
+      "priority": 3,
+      "title": "搜索来源隐藏与自动改选旧说明",
+      "locations": [
+        "docs/MoviePilot订阅.md:27",
+        "docs/MoviePilot订阅.md:29"
+      ],
+      "fixed": false
+    },
+    {
+      "id": "R18-007",
+      "priority": 3,
+      "title": "Plex文档错误类比飞牛管理入口",
+      "locations": [
+        "docs/Plex支持.md:15"
+      ],
+      "fixed": false
+    },
+    {
+      "id": "R18-008",
+      "priority": 3,
+      "title": "全剧选集和结束仍写单季",
+      "locations": [
+        ".claude/skills/momoka-playback/SKILL.md:77",
+        "docs/开发与验证.md:101"
+      ],
+      "fixed": false
+    },
+    {
+      "id": "R18-009",
+      "priority": 3,
+      "title": "现行覆盖与卡片结构说明陈旧",
+      "locations": [
+        "tests/Momoka.ImagePerformanceTests/README.md:5",
+        "tests/Momoka.PageContractTests/README.md:11",
+        ".claude/skills/momoka-verification/SKILL.md:143",
+        "README.md:27"
+      ],
+      "fixed": false
+    },
+    {
+      "id": "R18-010",
+      "priority": 3,
+      "title": "播放技能参考链接层级错误",
+      "locations": [
+        ".claude/skills/momoka-fnnas-media-api/references/http-and-auth.md:104"
+      ],
+      "fixed": false
+    }
+  ],
+  "counts": {
+    "initialOwnerFiles": 220,
+    "newPriorReviewFiles": 64,
+    "ownerFilesReviewed": 284,
+    "ownerFullRead": 124,
+    "ownerFullLines": 13103,
+    "ownerMethods": {
+      "narrative-structure": 59,
+      "historical-json-structure": 50,
+      "current-full": 124,
+      "binary-container-visual": 16,
+      "embedded-json-structure": 1,
+      "byte-equal-deployment": 3,
+      "baseline-structure": 1,
+      "review-json-structure": 30
+    },
+    "jointFiles": 22,
+    "sourceSnapshotUnchanged": true
+  },
+  "reviewedFiles": [
+    {
+      "path": ".qoder/team-runs/20261022-065542-981052/briefs/T1.md",
+      "sha256": "8aa017aa2c6be088cc3941ff1947268c7f49e74bbe37d164fc6b958d2b4bb70c",
+      "bytes": 6186,
+      "owner": "R18",
+      "lines": 64,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261022-065542-981052/briefs/T2.md",
+      "sha256": "706b273cd0212341d5e79fe683174c008c7a49142b034d8684eeddba05310777",
+      "bytes": 5749,
+      "owner": "R18",
+      "lines": 60,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261022-065542-981052/briefs/T3.md",
+      "sha256": "5612ac05763b510e3c8a797836ff120db26e2270249f0b800dab50d849282be6",
+      "bytes": 6602,
+      "owner": "R18",
+      "lines": 59,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261022-065542-981052/briefs/T4.md",
+      "sha256": "5c04cc2d131aeb28d0522c0fb0679dcc64d181693ccf0978b9c17423c8555e0d",
+      "bytes": 10765,
+      "owner": "R18",
+      "lines": 99,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261022-065542-981052/report.md",
+      "sha256": "9a1598eaca60960d86e4d5842d423c012c752babb021be869722a91e4ebdc325",
+      "bytes": 27215,
+      "owner": "R18",
+      "lines": 227,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261022-065542-981052/results/T1.md",
+      "sha256": "feb376f11aff0a8f3dcd8d8817ee442d6c604cc23cbf3692855e22329d81b01a",
+      "bytes": 6640,
+      "owner": "R18",
+      "lines": 49,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261022-065542-981052/results/T2.md",
+      "sha256": "a461341d061c96002387cc0dd74afd585059653e9b5f1b3321c8215591641cfb",
+      "bytes": 18529,
+      "owner": "R18",
+      "lines": 154,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261022-065542-981052/results/T3.md",
+      "sha256": "eac4d94482014c49766930965a0e213ee48ad0f04af2a045338326c465fe1725",
+      "bytes": 37405,
+      "owner": "R18",
+      "lines": 153,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261022-065542-981052/results/T4.md",
+      "sha256": "e60ab73b002f9c2cb033caac376420a680b0d68a442c6f833a97b08362847928",
+      "bytes": 24943,
+      "owner": "R18",
+      "lines": 102,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261022-065542-981052/run.json",
+      "sha256": "16ef2d843d65fd9d672a3af4ea8997a34e58be0ecfa2005d8375ff89de42111d",
+      "bytes": 209591,
+      "owner": "R18",
+      "lines": 139,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261022-065542-981052/trajectory.jsonl",
+      "sha256": "129b8d0f7942d6909b109a0437078af9f4562d45976c9fd671827cec4dcf66b0",
+      "bytes": 91249,
+      "owner": "R18",
+      "lines": 16,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261025-032101-8172a0/briefs/T1.md",
+      "sha256": "b7291bc6ecf4ec8e93f50f2ac3d8d490a4d9d4e6ecf18d9f144f9157d1f03c78",
+      "bytes": 4402,
+      "owner": "R18",
+      "lines": 56,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261025-032101-8172a0/briefs/T2.md",
+      "sha256": "3eaa98a38babd4ad45317116396b86ecc30d99a696c193233eba6bfbda4d7447",
+      "bytes": 6104,
+      "owner": "R18",
+      "lines": 67,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261025-032101-8172a0/briefs/T3.md",
+      "sha256": "3adec88cd4886f03009785e3bd03fc2de01bb3daf9bd9221836aa1f901acf543",
+      "bytes": 5261,
+      "owner": "R18",
+      "lines": 67,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261025-032101-8172a0/briefs/T4.md",
+      "sha256": "e34d382ab3be66e301d07cf8469777360d83980aef9c5a2ed83fbde3ae24eb26",
+      "bytes": 12869,
+      "owner": "R18",
+      "lines": 89,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261025-032101-8172a0/briefs/T5.md",
+      "sha256": "a849cfd373d021c9d0f7ebd075184f29c697988f7cead6d494f0b578bb7a14ee",
+      "bytes": 8897,
+      "owner": "R18",
+      "lines": 66,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261025-032101-8172a0/report.md",
+      "sha256": "db7fc17da5df4cc3a0b71ef8b44fd74308ee45125e0f0c166297c70e90a7bf68",
+      "bytes": 28680,
+      "owner": "R18",
+      "lines": 371,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261025-032101-8172a0/results/T1.md",
+      "sha256": "97d9850cef221133e9f91700a5e4754850b0eb5de86059d7f11cdde27a0fc659",
+      "bytes": 3467,
+      "owner": "R18",
+      "lines": 39,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261025-032101-8172a0/results/T2.md",
+      "sha256": "b732465719c9acc3b73f9db2560e845a417aced890d10a462239b3c1ebb3ab02",
+      "bytes": 3734,
+      "owner": "R18",
+      "lines": 35,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261025-032101-8172a0/results/T3.md",
+      "sha256": "5f4440f4399ecf175fe828a2eac07b35e13e5387112f525cbcfbe8991e6de46a",
+      "bytes": 29632,
+      "owner": "R18",
+      "lines": 132,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261025-032101-8172a0/results/T4.md",
+      "sha256": "cb3b2fb74d3b1a2d551356cbeb63de223c14e0167b00e0fccb75e64292b0182f",
+      "bytes": 14732,
+      "owner": "R18",
+      "lines": 147,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261025-032101-8172a0/results/T5.md",
+      "sha256": "ac3f567ea1ced3f0d3d4bc910f002dc09080f6b25fa106ea2df45ccb08e1c207",
+      "bytes": 5343,
+      "owner": "R18",
+      "lines": 64,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261025-032101-8172a0/run.json",
+      "sha256": "804b32d651194d8700a9bb9528f55ec916757add73c9723f050e614f0edc4b2d",
+      "bytes": 151776,
+      "owner": "R18",
+      "lines": 224,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".qoder/team-runs/20261025-032101-8172a0/trajectory.jsonl",
+      "sha256": "89541eb516726ef9aadfeeee50a610d7da8859be90b47895992d01ef610e6a83",
+      "bytes": 60681,
+      "owner": "R18",
+      "lines": 18,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/0.1.8-验收与发布状态.md",
+      "sha256": "855f7af1f554f4075174e0237a4ceac175f908807370b566a728e556fd953a13",
+      "bytes": 3710,
+      "owner": "R18",
+      "lines": 35,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/0.1.9-验收与发布状态.md",
+      "sha256": "d55e108794b1d9bd83a07dda972bf6d01e93ea0a3fde07a2f9bdb440c42365e5",
+      "bytes": 8360,
+      "owner": "R18",
+      "lines": 66,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/dandanplay-input-worklog.md",
+      "sha256": "740645a5422f0fb970474e90c3bbd6628b1856421f5e55ea47ff7f4a12518ea8",
+      "bytes": 1791,
+      "owner": "R18",
+      "lines": 13,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/progress-2026-08.md",
+      "sha256": "f8f02e86590d00f72e3cabfb8c9be4283221cae7504d77a03e1288eb271bdeab",
+      "bytes": 399999,
+      "owner": "R18",
+      "lines": 1662,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/progress-2026-09.md",
+      "sha256": "3a75f8c436d92cdce60a0ad5fa8c0d5501b1293c307e2c2bb90c6fa0c2cf7ef5",
+      "bytes": 275766,
+      "owner": "R18",
+      "lines": 751,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-02-aggregate-home-performance.md",
+      "sha256": "313d1f76c510219308a71b0a3f2cee7f85a326e707dd771dac91ea1986c4975a",
+      "bytes": 1577,
+      "owner": "R18",
+      "lines": 16,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-03-player-episode-list-and-chrome.md",
+      "sha256": "169c1cf85b26ba60a0e91c1c33a0db9c30d75e1724134d7acdc51b46a6b1f1b6",
+      "bytes": 3938,
+      "owner": "R18",
+      "lines": 33,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-04-acrylic-controls.md",
+      "sha256": "d6919af2a2f5395d55a39c74fff2d84b451008672ede2d718e44058bb8eec4c2",
+      "bytes": 3259,
+      "owner": "R18",
+      "lines": 41,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-04-appearance-materials.md",
+      "sha256": "b8c12e879595fe3d439ee4a57177bb86128cc8e416c8b5e82f49f748f8391bb0",
+      "bytes": 1801,
+      "owner": "R18",
+      "lines": 19,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-04-danmaku-controls.md",
+      "sha256": "dd1f421d64a26f6a9dfc6d83e5d798f26722d4fc3344f361bed32a9b34ffcb25",
+      "bytes": 797,
+      "owner": "R18",
+      "lines": 7,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-04-danmaku-player-controls.md",
+      "sha256": "0a4897b161b01959e9eee4d5e1ca2757043360d0f7312b2c00a35b8e3f830c94",
+      "bytes": 2998,
+      "owner": "R18",
+      "lines": 37,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-04-detail-customization.md",
+      "sha256": "15b214e6822550f9a15cee849abe5366ecda55e3f356d37b88eabb2d44a0e639",
+      "bytes": 2179,
+      "owner": "R18",
+      "lines": 20,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-04-detail-shape-notifications.md",
+      "sha256": "11cc5525968f3de6f095dc8930816bad03c11150394ab837c906b84d78ddba35",
+      "bytes": 4277,
+      "owner": "R18",
+      "lines": 53,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-04-p2-browse-image-cost.md",
+      "sha256": "7f2c5453e70d28bbca2efac980a732544a357a69c50a1fe2a012949ba3fd1194",
+      "bytes": 8327,
+      "owner": "R18",
+      "lines": 74,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-04-p3-on-demand-browse.md",
+      "sha256": "73001ebc05ebdd9a45268d05d0714a81d870f19f5bf5bc758d5f3d7791c79f6e",
+      "bytes": 3745,
+      "owner": "R18",
+      "lines": 58,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-04-web-console-style.md",
+      "sha256": "71480f83c5aa3d0827bd163e7f57be513c38733a239b77057dd529bd7446761a",
+      "bytes": 1612,
+      "owner": "R18",
+      "lines": 12,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-05-backdrop-fade.md",
+      "sha256": "bcb521ee1bdcb94f9cac4b6d90a395e185ea0fa8cf5550479e57a87eccdf9fb0",
+      "bytes": 1381,
+      "owner": "R18",
+      "lines": 15,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-05-episode-delete.md",
+      "sha256": "f444b0abd121f3d8103e5e060fb1dd337cba49cb085ddde68b531bfd84b5cf5e",
+      "bytes": 1546,
+      "owner": "R18",
+      "lines": 11,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-05-full-code-review.md",
+      "sha256": "8ce793b8371c1ab11db4113260d6b77070bc9724a82a10ec1db7e88cdfe24861",
+      "bytes": 47420,
+      "owner": "R18",
+      "lines": 374,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-05-review-fixes.md",
+      "sha256": "f7b838f5a8c845169a01997c906d78a6aacc234864663873de1d15ff8ba2017b",
+      "bytes": 2775,
+      "owner": "R18",
+      "lines": 25,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-05-ui-polish.md",
+      "sha256": "8018d019e22a36005e91f1f2be309936ba67e4f68fc22d9bae6872030480ce2f",
+      "bytes": 5023,
+      "owner": "R18",
+      "lines": 70,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-04-danmaku-controls-design.md",
+      "sha256": "037a978a1948f86d595aa47fdea68681f99f18379742e0cbd609f8b1f922d5ea",
+      "bytes": 1598,
+      "owner": "R18",
+      "lines": 11,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-04-p3-on-demand-browse-design.md",
+      "sha256": "030e770a8500d2096b142d043e81fe3074fb229cc98ae18373b4fa9dca1868d5",
+      "bytes": 2751,
+      "owner": "R18",
+      "lines": 27,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-05-backdrop-fade-design.md",
+      "sha256": "44777d849bd6a507256a08ac0b2be26a23da0880893c00406e62e06fccc74f8e",
+      "bytes": 1658,
+      "owner": "R18",
+      "lines": 15,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-11-05-ui-polish.md",
+      "sha256": "e434525842365da2d30bcd84437c8c7e99644f3fe7ecd9b7c80e1d9c881fc2fb",
+      "bytes": 2225,
+      "owner": "R18",
+      "lines": 22,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/交接-全量探针红项修复-2026-10-31.md",
+      "sha256": "8bbfe68b11442c3cae1ff5ee5d4e570a458a776c83cc741af39f2c82682aad24",
+      "bytes": 15272,
+      "owner": "R18",
+      "lines": 138,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/交接-实服验证-Jellyfin-飞牛-聚合-2026-10-25.md",
+      "sha256": "628e6f702a39aba05e660ac68a39fb5ea61be0c924f37d0de9b2bc503adaaf8d",
+      "bytes": 11177,
+      "owner": "R18",
+      "lines": 100,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/交接-集成播放器缩放与起播全屏-2026-09-22.md",
+      "sha256": "21b7c2ad31d369f342c68f5ab1a9aeadecaaf7d358f774ccd80cb39f4ff14216",
+      "bytes": 20371,
+      "owner": "R18",
+      "lines": 210,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段修复-2026-10-23.md",
+      "sha256": "292101f93ced5404787c90ea540e8f5ee8d818bcd4e98e29c62a52139a190e6f",
+      "bytes": 213564,
+      "owner": "R18",
+      "lines": 867,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.md",
+      "sha256": "0134ea2d4c777f7ec528ae3659ae3fb5cda9ee4db9a7886548c2f5da04981159",
+      "bytes": 49161,
+      "owner": "R18",
+      "lines": 317,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.总汇总.md",
+      "sha256": "d3c8c95565dbc502be501adc8347c50389468aaefb0b61976c74b4051289a5ab",
+      "bytes": 25048,
+      "owner": "R18",
+      "lines": 154,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.总汇总检查.json",
+      "sha256": "a7a216a6cf3064f4b107ca45abcda6afb84f5838b964f66906a993166ed99038",
+      "bytes": 3479,
+      "owner": "R18",
+      "lines": 130,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.总汇总证据.json",
+      "sha256": "289211a9936f6f9742df3105cfbc942a47aa16d66f70bb21cece4ce50a2169ea",
+      "bytes": 301358,
+      "owner": "R18",
+      "lines": 7018,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段0快照.json",
+      "sha256": "62fc1a655133f076d1ed60a5271aaf565fffea36bc51032dc2642d57da793520",
+      "bytes": 10858,
+      "owner": "R18",
+      "lines": 250,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段0检查.json",
+      "sha256": "63f151a4905ccb2a5aeaba2eba035b034c9b9c550b5ac86375ad31ded8902471",
+      "bytes": 4091,
+      "owner": "R18",
+      "lines": 101,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段10审查.md",
+      "sha256": "1d8d985bcf9d9e03c7b7f89f7406ea70527187cbec92629b293ecf57f84c4f7a",
+      "bytes": 16541,
+      "owner": "R18",
+      "lines": 104,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段10检查.json",
+      "sha256": "b23f4c97c1667f88e49e979942d17f9bb0f027466cdfa02c0ec5a633416a7c54",
+      "bytes": 3501,
+      "owner": "R18",
+      "lines": 111,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段10证据.json",
+      "sha256": "4ad39f171c7e3ba66047cb230117bad2cc382ba04dfe609964bccc226f30ee57",
+      "bytes": 45817,
+      "owner": "R18",
+      "lines": 1506,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段11审查.md",
+      "sha256": "daf4768afc30860189ac5757f2bdb4861de7ccad6c11f80bd56e7ca8887ec15d",
+      "bytes": 21711,
+      "owner": "R18",
+      "lines": 132,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段11检查.json",
+      "sha256": "c55177075287f45bb1f8c6a9476361f8ec6c5a310d7758ce5a2fd86222ac1a3d",
+      "bytes": 4580,
+      "owner": "R18",
+      "lines": 157,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段11证据.json",
+      "sha256": "3922668953eee9dbe4fe28b8cea3acc08d30e50e2eb734dc6dc7787b40298c0f",
+      "bytes": 88478,
+      "owner": "R18",
+      "lines": 2731,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段12审查.md",
+      "sha256": "f1c1b621e515130a1afc8868351ae3c3655978394411b745b8148c8748edee5f",
+      "bytes": 40611,
+      "owner": "R18",
+      "lines": 195,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段12检查.json",
+      "sha256": "bac055e27441e6b17b34f06fc61ce00f97093ba868c6ab52115d394b1a8513d2",
+      "bytes": 7341,
+      "owner": "R18",
+      "lines": 202,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段12独立复核.md",
+      "sha256": "c0b1cb4b746df3793b7171b9fbe075b54c669ea89367b31d3bd4de94a037bbb8",
+      "bytes": 11668,
+      "owner": "R18",
+      "lines": 102,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段12独立复核检查.json",
+      "sha256": "8d92b348284d296dce1864aece6e14c95cd502edaa4a4b936cf4c9d75b0cc1eb",
+      "bytes": 4056,
+      "owner": "R18",
+      "lines": 143,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段12独立复核证据.json",
+      "sha256": "2779556b03b70a6be0bc24db345ae18c4e8679b573612606b32b635e187b2046",
+      "bytes": 201606,
+      "owner": "R18",
+      "lines": 5858,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段12证据.json",
+      "sha256": "853b7400d91a832b229b26a6158f975b376f01fdbe52b726504c457b8d22d8ce",
+      "bytes": 42865,
+      "owner": "R18",
+      "lines": 1049,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段13审查.md",
+      "sha256": "b49a7611ae2bd00f5b5acefdba111b00f00bc4995bceea83a1e118992158e890",
+      "bytes": 11236,
+      "owner": "R18",
+      "lines": 102,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段13检查.json",
+      "sha256": "f6c869d72b779e0f63e5792d80e91d0518dc53f8b0d6b07161129865e302ac1a",
+      "bytes": 2943,
+      "owner": "R18",
+      "lines": 91,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段13证据.json",
+      "sha256": "b865055f54d0ffe92636fd203340afa5928075e2f0b09c4ee0e912d9b5cbd996",
+      "bytes": 202225,
+      "owner": "R18",
+      "lines": 6030,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段14审查.md",
+      "sha256": "6d109babd0925c1d7ea7353c2577b9cde74289e3379336d3d7c8cf8c9caa2f55",
+      "bytes": 8232,
+      "owner": "R18",
+      "lines": 72,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段14检查.json",
+      "sha256": "6b1281d3209eb98cb9cf39acdd6e9feb7a17f7c3f9ac29cc532188fb163f4ea6",
+      "bytes": 2287,
+      "owner": "R18",
+      "lines": 78,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段14证据.json",
+      "sha256": "162d569364e0bfa3a3ac73ccb45dc83afd4192961b0bf3bb6c3e80fc522f6e8e",
+      "bytes": 13835,
+      "owner": "R18",
+      "lines": 338,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段15审查.md",
+      "sha256": "293734ff36d3914160f3c91d232399978ca22db76800a51ae2af6e4acc20d578",
+      "bytes": 5756,
+      "owner": "R18",
+      "lines": 52,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段15检查.json",
+      "sha256": "b03052c2afbfac9017dcf3dfc346997d2fd17a0134c16c3a28075a2adbd23b13",
+      "bytes": 2286,
+      "owner": "R18",
+      "lines": 78,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段15证据.json",
+      "sha256": "da429e431b927fd10303a75d6d939cbd880f8c1a6606ff824a6ef97d26951a97",
+      "bytes": 9079,
+      "owner": "R18",
+      "lines": 227,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段16审查.md",
+      "sha256": "86f82a4a712742c140b6dbcb8416df89b4aab56ea358e43fdb57309a46ddd42a",
+      "bytes": 12973,
+      "owner": "R18",
+      "lines": 73,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段16检查.json",
+      "sha256": "99c8fcd6de28014edb9028ec2bb8ac8b7d557e3daf15cf3fc268a03db1a06078",
+      "bytes": 2287,
+      "owner": "R18",
+      "lines": 78,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段16证据.json",
+      "sha256": "d25465901da45706001110049deabf1e09097fd2d54b0acb22e2c42316ac5065",
+      "bytes": 24891,
+      "owner": "R18",
+      "lines": 577,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段17审查.md",
+      "sha256": "f79fd4ff12c88e208353c7069d8b8dc1f25a06258fe045a6ce3d34e8e8b5c31f",
+      "bytes": 16029,
+      "owner": "R18",
+      "lines": 109,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段17检查.json",
+      "sha256": "b5b96a8c3c2d1ae7be1514a3f552cc2b8dec215a002795d8f6db707b7e04877e",
+      "bytes": 2287,
+      "owner": "R18",
+      "lines": 78,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段17证据.json",
+      "sha256": "4f4ec6d84df99c0038a07797ec181d275fb7623c44fd55ac199dcb6940299620",
+      "bytes": 27726,
+      "owner": "R18",
+      "lines": 640,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段18审查.md",
+      "sha256": "cac23ad49ffad260531b8f2e393a6cb14ecd1ac7d44dc6d699ad78171c9830f9",
+      "bytes": 12779,
+      "owner": "R18",
+      "lines": 90,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段18检查.json",
+      "sha256": "467f5213c1c96cddef936b6174d1e9f933c01f1c68567ed3f0cac4f869bffb9c",
+      "bytes": 2287,
+      "owner": "R18",
+      "lines": 78,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段18证据.json",
+      "sha256": "c1aa68c4ad0c56c3af6ca0fcffd6a013a0b8860ff7feaf6a88b112f1b7c11006",
+      "bytes": 21909,
+      "owner": "R18",
+      "lines": 490,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段19审查.md",
+      "sha256": "080931e5236d487e7f8c6476d8f6f26e0a53e794817512a718e0d88fb12526ab",
+      "bytes": 6531,
+      "owner": "R18",
+      "lines": 42,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段19检查.json",
+      "sha256": "9b7ca238cb5eab4383bf56c80fa0285b98924b83bbdd8ba8a9cb05d7e988793d",
+      "bytes": 2320,
+      "owner": "R18",
+      "lines": 78,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段19证据.json",
+      "sha256": "21944a5c0a4a2ef9511a0cc85a8431166ae7fa37a6a1359255ff945b99b15b56",
+      "bytes": 9947,
+      "owner": "R18",
+      "lines": 210,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1基线.json",
+      "sha256": "a418852a2608c2307dcaa29cac031e13d17fcf3626e520ad8cad360bb19f0d49",
+      "bytes": 366995,
+      "owner": "R18",
+      "lines": 3040,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1检查.json",
+      "sha256": "65b47bc168c357a27f38a0fe25cb847270556f965bc65774dbef5c376039f9f5",
+      "bytes": 4908,
+      "owner": "R18",
+      "lines": 115,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1至7独立复核.md",
+      "sha256": "0bf48f13c405116b6be898b43fc2453916966787c0ea3d5de94fccc4ae8b6264",
+      "bytes": 41683,
+      "owner": "R18",
+      "lines": 258,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1至7独立复核检查.json",
+      "sha256": "643a745572e1c17f03504be81ad8065d1ef99753db4db55f0ebf2b1655eda7e2",
+      "bytes": 7221,
+      "owner": "R18",
+      "lines": 172,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1至7独立复核证据.json",
+      "sha256": "1ba196197d9bb6902e7d233a1e8249c1ed727584e2428212a6cb354907b58acf",
+      "bytes": 165419,
+      "owner": "R18",
+      "lines": 4021,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1计划.md",
+      "sha256": "86a2c3bfd29f4639ea2f4378428fdba5ce3e5f2906194876b1e667b72551b15b",
+      "bytes": 42349,
+      "owner": "R18",
+      "lines": 310,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段2审查.md",
+      "sha256": "f5bed8313720baf324187b93e6fbdcb0f7981e461880b392dea6f7e27ce8900f",
+      "bytes": 14926,
+      "owner": "R18",
+      "lines": 100,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段2检查.json",
+      "sha256": "a088188bdd169e9dad490088f294148ffd8284f0bd47f6a410af84e31330496a",
+      "bytes": 4387,
+      "owner": "R18",
+      "lines": 100,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json",
+      "sha256": "75dab129d1b0353b9b206a50e4b45d62f20b2856cfb6362bca7c0ed07780d229",
+      "bytes": 55023,
+      "owner": "R18",
+      "lines": 1561,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段3审查.md",
+      "sha256": "08948575fad43e64c1a40386d89b164d1e23170deb523e3a6ccb69ca3616d70d",
+      "bytes": 13216,
+      "owner": "R18",
+      "lines": 96,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段3检查.json",
+      "sha256": "c7aa75bffcb3f8555863ae3e504b533531115f1db5ab3a150124a808ba5da4ae",
+      "bytes": 4256,
+      "owner": "R18",
+      "lines": 100,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段3证据.json",
+      "sha256": "c23d9f798b40160de35a22b282f9794eba4db41f3cd9d6101365ebb8ada717a9",
+      "bytes": 47918,
+      "owner": "R18",
+      "lines": 1385,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段4审查.md",
+      "sha256": "ff1f16ad83ee58defd212f934bcc95a3fb7b2f586e546d59ec78859ad645c7a1",
+      "bytes": 12094,
+      "owner": "R18",
+      "lines": 82,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段4检查.json",
+      "sha256": "23abbf55b772c9d5774b8ce6f90f124ad79e00335cd2cf5f839442281a63bd80",
+      "bytes": 4214,
+      "owner": "R18",
+      "lines": 100,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段4证据.json",
+      "sha256": "f67967a57df38cacc6360acaceb3efaf36769465544a0d197021bf4d161e6d98",
+      "bytes": 22095,
+      "owner": "R18",
+      "lines": 455,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段5审查.md",
+      "sha256": "dbbbc1dde448fd1808de157fde5265ed8f9b4ea83ff078f2a7c0047a83b90dcc",
+      "bytes": 11720,
+      "owner": "R18",
+      "lines": 78,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段5检查.json",
+      "sha256": "bc5eea4d616b389e50ea4b2171a84d3bac1378de8446ee661972d7c6e5b25da7",
+      "bytes": 4525,
+      "owner": "R18",
+      "lines": 105,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段5证据.json",
+      "sha256": "235ebc4f388ab874725c9aa82109cf50495b6130bd3f777f4743a965fe5f1b4e",
+      "bytes": 32790,
+      "owner": "R18",
+      "lines": 762,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段6审查.md",
+      "sha256": "1aa0531231280a6c01c95c7e3795e12b1a3fa8b26e2143c75adc624271cde76d",
+      "bytes": 25624,
+      "owner": "R18",
+      "lines": 158,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段6检查.json",
+      "sha256": "c6425b73c8f7afcca1f27001e48fe0bb7287e6da95e6a0f5c7bb0611f3ec4ea3",
+      "bytes": 5417,
+      "owner": "R18",
+      "lines": 122,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段6证据.json",
+      "sha256": "1be7dff0270fe81152bdcae09a6af193316696ccb3450dd81f903466b9a94602",
+      "bytes": 56351,
+      "owner": "R18",
+      "lines": 1131,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段7审查.md",
+      "sha256": "370115fac4e61a9e501103e4fd321f1c87334781e0c58c4bdb8807970e5836b4",
+      "bytes": 29184,
+      "owner": "R18",
+      "lines": 181,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段7检查.json",
+      "sha256": "9db359bbc3e303d8cb46b5bdb7dbdc40b71122730575625d1899e94b3e7585a8",
+      "bytes": 7050,
+      "owner": "R18",
+      "lines": 144,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段7证据.json",
+      "sha256": "f5fc60fe5bffa15e9eb5c284276692e79d5a65e63542cff2d185eaf6bb6455e8",
+      "bytes": 72118,
+      "owner": "R18",
+      "lines": 1565,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段8审查.md",
+      "sha256": "91cc2b3076ab40139d907a03a911f560230f99fdf1f233230de32577202b963d",
+      "bytes": 16232,
+      "owner": "R18",
+      "lines": 103,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段8检查.json",
+      "sha256": "85d377bab1c4e25926fd618f88bdf5d753563fdacb663f29341a89c918ce098d",
+      "bytes": 5226,
+      "owner": "R18",
+      "lines": 126,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段8证据.json",
+      "sha256": "9b22047a9331b284ba8c02a5ef110124e73dc813bed4a5cf4ce6c7d2d1b916eb",
+      "bytes": 48180,
+      "owner": "R18",
+      "lines": 1093,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段9审查.md",
+      "sha256": "3ca1d6a248ceb4989d598e4280fd2dad14c90f4327af3fde66a530d0c39ad83f",
+      "bytes": 35507,
+      "owner": "R18",
+      "lines": 215,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段9检查.json",
+      "sha256": "c9bdc3c6d33c0cd746e219f613e2ce26df9405c366db6eaf19616f3aa73c92a3",
+      "bytes": 3661,
+      "owner": "R18",
+      "lines": 116,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段9证据.json",
+      "sha256": "8b91d0942adfc6e4a8a50dc1e047d3ddad1028d22e51e6d47e5e3bc8dc4f6809",
+      "bytes": 74409,
+      "owner": "R18",
+      "lines": 2343,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "historical-json-structure",
+      "scope": "JSON/JSONL逐节点、范围/身份/执行字段与敏感类别；历史hash/通过不代表当前",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+      "sha256": "f46bdbdeec4eed994bcfd8a87dc7d818f1d28d044f92a10be91e36360de1057f",
+      "bytes": 41321,
+      "owner": "R18",
+      "lines": 305,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/全量探针与四道闸门-2026-10-27.md",
+      "sha256": "4f95bc78c22147a6bbb0db3d3c7c70606653a106533a963b3e02d094ca312d51",
+      "bytes": 9390,
+      "owner": "R18",
+      "lines": 139,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/全量探针与四道闸门-2026-10-31.md",
+      "sha256": "a7d6cf36a025f09cacb70c70e103d30d1478a51bd62c1ecbe5f103c29a480b5d",
+      "bytes": 11252,
+      "owner": "R18",
+      "lines": 90,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/分支清点与合并方案-2026-10-26.md",
+      "sha256": "d8eb8b6ca3e94b6d32dabb1efb4cb0876627d9b6ab3f6bd1cf5ab0b60ac7f47d",
+      "bytes": 16771,
+      "owner": "R18",
+      "lines": 238,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/分阶段代码审查与集中修复流程.md",
+      "sha256": "538f00e1f8981ebf7b7046c3e2d01131ecba4f58789e39005e8eb56e52344c67",
+      "bytes": 17377,
+      "owner": "R18",
+      "lines": 217,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/媒体库代码审查-2026-11-01.md",
+      "sha256": "c1ea50f2e071f97a25c11653c9d62e8a119a5d1cd34874e590b860ce0088e33f",
+      "bytes": 13116,
+      "owner": "R18",
+      "lines": 145,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/媒体库网页端按钮核对-2026-11-01.md",
+      "sha256": "920510eba7f4193153483f80fac034431e03553e1951795e96a880a96af17467",
+      "bytes": 29484,
+      "owner": "R18",
+      "lines": 305,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/实服验证-飞牛与Jellyfin-2026-10-26.md",
+      "sha256": "57a4a87ed08197825bf795193137c8dc6c069ec7c330ff22c19e80713fc4a9ee",
+      "bytes": 4862,
+      "owner": "R18",
+      "lines": 47,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/架构审查修复-2026-10-29.md",
+      "sha256": "ae71bb658000276f6f1aeb1f47eaeee7d60953879d59fdfbc40e18cc01e30182",
+      "bytes": 4649,
+      "owner": "R18",
+      "lines": 44,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "docs/页面切换与封面响应延迟审查及优化方案-2026-11-04.md",
+      "sha256": "91471d598c7c8f0bde59b4a9a4764fcd025e15b0b50ba82c265ffe329e268a7e",
+      "bytes": 49403,
+      "owner": "R18",
+      "lines": 343,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "历史结构/命令/证据边界/链接与敏感类别；未声称全文产品源码或本轮执行",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "work/navigation-live-20261103/第一轮实施计划.md",
+      "sha256": "7592b9e1254cc4ecdfd23e520fd1aecf43c1251eda2b1e4549dbb8de653f3436",
+      "bytes": 7767,
+      "owner": "R18",
+      "lines": 86,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": "work/navigation-live-20261103/调查结果.md",
+      "sha256": "7d8aef25619b35f52d7ca0c02c51b28a04f75a0c42de6f949a590987de41a616",
+      "bytes": 14072,
+      "owner": "R18",
+      "lines": 125,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "叙述/计划全文；旧验收、范围缩减、未实施方案与当前运行分开",
+      "reviewer": "r18_history"
+    },
+    {
+      "path": ".claude/skills/momoka-audio-output/SKILL.md",
+      "sha256": "c2b68eae4d994f4dedb1dcc1799a22ab31d9904043a8aa71c6a2e1f445d4f25c",
+      "bytes": 11480,
+      "owner": "R18",
+      "lines": 46,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-audio-output/scripts/probe-audio-native.py",
+      "sha256": "8c282871770ea3c96fe57919676bfdefc5e97a38d6d80a9a628b978e6da25649",
+      "bytes": 12670,
+      "owner": "R18",
+      "lines": 265,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-audio-output/scripts/test-probe-audio-native.py",
+      "sha256": "9c19547ee6e1451a2e19746d828f8b474371ef740aae6d6d918268e7288503ee",
+      "bytes": 11727,
+      "owner": "R18",
+      "lines": 252,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-code-review/SKILL.md",
+      "sha256": "8bd8720e7ea2b7be4c7fcd5672d00f19b36f11def643528ead50e1922b431be4",
+      "bytes": 7421,
+      "owner": "R18",
+      "lines": 63,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-code-review/agents/openai.yaml",
+      "sha256": "440cac142f866ad4b163c4eabe48482e3de3d82207205b0181a7ae9857c631a7",
+      "bytes": 316,
+      "owner": "R18",
+      "lines": 4,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-code-review/references/review-scenarios.md",
+      "sha256": "372305e1c8810b756c66265b295cd330baef158cbc106972b72fa2eabca27885",
+      "bytes": 3897,
+      "owner": "R18",
+      "lines": 35,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-dandanplay/SKILL.md",
+      "sha256": "db2455aec133dce2cefb5821b7408119ce3e45e5446a3f9877a07fe8d58b0f77",
+      "bytes": 14465,
+      "owner": "R18",
+      "lines": 115,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-dandanplay/references/credential-endpoint.md",
+      "sha256": "f8c5e6d1388e37a30fdd87a87f5f6a91364071e36c211af03c9c7dc87f590e93",
+      "bytes": 7812,
+      "owner": "R18",
+      "lines": 131,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-dandanplay/references/protocol.md",
+      "sha256": "fda6e2f98459b895cba55783c992fa759540e603af76190cda2fbdba8cd17b12",
+      "bytes": 7150,
+      "owner": "R18",
+      "lines": 140,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/SKILL.md",
+      "sha256": "edc7cd70d30795eddb5fc2c02d10b8400392fd43c98e02e76b208e88d266fa6e",
+      "bytes": 14979,
+      "owner": "R18",
+      "lines": 120,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/references/endpoints.md",
+      "sha256": "1a0884ca20ee949a3bff98b8ec0ee50abb597590b0f024bf7be0d178332b9401",
+      "bytes": 13009,
+      "owner": "R18",
+      "lines": 161,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/references/http-and-auth.md",
+      "sha256": "97798d7f4e3f522d4a3795d68eaf988c121bb2ad89ff16c9bcd1da0f242f52ac",
+      "bytes": 7620,
+      "owner": "R18",
+      "lines": 86,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/references/official-sdk.md",
+      "sha256": "c140c62bc10168f76f93010c68471769adf5ad44ac9075dff3659b37de344a8e",
+      "bytes": 5160,
+      "owner": "R18",
+      "lines": 60,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-fnnas-media-api/SKILL.md",
+      "sha256": "ad707735f0f44eb27fe957cf1db7b29c299c9ddbb0b361bd3113f2252b833d4f",
+      "bytes": 16881,
+      "owner": "R18",
+      "lines": 99,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-fnnas-media-api/references/endpoints.md",
+      "sha256": "c39e2aa8924f87afde02d614ebf8df8051d17e2eb4f189b467f096adb28d3283",
+      "bytes": 13743,
+      "owner": "R18",
+      "lines": 175,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-fnnas-media-api/references/http-and-auth.md",
+      "sha256": "574f143ef18d4192f606e11810018365a9a231c3d43785f439713e790c2ea10a",
+      "bytes": 6189,
+      "owner": "R18",
+      "lines": 106,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-jellyfin-api/SKILL.md",
+      "sha256": "99faa7a2084c91d0a5576cc3e7ba4f8a0b0e95043beb5b62825ae15acad92c3d",
+      "bytes": 15804,
+      "owner": "R18",
+      "lines": 124,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-jellyfin-api/references/endpoints.md",
+      "sha256": "a91c6ad76be29891e10dd6f4324c7b7065497cb456d917e12777cfc4a3a5648a",
+      "bytes": 13923,
+      "owner": "R18",
+      "lines": 161,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-jellyfin-api/references/http-and-auth.md",
+      "sha256": "bfafd69471645ea0eb8f16fe42c9896995e07b2713848f8b343b56a194a9224f",
+      "bytes": 7417,
+      "owner": "R18",
+      "lines": 87,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-moviepilot/SKILL.md",
+      "sha256": "eb1d7a7ff0f9d4878ac39de39b49edeb414a1bf936fcc1a4acaf9febe3bc909e",
+      "bytes": 21693,
+      "owner": "R18",
+      "lines": 102,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-moviepilot/references/reorganization.md",
+      "sha256": "1ba8859ae3a560ddcf8138570b3182935944f92001f4a51ef78633022f14508f",
+      "bytes": 6647,
+      "owner": "R18",
+      "lines": 49,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-moviepilot/references/search-identity.md",
+      "sha256": "79eff421fce84323d2d6035056dc66a5d6ba67d732516c74a35cc06c1d4b7358",
+      "bytes": 6368,
+      "owner": "R18",
+      "lines": 38,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-moviepilot/references/subscriptions.md",
+      "sha256": "46c078a55fae3ee7ec10982c69a7ac6b0d8da3f070548db6145d9ad2cadd321d",
+      "bytes": 13474,
+      "owner": "R18",
+      "lines": 85,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-moviepilot/references/upstream-download.md",
+      "sha256": "22995e05e8421f88fb533878d31bf8f91b384136ce8a8c21288b8f7b451d0d51",
+      "bytes": 9345,
+      "owner": "R18",
+      "lines": 66,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-playback/SKILL.md",
+      "sha256": "ca3ac3872d86eb26bc2eef732132356c8701caac4e669d5b0f3d8e8bfff87746",
+      "bytes": 36288,
+      "owner": "R18",
+      "lines": 139,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-plex-api/SKILL.md",
+      "sha256": "629a1a6a90726f364be8e222c0996612f5654ce11d1a308da1a77fba51b37978",
+      "bytes": 14421,
+      "owner": "R18",
+      "lines": 100,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-plex-api/references/endpoints.md",
+      "sha256": "b73096af5d072e99d340d90d1f84de157de77c344e933ad24fdc3d3ccbf031a3",
+      "bytes": 4663,
+      "owner": "R18",
+      "lines": 70,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-plex-api/references/http-and-auth.md",
+      "sha256": "573c4c395e59c411fa2c16cd5e854c2302fd628c843b2a88d6801c39fbfe90bf",
+      "bytes": 4829,
+      "owner": "R18",
+      "lines": 73,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-plex-api/references/v2-login-official-evidence.json",
+      "sha256": "5ace26c7b613e98926b78f08e56dced3a2627079ea5755fb3415ee520af4cb25",
+      "bytes": 6221,
+      "owner": "R18",
+      "lines": 141,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-skill-creator/SKILL.md",
+      "sha256": "a8a42c5754c8552885cf52f6ee74ff24469bd50ace9dd50583d66a21a6c045e2",
+      "bytes": 18551,
+      "owner": "R18",
+      "lines": 209,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-skill-creator/scripts/check-skill.py",
+      "sha256": "3b3012baeb0f180393742555df249b4dd9dd16d62f4e94a95b990094783f181c",
+      "bytes": 11870,
+      "owner": "R18",
+      "lines": 299,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-skill-creator/scripts/test-check-skill.py",
+      "sha256": "b9a53202522973486ac96283cf74ec7e86039d115394672b7823b27261c6a5a3",
+      "bytes": 4406,
+      "owner": "R18",
+      "lines": 88,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-subtitles/SKILL.md",
+      "sha256": "eba63f63e4cdfff46b7cec52bc0615545bd59e49a49c07c25db5d91c40b4ebb7",
+      "bytes": 14181,
+      "owner": "R18",
+      "lines": 112,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-subtitles/references/test-matrix.md",
+      "sha256": "31c5084a2f824454d73222c8fb264d7fba50bdc0fbe7f84c3237c0cbb6fdff2d",
+      "bytes": 5497,
+      "owner": "R18",
+      "lines": 74,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-verification/SKILL.md",
+      "sha256": "5517e7d8ca1cc63b088eabcea5674378c54ea0c13ab2f0050ca4837b601e1e76",
+      "bytes": 23150,
+      "owner": "R18",
+      "lines": 162,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-video-output/SKILL.md",
+      "sha256": "cfd68732b690ab6180ef973df3e3f503dbf11eb02744417c63d3fe46c1701c31",
+      "bytes": 11219,
+      "owner": "R18",
+      "lines": 67,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-video-output/references/sources.md",
+      "sha256": "71c797f51c3eb3c2202eb970b38abe3bcd8d8bb3e50922a54e2383062a97f09d",
+      "bytes": 4407,
+      "owner": "R18",
+      "lines": 22,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/momoka-winui-shell/SKILL.md",
+      "sha256": "d2cb692c2946b9ecd3bdf99b18f9d1fca2968a5275983c3b0727b821fbc2762f",
+      "bytes": 54578,
+      "owner": "R18",
+      "lines": 216,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".claude/skills/mpv-shader-quality/SKILL.md",
+      "sha256": "a2378bf8dac59ff80b1bd644dc9762fc095ebec0948497304049fcf3df253125",
+      "bytes": 13291,
+      "owner": "R18",
+      "lines": 83,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".editorconfig",
+      "sha256": "6c7bc92d86c7513998a4ef4c04ca6705463f9c43e867a1432f40437942289eaf",
+      "bytes": 12336,
+      "owner": "R18",
+      "lines": 211,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "8d0e027c05b22936f320b77cefb449afed8741ba113b693298e348c443853f9f",
+      "bytes": 984,
+      "owner": "R18",
+      "lines": 36,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".zcodeignore",
+      "sha256": "8247c8717dc795dc7e4652e3a1d545868bfe4d2c9eb96e6b27a91eb3db81ddc1",
+      "bytes": 1585,
+      "owner": "R18",
+      "lines": 67,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "6b825aec89b7cea678a5b8033d3effc8364a9ecd52ac20059b66b4d9b0f872c6",
+      "bytes": 31831,
+      "owner": "R18",
+      "lines": 189,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": "docs/开发与验证.md",
+      "sha256": "a6db40a42ff3d6b7deb73270ee37e9f8c36019db761d320adcb1c56f6a252e0c",
+      "bytes": 236208,
+      "owner": "R18",
+      "lines": 1119,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前全文；技能/根规则/命令、脚本实际副作用与固定master差异；不运行真实服务",
+      "reviewer": "r18_skills"
+    },
+    {
+      "path": ".qoder/tmp-jagged-zoom.png",
+      "sha256": "25d3f796cd6a42ea014f1134aa72288767033c08241ac03eef9f331f5db0959f",
+      "bytes": 8404,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "9ec750013867adde9c93755d32d04d5dfe3b0b4b0772eab3024e07dccda68439",
+      "bytes": 1076,
+      "owner": "R18",
+      "lines": 18,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "静态脚本/页面/部署/许可/隐私全文；无部署、真实Secret/网络或应用启动",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "PRIVACY.md",
+      "sha256": "82220cbd8d2ef47dcc580c792d66ee38d4a594b7e1888ea19c19b7dc5e8be190",
+      "bytes": 16339,
+      "owner": "R18",
+      "lines": 115,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "静态脚本/页面/部署/许可/隐私全文；无部署、真实Secret/网络或应用启动",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "sha256": "0828a33eeff2babd7f1b82f02cb9915eb8eb8ae0517a64ca23edc0d96fb2729c",
+      "bytes": 8964,
+      "owner": "R18",
+      "lines": 179,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "静态脚本/页面/部署/许可/隐私全文；无部署、真实Secret/网络或应用启动",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "app.ico",
+      "sha256": "717b7243b0fc9f0d92e280cdd909d399b0e58a9888186bc737b2d6f40731f544",
+      "bytes": 374262,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "docs/screenshots/detail.jpg",
+      "sha256": "ccd6792bc37e808ac7ced25abeea1f5b7ec93d1812e6af1e00ac9afb8de7a42a",
+      "bytes": 123640,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "docs/screenshots/home.jpg",
+      "sha256": "ccb6eb0d685ec001f3d920e33c12206303f2e2b4313ccd0356598476134bfcb1",
+      "bytes": 102959,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "docs/screenshots/library.jpg",
+      "sha256": "c1296962232f3410019f3467979e47e65f6e64ad1dd3cbb207be44812cec2b58",
+      "bytes": 119838,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "docs/screenshots/player.jpg",
+      "sha256": "c1ad4e324d6047722704d9919dc27cfe50e4113cb5506ffdc1eed6b81467b957",
+      "bytes": 79285,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "docs/screenshots/settings.jpg",
+      "sha256": "32e2e38651a74f7308496d50544bb62ffa1dd5d49762ea5493f29de2efc531fa",
+      "bytes": 53219,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "docs/screenshots/shaders.jpg",
+      "sha256": "68d3b284d62967ca2eed029589724f8d9f994e02fac102035fddfadac1a1cd66",
+      "bytes": 85624,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "docs/screenshots/shortcuts.jpg",
+      "sha256": "8fc868856269dd0d6067ff7169b80ee377fc1fbb20374c2bf54b9c7bab7b53da",
+      "bytes": 57226,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "docs/第三方组件许可合规.md",
+      "sha256": "2b37f88290a59ff8decca14149a4c95991b2221700d3c92d04dbe5361ba98f7f",
+      "bytes": 14770,
+      "owner": "R18",
+      "lines": 241,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "静态脚本/页面/部署/许可/隐私全文；无部署、真实Secret/网络或应用启动",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "vibe_images/momoka-hero-keyart_1792572845041_b3ad667c.png",
+      "sha256": "4913083f88f3e5e299baa81b8a4e2f4da5fa7379340572b05fb95c5b4a48dadf",
+      "bytes": 2028490,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/.Momoka.qoder.site",
+      "sha256": "1b36af1d681520f8a4db6b436959349fa3bdee39b952d3ec1c8cc5f89b5cc8b9",
+      "bytes": 33192,
+      "owner": "R18",
+      "lines": 1,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "embedded-json-structure",
+      "scope": "完整站点产物结构、Base64 HTML与源/声明hash逐字节相等；不输出标识",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/README.md",
+      "sha256": "b6b5f1e38bb28f8d4921565859fb67778658d48973b04c0d468a6b4215e17872",
+      "bytes": 8117,
+      "owner": "R18",
+      "lines": 197,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "静态脚本/页面/部署/许可/隐私全文；无部署、真实Secret/网络或应用启动",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/assets/app-icon.png",
+      "sha256": "0bcd8a4ef09104ebe8000bf47fea28847372409c124e2b15617dcf0f7b3144e9",
+      "bytes": 56663,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/assets/hero-800.webp",
+      "sha256": "6826e6661a807c2bd3660ed56b867cf07d198460792a65e690eb32ffe658a14c",
+      "bytes": 11582,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/assets/hero.webp",
+      "sha256": "aea3924d692fabffc8e5eee545a7e8f4fa6046c3e5faebad35d9b1470dc44a62",
+      "bytes": 37064,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/dist/assets/app-icon.png",
+      "sha256": "0bcd8a4ef09104ebe8000bf47fea28847372409c124e2b15617dcf0f7b3144e9",
+      "bytes": 56663,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/dist/assets/hero-800.webp",
+      "sha256": "6826e6661a807c2bd3660ed56b867cf07d198460792a65e690eb32ffe658a14c",
+      "bytes": 11582,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/dist/assets/hero.webp",
+      "sha256": "aea3924d692fabffc8e5eee545a7e8f4fa6046c3e5faebad35d9b1470dc44a62",
+      "bytes": 37064,
+      "owner": "R18",
+      "lines": null,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "binary-container-visual",
+      "scope": "SHA256/容器/尺寸/元数据及副本映射；9叙述图片已目视，只记敏感类别，无当前UI运行",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/dist/index.html",
+      "sha256": "d25dd23ecdc91d4e59e1672dcf9866fc3c24da2a73ea5982e26abf71a7699af4",
+      "bytes": 24545,
+      "owner": "R18",
+      "lines": 388,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "byte-equal-deployment",
+      "scope": "与已全文读取源文件逐字节相同；不是另一次独立覆盖",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/dist/main.js",
+      "sha256": "4cead3de72195cc8bd5d2ccef5205805aa32316a3356f3ebb51e3c61d11782e5",
+      "bytes": 2880,
+      "owner": "R18",
+      "lines": 90,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "byte-equal-deployment",
+      "scope": "与已全文读取源文件逐字节相同；不是另一次独立覆盖",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/dist/styles.css",
+      "sha256": "1b5d61a2ccf32b3292c4a11620fc952a620a2a27bf81b2427aa61fa1c151ad8a",
+      "bytes": 31189,
+      "owner": "R18",
+      "lines": 1628,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "byte-equal-deployment",
+      "scope": "与已全文读取源文件逐字节相同；不是另一次独立覆盖",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/docker-compose.yml",
+      "sha256": "7af411de65b5c104dc1d4823d2bc20057a55d377568351540c754f2734a38f2e",
+      "bytes": 246,
+      "owner": "R18",
+      "lines": 10,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "静态脚本/页面/部署/许可/隐私全文；无部署、真实Secret/网络或应用启动",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/index.html",
+      "sha256": "d25dd23ecdc91d4e59e1672dcf9866fc3c24da2a73ea5982e26abf71a7699af4",
+      "bytes": 24545,
+      "owner": "R18",
+      "lines": 388,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "静态脚本/页面/部署/许可/隐私全文；无部署、真实Secret/网络或应用启动",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/main.js",
+      "sha256": "4cead3de72195cc8bd5d2ccef5205805aa32316a3356f3ebb51e3c61d11782e5",
+      "bytes": 2880,
+      "owner": "R18",
+      "lines": 90,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "静态脚本/页面/部署/许可/隐私全文；无部署、真实Secret/网络或应用启动",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/nginx.conf",
+      "sha256": "3d0c0044177d27f4459191946a31ff24948c3ba2003d1360d3560a1eac66d660",
+      "bytes": 893,
+      "owner": "R18",
+      "lines": 44,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "静态脚本/页面/部署/许可/隐私全文；无部署、真实Secret/网络或应用启动",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/styles.css",
+      "sha256": "1b5d61a2ccf32b3292c4a11620fc952a620a2a27bf81b2427aa61fa1c151ad8a",
+      "bytes": 31189,
+      "owner": "R18",
+      "lines": 1628,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "静态脚本/页面/部署/许可/隐私全文；无部署、真实Secret/网络或应用启动",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "website/wrangler.jsonc",
+      "sha256": "8f388a70edc27ba01ab01ed8535e4f68b6ebadbddedf80dc83a088998b98a2fa",
+      "bytes": 165,
+      "owner": "R18",
+      "lines": 9,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "静态脚本/页面/部署/许可/隐私全文；无部署、真实Secret/网络或应用启动",
+      "reviewer": "r18_website"
+    },
+    {
+      "path": "PROGRESS.md",
+      "sha256": "48de883405e1d3c47cba5a00c13271b5b74361daf3cd7e74d13ae772897555c6",
+      "bytes": 2937303,
+      "owner": "R18",
+      "lines": 10830,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "narrative-structure",
+      "scope": "10830行进度的标题/来源/当前前缀、命令及链接结构；旧报告与本树实际分开，不冒充全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "README.md",
+      "sha256": "56417e2fd697888515d3a220f19ae20b9ed0c88d3c9afcc884f2d19fa04c2554",
+      "bytes": 8222,
+      "owner": "R18",
+      "lines": 84,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前支持与使用说明全文；公开能力/副作用/恢复/命令及本地链接核对",
+      "reviewer": "root"
+    },
+    {
+      "path": "docs/Jellyfin支持.md",
+      "sha256": "dd144d541e2af15728f1be829ec42ffb268e1051bf3a0a7753817105170db669",
+      "bytes": 10668,
+      "owner": "R18",
+      "lines": 53,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前支持与使用说明全文；公开能力/副作用/恢复/命令及本地链接核对",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/MoviePilot订阅.md",
+      "sha256": "9f78b2576122aafbfcce67bc0bdfe767aae6667d75af0f4f00bfd01653030360",
+      "bytes": 36846,
+      "owner": "R18",
+      "lines": 122,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前支持与使用说明全文；公开能力/副作用/恢复/命令及本地链接核对",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/Plex支持.md",
+      "sha256": "d1ed3801b1066d144299906adb36e68ec18565c7274039dbe595980c22353512",
+      "bytes": 5438,
+      "owner": "R18",
+      "lines": 29,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前支持与使用说明全文；公开能力/副作用/恢复/命令及本地链接核对",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/SVP接入.md",
+      "sha256": "5d20d0d32c211f736b648e2c3c270f4686aa274eb3f2e96669e48461b5981e56",
+      "bytes": 4755,
+      "owner": "R18",
+      "lines": 47,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前支持与使用说明全文；公开能力/副作用/恢复/命令及本地链接核对",
+      "reviewer": "root"
+    },
+    {
+      "path": "docs/selfcheck-baseline.txt",
+      "sha256": "b144e5ad1471d839589f51e5b3a710d2f89decfbbbb687761f1a6ea1fb9cfe21",
+      "bytes": 5931,
+      "owner": "R18",
+      "lines": 192,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "baseline-structure",
+      "scope": "状态/检查名结构与当前对比工具用途；非当轮自检通过",
+      "reviewer": "root"
+    },
+    {
+      "path": "docs/多服务器与多账号.md",
+      "sha256": "6412ef179d4d55b0b8cf7b30021c321236fc6141dfbf1d9911bfc793561f2850",
+      "bytes": 7794,
+      "owner": "R18",
+      "lines": 49,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前支持与使用说明全文；公开能力/副作用/恢复/命令及本地链接核对",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/实时字幕翻译.md",
+      "sha256": "4707a8462f4cc9f83b32f03152e246b6d22ab710415eedba97a1cf21c60035ac",
+      "bytes": 3036,
+      "owner": "R18",
+      "lines": 19,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前支持与使用说明全文；公开能力/副作用/恢复/命令及本地链接核对",
+      "reviewer": "root"
+    },
+    {
+      "path": "docs/弹幕与快捷键.md",
+      "sha256": "3004bd8bf8ff381aa5605851b27a22c85ac15c10d5c9c0063299764ec5cb26f3",
+      "bytes": 17294,
+      "owner": "R18",
+      "lines": 159,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前支持与使用说明全文；公开能力/副作用/恢复/命令及本地链接核对",
+      "reviewer": "root"
+    },
+    {
+      "path": "docs/飞牛影视.md",
+      "sha256": "7e8a5bdef2602df096886059304c2c014f86ad136813f5ba6c5c10cf1b24b965",
+      "bytes": 12994,
+      "owner": "R18",
+      "lines": 49,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "当前支持与使用说明全文；公开能力/副作用/恢复/命令及本地链接核对",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R01.md",
+      "sha256": "5b39cb5827248e91d54fb600dc6b60ada3fb5d919a93cc87332fa1f12a5515d8",
+      "bytes": 13954,
+      "owner": "R18",
+      "lines": 114,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R02-verification.json",
+      "sha256": "ec463fac7f17b447ab797ca0eb0a89df76f33ffe20cf88613a2dd2fa4d87bd07",
+      "bytes": 7849,
+      "owner": "R18",
+      "lines": 182,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R02.md",
+      "sha256": "57026385a0d895e7d7185e51b7cdb92bc46fbaaebf6553ab562bc04285d0693a",
+      "bytes": 15570,
+      "owner": "R18",
+      "lines": 106,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R03-verification.json",
+      "sha256": "93b0725ba17d1f327c17338d9ec9077fa70096b0a87859701c69d034873ba82b",
+      "bytes": 18128,
+      "owner": "R18",
+      "lines": 229,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R03.md",
+      "sha256": "5f6211c818ab9fa6e561f76a78666f4f78d134e0190a757f479ed94b719da1b3",
+      "bytes": 17808,
+      "owner": "R18",
+      "lines": 111,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R04-verification.json",
+      "sha256": "963f6ace488b3e34ce165c75d9c4e9306de4f1846ae2e84f1e6e8d0dc1261d9c",
+      "bytes": 25742,
+      "owner": "R18",
+      "lines": 379,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R04.md",
+      "sha256": "ba12cb598337aea064ce1e8fda21067f1787dc9be09e575510c819810389f917",
+      "bytes": 18694,
+      "owner": "R18",
+      "lines": 92,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R05-verification.json",
+      "sha256": "9b171504b35eedb7cfa0d623eaa7cd9bebc640acac4f8dc6fb1cf3f3e4a1210f",
+      "bytes": 33159,
+      "owner": "R18",
+      "lines": 888,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R05.md",
+      "sha256": "dc215f9024abbf396bcbffc9201850b2f70fb841afce9057e1104516cf466d18",
+      "bytes": 18300,
+      "owner": "R18",
+      "lines": 114,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R06-verification.json",
+      "sha256": "04f560cc2ae99cca4cd872f3b17ed0c5d98856704ccf9fa1b75c000066ab2561",
+      "bytes": 54517,
+      "owner": "R18",
+      "lines": 1654,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R06.md",
+      "sha256": "c97f15d1777cb15aa4b4d71a33bf1251b3a9d838834df2ab2bb881565990a0b5",
+      "bytes": 17901,
+      "owner": "R18",
+      "lines": 134,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R07-verification.json",
+      "sha256": "c019437bc5fdd5e37b7900764c015fe5cee3c147650d327e644ce2f876690bb4",
+      "bytes": 45436,
+      "owner": "R18",
+      "lines": 1393,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R07.md",
+      "sha256": "e4a0ff5fd9d852fbb50cee5b7cc5f26bcc88ddcd8ed99d30031871c4c3be2be5",
+      "bytes": 22005,
+      "owner": "R18",
+      "lines": 139,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R08-upstream.md",
+      "sha256": "360724808dba98196b83b586bf8017b57c1328bba36a5bca1d00e36b969b6921",
+      "bytes": 6920,
+      "owner": "R18",
+      "lines": 38,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R08-verification.json",
+      "sha256": "93e098a1b2fd1a79438220cb24e8b12763a5282d1cf54711e6182479040722dc",
+      "bytes": 69305,
+      "owner": "R18",
+      "lines": 1916,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R08.md",
+      "sha256": "5d0a67f56e8c29bfbf225eed273026eda9a1059cea90881167b6651131175d54",
+      "bytes": 12982,
+      "owner": "R18",
+      "lines": 89,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R09-upstream.md",
+      "sha256": "974e086e70de833d7f640a241c49ecfbb447408a3a7800f5b5ed755820dc606c",
+      "bytes": 6545,
+      "owner": "R18",
+      "lines": 67,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R09-verification.json",
+      "sha256": "77f11f564153e6df9222a4c607af56e22a6e353a6ae6bd102458a6d22316d10d",
+      "bytes": 71887,
+      "owner": "R18",
+      "lines": 2120,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R09.md",
+      "sha256": "9b4863be9e0dc93337b683b069dccff5340d33c4d99c6036462c2ded8efcde3d",
+      "bytes": 13986,
+      "owner": "R18",
+      "lines": 103,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R10-lifetimes.md",
+      "sha256": "3a9c1b333bac2eecb1458238c1bdda3d541dfc2e00fd5fb8d3711884cd7a8def",
+      "bytes": 4240,
+      "owner": "R18",
+      "lines": 30,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R10-upstream.md",
+      "sha256": "3de95f4e2343d9cf380b501cb8ef5838bcf8785ccf984069608fbad51e1aaf3c",
+      "bytes": 2151,
+      "owner": "R18",
+      "lines": 15,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R10-verification.json",
+      "sha256": "2e37d130900e157592cdca144f9ece5d42412eb3bc282a27ea94b0ac0832bffa",
+      "bytes": 65283,
+      "owner": "R18",
+      "lines": 1729,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R10.md",
+      "sha256": "25f9758bb68c2f159ce9c60bdfcaaaaf2d2330c45d4a1e701394fd781d2c09fb",
+      "bytes": 15312,
+      "owner": "R18",
+      "lines": 100,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R11-lifetimes.md",
+      "sha256": "207e1e29e47091118e4021cc39f62c991b1a6e3dfc6cd673561b7eadd8bb0289",
+      "bytes": 3339,
+      "owner": "R18",
+      "lines": 29,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R11-upstream.md",
+      "sha256": "e88bd2d9c8bb666934176e6eeaa63a8ac65f545f8f0da3c3b3ae145b7a5e05be",
+      "bytes": 2765,
+      "owner": "R18",
+      "lines": 21,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R11-verification.json",
+      "sha256": "476dc6d9dfd369931eca5bfbe6baf627cb306f7785de8de342b85329a232c7d3",
+      "bytes": 93640,
+      "owner": "R18",
+      "lines": 2876,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R11.md",
+      "sha256": "d1ce5420280a55cbfc5f70c2f6effafd4f25b24f73f99b3e792d0bc2b7bec498",
+      "bytes": 10402,
+      "owner": "R18",
+      "lines": 64,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R12-lifetimes.md",
+      "sha256": "14aca3461f5481a15d0b5042adcf663b6273ac8d8313036f4620d24383aa1fee",
+      "bytes": 3214,
+      "owner": "R18",
+      "lines": 20,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R12-shaders.md",
+      "sha256": "ec316f170b0ff00805d96cb7871a43330cea48fe8389dffab81983d2639553e3",
+      "bytes": 4517,
+      "owner": "R18",
+      "lines": 30,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R12-upstream.md",
+      "sha256": "110ddce8587e41a35215664ad289ae889966f78553baf3824d81584eed6871c6",
+      "bytes": 3270,
+      "owner": "R18",
+      "lines": 23,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R12-verification.json",
+      "sha256": "7a83bc2b680c0128803010dc92d6b6cf9f4e85a0940a237168779aaaa16ed3f4",
+      "bytes": 114494,
+      "owner": "R18",
+      "lines": 3044,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R12.md",
+      "sha256": "24fa7bb1ddc02cf6e5f6f924c1d29bbe274b0b65338646bc46dfba641e82a8fe",
+      "bytes": 12950,
+      "owner": "R18",
+      "lines": 82,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R13-lifetimes.md",
+      "sha256": "b6f37f8471f1d9382923c64ac8b9dc175a876c36b9cf1d47871122d4dec4809c",
+      "bytes": 2797,
+      "owner": "R18",
+      "lines": 20,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R13-verification.json",
+      "sha256": "3d406809323a546d44742c3bfd213a78b2c7841901e7aec40731b7eb1285bc99",
+      "bytes": 112291,
+      "owner": "R18",
+      "lines": 2974,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R13.md",
+      "sha256": "6c8d6268931065fc233158a1e2250b62cd5b94c126a45149a1e8f974b607454e",
+      "bytes": 14278,
+      "owner": "R18",
+      "lines": 91,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R14-lifetimes.md",
+      "sha256": "727aaa40b9e7c8ec2d93d93ac54bc6b5a03c5a54595c6fe114c6adb9e6d5d920",
+      "bytes": 2409,
+      "owner": "R18",
+      "lines": 19,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R14-verification.json",
+      "sha256": "58db199e9b8a6d41a860339b6782c0f598202bcc606410518c971200f464263e",
+      "bytes": 62987,
+      "owner": "R18",
+      "lines": 1732,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R14.md",
+      "sha256": "8d91a1afec3eb7889ad556b89b6f59029a50e44b6f7926b4aab53c8e84d59ba3",
+      "bytes": 10981,
+      "owner": "R18",
+      "lines": 85,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R15-lifetimes.md",
+      "sha256": "a31dad5869669484edc0a5033f9d6d7262eb69a3e2652b1bcad95b2c823ca92a",
+      "bytes": 3209,
+      "owner": "R18",
+      "lines": 21,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R15-verification.json",
+      "sha256": "8d060cca8d44d572312ffd582b4736ca72278b01c9075ed148e5c9af1e01006e",
+      "bytes": 171802,
+      "owner": "R18",
+      "lines": 3119,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R15.md",
+      "sha256": "41141b011039272a78351fff150cbda8eef50834f5dbfc9f6bf95198dc82eae9",
+      "bytes": 15037,
+      "owner": "R18",
+      "lines": 90,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R16-lifetimes.md",
+      "sha256": "9e523d4945ad6793cf215eebbf1e997b22c8c4a101770f98e678d25f6274472e",
+      "bytes": 3504,
+      "owner": "R18",
+      "lines": 23,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R16-verification.json",
+      "sha256": "6986fd62d83002c141ea4a4c85ebe5e4a36df9c27746edad425fbd074efa8a76",
+      "bytes": 188786,
+      "owner": "R18",
+      "lines": 4328,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R16.md",
+      "sha256": "6067844b27eade9dd9d49bcbe2e519a8d50dfb09ad1b3d1c2f85e093e00fadcd",
+      "bytes": 12402,
+      "owner": "R18",
+      "lines": 89,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R17-lifetimes.md",
+      "sha256": "df0408002559cbf75f913438ca74986d6e7d07ecbb3d761b6326c377b7423026",
+      "bytes": 3448,
+      "owner": "R18",
+      "lines": 24,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R17-verification.json",
+      "sha256": "4ca43bdffc8acfd214b522526ac0056923bb88eeee2eea13bc5748e8aee658f4",
+      "bytes": 588707,
+      "owner": "R18",
+      "lines": 13595,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R17.md",
+      "sha256": "13b032a9ec1db5c354843707d11ad885913582819e69dc9fbc54ef0561891e1e",
+      "bytes": 13873,
+      "owner": "R18",
+      "lines": 93,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/baseline.json",
+      "sha256": "c74a6eef83a563aab174cbed3fa914d6a2fb7a4f6b3d4da6b7b5a71ca823fd76",
+      "bytes": 2344,
+      "owner": "R18",
+      "lines": 76,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/entrypoints.md",
+      "sha256": "274a75b38a5318dea519c0a5df196b37cc58ca0a3a9bb28af1f12774f183c6a4",
+      "bytes": 28136,
+      "owner": "R18",
+      "lines": 230,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r04.json",
+      "sha256": "1495923f555c460145ba25701fbd4badde30e51e0fae44b7288d790d91c1f325",
+      "bytes": 16178,
+      "owner": "R18",
+      "lines": 285,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r07.json",
+      "sha256": "804afd910155b43b054f0b2dc441fcf298782a675e80e36e11cd0e0dc8c41a84",
+      "bytes": 9685,
+      "owner": "R18",
+      "lines": 187,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r11.json",
+      "sha256": "519edebc9fcf71e18722d535e6aa3aa47864626dddee146938803f5c79734408",
+      "bytes": 5029,
+      "owner": "R18",
+      "lines": 94,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r12.json",
+      "sha256": "9d598fb358f532d79e9afb28d2a4959503f021775530135ec5e25ee707657002",
+      "bytes": 18803,
+      "owner": "R18",
+      "lines": 391,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r13.json",
+      "sha256": "6d56370dbc34aa98a65dc84dc6ec10770715b0f4c4dcd17a5c1da8181f55f3ae",
+      "bytes": 15734,
+      "owner": "R18",
+      "lines": 323,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r14.json",
+      "sha256": "75f1726a34c60ba6034490299898e0fa0f2afff9f334b42efc83372747db6b9c",
+      "bytes": 18784,
+      "owner": "R18",
+      "lines": 374,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r15.json",
+      "sha256": "776bd56b14b62dd0f74bc5eabe9b5cd96477b886cd5f87fe7f45677fecf2f1de",
+      "bytes": 16917,
+      "owner": "R18",
+      "lines": 338,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r16.json",
+      "sha256": "438b5871319fdf23da16662cc51aacdc40737c12e7365c16063a2b2c96556401",
+      "bytes": 21382,
+      "owner": "R18",
+      "lines": 452,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r17.json",
+      "sha256": "b31d1cd9760647e7ba4ee91435db50ecd1bb3d13a114750e2016955649161a0f",
+      "bytes": 44221,
+      "owner": "R18",
+      "lines": 943,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106.json",
+      "sha256": "ece3b704d5a7fe99c3c1cfd8ac8c8aef4afc8814ce205e6741b7470c90b31b8b",
+      "bytes": 31890,
+      "owner": "R18",
+      "lines": 653,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/file-ledger.jsonl",
+      "sha256": "a75fddba8f46822e87747c1acddf0e16745e0180c37537fb382eedb0974d8015",
+      "bytes": 1314618,
+      "owner": "R18",
+      "lines": 1876,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/master-handoff-20261106.md",
+      "sha256": "5fdbbf9d06bb1ece02df0ae5feecacd3f99eed9a8879d5fd1a46e9d539e8bdfd",
+      "bytes": 3526,
+      "owner": "R18",
+      "lines": 26,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/shared-members.md",
+      "sha256": "0d23e117e1da31bd8a6d51bf7159394324ac9eb74651b1a09f73efe38afa1ff7",
+      "bytes": 30978,
+      "owner": "R18",
+      "lines": 212,
+      "ownerReview": true,
+      "fullRead": true,
+      "readMethod": "current-full",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/validation-matrix.json",
+      "sha256": "a3fc180ec38560a283431e6deeed137634b62c684b08d6b71422c709b2cafae5",
+      "bytes": 191812,
+      "owner": "R18",
+      "lines": 5067,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/verification.json",
+      "sha256": "49cb34912b81a3003e3021821bb1ef3dd039f4d9f58676ff0876ffb8c93eb807",
+      "bytes": 3338,
+      "owner": "R18",
+      "lines": 91,
+      "ownerReview": true,
+      "fullRead": false,
+      "readMethod": "review-json-structure",
+      "scope": "本计划新增审查产物；Markdown全文，JSON身份/历史/证据结构；保留原红与待终核增量",
+      "reviewer": "r18_history+root"
+    },
+    {
+      "path": "website/worker/credential.js",
+      "sha256": "75201cd45c724cb079ff7a3c362960e11e4afc1c8e8e0e9f325373e37c8b435d",
+      "bytes": 2236,
+      "owner": "R14",
+      "lines": 55,
+      "ownerReview": false,
+      "fullRead": true,
+      "readMethod": "reuse-R14-full",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "website/worker/credential.test.mjs",
+      "sha256": "d38281e7724ce627580ef6a74c6d5e31f7f97a911eefa3dee012ef6509f1c82d",
+      "bytes": 2825,
+      "owner": "R14",
+      "lines": 63,
+      "ownerReview": false,
+      "fullRead": true,
+      "readMethod": "reuse-R14-full",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "website/worker/index.js",
+      "sha256": "9163555b9066ca46178d938f6ef6122aa72d0821acd5f3311fc4bd98440cc466",
+      "bytes": 396,
+      "owner": "R14",
+      "lines": 12,
+      "ownerReview": false,
+      "fullRead": true,
+      "readMethod": "reuse-R14-full",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "tools/check-server-support-docs.py",
+      "sha256": "2cccff950e55f349c3b68f07395e3795101d05e7af7b6d09d5664dd26f7b3a0b",
+      "bytes": 3696,
+      "owner": "R17",
+      "lines": 76,
+      "ownerReview": false,
+      "fullRead": true,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "tests/test_server_support_docs.py",
+      "sha256": "2ff3110a9de339209b33193c6e51df6a79c98c4250a19d33336c4384d01e35ad",
+      "bytes": 3343,
+      "owner": "R17",
+      "lines": 83,
+      "ownerReview": false,
+      "fullRead": true,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "tools/check-main-tree-policy.py",
+      "sha256": "7817ceca09b9a7eb87cf1c6c594d1dd1856e5c552c1ff145cb6099b136dfdce4",
+      "bytes": 4483,
+      "owner": "R17",
+      "lines": 104,
+      "ownerReview": false,
+      "fullRead": true,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "tools/backup.ps1",
+      "sha256": "2e517fec9aa4e6308dc61104587b3c588f430e47e7aecb8433c4a9b95dbdebdd",
+      "bytes": 5712,
+      "owner": "R01",
+      "lines": 118,
+      "ownerReview": false,
+      "fullRead": true,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "tests/Momoka.ImagePerformanceTests/README.md",
+      "sha256": "d664a47733adeb8062d500cf5c61bf2c775358ebad29e8ab68185d82beae53b3",
+      "bytes": 8526,
+      "owner": "R17",
+      "lines": 87,
+      "ownerReview": false,
+      "fullRead": true,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "tests/Momoka.PageContractTests/README.md",
+      "sha256": "11672c92f98bc69f0114ae60159e7d6138b30aba664e1912f83720d8f1e99430",
+      "bytes": 4322,
+      "owner": "R17",
+      "lines": 26,
+      "ownerReview": false,
+      "fullRead": true,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "tests/Momoka.ImagePerformanceTests/Program.cs",
+      "sha256": "1169643a5ea87b50223bbd2d6eab668b650898084dd5867d529e4d8931e2925a",
+      "bytes": 4602,
+      "owner": "R17",
+      "lines": 99,
+      "ownerReview": false,
+      "fullRead": false,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区；只读所需方法/注册与真实消费，不声称该文件全文；只读所需方法/注册与真实消费，不声称该文件全文",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "tests/Momoka.ImagePerformanceTests/ExtractProductionSources.targets",
+      "sha256": "b53d9bb14aa7fc039bee72a115773a3e4bcff268ec198a144fa97873478d101d",
+      "bytes": 4668,
+      "owner": "R01",
+      "lines": 64,
+      "ownerReview": false,
+      "fullRead": false,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "src/Momoka.Core/Translation/SubtitleTranslationClient.cs",
+      "sha256": "bdfbf64fe5120ea32b5f18c242b4644369df6ec129e46ffc584431d1d1e54d8c",
+      "bytes": 17024,
+      "owner": "R13",
+      "lines": 274,
+      "ownerReview": false,
+      "fullRead": false,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/DandanPlayClient.Send.cs",
+      "sha256": "3e3b86018fb782fe5295a0e19621e05884509fa5b5bb80431b3a257ae61aa070",
+      "bytes": 6987,
+      "owner": "R14",
+      "lines": 117,
+      "ownerReview": false,
+      "fullRead": false,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "src/Momoka.Core/Danmaku/DanmuApiEndpoint.cs",
+      "sha256": "89fc5b21abccabdec858ce0a32ea86036040015be6c001aa4ef07a0cb1fffe8c",
+      "bytes": 1649,
+      "owner": "R14",
+      "lines": 47,
+      "ownerReview": false,
+      "fullRead": false,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区；只读所需方法/注册与真实消费，不声称该文件全文；只读所需方法/注册与真实消费，不声称该文件全文",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/DanmakuSettings.cs",
+      "sha256": "27c767addedc33493160aeb9c574d750131013917c51d887e677120cb1c852a5",
+      "bytes": 3608,
+      "owner": "R02",
+      "lines": 81,
+      "ownerReview": false,
+      "fullRead": false,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/DownloadPlan.cs",
+      "sha256": "d4fd288ff6625be511adbeaf7bc3e0e1d810a69dbb06200a768d60bf73fddcea",
+      "bytes": 10669,
+      "owner": "R07",
+      "lines": 204,
+      "ownerReview": false,
+      "fullRead": false,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+      "sha256": "5421c7a5fc2e591d8a7f34aa50b0c565b8d0702b2f060cea917831f3a751753c",
+      "bytes": 14946,
+      "owner": "R02",
+      "lines": 300,
+      "ownerReview": false,
+      "fullRead": false,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyRealtimeProtocol.cs",
+      "sha256": "4b2fa32068b813186c0215b20b545b58e78b072e703dfba938c4cbc672d225fd",
+      "bytes": 5345,
+      "owner": "R04",
+      "lines": 100,
+      "ownerReview": false,
+      "fullRead": false,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/ShortcutCatalog.cs",
+      "sha256": "279becc750db9ffac28b6ed0026daa22b78718bf1064d61adf9c969891cfcba4",
+      "bytes": 21423,
+      "owner": "R11",
+      "lines": 376,
+      "ownerReview": false,
+      "fullRead": false,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "sha256": "391bba844ab6496ff68de2ac595060b899c106e3932334cf8c91d63ff5b45948",
+      "bytes": 189248,
+      "owner": "R15",
+      "lines": 3176,
+      "ownerReview": false,
+      "fullRead": false,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs",
+      "sha256": "3dc6853e56887c716028df34923a0d55148f01f24caa21aa38e7949603dd5351",
+      "bytes": 44016,
+      "owner": "R10",
+      "lines": 883,
+      "ownerReview": false,
+      "fullRead": false,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+      "sha256": "55b94767455ac916c78bd77d1f2b5b1ac0a1a6c510af773330ace3bbb117ce1a",
+      "bytes": 30029,
+      "owner": "R07",
+      "lines": 632,
+      "ownerReview": false,
+      "fullRead": false,
+      "readMethod": "joint-source-or-content",
+      "scope": "R18凭据/隐私/下载/选集/基线/文案实际消费核；Worker同SHA复用R14；原业务结论沿所属区",
+      "reviewer": "root+agents"
+    }
+  ],
+  "evidenceRoot": "artifacts/review/d82df28/R18/20261106-first",
+  "checks": [
+    {
+      "name": "skill-check",
+      "command": [
+        "py",
+        "-X",
+        "utf8",
+        "-B",
+        ".claude/skills/momoka-skill-creator/scripts/check-skill.py",
+        "--all"
+      ],
+      "exitCode": 0,
+      "seconds": 0.262,
+      "log": "artifacts\\review\\d82df28\\R18\\20261106-first\\skill-check.log",
+      "logSha256": "256a4a16fb0ce2aa914d05f6bc12d4be33ecbd673456727b812790fa616b18cc"
+    },
+    {
+      "name": "skill-test",
+      "command": [
+        "py",
+        "-X",
+        "utf8",
+        "-B",
+        ".claude/skills/momoka-skill-creator/scripts/test-check-skill.py"
+      ],
+      "exitCode": 0,
+      "seconds": 0.275,
+      "log": "artifacts\\review\\d82df28\\R18\\20261106-first\\skill-test.log",
+      "logSha256": "46a59d823d772c3809446eba836399e2612ba33924b6c71abe8e15b736b8f4b7"
+    },
+    {
+      "name": "support-check",
+      "command": [
+        "py",
+        "-X",
+        "utf8",
+        "-B",
+        "tools/check-server-support-docs.py"
+      ],
+      "exitCode": 0,
+      "seconds": 0.209,
+      "log": "artifacts\\review\\d82df28\\R18\\20261106-first\\support-check.log",
+      "logSha256": "2241ec22d4e011af2d674ba37558d1aaadf49b6598a8e76716353cdf9e0a758e"
+    },
+    {
+      "name": "support-test",
+      "command": [
+        "py",
+        "-X",
+        "utf8",
+        "-B",
+        "tests/test_server_support_docs.py"
+      ],
+      "exitCode": 0,
+      "seconds": 10.957,
+      "log": "artifacts\\review\\d82df28\\R18\\20261106-first\\support-test.log",
+      "logSha256": "0ffcca0ffac9923b45ff2706064937bcd7b9b8d4194de889d3ee5fabd91bdf8f"
+    },
+    {
+      "name": "policy-check",
+      "command": [
+        "py",
+        "-X",
+        "utf8",
+        "-B",
+        "tools/check-main-tree-policy.py",
+        "--self-test"
+      ],
+      "exitCode": 0,
+      "seconds": 0.167,
+      "log": "artifacts\\review\\d82df28\\R18\\20261106-first\\policy-check.log",
+      "logSha256": "3eb9ea034abb8a58455f3fb68c464a248ed8f3b51a8dceab92e05541fdf5d091"
+    },
+    {
+      "name": "website-boundary",
+      "command": [
+        "node",
+        "artifacts\\review\\d82df28\\R18\\20261106-first\\website-boundary.cjs"
+      ],
+      "exitCode": 0,
+      "seconds": 0.063,
+      "log": "artifacts\\review\\d82df28\\R18\\20261106-first\\website-boundary.log",
+      "logSha256": "1f6f80fbf4ba083160abd82854e32c9cd69f02ecbc75809e140926dc71221da1"
+    },
+    {
+      "name": "surface-documents",
+      "command": [
+        "py",
+        "-X",
+        "utf8",
+        "-B",
+        "artifacts\\review\\d82df28\\R18\\20261106-first\\inspect-documents.py"
+      ],
+      "exitCode": 0,
+      "seconds": 1.046,
+      "log": "artifacts\\review\\d82df28\\R18\\20261106-first\\surface-documents.log",
+      "logSha256": "b6f9a05cda3dd9279ef22844e5e0bfdc7a3dee5a007397ac28a8d942c41ec185"
+    },
+    {
+      "name": "audio-helper-tests",
+      "command": [
+        "py",
+        "-X",
+        "utf8",
+        "-B",
+        ".claude/skills/momoka-audio-output/scripts/test-probe-audio-native.py"
+      ],
+      "exitCode": 0,
+      "seconds": 0.942,
+      "log": "artifacts\\review\\d82df28\\R18\\20261106-first\\audio-helper-tests.log",
+      "logSha256": "79f99a7da02c2319fac2284e0c986342804ce0f7ceee6a65f2f40266569718a8"
+    }
+  ],
+  "formalToolTests": {
+    "passed": 26,
+    "failed": 0,
+    "skipped": 0,
+    "entries": {
+      "skill-test": 5,
+      "support-test": 7,
+      "audio-helper-tests": 14
+    }
+  },
+  "toolChecks": {
+    "skillDocuments": 15,
+    "skillErrors": 0,
+    "uncheckedMetadataWarnings": 2,
+    "mainTreeDocuments": 3,
+    "rejectedPolicyFixtures": 21
+  },
+  "anonymousWebsiteBoundary": {
+    "assertions": 17,
+    "passed": 17,
+    "actualScript": "website/main.js",
+    "substitutes": "DOM/storage/IntersectionObserver",
+    "browserOrPixels": false
+  },
+  "surfaceChecks": {
+    "trackedAtStart": 1938,
+    "initialIdentityRows": 1876,
+    "ownerR18": 220,
+    "newReviewArtifacts": 64,
+    "parsedJsonFiles": 81,
+    "localLinks": 1386,
+    "existingLinks": 1359,
+    "missingLinks": [
+      {
+        "path": ".claude/skills/momoka-fnnas-media-api/references/http-and-auth.md",
+        "line": 104,
+        "exists": false,
+        "target": "../momoka-playback/SKILL.md"
+      },
+      {
+        "path": "PROGRESS.md",
+        "line": 1798,
+        "exists": false,
+        "target": "artifacts/staged-repair/batch09/final-7e6e0d7-complete-offline-v2/summary.json"
+      },
+      {
+        "path": "PROGRESS.md",
+        "line": 1798,
+        "exists": false,
+        "target": "artifacts/staged-repair/batch09/final-7e6e0d7-composition/acceptance.json"
+      },
+      {
+        "path": "PROGRESS.md",
+        "line": 1798,
+        "exists": false,
+        "target": "artifacts/staged-repair/batch09/final-7e6e0d7-motion-complete-fixture/process.json"
+      },
+      {
+        "path": "PROGRESS.md",
+        "line": 1798,
+        "exists": false,
+        "target": "artifacts/staged-repair/batch09/final-7e6e0d7-settings/shell-probe-scope.txt"
+      },
+      {
+        "path": "PROGRESS.md",
+        "line": 1798,
+        "exists": false,
+        "target": "artifacts/staged-repair/batch09/final-7e6e0d7-selfcheck.log"
+      },
+      {
+        "path": "PROGRESS.md",
+        "line": 1798,
+        "exists": false,
+        "target": "artifacts/staged-repair/batch09/final-desktop-delivery-receipt.json"
+      },
+      {
+        "path": "PROGRESS.md",
+        "line": 1862,
+        "exists": false,
+        "target": "artifacts/staged-repair/delivery08/user-direct-delivery-receipt.json"
+      },
+      {
+        "path": "PROGRESS.md",
+        "line": 6562,
+        "exists": false,
+        "target": "src/EmbyNian.Shell/ViewModels/PlayerViewModel.Transport.cs"
+      },
+      {
+        "path": "PROGRESS.md",
+        "line": 6562,
+        "exists": false,
+        "target": "src/EmbyNian.Shell/ViewModels/DetailViewModel.cs"
+      },
+      {
+        "path": "PROGRESS.md",
+        "line": 6563,
+        "exists": false,
+        "target": "src/EmbyNian.Shell/ViewModels/PlayerViewModel.Transport.cs"
+      },
+      {
+        "path": "PROGRESS.md",
+        "line": 6563,
+        "exists": false,
+        "target": "src/EmbyNian.Shell/ShellSelfCheck.Reads.cs"
+      },
+      {
+        "path": "PROGRESS.md",
+        "line": 9375,
+        "exists": false,
+        "target": "artifacts/技能安装-2026-09-05.md"
+      },
+      {
+        "path": "PROGRESS.md",
+        "line": 9807,
+        "exists": false,
+        "target": "音视频输出补齐-任务书.md"
+      },
+      {
+        "path": "docs/progress-2026-09.md",
+        "line": 19,
+        "exists": false,
+        "target": "../音视频输出补齐-任务书.md"
+      },
+      {
+        "path": "docs/progress-2026-09.md",
+        "line": 235,
+        "exists": false,
+        "target": "../画质档位重构-任务书.md"
+      },
+      {
+        "path": "docs/代码审查-分阶段修复-2026-10-23.md",
+        "line": 787,
+        "exists": false,
+        "target": "../artifacts/staged-repair/batch07/final-current-03b5d10/summary.json"
+      },
+      {
+        "path": "docs/代码审查-分阶段修复-2026-10-23.md",
+        "line": 787,
+        "exists": false,
+        "target": "../artifacts/staged-repair/delivery08/user-direct-delivery-publish.log"
+      },
+      {
+        "path": "docs/代码审查-分阶段修复-2026-10-23.md",
+        "line": 787,
+        "exists": false,
+        "target": "../artifacts/staged-repair/delivery08/user-direct-delivery-publish.exit"
+      },
+      {
+        "path": "docs/代码审查-分阶段修复-2026-10-23.md",
+        "line": 787,
+        "exists": false,
+        "target": "../artifacts/staged-repair/delivery08/user-direct-delivery-receipt.json"
+      },
+      {
+        "path": "docs/代码审查-分阶段修复-2026-10-23.md",
+        "line": 833,
+        "exists": false,
+        "target": "../artifacts/staged-repair/batch09/final-7e6e0d7-complete-offline-v2/summary.json"
+      },
+      {
+        "path": "docs/代码审查-分阶段修复-2026-10-23.md",
+        "line": 837,
+        "exists": false,
+        "target": "../artifacts/staged-repair/batch09/final-7e6e0d7-publish.log"
+      },
+      {
+        "path": "docs/代码审查-分阶段修复-2026-10-23.md",
+        "line": 838,
+        "exists": false,
+        "target": "../artifacts/staged-repair/batch09/final-7e6e0d7-composition/acceptance.json"
+      },
+      {
+        "path": "docs/代码审查-分阶段修复-2026-10-23.md",
+        "line": 839,
+        "exists": false,
+        "target": "../artifacts/staged-repair/batch09/final-7e6e0d7-motion-complete-fixture/process.json"
+      },
+      {
+        "path": "docs/代码审查-分阶段修复-2026-10-23.md",
+        "line": 840,
+        "exists": false,
+        "target": "../artifacts/staged-repair/batch09/final-7e6e0d7-settings/shell-probe-scope.txt"
+      },
+      {
+        "path": "docs/代码审查-分阶段修复-2026-10-23.md",
+        "line": 841,
+        "exists": false,
+        "target": "../artifacts/staged-repair/batch09/final-7e6e0d7-selfcheck.log"
+      },
+      {
+        "path": "docs/代码审查-分阶段修复-2026-10-23.md",
+        "line": 855,
+        "exists": false,
+        "target": "../artifacts/staged-repair/batch09/final-desktop-delivery-receipt.json"
+      }
+    ],
+    "deploymentPairs": [
+      {
+        "source": "website/assets/app-icon.png",
+        "deployed": "website/dist/assets/app-icon.png",
+        "equal": true,
+        "sha256": "0bcd8a4ef09104ebe8000bf47fea28847372409c124e2b15617dcf0f7b3144e9"
+      },
+      {
+        "source": "website/assets/hero-800.webp",
+        "deployed": "website/dist/assets/hero-800.webp",
+        "equal": true,
+        "sha256": "6826e6661a807c2bd3660ed56b867cf07d198460792a65e690eb32ffe658a14c"
+      },
+      {
+        "source": "website/assets/hero.webp",
+        "deployed": "website/dist/assets/hero.webp",
+        "equal": true,
+        "sha256": "aea3924d692fabffc8e5eee545a7e8f4fa6046c3e5faebad35d9b1470dc44a62"
+      },
+      {
+        "source": "website/index.html",
+        "deployed": "website/dist/index.html",
+        "equal": true,
+        "sha256": "d25dd23ecdc91d4e59e1672dcf9866fc3c24da2a73ea5982e26abf71a7699af4"
+      },
+      {
+        "source": "website/main.js",
+        "deployed": "website/dist/main.js",
+        "equal": true,
+        "sha256": "4cead3de72195cc8bd5d2ccef5205805aa32316a3356f3ebb51e3c61d11782e5"
+      },
+      {
+        "source": "website/styles.css",
+        "deployed": "website/dist/styles.css",
+        "equal": true,
+        "sha256": "1b5d61a2ccf32b3292c4a11620fc952a620a2a27bf81b2427aa61fa1c151ad8a"
+      }
+    ],
+    "embeddedHtmlEqual": true,
+    "priorCoverageInputHashes": [
+      {
+        "path": "tests/Momoka.ImagePerformanceTests/CoverCallerBoundary.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.ImagePerformanceTests/CoverCallerTests.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.ImagePerformanceTests/CoverDecodeTests.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.ImagePerformanceTests/DetailHeroCacheTests.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.ImagePerformanceTests/ExtractProductionSources.targets",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.ImagePerformanceTests/ImageData.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.ImagePerformanceTests/Momoka.ImagePerformanceTests.csproj",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.ImagePerformanceTests/Program.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.ImagePerformanceTests/README.md",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.ImagePerformanceTests/SharedBudgetTests.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.ImagePerformanceTests/StoreBudgetTests.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.ImagePerformanceTests/StoreFixture.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.ImagePerformanceTests/TestUiContext.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/BannerCacheBoundaries.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/BannerCacheTests.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/CardPresentationTests.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/DeferredCardsTests.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/FilterValuesTests.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/FocusBoundaries.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/FocusWatchTests.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/LibraryAnchorBoundaries.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/LibraryAnchorTests.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/Momoka.PageContractTests.csproj",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/PageBoundaries.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/Program.cs",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/README.md",
+        "sameAsR16": true
+      },
+      {
+        "path": "tests/Momoka.PageContractTests/SettingsControlNameTests.cs",
+        "sameAsR16": true
+      }
+    ],
+    "limits": "Link existence and structured contents, not remote reachability or live runtime; historic missing evidence preserved."
+  },
+  "coverageChecks": {
+    "shortcutActions": 70,
+    "sourcePins": [
+      "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+      "src/Momoka.Shell/ViewModels/CoverBackdropImage.cs",
+      "src/Momoka.Shell/ViewModels/CoverBackdropSize.cs",
+      "src/Momoka.Shell/Media/HeroPictureLoader.cs",
+      "src/Momoka.Shell/Media/DetailHeroCache.cs",
+      "src/Momoka.Core/Emby/EmbyImageStore.cs",
+      "src/Momoka.Core/Infrastructure/SharedWork.cs",
+      "src/Momoka.Core/Infrastructure/SharedWorkBudget.cs"
+    ],
+    "pageHistoricalLog": "artifacts\\review\\9532593\\R16\\20261106-first\\PageContractTests-run.log",
+    "pageHistoricalSummary": [
+      "共 137 项，通过 137，失败 0，跳过 0，用时 1275 ms"
+    ],
+    "imageHistoricalLogs": [
+      {
+        "path": "artifacts\\review\\9532593\\R16\\20261106-first\\ImagePerformanceTests-run.log",
+        "sha256": "274d159d0cca94285e0ebe1f9117b10cb0dfce25d5cce3d6d8597fee9849c11f",
+        "summary": [
+          "共 22 项，通过 22，失败 0，跳过 0，用时 90 ms",
+          "新增专项共 49 项，通过 49，失败 0，跳过 0，用时 7522 ms"
+        ]
+      }
+    ],
+    "runtimeRerun": false,
+    "allPriorInputsSame": true
+  },
+  "privateLocationObservation": {
+    "files": [
+      {
+        "path": ".qoder/team-runs/20261025-032101-8172a0/results/T4.md",
+        "sha256": "cb3b2fb74d3b1a2d551356cbeb63de223c14e0167b00e0fccb75e64292b0182f",
+        "lines": 147,
+        "checks": [
+          {
+            "line": 72,
+            "privateHostPortCount": 1,
+            "noContentPrinted": true
+          }
+        ]
+      },
+      {
+        "path": ".qoder/team-runs/20261025-032101-8172a0/run.json",
+        "sha256": "804b32d651194d8700a9bb9528f55ec916757add73c9723f050e614f0edc4b2d",
+        "lines": 224,
+        "checks": [
+          {
+            "line": 154,
+            "privateHostPortCount": 1,
+            "noContentPrinted": true
+          },
+          {
+            "line": 168,
+            "privateHostPortCount": 1,
+            "noContentPrinted": true
+          }
+        ]
+      },
+      {
+        "path": ".qoder/team-runs/20261025-032101-8172a0/trajectory.jsonl",
+        "sha256": "89541eb516726ef9aadfeeee50a610d7da8859be90b47895992d01ef610e6a83",
+        "lines": 18,
+        "checks": [
+          {
+            "line": 14,
+            "privateHostPortCount": 1,
+            "noContentPrinted": true
+          }
+        ]
+      }
+    ],
+    "copiesSame": true,
+    "copies": 4,
+    "accessed": false,
+    "rawValuesRecorded": false,
+    "totalAffectedFiles": 4,
+    "totalAffectedLocations": 6,
+    "progressInputSha256": "48de883405e1d3c47cba5a00c13271b5b74361daf3cd7e74d13ae772897555c6"
+  },
+  "binaryVisualEvidence": {
+    "viewed": [
+      "docs/screenshots/home.jpg",
+      "docs/screenshots/detail.jpg",
+      "docs/screenshots/library.jpg",
+      "docs/screenshots/player.jpg",
+      "docs/screenshots/settings.jpg",
+      "docs/screenshots/shaders.jpg",
+      "docs/screenshots/shortcuts.jpg",
+      ".qoder/tmp-jagged-zoom.png",
+      "vibe_images/momoka-hero-keyart_1792572845041_b3ad667c.png"
+    ],
+    "namesNotTranscribed": true,
+    "possibleIdentityRegion": {
+      "files": [
+        "home.jpg",
+        "detail.jpg"
+      ],
+      "bounds": [
+        708,
+        0,
+        805,
+        24
+      ]
+    },
+    "demoOrRealUnknown": true,
+    "currentRuntime": false
+  },
+  "deduplication": [
+    {
+      "canonical": "R03-006",
+      "supportingDuplicate": "R17-013",
+      "canonicalPriority": 2,
+      "historicalReportsUnchanged": true
+    }
+  ],
+  "limitations": [
+    "未运行真实WinUI/WebView/服务器/播放/部署/费用服务/签名/发布",
+    "当前master全项目整合未终核；R02 schema27及旧54/19/20与R17后六方法保持待复核",
+    "原R01/R07/R13/R14/R17红项保留；文档通过不是全量测试/闸门/交付",
+    "26个历史链接缺失保留；1个现行参考链接缺陷未修",
+    "16二进制不是内部源码审查；9张历史图片目视不证明当前UI或真实数据来源",
+    "结构读取的历史叙述/JSON不声称全文产品源码",
+    "收尾观察主树发布件PID25692在运行，本轮未启动/停止/干预；不是本轮UI证据"
+  ],
+  "progressLocationObservation": {
+    "observations": [
+      {
+        "path": "PROGRESS.md",
+        "inputLine": 3336,
+        "currentLine": 3344,
+        "matches": 1,
+        "example": false,
+        "realMarker": true,
+        "hostPortPrinted": false
+      },
+      {
+        "path": "PROGRESS.md",
+        "inputLine": 5282,
+        "currentLine": 5290,
+        "matches": 1,
+        "example": false,
+        "realMarker": false,
+        "hostPortPrinted": false
+      }
+    ],
+    "rawValuesRecorded": false,
+    "networkAccessed": false,
+    "sourceTagsReviewed": [
+      {
+        "inputLine": 3336,
+        "currentLine": 3344,
+        "realExecutionTagged": true,
+        "sameHostAsQoder": true,
+        "samePortAsQoder": false
+      },
+      {
+        "inputLine": 5282,
+        "currentLine": 5290,
+        "localEmbyServerAddressTagged": true,
+        "actualCallVerified": false,
+        "sameHostAsQoder": false
+      }
+    ]
+  },
+  "unrelatedProcessObservation": {
+    "pid": 25692,
+    "executable": "C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe",
+    "startedByThisReview": false,
+    "interferedWith": false
+  },
+  "documentCheckAttempts": [
+    {
+      "status": "初check-records失败",
+      "reason": "对PROGRESS全历史而非本轮新增做敏感形状断言",
+      "evidence": "本轮工具输出保留；没有单独完整日志",
+      "disposition": "保留旧段，新增内容继续零私有值检查；单独审计旧形状并扩R18-003至四文件六处，未抹历史问题"
+    },
+    {
+      "status": "最终check-records通过",
+      "passedAssertions": 40735,
+      "documents": 9,
+      "newLocalLinks": 11,
+      "log": "artifacts/review/d82df28/R18/20261106-first/document-consistency.log"
+    }
+  ]
+}

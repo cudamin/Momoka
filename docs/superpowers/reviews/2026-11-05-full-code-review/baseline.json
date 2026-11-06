@@ -1,0 +1,76 @@
+{
+  "date": "2026-11-05",
+  "timezone": "Asia/Shanghai",
+  "root": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+  "head": "6ba7a7f99e2b3840f68d63ff1c705b44659e7697",
+  "branch": "detached HEAD",
+  "initialDirty": false,
+  "planBase": "08a8e30218c53bf0cf7978aaa020d738bd6ecfcb",
+  "changesSincePlan": [
+    "PROGRESS.md",
+    "docs/superpowers/plans/2026-11-05-full-code-review.md"
+  ],
+  "ruleSha256": "6b825aec89b7cea678a5b8033d3effc8364a9ecd52ac20059b66b4d9b0f872c6",
+  "trackedCount": 1876,
+  "untrackedSourceAtStart": [],
+  "ownerCounts": {
+    "R01": 128,
+    "R02": 24,
+    "R03": 32,
+    "R04": 15,
+    "R05": 22,
+    "R06": 83,
+    "R07": 56,
+    "R08": 89,
+    "R09": 44,
+    "R10": 28,
+    "R11": 144,
+    "R12": 45,
+    "R13": 21,
+    "R14": 24,
+    "R15": 61,
+    "R16": 59,
+    "R17": 781,
+    "R18": 220
+  },
+  "unassigned": 0,
+  "ignoredInputs": [
+    {
+      "path": "libmpv-2.dll",
+      "exists": false,
+      "owner": "R01",
+      "joint": [
+        "R11"
+      ],
+      "approval": "assets/mpv-runtime/approved-payload.json",
+      "status": "缺失；不能验证真实原生载荷/发布/播放"
+    },
+    {
+      "path": "assets/fonts/*",
+      "exists": false,
+      "owner": "R16",
+      "status": "可选glob；当前无文件"
+    },
+    {
+      "path": "src/Momoka.Shell/obj/project.assets.json",
+      "exists": false,
+      "owner": "R01",
+      "status": "本树尚未restore；本机NuGet缓存不等于当前构建证据"
+    }
+  ],
+  "testProjects": 66,
+  "topLevelTestProjects": 60,
+  "missingManifest": [
+    "tests/Momoka.LibraryHeaderTests/Momoka.LibraryHeaderTests.csproj"
+  ],
+  "missingSolution": [
+    "tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj",
+    "tests/Momoka.ServerSettingsTabs.Tests/Momoka.ServerSettingsTabs.Tests.csproj",
+    "tests/Momoka.SettingsPriorityMotionTests/Momoka.SettingsPriorityMotionTests.csproj",
+    "tests/Momoka.SettingsRowsMotionTests/Momoka.SettingsRowsMotionTests.csproj",
+    "tests/Momoka.SettingsSearchNavigationTests/Momoka.SettingsSearchNavigationTests.csproj",
+    "tests/Momoka.SiteDialogFlowTests/Momoka.SiteDialogFlowTests.csproj"
+  ],
+  "evidenceRoot": "artifacts/review/6ba7a7f/R01/20261105-first",
+  "inventoryStatus": "逐文件归属已建立；仅阅读状态明确为R01的文件/成员已审"
+}

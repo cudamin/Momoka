@@ -1,0 +1,2876 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "status": "审查完成；4P2未修；R11后暂停",
+  "startHead": "12e99d88193b44e7dce4410ecfe3f098d5bb4701",
+  "verificationHead": "12e99d88193b44e7dce4410ecfe3f098d5bb4701",
+  "masterSnapshot": "a03ff5d48a0e15da53754d5798f77b9dfbcca577",
+  "productSourceMatchesMaster": false,
+  "r11SourceMatchesMaster": true,
+  "productFixesApplied": false,
+  "reviewComplete": true,
+  "pauseAfter": "R11",
+  "nextPartition": "R12",
+  "ruleSha256": "6b825aec89b7cea678a5b8033d3effc8364a9ecd52ac20059b66b4d9b0f872c6",
+  "ledgerBaseFiles": 1876,
+  "historicalDeltaFiles": [
+    54,
+    19,
+    20
+  ],
+  "masterDeltaFiles": 12,
+  "planChecked": 18,
+  "counts": {
+    "ownerFiles": 144,
+    "sourceFullFiles": 124,
+    "sourceLines": 41156,
+    "textAndDataLines": 44638,
+    "jsonFiles": 13,
+    "binaryFiles": 2,
+    "fullJointFiles": 44,
+    "memberJointFiles": 14
+  },
+  "reviewedFiles": [
+    {
+      "path": "assets/mpv-runtime/NOTICE.txt",
+      "sha256": "2d4f31a651ff331607f5f9f5211e615bcd89ac5bdc43b8e9016cbf673610ed90",
+      "lines": 74,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-runtime/README.md",
+      "sha256": "0a5d4ed8d4aced30091973afb7a3100210da1989d8d5fb13cb14ccc9be66d8bb",
+      "lines": 78,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-runtime/approved-payload.json",
+      "sha256": "7bacb6ba3df4f823d96e2f04212fe15bf8144dc08a568cae08c07b81bac038ba",
+      "lines": 382,
+      "ownerReview": false,
+      "scope": "native批准hash和本地mpv-ui/fonts全部映射，独立比较，未改批准manifest",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "assets/mpv-ui/LICENSE-MaterialIcons.txt",
+      "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd",
+      "lines": 202,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/LICENSE.LGPL",
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "lines": 511,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/README.md",
+      "sha256": "688b28a541016cb193c1f453b1fae23079935376d49919266c83546015a3f3f7",
+      "lines": 302,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/fonts/MaterialIconsRound-Regular.otf",
+      "sha256": "a853f50913597e67f76facd269ff230c2f3038f9acadec04dd653080785dee25",
+      "lines": null,
+      "ownerReview": true,
+      "scope": "二进制来源/许可/hash核对",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/fonts/uosc_textures.ttf",
+      "sha256": "c22c149d3d92b531f9460fc6af9bc6829a63a26454e53c30236cb55b77959c34",
+      "lines": null,
+      "ownerReview": true,
+      "scope": "二进制来源/许可/hash核对",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/stats.lua",
+      "sha256": "05bb05baf492b1180e7c7aebd4932cbe01ce1e05dca818326c69104f4cf11cc8",
+      "lines": 1888,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/LICENSE.LGPL",
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551",
+      "lines": 511,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/README.md",
+      "sha256": "a5fe982c943693cfa889821ea6a8f47f93928ae4aba4dd2e860045e313475c53",
+      "lines": 545,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/char-conv/zh.json",
+      "sha256": "1e250ec50866529b57d273fa90bd8fc56f22b4371d5ea641ce3bebc832dd9889",
+      "lines": 405,
+      "ownerReview": true,
+      "scope": "数据全文映射/结构验证",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/BufferingIndicator.lua",
+      "sha256": "f7ceb7c88916e49ee5aef2a8c45d53ee5a6f9931b7977898ecf96ebfa543c1c4",
+      "lines": 39,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/Button.lua",
+      "sha256": "31d407dfc9e54295201f392d03886ef801108ead6384a2d12a620eafa38724c2",
+      "lines": 100,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/Controls.lua",
+      "sha256": "baf0a30535a6575d2597150094bb66326ab48e1f526f473e8602049f77bdbbd1",
+      "lines": 454,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/Curtain.lua",
+      "sha256": "7f965119a6fc70d8cce70cf025db764a5d83433321da79a7734c691afdbb1e32",
+      "lines": 35,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/CycleButton.lua",
+      "sha256": "e49e20110bf84d852ce4d85f26e36a24330ef9a54f28f0886cc658352e09aa75",
+      "lines": 86,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/DanmakuInput.lua",
+      "sha256": "059888cb2a564d37f234e5905a29a42f962ff99316c3e6b8e7caa317851e5921",
+      "lines": 245,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/Element.lua",
+      "sha256": "381141cd760a42769c0abdf7cfdf7ef26930249e133fa9800e7c8623f55bc016",
+      "lines": 265,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/Elements.lua",
+      "sha256": "f44e57ea4c4c60f82f3775df9337064fdbcb7cb4bc157b47a5c07a12ee8a62c7",
+      "lines": 152,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/ManagedButton.lua",
+      "sha256": "da1c1ecf4d145e5c06fb7077a654b1c58412ae106e54b3f5946b919dabd01446",
+      "lines": 36,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/Menu.lua",
+      "sha256": "c466d090de73ce413b58342e5b7290284ba5a2f8e1ea35b405c3187ea15a4167",
+      "lines": 2010,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/PauseIndicator.lua",
+      "sha256": "f2fe8f6bf894c60686e021a5faa0eebf1da940ab61dbbac109f173865a6c8664",
+      "lines": 83,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/SkipButton.lua",
+      "sha256": "c0fae83c7a55b191bcba0ae55a815cd424070e12e908b33ce97ee8a03f57a740",
+      "lines": 197,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/Speed.lua",
+      "sha256": "fee532d01e108cb4d74fbfdedaf91ea2fff81af3b4f3f4e3543fd8aaefa92326",
+      "lines": 195,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/Timeline.lua",
+      "sha256": "9fd25dfb8819bd87eae51cfc9870b23dde52e5616fdb808da7e89bf0c986d8c2",
+      "lines": 523,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/TopBar.lua",
+      "sha256": "00897c39ac66c7ad77b89c4f8312b4e41cea1b1c8b4caffefc18a86f96740905",
+      "lines": 475,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/Volume.lua",
+      "sha256": "8d87a12b401eb49f9d92e13b87ad2752243fbd498e044dd9913faa553d06f371",
+      "lines": 291,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/WindowBorder.lua",
+      "sha256": "c8a6a64c321732913bc8ad838a202bdca037cfab3db4dcd636cb63098dc806cb",
+      "lines": 35,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/intl/de.json",
+      "sha256": "606d296d7d0dd010cb732722a0c9e28abc9c0d09d962e959212c29bfdf2a125e",
+      "lines": 83,
+      "ownerReview": true,
+      "scope": "数据全文映射/结构验证",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/intl/es.json",
+      "sha256": "cc38c03c9b954c8711b23eddfedb83ba6c9653a133c3ad7e432cfecdd089a999",
+      "lines": 99,
+      "ownerReview": true,
+      "scope": "数据全文映射/结构验证",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/intl/fr.json",
+      "sha256": "a8ec21232c1fbb5c3de5a90f1f92ec1e4258ea9827f9eff87989f20471552c3b",
+      "lines": 59,
+      "ownerReview": true,
+      "scope": "数据全文映射/结构验证",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/intl/it.json",
+      "sha256": "58bf14006cb8a61730ee7faabad4a7c4ea99681efd4268ffb02a26354076839f",
+      "lines": 59,
+      "ownerReview": true,
+      "scope": "数据全文映射/结构验证",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/intl/pl.json",
+      "sha256": "c3733a695296104618683f4b705b1e03493d1cd96ba5fe98c339020b3cd95cdd",
+      "lines": 107,
+      "ownerReview": true,
+      "scope": "数据全文映射/结构验证",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/intl/pt.json",
+      "sha256": "ad8539c3d8ae368a93e2cd0402ad92480aa3ea57db6430ee1bd6c34876005a1f",
+      "lines": 99,
+      "ownerReview": true,
+      "scope": "数据全文映射/结构验证",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/intl/ro.json",
+      "sha256": "22c90c139b53e0b417a62987baa4e46b010195df8e85bd076861b7044dd3ab1e",
+      "lines": 59,
+      "ownerReview": true,
+      "scope": "数据全文映射/结构验证",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/intl/ru.json",
+      "sha256": "ac86fd3ae167e79cc51aec8bd12f04dc9491613fecdba6820f3388db6671b9a6",
+      "lines": 59,
+      "ownerReview": true,
+      "scope": "数据全文映射/结构验证",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/intl/tr.json",
+      "sha256": "1081a7e970764e0ff438c3d8c2164543732cc10f6feb8e11fa670b741d3d896e",
+      "lines": 107,
+      "ownerReview": true,
+      "scope": "数据全文映射/结构验证",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/intl/uk.json",
+      "sha256": "e57d8cbc32b5b8e92b50cde0b2eb06cb405f87a138ebd88b5cb962d84be8e4a8",
+      "lines": 69,
+      "ownerReview": true,
+      "scope": "数据全文映射/结构验证",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/intl/zh-HK.json",
+      "sha256": "889667e15b379bed7015fdc6bb6ac5295fba2bbb810f9392582da296d5444e5c",
+      "lines": 107,
+      "ownerReview": true,
+      "scope": "数据全文映射/结构验证",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/intl/zh-hans.json",
+      "sha256": "d3339e658874530f4275c70d0837986746f98a9abca453d4bb2bde285c5dde31",
+      "lines": 99,
+      "ownerReview": true,
+      "scope": "数据全文映射/结构验证",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/ass.lua",
+      "sha256": "71bdba823b5bc3915126e471b85517febe716e80915054c0e2d5e3b878b4614b",
+      "lines": 312,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/buttons.lua",
+      "sha256": "f79302eda925010a8ccbfa7e960e0fc7760114b920d641897474ed91ea318f73",
+      "lines": 74,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/char_conv.lua",
+      "sha256": "f6ae7a90ebce8f3af73a44f64d9817c335431a6af46936352e971713097eb1b9",
+      "lines": 66,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/cursor.lua",
+      "sha256": "1bf48756d7b1df674a4389155856ade25ccb8af16b0ceaf7e55c2de9d0db0735",
+      "lines": 589,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/fzy.lua",
+      "sha256": "5b1b53aaf56c8b51bd3507f6f6b76c042b92ceb55eaac8533277754158426711",
+      "lines": 297,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/intl.lua",
+      "sha256": "0ef24395638a1f8a8839b615c901e49769d7bbb8aefcd420369494b652e405e1",
+      "lines": 68,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/menus.lua",
+      "sha256": "e4afcf167fafda8b79a4ae9933e9650c46b2eb8f94a063feda3fd49430d320d2",
+      "lines": 916,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/momoka_shortcuts.lua",
+      "sha256": "1faa728ab2e20f388d4a0145952bcd7fb64b2555024bffcca09b790acd620375",
+      "lines": 41,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/std.lua",
+      "sha256": "75bc841dfdcea0d8f8788f83e1eb1e268b4ad887bcfd788e1f851e19703a13af",
+      "lines": 409,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/text.lua",
+      "sha256": "f4e040412b2e3c2d276d8098aa1eea01e020e916123336470dd2480a5968eb07",
+      "lines": 660,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/utils.lua",
+      "sha256": "0600988af1e5e86becef7fab8bd542bff09454d687e5e95e0b063d52b284ad6c",
+      "lines": 980,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/main.lua",
+      "sha256": "6c92c19459a6583aa74b9372df577ace622be1a262a14f5e31ead9f9204680c2",
+      "lines": 1588,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+      "sha256": "227f5f92d5c796f03ee7ba75b23800e6c1aa0466fbec8b2fbee49e472bd7db57",
+      "lines": 1690,
+      "ownerReview": false,
+      "scope": "ShortcutSettings88-92、MpvSettings159-284、枚举286-306、PlaybackSettings588-689",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "src/Momoka.Core/Emby/DeviceIdentity.cs",
+      "sha256": "e4b1b515ae2aaa66cfce4ca5b6a5143f0c71c740094bf70c22676c5a17711938",
+      "lines": 40,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+      "sha256": "872e2d283f3e7e25a761cd3bb16aab8b06abf104e126c4b7427ee5670d3b9770",
+      "lines": 1185,
+      "ownerReview": false,
+      "scope": "974-991章节图片读取/产品能力边界，匿名链，无真实HTTP",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "src/Momoka.Core/Infrastructure/WindowForm.cs",
+      "sha256": "fb21b2703b875c0045a1e63988e3c9d46e3c80a7bb17e7571cc94bc7c46c9e90",
+      "lines": 83,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/CommandLine.cs",
+      "sha256": "fdbc50fbda9c50a3eee604484a17463a80e721b8dcde88833b6b87374d7c59f5",
+      "lines": 21,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/InlineSwitch.cs",
+      "sha256": "aa7aad5d012a91f48df756aba510bf20bcfb0a92e122ab46e64f57744ac2e88c",
+      "lines": 248,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/LibMpvFrame.cs",
+      "sha256": "70426cc77a6a5222c1947da7aa61527837de2d5e64a0b1947421c9d4cfa5ea93",
+      "lines": 78,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/LibMpvNative.cs",
+      "sha256": "473cc9bbf5abfc7f6d3bc3345b08dcdc0065f222ca866cd5154dfb7fdd455b3c",
+      "lines": 304,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/LibMpvNodes.cs",
+      "sha256": "b1e58fb7f647d1a6cc9aa0aeb7699d85a8f75296de6c70866374b0a3e6106c42",
+      "lines": 139,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MenuRequestGate.cs",
+      "sha256": "b29d6b4f0c1f1a1d28edbf42bc8a91395f5d5f368f29cc2c9229c7d5db9b8f86",
+      "lines": 59,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvArgumentBuilder.cs",
+      "sha256": "10e4c1e64cd8ba54c320208b5528796ad8b2d205712481492537166736f69366",
+      "lines": 114,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvBaseline.cs",
+      "sha256": "7af527d4eefbbc7455a5a54930e884f697f1ef8eef8d06ab4d5dc14c0110c4a8",
+      "lines": 231,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvCustomConfig.cs",
+      "sha256": "9fd6890b20866cdaf176d68168cb2c7dbf43a94ae70a1bdeebfeac56d0fc37e3",
+      "lines": 128,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvDanmaku.cs",
+      "sha256": "0b755936047f4c924dd751e13b2fb22fa1a9ec450a9a5ce455338e9aa35a9d4b",
+      "lines": 72,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvIpcClient.cs",
+      "sha256": "c345e92004ac646198e8adc1ca7547a30a349226355bae7419023ecc1fba858c",
+      "lines": 351,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvIpcProtocol.cs",
+      "sha256": "04cf6a94237040bab06e9a99995a5bb49dd2c38973ee8857739e3f74bdd3b4dc",
+      "lines": 116,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvListValue.cs",
+      "sha256": "191725391863302478af1828c396f4add09280099251dd0affae200f5ab5fc30",
+      "lines": 38,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvOutputOptions.cs",
+      "sha256": "68711c7ee789b361dcc9f802123fcf0e64c9c2f116cac30bb7e7db7f8f9f6995",
+      "lines": 868,
+      "ownerReview": false,
+      "scope": "Build453-589及598-604/612-633/640-670/688-726/745-758实际依赖；R12主语义未完成",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvProfiles.cs",
+      "sha256": "9990ed967bbb62eeeffd6d5a397731dff6d210da990f3e48f9bd1b0a349ec9c0",
+      "lines": 43,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvRenderCheck.cs",
+      "sha256": "97ec063de2dfd05d7fb51c25a62767646167868f31fcf1a2e2ca4c6bbb8b4523",
+      "lines": 108,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvSeekKeys.cs",
+      "sha256": "db1e8fe227bf46d75087c6c6ff60eac34e7ed5e43b33487c4ee74b5774304028",
+      "lines": 48,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvStats.cs",
+      "sha256": "44f76ff5b7d8c52c7151492ca4195c9a43de8e7e6554368b7736aad09e1cfd33",
+      "lines": 66,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvSvpRuntime.cs",
+      "sha256": "b09cd90795c2829d4a05912393b3b78eeed7aca33e2b4461faa64c1910cdf309",
+      "lines": 106,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvTrackMap.cs",
+      "sha256": "7aabc0567f0540bd2c4bb639e24d3a6390e1588fd76715bd124e7390f20cdac6",
+      "lines": 138,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvUi.cs",
+      "sha256": "3f706fbd0bf4e363abd486d3afde689407b662b05c826d006f008e4e3ed1a4a8",
+      "lines": 367,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/NativeModuleBinding.cs",
+      "sha256": "1b6a50035ba0749e7a061356e4b75d14f7fe8f5cb279a1eec0341b82bb954ef8",
+      "lines": 32,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/PlayerMenuCatalog.cs",
+      "sha256": "d434576c6f5bfec8a9f099f1db5de4796124dac5d60ccc98b85e18b69a62bffd",
+      "lines": 415,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/PlayerMenuState.cs",
+      "sha256": "83456d2e109babf20adbe82028e398052f6ce1d67dc0e05850cc0dd31c6bc962",
+      "lines": 85,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/PlayerSettingsLinks.cs",
+      "sha256": "d3838ef9baa7599d2ee66a7e9e913772812090722bf9e488a1af0d3d3496eb54",
+      "lines": 62,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/VideoMenuSnapshot.cs",
+      "sha256": "2ab28dd2240de677d4602cac4efb62da520ee5e44b436f965534c16ef2dc8c44",
+      "lines": 38,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/VideoWindowShortcuts.cs",
+      "sha256": "ae0b640e73048dd0d26cf9a7d4253753770694c7b9a7cab17e152219a62b9b02",
+      "lines": 45,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/AdditionalShortcuts.cs",
+      "sha256": "656f287daae87ec054774bcb6f10517e2a88e3cc0f6808102234ecafe9d4921d",
+      "lines": 84,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/AspectLock.cs",
+      "sha256": "0c4f674add28f0ff812dc6778862a58434775274ae8502dcd1006d2b928ba1e4",
+      "lines": 273,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/ChapterTimeline.cs",
+      "sha256": "c492e23d801cf7b13c371c039f6d541b5c739194ccb7d9e82273acfc13e910bf",
+      "lines": 51,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/ChromeReveal.cs",
+      "sha256": "97a7161ad654495f0f901f63878c69e40bd699299c4316927cc6b0ff58ad758f",
+      "lines": 1089,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/CoverArtwork.cs",
+      "sha256": "8163571afbb3353461bff8f3c254ad970e9474e565528ad9eb38c9cbe7e19243",
+      "lines": 66,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/CursorMask.cs",
+      "sha256": "52096815d1f87551db96e90bc0c2e5802388426ccb12e1e08ae0ed27e9c2fabc",
+      "lines": 65,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/HandoffPause.cs",
+      "sha256": "b1607547d6d3fb4c89ec2d930ace6646db5c76fa6439983a23ca6b909c86f1b6",
+      "lines": 44,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/IPlaybackBackend.cs",
+      "sha256": "07f85a40d012a7a8f4e88a3a699aa37964fee4a6c2cf3c3d3019f6653a81b9e6",
+      "lines": 212,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/IVideoSurface.cs",
+      "sha256": "98101d10c03c32a60730694a37b8ae69e14318861ea7c365df53a17685818256",
+      "lines": 45,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
+      "sha256": "fb7e5ffa0abb167d19caeca8ede5d77cc18c7c95199b94834c23268b3e500cb6",
+      "lines": 1832,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/LibMpvPipelinePolicy.cs",
+      "sha256": "5f25411c325e889c729004a866f80570eb1f59910779136406bbe482aeec53e6",
+      "lines": 162,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/MpvProcessBackend.cs",
+      "sha256": "1f16503f2a723d1da1a5489ebb532b1dac15d59ffc3275b415b703154b72b957",
+      "lines": 625,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PictureReveal.cs",
+      "sha256": "20c28c337614601e8cd42e3c39a34ab2f9f73bad977331170f287fb414a47612",
+      "lines": 51,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PictureTap.cs",
+      "sha256": "ba1361b15ab4fa9714184f26b01cba78d9a03700ccc5647bfc1ed8b92d855454",
+      "lines": 109,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PinIndicator.cs",
+      "sha256": "ab545f2373e6b0c94b642bc408007a974d08353a8e3eacf4c832843fda9c4f63",
+      "lines": 33,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackPlanner.cs",
+      "sha256": "e274d7ecefecf92ecd25c870040d9bdff3bc75b28b12c3fb997316a3082b8599",
+      "lines": 269,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.Continuation.cs",
+      "sha256": "087088bcd445a5f5c8b638e03c0ca91bee2827a4fcf207ed02e672aaa1a7ba5d",
+      "lines": 130,
+      "ownerReview": false,
+      "scope": "27-59 EOF保留准入；R10原全链不重跑",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.Lifecycle.cs",
+      "sha256": "8b3426f7b338b0db3677ae3cdbae46c082a031502f6073a9fff347fc94fcd7ec",
+      "lines": 428,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.cs",
+      "sha256": "c953417680d8b08828e3d6487577a6f82c5ab9bb82af25550a176000bb7d23de",
+      "lines": 527,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlayerMenuFit.cs",
+      "sha256": "0902cb760e91a0eff95e05c1b64fe0bf32d0be698b827fd8d3ad2450a82be911",
+      "lines": 41,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlayerMotion.cs",
+      "sha256": "98266ac60fbe5680f10ae81da46d3de3069861b9ec0a09ab517cde2c55e41596",
+      "lines": 87,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlayerPalette.cs",
+      "sha256": "88641fb30f52be97a1acf88db8d892dad90cc41811a79239f567ce0d8d5d311d",
+      "lines": 333,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PulseArt.cs",
+      "sha256": "daa9690aefc46d33c05651d4da74164e556cbc5114a40718ba59973aaf742de0",
+      "lines": 158,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/ResizeFreeze.cs",
+      "sha256": "6b3f4a5dfc48f5b09475caf859ad777fead3a2983d017f1efc94463a486140e6",
+      "lines": 52,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/ShortcutCatalog.cs",
+      "sha256": "279becc750db9ffac28b6ed0026daa22b78718bf1064d61adf9c969891cfcba4",
+      "lines": 376,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/SpeedWheel.cs",
+      "sha256": "3b564d89bc74b78de529e86adb2cbc4f21ce8a3c5f82b00e771208c9ce29f535",
+      "lines": 88,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/StandaloneWindowPolicy.cs",
+      "sha256": "6b88ef0ef5113cbcc01213633ac966e6306958bc365ccfcfd385023d18471c84",
+      "lines": 50,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/StatusCoalescer.cs",
+      "sha256": "183dec436b1fdaaaad826f04084fd65e7df9f8e775e5dfb5da366160e75d29ea",
+      "lines": 39,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/TickWatch.cs",
+      "sha256": "32085a3e1c3b9495bb28b2467eb9cae27d99a5a3e2d01086eb3ef2d2534deb84",
+      "lines": 33,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/TimelineCache.cs",
+      "sha256": "fab5dd8b83bd21c9686eb336b4d5f1ba28d0a16db9d925c7fda0298f192cdc33",
+      "lines": 87,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/TimelineChapterMap.cs",
+      "sha256": "6287c371e342adcdc83ebc054c096af02ea4da2040c4db6a9c948b0b07fa5ab3",
+      "lines": 127,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/TimelineScale.cs",
+      "sha256": "10c39cd97d8f7f27d5379ae0d98aa98e9491aabed5d6b5b386a33c8534e1da78",
+      "lines": 76,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/VideoFrame.cs",
+      "sha256": "eef1e95edf4f5d82fbf22a8365ad1e27f6d84d37cf357f46b771cee7c29c6c06",
+      "lines": 25,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/VideoPresentation.cs",
+      "sha256": "28288fa9493b395be0e94529b16794448109856ae170cf8e33f12c194f94a24e",
+      "lines": 208,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/VideoSurfaceSize.cs",
+      "sha256": "9543d6923f51059ea7bea74fe5a3c40932957c129adc79232a4a1415c3c2e9ae",
+      "lines": 24,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Playback/WakeClick.cs",
+      "sha256": "71289a936ecefd73085ff42b8a07cbb56689a9d34bc14ac9430e953a94b954cd",
+      "lines": 48,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Core/Services/PlaybackBackendFactory.cs",
+      "sha256": "73bf228b7f6f4363ac90894532e6eb2da5d25f8a3b6e53022bef38880d94f695",
+      "lines": 49,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Composition/ShellServices.cs",
+      "sha256": "abdb27efff5c3ec7c431a2bdb260e9132fd884004cba9dac191f9035156dc443",
+      "lines": 218,
+      "ownerReview": false,
+      "scope": "Build44-217完整，重点100-134 backend factory/方法组；不提前完成其他服务语义",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "src/Momoka.Shell/CompositionPositionReadiness.cs",
+      "sha256": "a3c3cb0ae12bde97d629cf95cb46e3d5cd7e618f30603f683dad6e640906abbd",
+      "lines": 35,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Interop/BlankCaptionIcon.cs",
+      "sha256": "e016934512553e0b7ea44cb3497635de3d2583a14bc62c8157c75e1405f819d7",
+      "lines": 59,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Interop/CursorVisibilityEvents.cs",
+      "sha256": "5213a2340d1d0c88aa75339f844f2e95a1c7c484cbfff1a339e551cab8949ee0",
+      "lines": 156,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Interop/InputCursors.cs",
+      "sha256": "dc2d1db29472ce150083cad53af0b8a0270021812ae32f4b66676ee1dba17d3e",
+      "lines": 102,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Interop/Native.Cursor.cs",
+      "sha256": "396a9adbb344410ee90dc9183d7a9e32c806a96df668d735cb0894adebc7ccd7",
+      "lines": 107,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Interop/Native.cs",
+      "sha256": "dd10341f06c4a7a6091dc3dbfbe6990f88cac884e5e34e383f52e5a31a70bfc1",
+      "lines": 1303,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+      "sha256": "d607380c54505c114c48e4075a7ad21e739d11a2cb31c29b2307b5b53e69eb8a",
+      "lines": 1520,
+      "ownerReview": false,
+      "scope": "68-580菜单消息链、575-756状态/NowPlaying、984-1035 ApplyStatus；首次发布与代次",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Interaction.cs",
+      "sha256": "6641d835e62339943c375eb7a735af918951f6b51cf27ed537ae76610101e7d0",
+      "lines": 73,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Mpv.cs",
+      "sha256": "2cf7c389d4bc6717d058ce8d0351ec4df86c0c403623d9cefc39e663bace837f",
+      "lines": 589,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Overlay.cs",
+      "sha256": "d5bafb773dbe62e8428f8d332579b4061b63456b03be9e4fa31a4d5f0d699a58",
+      "lines": 321,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Shortcuts.cs",
+      "sha256": "58536ad0ef0f562f2f941e2def5cae48dc2c00cab98a64a59c589e56378d74e3",
+      "lines": 89,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Timeline.cs",
+      "sha256": "5c3f587aff2a061fb4cc424c8e88383c65b3dbb073b223f606ce2eeee6ddebd2",
+      "lines": 138,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs",
+      "sha256": "3dc6853e56887c716028df34923a0d55148f01f24caa21aa38e7949603dd5351",
+      "lines": 883,
+      "ownerReview": false,
+      "scope": "213-246准备、321-388/429-438自动续播、835-857离开；R10去重",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.cs",
+      "sha256": "81f4354d1a1aac77d3bba3c2a07f2b2f6f3dc27c66b800fca1b71f037c45c817",
+      "lines": 968,
+      "ownerReview": false,
+      "scope": "29-102、471-522、631-689、691-735、865-917、967-1068；seek/speed/chapter/window/pipeline字段属性",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.Shortcuts.cs",
+      "sha256": "f755cbc98eb77d56f0e9689a38fa2edbb89b7f2b358e5363ea6eb54c5e1cd49e",
+      "lines": 147,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.Video.cs",
+      "sha256": "016af84233c0bdb2448a2541559f77fa39a64f613a3e86d9b32b8e03056960d8",
+      "lines": 260,
+      "ownerReview": false,
+      "scope": "RefreshVideoBackend12-20",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "sha256": "391bba844ab6496ff68de2ac595060b899c106e3932334cf8c91d63ff5b45948",
+      "lines": 3176,
+      "ownerReview": false,
+      "scope": "PlayerCard1369-1387/Refresh1393-1401/Custom1409-1443/Screenshot1449-1536/Directory2448-2462，Attach658-697及委托219/222",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "src/Momoka.Shell/Views/KeyStrokeInterop.cs",
+      "sha256": "b9c5ef2d45239542066eda0e43c882f7121cf0af64b9a0473401fed66330a830",
+      "lines": 40,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MediaInfoDialog.cs",
+      "sha256": "a0199d39ddea200c7e6cb7ce33ec0ce692cf09a57b3f288bc89a0425b74e4053",
+      "lines": 45,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PictureSurface.cs",
+      "sha256": "e17f9d95d99fdd0ea34c684d2dbfe784f3055915fe4e6d2aa69b430087045958",
+      "lines": 69,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Chrome.cs",
+      "sha256": "5caa989d3d5232ee82571af520c4d30d61c8ffe83b83cbd136f7f98d45626bb3",
+      "lines": 1983,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.ClientRect.cs",
+      "sha256": "1849447f7d4eccc15eb0aaac56ff0e1c62975f6763c917eaf417fa1a2c3ac26a",
+      "lines": 646,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Cover.cs",
+      "sha256": "d2a951106cfd3ae8d77c2f7c6de52645abaf6096ee49f2e3ecfd62783866dcc8",
+      "lines": 198,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Ink.cs",
+      "sha256": "118e39d6a1a943defc7d57e40f974099c84ca1f7d365b972f5b4b25476702046",
+      "lines": 199,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.InlineSpeed.cs",
+      "sha256": "7af3bbd8985affa1b8463426a260ba925951398c73e50846f8d51c83c72ce0f0",
+      "lines": 59,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Input.cs",
+      "sha256": "ac7b8a517b5946b8c0b5861f5caaf18d227ba51a5918160ad426b31f3990b966",
+      "lines": 1397,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Menus.cs",
+      "sha256": "72164fb7f2e15b2c4375697ccc333a45579de13e2a8a9517d4b2af1ce58c01ac",
+      "lines": 565,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Palette.cs",
+      "sha256": "d60aa6ac1f7615f8fed99e642d8f74454743195e26ae4d10ffa6e1a6d2a3ed02",
+      "lines": 289,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Panels.cs",
+      "sha256": "c86bfc6a9dc5fe72fc77912f005c69aabf6746f7854324c193bc0acb7eb385ba",
+      "lines": 75,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.SpeedWheel.cs",
+      "sha256": "df3606f81bc5635b292de13a261f1aeddc19a2149f205bb175e2d14602be4059",
+      "lines": 342,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Timeline.cs",
+      "sha256": "3afe8987f573f417938e6fd8abe59441d0efc23018455a99e97b7ef09f0a3da1",
+      "lines": 437,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.TimelineMaterial.cs",
+      "sha256": "c219008b6e8ada3784575554c8fe803999b55dac1924b3b3650403dfaec794e4",
+      "lines": 55,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Transition.cs",
+      "sha256": "421cd938234546ac0d5da3c1a36ee0f6306ff8ec0401ce0447b71a3be615a2d3",
+      "lines": 598,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Transport.cs",
+      "sha256": "5687a6ae1fc56b1c0c6f382e483fd27f8a75b9145d35a30267d6ecc8b42a90ef",
+      "lines": 195,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Watchdog.cs",
+      "sha256": "fb091dd343d80a92435301d89b40523089c62c0548f17b88c50966c54b3f076c",
+      "lines": 82,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.xaml",
+      "sha256": "d85ebba0a608db62e4cfbadf79616a3092f97a93885fe06155d421191adc58db",
+      "lines": 1482,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.xaml.cs",
+      "sha256": "877ac7ef3329582e9a83b70d9a7880d8f8dd6b31b9481e21aa71ee684dd841e4",
+      "lines": 1172,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerSlider.cs",
+      "sha256": "4a952bc206eeefe2d928cb49eddcb30f36eebb691d9691c0dd911efb0194543e",
+      "lines": 104,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SeekClockConverter.cs",
+      "sha256": "92349f0161ba0cb6fd5ed97d22db50655423b260bcb19baff5c54b68a84d58d5",
+      "lines": 39,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+      "sha256": "0baa77b31226bc74afa1c04a154200469d1b18489c84adeeeb9110956f7e9678",
+      "lines": 963,
+      "ownerReview": false,
+      "scope": "Attach449-479实际截图委托注入",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShortcutCaptureBox.xaml",
+      "sha256": "9ec9292bdc366be5f486671798aaa7af978f899e583ab5dbdaa77184d29b682a",
+      "lines": 70,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShortcutCaptureBox.xaml.cs",
+      "sha256": "a19940e3167a63b6bfa3173919013fe78e7210fa21b279acdcb4b100674631d8",
+      "lines": 121,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Windowing/CompositionVideoTarget.cs",
+      "sha256": "7426a8276b29bbca3e7b1b0256fdcba5d317accd1c2e723975702d869f0321df",
+      "lines": 1208,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Windowing/HostWindow.cs",
+      "sha256": "a129d66923a9380415fcce3b3c4f1a13223cc2ce845e4f4d1742a546f5d9f876",
+      "lines": 3447,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Windowing/RealInputWitness.cs",
+      "sha256": "b37b415ea9c74e75d4b5cd79065a39a88fa7ccd02750b11a6833696c44ff1531",
+      "lines": 284,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "src/Momoka.Shell/Windowing/VideoFrameOverlay.cs",
+      "sha256": "ed2695580d62c6a03b24ca973e068f785e2228ba3d394e58799ffea3a3585bb2",
+      "lines": 249,
+      "ownerReview": true,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.LibMpvEndFileTests/AutoNextBoundary.cs",
+      "sha256": "4df849b526ba443fdab927bb9c58920aa9441fc0123a6a3eab9c42ebed38592f",
+      "lines": 22,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.LibMpvEndFileTests/HandleFixture.cs",
+      "sha256": "3b0ca1b6f30f5f514bc6f56662fa2d4222e3bd73ffe73753e366d3da321089eb",
+      "lines": 181,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.LibMpvEndFileTests/Momoka.LibMpvEndFileTests.csproj",
+      "sha256": "a1a3413579a31d1d24c5a31e2540716d167669c365130bb909bfb1046be9f324",
+      "lines": 86,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.LibMpvEndFileTests/NativeBoundary.cs",
+      "sha256": "b32e7a24d90a75ce020351612259eb429d7d85187fe30875bc524189ba3a412e",
+      "lines": 16,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.LibMpvEndFileTests/NativeResourcePerformanceTests.cs",
+      "sha256": "ed640f3f163b16dec0010bbdb69be661d72de0b10c145673964585986cac89e4",
+      "lines": 422,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.LibMpvEndFileTests/NativeSeam.cs",
+      "sha256": "6eebd297e3b4ccab672be2e278cc7fe7b6d7749885001739bc59b8558b67ee60",
+      "lines": 74,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.LibMpvEndFileTests/Program.cs",
+      "sha256": "9e7b6b63809fd000872d245417dfdb694da489d8311cc388a6bd1f707eaa5f46",
+      "lines": 365,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.LibMpvEndFileTests/README.md",
+      "sha256": "e5031e3da5ced9bb417ad65ae1bf6a4f704891a37c5edc73613238eea697d291",
+      "lines": 58,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/BackendLifecycleTests.cs",
+      "sha256": "480150077286ff9572cadb115c2481952b92408fbf904b1b3d7d268c74064e03",
+      "lines": 164,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/CoverArtworkTests.cs",
+      "sha256": "638ba335c4eea63657fdfa1c0ac083fec9f987490c7d51129554f7cd38bdedd6",
+      "lines": 116,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/InlineSwitchTests.cs",
+      "sha256": "c5105524000b77097122d225f26896b561a97e4ebfd5c6ad423fa3570bbd1cc2",
+      "lines": 211,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/Lua/uosc-interaction-tests.lua",
+      "sha256": "d3e07ef9bf91d1efca6f6d981876eaad68ea63a7c3f101c48efddd9540e56fae",
+      "lines": 719,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/Lua/uosc-review-tests.lua",
+      "sha256": "c855dd14204329cfc014f9ab2f5e580a8ba227a8ff6db2affc0f39636bdf750c",
+      "lines": 99,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/MpvCustomConfigTests.cs",
+      "sha256": "8fc5424cfe93c3ec3fbe76dd26c8d16ab647c0e7ad62e358f98169f799b5637b",
+      "lines": 85,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/MpvProcessTests.cs",
+      "sha256": "3794d65c1fbf38a390fb9807def607ec91fba3c31975241aabfed37a348478a3",
+      "lines": 376,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/MpvUiTests.cs",
+      "sha256": "cee78627ed90c5d08f971f47cc43ae6a46d7af6cf30b6c60db102eb2e651b12b",
+      "lines": 859,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/PictureRevealTests.cs",
+      "sha256": "53fa9650b9776564f850ab795661086abe0f44494149c8df9fd0031cd2348e82",
+      "lines": 97,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/PinIndicatorTests.cs",
+      "sha256": "066bc8c6de45cb43514d20b26ad2607d9718def637801040e84f1fbf6309f266",
+      "lines": 48,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/PlaybackTests.cs",
+      "sha256": "ae36aa7f134f3fcdb649cff26d9bf790c54bec4df549a8540ab71865af0bd158",
+      "lines": 7754,
+      "ownerReview": false,
+      "scope": "完整Register及helper：87-209、305-449、1678-1777、3666-3714、3907-5167、5181-5328、5329-5505、5631-5659、6870-7074、7075-7147、7151-7255、7256-7417、7426-7467、7468-7568",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "tests/Momoka.Tests/PlayerInteractionTests.cs",
+      "sha256": "e0e1525356a4e57704dd328567286cbcccadfef7a99adef60e332d0f1bcb3475",
+      "lines": 230,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/PlayerMotionTests.cs",
+      "sha256": "4a1b722429afb429bb52c81d7a5aaec47a394614651ea6c9ab6e40e2d3cb190c",
+      "lines": 321,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/PlayerPaletteTests.cs",
+      "sha256": "47c6927ced4c5b70e8ba6fcce6bf2976e9444e38d21b460370e456fdcb31864c",
+      "lines": 338,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/Program.cs",
+      "sha256": "bb6feb7f7c97e1c5e76da303b42e4a8efeb60df3227bee10410d8569e162d48c",
+      "lines": 441,
+      "ownerReview": false,
+      "scope": "显式mpv-ui入口与无参Register表90-130/280-425，实际假mpv子进程入口契约",
+      "partition": "R11",
+      "fullRead": false
+    },
+    {
+      "path": "tests/Momoka.Tests/ResizeFreezeTests.cs",
+      "sha256": "2cdc9db3439ba0f4ac78d96d1353c177b96e79854cabd592db87f2bafaf2777d",
+      "lines": 100,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/SeekKeyTests.cs",
+      "sha256": "adc4647d78fe233ee84ca1fab2acca826ce053913cdd468203e93851e2f904b0",
+      "lines": 57,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/ShortcutTests.cs",
+      "sha256": "b2f729522e977d879b845f2734b642a4cbe32b50f0b791217facd4c49ac891ab",
+      "lines": 375,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/SpeedWheelTests.cs",
+      "sha256": "02bbc16125b0b9007667d2ea881a66fe37470b65aa71106188ccc00badb5d255",
+      "lines": 120,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/StatusCoalescerTests.cs",
+      "sha256": "473fcf728777459608ba0feb53408d7e2e9cbb8fa0fad46384469d9f935e4f5c",
+      "lines": 68,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/TestHarness.cs",
+      "sha256": "4c1d3fc967eb2a8cddb728466e21ed79c0ffbb366e5eaff44d3701bc4aa89435",
+      "lines": 154,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/TimelineParityTests.cs",
+      "sha256": "92cedfaf96386b4309d0e932850f0766086cb695df9152e584f0d9a4ff6f3ed5",
+      "lines": 137,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/TimelineScaleTests.cs",
+      "sha256": "47f92164c923c05b2f79dede8f5e004b104dbf45a0487184535783a2fdb8c7ee",
+      "lines": 41,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tests/Momoka.Tests/WindowFormTests.cs",
+      "sha256": "c3e659545d3cd72acef43734b538533d3cb0877ce6bf4767942a2e95372bee8e",
+      "lines": 166,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tools/test-uosc-review.py",
+      "sha256": "7a43ab8c58e5d27f216844c9814fcee42c93863756a7dbe9e61076f10b4420b0",
+      "lines": 47,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    },
+    {
+      "path": "tools/test-uosc.py",
+      "sha256": "57efc598739eb523cec364dd250d5098949facdc9e81f14fe3e3e6e26f4ef64a",
+      "lines": 103,
+      "ownerReview": false,
+      "scope": "全文已读",
+      "partition": "R11",
+      "fullRead": true
+    }
+  ],
+  "upstreamPins": [
+    {
+      "name": "uosc",
+      "repo": "tomasklaen/uosc",
+      "commit": "748bb238a962f8aecd0af51ee4b46651b58f6c51",
+      "path": "artifacts\\review\\12e99d8\\R11\\20261106-first\\upstream\\uosc-748bb238a962f8aecd0af51ee4b46651b58f6c51",
+      "archiveSha256": "ebb115729486ab2093625a848ac66c9c7b22d609c932b9c6ca629ab636c87efa"
+    },
+    {
+      "name": "mpv",
+      "repo": "mpv-player/mpv",
+      "commit": "270367e8af7e2f49fc3d3f8da03c985f5ae3b402",
+      "path": "artifacts\\review\\12e99d8\\R11\\20261106-first\\upstream\\mpv-270367e8af7e2f49fc3d3f8da03c985f5ae3b402",
+      "archiveSha256": "a6a1953ee661ed5312440dc4e6344f3b4de7782477adde6e43494e4a4c24f30c"
+    }
+  ],
+  "upstreamReadFiles": [
+    {
+      "repo": "tomasklaen/uosc",
+      "commit": "748bb238a962f8aecd0af51ee4b46651b58f6c51",
+      "path": "src/uosc/main.lua",
+      "sha256": "609326e88a69b5dcb2b2c8c8931ff806d0cbf3c62ee76294d99d0bf6b429a296",
+      "lines": 1202
+    },
+    {
+      "repo": "tomasklaen/uosc",
+      "commit": "748bb238a962f8aecd0af51ee4b46651b58f6c51",
+      "path": "src/uosc/elements/Menu.lua",
+      "sha256": "1c1b021adab4602ea965460f2d3795559fee764238dfc686cad440df2d29ccb9",
+      "lines": 1825
+    },
+    {
+      "repo": "tomasklaen/uosc",
+      "commit": "748bb238a962f8aecd0af51ee4b46651b58f6c51",
+      "path": "src/uosc/elements/Speed.lua",
+      "sha256": "fee532d01e108cb4d74fbfdedaf91ea2fff81af3b4f3f4e3543fd8aaefa92326",
+      "lines": 195
+    },
+    {
+      "repo": "tomasklaen/uosc",
+      "commit": "748bb238a962f8aecd0af51ee4b46651b58f6c51",
+      "path": "src/uosc/elements/Volume.lua",
+      "sha256": "fa16d0cd19df402ef631931d49787ccc7fdf06adf3e86913deb5bafcd3266c7a",
+      "lines": 284
+    },
+    {
+      "repo": "tomasklaen/uosc",
+      "commit": "748bb238a962f8aecd0af51ee4b46651b58f6c51",
+      "path": "src/uosc/elements/Controls.lua",
+      "sha256": "8dc03eb0f248b9b4cc7213eeb2d9dcb5abb6e137484ecf7702f4800ba71dfd1b",
+      "lines": 428
+    },
+    {
+      "repo": "tomasklaen/uosc",
+      "commit": "748bb238a962f8aecd0af51ee4b46651b58f6c51",
+      "path": "src/uosc/lib/cursor.lua",
+      "sha256": "8a9f7bb14eae92f4b171c5655899c9954f4050a897c08db42aa90f72a84a3c0c",
+      "lines": 469
+    },
+    {
+      "repo": "tomasklaen/uosc",
+      "commit": "748bb238a962f8aecd0af51ee4b46651b58f6c51",
+      "path": "src/uosc/lib/utils.lua",
+      "sha256": "29b9b56c00e7402c9ced88b942f1145f5d1fa4ba7fcfe83342c8016857e84fed",
+      "lines": 1078
+    },
+    {
+      "repo": "tomasklaen/uosc",
+      "commit": "748bb238a962f8aecd0af51ee4b46651b58f6c51",
+      "path": "src/uosc/lib/menus.lua",
+      "sha256": "08181fa05c2a0dd0c5146c0a0e02e44a690732f84a08e3c5bfdd06ff68e0f79e",
+      "lines": 1138
+    },
+    {
+      "repo": "mpv-player/mpv",
+      "commit": "270367e8af7e2f49fc3d3f8da03c985f5ae3b402",
+      "path": "input/ipc-win.c",
+      "sha256": "92a9b0f883f1c1f93e7918e8d99ab48f20baccfa2b2f61f5cd0df35646909bb2",
+      "lines": 537
+    },
+    {
+      "repo": "mpv-player/mpv",
+      "commit": "270367e8af7e2f49fc3d3f8da03c985f5ae3b402",
+      "path": "input/ipc.c",
+      "sha256": "797b943113fdb223d8aaf13cee79c3b3c00c2f10578865d134121c8af43ee849",
+      "lines": 416
+    },
+    {
+      "repo": "mpv-player/mpv",
+      "commit": "270367e8af7e2f49fc3d3f8da03c985f5ae3b402",
+      "path": "options/parse_configfile.c",
+      "sha256": "edaedf32b8b6c165dfded9674f513ce440b4bbdc604b9e6482178b34e0fa8517",
+      "lines": 175
+    },
+    {
+      "repo": "mpv-player/mpv",
+      "commit": "270367e8af7e2f49fc3d3f8da03c985f5ae3b402",
+      "path": "player/lua/stats.lua",
+      "sha256": "5d8fa3d5a5c9b6c54d723490384f63bac363706abdf36b6fda5103ea1300383e",
+      "lines": 1825
+    }
+  ],
+  "native": {
+    "libmpv-2.dll": "fe583af31036bf3f3adacf6659e1bd448b568091b0334675573a3e303ec89d17",
+    "assets/mpv-runtime/vulkan-1.dll": "13dd448a97495763b5cce84b8ade84cd2fa13c71f7e871f3c7d509eca845ad0f"
+  },
+  "assemblies": {
+    "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll": "755cac15716a97b6cd598f9c7880e0faa7f64bb35487295b65dfcd34c609bcd3",
+    "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.dll": "7bc8d95fa728fa7f1bea571e120cab6027dbaa7713311c7ae5f2c62702729feb"
+  },
+  "verification": {
+    "formalRegisteredGroups": 19,
+    "formalRegisteredCases": 202,
+    "extraPlaybackGroups": 18,
+    "extraPlaybackCases": 153,
+    "shippedUoscCases": 49,
+    "reviewFixtureCasesOnShippedRuntime": 8,
+    "totalExecutedPassingCases": 412,
+    "failed": 0,
+    "skipped": 0,
+    "overlapNotUniqueCoverage": true,
+    "reproUoscCases": 51,
+    "reproUoscFailures": 2,
+    "statsObservations": 2,
+    "nativeConfigObservations": 2,
+    "managedObservations": 5,
+    "shellBuiltOrLoaded": false,
+    "realMediaWindowServer": false,
+    "standaloneNativeWindowOrExternalMpvExe": false,
+    "testUoscReviewOriginalWrapper": false,
+    "originalWrapperGap": "无可信Lua5.1 DLL；原8项完整fixture在随包LuaJIT执行，不冒充原wrapper。"
+  },
+  "observations": {
+    "managed-observations.json": [
+      {
+        "test": "resize-publish",
+        "publish": false,
+        "paused": false,
+        "writes": [
+          true,
+          false
+        ],
+        "frozen": false
+      },
+      {
+        "test": "resize-publish",
+        "publish": true,
+        "paused": true,
+        "writes": [
+          true
+        ],
+        "frozen": false
+      },
+      {
+        "test": "watchdog-after-leave",
+        "OnStage": false,
+        "tickerEnabled": true
+      },
+      {
+        "test": "include",
+        "quote": "a.txt",
+        "accepted": true,
+        "error": ""
+      },
+      {
+        "test": "include",
+        "quote": "%5%a.txt",
+        "accepted": false,
+        "error": "无法读取自定义 mpv.conf：Could not find file 'C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\12e99d8\\R11\\20261106-first\\configs\\%5%a.txt'."
+      }
+    ],
+    "native-config-observations.json": [
+      {
+        "name": "plain.conf",
+        "result": 0,
+        "quote": "C:/Users/89400/.codex/worktrees/def8/Momoka/artifacts/review/12e99d8/R11/20261106-first/configs/a.txt"
+      },
+      {
+        "name": "fixed.conf",
+        "result": 0,
+        "quote": "%101%C:/Users/89400/.codex/worktrees/def8/Momoka/artifacts/review/12e99d8/R11/20261106-first/configs/a.txt"
+      }
+    ],
+    "uosc-run/results.json": {
+      "completed": true,
+      "checks": [
+        {
+          "detail": "",
+          "passed": true,
+          "name": "menu close does not click through to underlying button"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "a release cannot activate a newly revealed button"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "secondary compound clicks keep the secondary event identity"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "button capture survives a render with a new rectangle"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "normal compound button click fires exactly once"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "centered to anchored menu replacement releases curtain"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "centered menu replacement owns one curtain registration"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "menu keypad enter activates selected item"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "menu rows keep text legible with space for a check and hints"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "a separator after an action keeps its text and clickable row"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "a separator gap cannot activate its preceding action"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "a separated submenu remains visible and opens with the keyboard"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "menu scales 1.3x live while fullscreen or maximized"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "menu font follows the hidpi scale like the integrated flyout"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "menu pointer click supersedes keyboard selected row"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "menu drag cancels on pointer leaving without infinite scroll"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "timeline cancellation restores the original pause state"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "timeline release finishes fast dragging with an exact seek"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "timeline paused drag stays paused after cancellation"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "single picture click followed by a button retains its pause"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "double picture click never toggles pause"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "native window drag cancellation never pauses even within the click distance"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "click after canceled drag starts a new gesture"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "canceling a later control gesture retains the earlier picture click"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "canceled release skips menu activation but runs release cleanup"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "complex left binding preserves normal down and up with modifiers"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "picture press cannot survive across a file boundary"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "right edge submenu stays within the display"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "nested submenus keep opening left at the right screen edge"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "hovering an overlapping submenu does not change the covered parent row"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "the gap between cascading menus cannot activate an item"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "submenu preview guard survives mouse navigation toward it"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "file boundary closes stale menus and releases the curtain"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "external track without title uses a fallback label"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "host shortcuts rebind and stay suspended while a menu owns input"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "new adjustment shortcuts repeat but reset and loop actions fire once"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "closing a menu re-enables unchanged host bindings"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "danmaku control follows host capability and file boundaries"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "danmaku toggle is separate from matching and follows the host show state"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "losing danmaku capability closes an open picture menu and releases its input"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "danmaku input follows visibility and matching without exposing a send button"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "danmaku Unicode editing owns shortcuts and restores the latest binding and IME"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "danmaku paste and select all respect the 100 UTF16 unit bound"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "danmaku submit is single flight and correlated acknowledgements preserve newer drafts"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "danmaku context and file boundaries reject delayed acknowledgements and release input"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "danmaku menu and native focus loss release editing without consuming a draft"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "danmaku input and outside clicks never fall through to picture pause"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "danmaku title allocation follows short titles and stays inside narrow and scaled windows"
+        },
+        {
+          "detail": "",
+          "passed": true,
+          "name": "external track reload advertises a registered F5 key"
+        }
+      ],
+      "errors": [],
+      "coverage": "Bundled libmpv Lua runtime; fake input, properties and clock; no media, window, HTTP or user settings."
+    },
+    "uosc-repro/results.json": {
+      "completed": true,
+      "checks": [
+        {
+          "name": "menu close does not click through to underlying button",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "a release cannot activate a newly revealed button",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "secondary compound clicks keep the secondary event identity",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "button capture survives a render with a new rectangle",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "normal compound button click fires exactly once",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "centered to anchored menu replacement releases curtain",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "centered menu replacement owns one curtain registration",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "menu keypad enter activates selected item",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "menu rows keep text legible with space for a check and hints",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "a separator after an action keeps its text and clickable row",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "a separator gap cannot activate its preceding action",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "a separated submenu remains visible and opens with the keyboard",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "menu scales 1.3x live while fullscreen or maximized",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "menu font follows the hidpi scale like the integrated flyout",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "menu pointer click supersedes keyboard selected row",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "menu drag cancels on pointer leaving without infinite scroll",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "timeline cancellation restores the original pause state",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "timeline release finishes fast dragging with an exact seek",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "timeline paused drag stays paused after cancellation",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "single picture click followed by a button retains its pause",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "double picture click never toggles pause",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "native window drag cancellation never pauses even within the click distance",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "click after canceled drag starts a new gesture",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "canceling a later control gesture retains the earlier picture click",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "canceled release skips menu activation but runs release cleanup",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "complex left binding preserves normal down and up with modifiers",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "picture press cannot survive across a file boundary",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "right edge submenu stays within the display",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "nested submenus keep opening left at the right screen edge",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "hovering an overlapping submenu does not change the covered parent row",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "the gap between cascading menus cannot activate an item",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "submenu preview guard survives mouse navigation toward it",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "file boundary closes stale menus and releases the curtain",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "external track without title uses a fallback label",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "host shortcuts rebind and stay suspended while a menu owns input",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "new adjustment shortcuts repeat but reset and loop actions fire once",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "closing a menu re-enables unchanged host bindings",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "danmaku control follows host capability and file boundaries",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "danmaku toggle is separate from matching and follows the host show state",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "losing danmaku capability closes an open picture menu and releases its input",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "danmaku input follows visibility and matching without exposing a send button",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "danmaku Unicode editing owns shortcuts and restores the latest binding and IME",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "danmaku paste and select all respect the 100 UTF16 unit bound",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "danmaku submit is single flight and correlated acknowledgements preserve newer drafts",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "danmaku context and file boundaries reject delayed acknowledgements and release input",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "danmaku menu and native focus loss release editing without consuming a draft",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "danmaku input and outside clicks never fall through to picture pause",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "danmaku title allocation follows short titles and stays inside narrow and scaled windows",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "external track reload advertises a registered F5 key",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "name": "R11 EOF switch releases speed drag before the next file",
+          "detail": "...view\\12e99d8\\R11\\20261106-first\\uosc-repro\\uosc/main.lua:2327: old speed drag survived EOF switch; next speed=1.8",
+          "passed": false
+        },
+        {
+          "name": "R11 EOF switch releases volume drag before the next file",
+          "detail": "...view\\12e99d8\\R11\\20261106-first\\uosc-repro\\uosc/main.lua:2338: old volume drag survived EOF switch; commands=1",
+          "passed": false
+        }
+      ],
+      "errors": [],
+      "coverage": "Bundled libmpv Lua runtime; fake input, properties and clock; no media, window, HTTP or user settings."
+    },
+    "review-lua-run/results.json": {
+      "completed": true,
+      "checks": [
+        {
+          "name": "PASS R10 forward delete removes one complete UTF-8 character: 中文",
+          "passed": true
+        },
+        {
+          "name": "PASS R10 forward delete removes one complete UTF-8 character: 😀文",
+          "passed": true
+        },
+        {
+          "name": "PASS R10 forward delete removes one complete UTF-8 character: a文",
+          "passed": true
+        },
+        {
+          "name": "PASS R11 cursor.leave releases volume drag without any volume write",
+          "passed": true
+        },
+        {
+          "name": "PASS R11 invalid cursor coordinate emits no volume command",
+          "passed": true
+        },
+        {
+          "name": "PASS R11 invalid cursor coordinate emits no volume command",
+          "passed": true
+        },
+        {
+          "name": "PASS R11 invalid cursor coordinate emits no volume command",
+          "passed": true
+        },
+        {
+          "name": "PASS R11 valid drag still applies volume",
+          "passed": true
+        }
+      ],
+      "errors": [],
+      "coverage": "Bundled libmpv Lua runtime; fake input, properties and clock; no media, window, HTTP or user settings."
+    },
+    "stats-run/results.json": {
+      "completed": false,
+      "checks": [],
+      "errors": [
+        "Lua error: ...ts\\review\\12e99d8\\R11\\20261106-first\\stats-run\\stats.lua:1932: attempt to call field 'format_json' (a nil value)"
+      ],
+      "coverage": "Bundled libmpv Lua runtime; fake input, properties and clock; no media, window, HTTP or user settings."
+    },
+    "stats-run-2/results.json": {
+      "completed": true,
+      "checks": [
+        {
+          "passed": true,
+          "detail": "PASS-30 absent from first view",
+          "name": "stats-tail-hidden-before-scroll"
+        },
+        {
+          "passed": true,
+          "detail": "PASS-30 visible after native DOWN callback; keys=1,2,0,3,5,4,ESC,DOWN,UP",
+          "name": "stats-tail-only-via-native-down"
+        }
+      ],
+      "errors": [],
+      "coverage": "Bundled libmpv Lua runtime; fake input, properties and clock; no media, window, HTTP or user settings."
+    }
+  },
+  "memberExtractionPins": [
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Interaction.cs",
+      "start": "    internal readonly record struct InteractionContext",
+      "end": "    private VideoMenuSnapshot<EmbyItem>?",
+      "sourceSha256": "6641d835e62339943c375eb7a735af918951f6b51cf27ed537ae76610101e7d0",
+      "memberSha256": "d47cf5cd610fee7a233fc92acbc45bbc228446097860c292c1b96ae786bf6834"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.ClientRect.cs",
+      "start": "    private void BeginResizeFreeze()",
+      "end": "    /// <summary>\n    /// 松手之后",
+      "sourceSha256": "1849447f7d4eccc15eb0aaac56ff0e1c62975f6763c917eaf417fa1a2c3ac26a",
+      "memberSha256": "e3240c6634ce90f69069de6fa2880dc7efc604aa13f63f32453c7fba14a58ebb"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.ClientRect.cs",
+      "start": "    private async Task ReleaseResizeFreezeAsync()",
+      "end": "    private void CancelResizeChange()",
+      "sourceSha256": "1849447f7d4eccc15eb0aaac56ff0e1c62975f6763c917eaf417fa1a2c3ac26a",
+      "memberSha256": "878a19430a62bbcf8632068d8398a46ebb9d3a91bc664d15b9a82683f0668676"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Watchdog.cs",
+      "start": "    private void WatchTick()",
+      "end": "\n}",
+      "sourceSha256": "fb091dd343d80a92435301d89b40523089c62c0548f17b88c50966c54b3f076c",
+      "memberSha256": "5c5dbca520d26c587207541c4129bacd732865c53b1f07f5033c18e8cc04be73"
+    }
+  ],
+  "logs": [
+    {
+      "path": "extra-build.log",
+      "sha256": "48fad08c16efe73094de400b8184d48840f6683b33cf06f76fb867c5a48547e0",
+      "bytes": 228
+    },
+    {
+      "path": "extra-tests.log",
+      "sha256": "d516174a84ec05d705d23c905d8a2827a3df08ff7eef79bfabb027e2c487974e",
+      "bytes": 11529
+    },
+    {
+      "path": "native-config.log",
+      "sha256": "64dd877b6800931bed8f0b2f9900fc39a9a0198f6a87a59856c1057f8cd1f290",
+      "bytes": 309
+    },
+    {
+      "path": "registered-tests-2.log",
+      "sha256": "a33a30e3a7f8e723061799e92e21d2623e3a600fd64b4666b17ec24ade222c25",
+      "bytes": 15870
+    },
+    {
+      "path": "repro-build.log",
+      "sha256": "4b9cb2f75f203401c47213342f0183bfde3780e48e638eb1eb58485f271f1201",
+      "bytes": 342
+    },
+    {
+      "path": "repro-restore.log",
+      "sha256": "2db58c44b115df2e49c79b115af7867167a44ce94b47acf1d4a25b2fe168438c",
+      "bytes": 244
+    },
+    {
+      "path": "repro-run.log",
+      "sha256": "84cd6f85172f2c79cf7d49fb691c46bf35e7e3029b5b1eef1ec3e7b5667c1a91",
+      "bytes": 587
+    },
+    {
+      "path": "review-lua-run.log",
+      "sha256": "1e328092b7413aa7ba54a5a24848a1507a00f79fab5619a6963b6da73f68ceb4",
+      "bytes": 602
+    },
+    {
+      "path": "runner-build-2.log",
+      "sha256": "33b70d0062c3ad81a9e6e5afd9d812daac687055495abca63536fd2ce767e046",
+      "bytes": 228
+    },
+    {
+      "path": "runner-build.log",
+      "sha256": "5ec4b86152757dfceb64c1daeadf0ebf581573cadfa388d6b8a623703b9427f0",
+      "bytes": 228
+    },
+    {
+      "path": "runner-restore.log",
+      "sha256": "d028ea8809420440ade25ec5205059b75dcbd4496fb029f67cf712e5258b5441",
+      "bytes": 187
+    },
+    {
+      "path": "stats-run-2.log",
+      "sha256": "8f22d548a95f5cd92f91b882ca6a639d7814b3ca8c9e3103a54097d5cb66a3d8",
+      "bytes": 228
+    },
+    {
+      "path": "stats-run.log",
+      "sha256": "60a22574bd19f2f185b745ab303eea14ac2881eeab5dd0a682f5f85220daedd9",
+      "bytes": 47
+    },
+    {
+      "path": "tests-build.log",
+      "sha256": "86acc7bdeddb40aed5d95a7859221154ddaa846b792e23cce37a2f703300b4d9",
+      "bytes": 317
+    },
+    {
+      "path": "uosc-repro.log",
+      "sha256": "33bcab45b74005044236c221f6f50f86590c6c94adb8011492374402a3d42107",
+      "bytes": 3792
+    },
+    {
+      "path": "upstream/mpv-270367e8af7e2f49fc3d3f8da03c985f5ae3b402/test/ref/repack_sws.log",
+      "sha256": "8b290819ca94371ad32e2e2c1eb13561387df1ca1ce6ff2c1b256d01a60130f8",
+      "bytes": 334
+    },
+    {
+      "path": "upstream/mpv-270367e8af7e2f49fc3d3f8da03c985f5ae3b402/test/ref/repack_zimg.log",
+      "sha256": "8b290819ca94371ad32e2e2c1eb13561387df1ca1ce6ff2c1b256d01a60130f8",
+      "bytes": 334
+    }
+  ],
+  "failuresRetained": [
+    {
+      "step": "Python urllib固定源码下载",
+      "reason": "TLS unexpected EOF；PowerShell Invoke-WebRequest同固定URL成功；未关闭TLS校验"
+    },
+    {
+      "step": "临时202注册宿主首跑",
+      "reason": "AppContext.BaseDirectory指向临时宿主，真实MpvProcessTests寻找Momoka.Tests.exe不存在，90秒超时；stdout未保存，保留超时参数/工具回执说明；只修临时base目录后202全过"
+    },
+    {
+      "step": "stats夹具首次生成",
+      "reason": "PowerShell嵌套引号解析错误，未生成脚本；改为独立Python生成脚本"
+    },
+    {
+      "step": "stats首次执行",
+      "reason": "mock mp.utils遮掉结果format_json；完整两断言已运行但未完成结果，错误/25秒等待日志保留；只修临时结果序列化后成功"
+    }
+  ],
+  "unresolved": [
+    "真实WinUI/键鼠/DPI/fullscreen/native独占和真正外部mpv未验证",
+    "旧章节Flyout跨片可点击存活未证",
+    "PulseArt外角公式及可见转折未实机采证",
+    "Watchdog迟到复活10Hz已观察，仅额外轮询，未报鼠标消失缺陷",
+    "Button10ms消息新片接管时序未动态证实",
+    "R01旧工具红、R07正式飞牛3败、R02 schema27与历史54/19/20增量保持",
+    "提取器拒绝反例/全方案/完整主套件/全回归/Shell UI/发布闸门未运行"
+  ],
+  "windowsHeaderEvidence": {
+    "path": "C:\\Users\\89400\\.nuget\\packages\\microsoft.windowsappsdk.interactiveexperiences\\2.1.9\\include\\Microsoft.UI.Input.InputCursor.Interop.h",
+    "sha256": "1bd6b5b28126c3a4e9620e1e6b9795bb1103836562c6aac8ee22ca7e30fe9be5",
+    "lines": 40,
+    "scope": "全文header/IID/继承槽位核对，未运行Windows API"
+  },
+  "documentValidation": {
+    "passed": true,
+    "documents": 11,
+    "ledgerRows": 1876,
+    "reviewedHashes": 202,
+    "matrixProjects": 68,
+    "historyPreserved": true,
+    "sourceUnmodified": true
+  },
+  "reproductionInputs": [
+    {
+      "path": "check-records.py",
+      "sha256": "c3845ffb59a7c7a0e1860c86a551c282d1e2e5acb3ecbdcda0a14698e3a2e872"
+    },
+    {
+      "path": "extra-core.py",
+      "sha256": "c1cabbd776b7f6169a08ad65375774890372e3faf5b2a1c0a867817114bbe63d"
+    },
+    {
+      "path": "make-repros.py",
+      "sha256": "7c85be999b90f73db2bcc58608c102c8063fabbb95b7bde90d2f08e136783bde"
+    },
+    {
+      "path": "make-review-lua.py",
+      "sha256": "11c2c58cea6a8022c5b4190ffb468655103d42114220f98e943fa6f5c6f45077"
+    },
+    {
+      "path": "make-stats.py",
+      "sha256": "ddb2c10c564dbca8d6cbe016fb4c65e7990d3d59be2eedf83d64af104417eb24"
+    },
+    {
+      "path": "native-config.py",
+      "sha256": "aaacad3a81234eee3924561bf41384e68cfeebbc425576b52a7b891d9c6e8210"
+    },
+    {
+      "path": "review-fixture.lua",
+      "sha256": "57d7c671b3b13425fcf7b7ea8e3ed471fda6c4d35db4c24f082ab3e65f216182"
+    },
+    {
+      "path": "run-checks.py",
+      "sha256": "57a1c666041d4db09da913deeb19e6a555ab5edc244727c48c8f0b7198d81fd2"
+    },
+    {
+      "path": "stats-fixture.lua",
+      "sha256": "89fb46387079782fa7ebea11aaa440d03cfbd7f07e6f91b72cd5c8a152c8d15e"
+    },
+    {
+      "path": "stats-prelude.lua",
+      "sha256": "6e61928a342a9c91886fe16514602b88de04b8c6c57d13742a6c435c2a29968f"
+    },
+    {
+      "path": "stats-tail.lua",
+      "sha256": "747e85a16f5efcefc096e212aa50aee5197cab34a6e1e78ee191b9f540b656b7"
+    },
+    {
+      "path": "test-review-lua.py",
+      "sha256": "489c292491600368d3dd6b0e2db8485913ac0ebd11153762b1d9823767cc8ee1"
+    },
+    {
+      "path": "test-stats.py",
+      "sha256": "fcfc906c04997b5f500eca6186fcae0c1497b4681571596d4dbfea03890d3157"
+    },
+    {
+      "path": "test-uosc-extra.py",
+      "sha256": "f50537d29a46fea11f0b4e831667c09043d659500d8e2f05037e742e2fd7507d"
+    },
+    {
+      "path": "uosc-extra.lua",
+      "sha256": "4a3343689456ff309df0e1e3ba2e5888534c78fc24e92bb82ace1fa4e79ab9bb"
+    },
+    {
+      "path": "uosc-fixture-extra.lua",
+      "sha256": "5f2ea3d9e1e9b4b629be41d97319be31f15783bec642b36ff0c07237de93e794"
+    },
+    {
+      "path": "update-progress.py",
+      "sha256": "ff35e8c12557da9a5675e1d6533877a2316800225a9a84174ed0656ba2f672a9"
+    },
+    {
+      "path": "write-records.py",
+      "sha256": "d2d51dec662aa408ef6ab080d2ff588bc80497c15bb9bc1be23c692b06c0b479"
+    },
+    {
+      "path": "configs/a.txt",
+      "sha256": "00374fd0f4f22b76b72490d3cc6914522db089b958fd092a2304f4d80e6b93d1"
+    },
+    {
+      "path": "core-runner/Program-extra.cs.txt",
+      "sha256": "8eed166648859e4cdf79a85ba1a95f99bd35d67a19da1cc60fe2b89fb656a831"
+    },
+    {
+      "path": "core-runner/Program-original.cs.txt",
+      "sha256": "c2c6d622a44991a41f0109e69bd8130ad01c8e046048e7c9941f2044ef84f27a"
+    },
+    {
+      "path": "core-runner/Program.cs",
+      "sha256": "8eed166648859e4cdf79a85ba1a95f99bd35d67a19da1cc60fe2b89fb656a831"
+    },
+    {
+      "path": "core-runner/runner.csproj",
+      "sha256": "5b333e6390202ea9db1fca5546252234a78d4cbfaa94a4794322e2b6921fc482"
+    },
+    {
+      "path": "managed-repro/Program.cs",
+      "sha256": "e0bef455848b29d20a7d6ad88550136a21f0a798cb3b04171a3af519634468af"
+    },
+    {
+      "path": "managed-repro/repro.csproj",
+      "sha256": "c6d85ae82b3ba091fae5fea5d6978e1c9d07e0d9569da1c3d3f9513ef943247a"
+    }
+  ]
+}

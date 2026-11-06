@@ -1,0 +1,3044 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "status": "R12审查完成；5P2未修；完成后暂停",
+  "startHead": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+  "verificationHead": "11921fff05f47dda08f0863dfc09eca49aa511a4",
+  "masterSnapshot": "50fab2f3c285a334eefa596408f6f36ccbf765e7",
+  "masterR12Snapshot": "f71883d1174b8558f88d7cf333a5c54fc49c07e5",
+  "productFixesApplied": false,
+  "productSourceMatchesMaster": false,
+  "r12SourceMatchesMaster": false,
+  "reviewComplete": true,
+  "pauseAfter": "R12",
+  "nextPartition": "R13",
+  "ruleSha256": "6b825aec89b7cea678a5b8033d3effc8364a9ecd52ac20059b66b4d9b0f872c6",
+  "planChecked": 19,
+  "counts": {
+    "ownerFiles": 45,
+    "sourceFiles": 40,
+    "sourceLines": 22560,
+    "ownerTextLines": 23483,
+    "shaderFiles": 18,
+    "fullJointFiles": 36,
+    "memberJointFiles": 42,
+    "ledgerRowsUpdated": 123
+  },
+  "reviewedFiles": [
+    {
+      "path": ".claude/skills/momoka-audio-output/scripts/probe-audio-native.py",
+      "sha256": "8c282871770ea3c96fe57919676bfdefc5e97a38d6d80a9a628b978e6da25649",
+      "lines": 265,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/elements/Volume.lua",
+      "sha256": "8d87a12b401eb49f9d92e13b87ad2752243fbd498e044dd9913faa553d06f371",
+      "lines": 291,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "26–58/256–268绝对reset100对照；EOF旧拖动沿R11-002"
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/main.lua",
+      "sha256": "6c92c19459a6583aa74b9372df577ace622be1a262a14f5e31ead9f9204680c2",
+      "lines": 1588,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1060–1062/1159–1163/1466–1473音频/画面菜单入口，R11全文未变"
+    },
+    {
+      "path": "assets/shaders/Anime4K/glsl/Restore/Anime4K_Clamp_Highlights.glsl",
+      "sha256": "a2a9bf7fbc1d75d09660ca2e701e4d7fb0cf5457b94da47e1825032fa2b3671a",
+      "lines": 90,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/Anime4K/glsl/Restore/Anime4K_Restore_CNN_Soft_M.glsl",
+      "sha256": "71c0c2ecfd1edba74c2b35bc469d4a16b4cc1cb81ff5d055d31ad1fa2693eee0",
+      "lines": 275,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/ArtCNN/ArtCNN_C4F16.glsl",
+      "sha256": "03d0b3d31cb82c898a94a46663021a3e8f02c5a21d69c5cfdf0208de4bfd453e",
+      "lines": 1407,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/ArtCNN/ArtCNN_C4F32.glsl",
+      "sha256": "f773bce6cf5fe7e5e5d599a695edd40df5cd7a20c3d08c4d164d07591d5bead3",
+      "lines": 3927,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/ArtCNN/ArtCNN_C4F32_DN.glsl",
+      "sha256": "6b51a6f7d75826c9492c3f78b5e60acffa24a71928e2d47c4a329423922a143c",
+      "lines": 3927,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/ArtCNN/ArtCNN_C4F32_DS.glsl",
+      "sha256": "a04c9cba6fbb8e6db9239d61848390208aedf8e348ef116e12174c803d22077e",
+      "lines": 3927,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/CfL/CfL_Prediction.glsl",
+      "sha256": "f9d12d38d4bab4d9db266b5982c81fadca907396212e22fd8b2c1ca2f317b716",
+      "lines": 363,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/CfL/CfL_Prediction_Lite.glsl",
+      "sha256": "159c1dad4daab10eddaae822a5d0fb0b94a38e85a2825fb7df9d7feb509ad4f7",
+      "lines": 181,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/LICENSE.GPL-3.0.txt",
+      "sha256": "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0",
+      "lines": 232,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "assets/shaders/LICENSE.LGPL-2.1.txt",
+      "sha256": "5749785c8bdefafcb5d798270ed0a967036fe2ca63dcedade1627565dfef81d2",
+      "lines": 176,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "assets/shaders/LICENSE.LGPL-3.0.txt",
+      "sha256": "996af0513df21f7496288951c41428a03c174e9e4a9d63665c57d670f845ccb1",
+      "lines": 304,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "assets/shaders/NOTICE.txt",
+      "sha256": "a09e3434111bf2d7e4b9d7571603c70a80f416e0abd2a718689a194dd45db389",
+      "lines": 55,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "assets/shaders/README.md",
+      "sha256": "66fdaea8b40fc8b899b1d1ad18f44a3fe4569afa444499d72b2a434d706cd024",
+      "lines": 156,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "assets/shaders/an3223/hdeband.glsl",
+      "sha256": "bcca060b5bf46caf7dac7b74392bc2817b9cc3d4fc5fcade49af35e2b0432b3d",
+      "lines": 220,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/an3223/nlmeans_light.glsl",
+      "sha256": "f2ccb53072e0d42699e285a0dee7ce7980fc58173531e4d7292aff5ab7106e4b",
+      "lines": 2723,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/igv/KrigBilateral.glsl",
+      "sha256": "8a4798abb77b83646fce0d71985ddfd14c9806e3be486e8fc7f5a5a8bd940cb0",
+      "lines": 213,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/igv/SSimDownscaler.glsl",
+      "sha256": "f46f4710a162d17058b9d82ed8610588b0c04d7be07cef6bf2a8c4077828f804",
+      "lines": 214,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/igv/SSimSuperRes.glsl",
+      "sha256": "a8b27115840c60045250411b375e0188000217258ad776eeb51724c97815460f",
+      "lines": 203,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/igv/adaptive-sharpen.glsl",
+      "sha256": "f2d2b8091bb036f2f691acd536094ae38183dfa9f138aecdbfa8822a37161d0f",
+      "lines": 230,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/ravu/ravu-lite-ar-r2.hook",
+      "sha256": "cbbabe0a5544c3bd832c7a0ec949a364242643cc834c2840dd25f732a2f13634",
+      "lines": 152,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/ravu/ravu-lite-ar-r3.hook",
+      "sha256": "6225c2362567f818cf6e67e66cd7125a32ec0ea727285643b1e5a377387c5b5f",
+      "lines": 202,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/ravu/ravu-lite-ar-r4.hook",
+      "sha256": "2e7c9beb79be10c57c85eede7a4b6ba1f031a97a26170d88450fc4330a5e8408",
+      "lines": 298,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "assets/shaders/ravu/ravu-zoom-ar-r2.hook",
+      "sha256": "201aa9139251c7dcbe2f0416b9780e4879732733bbae0b1056ece8a2e3b9d86f",
+      "lines": 218,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "生成权重/纹理全字节结构/hash与执行语句/pass全文"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+      "sha256": "227f5f92d5c796f03ee7ba75b23800e6c1aa0466fbec8b2fbee49e472bd7db57",
+      "lines": 1690,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "MpvSettings.SvpEnabled/SvpVapourSynthPath；VideoSettings728–958、AudioSettings960–1059、ShaderAutomationSettings1073–1261，完整类型与快照/Resolve；截图字段联R11"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+      "sha256": "f0406427b80a61a0dbd3feb9a387e2b68ba55d43b0ca18e8e4b5ac8411e581de",
+      "lines": 976,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "16–116、360–395、542–547、562–630、647、724–731、763–772、794–804、822–835；视频/补帧/音频/链目录迁移与Normalize"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsPreferences.cs",
+      "sha256": "a9f12282a04adb12541f70cc6ca082078dfaba556dfdf9c26afbc548edc9ebf5",
+      "lines": 156,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsReset.cs",
+      "sha256": "07956cea1473826919ddd5d507db5d6635d8304d8ddc38e392dfd939b03ebcba",
+      "lines": 21,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyItem.cs",
+      "sha256": "d87c8f96be2806fc0f60681e3419f1a5edcd832304a139c9171ac5bc6137b69f",
+      "lines": 1053,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "296–337视频/帧率/HDR，512 PrimaryVideoStream"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/FrameInterpolationOptions.cs",
+      "sha256": "9cc9881fd8ec57dda0a1bb46345d9239e62272c4d4d0b5313f45b64f0a8b6f3f",
+      "lines": 133,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/HdrOptions.cs",
+      "sha256": "6e0eb6f5fd973fe104b8f1b975b47ede0f31027e1608ca5af654bb0217a30a1d",
+      "lines": 77,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/InlineSwitch.cs",
+      "sha256": "aa7aad5d012a91f48df756aba510bf20bcfb0a92e122ab46e64f57744ac2e88c",
+      "lines": 248,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvBaseline.cs",
+      "sha256": "7af527d4eefbbc7455a5a54930e884f697f1ef8eef8d06ab4d5dc14c0110c4a8",
+      "lines": 231,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvIpcClient.cs",
+      "sha256": "c345e92004ac646198e8adc1ca7547a30a349226355bae7419023ecc1fba858c",
+      "lines": 351,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "227–247SetProperty/SendAsync确认；此前R11全文未变"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvOutputOptions.cs",
+      "sha256": "68711c7ee789b361dcc9f802123fcf0e64c9c2f116cac30bb7e7db7f8f9f6995",
+      "lines": 868,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvProfiles.cs",
+      "sha256": "9990ed967bbb62eeeffd6d5a397731dff6d210da990f3e48f9bd1b0a349ec9c0",
+      "lines": 43,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvSvp.cs",
+      "sha256": "02b9b8d47fa6455796933e319e98e4c478a4567f8eca0e62acd5a8daf4e6357f",
+      "lines": 128,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvSvpRuntime.cs",
+      "sha256": "b09cd90795c2829d4a05912393b3b78eeed7aca33e2b4461faa64c1910cdf309",
+      "lines": 106,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvUi.cs",
+      "sha256": "3f706fbd0bf4e363abd486d3afde689407b662b05c826d006f008e4e3ed1a4a8",
+      "lines": 367,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "58–61、162–176、346–355菜单入口/消息选择"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/PlayerMenuCatalog.cs",
+      "sha256": "d434576c6f5bfec8a9f099f1db5de4796124dac5d60ccc98b85e18b69a62bffd",
+      "lines": 415,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1–118类型/check；148–279图像/HDR/音频；326–415Flatten/Commands/Checks/工厂"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/ShaderChainRules.cs",
+      "sha256": "ead2db438bc6747dd549977e38aa2430b203d0cfb5f77201a4a2e8fc3c9540a7",
+      "lines": 109,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/ShaderDescriptor.cs",
+      "sha256": "b4aeeeb2dd049be4ddb2d470f848fe1bfc7a441716d236c0dcc8067ad92ef7d5",
+      "lines": 152,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/ShaderGroup.cs",
+      "sha256": "bed90b89b73c104879b7e17c7ae03af8adc274cbd0dbab30543261f57e4c4c0f",
+      "lines": 122,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/ShaderGroupCatalog.cs",
+      "sha256": "d5e6205f7246307d7441bd04926c525494e5146da16d68ce9fa077fc8a1e795d",
+      "lines": 407,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/ShaderLibrary.cs",
+      "sha256": "6f46e52eb5cbc15da7d73464f9c8e735052f4951b783b65d3f07fb978f25e430",
+      "lines": 136,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/ShaderSwitch.cs",
+      "sha256": "1cee648dc76b1bc7149c6791a8147dd006a77dd94746aab5bd163a4c3ea27719",
+      "lines": 72,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/UpscaleTier.cs",
+      "sha256": "e667f82bc225408dd978d078a70a7ef8dbe50ae456465022f1473ab074315b3d",
+      "lines": 313,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/VideoMenuSnapshot.cs",
+      "sha256": "2ab28dd2240de677d4602cac4efb62da520ee5e44b436f965534c16ef2dc8c44",
+      "lines": 38,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/AudioDeviceCatalogue.cs",
+      "sha256": "aba642094540bf857bedffb691f3f5478faf4521b4b29159b396d5fd72149049",
+      "lines": 206,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/IPlaybackBackend.cs",
+      "sha256": "07f85a40d012a7a8f4e88a3a699aa37964fee4a6c2cf3c3d3019f6653a81b9e6",
+      "lines": 212,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "IPlayerControl/HasControlChannel、IFileScopedPlayerControl182–198；master新增IShaderBatchPlayerControl独立snapshot记录"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
+      "sha256": "fb7e5ffa0abb167d19caeca8ede5d77cc18c7c95199b94834c23268b3e500cb6",
+      "lines": 1832,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "75–204SVP prepare→IPC→init→verify→handle lease；235–269/390–446选项签名；601–662/757–825默认与Swap；867–1086事件采样/应用；1165–1181Publish；1295–1560setter/command/read；1700–1740销毁SVP；1784–1832gate。历史R11全文未变，本轮成员复核"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/MpvProcessBackend.cs",
+      "sha256": "1f16503f2a723d1da1a5489ebb532b1dac15d59ffc3275b415b703154b72b957",
+      "lines": 625,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "205–257状态应用；358–382setter与bool命令确认"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/OutputWatch.cs",
+      "sha256": "a217cbc3470343383350f1a94c7a1ac847e96d00094b5970e66a33acd94f39a9",
+      "lines": 188,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackContracts.cs",
+      "sha256": "b82ce18236283bf72d3b8082810f45a9ab1901c213e1dccbcb7dcc00d5cca4c2",
+      "lines": 546,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "Request.SvpEnabled/Path与ShaderChainOptions/LaunchDecision；481–540 PlayerStatus音量/Loaded比较"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackPlanner.cs",
+      "sha256": "e274d7ecefecf92ecd25c870040d9bdff3bc75b28b12c3fb997316a3082b8599",
+      "lines": 269,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.Lifecycle.cs",
+      "sha256": "8b3426f7b338b0db3677ae3cdbae46c082a031502f6073a9fff347fc94fcd7ec",
+      "lines": 428,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "218–326起播核设备/规划/采用；394–427订阅和代次，R10/R11已全读未变；本轮音量旧状态联证"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.Reporting.cs",
+      "sha256": "3f684ec32a94968579e4af2d45f6d4ae5dd496eef5398a72f4bf54e88f76d9af",
+      "lines": 412,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "368–394未知音量不写成默认100；R10上报根因去重"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.cs",
+      "sha256": "c953417680d8b08828e3d6487577a6f82c5ab9bb82af25550a176000bb7d23de",
+      "lines": 527,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1–288完整状态与音量/延迟/截图；391–527完整Command/SetShaderGroup事务及Current；本树无batch能力"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/ShaderGroupResolver.cs",
+      "sha256": "c4b4837d4518468281048e75fe8d87556eafaed6117789bb49c924bd318d817b",
+      "lines": 128,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/StatusCoalescer.cs",
+      "sha256": "183dec436b1fdaaaad826f04084fd65e7df9f8e775e5dfb5da366160e75d29ea",
+      "lines": 39,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/VolumeMemory.cs",
+      "sha256": "d7e82ee2da237e5cf51e096b259058491265253c566aaf8e22ac7905f9abfb29",
+      "lines": 106,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/VolumeScale.cs",
+      "sha256": "2b9a8dc73bddbf005e61d34bd8fd752d6efe77836970712ad54255163aa57ef7",
+      "lines": 15,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Services/PlaybackBackendFactory.cs",
+      "sha256": "73bf228b7f6f4363ac90894532e6eb2da5d25f8a3b6e53022bef38880d94f695",
+      "lines": 49,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Services/ShaderStaging.cs",
+      "sha256": "1774bcc8d8b73d2ee17b1033475ceba1962622dcca4905e4fe34f78cfae63b28",
+      "lines": 65,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/Composition/ShellServices.cs",
+      "sha256": "abdb27efff5c3ec7c431a2bdb260e9132fd884004cba9dac191f9035156dc443",
+      "lines": 218,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "Build44–217，102–134ShaderResolver/Staging/AudioCatalogue/Planner/BackendFactory，前R11全文无漂移"
+    },
+    {
+      "path": "src/Momoka.Shell/Momoka.Shell.csproj",
+      "sha256": "e34a69d42a57824ba653057860608a6ce8f7c74595253f6a025c68187121a235",
+      "lines": 391,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "214–217shaders glsl/hook/txt发布链及build内容复制"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.Settings.cs",
+      "sha256": "3fb311a6347e400043e9074f46960766ff47c5ad4eb5941ac30ab59e66016010",
+      "lines": 1894,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1676–1718外部gpu选择及恢复，仅基础卡断言"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.Svp.cs",
+      "sha256": "186bbe86901dc438c60b3ec09d2adac161c942de78e1779a8ce977a67912eea1",
+      "lines": 171,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "CommitSvpPathAsync和实际caller提取/来源检查；完整focus/失焦/保存验证方法"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.cs",
+      "sha256": "4057bcfffd9b5ae32f4dfb52be96c5f1563acd703899a935988003b69f298a19",
+      "lines": 640,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "Require/UntilAsync完整提取成员及hash，未以此声称所有probe完成"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+      "sha256": "d607380c54505c114c48e4075a7ad21e739d11a2cb31c29b2307b5b53e69eb8a",
+      "lines": 1520,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "141–163/227–383/525–593菜单与状态入口；595–756完整NowPlaying；957–1066设备与ApplyStatus；1117–1287完整音量步骤/读回/保存"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Interaction.cs",
+      "sha256": "6641d835e62339943c375eb7a735af918951f6b51cf27ed537ae76610101e7d0",
+      "lines": 73,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1–73完整交互上下文类型/方法；仅相关成员，剩余集成初始化分支沿R11"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Mpv.cs",
+      "sha256": "2cf7c389d4bc6717d058ce8d0351ec4df86c0c403623d9cefc39e663bace837f",
+      "lines": 589,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "127–208完整延迟/音量/reset；298–587完整Prepare/Adopt/Surface/Watch/Shader队列与菜单执行"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Overlay.cs",
+      "sha256": "d5bafb773dbe62e8428f8d332579b4061b63456b03be9e4fa31a4d5f0d699a58",
+      "lines": 321,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "234–244 Tick；297–318 shader信息/OnUi"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs",
+      "sha256": "3dc6853e56887c716028df34923a0d55148f01f24caa21aa38e7949603dd5351",
+      "lines": 883,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "136–205停止/起播结算；327–337延迟种值；806–824退出结算"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.cs",
+      "sha256": "81f4354d1a1aac77d3bba3c2a07f2b2f6f3dc27c66b800fca1b71f037c45c817",
+      "lines": 968,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "226–229/298–384构造/退出；502–524/673–677/778–780音量/状态/延迟；shader/output/surface/MeasureSurface/Refresh字段"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingOptionalNumberRow.cs",
+      "sha256": "a940a3de28b3f1bd567757f73acef543dd46ac6aa5cd41f6d3714b77e18daed8",
+      "lines": 81,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1–81完整optional输入控制流；余项按R15归属"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingRow.cs",
+      "sha256": "f4ca51b6bf71bb822d76063406dacf6945e79d574d3567cf6b9bd39f4d6afc16",
+      "lines": 1341,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "219–313Choice/Fill/Reseed；433–512Number/reseed/提交；本区partial提取的完整类型输出对应生产"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.Applicability.cs",
+      "sha256": "c638537ce85f7bcee45bab32f8192093126446d500753859ba63554264faa3ef",
+      "lines": 122,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1–122全部实际显隐方法/HDR/Shader/BackRows/RefreshSettingsApplicability"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.FrameInterpolation.cs",
+      "sha256": "a0344daad8ba459b9a16f1e0787e9405d45a625b6ad630a4d7d27bb89c0dec4f",
+      "lines": 118,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.Video.cs",
+      "sha256": "016af84233c0bdb2448a2541559f77fa39a64f613a3e86d9b32b8e03056960d8",
+      "lines": 260,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "sha256": "391bba844ab6496ff68de2ac595060b899c106e3932334cf8c91d63ff5b45948",
+      "lines": 3176,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "80–115行复用；Attach截图委托；1127–1241建卡/设备；1393–1400backend；1449–1538截图；1806–1912音频卡；2448–2462目录；2758–2845恢复/导入；2897–2929共用尾；2961–3039行工厂"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Input.cs",
+      "sha256": "ac7b8a517b5946b8c0b5861f5caaf18d227ba51a5918160ad426b31f3990b966",
+      "lines": 1397,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "781–784延迟，1301–1307/1314–1319音量入口"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Menus.cs",
+      "sha256": "72164fb7f2e15b2c4375697ccc333a45579de13e2a8a9517d4b2af1ce58c01ac",
+      "lines": 565,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "525–562BuildMenuItems"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Transport.cs",
+      "sha256": "5687a6ae1fc56b1c0c6f382e483fd27f8a75b9145d35a30267d6ecc8b42a90ef",
+      "lines": 195,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "15–36transport订阅，146–152Rail.RightTapped→ResetVolume"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.xaml.cs",
+      "sha256": "877ac7ef3329582e9a83b70d9a7880d8f8dd6b31b9481e21aa71ee684dd841e4",
+      "lines": 1172,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "490–509Attached/Attach，612–644Detach"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+      "sha256": "0baa77b31226bc74afa1c04a154200469d1b18489c84adeeeb9110956f7e9678",
+      "lines": 963,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "449–479实际截图委托注入，沿R11无变化"
+    },
+    {
+      "path": "tests/Momoka.FrameInterpolationTests/FrameInterpolationTests.cs",
+      "sha256": "e156a855511b860d71ca2605429e3c0c4600c2e3faa591a4e15a354eee4d4978",
+      "lines": 432,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.FrameInterpolationTests/FrameInterpolationUiTests.cs",
+      "sha256": "6b4fdbdaade2a20acc0fbe1cccc443329f3aea0545ae524e1b214bbec1c0de03",
+      "lines": 208,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.FrameInterpolationTests/Momoka.FrameInterpolationTests.csproj",
+      "sha256": "695956c5f2d859d3a4f88d1775a3f651c032bd029a1b8720f8e0a1a8e4653003",
+      "lines": 112,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.FrameInterpolationTests/NativeNoMediaProbe.cs",
+      "sha256": "dde924a0cabdc311f9f5d7b3963dec7acc7854ff0074885e6abfa19e0fecda28",
+      "lines": 267,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.FrameInterpolationTests/Program.cs",
+      "sha256": "12b4fb520f4ebf5dc7dfce9c0a6bdcf3d9210be07e482945c2affd40ef7d51e1",
+      "lines": 26,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.FrameInterpolationTests/README.md",
+      "sha256": "8de62bee03b6d1d557bc1f91ef549e5b602190a6ee34e18110baf1e084eec1f4",
+      "lines": 88,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.FrameInterpolationTests/SvpProbeBoundary.cs",
+      "sha256": "3903b1b474f8c7249cfcc16af069b8e9fcbd044d5f00b9d0d6d9718720c6b0cf",
+      "lines": 40,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.FrameInterpolationTests/SvpProbeCommitTests.cs",
+      "sha256": "08db2ca332a20b4df3bb1ccb5fc7660252ab1a2ab3a6210065412420892f830b",
+      "lines": 169,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.FrameInterpolationTests/UiBoundary.cs",
+      "sha256": "9edacdac95fe54ffa1a1b5702810df69455a1876afd6dfef9b8719cc42013fd6",
+      "lines": 96,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/ExtractNativeControl.targets",
+      "sha256": "98ddf3b0993d5f174084a1a0993be12caa0abe93980ce6ba08e337a1fce29a5e",
+      "lines": 101,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/SvpPlaybackTests.cs",
+      "sha256": "595973b5aaa7176d3eee0d7fdad61ccf042d9986e142c776b589bf224df8724a",
+      "lines": 59,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.ShaderMonitorPolicyTests/Momoka.ShaderMonitorPolicyTests.csproj",
+      "sha256": "22a6489af80eedc224a046f3c7fa460113808aa99214338b698ef918e9126464",
+      "lines": 21,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.ShaderMonitorPolicyTests/MonitorFixture.cs",
+      "sha256": "1559a6519a6d1b3de4b8f3a810f38fd42ec3826e8e8f851cf4396d4646c090c7",
+      "lines": 255,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.ShaderMonitorPolicyTests/Program.cs",
+      "sha256": "f686012d486ca30cce9832a007de29ebbbb6c0aba5addec808fb794e26fd1161",
+      "lines": 265,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.ShaderMonitorPolicyTests/README.md",
+      "sha256": "8ea1a5db7d7789b13f6c09925816ce773e1fe683ac26d7ed08f7c0f43f52dcda",
+      "lines": 84,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDialogTests/UiQueue.cs",
+      "sha256": "db471cc4c3cbaacf289a10de8e156d53e9f05651b377ff032b5de10f170ebafe",
+      "lines": 54,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/Anime4KTests.cs",
+      "sha256": "8c0eda7094b6dc92d2e16e2476f32306597314ff2bbd278b9b6fd45069826904",
+      "lines": 306,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/AudioOutputTests.cs",
+      "sha256": "423320573334c0d51eda597e5dd9d7ebeea34f325c991e2a4d00e89799725bdf",
+      "lines": 453,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/InlineSwitchTests.cs",
+      "sha256": "c5105524000b77097122d225f26896b561a97e4ebfd5c6ad423fa3570bbd1cc2",
+      "lines": 211,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/PlaybackTests.cs",
+      "sha256": "ae36aa7f134f3fcdb649cff26d9bf790c54bec4df549a8540ab71865af0bd158",
+      "lines": 7754,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "453–1674完整八个shader/tier/output/legacy/file/renderer/descriptor注册；1953–2052设备planner；2669–3340完整output选项注册（音频/HDR/subtitle边界分列）"
+    },
+    {
+      "path": "tests/Momoka.Tests/PlayerInteractionTests.cs",
+      "sha256": "e0e1525356a4e57704dd328567286cbcccadfef7a99adef60e332d0f1bcb3475",
+      "lines": 230,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "149–183画面菜单snapshot失效测试，沿R11不重复运行"
+    },
+    {
+      "path": "tests/Momoka.Tests/PlayerVolumeGestureTests.Boundaries.cs",
+      "sha256": "8ff585faf72df51ebba63ed00448e6f3dc3953748b2a5cd8c334d9f1bad73e46",
+      "lines": 412,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/PlayerVolumeGestureTests.cs",
+      "sha256": "6a41d9decdcb65ba6419bcbb0a8fb730b8ff07f47d5298a268a7eb6311d27f13",
+      "lines": 501,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/Program.cs",
+      "sha256": "bb6feb7f7c97e1c5e76da303b42e4a8efeb60df3227bee10410d8569e162d48c",
+      "lines": 441,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "163–187显式volume/audio/video/SVP入口；主Register290/299–302/400/407；本轮仅选定入口"
+    },
+    {
+      "path": "tests/Momoka.Tests/SettingsApplicabilityTests.cs",
+      "sha256": "5becbc98bbf5b32944e672816ff8b25e17c08076c634f6bb8a302f008431c194",
+      "lines": 567,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "133–142/259–286/424–430/551–565HDR来源断言，不覆盖外部gpu算法目录"
+    },
+    {
+      "path": "tests/Momoka.Tests/SettingsPageStateTests.cs",
+      "sha256": "82bbcca691aae2c6a7122cbec16f9552e57de3f166122923d5105a823db6936e",
+      "lines": 509,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "141–159分卡源码契约；实际ShellFixture/State和匿名依赖用于母代理observations，非完整suite"
+    },
+    {
+      "path": "tests/Momoka.Tests/SettingsScreenshotRestoreTests.cs",
+      "sha256": "6118e1873d54cda4ca79fceb3b6949ca7cb2add2342ad3769faf8b7d4e848296",
+      "lines": 288,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/SettingsTests.cs",
+      "sha256": "c5da30d8fa8a10c31caccb1a3148c8057e6507b4fe171d8504a08037a585271c",
+      "lines": 2357,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "230–287空段；869–887codec；1343–1422音频；1552–1848完整reset/resetKeeps/backup；2261–2356属性遍历/变异"
+    },
+    {
+      "path": "tests/Momoka.Tests/ShaderTransactionTests.cs",
+      "sha256": "69562b230d551445edd0cbe5d1a098bc3552d5560ac4443322ddedc7a3056b8a",
+      "lines": 289,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/SvpRuntimeTests.cs",
+      "sha256": "2fe2569f0005391a3afaf8533fbc213b030553f5710c1f2f99f56d83edf5f8d1",
+      "lines": 272,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/SvpTests.cs",
+      "sha256": "a0f66724b6d43421b0636d9268d039dbc326ea65b1b646ab2d57bdc03766b3ae",
+      "lines": 208,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/VideoOutputTests.cs",
+      "sha256": "7affa4641c6c3fa5346f0d1273f94dcd984160643df2cb1fa5a81fde94fa5553",
+      "lines": 316,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.Tests/VolumeScaleTests.cs",
+      "sha256": "2d8d5b5d61a050e674e016feaff18caf0511d44c8dd235dae454f878b81dabfa",
+      "lines": 43,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tools/verify-publish.ps1",
+      "sha256": "e6e126de997b0b7dd200bc43c6a17e9e7a540c1ed8a46a0eabfb0df3a5f743ac",
+      "lines": 145,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "61–87shaders逐文件存在/hash/额外拒绝；未运行publish"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/LibMpvPipelinePolicy.cs",
+      "sha256": "5f25411c325e889c729004a866f80570eb1f59910779136406bbe482aeec53e6",
+      "lines": 162,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读"
+    }
+  ],
+  "testResults": [
+    {
+      "entry": "FrameInterpolation-tests",
+      "passed": 45,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "entry": "FrameInterpolation-regression",
+      "passed": 23,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "entry": "ShaderCommandGeneration-tests",
+      "passed": 49,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "entry": "ShaderMonitorPolicy-tests",
+      "passed": 32,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "entry": "svp-tests-final",
+      "passed": 31,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "entry": "volume-tests-final",
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "entry": "screenshots-tests-final",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "entry": "registered-tests-final",
+      "passed": 151,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "passingExecutions": 380,
+  "overlapNotUniqueCoverage": true,
+  "nativeAssertions": {
+    "frameInterpolation": 184,
+    "svp": 24
+  },
+  "masterSnapshotTests": {
+    "passed": 59,
+    "failed": 0,
+    "skipped": 0,
+    "boundary": "git archive固定产品/正式测试；非主树当前交付"
+  },
+  "observations": [
+    {
+      "name": "reset-unknown",
+      "actual": 37,
+      "display": 100,
+      "commands": ""
+    },
+    {
+      "name": "reset-pending",
+      "actual": 37,
+      "display": 37,
+      "commands": "add:-5,add:5"
+    },
+    {
+      "name": "reset-known",
+      "actual": 100,
+      "display": 100,
+      "commands": "set:100"
+    },
+    {
+      "name": "late-native-status",
+      "before": 27,
+      "actual": 27,
+      "display": 32,
+      "saved": "32",
+      "commands": "add:-5,add:-5"
+    },
+    {
+      "name": "screenshot-actual-setter-failure",
+      "writes": 0,
+      "noticeTitle": null,
+      "severity": "Success"
+    },
+    {
+      "name": "screenshot-overlap",
+      "savedFormat": "png",
+      "properties": {
+        "screenshot-format": "webp",
+        "screenshot-tag-colorspace": "no",
+        "screenshot-webp-lossless": "no",
+        "screenshot-webp-quality": "85",
+        "screenshot-webp-compression": "6"
+      }
+    },
+    {
+      "name": "screenshot-file-boundary",
+      "a": {
+        "screenshot-format": "webp"
+      },
+      "b": {
+        "screenshot-webp-lossless": "no",
+        "screenshot-webp-quality": "85",
+        "screenshot-webp-compression": "6",
+        "screenshot-tag-colorspace": "no"
+      }
+    },
+    {
+      "name": "external-gpu-hdr-rows",
+      "labels": [
+        "HDR 处理",
+        "HDR 映射算法",
+        "动态峰值检测",
+        "HDR 参考白亮度",
+        "文字字幕与 OSD 亮度",
+        "图形字幕亮度",
+        "HDR 对比度恢复",
+        "使用杜比视界元数据",
+        "使用杜比视界增强层",
+        "使用 HDR10+ 元数据",
+        "自动 ICC 校色"
+      ],
+      "toneChoices": [
+        [
+          {
+            "Label": "继承画质预设"
+          },
+          {
+            "Label": "自动"
+          },
+          {
+            "Label": "Spline"
+          },
+          {
+            "Label": "BT.2390"
+          },
+          {
+            "Label": "BT.2446A"
+          },
+          {
+            "Label": "Hable"
+          },
+          {
+            "Label": "Mobius"
+          },
+          {
+            "Label": "Reinhard"
+          },
+          {
+            "Label": "ST 2094-40"
+          },
+          {
+            "Label": "ST 2094-10"
+          }
+        ]
+      ],
+      "output": [
+        {
+          "Key": "target-colorspace-hint",
+          "Value": "no"
+        },
+        {
+          "Key": "target-trc",
+          "Value": "bt.1886"
+        },
+        {
+          "Key": "target-prim",
+          "Value": "bt.709"
+        },
+        {
+          "Key": "tone-mapping",
+          "Value": "spline"
+        }
+      ]
+    }
+  ],
+  "nativeShaderOptions": {
+    "versions": {
+      "mpv-version": "mpv v0.41.0-1163-g270367e8a",
+      "ffmpeg-version": "N-127522-gc705686a3",
+      "libplacebo-version": "v7.375.0 (v7.360.0-153-g1dd0226-dirty)",
+      "current-vo": null,
+      "current-ao": null,
+      "path": null
+    },
+    "uniquePlans": 33,
+    "plans": [
+      {
+        "group": "live-shrink",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction_Lite.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\SSimDownscaler.glsl"
+      },
+      {
+        "group": "live-slight",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-zoom-ar-r2.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction_Lite.glsl"
+      },
+      {
+        "group": "live-sweet",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-lite-ar-r2.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction_Lite.glsl"
+      },
+      {
+        "group": "anime-slight",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ArtCNN\\ArtCNN_C4F16.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction_Lite.glsl"
+      },
+      {
+        "group": "live-shrink",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction_Lite.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\SSimDownscaler.glsl"
+      },
+      {
+        "group": "live-slight",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-zoom-ar-r2.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction_Lite.glsl"
+      },
+      {
+        "group": "live-sweet",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-lite-ar-r2.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction_Lite.glsl"
+      },
+      {
+        "group": "anime-slight",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ArtCNN\\ArtCNN_C4F16.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction_Lite.glsl"
+      },
+      {
+        "group": "live-shrink",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\SSimDownscaler.glsl"
+      },
+      {
+        "group": "live-slight",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-zoom-ar-r2.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl"
+      },
+      {
+        "group": "live-sweet",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-lite-ar-r3.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\SSimSuperRes.glsl"
+      },
+      {
+        "group": "live-large",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-lite-ar-r3.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl"
+      },
+      {
+        "group": "anime-slight",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ArtCNN\\ArtCNN_C4F32.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl"
+      },
+      {
+        "group": "anime-large",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ArtCNN\\ArtCNN_C4F32_DN.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl"
+      },
+      {
+        "group": "live-shrink",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\nlmeans_light.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\SSimDownscaler.glsl"
+      },
+      {
+        "group": "live-slight",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\nlmeans_light.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-zoom-ar-r2.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl"
+      },
+      {
+        "group": "live-sweet",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\nlmeans_light.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-lite-ar-r3.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\SSimSuperRes.glsl"
+      },
+      {
+        "group": "live-large",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\nlmeans_light.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-lite-ar-r3.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl"
+      },
+      {
+        "group": "anime-slight",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\nlmeans_light.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ArtCNN\\ArtCNN_C4F32.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl"
+      },
+      {
+        "group": "anime-large",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\nlmeans_light.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ArtCNN\\ArtCNN_C4F32_DN.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl"
+      },
+      {
+        "group": "live-shrink",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\SSimDownscaler.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\adaptive-sharpen.glsl"
+      },
+      {
+        "group": "live-sweet",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-lite-ar-r4.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\SSimSuperRes.glsl"
+      },
+      {
+        "group": "live-large",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-lite-ar-r4.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\adaptive-sharpen.glsl"
+      },
+      {
+        "group": "anime-slight",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ArtCNN\\ArtCNN_C4F32_DS.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl"
+      },
+      {
+        "group": "anime-sweet",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ArtCNN\\ArtCNN_C4F32_DS.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\adaptive-sharpen.glsl"
+      },
+      {
+        "group": "anime-large",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ArtCNN\\ArtCNN_C4F32_DN.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\adaptive-sharpen.glsl"
+      },
+      {
+        "group": "live-shrink",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\nlmeans_light.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\SSimDownscaler.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\adaptive-sharpen.glsl"
+      },
+      {
+        "group": "live-sweet",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\nlmeans_light.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-lite-ar-r4.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\SSimSuperRes.glsl"
+      },
+      {
+        "group": "live-large",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\nlmeans_light.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ravu\\ravu-lite-ar-r4.hook;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\adaptive-sharpen.glsl"
+      },
+      {
+        "group": "anime-slight",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\nlmeans_light.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ArtCNN\\ArtCNN_C4F32_DS.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl"
+      },
+      {
+        "group": "anime-sweet",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\nlmeans_light.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ArtCNN\\ArtCNN_C4F32_DS.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\adaptive-sharpen.glsl"
+      },
+      {
+        "group": "anime-large",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\hdeband.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\an3223\\nlmeans_light.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\ArtCNN\\ArtCNN_C4F32_DN.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\CfL\\CfL_Prediction.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\adaptive-sharpen.glsl"
+      },
+      {
+        "group": "anime4k",
+        "code": 0,
+        "mismatches": [],
+        "glslReadback": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\KrigBilateral.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\Anime4K\\glsl\\Restore\\Anime4K_Restore_CNN_Soft_M.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\Anime4K\\glsl\\Restore\\Anime4K_Clamp_Highlights.glsl;C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\assets/shaders\\igv\\SSimDownscaler.glsl"
+      }
+    ],
+    "note": "Restricted exact-config parser/readback only; vo/ao null, no media, no scripts, no GLSL execution. Shader list string formatting is recorded, not compared as a lossy string."
+  },
+  "audioNative": {
+    "dll": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\libmpv-2.dll",
+    "scope": "无声隔离采集：不发可闻信号、不申请独占、不读用户配置",
+    "completed": true,
+    "stage": "complete",
+    "dll_sha256": "fe583af31036bf3f3adacf6659e1bd448b568091b0334675573a3e303ec89d17",
+    "bootstrap": {
+      "name": "bootstrap",
+      "completed": true,
+      "option_results": {
+        "config": 0,
+        "load-scripts": 0,
+        "terminal": 0,
+        "video": 0,
+        "vo": 0,
+        "osc": 0,
+        "ytdl": 0,
+        "idle": 0,
+        "audio-display": 0,
+        "input-default-bindings": 0,
+        "audio-exclusive": 0,
+        "ao": 0
+      },
+      "options": {
+        "config": "no",
+        "load-scripts": "no",
+        "terminal": "no",
+        "video": "no",
+        "vo": "null",
+        "osc": "no",
+        "ytdl": "no",
+        "idle": "yes",
+        "audio-display": "no",
+        "input-default-bindings": "no",
+        "audio-exclusive": "no",
+        "ao": "null"
+      },
+      "stage": "complete",
+      "initialize_code": 0,
+      "log_request_code": 0
+    },
+    "bootstrap_options": {
+      "config": 0,
+      "load-scripts": 0,
+      "terminal": 0,
+      "video": 0,
+      "vo": 0,
+      "osc": 0,
+      "ytdl": 0,
+      "idle": 0,
+      "audio-display": 0,
+      "input-default-bindings": 0,
+      "audio-exclusive": 0,
+      "ao": 0
+    },
+    "versions": {
+      "mpv-version": "mpv v0.41.0-1163-g270367e8a",
+      "ffmpeg-version": "N-127522-gc705686a3"
+    },
+    "option_info": {
+      "audio-device": {
+        "default-value": "auto",
+        "choices": null,
+        "min": null,
+        "max": null
+      },
+      "ao": {
+        "default-value": "",
+        "choices": "wasapi,null,pcm,lavc",
+        "min": null,
+        "max": null
+      },
+      "audio-channels": {
+        "default-value": "auto-safe",
+        "choices": null,
+        "min": null,
+        "max": null
+      },
+      "audio-spdif": {
+        "default-value": "",
+        "choices": null,
+        "min": null,
+        "max": null
+      },
+      "audio-exclusive": {
+        "default-value": "no",
+        "choices": null,
+        "min": null,
+        "max": null
+      },
+      "ad-lavc-ac3drc": {
+        "default-value": "0.000000",
+        "choices": null,
+        "min": "0.000000",
+        "max": "6.000000"
+      },
+      "audio-normalize-downmix": {
+        "default-value": "no",
+        "choices": null,
+        "min": null,
+        "max": null
+      },
+      "audio-pitch-correction": {
+        "default-value": "yes",
+        "choices": null,
+        "min": null,
+        "max": null
+      },
+      "audio-samplerate": {
+        "default-value": "0",
+        "choices": null,
+        "min": "0.000000",
+        "max": "768000.000000"
+      },
+      "audio-format": {
+        "default-value": "no",
+        "choices": null,
+        "min": null,
+        "max": null
+      },
+      "gapless-audio": {
+        "default-value": "weak",
+        "choices": "no,yes,weak",
+        "min": null,
+        "max": null
+      },
+      "replaygain": {
+        "default-value": "no",
+        "choices": "no,track,album",
+        "min": null,
+        "max": null
+      },
+      "volume": {
+        "default-value": "100.000000",
+        "choices": null,
+        "min": "-1.000000",
+        "max": "1000.000000"
+      },
+      "volume-max": {
+        "default-value": "130.000000",
+        "choices": null,
+        "min": "100.000000",
+        "max": "1000.000000"
+      },
+      "audio-delay": {
+        "default-value": "0.000000",
+        "choices": null,
+        "min": null,
+        "max": null
+      },
+      "af": {
+        "default-value": "",
+        "choices": "lavfi,lavfi-bridge,scaletempo,scaletempo2,lavfi-tempo,format,lavcac3enc,drop,abench,acompressor,acontrast,acopy,acue,acrossfade,acrossover,acrusher,adeclick,adeclip,adecorrelate,adelay,adenorm,aderivative,adrc,adynamicequalizer,adynamicsmooth,aecho,aemphasis,aeval,aexciter,afade,afftdn,afftfilt,afir,aformat,afreqshift,afwtdn,agate,aiir,aintegral,ainterleave,alatency,alimiter,allpass,aloop,amerge,ametadata,amix,anequalizer,anlmdn,anull,apad,aperms,aphaser,aphaseshift,apsyclip,apulsator,arealtime,aresample,areverse,arnndn,asegment,aselect,asendcmd,asetnsamples,asetpts,asetrate,asettb,ashowinfo,asidedata,asoftclip,aspectralstats,asplit,astats,astreamselect,asubboost,asubcut,asupercut,asuperpass,asuperstop,atempo,atilt,atrim,bandpass,bandreject,bass,biquad,bs2b,channelmap,channelsplit,chorus,compand,compensationdelay,crossfeed,crystalizer,dcshift,deesser,dialoguenhance,drmeter,dynaudnorm,earwax,ebur128,equalizer,extrastereo,firequalizer,flanger,haas,hdcd,headphone,highpass,highshelf,join,loudnorm,lowpass,lowshelf,mcompand,pan,replaygain,silencedetect,silenceremove,sofalizer,speechnorm,stereotools,stereowiden,superequalizer,surround,tiltshelf,treble,tremolo,vibrato,virtualbass,volume,volumedetect,streamselect,aphasemeter,concat",
+        "min": null,
+        "max": null
+      }
+    },
+    "accepted_values": {
+      "audio-channels": [
+        {
+          "value": "auto-safe",
+          "code": 0,
+          "readback": "auto-safe"
+        },
+        {
+          "value": "auto",
+          "code": 0,
+          "readback": "auto"
+        },
+        {
+          "value": "stereo",
+          "code": 0,
+          "readback": "stereo"
+        },
+        {
+          "value": "5.1",
+          "code": 0,
+          "readback": "5.1"
+        },
+        {
+          "value": "7.1",
+          "code": 0,
+          "readback": "7.1"
+        },
+        {
+          "value": "7.1,5.1,stereo",
+          "code": 0,
+          "readback": "7.1,5.1,stereo"
+        }
+      ],
+      "ad-lavc-ac3drc": [
+        {
+          "value": "0",
+          "code": 0,
+          "readback": "0.000000"
+        },
+        {
+          "value": "0.5",
+          "code": 0,
+          "readback": "0.500000"
+        },
+        {
+          "value": "1",
+          "code": 0,
+          "readback": "1.000000"
+        }
+      ],
+      "audio-spdif": [
+        {
+          "value": "ac3,eac3,dts,dts-hd,truehd",
+          "code": 0,
+          "readback": "ac3,eac3,dts,dts-hd,truehd"
+        },
+        {
+          "value": "",
+          "code": 0,
+          "readback": ""
+        }
+      ],
+      "af": [
+        {
+          "value": "@dynaudnorm:lavfi=[dynaudnorm=f=500:g=31:p=0.5:m=5:r=0.9]",
+          "code": 0,
+          "readback": "@dynaudnorm:lavfi=graph=%37%dynaudnorm=f=500:g=31:p=0.5:m=5:r=0.9"
+        },
+        {
+          "value": "@loudnorm:lavfi=[loudnorm=I=-16:TP=-1.5:LRA=11]",
+          "code": 0,
+          "readback": "@loudnorm:lavfi=graph=%29%loudnorm=I=-16:TP=-1.5:LRA=11"
+        },
+        {
+          "value": "",
+          "code": 0,
+          "readback": ""
+        }
+      ],
+      "audio-delay": [
+        {
+          "value": "-5",
+          "code": 0,
+          "readback": "-5.000000"
+        },
+        {
+          "value": "0.001",
+          "code": 0,
+          "readback": "0.001000"
+        },
+        {
+          "value": "5",
+          "code": 0,
+          "readback": "5.000000"
+        },
+        {
+          "value": "0",
+          "code": 0,
+          "readback": "0.000000"
+        }
+      ],
+      "volume": [
+        {
+          "value": "0",
+          "code": 0,
+          "readback": "0.000000"
+        },
+        {
+          "value": "100",
+          "code": 0,
+          "readback": "100.000000"
+        },
+        {
+          "value": "130",
+          "code": 0,
+          "readback": "130.000000"
+        }
+      ]
+    },
+    "filter_cycles": [
+      {
+        "code": 0,
+        "af": "@dynaudnorm:lavfi=graph=%37%dynaudnorm=f=500:g=31:p=0.5:m=5:r=0.9"
+      },
+      {
+        "code": 0,
+        "af": "@loudnorm:lavfi=graph=%29%loudnorm=I=-16:TP=-1.5:LRA=11"
+      },
+      {
+        "code": 0,
+        "af": ""
+      },
+      {
+        "code": 0,
+        "af": "@dynaudnorm:lavfi=graph=%37%dynaudnorm=f=500:g=31:p=0.5:m=5:r=0.9"
+      }
+    ],
+    "delay_nudges": [
+      {
+        "code": 0,
+        "seconds": "1.000000"
+      },
+      {
+        "code": 0,
+        "seconds": "1.100000"
+      },
+      {
+        "code": 0,
+        "seconds": "1.200000"
+      }
+    ],
+    "delay_seed": {
+      "code": 0,
+      "seconds": "0.900000"
+    },
+    "delay_reset": {
+      "code": 0,
+      "seconds": "0.000000"
+    },
+    "silent_device_cases": [
+      {
+        "name": "shared-auto",
+        "completed": true,
+        "option_results": {
+          "config": 0,
+          "load-scripts": 0,
+          "terminal": 0,
+          "video": 0,
+          "vo": 0,
+          "osc": 0,
+          "ytdl": 0,
+          "idle": 0,
+          "audio-display": 0,
+          "input-default-bindings": 0,
+          "audio-exclusive": 0,
+          "ao": 0,
+          "audio-device": 0
+        },
+        "options": {
+          "config": "no",
+          "load-scripts": "no",
+          "terminal": "no",
+          "video": "no",
+          "vo": "null",
+          "osc": "no",
+          "ytdl": "no",
+          "idle": "yes",
+          "audio-display": "no",
+          "input-default-bindings": "no",
+          "audio-exclusive": "no",
+          "ao": "wasapi",
+          "audio-device": "auto"
+        },
+        "stage": "complete",
+        "initialize_code": 0,
+        "log_request_code": 0,
+        "load_code": 0,
+        "during": {
+          "audio-device": "auto",
+          "current-ao": "wasapi",
+          "audio-out-params": "{\"samplerate\":48000,\"channel-count\":6,\"channels\":\"5.1\",\"hr-channels\":\"5.1\",\"format\":\"float\"}",
+          "audio-params": "{\"samplerate\":48000,\"channel-count\":6,\"channels\":\"5.1\",\"hr-channels\":\"5.1\",\"format\":\"u8\"}",
+          "audio-spdif": "",
+          "audio-channels": "auto-safe",
+          "audio-exclusive": "no",
+          "audio-delay": "0.000000",
+          "volume": "100.000000",
+          "af": "",
+          "idle-active": "no"
+        },
+        "warnings": []
+      },
+      {
+        "name": "missing-endpoint",
+        "completed": true,
+        "option_results": {
+          "config": 0,
+          "load-scripts": 0,
+          "terminal": 0,
+          "video": 0,
+          "vo": 0,
+          "osc": 0,
+          "ytdl": 0,
+          "idle": 0,
+          "audio-display": 0,
+          "input-default-bindings": 0,
+          "audio-exclusive": 0,
+          "audio-device": 0
+        },
+        "options": {
+          "config": "no",
+          "load-scripts": "no",
+          "terminal": "no",
+          "video": "no",
+          "vo": "null",
+          "osc": "no",
+          "ytdl": "no",
+          "idle": "yes",
+          "audio-display": "no",
+          "input-default-bindings": "no",
+          "audio-exclusive": "no",
+          "audio-device": "wasapi/{00000000-0000-0000-0000-000000000000}"
+        },
+        "stage": "complete",
+        "initialize_code": 0,
+        "log_request_code": 0,
+        "load_code": 0,
+        "during": {
+          "audio-device": "wasapi/{00000000-0000-0000-0000-000000000000}",
+          "current-ao": null,
+          "audio-out-params": null,
+          "audio-params": null,
+          "audio-spdif": "",
+          "audio-channels": "auto-safe",
+          "audio-exclusive": "no",
+          "audio-delay": "0.000000",
+          "volume": "100.000000",
+          "af": "",
+          "idle-active": "yes"
+        },
+        "warnings": [
+          {
+            "prefix": "ao/wasapi",
+            "level": "error",
+            "text": "Failed to find device '{00000000-0000-0000-0000-000000000000}'"
+          },
+          {
+            "prefix": "ao",
+            "level": "error",
+            "text": "Failed to initialize audio driver 'wasapi'"
+          },
+          {
+            "prefix": "ao",
+            "level": "error",
+            "text": "This audio driver/device was forced with the --audio-device option."
+          },
+          {
+            "prefix": "ao",
+            "level": "error",
+            "text": "Try unsetting it."
+          },
+          {
+            "prefix": "cplayer",
+            "level": "error",
+            "text": "Could not open/initialize audio device -> no sound."
+          }
+        ]
+      },
+      {
+        "name": "null-dyna",
+        "completed": true,
+        "option_results": {
+          "config": 0,
+          "load-scripts": 0,
+          "terminal": 0,
+          "video": 0,
+          "vo": 0,
+          "osc": 0,
+          "ytdl": 0,
+          "idle": 0,
+          "audio-display": 0,
+          "input-default-bindings": 0,
+          "audio-exclusive": 0,
+          "ao": 0,
+          "audio-channels": 0,
+          "af": 0
+        },
+        "options": {
+          "config": "no",
+          "load-scripts": "no",
+          "terminal": "no",
+          "video": "no",
+          "vo": "null",
+          "osc": "no",
+          "ytdl": "no",
+          "idle": "yes",
+          "audio-display": "no",
+          "input-default-bindings": "no",
+          "audio-exclusive": "no",
+          "ao": "null",
+          "audio-channels": "stereo",
+          "af": "@dynaudnorm:lavfi=[dynaudnorm=f=500:g=31:p=0.5:m=5:r=0.9]"
+        },
+        "stage": "complete",
+        "initialize_code": 0,
+        "log_request_code": 0,
+        "load_code": 0,
+        "during": {
+          "audio-device": "auto",
+          "current-ao": "null",
+          "audio-out-params": "{\"samplerate\":48000,\"channel-count\":2,\"channels\":\"stereo\",\"hr-channels\":\"stereo\",\"format\":\"doublep\"}",
+          "audio-params": "{\"samplerate\":48000,\"channel-count\":6,\"channels\":\"5.1\",\"hr-channels\":\"5.1\",\"format\":\"u8\"}",
+          "audio-spdif": "",
+          "audio-channels": "stereo",
+          "audio-exclusive": "no",
+          "audio-delay": "0.000000",
+          "volume": "100.000000",
+          "af": "@dynaudnorm:lavfi=graph=%37%dynaudnorm=f=500:g=31:p=0.5:m=5:r=0.9",
+          "idle-active": "no"
+        },
+        "warnings": []
+      },
+      {
+        "name": "null-loud",
+        "completed": true,
+        "option_results": {
+          "config": 0,
+          "load-scripts": 0,
+          "terminal": 0,
+          "video": 0,
+          "vo": 0,
+          "osc": 0,
+          "ytdl": 0,
+          "idle": 0,
+          "audio-display": 0,
+          "input-default-bindings": 0,
+          "audio-exclusive": 0,
+          "ao": 0,
+          "audio-channels": 0,
+          "af": 0
+        },
+        "options": {
+          "config": "no",
+          "load-scripts": "no",
+          "terminal": "no",
+          "video": "no",
+          "vo": "null",
+          "osc": "no",
+          "ytdl": "no",
+          "idle": "yes",
+          "audio-display": "no",
+          "input-default-bindings": "no",
+          "audio-exclusive": "no",
+          "ao": "null",
+          "audio-channels": "stereo",
+          "af": "@loudnorm:lavfi=[loudnorm=I=-16:TP=-1.5:LRA=11]"
+        },
+        "stage": "complete",
+        "initialize_code": 0,
+        "log_request_code": 0,
+        "load_code": 0,
+        "during": {
+          "audio-device": "auto",
+          "current-ao": "null",
+          "audio-out-params": "{\"samplerate\":192000,\"channel-count\":2,\"channels\":\"stereo\",\"hr-channels\":\"stereo\",\"format\":\"double\"}",
+          "audio-params": "{\"samplerate\":48000,\"channel-count\":6,\"channels\":\"5.1\",\"hr-channels\":\"5.1\",\"format\":\"u8\"}",
+          "audio-spdif": "",
+          "audio-channels": "stereo",
+          "audio-exclusive": "no",
+          "audio-delay": "0.000000",
+          "volume": "100.000000",
+          "af": "@loudnorm:lavfi=graph=%29%loudnorm=I=-16:TP=-1.5:LRA=11",
+          "idle-active": "no"
+        },
+        "warnings": []
+      }
+    ]
+  },
+  "upstreamPins": [
+    {
+      "path": "assets/shaders/ArtCNN/ArtCNN_C4F16.glsl",
+      "sourceUrl": "https://codeload.github.com/Artoriuz/ArtCNN/zip/0837e5326e710f49e2ab0a8d995da0708047442e",
+      "commit": "0837e5326e710f49e2ab0a8d995da0708047442e",
+      "upstreamPath": "GLSL/ArtCNN_C4F16.glsl",
+      "localSha256": "03d0b3d31cb82c898a94a46663021a3e8f02c5a21d69c5cfdf0208de4bfd453e",
+      "upstreamSha256": "03d0b3d31cb82c898a94a46663021a3e8f02c5a21d69c5cfdf0208de4bfd453e",
+      "equal": true,
+      "archiveSha256": "8c613b4f3613e1deb06841b6691130ca11fd9a787d35603409650d93caa3f024"
+    },
+    {
+      "path": "assets/shaders/ArtCNN/ArtCNN_C4F32.glsl",
+      "sourceUrl": "https://codeload.github.com/Artoriuz/ArtCNN/zip/0837e5326e710f49e2ab0a8d995da0708047442e",
+      "commit": "0837e5326e710f49e2ab0a8d995da0708047442e",
+      "upstreamPath": "GLSL/ArtCNN_C4F32.glsl",
+      "localSha256": "f773bce6cf5fe7e5e5d599a695edd40df5cd7a20c3d08c4d164d07591d5bead3",
+      "upstreamSha256": "f773bce6cf5fe7e5e5d599a695edd40df5cd7a20c3d08c4d164d07591d5bead3",
+      "equal": true,
+      "archiveSha256": "8c613b4f3613e1deb06841b6691130ca11fd9a787d35603409650d93caa3f024"
+    },
+    {
+      "path": "assets/shaders/ArtCNN/ArtCNN_C4F32_DN.glsl",
+      "sourceUrl": "https://codeload.github.com/Artoriuz/ArtCNN/zip/0837e5326e710f49e2ab0a8d995da0708047442e",
+      "commit": "0837e5326e710f49e2ab0a8d995da0708047442e",
+      "upstreamPath": "GLSL/ArtCNN_C4F32_DN.glsl",
+      "localSha256": "6b51a6f7d75826c9492c3f78b5e60acffa24a71928e2d47c4a329423922a143c",
+      "upstreamSha256": "6b51a6f7d75826c9492c3f78b5e60acffa24a71928e2d47c4a329423922a143c",
+      "equal": true,
+      "archiveSha256": "8c613b4f3613e1deb06841b6691130ca11fd9a787d35603409650d93caa3f024"
+    },
+    {
+      "path": "assets/shaders/ArtCNN/ArtCNN_C4F32_DS.glsl",
+      "sourceUrl": "https://codeload.github.com/Artoriuz/ArtCNN/zip/0837e5326e710f49e2ab0a8d995da0708047442e",
+      "commit": "0837e5326e710f49e2ab0a8d995da0708047442e",
+      "upstreamPath": "GLSL/ArtCNN_C4F32_DS.glsl",
+      "localSha256": "a04c9cba6fbb8e6db9239d61848390208aedf8e348ef116e12174c803d22077e",
+      "upstreamSha256": "a04c9cba6fbb8e6db9239d61848390208aedf8e348ef116e12174c803d22077e",
+      "equal": true,
+      "archiveSha256": "8c613b4f3613e1deb06841b6691130ca11fd9a787d35603409650d93caa3f024"
+    },
+    {
+      "path": "assets/shaders/CfL/CfL_Prediction.glsl",
+      "sourceUrl": "https://codeload.github.com/Artoriuz/glsl-chroma-from-luma-prediction/zip/066dff964b83aa34e893de25d590874bf8c8e94f",
+      "commit": "066dff964b83aa34e893de25d590874bf8c8e94f",
+      "upstreamPath": "CfL_Prediction.glsl",
+      "localSha256": "f9d12d38d4bab4d9db266b5982c81fadca907396212e22fd8b2c1ca2f317b716",
+      "upstreamSha256": "f9d12d38d4bab4d9db266b5982c81fadca907396212e22fd8b2c1ca2f317b716",
+      "equal": true,
+      "archiveSha256": "64d96f6b8875ec6cbe73c06bbc448e4d94618510fb2f9bf288e090c546bf9752"
+    },
+    {
+      "path": "assets/shaders/CfL/CfL_Prediction_Lite.glsl",
+      "sourceUrl": "https://codeload.github.com/Artoriuz/glsl-chroma-from-luma-prediction/zip/066dff964b83aa34e893de25d590874bf8c8e94f",
+      "commit": "066dff964b83aa34e893de25d590874bf8c8e94f",
+      "upstreamPath": "CfL_Prediction_Lite.glsl",
+      "localSha256": "159c1dad4daab10eddaae822a5d0fb0b94a38e85a2825fb7df9d7feb509ad4f7",
+      "upstreamSha256": "159c1dad4daab10eddaae822a5d0fb0b94a38e85a2825fb7df9d7feb509ad4f7",
+      "equal": true,
+      "archiveSha256": "64d96f6b8875ec6cbe73c06bbc448e4d94618510fb2f9bf288e090c546bf9752"
+    },
+    {
+      "path": "assets/shaders/ravu/ravu-lite-ar-r2.hook",
+      "sourceUrl": "https://codeload.github.com/bjin/mpv-prescalers/zip/b3f0a59d68f33b7162051ea5970a5169558f0ea2",
+      "commit": "b3f0a59d68f33b7162051ea5970a5169558f0ea2",
+      "upstreamPath": "ravu-lite-ar-r2.hook",
+      "localSha256": "cbbabe0a5544c3bd832c7a0ec949a364242643cc834c2840dd25f732a2f13634",
+      "upstreamSha256": "cbbabe0a5544c3bd832c7a0ec949a364242643cc834c2840dd25f732a2f13634",
+      "equal": true,
+      "archiveSha256": "7488eba11e692ab068f1640fdd0b12c1167692edef12b80f8ed2e388b8cf32e9"
+    },
+    {
+      "path": "assets/shaders/ravu/ravu-lite-ar-r3.hook",
+      "sourceUrl": "https://codeload.github.com/bjin/mpv-prescalers/zip/b3f0a59d68f33b7162051ea5970a5169558f0ea2",
+      "commit": "b3f0a59d68f33b7162051ea5970a5169558f0ea2",
+      "upstreamPath": "ravu-lite-ar-r3.hook",
+      "localSha256": "6225c2362567f818cf6e67e66cd7125a32ec0ea727285643b1e5a377387c5b5f",
+      "upstreamSha256": "6225c2362567f818cf6e67e66cd7125a32ec0ea727285643b1e5a377387c5b5f",
+      "equal": true,
+      "archiveSha256": "7488eba11e692ab068f1640fdd0b12c1167692edef12b80f8ed2e388b8cf32e9"
+    },
+    {
+      "path": "assets/shaders/ravu/ravu-lite-ar-r4.hook",
+      "sourceUrl": "https://codeload.github.com/bjin/mpv-prescalers/zip/b3f0a59d68f33b7162051ea5970a5169558f0ea2",
+      "commit": "b3f0a59d68f33b7162051ea5970a5169558f0ea2",
+      "upstreamPath": "ravu-lite-ar-r4.hook",
+      "localSha256": "2e7c9beb79be10c57c85eede7a4b6ba1f031a97a26170d88450fc4330a5e8408",
+      "upstreamSha256": "2e7c9beb79be10c57c85eede7a4b6ba1f031a97a26170d88450fc4330a5e8408",
+      "equal": true,
+      "archiveSha256": "7488eba11e692ab068f1640fdd0b12c1167692edef12b80f8ed2e388b8cf32e9"
+    },
+    {
+      "path": "assets/shaders/ravu/ravu-zoom-ar-r2.hook",
+      "sourceUrl": "https://codeload.github.com/bjin/mpv-prescalers/zip/b3f0a59d68f33b7162051ea5970a5169558f0ea2",
+      "commit": "b3f0a59d68f33b7162051ea5970a5169558f0ea2",
+      "upstreamPath": "ravu-zoom-ar-r2.hook",
+      "localSha256": "201aa9139251c7dcbe2f0416b9780e4879732733bbae0b1056ece8a2e3b9d86f",
+      "upstreamSha256": "201aa9139251c7dcbe2f0416b9780e4879732733bbae0b1056ece8a2e3b9d86f",
+      "equal": true,
+      "archiveSha256": "7488eba11e692ab068f1640fdd0b12c1167692edef12b80f8ed2e388b8cf32e9"
+    },
+    {
+      "path": "assets/shaders/an3223/hdeband.glsl",
+      "sourceUrl": "https://codeload.github.com/AN3223/dotfiles/zip/4413db6c1b47aa70ffce40c5a91158e518881718",
+      "commit": "4413db6c1b47aa70ffce40c5a91158e518881718",
+      "upstreamPath": ".config/mpv/shaders/hdeband.glsl",
+      "localSha256": "bcca060b5bf46caf7dac7b74392bc2817b9cc3d4fc5fcade49af35e2b0432b3d",
+      "upstreamSha256": "bcca060b5bf46caf7dac7b74392bc2817b9cc3d4fc5fcade49af35e2b0432b3d",
+      "equal": true,
+      "archiveSha256": "f16178c8246070834dab0f8b3e8ee807a4d058ae9e5208d06eb4c3225d334e61"
+    },
+    {
+      "path": "assets/shaders/an3223/nlmeans_light.glsl",
+      "sourceUrl": "https://codeload.github.com/AN3223/dotfiles/zip/4413db6c1b47aa70ffce40c5a91158e518881718",
+      "commit": "4413db6c1b47aa70ffce40c5a91158e518881718",
+      "upstreamPath": ".config/mpv/shaders/nlmeans_light.glsl",
+      "localSha256": "f2ccb53072e0d42699e285a0dee7ce7980fc58173531e4d7292aff5ab7106e4b",
+      "upstreamSha256": "f2ccb53072e0d42699e285a0dee7ce7980fc58173531e4d7292aff5ab7106e4b",
+      "equal": true,
+      "archiveSha256": "f16178c8246070834dab0f8b3e8ee807a4d058ae9e5208d06eb4c3225d334e61"
+    },
+    {
+      "path": "assets/shaders/Anime4K/glsl/Restore/Anime4K_Clamp_Highlights.glsl",
+      "sourceUrl": "https://codeload.github.com/dyphire/mpv-config/zip/b6c687b4c08144e87524a738152d07ad3735915b",
+      "commit": "b6c687b4c08144e87524a738152d07ad3735915b",
+      "upstreamPath": "shaders/Anime4K/glsl/Restore/Anime4K_Clamp_Highlights.glsl",
+      "localSha256": "a2a9bf7fbc1d75d09660ca2e701e4d7fb0cf5457b94da47e1825032fa2b3671a",
+      "upstreamSha256": "a2a9bf7fbc1d75d09660ca2e701e4d7fb0cf5457b94da47e1825032fa2b3671a",
+      "equal": true,
+      "archiveSha256": "fa95c882cf861948f2a1f3d4dcc22c85656620b011e8fe0378b4190442853c59"
+    },
+    {
+      "path": "assets/shaders/Anime4K/glsl/Restore/Anime4K_Restore_CNN_Soft_M.glsl",
+      "sourceUrl": "https://codeload.github.com/dyphire/mpv-config/zip/b6c687b4c08144e87524a738152d07ad3735915b",
+      "commit": "b6c687b4c08144e87524a738152d07ad3735915b",
+      "upstreamPath": "shaders/Anime4K/glsl/Restore/Anime4K_Restore_CNN_Soft_M.glsl",
+      "localSha256": "71c0c2ecfd1edba74c2b35bc469d4a16b4cc1cb81ff5d055d31ad1fa2693eee0",
+      "upstreamSha256": "71c0c2ecfd1edba74c2b35bc469d4a16b4cc1cb81ff5d055d31ad1fa2693eee0",
+      "equal": true,
+      "archiveSha256": "fa95c882cf861948f2a1f3d4dcc22c85656620b011e8fe0378b4190442853c59"
+    },
+    {
+      "path": "assets/shaders/igv/KrigBilateral.glsl",
+      "sourceUrl": "https://codeload.github.com/dyphire/mpv-config/zip/b6c687b4c08144e87524a738152d07ad3735915b",
+      "commit": "b6c687b4c08144e87524a738152d07ad3735915b",
+      "upstreamPath": "shaders/igv/KrigBilateral.glsl",
+      "localSha256": "8a4798abb77b83646fce0d71985ddfd14c9806e3be486e8fc7f5a5a8bd940cb0",
+      "upstreamSha256": "8a4798abb77b83646fce0d71985ddfd14c9806e3be486e8fc7f5a5a8bd940cb0",
+      "equal": true,
+      "archiveSha256": "fa95c882cf861948f2a1f3d4dcc22c85656620b011e8fe0378b4190442853c59"
+    },
+    {
+      "path": "assets/shaders/igv/SSimDownscaler.glsl",
+      "sourceUrl": "https://gist.githubusercontent.com/igv/36508af3ffc84410fe39761d6969be10/raw/38992bce7f9ff844f800820df0908692b65bb74a/SSimDownscaler.glsl",
+      "commit": "38992bce7f9ff844f800820df0908692b65bb74a",
+      "localSha256": "f46f4710a162d17058b9d82ed8610588b0c04d7be07cef6bf2a8c4077828f804",
+      "upstreamSha256": "f46f4710a162d17058b9d82ed8610588b0c04d7be07cef6bf2a8c4077828f804",
+      "equal": true,
+      "localEdit": null
+    },
+    {
+      "path": "assets/shaders/igv/SSimSuperRes.glsl",
+      "sourceUrl": "https://gist.githubusercontent.com/igv/2364ffa6e81540f29cb7ab4c9bc05b6b/raw/15d93440d0a24fc4b8770070be6a9fa2af6f200b/SSimSuperRes.glsl",
+      "commit": "15d93440d0a24fc4b8770070be6a9fa2af6f200b",
+      "localSha256": "a8b27115840c60045250411b375e0188000217258ad776eeb51724c97815460f",
+      "upstreamSha256": "a8b27115840c60045250411b375e0188000217258ad776eeb51724c97815460f",
+      "equal": true,
+      "localEdit": null
+    },
+    {
+      "path": "assets/shaders/igv/adaptive-sharpen.glsl",
+      "sourceUrl": "https://gist.githubusercontent.com/igv/8a77e4eb8276753b54bb94c1c50c317e/raw/572f59099cd0e3eb5e321a6da0a3d90a7382e2dc/adaptive-sharpen.glsl",
+      "commit": "572f59099cd0e3eb5e321a6da0a3d90a7382e2dc",
+      "localSha256": "f2d2b8091bb036f2f691acd536094ae38183dfa9f138aecdbfa8822a37161d0f",
+      "upstreamSha256": "827fb3d662ac9a91b4075e9117fe6e1dbc1c06d85959ba719cdb954dfb7fb8e4",
+      "equal": false,
+      "localEdit": "curve_height 1.0 -> 0.5"
+    },
+    {
+      "repo": "libplacebo",
+      "commit": "1dd022687b9ac1dd996855b51433bf770ae76aab",
+      "path": "src/shaders/custom_mpv.c",
+      "sourceUrl": "https://raw.githubusercontent.com/haasn/libplacebo/1dd022687b9ac1dd996855b51433bf770ae76aab/src/shaders/custom_mpv.c",
+      "sha256": "5e75632f4ae719af704c98eebee463fd241a028f37bcc49bfc10d5dd23598324",
+      "boundary": "clean commit; bundled version reports dirty"
+    },
+    {
+      "repo": "libplacebo",
+      "commit": "1dd022687b9ac1dd996855b51433bf770ae76aab",
+      "path": "src/renderer.c",
+      "sourceUrl": "https://raw.githubusercontent.com/haasn/libplacebo/1dd022687b9ac1dd996855b51433bf770ae76aab/src/renderer.c",
+      "sha256": "6f36df4f451edc20c7eddaf222b17fd3a767f64321bc6e024d69c77775811275",
+      "boundary": "clean commit; bundled version reports dirty"
+    },
+    {
+      "repo": "FFmpeg",
+      "commit": "c705686a3",
+      "sourceUrl": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/c705686a3/libavfilter/vf_minterpolate.c",
+      "sha256": "40bcd934a07276d4d7b5cfadff70dc0d2ad06714bbbc8b9d7eeca1b082e6c319"
+    }
+  ],
+  "commands": [
+    {
+      "name": "sdk",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "--version"
+      ],
+      "exitCode": 0,
+      "seconds": 0.17,
+      "log": "sdk.log",
+      "sha256": "4b509237900912ac8385460ada8a1332f7cfcca46d8728bf019800de733c535f"
+    },
+    {
+      "name": "FrameInterpolation-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.FrameInterpolationTests\\Momoka.FrameInterpolationTests.csproj",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.3,
+      "log": "FrameInterpolation-restore.log",
+      "sha256": "5a3658c03d5712d47cc4154d22a30a50910d83af594883645379572955ab3701"
+    },
+    {
+      "name": "FrameInterpolation-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.FrameInterpolationTests\\Momoka.FrameInterpolationTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 13.91,
+      "log": "FrameInterpolation-build.log",
+      "sha256": "77fa83e17ae71078ac3f74775304ff870ec24dc2b4248a422bf35cbc70291da7"
+    },
+    {
+      "name": "FrameInterpolation-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.FrameInterpolationTests\\Momoka.FrameInterpolationTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore"
+      ],
+      "exitCode": 0,
+      "seconds": 6.64,
+      "log": "FrameInterpolation-tests.log",
+      "sha256": "6e75b82a5c8e574fb1c0ad959573b513fad4139b1d284b31018792b96efbbea7"
+    },
+    {
+      "name": "FrameInterpolation-regression",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.FrameInterpolationTests\\Momoka.FrameInterpolationTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "regression"
+      ],
+      "exitCode": 0,
+      "seconds": 1.2,
+      "log": "FrameInterpolation-regression.log",
+      "sha256": "20aa6b71d6494cca9fee1ef5773d9429e6371e2d9d48d57d1b2fa9313aba347d"
+    },
+    {
+      "name": "FrameInterpolation-native",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.FrameInterpolationTests\\Momoka.FrameInterpolationTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "native",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\libmpv-2.dll"
+      ],
+      "exitCode": 0,
+      "seconds": 4.44,
+      "log": "FrameInterpolation-native.log",
+      "sha256": "9b3427c8dc11071a4ef72253978e6fbfb9a74a9199e7e737234e8e00d5ee9448"
+    },
+    {
+      "name": "ShaderCommandGeneration-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.ShaderCommandGenerationTests\\Momoka.ShaderCommandGenerationTests.csproj",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.8,
+      "log": "ShaderCommandGeneration-restore.log",
+      "sha256": "0742c99c3436afcabe25285d9838a5a73bc0b590b1bb6aec7e051e89e9e215c3"
+    },
+    {
+      "name": "ShaderCommandGeneration-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.ShaderCommandGenerationTests\\Momoka.ShaderCommandGenerationTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 5.51,
+      "log": "ShaderCommandGeneration-build.log",
+      "sha256": "c59ada7c1dcb32f36553e114f3a3ba2e63c58cf2d004352142ec33a3de0a0f8d"
+    },
+    {
+      "name": "ShaderCommandGeneration-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.ShaderCommandGenerationTests\\Momoka.ShaderCommandGenerationTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore"
+      ],
+      "exitCode": 0,
+      "seconds": 2.31,
+      "log": "ShaderCommandGeneration-tests.log",
+      "sha256": "92c7548a87475ef3adc5258b7a27521ecd34d9ff617ea2ed92742f474594e8bc"
+    },
+    {
+      "name": "Shell-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\Momoka.Shell.csproj",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.56,
+      "log": "Shell-restore.log",
+      "sha256": "69ba4d39ebe9f0ae30b13eac82ef3c5396773bad3c8152e9bd228730861d2ae8"
+    },
+    {
+      "name": "Shell-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\Momoka.Shell.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 142.49,
+      "log": "Shell-build.log",
+      "sha256": "5b595e6ac653302be424ced703450b4c0cb578364132fd80ea53d2f49339d9a8"
+    },
+    {
+      "name": "ShaderMonitorPolicy-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.ShaderMonitorPolicyTests\\Momoka.ShaderMonitorPolicyTests.csproj",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.38,
+      "log": "ShaderMonitorPolicy-restore.log",
+      "sha256": "91d0e80e256c0ef49abed8c3c144b165f12b112dddbebd18cf50fea765da99e2"
+    },
+    {
+      "name": "ShaderMonitorPolicy-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.ShaderMonitorPolicyTests\\Momoka.ShaderMonitorPolicyTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 4.25,
+      "log": "ShaderMonitorPolicy-build.log",
+      "sha256": "9b00163a1ed22d58e055ae3b28726b260db98e63f5dda9f5b1e1f1e8b66977a5"
+    },
+    {
+      "name": "ShaderMonitorPolicy-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "run",
+        "--project",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.ShaderMonitorPolicyTests\\Momoka.ShaderMonitorPolicyTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 1.51,
+      "log": "ShaderMonitorPolicy-tests.log",
+      "sha256": "77908cd032833165d090b36396fd58dc2a72a45f4e0874506bb61ab8583492c8"
+    },
+    {
+      "name": "svp-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll",
+        "svp-fixture"
+      ],
+      "exitCode": 0,
+      "seconds": 2.73,
+      "log": "svp-tests.log",
+      "sha256": "cd8ece04901b46acca95de7f3781258c4c106a928942881248dc66d63c429fb2"
+    },
+    {
+      "name": "svp-native-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll",
+        "svp-native-fixture",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\libmpv-2.dll"
+      ],
+      "exitCode": 0,
+      "seconds": 2.26,
+      "log": "svp-native-tests.log",
+      "sha256": "62ea74277161320797ac8f24f364651d8f48a62031c5c69ed1680bae3f4eed4a"
+    },
+    {
+      "name": "volume-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll",
+        "player-volume-gesture-fixture",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 0.69,
+      "log": "volume-tests.log",
+      "sha256": "7749e85efb538fa95541f87fb1a2436cbeec237d0df159894be3a97effbc61ee"
+    },
+    {
+      "name": "screenshots-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll",
+        "settings-screenshot-restore-fixture",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 0.38,
+      "log": "screenshots-tests.log",
+      "sha256": "d487d3819b21a5597fbd89bb038d8f0f275bc71b612586ff40d86bfe149d0490"
+    },
+    {
+      "name": "registered-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\11921ff\\R12\\20261106-first\\registered\\registered.csproj",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1"
+      ],
+      "exitCode": 0,
+      "seconds": 1.27,
+      "sha256": "5acc7c5810e36d547c5a82b0c2b1b82ebefb6c1109e8a31287527c83784dbe8c"
+    },
+    {
+      "name": "registered-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\11921ff\\R12\\20261106-first\\registered\\registered.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 3.76,
+      "sha256": "a30252fa4cc388cb0c2dfa5e4d7cbad80b889a90442de046c8216865f40e1f2a"
+    },
+    {
+      "name": "registered-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\11921ff\\R12\\20261106-first\\registered\\bin\\Release\\net10.0\\registered.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll"
+      ],
+      "exitCode": 1,
+      "seconds": 3.55,
+      "sha256": "ea702afc3ca8c5a1f11ba25d8033153feecb097dff926df0557bd763c94a8d45"
+    },
+    {
+      "name": "main-build-current",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "tests/Momoka.Tests/Momoka.Tests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false",
+        "-p:PlatformTarget=x64"
+      ],
+      "exitCode": 0,
+      "log": "main-build-current.log",
+      "sha256": "89ea783e8b1d47f053453eee5abef775c3ba2bf7c996c51466403062d3f2edab"
+    },
+    {
+      "name": "registered-tests-final",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\11921ff\\R12\\20261106-first\\registered\\bin\\Release\\net10.0\\registered.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll"
+      ],
+      "exitCode": 0,
+      "log": "registered-tests-final.log",
+      "sha256": "aa15965fc7d24f0cd510248d7887449655b245ebbffbd2d1d80e056d4bca2d94"
+    },
+    {
+      "name": "volume-tests-final",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll",
+        "player-volume-gesture-fixture",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "log": "volume-tests-final.log",
+      "sha256": "e105567d758cfe7e26b737cea4c651984a977b25e2aa1ba75baa32619cf25667"
+    },
+    {
+      "name": "screenshots-tests-final",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll",
+        "settings-screenshot-restore-fixture",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "log": "screenshots-tests-final.log",
+      "sha256": "926d636a8fa9661cfeccf0736203acf72d5d5cdcc08667840dc667e92f1ba1b1"
+    },
+    {
+      "name": "svp-tests-final",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll",
+        "svp-fixture"
+      ],
+      "exitCode": 0,
+      "log": "svp-tests-final.log",
+      "sha256": "5cad933d10444b7c4d6a32a88565532cf8734895bfbdcd2608869d7b8c909257"
+    },
+    {
+      "name": "observations-run-final",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\11921ff\\R12\\20261106-first\\observations\\bin\\Release\\net10.0\\observations.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\11921ff\\R12\\20261106-first\\managed-observations.json"
+      ],
+      "exitCode": 0,
+      "log": "observations-run-final.log",
+      "sha256": "cc1abfc63b40c0ae7167e8e685e17abc379dab68433a945efcc6133caa5004e1"
+    },
+    {
+      "name": "master-r051-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\11921ff\\R12\\20261106-first\\master-snapshot\\tests\\Momoka.ShaderCommandGenerationTests\\bin\\Release\\net10.0\\Momoka.ShaderCommandGenerationTests.dll"
+      ],
+      "exitCode": 0,
+      "log": "master-r051-tests.log",
+      "sha256": "f52d4dd80e62c1b1db32187a8da1b527f836bc8c5699e08acc2c39ec193a48ce"
+    },
+    {
+      "name": "audio-native",
+      "args": [
+        "py",
+        "-X",
+        "utf8",
+        ".claude/skills/momoka-audio-output/scripts/probe-audio-native.py",
+        "--dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\libmpv-2.dll",
+        "--out",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\11921ff\\R12\\20261106-first\\audio-native.json"
+      ],
+      "exitCode": 0,
+      "log": "audio-native.log",
+      "sha256": "6fee6ef5f57f24feaecd12bfafeb9c46913d4c6ec37532c2db324d48ebdee81f"
+    },
+    {
+      "name": "native-options",
+      "args": [
+        "py",
+        "-X",
+        "utf8",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\11921ff\\R12\\20261106-first\\native-options.py"
+      ],
+      "exitCode": 0,
+      "log": "native-options.log",
+      "sha256": "1af13363aae3d6958913883f12c804885e80bddcb25451e7b3fdf814b8d4c254"
+    }
+  ],
+  "logs": [
+    {
+      "path": "audio-native.log",
+      "sha256": "6fee6ef5f57f24feaecd12bfafeb9c46913d4c6ec37532c2db324d48ebdee81f",
+      "bytes": 1135
+    },
+    {
+      "path": "FrameInterpolation-build.log",
+      "sha256": "77fa83e17ae71078ac3f74775304ff870ec24dc2b4248a422bf35cbc70291da7",
+      "bytes": 371
+    },
+    {
+      "path": "FrameInterpolation-native.log",
+      "sha256": "9b3427c8dc11071a4ef72253978e6fbfb9a74a9199e7e737234e8e00d5ee9448",
+      "bytes": 10283
+    },
+    {
+      "path": "FrameInterpolation-regression.log",
+      "sha256": "20aa6b71d6494cca9fee1ef5773d9429e6371e2d9d48d57d1b2fa9313aba347d",
+      "bytes": 1928
+    },
+    {
+      "path": "FrameInterpolation-restore.log",
+      "sha256": "5a3658c03d5712d47cc4154d22a30a50910d83af594883645379572955ab3701",
+      "bytes": 248
+    },
+    {
+      "path": "FrameInterpolation-tests.log",
+      "sha256": "6e75b82a5c8e574fb1c0ad959573b513fad4139b1d284b31018792b96efbbea7",
+      "bytes": 3643
+    },
+    {
+      "path": "main-build-current.log",
+      "sha256": "89ea783e8b1d47f053453eee5abef775c3ba2bf7c996c51466403062d3f2edab",
+      "bytes": 317
+    },
+    {
+      "path": "master-r051-build.log",
+      "sha256": "d5cce301efef4e9434f7dd8b9df285ec01102c7dbf56271db0aededf20711e66",
+      "bytes": 506
+    },
+    {
+      "path": "master-r051-restore.log",
+      "sha256": "ad32a0a238a46f913cb32e9163fbaf1f1f798641cab317075d664bbe79a02a67",
+      "bytes": 436
+    },
+    {
+      "path": "master-r051-tests.log",
+      "sha256": "f52d4dd80e62c1b1db32187a8da1b527f836bc8c5699e08acc2c39ec193a48ce",
+      "bytes": 5160
+    },
+    {
+      "path": "native-options.log",
+      "sha256": "1af13363aae3d6958913883f12c804885e80bddcb25451e7b3fdf814b8d4c254",
+      "bytes": 248
+    },
+    {
+      "path": "observations-build-1.log",
+      "sha256": "ecbbe6732ccbf89f51223d62dbdc0a67e51174d2c7af8eb5a7210fae2d5ab22a",
+      "bytes": 1649
+    },
+    {
+      "path": "observations-build-2.log",
+      "sha256": "89d549f59337adc37ab1d4fea809aad2797f0955597ffe89fc0b95730f88ec95",
+      "bytes": 355
+    },
+    {
+      "path": "observations-build-3.log",
+      "sha256": "6dfd5536bbc3096c1959e96df8ac97155e0e667f2303d977a9667da5dedd6be7",
+      "bytes": 355
+    },
+    {
+      "path": "observations-build-final.log",
+      "sha256": "939ec814b5d4e9eb389ccdac98668c9ea6427c4c5566011c3c15b6d5d1cac6cb",
+      "bytes": 355
+    },
+    {
+      "path": "observations-restore.log",
+      "sha256": "2456d09b784a734322c98b81f5869e5315484e334e92e58f17e5fe62855716c1",
+      "bytes": 250
+    },
+    {
+      "path": "observations-run-1.log",
+      "sha256": "9f4439b7db902827d2db581fec965c54a1b84f23e3d75f372f9cfa04bd820340",
+      "bytes": 1197
+    },
+    {
+      "path": "observations-run-2.log",
+      "sha256": "75fb88455b36fd8306a93360697e6e1b2699dece438b6bb21903fe522306f3bd",
+      "bytes": 1877
+    },
+    {
+      "path": "observations-run-final.log",
+      "sha256": "cc1abfc63b40c0ae7167e8e685e17abc379dab68433a945efcc6133caa5004e1",
+      "bytes": 2116
+    },
+    {
+      "path": "registered-build-2.log",
+      "sha256": "59906de22bab83d2fa2b1123bd502c0085391b518865585b4fa057519b37f034",
+      "bytes": 235
+    },
+    {
+      "path": "registered-build.log",
+      "sha256": "a30252fa4cc388cb0c2dfa5e4d7cbad80b889a90442de046c8216865f40e1f2a",
+      "bytes": 235
+    },
+    {
+      "path": "registered-restore.log",
+      "sha256": "5acc7c5810e36d547c5a82b0c2b1b82ebefb6c1109e8a31287527c83784dbe8c",
+      "bytes": 190
+    },
+    {
+      "path": "registered-tests-2.log",
+      "sha256": "5029cf0bc32fdbe8f1127150aec165c5e4187be1320a09672eb222b938168ab2",
+      "bytes": 17617
+    },
+    {
+      "path": "registered-tests-final.log",
+      "sha256": "aa15965fc7d24f0cd510248d7887449655b245ebbffbd2d1d80e056d4bca2d94",
+      "bytes": 17617
+    },
+    {
+      "path": "registered-tests.log",
+      "sha256": "ea702afc3ca8c5a1f11ba25d8033153feecb097dff926df0557bd763c94a8d45",
+      "bytes": 18743
+    },
+    {
+      "path": "screenshots-tests-final.log",
+      "sha256": "926d636a8fa9661cfeccf0736203acf72d5d5cdcc08667840dc667e92f1ba1b1",
+      "bytes": 1288
+    },
+    {
+      "path": "screenshots-tests.log",
+      "sha256": "d487d3819b21a5597fbd89bb038d8f0f275bc71b612586ff40d86bfe149d0490",
+      "bytes": 1288
+    },
+    {
+      "path": "sdk.log",
+      "sha256": "4b509237900912ac8385460ada8a1332f7cfcca46d8728bf019800de733c535f",
+      "bytes": 10
+    },
+    {
+      "path": "ShaderCommandGeneration-build.log",
+      "sha256": "c59ada7c1dcb32f36553e114f3a3ba2e63c58cf2d004352142ec33a3de0a0f8d",
+      "bytes": 386
+    },
+    {
+      "path": "ShaderCommandGeneration-restore.log",
+      "sha256": "0742c99c3436afcabe25285d9838a5a73bc0b590b1bb6aec7e051e89e9e215c3",
+      "bytes": 258
+    },
+    {
+      "path": "ShaderCommandGeneration-tests.log",
+      "sha256": "92c7548a87475ef3adc5258b7a27521ecd34d9ff617ea2ed92742f474594e8bc",
+      "bytes": 4409
+    },
+    {
+      "path": "ShaderMonitorPolicy-build.log",
+      "sha256": "9b00163a1ed22d58e055ae3b28726b260db98e63f5dda9f5b1e1f1e8b66977a5",
+      "bytes": 374
+    },
+    {
+      "path": "ShaderMonitorPolicy-restore.log",
+      "sha256": "91d0e80e256c0ef49abed8c3c144b165f12b112dddbebd18cf50fea765da99e2",
+      "bytes": 250
+    },
+    {
+      "path": "ShaderMonitorPolicy-tests.log",
+      "sha256": "77908cd032833165d090b36396fd58dc2a72a45f4e0874506bb61ab8583492c8",
+      "bytes": 2850
+    },
+    {
+      "path": "Shell-build.log",
+      "sha256": "5b595e6ac653302be424ced703450b4c0cb578364132fd80ea53d2f49339d9a8",
+      "bytes": 341
+    },
+    {
+      "path": "Shell-restore.log",
+      "sha256": "69ba4d39ebe9f0ae30b13eac82ef3c5396773bad3c8152e9bd228730861d2ae8",
+      "bytes": 210
+    },
+    {
+      "path": "svp-native-tests.log",
+      "sha256": "62ea74277161320797ac8f24f364651d8f48a62031c5c69ed1680bae3f4eed4a",
+      "bytes": 860
+    },
+    {
+      "path": "svp-tests-final.log",
+      "sha256": "5cad933d10444b7c4d6a32a88565532cf8734895bfbdcd2608869d7b8c909257",
+      "bytes": 2375
+    },
+    {
+      "path": "svp-tests.log",
+      "sha256": "cd8ece04901b46acca95de7f3781258c4c106a928942881248dc66d63c429fb2",
+      "bytes": 2375
+    },
+    {
+      "path": "upstream-fetch-2.log",
+      "sha256": "17318367265027c1b32d5b1e159c542b11ffe7190267f3acabc0fca2cbf5d80b",
+      "bytes": 866
+    },
+    {
+      "path": "upstream-fetch-3.log",
+      "sha256": "9b18de166caf467c1f9ffef704d5dca5fb937f40f053b189d919fa50937535e3",
+      "bytes": 136
+    },
+    {
+      "path": "upstream-fetch.log",
+      "sha256": "9edc2545ab880a603e3a17d2f7e492e8eebc8f83ee0174e5b2c8f56f05c51625",
+      "bytes": 817
+    },
+    {
+      "path": "volume-tests-final.log",
+      "sha256": "e105567d758cfe7e26b737cea4c651984a977b25e2aa1ba75baa32619cf25667",
+      "bytes": 4199
+    },
+    {
+      "path": "volume-tests.log",
+      "sha256": "7749e85efb538fa95541f87fb1a2436cbeec237d0df159894be3a97effbc61ee",
+      "bytes": 4199
+    }
+  ],
+  "assemblies": {
+    "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll": "5796035495e0f97a4734a12e8acb8edf8892c43d143085a07a18687e63f9753f",
+    "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.dll": "e57bc417d48d25680834081b391fcea9ee9abb655f9a63ca775198263cda3a53",
+    "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Core.dll": "5796035495e0f97a4734a12e8acb8edf8892c43d143085a07a18687e63f9753f",
+    "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll": "f0662ef62c4c02b592e05a2300916997773fb43252c9504f495130d69232ffd7",
+    "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.Core.dll": "5796035495e0f97a4734a12e8acb8edf8892c43d143085a07a18687e63f9753f"
+  },
+  "localNative": {
+    "libmpv-2.dll": "fe583af31036bf3f3adacf6659e1bd448b568091b0334675573a3e303ec89d17",
+    "assets/mpv-runtime/vulkan-1.dll": "13dd448a97495763b5cce84b8ade84cd2fa13c71f7e871f3c7d509eca845ad0f"
+  },
+  "reproductionInputs": [
+    {
+      "path": "audio-native.json",
+      "sha256": "2881ddb2c28cca016946f78c776564ba6fca9c2e89f86c74f8f6c7378209ea20",
+      "bytes": 14587
+    },
+    {
+      "path": "checks.json",
+      "sha256": "b6f10eb7f2d7d3ae5216c12e200246e045a92eb1a7d16b506988e16035a07816",
+      "bytes": 10057
+    },
+    {
+      "path": "make-observations.py",
+      "sha256": "93da8c074e9208c976451271c639853ad330e80c8c175e907f14df728a6d611a",
+      "bytes": 6617
+    },
+    {
+      "path": "managed-observations.json",
+      "sha256": "e56368b1da7598caf31e24c8169c570e4857b57ad2e0cf3057a0ab0f11180c05",
+      "bytes": 2764
+    },
+    {
+      "path": "master-snapshot.json",
+      "sha256": "e9c6dd9228f96da6e62a8dd45d6629a2f5d4277805b28b85211a4bb076735929",
+      "bytes": 531
+    },
+    {
+      "path": "master-snapshot.py",
+      "sha256": "5bf80dd4654081788cdae3a023c970fb331f13aab292053e67397a2a58c82405",
+      "bytes": 963
+    },
+    {
+      "path": "native-batch.conf",
+      "sha256": "58f34e6d2426adc0fb9db5d8744f07efdf7d0b64895406ca119f7657dd1750be",
+      "bytes": 560
+    },
+    {
+      "path": "native-options.json",
+      "sha256": "91c11d992a3310b2a16bf4ba736bae37562e27e34a75b34dee754e363621d31b",
+      "bytes": 14100
+    },
+    {
+      "path": "native-options.py",
+      "sha256": "2852795c848f212cf788bc85586c4d774fbaed820e7d33fa136a3708c13a18af",
+      "bytes": 2915
+    },
+    {
+      "path": "observations/observations.csproj",
+      "sha256": "d460627b9d9767c83fe3bfb2869369c084a895fc9cb11307d8e15d3164790867",
+      "bytes": 277
+    },
+    {
+      "path": "observations/Program.cs",
+      "sha256": "b2567ca7f25ef33fb941f99cf5676d6e7282d269e325d8b671563f0c9cdd1bdf",
+      "bytes": 7140
+    },
+    {
+      "path": "pin-upstream.py",
+      "sha256": "b786ce4ddfbbd0d72c1d398ce611cf862348b4e0b9a10c60e0fcdc0364d38464",
+      "bytes": 4631
+    },
+    {
+      "path": "registered/Program.cs",
+      "sha256": "b30bf78d99a0552ae5556d85c250b17a35d1065fc55917a901598636220b29af",
+      "bytes": 837
+    },
+    {
+      "path": "registered/registered.csproj",
+      "sha256": "5b333e6390202ea9db1fca5546252234a78d4cbfaa94a4794322e2b6921fc482",
+      "bytes": 145
+    },
+    {
+      "path": "registered-checks.json",
+      "sha256": "691c3bc41dbce49215d17cf737f292a132e929ccd3b07cfaa5d96eb0dda445ec",
+      "bytes": 1538
+    },
+    {
+      "path": "registered-tests.py",
+      "sha256": "65c74114e21d4191ba1579153f07b4a5f25ad16e24d61b573b6dcd3540b04702",
+      "bytes": 2417
+    },
+    {
+      "path": "run-review.py",
+      "sha256": "271ca816a6e5e3a77512f7925490c09297221e3aa272873831d9690b51d77120",
+      "bytes": 2797
+    },
+    {
+      "path": "shader-plans.json",
+      "sha256": "0592f56048c6e8d50ee86e6914b0d95222439c82791d32a883122a6d28a1cd73",
+      "bytes": 99698
+    },
+    {
+      "path": "upstream-pins.json",
+      "sha256": "e26a48a805d3444ee7bfef1527616f90225dc906a765c05066ad59f2639d5b44",
+      "bytes": 11226
+    },
+    {
+      "path": "write-records.py",
+      "sha256": "382bd3fe5b11edf73a929ac63a469d0b65ad6c594dcdbcac27923688b60c9a83",
+      "bytes": 18210
+    },
+    {
+      "path": "check-records.py",
+      "sha256": "23edc66d23858052579cb63ce4142ea6826b72df4ab63a9cd03cbc808cdf048b",
+      "bytes": 4379
+    }
+  ],
+  "failuresRetained": [
+    {
+      "step": "临时观察宿主首次编译",
+      "detail": "缺Momoka.Services using，两处CS0246；只修ignored宿主后0/0"
+    },
+    {
+      "step": "定向Register首次运行",
+      "detail": "145过6败；APP_CONTEXT_BASE_DIRECTORY错误，shader资源根为临时目录；只修ignored宿主基目录后151全过，未修改正式源码或断言"
+    },
+    {
+      "step": "Core输出比对",
+      "detail": "首次主Tests沿R11 AnyCPU而本轮Shell/Core为x64，hash不同；本轮主Tests以PlatformTarget=x64重新编译后hash一致，volume/截图与观察重跑"
+    },
+    {
+      "step": "来源固定存档第1/2次",
+      "detail": "ravu compute/gather同名、AN3223 LQ同名触发歧义拒绝；按已核上游根路径定点选择后成功；此前日志保留"
+    },
+    {
+      "step": "来源代理访问",
+      "detail": "dyphire portable_config路径404、匿名API限流；使用同固定commit ZIP读取，不改TLS、不推测版本"
+    }
+  ],
+  "unrun": [
+    "完整主Tests/全方案/统一全回归/发布闸门",
+    "实际WinUI/键鼠/显示器移动/GPU GLSL vo-passes/真实HDR/杜比素材",
+    "SVP Manager/真实VSScript或Python初始化/真实补帧帧输出",
+    "耳机/功放听感、热拔插与独占设备",
+    "真正外部mpv版本/窗口/媒体播放/服务器写入",
+    "提取器10拒绝反例、shader发布缺失/损坏/额外反例本轮未执行",
+    "随包libplacebo dirty补丁内容未核"
+  ],
+  "historicalOpen": [
+    "R01工具旧红",
+    "R07正式飞牛29过3败",
+    "R02 schema27待复核",
+    "54/19/20历史增量",
+    "R11四项P2未修/两条uosc反例仍红",
+    "其他分区本轮master差异待复核"
+  ],
+  "documentValidation": {
+    "files": 12,
+    "ledgerRows": 1876,
+    "ledgerUpdates": 123,
+    "ownerFiles": 45,
+    "reviewedPaths": 123,
+    "fullJointFiles": 36,
+    "matrixRows": 68,
+    "matrixUpdates": 6,
+    "checkedTasks": 19,
+    "findings": 5,
+    "encoding": "UTF-8 no BOM",
+    "lineEndings": "LF",
+    "historicalReportsPreserved": true,
+    "productEdits": false,
+    "status": "passed",
+    "script": "artifacts/review/11921ff/R12/20261106-first/check-records.py",
+    "scriptSha256": "23edc66d23858052579cb63ce4142ea6826b72df4ab63a9cd03cbc808cdf048b",
+    "log": "document-check-final.log",
+    "logSha256": "992d83947499503c7aad08621c3e80a7ed79df189f8d09d49429a360136227d3"
+  },
+  "finalMasterCheck": "635babffc95ae705226b7703047ad70af547ac76",
+  "finalOtherPartitionChanges": 9,
+  "r12RelatedChangedSinceSnapshot": false,
+  "independentReview": {
+    "agent": "r12_video",
+    "scope": "R12 five reports/JSON and evidence boundaries",
+    "result": "无重大事实错误；Policy路径/Service行范围已补正"
+  }
+}

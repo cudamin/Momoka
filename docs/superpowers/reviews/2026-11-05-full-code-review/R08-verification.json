@@ -1,0 +1,1916 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "status": "R08审查完成，1项P1+5项P2均未修，分区后暂停",
+  "startHead": "7e83ad27491bcd2ce2baff3e5025080eb2ca7238",
+  "verificationHead": "7e83ad27491bcd2ce2baff3e5025080eb2ca7238",
+  "currentProductBase": "ac4e3fa51146c2e66cd2bbff26aa364eab449bde",
+  "productSourceMatchesMaster": true,
+  "productFixesApplied": false,
+  "reviewComplete": true,
+  "pauseAfter": "R08",
+  "nextPartition": "R09",
+  "ruleSha256": "6b825aec89b7cea678a5b8033d3effc8364a9ecd52ac20059b66b4d9b0f872c6",
+  "ledgerBaseFiles": 1876,
+  "historicalDeltaFiles": {
+    "file-delta-20261106.json": 54,
+    "file-delta-20261106-r04.json": 19,
+    "file-delta-20261106-r07.json": 20
+  },
+  "thisPartitionProductDeltaFiles": 0,
+  "matrixProjects": 68,
+  "matrixEntriesUpdated": 9,
+  "matrixUpdatedProjects": [
+    "src/Momoka.Core/Momoka.Core.csproj",
+    "src/Momoka.Shell/Momoka.Shell.csproj",
+    "tests/Momoka.MoviePilotJourneyTests/Momoka.MoviePilotJourneyTests.csproj",
+    "tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj",
+    "tests/Momoka.ResourceBrowserTests/Momoka.ResourceBrowserTests.csproj",
+    "tests/Momoka.SiteDialogFlowTests/Momoka.SiteDialogFlowTests.csproj",
+    "tests/Momoka.SubscriptionEditorTests/Momoka.SubscriptionEditorTests.csproj",
+    "tests/Momoka.SubscriptionIdentityTests/Momoka.SubscriptionIdentityTests.csproj",
+    "tests/Momoka.Tests/Momoka.Tests.csproj"
+  ],
+  "planChecked": 15,
+  "ownerFilesRead": 89,
+  "ownerLinesRead": 13346,
+  "fullJointFilesRead": 30,
+  "partialJointFilesRead": 24,
+  "ledgerRowsUpdated": 143,
+  "reviewedFiles": [
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.MoviePilot.cs",
+      "sha256": "0a821fce50db6dd4dd2563b1f3bfa774fff7ef7c59ed0defd7a393a2fd4e7886",
+      "lines": 34,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotAddress.cs",
+      "sha256": "32b19cde13af3afa25026775073788b240fb267e4d458745b752ecfd9e47ec0a",
+      "lines": 153,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotClient.Search.cs",
+      "sha256": "33c07ff263b017a5ee13df9a0d858b711f3bdf20a0698e4db67ce225b2083e9b",
+      "lines": 181,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotClient.cs",
+      "sha256": "2a40f8fe9da68898969940d2f4d23f43792246f99d3c397b81e25b4520293e1d",
+      "lines": 410,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotException.cs",
+      "sha256": "ca4992d03f90b3a40c39bbd8693041557f981c2d801f4427f80e5cddca930723",
+      "lines": 51,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotLibraryPlayback.cs",
+      "sha256": "5a2b60099c61a71edd92998eb41384f5c5af685f4ebf3de23674c29847276251",
+      "lines": 104,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotMedia.cs",
+      "sha256": "3796750183f6333a1888596238d70d33444f9b5f36fcd7c581cbdec4e4c59a17",
+      "lines": 84,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotProbe.cs",
+      "sha256": "26a09a3cb523be493997c1f77d030e2ec26695d097517b39eac8272af738d67e",
+      "lines": 115,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotResponses.cs",
+      "sha256": "59efc81fc41ea96a3887f14226cfdb5f4e4458bd1b9e7607f05d8bd8e9d99a9f",
+      "lines": 42,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotSearchProgress.cs",
+      "sha256": "5347c9b5e8616962d884e43900dc07ad356e6842cd322bc0bde99a57bdc42643",
+      "lines": 4,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotSearchSites.cs",
+      "sha256": "d142950d0434b84e7ef5dbc39660e5bc22263865806cbba375392a34a9a4f8b3",
+      "lines": 114,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Availability.cs",
+      "sha256": "1c1ae70f2b365a51b27b9c0c20816086f03687c4b8ccf86a90556aa544b0357e",
+      "lines": 126,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Operations.cs",
+      "sha256": "606635400f82ca100b7e111dc39b1bb80a5efdd7d2bb1f46834c13ae4b40f2ad",
+      "lines": 114,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.cs",
+      "sha256": "91945e19717632195f46ae93454e361d35e812cc09cd4c62464c6e9ddf978a8f",
+      "lines": 364,
+      "scope": "主责全文",
+      "reviewer": "root"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotMediaParser.cs",
+      "sha256": "4196c6e56562070ef2177f342ab8b7b2391521145b606bde0224ad86456f1f1f",
+      "lines": 297,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotResource.cs",
+      "sha256": "07b2e61a581cf1c3a301438029f08357aaed3f7eead4f61f87ef7b9bbeb08e7c",
+      "lines": 129,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotResourceFilter.cs",
+      "sha256": "96a4195cc532a0f213f6cf22ce46b32e3f773abeeeb111e05dfc38793fa1fa1c",
+      "lines": 93,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotResourceGrouping.cs",
+      "sha256": "45dec9886be122981568cb25949a18911f662eead27d873713c6e6ea562f5842",
+      "lines": 50,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Download.cs",
+      "sha256": "d00ef02e080a9ae826e46bc7a3b1f0affc2e35e778ef1da3c51a0731bbfbe8f4",
+      "lines": 95,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotSubtitle.cs",
+      "sha256": "d7c5245a5417647b50d912839c8fee72f262ad29af5bcbf33c64ec3d3a88472d",
+      "lines": 49,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotVersionQuery.cs",
+      "sha256": "b9f30778a397218f72f096a67874087c6517296219f900469ad690cda411a321",
+      "lines": 78,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotDownloadViewModel.cs",
+      "sha256": "3182ed0d0de419e4705f3ffef5217ce3397b8877327bed0698e4cd851bdb8e15",
+      "lines": 284,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotResourceBrowserViewModel.cs",
+      "sha256": "dedfaa247cfe0df5fa79dee0a62f9ba6973ea89ebe1fe624328a972d3a9cb2ce",
+      "lines": 337,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotResourceFacet.cs",
+      "sha256": "41e3e158e6c3a3a8eb3c82a3cc3d62c149a7b58c2e319fa245ff6edbdf715beb",
+      "lines": 52,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotResourceGroup.cs",
+      "sha256": "65b10fd042a56cdcb8b104691b9c9a823392deb1882b19d3f3518e50ebd7db4d",
+      "lines": 30,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotResourceViewModel.cs",
+      "sha256": "207ae12e93ce21dfda746531dc36d6b0f5b5b5f222550d92ef47086d8e14466a",
+      "lines": 414,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotSearchProgressViewModel.cs",
+      "sha256": "b2d878f942c316c8cff1d6b8bb56e152f61d463c22863083ea340fe0b9f7d278",
+      "lines": 54,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotSearchSnapshot.cs",
+      "sha256": "7c8046db374ba54d47c51049b570c02415dfa5cd47e3ee6b2e9061cea158f455",
+      "lines": 9,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotSearchViewModel.cs",
+      "sha256": "9be994b5ec49a24d16fa072cae6203b3de54a48c9de08dd4094b1ab0127cab15",
+      "lines": 647,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotSitePickerViewModel.cs",
+      "sha256": "c2a13a1a7f8db0cc6d7c84468316bf75a9b7b5e66972b2da75f2ababe5dc930a",
+      "lines": 351,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotVersionsViewModel.cs",
+      "sha256": "1f1cc32d3816f5e26edff38ff384fece3582113e039270df8c8070a4e2c16c40",
+      "lines": 178,
+      "scope": "主责全文",
+      "reviewer": "resources"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotEpisodeAirDates.cs",
+      "sha256": "f319751d55c6e65490eb0482b190e5f0c2d43a8e96709c4477d4b7a415f5f21d",
+      "lines": 34,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotEpisodeGroups.cs",
+      "sha256": "2576656c0277ee9f0074f58474022b6492164aa15959083c5beda4aa81efbfc1",
+      "lines": 94,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotEpisodePattern.cs",
+      "sha256": "6cf460137025a0204be77126d833003c2643a4cb5f9edea65bf127a16b573c16",
+      "lines": 89,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotMediaDetail.cs",
+      "sha256": "f9af8683766d9214e68a8145532b77fa99e558ceef3dbf86507381b159983149",
+      "lines": 123,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotRelatedMedia.cs",
+      "sha256": "6ed0a3af470142431846be3e043bb081cae8ca4bcba23f583b644f78d4f8dd7d",
+      "lines": 31,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.MediaDetail.cs",
+      "sha256": "24773fb02fd814ac9b271400f1678f36570215b9c428534c24f8b7a04fdfc871",
+      "lines": 84,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.SubscriptionSettings.cs",
+      "sha256": "5b90d009bf763b15074a841a26150701323d6c56509a89d85e291b34126d1c55",
+      "lines": 146,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Subscriptions.cs",
+      "sha256": "ad2b6aebd5e91bcc653927d00a940bd3f623b2465d19fb66a71eddac0cb6b696",
+      "lines": 162,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotSubscription.cs",
+      "sha256": "ae835ab8d4586a7f7078990e90a49d669532b1c6fa4a19381ce91309428d521d",
+      "lines": 365,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotSubscriptionEditorChoices.cs",
+      "sha256": "913b751c7dfde22918e03dfb29e24409a94684859986eb29a3705f2071cac8e1",
+      "lines": 85,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotSubscriptionPlan.cs",
+      "sha256": "3175921bf3d4f910d6a5b5865b4cd717e649ba89906aa35014ab7553195d80a4",
+      "lines": 133,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotEpisodeGroupRow.cs",
+      "sha256": "f09b00d4433ba79ee9266992473705642c1054b69e237b9c3bf0dade71d5051f",
+      "lines": 50,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotMediaViewModel.Related.cs",
+      "sha256": "4a5bf69cb029b283d288d49d04bb1813a013889e907f7d3e1cdeeb54acb4cef8",
+      "lines": 88,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotMediaViewModel.cs",
+      "sha256": "6864fc00ba1eba5edd1342586d1e15bdd06e8a152ef3054d14a75a483d87dae1",
+      "lines": 909,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotSubscriptionEditorViewModel.cs",
+      "sha256": "5dc7b9b0dafc1e34f63bde8bf452726a8690744609cb6667c3bac96395cdd056",
+      "lines": 158,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotSubscriptionEpisodeRow.cs",
+      "sha256": "af436cccd99201eb05b8d21540816f355d8f224d0583fbf0281f3cba10e800da",
+      "lines": 94,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotSubscriptionsViewModel.cs",
+      "sha256": "b89e5f22f5651df78b9c000980f324b10a0a8bdcd3c5dfd36286fb6672e7670e",
+      "lines": 681,
+      "scope": "主责全文",
+      "reviewer": "subscriptions"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotDialog.cs",
+      "sha256": "f4c3002ee463a946088440229c759c34619b89a356e2da6649e3c21205d203c6",
+      "lines": 31,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotDownloadDialog.xaml",
+      "sha256": "9a92055476686ed7bd292b1e811aaef1941707999229b76157f5f52ffc2d6fbe",
+      "lines": 164,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotDownloadDialog.xaml.cs",
+      "sha256": "8f644a7ff74f254579713dd59fd2f395fe0d0fdfcc52380c57f1eb3aeb8375ea",
+      "lines": 68,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotHomeSubscriptions.cs",
+      "sha256": "9d306bdd613c312159da1088cb7b0be12ff380fe79ab8adccd9c9aaf28eb3610",
+      "lines": 72,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotMediaSeasonsView.xaml",
+      "sha256": "53bc5753ba798f421845c5cbdbc11e67bc39f2d74d0d51ec563f408f085fc434",
+      "lines": 167,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotMediaSeasonsView.xaml.cs",
+      "sha256": "784efc857daf44c878428812689edef78f2fb2217280eb0d00548f18e9d1a4f1",
+      "lines": 131,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotMenuBrand.cs",
+      "sha256": "b873ab423b73c5bbe7c3a556507385d69dfb5ca12cdc5e03e3a00b7b6f0063c5",
+      "lines": 11,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml",
+      "sha256": "b2f59ab8669a8e889a769726125ee1d1503e3b4b2b6aaceef421b24162d348f3",
+      "lines": 264,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml.cs",
+      "sha256": "82e70b5c704f1b2ebd81df7fb4e88396609fa95a1c265505e899f73f396cb481",
+      "lines": 70,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotResourceFacetPicker.xaml",
+      "sha256": "80b7fde7651f15f61858d333261c067f08549ec0667e05fef8e01aaa654a21b6",
+      "lines": 52,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotResourceFacetPicker.xaml.cs",
+      "sha256": "4257b9df2039b4ac163eceea4950f4edb5bcac89625d4a22e4d241805b86df2e",
+      "lines": 41,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotResourceFilterStyles.xaml",
+      "sha256": "14638b4b936fbcac4cfbfccb83bc59ae5eed5323118eb5b418c29c74d88d303c",
+      "lines": 62,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotResourcePanel.xaml",
+      "sha256": "31907b5cd3784c544cfd269087422f23471e654171a6a2d5f2b3650ec415f25e",
+      "lines": 48,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotResourcePanel.xaml.cs",
+      "sha256": "4524d3d18d014b7f9e3abebe7da0573d5763d43d00ca46526e1bbc1319f62a8a",
+      "lines": 70,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSearchPanel.xaml",
+      "sha256": "2dec534317d1d38209027b991a02936d999d0263244d7a01dd9de45a8f762f09",
+      "lines": 148,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSearchPanel.xaml.cs",
+      "sha256": "c1280365eabd92406319cbaac4758d107f4c04673c4a18538ed96bd34998293d",
+      "lines": 151,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSearchProgressView.xaml",
+      "sha256": "a23b85a965509814d6a6fdea3ee23f135460d4ea4074ff4fa0fbcee76fb680e9",
+      "lines": 48,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSearchProgressView.xaml.cs",
+      "sha256": "a37f3e2ddc0f70d64a867f029cae1657097dd4ba2cde98fe1ddf18ca3d3ac9cc",
+      "lines": 17,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSeasonPicker.Layout.cs",
+      "sha256": "3fdcd9a619e2d532b554d5ebb7903cfcda6d512c9d80e3ca8cafdb386ed8f100",
+      "lines": 60,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSeasonPicker.xaml",
+      "sha256": "f7e70183d5ba6d269eab1a0cda3138a8b8d60ea63cfbbcd3cc7614adfa3bb565",
+      "lines": 162,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSeasonPicker.xaml.cs",
+      "sha256": "974328aaeafc4898b716f561462f6495db0660e8b3b45b9836bb7a2be60791f1",
+      "lines": 45,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSiteDialog.xaml",
+      "sha256": "885255ab3c8aba0bca3720f8f3bdd39dbe64d927a22c8f13a5bdb74058616b45",
+      "lines": 89,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSiteDialog.xaml.cs",
+      "sha256": "766ab91099356773154822237c0fcae424ddcc44d1c9c228c2cafcb8c59f7d11",
+      "lines": 78,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSitePicker.xaml",
+      "sha256": "68c92f9d2522f2b5be2f7643543699c14164e2d0564076d0cc2b5760c9d3de4b",
+      "lines": 19,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSitePicker.xaml.cs",
+      "sha256": "cba206ea2f57e18acee889e737f693d046c10c52e5080013bfbc04b7decd7da0",
+      "lines": 94,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionEditor.xaml",
+      "sha256": "f4504d0e0ff9620643692dbc9eb7940b428a4e09799c60af10595203e801a594",
+      "lines": 89,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionEditor.xaml.cs",
+      "sha256": "d45048f62122eccfde26ccbf61d4e9e21cdfcf9f642e8bf7241ff8f05bfa724e",
+      "lines": 187,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionMenu.cs",
+      "sha256": "7539725e95b831594b07b4a23beeac362a7d21b3f06c2ea9c75ff22cc733b14f",
+      "lines": 81,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionPage.Showcase.cs",
+      "sha256": "668daf1acbef441ee6192df478ccfce2ccb7ee84f1dda8b73ba0933f6670d815",
+      "lines": 523,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionPage.xaml",
+      "sha256": "e961d9c028a2bf0a712ac952fae555213c31996027b97713a316a974f49d5685",
+      "lines": 448,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionPage.xaml.cs",
+      "sha256": "58e710350f3b8fc868942773480e16752e6bdb35cc997e456acb4e1ad100ac16",
+      "lines": 466,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionPoster.xaml",
+      "sha256": "5c89cf0cdb482dd14ba0f74c235922b176b3e3a6cdff7f287d5fd28ec3eb3bd3",
+      "lines": 41,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionPoster.xaml.cs",
+      "sha256": "4d6cf3da478f64efdecc07e3437960adb37f42276d3091db7ca8f3e92f2705a8",
+      "lines": 152,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsPage.xaml",
+      "sha256": "7d97dc3121df67337c2c69adb88709d30ef019b580572caf51b8e033e77748b9",
+      "lines": 44,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsPage.xaml.cs",
+      "sha256": "17abd4833ac5e90e9e63bbde7b775384f034b95db7c41cc6f5d76e0c7e67ec3b",
+      "lines": 81,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsView.xaml",
+      "sha256": "a29eba897a1f998fc160a258d4fd2e7c4cadd32e8599b8222c955d4914d9139f",
+      "lines": 44,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsView.xaml.cs",
+      "sha256": "ec071b16c27ae1092ed1ed89048c3e0594c676de9c648d1c431f5a0684c86357",
+      "lines": 103,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotVersionsView.xaml",
+      "sha256": "f8caae5e52c7acb5c37118b381269b47430ce4d171a8203feecea8ba805f6419",
+      "lines": 37,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotVersionsView.xaml.cs",
+      "sha256": "54637031507cf6c4930870ac359ddb57cf75e70eb788c1893604bc4a8c9cb1dc",
+      "lines": 105,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotWindow.cs",
+      "sha256": "a08ebecda33da313a27eb2e62169afeada330414f7b793896a7242fa3eedb5f9",
+      "lines": 296,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.MoviePilot.cs",
+      "sha256": "6aae40d602f5170733ac63b2c6dfd91763db2986083d848319a3379a15439790",
+      "lines": 118,
+      "scope": "主责全文",
+      "reviewer": "surfaces"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtEligibility.cs",
+      "scope": "联审全文",
+      "sha256": "22c2ce5dc4ba2bbb4088f251b3d3c241c3c6a56fad6091114d24d40abcf17c2b",
+      "lines": 53
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/MoviePilotCredentials.cs",
+      "scope": "联审全文",
+      "sha256": "e1d35aaa467a776d2e081dfd220919dbb2cbeec67894cd74f8d24e9e4eb4ab64",
+      "lines": 55
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PageViewModel.cs",
+      "scope": "联审全文",
+      "sha256": "7571679ac96effd2234a59b3f08c79bc9283d630f1eb33bfe9d812a254811b1a",
+      "lines": 226
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.ResourceOptions.cs",
+      "scope": "联审全文",
+      "sha256": "80fcb61ae0e38c4ab39481c3f541b645ac81bab9a728f3cb49741ea137c64a2f",
+      "lines": 328
+    },
+    {
+      "path": "tests/Momoka.SiteDialogFlowTests/SiteDialogFlowTests.cs",
+      "scope": "联审全文",
+      "sha256": "086f8f64fc075e0926fdfcd5765de3cab8478fd85e93e5a89a6061c95c330f9a",
+      "lines": 317
+    },
+    {
+      "path": "tests/Momoka.SearchLifetimeTests/SubscriptionNavigationTests.cs",
+      "scope": "联审全文",
+      "sha256": "f1c57fd1b59c395de7abbec58cb36587fb83a4ae12def7f4ad892d04c3362011",
+      "lines": 109
+    },
+    {
+      "path": "tests/Momoka.PageContractTests/Program.cs",
+      "scope": "联审全文",
+      "sha256": "b6dac4e46565d31bdfa18f7e8c11a4ce1ba87611965660ba69d63f080f9a38a4",
+      "lines": 78
+    },
+    {
+      "path": "tests/Momoka.MoviePilotSubscribeSettingsTests/Fixture.cs",
+      "scope": "联审全文",
+      "sha256": "2f307346e65642a2f2113be8550c84095fdf070be81c15e8b6be4fccd0bfb552",
+      "lines": 142
+    },
+    {
+      "path": "tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj",
+      "scope": "联审全文",
+      "sha256": "c9253e957b7061ed9d3695de3e9ad485463542dabd9cb564928b5efd019b1bbd",
+      "lines": 30
+    },
+    {
+      "path": "tests/Momoka.MoviePilotJourneyTests/README.md",
+      "scope": "联审全文",
+      "sha256": "f8942e2f27a53758c6dda641f0d8e5ad792aa93f7d6d3c4aff8c0856481812cc",
+      "lines": 13
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotQuerySafetyTests.cs",
+      "scope": "联审全文",
+      "sha256": "9a2d5d8d0c81ece7b65fd9bbfeb919893ca1de578e0e66d76f43c82f97cef463",
+      "lines": 163
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotResourceOptionsTests.cs",
+      "scope": "联审全文",
+      "sha256": "001bf9fa828099b74b89f9ae35311c36aaf28616d3d565b4ca4415b989ba54a4",
+      "lines": 406
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotSearchSitesTests.cs",
+      "scope": "联审全文",
+      "sha256": "9dfdc36b63ace64c6682c7c8504002117f71f399b56a98e7d92c0546dc872cd9",
+      "lines": 130
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotResourceSortTests.cs",
+      "scope": "联审全文",
+      "sha256": "5485e09768e19623ef77d165961061def2573ef8ef529c43aab2f89184d9a929",
+      "lines": 78
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotVersionQueryTests.cs",
+      "scope": "联审全文",
+      "sha256": "9b1db7fea73d0b5d8cbf55b76f776128ead9a716a2c284c3e3517d561e3073e2",
+      "lines": 125
+    },
+    {
+      "path": "tests/Momoka.ResourceBrowserTests/Program.cs",
+      "scope": "联审全文",
+      "sha256": "808435fe120cb86c1fa7729183203396a23d72af0105abd9da91156b5febf51e",
+      "lines": 329
+    },
+    {
+      "path": "tests/Momoka.ResourceBrowserTests/SearchSitePreferenceTests.cs",
+      "scope": "联审全文",
+      "sha256": "de6fad0d7cc6b97369a3305337904bdcdf90fcc5acffb525be1f4444dbe3f526",
+      "lines": 410
+    },
+    {
+      "path": "tests/Momoka.ResourceBrowserTests/SearchProgressTests.cs",
+      "scope": "联审全文",
+      "sha256": "0a3f53593875152be8c1ee2353d1234f4ebb49775fbaa621014b3e9012debcd8",
+      "lines": 205
+    },
+    {
+      "path": "tests/Momoka.ResourceBrowserTests/ResourceFilterCardTests.cs",
+      "scope": "联审全文",
+      "sha256": "ec99e41308230c20d38320fddeb454df66113d38402bf3379b58a1ffcd720a86",
+      "lines": 339
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotSubscriptionTests.cs",
+      "scope": "联审全文",
+      "sha256": "f40c10484a4d061376bd9caef09cb1ccaebd5f83b4cc399523cdd536aaa6a518",
+      "lines": 391
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotMediaDetailTests.cs",
+      "scope": "联审全文",
+      "sha256": "b44c21242b605e616a21563fc88e29ff0d1b0dc8f85a63b08d358f14cb206637",
+      "lines": 192
+    },
+    {
+      "path": "tests/Momoka.SubscriptionEditorTests/Program.cs",
+      "scope": "联审全文",
+      "sha256": "40c64515a577c2733886c80c19722617577b3d7ff44834d8a93fc13c0d316ec4",
+      "lines": 170
+    },
+    {
+      "path": "tests/Momoka.SubscriptionIdentityTests/Program.cs",
+      "scope": "联审全文",
+      "sha256": "e6f1c9a773ee10ae5d004cf8ec46285ec4932065dde50839fa982c91a5fc46d8",
+      "lines": 138
+    },
+    {
+      "path": "tests/Momoka.MoviePilotSubscribeSettingsTests/Regression/Program.cs",
+      "scope": "联审全文",
+      "sha256": "1e529174c57187a85d0ef779f7f1b142a44f7c3f31aafcbe316500b194e1909b",
+      "lines": 17
+    },
+    {
+      "path": "tests/Momoka.ResourceBrowserTests/README.md",
+      "scope": "联审全文",
+      "sha256": "dbbebf6b0172f85aef5974cc964b93e983819b989c03e7c88caba8bb5c7d8e86",
+      "lines": 34
+    },
+    {
+      "path": "tests/Momoka.SubscriptionEditorTests/README.md",
+      "scope": "联审全文",
+      "sha256": "b118a48bf0e2e526874495124657256b3b78b2fee02a0902ae7adeb291124b5b",
+      "lines": 15
+    },
+    {
+      "path": "tests/Momoka.SubscriptionIdentityTests/README.md",
+      "scope": "联审全文",
+      "sha256": "46222ab50cfa771c80b9e4252e01e0709d50d4bc1585b0864c54088ed521d185",
+      "lines": 5
+    },
+    {
+      "path": "tests/Momoka.MoviePilotSubscribeSettingsTests/README.md",
+      "scope": "联审全文",
+      "sha256": "40c048f3eb7f8d4bb5d6a4d7ec0051e3645bcadd60c1727735cd18ec6fb55c4d",
+      "lines": 56
+    },
+    {
+      "path": "tests/Momoka.SiteDialogFlowTests/README.md",
+      "scope": "联审全文",
+      "sha256": "1c4168f7a0f20c4b6c89f532d6874fb5641fb620df80d89f4a9e1270116e9eae",
+      "lines": 13
+    },
+    {
+      "path": "tests/Momoka.SiteDialogFlowTests/Momoka.SiteDialogFlowTests.csproj",
+      "scope": "联审全文",
+      "sha256": "84036e1bd8e726b90c02bc14556de269740bbb4d5e9afc33e0ac331b2e304583",
+      "lines": 16
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+      "scope": "联审成员：MoviePilotSettings和MoviePilotSearchSitePreference全文成员1263-1356",
+      "sha256": "227f5f92d5c796f03ee7ba75b23800e6c1aa0466fbec8b2fbee49e472bd7db57"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Transfer.cs",
+      "scope": "联审成员：TransferConnectionStamp 227-230；仅连接键，不完成整理审查",
+      "sha256": "ba6a4058bfadcba3759cae69317c77f110a73db82693ea59373ab30d7cc1cdff"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.AniBt.cs",
+      "scope": "联审成员：AniBtAvailable/事件/取消1-49",
+      "sha256": "4efcd55227803ae1eefdd9acff75ff9812c373a8677120558c2e5bffa3c7fa3e"
+    },
+    {
+      "path": "src/Momoka.Shell/Composition/ShellServices.cs",
+      "scope": "联审成员：MoviePilotClient/Probe/Credentials/Service注册与保存闭包137-152",
+      "sha256": "abdb27efff5c3ec7c431a2bdb260e9132fd884004cba9dac191f9035156dc443"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "scope": "联审成员：MoviePilotCard/SyncMoviePilotSites/RefreshMoviePilotSites/TestMoviePilotAsync2368-2440",
+      "sha256": "391bba844ab6496ff68de2ac595060b899c106e3932334cf8c91d63ff5b45948"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingMoviePilotRow.cs",
+      "scope": "联审成员：构造、地址合拆、开关/密码写入、站点状态、TestAsync，属性与回调成员",
+      "sha256": "3caebca551f00f8ecb7958d38361fa5b4b7da2bf61f197d88b19f813ab9d90a1"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "scope": "联审成员：独立设置窗口1153-1188、订阅/媒体导航1420-1453",
+      "sha256": "3138187621e0f42476f506acba62a6313f3bbb9641cfe4e9e755a039d5e88f4b"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.AniBt.cs",
+      "scope": "联审成员：SearchAniBtVersions执行守卫1-32",
+      "sha256": "419e3c3bd54ea901ef52d53a10717aef8498f932aea19d92842437fe5896c5e9"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.Sidebar.cs",
+      "scope": "联审成员：订阅两入口/分隔标题58-116",
+      "sha256": "c0b6d3d88748de13b78e57cd46bfdb6d8e5828bf108557319e89371eaa9dbbc7"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+      "scope": "联审成员：释放646-683、搜索分流/四来源例外/可用性1492-1769",
+      "sha256": "1969c19ddee0f3e00237ea024124002422d2102057c973b6e88bc48873bb8f72"
+    },
+    {
+      "path": "src/Momoka.Shell/Theme/Styles.xaml",
+      "scope": "联审成员：MoviePilot普通/季/站点/下载对话框样式198-249",
+      "sha256": "9652ff6d37dad55056c555fbc90be6c0f44b113b05d63ca9c29fee5613ee19a6"
+    },
+    {
+      "path": "tests/Momoka.Tests/DialogChromeTests.cs",
+      "scope": "联审成员：201-289 对话框类型/覆盖禁用/遮罩接线",
+      "sha256": "ae039e21fe56d419cb1a6aa902e67ae4e615f5cbd77bd733271c99ff5746daf0"
+    },
+    {
+      "path": "tests/Momoka.AniBtEntryTests/Program.cs",
+      "scope": "联审成员：188-229菜单开关覆盖，不覆盖订阅详情",
+      "sha256": "52cfa5fa17341136791258a3dee9ea4c17dfb14c2b7d1ff8e8febc7570da584f"
+    },
+    {
+      "path": "tests/Momoka.MoviePilotSubscribeSettingsTests/SubscribeSettingsTests.cs",
+      "scope": "联审成员：1-292、448-834身份/三模式/草稿/迟到/实际XAML；非全文",
+      "sha256": "df932174f236fa04a91fb5950112b9283c8ff5ba07493f24bda60239312ff050"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotEpisodeGroupPlaybackTests.cs",
+      "scope": "联审成员：231-252默认组数字唯一语义；586-615模型；650-714 Fixture和实际反例调用",
+      "sha256": "ef71aa2eff56c9de503ba4b54c9283f85e4c3504fa6d6f2d374d6b944d2cccf8"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotSafetyTests.cs",
+      "scope": "联审成员：21-150身份/防重/未识别确认",
+      "sha256": "93e7c9522e49c22f9bfa2abc87a39dac0e199323bec8a2d80c97cc25a0e3ad24"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotTests.cs",
+      "scope": "联审成员：Register、AddressTests、ClientTests1-240及其他测试分组注册定位；非全文",
+      "sha256": "5b59272c49967432dc401100b4270c672d7c9f3b37023e776105005123604011"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotAvailabilityTests.cs",
+      "scope": "联审成员：可用性、重新认证、代次、不明防重测试1-187",
+      "sha256": "42fe5b8fdc96698e32c0bee3bb202b9d484bb66227d3fc7a8b8817e5d9e18713"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotSubscriptionPageStateTests.cs",
+      "scope": "联审成员：Run/RegisterEpisodeRows前210行与匿名传输入口定位",
+      "sha256": "dc17966feb39713affd9b240cc68d9878b3d7bfaf806d8f4d2f76dab2aff4ba0"
+    },
+    {
+      "path": "tests/Momoka.MoviePilotJourneyTests/Program.cs",
+      "scope": "联审成员：Main/安全根目录/检查台反射/测试注册及退出成员",
+      "sha256": "678950a8a777ba8af1a05719a903e8043180b6b0b0c64b7f9d342b92b4b30665"
+    },
+    {
+      "path": "tests/Momoka.SiteDialogFlowTests/FrameworkBoundaries.cs",
+      "scope": "联审成员：ContentDialog终止/确认边界及真实事件接线",
+      "sha256": "aab77a5c83f36d6cfeb2cb23b9a747da056bc44166b0c6d76c2c6b36d12c3e4c"
+    },
+    {
+      "path": "tests/Momoka.Tests/Program.cs",
+      "scope": "联审成员：MoviePilot显式参数分派与默认Register",
+      "sha256": "bb6feb7f7c97e1c5e76da303b42e4a8efeb60df3227bee10410d8569e162d48c"
+    },
+    {
+      "path": "tests/Momoka.Tests/TestHarness.cs",
+      "scope": "联审成员：Test/Register/Run及失败跳过计数1-76",
+      "sha256": "4c1d3fc967eb2a8cddb728466e21ed79c0ffbb366e5eaff44d3701bc4aa89435"
+    },
+    {
+      "path": "tools/check-diff.ps1",
+      "scope": "联审成员：参数/路径和编码检查入口1-78",
+      "sha256": "84244aeb74fbd8cfac193cf2a552553095b0bee2319082ef6ff77f26ddd22ac7"
+    }
+  ],
+  "upstream": {
+    "fetchedUtc": "2026-11-06T04:29:17.747115+00:00",
+    "configuredServerVersion": "not read; no real credentials or server accessed",
+    "sources": [
+      {
+        "repository": "MoviePilot",
+        "branch": "v3",
+        "commit": "4cd64d684b0cd7e198728ffb26c9eb3321db8672",
+        "url": "https://codeload.github.com/jxxghp/MoviePilot/zip/4cd64d684b0cd7e198728ffb26c9eb3321db8672",
+        "zipSha256": "d19a82844ff961e79612a8cac6242b541c5f7520ce24c6236a299fb4ac51cc1a",
+        "bytes": 10848814,
+        "root": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R08\\20261106-first\\upstream\\MoviePilot-4cd64d684b0cd7e198728ffb26c9eb3321db8672"
+      },
+      {
+        "repository": "MoviePilot-Frontend",
+        "branch": "v3",
+        "commit": "c78efcf442e00cd2ba1387a188c3900408c3875d",
+        "url": "https://codeload.github.com/jxxghp/MoviePilot-Frontend/zip/c78efcf442e00cd2ba1387a188c3900408c3875d",
+        "zipSha256": "6231517e49aea283de46eccf57db8f4dc195731469306fe792554a5e0d7d1656",
+        "bytes": 16099481,
+        "root": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R08\\20261106-first\\upstream\\MoviePilot-Frontend-c78efcf442e00cd2ba1387a188c3900408c3875d"
+      }
+    ]
+  },
+  "upstreamFiles": [
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/components/dialog/AddDownloadDialog.vue",
+      "scope": "全文",
+      "sha256": "d3afdd0cc781dcffe37f278ac797317efbaf6b774d836850e85ce440351487bc"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/components/dialog/__tests__/AddDownloadDialog.spec.ts",
+      "scope": "全文",
+      "sha256": "9d88bbc7c0c0cbd5bc3a2c6c0dd2963f041bd24b8ddaefbdcf634e97d2214179"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/components/misc/MediaIdSelector.vue",
+      "scope": "全文",
+      "sha256": "44a6744441da9ace69aee2b461c9fa2da3588e846d96ddd83798058a1f5662ac"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/components/misc/__tests__/MediaIdSelector.spec.ts",
+      "scope": "全文",
+      "sha256": "5cea6b4da5b3bcd1f7891cade77f0e28af5c253417bdc0473f9749e3b8156838"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/composables/useMediaSources.ts",
+      "scope": "全文",
+      "sha256": "ae9625dd1435012a64f8ff8495576e99a282b7e588a285f9126a2742ff5d8054"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/utils/mediaId.ts",
+      "scope": "全文",
+      "sha256": "eb4f440f825a627a99b1066e76959dd14ad08dd80e1d69f45a3b131ff1ff7c03"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/api/storage.ts",
+      "scope": "全文",
+      "sha256": "ed3fca1392186ffd98d67cbe3d8b0f90d9f4d643d4fb209d7c7a9329809a8be9"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/components/cards/TorrentCard.vue",
+      "scope": "全文",
+      "sha256": "a6bca4f752b7f6639669d17e3992bcb90cc05b2ad1cb57d1f73fb702d4d75a89"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/components/cards/__tests__/TorrentCard.spec.ts",
+      "scope": "全文",
+      "sha256": "788786bc379eac31b4ede5d0a80e56763eb1e743f6f7564ef5d163def6194f9b"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/utils/torrent.ts",
+      "scope": "全文",
+      "sha256": "1a26b3dd7aec00ef34dd1037bbcc15ec71631eca7f67b440711fdeb2a0813ea1"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/components/dialog/SubscribeSeasonDialog.vue",
+      "scope": "全文",
+      "sha256": "9f6ca8a93fbb449730abe13ca8e06860e522a43ccff63646555b93b50b7c69ec"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/components/dialog/__tests__/SubscribeSeasonDialog.spec.ts",
+      "scope": "全文",
+      "sha256": "9c276b70212853a7a0c9e5dc9f9e6f77dbb90ee2460ce4051958cc3858b61e88"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/components/dialog/SearchSiteDialog.vue",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "896a2917e774d24b5cca363beef65a4e0fa9fc1ab74ee5e0fe07f13bc6ff7c27"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/views/discover/MediaDetailView.vue",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "bf6d56c455b925220be5a28b32024973926f11a970dda281dae85466b3f5e99d"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/views/discover/__tests__/MediaDetailView.spec.ts",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "5740a5bfb2d13542fa3ef3272ea0095c57d2bd66672a0cf43ac081f7116aebd4"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/components/dialog/SubscribeEditDialog.vue",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "8d4bc9a2442545be61bc3bbe9f837f3212c4e5effcb7b2892d957a7f5bcbe766"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/components/dialog/__tests__/SubscribeEditDialog.spec.ts",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "51813b11212f62952886b7563912c69a8f9858f10c35621305fe31ade2e21217"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/components/cards/SubscribeCard.vue",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "c7f682fc786924685eee3fee3f4824d7f76ea035973be61e26966581af32ba9d"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/components/cards/__tests__/SubscribeCard.spec.ts",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "d54e62ee93be6c988892f0a48afba368cfb3588cef9b70b74c34152dd1a86efb"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/composables/useMediaSubscribe.ts",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "6d74bfb83528ad100ab72e4d39f5cc696406e749245642e1d1a28a0e348378a3"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/pages/login.vue",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "549ed6329fa3132e7611475b6b21c1fbc87ebd2b4592b11e41d06582efd6881d"
+    },
+    {
+      "repository": "MoviePilot-Frontend",
+      "path": "src/pages/__tests__/login.spec.ts",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "d4e05aff2bc7fe9143fef1d4982d84ff31f5697b757e118a14ad2a7032d66d12"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/api/endpoints/login.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "d79b8da3f89723a0709e7ad8881a41650e7b8203ef0b7fe725dd283ff2d25ff5"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/chain/user.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "3cc86e354b5063fc4c9ec12521b421cf3ebc617c2ad8bda8ce7111586ccb4728"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/adapters/web/security/access.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "213c5edc61392883b1f88bd98c503b5b06483860add0932cb59e8409ab2d2587"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/api/endpoints/download.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "f5f2748ac0898851d2bff0ce8d2aaa76dcc8839b52b959b61e6e3ebdf6258f91"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/api/endpoints/search.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "dd36ef4b15e9441256fe27782a0f5c75ad1a71517fd133871e79aba5294a6653"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/api/endpoints/media.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "7e152573457a1e0e8a61217190c501cdb5256a1f699ba7b3e94d239b6bf070e1"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/chain/search/execution.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "7154ac9f563acb98dce109557d8fe2108e9dc414287b44bf6ce6f75f85f23884"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/chain/search/result.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "e607f3173a07ef0ea4bd06be6c6dfb0269d7bd5cd0d72a97902966e04abb3206"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/chain/search/scan.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "5d410848ff9a1f4f21616d3b75b605496a49cc1c56b4bab488df4947fb1d2512"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/schemas/context.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "6c2f05bf8f9053fb880f22319f2772742de0a7a343fe354467ff72c26a4e31ed"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/chain/download/subtitle.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "30837d03d76ef16a57c2e16b792178e518be3031452fe3ab48a644979c42bee0"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/application/security/url.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "0b7d2880b143188796a426e3b9603eca806a1fa4775620cc116bbd7552e4af61"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/api/endpoints/subscribe.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "0e224290a98e366ad380117e39ac54d91b4a76b72c6d319d89a637af6cd4c128"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/application/subscription/mutation.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "6495142f1d5b66d62adc9d02a8b64c4be062e915cddedae9874ec75209bcf14d"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/chain/subscribe/query.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "c8bb6850f8ad2a37be4648ae1b3c07a6e79aa7cfa525b03b262f3f0957be9a12"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/api/endpoints/mediaserver.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "79c877f9834093cdcd9ff63b755927b536611e9eb1e938b0b2ddec7000dcc46e"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/schemas/subscribe.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "c3063975e1d736b618de5383ed9fb6191b921ee4ddd47440dc1f9169778913b3"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "tests/test_subscription_review_regressions.py",
+      "scope": "相关成员/范围见R08-upstream.md",
+      "sha256": "5c756f9a048fe9b63efd1b56bee5305161e6cdb1edad3cf9d221048b61056072"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "app/chain/search/title.py",
+      "scope": "全文；音乐retarget测试不用于影视缺陷",
+      "sha256": "fc6f1b1b77fb5a023de716b6fb462b856b9e1b8619904704609ffcd5b7eb374a"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "tests/test_download_paths_endpoint.py",
+      "scope": "全文；音乐retarget测试不用于影视缺陷",
+      "sha256": "dabd3a27753a28ee1dc20b445ade22c65a2b599fc82ffa6db144f87f37400716"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "tests/test_download_media_source.py",
+      "scope": "全文；音乐retarget测试不用于影视缺陷",
+      "sha256": "cb42e7fd7c8ec8ecb4068dd6434c926e13857e3a578a71d73c4679951360be68"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "tests/test_search_stream.py",
+      "scope": "全文；音乐retarget测试不用于影视缺陷",
+      "sha256": "4a6d53ce4cb56c41f50dd53adcfb03b3c04fa367ac76dc1360c9bcdbc5667231"
+    },
+    {
+      "repository": "MoviePilot",
+      "path": "tests/test_subscription_review_retarget.py",
+      "scope": "全文；音乐retarget测试不用于影视缺陷",
+      "sha256": "999b4fa93bc409ad583dd243a6f7e7a3a3f0c93a6c120cf0222b8660abb51e61"
+    }
+  ],
+  "execution": {
+    "entrypoints": 10,
+    "executions": 674,
+    "passed": 674,
+    "failed": 0,
+    "skipped": 0,
+    "distinctCoverageClaim": false,
+    "counts": {
+      "MoviePilotJourneyTests": 21,
+      "ResourceBrowserTests": 174,
+      "SubscriptionEditorTests": 19,
+      "SubscriptionIdentityTests": 3,
+      "MoviePilotSubscribeSettingsTests": 74,
+      "SiteDialogFlowTests": 13,
+      "moviepilot-login-redirect-fixture": 43,
+      "moviepilot-episode-group-playback-fixture": 58,
+      "moviepilot-subscription-page-state-fixture": 31,
+      "core-subset-11-registers": 238
+    }
+  },
+  "commands": [
+    {
+      "name": "Momoka.Tests-build",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "tests/Momoka.Tests/Momoka.Tests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:31:31.000057+00:00",
+      "seconds": 20.694067,
+      "log": "Momoka.Tests-build.log",
+      "logSha256": "ca372986093a6666dab8afc37f48d1aa8b854b1d0ce751e44b73a8335cf37fb1"
+    },
+    {
+      "name": "Momoka.Shell-build",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "src/Momoka.Shell/Momoka.Shell.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:31:51.695152+00:00",
+      "seconds": 120.671804,
+      "log": "Momoka.Shell-build.log",
+      "logSha256": "db5cc13faa15551c3cf3c16d510293302bd1f1abd75507730b0765062ab3125b"
+    },
+    {
+      "name": "MoviePilotJourneyTests-restore",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "restore",
+        "tests/Momoka.MoviePilotJourneyTests/Momoka.MoviePilotJourneyTests.csproj",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:33:52.367877+00:00",
+      "seconds": 1.259714,
+      "log": "MoviePilotJourneyTests-restore.log",
+      "logSha256": "508a8a62f92cf138ce250420b9d4af732fde0bd4e29be8612821f3da6aeb7f5e"
+    },
+    {
+      "name": "MoviePilotJourneyTests-build",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "tests/Momoka.MoviePilotJourneyTests/Momoka.MoviePilotJourneyTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:33:53.628311+00:00",
+      "seconds": 4.017207,
+      "log": "MoviePilotJourneyTests-build.log",
+      "logSha256": "09bc417b463d6d3709d5c54db4b3a89b0a2b91696f251fd844e676d3430b7a09"
+    },
+    {
+      "name": "MoviePilotJourneyTests-run",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.MoviePilotJourneyTests/Momoka.MoviePilotJourneyTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:33:57.646193+00:00",
+      "seconds": 1.393195,
+      "log": "MoviePilotJourneyTests-run.log",
+      "logSha256": "993c5aaafdc70c79bf9a02375ac0d7c3cdbdbcd0dc8f335110d2dad2e4d0a427"
+    },
+    {
+      "name": "ResourceBrowserTests-restore",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "restore",
+        "tests/Momoka.ResourceBrowserTests/Momoka.ResourceBrowserTests.csproj",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:33:59.040224+00:00",
+      "seconds": 1.379809,
+      "log": "ResourceBrowserTests-restore.log",
+      "logSha256": "d9b7f3a8a0ad13b658d39bbd1ce134066a073864153a126f6634db3f15750dc5"
+    },
+    {
+      "name": "ResourceBrowserTests-build",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "tests/Momoka.ResourceBrowserTests/Momoka.ResourceBrowserTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:00.420719+00:00",
+      "seconds": 5.297868,
+      "log": "ResourceBrowserTests-build.log",
+      "logSha256": "72841233a10e3d25476c759a7cc3daf772bd7e78299ee3e240e11bd5a77df90a"
+    },
+    {
+      "name": "ResourceBrowserTests-run",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.ResourceBrowserTests/Momoka.ResourceBrowserTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:05.719370+00:00",
+      "seconds": 1.958323,
+      "log": "ResourceBrowserTests-run.log",
+      "logSha256": "3d38c03e8360439b1040a4a51d27df7443e94f76b55a8dea52b22249b058c325"
+    },
+    {
+      "name": "SubscriptionEditorTests-restore",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "restore",
+        "tests/Momoka.SubscriptionEditorTests/Momoka.SubscriptionEditorTests.csproj",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:07.678474+00:00",
+      "seconds": 1.231059,
+      "log": "SubscriptionEditorTests-restore.log",
+      "logSha256": "7886494a74869a6e9aa76a4067faf3f7aaa1b56031dbb44f8240dd8b9db7e9b9"
+    },
+    {
+      "name": "SubscriptionEditorTests-build",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "tests/Momoka.SubscriptionEditorTests/Momoka.SubscriptionEditorTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:08.910424+00:00",
+      "seconds": 4.627907,
+      "log": "SubscriptionEditorTests-build.log",
+      "logSha256": "b8956d49452873d2f1275c53a0c5138141a9e3883e981aebd1697124167bc6ad"
+    },
+    {
+      "name": "SubscriptionEditorTests-run",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.SubscriptionEditorTests/Momoka.SubscriptionEditorTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:13.539158+00:00",
+      "seconds": 1.341685,
+      "log": "SubscriptionEditorTests-run.log",
+      "logSha256": "b16a810083ee76c386af97baff36a0c21804375a28c2ab38177bca3f7d679268"
+    },
+    {
+      "name": "SubscriptionIdentityTests-restore",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "restore",
+        "tests/Momoka.SubscriptionIdentityTests/Momoka.SubscriptionIdentityTests.csproj",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:14.881599+00:00",
+      "seconds": 1.275229,
+      "log": "SubscriptionIdentityTests-restore.log",
+      "logSha256": "9184e0486077d86278710129655ba562cdef342b212fc5d625d0730a633e5824"
+    },
+    {
+      "name": "SubscriptionIdentityTests-build",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "tests/Momoka.SubscriptionIdentityTests/Momoka.SubscriptionIdentityTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:16.157626+00:00",
+      "seconds": 4.743554,
+      "log": "SubscriptionIdentityTests-build.log",
+      "logSha256": "92367322a4bc98bcc3294ec5c86a13a377f751b505254b79bb2505ae26ecdff8"
+    },
+    {
+      "name": "SubscriptionIdentityTests-run",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.SubscriptionIdentityTests/Momoka.SubscriptionIdentityTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:20.901812+00:00",
+      "seconds": 1.332033,
+      "log": "SubscriptionIdentityTests-run.log",
+      "logSha256": "c9824ab806be0bb26d772924a1f55e05cbd7de38b1bac7e9f4f4fce334cff1c2"
+    },
+    {
+      "name": "MoviePilotSubscribeSettingsTests-restore",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "restore",
+        "tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:22.234605+00:00",
+      "seconds": 1.664807,
+      "log": "MoviePilotSubscribeSettingsTests-restore.log",
+      "logSha256": "e43abfa98b322924b2b8c5baa40a625b2a437c3a9e78404625db1d49c9862863"
+    },
+    {
+      "name": "MoviePilotSubscribeSettingsTests-build",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:23.901490+00:00",
+      "seconds": 7.104633,
+      "log": "MoviePilotSubscribeSettingsTests-build.log",
+      "logSha256": "5b315b4854f7c1be87320e6ec97b93aa9dde338ac077ab36de11464a9962771c"
+    },
+    {
+      "name": "MoviePilotSubscribeSettingsTests-run",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:31.007012+00:00",
+      "seconds": 1.623506,
+      "log": "MoviePilotSubscribeSettingsTests-run.log",
+      "logSha256": "08a3fe3f0547633d8a015bfff1b06b5453370381b456f3c588063580963f12e4"
+    },
+    {
+      "name": "SiteDialogFlowTests-restore",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "restore",
+        "tests/Momoka.SiteDialogFlowTests/Momoka.SiteDialogFlowTests.csproj",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:32.631344+00:00",
+      "seconds": 1.256941,
+      "log": "SiteDialogFlowTests-restore.log",
+      "logSha256": "f737fe7c0c15bc1dbc161bca703a0cfa6479ecae994a5070a97e4801036e5745"
+    },
+    {
+      "name": "SiteDialogFlowTests-build",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "build",
+        "tests/Momoka.SiteDialogFlowTests/Momoka.SiteDialogFlowTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:33.889092+00:00",
+      "seconds": 5.048804,
+      "log": "SiteDialogFlowTests-build.log",
+      "logSha256": "ac106ced37b75c7a5d24d8512b7c7e134bf27171c9feaf6a9301f0fd54e4163a"
+    },
+    {
+      "name": "SiteDialogFlowTests-run",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.SiteDialogFlowTests/Momoka.SiteDialogFlowTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:38.938706+00:00",
+      "seconds": 1.381617,
+      "log": "SiteDialogFlowTests-run.log",
+      "logSha256": "9c1f9f78b3020be0cf79f6e7bb7f72848505ed5c8d3ad2945315d56f05256f65"
+    },
+    {
+      "name": "moviepilot-login-redirect-fixture",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.Tests/Momoka.Tests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "moviepilot-login-redirect-fixture"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:40.321123+00:00",
+      "seconds": 1.824679,
+      "log": "moviepilot-login-redirect-fixture.log",
+      "logSha256": "ab76b9e1179a476d4322a7136105971a3127079dcbad33045c06f0ed3a50d981"
+    },
+    {
+      "name": "moviepilot-episode-group-playback-fixture",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.Tests/Momoka.Tests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "moviepilot-episode-group-playback-fixture"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:42.146401+00:00",
+      "seconds": 1.156987,
+      "log": "moviepilot-episode-group-playback-fixture.log",
+      "logSha256": "b984aa873d0a2137603a83b6558d183c6639d3fd534379a527c610a162c5a7a6"
+    },
+    {
+      "name": "moviepilot-subscription-page-state-fixture",
+      "command": [
+        "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+        "run",
+        "--project",
+        "tests/Momoka.Tests/Momoka.Tests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "moviepilot-subscription-page-state-fixture",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "startUtc": "2026-11-06T04:34:43.304220+00:00",
+      "seconds": 1.215304,
+      "log": "moviepilot-subscription-page-state-fixture.log",
+      "logSha256": "cf797ffd2b76f51f1464ec8d9030c99ff74708182ff605248a1294badde3353e"
+    },
+    {
+      "name": "final-core",
+      "command": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "run",
+        "--project",
+        "artifacts/review/6ba7a7f/R08/20261106-first/runner/ReviewRunner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "core",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "log": "final-core.log",
+      "logSha256": "9ac0da3d423e64f7b44848bec9792b778bd640df6dc07cdaaa25824994509680"
+    },
+    {
+      "name": "final-repro",
+      "command": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "run",
+        "--project",
+        "artifacts/review/6ba7a7f/R08/20261106-first/runner/ReviewRunner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "repro",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "log": "final-repro.log",
+      "logSha256": "56b8d78a4e2c543b070ef2601f386c3be572fb728cae565db325578f353049f8"
+    },
+    {
+      "name": "final-sites",
+      "command": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "run",
+        "--project",
+        "artifacts/review/6ba7a7f/R08/20261106-first/runner/ReviewRunner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "sites",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "log": "final-sites.log",
+      "logSha256": "00deb4989e51a2f2a3ea223fe15f3cd1bb503739e2f33e9eadf651afb774a44f"
+    },
+    {
+      "name": "final-anibt",
+      "command": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "run",
+        "--project",
+        "artifacts/review/6ba7a7f/R08/20261106-first/runner/ReviewRunner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "anibt",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "log": "final-anibt.log",
+      "logSha256": "0f65283178f92cc6ea1120254bbe9ea9bd8ccdcfdc6f91bd80b8c0b2cdb7b29f"
+    },
+    {
+      "name": "final-files",
+      "command": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "run",
+        "--project",
+        "artifacts/review/6ba7a7f/R08/20261106-first/runner/ReviewRunner.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore",
+        "--",
+        "files",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "log": "final-files.log",
+      "logSha256": "0b9dfe1aee2456fe5235f83e5899bb31c2d25591d66e351cda73297fc767f864"
+    }
+  ],
+  "assemblies": [
+    {
+      "path": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Core\\bin\\Release\\net10.0\\Momoka.Core.dll",
+      "sha256": "6836f697cbae5b21f5d08aac2a230592f6312471ab7a06059b256ea794a676c1"
+    },
+    {
+      "path": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll",
+      "sha256": "1469075f1253c651e396bcf35052967eac205d61f8892d57b545472c983131f8"
+    },
+    {
+      "path": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+      "sha256": "8a53814e14af70459f93d0a860179fafd7dc978795645dcd22f518dc85bc46f1"
+    }
+  ],
+  "reproductions": {
+    "groups": 6,
+    "interpretation": "观察成立，不是修复通过",
+    "results": [
+      {
+        "path": "artifacts/review/6ba7a7f/R08/20261106-first/repro-results.json",
+        "sha256": "1bbf61da9344d078d2993f770cfcc7fb4781bfdd440392336d7db9901f1c81f5"
+      },
+      {
+        "path": "artifacts/review/6ba7a7f/R08/20261106-first/sites-repro.json",
+        "sha256": "ab72b1af3fb264d015f04539f6d1e258476eef5e0d5146b22f4f93ec2fa72fef"
+      },
+      {
+        "path": "artifacts/review/6ba7a7f/R08/20261106-first/anibt-repro.json",
+        "sha256": "7a74d41fcb7e7b6a140f63ccbf20073329ade18e79c7cb2665cbe199c569b769"
+      },
+      {
+        "path": "artifacts/review/6ba7a7f/R08/20261106-first/files-repro.json",
+        "sha256": "651cd37ec46c9cdd4b471c22ad47c10b3176d08726016da34d17be51e7279157"
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "R08-001",
+      "priority": "P1",
+      "fixed": false
+    },
+    {
+      "id": "R08-002",
+      "priority": "P2",
+      "fixed": false
+    },
+    {
+      "id": "R08-003",
+      "priority": "P2",
+      "fixed": false
+    },
+    {
+      "id": "R08-004",
+      "priority": "P2",
+      "fixed": false
+    },
+    {
+      "id": "R08-005",
+      "priority": "P2",
+      "fixed": false
+    },
+    {
+      "id": "R08-006",
+      "priority": "P2",
+      "fixed": false
+    }
+  ],
+  "retainedFailures": [
+    {
+      "log": "runner-build.log",
+      "cause": "临时引用HintPath多一层，2错误1警告；runner-build-2及后续0警告0错误"
+    }
+  ],
+  "notRun": [
+    "完整主套件",
+    "全方案",
+    "统一全回归",
+    "真实WinUI/UIA/截图/输入",
+    "真实服务器部署版本",
+    "真实账号/DPAPI/MFA",
+    "真实下载订阅取消整理播放",
+    "发布上传"
+  ],
+  "evidenceRoot": "artifacts/review/6ba7a7f/R08/20261106-first"
+}

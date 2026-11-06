@@ -1,0 +1,91 @@
+{
+  "base": "6ba7a7f99e2b3840f68d63ff1c705b44659e7697",
+  "date": "2026-11-05",
+  "status": "document-and-evidence-consistency-passed",
+  "ledgerFiles": 1876,
+  "unassigned": 0,
+  "unchangedFileHashesChecked": 1874,
+  "documentOnlyChangedExistingFiles": [
+    "PROGRESS.md",
+    "docs/superpowers/plans/2026-11-05-full-code-review.md"
+  ],
+  "newReviewFiles": [
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/baseline.json",
+      "owner": "R18",
+      "sha256": "c74a6eef83a563aab174cbed3fa914d6a2fb7a4f6b3d4da6b7b5a71ca823fd76",
+      "status": "本次审查文档已核对；不计入原基点1876文件"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/entrypoints.md",
+      "owner": "R18",
+      "sha256": "bb60e85369eac7afe5d6297e76f0b9fa9e1b429e07cae3a9fcce7a601f3cf440",
+      "status": "本次审查文档已核对；不计入原基点1876文件"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/file-ledger.jsonl",
+      "owner": "R18",
+      "sha256": "3f1c3742ee0882c0f8e49b0a0308a6e2109395a9e9ab93a9c59f6e2768da52b1",
+      "status": "本次审查文档已核对；不计入原基点1876文件"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/R01.md",
+      "owner": "R18",
+      "sha256": "5b39cb5827248e91d54fb600dc6b60ada3fb5d919a93cc87332fa1f12a5515d8",
+      "status": "本次审查文档已核对；不计入原基点1876文件"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/shared-members.md",
+      "owner": "R18",
+      "sha256": "18adf57792db7b6e15e3616fbac47f3140c6b8eb4cce334303f34840c5d2d6d8",
+      "status": "本次审查文档已核对；不计入原基点1876文件"
+    },
+    {
+      "path": "docs/superpowers/reviews/2026-11-05-full-code-review/validation-matrix.json",
+      "owner": "R18",
+      "sha256": "b01d7a5341ab186f74ce5199cce07b325d718763fb97ad45804fbccae74e21e5",
+      "status": "本次审查文档已核对；不计入原基点1876文件"
+    }
+  ],
+  "matrixProjects": 68,
+  "findingCount": 7,
+  "pauseAfter": "R01",
+  "nextPartition": "R02",
+  "anonymousReproductionsConfirmed": 5,
+  "executionEvidenceChecked": [
+    {
+      "path": "artifacts/r067-approved-payload/r01-payload-20261105-232434567/results.json",
+      "total": 150,
+      "passed": 146,
+      "failed": 4
+    },
+    {
+      "path": "artifacts/r067-approved-payload/r01-boundaries-20261105-233340674/results.json",
+      "total": 50,
+      "passed": 49,
+      "failed": 1
+    },
+    {
+      "path": "artifacts/r067-approved-payload/r01-layout-20261105-233657979/results.json",
+      "total": 31,
+      "passed": 31,
+      "failed": 0
+    },
+    {
+      "path": "artifacts/r067-approved-payload/r01-runtimepack-20261105-234009319/results.json",
+      "total": 25,
+      "passed": 25,
+      "failed": 0
+    }
+  ],
+  "dotnetRuntimepack": "harness-failure-before-first-case",
+  "notRun": [
+    "产品Core/Shell构建",
+    "主测试Update/Agreements",
+    "Architecture",
+    "test-mpv-package-content",
+    "真实UI/媒体服务器/播放",
+    "实际发布/安装/签名"
+  ],
+  "documentationChecks": "逐文件覆盖与hash、分区数量、项目/模式入口、7条缺陷、8处计划勾选、实际通过/失败计数及相对链接/编码/差异检查"
+}

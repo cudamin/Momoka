@@ -1,0 +1,1654 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "status": "document-evidence-consistency-passed",
+  "startHead": "62e20d9d52c7efbcd5678f43323d769e4b097c9d",
+  "verificationHead": "62e20d9d52c7efbcd5678f43323d769e4b097c9d",
+  "currentProductBase": "5951bba9f67fc6fca8559dc625639b8445a97e35",
+  "productSourceMatchesMaster": true,
+  "productFixesApplied": false,
+  "reviewComplete": "R06",
+  "pauseAfter": "R06",
+  "nextPartition": "R07",
+  "ruleSha256": "6b825aec89b7cea678a5b8033d3effc8364a9ecd52ac20059b66b4d9b0f872c6",
+  "ledgerBaseFiles": 1876,
+  "historicalDeltaFiles": [
+    54,
+    19
+  ],
+  "thisPartitionProductDeltaFiles": 0,
+  "matrixProjects": 68,
+  "matrixEntriesUpdated": 7,
+  "planChecked": 13,
+  "ownerFilesRead": 82,
+  "retiredOwnerFiles": [
+    "src/Momoka.Core/Emby/CardDisplayTitle.cs"
+  ],
+  "fullJointFilesRead": 50,
+  "partialJointFilesRead": 22,
+  "reviewedFiles": [
+    {
+      "path": "src/Momoka.Core/Emby/AggregateQueryCursor.cs",
+      "scope": "主责全文",
+      "sha256": "1f9a3200b826ddf42d7e4014fb5f5781cd1620c69fa7a5fd471934e9d3b074ca",
+      "lines": 97
+    },
+    {
+      "path": "src/Momoka.Core/Emby/BrowseSnapshotStore.cs",
+      "scope": "主责全文",
+      "sha256": "64861d6f60e955f47c17ea9ac32b9964f30609b704543345ffc253e7ac434f75",
+      "lines": 222
+    },
+    {
+      "path": "src/Momoka.Core/Emby/BrowsingPreferences.cs",
+      "scope": "主责全文",
+      "sha256": "66e21ba0b1dea09c3a953fd1e45edee93c374ea37a1b2420f0519c8a569998c8",
+      "lines": 52
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.LibraryBrowse.cs",
+      "scope": "主责全文",
+      "sha256": "53a8fe8ff5727aed95bb1df55f83d12cc01e3aa829b3282b1e99833b4884f2dc",
+      "lines": 51
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyFilterBy.cs",
+      "scope": "主责全文",
+      "sha256": "3c8418c71e070a666d83767c8331f4f2d5521bf2b6b8abaa81890c6c49d4170c",
+      "lines": 729
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyItem.cs",
+      "scope": "主责全文",
+      "sha256": "d87c8f96be2806fc0f60681e3419f1a5edcd832304a139c9171ac5bc6137b69f",
+      "lines": 1053
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyLibraryArtwork.cs",
+      "scope": "主责全文",
+      "sha256": "17162d40e4658a0968e95aee29588d64279c0c5bf0f534b9a93042bc1ca60ce9",
+      "lines": 28
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySortBy.cs",
+      "scope": "主责全文",
+      "sha256": "7470260a8afbd438211fb16c5236e91a2ad82462fd21f45cfe6d0228cdcd3cfa",
+      "lines": 366
+    },
+    {
+      "path": "src/Momoka.Core/Emby/FavoriteAccounts.cs",
+      "scope": "主责全文",
+      "sha256": "7cc2b6fb889be657ac7bf47905ef3fdffd1cc855af6cca6fb6dbb09ef68571df",
+      "lines": 12
+    },
+    {
+      "path": "src/Momoka.Core/Emby/HomeCarousel.cs",
+      "scope": "主责全文",
+      "sha256": "ff0e1c55d51c1cae44efde0d61abf117738a8c7991a1e42c3a7a32b80ae39b7f",
+      "lines": 303
+    },
+    {
+      "path": "src/Momoka.Core/Emby/HomeFold.cs",
+      "scope": "主责全文",
+      "sha256": "ed3a7b56534e1cb42e030b624f26cb750a7955ce8f8c7e29135bbbff7a3b66b6",
+      "lines": 153
+    },
+    {
+      "path": "src/Momoka.Core/Emby/HomeLatest.cs",
+      "scope": "主责全文",
+      "sha256": "ca7d6cacb09a65796123e76ea840b051a948a4063611dd7182c0706f29a94c6c",
+      "lines": 49
+    },
+    {
+      "path": "src/Momoka.Core/Emby/HomeLayout.cs",
+      "scope": "主责全文",
+      "sha256": "0c3ee357651d9334b19bc375035dedf05e59e765df22cd38134d5f89f4e1f010",
+      "lines": 315
+    },
+    {
+      "path": "src/Momoka.Core/Emby/HomeRefresh.cs",
+      "scope": "主责全文",
+      "sha256": "7f0e63bbf3ea75987e949411ecc0c4aebf161dc301a3555abf2e6d0e66a7b184",
+      "lines": 23
+    },
+    {
+      "path": "src/Momoka.Core/Emby/HomeResumeText.cs",
+      "scope": "主责全文",
+      "sha256": "246d8ce7050a2d334566fa8eb3ab32fc7d50440e64aa69f323dcf04c049a9343",
+      "lines": 15
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemFilters.cs",
+      "scope": "主责全文",
+      "sha256": "65072aa33890dfee8d703155d9f19a4534fe3eeddc007aceb02ff89c8ea3b864",
+      "lines": 256
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemFingerprint.cs",
+      "scope": "主责全文",
+      "sha256": "8164574577ed7b6ff138b23097197298b663fe1fe23acb7e7a8327edcae20456",
+      "lines": 143
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemQuery.cs",
+      "scope": "主责全文",
+      "sha256": "66c9761cf6b46199476293a85520755b899ec54e8df46c3e7cd29335db7b77d0",
+      "lines": 403
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemScore.cs",
+      "scope": "主责全文",
+      "sha256": "bf91d6eeef9ede6e60f525ce3f37d3e8deef71f1fbf72a18fc9a43edd8a3a5b3",
+      "lines": 70
+    },
+    {
+      "path": "src/Momoka.Core/Emby/JellyfinLibrary.cs",
+      "scope": "主责全文",
+      "sha256": "4e1f2bfdb46b72b55104f393edb4a1be0bd8700bb896d40a06b7f64950a30906",
+      "lines": 522
+    },
+    {
+      "path": "src/Momoka.Core/Emby/JellyfinQuery.cs",
+      "scope": "主责全文",
+      "sha256": "4b12106ec2bbecd4d89427af2261f9db5fa6857230e638fb1a329a5b94a9c21c",
+      "lines": 30
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryBrowse.cs",
+      "scope": "主责全文",
+      "sha256": "fa2d8b78117829aebf06b8ccb3957e82f5ffe55410d17b74abc7b94e0095b5ec",
+      "lines": 202
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryDisplay.cs",
+      "scope": "主责全文",
+      "sha256": "94fa777f9cfe1d084b80493afc360d2aabdc41d865c16b71e8b603fa5a005cbf",
+      "lines": 737
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryFavorites.cs",
+      "scope": "主责全文",
+      "sha256": "8454cad94d1b31a3334dbefb2462074a42e9f7f72d5ae9f5c2d11427850596f8",
+      "lines": 57
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryFilterChips.cs",
+      "scope": "主责全文",
+      "sha256": "c82d737ef6624eff69a536cf5fdd8bf7744a0e5566731be23f521e51b03954b4",
+      "lines": 11
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryRecommended.cs",
+      "scope": "主责全文",
+      "sha256": "39b2e6c6b1a4099c1657830665bb1981e0aff23ccb1754fb315646d49ef33e36",
+      "lines": 226
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibrarySearch.cs",
+      "scope": "主责全文",
+      "sha256": "152631d3ccc995c62993e01e8a3ae146d25a222215ad4db843bb17ba40e3aaf6",
+      "lines": 33
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibrarySearchGroups.cs",
+      "scope": "主责全文",
+      "sha256": "98406cfa9295bc11734c013d45da3b295f1bbc61a3af1520995c152294245cb7",
+      "lines": 47
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibrarySortCatalog.cs",
+      "scope": "主责全文",
+      "sha256": "388f154947cae2ef6cfb7e43bedf8b8bb9fd6226164b2894747c95fdba145c40",
+      "lines": 70
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryTotal.cs",
+      "scope": "主责全文",
+      "sha256": "c21865eaa3055c4874c1c31934a917937255ad61db0c0458dc79a35a76ef94e7",
+      "lines": 54
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryUpcoming.cs",
+      "scope": "主责全文",
+      "sha256": "f700a221e9cd4d96c99f363a3dc4cc51f41a76b496b57e6751551264ad5f803a",
+      "lines": 96
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryWatch.cs",
+      "scope": "主责全文",
+      "sha256": "656d58b8c082b5b1ef350d558a2293e20fb772ff672c52a3b8332934aebd6236",
+      "lines": 76
+    },
+    {
+      "path": "src/Momoka.Core/Emby/PlayableList.cs",
+      "scope": "主责全文",
+      "sha256": "992dde8868a56e22de30065643bd8260dd7b47b75263c48a60981bd2337a9cd8",
+      "lines": 47
+    },
+    {
+      "path": "src/Momoka.Core/Emby/RecentSearch.cs",
+      "scope": "主责全文",
+      "sha256": "67623ea445a398e75a37e2da2d8f06b43b71b6f71b44b15303cbd68484a14cb5",
+      "lines": 61
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ReleaseGroup.cs",
+      "scope": "主责全文",
+      "sha256": "e9a3cae98bd4e65b9005569ff7a6bf65d381f08ed6608b1104cdee29e8d157d6",
+      "lines": 41
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ResumeRow.cs",
+      "scope": "主责全文",
+      "sha256": "b7d3ce6cc7ba32073dda85b49e622f9a6d4a5fdac579006a7497411b3cf2477a",
+      "lines": 36
+    },
+    {
+      "path": "src/Momoka.Core/Emby/SourceCaption.cs",
+      "scope": "主责全文",
+      "sha256": "01bd8968b1526fce87ffd63571f576c3cdb87e8ea2f557d6832807931493f8b8",
+      "lines": 17
+    },
+    {
+      "path": "src/Momoka.Core/Emby/SourceLibraries.cs",
+      "scope": "主责全文",
+      "sha256": "08889b3be430e7963b14debe646180db2ee2a9894f9fd1d25416f2313b97a5c9",
+      "lines": 65
+    },
+    {
+      "path": "src/Momoka.Core/Infrastructure/LibraryPanelSize.cs",
+      "scope": "主责全文",
+      "sha256": "ab5c9c00124a3216250da28a0fada0e4b84e8d71da5d8d773dac7a821f38eb31",
+      "lines": 11
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/BrowseSnapshotKeys.cs",
+      "scope": "主责全文",
+      "sha256": "d73ff0409534dc493b6a14b2baa7858c689cf5d47106dd0f42ee629fccbba512",
+      "lines": 151
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/CardCollection.cs",
+      "scope": "主责全文",
+      "sha256": "1d73f7017dd61554c8507c3bb9eea6d243f936f527d9988d3e3bd63ea2a470e5",
+      "lines": 200
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/CardShelf.cs",
+      "scope": "主责全文",
+      "sha256": "1e5b6d9d29a987415a230fae780826e96c230090aa63444c239561f6023981e2",
+      "lines": 313
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FavoriteRow.cs",
+      "scope": "主责全文",
+      "sha256": "71f329233a4dd16df16a88a452aafa64b4380ba742c0273890038ae209443085",
+      "lines": 68
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FavoritesViewModel.cs",
+      "scope": "主责全文",
+      "sha256": "310c3c577479de1eac735625741821d1f6b891166d2640a308db305c8779aff0",
+      "lines": 82
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FilterPanelViewModel.cs",
+      "scope": "主责全文",
+      "sha256": "3f593100add5572a000b83a35d4160b2b340e99c04c4746efd9952611247a465",
+      "lines": 181
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FilterSection.cs",
+      "scope": "主责全文",
+      "sha256": "659ec2fdf1a6983d4d93495b4d53ec0b1709fec0be492256487cbb6e346db8b1",
+      "lines": 360
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasFilterRows.cs",
+      "scope": "主责全文",
+      "sha256": "eb5abe5291d6ee2df44239409fea6359eec922cbca63ad1f01bbf3dfe12307a8",
+      "lines": 68
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/HomeViewModel.cs",
+      "scope": "主责全文",
+      "sha256": "82ad5d4e926e2c5b2383f6584d4df3740021710825d52b519ce949db5bb3675f",
+      "lines": 1581
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.Favorites.cs",
+      "scope": "主责全文",
+      "sha256": "0ece21ee78422d951f0a938d0049b89b2642fbbe060b6e641b4c1667fffa8ccc",
+      "lines": 252
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.Search.cs",
+      "scope": "主责全文",
+      "sha256": "aa51a95d7e5a306d07bd2c0c0ae3145981c91aa2b020a73aa2440204bfadd7a5",
+      "lines": 280
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.Window.cs",
+      "scope": "主责全文",
+      "sha256": "577ac5d8c3bedf6d12a75d5861ec179401925c9fe999d0b1b14230c7c5cced49",
+      "lines": 308
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+      "scope": "主责全文",
+      "sha256": "637c298c52fb397326114c2ae7a9f2764142e8f6347a9897a83414147df85ba4",
+      "lines": 3197
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/ResumeSlot.cs",
+      "scope": "主责全文",
+      "sha256": "b54147e55922e847bd674aa3b9cf25115cd9f92e8ab9a7bcbfed2b079b74c4b9",
+      "lines": 75
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SearchResultGroup.cs",
+      "scope": "主责全文",
+      "sha256": "55c66f9c60726cb6cb4fcc583b727f6a6d465f6a431b1601d43a8b0b39ef0139",
+      "lines": 36
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/UpcomingDay.cs",
+      "scope": "主责全文",
+      "sha256": "8adee1f03598f3001108a4117c272f69611d23002a9350ec52a35ebcd9bf805f",
+      "lines": 16
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/UpcomingListDiff.cs",
+      "scope": "主责全文",
+      "sha256": "1dbe8528743d447b9972eb369cb26efcca65e1daf9903df5470130902e99fc1c",
+      "lines": 71
+    },
+    {
+      "path": "src/Momoka.Shell/Views/BannerSlide.cs",
+      "scope": "主责全文",
+      "sha256": "3af0a023b6a8fad398531c5366766d7bd8c6411f0a441a1b1f70f5e854068d24",
+      "lines": 349
+    },
+    {
+      "path": "src/Momoka.Shell/Views/CardItem.cs",
+      "scope": "主责全文",
+      "sha256": "ad510e9fb61c0ee178a250672094158611e0d27a9d4a6cdcf7dc00303428d340",
+      "lines": 1053
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FilterPanel.xaml",
+      "scope": "主责全文",
+      "sha256": "7cbf90efa8aece9b5c066bb13185cd7f2d3109514ce20075e62e9255ce481a66",
+      "lines": 310
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FilterPanel.xaml.cs",
+      "scope": "主责全文",
+      "sha256": "7a4022b78768fe26179357839ae489f89f17916760924ae484ed26ce020b4b33",
+      "lines": 135
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FilterSectionTemplates.cs",
+      "scope": "主责全文",
+      "sha256": "defce81453cedbfd1a121fec86cc2ba15c1aa1b138700310744e45f431f0dfcb",
+      "lines": 48
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeBanner.xaml",
+      "scope": "主责全文",
+      "sha256": "0c50ab05fdb4b63e30f2fd546600d8696d7f7226059480204cff17324f3cf62a",
+      "lines": 480
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeBanner.xaml.cs",
+      "scope": "主责全文",
+      "sha256": "ae74cd06324e949e594522146cd6a4b947b57581836ea81aa3aa769774ab2a47",
+      "lines": 1644
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeFoldMotion.cs",
+      "scope": "主责全文",
+      "sha256": "fecfbc8dd0793ba1a229c8ff38fb7001ab625557610d081dbc411da12580f096",
+      "lines": 209
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeMotion.cs",
+      "scope": "主责全文",
+      "sha256": "cd0783443d2ab1f6c36d9bbe8e0a9ba558319195ab243000271f01c54db0d515",
+      "lines": 265
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomePage.Removal.cs",
+      "scope": "主责全文",
+      "sha256": "82259eeb77dc394a4df9c78fa9b928ee5820e0a3282d7aa0301d6a7d9d0285ef",
+      "lines": 61
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomePage.Rows.cs",
+      "scope": "主责全文",
+      "sha256": "2ce7f905529370692c812969479752df5eca6fce8a041d68d060c5c836369559",
+      "lines": 85
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomePage.xaml",
+      "scope": "主责全文",
+      "sha256": "cc379e809cb10b74b92259ae75707403879c2d2240077055e6acf8e1dfab102d",
+      "lines": 326
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomePage.xaml.cs",
+      "scope": "主责全文",
+      "sha256": "ca1f233c89428d41f81dc4c2c5fe963f7777b52c157ad2c4c5b6c1a6516be07c",
+      "lines": 1561
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeRowTemplates.cs",
+      "scope": "主责全文",
+      "sha256": "8bc89f872451236d4b299434fca106b034edd5311d92a2279ed67e6cefe705c0",
+      "lines": 18
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibraryPage.Anchor.cs",
+      "scope": "主责全文",
+      "sha256": "80e47da30bd5737a16b3234545ffe405a089c283a9e4f8aba3a982a7ea08b841",
+      "lines": 136
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibraryPage.xaml",
+      "scope": "主责全文",
+      "sha256": "0a3913a27659e1eb8601f9083aacf6ae8f091c6727945ce26b2c4f7000524bc4",
+      "lines": 1137
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+      "scope": "主责全文",
+      "sha256": "1969c19ddee0f3e00237ea024124002422d2102057c973b6e88bc48873bb8f72",
+      "lines": 1965
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibraryRequest.cs",
+      "scope": "主责全文",
+      "sha256": "4c9debfafcfa152d24f562a94e85063167eaa1b78ae60d4b502743d0a93c86de",
+      "lines": 236
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibrarySettingsPanel.xaml",
+      "scope": "主责全文",
+      "sha256": "94a16a6b558588a4fe242fbd4bb5969ae118a9ed2250860be2ad8e1affe5e439",
+      "lines": 119
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibrarySettingsPanel.xaml.cs",
+      "scope": "主责全文",
+      "sha256": "c40192fd4506971099304b3a71683e88539760afec51c2f35940a02165f4d9e6",
+      "lines": 281
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SearchSiteSlot.cs",
+      "scope": "主责全文",
+      "sha256": "27af666a5460903cb317b819bb8444fc83d4c94c0746e3a199346ac85f5e1420",
+      "lines": 67
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SearchSourceTabs.cs",
+      "scope": "主责全文",
+      "sha256": "6f239aca8d9ba0a68a29cf97fba345a102b48491447dd6ea4b14cccde2bae29c",
+      "lines": 18
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShelfHead.xaml",
+      "scope": "主责全文",
+      "sha256": "d7b2a864b147c9d102d56f51c9f96c5a3635b2edbe858160a4321a9af42404ec",
+      "lines": 159
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShelfHead.xaml.cs",
+      "scope": "主责全文",
+      "sha256": "fa17b024b3943a8795ecf5fefe37849c8c9e9f15a8f0e29fbfcf19bd5863c01d",
+      "lines": 398
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShelfStrip.xaml",
+      "scope": "主责全文",
+      "sha256": "44774f34c01af6ada00b8bb35378f950b6f6286180fc4e50399a07a05a4f5c6d",
+      "lines": 196
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShelfStrip.xaml.cs",
+      "scope": "主责全文",
+      "sha256": "754fa21e52f06f11725f01b0831b3fadb08bc7097879b8a568eb0270be72af77",
+      "lines": 821
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.Protocol.cs",
+      "scope": "联审全文",
+      "sha256": "2049ee83da9c0d7a357661c04c93f5536dee2f9658b7838de12fa8a6102c13b9",
+      "lines": 57
+    },
+    {
+      "path": "src/Momoka.Core/Infrastructure/LoadGeneration.cs",
+      "scope": "联审全文",
+      "sha256": "32f3d773042e0c2944c5ae13e4a6f005bccc8b617d78657c686644afea9e3986",
+      "lines": 52
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.HomeBannerClock.cs",
+      "scope": "联审全文",
+      "sha256": "a404dada495ffed201bf91fd6d72077682d928c788e7260225d75164a5a29fec",
+      "lines": 198
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.HomeBannerLibraries.cs",
+      "scope": "联审全文",
+      "sha256": "c999a0aa8acaa3a055684ac130d6156473343bcf933666ebc6d4741f5d31c520",
+      "lines": 186
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PageViewModel.cs",
+      "scope": "联审全文",
+      "sha256": "7571679ac96effd2234a59b3f08c79bc9283d630f1eb33bfe9d812a254811b1a",
+      "lines": 226
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailRequest.cs",
+      "scope": "联审全文",
+      "sha256": "ba3a28a2b5c313dba56a1200e730e2a26a46139160aaf04f3630f0f0826f2b02",
+      "lines": 32
+    },
+    {
+      "path": "tests/Momoka.HomeDirectoryTests/Momoka.HomeDirectoryTests.csproj",
+      "scope": "联审全文",
+      "sha256": "ca885499e9521c10c3f1b439e273e53f102e91147f3e090ebd0a3064a6d9bbac",
+      "lines": 53
+    },
+    {
+      "path": "tests/Momoka.HomeDirectoryTests/PageBoundaries.cs",
+      "scope": "联审全文",
+      "sha256": "9bee7dae16e71c6c92cd08fed593394f1cd3a5acde595866fe4e14172933df86",
+      "lines": 125
+    },
+    {
+      "path": "tests/Momoka.HomeDirectoryTests/Program.cs",
+      "scope": "联审全文",
+      "sha256": "a314b43b142eb60c9bc2bb7e628c791beb4d8f95d89f21a75d8a52b1a0ba725c",
+      "lines": 252
+    },
+    {
+      "path": "tests/Momoka.HomeDirectoryTests/README.md",
+      "scope": "联审全文",
+      "sha256": "6e331b535a26348398f24bd1cfe1ace3079fa1eb16ab026f0ab16877e3339aa5",
+      "lines": 18
+    },
+    {
+      "path": "tests/Momoka.HomeFoldCompletionTests/FrameworkBoundary.cs",
+      "scope": "联审全文",
+      "sha256": "bd31b0e374699fcde305b62ddb39bd3946f29cdf9e69eb813386a1c6c40e8282",
+      "lines": 240
+    },
+    {
+      "path": "tests/Momoka.HomeFoldCompletionTests/Momoka.HomeFoldCompletionTests.csproj",
+      "scope": "联审全文",
+      "sha256": "fd4733c2889a6d571260ffcd21080886cc2f949e8a5f8c97bbef6fb96adf10ba",
+      "lines": 66
+    },
+    {
+      "path": "tests/Momoka.HomeFoldCompletionTests/PageBoundary.cs",
+      "scope": "联审全文",
+      "sha256": "689ca997ae5d486ab35316c25b0a866c7a469303fefecf72875f08e69fab52cd",
+      "lines": 147
+    },
+    {
+      "path": "tests/Momoka.HomeFoldCompletionTests/Program.cs",
+      "scope": "联审全文",
+      "sha256": "632b5443ff80ee3fcadc0a8d3457ba5983365c78a6a2e02175ad4314571c53e9",
+      "lines": 753
+    },
+    {
+      "path": "tests/Momoka.HomeFoldCompletionTests/README.md",
+      "scope": "联审全文",
+      "sha256": "1faeea6978e0fa0c2d2928dcb30494610d76892807da4ba00dc3e9e21c1381c8",
+      "lines": 49
+    },
+    {
+      "path": "tests/Momoka.LibraryHeaderTests/Program.cs",
+      "scope": "联审全文",
+      "sha256": "b22cd07fab333b84b7f951052a9f010493b812608a19347eed6a42b128bc6563",
+      "lines": 128
+    },
+    {
+      "path": "tests/Momoka.LibraryHeaderTests/README.md",
+      "scope": "联审全文",
+      "sha256": "f695bae51bb1a74c272ee8a9260ad9e88b8d44c0a0d30b1cd2a5dc30c2cff553",
+      "lines": 5
+    },
+    {
+      "path": "tests/Momoka.PageContractTests/FilterValuesTests.cs",
+      "scope": "联审全文",
+      "sha256": "b2aa822697f7987f169a025c18e87f88ffe95751b47f7f7991e32e5907747f2f",
+      "lines": 79
+    },
+    {
+      "path": "tests/Momoka.PageContractTests/LibraryAnchorTests.cs",
+      "scope": "联审全文",
+      "sha256": "bb8a7a428693dd15a25d276962208ed1c24c214de9a36f9b525681df20dfb56c",
+      "lines": 107
+    },
+    {
+      "path": "tests/Momoka.PerfListDiagnosticsTests/UpcomingPaginationTests.cs",
+      "scope": "联审全文",
+      "sha256": "47963ac7c9db2629a8eff1a3552a61459f61a090bc7ced118374c0deb3cd620e",
+      "lines": 210
+    },
+    {
+      "path": "tests/Momoka.SearchLifetimeTests/Boundaries.cs",
+      "scope": "联审全文",
+      "sha256": "0d829758b7265b3afa8d4ac6883e562253f305775d81e1ef36decc23bdedcd83",
+      "lines": 187
+    },
+    {
+      "path": "tests/Momoka.SearchLifetimeTests/Fixture.cs",
+      "scope": "联审全文",
+      "sha256": "85c2fb8b06a180e7013ab3e93096c209c7c612284cdaf27e01e3a1078e95c8b6",
+      "lines": 161
+    },
+    {
+      "path": "tests/Momoka.SearchLifetimeTests/LibraryPageBoundaries.cs",
+      "scope": "联审全文",
+      "sha256": "721fa4e8df4b655cb4f40e9604a9b7878d0ceb68fa5b8cccf3b92a86e92b3905",
+      "lines": 114
+    },
+    {
+      "path": "tests/Momoka.SearchLifetimeTests/Momoka.SearchLifetimeTests.csproj",
+      "scope": "联审全文",
+      "sha256": "7a1aff043ba638c32d5b913ee842ee5956d1a2043b179150846a05b135e06bc8",
+      "lines": 78
+    },
+    {
+      "path": "tests/Momoka.SearchLifetimeTests/MoviePilotLifetimeTests.cs",
+      "scope": "联审全文",
+      "sha256": "6048b1b5f465b07e7af10d0f7244f1fd602d1d1d7423c95530de04eaa83b4ba6",
+      "lines": 409
+    },
+    {
+      "path": "tests/Momoka.SearchLifetimeTests/Program.cs",
+      "scope": "联审全文",
+      "sha256": "cdc216360054861226d57c0df0cddb7e54a9d0f494b2a25b720a3cdded9913ff",
+      "lines": 62
+    },
+    {
+      "path": "tests/Momoka.SearchLifetimeTests/README.md",
+      "scope": "联审全文",
+      "sha256": "504717df72ebb9e1e0daef488ddc0adc8b6b14a5c1b7e0a91f5eaf771957eca3",
+      "lines": 98
+    },
+    {
+      "path": "tests/Momoka.SearchLifetimeTests/SubscriptionNavigationTests.cs",
+      "scope": "联审全文",
+      "sha256": "f1c57fd1b59c395de7abbec58cb36587fb83a4ae12def7f4ad892d04c3362011",
+      "lines": 109
+    },
+    {
+      "path": "tests/Momoka.Tests/AggregateQueryTests.cs",
+      "scope": "联审全文",
+      "sha256": "9debb2a9a6367b14f9fd0ad7ff34dc4d226bb4f581131dbc0aae121293dc47f8",
+      "lines": 309
+    },
+    {
+      "path": "tests/Momoka.Tests/BrowseSnapshotTests.cs",
+      "scope": "联审全文",
+      "sha256": "f72b6ee6613adc00b1d5773127b0c24f703200ba5cf7d233ff677ac85dfd43ae",
+      "lines": 163
+    },
+    {
+      "path": "tests/Momoka.Tests/BrowsingPreferencesTests.cs",
+      "scope": "联审全文",
+      "sha256": "25082ac4db2b91a23b3a1cb8919a0c0d47f18e75a5c0f9c268ac050dc9baa2e7",
+      "lines": 125
+    },
+    {
+      "path": "tests/Momoka.Tests/HomeCarouselTests.cs",
+      "scope": "联审全文",
+      "sha256": "b64e180204f0b2e22f732b004323b8a61e68cc068ead752b4e36ae19b7f8e468",
+      "lines": 334
+    },
+    {
+      "path": "tests/Momoka.Tests/HomeFoldTests.cs",
+      "scope": "联审全文",
+      "sha256": "f8d106e75770b4c134c5c238d969b98ffe023fd9921dac427074f4f91e9bd511",
+      "lines": 125
+    },
+    {
+      "path": "tests/Momoka.Tests/HomeLatestTests.cs",
+      "scope": "联审全文",
+      "sha256": "6785d6cea113b3878956e48803fcc21ad0bdcc2a0d63df1e0940779c147a1947",
+      "lines": 71
+    },
+    {
+      "path": "tests/Momoka.Tests/HomeLayoutTests.cs",
+      "scope": "联审全文",
+      "sha256": "6ddaf23144d04dcd4a3adce64ccae19604d1e3753bd46795cf239105590fc28e",
+      "lines": 514
+    },
+    {
+      "path": "tests/Momoka.Tests/HomePerformanceTests.cs",
+      "scope": "联审全文",
+      "sha256": "6f6697917cbfde58541bebe72df9ed02b3522ecd1ca52587b1ccab5d712a3598",
+      "lines": 541
+    },
+    {
+      "path": "tests/Momoka.Tests/HomeResumeTextTests.cs",
+      "scope": "联审全文",
+      "sha256": "6f3e2bcfb39cdbc5fb15022f774af9ce56f3ddc2d13516acf3457018ee7a90a2",
+      "lines": 70
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryBrowseTests.cs",
+      "scope": "联审全文",
+      "sha256": "9a53760a64f93e03a77d08382356a67e3770e58590e5954052068ab34704e91c",
+      "lines": 470
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryDeepReturnTests.cs",
+      "scope": "联审全文",
+      "sha256": "39604c98642d9f7c2d834e4ece23e0d079f804a14012e481cee3daf3f834f3bf",
+      "lines": 493
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryDisplayTests.cs",
+      "scope": "联审全文",
+      "sha256": "452e5c84cc045075352c2c292f311fbef8564553cc53992ee6f70b97ed7df13c",
+      "lines": 334
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryEpisodeFolderTests.cs",
+      "scope": "联审全文",
+      "sha256": "c2850d330c466fefc2fcc4553c9db9c538b4786d1b2670580a1d62b5f21e0e78",
+      "lines": 124
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryFavoriteSourceTests.cs",
+      "scope": "联审全文",
+      "sha256": "536977c968c9d8ba46b708a952bbe06fd089327a75828beec90568ae212ac3f0",
+      "lines": 226
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryFavoritesTests.cs",
+      "scope": "联审全文",
+      "sha256": "6c4d46506ad8ecfdc7b12c3db0ef5cb33cb433f757cded024b8da92ae37cc6ef",
+      "lines": 211
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryIndexTests.cs",
+      "scope": "联审全文",
+      "sha256": "3b9e91616fd1d16b6619ca8cffc65755cf74c1f9a9b023213b75484a6393bf98",
+      "lines": 223
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryRecommendedTests.cs",
+      "scope": "联审全文",
+      "sha256": "8b15d0482943531bb08a74a659c6317b6d9d7c596664e702ca52ba3361e7eea2",
+      "lines": 230
+    },
+    {
+      "path": "tests/Momoka.Tests/LibrarySearchTests.cs",
+      "scope": "联审全文",
+      "sha256": "83f4a9bfe6e19baa50ade1d7990621800e778fd2a5f452e49a5e350895ebf998",
+      "lines": 98
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryTotalTests.cs",
+      "scope": "联审全文",
+      "sha256": "3b21589e50e52018d101cd965cfd542c88525a4d32e970e177c3ca076071a698",
+      "lines": 73
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryUpcomingTests.cs",
+      "scope": "联审全文",
+      "sha256": "b2a9ac4989f5b2ad1da8b694c6ed39ba02e6ec5da4f92f193b9a0e241236b173",
+      "lines": 191
+    },
+    {
+      "path": "tests/Momoka.Tests/ReleaseGroupTests.cs",
+      "scope": "联审全文",
+      "sha256": "13ecf46733f0b7139a7009f9ca149da03b7ef6bb6babdbd73ca032aa80975bab",
+      "lines": 75
+    },
+    {
+      "path": "tests/Momoka.Tests/UiLifecycleTests.cs",
+      "scope": "联审全文",
+      "sha256": "7485b57bece0070388678e111550bc8f2b04e604e21b684ffe900abc47dcdac8",
+      "lines": 223
+    },
+    {
+      "path": "docs/开发与验证.md",
+      "scope": "标准构建命令、四个实际VM专项与搜索四来源行为说明",
+      "sha256": "9c6dc1da07682753f2184bb5f43d9ee6c7ec3c1f0739f63098a41caab8e99947",
+      "lines": 1116
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+      "scope": "UiSettings RecentSearches/PageSize/LastLibraryId/Sort/Filters/Views/Display/ShowHomeBanner/HomeLibraryPlacement/Carousel*/HomeRows*；不含schema27迁移",
+      "sha256": "5cf584338cdb16b8f34d087543a3cc87ceb563c58b224b673d630dc87685078a",
+      "lines": 1688
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+      "scope": "GetViews/GetItems/GetFnNasFilterOptions/GetFilterValues/QueryResume/GetResume/GetLatest/GetRandom/WithCarouselArtwork/QueryNextUp/GetNextUp/GetMovieRecommendations/GetSeasons/GetEpisodes/GetCollections/GetSimilar",
+      "sha256": "872e2d283f3e7e25a761cd3bb16aab8b06abf104e126c4b7427ee5670d3b9770",
+      "lines": 1185
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.cs",
+      "scope": "GetItemsAsync与Page类型过滤/分页；R05既有问题未重编号",
+      "sha256": "d12574317cb8727bd9ff66212925cb330835ece2d28f93999e37fad80bd5dd92",
+      "lines": 326
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexMediaAdapter.Models.cs",
+      "scope": "Item容器状态106-134；R05-005",
+      "sha256": "c6e97f824a604ed2afbc3db6b32870c825ffebd7570b6ee86521bbdc3644fc59",
+      "lines": 343
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexMediaAdapter.cs",
+      "scope": "GetItemsAsync/SearchFilteredAsync/GetNextUpAsync；R05-003消费链",
+      "sha256": "c562713d7bb961444468e4208100eb750af8c47ae7bad63fca32c58a053f932c",
+      "lines": 318
+    },
+    {
+      "path": "src/Momoka.Shell/Composition/ShellServices.cs",
+      "scope": "Build中的BrowseSnapshotStore注册86及图片/设置依赖",
+      "sha256": "abdb27efff5c3ec7c431a2bdb260e9132fd884004cba9dac191f9035156dc443",
+      "lines": 218
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.SearchLayout.cs",
+      "scope": "防抖、分类、历史、来源切换的相关Case",
+      "sha256": "cc01b77061b22f8f0edca6cc68c5195c5efa4f534526730840f499a4d1e82678",
+      "lines": 660
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+      "scope": "Attach的来源捕获与初始数据交接",
+      "sha256": "985eb39520872f3707ea8c361f0d42412c53c847c416eb7e29c3dbd7d18f4276",
+      "lines": 4146
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "scope": "SettingSection1-155、HomeSections/HomeRows/CurrentHomeRows/RefreshHomeRows/MeasureHomeRows1923-2168",
+      "sha256": "391bba844ab6496ff68de2ac595060b899c106e3932334cf8c91d63ff5b45948",
+      "lines": 3176
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.xaml.cs",
+      "scope": "OnNavigatedTo/OnNavigatedFrom交接",
+      "sha256": "a7de23d139468282fb11e1470645f1a10281cf310e6a611ecf23fd15cebd735a",
+      "lines": 2576
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+      "scope": "HideFromResume582-596、DeleteAsync604-631成功回调",
+      "sha256": "55b94767455ac916c78bd77d1f2b5b1ac0a1a6c510af773330ace3bbb117ce1a",
+      "lines": 632
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "scope": "TryOpenLibrary/LibraryViews、GoTo(home/search/favorites)、OnFavoritesClicked/RefreshFavorites、OpenItem/OpenDetail/OpenSearch/OpenGenre/OpenRow及目录交接尾部",
+      "sha256": "3138187621e0f42476f506acba62a6313f3bbb9641cfe4e9e755a039d5e88f4b",
+      "lines": 2624
+    },
+    {
+      "path": "tests/Momoka.LibraryHeaderTests/Momoka.LibraryHeaderTests.csproj",
+      "scope": "当前源码提取、引用及生成入口",
+      "sha256": "1f05293658ac58ffb260aff4d4f28dd665f3ed5bf6bbc6f62c047385659e202e",
+      "lines": 43
+    },
+    {
+      "path": "tests/Momoka.ResourceBrowserTests/SearchCompactMergeTests.cs",
+      "scope": "前65行搜索来源及模板合同",
+      "sha256": "ee86ed317708abadb06c4bc845c95ba659498534e83eac4901f36e48d02c21c7",
+      "lines": 290
+    },
+    {
+      "path": "tests/Momoka.Tests/FnNasMediaTests.cs",
+      "scope": "搜索类型过滤用例",
+      "sha256": "cc42375a1e11a7d96f8813422bfec25dfd766291370f9e8486d940df4e45dcc2",
+      "lines": 959
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryResumePagingTests.cs",
+      "scope": "搜索/最近历史/暖缓存用例；ShellFixture、Fixture、ResumeTransport与SingleThread完整辅助类型；其余用例未全文",
+      "sha256": "77b1a580a95e1c1c8bae1708cb80043abaa41ecae839fc85fddabd73abd76f15",
+      "lines": 1351
+    },
+    {
+      "path": "tests/Momoka.Tests/PlexMediaTests.cs",
+      "scope": "搜索类型过滤用例",
+      "sha256": "598053d7ce2b8ec6d4cf0e1a6c0f60833fb1c4c96765a300128a2478b76cde28",
+      "lines": 300
+    },
+    {
+      "path": "tests/Momoka.Tests/Program.cs",
+      "scope": "主测试显式fixture分派与相关Register入口",
+      "sha256": "bb6feb7f7c97e1c5e76da303b42e4a8efeb60df3227bee10410d8569e162d48c",
+      "lines": 441
+    },
+    {
+      "path": "tests/Momoka.Tests/SettingsApplicabilityTests.cs",
+      "scope": "ShellFixture/State构造与Attach/Rebuild463-545，反射HomeSections匿名依赖",
+      "sha256": "5becbc98bbf5b32944e672816ff8b25e17c08076c634f6bb8a302f008431c194",
+      "lines": 567
+    },
+    {
+      "path": "tests/Momoka.Tests/TestHarness.cs",
+      "scope": "登记、Run及Assert基础；未计完整断言库",
+      "sha256": "4c1d3fc967eb2a8cddb728466e21ed79c0ffbb366e5eaff44d3701bc4aa89435",
+      "lines": 154
+    },
+    {
+      "path": "tools/check-diff.ps1",
+      "scope": "参数、当前树/变更枚举、编码与空白入口",
+      "sha256": "84244aeb74fbd8cfac193cf2a552553095b0bee2319082ef6ff77f26ddd22ac7",
+      "lines": 128
+    }
+  ],
+  "sourceAnchors": [
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+      "line": 1714,
+      "text": "items.RemoveRange"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+      "line": 1921,
+      "text": "QueryCurrent"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+      "line": 1763,
+      "text": "ViewModel.Cancel"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+      "line": 1513,
+      "text": "ViewModel.SearchText"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.Favorites.cs",
+      "line": 50,
+      "text": "_sources ="
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+      "line": 1287,
+      "text": "_sourceTokens ="
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/HomeViewModel.cs",
+      "line": 1026,
+      "text": "load.Parts[index] ??="
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryDisplay.cs",
+      "line": 621,
+      "text": "public static string Cell"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+      "line": 1391,
+      "text": "!Cards.Contains"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeBanner.xaml.cs",
+      "line": 423,
+      "text": "if (keep >= 0)"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeBanner.xaml.cs",
+      "line": 818,
+      "text": "_slides.Count <= 1"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "line": 1964,
+      "text": "var carouselRows"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/HomeLayout.cs",
+      "line": 127,
+      "text": "Libraries =>"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/CardShelf.cs",
+      "line": 102,
+      "text": "public bool CanOpen"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemFingerprint.cs",
+      "line": 59,
+      "text": "item.Genres"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.Window.cs",
+      "line": 146,
+      "text": "FirstPageMatches"
+    }
+  ],
+  "assemblies": [
+    {
+      "path": "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll",
+      "sha256": "fc23be8fdb764043b283c3bf33524b23c88f027f303f101bbd331b3b5728378e",
+      "buildEvidence": "R05当前同源码Release构建；R06核哈希复用"
+    },
+    {
+      "path": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
+      "sha256": "5333fba1ae9be637ec411bae321be33aaa778cff6e1186178844ac2a94cece79",
+      "buildEvidence": "R05当前同源码Release构建；R06核哈希复用"
+    },
+    {
+      "path": "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.dll",
+      "sha256": "c96ac621c0588b54e6fdc26c9069527b225e3801fa42f4ddad7488fd07f5b073",
+      "buildEvidence": "R05当前同源码Release构建；R06核哈希复用"
+    },
+    {
+      "path": "tests/Momoka.HomeDirectoryTests/bin/Release/net10.0/Momoka.HomeDirectoryTests.dll",
+      "sha256": "a0a2d675aad09ce986dacfedcbd3b823d3932c383a21c95e20fb8d6838deaec5",
+      "buildEvidence": "HomeDirectoryTests-build.log"
+    },
+    {
+      "path": "tests/Momoka.HomeFoldCompletionTests/bin/Release/net10.0/Momoka.HomeFoldCompletionTests.dll",
+      "sha256": "8f1ebcb3c86b4378dc01d431aba950f331bce6b5efd7b4099a75f7ea41ae3d4d",
+      "buildEvidence": "HomeFoldCompletionTests-build.log"
+    },
+    {
+      "path": "tests/Momoka.LibraryHeaderTests/bin/Release/net10.0/Momoka.LibraryHeaderTests.dll",
+      "sha256": "fd53fd3b4e8d8256da8a113baaea5754f177bbd498f59a03f211436889a7bebf",
+      "buildEvidence": "LibraryHeaderTests-build.log"
+    },
+    {
+      "path": "tests/Momoka.SearchLifetimeTests/bin/Release/net10.0/Momoka.Tests.dll",
+      "sha256": "e3c8062c393be7062d14f69eeb2a3c686816aa750f691432b4440a8425b0ebd4",
+      "buildEvidence": "SearchLifetimeTests-build.log"
+    }
+  ],
+  "existingTests": {
+    "passed": 429,
+    "failed": 0,
+    "skipped": 0,
+    "entrypoints": 9,
+    "independentCoverageCount": false
+  },
+  "anonymousCounterexamples": [
+    {
+      "name": "resume-refresh-truncates-consumed-page",
+      "failed": false,
+      "data": {
+        "before": 20,
+        "afterRefresh": 21,
+        "cursorConsumed": 40,
+        "afterMore": 41,
+        "missing": [
+          "a-20",
+          "a-21",
+          "a-22",
+          "a-23",
+          "a-24",
+          "a-25",
+          "a-26",
+          "a-27",
+          "a-28",
+          "a-29",
+          "a-30",
+          "a-31",
+          "a-32",
+          "a-33",
+          "a-34",
+          "a-35",
+          "a-36",
+          "a-37",
+          "a-38"
+        ],
+        "requests": "a:0,a:0,a:20,a:40"
+      }
+    },
+    {
+      "name": "search-return-retains-cancelled-query",
+      "failed": false,
+      "data": {
+        "before": 20,
+        "afterReturnMore": 20,
+        "cancelledToken": true,
+        "resubmitThenMore": 40
+      }
+    },
+    {
+      "name": "search-text-and-committed-term-diverge",
+      "failed": false,
+      "data": {
+        "shown": "beta",
+        "committed": "alpha",
+        "query": [
+          {
+            "key": "Fields",
+            "value": "PrimaryImageAspectRatio,Overview,ProductionYear,PremiereDate,EndDate,Status,ChildCount,DateCreated,Genres,Tags"
+          },
+          {
+            "key": "StartIndex",
+            "value": "0"
+          },
+          {
+            "key": "Limit",
+            "value": "20"
+          },
+          {
+            "key": "Recursive",
+            "value": "true"
+          },
+          {
+            "key": "SearchTerm",
+            "value": "alpha"
+          },
+          {
+            "key": "IncludeItemTypes",
+            "value": "Movie,Series,Episode,Video"
+          }
+        ],
+        "oldCardsRetained": 20
+      }
+    },
+    {
+      "name": "favorites-source-cache-key-stale",
+      "failed": false,
+      "data": {
+        "hit": true,
+        "expectedSource": "all",
+        "label": "全部账号",
+        "selectedB": [
+          "b-0",
+          "b-1",
+          "b-2",
+          "b-3",
+          "b-4",
+          "b-5",
+          "b-6",
+          "b-7",
+          "b-8",
+          "b-9",
+          "b-10",
+          "b-11",
+          "b-12",
+          "b-13",
+          "b-14",
+          "b-15",
+          "b-16",
+          "b-17",
+          "b-18",
+          "b-19"
+        ],
+        "restored": [
+          "b-0",
+          "b-1",
+          "b-2",
+          "b-3",
+          "b-4",
+          "b-5",
+          "b-6",
+          "b-7",
+          "b-8",
+          "b-9",
+          "b-10",
+          "b-11",
+          "b-12",
+          "b-13",
+          "b-14",
+          "b-15",
+          "b-16",
+          "b-17",
+          "b-18",
+          "b-19"
+        ]
+      }
+    },
+    {
+      "name": "home-nextup-failure-clears-warm-row",
+      "failed": false,
+      "data": {
+        "before": 1,
+        "after": 0,
+        "notice": true,
+        "backgroundFailures": 0
+      }
+    },
+    {
+      "name": "table-note-columns-empty",
+      "failed": false,
+      "data": {
+        "tagline": "",
+        "overview": "",
+        "title": "table",
+        "note": "tagline text"
+      }
+    },
+    {
+      "name": "recommended-removal-ignores-shelf-card",
+      "failed": false,
+      "data": {
+        "queryCurrent": true,
+        "before": 2,
+        "removed": false,
+        "retained": 2,
+        "mainCards": 0
+      }
+    },
+    {
+      "name": "snapshot-fingerprint-ignores-tags",
+      "failed": false,
+      "data": {
+        "actual": "old tag",
+        "expected": "new tag",
+        "sameCard": true,
+        "serverTags": [
+          "new tag"
+        ]
+      }
+    },
+    {
+      "name": "disabled-home-carousel-keeps-dependent-rows",
+      "failed": false,
+      "data": {
+        "banner": false,
+        "rows": [
+          "显示主页轮播大图",
+          "轮播图用什么媒体",
+          "轮播图条目来源",
+          "轮播图张数",
+          "封面轮换秒数"
+        ]
+      }
+    }
+  ],
+  "confirmedFindings": [
+    {
+      "id": "R06-001",
+      "priority": "P2",
+      "fixed": false,
+      "evidence": "anonymous-runtime-and-source"
+    },
+    {
+      "id": "R06-002",
+      "priority": "P2",
+      "fixed": false,
+      "evidence": "anonymous-runtime-and-source"
+    },
+    {
+      "id": "R06-003",
+      "priority": "P2",
+      "fixed": false,
+      "evidence": "anonymous-runtime-and-source"
+    },
+    {
+      "id": "R06-004",
+      "priority": "P2",
+      "fixed": false,
+      "evidence": "anonymous-runtime-and-source"
+    },
+    {
+      "id": "R06-005",
+      "priority": "P2",
+      "fixed": false,
+      "evidence": "anonymous-runtime-and-source"
+    },
+    {
+      "id": "R06-006",
+      "priority": "P2",
+      "fixed": false,
+      "evidence": "anonymous-runtime-and-source"
+    },
+    {
+      "id": "R06-007",
+      "priority": "P2",
+      "fixed": false,
+      "evidence": "anonymous-runtime-and-source"
+    },
+    {
+      "id": "R06-008",
+      "priority": "P2",
+      "fixed": false,
+      "evidence": "source"
+    },
+    {
+      "id": "R06-009",
+      "priority": "P2",
+      "fixed": false,
+      "evidence": "anonymous-runtime-and-source"
+    },
+    {
+      "id": "R06-010",
+      "priority": "P2",
+      "fixed": false,
+      "evidence": "source"
+    },
+    {
+      "id": "R06-011",
+      "priority": "P2",
+      "fixed": false,
+      "evidence": "anonymous-runtime-and-source"
+    }
+  ],
+  "checks": [
+    {
+      "name": "HomeDirectoryTests-restore",
+      "arguments": [
+        "restore",
+        "tests/Momoka.HomeDirectoryTests/Momoka.HomeDirectoryTests.csproj",
+        "--source",
+        "C:\\Users\\89400\\.nuget\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\HomeDirectoryTests-restore.log"
+    },
+    {
+      "name": "HomeDirectoryTests-build",
+      "arguments": [
+        "build",
+        "tests/Momoka.HomeDirectoryTests/Momoka.HomeDirectoryTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\HomeDirectoryTests-build.log"
+    },
+    {
+      "name": "HomeDirectoryTests-run",
+      "arguments": [
+        "run",
+        "--project",
+        "tests/Momoka.HomeDirectoryTests/Momoka.HomeDirectoryTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\HomeDirectoryTests-run.log"
+    },
+    {
+      "name": "HomeFoldCompletionTests-restore",
+      "arguments": [
+        "restore",
+        "tests/Momoka.HomeFoldCompletionTests/Momoka.HomeFoldCompletionTests.csproj",
+        "--source",
+        "C:\\Users\\89400\\.nuget\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\HomeFoldCompletionTests-restore.log"
+    },
+    {
+      "name": "HomeFoldCompletionTests-build",
+      "arguments": [
+        "build",
+        "tests/Momoka.HomeFoldCompletionTests/Momoka.HomeFoldCompletionTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\HomeFoldCompletionTests-build.log"
+    },
+    {
+      "name": "HomeFoldCompletionTests-run",
+      "arguments": [
+        "run",
+        "--project",
+        "tests/Momoka.HomeFoldCompletionTests/Momoka.HomeFoldCompletionTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\HomeFoldCompletionTests-run.log"
+    },
+    {
+      "name": "LibraryHeaderTests-restore",
+      "arguments": [
+        "restore",
+        "tests/Momoka.LibraryHeaderTests/Momoka.LibraryHeaderTests.csproj",
+        "--source",
+        "C:\\Users\\89400\\.nuget\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\LibraryHeaderTests-restore.log"
+    },
+    {
+      "name": "LibraryHeaderTests-build",
+      "arguments": [
+        "build",
+        "tests/Momoka.LibraryHeaderTests/Momoka.LibraryHeaderTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\LibraryHeaderTests-build.log"
+    },
+    {
+      "name": "LibraryHeaderTests-run",
+      "arguments": [
+        "run",
+        "--project",
+        "tests/Momoka.LibraryHeaderTests/Momoka.LibraryHeaderTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\LibraryHeaderTests-run.log"
+    },
+    {
+      "name": "SearchLifetimeTests-restore",
+      "arguments": [
+        "restore",
+        "tests/Momoka.SearchLifetimeTests/Momoka.SearchLifetimeTests.csproj",
+        "--source",
+        "C:\\Users\\89400\\.nuget\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1",
+        "-p:BuildInParallel=false"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\SearchLifetimeTests-restore.log"
+    },
+    {
+      "name": "SearchLifetimeTests-build",
+      "arguments": [
+        "build",
+        "tests/Momoka.SearchLifetimeTests/Momoka.SearchLifetimeTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\SearchLifetimeTests-build.log"
+    },
+    {
+      "name": "SearchLifetimeTests-run",
+      "arguments": [
+        "run",
+        "--project",
+        "tests/Momoka.SearchLifetimeTests/Momoka.SearchLifetimeTests.csproj",
+        "-c",
+        "Release",
+        "--no-build",
+        "--no-restore"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\SearchLifetimeTests-run.log"
+    },
+    {
+      "name": "library-resume-paging-fixture",
+      "arguments": [
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll",
+        "library-resume-paging-fixture",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\library-resume-paging-fixture.log"
+    },
+    {
+      "name": "library-favorite-source-fixture",
+      "arguments": [
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll",
+        "library-favorite-source-fixture",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\library-favorite-source-fixture.log"
+    },
+    {
+      "name": "library-deep-return-fixture",
+      "arguments": [
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll",
+        "library-deep-return-fixture",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\library-deep-return-fixture.log"
+    },
+    {
+      "name": "home-performance-fixture",
+      "arguments": [
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\Release\\net10.0\\Momoka.Tests.dll",
+        "home-performance-fixture",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "log": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\home-performance-fixture.log"
+    }
+  ],
+  "coreSubset": {
+    "command": [
+      "dotnet",
+      "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first\\runner\\bin\\Release\\net10.0\\runner.dll",
+      "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+      "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\6ba7a7f\\R06\\20261106-first",
+      "core"
+    ],
+    "log": "core-tests.log",
+    "exitCode": 0,
+    "passed": 211
+  },
+  "runnerBuilds": [
+    {
+      "log": "runner-build.log",
+      "exitCode": 0,
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "log": "runner-build-2.log",
+      "exitCode": 0,
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "log": "runner-build-3.log",
+      "exitCode": 0,
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "log": "runner-build-4.log",
+      "exitCode": 0,
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "log": "runner-build-5.log",
+      "exitCode": 0,
+      "warnings": 0,
+      "errors": 0
+    }
+  ],
+  "preservedFailures": [
+    {
+      "log": "repro-first.log",
+      "exitCode": 1,
+      "reason": "temporary fixture used Key instead of CardShelf.HomeKey"
+    },
+    {
+      "log": "repro-final.log",
+      "exitCode": 1,
+      "reason": "temporary Gate activator overload and Bind reflection ambiguity"
+    },
+    {
+      "log": "document-check.log",
+      "exitCode": 1,
+      "reason": "settings source anchor expected Toggle but actual line starts carouselRows; anchor text corrected"
+    }
+  ],
+  "finalRepro": {
+    "log": "repro-final-4.log",
+    "exitCode": 0,
+    "observations": 9,
+    "productFixed": false
+  },
+  "notRun": [
+    "full-main-suite",
+    "full-solution",
+    "full-regression-wrapper",
+    "real-WinUI-UIA-screenshots",
+    "real-DispatcherTimer",
+    "real-accounts-DPAPI-servers",
+    "real-writes-playback",
+    "publish-install-push"
+  ],
+  "supersededEvidence": [
+    {
+      "log": "repro-final-3.log",
+      "reason": "recommended removal was built without asserting live query; final-4 performs full LoadAsync then asserts QueryCurrent before RemoveAsync"
+    }
+  ],
+  "sdk": "10.0.400",
+  "runtime": "10.0.11",
+  "sourceAnchorsChecked": 16,
+  "localLinksChecked": 1,
+  "ledgerRowsUpdated": 155,
+  "documentFilesChecked": 8,
+  "newPartitionLinksChecked": 7
+}

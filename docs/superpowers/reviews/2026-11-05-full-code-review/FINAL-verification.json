@@ -1,0 +1,421 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "reviewHead": "042cea9e8c06c6ec7bdcd52dd8b90b9d0a48143a",
+  "masterSnapshot": "4d3d60b66456f2db89a60f9bba1b58f924fab6cf",
+  "ruleSha256": "6b825aec89b7cea678a5b8033d3effc8364a9ecd52ac20059b66b4d9b0f872c6",
+  "reviewComplete": true,
+  "productFixesApplied": false,
+  "push": false,
+  "publish": false,
+  "pauseAfter": "FINAL",
+  "nextPhase": "none",
+  "scope": {
+    "originalIdentities": 1876,
+    "inputLedger": 1943,
+    "inputTracked": 1941,
+    "finalLedger": 1951,
+    "finalDef8Tracked": 1946,
+    "historicalDeleted": 2,
+    "masterOnlyAdded": 3,
+    "reviewDirectoryBefore": 67,
+    "reviewDirectoryFinal": 72,
+    "originalIdentityFieldsUnchanged": true
+  },
+  "findings": {
+    "totalUnique": 133,
+    "P0": 0,
+    "P1": 6,
+    "P2": 117,
+    "P3": 10,
+    "productDelivery": 104,
+    "testVerification": 19,
+    "documentation": 10,
+    "duplicate": {
+      "R17-013": "R03-006"
+    },
+    "new": "FINAL-001",
+    "finalNumbered": [
+      "FINAL-T01",
+      "FINAL-T02"
+    ],
+    "masterStateExceptions": {
+      "R17-010": "59摘要静态已修",
+      "R16-001": "适用范围收窄为主页"
+    }
+  },
+  "increments": {
+    "evidence": "FINAL-increments.json",
+    "paths": 51,
+    "newRanges": 14,
+    "newRangeLines": 1594,
+    "hashReuse": 33,
+    "r12Reuse": 4
+  },
+  "execution": {
+    "schema27": {
+      "restoreExit": 0,
+      "buildExit": 0,
+      "warnings": 0,
+      "errors": 0,
+      "runExit": 1,
+      "cases": 10,
+      "expected": 6,
+      "counterexamples": 4,
+      "evidenceRoot": "artifacts/review/042cea9/FINAL/20261106-first/schema27",
+      "sourcePaths": [
+        "src/Momoka.Core/Configuration/AppSettings.cs",
+        "src/Momoka.Core/Configuration/SettingsMigration.cs"
+      ],
+      "inputs": "anonymous JSON only",
+      "officialTests": false
+    },
+    "oldRuns": "所有区原日志及状态保持；本轮没有重跑旧通过/旧红来洗绿"
+  },
+  "matrix": {
+    "projects": 68,
+    "evidence": "FINAL-matrix.json",
+    "originalRunnerStatusHistoryPreserved": true,
+    "inputCorrections": [
+      {
+        "project": "tests/Momoka.LibraryHeaderTests/Momoka.LibraryHeaderTests.csproj",
+        "old": [
+          {
+            "kind": "Compile",
+            "Include": "../Momoka.Tests/TestHarness.cs",
+            "Link": "TestHarness.cs"
+          },
+          {
+            "kind": "Compile",
+            "Include": "../Momoka.Tests/AgreementsTests.cs",
+            "Link": "AgreementsTests.cs"
+          },
+          {
+            "kind": "Compile",
+            "Include": "../../src/Momoka.Shell/Views/AlphaBar.xaml.cs",
+            "Link": "AlphaBar.xaml.cs"
+          },
+          {
+            "kind": "Compile",
+            "Include": "$(IntermediateOutputPath)LibraryPage.Header.g.cs"
+          },
+          {
+            "kind": "UsingTask",
+            "TaskName": "ExtractLibraryHeader",
+            "TaskFactory": "RoslynCodeTaskFactory",
+            "AssemblyFile": "$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll"
+          }
+        ],
+        "actual": [
+          {
+            "kind": "Compile",
+            "Include": "../Momoka.Tests/TestHarness.cs",
+            "Link": "TestHarness.cs"
+          },
+          {
+            "kind": "Compile",
+            "Include": "../Momoka.Tests/AgreementsTests.cs",
+            "Link": "AgreementsTests.cs"
+          },
+          {
+            "kind": "ProjectReference",
+            "Include": "../../src/Momoka.Core/Momoka.Core.csproj"
+          },
+          {
+            "kind": "UsingTask",
+            "TaskName": "ExtractLibraryHeader",
+            "TaskFactory": "RoslynCodeTaskFactory",
+            "AssemblyFile": "$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll"
+          },
+          {
+            "kind": "Compile",
+            "Include": "$(IntermediateOutputPath)LibraryPage.Header.g.cs"
+          }
+        ]
+      }
+    ]
+  },
+  "initialToInput": {
+    "commits": [
+      "042cea9e8c06c6ec7bdcd52dd8b90b9d0a48143a\t记录R18官网文档技能与历史内容审查并按分区暂停",
+      "d82df28a1b08c12536b584d71da8e7ba5285ce85\t记录R17测试诊断与验证工具审查并按分区暂停",
+      "15c42045a637c592ed5dea42e972e46c9f2a2e0c\t记录R16共享界面主题与图片缓存审查并按分区暂停",
+      "95325933704340887d0cee5939d62934e84f1cb9\t记录R15设置通知与服务器管理审查并按分区暂停",
+      "6fc7f0dfb8e699ca03f0aeae52a1133e59081807\t记录R14弹幕协议输入凭据与生命周期审查并按分区暂停",
+      "a998403dbab9cd9e7caf34777ec23a64a3189526\t记录R13字幕选择管理与翻译审查并按分区暂停",
+      "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f\t记录R12音视频输出审查并按分区暂停",
+      "11921fff05f47dda08f0863dfc09eca49aa511a4\t记录R11播放后端与交互审查并按分区暂停",
+      "12e99d88193b44e7dce4410ecfe3f098d5bb4701\t记录R10播放生命周期审查并按分区暂停",
+      "aa631ff7ddf60a3d89b48e02ee1d0431add037fd\t记录R09整理与媒体管理审查并按分区暂停",
+      "861f48bf080b69937d13a4a66078ce82461dd64e\t记录R08 MoviePilot审查并按分区暂停",
+      "7e83ad27491bcd2ce2baff3e5025080eb2ca7238\t记录R07详情写入与删除审查并按分区暂停",
+      "b8c1d61f38553cce747c05c6393a707b399ac035\t详情背景滑块改成遮罩/模糊强度：0 不遮不糊，100 遮罩完全不透明",
+      "f1e7d74f6ec59cb50a5329b47146794e28834cf5\t记录R06浏览搜索与状态同步审查并按分区暂停",
+      "62e20d9d52c7efbcd5678f43323d769e4b097c9d\t记录R05飞牛与Plex审查并按分区暂停",
+      "8a39ab23021f28dae902ac3944994679f8f1a18d\t记录R04协议与实时连接审查并按分区暂停",
+      "e72ec27beb8ed1c5b0c79828ca01416ad123c24b\t详情页两条不透明度滑块改成直接读数",
+      "f21c00b4aaa531833944a940f694e6ecd95ed3d2\tdocs: 完成R03审查并同步最新主树UI回退",
+      "bc3f62d756efa886a14f9b58fb207adec1a0da11\t记录选择性界面回退主树验证与桌面交付",
+      "7b469c03560d4ffb33aedd43aefc743b1a6ddf6a\t按用户要求撤回其余界面美化并保留继续观看与音频冒号",
+      "37b0f9a4ca74b242e86a40376ddc75d2de990d3d\tdocs: 完成R02设置持久化与凭据分区审查并暂停",
+      "988a0a596a9ebae536e265f4433291ff46beefeb\tdocs: 完成分区审查第0批与R01并暂停"
+    ],
+    "changes": [
+      "M\tPROGRESS.md",
+      "M\tdocs/superpowers/plans/2026-11-05-full-code-review.md",
+      "M\tdocs/superpowers/plans/2026-11-05-ui-polish.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R01.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R02-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R02.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R03-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R03.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R04-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R04.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R05-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R05.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R06-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R06.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R07-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R07.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R08-upstream.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R08-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R08.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R09-upstream.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R09-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R09.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R10-lifetimes.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R10-upstream.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R10-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R10.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R11-lifetimes.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R11-upstream.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R11-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R11.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R12-lifetimes.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R12-shaders.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R12-upstream.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R12-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R12.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R13-lifetimes.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R13-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R13.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R14-lifetimes.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R14-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R14.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R15-lifetimes.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R15-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R15.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R16-lifetimes.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R16-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R16.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R17-lifetimes.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R17-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R17.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R18-verification.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/R18.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/baseline.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/entrypoints.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r04.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r07.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r11.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r12.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r13.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r14.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r15.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r16.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r17.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106-r18.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/file-delta-20261106.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/file-ledger.jsonl",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/master-handoff-20261106.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/shared-members.md",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/validation-matrix.json",
+      "A\tdocs/superpowers/reviews/2026-11-05-full-code-review/verification.json",
+      "M\tdocs/superpowers/specs/2026-11-05-ui-polish.md",
+      "M\tdocs/开发与验证.md",
+      "M\tsrc/Momoka.Core/Configuration/AppSettings.cs",
+      "M\tsrc/Momoka.Core/Configuration/SettingsMigration.cs",
+      "D\tsrc/Momoka.Core/Emby/CardDisplayTitle.cs",
+      "M\tsrc/Momoka.Core/Emby/DetailHero.cs",
+      "M\tsrc/Momoka.Core/Emby/GaussianBackdrop.cs",
+      "M\tsrc/Momoka.Core/Emby/HomeCarousel.cs",
+      "M\tsrc/Momoka.Core/Emby/HomeFold.cs",
+      "M\tsrc/Momoka.Core/Emby/LibraryFavorites.cs",
+      "M\tsrc/Momoka.Core/Emby/LibraryUpcoming.cs",
+      "M\tsrc/Momoka.Core/Infrastructure/CardSize.cs",
+      "M\tsrc/Momoka.Shell/AppearanceOpacity.cs",
+      "M\tsrc/Momoka.Shell/SelfCheckLayoutRules.cs",
+      "M\tsrc/Momoka.Shell/ShellNavigationProbe.BackdropFade.cs",
+      "D\tsrc/Momoka.Shell/ShellNavigationProbe.CardPresentation.cs",
+      "M\tsrc/Momoka.Shell/ShellNavigationProbe.DetailCustomization.cs",
+      "M\tsrc/Momoka.Shell/ShellNavigationProbe.DetailResponsive.cs",
+      "M\tsrc/Momoka.Shell/ShellNavigationProbe.FnNasLibrary.cs",
+      "M\tsrc/Momoka.Shell/ShellNavigationProbe.HomeBannerLibraries.cs",
+      "M\tsrc/Momoka.Shell/ShellNavigationProbe.HomeHeader.cs",
+      "M\tsrc/Momoka.Shell/ShellNavigationProbe.Inspect.cs",
+      "M\tsrc/Momoka.Shell/ShellNavigationProbe.LibraryBrowse.cs",
+      "M\tsrc/Momoka.Shell/ShellNavigationProbe.LibraryHeader.cs",
+      "M\tsrc/Momoka.Shell/ShellNavigationProbe.cs",
+      "M\tsrc/Momoka.Shell/ShellSelfCheck.Reads.cs",
+      "M\tsrc/Momoka.Shell/ViewModels/CardShelf.cs",
+      "M\tsrc/Momoka.Shell/ViewModels/DetailViewModel.cs",
+      "M\tsrc/Momoka.Shell/ViewModels/HomeViewModel.cs",
+      "M\tsrc/Momoka.Shell/ViewModels/LibraryViewModel.Search.cs",
+      "M\tsrc/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+      "M\tsrc/Momoka.Shell/ViewModels/SettingsViewModel.DetailCustomization.cs",
+      "M\tsrc/Momoka.Shell/Views/AlphaBar.xaml",
+      "M\tsrc/Momoka.Shell/Views/AlphaBar.xaml.cs",
+      "M\tsrc/Momoka.Shell/Views/CardItem.cs",
+      "M\tsrc/Momoka.Shell/Views/ControlBackgroundBrushes.cs",
+      "M\tsrc/Momoka.Shell/Views/DetailPage.Backdrop.cs",
+      "M\tsrc/Momoka.Shell/Views/DetailPage.ContentCrop.cs",
+      "M\tsrc/Momoka.Shell/Views/DetailPage.Showcase.cs",
+      "M\tsrc/Momoka.Shell/Views/DetailPage.xaml",
+      "M\tsrc/Momoka.Shell/Views/DetailPage.xaml.cs",
+      "M\tsrc/Momoka.Shell/Views/HomeBanner.xaml.cs",
+      "M\tsrc/Momoka.Shell/Views/HomePage.xaml.cs",
+      "M\tsrc/Momoka.Shell/Views/LibraryPage.xaml",
+      "M\tsrc/Momoka.Shell/Views/LibraryPage.xaml.cs",
+      "M\tsrc/Momoka.Shell/Views/PosterCard.xaml",
+      "M\tsrc/Momoka.Shell/Views/PosterCard.xaml.cs",
+      "M\tsrc/Momoka.Shell/Views/ShelfHead.xaml",
+      "M\tsrc/Momoka.Shell/Views/ShelfHead.xaml.cs",
+      "M\tsrc/Momoka.Shell/Views/ShelfStrip.xaml.cs",
+      "M\ttests/Momoka.AppearanceOpacityTests/Program.cs",
+      "M\ttests/Momoka.AppearanceOpacityTests/README.md",
+      "M\ttests/Momoka.LibraryHeaderTests/Boundaries.cs",
+      "M\ttests/Momoka.LibraryHeaderTests/Momoka.LibraryHeaderTests.csproj",
+      "M\ttests/Momoka.LibraryHeaderTests/Program.cs",
+      "M\ttests/Momoka.LibraryHeaderTests/README.md",
+      "M\ttests/Momoka.PageContractTests/CardPresentationTests.cs",
+      "M\ttests/Momoka.PageContractTests/README.md",
+      "M\ttests/Momoka.Tests/AcrylicControlsTests.cs",
+      "M\ttests/Momoka.Tests/Agreements.txt",
+      "M\ttests/Momoka.Tests/DetailLayoutTests.cs",
+      "M\ttests/Momoka.Tests/GaussianBackdropTests.cs",
+      "M\ttests/Momoka.Tests/HomeCarouselTests.cs",
+      "M\ttests/Momoka.Tests/HomeFoldTests.cs",
+      "M\ttests/Momoka.Tests/LibraryFavoritesTests.cs",
+      "M\ttests/Momoka.Tests/LibraryResumePagingTests.cs",
+      "M\ttests/Momoka.Tests/LibraryUpcomingTests.cs",
+      "M\ttests/Momoka.Tests/NeutralFeedbackTests.cs",
+      "M\ttests/Momoka.Tests/Program.cs",
+      "M\ttests/Momoka.Tests/SelfCheckLayoutRulesTests.cs"
+    ]
+  },
+  "inputs": [
+    {
+      "path": "CLAUDE.md",
+      "sha256": "6b825aec89b7cea678a5b8033d3effc8364a9ecd52ac20059b66b4d9b0f872c6"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+      "sha256": "227f5f92d5c796f03ee7ba75b23800e6c1aa0466fbec8b2fbee49e472bd7db57"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+      "sha256": "f0406427b80a61a0dbd3feb9a387e2b68ba55d43b0ca18e8e4b5ac8411e581de"
+    },
+    {
+      "path": "tests/Momoka.Tests/DetailLayoutTests.cs",
+      "sha256": "c7a8c44c0840790dc884eb6452f2a3077ba26c5be958e71e933f59d38f8615ca"
+    }
+  ],
+  "schemaEvidenceHashes": {
+    "artifacts/review/042cea9/FINAL/20261106-first/schema27/build.log": "e82c2766852a68224b7bab8050c31012c6366f53b06915b32860a7e1be686c5f",
+    "artifacts/review/042cea9/FINAL/20261106-first/schema27/Program.cs": "397ab004ff84a00d654916f9c8d09b223939d12340305b5ef3c46534d1352dd0",
+    "artifacts/review/042cea9/FINAL/20261106-first/schema27/restore.log": "838395425c0c50f685185fefb760365923fb5dfecafe0caf7477d2ca001d4fb1",
+    "artifacts/review/042cea9/FINAL/20261106-first/schema27/results.json": "5c37b89b1992912c4ffd27aa15b541fd9c52bec7422ac5916f801280ad3ac4fd",
+    "artifacts/review/042cea9/FINAL/20261106-first/schema27/schema27.csproj": "db9dd4911c28fb9163e68ef7053394fcd08461875c1edbdc11351c82dd4d95cc"
+  },
+  "originalPartitionReportHashes": {
+    "R01.md": "5b39cb5827248e91d54fb600dc6b60ada3fb5d919a93cc87332fa1f12a5515d8",
+    "R02.md": "57026385a0d895e7d7185e51b7cdb92bc46fbaaebf6553ab562bc04285d0693a",
+    "R03.md": "5f6211c818ab9fa6e561f76a78666f4f78d134e0190a757f479ed94b719da1b3",
+    "R04.md": "ba12cb598337aea064ce1e8fda21067f1787dc9be09e575510c819810389f917",
+    "R05.md": "dc215f9024abbf396bcbffc9201850b2f70fb841afce9057e1104516cf466d18",
+    "R06.md": "c97f15d1777cb15aa4b4d71a33bf1251b3a9d838834df2ab2bb881565990a0b5",
+    "R07.md": "e4a0ff5fd9d852fbb50cee5b7cc5f26bcc88ddcd8ed99d30031871c4c3be2be5",
+    "R08-upstream.md": "360724808dba98196b83b586bf8017b57c1328bba36a5bca1d00e36b969b6921",
+    "R08.md": "5d0a67f56e8c29bfbf225eed273026eda9a1059cea90881167b6651131175d54",
+    "R09-upstream.md": "974e086e70de833d7f640a241c49ecfbb447408a3a7800f5b5ed755820dc606c",
+    "R09.md": "9b4863be9e0dc93337b683b069dccff5340d33c4d99c6036462c2ded8efcde3d",
+    "R10-lifetimes.md": "3a9c1b333bac2eecb1458238c1bdda3d541dfc2e00fd5fb8d3711884cd7a8def",
+    "R10-upstream.md": "3de95f4e2343d9cf380b501cb8ef5838bcf8785ccf984069608fbad51e1aaf3c",
+    "R10.md": "25f9758bb68c2f159ce9c60bdfcaaaaf2d2330c45d4a1e701394fd781d2c09fb",
+    "R11-lifetimes.md": "207e1e29e47091118e4021cc39f62c991b1a6e3dfc6cd673561b7eadd8bb0289",
+    "R11-upstream.md": "e88bd2d9c8bb666934176e6eeaa63a8ac65f545f8f0da3c3b3ae145b7a5e05be",
+    "R11.md": "d1ce5420280a55cbfc5f70c2f6effafd4f25b24f73f99b3e792d0bc2b7bec498",
+    "R12-lifetimes.md": "14aca3461f5481a15d0b5042adcf663b6273ac8d8313036f4620d24383aa1fee",
+    "R12-shaders.md": "ec316f170b0ff00805d96cb7871a43330cea48fe8389dffab81983d2639553e3",
+    "R12-upstream.md": "110ddce8587e41a35215664ad289ae889966f78553baf3824d81584eed6871c6",
+    "R12.md": "24fa7bb1ddc02cf6e5f6f924c1d29bbe274b0b65338646bc46dfba641e82a8fe",
+    "R13-lifetimes.md": "b6f37f8471f1d9382923c64ac8b9dc175a876c36b9cf1d47871122d4dec4809c",
+    "R13.md": "6c8d6268931065fc233158a1e2250b62cd5b94c126a45149a1e8f974b607454e",
+    "R14-lifetimes.md": "727aaa40b9e7c8ec2d93d93ac54bc6b5a03c5a54595c6fe114c6adb9e6d5d920",
+    "R14.md": "8d91a1afec3eb7889ad556b89b6f59029a50e44b6f7926b4aab53c8e84d59ba3",
+    "R15-lifetimes.md": "a31dad5869669484edc0a5033f9d6d7262eb69a3e2652b1bcad95b2c823ca92a",
+    "R15.md": "41141b011039272a78351fff150cbda8eef50834f5dbfc9f6bf95198dc82eae9",
+    "R16-lifetimes.md": "9e523d4945ad6793cf215eebbf1e997b22c8c4a101770f98e678d25f6274472e",
+    "R16.md": "6067844b27eade9dd9d49bcbe2e519a8d50dfb09ad1b3d1c2f85e093e00fadcd",
+    "R17-lifetimes.md": "df0408002559cbf75f913438ca74986d6e7d07ecbb3d761b6326c377b7423026",
+    "R17.md": "13b032a9ec1db5c354843707d11ad885913582819e69dc9fbc54ef0561891e1e",
+    "R18.md": "31485d603c886734e7fe5051ee4acd4bb00b6fdb29e3f41bbf300f57058d8977"
+  },
+  "allPartitionVerificationHashes": {
+    "R02-verification.json": "ec463fac7f17b447ab797ca0eb0a89df76f33ffe20cf88613a2dd2fa4d87bd07",
+    "R03-verification.json": "93b0725ba17d1f327c17338d9ec9077fa70096b0a87859701c69d034873ba82b",
+    "R04-verification.json": "963f6ace488b3e34ce165c75d9c4e9306de4f1846ae2e84f1e6e8d0dc1261d9c",
+    "R05-verification.json": "9b171504b35eedb7cfa0d623eaa7cd9bebc640acac4f8dc6fb1cf3f3e4a1210f",
+    "R06-verification.json": "04f560cc2ae99cca4cd872f3b17ed0c5d98856704ccf9fa1b75c000066ab2561",
+    "R07-verification.json": "c019437bc5fdd5e37b7900764c015fe5cee3c147650d327e644ce2f876690bb4",
+    "R08-verification.json": "93e098a1b2fd1a79438220cb24e8b12763a5282d1cf54711e6182479040722dc",
+    "R09-verification.json": "77f11f564153e6df9222a4c607af56e22a6e353a6ae6bd102458a6d22316d10d",
+    "R10-verification.json": "2e37d130900e157592cdca144f9ece5d42412eb3bc282a27ea94b0ac0832bffa",
+    "R11-verification.json": "476dc6d9dfd369931eca5bfbe6baf627cb306f7785de8de342b85329a232c7d3",
+    "R12-verification.json": "7a83bc2b680c0128803010dc92d6b6cf9f4e85a0940a237168779aaaa16ed3f4",
+    "R13-verification.json": "3d406809323a546d44742c3bfd213a78b2c7841901e7aec40731b7eb1285bc99",
+    "R14-verification.json": "58db199e9b8a6d41a860339b6782c0f598202bcc606410518c971200f464263e",
+    "R15-verification.json": "8d060cca8d44d572312ffd582b4736ca72278b01c9075ed148e5c9af1e01006e",
+    "R16-verification.json": "6986fd62d83002c141ea4a4c85ebe5e4a36df9c27746edad425fbd074efa8a76",
+    "R17-verification.json": "4ca43bdffc8acfd214b522526ac0056923bb88eeee2eea13bc5748e8aee658f4",
+    "R18-verification.json": "03609f784e24d2f3fa7498f15370fbb5adb2bdc6b6bf30d647d35d7b5d4622cf"
+  },
+  "retainedFailures": [
+    "R01 payload146/4及boundaries49/1，dotnet-runtimepack0case初始化失败",
+    "R02旧BaselineCore编译11错",
+    "R07 fnnas29/3",
+    "R13正式Dialog编译红及早期日志被覆盖限制",
+    "R14标准py9009",
+    "R17 Perf x64两败，wrapper旧37红，Shell120s/124未跑依赖，NoProfile Get-FileHash不可用",
+    "FINAL schema27匿名观察6符合4不符退出1",
+    "主树R046三个pin失配静态确认，未运行"
+  ],
+  "unrun": [
+    "完整方案",
+    "无参主测试套件",
+    "统一全回归",
+    "完整ShellProbe/自检",
+    "真实UI/服务/媒体",
+    "主树交付四闸门",
+    "发布/安装/签名"
+  ],
+  "documentCheck": {
+    "evidence": "artifacts/review/042cea9/FINAL/20261106-first/document-check.json",
+    "state": "以独立实际检查结果及提交receipt为准；不在自引用文档内存本文件最终hash"
+  },
+  "integration": {
+    "scope": [
+      "docs/superpowers/reviews/2026-11-05-full-code-review",
+      "docs/superpowers/plans/2026-11-05-full-code-review.md",
+      "PROGRESS.md review-prefix"
+    ],
+    "target": "master",
+    "expectedProductHead": "4d3d60b66456f2db89a60f9bba1b58f924fab6cf",
+    "preserveMasterProgress": true,
+    "productFilesUnchanged": true,
+    "receipt": "artifacts/review/042cea9/FINAL/20261106-first/integration-receipt.json",
+    "state": "实际是否完成见独立receipt和Git；本文件记录固定输入，不伪造未来提交"
+  },
+  "sensitivity": "不转录真实地址/账号/凭据；旧R18位置形状保持，历史脱敏尚未修；无真实Secret/保存设置读取"
+}

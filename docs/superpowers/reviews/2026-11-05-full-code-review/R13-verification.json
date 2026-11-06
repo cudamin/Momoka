@@ -1,0 +1,2974 @@
+{
+  "date": "2026-11-06",
+  "timezone": "Asia/Shanghai",
+  "status": "R13审查完成；7P2+1P3未修；正式Dialog编译红；完成后暂停",
+  "startHead": "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f",
+  "verificationHead": "8e8619ef0e01756a35a3c6bcb6f1d15e27feb17f",
+  "masterSnapshot": "ef624af33497a41541ced41fe61500414afa11cd",
+  "ruleSha256": "6b825aec89b7cea678a5b8033d3effc8364a9ecd52ac20059b66b4d9b0f872c6",
+  "productFixesApplied": false,
+  "reviewComplete": true,
+  "pauseAfter": "R13",
+  "nextPartition": "R14",
+  "planChecked": 20,
+  "counts": {
+    "ownerFiles": 21,
+    "ownerSourceLines": 2770,
+    "fullJointFiles": 77,
+    "memberJointFiles": 48,
+    "ledgerRowsUpdated": 146
+  },
+  "reviewedFiles": [
+    {
+      "path": "assets/mpv-ui/scripts/momoka_subtitle_translation.lua",
+      "sha256": "dc23e104bdfcdb710eeb8816a8dc07f03dd91dbfc4f19e49f1d1aa47cedc10fc",
+      "lines": 110,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/lib/menus.lua",
+      "sha256": "e4afcf167fafda8b79a4ae9933e9650c46b2eb8f94a063feda3fd49430d320d2",
+      "lines": 916,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "205–385；完整主次字幕菜单opener，enable_prop恢复"
+    },
+    {
+      "path": "assets/mpv-ui/scripts/uosc/main.lua",
+      "sha256": "6c92c19459a6583aa74b9372df577ace622be1a262a14f5e31ead9f9204680c2",
+      "lines": 1588,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1034–1065；主次轨菜单入口/绑定"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+      "sha256": "227f5f92d5c796f03ee7ba75b23800e6c1aa0466fbec8b2fbee49e472bd7db57",
+      "lines": 1690,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "43–55；PlaybackSettings整类308–716；HdrSubtitleNits/HdrImageSubtitleNits"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+      "sha256": "f0406427b80a61a0dbd3feb9a387e2b68ba55d43b0ca18e8e4b5ac8411e581de",
+      "lines": 976,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "16–309/360–447/460–682/684–685/697–710/724–757/760/778–791/794–804/814–815/855–866；字幕/翻译归一化和迁移"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsPreferences.cs",
+      "sha256": "a9f12282a04adb12541f70cc6ca082078dfaba556dfdf9c26afbc548edc9ebf5",
+      "lines": 156,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsReset.cs",
+      "sha256": "07956cea1473826919ddd5d507db5d6635d8304d8ddc38e392dfd939b03ebcba",
+      "lines": 21,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SubtitleTranslationCredentials.cs",
+      "sha256": "8a8f1889a93f8283fe31834dc639a1bec57eb12612409b65170a990313b368b9",
+      "lines": 73,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SubtitleTranslationSettings.cs",
+      "sha256": "c20e6ac68f83ed3332bf1b2107b96d134253c4ca9dc8ea0c4e33a1d1d02f8f32",
+      "lines": 59,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+      "sha256": "872e2d283f3e7e25a761cd3bb16aab8b06abf104e126c4b7427ee5670d3b9770",
+      "lines": 1185,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "992–1000/1105–1166；字幕URL/搜索/下载/删除"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyItem.cs",
+      "sha256": "d87c8f96be2806fc0f60681e3419f1a5edcd832304a139c9171ac5bc6137b69f",
+      "lines": 1053,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "286–303/436–465/509/1052；外部文本能力/标签/DefaultSource"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyResponses.cs",
+      "sha256": "1d7446c6df38694bc839d3dcfc2ca2685de6b6d3eb44e4e402f90e2638d55778",
+      "lines": 437,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "315–364；字幕回应模型"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySession.cs",
+      "sha256": "48e5a109f693a9512263d77595c26fd5d598a0f3dfcaf0856112c9040ec450f4",
+      "lines": 829,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "57–75/505–548；default/current与available寿命"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+      "sha256": "ea7931946e0cdcee210fd1736136f69fdb708b193ed02974cee74051f95d8fa5",
+      "lines": 104,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemDetail.cs",
+      "sha256": "9f4fd180c482aba4d2f9418b647dd2f5c629a18c2e57f1724c6d44655f844470",
+      "lines": 1182,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "485–486/496–504/514–546；字幕候选/标签和可加载性"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemMenu.cs",
+      "sha256": "ad74d922baf1051d5e611094d5a92bbb1087cf23089780f8a32792f81118e417",
+      "lines": 492,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "386–437；当前来源字幕入口权限/显隐"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ServerSubtitles.cs",
+      "sha256": "e5a398bf3bc3641f011b2db605c8cd3c1f38d640af128a0ee450fa795ab47b89",
+      "lines": 100,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.Models.cs",
+      "sha256": "24769532656e256e5517dc5ce6ea3366dff63a14eb6d295510d9149dcbd63f2e",
+      "lines": 359,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "273–309；外部轨道跳过"
+    },
+    {
+      "path": "src/Momoka.Core/Infrastructure/FontFamilies.cs",
+      "sha256": "c0b9d642e7b48c41ee5dabc5df1c771bec41074df1fa3862378e403f686c7a1c",
+      "lines": 147,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Infrastructure/HtmlColorSelection.cs",
+      "sha256": "81ecada4e89f70027821e7a9e7c571639df72c85f8f0bbcc1b863e23560b2b59",
+      "lines": 36,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/HdrOptions.cs",
+      "sha256": "6e0eb6f5fd973fe104b8f1b975b47ede0f31027e1608ca5af654bb0217a30a1d",
+      "lines": 77,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/InlineSwitch.cs",
+      "sha256": "aa7aad5d012a91f48df756aba510bf20bcfb0a92e122ab46e64f57744ac2e88c",
+      "lines": 248,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvIpcClient.cs",
+      "sha256": "c345e92004ac646198e8adc1ca7547a30a349226355bae7419023ecc1fba858c",
+      "lines": 351,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "204–283；属性/命令/回应"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvOutputOptions.cs",
+      "sha256": "68711c7ee789b361dcc9f802123fcf0e64c9c2f116cac30bb7e7db7f8f9f6995",
+      "lines": 868,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "329–433/586/688–726/739–758/856–867；字幕常量、目录、外观、全名单、颜色及起播消费"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvSubtitleTranslation.cs",
+      "sha256": "32a51d7469e61184b3b6989217974e43fee98e3ff69337445e28d8ecc6b5c08e",
+      "lines": 31,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/MpvTrackMap.cs",
+      "sha256": "7aabc0567f0540bd2c4bb639e24d3a6390e1588fd76715bd124e7390f20cdac6",
+      "lines": 138,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Mpv/PlayerMenuCatalog.cs",
+      "sha256": "d434576c6f5bfec8a9f099f1db5de4796124dac5d60ccc98b85e18b69a62bffd",
+      "lines": 415,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "281–313；字幕组复位和临时命令"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/AdditionalShortcuts.cs",
+      "sha256": "656f287daae87ec054774bcb6f10517e2a88e3cc0f6808102234ecafe9d4921d",
+      "lines": 84,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/IPlaybackBackend.cs",
+      "sha256": "07f85a40d012a7a8f4e88a3a699aa37964fee4a6c2cf3c3d3019f6653a81b9e6",
+      "lines": 212,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1–215；控制/可读/文件代次契约，master可选shader能力增量diff"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/KeywordFilter.cs",
+      "sha256": "37d871a1b273727cc439ad5f42676a7b3562d932104f1ac6b1ca2fdee3f19b57",
+      "lines": 118,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
+      "sha256": "fb7e5ffa0abb167d19caeca8ede5d77cc18c7c95199b94834c23268b3e500cb6",
+      "lines": 1832,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "160–208/302–317/465–486/675–875/883–994/1280–1469/1491–1560/1770–1833；字幕起播、完整Swap/默认值、读写/事件/gate；masterReadNativeText及shader增量diff"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/MpvProcessBackend.cs",
+      "sha256": "1f16503f2a723d1da1a5489ebb532b1dac15d59ffc3275b415b703154b72b957",
+      "lines": 625,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "65–150/345–435/相关读数入口；轨道解析/属性/IPC字幕，未记全文"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackContracts.cs",
+      "sha256": "b82ce18236283bf72d3b8082810f45a9ab1901c213e1dccbcb7dcc00d5cca4c2",
+      "lines": 546,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "241–362；MpvTrack角色/映射/显示"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackPlanner.cs",
+      "sha256": "e274d7ecefecf92ecd25c870040d9bdff3bc75b28b12c3fb997316a3082b8599",
+      "lines": 269,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.Lifecycle.cs",
+      "sha256": "8b3426f7b338b0db3677ae3cdbae46c082a031502f6073a9fff347fc94fcd7ec",
+      "lines": 428,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1–85/170–390/394–427；Plan/HandOver/Swap/adopt及轨道初读/订阅"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.Translation.cs",
+      "sha256": "cd1587a7f1d913341ce895b8bfd8278f7c042131ce0ca5655c684c8520fe688d",
+      "lines": 91,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackService.cs",
+      "sha256": "c953417680d8b08828e3d6487577a6f82c5ab9bb82af25550a176000bb7d23de",
+      "lines": 527,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/PlaybackTrackState.cs",
+      "sha256": "e98bd1d9154aeefef117df7fd813db73a0fda94857d55a89b91ce68eabb0ec65",
+      "lines": 78,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/SubtitleFile.cs",
+      "sha256": "e729136e3e0e63474f3b153b76519698c9158b67b9e779a8b09a6c3ce970fd29",
+      "lines": 43,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/SubtitlePreviewPlan.cs",
+      "sha256": "b9edc35f2d691edf18765d2c36dadfb8d1c221c7c39094b7b4607f899147745b",
+      "lines": 87,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/TrackLanguagePriority.cs",
+      "sha256": "ac05ead24419b50d008b08ef6fa9c150211dbd239544f0bd5000f3c7ec6b4ccb",
+      "lines": 489,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Playback/TrackSelection.cs",
+      "sha256": "24376a5cd97850fef2478cc86e32425fd29acb17debdc248e09bf50e722bbb6c",
+      "lines": 234,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexMediaAdapter.Models.cs",
+      "sha256": "c6e97f824a604ed2afbc3db6b32870c825ffebd7570b6ee86521bbdc3644fc59",
+      "lines": 343,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "234–267；外部字幕key/DeliveryUrl"
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexPlaybackSelection.cs",
+      "sha256": "96459643957d0dfd40d9876d3ca0523d9863813ee39b71428bc81dce2f94e43e",
+      "lines": 39,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Core/Translation/LatestCue.cs",
+      "sha256": "65a178c06d7b02f4ce33c2f7a2d0f0d83023f2ed2ceedfce2964b4f47b3cbe4e",
+      "lines": 55,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Translation/SubtitleTranslationCache.cs",
+      "sha256": "b49c777e7f0b98b003d5cd9f6e24fefb721bd70ba41a0bdc7f2b5ad38b97caf2",
+      "lines": 60,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Translation/SubtitleTranslationClient.cs",
+      "sha256": "bdfbf64fe5120ea32b5f18c242b4644369df6ec129e46ffc584431d1d1e54d8c",
+      "lines": 274,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Translation/SubtitleTranslationCue.cs",
+      "sha256": "dddaa3f02dc2ffb0d9fbb4cf4d620b65c52fe39d0d6e7ba1748efa1712255728",
+      "lines": 50,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Translation/SubtitleTranslationException.cs",
+      "sha256": "83dce9a875af9d34c43bcdfbc5444ae6a2cea3194414cd85a19f878dba358e0a",
+      "lines": 14,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Translation/SubtitleTranslationLanguages.cs",
+      "sha256": "1d3eadb1f3a6fd705d82f20636ff9c148f01571defbfdd78a8a88806195d2a14",
+      "lines": 53,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Translation/SubtitleTranslationRuntime.cs",
+      "sha256": "3fdda0f64b206d6cd8302846feebbac6a668c2a60901a3993316c888bae16b3e",
+      "lines": 137,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Core/Translation/TranslationCue.cs",
+      "sha256": "d46f87c6619d5daa008d22ac2efee9938df691f4aab2a73e55536149cb72088c",
+      "lines": 4,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/App.xaml.cs",
+      "sha256": "ad15cc439a30a5481a8a798d4dade9342b7e05417ae130a7153b24236839f046",
+      "lines": 364,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "288–335；退出排空"
+    },
+    {
+      "path": "src/Momoka.Shell/Composition/ShellServices.cs",
+      "sha256": "abdb27efff5c3ec7c431a2bdb260e9132fd884004cba9dac191f9035156dc443",
+      "lines": 218,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "35–80；翻译注册/依赖"
+    },
+    {
+      "path": "src/Momoka.Shell/Platform/UiDispatcher.cs",
+      "sha256": "6890b22c22f3efafd41f6c0f7c2b6987fabd848c07dca9024559d636e841798e",
+      "lines": 63,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Shell/Services/SubtitleTranslationController.cs",
+      "sha256": "feba3b2343dbd26f1cde1c629261fe2604ae8a86c6497ca08ee6819dcf12771d",
+      "lines": 131,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.Translation.cs",
+      "sha256": "fcd746685ebeb6834a1850c1e8441e052e859e975556ce46e7962eeadd45b691",
+      "lines": 140,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellPrefs.cs",
+      "sha256": "209f78fec5ece0ad6f4ebb9513506133629cab93dffb698bd68dbedec774e0c0",
+      "lines": 62,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "21–60；翻译设置事件"
+    },
+    {
+      "path": "src/Momoka.Shell/SubtitleSettingsProbe.cs",
+      "sha256": "64daf26897dcbb8db01273c89d50729fc3027299de60cb3932e2578b0de29638",
+      "lines": 256,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1–155；控件/错误/恢复/灰行契约及隔离边界"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+      "sha256": "3e5c6785c3645eea0e80595167b51e576315ff22ba4df8b5fa3177c4ba19f3f0",
+      "lines": 4172,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "2001–2008/2304/2311/2320–2468/2927–2952/3947–4033/4138–4155；来源/主体/父页/取消/字幕集合；master相关diff另审"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+      "sha256": "d607380c54505c114c48e4075a7ad21e739d11a2cb31c29b2307b5b53e69eb8a",
+      "lines": 1520,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "575–688/1330–1343；轨道通知/NowPlaying/初读"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Interaction.cs",
+      "sha256": "6641d835e62339943c375eb7a735af918951f6b51cf27ed537ae76610101e7d0",
+      "lines": 73,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读（73行）"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Mpv.cs",
+      "sha256": "2cf7c389d4bc6717d058ce8d0351ec4df86c0c403623d9cefc39e663bace837f",
+      "lines": 589,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "131–183/214–285/545–587；延迟/显式选轨/外部拖放/实际菜单执行"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Shortcuts.cs",
+      "sha256": "58536ad0ef0f562f2f941e2def5cae48dc2c00cab98a64a59c589e56378d74e3",
+      "lines": 89,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读（89行）"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs",
+      "sha256": "3dc6853e56887c716028df34923a0d55148f01f24caa21aa38e7949603dd5351",
+      "lines": 883,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "137–190/310–341/801–845；字幕初始延迟/换片/退出"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.cs",
+      "sha256": "81f4354d1a1aac77d3bba3c2a07f2b2f6f3dc27c66b800fca1b71f037c45c817",
+      "lines": 968,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "336/347–390/677/778–780/875–887；订阅/退出/轨道字段与拖放归属"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingFontRow.cs",
+      "sha256": "d59034582c615a4a42f5d8766b1f6dfd5de87eb854d44031fc800b330fbd981c",
+      "lines": 471,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingLanguagesRow.cs",
+      "sha256": "1437298ef717d9f7dbc2b8ff37b8060059a0bf9475e0ebc0ac5def9ed4667bb7",
+      "lines": 278,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingRow.cs",
+      "sha256": "f4ca51b6bf71bb822d76063406dacf6945e79d574d3567cf6b9bd39f4d6afc16",
+      "lines": 1341,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "30–192/520–643/651–721/1157–1181/1199–1341；NoteVisibility/颜色/滑块/预览"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingSecretRow.cs",
+      "sha256": "c94b804e9a829633644945e3b705047e4f2c124aeba8e4783c9c0fbb3d2b798e",
+      "lines": 59,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.Applicability.cs",
+      "sha256": "c638537ce85f7bcee45bab32f8192093126446d500753859ba63554264faa3ef",
+      "lines": 122,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.Translation.cs",
+      "sha256": "5b7b0f39c4426476a3714984d2d42113f961363c7f75466a275382b9c21e9fc6",
+      "lines": 165,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "sha256": "391bba844ab6496ff68de2ac595060b899c106e3932334cf8c91d63ff5b45948",
+      "lines": 3176,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "80–115/181–187/658–707/1127–1173/1247–1263/1297–1359/1380–1405/1659–1759/1765–1771/1782–1804/2226–2234/2344–2349/2758–2783/2790–2806/2814–2850/2860–2929/3020–3036/3045–3065/3077–3083/3094–3102/3156–3157；字幕设置/字体/保存/恢复共同尾/工厂"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.xaml",
+      "sha256": "ed28fd9764b34446f9b6dc6381e3bf06f66fece0da915bf8a3f3b41b4dd0d141",
+      "lines": 1561,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "699–709/1071–1082；两字幕选择器，master相关diff另审"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.xaml.cs",
+      "sha256": "97ff8b10678fc023cbd127ce5b4d5e0b641872beeaa19045c4621495d7f9c79b",
+      "lines": 2585,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1920–1925/2350–2364；字幕调用与父reload；master相关diff另审"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DialogDismiss.cs",
+      "sha256": "5512bd97dee837679e7aa8cfdaa860e0efab07c2ba18cf8913b878765512a676",
+      "lines": 182,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/EgPicker.cs",
+      "sha256": "1e595e67aac741493fc3618c1c3e88c3b761a8612d0e194514f980d2a1ee377e",
+      "lines": 130,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HtmlColorPicker.xaml",
+      "sha256": "3c6fd95f5345c3a8e0a5980c519e65f0a30bd5509e7ffde5cd6976bf95476b2d",
+      "lines": 214,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HtmlColorPicker.xaml.cs",
+      "sha256": "e7740f077c82cd142482ed97abdd3b81fd1fb7d7753290c0cc4a1cce5902089a",
+      "lines": 325,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+      "sha256": "55b94767455ac916c78bd77d1f2b5b1ac0a1a6c510af773330ace3bbb117ce1a",
+      "lines": 632,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "38–75/445–485；实际字幕caller/Ask/父刷新"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+      "sha256": "5c4005193e4ac48517ca80dc1bb94ac3c3ab98efa69405eed21f2081354539de",
+      "lines": 806,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "130–161/288–318/392–458；卡菜单能力/Invoke按available"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Input.cs",
+      "sha256": "ac7b8a517b5946b8c0b5861f5caaf18d227ba51a5918160ad426b31f3990b966",
+      "lines": 1397,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "699–719/1332–1397；快捷键和完整拖放"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.Menus.cs",
+      "sha256": "72164fb7f2e15b2c4375697ccc333a45579de13e2a8a9517d4b2af1ce58c01ac",
+      "lines": 565,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "173–240；主轨菜单及回调捕获"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PlayerPage.xaml.cs",
+      "sha256": "877ac7ef3329582e9a83b70d9a7880d8f8dd6b31b9481e21aa71ee684dd841e4",
+      "lines": 1172,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "501–647/707–721/782–790；Attach/Detach/Shutdown及drop visit"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsPage.xaml",
+      "sha256": "51211d4fa179ecce535d4bcc3599e9dec4f3829638048d129cc59cf8e8785604",
+      "lines": 1768,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "95–113/600–685/864–916/925–979/989–1052；模板及EgSettingNote无Visibility"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+      "sha256": "0baa77b31226bc74afa1c04a154200469d1b18489c84adeeeb9110956f7e9678",
+      "lines": 963,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "447–490；Attach字幕委托/DI；文本焦点处理器搜索未记全文"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "sha256": "3138187621e0f42476f506acba62a6313f3bbb9641cfe4e9e755a039d5e88f4b",
+      "lines": 2624,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "590–620/645–691/884–920/1389–1401/1455–1465；翻译最终队列、关闭/原来源详情"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SubtitleDialog.xaml",
+      "sha256": "b8e651f545ebeec3313ef21df4c9a89dabaeb2ecc35b0ff17cea9e2f1b6b9908",
+      "lines": 159,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SubtitleDialog.xaml.cs",
+      "sha256": "da14799ff0c97cde3ac3ea22da2a5fd7bfcff0fac8ad125ab1052c73e319d89d",
+      "lines": 405,
+      "ownerReview": true,
+      "fullRead": true,
+      "scope": "全文已读"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/Lua/translation-performance-tests.lua",
+      "sha256": "69fbcda5d26105190eac4a7f1ea7fdc92e5dd9e2da046d597d44cef37caae7b2",
+      "lines": 109,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/Lua/translation-real-timer-tests.lua",
+      "sha256": "94f3b8c66cccd1f62d8f63cb69fff1d2ed8f09451f71a8475e74e1d1966c97da",
+      "lines": 47,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.DanmakuPerformanceTests/run-lua.py",
+      "sha256": "6f7f67fe5c7032419d19e6248f889938db078b4ce64d02775cb42e15383f2203",
+      "lines": 229,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "140–191；翻译真实timer及入口，未运行"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/HandleFixture.cs",
+      "sha256": "a5b7ab1039a94b6ed177aa8c4504c84c5810b855de87dc7c7d6134cdfcd175f0",
+      "lines": 174,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/NativeBoundary.cs",
+      "sha256": "df29f8adbcd55ed4a9fbb3643be0510ccca9b56a8527d5ca525c49ea7595cfaa",
+      "lines": 141,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/NativeSeam.cs",
+      "sha256": "49096734065a11be9a755fb499b23efd480844f9c9d6a098f2a74d3ed9be6704",
+      "lines": 83,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.ShaderCommandGenerationTests/ServiceFixture.cs",
+      "sha256": "34d2790c6ecb737ba03768fbfc3ee47afa8f9e8fb8d7a1a6f8f2fd84df66514a",
+      "lines": 159,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDialogTests/AutomationBoundaries.cs",
+      "sha256": "e690260410c67619b19ce53df7ac9889044061169722346a8a789bb5e68dc982",
+      "lines": 7,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDialogTests/CallerBoundaries.cs",
+      "sha256": "44718461c4c26055361ac84348a2a3911478e14e5ac4cc68d45bb97f5a12b3ea",
+      "lines": 17,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDialogTests/ControlBoundaries.cs",
+      "sha256": "8a61141e20cda52a1157635efebd536b91cabf5ed3413118fdab007118809a62",
+      "lines": 53,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDialogTests/DialogBoundaries.cs",
+      "sha256": "fdc73c646e5fc378858258c6c377a8898b5e759bff2ce0ad709b7747f10e38f8",
+      "lines": 55,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDialogTests/Momoka.SubtitleDialogTests.csproj",
+      "sha256": "572d69cdf75ec041d1873776415505886c5cb3edee0805c3a378380d9587976b",
+      "lines": 82,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDialogTests/ParentBoundaries.cs",
+      "sha256": "9b08a81da5345a05a7b9cc4211ffe9199b8aa54dfaeaa3b391f4ada61e8c212e",
+      "lines": 87,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDialogTests/Program.cs",
+      "sha256": "c5bc502d1cc7ca20c58f933674c241be82e656774892aad95ee646686e7e31f3",
+      "lines": 388,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDialogTests/README.md",
+      "sha256": "a252139acf388bb89b5dc87d0377d4553fbd4743a4fc28eed9bb5931ff89857e",
+      "lines": 100,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDialogTests/SubtitleFixture.cs",
+      "sha256": "f78f880632151f4f480bb77f62ad2cbec74f650162ec4f54edf4ab62b6ee2777",
+      "lines": 197,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDialogTests/UiQueue.cs",
+      "sha256": "db471cc4c3cbaacf289a10de8e156d53e9f05651b377ff032b5de10f170ebafe",
+      "lines": 54,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDialogTests/XamlBoundaries.cs",
+      "sha256": "8ee193dd5c97a0bd63e5e47e15738862766e1aa3d1f19f62fe6077cd0c0fcbb8",
+      "lines": 38,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDropOwnershipTests/ExtractProductionSources.targets",
+      "sha256": "c5379a49e5d65ae409d3b866e552afa32a78a7b72db53613ef9935e9f388abc6",
+      "lines": 21,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDropOwnershipTests/FixtureBoundary.cs",
+      "sha256": "8b985fc75e760bbf58bdd166df59a0ca33b907a6bf7d91e4310e8b784215ef70",
+      "lines": 241,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDropOwnershipTests/Momoka.SubtitleDropOwnershipTests.csproj",
+      "sha256": "d96ee8d64e7810494911c4cb6c8ff12221532b3f8a8c8bf79fe6d112633aefcc",
+      "lines": 17,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDropOwnershipTests/PageBoundary.cs",
+      "sha256": "f185260989a8abaa0ff86889c88ef7d36a7e7f8644f77ca1bdebf6e7817407f6",
+      "lines": 56,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDropOwnershipTests/Program.cs",
+      "sha256": "de13403b55f6f6f9b8c15ddc89ad977f1aaddfda19b8fce725fc5e6dd2a9c319",
+      "lines": 442,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDropOwnershipTests/README.md",
+      "sha256": "3f0bf2c727f487953137caf0ad4c55012d78334cdd93df46f9e6176dcc4a9ac1",
+      "lines": 90,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDropOwnershipTests/SourceExtractor/ExtractR045Production.cs",
+      "sha256": "000b9e20fb282b3772e4d4c5ccd3a4d2239027eb52093d2855900730c7a29359",
+      "lines": 125,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDropOwnershipTests/UiBoundary.cs",
+      "sha256": "8ee464581a7f5d1edd53d3fc3c61042582b1c3fdb261ea9abab2ce06da2b02d7",
+      "lines": 136,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleDropOwnershipTests/ViewModelBoundary.cs",
+      "sha256": "5bd73428c8a7360327020efec5665794844f6dad8709305eff5c2e7306580d88",
+      "lines": 67,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleTranslationRuntimeTests/ControllerTests.cs",
+      "sha256": "570e7907892a4ca1db563624fa53769953b86c1dfb86898d77528d34354d0ce0",
+      "lines": 126,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleTranslationRuntimeTests/Momoka.SubtitleTranslationRuntimeTests.csproj",
+      "sha256": "88cc2d33893ee35ae9957c84027b5f82372cacf3138e83f48a70b48e5d951b42",
+      "lines": 13,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleTranslationRuntimeTests/Program.cs",
+      "sha256": "1dcda0444e9a91141f68fb47de01e90b89aa45c2950a2d1c03a8a699c5807b8a",
+      "lines": 197,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleTranslationRuntimeTests/README.md",
+      "sha256": "0880013c35ee628034228464579d104f55e0194deba15d4d1c707d0ce899b4db",
+      "lines": 7,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleTranslationTests/ConfigurationTests.cs",
+      "sha256": "777c0ffc8cce018e1589feff16d8b500ab2b6cb38bd706c985b5ca0bc1a3851a",
+      "lines": 178,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleTranslationTests/CueTests.cs",
+      "sha256": "964e0784bb28453d75fd09db16260a867f84182c72f690aa0ebc4a9919e20097",
+      "lines": 74,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleTranslationTests/Fixture.cs",
+      "sha256": "8f7c164258e574c116345e218f07493188d64fc11b8706d0b56a55cf1e6095c9",
+      "lines": 103,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleTranslationTests/Momoka.SubtitleTranslationTests.csproj",
+      "sha256": "dc0ec87896718c4cbfe4cd02fe3fb69eb78decded5cb07e640efdbd15b6b1cea",
+      "lines": 12,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleTranslationTests/OfficialDocs.md",
+      "sha256": "c96a248c942fc5ae8a1fc6b78cd5b3f0dcfbd6a5a16390c31695a13037c26ad7",
+      "lines": 22,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "仅官方资料表和默认模型搜索命中，未作已核服务契约"
+    },
+    {
+      "path": "tests/Momoka.SubtitleTranslationTests/Program.cs",
+      "sha256": "cbe30748dda9086902d8532bebbc3e053d7b0352d8d8888964f62bcc824b7ec5",
+      "lines": 59,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleTranslationTests/README.md",
+      "sha256": "9477aa14738e38bdb783d570fc07db59df4186a973d5abd826ab70ed43a723c4",
+      "lines": 37,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleTranslationTests/RequestTests.cs",
+      "sha256": "64ec780ae48488631ed75b5a1f93320974c6fb0e621145c9f6751f5c6ad09177",
+      "lines": 152,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.SubtitleTranslationTests/SafetyTests.cs",
+      "sha256": "f3037a56663b04d216cd3013ca67a7615b43e637d249837d46b64527694a54d4",
+      "lines": 240,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.Tests/InlineSwitchTests.cs",
+      "sha256": "c5105524000b77097122d225f26896b561a97e4ebfd5c6ad423fa3570bbd1cc2",
+      "lines": 211,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.Tests/Lua/subtitle-translation-tests.lua",
+      "sha256": "f0c4888d4c449fea1165e766ad4c302f99535ef579c7b78c0322209f6ce7bc47",
+      "lines": 75,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.Tests/Lua/translation-review-tests.lua",
+      "sha256": "6f413dda3abb19045601f451d9213ec9a8a0146e40825e3768d8782a3cc05fda",
+      "lines": 57,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.Tests/PlaybackTests.cs",
+      "sha256": "ae36aa7f134f3fcdb649cff26d9bf790c54bec4df549a8540ab71865af0bd158",
+      "lines": 7754,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "104–305/2236–2591/2947–3091/6340–6745；选轨、外观、完整批次/匿名工厂"
+    },
+    {
+      "path": "tests/Momoka.Tests/PlaybackTrackStateTests.cs",
+      "sha256": "73d7a36a07e3173293779bc9c301829d1573c5028af889ecb79c1fe7df0caca1",
+      "lines": 97,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.Tests/PlayerTrackReadbackTests.cs",
+      "sha256": "f139e1a76ce42bb0bc8f5326320a3fe7bb32d041b52db3c5a9c6bdf51dbd373e",
+      "lines": 147,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.Tests/PlayerVolumeGestureTests.Boundaries.cs",
+      "sha256": "8ff585faf72df51ebba63ed00448e6f3dc3953748b2a5cd8c334d9f1bad73e46",
+      "lines": 412,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1–216/253–412；实际匿名VM构造/队列/active/端点及释放"
+    },
+    {
+      "path": "tests/Momoka.Tests/Program.cs",
+      "sha256": "bb6feb7f7c97e1c5e76da303b42e4a8efeb60df3227bee10410d8569e162d48c",
+      "lines": 441,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "132–187/304–307/324；实际显式和主注册"
+    },
+    {
+      "path": "tests/Momoka.Tests/SettingsApplicabilityTests.cs",
+      "sha256": "5becbc98bbf5b32944e672816ff8b25e17c08076c634f6bb8a302f008431c194",
+      "lines": 567,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "25–215/291–436/460–560；R055完整cases/真实State，执行只筛14条R055"
+    },
+    {
+      "path": "tests/Momoka.Tests/SettingsScreenshotRestoreTests.cs",
+      "sha256": "6118e1873d54cda4ca79fceb3b6949ca7cb2add2342ad3769faf8b7d4e848296",
+      "lines": 288,
+      "ownerReview": false,
+      "fullRead": false,
+      "scope": "1–160/匿名State构造；字幕恢复共尾参照，未记全文"
+    },
+    {
+      "path": "tests/Momoka.Tests/SubtitleBehaviorTests.cs",
+      "sha256": "c1c7ea37905e90452f10401734ae00ae2117a26622f9745ac9a46e4346808f46",
+      "lines": 288,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.Tests/SubtitleFileTests.cs",
+      "sha256": "e65ee0ee1874f00c129098a0dde3c92f5ab0196d23f6942155b34670c525781b",
+      "lines": 96,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.Tests/SubtitleForcedOnlyTests.cs",
+      "sha256": "b642a00bc4b25ac5ddeaae3120de6effcb68fc106a0da56f86377a744d3af523",
+      "lines": 224,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.Tests/SubtitleManagementTests.cs",
+      "sha256": "44ed937846e47daed91fc81ecaa01c7e10d874cdb7b23db57b2073d985233489",
+      "lines": 286,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tests/Momoka.Tests/SubtitlePreviewTests.cs",
+      "sha256": "cc34f5ea819632c02ba48b7d65c2ba510dffb4f5943d9649c9d13118dcac5f83",
+      "lines": 190,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tools/test-subtitle-translation.py",
+      "sha256": "b0a79418d2fb7d7bee975a29a5912159215535038f0c6c75b8a3e3abdc96f600",
+      "lines": 112,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    },
+    {
+      "path": "tools/test-uosc-review.py",
+      "sha256": "7a43ab8c58e5d27f216844c9814fcee42c93863756a7dbe9e61076f10b4420b0",
+      "lines": 47,
+      "ownerReview": false,
+      "fullRead": true,
+      "scope": "全文已读；实际生产/测试/端点边界"
+    }
+  ],
+  "upstream": [
+    {
+      "path": "artifacts/review/12e99d8/R11/20261106-first/upstream/mpv-270367e8af7e2f49fc3d3f8da03c985f5ae3b402/player/loadfile.c",
+      "sha256": "c94d211dca18b1827b9b2f1fa4a14469eb2b75cfbbcf89b805b6da082b88995a",
+      "url": "https://github.com/mpv-player/mpv/blob/270367e8af7e2f49fc3d3f8da03c985f5ae3b402/player/loadfile.c",
+      "scope": "484–511/786–886/950–1077 外部失败/轨号分配/选轨"
+    },
+    {
+      "path": "artifacts/review/12e99d8/R11/20261106-first/upstream/mpv-270367e8af7e2f49fc3d3f8da03c985f5ae3b402/player/command.c",
+      "sha256": "7a3a17ca2161d003654ec7a6c2c3a9c05a37e1aef1b77849f8d22caadfb625ce",
+      "url": "https://github.com/mpv-player/mpv/blob/270367e8af7e2f49fc3d3f8da03c985f5ae3b402/player/command.c",
+      "scope": "2045–2120/3416–3435/3481–3555/4498–4527/4796–4801 sid/visibility/subdelay/script-message"
+    },
+    {
+      "path": "artifacts/review/12e99d8/R11/20261106-first/upstream/mpv-270367e8af7e2f49fc3d3f8da03c985f5ae3b402/options/options.c",
+      "sha256": "4cb496decb753311e33cba70d51f068bb0aa14c4f45e8ef318ce477f79d3384c",
+      "url": "https://github.com/mpv-player/mpv/blob/270367e8af7e2f49fc3d3f8da03c985f5ae3b402/options/options.c",
+      "scope": "389–390/641–642 独立选项"
+    },
+    {
+      "path": "artifacts/review/12e99d8/R11/20261106-first/upstream/mpv-270367e8af7e2f49fc3d3f8da03c985f5ae3b402/player/client.c",
+      "sha256": "56ed96e2b5d9131d4ac89d29e12c87ea9a34ef9018f0df46a735fa332d5f6e63",
+      "url": "https://github.com/mpv-player/mpv/blob/270367e8af7e2f49fc3d3f8da03c985f5ae3b402/player/client.c",
+      "scope": "1401–1445"
+    },
+    {
+      "path": "artifacts/review/12e99d8/R11/20261106-first/upstream/mpv-270367e8af7e2f49fc3d3f8da03c985f5ae3b402/input/ipc.c",
+      "sha256": "797b943113fdb223d8aaf13cee79c3b3c00c2f10578865d134121c8af43ee849",
+      "url": "https://github.com/mpv-player/mpv/blob/270367e8af7e2f49fc3d3f8da03c985f5ae3b402/input/ipc.c",
+      "scope": "213–237"
+    },
+    {
+      "path": "artifacts/review/12e99d8/R11/20261106-first/upstream/mpv-270367e8af7e2f49fc3d3f8da03c985f5ae3b402/player/lua.c",
+      "sha256": "734e516263819d70ddd8f00d7ae0a30ed50d5fe7e0347b593efd56cb33492a53",
+      "url": "https://github.com/mpv-player/mpv/blob/270367e8af7e2f49fc3d3f8da03c985f5ae3b402/player/lua.c",
+      "scope": "1173–1208"
+    },
+    {
+      "path": "artifacts/review/12e99d8/R11/20261106-first/upstream/mpv-270367e8af7e2f49fc3d3f8da03c985f5ae3b402/misc/json.c",
+      "sha256": "f64237f5ec45977e86a8b848401901d8e8219c914905a70a469f328a59f61807",
+      "url": "https://github.com/mpv-player/mpv/blob/270367e8af7e2f49fc3d3f8da03c985f5ae3b402/misc/json.c",
+      "scope": "18–42/101–132"
+    },
+    {
+      "path": "artifacts/review/12e99d8/R11/20261106-first/upstream/mpv-270367e8af7e2f49fc3d3f8da03c985f5ae3b402/options/m_option.c",
+      "sha256": "df0fc616ab86a41366032a4ee0c97922a380c5ccbb5f2c0a3a064fd1117a7e1b",
+      "url": "https://github.com/mpv-player/mpv/blob/270367e8af7e2f49fc3d3f8da03c985f5ae3b402/options/m_option.c",
+      "scope": "3923–3949"
+    },
+    {
+      "path": "artifacts/review/12e99d8/R11/20261106-first/upstream/mpv-270367e8af7e2f49fc3d3f8da03c985f5ae3b402/common/common.c",
+      "sha256": "62366ff8c4b58208840008bf4272a625c8ff54c8fad358e110dfb56f514af1e3",
+      "url": "https://github.com/mpv-player/mpv/blob/270367e8af7e2f49fc3d3f8da03c985f5ae3b402/common/common.c",
+      "scope": "237–294 surrogate 实现"
+    },
+    {
+      "path": "artifacts/review/6ba7a7f/R04/20261106-first/upstream/jf10-subtitle.cs",
+      "sha256": "e437c0d1b7c2402544cc4bae691e310ef6c34ceaa2e01b2364c3645948a63183",
+      "url": "https://raw.githubusercontent.com/jellyfin/jellyfin/aefb9b2cffca3ccb7a95d89af0d9fb2040de6ed3/Jellyfin.Api/Controllers/SubtitleController.cs",
+      "scope": "R04-001/004重新读取；下载按当前video路径，有界未知"
+    },
+    {
+      "path": "artifacts/review/6ba7a7f/R04/20261106-first/upstream/jf10-subtitlemanager.cs",
+      "sha256": "d5558fa1618bb2fbb665c48c48ac905dbb681120d97793dbe9332d2149362ad0",
+      "url": "https://raw.githubusercontent.com/jellyfin/jellyfin/aefb9b2cffca3ccb7a95d89af0d9fb2040de6ed3/MediaBrowser.Providers/Subtitles/SubtitleManager.cs",
+      "scope": "R04-001/004重新读取；下载按当前video路径，有界未知"
+    },
+    {
+      "path": "artifacts/review/6ba7a7f/R04/20261106-first/upstream/jf12-subtitle.cs",
+      "sha256": "f50e654fc1e0cc8518b979b05c66436c0f8fafbba838541b96431b8e4179cefa",
+      "url": "https://raw.githubusercontent.com/jellyfin/jellyfin/83d0d0e7f76e23e2e085c8ff67d28b772d35967d/Jellyfin.Api/Controllers/SubtitleController.cs",
+      "scope": "R04-001/004重新读取；下载按当前video路径，有界未知"
+    }
+  ],
+  "checks": [
+    {
+      "name": "sdk",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "--version"
+      ],
+      "exitCode": 0,
+      "seconds": 0.18,
+      "log": "sdk.log",
+      "sha256": "4b509237900912ac8385460ada8a1332f7cfcca46d8728bf019800de733c535f"
+    },
+    {
+      "name": "SubtitleDialog-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.SubtitleDialogTests\\Momoka.SubtitleDialogTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 2.3,
+      "log": "SubtitleDialog-restore.log",
+      "sha256": "23173472c8def4648f8f00cc27312104cdb5b8324def5f448e387d0349bda6b8"
+    },
+    {
+      "name": "SubtitleDialog-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.SubtitleDialogTests\\Momoka.SubtitleDialogTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 15.64,
+      "log": "SubtitleDialog-build.log",
+      "sha256": "749293b6d3b6c86996fbf9202568fd88bbe20a666bfcef8ba1255717442e1ea3"
+    },
+    {
+      "name": "SubtitleDropOwnership-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.SubtitleDropOwnershipTests\\Momoka.SubtitleDropOwnershipTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.3,
+      "log": "SubtitleDropOwnership-restore.log",
+      "sha256": "8e3fe38e682e732d28247b1a8015dd198bcb4a7ecc730619e3b42ee2180746e6"
+    },
+    {
+      "name": "SubtitleDropOwnership-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.SubtitleDropOwnershipTests\\Momoka.SubtitleDropOwnershipTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 4.88,
+      "log": "SubtitleDropOwnership-build.log",
+      "sha256": "30b9d738bb5bcb5dd346e8201cf2528f8f5fc08321de9abd5927cb529cd66ee1"
+    },
+    {
+      "name": "SubtitleTranslation-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.SubtitleTranslationTests\\Momoka.SubtitleTranslationTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.18,
+      "log": "SubtitleTranslation-restore.log",
+      "sha256": "c827b54f518d2023e20697631d3955e8404482dd6bd53c5a8ad085a2fcefbdc8"
+    },
+    {
+      "name": "SubtitleTranslation-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.SubtitleTranslationTests\\Momoka.SubtitleTranslationTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 4.36,
+      "log": "SubtitleTranslation-build.log",
+      "sha256": "ed82bbf7c2e6dad1a437128fde291f5ccb304297ebf98fa4ae7cc77aa01eaa66"
+    },
+    {
+      "name": "SubtitleTranslation-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.SubtitleTranslationTests\\bin\\x64\\Release\\net10.0\\Momoka.SubtitleTranslationTests.dll"
+      ],
+      "exitCode": 0,
+      "seconds": 0.52,
+      "log": "SubtitleTranslation-tests.log",
+      "sha256": "3947b0909ec5f1256b44ea1ac1a6f5f9c16df517d639fffa20d9512d4e3d6e31"
+    },
+    {
+      "name": "SubtitleTranslationRuntime-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.SubtitleTranslationRuntimeTests\\Momoka.SubtitleTranslationRuntimeTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.27,
+      "log": "SubtitleTranslationRuntime-restore.log",
+      "sha256": "0afb3dd8125fca8b90360a8d8402e9443f0d6ed3910f6e66e4a331f90247bcd5"
+    },
+    {
+      "name": "SubtitleTranslationRuntime-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.SubtitleTranslationRuntimeTests\\Momoka.SubtitleTranslationRuntimeTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 4.88,
+      "log": "SubtitleTranslationRuntime-build.log",
+      "sha256": "a7cc4a6b34c0810b2f8b9d6e0a93fcc5c6ba135fa14e84b3d00b505feddee40c"
+    },
+    {
+      "name": "SubtitleTranslationRuntime-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.SubtitleTranslationRuntimeTests\\bin\\x64\\Release\\net10.0\\Momoka.SubtitleTranslationRuntimeTests.dll"
+      ],
+      "exitCode": 0,
+      "seconds": 6.33,
+      "log": "SubtitleTranslationRuntime-tests.log",
+      "sha256": "a257ecf7fc4189628916ec98cdb547b7bc3f16f11ce5b5ab38fa45847e8cea99"
+    },
+    {
+      "name": "Shell-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\Momoka.Shell.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 19.36,
+      "log": "Shell-restore.log",
+      "sha256": "b5213f4eac92ae3209fc641c1a1b191ebe3bbcfeddfad1daaac540df1f9f58f4"
+    },
+    {
+      "name": "Shell-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\Momoka.Shell.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 133.99,
+      "log": "Shell-build.log",
+      "sha256": "307f896ef6a9b4959a9bc1cfe1c972e9c5e0562b2c127bdb421213b4f5f72e8d"
+    },
+    {
+      "name": "main-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\Momoka.Tests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.2,
+      "log": "main-restore.log",
+      "sha256": "9d0f9adb0c578f5ef236e37dd18e5ef2d49d64048f97f78e07eb1504430d7bd7"
+    },
+    {
+      "name": "main-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\Momoka.Tests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 12.33,
+      "log": "main-build.log",
+      "sha256": "fbe89a8a0f3e3ff958eee213044e25ea73c69e8d17372ffd6ae81dde4f385948"
+    },
+    {
+      "name": "track-readback-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\x64\\Release\\net10.0\\Momoka.Tests.dll",
+        "player-track-readback-fixture",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 0.42,
+      "log": "track-readback-tests.log",
+      "sha256": "89e7c389acec26b5af437d9730571e1db050408c4e4e29a06d74caa3054583a3"
+    },
+    {
+      "name": "forced-only-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\x64\\Release\\net10.0\\Momoka.Tests.dll",
+        "subtitle-forced-only-fixture"
+      ],
+      "exitCode": 0,
+      "seconds": 0.2,
+      "log": "forced-only-tests.log",
+      "sha256": "7e5c5051a49c79fc8b6bf0deedb79894d680c22d4f882d0525df59d7faefca83"
+    },
+    {
+      "name": "lua-translation-tests",
+      "args": [
+        "py",
+        "-X",
+        "utf8",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tools\\test-subtitle-translation.py",
+        "--output",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\lua-native"
+      ],
+      "exitCode": 0,
+      "seconds": 0.36,
+      "log": "lua-translation-tests.log",
+      "sha256": "342bcb990a285d10cfd0f9529a42dfa930fa8c82adfe95d439f5d080e08864bd"
+    },
+    {
+      "name": "dialog-diagnostic-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\dialog-diagnostic\\diagnostic.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.2,
+      "log": "dialog-diagnostic-restore.log",
+      "sha256": "409385d290328c73f72fe0026bbf673ee401ae01a9c423654688289bf9f6cf1f"
+    },
+    {
+      "name": "dialog-diagnostic-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\dialog-diagnostic\\diagnostic.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 4.13,
+      "log": "dialog-diagnostic-build.log",
+      "sha256": "145ab05efe54ce6a291b734332f3a159660d50fca95435db6e0fd62baa4cef9e"
+    },
+    {
+      "name": "dialog-diagnostic-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\dialog-diagnostic\\bin\\x64\\Release\\net10.0\\diagnostic.dll"
+      ],
+      "exitCode": 0,
+      "seconds": 0.5,
+      "log": "dialog-diagnostic-tests.log",
+      "sha256": "aec5ec78fa9559593300e27626fb107c3a56dca5e38787a44142ade318c8ddb4"
+    },
+    {
+      "name": "drop-default-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.SubtitleDropOwnershipTests\\Momoka.SubtitleDropOwnershipTests.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-m:1"
+      ],
+      "exitCode": 0,
+      "seconds": 1.1,
+      "log": "drop-default-restore.log",
+      "sha256": "0a5293e62d3bb4d8819d8d749f51206d3aa424744e622337bee96070823f245b"
+    },
+    {
+      "name": "drop-default-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.SubtitleDropOwnershipTests\\Momoka.SubtitleDropOwnershipTests.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-m:1",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 15.04,
+      "log": "drop-default-build.log",
+      "sha256": "c878566392ff31935691c13c67dbadf9e0896b247303ef0a3790d20869a8423c"
+    },
+    {
+      "name": "drop-default-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.SubtitleDropOwnershipTests\\bin\\Release\\net10.0\\Momoka.SubtitleDropOwnershipTests.dll"
+      ],
+      "exitCode": 0,
+      "seconds": 0.29,
+      "log": "drop-default-tests.log",
+      "sha256": "077988a3d5029d36fcf3dc6fe78df722b90fbdf2ba2645bf7ecfd36d310c4d20"
+    },
+    {
+      "name": "registered-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\registered\\registered.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.1,
+      "log": "registered-restore.log",
+      "sha256": "e558a0f7dee54267b53ec6a43b71839c5abad8c58f6d24c9599b2fc96c465ccc"
+    },
+    {
+      "name": "registered-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\registered\\registered.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 3.45,
+      "log": "registered-build.log",
+      "sha256": "bc4651e20eef432d301baca831395eab4f4a57b81358477e970c328202c8cf1a"
+    },
+    {
+      "name": "registered-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\registered\\bin\\x64\\Release\\net10.0\\registered.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\tests\\Momoka.Tests\\bin\\x64\\Release\\net10.0\\Momoka.Tests.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka"
+      ],
+      "exitCode": 0,
+      "seconds": 0.8,
+      "log": "registered-tests.log",
+      "sha256": "1b04e7d7c12bb3563c575fa4866c80fba29eba7d305265f1dc9a09ff2ebfd3f3"
+    },
+    {
+      "name": "observations-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "artifacts\\review\\8e8619e\\R13\\20261106-first\\observations\\observations.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.27,
+      "log": "observations-restore.log",
+      "sha256": "0dfb6751c2fdcdb06c4103115a18682a7032eb5bcbef72d46c6e7a0e493b48e0"
+    },
+    {
+      "name": "observations-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "artifacts\\review\\8e8619e\\R13\\20261106-first\\observations\\observations.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 3.99,
+      "log": "observations-build.log",
+      "sha256": "d8982b683888ef24dc1c3de759e858c498264c48bd76cbf177ffab7d25ea9951"
+    },
+    {
+      "name": "observations-run",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "artifacts\\review\\8e8619e\\R13\\20261106-first\\observations\\bin\\x64\\Release\\net10.0\\observations.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first"
+      ],
+      "exitCode": 0,
+      "seconds": 1.12,
+      "log": "observations-run.log",
+      "sha256": "11f73639ae703719caa9787bece7d3bc3611366482640e74533a5e5ad4cdd250"
+    },
+    {
+      "name": "dialog-observations-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\dialog-diagnostic\\observations.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.18,
+      "log": "dialog-observations-restore.log",
+      "sha256": "7a0541f335198bb21694f863d91df9ab592649cfe0e8e926d4f9dbf12fdf406c"
+    },
+    {
+      "name": "dialog-observations-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\dialog-diagnostic\\observations.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 4.03,
+      "log": "dialog-observations-build.log",
+      "sha256": "74495dcc99b58e43704ac5923b638d11e42aac6ef2ffb88805b61c52225cdbf1"
+    },
+    {
+      "name": "dialog-observations-run",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\dialog-diagnostic\\bin\\x64\\Release\\net10.0\\observations.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first"
+      ],
+      "exitCode": 0,
+      "seconds": 0.33,
+      "log": "dialog-observations-run.log",
+      "sha256": "56b2e1c18ad60b769805e40a0ab7e1637cd41deb2e9690a19678a655c6fc31d2"
+    },
+    {
+      "name": "vm-observations-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\vm-observations\\vm.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.3,
+      "log": "vm-observations-restore.log",
+      "sha256": "a758341886c4563a299a956a19715a74dec12be80c8fac302c64dcc8a01d5486"
+    },
+    {
+      "name": "vm-observations-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\vm-observations\\vm.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 3.94,
+      "log": "vm-observations-build.log",
+      "sha256": "0f0561dd56c8a45a02bda31e79bd095a464acc5624eca8b3395f3071f87f285f"
+    },
+    {
+      "name": "vm-observations-run",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\vm-observations\\bin\\x64\\Release\\net10.0\\vm.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first"
+      ],
+      "exitCode": 0,
+      "seconds": 0.34,
+      "log": "vm-observations-run.log",
+      "sha256": "1972a0cbfbadb48dc678183c4d743659d2e8b0fb94c9ac2a7250ebb4288a6808"
+    },
+    {
+      "name": "vm-observations-final-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\vm-observations\\vm.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.02,
+      "log": "vm-observations-final-restore.log",
+      "sha256": "0a5293e62d3bb4d8819d8d749f51206d3aa424744e622337bee96070823f245b"
+    },
+    {
+      "name": "vm-observations-final-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\vm-observations\\vm.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 3.51,
+      "log": "vm-observations-final-build.log",
+      "sha256": "268e957884115d4e4a70f0c69655a0f7a2f4ecd524db94c73b375c1651496c85"
+    },
+    {
+      "name": "vm-observations-final-run",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\vm-observations\\bin\\x64\\Release\\net10.0\\vm.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first"
+      ],
+      "exitCode": 3762504530,
+      "seconds": 9.58,
+      "log": "vm-observations-final-run.log",
+      "sha256": "cda4be91b208d1897ca4be00c8aeeac3b1ac6d893add338864312f338a5fe5a6"
+    },
+    {
+      "name": "vm-observations-confirmed-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\vm-observations\\vm.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.11,
+      "log": "vm-observations-confirmed-restore.log",
+      "sha256": "0a5293e62d3bb4d8819d8d749f51206d3aa424744e622337bee96070823f245b"
+    },
+    {
+      "name": "vm-observations-confirmed-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\vm-observations\\vm.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 5.9,
+      "log": "vm-observations-confirmed-build.log",
+      "sha256": "59c0de5c26c751c8841a95ec2fbaeaf9ae5f3fafb20457089aec50ba30d12931"
+    },
+    {
+      "name": "vm-observations-confirmed-run",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\vm-observations\\bin\\x64\\Release\\net10.0\\vm.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first"
+      ],
+      "exitCode": 0,
+      "seconds": 5.92,
+      "log": "vm-observations-confirmed-run.log",
+      "sha256": "b1c5506bb4ea26566fb14691a42052cc3c44520c751481d348214e02734ea73d"
+    },
+    {
+      "name": "lua-payload-observations",
+      "args": [
+        "py",
+        "-X",
+        "utf8",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\lua-payload\\native-run.py"
+      ],
+      "exitCode": 1,
+      "seconds": 0.3,
+      "sha256": "ede2ed0fea35ed075124b1a84cbaf82154293faa6640c06671171576192da18d",
+      "formerLog": "lua-payload-observations.log",
+      "log": null,
+      "logStatus": "同名后次输出覆盖，原输出字节未保留；只保留原退出/hash记录"
+    },
+    {
+      "name": "queue-observations-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\queue-observations\\queue.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.21,
+      "sha256": "9bf2b4bd303caf725c66f9e0cd2f7ef478d683cdd68007be118cd526d5cbf8a6",
+      "formerLog": "queue-observations-restore.log",
+      "log": null,
+      "logStatus": "同名后次输出覆盖，原输出字节未保留；只保留原退出/hash记录"
+    },
+    {
+      "name": "queue-observations-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\queue-observations\\queue.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 1,
+      "seconds": 2.86,
+      "sha256": "a07a666bf97402689764f921fd5cb018f86d94a65cad01ec9cc468f32a44465c",
+      "formerLog": "queue-observations-build.log",
+      "log": null,
+      "logStatus": "同名后次输出覆盖，原输出字节未保留；只保留原退出/hash记录"
+    },
+    {
+      "name": "queue-observations-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\queue-observations\\queue.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.13,
+      "log": "queue-observations-restore.log",
+      "sha256": "0a5293e62d3bb4d8819d8d749f51206d3aa424744e622337bee96070823f245b"
+    },
+    {
+      "name": "queue-observations-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\queue-observations\\queue.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 4.13,
+      "log": "queue-observations-build.log",
+      "sha256": "d2194139e34c502e3472ec0a5511c0941d2bf16f1d69863f351e525c98413cc2"
+    },
+    {
+      "name": "queue-observations-run",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\queue-observations\\bin\\x64\\Release\\net10.0\\queue.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first"
+      ],
+      "exitCode": 0,
+      "seconds": 0.52,
+      "log": "queue-observations-run.log",
+      "sha256": "40fce450cb8b81ffd72d20ba828ede7051cb0541ccfc8d82f230caa2f9bd09cf"
+    },
+    {
+      "name": "lua-payload-observations",
+      "args": [
+        "py",
+        "-X",
+        "utf8",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\lua-payload\\native-run.py"
+      ],
+      "exitCode": 0,
+      "seconds": 0.3,
+      "log": "lua-payload-observations.log",
+      "sha256": "c43d075e7759bb17490506f5602a18dcc31df731a65314890ae2491cad773a8a"
+    },
+    {
+      "name": "native-track-observations",
+      "args": [
+        "py",
+        "-X",
+        "utf8",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\native-track-observations.py"
+      ],
+      "exitCode": 0,
+      "seconds": 0.5,
+      "log": "native-track-observations.log",
+      "sha256": "df552090b9278f257d403f2c619cadb176270d3179070716fa10718e7a50deaf"
+    },
+    {
+      "name": "final-tests-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\final-tests\\final.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.1,
+      "log": "final-tests-restore.log",
+      "sha256": "7b8d2d7700d1bb28885eb83b56c741016361432efa0f4cd19e5f95b842b9bbb4"
+    },
+    {
+      "name": "final-tests-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\final-tests\\final.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 3.27,
+      "log": "final-tests-build.log",
+      "sha256": "3810959d76c976b18dc5438d64e19e9e5ee4f59dbe1d508aa9873f5f1e2e403b"
+    },
+    {
+      "name": "track-state-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\final-tests\\bin\\x64\\Release\\net10.0\\final.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "track-state"
+      ],
+      "exitCode": 0,
+      "seconds": 0.11,
+      "log": "track-state-tests.log",
+      "sha256": "33049ee8fa1637181188b8e47ecd9d2d715e80b99069d3030de66624378fa9cd"
+    },
+    {
+      "name": "subtitle-applicability-tests",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\final-tests\\bin\\x64\\Release\\net10.0\\final.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "subtitle-applicability"
+      ],
+      "exitCode": 0,
+      "seconds": 0.23,
+      "log": "subtitle-applicability-tests.log",
+      "sha256": "25a5bb5ce406a3a4b96a93f218fe6eba1cb2bafe397745992b45b39d326938f8"
+    },
+    {
+      "name": "native-track-observations-final",
+      "args": [
+        "py",
+        "-X",
+        "utf8",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\native-track-observations.py"
+      ],
+      "exitCode": 0,
+      "seconds": 0.49,
+      "log": "native-track-observations-final.log",
+      "sha256": "6058bc89cdba5d46f2ef5f303e057a6ba96bc705ad8214177bff1f54ffabea5e"
+    },
+    {
+      "name": "observations-final-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\observations\\observations.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.06,
+      "log": "observations-final-restore.log",
+      "sha256": "0a5293e62d3bb4d8819d8d749f51206d3aa424744e622337bee96070823f245b"
+    },
+    {
+      "name": "observations-final-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\observations\\observations.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 3.94,
+      "log": "observations-final-build.log",
+      "sha256": "41ea7ab531e4aeaaf881e34dcad4fd8f7f52ef11edf8b3dad224e761a0e28a84"
+    },
+    {
+      "name": "observations-final-run",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\observations\\bin\\x64\\Release\\net10.0\\observations.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first"
+      ],
+      "exitCode": 0,
+      "seconds": 1.07,
+      "log": "observations-final-run.log",
+      "sha256": "21523a368adea84756ea8e1eac6b98ccbf8d0c3395a1d051d5cbf17ed34729fa"
+    },
+    {
+      "name": "observations-final-plan-restore",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "restore",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\observations\\observations.csproj",
+        "--configfile",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\NuGet.Config",
+        "--source",
+        "C:/Users/89400/.nuget/packages",
+        "--packages",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\packages",
+        "--disable-parallel",
+        "-p:NuGetAudit=false",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 1.07,
+      "log": "observations-final-plan-restore.log",
+      "sha256": "0a5293e62d3bb4d8819d8d749f51206d3aa424744e622337bee96070823f245b"
+    },
+    {
+      "name": "observations-final-plan-build",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "build",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\observations\\observations.csproj",
+        "-c",
+        "Release",
+        "--no-restore",
+        "-p:Platform=x64",
+        "-m:1",
+        "-p:BuildInParallel=false",
+        "-p:UseSharedCompilation=false",
+        "-p:MSBuildNodeReuse=false"
+      ],
+      "exitCode": 0,
+      "seconds": 4.12,
+      "log": "observations-final-plan-build.log",
+      "sha256": "3a41a6afb7b03115b6da6096e92b5bb2b73393ba195b3026f0c66d95925c4db3"
+    },
+    {
+      "name": "observations-final-plan-run",
+      "args": [
+        "C:/Users/89400/.dotnet/dotnet.exe",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\observations\\bin\\x64\\Release\\net10.0\\observations.dll",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka",
+        "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first"
+      ],
+      "exitCode": 0,
+      "seconds": 1.12,
+      "log": "observations-final-plan-run.log",
+      "sha256": "cd6f781b66f2147ddad476ebc5044b0ef4bc9c756b6b2c66e94d515ab13e4926"
+    }
+  ],
+  "binaries": [
+    {
+      "path": "tests\\Momoka.Tests\\bin\\x64\\Release\\net10.0\\Momoka.Tests.dll",
+      "size": 3582464,
+      "sha256": "92bed13d175a1676fbb6a176495cb593bf10540716762a18416adcebc848e6eb"
+    },
+    {
+      "path": "src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.dll",
+      "size": 6860288,
+      "sha256": "312c9257d71f561b75cf0aec252dd65c8c33f8d775b53514effce5318e027864"
+    },
+    {
+      "path": "src\\Momoka.Core\\bin\\x64\\Release\\net10.0\\Momoka.Core.dll",
+      "size": 2334720,
+      "sha256": "08c2717de4723f6ab95bbf048d3d672c15abbab245d2fb17c9bc28260c9a133a"
+    },
+    {
+      "path": "tests\\Momoka.Tests\\bin\\x64\\Release\\net10.0\\Momoka.Core.dll",
+      "size": 2334720,
+      "sha256": "08c2717de4723f6ab95bbf048d3d672c15abbab245d2fb17c9bc28260c9a133a"
+    },
+    {
+      "path": "src\\Momoka.Shell\\bin\\x64\\Release\\net10.0-windows10.0.19041.0\\win-x64\\Momoka.Core.dll",
+      "size": 2334720,
+      "sha256": "08c2717de4723f6ab95bbf048d3d672c15abbab245d2fb17c9bc28260c9a133a"
+    }
+  ],
+  "results": {
+    "formalManagedPassedExecutions": 370,
+    "formalManagedUniqueCoverageClaimed": false,
+    "diagnosticDialogPassed": 37,
+    "formalDialogStatus": "build failed; not run",
+    "nativeLuaPassed": 9,
+    "nativeAdditionalObservations": "payload2/localTrack3及VM/Service/Queue/来源观察另列，不加总"
+  },
+  "observations": {
+    "managed-observations.json": [
+      {
+        "name": "external-subtitle-prediction",
+        "requestedStream": 2,
+        "plannedSid": 2,
+        "externalCount": 3
+      },
+      {
+        "name": "subtitle-style-native-handoff",
+        "sameService": true,
+        "before": 1,
+        "nativeGeneration": 2,
+        "bWrites": [
+          [
+            "set",
+            "sub-ass-override",
+            "force"
+          ],
+          [
+            "set",
+            "sub-font",
+            "fixture"
+          ],
+          [
+            "set",
+            "sub-font-size",
+            "50"
+          ],
+          [
+            "set",
+            "sub-scale",
+            "1.01"
+          ],
+          [
+            "set",
+            "sub-bold",
+            "no"
+          ],
+          [
+            "set",
+            "sub-color",
+            "#FF123456"
+          ],
+          [
+            "set",
+            "sub-border-size",
+            "1"
+          ],
+          [
+            "set",
+            "sub-border-color",
+            "#FF654321"
+          ],
+          [
+            "set",
+            "sub-shadow-offset",
+            "1"
+          ],
+          [
+            "set",
+            "sub-border-style",
+            "background-box"
+          ],
+          [
+            "set",
+            "sub-back-color",
+            "#99000000"
+          ]
+        ],
+        "actualColor": "#FF123456",
+        "expectedFileCalls": []
+      },
+      {
+        "name": "subtitle-style-old-write-overrides-new-file",
+        "savedOverride": "",
+        "before": "",
+        "actual": "force",
+        "serviceGeneration": 2,
+        "bWrites": [
+          [
+            "set",
+            "sub-ass-override",
+            "force"
+          ]
+        ]
+      },
+      {
+        "name": "stale-cue-failure",
+        "calls": 1,
+        "notices": [
+          "实时字幕翻译暂时失败，已保留原字幕。请检查 API 密钥、网络、区域和服务余额；稍后自动重试。"
+        ],
+        "current": "B",
+        "reads": 4
+      },
+      {
+        "name": "translation-payload-budget",
+        "largeUtf8": 120094,
+        "smallUtf8": 24099
+      }
+    ],
+    "dialog-observations.json": [
+      {
+        "name": "nondefault-source",
+        "available": true,
+        "current": false,
+        "opened": true,
+        "readsAtOpen": 1,
+        "afterReads": 1,
+        "writes": 0,
+        "touched": false,
+        "needsRefresh": false,
+        "status": "登录身份已改变，请关闭后重新打开字幕管理。"
+      },
+      {
+        "name": "default-switch-after-write",
+        "available": true,
+        "current": false,
+        "writes": 1,
+        "applied": 1,
+        "touched": false,
+        "needsRefresh": false,
+        "status": "登录身份已改变，请关闭后重新打开字幕管理。"
+      }
+    ],
+    "vm-observations.json": [
+      {
+        "name": "select-hidden-subtitle",
+        "properties": [
+          {
+            "name": "sid",
+            "value": 2
+          }
+        ],
+        "sid": "2",
+        "visible": false
+      },
+      {
+        "name": "delay-after-menu-reset",
+        "afterReset": 0,
+        "cached": 0.5,
+        "nextDelay": 0.6,
+        "commands": [
+          [
+            "set",
+            "sub-pos",
+            "100"
+          ],
+          [
+            "set",
+            "sub-scale",
+            "1.0"
+          ],
+          [
+            "set",
+            "sub-delay",
+            "0"
+          ],
+          [
+            "show-text",
+            "重置字幕状态",
+            "2000"
+          ],
+          [
+            "show-text",
+            "字幕延迟：+0.6 秒",
+            "1200"
+          ]
+        ]
+      }
+    ],
+    "queue-observations.json": {
+      "enabled": false,
+      "shown": [
+        "实时字幕翻译暂时失败，已保留原字幕。请检查 API 密钥、网络、区域和服务余额；稍后自动重试。"
+      ]
+    },
+    "native-track-observations.json": [
+      {
+        "names": [
+          "second"
+        ],
+        "requestedSid": "1",
+        "sid": "1",
+        "subTracks": [
+          {
+            "id": 1,
+            "selected": true,
+            "filename": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\native-tracks\\second.srt"
+          }
+        ],
+        "visibleAfterExplicitSid": "no"
+      },
+      {
+        "names": [
+          "missing",
+          "second"
+        ],
+        "requestedSid": "2",
+        "sid": "1",
+        "subTracks": [
+          {
+            "id": 1,
+            "selected": true,
+            "filename": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\native-tracks\\second.srt"
+          }
+        ],
+        "visibleAfterExplicitSid": "no"
+      },
+      {
+        "names": [
+          "missing",
+          "second",
+          "third"
+        ],
+        "requestedSid": "2",
+        "sid": "2",
+        "subTracks": [
+          {
+            "id": 1,
+            "selected": false,
+            "filename": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\native-tracks\\second.srt"
+          },
+          {
+            "id": 2,
+            "selected": true,
+            "filename": "C:\\Users\\89400\\.codex\\worktrees\\def8\\Momoka\\artifacts\\review\\8e8619e\\R13\\20261106-first\\native-tracks\\third.srt"
+          }
+        ],
+        "visibleAfterExplicitSid": "no"
+      }
+    ]
+  },
+  "nativePayload": {
+    "completed": true,
+    "checks": [
+      {
+        "name": "large合法文本被接收端拒绝",
+        "passed": true,
+        "bytes": 120094,
+        "shown": false
+      },
+      {
+        "name": "short译文对照显示",
+        "passed": true,
+        "bytes": 24099,
+        "shown": true
+      }
+    ],
+    "errors": [],
+    "coverage": "Bundled libmpv Lua and real libass command; fake clock/canvas/events; no media, window, HTTP or user settings."
+  },
+  "findings": [
+    {
+      "id": "R13-001",
+      "priority": "P2",
+      "fixed": false
+    },
+    {
+      "id": "R13-002",
+      "priority": "P2",
+      "fixed": false
+    },
+    {
+      "id": "R13-003",
+      "priority": "P2",
+      "fixed": false
+    },
+    {
+      "id": "R13-004",
+      "priority": "P2",
+      "fixed": false
+    },
+    {
+      "id": "R13-005",
+      "priority": "P2",
+      "fixed": false
+    },
+    {
+      "id": "R13-006",
+      "priority": "P2",
+      "fixed": false
+    },
+    {
+      "id": "R13-007",
+      "priority": "P2",
+      "fixed": false
+    },
+    {
+      "id": "R13-008",
+      "priority": "P3",
+      "fixed": false
+    }
+  ],
+  "testMaintenance": {
+    "project": "Momoka.SubtitleDialogTests",
+    "error": "CS0103 _blurCancel missing in ParentBoundaries",
+    "fixed": false,
+    "followup": "R17"
+  },
+  "limits": [
+    "真实WinUI窗口/菜单/拖放/精简模式/字幕像素/ASS/PGS",
+    "真实服务器字幕写/费用翻译服务/账号密钥",
+    "完整方案/主Tests/统一回归/发布/快捷方式",
+    "真实外部mpv/uosc输入/实机native竞态"
+  ],
+  "preservedRed": [
+    "R01旧工具红",
+    "R07飞牛29过3败",
+    "R02 schema27待复核",
+    "R04字幕两项未修",
+    "R10–R12未修",
+    "正式Dialog本轮编译红"
+  ],
+  "masterDelta": "file-delta-20261106-r13.json",
+  "overwrittenEarlyLogs": [
+    {
+      "name": "lua-payload-observations",
+      "exitCode": 1,
+      "sha256": "ede2ed0fea35ed075124b1a84cbaf82154293faa6640c06671171576192da18d",
+      "formerLog": "lua-payload-observations.log"
+    },
+    {
+      "name": "queue-observations-restore",
+      "exitCode": 0,
+      "sha256": "9bf2b4bd303caf725c66f9e0cd2f7ef478d683cdd68007be118cd526d5cbf8a6",
+      "formerLog": "queue-observations-restore.log"
+    },
+    {
+      "name": "queue-observations-build",
+      "exitCode": 1,
+      "sha256": "a07a666bf97402689764f921fd5cb018f86d94a65cad01ec9cc468f32a44465c",
+      "formerLog": "queue-observations-build.log"
+    }
+  ],
+  "nativeInputs": [
+    {
+      "path": "libmpv-2.dll",
+      "sha256": "fe583af31036bf3f3adacf6659e1bd448b568091b0334675573a3e303ec89d17",
+      "size": 101242880
+    },
+    {
+      "path": "assets/mpv-runtime/vulkan-1.dll",
+      "sha256": "13dd448a97495763b5cce84b8ade84cd2fa13c71f7e871f3c7d509eca845ad0f",
+      "size": 581120
+    }
+  ],
+  "earlyDiagnosticLimits": "早期Lua对照错误、queue宿主CS0542及首restore同名日志被覆盖；只保留exit/hash，不声称原完整日志保留。后成功使用唯一可核当前log/hash。",
+  "entrypoints": "entrypoints.md R13尾章已补；formal370/diagnostic37/native9及追加观察分别列出",
+  "documentCheck": {
+    "exitCode": 0,
+    "log": "artifacts/review/8e8619e/R13/20261106-first/document-check-final.log",
+    "sha256": "d71f88e8103fa2c7ad29df005a8312574adf94518c5ac770b796686391cfcede",
+    "scope": "10本轮文档与历史/输入/hash/相关链接检查"
+  },
+  "localEvidenceSources": [
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/binaries.json",
+      "sha256": "74a5cad2cc29aeb68016e4af836c8a9336c04fb7f88279c2c3d8226c842581a0"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/check-records.py",
+      "sha256": "a8c324a612fc5fe23d2074c2517a836d62aafd7ad39d35ba7626e7e2ac141b3a"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/checks.json",
+      "sha256": "9b329387f99a4bf745a0bcbda041eea177a6492d6f33574f0f65e5ea5b3fe5fa"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/dialog-observations.cs",
+      "sha256": "cb674dd9e8c5a844c71a15b2cc2ed320e5b9f17ed29e6a473d9649abae0898de"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/dialog-observations.json",
+      "sha256": "6bd3aaffbf5e9666d31e2308431a19789e2ffd08a3cc165ab14986122fb75f35"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/finish-records.py",
+      "sha256": "8e63205b4d04657b917cb7a450035c157e804cf1ecae6548fb71891b91784318"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/ledger-before.json",
+      "sha256": "185651478d0e716d74e99b01101840c2eeb00be8f5f36c280ce2a04ad2620c95"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/lua-observations.py",
+      "sha256": "f7f2053233b9e2981e54a522386abdc5cbb55f5d0a90ccfd5bd1fc0890562cb2"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/make-observations.py",
+      "sha256": "bb85d47ed933a956e5e90521d4ca31b7d5f32aa8a28fa690ee4506a82479cfd2"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/managed-observations.json",
+      "sha256": "f558e75f36546a4b679788b1571418a9ce7ae173e4f7ca1aca37d3098bfe09ff"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/matrix-before.json",
+      "sha256": "4aadbefb9ffd3a5f975b99fc630b4302ca8b3733f83d3a19af6505816fcfb18c"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/native-track-observations.json",
+      "sha256": "29579900240a6e2208c1c142e43befeaeb4df1ce1b616da2adc06608a42a581c"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/native-track-observations.py",
+      "sha256": "39cbb051a90239682e002fcef88013780fdf0601e99f21be60ee815509547f9f"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/payload-large.json",
+      "sha256": "67eeefe9e7e69e61d17535f9b6f6e4cb9c2fd7f2e47efe502c1ac60094938b54"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/payload-small.json",
+      "sha256": "ef07f64785d463607928ae7e4520036e7d0ff4d0ca3e418170ea2d19b021c3f7"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/queue-observations.json",
+      "sha256": "1945db49a5b8ca972cf4f9a5443e9537cb708aef53b971034c6791ee7c4d7722"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/queue-observations.py",
+      "sha256": "e2da7bfcf01cd13071a681ad4479d3dc71814cf9a5a4a3a775fea2d5ffb32223"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/review-counts.json",
+      "sha256": "9f0c41716c39b965843ff11410476236f286138b86f7ca6d1902cb0a9beca75d"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/run-additional.py",
+      "sha256": "4ce3f47f5633d644fcab71556864f735bb4aaa8fe407a2738d52460304416394"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/run-final-tests.py",
+      "sha256": "b2ca022e708d78f87067c16c55b13628f1eaa161f562e51978170f2229d88346"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/run-observations.py",
+      "sha256": "be152cc86ea07f06d84c3b447864bfb15213846fbf5aa04281aa3b0fab013241"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/run-review.py",
+      "sha256": "c5b78c803e498dd78ceda7e7e639c066e626cc042f377edb2f01b9291839670f"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/vm-observations.cs",
+      "sha256": "b8becb5c7bd37ba94b6b65ecee5e73b03861e4cf3f64ee93a4ee9dd1fefae37e"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/vm-observations.json",
+      "sha256": "fa9ed37395223e7008ca50f3dd9ac8fd4ec0289275e37947cec817ed41271d59"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/write-records.py",
+      "sha256": "7aa130577f7d02e101f1418abf5c4d4590182fe178855f13ee4b79dfb6799bd7"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/dialog-diagnostic/compat.cs",
+      "sha256": "f162fcbf17eeea8dd25601c3c0d59f536674c93b600dd7ceead55901ef601605"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/dialog-diagnostic/diagnostic.csproj",
+      "sha256": "b6c4937792672dfc792209e351ce44ccca094d735e60ba93a24f40248c360478"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/dialog-diagnostic/observations.csproj",
+      "sha256": "b97d699e22cf6317f22bfbff4ce3a3894d18de89af8706ddfecf7609070d8bd5"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/final-tests/final.csproj",
+      "sha256": "d40897ef432c987ff5e7de913a6f4df4048b32a1429b94e97b2f27c86791dd79"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/final-tests/Program.cs",
+      "sha256": "8fd8a87045736eb5e8169fb7bcb20dcdd1b442a871748c1e632f1770ba2b900e"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/lua-native/results.json",
+      "sha256": "8d7420a6182a03c98dfb9221396677534301d45ec042544ac57d7b9b2e34c25e"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/lua-native/source-hashes.json",
+      "sha256": "f897a586390d66b1d28a9599c863af4419f046a4cb68b0b0dee45ffc4123adad"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/lua-payload/native-run.py",
+      "sha256": "80194855b771348506002b05b7e0b3f55b17bfcbd7e09b8db56f374d65263f9d"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/lua-payload/results.json",
+      "sha256": "7607d6f26e4e12d8c4b42e1e16cc41d29f3cee6eb5f2ad273e8308c1c65f5fa8"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/observations/observations.csproj",
+      "sha256": "fd3e332c2ace56c6314926a5920a2003d8fb20df4a5aec3feb16e563bff9e570"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/observations/Program.cs",
+      "sha256": "1122f5ae97286f9fcd88ad577a4bf21bf6c191bdf1470fce47e73ea9fac09386"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/queue-observations/Program.cs",
+      "sha256": "cffd85ecfc05ad3d43e9080aa1625fe60c8d7a863315189b9dbc9bae225bbdb2"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/queue-observations/queue.csproj",
+      "sha256": "a4a88f93da78d4034e54acb579f892baf5e2031ffe8700305217b75faa67fd4f"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/queue-observations/ShellNotice.cs",
+      "sha256": "c665e2b488ce7816b477b29ff0cff17e1a1d7a3d04759c1ea989cfeef2a562ac"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/registered/Program.cs",
+      "sha256": "0b6ea2d2c0c4d2538d44b421f26c7433be8ce5fa99bbae66c5ecb2cefcf6d24a"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/registered/registered.csproj",
+      "sha256": "5b333e6390202ea9db1fca5546252234a78d4cbfaa94a4794322e2b6921fc482"
+    },
+    {
+      "path": "artifacts/review/8e8619e/R13/20261106-first/vm-observations/vm.csproj",
+      "sha256": "ad4586f62712b242def30a32d2b1e3ef403833846dd3e6f2b4c7e2eeba4a5eec"
+    }
+  ],
+  "finalMasterSnapshot": "2fc9a232cc6e67906bc05526c3ea4286736e39c8",
+  "finalMasterCheck": "与固定ef624af的src/tests/assets无新差异；docs记录继续独立保留"
+}
