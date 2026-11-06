@@ -11,6 +11,7 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
     private MoviePilotService? _service;
     private MoviePilotTransferContext? _context;
     private string _connection = "";
+    private Func<string, CancellationToken, Task<byte[]>>? _fetchImage;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly List<MoviePilotSeriesTransferRow> _allRows = [];
     private bool _released;
@@ -67,6 +68,7 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
 
     internal void Attach(MoviePilotService service, MoviePilotTransferContext context)
     {
+        _fetchImage = service.CaptureImageFetcher();
         Query = MoviePilotSeriesTransfer.Query(context.MediaId);
         _service = service;
         _context = context;
@@ -89,6 +91,7 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
             foreach (var history in rows)
             {
                 var row = new MoviePilotSeriesTransferRow(history);
+                row.BindImages(_fetchImage!);
                 row.PropertyChanged += OnRowChanged;
                 _allRows.Add(row);
             }

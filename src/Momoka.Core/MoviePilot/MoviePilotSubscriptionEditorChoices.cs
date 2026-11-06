@@ -66,7 +66,7 @@ public sealed partial class MoviePilotService
         {
             try
             {
-                var data = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+                var data = await CallAsync((address, token, client) => client.GetAsync(address, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
                 return (parse(data), "");
             }
             catch (OperationCanceledException) { throw; }

@@ -12,7 +12,7 @@ public sealed partial class MoviePilotService
     public async Task<MoviePilotSubscribeMode> DefaultTvSubscribeModeAsync(MoviePilotMedia media, CancellationToken cancellationToken)
     {
         var identity = RequireResultConnection(media.ConnectionStamp);
-        var data = await CallAsync((address, token) => _client.GetAsync(address, token,
+        var data = await CallAsync((address, token, client) => client.GetAsync(address, token,
             "system/setting/public/DefaultTvSubscribeConfig", cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         return MoviePilotSubscriptionPlan.DefaultMode(data);
     }
@@ -84,8 +84,8 @@ public sealed partial class MoviePilotService
                 }
                 if (OperationState(key) == MoviePilotOperationState.Submitted)
                     throw new MoviePilotOperationBlockedException("上一次订阅仍待核对，不能再次新增");
-                var result = await WriteAsync(identity, [key], (address, token) =>
-                    _client.PostAsync(address, token, "subscribe/", MoviePilotSubscriptionPlan.Body(change), cancellationToken), cancellationToken).ConfigureAwait(false);
+                var result = await WriteAsync(identity, [key], (address, token, client) =>
+                    client.PostAsync(address, token, "subscribe/", MoviePilotSubscriptionPlan.Body(change), cancellationToken), cancellationToken).ConfigureAwait(false);
                 acknowledged = true;
                 var id = MoviePilotSubscription.Number(result, "id");
                 if (id is not > 0) throw new MoviePilotException("订阅已提交，但服务器未返回订阅编号，请刷新核对");

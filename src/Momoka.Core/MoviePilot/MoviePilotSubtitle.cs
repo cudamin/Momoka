@@ -25,7 +25,7 @@ public sealed partial class MoviePilotService
         if (media.Season is >= 0) path += "&season=" + media.Season.Value.ToString(CultureInfo.InvariantCulture);
         if (episode is > 0) path += "&episode=" + episode.Value.ToString(CultureInfo.InvariantCulture);
         path += SearchSitesQuery(sites);
-        var data = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+        var data = await CallAsync((address, token, client) => client.GetAsync(address, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         if (data.ValueKind != JsonValueKind.Array) throw new MoviePilotException("字幕搜索结果格式不正确");
         return data.EnumerateArray().Where(item => MoviePilotSubscription.Text(item, "title").Length > 0
             && MoviePilotSubscription.Text(item, "enclosure").Length > 0).Select(item => new MoviePilotSubtitle(media, item.Clone())).ToArray();
@@ -34,7 +34,7 @@ public sealed partial class MoviePilotService
     public async Task<IReadOnlyList<string>> SubtitlePathsAsync(MoviePilotSubtitle subtitle, CancellationToken cancellationToken)
     {
         var identity = RequireResultConnection(subtitle.Media.ConnectionStamp);
-        var data = await CallAsync((address, token) => _client.GetAsync(address, token, "download/paths", cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+        var data = await CallAsync((address, token, client) => client.GetAsync(address, token, "download/paths", cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         return Values(data, "save_path");
     }
 
@@ -42,8 +42,8 @@ public sealed partial class MoviePilotService
     {
         var identity = RequireResultConnection(subtitle.Media.ConnectionStamp);
         var body = new { subtitle_in = subtitle.Data, media_source = subtitle.Media.MediaSource, media_id = subtitle.Media.MediaId, save_path = string.IsNullOrWhiteSpace(path) ? null : path.Trim() };
-        var result = await WriteAsync(identity, [SubtitleKey(subtitle)], (address, token) =>
-            _client.PostAsync(address, token, "download/subtitle", body, cancellationToken), cancellationToken).ConfigureAwait(false);
+        var result = await WriteAsync(identity, [SubtitleKey(subtitle)], (address, token, client) =>
+            client.PostAsync(address, token, "download/subtitle", body, cancellationToken), cancellationToken).ConfigureAwait(false);
         return MoviePilotSubscription.Member(result, "files") is { ValueKind: JsonValueKind.Array } files ? files.GetArrayLength() : 0;
     }
 }

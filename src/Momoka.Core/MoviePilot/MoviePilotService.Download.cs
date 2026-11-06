@@ -60,7 +60,7 @@ public sealed partial class MoviePilotService
             throw new MoviePilotException("媒体编号不能包含控制字符或路径分隔符");
 
         var path = $"media/{Uri.EscapeDataString(id)}?media_source={Uri.EscapeDataString(source)}&type_name={Uri.EscapeDataString(type)}";
-        var media = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken),
+        var media = await CallAsync((address, token, client) => client.GetAsync(address, token, path, cancellationToken),
             cancellationToken, identity).ConfigureAwait(false);
         CheckIdentity(identity, cancellationToken);
         CheckAniBtResource(resource);
@@ -81,8 +81,8 @@ public sealed partial class MoviePilotService
         var identity = RequireResultConnection(resource.ConnectionStamp);
         if (resource.ConnectionGeneration is { } generation && generation != identity.Generation)
             throw new MoviePilotOperationBlockedException("MoviePilot 配置曾发生变化，请重新搜索 AniBT 资源");
-        var clients = CallAsync((address, token) => _client.GetAsync(address, token, "download/clients", cancellationToken), cancellationToken, identity);
-        var paths = CallAsync((address, token) => _client.GetAsync(address, token, "download/paths", cancellationToken), cancellationToken, identity);
+        var clients = CallAsync((address, token, client) => client.GetAsync(address, token, "download/clients", cancellationToken), cancellationToken, identity);
+        var paths = CallAsync((address, token, client) => client.GetAsync(address, token, "download/paths", cancellationToken), cancellationToken, identity);
         await Task.WhenAll(clients, paths).ConfigureAwait(false);
         CheckAniBtResource(resource);
         return new(Values(await clients.ConfigureAwait(false), "name"), Values(await paths.ConfigureAwait(false), "save_path"));

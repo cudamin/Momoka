@@ -143,6 +143,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
 {
     private MoviePilotService? _service;
     private MoviePilotMedia? _media;
+    private Func<string, CancellationToken, Task<byte[]>>? _fetchImage;
     private CancellationTokenSource? _lifetime;
     private CancellationTokenSource? _groupLoad;
     private readonly HashSet<MoviePilotMediaSeasonRow> _loadingEpisodes = [];
@@ -486,6 +487,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     {
         Cancel();
         _service = service; _media = media; GroupId = group; _picker = picker; _preselect = preselect;
+        _fetchImage = service.CaptureImageFetcher();
         _search = search; _subscribe = subscribe; _lifetime = CancellationTokenSource.CreateLinkedTokenSource(lifetimeToken);
         _initialSelection = picker;
         _seasonDrafts.Clear();
@@ -602,7 +604,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             if (string.IsNullOrWhiteSpace(url)) return;
             try
             {
-                var bytes = await _service.FetchImageAsync(url, token);
+                if (_fetchImage is null) return;
+                var bytes = await _fetchImage(url, token);
                 var image = await PosterLoader.DecodeAsync(bytes, backdrop ? 1200 : 240);
                 if (!Live || token.IsCancellationRequested || !ReferenceEquals(detail, Detail)) return;
                 if (backdrop) Backdrop = image; else Poster = image;
@@ -744,7 +747,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         if (_service is null || row.Season.PosterUrl.Length == 0) return;
         try
         {
-            var bytes = await _service.FetchImageAsync(row.Season.PosterUrl, token);
+            if (_fetchImage is null) return;
+            var bytes = await _fetchImage(row.Season.PosterUrl, token);
             var image = await PosterLoader.DecodeAsync(bytes, 120);
             if (Live && !token.IsCancellationRequested && Seasons.Contains(row)) row.Poster = image;
         }
@@ -781,7 +785,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         if (_service is null || row.Episode.ImageUrl.Length == 0) return;
         try
         {
-            var bytes = await _service.FetchImageAsync(row.Episode.ImageUrl, token);
+            if (_fetchImage is null) return;
+            var bytes = await _fetchImage(row.Episode.ImageUrl, token);
             var image = await PosterLoader.DecodeAsync(bytes, 144);
             if (Live && Seasons.Contains(season) && !token.IsCancellationRequested) row.Artwork = image;
         }
@@ -895,6 +900,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public override void Cancel()
     {
         _lifetime?.Cancel(); _lifetime?.Dispose(); _lifetime = null;
+        _fetchImage = null;
         _groupLoad?.Cancel(); _groupLoad = null;
         Seasons.Clear(); Groups.Clear(); Facts.Clear(); Links.Clear(); Detail = null;
         DetailError = "";

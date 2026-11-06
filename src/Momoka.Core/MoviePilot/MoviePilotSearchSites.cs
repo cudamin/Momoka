@@ -92,7 +92,7 @@ public sealed partial class MoviePilotService
             _ => "site/"
         };
         var identity = CaptureIdentity();
-        var data = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken),
+        var data = await CallAsync((address, token, client) => client.GetAsync(address, token, path, cancellationToken),
             cancellationToken, identity).ConfigureAwait(false);
         return ParseSearchSites(data);
     }

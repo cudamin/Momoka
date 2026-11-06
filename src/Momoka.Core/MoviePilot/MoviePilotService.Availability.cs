@@ -48,6 +48,8 @@ public sealed partial class MoviePilotService
             _availableIdentity = null;
             _historyCapabilities = null;
             _session = null;
+            _transportIdentity = null;
+            _imageFetcher = null;
         }
         // 配置变化即使发生在未连接状态，也要通知监测方重新检查。
         AvailabilityChanged?.Invoke(this, EventArgs.Empty);
@@ -86,7 +88,7 @@ public sealed partial class MoviePilotService
             timeout.CancelAfter(TimeSpan.FromSeconds(10));
             try
             {
-                await CallAsync((address, token) => _client.GetAsync(address, token, "dashboard/system", timeout.Token),
+                await CallAsync((address, token, client) => client.GetAsync(address, token, "dashboard/system", timeout.Token),
                     timeout.Token, identity).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
@@ -106,7 +108,7 @@ public sealed partial class MoviePilotService
         var revision = Interlocked.Read(ref _availabilityRevision);
         try
         {
-            var status = await new MoviePilotProbe(_client).RunAsync(identity.ApiBase, identity.Username,
+            var status = await new MoviePilotProbe(identity.Client).RunAsync(identity.ApiBase, identity.Username,
                 _credentials.GetPassword(identity.ProtectedPassword), cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             if (!MatchesConfiguration(identity)) throw new OperationCanceledException("MoviePilot 配置已改变，请重新测试");

@@ -9,7 +9,7 @@ public sealed partial class MoviePilotService
     {
         var identity = CaptureIdentity();
         // v3 的 page/count 均省略时返回全量，避免主页只显示默认分页的第一批。
-        var data = await CallAsync((address, token) => _client.GetAsync(address, token, "subscribe/", cancellationToken),
+        var data = await CallAsync((address, token, client) => client.GetAsync(address, token, "subscribe/", cancellationToken),
             cancellationToken, identity).ConfigureAwait(false);
         var stamp = TransferConnectionStamp(identity);
         return MoviePilotSubscription.ParseList(data).Select(item => item with
@@ -39,7 +39,7 @@ public sealed partial class MoviePilotService
     public async Task<MoviePilotSubscription> SubscriptionAsync(MoviePilotSubscription subscription, CancellationToken cancellationToken)
     {
         var identity = RequireResultConnection(subscription.ConnectionStamp);
-        var data = await CallAsync((address, token) => _client.GetAsync(address, token,
+        var data = await CallAsync((address, token, client) => client.GetAsync(address, token,
             "subscribe/" + subscription.Id.ToString(CultureInfo.InvariantCulture), cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         var current = MoviePilotSubscription.Parse(data);
         if (current is null || current.Id != subscription.Id) throw new MoviePilotException("订阅已不存在，请返回主页刷新");
@@ -53,7 +53,7 @@ public sealed partial class MoviePilotService
     public async Task<MoviePilotSubscriptionFiles> SubscriptionFilesAsync(MoviePilotSubscription subscription, CancellationToken cancellationToken)
     {
         var identity = RequireResultConnection(subscription.ConnectionStamp);
-        var data = await CallAsync((address, token) => _client.GetAsync(address, token,
+        var data = await CallAsync((address, token, client) => client.GetAsync(address, token,
             "subscribe/files/" + subscription.Id.ToString(CultureInfo.InvariantCulture), cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         return MoviePilotSubscriptionFiles.Parse(data, subscription);
     }
@@ -79,7 +79,7 @@ public sealed partial class MoviePilotService
         var path = $"tmdb/{id}/{season.ToString(CultureInfo.InvariantCulture)}";
         // 订阅带剧集组时，服务器按剧集组算集号；查询不带它就取到另一套编号，对不上屏上那几集。
         if (subscription.EpisodeGroup.Length > 0) path += $"?episode_group={Uri.EscapeDataString(subscription.EpisodeGroup)}";
-        var data = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken),
+        var data = await CallAsync((address, token, client) => client.GetAsync(address, token, path, cancellationToken),
             cancellationToken, identity).ConfigureAwait(false);
         return MoviePilotEpisodeAirDates.Parse(data);
     }
@@ -103,13 +103,13 @@ public sealed partial class MoviePilotService
             return [];
 
         var identity = RequireResultConnection(subscription.ConnectionStamp);
-        var groups = await CallAsync((address, token) => _client.GetAsync(address, token,
+        var groups = await CallAsync((address, token, client) => client.GetAsync(address, token,
             $"media/groups/{id}", cancellationToken), cancellationToken, identity).ConfigureAwait(false);
 
         var seasons = default(JsonElement);
         try
         {
-            seasons = await CallAsync((address, token) => _client.GetAsync(address, token,
+            seasons = await CallAsync((address, token, client) => client.GetAsync(address, token,
                 $"media/seasons?media_source=themoviedb&media_id={id}", cancellationToken), cancellationToken, identity)
                 .ConfigureAwait(false);
         }
@@ -149,12 +149,12 @@ public sealed partial class MoviePilotService
     {
         var identity = RequireResultConnection(subscription.ConnectionStamp);
         var key = SubscriptionOperationKey(subscription);
-        await WriteAsync(identity, [key], async (address, token) =>
+        await WriteAsync(identity, [key], async (address, token, client) =>
         {
-            try { return await _client.MutateAsync(address, token, method, path, body, cancellationToken).ConfigureAwait(false); }
+            try { return await client.MutateAsync(address, token, method, path, body, cancellationToken).ConfigureAwait(false); }
             // 官方公开文档的旧版搜索/重置仍用 GET。只有明确 405 拒绝 POST 才退回；超时等不重放。
             catch (MoviePilotException error) when (error.Status == System.Net.HttpStatusCode.MethodNotAllowed && method == HttpMethod.Post)
-            { return await _client.MutateAsync(address, token, HttpMethod.Get, path, body, cancellationToken).ConfigureAwait(false); }
+            { return await client.MutateAsync(address, token, HttpMethod.Get, path, body, cancellationToken).ConfigureAwait(false); }
         }, cancellationToken).ConfigureAwait(false);
         // 明确成功后可继续暂停/恢复/编辑；结果不明仍由 WriteAsync 锁住，禁止自动重放。
         lock (_operationGate) _operations.Remove(key);

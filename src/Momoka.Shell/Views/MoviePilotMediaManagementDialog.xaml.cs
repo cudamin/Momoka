@@ -30,6 +30,7 @@ public sealed partial class MoviePilotMediaManagementDialog : ContentDialog
     private bool _updatingSelection;
     private readonly bool _closeAfterSuccess;
     private readonly CancellationToken _ownerLifetime;
+    private readonly Func<string, CancellationToken, Task<byte[]>> _fetchImage;
     private CancellationTokenRegistration _ownerCancellation;
     public ObservableCollection<MoviePilotHistoryRecordRow> Records { get; } = [];
 
@@ -47,6 +48,7 @@ public sealed partial class MoviePilotMediaManagementDialog : ContentDialog
         MoviePilotHistoryPlan? preparedPlan = null, CancellationToken ownerLifetime = default)
     {
         _service = service;
+        _fetchImage = service.CaptureImageFetcher();
         _scope = scope;
         _item = item;
         _action = action;
@@ -181,6 +183,7 @@ public sealed partial class MoviePilotMediaManagementDialog : ContentDialog
         {
             media.TryGetValue(history.Id, out var retained);
             var row = MoviePilotHistoryRecordRow.Create(history, plan, result, retained);
+            row.Media.BindImages(_fetchImage);
             row.Media.PropertyChanged += OnSelectionChanged;
             Records.Add(row);
         }

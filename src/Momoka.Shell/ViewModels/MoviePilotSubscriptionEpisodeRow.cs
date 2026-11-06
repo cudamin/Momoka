@@ -14,6 +14,8 @@ public sealed partial class MoviePilotSubscriptionEpisodeRow(
 {
     private CancellationTokenSource? _artworkLoad;
     private bool _retired;
+    private Func<string, CancellationToken, Task<byte[]>>? _fetchImage;
+    internal void BindImages(Func<string, CancellationToken, Task<byte[]>> fetch) => _fetchImage ??= fetch;
     public MoviePilotSubscriptionEpisode Episode { get; } = episode;
     public MoviePilotPlaybackTarget? Target { get; private set; }
     public string Label => Episode.Label;
@@ -69,13 +71,14 @@ public sealed partial class MoviePilotSubscriptionEpisodeRow(
     {
         if (_retired || Artwork is not null || _artworkLoad is not null || lifetime.IsCancellationRequested
             || !Uri.TryCreate(Episode.ArtworkUrl, UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https")) return;
+        if (_fetchImage is null) return;
         using var pending = CancellationTokenSource.CreateLinkedTokenSource(lifetime);
         pending.CancelAfter(TimeSpan.FromSeconds(12));
         _artworkLoad = pending;
         var connection = service.ConnectionStamp;
         try
         {
-            var bytes = await service.FetchImageAsync(url.AbsoluteUri, pending.Token);
+            var bytes = await _fetchImage(url.AbsoluteUri, pending.Token);
             var bitmap = await PosterLoader.DecodeAsync(bytes, (int)ArtworkWidth);
             if (!_retired && !pending.IsCancellationRequested && service.IsCurrentConnection(connection)) Artwork = bitmap;
         }

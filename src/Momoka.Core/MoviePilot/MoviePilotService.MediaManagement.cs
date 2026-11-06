@@ -39,7 +39,7 @@ public sealed partial class MoviePilotService
         var stamp = TransferConnectionStamp(identity);
         try
         {
-            var user = await CallAsync((address, token) => _client.GetAsync(address, token, "user/current", cancellationToken),
+            var user = await CallAsync((address, token, client) => client.GetAsync(address, token, "user/current", cancellationToken),
                 cancellationToken, identity).ConfigureAwait(false);
             CheckIdentity(identity, cancellationToken);
             var manage = MoviePilotTransfer.Bool(user, "is_active") && (MoviePilotTransfer.Bool(user, "is_superuser") ||
@@ -47,7 +47,7 @@ public sealed partial class MoviePilotService
             var smart = false;
             if (manage)
             {
-                var settings = await CallAsync((address, token) => _client.GetAsync(address, token, "system/global/user", cancellationToken),
+                var settings = await CallAsync((address, token, client) => client.GetAsync(address, token, "system/global/user", cancellationToken),
                     cancellationToken, identity).ConfigureAwait(false);
                 smart = MoviePilotTransfer.Bool(settings, "AI_AGENT_ENABLE");
             }
@@ -170,7 +170,7 @@ public sealed partial class MoviePilotService
         if (!Available) throw new MoviePilotOperationBlockedException("MoviePilot 连接不可用，本次没有提交");
         // 与手动整理共用历史与文件键；重开菜单或改选另一档删除不能绕过已发请求的账本。
         var keys = HistoryOperationKeys(plan);
-        return await WriteAsync(identity, keys, async (address, token) =>
+        return await WriteAsync(identity, keys, async (address, token, client) =>
         {
             if (plan.Smart)
             {
@@ -178,7 +178,7 @@ public sealed partial class MoviePilotService
                     : $"history/transfer/{plan.Histories[0].Id.ToString(CultureInfo.InvariantCulture)}/ai-redo";
                 object? body = plan.Batch || plan.Histories.Count > 1
                     ? new { history_ids = plan.Histories.Select(history => history.Id).ToArray() } : null;
-                var data = await _client.MutateAsync(address, token, HttpMethod.Post, path, body, cancellationToken).ConfigureAwait(false);
+                var data = await client.MutateAsync(address, token, HttpMethod.Post, path, body, cancellationToken).ConfigureAwait(false);
                 var progress = MoviePilotTransfer.Text(data, "progress_key");
                 if (progress.Length == 0) throw new MoviePilotException("智能整理未返回进度键，请到 MoviePilot 核对，勿重复提交");
                 var ids = MoviePilotTransferHistory.Member(data, "history_ids");
@@ -193,7 +193,7 @@ public sealed partial class MoviePilotService
                 try
                 {
                     CheckIdentity(identity, cancellationToken);
-                    var reply = await _client.MutateReplyAsync(address, token, HttpMethod.Delete,
+                    var reply = await client.MutateReplyAsync(address, token, HttpMethod.Delete,
                         $"history/transfer?deletesrc={BoolQuery(plan.DeleteSource)}&deletedest={BoolQuery(plan.DeleteDestination)}",
                         new { id = history.Id }, cancellationToken).ConfigureAwait(false);
                     receipts.Add(MoviePilotHistoryReceipt.Parse(history.Id, reply, plan));

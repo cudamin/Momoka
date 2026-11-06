@@ -25,6 +25,11 @@ internal static class Program
             JellyfinProtocolTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["moviepilot-cookie-ownership-fixture"])
+        {
+            MoviePilotCookieOwnershipTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["moviepilot-boundary-fixture"])
         {
             MoviePilotSafetyTests.Register();

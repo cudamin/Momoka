@@ -16,6 +16,12 @@
 - 有效红：主Tests编译0/0，40项24过16败；正式Dialog CS0103缺_blurCancel。绿：两Release/x64编译0/0，协议/管理99过，正式Dialog原37过，均0失败0跳；日志均在本树artifacts/r04-subtitle-target。R04-004独立未修。
 - 提交待主代理整合与最终组合验证；未跑全主套件/方案/Shell/真实UI/账号/服务/播放，未发布/改快捷方式/上传，本树通过不等于交付。主树写入与批次交付由根会话独占。
 
+# 2026-11-07 R08-001 MoviePilot Cookie 归属修复
+
+- 本树 moviepilot-priority-fixes 基于 5e971ae；仅本树写入。共享连接池关闭自动 Cookie，每配置代次持独立 jar；所有 API/写入/Probe/SSE/图像显式捕获所有者，根直接登录映射按来源与令牌有限保留。页面/行在异步工作前捕获图片委托，ABA旧委托零请求，新结果重新绑定；防重账本身份不改。
+- 正式红：初5项0过5败；底层旧token与ABA图片2项追加红；prefix8项7过1败；invalid10项8过2败。最终当前Release Cookie10/10、登录跳转43/43、实际Shell订阅页面状态33/33，Core/Tests与x64Shell构建0警告0错误。日志 artifacts/priority-fixes/cookie-red、final-core、final-invalid；cookie-mid曾时段授权误读，日志保留，最终均独占串行重验。
+- 源码依据：本会话固定官方后端4cd64d6 resource Cookie身份/签发及48874bc清理协议，未读取真实Secret/用户配置或执行服务器、播放、发布、push。后续R09清理范围与存储保护仍在本树；主代理独占整合、全Core/统一验证和交付，当前尚未合入master或刷新快捷方式。
+
 # 2026-11-06 全项目审查文档主树整合
 
 - 审查记录提交b7c3a61纯文档整合到主树，整合前master=3f1dd4fd577d164fd4a00a0952569321488e98d1；72审查产物、计划及本次进度记录进入当前主树，原主树PROGRESS尾部逐字节保留。

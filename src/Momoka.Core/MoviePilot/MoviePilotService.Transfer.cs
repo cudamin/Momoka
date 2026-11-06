@@ -24,16 +24,16 @@ public sealed partial class MoviePilotService
     public async Task<MoviePilotTransferOptions> TransferOptionsAsync(CancellationToken cancellationToken)
     {
         var identity = CaptureIdentity();
-        var storages = MoviePilotTransfer.Array(await CallAsync((apiBase, token) =>
-            _client.GetAsync(apiBase, token, "storage/options", cancellationToken), cancellationToken, identity)
+        var storages = MoviePilotTransfer.Array(await CallAsync((apiBase, token, client) =>
+            client.GetAsync(apiBase, token, "storage/options", cancellationToken), cancellationToken, identity)
             .ConfigureAwait(false))
             .Where(item => MoviePilotTransfer.Text(item, "name").Length > 0)
             .Select(item => new MoviePilotStorage(
                 MoviePilotTransfer.Text(item, "name"), MoviePilotTransfer.Text(item, "type")))
             .ToList();
 
-        var directories = MoviePilotTransfer.Array(await CallAsync((apiBase, token) =>
-            _client.GetAsync(apiBase, token, "storage/directories?directory_type=library", cancellationToken),
+        var directories = MoviePilotTransfer.Array(await CallAsync((apiBase, token, client) =>
+            client.GetAsync(apiBase, token, "storage/directories?directory_type=library", cancellationToken),
             cancellationToken, identity).ConfigureAwait(false))
             .Where(item => MoviePilotTransfer.Text(item, "library_path").Length > 0)
             .Select(item => new MoviePilotDirectory(
@@ -46,15 +46,15 @@ public sealed partial class MoviePilotService
                 MoviePilotTransfer.Bool(item, "library_category_folder")))
             .ToList();
 
-        var sources = ParseMediaSources(await CallAsync((apiBase, token) =>
-            _client.GetAsync(apiBase, token, "media/source", cancellationToken), cancellationToken, identity).ConfigureAwait(false))
+        var sources = ParseMediaSources(await CallAsync((apiBase, token, client) =>
+            client.GetAsync(apiBase, token, "media/source", cancellationToken), cancellationToken, identity).ConfigureAwait(false))
             .Where(source => source.IsVideo).ToList();
         CheckIdentity(identity, cancellationToken);
 
         var defaultSource = "themoviedb";
         try
         {
-            var global = await CallAsync((apiBase, token) => _client.GetAsync(apiBase, token,
+            var global = await CallAsync((apiBase, token, client) => client.GetAsync(apiBase, token,
                 "system/global/user", cancellationToken), cancellationToken, identity).ConfigureAwait(false);
             var configured = MoviePilotTransfer.Text(global, "RECOGNIZE_SOURCE");
             if (sources.Any(source => source.Id == configured)) defaultSource = configured;
@@ -79,7 +79,7 @@ public sealed partial class MoviePilotService
             System.Globalization.CultureInfo.InvariantCulture, out var id) || id <= 0)
             return [];
         var identity = CaptureIdentity();
-        var groups = await CallAsync((address, token) => _client.GetAsync(address, token,
+        var groups = await CallAsync((address, token, client) => client.GetAsync(address, token,
             "media/groups/" + Uri.EscapeDataString(mediaId), cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         CheckIdentity(identity, cancellationToken);
         return MoviePilotEpisodeGroups.Build(groups, default);
@@ -91,7 +91,7 @@ public sealed partial class MoviePilotService
     /// </summary>
     public async Task<JsonElement> TransferFileAsync(string sourcePath, CancellationToken cancellationToken)
     {
-        var reply = await CallAsync((apiBase, token) => _client.PostReplyAsync(apiBase, token,
+        var reply = await CallAsync((apiBase, token, client) => client.PostReplyAsync(apiBase, token,
             "storage/list?sort=name",
             new Dictionary<string, object?> { ["storage"] = "local", ["type"] = "file", ["path"] = sourcePath },
             cancellationToken), cancellationToken).ConfigureAwait(false);
@@ -127,7 +127,7 @@ public sealed partial class MoviePilotService
     public async Task<MoviePilotTransferOptions> TransferTargetAsync(
         JsonElement file, CancellationToken cancellationToken)
     {
-        var reply = await CallAsync((apiBase, token) => _client.PostReplyAsync(apiBase, token,
+        var reply = await CallAsync((apiBase, token, client) => client.PostReplyAsync(apiBase, token,
             "transfer/manual/target-path",
             new Dictionary<string, object?> { ["fileitem"] = file }, cancellationToken), cancellationToken)
             .ConfigureAwait(false);
@@ -215,7 +215,7 @@ public sealed partial class MoviePilotService
             throw new MoviePilotTransferBlockedException("提交前核验失败：" + Failure.Describe(error), error);
         }
         // WriteAsync alone owns the sent/uncertain ledger; never wrap its failures as preflight.
-        var reply = await WriteAsync(identity, TransferKeys(preview), (apiBase, token) => _client.PostReplyAsync(
+        var reply = await WriteAsync(identity, TransferKeys(preview), (apiBase, token, client) => client.PostReplyAsync(
             apiBase, token, $"transfer/manual?background={(background ? "true" : "false")}", body, cancellationToken),
             cancellationToken).ConfigureAwait(false);
         var result = MoviePilotTransfer.ParseResult(reply.Data, reply.Success, reply.Message, preview: false);
@@ -239,7 +239,7 @@ public sealed partial class MoviePilotService
         CheckIdentity(identity, cancellationToken);
         ValidateHistoryConnection(request.Histories, identity);
         var body = request.Body(files, preview);
-        var reply = await CallAsync((apiBase, token) => _client.PostReplyAsync(
+        var reply = await CallAsync((apiBase, token, client) => client.PostReplyAsync(
             apiBase, token, $"transfer/manual?background={(background ? "true" : "false")}", body, cancellationToken),
             cancellationToken, identity).ConfigureAwait(false);
 

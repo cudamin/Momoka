@@ -168,7 +168,7 @@ public sealed partial class MoviePilotService
 
         async Task<JsonElement> ReadAsync()
         {
-            var result = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken),
+            var result = await CallAsync((address, token, client) => client.GetAsync(address, token, path, cancellationToken),
                 cancellationToken, identity).ConfigureAwait(false);
             CheckAniBtConnection(connection, cancellationToken);
             return result;

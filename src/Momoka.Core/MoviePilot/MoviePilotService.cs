@@ -38,6 +38,12 @@ public sealed partial class MoviePilotService : IDisposable
     {
         _settings.MoviePilot.ConnectionChanged -= OnConnectionChanged;
         _settings.MoviePilot.AniBtChanged -= OnAniBtChanged;
+        lock (_sessionGate)
+        {
+            _session = null;
+            _transportIdentity = null;
+            _imageFetcher = null;
+        }
     }
     private const string Category = "moviepilot";
 
@@ -48,7 +54,12 @@ public sealed partial class MoviePilotService : IDisposable
     private CachedSession? _session;
 
     // 只比较密文快照；明文仅在实际登录时解开，不作为缓存键或诊断文字。
-    private sealed record SessionIdentity(Uri ApiBase, string Username, string ProtectedPassword, long Generation);
+    private sealed record SessionIdentity(Uri ApiBase, string Username, string ProtectedPassword, long Generation)
+    {
+        internal MoviePilotClient Client { get; init; } = null!;
+    }
+    private SessionIdentity? _transportIdentity;
+    private Func<string, CancellationToken, Task<byte[]>>? _imageFetcher;
 
     private sealed record CachedSession(SessionIdentity Identity, MoviePilotSession Session);
 
@@ -80,8 +91,8 @@ public sealed partial class MoviePilotService : IDisposable
             path += $"&media_source={Uri.EscapeDataString(source)}";
 
         var identity = CaptureIdentity();
-        var data = await CallAsync((apiBase, token) =>
-            _client.GetAsync(apiBase, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+        var data = await CallAsync((apiBase, token, client) =>
+            client.GetAsync(apiBase, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
 
         var stamp = TransferConnectionStamp(identity);
         var results = MoviePilotMediaParser.Parse(data).Select(media => media with { ConnectionStamp = stamp }).ToList();
@@ -96,8 +107,8 @@ public sealed partial class MoviePilotService : IDisposable
     /// </summary>
     public async Task<IReadOnlyList<MoviePilotMediaSource>> MediaSourcesAsync(CancellationToken cancellationToken)
     {
-        var data = await CallAsync((apiBase, token) =>
-            _client.GetAsync(apiBase, token, "media/source", cancellationToken), cancellationToken).ConfigureAwait(false);
+        var data = await CallAsync((apiBase, token, client) =>
+            client.GetAsync(apiBase, token, "media/source", cancellationToken), cancellationToken).ConfigureAwait(false);
         return ParseMediaSources(data);
     }
 
@@ -112,8 +123,8 @@ public sealed partial class MoviePilotService : IDisposable
 
         var identity = RequireResultConnection(media.ConnectionStamp);
         var body = MoviePilotMediaParser.SubscribeBody(media);
-        await WriteAsync(identity, [SubscribeKey(media)], (apiBase, token) =>
-            _client.PostAsync(apiBase, token, "subscribe/", body, cancellationToken), cancellationToken)
+        await WriteAsync(identity, [SubscribeKey(media)], (apiBase, token, client) =>
+            client.PostAsync(apiBase, token, "subscribe/", body, cancellationToken), cancellationToken)
             .ConfigureAwait(false);
 
         Log.Info(Category, $"已在 MoviePilot 订阅《{media.Title}》");
@@ -176,7 +187,7 @@ public sealed partial class MoviePilotService : IDisposable
 
     private Task<System.Text.Json.JsonElement> ReadResourceSearchAsync(SessionIdentity identity, string path,
         IProgress<MoviePilotSearchProgress>? progress, CancellationToken cancellationToken) =>
-        CallAsync(async (apiBase, token) =>
+        CallAsync(async (apiBase, token, client) =>
         {
             if (progress is not null)
             {
@@ -185,11 +196,11 @@ public sealed partial class MoviePilotService : IDisposable
                     CheckIdentity(identity, cancellationToken);
                     progress.Report(value);
                 });
-                var streamed = await _client.SearchStreamAsync(apiBase, token, path, guarded, cancellationToken).ConfigureAwait(false);
+                var streamed = await client.SearchStreamAsync(apiBase, token, path, guarded, cancellationToken).ConfigureAwait(false);
                 if (streamed is { } result) return result;
                 progress.Report(new(null, "正在所选站点搜索资源…"));
             }
-            return await _client.GetAsync(apiBase, token, path, cancellationToken).ConfigureAwait(false);
+            return await client.GetAsync(apiBase, token, path, cancellationToken).ConfigureAwait(false);
         }, cancellationToken, identity);
 
     private sealed class ResourceSearchProgress(Action<MoviePilotSearchProgress> report) : IProgress<MoviePilotSearchProgress>
@@ -214,8 +225,8 @@ public sealed partial class MoviePilotService : IDisposable
         CheckAniBtResource(resource);
         var body = MoviePilotMediaParser.DownloadBody(resource, options);
         var path = body.ContainsKey("media_in") ? "download/" : "download/add";
-        await WriteAsync(identity, [DownloadKey(resource)], (apiBase, token) =>
-            _client.PostDownloadAsync(apiBase, token, path, body, cancellationToken), cancellationToken)
+        await WriteAsync(identity, [DownloadKey(resource)], (apiBase, token, client) =>
+            client.PostDownloadAsync(apiBase, token, path, body, cancellationToken), cancellationToken)
             .ConfigureAwait(false);
 
         Log.Info(Category, $"已把资源「{resource.Title}」加入 MoviePilot 下载");
@@ -227,12 +238,39 @@ public sealed partial class MoviePilotService : IDisposable
     /// <see cref="MoviePilotClient"/> 构造器那段）；订阅列表或文件统计读取后再请求图片。服务器自己够得着图源
     /// （TMDB）还开着磁盘缓存，客户端直连不上图源时这条路是唯一能出图的。取不到抛异常，由调用方决定兜底。
     /// </summary>
-    public async Task<byte[]> FetchImageAsync(string url, CancellationToken cancellationToken)
+    public Task<byte[]> FetchImageAsync(string url, CancellationToken cancellationToken)
     {
-        var apiBase = ResolveAddress();
+        var identity = CaptureIdentity();
+        CheckIdentity(identity, cancellationToken);
+        return FetchImageAsync(identity, url, cancellationToken);
+    }
+
+    /// <summary>Bind artwork reads to the current configuration generation before a page or row starts asynchronous work.</summary>
+    public Func<string, CancellationToken, Task<byte[]>> CaptureImageFetcher()
+    {
+        lock (_sessionGate)
+        {
+            if (!Enabled) return UnavailableImageFetcher;
+            try
+            {
+                var identity = CaptureIdentity();
+                return _imageFetcher ??= (url, token) => FetchImageAsync(identity, url, token);
+            }
+            catch (MoviePilotException) { return UnavailableImageFetcher; }
+        }
+    }
+
+    private static Task<byte[]> UnavailableImageFetcher(string url, CancellationToken cancellationToken) =>
+        Task.FromCanceled<byte[]>(new CancellationToken(canceled: true));
+
+    private async Task<byte[]> FetchImageAsync(SessionIdentity identity, string url, CancellationToken cancellationToken)
+    {
+        CheckIdentity(identity, cancellationToken);
         var proxy = MoviePilotAddress.Combine(
-            apiBase, $"api/v1/system/cache/image?url={Uri.EscapeDataString(url)}");
-        return await _client.GetBytesAsync(proxy, cancellationToken).ConfigureAwait(false);
+            identity.ApiBase, $"api/v1/system/cache/image?url={Uri.EscapeDataString(url)}");
+        var bytes = await identity.Client.GetBytesAsync(proxy, cancellationToken).ConfigureAwait(false);
+        CheckIdentity(identity, cancellationToken);
+        return bytes;
     }
 
     /// <summary>
@@ -240,7 +278,7 @@ public sealed partial class MoviePilotService : IDisposable
     /// 之后还 401 那是账号或权限的事，不是过期，再试也没用。泛型：整理那一半要整份回执（含失败的），不只 data。
     /// </summary>
     private async Task<T> CallAsync<T>(
-        Func<Uri, string, Task<T>> call,
+        Func<Uri, string, MoviePilotClient, Task<T>> call,
         CancellationToken cancellationToken,
         SessionIdentity? expectedIdentity = null)
     {
@@ -260,7 +298,7 @@ public sealed partial class MoviePilotService : IDisposable
     }
 
     private async Task<T> CallWithSessionAsync<T>(
-        Func<Uri, string, Task<T>> call,
+        Func<Uri, string, MoviePilotClient, Task<T>> call,
         CancellationToken cancellationToken,
         SessionIdentity? expectedIdentity = null)
     {
@@ -269,7 +307,7 @@ public sealed partial class MoviePilotService : IDisposable
         CheckIdentity(identity, cancellationToken);
         try
         {
-            var result = await call(identity.ApiBase, session.Session.AccessToken).ConfigureAwait(false);
+            var result = await call(identity.ApiBase, session.Session.AccessToken, identity.Client).ConfigureAwait(false);
             CheckIdentity(identity, cancellationToken);
             return result;
         }
@@ -282,29 +320,25 @@ public sealed partial class MoviePilotService : IDisposable
             }
             var fresh = await EnsureSessionAsync(identity, cancellationToken).ConfigureAwait(false);
             CheckIdentity(identity, cancellationToken);
-            var result = await call(identity.ApiBase, fresh.Session.AccessToken).ConfigureAwait(false);
+            var result = await call(identity.ApiBase, fresh.Session.AccessToken, identity.Client).ConfigureAwait(false);
             CheckIdentity(identity, cancellationToken);
             return result;
         }
     }
 
-    /// <summary>设置里的地址归一化成 API base，或用一句人话说明为什么不行。</summary>
-    private Uri ResolveAddress()
-    {
-        if (!MoviePilotAddress.TryNormalize(_settings.MoviePilot.Url, out var address, out var error))
-            throw new MoviePilotException(error);
-
-        return address ?? throw new MoviePilotException("先在设置里填上 MoviePilot 的服务地址");
-    }
-
     private SessionIdentity CaptureIdentity()
     {
-        var moviePilot = _settings.MoviePilot;
-        if (!MoviePilotAddress.TryNormalize(moviePilot.Url, out var apiBase, out var error))
-            throw new MoviePilotException(error);
-        if (apiBase is null) throw new MoviePilotException("先在设置里填上 MoviePilot 的服务地址");
-        return new SessionIdentity(apiBase, moviePilot.Username?.Trim() ?? "", moviePilot.ProtectedPassword,
-            Interlocked.Read(ref _connectionGeneration));
+        lock (_sessionGate)
+        {
+            var moviePilot = _settings.MoviePilot;
+            if (!MoviePilotAddress.TryNormalize(moviePilot.Url, out var apiBase, out var error))
+                throw new MoviePilotException(error);
+            if (apiBase is null) throw new MoviePilotException("先在设置里填上 MoviePilot 的服务地址");
+            if (_transportIdentity is { } existing && MatchesConfiguration(existing)) return existing;
+            _imageFetcher = null;
+            return _transportIdentity = new SessionIdentity(apiBase, moviePilot.Username?.Trim() ?? "", moviePilot.ProtectedPassword,
+                Interlocked.Read(ref _connectionGeneration)) { Client = _client.CreateConnection(apiBase) };
+        }
     }
 
     private void CheckIdentity(SessionIdentity identity, CancellationToken cancellationToken)
@@ -342,7 +376,7 @@ public sealed partial class MoviePilotService : IDisposable
             MoviePilotSession session;
             try
             {
-                session = await _client.SignInAsync(identity.ApiBase, identity.Username, password, cancellationToken).ConfigureAwait(false);
+                session = await identity.Client.SignInAsync(identity.ApiBase, identity.Username, password, cancellationToken).ConfigureAwait(false);
             }
             catch
             {

@@ -73,7 +73,8 @@ public sealed partial class MoviePilotMediaViewModel
         if (_service is null || url.Length == 0) return;
         try
         {
-            var bytes = await _service.FetchImageAsync(url, token);
+            if (_fetchImage is null) return;
+            var bytes = await _fetchImage(url, token);
             var image = await PosterLoader.DecodeAsync(bytes, 150);
             if (Live && !token.IsCancellationRequested && (People.Contains(card) || Recommendations.Contains(card) || Similar.Contains(card))) card.Poster = image;
         }

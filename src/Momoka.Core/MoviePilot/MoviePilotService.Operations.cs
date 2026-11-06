@@ -42,7 +42,7 @@ public sealed partial class MoviePilotService
     }
 
     private async Task<T> WriteAsync<T>(SessionIdentity identity, IReadOnlyList<string> keys,
-        Func<Uri, string, Task<T>> write, CancellationToken cancellationToken)
+        Func<Uri, string, MoviePilotClient, Task<T>> write, CancellationToken cancellationToken)
     {
         CheckIdentity(identity, cancellationToken);
         lock (_operationGate)
@@ -55,10 +55,10 @@ public sealed partial class MoviePilotService
         var sent = false;
         try
         {
-            var result = await CallAsync(async (address, token) =>
+            var result = await CallAsync(async (address, token, client) =>
             {
                 sent = true;
-                try { return await write(address, token).ConfigureAwait(false); }
+                try { return await write(address, token, client).ConfigureAwait(false); }
                 catch (MoviePilotTokenExpiredException) { sent = false; throw; }
             }, cancellationToken, identity).ConfigureAwait(false);
             lock (_operationGate)

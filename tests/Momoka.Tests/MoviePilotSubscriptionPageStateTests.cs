@@ -32,6 +32,25 @@ internal static class MoviePilotSubscriptionPageStateTests
                 var type = assembly.GetType("Momoka.Shell.ViewModels.MoviePilotSubscriptionsViewModel", true)!;
                 Console.WriteLine("订阅分类与分集状态：真实Shell VM，禁止配置／凭据／网络／写入／窗口");
                 Console.WriteLine("Shell=" + shell);
+                foreach (var address in new[] { "", "http://[invalid" })
+                    Test("MP 图片捕获：实际详情和订阅 Attach 无效配置仍可隐藏 " + address, () =>
+                    {
+                        using var transport = new SubscriptionTransport();
+                        using var client = new MoviePilotClient(transport);
+                        var settings = new AppSettings();
+                        settings.MoviePilot.Url = address;
+                        using var service = new MoviePilotService(client, new MoviePilotCredentials(new RejectAttachSecrets()), settings);
+                        var subscriptions = Activator.CreateInstance(type)!;
+                        type.GetMethod("Attach", Members)!.Invoke(subscriptions, [service, null]);
+                        Assert.Equal("Collapsed", type.GetProperty("Visible", Members)!.GetValue(subscriptions)!.ToString());
+                        type.GetMethod("Cancel", Members)!.Invoke(subscriptions, null);
+                        var mediaType = assembly.GetType("Momoka.Shell.ViewModels.MoviePilotMediaViewModel", true)!;
+                        var media = Activator.CreateInstance(mediaType)!;
+                        mediaType.GetMethod("Attach", Members)!.Invoke(media,
+                            [service, new MoviePilotMedia { Title = "Fixture" }, "", false, null, null, null, CancellationToken.None]);
+                        mediaType.GetMethod("Cancel", Members)!.Invoke(media, null);
+                        Assert.Equal(0, transport.Writes);
+                    });
                 foreach (var series in new[] { false, true })
                 {
                     var key = series ? Momoka.Emby.HomeLayout.MoviePilotSeries : Momoka.Emby.HomeLayout.MoviePilotMovies;
@@ -279,6 +298,12 @@ internal static class MoviePilotSubscriptionPageStateTests
             public string Protect(string text) => throw new AssertionException("夹具不得保护凭据");
             public string Unprotect(string text) => throw new AssertionException("夹具不得解开凭据或登录");
         }
+    }
+
+    private sealed class RejectAttachSecrets : ISecretProtector
+    {
+        public string Protect(string text) => throw new AssertionException("无效配置 Attach 不得保护凭据");
+        public string Unprotect(string text) => throw new AssertionException("无效配置 Attach 不得解开凭据");
     }
 
     private sealed class SubscriptionTransport : HttpMessageHandler

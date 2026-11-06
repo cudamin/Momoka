@@ -9,7 +9,7 @@ public sealed partial class MoviePilotService
     {
         var identity = RequireResultConnection(media.ConnectionStamp);
         var path = $"media/{Uri.EscapeDataString(media.MediaId ?? "")}?media_source={Uri.EscapeDataString(media.MediaSource ?? "")}&type_name={Uri.EscapeDataString(media.Type ?? "")}";
-        var data = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+        var data = await CallAsync((address, token, client) => client.GetAsync(address, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         return MoviePilotMediaDetail.Parse(data, media);
     }
 
@@ -21,7 +21,7 @@ public sealed partial class MoviePilotService
         if (group.Length == 0 && detail.Seasons.Count > 0) return detail.Seasons;
         var path = group.Length > 0 ? "media/group/seasons/" + Uri.EscapeDataString(group)
             : "media/seasons?media_source=" + Uri.EscapeDataString(detail.Media.MediaSource!) + "&media_id=" + Uri.EscapeDataString(detail.Media.MediaId!);
-        var data = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+        var data = await CallAsync((address, token, client) => client.GetAsync(address, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         return MoviePilotMediaSeason.Parse(data);
     }
 
@@ -29,7 +29,7 @@ public sealed partial class MoviePilotService
     {
         var identity = RequireResultConnection(detail.Media.ConnectionStamp);
         if (!detail.SupportsEpisodeGroups) return [];
-        var groups = await CallAsync((address, token) => _client.GetAsync(address, token,
+        var groups = await CallAsync((address, token, client) => client.GetAsync(address, token,
             "media/groups/" + Uri.EscapeDataString(detail.Media.MediaId!), cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         return MoviePilotEpisodeGroups.Build(groups, MoviePilotSubscription.Member(detail.Data, "season_info"));
     }
@@ -40,7 +40,7 @@ public sealed partial class MoviePilotService
         if (!detail.SupportsEpisodeGroups || season < 0) return [];
         var path = $"tmdb/{Uri.EscapeDataString(detail.Media.MediaId!)}/{season.ToString(CultureInfo.InvariantCulture)}";
         if (group.Length > 0) path += "?episode_group=" + Uri.EscapeDataString(group);
-        var data = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+        var data = await CallAsync((address, token, client) => client.GetAsync(address, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         return MoviePilotMediaEpisode.Parse(data);
     }
 
@@ -50,7 +50,7 @@ public sealed partial class MoviePilotService
         var identity = RequireResultConnection(detail.Media.ConnectionStamp);
         var body = detail.Data.EnumerateObject().ToDictionary(property => property.Name, property => (object?)property.Value.Clone());
         body["episode_group"] = group;
-        var data = await CallAsync((address, token) => _client.ReadPostAsync(address, token, "mediaserver/exists_remote", body, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+        var data = await CallAsync((address, token, client) => client.ReadPostAsync(address, token, "mediaserver/exists_remote", body, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         if (data.ValueKind != JsonValueKind.Object) throw new MoviePilotException("媒体库没有返回有效的季集统计");
         var result = new Dictionary<int, IReadOnlySet<int>>();
         foreach (var property in data.EnumerateObject())

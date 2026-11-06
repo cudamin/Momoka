@@ -22,7 +22,10 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
 
     private CancellationTokenSource? _imageLoad;
     private CancellationTokenSource? _backdropLoad;
+    private Func<string, CancellationToken, Task<byte[]>>? _fetchImage;
+    internal bool UsesImages(Func<string, CancellationToken, Task<byte[]>> fetch) => ReferenceEquals(_fetchImage, fetch);
     public MoviePilotSubscriptionCard(MoviePilotSubscription subscription) => Subscription = subscription;
+    internal void BindImages(Func<string, CancellationToken, Task<byte[]>> fetch) => _fetchImage ??= fetch;
     public MoviePilotSubscription Subscription { get; private set; }
     public string Title => Subscription.Title;
     public string Status => Subscription.StateLabel;
@@ -89,11 +92,12 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
     {
         if (Poster is not null || _imageLoad is not null || !service.IsCurrentSubscription(Subscription)
             || !Uri.TryCreate(Subscription.Media.PosterUrl, UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https")) return;
+        if (_fetchImage is null) return;
         using var pending = new CancellationTokenSource(TimeSpan.FromSeconds(12));
         _imageLoad = pending;
         try
         {
-            var bytes = await service.FetchImageAsync(url.AbsoluteUri, pending.Token);
+            var bytes = await _fetchImage(url.AbsoluteUri, pending.Token);
             var image = await PosterLoader.DecodeAsync(bytes, CardSize.PosterWidth);
             if (!pending.IsCancellationRequested && ReferenceEquals(_imageLoad, pending) && service.IsCurrentSubscription(Subscription)) Poster = image;
         }
@@ -109,11 +113,12 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
     {
         if (Backdrop is not null || _backdropLoad is not null || !service.IsCurrentSubscription(Subscription)
             || !Uri.TryCreate(Subscription.Media.BackdropUrl, UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https")) return;
+        if (_fetchImage is null) return;
         using var pending = new CancellationTokenSource(TimeSpan.FromSeconds(12));
         _backdropLoad = pending;
         try
         {
-            var bytes = await service.FetchImageAsync(url.AbsoluteUri, pending.Token);
+            var bytes = await _fetchImage(url.AbsoluteUri, pending.Token);
             var image = await PosterLoader.DecodeAsync(bytes, BackdropDecodeWidth);
             if (!pending.IsCancellationRequested && ReferenceEquals(_backdropLoad, pending) && service.IsCurrentSubscription(Subscription)) Backdrop = image;
         }
@@ -129,6 +134,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     private MoviePilotService? _service;
     private CancellationTokenSource? _lifetime;
     private string _connection = "";
+    private Func<string, CancellationToken, Task<byte[]>>? _fetchImage;
     private bool _detail;
     private bool Live => _lifetime is { IsCancellationRequested: false } && _service?.IsCurrentConnection(_connection) == true;
     private IReadOnlyList<MoviePilotSubscriptionEpisodeRow> _episodes = [];
@@ -307,10 +313,12 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     {
         Cancel();
         _service = service;
+        _fetchImage = service.CaptureImageFetcher();
         _detail = selected is not null;
         _lifetime = new CancellationTokenSource();
         Deleted = false;
         Selected = selected is null ? null : new(selected);
+        Selected?.BindImages(_fetchImage);
         try { _connection = selected?.ConnectionStamp ?? service.ConnectionStamp; }
         catch (MoviePilotException error) { Report("MoviePilot 未连接", error); }
 
@@ -327,11 +335,13 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         using var pending = CancellationTokenSource.CreateLinkedTokenSource(token, _lifetime.Token);
         try
         {
+            var fetchImage = _service.CaptureImageFetcher();
             if (!Live)
             {
                 ClearCards();
                 if (_detail) throw new MoviePilotException("MoviePilot 连接已改变，请返回主页重新打开订阅");
                 _connection = _service.ConnectionStamp;
+                _fetchImage = _service.CaptureImageFetcher();
             }
             if (_detail && Selected is { } selected)
             {
@@ -346,6 +356,14 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
                 RefreshCommands();
                 var current = await _service.SubscriptionAsync(selected.Subscription, pending.Token);
                 if (!IsCurrent(token) || !Live) return;
+                _fetchImage = fetchImage;
+                if (!selected.UsesImages(fetchImage))
+                {
+                    selected.Release();
+                    selected = new MoviePilotSubscriptionCard(current);
+                    selected.BindImages(fetchImage);
+                    Selected = selected;
+                }
                 var previousIdentity = MoviePilotSubscriptionIdentity.Of(selected.Subscription);
                 selected.Update(current);
                 if (previousIdentity != MoviePilotSubscriptionIdentity.Of(current))
@@ -361,6 +379,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
                     () => Live && _service.Available && !Deleted && _playbackScope?.IsCurrent == true && _play is not null,
                     () => CanManage, PlayEpisodeAsync,
                     () => CanManage && _search is not null, SearchEpisode)).ToArray();
+                foreach (var row in _episodes) row.BindImages(_fetchImage!);
                 FileSummary = current.IsSeries ? files.Summary
                     : files.Episodes.Count == 0 ? files.Summary : files.LibraryCount > 0 ? "电影已入库" : "电影尚未入库";
                 // 徽标只在统计真的读到时给结论：空回话与接口错误都不说「未入库」。
@@ -373,6 +392,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
             {
                 var items = await _service.SubscriptionsAsync(pending.Token);
                 if (!IsCurrent(token) || !Live) return;
+                _fetchImage = fetchImage;
                 Apply(Movies, items.Where(item => !item.IsSeries).ToArray());
                 Apply(Series, items.Where(item => item.IsSeries).ToArray());
                 NotifyRows();
@@ -426,14 +446,25 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         if (Live && IsCurrent(load) && !Deleted) await ReloadAsync();
     }
 
-    private static void Apply(ObservableCollection<MoviePilotSubscriptionCard> cards, IReadOnlyList<MoviePilotSubscription> items)
+    private void Apply(ObservableCollection<MoviePilotSubscriptionCard> cards, IReadOnlyList<MoviePilotSubscription> items)
     {
         foreach (var old in cards.Where(card => items.All(item => item.Id != card.Subscription.Id)).ToArray())
         { old.Release(); cards.Remove(old); }
         for (var index = 0; index < items.Count; index++)
         {
             var existing = cards.FirstOrDefault(card => card.Subscription.Id == items[index].Id);
-            if (existing is null) cards.Insert(index, new(items[index]));
+            if (existing is not null && !existing.UsesImages(_fetchImage!))
+            {
+                existing.Release();
+                cards.Remove(existing);
+                existing = null;
+            }
+            if (existing is null)
+            {
+                var card = new MoviePilotSubscriptionCard(items[index]);
+                card.BindImages(_fetchImage!);
+                cards.Insert(index, card);
+            }
             else { existing.Update(items[index]); if (cards.IndexOf(existing) != index) cards.Move(cards.IndexOf(existing), index); }
         }
     }

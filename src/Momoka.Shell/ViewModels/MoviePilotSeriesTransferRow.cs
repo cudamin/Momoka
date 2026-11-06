@@ -12,6 +12,8 @@ public sealed partial class MoviePilotSeriesTransferRow(MoviePilotTransferHistor
 {
     private CancellationTokenSource? _artworkLoad;
     private bool _retired;
+    private Func<string, CancellationToken, Task<byte[]>>? _fetchImage;
+    internal void BindImages(Func<string, CancellationToken, Task<byte[]>> fetch) => _fetchImage ??= fetch;
 
     public MoviePilotTransferHistory History { get; } = history;
     public string Title => History.Title;
@@ -44,12 +46,13 @@ public sealed partial class MoviePilotSeriesTransferRow(MoviePilotTransferHistor
     {
         if (_retired || Artwork is not null || _artworkLoad is not null || lifetime.IsCancellationRequested ||
             !Uri.TryCreate(History.Image, UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https")) return;
+        if (_fetchImage is null) return;
         using var pending = CancellationTokenSource.CreateLinkedTokenSource(lifetime);
         pending.CancelAfter(TimeSpan.FromSeconds(12));
         _artworkLoad = pending;
         try
         {
-            var bytes = await service.FetchImageAsync(url.AbsoluteUri, pending.Token).ConfigureAwait(true);
+            var bytes = await _fetchImage(url.AbsoluteUri, pending.Token).ConfigureAwait(true);
             var bitmap = await PosterLoader.DecodeAsync(bytes, 48).ConfigureAwait(true);
             if (!_retired && !pending.IsCancellationRequested && service.Available && service.IsCurrentConnection(connection))
                 Artwork = bitmap;

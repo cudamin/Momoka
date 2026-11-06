@@ -36,6 +36,26 @@ public sealed partial class MoviePilotClient : IDisposable
 
     private readonly HttpClient _http;
     private readonly HttpMessageHandler _handler;
+    private readonly bool _ownsTransport = true;
+    private readonly Uri? _origin;
+    private readonly CookieContainer _cookies = new();
+    private MoviePilotClient? _directConnection;
+    private const int DirectSessionLimit = 8;
+    private readonly object _directGate = new();
+    private readonly Dictionary<(Uri Origin, string Token), MoviePilotClient> _directSessions = [];
+    private readonly Queue<(Uri Origin, string Token)> _directSessionOrder = [];
+
+    // A connection owns cookies, while the root client owns the pool. Old responses retain their
+    // captured connection and cannot seed a replacement account, including A -> B -> A.
+    private MoviePilotClient(MoviePilotClient pool, Uri origin)
+    {
+        _http = pool._http;
+        _handler = pool._handler;
+        _ownsTransport = false;
+        _origin = origin;
+    }
+
+    internal MoviePilotClient CreateConnection(Uri origin) => new(this, origin);
 
     public MoviePilotClient(HttpMessageHandler? handler = null)
     {
@@ -47,20 +67,19 @@ public sealed partial class MoviePilotClient : IDisposable
             ConnectTimeout = TimeSpan.FromSeconds(8)
         };
 
-        // 图片代理（system/cache/image）只认网页端登录流程种下的资源 Cookie，不认 Bearer 头。好在带 Bearer 的
-        // 每一趟 API 调用，服务器都会顺手在响应里 Set-Cookie 一枚资源令牌（v2/v3 的 verify_token 都这么做）——
-        // 所以这里挂一个 CookieContainer，让订阅等 API 请求保存资源令牌，之后的取图请求就都带着它了。测试注入的
-        // 假传输层不是 SocketsHttpHandler，跳过（假传输层不认 Cookie，测试也不测它）。
+        // Resource cookies authenticate images. Native automatic cookies are host-scoped (not
+        // port/account-scoped); the captured connection below manages its own .NET cookie jar.
         // 登录表单的 307/308 会重发密码；301/302/303 也不能靠转成 GET 去接受另一来源的伪成功。
         // 此客户端一律不自动跳转（包括同源），配置必须指向最终 API 来源；不重放登录或写操作。
         if (handler is SocketsHttpHandler sockets)
         {
             sockets.AllowAutoRedirect = false;
-            sockets.CookieContainer = new CookieContainer();
+            sockets.UseCookies = false;
         }
         else if (handler is HttpClientHandler native)
         {
             native.AllowAutoRedirect = false;
+            native.UseCookies = false;
         }
 
         _handler = handler;
@@ -86,6 +105,21 @@ public sealed partial class MoviePilotClient : IDisposable
     {
         if (string.IsNullOrWhiteSpace(username)) throw new MoviePilotException("请填写 MoviePilot 用户名");
         if (string.IsNullOrEmpty(password)) throw new MoviePilotException("请填写 MoviePilot 密码");
+        if (_origin is null)
+        {
+            var connection = CreateConnection(apiBase);
+            Volatile.Write(ref _directConnection, connection);
+            var session = await connection.SignInAsync(apiBase, username, password, cancellationToken).ConfigureAwait(false);
+            var key = (new Uri(apiBase.GetLeftPart(UriPartial.Authority) + "/"), session.AccessToken);
+            lock (_directGate)
+            {
+                if (!_directSessions.ContainsKey(key)) _directSessionOrder.Enqueue(key);
+                _directSessions[key] = connection;
+                while (_directSessionOrder.Count > DirectSessionLimit)
+                    _directSessions.Remove(_directSessionOrder.Dequeue());
+            }
+            return session;
+        }
 
         var url = MoviePilotAddress.Combine(apiBase, TokenPath);
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
@@ -145,7 +179,7 @@ public sealed partial class MoviePilotClient : IDisposable
 
     /// <summary>
     /// 取一份任意网址的原始字节。给订阅海报和单集缩略图用：MoviePilot 的图片代理（同一个主机，资源 Cookie 已在
-    /// <see cref="_http"/> 的罐子里）从这一条走。不拆信封 —— 图片不是 API，没有信封。
+    /// 当前捕获连接的罐子里）从这一条走。不拆信封 —— 图片不是 API，没有信封。
     /// <para>
     /// 调用方自带取消；超时由调用方用链接的 <see cref="CancellationTokenSource"/> 自己掐 —— 这一份 http 的
     /// 120 秒是给资源搜索备的，图片等不起那么久。
@@ -156,9 +190,7 @@ public sealed partial class MoviePilotClient : IDisposable
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("image/*"));
 
-        using var response = await _http
-            .SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
-            .ConfigureAwait(false);
+        using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
             throw new MoviePilotException(
@@ -326,9 +358,37 @@ public sealed partial class MoviePilotClient : IDisposable
     {
         try
         {
-            return await _http
+            var url = request.RequestUri;
+            var connection = _origin is null ? Volatile.Read(ref _directConnection) : this;
+            if (_origin is null && request.Headers.Authorization is { Scheme: "Bearer" } bearer)
+            {
+                var apiBase = url is null ? null : new Uri(url.GetLeftPart(UriPartial.Authority) + "/");
+                lock (_directGate)
+                    connection = apiBase is not null && bearer.Parameter is { } token &&
+                        _directSessions.TryGetValue((apiBase, token), out var captured) ? captured : null;
+            }
+            var sameOrigin = connection?._origin is { } origin && url is not null &&
+                origin.Scheme == url.Scheme && origin.IdnHost == url.IdnHost && origin.Port == url.Port;
+            if (_origin is not null && !sameOrigin)
+                throw new MoviePilotOperationBlockedException("MoviePilot 请求来源与捕获的连接不一致");
+            if (sameOrigin)
+            {
+                var cookie = connection!._cookies.GetCookieHeader(url!);
+                if (cookie.Length > 0) request.Headers.TryAddWithoutValidation("Cookie", cookie);
+            }
+            var response = await _http
                 .SendAsync(request, completionOption, cancellationToken)
                 .ConfigureAwait(false);
+            if (sameOrigin && (int)response.StatusCode is not (>= 300 and <= 399) &&
+                response.Headers.TryGetValues("Set-Cookie", out var cookies))
+            {
+                foreach (var cookie in cookies)
+                {
+                    try { connection!._cookies.SetCookies(url!, cookie); }
+                    catch (CookieException) { /* Invalid cookies cannot expose their value through diagnostics. */ }
+                }
+            }
+            return response;
         }
         catch (TaskCanceledException error) when (!cancellationToken.IsCancellationRequested)
         {
@@ -394,6 +454,13 @@ public sealed partial class MoviePilotClient : IDisposable
 
     public void Dispose()
     {
+        if (!_ownsTransport) return;
+        lock (_directGate)
+        {
+            _directSessions.Clear();
+            _directSessionOrder.Clear();
+            _directConnection = null;
+        }
         _http.Dispose();
         _handler.Dispose();
     }
