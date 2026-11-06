@@ -7,17 +7,13 @@ namespace Momoka.Tests;
 /// not an option; it has stayed this way because the project still needs no package references at all —
 /// <c>dotnet run</c> is the runner, and the SDK pinned in <c>global.json</c> is the only requirement.
 /// </summary>
-internal static class TestHarness
+internal static partial class TestHarness
 {
     private static readonly List<(string Name, Action Run)> Cases = [];
     private static readonly List<string> Skips = [];
     private static List<string>? _currentSkipReasons;
 
     public static void Test(string name, Action run) => Cases.Add((name, run));
-
-    /// <summary>异步用例必须结清任务，异常与取消仍计入原用例。</summary>
-    public static void Test(string name, Func<Task> run) =>
-        Test(name, (Action)(() => run().GetAwaiter().GetResult()));
 
     /// <summary>登记前记录独立跳过项；运行中归属当前用例，不把一次用例同时算作通过和跳过。</summary>
     public static void Skip(string name, string reason)
