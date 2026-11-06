@@ -14,7 +14,8 @@ $utf8 = [Text.UTF8Encoding]::new($false)
 function Write-Fixture([string]$Relative, [string]$Text) {
     $path = Join-Path $fixture $Relative
     [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($path)) | Out-Null
-    [IO.File]::WriteAllText($path, $Text, $utf8)
+    $encoding = if ($path.EndsWith('.ps1')) { [Text.UTF8Encoding]::new($true) } else { $utf8 }
+    [IO.File]::WriteAllText($path, $Text, $encoding)
 }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'run-regressions.ps1') -Destination (Join-Path $fixture 'tools/run-regressions.ps1')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'regression-suites.json') -Destination (Join-Path $fixture 'tools/regression-suites.json')
@@ -31,8 +32,8 @@ $fake = @'
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $command = if ($args.Count) { [string]$args[0] } else { '' }
-[IO.File]::AppendAllText((Join-Path $root 'calls.log'), (($args | ConvertTo-Json -Compress) + "`n"))
-if ($command -eq '--version') { (Get-Content (Join-Path $root 'global.json') -Raw | ConvertFrom-Json).sdk.version; exit 0 }
+[IO.File]::AppendAllText((Join-Path $root 'calls.log'), ((ConvertTo-Json -InputObject @($args) -Compress) + "`n"))
+if ($command -eq '--version') { (Get-Content (Join-Path $root 'global.json') -Raw -Encoding UTF8 | ConvertFrom-Json).sdk.version; exit 0 }
 $mode = [IO.File]::ReadAllText((Join-Path $root 'mode.txt'))
 if ($mode -eq $command + '-fail') { Write-Output ('synthetic ' + $command + ' failure'); exit 17 }
 if ($command -eq 'build') {
@@ -60,15 +61,19 @@ function Invoke-Case([string]$Name, [string]$Mode, [string[]]$Selection, [int]$E
     Write-Fixture 'calls.log' ''
     $evidence = Join-Path $fixture "artifacts/$Name"
     $log = Join-Path $output "$Name.log"
-    & $hostExe -NoProfile -ExecutionPolicy Bypass -File $runner @Selection -Dotnet $fakeDotnet -Packages (Join-Path $fixture 'packages') -OutputDirectory $evidence *> $log
-    $exitCode = $LASTEXITCODE
+    $savedPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        & $hostExe -NoProfile -ExecutionPolicy Bypass -File $runner @Selection -Dotnet $fakeDotnet -Packages (Join-Path $fixture 'packages') -OutputDirectory $evidence *> $log
+        $exitCode = $LASTEXITCODE
+    } finally { $ErrorActionPreference = $savedPreference }
     Check ($exitCode -eq $ExpectedExit) "$Name 退出码 $exitCode，期望 $ExpectedExit；$log"
-    $commands = @(Get-Content -LiteralPath (Join-Path $fixture 'calls.log') | Where-Object { $_ } | ForEach-Object {
-        $values = @($_ | ConvertFrom-Json); [string]$values[0]
+    $commands = @(Get-Content -LiteralPath (Join-Path $fixture 'calls.log') -Encoding UTF8 | Where-Object { $_ } | ForEach-Object {
+        $values = @((ConvertFrom-Json -InputObject $_)); [string]$values[0]
     })
     Check (($commands -join ',') -eq ($ExpectedCommands -join ',')) "$Name 调用顺序错误：$($commands -join ',')"
     $report = if (Test-Path -LiteralPath (Join-Path $evidence 'summary.json')) {
-        Get-Content -LiteralPath (Join-Path $evidence 'summary.json') -Raw | ConvertFrom-Json
+        Get-Content -LiteralPath (Join-Path $evidence 'summary.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     } else { $null }
     if ($Mode -eq 'skip') { Check ($report.suites[0].counts.skipped -eq 1 -and $report.suites[0].status -eq 'incomplete') '用例 skip 未记录为不完整。' }
     if ($Mode -eq 'build-fail') { Check ($report.suites[0].phase -eq 'build' -and $report.suites[0].status -eq 'failed') '编译失败阶段未记录。' }
@@ -82,7 +87,7 @@ Invoke-Case 'default-list' 'ok' @() 0 @()
 Invoke-Case 'success' 'ok' @('-Suite', $suite) 0 @('--version', 'restore', 'build', 'run')
 Invoke-Case 'site-dialog-flow' 'ok' @('-Suite', 'Momoka.SiteDialogFlowTests') 0 @('--version', 'restore', 'build', 'run')
 Invoke-Case 'architecture-current-products' 'ok' @('-Suite', 'Momoka.ArchitectureTests') 0 @('--version', 'restore', 'build', 'restore', 'build', 'run')
-$architectureCalls = @(Get-Content -LiteralPath (Join-Path $fixture 'calls.log') | Where-Object { $_ })
+$architectureCalls = @(Get-Content -LiteralPath (Join-Path $fixture 'calls.log') -Encoding UTF8 | Where-Object { $_ })
 Check ($architectureCalls[2].Contains('Momoka.Shell.csproj')) '架构专项必须先构建当前 Shell 及其 Core 引用。'
 Invoke-Case 'restore-failure' 'restore-fail' @('-Suite', $suite) 1 @('--version', 'restore')
 Invoke-Case 'build-failure' 'build-fail' @('-Suite', $suite) 1 @('--version', 'restore', 'build')
@@ -136,15 +141,19 @@ foreach ($kind in @('unknown', 'shell')) {
     Write-Fixture 'calls.log' ''
     Write-Fixture 'mode.txt' 'ok'
     $name = "array-$kind"
-    & $hostExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $fixture 'array-driver.ps1') -Name $name -Kind $kind *> (Join-Path $output "$name.log")
-    $exitCode = $LASTEXITCODE
-    $calls = @(Get-Content -LiteralPath (Join-Path $fixture 'calls.log') | Where-Object { $_ })
+    $savedPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        & $hostExe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $fixture 'array-driver.ps1') -Name $name -Kind $kind *> (Join-Path $output "$name.log")
+        $exitCode = $LASTEXITCODE
+    } finally { $ErrorActionPreference = $savedPreference }
+    $calls = @(Get-Content -LiteralPath (Join-Path $fixture 'calls.log') -Encoding UTF8 | Where-Object { $_ })
     if ($kind -eq 'unknown') { Check ($exitCode -eq 1 -and $calls.Count -eq 0) '混合未知选择开始了部分执行。' }
     else {
         Check ($exitCode -eq 0) '多 Shell 专项调度失败。'
-        $shellBuilds = @($calls | ForEach-Object { ,@($_ | ConvertFrom-Json) } | Where-Object { $_[0] -eq 'build' -and $_[1] -like '*Momoka.Shell.csproj' })
+        $shellBuilds = @($calls | ForEach-Object { ,@((ConvertFrom-Json -InputObject $_)) } | Where-Object { $_[0] -eq 'build' -and $_[1] -like '*Momoka.Shell.csproj' })
         Check ($shellBuilds.Count -eq 1) '同次两个 Shell 专项没有共享当前成功构建。'
-        $report = Get-Content -LiteralPath (Join-Path $fixture "artifacts/$name/summary.json") -Raw | ConvertFrom-Json
+        $report = Get-Content -LiteralPath (Join-Path $fixture "artifacts/$name/summary.json") -Raw -Encoding UTF8 | ConvertFrom-Json
         Check (@($report.suites).Count -eq 2) '多选专项报告不完整。'
     }
     $cases.Add([pscustomobject]@{ name = $name; exit = $exitCode; passed = $true })

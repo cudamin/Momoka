@@ -642,6 +642,16 @@
       "wrapper": null,
       "readme": "tests/Momoka.SubscriptionIdentityTests/README.md",
       "notes": "真实订阅VM和季视图的身份更新；匿名边界，不播放。"
+    },
+    {
+      "id": "Momoka.LibraryHeaderTests",
+      "project": "tests/Momoka.LibraryHeaderTests/Momoka.LibraryHeaderTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.LibraryHeaderTests/README.md",
+      "notes": "编译时提取当前 LibraryPage 标题方法，使用值边界检查布局规则；不启动窗口或真实服务。"
     }
   ]
 }
