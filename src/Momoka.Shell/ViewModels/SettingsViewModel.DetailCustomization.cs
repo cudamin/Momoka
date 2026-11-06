@@ -20,13 +20,18 @@ public sealed partial class SettingsViewModel
                 () => ui.ControlBackgroundOpacity, value => ui.ControlBackgroundOpacity = value,
                 "0 完全透明（没有底色），100 完全不透明（实底）；详情页按钮、选择框和主页详情按钮一起生效，文字图标不变。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
-            Choice("背景图效果", new[] { ("暗色遮罩", false), ("高斯模糊", true) },
-                () => ui.UseGaussianBackdrop, value => ui.UseGaussianBackdrop = value,
-                "高斯模糊仅在电影、剧和季的沉浸模式生效，保留深色阅读遮罩；普通详情与主页轮播保持原背景效果。",
+            Choice("背景图效果", new[] { ("暗色遮罩", 0), ("高斯模糊", 1), ("亚克力", 2) },
+                () => ui.UseAcrylicBackdrop ? 2 : ui.UseGaussianBackdrop ? 1 : 0,
+                value =>
+                {
+                    ui.UseAcrylicBackdrop = value == 2;
+                    ui.UseGaussianBackdrop = value == 1;
+                },
+                "电影、剧和季可用亚克力，普通与窄窗同样生效；高斯仅沉浸模式生效并保留深色阅读保护。主页轮播不受影响。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
             Slider("背景图不透明度（%）", 0, 100, 1,
                 () => ui.BackdropOpacity, value => ui.BackdropOpacity = value,
-                "0 关闭遮罩和模糊，100 暗色遮罩完全不透明；沉浸高斯模式下控制模糊程度，100 最糊，深色阅读保护保持开启。",
+                "0 关闭背景处理；100 暗色遮罩和亚克力为实底，高斯最糊。高斯非零档保留深色阅读保护。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
             Toggle("固定使用沉浸模式（大屏模式）",
                 "电影、剧和季详情页有背景图时固定使用沉浸布局；窄窗口保留紧凑排版。关闭后随窗口大小自动切换。",

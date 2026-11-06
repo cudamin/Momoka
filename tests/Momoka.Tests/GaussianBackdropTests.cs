@@ -50,6 +50,57 @@ internal static class GaussianBackdropTests
             Assert.Equal(UiSettings.DefaultBackdropOpacity, live.Ui.BackdropOpacity);
             Assert.Equal(1280d, live.Ui.WindowWidth);
         });
+        Test("亚克力背景：缺键保持暗罩，新安装默认关闭", () =>
+        {
+            AssertStoredAcrylic(new AppSettings(), false);
+            var settings = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{}}", PassthroughSecretProtector.Instance);
+            AssertStoredAcrylic(settings, false);
+            Assert.False(settings.Ui.UseGaussianBackdrop);
+        });
+        Test("亚克力背景：JSON往返保留新模式与强度，不改变控件材质", () =>
+        {
+            var settings = SettingsMigration.FromJson(
+                "{\"SchemaVersion\":27,\"Ui\":{\"UseAcrylicBackdrop\":true,\"BackdropOpacity\":37,\"UseAcrylicControls\":false}}",
+                PassthroughSecretProtector.Instance);
+            var restored = SettingsMigration.FromJson(JsonSerializer.Serialize(settings), PassthroughSecretProtector.Instance);
+            AssertStoredAcrylic(restored, true);
+            Assert.False(restored.Ui.UseGaussianBackdrop);
+            Assert.False(restored.Ui.UseAcrylicControls);
+            Assert.Equal(37d, restored.Ui.BackdropOpacity);
+        });
+        Test("亚克力背景：导入偏好原地恢复，恢复默认关闭并保留窗口", () =>
+        {
+            var source = SettingsMigration.FromJson(
+                "{\"SchemaVersion\":27,\"Ui\":{\"UseAcrylicBackdrop\":true,\"BackdropOpacity\":63}}",
+                PassthroughSecretProtector.Instance);
+            var live = new AppSettings();
+            var ui = live.Ui;
+            ui.WindowWidth = 1280;
+            ui.UseGaussianBackdrop = true;
+            SettingsPreferences.Apply(live, SettingsPreferences.ToBackupDocument(source));
+            Assert.True(ReferenceEquals(ui, live.Ui));
+            AssertStoredAcrylic(live, true);
+            Assert.False(live.Ui.UseGaussianBackdrop);
+            Assert.Equal(63d, live.Ui.BackdropOpacity);
+            SettingsPreferences.Apply(live, new AppSettings());
+            AssertStoredAcrylic(live, false);
+            Assert.False(live.Ui.UseGaussianBackdrop);
+            Assert.Equal(UiSettings.DefaultBackdropOpacity, live.Ui.BackdropOpacity);
+            Assert.Equal(1280d, live.Ui.WindowWidth);
+        });
+        Test("亚克力背景：冲突配置优先亚克力，旧高斯文件继续保留高斯", () =>
+        {
+            var conflict = SettingsMigration.FromJson(
+                "{\"SchemaVersion\":27,\"Ui\":{\"UseAcrylicBackdrop\":true,\"UseGaussianBackdrop\":true}}",
+                PassthroughSecretProtector.Instance);
+            Assert.False(conflict.Ui.UseGaussianBackdrop);
+            AssertStoredAcrylic(conflict, true);
+            var legacy = SettingsMigration.FromJson(
+                "{\"SchemaVersion\":27,\"Ui\":{\"UseGaussianBackdrop\":true}}",
+                PassthroughSecretProtector.Instance);
+            Assert.True(legacy.Ui.UseGaussianBackdrop);
+            AssertStoredAcrylic(legacy, false);
+        });
         Test("真高斯：单点响应符合归一化指数核而非盒式", () =>
         {
             var pixels = new byte[13 * 4];
@@ -117,6 +168,14 @@ internal static class GaussianBackdropTests
             Assert.Contains("TextInk.Attach", code);
             Assert.False(code.Contains("AttachHalo", StringComparison.Ordinal));
         });
+    }
+
+    private static void AssertStoredAcrylic(AppSettings settings, bool expected)
+    {
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(settings));
+        var ui = document.RootElement.GetProperty("Ui");
+        Assert.True(ui.TryGetProperty("UseAcrylicBackdrop", out var acrylic), "持久化文档缺少亚克力背景偏好");
+        Assert.Equal(expected, acrylic.GetBoolean());
     }
 
     private static string Root()
