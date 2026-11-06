@@ -92,11 +92,11 @@ internal static class AcrylicControlsTests
             Assert.False(code.Contains("PrepareBackdropEdgeFade", StringComparison.Ordinal));
             Assert.False(code.Contains("UpdateBackdropEdgeFade", StringComparison.Ordinal));
         });
-        Test("详情操作：浅色背景仅用于操作按钮，选择框保持现有设置", () =>
+        Test("详情操作：按钮与媒体选择框都使用浅色背景", () =>
         {
             var code = Source("Views/DetailPage.Appearance.cs");
             Assert.Contains("ForDetail(control, lightSurface: true)", code);
-            Assert.Contains("ForDetail(picker)", code);
+            Assert.Contains("ForDetail(picker, lightSurface: true)", code);
         });
         Test("详情正文：卡片给滚动条预留车道，背景纸面仍铺满", () =>
         {

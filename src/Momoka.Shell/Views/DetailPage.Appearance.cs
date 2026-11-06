@@ -33,7 +33,25 @@ public sealed partial class DetailPage
 
         foreach (var picker in new[] { ColumnSourcePicker, ColumnAudioPicker, ColumnSubtitlePicker,
             SourcePicker, AudioPicker, SubtitlePicker })
-            _controlBackgrounds.Add(ControlBackgroundBrushes.ForDetail(picker));
+        {
+            var resources = Microsoft.UI.Xaml.Application.Current.Resources;
+            var ink = resources["EgDetailActionTextBrush"];
+            foreach (var key in new[] { "ComboBoxForeground", "ComboBoxForegroundPointerOver", "ComboBoxForegroundPressed",
+                "ComboBoxForegroundFocused", "ComboBoxForegroundFocusedPressed", "ComboBoxDropDownForeground",
+                "ComboBoxDropDownGlyphForeground", "ComboBoxDropDownGlyphForegroundFocused",
+                "ComboBoxDropDownGlyphForegroundFocusedPressed" })
+                picker.Resources[key] = ink;
+            picker.Foreground = (Microsoft.UI.Xaml.Media.Brush)ink;
+            picker.Resources["ComboBoxDropDownBackground"] = resources["EgDetailActionBrush"];
+            foreach (var suffix in new[] { "", "Pressed", "PointerOver", "Selected", "SelectedUnfocused",
+                "SelectedPressed", "SelectedPointerOver" })
+                picker.Resources["ComboBoxItemForeground" + suffix] = ink;
+            foreach (var suffix in new[] { "PointerOver", "Selected" })
+                picker.Resources["ComboBoxItemBackground" + suffix] = resources["EgDetailActionHoverBrush"];
+            foreach (var suffix in new[] { "Pressed", "SelectedUnfocused", "SelectedPressed", "SelectedPointerOver" })
+                picker.Resources["ComboBoxItemBackground" + suffix] = resources["EgDetailActionPressedBrush"];
+            _controlBackgrounds.Add(ControlBackgroundBrushes.ForDetail(picker, lightSurface: true));
+        }
     }
 
     private void WatchAppearance()

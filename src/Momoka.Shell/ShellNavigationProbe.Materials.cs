@@ -210,6 +210,17 @@ internal sealed partial class ShellNavigationProbe
                             Require(visiblePickers.Length == 3, "详情材质夹具没有显示版本、音频和字幕");
                             foreach (var picker in visiblePickers)
                                 await CheckPickerBackgroundAsync(picker, reference);
+                            var openPicker = visiblePickers[0];
+                            try
+                            {
+                                openPicker.IsDropDownOpen = true;
+                                await LayoutAsync(openPicker);
+                                Require(openPicker.Foreground is SolidColorBrush ink
+                                    && ink.Color == ((SolidColorBrush)Application.Current.Resources["EgDetailActionTextBrush"]).Color,
+                                    "浅色选择框没有深色文字");
+                                await SaveProbeScreenAsync($"detail-picker-open-{theme.Id}-{width}-screen.png");
+                            }
+                            finally { openPicker.IsDropDownOpen = false; }
                             await SaveProbeScreenAsync($"detail-selectors-{theme.Id}-{width}-screen.png");
                             if (samples)
                             {

@@ -696,7 +696,7 @@ internal sealed partial class ShellNavigationProbe
                     var opacity = zero!.Opacity;
                     var baseline = opacity * color.A / 255d;
                     var feedback = state is "PointerOver" or "Pressed" or "CheckedPointerOver" or "CheckedPressed";
-                    if (controls.Contains(control))
+                    if (controls.Contains(control) || control is EgPicker)
                     {
                         // 浅色操作面保持可读；选择框继续由浓度滑块控制。
                         var key = state.Contains("PointerOver", StringComparison.Ordinal) ? "EgDetailActionHoverBrush"
@@ -722,7 +722,7 @@ internal sealed partial class ShellNavigationProbe
                     ShellPrefs.ApplyAppearance(ui);
                     Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } opaque && opaque.FallbackColor.A == 255 && opaque.Opacity == 1,
                         "底色100档未完全不透明");
-                    Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } readable && (controls.Contains(control)
+                    Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } readable && (controls.Contains(control) || control is EgPicker
                         ? readable.FallbackColor.R > 128 && readable.FallbackColor.G > 128 && readable.FallbackColor.B > 128
                         : readable.FallbackColor.R < 128 && readable.FallbackColor.G < 128 && readable.FallbackColor.B < 128),
                         "操作按钮或选择框的不透明底色不符合各自配色");
@@ -732,12 +732,12 @@ internal sealed partial class ShellNavigationProbe
                     ShellPrefs.ApplyAppearance(ui);
                     await LayoutAsync(control);
                     Require(ReferenceEquals(Fill(), owned) && Fill() is AcrylicBrush { AlwaysUseFallback: false } glass
-                        && Math.Abs(glass.TintOpacity - (controls.Contains(control) ? 0.72 : 0)) < 0.001 && glass.FallbackColor.A == 255,
+                        && Math.Abs(glass.TintOpacity - (controls.Contains(control) || control is EgPicker ? 0.72 : 0)) < 0.001 && glass.FallbackColor.A == 255,
                         control.Name + "/" + state + " 亚克力零档不是完全透明或丢了主题回退");
                     ui.ControlBackgroundOpacity = 37;
                     ShellPrefs.ApplyAppearance(ui);
                     Require(Fill() is AcrylicBrush { AlwaysUseFallback: false } thicker
-                        && Math.Abs(thicker.TintOpacity - (controls.Contains(control) ? 0.72 : 0.37)) < 0.001,
+                        && Math.Abs(thicker.TintOpacity - (controls.Contains(control) || control is EgPicker ? 0.72 : 0.37)) < 0.001,
                         "亚克力没有随不透明度增加");
                     ui.ControlBackgroundOpacity = 99.9;
                     ShellPrefs.ApplyAppearance(ui);

@@ -113,7 +113,7 @@ resources["EgSurfaceAltBrush"] = new SolidColorBrush { Color = 0xFF1C252E };
 resources["EgDetailActionBrush"] = new SolidColorBrush { Color = 0xFFE4E8EC };
 resources["EgDetailActionHoverBrush"] = new SolidColorBrush { Color = 0xFFF4F6F8 };
 resources["EgDetailActionPressedBrush"] = new SolidColorBrush { Color = 0xFFCBD2D9 };
-foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Button"), (new ToggleButton(), "ToggleButton") })
+foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Button"), (new ToggleButton(), "ToggleButton"), (new ComboBox(), "ComboBox") })
     Check(prefix + "浅色背景不受深色主题和底色滑块压暗，选中状态共底", () =>
     {
         var brushes = ControlBackgroundBrushes.ForDetail(control, lightSurface: true);
