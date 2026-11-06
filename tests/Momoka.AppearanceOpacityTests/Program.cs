@@ -72,7 +72,7 @@ Check("高斯模糊强度换算：0 不糊、100 最糊", () =>
 Check("高斯阅读保护覆盖任意亮部，五主题正文和卡片字幕仍可读", () =>
 {
     var white = Momoka.Theming.ThemeColor.Rgb(255, 255, 255);
-    foreach (var strength in new[] { 0.05, 0.4, 1d })
+    foreach (var strength in new[] { 0.01, 0.02, 0.05, 0.4, 1d })
     {
         var alpha = AppearanceOpacity.ReadingShadeAlpha(strength, true);
         var background = white.Mix(DetailHero.ScrimInk, alpha / 255d);

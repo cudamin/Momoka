@@ -35,7 +35,7 @@ internal static class AppearanceOpacity
     /// 零档仍完全关闭处理，高斯满档也保留背景，不变成不透明遮罩。
     /// </summary>
     public static byte ReadingShadeAlpha(double strength, bool gaussian) => gaussian
-        ? GaussianBackdrop.SigmaFor(strength) > 0 ? (byte)0xE0 : (byte)0
+        ? double.IsFinite(strength) && strength > 0 ? (byte)0xE0 : (byte)0
         : ScrimAlpha(DetailHero.ScrimCeiling, strength);
 
     // 主页轮播那张图原本就是满不透明的一层，滑块不归它管（设置里那行说明也只写详情页）。
