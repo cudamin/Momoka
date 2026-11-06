@@ -33,7 +33,7 @@ internal static class BannerBackdropCache
     /// 处理规则的名字。扩边比例单独拼在后面，所以改比例本身就换键；这个版本号留给「同样的参数但算法换了」
     /// 的那一天，否则同一张图会顶着旧处理结果一直命中。
     /// </summary>
-    private const string Rule = "carousel-backdrop-v2";
+    private const string Rule = "carousel-backdrop-v3";
 
     private sealed record Entry(HeroPictureLoader.HeroPixels? Pixels, BitmapImage? Original, BitmapImage? Gaussian)
     {
@@ -58,7 +58,8 @@ internal static class BannerBackdropCache
             artwork.Tag,
             EmbyImageStore.RequestWidth(requestedWidth))
         + "|" + Rule
-        + "|" + CarouselBackdrop.LeftExtensionShare.ToString("0.###", CultureInfo.InvariantCulture);
+        + "|" + CarouselBackdrop.LeftExtensionShare.ToString("0.###", CultureInfo.InvariantCulture)
+        + "|" + CarouselBackdrop.BlurIntoPictureShare.ToString("0.###", CultureInfo.InvariantCulture);
 
     public static bool TryGet(string key, [MaybeNullWhen(false)] out BitmapImage bitmap) => TryGet(key, false, out bitmap);
 

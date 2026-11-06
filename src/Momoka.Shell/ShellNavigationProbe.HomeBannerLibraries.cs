@@ -182,6 +182,9 @@ internal sealed partial class ShellNavigationProbe
                 readings.Add($"{width}/synopsis：字块={info.MaxWidth:0.0}，简介={previousWidth:0.0}→{synopsis.ActualWidth:0.0}，渐变={fade.ActualWidth:0.0}，位图={picture!.PixelWidth}×{picture.PixelHeight}");
                 await SaveProbeScreenAsync($"home-banner-extension-{width}-screen.png");
             }
+            await CheckBannerBlurScaleAsync(banner, home, readings);
+            ResizeProbeClient(1100, 760);
+            await LayoutAsync(home);
             fixture.Settings.Ui.HomeLibraryPlacement = HomeLibraryPlacement.OnCarousel;
             Call(home, "UpdateLibraryOverlay");
             await UntilAsync(() => home.ViewModel.LibraryOnBanner && overlay.Visibility == Visibility.Visible);
@@ -228,5 +231,58 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(frame);
             ResizeProbeClient(1420, 980);
         }
+    }
+
+    private async Task CheckBannerBlurScaleAsync(HomeBanner banner, HomePage home, List<string> readings)
+    {
+        var picture = banner.FrontPicture as Microsoft.UI.Xaml.Media.Imaging.BitmapImage
+            ?? throw new InvalidOperationException("轮播模糊图尚未解码");
+        var pixels = await ReadBackdropPixelsAsync(picture);
+        // 夹具在整幅背景上有一道清晰山脊；原图左5%位于全模糊区，原图中央应继续清晰。
+        var sourceWidth = picture.PixelWidth / (1 + CarouselBackdrop.LeftExtensionShare);
+        var extension = sourceWidth * CarouselBackdrop.LeftExtensionShare;
+        var blurredX = (int)Math.Round((extension + sourceWidth * 0.05) / picture.PixelWidth * pixels.Width);
+        var clearX = (int)Math.Round((extension + sourceWidth * 0.50) / picture.PixelWidth * pixels.Width);
+        double Edge(int x)
+        {
+            double maximum = 0;
+            for (var y = pixels.Height / 3; y < pixels.Height * 2 / 3; y++)
+            {
+                double difference = 0;
+                for (var channel = 0; channel < 3; channel++)
+                    difference += Math.Abs(pixels.Pixels[(y * pixels.Width + x) * 4 + channel]
+                        - pixels.Pixels[((y + 1) * pixels.Width + x) * 4 + channel]);
+                maximum = Math.Max(maximum, difference / 3);
+            }
+            return maximum;
+        }
+        var blurredEdge = Edge(blurredX);
+        var clearEdge = Edge(clearX);
+        Require(clearEdge > 20 && blurredEdge < clearEdge * 0.6,
+            $"模糊没有向右覆盖原图或把整幅图一起糊掉：左侧边界={blurredEdge:0.00}，中央={clearEdge:0.00}");
+        readings.Add($"blur-pixels：原图左5%边界={blurredEdge:0.00}，中央={clearEdge:0.00}");
+        Call(banner, "StopMotion", "camera");
+        var transform = (ScaleTransform)banner.FrontLayer.RenderTransform;
+        var originalX = transform.ScaleX;
+        var originalY = transform.ScaleY;
+        try
+        {
+            foreach (var width in new[] { 1280, 760 })
+            {
+                ResizeProbeClient(width, 760);
+                await LayoutAsync(home);
+                foreach (var scale in new[] { 1.0, 1.045 })
+                {
+                    transform.ScaleX = transform.ScaleY = scale;
+                    await LayoutAsync(home);
+                    Require(ReferenceEquals(banner.FrontPicture, picture), "封面缩放时重新加载或拆开模糊图");
+                    var covers = banner.PictureRead();
+                    Require(covers.Ok, covers.Detail);
+                    readings.Add($"{width}/blur-scale：scale={scale:0.000}，{covers.Detail}");
+                    await SaveProbeScreenAsync($"home-banner-blur-{width}-{scale:0.000}-screen.png");
+                }
+            }
+        }
+        finally { transform.ScaleX = originalX; transform.ScaleY = originalY; }
     }
 }

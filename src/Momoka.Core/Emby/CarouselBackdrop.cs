@@ -1,9 +1,10 @@
 namespace Momoka.Emby;
 
-/// <summary>轮播背景图：保留原图，左侧采色延长原图宽度的 15%，仅对延长区做高斯模糊。</summary>
+/// <summary>轮播背景图：左侧采色延长15%，高斯连续覆盖扩边和原图左10%，随整幅图缩放。</summary>
 public static class CarouselBackdrop
 {
     public const double LeftExtensionShare = 0.15;
+    public const double BlurIntoPictureShare = 0.10;
 
     /// <summary>延长量按原图宽度计算；像素取整最多相差半个像素。</summary>
     public static int ExtensionWidth(int width)
@@ -14,8 +15,8 @@ public static class CarouselBackdrop
 
     /// <summary>
     /// 输入为顶行在前的 BGRA 像素。新增部分使用左侧 2% 的颜色、沿高度大窗口柔化（上下四分之一高度混在一起，
-    /// 「边缘的色彩上下要混合，别只是简单的拉长」）后向原图左边缘过渡；接缝处与原图第一列颜色一致，原图每
-    /// 一个像素都原样拷贝到右边。
+    /// 「边缘的色彩上下要混合，别只是简单的拉长」）后向原图左边缘过渡。高斯跨过接缝继续向右，
+    /// 在原图左10%的后半段逐渐回到清晰画面；该范围以右及所有alpha保持原样。
     /// </summary>
     public static (byte[] Pixels, int Width) ExtendLeft(ReadOnlySpan<byte> source, int width, int height, CancellationToken token = default)
     {
@@ -73,24 +74,28 @@ public static class CarouselBackdrop
             }
         }
 
-        // 只卷积新增区域，原图仍逐字节保留。最靠近原图的两成宽度渐回未模糊的边缘，避免接缝突然变清晰。
-        var extensionStride = checked(extension * 4);
-        var blurred = new byte[checked(extensionStride * height)];
+        // 模糊和原图合成同一张位图，UniformToFill和慢镜头缩放一起作用于它们。跨过原图起点才羽化，
+        // 避免旧版在扩边末端露出清晰竖条。右侧多取3σ作为卷积边界，但不把模糊混到规定范围之外。
+        var intoPicture = Math.Max(1, (int)Math.Round(width * BlurIntoPictureShare));
+        var blurWidth = extension + intoPicture;
+        var sampleBlurWidth = Math.Min(extendedWidth, blurWidth + GaussianBackdrop.Sigma * 3);
+        var blurStride = checked(sampleBlurWidth * 4);
+        var blurred = new byte[checked(blurStride * height)];
         for (var y = 0; y < height; y++)
-            pixels.AsSpan(y * extendedStride, extensionStride).CopyTo(blurred.AsSpan(y * extensionStride));
-        GaussianBackdrop.Apply(blurred, extension, height, GaussianBackdrop.Sigma, token);
-        var seamWidth = Math.Max(1, (int)Math.Round(extension * 0.20));
+            pixels.AsSpan(y * extendedStride, blurStride).CopyTo(blurred.AsSpan(y * blurStride));
+        GaussianBackdrop.Apply(blurred, sampleBlurWidth, height, GaussianBackdrop.Sigma, token);
+        var seamWidth = Math.Max(1, (int)Math.Round(intoPicture * 0.50));
         for (var y = 0; y < height; y++)
         {
             token.ThrowIfCancellationRequested();
-            for (var x = 0; x < extension; x++)
+            for (var x = 0; x < blurWidth; x++)
             {
-                var position = Math.Clamp((double)(extension - 1 - x) / seamWidth, 0, 1);
+                var position = Math.Clamp((double)(blurWidth - 1 - x) / seamWidth, 0, 1);
                 var strength = position * position * (3 - 2 * position);
                 for (var channel = 0; channel < 3; channel++)
                 {
                     var target = y * extendedStride + x * 4 + channel;
-                    var value = blurred[y * extensionStride + x * 4 + channel];
+                    var value = blurred[y * blurStride + x * 4 + channel];
                     pixels[target] = (byte)Math.Clamp(Math.Round(pixels[target] + (value - pixels[target]) * strength), 0, 255);
                 }
             }

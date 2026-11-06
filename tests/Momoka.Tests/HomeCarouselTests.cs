@@ -73,7 +73,7 @@ internal static class HomeCarouselTests
 
     private static void RegisterBackdrop()
     {
-        Test("轮播：左侧延长原图宽度的 15%，原图和高度保持不变", () =>
+        Test("轮播：左侧延长原图宽度的15%，右侧清晰原图和高度保持不变", () =>
         {
             const int width = 100;
             const int height = 12;
@@ -83,12 +83,15 @@ internal static class HomeCarouselTests
             Assert.Equal(115, extendedWidth);
             Assert.Equal(extendedWidth * height * 4, pixels.Length);
             for (var y = 0; y < height; y++)
-                Assert.True(original.AsSpan(y * width * 4, width * 4)
-                    .SequenceEqual(pixels.AsSpan((y * extendedWidth + 15) * 4, width * 4)), "原图像素不应被改写或拉伸");
+                Assert.True(original.AsSpan((y * width + 10) * 4, (width - 10) * 4)
+                    .SequenceEqual(pixels.AsSpan((y * extendedWidth + 25) * 4, (width - 10) * 4)), "模糊范围以右的原图像素不应被改写或拉伸");
+            for (var y = 0; y < height; y++)
+                for (var x = 0; x < width; x++)
+                    Assert.Equal(original[(y * width + x) * 4 + 3], pixels[(y * extendedWidth + x + 15) * 4 + 3]);
             Assert.Equal(192, CarouselBackdrop.ExtensionWidth(1280));
         });
 
-        Test("轮播：延长区取左侧颜色，接缝逐行连续", () =>
+        Test("轮播：纯色背景延长及模糊不会改变颜色", () =>
         {
             const int width = 100;
             const int height = 16;
@@ -97,9 +100,9 @@ internal static class HomeCarouselTests
                 for (var x = 0; x < width; x++)
                 {
                     var at = (y * width + x) * 4;
-                    original[at] = x < 2 ? (byte)(40 + y * 8) : (byte)255;
-                    original[at + 1] = x < 2 ? (byte)60 : (byte)255;
-                    original[at + 2] = x < 2 ? (byte)190 : (byte)255;
+                    original[at] = 40;
+                    original[at + 1] = 60;
+                    original[at + 2] = 190;
                     original[at + 3] = 255;
                 }
 
@@ -122,7 +125,7 @@ internal static class HomeCarouselTests
             Assert.True(pixels.AsSpan(4, 4).SequenceEqual(original));
         });
 
-        Test("轮播：扩边高斯柔化边缘纹理，清晰原图与接缝保持不变", () =>
+        Test("轮播：高斯从扩边连续伸入原图，右端柔和回到清晰像素", () =>
         {
             const int width = 200;
             const int height = 120;
@@ -140,12 +143,15 @@ internal static class HomeCarouselTests
             var first = pixels[(60 * extendedWidth + middle) * 4];
             var second = pixels[(61 * extendedWidth + middle) * 4];
             Assert.True(Math.Abs(first - second) < 8, "扩边内部应消除交替行的细纹，不能只是采色拉长");
+            var inside = extension + 5;
+            Assert.True(Math.Abs(pixels[(60 * extendedWidth + inside) * 4]
+                - pixels[(61 * extendedWidth + inside) * 4]) < 8, "模糊必须从扩边向右覆盖原图左侧");
             for (var y = 0; y < height; y++)
             {
-                Assert.True(original.AsSpan(y * width * 4, width * 4)
-                    .SequenceEqual(pixels.AsSpan((y * extendedWidth + extension) * 4, width * 4)));
-                Assert.True(pixels.AsSpan((y * extendedWidth + extension - 1) * 4, 4)
-                    .SequenceEqual(original.AsSpan(y * width * 4, 4)), "最后一列仍应连续接到原图");
+                Assert.True(original.AsSpan((y * width + 19) * 4, (width - 19) * 4)
+                    .SequenceEqual(pixels.AsSpan((y * extendedWidth + extension + 19) * 4, (width - 19) * 4)), "模糊最右端及以右保留原图");
+                Assert.True(Math.Abs(pixels[(y * extendedWidth + extension - 1) * 4]
+                    - pixels[(y * extendedWidth + extension) * 4]) <= 3, "扩边与原图之间不能保留清晰竖条");
             }
         });
     }
