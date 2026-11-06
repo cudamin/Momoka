@@ -3,7 +3,7 @@
 - e3d46e1已挑入master c39b882，保留主树详情左右留白修改。以用户最后截图为准：仅高斯模糊、模糊区域5%、渐变加深0%，不保留之前暂选的18%淡黑渐变。
 - 主树Tests/Core Release零警告错误；相关29/29+25/25通过，差异/格式与9文本检查通过。用户明确要求改好直接交付、不跑探针；本轮未启动GUI/探针/自检，未做新实屏验证及全量主测，不引用上一轮画面作为本轮验证。
 - 2026-11-06 18:06主树publish/verify通过（546文件286.3MB），Shell/Core发布与当前x64 Release构建SHA256一致，桌面快捷方式Target/WorkingDirectory均artifacts/publish/win-x64、Arguments为空。代码已提交，未上传GitHub。
-- 证据work/backdrop-five-percent/build-tests.txt、detail-tests.txt、acrylic-tests.txt、publish.txt；独立树e3d46e1内容已整合，后续清理临时树。原全图遮罩、全图高斯档位与裁切规则继续按用户已有设置，只有底部新增效果改成5%且无渐变。
+- 证据work/backdrop-five-percent/build-tests.txt、detail-tests.txt、acrylic-tests.txt、publish.txt；独立树e3d46e1内容已整合，临时分支已删、树已detach且干净；应用archive工具拒绝清理当前聊天primary checkout，保留该托管树。原全图遮罩、全图高斯档位与裁切规则继续按用户已有设置，只有底部新增效果改成5%且无渐变。
 ## 2026-11-06 背景demo定稿：仅底部5%高斯、渐变0（待主树交付）
 
 - 用户最新截图明确选择「仅高斯模糊／模糊区域5%／渐变加深0%」，此前暂选淡黑渐变已被替换；用户授权改好直接交付、不要跑探针。本轮优先遵从该验证指示，不启动GUI、探针或自检，不用上一轮实屏冒充当前效果。
