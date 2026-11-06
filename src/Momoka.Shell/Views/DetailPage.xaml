@@ -226,7 +226,7 @@
             <Border x:Name="BackdropFade" Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
                     VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
 
-            <!-- 图片最后5%过渡到主题底色，与图片一起固定在背景中。 -->
+            <!-- 参考0.2.1的64 DIP四段渐深，末端接主题底色，与图片一起固定在背景中。 -->
             <Border x:Name="BackdropEdgeFade" VerticalAlignment="Top"
                     IsHitTestVisible="False" Visibility="Collapsed" />
 

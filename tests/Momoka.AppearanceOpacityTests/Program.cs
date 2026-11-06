@@ -202,6 +202,42 @@ Check("选择框聚焦失焦沿用闭合底色", () =>
         || !ReferenceEquals(control.Background, control.Resources["ComboBoxBackgroundUnfocused"]))
         throw new InvalidOperationException("选择框聚焦状态漏用底色副本");
 });
+foreach (var (control, prefix) in new (Control, string)[]
+    { (new Button(), "Button"), (new ToggleButton(), "ToggleButton") })
+    Check($"{prefix} 操作按钮恢复0.2.1默认三态并保留主题与自定义浓度", () =>
+    {
+        var brushes = ControlBackgroundBrushes.ForDetail(control, preserveDefault: true);
+        foreach (var amount in new[] { 0d, 1d })
+        {
+            brushes.Apply(amount);
+            foreach (var suffix in new[] { "", "PointerOver", "Pressed", "Disabled" })
+            {
+                if (amount > 0 && suffix == "Disabled") continue;
+                var source = (SolidColorBrush)resources[prefix + "Background" + suffix];
+                var copy = (AcrylicBrush)control.Resources[prefix + "Background" + suffix];
+                if (copy.FallbackColor != source.Color || copy.Opacity != source.Opacity || !copy.AlwaysUseFallback)
+                    throw new InvalidOperationException("未保留平台" + suffix + "底色");
+                if (control is ToggleButton && !ReferenceEquals(copy, control.Resources[prefix + "BackgroundChecked" + suffix]))
+                    throw new InvalidOperationException("连播选中时换了背景");
+            }
+        }
+        brushes.Apply(100);
+        Equal(1, ((AcrylicBrush)control.Background!).Opacity);
+        Equal(255, ((AcrylicBrush)control.Background!).FallbackColor.A);
+        var rest = (SolidColorBrush)resources[prefix + "Background"];
+        var original = rest.Color;
+        try
+        {
+            rest.Color = 0x40112233;
+            brushes.Apply(0);
+            if (((AcrylicBrush)control.Background!).FallbackColor != rest.Color)
+                throw new InvalidOperationException("默认按钮没有跟随主题画刷");
+        }
+        finally { rest.Color = original; }
+        brushes.Apply(45, useAcrylic: true);
+        if (((AcrylicBrush)control.Background!).AlwaysUseFallback)
+            throw new InvalidOperationException("亚克力选项被默认背景覆盖");
+    });
 Check("连播选中态保留三态浓度", () =>
 {
     var control = new ToggleButton();

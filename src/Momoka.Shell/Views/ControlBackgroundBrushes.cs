@@ -12,15 +12,19 @@ namespace Momoka.Shell.Views;
 /// <para>
 /// 滑块的读数就是底色自己的不透明度（2026-11-06 用户令「0 改为完全透明，100 改为完全不透明」）：0 档常态什么
 /// 都不画，悬停与按下仍留原来那层薄白 —— 那是指针的手感，不是要关掉的那块板。
+/// 详情操作按钮按用户最新要求恢复0.2.1默认半透明底，零档保留平台原三态；选择框和主页按钮仍用原滑块语义。
 /// </para>
 /// </summary>
 internal sealed class ControlBackgroundBrushes
 {
     private readonly List<(SolidColorBrush Source, SolidColorBrush Target, AcrylicBrush Copy, bool Feedback)> _brushes = [];
+    private readonly bool _preserveDefault;
 
     private ControlBackgroundBrushes(Control control, string prefix,
-        SolidColorBrush normal, SolidColorBrush hover, SolidColorBrush pressed, SolidColorBrush disabled)
+        SolidColorBrush normal, SolidColorBrush hover, SolidColorBrush pressed, SolidColorBrush disabled,
+        bool preserveDefault = false)
     {
+        _preserveDefault = preserveDefault;
         var rest = Copy(normal, "EgSurfaceElevatedBrush", feedback: false);
         var over = Copy(hover, "EgSurfaceHoverBrush", feedback: true);
         var down = Copy(pressed, "EgSurfaceAltBrush", feedback: true);
@@ -48,12 +52,12 @@ internal sealed class ControlBackgroundBrushes
         control.Background = rest;
     }
 
-    public static ControlBackgroundBrushes ForDetail(Control control)
+    public static ControlBackgroundBrushes ForDetail(Control control, bool preserveDefault = false)
     {
         var prefix = control is ComboBox ? "ComboBox" : control is ToggleButton ? "ToggleButton" : "Button";
         var source = control is ToggleButton ? "ToggleButton" : "Button";
         return new(control, prefix, Resource(source + "Background"), Resource(source + "BackgroundPointerOver"),
-            Resource(source + "BackgroundPressed"), Resource(source + "BackgroundDisabled"));
+            Resource(source + "BackgroundPressed"), Resource(source + "BackgroundDisabled"), preserveDefault);
     }
 
     public static ControlBackgroundBrushes ForBanner(Button button, ResourceDictionary resources) =>
@@ -80,7 +84,15 @@ internal sealed class ControlBackgroundBrushes
             }
             var color = source.Color;
             // 原底色那一层薄白的有效浓度 —— 悬停与按下在它以下时仍然是那层白，不是一块淡掉的深色板。
-            var floor = feedback ? color.A / 255d * source.Opacity : 0;
+            var floor = feedback || _preserveDefault ? color.A / 255d * source.Opacity : 0;
+            // 详情操作键恢复 v0.2.1 的平台半透明底；用户提高浓度时继续走现有表面色，亚克力仍由上方分支处理。
+            if (_preserveDefault && amount <= floor)
+            {
+                copy.FallbackColor = color;
+                copy.Opacity = source.Opacity;
+                copy.AlwaysUseFallback = true;
+                continue;
+            }
             if (amount == 0)
             {
                 // 0 档常态没有底色。悬停与按下的副本仍留着原来那层薄白：指到按钮上要看得见反应。

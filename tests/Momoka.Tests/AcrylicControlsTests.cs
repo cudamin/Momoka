@@ -74,7 +74,7 @@ internal static class AcrylicControlsTests
             Assert.Contains("new SolidColorBrush(ReadingShadeColor)", code);
             Assert.False(code.Contains("LinearGradientBrush", StringComparison.Ordinal));
         });
-        Test("详情接缝：5%渐变固定在图片底部并随主题换色", () =>
+        Test("详情接缝：0.2.1四段64DIP渐变固定在图片底部并随主题换色", () =>
         {
             var page = Read("Views/DetailPage.xaml");
             var body = Named(page, "BodySheet");
@@ -91,13 +91,24 @@ internal static class AcrylicControlsTests
             Assert.Null(paper.Attribute("Margin"));
             Assert.False(page.Descendants().Any(element => (string?)element.Attribute(X + "Name") == "BodyEdgeFade"));
             var code = Source("Views/DetailPage.BackdropEdgeFade.cs");
-            Assert.Contains("BackdropEdgeFadeShare = 0.05", code);
+            Assert.Contains("BackdropEdgeFadeHeight = 64", code);
+            Assert.Contains("Math.Min(pictureHeight, BackdropEdgeFadeHeight)", code);
+            Assert.Contains("Offset = 0.42", code);
+            Assert.Contains("Offset = 0.78", code);
             Assert.Contains("new Thickness(0, pictureHeight - height, 0, 0)", code);
             Assert.Contains("BackdropThemeSource.Background is SolidColorBrush theme ? theme.Color : PaperColor", code);
             Assert.Contains("Color.FromArgb(0, color.R, color.G, color.B)", code);
-            Assert.Contains("brush.GradientStops[1].Color = color", code);
+            Assert.Contains("Color.FromArgb(0xA6, color.R, color.G, color.B)", code);
+            Assert.Contains("Color.FromArgb(0xE8, color.R, color.G, color.B)", code);
+            Assert.Contains("brush.GradientStops[3].Color = color", code);
             Assert.Contains("RegisterPropertyChangedCallback(Border.BackgroundProperty", code);
             Assert.False(code.Contains("TranslateTransform", StringComparison.Ordinal));
+        });
+        Test("详情操作：0.2.1默认背景仅恢复到操作按钮，选择框保持现有设置", () =>
+        {
+            var code = Source("Views/DetailPage.Appearance.cs");
+            Assert.Contains("ForDetail(control, preserveDefault: true)", code);
+            Assert.Contains("ForDetail(picker)", code);
         });
         Test("详情正文：卡片给滚动条预留车道，背景纸面仍铺满", () =>
         {

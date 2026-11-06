@@ -13,7 +13,7 @@ public sealed partial class DetailPage
         foreach (var group in new[] { ColumnActions, CompactBlock })
             foreach (var row in group.Children.OfType<WrapRow>())
                 foreach (var control in row.Children.OfType<Microsoft.UI.Xaml.Controls.Control>())
-                    _controlBackgrounds.Add(ControlBackgroundBrushes.ForDetail(control));
+                    _controlBackgrounds.Add(ControlBackgroundBrushes.ForDetail(control, preserveDefault: true));
 
         foreach (var picker in new[] { ColumnSourcePicker, ColumnAudioPicker, ColumnSubtitlePicker,
             SourcePicker, AudioPicker, SubtitlePicker })
