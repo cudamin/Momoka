@@ -98,6 +98,10 @@ internal static class AcrylicControlsTests
             Assert.Null(Named(page, "Body").Attribute("Padding"));
             var styles = Read("Theme/Styles.xaml");
             Assert.Equal("0,0,20,0", Resource(styles.Root!, "EgScrollBarLane").Value);
+            var code = Source("Views/DetailPage.xaml.cs");
+            var seal = code[code.IndexOf("internal (bool Ok, string Detail) BodySeal()", StringComparison.Ordinal)..];
+            var paperBounds = seal.IndexOf("BodyPaper.TransformToVisual(root)", StringComparison.Ordinal);
+            Assert.True(paperBounds >= 0 && paperBounds < seal.IndexOf("var tail = HeroTail", StringComparison.Ordinal));
         });
         Test("主页轮播：底边没有渐变层，保留标题和侧边阅读遮罩", () =>
         {

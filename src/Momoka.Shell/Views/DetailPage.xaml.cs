@@ -800,8 +800,8 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         if (XamlRoot?.Content is not UIElement root) return (false, "页面还没上树");
 
-        var box = BodySheet.TransformToVisual(root)
-            .TransformBounds(new Rect(0, 0, BodySheet.ActualWidth, BodySheet.ActualHeight));
+        var box = BodyPaper.TransformToVisual(root)
+            .TransformBounds(new Rect(0, 0, BodyPaper.ActualWidth, BodyPaper.ActualHeight));
         var tail = HeroTail.TransformToVisual(root)
             .TransformBounds(new Rect(0, 0, HeroTail.ActualWidth, HeroTail.ActualHeight));
         var page = Body.TransformToVisual(root)
