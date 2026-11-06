@@ -4,6 +4,12 @@
 
 设置 FINAL-001/R02-001：新增反例修前17败；修后含大小写兼容168/168，当前Release 0警告0错误。发布R01-001/R01-007：完整匿名脚本联接拒绝/外部哨兵与Release参数，23维护/16交付维护通过。FINAL-T01 LibraryHeader已登记，pwsh调度19正反例通过；Windows PowerShell5.1夹具参数JSON解包曾失败，已定点修夹具，待重验。R01-006与R17-001/002验证可信度修复尚在进行。设置已提交0576330，其余待提交；均未合入或交付，不以本树通过替代最终主树验证。
 
+# 2026-11-07 R03-001 手动登录服务器凭据绑定修复
+
+- 独立树 signin-server-binding，基点5e971ae；仅修改登录复用前身份确认、认证后双重ID核对与原提交锁保留新近确认ID，保持Emby/Jellyfin合法纠正、输入取消，未处理R03-003/005。
+- 正式真实VM/Core专项105全过，恢复86全过，输入128全过，均0失败0跳过；final串行Shell/CoreTests/输入编译0警告0错误。首38红10过28败、产品族55红45过10败、复审Core83红55过28败和全部原日志保留，见artifacts/r03-001-signin-binding/final-evidence.json及tests/Momoka.Tests/README.SignInServerBinding.md。
+- 当前仅独立树源码提交供主代理整合；尚未合master/最终全主回归/真实UI/交付，未发布、push或改快捷方式。初输入边界CS0246已补异常替身后重编译；format退出0但有workspace提示，未冒充完整空白门禁。
+
 # 2026-11-06 全项目审查文档主树整合
 
 - 审查记录提交b7c3a61纯文档整合到主树，整合前master=3f1dd4fd577d164fd4a00a0952569321488e98d1；72审查产物、计划及本次进度记录进入当前主树，原主树PROGRESS尾部逐字节保留。

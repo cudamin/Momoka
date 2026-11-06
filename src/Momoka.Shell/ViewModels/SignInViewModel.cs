@@ -467,13 +467,21 @@ public sealed partial class SignInViewModel : PageViewModel
             if (!IsCurrent(token)) return;
             Caption = "正在登录…";
             if (!IsCurrent(token)) return;
+            // ResolveServer canonicalizes the live profile. Reject a replacement before that write or
+            // creating an account: a new login never authorizes moving the other accounts' credentials.
+            var savedServer = settings.Settings.Servers.FirstOrDefault(candidate =>
+                EmbySignInIdentity.SameAddress(candidate.Url, address, candidate.ServerKind));
+            if (savedServer is { Accounts.Count: > 0 } && detectedServer is { } confirmed
+                && !EmbySignInIdentity.CanRetainServerBinding(savedServer.ServerKind, savedServer.ServerId,
+                    confirmed.ServerKind, confirmed.Id))
+                throw new EmbyApiException("服务器身份与已保存账号不一致，请删除旧服务器配置后重新添加并登录；原账号绑定已保留");
             var server = settings.ResolveServer(address);
             if (detectedServer is { ApiBase: { } detectedBase } detected
                 && EmbySignInIdentity.SameAddress(address, detectedBase.AbsoluteUri, detected.ServerKind))
             {
                 server.ServerKind = detected.ServerKind;
                 server.ServerVersion = detected.Version;
-                server.ServerId = detected.Id;
+                if (!string.IsNullOrWhiteSpace(detected.Id)) server.ServerId = detected.Id;
                 server.Url = EmbyServerAddress.ToDisplayString(detectedBase, detected.ServerKind);
             }
             var account = settings.ResolveAccount(server, username);

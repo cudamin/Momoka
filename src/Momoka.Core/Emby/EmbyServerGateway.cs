@@ -128,13 +128,17 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
         if (string.IsNullOrWhiteSpace(result.AccessToken) || string.IsNullOrWhiteSpace(result.User?.Id))
             throw new EmbyApiException("服务器返回的登录结果缺少访问令牌或用户 ID");
 
+        var savedKind = kind;
+        var savedId = serverId;
+        PublicSystemInfo? confirmedInfo = null;
         string serverName;
         try
         {
             var info = await GetPublicSystemInfoAsync(apiBase, cancellationToken).ConfigureAwait(false);
+            confirmedInfo = info;
             serverName = info.ServerName ?? apiBase.Host;
             serverVersion = info.Version ?? serverVersion;
-            serverId = info.Id ?? serverId;
+            if (!string.IsNullOrWhiteSpace(info.Id)) serverId = info.Id;
 
             // 公开信息纠正产品；直接登录没有原始入口探测证据时，保留刚刚认证成功的完整路径。
             // 保存令牌恢复由 EmbySession 根据原始入口匿名探测、确认服务器和用户后再采用地址。
@@ -153,12 +157,22 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
             serverName = apiBase.Host;
         }
 
+        // Keep each identity confirmation independent: an authentication ID must not conceal a
+        // conflicting public ID, and an absent ID cannot erase the known binding of other accounts.
+        // Outside the name-read catch so an identity rejection cannot downgrade to a name fallback.
+        if (!EmbySignInIdentity.CanRetainServerBinding(savedKind, savedId, savedKind, result.ServerId)
+            || confirmedInfo is { } confirmed && !EmbySignInIdentity.CanRetainServerBinding(savedKind,
+                savedId, confirmed.ServerKind, confirmed.Id)
+            || !string.IsNullOrWhiteSpace(result.ServerId) && !string.IsNullOrWhiteSpace(confirmedInfo?.Id)
+                && !string.Equals(result.ServerId, confirmedInfo.Id, StringComparison.Ordinal))
+            throw new EmbyApiException("服务器身份与已保存账号不一致，原账号绑定已保留，请重新添加服务器");
+
         Log.Info(Category, $"已登录 {serverName}（用户 {result.User!.Name}）");
         var connection = new EmbyConnection(apiBase, result.AccessToken, result.User.Id, result.User.Name, serverName, device)
         {
             ServerKind = kind,
             ServerVersion = serverVersion,
-            ServerId = result.ServerId ?? serverId
+            ServerId = !string.IsNullOrWhiteSpace(result.ServerId) ? result.ServerId : serverId
         };
         // 登录结果带策略就一次写全：管理员、下载、删除与字幕。没带（旧服务器）就保持「还没问到」；
         // 登录后的能力探测会再按来源读一次，菜单在那之前照旧显示由服务器拒绝。

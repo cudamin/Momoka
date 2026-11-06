@@ -5,6 +5,15 @@ namespace Momoka.Emby;
 /// <summary>密码只属于输入时的服务器和账号，不跟随地址框或用户列表迁移。</summary>
 public static class EmbySignInIdentity
 {
+    /// <summary>缺 ID 的同产品响应可保留旧绑定；换产品必须明确确认相同服务器。</summary>
+    public static bool CanRetainServerBinding(MediaServerKind savedKind, string? savedId,
+        MediaServerKind confirmedKind, string? confirmedId) =>
+        (savedKind == confirmedKind
+            || savedKind is MediaServerKind.Emby or MediaServerKind.Jellyfin
+                && confirmedKind is MediaServerKind.Emby or MediaServerKind.Jellyfin)
+        && (string.IsNullOrWhiteSpace(confirmedId) ? savedKind == confirmedKind
+            : string.IsNullOrWhiteSpace(savedId) || string.Equals(savedId, confirmedId, StringComparison.Ordinal));
+
     public static bool SameAddress(string? left, string? right, MediaServerKind kind = MediaServerKind.Emby) =>
         EmbyServerAddress.TryNormalize(left ?? "", out var first, out _, kind)
             && EmbyServerAddress.TryNormalize(right ?? "", out var second, out _, kind)

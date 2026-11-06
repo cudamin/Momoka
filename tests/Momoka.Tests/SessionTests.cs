@@ -46,6 +46,7 @@ internal static class SessionTests
         RegisterConnectionIdentity();
         RegisterTransportFailures();
         RestoreIdentityR003Tests.Register();
+        SignInServerBindingTests.RegisterCore();
     }
 
     private static void RegisterRestore()

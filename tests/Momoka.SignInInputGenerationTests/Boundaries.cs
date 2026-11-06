@@ -97,6 +97,8 @@ namespace Momoka.Services
 
 namespace Momoka.Emby
 {
+    public sealed class EmbyApiException(string message) : Exception(message);
+
     public enum MediaServerKind { Emby, Jellyfin, FnNas, Plex }
 
     public sealed class EmbyUser

@@ -10,6 +10,13 @@ internal static class Program
             StubTransportTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["signin-server-binding-fixture", var bindingShell, var bindingRoot])
+            return SignInServerBindingTests.Run(bindingShell, bindingRoot);
+        if (args is ["signin-server-binding-core-fixture"])
+        {
+            SignInServerBindingTests.RegisterCore();
+            return TestHarness.Run();
+        }
         if (args is ["moviepilot-boundary-fixture"])
         {
             MoviePilotSafetyTests.Register();

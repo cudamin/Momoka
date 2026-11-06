@@ -202,6 +202,8 @@ public sealed class EmbySession : IDisposable
         bool rememberPassword, (string Key, long Generation, long Selection) attempt, CancellationToken cancellationToken)
     {
         var apiBase = EmbyServerAddress.Normalize(server.Url, server.ServerKind);
+        var savedKind = server.ServerKind;
+        var savedId = server.ServerId;
         var connection = await Gateway.AuthenticateAsync(apiBase, username, password, cancellationToken,
             server.ServerKind, server.ServerVersion, server.ServerId).ConfigureAwait(false);
         lock (_lifecycleGate)
@@ -209,6 +211,14 @@ public sealed class EmbySession : IDisposable
             cancellationToken.ThrowIfCancellationRequested();
             if (!CanCommit(attempt.Key, attempt.Generation) || !HasAddress(server, apiBase))
                 throw new OperationCanceledException("该账号的登录操作已被替代", cancellationToken);
+            if (!EmbySignInIdentity.CanRetainServerBinding(savedKind, savedId, connection.ServerKind, connection.ServerId)
+                || !EmbySignInIdentity.CanRetainServerBinding(server.ServerKind, server.ServerId,
+                    connection.ServerKind, connection.ServerId))
+                throw new EmbyApiException("服务器身份与已保存账号不一致，原账号绑定已保留，请重新添加服务器");
+            // A same-product response without ID must not erase an ID another account confirmed
+            // while this request was awaiting authentication. Adopt writes the shared profile.
+            if (string.IsNullOrWhiteSpace(connection.ServerId) && !string.IsNullOrWhiteSpace(server.ServerId))
+                connection = connection with { ServerId = server.ServerId };
             SaveCredentials(account, connection, password, rememberPassword);
             Adopt(server, account, connection, attempt.Selection);
             Persist();
