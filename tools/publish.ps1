@@ -1,6 +1,6 @@
 ﻿[CmdletBinding()]
 param(
-    [ValidateSet('Release', 'Debug')]
+    [ValidateSet('Release')]
     [string]$Configuration = 'Release',
 
     [ValidateSet('win-x64')]
@@ -152,8 +152,16 @@ if (-not $SkipPublish) {
     }
 }
 
-New-Item -ItemType Directory -Path $outputRootResolved -Force | Out-Null
-
+# Resolve-Path keeps a junction's logical name. Validate all outputs before creating/removing
+# anything, including archives, so none of the writes can traverse an output ancestor link.
+. (Join-Path $PSScriptRoot 'mpv-payload-common.ps1')
+$outputBoundary = $outputRootResolved.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+foreach ($outputPath in @($publishRoot, $stageRoot, $zipPath, $msixPath)) {
+    if (-not ([IO.Path]::GetFullPath($outputPath)).StartsWith($outputBoundary, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "拒绝操作输出目录之外的路径：$outputPath"
+    }
+    Assert-PlainPath $outputPath
+}
 # 只有真要重新发布的时候才清 publish；-SkipPublish 那一趟连碰都不碰它。理由是文件锁：程序正开着的时候
 # 它自己那些 dll（clrjit.dll 第一个）删不掉，于是整个脚本在第一步就死 —— 而「程序开着」恰恰是想单独打个
 # 包给人装的时候最常见的状态。msix-stage 照旧每次重建，它没人占着。
@@ -161,11 +169,15 @@ $toClean = @($stageRoot)
 if (-not $SkipPublish) { $toClean += $publishRoot }
 foreach ($path in $toClean) {
     if (Test-Path -LiteralPath $path) {
-        $resolved = (Resolve-Path -LiteralPath $path).Path
-        if (-not $resolved.StartsWith($outputRootResolved, [System.StringComparison]::OrdinalIgnoreCase)) {
-            throw "拒绝清理输出目录之外的路径：$resolved"
-        }
-        Remove-Item -LiteralPath $resolved -Recurse -Force
+        # Finish all directory preflights before clearing even the first output.
+        $null = @(Get-PlainFiles $path -Recurse)
+    }
+}
+New-Item -ItemType Directory -Path $outputRootResolved -Force | Out-Null
+foreach ($path in $toClean) {
+    if (Test-Path -LiteralPath $path) {
+        Assert-PlainPath $path
+        Remove-Item -LiteralPath $path -Recurse -Force
     }
 }
 # 上一次的压缩包一律删掉，-NoArchive 也删：一个跟刚发布的目录对不上的 zip 比没有 zip 更坏。

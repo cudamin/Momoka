@@ -107,6 +107,7 @@ foreach ($directory in @('tools', 'src/Momoka.Shell', 'assets/shaders', 'assets/
     [IO.Directory]::CreateDirectory((Join-Path $packageRoot $directory)) | Out-Null
 }
 Save (Join-Path $packageRoot 'tools/publish.ps1') ([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'publish.ps1')))
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'mpv-payload-common.ps1') -Destination (Join-Path $packageRoot 'tools/mpv-payload-common.ps1')
 Copy-Item -LiteralPath (Join-Path $repo 'src/Momoka.Shell/Package.appxmanifest') -Destination (Join-Path $packageRoot 'src/Momoka.Shell/Package.appxmanifest')
 Copy-Item -LiteralPath (Join-Path $repo 'app.ico') -Destination (Join-Path $packageRoot 'app.ico')
 foreach ($file in @('src/Momoka.Shell/Momoka.Shell.csproj', 'libmpv-2.dll', 'assets/mpv-runtime/vulkan-1.dll', 'artifacts/publish/win-x64/Momoka.exe', 'requested.pfx')) { Save (Join-Path $packageRoot $file) 'anonymous placeholder' }
