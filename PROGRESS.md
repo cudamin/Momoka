@@ -10747,3 +10747,9 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 相关测试/工具/文档已同步，接下来刷新主树实际交付目录并核对快捷方式；未上传。平台7132保持原上轮产品提交，无未交付独有内容，应用管理树留原样。
 
 - 主树桌面交付完成：产品a03ff5d，publish/verify退出0、546文件286.3MB；发布与发布过程当前构建Shell/Core哈希一致，快捷方式Target/WorkingDirectory均主树artifacts/publish/win-x64、参数空。回执work/detail-position-up/publish-receipt.json；定向UI使用开发件，不冒称发布件实跑。未上传/真实播放/写入。
+# 2026-11-06 集成 Anime4K 切换卡顿修复（14e4）
+
+- 用户确认集成模式切到Anime4K会卡一下。已核mpv 270367e8af与libplacebo 1dd0226源码：同值set不会重编译，缓存已启用；真正变化的前置参数逐项触发UPDATE_VIDEO，导致中间状态多轮渲染更新。集成句柄改为一次受控配置应用，完整八项原生读回才认成功；解析部分失败也可返回0，失败整批恢复，换片代次拒绝旧写/回滚。独占/外部保持原命令。
+- 先红：Core新增三项在旧service失败（8次逐项set）；真实提取handle新增四项在旧handle失败。最终Core3772/3772、执行点59/59、Monitor32/32，0跳过；Core/Tests/Shell与专项最终0警告0错误、差异/定向空白通过。首轮全套19红含新增3项及其他会话占用自检mutex，锁释放后的完整复验全绿；早期并行Shell/Monitor构建3条文件锁重试警告保留，串行最终0警告。wrapper原37项计数已同步59，实际wrapper通过。
+- 实际当前Core SHA256 62CC4F47…调用随包mpv无媒体验证：Anime4K/关闭/中文与引号及分号路径接受并无损读回，invalid scale返回失败，stale generation零写，临时文件清除。独立D3D11本地FFV1对照每次Anime4K renderer更新3→1，首次DXBC compile66→63，两种处理图逐像素相同且退出恢复原图；首次至截图4920→4158ms，第二次108/233ms，两者0编译，性能波动不作固定改善承诺。证据work/shader-native-20261106/report.json及core-native/actual-core-report.json；没有真实服务器播放、HDR、独占/外部实播或产品Composition切链实帧验收。
+- 本树基点00e6c49，独立只读审查未发现必要缺陷。产品提交、主树整合与发布待本批次收尾确认；首次冷编译和目标CNN运算成本仍存在，不称完全无卡顿。

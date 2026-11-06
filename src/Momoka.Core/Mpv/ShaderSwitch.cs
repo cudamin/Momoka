@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Momoka.Mpv;
 
 /// <summary>
@@ -14,6 +16,29 @@ namespace Momoka.Mpv;
 /// </summary>
 public static class ShaderSwitch
 {
+    /// <summary>
+    /// A restricted runtime config, so mpv coalesces UPDATE_VIDEO notifications for the whole chain.
+    /// mpv's fixed-length quoting counts UTF-8 bytes and preserves quotes, # and Windows paths verbatim.
+    /// Config parsing is line-based; never permit another option or section inside a value.
+    /// </summary>
+    public static string Configuration(IReadOnlyList<KeyValuePair<string, string>> options)
+    {
+        if (options.Count != ShaderGroupCatalog.NeutralOptions.Count
+            || options[^1].Key != "glsl-shaders"
+            || !options.Select(pair => pair.Key).ToHashSet(StringComparer.Ordinal)
+                .SetEquals(ShaderGroupCatalog.NeutralOptions.Select(pair => pair.Key)))
+            throw new ArgumentException("批量切链必须包含完整且唯一的受控画质参数", nameof(options));
+        var text = new StringBuilder();
+        foreach (var (name, value) in options)
+        {
+            if (value.IndexOfAny(['\r', '\n', '\0']) >= 0)
+                throw new ArgumentException("画质参数不能包含换行或空字符", nameof(options));
+            text.Append(name).Append("=%").Append(Encoding.UTF8.GetByteCount(value)).Append('%')
+                .Append(value).Append('\n');
+        }
+        return text.ToString();
+    }
+
     /// <summary>
     /// The properties to set, in a stable order, to put <paramref name="group"/> in force — or to take the
     /// chain off entirely when it is null.

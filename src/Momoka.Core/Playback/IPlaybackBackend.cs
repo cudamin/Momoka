@@ -197,6 +197,20 @@ public interface IFileScopedPlayerControl
 }
 
 /// <summary>
+/// Optional integrated-renderer capability: apply one complete shader configuration while coalescing
+/// render-option notifications. False may mean partial application, so callers retain a full rollback
+/// snapshot. Both application and readback must stay inside the captured native file generation.
+/// </summary>
+public interface IShaderBatchPlayerControl
+{
+    bool SupportsShaderBatch { get; }
+    long FileGeneration { get; }
+
+    Task<bool> ApplyShaderOptionsForFileAsync(long expectedFileGeneration,
+        IReadOnlyList<KeyValuePair<string, string>> options, CancellationToken cancellationToken);
+}
+
+/// <summary>
 /// 内置播放器 Lua UI 与弹幕图层的宿主通道。内置 libmpv 的两条管线都可实现它；
 /// 外部 mpv.exe 后端没有这条通道，也不需要 —— 判据是类型测试（<c>handle is IPlayerHostMessages</c>），
 /// 不让 <see cref="IPlayerControl"/> 背上第二份「控制」含义。

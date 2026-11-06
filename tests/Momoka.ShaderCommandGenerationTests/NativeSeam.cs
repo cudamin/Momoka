@@ -14,6 +14,7 @@ internal static partial class LibMpvNative
         throw new AssertionException("R051 禁止 Start/原生订阅");
     internal static int mpv_command(IntPtr context, IntPtr[] args) => For(context).Command(args
         .TakeWhile(pointer => pointer != IntPtr.Zero).Select(pointer => Marshal.PtrToStringUTF8(pointer) ?? "").ToArray());
+    internal static int mpv_load_config_file(IntPtr context, string filename) => For(context).LoadConfig(filename);
     internal static int mpv_command_ret(IntPtr context, IntPtr[] args, IntPtr result) =>
         throw new AssertionException("R051 禁止抓真实视频帧");
     internal static int mpv_set_property_string(IntPtr context, string name, string data)

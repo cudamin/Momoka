@@ -59,7 +59,7 @@ try {
     Invoke-Step -Name 'build' -Build -Arguments (@('build', $project, '-c', 'Release', '--no-restore') + $flags)
     Invoke-Step -Name 'tests' -Arguments @('run', '--project', $project, '-c', 'Release', '--no-build', '--no-restore')
     $text = Get-Content -LiteralPath (Join-Path $run 'tests.log') -Raw -Encoding UTF8
-    if ($text -notmatch '共 37 项，通过 37，失败 0，跳过 0') { throw "测试不完整：$run" }
+    if ($text -notmatch '共 59 项，通过 59，失败 0，跳过 0') { throw "测试不完整：$run" }
     Write-Output ('R051_RUN_DIRECTORY=' + $run)
 }
 finally { Pop-Location }

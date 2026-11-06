@@ -38,6 +38,28 @@ internal sealed class NativeBoundary
     internal int ForbiddenCalls { get; set; }
     internal int NodeAllocations { get; set; }
     internal int NodeFrees { get; set; }
+    internal bool PartialConfig { get; set; }
+    internal int ConfigThread { get; private set; }
+    internal List<string> ConfigFiles { get; } = [];
+
+    internal int LoadConfig(string filename)
+    {
+        ConfigThread = Environment.CurrentManagedThreadId;
+        ConfigFiles.Add(filename);
+        foreach (var line in System.IO.File.ReadAllLines(filename))
+        {
+            var separator = line.IndexOf('=');
+            var name = line[..separator];
+            var end = line.IndexOf('%', separator + 2);
+            var length = int.Parse(line[(separator + 2)..end], System.Globalization.CultureInfo.InvariantCulture);
+            var value = line[(end + 1)..];
+            Assert.Equal(length, System.Text.Encoding.UTF8.GetByteCount(value));
+            Assert.True(Values.ContainsKey(name));
+            if (!PartialConfig || name != "scale") Values[name] = value;
+        }
+        // mpv can return zero despite rejecting one option; the real handle must detect the mismatch.
+        return 0;
+    }
 
     internal NativeBoundary() => Contexts[Context] = this;
 

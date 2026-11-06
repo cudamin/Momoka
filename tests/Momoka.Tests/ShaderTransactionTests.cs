@@ -32,6 +32,36 @@ internal static class ShaderTransactionTests
         Test("着色器事务：同片同时切链必须串行，最终保持完整一套", () => Serial().GetAwaiter().GetResult());
         Test("着色器事务：读取默认值时换片，停止剩余读写", () => ChangedFilm().GetAwaiter().GetResult());
         Test("着色器事务：失败回滚不能写进同句柄的新代次", () => RollbackGeneration().GetAwaiter().GetResult());
+        Test("集成切链：一批提交完整参数，目标链仍在最后", () => Batch(false, false).GetAwaiter().GetResult());
+        Test("集成切链：批量部分失败恢复整套切换前参数", () => Batch(true, false).GetAwaiter().GetResult());
+        Test("集成切链：批量回滚失败标未知，下一批完整成功恢复", () => Batch(true, true).GetAwaiter().GetResult());
+    }
+
+    private static async Task Batch(bool reject, bool rejectRollback)
+    {
+        using var f = new Fixture();
+        f.Handle.SupportsShaderBatch = true;
+        f.Handle.RejectBatch = reject;
+        f.Handle.RejectBatchRollback = rejectRollback;
+        var before = new Dictionary<string, string>(f.Handle.Values);
+        Assert.Equal(!reject, await f.Service.SetShaderGroupAsync(ShaderGroupCatalog.Find("anime4k", GpuTier.Low)));
+        Assert.Equal(0, f.Handle.Commands.Count, "集成切链不应逐项重新配置渲染器");
+        Assert.Equal(reject ? 2 : 1, f.Handle.Batches.Count);
+        foreach (var batch in f.Handle.Batches)
+        {
+            Assert.Equal(8, batch.Count);
+            Assert.Equal("glsl-shaders", batch[^1].Key);
+        }
+        if (reject && !rejectRollback)
+            foreach (var (name, value) in before) Assert.Equal(value, f.Handle.Values[name], name);
+        Assert.Equal(!rejectRollback, f.Service.ShaderStateKnown);
+        if (rejectRollback)
+        {
+            f.Handle.RejectBatch = false;
+            f.Handle.RejectBatchRollback = false;
+            Assert.True(await f.Service.SetShaderGroupAsync(null));
+            Assert.True(f.Service.ShaderStateKnown);
+        }
     }
 
     private static async Task CustomConfigBaseline()
@@ -220,7 +250,7 @@ internal static class ShaderTransactionTests
             throw new InvalidOperationException("No HTTP may be sent from shader transaction tests");
     }
 
-    private sealed class TransactionHandle : IPlaybackHandle, IPlayerControl
+    private sealed class TransactionHandle : IPlaybackHandle, IPlayerControl, IShaderBatchPlayerControl
     {
         internal readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
@@ -241,6 +271,22 @@ internal static class ShaderTransactionTests
         internal string? Missing;
         internal Func<int, Task>? BeforeCommand;
         internal Func<string, Task>? BeforeRead;
+        internal bool RejectBatch;
+        internal bool RejectBatchRollback;
+        internal readonly List<IReadOnlyList<KeyValuePair<string, string>>> Batches = [];
+        public bool SupportsShaderBatch { get; set; }
+        public long FileGeneration => 1;
+        public Task<bool> CommandForFileAsync(long generation, IReadOnlyList<string> arguments, CancellationToken token) =>
+            CommandAsync(arguments, token);
+        public Task<bool> ApplyShaderOptionsForFileAsync(long generation,
+            IReadOnlyList<KeyValuePair<string, string>> options, CancellationToken token)
+        {
+            Batches.Add(options.ToArray());
+            var rejected = Batches.Count == 1 ? RejectBatch : RejectBatchRollback;
+            // Configuration parsing can apply all valid entries and still fail readback.
+            foreach (var (name, value) in options) Values[name] = value;
+            return Task.FromResult(!rejected);
+        }
         public bool UsesCustomConfig { get; set; }
         public IReadOnlyDictionary<string, string>? ShaderRestoreOptions { get; set; }
         public bool HasControlChannel => true;

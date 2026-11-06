@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Text;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Infrastructure;
@@ -518,7 +519,7 @@ internal sealed class LibMpvHandle(
     IntPtr context,
     IVideoSurface? surface,
     PlaybackLaunchSignature? signature,
-    Func<PlaybackRequest, PlaybackLaunchSignature>? signatureFor) : IPlaybackHandle, IPlayerControl, IPlayerHostMessages, IFileScopedPlayerControl
+    Func<PlaybackRequest, PlaybackLaunchSignature>? signatureFor) : IPlaybackHandle, IPlayerControl, IPlayerHostMessages, IFileScopedPlayerControl, IShaderBatchPlayerControl
 {
     internal MpvCustomConfig? CustomConfig { get; init; }
     public bool UsesCustomConfig => signature?.UsesCustomConfig == true;
@@ -826,22 +827,7 @@ internal sealed class LibMpvHandle(
     }
 
     /// <summary>一条属性的文本值（同步，走 API 闸门）；读不到就是 null。</summary>
-    private string? ReadText(string name) => Guard(() =>
-    {
-        // mpv hands back a copy it allocated, so the string has to be marshalled out and the
-        // copy released before the gate is dropped — nothing else will ever free it.
-        var pointer = LibMpvNative.mpv_get_property_string(context, name);
-        if (pointer == IntPtr.Zero) return null;
-
-        try
-        {
-            return Marshal.PtrToStringUTF8(pointer);
-        }
-        finally
-        {
-            LibMpvNative.mpv_free(pointer);
-        }
-    });
+    private string? ReadText(string name) => Guard(() => ReadNativeText(name));
 
     /// <summary>A rejected reset, especially authentication, must not be followed by loading another file.</summary>
     private bool Write(string name, string value) => Guard(() =>
@@ -1396,6 +1382,56 @@ internal sealed class LibMpvHandle(
 
     public long FileGeneration => _apiGate.Generation;
 
+    public bool SupportsShaderBatch => signature?.Pipeline == VideoPipelineKind.Integrated;
+
+    /// <summary>
+    /// mpv 270367e8af coalesces UPDATE_VIDEO when applying config-file options, whereas individual
+    /// set commands synchronously notify the renderer. Avoid rendering the old chain repeatedly with
+    /// intermediate prerequisites. Its config parser can return success after partial application,
+    /// so verify every effective option under the same native gate before reporting success.
+    /// </summary>
+    public Task<bool> ApplyShaderOptionsForFileAsync(long expectedFileGeneration,
+        IReadOnlyList<KeyValuePair<string, string>> options, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!SupportsShaderBatch) return Task.FromResult(false);
+        // Snapshot before queueing: caller-owned collections cannot change the config or readback target.
+        var target = options.ToArray();
+        var configuration = ShaderSwitch.Configuration(target);
+        return Task.Run(() => _apiGate.RunFor(expectedFileGeneration, () =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_handedOver || _stopRequested) return false;
+            var path = Path.Combine(Path.GetTempPath(), $"momoka-shader-{Guid.NewGuid():N}.conf");
+            try
+            {
+                using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                    file.Write(Encoding.UTF8.GetBytes(configuration));
+                // Hold a read-only lease while mpv opens and parses the completed file.
+                using var readLease = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+                var applied = LibMpvNative.mpv_load_config_file(context, path) >= 0;
+                foreach (var (name, value) in target)
+                {
+                    string? actual;
+                    if (name == "glsl-shaders")
+                    {
+                        var paths = LibMpvNodes.Read<IReadOnlyList<string>?>(context, name, LibMpvNodes.Strings, null);
+                        actual = paths is null ? null : MpvListValue.JoinFiles(paths);
+                    }
+                    else actual = ReadNativeText(name);
+                    applied &= string.Equals(value, actual, StringComparison.Ordinal);
+                }
+                return applied;
+            }
+            finally
+            {
+                try { File.Delete(path); }
+                catch (IOException error) { Log.Warn(Category, "清理临时着色器配置失败", error); }
+                catch (UnauthorizedAccessException error) { Log.Warn(Category, "清理临时着色器配置失败", error); }
+            }
+        }), CancellationToken.None);
+    }
+
     public Task<bool> CommandForFileAsync(long expectedFileGeneration, IReadOnlyList<string> arguments,
         CancellationToken cancellationToken) => CommandAsync(expectedFileGeneration, arguments, cancellationToken);
 
@@ -1491,22 +1527,17 @@ internal sealed class LibMpvHandle(
     public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return ReadAsync(() =>
-        {
-            // mpv hands back a copy it allocated, so the string has to be marshalled out and the
-            // copy released before the gate is dropped — nothing else will ever free it.
-            var pointer = LibMpvNative.mpv_get_property_string(context, name);
-            if (pointer == IntPtr.Zero) return null;
+        return ReadAsync(() => ReadNativeText(name));
+    }
 
-            try
-            {
-                return Marshal.PtrToStringUTF8(pointer);
-            }
-            finally
-            {
-                LibMpvNative.mpv_free(pointer);
-            }
-        });
+    private string? ReadNativeText(string name)
+    {
+        // mpv hands back a copy it allocated, so marshal and free it before dropping the native gate.
+        var pointer = LibMpvNative.mpv_get_property_string(context, name);
+        if (pointer == IntPtr.Zero) return null;
+
+        try { return Marshal.PtrToStringUTF8(pointer); }
+        finally { LibMpvNative.mpv_free(pointer); }
     }
 
     public Task<IReadOnlyList<string>?> GetStringListAsync(string name, CancellationToken cancellationToken)
