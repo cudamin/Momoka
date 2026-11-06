@@ -10818,3 +10818,6 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - BodyEdgeFade 属于正文行，末端贴正文上沿、向上延伸 PictureHeight 的5%，透明到黑色，放在 HeroTail 之后、文字之前；负下边距抵消测量高度，不撑大正文。删除接缝高斯卷积、异步条生成及旧底边缓存参数，保留全图高斯、阅读遮罩与裁切模糊设置。BodySheet 复用20 DIP滚动条车道，纸面与背景保持铺满。
 - 本聊天树 Release Shell/Core/Tests 零警告零错误；详情28/28、材质27/27，图片缓存/成像22+49项全部通过、无跳过。新增两条接线测试已先观察原代码失败（2项）再通过；旧接缝算法专测随生产算法移除，原全图高斯测试保留。独立静态复核发现的带高测量占位与无效重卷已修正，最终未见必要缺陷；11文件编码/差异通过，定向format退出0（带工作区加载警告）。
 - 开发树首轮Shell构建因残留_seamLive失败，已删除并重新完整构建通过；图片专项首次no-restore缺资产，已restore后重新编译运行通过。原失败日志保留work/body-edge-gradient。未启动GUI、运行探针、自检或真实播放。当前待产品提交、合入master后重验并刷新主树实际交付目录；未上传。
+
+- 最终主树交付完成：产品dad5b89；补齐纸面边界检查改读BodyPaper为ef624af，避免正文右侧20 DIP车道使旧纸面铺满检查误判。补齐后当前Tests/Core Release零警告零错误，材质27/27再次通过；此前最终产品全量3774/3774与图片22+49项通过、无跳过，补齐仅改变检查读数未重复全量。两文件编码/差异通过。未执行GUI、探针、自检及真实播放。
+- 19:02发布最终ef624af，publish/verify退出0，546文件286.3MB；Shell/Core与本次x64 Release发布构建SHA256一致，桌面Momoka.lnk Target/WorkingDirectory均主树artifacts/publish/win-x64、Arguments为空。证据work/body-edge-gradient/publish-final.txt、publish-receipt.json、full-tests.txt、layers-tests-final.txt、image-tests.txt。未上传GitHub。开发树5e711ba/edcdfc4产品内容已与master一致；平台primary聊天工作树保留，无临时分支。
