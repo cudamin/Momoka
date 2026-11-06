@@ -4,7 +4,7 @@
 - 主树fresh Release Tests/Shell零警告错误，3774/3774零失败跳过；专项30/30、亚克力25/25、WinRT/缓存71/71；定向格式与14文本编码/差异通过。
 - 主树17688的背景主题渐变及详情自定义设置通过，详情自定义页面首次被其他窗遮挡报红（line383），固定验证窗并重跑后通过；旧红留在同报告，不称整个报告无失败。最终三项必需路径均通过，48张背景+15张外观五主题实屏已目视。运行只有假服务/临时设置，无真实播放或写入。
 - 2026-11-06 16:48 publish/verify成功，546文件286.3MB；Shell/Core发布与当前x64 Release哈希一致，快捷方式Target/WorkingDirectory均artifacts/publish/win-x64、Arguments空。未上传GitHub。
-- 证据：work/backdrop-main-tests.txt、work/backdrop-main-images.txt、work/backdrop-main-publish.txt、work/backdrop-main-contact.png、work/backdrop-main-customization-contact.png；实际日志AppData/Local/Momoka/logs/shell-probe-20261106-083834064-17688/logs。独立树48dccfb内容已保留，完成后清理codex/backdrop-seam；应用效果有局部CPU高斯成本，无新增包。
+- 证据：work/backdrop-main-tests.txt、work/backdrop-main-images.txt、work/backdrop-main-publish.txt、work/backdrop-main-contact.png、work/backdrop-main-customization-contact.png；实际日志AppData/Local/Momoka/logs/shell-probe-20261106-083834064-17688/logs。独立树48dccfb内容已保留，临时分支及工作树已清理，忽略的本轮证据已复制到work/backdrop-branch-evidence；应用效果有局部CPU高斯成本，无新增包。
 ## 2026-11-06 详情背景遮罩合并与底边柔化（独立树验证完成，待主树交付）
 
 - 本树 C:/Users/89400/.codex/worktrees/1ae0/Momoka，codex/backdrop-seam，基点00e6c49。用户指定：黑色遮罩与下方渐变合并避免叠黑；渐变限底部六分之一；图与UI接缝加高斯模糊。
