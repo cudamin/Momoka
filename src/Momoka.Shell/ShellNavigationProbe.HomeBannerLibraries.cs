@@ -36,6 +36,7 @@ internal sealed partial class ShellNavigationProbe
         {
             Id = "banner-movie-" + index,
             Name = "离线影片 " + (index + 1),
+            Overview = "剧情说明用于验证轮播图的文字宽度：沿用左侧起点，右边收窄，为封面图留出更多空间。亮色和暗色的画面都应保持平滑过渡。",
             Type = EmbyItemType.Movie,
             ImageTags = new() { ["Primary"] = "poster" },
             BackdropImageTags = ["backdrop"]
@@ -136,6 +137,51 @@ internal sealed partial class ShellNavigationProbe
             fixture.Settings.Ui.HomeLibraryPlacement = HomeLibraryPlacement.BelowCarousel;
             Call(home, "UpdateLibraryOverlay");
             await UntilAsync(() => !home.ViewModel.LibraryOnBanner && overlay.Visibility == Visibility.Collapsed);
+            banner.ApplyDwell(HomeCarousel.MaxDwellSeconds);
+            foreach (var width in new[] { 1280, 1100 })
+            {
+                ResizeProbeClient(width, 760);
+                await LayoutAsync(home);
+                var info = Get<StackPanel>(banner, "Info");
+                var synopsis = Get<Grid>(banner, "SynopsisRow");
+                var fade = Get<Border>(banner, "Fade");
+                await UntilAsync(() => synopsis.Visibility == Visibility.Visible && synopsis.ActualWidth > 0
+                    && banner.Current?.Picture is not null && banner.FrontLayer.Opacity >= 0.99
+                    && synopsis.Opacity >= 0.99 && Get<Grid>(banner, "TitleRow").Opacity >= 0.99
+                    && (Get<Grid>(banner, "CaptionRow").Visibility != Visibility.Visible
+                        || Get<Grid>(banner, "CaptionRow").Opacity >= 0.99));
+                Require(Math.Abs(synopsis.ActualWidth - info.MaxWidth * 0.95) < 1,
+                    $"剧情说明没有单独向左收窄5%：Info实际/上限={info.ActualWidth}/{info.MaxWidth}，简介实际/指定={synopsis.ActualWidth}/{synopsis.Width}，窗口={banner.ActualWidth}");
+                Require(Math.Abs(Bounds(synopsis).Left - Bounds(info).Left) < 1,
+                    "剧情说明收窄时改变了左侧起点");
+                var finalWidth = synopsis.Width;
+                var finalFade = fade.Width;
+                double previousWidth;
+                try
+                {
+                    // 同一帧图和同一段文字恢复任务前排版，验证收窄的实际效果；只改变匿名夹具并在finally恢复。
+                    synopsis.Width = double.NaN;
+                    synopsis.HorizontalAlignment = HorizontalAlignment.Stretch;
+                    fade.Width = Math.Min(banner.ActualWidth, 60 + info.MaxWidth + 96);
+                    await LayoutAsync(home);
+                    previousWidth = synopsis.ActualWidth;
+                    await SaveProbeScreenAsync($"home-banner-extension-{width}-before-screen.png");
+                }
+                finally
+                {
+                    synopsis.Width = finalWidth;
+                    synopsis.HorizontalAlignment = HorizontalAlignment.Left;
+                    fade.Width = finalFade;
+                    await LayoutAsync(home);
+                }
+                Require(synopsis.ActualWidth < previousWidth - 1, "剧情说明没有比原排版收窄");
+                Require(Math.Abs(fade.ActualWidth - Math.Min(banner.ActualWidth, 60 + info.MaxWidth + 96 + banner.ActualWidth * 0.05)) < 1,
+                    "左侧阅读渐变没有延长");
+                var picture = banner.FrontPicture as Microsoft.UI.Xaml.Media.Imaging.BitmapImage;
+                Require(picture is { PixelWidth: 1472, PixelHeight: 720 }, "轮播位图没有保留15%左侧扩边");
+                readings.Add($"{width}/synopsis：字块={info.MaxWidth:0.0}，简介={previousWidth:0.0}→{synopsis.ActualWidth:0.0}，渐变={fade.ActualWidth:0.0}，位图={picture!.PixelWidth}×{picture.PixelHeight}");
+                await SaveProbeScreenAsync($"home-banner-extension-{width}-screen.png");
+            }
             fixture.Settings.Ui.HomeLibraryPlacement = HomeLibraryPlacement.OnCarousel;
             Call(home, "UpdateLibraryOverlay");
             await UntilAsync(() => home.ViewModel.LibraryOnBanner && overlay.Visibility == Visibility.Visible);

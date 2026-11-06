@@ -1,10 +1,9 @@
 namespace Momoka.Emby;
 
-/// <summary>轮播背景图：保留原图，在左边用边缘采色延长原图宽度的 10%（2026-09-12 一度加到 20%，他看完
-/// 实拍又要了回来）。</summary>
+/// <summary>轮播背景图：保留原图，左侧采色延长原图宽度的 15%，仅对延长区做高斯模糊。</summary>
 public static class CarouselBackdrop
 {
-    public const double LeftExtensionShare = 0.10;
+    public const double LeftExtensionShare = 0.15;
 
     /// <summary>延长量按原图宽度计算；像素取整最多相差半个像素。</summary>
     public static int ExtensionWidth(int width)
@@ -18,13 +17,14 @@ public static class CarouselBackdrop
     /// 「边缘的色彩上下要混合，别只是简单的拉长」）后向原图左边缘过渡；接缝处与原图第一列颜色一致，原图每
     /// 一个像素都原样拷贝到右边。
     /// </summary>
-    public static (byte[] Pixels, int Width) ExtendLeft(ReadOnlySpan<byte> source, int width, int height)
+    public static (byte[] Pixels, int Width) ExtendLeft(ReadOnlySpan<byte> source, int width, int height, CancellationToken token = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
         var stride = checked(width * 4);
         if (source.Length != checked(stride * height))
             throw new ArgumentException("背景图像素数与尺寸不一致。", nameof(source));
+        token.ThrowIfCancellationRequested();
 
         var extension = ExtensionWidth(width);
         var extendedWidth = checked(width + extension);
@@ -73,6 +73,28 @@ public static class CarouselBackdrop
             }
         }
 
+        // 只卷积新增区域，原图仍逐字节保留。最靠近原图的两成宽度渐回未模糊的边缘，避免接缝突然变清晰。
+        var extensionStride = checked(extension * 4);
+        var blurred = new byte[checked(extensionStride * height)];
+        for (var y = 0; y < height; y++)
+            pixels.AsSpan(y * extendedStride, extensionStride).CopyTo(blurred.AsSpan(y * extensionStride));
+        GaussianBackdrop.Apply(blurred, extension, height, GaussianBackdrop.Sigma, token);
+        var seamWidth = Math.Max(1, (int)Math.Round(extension * 0.20));
+        for (var y = 0; y < height; y++)
+        {
+            token.ThrowIfCancellationRequested();
+            for (var x = 0; x < extension; x++)
+            {
+                var position = Math.Clamp((double)(extension - 1 - x) / seamWidth, 0, 1);
+                var strength = position * position * (3 - 2 * position);
+                for (var channel = 0; channel < 3; channel++)
+                {
+                    var target = y * extendedStride + x * 4 + channel;
+                    var value = blurred[y * extensionStride + x * 4 + channel];
+                    pixels[target] = (byte)Math.Clamp(Math.Round(pixels[target] + (value - pixels[target]) * strength), 0, 255);
+                }
+            }
+        }
         return (pixels, extendedWidth);
     }
 }

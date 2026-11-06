@@ -73,19 +73,19 @@ internal static class HomeCarouselTests
 
     private static void RegisterBackdrop()
     {
-        Test("轮播：左侧延长原图宽度的 10%，原图和高度保持不变", () =>
+        Test("轮播：左侧延长原图宽度的 15%，原图和高度保持不变", () =>
         {
             const int width = 100;
             const int height = 12;
             var original = Enumerable.Range(0, width * height * 4).Select(index => (byte)(index % 251)).ToArray();
             var (pixels, extendedWidth) = CarouselBackdrop.ExtendLeft(original, width, height);
 
-            Assert.Equal(110, extendedWidth);
+            Assert.Equal(115, extendedWidth);
             Assert.Equal(extendedWidth * height * 4, pixels.Length);
             for (var y = 0; y < height; y++)
                 Assert.True(original.AsSpan(y * width * 4, width * 4)
-                    .SequenceEqual(pixels.AsSpan((y * extendedWidth + 10) * 4, width * 4)), "原图像素不应被改写或拉伸");
-            Assert.Equal(128, CarouselBackdrop.ExtensionWidth(1280));
+                    .SequenceEqual(pixels.AsSpan((y * extendedWidth + 15) * 4, width * 4)), "原图像素不应被改写或拉伸");
+            Assert.Equal(192, CarouselBackdrop.ExtensionWidth(1280));
         });
 
         Test("轮播：延长区取左侧颜色，接缝逐行连续", () =>
@@ -109,7 +109,7 @@ internal static class HomeCarouselTests
                 var row = y * extendedWidth * 4;
                 Assert.Equal((byte)60, pixels[row + 1]);
                 Assert.Equal((byte)190, pixels[row + 2]);
-                Assert.True(pixels.AsSpan(row + 9 * 4, 4).SequenceEqual(pixels.AsSpan(row + 10 * 4, 4)), "接缝不能出现色阶");
+                Assert.True(pixels.AsSpan(row + 14 * 4, 4).SequenceEqual(pixels.AsSpan(row + 15 * 4, 4)), "接缝不能出现色阶");
             }
         });
 
@@ -120,6 +120,33 @@ internal static class HomeCarouselTests
             Assert.Equal(2, width);
             Assert.True(pixels.AsSpan(0, 4).SequenceEqual(original));
             Assert.True(pixels.AsSpan(4, 4).SequenceEqual(original));
+        });
+
+        Test("轮播：扩边高斯柔化边缘纹理，清晰原图与接缝保持不变", () =>
+        {
+            const int width = 200;
+            const int height = 120;
+            var original = new byte[width * height * 4];
+            for (var y = 0; y < height; y++)
+                for (var x = 0; x < width; x++)
+                {
+                    var at = (y * width + x) * 4;
+                    original[at] = original[at + 1] = original[at + 2] = (byte)(y % 2 == 0 ? 0 : 255);
+                    original[at + 3] = 255;
+                }
+            var (pixels, extendedWidth) = CarouselBackdrop.ExtendLeft(original, width, height);
+            var extension = extendedWidth - width;
+            var middle = extension / 2;
+            var first = pixels[(60 * extendedWidth + middle) * 4];
+            var second = pixels[(61 * extendedWidth + middle) * 4];
+            Assert.True(Math.Abs(first - second) < 8, "扩边内部应消除交替行的细纹，不能只是采色拉长");
+            for (var y = 0; y < height; y++)
+            {
+                Assert.True(original.AsSpan(y * width * 4, width * 4)
+                    .SequenceEqual(pixels.AsSpan((y * extendedWidth + extension) * 4, width * 4)));
+                Assert.True(pixels.AsSpan((y * extendedWidth + extension - 1) * 4, 4)
+                    .SequenceEqual(original.AsSpan(y * width * 4, 4)), "最后一列仍应连续接到原图");
+            }
         });
     }
 

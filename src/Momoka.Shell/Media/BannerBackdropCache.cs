@@ -24,7 +24,7 @@ namespace Momoka.Shell.Media;
 internal static class BannerBackdropCache
 {
     /// <summary>
-    /// 默认十张 16:9 背景各约 4.5 MB（1280 宽、扩边后 1408 宽、720 高），48 MB 刚好能留住一整套还能带点余量。
+    /// 默认十张 16:9 背景各约 4.7 MB（1280 宽、扩边后 1472 宽、720 高），缓存按原像素和渲染结果的实际成本淘汰。
     /// 张数上限虽然可调到十五，但十五张同时解码本来就不在屏上；超出预算的会从最久没看的那张开始走。
     /// </summary>
     public const long BudgetBytes = 48L * 1024 * 1024;
@@ -33,7 +33,7 @@ internal static class BannerBackdropCache
     /// 处理规则的名字。扩边比例单独拼在后面，所以改比例本身就换键；这个版本号留给「同样的参数但算法换了」
     /// 的那一天，否则同一张图会顶着旧处理结果一直命中。
     /// </summary>
-    private const string Rule = "carousel-backdrop-v1";
+    private const string Rule = "carousel-backdrop-v2";
 
     private sealed record Entry(HeroPictureLoader.HeroPixels? Pixels, BitmapImage? Original, BitmapImage? Gaussian)
     {

@@ -834,7 +834,7 @@ public sealed partial class HomeBanner : UserControl
     /// </para>
     /// <para>
     /// 渐变幕（左头近实心、走进图里散尽）从带子自己的左沿起、宽取「字块左沿 ＋ 字块最宽 ＋
-    /// <see cref="ScrimBreath"/>」—— 字整块压在剧照上，盖不住就是亮底上读简介，所以 <c>Info.MaxWidth</c> 得先
+    /// <see cref="ScrimBreath"/> ＋ 页宽 5%」—— 字整块压在剧照上，盖不住就是亮底上读简介，所以 <c>Info.MaxWidth</c> 得先
     /// 算出来。从前还要和「左边纯色那一片的宽 ＋ 图宽的三成半」取大的那个（那一项是揉开纯色底和剧照之间那条
     /// 硬边用的），纯色底没了它也就没了。
     /// </para>
@@ -877,6 +877,8 @@ public sealed partial class HomeBanner : UserControl
         // 那道两像素的亮缝），现在 Frame 又是个没有线、没有留白的 Grid，内沿就是控件自己的宽，那一整段连同
         // 「按内沿算」的说法一起删了。
         Info.MaxWidth = Math.Min(Math.Max(0, width - InfoInset - 28), Math.Clamp(width * 0.48, 280, 620));
+        // 固定简介这行的宽度，避免按文字内容测量时只改 MaxWidth 却没有实际收缩；其他行仍按原规则排版。
+        SynopsisRow.Width = Info.MaxWidth * 0.95;
         Info.Spacing = height < 360 ? 8 : 12;
         LogoImage.MaxHeight = height < 360 ? 32 : 44;
         TitleText.MaxLines = height >= 440 ? 2 : 1;
@@ -884,7 +886,7 @@ public sealed partial class HomeBanner : UserControl
         SyncSlideStatus();
 
         Fade.Margin = new Thickness(0, 0, 0, 0);
-        Fade.Width = Math.Min(width, InfoInset + Info.MaxWidth + ScrimBreath);
+        Fade.Width = Math.Min(width, InfoInset + Info.MaxWidth + ScrimBreath + width * 0.05);
 
         PlaceInfo();
     }
@@ -1238,7 +1240,9 @@ public sealed partial class HomeBanner : UserControl
         var height = HomeCarousel.Height(0, 1100);
         var width = 1100d;
         var wide = banner.Info.MaxWidth;
-        var tall = Math.Abs(banner.Root.Height - height) < 0.01 && wide <= 620;
+        var tall = Math.Abs(banner.Root.Height - height) < 0.01 && wide <= 620
+            && Math.Abs(banner.SynopsisRow.Width - wide * 0.95) < 0.01
+            && banner.SynopsisRow.HorizontalAlignment == HorizontalAlignment.Left;
 
         // 框没有了（「占满窗口的上半部分（包括窗口标题）」，2026-09-11）：带子铺到窗口的三条边上，贴着窗口的
         // 边画圆角会在窗口角上剪出三角形的缺口，整圈发丝线也没有边可收，卡片底色更是要遮住剧照 —— 2026-09-10
@@ -1300,7 +1304,7 @@ public sealed partial class HomeBanner : UserControl
             && sized is [{ } fade]
             && fade.HorizontalAlignment == HorizontalAlignment.Left
             && Math.Abs(fade.Margin.Left) < 0.01
-            && Math.Abs(fade.Width - Math.Min(width, InfoInset + wide + ScrimBreath)) < 0.01
+            && Math.Abs(fade.Width - Math.Min(width, InfoInset + wide + ScrimBreath + width * 0.05)) < 0.01
             && Melts(fade)
             && topped is [{ } top]
             && top.VerticalAlignment == VerticalAlignment.Top
@@ -1362,7 +1366,7 @@ public sealed partial class HomeBanner : UserControl
                 + $"画面上的暗罩 {scrims.Count} 层"
                 + (bare
                     ? $"（一道渐变幕，从 {sized[0].Margin.Left:0} 起、"
-                        + $"宽 {sized[0].Width:0} ＝ min(页宽, 字块右沿 {InfoInset:0}+{wide:0}＋{ScrimBreath:0})，"
+                        + $"宽 {sized[0].Width:0} ＝ min(页宽, 字块右沿 {InfoInset:0}+{wide:0}＋{ScrimBreath:0}＋页宽5%)，"
                         + $"左头九成浓往图里散尽；顶上给标题栏垫底的一条 {topped[0].Height:0} 高；右侧只压边缘，底部没有渐变："
                         + $"{string.Join('、', edges.Select(RimRead))}）"
                     : "（该是三层：顶上一条给标题栏垫底、一道左侧渐变幕和右侧边缘，底部不加渐变）")
@@ -1582,7 +1586,7 @@ public sealed partial class HomeBanner : UserControl
         return (covers && oneAxis,
             $"剧照铺满整条带 {drawn.Width:0}×{drawn.Height:0}（画刷那层就是整格，左 {left:0.#}、上 {at.Y:0.#}）"
                 + (sourceShape > 0
-                    ? $"；背景位图 {source!.PixelWidth}×{source!.PixelHeight} = {sourceShape:0.00}:1（已含左侧 10% 采色延长）"
+                    ? $"；背景位图 {source!.PixelWidth}×{source!.PixelHeight} = {sourceShape:0.00}:1（已含左侧 {CarouselBackdrop.LeftExtensionShare:0%} 采色延长及扩边高斯）"
                         + (cropX > 0
                             ? $" 比带子宽，左右各裁 {cropX:P0}"
                             : cropY > 0 ? $" 比带子窄，上下各裁 {cropY:P0}" : " 和带子同形，一个像素都不裁")

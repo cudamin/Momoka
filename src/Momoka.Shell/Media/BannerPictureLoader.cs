@@ -54,7 +54,7 @@ internal static class BannerPictureLoader
         using (var reader = DataReader.FromBuffer(buffer)) reader.ReadBytes(pixels);
 
         // 像素采样离开 UI 线程，拖动窗口和快速翻页不必等这段循环完成。
-        var extended = await Task.Run(() => CarouselBackdrop.ExtendLeft(pixels, width, height), token);
+        var extended = await Task.Run(() => CarouselBackdrop.ExtendLeft(pixels, width, height, token), token);
         token.ThrowIfCancellationRequested();
         return new HeroPictureLoader.HeroPixels(extended.Pixels, extended.Width, height);
     }
