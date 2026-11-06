@@ -138,20 +138,30 @@ internal sealed partial class ShellNavigationProbe
             Call(home, "UpdateLibraryOverlay");
             await UntilAsync(() => !home.ViewModel.LibraryOnBanner && overlay.Visibility == Visibility.Collapsed);
             banner.ApplyDwell(HomeCarousel.MaxDwellSeconds);
-            foreach (var width in new[] { 1280, 1100 })
+            foreach (var width in new[] { 1280, 1100, 760, 600, 1100 })
             {
                 ResizeProbeClient(width, 760);
                 await LayoutAsync(home);
                 var info = Get<StackPanel>(banner, "Info");
                 var synopsis = Get<Grid>(banner, "SynopsisRow");
                 var fade = Get<Border>(banner, "Fade");
-                await UntilAsync(() => synopsis.Visibility == Visibility.Visible && synopsis.ActualWidth > 0
-                    && banner.Current?.Picture is not null && banner.FrontLayer.Opacity >= 0.99
-                    && synopsis.Opacity >= 0.99 && Get<Grid>(banner, "TitleRow").Opacity >= 0.99
+                await UntilAsync(() => banner.Current?.Picture is not null && banner.FrontLayer.Opacity >= 0.99
+                    && Get<Grid>(banner, "TitleRow").Opacity >= 0.99
                     && (Get<Grid>(banner, "CaptionRow").Visibility != Visibility.Visible
                         || Get<Grid>(banner, "CaptionRow").Opacity >= 0.99));
-                Require(Math.Abs(synopsis.ActualWidth - info.MaxWidth * 0.90) < 1,
-                    $"剧情说明没有单独向左收窄10%：Info实际/上限={info.ActualWidth}/{info.MaxWidth}，简介实际/指定={synopsis.ActualWidth}/{synopsis.Width}，窗口={banner.ActualWidth}");
+                Require(Math.Abs(synopsis.Width - info.MaxWidth * 0.75) < 1,
+                    $"剧情说明没有单独收窄到75%：Info实际/上限={info.ActualWidth}/{info.MaxWidth}，简介实际/指定={synopsis.ActualWidth}/{synopsis.Width}，窗口={banner.ActualWidth}");
+                Require(Math.Abs(fade.ActualWidth - Math.Min(banner.ActualWidth, 60 + info.MaxWidth + 64)) < 1,
+                    "左侧阅读渐变没有收窄");
+                if (width < 800)
+                {
+                    Require(synopsis.Visibility == Visibility.Collapsed, "窄窗剧情说明没有按原有高度条件收起");
+                    readings.Add($"{width}/synopsis-hidden：简介指定={synopsis.Width:0.0}，渐变={fade.ActualWidth:0.0}");
+                    await SaveProbeScreenAsync($"home-banner-extension-{width}-screen.png");
+                    continue;
+                }
+                Require(synopsis.Visibility == Visibility.Visible && Math.Abs(synopsis.ActualWidth - synopsis.Width) < 1,
+                    "宽窗剧情说明没有显示或实际宽度没有恢复");
                 Require(Math.Abs(Bounds(synopsis).Left - Bounds(info).Left) < 1,
                     "剧情说明收窄时改变了左侧起点");
                 var finalWidth = synopsis.Width;
@@ -160,9 +170,8 @@ internal sealed partial class ShellNavigationProbe
                 try
                 {
                     // 同一帧图和同一段文字恢复任务前排版，验证收窄的实际效果；只改变匿名夹具并在finally恢复。
-                    synopsis.Width = double.NaN;
-                    synopsis.HorizontalAlignment = HorizontalAlignment.Stretch;
-                    fade.Width = Math.Min(banner.ActualWidth, 60 + info.MaxWidth + 96);
+                    synopsis.Width = info.MaxWidth * 0.90;
+                    fade.Width = Math.Min(banner.ActualWidth, 60 + info.MaxWidth + 96 + banner.ActualWidth * 0.05);
                     await LayoutAsync(home);
                     previousWidth = synopsis.ActualWidth;
                     await SaveProbeScreenAsync($"home-banner-extension-{width}-before-screen.png");
@@ -175,8 +184,8 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(home);
                 }
                 Require(synopsis.ActualWidth < previousWidth - 1, "剧情说明没有比原排版收窄");
-                Require(Math.Abs(fade.ActualWidth - Math.Min(banner.ActualWidth, 60 + info.MaxWidth + 96 + banner.ActualWidth * 0.05)) < 1,
-                    "左侧阅读渐变没有延长");
+                Require(fade.ActualWidth < Math.Min(banner.ActualWidth, 60 + info.MaxWidth + 96 + banner.ActualWidth * 0.05) - 1,
+                    "左侧阅读渐变没有比原排版收窄");
                 var picture = banner.FrontPicture as Microsoft.UI.Xaml.Media.Imaging.BitmapImage;
                 Require(picture is { PixelWidth: 1472, PixelHeight: 720 }, "轮播位图没有保留15%左侧扩边");
                 readings.Add($"{width}/synopsis：字块={info.MaxWidth:0.0}，简介={previousWidth:0.0}→{synopsis.ActualWidth:0.0}，渐变={fade.ActualWidth:0.0}，位图={picture!.PixelWidth}×{picture.PixelHeight}");
