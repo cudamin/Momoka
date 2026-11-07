@@ -13,8 +13,9 @@ internal static partial class Program
     private static string _output = "";
     private static int _assertions;
 
-    internal static async Task<int> Main()
+    internal static async Task<int> Main(string[] args)
     {
+        if (args.Length > 0) return AnonymousSelfCheckHost.Run(args);
         var root = Path.GetFullPath(Environment.CurrentDirectory);
         Ensure(File.Exists(Path.Combine(root, "Momoka.sln")), "Run from the current worktree root");
         Ensure(typeof(AppPaths).Assembly.Location.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase),
@@ -41,6 +42,7 @@ internal static partial class Program
         RegisterCommandReads();
         RegisterProbeLifetimes();
         RegisterCompositionFinalizer();
+        RegisterAnonymousHostInputs();
         var failures = 0;
         foreach (var (name, run) in Cases)
         {

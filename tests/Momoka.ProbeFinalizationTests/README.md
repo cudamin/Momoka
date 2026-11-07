@@ -53,4 +53,28 @@
 
 没有运行 App、真实 self-check 或完整 `--probe-subtitles` / `--probe-shell`，因为本任务明确禁止 UI / native / 登录 / 配置与凭据 IO。未验证 WinUI 消息循环、真实窗口销毁、截图 / 原生渲染、实际 DPAPI 或真实服务；`close` / `dispose` / `Exit` 可达由源码链接控制流与注入端点证明，不冒充实际 HWND / WinRT 验收。
 
+## 显式匿名实际自检宿主
+
+默认入口仍运行无窗口回归；`anonymous-selfcheck-host` 是验收专用入口，不能由默认测试或回归清单隐式启动。
+先成功编译当前 Release Shell 与本项目，核对两目录的 Core 字节相同，再显式运行：
+
+```powershell
+$root = (Get-Location).Path
+$shell = Join-Path $root 'src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll'
+$host = Join-Path $root 'tests/Momoka.ProbeFinalizationTests/bin/Release/net10.0/Momoka.ProbeFinalizationTests.dll'
+$output = Join-Path $root ('artifacts/anonymous-selfcheck/run-' + [guid]::NewGuid().ToString('N'))
+& "$HOME/.dotnet/dotnet.exe" exec --runtimeconfig ([IO.Path]::ChangeExtension($shell, '.runtimeconfig.json')) --depsfile ([IO.Path]::ChangeExtension($shell, '.deps.json')) $host anonymous-selfcheck-host $root $shell $output
+```
+
+宿主只调用当前 Shell 的实际 `Program.Run`，不调用会解析真实 profile 的 `Main`，不新增产品命令行开关。
+它在本树全新的固定盘目录自行生成 schema27 空账号设置，关闭 MoviePilot、AniBT、弹幕、翻译、更新及外部配置；
+实际 `selfCheck:true` 继续使用生产的禁止播放策略。专用 STA 线程执行真实 App 和 DispatcherQueue 自检计时器，
+真实窗口、报告与退出码来自该 Shell，HTTP EventSource 只计请求数，不记录地址或请求内容。
+
+路径、输入、同树 Shell/Core 字节和桌面互斥在启动前检查。MRT/PRI 的本进程基址对照已安装 Foundation2.3.12
+`UndockedRegFreeWinRT-AutoInitializer.cs`，只调整此进程的 AppContext，退出后恢复；不改变机器环境或用户目录。
+回执 `anonymous-host-receipt.json` 记录程序集哈希、PID、实际报告及退出码；未写报告/初始化失败均不算执行成功。
+空账号只验实际登录页、窗口、自检计时器与最终报告，是完整服务器自检的局部执行，不把缺数据或失败当全绿。
+对真实服务分支的判断仍由原样源码链接回归提供，不证明真实账号、DPAPI、服务或播放已验证。
+
 主线程仅整合题内生产和本专项项目文件，不复制支线PROGRESS。项目已加入 Momoka.sln 与开发文档的独立 restore → Release build → run 命令；公共 Core Program不注册本项目，没有新增产品开关或基线条目。普通完整构建只编译，不自动执行本套件。未发布、推送或更新快捷方式。
