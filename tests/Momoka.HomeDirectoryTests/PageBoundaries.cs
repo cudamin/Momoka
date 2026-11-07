@@ -52,12 +52,23 @@ namespace Momoka.Shell.Views
         public string? CollectionType { get; init; }
         public static LibraryRequest Favorites(IServiceProvider services) => new() { Services = services, Title = "favorites", Tag = FavoritesTag };
     }
-    internal sealed class FavoritesBoundary
+    internal sealed class FavoritesBoundary : IDisposable
     {
         public void Attach(EmbySession session) { }
         public Task RefreshAsync() => Task.CompletedTask;
+        public void Clear() { }
+        public void Dispose() { }
     }
-    internal sealed class SignInBoundary : Microsoft.UI.Xaml.FrameworkElement { public void Detach() { } }
+    internal sealed class SignInBoundary : Microsoft.UI.Xaml.FrameworkElement
+    {
+        internal Momoka.Shell.ViewModels.SignInViewModel ViewModel { get; } = new();
+        internal event EventHandler? SignedIn;
+        internal SignInBoundary() => ViewModel.SignedIn += (_, e) => SignedIn?.Invoke(this, e);
+        public void Detach() => ViewModel.Detach();
+        internal void Attach(ISettingsService settings, EmbySession session, CredentialVault vault) => ViewModel.Attach(settings, session, vault);
+        internal void Prepare(ServerProfile? server = null, bool newAccount = false, AccountProfile? account = null) => ViewModel.Prepare(server, newAccount, account);
+        internal void ShowRestoring(string name) => ViewModel.ShowRestoring(name);
+    }
     internal sealed partial class ShellPage
     {
         private const string Category = "fixture-shell";
@@ -74,6 +85,18 @@ namespace Momoka.Shell.Views
         private readonly EmbySession? _session;
         private readonly IServerCapabilities? _capabilities;
         private readonly IServiceProvider? _services;
+        private readonly ISettingsService? _settings;
+        private readonly LoadGeneration _aggregateLoads = new();
+        private readonly AccountModeBoundary _accountMode = new();
+        private int _sourceOperations;
+        private bool _pendingSourcesChange;
+        private bool SignInVisible => SignIn.Visibility == Microsoft.UI.Xaml.Visibility.Visible;
+        private ToggleBoundary AggregateModeItem { get; } = new();
+        private MenuBoundary AccountMenu { get; } = new();
+        private PlayerBoundary Player { get; } = new();
+        private CloseBoundary? _settingsWindow = null;
+        private CloseBoundary? _moviePilotWindow = null;
+        private DispatchBoundary DispatcherQueue { get; } = new();
         private readonly Windowing.HostWindow? _window = null;
         private readonly MoviePilotService? _moviePilotService = null;
         private FavoritesBoundary Favorites { get; } = new();
@@ -86,12 +109,19 @@ namespace Momoka.Shell.Views
         private AppSettings Settings { get; }
         private sealed record Crumb(string Label, string Tag);
 
-        internal ShellPage(EmbySession session, AppSettings settings)
+        internal ShellPage(EmbySession session, AppSettings settings, ISettingsService? settingsService = null,
+            CredentialVault? vault = null, Momoka.Shell.Services.SubtitleTranslationController? translation = null)
         {
             _session = session;
             _capabilities = new CapabilitiesBoundary();
-            _services = new ServicesBoundary();
+            _services = new ServicesBoundary(translation);
             Settings = settings;
+            _settings = settingsService;
+            if (settingsService is not null && vault is not null)
+            {
+                SignIn.Attach(settingsService, session, vault);
+                SubscribeAccountEvents();
+            }
         }
         internal Task Enter() => EnterShellAsync();
         internal Task Retry() => RetryLibrariesAsync();
@@ -102,7 +132,6 @@ namespace Momoka.Shell.Views
             ContentFrame.Content = new object();
         }
         internal void InvalidateVisit() => _identityLoads.Cancel();
-        private string SourcesStamp() => string.Join(',', _session!.Sources.Select(source => source.Key));
         private void RebuildSidebarLibraries() { }
         private void SyncSidebar() { }
         private void ShowAccount(string? username, string? server) { }
@@ -120,6 +149,7 @@ namespace Momoka.Shell.Views
             public bool? IsAdministrator => false;
             public Task ProbeAsync(CancellationToken token = default) => Task.CompletedTask;
         }
-        private sealed class ServicesBoundary : IServiceProvider { public object? GetService(Type serviceType) => throw new Momoka.Tests.AssertionException("夹具不创建产品服务"); }
+        private sealed class ServicesBoundary(Momoka.Shell.Services.SubtitleTranslationController? translation) : IServiceProvider
+        { public object? GetService(Type serviceType) => serviceType == typeof(Momoka.Shell.Services.SubtitleTranslationController) ? translation : throw new Momoka.Tests.AssertionException("夹具不创建产品服务"); }
     }
 }

@@ -647,6 +647,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// can see.
     /// </summary>
     private Task? _shutdownTask;
+    private bool _closing;
 
     internal void Shutdown() => _ = ShutdownAsync();
 
@@ -654,6 +655,10 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     private async Task ShutdownPlaybackAsync()
     {
+        // 在首个关闭等待前撤销登录，并永久拒绝迟到通知或新账号操作重建外壳。
+        _closing = true;
+        SignIn.SignedIn -= OnSignedIn;
+        SignIn.ViewModel.Dispose();
         _aggregateLoads.Cancel();
         _accountMode.Dispose();
         _identityLoads.Cancel();
@@ -982,7 +987,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     internal async Task StartAsync()
     {
-        if (_settings is null || _session is null) return;
+        if (_closing || _settings is null || _session is null) return;
 
         ShowSignIn();
         var token = _identityLoads.Begin();
@@ -2055,7 +2060,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     private async Task RetryLibrariesAsync()
     {
-        if (_session?.IsSignedIn != true) return;
+        if (_closing || _session?.IsSignedIn != true) return;
         var token = _identityLoads.Begin();
         var scope = _session.Capture();
         var content = ContentFrame.Content;
@@ -2231,7 +2236,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private async Task EnterShellAsync()
     {
-        if (_session is null || _capabilities is null || !_session.IsSignedIn) return;
+        if (_closing || _session is null || _capabilities is null || !_session.IsSignedIn) return;
         var token = _identityLoads.Begin();
         var scope = _session.Capture();
         var sourcesStamp = SourcesStamp();
@@ -2435,7 +2440,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     private async Task SetAccountAggregateModeAsync(bool value)
     {
-        if (_session is null || _settings is null || _services is null) return;
+        if (_closing || _session is null || _settings is null || _services is null) return;
         var token = _aggregateLoads.Begin();
         _accountMode.Attach(this, _settings, _session);
         _sourceOperations++;
@@ -2474,7 +2479,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     private async Task SwitchAsync(ServerProfile server, AccountProfile? account)
     {
-        if (_session is null || _settings is null) return;
+        if (_closing || _session is null || _settings is null) return;
         var online = _session.Sources.FirstOrDefault(source => source.ServerProfileId == server.Id
             && (account is null || source.AccountProfileId == account.Id));
         if (online is not null)
@@ -2531,13 +2536,14 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     private void OnSignedOut(string reason)
     {
-        if (_session?.IsSignedIn == true) return;
+        if (_closing || _session?.IsSignedIn == true) return;
         Log.Info(Category, $"返回登录页：{reason}");
         ShowSignIn();
     }
 
     private void OnSourcesChanged()
     {
+        if (_closing) return;
         SignIn.ViewModel.RefreshSessionText();
         if (_accountMode.Busy && Settings.AggregateMode != _accountMode.AggregateMode)
         {
@@ -2573,6 +2579,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>Puts the sign-in card back in front, pointed at a particular server when there is one.</summary>
     private void ShowSignIn(ServerProfile? server = null, bool newAccount = false, AccountProfile? account = null)
     {
+        if (_closing) return;
         _identityLoads.Cancel();
         Favorites.Clear();
         _libraries.Clear();

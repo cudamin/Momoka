@@ -16,7 +16,8 @@ internal static class Program
     private static async Task<int> Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
-        Console.WriteLine("R-062 实际Shell目录读/导航控制流＋SourceLibraries；匿名HTTP/无窗口或真实登录");
+        Console.WriteLine("R-062 目录交接＋R03-005 关闭账号生命周期；真实VM/Core、匿名HTTP、无窗口或真实服务器");
+        AccountShutdownTests.Register(Test);
         foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
         {
             Test("R-062 目录挂起先到主页，再交接合法目录快照 " + kind, async () =>
@@ -207,6 +208,7 @@ internal static class Program
         public void Revoke() => _lifetimes[0].Cancel();
         public void Dispose()
         {
+            Shell.DisposeLogin();
             _session.Dispose();
             foreach (var identity in _identities)
             {

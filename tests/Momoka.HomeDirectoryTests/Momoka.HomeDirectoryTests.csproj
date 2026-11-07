@@ -8,6 +8,10 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\SignInViewModel.cs" Link="Production\SignInViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+    <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="UiQueue.cs" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
   </ItemGroup>
   <UsingTask TaskName="ExtractHomeDirectorySources" TaskFactory="RoslynCodeTaskFactory"
@@ -31,13 +35,22 @@
         var shell = File.ReadAllText(Path.Combine(SourceRoot, "ShellPage.xaml.cs")).Replace("\r\n", "\n");
         var home = File.ReadAllText(Path.Combine(SourceRoot, "HomePage.xaml.cs")).Replace("\r\n", "\n");
         var generated = "#nullable enable\n// Current tree production control flow, extracted verbatim at every build.\n" +
-            "using Momoka.Emby;\nusing Momoka.Diagnostics;\nusing Momoka.Services;\nusing Momoka.MoviePilot;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nnamespace Momoka.Shell.Views;\n" +
+            "using Momoka.Emby;\nusing Momoka.Configuration;\nusing Momoka.Diagnostics;\nusing Momoka.Services;\nusing Momoka.MoviePilot;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.Extensions.DependencyInjection;\nnamespace Momoka.Shell.Views;\n" +
             between(home, "internal sealed record HomeRequest(\n", "\n/// <summary>\n/// The home page's view.") +
             "\ninternal sealed partial class ShellPage\n{\n" +
             between(shell, "    public void GoTo(string tag, bool force = false)\n", "\n    /// <summary>\n    /// 设置 (需求 1") +
             between(shell, "    private async Task EnterShellAsync()\n", "\n    /// <summary>\n    /// 切换服务器 / 切换用户") +
             between(shell, "    private void Open(Type page, object parameter, string title, string tag)\n", "\n    /// <summary>\n    /// The one place the toolbar row") +
             between(shell, "    private async Task RetryLibrariesAsync()\n", "\n    /// <summary>The row's own arrows.") +
+            between(shell, "    private Task? _shutdownTask;", "\n    /// <summary>\n    /// 播放.") +
+            between(shell, "    private void OnSignedIn(", "\n    /// <summary>\n    /// 按类型浏览") +
+            between(shell, "    private void OnSignedOut(", "\n    /// <summary>Puts the sign-in card back in front") +
+            between(shell, "    private void ShowSignIn(", "\n    /// <summary>\n    /// Drops whatever") +
+            between(shell, "    internal async Task StartAsync()", "\n    /// <summary>\n    /// 启动时那一趟") +
+            between(shell, "    private async Task SwitchAsync(", "\n    /// <summary>Lets management pages") +
+            between(shell, "    private async Task SetAccountAggregateModeAsync(", "\n    private void OnTakeAccountOffline") +
+            "    private void SubscribeAccountEvents()\n    {\n        if (_session is null) return;\n" +
+            between(shell, "        SignIn.SignedIn += OnSignedIn;", "\n    }\n\n    /// <summary>\n    /// Handed the window") + "\n    }\n" +
             between(shell, "    private void ReleaseContent()\n", "\n}") + "\n}\n";
         Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
         if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
