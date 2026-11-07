@@ -80,7 +80,13 @@ public sealed partial class LibraryViewModel
     internal void SetEmbySourceActive(bool active)
     {
         _embySourceActive = active;
-        if (active) EnsureRecentSearches();
+        if (active)
+        {
+            if (_active && _request is { IsSearch: true } request
+                && !string.Equals(request.SearchTerm, SearchText.Trim(), StringComparison.Ordinal))
+                PrepareSearch(SearchText);
+            EnsureRecentSearches();
+        }
     }
 
     /// <summary>Cards 的所有增删都经过这里，分组清单因此不会与平铺清单走散。</summary>
