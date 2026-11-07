@@ -94,6 +94,11 @@ internal static class Program
             NavigationTimingTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["screen-placement-fixture"])
+        {
+            ScreenTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["performance-probe-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;

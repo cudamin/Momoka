@@ -15,6 +15,16 @@ namespace Momoka.Infrastructure;
 /// </summary>
 public static class ScreenPlacement
 {
+    /// <summary>探针保留要求的尺寸，只拉回工作区；屏幕装不下时拒绝，避免缩小尺寸冒充验收。</summary>
+    public static WindowBounds KeepSizeVisible(WindowBounds work, WindowBounds requested)
+    {
+        if (work.Width <= 0 || work.Height <= 0 || requested.Width <= 0 || requested.Height <= 0
+            || requested.Width > work.Width || requested.Height > work.Height) return default;
+        var left = Math.Clamp(requested.Left, work.Left, work.Right - requested.Width);
+        var top = Math.Clamp(requested.Top, work.Top, work.Bottom - requested.Height);
+        return new(left, top, left + requested.Width, top + requested.Height);
+    }
+
     /// <summary>Leave the placement to Windows, which is what every ordinary launch wants.</summary>
     public const int WhereverWindows = 0;
 

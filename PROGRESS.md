@@ -11427,3 +11427,7 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 
 - 实际发布c4a0b51、master45aef56纯文档保留第九批全部修复；最终完整4135/4135、设置60/33/21、R04841/41零失败跳过。本会话只读核对最终日志和实际已测/发布Core均88B1B7BE…、Shell均73B39424…，维护脚本与70项绿SHA一致。发布546文件300355063字节，0.2.5，快捷方式目标/工作目录主树publish、参数空，载荷/许可通过；回执artifacts/detail-unified-master/delivery-receipt.json。
 - 无待合/待验/待交付第九批产品，不重审前八批、不重复发布。本次两个辅助树均原生归档完成；settings首轮primary保护拒绝，重新附回协调树后原生归档成功，证据已逐SHA保留。真实下载/SmartScreen/服务器/播放/写入/签名/安装/上传均未执行。此记录仅文档。
+## 2026-11-07 主树统一交付接管与屏内探针修复
+
+- 第十一批聊天明确完成最终4142/4142、翻译119/119、设置行44/44及主屏28/28运行，应用正常退出，主树442d62e干净；已交还写入、构建、完整测试、UI和发布所有权，本聊天接管串行整合，保留下载及密钥修复。尚未整合、重验或更新桌面。
+- 探针缩放保持要求尺寸并把位置钳回当前工作区；屏幕装不下时明确拒绝，不放宽GuardVisible、不缩小目标尺寸冒充验收。新增三种屏幕位置回归，修前缺函数编译红保留；修后当前Tests/Core及Shell Release/x64均0警告0错误，screen-placement-fixture15/15，四文件whitespace退出0带workspace加载提示，文本/diff检查通过。证据artifacts/shared-detail-acrylic/screen-placement-*及probe-placement-build.log；实际路径待主屏最终运行。

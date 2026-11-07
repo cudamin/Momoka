@@ -435,10 +435,15 @@ internal sealed partial class ShellNavigationProbe
         Interop.Native.GetWindowRect(handle, out var outer);
         // HostWindow 自绘标题栏，AppWindow.ResizeClient 按系统标题栏重复增加了31px。
         // 只按当前真实非客户区差值换算，避免高矮断点和屏外守卫验证了错误尺寸。
-        Require(Interop.Native.SetWindowPos(handle, IntPtr.Zero, 0, 0,
-            (int)Math.Round(width * scale) + outer.Width - client.Width,
-            (int)Math.Round(height * scale) + outer.Height - client.Height,
-            Interop.Native.SwpNoMove | Interop.Native.SwpNoZOrder | Interop.Native.SwpNoActivate),
+        var outerWidth = (int)Math.Round(width * scale) + outer.Width - client.Width;
+        var outerHeight = (int)Math.Round(height * scale) + outer.Height - client.Height;
+        var bounds = ScreenPlacement.KeepSizeVisible(_window.WorkArea(),
+            new(outer.Left, outer.Top, outer.Left + outerWidth, outer.Top + outerHeight));
+        Require(bounds.Width == outerWidth && bounds.Height == outerHeight,
+            "当前屏幕工作区容纳不下探针要求的尺寸，请选择更大的屏幕");
+        Require(Interop.Native.SetWindowPos(handle, IntPtr.Zero, bounds.Left, bounds.Top,
+            outerWidth, outerHeight,
+            Interop.Native.SwpNoZOrder | Interop.Native.SwpNoActivate),
             "探针窗口缩放失败");
     }
 
