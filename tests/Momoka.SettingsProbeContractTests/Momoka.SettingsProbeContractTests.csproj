@@ -15,6 +15,7 @@
     <Compile Include="..\Momoka.SettingsLifetimeTests\ShellRuntime.cs" Link="Support\ShellRuntime.cs" />
     <Compile Include="..\Momoka.SettingsLifetimeTests\LifetimeFixture.cs" Link="Support\LifetimeFixture.cs" />
     <Compile Include="..\Momoka.SettingsLifetimeTests\AppearanceColorFixture.cs" Link="Support\AppearanceColorFixture.cs" />
+    <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\ShellNavigationProbe.InputThemeFixture.cs" Link="Production\InputThemeFixture.cs" />
     <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\Views\IShellContent.cs" Link="Production\IShellContent.cs" />
     <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\Views\ISessionScopedPage.cs" Link="Production\ISessionScopedPage.cs" />
     <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\Views\SettingsPage.Motion.cs" Link="Production\SettingsPage.Motion.cs" />

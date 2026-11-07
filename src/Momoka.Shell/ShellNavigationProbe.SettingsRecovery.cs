@@ -46,11 +46,13 @@ internal sealed partial class ShellNavigationProbe
         foreach (var row in hdr.Rows.OfType<SettingOptionalNumberRow>())
             Toggle(Descendants(page).OfType<CheckBox>().Single(control => AutomationProperties.GetName(control) == row.Label));
         await LayoutAsync(page);
-        await SaveProbeScreenAsync($"settings-hdr-automatic-hidden-{width}-screen.png");
+        await CaptureSettingsRecoveryRowsAsync(page, hdr, hdr.Rows.OfType<SettingOptionalNumberRow>().Cast<SettingRow>().ToArray(),
+            $"settings-hdr-automatic-hidden-{width}-screen.png");
         foreach (var row in hdr.Rows.OfType<SettingOptionalNumberRow>())
             Toggle(Descendants(page).OfType<CheckBox>().Single(control => AutomationProperties.GetName(control) == row.Label));
         await LayoutAsync(page);
-        await SaveProbeScreenAsync($"settings-hdr-manual-restored-{width}-screen.png");
+        await CaptureSettingsRecoveryRowsAsync(page, hdr, hdr.Rows.OfType<SettingOptionalNumberRow>().Cast<SettingRow>().ToArray(),
+            $"settings-hdr-manual-restored-{width}-screen.png");
         page.SelectedCategory = "播放器";
         await LayoutAsync(page);
         await WaitForSettingsSettledAsync(page);
@@ -60,10 +62,13 @@ internal sealed partial class ShellNavigationProbe
         await WaitForSettingsSettledAsync(page);
         await Pick("视频渲染", "GPU（兼容回退）");
         AssertGpu(false);
-        await SaveProbeScreenAsync($"settings-hdr-external-gpu-{width}-screen.png");
+        await CaptureSettingsRecoveryRowsAsync(page, hdr, [hdr.Rows.Single(row => row.Label == "HDR 映射算法")],
+            $"settings-hdr-external-gpu-{width}-screen.png");
         await Pick("视频渲染", "GPU-Next");
         AssertGpu(true);
-        await SaveProbeScreenAsync($"settings-hdr-gpu-next-restored-{width}-screen.png");
+        await CaptureSettingsRecoveryRowsAsync(page, hdr,
+            hdr.Rows.Where(row => row.Label is "HDR 参考白亮度" or "HDR 对比度恢复" or "HDR 映射算法").ToArray(),
+            $"settings-hdr-gpu-next-restored-{width}-screen.png");
         await SettingsSupportingNotesAsync(page, fixture, width);
 
         async Task Pick(string label, string value)
@@ -108,7 +113,7 @@ internal sealed partial class ShellNavigationProbe
         var moviePilot = page.ViewModel.Sections.SelectMany(section => section.Rows).OfType<SettingMoviePilotRow>().Single();
         // Anonymous available-state boundary: only exercise these two template notes, never query a site.
         moviePilot.SitesAvailable = true;
-        foreach (var hidden in new[] { false, true, false })
+        foreach (var (hidden, state) in new[] { (false, "shown"), (true, "hidden"), (false, "restored") })
         {
             page.SelectedCategory = "界面";
             await LayoutAsync(page);
@@ -124,6 +129,16 @@ internal sealed partial class ShellNavigationProbe
             AssertNote("搜索时默认使用的站点。在搜索框里改选也会记住，这一行跟着变。", hidden);
             Require(Descendants(page).OfType<ToggleSwitch>().Any(control => AutomationProperties.GetName(control) == "显示 AniBT 入口"),
                 "隐藏说明误收起 AniBT 控件");
+            foreach (var (text, suffix) in new[]
+            {
+                ("关闭后隐藏 AniBT 识别、AniBT 搜索和版本来源入口；MoviePilot 其他功能不受影响。", "anibt"),
+                ("搜索时默认使用的站点。在搜索框里改选也会记住，这一行跟着变。", "sites")
+            })
+            {
+                var note = Descendants(page).OfType<TextBlock>().Single(block => block.Text == text);
+                await CaptureSettingsRecoveryTargetAsync(page, (FrameworkElement)Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(note),
+                    $"settings-supporting-notes-{suffix}-{width}-{state}-screen.png");
+            }
             page.SelectedCategory = "字幕";
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
@@ -134,7 +149,12 @@ internal sealed partial class ShellNavigationProbe
             AssertNote(rules.PriorityHint, hidden);
             Require(Descendants(page).OfType<TextBlock>().Any(text => text.Text == rules.Label && text.Visibility == Visibility.Visible),
                 "隐藏说明误收起关键词标签");
-            await SaveProbeScreenAsync($"settings-supporting-notes-{width}-{(hidden ? "hidden" : "shown")}-screen.png");
+            foreach (var (row, suffix) in new (SettingRow, string)[] { (preview, "preview"), (rules, "priority") })
+            {
+                var section = page.ViewModel.Sections.Single(section => section.Rows.Contains(row));
+                await CaptureSettingsRecoveryRowsAsync(page, section, [row],
+                    $"settings-supporting-notes-{suffix}-{width}-{state}-screen.png");
+            }
         }
 
         void AssertNote(string text, bool hidden)
@@ -143,5 +163,53 @@ internal sealed partial class ShellNavigationProbe
             Require(notes.Length > 0 && notes.All(block => block.Visibility == (hidden ? Visibility.Collapsed : Visibility.Visible)),
                 "辅助说明没有响应隐藏或恢复：" + text);
         }
+    }
+
+    private async Task CaptureSettingsRecoveryRowsAsync(SettingsPage page, SettingSection section, SettingRow[] rows, string name)
+    {
+        var host = Descendants(page).OfType<ItemsControl>().Single(control => ReferenceEquals(control.ItemsSource, section.Rows));
+        var targets = rows.Select(row => host.ContainerFromItem(row) as FrameworkElement
+            ?? throw new InvalidOperationException("设置验收目标行尚未实现：" + row.Label)).ToArray();
+        await CaptureSettingsRecoveryTargetsAsync(page, targets, name);
+    }
+
+    private Task CaptureSettingsRecoveryTargetAsync(SettingsPage page, FrameworkElement target, string name) =>
+        CaptureSettingsRecoveryTargetsAsync(page, [target], name);
+
+    private async Task CaptureSettingsRecoveryTargetsAsync(SettingsPage page, FrameworkElement[] targets, string name)
+    {
+        var scroll = Get<ScrollViewer>(page, "SettingsScroll");
+        await LayoutAsync(page);
+        var initial = ReadTargets();
+        if (targets.Length > 1 && initial.Max(target => target.Y + target.Height) - initial.Min(target => target.Y) > scroll.ActualHeight)
+        {
+            // Narrow layouts can wrap the HDR notes beyond one viewport. Preserve every target
+            // in separate actual frames rather than shrink it or count a clipped screenshot.
+            for (var index = 0; index < targets.Length; index++)
+            {
+                var frameName = index == 0 ? name : Path.GetFileNameWithoutExtension(name) + $"-target{index + 1}.png";
+                await CaptureSettingsRecoveryTargetAsync(page, targets[index], frameName);
+            }
+            return;
+        }
+        targets[^1].StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false, VerticalAlignmentRatio = 1 });
+        await UntilAsync(() => SettingsRecoveryTargetsVisible(scroll.ActualWidth, scroll.ActualHeight, ReadTargets()));
+        await WaitForDiagnosticsFrameAsync();
+        var readings = ReadTargets();
+        Require(SettingsRecoveryTargetsVisible(scroll.ActualWidth, scroll.ActualHeight, readings),
+            "设置截图前目标不在实际视口：" + name);
+        File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "settings-recovery-viewport.txt"),
+            $"{name}: viewport={scroll.ActualWidth:0.0}x{scroll.ActualHeight:0.0}, offset={scroll.VerticalOffset:0.0}, "
+            + string.Join("; ", readings.Select(target => $"target={target.X:0.0},{target.Y:0.0},{target.Width:0.0}x{target.Height:0.0}, visible={target.Visible}")) + "\n");
+        await SaveProbeScreenAsync(name);
+
+        (double X, double Y, double Width, double Height, bool Visible)[] ReadTargets() => targets.Select(target =>
+        {
+            var bounds = target.TransformToVisual(scroll).TransformBounds(new Windows.Foundation.Rect(0, 0, target.ActualWidth, target.ActualHeight));
+            var visible = target.Visibility == Visibility.Visible;
+            for (var parent = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(target); parent is FrameworkElement element;
+                parent = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(parent)) visible &= element.Visibility == Visibility.Visible;
+            return (bounds.X, bounds.Y, bounds.Width, bounds.Height, visible);
+        }).ToArray();
     }
 }

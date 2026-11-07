@@ -41,6 +41,57 @@ internal static class Program
 
     private static void Register()
     {
+        Test("输入主题夹具先启用实际轮播从属行，关闭后旧定位拒绝，恢复保留值", () => WithPage((_, fixture, _) =>
+        {
+            fixture.Settings.Settings.Ui.ShowHomeBanner = false;
+            var runtime = ShellRuntime.Current;
+            var sections = runtime.List(fixture.Vm, "Sections");
+            sections.Clear();
+            foreach (var section in (IEnumerable)runtime.Invoke(fixture.Vm, "HomeSections")!) sections.Add(section);
+            Assert.Throws<InvalidOperationException>(() => Row(fixture.Vm, "轮播图用什么媒体"));
+            Assert.Throws<InvalidOperationException>(() => Row(fixture.Vm, "轮播图张数"));
+
+            ShellNavigationProbe.PrepareSettingsInputFixture(fixture.Settings.Settings.Ui);
+            sections.Clear();
+            foreach (var section in (IEnumerable)runtime.Invoke(fixture.Vm, "HomeSections")!) sections.Add(section);
+            var choice = runtime.Get<object>(Row(fixture.Vm, "轮播图用什么媒体"), "Selected");
+            Assert.Equal("只看剧集", runtime.Get<string>(choice, "Label"));
+            Assert.Equal(7d, runtime.Get<double>(Row(fixture.Vm, "轮播图张数"), "Value"));
+            var enabling = Row(fixture.Vm, "显示主页轮播大图");
+            runtime.Set(enabling, "IsOn", false);
+            Assert.Throws<InvalidOperationException>(() => Row(fixture.Vm, "轮播图用什么媒体"));
+            Assert.Throws<InvalidOperationException>(() => Row(fixture.Vm, "轮播图张数"));
+            runtime.Set(Row(fixture.Vm, "显示主页轮播大图"), "IsOn", true);
+            Assert.Equal(7d, runtime.Get<double>(Row(fixture.Vm, "轮播图张数"), "Value"));
+            Assert.Equal(CarouselMediaType.Series, fixture.Settings.Settings.Ui.CarouselMedia);
+            Assert.True(ReferenceEquals(sections, runtime.List(fixture.Vm, "Sections")));
+        }));
+        Test("输入主题夹具前件在页面构造之前，原控件与焦点断言保持", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(SettingsProbeInputs.SourceRoot, "src/Momoka.Shell/ShellNavigationProbe.SettingsSearch.cs"));
+            var prepared = source.IndexOf("PrepareSettingsInputFixture(fixture.Settings.Ui);", StringComparison.Ordinal);
+            var created = source.IndexOf("CreateMotionSettingsPage(fixture, moviePilot, paths)", StringComparison.Ordinal);
+            Assert.True(prepared >= 0 && created > prepared);
+            var inputs = File.ReadAllText(Path.Combine(SettingsProbeInputs.SourceRoot, "src/Momoka.Shell/ShellNavigationProbe.InputTheme.cs"));
+            foreach (var label in new[] { "轮播图用什么媒体", "轮播图张数" })
+                Assert.Contains("AutomationProperties.GetName(control) == \"" + label + "\"", inputs);
+            Assert.Contains("await FocusAsync(numberInput, \"数字框\");", inputs);
+            Assert.Contains("await AssertTextBorderAsync(numberInput, \"数字框\");", inputs);
+        });
+        Test("设置截图目标必须真正进入视口，顶端代图和隐藏目标均拒绝", () =>
+        {
+            Assert.True(ShellNavigationProbe.SettingsRecoveryTargetsVisible(800, 600, [(20, 100, 740, 60, true), (20, 450, 740, 60, true)]));
+            foreach (var invalid in new (double X, double Y, double Width, double Height, bool Visible)[]
+            {
+                (20, 900, 740, 60, true), (20, -70, 740, 60, true), (20, 100, 900, 60, true),
+                (20, 100, 0, 60, true), (20, 100, 740, 60, false)
+            }) Assert.False(ShellNavigationProbe.SettingsRecoveryTargetsVisible(800, 600, [invalid]));
+            Assert.False(ShellNavigationProbe.SettingsRecoveryTargetsVisible(800, 600, []));
+            var recovery = File.ReadAllText(Path.Combine(SettingsProbeInputs.SourceRoot, "src/Momoka.Shell/ShellNavigationProbe.SettingsRecovery.cs"));
+            Assert.Contains("targets[^1].StartBringIntoView", recovery);
+            Assert.Contains("await UntilAsync(() => SettingsRecoveryTargetsVisible", recovery);
+            Assert.Contains("settings-recovery-viewport.txt", recovery);
+        });
         foreach (var release in new[] { "ReleaseHosted", "Release" })
             Test($"探针设置页{release}取消两卡真实颜色草稿而不保存", () => WithPage((_, fixture, page) =>
             {

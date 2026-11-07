@@ -1,5 +1,7 @@
 # 2026-11-07 颜色取消生命周期生成兼容
 
+设置输入主题探针显式开启自己的轮播上级，并设为剧集、7张的非默认偏好，然后才创建真实设置页。通用匿名夹具默认关闭轮播，当前显隐规则会正确隐藏媒体选择及张数，不能让输入探针把缺少控件误判成样式失败。相关无窗口回归执行同一前件方法和真实 HomeSections，覆盖关闭时旧定位拒绝、恢复保留偏好；原输入焦点、背景、圆角和离焦反例均未删除。真实窗口与截图由主线程最终单次运行验收。
+
 三项设置相关夹具保留实际 ReleaseHosted 的颜色取消调用，构建时从当前 SettingsPage.AppearanceColors.cs 原样提取 CancelAppearanceColors。颜色行代理只转发当前显式 Shell DLL 的 CancelEdit，不复制颜色状态或保存逻辑，不以空方法绕过新调用。SettingsProbeContract 同时将该partial纳入原输入SHA清单。
 
 共享匿名夹具在两张设置卡各建一行真实确认颜色，改草稿后检查释放恢复原色、结束编辑、不保存，重复释放也只结束一次。SettingsLifetime 另覆盖 Hide、标题栏X、离页、Release、Close；Probe/HomeOrder覆盖 ReleaseHosted与Release。所有既有守卫、集合/行身份、草稿、行类型及动画拒绝检查保留。它们不证明实际WinUI拾色器或弹窗关闭。
@@ -250,3 +252,5 @@ finally 仅 `frame.Content = null`，没有 Remove(frame)。该用例位于 Sett
 `原子写入：同目标并发文本和字节写入不争用临时文件`，`AtomicFile.Write` 的 `File.Move`
 抛 `UnauthorizedAccessException`。保存 `run-core-settings-current.log` 的失败，不重复跑洗绿，
 不换失败断言、不改 AtomicFile、不以主 runner 的单次通过掩盖此独立红项；本轮不能宣称最终全套交付绿。
+
+HDR及四处说明的截图会先把实际目标行滚入真实SettingsScroll，等待其边界完整进入视口，并在实际帧后再次确认和记录几何；shown/hidden/restored分别保存，不能用基础输出顶端或覆盖旧图冒充目标证据。无窗口几何反例拒绝屏外/隐藏/零尺寸目标，真实截图仍由主线程最终验收。
