@@ -11200,3 +11200,6 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 用户要求有下一批就继续并自行选择必要项。本批基点c253b00，复用review-recovery-batch3托管树；R05-004产品6e37ffd、R05-005产品295c207。码率换算集中于Media/Stream映射；剧/季按有效整集数判已看并填未看集数，单片viewCount保留。
 - 开发树Release/x64 Tests/Core零警告零错误；Plex原基线148/148，新增码率回归原11败、观看回归原16败，最终207/207、0跳过。两个新测试文件首次定向空白退出2，定点格式修正并重编重跑207/207及空白退出0；原红日志保留artifacts/review-batch4。一次独立只读复审无必要发现。
 - 本会话接管主树整合、最终验证和交付；当前无其他活动写入聊天。主树合入后的编译与完整主测试待执行，桌面发布件进程30040正占用实际交付目录，需用户关闭后刷新；此时快捷方式仍旧版。无新依赖/版本改动/上传，不读真实凭据、登录、播放或写服务器；真实Plex和实际WinUI展示覆盖缺口保留。详见FOURTH-REPAIRS.md。
+
+- 第四批最终主树交付完成：快进4a6f1e4后Tests/Core/Shell Release/x64零警告零错误；完整4059/4059、Plex207/207，零失败零跳过。10文件编码/差异和定向Core/Tests空白通过。原码率11败、观看16败及格式退出2保留，17份开发证据已复制主树并逐文件核SHA。一次独立只读复审无必要发现。
+- publish/verify退出0，版本0.2.5.0，546文件300301695字节（286.4MB）；已测试Core、当前构建和实际发布Core均F6EAA1CB…，Shell当前构建/实际发布均14A58377…；快捷方式Target/WorkingDirectory为主树artifacts/publish/win-x64、Arguments空。旧桌面进程已自行退出后执行交付，无终止操作。回执artifacts/review-batch4-master/delivery-receipt.json；无新ZIP/MSIX/上传、真实Plex/WinUI/播放/服务器写入验证。两产品均在master，无待合或待交付代码，本会话释放主树写入占用。复用primary托管树保留；本条仅文档记录，不重建或重发。
