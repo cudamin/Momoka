@@ -5,6 +5,7 @@
   <UsingTask TaskName="ExtractPerfUpcomingSources" TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
+      <ProjectDirectory ParameterType="System.String" Required="true" />
       <SourcePath ParameterType="System.String" Required="true" />
       <OutputSource ParameterType="System.String" Required="true" />
     </ParameterGroup>
@@ -12,7 +13,20 @@
       <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
       <Using Namespace="System.Security.Cryptography" />
       <Code Type="Fragment" Language="cs"><![CDATA[
-        var bytes = File.ReadAllBytes(SourcePath);
+        // The project owns the input root; bin layout and caller-supplied source paths do not.
+        var root = Path.GetFullPath(Path.Combine(ProjectDirectory, "..", ".."));
+        var input = Path.GetFullPath(SourcePath);
+        var comparison = Path.DirectorySeparatorChar == '\\' ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (!input.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, comparison))
+            throw new InvalidOperationException("PERF_SOURCE_OUTSIDE_WORKTREE: " + input);
+        // A local-looking junction or symlink must not read another tree's source.
+        for (var entry = input; entry != null; entry = Path.GetDirectoryName(entry))
+        {
+            if ((File.GetAttributes(entry) & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidOperationException("PERF_SOURCE_REPARSE_POINT: " + entry);
+            if (string.Equals(entry, root, comparison)) break;
+        }
+        var bytes = File.ReadAllBytes(input);
         var source = Encoding.UTF8.GetString(bytes).Replace("\r\n", "\n");
         Func<string, string> method = signature =>
         {
@@ -34,6 +48,8 @@
         var generated = "#nullable enable\n// Verbatim current production methods, regenerated at every build.\n" +
             "using Momoka.Emby;\nusing Momoka.Diagnostics;\nusing Momoka.Infrastructure;\n" +
             "namespace Momoka.Shell.ViewModels;\npublic sealed partial class LibraryViewModel\n{\n" +
+            "internal const string FixtureSourceRoot = @\"" + root.Replace("\"", "\"\"") + "\";\n" +
+            "internal const string FixtureSourcePath = @\"" + input.Replace("\"", "\"\"") + "\";\n" +
             "internal const string FixtureSourceHash = \"" + sourceHash + "\";\n" +
             method("    private void UpdateUpcomingDays()\n") +
             method("    private async Task LoadAsync(bool reset)\n") +
@@ -52,7 +68,8 @@
     </Task>
   </UsingTask>
   <Target Name="GeneratePerfUpcomingSources" BeforeTargets="CoreCompile">
-    <ExtractPerfUpcomingSources SourcePath="$(PerfUpcomingSourcePath)"
+    <ExtractPerfUpcomingSources ProjectDirectory="$(MSBuildProjectDirectory)"
+                                SourcePath="$(PerfUpcomingSourcePath)"
                                 OutputSource="$(IntermediateOutputPath)UpcomingSources.g.cs" />
     <ItemGroup><Compile Include="$(IntermediateOutputPath)UpcomingSources.g.cs" /></ItemGroup>
   </Target>
