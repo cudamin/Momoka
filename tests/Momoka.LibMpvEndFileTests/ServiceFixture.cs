@@ -31,6 +31,7 @@ internal sealed class ServiceFixture : IAsyncDisposable
     internal EmbyItem Item { get; }
     internal PlaybackTicket Ticket { get; }
     internal int BackendStarts { get; private set; }
+    internal TaskCompletionSource MonitorWaitEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     internal ServiceFixture(MediaServerKind targetKind = MediaServerKind.Emby)
     {
@@ -93,6 +94,25 @@ internal sealed class ServiceFixture : IAsyncDisposable
         Backend.Ready(10);
         Play = Service.PlayAsync(Ticket, CancellationToken.None);
         await Transport.Started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        // Receiving the start request precedes its response and the real MonitorAsync subscription.
+        MonitorWaitEntered.TrySetResult();
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        try
+        {
+            while (Backend.StatusListeners < 3)
+            {
+                if (Play.IsCompleted)
+                {
+                    await Play;
+                    throw new AssertionException("播放已完成，但真实Service监控订阅未挂齐");
+                }
+                await Task.Delay(1, deadline.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw new AssertionException("真实Service监控订阅未在两秒内挂齐");
+        }
         Assert.True(Service.IsPlaying);
         Assert.Equal(1, BackendStarts);
     }
@@ -150,6 +170,7 @@ internal sealed class ReportBoundary : HttpMessageHandler
     internal ConcurrentQueue<Sent> Requests { get; } = new();
     internal TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     internal TaskCompletionSource Progressed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    internal Task? StartResponseRelease { get; set; }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -162,7 +183,11 @@ internal sealed class ReportBoundary : HttpMessageHandler
             throw new AssertionException("R048 未安排的假 HTTP 操作：" + uri.AbsolutePath);
         Requests.Enqueue(sent);
         Interlocked.Increment(ref _totalSent);
-        if (sent.IsStart) Started.TrySetResult();
+        if (sent.IsStart)
+        {
+            Started.TrySetResult();
+            if (StartResponseRelease is { } release) await release.WaitAsync(cancellationToken);
+        }
         if (sent.IsProgress) Progressed.TrySetResult();
         return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{}", Encoding.UTF8, "application/json") };
     }

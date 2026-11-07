@@ -56,3 +56,32 @@ $project = Join-Path $root 'tests/Momoka.LibMpvEndFileTests/Momoka.LibMpvEndFile
 ## 2026-10-30 整段原生收尾等待上限
 
 独立反证确认前置native gate/quit等待不受旧三秒Join限制。现在公开Stop/Dispose在锁外关闭新入场，整个公开等待三秒上限；只保留同一后台收尾任务继续等gate/quit/reader/destroy，不超时提前释放资源。长期阻塞时关闭结果及日志明确保留“迟到未完成”，正常及时完成仍实际等待。新增持有native写、quit卡住、Stop卡住三项真实全handle/gate反例；与原37项合计40，不把模拟卡顿当实机频率。公开Dispose任务和内部收尾任务分开，迟到测试等内部任务后才断言一次释放。
+
+## 2026-11-07 完整 handle 的夹具依赖同步
+
+现行 `LibMpvHandle.ApplyShaderOptionsForFileAsync` 增加配置载入和 `MpvListValue.JoinFiles` 调用。
+本项目仍逐字提取完整 handle，现补链接本树真实 `MpvListValue.cs`，只在托管 native seam 声明
+`mpv_load_config_file` 并直接抛出 `AssertionException`。R048 不执行着色器配置载入；意外进入该端点
+必须失败，不能返回成功或借真实 P/Invoke 完成。Core 的可见性、handle 正文、提取边界与已有保护均不改。
+
+保留原 40 项并增加 1 项端点拒绝回归，当前合计 41 项。反证将自有托管端点临时改成返回 0，
+同套 41 项只有新保护项失败；恢复原字节后重新构建、运行。记录在本树 `artifacts/review-batch9-native/`。
+该保护用例只调用托管端点，不创建配置文件；不证明真实配置解析、native、着色器效果或媒体播放。
+
+原 `ServiceFixture.StartAsync` 只等假 HTTP 已收到起播请求，真实服务此时还可能等待响应，尚未进入
+`MonitorAsync` 挂第三个状态订阅，因此原订阅断言曾偶发失败。本夹具现在保持两秒上限并等待实际
+订阅数达到原断言要求后才返回，订阅未到或播放提前结束均失败；不是固定延时后宣告就绪。
+原 Emby/Jellyfin 用例扣住假起播响应，确认 `StartAsync` 已进入条件等待但不能先返回，释放响应后
+再执行原 REDIRECT/EOF 与订阅断言。修前可控红为 39 过/2 败，修后同 41 项全部通过；
+原偶发红、原样复验与可控红日志均保留。没有增加或删除原服务用例，也不改生产订阅顺序。
+
+本轮采用 Release/x64、无调试符号；首次还原仍只用现有固定缓存。运行当前 DLL，避免默认平台旧输出：
+
+```powershell
+$project = 'tests/Momoka.LibMpvEndFileTests/Momoka.LibMpvEndFileTests.csproj'
+$sdk = 'C:\Users\89400\.dotnet\dotnet.exe'
+& $sdk restore $project --source 'C:\Users\89400\.nuget\packages' --disable-parallel -m:1 -p:BuildInParallel=false -p:Platform=x64 -p:DebugSymbols=false -p:DebugType=None -p:NuGetAudit=false
+& $sdk build $project -c Release --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false -p:Platform=x64 -p:DebugSymbols=false -p:DebugType=None
+# 仅在本次编译成功后执行。
+& $sdk 'tests/Momoka.LibMpvEndFileTests/bin/x64/Release/net10.0/Momoka.LibMpvEndFileTests.dll'
+```
