@@ -11,6 +11,7 @@
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
     <Compile Include="..\Momoka.SettingsLifetimeTests\ShellRuntime.cs" Link="ShellRuntime.cs" />
+    <Compile Include="..\Momoka.SettingsLifetimeTests\AppearanceColorFixture.cs" Link="AppearanceColorFixture.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\IShellContent.cs" Link="Production\IShellContent.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\ISessionScopedPage.cs" Link="Production\ISessionScopedPage.cs" />
   </ItemGroup>
@@ -20,6 +21,7 @@
              AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
       <PageSource ParameterType="System.String" Required="true" />
+      <AppearanceColorsSource ParameterType="System.String" Required="true" />
       <ProbeSource ParameterType="System.String" Required="true" />
       <SettingsProbeSource ParameterType="System.String" Required="true" />
       <UtilitiesSource ParameterType="System.String" Required="true" />
@@ -38,6 +40,7 @@
             return source.Substring(begin, finish - begin);
         };
         var page = File.ReadAllText(PageSource).Replace("\r\n", "\n");
+        var colors = File.ReadAllText(AppearanceColorsSource).Replace("\r\n", "\n");
         var probe = File.ReadAllText(ProbeSource).Replace("\r\n", "\n");
         var utilities = File.ReadAllText(UtilitiesSource).Replace("\r\n", "\n");
         var settingsProbe = File.ReadAllText(SettingsProbeSource).Replace("\r\n", "\n");
@@ -52,6 +55,7 @@
             between(page, "    private const string Category = \"设置\";", "    internal bool IsReady =>") +
             between(page, "    private void UpdateCategoryGroups()", "\n    /// <summary>\n    /// 分组表每次") +
             between(page, "    internal void ReleaseHosted()", "\n    /// <summary>\n    /// Counts realised") +
+            between(colors, "    private void CancelAppearanceColors()", "\n}") +
             "\n}\n}\nnamespace Momoka.Shell\n{\ninternal sealed partial class ShellNavigationProbe\n{\n" +
             between(settingsProbe, "    private static void BeginSettingsFixtureVisit(SettingsPage page)", "\n    private async Task SettingsEntranceAsync()") +
             "\n    internal static async Task BeginHomeOrderForFixture(SettingsPage settings, MoviePilotService service)\n    {\n" +
@@ -73,6 +77,7 @@
   </PropertyGroup>
   <Target Name="GenerateHomeOrderProbeSources" BeforeTargets="CoreCompile">
     <ExtractHomeOrderProbeSources PageSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SettingsPage.xaml.cs"
+        AppearanceColorsSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SettingsPage.AppearanceColors.cs"
         ProbeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.HomeOrder.cs"
         SettingsProbeSource="$(HomeOrderSettingsProbeSource)"
         UtilitiesSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.cs"

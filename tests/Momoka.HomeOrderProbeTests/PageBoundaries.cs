@@ -67,6 +67,16 @@ namespace Microsoft.UI.Xaml.Controls
 
 namespace Momoka.Shell.ViewModels
 {
+    // Cancellation operates on real Shell rows; unrelated home-row objects remain unchanged.
+    public sealed class SettingColorRow(object inner)
+    {
+        public void CancelEdit() => ShellRuntime.Current.Invoke(inner, "CancelEdit");
+    }
+    public sealed class SettingSection(object inner)
+    {
+        public IEnumerable<object> Rows => ShellRuntime.Current.List(inner, "Rows").Cast<object>()
+            .Select(row => row.GetType() == ShellRuntime.Current.Type("SettingColorRow") ? new SettingColorRow(row) : row);
+    }
     public sealed class SettingsCategoryGroup { }
     public sealed class SettingsViewModel
     {
@@ -78,6 +88,7 @@ namespace Momoka.Shell.ViewModels
             remove => ((INotifyPropertyChanged)Inner).PropertyChanged -= value;
         }
         public object CategoryGroups => Runtime.Get<object>(Inner, "CategoryGroups");
+        public IEnumerable<SettingSection> Sections => Runtime.List(Inner, "Sections").Cast<object>().Select(section => new SettingSection(section));
         public bool IsReady => Runtime.Get<bool>(Inner, "IsReady");
         public string SelectedCategory { get => Runtime.Get<string>(Inner, "SelectedCategory"); set => Runtime.Set(Inner, "SelectedCategory", value); }
         internal int DanmakuPreferenceCalls { get; private set; }

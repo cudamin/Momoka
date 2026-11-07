@@ -659,8 +659,14 @@ namespace Momoka.Shell.ViewModels
     {
         internal object Inner { get; } = inner;
         public string Label => ShellRuntime.Current.Get<string>(Inner, "Label");
-        internal static SettingRow Wrap(object value) => (SettingRow)Activator.CreateInstance(typeof(TypedRow<>).MakeGenericType(value.GetType()), value)!;
+        internal static SettingRow Wrap(object value) => value.GetType() == ShellRuntime.Current.Type("SettingColorRow")
+            ? new SettingColorRow(value)
+            : (SettingRow)Activator.CreateInstance(typeof(TypedRow<>).MakeGenericType(value.GetType()), value)!;
         private sealed class TypedRow<T>(object value) : SettingRow(value);
+    }
+    public sealed class SettingColorRow(object inner) : SettingRow(inner)
+    {
+        public void CancelEdit() => ShellRuntime.Current.Invoke(Inner, "CancelEdit");
     }
     public sealed class SettingRows(IList inner) : IReadOnlyList<SettingRow>, INotifyCollectionChanged
     {
@@ -703,6 +709,7 @@ namespace Momoka.Shell.ViewModels
             remove => ((INotifyPropertyChanged)Inner).PropertyChanged -= value;
         }
         public object CategoryGroups => Runtime.Get<object>(Inner, "CategoryGroups");
+        public IEnumerable<SettingSection> Sections => Runtime.List(Inner, "Sections").Cast<object>().Select(section => new SettingSection(section));
         public bool IsReady => Runtime.Get<bool>(Inner, "IsReady");
         public string SelectedCategory { get => Runtime.Get<string>(Inner, "SelectedCategory"); set => Runtime.Set(Inner, "SelectedCategory", value); }
         public bool ShowsHosted => Runtime.Get<bool>(Inner, "ShowsHosted");

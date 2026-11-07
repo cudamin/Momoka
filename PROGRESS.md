@@ -11319,3 +11319,11 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 用户授权继续并自主选择必要项；基点b2708e4，复用review-recovery-batch3托管树，仅修R01-004。失败汇总返回1，仍处理全部文件；成功/无候选/无标记/清点保持0。
 - 完整生产脚本在Windows PowerShell5.1与PowerShell7的真实匿名ZIP/ADS回归，原70项4败（全/部分失败均错报0），修后70/70，失败0跳过0；标记读回、主文件SHA、后续成功文件及释放后重试核验。首次5.1夹具写ADS路径失败保留，要求7创建夹具后两宿主运行不变。
 - 59脚本编码/语法通过、初始4变更文本通过；一次独立复审进行中。本会话负责主树整合、最终编译完整测试和共享桌面交付；另一228e聊天独立详情布局开发，保持隔离。无真实下载目录、设置/凭据、GUI、服务器、播放、安装、签名、上传或推送。详见NINTH-REPAIRS.md；此时尚未刷新交付。
+
+## 2026-11-07 第九批设置夹具生成兼容（独立树进行中）
+
+- 本代理独占 review9-settings-fixture，基点5c9afa0；仅改 SettingsLifetimeTests、SettingsProbeContractTests、HomeOrderProbeTests 及其README，父会话保留主树写入、全方案验证与发布权。
+- 三专项因原样ReleaseHosted新增颜色取消调用但生成器未抽取对应partial而各CS0103一错；原红保留artifacts/review-batch9-settings。补实际方法原样提取和真实Shell行代理，保留所有旧断言，新增两卡颜色草稿释放/重复取消覆盖。
+- 不改产品、不运行GUI/native/真实设置或服务器；构建、专项与生成输入拒绝验证完成后交父整合。
+- 独立夹具验证完成：本树5c9afa0三专项原始Release/x64编译各0警告1个CancelAppearanceColors错误。修后当前Shell及三专项构建0警告0错误；最终SettingsLifetime60/60、SettingsProbeContract33/33、HomeOrder21/21，均零失败零跳过。新增9项在生成取消方法空实现的独立复制项目中分别5/2/2失败，保留原色未恢复证据。三生成器缺方法/重复方法各拒绝、合法方法各成功；SettingsProbe颜色partial编译后漂移拒绝且恢复再33/33，共15项成功/拒绝判定通过。定向whitespace退出0但有工作区加载警告，14文本编码/diff通过。首driver继承负例LASTEXITCODE、hash项目参数拼接MSB1008过程失败保留；最终driver显式0。无产品变动、实际WinUI/native/真实服务器/设置操作或发布。
+- 本批只有测试夹具/README与本段记录，提交后交父会话整合；保留托管树和证据，不删除或发布。
