@@ -31,10 +31,11 @@ internal sealed partial class PlayerViewModel(DandanPlayClient client, AppSettin
     internal bool Fetched => _danmakuFetched;
     internal IReadOnlyList<DanmakuComment> Applied => _danmakuComments;
     internal Func<Task>? ClearHook { get; set; }
+    internal List<bool> InputResetPreferences { get; } = [];
     private void CancelDanmakuSearch() { }
     private int CaptureInteraction() => Generation;
     private bool IsCurrentPlayback(int context) => context == Generation && _playback.IsPlaying;
-    private void ResetDanmakuInput() { }
+    private void ResetDanmakuInput(bool preserveDraft = false) => InputResetPreferences.Add(preserveDraft);
     private void RefreshDanmakuInput() { }
     private Task ClearDanmakuAsync() => ClearHook?.Invoke() ?? Task.CompletedTask;
     private Task PingDanmakuAsync() => Task.CompletedTask;
@@ -56,6 +57,15 @@ internal static class DanmakuLoadOwnershipTests
     private static readonly DandanPlayEpisode Episode = new(7, "fixture", "first");
     internal static void Register()
     {
+        Test("PERF-05 宿主真实加载方法：同片重选保稿参数送达输入边界", () =>
+        {
+            using var fixture = new DanmakuFixture(DanmakuFixture.Body(40));
+            using var model = new PlayerViewModel(fixture.Client, fixture.Settings);
+            model.LoadDanmakuAsync(Episode).GetAwaiter().GetResult();
+            Assert.True(model.InputResetPreferences.SequenceEqual(new[] { true }));
+            Assert.Equal(40, model.Applied.Count);
+            Assert.Equal(1, model.Pushes);
+        });
         Test("PERF-05 宿主真实加载方法：缓存迟到结果不应用到换片后的 UI", () =>
         {
             using var fixture = new DanmakuFixture(DanmakuFixture.Body(40000, 300));

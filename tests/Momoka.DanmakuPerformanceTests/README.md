@@ -1,5 +1,7 @@
 # PERF-05 / PERF-07 / PERF-15 离线专项夹具
 
+本轮同步提取加载方法的 `ResetDanmakuInput(preserveDraft: true)` 参数边界，记录送达值并新增同片重选保稿参数回归。完整LoadSourcesAsync与旧断言保持，边界不实现草稿清理算法；实际草稿保留由弹幕发送/来源专项验证，不能拿此参数测试当真实输入框验收。
+
 独立入口，不修改 `Momoka.sln`、原有测试 `Program.cs` / csproj、共享 Lua 工具或批准清单。构建引用本树实际 Core，链接原有 `DanmakuTests.cs`，并在编译前从实际 `PlayerViewModel.Danmaku.cs` 提取完整 `LoadDanmakuAsync`。只替代 UI 呈现、播放身份和宿主发送边界；不将它当作真实 WinUI 或 native 播放验收。
 
 ## C#（先 Release 编译，再运行）

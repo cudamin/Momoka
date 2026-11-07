@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Momoka.Shell.ViewModels;
 
 namespace Microsoft.UI.Xaml
@@ -31,16 +32,22 @@ namespace Momoka.Shell.Media
 namespace Momoka.Shell.ViewModels
 {
     // The media metadata owner is inert: the actual subscription VM and actual view own all tested control flow.
-    public sealed partial class MoviePilotMediaViewModel
+    public sealed partial class MoviePilotMediaViewModel : ObservableObject
     {
         public ObservableCollection<MoviePilotMediaSeasonRow> Seasons { get; } = [];
         public string GroupId { get; set; } = "";
         private Momoka.MoviePilot.MoviePilotMedia? _media;
+        private Momoka.MoviePilot.MoviePilotService? _service;
         private readonly CancellationTokenSource _groupLoad = new();
         internal bool OldGroupCancelled => _groupLoad.IsCancellationRequested;
         internal bool Live { get; set; } = true;
         internal int Reloads { get; private set; }
-        internal void Seed(Momoka.MoviePilot.MoviePilotSubscription subscription) { _media = subscription.Media; GroupId = subscription.EpisodeGroup; }
+        // Terminal property values only: the extracted event handler owns notification/source checks.
+        public Microsoft.UI.Xaml.Visibility AniBtVisibility { get; } = Microsoft.UI.Xaml.Visibility.Collapsed;
+        public bool CanSearchAniBt { get; }
+        internal void Seed(Momoka.MoviePilot.MoviePilotSubscription subscription, Momoka.MoviePilot.MoviePilotService service)
+        { _media = subscription.Media; GroupId = subscription.EpisodeGroup; _service = service; }
+        internal void AvailabilityNotice(object sender) => OnAniBtAvailabilityChanged(sender, EventArgs.Empty);
         public Task ReloadAsync() { Reloads++; return Task.CompletedTask; }
     }
 }

@@ -25,7 +25,7 @@ foreach (var changeKind in new[] { "season", "group", "keyword-control" })
     await files.ReloadAsync();
     var card = files.Selected ?? throw new InvalidOperationException("Missing actual card");
     var media = new MoviePilotMediaViewModel();
-    media.Seed(original);
+    media.Seed(original, service);
     media.Seasons.Add(new(new(1, "First", 1, "", "", null), original, _ => { }, _ => { }));
     media.Seasons.Add(new(new(2, "Second", 1, "", "", null), null, _ => { }, _ => { }));
     var view = new MoviePilotMediaSeasonsView();
@@ -82,6 +82,21 @@ foreach (var changeKind in new[] { "season", "group", "keyword-control" })
         failures.Add(changeKind + ": media group/season reload not synchronized");
     media.SyncSubscriptionIdentity(selected);
     if (media.Reloads > 1) failures.Add("unchanged identity redundantly reloads media");
+    if (changeKind == "keyword-control")
+    {
+        var notices = new List<string?>();
+        media.PropertyChanged += (_, args) => notices.Add(args.PropertyName);
+        media.AvailabilityNotice(new object());
+        if (notices.Count != 0) failures.Add("foreign availability sender notified current media");
+        media.AvailabilityNotice(service);
+        if (!notices.SequenceEqual(new[] { "AniBtVisibility", "CanSearchAniBt" }))
+            failures.Add("actual availability handler did not notify both properties");
+        notices.Clear();
+        media.Live = false;
+        media.AvailabilityNotice(service);
+        if (notices.Count != 0) failures.Add("departed media accepted late availability notification");
+        media.Live = true;
+    }
     view.Attach(media, null);
     if (media.Seasons.Any(row => row.Files is not null || row.FilesEpisodes is not null))
         failures.Add("detach retained old file owner");
@@ -90,6 +105,7 @@ foreach (var changeKind in new[] { "season", "group", "keyword-control" })
 Console.WriteLine(JsonSerializer.Serialize(new { production = "Actual subscription VM/card/episode row, actual MediaSeasonsView, verbatim media row source; inert WinUI and metadata owner", network = "none", observations }, new JsonSerializerOptions { WriteIndented = true }));
 
 Console.WriteLine($"3 identity edit cases; {failures.Count} failures");
+Console.WriteLine("1 actual availability-handler ownership case completed (foreign/current/departed).");
 if (failures.Count > 0) throw new InvalidOperationException(string.Join("; ", failures));
 
 static int? HostSeason(MoviePilotMediaViewModel media) => media.Seasons.SingleOrDefault(row => row.Files is not null)?.Season.Number;
