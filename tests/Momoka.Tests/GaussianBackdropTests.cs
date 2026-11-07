@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Xml.Linq;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -11,95 +10,84 @@ internal static class GaussianBackdropTests
 {
     public static void Register()
     {
-        Test("高斯背景：仅详情沉浸生效，普通版式和首页不读取高斯偏好", () =>
+        Test("背景亚克力：高斯模糊与颜色遮罩两档退役，背景固定走亚克力", () =>
         {
             var root = Root();
+            foreach (var key in new[] { "UseGaussianBackdrop", "UseAcrylicBackdrop", "BackdropOpacity" })
+                Assert.True(typeof(UiSettings).GetProperty(key) is null, "设置里仍然留着已退役的键：" + key);
+            var page = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/Views/DetailPage.Backdrop.cs"));
+            Assert.Contains("AcrylicBrush", page);
+            Assert.False(page.Contains("SolidColorBrush(ReadingShadeColor)", StringComparison.Ordinal));
             var model = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/ViewModels/DetailViewModel.cs"));
-            Assert.Contains("public bool UseGaussianBackdrop => Showcase &&", model);
-            var home = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/Views/HomeBanner.xaml.cs"));
-            Assert.False(home.Contains("slide.SetGaussianBackdrop(ui.UseGaussianBackdrop)", StringComparison.Ordinal));
-            Assert.False(home.Contains("slide.SetGaussianBackdrop(_appearanceSettings?.UseGaussianBackdrop", StringComparison.Ordinal));
+            Assert.False(model.Contains("UseGaussianBackdrop", StringComparison.Ordinal));
+            Assert.False(model.Contains("GaussianBackdrop.SigmaFor", StringComparison.Ordinal));
+            // 首页轮播那套高斯扩边仍在，删的只是详情页那一支。
+            var carousel = File.ReadAllText(Path.Combine(root, "src/Momoka.Core/Emby/CarouselBackdrop.cs"));
+            Assert.Contains("GaussianBackdrop.Apply", carousel);
         });
-        Test("高斯背景：固定背景承担阅读遮罩，模糊不再撤掉保护", () =>
+        Test("背景亚克力：四项染色参数缺键读出 55，显式值与 JSON 往返原样保留", () =>
         {
-            var source = File.ReadAllText(Path.Combine(Root(), "src/Momoka.Shell/Views/DetailPage.Backdrop.cs"));
-            Assert.Contains("AppearanceOpacity.ReadingShadeAlpha", source);
-            Assert.Contains("ViewModel.GaussianBackdropApplied", source);
-            Assert.False(source.Contains("? Color.FromArgb(0, 0, 0, 0)", StringComparison.Ordinal));
-        });
-        Test("高斯背景：缺键默认暗罩和原底色，两模式JSON与恢复独立保存", () =>
-        {
-            var settings = SettingsMigration.FromJson("{\"SchemaVersion\":26,\"Ui\":{}}", PassthroughSecretProtector.Instance);
-            Assert.False(settings.Ui.UseGaussianBackdrop);
-            Assert.False(settings.Ui.UseAcrylicControls);
-            settings.Ui.UseGaussianBackdrop = true;
-            settings.Ui.UseAcrylicControls = true;
-            settings.Ui.BackdropOpacity = 37;
+            var settings = SettingsMigration.FromJson("{\"SchemaVersion\":28,\"Ui\":{}}", PassthroughSecretProtector.Instance);
+            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.ControlTintOpacity);
+            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.ControlTintLuminosityOpacity);
+            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.BackdropTintOpacity);
+            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.BackdropTintLuminosityOpacity);
+            settings.Ui.ControlTintOpacity = 12;
+            settings.Ui.ControlTintLuminosityOpacity = 34;
+            settings.Ui.BackdropTintOpacity = 56;
+            settings.Ui.BackdropTintLuminosityOpacity = 78;
             var restored = SettingsMigration.FromJson(JsonSerializer.Serialize(settings), PassthroughSecretProtector.Instance);
-            Assert.True(restored.Ui.UseGaussianBackdrop);
-            Assert.True(restored.Ui.UseAcrylicControls);
+            Assert.Equal(12d, restored.Ui.ControlTintOpacity);
+            Assert.Equal(34d, restored.Ui.ControlTintLuminosityOpacity);
+            Assert.Equal(56d, restored.Ui.BackdropTintOpacity);
+            Assert.Equal(78d, restored.Ui.BackdropTintLuminosityOpacity);
             var live = new AppSettings();
             live.Ui.WindowWidth = 1280;
             SettingsPreferences.Apply(live, SettingsPreferences.ToBackupDocument(restored));
-            Assert.True(live.Ui.UseGaussianBackdrop);
-            Assert.True(live.Ui.UseAcrylicControls);
-            Assert.Equal(37d, live.Ui.BackdropOpacity);
+            Assert.Equal(56d, live.Ui.BackdropTintOpacity);
+            Assert.Equal(78d, live.Ui.BackdropTintLuminosityOpacity);
             SettingsPreferences.Apply(live, new AppSettings());
-            Assert.False(live.Ui.UseGaussianBackdrop);
-            Assert.False(live.Ui.UseAcrylicControls);
-            Assert.Equal(UiSettings.DefaultBackdropOpacity, live.Ui.BackdropOpacity);
+            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, live.Ui.BackdropTintOpacity);
+            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, live.Ui.ControlTintLuminosityOpacity);
             Assert.Equal(1280d, live.Ui.WindowWidth);
         });
-        Test("亚克力背景：缺键保持暗罩，新安装默认关闭", () =>
-        {
-            AssertStoredAcrylic(new AppSettings(), false);
-            var settings = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{}}", PassthroughSecretProtector.Instance);
-            AssertStoredAcrylic(settings, false);
-            Assert.False(settings.Ui.UseGaussianBackdrop);
-        });
-        Test("亚克力背景：JSON往返保留新模式与强度，不改变控件材质", () =>
+        Test("背景亚克力：旧文件里的退役键被忽略，不再迁移出浓度或效果", () =>
         {
             var settings = SettingsMigration.FromJson(
-                "{\"SchemaVersion\":27,\"Ui\":{\"UseAcrylicBackdrop\":true,\"BackdropOpacity\":37,\"UseAcrylicControls\":false}}",
+                "{\"SchemaVersion\":27,\"Ui\":{\"UseGaussianBackdrop\":true,\"UseAcrylicBackdrop\":true,\"BackdropOpacity\":37}}",
                 PassthroughSecretProtector.Instance);
-            var restored = SettingsMigration.FromJson(JsonSerializer.Serialize(settings), PassthroughSecretProtector.Instance);
-            AssertStoredAcrylic(restored, true);
-            Assert.False(restored.Ui.UseGaussianBackdrop);
-            Assert.False(restored.Ui.UseAcrylicControls);
-            Assert.Equal(37d, restored.Ui.BackdropOpacity);
+            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.BackdropTintOpacity);
+            using var document = JsonDocument.Parse(JsonSerializer.Serialize(settings));
+            var ui = document.RootElement.GetProperty("Ui");
+            foreach (var key in new[] { "UseGaussianBackdrop", "UseAcrylicBackdrop", "BackdropOpacity" })
+                Assert.False(ui.TryGetProperty(key, out _), "保存文档仍在写已退役的键：" + key);
         });
-        Test("亚克力背景：导入偏好原地恢复，恢复默认关闭并保留窗口", () =>
+        Test("背景亚克力：非有限值回出厂 55，0 与 100 两个端点原样保留", () =>
         {
-            var source = SettingsMigration.FromJson(
-                "{\"SchemaVersion\":27,\"Ui\":{\"UseAcrylicBackdrop\":true,\"BackdropOpacity\":63}}",
-                PassthroughSecretProtector.Instance);
-            var live = new AppSettings();
-            var ui = live.Ui;
-            ui.WindowWidth = 1280;
-            ui.UseGaussianBackdrop = true;
-            SettingsPreferences.Apply(live, SettingsPreferences.ToBackupDocument(source));
-            Assert.True(ReferenceEquals(ui, live.Ui));
-            AssertStoredAcrylic(live, true);
-            Assert.False(live.Ui.UseGaussianBackdrop);
-            Assert.Equal(63d, live.Ui.BackdropOpacity);
-            SettingsPreferences.Apply(live, new AppSettings());
-            AssertStoredAcrylic(live, false);
-            Assert.False(live.Ui.UseGaussianBackdrop);
-            Assert.Equal(UiSettings.DefaultBackdropOpacity, live.Ui.BackdropOpacity);
-            Assert.Equal(1280d, live.Ui.WindowWidth);
-        });
-        Test("亚克力背景：冲突配置优先亚克力，旧高斯文件继续保留高斯", () =>
-        {
-            var conflict = SettingsMigration.FromJson(
-                "{\"SchemaVersion\":27,\"Ui\":{\"UseAcrylicBackdrop\":true,\"UseGaussianBackdrop\":true}}",
-                PassthroughSecretProtector.Instance);
-            Assert.False(conflict.Ui.UseGaussianBackdrop);
-            AssertStoredAcrylic(conflict, true);
-            var legacy = SettingsMigration.FromJson(
-                "{\"SchemaVersion\":27,\"Ui\":{\"UseGaussianBackdrop\":true}}",
-                PassthroughSecretProtector.Instance);
-            Assert.True(legacy.Ui.UseGaussianBackdrop);
-            AssertStoredAcrylic(legacy, false);
+            foreach (var value in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity })
+            {
+                var settings = new AppSettings
+                {
+                    Ui = new UiSettings
+                    {
+                        ControlTintOpacity = value,
+                        ControlTintLuminosityOpacity = value,
+                        BackdropTintOpacity = value,
+                        BackdropTintLuminosityOpacity = value
+                    }
+                };
+                SettingsMigration.Normalize(settings);
+                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.ControlTintOpacity);
+                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.ControlTintLuminosityOpacity);
+                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.BackdropTintOpacity);
+                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.BackdropTintLuminosityOpacity);
+            }
+            foreach (var (input, expected) in new[] { (0d, 0d), (100d, 100d), (-20d, 0d), (180d, 100d), (37.5, 37.5) })
+            {
+                var settings = new AppSettings { Ui = new UiSettings { BackdropTintOpacity = input } };
+                SettingsMigration.Normalize(settings);
+                Assert.Equal(expected, settings.Ui.BackdropTintOpacity);
+            }
         });
         Test("真高斯：单点响应符合归一化指数核而非盒式", () =>
         {
@@ -146,36 +134,16 @@ internal static class GaussianBackdropTests
             Assert.True(before.AsSpan().SequenceEqual(pixels));
             Assert.Throws<ArgumentException>(() => GaussianBackdrop.Apply(new byte[4], size, size, 12));
         });
-        Test("高斯文字：详情读数视频导演与货架标题只加字形软影", () =>
+        Test("背景文字：详情页不再挂字形软影，货架标题也只剩读色", () =>
         {
             var root = Root();
-            var page = XDocument.Load(Path.Combine(root, "src/Momoka.Shell/Views/DetailPage.xaml"));
-            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
-            foreach (var name in new[] { "DetailScoreInk", "DetailScoreSourceInk", "DetailVideoInk", "DetailDirectorsInk" })
-            {
-                var host = page.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
-                Assert.Equal("Border", host.Name.LocalName);
-                Assert.Null(host.Attribute("Background"));
-                Assert.Equal("False", (string?)host.Attribute("IsHitTestVisible"));
-                Assert.Equal("Grid", host.Parent?.Name.LocalName);
-                Assert.Equal(host, host.Parent!.Elements().First());
-            }
-            var shelf = XDocument.Load(Path.Combine(root, "src/Momoka.Shell/Views/ShelfHead.xaml"));
-            var titleInk = shelf.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "TitleInk");
-            Assert.Null(titleInk.Attribute("Background"));
-            var code = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/Views/ShelfHead.xaml.cs"));
-            Assert.Contains("nameof(Ink)", code);
-            Assert.Contains("TextInk.Attach", code);
-            Assert.False(code.Contains("AttachHalo", StringComparison.Ordinal));
+            var page = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/Views/DetailPage.xaml"));
+            foreach (var name in new[] { "DetailTitleInk", "DetailOverviewInk", "DetailScoreInk", "DetailVideoInk" })
+                Assert.False(page.Contains(name, StringComparison.Ordinal), "详情页仍留着高斯专用的字形影子宿主：" + name);
+            var shelf = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/Views/ShelfHead.xaml.cs"));
+            Assert.False(shelf.Contains("InkProperty", StringComparison.Ordinal));
+            Assert.Contains("ApplyBackdropInk", shelf);
         });
-    }
-
-    private static void AssertStoredAcrylic(AppSettings settings, bool expected)
-    {
-        using var document = JsonDocument.Parse(JsonSerializer.Serialize(settings));
-        var ui = document.RootElement.GetProperty("Ui");
-        Assert.True(ui.TryGetProperty("UseAcrylicBackdrop", out var acrylic), "持久化文档缺少亚克力背景偏好");
-        Assert.Equal(expected, acrylic.GetBoolean());
     }
 
     private static string Root()

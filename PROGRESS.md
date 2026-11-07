@@ -1,3 +1,11 @@
+## 2026-11-07 背景与按钮亚克力改成三项参数（本树待合主树）
+
+用户令「背景图和按钮新的亚克力改为三项可调，去掉高斯模糊和颜色遮罩」，并答复四点：范围是媒体详情页；按钮保留「半透明叠层／亚克力」二选一；那格整体浓度「是 WinUI 原生参数吗？不是就删掉」（不是，它是整支画笔的 Opacity，删）；背景色调自选固定色、默认 #808080。
+
+产品改动：设置 schema 28，`BackdropOpacity`／`UseGaussianBackdrop`／`UseAcrylicBackdrop` 退役，新增按钮与背景各两项染色浓度（出厂 55%）。按钮亚克力只写 TintColor／TintOpacity／TintLuminosityOpacity 与不透明回退色，画笔 Opacity 恒 1；悬停 +6、按下 +12 个百分点。背景固定亚克力，窄窗与集页卡面仍用固定 40% 实色阅读罩；详情页不再跑 CPU 高斯，九个字形影子宿主与 `GaussianBackdropApplied`／`BackdropStrength` 一并删除，裁切盒式模糊保留。首页轮播那颗详情按钮与两层图不改。
+
+验证：完整方案 Release/x64 0 警告 0 错误、whitespace 通过；主测试 4140/4140 失败跳过 0；`Momoka.AppearanceOpacityTests` 54/54。原生 `--probe-shell --probe-section settings --screen 2` 28/28，`library --screen 2` 30/30（含详情自定义页面、背景渐变与按钮材质）；期间修了两处：布局收尾后补排一次阅读色重画（旧遮罩 40% 时不会跨过深浅切换，换成玻璃后露出来了），以及探针里三处按旧滑块语义写的断言。截图 `settings-acrylic-controls-screen.png`、`backdrop-tint-*`、`detail-customization-*-screen.png` 已目视：设置行不裁剪，0/0 露出原图、100/100 盖上实色，默认 55/55 是偏灰的浅玻璃、字转深色仍可读。未合并主树、未发布、未上传；未真实播放或写服务器。
+
 ## 2026-11-07 两项详情改动与第九批已统一桌面交付
 
 最终产品c4a0b51（af8852d整合第九批9e018ff、封面a35517b、单集5910486及b4e074c探针）已发布，master保留三方改动。四类封面统一260×375上限，简洁电影/剧/季保留双栏与封面，简洁电影/剧自身艺术图、媒体信息子标题，单集开启沉浸沿剧页；布局后阅读色与状态通知修正全部入提交。

@@ -263,8 +263,10 @@ public sealed partial class HomeBanner : UserControl
         _openBackground.Apply(contrast ? 100 : ui.ControlBackgroundOpacity, !contrast && ui.UseAcrylicControls,
             contrast ? _uiSettings.GetColorValue(UIColorType.Background) : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ui)));
         PaintOpenButtonInk();
-        Brush(LayerA).Opacity = AppearanceOpacity.HomeBackdrop(ui.BackdropOpacity);
-        Brush(LayerB).Opacity = AppearanceOpacity.HomeBackdrop(ui.BackdropOpacity);
+        // 轮播那两张图本来就按满不透明铺着（详情页那道浓度滑块不归这里管），2026-11-07 起更彻底：
+        // 设置里只剩详情页的亚克力参数，首页这两层不再跟着任何浓度走。
+        Brush(LayerA).Opacity = 1;
+        Brush(LayerB).Opacity = 1;
         // 全图高斯仅供详情沉浸布局；首页保留原图及左侧扩边过渡。
         foreach (var slide in _slides) slide.SetGaussianBackdrop(false);
         PaintBackdropShade();

@@ -94,13 +94,14 @@ internal static class SettingsPageStateTests
                     Assert.Equal(1, saves);
                     Assert.Equal(1, applied);
                 });
-        TestHarness.Test("详情显示模式：选择栏在背景效果上方，简洁模式收起完整背景组并保留偏好", () =>
+        TestHarness.Test("详情显示模式：材质行随二选一换挡，简洁模式收起完整背景组并保留偏好", () =>
         {
             var settings = new FakeSettings();
             settings.Settings.Ui.EnableImmersive = true;
             settings.Settings.Ui.BackdropColor = "#123456";
-            settings.Settings.Ui.BackdropOpacity = 37;
-            settings.Settings.Ui.UseGaussianBackdrop = true;
+            settings.Settings.Ui.BackdropTintOpacity = 37;
+            settings.Settings.Ui.ControlTintOpacity = 45;
+            settings.Settings.Ui.UseAcrylicControls = true;
             var vm = fixture.NewViewModel();
             fixture.Attach(vm, settings, fixture.NewLauncher());
             var section = fixture.Invoke(vm, "DetailAppearanceCard")!;
@@ -109,25 +110,41 @@ internal static class SettingsPageStateTests
             var mode = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "显示模式");
             Assert.Equal("SettingChoiceRow", mode.GetType().Name);
             Assert.Equal("电影、剧、季和单集详情页有背景图时固定使用沉浸布局", fixture.Get<string>(mode, "Note"));
-            var effect = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "背景图效果");
-            Assert.Equal(rows.IndexOf(mode) + 1, rows.IndexOf(effect));
+            // 亚克力这套：色调 + 两档浓度，没有第四格整体浓度；背景那三行排在显示模式之后。
+            Assert.True(Labels().SequenceEqual(new[]
+            {
+                "按钮与选择框背景", "按钮与选择框颜色", "按钮与选择框染色不透明度（%）",
+                "按钮与选择框明暗不透明度（%）", "显示模式", "背景亚克力色调",
+                "背景染色不透明度（%）", "背景明暗不透明度（%）"
+            }), "亚克力模式的行集合不对：" + string.Join('|', Labels()));
             var choices = fixture.List(mode, "Choices");
             Assert.True(choices.Cast<object>().Select(choice => fixture.Get<string>(choice, "Label"))
                 .SequenceEqual(new[] { "沉浸模式", "简洁模式" }));
             fixture.Set(mode, "Selected", choices[1]!);
             Assert.False(settings.Settings.Ui.EnableImmersive);
-            Assert.False(rows.Cast<object>().Any(row => fixture.Get<string>(row, "Label") is
-                "背景图效果" or "背景遮罩颜色" or "背景图不透明度（%）"));
+            Assert.True(Labels().SequenceEqual(new[]
+            {
+                "按钮与选择框背景", "按钮与选择框颜色", "按钮与选择框染色不透明度（%）",
+                "按钮与选择框明暗不透明度（%）", "显示模式"
+            }), "简洁模式没有收起完整背景组：" + string.Join('|', Labels()));
             Assert.Equal("#123456", settings.Settings.Ui.BackdropColor);
-            Assert.Equal(37d, settings.Settings.Ui.BackdropOpacity);
-            Assert.True(settings.Settings.Ui.UseGaussianBackdrop);
+            Assert.Equal(37d, settings.Settings.Ui.BackdropTintOpacity);
+            Assert.Equal(45d, settings.Settings.Ui.ControlTintOpacity);
             fixture.Set(mode, "Selected", choices[0]!);
             Assert.True(settings.Settings.Ui.EnableImmersive);
-            Assert.Equal(3, rows.Cast<object>().Count(row => fixture.Get<string>(row, "Label") is
-                "背景图效果" or "背景遮罩颜色" or "背景图不透明度（%）"));
-            Assert.True(ReferenceEquals(mode, rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "显示模式")));
-            var restoredColor = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "背景遮罩颜色");
+            var restoredColor = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "背景亚克力色调");
             Assert.Equal("#123456", fixture.Get<string>(restoredColor, "Color"));
+            // 切回半透明叠层：三行染色参数收起，底色浓度那一格回来。
+            var material = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "按钮与选择框背景");
+            var materialChoices = fixture.List(material, "Choices");
+            fixture.Set(material, "Selected", materialChoices.Cast<object>().Single(choice =>
+                fixture.Get<string>(choice, "Label") == "半透明叠层"));
+            Assert.False(settings.Settings.Ui.UseAcrylicControls);
+            Assert.True(Labels().Contains("按钮与选择框底色不透明度（%）"), "切回叠层没有恢复底色浓度行");
+            Assert.False(Labels().Any(label => label.Contains("染色不透明度", StringComparison.Ordinal)),
+                "叠层模式仍显示染色参数");
+
+            List<string> Labels() => rows.Cast<object>().Select(row => fixture.Get<string>(row, "Label")).ToList();
         });
         TestHarness.Test("外观颜色行：草稿只预览，取消不保存，完成只提交一次", () =>
         {
@@ -181,7 +198,7 @@ internal static class SettingsPageStateTests
             var vm = fixture.NewViewModel();
             var settings = new FakeSettings();
             fixture.Attach(vm, settings, fixture.NewLauncher());
-            var row = fixture.Invoke(vm, "AppearanceColorRow", "背景遮罩颜色", true, settings.Settings.Ui)!;
+            var row = fixture.Invoke(vm, "AppearanceColorRow", "背景亚克力色调", true, settings.Settings.Ui, null)!;
             fixture.Invoke(row, "BeginEdit");
             fixture.Set(row, "Color", "#123456");
             Assert.Equal("#808080", settings.Settings.Ui.BackdropColor);

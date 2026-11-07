@@ -28,18 +28,19 @@ internal sealed partial class ShellNavigationProbe
         Require(fade.Parent == picture.Parent
             && fade.Opacity == 1 && Math.Abs(fade.ActualHeight - picture.ActualHeight) < 0.01
             && Math.Abs(fade.ActualWidth - picture.ActualWidth) < 0.01, "渐变没有独立覆盖实际图片盒子");
+        // 背景固定亚克力：三项参数直接读设置，没有第四格浓度，也没有颜色遮罩和高斯两条老路。
         var ink = ShellPrefs.AppearanceColor(true, page.ViewModel.AppearanceSettings);
-        Require(page.ViewModel.UseAcrylicBackdrop
-            ? fade.Background is AcrylicBrush acrylic
-                && acrylic.TintColor == ThemeHost.ToColor(ink)
-                && acrylic.FallbackColor == acrylic.TintColor
-                && acrylic.TintOpacity == page.ViewModel.BackdropStrength
-                && acrylic.Opacity == (page.ViewModel.BackdropStrength == 0 ? 0 : 1)
-                && acrylic.AlwaysUseFallback == (page.ViewModel.BackdropStrength == 1)
-            : fade.Background is SolidColorBrush brush
-            && brush.Color.A == ScrimExpected(page)
-            && (brush.Color.A == 0 || brush.Color.R == ink.R && brush.Color.G == ink.G && brush.Color.B == ink.B),
-            "背景阅读遮罩浓度或颜色错误");
+        var tint = ThemeHost.ToColor(ink);
+        tint.A = byte.MaxValue;
+        Require(fade.Background is AcrylicBrush acrylic
+            && acrylic.TintColor == tint
+            && acrylic.FallbackColor == tint
+            && Math.Abs(acrylic.TintOpacity - page.ViewModel.BackdropTintOpacity) < 0.000001
+            && acrylic.TintLuminosityOpacity is { } luminosity
+            && Math.Abs(luminosity - page.ViewModel.BackdropTintLuminosityOpacity) < 0.000001
+            && acrylic.Opacity == 1
+            && !acrylic.AlwaysUseFallback,
+            "背景亚克力没有按三项参数落在图上");
         var edge = Get<Border>(page, "BackdropEdgeFade");
         Require((edge.Visibility == Visibility.Visible) == !page.ViewModel.Showcase, "有背景时收边只应在窄窗紧凑布局生效");
         if (!page.ViewModel.Showcase)
@@ -97,7 +98,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, item)), "渐变详情导航失败");
                 var page = (DetailPage)frame.Content;
                 page.AttachWindow(_window);
-                await UntilAsync(() => page.IsReady && page.ViewModel.HeroImage is not null && page.ViewModel.GaussianBackdropReady);
+                await UntilAsync(() => page.IsReady && page.ViewModel.HeroImage is not null);
                 var originalImage = new BitmapImage();
                 using (var stream = new MemoryStream(image).AsRandomAccessStream()) await originalImage.SetSourceAsync(stream);
                 var original = await ReadBackdropPixelsAsync(originalImage);
@@ -106,97 +107,65 @@ internal sealed partial class ShellNavigationProbe
                     "底边模糊改变了解码尺寸");
                 Require(original.Pixels.AsSpan().SequenceEqual(rendered.Pixels),
                     "窄窗原图仍有局部接缝模糊或全图高斯");
-                foreach (var gaussian in new[] { false, true })
+
+                fixture.Settings.Ui.EnableImmersive = true;
+                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                foreach (var theme in UiThemes.All)
+                    foreach (var width in new[] { 760, 1280 })
+                    {
+                        ResizeProbeClient(width, 1120);
+                        ThemeHost.Apply(theme);
+                        await LayoutAsync(page);
+                        await UntilAsync(() => Math.Abs(page.ViewModel.PageWidth - width) < 1);
+                        Require(page.ViewModel.Showcase == (width >= DetailHero.CompactFloor)
+                            && page.ViewModel.BackdropShown, "开启时宽窄背景布局不符合当前尺寸");
+                        RequireDetailBackdropFade(page);
+                        await SaveProbeScreenAsync($"backdrop-fade-{type}-{theme.Id}-{width}-screen.png");
+                    }
+
+                // 三项参数的三个端点：0/0 什么都不盖、45 是中间档、100/100 盖上实色。
+                var samples = new List<(byte R, byte G, byte B)>();
+                foreach (var (tintOpacity, luminosityOpacity, name) in new[]
                 {
-                    ResizeProbeClient(760, 1120);
-                    await UntilAsync(() => { page.UpdateLayout(); return page.ViewModel.IsCompact; });
-                    fixture.Settings.Ui.UseGaussianBackdrop = gaussian;
-                    fixture.Settings.Ui.EnableImmersive = true;
-                    ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-                    await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
-                    var baseline = reads;
-                    foreach (var theme in UiThemes.All)
-                        foreach (var width in new[] { 760, 1280 })
-                        {
-                            ResizeProbeClient(width, 1120);
-                            ThemeHost.Apply(theme);
-                            await LayoutAsync(page);
-                            await UntilAsync(() => Math.Abs(page.ViewModel.PageWidth - width) < 1
-                                && page.ViewModel.GaussianBackdropReady
-                                && page.ViewModel.GaussianBackdropApplied == (gaussian && width >= DetailHero.CompactFloor));
-                            Require(page.ViewModel.Showcase == (width >= DetailHero.CompactFloor)
-                                && page.ViewModel.BackdropShown, "开启时宽窄背景布局不符合当前尺寸");
-                            RequireDetailBackdropFade(page);
-                            await CheckBackdropFadePixelsAsync(page);
-                            await SaveProbeScreenAsync($"backdrop-fade-{type}-{gaussian}-{theme.Id}-{width}-screen.png");
-                        }
-                    Require(reads == baseline, "切主题重新请求了媒体或图片");
-                }
-                foreach (var strength in new[] { 0d, 40, 100 })
+                    (0d, 0d, "clear"), (0.45, 0.45, "half"), (1d, 1d, "solid")
+                })
                 {
-                    fixture.Settings.Ui.UseGaussianBackdrop = false;
-                    fixture.Settings.Ui.BackdropOpacity = strength;
+                    ResizeProbeClient(1280, 1120);
+                    fixture.Settings.Ui.BackdropTintOpacity = tintOpacity * 100;
+                    fixture.Settings.Ui.BackdropTintLuminosityOpacity = luminosityOpacity * 100;
                     ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-                    await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
                     await LayoutAsync(page);
                     RequireDetailBackdropFade(page);
-                    await CheckBackdropFadePixelsAsync(page);
-                    await SaveProbeScreenAsync($"backdrop-fade-{type}-shade-{strength:0}-screen.png");
+                    samples.Add(await SampleBackdropAsync(page));
+                    await SaveProbeScreenAsync($"backdrop-tint-{type}-{name}-screen.png");
                 }
-                fixture.Settings.Ui.BackdropOpacity = 40;
+                var ink = ShellPrefs.AppearanceColor(true, page.ViewModel.AppearanceSettings);
+                Require(samples[0].R > 248 && samples[0].G > 248 && samples[0].B > 248,
+                    $"0/0 仍然盖住了白底：{samples[0]}");
+                Require(Math.Abs(samples[^1].R - ink.R) <= 4 && Math.Abs(samples[^1].G - ink.G) <= 4
+                    && Math.Abs(samples[^1].B - ink.B) <= 4, $"100/100 没有盖上染色本身：{samples[^1]}，染色 {ink}");
+                static int Sum((byte R, byte G, byte B) value) => value.R + value.G + value.B;
+                Require(Sum(samples[0]) > Sum(samples[1]) && Sum(samples[1]) > Sum(samples[^1]),
+                    "染色浓度提高没有让画面更实：" + string.Join(" → ", samples.Select(Sum)));
+
+                // 反例：把画笔的染色浓度改成设置里没有的数，检查必须拒绝。
+                fixture.Settings.Ui.BackdropTintOpacity = 55;
+                fixture.Settings.Ui.BackdropTintLuminosityOpacity = 55;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                await LayoutAsync(page);
                 var fade = Get<Border>(page, "BackdropFade");
-                var brush = (SolidColorBrush)fade.Background;
-                var last = brush.Color;
+                var brush = (AcrylicBrush)fade.Background;
+                var savedTint = brush.TintOpacity;
                 try
                 {
-                    brush.Color = Windows.UI.Color.FromArgb(10, last.R, last.G, last.B);
+                    brush.TintOpacity = 0.9;
                     var rejected = false;
                     try { RequireDetailBackdropFade(page); }
                     catch (InvalidOperationException) { rejected = true; }
-                    Require(rejected, "背景检查没有拒绝错误遮罩浓度反例");
+                    Require(rejected, "背景检查没有拒绝错误染色浓度反例");
                 }
-                finally { brush.Color = last; }
+                finally { brush.TintOpacity = savedTint; }
 
-                foreach (var width in new[] { 760, 1280 })
-                    foreach (var strength in new[] { 0d, 40d, 100d })
-                    {
-                        ResizeProbeClient(width, 1120);
-                        fixture.Settings.Ui.UseAcrylicBackdrop = true;
-                        fixture.Settings.Ui.UseGaussianBackdrop = false;
-                        fixture.Settings.Ui.BackdropOpacity = strength;
-                        ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-                        await LayoutAsync(page);
-                        await UntilAsync(() => Math.Abs(page.ViewModel.PageWidth - width) < 1);
-                        RequireDetailBackdropFade(page);
-                        await SaveProbeScreenAsync($"backdrop-acrylic-{type}-{width}-{strength:0}-screen.png");
-                    }
-                fixture.Settings.Ui.UseAcrylicBackdrop = false;
-                fixture.Settings.Ui.BackdropOpacity = 40;
-                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-
-                foreach (var gaussian in new[] { false, true })
-                {
-                    ResizeProbeClient(1100, 1120);
-                    await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
-                    fixture.Settings.Ui.EnableImmersive = true;
-                    fixture.Settings.Ui.UseGaussianBackdrop = gaussian;
-                    ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-                    await UntilAsync(() => page.ViewModel.GaussianBackdropReady && page.ViewModel.GaussianBackdropApplied == gaussian);
-                    await LayoutAsync(page);
-                    Require(page.ViewModel.Showcase, "开启时宽窗未进入沉浸布局");
-                    RequireDetailBackdropFade(page);
-                    await SaveProbeScreenAsync($"backdrop-fade-{type}-{gaussian}-immersive-screen.png");
-                    ResizeProbeClient(760, 820);
-                    await UntilAsync(() => { page.UpdateLayout(); return page.ViewModel.IsCompact; });
-                    await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
-                    await LayoutAsync(page);
-                    RequireDetailBackdropFade(page);
-                }
-                fixture.Settings.Ui.UseGaussianBackdrop = false;
-                fixture.Settings.Ui.EnableImmersive = true;
-                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-                await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
                 foreach (var width in new[] { 760, 1280 })
                 {
                     ResizeProbeClient(width, 900);
@@ -238,60 +207,44 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    private async Task CheckBackdropFadePixelsAsync(DetailPage page)
+    /// <summary>
+    /// 白底上取背景中段那一个点的颜色 —— 收边还没开始的位置（60% 高）。
+    /// <para>
+    /// 亚克力的合成由合成器完成，像素级复刻它的混合公式没有意义；这里只钉两端与顺序：0/0 时白底照旧是白的
+    /// （材料什么都不盖），1/1 时同一个点变成那块染色本身（材料盖实了），中间档落在两者之间。
+    /// </para>
+    /// </summary>
+    private async Task<(byte R, byte G, byte B)> SampleBackdropAsync(DetailPage page)
     {
         var backdrop = Get<Grid>(page, "Backdrop");
         var picture = Get<Border>(page, "BackdropPicture");
         var image = picture.Background;
         try
         {
-            // 图本身是满不透明的一层（滑块只管图上那道遮罩），换成白色当底，像素预期才只剩遮罩与收边两道。
             picture.Background = new SolidColorBrush(Microsoft.UI.Colors.White);
             await LayoutAsync(page);
             var bitmap = new RenderTargetBitmap();
             await bitmap.RenderAsync(backdrop);
             var pixels = (await bitmap.GetPixelsAsync()).ToArray();
-            // RTB 使用绘制边界：Backdrop 布局高851时，图和渐变仅428高，返帧就是428高。
-            // 不能由返帧高/容器布局高推缩放，否则85%误采到图的43%。
             var scale = page.XamlRoot.RasterizationScale;
             Require(Math.Abs(bitmap.PixelWidth - picture.ActualWidth * scale) <= 1
                 && Math.Abs(bitmap.PixelHeight - picture.ActualHeight * scale) <= 1,
                 "背景返帧绘制边界与图片不一致，不能按图片坐标采样");
             var x = bitmap.PixelWidth * 3 / 4;
-            var geometry = $"bitmap={bitmap.PixelWidth}x{bitmap.PixelHeight}; backdrop={backdrop.ActualWidth}x{backdrop.ActualHeight}; "
-                + $"picture={picture.ActualWidth}x{picture.ActualHeight}; raster={page.XamlRoot.RasterizationScale}; "
-                + $"pictureAt={picture.TransformToVisual(backdrop).TransformPoint(default)}; fadeAt={Get<Border>(page, "BackdropFade").TransformToVisual(backdrop).TransformPoint(default)}";
+            var y = Math.Clamp((int)(picture.ActualHeight * scale * 0.6), 0, bitmap.PixelHeight - 1);
+            var at = (y * bitmap.PixelWidth + x) * 4;
+            Require(pixels[at + 3] == 255, "背景返帧不是不透明的一帧");
+            var sample = (R: pixels[at + 2], G: pixels[at + 1], B: pixels[at]);
             File.AppendAllLines(Path.Combine(_options.Paths.LogDirectory, "backdrop-fade-pixels.txt"),
-                new[] { geometry }.Concat(Enumerable.Range(0, 21).Select(step =>
-                {
-                    var row = Math.Min(bitmap.PixelHeight - 1, bitmap.PixelHeight * step / 20);
-                    var at = (row * bitmap.PixelWidth + x) * 4;
-                    return $"y={row}: {pixels[at + 2]},{pixels[at + 1]},{pixels[at]},{pixels[at + 3]}";
-                })));
-            foreach (var along in new[] { 0.6, 0.8, 0.85, 0.9, 0.94, 0.96, 0.995 })
-            {
-                var y = Math.Clamp((int)(picture.ActualHeight * scale * along), 0, bitmap.PixelHeight - 1);
-                var at = (y * bitmap.PixelWidth + x) * 4;
-                var ink = ShellPrefs.AppearanceColor(true, page.ViewModel.AppearanceSettings);
-                var alpha = ScrimExpected(page) / 255d;
-                var expected = new[] { ink.B, ink.G, ink.R };
-                var color = ThemeHost.ToColor(ThemeHost.Current.Colors.Window);
-                var themeChannels = new[] { color.B, color.G, color.R };
-                var t = page.ViewModel.Showcase ? 0 : Math.Clamp((along - 0.8) / 0.2, 0, 1);
-                var edgeAlpha = t * t * (3 - 2 * t);
-                for (var channel = 0; channel < 3; channel++)
-                {
-                    var shade = 255 * (1 - alpha) + expected[channel] * alpha;
-                    var value = shade * (1 - edgeAlpha) + themeChannels[channel] * edgeAlpha;
-                    Require(Math.Abs(pixels[at + channel] - value) < 5,
-                        $"渐变真实像素 {along:0.###}/{channel}={pixels[at + channel]}，预期{value:0.##}");
-                }
-            }
-            if (page.ViewModel.GaussianBackdropApplied)
-                await SaveProbeScreenAsync($"detail-gaussian-white-{page.ViewModel.ItemType}-{ThemeHost.Current.Id}-screen.png");
+            [
+                $"bitmap={bitmap.PixelWidth}x{bitmap.PixelHeight}; picture={picture.ActualWidth}x{picture.ActualHeight}; "
+                + $"raster={scale}; tint={page.ViewModel.BackdropTintOpacity:0.###}/{page.ViewModel.BackdropTintLuminosityOpacity:0.###}; "
+                + $"coverage={AppearanceOpacity.Coverage(page.ViewModel.BackdropTintOpacity, page.ViewModel.BackdropTintLuminosityOpacity):0.###}; "
+                + $"rgb={sample.R},{sample.G},{sample.B}"
+            ]);
+            return sample;
         }
         finally { picture.Background = image; }
-        await LayoutAsync(page);
     }
 
     private static async Task<byte[]> BackdropEdgeImageAsync()

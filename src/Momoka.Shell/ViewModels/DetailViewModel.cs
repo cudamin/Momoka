@@ -193,7 +193,6 @@ public sealed partial class DetailViewModel : PageViewModel
                 OnPropertyChanged(nameof(ColumnVideoVisibility));
                 OnPropertyChanged(nameof(VideoLineVisibility));
                 OnPropertyChanged(nameof(ColumnPickersVisibility));
-                OnPropertyChanged(nameof(UseGaussianBackdrop));
                 UpdateHeroBlur();
             }
         };
@@ -416,20 +415,22 @@ public sealed partial class DetailViewModel : PageViewModel
     internal double ControlBackgroundOpacity => _settings?.Settings.Ui.ControlBackgroundOpacity ?? UiSettings.DefaultControlBackgroundOpacity;
 
     internal bool UseAcrylicControls => _settings?.Settings.Ui.UseAcrylicControls == true;
-    public bool UseGaussianBackdrop => Showcase && !UseAcrylicBackdrop && _settings?.Settings.Ui.UseGaussianBackdrop == true;
-    public bool UseAcrylicBackdrop => _settings?.Settings.Ui.UseAcrylicBackdrop == true;
-    public bool GaussianBackdropApplied => UseGaussianBackdrop && _heroRenderedGaussian && HeroImage is not null;
-    internal bool GaussianBackdropReady => UseGaussianBackdrop == _heroRenderedGaussian && !_heroRendering && HeroImage is not null;
-    private bool _heroRenderedGaussian;
-    private bool _heroRequestedGaussian;
-    private bool _heroRendering;
 
-    /// <summary>
-    /// 背景图上那层处理的强度 0..1（设置里「背景图不透明度」那一行）：0 关掉遮罩、也不加模糊，图原样清晰；
-    /// 1 遮罩完全不透明，选高斯模糊时模糊拉满。普通与沉浸版式共用这一个数。
-    /// </summary>
-    public double BackdropStrength => AppearanceOpacity.Backdrop(
-        _settings?.Settings.Ui.BackdropOpacity ?? UiSettings.DefaultBackdropOpacity);
+    /// <summary>详情按钮亚克力的 TintOpacity（0–1）。半透明叠层用不到它。</summary>
+    internal double ControlTintOpacity => AppearanceOpacity.Tint(
+        _settings?.Settings.Ui.ControlTintOpacity ?? UiSettings.DefaultAcrylicTintOpacity);
+
+    /// <summary>详情按钮亚克力的 TintLuminosityOpacity（0–1）。</summary>
+    internal double ControlTintLuminosityOpacity => AppearanceOpacity.Tint(
+        _settings?.Settings.Ui.ControlTintLuminosityOpacity ?? UiSettings.DefaultAcrylicTintOpacity);
+
+    /// <summary>背景亚克力的 TintOpacity（0–1）。背景固定走亚克力，两档浓度不再有别的入口。</summary>
+    internal double BackdropTintOpacity => AppearanceOpacity.Tint(
+        _settings?.Settings.Ui.BackdropTintOpacity ?? UiSettings.DefaultAcrylicTintOpacity);
+
+    /// <summary>背景亚克力的 TintLuminosityOpacity（0–1）。</summary>
+    internal double BackdropTintLuminosityOpacity => AppearanceOpacity.Tint(
+        _settings?.Settings.Ui.BackdropTintLuminosityOpacity ?? UiSettings.DefaultAcrylicTintOpacity);
 
     internal void RefreshAppearance()
     {
@@ -465,8 +466,6 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(ColumnVideoVisibility));
         OnPropertyChanged(nameof(VideoLineVisibility));
         OnPropertyChanged(nameof(ColumnPickersVisibility));
-        OnPropertyChanged(nameof(UseGaussianBackdrop));
-        OnPropertyChanged(nameof(UseAcrylicBackdrop));
         UpdateHeroBlur();
         OnPropertyChanged(nameof(Showcase));
         OnPropertyChanged(nameof(TailMinHeight));
@@ -479,7 +478,6 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(SheetSpacing));
         OnPropertyChanged(nameof(BodyPanelPadding));
         OnPropertyChanged(nameof(ShowShelfLines));
-        OnPropertyChanged(nameof(BackdropStrength));
     }
 
     /// <summary>
@@ -569,37 +567,41 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>重糊的生代号：谁后到谁算数，路上换了档就作废先回来那一张。</summary>
     private int _heroBlurGeneration;
 
+    /// <summary>这一张头图正在重糊 —— 换档之前先拦住「旧的那张盖上来」。</summary>
+    private bool _heroRendering;
+
     /// <summary>
-    /// 这一趟重糊的取消牌。拖滑块一次换十几档，旧的一趟要当场停下 —— 1280×720 上一趟 σ=24 的卷积是秒级的，
+    /// 这一趟重糊的取消牌。拖窗口一次换十几档，旧的一趟要当场停下 —— 1280×720 上一趟 σ=24 的卷积是秒级的，
     /// 不取消就会攒成一队，屏上停在几秒前的读数。条目离开也走它（<see cref="Cancel"/>）。
     /// </summary>
     private CancellationTokenSource? _blurCancel;
 
-    /// <summary>当前的模糊档位 —— 高斯模糊那一路读设置里的强度（<see cref="GaussianBackdrop.SigmaFor"/>，0 档
-    /// 不模糊）；暗色遮罩那一路按裁切占比（<see cref="DetailHero.PictureCrop"/>）换算半径。电影和剧没有基础
-    /// 半径，裁多少加多少；集页只在紧凑版式里画这张图，宽版式上裁切占比算出来照样有值，只是没有一层画它。</summary>
-    private int HeroBlurTarget => UseGaussianBackdrop ? GaussianBackdrop.SigmaFor(BackdropStrength) : BackdropBlur.CropRadius(
+    /// <summary>
+    /// 当前的模糊档位 —— 按裁切占比（<see cref="DetailHero.PictureCrop"/>）换算半径。电影和剧没有基础
+    /// 半径，裁多少加多少；集页只在紧凑版式里画这张图，宽版式上裁切占比算出来照样有值，只是没有一层画它。
+    /// <para>
+    /// 2026-11-07 起只有这一条路：设置里的高斯模糊选项随「去掉高斯模糊和颜色遮罩」一起退役，压在图上的
+    /// 那层亚克力自己会糊，不再另跑一遍 CPU 卷积去调模糊程度。裁切模糊留着 —— 它管的是图自己被窗口裁掉
+    /// 多少，和那层材料无关（省电回退成实色时这张图还在）。
+    /// </para>
+    /// </summary>
+    private int HeroBlurTarget => BackdropBlur.CropRadius(
         DetailHero.PictureCrop(PageWidth, HeroHeightRatio, Viewport), CropBlurStart, 0, CropBlurExtra, CropBlurStep);
 
     /// <summary>
     /// 窗口形状变了（<c>DetailPage.OnBodySizeChanged</c> 量完宽高顺手喊一声）：按新的裁切占比算模糊档位，
     /// 换档就用缓存的那批像素重糊一遍。生代号让「谁后到谁算数」—— 重糊还在路上又换了一档，先回来那一张
     /// 作废。不做可等待：拖窗口不等一次几十毫秒的像素活，屏上短暂停在上一档是这条路的正常形态。
-    /// <para>
-    /// 2026-11-06：设置里那一档也跟着模糊程度走，拖一次滑块会换十几档，光靠「后到算数」会让十几趟卷积排队，
-    /// 屏上停在几秒前的读数。所以每一次换档先把上一趟取消（<see cref="_blurCancel"/>），只留最后那一趟跑完。
-    /// </para>
     /// </summary>
     public void UpdateHeroBlur()
     {
         if (!Attached || _heroPixels is null) return;
 
         var target = HeroBlurTarget;
-        if (target == _heroBlurRadius && _heroRequestedGaussian == UseGaussianBackdrop) return;
+        if (target == _heroBlurRadius) return;
 
         var generation = ++_heroBlurGeneration;
         _heroBlurRadius = target;
-        _heroRequestedGaussian = UseGaussianBackdrop;
         _heroRendering = true;
 
         _blurCancel?.Cancel();
@@ -607,42 +609,41 @@ public sealed partial class DetailViewModel : PageViewModel
         _blurCancel = new CancellationTokenSource();
         var token = CancellationTokenSource.CreateLinkedTokenSource(
             _art?.Token ?? CancellationToken.None, _blurCancel.Token).Token;
-        _ = RenderBlurAsync(generation, _heroPixels, target, _heroRequestedGaussian, token);
+        _ = RenderBlurAsync(generation, _heroPixels, target, token);
     }
 
     private async Task<BitmapImage?> RenderHeroAsync(HeroPictureLoader.HeroPixels pixels, int radius,
-        CancellationToken token, DetailHeroCache.Ticket? ticket, NavigationTimingRun? timing, bool gaussian)
+        CancellationToken token, DetailHeroCache.Ticket? ticket, NavigationTimingRun? timing)
     {
         token.ThrowIfCancellationRequested();
         ticket?.Scope.ThrowIfNotAvailable();
         var cache = _heroCache;
-        if (cache is not null && ticket is not null && cache.TryGetPicture(ticket, pixels, radius, out var kept, gaussian))
+        // 详情页不再走高斯那一路：压在图上的亚克力自己会糊，CPU 这边只按裁切占比做盒式模糊。
+        if (cache is not null && ticket is not null && cache.TryGetPicture(ticket, pixels, radius, out var kept, false))
         {
             timing?.Mark("hero-picture-hit", 1);
             return kept;
         }
-        var picture = await HeroPictureLoader.RenderAsync(pixels, radius, token, timing, gaussian).ConfigureAwait(true);
+        var picture = await HeroPictureLoader.RenderAsync(pixels, radius, token, timing, false).ConfigureAwait(true);
         token.ThrowIfCancellationRequested();
         ticket?.Scope.ThrowIfNotAvailable();
         if (picture is not null && cache is not null && ticket is not null)
-            cache.RememberPicture(ticket, pixels, radius, picture, gaussian);
+            cache.RememberPicture(ticket, pixels, radius, picture, false);
         return picture;
     }
 
-    private async Task RenderBlurAsync(int generation, HeroPictureLoader.HeroPixels pixels, int radius, bool gaussian,
+    private async Task RenderBlurAsync(int generation, HeroPictureLoader.HeroPixels pixels, int radius,
         CancellationToken token)
     {
         try
         {
-            var picture = await RenderHeroAsync(pixels, radius, token, _heroCacheTicket, _heroTiming, gaussian)
+            var picture = await RenderHeroAsync(pixels, radius, token, _heroCacheTicket, _heroTiming)
                 .ConfigureAwait(true);
 
-            if (Attached && generation == _heroBlurGeneration && gaussian == UseGaussianBackdrop && picture is not null)
+            if (Attached && generation == _heroBlurGeneration && picture is not null)
             {
-                _heroRenderedGaussian = gaussian;
                 _heroRendering = false;
                 HeroImage = picture;
-                OnPropertyChanged(nameof(GaussianBackdropApplied));
             }
         }
         catch (OperationCanceledException)
@@ -2785,7 +2786,6 @@ public sealed partial class DetailViewModel : PageViewModel
             _heroBlurRadius = -1;
             _heroBlurGeneration++;
             _heroRendering = false;
-            _heroRenderedGaussian = false;
 
             _art?.Cancel();
             _art?.Dispose();
@@ -3473,17 +3473,12 @@ public sealed partial class DetailViewModel : PageViewModel
             var radius = HeroBlurTarget;
             var generation = ++_heroBlurGeneration;
             _heroBlurRadius = radius;
-            var gaussian = UseGaussianBackdrop;
-            _heroRequestedGaussian = gaussian;
             _heroRendering = true;
 
-            var rendered = await RenderHeroAsync(source, radius, token, selectedTicket, _heroTiming, gaussian).ConfigureAwait(true);
+            var rendered = await RenderHeroAsync(source, radius, token, selectedTicket, _heroTiming).ConfigureAwait(true);
             if (rendered is null || !Attached || !Fresh(art, page) || generation != _heroBlurGeneration) return;
-            if (gaussian != UseGaussianBackdrop) return;
-            _heroRenderedGaussian = gaussian;
             _heroRendering = false;
             ShowHero(rendered);
-            OnPropertyChanged(nameof(GaussianBackdropApplied));
             NavigationTiming.Mark("hero-image-assign", 1);
         }
 
