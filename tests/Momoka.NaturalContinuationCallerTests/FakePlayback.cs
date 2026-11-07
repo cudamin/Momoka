@@ -22,6 +22,7 @@ internal sealed class FakePlayback(Tape tape)
         internal TaskCompletionSource<Call> Accepted { get; } = Signals.New<Call>();
         internal Func<Call, Task>? Admission { get; set; }
         internal Action<Call>? OnAccepted { get; set; }
+        internal Func<Task>? BeforeAnnounce { get; set; }
         internal Action<Call>? BeforeReturn { get; set; }
         internal bool PublishStarted { get; set; } = true;
         internal EmbyItem? AnnouncedItem { get; set; }
@@ -78,6 +79,7 @@ internal sealed class FakePlayback(Tape tape)
             IsPlaying = true;
             plan.OnAccepted?.Invoke(call);
             tape.Add("play-start:" + ticket.Item.IdentityKey);
+            if (plan.BeforeAnnounce is { } beforeAnnounce) await beforeAnnounce().ConfigureAwait(true);
             NowPlaying?.Invoke(new PlaybackUpdate<EmbyItem?>(call.Generation, plan.AnnouncedItem ?? ticket.Item));
         }
         plan.Accepted.TrySetResult(call);

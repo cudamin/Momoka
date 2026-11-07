@@ -194,9 +194,12 @@ public sealed partial class PlayerViewModel
         if (episodes is not null)
         {
             var boundEpisodes = episodes.Select(episode => episode.Source is null ? scope.Bind(episode) : episode);
-            episodes = episodes is UserPlaybackQueue ? new UserPlaybackQueue(boundEpisodes) : boundEpisodes.ToArray();
+            episodes = episodes is UserPlaybackQueue queue ? queue.Rebind(boundEpisodes) : boundEpisodes.ToArray();
         }
         var previousItem = _nowPlaying;
+        var previousPending = _pendingPlayback;
+        var previousPresentation = _presentedHeadless;
+        var previousPicturePreparation = _preparingPictureInHost;
         FlushVolume(settled: false);
         using var preparation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, continuationCancellation);
         _preparing?.Cancel();
@@ -337,7 +340,9 @@ public sealed partial class PlayerViewModel
             preparation.Token.ThrowIfCancellationRequested();
 
             // 来源、续集与标题只在后端确认建立后一起提交；准备失败时仍保留旧播放的身份。
-            _pendingPlayback = new(detail, parentItem, episodes ?? [], scope, intent);
+            var acceptedStart = ticket.ExactStart ? Math.Max(0, ticket.StartTicks)
+                : Math.Max(0, ticket.StartTicks - Settings.Playback.ResumeRewindSeconds * TimeSpan.TicksPerSecond);
+            _pendingPlayback = new(detail, parentItem, episodes ?? [], scope, intent, attempt, acceptedStart);
             var result = await _playback.PlayAsync(ticket, scope, _lifetime.Token, preparation.Token,
                 continuationCancellation, expectedContinuation).ConfigureAwait(true);
             await using var continuation = result.Continuation;
@@ -351,9 +356,11 @@ public sealed partial class PlayerViewModel
             // 还在其次，要紧的是它顺手让主页重新装了一次货：那一刻窗口还在播放几何上、主页那一排正重排，
             // 这一次重装就成了 2026-09-21 那场「矮窗档来回翻、界面卡死」的引信（详见 HomePage.UpdateLibraryOverlay）。
             // 只有最新那一场有资格说自己结束了。
-            var newest = attempt == _playbackAttempt;
+            var ownsViewing = attempt == _activePlaybackAttempt;
+            var newest = attempt == _playbackAttempt || ownsViewing && _startIntent.IsCurrent(_activeIntent);
 
-            var following = newest && _startIntent.IsCurrent(intent) ? NextEpisodeToAutoPlay(result, detail) : null;
+            var endingIntent = ownsViewing ? _activeIntent : intent;
+            var following = newest && _startIntent.IsCurrent(endingIntent) ? NextEpisodeToAutoPlay(result, detail) : null;
             if (newest && following is null)
             {
                 // 这一版打不开就说到点子上（2026-10-22 用户令：「你要提示无法播放」）：多版本条目上「播放失败」
@@ -377,12 +384,12 @@ public sealed partial class PlayerViewModel
                 var followingScope = _session.Capture(following.Episode);
                 await StartPlaybackAsync(
                         following.Episode,
-                        followingScope.Key == scope.Key ? _parent : null,
+                        ParentForFollowing(detail, following.Episode, followingScope, scope),
                         choice: null,
                         following.Siblings,
                         replaceExisting: true,
                         identity: followingScope,
-                        continuingIntent: intent,
+                        continuingIntent: endingIntent,
                         continuationCancellation: continuation?.Lifetime ?? default,
                         expectedContinuation: continuation)
                     .ConfigureAwait(true);
@@ -392,10 +399,23 @@ public sealed partial class PlayerViewModel
         {
             if (ReferenceEquals(_preparing, preparation)) _preparing = null;
             if (replaceExisting && attempt == _playbackAttempt && _startIntent.IsCurrent(intent)
+                && previousItem is null && previousPending is { } pending && _playback.IsPlaying)
+            {
+                // The old handle may be established while its initial track read delays NowPlaying.
+                // Keep that pending adoption current after a candidate failed before replacing it.
+                _pendingPlayback = pending with { Intent = intent };
+                _preparingPictureInHost = previousPicturePreparation;
+                _presentedHeadless = previousPresentation;
+                if (previousPresentation is { } headless) PreparePresentation?.Invoke(headless);
+            }
+            if (replaceExisting && attempt == _playbackAttempt && _startIntent.IsCurrent(intent)
                 && previousItem is not null && ReferenceEquals(_nowPlaying, previousItem) && _playback.IsPlaying)
             {
                 // 元数据或新来源鉴权失败发生在停旧播放之前：旧文件继续播放，也必须能继续选集和换版。
                 _activeIntent = intent;
+                _preparingPictureInHost = previousPicturePreparation;
+                _presentedHeadless = previousPresentation;
+                if (previousPresentation is { } headless) PreparePresentation?.Invoke(headless);
                 if (_pendingPlayback?.Intent == intent) _pendingPlayback = null;
                 HideCover();
                 _ = LoadCoverBackdropAsync(previousItem);
@@ -437,6 +457,10 @@ public sealed partial class PlayerViewModel
 
         return EpisodeNavigation.Step(Episodes, played.IdentityKey, 1);
     }
+
+    private EmbyItem? ParentForFollowing(EmbyItem current, EmbyItem next, EmbySessionScope nextScope, EmbySessionScope currentScope) =>
+        nextScope.Key == currentScope.Key && current.Type == EmbyItemType.Episode && next.Type == EmbyItemType.Episode
+        && current.SeriesId is { Length: > 0 } series && next.SeriesId == series ? _parent : null;
 
     /// <summary>
     /// What 「播放」 on a series or a season poster means: the earliest-aired episode nobody has watched
@@ -613,7 +637,7 @@ public sealed partial class PlayerViewModel
                 AudioStreamIndex: null,
                 SubtitleStreamIndex: null,
                 SubtitlesDisabled: false,
-                StartTicks: MediaVersionSwitch.StartTicks(position, playing.ResumeTicks))
+                StartTicks: MediaVersionSwitch.StartTicks(position, _activeStartTicks))
             { ExactStart = true };
 
             // replaceExisting: true —— 正在放的那一跑由这一条路接手（独占模式是同一个 mpv 换源、集成模式是停掉
@@ -621,8 +645,10 @@ public sealed partial class PlayerViewModel
             Log.Info(Category,
                 $"换版本：{version.Label}，从 {TimeFormat.Clock(choice.StartTicks)} 接着放");
 
-            await StartPlaybackAsync(item, version.Parent ?? (sameSource ? _parent : null), choice,
-                sameSource ? Episodes : null, replaceExisting: true, identity: scope).ConfigureAwait(true);
+            var episodes = Episodes is UserPlaybackQueue queue ? queue.ReplaceCurrent(playing.IdentityKey, item)
+                : sameSource ? Episodes : null;
+            await StartPlaybackAsync(item, version.Parent ?? ParentForFollowing(playing, item, scope, _playbackScope), choice,
+                episodes, replaceExisting: true, identity: scope).ConfigureAwait(true);
         }
         catch (OperationCanceledException)
         {
@@ -754,7 +780,7 @@ public sealed partial class PlayerViewModel
             var scope = _session.Capture(destination.Episode);
             await StartPlaybackAsync(
                     destination.Episode,
-                    scope.Key == _playbackScope.Key ? _parent : null,
+                    _nowPlaying is { } current ? ParentForFollowing(current, destination.Episode, scope, _playbackScope) : null,
                     choice: null,
                     destination.Siblings,
                     replaceExisting: true,

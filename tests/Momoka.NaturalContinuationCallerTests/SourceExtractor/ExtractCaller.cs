@@ -154,6 +154,7 @@ public sealed class ExtractCaller : BuildTask
             "_volumeMemory", "_aspect", "_shaderContext", "_outputWatch", "_shaderSettings", "_shaderResolver", "_shaderPinned",
             "_embyMarks", "_embySkipSections", "_playerSkipSeeded", "_statusGeneration", "_playbackScope",
             "_activeIntent", "_preparing", "_playbackIdle", "_presentedHeadless", "_preparingPictureInHost",
+            "_activePlaybackAttempt", "_activeStartTicks",
             "_stopTask", "_versionDiscovery", "_coverBackdropItemId", "_coverBackdropLoad", "_coverGeneration", "_replacingPlayback",
             "Episodes", "HasAggregateQueue", "Settings", "Status", "PreparePresentation", "MeasureRefreshHz", "Noticed", "RefreshRequested",
             "PlayerShown", "PlayerHidden", "PictureAspectChanged", "ChaptersChanged", "PlaybackStarted"
@@ -164,8 +165,10 @@ public sealed class ExtractCaller : BuildTask
         {
             "PlayAsync", "PlayReplacingAsync", "StopAsync", "StopPlaybackAsync", "StartPlaybackAsync", "NextEpisodeToAutoPlay",
             "ResolveNextEpisodeAsync", "ResolveSeriesAsync", "LoadSeriesEpisodesAsync", "EnterPlayer", "LeavePlayer", "ShowCover", "HideCover",
-            "StepEpisodeAsync", "ResolveAdjacentEpisodeAsync", "CancelEpisodeLookup", "StartEpisode", "StartEpisodeAsync"
+            "StepEpisodeAsync", "ResolveAdjacentEpisodeAsync", "CancelEpisodeLookup", "StartEpisode", "StartEpisodeAsync",
+            "StartVersionAsync", "ParentForFollowing"
         }) Emit(transport, name);
+        Emit(vm, "_versions");
         Emit(events, "OnNowPlayingChanged");
         Emit(events, "ConsiderPlayerSkipSections");
         code.Append("}\n");

@@ -699,6 +699,8 @@ public sealed partial class PlayerViewModel
             Episodes = pending.Episodes;
             _playbackScope = pending.Scope;
             _activeIntent = pending.Intent;
+            _activePlaybackAttempt = pending.Attempt;
+            _activeStartTicks = pending.StartTicks;
             _pendingPlayback = null;
         }
         PlayingItemId = item.Id;
