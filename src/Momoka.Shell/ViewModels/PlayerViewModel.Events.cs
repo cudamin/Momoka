@@ -1370,7 +1370,7 @@ public sealed partial class PlayerViewModel
 
         // Emby's marks and mpv's usually agree, but a file remuxed after the library scan is exactly
         // the case where they do not, and the picture on screen is the one to believe. This upgrades
-        // the ticks; the 跳过 plan only borrows the player's chapters for kinds Emby never marked.
+        // the ticks; the 跳过 plan borrows player intervals that do not overlap Emby's same-kind marks.
         ChapterMarks = chapters;
         ChaptersChanged?.Invoke();
         _playerSkipSeeded = true;
@@ -1381,17 +1381,13 @@ public sealed partial class PlayerViewModel
     // ---- 跳过片头/片尾 -----------------------------------------------------------
 
     /// <summary>
-    /// Fills in the 跳过 sections Emby did not mark, once mpv publishes the file's own chapter list.
-    /// Emby's markers always win for a kind it did provide; the player answers only for the missing
-    /// kind (see <see cref="SkipSectionPlanner.Merge"/>). Returns whether the section list changed.
+    /// Fills in the 跳过 intervals Emby did not mark, once mpv publishes the file's own chapter list.
+    /// Emby's markers win where a same-kind player interval overlaps them; distinct intervals still
+    /// survive (see <see cref="SkipSectionPlanner.Merge"/>). Returns whether the section list changed.
     /// </summary>
     private bool ConsiderPlayerSkipSections(IReadOnlyList<SkipChapter> chapters)
     {
         if (chapters.Count == 0) return false;
-
-        var opening = _embySkipSections.Any(section => section.Kind == SkipSectionKind.Opening);
-        var ending = _embySkipSections.Any(section => section.Kind == SkipSectionKind.Ending);
-        if (opening && ending) return false;
 
         var duration = Status.HasDuration && Status.Duration > 0 ? Status.Duration : _skips.Duration;
         var player = SkipSectionPlanner.ResolveFromPlayer(chapters, duration);

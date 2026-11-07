@@ -262,3 +262,10 @@ PERF-04/09源提交2b3fea8只修改Events.cs的封面取消、客户端有界解
 新增真实 Start/NowPlaying/LoadSeriesEpisodes/自动和手动下一项回归：显式跨剧或随机队列保持顺序且零全剧补齐，普通季列表仍补齐。`UserPlaybackQueue` 以只读列表携带入口意图，账号绑定和递归续播保留该类型，列表末端不得追加服务器顺序。
 
 仅更新六份已审来源 pin：IPlaybackBackend/LibMpvBackend/HandleFixture 为 R8 的启动恢复快照；PlayerViewModel/Transport 为 R21 队列保留；EpisodeNavigation 为本轮开始时已有的 AfterRemoval 追加，原 Step/HasMultipleSources 未改。提取规则、完整成员校验与拒绝条件均未修改，新增测试运行真实提取正文。
+## 2026-11-07 R10-008 章节区间补全
+
+新增五项回归委托逐字提取的 `ConsiderPlayerSkipSections`，只增加测试入口和实际 `SkipCoordinator` 读数；不复制章节识别/合并逻辑。服务器片头/片尾齐全仍可补不重叠的片头或片尾，有界命名章节可在未知时长识别；重叠时保留服务器区间，空/重复/迟到章节不丢已接受的跳过决定。原59项中四个新增缺陷用例先红，当前59全过。
+
+四项既有pin漂移先审再更新：IPlaybackBackend/LibMpvBackend/HandleFixture旧字节来自d2febcd，此后1dcb33b增加可选集成切链，31d82c7仅格式；EmbySession旧字节来自3ae8878，此后5c67fcb/a271874为已交付的登录/恢复绑定保护。原caller不执行上述native批量或登录/恢复方法。只改这四项与修复后Events，共五项，其他14项与元数据保留。10个提取负例全部拒绝，随后当前源码重编并59/59；原漂移拒绝及红日志保持。
+
+实际 `ApplyStatus` 和 `RefineChapterMarksAsync` 共用该方法已静态核对，但本夹具的这两个邻接入口仍为替身，不能据此声称覆盖实际mpv/WinUI章节到达或播放。

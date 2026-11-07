@@ -50,6 +50,14 @@ public sealed partial class PlayerViewModel
     internal void ChangeEpisodesForFixture(IReadOnlyList<EmbyItem> episodes) => Episodes = episodes;
     internal Task StepForFixture(int offset) => StepEpisodeAsync(offset);
     internal bool HasEpisodeLookup => _episodeLookup is not null;
+    internal SkipCoordinator SkipPlanForFixture => _skips;
+    internal void SeedSkipForFixture(IReadOnlyList<SkipSection> sections, double duration)
+    {
+        _embySkipSections = sections;
+        Status = new PlayerStatus { Duration = duration };
+        _skips.Begin(sections, duration);
+    }
+    internal bool ConsiderSkipForFixture(IReadOnlyList<SkipChapter> chapters) => ConsiderPlayerSkipSections(chapters);
 
     // Reading inert presentation fields prevents absent unrelated partials from creating CS0414.
     // None of these values can acquire native resources, persist settings or start service work.
