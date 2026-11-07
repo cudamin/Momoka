@@ -115,17 +115,30 @@ internal sealed partial class ShellNavigationProbe
             // 悬停和焦点都占着：从前这两样都会把钟停掉、把条清零。现在它们只管箭头。
             Field(banner, "_hover", true);
             Field(banner, "_focusWithin", true);
-            banner.ApplyDwell(3);
+            // Pixel capture can take longer than a three-second cycle. Capture stationary pixels
+            // under a separate long dwell, then start and measure the actual short clock afterwards.
+            banner.ApplyDwell(30);
 
             var samples = new List<double>();
             var picture = banner.FrontPicture;
             var cameraSamples = new List<string>();
             Require(HomeMotion.AnimationsEnabled, "静止轮播回归需要启用系统动画，避免旧慢缩放直接落定而误通过");
             var beforePicture = await ReadBannerRegionAsync(banner);
+            await Task.Delay(150);
+            var afterPicture = await ReadBannerRegionAsync(banner);
+            Require(ReferenceEquals(picture, banner.FrontPicture) && beforePicture.SequenceEqual(afterPicture),
+                "自然停留期间右侧背景像素发生移动");
+            readings.Add($"自然停留背景区域 {beforePicture.Length / 4} 像素完全一致");
+            banner.ApplyDwell(3);
+            var cycleStarted = Get<long>(banner, "_cycleStarted");
+            var elapsedSamples = new List<long>();
             for (var index = 0; index < 8; index++)
             {
                 await Task.Delay(150);
                 samples.Add(scale.ScaleX);
+                elapsedSamples.Add(Environment.TickCount64 - cycleStarted);
+                FoundationProbeReadings.Dwell(cycleStarted, Get<long>(banner, "_cycleStarted"), Environment.TickCount64,
+                    ReferenceEquals(picture, banner.FrontPicture), scale.ScaleX, 3000);
                 var camera = (ScaleTransform)banner.FrontLayer.RenderTransform;
                 cameraSamples.Add($"{camera.ScaleX:0.0000}/{camera.ScaleY:0.0000}");
                 Require(ReferenceEquals(picture, banner.FrontPicture)
@@ -133,9 +146,6 @@ internal sealed partial class ShellNavigationProbe
                     "停留期间背景不得自动缩放：" + string.Join("、", cameraSamples));
             }
             readings.Add("背景自然停留，两轴单位缩放：" + string.Join("、", cameraSamples));
-            var afterPicture = await ReadBannerRegionAsync(banner);
-            Require(beforePicture.SequenceEqual(afterPicture), "自然停留期间右侧背景像素发生移动");
-            readings.Add($"自然停留背景区域 {beforePicture.Length / 4} 像素完全一致");
 
             var rising = true;
             for (var index = 1; index < samples.Count; index++)
@@ -144,7 +154,7 @@ internal sealed partial class ShellNavigationProbe
             Require(rising && samples[^1] > 0.1,
                 $"指针和焦点在带上时进度条没有连续前进：{string.Join("、", samples.Select(value => $"{value:0.00}"))}");
             Require(counter.Text.StartsWith("01  /  03", StringComparison.Ordinal), "停留时长没到就换片了");
-            readings.Add($"悬停＋焦点：进度 {samples[0]:0.00}→{samples[^1]:0.00}，读数仍是 {counter.Text}");
+            readings.Add($"悬停＋焦点：实际起点{cycleStarted}、取样{string.Join('、', elapsedSamples)}ms，进度 {samples[0]:0.00}→{samples[^1]:0.00}，读数仍是 {counter.Text}");
 
             // 跑满就翻页，条接着从 0 再走 —— 不是停在满格、也不是半路回退。
             await WaitAsync(() => counter.Text.StartsWith("02  /  03", StringComparison.Ordinal), 6000);

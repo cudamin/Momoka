@@ -96,7 +96,12 @@ internal sealed partial class ShellNavigationProbe
         fixture.Session.TakeRestoredViews();
         var views = Pending<HttpResponseMessage>();
         var entered = Pending<bool>();
-        var library = new EmbyItem { Id = "foundation-library", Name = "迟到媒体库", Type = EmbyItemType.CollectionFolder, CollectionType = "movies" };
+        // Several real library shelves create vertical content; 24 cards in one horizontal row do not.
+        var libraries = Enumerable.Range(0, 4).Select(index => new EmbyItem
+        {
+            Id = "foundation-library-" + index, Name = "迟到媒体库 " + index,
+            Type = EmbyItemType.CollectionFolder, CollectionType = "movies"
+        }).ToArray();
         fixture.Transport.Reply = (message, _) =>
         {
             if (message.RequestUri!.AbsolutePath.EndsWith("/Views", StringComparison.Ordinal))
@@ -106,7 +111,7 @@ internal sealed partial class ShellNavigationProbe
             }
             if (message.RequestUri.AbsolutePath.EndsWith("/Items/Latest", StringComparison.Ordinal))
                 return Task.FromResult(Json(Enumerable.Range(0, 24).Select(index => new EmbyItem
-                { Id = "foundation-latest-" + index, Name = "最近添加 " + index, Type = EmbyItemType.Movie }).ToArray()));
+                { Id = "foundation-latest-" + (Query(message, "ParentId") ?? "none") + "-" + index, Name = "最近添加 " + index, Type = EmbyItemType.Movie }).ToArray()));
             return Task.FromResult(FakeTransport.Standard(message));
         };
         var shell = new ShellPage();
@@ -127,12 +132,12 @@ internal sealed partial class ShellNavigationProbe
             shell.OpenChild(new LibraryRequest { Services = fixture.Services, Title = "目录到达时仍在其他页", ParentId = "library" });
             await UntilAsync(() => shell.ActiveContentReady);
             var other = shell.Pages.Content;
-            views.SetResult(Json(new { Items = new[] { library } }));
+            views.SetResult(Json(new { Items = libraries }));
             await entering;
             Require(ReferenceEquals(other, shell.Pages.Content), "目录迟到抢回了主页");
             Call(shell, "GoBack");
             await UntilAsync(() => shell.ActiveContentReady && shell.Pages.Content is HomePage home && !home.ViewModel.Busy
-                && home.ViewModel.LibraryShelf?.Cards.Count == 1);
+                && home.ViewModel.LibraryShelf?.Cards.Count == libraries.Length);
             var returned = (HomePage)shell.Pages.Content;
             var shelf = returned.ViewModel.LibraryShelf!;
             await LayoutAsync(returned);
@@ -144,11 +149,13 @@ internal sealed partial class ShellNavigationProbe
                 shelf.CanOpen, head.Offer, Get<Button>(head, "Scope").Visibility == Visibility.Visible);
             Require(head.DoorState.Glyph == Visibility.Collapsed && !Get<Button>(head, "Scope").Focus(FocusState.Programmatic),
                 "固定媒体库标题仍有箭头或可聚焦导航按钮");
-            Require(returned.HomeRows.OfType<CardShelf>().Any(value => value.HomeKey == HomeLayout.LibraryKey(shell.LibraryViews.Single()) && value.Cards.Count == 24),
-                "返回主页有目录卡但没有本库最近添加货架");
+            var libraryKeys = shell.LibraryViews.Select(HomeLayout.LibraryKey).ToArray();
+            var recentShelves = returned.HomeRows.OfType<CardShelf>()
+                .Count(value => libraryKeys.Contains(value.HomeKey, StringComparer.Ordinal) && value.Cards.Count == 24);
+            Require(recentShelves == libraries.Length, "返回主页有目录卡但没有每库最近添加货架");
             await SaveProbeScreenAsync("foundation-home-directory-return-screen.png");
             var scroll = Get<ScrollView>(returned, "Scroller");
-            Require(scroll.ScrollableHeight > 0, "主页滚动恢复夹具缺少可滚动内容");
+            FoundationProbeReadings.Directory(libraries.Length, recentShelves, scroll.ScrollableHeight);
             var offset = Math.Min(180, scroll.ScrollableHeight);
             scroll.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
             await UntilAsync(() => Math.Abs(scroll.VerticalOffset - offset) <= 1);

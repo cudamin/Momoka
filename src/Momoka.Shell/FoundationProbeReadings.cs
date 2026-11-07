@@ -32,6 +32,18 @@ internal static class FoundationProbeReadings
         Check(actualLabels.SequenceEqual(expected, StringComparer.Ordinal), "轮播开关未收起或恢复完整四个从属行");
     }
 
+    internal static void Dwell(long started, long actualStarted, long now, bool samePicture, double progress, long dwellMilliseconds)
+    {
+        Check(started == actualStarted && now >= started && now - started < dwellMilliseconds,
+            "轮播样本不属于当前停留周期或已超过其时长");
+        Check(samePicture && double.IsFinite(progress) && progress is >= 0 and < 1,
+            "停留时长没到就换片或进度失效");
+    }
+
+    internal static void Directory(int expectedShelves, int loadedShelves, double scrollableHeight) =>
+        Check(expectedShelves > 1 && loadedShelves == expectedShelves && double.IsFinite(scrollableHeight) && scrollableHeight > 0,
+            "主页滚动恢复夹具缺少可滚动的有效货架");
+
     private static void Check(bool ok, string message)
     {
         if (!ok) throw new InvalidOperationException(message);
