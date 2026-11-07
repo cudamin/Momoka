@@ -1397,6 +1397,13 @@ function momoka_click_pause_reset()
 	momoka_click_pause_second_half = false
 	cursor.last_events.primary_down = nil
 	cursor.last_events.secondary_down = nil
+	if Elements.speed then Elements.speed:on_global_mouse_leave() end
+	if Elements.volume_slider then
+		local slider = Elements.volume_slider
+		slider:on_global_mouse_leave()
+		if slider.release_handler then cursor:off('primary_up', slider.release_handler) end
+		slider.release_handler = nil
+	end
 	if Menu:is_open() then Menu:close(true) end
 end
 

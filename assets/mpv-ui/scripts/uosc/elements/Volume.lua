@@ -67,7 +67,11 @@ function VolumeSlider:render()
 	cursor:zone('primary_down', self, function()
 		self.pressed = true
 		self:set_from_cursor()
-		cursor:once('primary_up', function() self.pressed = false end)
+		if self.release_handler then cursor:off('primary_up', self.release_handler) end
+		self.release_handler = cursor:once('primary_up', function()
+			self.pressed = false
+			self.release_handler = nil
+		end)
 	end)
 	cursor:zone('wheel_down', self, function() self:handle_wheel_down() end)
 	cursor:zone('wheel_up', self, function() self:handle_wheel_up() end)

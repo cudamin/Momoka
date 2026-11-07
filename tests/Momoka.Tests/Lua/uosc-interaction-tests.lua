@@ -278,6 +278,23 @@ do
 				require_equal(last[3], 'absolute+exact')
 				require_equal(properties.pause, false)
 			end)
+			test('file boundaries cancel speed and volume dragging without changing successor', function()
+				local speed = require('elements/Speed'):new()
+				assert(Elements.volume_slider, 'volume slider missing')
+				local volume = Elements.volume_slider
+				Elements.speed = speed
+				speed.notch_spacing = 10
+				state.speed = 1
+				cursor.x = 200
+				speed:handle_cursor_down(); volume.pressed = true
+				emit('start-file')
+				require_equal(speed.dragging, nil); require_equal(volume.pressed, false)
+				cursor.x, cursor.y = 400, 0
+				speed:on_global_mouse_move(); volume:on_global_mouse_move()
+				require_equal(properties.speed, nil); require_equal(#commands, 0)
+				speed:handle_cursor_down(); volume.pressed = true; emit('end-file')
+				require_equal(speed.dragging, nil); require_equal(volume.pressed, false)
+			end)
 			test('timeline paused drag stays paused after cancellation', function()
 				state.pause = true
 				local item = Elements.timeline
