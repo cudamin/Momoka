@@ -28,7 +28,8 @@ try {
     [IO.File]::WriteAllText((Join-Path $hostRoot 'source-receipt.json'),($before | ConvertTo-Json -Depth 4),[Text.UTF8Encoding]::new($false))
     Write-Output ('Instrumented anonymous apphost: ' + $exe.FullName)
     if ($BuildOnly) { exit 0 }
-    $probe = Start-Process -FilePath $exe.FullName -ArgumentList @('--anonymous-selfcheck', $OutputDirectory) -WorkingDirectory $root -WindowStyle Hidden -PassThru
+    # This target is the actual window under observation, so it must open normally for pixel checks.
+    $probe = Start-Process -FilePath $exe.FullName -ArgumentList @('--anonymous-selfcheck', $OutputDirectory) -WorkingDirectory $root -PassThru
     Write-Output ('PID=' + $probe.Id)
     $probe.WaitForExit()
     exit $probe.ExitCode

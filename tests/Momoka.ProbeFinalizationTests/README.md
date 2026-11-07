@@ -63,6 +63,10 @@
 产物位于本树 `artifacts/anonymous-same-assembly/bin`，是带测试入口的验收产物，不能作为桌面交付件。
 普通产品构建从不导入这个 targets，也没有新增产品 CLI。
 
+脚本实际启动的就是被读屏的窗口，使用正常可见启动状态；不以 Hidden 启动后再当作真实像素通过。
+`-BuildOnly` 仍仅构建。验收构建共用项目 obj，完成后须重新构建最终正常 Shell/Tests 并核对 Core 哈希，
+不能把带测试入口或输出路径不同的产物当作桌面交付件。
+
 ```powershell
 & ./tests/Momoka.ProbeFinalizationTests/Run-AnonymousSameAssembly.ps1 -BuildOnly
 # 由唯一桌面验收会话在当前原生程序均已退出后串行启动：
