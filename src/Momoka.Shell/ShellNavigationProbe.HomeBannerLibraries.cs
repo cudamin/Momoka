@@ -247,11 +247,13 @@ internal sealed partial class ShellNavigationProbe
         var picture = banner.FrontPicture as Microsoft.UI.Xaml.Media.Imaging.BitmapImage
             ?? throw new InvalidOperationException("轮播模糊图尚未解码");
         var pixels = await ReadBackdropPixelsAsync(picture);
-        // 夹具在整幅背景上有一道清晰山脊；延长区平滑，原图左5%与中央都必须继续清晰。
+        // 夹具山脊提供清晰边缘：完整扩边高斯，原图左8%渐次恢复，之后保持清晰。
         var sourceWidth = picture.PixelWidth / (1 + CarouselBackdrop.LeftExtensionShare);
         var extension = sourceWidth * CarouselBackdrop.LeftExtensionShare;
-        var blurredX = (int)Math.Round(extension * 0.50 / picture.PixelWidth * pixels.Width);
-        var originalLeftX = (int)Math.Round((extension + sourceWidth * 0.05) / picture.PixelWidth * pixels.Width);
+        var blurredX = (int)Math.Round(extension * 0.97 / picture.PixelWidth * pixels.Width);
+        var originalLeftX = (int)Math.Round(extension / picture.PixelWidth * pixels.Width);
+        var transitionX = (int)Math.Round((extension + sourceWidth * 0.04) / picture.PixelWidth * pixels.Width);
+        var recoveredX = (int)Math.Round((extension + sourceWidth * 0.10) / picture.PixelWidth * pixels.Width);
         var clearX = (int)Math.Round((extension + sourceWidth * 0.50) / picture.PixelWidth * pixels.Width);
         double Edge(int x)
         {
@@ -268,11 +270,14 @@ internal sealed partial class ShellNavigationProbe
         }
         var blurredEdge = Edge(blurredX);
         var originalLeftEdge = Edge(originalLeftX);
+        var transitionEdge = Edge(transitionX);
+        var recoveredEdge = Edge(recoveredX);
         var clearEdge = Edge(clearX);
-        Require(clearEdge > 20 && originalLeftEdge > clearEdge * 0.6 && blurredEdge < clearEdge * 0.6,
-            $"模糊越过延长区或没有平滑延长区：扩边={blurredEdge:0.00}，原图左5%={originalLeftEdge:0.00}，中央={clearEdge:0.00}");
-        readings.Add($"blur-pixels：扩边={blurredEdge:0.00}，原图左5%={originalLeftEdge:0.00}，中央={clearEdge:0.00}");
-        Call(banner, "StopMotion", "camera");
+        Require(clearEdge > 20 && recoveredEdge > clearEdge * 0.6
+            && originalLeftEdge < clearEdge * 0.6 && blurredEdge < clearEdge * 0.6
+            && transitionEdge > originalLeftEdge && transitionEdge < recoveredEdge,
+            $"高斯没有全扩边并经原图左8%恢复清晰：扩边末={blurredEdge:0.00}，原图0%={originalLeftEdge:0.00}，4%={transitionEdge:0.00}，10%={recoveredEdge:0.00}，中央={clearEdge:0.00}");
+        readings.Add($"blur-pixels：扩边末={blurredEdge:0.00}，原图0%={originalLeftEdge:0.00}，4%={transitionEdge:0.00}，10%={recoveredEdge:0.00}，中央={clearEdge:0.00}");
         var transform = (ScaleTransform)banner.FrontLayer.RenderTransform;
         var originalX = transform.ScaleX;
         var originalY = transform.ScaleY;
@@ -282,16 +287,13 @@ internal sealed partial class ShellNavigationProbe
             {
                 ResizeProbeClient(width, 760);
                 await LayoutAsync(home);
-                foreach (var scale in new[] { 1.0, 1.045 })
-                {
-                    transform.ScaleX = transform.ScaleY = scale;
-                    await LayoutAsync(home);
-                    Require(ReferenceEquals(banner.FrontPicture, picture), "封面缩放时重新加载或拆开模糊图");
-                    var covers = banner.PictureRead();
-                    Require(covers.Ok, covers.Detail);
-                    readings.Add($"{width}/blur-scale：scale={scale:0.000}，{covers.Detail}");
-                    await SaveProbeScreenAsync($"home-banner-blur-{width}-{scale:0.000}-screen.png");
-                }
+                Require(Math.Abs(transform.ScaleX - 1) < 1e-6 && Math.Abs(transform.ScaleY - 1) < 1e-6,
+                    "图片不得自动缩放");
+                Require(ReferenceEquals(banner.FrontPicture, picture), "窗口变宽时重新加载或拆开模糊图");
+                var covers = banner.PictureRead();
+                Require(covers.Ok, covers.Detail);
+                readings.Add($"{width}/static-blur：scale=1.000，{covers.Detail}");
+                await SaveProbeScreenAsync($"home-banner-blur-{width}-1.000-screen.png");
             }
         }
         finally { transform.ScaleX = originalX; transform.ScaleY = originalY; }

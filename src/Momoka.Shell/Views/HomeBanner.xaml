@@ -158,9 +158,8 @@
         -->
         <Grid x:Name="Frame" Background="{StaticResource EgBannerBaseBrush}">
             <!--
-              Band 挂一个以中心为原点的 ScaleTransform（换张时整块带子极轻微推近一下，见 HomeBanner.Push）：
-              缩放挂在这一层而不是 Root 上，是因为它会连 Frame 那支兜底底色一起放大 —— 那正是要的，不然推近的
-              那一瞬间四条边会露出底下那圈底色。
+              保留单位 ScaleTransform 与定位名称；图片停留与换张均不再自动缩放。
+              位图与高斯过渡始终共用同一层布局，尺寸变化只调整裁切，不重放背景动画。
             -->
             <Grid x:Name="Band" RenderTransformOrigin="0.5,0.5">
                 <Grid.RenderTransform>

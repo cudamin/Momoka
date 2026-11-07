@@ -1,6 +1,6 @@
 namespace Momoka.Emby;
 
-/// <summary>轮播背景图：左侧采色延长15%，高斯仅处理新增区域，随整幅图缩放，原图像素保持原样。</summary>
+/// <summary>轮播背景图：左侧采色延长15%，完整扩边高斯通过原图左侧8%平滑接回清晰图。</summary>
 public static class CarouselBackdrop
 {
     public const double LeftExtensionShare = 0.15;
@@ -12,10 +12,17 @@ public static class CarouselBackdrop
         return Math.Max(1, (int)Math.Round(width * LeftExtensionShare));
     }
 
+    /// <summary>过渡留在原图内；至少一列，且不会超过原图宽度。</summary>
+    public static int TransitionWidth(int width)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        return Math.Max(1, (int)Math.Round(width * 0.08));
+    }
+
     /// <summary>
     /// 输入为顶行在前的 BGRA 像素。新增部分使用左侧 2% 的颜色、沿高度大窗口柔化（上下四分之一高度混在一起，
-    /// 「边缘的色彩上下要混合，别只是简单的拉长」）后向原图左边缘过渡。高斯在延长区内淡出，
-    /// 非延长区域逐字节保持原图，不改变任何alpha。
+    /// 「边缘的色彩上下要混合，别只是简单的拉长」）后向原图左边缘过渡。高斯覆盖完整延长区，
+    /// 在原图左侧8%平滑衰减，过渡之后逐字节保持原图，不改变任何alpha。
     /// </summary>
     public static (byte[] Pixels, int Width) ExtendLeft(ReadOnlySpan<byte> source, int width, int height, CancellationToken token = default)
     {
@@ -73,28 +80,29 @@ public static class CarouselBackdrop
             }
         }
 
-        // 模糊和原图合成同一张位图，UniformToFill和慢镜头缩放一起作用于它们。羽化严格留在扩边内。
-        // 右侧多取3σ仅用于卷积采样，混回循环永远不写原图。
-        var blurWidth = extension;
+        // 延长区始终全高斯；淡回清晰的部分移进原图，避免扩边边界直接撞上清晰细节。
+        // 过渡右端再取3σ作为卷积采样，写回范围严格止于过渡末尾。
+        var transition = TransitionWidth(width);
+        var blurWidth = extension + transition;
         var sampleBlurWidth = Math.Min(extendedWidth, blurWidth + GaussianBackdrop.Sigma * 3);
         var blurStride = checked(sampleBlurWidth * 4);
         var blurred = new byte[checked(blurStride * height)];
         for (var y = 0; y < height; y++)
             pixels.AsSpan(y * extendedStride, blurStride).CopyTo(blurred.AsSpan(y * blurStride));
         GaussianBackdrop.Apply(blurred, sampleBlurWidth, height, GaussianBackdrop.Sigma, token);
-        var seamWidth = Math.Max(1, (int)Math.Round(extension * 0.20));
         for (var y = 0; y < height; y++)
         {
             token.ThrowIfCancellationRequested();
             for (var x = 0; x < blurWidth; x++)
             {
-                var position = Math.Clamp((double)(blurWidth - 1 - x) / seamWidth, 0, 1);
-                var strength = position * position * (3 - 2 * position);
+                var position = x < extension ? 0 : (double)(x - extension) / transition;
+                // 两端一、二阶导数为零，让过渡自然接回清晰图，避免线性羽化留下新接缝。
+                var clearShare = position * position * position * (position * (position * 6 - 15) + 10);
                 for (var channel = 0; channel < 3; channel++)
                 {
                     var target = y * extendedStride + x * 4 + channel;
                     var value = blurred[y * blurStride + x * 4 + channel];
-                    pixels[target] = (byte)Math.Clamp(Math.Round(pixels[target] + (value - pixels[target]) * strength), 0, 255);
+                    pixels[target] = (byte)Math.Clamp(Math.Round(value + (pixels[target] - value) * clearShare), 0, 255);
                 }
             }
         }

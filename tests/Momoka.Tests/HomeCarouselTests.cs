@@ -83,8 +83,8 @@ internal static class HomeCarouselTests
             Assert.Equal(115, extendedWidth);
             Assert.Equal(extendedWidth * height * 4, pixels.Length);
             for (var y = 0; y < height; y++)
-                Assert.True(original.AsSpan(y * width * 4, width * 4)
-                    .SequenceEqual(pixels.AsSpan((y * extendedWidth + 15) * 4, width * 4)), "非延长区域的每个像素都必须保持原样");
+                Assert.True(original.AsSpan((y * width + 8) * 4, (width - 8) * 4)
+                    .SequenceEqual(pixels.AsSpan((y * extendedWidth + 23) * 4, (width - 8) * 4)), "过渡之后的每个像素都必须保持原样");
             for (var y = 0; y < height; y++)
                 for (var x = 0; x < width; x++)
                     Assert.Equal(original[(y * width + x) * 4 + 3], pixels[(y * extendedWidth + x + 15) * 4 + 3]);
@@ -125,7 +125,7 @@ internal static class HomeCarouselTests
             Assert.True(pixels.AsSpan(4, 4).SequenceEqual(original));
         });
 
-        Test("轮播：高斯只在延长区内，接缝回到清晰原图", () =>
+        Test("轮播：完整延长区高斯经原图左侧过渡恢复清晰", () =>
         {
             const int width = 200;
             const int height = 120;
@@ -139,17 +139,76 @@ internal static class HomeCarouselTests
                 }
             var (pixels, extendedWidth) = CarouselBackdrop.ExtendLeft(original, width, height);
             var extension = extendedWidth - width;
+            const int transition = 16;
             var middle = extension / 2;
             var first = pixels[(60 * extendedWidth + middle) * 4];
             var second = pixels[(61 * extendedWidth + middle) * 4];
             Assert.True(Math.Abs(first - second) < 8, "扩边内部应消除交替行的细纹，不能只是采色拉长");
             for (var y = 0; y < height; y++)
             {
-                Assert.True(original.AsSpan(y * width * 4, width * 4)
-                    .SequenceEqual(pixels.AsSpan((y * extendedWidth + extension) * 4, width * 4)), "模糊不能侵入原始封面");
-                Assert.True(pixels.AsSpan((y * extendedWidth + extension - 1) * 4, 4)
-                    .SequenceEqual(original.AsSpan(y * width * 4, 4)), "延长区最后一列柔和接回原图");
+                Assert.True(original.AsSpan((y * width + transition) * 4, (width - transition) * 4)
+                    .SequenceEqual(pixels.AsSpan((y * extendedWidth + extension + transition) * 4, (width - transition) * 4)), "过渡之后原始封面保持清晰");
             }
+            for (var x = 0; x < extension; x++)
+            {
+                Assert.True(Math.Abs(pixels[(60 * extendedWidth + x) * 4] - pixels[(61 * extendedWidth + x) * 4]) < 8,
+                    "延长区最后一列也必须消除交替行细纹");
+            }
+        });
+        Test("轮播：模糊与清晰的交界不产生黑白阶跃", () =>
+        {
+            const int width = 1280;
+            const int height = 80;
+            var source = new byte[width * height * 4];
+            for (var y = 0; y < height; y++)
+                for (var x = 0; x < width; x++)
+                {
+                    var offset = (y * width + x) * 4;
+                    source[offset] = source[offset + 1] = source[offset + 2] = (byte)(x == 0 ? 0 : 255);
+                    source[offset + 3] = (byte)((x * 59 + y * 23) % 256);
+                }
+            var original = source.ToArray();
+            var result = CarouselBackdrop.ExtendLeft(source, width, height);
+            for (var y = 0; y < height; y++)
+            {
+                var row = y * result.Width * 4;
+                Assert.True(Math.Abs(result.Pixels[row + 191 * 4] - result.Pixels[row + 192 * 4]) < 20, "扩边与原图之间不能硬切");
+                Assert.True(Math.Abs(result.Pixels[row + 192 * 4] - result.Pixels[row + 193 * 4]) < 25, "硬切不能搬到原图第二列");
+                Assert.True(source.AsSpan((y * width + 102) * 4, (width - 102) * 4)
+                    .SequenceEqual(result.Pixels.AsSpan((y * result.Width + 294) * 4, (width - 102) * 4)));
+                for (var x = 0; x < result.Width; x++)
+                    Assert.Equal(source[(y * width + Math.Max(0, x - 192)) * 4 + 3], result.Pixels[(y * result.Width + x) * 4 + 3]);
+            }
+            Assert.True(source.SequenceEqual(original));
+        });
+        Test("轮播：过渡中段恢复细节，尾端自然回到原图", () =>
+        {
+            const int width = 1280;
+            const int height = 80;
+            var source = new byte[width * height * 4];
+            for (var y = 0; y < height; y++)
+                for (var x = 0; x < width; x++)
+                {
+                    var offset = (y * width + x) * 4;
+                    source[offset] = source[offset + 1] = source[offset + 2] = (byte)(y % 2 == 0 ? 0 : 255);
+                    source[offset + 3] = 255;
+                }
+            var result = CarouselBackdrop.ExtendLeft(source, width, height);
+            for (var y = 26; y < 52; y++)
+            {
+                var row = y * result.Width * 4;
+                var edge = source[y * width * 4];
+                Assert.True(Math.Abs(result.Pixels[row + 191 * 4] - result.Pixels[row + 192 * 4]) < 8);
+                var middleDifference = Math.Abs(result.Pixels[row + 243 * 4] - edge);
+                Assert.True(middleDifference is > 30 and < 90, "过渡中点不能全清晰或全模糊");
+                Assert.True(Math.Abs(result.Pixels[row + 284 * 4] - edge) <= 2, "过渡末尾不能留下线性衰减的收口");
+            }
+        });
+        Test("轮播：预取消的扩边不会继续处理", () =>
+        {
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            Assert.Throws<OperationCanceledException>(() => CarouselBackdrop.ExtendLeft([1, 2, 3, 4], 1, 1, cancellation.Token));
         });
     }
 

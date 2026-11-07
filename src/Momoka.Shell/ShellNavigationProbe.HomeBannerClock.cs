@@ -1,9 +1,11 @@
 using System.Net;
+using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
@@ -116,11 +118,24 @@ internal sealed partial class ShellNavigationProbe
             banner.ApplyDwell(3);
 
             var samples = new List<double>();
+            var picture = banner.FrontPicture;
+            var cameraSamples = new List<string>();
+            Require(HomeMotion.AnimationsEnabled, "静止轮播回归需要启用系统动画，避免旧慢缩放直接落定而误通过");
+            var beforePicture = await ReadBannerRegionAsync(banner);
             for (var index = 0; index < 8; index++)
             {
                 await Task.Delay(150);
                 samples.Add(scale.ScaleX);
+                var camera = (ScaleTransform)banner.FrontLayer.RenderTransform;
+                cameraSamples.Add($"{camera.ScaleX:0.0000}/{camera.ScaleY:0.0000}");
+                Require(ReferenceEquals(picture, banner.FrontPicture)
+                    && Math.Abs(camera.ScaleX - 1) < 1e-6 && Math.Abs(camera.ScaleY - 1) < 1e-6,
+                    "停留期间背景不得自动缩放：" + string.Join("、", cameraSamples));
             }
+            readings.Add("背景自然停留，两轴单位缩放：" + string.Join("、", cameraSamples));
+            var afterPicture = await ReadBannerRegionAsync(banner);
+            Require(beforePicture.SequenceEqual(afterPicture), "自然停留期间右侧背景像素发生移动");
+            readings.Add($"自然停留背景区域 {beforePicture.Length / 4} 像素完全一致");
 
             var rising = true;
             for (var index = 1; index < samples.Count; index++)
@@ -135,6 +150,9 @@ internal sealed partial class ShellNavigationProbe
             await WaitAsync(() => counter.Text.StartsWith("02  /  03", StringComparison.Ordinal), 6000);
             Require(scale.ScaleX < 0.6, $"翻页之后进度条没有从头开始：{scale.ScaleX:0.00}");
             readings.Add($"3 秒到点：读数 {counter.Text}，条 {scale.ScaleX:0.00}");
+            var nextCamera = (ScaleTransform)banner.FrontLayer.RenderTransform;
+            Require(Math.Abs(nextCamera.ScaleX - 1) < 1e-6 && Math.Abs(nextCamera.ScaleY - 1) < 1e-6,
+                "自动换图不得重启背景缩放");
 
             // 整页重读（新入库的定时检查、设置里别的行改了）会重建一批对象；还是同一批就该沿用台上那张，
             // 进度条不许回零。这里直接交一批新对象，走的正是 HomeViewModel 每次重读的那条路。
@@ -171,7 +189,7 @@ internal sealed partial class ShellNavigationProbe
             Require(dropped.Count(id => id == broken.Id) == 2, $"坏图只报了一次：{string.Join('、', dropped)}");
             readings.Add("只剩坏图：整条带收起");
 
-            Require(readings.Count == 5, $"轮播读秒检查没有走完（{readings.Count} 条读数）");
+            Require(readings.Count == 7, $"轮播读秒与静止检查没有走完（{readings.Count} 条读数）");
         }
         finally
         {
@@ -179,6 +197,24 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(banner);
             ResizeProbeClient(1420, 980);
         }
+    }
+
+    private static async Task<byte[]> ReadBannerRegionAsync(HomeBanner banner)
+    {
+        // 渲染父容器使图片层的变换进入结果；只取右侧背景，避开字块、箭头和倒计时。
+        var bitmap = new RenderTargetBitmap();
+        await bitmap.RenderAsync(Get<Grid>(banner, "Band"), 640, 360);
+        var pixels = (await bitmap.GetPixelsAsync()).ToArray();
+        var left = (int)(bitmap.PixelWidth * 0.60);
+        var top = (int)(bitmap.PixelHeight * 0.20);
+        var width = (int)(bitmap.PixelWidth * 0.20);
+        var height = (int)(bitmap.PixelHeight * 0.20);
+        var region = new byte[width * height * 4];
+        for (var y = 0; y < height; y++)
+            pixels.AsSpan(((y + top) * bitmap.PixelWidth + left) * 4, width * 4)
+                .CopyTo(region.AsSpan(y * width * 4));
+        Require(region.Any(value => value != 0), "背景采样区域为空，不能证明静止");
+        return region;
     }
 
     /// <summary>
