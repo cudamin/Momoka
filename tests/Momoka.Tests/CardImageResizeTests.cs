@@ -390,10 +390,18 @@ internal static class CardImageResizeTests
             var initial = fixture.Begin();
             var old = await fixture.Handler.AtAsync(0);
             var token = fixture.LoadingToken!.Value;
+            using var propagation = fixture.HoldDownloadCancellation();
             fixture.Card.AbandonPoster();
             fixture.Card.Resize(250);
             Assert.True(token.IsCancellationRequested);
             Assert.Equal(1, fixture.Handler.Count);
+            await propagation.Entered.WaitAsync(TimeSpan.FromSeconds(3));
+            // The card waiter may finish before CancelAsync reaches HTTP's linked token callbacks.
+            // Confirm that the old immediate assertion rejects this controlled interleaving, then
+            // establish transport cancellation before releasing the deliberately late response.
+            Assert.Throws<AssertionException>(() => Assert.True(old.Token.IsCancellationRequested));
+            propagation.Release();
+            await CardImageFixture.UntilAsync(() => old.Token.IsCancellationRequested, "transport cancellation did not propagate");
             await fixture.DeliverAsync(old, "abandoned");
             await initial;
             Assert.True(old.Token.IsCancellationRequested);

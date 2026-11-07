@@ -78,7 +78,7 @@ namespace Momoka.Shell.Media
         public Task<BitmapImage?> Result => _result.Task;
         public void Fail(Exception error) => _result.TrySetException(error);
         public void Complete() => _result.TrySetResult(new BitmapImage
-            { DecodePixelWidth = Width, PixelWidth = Width, PixelHeight = Width, FixtureImage = Image });
+        { DecodePixelWidth = Width, PixelWidth = Width, PixelHeight = Width, FixtureImage = Image });
     }
 }
 
@@ -115,7 +115,8 @@ namespace Momoka.Tests
             // server detection, account lifecycle or credential exchange is executed by this fixture.
             var http = (EmbyHttp)typeof(EmbySession).GetField("_http", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(_session)!;
             var connection = new EmbyConnection(new Uri("http://card-image.invalid/emby/"), "",
-                "image-fixture", "image-fixture", "image-fixture", device) { ServerKind = kind };
+                "image-fixture", "image-fixture", "image-fixture", device)
+            { ServerKind = kind };
             var identity = new EmbySessionScope.Identity(new EmbyClient(http, connection),
                 new ServerProfile { Id = "image-server" }, new AccountProfile { Id = "image-account" });
             Scope = new EmbySessionScope(_session, identity);
@@ -182,6 +183,16 @@ namespace Momoka.Tests
         public int DownloadDemands => _downloads.Demands;
         public int DownloadRunning => _downloads.Running;
 
+        public CancellationPropagationGate HoldDownloadCancellation()
+        {
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var budget = typeof(SharedWork<byte[]?>).GetField("_budget", flags)!.GetValue(_downloads)!;
+            var entries = (System.Collections.IDictionary)budget.GetType().GetField("_entries", flags)!.GetValue(budget)!;
+            var entry = entries.Values.Cast<object>().Single();
+            var stop = (CancellationTokenSource)entry.GetType().GetProperty("Stop", flags)!.GetValue(entry)!;
+            return new CancellationPropagationGate(stop.Token);
+        }
+
         public void RevokeSource() => Scope.IdentityState.Lifetime.Cancel();
 
         public async ValueTask DisposeAsync()
@@ -212,6 +223,31 @@ namespace Momoka.Tests
         {
             public string Protect(string plainText) => throw new InvalidOperationException("Image fixture must not protect credentials");
             public string Unprotect(string cipherText) => throw new InvalidOperationException("Image fixture must not read credentials");
+        }
+    }
+
+    // Registered after the HTTP linked tokens, so cancellation enters this last callback first.
+    // The gate controls callback scheduling only; production tokens, waiters and downloads are unchanged.
+    internal sealed class CancellationPropagationGate : IDisposable
+    {
+        private readonly ManualResetEventSlim _release = new();
+        private readonly TaskCompletionSource _entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly CancellationTokenRegistration _registration;
+
+        internal CancellationPropagationGate(CancellationToken token) => _registration = token.Register(() =>
+        {
+            _entered.TrySetResult();
+            if (!_release.Wait(TimeSpan.FromSeconds(3))) throw new TimeoutException("Cancellation callback fixture was not released");
+        });
+
+        internal Task Entered => _entered.Task;
+        internal void Release() => _release.Set();
+
+        public void Dispose()
+        {
+            Release();
+            _registration.Dispose();
+            _release.Dispose();
         }
     }
 

@@ -24,3 +24,8 @@
 ```
 
 `CardPresentationTests` verifies the restored server titles, FnNas centered text and single-line card markup after the selective UI rollback.
+
+The abandoned first-image case gates the actual shared download cancellation callback, rejects the
+old immediate HTTP-token assertion while propagation is pending, and waits for the transport token
+before delivering its late response. All original no-cache/no-decode/no-revival assertions remain;
+card-waiter completion is not treated as completion of every linked cancellation callback.
