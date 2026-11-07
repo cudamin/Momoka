@@ -379,6 +379,10 @@ public static class SettingsMigration
         if (settings.Danmaku is null) settings.Danmaku = new DanmakuSettings();
         if (settings.SubtitleTranslation is null) settings.SubtitleTranslation = new SubtitleTranslationSettings();
         if (settings.MoviePilot is null) settings.MoviePilot = new MoviePilotSettings();
+        // 与账号密文一致：显式 null 是损坏文档，不能当作未保存密码继续读入。
+        // 缺键或合法空串仍由初始化器保留；Store 会保留坏主文件并尝试有效备份。
+        if (settings.MoviePilot.ProtectedPassword is null)
+            throw new InvalidDataException("MoviePilot 凭据字段不能为 null");
 
         if (settings.Playback.AudioLanguages is null) settings.Playback.AudioLanguages = [];
         if (settings.Playback.SubtitleLanguages is null) settings.Playback.SubtitleLanguages = [];

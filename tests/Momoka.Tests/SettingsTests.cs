@@ -56,6 +56,7 @@ internal static partial class SettingsTests
         RegisterStore();
         SettingsSaveSnapshotTests.Register();
         RegisterAccountNulls();
+        RegisterMoviePilotNulls();
         RegisterDirectoryRecovery();
         RegisterPaths();
     }
