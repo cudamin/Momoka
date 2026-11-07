@@ -19,6 +19,23 @@ internal static class BannerCacheTests
 {
     public static void Register()
     {
+        Case("R16-002：轮播坏磁盘缓存重取有效图，重入不再请求", async () =>
+        {
+            var http = new RecoveryHttp();
+            using var fixture = new BannerFixture(http);
+            fixture.Seed("corrupt-tag", "bad");
+            BannerPictureLoader.Reset();
+            BannerPictureLoader.DecodeError = value => value == "bad" ? new InvalidDataException("corrupt cache") : null;
+            var slide = fixture.Slide("corrupt-tag");
+            await slide.EnsureAsync();
+            Assert.NotNull(slide.Picture);
+            Assert.Equal("recovered", slide.Picture!.FixtureImage);
+            Assert.Equal(1, http.Requests);
+            slide.Release();
+            await slide.EnsureAsync();
+            Assert.Equal("recovered", slide.Picture!.FixtureImage);
+            Assert.Equal(1, http.Requests);
+        });
         Case("轮播缓存：同图同尺寸第二次构造直接命中，不再解码", async () =>
         {
             using var fixture = new BannerFixture();
@@ -262,14 +279,14 @@ internal static class BannerCacheTests
         private readonly EmbySessionScope _scope;
         private readonly string _imageDirectory;
 
-        public BannerFixture()
+        public BannerFixture(HttpMessageHandler? handler = null)
         {
             _root = Path.Combine(AppContext.BaseDirectory, "fixtures", "banner-cache", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(_root);
 
             var settings = new AppSettings();
             _session = new EmbySession(settings, new SettingsStore(new AppPaths(_root), new NoSecrets()),
-                new CredentialVault(new NoSecrets()), FixtureDevice, new NoHttp());
+                new CredentialVault(new NoSecrets()), FixtureDevice, handler ?? new NoHttp());
             var http = (EmbyHttp)typeof(EmbySession)
                 .GetField("_http", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(_session)!;
             var connection = new EmbyConnection(new Uri("http://banner.invalid/emby/"), "placeholder-only",
@@ -322,6 +339,19 @@ internal static class BannerCacheTests
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
             throw new AssertionException("轮播缓存夹具只读预置磁盘缓存，不应发起 HTTP");
+    }
+
+    private sealed class RecoveryHttp : HttpMessageHandler
+    {
+        public int Requests { get; private set; }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.Method != HttpMethod.Get || request.RequestUri?.Host != "banner.invalid")
+                throw new AssertionException("only anonymous image GETs are allowed");
+            Requests++;
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            { Content = new ByteArrayContent(Encoding.UTF8.GetBytes("recovered")) });
+        }
     }
 
     private sealed class NoSecrets : ISecretProtector
