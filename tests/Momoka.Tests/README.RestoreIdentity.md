@@ -4,6 +4,8 @@
 
 `EmbySession.RestoreAttemptAsync` 保留 `ResolveRestoreConnectionAsync` 已通过匿名原入口确认、完成合法产品纠正的预期连接。密码回退返回后，在原锁、取消、代次与原配置地址守卫内要求 `IsSameIdentityAs(expectedConnection)`；预期服务器 ID 已确认且非空时，最终 ID 必须精确相等，不能利用共享身份规则对旧配置空 ID 的兼容绕过。
 
+R03-003另外在同一生命周期锁下捕获原连接和输入地址。匿名确认后固定预期连接，四处恢复守卫只允许当前档案的产品、规范化API基址、可空ServerId精确匹配原绑定或本次确认绑定；同服另一账号先完成合法纠正时，剩余账号继续恢复。用户改到第三种绑定仍拒绝，不把同源当同服务器，也不比较名称或版本。
+
 匹配后才 `SaveCredentials`、`Adopt`、`Persist`。不改共享同身份判据和 Gateway 的显式登录授权，不用旧 Emby 误标签比较合法 Jellyfin 纠正，不限制同身份的新令牌、名称或版本变化。
 
 ## 主树执行
@@ -14,7 +16,7 @@
 & "$HOME/.dotnet/dotnet.exe" run --project ./tests/Momoka.Tests/Momoka.Tests.csproj -c Release --no-build --no-restore -- restore-identity-fixture
 ```
 
-完整 Core 已通过 `SessionTests.Register()` 注册本专项；不要在完整路径再次注册。同专项 86 项和 Session／Identity／Jellyfin 回归有重叠，分套不能相加。
+完整 Core 已通过 `SessionTests.Register()` 注册本专项；不要在完整路径再次注册。当前入口包含原86项及新并发纠正29项，共115项；与 Session／Identity／Jellyfin 回归有重叠，分套不能相加。
 
 ## 覆盖与实际边界
 
@@ -23,6 +25,7 @@
 - 原 profile 不带 ID 但本次 PublicA 确认时仍拒 PublicB；确认 ID 丢失也拒绝。匹配 A、缺认证 ID 由 PublicA 补齐、新令牌／名字／版本变化正常恢复。
 - 旧 Emby→Jellyfin 合法纠正和反代路径仍恢复，同身份探针 403／503 不回退；密码认证 403／503、匿名预探测异服、取消、退出改代次、await 原地址变动和并发迟到结果均覆盖。
 - 单维 API 基址测试直接调用实际 `EmbyConnection.IsSameIdentityAs`，不宣称完整服务器真实改变入口的传输链已经观测。
+- 新29项使用真实双账号RestoreAllAsync，24组覆盖令牌／401密码回退／仅密码、两种完成顺序、两种反代前缀及原ID有／无；另外覆盖用户编辑URL／ID／产品、取消和原Jellyfin对照。确认两来源恢复、默认B不随完成顺序改变、显式重试不增加重复来源及临时保存重读。新夹具仅写本次测试输出的 `restore-parallel-fixtures/<随机>`。
 
 ## 证据与整合
 
@@ -34,4 +37,4 @@
 
 ## 未验证
 
-未真实登录 Emby／Jellyfin、读取保存用户配置、DPAPI、WinUI 恢复流程、服务器反代漂移部署、native 或播放。这里只保证实际产品路径的匿名离线契约，不声称所有部署已验；真实 libmpv 仍缺且 runtime 红、快捷方式旧版，未发布／推送。
+未真实登录 Emby／Jellyfin、读取保存用户配置、DPAPI、WinUI 恢复流程、服务器反代漂移部署、native 或播放。这里只保证实际产品路径的匿名离线契约，不声称所有部署已验。上方旧批次的运行红灯及交付记录只代表当时状态，当前整合、运行验证与发布由批次交付会话另行记录。

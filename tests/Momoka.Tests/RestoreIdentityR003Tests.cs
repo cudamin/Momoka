@@ -28,6 +28,7 @@ internal static class RestoreIdentityR003Tests
 
     public static void Register()
     {
+        RestoreParallelCorrectionTests.Register();
         RegisterFinalIdentity();
         RegisterLegacyCorrection();
         RegisterIdentityDimensions();

@@ -364,25 +364,42 @@ public sealed class EmbySession : IDisposable
     private async Task<bool> RestoreAttemptAsync(ServerProfile server, AccountProfile account,
         (string Key, long Generation, long Selection) attempt, CancellationToken cancellationToken)
     {
-        var savedToken = account.ProtectedAccessToken;
-        var token = _vault.GetAccessToken(account);
-        var userId = account.UserId;
-        var username = account.Username;
-        if (userId.Length == 0 || (!account.HasSavedPassword && token.Length == 0)) return false;
-        if (!EmbyServerAddress.TryNormalize(server.Url, out var apiBase, out _, server.ServerKind)) return false;
-        var connection = new EmbyConnection(apiBase, token, userId, username, server.Name, Device)
+        string savedAddress;
+        string? savedToken;
+        string token;
+        string userId;
+        string username;
+        EmbyConnection originalConnection;
+        lock (_lifecycleGate)
         {
-            ServerKind = server.ServerKind,
-            ServerVersion = server.ServerVersion,
-            ServerId = server.ServerId
-        };
+            savedToken = account.ProtectedAccessToken;
+            token = _vault.GetAccessToken(account);
+            userId = account.UserId;
+            username = account.Username;
+            if (userId.Length == 0 || (!account.HasSavedPassword && token.Length == 0)) return false;
+            savedAddress = server.Url;
+            if (!EmbyServerAddress.TryNormalize(savedAddress, out var apiBase, out _, server.ServerKind)) return false;
+            originalConnection = new EmbyConnection(apiBase, token, userId, username, server.Name, Device)
+            {
+                ServerKind = server.ServerKind,
+                ServerVersion = server.ServerVersion,
+                ServerId = server.ServerId
+            };
+        }
+        var connection = originalConnection;
         // 在发送令牌前纠正旧配置认错的产品；成功探测的原始入口才决定反代路径。
-        try { connection = await ResolveRestoreConnectionAsync(server.Url, connection, cancellationToken).ConfigureAwait(false); }
+        try { connection = await ResolveRestoreConnectionAsync(savedAddress, connection, cancellationToken).ConfigureAwait(false); }
         catch (EmbyApiException error)
         {
             Log.Warn(Category, "无法确认保存的媒体服务器身份", error);
             return false;
         }
+        var expectedConnection = connection;
+        // 同服另一账号可先写回已经确认的产品与入口；用户改成第三种绑定仍拒绝迟到结果。
+        bool HasRestoreBinding() => Matches(originalConnection) || Matches(expectedConnection);
+        bool Matches(EmbyConnection expected) => server.ServerKind == expected.ServerKind
+            && string.Equals(server.ServerId, expected.ServerId, StringComparison.Ordinal)
+            && HasAddress(server, expected.ApiBase);
         if (token.Length > 0)
         {
             try
@@ -399,7 +416,7 @@ public sealed class EmbySession : IDisposable
                 lock (_lifecycleGate)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (!CanCommit(attempt.Key, attempt.Generation) || !HasAddress(server, apiBase)) return false;
+                    if (!CanCommit(attempt.Key, attempt.Generation) || !HasRestoreBinding()) return false;
                     var source = Adopt(server, account, connection, attempt.Selection);
                     source.IdentityState.RestoredViews = source.Bind(views);
                     Persist();
@@ -412,7 +429,7 @@ public sealed class EmbySession : IDisposable
             {
                 lock (_lifecycleGate)
                 {
-                    if (!CanCommit(attempt.Key, attempt.Generation) || !HasAddress(server, apiBase)) return false;
+                    if (!CanCommit(attempt.Key, attempt.Generation) || !HasRestoreBinding()) return false;
                     if (account.ProtectedAccessToken == savedToken) _vault.ClearAccessToken(account);
                     Persist();
                 }
@@ -427,13 +444,12 @@ public sealed class EmbySession : IDisposable
         bool remember;
         lock (_lifecycleGate)
         {
-            if (!CanCommit(attempt.Key, attempt.Generation) || !HasAddress(server, apiBase) || !account.HasSavedPassword) return false;
+            if (!CanCommit(attempt.Key, attempt.Generation) || !HasRestoreBinding() || !account.HasSavedPassword) return false;
             password = _vault.GetPassword(account);
             remember = account.RememberPassword;
         }
         // 预期身份来自原入口的匿名确认，已经包含合法的旧 Emby → Jellyfin 产品/路径纠正。
         // 密码登录返回的新连接只能更换凭据，不能把恢复变成另一台服务器或另一账号的登录。
-        var expectedConnection = connection;
         try
         {
             connection = await Gateway.AuthenticateAsync(connection.ApiBase, username, password, cancellationToken,
@@ -441,7 +457,7 @@ public sealed class EmbySession : IDisposable
             lock (_lifecycleGate)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!CanCommit(attempt.Key, attempt.Generation) || !HasAddress(server, apiBase)
+                if (!CanCommit(attempt.Key, attempt.Generation) || !HasRestoreBinding()
                     || !connection.IsSameIdentityAs(expectedConnection)
                     // 通用同身份规则兼容旧配置缺 ID；自动恢复不能丢掉这次已经确认的服务器 ID。
                     || expectedConnection.ServerId is { Length: > 0 } expectedId
