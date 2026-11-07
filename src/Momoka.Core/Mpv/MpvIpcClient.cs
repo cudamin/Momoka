@@ -165,6 +165,7 @@ public sealed class MpvIpcClient : IAsyncDisposable
 
         if (message.IsReply && _pending.TryRemove(message.RequestId!.Value, out var waiter))
         {
+            message = message with { SampleTimestamp = System.Diagnostics.Stopwatch.GetTimestamp() };
             waiter.TrySetResult(message);
             return;
         }
@@ -172,6 +173,7 @@ public sealed class MpvIpcClient : IAsyncDisposable
         switch (message.Event)
         {
             case "property-change" when message.PropertyName is { } name:
+                message = message with { SampleTimestamp = System.Diagnostics.Stopwatch.GetTimestamp() };
                 Raise(() => PropertyChanged?.Invoke(name, message));
                 break;
             case "end-file":
@@ -205,6 +207,11 @@ public sealed class MpvIpcClient : IAsyncDisposable
 
     public async Task<double?> GetNumberAsync(string name, CancellationToken cancellationToken = default) =>
         (await RequestAsync(cancellationToken, "get_property", name).ConfigureAwait(false))?.AsDouble();
+    public async Task<(double? Value, long Sample)> GetNumberSampleAsync(string name, CancellationToken token)
+    {
+        var reply = await RequestAsync(token, "get_property", name).ConfigureAwait(false);
+        return (reply?.AsDouble(), reply?.SampleTimestamp ?? 0);
+    }
 
     public async Task<bool?> GetBooleanAsync(string name, CancellationToken cancellationToken = default) =>
         (await RequestAsync(cancellationToken, "get_property", name).ConfigureAwait(false))?.AsBoolean();

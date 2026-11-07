@@ -216,7 +216,7 @@ internal sealed class MpvProcessHandle(Process process) : IPlaybackHandle, IPlay
             "pause" => message.AsBoolean() is { } paused ? status with { Paused = paused } : status,
             "duration" => message.AsDouble() is { } duration ? status with { Duration = Math.Max(0, duration) } : status,
             "volume" => message.AsDouble() is { } volume && double.IsFinite(volume)
-                ? status with { Volume = volume, VolumeKnown = true } : status,
+                ? status with { Volume = volume, VolumeKnown = true, VolumeSample = message.SampleTimestamp } : status,
             "mute" => message.AsBoolean() is { } muted ? status with { Muted = muted } : status,
             "speed" => message.AsDouble() is { } speed ? status with { Speed = speed } : status,
             "paused-for-cache" => message.AsBoolean() is { } waiting ? status with { Buffering = waiting } : status,
@@ -527,8 +527,12 @@ internal sealed class MpvProcessHandle(Process process) : IPlaybackHandle, IPlay
     public async Task<double?> GetNumberAsync(string name, CancellationToken cancellationToken)
     {
         if (_ipc is not { IsConnected: true }) return null;
-        return await _ipc.GetNumberAsync(name, cancellationToken).ConfigureAwait(false);
+        var reading = await _ipc.GetNumberSampleAsync(name, cancellationToken).ConfigureAwait(false);
+        if (name == "volume" && reading.Value is not null) Interlocked.Exchange(ref _volumeReadSample, reading.Sample);
+        return reading.Value;
     }
+    private long _volumeReadSample;
+    public long VolumeReadSample => Interlocked.Read(ref _volumeReadSample);
 
     public async Task<bool?> HasOptionAsync(string name, CancellationToken cancellationToken)
     {

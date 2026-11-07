@@ -20,6 +20,9 @@ public static class HdrOptions
     [
         new("", "继承画质预设"), new("auto", "自动"), new("yes", "开启"), new("no", "关闭")
     ];
+    public static bool GpuNextOnlyCurve(string value) => value is "spline" or "bt.2446a" or "st2094-40" or "st2094-10";
+    public static MpvChoice[] AvailableToneMappings(bool gpuNext) => gpuNext
+        ? ToneMappings : ToneMappings.Where(choice => !GpuNextOnlyCurve(choice.Value)).ToArray();
 
     public static double? Clamp(double? value, double minimum, double maximum) =>
         value is { } number && double.IsFinite(number) ? Math.Clamp(number, minimum, maximum) : null;
@@ -31,7 +34,7 @@ public static class HdrOptions
     public static bool OwnsColorSpace(VideoSettings video, SourceProfile? source) =>
         source is { IsHdr: true } && video.HdrMode is "tonemap" or "passthrough";
 
-    public static IReadOnlyList<KeyValuePair<string, string>> Build(VideoSettings video, SourceProfile? source)
+    public static IReadOnlyList<KeyValuePair<string, string>> Build(VideoSettings video, SourceProfile? source, bool? gpuNext = null)
     {
         var options = new List<KeyValuePair<string, string>>();
         var hdr = source is { IsHdr: true };
@@ -52,13 +55,14 @@ public static class HdrOptions
             }
         }
 
-        if (video.ToneMapping.Length > 0) options.Add(new("tone-mapping", video.ToneMapping));
+        var next = gpuNext ?? video.Renderer != "gpu";
+        if (video.ToneMapping.Length > 0 && (next || !GpuNextOnlyCurve(video.ToneMapping))) options.Add(new("tone-mapping", video.ToneMapping));
         if (video.HdrComputePeak.Length > 0) options.Add(new("hdr-compute-peak", video.HdrComputePeak));
         if (hdr && !sdr) AddNits("target-peak", video.HdrPeakNits);
-        AddNits("hdr-reference-white", video.HdrReferenceWhiteNits);
+        if (next) AddNits("hdr-reference-white", video.HdrReferenceWhiteNits);
         AddNits("sub-hdr-peak", video.HdrSubtitleNits);
         AddNits("image-subs-hdr-peak", video.HdrImageSubtitleNits);
-        if (Clamp(video.HdrContrastRecovery, 0, 2) is { } contrast)
+        if (next && Clamp(video.HdrContrastRecovery, 0, 2) is { } contrast)
             options.Add(new("hdr-contrast-recovery", contrast.ToString("0.###", CultureInfo.InvariantCulture)));
 
         var filters = new List<string>();

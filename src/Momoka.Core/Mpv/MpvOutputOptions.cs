@@ -458,7 +458,8 @@ public static class MpvOutputOptions
         bool animated = false,
         double displayRefreshHz = 0,
         string? audioDevice = null,
-        bool svp = false)
+        bool svp = false,
+        bool? gpuNext = null)
     {
         var options = new List<KeyValuePair<string, string>>(32);
 
@@ -503,7 +504,7 @@ public static class MpvOutputOptions
 
         AddDither(options, video.Dither, video.DitherDepth);
         AddDeband(options, video.Deband, source, animated, video.DebandStrength);
-        options.AddRange(HdrOptions.Build(video, source));
+        options.AddRange(HdrOptions.Build(video, source, gpuNext));
         if (frames.Filter is { } filter) FrameInterpolationOptions.AppendVideoFilter(options, filter);
 
         // 宽于 16:9 的片源默认裁切填充. Only for a source that is actually letterboxed here — sent for a 16:9 file

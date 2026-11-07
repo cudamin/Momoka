@@ -489,6 +489,8 @@ public readonly record struct PlayerStatus
 
     /// <summary>True only after a finite native volume reading; the default 100 is not an observation.</summary>
     public bool VolumeKnown { get; init; }
+    /// <summary>Monotonic sample time captured before queued native/IPC delivery; zero means unavailable.</summary>
+    public long VolumeSample { get; init; }
 
     public double Speed { get; init; } = 1;
 

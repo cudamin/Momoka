@@ -58,6 +58,7 @@ public readonly record struct MpvIpcMessage(
     string? Error,
     string? Reason)
 {
+    public long SampleTimestamp { get; init; }
     public bool IsReply => RequestId.HasValue;
 
     public bool IsSuccess => Error is null || Error == "success";

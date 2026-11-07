@@ -607,6 +607,7 @@ public sealed partial class PlayerViewModel
         FlushVolume(settled: false);
         _volumeMemory.ResetObservation();
         _volumeReady = false;
+        _volumeConfirmedSample = 0;
         _generation++;
 
         // The old file's scrub and in-flight seek mean nothing here: a seek left in flight would hold the
@@ -1025,7 +1026,8 @@ public sealed partial class PlayerViewModel
                 PositionClock = status.HasPosition ? TimelineScale.Clock(status.Position, status.Duration) : "0:00";
             }
 
-            if (_volumeMemory.Observe(status, _playback.CanControl, Now) is { } level)
+            if ((status.VolumeSample == 0 || status.VolumeSample >= _volumeConfirmedSample)
+                && _volumeMemory.Observe(status, _playback.CanControl, Now) is { } level)
             {
                 _volumeReady = true;
                 if (HasVolumeSteps) _volumeStepDisplay = level;
@@ -1140,6 +1142,7 @@ public sealed partial class PlayerViewModel
     }
 
     private bool _volumeReady;
+    private long _volumeConfirmedSample;
     private int _volumeSteps;
     private long _volumeStepGeneration;
     private long _volumeStepOrder;
@@ -1171,6 +1174,7 @@ public sealed partial class PlayerViewModel
                 // next read-back before this callback reaches UI. Only a newer successful reading
                 // can replace one already accepted here; a newer failure must not erase success.
                 _volumeStepConfirmedOrder = order;
+                _volumeConfirmedSample = _playback.ConfirmedVolumeSample;
                 _volumeReady = true;
                 if (_volumeMemory.Observe(new PlayerStatus { Loaded = true, Volume = level, VolumeKnown = true },
                     canControl: true, Now) is { } observed)

@@ -42,6 +42,29 @@ internal static class SettingsApplicabilityTests
     public static void Register(string shellAssemblyPath, string sourceRoot, bool videoOnly = false)
     {
         var shell = new ShellFixture(shellAssemblyPath, sourceRoot);
+        TestHarness.Test("R12-001 外部GPU隐藏专属HDR曲线和恢复项且不清偏好", () =>
+        {
+            var state = shell.Create(settings =>
+            {
+                settings.Mpv.Backend = Momoka.Configuration.MpvBackendKind.ExternalMpv;
+                settings.Video.Renderer = "gpu";
+                settings.Video.ToneMapping = "spline";
+                settings.Video.HdrContrastRecovery = 0.7;
+            });
+            var choices = state.Get<IEnumerable>(state.Row(HdrTitle, "HDR 映射算法"), "Choices").Cast<object>()
+                .Select(choice => state.Get<string>(choice, "Label")).ToArray();
+            Assert.False(choices.Contains("Spline"));
+            Assert.False(state.Labels(HdrTitle).Contains("HDR 对比度恢复"));
+            Assert.False(state.Labels(HdrTitle).Contains("HDR 参考白亮度"));
+            state.Settings.Settings.Video.Renderer = "gpu-next";
+            state.Reenter();
+            choices = state.Get<IEnumerable>(state.Row(HdrTitle, "HDR 映射算法"), "Choices").Cast<object>()
+                .Select(choice => state.Get<string>(choice, "Label")).ToArray();
+            Assert.True(choices.Contains("Spline"));
+            Assert.True(state.Labels(HdrTitle).Contains("HDR 对比度恢复"));
+            Assert.Equal("spline", state.Settings.Settings.Video.ToneMapping);
+            Assert.Equal<double?>(0.7, state.Settings.Settings.Video.HdrContrastRecovery);
+        });
         TestHarness.Test("适用性：初建与 cached 重入接线使用相同规则（源码检查，非 UI）", () =>
         {
             Assert.Contains("Sections.Add(ApplicableShaderCard());", shell.Source);

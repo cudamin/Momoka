@@ -159,7 +159,7 @@ public sealed class PlaybackPlanner(
             shaderCacheDirectory, ScreenshotDirectory, fontsDirectory));
         options.AddRange(MpvOutputOptions.Build(
             settings.Video, settings.Audio, settings.Playback, source, decision.Animated, displayRefreshHz, audioDevice,
-            MpvSvp.IsEnabled(settings.Mpv)));
+            MpvSvp.IsEnabled(settings.Mpv), settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv || settings.Video.Renderer != "gpu"));
         options.AddRange(chainOptions);
 
         // 「设置里开着的东西这次没生效」 has to be visible somewhere other than the settings page, which is not open

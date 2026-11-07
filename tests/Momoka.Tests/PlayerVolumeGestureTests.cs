@@ -28,6 +28,37 @@ internal static partial class PlayerVolumeGestureTests
 
     private static void Register(ShellFixture shell)
     {
+        foreach (var display in new[] { 100.0, 95.0 })
+            Case($"R12-002 未知音量显示{display}重置仍明确写100", async () =>
+            {
+                await using var state = new State(shell, actual: 37);
+                if (display == 95)
+                {
+                    state.Nudge(-5);
+                    VolumeContext.RunPosts(1);
+                }
+                var command = state.Handle.HoldCommand();
+                state.Reset();
+                command.Release.TrySetResult(true);
+                VolumeContext.RunPosts(1);
+                Assert.Equal(100.0, state.Handle.Actual);
+                Assert.Equal(100.0, state.Volume);
+            });
+        Case("R12-003 相对读回后的迟到旧采样不能覆盖或保存音量", async () =>
+        {
+            await using var state = new State(shell, actual: 37);
+            var pending = state.Handle.HoldRead();
+            state.Nudge(-5); state.Nudge(-5);
+            pending.Release.TrySetResult(32);
+            VolumeContext.RunPosts(2);
+            Assert.Equal(27.0, state.Volume);
+            state.StampedStatus(32, 1);
+            Assert.Equal(27.0, state.Volume);
+            state.Flush();
+            Assert.Equal("27", state.Settings.SavedText);
+            state.StampedStatus(33, long.MaxValue);
+            Assert.Equal(33.0, state.Volume);
+        });
         Case("R-053 未知音量入口连续 -5/-5 只各发送一次步长", async () =>
         {
             await using var state = new State(shell, actual: 37);

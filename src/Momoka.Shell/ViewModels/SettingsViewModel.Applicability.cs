@@ -1,3 +1,4 @@
+using Momoka.Configuration;
 using Momoka.Mpv;
 
 namespace Momoka.Shell.ViewModels;
@@ -27,6 +28,8 @@ public sealed partial class SettingsViewModel
             mode.Selected, Save, RefreshHdrApplicability);
         if (string.Equals(Settings.Video.HdrMode, "tonemap", StringComparison.OrdinalIgnoreCase))
             section.UpdateRows(section.Rows.Where(row => row.Label != "HDR 输出峰值亮度").ToArray());
+        if (Settings.Mpv.Backend == MpvBackendKind.ExternalMpv && Settings.Video.Renderer == "gpu")
+            section.UpdateRows(section.Rows.Where(row => row.Label is not ("HDR 参考白亮度" or "HDR 对比度恢复")).ToArray());
         return section;
     }
 
@@ -41,7 +44,12 @@ public sealed partial class SettingsViewModel
     {
         if (_settings is null) return;
         var section = Sections.FirstOrDefault(card => card.Title == "HDR 与杜比视界");
-        section?.UpdateRows(ApplicableHdrCard().Rows);
+        if (section is null) return;
+        var rows = ApplicableHdrCard().Rows;
+        section.UpdateRows(rows);
+        var wanted = rows.FirstOrDefault(row => row.Label == "HDR 映射算法");
+        var index = section.Rows.ToList().FindIndex(row => row.Label == "HDR 映射算法");
+        if (index >= 0 && wanted is not null) section.Rows[index] = wanted;
     }
 
     private SettingSliderRow SubtitleShadowRow() =>

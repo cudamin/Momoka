@@ -148,6 +148,17 @@ internal static partial class PlayerVolumeGestureTests
             _shell.ViewModel.GetProperty("Tracks", Members)!.SetValue(_vm, Array.Empty<MpvTrack>());
         }
         internal void Nudge(double step) => _shell.Invoke(_vm, "NudgeVolume", step);
+        internal void Reset() => _shell.Invoke(_vm, "ResetVolume");
+        internal void ChooseSubtitle(int id) => _shell.Invoke(_vm, "SelectTrack", false, id);
+        internal void SeedSubtitleDelay(double value) => _shell.ViewModel.GetProperty("SubtitleDelay", Members)!.SetValue(_vm, value);
+        internal void NudgeSubtitleDelay(double value) => _shell.Invoke(_vm, "NudgeDelay", true, value);
+        internal Task EnableTracks() { Handle.MenuTracks = true; return PopulateTracks(); }
+        internal void StampedStatus(double level, long sample)
+        {
+            object status = Known((int)level);
+            typeof(PlayerStatus).GetProperty("VolumeSample")?.SetValue(status, sample);
+            Status((PlayerStatus)status);
+        }
         internal void SetVolume(double value) => _shell.ViewModel.GetProperty("Volume", Members)!.SetValue(_vm, value);
         internal void Status(PlayerStatus status)
         {
@@ -278,6 +289,10 @@ internal static partial class PlayerVolumeGestureTests
         internal bool Reject { get; set; }
         internal ReadFailure Failure { get; set; }
         internal PlayerStatus Current { get; set; } = new();
+        internal bool MenuTracks;
+        internal bool SubtitleVisible = true;
+        internal int SelectedSubtitle = 1;
+        internal double Delay;
         internal ReadGate HoldRead() { _read = new ReadGate(); _reads.Add(_read); return _read; }
         internal CommandGate HoldCommand() { _command = new CommandGate(); _commands.Add(_command); return _command; }
         internal void ReleaseAll()
@@ -289,11 +304,26 @@ internal static partial class PlayerVolumeGestureTests
         public bool HasControlChannel => Control;
         public bool IsPaused => false;
         public PlayerStatus Status => Current;
+        public long VolumeReadSample { get; private set; }
         public event Action<bool>? PauseChanged { add { } remove { } }
         public event Action<PlayerStatus>? StatusChanged { add { } remove { } }
         public event Action<IReadOnlyList<MpvTrack>>? TracksChanged { add { } remove { } }
         public async Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
         {
+            if (MenuTracks && arguments[0] == "show-text") return true;
+            if (MenuTracks && arguments[1] == "sub-delay")
+            {
+                var seconds = double.Parse(arguments[2], CultureInfo.InvariantCulture);
+                Delay = arguments[0] == "add" ? Delay + seconds : seconds;
+                return true;
+            }
+            if (MenuTracks && arguments[0] == "set" && arguments[1] is "sid" or "sub-visibility")
+            {
+                if (Reject) return false;
+                if (arguments[1] == "sid") SelectedSubtitle = int.Parse(arguments[2], CultureInfo.InvariantCulture);
+                else SubtitleVisible = arguments[2] == "yes";
+                return true;
+            }
             if (arguments.Count != 3 || arguments[1] != "volume" || arguments[0] is not ("add" or "set"))
                 throw new AssertionException("音量夹具拒绝其它播放领域命令");
             Commands.Enqueue([.. arguments]);
@@ -306,7 +336,9 @@ internal static partial class PlayerVolumeGestureTests
         }
         public Task<double?> GetNumberAsync(string name, CancellationToken cancellationToken)
         {
+            if (MenuTracks && name == "sub-delay") return Task.FromResult<double?>(Delay);
             if (name != "volume") throw new AssertionException("只能读取假音量");
+            VolumeReadSample = System.Diagnostics.Stopwatch.GetTimestamp();
             var read = Interlocked.Exchange(ref _read, null);
             if (read is not null) { read.Entered.TrySetResult(); return read.Release.Task; }
             return Failure switch
@@ -321,12 +353,20 @@ internal static partial class PlayerVolumeGestureTests
         public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken) => throw new AssertionException("禁止其它播放读取");
         public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken)
         {
+            if (MenuTracks) return Task.FromResult<IReadOnlyList<MpvTrack>>(
+                [new MpvTrack(1, "sub", null, null, false, SelectedSubtitle == 1),
+                new MpvTrack(2, "sub", null, null, false, SelectedSubtitle == 2)]);
             var read = Interlocked.Exchange(ref _trackRead, null) ?? throw new AssertionException("只有轨道专项可读取受控假列表");
             TrackReads++;
             read.Entered.TrySetResult();
             return read.Release.Task;
         }
-        public Task SetPropertyAsync(string name, object? value, CancellationToken cancellationToken) => throw new AssertionException("只允许音量命令");
+        public Task SetPropertyAsync(string name, object? value, CancellationToken cancellationToken)
+        {
+            if (MenuTracks && name == "sid") { SelectedSubtitle = Convert.ToInt32(value, CultureInfo.InvariantCulture); return Task.CompletedTask; }
+            if (MenuTracks && name == "sub-delay") { Delay = Convert.ToDouble(value, CultureInfo.InvariantCulture); return Task.CompletedTask; }
+            throw new AssertionException("只允许音量命令");
+        }
         public Task ShowMessageAsync(string text) => throw new AssertionException("禁止通知或原生消息");
         public Task<PlaybackExit> WaitForExitAsync(CancellationToken cancellationToken) => throw new AssertionException("禁止监控播放");
         public Task StopAsync() => throw new AssertionException("不启动或停止真实播放，仅替换边界句柄");

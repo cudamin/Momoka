@@ -17,6 +17,7 @@ public sealed partial class SettingsViewModel
         // 补帧卡读的是这张卡保存的值（模式、算法、硬解），基础值一变它就得跟着重算；它自己的行只由
         // RefreshFrameInterpolationRows 改，两边不互相回调用。
         RefreshFrameInterpolationRows();
+        RefreshHdrApplicability();
     }
 
     private SettingSection VideoCard()
@@ -35,7 +36,7 @@ public sealed partial class SettingsViewModel
         else
         {
             rows.Add(Mpv("视频渲染", MpvOutputOptions.Renderers, () => video.Renderer, value => video.Renderer = value,
-                "vo", "通常使用 GPU-Next；遇到兼容问题可尝试 GPU。外部 mpv 使用本页设置，不读取 mpv.conf。"));
+                "vo", "通常使用 GPU-Next；遇到兼容问题可尝试 GPU。外部 mpv 使用本页设置，不读取 mpv.conf。", RefreshVideoBackend));
         }
         if (builtIn && Settings.Mpv.Pipeline == VideoPipelineKind.Integrated)
         {
@@ -168,7 +169,7 @@ public sealed partial class SettingsViewModel
                 "target-colorspace-hint", "HDR 输出要求系统和显示器支持 HDR；不支持时由内核映射。不是电视原生杜比视界直通。"),
             Optional("HDR 输出峰值亮度", () => video.HdrPeakNits, value => video.HdrPeakNits = value, 1000,
                 "自动使用显示器上报或内核推定值。手动按屏幕实际峰值填写，例如 600 或 1000；映射到 SDR 时不套用此上限。", "target-peak"),
-            Mpv("HDR 映射算法", HdrOptions.ToneMappings, () => video.ToneMapping, value => video.ToneMapping = value,
+            Mpv("HDR 映射算法", HdrOptions.AvailableToneMappings(Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv || video.Renderer != "gpu"), () => video.ToneMapping, value => video.ToneMapping = value,
                 "tone-mapping", "处理超过目标亮度的高光。自动或 Spline 适合先试；不会再强制截断高光。"),
             Mpv("动态峰值检测", HdrOptions.PeakDetection, () => video.HdrComputePeak, value => video.HdrComputePeak = value,
                 "hdr-compute-peak", "按画面估算亮度而不只信任片源元数据；需要额外 GPU 算力。"),

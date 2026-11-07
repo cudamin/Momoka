@@ -1061,9 +1061,10 @@ internal sealed class LibMpvHandle(
                 status = status with { Paused = ReadFlag(property) };
                 break;
             case ObserveVolume:
-                var volume = ReadDouble(property);
-                if (property.Format != LibMpvNative.FormatDouble || !double.IsFinite(volume)) return;
-                status = status with { Volume = volume, VolumeKnown = true };
+                // Queued event data can predate command readback. Read under the shared API gate.
+                if (LibMpvNative.mpv_get_property_double(context, "volume", LibMpvNative.FormatDouble, out var volume) < 0
+                    || !double.IsFinite(volume)) return;
+                status = status with { Volume = volume, VolumeKnown = true, VolumeSample = System.Diagnostics.Stopwatch.GetTimestamp() };
                 break;
             case ObserveMute:
                 status = status with { Muted = ReadFlag(property) };
@@ -1499,10 +1500,14 @@ internal sealed class LibMpvHandle(
     {
         cancellationToken.ThrowIfCancellationRequested();
         return ReadAsync<double?>(() =>
-            LibMpvNative.mpv_get_property_double(context, name, LibMpvNative.FormatDouble, out var number) < 0
-                ? null
-                : number);
+        {
+            var success = LibMpvNative.mpv_get_property_double(context, name, LibMpvNative.FormatDouble, out var number) >= 0;
+            if (success && name == "volume") Interlocked.Exchange(ref _volumeReadSample, System.Diagnostics.Stopwatch.GetTimestamp());
+            return success ? number : null;
+        });
     }
+    private long _volumeReadSample;
+    public long VolumeReadSample => Interlocked.Read(ref _volumeReadSample);
 
     public Task<bool?> HasOptionAsync(string name, CancellationToken cancellationToken)
     {

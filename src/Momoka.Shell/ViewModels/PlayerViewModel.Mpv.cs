@@ -135,13 +135,7 @@ public sealed partial class PlayerViewModel
             _ = ChangeAudioDelayAsync(delta, relative: true, notice: true);
             return;
         }
-        var value = Math.Round(SubtitleDelay + delta, 3);
-        SetDelay(subtitle: true, value);
-
-        _ = _playback.CommandAsync(
-            "show-text",
-            $"{(subtitle ? "字幕延迟" : "音频延迟")}：{value.ToString("+0.0#;-0.0#;0", CultureInfo.InvariantCulture)} 秒",
-            "1200");
+        _ = ChangeSubtitleDelayAsync(delta, relative: true, notice: true);
     }
 
     internal void ResetDelay(bool subtitle)
@@ -151,8 +145,7 @@ public sealed partial class PlayerViewModel
             _ = ChangeAudioDelayAsync(0, relative: false, notice: true);
             return;
         }
-        SetDelay(subtitle: true, 0);
-        _ = _playback.CommandAsync("show-text", "字幕延迟：${sub-delay} 秒", "1200");
+        _ = ChangeSubtitleDelayAsync(0, relative: false, notice: true);
     }
 
     /// <summary>
@@ -166,8 +159,17 @@ public sealed partial class PlayerViewModel
             _ = ChangeAudioDelayAsync(value, relative: false, notice: false);
             return;
         }
-        SubtitleDelay = value;
-        _ = _playback.SetPropertyAsync("sub-delay", value);
+        _ = ChangeSubtitleDelayAsync(value, relative: false, notice: false);
+    }
+    private long _subtitleDelayRequest;
+    private async Task ChangeSubtitleDelayAsync(double value, bool relative, bool notice)
+    {
+        var request = ++_subtitleDelayRequest;
+        var context = CaptureInteraction();
+        var applied = await _playback.ChangeSubtitleDelayAsync(value, relative, notice).ConfigureAwait(true);
+        if (request != _subtitleDelayRequest || !IsCurrentInteraction(context)) return;
+        if (applied is { } seconds) SubtitleDelay = Math.Round(seconds, 3);
+        else Noticed?.Invoke("字幕延迟未能确认，请重试", InfoBarSeverity.Warning);
     }
 
     private async Task ChangeAudioDelayAsync(double value, bool relative, bool notice)
@@ -200,7 +202,9 @@ public sealed partial class PlayerViewModel
 
     internal void ResetVolume()
     {
-        Volume = 100;
+        DisplayVolume(100);
+        var request = _volumeMemory.Request(100, Now);
+        _ = SendVolumeAsync(request, 100, _playback.Generation);
         _ = _playback.SetPropertyAsync("mute", false);
     }
 
@@ -213,12 +217,18 @@ public sealed partial class PlayerViewModel
     /// </summary>
     internal void SelectTrack(bool audio, int? id)
     {
-        _ = _playback.SetPropertyAsync(audio ? "aid" : "sid", id is null ? "no" : id);
-
-        Tracks = [.. Tracks.Select(track =>
-            (audio ? track.IsAudio : track.IsSubtitle)
-                ? track with { Selected = id is { } chosen && track.Id == chosen }
-                : track)];
+        _ = SelectTrackConfirmedAsync(audio, id, CaptureInteraction());
+    }
+    private async Task SelectTrackConfirmedAsync(bool audio, int? id, InteractionContext context)
+    {
+        try
+        {
+            var tracks = await _playback.SelectTrackAsync(audio, id).ConfigureAwait(true);
+            if (!IsCurrentInteraction(context)) return;
+            if (tracks is not null) Tracks = tracks;
+            else Noticed?.Invoke("轨道选择未能确认，请重试", InfoBarSeverity.Warning);
+        }
+        catch (Exception) { if (IsCurrentInteraction(context)) Noticed?.Invoke("轨道选择失败，请重试", InfoBarSeverity.Warning); }
     }
 
     /// <summary>

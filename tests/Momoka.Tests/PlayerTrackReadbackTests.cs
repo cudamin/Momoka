@@ -20,6 +20,25 @@ internal static partial class PlayerVolumeGestureTests
 
     private static void RegisterTracks(ShellFixture shell)
     {
+        Case("R13-005 字幕延迟复位后微调以实际零为基准", async () =>
+        {
+            await using var state = new State(shell, actual: 37);
+            await state.EnableTracks();
+            state.SeedSubtitleDelay(0.5);
+            state.Handle.Delay = 0;
+            state.NudgeSubtitleDelay(0.1);
+            Assert.Equal(0.1, state.Handle.Delay);
+        });
+        Case("R13-004 集成有效选字幕恢复可见性并按实际轨确认", async () =>
+        {
+            await using var state = new State(shell, actual: 37);
+            await state.EnableTracks();
+            state.Handle.SubtitleVisible = false;
+            state.ChooseSubtitle(2);
+            Assert.True(state.Handle.SubtitleVisible);
+            Assert.Equal(2, state.Handle.SelectedSubtitle);
+            Assert.Equal(2, state.Tracks.Single(track => track.Selected).Id);
+        });
         foreach (var audio in new[] { false, true })
         {
             Case("R-058 同场旧补读在新通知之后不覆盖" + (audio ? "音轨" : "字幕"), async () =>

@@ -227,6 +227,13 @@ internal static class Program
             SubtitleBehaviorTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["playback-remainder-core-fixture"])
+        {
+            MpvCustomConfigTests.Register();
+            SubtitleBehaviorTests.Register();
+            FileOptionBatchTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["audio-output-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -361,6 +368,7 @@ internal static class Program
         MediaSourceSizeTests.Register();
         BackendLifecycleTests.Register();
         MpvCustomConfigTests.Register();
+        FileOptionBatchTests.Register();
         AudioOutputTests.Register();
         VideoOutputTests.Register();
         Anime4KTests.Register();

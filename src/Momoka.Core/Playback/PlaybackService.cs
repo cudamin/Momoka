@@ -44,10 +44,15 @@ public sealed partial class PlaybackService(
     private volatile IPlaybackHandle? _current;
     private volatile PlayingAttempt? _active;
     private readonly SemaphoreSlim _audioDelayGate = new(1, 1);
+    private readonly SemaphoreSlim _subtitleDelayGate = new(1, 1);
     private readonly SemaphoreSlim _volumeCommandGate = new(1, 1);
     private readonly SemaphoreSlim _shaderGate = new(1, 1);
     private readonly SemaphoreSlim _subtitleStyleGate = new(1, 1);
     private long _subtitleStyleRevision;
+    private readonly SemaphoreSlim _screenshotOptionsGate = new(1, 1);
+    private long _screenshotOptionsRevision;
+    private long _confirmedVolumeSample;
+    public long ConfirmedVolumeSample => Interlocked.Read(ref _confirmedVolumeSample);
 
     public bool ShaderStateKnown { get; private set; } = true;
     private long _playbackGeneration;
@@ -66,6 +71,7 @@ public sealed partial class PlaybackService(
 
     public long Generation => Interlocked.Read(ref _playbackGeneration);
     public bool IsPlaying => _current is not null;
+    public long? ActiveFileGeneration => (_current as IFileScopedPlayerControl)?.FileGeneration;
     public bool? PictureInHostWindow => _current?.PictureInHostWindow;
     public MpvBackendKind? PlayingBackend => _active?.BackendKind;
     public bool PlayingWithSvp => _active?.Request.SvpEnabled == true;
@@ -175,6 +181,7 @@ public sealed partial class PlaybackService(
                 CancellationToken.None).ConfigureAwait(false) || !Current()) return null;
             var actual = await handle.GetNumberAsync("volume", CancellationToken.None).ConfigureAwait(false);
             if (!Current() || actual is not { } level || !double.IsFinite(level)) return null;
+            Interlocked.Exchange(ref _confirmedVolumeSample, handle.VolumeReadSample);
             return Current() ? level : null;
         }
         catch (Exception error)
@@ -245,6 +252,30 @@ public sealed partial class PlaybackService(
         }
         finally { _audioDelayGate.Release(); }
     }
+    public async Task<double?> ChangeSubtitleDelayAsync(double value, bool relative, bool notice = false)
+    {
+        var handle = _current;
+        var generation = Generation;
+        if (!double.IsFinite(value) || handle is not IPlayerControl control || !handle.HasControlChannel) return null;
+        var scoped = handle as IFileScopedPlayerControl;
+        var file = scoped?.FileGeneration;
+        bool Current() => IsCurrent(handle, generation) && (scoped is null || file == scoped.FileGeneration);
+        Task<bool> Command(IReadOnlyList<string> args) => scoped is null
+            ? control.CommandAsync(args, CancellationToken.None)
+            : scoped.CommandForFileAsync(file!.Value, args, CancellationToken.None);
+        await _subtitleDelayGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (!Current() || !await Command([relative ? "add" : "set", "sub-delay", value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)]).ConfigureAwait(false)
+                || !Current()) return null;
+            var actual = await handle.GetNumberAsync("sub-delay", CancellationToken.None).ConfigureAwait(false);
+            if (!Current() || actual is not { } delay || !double.IsFinite(delay)) return null;
+            if (notice) await Command(["show-text", "字幕延迟：${sub-delay} 秒", "1200"]).ConfigureAwait(false);
+            return Current() ? delay : null;
+        }
+        catch (Exception error) { Log.Warn(Category, "调整字幕延迟失败", error); return null; }
+        finally { _subtitleDelayGate.Release(); }
+    }
 
     public async Task ExitNativeFullscreenOrStopAsync()
     {
@@ -276,8 +307,41 @@ public sealed partial class PlaybackService(
     /// </summary>
     public async Task ApplyScreenshotOptionsAsync()
     {
-        foreach (var (name, value) in MpvBaseline.ScreenshotOptions.From(settings.Mpv).ToMpvOptions())
-            await SetPropertyAsync(name, value).ConfigureAwait(false);
+        if (_current is not { } handle) return;
+        var generation = Generation;
+        var revision = Interlocked.Increment(ref _screenshotOptionsRevision);
+        var options = MpvBaseline.ScreenshotOptions.From(settings.Mpv).ToMpvOptions().ToArray();
+        var scoped = handle as IFileScopedPlayerControl;
+        var file = scoped?.FileGeneration;
+        bool Current() => IsCurrent(handle, generation) && revision == Volatile.Read(ref _screenshotOptionsRevision)
+            && (scoped is null || file == scoped.FileGeneration);
+        await _screenshotOptionsGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var failures = new List<string>();
+            foreach (var (name, value) in options)
+            {
+                if (!Current()) return;
+                try
+                {
+                    var accepted = true;
+                    if (scoped is not null)
+                        accepted = await scoped.CommandForFileAsync(file!.Value, ["set", name, value], CancellationToken.None).ConfigureAwait(false);
+                    else if (handle is IPlayerControl control)
+                        accepted = await control.CommandAsync(["set", name, value], CancellationToken.None).ConfigureAwait(false);
+                    else await handle.SetPropertyAsync(name, value, CancellationToken.None).ConfigureAwait(false);
+                    if (!accepted) failures.Add(name);
+                }
+                catch (Exception error)
+                {
+                    Log.Warn(Category, $"应用截图选项 {name} 失败", error);
+                    failures.Add(name);
+                }
+            }
+            if (Current() && failures.Count > 0)
+                throw new InvalidOperationException($"部分截图选项未应用：{string.Join("、", failures)}。已保存的偏好仍用于下次播放。");
+        }
+        finally { _screenshotOptionsGate.Release(); }
     }
 
     private async Task SetPropertyAsync(IPlaybackHandle handle, long generation, string name, object? value)
@@ -293,10 +357,13 @@ public sealed partial class PlaybackService(
         if (_current is not { } handle) return;
         var generation = Generation;
         var revision = Interlocked.Increment(ref _subtitleStyleRevision);
+        var scoped = handle as IFileScopedPlayerControl;
+        var file = scoped?.FileGeneration;
         var wanted = MpvOutputOptions.SubtitleAppearance(settings.Playback)
             .ToDictionary(option => option.Key, option => option.Value, StringComparer.Ordinal);
         bool Current() => ReferenceEquals(_current, handle) && Generation == generation
-            && Volatile.Read(ref _subtitleStyleRevision) == revision;
+            && Volatile.Read(ref _subtitleStyleRevision) == revision
+            && (scoped is null || _active is { Ending: false } && file == scoped.FileGeneration);
 
         await _subtitleStyleGate.WaitAsync().ConfigureAwait(false);
         try
@@ -330,7 +397,12 @@ public sealed partial class PlaybackService(
                 if (!Current()) return;
                 try
                 {
-                    if (handle is IPlayerControl control)
+                    if (scoped is not null)
+                    {
+                        if (!await scoped.CommandForFileAsync(file!.Value, ["set", name, value], CancellationToken.None).ConfigureAwait(false))
+                            unavailable.Add(name);
+                    }
+                    else if (handle is IPlayerControl control)
                     {
                         if (!await control.CommandAsync(["set", name, value], CancellationToken.None).ConfigureAwait(false))
                             unavailable.Add(name);
@@ -414,6 +486,28 @@ public sealed partial class PlaybackService(
             Log.Warn(Category, $"执行 mpv 命令 {(arguments.Length > 0 ? arguments[0] : "空命令")} 失败", error);
             return false;
         }
+    }
+    /// <summary>One user selection, bound to the file that owned the menu before its first await.</summary>
+    public async Task<IReadOnlyList<MpvTrack>?> SelectTrackAsync(bool audio, int? id)
+    {
+        var handle = _current;
+        var generation = Generation;
+        if (handle is not IPlayerControl control || !handle.HasControlChannel) return null;
+        var scoped = handle as IFileScopedPlayerControl;
+        var file = scoped?.FileGeneration;
+        bool Current() => IsCurrent(handle, generation) && (scoped is null || file == scoped.FileGeneration);
+        Task<bool> Command(IReadOnlyList<string> args) => scoped is null
+            ? control.CommandAsync(args, CancellationToken.None)
+            : scoped.CommandForFileAsync(file!.Value, args, CancellationToken.None);
+        if (!Current()) return null;
+        var tracks = await handle.GetTracksAsync(CancellationToken.None).ConfigureAwait(false);
+        if (!Current() || id is { } chosen && !tracks.Any(track => track.Id == chosen && (audio ? track.IsAudio : track.IsSubtitle))) return null;
+        if (!await Command(["set", audio ? "aid" : "sid", id?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "no"]).ConfigureAwait(false)
+            || !Current()) return null;
+        if (!audio && id is not null && !await Command(["set", "sub-visibility", "yes"]).ConfigureAwait(false)) return null;
+        if (!Current()) return null;
+        tracks = await handle.GetTracksAsync(CancellationToken.None).ConfigureAwait(false);
+        return Current() ? tracks : null;
     }
 
     public async Task<bool> SetShaderGroupAsync(ShaderGroup? group)

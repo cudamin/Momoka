@@ -129,6 +129,7 @@ public interface IPlaybackHandle : IAsyncDisposable
 
     /// <summary>A numeric property (e.g. volume), or null when it cannot be read.</summary>
     Task<double?> GetNumberAsync(string name, CancellationToken cancellationToken);
+    long VolumeReadSample => 0;
 
     /// <summary>
     /// A property as mpv's own formatted text (e.g. <c>video-codec</c>, <c>hwdec-current</c>), or

@@ -260,11 +260,16 @@ internal static class SettingsScreenshotRestoreTests
             Properties[name] = text;
             Writes.Enqueue(new(name, text));
         }
-        public Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+        public async Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
         {
+            if (arguments[0] == "set")
+            {
+                await SetPropertyAsync(arguments[1], arguments[2], cancellationToken);
+                return true;
+            }
             Assert.Equal("screenshot", arguments[0]);
             LastScreenshot = new Dictionary<string, string>(Properties, StringComparer.Ordinal);
-            return Task.FromResult(true);
+            return true;
         }
         public Task<double?> GetPositionAsync(CancellationToken cancellationToken) => Task.FromResult<double?>(0);
         public Task<PlaybackExit> WaitForExitAsync(CancellationToken cancellationToken) => throw new AssertionException("不允许监视真实播放");
