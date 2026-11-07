@@ -42,19 +42,43 @@ public sealed partial class MoviePilotService
         };
     }
 
-    public void SaveSearchSitePreference(string connectionStamp, string? mediaType, bool useDefault, IEnumerable<int> siteIds)
+    public void SaveSearchSitePreference(string connectionStamp, string? mediaType, bool useDefault, IEnumerable<int> siteIds,
+        bool restoreOnFailure = false)
     {
         RequireResultConnection(connectionStamp);
         var key = SearchSitePreferenceKey(mediaType);
         if (key is null) return;
         _settings.MoviePilot.SearchSitePreferences ??= new(StringComparer.Ordinal);
-        _settings.MoviePilot.SearchSitePreferences[key] = new()
+        var preferences = _settings.MoviePilot.SearchSitePreferences;
+        preferences.TryGetValue(key, out var before);
+        var committed = new MoviePilotSearchSitePreference
         {
             UseDefault = useDefault,
             SiteIds = CleanSiteIds(siteIds)
         };
-        try { _saveSettings?.Invoke(); }
-        finally { SearchSitesChanged?.Invoke(); }
+        preferences[key] = committed;
+        var saved = false;
+        try
+        {
+            _saveSettings?.Invoke();
+            saved = true;
+        }
+        catch
+        {
+            // A failed modal draft is still cancelable. Restore only our own key, and never undo
+            // a different window's reentrant save or replace its dictionary.
+            if (restoreOnFailure && ReferenceEquals(preferences, _settings.MoviePilot.SearchSitePreferences)
+                && preferences.TryGetValue(key, out var current) && ReferenceEquals(current, committed))
+            {
+                if (before is null) preferences.Remove(key);
+                else preferences[key] = before;
+            }
+            throw;
+        }
+        finally
+        {
+            if (saved || !restoreOnFailure) SearchSitesChanged?.Invoke();
+        }
     }
 
     /// <summary>

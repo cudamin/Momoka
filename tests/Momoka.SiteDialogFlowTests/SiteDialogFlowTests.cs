@@ -108,6 +108,23 @@ internal static class SiteDialogFlowTests
             Assert.Equal(1, searches);
         });
 
+        Test("R08-005 草稿保存失败后取消，原默认与缺键继承保持", () =>
+        {
+            using var fixture = new Fixture();
+            var picker = fixture.Picker(search: true);
+            var result = picker.OpenAsync();
+            picker.CurrentDialog!.ViewModel.Sites[0].Selected = true;
+            fixture.FailSave = true;
+            picker.CurrentDialog.PressPrimary();
+            Assert.False(result.IsCompleted);
+            Assert.True(picker.CurrentDialog.ViewModel.NoticeOpen);
+            picker.ClosePopup();
+            Assert.Equal(ContentDialogResult.None, Completed(result));
+            Assert.True(picker.ViewModel.UseDefault);
+            Assert.True(fixture.Service.SearchSitePreference().UseDefault);
+            Assert.Equal(0, fixture.Settings.MoviePilot.SearchSitePreferences.Count);
+        });
+
         Test("站点对话流程：外部更改偏好含A→B→A不被旧草稿覆盖", () =>
         {
             using var fixture = new Fixture();

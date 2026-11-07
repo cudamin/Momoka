@@ -102,7 +102,7 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
         owner._committingDraft = this;
         try
         {
-            _service!.SaveSearchSitePreference(_connectionStamp, _mediaType, UseDefault, _preferredIds);
+            _service!.SaveSearchSitePreference(_connectionStamp, _mediaType, UseDefault, _preferredIds, restoreOnFailure: true);
             if (!IsDraftOwnerCurrent) return false;
             if (_loaded)
             {

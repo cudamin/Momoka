@@ -160,10 +160,15 @@ public sealed partial class MoviePilotClient : IDisposable
 
         if (!response.IsSuccessStatusCode)
         {
-            // 401 here really is a wrong username or password, so it gets its own sentence rather than the
-            // generic status line — it is the one failure a user can fix by typing.
             if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                // The server only returns this challenge after validating the password. Keep the
+                // configured credentials and direct the user to its supported login flow.
+                if (response.Headers.TryGetValues("X-MFA-Required", out var challenge)
+                    && challenge.Any(value => value.Equals("true", StringComparison.OrdinalIgnoreCase)))
+                    throw new MoviePilotException("此账号需要二次验证，当前连接方式尚不支持验证码；请在 MoviePilot 网页端核对登录方式", response.StatusCode, body);
                 throw new MoviePilotException("用户名或密码不正确", response.StatusCode, body);
+            }
 
             throw new MoviePilotException(
                 Describe(response, body, "登录"), response.StatusCode, body);
