@@ -1,3 +1,9 @@
+## 2026-11-07 亚克力染色与明度参数（Core独立树）
+
+本树4bb3a59基础上新增控件/背景两组TintOpacity与TintLuminosityOpacity百分比，四项默认55、有限值夹取0至100、非有限值回55；背景颜色默认取主图，可关闭BackdropTintFromArtwork后用自选BackdropColor。RGB设置、旧整体透明度与固定亚克力模式保持，Fallback由Shell跟随实际Tint并由平台处理省电。
+
+3组新回归先红50项47过3红，后详情专项50/50失败跳过0；Release/x64 Tests/Core零警告错误。日志artifacts/detail-appearance-core/tint-*。仅修改Core配置与AppearanceColorSettingsTests、台账，无Shell/Program变更，最终全量/UI由根代理集成验证。
+
 ## 2026-11-07 单集当季列表与特别篇日期归属（Core独立树）
 
 本树9c8dea6基础上实现ItemDetail.EpisodeSeasonNumber/EpisodeSeasonItems：普通集按原季号，特别篇以季首播或该季最早普通集日期归入展示季，早于首季归首季、等于次季首播归次季、无日期或完全无已知边界留S00。返回原DTO引用、全剧输入不变；单集目录退役全部剧季卡，剧页目录与独立偏好保持。季/单集纵列表，剧页横带。

@@ -1385,10 +1385,27 @@ public sealed class UiSettings
 
     public const string DefaultControlBackgroundColor = "#FFFFFF";
 
-    /// <summary>旧背景遮罩色，仅保留JSON兼容；亚克力颜色由当前主图提供。</summary>
+    /// <summary>按钮与选择框亚克力染色的不透明度（%），独立于整体底色透明度。</summary>
+    public double ControlTintOpacity { get; set; } = DefaultAcrylicTintOpacity;
+
+    /// <summary>按钮与选择框亚克力明度混合的不透明度（%）。</summary>
+    public double ControlTintLuminosityOpacity { get; set; } = DefaultAcrylicTintOpacity;
+
+    /// <summary>背景亚克力使用自选染色时的RGB颜色；默认来源仍是当前主图。</summary>
     public string BackdropColor { get; set; } = DefaultBackdropColor;
 
     public const string DefaultBackdropColor = "#808080";
+
+    /// <summary>背景亚克力默认使用当前主图底色；关闭后使用BackdropColor。</summary>
+    public bool BackdropTintFromArtwork { get; set; } = true;
+
+    /// <summary>背景亚克力染色的不透明度（%），独立于背景层整体透明度。</summary>
+    public double BackdropTintOpacity { get; set; } = DefaultAcrylicTintOpacity;
+
+    /// <summary>背景亚克力明度混合的不透明度（%）。</summary>
+    public double BackdropTintLuminosityOpacity { get; set; } = DefaultAcrylicTintOpacity;
+
+    public const double DefaultAcrylicTintOpacity = 55;
 
     /// <summary>
     /// 详情按钮与选择框底色的不透明度（%）：0 完全透明（没有底色），100 完全不透明。

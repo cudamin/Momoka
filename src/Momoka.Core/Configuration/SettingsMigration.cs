@@ -498,6 +498,14 @@ public static class SettingsMigration
             ? Math.Clamp(settings.Ui.ControlBackgroundOpacity, 0, 100) : 0;
         settings.Ui.BackdropOpacity = double.IsFinite(settings.Ui.BackdropOpacity)
             ? Math.Clamp(settings.Ui.BackdropOpacity, 0, 100) : 0;
+        settings.Ui.ControlTintOpacity = double.IsFinite(settings.Ui.ControlTintOpacity)
+            ? Math.Clamp(settings.Ui.ControlTintOpacity, 0, 100) : UiSettings.DefaultAcrylicTintOpacity;
+        settings.Ui.ControlTintLuminosityOpacity = double.IsFinite(settings.Ui.ControlTintLuminosityOpacity)
+            ? Math.Clamp(settings.Ui.ControlTintLuminosityOpacity, 0, 100) : UiSettings.DefaultAcrylicTintOpacity;
+        settings.Ui.BackdropTintOpacity = double.IsFinite(settings.Ui.BackdropTintOpacity)
+            ? Math.Clamp(settings.Ui.BackdropTintOpacity, 0, 100) : UiSettings.DefaultAcrylicTintOpacity;
+        settings.Ui.BackdropTintLuminosityOpacity = double.IsFinite(settings.Ui.BackdropTintLuminosityOpacity)
+            ? Math.Clamp(settings.Ui.BackdropTintLuminosityOpacity, 0, 100) : UiSettings.DefaultAcrylicTintOpacity;
         // 旧模式键保留JSON兼容，加载、导入、保存及恢复默认都固定使用亚克力。
         settings.Ui.UseAcrylicControls = true;
         settings.Ui.UseAcrylicBackdrop = true;
