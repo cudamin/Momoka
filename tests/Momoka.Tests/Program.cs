@@ -4,6 +4,12 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["review-playback-reporting-fixture"])
+        {
+            R10ReportingTests.Register();
+            PlaybackLifecycleTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["review-foundation-core-fixture"])
         {
             ReviewFoundationTests.RegisterCore();
@@ -365,6 +371,7 @@ internal static class Program
         MarkedWatchedSourceTests.Register();
         KeywordPriorityTests.Register();
         PlaybackLifecycleTests.Register();
+        R10ReportingTests.Register();
         MediaVersionDiscoveryTests.Register();
         MediaSourceSizeTests.Register();
         BackendLifecycleTests.Register();

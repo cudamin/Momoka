@@ -287,16 +287,20 @@ public sealed partial class PlaybackService
 
     private async Task ReportPauseAsync(EmbySessionScope scope, PlayingAttempt attempt, bool paused)
     {
+        var revision = Interlocked.Increment(ref attempt.PauseRevision);
+        bool Current() => IsCurrent(attempt) && revision == Volatile.Read(ref attempt.PauseRevision);
         try
         {
-            if (!IsCurrent(attempt)) return;
+            if (!Current()) return;
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
             var position = await attempt.Handle.GetPositionAsync(deadline.Token).WaitAsync(deadline.Token).ConfigureAwait(false);
-            if (!IsCurrent(attempt) || position is not { } seconds || !double.IsFinite(seconds) || seconds < 0) return;
+            if (!Current()
+                || position is not { } seconds || !double.IsFinite(seconds) || seconds < 0) return;
             var ticks = TimeFormat.ToTicks(seconds);
+            if (!Current()) return;
             Raise(ProgressChanged, new PlaybackProgress(ticks, attempt.Request.RunTimeTicks, paused,
                 attempt.Request.Title, attempt.Generation));
-            await ReportProgressAsync(scope, attempt, ticks, paused, paused ? "pause" : "unpause", CancellationToken.None)
+            await ReportProgressAsync(scope, attempt, ticks, paused, paused ? "pause" : "unpause", CancellationToken.None, revision)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) { }
@@ -304,12 +308,13 @@ public sealed partial class PlaybackService
     }
 
     private async Task ReportProgressAsync(EmbySessionScope scope, PlayingAttempt attempt,
-        long ticks, bool paused, string eventName, CancellationToken cancellationToken)
+        long ticks, bool paused, string eventName, CancellationToken cancellationToken, long? pauseRevision = null)
     {
         await attempt.Reports.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (!IsCurrent(attempt) || attempt.StopReported) return;
+            if (!IsCurrent(attempt) || attempt.StopReported
+                || pauseRevision is { } revision && revision != Volatile.Read(ref attempt.PauseRevision)) return;
             await ReportAsync(scope, "进度", (client, token) => client.ReportPlaybackProgressAsync(
                 Build(attempt, ticks, paused, eventName), token), cancellationToken).ConfigureAwait(false);
         }

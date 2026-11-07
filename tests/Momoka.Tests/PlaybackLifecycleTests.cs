@@ -653,6 +653,7 @@ internal static class PlaybackLifecycleTests
         public double? Position { get; set; } = 0;
         public Func<CancellationToken, Task<double?>>? ReadPosition { get; init; }
         public Func<string, CancellationToken, Task<string?>>? ReadText { get; set; }
+        public Func<CancellationToken, Task<IReadOnlyList<MpvTrack>>>? ReadTracks { get; set; }
         public PlayerStatus Status { get; private set; } = new();
         public event Action<bool>? PauseChanged;
         public event Action<IReadOnlyList<MpvTrack>>? TracksChanged { add { } remove { } }
@@ -694,7 +695,7 @@ internal static class PlaybackLifecycleTests
         public ValueTask DisposeAsync() { DisposeCount++; return ValueTask.CompletedTask; }
         public Task ShowMessageAsync(string text) => Task.CompletedTask;
         public Task SetPropertyAsync(string name, object? value, CancellationToken cancellationToken) => Task.CompletedTask;
-        public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<MpvTrack>>([]);
+        public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken) => ReadTracks?.Invoke(cancellationToken) ?? Task.FromResult<IReadOnlyList<MpvTrack>>([]);
         public Task<double?> GetNumberAsync(string name, CancellationToken cancellationToken) => Task.FromResult<double?>(null);
         public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken) =>
             ReadText?.Invoke(name, cancellationToken) ?? Task.FromResult<string?>(null);

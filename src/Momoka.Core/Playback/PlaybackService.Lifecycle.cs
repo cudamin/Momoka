@@ -36,6 +36,7 @@ public sealed partial class PlaybackService
         public bool StopReported { get; set; }
         public bool HasStarted { get; set; }
         public int ThresholdPending;
+        public long PauseRevision;
         public MpvBackendKind BackendKind { get; init; }
         public Action? Unsubscribe { get; set; }
         public Task StopAsync()
@@ -289,6 +290,9 @@ public sealed partial class PlaybackService
                     HasStarted = handle is IPlayerControl { Status: { HasPosition: true } status }
                         && status.Position > request.StartSeconds + 0.5
                 };
+                // Reserve the start report's place before publishing an attempt that manual
+                // watched reporting can borrow. Track discovery must not let a stop overtake it.
+                attempt.Reports.Wait();
                 _active = attempt;
                 // Admission is complete. A later failed candidate destroys this context as normal
                 // cleanup; that must not look like the predecessor was closed before handoff.
@@ -305,25 +309,32 @@ public sealed partial class PlaybackService
             AudioDeviceInUse = null;
             LastLaunch = new LaunchRecord(DateTimeOffset.Now, request.Title, request.ShaderProfile,
                 request.ShaderReason, LaunchQualityPreset, request.PlayerOptions);
-            Subscribe(attempt);
-            if (attempt.Handle is IPlayerControl trackControl && attempt.Handle.HasControlChannel)
+            var startReserved = true;
+            try
             {
-                var trackRevision = trackState.Revision;
-                using var snapshotDeadline = CancellationTokenSource.CreateLinkedTokenSource(operation.Lifetime.Token);
-                snapshotDeadline.CancelAfter(TimeSpan.FromSeconds(2));
-                try
+                Subscribe(attempt);
+                if (attempt.Handle is IPlayerControl trackControl && attempt.Handle.HasControlChannel)
                 {
-                    var initialTracks = await attempt.Handle.GetTracksAsync(snapshotDeadline.Token)
-                        .WaitAsync(snapshotDeadline.Token).ConfigureAwait(false);
-                    if (IsCurrent(attempt)) trackState.ObserveInitial(initialTracks, trackRevision);
+                    var trackRevision = trackState.Revision;
+                    using var snapshotDeadline = CancellationTokenSource.CreateLinkedTokenSource(operation.Lifetime.Token);
+                    snapshotDeadline.CancelAfter(TimeSpan.FromSeconds(2));
+                    try
+                    {
+                        var initialTracks = await attempt.Handle.GetTracksAsync(snapshotDeadline.Token)
+                            .WaitAsync(snapshotDeadline.Token).ConfigureAwait(false);
+                        if (IsCurrent(attempt)) trackState.ObserveInitial(initialTracks, trackRevision);
+                    }
+                    catch (OperationCanceledException) { }
+                    catch (Exception error) { Log.Warn(Category, "读取起播轨道快照失败，等待下一次轨道通知", error); }
                 }
-                catch (OperationCanceledException) { }
-                catch (Exception error) { Log.Warn(Category, "读取起播轨道快照失败，等待下一次轨道通知", error); }
+                RaiseNowPlaying(ticket.Item, attempt.Generation);
+                await ReportAsync(scope, "开始", (client, token) => client.ReportPlaybackStartAsync(
+                    Build(attempt, TimeFormat.ToTicks(Math.Max(0, request.StartSeconds)), false, null), token), operation.Lifetime.Token)
+                    .ConfigureAwait(false);
+                attempt.Reports.Release();
+                startReserved = false;
             }
-            RaiseNowPlaying(ticket.Item, attempt.Generation);
-            await ReportAsync(scope, "开始", (client, token) => client.ReportPlaybackStartAsync(
-                Build(attempt, TimeFormat.ToTicks(Math.Max(0, request.StartSeconds)), false, null), token), operation.Lifetime.Token)
-                .ConfigureAwait(false);
+            finally { if (startReserved) attempt.Reports.Release(); }
 
             var ended = false;
             try
