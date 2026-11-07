@@ -11337,3 +11337,6 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 不改产品、不运行GUI/native/真实设置或服务器；构建、专项与生成输入拒绝验证完成后交父整合。
 - 独立夹具验证完成：本树5c9afa0三专项原始Release/x64编译各0警告1个CancelAppearanceColors错误。修后当前Shell及三专项构建0警告0错误；最终SettingsLifetime60/60、SettingsProbeContract33/33、HomeOrder21/21，均零失败零跳过。新增9项在生成取消方法空实现的独立复制项目中分别5/2/2失败，保留原色未恢复证据。三生成器缺方法/重复方法各拒绝、合法方法各成功；SettingsProbe颜色partial编译后漂移拒绝且恢复再33/33，共15项成功/拒绝判定通过。定向whitespace退出0但有工作区加载警告，14文本编码/diff通过。首driver继承负例LASTEXITCODE、hash项目参数拼接MSB1008过程失败保留；最终driver显式0。无产品变动、实际WinUI/native/真实服务器/设置操作或发布。
 - 本批只有测试夹具/README与本段记录，提交后交父会话整合；保留托管树和证据，不删除或发布。
+
+- 第九批最终测试源码25c3a7f：全方案Release0警告0错误、当前Tests/Core x64重编0/0，完整4135/4135失败0跳过0；实际Shell三个设置60/33/21，最终R04841/41，空白退出0带workspace加载警告，31文本检查通过，原红均保留。两阶段独立复核无必要发现。证据artifacts/review-batch9-master；源/输出SHA见tested-source.json。
+- 本会话现释放主树写入/构建/UI/发布所有权给用户授权协调的228e详情聊天，由其自行合UI后最终重验并一次实际发布。产品5c9afa0、空白6ba95cb、R04868749c5、设置b3418db已在master；无待合修复，尚待统一交付回执，快捷方式当前仍前批应用。本会话继续跟进回执，不报已交付。不要自动合该聊天UI或覆盖它发布目录。
