@@ -579,7 +579,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>当前的模糊档位 —— 高斯模糊那一路读设置里的强度（<see cref="GaussianBackdrop.SigmaFor"/>，0 档
     /// 不模糊）；暗色遮罩那一路按裁切占比（<see cref="DetailHero.PictureCrop"/>）换算半径。电影和剧没有基础
     /// 半径，裁多少加多少；集页只在紧凑版式里画这张图，宽版式上裁切占比算出来照样有值，只是没有一层画它。</summary>
-    private int HeroBlurTarget => UseGaussianBackdrop ? GaussianBackdrop.SigmaFor(BackdropStrength) : BackdropBlur.CropRadius(
+    private int HeroBlurTarget => BackdropStrength <= 0 ? 0 : UseGaussianBackdrop ? GaussianBackdrop.SigmaFor(BackdropStrength) : BackdropBlur.CropRadius(
         DetailHero.PictureCrop(PageWidth, HeroHeightRatio, Viewport), CropBlurStart, 0, CropBlurExtra, CropBlurStep);
 
     /// <summary>

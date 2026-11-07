@@ -27,6 +27,17 @@ internal static class DetailSubjectRemovalTests
             AssemblyLoadContext.Default.Resolving += (context, name) => File.Exists(Path.Combine(directory, name.Name + ".dll"))
                 ? context.LoadFromAssemblyPath(Path.Combine(directory, name.Name + ".dll")) : null;
             var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(dll);
+            Test("R07-009 宽窗背景强度零档不保留裁切模糊，恢复非零仍沿原规则", () =>
+            {
+                using var f = new Fixture(assembly, root, MediaServerKind.Emby);
+                f.BackgroundGeometry(1920, 600);
+                f.BackdropStrength(0);
+                Assert.Equal(0, (int)f.Get("HeroBlurTarget")!);
+                f.BackdropStrength(45);
+                Assert.True((int)f.Get("HeroBlurTarget")! > 0);
+                f.BackdropStrength(0);
+                Assert.Equal(0, (int)f.Get("HeroBlurTarget")!);
+            });
             Test("R07-002 详情货架删除当前主体后主按钮也失效", () =>
             {
                 using var f = new Fixture(assembly, root, MediaServerKind.Emby);
@@ -402,6 +413,14 @@ internal static class DetailSubjectRemovalTests
             Assert.Null(Vm.GetType().GetField("_versionLoad", Members)!.GetValue(Vm));
         }
         public object FirstSourceRow() => ((System.Collections.IEnumerable)Get("Sources")!).Cast<object>().First();
+        public void BackgroundGeometry(double width, double viewport)
+        {
+            Vm.GetType().GetProperty("PageWidth", Members)!.SetValue(Vm, width);
+            Vm.GetType().GetProperty("Viewport", Members)!.SetValue(Vm, viewport);
+            Vm.GetType().GetProperty("HeroHeightRatio", Members)!.SetValue(Vm, 9d / 16);
+            _settings.Settings.Ui.UseGaussianBackdrop = false;
+        }
+        public void BackdropStrength(double value) => _settings.Settings.Ui.BackdropOpacity = value;
         public void SelectSourceRow(object row) => Vm.GetType().GetProperty("SelectedSource", Members)!.SetValue(Vm, row);
         public void SelectForeignVersion()
         {
