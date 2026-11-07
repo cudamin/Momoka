@@ -6,6 +6,45 @@
 
 独立Demo位于C:/Users/89400/.codex/visualizations/2026/11/07/01a1b3da-b0fd-7eb0-9e48-151af88523e5/v020-controls.html；沿用上次真实媒体库缓存背景，轨道来自用户截图，本次未刷新实服。21项浏览器检查通过，宽窄截图已看；CSS亚克力仅近似，未构建/运行原生WinUI、未播放、未写生产设置或服务器。按用户先看Demo再明确批准的偏好，正式UI实施、整合、主树验证及交付待批准；仅本地记录，不上传。
 
+## 2026-11-07 主页固定轮播完成主树本地交付
+
+来源a56e树6f93eb3为master祖先，工作区干净、无master缺少的独有路径；忽略证据已复制63文件hash一致，Demo完整保留。原生归档拒绝“The task's primary checkout cannot be removed.”，因此保留受保护的当前聊天工作树，不用文件系统绕过删除；本地无临时分支。主树交付已完成，不受此清理限制影响。
+
+用户批准第二版真实Demo后已实装，来源6f93eb3经合并6b9fb3c进入master，保留上一批3993项修复。主树x64 Tests/Core构建0/0，完整3996/3996、零失败零跳过；Shell构建0/0，当前测试Core与最终发布Core SHA256一致。正式算法六张真实素材25,436,160字节与批准Demo零差异，主树关键六文件与已测分支hash一致。
+
+主树开发inspect PID26256与实际发布件inspect PID28988各2/2，均由InspectDone正常结束，9216背景像素静止、进度连续与3秒换图、扩边末/原图0/4/10%/中央读数全过；1280/760实际屏幕已目视。主树publish完整载荷/许可校验通过，546文件286.4MB，版本仍0.2.5，桌面Momoka.lnk参数为空并指向artifacts/publish/win-x64/Momoka.exe。证据artifacts/carousel-static-master（tests/publish/ui/publish-ui/delivery-receipt），来源树63文件已保留并逐hash一致，Demo已复制preserved-demo；无上传或真实播放/服务器写入，其余页面未重跑。无新增包，原图左8%轻柔化为批准效果的一部分。
+
+## 2026-11-07 固定轮播已合入主树，最终交付验证进行中
+
+主树写入/发布权已由上一交付会话明确交还，起点2143bd5且干净。合入6f93eb3及其批准设计/计划，保留上一批修复与双方历史记录。接下来本树x64 Tests/Core/Shell重验、轮播两项实际WinUI与主树发布；未完成前快捷方式仍未含轮播。额外未跑静止反例只保留在来源树artifacts/carousel-static/unrun-guard-experiment.patch，已定点撤回；不把它称为实跑反例。
+
+## 2026-11-07 第二批五项修复已完成主树本地交付
+
+R02-003/R03-003/R03-005/R04-002/R04-004已修。产品/工具来源5a2ed21：x64完整主测3993/3993、实际登录VM105、Home31/Subtitle48/SignInInput128全过；开发四分区UI53/53、发布件accounts/metadata13/13，均退出0，字幕正反例实屏已核。实际交付artifacts/publish/win-x64/Momoka.exe仍0.2.5.0，546文件286.4MB完整载荷/许可通过，桌面快捷方式已指向它。未上传/未打ZIP或MSIX，其余122个UI检查和实际慢关闭/实服操作未执行。完整台账docs/superpowers/reviews/2026-11-05-full-code-review/RECOVERY-REPAIRS.md。
+
+本批账号f8fb55e/字幕b092aae两树已原生归档，目录移除、附件archived已核，日志/DLL/原样源码红例预先保存并逐文件核SHA（artifacts/recovery-fixes-master/preserved）。分支patch等价已确认，临时字幕分支删除，本地仅master；旧review-priority-fixes主聊天树保留原生保护。
+
+### 另一个聊天待合与主树交接
+
+用户在轮播聊天批准实装并授权协调。轮播产品6f93eb3位于C:/Users/89400/.codex/worktrees/a56e/Momoka，尚未合入本批交付；另有该聊天未提交的额外反例工具，全部保留。本会话结束主树记录/检查后，发消息交还主树写入、构建测试/真实UI和发布，由轮播聊天合入6f93eb3、保留双方PROGRESS/开发文档、重新验证并交付。无push授权，不上传。本批五项没有未交付产品代码。
+
+## 2026-11-07 第二批五项修复已合主树，最终验收进行中
+
+产品提交：0a7bde1（R02-003）、fe7518a（R04-002）、a271874（R03-003，原0faa517）、2138e4f（R04-004，原b092aae）、0749555（R03-005，原f8fb55e）。隔离树定向回归全部通过且独立复审无必要发现；原红和完整哈希证据已保存到artifacts/recovery-fixes-master/preserved。root在主树新增字幕实际UI负向对照，等待当轮真实检查后提交。当前主树Core/Tests Release零警告错误，完整主Tests运行中；尚未完成主树专项/实际UI、发布和工作树归档，桌面交付仍为上一批。
+
+## 2026-11-07 主页固定轮播实装完成，待主树交付
+
+用户明确批准第二版柔和Demo实装。本树以已同步fe7518a的c2b62b1为实施基点，完整扩边sigma12经原图左8% smootherstep恢复清晰，缓存v5；删除HomeBanner两处Nudge调用、慢缩放常数/方法，保留自动换图与交叉淡入。正式Tests红3967项仅三轮播回归失败；绿3967/3967、0失败0跳过，定向38/38。Shell最新Release/x64构建0/0；新增像素工具缺WindowsRuntime导入导致CS0411及级联XAML红，补后重编译成功，日志保留。
+
+实际WinUI inspect PID25384两项通过并由InspectDone退出，静止采样8次两轴1.0000、9216背景像素完全相同，进度0.06→0.41且3秒正常换图；宽窄1280/760截图已目视，扩边末/原图0%/4%/10%/中央边缘6.67/6.67/48/96.33/149.33。独立审查无必要缺陷，10文本差异检查通过。原library探索被提前关闭产生后续生命周期红、Hidden初始化红及DLL启动XAML红均保留，不冒全library通过；最终inspect使用本树实际exe可见启动。证据artifacts/carousel-static及AppData日志shell-probe-20261107-022214943-25384。主树另一会话正在写入与验收，等待其结束后合入本次、重验并发布；当前快捷方式仍旧版，无上传/真实播放/服务器写入。
+
+## 2026-11-07 主页轮播接缝柔化 Demo 待确认
+
+用户指出首版模糊与清晰图交界太生硬，尚未批准实装。独立 Demo 将过渡移入原图左8%（1280图为102px），全扩边继续sigma12高斯，smootherstep恢复清晰，过渡后原图/全部alpha保留。复用六张真实PNG，无服务器请求；新x64工具构建0/0，旧硬接缝两回归先红，新四项全绿；六张图检查全过，实际接缝亮度跳变合计49.657→1.152。初两次错目录/旧构建运行失败保留，重编译当前x64后重新渲染成功。已目视宽窄与对照，截图work/carousel-static-demo-20261107/screenshots/smooth-wide-preview.jpg。仍未改产品、发布或上传，正式实装待确认。
+
+## 2026-11-07 主页静止轮播真实 Demo 待确认
+
+本树 a56e 基于 master 08324e3，只制作真实数据独立 Demo，正式实装待用户明确批准。定位 HomeBanner 七秒104.5%→100%缩放与 CarouselBackdrop 扩边末20%高斯淡至零；预览取消慢缩放、全扩边高斯，保留轮播切换。只读当前来源取得六张真实背景/六徽标，12次缓存命中，真实设置及备份哈希不变；提取构建0/0、三像素断言、PNG54项通过。浏览器已目视宽/窄/小窗、边界与六素材，并确认自动换图仍静止；一次定位等待超时保留在设计说明。预览 work/carousel-static-demo-20261107，设计 docs/superpowers/specs/2026-11-07-home-carousel-static-design.md。未改产品、合主树、发布或上传，客户端仍为原交付版。
 ## 2026-11-07 第二批恢复与反馈修复开始
 
 用户授权自行选择修复且不按分区暂停。主树起点08324e3，五项计划见docs/superpowers/plans/2026-11-07-review-recovery-fixes.md。root只写主树配置与设备头；账号/关闭和字幕各用独立树，构建测试UI串行。旧review-priority-fixes树不用于新实现，上一批交付证据不作为本批通过依据。尚未验证或刷新实际交付目录。
