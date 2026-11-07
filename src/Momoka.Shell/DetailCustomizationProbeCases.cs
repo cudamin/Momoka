@@ -16,4 +16,10 @@ internal static class DetailCustomizationProbeCases
     }
 
     internal static bool IncludesShared(string type) => type == EmbyItemType.Movie;
+
+    internal static bool Ready(bool readingQueued, bool appearanceObserved, bool imageReady, IEnumerable<bool> matchingVisibleReadings)
+    {
+        var readings = matchingVisibleReadings.ToArray();
+        return !readingQueued && appearanceObserved && imageReady && readings.Length > 0 && readings.All(value => value);
+    }
 }

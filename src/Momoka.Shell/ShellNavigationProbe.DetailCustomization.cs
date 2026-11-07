@@ -269,7 +269,33 @@ internal sealed partial class ShellNavigationProbe
                 page.AttachWindow(_window);
                 await UntilAsync(() => page.IsReady && page.ViewModel.HeroImage is not null);
                 await LayoutAsync(page);
-                foreach (var name in new[] { "ScoreText", "ScoreSourceText", "HeroFacts", "Overview", "DetailVideoText", "GenreLine" })
+                var readingNames = new[] { "ScoreText", "ScoreSourceText", "HeroFacts", "Overview", "DetailVideoText", "GenreLine" };
+                try
+                {
+                    await UntilAsync(() => DetailCustomizationProbeCases.Ready(Get<bool>(page, "_readingQueued"),
+                        Get<bool>(page, "_appearanceObserved"), page.ViewModel.GaussianBackdropReady,
+                        readingNames.Select(name => Get<TextBlock>(page, name))
+                            .Where(node => node.Visibility == Visibility.Visible && node.ActualWidth > 0 && node.ActualHeight > 0)
+                            .Select(node =>
+                            {
+                                var actualBackground = (ThemeColor)Call(page, "ReadingBackground", node)!;
+                                var expected = page.ViewModel.BackdropShown && !page.ViewModel.HeroCardShown
+                                    ? BackdropReading.Foreground(actualBackground) : ThemeColor.Rgb(255, 255, 255);
+                                return node.Foreground is SolidColorBrush brush && brush.Color == ThemeHost.ToColor(expected);
+                            })));
+                }
+                catch (TimeoutException)
+                {
+                    File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "detail-reading-ready.txt"),
+                        $"{itemType}: queued={Get<bool>(page, "_readingQueued")}, observed={Get<bool>(page, "_appearanceObserved")}, imageReady={page.ViewModel.GaussianBackdropReady}\n"
+                        + string.Join("\n", readingNames.Select(name =>
+                        {
+                            var node = Get<TextBlock>(page, name);
+                            return $"{name}: actual={(node.Foreground as SolidColorBrush)?.Color}, background={Call(page, "ReadingBackground", node)}, {node.ActualWidth:0.###}x{node.ActualHeight:0.###}";
+                        })) + "\n");
+                    throw;
+                }
+                foreach (var name in readingNames)
                 {
                     var node = Get<TextBlock>(page, name);
                     if (node.Visibility != Visibility.Visible || node.ActualWidth <= 0 || node.ActualHeight <= 0) continue;

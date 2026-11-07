@@ -25,6 +25,19 @@ internal static class DetailCustomizationCaseTests
             Reject(() => DetailCustomizationProbeCases.Select(
                 [new EmbyItem { Type = EmbyItemType.Movie }, new EmbyItem { Type = EmbyItemType.Movie }], EmbyItemType.Movie));
         });
+        check("阅读前景就绪需要队列排空、实际颜色及至少一个可见读数", () =>
+        {
+            if (!DetailCustomizationProbeCases.Ready(false, true, true, [true, true])) throw new InvalidOperationException("真实就绪被拒绝");
+            foreach (var state in new[]
+            {
+                DetailCustomizationProbeCases.Ready(true, true, true, [true]),
+                DetailCustomizationProbeCases.Ready(false, false, true, [true]),
+                DetailCustomizationProbeCases.Ready(false, true, false, [true]),
+                DetailCustomizationProbeCases.Ready(false, true, true, [false]),
+                DetailCustomizationProbeCases.Ready(false, true, true, [])
+            })
+                if (state) throw new InvalidOperationException("旧队列、旧图、空控件或错色被当作就绪");
+        });
     }
 
     private static void Reject(Action action)
