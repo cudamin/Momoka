@@ -42,6 +42,84 @@ internal static class SettingsPageStateTests
     public static void Register(string shellAssemblyPath, string sourceRoot)
     {
         var fixture = new ShellFixture(shellAssemblyPath, sourceRoot);
+        TestHarness.Test("外观颜色行：草稿只预览，取消不保存，完成只提交一次", () =>
+        {
+            var writes = new List<string>();
+            var previews = new List<string?>();
+            var saves = 0;
+            var finished = 0;
+            var row = fixture.NewRow("SettingColorRow", "背景遮罩颜色", null, "#808080",
+                (Action<string>)(value => writes.Add(value)), (Action)(() => saves++));
+            fixture.Invoke(row, "ConfigureConfirmation", "#808080",
+                (Action<string?>)(value => previews.Add(value)), (Action)(() => finished++));
+            fixture.Invoke(row, "BeginEdit");
+            fixture.Set(row, "Color", "#123456");
+            Assert.Equal(0, saves);
+            Assert.Equal(0, writes.Count);
+            Assert.Equal("#123456", previews.Last());
+            fixture.Invoke(row, "CancelEdit");
+            Assert.Equal("#808080", fixture.Get<string>(row, "Color"));
+            Assert.Equal(0, saves);
+            Assert.Equal(1, finished);
+            fixture.Invoke(row, "BeginEdit");
+            fixture.Set(row, "Color", "#A1B2C3");
+            Assert.True((bool)fixture.Invoke(row, "CommitEdit")!);
+            fixture.Invoke(row, "CancelEdit");
+            Assert.Equal(1, saves);
+            Assert.Equal("#A1B2C3", writes.Single());
+            Assert.Equal(2, finished);
+            fixture.Invoke(row, "BeginEdit");
+            Assert.True((bool)fixture.Invoke(row, "CommitEdit")!);
+            Assert.Equal(1, saves);
+        });
+        TestHarness.Test("外观颜色行：空或未完成RGB不能确认，取消仍恢复进入值", () =>
+        {
+            var saves = 0;
+            var row = fixture.NewRow("SettingColorRow", "按钮底色", null, "#FFFFFF",
+                (Action<string>)(_ => saves++), (Action)(() => saves++));
+            fixture.Invoke(row, "ConfigureConfirmation", "#FFFFFF", (Action<string?>)(_ => { }), (Action)(() => { }));
+            foreach (var bad in new[] { "", "#12", "#12345678", "无效" })
+            {
+                fixture.Invoke(row, "BeginEdit");
+                fixture.Set(row, "Color", bad);
+                Assert.False((bool)fixture.Invoke(row, "CommitEdit")!);
+                Assert.True(fixture.Get<bool>(row, "IsEditing"));
+                fixture.Invoke(row, "CancelEdit");
+                Assert.Equal("#FFFFFF", fixture.Get<string>(row, "Color"));
+            }
+            Assert.Equal(0, saves);
+        });
+        TestHarness.Test("外观颜色建行：预览不改变活设置及保存文档，完成才写入并清除预览", () =>
+        {
+            var vm = fixture.NewViewModel();
+            var settings = new FakeSettings();
+            fixture.Attach(vm, settings, fixture.NewLauncher());
+            var row = fixture.Invoke(vm, "AppearanceColorRow", "背景遮罩颜色", true, settings.Settings.Ui)!;
+            fixture.Invoke(row, "BeginEdit");
+            fixture.Set(row, "Color", "#123456");
+            Assert.Equal("#808080", settings.Settings.Ui.BackdropColor);
+            Assert.Equal(0, settings.TrySaveCalls);
+            Assert.False(System.Text.Json.JsonSerializer.Serialize(settings.Settings).Contains("#123456", StringComparison.Ordinal));
+            fixture.Invoke(row, "CommitEdit");
+            Assert.Equal("#123456", settings.Settings.Ui.BackdropColor);
+            Assert.Equal(1, settings.TrySaveCalls);
+            fixture.Invoke(row, "BeginEdit");
+            fixture.Set(row, "Color", "#A1B2C3");
+            fixture.Invoke(row, "CancelEdit");
+            Assert.Equal("#123456", settings.Settings.Ui.BackdropColor);
+            Assert.Equal(1, settings.TrySaveCalls);
+        });
+        TestHarness.Test("字幕颜色行：旧路径选色与清空仍各提交一次", () =>
+        {
+            var writes = new List<string>();
+            var saves = 0;
+            var row = fixture.NewRow("SettingColorRow", "文字颜色", null, "#FFFFFF",
+                (Action<string>)(value => writes.Add(value)), (Action)(() => saves++));
+            fixture.Set(row, "Color", "#123456");
+            fixture.Set(row, "Color", "");
+            Assert.Equal(2, saves);
+            Assert.True(writes.SequenceEqual(new[] { "#123456", "" }));
+        });
         TestHarness.Test("弹幕屏蔽词：从共享偏好重载真实文本行不再提交或重复保存", () =>
         {
             var commits = 0;

@@ -16,28 +16,45 @@ public sealed partial class SettingsViewModel
                 () => ui.UseAcrylicControls, value => ui.UseAcrylicControls = value,
                 "详情按钮与闭合选择框使用相同背景，默认半透明叠层；展开列表保持亚克力。主页详情按钮一起切换。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
+            AppearanceColorRow("按钮与选择框底色", false, ui),
             Slider("按钮与选择框底色不透明度（%）", 0, 100, 0.01,
                 () => ui.ControlBackgroundOpacity, value => ui.ControlBackgroundOpacity = value,
                 "默认约5.88%，还原0.2.0的半透明白底。0常态完全透明，100完全不透明；悬停与按下保留反馈。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
-            Choice("背景图效果", new[] { ("暗色遮罩", 0), ("高斯模糊", 1), ("亚克力", 2) },
+            Choice("背景图效果", new[] { ("颜色遮罩", 0), ("高斯模糊", 1), ("亚克力", 2) },
                 () => ui.UseAcrylicBackdrop ? 2 : ui.UseGaussianBackdrop ? 1 : 0,
                 value =>
                 {
                     ui.UseAcrylicBackdrop = value == 2;
                     ui.UseGaussianBackdrop = value == 1;
                 },
-                "电影、剧和季可用亚克力，普通与窄窗同样生效；高斯仅沉浸模式生效并保留深色阅读保护。主页轮播不受影响。",
+                "电影、剧和季可用亚克力，普通与窄窗同样生效；高斯仅沉浸模式生效，轻罩随强度变化。主页轮播不受影响。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
+            AppearanceColorRow("背景遮罩颜色", true, ui),
             Slider("背景图不透明度（%）", 0, 100, 1,
                 () => ui.BackdropOpacity, value => ui.BackdropOpacity = value,
-                "0 关闭背景处理；100 暗色遮罩和亚克力为实底，高斯最糊。高斯非零档保留深色阅读保护。",
+                "0 关闭背景处理；100 颜色遮罩和亚克力为实底，高斯最糊并保留图片。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
             Toggle("固定使用沉浸模式（大屏模式）",
                 "电影、剧和季详情页有背景图时固定使用沉浸布局；窄窗口保留紧凑排版。关闭后随窗口大小自动切换。",
                 () => ui.AlwaysImmersive, value => ui.AlwaysImmersive = value,
                 after: () => ShellPrefs.ApplyAppearance(ui))
         ]);
+    }
+
+    private SettingColorRow AppearanceColorRow(string label, bool backdrop, UiSettings ui)
+    {
+        var row = new SettingColorRow(label, "拾色器、预设或六位 HEX；完成保存，取消或点击外部恢复原色。",
+            backdrop ? ui.BackdropColor : ui.ControlBackgroundColor,
+            value =>
+            {
+                if (backdrop) ui.BackdropColor = value;
+                else ui.ControlBackgroundColor = value;
+            }, Save);
+        row.ConfigureConfirmation(backdrop ? UiSettings.DefaultBackdropColor : UiSettings.DefaultControlBackgroundColor,
+            value => ShellPrefs.SetAppearanceColorPreview(backdrop, value, ui),
+            () => ShellPrefs.SetAppearanceColorPreview(backdrop, null, ui));
+        return row;
     }
 
     private IReadOnlyList<SettingSection> DetailLayoutCards()

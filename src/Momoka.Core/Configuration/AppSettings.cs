@@ -1380,13 +1380,6 @@ public sealed class UiSettings
     /// <summary>电影详情页正文卡片的排序与显示偏好。</summary>
     public List<DetailCardSetting> MovieCards { get; set; } = [];
 
-    /// <summary>
-    /// 详情按钮与选择框底色的不透明度（%）：0 完全透明（没有底色），100 完全不透明。
-    /// <para>
-    /// 2026-11-06 用户令「0 改为完全透明，100 改为完全不透明」：这一格从「在原底色上再加多少」改成直接读数，
-    /// 所以 0 档真的什么都不画。悬停与按下仍保留原来那层薄白 —— 那是按钮的手感，不是底色。
-    /// </para>
-    /// </summary>
     /// <summary>按钮与闭合选择框共用的 RGB 底色；透明度由独立偏好决定。</summary>
     public string ControlBackgroundColor { get; set; } = DefaultControlBackgroundColor;
 
@@ -1397,6 +1390,13 @@ public sealed class UiSettings
 
     public const string DefaultBackdropColor = "#808080";
 
+    /// <summary>
+    /// 详情按钮与选择框底色的不透明度（%）：0 完全透明（没有底色），100 完全不透明。
+    /// <para>
+    /// 2026-11-06 用户令「0 改为完全透明，100 改为完全不透明」：这一格从「在原底色上再加多少」改成直接读数，
+    /// 所以 0 档真的什么都不画。悬停与按下仍保留原来那层薄白 —— 那是按钮的手感，不是底色。
+    /// </para>
+    /// </summary>
     public double ControlBackgroundOpacity { get; set; } = DefaultControlBackgroundOpacity;
 
     /// <summary>0.2.0 平台薄白常态的不透明度（%）；已保存的有效偏好保持原值。</summary>
