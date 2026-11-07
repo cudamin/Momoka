@@ -527,7 +527,8 @@ public static class ItemDetail
         };
 
         var map = MpvTrackMap.Build(source);
-        rows.AddRange(source.SubtitleStreams.Select(stream => TrackPickerRow(stream, map)));
+        rows.AddRange(source.SubtitleStreams.Where(stream => map.CanSelect(stream.Index))
+            .Select(stream => TrackPickerRow(stream, map)));
         return rows;
     }
 

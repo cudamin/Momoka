@@ -106,7 +106,7 @@ internal static class SubtitleBehaviorTests
             Assert.Equal(3, ItemDetail.SubtitleRows(settings, source)[2].Stream?.Index);
         });
 
-        Test("字幕可用性：自动跳过外挂图形轨，详情页显示不可用原因", () =>
+        Test("字幕可用性：自动跳过外挂图形轨，详情下拉隐藏不可加载候选", () =>
         {
             var external = Subtitle(1, "chi");
             external.Codec = "pgs";
@@ -116,9 +116,8 @@ internal static class SubtitleBehaviorTests
             var source = Source(external, english);
             var settings = new PlaybackSettings { SubtitleLanguages = ["中文", TrackLanguagePriority.Any] };
             Assert.Equal(2, TrackSelection.Resolve(settings, source).Subtitle.Stream?.Index);
-            var unavailable = ItemDetail.SubtitleRows(settings, source).Single(row => row.Stream?.Index == 1);
-            Assert.False(unavailable.IsAvailable);
-            Assert.Contains("无法加载", unavailable.Text);
+            Assert.False(ItemDetail.SubtitleRows(settings, source).Any(row => row.Stream?.Index == 1));
+            Assert.Equal(3, ItemDetail.SubtitleRows(settings, source).Count);
             Assert.True(ItemDetail.SubtitleRows(settings, source).Single(row => row.Stream?.Index == 2).IsAvailable);
             Assert.True(TrackSelection.Resolve(settings, Source(external)).Subtitle.Disabled);
             external.IsExternal = false;
