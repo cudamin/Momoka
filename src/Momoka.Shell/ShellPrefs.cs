@@ -1,4 +1,6 @@
 using Momoka.Configuration;
+using Momoka.Infrastructure;
+using Momoka.Theming;
 
 namespace Momoka.Shell;
 
@@ -33,6 +35,41 @@ public static class ShellPrefs
     public static event Action<UiSettings>? AppearanceChanged;
 
     public static void ApplyAppearance(UiSettings ui) => AppearanceChanged?.Invoke(ui);
+
+    // 草稿只属于打开拾色器的设置对象，不进入 AppSettings，也不会随别的设置保存。
+    private static UiSettings? _controlPreviewOwner;
+    private static string? _controlPreview;
+    private static UiSettings? _backdropPreviewOwner;
+    private static string? _backdropPreview;
+
+    public static ThemeColor AppearanceColor(bool backdrop, UiSettings ui)
+    {
+        var preview = backdrop ? _backdropPreview : _controlPreview;
+        var owner = backdrop ? _backdropPreviewOwner : _controlPreviewOwner;
+        var value = ReferenceEquals(owner, ui) && preview is not null
+            ? preview : backdrop ? ui.BackdropColor : ui.ControlBackgroundColor;
+        return ThemeColor.Parse(HtmlColor.TryParse(value, out var rgb) ? HtmlColor.Format(rgb)
+            : backdrop ? UiSettings.DefaultBackdropColor : UiSettings.DefaultControlBackgroundColor);
+    }
+
+    public static void SetAppearanceColorPreview(bool backdrop, string? color, UiSettings ui)
+    {
+        var value = color is not null && HtmlColor.TryParse(color, out var rgb) ? HtmlColor.Format(rgb) : null;
+        if (backdrop)
+        {
+            if (value is null && !ReferenceEquals(_backdropPreviewOwner, ui)) return;
+            _backdropPreviewOwner = value is null ? null : ui;
+            _backdropPreview = value;
+        }
+        else
+        {
+            if (value is null && !ReferenceEquals(_controlPreviewOwner, ui)) return;
+            _controlPreviewOwner = value is null ? null : ui;
+            _controlPreview = value;
+        }
+        ApplyAppearance(ui);
+    }
+
 
     public static event Action<UiSettings>? DetailLayoutChanged;
 

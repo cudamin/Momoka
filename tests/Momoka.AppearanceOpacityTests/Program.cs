@@ -11,6 +11,30 @@ using System.Xml.Linq;
 var passed = 0;
 var failed = 0;
 
+Check("外观颜色预览与其他设置保存隔离，清除后恢复真实设置", () =>
+{
+    var ui = new UiSettings();
+    var settingType = typeof(UiSettings);
+    var control = settingType.GetProperty("ControlBackgroundColor");
+    if (control is null) throw new InvalidOperationException("缺少真实颜色设置键");
+    var preview = typeof(ShellPrefs).GetMethod("SetAppearanceColorPreview");
+    var read = typeof(ShellPrefs).GetMethod("AppearanceColor");
+    if (preview is null || read is null) throw new InvalidOperationException("缺少独立预览接口");
+    preview.Invoke(null, new object?[] { false, "#123456", ui });
+    try
+    {
+        if (((Momoka.Theming.ThemeColor)read.Invoke(null, new object[] { false, ui })!).ToHex() != "#FF123456")
+            throw new InvalidOperationException("预览颜色未生效");
+        if ((string)control.GetValue(ui)! != "#FFFFFF") throw new InvalidOperationException("预览修改了活设置");
+        var saved = System.Text.Json.JsonSerializer.Serialize(new AppSettings { Ui = ui });
+        if (saved.Contains("#123456", StringComparison.Ordinal)) throw new InvalidOperationException("其他保存写入预览颜色");
+        if (((Momoka.Theming.ThemeColor)read.Invoke(null, new object[] { false, new UiSettings() })!).ToHex() != "#FFFFFFFF")
+            throw new InvalidOperationException("预览泄漏到其他设置拥有者");
+    }
+    finally { preview.Invoke(null, new object?[] { false, null, ui }); }
+    if (((Momoka.Theming.ThemeColor)read.Invoke(null, new object[] { false, ui })!).ToHex() != "#FFFFFFFF")
+        throw new InvalidOperationException("取消未恢复真实颜色");
+});
 Check("零档没有按钮底色", () => Equal(0, AppearanceOpacity.ControlBackground(0)));
 Check("按钮浓度就是百分比", () => Equal(0.45, AppearanceOpacity.ControlBackground(45)));
 Check("按钮浓度下限", () => Equal(0, AppearanceOpacity.ControlBackground(-1)));

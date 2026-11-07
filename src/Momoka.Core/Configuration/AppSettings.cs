@@ -1387,6 +1387,16 @@ public sealed class UiSettings
     /// 所以 0 档真的什么都不画。悬停与按下仍保留原来那层薄白 —— 那是按钮的手感，不是底色。
     /// </para>
     /// </summary>
+    /// <summary>按钮与闭合选择框共用的 RGB 底色；透明度由独立偏好决定。</summary>
+    public string ControlBackgroundColor { get; set; } = DefaultControlBackgroundColor;
+
+    public const string DefaultControlBackgroundColor = "#FFFFFF";
+
+    /// <summary>背景处理的 RGB 遮罩色；高斯、普通遮罩和亚克力共用。</summary>
+    public string BackdropColor { get; set; } = DefaultBackdropColor;
+
+    public const string DefaultBackdropColor = "#808080";
+
     public double ControlBackgroundOpacity { get; set; } = DefaultControlBackgroundOpacity;
 
     /// <summary>0.2.0 平台薄白常态的不透明度（%）；已保存的有效偏好保持原值。</summary>
