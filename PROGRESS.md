@@ -1,3 +1,7 @@
+## 2026-11-07 第二批恢复与反馈修复开始
+
+用户授权自行选择修复且不按分区暂停。主树起点08324e3，五项计划见docs/superpowers/plans/2026-11-07-review-recovery-fixes.md。root只写主树配置与设备头；账号/关闭和字幕各用独立树，构建测试UI串行。旧review-priority-fixes树不用于新实现，上一批交付证据不作为本批通过依据。尚未验证或刷新实际交付目录。
+
 ## 2026-11-07 优先修复已完成主树本地交付
 
 原审查选定15项（6P1、9P2）及验收新增账号开关视觉问题已修，产品875f6cc、最终账号探针收尾97a8a69。完整主Tests3943/3943、0失败0跳过，适用四分区UI60/60；发布件附加账号检查首轮超时，阶段诊断确认按钮未Loaded及IsOpen=false早于Presenter卸载，工具改等真实按钮和Closed后最终开发账号5/5、实际发布件账号5/5（PID3048正常退出），原报告保留。主树发布546文件286.4MB，批准载荷/许可校验通过，版本仍0.2.5.0；桌面Momoka.lnk实际指向artifacts/publish/win-x64/Momoka.exe。证据artifacts/priority-fixes-master/publish-final.log、delivery-final-receipt.json、publish-ui-final-receipt.json；子树原红/绿复制至preserved逐文件哈希核对。无外部上传、真实账号写入或播放；其他114个探针未执行、原清单未纳本批的问题不自动关闭。客户端预检不是服务端CAS/原子事务。
