@@ -63,6 +63,7 @@ public sealed partial class ShellPage
                 await detail.ViewModel.ReloadAsync();
                 break;
             case LibraryPage library:
+                library.ViewModel.RememberRemoved(item);
                 await library.ViewModel.ReloadAsync();
                 break;
         }

@@ -65,8 +65,7 @@ internal static class ArtworkFile
         var properties = await file.GetBasicPropertiesAsync();
         if (properties.Size > MaxBytes)
         {
-            Log.Warn(Category, $"这张图太大了：{properties.Size} 字节（上限 {MaxBytes}）");
-            return null;
+            throw new InvalidOperationException("图片超过 64 MiB 大小上限，请选择较小的图片。");
         }
 
         using var stream = await file.OpenReadAsync();

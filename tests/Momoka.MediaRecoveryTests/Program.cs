@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Momoka.MoviePilot;
+using Momoka.Emby;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
@@ -13,6 +14,14 @@ internal static class Program
         Console.OutputEncoding = Encoding.UTF8;
         AniBtReceiptStateTests.Register();
         AniBtPrepareConcurrencyTests.Register();
+        Test("R07-007 飞牛明确权限禁止时菜单与执行判据一致，未知保持", () =>
+        {
+            var item = new EmbyItem { Id = "fixture", Type = EmbyItemType.Movie, Name = "fixture" };
+            var restricted = ItemMenu.For(item, fnNas: true, permissions: new(IsAdministrator: false, CanDeleteContent: false));
+            Assert.False(restricted.Any(row => row.Command is ItemCommand.Delete or ItemCommand.ManageVersions or ItemCommand.EditMetadata));
+            Assert.True(ItemMenu.Allows(ItemCommand.Delete, default));
+            Assert.False(ItemMenu.Allows(ItemCommand.Delete, new(CanDeleteContent: false)));
+        });
         foreach (var (input, port) in new[]
         {
             ("http://origin.invalid:80", 80), ("https://origin.invalid:443", 443),

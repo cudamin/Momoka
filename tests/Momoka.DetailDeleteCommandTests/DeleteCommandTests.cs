@@ -10,6 +10,24 @@ internal static class DeleteCommandTests
     private const string TwoFiles = """{"code":0,"msg":"","data":[{"media_guid":"version-1","file_path":"/anonymous/1.mkv","file_size":1048576,"height":1080},{"media_guid":"version-2","path":"/anonymous/2.mkv","size":2097152,"resolution":"4K"}]}""";
     public static void Register()
     {
+        Test("R07-007 删除确认期间明确降权，提交前拒绝旧确认", () =>
+        {
+            using var f = new DeleteFixture(MediaServerKind.Emby);
+            f.Dialogs.BeforeConfirm = () => f.Actions.Permissions = new(CanDeleteContent: false);
+            f.Await(f.Command("DeleteAsync", f.ChangedCallback(), f.RemovedCallback()));
+            Assert.Equal(0, f.Transport.Deletes);
+            Assert.Equal(0, f.Removed);
+            Assert.True(f.CanPlay);
+        });
+        Test("R07-007 旧直接菜单入口明确禁止权限时不打开确认", () =>
+        {
+            using var f = new DeleteFixture(MediaServerKind.Emby);
+            f.Actions.Permissions = new(CanDeleteContent: false);
+            f.More(ItemCommand.Delete);
+            f.Context.Drain();
+            Assert.Equal(0, f.Dialogs.Confirmations.Count);
+            Assert.Equal(0, f.Transport.Deletes);
+        });
         Test("真实确认入口：库样式与普通/MP样式分离，关闭仍不代表同意", () =>
         {
             using var context = new FixtureContext();

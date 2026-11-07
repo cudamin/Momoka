@@ -33,7 +33,7 @@ internal static partial class ItemCommands
 
             var body = FnNasItemActions.Refresh(card.Item.Id, FnNasItemActions.RefreshMode(dialog.Mode));
             await TellAsync(session, (client, token) =>
-                client.FnNas.RefreshItemAsync(client.FnNasConnection, body, token)).ConfigureAwait(true);
+                client.FnNas.RefreshItemAsync(client.FnNasConnection, body, token), shell, ItemCommand.RefreshMetadata).ConfigureAwait(true);
 
             shell.Notify($"已请求刷新「{card.Item.Name}」的元数据，服务器在后台处理");
         });
@@ -52,16 +52,10 @@ internal static partial class ItemCommands
             var detail = await AskAsync(session, (client, token) =>
                 client.FnNas.GetItemEditDetailAsync(client.FnNasConnection, item.Id, token)).ConfigureAwait(true);
 
-            var dialog = new FnNasMetadataDialog(detail) { XamlRoot = root };
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-            if (!dialog.Edit.ApplyTo(detail))
-            {
-                Log.Debug(Category, $"飞牛编辑元数据：{item.Name} 没有改动");
-                return;
-            }
-
-            await TellAsync(session, (client, token) =>
-                client.FnNas.SaveItemEditDetailAsync(client.FnNasConnection, detail, token)).ConfigureAwait(true);
+            var dialog = new FnNasMetadataDialog(detail, body => TellAsync(session, (client, token) =>
+                client.FnNas.SaveItemEditDetailAsync(client.FnNasConnection, body, token), shell, ItemCommand.EditMetadata)) { XamlRoot = root };
+            await dialog.ShowAsync();
+            if (!dialog.Changed) return;
 
             shell.Notify($"已保存「{dialog.Edit.Name}」的元数据");
             changed?.Invoke();
@@ -102,7 +96,7 @@ internal static partial class ItemCommands
             if (!await ConfirmDialog.ForLibrary(owner)(title, body, "删除").ConfigureAwait(true)) return;
 
             await TellAsync(session, (client, token) => client.FnNas.DeleteItemAsync(
-                    client.FnNasConnection, item.Id, FnNasItemActions.Delete(deleteFile: true, [chosen.MediaGuid]), token))
+                    client.FnNasConnection, item.Id, FnNasItemActions.Delete(deleteFile: true, [chosen.MediaGuid]), token), shell, ItemCommand.ManageVersions)
                 .ConfigureAwait(true);
 
             item.MediaSources.RemoveAll(source => source.Id == chosen.MediaGuid);
@@ -146,7 +140,7 @@ internal static partial class ItemCommands
 
             var body = FnNasItemActions.Rescrap(item, selected.Result, versions);
             await TellAsync(session, (client, token) =>
-                client.FnNas.RescrapAsync(client.FnNasConnection, body, token)).ConfigureAwait(true);
+                client.FnNas.RescrapAsync(client.FnNasConnection, body, token), shell, ItemCommand.FnNasMatch).ConfigureAwait(true);
 
             shell.Notify($"已提交「{item.Name}」的手动匹配，服务器在后台处理");
             changed?.Invoke();
@@ -167,7 +161,7 @@ internal static partial class ItemCommands
             if (!agreed) return;
 
             await TellAsync(session, (client, token) =>
-                client.FnNas.UnscrapAsync(client.FnNasConnection, item.Id, token)).ConfigureAwait(true);
+                client.FnNas.UnscrapAsync(client.FnNasConnection, item.Id, token), shell, ItemCommand.FnNasUnmatch).ConfigureAwait(true);
 
             shell.Notify($"已解除「{item.Name}」的匹配");
             changed?.Invoke();
@@ -188,7 +182,7 @@ internal static partial class ItemCommands
             if (!await ConfirmDialog.ForLibrary(owner)(title, body, "删除").ConfigureAwait(true)) return;
 
             await TellAsync(session, (client, token) => client.FnNas.DeleteItemAsync(
-                    client.FnNasConnection, item.Id, FnNasItemActions.Delete(deleteFile: true, []), token))
+                    client.FnNasConnection, item.Id, FnNasItemActions.Delete(deleteFile: true, []), token), shell, ItemCommand.Delete)
                 .ConfigureAwait(true);
 
             shell.Notify($"已删除「{item.Name}」");

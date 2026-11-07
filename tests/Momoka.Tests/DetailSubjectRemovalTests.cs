@@ -27,6 +27,59 @@ internal static class DetailSubjectRemovalTests
             AssemblyLoadContext.Default.Resolving += (context, name) => File.Exists(Path.Combine(directory, name.Name + ".dll"))
                 ? context.LoadFromAssemblyPath(Path.Combine(directory, name.Name + ".dll")) : null;
             var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(dll);
+            Test("R07-002 详情货架删除当前主体后主按钮也失效", () =>
+            {
+                using var f = new Fixture(assembly, root, MediaServerKind.Emby);
+                var item = (EmbyItem)f.Get("CurrentItem")!;
+                item.Type = EmbyItemType.Episode;
+                item.SeriesId = "series";
+                item.SeasonId = "season";
+                var shelf = f.Get("EpisodeShelf")!;
+                ((System.Collections.IList)shelf.GetType().GetProperty("Cards")!.GetValue(shelf)!).Add(f.Card);
+                ((Task)Invoke(f.Vm, "RemoveAsync", f.Card)!).GetAwaiter().GetResult();
+                Assert.Null(f.Get("CurrentItem"));
+                Assert.False(f.CanPlay());
+                Assert.False(((System.Windows.Input.ICommand)f.Get("ToggleFavoriteCommand")!).CanExecute(null));
+            });
+            Test("R07-004 缺源从头播放保留显式零起点", () =>
+            {
+                using var f = new Fixture(assembly, root, MediaServerKind.Emby);
+                var item = (EmbyItem)f.Get("CurrentItem")!;
+                item.UserData = new EmbyUserData { PlaybackPositionTicks = 1_200_000_000 };
+                item.MediaSources.Clear();
+                Invoke(f.Vm, "ShowTarget", item);
+                ((Task)Invoke(f.Vm, "StartAsync", true)!).GetAwaiter().GetResult();
+                Assert.NotNull(f.Actions.Choice);
+                Assert.Equal(0L, f.Actions.Choice!.StartTicks);
+            });
+            Test("R07-003 菜单状态确认同步详情顶栏，刷新后迟到确认仍落当前主体", () =>
+            {
+                using var f = new Fixture(assembly, root, MediaServerKind.Emby);
+                var before = f.Card;
+                f.ReplaceSameDetail();
+                Invoke(before, "ApplyUserState", new EmbyUserData { IsFavorite = true, Played = true }, true);
+                Assert.True(f.Get("Favorite") is true);
+                Assert.True(f.Get("Watched") is true);
+                Assert.True(((EmbyItem)f.Get("CurrentItem")!).UserData!.IsFavorite);
+            });
+            Test("R07-002 货架独立DTO删非末版，确认差集立即撤当前详情源", () =>
+            {
+                using var f = new Fixture(assembly, root, MediaServerKind.FnNas);
+                f.TwoVersions();
+                var subject = (EmbyItem)f.Get("CurrentItem")!;
+                var clicked = subject.Source!.Bind(new EmbyItem
+                {
+                    Id = subject.Id, Name = subject.Name, Type = subject.Type,
+                    MediaSources = subject.MediaSources.Select(source => new MediaSource { Id = source.Id, ItemId = subject.Id, Path = source.Path }).ToList()
+                });
+                var callback = (Action)Invoke(f.Vm, "CaptureCardReload", clicked)!;
+                clicked.MediaSources.RemoveAt(0);
+                f.Transport.Missing = true;
+                callback();
+                Assert.Equal("version-2", f.SelectedSourceId());
+                Assert.Equal(1, ((EmbyItem)f.Get("CurrentItem")!).MediaSources.Count);
+                Assert.True(f.CanPlay());
+            });
             foreach (var kind in new[] { MediaServerKind.FnNas, MediaServerKind.Emby, MediaServerKind.Jellyfin })
             {
                 Test("R025 主体成功删除后真VM目标与旧直接播放失效 " + kind, () =>
@@ -469,11 +522,12 @@ internal static class DetailSubjectRemovalTests
 public class DetailDeleteActionsProxy : DispatchProxy
 {
     public int Plays { get; private set; }
+    public Momoka.Playback.PlaybackChoice? Choice { get; private set; }
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
     {
         switch (targetMethod?.Name)
         {
-            case "PlayAsync": Plays++; return Task.CompletedTask;
+            case "PlayAsync": Plays++; Choice = (Momoka.Playback.PlaybackChoice?)args![2]; return Task.CompletedTask;
             case "Notify": return null;
             case "RefreshFavorites": return null;
             case "get_MoviePilotEnabled":

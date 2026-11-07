@@ -2336,13 +2336,29 @@ public sealed partial class DetailPage : Page, IShellContent
         }
     }
 
-    private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.Reload, ViewModel.Remove,
+    private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args)
+    {
+        var card = sender switch
+        {
+            PosterCard { Card: { } poster } => poster,
+            EpisodeRow { Card: { } row } => row,
+            ContentControl { Content: PosterCard { Card: { } poster } } => poster,
+            ContentControl { Content: EpisodeRow { Card: { } row } } => row,
+            FrameworkElement { DataContext: CardItem bound } => bound,
+            _ => null
+        };
+        if (card is null) return;
+        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.CaptureCardReload(card.Item), ViewModel.CaptureRemoval(),
             presenterStyle: (Style)Application.Current.Resources["EgDetailMenuPresenterStyle"]);
+    }
 
-    private void OnCardActionRequested(object? sender, CardActionEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.Reload, ViewModel.Remove,
+    private void OnCardActionRequested(object? sender, CardActionEventArgs args)
+    {
+        var card = sender switch { PosterCard { Card: { } poster } => poster, EpisodeRow { Card: { } row } => row, _ => null };
+        if (card is null) return;
+        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.CaptureCardReload(card.Item), ViewModel.CaptureRemoval(),
             presenterStyle: (Style)Application.Current.Resources["EgDetailMenuPresenterStyle"]);
+    }
 
     /// <summary>
     /// 集列表牌子上那一下：季列表从牌子上弹出（剧页、集页的全季集列表共用）。只有一季时 Offer 是假，

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
+    <Compile Include="../../src/Momoka.Shell/Views/IdentifyDialog.xaml.cs" Link="IdentifyDialog.cs" />
+    <Compile Include="../../src/Momoka.Shell/Views/FnNasMetadataDialog.xaml.cs" Link="FnNasMetadataDialog.cs" />
+    <Compile Include="../../src/Momoka.Shell/Views/ArtworkFile.cs" Link="ArtworkFile.cs" />
+    <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="../Momoka.SubtitleDialogTests/UiQueue.cs" Link="UiQueue.cs" />
+  </ItemGroup>
+</Project>

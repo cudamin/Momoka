@@ -224,7 +224,7 @@ internal sealed partial class ShellNavigationProbe
                 {"title":"离线示例","overview":"一段离线简介，用来看编辑表的长相。","rating":8.4,
                  "release_date":"2024-05-01","genres":[2,7],"posters":["p"]}
                 """)!.AsObject();
-            var dialog = new FnNasMetadataDialog(detail) { XamlRoot = _root.XamlRoot };
+            var dialog = new FnNasMetadataDialog(detail, _ => throw new InvalidOperationException("离线查看不保存元数据")) { XamlRoot = _root.XamlRoot };
             dialog.Opened += async (_, _) =>
             {
                 await SaveSettledFrameAsync(dialog, "inspect-fn-nas-edit.png");

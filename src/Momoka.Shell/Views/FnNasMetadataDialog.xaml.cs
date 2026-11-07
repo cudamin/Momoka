@@ -11,12 +11,20 @@ namespace Momoka.Shell.Views;
 /// </summary>
 public sealed partial class FnNasMetadataDialog : ContentDialog
 {
-    public FnNasMetadataDialog(JsonObject detail)
+    private readonly JsonObject _original;
+    private readonly Func<JsonObject, Task> _save;
+    private bool _saving;
+    public bool Changed { get; private set; }
+
+    public FnNasMetadataDialog(JsonObject detail, Func<JsonObject, Task> save)
     {
         InitializeComponent();
 
         // 对话框摆在 XamlRoot 的浮层根上，继承不到提出它的那棵树；不点明就按 Windows 应用模式来。
         RequestedTheme = ThemeHost.Current.IsDark ? ElementTheme.Dark : ElementTheme.Light;
+        _original = (JsonObject)detail.DeepClone();
+        _save = save;
+        Closing += (_, args) => { if (_saving) args.Cancel = true; };
 
         Edit = FnNasMetadataEdit.Read(detail);
         NameBox.Text = Edit.Name;
@@ -28,8 +36,10 @@ public sealed partial class FnNasMetadataDialog : ContentDialog
     /// <summary>表上最后通过校验的那一份；保存前读到的一定是用户眼下看到的。</summary>
     public FnNasMetadataEdit Edit { get; private set; }
 
-    private void OnSave(ContentDialog sender, ContentDialogButtonClickEventArgs args)
+    private async void OnSave(ContentDialog sender, ContentDialogButtonClickEventArgs args)
     {
+        args.Cancel = true;
+        if (_saving) return;
         var edit = new FnNasMetadataEdit(NameBox.Text, OverviewBox.Text, RatingBox.Text, ReleaseBox.Text, Edit.ReleaseKey);
         if (edit.Problem is { } problem)
         {
@@ -41,6 +51,29 @@ public sealed partial class FnNasMetadataDialog : ContentDialog
         }
 
         Problem.IsOpen = false;
-        Edit = edit;
+        var body = (JsonObject)_original.DeepClone();
+        if (!edit.ApplyTo(body)) { Hide(); return; }
+        var deferral = args.GetDeferral();
+        _saving = true;
+        IsPrimaryButtonEnabled = false;
+        try
+        {
+            await _save(body).ConfigureAwait(true);
+            Edit = edit;
+            Changed = true;
+            _saving = false;
+            Hide();
+        }
+        catch (Exception error)
+        {
+            Problem.Message = $"保存失败：{Momoka.Diagnostics.Failure.Describe(error)}。输入已保留，可以重试或取消。";
+            Problem.IsOpen = true;
+        }
+        finally
+        {
+            _saving = false;
+            IsPrimaryButtonEnabled = true;
+            deferral.Complete();
+        }
     }
 }

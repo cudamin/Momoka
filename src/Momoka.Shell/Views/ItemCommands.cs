@@ -217,6 +217,16 @@ internal static partial class ItemCommands
             AvailabilityChanged(null, EventArgs.Empty);
         };
         menu.Closed += (_, _) => shell.MoviePilotAvailabilityChanged -= AvailabilityChanged;
+        void PermissionsChanged(object? sender, EmbySessionScope source)
+        {
+            if (source.Key != card.Scope?.Key) return;
+            owner.DispatcherQueue.TryEnqueue(() =>
+            {
+                if (CanContinue()) Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue));
+            });
+        }
+        menu.Opened += (_, _) => session.PermissionsChanged += PermissionsChanged;
+        menu.Closed += (_, _) => session.PermissionsChanged -= PermissionsChanged;
 
         // AniBT identification still belongs to the default management source, unlike independent searches.
         // Keep an open menu from advertising a now-inapplicable action; reopening recomputes the rows.
@@ -400,6 +410,7 @@ internal static partial class ItemCommands
         Action<CardItem>? watched)
     {
         if (card.Scope is not { IsAvailable: true } scope) return;
+        if (!ItemMenu.Allows(command, shell.MenuPermissionsFor(scope))) return;
         if (!ItemMenu.Supports(command, scope.Connection.IsJellyfin, scope.Connection.IsFnNas, scope.Connection.IsPlex)) return;
         if ((ItemMenu.IsMoviePilot(command) || command is ItemCommand.AniBtScrape or ItemCommand.AniBtVersions) && !shell.MoviePilotEnabled) return;
         if (command is (ItemCommand.AniBtScrape or ItemCommand.AniBtVersions) && !shell.AniBtEnabled) return;
