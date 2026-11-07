@@ -154,7 +154,8 @@ public sealed partial class DetailPage
                 head.OnScrim = floating;
             }
         // 信息卡的逐行标签、内联链接与数据统一留在深色亚克力卡面上，避免整段文字另做蒙版寿命管理。
-        InfoPanel.Background = ViewModel.GaussianBackdropApplied && ViewModel.Showcase
+        InfoPanel.Background = ViewModel.Showcase
+            && (ViewModel.ItemType == Momoka.Emby.EmbyItemType.Episode || ViewModel.GaussianBackdropApplied)
             ? CardMaterialSource.Background : _panelFill;
         PaintReadingColors();
     }

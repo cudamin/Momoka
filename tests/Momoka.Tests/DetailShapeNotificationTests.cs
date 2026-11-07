@@ -148,24 +148,85 @@ internal static partial class DetailActionReadinessTests
                 Assert.True(notices.Contains(name), "类型更正缺少布局通知：" + name);
         });
 
-        Test("沉浸总开关：单集仍宽窗卡面、窄窗背景", () =>
+        Test("单集沉浸采用剧页布局，开关与宽窄恢复保留本集状态", () =>
         {
             using var f = new Fixture(assembly, root, Shape.Episode);
             foreach (var item in f.Transport.Catalog.Values) item.BackdropImageTags.Add("fixture");
             Await(f.Load());
-            var enabled = f.Ui.GetType().GetProperty("EnableImmersive");
-            Assert.NotNull(enabled);
-            enabled!.SetValue(f.Ui, false);
-            f.Vm.GetType().GetMethod("RefreshAppearance", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(f.Vm, null);
-            f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 1200d);
+            void Set(string name, object value) => f.Vm.GetType().GetProperty(name)!.SetValue(f.Vm, value);
+            void Refresh() => f.Vm.GetType().GetMethod("RefreshAppearance", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(f.Vm, null);
+            Set("PageWidth", 1200d);
+            Set("Viewport", 900d);
+            f.Ui.EnableImmersive = true;
+            f.Ui.UseGaussianBackdrop = true;
+            Refresh();
+            var target = f.Get("PlayTarget");
+            var subline = f.Get("Subline");
+            var shelf = f.Get("EpisodeShelf");
+            Assert.True((bool)f.Get("Showcase")!);
+            Assert.True((bool)f.Get("BackdropShown")!);
+            Assert.True((bool)f.Get("UseGaussianBackdrop")!);
+            Assert.False((bool)f.Get("HeroCardShown")!);
+            Assert.False((bool)f.Get("ShowShelfLines")!);
+            Assert.Equal(260d, (double)f.Get("StillWidth")!);
+            Assert.Equal(375d, (double)f.Get("StillHeight")!);
+            Assert.Equal("Top", f.Get("CoverAlignment")!.ToString());
+            Assert.Equal("Bottom", f.Get("HeroContentAlignment")!.ToString());
+            Assert.Equal("Collapsed", f.Get("CornerVisibility")!.ToString());
+            var notices = new List<string>();
+            ((INotifyPropertyChanged)f.Vm).PropertyChanged += (_, args) => notices.Add(args.PropertyName ?? "");
+            f.Ui.EnableImmersive = false;
+            Refresh();
             Assert.True((bool)f.Get("HeroCardShown")!);
             Assert.False((bool)f.Get("BackdropShown")!);
-            f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 760d);
+            Assert.False((bool)f.Get("Showcase")!);
+            Assert.Equal(260d, (double)f.Get("StillWidth")!);
+            Assert.Equal(375d, (double)f.Get("StillHeight")!);
+            Assert.Equal("Center", f.Get("CoverAlignment")!.ToString());
+            foreach (var name in new[] { "CornerVisibility", "CoverAlignment", "HeroContentAlignment", "HeroCardShown" })
+                Assert.True(notices.Contains(name), "模式变化缺少通知：" + name);
+            Set("PageWidth", 760d);
             Assert.False((bool)f.Get("HeroCardShown")!);
             Assert.True((bool)f.Get("BackdropShown")!);
+            Assert.Equal(0d, (double)f.Get("StillWidth")!);
+            f.Ui.EnableImmersive = true;
+            Refresh();
+            Assert.False((bool)f.Get("Showcase")!);
+            foreach (var width in new[] { 1024d, 1023d, 1200d }) Set("PageWidth", width);
+            Assert.True((bool)f.Get("Showcase")!);
+            Assert.Equal(375d, (double)f.Get("StillHeight")!);
+            Assert.True(ReferenceEquals(target, f.Get("PlayTarget")), "模式切换不得换播放目标");
+            Assert.Equal(subline, f.Get("Subline"));
+            Assert.True(ReferenceEquals(shelf, f.Get("EpisodeShelf")), "模式切换不得重建集列表");
+            Assert.True(f.Ui.UseGaussianBackdrop);
         });
 
-        Test("高斯偏好仅在电影剧季宽窗沉浸生效，窄窗无图及单集保留偏好", () =>
+        Test("无图单集开启沉浸仍保留卡面，背景到达和收起即时更新", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Episode);
+            Await(f.Load());
+            f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 1200d);
+            f.Ui.EnableImmersive = true;
+            f.Ui.UseGaussianBackdrop = true;
+            f.Vm.GetType().GetMethod("RefreshAppearance", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(f.Vm, null);
+            Assert.False((bool)f.Get("Showcase")!);
+            Assert.True((bool)f.Get("HeroCardShown")!);
+            Assert.False((bool)f.Get("UseGaussianBackdrop")!);
+            var notices = new List<string>();
+            ((INotifyPropertyChanged)f.Vm).PropertyChanged += (_, args) => notices.Add(args.PropertyName ?? "");
+            foreach (var artwork in new[] { true, false })
+            {
+                notices.Clear();
+                f.Vm.GetType().GetProperty("HeroArt")!.SetValue(f.Vm, artwork);
+                Assert.Equal(artwork, (bool)f.Get("Showcase")!);
+                Assert.Equal(!artwork, (bool)f.Get("HeroCardShown")!);
+                Assert.Equal(375d, (double)f.Get("StillHeight")!);
+                foreach (var name in new[] { "ColumnVideoVisibility", "VideoLineVisibility", "ColumnPickersVisibility", "CardTailGapHeight" })
+                    Assert.True(notices.Contains(name), "背景变化缺少布局通知：" + name);
+            }
+        });
+
+        Test("高斯偏好仅在四种详情宽窗沉浸生效，窄窗无图保留偏好", () =>
         {
             foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
             {
@@ -179,8 +240,7 @@ internal static partial class DetailActionReadinessTests
                 f.Ui.EnableImmersive = false;
                 Assert.False((bool)f.Get("UseGaussianBackdrop")!, "简洁模式不得启用高斯");
                 f.Ui.EnableImmersive = true;
-                Assert.Equal(shape != Shape.Episode, (bool)f.Get("UseGaussianBackdrop")!);
-                Assert.Equal(shape != Shape.Episode, (bool)f.Get("UseGaussianBackdrop")!);
+                Assert.True((bool)f.Get("UseGaussianBackdrop")!);
                 Set("PageWidth", 760d);
                 Assert.False((bool)f.Get("UseGaussianBackdrop")!, "紧凑版式不得启用高斯");
                 Set("PageWidth", 1200d);

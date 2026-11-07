@@ -177,6 +177,19 @@ public sealed partial class DetailViewModel : PageViewModel
         {
             if (args.PropertyName == nameof(Showcase))
             {
+                RefitArtwork();
+                OnPropertyChanged(nameof(HeroCardShown));
+                OnPropertyChanged(nameof(HeroCardVisibility));
+                OnPropertyChanged(nameof(HeroContentAlignment));
+                OnPropertyChanged(nameof(CoverAlignment));
+                OnPropertyChanged(nameof(CornerVisibility));
+                OnPropertyChanged(nameof(HeroContent));
+                OnPropertyChanged(nameof(HeroRoom));
+                OnPropertyChanged(nameof(TailMargin));
+                OnPropertyChanged(nameof(CardTailGapHeight));
+                OnPropertyChanged(nameof(ColumnVideoVisibility));
+                OnPropertyChanged(nameof(VideoLineVisibility));
+                OnPropertyChanged(nameof(ColumnPickersVisibility));
                 OnPropertyChanged(nameof(UseGaussianBackdrop));
                 UpdateHeroBlur();
             }
@@ -394,7 +407,7 @@ public sealed partial class DetailViewModel : PageViewModel
     // 简洁模式在窄窗也保留封面与双栏操作。沉浸模式和单集仍使用原紧凑断点。
     public bool IsCompact => !PlainDetail && DetailHero.IsCompact(PageWidth);
 
-    /// <summary>沉浸开关开启时，电影、剧、季宽窗直接让开正文纸面；窄窗仍使用紧凑排版。</summary>
+    /// <summary>沉浸开关开启时，电影、剧、季和单集宽窗让开正文纸面；窄窗仍使用紧凑排版。</summary>
     public bool Showcase => DetailHero.Immersive(ImmersiveEnabled, IsCompact, BackdropShown, ItemType);
 
     internal double ControlBackgroundOpacity => _settings?.Settings.Ui.ControlBackgroundOpacity ?? UiSettings.DefaultControlBackgroundOpacity;
@@ -432,6 +445,8 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(HeroPlainVisibility));
         OnPropertyChanged(nameof(ScrimVisibility));
         OnPropertyChanged(nameof(HeroContentAlignment));
+        OnPropertyChanged(nameof(CoverAlignment));
+        OnPropertyChanged(nameof(CornerVisibility));
         OnPropertyChanged(nameof(HeroContent));
         OnPropertyChanged(nameof(HeroRoom));
         OnPropertyChanged(nameof(HeroInset));
@@ -474,9 +489,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 集页整段上方合成的那一块面板在不在 —— <see cref="HeroCardVisibility"/>、<see cref="HeroPlainVisibility"/>、
     /// <see cref="ScrimVisibility"/>、<see cref="HeroInset"/> 和 <see cref="TailInset"/> 五处都问它，判据只写一份。
     /// </summary>
-    private bool HeroCard => (IsEpisodePage || PlainDetail) && !IsCompact;
+    private bool HeroCard => (IsEpisodePage && !Showcase || PlainDetail) && !IsCompact;
 
-    /// <summary>关闭沉浸后的三类详情只改变外观，不改变单集、海报或播放目标语义。</summary>
+    /// <summary>沉浸总开关只改变外观，不改变单集、海报或播放目标语义。</summary>
     private bool ImmersiveEnabled => _settings?.Settings.Ui.EnableImmersive != false;
 
     private bool PlainDetail => !ImmersiveEnabled
@@ -707,8 +722,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// 这一页要不要按「背后铺着一张图」那一档布 —— 服务器上有没有那张图（<see cref="ItemArtwork.Hero"/> 问标签
-    /// 表的结果），加上集页那一页这次走哪套版式：集页的宽版式不铺（2026-09-12「去掉集页面的背景图」，那一页
-    /// 整段合成在一块板上），紧凑版式铺（2026-10-13「再给集页面的窄窗口加背景图」）。判据只写一份，在
+    /// 表的结果），加上集页这次的模式：沉浸宽窗铺图，简洁宽窗合成卡面，紧凑版式沿用背景图。
+    /// 判据只写一份，在
     /// <see cref="SpreadsBackdrop"/>。
     /// <para>
     /// 分成两个值是为了「点击主页封面后窗口会闪一下，然后才会进入页面」。版面按有没有这张图分档
@@ -915,8 +930,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// 窗口宽变了（<c>DetailPage.OnBodySizeChanged</c> 量完喊）—— 三件事：封面按新宽重排（集页那一格在紧凑
-    /// 版式里跟着收）、角图让位、以及重问一句「这一页这次铺不铺背景图」（<see cref="SyncBackdrop"/> —— 集页的
-    /// 宽版式不铺、紧凑版式铺，跨过断点那一下答案就翻了）。每一像素都喊，和带高、背景盒高那些绑定同一个
+    /// 版式里跟着收）、角图让位、以及重问一句「这一页这次铺不铺背景图」（<see cref="SyncBackdrop"/>）。
+    /// 单集沉浸宽窗铺图，简洁宽窗卡面，紧凑版式保留背景。每一像素都喊，和带高、背景盒高那些绑定同一个
     /// 节奏；做的都是几次乘除加几次属性通知，拖窗口的负载不在这里。
     /// </summary>
     partial void OnPageWidthChanged(double value)
@@ -1044,8 +1059,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public VerticalAlignment HeroContentAlignment => HeroCard ? VerticalAlignment.Top : VerticalAlignment.Bottom;
 
-    /// <summary>默认宽详情封面顶对齐，避免较高的信息列把封面居中下推；单集保留原布局。</summary>
-    public VerticalAlignment CoverAlignment => IsEpisodePage ? VerticalAlignment.Center : VerticalAlignment.Top;
+    /// <summary>沉浸单集沿用剧页封面顶对齐；简洁单集保留居中卡面。</summary>
+    public VerticalAlignment CoverAlignment => IsEpisodePage && !Showcase ? VerticalAlignment.Center : VerticalAlignment.Top;
 
     /// <summary>
     /// 右上角艺术图这一次的上限盒宽，默认 360，窗口超过 1280 后逐步放大至 540，
@@ -1140,8 +1155,8 @@ public sealed partial class DetailViewModel : PageViewModel
         : 0;
 
     /// <summary>
-    /// 这一页走不走窄窗口那套竖留白 —— 只有电影、剧、季的宽版式。集页整段已经合成一块板
-    /// （<see cref="HeroCard"/>），留白另有一档；紧凑版式那一套在 <see cref="DetailHero.CompactHeight"/> 里。
+    /// 这一页走不走宽窗可收缩留白 —— 沉浸单集与电影、剧、季共用；简洁卡面留白另有一档。
+    /// 紧凑版式那一套在 <see cref="DetailHero.CompactHeight"/> 里。
     /// <para>
     /// 沉浸档不在这里单独排除：那一档尾部的 8／8 优先（见 <see cref="TailSpacing"/> 与
     /// <see cref="TailPanelPadding"/>），头部这两道留白仍按宽度收 —— 短窗口上本来就更该紧凑。代价是
@@ -1149,8 +1164,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 整页，收一点头部不会让任何东西掉出画面。
     /// </para>
     /// </summary>
-    private bool Crowdable => !IsCompact && !IsEpisodePage && !HeroCard
-        && ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
+    private bool Crowdable => !IsCompact && !HeroCard
+        && ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode;
 
     /// <summary>
     /// 尾部这一段里有几块（文件选项、紧凑块、剧情说明）真的画着 —— <see cref="StackPanel.Spacing"/> 只算在
@@ -1239,7 +1254,7 @@ public sealed partial class DetailViewModel : PageViewModel
         ? new(20, 20, 20, 16)
         : HeroCard
             ? new(48, 28, 48, 0)
-            : IsEpisodePage
+            : IsEpisodePage && !Showcase
                 ? new(60, 28, 60, 16)
                 : new(
                     TailInset.Left + OverviewPanelPadding.Left,
@@ -1278,7 +1293,7 @@ public sealed partial class DetailViewModel : PageViewModel
             ? new(StackLeft, 12, PlainDetail ? 48 : StackLeft, 0)
             : new(
                 8,
-                IsEpisodePage
+                IsEpisodePage && !Showcase
                     ? 12
                     : DetailHero.Between(DetailHero.TailTopRoom, DetailHero.TailTopTight, Squeeze),
                 32,
@@ -1701,7 +1716,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private bool SpreadsBackdrop(EmbyItem item) =>
         (ImmersiveEnabled || item.Type is not (EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season))
-        && (item.Type != EmbyItemType.Episode || IsCompact) && ItemArtwork.Hero(item).Count > 0;
+        && (item.Type != EmbyItemType.Episode || ImmersiveEnabled || IsCompact) && ItemArtwork.Hero(item).Count > 0;
 
     /// <summary>
     /// Whether 单集 belongs down the page as rows rather than across it as cards. The rule itself is
@@ -1844,7 +1859,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>集页与简洁模式电影、剧页显示艺术图；没有图或标题栏空间不足时收起。</summary>
     public Visibility CornerVisibility => Show(CornerImage is not null && !IsCompact && CornerMaxWidth > 0
-        && (IsEpisodePage || PlainDetail && ItemType is EmbyItemType.Movie or EmbyItemType.Series));
+        && (IsEpisodePage && !Showcase || PlainDetail && ItemType is EmbyItemType.Movie or EmbyItemType.Series));
 
     /// <summary>
     /// 页面最底下那张横幅画不画。两句话：图解出来了没有，以及这一页是不是那三种页面之一 —— 用户点的名是「电影
@@ -3357,7 +3372,7 @@ public sealed partial class DetailViewModel : PageViewModel
         // 就是剧页面上那张 2:3 海报，借的也是同一条路（show 在 WhenAll 外头就已经在路上了）；借不到（没有
         // SeriesId、服务器没应答、或者剧自己连一张封面都没有）才退回本集自己的那几张 —— 有一张剧照总比
         // 空着一格强。其余页面照旧取自己的 Primary / Thumb。
-        // 集页的宽版式不铺背景图（见 <see cref="HeroArt"/>），可是头图这一路照取 —— 取图不看这一页这次铺不铺：
+        // 集页简洁宽窗不铺背景图，沉浸宽窗与紧凑版式铺图；取图不看这一页这次铺不铺：
         // 窗口从宽拉窄跨过紧凑断点的那一下答案就从不要翻成要，图已经在手，画面就地出来，不用再等一趟往返
         // （2026-10-13「再给集页面的窄窗口加背景图」）。集页多问的倒是另一趟：剧集那一层的条目。右上角那张
         // 艺术图（<see cref="ItemArtwork.Corner"/>）、页尾那张横幅（<see cref="ItemArtwork.Footer"/>）和左上角

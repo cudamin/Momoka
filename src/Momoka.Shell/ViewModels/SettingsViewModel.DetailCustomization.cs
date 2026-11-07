@@ -24,7 +24,7 @@ public sealed partial class SettingsViewModel
             Choice("显示模式", new[] { ("沉浸模式", true), ("简洁模式", false) },
                 () => ui.EnableImmersive,
                 value => ui.EnableImmersive = value,
-                "电影、剧和季详情页有背景图时固定使用沉浸布局",
+                "电影、剧、季和单集详情页有背景图时固定使用沉浸布局",
                 after: () =>
                 {
                     ShellPrefs.ApplyAppearance(ui);
@@ -42,7 +42,7 @@ public sealed partial class SettingsViewModel
                     ui.UseAcrylicBackdrop = value == 2;
                     ui.UseGaussianBackdrop = value == 1;
                 },
-                "电影、剧和季可用亚克力，普通与窄窗同样生效；高斯仅沉浸模式生效，轻罩随强度变化。主页轮播不受影响。",
+                "电影、剧、季和沉浸单集可用亚克力；高斯仅沉浸模式生效，轻罩随强度变化。主页轮播不受影响。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
             AppearanceColorRow("背景遮罩颜色", true, ui),
             Slider("背景图不透明度（%）", 0, 100, 1,

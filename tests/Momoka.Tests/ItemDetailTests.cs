@@ -2374,15 +2374,15 @@ internal static class ItemDetailTests
         // 「剧集页面、电影页面和季页面进入最大化状态时，去掉下方组件的背景遮罩，并将下方组件整体上移」
         // （2026-10-31）：正文那张不透明的纸整块让开，单集/剧季/相似/演职人员直接压在固定的模糊背景上。
         // 四句话缺一不可 —— 沉浸开关、宽版式、背后有那张图、
-        // 条目是电影/剧/季；一票否决的那几种各自成句。
-        Test("铺开：沉浸启用只有电影、剧、季三页收起正文纸面", () =>
+        // 条目是电影/剧/季/单集；一票否决的那几种各自成句。
+        Test("铺开：沉浸启用电影、剧、季和单集收起正文纸面", () =>
         {
             Assert.True(DetailHero.Immersive(true, compact: false, artwork: true, EmbyItemType.Series));
             Assert.True(DetailHero.Immersive(true, false, true, EmbyItemType.Movie));
             Assert.True(DetailHero.Immersive(true, false, true, EmbyItemType.Season));
 
-            // 单集页整段已经合成在一块板上（HeroCard），不跟这一档走；人物、文件夹这些更不在内。
-            Assert.False(DetailHero.Immersive(true, false, true, EmbyItemType.Episode));
+            Assert.True(DetailHero.Immersive(true, false, true, EmbyItemType.Episode));
+            // 人物和文件夹不使用媒体详情的沉浸布局。
             Assert.False(DetailHero.Immersive(true, false, true, EmbyItemType.Person));
             Assert.False(DetailHero.Immersive(true, false, true, EmbyItemType.Folder));
 

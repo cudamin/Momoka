@@ -56,7 +56,7 @@ internal static class SettingsPageStateTests
             var rows = fixture.List(section, "Rows");
             var mode = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "显示模式");
             Assert.Equal("SettingChoiceRow", mode.GetType().Name);
-            Assert.Equal("电影、剧和季详情页有背景图时固定使用沉浸布局", fixture.Get<string>(mode, "Note"));
+            Assert.Equal("电影、剧、季和单集详情页有背景图时固定使用沉浸布局", fixture.Get<string>(mode, "Note"));
             var effect = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "背景图效果");
             Assert.Equal(rows.IndexOf(mode) + 1, rows.IndexOf(effect));
             var choices = fixture.List(mode, "Choices");

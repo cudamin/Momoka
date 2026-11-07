@@ -118,7 +118,7 @@ public static class DetailHero
     /// <summary>详情沉浸开关直接决定宽窗布局；无图、窄窗和其它条目类型不收起正文纸面。</summary>
     public static bool Immersive(bool enabled, bool compact, bool artwork, string type) =>
         enabled && !compact && artwork
-        && type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
+        && type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode;
 
     /// <summary>
     /// MoviePilot 订阅详情页的大窗模式（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」，同日追加

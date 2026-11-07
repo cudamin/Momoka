@@ -199,18 +199,20 @@ internal static class DetailLayoutTests
 
         Test("沉浸开关：宽窗由开关直接控制，关闭不进入沉浸", () =>
         {
-            foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season })
+            foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode })
             {
                 Assert.False(DetailHero.Immersive(false, false, true, type));
                 Assert.True(DetailHero.Immersive(true, false, true, type));
             }
         });
 
-        Test("沉浸开关：窄窗、无图及单集与其他类型保留原布局", () =>
+        Test("沉浸开关：窄窗、无图及其他类型保留原布局", () =>
         {
             Assert.False(DetailHero.Immersive(true, true, true, EmbyItemType.Movie));
             Assert.False(DetailHero.Immersive(true, false, false, EmbyItemType.Series));
-            foreach (var type in new[] { EmbyItemType.Episode, EmbyItemType.Person, EmbyItemType.Folder, "unknown", null! })
+            Assert.False(DetailHero.Immersive(true, true, true, EmbyItemType.Episode));
+            Assert.False(DetailHero.Immersive(true, false, false, EmbyItemType.Episode));
+            foreach (var type in new[] { EmbyItemType.Person, EmbyItemType.Folder, "unknown", null! })
                 Assert.False(DetailHero.Immersive(true, false, true, type));
         });
     }
