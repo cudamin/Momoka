@@ -24,6 +24,7 @@ internal static partial class PlexMediaTests
     {
         RegisterLibraries();
         RegisterBitrates();
+        RegisterWatchedCounts();
         PlexV2LoginTests.Register();
         Test("Plex 媒体：登录、媒体库命名和令牌失效后同身份恢复", () =>
         {

@@ -95,6 +95,12 @@ public sealed partial class PlexMediaAdapter
 
         var duration = Number(value, "duration");
         var position = Number(value, "viewOffset") ?? 0;
+        var container = type is EmbyItemType.Series or EmbyItemType.Season;
+        var childCount = container ? LeafCount(value, "leafCount") : Integer(value, "leafCount");
+        var viewedCount = container ? LeafCount(value, "viewedLeafCount") : null;
+        // 剧/季按已看叶子数判定；空容器或未知/矛盾统计不能当作全部看完。
+        var remaining = container && childCount is { } total && viewedCount is { } viewed && viewed <= total
+            ? total - viewed : (int?)null;
         var item = new EmbyItem
         {
             Id = Text(value, "ratingKey"),
@@ -115,13 +121,14 @@ public sealed partial class PlexMediaAdapter
             SeriesId = Blank(Text(value, "grandparentRatingKey")),
             SeriesName = Blank(Text(value, "grandparentTitle")),
             SeasonId = type == EmbyItemType.Episode ? Blank(Text(value, "parentRatingKey")) : null,
-            ChildCount = Integer(value, "leafCount"),
+            ChildCount = childCount,
             Genres = Tags(value, "Genre"),
             Studios = [.. Tags(value, "Studio").Select(name => new EmbyStudio { Name = name })],
             Tags = Tags(value, "Label"),
             UserData = new EmbyUserData
             {
-                Played = (Number(value, "viewCount") ?? 0) > 0,
+                Played = container ? childCount is > 0 && remaining == 0 : (Number(value, "viewCount") ?? 0) > 0,
+                UnplayedItemCount = remaining,
                 PlaybackPositionTicks = Ticks(position),
                 PlayedPercentage = duration is > 0 ? position / duration.Value * 100 : null,
                 LastPlayedDate = Seconds(Number(value, "lastViewedAt"))
@@ -265,6 +272,10 @@ public sealed partial class PlexMediaAdapter
             });
         }
     }
+
+    private static int? LeafCount(JsonObject value, string key) =>
+        Number(value, key) is >= 0 and <= int.MaxValue and var count && count == Math.Truncate(count)
+            ? (int)count : null;
 
     // Plex 的 Media/Stream 用 kbps；共享模型用 bit/s。先扩大类型，避免大码率回绕为负数。
     private static int? Bitrate(JsonObject value)
