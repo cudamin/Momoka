@@ -532,6 +532,25 @@ internal static class DanmakuTests
             Assert.Equal(1, posts);
         }));
 
+        Test("R14-001：删除被拒的凭据缓存不复活，落盘失败仍使用新身份", () => InBuiltInFixture(fixture =>
+        {
+            var credentials = 0;
+            fixture.Transport.Response = request => request.Uri.Host == "credential.test"
+                ? CredentialReply("builtin-app", ++credentials == 1 ? "old-secret" : "new-secret", fixture.Now)
+                : Reply(Search);
+            Assert.Equal("old-secret", fixture.BuiltIn!.GetAsync().GetAwaiter().GetResult().Secret);
+            var cache = Path.Combine(Path.GetDirectoryName(fixture.Cache)!, "builtin-credential.bin");
+            using (var locked = new FileStream(cache, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                fixture.BuiltIn.Invalidate();
+                Assert.True(File.Exists(cache));
+                Assert.Equal("new-secret", fixture.BuiltIn.GetAsync().GetAwaiter().GetResult().Secret);
+                Assert.Equal(2, credentials);
+                Assert.Equal("new-secret", fixture.BuiltIn.GetAsync().GetAwaiter().GetResult().Secret);
+                Assert.Equal(2, credentials);
+            }
+        }));
+
         Test("弹弹play：内置凭据端点失败时不请求弹幕接口", () => InBuiltInFixture(fixture =>
         {
             fixture.Transport.Response = request => request.Uri.Host == "credential.test"

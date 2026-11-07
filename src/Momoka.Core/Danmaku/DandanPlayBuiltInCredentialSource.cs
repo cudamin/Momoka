@@ -30,6 +30,7 @@ public sealed class DandanPlayBuiltInCredentialSource : IDandanPlayCredentialSou
     private DandanPlayCredential? _cached;
     private DateTimeOffset _expires;
     private DateTimeOffset _refreshAt;
+    private bool _diskCacheRejected;
 
     public DandanPlayBuiltInCredentialSource(
         ISecretProtector protector,
@@ -62,7 +63,7 @@ public sealed class DandanPlayBuiltInCredentialSource : IDandanPlayCredentialSou
             var now = _clock();
             if (_cached is not null && now < _refreshAt) return _cached;
 
-            var stored = TryReadCache();
+            var stored = _diskCacheRejected ? null : TryReadCache();
             if (stored is not null)
             {
                 _cached = stored.Value.Credential;
@@ -96,6 +97,7 @@ public sealed class DandanPlayBuiltInCredentialSource : IDandanPlayCredentialSou
         try
         {
             _cached = null;
+            _diskCacheRejected = true;
             _expires = default;
             _refreshAt = default;
             try { File.Delete(_cacheFile); }
