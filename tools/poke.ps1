@@ -10,6 +10,10 @@
 # Coordinates are client-relative and in the window's own pixels, so they mean the same thing whatever
 # the window's position; -Fraction takes 0..1 instead, for "the bottom edge" and "the right edge".
 param(
+    [Parameter(Mandatory = $true)]
+    [ValidateRange(1, 2147483647)]
+    [int]$ProcessId,
+    [long]$WindowHandle = 0,
     [double]$X = 0.5,
     [double]$Y = 0.5,
     # Treat X and Y as fractions of the client area rather than pixels.
@@ -37,6 +41,12 @@ public static class Poke {
     [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr h, ref POINT p);
     [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+    [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr h);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint processId);
+    [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT point);
+    [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr h, uint flags);
     [DllImport("user32.dll")] public static extern int GetSystemMetrics(int index);
     [DllImport("user32.dll")] public static extern void mouse_event(uint flags, int dx, int dy, int data, IntPtr extra);
     [DllImport("user32.dll")] public static extern uint SendInput(uint count, INPUT[] inputs, int size);
@@ -51,6 +61,7 @@ public static class Poke {
     public const int NotchDelta = 120;
     public const int ScreenWidth = 0, ScreenHeight = 1;
     public const int DeskX = 76, DeskY = 77, DeskWidth = 78, DeskHeight = 79;
+    public const uint GaRoot = 2;
 }
 "@
 
@@ -82,15 +93,24 @@ function Send([int]$x, [int]$y) {
     $event.type = 0
     $event.mi = $mouse
 
-    [void][Poke]::SendInput(1, @($event), [System.Runtime.InteropServices.Marshal]::SizeOf($event))
+    if ([Poke]::SendInput(1, @($event), [System.Runtime.InteropServices.Marshal]::SizeOf($event)) -ne 1) {
+        throw 'SendInput 没有送达移动事件，已停止后续点击或滚轮'
+    }
 }
 
-$process = Get-Process -Name "Momoka" -ErrorAction SilentlyContinue |
-    Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } |
-    Select-Object -First 1
-if (-not $process) { throw "没有正在运行的 Momoka 窗口" }
+$process = Get-Process -Id $ProcessId -ErrorAction Stop
+if ($process.ProcessName -ne 'Momoka') { throw '指定进程不是 Momoka' }
 
-$handle = $process.MainWindowHandle
+$handle = if ($WindowHandle -ne 0) { [IntPtr]$WindowHandle } else { $process.MainWindowHandle }
+$ownerId = [uint32]0
+if ($handle -eq [IntPtr]::Zero -or -not [Poke]::IsWindow($handle) -or
+    [Poke]::GetWindowThreadProcessId($handle, [ref]$ownerId) -eq 0 -or $ownerId -ne $ProcessId) {
+    throw '窗口不属于本次指定进程，已停止输入'
+}
+$originalPointer = New-Object Poke+POINT
+if (-not [Poke]::GetCursorPos([ref]$originalPointer)) { throw '取不到原指针位置，已停止输入' }
+$originalForeground = [Poke]::GetForegroundWindow()
+try {
 $client = New-Object Poke+RECT
 if (-not [Poke]::GetClientRect($handle, [ref]$client)) { throw "取不到客户区尺寸" }
 
@@ -117,7 +137,7 @@ else {
     $point.Y = $py
     if (-not [Poke]::ClientToScreen($handle, [ref]$point)) { throw "客户区坐标转换失败" }
 
-    [void][Poke]::SetForegroundWindow($handle)
+    if (-not [Poke]::SetForegroundWindow($handle)) { throw '无法激活目标窗口，已停止输入' }
 }
 
 # 落点仍然回读一次再校正。这支脚本的 DPI 感知随宿主而变（谁启动的 PowerShell 就跟谁），一旦窗口那边
@@ -135,13 +155,22 @@ Start-Sleep -Milliseconds 40
 for ($step = 0; $step -lt 6; $step++) {
     Send $aim.X $aim.Y
     Start-Sleep -Milliseconds 40
-    [void][Poke]::GetCursorPos([ref]$landed)
+    if (-not [Poke]::GetCursorPos([ref]$landed)) { throw '无法核实指针落点，已停止后续输入' }
 
     if ($landed.X -eq $point.X -and $landed.Y -eq $point.Y) { break }
 
     # 比例逼近，落点为 0 时退化成挪一步：除以 0 换不来更好的估计。
     $aim.X = if ($landed.X -ne 0) { [int][Math]::Round($aim.X * $point.X / $landed.X) } else { $aim.X + 10 }
     $aim.Y = if ($landed.Y -ne 0) { [int][Math]::Round($aim.Y * $point.Y / $landed.Y) } else { $aim.Y + 10 }
+}
+
+if ($landed.X -ne $point.X -or $landed.Y -ne $point.Y) { throw '指针未到目标，已停止点击或滚轮' }
+if ($Click -ne 'none' -or $Wheel -ne 0) {
+    if (-not [Poke]::IsWindow($handle) -or [Poke]::GetWindowThreadProcessId($handle, [ref]$ownerId) -eq 0 -or
+        $ownerId -ne $ProcessId -or [Poke]::GetForegroundWindow() -ne [Poke]::GetAncestor($handle, [Poke]::GaRoot) -or
+        [Poke]::GetAncestor([Poke]::WindowFromPoint($landed), [Poke]::GaRoot) -ne [Poke]::GetAncestor($handle, [Poke]::GaRoot)) {
+        throw '落点或前台不属于目标窗口，已停止点击或滚轮'
+    }
 }
 
 if ($Wheel -ne 0) {
@@ -159,3 +188,8 @@ switch ($Click) {
 
 Start-Sleep -Milliseconds $SettleMs
 Write-Output "客户区 $($client.R)x$($client.B)，指向 ($px,$py)，落点 ($($landed.X),$($landed.Y))，点击 $Click，滚轮 $Wheel"
+}
+finally {
+    if (-not [Poke]::SetCursorPos($originalPointer.X, $originalPointer.Y)) { throw '无法恢复原指针位置' }
+    if ($originalForeground -ne [IntPtr]::Zero) { [void][Poke]::SetForegroundWindow($originalForeground) }
+}

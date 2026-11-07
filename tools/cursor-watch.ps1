@@ -166,6 +166,9 @@ while ($clock.Elapsed.TotalSeconds -lt $Seconds) {
             [CursorWatch]::Paint($frame, $info.hCursor, $info.pt.X, $info.pt.Y, $screen.X, $screen.Y)
             $note += "（光标已画进图里）"
         }
+        elseif (-not $ok) {
+            $note += "（光标状态未知：GetCursorInfo 失败）"
+        }
         else {
             $note += "（屏幕上没有光标）"
         }
