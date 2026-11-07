@@ -88,14 +88,14 @@ internal static class ResourceSortMenuTests
             Assert.True(second.SortDescending);
             Assert.Equal("middle,small,large", string.Join(',', second.Rows.Select(row => row.Title)));
         });
-        Test("网页资源排序：模板为透明文本按钮、原生下拉两组单选和动态图标", () =>
+        Test("网页资源排序：全局亚克力按钮、原生下拉两组单选和动态图标", () =>
         {
             var xml = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml"));
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
             XElement Named(string name) => xml.Descendants().Single(node => node.Attribute(x + "Name")?.Value == name);
             var button = Named("SortOrder");
             Assert.Equal("DropDownButton", button.Name.LocalName);
-            Assert.Equal("{ThemeResource ControlFillColorTransparentBrush}", button.Attribute("Background")?.Value);
+            Assert.Equal("{ThemeResource EgActionGlassBrush}", button.Attribute("Background")?.Value);
             Assert.Equal("{x:Bind ViewModel.SortAutomationName, Mode=OneWay}", button.Attribute("AutomationProperties.Name")?.Value);
             Assert.Null(button.Attribute("Width"), "不是固定宽度的设置页下拉框");
             Assert.Equal("32", button.Attribute("Height")?.Value);

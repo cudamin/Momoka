@@ -15,9 +15,9 @@
             <x:Double x:Key="ContentDialogMaxWidth">720</x:Double>
             <Thickness x:Key="ContentDialogPadding">20</Thickness>
             <Thickness x:Key="ContentDialogTitleMargin">0,0,0,16</Thickness>
-            <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgAccentBrush" />
-            <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
-            <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+            <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
             <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
             <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgAccentHoverBrush" />
             <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgAccentPressedBrush" />

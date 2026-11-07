@@ -8,7 +8,7 @@ internal static class ControlTintTests
 {
     internal static void Run()
     {
-        var apply = typeof(ControlBackgroundBrushes).GetMethod("Apply", [typeof(double), typeof(bool), typeof(Windows.UI.Color?)]);
+        var apply = typeof(ControlBackgroundBrushes).GetMethod("Apply", [typeof(double), typeof(bool), typeof(Windows.UI.Color?), typeof(double), typeof(double)]);
         if (apply is null) throw new InvalidOperationException("控件没有自选颜色入口");
         foreach (var key in new[] { "EgDetailActionBrush", "EgDetailActionHoverBrush", "EgDetailActionPressedBrush" })
             Application.Current.Resources[key] = new SolidColorBrush
@@ -28,7 +28,7 @@ internal static class ControlTintTests
                 foreach (var acrylic in new[] { false, true })
                     foreach (var percent in new[] { 0d, 14.71, 100d })
                     {
-                        apply.Invoke(backgrounds, [percent, acrylic, color]);
+                        apply.Invoke(backgrounds, [percent, acrylic, color, 0.55, 0.55]);
                         foreach (var suffix in new[] { "", "PointerOver", "Pressed" })
                         {
                             var brush = (AcrylicBrush)control.Resources[prefix + "Background" + suffix];
@@ -44,8 +44,8 @@ internal static class ControlTintTests
             backgrounds.Apply(100, false, 0xFFFFFFFF);
             backgrounds.ApplyForeground(white, false);
             var firstInk = control.Foreground;
-            if (((SolidColorBrush)firstInk!).Color != (Windows.UI.Color)0xFF161616)
-                throw new InvalidOperationException("白色实底文字未改成深色");
+            if (((SolidColorBrush)firstInk!).Color != (Windows.UI.Color)0xFFFFFFFF)
+                throw new InvalidOperationException("白色实底改变了固定白字");
             backgrounds.Apply(100, false, 0xFF000000);
             backgrounds.ApplyForeground(white, false);
             if (((SolidColorBrush)control.Foreground!).Color != (Windows.UI.Color)0xFFFFFFFF

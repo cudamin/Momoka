@@ -17,6 +17,7 @@ using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.Media;
 using Momoka.Shell.Views;
+using Momoka.Theming;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -129,6 +130,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 标记本季已看 knows what 本季 is.
     /// </summary>
     private readonly List<EmbyItem> _episodes = [];
+    private IReadOnlyList<EmbyItem> _shownEpisodeItems = [];
+    private CardItem? _currentEpisodeCard;
     private readonly HashSet<string> _deletedItems = new(StringComparer.Ordinal);
     private readonly HashSet<string> _deletedSourceIds = new(StringComparer.Ordinal);
     private readonly HashSet<string> _deletedSourcePaths = new(StringComparer.Ordinal);
@@ -416,14 +419,11 @@ public sealed partial class DetailViewModel : PageViewModel
 
     internal double ControlBackgroundOpacity => _settings?.Settings.Ui.ControlBackgroundOpacity ?? UiSettings.DefaultControlBackgroundOpacity;
 
-    internal bool UseAcrylicControls => _settings?.Settings.Ui.UseAcrylicControls == true;
-    public bool UseGaussianBackdrop => Showcase && !UseAcrylicBackdrop && _settings?.Settings.Ui.UseGaussianBackdrop == true;
-    public bool UseAcrylicBackdrop => _settings?.Settings.Ui.UseAcrylicBackdrop == true;
-    public bool GaussianBackdropApplied => UseGaussianBackdrop && _heroRenderedGaussian && HeroImage is not null;
-    internal bool GaussianBackdropReady => UseGaussianBackdrop == _heroRenderedGaussian && !_heroRendering && HeroImage is not null;
-    private bool _heroRenderedGaussian;
-    private bool _heroRequestedGaussian;
-    private bool _heroRendering;
+    internal bool UseAcrylicControls => true;
+    public bool UseGaussianBackdrop => false;
+    public bool UseAcrylicBackdrop => true;
+    public bool GaussianBackdropApplied => false;
+    internal bool GaussianBackdropReady => HeroImage is not null;
 
     /// <summary>
     /// 背景图上那层处理的强度 0..1（设置里「背景图不透明度」那一行）：0 关掉遮罩、也不加模糊，图原样清晰；
@@ -537,16 +537,26 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(ShowShelfLines))]
     public partial double HeroHeightRatio { get; set; } = 9d / 16;
 
-    // 裁切模糊的三个数：门槛（裁切不超过它不糊 —— 「提高拉长窗口后，背景被裁切触发背景图模糊的阈值」，
-    // 拉长窗口头几档的轻微裁切不值得整张图陪着糊）、裁到最狠再加多少（BackdropBlur.CropRadius 的 extra）、
-    // 按多大一档量化（step）。量化是给拖窗口的：占比一路变，档位不跟着一路变，重糊只发生在换档那一下。
-    private const double CropBlurStart = 0.25;
-    private const int CropBlurExtra = 32;
-    private const int CropBlurStep = 8;
-
-    /// <summary>解好的头图原图像素 —— 裁切模糊的原料。导航换条目、换图时整个作废。</summary>
+    // 原像素只用于主图底色；颜色按图片身份缓存，窗口或滚动变化不改变它。
     private HeroPictureLoader.HeroPixels? _heroPixels;
+    private HeroPictureLoader.HeroPixels? _baseColorPixels;
+    private ThemeColor _backdropBaseColor;
     internal HeroPictureLoader.HeroPixels? BackdropPixels => _heroPixels;
+    internal ThemeColor BackdropBaseColor
+    {
+        get
+        {
+            if (_heroPixels is null) return ThemeHost.Current.Colors.Window;
+            if (!ReferenceEquals(_baseColorPixels, _heroPixels))
+            {
+                _baseColorPixels = _heroPixels;
+                _backdropBaseColor = BackdropReading.Sample(_heroPixels.Pixels, _heroPixels.Width, _heroPixels.Height,
+                    _heroPixels.Width, _heroPixels.Height, 0, 0, _heroPixels.Width, _heroPixels.Height, true,
+                    ThemeHost.Current.Colors.Window);
+            }
+            return _backdropBaseColor;
+        }
+    }
     internal UiSettings AppearanceSettings => _settings?.Settings.Ui ?? new UiSettings();
 
     private NavigationTimingRun? _heroTiming;
@@ -564,52 +574,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>解好的角图原图像素，同 <see cref="_stillPixels"/>（<see cref="FitCorner"/> 的原料）。</summary>
     private (int Width, int Height)? _cornerPixels;
 
-    /// <summary>上一次渲染用的模糊档位；-1 是「还没出过图」。</summary>
-    private int _heroBlurRadius = -1;
-
-    /// <summary>重糊的生代号：谁后到谁算数，路上换了档就作废先回来那一张。</summary>
-    private int _heroBlurGeneration;
-
-    /// <summary>
-    /// 这一趟重糊的取消牌。拖滑块一次换十几档，旧的一趟要当场停下 —— 1280×720 上一趟 σ=24 的卷积是秒级的，
-    /// 不取消就会攒成一队，屏上停在几秒前的读数。条目离开也走它（<see cref="Cancel"/>）。
-    /// </summary>
-    private CancellationTokenSource? _blurCancel;
-
-    /// <summary>当前的模糊档位 —— 高斯模糊那一路读设置里的强度（<see cref="GaussianBackdrop.SigmaFor"/>，0 档
-    /// 不模糊）；暗色遮罩那一路按裁切占比（<see cref="DetailHero.PictureCrop"/>）换算半径。电影和剧没有基础
-    /// 半径，裁多少加多少；集页只在紧凑版式里画这张图，宽版式上裁切占比算出来照样有值，只是没有一层画它。</summary>
-    private int HeroBlurTarget => UseGaussianBackdrop ? GaussianBackdrop.SigmaFor(BackdropStrength) : BackdropBlur.CropRadius(
-        DetailHero.PictureCrop(PageWidth, HeroHeightRatio, Viewport), CropBlurStart, 0, CropBlurExtra, CropBlurStep);
-
-    /// <summary>
-    /// 窗口形状变了（<c>DetailPage.OnBodySizeChanged</c> 量完宽高顺手喊一声）：按新的裁切占比算模糊档位，
-    /// 换档就用缓存的那批像素重糊一遍。生代号让「谁后到谁算数」—— 重糊还在路上又换了一档，先回来那一张
-    /// 作废。不做可等待：拖窗口不等一次几十毫秒的像素活，屏上短暂停在上一档是这条路的正常形态。
-    /// <para>
-    /// 2026-11-06：设置里那一档也跟着模糊程度走，拖一次滑块会换十几档，光靠「后到算数」会让十几趟卷积排队，
-    /// 屏上停在几秒前的读数。所以每一次换档先把上一趟取消（<see cref="_blurCancel"/>），只留最后那一趟跑完。
-    /// </para>
-    /// </summary>
-    public void UpdateHeroBlur()
-    {
-        if (!Attached || _heroPixels is null) return;
-
-        var target = HeroBlurTarget;
-        if (target == _heroBlurRadius && _heroRequestedGaussian == UseGaussianBackdrop) return;
-
-        var generation = ++_heroBlurGeneration;
-        _heroBlurRadius = target;
-        _heroRequestedGaussian = UseGaussianBackdrop;
-        _heroRendering = true;
-
-        _blurCancel?.Cancel();
-        _blurCancel?.Dispose();
-        _blurCancel = new CancellationTokenSource();
-        var token = CancellationTokenSource.CreateLinkedTokenSource(
-            _art?.Token ?? CancellationToken.None, _blurCancel.Token).Token;
-        _ = RenderBlurAsync(generation, _heroPixels, target, _heroRequestedGaussian, token);
-    }
+    /// <summary>兼容已有布局通知；背景不再按裁切重糊，原生亚克力负责处理。</summary>
+    public void UpdateHeroBlur() { }
 
     private async Task<BitmapImage?> RenderHeroAsync(HeroPictureLoader.HeroPixels pixels, int radius,
         CancellationToken token, DetailHeroCache.Ticket? ticket, NavigationTimingRun? timing, bool gaussian)
@@ -628,39 +594,6 @@ public sealed partial class DetailViewModel : PageViewModel
         if (picture is not null && cache is not null && ticket is not null)
             cache.RememberPicture(ticket, pixels, radius, picture, gaussian);
         return picture;
-    }
-
-    private async Task RenderBlurAsync(int generation, HeroPictureLoader.HeroPixels pixels, int radius, bool gaussian,
-        CancellationToken token)
-    {
-        try
-        {
-            var picture = await RenderHeroAsync(pixels, radius, token, _heroCacheTicket, _heroTiming, gaussian)
-                .ConfigureAwait(true);
-
-            if (Attached && generation == _heroBlurGeneration && gaussian == UseGaussianBackdrop && picture is not null)
-            {
-                _heroRenderedGaussian = gaussian;
-                _heroRendering = false;
-                HeroImage = picture;
-                OnPropertyChanged(nameof(GaussianBackdropApplied));
-            }
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception error)
-        {
-            Log.Debug(Category, $"背景图按裁切重糊失败：{error.Message}");
-        }
-        finally
-        {
-            if (generation == _heroBlurGeneration && _heroRendering)
-            {
-                _heroRendering = false;
-                _heroBlurRadius = -1;
-            }
-        }
     }
 
     /// <summary>
@@ -1169,7 +1102,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// </summary>
     private bool Crowdable => !IsCompact && !HeroCard
-        && ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode;
+        && ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
     /// <summary>
     /// 尾部这一段里有几块（文件选项、紧凑块、剧情说明）真的画着 —— <see cref="StackPanel.Spacing"/> 只算在
@@ -2126,19 +2059,9 @@ public sealed partial class DetailViewModel : PageViewModel
     public Visibility CastVisibility => Show(CardVisible("cast") && CastShelf is { Cards.Count: > 0 });
 
     /// <summary>
-    /// 全部剧季那一格画不画。两张卡以上才画：只有一季时那一格是一张通往本页已经在列的那一季的卡，摆在那里只是
-    /// 让人多点一次（用户令 2026-11-02「当剧集只有一季时，在剧页面不显示『全部剧集』卡片」）。季下拉框原来在同一个
-    /// 条件上收起（<see cref="SeasonVisibility"/>），那颗 2026-11-02 已删；判据仍然只写这一份。
-    /// <para>
-    /// 这一条对剧页和集页同时成立：集页那张卡由 <see cref="LoadSeasonShelfAsync"/> 填（同日用户令「集页面也加上
-    /// 全部剧季卡片」），单季的集页因此也不会画出这一块。电影、季两页的季卡永远是空的，整块收着。
-    /// </para>
-    /// <para>
-    /// 卡带里从 2026-11-03 晚起也列第 0 季（用户令要 S00 的封面），所以「一季正片 + 特别篇」的剧页、集页
-    /// 会画出这一块 —— 那两张卡指向两个不同的季页面，不是同一张卡摆两遍。
-    /// </para>
+    /// 剧页两季以上显示全部剧季卡片，集页只保留当前季度的集列表。
     /// </summary>
-    public Visibility SeasonShelfVisibility => Show(CardVisible("seasons") && SeasonShelf is { Cards.Count: > 1 });
+    public Visibility SeasonShelfVisibility => Show(!IsEpisodePage && CardVisible("seasons") && SeasonShelf is { Cards.Count: > 1 });
 
     /// <summary>
     /// 集列表牌子能不能点开季列表。剧页和集页的集列表现在是全剧一条（按播出时间排），所以两页都要能按季
@@ -2739,9 +2662,11 @@ public sealed partial class DetailViewModel : PageViewModel
             && (item.Type is not (EmbyItemType.Episode or EmbyItemType.Season) || show.Id != item.SeriesId))
             _show = null;
 
+        ReleaseCurrentEpisodeCard();
         _detail = item;
         _loadedSeason = null;
         _episodes.Clear();
+        _shownEpisodeItems = [];
         _infoEpisode = null;
         _infoSource = null;
 
@@ -2789,6 +2714,9 @@ public sealed partial class DetailViewModel : PageViewModel
         // 所以卡片那一份起的解码回来照样贴得上）。不一样才清空重取 —— 换季、翻页、或者服务器上换过图。
         if (!keepArtwork)
         {
+            // HeroImage的同步通知会立即重画亚克力，先清空旧底色再通知视图。
+            _heroPixels = null;
+            _baseColorPixels = null;
             HeroImage = null;
             StillImage = null;
             PlateImage = null;
@@ -2796,13 +2724,6 @@ public sealed partial class DetailViewModel : PageViewModel
             CornerHeight = 0;
             FooterImage = null;
             FooterPick = null;
-
-            // 裁切模糊的原料和档位跟着这一批图一起作废：在路上的重糊回来时生代号对不上，自己会扔。
-            _heroPixels = null;
-            _heroBlurRadius = -1;
-            _heroBlurGeneration++;
-            _heroRendering = false;
-            _heroRenderedGaussian = false;
 
             _art?.Cancel();
             _art?.Dispose();
@@ -3092,7 +3013,7 @@ public sealed partial class DetailViewModel : PageViewModel
             // 同剧页：已经删掉的那一季不再摆一张通往空页面的卡（判据在 WasDeleted）；第 0 季照旧列进来 ——
             // 第 0 季的封面入口保留，和主集列表中的特别篇共用原有导航。
             seasons.RemoveAll(WasDeleted);
-            shelf.Fill(seasons, ItemDetail.SeasonSubtitle);
+            // 集页仅保留选季数据，不再构造全部剧集卡片。
 
             // 集页的季列表和剧页共用同一支下拉；Seasons 填上之后，SelectedSeason 才能指向清单里的真季，
             // 而不是 LoadEpisodesAsync 用这一集自己的字段拼出来的临时锚点。
@@ -3101,7 +3022,8 @@ public sealed partial class DetailViewModel : PageViewModel
             {
                 Seasons.Clear();
                 foreach (var season in seasons) Seasons.Add(season);
-                AdoptEpisodeAnchor(ItemDetail.SeasonOf(seasons, item) ?? SeasonAnchor(item));
+                if (_episodes.Count > 0) RefreshEpisodeSeason(defaultSeason: true);
+                else AdoptEpisodeAnchor(ItemDetail.SeasonOf(seasons, item) ?? SeasonAnchor(item));
             }
             finally { _syncingSeason = false; }
 
@@ -3189,14 +3111,17 @@ public sealed partial class DetailViewModel : PageViewModel
         if (!Current()) return;
 
         _episodes.Clear();
+        _shownEpisodeItems = [];
         _episodes.AddRange(episodes);
+        if (_currentEpisodeCard is not null) EnsureCurrentEpisodeCard();
 
         // One shelf, two shapes. Rows on a season page — and the page itself goes in so the row that is this
         // page can mark itself, which on any other page matches nothing and marks nothing. Cards everywhere
         // else, where the second line is 「第 7 集 · 46 分钟」 rather than the card default's 「S02E09 ·
         // 剧名」: both halves of that are already on this page.
         timing?.Mark("episodes-publish-begin", episodes.Count);
-        shelf.FillDeferred(episodes, EpisodesAsList ? null : ItemDetail.EpisodeCardSubtitle, page);
+        if (page.Type == EmbyItemType.Episode) RefreshEpisodeSeason(defaultSeason: true);
+        else shelf.FillDeferred(episodes, EpisodesAsList ? null : ItemDetail.EpisodeCardSubtitle, page);
         if (!Current()) return;
         timing?.Mark("episodes-publish-end", episodes.Count);
 
@@ -3211,9 +3136,10 @@ public sealed partial class DetailViewModel : PageViewModel
         // Assigned after the cards, so the strip has something to measure itself against; it keeps the
         // request until the first card is laid out either way. 剧页开在锚点那一季的第一张，集页开在
         // 正在看的那一集；季页是竖列表，这个数不参与排版。
-        EpisodeFocus = page.Type == EmbyItemType.Series
-            ? Math.Max(0, ItemDetail.FirstEpisodeIndex(episodes, season))
-            : ItemDetail.EpisodeFocus(episodes, page);
+        if (page.Type != EmbyItemType.Episode)
+            EpisodeFocus = page.Type == EmbyItemType.Series
+                ? Math.Max(0, ItemDetail.FirstEpisodeIndex(episodes, season))
+                : ItemDetail.EpisodeFocus(episodes, page);
         if (!Current()) return;
 
         if (retarget)
@@ -3226,6 +3152,40 @@ public sealed partial class DetailViewModel : PageViewModel
 
         // 放在播放落点之后：剧/季页那张表可能复用同一趟取回来的目标集，而 ShowTarget 会先清一次表。
         await LoadInfoEpisodeAsync(episodes, allSeasons ? null : season, target, token).ConfigureAwait(true);
+    }
+
+    /// <summary>集页只发布所选季度；业务上下文仍保留全剧原始条目。</summary>
+    private void RefreshEpisodeSeason(bool defaultSeason = false)
+    {
+        if (!Attached || _detail is not { Type: EmbyItemType.Episode } page || EpisodeShelf is not { } shelf) return;
+        if (defaultSeason)
+        {
+            var number = ItemDetail.EpisodeSeasonNumber(_episodes, Seasons, page);
+            var anchor = Seasons.FirstOrDefault(season => season.IndexNumber == number)
+                ?? new EmbyItem
+                {
+                    Type = EmbyItemType.Season,
+                    IndexNumber = number,
+                    Id = page.ParentIndexNumber == number ? page.SeasonId ?? "" : "",
+                    Name = page.ParentIndexNumber == number ? page.SeasonName ?? "" : $"第{number}季",
+                    SeriesId = page.SeriesId,
+                    SeriesName = page.SeriesName
+                };
+            AdoptEpisodeAnchor(anchor);
+        }
+        var shown = ItemDetail.EpisodeSeasonItems(_episodes, Seasons, page, SelectedSeason);
+        var same = shelf.Cards.Count == shown.Count && _shownEpisodeItems.Count == shown.Count;
+        for (var index = 0; same && index < shown.Count; index++)
+            same = ReferenceEquals(_shownEpisodeItems[index], shown[index]);
+        if (!same)
+        {
+            _shownEpisodeItems = shown;
+            shelf.FillDeferred(shown, page: page);
+        }
+        if (!Attached || !ReferenceEquals(page, _detail) || !ReferenceEquals(shelf, EpisodeShelf)) return;
+        EpisodeFocus = ItemDetail.EpisodeFocus(shown, page);
+        UpdateEpisodeHeading(SelectedSeason);
+        OnPropertyChanged(nameof(CanPickEpisodeSeason));
     }
 
     /// <summary>
@@ -3277,7 +3237,7 @@ public sealed partial class DetailViewModel : PageViewModel
     internal void FollowEpisode(EmbyItem? episode)
     {
         if (episode is null || !Attached) return;
-        if (_detail?.Type is not (EmbyItemType.Series or EmbyItemType.Episode)) return;
+        if (_detail?.Type != EmbyItemType.Series) return;
 
         if (ItemDetail.SeasonOf(Seasons, episode) is { } season)
         {
@@ -3439,14 +3399,7 @@ public sealed partial class DetailViewModel : PageViewModel
             }
         }
 
-        // 电影和剧的头图：解到像素存起来（_heroPixels —— 裁切模糊的原料），按当前的模糊档位渲染上屏，自己
-        // 完成上屏（不经 Paint：它要多带一个生代号，重糊那一头比它新就不许盖上去）。「当窗口拉宽导致背景图
-        // 下方被裁切的时候，触发背景图模糊，裁切越多越模糊」：半径由 DetailHero.PictureCrop ×
-        // BackdropBlur.CropRadius 算（电影和剧没有基础半径，裁多少加多少；量化成档，拖窗口不为一个像素重糊），
-        // 档位换了由 UpdateHeroBlur 用同一批像素重糊。集页的宽版式不画这一张（紧凑版式画），所以那一页上这一
-        // 路解出来的东西多数时候躺在 _heroPixels 里等一次窗口变窄。
-        // 头图多带一个数上屏：这张图自己的高÷宽（ShowHero）——紧凑版式的带高和背景盒高都按它算
-        // （DetailHero.CompactHeight / PictureHeight）；量不成话（0 或负）就不动兜底的那 0.5625。
+        // 主图只解码并保留原像素，原生亚克力处理背景；原有身份与取消守卫拒绝迟到结果。
         async Task HeroAsync(EmbyItem page, CancellationToken token)
         {
             var cache = _heroCache;
@@ -3487,18 +3440,8 @@ public sealed partial class DetailViewModel : PageViewModel
             HeroHeightRatio = source.Height / (double)source.Width;
             _heroPixels = source;
             _heroCacheTicket = selectedTicket;
-            var radius = HeroBlurTarget;
-            var generation = ++_heroBlurGeneration;
-            _heroBlurRadius = radius;
-            var gaussian = UseGaussianBackdrop;
-            _heroRequestedGaussian = gaussian;
-            _heroRendering = true;
-
-            var rendered = await RenderHeroAsync(source, radius, token, selectedTicket, _heroTiming, gaussian).ConfigureAwait(true);
-            if (rendered is null || !Attached || !Fresh(art, page) || generation != _heroBlurGeneration) return;
-            if (gaussian != UseGaussianBackdrop) return;
-            _heroRenderedGaussian = gaussian;
-            _heroRendering = false;
+            var rendered = await RenderHeroAsync(source, 0, token, selectedTicket, _heroTiming, false).ConfigureAwait(true);
+            if (rendered is null || !Attached || !Fresh(art, page)) return;
             ShowHero(rendered);
             OnPropertyChanged(nameof(GaussianBackdropApplied));
             NavigationTiming.Mark("hero-image-assign", 1);
@@ -3670,9 +3613,7 @@ public sealed partial class DetailViewModel : PageViewModel
     // ---------------------------------------------------------------- 选择
 
     /// <summary>
-    /// 季锚点换了：只换标题和集带要对的季，不重新问服务器 —— 剧页、集页手上的集本来就是全季那一条，
-    /// 换季不该把别的季从列表里拿走。真正的滚动由页面在 <see cref="SelectEpisodeSeason"/> 返回索引后做
-    /// （索引 0 也要滚到开头，而 <c>ShelfStrip.FocusIndex</c> 的 0 表示「别动」）。
+    /// 季锚点变化：剧页只调整横带标题，集页重新投影当前季度；不重复读取服务器。
     /// </summary>
     partial void OnSelectedSeasonChanged(EmbyItem? value)
     {
@@ -3682,7 +3623,8 @@ public sealed partial class DetailViewModel : PageViewModel
         if (ReferenceEquals(value, _loadedSeason)) return;
 
         _loadedSeason = value;
-        UpdateEpisodeHeading(value);
+        if (IsEpisodePage) RefreshEpisodeSeason();
+        else UpdateEpisodeHeading(value);
         OnPropertyChanged(nameof(CanPickEpisodeSeason));
     }
 
@@ -3695,7 +3637,7 @@ public sealed partial class DetailViewModel : PageViewModel
         if (!CanPickEpisodeSeason) return -1;
 
         SelectedSeason = season;
-        return ItemDetail.FirstEpisodeIndex(_episodes, season);
+        return IsEpisodePage ? 0 : ItemDetail.FirstEpisodeIndex(_episodes, season);
     }
 
     partial void OnSelectedSourceChanged(SourceRow? value)
@@ -3900,7 +3842,9 @@ public sealed partial class DetailViewModel : PageViewModel
     internal EmbyItem? OpenFirstEpisode()
     {
         if (!Attached || EpisodeShelf is not { } shelf) return null;
-        var index = _episodes.FindIndex(item => item.Type == EmbyItemType.Episode);
+        var shown = IsEpisodePage && _detail is { } page
+            ? ItemDetail.EpisodeSeasonItems(_episodes, Seasons, page, SelectedSeason) : _episodes;
+        var index = shown.ToList().FindIndex(item => item.Type == EmbyItemType.Episode);
         if (index < 0 || index >= shelf.Cards.Count) return null;
         var card = shelf.Cards[index];
 
@@ -3914,10 +3858,21 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     internal void EnsureCurrentEpisodeCard()
     {
-        if (!Attached || _detail?.Type != EmbyItemType.Episode || EpisodeShelf is not { } shelf) return;
-        var identity = _detail.IdentityKey;
-        var index = _episodes.FindIndex(item => item.IdentityKey == identity);
-        if (index >= 0 && index < shelf.Cards.Count) _ = shelf.Cards[index];
+        if (!Attached || _detail?.Type != EmbyItemType.Episode || _images is null) return;
+        var current = _episodes.FirstOrDefault(item => item.IdentityKey == _detail.IdentityKey) ?? _detail;
+        if (ReferenceEquals(_currentEpisodeCard?.Item, current)) return;
+        var index = _shownEpisodeItems.ToList().FindIndex(item => ReferenceEquals(item, current));
+        // 新卡先加入活状态组，再释放旧持有者；跨季投影和晚到DTO都保留本集确认状态。
+        var next = EpisodeShelf is { } shelf && index >= 0 && index < shelf.Cards.Count
+            ? shelf.Cards[index] : new CardItem(current, _images, CardSize.WideWidth, wide: true, current: true);
+        _currentEpisodeCard?.AbandonPoster();
+        _currentEpisodeCard = next;
+    }
+
+    private void ReleaseCurrentEpisodeCard()
+    {
+        _currentEpisodeCard?.AbandonPoster();
+        _currentEpisodeCard = null;
     }
 
     /// <summary>What a context menu calls after it has changed something on the server.</summary>
@@ -3958,6 +3913,7 @@ public sealed partial class DetailViewModel : PageViewModel
         ShowTarget(null);
         TitleLink = null;
         _episodes.Clear();
+        _shownEpisodeItems = [];
         Seasons.Clear();
         SelectedSeason = _loadedSeason = null;
         EpisodeShelf?.Clear();
@@ -4077,6 +4033,7 @@ public sealed partial class DetailViewModel : PageViewModel
             // Collection notifications can move the strip's leading index immediately. Publish the
             // matching business index first so that callback cannot read the deleted season's DTO.
             _episodes.RemoveAll(Deleted);
+            _shownEpisodeItems = _shownEpisodeItems.Where(item => !Deleted(item)).ToList();
             foreach (var shelf in shelves.OfType<CardShelf>())
             {
                 shelf.Cards.RemoveWhere(Deleted);
@@ -4111,7 +4068,10 @@ public sealed partial class DetailViewModel : PageViewModel
                     await ApplyPlayTargetAsync(next, token).ConfigureAwait(true);
             }
             if (IsCurrent(token) && _detail is { } detail && EpisodeShelf is { } episodes)
-                episodes.Title = ItemDetail.EpisodeHeading(ItemDetail.EpisodeScope(detail, _loadedSeason).SeasonName);
+            {
+                if (IsEpisodePage) RefreshEpisodeSeason();
+                else episodes.Title = ItemDetail.EpisodeHeading(ItemDetail.EpisodeScope(detail, _loadedSeason).SeasonName);
+            }
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
@@ -4127,13 +4087,13 @@ public sealed partial class DetailViewModel : PageViewModel
         if (_subjectStateCard is { } card) card.PropertyChanged -= OnSubjectStateChanged;
         _subjectStateCard = null;
         _active = false;
+        ReleaseCurrentEpisodeCard();
         _actionsReady = false;
         _versionLoad?.Cancel();
         _lifetime++;
         base.Cancel();
         _art?.Cancel();
         // 还在路上的那趟重糊也别让它回来把图换掉 —— 页面都走了。
-        _blurCancel?.Cancel();
         // Frame can still measure the departing page. Clearing this deferred source prevents a late
         // GetAt from creating a new current-account card and restarting its image request after leave.
         EpisodeShelf?.Clear();
@@ -4152,9 +4112,6 @@ public sealed partial class DetailViewModel : PageViewModel
         _art?.Cancel();
         _art?.Dispose();
         _art = null;
-        _blurCancel?.Cancel();
-        _blurCancel?.Dispose();
-        _blurCancel = null;
         _heroTiming = null;
         _heroCacheTicket = null;
     }

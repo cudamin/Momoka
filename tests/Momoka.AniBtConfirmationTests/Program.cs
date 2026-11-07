@@ -607,7 +607,7 @@ internal static class Program
             Assert.Equal("AniBT 重新整理", dialog.Title);
             Assert.False(dialog.HasControl("PreviewDetailsText"));
             var primaryStyle = dialog.Markup.Descendants().Single(element => element.Name.LocalName == "ContentDialog.PrimaryButtonStyle");
-            Assert.Equal("{ThemeResource EgAccentBrush}", primaryStyle.Descendants().Single(element => element.Name.LocalName == "Setter" && element.Attribute("Property")?.Value == "Background").Attribute("Value")!.Value);
+            Assert.Equal("{ThemeResource EgActionGlassBrush}", primaryStyle.Descendants().Single(element => element.Name.LocalName == "Setter" && element.Attribute("Property")?.Value == "Background").Attribute("Value")!.Value);
             foreach (var name in new[] { "PreviewHeadingText", "EpisodeLabelText", "DestinationFileText", "ScrapeResultText" })
                 Assert.Equal("{ThemeResource EgAccentBrush}", dialog.BoundValue(name, "Foreground", row));
             Assert.Equal("匿名动画", dialog.BoundValue("PreviewHeadingText", "Text", row));

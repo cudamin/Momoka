@@ -18,13 +18,13 @@ internal static partial class SettingsTests
         {
             foreach (var section in new[] { "", ",\"Ui\":{}", ",\"Ui\":null" })
             {
-                Test($"迁移：schema{schema}背景缺值{section}保持默认40而非64", () =>
+                Test($"迁移：schema{schema}背景缺值{section}使用当前默认20", () =>
                 {
                     var json = "{\"SchemaVersion\":" + schema + section + "}";
                     var loaded = SettingsMigration.FromJson(json, Protector);
-                    Assert.Equal(40d, loaded.Ui.BackdropOpacity);
+                    Assert.Equal(20d, loaded.Ui.BackdropOpacity);
                     var saved = JsonSerializer.Serialize(loaded, SettingsSerializer.WriteOptions);
-                    Assert.Equal(40d, SettingsMigration.FromJson(saved, Protector).Ui.BackdropOpacity);
+                    Assert.Equal(20d, SettingsMigration.FromJson(saved, Protector).Ui.BackdropOpacity);
                 });
             }
         }

@@ -13,6 +13,7 @@ public static class DetailLayout
 
     private static readonly string[] AllCards = [Episodes, Info, Seasons, Cast, Similar];
     private static readonly string[] MovieCards = [Info, Cast, Similar];
+    private static readonly string[] EpisodeCards = [Episodes, Info, Cast, Similar];
 
     public static string Title(string key) => key switch
     {
@@ -29,7 +30,12 @@ public static class DetailLayout
     /// </summary>
     public static IReadOnlyList<DetailCardSetting> Plan(string itemType, IEnumerable<DetailCardSetting>? saved)
     {
-        var keys = itemType == EmbyItemType.Movie ? MovieCards : AllCards;
+        var keys = itemType switch
+        {
+            EmbyItemType.Movie => MovieCards,
+            EmbyItemType.Episode => EpisodeCards,
+            _ => AllCards
+        };
         var custom = itemType is EmbyItemType.Series or EmbyItemType.Episode or EmbyItemType.Movie;
         var available = keys.ToHashSet(StringComparer.Ordinal);
         var taken = new HashSet<string>(StringComparer.Ordinal);

@@ -39,7 +39,7 @@
             <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
@@ -260,7 +260,7 @@
                 <Button
                     x:Name="FilterCloseButton"
                     AutomationProperties.Name="关闭筛选"
-                    Background="Transparent"
+                    Background="{ThemeResource EgActionGlassBrush}"
                     BorderThickness="0"
                     Click="OnCloseClicked"
                     Padding="8"

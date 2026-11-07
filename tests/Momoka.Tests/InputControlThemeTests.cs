@@ -51,20 +51,21 @@ internal static class InputControlThemeTests
     {
         Test("输入主题：真实角色表无重复或遗漏", () =>
         {
-            var expected = TextBackgroundKeys.Concat(ComboBackgroundKeys).Concat(StrongBorderKeys)
+            var expected = TextBackgroundKeys.Append("ComboBoxBackgroundDisabled").Concat(StrongBorderKeys)
                 .Concat(BorderKeys).Append("EgInputGlassBrush").Order().ToArray();
             var actual = InputControlTheme.Brushes.Select(entry => entry.Key).Order().ToArray();
             Assert.Equal(string.Join('|', expected), string.Join('|', actual));
             Assert.Equal(actual.Length, actual.Distinct(StringComparer.Ordinal).Count());
         });
-        Test("输入主题：文本输入沿用侧边栏底色，选择框使用输入玻璃", () =>
+        Test("输入主题：文本输入沿用侧边栏底色，闭合选择框让给全局控件材质", () =>
         {
             foreach (var theme in UiThemes.All)
             {
                 foreach (var key in TextBackgroundKeys)
                     Assert.Equal(theme.Colors.Window, Pick(key, theme), $"{theme.Id}/{key}");
-                foreach (var key in ComboBackgroundKeys)
-                    Assert.Equal(InputControlTheme.Glass(theme), Pick(key, theme), $"{theme.Id}/{key}");
+                Assert.Equal(InputControlTheme.Glass(theme), Pick("ComboBoxBackgroundDisabled", theme), theme.Id);
+                Assert.False(InputControlTheme.Brushes.Any(entry => ComboBackgroundKeys.Contains(entry.Key)
+                    && entry.Key != "ComboBoxBackgroundDisabled"));
                 Assert.Equal(InputControlTheme.Glass(theme), Pick("EgInputGlassBrush", theme), theme.Id);
             }
         });
@@ -92,7 +93,14 @@ internal static class InputControlThemeTests
             foreach (var dictionary in Dictionaries())
             {
                 foreach (var key in TextBackgroundKeys) AssertBrush(dictionary, key, "EgWindowColor");
-                foreach (var key in ComboBackgroundKeys) AssertAlias(dictionary, key, "EgInputGlassBrush");
+                foreach (var key in ComboBackgroundKeys)
+                    AssertAlias(dictionary, key, key switch
+                    {
+                        "ComboBoxBackgroundDisabled" => "EgInputGlassBrush",
+                        "ComboBoxBackgroundPointerOver" => "EgActionGlassHoverBrush",
+                        "ComboBoxBackgroundPressed" => "EgActionGlassPressedBrush",
+                        _ => "EgActionGlassBrush"
+                    });
                 foreach (var key in StrongBorderKeys) AssertBrush(dictionary, key, "EgBorderStrongColor");
                 foreach (var key in BorderKeys) AssertBrush(dictionary, key, "EgBorderColor");
 
@@ -113,9 +121,14 @@ internal static class InputControlThemeTests
             var highContrast = Palette().Descendants(Xaml + "ResourceDictionary")
                 .Single(dictionary => (string?)dictionary.Attribute(X + "Key") == "HighContrast");
             var overrides = highContrast.Elements().Select(element => (string?)element.Attribute(X + "Key")).ToArray();
-            Assert.True(!overrides.Any(key => key is not null &&
-                (key.StartsWith("TextControl", StringComparison.Ordinal) ||
-                 key.StartsWith("ComboBoxBackground", StringComparison.Ordinal))), "高对比度输入资源被产品配色覆盖");
+            Assert.False(overrides.Any(key => key is not null && key.StartsWith("TextControl", StringComparison.Ordinal)),
+                "高对比度文本输入资源被产品配色覆盖");
+            foreach (var key in ComboBackgroundKeys.Where(key => key != "ComboBoxBackgroundDisabled"))
+            {
+                var brush = Resource(highContrast, key);
+                Assert.Equal("SolidColorBrush", brush.Name.LocalName);
+                Assert.Equal("{ThemeResource SystemColorWindowColor}", (string?)brush.Attribute("Color"));
+            }
             var glass = Resource(highContrast, "EgInputGlassBrush");
             Assert.Equal("SolidColorBrush", glass.Name.LocalName);
             Assert.Equal("{ThemeResource SystemColorWindowColor}", (string?)glass.Attribute("Color"));

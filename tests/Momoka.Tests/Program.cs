@@ -62,6 +62,7 @@ internal static class Program
         }
         if (args is ["detail-customization-fixture"])
         {
+            EpisodeSeasonItemsTests.Register();
             DetailLayoutTests.Register();
             AppearanceColorSettingsTests.Register();
             GaussianBackdropTests.Register();
@@ -101,6 +102,11 @@ internal static class Program
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             NavigationTimingTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["screen-placement-fixture"])
+        {
+            ScreenTests.Register();
             return TestHarness.Run();
         }
         if (args is ["performance-probe-fixture"])

@@ -40,11 +40,11 @@ internal static class DetailDeferredCardsTests
                 using var fixture = new Fixture(shell, 2000);
                 await fixture.Load();
                 Assert.Equal(2000, fixture.Episodes.Count);
-                Assert.Equal(2000, fixture.Cards.Count);
+                Assert.Equal(100, fixture.Cards.Count);
                 Assert.True(fixture.Created <= 1, "episode页最多先保留当前那张状态卡");
-                Assert.Equal("episode-1500", fixture.CardItem(fixture.Cards[1500]!).Id);
+                Assert.Equal("episode-1500", fixture.CardItem(fixture.Cards[0]!).Id);
                 Assert.True(fixture.Created <= 2);
-                Assert.Equal(1500, fixture.Get<int>("EpisodeFocus"));
+                Assert.Equal(0, fixture.Get<int>("EpisodeFocus"));
                 Assert.True(fixture.Episodes[499].Id == "episode-499" && fixture.Episodes[1500].Id == "episode-1500");
             });
             Case("P3 真详情：离页清掉按需源，不复活卡片或图片需求", async () =>
@@ -99,11 +99,11 @@ internal static class DetailDeferredCardsTests
                 Assert.Equal(0, old.Count);
                 Assert.Equal("new-episode", fixture.Get<EmbyItem>("CurrentItem").Id);
             });
-            Case("P3 真详情：季选择使用全局索引，删除未访问季保持其它实例", async () =>
+            Case("P3 真详情：季选择投影本季，删除未访问季保持其它实例", async () =>
             {
                 using var fixture = new Fixture(shell, 2000);
                 await fixture.Load();
-                var keep = fixture.Cards[1500]!;
+                var keep = fixture.Cards[0]!;
                 var deletedSeason = fixture.Scope.Bind(new EmbyItem
                 { Id = "season-3", Name = "第3季", Type = EmbyItemType.Season, SeriesId = "series", IndexNumber = 3 });
                 var seasonCard = fixture.CreateCard(deletedSeason);
@@ -114,9 +114,9 @@ internal static class DetailDeferredCardsTests
                     publishedEpisodes = fixture.Episodes.Count;
                 await (Task)fixture.Invoke("RemoveAsync", seasonCard)!;
                 Assert.Equal(1900, fixture.Episodes.Count);
-                Assert.Equal(1900, fixture.Cards.Count);
-                Assert.Equal(1900, publishedEpisodes, "通知索引变更时业务索引也必须已移除删除季");
-                Assert.True(ReferenceEquals(keep, fixture.Cards[1400]));
+                Assert.Equal(100, fixture.Cards.Count);
+                Assert.Equal(-1, publishedEpisodes, "删除未展示季不应重发当前季集合通知");
+                Assert.True(ReferenceEquals(keep, fixture.Cards[0]));
                 Assert.True(fixture.Created <= 2, "删除一个季不能物化其它1999集");
                 Assert.Equal("episode-400", fixture.Episodes[300].Id);
             });
@@ -127,13 +127,33 @@ internal static class DetailDeferredCardsTests
                 // Exercise the actual VM state-preservation method with real CardItem publication.
                 // The source contract above separately checks the OnMoreClicked caller ordering;
                 // neither check claims rendered menu or physical input coverage.
+                var otherSeason = fixture.Scope.Bind(new EmbyItem
+                {
+                    Id = "season-19",
+                    Type = EmbyItemType.Season,
+                    SeriesId = "series",
+                    IndexNumber = 19,
+                    Name = "第19季"
+                });
+                var seasons = (IList)fixture.Get<object>("Seasons");
+                seasons.Add(otherSeason);
+                seasons.Add(fixture.Scope.Bind(new EmbyItem
+                {
+                    Id = "season-15",
+                    Type = EmbyItemType.Season,
+                    SeriesId = "series",
+                    IndexNumber = 15,
+                    Name = "第15季"
+                }));
+                fixture.Invoke("SelectEpisodeSeason", otherSeason);
                 fixture.EnsureCurrentEpisode();
                 var temporary = PublishMenuState(fixture);
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
                 GC.Collect();
                 Assert.False(temporary.IsAlive, "临时菜单卡应可回收");
-                var card = fixture.Cards[1500]!;
+                fixture.Invoke("SelectEpisodeSeason", seasons[1]);
+                var card = fixture.Cards[0]!;
                 Assert.True(shell.Get<bool>(card, "Watched"));
                 Assert.True(shell.Get<bool>(card, "IsFavorite"));
                 Assert.True(fixture.Created <= 1, "保留菜单状态不能创建全部集");

@@ -18,17 +18,17 @@
             <!-- Local aliases keep the native button states on the same palette as the screen. -->
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Dark">
-                    <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgAccentBrush" />
-                    <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
-                    <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                    <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgActionGlassBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
                     <StaticResource x:Key="AccentButtonForeground" ResourceKey="EgTextOnAccentBrush" />
                     <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
                     <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Light">
-                    <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgAccentBrush" />
-                    <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
-                    <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                    <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgActionGlassBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
                     <StaticResource x:Key="AccentButtonForeground" ResourceKey="EgTextOnAccentBrush" />
                     <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
                     <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
@@ -44,14 +44,14 @@
             </ResourceDictionary.ThemeDictionaries>
             <Style x:Key="SignInPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource EgPrimaryButtonStyle}">
                 <Setter Property="MinHeight" Value="50" />
-                <Setter Property="Background" Value="{ThemeResource EgAccentBrush}" />
+                <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
                 <Setter Property="Foreground" Value="{ThemeResource EgTextOnAccentBrush}" />
                 <Setter Property="CornerRadius" Value="8" />
             </Style>
             <Style x:Key="SignInSecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource EgSecondaryButtonStyle}">
                 <Setter Property="MinHeight" Value="44" />
                 <Setter Property="CornerRadius" Value="8" />
-                <Setter Property="Background" Value="{ThemeResource EgWindowBrush}" />
+                <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             </Style>
             <DataTemplate x:Key="UserTemplate" x:DataType="emby:EmbyUser">
                 <Grid ColumnSpacing="12" Padding="0,4">

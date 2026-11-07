@@ -1,9 +1,11 @@
+using System.Reflection;
 using System.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Shell.Views;
 using Momoka.Theming;
@@ -26,8 +28,9 @@ internal sealed partial class ShellNavigationProbe
             var border = ThemeHost.ToColor(theme.Colors.BorderStrong);
             foreach (var entry in InputControlTheme.Brushes)
                 foreach (var dictionary in new[] { "Dark", "Light" })
-                    Require(ThemeHost.ColorOf(dictionary, entry.Key) == ThemeHost.ToColor(entry.Pick(theme)),
-                        $"{theme.Id}/{dictionary}/{entry.Key} 未由真实 ThemeHost 更新");
+                    if (!entry.Key.StartsWith("ComboBoxBackground", StringComparison.Ordinal) || entry.Key == "ComboBoxBackgroundDisabled")
+                        Require(ThemeHost.ColorOf(dictionary, entry.Key) == ThemeHost.ToColor(entry.Pick(theme)),
+                            $"{theme.Id}/{dictionary}/{entry.Key} 未由真实 ThemeHost 更新");
 
             page.SelectedCategory = "主页";
             await LayoutAsync(page);
@@ -44,12 +47,12 @@ internal sealed partial class ShellNavigationProbe
             // 窄窗还存在分类 ComboBox；按业务行名称选同一控件，不能随布局改成验证分类选择器。
             var combo = Descendants(page).OfType<ComboBox>()
                 .Single(control => AutomationProperties.GetName(control) == "轮播图用什么媒体");
-            AssertGlass(combo.Background, "闭合下拉框");
+            AssertGlobalCombo(combo.Background, "闭合下拉框");
             await FocusAsync(combo, "闭合下拉框");
             var comboBorder = Descendants(combo).OfType<Border>().Single(control => control.Name == "Background");
             AssertRadius(combo, "闭合下拉框");
             Require(comboBorder.CornerRadius == new CornerRadius(10), "下拉框真实模板未接收设置圆角");
-            AssertGlass(comboBorder.Background, "聚焦下拉框");
+            AssertGlobalCombo(comboBorder.Background, "聚焦下拉框");
             var comboHighlight = Descendants(combo).OfType<Border>().Single(control => control.Name == "HighlightBackground");
             Require(comboHighlight.BorderBrush is SolidColorBrush focusedCombo && focusedCombo.Color == border,
                 $"{theme.Id} 下拉框键盘焦点仍使用主题色");
@@ -173,6 +176,19 @@ internal sealed partial class ShellNavigationProbe
             {
                 Require(brush is AcrylicBrush acrylic && acrylic.TintColor == glass, $"{theme.Id}/{name} 未使用输入玻璃");
                 reads.AppendLine($"{name}：玻璃 tint={glass}");
+            }
+            void AssertGlobalCombo(Brush brush, string name)
+            {
+                var settings = page.ViewModel.GetType().GetProperty("Settings", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(page.ViewModel) as AppSettings ?? throw new InvalidOperationException("设置页没有可读取的真实设置");
+                var ui = settings.Ui;
+                var tint = ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ui));
+                Require(brush is AcrylicBrush acrylic && acrylic.TintColor == tint && acrylic.FallbackColor == tint
+                    && Math.Abs(acrylic.TintOpacity - ui.ControlTintOpacity / 100) < 0.001
+                    && Math.Abs((acrylic.TintLuminosityOpacity ?? -1) - ui.ControlTintLuminosityOpacity / 100) < 0.001
+                    && Math.Abs(acrylic.Opacity - ui.ControlBackgroundOpacity / 100) < 0.001,
+                    $"{theme.Id}/{name}没有使用全局亚克力参数");
+                reads.AppendLine($"{name}：全局亚克力染色={tint}");
             }
             async Task AssertTextBorderAsync(TextBox control, string name)
             {

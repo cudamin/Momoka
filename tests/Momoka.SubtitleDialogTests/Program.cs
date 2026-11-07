@@ -213,8 +213,10 @@ internal static class Program
                 await f.OpenAsync();
                 await Mutate(f, ui, mutation);
                 Assert.True(f.Parent.FixtureActionsReady);
+                var releases = f.Parent.FixtureEpisodeReleases;
                 f.Parent.Cancel();
                 Assert.False(f.Parent.FixtureActionsReady, "The real Cancel revokes action readiness");
+                Assert.Equal(releases + 1, f.Parent.FixtureEpisodeReleases, "The real Cancel releases the optional episode card");
                 await f.CloseAsync();
                 Assert.Equal(1, f.Changed, "Caller hands off once; the real parent lifetime entry refuses inactive loading");
                 Assert.Equal(InitialReads(mutation), f.Transport.Reads);

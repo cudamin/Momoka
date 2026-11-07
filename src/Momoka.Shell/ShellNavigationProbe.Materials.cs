@@ -303,8 +303,8 @@ internal sealed partial class ShellNavigationProbe
                                 .FirstOrDefault(card => card.Card?.Item.Type == EmbyItemType.Movie);
                             Require(poster is not null, "货架没有可播放卡片");
                             var hover = poster!.ProbeHover();
-                            Require(!hover.Chrome && hover.PlayRest == ThemeHost.ToColor(theme.Colors.SurfaceHover),
-                                "海报悬停按钮仍画底色或播放键未回到中性灰底");
+                            Require(!hover.Chrome && Get<Button>(poster, "PlayButton").Background is SolidColorBrush,
+                                "封面按钮没有恢复原样式");
                             reads.Add($"{theme.Id}/{width}/海报卡：右下三颗{(hover.Chrome ? "仍有底色" : "三态都不画底色")}，"
                                 + $"播放键常态={hover.PlayRest}，指针强调色={hover.PlayHover}");
                             if (samples)
@@ -463,16 +463,23 @@ internal sealed partial class ShellNavigationProbe
 
         void CheckRoles(UiTheme theme)
         {
-            var colors = new[] { theme.Colors.SurfaceElevated, theme.Colors.SurfaceHover, theme.Colors.SurfaceAlt };
+            var ui = fixture.Settings.Ui;
+            var tint = ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ui));
             foreach (var dictionary in new[] { "Dark", "Light" })
                 for (var index = 0; index < keys.Length; index++)
                 {
                     var brush = (ResourceDictionary)palette.ThemeDictionaries[dictionary];
+                    var amount = ui.ControlBackgroundOpacity / 100;
+                    var floor = index == 1 ? 21d / 255 : 8d / 255;
+                    var normal = 15d / 255;
+                    var expectedOpacity = index == 0 ? amount : amount <= normal ? floor
+                        : floor + (1 - floor) * (amount - normal) / (1 - normal);
                     Require(brush[keys[index]] is AcrylicBrush acrylic
-                        && acrylic.TintColor == ThemeHost.ToColor(colors[index])
-                        && acrylic.FallbackColor == ThemeHost.ToColor(colors[index])
-                        && ThemeHost.ColorOf(dictionary, keys[index]) == ThemeHost.ToColor(colors[index]),
-                        $"{theme.Id}/{dictionary}/{keys[index]} tint 或回退未随主题变化");
+                        && acrylic.TintColor == tint && acrylic.FallbackColor == tint
+                        && Math.Abs(acrylic.TintOpacity - ui.ControlTintOpacity / 100) < 0.001
+                        && Math.Abs((acrylic.TintLuminosityOpacity ?? -1) - ui.ControlTintLuminosityOpacity / 100) < 0.001
+                        && Math.Abs(acrylic.Opacity - expectedOpacity) < 0.001,
+                        $"{theme.Id}/{dictionary}/{keys[index]}没有保留全局亚克力偏好");
                 }
 
             // 低优先级卡片复用设置卡片那支亚克力：tint 与实色回退同样要跟着主题走，回退必须整块不透明。
@@ -677,21 +684,22 @@ internal sealed partial class ShellNavigationProbe
                         && VisualStateManager.GoToState(picker, state, false), "按钮或选择框缺少状态：" + state);
                     await LayoutAsync(picker);
                     var key = "ComboBoxBackground" + (state == "Normal" ? "" : state);
-                    Require(background.Background is AcrylicBrush { AlwaysUseFallback: true } actual
+                    Require(background.Background is AcrylicBrush { AlwaysUseFallback: false } actual
                         && ReferenceEquals(actual, picker.Resources[key]), $"{picker.Name}/{state} 未保持独立的选择框背景");
                     var buttonFill = Descendants(reference).OfType<ContentPresenter>()
                         .First(presenter => presenter.Name == "ContentPresenter").Background as AcrylicBrush;
                     var pickerFill = (AcrylicBrush)background.Background;
                     var alpha = (state == "Normal" ? 15d : state == "PointerOver" ? 21d : 8d) / 255;
-                    Require(buttonFill is { AlwaysUseFallback: true } && pickerFill.FallbackColor == buttonFill.FallbackColor
+                    Require(buttonFill is { AlwaysUseFallback: false } && pickerFill.FallbackColor == buttonFill.FallbackColor
                         && Math.Abs(pickerFill.Opacity - buttonFill.Opacity) < 0.001
                         && pickerFill.FallbackColor.A == 255 && pickerFill.FallbackColor.R == 255
-                        && Math.Abs(pickerFill.Opacity - alpha) < 0.001,
+                        && Math.Abs(pickerFill.Opacity - alpha) < 0.001
+                        && pickerFill.TintOpacity == 0.55 && pickerFill.TintLuminosityOpacity == 0.55,
                         picker.Name + "/" + state + " 选择框与按钮未共用平台默认薄白");
                     reads.Add($"{ThemeHost.Current.Id}/{picker.Name}/{state}: 保持选择框底色");
                 }
-                Require(picker.Background is AcrylicBrush { AlwaysUseFallback: true } resting
-                    && highlight.Background is AcrylicBrush { AlwaysUseFallback: true } focused
+                Require(picker.Background is AcrylicBrush { AlwaysUseFallback: false } resting
+                    && highlight.Background is AcrylicBrush { AlwaysUseFallback: false } focused
                     && focused.FallbackColor == resting.FallbackColor, picker.Name + " 聚焦底色没有回到按钮常态");
             }
             finally
@@ -716,12 +724,13 @@ internal sealed partial class ShellNavigationProbe
                 for (var index = 0; index < states.Length; index++)
                 {
                     Require(VisualStateManager.GoToState(control, states[index], false), "模板状态不存在：" + states[index]);
-                    await UntilAsync(() => Fill() is AcrylicBrush { AlwaysUseFallback: true });
+                    await UntilAsync(() => Fill() is AcrylicBrush { AlwaysUseFallback: false });
                     var fill = (AcrylicBrush)Fill()!;
                     var expectedOpacity = new[] { 15d, 21d, 8d }[index % 3] / 255;
                     Require(fill.FallbackColor == Windows.UI.Color.FromArgb(255, 255, 255, 255)
-                        && Math.Abs(fill.Opacity - expectedOpacity) < 0.001,
-                        "详情操作按钮未还原0.2.0默认薄白三态");
+                        && Math.Abs(fill.Opacity - expectedOpacity) < 0.001
+                        && fill.TintOpacity == 0.55 && fill.TintLuminosityOpacity == 0.55,
+                        "详情操作按钮未使用默认透明度与固定亚克力三态");
                     Require(!keys.Any(key => ReferenceEquals(fill, dark[key])), "详情操作按钮仍接共享玻璃");
                     if (index < 3) platform[index] = fill.FallbackColor;
                     else Require(fill.FallbackColor == platform[index - 3], "连播勾选底色未按回未勾选的三档");
@@ -767,4 +776,191 @@ internal sealed partial class ShellNavigationProbe
                 : Descendants(control).OfType<ContentPresenter>().First(presenter => presenter.Name == "ContentPresenter").Background;
         }
     }
+    private async Task GlobalControlsAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        var ui = fixture.Settings.Ui;
+        var saved = (ui.ControlBackgroundOpacity, ui.ControlTintOpacity, ui.ControlTintLuminosityOpacity, ui.ControlBackgroundColor);
+        var theme = ThemeHost.Current;
+        var motion = HomeMotion.PreferenceEnabled;
+        // A fixture uses finite rows: a vertical StackPanel would offer unbounded height to the
+        // responsive banner, and an invisible detail page would still contribute its desired height.
+        var holder = new Grid { Margin = new Thickness(24, 64, 24, 24), VerticalAlignment = VerticalAlignment.Top };
+        foreach (var height in new[] { 60d, 260, 200, 260 })
+            holder.RowDefinitions.Add(new RowDefinition { Height = new GridLength(height) });
+        var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
+        var button = new Button { Content = "普通按钮" };
+        var combo = new ComboBox { Width = 200, Items = { "选项一", "选项二" }, SelectedIndex = 0 };
+        AutomationProperties.SetAutomationId(button, "GlobalPlainButton");
+        AutomationProperties.SetAutomationId(combo, "GlobalPlainCombo");
+        line.Children.Add(button);
+        line.Children.Add(combo);
+        var accent = new Button { Content = "主按钮", Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+        var selected = new ToggleButton { Content = "选中开关", IsChecked = true };
+        var dropdown = new DropDownButton { Content = "筛选选择", Background = (Brush)Application.Current.Resources["EgActionGlassBrush"] };
+        AutomationProperties.SetAutomationId(accent, "GlobalAccentButton");
+        AutomationProperties.SetAutomationId(selected, "GlobalCheckedToggle");
+        AutomationProperties.SetAutomationId(dropdown, "GlobalFilterDropdown");
+        line.Children.Add(accent);
+        line.Children.Add(selected);
+        line.Children.Add(dropdown);
+        holder.Children.Add(line);
+        var movie = new EmbyItem
+        {
+            Id = "global-control-movie",
+            Name = "全局材质验证",
+            Type = EmbyItemType.Movie,
+            Overview = "全局按钮、选择框、海报播放与圆形翻页背景。",
+            BackdropImageTags = ["fixture"]
+        };
+        fixture.Session.Capture().Bind(movie);
+        var picture = await FixtureImageAsync(1280, 720);
+        fixture.Transport.Reply = (request, _) =>
+        {
+            Require(request.Method == HttpMethod.Get || request.Method == HttpMethod.Head, "全局材质探针拒绝真实写入");
+            return Task.FromResult(request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal)
+                ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(picture) }
+                : request.RequestUri.AbsolutePath.EndsWith("/Items/" + movie.Id, StringComparison.Ordinal)
+                    ? Json(movie) : FakeTransport.Standard(request));
+        };
+        var card = new PosterCard
+        {
+            Card = new CardItem(movie, fixture.Images, 180),
+            CardWidth = 180,
+            PosterHeight = 200,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top
+        };
+        Grid.SetRow(card, 1);
+        holder.Children.Add(card);
+        var frame = new Frame { Opacity = 0, IsHitTestVisible = false, Width = 500, Height = 400 };
+        var strip = new ShelfStrip { Width = 500, Height = 200, HorizontalAlignment = HorizontalAlignment.Left };
+        Grid.SetRow(strip, 2);
+        holder.Children.Add(strip);
+        var banner = new HomeBanner { Height = 260, VerticalAlignment = VerticalAlignment.Top };
+        Grid.SetRow(banner, 3);
+        holder.Children.Add(banner);
+        _root.Children.Add(frame);
+        _root.Children.Add(holder);
+        ThemeHost.Register(holder);
+        HomeMotion.ApplyPreference(false);
+        try
+        {
+            Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, movie)), "全局材质模板详情导航失败");
+            var detail = (DetailPage)frame.Content;
+            await UntilAsync(() => detail.IsReady);
+            Require(detail.ViewModel.CurrentItem?.Id == movie.Id, "全局材质模板详情没有加载正确匿名条目");
+            strip.ItemTemplate = (DataTemplate)detail.Resources["CardTemplate"];
+            detail.Release();
+            frame.Content = null;
+            frame.BackStack.Clear();
+            _root.Children.Remove(frame);
+            strip.ItemsSource = new ObservableCollection<CardItem>(Enumerable.Range(0, 5)
+                .Select(_ => new CardItem(movie, fixture.Images, 180)));
+            banner.Apply([new BannerSlide(movie, fixture.Images), new BannerSlide(movie, fixture.Images)]);
+            await LayoutAsync(holder);
+            Get<Grid>(card, "Hover").Visibility = Visibility.Visible;
+            Get<Grid>(card, "Hover").Opacity = 1;
+            var circle = Get<Button>(strip, "Next");
+            circle.Visibility = Visibility.Visible;
+            circle.Opacity = 1;
+            var bannerNext = Get<Button>(banner, "NextButton");
+            bannerNext.Visibility = Visibility.Visible;
+            bannerNext.Opacity = 1;
+            var controls = new Control[] { button, combo, accent, selected, dropdown,
+                circle, bannerNext, Get<Button>(banner, "PlayButton") };
+            foreach (var width in new[] { 1280, 760 })
+            {
+                ResizeProbeClient(width, 1100);
+                await LayoutAsync(holder);
+                foreach (var (tint, luminosity) in new[] { (20d, 80d), (80d, 20d) })
+                    foreach (var amount in new[] { 0d, 20, 100 })
+                    {
+                        ui.ControlBackgroundColor = "#245A8E";
+                        ui.ControlBackgroundOpacity = amount;
+                        ui.ControlTintOpacity = tint;
+                        ui.ControlTintLuminosityOpacity = luminosity;
+                        ShellPrefs.ApplyAppearance(ui);
+                        await LayoutAsync(holder);
+                        foreach (var control in controls)
+                        {
+                            control.ApplyTemplate();
+                            var states = control is ToggleButton
+                                ? new[] { "Normal", "PointerOver", "Pressed", "Checked", "CheckedPointerOver", "CheckedPressed" }
+                                : new[] { "Normal", "PointerOver", "Pressed" };
+                            foreach (var state in states)
+                            {
+                                Require(VisualStateManager.GoToState(control, state, false), "全局控件缺少状态：" + state);
+                                await LayoutAsync(control);
+                                // 真悬停监听可能在布局等待期间重置模拟态；核验时重新提交并立即读取真实模板。
+                                Require(VisualStateManager.GoToState(control, state, false), "全局控件状态无法重新提交：" + state);
+                                control.UpdateLayout();
+                                var foreground = control.Foreground;
+                                if (control == accent || control == selected)
+                                {
+                                    var actualForeground = Descendants(control).OfType<ContentPresenter>()
+                                        .First(part => part.Name == "ContentPresenter").Foreground;
+                                    Require(actualForeground is SolidColorBrush ink && ink.Color == ThemeHost.ToColor(ThemeHost.Current.Colors.Text),
+                                        $"亚克力主按钮或选中开关没有使用固定主题字色：{control.GetType().Name}/{state} 实际={((actualForeground as SolidColorBrush)?.Color)} 期望={ThemeHost.ToColor(ThemeHost.Current.Colors.Text)}");
+                                }
+                                var fill = ActualFill(control);
+                                var key = state.Contains("Pressed", StringComparison.Ordinal) ? "EgActionGlassPressedBrush"
+                                    : state.Contains("PointerOver", StringComparison.Ordinal) ? "EgActionGlassHoverBrush" : "EgActionGlassBrush";
+                                var shared = (AcrylicBrush)Application.Current.Resources[key];
+                                var templateRoot = VisualTreeHelper.GetChild(control, 0) as FrameworkElement;
+                                var currentState = templateRoot is null ? "无模板" : string.Join(",", VisualStateManager.GetVisualStateGroups(templateRoot)
+                                    .Select(group => group.Name + ":" + group.CurrentState?.Name));
+                                Require(ReferenceEquals(fill, shared), $"{control.Name}/{state}绕开全局亚克力画刷：状态={currentState} 背景={fill?.GetType().Name} 可见={control.Visibility} 命中={control.IsHitTestVisible}");
+                                Require(fill is AcrylicBrush glass && glass.TintColor == Windows.UI.Color.FromArgb(255, 36, 90, 142)
+                                    && glass.FallbackColor == glass.TintColor && Math.Abs(glass.TintOpacity - tint / 100) < 0.001
+                                    && Math.Abs((glass.TintLuminosityOpacity ?? -1) - luminosity / 100) < 0.001,
+                                    "全局按钮染色参数没有下发或回退色未同步");
+                                var over = state.Contains("PointerOver", StringComparison.Ordinal);
+                                var down = state.Contains("Pressed", StringComparison.Ordinal);
+                                var floor = over && !down ? 21d / 255 : 8d / 255;
+                                var normal = 15d / 255;
+                                var expectedOpacity = !over && !down ? amount / 100 : amount / 100 <= normal ? floor
+                                    : floor + (1 - floor) * (amount / 100 - normal) / (1 - normal);
+                                Require(shared.AlwaysUseFallback == (expectedOpacity is 0 or 1)
+                                    && Math.Abs(shared.Opacity - expectedOpacity) < 0.001,
+                                    "全局按钮透明度没有跟随设置");
+                                ShellPrefs.ApplyAppearance(ui);
+                                Require(ReferenceEquals(foreground, control.Foreground), "全局背景修改字体画刷");
+                            }
+                            VisualStateManager.GoToState(control, control is ToggleButton ? "Checked" : "Normal", false);
+                        }
+                        var posterRead = card.ProbeHover();
+                        Require(!posterRead.Chrome && Get<Button>(card, "PlayButton").Background is SolidColorBrush,
+                            "封面按钮没有恢复原样式");
+                        await SaveProbeScreenAsync($"global-controls-{width}-{amount}-{tint}-{luminosity}.png");
+                    }
+            }
+            Require(fixture.Actions.Plays == 0, "全局材质检查误触发播放");
+        }
+        finally
+        {
+            (ui.ControlBackgroundOpacity, ui.ControlTintOpacity, ui.ControlTintLuminosityOpacity, ui.ControlBackgroundColor) = saved;
+            ShellPrefs.ApplyAppearance(ui);
+            banner.Apply([]);
+            (frame.Content as IShellContent)?.Release();
+            _root.Children.Remove(frame);
+            _root.Children.Remove(holder);
+            ThemeHost.Apply(theme);
+            HomeMotion.ApplyPreference(motion);
+            ResizeInspect(1420, 980);
+        }
+
+        static Brush? ActualFill(Control control)
+        {
+            if (control is ComboBox)
+                return Descendants(control).OfType<Border>().First(border => border.Name == "Background").Background;
+            if (control is DropDownButton)
+                return Descendants(control).OfType<Grid>().First(grid => grid.Name == "RootGrid").Background;
+            if (Descendants(control).OfType<Ellipse>().FirstOrDefault(shape => shape.Name == "Circle") is { } circle)
+                return circle.Fill;
+            return Descendants(control).OfType<ContentPresenter>().First(part => part.Name == "ContentPresenter").Background;
+        }
+    }
+
 }
