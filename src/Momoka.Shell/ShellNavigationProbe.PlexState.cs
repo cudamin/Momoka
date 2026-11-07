@@ -198,6 +198,7 @@ internal sealed partial class ShellNavigationProbe
             var path = request.RequestUri!.AbsolutePath;
             Require(request.Method == HttpMethod.Get, "Plex 观看探针拒绝非既有 GET 请求");
             if (path.EndsWith("/System/Info/Public", StringComparison.Ordinal)) return Reply(new(HttpStatusCode.NotFound));
+            if (path.EndsWith("/api/v1/sys/version", StringComparison.Ordinal)) return Reply(new(HttpStatusCode.NotFound));
             if (path.EndsWith("/identity", StringComparison.Ordinal)) return Reply(Json(new
             { MediaContainer = new { machineIdentifier = "plex-state-machine", version = "1.41.2" } }));
             if (path.EndsWith("/library/sections", StringComparison.Ordinal)) return Reply(Json(new
