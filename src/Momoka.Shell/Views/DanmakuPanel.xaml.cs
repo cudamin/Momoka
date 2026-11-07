@@ -22,6 +22,7 @@ public sealed partial class DanmakuPanel : UserControl
     private int _resultsConnectionVersion;
     private bool _closed;
     private int _searchRequest;
+    private CancellationTokenSource? _searchCancellation;
     private readonly ObservableCollection<string> _fontFamilies = [];
 
     public DanmakuPanel()
@@ -64,10 +65,10 @@ public sealed partial class DanmakuPanel : UserControl
         if (_closed) return;
         _closed = true;
         _searchRequest++;
+        CancelPanelSearch();
         if (_viewModel is not null)
         {
             _viewModel.PropertyChanged -= OnPlayerChanged;
-            _viewModel.CancelDanmakuSearch();
         }
     }
 
@@ -147,13 +148,16 @@ public sealed partial class DanmakuPanel : UserControl
     private async void OnSearch(object sender, RoutedEventArgs e)
     {
         if (!Current() || _viewModel is null) return;
+        CancelPanelSearch();
+        var cancellation = new CancellationTokenSource();
+        _searchCancellation = cancellation;
         var request = ++_searchRequest;
         var source = _searchSource;
         var connectionVersion = _viewModel.DanmakuConnectionVersion;
         SearchButton.IsEnabled = false;
         try
         {
-            var matches = await _viewModel.SearchDanmakuAsync(TitleBox.Text, EpisodeBox.Text.Trim(), source).ConfigureAwait(true);
+            var matches = await _viewModel.SearchDanmakuAsync(TitleBox.Text, EpisodeBox.Text.Trim(), source, cancellation.Token).ConfigureAwait(true);
             if (request != _searchRequest || !Current() || connectionVersion != _viewModel.DanmakuConnectionVersion) return;
             _results.Clear();
             _resultsSource = source;
@@ -161,7 +165,12 @@ public sealed partial class DanmakuPanel : UserControl
             foreach (var match in matches.Episodes) _results.Add(match);
             Results.Visibility = _results.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         }
-        finally { if (!_closed && request == _searchRequest) SearchButton.IsEnabled = true; }
+        finally
+        {
+            if (ReferenceEquals(_searchCancellation, cancellation)) _searchCancellation = null;
+            cancellation.Dispose();
+            if (!_closed && request == _searchRequest) SearchButton.IsEnabled = true;
+        }
     }
 
     private void OnResultSelected(object sender, SelectionChangedEventArgs e) =>
@@ -197,7 +206,7 @@ public sealed partial class DanmakuPanel : UserControl
     {
         if (_sourceSeeding || SourceBox.SelectedItem is not DanmakuSourceOption option) return;
         _searchRequest++;
-        _viewModel?.CancelDanmakuSearch();
+        CancelPanelSearch();
         _resultsSource = null;
         SearchButton.IsEnabled = true;
         _searchSource = option.Source;
@@ -205,6 +214,12 @@ public sealed partial class DanmakuPanel : UserControl
         _results.Clear();
         Results.Visibility = Visibility.Collapsed;
         LoadButton.Visibility = Visibility.Collapsed;
+    }
+
+    private void CancelPanelSearch()
+    {
+        _searchCancellation?.Cancel();
+        _searchCancellation = null;
     }
 
     private void OnShowToggled(object sender, RoutedEventArgs e)

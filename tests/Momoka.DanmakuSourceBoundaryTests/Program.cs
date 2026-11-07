@@ -10,6 +10,27 @@ internal static class Program
 {
     private static int Main()
     {
+        Momoka.Tests.TestHarness.Test("R14-005 closing an old panel does not cancel resident replacement search", () =>
+        {
+            var endpoint = new PanelEndpoint();
+            var panel = new Panel(endpoint);
+            panel.Close();
+            Momoka.Tests.Assert.Equal(0, endpoint.Cancellations);
+        });
+        Momoka.Tests.TestHarness.Test("R14-005 close cancels only its own pending search token", () =>
+        {
+            using var context = new QueueContext();
+            SynchronizationContext.SetSynchronizationContext(context);
+            var endpoint = new PanelEndpoint();
+            var panel = new Panel(endpoint);
+            panel.StartSearch();
+            panel.Close();
+            Momoka.Tests.Assert.True(endpoint.SearchToken.IsCancellationRequested);
+            Momoka.Tests.Assert.Equal(0, endpoint.Cancellations);
+            endpoint.CompleteSearch(new(10001, "late", "one"));
+            context.Drain();
+            Momoka.Tests.Assert.Equal(0, panel.Count);
+        });
         Momoka.Tests.TestHarness.Test("R14-003 service off/on keeps current draft while revoking send context", () =>
         {
             var settings = Settings();
@@ -159,14 +180,16 @@ internal sealed class Control
 
 internal sealed class PanelEndpoint
 {
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged { add { } remove { } }
     private readonly TaskCompletionSource<DandanPlaySearchResult> _pending = new();
     internal int DanmakuConnectionVersion { get; set; }
     internal DanmakuSource SearchSource { get; private set; }
     internal DanmakuSource? LoadSource { get; private set; }
     internal long? LoadedId { get; private set; }
     internal int Cancellations { get; private set; }
-    internal Task<DandanPlaySearchResult> SearchDanmakuAsync(string title, string episode, DanmakuSource source)
-    { SearchSource = source; return _pending.Task; }
+    internal CancellationToken SearchToken { get; private set; }
+    internal Task<DandanPlaySearchResult> SearchDanmakuAsync(string title, string episode, DanmakuSource source, CancellationToken cancellationToken)
+    { SearchSource = source; SearchToken = cancellationToken; return _pending.Task; }
     internal Task LoadDanmakuAsync(DandanPlayEpisode episode, DanmakuSource source)
     { LoadSource = source; LoadedId = episode.EpisodeId; return Task.CompletedTask; }
     internal void CompleteSearch(DandanPlayEpisode episode) => _pending.SetResult(new([episode], false));
@@ -177,7 +200,9 @@ internal sealed partial class Panel(PanelEndpoint endpoint)
 {
     private readonly PanelEndpoint? _viewModel = endpoint;
     private readonly ObservableCollection<DandanPlayEpisode> _results = [];
-    private readonly bool _closed = false;
+    private bool _closed = false;
+    private CancellationTokenSource? _searchCancellation;
+    private void OnPlayerChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args) { }
     private readonly bool _sourceSeeding = false;
     private int _searchRequest;
     private DanmakuSource _searchSource;
