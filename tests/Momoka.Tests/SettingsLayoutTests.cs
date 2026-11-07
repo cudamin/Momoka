@@ -9,6 +9,61 @@ internal static class SettingsLayoutTests
 
     internal static void Register()
     {
+        TestHarness.Test("详情外观探针：独立卡片设置、固定材质、默认20与隐藏恢复都有接线", () =>
+        {
+            var probe = Source("ShellNavigationProbe.DetailCustomization.cs");
+            Assert.Contains("剧页面卡片", probe);
+            Assert.Contains("单集页面卡片", probe);
+            Assert.Contains("page.ViewModel.DetailCards.Count == 3", probe);
+            Assert.Contains("backdropDefault.Value == 20", probe);
+            Assert.Contains("EmbyItemType.Series => fixture.Settings.Ui.SeriesCards", probe);
+            Assert.Contains("EmbyItemType.Episode => fixture.Settings.Ui.EpisodeCards", probe);
+            Assert.Contains("恢复沉浸丢失背景不透明度偏好", probe);
+            Assert.Contains("CheckFixedAcrylicBackdropAsync", probe);
+            Assert.Contains("RequireFixedDetailForeground(page)", probe);
+            Assert.Contains("current.Pixels.AsSpan().SequenceEqual(originalPixels.Pixels)", probe);
+            Assert.Contains("requestCount() == baselineReads", probe);
+            Assert.False(probe.Contains("ui.UseGaussianBackdrop =", StringComparison.Ordinal));
+            Assert.False(probe.Contains("ui.UseAcrylicControls =", StringComparison.Ordinal));
+            Assert.Contains("RequireEpisodeSubject(page, subject)", probe);
+        });
+        TestHarness.Test("背景亚克力探针：独立均色、错误Tint反例与实际回退像素覆盖保留", () =>
+        {
+            var probe = Source("ShellNavigationProbe.BackdropFade.cs");
+            Assert.Contains("var ink = ExpectedBackdropBaseColor(page)", probe);
+            Assert.Contains("acrylic.TintColor == ink && acrylic.FallbackColor == ink", probe);
+            Assert.Contains("for (var row = 0; row < 5; row++)", probe);
+            Assert.Contains("for (var column = 0; column < 8; column++)", probe);
+            Assert.Contains("背景检查没有拒绝错误主图底色反例", probe);
+            Assert.Contains("背景检查没有拒绝错误不透明度反例", probe);
+            Assert.Contains("glass.AlwaysUseFallback = true", probe);
+            Assert.Contains("glass.AlwaysUseFallback = previousFallback", probe);
+            Assert.Contains("foreach (var theme in UiThemes.All)", probe);
+            Assert.Contains("foreach (var width in new[] { 760, 1280 })", probe);
+            Assert.Contains("new[] { 0d, 20, 100 }", probe);
+            Assert.False(probe.Contains("fixture.Settings.Ui.UseGaussianBackdrop =", StringComparison.Ordinal));
+        });
+        TestHarness.Test("单集原布局探针：卡面与紧凑分档保留，导航和几何反例继续检查", () =>
+        {
+            var episode = Source("ShellNavigationProbe.EpisodeBand.cs");
+            Assert.Contains("compact == (width < 1024)", episode);
+            Assert.Contains("coverWidths[1023] == 0 && coverWidths[768] == 0", episode);
+            Assert.Contains("RequireEpisodeSubject(page, episode)", episode);
+            Assert.Contains("沉浸正文检查没有拒绝不透明卡面反例", episode);
+            var responsive = Source("ShellNavigationProbe.DetailResponsive.cs");
+            Assert.Contains("var oldEpisodeCompact = view.ItemType == EmbyItemType.Episode", responsive);
+            Assert.Contains("view.IsCompact == oldEpisodeCompact", responsive);
+        });
+        TestHarness.Test("背景缓存探针：清理后原图稳定与旧票迟到拒绝仍覆盖", () =>
+        {
+            var probe = Source("ShellNavigationProbe.HeroCache.cs");
+            Assert.Contains("index < 30", probe);
+            Assert.Contains("ReferenceEquals(clearedPicture, changed.ViewModel.HeroImage)", probe);
+            Assert.Contains("cache.RememberPixels(oldTicket, clearedPixels!)", probe);
+            Assert.Contains("cache.RememberPicture(oldTicket, clearedPixels!, 0", probe);
+            Assert.Contains("appearanceRetainedOriginal = true", probe);
+            Assert.False(probe.Contains("_heroBlurGeneration", StringComparison.Ordinal));
+        });
         TestHarness.Test("详情卡片排序表：弹簧拖拽有完整开始结束与卸载处理", () =>
         {
             var document = Page("SettingsPage.xaml");
@@ -202,6 +257,14 @@ internal static class SettingsLayoutTests
             Assert.False("vo = gpu-next\rao = null".ReplaceLineEndings("\n") == expected,
                 "换行兼容不能掩盖参数内容不同");
         });
+    }
+
+    private static string Source(string file)
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+            if (File.Exists(Path.Combine(directory.FullName, "Momoka.sln")))
+                return File.ReadAllText(Path.Combine(directory.FullName, "src", "Momoka.Shell", file));
+        throw new DirectoryNotFoundException("未找到当前 Momoka 工作树");
     }
 
     private static XDocument Page(string file)
