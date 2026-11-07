@@ -9,6 +9,7 @@
     <Compile Include="../../src/Momoka.Shell/Views/IdentifyDialog.xaml.cs" Link="IdentifyDialog.cs" />
     <Compile Include="../../src/Momoka.Shell/Views/FnNasMetadataDialog.xaml.cs" Link="FnNasMetadataDialog.cs" />
     <Compile Include="../../src/Momoka.Shell/Views/ArtworkFile.cs" Link="ArtworkFile.cs" />
+    <Compile Include="../../src/Momoka.Shell/ShellNavigationProbe.MediaRecovery.cs" Link="MediaRecoveryProbe.cs" />
     <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
     <Compile Include="../Momoka.SubtitleDialogTests/UiQueue.cs" Link="UiQueue.cs" />
   </ItemGroup>

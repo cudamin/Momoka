@@ -9,6 +9,7 @@ namespace Microsoft.UI.Xaml
     {
         public object? Tag { get; set; }
         public Visibility Visibility { get; set; }
+        public XamlRoot? XamlRoot { get; set; }
     }
     public sealed class Application
     {
@@ -56,6 +57,7 @@ namespace Windows.Storage.Streams
 
 namespace Microsoft.UI.Xaml.Controls
 {
+    public enum ContentDialogResult { None, Primary, Secondary }
     public sealed class ContentDialogClosingEventArgs : EventArgs { public bool Cancel { get; set; } }
     public sealed class ContentDialogClosedEventArgs : EventArgs;
     public sealed class ContentDialogButtonClickEventArgs : EventArgs
@@ -70,6 +72,8 @@ namespace Microsoft.UI.Xaml.Controls
         public Microsoft.UI.Xaml.ElementTheme RequestedTheme { get; set; }
         public bool IsPrimaryButtonEnabled { get; set; } = true;
         public bool IsClosed { get; private set; }
+        private TaskCompletionSource<ContentDialogResult>? _shown;
+        public Task<ContentDialogResult> ShowAsync() { IsClosed = false; return (_shown = new()).Task; }
         public event Action<ContentDialog, ContentDialogClosingEventArgs>? Closing;
         public event Action<ContentDialog, ContentDialogClosedEventArgs>? Closed;
         public bool TryClose()
@@ -79,13 +83,18 @@ namespace Microsoft.UI.Xaml.Controls
             if (args.Cancel) return false;
             IsClosed = true;
             Closed?.Invoke(this, new());
+            _shown?.TrySetResult(ContentDialogResult.None);
             return true;
         }
         public void Hide() => TryClose();
     }
     public sealed class TextBox : Microsoft.UI.Xaml.FrameworkElement { public string Text { get; set; } = ""; public object? Header { get; set; } }
     public sealed class TextBlock : Microsoft.UI.Xaml.FrameworkElement { public string Text { get; set; } = ""; }
-    public sealed class Button : Microsoft.UI.Xaml.FrameworkElement { public bool IsEnabled { get; set; } = true; }
+    public sealed class Button : Microsoft.UI.Xaml.FrameworkElement
+    {
+        public bool IsEnabled { get; set; } = true;
+        internal Action? Invoke { get; set; }
+    }
     public sealed class CheckBox : Microsoft.UI.Xaml.FrameworkElement { public bool? IsChecked { get; set; } }
     public sealed class InfoBar { public string Message { get; set; } = ""; public bool IsOpen { get; set; } }
     public sealed class StackPanel : Microsoft.UI.Xaml.FrameworkElement { public double Spacing { get; set; } public List<object> Children { get; } = []; }
@@ -114,7 +123,19 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.Controls.InfoBar Problem = new();
         internal Microsoft.UI.Xaml.Controls.Button SearchButton = new(), RemoveButton = new(), ApplyButton = new(), ConfirmRemoveButton = new(), CancelRemoveButton = new(), BackToFormButton = new(), BackToResultsButton = new();
         internal Microsoft.UI.Xaml.Controls.StackPanel SearchForm = new(), ConfirmArea = new(), ResultsArea = new(), ApplyArea = new(), NoResults = new(), PathRow = new(), ProviderFields = new();
-        private void InitializeComponent() { }
+        private void InitializeComponent()
+        {
+            SearchButton.Invoke = () => OnSearch(this, new());
+            RemoveButton.Invoke = () => OnAskRemove(this, new());
+            ConfirmRemoveButton.Invoke = () => OnConfirmRemove(this, new());
+            ApplyButton.Invoke = () => OnApply(this, new());
+        }
+        internal Microsoft.UI.Xaml.Controls.Button PickButton(IdentifyCandidate candidate) => new()
+        {
+            Tag = candidate,
+            Visibility = Microsoft.UI.Xaml.Visibility.Visible,
+            Invoke = () => OnPick(new Microsoft.UI.Xaml.FrameworkElement { Tag = candidate }, new())
+        };
         internal void Apply(Momoka.Emby.RemoteSearchResult result) { _chosen = new(result); OnApply(this, new()); }
         internal void Search() => OnSearch(this, new());
         internal void Remove() => OnConfirmRemove(this, new());

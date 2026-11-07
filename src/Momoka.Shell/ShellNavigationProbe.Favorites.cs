@@ -420,7 +420,9 @@ internal sealed partial class ShellNavigationProbe
             ? Task.FromResult(Json(new { Items = new[] { Episode("a"), next } })) : Task.FromResult(FakeTransport.Standard(request));
         await episodePage.ReloadAsync();
         await episodePage.RemoveAsync(episodePage.EpisodeShelf!.Cards[0]);
-        Require(episodePage.PlayTarget is null && episodePage.CurrentItem?.Id == "ep-a", "已删除单集的详情页跳播另一集");
+        Require(episodePage.PlayTarget is null && episodePage.CurrentItem is null && episodePage.TitleLink is null
+            && episodePage.EpisodeShelf!.Cards.Count == 0 && episodePage.NoticeMessage?.Contains("已从服务器移除", StringComparison.Ordinal) == true,
+            "删除当前单集仍保留主体、播放目标、标题操作或旧货架");
 
         using var targetPage = fixture.Detail();
         fixture.Transport.Reply = (request, _) => request.RequestUri!.AbsolutePath.EndsWith("/Episodes", StringComparison.Ordinal)

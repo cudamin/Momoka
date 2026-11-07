@@ -9,6 +9,21 @@ internal static class Program
 {
     private static int Main()
     {
+        foreach (var identify in new[] { true, false })
+            foreach (var captureFailure in new[] { false, true })
+                Test($"原样媒体UI探针 {(identify ? "Identify" : "FnNas")} pending截图失败={captureFailure}", () =>
+                {
+                    using var queue = new UiQueue();
+                    queue.Run(async () =>
+                    {
+                        var probe = new Momoka.Shell.ShellNavigationProbe { FailPendingCapture = captureFailure };
+                        Exception? error = null;
+                        try { await (identify ? probe.IdentifyForFixtureAsync() : probe.FnNasForFixtureAsync()); }
+                        catch (Exception failure) { error = failure; }
+                        Assert.Equal(captureFailure, error is IOException, "截图失败不能冒成功；finally必须结清在飞保存后退出");
+                        Assert.Equal(captureFailure || !identify ? 2 : 4, probe.Captures);
+                    });
+                });
         Test("R07-008 超限选图明确失败且不读取，取消保持无错误", () =>
         {
             using var queue = new UiQueue();

@@ -95,6 +95,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("Emby 元数据表单字段、锁定和宽窄布局", MetadataLayoutAsync, 75, section: ShellProbeSections.Metadata);
             await CaseAsync("Emby 元数据列表编辑、重排和取消", MetadataListsAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("Emby 元数据保存失败、取消和重试", MetadataSaveAsync, 45, section: ShellProbeSections.Metadata);
+            await CaseAsync("识别失败保稿、在飞关闭保护与迟到搜索（匿名UIA）", IdentifyRecoveryAsync, 45, section: ShellProbeSections.Metadata);
+            await CaseAsync("飞牛元数据失败保稿、在飞关闭保护与确认（匿名UIA）", FnNasMetadataRecoveryAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("Jellyfin 元数据草稿、标签与宽窄保存（匿名UIA）", ReviewMetadataEditorAsync, 60, section: ShellProbeSections.Metadata);
             await CaseAsync("通知事件、失败名单与宽窄保存（匿名UIA）", ReviewNotificationEditorAsync, 60, section: ShellProbeSections.Metadata);
             await CaseAsync("媒体库弹窗五主题圆角和侧栏底色，MP保持原样", LibraryDialogChromeAsync, 120, section: ShellProbeSections.Metadata);
