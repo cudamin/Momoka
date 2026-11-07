@@ -10,6 +10,28 @@ internal static class DetailLayoutTests
 {
     public static void Register()
     {
+        Test("沉浸总开关：缺键默认开启，显式关闭可保存导入并恢复默认", () =>
+        {
+            var property = typeof(UiSettings).GetProperty("EnableImmersive");
+            Assert.NotNull(property, "缺少沉浸模式总开关");
+            bool Enabled(UiSettings ui) => (bool)property!.GetValue(ui)!;
+            var defaults = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{}}",
+                PassthroughSecretProtector.Instance);
+            Assert.True(Enabled(defaults.Ui));
+            var disabled = SettingsMigration.FromJson(
+                "{\"SchemaVersion\":27,\"Ui\":{\"EnableImmersive\":false,\"AlwaysImmersive\":true,\"UseGaussianBackdrop\":true}}",
+                PassthroughSecretProtector.Instance);
+            Assert.False(Enabled(disabled.Ui));
+            var restored = SettingsMigration.FromJson(JsonSerializer.Serialize(disabled), PassthroughSecretProtector.Instance);
+            Assert.False(Enabled(restored.Ui));
+            SettingsPreferences.Apply(defaults, restored);
+            Assert.False(Enabled(defaults.Ui));
+            Assert.True(defaults.Ui.AlwaysImmersive);
+            Assert.True(defaults.Ui.UseGaussianBackdrop);
+            SettingsPreferences.Apply(defaults, new AppSettings());
+            Assert.True(Enabled(defaults.Ui));
+        });
+
         Test("详情控件：新建与缺键默认平台薄白，显式偏好仍保留", () =>
         {
             Assert.Equal(15d / 255 * 100, new UiSettings().ControlBackgroundOpacity);
