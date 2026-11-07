@@ -5,6 +5,7 @@ namespace Momoka.Shell.ViewModels;
 
 public sealed partial class SettingsViewModel
 {
+    private MpvChoice[] _hdrToneMappings = [];
     /// <summary>
     /// 复用视频卡的目录与说明，只在首次进入行集合前给控制入口补上 after。
     /// 局部适用性不是新的播放规则；不改下发语义，也不把当前片源当全局偏好的隐藏条件。
@@ -22,6 +23,10 @@ public sealed partial class SettingsViewModel
 
     private SettingSection ApplicableHdrCard()
     {
+        // SettingChoice holds an apply closure, so keep the actual value/label catalogue as well
+        // as the displayed labels. Identical refreshes reuse rows; changed command values do not.
+        _hdrToneMappings = HdrOptions.AvailableToneMappings(Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv
+            || Settings.Video.Renderer != "gpu").ToArray();
         var section = HdrCard();
         var mode = (SettingChoiceRow)section.Rows.Single(row => row.Label == "HDR 处理");
         section.Rows[section.Rows.IndexOf(mode)] = new SettingChoiceRow(mode.Label, mode.Note, mode.Choices,
@@ -45,11 +50,15 @@ public sealed partial class SettingsViewModel
         if (_settings is null) return;
         var section = Sections.FirstOrDefault(card => card.Title == "HDR 与杜比视界");
         if (section is null) return;
+        var previousMappings = _hdrToneMappings;
         var rows = ApplicableHdrCard().Rows;
         section.UpdateRows(rows);
-        var wanted = rows.FirstOrDefault(row => row.Label == "HDR 映射算法");
+        var wanted = rows.OfType<SettingChoiceRow>().FirstOrDefault(row => row.Label == "HDR 映射算法");
         var index = section.Rows.ToList().FindIndex(row => row.Label == "HDR 映射算法");
-        if (index >= 0 && wanted is not null) section.Rows[index] = wanted;
+        if (index >= 0 && wanted is not null && section.Rows[index] is SettingChoiceRow current
+            && (!previousMappings.SequenceEqual(_hdrToneMappings)
+                || !current.Choices.Select(choice => choice.Label).SequenceEqual(wanted.Choices.Select(choice => choice.Label), StringComparer.Ordinal)))
+            section.Rows[index] = wanted;
     }
 
     private SettingSliderRow SubtitleShadowRow() =>

@@ -71,6 +71,39 @@ internal static class SettingsApplicabilityTests
             Assert.Contains("Sections.Add(ApplicableHdrCard());", shell.Source);
             Assert.Contains("RefreshSettingsApplicability();", shell.Source);
         });
+        TestHarness.Test("R12-001 同目录重入保留HDR映射行与选项，真实选择仍写正确值", () =>
+        {
+            var state = shell.Create();
+            var row = state.Row(HdrTitle, "HDR 映射算法");
+            var choices = state.Get<IEnumerable>(row, "Choices").Cast<object>().ToArray();
+            var changes = 0;
+            ((INotifyCollectionChanged)state.Rows(state.Card(HdrTitle))).CollectionChanged += (_, _) => changes++;
+            state.Reenter();
+            Assert.True(ReferenceEquals(row, state.Row(HdrTitle, "HDR 映射算法")), "同目录不能更换控制行");
+            Assert.True(choices.SequenceEqual(state.Get<IEnumerable>(row, "Choices").Cast<object>(), ReferenceEqualityComparer.Instance));
+            Assert.Equal(0, changes, "同目录不能产生Replace通知");
+            var spline = choices.Single(choice => state.Get<string>(choice, "Label") == "Spline");
+            state.Set(row, "Selected", spline);
+            Assert.Equal("spline", state.Settings.Settings.Video.ToneMapping);
+        });
+        TestHarness.Test("R12-001 同标签但实际选项值变化不能复用旧回调", () =>
+        {
+            var saved = HdrOptions.ToneMappings[0];
+            var state = shell.Create();
+            var before = state.Row(HdrTitle, "HDR 映射算法");
+            try
+            {
+                HdrOptions.ToneMappings[0] = new MpvChoice("anonymous-new-value", saved.Label);
+                state.Reenter();
+                var row = state.Row(HdrTitle, "HDR 映射算法");
+                Assert.False(ReferenceEquals(before, row), "值变而标签不变仍须更新实际命令");
+                var choice = state.Get<IEnumerable>(row, "Choices").Cast<object>()
+                    .Single(value => state.Get<string>(value, "Label") == saved.Label);
+                state.Set(row, "Selected", choice);
+                Assert.Equal("anonymous-new-value", state.Settings.Settings.Video.ToneMapping);
+            }
+            finally { HdrOptions.ToneMappings[0] = saved; }
+        });
         TestHarness.Test("R9 平滑插值隐藏视频同步，退出模式恢复原偏好", () =>
         {
             var state = shell.Create(settings =>
