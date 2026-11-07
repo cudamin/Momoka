@@ -586,7 +586,8 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// <summary>
     /// 标记为已观看. The answer is the item's user data as the server now sees it, which is more than an
     /// echo: marking a film played also clears its resume position, and marking a series played empties
-    /// the remaining-episode count on every card that shows one. Null when the server sent no body.
+    /// the remaining-episode count on every card that shows one. Null when there is no user-state body;
+    /// FnNas/Plex confirm the write alone and callers read additional state separately.
     /// </summary>
     public Task<EmbyUserData?> MarkPlayedAsync(string itemId, CancellationToken cancellationToken)
     {
@@ -622,6 +623,11 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     public Task<EmbyUserData?> GetFnNasUserDataAsync(string itemId, CancellationToken cancellationToken) =>
         Connection.IsFnNas ? FnNasMedia.GetUserDataAsync(itemId, cancellationToken)
             : throw new NotSupportedException("当前服务器不是飞牛影视");
+
+    /// <summary>Plex 已看写入确认后的独立补读；认证重试只重读，不重新提交已确认操作。</summary>
+    public Task<EmbyUserData?> GetPlexUserDataAsync(string itemId, CancellationToken cancellationToken) =>
+        Connection.IsPlex ? PlexMedia.GetUserDataAsync(itemId, cancellationToken)
+            : throw new NotSupportedException("当前服务器不是 Plex");
 
     /// <summary>
     /// 从继续观看中移除。**进度留着** —— 服务器只是给这个条目按下一位「不要列进继续观看」，下次打开它照旧从

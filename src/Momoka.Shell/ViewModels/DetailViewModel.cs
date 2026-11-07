@@ -529,6 +529,7 @@ public sealed partial class DetailViewModel : PageViewModel
     internal void RefreshAppearance()
     {
         SyncBackdrop();
+        // 设置切换不改变条目类型，不能走 AnnounceShape 的同类型早退。
         OnPropertyChanged(nameof(HeroCardVisibility));
         OnPropertyChanged(nameof(HeroCardShown));
         OnPropertyChanged(nameof(HeroPlainVisibility));
@@ -577,7 +578,10 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <see cref="ScrimVisibility"/>、<see cref="HeroInset"/> 和 <see cref="TailInset"/> 五处都问它，判据只写一份。
     /// </summary>
     private bool HeroCard => (IsEpisodePage || PlainDetail) && !IsCompact;
+
+    /// <summary>关闭沉浸后的三类详情只改变外观，不改变单集、海报或播放目标语义。</summary>
     private bool ImmersiveEnabled => _settings?.Settings.Ui.EnableImmersive != false;
+
     private bool PlainDetail => !ImmersiveEnabled
         && ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
@@ -3862,9 +3866,9 @@ public sealed partial class DetailViewModel : PageViewModel
                 .ConfigureAwait(true);
 
             if (!scope.IsAvailable) return;
-            if (scope.Connection.IsFnNas)
+            if (scope.Connection.IsFnNas || scope.Connection.IsPlex)
             {
-                // The native endpoint acknowledged this bit before any detail refresh. Preserve it
+                // The write endpoint acknowledged this bit before any detail refresh. Preserve it
                 // even when the optional server-derived counts or episode list cannot be read back.
                 item.UserData ??= new EmbyUserData();
                 item.UserData.Played = !played;
@@ -3884,7 +3888,8 @@ public sealed partial class DetailViewModel : PageViewModel
             // Re-read rather than flipped locally: marking a season watched moves every episode's tick
             // and the show's unplayed count with it, and only the server knows what it did.
             if (Attached && lifetime == _lifetime && ReferenceEquals(item, _detail) && scope.IsAvailable)
-                await LoadAsync(scope.Connection.IsFnNas ? "观看状态已保存，但刷新详情失败" : null).ConfigureAwait(true);
+                await LoadAsync(scope.Connection.IsFnNas || scope.Connection.IsPlex
+                    ? "观看状态已保存，但刷新详情失败" : null).ConfigureAwait(true);
         }
         catch (OperationCanceledException) { }
         catch (Exception error)

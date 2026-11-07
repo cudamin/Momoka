@@ -92,6 +92,8 @@ public sealed class PlaybackPlanner(
         // 进度条中间那条画质读数尾部的组名（PlayingSourceLabel）照旧不动。
         // 集成模式左上角标题条走 item.ToPlaybackHeadline() 那条路、不经过这里，两处同源、两模式显示一致。
         var title = item.ToPlaybackHeadline();
+        // 飞牛适配器已将服务端条目时长补进源；剩余的 item 时长可能只是另一默认版本的展示值。
+        var runTimeTicks = source.RunTimeTicks ?? (connection.IsFnNas ? 0 : item.RunTimeTicks ?? 0);
 
         var request = new PlaybackRequest
         {
@@ -99,10 +101,10 @@ public sealed class PlaybackPlanner(
                 : connection.IsPlex ? Momoka.Plex.PlexPlaybackSelection.MediaUrl(connection.ApiBase, source)
                 : EmbyUrl.Stream(connection.ApiBase, item.Id, source.Id, source.Container),
             FnNasSelection = connection.IsFnNas
-                ? Momoka.FnNas.FnNasPlaybackSelection.FromSource(source, source.RunTimeTicks ?? item.RunTimeTicks ?? 0) : null,
+                ? Momoka.FnNas.FnNasPlaybackSelection.FromSource(source, runTimeTicks) : null,
             PlexSelection = connection.IsPlex
                 ? Momoka.Plex.PlexPlaybackSelection.FromSource(item.Id, connection.ApiBase, source,
-                    source.RunTimeTicks ?? item.RunTimeTicks ?? 0) : null,
+                    runTimeTicks) : null,
             Title = title,
             SvpEnabled = MpvSvp.IsEnabled(settings.Mpv),
             SvpVapourSynthPath = settings.Mpv.SvpVapourSynthPath ?? "",
@@ -119,7 +121,7 @@ public sealed class PlaybackPlanner(
             ShaderReason = decision.Reason,
             ShaderOptionCount = chainOptions.Count,
             PlayerOptions = BuildPlayerOptions(DescribeSource(source), decision, chainOptions, ticket.DisplayRefreshHz, audioDevice),
-            RunTimeTicks = source.RunTimeTicks ?? item.RunTimeTicks ?? 0,
+            RunTimeTicks = runTimeTicks,
             ItemId = item.Id,
             IsDonghua = donghua,
             MediaSourceId = source.Id,

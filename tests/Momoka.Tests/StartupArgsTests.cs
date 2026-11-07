@@ -14,6 +14,18 @@ internal static class StartupArgsTests
 {
     public static void Register()
     {
+        Test("Plex 状态探针：独立分区只选自身，错误组合不进入正常客户端", () =>
+        {
+            var selected = StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "PLEX-STATE,plex-state"]);
+            Assert.True(selected is { Count: 1 } && selected.Contains("plex-state"));
+            StartupArgs.ValidateShellProbe(["--probe-shell", "--probe-section", "plex-state", "--screen", "1"]);
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(
+                ["--probe-shell", "--probe-section", "plex-state", "--play"]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(
+                ["--probe-shell", "inspect", "--probe-section", "plex-state"]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(
+                ["--probe-shell", "--probe-section", "plex-state,unknown"]));
+        });
         Test("搜索手动试用：只能显式单独进入，不加入自动全量或混合检查", () =>
         {
             Assert.True(ShellProbeSections.IsKnown("SEARCH-PREVIEW"));

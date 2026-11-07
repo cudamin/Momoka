@@ -154,6 +154,9 @@ internal sealed class AffordanceTransport : HttpMessageHandler
     public List<string> UnexpectedRequests { get; } = [];
     public bool FailWrites { get; set; }
     public bool FailDetailRead { get; set; }
+    public HttpStatusCode DetailFailureStatus { get; set; } = HttpStatusCode.ServiceUnavailable;
+    public bool StaleDetailRead { get; set; }
+    public Action? BeforeDetailRead { get; set; }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -194,9 +197,12 @@ internal sealed class AffordanceTransport : HttpMessageHandler
         {
             if (parts.Length == 3 && parts[0] == "library" && parts[1] == "metadata")
             {
-                if (FailDetailRead && parts[2] == "item") return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
+                BeforeDetailRead?.Invoke();
+                if (FailDetailRead && parts[2] == "item") return new HttpResponseMessage(DetailFailureStatus);
                 var item = Resolve(uri.Host, parts[2]);
-                return Json(new JsonObject { ["MediaContainer"] = new JsonObject { ["Metadata"] = new JsonArray(Plex(item)) } });
+                var metadata = Plex(item);
+                if (StaleDetailRead) metadata["viewCount"] = item.IsWatched ? 0 : 1;
+                return Json(new JsonObject { ["MediaContainer"] = new JsonObject { ["Metadata"] = new JsonArray(metadata) } });
             }
             if (parts.Length == 4 && parts[0] == "library" && parts[1] == "metadata" && parts[3] is "similar" or "children")
                 return Json(new JsonObject { ["MediaContainer"] = new JsonObject { ["Metadata"] = new JsonArray() } });
@@ -251,6 +257,7 @@ internal sealed class AffordanceTransport : HttpMessageHandler
 public class PlexActionsProxy : DispatchProxy
 {
     public List<string> Messages { get; } = [];
+    public List<string> Severities { get; } = [];
     public List<EmbyItem> FavoriteRefreshes { get; } = [];
     public List<EmbyItem> WatchedReports { get; } = [];
     public List<(string Genre, EmbySessionScope? Scope)> Navigation { get; } = [];
@@ -258,7 +265,7 @@ public class PlexActionsProxy : DispatchProxy
     {
         switch (targetMethod?.Name)
         {
-            case "Notify": Messages.Add((string)args![0]!); return null;
+            case "Notify": Messages.Add((string)args![0]!); Severities.Add(args[1]!.ToString()!); return null;
             case "RefreshFavorites": FavoriteRefreshes.Add((EmbyItem)args![0]!); return null;
             case "ReportMarkedWatched": WatchedReports.Add((EmbyItem)args![0]!); return null;
             case "OpenGenre": Navigation.Add(((string)args![0]!, (EmbySessionScope?)args[1])); return null;

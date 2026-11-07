@@ -25,6 +25,6 @@
 ## 收尾
 
 - [x] 一次独立复审最终产品差异、回读调用与边界；不重复扩大全库审查。
-- [ ] 核实主树无其他会话写入，整合后重新构建 Tests/Core/Shell，并跑完整主测试、Plex 专项及变更文本检查。
-- [ ] 版本沿用当前 0.2.5.0。发布到主树 artifacts/publish/win-x64；按发布编译参数重新核验测试 Core 与实际发布件一致，核快捷方式、载荷与许可。
-- [ ] 更新 FOURTH-REPAIRS.md 和 PROGRESS.md，保留原红与最终绿；记录真实 Plex/WinUI 未覆盖边界。当前树受 primary 保护，保留并记录，不手工删除。
+- [x] 核实主树无其他会话写入，整合后重新构建 Tests/Core/Shell，并跑完整主测试、Plex 专项及变更文本检查。
+- [x] 版本沿用当前 0.2.5.0。发布到主树 artifacts/publish/win-x64；按发布编译参数重新核验测试 Core 与实际发布件一致，核快捷方式、载荷与许可。
+- [x] 更新 FOURTH-REPAIRS.md 和 PROGRESS.md，保留原红与最终绿；记录真实 Plex/WinUI 未覆盖边界。当前树受 primary 保护，保留并记录，不手工删除。

@@ -22,12 +22,13 @@ public static class ShellProbeSections
     public const string Metadata = "metadata";
     public const string Performance = "performance";
     public const string Materials = "materials";
+    public const string PlexState = "plex-state";
     /// <summary>手动离线试用，不属于自动全量探针，也不计自动检查通过数。</summary>
     public const string SearchPreview = "search-preview";
 
     public static readonly IReadOnlyList<string> All =
     [
-        Shell, Settings, Shortcuts, Shaders, Svp, Library, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback, Metadata, Performance, Materials,
+        Shell, Settings, Shortcuts, Shaders, Svp, Library, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback, Metadata, Performance, Materials, PlexState,
     ];
 
     public static bool IsKnown(string name) =>

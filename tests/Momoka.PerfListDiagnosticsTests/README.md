@@ -10,15 +10,22 @@
 在当前工作树根执行，先成功编译当前 Release 再使用 --no-build：
 
 ~~~powershell
-& 'C:/Users/89400/.dotnet/dotnet.exe' restore 'tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj' --disable-parallel -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false
+& 'C:/Users/89400/.dotnet/dotnet.exe' restore 'tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj' --source 'C:/Users/89400/.nuget/packages' --packages 'C:/Users/89400/.nuget/packages' --disable-parallel -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false
 & 'C:/Users/89400/.dotnet/dotnet.exe' build 'tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj' -c Release --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false
 & 'C:/Users/89400/.dotnet/dotnet.exe' run --project 'tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj' -c Release --no-build
+~~~
+
+使用 x64 输出时，显式构建并运行该布局中的 DLL：
+
+~~~powershell
+& 'C:/Users/89400/.dotnet/dotnet.exe' build 'tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj' -c Release --no-restore -m:1 -p:Platform=x64 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false -p:DebugSymbols=false -p:DebugType=None
+& 'C:/Users/89400/.dotnet/dotnet.exe' 'tests/Momoka.PerfListDiagnosticsTests/bin/x64/Release/net10.0/Momoka.PageContractTests.dll'
 ~~~
 
 ## 真实源码与边界
 
 - 完整编译链接 DiagnosticsViewModel、PageViewModel、UpcomingDay、UpcomingListDiff、CardItem、PosterCache、LibraryRequest；MVVM 使用与 Shell 相同已钉版 CommunityToolkit.Mvvm 8.4.2。
-- 每次构建逐字抽取当前 LibraryViewModel.UpdateUpcomingDays / LoadAsync，并核对 QueryCurrent 表达式；SourceLinkTests 比较实际输入 SHA256 和当轮生成产物。源码改变必须重编译，不接受旧输出。
+- 每次构建逐字抽取当前 LibraryViewModel.UpdateUpcomingDays / LoadAsync，并核对 QueryCurrent 表达式；构建任务从项目目录记录明确工作树根及实际输入路径，运行不再从 bin 上溯猜根。SourceLinkTests 比较记录的实际输入 SHA256 和当轮生成产物；源码改变必须重编译，不接受旧输出。根外输入及通往其他目录的重解析路径在抽取前拒绝，同字节外树源也不能冒充本树。
 - Core 日期算法、LoadGeneration 和匿名 EmbySessionScope 实际执行。Library 夹具只替代无副作用读取端点、无关页面 chrome 与其他路由；SourcesAvailable 使用真实 scope.IsAvailable，不复制被测算法。
 - P3 普通库窗口在本 Upcoming 夹具固定不适用；`WindowEnd` 使用真实卡集合数量与零起点，新增快照／锚点接口仅补编译边界，窗口读取若被误调用直接失败。真实 `LoadAsync` 仍由当轮生产源码逐字抽取，不在夹具重写窗口或分页算法。
 - HTTP handler 一律拒绝；卡片不请求图片，解码边界一律拒绝；PlaybackService allowPlayback=false，后台工厂一律拒绝。没有登录、真实设置读写、DPAPI、账户或真实日志访问。
@@ -47,6 +54,12 @@
 断言入口：UpcomingPaginationTests.cs、DiagnosticsCoalescingTests.cs、SourceLinkTests.cs；Main一次登记全部，无筛选参数。
 
 源码抽取负例可传 build 参数 -p:PerfUpcomingSourcePath=<本树独立负例文件绝对路径>。缺方法 / 改query-source guard必须拒绝构建且不覆盖合法生成源；正常构建不传此参数。两种负例均实际运行，再编译正常入口，拒绝日志不算产品检查红项。
+
+`Test-SourceInputs.ps1` 实际构建和运行默认及 x64 布局，再用本树独立副本验证过期哈希、缺方法与守卫改变，用外树同字节副本和本树 junction 验证错误来源拒绝，最后重建正式输入。脚本不修改生产源码；证据目录必须是本树 artifacts 下的新目录，负例输入和日志留作证据。当前入口均为71项，诊断Core用例与主套件重叠，不累加。
+
+~~~powershell
+& 'tests/Momoka.PerfListDiagnosticsTests/Test-SourceInputs.ps1' -DotnetPath 'C:/Users/89400/.dotnet/dotnet.exe' -PackagesPath 'C:/Users/89400/.nuget/packages' -EvidencePath (Join-Path (Get-Location) 'artifacts/perf-source-inputs')
+~~~
 
 ## 当前证据
 

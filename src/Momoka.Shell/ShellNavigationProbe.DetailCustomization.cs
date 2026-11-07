@@ -418,6 +418,7 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
                 if (masked) Require(ScrimAlphaOf(page) == byte.MaxValue, "100 档遮罩没有完全不透明");
+                if (item.Type != EmbyItemType.Episode) await CheckImmersiveSwitchAsync(page, fixture.Settings.Ui);
                 readings.Add($"{item.Type}：{string.Join(',', expected.Select(card => card.Key))}，隐藏恢复同实例，背景遮罩0/45/100，窄窗保留紧凑布局");
             }
             // 季页使用原有顺序；剧与单集的自定义不应连带改掉它。
@@ -430,6 +431,7 @@ internal sealed partial class ShellNavigationProbe
             ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
             await LayoutAsync(seasonPage);
             Require(!seasonPage.ViewModel.Showcase, "没有背景图的季页被强制沉浸");
+            await CheckImmersiveSwitchAsync(seasonPage, fixture.Settings.Ui);
             // 恢复默认与导入同样走通用通知，页面应当场重排，不需要再次导航。
             Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, series)), "重入剧页导航失败");
             var reopened = (DetailPage)frame.Content;
@@ -459,6 +461,53 @@ internal sealed partial class ShellNavigationProbe
             HomeMotion.ApplyPreference(motionPreference);
             ResizeInspect(1420, 980);
             File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-customization-pages.txt"), readings);
+        }
+    }
+
+    private async Task CheckImmersiveSwitchAsync(DetailPage page, UiSettings ui)
+    {
+        var always = ui.AlwaysImmersive;
+        var spacious = page.ViewModel.Spacious;
+        var target = page.ViewModel.PlayTarget;
+        ui.AlwaysImmersive = true;
+        page.ViewModel.Spacious = true;
+        try
+        {
+            foreach (var width in new[] { 1200, 760 })
+            {
+                ResizeProbeClient(width, 900);
+                await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - width) < 1; });
+                ui.EnableImmersive = false;
+                ShellPrefs.ApplyAppearance(ui);
+                await LayoutAsync(page);
+                Require(!page.ViewModel.BackdropShown && !page.ViewModel.Showcase
+                    && Get<Grid>(page, "Backdrop").Visibility == Visibility.Collapsed,
+                    "关闭沉浸后仍显示背景或保留沉浸布局");
+                var card = Get<Border>(page, "HeroCardTop");
+                var wide = width == 1200;
+                Require(page.ViewModel.HeroCardShown == wide && card.Visibility == (wide ? Visibility.Visible : Visibility.Collapsed),
+                    "关闭沉浸后未使用单集宽窗卡片布局");
+                Require(Get<StackPanel>(page, "ColumnPickers").Visibility == page.ViewModel.ColumnPickersVisibility,
+                    "同页切换后视频信息父容器没有同步显隐");
+                Require(page.ViewModel.TailMinHeight == 0, "关闭沉浸后保留了背景留白");
+                Require(ReferenceEquals(target, page.ViewModel.PlayTarget) && ui.AlwaysImmersive,
+                    "外观切换改变播放目标或清空固定沉浸偏好");
+                await ScrollProbeAsync(Get<ScrollView>(page, "Body"), 0);
+                await SaveProbeScreenAsync($"detail-immersive-disabled-{page.ViewModel.ItemType}-{width}-screen.png");
+                ui.EnableImmersive = true;
+                ShellPrefs.ApplyAppearance(ui);
+                await LayoutAsync(page);
+                Require(!page.ViewModel.HeroCardShown, "重新启用沉浸后仍保留关闭时的卡面");
+                Require(page.ViewModel.Showcase == (wide && page.ViewModel.BackdropShown),
+                    "重新启用沉浸后未恢复固定模式");
+            }
+        }
+        finally
+        {
+            ui.EnableImmersive = true;
+            ui.AlwaysImmersive = always;
+            page.ViewModel.Spacious = spacious;
+            ShellPrefs.ApplyAppearance(ui);
         }
     }
 

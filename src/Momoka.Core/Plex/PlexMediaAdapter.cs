@@ -255,11 +255,23 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
     public async Task<List<EmbyItem>> GetNextUpAsync(string? seriesId, int limit, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(seriesId) || limit <= 0) return [];
-        var container = await client.GetOnDeckAsync(connection, 0, Math.Max(limit, 20), ct).ConfigureAwait(false);
-        return Items(container).Select(Item)
-            .Where(item => string.Equals(item.SeriesId, seriesId, StringComparison.Ordinal))
-            .Take(limit)
-            .ToList();
+        var found = new List<EmbyItem>();
+        var offset = 0;
+        var pageSize = Math.Max(limit, 20);
+        while (found.Count < limit)
+        {
+            ct.ThrowIfCancellationRequested();
+            var container = await client.GetOnDeckAsync(connection, offset, pageSize, ct).ConfigureAwait(false);
+            var raw = Items(container).ToList();
+            if (raw.Count == 0) break;
+            found.AddRange(raw.Select(Item)
+                .Where(item => string.Equals(item.SeriesId, seriesId, StringComparison.Ordinal))
+                .Take(limit - found.Count));
+            // 目标剧的位置属于全服原始清单，不能按筛选后数量推进或将前页无匹配当作读完。
+            offset = checked(offset + raw.Count);
+            if (Integer(container, "totalSize") is { } total ? offset >= total : raw.Count < pageSize) break;
+        }
+        return found;
     }
 
     public async Task<List<EmbyItem>> GetSimilarAsync(string itemId, int limit, CancellationToken ct)
@@ -276,9 +288,14 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
 
     public async Task<EmbyUserData?> SetWatchedAsync(string id, bool watched, CancellationToken ct)
     {
+        // A successful scrobble has already saved the target bit. Keep an optional metadata read
+        // outside this task so a read failure cannot discard confirmation or replay the write.
         await client.SetWatchedAsync(connection, id, watched, ct).ConfigureAwait(false);
-        return Item(First(await client.GetMetadataAsync(connection, id, ct).ConfigureAwait(false))).UserData;
+        return null;
     }
+
+    public async Task<EmbyUserData?> GetUserDataAsync(string id, CancellationToken ct) =>
+        Item(First(await client.GetMetadataAsync(connection, id, ct).ConfigureAwait(false))).UserData;
 
     public Task ReportPlaybackStartAsync(PlaybackReport report, CancellationToken ct) =>
         ReportAsync(report, "playing", ct);

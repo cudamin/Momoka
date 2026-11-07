@@ -77,6 +77,9 @@ public sealed partial class SettingsViewModel
         return row;
     }
 
+    private void RefreshDetailAppearance() =>
+        Sections.FirstOrDefault(section => section.Title == "详情页外观")?.UpdateRows(DetailAppearanceCard().Rows);
+
     private IReadOnlyList<SettingSection> DetailLayoutCards()
     {
         var ui = Settings.Ui;

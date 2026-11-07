@@ -53,10 +53,12 @@ internal static partial class PlexMediaTests
                 var initial = adapter.GetItemAsync("container", default).GetAwaiter().GetResult();
                 Assert.False(initial.IsWatched);
                 Assert.Equal(1, initial.UserData!.UnplayedItemCount);
-                var watched = adapter.SetWatchedAsync("container", true, default).GetAwaiter().GetResult()!;
+                Assert.Null(adapter.SetWatchedAsync("container", true, default).GetAwaiter().GetResult());
+                var watched = adapter.GetUserDataAsync("container", default).GetAwaiter().GetResult()!;
                 Assert.True(watched.Played);
                 Assert.Equal(0, watched.UnplayedItemCount);
-                var unplayed = adapter.SetWatchedAsync("container", false, default).GetAwaiter().GetResult()!;
+                Assert.Null(adapter.SetWatchedAsync("container", false, default).GetAwaiter().GetResult());
+                var unplayed = adapter.GetUserDataAsync("container", default).GetAwaiter().GetResult()!;
                 Assert.False(unplayed.Played);
                 Assert.Equal(2, unplayed.UnplayedItemCount);
                 Assert.False(adapter.GetItemAsync("container", default).GetAwaiter().GetResult().IsWatched);
