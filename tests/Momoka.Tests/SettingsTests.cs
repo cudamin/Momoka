@@ -58,6 +58,7 @@ internal static partial class SettingsTests
         RegisterAccountNulls();
         RegisterMoviePilotNulls();
         RegisterDirectoryRecovery();
+        RegisterDirectoryMigration();
         RegisterPaths();
     }
 

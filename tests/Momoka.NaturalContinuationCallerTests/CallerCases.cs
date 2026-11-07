@@ -7,6 +7,7 @@ internal static class CallerCases
 {
     internal static void Register(CaseRunner runner, string output)
     {
+        ChapterSkipCases.Register(runner, output);
         foreach (var mode in new[] { "cross-series", "shuffle", "ordinary" })
             runner.Test("R21-user-queue-" + mode, () => UserQueueCases.Run(output, mode));
         foreach (var mode in new[] { "last", "empty", "missing-current", "auto-off", "auto-off-late", "movie", "user-quit", "stopped", "error" })

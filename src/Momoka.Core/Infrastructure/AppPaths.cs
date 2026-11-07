@@ -129,9 +129,28 @@ public sealed class AppPaths
             legacyRoot = Path.GetFullPath(legacyRoot);
             if (string.Equals(legacyRoot, Root, StringComparison.OrdinalIgnoreCase)) return null;
             if (File.Exists(SettingsFile)) return null;
-            if (!File.Exists(Path.Combine(legacyRoot, "settings.json"))) return null;
+            var sourceSettings = Path.Combine(legacyRoot, "settings.json");
+            if (!File.Exists(sourceSettings)) return null;
 
-            CopyTree(legacyRoot, Root);
+            Directory.CreateDirectory(Root);
+            var temporary = SettingsFile + $".{Guid.NewGuid():N}.tmp";
+            try
+            {
+                // Publish only a complete main file. A failed read must leave later candidates
+                // eligible, and a profile created in the meantime must never be overwritten.
+                File.Copy(sourceSettings, temporary);
+                File.Move(temporary, SettingsFile);
+            }
+            finally
+            {
+                try { File.Delete(temporary); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+
+            // Cache/backup failures cannot undo a successfully committed main profile.
+            try { CopyTree(legacyRoot, Root); }
+            catch (Exception) { }
             return legacyRoot;
         }
         catch (Exception)
@@ -145,7 +164,8 @@ public sealed class AppPaths
     /// <para>
     /// Order matters and is the caller's: <see cref="PriorRoots"/> puts the unpackaged build's directory
     /// first, because that is the one a user actually has data in today, and the older product names
-    /// after it, newest first. The first candidate holding a <c>settings.json</c> wins; once anything has been copied
+    /// after it, newest first. The first candidate whose <c>settings.json</c> is completely copied wins;
+    /// a failed main-file copy leaves later candidates eligible. Once the main file has been committed,
     /// <see cref="MigrateFrom"/> refuses the rest by itself, since it is gated on this root not having
     /// a settings file yet.
     /// </para>
