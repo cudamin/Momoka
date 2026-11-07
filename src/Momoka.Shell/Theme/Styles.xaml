@@ -115,7 +115,7 @@
     <!-- 所有输入框统一使用用户截图中搜索框的圆角。保留平台模板、颜色与输入行为；
          旧的详情/设置键作为别名，避免不同页面再次各自定义同一档几何。 -->
     <CornerRadius x:Key="EgSearchCornerRadius">10</CornerRadius>
-    <StaticResource x:Key="EgPickerCornerRadius" ResourceKey="EgSearchCornerRadius" />
+    <CornerRadius x:Key="EgPickerCornerRadius">12</CornerRadius>
     <Style x:Key="EgTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
         <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
     </Style>

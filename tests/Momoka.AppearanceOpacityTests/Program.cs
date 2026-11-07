@@ -110,16 +110,16 @@ foreach (var prefix in new[] { "Button", "ToggleButton" })
 resources["EgSurfaceElevatedBrush"] = new SolidColorBrush { Color = 0xFF20262D };
 resources["EgSurfaceHoverBrush"] = new SolidColorBrush { Color = 0xFF2C343D };
 resources["EgSurfaceAltBrush"] = new SolidColorBrush { Color = 0xFF1C252E };
-resources["EgDetailActionBrush"] = new SolidColorBrush { Color = 0xFFB0B0B0 };
-resources["EgDetailActionHoverBrush"] = new SolidColorBrush { Color = 0xFFC3C3C3 };
-resources["EgDetailActionPressedBrush"] = new SolidColorBrush { Color = 0xFF9B9B9B };
+resources["EgDetailActionBrush"] = new SolidColorBrush { Color = 0x0FFFFFFF };
+resources["EgDetailActionHoverBrush"] = new SolidColorBrush { Color = 0x15FFFFFF };
+resources["EgDetailActionPressedBrush"] = new SolidColorBrush { Color = 0x08FFFFFF };
 foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Button"), (new ToggleButton(), "ToggleButton"), (new ComboBox(), "ComboBox") })
-    Check(prefix + "详情灰底按百分比连续调节，两种材质和选中态共底", () =>
+    Check(prefix + "详情默认薄白三态、可调浓度和选中态共底", () =>
     {
         var brushes = ControlBackgroundBrushes.ForDetail(control, lightSurface: true);
         var original = control.Background;
         foreach (var useAcrylic in new[] { false, true, false })
-            foreach (var amount in new[] { 0d, 19d, 25d, 50d, 72d, 100d, 25d, 0d })
+            foreach (var amount in new[] { 0d, 5.88, 15d / 255 * 100, 6d, 19d, 25d, 50d, 72d, 100d, 0d })
             {
                 brushes.Apply(amount, useAcrylic);
                 var keys = new[] { "EgDetailActionBrush", "EgDetailActionHoverBrush", "EgDetailActionPressedBrush" };
@@ -127,9 +127,12 @@ foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Butt
                 for (var index = 0; index < states.Length; index++)
                 {
                     var brush = (AcrylicBrush)control.Resources[prefix + "Background" + states[index]];
-                    var expected = Math.Min(1, amount / 100 + index * 0.06);
-                    if (brush.FallbackColor != ((SolidColorBrush)resources[keys[index]]).Color)
-                        throw new InvalidOperationException("详情控件未使用对应灰色");
+                    var floor = new[] { 15d, 21d, 8d }[index] / 255;
+                    var normal = 15d / 255;
+                    var expected = index == 0 ? amount / 100 : amount / 100 <= normal
+                        ? floor : floor + (1 - floor) * (amount / 100 - normal) / (1 - normal);
+                    if (brush.FallbackColor != (Windows.UI.Color)0xFFFFFFFF)
+                        throw new InvalidOperationException("详情控件未使用半透明白色叠层");
                     if (useAcrylic && expected is > 0 and < 1)
                     {
                         if (brush.AlwaysUseFallback) throw new InvalidOperationException("亚克力中间档使用实色");
@@ -142,7 +145,7 @@ foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Butt
                         Equal(expected, brush.Opacity);
                     }
                     if (control is ToggleButton && !ReferenceEquals(brush, control.Resources[prefix + "BackgroundChecked" + states[index]]))
-                        throw new InvalidOperationException("连播选中时未共用灰底");
+                        throw new InvalidOperationException("连播选中时未共用薄白底");
                 }
                 if (!ReferenceEquals(original, control.Background)) throw new InvalidOperationException("材质切换重建画刷");
                 Equal(1, control.Opacity);

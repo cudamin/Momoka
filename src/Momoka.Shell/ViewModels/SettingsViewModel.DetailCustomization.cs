@@ -12,13 +12,13 @@ public sealed partial class SettingsViewModel
         var ui = Settings.Ui;
         return new SettingSection("界面", "详情页外观", "调整媒体库详情页的控件底色、背景图和大屏布局。",
         [
-            Choice("按钮与选择框背景", new[] { ("现有底色", false), ("亚克力", true) },
+            Choice("按钮与选择框背景", new[] { ("半透明叠层", false), ("亚克力", true) },
                 () => ui.UseAcrylicControls, value => ui.UseAcrylicControls = value,
-                "详情页按钮、选择框和主页详情按钮一起切换，文字图标保持清晰。",
+                "详情按钮与闭合选择框使用相同背景，默认半透明叠层；展开列表保持亚克力。主页详情按钮一起切换。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
-            Slider("按钮与选择框底色不透明度（%）", 0, 100, 1,
+            Slider("按钮与选择框底色不透明度（%）", 0, 100, 0.01,
                 () => ui.ControlBackgroundOpacity, value => ui.ControlBackgroundOpacity = value,
-                "默认25%。两种材质都可调：0完全透明，100完全不透明；详情按钮与选择框使用灰底白字。",
+                "默认约5.88%，还原0.2.0的半透明白底。0常态完全透明，100完全不透明；悬停与按下保留反馈。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
             Choice("背景图效果", new[] { ("暗色遮罩", 0), ("高斯模糊", 1), ("亚克力", 2) },
                 () => ui.UseAcrylicBackdrop ? 2 : ui.UseGaussianBackdrop ? 1 : 0,

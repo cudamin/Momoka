@@ -104,16 +104,18 @@ internal static class AcrylicControlsTests
             Assert.False(code.Contains("PrepareBackdropEdgeFade", StringComparison.Ordinal));
             Assert.False(code.Contains("UpdateBackdropEdgeFade", StringComparison.Ordinal));
         });
-        Test("详情操作：按钮与媒体选择框都使用中性灰背景和白色前景", () =>
+        Test("详情操作：按钮与闭合选择框共用平台薄白，展开保持亚克力", () =>
         {
             var code = Source("Views/DetailPage.Appearance.cs");
             Assert.Contains("ForDetail(control, lightSurface: true)", code);
             Assert.Contains("ForDetail(picker, lightSurface: true)", code);
-            foreach (var (key, color) in new[] { ("EgDetailActionBrush", "#FFB0B0B0"),
-                ("EgDetailActionHoverBrush", "#FFC3C3C3"), ("EgDetailActionPressedBrush", "#FF9B9B9B"),
-                ("EgDetailActionTextBrush", "#FFFFFFFF"), ("EgDetailActionAccentBrush", "#FFFFFFFF") })
+            foreach (var (key, color) in new[] { ("EgDetailActionBrush", "#0FFFFFFF"),
+                ("EgDetailActionHoverBrush", "#15FFFFFF"), ("EgDetailActionPressedBrush", "#08FFFFFF"),
+                ("EgDetailActionTextBrush", "#FFFFFFFF") })
                 Assert.Equal(color, (string?)Resource(Read("Theme/Palette.xaml").Root!, key).Attribute("Color"));
             Assert.False(Source("Views/DetailPage.Appearance.cs").Contains("TextInk.Attach", StringComparison.Ordinal));
+            Assert.False(code.Contains("picker.Resources[\"ComboBoxDropDownBackground\"]", StringComparison.Ordinal));
+            Assert.False(code.Contains("picker.Resources[\"ComboBoxItemBackground\"", StringComparison.Ordinal));
         });
         Test("详情正文：卡片给滚动条预留车道，背景纸面仍铺满", () =>
         {
@@ -258,7 +260,7 @@ internal static class AcrylicControlsTests
                     // 背景现在由 ControlBackgroundBrushes 构造时提供，源链接专项覆盖三态与选中态共用副本。
                     // 本地 XAML 不能再声明别名，否则 WinUI 原地覆盖会按对象删错键。
                     Assert.Null(FindLocalResource(button, "ToggleButtonBackgroundChecked" + States[index]));
-                    Assert.Equal("EgDetailActionAccentBrush", LocalTarget(button, "ToggleButtonForegroundChecked" + States[index]));
+                    Assert.Equal("EgAccentBrush", LocalTarget(button, "ToggleButtonForegroundChecked" + States[index]));
                 }
                 Assert.Null(FindLocalResource(button, "ToggleButtonBackgroundCheckedDisabled"));
                 var label = button.Descendants(Xaml + "TextBlock").Single();

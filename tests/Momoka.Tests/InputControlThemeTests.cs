@@ -256,7 +256,7 @@ internal static class InputControlThemeTests
             foreach (var name in SettingsInputPages)
                 AssertSettingsInputImport(Read("src/Momoka.Shell/Views/" + name));
         });
-        Test("设置输入圆角：页面入口保留，设置与详情旧键都引用全站圆角", () =>
+        Test("设置输入圆角：页面入口保留，详情选择框恢复12DIP", () =>
         {
             var allowed = SettingsInputPages.Select(name => "src/Momoka.Shell/Views/" + name)
                 .Append(SettingsInputDictionary).ToHashSet(StringComparer.Ordinal);
@@ -269,7 +269,7 @@ internal static class InputControlThemeTests
                 Assert.True(allowed.Contains(relative), relative + " 引用了设置专用输入资源");
             }
             var styles = Read("src/Momoka.Shell/Theme/Styles.xaml");
-            AssertAlias(styles.Root!, "EgPickerCornerRadius", SearchRadiusKey);
+            Assert.Equal("12", Resource(styles.Root!, "EgPickerCornerRadius").Value);
             AssertAlias(Read(SettingsInputDictionary).Root!, SettingsInputRadiusKey, SearchRadiusKey);
         });
         Test("设置输入圆角：六页没有局部旧圆角或显式样式绕过，数字框直接接键", () =>
@@ -388,7 +388,7 @@ internal static class InputControlThemeTests
             Assert.Equal("Padding", (string?)padding.Attribute("Property"));
             Assert.Equal("10,0,6,0", (string?)padding.Attribute("Value"));
         });
-        Test("全站输入圆角：五种输入及派生下拉继承平台模板，只有一份数值", () =>
+        Test("全站输入圆角：默认输入继承平台模板，详情选择框使用独立12DIP", () =>
             AssertGlobalInputStyles(Read("src/Momoka.Shell/Theme/Styles.xaml")));
         Test("全站输入圆角：登录、弹窗、设置、播放器和显式样式没有旧值绕过", () =>
         {
@@ -491,7 +491,7 @@ internal static class InputControlThemeTests
     private static void AssertGlobalInputStyles(XDocument document)
     {
         AssertSearchDictionary(document);
-        AssertAlias(document.Root!, "EgPickerCornerRadius", SearchRadiusKey);
+        Assert.Equal("12", Resource(document.Root!, "EgPickerCornerRadius").Value);
         foreach (var type in new[] { "TextBox", "PasswordBox", "ComboBox" })
         {
             AssertRadiusStyle(Resource(document.Root!, "Eg" + type + "Style"), type,

@@ -10,13 +10,18 @@ internal static class DetailLayoutTests
 {
     public static void Register()
     {
-        Test("详情控件：新建与缺键默认25%，显式零仍保留", () =>
+        Test("详情控件：新建与缺键默认平台薄白，显式偏好仍保留", () =>
         {
-            Assert.Equal(25d, new UiSettings().ControlBackgroundOpacity);
-            Assert.Equal(25d, UiSettings.DefaultControlBackgroundOpacity);
+            Assert.Equal(15d / 255 * 100, new UiSettings().ControlBackgroundOpacity);
+            Assert.Equal(15d / 255 * 100, UiSettings.DefaultControlBackgroundOpacity);
             var ui = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{\"ControlBackgroundOpacity\":0}}",
                 PassthroughSecretProtector.Instance).Ui;
             Assert.Equal(0d, ui.ControlBackgroundOpacity);
+            foreach (var value in new[] { 25d, 37.5, 100d })
+            {
+                var stored = JsonSerializer.Serialize(new AppSettings { Ui = new UiSettings { ControlBackgroundOpacity = value } });
+                Assert.Equal(value, SettingsMigration.FromJson(stored, PassthroughSecretProtector.Instance).Ui.ControlBackgroundOpacity);
+            }
         });
         Test("详情内容裁切：按内容位置预留百分之二，不再受背景比例影响", () =>
         {
@@ -36,7 +41,7 @@ internal static class DetailLayoutTests
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
             Assert.Equal("info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Movie)));
             Assert.True(DetailLayout.For(ui, EmbyItemType.Series).All(row => row.Visible));
-            Assert.Equal(25d, ui.ControlBackgroundOpacity);
+            Assert.Equal(UiSettings.DefaultControlBackgroundOpacity, ui.ControlBackgroundOpacity);
             Assert.Equal(UiSettings.DefaultBackdropOpacity, ui.BackdropOpacity);
             Assert.False(ui.AlwaysImmersive);
         });
@@ -171,7 +176,7 @@ internal static class DetailLayoutTests
             SettingsPreferences.Apply(live, new AppSettings());
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(live.Ui.SeriesCards));
             Assert.True(live.Ui.SeriesCards.All(row => row.Visible));
-            Assert.Equal(25d, live.Ui.ControlBackgroundOpacity);
+            Assert.Equal(UiSettings.DefaultControlBackgroundOpacity, live.Ui.ControlBackgroundOpacity);
             Assert.Equal(UiSettings.DefaultBackdropOpacity, live.Ui.BackdropOpacity);
             Assert.False(live.Ui.AlwaysImmersive);
             Assert.Equal(1500d, live.Ui.WindowWidth);

@@ -218,7 +218,35 @@ internal sealed partial class ShellNavigationProbe
                                 await LayoutAsync(openPicker);
                                 Require(openPicker.Foreground is SolidColorBrush ink
                                     && ink.Color == ((SolidColorBrush)Application.Current.Resources["EgDetailActionTextBrush"]).Color,
-                                    "灰色选择框没有白色文字");
+                                    "选择框没有白色文字");
+                                var popupRoot = openPicker.PopupPart?.Child
+                                    ?? throw new InvalidOperationException("缺少选择框实际弹层");
+                                var popup = popupRoot as Border ?? Descendants(popupRoot).OfType<Border>()
+                                    .First(border => border.Name == "PopupBorder");
+                                bool GlassPopup() => popup.Background is AcrylicBrush brush
+                                    && brush.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceElevated)
+                                    && Math.Abs(brush.TintOpacity - 0.55) < 0.001
+                                    && Math.Abs((brush.TintLuminosityOpacity ?? -1) - 0.55) < 0.001;
+                                Require(GlassPopup(), "展开列表没有恢复主题亚克力");
+                                var popupFill = popup.Background;
+                                try
+                                {
+                                    popup.Background = (Brush)dark["EgSurfaceBrush"];
+                                    Require(!GlassPopup(), "展开面检查没有拒绝实色反例");
+                                }
+                                finally { popup.Background = popupFill; }
+                                Require(GlassPopup(), "展开面亚克力恢复失败");
+                                var row = Descendants(popup).OfType<ComboBoxItem>().First();
+                                var rowSurface = Descendants(row).OfType<Grid>().First(part => part.Name == "LayoutRoot");
+                                foreach (var (state, alpha) in new[] { ("PointerOver", 15), ("Pressed", 10), ("Selected", 15),
+                                    ("SelectedUnfocused", 10), ("SelectedPointerOver", 10), ("SelectedPressed", 15) })
+                                {
+                                    Require(VisualStateManager.GoToState(row, state, false), "下拉条目缺少状态：" + state);
+                                    await LayoutAsync(row);
+                                    Require(rowSurface.Background is SolidColorBrush fill && fill.Color.A == alpha
+                                        && fill.Color.R == 255 && fill.Color.G == 255 && fill.Color.B == 255,
+                                        "下拉条目未恢复平台薄白：" + state);
+                                }
                                 await SaveProbeScreenAsync($"detail-picker-open-{theme.Id}-{width}-screen.png");
                             }
                             finally { openPicker.IsDropDownOpen = false; }
@@ -651,6 +679,15 @@ internal sealed partial class ShellNavigationProbe
                     var key = "ComboBoxBackground" + (state == "Normal" ? "" : state);
                     Require(background.Background is AcrylicBrush { AlwaysUseFallback: true } actual
                         && ReferenceEquals(actual, picker.Resources[key]), $"{picker.Name}/{state} 未保持独立的选择框背景");
+                    var buttonFill = Descendants(reference).OfType<ContentPresenter>()
+                        .First(presenter => presenter.Name == "ContentPresenter").Background as AcrylicBrush;
+                    var pickerFill = (AcrylicBrush)background.Background;
+                    var alpha = (state == "Normal" ? 15d : state == "PointerOver" ? 21d : 8d) / 255;
+                    Require(buttonFill is { AlwaysUseFallback: true } && pickerFill.FallbackColor == buttonFill.FallbackColor
+                        && Math.Abs(pickerFill.Opacity - buttonFill.Opacity) < 0.001
+                        && pickerFill.FallbackColor.A == 255 && pickerFill.FallbackColor.R == 255
+                        && Math.Abs(pickerFill.Opacity - alpha) < 0.001,
+                        picker.Name + "/" + state + " 选择框与按钮未共用平台默认薄白");
                     reads.Add($"{ThemeHost.Current.Id}/{picker.Name}/{state}: 保持选择框底色");
                 }
                 Require(picker.Background is AcrylicBrush { AlwaysUseFallback: true } resting
@@ -681,11 +718,10 @@ internal sealed partial class ShellNavigationProbe
                     Require(VisualStateManager.GoToState(control, states[index], false), "模板状态不存在：" + states[index]);
                     await UntilAsync(() => Fill() is AcrylicBrush { AlwaysUseFallback: true });
                     var fill = (AcrylicBrush)Fill()!;
-                    var lightKeys = new[] { "EgDetailActionBrush", "EgDetailActionHoverBrush", "EgDetailActionPressedBrush" };
-                    var expected = (SolidColorBrush)Application.Current.Resources[lightKeys[index % 3]];
-                    var expectedOpacity = Math.Min(1, UiSettings.DefaultControlBackgroundOpacity / 100 + index % 3 * 0.06);
-                    Require(fill.FallbackColor == expected.Color && Math.Abs(fill.Opacity - expectedOpacity) < 0.001,
-                        "详情操作按钮未使用灰色三态与默认25%浓度");
+                    var expectedOpacity = new[] { 15d, 21d, 8d }[index % 3] / 255;
+                    Require(fill.FallbackColor == Windows.UI.Color.FromArgb(255, 255, 255, 255)
+                        && Math.Abs(fill.Opacity - expectedOpacity) < 0.001,
+                        "详情操作按钮未还原0.2.0默认薄白三态");
                     Require(!keys.Any(key => ReferenceEquals(fill, dark[key])), "详情操作按钮仍接共享玻璃");
                     if (index < 3) platform[index] = fill.FallbackColor;
                     else Require(fill.FallbackColor == platform[index - 3], "连播勾选底色未按回未勾选的三档");

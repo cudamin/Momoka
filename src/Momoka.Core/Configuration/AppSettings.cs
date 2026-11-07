@@ -1389,8 +1389,8 @@ public sealed class UiSettings
     /// </summary>
     public double ControlBackgroundOpacity { get; set; } = DefaultControlBackgroundOpacity;
 
-    /// <summary>用户批准的详情灰色控件底色出厂不透明度（%）。已有显式偏好保持原值。</summary>
-    public const double DefaultControlBackgroundOpacity = 25;
+    /// <summary>0.2.0 平台薄白常态的不透明度（%）；已保存的有效偏好保持原值。</summary>
+    public const double DefaultControlBackgroundOpacity = 15d / 255 * 100;
 
     /// <summary>
     /// 详情背景图上那层处理的强度（%）：0 关闭遮罩、模糊与亚克力（背景图原样清晰），100 遮罩或亚克力完全
