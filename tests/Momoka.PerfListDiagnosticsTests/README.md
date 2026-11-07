@@ -1,5 +1,7 @@
 # PERF-06 / PERF-10 定向真实源码回归
 
+2026-11-07 首次诊断标题验收：当前入口76项，额外编译链接完整 `ShellNavigationProbe.DiagnosticsTitle.cs` 与真实诊断VM/Core。托管拒绝读取的状态句柄仅发布匿名标题，不调用 Play/Start/监视或媒体；3例覆盖正常、截图失败与错误文字拒绝并验证页面清理。控件文字／布局是测试终端替身，不把这些用例当作真实WinUI绑定证据。真实入口 `--probe-shell --probe-section shell --screen 1` 保存 `diagnostics-initial-title-screen.png`／`diagnostics-current-title-screen.png`。
+
 2026-11-07 提取边界兼容：当前正式入口73项。夹具补实际 Core `RemovedMedia` 与原始 offset 字段，完整生产 `LoadAsync` 仍原样提取。新增已删项过滤不丢原始读取进度、reset 重载清旧 offset 的回归；当前 Release/x64 零警告错误、73/73通过。源码哈希、错误树、重解析路径、缺方法和守卫拒绝保持原有规则。
 
 ## 独立入口

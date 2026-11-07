@@ -13,6 +13,7 @@
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\DiagnosticsViewModel.cs" Link="Production\DiagnosticsViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ShellNavigationProbe.DiagnosticsTitle.cs" Link="Production\DiagnosticsTitleProbe.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\UpcomingDay.cs" Link="Production\UpcomingDay.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\UpcomingListDiff.cs" Link="Production\UpcomingListDiff.cs" />

@@ -99,6 +99,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("飞牛元数据失败保稿、在飞关闭保护与确认（匿名UIA）", FnNasMetadataRecoveryAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("Jellyfin 元数据草稿、标签与宽窄保存（匿名UIA）", ReviewMetadataEditorAsync, 60, section: ShellProbeSections.Metadata);
             await CaseAsync("通知事件、失败名单与宽窄保存（匿名UIA）", ReviewNotificationEditorAsync, 60, section: ShellProbeSections.Metadata);
+            await CaseAsync("通知保存与测试在飞关闭保护及失败留稿（匿名UIA）", NotificationInFlightRecoveryAsync, 30, section: ShellProbeSections.Metadata);
             await CaseAsync("媒体库弹窗五主题圆角和侧栏底色，MP保持原样", LibraryDialogChromeAsync, 120, section: ShellProbeSections.Metadata);
             // 2026-10-29 用户令：所有弹窗点外面就关，字幕管理右上角一颗 ✕、右下角那颗去掉。真模板真弹窗，
             // 遮罩那一层只能验到「找得到、铺满、不在弹窗树里」；真实按下那一米归 UIA 鼠标回归（见 DialogDismissAsync 头上那段）。
@@ -261,6 +262,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("目录首次失败可重试", ShellDirectoryRetryAsync);
             await CaseAsync("日志淘汰后显示空态", DiagnosticsEmptyAsync);
             await CaseAsync("运行状态紧凑布局、筛选与详情", DiagnosticsLayoutAsync, 30);
+            await CaseAsync("诊断首次进入显示当前标题并拒绝旧场次（匿名状态）", DiagnosticsInitialTitleAsync, 20, section: ShellProbeSections.Shell);
             await CaseAsync("对话框构造自检路径", DialogConstructionAsync);
             await CaseAsync("性能：匿名导航阶段计时、顺序与隐私边界", PerformanceNavigationTimingAsync, 60, section: ShellProbeSections.Performance);
             await CaseAsync("性能：普通库深返回窗口、双向分页与宽窄锚点", PerformanceDeepLibraryReturnAsync, 90, section: ShellProbeSections.Performance);

@@ -42,7 +42,7 @@ namespace Microsoft.UI.Xaml.Controls
     public sealed class TextChangedEventArgs : EventArgs;
     public class TextBox : FrameworkElement { public string Text { get; set; } = ""; public object? Header { get; set; } }
     public class ComboBox : FrameworkElement { public int SelectedIndex { get; set; } }
-    public class Button : FrameworkElement { }
+    public class Button : FrameworkElement { public Action? Invoke { get; set; } }
     public class InfoBar : FrameworkElement
     {
         public InfoBarSeverity Severity { get; set; }
@@ -61,6 +61,8 @@ namespace Microsoft.UI.Xaml.Controls
     public sealed class DialogDeferral(TaskCompletionSource pending) { public void Complete() => pending.TrySetResult(); }
     public class ContentDialog : FrameworkElement
     {
+        internal static bool ManualShow { get; set; }
+        private TaskCompletionSource<ContentDialogResult>? _shown;
         public object? Title { get; set; }
         public Dictionary<string, object> Resources { get; } = [];
         public bool IsPrimaryButtonEnabled { get; set; } = true;
@@ -70,10 +72,11 @@ namespace Microsoft.UI.Xaml.Controls
         public event Action<ContentDialog, ContentDialogButtonClickEventArgs>? PrimaryButtonClick;
         public event Action<ContentDialog, ContentDialogClosingEventArgs>? Closing;
         public void RaisePrimary() => PrimaryButtonClick?.Invoke(this, new());
-        public void Hide() { var args = new ContentDialogClosingEventArgs(); Closing?.Invoke(this, args); if (!args.Cancel) { Hidden = true; IsOpen = false; } }
+        public void Hide() { var args = new ContentDialogClosingEventArgs(); Closing?.Invoke(this, args); if (!args.Cancel) { Hidden = true; IsOpen = false; _shown?.TrySetResult(ContentDialogResult.None); } }
         public async Task<ContentDialogResult> ShowAsync()
         {
             IsOpen = true;
+            if (ManualShow) { _shown = new(TaskCreationOptions.RunContinuationsAsynchronously); return await _shown.Task; }
             var result = await MetadataPlan.OnShow(this);
             if (result == ContentDialogResult.Primary) await SaveAsync();
             else Hide();
@@ -127,6 +130,7 @@ namespace Momoka.Shell.Views
         {
             Resources["DlgNote"] = new Style();
             Resources["DlgFaint"] = new Style();
+            TestButton.Invoke = () => OnTest(this, new());
         }
     }
 }

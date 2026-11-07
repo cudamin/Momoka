@@ -17,7 +17,7 @@ internal sealed class MemoryEnvironment : IDisposable
 
     internal MemoryEnvironment()
     {
-        var settings = new AppSettings();
+        var settings = Settings;
         var paths = new AppPaths(Path.Combine(AppContext.BaseDirectory, "unused-perf-path"));
         var protector = PassthroughSecretProtector.Instance;
         _session = new EmbySession(settings, new SettingsStore(paths, protector), new CredentialVault(protector),
@@ -29,6 +29,8 @@ internal sealed class MemoryEnvironment : IDisposable
     }
 
     internal EmbyImageStore Images { get; }
+    internal AppSettings Settings { get; } = new();
+    internal EmbySession Session => _session;
     internal EmbySessionScope Source(string server, string account)
     {
         var connection = new EmbyConnection(new Uri("http://perf.invalid/emby/"), "", "fixture", "fixture", "fixture", _device);

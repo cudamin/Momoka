@@ -2,6 +2,11 @@
 // real clipboard, dispatcher, backend or network is available to this source-linked suite.
 namespace Microsoft.UI.Xaml
 {
+    public class FrameworkElement
+    {
+        public List<FrameworkElement> Children { get; } = [];
+        public double ActualHeight => 100;
+    }
     public enum Visibility { Visible, Collapsed }
     public enum TextAlignment { Left, Center }
     public enum GridUnitType { Auto, Pixel, Star }
@@ -18,6 +23,8 @@ namespace Microsoft.UI.Xaml
 }
 namespace Microsoft.UI.Xaml.Controls
 {
+    public class TextBlock : Microsoft.UI.Xaml.FrameworkElement { public string Text { get; set; } = ""; }
+    public class StackPanel : Microsoft.UI.Xaml.FrameworkElement;
     public enum InfoBarSeverity { Informational, Success, Warning, Error }
 }
 namespace Microsoft.UI.Xaml.Media

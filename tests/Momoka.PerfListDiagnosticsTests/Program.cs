@@ -15,6 +15,7 @@ internal static class PerfListDiagnosticsProgram
         UpcomingPaginationTests.Register();
         DiagnosticsCoalescingTests.Register();
         DiagnosticsTests.Register();
+        DiagnosticsTitleProbeTests.Register();
         return TestHarness.Run();
     }
 }
