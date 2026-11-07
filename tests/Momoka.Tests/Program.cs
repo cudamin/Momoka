@@ -4,6 +4,12 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["home-carousel-fixture"])
+        {
+            HomeCarouselTests.Register();
+            GaussianBackdropTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["verification-harness-fixture"])
         {
             TestHarnessTests.Register();

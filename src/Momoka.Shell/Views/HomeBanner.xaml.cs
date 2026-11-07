@@ -62,17 +62,6 @@ public sealed partial class HomeBanner : UserControl
     /// <summary>下一行比上一行晚多久起。misty 那份是 .4/.6/.8 秒，四行错完接近一秒，这里压到四行 210 毫秒。</summary>
     private static readonly TimeSpan Stagger = TimeSpan.FromMilliseconds(70);
 
-    /// <summary>
-    /// 每张剧照的慢镜头时长。与交叉淡入分开：图片七秒缓慢舒展，字和按钮的位置保持不动。
-    /// <para>
-    /// 只动背景图层的 ScaleTransform，以中心为原点；画框裁掉溢出的边缘，不触发布局。
-    /// </para>
-    /// </summary>
-    private static readonly TimeSpan Push = TimeSpan.FromSeconds(7);
-
-    /// <summary>推近的那一点点。见 <see cref="Push"/>。</summary>
-    private const double PushScale = 0.045;
-
     /// <summary>「鼠标移出窗口后不会自动恢复」：翻页箭头浮出来了还得收回去，理由见 <see cref="HoverWatch"/>。</summary>
     private readonly HoverWatch _watch;
 
@@ -525,48 +514,6 @@ public sealed partial class HomeBanner : UserControl
             falling.Opacity = 0;
         }, "image");
 
-        Nudge();
-    }
-
-    /// <summary>
-    /// 新剧照由 104.5% 缓慢回到 100%。一张图一段动画，快速连续翻页时先停止上一段并落定。
-    /// </summary>
-    private void Nudge()
-    {
-        StopMotion("camera");
-        var scale = _second ? PictureScaleB : PictureScaleA;
-        scale.ScaleX = 1 + PushScale;
-        scale.ScaleY = 1 + PushScale;
-
-        // 只慢推背景图，文字和按钮始终稳定；裁剪留在画框，边缘不会溢到下面的媒体内容。
-        var ease = new SineEase { EasingMode = EasingMode.EaseOut };
-        var board = new Storyboard();
-        board.Children.Add(ScaleBand(scale, "ScaleX", 1, Push, TimeSpan.Zero, ease));
-        board.Children.Add(ScaleBand(scale, "ScaleY", 1, Push, TimeSpan.Zero, ease));
-
-        Play(board, () =>
-        {
-            scale.ScaleX = 1;
-            scale.ScaleY = 1;
-        }, "camera");
-    }
-
-    /// <summary>一段缩放。</summary>
-    private static DoubleAnimation ScaleBand(
-        DependencyObject subject, string path, double to, TimeSpan span, TimeSpan delay, EasingFunctionBase ease)
-    {
-        var one = new DoubleAnimation
-        {
-            To = to,
-            Duration = new Duration(span),
-            BeginTime = delay,
-            EasingFunction = ease,
-        };
-
-        Storyboard.SetTarget(one, subject);
-        Storyboard.SetTargetProperty(one, path);
-
-        return one;
     }
 
     /// <summary>
@@ -1135,7 +1082,6 @@ public sealed partial class HomeBanner : UserControl
         if (_slides.Count > 0)
         {
             Show(_index);
-            if (FrontPicture is not null) Nudge();
         }
         SyncTimer();
 
@@ -1491,7 +1437,7 @@ public sealed partial class HomeBanner : UserControl
             var spare = (height - Info.ActualHeight) / 2;
             var bandShape = Band.ActualHeight > 0 ? Band.ActualWidth / Band.ActualHeight : 0;
 
-            return $"带高 {height:0}、剧照左侧采色延长 10% 后铺满整条带{Describe(FrontPicture as BitmapImage, bandShape)}"
+            return $"带高 {height:0}、剧照左侧采色延长 {CarouselBackdrop.LeftExtensionShare:0%} 后铺满整条带{Describe(FrontPicture as BitmapImage, bandShape)}"
                 + $"（渐变幕 {fade:0} 宽）、字块宽 {Info.MaxWidth:0}、"
                 + $"字块高 {Info.ActualHeight:0} 竖向居中（上下各 {spare:0}）、"
                 + $"带 {bandShape:0.00}:1"
@@ -1568,7 +1514,7 @@ public sealed partial class HomeBanner : UserControl
         var paintedHeight = drawn.Height * (scale?.ScaleY ?? 1);
         var right = band.Width - (at.X + paintedWidth);
 
-        // 布局格子仍然占满画框；慢镜头允许图超出框，但任何时刻都不能露出底色。
+        // 图片保持单位缩放；布局格子与画框一致，不留底色边缘。
         var covers = Math.Abs(drawn.Width - band.Width) <= 1.5
             && Math.Abs(drawn.Height - band.Height) <= 1.5
             && left <= 1.5 && right <= 1.5
@@ -1587,7 +1533,7 @@ public sealed partial class HomeBanner : UserControl
         return (covers && oneAxis,
             $"剧照铺满整条带 {drawn.Width:0}×{drawn.Height:0}（画刷那层就是整格，左 {left:0.#}、上 {at.Y:0.#}）"
                 + (sourceShape > 0
-                    ? $"；背景位图 {source!.PixelWidth}×{source!.PixelHeight} = {sourceShape:0.00}:1（左侧 {CarouselBackdrop.LeftExtensionShare:0%} 采色扩边，高斯限于延长区并随图缩放，原图保持清晰）"
+                    ? $"；背景位图 {source!.PixelWidth}×{source!.PixelHeight} = {sourceShape:0.00}:1（左侧 {CarouselBackdrop.LeftExtensionShare:0%} 采色扩边，全扩边高斯经原图左8%平滑恢复清晰，图片静止）"
                         + (cropX > 0
                             ? $" 比带子宽，左右各裁 {cropX:P0}"
                             : cropY > 0 ? $" 比带子窄，上下各裁 {cropY:P0}" : " 和带子同形，一个像素都不裁")
