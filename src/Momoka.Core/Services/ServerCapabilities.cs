@@ -162,7 +162,7 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
     /// <inheritdoc />
     public IReadOnlyList<ServerSettingsSource> Sources => session.Sources
         .Select(scope => new ServerSettingsSource(scope, scope.Connection.ServerKind,
-            ServerAccess.CanAdminister(scope.Connection.ServerKind, scope.IsAdministrator)))
+            ServerAccess.CanAdminister(scope.Connection.ServerKind, PermissionsFor(scope.Key).IsAdministrator)))
         .ToArray();
 
     /// <inheritdoc />
@@ -201,7 +201,7 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
             var pages = await source.Scope.ExecuteAsync(
                 (client, ct) => client.GetServerSettingsPagesAsync(ct), token).ConfigureAwait(false);
             return source.IsAvailable && source.Scope.PermissionRevision == revision
-                && ServerAccess.CanAdminister(source.Kind, source.Scope.IsAdministrator) ? pages : [];
+                && ServerAccess.CanAdminister(source.Kind, PermissionsFor(sourceKey).IsAdministrator) ? pages : [];
         }
         catch (Exception error)
         {
