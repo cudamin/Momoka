@@ -38,6 +38,13 @@ internal static class Program
 
     private static void Register()
     {
+        Test("离线边界：配置载入端点拒绝执行，不回退真实 libmpv", () =>
+        {
+            var error = Assert.Catch<AssertionException>(() =>
+                LibMpvNative.mpv_load_config_file(new IntPtr(48), "r048-config-must-not-load.conf"));
+            Assert.Contains("R048 不载入配置", error.Message);
+            return Task.CompletedTask;
+        });
         Test("ABI：固定 x64 payload 与实际 managed reason/error 前缀一致", () =>
         {
             Assert.Equal(8, IntPtr.Size);
@@ -256,7 +263,18 @@ internal static class Program
                 var following = f.Target.Bind(new Momoka.Emby.EmbyItem
                 { Id = "next", Type = "Episode", SeasonId = "season" });
                 vm.Episodes.AddRange([f.Item, following]);
-                await f.StartAsync();
+                var startResponseRelease = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                f.Transport.StartResponseRelease = startResponseRelease.Task;
+                var start = f.StartAsync();
+                try
+                {
+                    await Task.WhenAny(start, f.MonitorWaitEntered.Task).WaitAsync(TimeSpan.FromSeconds(2));
+                    Assert.False(start.IsCompleted, "假HTTP起播请求已收到，但Monitor订阅未挂齐时不能报告就绪");
+                    Assert.True(f.MonitorWaitEntered.Task.IsCompleted, "夹具应实际等候Monitor订阅条件");
+                    Assert.True(f.Backend.StatusListeners < 3, "假HTTP响应闸必须扣住实际Monitor订阅");
+                }
+                finally { startResponseRelease.TrySetResult(); }
+                await start;
                 var play = f.Play!;
                 async Task<EpisodeDestination?> ConsumeAsync() => vm.Next(await play, f.Item);
                 var consumer = ConsumeAsync();
