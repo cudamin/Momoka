@@ -112,6 +112,18 @@ internal static class Program
             using var parsed = JsonDocument.Parse(json); Assert.Equal(cue.Text, parsed.RootElement.GetProperty("original").GetString());
             Assert.Equal(64, parsed.RootElement.GetProperty("fontSize").GetInt32()); Assert.Equal(10, parsed.RootElement.GetProperty("position").GetInt32());
         });
+        Test("字幕翻译：最大合法中文句与译文不超过Lua接收预算", () =>
+        {
+            var json = MpvSubtitleTranslation.Payload(Cue(new string('中', 4000)), new string('文', 16000), 32, 80);
+            Assert.True(System.Text.Encoding.UTF8.GetByteCount(json) <= 100000);
+            using var parsed = JsonDocument.Parse(json);
+            Assert.Equal(new string('文', 16000), parsed.RootElement.GetProperty("text").GetString());
+        });
+        Test("字幕翻译：必须转义的超预算载荷有明确失败", () =>
+        {
+            Assert.Throws<InvalidOperationException>(() => MpvSubtitleTranslation.Payload(
+                Cue(new string('\u0001', 4000)), new string('\u0001', 16000), 32, 80));
+        });
         Test("字幕翻译：备份不外带密钥端点模型，恢复不清本机连接", () =>
         {
             var settings = new AppSettings(); var live = settings.SubtitleTranslation;

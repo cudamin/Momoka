@@ -905,10 +905,10 @@ public sealed partial class ShellPage : UserControl, IShellActions
         SyncSidebar();
     }
 
-    private void OnSubtitleTranslationNotice(string message) => DispatcherQueue.TryEnqueue(() =>
+    private void OnSubtitleTranslationNotice(string message)
     {
         if (_shutdownTask is null) Notify(message, InfoBarSeverity.Warning);
-    });
+    }
 
     /// <summary>
     /// The shell's one notification channel. Replaces the WinForms toast window, which was a layered

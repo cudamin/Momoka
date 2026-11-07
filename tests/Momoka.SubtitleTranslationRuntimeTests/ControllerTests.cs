@@ -11,6 +11,13 @@ namespace Momoka.Tests
     {
         internal static async Task RegisterAsync()
         {
+            foreach (var change in new[] { "current", "disabled", "language", "stopped" })
+            {
+                Exception? failure = null;
+                try { await QueuedNoticeAsync(change); } catch (Exception error) { failure = error; }
+                var recorded = failure;
+                TestHarness.Test("R13-008 排队翻译通知最终核对运行 " + change, () => { if (recorded is not null) throw recorded; });
+            }
             foreach (var pending in new[] { false, true })
             {
                 Exception? failure = null;
@@ -21,6 +28,26 @@ namespace Momoka.Tests
                     if (recorded is not null) throw recorded;
                 });
             }
+        }
+        private static async Task QueuedNoticeAsync(string change)
+        {
+            var settings = new ReviewSettings();
+            settings.Settings.SubtitleTranslation.Enabled = true;
+            var dispatcher = new QueuedDispatcher();
+            using var http = new HttpClient(new ReviewTransport());
+            using var client = new SubtitleTranslationClient(http);
+            using var controller = new SubtitleTranslationController(new(new ReviewSession()), settings, client,
+                new SubtitleTranslationCredentials(new IdentityProtector()), dispatcher);
+            var notices = 0;
+            controller.Noticed += _ => notices++;
+            controller.Attach();
+            await Until(() => dispatcher.Count > 0 || notices > 0);
+            if (change == "disabled") settings.Settings.SubtitleTranslation.Enabled = false;
+            if (change == "language") settings.Settings.SubtitleTranslation.TargetLanguage = "en";
+            if (change == "stopped") await controller.StopAsync();
+            dispatcher.Drain();
+            Assert.Equal(change == "current" ? 1 : 0, notices);
+            await controller.StopAsync();
         }
         private static async Task AppearanceAsync(bool pending)
         {
@@ -102,6 +129,13 @@ namespace Momoka.Tests
             public string Unprotect(string value) => value;
         }
         private sealed class InlineDispatcher : Momoka.Shell.Platform.IUiDispatcher { public void Run(Action action) => action(); }
+        private sealed class QueuedDispatcher : Momoka.Shell.Platform.IUiDispatcher
+        {
+            private readonly System.Collections.Concurrent.ConcurrentQueue<Action> _queue = new();
+            public int Count => _queue.Count;
+            public void Run(Action action) => _queue.Enqueue(action);
+            public void Drain() { while (_queue.TryDequeue(out var action)) action(); }
+        }
     }
 }
 namespace Momoka.Shell.Services

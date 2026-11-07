@@ -94,7 +94,12 @@ public sealed class SubtitleTranslationController(
             if (source.IsCancellationRequested || _disposed) return;
             await SubtitleTranslationRuntime.RunAsync(session, snapshot, key,
                 MpvSubtitleTranslation.ScriptPath(AppContext.BaseDirectory), client.TranslateAsync,
-                message => { if (!source.IsCancellationRequested && session.IsCurrent && !_disposed) Noticed?.Invoke(message); },
+                message => ui.Run(() =>
+                {
+                    // Validate where the UI consumes it, including same-file provider/credential edits.
+                    if (!source.IsCancellationRequested && ReferenceEquals(_presentation, presentation) && session.IsCurrent
+                        && !_disposed && SameRequest(presentation.Settings, Snapshot())) Noticed?.Invoke(message);
+                }),
                 source.Token, () => Volatile.Read(ref presentation.Settings)).ConfigureAwait(false);
         }
         finally

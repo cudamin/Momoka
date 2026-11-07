@@ -65,6 +65,13 @@ check('invalid JSON, missing fields and oversized payload leave no text', functi
     call('momoka-subtitle-translation-show', string.rep('x', 100001)); require_true(overlay.data == '')
     show({original='Original line',text='x',sid='2',fontSize=0/0,position=80}); require_true(overlay.data == '')
 end)
+check('maximum Chinese subtitle and translation display within the unchanged payload limit', function()
+    restart()
+    local original, translated = string.rep('中', 4000), string.rep('文', 16000)
+    fixture_properties['sub-text'] = original
+    show({original=original,text=translated,sid='2',start=1,['end']=4,fontSize=32,position=80})
+    require_true(overlay.data:find(translated, 1, true), 'maximum legal Chinese translation lost')
+end)
 check('real native libass accepts literal translated overlay then removal', function()
     restart(); show({original='Original line',text='中英双语 {test} \\N',sid='2',fontSize=32,position=80})
     local native = fixture_native_overlay('ass-events')
