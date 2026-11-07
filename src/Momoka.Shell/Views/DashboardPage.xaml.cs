@@ -75,6 +75,10 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
     private bool _settled;
     private bool _released;
     private EmbySessionScope? _scope;
+    private EmbySession? _session;
+    private string? _signInScript;
+    private EmbyConnection? _seedConnection;
+    private readonly SemaphoreSlim _seedGate = new(1, 1);
     private string? _sourceKey;
     private readonly CancellationTokenSource _lifetime = new();
     private string _storageKey = EmbyWebConsole.StorageKey;
@@ -348,6 +352,9 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
         var services = request.Services;
         _launcher = services.GetRequiredService<ISystemLauncher>();
         var session = services.GetRequiredService<EmbySession>();
+        _session = session;
+        session.PermissionsChanged += OnSeedIdentityChanged;
+        session.SourcesChanged += OnSeedSourcesChanged;
         _sourceKey = request.SourceKey;
 
         // 多服务器分组给出的是这一台自己的来源键；单服务器与旧调用仍走「当前来源」。
@@ -415,16 +422,17 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
         try
         {
             if (_scope is null) return;
-            var system = await _scope.ExecuteAsync((client, token) => client.GetSystemInfoAsync(token), _lifetime.Token);
+            var snapshot = await _scope.ExecuteAsync(async (client, token) =>
+                (System: await client.GetSystemInfoAsync(token), Connection: client.Connection), _lifetime.Token);
             if (!Live) return;
-            if (system.IsRestricted)
+            if (snapshot.System.IsRestricted)
             {
                 _url = "";
                 _settled = true;
                 Show("需要服务器管理员权限。");
                 return;
             }
-            connection = _scope.Connection;
+            connection = snapshot.Connection;
 
             // 离线探针只读左栏与落点，不把 WebView2 拉进探针窗口（见 DashboardRequest.LoadContent）。
             if (!_loadContent)
@@ -462,7 +470,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
             // 缺少公开服务器 ID 时保留网页自己的登录流程，不构造一个猜测的 Jellyfin 身份。
             if (!connection.IsJellyfin || !string.IsNullOrWhiteSpace(connection.ServerId))
             {
-                await core.AddScriptToExecuteOnDocumentCreatedAsync(EmbyWebConsole.SignInScript(connection));
+                await EnsureSignInSeedAsync(core);
                 if (!Live) return;
                 _seeded = true;
             }
@@ -671,14 +679,57 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
         Say("载入很慢，还在等服务器…");
     }
 
-    private void OnRefresh(object sender, RoutedEventArgs e)
+    private async void OnRefresh(object sender, RoutedEventArgs e)
     {
         if (Web.CoreWebView2 is not { } core || _url.Length == 0 || !Live) return;
 
         BeginLoad();
         Say("正在重新载入…");
-        NavigateFullPage(core, _url);
+        try
+        {
+            await EnsureSignInSeedAsync(core);
+            if (!Live) return;
+            NavigateFullPage(core, _url);
+        }
+        catch (Exception error) { if (Live) FailQueuedNavigation(error.Message); }
         _ = GiveUpAsync(_generation);
+    }
+
+    private void OnSeedIdentityChanged(object? sender, EmbySessionScope scope)
+    {
+        if (!ReferenceEquals(scope, _scope) || !Live) return;
+        DispatcherQueue.TryEnqueue(async () =>
+        {
+            if (!Live || Web.CoreWebView2 is not { } core) return;
+            try { await EnsureSignInSeedAsync(core); }
+            catch (Exception error) { if (Live) FailQueuedNavigation(error.Message); }
+        });
+    }
+
+    private void OnSeedSourcesChanged(object? sender, EventArgs args)
+    {
+        if (_scope is { } scope) OnSeedIdentityChanged(sender, scope);
+    }
+
+    private async Task EnsureSignInSeedAsync(CoreWebView2 core)
+    {
+        await _seedGate.WaitAsync(_lifetime.Token);
+        try
+        {
+            if (!Live || _scope is not { } scope) return;
+            var connection = await scope.ExecuteAsync((client, _) => Task.FromResult(client.Connection), _lifetime.Token);
+            if (!Live) return;
+            if (_seedConnection == connection) return;
+            if (_signInScript is { } old) core.RemoveScriptToExecuteOnDocumentCreated(old);
+            _signInScript = null;
+            _seedConnection = null;
+            if (connection.IsJellyfin && string.IsNullOrWhiteSpace(connection.ServerId)) return;
+            var added = await core.AddScriptToExecuteOnDocumentCreatedAsync(EmbyWebConsole.SignInScript(connection));
+            if (!Live) { core.RemoveScriptToExecuteOnDocumentCreated(added); return; }
+            _signInScript = added;
+            _seedConnection = connection;
+        }
+        finally { _seedGate.Release(); }
     }
 
     private void OnOpenInBrowser(object sender, RoutedEventArgs e)
@@ -726,6 +777,11 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
         _queuedNavigation = null;
         _navigationDispatchQueued = false;
         _observedNavigationIds.Clear();
+        if (_session is not null)
+        {
+            _session.PermissionsChanged -= OnSeedIdentityChanged;
+            _session.SourcesChanged -= OnSeedSourcesChanged;
+        }
         _lifetime.Cancel();
         _lifetime.Dispose();
 

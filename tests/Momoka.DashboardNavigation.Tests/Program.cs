@@ -12,6 +12,17 @@ internal static class Program
 {
     private static int Main()
     {
+        Case("R15-001 document seed updates to current same-identity token", (queue, fixture) =>
+        {
+            fixture.Route("dashboard");
+            fixture.Page.FixtureSeed("old-token");
+            fixture.Source.ReplaceToken("new-token");
+            fixture.Page.FixtureRefresh();
+            queue.Until(() => fixture.Core.DocumentSeeds.Values.Any(seed => seed.Contains("new-token", StringComparison.Ordinal)),
+                "new document credential seed did not complete");
+            Assert.True(fixture.Core.DocumentSeeds.Values.Any(seed => seed.Contains("new-token", StringComparison.Ordinal)), "updated token was not registered");
+            Assert.False(fixture.Core.DocumentSeeds.Values.Any(seed => seed.Contains("old-token", StringComparison.Ordinal)), "old document seed remains registered");
+        });
         Console.OutputEncoding = Encoding.UTF8;
         Console.WriteLine("R-019 真实 Dashboard page 控制流；非真 WebView2/WinUI UI 验证，无窗口/HTTP/账号/凭据/App/native/播放");
         Console.WriteLine($"SOURCE: {DashboardSourceEvidence.Path}");
