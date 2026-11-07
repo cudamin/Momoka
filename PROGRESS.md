@@ -1,3 +1,9 @@
+## 2026-11-07 0.2.0 选择框与按钮源码核对、Demo 待批准
+
+用户要求复刻0.2.0选择框及按钮背景并补充“读源码”。当前聊天树aa60起点0749555，只写本节与docs/superpowers/specs/2026-11-07-v020-controls-design.md，没有产品改动。已读v0.2.0（388f7d59）与当前Palette/Styles/ThemeHost/DetailPage/EgPicker和相同WinUI2.3.9默认模板：旧按钮是15/21/8半透明白，不是亚克力；旧展开层是主题亚克力，当前DetailPage.Appearance局部实灰覆盖是直接差异。EgPicker防收缩和边界算法保留。
+
+独立Demo位于C:/Users/89400/.codex/visualizations/2026/11/07/01a1b3da-b0fd-7eb0-9e48-151af88523e5/v020-controls.html；沿用上次真实媒体库缓存背景，轨道来自用户截图，本次未刷新实服。21项浏览器检查通过，宽窄截图已看；CSS亚克力仅近似，未构建/运行原生WinUI、未播放、未写生产设置或服务器。按用户先看Demo再明确批准的偏好，正式UI实施、整合、主树验证及交付待批准；仅本地记录，不上传。
+
 ## 2026-11-07 第二批恢复与反馈修复开始
 
 用户授权自行选择修复且不按分区暂停。主树起点08324e3，五项计划见docs/superpowers/plans/2026-11-07-review-recovery-fixes.md。root只写主树配置与设备头；账号/关闭和字幕各用独立树，构建测试UI串行。旧review-priority-fixes树不用于新实现，上一批交付证据不作为本批通过依据。尚未验证或刷新实际交付目录。
