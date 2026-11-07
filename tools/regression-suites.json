@@ -652,6 +652,36 @@
       "wrapper": null,
       "readme": "tests/Momoka.LibraryHeaderTests/README.md",
       "notes": "编译时提取当前 LibraryPage 标题方法，使用值边界检查布局规则；不启动窗口或真实服务。"
+    },
+    {
+      "id": "Momoka.MediaRecoveryTests",
+      "project": "tests/Momoka.MediaRecoveryTests/Momoka.MediaRecoveryTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.MediaRecoveryTests/README.md",
+      "notes": "本轮必要恢复/输入回归；真实生产方法与匿名外部边界，无窗口/真实凭据/服务器/播放。"
+    },
+    {
+      "id": "Momoka.MediaDialogRecoveryTests",
+      "project": "tests/Momoka.MediaDialogRecoveryTests/Momoka.MediaDialogRecoveryTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.MediaDialogRecoveryTests/README.md",
+      "notes": "本轮必要恢复/输入回归；真实生产方法与匿名外部边界，无窗口/真实凭据/服务器/播放。"
+    },
+    {
+      "id": "Momoka.PlayerInputRecoveryTests",
+      "project": "tests/Momoka.PlayerInputRecoveryTests/Momoka.PlayerInputRecoveryTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.PlayerInputRecoveryTests/README.md",
+      "notes": "本轮必要恢复/输入回归；真实生产方法与匿名外部边界，无窗口/真实凭据/服务器/播放。"
     }
   ]
 }
