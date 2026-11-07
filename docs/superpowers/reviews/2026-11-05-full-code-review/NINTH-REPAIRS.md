@@ -48,4 +48,4 @@ R048夹具产品68749c5已整合：只补真实列表helper和禁止配置载入
 
 实际目录C:/Users/89400/Momoka/artifacts/publish/win-x64，0.2.5、546文件300355063字节（286.4MB），桌面快捷方式目标/工作目录正确、参数空；载荷、14GLSL/4HOOK与许可验证通过。回执artifacts/detail-unified-master/delivery-receipt.json，原红及本批交付检查在artifacts/review-batch9-master和开发artifacts/review-batch9/final-delivery-verification.json。无真实下载目录、SmartScreen、凭据、服务器播放/写入、签名、安装、ZIP/MSIX、上传或推送验证。
 
-R048辅助树已通过原生archive保存后移除；设置辅助树首轮归档被primary checkout保护拒绝，正在将聊天重新附回原primary后核对，未手工删除。原primary协调树保留；本记录纯文档，不重建或重发。无待合、待验、待交付产品。
+两个本批辅助树均已通过原生archive保存后移除。设置树首轮primary保护拒绝；重新附回原协调树后原生归档成功，未手工删除或绕过。开发证据已先逐SHA保存。原primary协调树保留；本记录纯文档，不重建或重发。无待合、待验、待交付产品。
