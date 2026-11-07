@@ -1320,20 +1320,30 @@ public sealed partial class ShellPage : UserControl, IShellActions
                 imageScope is { IsAvailable: true } current
                     ? images.GetAsync(current, art.ItemId, art.ImageType, art.Tag,
                         EmbyImageStore.RequestWidth(CardSize.MissingWidth), token)
-                    : Task.FromResult<byte[]?>(null), canSearch, anime && Settings.MoviePilot.AniBtEnabled)
+                    : Task.FromResult<byte[]?>(null), canSearch, anime, moviePilot.AniBtAvailable)
             { XamlRoot = root };
             void AvailabilityChanged(object? sender, EventArgs args)
             {
                 if (connection is not null && (!moviePilot.Available || !moviePilot.IsCurrentConnection(connection)))
                     DispatcherQueue.TryEnqueue(dialog.Hide);
             }
+            void AniBtAvailabilityChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(dialog.Hide);
             moviePilot.AvailabilityChanged += AvailabilityChanged;
+            moviePilot.AniBtAvailabilityChanged += AniBtAvailabilityChanged;
             try { await dialog.ShowAsync(); }
-            finally { moviePilot.AvailabilityChanged -= AvailabilityChanged; }
+            finally
+            {
+                moviePilot.AvailabilityChanged -= AvailabilityChanged;
+                moviePilot.AniBtAvailabilityChanged -= AniBtAvailabilityChanged;
+            }
             // 等清单真正关闭，再弹搜索窗口；下载确认不会与清单争用同一个 XamlRoot。
             if (!session.IsAvailable || !ReferenceEquals(ContentFrame.Content, page) || connection is null
                 || !moviePilot.Available || !moviePilot.IsCurrentConnection(connection) || dialog.SearchEpisode is not { } episode) return;
-            if (dialog.SearchWithAniBt) SearchAniBtVersions(Momoka.AniBt.AniBtSearchQuery.From(episode, searchOwner));
+            if (dialog.SearchWithAniBt)
+            {
+                if (!moviePilot.AniBtAvailable) return;
+                SearchAniBtVersions(Momoka.AniBt.AniBtSearchQuery.From(episode, searchOwner));
+            }
             else SearchMoviePilotVersions(MoviePilotVersionQuery.Keyword(episode, searchOwner));
         }
         catch (OperationCanceledException) { }
@@ -1437,7 +1447,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             target => ((IShellActions)this).PlayAsync(target.Item, target.Parent, episodes: target.Episodes),
             SearchMoviePilotVersions, _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMoviePilotMedia,
             SetTitleStrip: SetTitleStrip,
-            SearchAniBt: Settings.MoviePilot.AniBtEnabled ? SearchAniBtVersions : null,
+            SearchAniBt: SearchAniBtVersions,
             Subscribed: subscribed), BrowseTransition());
         _trail.Add(new Crumb(subscription.Title, string.Empty));
         _current = null;

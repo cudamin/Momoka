@@ -461,7 +461,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// <see cref="AniBtEligibility.IsJapaneseAnime"/>。
     /// </summary>
     [ObservableProperty] public partial bool AniBtSearch { get; set; }
-    public Visibility AniBtVisibility => Show(AniBtSearch && Live && Detail is not null && AniBtEligibility.IsJapaneseAnime(Detail));
+    public Visibility AniBtVisibility => Show(AniBtSearch && Live && _service?.AniBtAvailable == true
+        && Detail is not null && AniBtEligibility.IsJapaneseAnime(Detail));
     public bool CanSearchAniBt => CanInteract && AniBtVisibility == Visibility.Visible;
     public Visibility SeasonsVisibility => Show(Detail?.SupportsSeasons == true);
     public Visibility GroupsVisibility => Show(Groups.Count > 1 || _picker && Detail?.SupportsEpisodeGroups == true && Groups.Count > 0);
@@ -487,6 +488,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     {
         Cancel();
         _service = service; _media = media; GroupId = group; _picker = picker; _preselect = preselect;
+        service.AniBtAvailabilityChanged += OnAniBtAvailabilityChanged;
         _fetchImage = service.CaptureImageFetcher();
         _search = search; _subscribe = subscribe; _lifetime = CancellationTokenSource.CreateLinkedTokenSource(lifetimeToken);
         _initialSelection = picker;
@@ -505,6 +507,13 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         GroupId = subscription.EpisodeGroup;
         // Reload owns cancellation/generation checks and rebuilds both season membership and group choices.
         _ = ReloadAsync();
+    }
+
+    private void OnAniBtAvailabilityChanged(object? sender, EventArgs args)
+    {
+        if (!ReferenceEquals(sender, _service) || !Live) return;
+        OnPropertyChanged(nameof(AniBtVisibility));
+        OnPropertyChanged(nameof(CanSearchAniBt));
     }
 
     public override async Task ReloadAsync()
@@ -899,6 +908,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
 
     public override void Cancel()
     {
+        if (_service is not null) _service.AniBtAvailabilityChanged -= OnAniBtAvailabilityChanged;
         _lifetime?.Cancel(); _lifetime?.Dispose(); _lifetime = null;
         _fetchImage = null;
         _groupLoad?.Cancel(); _groupLoad = null;

@@ -99,7 +99,12 @@ public static class MoviePilotTransferCollect
                 throw new MoviePilotException($"此条目没有可核对的本地文件：{leaf.Name}。不会只整理剩余文件。");
             foreach (var file in paths)
             {
-                if (files.Any(existing => MoviePilotTransfer.SamePath(existing.Path, file.Path))) continue;
+                if (files.FirstOrDefault(existing => MoviePilotTransfer.SamePath(existing.Path, file.Path)) is { } existing)
+                {
+                    if (existing.Season != file.Season || existing.Episode != file.Episode || existing.EpisodeEnd != file.EpisodeEnd)
+                        throw new MoviePilotException("同一文件对应冲突的季集编号，请先在媒体库核对；没有提交整理");
+                    continue;
+                }
                 files.Add(file);
                 if (files.Count > maxFiles)
                     throw new MoviePilotException($"此条目超过 {maxFiles} 个文件，请按季或单集整理；不会只提交前 {maxFiles} 个文件");
@@ -119,7 +124,12 @@ public static class MoviePilotTransferCollect
                 ? new MoviePilotTransferFile(MoviePilotTransfer.PathName(path), path)
                 : null)
             .Where(file => file is not null)
-            .Select(file => file!);
+            .Select(file => file! with
+            {
+                Season = item.Type == EmbyItemType.Episode ? item.ParentIndexNumber : null,
+                Episode = item.Type == EmbyItemType.Episode ? item.IndexNumber : null,
+                EpisodeEnd = item.Type == EmbyItemType.Episode ? item.IndexNumberEnd : null
+            });
 
     private static async Task<List<EmbyItem>> Children(
         EmbyClient client, string parentId, bool recursive, CancellationToken cancellationToken, int maxFiles)

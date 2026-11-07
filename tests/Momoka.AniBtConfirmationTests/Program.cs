@@ -618,6 +618,20 @@ internal static class Program
             f.AssertZeroWrites();
         });
 
+        Test("R09-005 move确认显示实际源完整路径，保留识别用原名称", () =>
+        {
+            using var f = new AnonymousFixture(1);
+            var dialog = f.Dialog();
+            var row = new AniBtScrapeRowViewModel(new("/library/current.mkv", "original-download.mkv",
+                new AniBtMatch([], null, "manual", "low", "fixture", 1)));
+            row.ShowTarget(new("/library/current.mkv", "fixture", "details")
+            {
+                SourcePath = "/library/renamed/current.mkv", DestinationPath = "/library/new/result.mkv"
+            });
+            Assert.Equal("original-download.mkv", row.SourceName);
+            Assert.Equal("/library/renamed/current.mkv", dialog.BoundValue("SourceDirectoryText", "Text", row));
+        });
+
         AsyncCase("R039 自动只读目标在途关闭立即撤销且0write", async queue =>
         {
             using var f = new AnonymousFixture();

@@ -60,7 +60,7 @@ public sealed partial class AniBtScrapeRowViewModel : ObservableObject
         DestinationTitle = target.Title;
         EpisodeLabel = target.EpisodeLabel;
         TransferMethod = target.Method;
-        SourceDirectory = target.SourcePath.Length > 0 ? MoviePilotTransfer.ParentPath(target.SourcePath) : "";
+        SourceDirectory = target.SourcePath;
         DestinationDirectory = target.SourcePath.Length > 0
             ? MoviePilotTransfer.ParentPath(target.DestinationPath) : target.DestinationPath;
         DestinationFile = target.SourcePath.Length > 0 ? MoviePilotTransfer.PathName(target.DestinationPath) : "";

@@ -11,6 +11,8 @@ internal static class Program
     private static int Main()
     {
         Console.OutputEncoding = Encoding.UTF8;
+        AniBtReceiptStateTests.Register();
+        AniBtPrepareConcurrencyTests.Register();
         foreach (var (input, port) in new[]
         {
             ("http://origin.invalid:80", 80), ("https://origin.invalid:443", 443),

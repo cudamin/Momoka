@@ -38,6 +38,7 @@ public sealed partial class MissingEpisodesDialog : ContentDialog
     private readonly Func<ArtworkRef, CancellationToken, Task<byte[]?>> _fetch;
     private readonly bool _canSearch;
     private readonly bool _anime;
+    private readonly bool _aniBtAvailable;
     private readonly ObservableCollection<MissingEpisodeRow> _rows = [];
 
     internal EmbyItem? SearchEpisode { get; private set; }
@@ -58,7 +59,8 @@ public sealed partial class MissingEpisodesDialog : ContentDialog
         IReadOnlyList<EmbyItem> missing,
         Func<ArtworkRef, CancellationToken, Task<byte[]?>> fetch,
         bool canSearch = false,
-        bool anime = false)
+        bool anime = false,
+        bool aniBtAvailable = true)
     {
         InitializeComponent();
 
@@ -71,6 +73,7 @@ public sealed partial class MissingEpisodesDialog : ContentDialog
         _fetch = fetch;
         _canSearch = canSearch;
         _anime = anime;
+        _aniBtAvailable = aniBtAvailable;
         List.ItemsSource = _rows;
 
         // 特别篇那一季自己的页面上，这颗开关默认是开的 —— 那张表列的本来就是第 0 季，关着等于一张空表。
@@ -95,7 +98,7 @@ public sealed partial class MissingEpisodesDialog : ContentDialog
     private void Apply()
     {
         var shown = ItemDetail.MissingShown(_all, SpecialsSwitch.IsOn, UnairedSwitch.IsOn, DateTimeOffset.Now);
-        var rows = shown.Select(episode => new MissingEpisodeRow(episode, _owner, _canSearch, _anime)).ToList();
+        var rows = shown.Select(episode => new MissingEpisodeRow(episode, _owner, _canSearch, _anime, _aniBtAvailable)).ToList();
 
         Summary.Text = ItemDetail.MissingHeading(_owner, rows.Count);
         _rows.Clear();
@@ -112,7 +115,7 @@ public sealed partial class MissingEpisodesDialog : ContentDialog
     private void ChooseSearch(object sender, bool anime)
     {
         if (!_canSearch || sender is not FrameworkElement { Tag: EmbyItem episode }
-            || (anime && !_anime && !Momoka.AniBt.AniBtEligibility.HasGenre(episode))) return;
+            || (anime && (!_aniBtAvailable || !_anime && !Momoka.AniBt.AniBtEligibility.HasGenre(episode)))) return;
         SearchEpisode = episode;
         SearchWithAniBt = anime;
         Hide();
@@ -168,12 +171,12 @@ public sealed class MissingEpisodeRow : INotifyPropertyChanged
 {
     private BitmapImage? _poster;
 
-    public MissingEpisodeRow(EmbyItem episode, EmbyItem owner, bool canSearch = false, bool anime = false)
+    public MissingEpisodeRow(EmbyItem episode, EmbyItem owner, bool canSearch = false, bool anime = false, bool aniBtAvailable = true)
     {
         Episode = episode;
         anime |= Momoka.AniBt.AniBtEligibility.HasGenre(episode);
-        SearchVisibility = canSearch && !anime ? Visibility.Visible : Visibility.Collapsed;
-        AnimeSearchVisibility = canSearch && anime ? Visibility.Visible : Visibility.Collapsed;
+        SearchVisibility = canSearch && !(anime && aniBtAvailable) ? Visibility.Visible : Visibility.Collapsed;
+        AnimeSearchVisibility = canSearch && anime && aniBtAvailable ? Visibility.Visible : Visibility.Collapsed;
         Label = ItemDetail.EpisodeLabel(episode);
         Info = ItemDetail.EpisodeRowInfo(episode);
         Overview = episode.Overview?.Trim() ?? "";

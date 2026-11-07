@@ -35,7 +35,7 @@
                     <StackPanel Spacing="16" Margin="0,4,0,12" HorizontalAlignment="Stretch">
                         <StackPanel Spacing="6">
                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                                <TextBlock Text="源文件" Style="{StaticResource EgCaptionStyle}" />
+                                <TextBlock Text="识别用原名称" Style="{StaticResource EgCaptionStyle}" />
                                 <TextBlock Grid.Column="1" Text="{x:Bind MatchNote}" Style="{StaticResource EgCaptionStyle}" />
                             </Grid>
                             <TextBlock Text="{x:Bind SourceName}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
@@ -66,7 +66,7 @@
                                 </Grid>
                             </Border>
                             <StackPanel Spacing="4" Visibility="{x:Bind SourceVisibility, Mode=OneWay}">
-                                <TextBlock Text="源目录" Style="{StaticResource EgCaptionStyle}" />
+                                <TextBlock Text="实际源文件" Style="{StaticResource EgCaptionStyle}" />
                                 <TextBlock x:Name="SourceDirectoryText" Text="{x:Bind SourceDirectory, Mode=OneWay}" TextWrapping="Wrap"
                                     Style="{StaticResource EgBodyStyle}" />
                             </StackPanel>
