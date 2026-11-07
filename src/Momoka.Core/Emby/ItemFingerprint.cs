@@ -56,6 +56,7 @@ public static class ItemFingerprint
         AddList(text, item.ParentBackdropImageTags);
         AddList(text, item.PosterPaths);
         AddList(text, item.Taglines);
+        AddList(text, item.Tags);
         AddList(text, item.Genres);
         AddList(text, item.Resolutions);
         AddList(text, item.Studios.Select(studio => studio.Name));

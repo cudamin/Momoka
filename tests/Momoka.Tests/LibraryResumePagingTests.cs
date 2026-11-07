@@ -841,6 +841,8 @@ internal static class LibraryResumePagingTests
         public ResumeTransport Transport { get; } = new();
         public FakeSettings Settings { get; } = new();
         public object Vm => _vm;
+        internal EmbySession Session => _session;
+        internal EmbyImageStore Images => _images;
         public object Request => _vm.GetType().GetField("_request", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(_vm)!;
         public List<object> Cards => ((System.Collections.IEnumerable)Get<object>("Cards")).Cast<object>().ToList();
         public bool HasMore => Get<bool>("HasMore");

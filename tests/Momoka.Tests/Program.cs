@@ -4,6 +4,13 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["review-foundation-core-fixture"])
+        {
+            ReviewFoundationTests.RegisterCore();
+            return TestHarness.Run();
+        }
+        if (args is ["review-foundation-vm-fixture", var foundationShell, var foundationRoot])
+            return ReviewFoundationTests.RunViews(foundationShell, foundationRoot);
         if (args is ["jellyfin-latest-shelf-fixture", var latestShell, var latestRoot])
             return JellyfinLatestShelfTests.Run(latestShell, latestRoot);
         if (args is ["home-carousel-fixture"])
