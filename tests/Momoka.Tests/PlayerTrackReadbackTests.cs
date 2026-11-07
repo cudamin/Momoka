@@ -20,6 +20,32 @@ internal static partial class PlayerVolumeGestureTests
 
     private static void RegisterTracks(ShellFixture shell)
     {
+        Case("联合修复：选轨旧失败不能覆盖同场更新通知", async () =>
+        {
+            await using var state = new State(shell, actual: 37);
+            await state.EnableTracks();
+            var notices = state.ObserveNotices();
+            state.Handle.HoldMenuReadback();
+            state.ChooseSubtitle(2);
+            state.NotifyTracks([new MpvTrack(3, "sub", null, null, false, true)]);
+            state.Handle.MenuReadback!.Release.TrySetException(new IOException("old read failed"));
+            VolumeContext.RunPosts(1);
+            Assert.Equal(0, notices.Count);
+        });
+        Case("联合修复：选轨旧读回不能覆盖同场更新通知", async () =>
+        {
+            await using var state = new State(shell, actual: 37);
+            await state.EnableTracks();
+            state.Handle.HoldMenuReadback();
+            state.ChooseSubtitle(2);
+            var read = state.Handle.MenuReadback!;
+            Assert.True(read.Entered.Task.IsCompleted);
+            var latest = new[] { new MpvTrack(3, "sub", null, null, false, true) };
+            state.NotifyTracks(latest);
+            read.Release.TrySetResult([new MpvTrack(2, "sub", null, null, false, true)]);
+            VolumeContext.RunPosts(1);
+            Assert.True(ReferenceEquals(latest, state.Tracks));
+        });
         Case("R13-005 字幕延迟复位后微调以实际零为基准", async () =>
         {
             await using var state = new State(shell, actual: 37);

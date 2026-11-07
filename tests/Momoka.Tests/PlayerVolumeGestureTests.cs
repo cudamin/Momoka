@@ -28,6 +28,22 @@ internal static partial class PlayerVolumeGestureTests
 
     private static void Register(ShellFixture shell)
     {
+        Case("联合修复：旧音量回执不会采用下一回执的采样时间", async () =>
+        {
+            await using var state = new State(shell, actual: 37);
+            var first = state.Handle.HoldRead();
+            state.Nudge(-5);
+            var second = state.Handle.HoldRead();
+            state.Nudge(-5);
+            first.Release.TrySetResult(32);
+            VolumeContext.WaitForPosts(1);
+            second.Release.TrySetResult(27);
+            VolumeContext.WaitForPosts(2);
+            VolumeContext.RunPosts(1);
+            state.StampedStatus(34, first.Sample + 1);
+            Assert.Equal(34, state.Memory.Pending);
+            VolumeContext.RunPosts(1);
+        });
         foreach (var display in new[] { 100.0, 95.0 })
             Case($"R12-002 未知音量显示{display}重置仍明确写100", async () =>
             {

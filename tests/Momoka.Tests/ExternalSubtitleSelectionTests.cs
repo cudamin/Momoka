@@ -49,7 +49,7 @@ internal static class ExternalSubtitleSelectionTests
                 if (!missingTarget) Assert.Equal("set sid 1", string.Join(' ', writes.Single()));
                 handle.End(); await play;
             }));
-        foreach (var manual in new[] { false, true })
+        foreach (var manual in new[] { "none", "property", "menu" })
             Test("R13-003 延迟目标出现只初次选轨，手动选择以后不覆盖 " + manual, () => Run(async () =>
             {
                 using var f = new Fixture();
@@ -61,13 +61,15 @@ internal static class ExternalSubtitleSelectionTests
                 handle.Publish(0);
                 f.Backend.Next = (_, _) => Task.FromResult<IPlaybackHandle>(handle);
                 var play = f.Service.PlayAsync(ticket, default); await handle.Started.Task;
-                if (manual) await f.Service.SetPropertyAsync("sid", 7);
+                if (manual == "property") await f.Service.SetPropertyAsync("sid", 7);
+                if (manual == "menu") await f.Service.SelectTrackAsync(false, null);
+                var before = writes.Count;
                 MpvTrack[] tracks = [new(1, "sub", null, null, false, false) { External = true, ExternalFilename = planned.ExternalSubtitles[1].AbsoluteUri }];
                 handle.PublishTracks(tracks);
-                if (!manual) await signal.Task.WaitAsync(TimeSpan.FromSeconds(1));
+                if (manual == "none") await signal.Task.WaitAsync(TimeSpan.FromSeconds(1));
                 handle.PublishTracks(tracks);
                 await Task.Delay(40);
-                Assert.Equal(manual ? 0 : 1, writes.Count);
+                Assert.Equal(manual == "none" ? before + 1 : before, writes.Count);
                 handle.End(); await play;
             }));
         foreach (var mode in new[] { "duplicate", "manual", "changed-file", "rejected" })

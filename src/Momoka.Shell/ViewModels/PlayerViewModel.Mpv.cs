@@ -221,15 +221,22 @@ public sealed partial class PlayerViewModel
     }
     private async Task SelectTrackConfirmedAsync(bool audio, int? id, InteractionContext context)
     {
+        var request = ++_trackSelectionRequest;
+        var revision = _tracksRevision;
         try
         {
             var tracks = await _playback.SelectTrackAsync(audio, id).ConfigureAwait(true);
-            if (!IsCurrentInteraction(context)) return;
+            if (!IsCurrentInteraction(context) || request != _trackSelectionRequest || revision != _tracksRevision) return;
             if (tracks is not null) Tracks = tracks;
             else Noticed?.Invoke("轨道选择未能确认，请重试", InfoBarSeverity.Warning);
         }
-        catch (Exception) { if (IsCurrentInteraction(context)) Noticed?.Invoke("轨道选择失败，请重试", InfoBarSeverity.Warning); }
+        catch (Exception)
+        {
+            if (IsCurrentInteraction(context) && request == _trackSelectionRequest && revision == _tracksRevision)
+                Noticed?.Invoke("轨道选择失败，请重试", InfoBarSeverity.Warning);
+        }
     }
+    private long _trackSelectionRequest;
 
     /// <summary>
     /// 把拖进画面的外挂字幕交给 mpv 当场挂上并选中 —— 集成管线专用的那条拖拽路（<see cref="SubtitleFile"/>

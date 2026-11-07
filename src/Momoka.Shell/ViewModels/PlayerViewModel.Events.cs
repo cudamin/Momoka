@@ -1169,16 +1169,16 @@ public sealed partial class PlayerViewModel
         {
             var applied = await _playback.AdjustVolumeAsync(step).ConfigureAwait(true);
             if (_lifetime.IsCancellationRequested || generation != _playback.Generation) return;
-            if (applied is { } level && VolumeMemory.Level(level) is { } confirmed
+            if (applied is { } reading && VolumeMemory.Level(reading.Level) is { } confirmed
                 && order > _volumeStepConfirmedOrder)
             {
                 // The service serializes native commands, but releasing its gate can queue the
                 // next read-back before this callback reaches UI. Only a newer successful reading
                 // can replace one already accepted here; a newer failure must not erase success.
                 _volumeStepConfirmedOrder = order;
-                _volumeConfirmedSample = _playback.ConfirmedVolumeSample;
+                _volumeConfirmedSample = reading.Sample;
                 _volumeReady = true;
-                if (_volumeMemory.Observe(new PlayerStatus { Loaded = true, Volume = level, VolumeKnown = true },
+                if (_volumeMemory.Observe(new PlayerStatus { Loaded = true, Volume = reading.Level, VolumeKnown = true },
                     canControl: true, Now) is { } observed)
                 {
                     DisplayConfirmedVolume(observed);

@@ -152,6 +152,14 @@ internal static partial class PlayerVolumeGestureTests
         internal void ChooseSubtitle(int id) => _shell.Invoke(_vm, "SelectTrack", false, id);
         internal void SeedSubtitleDelay(double value) => _shell.ViewModel.GetProperty("SubtitleDelay", Members)!.SetValue(_vm, value);
         internal void NudgeSubtitleDelay(double value) => _shell.Invoke(_vm, "NudgeDelay", true, value);
+        internal List<string> ObserveNotices()
+        {
+            var notices = new List<string>();
+            var info = _shell.ViewModel.GetEvent("Noticed", Members)!;
+            var method = typeof(NoticeRecorder).GetMethod(nameof(NoticeRecorder.Record))!.MakeGenericMethod(info.EventHandlerType!.GenericTypeArguments[1]);
+            info.GetAddMethod(nonPublic: true)!.Invoke(_vm, [method.CreateDelegate(info.EventHandlerType, new NoticeRecorder(notices))]);
+            return notices;
+        }
         internal Task EnableTracks() { Handle.MenuTracks = true; return PopulateTracks(); }
         internal void StampedStatus(double level, long sample)
         {
@@ -222,6 +230,10 @@ internal static partial class PlayerVolumeGestureTests
             _danmaku.Dispose();
         }
     }
+    private sealed class NoticeRecorder(List<string> notices)
+    {
+        public void Record<T>(string text, T severity) => notices.Add(text);
+    }
 
     private static void SetField(object target, string name, object? value) =>
         target.GetType().GetField(name, Members)!.SetValue(target, value);
@@ -253,6 +265,7 @@ internal static partial class PlayerVolumeGestureTests
     private enum ReadFailure { None, Null, NonFinite, Exception }
     private sealed class ReadGate
     {
+        internal long Sample;
         internal TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal TaskCompletionSource<double?> Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
@@ -290,6 +303,9 @@ internal static partial class PlayerVolumeGestureTests
         internal ReadFailure Failure { get; set; }
         internal PlayerStatus Current { get; set; } = new();
         internal bool MenuTracks;
+        private int _menuReadCount;
+        internal TrackReadGate? MenuReadback;
+        internal void HoldMenuReadback() { _menuReadCount = 0; MenuReadback = new TrackReadGate(); _trackReads.Add(MenuReadback); }
         internal bool SubtitleVisible = true;
         internal int SelectedSubtitle = 1;
         internal double Delay;
@@ -340,7 +356,7 @@ internal static partial class PlayerVolumeGestureTests
             if (name != "volume") throw new AssertionException("只能读取假音量");
             VolumeReadSample = System.Diagnostics.Stopwatch.GetTimestamp();
             var read = Interlocked.Exchange(ref _read, null);
-            if (read is not null) { read.Entered.TrySetResult(); return read.Release.Task; }
+            if (read is not null) { read.Sample = VolumeReadSample; read.Entered.TrySetResult(); return read.Release.Task; }
             return Failure switch
             {
                 ReadFailure.Null => Task.FromResult<double?>(null),
@@ -353,6 +369,11 @@ internal static partial class PlayerVolumeGestureTests
         public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken) => throw new AssertionException("禁止其它播放读取");
         public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken)
         {
+            if (MenuTracks && MenuReadback is { } readback && ++_menuReadCount == 2)
+            {
+                readback.Entered.TrySetResult();
+                return readback.Release.Task;
+            }
             if (MenuTracks) return Task.FromResult<IReadOnlyList<MpvTrack>>(
                 [new MpvTrack(1, "sub", null, null, false, SelectedSubtitle == 1),
                 new MpvTrack(2, "sub", null, null, false, SelectedSubtitle == 2)]);

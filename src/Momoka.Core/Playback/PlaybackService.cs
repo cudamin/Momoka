@@ -51,8 +51,6 @@ public sealed partial class PlaybackService(
     private long _subtitleStyleRevision;
     private readonly SemaphoreSlim _screenshotOptionsGate = new(1, 1);
     private long _screenshotOptionsRevision;
-    private long _confirmedVolumeSample;
-    public long ConfirmedVolumeSample => Interlocked.Read(ref _confirmedVolumeSample);
 
     public bool ShaderStateKnown { get; private set; } = true;
     private long _playbackGeneration;
@@ -165,7 +163,7 @@ public sealed partial class PlaybackService(
     /// 2026-10-04). The returned double is the kernel's own level after the step; null means the step
     /// was not applied and the caller must not treat its intent as fact.
     /// </summary>
-    public async Task<double?> AdjustVolumeAsync(double step)
+    public async Task<(double Level, long Sample)?> AdjustVolumeAsync(double step)
     {
         var handle = _current;
         var generation = Generation;
@@ -181,8 +179,7 @@ public sealed partial class PlaybackService(
                 CancellationToken.None).ConfigureAwait(false) || !Current()) return null;
             var actual = await handle.GetNumberAsync("volume", CancellationToken.None).ConfigureAwait(false);
             if (!Current() || actual is not { } level || !double.IsFinite(level)) return null;
-            Interlocked.Exchange(ref _confirmedVolumeSample, handle.VolumeReadSample);
-            return Current() ? level : null;
+            return Current() ? (level, handle.VolumeReadSample) : null;
         }
         catch (Exception error)
         {
@@ -495,6 +492,7 @@ public sealed partial class PlaybackService(
     /// <summary>One user selection, bound to the file that owned the menu before its first await.</summary>
     public async Task<IReadOnlyList<MpvTrack>?> SelectTrackAsync(bool audio, int? id)
     {
+        if (!audio && _active is { } attempt) Interlocked.Exchange(ref attempt.ExternalSubtitleSelection, 1);
         var handle = _current;
         var generation = Generation;
         if (handle is not IPlayerControl control || !handle.HasControlChannel) return null;
