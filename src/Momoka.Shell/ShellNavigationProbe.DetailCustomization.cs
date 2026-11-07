@@ -148,10 +148,18 @@ internal sealed partial class ShellNavigationProbe
                 .Single(row => row.Label == "背景图不透明度（%）");
             Require(backdropDefault.Value == 20 && fixture.Settings.Ui.BackdropOpacity == 20,
                 "背景亚克力默认不透明度不是20%");
+            foreach (var label in new[] { "按钮与选择框色调不透明度（%）", "按钮与选择框亮度不透明度（%）",
+                "背景色调不透明度（%）", "背景亮度不透明度（%）" })
+                Require(appearance.Rows.OfType<SettingSliderRow>().Single(row => row.Label == label).Value == 55,
+                    label + " 默认值不是55%");
+            Require(fixture.Settings.Ui.BackdropTintFromArtwork
+                && !appearance.Rows.Any(row => row.Label == "背景染色颜色"), "默认主图染色仍显示自定义颜色行");
             await SaveProbeScreenAsync("settings-fixed-acrylic-screen.png");
             foreach (var (label, value) in new[]
             {
-                ("按钮与选择框底色不透明度（%）", 37d), ("背景图不透明度（%）", 45d)
+                ("按钮与选择框底色不透明度（%）", 37d), ("背景图不透明度（%）", 45d),
+                ("按钮与选择框色调不透明度（%）", 20d), ("按钮与选择框亮度不透明度（%）", 80d),
+                ("背景色调不透明度（%）", 80d), ("背景亮度不透明度（%）", 20d)
             })
             {
                 var row = appearance.Rows.OfType<SettingSliderRow>().Single(item => item.Label == label);
@@ -163,13 +171,36 @@ internal sealed partial class ShellNavigationProbe
             }
             Require(fixture.Settings.Ui.ControlBackgroundOpacity == 37 && fixture.Settings.Ui.BackdropOpacity == 45,
                 "不透明度滑块没有写回设置");
+            Require(fixture.Settings.Ui.ControlTintOpacity == 20 && fixture.Settings.Ui.ControlTintLuminosityOpacity == 80
+                && fixture.Settings.Ui.BackdropTintOpacity == 80 && fixture.Settings.Ui.BackdropTintLuminosityOpacity == 20,
+                "色调或亮度不透明度滑块没有保存独立偏好");
+            var sourceRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "背景染色来源");
+            sourceRow.Selected = sourceRow.Choices.Single(choice => choice.Label == "自定义颜色");
+            await LayoutAsync(page);
+            var customColor = appearance.Rows.OfType<SettingColorRow>().Single(row => row.Label == "背景染色颜色");
+            customColor.BeginEdit();
+            customColor.Color = "#245A8E";
+            Require(customColor.CommitEdit() && fixture.Settings.Ui.BackdropColor == "#245A8E",
+                "背景自定义染色没有通过确认保存");
+            await SaveProbeScreenAsync("settings-acrylic-custom-tint-screen.png");
+            sourceRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "背景染色来源");
+            sourceRow.Selected = sourceRow.Choices.Single(choice => choice.Label == "当前主图");
+            await LayoutAsync(page);
+            Require(fixture.Settings.Ui.BackdropTintFromArtwork && fixture.Settings.Ui.BackdropColor == "#245A8E"
+                && !appearance.Rows.Any(row => row.Label == "背景染色颜色"),
+                "恢复主图染色没有收起自定义行或清空了颜色偏好");
+            await SaveProbeScreenAsync("settings-acrylic-artwork-tint-restored-screen.png");
             var modeRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "显示模式");
             modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "简洁模式");
-            Require(!appearance.Rows.Any(row => row.Label == "背景图不透明度（%）"),
+            Require(!appearance.Rows.Any(row => row.Label is "背景图不透明度（%）" or "背景染色来源"
+                or "背景染色颜色" or "背景色调不透明度（%）" or "背景亮度不透明度（%）"),
                 "简洁模式没有隐藏完整背景设置组");
             modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "沉浸模式");
             await UntilAsync(() => fixture.Settings.Ui.EnableImmersive);
             Require(fixture.Settings.Ui.EnableImmersive, "显示模式选择没有同步沉浸状态");
+            Require(appearance.Rows.OfType<SettingSliderRow>().Single(row => row.Label == "背景色调不透明度（%）").Value == 80
+                && appearance.Rows.OfType<SettingSliderRow>().Single(row => row.Label == "背景亮度不透明度（%）").Value == 20,
+                "恢复沉浸丢失背景色调或亮度不透明度偏好");
             Require(appearance.Rows.OfType<SettingSliderRow>().Single(row => row.Label == "背景图不透明度（%）").Value == 45,
                 "恢复沉浸丢失背景不透明度偏好");
             Require(!appearance.Rows.Any(row => row.Label is "按钮与选择框背景" or "背景图效果" or "背景遮罩颜色"),
@@ -353,6 +384,7 @@ internal sealed partial class ShellNavigationProbe
                     Require(picture.Opacity == 1, "背景图本身被调了透明度（该调的是图上那层遮罩）");
                 }
                 await CheckControlBackgroundOpacityAsync(page, fixture.Settings.Ui);
+                await CheckAcrylicTintPreferencesAsync(page, fixture.Settings.Ui);
                 fixture.Settings.Ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
@@ -704,7 +736,8 @@ internal sealed partial class ShellNavigationProbe
                                 var expected = !feedback ? amount : amount <= normal ? floor
                                     : floor + (1 - floor) * (amount - normal) / (1 - normal);
                                 Require(!glass.AlwaysUseFallback && Math.Abs(glass.Opacity - expected) < 0.001
-                                    && glass.TintOpacity == 0.55 && glass.TintLuminosityOpacity == 0.55,
+                                    && Math.Abs(glass.TintOpacity - ui.ControlTintOpacity / 100) < 0.001
+                                    && Math.Abs((glass.TintLuminosityOpacity ?? -1) - ui.ControlTintLuminosityOpacity / 100) < 0.001,
                                     "亚克力中间档没有保留材质或浓度反馈");
                             }
                         }
@@ -720,6 +753,53 @@ internal sealed partial class ShellNavigationProbe
         finally
         {
             ui.ControlBackgroundOpacity = savedStrength;
+            ShellPrefs.ApplyAppearance(ui);
+        }
+    }
+
+    private async Task CheckAcrylicTintPreferencesAsync(DetailPage page, UiSettings ui)
+    {
+        var saved = (ui.ControlTintOpacity, ui.ControlTintLuminosityOpacity, ui.BackdropTintOpacity,
+            ui.BackdropTintLuminosityOpacity, ui.BackdropTintFromArtwork, ui.BackdropColor);
+        var picture = page.ViewModel.HeroImage;
+        var foreground = Get<TextBlock>(page, "Overview").Foreground;
+        try
+        {
+            foreach (var (tint, luminosity) in new[] { (20d, 80d), (80d, 20d) })
+            {
+                ui.ControlTintOpacity = tint;
+                ui.ControlTintLuminosityOpacity = luminosity;
+                ui.BackdropTintOpacity = luminosity;
+                ui.BackdropTintLuminosityOpacity = tint;
+                ui.BackdropTintFromArtwork = false;
+                ui.BackdropColor = "#245A8E";
+                ShellPrefs.ApplyAppearance(ui);
+                await LayoutAsync(page);
+                RequireDetailBackdropFade(page);
+                var play = Get<Button>(page, "ColumnPlayButton");
+                var control = (AcrylicBrush)play.Resources["ButtonBackground"];
+                Require(control.TintOpacity == tint / 100 && control.TintLuminosityOpacity == luminosity / 100
+                    && control.FallbackColor == control.TintColor, "按钮色调/亮度属性没有实际下发到亚克力");
+                var backdrop = (AcrylicBrush)Get<Border>(page, "BackdropFade").Background;
+                Require(backdrop.TintColor == Windows.UI.Color.FromArgb(255, 36, 90, 142)
+                    && backdrop.FallbackColor == backdrop.TintColor,
+                    "背景没有采用自定义染色或自动回退色");
+                Require(ReferenceEquals(picture, page.ViewModel.HeroImage)
+                    && ReferenceEquals(foreground, Get<TextBlock>(page, "Overview").Foreground),
+                    "亚克力参数调整重新处理原图或改掉字体画刷");
+                await SaveProbeScreenAsync($"detail-acrylic-tint-custom-{page.ViewModel.ItemType}-{tint}-{luminosity}.png");
+                ui.BackdropTintFromArtwork = true;
+                ShellPrefs.ApplyAppearance(ui);
+                await LayoutAsync(page);
+                RequireDetailBackdropFade(page);
+                Require(ui.BackdropColor == "#245A8E", "恢复主图染色清空了自定义颜色");
+                await SaveProbeScreenAsync($"detail-acrylic-tint-artwork-{page.ViewModel.ItemType}-{tint}-{luminosity}.png");
+            }
+        }
+        finally
+        {
+            (ui.ControlTintOpacity, ui.ControlTintLuminosityOpacity, ui.BackdropTintOpacity,
+                ui.BackdropTintLuminosityOpacity, ui.BackdropTintFromArtwork, ui.BackdropColor) = saved;
             ShellPrefs.ApplyAppearance(ui);
         }
     }
@@ -812,7 +892,8 @@ internal sealed partial class ShellNavigationProbe
                         Require(glass.AlwaysUseFallback && glass.Opacity == 1, "首页亚克力100档未回到实底");
                     else if (strength > 0)
                         Require(!glass.AlwaysUseFallback && Math.Abs(glass.Opacity - strength / 100) < 0.001
-                            && glass.TintOpacity == 0.55 && glass.TintLuminosityOpacity == 0.55,
+                            && Math.Abs(glass.TintOpacity - ui.ControlTintOpacity / 100) < 0.001
+                                    && Math.Abs((glass.TintLuminosityOpacity ?? -1) - ui.ControlTintLuminosityOpacity / 100) < 0.001,
                             "首页中间档没有按滑块调整亚克力透明度");
                     foreach (var layer in new[] { Get<Grid>(banner, "LayerA"), Get<Grid>(banner, "LayerB") })
                         Require(layer.Background is ImageBrush picture && Math.Abs(picture.Opacity - 1) < 0.001,

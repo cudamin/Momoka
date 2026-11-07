@@ -26,10 +26,13 @@ internal sealed partial class ShellNavigationProbe
         Require(fade.Parent == picture.Parent
             && fade.Opacity == 1 && Math.Abs(fade.ActualHeight - picture.ActualHeight) < 0.01
             && Math.Abs(fade.ActualWidth - picture.ActualWidth) < 0.01, "亚克力没有独立覆盖实际图片盒子");
-        var ink = ExpectedBackdropBaseColor(page);
+        var ui = page.ViewModel.AppearanceSettings;
+        var ink = ui.BackdropTintFromArtwork ? ExpectedBackdropBaseColor(page)
+            : ThemeHost.ToColor(ShellPrefs.AppearanceColor(true, ui));
         Require(fade.Background is AcrylicBrush acrylic
             && acrylic.TintColor == ink && acrylic.FallbackColor == ink
-            && acrylic.TintOpacity == 0.55 && acrylic.TintLuminosityOpacity == 0.55
+            && Math.Abs(acrylic.TintOpacity - ui.BackdropTintOpacity / 100) < 0.001
+            && Math.Abs((acrylic.TintLuminosityOpacity ?? -1) - ui.BackdropTintLuminosityOpacity / 100) < 0.001
             && acrylic.Opacity == page.ViewModel.BackdropStrength
             && acrylic.AlwaysUseFallback == (page.ViewModel.BackdropStrength == 1),
             "背景亚克力没有使用主图均色、当前不透明度或完全不透明回退");
@@ -231,7 +234,7 @@ internal sealed partial class ShellNavigationProbe
                 && Math.Abs(bitmap.PixelHeight - picture.ActualHeight * scale) <= 1,
                 "背景返帧绘制边界与图片不一致，不能按图片坐标采样");
             var x = bitmap.PixelWidth * 3 / 4;
-            var baseColor = ExpectedBackdropBaseColor(page);
+            var baseColor = glass.FallbackColor;
             var baseChannels = new[] { baseColor.B, baseColor.G, baseColor.R };
             var theme = ThemeHost.ToColor(ThemeHost.Current.Colors.Window);
             var themeChannels = new[] { theme.B, theme.G, theme.R };

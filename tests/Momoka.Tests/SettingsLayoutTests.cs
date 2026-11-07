@@ -30,7 +30,7 @@ internal static class SettingsLayoutTests
         TestHarness.Test("背景亚克力探针：独立均色、错误Tint反例与实际回退像素覆盖保留", () =>
         {
             var probe = Source("ShellNavigationProbe.BackdropFade.cs");
-            Assert.Contains("var ink = ExpectedBackdropBaseColor(page)", probe);
+            Assert.Contains("ui.BackdropTintFromArtwork ? ExpectedBackdropBaseColor(page)", probe);
             Assert.Contains("acrylic.TintColor == ink && acrylic.FallbackColor == ink", probe);
             Assert.Contains("for (var row = 0; row < 5; row++)", probe);
             Assert.Contains("for (var column = 0; column < 8; column++)", probe);
@@ -92,15 +92,40 @@ internal static class SettingsLayoutTests
             Assert.Contains("ReferenceEquals(episodeTarget, episodeView.PlayTarget)", probe);
             Assert.Contains("fixture.Transport.Requests.Count == episodeRequestCount", probe);
         });
-        TestHarness.Test("亚克力透明度探针：控件画刷透明度实际跟随读数，Tint固定", () =>
+        TestHarness.Test("亚克力透明度探针：控件画刷透明度实际跟随读数，染色参数独立", () =>
         {
             var probe = Source("ShellNavigationProbe.DetailCustomization.cs");
             Assert.Contains("Math.Abs(glass.Opacity - expected) < 0.001", probe);
-            Assert.Contains("glass.TintOpacity == 0.55 && glass.TintLuminosityOpacity == 0.55", probe);
+            Assert.Contains("glass.TintOpacity - ui.ControlTintOpacity / 100", probe);
+            Assert.Contains("ui.ControlTintLuminosityOpacity / 100", probe);
             Assert.Contains("Math.Abs(glass.Opacity - strength / 100) < 0.001", probe);
             var materials = Source("ShellNavigationProbe.Materials.cs");
             Assert.Contains("AcrylicBrush { AlwaysUseFallback: false } actual", materials);
             Assert.Contains("fill.TintOpacity == 0.55 && fill.TintLuminosityOpacity == 0.55", materials);
+        });
+        TestHarness.Test("亚克力染色探针：中文设置及主图自定义切换覆盖真实参数", () =>
+        {
+            var probe = Source("ShellNavigationProbe.DetailCustomization.cs");
+            foreach (var label in new[] { "按钮与选择框色调不透明度（%）", "按钮与选择框亮度不透明度（%）",
+                "背景色调不透明度（%）", "背景亮度不透明度（%）", "背景染色来源", "背景染色颜色" })
+                Assert.Contains(label, probe);
+            Assert.Contains("customColor.CommitEdit()", probe);
+            Assert.Contains("CheckAcrylicTintPreferencesAsync", probe);
+            Assert.Contains("(20d, 80d), (80d, 20d)", probe);
+            Assert.Contains("control.FallbackColor == control.TintColor", probe);
+            Assert.Contains("backdrop.FallbackColor == backdrop.TintColor", probe);
+            Assert.Contains("ui.BackdropTintFromArtwork = true", probe);
+            var background = Source("ShellNavigationProbe.BackdropFade.cs");
+            Assert.Contains("ui.BackdropTintFromArtwork ? ExpectedBackdropBaseColor(page)", background);
+            Assert.Contains("ui.BackdropTintOpacity / 100", background);
+            Assert.Contains("ui.BackdropTintLuminosityOpacity / 100", background);
+        });
+        TestHarness.Test("季度集列表探针：定向按钮保留统一检查与结束入口", () =>
+        {
+            var probe = Source("ShellNavigationProbe.Inspect.cs");
+            Assert.Contains("AddCheck(\"InspectEpisodeSeason\", \"季度集列表\", DetailSeriesInfoAsync)", probe);
+            Assert.Contains("AddCheck(\"InspectLongSeries\", \"长剧集列表\", PerformanceLongSeriesAsync)", probe);
+            Assert.Contains("Add(\"InspectDone\", \"结束检查\"", probe);
         });
         TestHarness.Test("详情卡片排序表：弹簧拖拽有完整开始结束与卸载处理", () =>
         {

@@ -279,6 +279,8 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectDetailResize", "详情连续缩放回归", DetailResizeAsync);
         AddCheck("InspectDetailCoverGap", "详情封面等距", DetailCoverGapAsync);
         AddCheck("InspectEpisodeBand", "单集两种模式布局", EpisodeBandAsync);
+        AddCheck("InspectEpisodeSeason", "季度集列表", DetailSeriesInfoAsync);
+        AddCheck("InspectLongSeries", "长剧集列表", PerformanceLongSeriesAsync);
         Add("InspectDone", "结束检查", () => { finished.TrySetResult(); return Task.CompletedTask; });
         frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services, "离线示例"));
         await LayoutAsync(layout);
