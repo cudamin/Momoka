@@ -2057,7 +2057,9 @@ public sealed partial class SettingsViewModel : PageViewModel
     private void RefreshHomeCarouselRows()
     {
         var section = Sections.FirstOrDefault(section => section.Category == "主页" && section.Title == "轮播图");
+        var homeRows = HomeRows;
         section?.UpdateRows(HomeSections()[0].Rows);
+        HomeRows = homeRows;
     }
 
     /// <summary>自检用：那张可拖拽的表这一次建出来的那一行。</summary>
