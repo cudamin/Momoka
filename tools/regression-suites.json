@@ -4,16 +4,6 @@
   "shellAssembly": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
   "suites": [
     {
-      "id": "Momoka.GlobalControlAppearanceTests",
-      "project": "tests/Momoka.GlobalControlAppearanceTests/Momoka.GlobalControlAppearanceTests.csproj",
-      "mode": "dotnet",
-      "requiresShell": false,
-      "arguments": [],
-      "wrapper": null,
-      "readme": "tests/Momoka.GlobalControlAppearanceTests/README.md",
-      "notes": "源链接全局亚克力三态、染色参数与主题重放；不启动窗口或真实服务器。"
-    },
-    {
       "id": "Momoka.AppearanceOpacityTests",
       "project": "tests/Momoka.AppearanceOpacityTests/Momoka.AppearanceOpacityTests.csproj",
       "mode": "dotnet",

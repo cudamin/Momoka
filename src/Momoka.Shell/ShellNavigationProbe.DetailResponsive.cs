@@ -96,6 +96,8 @@ internal sealed partial class ShellNavigationProbe
 
         var readings = new List<string>();
         fixture.Settings.Ui.EnableImmersive = true;
+        fixture.Settings.Ui.UseGaussianBackdrop = false;
+        fixture.Settings.Ui.UseAcrylicBackdrop = false;
         var widths = new[] { 1280, 1200, 1100, 1024, 1023, 760 };
         try
         {

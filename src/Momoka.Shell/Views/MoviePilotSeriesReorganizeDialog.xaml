@@ -24,21 +24,21 @@
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>
         <x:Double x:Key="ContentDialogMaxWidth">1040</x:Double>
-        <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
-        <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+        <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+        <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
         <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
         <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
     </ContentDialog.Resources>
     <ContentDialog.PrimaryButtonStyle>
         <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgAccentBrush}" />
             <Setter Property="Foreground" Value="{ThemeResource EgTextOnAccentBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
     </ContentDialog.PrimaryButtonStyle>
     <ContentDialog.CloseButtonStyle>
         <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
             <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
             <Setter Property="BorderThickness" Value="0" />
         </Style>

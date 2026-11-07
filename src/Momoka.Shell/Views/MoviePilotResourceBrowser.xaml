@@ -48,7 +48,7 @@
                             Text="{x:Bind ViewModel.CountText, Mode=OneWay}" />
                     </Border>
                     <DropDownButton x:Name="SortOrder" Height="32" MinWidth="0" Padding="12,4,6,4" CornerRadius="4"
-                        Background="{ThemeResource EgActionGlassBrush}" Foreground="{ThemeResource EgTextDimBrush}" BorderThickness="0"
+                        Background="{ThemeResource ControlFillColorTransparentBrush}" Foreground="{ThemeResource EgTextDimBrush}" BorderThickness="0"
                         VerticalAlignment="Center" AutomationProperties.Name="{x:Bind ViewModel.SortAutomationName, Mode=OneWay}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <!-- 每颗图标持有自己的 Geometry；不能把另一个 PathIcon 的 Data 再挂到本控件。 -->
@@ -92,7 +92,7 @@
                     <local:MoviePilotResourceFacetPicker x:Name="ResolutionFilter" Facet="{x:Bind ViewModel.ResolutionFacet, Mode=OneWay}" />
                     <local:MoviePilotResourceFacetPicker x:Name="GroupFilter" Facet="{x:Bind ViewModel.GroupFacet, Mode=OneWay}" />
                     <DropDownButton x:Name="FilterExpander" CornerRadius="16" Padding="10,4" MinHeight="30"
-                        Background="{ThemeResource EgActionGlassBrush}" Foreground="{ThemeResource EgAccentBrush}" BorderThickness="0"
+                        Background="{ThemeResource EgAccentSoftBrush}" Foreground="{ThemeResource EgAccentBrush}" BorderThickness="0"
                         AutomationProperties.Name="综合筛选">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <FontIcon Glyph="&#xE71C;" FontSize="{StaticResource EgCaptionFontSize}" />
@@ -171,7 +171,7 @@
                             <Button x:Name="RemoveFilter" Grid.Column="1" Command="{x:Bind RemoveCommand}"
                                 AutomationProperties.Name="{x:Bind RemoveName}" ToolTipService.ToolTip="{x:Bind RemoveName}"
                                 CornerRadius="14" Padding="6" MinWidth="28" MinHeight="28"
-                                Background="{ThemeResource EgActionGlassBrush}" Foreground="{ThemeResource EgAccentBrush}"
+                                Background="{ThemeResource ControlFillColorTransparentBrush}" Foreground="{ThemeResource EgAccentBrush}"
                                 BorderThickness="0" UseSystemFocusVisuals="True">
                                 <FontIcon Glyph="&#xE711;" FontSize="{StaticResource EgCaptionFontSize}" />
                             </Button>

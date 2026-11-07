@@ -22,7 +22,6 @@ internal sealed partial class ShellNavigationProbe
     private async Task SettingsSearchLayoutAsync()
     {
         using var fixture = CreateFixture();
-        ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
         fixture.Settings.Mpv.ScreenshotFormat = "webp";
         fixture.Settings.Mpv.ScreenshotWebpLossless = false;
         using var moviePilot = new MoviePilotClient(new RejectNetwork());

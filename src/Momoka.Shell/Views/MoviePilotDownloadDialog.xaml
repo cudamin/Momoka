@@ -9,20 +9,20 @@
     IsPrimaryButtonEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}">
     <ContentDialog.Resources>
         <x:Double x:Key="ContentDialogMaxWidth">536</x:Double>
-        <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
-        <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+        <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+        <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
         <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
         <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
         <Style x:Key="DownloadPickerStyle" TargetType="ComboBox" BasedOn="{StaticResource EgComboBoxStyle}">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
             <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Background" Value="Transparent" />
         </Style>
     </ContentDialog.Resources>
     <ContentDialog.PrimaryButtonStyle>
         <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgAccentBrush}" />
             <Setter Property="Foreground" Value="{ThemeResource EgTextOnAccentBrush}" />
             <Setter Property="MinHeight" Value="36" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -30,7 +30,7 @@
     </ContentDialog.PrimaryButtonStyle>
     <ContentDialog.CloseButtonStyle>
         <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
             <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="MinHeight" Value="36" />
@@ -106,7 +106,7 @@
                     IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
             </Grid>
             <Button x:Name="ToggleDownloadAdvanced" Command="{x:Bind ViewModel.ToggleAdvancedCommand}"
-                Background="{ThemeResource EgActionGlassBrush}" BorderThickness="0" Padding="8,4" Foreground="{ThemeResource EgAccentBrush}"
+                Background="Transparent" BorderThickness="0" Padding="8,4" Foreground="{ThemeResource EgAccentBrush}"
                 IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <FontIcon Glyph="{x:Bind ViewModel.AdvancedGlyph, Mode=OneWay}" FontSize="{StaticResource EgCaptionFontSize}" />

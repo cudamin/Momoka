@@ -45,7 +45,7 @@ Check("非有限按钮值回到零档", () =>
         Equal(0, AppearanceOpacity.ControlBackground(value));
 });
 Check("零档背景强度是不遮不糊", () => Equal(0, AppearanceOpacity.Backdrop(0)));
-Check("出厂二十档强度是两成", () => Equal(0.2, AppearanceOpacity.Backdrop(UiSettings.DefaultBackdropOpacity)));
+Check("出厂四十档强度是四成", () => Equal(0.4, AppearanceOpacity.Backdrop(UiSettings.DefaultBackdropOpacity)));
 Check("背景强度就是百分比", () => Equal(0.45, AppearanceOpacity.Backdrop(45)));
 Check("满档背景强度拉满", () =>
 {
@@ -108,9 +108,9 @@ Check("高斯轻罩边界与普通遮罩保持各自语义", () =>
     Equal(102, AppearanceOpacity.ReadingShadeAlpha(0.4, false));
     Equal(255, AppearanceOpacity.ReadingShadeAlpha(1, false));
 });
-Check("历史四十档高斯换算仍兼容", () =>
+Check("出厂四十档的模糊比老版默认略轻", () =>
     Equal((int)Math.Round(GaussianBackdrop.MaxSigma * 0.4),
-        GaussianBackdrop.SigmaFor(0.4)));
+        GaussianBackdrop.SigmaFor(UiSettings.DefaultBackdropOpacity / 100)));
 Check("零档主页图片保留原始浓度", () => Equal(1, AppearanceOpacity.HomeBackdrop(0)));
 Check("主页图片本已不透明继续保留", () => Equal(1, AppearanceOpacity.HomeBackdrop(45)));
 Check("主页图片各档与无效值都保持不透明", () =>
@@ -128,7 +128,6 @@ foreach (var prefix in new[] { "Button", "ToggleButton" })
     resources[prefix + "BackgroundPressed"] = new SolidColorBrush { Color = 0x50FFFFFF, Opacity = 1 };
     resources[prefix + "BackgroundDisabled"] = new SolidColorBrush { Color = 0x10FFFFFF, Opacity = 0.3 };
 }
-resources["EgOnScrimBrush"] = new SolidColorBrush { Color = 0xFFFFFFFF };
 resources["EgSurfaceElevatedBrush"] = new SolidColorBrush { Color = 0xFF20262D };
 resources["EgSurfaceHoverBrush"] = new SolidColorBrush { Color = 0xFF2C343D };
 resources["EgSurfaceAltBrush"] = new SolidColorBrush { Color = 0xFF1C252E };
@@ -158,9 +157,8 @@ foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Butt
                     if (useAcrylic && expected is > 0 and < 1)
                     {
                         if (brush.AlwaysUseFallback) throw new InvalidOperationException("亚克力中间档使用实色");
-                        Equal(0.55, brush.TintOpacity);
-                        Equal(0.55, brush.TintLuminosityOpacity ?? -1);
-                        Equal(expected, brush.Opacity);
+                        Equal(expected, brush.TintOpacity);
+                        Equal(0, brush.TintLuminosityOpacity ?? -1);
                     }
                     else
                     {
@@ -452,58 +450,23 @@ Check("外观通知不重新查询主页且导入默认通知全部", () =>
     }
 });
 
-Check("亚克力色调与亮度独立调节，不改变整层透明度与回退色", () =>
-{
-    var control = new Button();
-    var backgrounds = ControlBackgroundBrushes.ForDetail(control, lightSurface: true);
-    backgrounds.Apply(20, true, 0xFF123456, 0.2, 0.8);
-    var glass = (AcrylicBrush)control.Background!;
-    Equal(0.2, glass.Opacity);
-    Equal(0.2, glass.TintOpacity);
-    Equal(0.8, glass.TintLuminosityOpacity ?? -1);
-    if (glass.FallbackColor != (Windows.UI.Color)0xFF123456 || glass.TintColor != glass.FallbackColor)
-        throw new InvalidOperationException("回退色未自动跟随染色颜色");
-    backgrounds.Apply(40, true, 0xFF654321, 0.8, 0.1);
-    Equal(0.4, glass.Opacity);
-    Equal(0.8, glass.TintOpacity);
-    Equal(0.1, glass.TintLuminosityOpacity ?? -1);
-    if (glass.FallbackColor != (Windows.UI.Color)0xFF654321) throw new InvalidOperationException("修改染色未更新回退");
-});
-
-Check("亚克力按钮浓度调节实际画刷透明度，材质染色不替代透明度", () =>
-{
-    foreach (var control in new Control[] { new Button(), new ToggleButton(), new ComboBox() })
-    {
-        var backgrounds = ControlBackgroundBrushes.ForDetail(control, lightSurface: true);
-        var prefix = control is ComboBox ? "ComboBox" : control is ToggleButton ? "ToggleButton" : "Button";
-        foreach (var percent in new[] { 20d, 40d, 99.9, 100d, 0d })
-        {
-            backgrounds.Apply(percent, true, 0xFFFFFFFF);
-            var glass = (AcrylicBrush)control.Resources[prefix + "Background"];
-            Equal(percent / 100, glass.Opacity);
-            Equal(0.55, glass.TintOpacity);
-            Equal(0.55, glass.TintLuminosityOpacity ?? -1);
-        }
-    }
-});
-
 Check("材质切换不重写资源键，亚克力100档回实底", () =>
 {
     var control = new ToggleButton();
     var brushes = ControlBackgroundBrushes.ForDetail(control);
-    var method = typeof(ControlBackgroundBrushes).GetMethod("Apply", [typeof(double), typeof(bool), typeof(Windows.UI.Color?), typeof(double), typeof(double)])
+    var method = typeof(ControlBackgroundBrushes).GetMethod("Apply", [typeof(double), typeof(bool), typeof(Windows.UI.Color?)])
         ?? throw new InvalidOperationException("缺少可切换的亚克力背景");
     var keys = control.Resources.Keys.ToArray();
-    method.Invoke(brushes, [0d, true, null, 0.55, 0.55]);
+    method.Invoke(brushes, [0d, true, null]);
     if (control.Background is not AcrylicBrush { AlwaysUseFallback: false } glass)
         throw new InvalidOperationException("亚克力选项没有启用实际材质");
-    Equal(0.55, glass.TintOpacity);
-    Equal(0.55, glass.TintLuminosityOpacity ?? -1);
-    Equal(0, glass.Opacity);
-    method.Invoke(brushes, [100d, true, null, 0.55, 0.55]);
+    Equal(0, glass.TintOpacity);
+    Equal(0, glass.TintLuminosityOpacity ?? -1);
+    Equal(1, glass.Opacity);
+    method.Invoke(brushes, [100d, true, null]);
     if (!glass.AlwaysUseFallback || glass.FallbackColor.A != 255 || glass.Opacity != 1)
         throw new InvalidOperationException("亚克力100档未完全不透明");
-    method.Invoke(brushes, [0d, false, null, 0.55, 0.55]);
+    method.Invoke(brushes, [0d, false, null]);
     if (!glass.AlwaysUseFallback || glass.FallbackColor.A != 0 || glass.Opacity != 0)
         throw new InvalidOperationException("现有底色零档还画着东西");
     if (!keys.SequenceEqual(control.Resources.Keys) || !ReferenceEquals(glass, control.Background))
@@ -522,9 +485,8 @@ Check("亚克力三态与checked、主题和回退独立", () =>
             var target = TargetFor(suffix);
             if (glass.TintColor != target.Color || glass.FallbackColor != target.Color || glass.AlwaysUseFallback)
                 throw new InvalidOperationException(prefix + suffix + " 亚克力未跟主题或已提前回退");
-            Equal(0.55, glass.TintOpacity);
-            Equal(0.55, glass.TintLuminosityOpacity ?? -1);
-            Equal(0.45, glass.Opacity);
+            Equal(0.45, glass.TintOpacity);
+            Equal(0.45, glass.TintLuminosityOpacity ?? -1);
             if (control is ToggleButton && !ReferenceEquals(glass, control.Resources[prefix + "BackgroundChecked" + suffix]))
                 throw new InvalidOperationException("选中态没有沿用对应亚克力");
             var before = target.Color;

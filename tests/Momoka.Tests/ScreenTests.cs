@@ -13,18 +13,6 @@ internal static class ScreenTests
 {
     public static void Register()
     {
-        Test("探针缩放：保持要求的尺寸并拉回工作区，不把屏外像素当截图", () =>
-        {
-            var work = new WindowBounds(0, 0, 2560, 1392);
-            Assert.Equal(new WindowBounds(1560, 192, 2560, 1392),
-                ScreenPlacement.KeepSizeVisible(work, new WindowBounds(2000, 800, 3000, 2000)));
-            var shifted = new WindowBounds(2560, 0, 3640, 1872);
-            Assert.Equal(new WindowBounds(2560, 72, 3560, 1872),
-                ScreenPlacement.KeepSizeVisible(shifted, new WindowBounds(2400, 900, 3400, 2700)));
-            Assert.Equal(default(WindowBounds), ScreenPlacement.KeepSizeVisible(shifted, new WindowBounds(0, 0, 1420, 900)),
-                "副屏太窄时拒绝缩小目标尺寸冒充验收");
-        });
-
         Test("选屏幕：第几块就是第几块", () =>
         {
             bool[] two = [true, false];

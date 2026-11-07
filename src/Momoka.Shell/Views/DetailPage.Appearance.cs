@@ -106,19 +106,9 @@ public sealed partial class DetailPage
         var tint = contrast ? _actionUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Background)
             : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ViewModel.AppearanceSettings));
         foreach (var brushes in _controlBackgrounds)
-            brushes.Apply(contrast ? 100 : ViewModel.ControlBackgroundOpacity, !contrast && ViewModel.UseAcrylicControls, tint,
-                AppearanceOpacity.ControlBackground(ViewModel.AppearanceSettings.ControlTintOpacity),
-                AppearanceOpacity.ControlBackground(ViewModel.AppearanceSettings.ControlTintLuminosityOpacity));
+            brushes.Apply(contrast ? 100 : ViewModel.ControlBackgroundOpacity, !contrast && ViewModel.UseAcrylicControls, tint);
         ViewModel.RefreshAppearance();
-        ApplyTextInkVisibility();
-        PaintScrim();
-        // 模式与背景强度直接应用终值，窄窗仍使用自己的排版。
-        SettleShowcase();
-    }
-
-    private void ApplyTextInkVisibility()
-    {
-        DetailTitleInk.Visibility = ViewModel.BackdropShown ? Visibility.Visible : Visibility.Collapsed;
+        DetailTitleInk.Visibility = ViewModel.GaussianBackdropApplied ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
         DetailPlateInk.Visibility = DetailTitleInk.Visibility;
         DetailGenreInk.Visibility = DetailTitleInk.Visibility;
         DetailFactsInk.Visibility = DetailTitleInk.Visibility;
@@ -127,15 +117,31 @@ public sealed partial class DetailPage
         DetailScoreSourceInk.Visibility = DetailTitleInk.Visibility;
         DetailVideoInk.Visibility = DetailTitleInk.Visibility;
         DetailDirectorsInk.Visibility = DetailTitleInk.Visibility;
+        PaintScrim();
+        // 模式与背景强度直接应用终值，窄窗仍使用自己的排版。
+        SettleShowcase();
     }
 
     private void OnBackdropEffectChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
-        if (args.PropertyName != nameof(ViewModels.DetailViewModel.HeroImage)) return;
-        ApplyTextInkVisibility();
+        if (args.PropertyName == nameof(ViewModels.DetailViewModel.HeroImage))
+        {
+            PaintReadingColors();
+            QueueReadingColors();
+            return;
+        }
+        if (args.PropertyName != nameof(ViewModels.DetailViewModel.GaussianBackdropApplied)) return;
+        DetailTitleInk.Visibility = ViewModel.GaussianBackdropApplied ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        DetailPlateInk.Visibility = DetailTitleInk.Visibility;
+        DetailGenreInk.Visibility = DetailTitleInk.Visibility;
+        DetailFactsInk.Visibility = DetailTitleInk.Visibility;
+        DetailOverviewInk.Visibility = DetailTitleInk.Visibility;
+        DetailScoreInk.Visibility = DetailTitleInk.Visibility;
+        DetailScoreSourceInk.Visibility = DetailTitleInk.Visibility;
+        DetailVideoInk.Visibility = DetailTitleInk.Visibility;
+        DetailDirectorsInk.Visibility = DetailTitleInk.Visibility;
         PaintScrim();
-        PaintReadingColors();
-        QueueReadingColors();
+        // 缓存命中可同步完成渲染；尺寸和窗口状态仍在写入时，留给统一布局结算。
         if (!_sizing) SettleShowcase();
     }
 
@@ -144,13 +150,27 @@ public sealed partial class DetailPage
         foreach (var panel in BodySheet.Children.OfType<Microsoft.UI.Xaml.Controls.StackPanel>())
             foreach (var head in panel.Children.OfType<ShelfHead>())
             {
-                var floating = ViewModel.BackdropShown && ViewModel.Showcase;
+                var floating = ViewModel.GaussianBackdropApplied && ViewModel.Showcase;
                 head.Ink = floating;
                 head.OnScrim = floating;
             }
         // 信息卡的逐行标签、内联链接与数据统一留在深色亚克力卡面上，避免整段文字另做蒙版寿命管理。
-        InfoPanel.Background = ViewModel.Showcase ? CardMaterialSource.Background : _panelFill;
+        InfoPanel.Background = ViewModel.Showcase
+            && (ViewModel.ItemType == Momoka.Emby.EmbyItemType.Episode || ViewModel.GaussianBackdropApplied)
+            ? CardMaterialSource.Background : _panelFill;
         PaintReadingColors();
+    }
+
+    private ThemeColor ReadingBackground(FrameworkElement node)
+    {
+        var fallback = ThemeHost.Current.Colors.Window;
+        if (!ViewModel.BackdropShown) return fallback;
+        var sample = BackdropInk.Sample(node, BackdropPicture, ViewModel.BackdropPixels, true, fallback);
+        var overlay = ShellPrefs.AppearanceColor(true, ViewModel.AppearanceSettings);
+        var alpha = ViewModel.UseAcrylicBackdrop ? ViewModel.BackdropStrength
+            : AppearanceOpacity.ReadingShadeAlpha(ViewModel.BackdropStrength, ViewModel.GaussianBackdropApplied) / 255d;
+        if (ViewModel.UseAcrylicBackdrop && !_actionUiSettings.AdvancedEffectsEnabled && alpha > 0) alpha = 1;
+        return sample.Mix(overlay, alpha);
     }
 
     private void PaintReadingColors()
@@ -158,10 +178,8 @@ public sealed partial class DetailPage
         if (!_appearanceObserved) return;
         var contrast = _actionAccessibility.HighContrast;
         var forced = contrast ? _actionUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground) : (Color?)null;
-        var foreground = forced ?? MediaTextColors.Current;
-        var fixedInk = ThemeColor.Rgb(foreground.R, foreground.G, foreground.B);
         foreach (var backgrounds in _controlBackgrounds)
-            backgrounds.ApplyForeground(ThemeHost.Current.Colors.Window, !_actionUiSettings.AdvancedEffectsEnabled, foreground);
+            backgrounds.ApplyForeground(ReadingBackground(backgrounds.Control), !_actionUiSettings.AdvancedEffectsEnabled, forced);
         // 模板中显式指定过颜色的非强调图标/连播文字，跟同一颗按钮走。
         foreach (var backgrounds in _controlBackgrounds)
         {
@@ -194,21 +212,21 @@ public sealed partial class DetailPage
             (DetailVideoText, DetailVideoInk), (DetailDirectorsText, DetailDirectorsInk),
             (ColumnAudioText, DetailVideoInk), (AudioText, DetailVideoInk) })
         {
-            var color = fixedInk;
+            var color = forced is { } system ? ThemeColor.Rgb(system.R, system.G, system.B)
+                : ViewModel.BackdropShown && !ViewModel.HeroCardShown ? BackdropReading.Foreground(ReadingBackground(text))
+                : ThemeColor.Rgb(255, 255, 255);
             if (!_readingColors.TryGetValue(text, out var brush))
             {
                 brush = new SolidColorBrush();
                 _readingColors.Add(text, brush);
                 text.Foreground = brush;
             }
-            if (text == GenreLine)
-                foreach (var link in GenreLine.Inlines.OfType<Microsoft.UI.Xaml.Documents.Hyperlink>())
-                    link.Foreground = ViewModel.SublineBrush;
             brush.Color = ThemeHost.ToColor(color);
             if (text != ColumnAudioText && text != AudioText) TextInk.SetForeground(host, color);
         }
         var floating = ViewModel.Showcase && ViewModel.BackdropShown;
-        ThemeColor Read(FrameworkElement node) => fixedInk;
+        ThemeColor Read(FrameworkElement node) => forced is { } system ? ThemeColor.Rgb(system.R, system.G, system.B)
+            : BackdropReading.Foreground(ReadingBackground(node));
         foreach (var child in AppearanceChildren(BodySheet))
         {
             if (child is ShelfHead head) head.ApplyBackdropInk(floating ? Read(head) : null);

@@ -86,19 +86,13 @@ internal static class InputFocusThemeTests
             }
         });
 
-        Test("输入底色：闭合下拉框使用全局控件三态，弹层与禁用输入材质不改", () =>
+        Test("输入底色：闭合下拉框各态使用输入玻璃，弹层材质不改", () =>
         {
             foreach (var dictionary in Painted(Palette()))
             {
                 foreach (var key in new[] { "ComboBoxBackground", "ComboBoxBackgroundPointerOver", "ComboBoxBackgroundPressed",
                     "ComboBoxBackgroundFocused", "ComboBoxBackgroundUnfocused", "ComboBoxBackgroundDisabled" })
-                    Assert.Equal(key switch
-                    {
-                        "ComboBoxBackgroundDisabled" => "EgInputGlassBrush",
-                        "ComboBoxBackgroundPointerOver" => "EgActionGlassHoverBrush",
-                        "ComboBoxBackgroundPressed" => "EgActionGlassPressedBrush",
-                        _ => "EgActionGlassBrush"
-                    }, dictionary.Elements().Single(element =>
+                    Assert.Equal("EgInputGlassBrush", dictionary.Elements().Single(element =>
                         element.Attribute(Xaml + "Key")?.Value == key).Attribute("ResourceKey")?.Value);
                 Assert.Equal("AcrylicBrush", dictionary.Elements().Single(element =>
                     element.Attribute(Xaml + "Key")?.Value == "ComboBoxDropDownBackground").Name.LocalName);

@@ -28,15 +28,12 @@
     Background="{ThemeResource LayerFillColorDefaultBrush}">
 
     <Page.Resources>
-        <SolidColorBrush x:Key="EgTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
-        <SolidColorBrush x:Key="EgTextDimBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
-        <SolidColorBrush x:Key="EgTextFaintBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
         <Style x:Key="LibraryPillStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Height" Value="32" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="Padding" Value="12,0" />
             <Setter Property="CornerRadius" Value="16" />
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceHoverBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -46,13 +43,13 @@
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="Padding" Value="14,0" />
             <Setter Property="CornerRadius" Value="14" />
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="FontSize" Value="{StaticResource EgBodyFontSize}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
         <Style x:Key="RecentSearchButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Background" Value="{ThemeResource SubtleFillColorTransparentBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="8,4" />
         </Style>
@@ -85,7 +82,7 @@
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="Padding" Value="10,0" />
             <Setter Property="CornerRadius" Value="14" />
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
         </Style>

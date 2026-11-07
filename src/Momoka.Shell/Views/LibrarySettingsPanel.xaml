@@ -30,7 +30,7 @@
                 <Button
                     x:Name="SettingsCloseButton"
                     AutomationProperties.Name="关闭设置"
-                    Background="{ThemeResource EgActionGlassBrush}"
+                    Background="Transparent"
                     BorderThickness="0"
                     Click="OnCloseClicked"
                     Padding="8"

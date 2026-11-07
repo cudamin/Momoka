@@ -30,9 +30,6 @@
     Background="{ThemeResource EgWindowBrush}">
 
     <Page.Resources>
-        <SolidColorBrush x:Key="EgTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
-        <SolidColorBrush x:Key="EgTextDimBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
-        <SolidColorBrush x:Key="EgTextFaintBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
         <!-- Declared before the shelf template that reaches for it: a StaticResource inside a
              DataTemplate is resolved as the dictionary is parsed, so a forward reference fails. -->
         <DataTemplate x:Key="CardTemplate" x:DataType="local:CardItem">

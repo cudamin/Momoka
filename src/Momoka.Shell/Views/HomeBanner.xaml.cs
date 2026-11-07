@@ -260,9 +260,8 @@ public sealed partial class HomeBanner : UserControl
         var contrast = _colorAccessibility.HighContrast;
         _lastColorContrast = contrast;
         _lastColorEffects = _uiSettings.AdvancedEffectsEnabled;
-        _openBackground.Apply(contrast ? 100 : ui.ControlBackgroundOpacity, !contrast,
-            contrast ? _uiSettings.GetColorValue(UIColorType.Background) : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ui)),
-            AppearanceOpacity.ControlBackground(ui.ControlTintOpacity), AppearanceOpacity.ControlBackground(ui.ControlTintLuminosityOpacity));
+        _openBackground.Apply(contrast ? 100 : ui.ControlBackgroundOpacity, !contrast && ui.UseAcrylicControls,
+            contrast ? _uiSettings.GetColorValue(UIColorType.Background) : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ui)));
         PaintOpenButtonInk();
         Brush(LayerA).Opacity = AppearanceOpacity.HomeBackdrop(ui.BackdropOpacity);
         Brush(LayerB).Opacity = AppearanceOpacity.HomeBackdrop(ui.BackdropOpacity);
@@ -276,8 +275,22 @@ public sealed partial class HomeBanner : UserControl
 
     private void PaintOpenButtonInk()
     {
-        _openBackground.ApplyForeground(ThemeHost.Current.Colors.Window, !_uiSettings.AdvancedEffectsEnabled,
-            _colorAccessibility.HighContrast ? _uiSettings.GetColorValue(UIColorType.Foreground) : MediaTextColors.Current);
+        var sample = BackdropInk.Sample(OpenButton, FrontLayer, Current?.BackdropPixels, false, ThemeHost.Current.Colors.Window);
+        var along = 0d;
+        try
+        {
+            var position = OpenButton.TransformToVisual(Fade).TransformPoint(new Windows.Foundation.Point(OpenButton.ActualWidth / 2, OpenButton.ActualHeight / 2));
+            along = Fade.ActualWidth > 0 ? Math.Clamp(position.X / Fade.ActualWidth, 0, 1) : 0;
+        }
+        catch (ArgumentException) { }
+        var stops = ((LinearGradientBrush)Fade.Background).GradientStops;
+        var left = stops.Last(stop => stop.Offset <= along);
+        var right = stops.First(stop => stop.Offset >= along);
+        var alpha = left.Offset == right.Offset ? left.Color.A / 255d
+            : (left.Color.A + (right.Color.A - left.Color.A) * (along - left.Offset) / (right.Offset - left.Offset)) / 255d;
+        var background = sample.Mix(ThemeColor.Rgb(left.Color.R, left.Color.G, left.Color.B), alpha);
+        _openBackground.ApplyForeground(background, !_uiSettings.AdvancedEffectsEnabled,
+            _colorAccessibility.HighContrast ? _uiSettings.GetColorValue(UIColorType.Foreground) : null);
     }
 
     private void PaintBackdropShade()
