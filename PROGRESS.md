@@ -1,3 +1,11 @@
+## 2026-11-08 背景与按钮亚克力三项参数主树交付
+
+产品提交 67c5372（合 f14ca28 与工作树 896d6ab），四处冲突按「新语义优先、保留主树修复」解决：详情视图模型保留裁切模糊并把「强度 0 不模糊」映射为两项染色浓度都为 0；探针留亚克力断言、删退役高斯检查与诊断字段；外观专项取新语义；主树 R07-009 强度用例改由两项浓度驱动。
+
+最终主树 Release/x64 0 警告 0 错误，`format whitespace` 与 `check-diff`（29 个文本文件）通过；主测试 4179/4179、外观专项 67/67，失败跳过均 0。原生探针在副屏串行：settings 28/28、library 32/32（含详情自定义页面、背景渐变与按钮材质、R07 新用例），截图 `settings-acrylic-controls-screen.png`、`detail-customization-*-screen.png`、`backdrop-tint-*` 已目视。
+
+`tools/publish.ps1 -NoArchive -Shortcut` 已刷新主树 `artifacts/publish/win-x64`：546 文件 286.6 MB，批准载荷与着色器许可校验通过；发布 `Momoka.dll` 与构建输出同 `0B852B1356865A2345EA465CD3012577D430FCE10E6234A08AA4E6B1D9C4DF39`，`Momoka.exe` `987164A4745895256000C662073A1ADB4B3C6CC352BD399C39B5BC21B944BB85`。发布程序自身再跑 settings 28/28 退出 0。快捷方式写回被沙箱权限拒绝（`.lnk` ACL 只对 SB\CodexSandboxUsers 只读），但读回目标仍是 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`，本次只替换该目录内容、目标未变，无需重写。未上传、未真实播放或写服务器；临时工作树 `workbuddy/master-dac8bdc5`（顶端 896d6ab）内容已全部进入 master，待该会话关闭后再删。
+
 ## 2026-11-08 弹幕发送探针可选参数与失败清理（待统一合入）
 
 独树 `danmaku-send-probe-closure` 基于 master 3316d1a，范围仅 `ShellNavigationProbe.DanmakuSend.cs` 与现有 `Momoka.DanmakuSourceBoundaryTests`。R14 将 `ResetDanmakuInput` 改为可选 bool 参数后，探针反射调用仍传零参数；在第4个待发送请求时抛 `TargetParameterCountException`，假 HTTP 故意不响应取消，finally 的真实客户端关机等待因未释放 pending 而遮成整项60秒超时。显式传 false，并在 finally 先 TrySetCanceled 未完成 pending，生产断言及60秒预算不变，无产品功能改动。
