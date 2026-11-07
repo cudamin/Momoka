@@ -221,7 +221,7 @@ internal static partial class DetailActionReadinessTests
                 Assert.Equal(artwork, (bool)f.Get("Showcase")!);
                 Assert.Equal(!artwork, (bool)f.Get("HeroCardShown")!);
                 Assert.Equal(375d, (double)f.Get("StillHeight")!);
-                foreach (var name in new[] { "ColumnVideoVisibility", "VideoLineVisibility", "ColumnPickersVisibility", "CardTailGapHeight" })
+                foreach (var name in new[] { "ColumnVideoVisibility", "VideoLineVisibility", "ColumnPickersVisibility", "CardTailGapHeight", "HeroInset", "TailInset", "OverviewPanelPadding" })
                     Assert.True(notices.Contains(name), "背景变化缺少布局通知：" + name);
             }
         });

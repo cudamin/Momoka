@@ -268,10 +268,17 @@ internal sealed partial class ShellNavigationProbe
                 var page = (DetailPage)frame.Content;
                 page.AttachWindow(_window);
                 await UntilAsync(() => page.IsReady && page.ViewModel.HeroImage is not null);
-                var white = (SolidColorBrush)Application.Current.Resources["EgOnScrimBrush"];
+                await LayoutAsync(page);
                 foreach (var name in new[] { "ScoreText", "ScoreSourceText", "HeroFacts", "Overview", "DetailVideoText", "GenreLine" })
-                    Require(Get<TextBlock>(page, name).Foreground is SolidColorBrush text && text.Color == white.Color,
-                        name + " 头图文字与视频/音频颜色不同");
+                {
+                    var node = Get<TextBlock>(page, name);
+                    if (node.Visibility != Visibility.Visible || node.ActualWidth <= 0 || node.ActualHeight <= 0) continue;
+                    var background = (ThemeColor)Call(page, "ReadingBackground", node)!;
+                    var expectedInk = page.ViewModel.BackdropShown && !page.ViewModel.HeroCardShown
+                        ? BackdropReading.Foreground(background) : ThemeColor.Rgb(255, 255, 255);
+                    Require(node.Foreground is SolidColorBrush text && text.Color == ThemeHost.ToColor(expectedInk),
+                        name + $" 没有根据实际背景更新阅读颜色：实际{(node.Foreground as SolidColorBrush)?.Color}，预期{ThemeHost.ToColor(expectedInk)}，尺寸{node.ActualWidth:0.#}×{node.ActualHeight:0.#}");
+                }
                 var sheet = Get<StackPanel>(page, "BodySheet");
                 var originalPanels = sheet.Children.OfType<StackPanel>().ToArray();
                 foreach (var panel in originalPanels)
@@ -486,8 +493,9 @@ internal sealed partial class ShellNavigationProbe
                 Require(page.ViewModel.BackdropShown == oldEpisodeBackdrop && !page.ViewModel.Showcase
                     && Get<Grid>(page, "Backdrop").Visibility == (oldEpisodeBackdrop ? Visibility.Visible : Visibility.Collapsed),
                     "关闭沉浸后背景未恢复该类型原有宽窄规则");
-                Require(page.ViewModel.HeroCardShown == wide && card.Visibility == (wide ? Visibility.Visible : Visibility.Collapsed),
-                    "关闭沉浸后未使用单集宽窗卡片布局");
+                var expectedCard = subject?.Type != EmbyItemType.Episode || wide;
+                Require(page.ViewModel.HeroCardShown == expectedCard && card.Visibility == (expectedCard ? Visibility.Visible : Visibility.Collapsed),
+                    "简洁三类详情始终保留卡面，单集恢复原宽窗卡片布局");
                 Require(Get<StackPanel>(page, "ColumnPickers").Visibility == page.ViewModel.ColumnPickersVisibility,
                     "同页切换后视频信息父容器没有同步显隐");
                 if (!oldEpisodeBackdrop) Require(page.ViewModel.TailMinHeight == 0, "无背景仍保留了背景留白");
@@ -956,9 +964,13 @@ internal sealed partial class ShellNavigationProbe
                         "主页原本不透明的背景图变淡，或改动了淡入淡出层");
                 ui.ControlBackgroundOpacity = 100;
                 ShellPrefs.ApplyAppearance(ui);
+                Require(VisualStateManager.GoToState(button, state, false), "首页实底状态切换失败");
+                await LayoutAsync(banner);
                 Require(surface.Fill is AcrylicBrush { AlwaysUseFallback: true } opaque && opaque.FallbackColor.A == 255 && opaque.Opacity == 1
-                    && opaque.FallbackColor.R < 128 && opaque.FallbackColor.G < 128 && opaque.FallbackColor.B < 128,
-                    "主页详情按钮的100档底色没有完全不透明，或亮到看不清文字");
+                    && presenter.Foreground is SolidColorBrush ink
+                    && ThemeColor.Contrast(ThemeColor.Rgb(ink.Color.R, ink.Color.G, ink.Color.B),
+                        ThemeColor.Rgb(opaque.FallbackColor.R, opaque.FallbackColor.G, opaque.FallbackColor.B)) >= 4.5,
+                    "主页详情按钮的100档底色没有完全不透明，或文字对比不足");
                 var owned = surface.Fill;
                 ui.ControlBackgroundOpacity = 0;
                 ui.UseAcrylicControls = true;

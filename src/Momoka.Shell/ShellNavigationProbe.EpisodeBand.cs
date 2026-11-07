@@ -352,7 +352,7 @@ internal sealed partial class ShellNavigationProbe
                     Require(Math.Abs(cover.ActualWidth - expectedPoster.Width) < 1.5
                         && Math.Abs(cover.ActualHeight - expectedPoster.Height) < 1.5,
                         $"单集沉浸海报未使用统一剧页尺寸：{cover.ActualWidth:0.#}×{cover.ActualHeight:0.#}");
-                    Require(cover.VerticalAlignment == VerticalAlignment.Top
+                    Require(Get<Button>(page, "CoverButton").VerticalAlignment == VerticalAlignment.Top
                         && Get<Grid>(page, "HeroContent").VerticalAlignment == VerticalAlignment.Bottom,
                         "单集沉浸封面或文字栏未使用剧页对齐");
                     Require(view.TailMargin == default && view.HeroInset.Left == 32,

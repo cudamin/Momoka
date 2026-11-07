@@ -1990,9 +1990,14 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         ViewModel.StackRoom = HeroStack.ActualHeight;
         MeasureCoverBottom();
+        QueueReadingColors();
     }
 
-    private void OnCoverSizeChanged(object sender, SizeChangedEventArgs e) => MeasureCoverBottom();
+    private void OnCoverSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        MeasureCoverBottom();
+        QueueReadingColors();
+    }
 
     /// <summary>
     /// 左侧封面的下沿量给视图模型 —— 尾部那次提拉拿它兜住「剧情说明第一行不高于封面最下方」（2026-11-02）。

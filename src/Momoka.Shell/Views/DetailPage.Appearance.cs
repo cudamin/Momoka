@@ -127,6 +127,7 @@ public sealed partial class DetailPage
         if (args.PropertyName == nameof(ViewModels.DetailViewModel.HeroImage))
         {
             PaintReadingColors();
+            QueueReadingColors();
             return;
         }
         if (args.PropertyName != nameof(ViewModels.DetailViewModel.GaussianBackdropApplied)) return;

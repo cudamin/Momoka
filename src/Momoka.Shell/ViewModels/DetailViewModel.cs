@@ -185,6 +185,9 @@ public sealed partial class DetailViewModel : PageViewModel
                 OnPropertyChanged(nameof(CornerVisibility));
                 OnPropertyChanged(nameof(HeroContent));
                 OnPropertyChanged(nameof(HeroRoom));
+                OnPropertyChanged(nameof(HeroInset));
+                OnPropertyChanged(nameof(TailInset));
+                OnPropertyChanged(nameof(OverviewPanelPadding));
                 OnPropertyChanged(nameof(TailMargin));
                 OnPropertyChanged(nameof(CardTailGapHeight));
                 OnPropertyChanged(nameof(ColumnVideoVisibility));

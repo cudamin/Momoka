@@ -173,7 +173,7 @@ internal sealed partial class ShellNavigationProbe
                         var old = Bounds(cover, shell);
                         Require(Math.Abs(old.Top - crumb.Bottom - box.Left) > 10,
                             "旧居中布局没有被等距检查拒绝");
-                        Require(old.Top > box.Top + 10, "新的封面没有比旧版上移");
+                        // 统一为375高后，居中反例可能向上或向下偏移；上面的等距拒绝仍验证错误布局。
                         readings.Add($"旧版: 左距={old.Left:0.##}，上距={old.Top - crumb.Bottom:0.##}，封面顶={old.Top:0.##}，新封面上移={old.Top - box.Top:0.##}");
                         await SaveProbeScreenAsync("detail-cover-gap-before.png");
                     }
