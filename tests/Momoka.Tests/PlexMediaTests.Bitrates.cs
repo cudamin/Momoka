@@ -60,7 +60,8 @@ internal static partial class PlexMediaTests
         {
             ["Part"] = new JsonArray(new JsonObject
             {
-                ["id"] = "part", ["key"] = "/library/parts/part/file.mkv",
+                ["id"] = "part",
+                ["key"] = "/library/parts/part/file.mkv",
                 ["Stream"] = new JsonArray(video, audio)
             })
         };

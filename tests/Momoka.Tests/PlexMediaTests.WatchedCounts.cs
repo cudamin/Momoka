@@ -28,8 +28,10 @@ internal static partial class PlexMediaTests
                 {
                     var item = PlexMediaAdapter.Item(new JsonObject
                     {
-                        ["ratingKey"] = "container", ["type"] = type,
-                        ["leafCount"] = JsonNode.Parse(total), ["viewedLeafCount"] = JsonNode.Parse(viewed)
+                        ["ratingKey"] = "container",
+                        ["type"] = type,
+                        ["leafCount"] = JsonNode.Parse(total),
+                        ["viewedLeafCount"] = JsonNode.Parse(viewed)
                     });
                     Assert.Equal(played, item.IsWatched);
                     Assert.Equal(remaining, item.UserData!.UnplayedItemCount);
@@ -66,7 +68,10 @@ internal static partial class PlexMediaTests
                 {
                     var item = PlexMediaAdapter.Item(new JsonObject
                     {
-                        ["type"] = type, ["viewCount"] = views, ["leafCount"] = 2, ["viewedLeafCount"] = 2
+                        ["type"] = type,
+                        ["viewCount"] = views,
+                        ["leafCount"] = 2,
+                        ["viewedLeafCount"] = 2
                     });
                     Assert.Equal(views > 0, item.IsWatched);
                     Assert.Equal<int?>(null, item.UserData!.UnplayedItemCount);
@@ -95,8 +100,10 @@ internal static partial class PlexMediaTests
                 {
                     ["Metadata"] = new JsonArray(new JsonObject
                     {
-                        ["ratingKey"] = "container", ["type"] = type,
-                        ["leafCount"] = 2, ["viewedLeafCount"] = _viewed
+                        ["ratingKey"] = "container",
+                        ["type"] = type,
+                        ["leafCount"] = 2,
+                        ["viewedLeafCount"] = _viewed
                     })
                 }
             };

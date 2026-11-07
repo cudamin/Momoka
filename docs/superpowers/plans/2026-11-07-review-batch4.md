@@ -10,21 +10,21 @@
 
 ## R05-004：码率
 
-- [ ] 在 PlexMediaTests 的新局部分文件中补 Media 与 Stream 的单位及实际 ItemDetail 格式化测试；覆盖数字、字符串、零、缺值、非法值和 int 乘法边界。
-- [ ] 编译当前 Tests/Core，运行 plex-protocol-fixture，确认原映射失败并保存完整原红。
-- [ ] Models.cs 的两处映射共同调用局部转换，将 Plex kbps 转为共享 bit/s；无法表示的值返回 null，沿用现有数值解析语义。
-- [ ] 重编并跑同一专项，确认通过后提交。
+- [x] 在 PlexMediaTests 的新局部分文件中补 Media 与 Stream 的单位及实际 ItemDetail 格式化测试；覆盖数字、字符串、零、缺值、非法值和 int 乘法边界。
+- [x] 编译当前 Tests/Core，运行 plex-protocol-fixture，确认原映射失败并保存完整原红。
+- [x] Models.cs 的两处映射共同调用局部转换，将 Plex kbps 转为共享 bit/s；无法表示的值返回 null，沿用现有数值解析语义。
+- [x] 重编并跑同一专项，确认通过后提交。
 
 ## R05-005：剧/季观看状态
 
-- [ ] 增加 show/season 已看完、部分看过、完全未看、空容器、缺字段及数值字符串回归；movie/episode 保持 viewCount 语义。断言实际 ItemMenu 反向命令与未看集数。
-- [ ] 编译并跑同一专项，保存观看状态原红。
-- [ ] 在 Item 映射中用有效 leafCount/viewedLeafCount 决定 show/season 的 Played、UnplayedItemCount；不将空或未知容器标为已看完。
-- [ ] 重编并跑同一专项，确认通过后提交。
+- [x] 增加 show/season 已看完、部分看过、完全未看、空容器、缺字段及数值字符串回归；movie/episode 保持 viewCount 语义。断言实际 ItemMenu 反向命令与未看集数。
+- [x] 编译并跑同一专项，保存观看状态原红。
+- [x] 在 Item 映射中用有效 leafCount/viewedLeafCount 决定 show/season 的 Played、UnplayedItemCount；不将空或未知容器标为已看完。
+- [x] 重编并跑同一专项，确认通过后提交。
 
 ## 收尾
 
-- [ ] 一次独立复审最终产品差异、回读调用与边界；不重复扩大全库审查。
+- [x] 一次独立复审最终产品差异、回读调用与边界；不重复扩大全库审查。
 - [ ] 核实主树无其他会话写入，整合后重新构建 Tests/Core/Shell，并跑完整主测试、Plex 专项及变更文本检查。
 - [ ] 版本沿用当前 0.2.5.0。发布到主树 artifacts/publish/win-x64；按发布编译参数重新核验测试 Core 与实际发布件一致，核快捷方式、载荷与许可。
 - [ ] 更新 FOURTH-REPAIRS.md 和 PROGRESS.md，保留原红与最终绿；记录真实 Plex/WinUI 未覆盖边界。当前树受 primary 保护，保留并记录，不手工删除。
