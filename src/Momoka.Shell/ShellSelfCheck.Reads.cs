@@ -633,7 +633,7 @@ internal static partial class ShellSelfCheck
         catch (Exception error)
         {
             Log.Warn(Category, "季自检探针出错", error);
-            return new SeasonState($"探针没跑完（{Failure.Describe(error)}）");
+            return new SeasonState(null, false, $"探针没跑完（{Failure.Describe(error)}）", false, "前置检查失败，未完成");
         }
     }
 
@@ -874,11 +874,11 @@ internal static partial class ShellSelfCheck
         }
         catch (Exception error)
         {
-            // 连找一个条目都没成，那是这台服务器或者这条网线的事，不是这几条命令的事。
-            return (true, $"问不到可以拿来试的条目，跳过（{Failure.Describe(error)}）");
+            // 前置读取没有完成，不是接口已经验证通过；具体环境/权限原因保留在反馈中。
+            return (false, $"读取检查前置条目失败（{Failure.Describe(error)}）");
         }
 
-        if (found.Items.FirstOrDefault() is not { } file) return (true, "服务器上没有可以拿来问的文件，跳过");
+        if (found.Items.FirstOrDefault() is not { } file) return null;
 
 
         await Step("合集列表", async token =>
@@ -1010,6 +1010,7 @@ internal static partial class ShellSelfCheck
             }
             catch (Exception error)
             {
+                ok = false;
                 notes.Add($"{what} 没答上来（{Failure.Describe(error)}）");
             }
         }

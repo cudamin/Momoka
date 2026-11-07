@@ -26,6 +26,7 @@
             <InspectSource ParameterType="System.String" Required="true" />
             <ReadsSource ParameterType="System.String" Required="true" />
             <ThemeSource ParameterType="System.String" Required="true" />
+            <PagesSource ParameterType="System.String" Required="true" />
             <OutputSource ParameterType="System.String" Required="true" />
         </ParameterGroup>
         <Task>
@@ -92,11 +93,21 @@
                 var theme = File.ReadAllText(ThemeSource).Replace("\r\n", "\n");
                 var placement = between(reads, "    private static (bool Ok, string Detail) ReportRememberedWindow(", "\n    /// <summary>");
                 var sample = between(theme, "    private static ScreenReading SampleScreen(", "\n    private static void Dump(");
+                var commands = between(reads, "    private static async Task<(bool Ok, string Detail)?> ProbeCommandsAsync(", "\n}\n");
                 generated += "\ninternal static partial class VerificationReadsFixture\n{\n" +
                     placement.Replace("private static (bool Ok, string Detail)", "internal static (bool Ok, string Detail)") +
                     "\n    internal sealed record ScreenReading(bool Rendered, string Detail);\n" +
                     sample.Replace("private static ScreenReading", "internal static ScreenReading") + "\n}\n";
-                generated = "using Momoka.Configuration;\nusing Momoka.Playback;\n" + generated;
+                generated += "\ninternal static partial class CommandReadsFixture\n{\n" + commands
+                    .Replace("private static async", "internal static async")
+                    .Replace("services.GetRequiredService<EmbySession>()", "((CommandServiceProvider)services).Session") + "\n}\n";
+                var pages = File.ReadAllText(PagesSource).Replace("\r\n", "\n");
+                var seasonsReport = between(pages, "    private static void ReportSeasons(", "\n}\n");
+                var seasonFailure = between(reads, "            Log.Warn(Category, \"季自检探针出错\", error);", "\n        }\n    }\n\n    /// <summary>");
+                generated += "\ninternal static partial class SeasonReadsFixture\n{\n" + seasonsReport
+                    .Replace("private static void", "internal static void") +
+                    "\n    private static SeasonState Failed(Exception error)\n    {\n" + seasonFailure + "\n    }\n}\n";
+                generated = "using Momoka.Configuration;\nusing Momoka.Playback;\nusing Momoka.Emby;\n" + generated;
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
                     File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
@@ -112,6 +123,7 @@
             InspectSource="$(InspectOwnerSource)"
             ReadsSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Reads.cs"
             ThemeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Theme.cs"
+            PagesSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Pages.cs"
             OutputSource="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />
         <ItemGroup>
             <Compile Include="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />

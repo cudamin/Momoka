@@ -29,6 +29,7 @@ internal static partial class Program
         RegisterInspectOwnership();
         RegisterVerificationReads();
         RegisterPlacementRead();
+        RegisterCommandReads();
         var failures = 0;
         foreach (var (name, run) in Cases)
         {
