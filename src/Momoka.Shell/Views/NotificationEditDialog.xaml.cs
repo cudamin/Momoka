@@ -55,6 +55,7 @@ public sealed partial class NotificationEditDialog : ContentDialog
         }
 
         PrimaryButtonClick += OnPrimary;
+        Closing += (_, args) => { if (_saving || _testing) args.Cancel = true; };
         _noteStyle = (Style)Resources["DlgNote"];
         _faintStyle = (Style)Resources["DlgFaint"];
         BuildEventList();
@@ -226,6 +227,7 @@ public sealed partial class NotificationEditDialog : ContentDialog
         try
         {
             await _context.SaveAsync(Build()).ConfigureAwait(true);
+            _saving = false;
             Hide();
         }
         catch (Exception error)
