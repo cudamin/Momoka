@@ -14,6 +14,7 @@ public sealed partial class PlayerViewModel
     private CancellationTokenSource? _danmakuSend;
     private readonly SemaphoreSlim _danmakuInputGate = new(1, 1);
     private readonly HashSet<string> _danmakuNativeRequests = [];
+    private bool _preserveDanmakuDraft;
 
     [ObservableProperty]
     public partial string DanmakuDraft { get; set; } = "";
@@ -41,7 +42,7 @@ public sealed partial class PlayerViewModel
             : "请先选择并加载弹弹play弹幕库";
     public string DanmakuSendButtonText => DanmakuSending ? "发送中" : "发送";
 
-    private void ResetDanmakuInput()
+    private void ResetDanmakuInput(bool preserveDraft = false)
     {
         _danmakuInputContext = Guid.NewGuid().ToString("N");
         _danmakuNativeRequests.Clear();
@@ -49,7 +50,8 @@ public sealed partial class PlayerViewModel
         _danmakuSend?.Dispose();
         _danmakuSend = null;
         DanmakuSending = false;
-        DanmakuDraft = "";
+        _preserveDanmakuDraft = preserveDraft;
+        if (!preserveDraft) DanmakuDraft = "";
         DanmakuSendStatus = "";
         RefreshDanmakuInput();
     }
@@ -76,7 +78,7 @@ public sealed partial class PlayerViewModel
         {
             if (context != _danmakuInputContext || !IsCurrentPlayback(interaction)) return false;
             return await _playback.CommandAsync("script-message", MpvDanmaku.InputState, JsonSerializer.Serialize(new
-            { visible = DanmakuInputVisible, canSend = DanmakuCanSend, busy = DanmakuSending, context })).ConfigureAwait(true);
+            { visible = DanmakuInputVisible, canSend = DanmakuCanSend, busy = DanmakuSending, context, preserveDraft = _preserveDanmakuDraft })).ConfigureAwait(true);
         }
         finally { _danmakuInputGate.Release(); }
     }
@@ -87,7 +89,15 @@ public sealed partial class PlayerViewModel
     private async Task SendNativeDanmakuAsync(string payload)
     {
         var input = MpvDanmaku.ParseSend(payload);
-        if (input is null || input.Context != _danmakuInputContext || !_danmakuNativeRequests.Add(input.RequestId)) return;
+        if (input is null)
+        {
+            var envelope = MpvDanmaku.ParseSendEnvelope(payload);
+            if (envelope is null || envelope.Context != _danmakuInputContext || !_danmakuNativeRequests.Add(envelope.RequestId)) return;
+            await _playback.CommandAsync("script-message", MpvDanmaku.InputResult, JsonSerializer.Serialize(new
+            { context = envelope.Context, requestId = envelope.RequestId, success = false, message = "弹幕内容无效，请修改后重试。" })).ConfigureAwait(true);
+            return;
+        }
+        if (input.Context != _danmakuInputContext || !_danmakuNativeRequests.Add(input.RequestId)) return;
         await SendDanmakuTextAsync(input.Text, input.Context, input.RequestId).ConfigureAwait(true);
     }
 

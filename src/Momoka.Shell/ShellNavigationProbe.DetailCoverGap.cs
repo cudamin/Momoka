@@ -193,10 +193,13 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
-            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-cover-gap.txt"), readings);
-            Call(shell, "ReleaseContent");
-            shell.SignInRoot.Detach();
-            _root.Children.Remove(shell);
+            try { File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-cover-gap.txt"), readings); }
+            finally
+            {
+                Call(shell, "ReleaseContent");
+                shell.SignInRoot.Detach();
+                _root.Children.Remove(shell);
+            }
         }
     }
 }

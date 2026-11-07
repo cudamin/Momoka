@@ -152,10 +152,13 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
-            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, $"detail-no-art-{type}.txt"), readings);
-            (frame.Content as IShellContent)?.Release();
-            _root.Children.Remove(frame);
-            ResizeInspect(1420, 980);
+            try { File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, $"detail-no-art-{type}.txt"), readings); }
+            finally
+            {
+                (frame.Content as IShellContent)?.Release();
+                _root.Children.Remove(frame);
+                ResizeInspect(1420, 980);
+            }
         }
     }
 }

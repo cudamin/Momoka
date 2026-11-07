@@ -97,7 +97,8 @@ public sealed class CardItem : INotifyPropertyChanged
     private readonly bool _sourceLine;
 
     /// <summary>Whether artwork exists to ask for, or null when the item has none worth asking for.</summary>
-    private readonly string? _imageType;
+    private readonly IReadOnlyList<string> _imageTypes;
+    private ArtworkRef? _loadedArtwork;
 
     /// <summary>
     /// 飞牛的「横幅海报」：16:9 框里让竖版海报居中，用同一张图铺满作底，再压上评分与清晰度。
@@ -155,7 +156,7 @@ public sealed class CardItem : INotifyPropertyChanged
                 var key = PosterCache.Key(scope.Connection, _item.Id, EmbyImageStore.Primary, path, width);
                 if (PosterCache.TryGet(key, out var kept))
                 {
-                    SetCollageTile(index, kept);
+                    if (_wanted) SetCollageTile(index, kept);
                     continue;
                 }
 
@@ -331,9 +332,10 @@ public sealed class CardItem : INotifyPropertyChanged
         _sourceLine = sourceLine;
         IsCurrentEpisode = current;
 
-        _imageType = imageTypes is { Count: > 0 } wanted
-            ? wanted.FirstOrDefault(type => EmbyImageStore.TagFor(item, type) is not null)
-            : wide ? PreferWide(item) : PreferTall(item);
+        _imageTypes = imageTypes is { Count: > 0 } wanted
+            ? wanted.ToArray()
+            : wide ? [EmbyImageStore.Thumb, EmbyImageStore.Backdrop, EmbyImageStore.Primary]
+                : [EmbyImageStore.Primary, EmbyImageStore.Thumb];
 
         Cells = tableFields is null
             ? []
@@ -772,7 +774,7 @@ public sealed class CardItem : INotifyPropertyChanged
             return;
         }
 
-        if (_imageType is null && _artwork is null || _missing || _poster is not null || _loading is not null) return;
+        if (_missing || _poster is not null || _loading is not null) return;
         if (Scope is not { IsAvailable: true } scope) return;
 
         // 上一次「没取到」还没隔够冷却时间就不问了：滚动一路会把同一张卡反复递进来，不拦的话一次断网就是每一趟
@@ -792,21 +794,38 @@ public sealed class CardItem : INotifyPropertyChanged
 
         try
         {
-            if (PosterArtwork is not { } picture) return;
             var width = _width;
-            var cacheKey = PosterCache.Key(scope.Connection, picture.ItemId, picture.ImageType, picture.Tag, width);
-            var bitmap = await _images.GetDecodedAsync(scope, picture.ItemId, picture.ImageType, picture.Tag,
-                    EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), cts.Token)
-                .ConfigureAwait(true);
+            var transientFailure = false;
+            ArtworkRef? selected = null;
+            var bitmap = await ArtworkCandidates.FirstAsync(PosterCandidates(), async (picture, token) =>
+            {
+                try
+                {
+                    var candidateKey = PosterCache.Key(scope.Connection, picture.ItemId, picture.ImageType, picture.Tag, width);
+                    var image = PosterCache.TryGet(candidateKey, out var cached) ? cached
+                        : await _images.GetDecodedAsync(scope, picture.ItemId, picture.ImageType, picture.Tag,
+                            EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), token).ConfigureAwait(true);
+                    if (image is not null) selected = picture;
+                    return image;
+                }
+                catch
+                {
+                    transientFailure = true;
+                    throw;
+                }
+            }, cts.Token).ConfigureAwait(true);
 
             if (cts.IsCancellationRequested || !scope.IsAvailable) return;
             if (bitmap is null)
             {
-                _missing = true; // 明确无图片；解码异常仍交给下方失败冷却路径。
-                Log.Debug(Category, $"服务器没有这张图（{_item.Name}，{_imageType}）");
+                _missing = !transientFailure; // 只有全部明确缺图才记死；暂态或坏图仍按冷却重试。
+                if (transientFailure) _failedAt = DateTime.UtcNow;
+                Log.Debug(Category, $"没有可用的图片候选（{_item.Name}）");
                 return;
             }
 
+            _loadedArtwork = selected;
+            var cacheKey = PosterCache.Key(scope.Connection, selected!.Value.ItemId, selected.Value.ImageType, selected.Value.Tag, width);
             PosterCache.Remember(cacheKey, bitmap);
 
             // 屏上还要不要它（见 ReleasePoster）：不要了就只留进上面那份缓存，不塞回这张卡 —— 塞回去就是一张
@@ -918,9 +937,15 @@ public sealed class CardItem : INotifyPropertyChanged
     /// this card wants. Built each time rather than kept: the tag in it is the server's, and artwork
     /// replaced there has to read as a different picture.
     /// </summary>
-    private ArtworkRef? PosterArtwork => _artwork ?? (_imageType is not null
-        && EmbyImageStore.TagFor(_item, _imageType) is { } tag
-            ? new(EmbyImageStore.ImageItemId(_item, _imageType), _imageType, tag) : null);
+    private IEnumerable<ArtworkRef> PosterCandidates()
+    {
+        if (_artwork is { } explicitArtwork) { yield return explicitArtwork; yield break; }
+        foreach (var type in _imageTypes.Distinct(StringComparer.OrdinalIgnoreCase))
+            if (EmbyImageStore.TagFor(_item, type) is { } tag)
+                yield return new(EmbyImageStore.ImageItemId(_item, type), type, tag);
+    }
+
+    private ArtworkRef? PosterArtwork => _loadedArtwork ?? _artwork ?? PosterCandidates().Cast<ArtworkRef?>().FirstOrDefault();
 
     private string? PosterKey() =>
         Scope is { } scope && PosterArtwork is { } picture
@@ -1020,22 +1045,6 @@ public sealed class CardItem : INotifyPropertyChanged
                 }
         }
     }
-
-    /// <summary>
-    /// Tall cards want the poster and will settle for a still; wide cards want the still and will
-    /// settle for a backdrop, then the poster. Null means the item has no artwork at all, and the
-    /// glyph behind the picture is what the card shows for good.
-    /// </summary>
-    private static string? PreferTall(EmbyItem item) =>
-        item.PrimaryImageTag is not null ? EmbyImageStore.Primary
-        : item.ThumbImageTag is not null ? EmbyImageStore.Thumb
-        : null;
-
-    private static string? PreferWide(EmbyItem item) =>
-        item.ThumbImageTag is not null ? EmbyImageStore.Thumb
-        : item.BackdropImageTags.Count > 0 ? EmbyImageStore.Backdrop
-        : item.PrimaryImageTag is not null ? EmbyImageStore.Primary
-        : null;
 
     private void Raise([CallerMemberName] string? property = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property ?? string.Empty));

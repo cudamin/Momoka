@@ -92,6 +92,7 @@ public sealed partial class PlayerViewModel
         _danmakuConnection = DanmakuConnection();
         _danmuApiConnection = DanmuApiConnection();
         DanmakuConnectionVersion++;
+        OnPropertyChanged(nameof(DanmakuConnectionVersion));
         ResetDanmakuInput();
         RefreshDanmakuProperties();
         DanmakuStatus = DefaultDanmakuStatus;
@@ -144,6 +145,7 @@ public sealed partial class PlayerViewModel
         {
             _danmakuConnection = connection;
             DanmakuConnectionVersion++;
+            OnPropertyChanged(nameof(DanmakuConnectionVersion));
             var customConnection = DanmuApiConnection();
             var chosenDandan = _danmakuEpisode;
             // 自部署集号只在分配它的实例/凭据范围内有效；读取选项变化仍保留选择。
@@ -160,7 +162,7 @@ public sealed partial class PlayerViewModel
             _danmakuWarning = "";
             _danmakuSourceSummary = DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source);
             DanmakuStatus = DefaultDanmakuStatus;
-            ResetDanmakuInput();
+            ResetDanmakuInput(preserveDraft: true);
             _danmakuTransfer++;
             _ = ClearDanmakuAsync();
             if (DanmakuAvailable && _nowPlaying is { } current)
@@ -390,7 +392,7 @@ public sealed partial class PlayerViewModel
         _danmakuWarning = "";
         _danmakuSourceSummary = string.Join(" + ",
             selections.Select(selection => DanmakuSourceRules.SourceName(selection.Source)));
-        ResetDanmakuInput();
+        ResetDanmakuInput(preserveDraft: true);
         _danmakuTransfer++;
         DanmakuStatus = $"正在加载{_danmakuSourceSummary} 弹幕：{_danmakuLabel}…";
         await ClearDanmakuAsync().ConfigureAwait(true);

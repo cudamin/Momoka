@@ -195,14 +195,16 @@ public sealed class BannerSlide : INotifyPropertyChanged
                     _backdropPixels = keptPixels;
                 else
                 {
-                    var bytes = await FetchAsync(_picture, PictureWidth, cts.Token).ConfigureAwait(true);
+                    var pixels = _picture is { } reference && _scope is { IsAvailable: true } scope
+                        ? await _images.GetDecodedAsync(scope, reference.ItemId, reference.ImageType, reference.Tag,
+                            EmbyImageStore.RequestWidth(PictureWidth),
+                            bytes => BannerPictureLoader.DecodePixelsAsync(bytes, PictureWidth, cts.Token), cts.Token).ConfigureAwait(true)
+                        : null;
                     if (!StillWanted(cts)) return;
-                    if (bytes is { Length: > 0 })
+                    if (pixels is not null)
                     {
-                        var pixels = await BannerPictureLoader.DecodePixelsAsync(bytes, PictureWidth, cts.Token).ConfigureAwait(true);
-                        if (!StillWanted(cts)) return;
                         _backdropPixels = pixels;
-                        if (pixels is not null && _backdropKey is { } key) BannerBackdropCache.RememberPixels(key, pixels, cacheGeneration);
+                        if (_backdropKey is { } key) BannerBackdropCache.RememberPixels(key, pixels, cacheGeneration);
                     }
                 }
                 if (_backdropPixels is not null)
@@ -324,23 +326,11 @@ public sealed class BannerSlide : INotifyPropertyChanged
         Logo = null;
     }
 
-    /// <summary>取字节那一半（缓存命中的话是一次磁盘读），解码那一半在调用方。</summary>
-    private async Task<byte[]?> FetchAsync(ArtworkRef? artwork, int width, CancellationToken token)
-    {
-        if (artwork is not { } reference || _scope is not { IsAvailable: true } scope) return null;
-
-        return await _images
-            .GetAsync(scope, reference.ItemId, reference.ImageType, reference.Tag, EmbyImageStore.RequestWidth(width), token)
-            .ConfigureAwait(true);
-    }
-
     private async Task<BitmapImage?> DecodeAsync(ArtworkRef? artwork, int width, CancellationToken token)
     {
-        var bytes = await FetchAsync(artwork, width, token).ConfigureAwait(true);
-
-        return bytes is { Length: > 0 } && !token.IsCancellationRequested
-            ? await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true)
-            : null;
+        if (artwork is not { } reference || _scope is not { IsAvailable: true } scope) return null;
+        return await _images.GetDecodedAsync(scope, reference.ItemId, reference.ImageType, reference.Tag,
+            EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), token).ConfigureAwait(true);
     }
 
     private void Raise([CallerMemberName] string? property = null) =>

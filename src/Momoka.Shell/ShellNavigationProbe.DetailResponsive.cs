@@ -182,8 +182,11 @@ internal sealed partial class ShellNavigationProbe
         finally
         {
             if (_window?.IsMaximized == true) _window.ToggleMaximize();
-            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-responsive.txt"), readings);
-            ResizeInspect(1420, 980);
+            try { File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-responsive.txt"), readings); }
+            finally
+            {
+                ResizeInspect(1420, 980);
+            }
         }
     }
 

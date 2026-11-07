@@ -35,6 +35,8 @@ internal sealed partial class ShellNavigationProbe
         var path = Path.Combine(_options.Paths.LogDirectory, "navigation-timing-probe.ndjson");
         var sink = new NavigationTimingFileSink(path);
         var frame = new Frame();
+        RoutedEventHandler? loadedHandler = null;
+        LibraryPage? loadedPage = null;
         _root.Children.Add(frame);
         try
         {
@@ -53,12 +55,13 @@ internal sealed partial class ShellNavigationProbe
             if (page.IsLoaded) run.Mark("page-loaded");
             else
             {
-                void Loaded(object sender, RoutedEventArgs e)
+                loadedPage = page;
+                loadedHandler = (sender, e) =>
                 {
-                    page.Loaded -= Loaded;
+                    page.Loaded -= loadedHandler;
                     run.Mark("page-loaded");
-                }
-                page.Loaded += Loaded;
+                };
+                page.Loaded += loadedHandler;
             }
 
             var rendered = Pending<bool>();
@@ -69,7 +72,8 @@ internal sealed partial class ShellNavigationProbe
                 rendered.TrySetResult(true);
             }
             CompositionTarget.Rendering += Rendering;
-            await rendered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            try { await rendered.Task.WaitAsync(TimeSpan.FromSeconds(3)); }
+            finally { CompositionTarget.Rendering -= Rendering; }
 
             page.Release();
             frame.Content = null;
@@ -124,6 +128,7 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
+            if (loadedPage is not null && loadedHandler is not null) loadedPage.Loaded -= loadedHandler;
             NavigationTiming.Stop();
             if (frame.Content is IShellContent content) content.Release();
             frame.Content = null;

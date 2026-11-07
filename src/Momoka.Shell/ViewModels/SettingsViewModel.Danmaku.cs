@@ -25,7 +25,7 @@ public sealed partial class SettingsViewModel
     /// 「59 行（应当 63 行）」—— 卡片是对的，判据错了）。未附加时按不可用算，别在这里读 <c>_settings!</c>。
     /// </para>
     /// </summary>
-    public bool DanmakuReady => _settings is not null && DandanPlayMatching.IsConfigured(Settings);
+    public bool DanmakuReady => _settings is not null && DanmakuSourceRules.IsAvailable(Settings);
 
     /// <summary>
     /// 「弹幕」分类下的四张卡：开关与匹配、来源与聚合、显示与外观、类型与屏蔽。
@@ -58,7 +58,7 @@ public sealed partial class SettingsViewModel
         }
 
         var sourceRows = new List<SettingRow>();
-        if (configured)
+        if (settings.Enabled && DandanPlayMatching.CanRender(Settings.Mpv))
         {
             sourceRows.Add(Choice("弹幕来源", DanmakuSources, () => settings.Source, value => settings.Source = value,
                 "每个人填自己部署的 danmu_api；Momoka 不提供公共服务。两者合并会同时请求两个来源，"

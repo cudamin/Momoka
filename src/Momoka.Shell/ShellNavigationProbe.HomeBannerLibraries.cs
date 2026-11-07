@@ -235,10 +235,13 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
-            File.WriteAllLines(System.IO.Path.Combine(_options.Paths.LogDirectory, "home-banner-library-room.txt"), readings);
-            home?.Release();
-            _root.Children.Remove(frame);
-            ResizeProbeClient(1420, 980);
+            try { File.WriteAllLines(System.IO.Path.Combine(_options.Paths.LogDirectory, "home-banner-library-room.txt"), readings); }
+            finally
+            {
+                home?.Release();
+                _root.Children.Remove(frame);
+                ResizeProbeClient(1420, 980);
+            }
         }
     }
 

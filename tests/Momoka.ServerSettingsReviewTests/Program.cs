@@ -84,6 +84,7 @@ await PlexSearch.RunAsync();
 await FnNasArtwork.RunAsync();
 DisplaySettings.Run();
 await NotificationEditor.RunAsync();
+await NotificationSaveRecovery.RunAsync();
 await MetadataEditor.RunAsync();
 ReviewEditorProbeContract.Run();
 

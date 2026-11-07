@@ -17,6 +17,7 @@ namespace Momoka.Shell.Media
         public static TaskCompletionSource<bool>? HoldRender { get; set; }
         public static Func<bool, Task>? HoldByMode { get; set; }
         public static bool RenderFails { get; set; }
+        public static Func<string, Exception?>? DecodeError { get; set; }
         public static int Renders { get; private set; }
 
         public static Task<HeroPictureLoader.HeroPixels?> DecodePixelsAsync(byte[] bytes, int maxWidth, CancellationToken token)
@@ -24,6 +25,7 @@ namespace Momoka.Shell.Media
             token.ThrowIfCancellationRequested();
             Decodes++;
             Requests.Add((Encoding.UTF8.GetString(bytes), maxWidth));
+            if (DecodeError?.Invoke(Encoding.UTF8.GetString(bytes)) is { } error) throw error;
             return Task.FromResult<HeroPictureLoader.HeroPixels?>(new(bytes, maxWidth, Math.Max(1, maxWidth * 9 / 16)));
         }
 
@@ -68,6 +70,7 @@ namespace Momoka.Shell.Media
             HoldRender = null;
             HoldByMode = null;
             RenderFails = false;
+            DecodeError = null;
             Requests.Clear();
         }
     }

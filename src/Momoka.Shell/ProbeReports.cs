@@ -116,7 +116,7 @@ internal sealed class ShellProbeReport
     private sealed record Skipped(string Section, string Name);
 
     internal Task RunAsync(Func<Task> run, bool inspect, Action dispose, Action exit, Action<int> setExitCode) =>
-        ProbeFinalization.RunAsync(run, () => inspect || _checks.Count > 0 && _checks.All(check => check.Passed),
+        ProbeFinalization.RunAsync(run, () => (inspect || _checks.Count > 0) && _checks.All(check => check.Passed),
             Save, error => _checks.Add(new Check("探针宿主", false, error.ToString())),
             dispose, exit, setExitCode, SaveScope);
 

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
+using System.ComponentModel;
 using Momoka.Configuration;
 using Momoka.Danmaku;
 using Momoka.Emby;
@@ -10,6 +11,67 @@ internal static class Program
 {
     private static int Main()
     {
+        Momoka.Tests.TestHarness.Test("R14-004 current panel refreshes sources after connection changes", () =>
+        {
+            var endpoint = new PanelEndpoint();
+            var panel = new Panel(endpoint);
+            panel.SeedForTest();
+            endpoint.Sources = [new("danmu_api", DanmakuSource.DanmuApi)];
+            endpoint.DanmakuConnectionVersion++;
+            panel.ConnectionChanged();
+            Momoka.Tests.Assert.Equal(DanmakuSource.DanmuApi, panel.SelectedSource);
+            Momoka.Tests.Assert.Equal("搜索danmu_api", panel.SearchLabel);
+        });
+        foreach (var valid in new[] { false, true })
+            Momoka.Tests.TestHarness.Test("R14-006 missing custom endpoint hides dependent settings " + valid, () =>
+            {
+                var settings = Settings();
+                settings.Danmaku.Source = DanmakuSourceMode.DanmuApi;
+                settings.Danmaku.DanmuApiBaseUrl = valid ? "https://source.invalid/" : "";
+                var labels = new SettingsRows(settings).Labels();
+                Momoka.Tests.Assert.True(labels.Contains("启用弹幕") && labels.Contains("弹幕来源") && labels.Contains("danmu_api 地址"));
+                Momoka.Tests.Assert.Equal(valid, labels.Contains("自动匹配弹幕"));
+                Momoka.Tests.Assert.Equal(valid, labels.Contains("弹幕字体"));
+            });
+        Momoka.Tests.TestHarness.Test("R14-005 closing an old panel does not cancel resident replacement search", () =>
+        {
+            var endpoint = new PanelEndpoint();
+            var panel = new Panel(endpoint);
+            panel.Close();
+            Momoka.Tests.Assert.Equal(0, endpoint.Cancellations);
+        });
+        Momoka.Tests.TestHarness.Test("R14-005 close cancels only its own pending search token", () =>
+        {
+            using var context = new QueueContext();
+            SynchronizationContext.SetSynchronizationContext(context);
+            var endpoint = new PanelEndpoint();
+            var panel = new Panel(endpoint);
+            panel.StartSearch();
+            panel.Close();
+            Momoka.Tests.Assert.True(endpoint.SearchToken.IsCancellationRequested);
+            Momoka.Tests.Assert.Equal(0, endpoint.Cancellations);
+            endpoint.CompleteSearch(new(10001, "late", "one"));
+            context.Drain();
+            Momoka.Tests.Assert.Equal(0, panel.Count);
+        });
+        Momoka.Tests.TestHarness.Test("R14-003 service off/on keeps current draft while revoking send context", () =>
+        {
+            var settings = Settings();
+            settings.Danmaku.AutoMatch = false;
+            var host = new Host(settings);
+            host.Seed(new(10001, "anonymous", "one"));
+            host.DanmakuDraft = "draft";
+            var original = host.InputContext;
+            settings.Danmaku.Enabled = false;
+            host.Change();
+            Momoka.Tests.Assert.Equal("draft", host.DanmakuDraft);
+            Momoka.Tests.Assert.True(original != host.InputContext);
+            settings.Danmaku.Enabled = true;
+            host.Change();
+            Momoka.Tests.Assert.Equal("draft", host.DanmakuDraft);
+            host.ResetForNewVideo();
+            Momoka.Tests.Assert.Equal("", host.DanmakuDraft);
+        });
         foreach (var switched in new[] { false, true })
             Momoka.Tests.TestHarness.Test($"danmaku source late search switched={switched}", () =>
             {
@@ -137,18 +199,27 @@ internal sealed class Control
     public string Text { get; set; } = "anonymous title";
     public object? Content { get; set; }
     public object? SelectedItem { get; set; }
+    public object? ItemsSource { get; set; }
+    public string? DisplayMemberPath { get; set; }
+    public int SelectedIndex { get; set; }
 }
 
 internal sealed class PanelEndpoint
 {
+    internal bool DanmakuShown => true;
+    internal bool DanmakuAvailable => true;
+    internal IReadOnlyList<DanmakuSourceOption> Sources { get; set; } = [new("弹弹play", DanmakuSource.DandanPlay)];
+    internal IReadOnlyList<DanmakuSourceOption> DanmakuSearchSources() => Sources;
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged { add { } remove { } }
     private readonly TaskCompletionSource<DandanPlaySearchResult> _pending = new();
     internal int DanmakuConnectionVersion { get; set; }
     internal DanmakuSource SearchSource { get; private set; }
     internal DanmakuSource? LoadSource { get; private set; }
     internal long? LoadedId { get; private set; }
     internal int Cancellations { get; private set; }
-    internal Task<DandanPlaySearchResult> SearchDanmakuAsync(string title, string episode, DanmakuSource source)
-    { SearchSource = source; return _pending.Task; }
+    internal CancellationToken SearchToken { get; private set; }
+    internal Task<DandanPlaySearchResult> SearchDanmakuAsync(string title, string episode, DanmakuSource source, CancellationToken cancellationToken)
+    { SearchSource = source; SearchToken = cancellationToken; return _pending.Task; }
     internal Task LoadDanmakuAsync(DandanPlayEpisode episode, DanmakuSource source)
     { LoadSource = source; LoadedId = episode.EpisodeId; return Task.CompletedTask; }
     internal void CompleteSearch(DandanPlayEpisode episode) => _pending.SetResult(new([episode], false));
@@ -159,8 +230,14 @@ internal sealed partial class Panel(PanelEndpoint endpoint)
 {
     private readonly PanelEndpoint? _viewModel = endpoint;
     private readonly ObservableCollection<DandanPlayEpisode> _results = [];
-    private readonly bool _closed = false;
-    private readonly bool _sourceSeeding = false;
+    private bool _closed = false;
+    private CancellationTokenSource? _searchCancellation;
+    private bool _sourceSeeding = false;
+    private void Seed() { }
+    internal void SeedForTest() => SeedSources(_viewModel!);
+    internal void ConnectionChanged() => OnPlayerChanged(_viewModel, new(nameof(PanelEndpoint.DanmakuConnectionVersion)));
+    internal DanmakuSource SelectedSource => _searchSource;
+    internal string SearchLabel => SearchButton.Content?.ToString() ?? "";
     private int _searchRequest;
     private DanmakuSource _searchSource;
     private DanmakuSource? _resultsSource;
@@ -179,6 +256,15 @@ internal sealed partial class Panel(PanelEndpoint endpoint)
 
 internal sealed partial class Host(AppSettings settings)
 {
+    private string _danmakuInputContext = "original";
+    private readonly HashSet<string> _danmakuNativeRequests = [];
+    private CancellationTokenSource? _danmakuSend;
+    private bool _preserveDanmakuDraft;
+    private bool DanmakuSending;
+    internal string DanmakuDraft { get; set; } = "";
+    private string DanmakuSendStatus = "";
+    internal string InputContext => _danmakuInputContext;
+    internal void ResetForNewVideo() => ResetDanmakuInput();
     private AppSettings Settings { get; } = settings;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly EmbyItem? _nowPlaying = new() { Type = EmbyItemType.Movie, Name = "anonymous movie" };
@@ -213,8 +299,9 @@ internal sealed partial class Host(AppSettings settings)
     internal void SeedDandan(DandanPlayEpisode episode) => _danmakuEpisode = episode;
     internal void Change() => DanmakuSettingsChanged();
     private void RefreshDanmakuProperties() { }
+    private void OnPropertyChanged(string name) { }
     private void CancelDanmakuRequests() { }
-    private void ResetDanmakuInput() { }
+    private void RefreshDanmakuInput() { _ = DanmakuSending; _ = DanmakuSendStatus; _ = _preserveDanmakuDraft; }
     private Task ClearDanmakuAsync() => Task.CompletedTask;
     private Task PingDanmakuAsync() => Task.CompletedTask;
     private Task LoadSourcesAsync(IReadOnlyList<(DanmakuSource Source, DandanPlayEpisode Episode)> selections)

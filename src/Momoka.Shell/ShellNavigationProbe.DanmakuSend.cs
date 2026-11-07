@@ -142,6 +142,7 @@ internal sealed partial class ShellNavigationProbe
         {
             Field(playback, "_current", null);
             page.Detach();
+            page.Shutdown();
             _root.Children.Remove(page);
             page.ReleaseVideoSurface();
             await vm.ShutdownAsync();

@@ -30,7 +30,13 @@ internal static class PlayerMotionProbe
         var foreground = Native.GetForegroundWindow();
         try
         {
+            ExitCode = 1;
             await RunScoped(options);
+        }
+        catch (Exception error)
+        {
+            ExitCode = 1;
+            Log.Error("播放器动效诊断", "报告或运行未完成", error);
         }
         finally
         {
@@ -1040,29 +1046,38 @@ internal static class PlayerMotionProbe
         }
         catch (Exception error)
         {
+            ExitCode = 1;
             Write($"结果：失败：{error}");
         }
         finally
         {
-            try
+            if (handle is not null)
             {
-                if (handle is not null)
-                {
-                    await handle.StopAsync();
-                    await handle.DisposeAsync();
-                }
-                shell?.Shutdown();
-                if (window is not null)
-                {
-                    window.Closed -= stopping.Cancel;
-                    window.Dispose();
-                }
-                if (services is not null) await services.DisposeAsync();
+                await AttemptAsync(handle.StopAsync);
+                await AttemptAsync(async () => await handle.DisposeAsync());
             }
-            catch (Exception error)
+            Attempt(() => shell?.Shutdown());
+            if (window is not null)
+            {
+                window.Closed -= stopping.Cancel;
+                Attempt(window.Dispose);
+            }
+            if (services is not null) await AttemptAsync(async () => await services.DisposeAsync());
+
+            async Task AttemptAsync(Func<Task> cleanup)
+            {
+                try { await cleanup(); }
+                catch (Exception error) { Failed(error); }
+            }
+            void Attempt(Action cleanup)
+            {
+                try { cleanup(); }
+                catch (Exception error) { Failed(error); }
+            }
+            void Failed(Exception error)
             {
                 ExitCode = 1;
-                Write($"清理失败：{error}");
+                Log.Error("播放器动效诊断", "清理未完成", error);
             }
         }
 

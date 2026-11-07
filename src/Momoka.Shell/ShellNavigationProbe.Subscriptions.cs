@@ -451,8 +451,11 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
-            await File.WriteAllLinesAsync(Path.Combine(_options.Paths.LogDirectory, "mp-subscription-related-layout.txt"), relatedReadings);
-            page.Release(); _root.Children.Remove(page); ResizeInspect(1420, 980);
+            try { await File.WriteAllLinesAsync(Path.Combine(_options.Paths.LogDirectory, "mp-subscription-related-layout.txt"), relatedReadings); }
+            finally
+            {
+                page.Release(); _root.Children.Remove(page); ResizeInspect(1420, 980);
+            }
         }
     }
 

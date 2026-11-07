@@ -571,6 +571,7 @@ internal static partial class ShellSelfCheck
         // leaves the previous report on disk, and a passing report from twenty minutes ago is worse than
         // no report at all: it reads as "this build is fine" when the build under test never finished.
         ExitCode = 1;
+        _requiredEvidenceFailed = false;
         Write(options.Paths, "selfcheck-shell.txt", $"""
             {AppIdentity.TitleWithVersion} — WinUI 3 外壳自检
             时间：{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}
@@ -608,6 +609,7 @@ internal static partial class ShellSelfCheck
                 }
                 catch (Exception error)
                 {
+                    _requiredEvidenceFailed = true;
                     Log.Warn(Category, "媒体库卡片状态截图失败", error);
                 }
                 finally

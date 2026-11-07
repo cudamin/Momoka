@@ -59,6 +59,7 @@ public sealed partial class NotificationsViewModel : PageViewModel
     private bool _stopReportSeeded;
     private EmbySessionScope? _scope;
     private CancellationTokenSource? _lifetime;
+    private bool _confirmedCreateNeedsRefresh;
 
     internal string? SourceKey { get; private set; }
 
@@ -99,6 +100,7 @@ public sealed partial class NotificationsViewModel : PageViewModel
     public Visibility EmptyVisibility => Show(ShowEmpty);
 
     public bool CanRun => !Busy && Live;
+    public bool CanAdd => CanRun && !_confirmedCreateNeedsRefresh;
 
     /// <summary>把编辑器弹出来的那一位。编辑器要页面的 <c>XamlRoot</c>，所以由页面指派 —— 同 <see cref="PageViewModel.UseConfirm"/>
     /// 的道理，不造接口。</summary>
@@ -119,6 +121,7 @@ public sealed partial class NotificationsViewModel : PageViewModel
     {
         Cancel();
         _lifetime = new CancellationTokenSource();
+        _confirmedCreateNeedsRefresh = false;
         SourceKey = sourceKey;
         _scope = sourceKey is { Length: > 0 }
             ? session.Sources.FirstOrDefault(source => string.Equals(source.Key, sourceKey, StringComparison.Ordinal))
@@ -197,6 +200,7 @@ public sealed partial class NotificationsViewModel : PageViewModel
             if (!IsCurrent(token)) return;
 
             Categories = typesTask.Result;
+            _confirmedCreateNeedsRefresh = false;
             var names = EventsLookup();
 
             Entries.Clear();
@@ -242,10 +246,10 @@ public sealed partial class NotificationsViewModel : PageViewModel
         DeleteCommand.NotifyCanExecuteChanged();
     }
 
-    [RelayCommand(CanExecute = nameof(CanRun))]
+    [RelayCommand(CanExecute = nameof(CanAdd))]
     private async Task AddNotificationAsync()
     {
-        if (!CanRun) return;
+        if (!CanAdd) return;
         var scope = _scope!;
         var token = _lifetime!.Token;
         Busy = true;
@@ -361,7 +365,15 @@ public sealed partial class NotificationsViewModel : PageViewModel
                 EnsureCurrent(scope, token);
                 await scope.ExecuteAsync((client, ct) => client.SaveNotificationAsync(saved, ct), token).ConfigureAwait(true);
                 EnsureCurrent(scope, token);
+                if (isNew) { _confirmedCreateNeedsRefresh = true; AddNotificationCommand.NotifyCanExecuteChanged(); }
+                else if (saved.Id is { Length: > 0 } savedId)
+                {
+                    var index = Entries.ToList().FindIndex(row => string.Equals(row.Info.Id, savedId, StringComparison.Ordinal));
+                    if (index >= 0) Entries[index] = new NotificationRow(saved.Clone(), Summarize(saved, EventsLookup()), this);
+                }
                 await ReloadAsync().ConfigureAwait(true);
+                if (Current(scope, token) && NoticeSeverity == InfoBarSeverity.Error)
+                    Notify("已保存，刷新失败", "服务器已确认本次保存；保留已确认内容。请刷新后再添加新通知。", InfoBarSeverity.Warning);
             },
             TestAsync: async tested =>
             {

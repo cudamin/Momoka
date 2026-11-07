@@ -532,6 +532,25 @@ internal static class DanmakuTests
             Assert.Equal(1, posts);
         }));
 
+        Test("R14-001：删除被拒的凭据缓存不复活，落盘失败仍使用新身份", () => InBuiltInFixture(fixture =>
+        {
+            var credentials = 0;
+            fixture.Transport.Response = request => request.Uri.Host == "credential.test"
+                ? CredentialReply("builtin-app", ++credentials == 1 ? "old-secret" : "new-secret", fixture.Now)
+                : Reply(Search);
+            Assert.Equal("old-secret", fixture.BuiltIn!.GetAsync().GetAwaiter().GetResult().Secret);
+            var cache = Path.Combine(Path.GetDirectoryName(fixture.Cache)!, "builtin-credential.bin");
+            using (var locked = new FileStream(cache, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                fixture.BuiltIn.Invalidate();
+                Assert.True(File.Exists(cache));
+                Assert.Equal("new-secret", fixture.BuiltIn.GetAsync().GetAwaiter().GetResult().Secret);
+                Assert.Equal(2, credentials);
+                Assert.Equal("new-secret", fixture.BuiltIn.GetAsync().GetAwaiter().GetResult().Secret);
+                Assert.Equal(2, credentials);
+            }
+        }));
+
         Test("弹弹play：内置凭据端点失败时不请求弹幕接口", () => InBuiltInFixture(fixture =>
         {
             fixture.Transport.Response = request => request.Uri.Host == "credential.test"
@@ -644,6 +663,12 @@ internal static class DanmakuTests
         {
             var payload = JsonSerializer.Serialize(new { context = new string('a', 32), requestId = "1", text = "中文; quit" });
             Assert.Equal("中文; quit", MpvDanmaku.ParseSend(payload)!.Text);
+            var invalidText = JsonSerializer.Serialize(new { context = new string('a', 32), requestId = "recoverable", text = "bad\u0080" });
+            Assert.Null(MpvDanmaku.ParseSend(invalidText));
+            var parseEnvelope = typeof(MpvDanmaku).GetMethod("ParseSendEnvelope");
+            Assert.NotNull(parseEnvelope);
+            var envelope = parseEnvelope!.Invoke(null, [invalidText]);
+            Assert.NotNull(envelope);
             Assert.NotNull(VideoWindowContract.Parse([MpvDanmaku.Send, payload]));
             foreach (var invalid in new[] { "[]", "{}", "bad", new string('a', 2049),
                 JsonSerializer.Serialize(new { context = "old", requestId = "1", text = "测试" }),

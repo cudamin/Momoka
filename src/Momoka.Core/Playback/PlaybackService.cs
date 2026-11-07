@@ -43,6 +43,8 @@ public sealed partial class PlaybackService(
     private PlayOperation? _latestRequest;
     private volatile IPlaybackHandle? _current;
     private volatile PlayingAttempt? _active;
+    private sealed record PlayingItem(long Generation, EmbyItem? Item);
+    private volatile PlayingItem? _playingItem;
     private readonly SemaphoreSlim _audioDelayGate = new(1, 1);
     private readonly SemaphoreSlim _subtitleDelayGate = new(1, 1);
     private readonly SemaphoreSlim _volumeCommandGate = new(1, 1);
@@ -70,6 +72,8 @@ public sealed partial class PlaybackService(
     public long Generation => Interlocked.Read(ref _playbackGeneration);
     public bool IsPlaying => _current is not null;
     public long? ActiveFileGeneration => (_current as IFileScopedPlayerControl)?.FileGeneration;
+    public EmbyItem? NowPlaying => _current is not null && _playingItem is { } item && item.Generation == Generation
+        ? item.Item : null;
     public bool? PictureInHostWindow => _current?.PictureInHostWindow;
     public MpvBackendKind? PlayingBackend => _active?.BackendKind;
     public bool PlayingWithSvp => _active?.Request.SvpEnabled == true;
@@ -143,6 +147,7 @@ public sealed partial class PlaybackService(
 
     private void RaiseNowPlaying(EmbyItem? item, long generation)
     {
+        if (generation == Generation) _playingItem = new(generation, item);
         Raise(NowPlayingUpdated, new PlaybackUpdate<EmbyItem?>(generation, item));
         Raise(NowPlayingChanged, item);
     }

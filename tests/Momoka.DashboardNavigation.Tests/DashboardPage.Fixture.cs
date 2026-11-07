@@ -10,6 +10,7 @@ public sealed partial class DashboardPage
 {
     // Value and owner boundaries only. Attach/Start/login/credential seeding are deliberately not run.
     private readonly WebView2 Web;
+    private readonly CoreWebView2 _fixtureCore;
     private readonly VisualValue NoticePanel = new() { Visibility = Visibility.Collapsed };
     private readonly VisualValue Notice = new();
     private readonly VisualValue Readout = new();
@@ -17,7 +18,9 @@ public sealed partial class DashboardPage
     internal DashboardPage(CoreWebView2 core, EmbySessionScope scope, string? sourceKey)
     {
         Web = new(core);
+        _fixtureCore = core;
         _scope = scope;
+        _session = null;
         _sourceKey = sourceKey;
         _launcher = new ForbiddenLauncher();
         _request = new object();
@@ -35,6 +38,8 @@ public sealed partial class DashboardPage
     internal string FixtureReadout => Readout.Text;
     internal int FixtureGeneration => _generation;
     internal void FixtureRefresh() => OnRefresh(Web, new());
+    internal void FixtureSeed(string token) { FixtureCore.DocumentSeeds.Add("initial", "seed " + token); _signInScript = "initial"; }
+    internal CoreWebView2 FixtureCore => _fixtureCore;
     internal Task FixtureSample() => SampleAsync(_generation);
     internal Task FixtureWatchdog(int generation) => GiveUpAsync(generation);
     internal void FixtureShowOldNotice()

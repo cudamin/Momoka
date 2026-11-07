@@ -38,6 +38,10 @@ public sealed class CoreWebView2
     internal Exception? InlineFailure { get; set; }
     internal List<NavigationCall> Navigations { get; } = [];
     internal List<ScriptCall> Scripts { get; } = [];
+    internal Dictionary<string, string> DocumentSeeds { get; } = [];
+    public Task<string> AddScriptToExecuteOnDocumentCreatedAsync(string script)
+    { var id = Guid.NewGuid().ToString(); DocumentSeeds.Add(id, script); return Task.FromResult(id); }
+    public void RemoveScriptToExecuteOnDocumentCreated(string id) => DocumentSeeds.Remove(id);
     internal int NewWindowSubscribers => _newWindow?.GetInvocationList().Length ?? 0;
     internal int CloseCount { get; private set; }
     public event Action<CoreWebView2, CoreWebView2NewWindowRequestedEventArgs> NewWindowRequested

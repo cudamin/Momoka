@@ -35,8 +35,10 @@ function DanmakuInput:set_state(json)
 	local value = parse(json)
 	if not value or type(value.context) ~= 'string' or #value.context > 256 then return end
 	if value.context ~= self.context then
+		local draft = value.preserveDraft == true and self.text or ''
 		self:reset()
 		self.context = value.context
+		self.text, self.position = draft, #draft
 	end
 	self.visible = value.visible == true and self.context ~= ''
 	self.can_send, self.busy = value.canSend == true, value.busy == true
@@ -81,7 +83,7 @@ end
 
 function DanmakuInput:insert(text)
 	if not self.focused or type(text) ~= 'string' then return end
-	text = text:gsub('[\r\n\t]', ' '):gsub('[%z\1-\31\127]', '')
+	text = text:gsub('[\r\n\t]', ' '):gsub('[%z\1-\31\127]', ''):gsub('\194[\128-\159]', '')
 	local head = self.selected_all and '' or self.text:sub(1, self.position)
 	local tail = self.selected_all and '' or self.text:sub(self.position + 1)
 	local remaining, parts = 100 - utf16_length(head .. tail), {}

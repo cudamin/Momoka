@@ -597,6 +597,7 @@
                                 x:Name="ManualValue"
                                 AutomationProperties.Name="{x:Bind Label}"
                                 IsEnabled="{x:Bind InputEnabled, Mode=OneWay}"
+                                Visibility="{x:Bind InputVisibility, Mode=OneWay}"
                                 Minimum="{x:Bind Minimum}"
                                 Maximum="{x:Bind Maximum}"
                                 SpinButtonPlacementMode="Hidden"
@@ -755,7 +756,7 @@
                                     OffContent="隐藏"
                                     OnContent="显示" />
                                 <TextBlock Style="{StaticResource EgSettingNote}" TextWrapping="Wrap"
-                                    Text="关闭后隐藏 AniBT 识别、AniBT 搜索和版本来源入口；MoviePilot 其他功能不受影响。" />
+                                    Text="关闭后隐藏 AniBT 识别、AniBT 搜索和版本来源入口；MoviePilot 其他功能不受影响。" Visibility="{x:Bind SupportingNotesVisibility, Mode=OneWay}" />
                             </StackPanel>
 
                             <!--
@@ -841,7 +842,7 @@
                                 <local:MoviePilotSitePicker x:Name="DefaultSearchSites" Label="默认搜索站点"
                                     ViewModel="{x:Bind SearchSites}" />
                                 <TextBlock Style="{StaticResource EgSettingNote}" TextWrapping="Wrap"
-                                    Text="搜索时默认使用的站点。在搜索框里改选也会记住，这一行跟着变。" />
+                                    Text="搜索时默认使用的站点。在搜索框里改选也会记住，这一行跟着变。" Visibility="{x:Bind SupportingNotesVisibility, Mode=OneWay}" />
                             </StackPanel>
                         </StackPanel>
                     </Grid>
@@ -1045,7 +1046,7 @@
                             <TextBlock
                                 Style="{StaticResource EgSettingNote}"
                                 Text="{x:Bind Note}"
-                                TextWrapping="Wrap" />
+                                TextWrapping="Wrap" Visibility="{x:Bind SupportingNotesVisibility, Mode=OneWay}" />
                         </StackPanel>
                     </Grid>
                 </DataTemplate>
@@ -1278,7 +1279,7 @@
                         <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
                         <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind Note}"
                             TextWrapping="Wrap" Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
-                        <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind PriorityHint}" TextWrapping="Wrap" />
+                        <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind PriorityHint}" TextWrapping="Wrap" Visibility="{x:Bind SupportingNotesVisibility, Mode=OneWay}" />
 
                         <ListView x:Name="PriorityRulesList" Tag="{x:Bind}"
                             ItemsSource="{x:Bind Rules}" MaxHeight="420"

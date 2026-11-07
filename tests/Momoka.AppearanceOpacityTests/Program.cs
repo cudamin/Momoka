@@ -371,6 +371,27 @@ Check("按钮全程单调增加且100档消除颜色和画刷双重透明", () =
     if (zero.FallbackColor.A != 0)
         throw new InvalidOperationException("非法值没有回到零档：零档不该有底色");
 });
+Check("R16-001主页详情按钮零档不绘制亚克力或系统回退实底", () =>
+{
+    var resources = new ResourceDictionary
+    {
+        ["EgBannerGhostRestBrush"] = new SolidColorBrush { Color = 0x20F3F5F8 },
+        ["EgBannerGhostHoverBrush"] = new SolidColorBrush { Color = 0x38F3F5F8 },
+        ["EgBannerGhostPressBrush"] = new SolidColorBrush { Color = 0x50F3F5F8 }
+    };
+    var control = new Button();
+    var backgrounds = ControlBackgroundBrushes.ForBanner(control, resources);
+    foreach (var value in new[] { 0d, 50d, 100d, 0d })
+    {
+        backgrounds.Apply(value, useAcrylic: true);
+        var rest = (AcrylicBrush)control.Resources["ButtonBackground"];
+        if (value == 0)
+        {
+            Equal(0, rest.Opacity);
+            if (!rest.AlwaysUseFallback) throw new InvalidOperationException("zero still composes acrylic");
+        }
+    }
+});
 Check("薄白背景增强到100仍为深色且三态保持差别", () =>
 {
     var bannerResources = new ResourceDictionary
@@ -495,10 +516,8 @@ Check("材质切换不重写资源键，亚克力100档回实底", () =>
         ?? throw new InvalidOperationException("缺少可切换的亚克力背景");
     var keys = control.Resources.Keys.ToArray();
     method.Invoke(brushes, [0d, true, null, 0.55, 0.55]);
-    if (control.Background is not AcrylicBrush { AlwaysUseFallback: false } glass)
-        throw new InvalidOperationException("亚克力选项没有启用实际材质");
-    Equal(0.55, glass.TintOpacity);
-    Equal(0.55, glass.TintLuminosityOpacity ?? -1);
+    if (control.Background is not AcrylicBrush { AlwaysUseFallback: true } glass)
+        throw new InvalidOperationException("零档仍启用实际材质");
     Equal(0, glass.Opacity);
     method.Invoke(brushes, [100d, true, null, 0.55, 0.55]);
     if (!glass.AlwaysUseFallback || glass.FallbackColor.A != 255 || glass.Opacity != 1)

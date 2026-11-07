@@ -120,10 +120,13 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
-            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "home-button-edges.txt"), reads);
-            _root.Children.Remove(holder);
-            ThemeHost.Apply(savedTheme);
-            _window.TopMost = savedTopMost;
+            try { File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "home-button-edges.txt"), reads); }
+            finally
+            {
+                _root.Children.Remove(holder);
+                ThemeHost.Apply(savedTheme);
+                _window.TopMost = savedTopMost;
+            }
         }
     }
 }

@@ -417,10 +417,13 @@ internal sealed partial class ShellNavigationProbe
         finally
         {
             if (_window?.IsMaximized == true) _window.ToggleMaximize();
-            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-episode-band.txt"), readings);
-            (frame.Content as IShellContent)?.Release();
-            _root.Children.Remove(frame);
-            ResizeInspect(1420, 980);
+            try { File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-episode-band.txt"), readings); }
+            finally
+            {
+                (frame.Content as IShellContent)?.Release();
+                _root.Children.Remove(frame);
+                ResizeInspect(1420, 980);
+            }
         }
     }
 }

@@ -8,6 +8,31 @@ internal static class SettingsControlNameTests
 {
     internal static void Register()
     {
+        foreach (var editor in new[] { ("FnNasLibrariesPage.xaml", "FnNasLibraryEditorScroll"),
+            ("FnNasUsersPage.xaml", "FnNasUserEditorScroll"), ("FnNasSettingsPage.xaml", "FnNasSettingsScroll") })
+            Test("R15-002：原生管理保存期间正文不可编辑 " + editor.Item1, () =>
+            {
+                var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", editor.Item1));
+                var body = page.Descendants().Single(element => (string?)element.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")) == editor.Item2);
+                Assert.Equal("{x:Bind ViewModel.CanUse, Mode=OneWay}", (string?)body.Attribute("IsEnabled"));
+            });
+        Test("R15-006：四处功能说明消费统一NotesVisibility", () =>
+        {
+            var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "SettingsPage.xaml"));
+            var notes = page.Descendants().Where(element => element.Name.LocalName == "TextBlock"
+                && ((string?)element.Attribute("Text") is { } text && (text.StartsWith("关闭后隐藏 AniBT", StringComparison.Ordinal)
+                    || text.StartsWith("搜索时默认使用的站点", StringComparison.Ordinal) || text == "{x:Bind PriorityHint}"
+                    || element.Ancestors().Any(parent => parent.Name.LocalName == "DataTemplate" && ((string?)parent.Attribute(XName.Get("DataType", "http://schemas.microsoft.com/winfx/2006/xaml"))) == "vm:SettingSubtitlePreviewRow") && text == "{x:Bind Note}"))).ToList();
+            Assert.Equal(4, notes.Count);
+            foreach (var note in notes) Assert.Equal("{x:Bind SupportingNotesVisibility, Mode=OneWay}", (string?)note.Attribute("Visibility"));
+        });
+        Test("R15-007：自动数值隐藏手动框并保留恢复开关", () =>
+        {
+            var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "SettingsPage.xaml"));
+            var manual = page.Descendants().Single(element => element.Name.LocalName == "NumberBox" &&
+                (string?)element.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")) == "ManualValue");
+            Assert.Equal("{x:Bind InputVisibility, Mode=OneWay}", (string?)manual.Attribute("Visibility"));
+        });
         foreach (var shape in new[] { "Slider", "Color" })
             Test("设置具体名称：" + shape + " 模板与资源不丢失当前行标签", () =>
             {

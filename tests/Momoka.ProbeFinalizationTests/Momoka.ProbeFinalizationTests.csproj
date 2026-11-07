@@ -25,6 +25,14 @@
             <NavigationSource ParameterType="System.String" Required="true" />
             <InspectSource ParameterType="System.String" Required="true" />
             <ProgramSource ParameterType="System.String" Required="true" />
+            <ReadsSource ParameterType="System.String" Required="true" />
+            <ThemeSource ParameterType="System.String" Required="true" />
+            <PagesSource ParameterType="System.String" Required="true" />
+            <TransportSource ParameterType="System.String" Required="true" />
+            <PerformanceSource ParameterType="System.String" Required="true" />
+            <CompositionSource ParameterType="System.String" Required="true" />
+            <MotionSource ParameterType="System.String" Required="true" />
+            <ButtonEdgesSource ParameterType="System.String" Required="true" />
             <OutputSource ParameterType="System.String" Required="true" />
         </ParameterGroup>
         <Task>
@@ -90,6 +98,46 @@
                 var program = File.ReadAllText(ProgramSource).Replace("\r\n", "\n");
                 var exit = between(program, "            return options.ProbeShell ?", "\n        }\n        catch (Exception error)");
                 generated += "\ninternal static class ProgramExitFixture\n{\n    internal static int Exit(StartupOptions options)\n    {\n" + exit + "\n    }\n}\n";
+                var reads = File.ReadAllText(ReadsSource).Replace("\r\n", "\n");
+                var theme = File.ReadAllText(ThemeSource).Replace("\r\n", "\n");
+                var placement = between(reads, "    private static (bool Ok, string Detail) ReportRememberedWindow(", "\n    /// <summary>");
+                var sample = between(theme, "    private static ScreenReading SampleScreen(", "\n    private static void Dump(");
+                var commands = between(reads, "    private static async Task<(bool Ok, string Detail)?> ProbeCommandsAsync(", "\n}\n");
+                generated += "\ninternal static partial class VerificationReadsFixture\n{\n" +
+                    placement.Replace("private static (bool Ok, string Detail)", "internal static (bool Ok, string Detail)") +
+                    "\n    internal sealed record ScreenReading(bool Rendered, string Detail);\n" +
+                    sample.Replace("private static ScreenReading", "internal static ScreenReading") + "\n}\n";
+                generated += "\ninternal static partial class CommandReadsFixture\n{\n" + commands
+                    .Replace("private static async", "internal static async")
+                    .Replace("services.GetRequiredService<EmbySession>()", "((CommandServiceProvider)services).Session") + "\n}\n";
+                var pages = File.ReadAllText(PagesSource).Replace("\r\n", "\n");
+                var seasonsReport = between(pages, "    private static void ReportSeasons(", "\n}\n");
+                var seasonFailure = between(reads, "            Log.Warn(Category, \"季自检探针出错\", error);", "\n        }\n    }\n\n    /// <summary>");
+                generated += "\ninternal static partial class SeasonReadsFixture\n{\n" + seasonsReport
+                    .Replace("private static void", "internal static void") +
+                    "\n    private static SeasonState Failed(Exception error)\n    {\n" + seasonFailure + "\n    }\n}\n";
+                generated = "using Momoka.Configuration;\nusing Momoka.Playback;\nusing Momoka.Emby;\n" + generated;
+                var transport = File.ReadAllText(TransportSource).Replace("\r\n", "\n");
+                var transportFinally = between(transport, "            _window!.Fullscreen = false;\n            _root.Children.Remove(page);", "\n        }\n    }\n}") ;
+                var performance = File.ReadAllText(PerformanceSource).Replace("\r\n", "\n");
+                var renderWait = between(performance, "            var rendered = Pending<bool>();", "\n\n            page.Release();");
+                generated += "\ninternal sealed partial class ProbeLifetimeFixture\n{\n" +
+                    "    internal async Task CloseTransportAsync()\n    {\n        var page = Page;\n        var vm = Vm;\n" + transportFinally + "\n        await Task.CompletedTask;\n    }\n" +
+                    "    internal async Task WaitForRenderAsync()\n    {\n        var run = Run;\n" + renderWait + "\n    }\n}\n";
+                var composition = File.ReadAllText(CompositionSource).Replace("\r\n", "\n");
+                var compositionTail = between(composition, "        finally\n        {\n            await ProbeFinalization.RunAsync", "\n\n        void Write(string message)");
+                generated += "\ninternal sealed partial class CompositionFinalizerFixture\n{\n" +
+                    "    internal async Task RunAsync()\n    {\n        var handle = Handle;\n        var page = Page;\n        var window = Window;\n        var report = Report;\n        var stopping = Stopping;\n        var passed = true;\n        try { await Task.CompletedTask; }\n" +
+                    compositionTail + "\n        void Write(string message) => report.Write(message);\n    }\n}\n";
+                var motion = File.ReadAllText(MotionSource).Replace("\r\n", "\n");
+                var motionTail = between(motion, "        catch (Exception error)\n        {\n            ExitCode = 1;\n            Write($\"结果：失败：{error}\");", "\n\n        void Write(string message)");
+                generated += "\ninternal sealed partial class MotionFinalizerFixture\n{\n" +
+                    "    internal async Task RunAsync()\n    {\n        var handle = Handle;\n        var shell = Shell;\n        var window = Window;\n        var services = Services;\n        var stopping = Stopping;\n        try { ExitCode = 0; Write(\"success\"); }\n" + motionTail +
+                    "\n        void Write(string message) => Report.Write(message);\n    }\n}\n";
+                var buttonEdges = File.ReadAllText(ButtonEdgesSource).Replace("\r\n", "\n");
+                var buttonTail = between(buttonEdges, "        finally\n        {\n", "\n        }\n    }\n}");
+                generated += "\ninternal sealed partial class ButtonFinalizerFixture\n{\n" +
+                    "    internal void Run()\n    {\n        var reads = new[] { \"anonymous evidence\" };\n        var holder = new object();\n        var savedTheme = new object();\n        var savedTopMost = false;\n        try { }\n" + buttonTail + "\n        }\n    }\n}\n";
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
                     File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
@@ -104,6 +152,14 @@
             NavigationSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.cs"
             InspectSource="$(InspectOwnerSource)"
             ProgramSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Program.cs"
+            ReadsSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Reads.cs"
+            ThemeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Theme.cs"
+            PagesSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Pages.cs"
+            TransportSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.PlayerTransport.cs"
+            PerformanceSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.Performance.cs"
+            CompositionSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\CompositionPlaybackProbe.cs"
+            MotionSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\PlayerMotionProbe.cs"
+            ButtonEdgesSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.ButtonEdges.cs"
             OutputSource="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />
         <ItemGroup>
             <Compile Include="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />

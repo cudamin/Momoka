@@ -132,10 +132,19 @@ internal sealed class ControlBackgroundBrushes
                 copy.AlwaysUseFallback = !useAcrylic || strength is 0 or 1;
                 continue;
             }
+            if (amount == 0 && !_preserveDefault)
+            {
+                var clear = source.Color;
+                clear.A = 0;
+                copy.FallbackColor = feedback ? source.Color : clear;
+                copy.Opacity = feedback ? source.Opacity : 0;
+                copy.AlwaysUseFallback = true;
+                continue;
+            }
             if (useAcrylic && amount < 1)
             {
-                // 亚克力跟着同一档浓度：0 档是一块什么都不画的玻璃，向右补到 100 的实底（由下面那条路接手）。
-                // 滑块直接控制整层材质透明度；染色浓度固定，不再用染色冒充透明度。
+                // 非零中间档才启用亚克力；零档已走透明常态/保留反馈，100 档由下面的实底路径接手。
+                // 画刷本身保持不透明，系统关闭透明效果时 FallbackColor 仍是一块可读的主题表面。
                 var ink = tint ?? target.Color;
                 ink.A = byte.MaxValue;
                 copy.TintColor = ink;

@@ -365,6 +365,8 @@ internal sealed partial class ShellNavigationProbe
         finally
         {
             _root.Children.Remove(page);
+            page.Detach();
+            page.Shutdown();
             Field(playback, "_current", null);
             Field(playback, "_active", null);
             await vm.ShutdownAsync();

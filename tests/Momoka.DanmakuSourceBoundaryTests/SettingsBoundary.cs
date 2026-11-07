@@ -29,7 +29,7 @@ internal sealed partial class SettingsRows(AppSettings settings)
         [("弹弹play", DanmakuSourceMode.DandanPlay), ("danmu_api（自己部署）", DanmakuSourceMode.DanmuApi), ("两者合并", DanmakuSourceMode.Both)];
     private readonly ISecretProtector _secretProtector = new NoSecrets();
     private AppSettings Settings { get; } = settings;
-    private bool DanmakuReady => DandanPlayMatching.IsConfigured(Settings);
+    private bool DanmakuReady => DanmakuSourceRules.IsAvailable(Settings);
     internal string[] Labels() => DanmakuSections().SelectMany(s => s.Rows).Select(r => r.Label).ToArray();
     private static SettingRow Toggle(string label, string description, Func<bool> get, Action<bool> set, Action after) => new(label);
     private static SettingRow Choice<T>(string label, (string Label, T Value)[] choices, Func<T> get, Action<T> set, string description, Action after) => new(label);

@@ -1,5 +1,6 @@
 using System.Text;
 using Momoka.Infrastructure;
+using Momoka.Playback;
 
 namespace Momoka.Shell;
 
@@ -15,6 +16,7 @@ internal sealed record StartupOptions(AppPaths Paths)
     internal bool ProbePlayerMotion { get; init; }
     internal bool InspectShell { get; init; }
     internal bool InspectSubtitles { get; init; }
+    internal int Screen { get; init; } = -1;
     internal IReadOnlySet<string>? ProbeSections { get; init; }
     internal ProbeHostWindow Window { get; init; } = new();
     internal Func<Action<string, bool, string>, Task> SubtitleBody { get; init; } = _ => Task.CompletedTask;
@@ -27,6 +29,12 @@ internal static class PlayerMotionProbe { internal static int ExitCode => 14; }
 
 internal sealed class ProbeHostWindow : IDisposable
 {
+    internal IntPtr Handle { get; set; } = new(1);
+    internal IntPtr IslandHandle { get; set; } = new(2);
+    internal (WindowBounds Bounds, bool Maximized) Placement { get; set; }
+    internal (int Width, int Height) MinimumClientSize => (100, 100);
+    internal bool UsedSavedPlacement { get; set; }
+    internal static IReadOnlyList<WindowBounds> WorkAreas() => [new(0, 0, 1920, 1080)];
     internal int Disposed { get; private set; }
     public void Dispose() => Disposed++;
 }

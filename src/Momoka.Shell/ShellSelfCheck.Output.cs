@@ -107,6 +107,8 @@ internal static partial class ShellSelfCheck
         }
         catch (Exception error)
         {
+            _requiredEvidenceFailed = true;
+            ExitCode = 1;
             Log.Warn(Category, "界面截图失败", error);
         }
     }

@@ -36,6 +36,11 @@ internal static partial class Program
         RegisterActualProbeCallers();
         RegisterFinalizerBoundaries();
         RegisterInspectOwnership();
+        RegisterVerificationReads();
+        RegisterPlacementRead();
+        RegisterCommandReads();
+        RegisterProbeLifetimes();
+        RegisterCompositionFinalizer();
         var failures = 0;
         foreach (var (name, run) in Cases)
         {
@@ -66,6 +71,23 @@ internal static partial class Program
 
     private static void RegisterSelfCheck()
     {
+        Test("R17-004-required-capture-failure-survives-final-report", () =>
+        {
+            var paths = Paths("required-capture-failure");
+            ShellSelfCheck.FailRequiredEvidenceForFixture();
+            Ensure(ShellSelfCheck.CompleteForFixture(paths, "[通过] A\n结果：全部通过\n", 0), "final report can still persist");
+            Equal(1, ShellSelfCheck.ExitCode, "earlier required capture failure cannot be cleared by final report");
+            return Task.CompletedTask;
+        });
+        Test("R17-004-selfcheck-dump-tree-write-failure", async () =>
+        {
+            var paths = Paths("dump-tree-write-failure");
+            Directory.CreateDirectory(Path.Combine(paths.LogDirectory, "selfcheck-shell-tree.txt"));
+            var window = new ProbeWindow();
+            await ShellSelfCheck.RunScheduledForFixture(window, new(paths) { DumpUi = true });
+            Equal(1, ShellSelfCheck.ExitCode, "requested tree evidence failure is nonzero");
+            Equal(1, window.Closed, "failed tree evidence does not block close");
+        });
         Test("selfcheck-success", async () =>
         {
             var paths = Paths("selfcheck-success");
@@ -469,6 +491,14 @@ internal static partial class Program
             run.Verify(0);
             Equal(0, run.ShellChecks.Count, "inspect retains no-Case behavior only after reports persist");
         });
+        foreach (var ok in new[] { true, false })
+            Test("R17-007-shell-inspect-executed-" + ok, async () =>
+            {
+                var run = new ProbeRun(ProbeKind.Shell, Path.Combine(_output, "inspect-executed-" + ok));
+                await run.ExecuteAsync(() => run.RecordAsync(ok), inspect: true);
+                run.Verify(ok ? 0 : 1);
+                Equal(1, run.ShellChecks.Count, "executed inspect case still determines result");
+            });
         Test("shell-inspect-final-failure", async () =>
         {
             var run = new ProbeRun(ProbeKind.Shell, Path.Combine(_output, "shell-inspect-final-failure"));

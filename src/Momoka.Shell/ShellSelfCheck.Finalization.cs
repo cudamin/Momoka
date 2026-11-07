@@ -11,13 +11,14 @@ internal static partial class ShellSelfCheck
 
     /// <summary>0 only after every check passed and the final report was written. <c>Program</c> returns this code.</summary>
     public static int ExitCode { get; private set; } = 1;
+    private static bool _requiredEvidenceFailed;
 
     private static bool CompleteReport(AppPaths paths, string content, int failures,
         Action<string, string, Encoding>? writer = null)
     {
         ExitCode = 1;
         var written = Write(paths, "selfcheck-shell.txt", content, writer);
-        if (written && failures == 0) ExitCode = 0;
+        if (written && failures == 0 && !_requiredEvidenceFailed) ExitCode = 0;
         return written;
     }
 

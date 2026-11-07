@@ -51,6 +51,22 @@ internal static class DiagnosticsTests
 
     private static void RegisterVmHandoff()
     {
+        Test("R17-014 VM：起播后才进入诊断也读取当前标题，旧代次不能播种", () =>
+        {
+            using var fixture = new VmLogFixture(new RingBufferLogSink(8));
+            fixture.ViewModel.Detach();
+            fixture.SeedPlayback("anonymous current", 7);
+            fixture.Attach(fixture.Sink);
+            fixture.ReadPlayback();
+            Assert.Equal("anonymous current", fixture.ViewModel.NowPlaying);
+            fixture.AdvancePlayback(8);
+            fixture.Attach(fixture.Sink);
+            fixture.ReadPlayback();
+            Assert.DoesNotContain("anonymous current", fixture.ViewModel.NowPlaying);
+            fixture.SeedPlayback("anonymous replacement", 8);
+            fixture.ReadPlayback();
+            Assert.Equal("anonymous replacement", fixture.ViewModel.NowPlaying);
+        });
         Test("R061 VM：挂通知后刷新，放通知不再追加快照已有日志", () =>
         {
             using var fixture = new VmLogFixture(new RingBufferLogSink(8));
@@ -308,6 +324,22 @@ internal static class DiagnosticsTests
         public void RefreshLog() => typeof(DiagnosticsViewModel)
             .GetMethod("ReadLog", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(ViewModel, null);
 
+        internal void SeedPlayback(string title, long generation)
+        {
+            AdvancePlayback(generation);
+            typeof(PlaybackService).GetMethod("RaiseNowPlaying", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .Invoke(_playback, [new Momoka.Emby.EmbyItem { Name = title, Type = Momoka.Emby.EmbyItemType.Movie }, generation]);
+        }
+
+        internal void AdvancePlayback(long generation)
+        {
+            typeof(PlaybackService).GetField("_current", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_playback, new DiagnosticHandle());
+            typeof(PlaybackService).GetField("_playbackGeneration", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(_playback, generation);
+        }
+
+        internal void ReadPlayback() => typeof(DiagnosticsViewModel)
+            .GetMethod("ReadPlayback", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(ViewModel, [new PlayerStatus()]);
+
         public void AssertMatchesBuffer()
         {
             var snapshot = Sink.Snapshot();
@@ -335,6 +367,22 @@ internal static class DiagnosticsTests
         }
 
         public void Dispose() => ViewModel.Dispose();
+    }
+
+    private sealed class DiagnosticHandle : IPlaybackHandle
+    {
+        public bool HasControlChannel => false;
+        public bool IsPaused => false;
+        public event Action<bool>? PauseChanged { add { } remove { } }
+        public Task<double?> GetPositionAsync(CancellationToken cancellationToken) => Task.FromResult<double?>(null);
+        public Task<PlaybackExit> WaitForExitAsync(CancellationToken cancellationToken) => throw new InvalidOperationException("fixture never monitors media");
+        public Task StopAsync() => Task.CompletedTask;
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        public Task ShowMessageAsync(string message) => Task.CompletedTask;
+        public Task SetPropertyAsync(string name, object? value, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<MpvTrack>>([]);
+        public Task<double?> GetNumberAsync(string name, CancellationToken cancellationToken) => Task.FromResult<double?>(null);
+        public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
     }
 
     private sealed class ControlledLogDispatcher : IUiDispatcher

@@ -29,7 +29,7 @@ internal sealed class AnonymousSource : IDisposable
     private EmbySessionScope Add(string name, MediaServerKind kind)
     {
         var http = (EmbyHttp)typeof(EmbySession).GetField("_http", Members)!.GetValue(Session)!;
-        var connection = new EmbyConnection(new Uri("http://r019-" + name + ".invalid/emby/"), "",
+        var connection = new EmbyConnection(new Uri("http://r019-" + name + ".invalid/emby/"), "anonymous-token",
             "anonymous", "anonymous", "offline", _device)
         { ServerKind = kind };
         var identityType = typeof(EmbySessionScope).GetNestedType("Identity", BindingFlags.NonPublic)!;
@@ -47,6 +47,13 @@ internal sealed class AnonymousSource : IDisposable
         typeof(EmbySession).GetField("_current", Members)!.SetValue(Session, source);
 
     internal void SwitchDefault() => SetDefault(Add("other", Scope.Connection.ServerKind));
+    internal void ReplaceToken(string token)
+    {
+        var identity = Scope.GetType().GetProperty("IdentityState", Members)!.GetValue(Scope)!;
+        var client = (EmbyClient)identity.GetType().GetProperty("Client")!.GetValue(identity)!;
+        var http = (EmbyHttp)typeof(EmbySession).GetField("_http", Members)!.GetValue(Session)!;
+        identity.GetType().GetProperty("Client")!.SetValue(identity, new EmbyClient(http, client.Connection with { AccessToken = token }));
+    }
     internal void Revoke() => _lifetimes[0].Cancel();
 
     public void Dispose()

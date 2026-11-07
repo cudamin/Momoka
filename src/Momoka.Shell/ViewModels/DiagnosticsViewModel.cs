@@ -113,7 +113,6 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
     private IClipboard? _clipboard;
     private ISystemLauncher? _launcher;
     private RingBufferLogSink? _sink;
-    private EmbyItem? _nowPlaying;
 
     /// <summary>True between attaching and navigating away; stops a late append touching a dead page.</summary>
     private volatile bool _live;
@@ -739,12 +738,11 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
         Position = status.HasDuration
             ? $"{status.PositionClock} / {status.DurationClock}"
             : status.HasPosition ? status.PositionClock : "正在读取";
-        NowPlaying = _nowPlaying is { } item ? item.ToPlaybackTitle() : "正在播放（项目标题尚未收到）";
+        NowPlaying = _playback.NowPlaying is { } item ? item.ToPlaybackTitle() : "正在播放（项目标题尚未收到）";
     }
 
     private void OnNowPlaying(EmbyItem? item)
     {
-        _nowPlaying = item;
         OnUi(() =>
         {
             if (!Attached) return;

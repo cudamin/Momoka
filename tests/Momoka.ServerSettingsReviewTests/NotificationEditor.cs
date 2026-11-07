@@ -10,6 +10,22 @@ internal static class NotificationEditor
 {
     public static async Task RunAsync()
     {
+        foreach (var test in new[] { false, true })
+        {
+            var pending = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var entry = new UserNotificationInfo { NotifierKey = "anonymous" };
+            var context = new NotificationEditorContext(entry, false, [], [], [], [], _ => pending.Task, async _ => { await pending.Task; return true; });
+            var dialog = new NotificationEditDialog(context);
+            if (test)
+                typeof(NotificationEditDialog).GetMethod("OnTest", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(dialog, [dialog, new Microsoft.UI.Xaml.RoutedEventArgs()]);
+            else dialog.RaisePrimary();
+            dialog.Hide();
+            if (dialog.Hidden) throw new InvalidOperationException("R15-004 in-flight notification dialog closed: " + test);
+            pending.SetResult();
+            await Task.Delay(20);
+            dialog.Hide();
+            if (!dialog.Hidden) throw new InvalidOperationException("R15-004 settled dialog cannot close: " + test);
+        }
         var failures = new List<string>();
         foreach (var mode in new[] { "normal", "fail", "missing", "empty", "edit", "unknown-event" })
         {

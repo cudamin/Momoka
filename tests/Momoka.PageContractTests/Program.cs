@@ -66,6 +66,7 @@ internal static class Program
         CardPresentationTests.Register();
         BannerCacheTests.Register();
         ImageRecoveryTests.Register();
+        CardArtworkRecoveryTests.Register();
         FocusWatchTests.Register();
         SettingsControlNameTests.Register();
         DeferredCardsTests.Register();
