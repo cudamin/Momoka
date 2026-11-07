@@ -31,11 +31,11 @@ internal static class AppearanceOpacity
     }
 
     /// <summary>
-    /// 模糊只去掉细节，不降低亮度。启用时用固定深罩托住最淡的卡片字幕，白底是最坏输入；
-    /// 零档仍完全关闭处理，高斯满档也保留背景，不变成不透明遮罩。
+    /// 模糊只去掉细节，不降低亮度。高斯模式以强度的35%叠轻罩，满档仍保留图片；
+    /// 文字依据局部合成底色选择前景。普通颜色遮罩仍在满档完全盖住图片。
     /// </summary>
     public static byte ReadingShadeAlpha(double strength, bool gaussian) => gaussian
-        ? double.IsFinite(strength) && strength > 0 ? (byte)0xE0 : (byte)0
+        ? double.IsFinite(strength) ? (byte)Math.Round(Math.Clamp(strength, 0, 1) * 0.35 * byte.MaxValue) : (byte)0
         : ScrimAlpha(DetailHero.ScrimCeiling, strength);
 
     // 主页轮播那张图原本就是满不透明的一层，滑块不归它管（设置里那行说明也只写详情页）。

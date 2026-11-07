@@ -69,23 +69,20 @@ Check("高斯模糊强度换算：0 不糊、100 最糊", () =>
     Equal(0, GaussianBackdrop.SigmaFor(-1));
     Equal(GaussianBackdrop.MaxSigma, GaussianBackdrop.SigmaFor(3));
 });
-Check("高斯阅读保护覆盖任意亮部，五主题正文和卡片字幕仍可读", () =>
+Check("高斯轻罩随强度线性变化并保留图片", () =>
 {
-    var white = Momoka.Theming.ThemeColor.Rgb(255, 255, 255);
-    foreach (var strength in new[] { 0.01, 0.02, 0.05, 0.4, 1d })
-    {
-        var alpha = AppearanceOpacity.ReadingShadeAlpha(strength, true);
-        var background = white.Mix(DetailHero.ScrimInk, alpha / 255d);
-        foreach (var theme in Momoka.Theming.UiThemes.All)
-        {
-            if (Momoka.Theming.ThemeColor.Contrast(theme.Colors.TextDim, background) < 4.5
-                || Momoka.Theming.ThemeColor.Contrast(theme.Colors.TextFaint, background) < 3)
-                throw new InvalidOperationException($"{theme.Id} 亮背景文字对比不足");
-        }
-    }
+    foreach (var (strength, alpha) in new[] { (0.01, 1), (0.15, 13), (0.4, 36), (1d, 89) })
+        Equal(alpha, AppearanceOpacity.ReadingShadeAlpha(strength, true));
+});
+Check("高斯轻罩边界与普通遮罩保持各自语义", () =>
+{
     Equal(0, AppearanceOpacity.ReadingShadeAlpha(0, true));
-    Equal(0, AppearanceOpacity.ReadingShadeAlpha(double.NaN, true));
+    Equal(0, AppearanceOpacity.ReadingShadeAlpha(-1, true));
+    Equal(89, AppearanceOpacity.ReadingShadeAlpha(2, true));
+    foreach (var strength in new[] { double.NaN, double.NegativeInfinity, double.PositiveInfinity })
+        Equal(0, AppearanceOpacity.ReadingShadeAlpha(strength, true));
     Equal(102, AppearanceOpacity.ReadingShadeAlpha(0.4, false));
+    Equal(255, AppearanceOpacity.ReadingShadeAlpha(1, false));
 });
 Check("出厂四十档的模糊比老版默认略轻", () =>
     Equal((int)Math.Round(GaussianBackdrop.MaxSigma * 0.4),
@@ -481,6 +478,8 @@ Check("亚克力三态与checked、主题和回退独立", () =>
         Equal(1, control.Opacity);
     }
 });
+
+BackdropReadingTests.Run(Check);
 
 Console.WriteLine($"外观透明度：{passed} 通过，{failed} 失败。");
 Console.WriteLine($"TOTAL {passed + failed}; PASS {passed}; FAIL {failed}; SKIP 0");
