@@ -30,6 +30,7 @@ Accept: application/json
 
 - `DeviceIdentity.ToAuthorizationHeader` 负责拼这行。**Emby 按引号切分解析它**，所以 `Sanitize` 会丢掉 `"` `\` `,` `;` 和控制字符 —— 机器名里有一个引号就足以弄坏每一个请求。`DeviceName` 取机器名，`Client` 固定 `Momoka`。
 - `DeviceId` 必须跨重启稳定，否则服务器会把每次启动当成一台新设备。
+- 设备鉴权属性只发可打印ASCII；中文等非ASCII字符在头部表示中丢弃，混合名称保留ASCII部分，全非ASCII名称回退`unknown`，不改本机名称或生成/保存的稳定设备ID。默认SocketsHttpHandler拒绝非ASCII请求头（已读.NET v10.0.11 `HttpConnection.WriteString`实际实现）；`device-header-fixture`用真实回环HTTP覆盖两产品，实时/播放仍共用同一头构造，未据此声称这些运行管线已验证。
 - **`Redact(url) = url.GetLeftPart(UriPartial.Path)`**：日志里永远只有路径，query 一律剥掉，`api_key` 不会落盘。任何新的日志点都走它。
 
 ## 重定向与凭据边界

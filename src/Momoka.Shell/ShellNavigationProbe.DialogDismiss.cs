@@ -163,10 +163,7 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => writes == 1 && reads == 1 && !dialog.ProbeBusy);
                 var status = Get<TextBlock>(dialog, "Status");
                 var refresh = Get<Button>(dialog, "RefreshTracksButton");
-                Require(!dialog.Touched && dialog.NeedsRefresh && status.Visibility == Visibility.Visible
-                    && status.Text.Contains("请求已返回", StringComparison.Ordinal)
-                    && status.Text.Contains("未确认", StringComparison.Ordinal)
-                    && !status.Text.Contains("已挂上", StringComparison.Ordinal), "无确认回执被显示为所选字幕已添加");
+                CheckUnconfirmedReceipt(dialog, status);
                 Require(refresh.Visibility == Visibility.Visible && refresh.IsEnabled && dialog.ProbeHeader().CloseEnabled,
                     "未确认时缺少可用的只读刷新或关闭出口");
                 MetadataInvoke(refresh);
@@ -182,7 +179,45 @@ internal sealed partial class ShellNavigationProbe
                 Require(await shown == ContentDialogResult.None, "未确认请求完成后右上角关闭不可用");
             }
             finally { dialog.Hide(); await shown; }
+
+            if (width == 1100)
+            {
+                // 故意省略无确认回执能力，模拟旧接线。检查必须拒绝这张真实表的成功反馈。
+                var wrong = new SubtitleDialog(new EmbyItem { Id = "offline-negative", Name = "字幕回执反例（离线）" }, source,
+                    _ => Task.FromResult(new List<RemoteSubtitleInfo> { new() { Id = "offline-candidate", Name = "离线候选" } }),
+                    _ => Task.CompletedTask, _ => throw new InvalidOperationException("反例不删除字幕"),
+                    () => Task.FromResult(source), supportsForcedOnly: false, downloadProvidesConfirmation: true)
+                { XamlRoot = _root.XamlRoot };
+                var wrongShown = wrong.ShowAsync().AsTask();
+                try
+                {
+                    await LayoutAsync(wrong);
+                    var search = Get<Button>(wrong, "SearchButton");
+                    await UntilAsync(() => search.IsLoaded && search.ActualWidth > 0 && search.IsEnabled);
+                    MetadataInvoke(search);
+                    await UntilAsync(() => !wrong.ProbeBusy && Descendants(wrong).OfType<Button>().Any(button =>
+                        button.Name == "DownloadSubtitleButton" && button.IsLoaded && button.ActualWidth > 0 && button.IsEnabled));
+                    await LayoutAsync(wrong);
+                    MetadataInvoke(Descendants(wrong).OfType<Button>().Single(button => button.Name == "DownloadSubtitleButton"));
+                    await UntilAsync(() => wrong.Touched && !wrong.ProbeBusy);
+                    var status = Get<TextBlock>(wrong, "Status");
+                    Require(status.Text.Contains("已挂上", StringComparison.Ordinal), "反例未制造原来的错误成功反馈");
+                    var rejected = false;
+                    try { CheckUnconfirmedReceipt(wrong, status); }
+                    catch (InvalidOperationException error) when (error.Message == "无确认回执被显示为所选字幕已添加")
+                    { rejected = true; }
+                    Require(rejected, "字幕回执检查未拒绝已知误报成功的反例");
+                    await SaveProbeScreenAsync("subtitle-receipt-negative-control-screen.png");
+                }
+                finally { wrong.Hide(); await wrongShown; }
+            }
         }
+
+        static void CheckUnconfirmedReceipt(SubtitleDialog dialog, TextBlock status) =>
+            Require(!dialog.Touched && dialog.NeedsRefresh && status.Visibility == Visibility.Visible
+                && status.Text.Contains("请求已返回", StringComparison.Ordinal)
+                && status.Text.Contains("未确认", StringComparison.Ordinal)
+                && !status.Text.Contains("已挂上", StringComparison.Ordinal), "无确认回执被显示为所选字幕已添加");
     }
 
     private (SubtitleDialog Dialog, Windows.Foundation.IAsyncOperation<ContentDialogResult> Shown) SubtitleFixture(
