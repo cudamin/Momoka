@@ -20,7 +20,7 @@
 - 字幕：同一最终48项测试配完整08324e3原样源码，0警告错误编译后39过9败；当前48全过。测试夹具缺附加GET及基点漏BannedSymbols文件的初次失败均保留，不算有效行为红，不放宽断言。
 - 主树最终Core/Tests Release编译零警告错误，完整主Tests **3993/3993，零失败零跳过**。
 
-主树证据目录为`artifacts/recovery-fixes-master`，隔离树证据已复制到其`preserved/accounts`（31文件）与`preserved/subtitle`（18文件），逐文件SHA256一致。主树专项、Shell、实际UI和交付记录待最终完成后补入，当前不宣称桌面程序已更新。
+主树证据目录为`artifacts/recovery-fixes-master`，隔离树证据已复制到其`preserved/accounts`（31文件）与`preserved/subtitle`（18文件），逐文件SHA256一致。主树专项、Shell、实际UI和本地交付已全部完成，最终记录见下。
 
 ## 验证边界
 
@@ -30,4 +30,16 @@
 
 ## 主树最终验证与发布前验收
 
-主树x64 Release Core/Tests的3993项全通过，实际Shell登录VM105项全通过；HomeDirectory31、SubtitleDialog48、SignInInput128均在主树新编译后全通过。Shell Release/x64零警告错误，测试与Shell的Core逐字节SHA一致。开发程序四分区实际UI53/53、退出0，字幕1100/760及误报成功反例实屏已目视核对。范围/报告和源码及DLL哈希见ui-development-receipt.json，路径artifacts/recovery-fixes-master。开发bin不含native音频枚举载荷，相关警告不冒充真实设备验证；当前五项不修改音频输出。实际交付发布与发布件账号/字幕运行仍待完成。
+主树x64 Release Core/Tests的3993项全通过，实际Shell登录VM105项全通过；HomeDirectory31、SubtitleDialog48、SignInInput128均在主树新编译后全通过。Shell Release/x64零警告错误，测试与Shell的Core逐字节SHA一致。开发程序四分区实际UI53/53、退出0，字幕1100/760及误报成功反例实屏已目视核对。范围/报告和源码及DLL哈希见ui-development-receipt.json，路径artifacts/recovery-fixes-master。开发bin不含native音频枚举载荷，相关警告不冒充真实设备验证；当前五项不修改音频输出。实际交付发布与发布件账号/字幕运行已完成，最终记录见下。
+
+## 最终本地交付
+
+- 产品/工具来源提交：`5a2ed21900288db9e8eac96083a11bd04c649920`。实际程序`C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`，版本保持 **0.2.5.0**。546文件、286.4MB，批准mpv/运行时/着色器/许可完整校验通过；桌面`C:/Users/89400/Desktop/Momoka.lnk`已实核指向它。未生成ZIP/MSIX、未上传。
+- 发布件DLL SHA256：`FC390A990FA69BC5A40DF83A293701C664C025C8ECB619589088F660A5445152`，Core：`3D1A05EB11BAED61D04540D1BEA0BB1DA3190F020A17B025891BC228CE07946D`；UI源码SHA与开发验证一致，发布导致元数据/载荷环境变化后又运行实际发布件。
+- 发布件accounts/metadata **13/13、0失败、退出0**，PID408；当前启动日期加PID对应日志为`C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261107-024823408-408/logs`，不能拿重复PID的旧日期目录充当前结果。宽窄字幕与误报成功反例实屏已核对。`ui-published-receipt.json`保留实际源DLL/源码哈希、分区范围、正常退出。
+- 开发程序shell/accounts/settings/metadata **53/53、0失败、退出0**，PID6540；完整x64主测3993/3993、实际登录VM105、独立Home31/Subtitle48/SignInInput128全通过，零失败零跳过。两个UI运行有重叠，不合计成66个独立检查；其余122个UI检查未执行，不称全量探针通过。
+- 本批两树`review-account-lifetime`（原f8fb55e）与`review-subtitle-receipt`（原b092aae）已原生归档，应用附件已变archived_worktree且目录已移除；原红/绿/DLL/源码审计已先保存并逐文件核SHA。Git patch等价已核，字幕工具仅被主树新增且已实际验证的负向对照替代。临时字幕分支已删，本地只留master。旧聊天主工作树的原生保护仍保留，不绕过删除；其他聊天树未动。
+
+完整证据入口：`artifacts/recovery-fixes-master/main-x64-build.log`、`main-x64-full.log`、`signin-vm-x64.log`、各专项build/run日志、`ui-development-receipt.json`、`publish-final.log`、`ui-published-receipt.json`、`archive-receipt.json`。纯记录提交不重建或重发程序。
+
+另一个聊天已获用户授权的轮播实装提交`6f93eb3`留在其`a56e/Momoka`树，由该聊天接管后合主树、重验和交付，本批不夹带该功能。当前五项交付已完成，不以另一个待合功能掩盖本批状态。

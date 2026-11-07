@@ -1,3 +1,13 @@
+## 2026-11-07 第二批五项修复已完成主树本地交付
+
+R02-003/R03-003/R03-005/R04-002/R04-004已修。产品/工具来源5a2ed21：x64完整主测3993/3993、实际登录VM105、Home31/Subtitle48/SignInInput128全过；开发四分区UI53/53、发布件accounts/metadata13/13，均退出0，字幕正反例实屏已核。实际交付artifacts/publish/win-x64/Momoka.exe仍0.2.5.0，546文件286.4MB完整载荷/许可通过，桌面快捷方式已指向它。未上传/未打ZIP或MSIX，其余122个UI检查和实际慢关闭/实服操作未执行。完整台账docs/superpowers/reviews/2026-11-05-full-code-review/RECOVERY-REPAIRS.md。
+
+本批账号f8fb55e/字幕b092aae两树已原生归档，目录移除、附件archived已核，日志/DLL/原样源码红例预先保存并逐文件核SHA（artifacts/recovery-fixes-master/preserved）。分支patch等价已确认，临时字幕分支删除，本地仅master；旧review-priority-fixes主聊天树保留原生保护。
+
+### 另一个聊天待合与主树交接
+
+用户在轮播聊天批准实装并授权协调。轮播产品6f93eb3位于C:/Users/89400/.codex/worktrees/a56e/Momoka，尚未合入本批交付；另有该聊天未提交的额外反例工具，全部保留。本会话结束主树记录/检查后，发消息交还主树写入、构建测试/真实UI和发布，由轮播聊天合入6f93eb3、保留双方PROGRESS/开发文档、重新验证并交付。无push授权，不上传。本批五项没有未交付产品代码。
+
 ## 2026-11-07 第二批五项修复已合主树，最终验收进行中
 
 产品提交：0a7bde1（R02-003）、fe7518a（R04-002）、a271874（R03-003，原0faa517）、2138e4f（R04-004，原b092aae）、0749555（R03-005，原f8fb55e）。隔离树定向回归全部通过且独立复审无必要发现；原红和完整哈希证据已保存到artifacts/recovery-fixes-master/preserved。root在主树新增字幕实际UI负向对照，等待当轮真实检查后提交。当前主树Core/Tests Release零警告错误，完整主Tests运行中；尚未完成主树专项/实际UI、发布和工作树归档，桌面交付仍为上一批。
