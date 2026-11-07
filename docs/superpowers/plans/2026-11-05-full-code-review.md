@@ -380,3 +380,5 @@ node --test website/worker/credential.test.mjs
 ## 10. 后续必要修复
 
 前十批已交付；第十一批限 R07-001、R02-004，状态与证据见 [第十一批台账](../reviews/2026-11-05-full-code-review/ELEVENTH-REPAIRS.md)。不从原发现总数推算当前待修数量，修复与主树交付分别记录。
+
+第十二批最终确认96项必要问题，已经合入master，正在完成主树最终验收与实际交付；数量、来源提交、阶段证据和运行缺口见[第十二批统一台账](../reviews/2026-11-05-full-code-review/TWELFTH-REPAIRS.md)。旧133项是历史总数，前十一批已处置项不重复修。
