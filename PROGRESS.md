@@ -1,3 +1,7 @@
+## 2026-11-07 R05-002 匿名控件探针开发支线
+
+专用托管树 `C:/Users/89400/.codex/worktrees/review-plex-state-probe/Momoka` 从29cf082准备。仅修改新PlexState partial、运行登记、plex-state分区和解析测试及本说明；Plex产品修复由主线程在review-recovery-batch3实现。无窗口解析回归已有效红15过1败→绿16/16，Release/x64 Shell开发构建0警告0错误；后续控件断言完善以最终构建日志为准。没有启动GUI，不计真实控件或截图通过；旧产品有效红、整合绿及主树交付由主线程在桌面空闲时串行完成。说明与待办见 `docs/superpowers/reviews/2026-11-05-full-code-review/BATCH7-PROBE.md`，本树证据 `artifacts/review-batch7-probe`。未合／未交付，不上传。
+
 开发树收尾：aa60顶端acf9b58已是master祖先，工作区干净；相对master剩余5处均为后续纯记录，产品源码无独有差异。231份所需忽略证据已保存主树且逐hash核对。原生归档拒绝“The task's primary checkout cannot be removed.”，当前聊天主工作树受应用保护保留，未用文件系统绕过；本地只有master命名分支。主树交付不受影响。
 
 ## 2026-11-07 0.2.0详情控件默认效果已完成主树本地交付
