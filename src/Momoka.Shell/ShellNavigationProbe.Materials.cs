@@ -225,9 +225,19 @@ internal sealed partial class ShellNavigationProbe
                                     !new Windows.UI.ViewManagement.UISettings().AdvancedEffectsEnabled, system),
                                     "选择框文字没有遵守实际底色的阅读前景");
                                 var glyph = Descendants(openPicker).OfType<IconElement>().Single(control => control.Name == "DropDownGlyph");
+                                var glyphKeys = new[] { "ComboBoxDropDownGlyphForeground", "ComboBoxDropDownGlyphForegroundFocused", "ComboBoxDropDownGlyphForegroundFocusedPressed" };
+                                var glyphResources = glyphKeys.Select(key => openPicker.Resources.TryGetValue(key, out var value) ? value as SolidColorBrush : null).ToArray();
+                                var states = Descendants(openPicker).OfType<FrameworkElement>().SelectMany(VisualStateManager.GetVisualStateGroups)
+                                    .Select(group => group.Name + "=" + (group.CurrentState?.Name ?? "null"));
+                                var glyphReading = DescribePickerForeground($"focus={openPicker.FocusState}, dropdown={openPicker.IsDropDownOpen}, animated={(glyph is AnimatedIcon animation ? AnimatedIcon.GetState(animation) : "none")}, {string.Join('/', states)}",
+                                    openPicker.Foreground, glyph.Foreground, (glyph as AnimatedIcon)?.FallbackIconSource?.Foreground,
+                                    glyphResources.Select(brush => (Windows.UI.Color?)brush?.Color).ToArray(),
+                                    glyphResources.Select(brush => ReferenceEquals(glyph.Foreground, brush)).ToArray(), background, foregroundFill);
+                                File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "picker-glyph-reading.txt"),
+                                    $"{theme.Id}/{width}/{openPicker.Name}: {glyphReading}\n");
                                 Require(PickerForegroundMatches(glyph.Foreground, background, foregroundFill,
                                     !new Windows.UI.ViewManagement.UISettings().AdvancedEffectsEnabled, system),
-                                    "选择框箭头没有遵守实际底色的阅读前景");
+                                    "选择框箭头没有遵守实际底色的阅读前景：" + glyphReading);
                                 var popupRoot = openPicker.PopupPart?.Child
                                     ?? throw new InvalidOperationException("缺少选择框实际弹层");
                                 var popup = popupRoot as Border ?? Descendants(popupRoot).OfType<Border>()

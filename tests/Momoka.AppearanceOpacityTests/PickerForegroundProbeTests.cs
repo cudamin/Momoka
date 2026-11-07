@@ -76,6 +76,21 @@ internal static class PickerForegroundProbeTests
             foreach (var fact in new[] { "radius=16", "generation=8", "requested=False", "rendering=True", "width=760", "compact=True", "showcase=False", "ready=False", "applied=False" })
                 Require(after.ToString().Contains(fact, StringComparison.Ordinal), "诊断缺少实际字段：" + fact);
         });
+        check("箭头诊断保留实际异色与三份本地资源，不改读数", () =>
+        {
+            var text = ShellNavigationProbe.DescribePickerForeground("Focused/Opened", new SolidColorBrush { Color = 0xFF161616u },
+                new SolidColorBrush { Color = 0xFFFFFFFFu }, null, [0xFF161616u, 0xFF161616u, 0xFFFFFFFFu],
+                [false, false, true], ThemeColor.Rgb(255, 255, 255), new AcrylicBrush { FallbackColor = 0xFFFFFFFFu, Opacity = 0.25, TintOpacity = 0.25, AlwaysUseFallback = true });
+            foreach (var value in new[] { "state=Focused/Opened", "picker=#FF161616", "glyph=#FFFFFFFF", "fallbackSource=null", "normal=#FF161616", "focused=#FF161616", "focusedPressed=#FFFFFFFF", "glyphReferences=False/False/True", "background=#FFFFFFFF", "fillFallback=#FFFFFFFF" })
+                Require(text.Contains(value, StringComparison.Ordinal), "箭头诊断丢失字段：" + value);
+        });
+        check("箭头诊断资源缺失或类型不符不代替实际失败", () =>
+        {
+            var text = ShellNavigationProbe.DescribePickerForeground("not-found", null, new Brush(), null, [], [],
+                ThemeColor.Rgb(0, 0, 0), new AcrylicBrush());
+            Require(text.Contains("picker=null", StringComparison.Ordinal) && text.Contains("glyph=Brush", StringComparison.Ordinal)
+                && text.Contains("normal=null", StringComparison.Ordinal), "缺失或非实色读数被伪装");
+        });
     }
 
     private static void Require(bool condition, string message)

@@ -27,4 +27,21 @@ internal sealed partial class ShellNavigationProbe
         return observed is SolidColorBrush actual && reference.Foreground is SolidColorBrush expected
             && actual.Color == expected.Color;
     }
+
+    // Raw diagnostics only. Missing or unexpected brushes remain explicit rather than being
+    // converted into a passing color, and no control/resource is mutated while formatting.
+    internal static string DescribePickerForeground(string state, Brush? picker, Brush? glyph, Brush? fallbackSource,
+        Color?[] keys, bool[] references, ThemeColor background, AcrylicBrush fill)
+    {
+        Color? Key(int index) => index < keys.Length ? keys[index] : null;
+        return $"state={state}, picker={Ink(picker)}, glyph={Ink(glyph)}, fallbackSource={Ink(fallbackSource)}, "
+            + $"normal={ColorText(Key(0))}, focused={ColorText(Key(1))}, focusedPressed={ColorText(Key(2))}, "
+            + $"glyphReferences={string.Join('/', references)}, background={background.ToHex()}, "
+            + $"fillFallback={ColorText(fill.FallbackColor)}, opacity={fill.Opacity:0.###}, tint={fill.TintOpacity:0.###}, fallback={fill.AlwaysUseFallback}";
+
+        static string Ink(Brush? brush) => brush is SolidColorBrush solid ? ColorText(solid.Color)
+            : brush?.GetType().Name ?? "null";
+        static string ColorText(Color? value) => value is { } color
+            ? $"#{color.A:X2}{color.R:X2}{color.G:X2}{color.B:X2}" : "null";
+    }
 }
