@@ -99,8 +99,10 @@ internal sealed partial class ShellNavigationProbe
         // Several real library shelves create vertical content; 24 cards in one horizontal row do not.
         var libraries = Enumerable.Range(0, 4).Select(index => new EmbyItem
         {
-            Id = "foundation-library-" + index, Name = "迟到媒体库 " + index,
-            Type = EmbyItemType.CollectionFolder, CollectionType = "movies"
+            Id = "foundation-library-" + index,
+            Name = "迟到媒体库 " + index,
+            Type = EmbyItemType.CollectionFolder,
+            CollectionType = "movies"
         }).ToArray();
         fixture.Transport.Reply = (message, _) =>
         {
