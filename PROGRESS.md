@@ -1,3 +1,7 @@
+## 2026-11-07 主页静止轮播真实 Demo 待确认
+
+本树 a56e 基于 master 08324e3，只制作真实数据独立 Demo，正式实装待用户明确批准。定位 HomeBanner 七秒104.5%→100%缩放与 CarouselBackdrop 扩边末20%高斯淡至零；预览取消慢缩放、全扩边高斯，保留轮播切换。只读当前来源取得六张真实背景/六徽标，12次缓存命中，真实设置及备份哈希不变；提取构建0/0、三像素断言、PNG54项通过。浏览器已目视宽/窄/小窗、边界与六素材，并确认自动换图仍静止；一次定位等待超时保留在设计说明。预览 work/carousel-static-demo-20261107，设计 docs/superpowers/specs/2026-11-07-home-carousel-static-design.md。未改产品、合主树、发布或上传，客户端仍为原交付版。
+
 ## 2026-11-07 优先修复已完成主树本地交付
 
 原审查选定15项（6P1、9P2）及验收新增账号开关视觉问题已修，产品875f6cc、最终账号探针收尾97a8a69。完整主Tests3943/3943、0失败0跳过，适用四分区UI60/60；发布件附加账号检查首轮超时，阶段诊断确认按钮未Loaded及IsOpen=false早于Presenter卸载，工具改等真实按钮和Closed后最终开发账号5/5、实际发布件账号5/5（PID3048正常退出），原报告保留。主树发布546文件286.4MB，批准载荷/许可校验通过，版本仍0.2.5.0；桌面Momoka.lnk实际指向artifacts/publish/win-x64/Momoka.exe。证据artifacts/priority-fixes-master/publish-final.log、delivery-final-receipt.json、publish-ui-final-receipt.json；子树原红/绿复制至preserved逐文件哈希核对。无外部上传、真实账号写入或播放；其他114个探针未执行、原清单未纳本批的问题不自动关闭。客户端预检不是服务端CAS/原子事务。
