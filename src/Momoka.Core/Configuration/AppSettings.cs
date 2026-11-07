@@ -1380,6 +1380,16 @@ public sealed class UiSettings
     /// <summary>电影详情页正文卡片的排序与显示偏好。</summary>
     public List<DetailCardSetting> MovieCards { get; set; } = [];
 
+    /// <summary>按钮与闭合选择框共用的 RGB 底色；透明度由独立偏好决定。</summary>
+    public string ControlBackgroundColor { get; set; } = DefaultControlBackgroundColor;
+
+    public const string DefaultControlBackgroundColor = "#FFFFFF";
+
+    /// <summary>背景处理的 RGB 遮罩色；高斯、普通遮罩和亚克力共用。</summary>
+    public string BackdropColor { get; set; } = DefaultBackdropColor;
+
+    public const string DefaultBackdropColor = "#808080";
+
     /// <summary>
     /// 详情按钮与选择框底色的不透明度（%）：0 完全透明（没有底色），100 完全不透明。
     /// <para>
@@ -1418,7 +1428,7 @@ public sealed class UiSettings
     /// <summary>电影、剧与季详情背景使用应用内亚克力，普通与窄窗同样生效；缺键关闭，不影响首页轮播。</summary>
     public bool UseAcrylicBackdrop { get; set; }
 
-    /// <summary>电影、剧与季允许沉浸背景；关闭后宽窗使用单集卡面，所有尺寸不铺背景图。缺键保留原体验。</summary>
+    /// <summary>电影、剧与季的沉浸模式；关闭使用简洁卡面并隐藏背景图，保留外观偏好。</summary>
     public bool EnableImmersive { get; set; } = true;
 
     /// <summary>

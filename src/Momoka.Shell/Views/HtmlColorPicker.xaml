@@ -43,6 +43,8 @@
         </LinearGradientBrush>
     </UserControl.Resources>
 
+    <StackPanel Spacing="12">
+        <Grid x:Name="AppearancePresets" Visibility="Collapsed" ColumnSpacing="8" RowSpacing="8" />
     <Grid RowSpacing="12" ColumnSpacing="12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -211,4 +213,13 @@
                 HorizontalAlignment="Left" />
         </StackPanel>
     </Grid>
+        <StackPanel x:Name="AppearanceConfirm" Visibility="Collapsed" Spacing="8">
+            <TextBlock x:Name="AppearanceColorError" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button x:Name="AppearanceColorDefault" Content="默认" Click="OnAppearanceDefault" />
+                <Button x:Name="AppearanceColorCancel" Content="取消" Click="OnAppearanceCancel" />
+                <Button x:Name="AppearanceColorComplete" Content="完成" Click="OnAppearanceComplete" />
+            </StackPanel>
+        </StackPanel>
+    </StackPanel>
 </UserControl>

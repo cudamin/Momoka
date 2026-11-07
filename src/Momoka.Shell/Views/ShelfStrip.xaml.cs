@@ -117,6 +117,7 @@ public sealed partial class ShelfStrip : UserControl
 
     /// <summary>视口左沿换到了另一张卡。只在索引真的变了时发一次，滚动一帧来十几次也不重复问页面。</summary>
     internal event Action<int>? LeadingChanged;
+    internal event Action? ReadingChanged;
 
     /// <summary>正在等待布局完成后重试的焦点索引，-1 表示没有。</summary>
     private int _pendingFocusedIndex = -1;
@@ -474,6 +475,7 @@ public sealed partial class ShelfStrip : UserControl
         // 这一带压在剧照上时（集页那一带）卡片底下那两行字要换墨。放在这里而不是只在开关翻转时过一遍：
         // 容器是回收着用的，翻页翻出来的那些是「之后才建的」，漏掉就会有几张卡的字读不出来。
         PaintInk(element);
+        ReadingChanged?.Invoke();
     }
 
     /// <summary>
@@ -698,6 +700,7 @@ public sealed partial class ShelfStrip : UserControl
     {
         SyncArrows();
         RaiseLeading();
+        ReadingChanged?.Invoke();
     }
 
     /// <summary>

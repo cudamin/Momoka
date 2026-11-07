@@ -541,6 +541,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>解好的头图原图像素 —— 裁切模糊的原料。导航换条目、换图时整个作废。</summary>
     private HeroPictureLoader.HeroPixels? _heroPixels;
+    internal HeroPictureLoader.HeroPixels? BackdropPixels => _heroPixels;
+    internal UiSettings AppearanceSettings => _settings?.Settings.Ui ?? new UiSettings();
 
     private NavigationTimingRun? _heroTiming;
     private DetailHeroCache? _heroCache;

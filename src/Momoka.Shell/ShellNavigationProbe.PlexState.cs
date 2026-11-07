@@ -131,9 +131,10 @@ internal sealed partial class ShellNavigationProbe
                     && bar.Title.Contains("已保存", StringComparison.Ordinal)
                     && bar.Title.Contains("刷新", StringComparison.Ordinal), "详情没有显示已保存但刷新失败的真实 InfoBar");
                 Require(actions.WatchedReports == (played ? 1 : 0), "详情确认已看附带回调次数错误");
-                var labels = Descendants(watchedButton).OfType<TextBlock>().Where(label => label.Visibility == Visibility.Visible).ToArray();
+                var labels = ((StackPanel)watchedButton.Content).Children.OfType<TextBlock>()
+                    .Where(label => label.Visibility == Visibility.Visible).ToArray();
                 Require(labels.Length == 1 && labels[0].Text == (played ? "已看" : "未看"),
-                    "详情已看按钮文字没有随确认状态更新");
+                    "详情已看按钮文字没有随确认状态更新：" + string.Join(" / ", labels.Select(label => label.Text)));
                 await SaveProbeScreenAsync($"plex-state-detail-{width}-{(int)status}-{played}-confirmed-screen.png");
                 await page.ScrollToEndAsync();
                 await LayoutAsync(page);

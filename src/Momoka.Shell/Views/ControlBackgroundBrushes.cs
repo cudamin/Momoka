@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Theming;
 
 namespace Momoka.Shell.Views;
 
@@ -20,11 +21,53 @@ internal sealed class ControlBackgroundBrushes
     private readonly List<(SolidColorBrush Source, SolidColorBrush Target, AcrylicBrush Copy, bool Feedback)> _brushes = [];
     private readonly bool _preserveDefault;
     private readonly bool _lightSurface;
+    internal Control Control { get; }
+    private readonly Dictionary<string, SolidColorBrush> _foregrounds = [];
+
+    internal void ApplyForeground(ThemeColor background, bool materialFallback, Windows.UI.Color? forced = null)
+    {
+        var prefix = Control is ComboBox ? "ComboBox" : Control is ToggleButton ? "ToggleButton" : "Button";
+        foreach (var suffix in new[] { "", "PointerOver", "Pressed" })
+        {
+            var key = prefix + "Foreground" + suffix;
+            if (!_foregrounds.TryGetValue(key, out var ink))
+            {
+                ink = new SolidColorBrush();
+                _foregrounds.Add(key, ink);
+                Control.Resources[key] = ink;
+            }
+            var fill = (AcrylicBrush)Control.Resources[prefix + "Background" + suffix];
+            var color = fill.FallbackColor;
+            var amount = !fill.AlwaysUseFallback && materialFallback ? 1
+                : fill.AlwaysUseFallback ? fill.Opacity * color.A / 255d : fill.TintOpacity;
+            var surface = background.Mix(ThemeColor.Rgb(color.R, color.G, color.B), amount);
+            ink.Color = forced ?? ToColor(BackdropReading.Foreground(surface));
+            if (suffix.Length == 0) Control.Foreground = ink;
+        }
+        if (Control is ComboBox)
+        {
+            var ink = _foregrounds[prefix + "Foreground"];
+            foreach (var key in new[] { "ComboBoxForegroundFocused", "ComboBoxForegroundFocusedPressed",
+                "ComboBoxDropDownGlyphForeground", "ComboBoxDropDownGlyphForegroundFocused", "ComboBoxDropDownGlyphForegroundFocusedPressed" })
+                if (!_foregrounds.ContainsKey(key))
+                {
+                    // 不动展开列表的 ComboBoxDropDownForeground/ComboBoxItemForeground。
+                    var copy = new SolidColorBrush();
+                    _foregrounds.Add(key, copy);
+                    Control.Resources[key] = copy;
+                }
+            foreach (var (key, copy) in _foregrounds)
+                if (key.Contains("Focused", StringComparison.Ordinal) || key.Contains("Glyph", StringComparison.Ordinal)) copy.Color = ink.Color;
+        }
+    }
+
+    private static Windows.UI.Color ToColor(ThemeColor color) => new() { A = color.A, R = color.R, G = color.G, B = color.B };
 
     private ControlBackgroundBrushes(Control control, string prefix,
         SolidColorBrush normal, SolidColorBrush hover, SolidColorBrush pressed, SolidColorBrush disabled,
         bool preserveDefault = false, bool lightSurface = false)
     {
+        Control = control;
         _preserveDefault = preserveDefault;
         _lightSurface = lightSurface;
         var rest = Copy(normal, lightSurface ? "EgDetailActionBrush" : "EgSurfaceElevatedBrush", feedback: false);
@@ -69,7 +112,7 @@ internal sealed class ControlBackgroundBrushes
             (SolidColorBrush)resources["EgBannerGhostHoverBrush"], (SolidColorBrush)resources["EgBannerGhostPressBrush"],
             Resource("ButtonBackgroundDisabled"));
 
-    public void Apply(double percent, bool useAcrylic = false)
+    public void Apply(double percent, bool useAcrylic = false, Windows.UI.Color? tint = null)
     {
         var amount = AppearanceOpacity.ControlBackground(percent);
         foreach (var (source, target, copy, feedback) in _brushes)
@@ -82,10 +125,10 @@ internal sealed class ControlBackgroundBrushes
                 var feedbackFloor = source.Color.A / 255d;
                 var strength = !feedback ? amount : amount <= normal ? feedbackFloor
                     : feedbackFloor + (1 - feedbackFloor) * (amount - normal) / (1 - normal);
-                var ink = target.Color;
-                ink.A = byte.MaxValue;
-                copy.TintColor = ink;
-                copy.FallbackColor = ink;
+                var acrylicInk = tint ?? target.Color;
+                acrylicInk.A = byte.MaxValue;
+                copy.TintColor = acrylicInk;
+                copy.FallbackColor = acrylicInk;
                 copy.TintOpacity = strength;
                 copy.TintLuminosityOpacity = 0;
                 copy.Opacity = useAcrylic && strength is > 0 and < 1 ? 1 : strength;
@@ -96,8 +139,10 @@ internal sealed class ControlBackgroundBrushes
             {
                 // 亚克力跟着同一档浓度：0 档是一块什么都不画的玻璃，向右补到 100 的实底（由下面那条路接手）。
                 // 画刷本身保持不透明，系统关闭透明效果时 FallbackColor 仍是一块可读的主题表面。
-                copy.TintColor = target.Color;
-                copy.FallbackColor = target.Color;
+                var ink = tint ?? target.Color;
+                ink.A = byte.MaxValue;
+                copy.TintColor = ink;
+                copy.FallbackColor = ink;
                 copy.TintOpacity = amount;
                 copy.TintLuminosityOpacity = amount;
                 copy.Opacity = 1;
@@ -105,6 +150,11 @@ internal sealed class ControlBackgroundBrushes
                 continue;
             }
             var color = source.Color;
+            if (tint is { } chosen)
+            {
+                chosen.A = color.A;
+                color = chosen;
+            }
             // 原底色那一层薄白的有效浓度 —— 悬停与按下在它以下时仍然是那层白，不是一块淡掉的深色板。
             var floor = feedback || _preserveDefault ? color.A / 255d * source.Opacity : 0;
             // 详情操作键恢复 v0.2.1 的平台半透明底；用户提高浓度时继续走现有表面色，亚克力仍由上方分支处理。
@@ -135,7 +185,7 @@ internal sealed class ControlBackgroundBrushes
             }
             // 底色就是主题那一档表面色，浓度直接等于百分比。旧版把原底色的 alpha 当起点往上加，
             // 于是 1% 一上来就是一层薄白、读数说不清；2026-11-06 起读数就是屏上的浓度。
-            var surface = target.Color;
+            var surface = tint ?? target.Color;
             surface.A = byte.MaxValue;
             copy.FallbackColor = surface;
             copy.Opacity = amount;

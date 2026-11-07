@@ -653,6 +653,59 @@ public sealed partial class SettingColorRow : SettingRow
     private readonly Action<string> _write;
     private readonly Action _save;
     private readonly bool _seeded;
+    private Action<string?>? _preview;
+    private Action? _finish;
+    private string? _originalColor;
+    private bool _restoring;
+
+    public bool RequiresConfirmation { get; private set; }
+    public string DefaultColor { get; private set; } = "";
+    public bool IsEditing => _originalColor is not null;
+
+    internal void ConfigureConfirmation(string defaultColor, Action<string?> preview, Action finish)
+    {
+        RequiresConfirmation = true;
+        DefaultColor = defaultColor;
+        _preview = preview;
+        _finish = finish;
+    }
+
+    public void BeginEdit()
+    {
+        if (!RequiresConfirmation || IsEditing) return;
+        _originalColor = Color;
+    }
+
+    public bool CommitEdit()
+    {
+        if (!IsEditing || !HtmlColor.TryParse(Color, out var rgb)) return false;
+        var original = _originalColor;
+        _originalColor = null;
+        var value = HtmlColor.Format(rgb);
+        SetDisplayColor(value);
+        if (!string.Equals(original, value, StringComparison.OrdinalIgnoreCase))
+        {
+            _write(value);
+            _save();
+        }
+        _finish?.Invoke();
+        return true;
+    }
+
+    public void CancelEdit()
+    {
+        if (_originalColor is not { } original) return;
+        _originalColor = null;
+        SetDisplayColor(original);
+        _finish?.Invoke();
+    }
+
+    private void SetDisplayColor(string value)
+    {
+        _restoring = true;
+        try { Color = value; }
+        finally { _restoring = false; }
+    }
 
     internal SettingColorRow(string label, string? note, string value, Action<string> write, Action save)
         : base(label, note)
@@ -688,6 +741,12 @@ public sealed partial class SettingColorRow : SettingRow
         OnPropertyChanged(nameof(Swatch));
         OnPropertyChanged(nameof(HexLabel));
 
+        if (_restoring) return;
+        if (RequiresConfirmation)
+        {
+            if (IsEditing && HtmlColor.TryParse(value, out _)) _preview?.Invoke(value);
+            return;
+        }
         _write(value);
         _save();
     }

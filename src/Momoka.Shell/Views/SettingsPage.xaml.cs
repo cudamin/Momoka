@@ -782,6 +782,7 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </summary>
     internal void ReleaseHosted()
     {
+        CancelAppearanceColors();
         // Hide 不触发 Frame.OnNavigatedFrom；先结束整页活动期，旧队列和 await 都不能重建内嵌页。
         _activity.Cancel();
         ViewModel.Cancel();

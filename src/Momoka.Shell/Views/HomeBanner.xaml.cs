@@ -10,6 +10,7 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Configuration;
 using Momoka.Emby;
+using Momoka.Theming;
 using Windows.System;
 using Windows.UI.ViewManagement;
 // 上面那两个命名空间各有一个 DispatcherQueueTimer。Windows.System 在这里只为 VirtualKey 而来，计时器要的是
@@ -83,6 +84,10 @@ public sealed partial class HomeBanner : UserControl
     // 每一种动画只有一个所有者：换片先收尾，卸载全部停止，避免上一张的 Completed 改到下一张。
     private readonly Dictionary<string, (Storyboard Board, Action Settle)> _motions = [];
     private readonly UISettings _uiSettings = new();
+    private readonly AccessibilitySettings _colorAccessibility = new();
+    private bool _lastColorContrast;
+    private bool _lastColorEffects;
+    private DispatcherQueueTimer? _colorSystemTimer;
     private bool _settingsObserved;
     private bool _focusWithin;
     private bool _active;
@@ -252,7 +257,12 @@ public sealed partial class HomeBanner : UserControl
     internal void ApplyAppearance(UiSettings ui)
     {
         _appearanceSettings = ui;
-        _openBackground.Apply(ui.ControlBackgroundOpacity, ui.UseAcrylicControls);
+        var contrast = _colorAccessibility.HighContrast;
+        _lastColorContrast = contrast;
+        _lastColorEffects = _uiSettings.AdvancedEffectsEnabled;
+        _openBackground.Apply(contrast ? 100 : ui.ControlBackgroundOpacity, !contrast && ui.UseAcrylicControls,
+            contrast ? _uiSettings.GetColorValue(UIColorType.Background) : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ui)));
+        PaintOpenButtonInk();
         Brush(LayerA).Opacity = AppearanceOpacity.HomeBackdrop(ui.BackdropOpacity);
         Brush(LayerB).Opacity = AppearanceOpacity.HomeBackdrop(ui.BackdropOpacity);
         // 全图高斯仅供详情沉浸布局；首页保留原图及左侧扩边过渡。
@@ -262,6 +272,26 @@ public sealed partial class HomeBanner : UserControl
 
     internal bool GaussianBackdropApplied => Current?.GaussianBackdropApplied == true;
     internal bool GaussianBackdropReady => Current?.GaussianBackdropReady == true;
+
+    private void PaintOpenButtonInk()
+    {
+        var sample = BackdropInk.Sample(OpenButton, FrontLayer, Current?.BackdropPixels, false, ThemeHost.Current.Colors.Window);
+        var along = 0d;
+        try
+        {
+            var position = OpenButton.TransformToVisual(Fade).TransformPoint(new Windows.Foundation.Point(OpenButton.ActualWidth / 2, OpenButton.ActualHeight / 2));
+            along = Fade.ActualWidth > 0 ? Math.Clamp(position.X / Fade.ActualWidth, 0, 1) : 0;
+        }
+        catch (ArgumentException) { }
+        var stops = ((LinearGradientBrush)Fade.Background).GradientStops;
+        var left = stops.Last(stop => stop.Offset <= along);
+        var right = stops.First(stop => stop.Offset >= along);
+        var alpha = left.Offset == right.Offset ? left.Color.A / 255d
+            : (left.Color.A + (right.Color.A - left.Color.A) * (along - left.Offset) / (right.Offset - left.Offset)) / 255d;
+        var background = sample.Mix(ThemeColor.Rgb(left.Color.R, left.Color.G, left.Color.B), alpha);
+        _openBackground.ApplyForeground(background, !_uiSettings.AdvancedEffectsEnabled,
+            _colorAccessibility.HighContrast ? _uiSettings.GetColorValue(UIColorType.Foreground) : null);
+    }
 
     private void PaintBackdropShade()
     {
@@ -494,6 +524,7 @@ public sealed partial class HomeBanner : UserControl
     private void Paint(BitmapImage? picture)
     {
         PaintBackdropShade();
+        PaintOpenButtonInk();
         if (ReferenceEquals(FrontPicture, picture)) return;
 
         StopMotion("image");
@@ -1050,7 +1081,11 @@ public sealed partial class HomeBanner : UserControl
         _watch.Leave();
     }
 
-    private void OnResized(object sender, SizeChangedEventArgs e) => Resize(e.NewSize.Width);
+    private void OnResized(object sender, SizeChangedEventArgs e)
+    {
+        Resize(e.NewSize.Width);
+        PaintOpenButtonInk();
+    }
 
     /// <summary>
     /// 窗口的客户区变了。只拖下边沿那一下带子自己没变尺寸，可它的上限变了（<see cref="_viewport"/>），所以照
@@ -1071,6 +1106,11 @@ public sealed partial class HomeBanner : UserControl
         ThemeHost.Changed -= OnAppearanceThemeChanged;
         ThemeHost.Changed += OnAppearanceThemeChanged;
         if (_appearanceSettings is { } appearance) ApplyAppearance(appearance);
+        _colorSystemTimer ??= DispatcherQueue.CreateTimer();
+        _colorSystemTimer.Interval = TimeSpan.FromSeconds(1);
+        _colorSystemTimer.Tick -= OnColorSystemTick;
+        _colorSystemTimer.Tick += OnColorSystemTick;
+        _colorSystemTimer.Start();
         if (!_settingsObserved)
         {
             _uiSettings.AnimationsEnabledChanged += OnAnimationsEnabledChanged;
@@ -1102,6 +1142,7 @@ public sealed partial class HomeBanner : UserControl
     /// </summary>
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        _colorSystemTimer?.Stop();
         _active = false;
         _appearanceLifetime++;
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
@@ -1125,6 +1166,12 @@ public sealed partial class HomeBanner : UserControl
         Brush(LayerA).ImageSource = null;
         Brush(LayerB).ImageSource = null;
         LogoImage.Source = null;
+    }
+
+    private void OnColorSystemTick(DispatcherQueueTimer sender, object args)
+    {
+        if (_active && _appearanceSettings is { } ui && (_lastColorContrast != _colorAccessibility.HighContrast
+            || _lastColorEffects != _uiSettings.AdvancedEffectsEnabled)) ApplyAppearance(ui);
     }
 
     private void OnAnimationsEnabledChanged(UISettings sender, object args) => DispatcherQueue.TryEnqueue(() =>

@@ -111,6 +111,10 @@ internal static partial class DetailActionReadinessTests
                 Set("PageWidth", 1200d);
                 Set("Viewport", 2000d);
                 Set("HeroArt", true);
+                f.Ui.EnableImmersive = false;
+                Assert.False((bool)f.Get("UseGaussianBackdrop")!, "简洁模式不得启用高斯");
+                f.Ui.EnableImmersive = true;
+                Assert.Equal(shape != Shape.Episode, (bool)f.Get("UseGaussianBackdrop")!);
                 Assert.Equal(shape != Shape.Episode, (bool)f.Get("UseGaussianBackdrop")!);
                 Set("PageWidth", 760d);
                 Assert.False((bool)f.Get("UseGaussianBackdrop")!, "紧凑版式不得启用高斯");
@@ -120,6 +124,22 @@ internal static partial class DetailActionReadinessTests
                 Assert.True(f.Ui.UseGaussianBackdrop, "退出适用模式不能清空偏好");
             }
         });
+        foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season })
+            Test($"详情 {shape} 简洁模式关闭背景并使用卡面，切回恢复沉浸", () =>
+            {
+                using var f = new Fixture(assembly, root, shape);
+                Await(f.Load());
+                f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 1200d);
+                f.Vm.GetType().GetProperty("HeroArt")!.SetValue(f.Vm, true);
+                f.Ui.EnableImmersive = false;
+                f.Vm.GetType().GetMethod("RefreshAppearance", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(f.Vm, null);
+                Assert.False((bool)f.Get("BackdropShown")!);
+                Assert.False((bool)f.Get("Showcase")!);
+                Assert.True((bool)f.Get("HeroCardShown")!);
+                f.Ui.EnableImmersive = true;
+                f.Vm.GetType().GetProperty("HeroArt")!.SetValue(f.Vm, true);
+                Assert.True((bool)f.Get("Showcase")!, "开启后普通宽窗也固定沉浸");
+            });
         Test("单集唯一音轨隐藏仍保留视频读数", () =>
         {
             using var f = new Fixture(assembly, root, Shape.Episode);

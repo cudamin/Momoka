@@ -12,33 +12,69 @@ public sealed partial class SettingsViewModel
         var ui = Settings.Ui;
         var rows = new List<SettingRow>
         {
-            Toggle("沉浸模式",
-                "开启后，电影、剧和季页使用沉浸背景，窄窗口保留紧凑排版；关闭后使用单集页面的无背景图界面。",
-                () => ui.EnableImmersive, value => ui.EnableImmersive = value,
-                after: () => ShellPrefs.ApplyAppearance(ui)),
             Choice("按钮与选择框背景", new[] { ("半透明叠层", false), ("亚克力", true) },
                 () => ui.UseAcrylicControls, value => ui.UseAcrylicControls = value,
                 "详情按钮与闭合选择框使用相同背景，默认半透明叠层；展开列表保持亚克力。主页详情按钮一起切换。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
+            AppearanceColorRow("按钮与选择框底色", false, ui),
             Slider("按钮与选择框底色不透明度（%）", 0, 100, 0.01,
                 () => ui.ControlBackgroundOpacity, value => ui.ControlBackgroundOpacity = value,
                 "默认约5.88%，还原0.2.0的半透明白底。0常态完全透明，100完全不透明；悬停与按下保留反馈。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
-            Choice("背景图效果", new[] { ("暗色遮罩", 0), ("高斯模糊", 1), ("亚克力", 2) },
+            Choice("显示模式", new[] { ("沉浸模式", true), ("简洁模式", false) },
+                () => ui.EnableImmersive,
+                value => ui.EnableImmersive = value,
+                "电影、剧和季详情页有背景图时固定使用沉浸布局",
+                after: () =>
+                {
+                    ShellPrefs.ApplyAppearance(ui);
+                    RefreshDetailAppearance();
+                })
+        };
+        if (ui.EnableImmersive)
+        {
+            rows.AddRange(
+            [
+            Choice("背景图效果", new[] { ("颜色遮罩", 0), ("高斯模糊", 1), ("亚克力", 2) },
                 () => ui.UseAcrylicBackdrop ? 2 : ui.UseGaussianBackdrop ? 1 : 0,
                 value =>
                 {
                     ui.UseAcrylicBackdrop = value == 2;
                     ui.UseGaussianBackdrop = value == 1;
                 },
-                "电影、剧和季启用沉浸时可用亚克力，窄窗同样生效；高斯仅宽窗沉浸生效。单集窄窗仍可用亚克力，主页轮播不受影响。",
+                "电影、剧和季可用亚克力，普通与窄窗同样生效；高斯仅沉浸模式生效，轻罩随强度变化。主页轮播不受影响。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
+            AppearanceColorRow("背景遮罩颜色", true, ui),
             Slider("背景图不透明度（%）", 0, 100, 1,
                 () => ui.BackdropOpacity, value => ui.BackdropOpacity = value,
-                "0 关闭背景处理；100 暗色遮罩和亚克力为实底，高斯最糊。关闭沉浸模式后，仍可调整单集窄窗口背景。",
+                "0 关闭背景处理；100 颜色遮罩和亚克力为实底，高斯最糊并保留图片。",
                 after: () => ShellPrefs.ApplyAppearance(ui))
-        };
+            ]);
+        }
         return new SettingSection("界面", "详情页外观", "调整媒体库详情页的控件底色、背景图和大屏布局。", rows);
+    }
+
+    private void RefreshDetailAppearance()
+    {
+        var section = Sections.FirstOrDefault(card => card.Title == "详情页外观");
+        if (section is null) return;
+        foreach (var color in section.Rows.OfType<SettingColorRow>()) color.CancelEdit();
+        section.UpdateRows(DetailAppearanceCard().Rows);
+    }
+
+    private SettingColorRow AppearanceColorRow(string label, bool backdrop, UiSettings ui)
+    {
+        var row = new SettingColorRow(label, "拾色器、预设或六位 HEX；完成保存，取消或点击外部恢复原色。",
+            backdrop ? ui.BackdropColor : ui.ControlBackgroundColor,
+            value =>
+            {
+                if (backdrop) ui.BackdropColor = value;
+                else ui.ControlBackgroundColor = value;
+            }, Save);
+        row.ConfigureConfirmation(backdrop ? UiSettings.DefaultBackdropColor : UiSettings.DefaultControlBackgroundColor,
+            value => ShellPrefs.SetAppearanceColorPreview(backdrop, value, ui),
+            () => ShellPrefs.SetAppearanceColorPreview(backdrop, null, ui));
+        return row;
     }
 
     private IReadOnlyList<SettingSection> DetailLayoutCards()

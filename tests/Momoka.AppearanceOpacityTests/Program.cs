@@ -11,6 +11,30 @@ using System.Xml.Linq;
 var passed = 0;
 var failed = 0;
 
+Check("外观颜色预览与其他设置保存隔离，清除后恢复真实设置", () =>
+{
+    var ui = new UiSettings();
+    var settingType = typeof(UiSettings);
+    var control = settingType.GetProperty("ControlBackgroundColor");
+    if (control is null) throw new InvalidOperationException("缺少真实颜色设置键");
+    var preview = typeof(ShellPrefs).GetMethod("SetAppearanceColorPreview");
+    var read = typeof(ShellPrefs).GetMethod("AppearanceColor");
+    if (preview is null || read is null) throw new InvalidOperationException("缺少独立预览接口");
+    preview.Invoke(null, new object?[] { false, "#123456", ui });
+    try
+    {
+        if (((Momoka.Theming.ThemeColor)read.Invoke(null, new object[] { false, ui })!).ToHex() != "#FF123456")
+            throw new InvalidOperationException("预览颜色未生效");
+        if ((string)control.GetValue(ui)! != "#FFFFFF") throw new InvalidOperationException("预览修改了活设置");
+        var saved = System.Text.Json.JsonSerializer.Serialize(new AppSettings { Ui = ui });
+        if (saved.Contains("#123456", StringComparison.Ordinal)) throw new InvalidOperationException("其他保存写入预览颜色");
+        if (((Momoka.Theming.ThemeColor)read.Invoke(null, new object[] { false, new UiSettings() })!).ToHex() != "#FFFFFFFF")
+            throw new InvalidOperationException("预览泄漏到其他设置拥有者");
+    }
+    finally { preview.Invoke(null, new object?[] { false, null, ui }); }
+    if (((Momoka.Theming.ThemeColor)read.Invoke(null, new object[] { false, ui })!).ToHex() != "#FFFFFFFF")
+        throw new InvalidOperationException("取消未恢复真实颜色");
+});
 Check("零档没有按钮底色", () => Equal(0, AppearanceOpacity.ControlBackground(0)));
 Check("按钮浓度就是百分比", () => Equal(0.45, AppearanceOpacity.ControlBackground(45)));
 Check("按钮浓度下限", () => Equal(0, AppearanceOpacity.ControlBackground(-1)));
@@ -69,23 +93,20 @@ Check("高斯模糊强度换算：0 不糊、100 最糊", () =>
     Equal(0, GaussianBackdrop.SigmaFor(-1));
     Equal(GaussianBackdrop.MaxSigma, GaussianBackdrop.SigmaFor(3));
 });
-Check("高斯阅读保护覆盖任意亮部，五主题正文和卡片字幕仍可读", () =>
+Check("高斯轻罩随强度线性变化并保留图片", () =>
 {
-    var white = Momoka.Theming.ThemeColor.Rgb(255, 255, 255);
-    foreach (var strength in new[] { 0.01, 0.02, 0.05, 0.4, 1d })
-    {
-        var alpha = AppearanceOpacity.ReadingShadeAlpha(strength, true);
-        var background = white.Mix(DetailHero.ScrimInk, alpha / 255d);
-        foreach (var theme in Momoka.Theming.UiThemes.All)
-        {
-            if (Momoka.Theming.ThemeColor.Contrast(theme.Colors.TextDim, background) < 4.5
-                || Momoka.Theming.ThemeColor.Contrast(theme.Colors.TextFaint, background) < 3)
-                throw new InvalidOperationException($"{theme.Id} 亮背景文字对比不足");
-        }
-    }
+    foreach (var (strength, alpha) in new[] { (0.01, 1), (0.15, 13), (0.4, 36), (1d, 89) })
+        Equal(alpha, AppearanceOpacity.ReadingShadeAlpha(strength, true));
+});
+Check("高斯轻罩边界与普通遮罩保持各自语义", () =>
+{
     Equal(0, AppearanceOpacity.ReadingShadeAlpha(0, true));
-    Equal(0, AppearanceOpacity.ReadingShadeAlpha(double.NaN, true));
+    Equal(0, AppearanceOpacity.ReadingShadeAlpha(-1, true));
+    Equal(89, AppearanceOpacity.ReadingShadeAlpha(2, true));
+    foreach (var strength in new[] { double.NaN, double.NegativeInfinity, double.PositiveInfinity })
+        Equal(0, AppearanceOpacity.ReadingShadeAlpha(strength, true));
     Equal(102, AppearanceOpacity.ReadingShadeAlpha(0.4, false));
+    Equal(255, AppearanceOpacity.ReadingShadeAlpha(1, false));
 });
 Check("出厂四十档的模糊比老版默认略轻", () =>
     Equal((int)Math.Round(GaussianBackdrop.MaxSigma * 0.4),
@@ -433,19 +454,19 @@ Check("材质切换不重写资源键，亚克力100档回实底", () =>
 {
     var control = new ToggleButton();
     var brushes = ControlBackgroundBrushes.ForDetail(control);
-    var method = typeof(ControlBackgroundBrushes).GetMethod("Apply", [typeof(double), typeof(bool)])
+    var method = typeof(ControlBackgroundBrushes).GetMethod("Apply", [typeof(double), typeof(bool), typeof(Windows.UI.Color?)])
         ?? throw new InvalidOperationException("缺少可切换的亚克力背景");
     var keys = control.Resources.Keys.ToArray();
-    method.Invoke(brushes, [0d, true]);
+    method.Invoke(brushes, [0d, true, null]);
     if (control.Background is not AcrylicBrush { AlwaysUseFallback: false } glass)
         throw new InvalidOperationException("亚克力选项没有启用实际材质");
     Equal(0, glass.TintOpacity);
     Equal(0, glass.TintLuminosityOpacity ?? -1);
     Equal(1, glass.Opacity);
-    method.Invoke(brushes, [100d, true]);
+    method.Invoke(brushes, [100d, true, null]);
     if (!glass.AlwaysUseFallback || glass.FallbackColor.A != 255 || glass.Opacity != 1)
         throw new InvalidOperationException("亚克力100档未完全不透明");
-    method.Invoke(brushes, [0d, false]);
+    method.Invoke(brushes, [0d, false, null]);
     if (!glass.AlwaysUseFallback || glass.FallbackColor.A != 0 || glass.Opacity != 0)
         throw new InvalidOperationException("现有底色零档还画着东西");
     if (!keys.SequenceEqual(control.Resources.Keys) || !ReferenceEquals(glass, control.Background))
@@ -482,6 +503,9 @@ Check("亚克力三态与checked、主题和回退独立", () =>
     }
 });
 
+BackdropReadingTests.Run(Check);
+
+Check("自选控件颜色贯穿按钮选择框三态与端点", ControlTintTests.Run);
 Console.WriteLine($"外观透明度：{passed} 通过，{failed} 失败。");
 Console.WriteLine($"TOTAL {passed + failed}; PASS {passed}; FAIL {failed}; SKIP 0");
 return failed == 0 ? 0 : 1;

@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Momoka.Infrastructure;
+using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
 
@@ -40,6 +41,72 @@ public sealed partial class HtmlColorPicker : UserControl
     /// </summary>
     private bool _squareDragging;
     private bool _hueDragging;
+    private SettingColorRow? _appearanceRow;
+    private Flyout? _appearanceFlyout;
+    private bool _appearanceHexValid = true;
+
+    internal void ConfigureAppearance(SettingColorRow row, Flyout flyout)
+    {
+        _appearanceRow = row;
+        _appearanceFlyout = flyout;
+        AppearanceConfirm.Visibility = Visibility.Visible;
+        AppearancePresets.Visibility = Visibility.Visible;
+        ClearButton.Visibility = Visibility.Collapsed;
+        if (AppearancePresets.Children.Count > 0) return;
+        for (var index = 0; index < 6; index++) AppearancePresets.ColumnDefinitions.Add(new ColumnDefinition());
+        for (var index = 0; index < 2; index++) AppearancePresets.RowDefinitions.Add(new RowDefinition());
+        var colors = new[] { ("中性灰", "#808080"), ("浅灰", "#C0C0C0"), ("深灰", "#404040"), ("白色", "#FFFFFF"),
+            ("黑色", "#000000"), ("灰蓝", "#78909C"), ("雾绿", "#91B7A4"), ("米灰", "#B8B2A7"),
+            ("淡紫", "#A89DB8"), ("浅粉", "#C49BA7"), ("柔黄", "#C4B57C"), ("青灰", "#79A6AB") };
+        for (var index = 0; index < colors.Length; index++)
+        {
+            var (name, hex) = colors[index];
+            HtmlColor.TryParse(hex, out var rgb);
+            var button = new Button
+            {
+                Background = new SolidColorBrush(ToColor(rgb)),
+                Height = 28,
+                MinWidth = 0,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Padding = new Thickness(0),
+                Tag = hex
+            };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, name);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(button, "AppearancePreset" + index);
+            Grid.SetColumn(button, index % 6);
+            Grid.SetRow(button, index / 6);
+            button.Click += (_, _) => { _selection.SetHex(hex); Refresh(validEdit: true); Commit(); };
+            AppearancePresets.Children.Add(button);
+        }
+    }
+
+    internal void OnAppearanceOpened(object? sender, object args)
+    {
+        _appearanceRow?.BeginEdit();
+        _selection.SetHex(_appearanceRow?.Color);
+        _appearanceHexValid = true;
+        Refresh(validEdit: true);
+    }
+
+    internal void OnAppearanceClosed(object? sender, object args) => _appearanceRow?.CancelEdit();
+    internal void OnAppearanceOwnerUnloaded(object sender, RoutedEventArgs args) => _appearanceRow?.CancelEdit();
+    private void OnAppearanceDefault(object sender, RoutedEventArgs args)
+    {
+        _selection.SetHex(_appearanceRow?.DefaultColor);
+        Refresh(validEdit: true);
+        Commit();
+    }
+    private void OnAppearanceCancel(object sender, RoutedEventArgs args)
+    {
+        _appearanceRow?.CancelEdit();
+        _appearanceFlyout?.Hide();
+    }
+    private void OnAppearanceComplete(object sender, RoutedEventArgs args)
+    {
+        if (!_appearanceHexValid) return;
+        Commit();
+        if (_appearanceRow?.CommitEdit() == true) _appearanceFlyout?.Hide();
+    }
 
     public HtmlColorPicker()
     {
@@ -168,7 +235,8 @@ public sealed partial class HtmlColorPicker : UserControl
         var point = e.GetCurrentPoint(SatValSquare).Position;
         _selection.SetHsv(_h, ToPercent(point.X, SatValSquare.ActualWidth),
             100 - ToPercent(point.Y, SatValSquare.ActualHeight));
-        Refresh();
+        Refresh(validEdit: true);
+        if (_appearanceRow is not null) Commit();
     }
 
     /// <summary>Where in the hue bar the pointer sits, as 0–360.</summary>
@@ -176,7 +244,8 @@ public sealed partial class HtmlColorPicker : UserControl
     {
         var point = e.GetCurrentPoint(HueBar).Position;
         _selection.SetHsv((int)Math.Round(360 * Math.Clamp(point.Y / Math.Max(1, HueBar.ActualHeight), 0, 1)), _s, _v);
-        Refresh();
+        Refresh(validEdit: true);
+        if (_appearanceRow is not null) Commit();
     }
 
     private static int ToPercent(double position, double extent) =>
@@ -193,7 +262,7 @@ public sealed partial class HtmlColorPicker : UserControl
         var g = Channel(GreenBox.Value, currentG);
         var b = Channel(BlueBox.Value, currentB);
         _selection.SetRgb(HtmlColor.Pack(r, g, b));
-        Refresh();
+        Refresh(validEdit: true);
         Commit();
     }
 
@@ -203,7 +272,7 @@ public sealed partial class HtmlColorPicker : UserControl
 
         _selection.SetHsv(Axis(HueBox.Value, _h, max: 360),
             Axis(SaturationBox.Value, _s, max: 100), Axis(ValueBox.Value, _v, max: 100));
-        Refresh();
+        Refresh(validEdit: true);
         Commit();
     }
 
@@ -222,12 +291,25 @@ public sealed partial class HtmlColorPicker : UserControl
     {
         if (_quiet || _pendingHex is not { } text) return;
         _pendingHex = null;
-        if (!_selection.SetHex(text)) return;
+        if (!_selection.SetHex(text))
+        {
+            if (_appearanceRow is not null)
+            {
+                _appearanceHexValid = false;
+                AppearanceColorComplete.IsEnabled = false;
+                AppearanceColorError.Text = "请输入六位颜色代码，例如 #808080";
+            }
+            return;
+        }
+        _appearanceHexValid = true;
         Refresh();
         Commit();
     }
 
-    private void OnHexLostFocus(object sender, RoutedEventArgs e) => RedrawHex();
+    private void OnHexLostFocus(object sender, RoutedEventArgs e)
+    {
+        if (_appearanceRow is null || _appearanceHexValid) RedrawHex();
+    }
 
     /// <summary>The current state as a colour, out through the binding.</summary>
     private void Commit() => SetColor(HtmlColor.Format(CurrentColor()));
@@ -236,8 +318,9 @@ public sealed partial class HtmlColorPicker : UserControl
     private int CurrentColor() => _selection.Rgb;
 
     /// <summary>Draws the state onto everything, quietly — the number boxes included.</summary>
-    private void Refresh()
+    private void Refresh(bool validEdit = false)
     {
+        if (validEdit) _appearanceHexValid = true;
         _quiet = true;
         try
         {
@@ -265,7 +348,12 @@ public sealed partial class HtmlColorPicker : UserControl
             SaturationBox.Value = _s;
             ValueBox.Value = _v;
 
-            RedrawHex();
+            if (_appearanceRow is null || _appearanceHexValid) RedrawHex();
+            if (_appearanceRow is not null)
+            {
+                AppearanceColorComplete.IsEnabled = _appearanceHexValid;
+                AppearanceColorError.Text = _appearanceHexValid ? "" : "请输入六位颜色代码，例如 #808080";
+            }
         }
         finally { _quiet = false; }
     }
