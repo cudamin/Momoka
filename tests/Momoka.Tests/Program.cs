@@ -53,6 +53,7 @@ internal static class Program
         if (args is ["detail-customization-fixture"])
         {
             DetailLayoutTests.Register();
+            AppearanceColorSettingsTests.Register();
             GaussianBackdropTests.Register();
             SettingsLayoutTests.Register();
             return TestHarness.Run();
@@ -385,6 +386,7 @@ internal static class Program
         ServiceTests.Register();
         FontTests.Register();
         HtmlColorTests.Register();
+        AppearanceColorSettingsTests.Register();
         SubtitlePreviewTests.Register();
         EmbyTests.Register();
         ItemMetadataDateTests.Register();

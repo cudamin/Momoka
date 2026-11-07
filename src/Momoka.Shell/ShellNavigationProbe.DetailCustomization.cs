@@ -179,30 +179,13 @@ internal sealed partial class ShellNavigationProbe
             }
             Require(fixture.Settings.Ui.ControlBackgroundOpacity == 37 && fixture.Settings.Ui.BackdropOpacity == 45,
                 "不透明度滑块没有写回设置");
-            var toggleRow = appearance.Rows.OfType<SettingToggleRow>().Single(row => row.Label == "固定使用沉浸模式（大屏模式）");
-            var toggleHost = Descendants(page).OfType<ContentPresenter>().Single(item => ReferenceEquals(item.Content, toggleRow));
-            toggleHost.StartBringIntoView();
-            await LayoutAsync(toggleHost);
-            var toggle = Descendants(toggleHost).OfType<ToggleSwitch>().Single();
-            ((IToggleProvider)new ToggleSwitchAutomationPeer(toggle).GetPattern(PatternInterface.Toggle)).Toggle();
-            await UntilAsync(() => fixture.Settings.Ui.AlwaysImmersive);
-            Require(toggleRow.IsOn, "固定沉浸开关未跟随实际设置");
-            var enabledRow = appearance.Rows.OfType<SettingToggleRow>().Single(row => row.Label == "启用沉浸模式");
-            var enabledHost = Descendants(page).OfType<ContentPresenter>().Single(item => ReferenceEquals(item.Content, enabledRow));
-            enabledHost.StartBringIntoView();
-            await LayoutAsync(enabledHost);
-            var enabledToggle = Descendants(enabledHost).OfType<ToggleSwitch>().Single();
-            ((IToggleProvider)new ToggleSwitchAutomationPeer(enabledToggle).GetPattern(PatternInterface.Toggle)).Toggle();
-            await UntilAsync(() => !fixture.Settings.Ui.EnableImmersive);
-            Require(appearance.Rows.All(row => row.Label != "固定使用沉浸模式（大屏模式）")
-                && fixture.Settings.Ui.AlwaysImmersive && fixture.Settings.Ui.UseGaussianBackdrop,
-                "关闭总开关未收起从属固定沉浸或清空了偏好");
-            await LayoutAsync(page);
-            await SaveProbeScreenAsync("settings-immersive-disabled-screen.png");
-            ((IToggleProvider)new ToggleSwitchAutomationPeer(enabledToggle).GetPattern(PatternInterface.Toggle)).Toggle();
+            var modeRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "显示模式");
+            modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "简洁模式");
+            Require(!appearance.Rows.Any(row => row.Label is "背景图效果" or "背景遮罩颜色" or "背景图不透明度（%）"),
+                "简洁模式没有隐藏完整背景设置组");
+            modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "沉浸模式");
             await UntilAsync(() => fixture.Settings.Ui.EnableImmersive);
-            Require(appearance.Rows.OfType<SettingToggleRow>().Single(row => row.Label == "固定使用沉浸模式（大屏模式）").IsOn,
-                "恢复总开关未恢复固定沉浸偏好");
+            Require(fixture.Settings.Ui.EnableImmersive, "显示模式选择没有同步沉浸状态");
             Require(fixture.Actions.Plays == 0, "设置自定义探针意外请求播放");
 
             IReadOnlyList<DetailCardSetting> Stored(string type) => type switch
@@ -364,11 +347,11 @@ internal sealed partial class ShellNavigationProbe
                 // 设置页那一段刚把「背景图效果」选成高斯模糊，这里测的是暗色遮罩那一支，先切回来再比浓度。
                 fixture.Settings.Ui.UseGaussianBackdrop = false;
                 fixture.Settings.Ui.BackdropOpacity = 45;
-                fixture.Settings.Ui.AlwaysImmersive = false;
+                fixture.Settings.Ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
                 await LayoutAsync(page);
-                Require(!page.ViewModel.Showcase, "普通尺寸不应触发沉浸布局");
+                Require(page.ViewModel.Showcase == (item.Type != EmbyItemType.Episode), "开启时宽窗未保持沉浸布局或改变了单集布局");
                 var picture = Get<Border>(page, "BackdropPicture");
                 var expectedScrim = AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, 0.45);
                 // 集页宽版式那块板替掉了背景图（BackdropShown=false），滑块对它没有可画的层 —— 下面几条只对有图的页面成立。
@@ -385,11 +368,11 @@ internal sealed partial class ShellNavigationProbe
                     Require(picture.Opacity == 1, "背景图本身被调了透明度（该调的是图上那层遮罩）");
                 }
                 await CheckControlBackgroundOpacityAsync(page, fixture.Settings.Ui);
-                fixture.Settings.Ui.AlwaysImmersive = true;
+                fixture.Settings.Ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
                 Require(page.ViewModel.Showcase == (item.Type != EmbyItemType.Episode),
-                    "固定沉浸没有按剧/电影及单集适用边界生效");
+                    "沉浸模式没有按剧/电影及单集适用边界生效");
                 if (masked && item.Type != EmbyItemType.Episode)
                     Require(ScrimAlphaOf(page) == expectedScrim, "沉浸版式把背景图遮罩浓度改掉了");
                 var band = Get<Grid>(page, "HeroBand");
@@ -411,7 +394,7 @@ internal sealed partial class ShellNavigationProbe
                 await CheckGaussianBackdropAsync(page, fixture.Settings.Ui, () => reads);
                 ResizeProbeClient(1100, 1120);
                 await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
-                fixture.Settings.Ui.AlwaysImmersive = true;
+                fixture.Settings.Ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 foreach (var theme in UiThemes.All)
                 {
@@ -423,11 +406,11 @@ internal sealed partial class ShellNavigationProbe
                 }
                 ResizeProbeClient(760, 820);
                 await UntilAsync(() => { page.UpdateLayout(); return page.ViewModel.IsCompact; });
-                Require(!page.ViewModel.Showcase, "固定沉浸挤掉了窄窗紧凑布局");
-                fixture.Settings.Ui.AlwaysImmersive = false;
+                Require(!page.ViewModel.Showcase, "沉浸模式挤掉了窄窗紧凑布局");
+                fixture.Settings.Ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
-                Require(!page.ViewModel.Showcase, "关闭固定沉浸没有恢复自动模式");
+                Require(!page.ViewModel.Showcase && page.ViewModel.IsCompact && page.ViewModel.BackdropShown, "开启时窄窗未保持紧凑排版与背景图");
                 fixture.Settings.Ui.BackdropOpacity = 100;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
@@ -441,7 +424,7 @@ internal sealed partial class ShellNavigationProbe
             var seasonPage = (DetailPage)frame.Content;
             await UntilAsync(() => seasonPage.IsReady);
             RequireCardOrder(seasonPage, new[] { "episodes", "info", "seasons", "cast", "similar" });
-            fixture.Settings.Ui.AlwaysImmersive = true;
+            fixture.Settings.Ui.EnableImmersive = true;
             ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
             await LayoutAsync(seasonPage);
             Require(!seasonPage.ViewModel.Showcase, "没有背景图的季页被强制沉浸");
@@ -480,11 +463,10 @@ internal sealed partial class ShellNavigationProbe
 
     private async Task CheckImmersiveSwitchAsync(DetailPage page, UiSettings ui)
     {
-        var always = ui.AlwaysImmersive;
-        var spacious = page.ViewModel.Spacious;
+        var enabled = ui.EnableImmersive;
+        var gaussian = ui.UseGaussianBackdrop;
+        var acrylic = ui.UseAcrylicBackdrop;
         var target = page.ViewModel.PlayTarget;
-        ui.AlwaysImmersive = true;
-        page.ViewModel.Spacious = true;
         try
         {
             foreach (var width in new[] { 1200, 760 })
@@ -504,23 +486,26 @@ internal sealed partial class ShellNavigationProbe
                 Require(Get<StackPanel>(page, "ColumnPickers").Visibility == page.ViewModel.ColumnPickersVisibility,
                     "同页切换后视频信息父容器没有同步显隐");
                 Require(page.ViewModel.TailMinHeight == 0, "关闭沉浸后保留了背景留白");
-                Require(ReferenceEquals(target, page.ViewModel.PlayTarget) && ui.AlwaysImmersive,
-                    "外观切换改变播放目标或清空固定沉浸偏好");
+                Require(ReferenceEquals(target, page.ViewModel.PlayTarget)
+                    && ui.UseGaussianBackdrop == gaussian && ui.UseAcrylicBackdrop == acrylic,
+                    "外观切换改变播放目标或清空背景效果偏好");
                 await ScrollProbeAsync(Get<ScrollView>(page, "Body"), 0);
                 await SaveProbeScreenAsync($"detail-immersive-disabled-{page.ViewModel.ItemType}-{width}-screen.png");
                 ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(ui);
                 await LayoutAsync(page);
                 Require(!page.ViewModel.HeroCardShown, "重新启用沉浸后仍保留关闭时的卡面");
-                Require(page.ViewModel.Showcase == (wide && page.ViewModel.BackdropShown),
-                    "重新启用沉浸后未恢复固定模式");
+                Require(page.ViewModel.Showcase == (wide && page.ViewModel.BackdropShown)
+                    && page.ViewModel.IsCompact == !wide,
+                    "重新启用沉浸后未恢复宽窗沉浸或窄窗紧凑布局");
+                Require((Get<Grid>(page, "Backdrop").Visibility == Visibility.Visible) == page.ViewModel.BackdropShown,
+                    "重新启用后背景显隐未跟随视图模型");
+                await SaveProbeScreenAsync($"detail-immersive-enabled-{page.ViewModel.ItemType}-{width}-screen.png");
             }
         }
         finally
         {
-            ui.EnableImmersive = true;
-            ui.AlwaysImmersive = always;
-            page.ViewModel.Spacious = spacious;
+            ui.EnableImmersive = enabled;
             ShellPrefs.ApplyAppearance(ui);
         }
     }
@@ -552,9 +537,8 @@ internal sealed partial class ShellNavigationProbe
 
     private async Task CheckGaussianBackdropAsync(DetailPage page, UiSettings ui, Func<int> requestCount)
     {
-        ui.AlwaysImmersive = false;
-        ResizeProbeClient(760, 820);
-        await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 760) < 1; });
+        ui.EnableImmersive = true;
+        await ResizeResponsiveAsync(page, 760, 820);
         await ScrollProbeAsync(Get<ScrollView>(page, "Body"), 0);
         ui.UseGaussianBackdrop = false;
         ShellPrefs.ApplyAppearance(ui);
@@ -570,7 +554,7 @@ internal sealed partial class ShellNavigationProbe
         ui.ControlBackgroundOpacity = 25;
         ShellPrefs.ApplyAppearance(ui);
         await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
-        Require(ReferenceEquals(normal, page.ViewModel.HeroImage), "普通详情被高斯偏好重新处理");
+        Require(ReferenceEquals(normal, page.ViewModel.HeroImage), "窄窗紧凑背景被高斯偏好重新处理");
         if (page.ViewModel.ItemType == EmbyItemType.Episode)
         {
             Require(!page.ViewModel.UseGaussianBackdrop, "单集页面错误启用沉浸高斯");
@@ -583,10 +567,11 @@ internal sealed partial class ShellNavigationProbe
         }
         ResizeProbeClient(1100, 1120);
         await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
-        ui.AlwaysImmersive = true;
+        ui.EnableImmersive = true;
         ShellPrefs.ApplyAppearance(ui);
         await UntilAsync(() => page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady
             && !ReferenceEquals(normal, page.ViewModel.HeroImage));
+        Require(page.ViewModel.Showcase && !page.ViewModel.IsCompact, "开启高斯后的宽窗未保持沉浸布局");
         Require(!ReferenceEquals(normal, page.ViewModel.HeroImage), "高斯背景没有渲染新的图片");
         var full = page.ViewModel.HeroImage;
         var fullPixels = await ReadBackdropPixelsAsync(full!);
@@ -615,9 +600,10 @@ internal sealed partial class ShellNavigationProbe
         Require(Math.Abs(clear.Variation - original.Variation) < 0.01 && Math.Abs(clear.Mean - original.Mean) < 0.01,
             $"0 档没有关掉模糊：纹理{original.Variation:0.###}→{clear.Variation:0.###}，均值{original.Mean:0.###}→{clear.Mean:0.###}");
 
+        var clearImage = page.ViewModel.HeroImage;
         ui.BackdropOpacity = 45;
         ShellPrefs.ApplyAppearance(ui);
-        await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !ReferenceEquals(halfImage, page.ViewModel.HeroImage));
+        await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !ReferenceEquals(clearImage, page.ViewModel.HeroImage));
         var settled = page.ViewModel.HeroImage;
 
         foreach (var theme in UiThemes.All)
@@ -631,8 +617,8 @@ internal sealed partial class ShellNavigationProbe
                 && acrylic.FallbackColor == Windows.UI.Color.FromArgb(255, 255, 255, 255),
                 "操作亚克力没有保留当前白色染色与回退");
             Require(Get<TextBlock>(page, "Overview").Foreground is SolidColorBrush text
-                && text.Color == ((SolidColorBrush)Application.Current.Resources["EgOnScrimBrush"]).Color,
-                "高斯简介文字没有保持视频/音频的白色");
+                && (text.Color == Microsoft.UI.Colors.White || text.Color == Windows.UI.Color.FromArgb(255, 22, 22, 22)),
+                "高斯简介文字没有选取可读的深浅色");
             Require(ReferenceEquals(settled, page.ViewModel.HeroImage), "切主题重新处理高斯图片");
             Require(Get<FrameworkElement>(page, "HeroBand") is Panel { Background: null }
                 or Panel { Background: SolidColorBrush { Color.A: 0 } }, "高斯头部重复叠暗");
@@ -641,7 +627,7 @@ internal sealed partial class ShellNavigationProbe
             Require(Get<Border>(page, "TitleWash").Background is null or SolidColorBrush { Color.A: 0 },
                 "高斯标题栏重复叠暗");
             Require(ScrimAlphaOf(page) == ScrimExpected(page) && ScrimAlphaOf(page) > 0,
-                "亮背景没有固定的深色阅读保护");
+                "高斯背景没有随强度变化的轻罩");
             RequireDetailBackdropFade(page);
             await CheckBackdropFadePixelsAsync(page);
             await SaveProbeScreenAsync($"detail-gaussian-{page.ViewModel.ItemType}-{theme.Id}-screen.png");
@@ -650,12 +636,12 @@ internal sealed partial class ShellNavigationProbe
         {
             ResizeProbeClient(1100, 1120);
             await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
-            ui.AlwaysImmersive = true;
+            ui.EnableImmersive = true;
             ShellPrefs.ApplyAppearance(ui);
             await UntilAsync(() => page.ViewModel.GaussianBackdropReady);
             await LayoutAsync(page);
             Require(page.ViewModel.Showcase && page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady,
-                "固定沉浸没有保留高斯图片");
+                "宽窗沉浸没有保留高斯图片");
             RequireDetailBackdropFade(page);
             var sheet = Get<StackPanel>(page, "BodySheet");
             Require(sheet.Children.OfType<StackPanel>().SelectMany(panel => panel.Children.OfType<ShelfHead>()).All(head => head.Ink),
@@ -663,12 +649,16 @@ internal sealed partial class ShellNavigationProbe
             Require(Get<StackPanel>(page, "InfoPanel").Background is AcrylicBrush { FallbackColor.A: 255 },
                 "高斯沉浸信息表没有保持可读深色亚克力卡面");
             await SaveProbeScreenAsync($"detail-gaussian-immersive-{page.ViewModel.ItemType}-screen.png");
-            ui.AlwaysImmersive = false;
+            ui.EnableImmersive = true;
             ResizeProbeClient(760, 820);
             await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 760) < 1; });
             ShellPrefs.ApplyAppearance(ui);
             await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
-            Require(ui.UseGaussianBackdrop, "退出沉浸清空了高斯偏好");
+            Require(ui.EnableImmersive && ui.UseGaussianBackdrop && page.ViewModel.IsCompact && page.ViewModel.BackdropShown,
+                "切到窄窗清空高斯偏好或丢失紧凑背景");
+            var compactPixels = await ReadBackdropPixelsAsync(page.ViewModel.HeroImage!);
+            Require(compactPixels.Width == originalPixels.Width && compactPixels.Height == originalPixels.Height
+                && compactPixels.Pixels.AsSpan().SequenceEqual(originalPixels.Pixels), "窄窗未恢复原图像素");
             await LayoutAsync(page);
         }
         ui.UseGaussianBackdrop = false;
@@ -683,7 +673,7 @@ internal sealed partial class ShellNavigationProbe
         // 快速来回切换：晚到的旧模式不能覆盖当前高斯结果。
         ResizeProbeClient(1100, 1120);
         await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
-        ui.AlwaysImmersive = true;
+        ui.EnableImmersive = true;
         ui.UseGaussianBackdrop = true;
         ShellPrefs.ApplyAppearance(ui);
         ui.UseGaussianBackdrop = false;
@@ -694,7 +684,7 @@ internal sealed partial class ShellNavigationProbe
         Require(requestCount() == baselineReads, "背景效果切换重新请求媒体或图片");
         ui.UseGaussianBackdrop = false;
         ui.UseAcrylicControls = false;
-        ui.AlwaysImmersive = false;
+        ui.EnableImmersive = true;
         ShellPrefs.ApplyAppearance(ui);
         await UntilAsync(() => !page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady);
     }
@@ -704,8 +694,8 @@ internal sealed partial class ShellNavigationProbe
         AppearanceOpacity.ReadingShadeAlpha(page.ViewModel.BackdropStrength, page.ViewModel.GaussianBackdropApplied);
 
     /// <summary>
-    /// 屏上这一刻真正画着的那层遮罩的 alpha —— 普通三页读背景层那道整块阅读遮罩，沉浸档读滚动区那一支
-    /// （尾部与头部共用同一支画刷）；集页宽版式那块板替掉了图，两处都没有，读出来是 0。
+    /// 屏上实际阅读遮罩的 alpha；电影、剧、季有图时读取整块背景遮罩。
+    /// 单集宽窗与关闭沉浸时没有背景，尾部读数为 0。
     /// </summary>
     private static byte ScrimAlphaOf(DetailPage page)
     {

@@ -491,6 +491,10 @@ public static class SettingsMigration
         settings.Ui.SeriesCards = [.. DetailLayout.Plan(EmbyItemType.Series, settings.Ui.SeriesCards)];
         settings.Ui.EpisodeCards = [.. DetailLayout.Plan(EmbyItemType.Episode, settings.Ui.EpisodeCards)];
         settings.Ui.MovieCards = [.. DetailLayout.Plan(EmbyItemType.Movie, settings.Ui.MovieCards)];
+        settings.Ui.ControlBackgroundColor = HtmlColor.TryParse(settings.Ui.ControlBackgroundColor, out var controlColor)
+            ? HtmlColor.Format(controlColor) : UiSettings.DefaultControlBackgroundColor;
+        settings.Ui.BackdropColor = HtmlColor.TryParse(settings.Ui.BackdropColor, out var backdropColor)
+            ? HtmlColor.Format(backdropColor) : UiSettings.DefaultBackdropColor;
         settings.Ui.ControlBackgroundOpacity = double.IsFinite(settings.Ui.ControlBackgroundOpacity)
             ? Math.Clamp(settings.Ui.ControlBackgroundOpacity, 0, 100) : 0;
         settings.Ui.BackdropOpacity = double.IsFinite(settings.Ui.BackdropOpacity)

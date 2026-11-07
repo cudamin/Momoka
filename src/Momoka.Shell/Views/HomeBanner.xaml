@@ -401,12 +401,7 @@
                             x:Uid="HomeBanner_OpenButton"
                             Content="详情"
                             Style="{StaticResource EgBannerGhostStyle}"
-                            Click="OnOpenClicked">
-                            <Button.Resources>
-                                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
-                                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimBrush" />
-                            </Button.Resources>
-                        </Button>
+                            Click="OnOpenClicked" />
                     </StackPanel>
                 </StackPanel>
 

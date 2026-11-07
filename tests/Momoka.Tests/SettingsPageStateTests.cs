@@ -42,6 +42,119 @@ internal static class SettingsPageStateTests
     public static void Register(string shellAssemblyPath, string sourceRoot)
     {
         var fixture = new ShellFixture(shellAssemblyPath, sourceRoot);
+        TestHarness.Test("详情显示模式：选择栏在背景效果上方，简洁模式收起完整背景组并保留偏好", () =>
+        {
+            var settings = new FakeSettings();
+            settings.Settings.Ui.EnableImmersive = true;
+            settings.Settings.Ui.BackdropColor = "#123456";
+            settings.Settings.Ui.BackdropOpacity = 37;
+            settings.Settings.Ui.UseGaussianBackdrop = true;
+            var vm = fixture.NewViewModel();
+            fixture.Attach(vm, settings, fixture.NewLauncher());
+            var section = fixture.Invoke(vm, "DetailAppearanceCard")!;
+            fixture.List(vm, "Sections").Add(section);
+            var rows = fixture.List(section, "Rows");
+            var mode = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "显示模式");
+            Assert.Equal("SettingChoiceRow", mode.GetType().Name);
+            Assert.Equal("电影、剧和季详情页有背景图时固定使用沉浸布局", fixture.Get<string>(mode, "Note"));
+            var effect = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "背景图效果");
+            Assert.Equal(rows.IndexOf(mode) + 1, rows.IndexOf(effect));
+            var choices = fixture.List(mode, "Choices");
+            Assert.True(choices.Cast<object>().Select(choice => fixture.Get<string>(choice, "Label"))
+                .SequenceEqual(new[] { "沉浸模式", "简洁模式" }));
+            fixture.Set(mode, "Selected", choices[1]!);
+            Assert.False(settings.Settings.Ui.EnableImmersive);
+            Assert.False(rows.Cast<object>().Any(row => fixture.Get<string>(row, "Label") is
+                "背景图效果" or "背景遮罩颜色" or "背景图不透明度（%）"));
+            Assert.Equal("#123456", settings.Settings.Ui.BackdropColor);
+            Assert.Equal(37d, settings.Settings.Ui.BackdropOpacity);
+            Assert.True(settings.Settings.Ui.UseGaussianBackdrop);
+            fixture.Set(mode, "Selected", choices[0]!);
+            Assert.True(settings.Settings.Ui.EnableImmersive);
+            Assert.Equal(3, rows.Cast<object>().Count(row => fixture.Get<string>(row, "Label") is
+                "背景图效果" or "背景遮罩颜色" or "背景图不透明度（%）"));
+            Assert.True(ReferenceEquals(mode, rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "显示模式")));
+            var restoredColor = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "背景遮罩颜色");
+            Assert.Equal("#123456", fixture.Get<string>(restoredColor, "Color"));
+        });
+        TestHarness.Test("外观颜色行：草稿只预览，取消不保存，完成只提交一次", () =>
+        {
+            var writes = new List<string>();
+            var previews = new List<string?>();
+            var saves = 0;
+            var finished = 0;
+            var row = fixture.NewRow("SettingColorRow", "背景遮罩颜色", null, "#808080",
+                (Action<string>)(value => writes.Add(value)), (Action)(() => saves++));
+            fixture.Invoke(row, "ConfigureConfirmation", "#808080",
+                (Action<string?>)(value => previews.Add(value)), (Action)(() => finished++));
+            fixture.Invoke(row, "BeginEdit");
+            fixture.Set(row, "Color", "#123456");
+            Assert.Equal(0, saves);
+            Assert.Equal(0, writes.Count);
+            Assert.Equal("#123456", previews.Last());
+            fixture.Invoke(row, "CancelEdit");
+            Assert.Equal("#808080", fixture.Get<string>(row, "Color"));
+            Assert.Equal(0, saves);
+            Assert.Equal(1, finished);
+            fixture.Invoke(row, "BeginEdit");
+            fixture.Set(row, "Color", "#A1B2C3");
+            Assert.True((bool)fixture.Invoke(row, "CommitEdit")!);
+            fixture.Invoke(row, "CancelEdit");
+            Assert.Equal(1, saves);
+            Assert.Equal("#A1B2C3", writes.Single());
+            Assert.Equal(2, finished);
+            fixture.Invoke(row, "BeginEdit");
+            Assert.True((bool)fixture.Invoke(row, "CommitEdit")!);
+            Assert.Equal(1, saves);
+        });
+        TestHarness.Test("外观颜色行：空或未完成RGB不能确认，取消仍恢复进入值", () =>
+        {
+            var saves = 0;
+            var row = fixture.NewRow("SettingColorRow", "按钮底色", null, "#FFFFFF",
+                (Action<string>)(_ => saves++), (Action)(() => saves++));
+            fixture.Invoke(row, "ConfigureConfirmation", "#FFFFFF", (Action<string?>)(_ => { }), (Action)(() => { }));
+            foreach (var bad in new[] { "", "#12", "#12345678", "无效" })
+            {
+                fixture.Invoke(row, "BeginEdit");
+                fixture.Set(row, "Color", bad);
+                Assert.False((bool)fixture.Invoke(row, "CommitEdit")!);
+                Assert.True(fixture.Get<bool>(row, "IsEditing"));
+                fixture.Invoke(row, "CancelEdit");
+                Assert.Equal("#FFFFFF", fixture.Get<string>(row, "Color"));
+            }
+            Assert.Equal(0, saves);
+        });
+        TestHarness.Test("外观颜色建行：预览不改变活设置及保存文档，完成才写入并清除预览", () =>
+        {
+            var vm = fixture.NewViewModel();
+            var settings = new FakeSettings();
+            fixture.Attach(vm, settings, fixture.NewLauncher());
+            var row = fixture.Invoke(vm, "AppearanceColorRow", "背景遮罩颜色", true, settings.Settings.Ui)!;
+            fixture.Invoke(row, "BeginEdit");
+            fixture.Set(row, "Color", "#123456");
+            Assert.Equal("#808080", settings.Settings.Ui.BackdropColor);
+            Assert.Equal(0, settings.TrySaveCalls);
+            Assert.False(System.Text.Json.JsonSerializer.Serialize(settings.Settings).Contains("#123456", StringComparison.Ordinal));
+            fixture.Invoke(row, "CommitEdit");
+            Assert.Equal("#123456", settings.Settings.Ui.BackdropColor);
+            Assert.Equal(1, settings.TrySaveCalls);
+            fixture.Invoke(row, "BeginEdit");
+            fixture.Set(row, "Color", "#A1B2C3");
+            fixture.Invoke(row, "CancelEdit");
+            Assert.Equal("#123456", settings.Settings.Ui.BackdropColor);
+            Assert.Equal(1, settings.TrySaveCalls);
+        });
+        TestHarness.Test("字幕颜色行：旧路径选色与清空仍各提交一次", () =>
+        {
+            var writes = new List<string>();
+            var saves = 0;
+            var row = fixture.NewRow("SettingColorRow", "文字颜色", null, "#FFFFFF",
+                (Action<string>)(value => writes.Add(value)), (Action)(() => saves++));
+            fixture.Set(row, "Color", "#123456");
+            fixture.Set(row, "Color", "");
+            Assert.Equal(2, saves);
+            Assert.True(writes.SequenceEqual(new[] { "#123456", "" }));
+        });
         TestHarness.Test("弹幕屏蔽词：从共享偏好重载真实文本行不再提交或重复保存", () =>
         {
             var commits = 0;

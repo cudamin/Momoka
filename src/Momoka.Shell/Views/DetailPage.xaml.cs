@@ -101,7 +101,6 @@ public sealed partial class DetailPage : Page, IShellContent
             PaintBackdropFade();
             if (_appearanceObserved) ApplyAppearance();
         });
-        MeasureSeriesShelf();
         PrepareShowcase();
         PrepareCardLayout();
 
@@ -134,12 +133,9 @@ public sealed partial class DetailPage : Page, IShellContent
         {
             ThemeHost.Changed -= OnThemeChanged;
             StopAppearance();
-            StopShowcase();
-            StopSpaciousWatch();
             if (_window is not null)
             {
                 _window.GeometryChanged -= OnWindowGeometryChanged;
-                _window.InteractiveResizeChanged -= OnInteractiveResizeChanged;
                 _window = null;
             }
             ViewModel.Dispose();
@@ -151,7 +147,6 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         RefreshShowcaseBrushes();
         PaintBackdropFade();
-        MeasureSeriesShelf();
         if (_appearanceObserved) ApplyAppearance();
         PaintWash(force: true);
     }
@@ -1615,68 +1610,22 @@ public sealed partial class DetailPage : Page, IShellContent
         if (_window is not null)
         {
             _window.GeometryChanged -= OnWindowGeometryChanged;
-            _window.InteractiveResizeChanged -= OnInteractiveResizeChanged;
         }
 
         _window = window;
         window.GeometryChanged += OnWindowGeometryChanged;
-        window.InteractiveResizeChanged += OnInteractiveResizeChanged;
 
-        // 进来时窗口铺开到哪一档：这一档决定正文那张纸要不要让开（DetailHero.Immersive）。第一次上树不走
-        // 过渡 —— 版面还没排过，直接按最终那一档布就是了。
-        _spacious = IsSpacious();
-        _pendingSpacious = _spacious;
-        _maximized = window.IsMaximized;
-        ApplyShowcase(animate: false);
+        SettleShowcase();
 
         SyncPaperLine();
         SyncCornerScale();
     }
 
-    /// <summary>
-    /// 换了显示器、改了窗口大小、全屏来回、最大化与还原（<see cref="Windowing.HostWindow.GeometryChanged"/>
-    /// 的全部场合）：纸面上沿那条线跟着显示器走（<see cref="DetailHero.PaperLineFor"/>），这些时候都要重算一遍。
-    /// <para>
-    /// 窗口形态（最大化，或面积过了工作区五分之四）在那几个数之外还决定正文那张纸让不让开（2026-10-31
-    /// 用户令）：最大化／还原是用户按了窗口按钮，当场落定；面积跨线多半是拖着窗口边过去的，等手停下来
-    /// （<see cref="ScheduleSpacious"/>）—— 拖动里每几毫秒一个 <c>WM_SIZE</c>，跟着每一帧翻面就是一路闪。
-    /// 最小化那一拍客户区是空的，不重新量，保留上一档。
-    /// </para>
-    /// </summary>
+    /// <summary>窗口和显示器变化仍更新角图缩放与无背景页面的纸面参考线。</summary>
     private void OnWindowGeometryChanged()
     {
-        if (_window is { Minimized: false } window)
-        {
-            var maximized = window.IsMaximized;
-            var toggle = maximized != _maximized;
-            _maximized = maximized;
-
-            _pendingSpacious = IsSpacious();
-            if (_pendingSpacious == _spacious)
-            {
-                _spaciousWatch?.Stop();
-            }
-            else if (toggle)
-            {
-                CommitSpacious();
-            }
-            else
-            {
-                ScheduleSpacious();
-            }
-        }
-
         SyncPaperLine();
         SyncCornerScale();
-    }
-
-    /// <summary>
-    /// 拖边／贴靠的一次开始与结束。开始不做任何事，结束那一下把还没落定的那一档补上 —— 手势结束比计时器
-    /// 那两百毫秒准，<c>WM_EXITSIZEMOVE</c> 先发这一支、紧跟着再发 <c>GeometryChanged</c>。
-    /// </summary>
-    private void OnInteractiveResizeChanged(bool active)
-    {
-        if (!active) CommitSpacious();
     }
 
     private void SyncCornerScale()
@@ -1718,8 +1667,7 @@ public sealed partial class DetailPage : Page, IShellContent
         _request = request;
 
         // 页面实例会被导航栈复用：上一次停留时「已经排过版」的那一位不能带进新条目。等这一次的
-        // OnBodySizeChanged 量到真实宽高，再允许窗口尺寸变化插过渡。
-        _showcaseSettled = false;
+        // OnBodySizeChanged 量到真实宽高后应用沉浸或窄窗布局。
 
         // Cleared so the shell's breadcrumb reads the request rather than a leftover tag; see IShellContent.
         Tag = string.Empty;
@@ -2135,7 +2083,6 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         // 这两个数是「窗口在变形态」的证据：宽高都写完之后由 DetailPage.Showcase.cs 一次结算。
         // 写的过程中 Showcase 的通知先压住，免得拿写到一半的数去翻面。
-        var wasCompact = _settledCompact;
         _sizing = true;
         try
         {
@@ -2150,10 +2097,7 @@ public sealed partial class DetailPage : Page, IShellContent
             _sizing = false;
         }
 
-        // 这一次之后版面已经有真实宽高了；再往后的翻面才是用户在改窗口，可以插过渡。
-        ResolveShowcaseAfterResize(wasCompact);
-        _showcaseSettled = true;
-        _settledCompact = ViewModel.IsCompact;
+        SettleShowcase();
         SyncCornerScale();
 
         // 宽高都变了，裁切模糊的档位跟着重算（DetailViewModel.UpdateHeroBlur）：换档它自己会用缓存的像素
@@ -2163,6 +2107,7 @@ public sealed partial class DetailPage : Page, IShellContent
         // 同一件事的另一头：这个滚动视图变高变矮，正是因为它上面那行面包屑出现或收起，也就是背景那一层该往上
         // 顶多少变了的那一刻。见 LiftBackdrop。
         LiftBackdrop();
+        PaintReadingColors();
     }
 
     /// <summary>
@@ -2201,7 +2146,11 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     /// <summary>滚到哪儿了 —— 标题栏先接图上的黑底，再跟随正文纸面。</summary>
-    private void OnBodyViewChanged(ScrollView sender, object args) => PaintWash();
+    private void OnBodyViewChanged(ScrollView sender, object args)
+    {
+        PaintWash();
+        PaintReadingColors();
+    }
 
     /// <summary>
     /// 把标题栏那一条画成当前正从它下面经过的那一层。
@@ -2232,7 +2181,7 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         var artwork = ViewModel.BackdropShown;
 
-        // 沉浸档（最大化、电影/剧/季、有背景图）：正文那张纸整块让开，任何时候都没有纸面往标题栏上盖 ——
+        // 沉浸档（开关开启、宽窗、电影/剧/季、有背景图）：正文那张纸整块让开，任何时候都没有纸面往标题栏上盖 ——
         // 整条一直是尾部那道半透明黑上的浅墨。纸面接管的三个阶段（3、4 和那道硬边渐变）在这一档都不存在。
         if (ViewModel.Showcase)
         {

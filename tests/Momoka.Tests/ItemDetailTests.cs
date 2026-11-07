@@ -2373,9 +2373,9 @@ internal static class ItemDetailTests
 
         // 「剧集页面、电影页面和季页面进入最大化状态时，去掉下方组件的背景遮罩，并将下方组件整体上移」
         // （2026-10-31）：正文那张不透明的纸整块让开，单集/剧季/相似/演职人员直接压在固定的模糊背景上。
-        // 四句话缺一不可 —— 窗口铺开（最大化，或占了工作区五分之四以上的面积）、宽版式、背后有那张图、
+        // 四句话缺一不可 —— 沉浸开关、宽版式、背后有那张图、
         // 条目是电影/剧/季；一票否决的那几种各自成句。
-        Test("铺开：只有电影、剧、季三页收起正文纸面", () =>
+        Test("铺开：沉浸启用只有电影、剧、季三页收起正文纸面", () =>
         {
             Assert.True(DetailHero.Immersive(true, compact: false, artwork: true, EmbyItemType.Series));
             Assert.True(DetailHero.Immersive(true, false, true, EmbyItemType.Movie));
@@ -2386,7 +2386,7 @@ internal static class ItemDetailTests
             Assert.False(DetailHero.Immersive(true, false, true, EmbyItemType.Person));
             Assert.False(DetailHero.Immersive(true, false, true, EmbyItemType.Folder));
 
-            // 另外三句话各自都能单独否决：窗口没铺开、窄成紧凑版式、背后没有图。
+            // 另外三句话各自都能单独否决：开关关闭、窄成紧凑版式、背后没有图。
             Assert.False(DetailHero.Immersive(false, false, true, EmbyItemType.Series));
             Assert.False(DetailHero.Immersive(true, compact: true, artwork: true, EmbyItemType.Series));
             Assert.False(DetailHero.Immersive(true, false, artwork: false, EmbyItemType.Series));
@@ -2405,9 +2405,9 @@ internal static class ItemDetailTests
             Assert.False(DetailHero.Spacious(false, DetailHero.Share(1780, 1282, 2000, 1440)));
 
             // 这一档和最大化一样，仍然要过另外三句：条目类型、宽版式、有图。
-            Assert.True(DetailHero.Immersive(DetailHero.Spacious(false, 0.9), false, true, EmbyItemType.Movie));
-            Assert.False(DetailHero.Immersive(DetailHero.Spacious(false, 0.79), false, true, EmbyItemType.Movie));
-            Assert.False(DetailHero.Immersive(DetailHero.Spacious(false, 0.9), true, true, EmbyItemType.Movie));
+            Assert.True(DetailHero.SubscriptionImmersive(DetailHero.Spacious(false, 0.9), false, true, true));
+            Assert.False(DetailHero.SubscriptionImmersive(DetailHero.Spacious(false, 0.79), false, true, true));
+            Assert.False(DetailHero.SubscriptionImmersive(DetailHero.Spacious(false, 0.9), false, false, true));
 
             // 量不出来（窗口还没建、显示器没读到）按 0 算，不高估；最大化那一档不看面积。
             Assert.Equal(0d, DetailHero.Share(0, 900, 2000, 900));

@@ -58,6 +58,21 @@ public sealed partial class ShelfHead : UserControl
     }
 
     private bool _inkAttached;
+    private readonly Microsoft.UI.Xaml.Media.SolidColorBrush _backdropInk = new();
+    internal void ApplyBackdropInk(Momoka.Theming.ThemeColor? color)
+    {
+        if (color is not { } ink)
+        {
+            TitleText.ClearValue(TextBlock.ForegroundProperty);
+            OpenGlyph.ClearValue(FontIcon.ForegroundProperty);
+            return;
+        }
+        _backdropInk.Color = ThemeHost.ToColor(ink);
+        TitleText.Foreground = _backdropInk;
+        OpenGlyph.Foreground = _backdropInk;
+        TextInk.SetForeground(TitleInk, ink);
+    }
+
     private static void OnInkChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
         var head = (ShelfHead)sender;

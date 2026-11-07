@@ -50,6 +50,7 @@ public sealed class BannerSlide : INotifyPropertyChanged
     private BitmapImage? _logoImage;
     private readonly EmbySessionScope? _scope;
     private HeroPictureLoader.HeroPixels? _backdropPixels;
+    internal HeroPictureLoader.HeroPixels? BackdropPixels => _backdropPixels;
     private bool _useGaussian;
     private bool _renderedGaussian;
     private int _effectGeneration;
