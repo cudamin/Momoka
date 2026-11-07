@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Momoka.Mpv;
+using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -30,9 +31,11 @@ public sealed partial class SettingOptionalNumberRow : SettingRow
     public double Minimum { get; }
     public double Maximum { get; }
     public bool InputEnabled => !Automatic;
+    public Visibility InputVisibility => Automatic ? Visibility.Collapsed : Visibility.Visible;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(InputEnabled))]
+    [NotifyPropertyChangedFor(nameof(InputVisibility))]
     public partial bool Automatic { get; set; }
 
     [ObservableProperty]

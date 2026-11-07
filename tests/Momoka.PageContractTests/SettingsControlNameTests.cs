@@ -18,6 +18,13 @@ internal static class SettingsControlNameTests
             Assert.Equal(4, notes.Count);
             foreach (var note in notes) Assert.Equal("{x:Bind SupportingNotesVisibility, Mode=OneWay}", (string?)note.Attribute("Visibility"));
         });
+        Test("R15-007：自动数值隐藏手动框并保留恢复开关", () =>
+        {
+            var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "SettingsPage.xaml"));
+            var manual = page.Descendants().Single(element => element.Name.LocalName == "NumberBox" &&
+                (string?)element.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")) == "ManualValue");
+            Assert.Equal("{x:Bind InputVisibility, Mode=OneWay}", (string?)manual.Attribute("Visibility"));
+        });
         foreach (var shape in new[] { "Slider", "Color" })
             Test("设置具体名称：" + shape + " 模板与资源不丢失当前行标签", () =>
             {

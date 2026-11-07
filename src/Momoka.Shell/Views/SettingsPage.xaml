@@ -597,6 +597,7 @@
                                 x:Name="ManualValue"
                                 AutomationProperties.Name="{x:Bind Label}"
                                 IsEnabled="{x:Bind InputEnabled, Mode=OneWay}"
+                                Visibility="{x:Bind InputVisibility, Mode=OneWay}"
                                 Minimum="{x:Bind Minimum}"
                                 Maximum="{x:Bind Maximum}"
                                 SpinButtonPlacementMode="Hidden"
