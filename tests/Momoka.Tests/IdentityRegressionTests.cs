@@ -1076,7 +1076,7 @@ internal static class IdentityRegressionTests
         {
             using var fixture = new MoviePilotFixture();
             await fixture.Service.SearchAsync("first", None);
-            fixture.Settings.MoviePilot.Url = "http://MP.invalid:80/";
+            fixture.Settings.MoviePilot.Url = "http://MP.invalid:3001/";
             await fixture.Service.SearchAsync("same", None);
             Assert.Equal(1, fixture.LoginCount);
             fixture.Settings.MoviePilot.Username = "b";
