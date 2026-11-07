@@ -4,6 +4,8 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["font-fill-recovery-fixture", var fontShell, var fontRoot])
+            return FontFillRecoveryTests.Run(fontShell, fontRoot);
         if (args is ["jellyfin-latest-shelf-fixture", var latestShell, var latestRoot])
             return JellyfinLatestShelfTests.Run(latestShell, latestRoot);
         if (args is ["home-carousel-fixture"])

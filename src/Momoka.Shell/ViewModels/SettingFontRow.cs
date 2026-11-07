@@ -204,9 +204,20 @@ public sealed partial class SettingFontRow : SettingRow
     internal void Fill(FontCatalogue catalogue)
     {
         ArgumentNullException.ThrowIfNull(catalogue);
-
+        var searching = ListVisibility == Visibility.Visible;
+        var query = Query;
+        var text = BoxText;
         _catalogue = catalogue;
         Load(Value);
+        if (searching)
+        {
+            _placing = true;
+            try { BoxText = text; }
+            finally { _placing = false; }
+            Query = query;
+            ListVisibility = Visibility.Visible;
+            Refilter();
+        }
 
         Status = catalogue.Families.Count == 0
             ? "没有在 Windows 字体目录里读到字体，下面这一个来自设置文件"
