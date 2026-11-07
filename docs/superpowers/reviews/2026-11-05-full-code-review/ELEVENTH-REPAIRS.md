@@ -9,4 +9,12 @@
 
 独立复核确认下载调用链无新增必要产品问题；要求补精简模式反馈及 GUID 残件清理断言，已纳入本批。受影响测试保留真实 Core/行命令/传输，仅替换匿名 HTTP 和密钥保护边界；运行探针沿用 Settings 分区、实际 PasswordBox 与保存按钮，并加入失败/恢复截图。
 
-最终开发编译 Core/Tests/Shell 均零警告错误；完整主测试 4142/4142、翻译专项 119/119、实际设置行 44/44，均零失败跳过。18 文本检查通过。补修复核无新必要问题。待完成：合入 master 后重新验证、Settings 匿名运行与截图，并刷新实际桌面交付。测试不用真实下载目录或 DPAPI 凭据；不做真实服务器下载、播放、写入、上传或额外 ZIP/MSIX。
+最终开发编译 Core/Tests/Shell 均零警告错误；完整主测试 4142/4142、翻译专项 119/119、实际设置行 44/44，均零失败跳过。18 文本检查通过。补修复核无新必要问题。
+
+主树最终产品 c275a06（产品79f5026、截图082f669/c275a06）重新编译 Tests/Core/Shell 均零警告错误，完整4142/4142、翻译119/119、真实设置行44/44，零失败跳过。最终Core与Tests/Shell所带Core同SHA A50DD95EBE015B34FD8DA94E4DF64842D5E996D5CC0535AFB8CD720FBF1BA292，Shell为BF1EA76AC5351B5D2D2276EE361E0BE81E392DF59CD3307892494FB6471DCB5B。Assembly提交信息导致中间重编的输出哈希变化，最终重新编译及测试已对齐；不沿用旧输出。
+
+Settings首运行28项27绿，截图Single同时匹配隐藏说明而失败；修改为可见状态后，副屏运行28/28退出0，但竖向1080px副屏截掉宽窗右侧，宽窗截图不算验收。同一最终程序在主屏串行重跑28/28退出0，五主题1100/760共10张及失败throw/empty/恢复3张真实屏幕图已逐张/场景查看，状态完整可读、草稿保留/清空和原说明恢复。两个最终进程PID22556/13220均正常退出。主测试首轮16项共享锁冲突及原截图失败均保留，没有降低基线；本轮只跑Settings分区，其他108项未执行，native音频枚举未覆盖，未冒称全量UI或播放通过。
+
+证据主树 artifacts/review-batch11-master：tested-source-final.json、tests-final.log、translation-final-tests.log、settings-row-final.log、settings-main-screen-process.json、settings-main-screen/、screenshot-hashes.json、visual-check.txt及原失败/副屏目录。匿名测试不使用真实下载目录、DPAPI凭据、服务器下载/写入或播放。
+
+用户在“统一剧与集页面及亚克力背景”聊天已直接授权协调及最终统一交付：本批修复与所有适用验证完成后，交还主树/UI/发布权给0923聊天；由其保留本批代码、整合独立UI，最终主树重新验证后一次publish -NoArchive -Shortcut。第十一批无待修/待合/待验产品，仍待统一交付回执；当前快捷方式仍前批程序，不重复单独发布，不上传或生成额外ZIP/MSIX。
