@@ -39,6 +39,7 @@ internal static class Program
         Console.WriteLine("资源搜索真实源码/生成命令与模板契约；只用匿名内存HTTP及隔离临时设置，无窗口、登录、联网或下载副作用");
         SearchSitePreferenceTests.Register();
         SearchProgressTests.Register();
+        SiteGridContractTests.Register(sourceRoot);
         if (args is [_, "search-sites"]) return Run();
         SearchCompactMergeTests.Register(sourceRoot);
         ResourceFilterCardTests.Register(sourceRoot);

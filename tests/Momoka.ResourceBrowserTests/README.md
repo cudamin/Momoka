@@ -18,6 +18,8 @@
 
 仅执行站点持久化专项时，在本树根目录参数后加 `search-sites`；这是完整套件的子集，不与全套数量相加。源码与状态测试不代替实际 WinUI 弹层、焦点、输入和截图验收。
 
+默认与 `search-sites` 均登记站点网格既有十二项，包括模板、草稿确认、取消、失败和过期宿主。当前编译完成后直接运行所编译的 DLL（x64 为 `tests/Momoka.ResourceBrowserTests/bin/x64/Release/net10.0/Momoka.ResourceBrowserTests.dll`），将输出保存为当轮日志，再执行 `pwsh -NoProfile -File tools/test-resource-site-registration.ps1 -Log <日志>`，要求十二个完整名字各通过一次及完整零失败零跳过汇总。`-SelfTest` 验证漏项、重复、失败、跳过、不完整与汇总不符的日志被拒绝；校验既有日志不证明当前代码已编译或执行。
+
 不会启动 App、native、浏览器或下载器，不读真实配置／凭据／DPAPI、不联网／播放／提交下载。实际 WinUI 模板布局、宽窄窗口、键盘／鼠标输入、UIA 和截图仍需适用的运行验收，不拿本项目属性与源码断言冒充。
 
 AniBT 资源行回归编译链接实际 `AniBtResourceViewModel.cs`，检查头像有值／缺失／加载失败、页签切换与展开时保留组和行身份、下载状态的图标／悬停说明／辅助名称通知，以及两个按钮独立位于行尾的模板契约。只运行这部分可在上述命令末尾追加 `anibt-layout`。这些检查不产生图片下载或窗口；实际头像解码、36 DIP 方钮尺寸、宽窄行尾位置与 UIA 句柄由 `--probe-shell --probe-section anibt` 使用本地图片夹具验证，并分别保留渲染帧和真实屏幕截图。
