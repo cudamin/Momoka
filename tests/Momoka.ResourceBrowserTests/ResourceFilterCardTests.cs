@@ -255,9 +255,9 @@ internal static class ResourceFilterCardTests
                 Assert.Equal(role, dark[key]);
                 Assert.True(role.StartsWith("Eg", StringComparison.Ordinal));
             }
-            Assert.Equal("EgAccentSoftBrush", light["ToggleButtonBackground"]);
+            Assert.Equal("EgActionGlassBrush", light["ToggleButtonBackground"]);
             Assert.Equal("EgBorderBrush", light["ToggleButtonBorderBrush"]);
-            Assert.Equal("EgAccentBrush", light["ToggleButtonBackgroundChecked"]);
+            Assert.Equal("EgActionGlassBrush", light["ToggleButtonBackgroundChecked"]);
             Assert.Equal("EgTextOnAccentBrush", light["ToggleButtonForegroundChecked"]);
             Assert.False(styles.Descendants().Any(node => node.Name.LocalName == "SolidColorBrush"));
             Assert.False(styles.Descendants().Attributes().Any(attribute => attribute.Name.LocalName == "HighContrastAdjustment"));

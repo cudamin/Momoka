@@ -792,8 +792,10 @@ internal static class SubscribeSettingsTests
             var names = xaml.Descendants().Select(item => (string?)item.Attribute(x + "Name")).ToHashSet();
             foreach (var name in new[] { "SubscribeSeasons", "PickerEpisodeGroups", "SelectSubscribeSeason", "NormalSubscribeMode", "EpisodeUpgradeMode", "FullSeasonUpgradeMode", "RetrySeasonStates" }) Check.True(names.Contains(name), name);
             Check.True(names.Contains("DismissSeasonPicker"));
-            foreach (var key in new[] { "AccentButtonBackground", "ToggleSwitchFillOn" })
-                Check.True(xaml.Descendants().Any(item => (string?)item.Attribute(x + "Key") == key && (string?)item.Attribute("ResourceKey") == "EgAccentBrush"));
+            Check.True(xaml.Descendants().Any(item => (string?)item.Attribute(x + "Key") == "AccentButtonBackground"
+                && (string?)item.Attribute("ResourceKey") == "EgActionGlassBrush"));
+            Check.True(xaml.Descendants().Any(item => (string?)item.Attribute(x + "Key") == "ToggleSwitchFillOn"
+                && (string?)item.Attribute("ResourceKey") == "EgAccentBrush"));
             Check.True(xaml.Descendants().Any(item => ((string?)item.Attribute("Text"))?.Contains("AirDateText", StringComparison.Ordinal) == true
                 && (string?)item.Attribute("TextWrapping") == "Wrap"));
             var groups = xaml.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "PickerEpisodeGroups");
