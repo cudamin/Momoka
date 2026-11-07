@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
 using Momoka.Shell.Views;
@@ -16,7 +17,7 @@ internal sealed partial class ShellNavigationProbe
     /// <para>
     /// 两条版式规矩落在同一页上，所以这一条用例把同一页在四档宽度上各量一遍：
     /// <list type="bullet">
-    /// <item>1280 与 1024（宽版式）：封面画出来都是 250×375（400×600 的竖图装进 260×375 那一格），背景层收着。</item>
+    /// <item>关闭沉浸时1280 与 1024（宽版式）：封面画出来都是 250×375，背景层收着，保留旧卡面。</item>
     /// <item>1023 与 768（紧凑版式）：封面整个收掉（<see cref="DetailHero.ShowsStill"/> 对紧凑档是 false），
     /// 背景那一层开始画 —— 那正是参考图上窄版式头图的样子。</item>
     /// </list>
@@ -42,10 +43,15 @@ internal sealed partial class ShellNavigationProbe
     {
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
+        fixture.Settings.Ui.EnableImmersive = false;
+        fixture.Settings.Ui.UseGaussianBackdrop = false;
+        fixture.Settings.Ui.UseAcrylicBackdrop = false;
+        ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
 
         var series = Series();
         series.BackdropImageTags.Add("fixture");
         series.ImageTags["Art"] = "fixture";
+        series.ImageTags["Primary"] = "fixture";
 
         var episode = Episode("a");
         episode.Name = "离线单集 · 集页封面与窄窗背景";
@@ -318,6 +324,95 @@ internal sealed partial class ShellNavigationProbe
                 readings.Add($"艺术图：窗口 {actualWindow:0.##}，最大 {maximum:0.##}，倍率 {scale:0.###}，实际 {corner.ActualWidth:0.##}×{corner.ActualHeight:0.##}");
                 await SaveProbeScreenAsync($"detail-corner-{(width == 0 ? "max" : width.ToString())}.png");
             }
+
+            fixture.Settings.Ui.EnableImmersive = true;
+            ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+            var target = page.ViewModel.PlayTarget;
+            var expectedPoster = DetailHero.StillBox(400, 600, 260, 375) ?? default;
+            foreach (var width in new[] { 1280, 1024, 1023, 768, 1280 })
+            {
+                await ResizeResponsiveAsync(page, width, 900);
+                await LayoutAsync(page);
+                var view = page.ViewModel;
+                var compact = width < DetailHero.CompactFloor;
+                var cover = Get<Border>(page, "PosterStill");
+                Require(view.Showcase == !compact && view.BackdropShown && !view.HeroCardShown,
+                    $"开启沉浸的单集 {width} 未使用剧式宽窗或原紧凑背景");
+                RequireEpisodeSubject(page, episode);
+                Require(ReferenceEquals(target, view.PlayTarget), "单集沉浸缩放改变播放目标");
+                Require(Get<Image>(page, "CornerArt").Visibility == Visibility.Collapsed,
+                    "单集沉浸仍显示右上角艺术图");
+                if (compact)
+                {
+                    Require(cover.Visibility == Visibility.Collapsed && view.StillWidth == 0 && view.StillHeight == 0,
+                        "单集沉浸窄窗隐藏海报后仍占位");
+                }
+                else
+                {
+                    Require(Math.Abs(cover.ActualWidth - expectedPoster.Width) < 1.5
+                        && Math.Abs(cover.ActualHeight - expectedPoster.Height) < 1.5,
+                        $"单集沉浸海报未使用统一剧页尺寸：{cover.ActualWidth:0.#}×{cover.ActualHeight:0.#}");
+                    Require(cover.VerticalAlignment == VerticalAlignment.Top
+                        && Get<Grid>(page, "HeroContent").VerticalAlignment == VerticalAlignment.Bottom,
+                        "单集沉浸封面或文字栏未使用剧页对齐");
+                    Require(view.TailMargin == default && view.HeroInset.Left == 32,
+                        "单集沉浸仍使用旧卡面简介提拉或48/60左距");
+                    RequireImmersiveSurface(page);
+                    RequireResponsiveBindings(page);
+                    if (width == 1024)
+                    {
+                        var fill = Get<AcrylicBrush>(page, "_panelFill");
+                        var opacity = fill.Opacity;
+                        try
+                        {
+                            fill.Opacity = 1;
+                            var rejected = false;
+                            try { RequireImmersiveSurface(page); }
+                            catch (InvalidOperationException) { rejected = true; }
+                            Require(rejected, "沉浸正文检查没有拒绝不透明卡面反例");
+                        }
+                        finally { fill.Opacity = opacity; }
+                    }
+                }
+                readings.Add($"沉浸单集 {width}：海报{view.StillWidth:0.#}×{view.StillHeight:0.#}，集号{view.Subline}，背景{view.BackdropShown}");
+                await SaveProbeScreenAsync($"detail-episode-immersive-{width}.png");
+            }
+
+            await CheckImmersiveSwitchAsync(page, fixture.Settings.Ui);
+
+            // 真正的无图DTO：不改HeroArt伪造结果，重新进入无任何图片标签的单集。
+            var noArtwork = Episode("a");
+            noArtwork.Id = "episode-no-artwork";
+            noArtwork.Name = "离线无图单集";
+            noArtwork.SeriesName = series.Name;
+            noArtwork.ParentIndexNumber = 1;
+            noArtwork.Overview = episode.Overview;
+            noArtwork.MediaSources = episode.MediaSources;
+            fixture.Transport.Reply = (request, _) =>
+            {
+                var path = request.RequestUri!.AbsolutePath;
+                if (path.EndsWith("/Items/" + noArtwork.Id, StringComparison.Ordinal)) return Task.FromResult(Json(noArtwork));
+                if (path.EndsWith("/Episodes", StringComparison.Ordinal))
+                    return Task.FromResult(Json(new { Items = new[] { noArtwork } }));
+                return Task.FromResult(FakeTransport.Standard(request));
+            };
+            frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, noArtwork));
+            var emptyPage = (DetailPage)frame.Content;
+            emptyPage.AttachWindow(_window!);
+            await UntilAsync(() => emptyPage.IsReady);
+            foreach (var width in new[] { 1280, 760, 1280 })
+            {
+                await ResizeResponsiveAsync(emptyPage, width, 900);
+                await LayoutAsync(emptyPage);
+                Require(!emptyPage.ViewModel.BackdropShown && !emptyPage.ViewModel.Showcase,
+                    "无图单集错误进入沉浸或保留旧背景");
+                Require(Get<Grid>(emptyPage, "Backdrop").Visibility == Visibility.Collapsed
+                    && Get<AcrylicBrush>(emptyPage, "_panelFill").Opacity == 1,
+                    "无图单集没有恢复可读正文卡面");
+                RequireEpisodeSubject(emptyPage, noArtwork);
+                await SaveProbeScreenAsync($"detail-episode-no-artwork-{width}.png");
+            }
+            await CheckImmersiveSwitchAsync(emptyPage, fixture.Settings.Ui);
 
             Require(fixture.Actions.Plays == 0, "布局检查意外请求播放");
         }

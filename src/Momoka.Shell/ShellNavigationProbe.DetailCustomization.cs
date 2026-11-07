@@ -351,12 +351,12 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
                 await LayoutAsync(page);
-                Require(page.ViewModel.Showcase == (item.Type != EmbyItemType.Episode), "开启时宽窗未保持沉浸布局或改变了单集布局");
+                Require(page.ViewModel.Showcase && page.ViewModel.BackdropShown && !page.ViewModel.HeroCardShown,
+                    "开启时剧、电影或单集宽窗没有进入沉浸布局");
+                RequireImmersiveSurface(page);
                 var picture = Get<Border>(page, "BackdropPicture");
                 var expectedScrim = AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, 0.45);
-                // 集页宽版式那块板替掉了背景图（BackdropShown=false），滑块对它没有可画的层 —— 下面几条只对有图的页面成立。
                 var masked = page.ViewModel.BackdropShown;
-                if (!masked) Require(item.Type == EmbyItemType.Episode, "非集页的详情页居然没有背景图");
                 if (masked)
                 {
                     Require(ScrimAlphaOf(page) == expectedScrim,
@@ -371,9 +371,8 @@ internal sealed partial class ShellNavigationProbe
                 fixture.Settings.Ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
-                Require(page.ViewModel.Showcase == (item.Type != EmbyItemType.Episode),
-                    "沉浸模式没有按剧/电影及单集适用边界生效");
-                if (masked && item.Type != EmbyItemType.Episode)
+                Require(page.ViewModel.Showcase, "开启时有图宽窗没有保持沉浸布局");
+                if (masked)
                     Require(ScrimAlphaOf(page) == expectedScrim, "沉浸版式把背景图遮罩浓度改掉了");
                 var band = Get<Grid>(page, "HeroBand");
                 var heroHeight = band.ActualHeight;
@@ -415,7 +414,7 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
                 if (masked) Require(ScrimAlphaOf(page) == byte.MaxValue, "100 档遮罩没有完全不透明");
-                if (item.Type != EmbyItemType.Episode) await CheckImmersiveSwitchAsync(page, fixture.Settings.Ui);
+                await CheckImmersiveSwitchAsync(page, fixture.Settings.Ui);
                 readings.Add($"{item.Type}：{string.Join(',', expected.Select(card => card.Key))}，隐藏恢复同实例，背景遮罩0/45/100，窄窗保留紧凑布局");
             }
             // 季页使用原有顺序；剧与单集的自定义不应连带改掉它。
@@ -467,6 +466,10 @@ internal sealed partial class ShellNavigationProbe
         var gaussian = ui.UseGaussianBackdrop;
         var acrylic = ui.UseAcrylicBackdrop;
         var target = page.ViewModel.PlayTarget;
+        var subject = page.ViewModel.CurrentItem;
+        var title = page.ViewModel.Title;
+        var subline = page.ViewModel.Subline;
+        var panels = Get<StackPanel>(page, "BodySheet").Children.ToArray();
         try
         {
             foreach (var width in new[] { 1200, 760 })
@@ -476,30 +479,38 @@ internal sealed partial class ShellNavigationProbe
                 ui.EnableImmersive = false;
                 ShellPrefs.ApplyAppearance(ui);
                 await LayoutAsync(page);
-                Require(!page.ViewModel.BackdropShown && !page.ViewModel.Showcase
-                    && Get<Grid>(page, "Backdrop").Visibility == Visibility.Collapsed,
-                    "关闭沉浸后仍显示背景或保留沉浸布局");
                 var card = Get<Border>(page, "HeroCardTop");
                 var wide = width == 1200;
+                var oldEpisodeBackdrop = !wide && subject?.Type == EmbyItemType.Episode
+                    && ItemArtwork.Hero(subject).Count > 0;
+                Require(page.ViewModel.BackdropShown == oldEpisodeBackdrop && !page.ViewModel.Showcase
+                    && Get<Grid>(page, "Backdrop").Visibility == (oldEpisodeBackdrop ? Visibility.Visible : Visibility.Collapsed),
+                    "关闭沉浸后背景未恢复该类型原有宽窄规则");
                 Require(page.ViewModel.HeroCardShown == wide && card.Visibility == (wide ? Visibility.Visible : Visibility.Collapsed),
                     "关闭沉浸后未使用单集宽窗卡片布局");
                 Require(Get<StackPanel>(page, "ColumnPickers").Visibility == page.ViewModel.ColumnPickersVisibility,
                     "同页切换后视频信息父容器没有同步显隐");
-                Require(page.ViewModel.TailMinHeight == 0, "关闭沉浸后保留了背景留白");
+                if (!oldEpisodeBackdrop) Require(page.ViewModel.TailMinHeight == 0, "无背景仍保留了背景留白");
                 Require(ReferenceEquals(target, page.ViewModel.PlayTarget)
                     && ui.UseGaussianBackdrop == gaussian && ui.UseAcrylicBackdrop == acrylic,
                     "外观切换改变播放目标或清空背景效果偏好");
+                Require(page.ViewModel.Title == title && page.ViewModel.Subline == subline
+                    && ReferenceEquals(subject, page.ViewModel.CurrentItem), "外观切换改变详情主体或标题");
                 await ScrollProbeAsync(Get<ScrollView>(page, "Body"), 0);
                 await SaveProbeScreenAsync($"detail-immersive-disabled-{page.ViewModel.ItemType}-{width}-screen.png");
                 ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(ui);
                 await LayoutAsync(page);
-                Require(!page.ViewModel.HeroCardShown, "重新启用沉浸后仍保留关闭时的卡面");
+                Require(page.ViewModel.HeroCardShown == (wide && subject?.Type == EmbyItemType.Episode && !page.ViewModel.BackdropShown),
+                    "重新启用后有图沉浸或无图卡面没有恢复");
                 Require(page.ViewModel.Showcase == (wide && page.ViewModel.BackdropShown)
                     && page.ViewModel.IsCompact == !wide,
                     "重新启用沉浸后未恢复宽窗沉浸或窄窗紧凑布局");
                 Require((Get<Grid>(page, "Backdrop").Visibility == Visibility.Visible) == page.ViewModel.BackdropShown,
                     "重新启用后背景显隐未跟随视图模型");
+                Require(panels.SequenceEqual(Get<StackPanel>(page, "BodySheet").Children), "外观切换重建或移动了正文实例");
+                if (page.ViewModel.Showcase) RequireImmersiveSurface(page);
+                if (subject?.Type == EmbyItemType.Episode) RequireEpisodeSubject(page, subject);
                 await SaveProbeScreenAsync($"detail-immersive-enabled-{page.ViewModel.ItemType}-{width}-screen.png");
             }
         }
@@ -508,6 +519,42 @@ internal sealed partial class ShellNavigationProbe
             ui.EnableImmersive = enabled;
             ShellPrefs.ApplyAppearance(ui);
         }
+    }
+
+    private static void RequireImmersiveSurface(DetailPage page)
+    {
+        Require(page.ViewModel.Showcase && !page.ViewModel.HeroCardShown,
+            "有图沉浸仍保留头部拼接卡面");
+        Require(Get<Border>(page, "HeroCardTop").Visibility == Visibility.Collapsed
+            && Get<Border>(page, "HeroCardBottom").Visibility == Visibility.Collapsed,
+            "沉浸头部卡面没有完整收起");
+        Require(Get<AcrylicBrush>(page, "_panelFill").Opacity == 0
+            && Get<SolidColorBrush>(page, "_panelLine").Opacity == 0,
+            "沉浸正文仍保留卡片底色或描边");
+        Require(Get<Border>(page, "BodyPaper").Background is SolidColorBrush { Color.A: 0 },
+            "沉浸正文纸面仍遮住固定背景");
+        if (page.ViewModel.ItemType == EmbyItemType.Episode)
+            Require(Get<StackPanel>(page, "InfoPanel").Background is AcrylicBrush { FallbackColor.A: 255, Opacity: 1 },
+                "单集沉浸信息表没有保留可读亚克力卡面");
+        Require(!page.ViewModel.ShowShelfLines && page.ViewModel.TailMinHeight == 0
+            && Get<Border>(page, "CardTailGap").ActualHeight < 0.01,
+            "沉浸仍保留货架线条或卡面收尾留白");
+    }
+
+    private static void RequireEpisodeSubject(DetailPage page, EmbyItem episode)
+    {
+        var view = page.ViewModel;
+        Require(view.CurrentItem?.Id == episode.Id && view.PlayTarget?.Id == episode.Id,
+            "单集外观切换把详情主体或播放目标改成剧集");
+        Require(view.Title == ItemDetail.Title(episode) && view.Subline == ItemDetail.Subline(episode),
+            "单集沉浸丢失剧名、集号或本集标题");
+        Require(view.TitleLink?.Id == episode.SeriesId && view.TitleLink?.Type == EmbyItemType.Series,
+            "单集剧名导航不再指向所属剧");
+        Require(view.Episodes.Count == 0 || view.Episodes.Any(item => item.Id == episode.Id),
+            "单集清单丢失当前集");
+        Require(Get<StackPanel>(page, "ColumnPickers").Visibility == view.ColumnPickersVisibility
+            && Get<StackPanel>(page, "PickerPanel").Visibility == view.PickersVisibility,
+            "单集切换后文件选项容器未恢复");
     }
 
     private static void RequireCardOrder(DetailPage page, IEnumerable<string> expected)
@@ -555,16 +602,6 @@ internal sealed partial class ShellNavigationProbe
         ShellPrefs.ApplyAppearance(ui);
         await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
         Require(ReferenceEquals(normal, page.ViewModel.HeroImage), "窄窗紧凑背景被高斯偏好重新处理");
-        if (page.ViewModel.ItemType == EmbyItemType.Episode)
-        {
-            Require(!page.ViewModel.UseGaussianBackdrop, "单集页面错误启用沉浸高斯");
-            Require(requestCount() == baselineReads, "单集切换外观重新请求图片或媒体");
-            ui.UseGaussianBackdrop = false;
-            ui.BackdropOpacity = 45;
-            ui.UseAcrylicControls = false;
-            ShellPrefs.ApplyAppearance(ui);
-            return;
-        }
         ResizeProbeClient(1100, 1120);
         await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
         ui.EnableImmersive = true;
@@ -632,7 +669,6 @@ internal sealed partial class ShellNavigationProbe
             await CheckBackdropFadePixelsAsync(page);
             await SaveProbeScreenAsync($"detail-gaussian-{page.ViewModel.ItemType}-{theme.Id}-screen.png");
         }
-        if (page.ViewModel.ItemType != EmbyItemType.Episode)
         {
             ResizeProbeClient(1100, 1120);
             await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
@@ -668,8 +704,7 @@ internal sealed partial class ShellNavigationProbe
         RequireDetailBackdropFade(page);
         Require(page.ViewModel.ItemType == EmbyItemType.Episode
             ? Get<Grid>(page, "HeroBand").Background is SolidColorBrush { Color.A: > 0 }
-            : ScrimAlphaOf(page) > 0,
-            "切回后暗色遮罩未恢复");
+            : ScrimAlphaOf(page) > 0, "切回后暗色遮罩未恢复");
         // 快速来回切换：晚到的旧模式不能覆盖当前高斯结果。
         ResizeProbeClient(1100, 1120);
         await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
@@ -694,8 +729,7 @@ internal sealed partial class ShellNavigationProbe
         AppearanceOpacity.ReadingShadeAlpha(page.ViewModel.BackdropStrength, page.ViewModel.GaussianBackdropApplied);
 
     /// <summary>
-    /// 屏上实际阅读遮罩的 alpha；电影、剧、季有图时读取整块背景遮罩。
-    /// 单集宽窗与关闭沉浸时没有背景，尾部读数为 0。
+    /// 屏上实际阅读遮罩的 alpha；有图详情读取整块背景遮罩，无图时尾部读数为 0。
     /// </summary>
     private static byte ScrimAlphaOf(DetailPage page)
     {

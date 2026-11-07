@@ -11321,3 +11321,17 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 最终master50489f5，保留最新75c9a2b颜色选择与用户自测交付记录。主树Core/Tests/Shell Release/x64无调试符号构建0警告错误、最终串行完整4122/4122，模式30/30、设置36/36、入口81/81；此前首轮16项共享诊断锁拒绝已在锁释放后串行复验通过，红日志work/two-modes-master-core-tests.txt保留。
 - 2026-11-07 15:17主树publish/verify通过，546文件286.4MB；发布Shell与当前Shell SHA256 AECD3423…一致，发布Core与全套测试Core ABCB8EDB…一致。最终同发布Shell模式30/30、设置36/36再验通过；桌面Momoka.lnk Target/WorkingDirectory主树publish目录、参数空。没有上传、真实播放或服务器写入。
 - 用户明确原生界面自行测试，最终UI未跑；开发设置/宽窄1+1通过、详情自定义页面尺寸超时保留，修订入口不能算运行通过。探针子树已无产品独有内容并有副本证据，但原生归档因primary checkout保护拒绝，未手工绕过。此记录仅文档，不重建或重发，发布源码仍50489f5。
+
+## 2026-11-07 第九批解除下载标记失败回执（进行中）
+
+- 用户授权继续并自主选择必要项；基点b2708e4，复用review-recovery-batch3托管树，仅修R01-004。失败汇总返回1，仍处理全部文件；成功/无候选/无标记/清点保持0。
+- 完整生产脚本在Windows PowerShell5.1与PowerShell7的真实匿名ZIP/ADS回归，原70项4败（全/部分失败均错报0），修后70/70，失败0跳过0；标记读回、主文件SHA、后续成功文件及释放后重试核验。首次5.1夹具写ADS路径失败保留，要求7创建夹具后两宿主运行不变。
+- 59脚本编码/语法通过、初始4变更文本通过；一次独立复审进行中。本会话负责主树整合、最终编译完整测试和共享桌面交付；另一228e聊天独立详情布局开发，保持隔离。无真实下载目录、设置/凭据、GUI、服务器、播放、安装、签名、上传或推送。详见NINTH-REPAIRS.md；此时尚未刷新交付。
+
+## 2026-11-07 单集沉浸匿名探针（episode-immersive-probe）
+
+- 本子代理独立托管树 `C:/Users/89400/.codex/worktrees/episode-immersive-probe/Momoka`，基点 `5c9afa0`；仅修改 DetailCustomization/DetailResponsive/EpisodeBand/BackdropFade 探针与本记录、开发验证覆盖说明。产品实现由66d6根会话负责，未写共享主树。
+- 有图单集开启沉浸纳入既有高斯100/45/0、五主题、窄窗原图及返回宽窗路径；正文卡底/描边/纸面透明、卡面收尾收起，额外不透明卡面反例必须被拒绝。响应式覆盖新增单集六宽、两高、最大化/还原和开关恢复；集页保留显式关闭后的旧250×375海报/艺术图/简介提拉检查，再验证跨聊天授权整合后的统一260×375上限盒、Top海报/Bottom头部、左32、艺术图隐藏与本集标题、所属剧导航、播放目标和正文实例保持。无图以无图片标签的单集DTO重新导航，不直接改HeroArt伪造状态。
+- 首次依赖restore成功；首轮当前Shell Release编译0警告0错误。随后按根实现收窄BackdropFade到单集Showcase、用户授权的跨聊天统一海报260×375和单集沉浸信息表独立阅读底追加断言；最终当前Shell Release编译0警告0错误（末轮156秒）。两次局部 `format whitespace --verify-no-changes --no-restore` 退出0但报告工作区加载警告；产品外五文件LF/无BOM/末尾LF、`git diff --check`通过。
+- 按根会话桌面独占要求未运行App、UI探针或截图，未读取真实设置/凭据、登录、播放、服务器写入或上传。探针代码编译不是运行验证；根会话合入后须当轮实际跑成功与失败路径并目视本次截图，不能称本树探针已经通过或已交付。
+- 最终跨聊天整合由228e持有：其a35517b与本提交同改DetailResponsive，合并必须保留其三类简洁窄窗不compact/Art/MediaInfoTitle断言、接入本提交的Episode主循环及false单集窄窗背景分支；DetailCustomization.CheckImmersiveSwitch也须同步其它三类false强制卡面，不能改变单集旧窄窗规则。合入后运行library分区或inspect的详情自定义、响应式详情、单集带子入口，并执行新增正文不透明反例；本树未跑上述UI。

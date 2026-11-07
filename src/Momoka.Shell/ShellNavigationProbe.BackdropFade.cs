@@ -18,7 +18,8 @@ internal sealed partial class ShellNavigationProbe
     private static void RequireDetailBackdropFade(DetailPage page)
     {
         var expected = page.ViewModel.BackdropShown
-            && page.ViewModel.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
+            && (page.ViewModel.Showcase
+                || page.ViewModel.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season);
         var fade = Get<Border>(page, "BackdropFade");
         Require((fade.Visibility == Visibility.Visible) == expected, "底部渐变显隐不符合页面及沉浸模式");
         Require(!Descendants(page).OfType<Border>().Any(border => border.Name == "BackdropShade"), "重复阅读遮罩仍然存在");

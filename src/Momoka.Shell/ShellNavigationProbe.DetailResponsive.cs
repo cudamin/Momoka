@@ -10,7 +10,7 @@ namespace Momoka.Shell;
 internal sealed partial class ShellNavigationProbe
 {
     /// <summary>
-    /// 三页宽窗沉浸与窄窗紧凑布局、播放前文件选项、单音轨文字和开关恢复。
+    /// 四页宽窗沉浸与窄窗紧凑布局、播放前文件选项、单音轨文字和开关恢复。
     /// 缩放、最大化与还原只改变排版，不在宽窗中切换背景模式；只使用匿名假传输。
     /// </summary>
     private async Task DetailResponsiveAsync()
@@ -71,6 +71,10 @@ internal sealed partial class ShellNavigationProbe
         episode.SeriesName = series.Name;
         episode.ParentIndexNumber = 1;
         episode.MediaSources = [source];
+        episode.Overview = ResponsiveOverview;
+        episode.ImageTags["Primary"] = "fixture";
+        episode.ParentBackdropItemId = series.Id;
+        episode.ParentBackdropImageTags.Add("fixture");
 
         fixture.Transport.Reply = (request, _) =>
         {
@@ -83,6 +87,7 @@ internal sealed partial class ShellNavigationProbe
             if (path.EndsWith("/Items/movie", StringComparison.Ordinal)) return Task.FromResult(Json(movie));
             if (path.EndsWith("/Items/a", StringComparison.Ordinal)) return Task.FromResult(Json(season));
             if (path.EndsWith("/Items/show", StringComparison.Ordinal)) return Task.FromResult(Json(series));
+            if (path.EndsWith("/Items/" + episode.Id, StringComparison.Ordinal)) return Task.FromResult(Json(episode));
             if (path.EndsWith("/Episodes", StringComparison.Ordinal))
                 return Task.FromResult(Json(new { Items = new[] { episode } }));
             if (path.EndsWith("/Similar", StringComparison.Ordinal)) return Task.FromResult(Items(2, 2, "similar"));
@@ -96,7 +101,7 @@ internal sealed partial class ShellNavigationProbe
         var widths = new[] { 1280, 1200, 1100, 1024, 1023, 760 };
         try
         {
-            foreach (var item in new[] { movie, series, season })
+            foreach (var item in new[] { movie, series, season, episode })
             {
                 var host = new Grid { Margin = new Thickness(0, 68, 0, 0) };
                 var frame = new Frame();
@@ -128,6 +133,8 @@ internal sealed partial class ShellNavigationProbe
                         Require(view.IsCompact == compact && view.Showcase == !compact && view.BackdropShown,
                             $"{item.Type} {width}：开启时未保持宽窗沉浸或窄窗紧凑背景");
                         Require(!view.HeroCardShown, "开启时错误保留关闭后的宽窗卡面");
+                        if (!compact) RequireImmersiveSurface(page);
+                        if (item.Type == EmbyItemType.Episode) RequireEpisodeSubject(page, item);
                         RequireResponsiveBindings(page);
                         var scroll = Get<ScrollView>(page, "Body");
                         var content = (UIElement)scroll.Content;
@@ -234,16 +241,20 @@ internal sealed partial class ShellNavigationProbe
             ShellPrefs.ApplyAppearance(ui);
             await LayoutAsync(page);
             var view = page.ViewModel;
-            Require(!view.BackdropShown && !view.Showcase && !view.IsCompact && view.HeroCardShown,
-                "简洁模式必须在所有窗口尺寸保留卡面");
+            var oldEpisodeCompact = view.ItemType == EmbyItemType.Episode && width < DetailHero.CompactFloor;
+            Require(view.BackdropShown == oldEpisodeCompact && !view.Showcase
+                && view.IsCompact == oldEpisodeCompact && view.HeroCardShown == !oldEpisodeCompact,
+                "简洁电影剧季始终保留卡面，单集保持原宽窄布局");
             var cover = Get<Border>(page, "PosterStill");
-            Require(cover.Visibility == Visibility.Visible && Math.Abs(cover.ActualWidth - 250) < 1
-                && Math.Abs(cover.ActualHeight - 375) < 1, "详情封面没有统一为集页尺寸");
-            Require(Get<StackPanel>(page, "CompactBlock").Visibility == Visibility.Collapsed
-                && Get<StackPanel>(page, "ColumnActions").Visibility == Visibility.Visible,
+            Require(oldEpisodeCompact ? cover.Visibility == Visibility.Collapsed
+                : cover.Visibility == Visibility.Visible && Math.Abs(cover.ActualWidth - 250) < 1
+                    && Math.Abs(cover.ActualHeight - 375) < 1, "详情封面没有统一为集页尺寸");
+            Require((Get<StackPanel>(page, "CompactBlock").Visibility == Visibility.Visible) == oldEpisodeCompact
+                && (Get<StackPanel>(page, "ColumnActions").Visibility == Visibility.Visible) == !oldEpisodeCompact,
                 "简洁模式仍切换到窄窗操作");
             var corner = Get<Image>(page, "CornerArt");
-            var hasCorner = view.ItemType is EmbyItemType.Movie or EmbyItemType.Series && view.CornerMaxWidth > 0;
+            var hasCorner = !oldEpisodeCompact && view.CornerMaxWidth > 0
+                && view.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Episode;
             Require((corner.Visibility == Visibility.Visible) == hasCorner && (!hasCorner || corner.Source is not null),
                 "简洁模式电影和剧的艺术图未按空间显示或季页错误显示艺术图");
             if (hasCorner)
@@ -269,8 +280,10 @@ internal sealed partial class ShellNavigationProbe
             if (view.InfoRows.Count > 0)
                 Require(Bounds(mediaTitle, page).Bottom <= Bounds(Get<ItemsRepeater>(page, "InfoTable"), page).Top,
                     "媒体信息子标题没有位于文件信息上方");
-            Require(page.ViewModel.TailMinHeight == 0, "关闭沉浸仍留有背景占位");
+            if (!oldEpisodeCompact) Require(page.ViewModel.TailMinHeight == 0, "关闭沉浸仍留有背景占位");
             RequireResponsiveBindings(page);
+            if (page.ViewModel.Showcase) RequireImmersiveSurface(page);
+            if (page.ViewModel.CurrentItem is { Type: EmbyItemType.Episode } episode) RequireEpisodeSubject(page, episode);
             await SaveProbeScreenAsync($"detail-responsive-{page.ViewModel.ItemType}-disabled-{width}.png");
             ui.EnableImmersive = true;
             ShellPrefs.ApplyAppearance(ui);
@@ -280,6 +293,8 @@ internal sealed partial class ShellNavigationProbe
             Require(corner.Visibility == Visibility.Collapsed, "恢复沉浸后未收起电影或剧艺术图");
             RequireResponsiveBindings(page);
             Require(ReferenceEquals(target, page.ViewModel.PlayTarget), "开关切换或最大化改变了播放目标");
+            if (page.ViewModel.Showcase) RequireImmersiveSurface(page);
+            if (page.ViewModel.CurrentItem is { Type: EmbyItemType.Episode } restoredEpisode) RequireEpisodeSubject(page, restoredEpisode);
         }
     }
 
