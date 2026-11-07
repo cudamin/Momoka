@@ -143,6 +143,8 @@ public sealed record PlaybackRequest
     public int? AudioId { get; init; }
 
     public int? SubtitleId { get; init; }
+    /// <summary>External primary selection resolved by actual filename after loading, never by predicted track ID.</summary>
+    public Uri? SelectedExternalSubtitle { get; init; }
 
     public bool SubtitlesDisabled { get; init; }
 

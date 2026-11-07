@@ -139,7 +139,7 @@ public static class InlineSwitch
         {
             new("start", Math.Max(0, next.StartSeconds).ToString("0.###", CultureInfo.InvariantCulture)),
             new("aid", next.AudioId?.ToString(CultureInfo.InvariantCulture) ?? "auto"),
-            new("sid", next.SubtitlesDisabled
+            new("sid", next.SubtitlesDisabled || next.SelectedExternalSubtitle is not null
                 ? "no"
                 : next.SubtitleId?.ToString(CultureInfo.InvariantCulture) ?? "auto"),
             new("alang", next.AudioLanguage ?? ""),

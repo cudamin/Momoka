@@ -4,6 +4,14 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["external-subtitle-selection-fixture"])
+        {
+            ExternalSubtitleSelectionTests.Register();
+            PlaybackTrackStateTests.Register();
+            R10ReportingTests.Register();
+            PlaybackLifecycleTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["review-playback-reporting-fixture"])
         {
             R10ReportingTests.Register();
@@ -381,6 +389,7 @@ internal static class Program
         Anime4KTests.Register();
         ShaderTransactionTests.Register();
         PlaybackTrackStateTests.Register();
+        ExternalSubtitleSelectionTests.Register();
         SubtitleFileTests.Register();
         SubtitleBehaviorTests.Register();
         SubtitleForcedOnlyTests.Register();

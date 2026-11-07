@@ -37,6 +37,8 @@ public sealed partial class PlaybackService
         public bool HasStarted { get; set; }
         public int ThresholdPending;
         public long PauseRevision;
+        public int ExternalSubtitleSelection;
+        public long? FileGeneration { get; } = (handle as IFileScopedPlayerControl)?.FileGeneration;
         public MpvBackendKind BackendKind { get; init; }
         public Action? Unsubscribe { get; set; }
         public Task StopAsync()
@@ -323,6 +325,7 @@ public sealed partial class PlaybackService
                         var initialTracks = await attempt.Handle.GetTracksAsync(snapshotDeadline.Token)
                             .WaitAsync(snapshotDeadline.Token).ConfigureAwait(false);
                         if (IsCurrent(attempt)) trackState.ObserveInitial(initialTracks, trackRevision);
+                        await SelectInitialExternalSubtitleAsync(attempt, initialTracks).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) { }
                     catch (Exception error) { Log.Warn(Category, "读取起播轨道快照失败，等待下一次轨道通知", error); }
@@ -416,6 +419,7 @@ public sealed partial class PlaybackService
         {
             if (!IsCurrent(attempt)) return;
             attempt.TrackState.Observe(tracks);
+            _ = SelectInitialExternalSubtitleAsync(attempt, tracks);
             Raise(TracksUpdated, new PlaybackUpdate<IReadOnlyList<MpvTrack>>(attempt.Generation, tracks));
             Raise(TracksChanged, tracks);
         }

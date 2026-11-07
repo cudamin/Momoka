@@ -259,6 +259,8 @@ public sealed partial class PlaybackService(
 
     public Task SetPropertyAsync(string name, object? value)
     {
+        if (name is "sid" or "sub-visibility" && _active is { } attempt)
+            Interlocked.Exchange(ref attempt.ExternalSubtitleSelection, 1);
         var handle = _current;
         if (PlayingWithSvp && MpvSvp.BlocksCommand(["set", name,
             Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? ""])) return Task.CompletedTask;
@@ -407,6 +409,9 @@ public sealed partial class PlaybackService(
 
     public async Task<bool> CommandAsync(params string[] arguments)
     {
+        if (arguments.Length > 0 && (arguments[0] is "sub-add" or "sub-remove"
+            || arguments.Length > 1 && arguments[1] is "sid" or "sub-visibility") && _active is { } attempt)
+            Interlocked.Exchange(ref attempt.ExternalSubtitleSelection, 1);
         if (_current is not IPlayerControl control || PlayingWithSvp && MpvSvp.BlocksCommand(arguments)) return false;
         try { return await control.CommandAsync(arguments, CancellationToken.None).ConfigureAwait(false); }
         catch (Exception error)

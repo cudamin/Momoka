@@ -7,6 +7,34 @@ namespace Momoka.Playback;
 
 public sealed partial class PlaybackService
 {
+    private async Task SelectInitialExternalSubtitleAsync(PlayingAttempt attempt, IReadOnlyList<MpvTrack> tracks)
+    {
+        var target = attempt.Request.SelectedExternalSubtitle;
+        if (target is null || !IsCurrent(attempt) || !attempt.Handle.HasControlChannel
+            || attempt.Handle is not IPlayerControl { Status.Loaded: true } control
+            || Volatile.Read(ref attempt.ExternalSubtitleSelection) != 0) return;
+        // A manual selection owns the primary track from this point; never chase the initial choice again.
+        if (tracks.Any(track => track.IsSubtitle && track.Selected && track.MainSelection is null or 0))
+        {
+            Interlocked.CompareExchange(ref attempt.ExternalSubtitleSelection, 1, 0);
+            return;
+        }
+        var matches = tracks.Where(track => track.IsSubtitle && track.External && track.Id > 0
+            && Uri.TryCreate(track.ExternalFilename, UriKind.Absolute, out var file)
+            && Uri.Compare(target, file, UriComponents.AbsoluteUri, UriFormat.UriEscaped, StringComparison.Ordinal) == 0).ToArray();
+        if (matches.Length != 1 || Interlocked.CompareExchange(ref attempt.ExternalSubtitleSelection, 1, 0) != 0) return;
+        try
+        {
+            if (!IsCurrent(attempt)) return;
+            string[] command = ["set", "sid", matches[0].Id.ToString(System.Globalization.CultureInfo.InvariantCulture)];
+            var accepted = control is IFileScopedPlayerControl fileControl && attempt.FileGeneration is { } generation
+                ? await fileControl.CommandForFileAsync(generation, command, CancellationToken.None).ConfigureAwait(false)
+                : await control.CommandAsync(command, CancellationToken.None).ConfigureAwait(false);
+            if (!accepted) Log.Warn(Category, "目标外挂字幕未能选择，未尝试其他字幕");
+        }
+        catch (Exception error) { Log.Warn(Category, "选择目标外挂字幕失败", error); }
+    }
+
     private async Task<PlaybackExit> MonitorAsync(EmbySessionScope scope, PlayingAttempt attempt, CancellationToken cancellationToken)
     {
         var handle = attempt.Handle;

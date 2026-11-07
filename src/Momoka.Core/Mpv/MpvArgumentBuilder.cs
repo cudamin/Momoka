@@ -58,7 +58,7 @@ public static class MpvArgumentBuilder
 
         if (request.AudioId is { } audioId) arguments.Add($"--aid={audioId}");
 
-        if (request.SubtitlesDisabled) arguments.Add("--sid=no");
+        if (request.SubtitlesDisabled || request.SelectedExternalSubtitle is not null) arguments.Add("--sid=no");
         else if (request.SubtitleId is { } subtitleId) arguments.Add($"--sid={subtitleId}");
 
         // Language priorities are only consulted when no explicit track was chosen; mpv
@@ -81,6 +81,7 @@ public static class MpvArgumentBuilder
                 throw new InvalidOperationException("播放器选项不能覆盖安全起播通道、认证或文件加载设置");
             arguments.Add($"--{name}={value}");
         }
+        if (request.SelectedExternalSubtitle is not null) arguments.Add("--sid=no");
 
         if (request.Fullscreen is { } fullscreen)
             arguments.Add($"--fullscreen={(fullscreen ? "yes" : "no")}");
