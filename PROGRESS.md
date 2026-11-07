@@ -1,3 +1,9 @@
+## 2026-11-08 弹幕发送探针可选参数与失败清理（待统一合入）
+
+独树 `danmaku-send-probe-closure` 基于 master 3316d1a，范围仅 `ShellNavigationProbe.DanmakuSend.cs` 与现有 `Momoka.DanmakuSourceBoundaryTests`。R14 将 `ResetDanmakuInput` 改为可选 bool 参数后，探针反射调用仍传零参数；在第4个待发送请求时抛 `TargetParameterCountException`，假 HTTP 故意不响应取消，finally 的真实客户端关机等待因未释放 pending 而遮成整项60秒超时。显式传 false，并在 finally 先 TrySetCanceled 未完成 pending，生产断言及60秒预算不变，无产品功能改动。
+
+原样提取当前反射调用、清理与假 HTTP 传输，链接真实 Reset 与 DandanPlayClient；红测新增3项均timeout、原23项通过，修后新增3/3及原23/23、失败跳过0，Release测试/Core/Shell 0警告0错误。错误参数与普通断言负例均保留原始失败，真实客户端 admitted POST 在回报前结束。证据 `artifacts/danmaku-send-probe-closure` 保留原21136超时报告、app trace、源签名与红绿日志。未运行GUI/真实服务器/播放/发送，主树交付会话负责合流后 playback 实际路径及最终发布。
+
 ## 2026-11-07 两项详情改动与第九批已统一桌面交付
 
 最终产品c4a0b51（af8852d整合第九批9e018ff、封面a35517b、单集5910486及b4e074c探针）已发布，master保留三方改动。四类封面统一260×375上限，简洁电影/剧/季保留双栏与封面，简洁电影/剧自身艺术图、媒体信息子标题，单集开启沉浸沿剧页；布局后阅读色与状态通知修正全部入提交。

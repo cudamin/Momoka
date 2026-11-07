@@ -9,8 +9,9 @@ namespace DanmakuReview;
 
 internal static class Program
 {
-    private static int Main()
+    private static async Task<int> Main()
     {
+        var sendProbeFailures = await SendProbeTests.RunAsync();
         Momoka.Tests.TestHarness.Test("R14-004 current panel refreshes sources after connection changes", () =>
         {
             var endpoint = new PanelEndpoint();
@@ -168,7 +169,7 @@ internal static class Program
                 Momoka.Tests.Assert.Contains(contract, probe);
             Momoka.Tests.Assert.DoesNotContain("PlayAsync(", probe);
         });
-        return Momoka.Tests.TestHarness.Run();
+        return Momoka.Tests.TestHarness.Run() == 0 && sendProbeFailures == 0 ? 0 : 1;
     }
 
     private static AppSettings Settings()

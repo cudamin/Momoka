@@ -40,5 +40,35 @@ methods += '\n\n' + extract('src/Momoka.Shell/ViewModels/PlayerViewModel.Danmaku
 settings = 'src/Momoka.Shell/ViewModels/SettingsViewModel.Danmaku.cs'
 methods = extract(settings, '    private IReadOnlyList<SettingSection> DanmakuSections()', '    private SettingFontRow DanmakuFont(')
 (here / 'Settings.g.cs').write_text('#nullable enable\nusing Momoka.Configuration;\nusing Momoka.Danmaku;\nnamespace DanmakuReview;\ninternal sealed partial class SettingsRows\n{\n' + methods + '\n}\n', encoding='utf-8', newline='\n')
+
+probe = 'src/Momoka.Shell/ShellNavigationProbe.DanmakuSend.cs'
+reset = extract(probe, '            Call(vm, "ResetDanmakuInput"', '            vm.DanmakuDraft = "新影片草稿";')
+cleanup = extract(probe, '            Require(!vm.DanmakuCanSend && button.Visibility == Visibility.Collapsed,',
+                  '\n\n        Rect Bounds(FrameworkElement element)\n        {\n            var point = element.TransformToVisual(page).TransformPoint(new Point());\n            return new(point.X, point.Y, element.ActualWidth, element.ActualHeight);\n        }\n    }\n\n    private async Task PlayerDanmakuControlsAsync')
+cleanup = cleanup[cleanup.index('        finally\n'):]
+transport = extract(probe, '    private sealed class DanmakuSendTransport', '    private sealed class DanmakuProbeHandle')
+reflection = extract('src/Momoka.Shell/ShellNavigationProbe.cs', '    private static object? Call(', '    private static void Field(')
+generated = '#nullable enable\nusing System.Net;\nusing System.Text.Json;\nusing System.Reflection;\nnamespace DanmakuReview;\ninternal sealed partial class SendProbeFixture\n{\n'
+generated += '''    internal async Task RunAsync(string failure)
+    {
+        var vm = Vm;
+        var transport = _transport;
+        var playback = new ProbePlayback();
+        var page = new ProbePage();
+        var _root = new ProbeRoot();
+        transport.Pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        Sending = Client.SendCommentAsync(230001, 90, "anonymous draft");
+        while (transport.Posts == 0) await Task.Delay(1);
+        try
+        {
+            if (failure == "wrongargs") Call(vm, "ResetDanmakuInput");
+            if (failure == "assertion") throw new InvalidOperationException("anonymous assertion");
+'''
+generated += reset + '''            vm.DanmakuDraft = "新影片草稿";
+            transport.Pending.SetResult(Json(new { success = true, errorCode = 0, cid = 14L }));
+            await Sending;
+        }
+''' + cleanup + '\n    }\n' + reflection + transport + '\n}\n'
+(here / 'SendProbe.g.cs').write_text(generated, encoding='utf-8', newline='\n')
 (here / 'source-evidence.json').write_text(json.dumps(evidence, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 print("Extracted current danmaku panel, host and settings boundaries.")

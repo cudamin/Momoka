@@ -129,7 +129,7 @@ internal sealed partial class ShellNavigationProbe
             transport.Pending = Pending<HttpResponseMessage>();
             var sending = vm.SendDanmakuCommand.ExecuteAsync(null);
             await UntilAsync(() => transport.Posts == 4);
-            Call(vm, "ResetDanmakuInput");
+            Call(vm, "ResetDanmakuInput", false);
             vm.DanmakuDraft = "新影片草稿";
             transport.Pending.SetResult(Json(new { success = true, errorCode = 0, cid = 14L }));
             await sending;
@@ -140,6 +140,8 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
+            // 假 POST 故意忽略取消以模拟迟到成功；断言失败也必须先释放它，避免清理遮住原始错误。
+            transport.Pending?.TrySetCanceled();
             Field(playback, "_current", null);
             page.Detach();
             page.Shutdown();

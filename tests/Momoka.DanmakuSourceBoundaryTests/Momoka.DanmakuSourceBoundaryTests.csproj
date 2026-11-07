@@ -10,6 +10,8 @@
     <Compile Include="$(IntermediateOutputPath)Panel.g.cs" />
     <Compile Include="$(IntermediateOutputPath)Host.g.cs" />
     <Compile Include="$(IntermediateOutputPath)Settings.g.cs" />
+    <Compile Include="$(IntermediateOutputPath)SendProbe.g.cs" />
+    <Compile Include="../../src/Momoka.Shell/ProbeReports.cs" Link="Production/ProbeReports.cs" />
   </ItemGroup>
   <Target Name="ExtractDanmakuBoundaries" BeforeTargets="BeforeCompile">
     <Exec Command="py &quot;$(MSBuildThisFileDirectory)extract.py&quot; --output &quot;$(MSBuildProjectDirectory)/$(IntermediateOutputPath).&quot;" />
