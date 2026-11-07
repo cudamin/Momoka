@@ -1,5 +1,7 @@
 ## 2026-11-07 主页固定轮播完成主树本地交付
 
+来源a56e树6f93eb3为master祖先，工作区干净、无master缺少的独有路径；忽略证据已复制63文件hash一致，Demo完整保留。原生归档拒绝“The task's primary checkout cannot be removed.”，因此保留受保护的当前聊天工作树，不用文件系统绕过删除；本地无临时分支。主树交付已完成，不受此清理限制影响。
+
 用户批准第二版真实Demo后已实装，来源6f93eb3经合并6b9fb3c进入master，保留上一批3993项修复。主树x64 Tests/Core构建0/0，完整3996/3996、零失败零跳过；Shell构建0/0，当前测试Core与最终发布Core SHA256一致。正式算法六张真实素材25,436,160字节与批准Demo零差异，主树关键六文件与已测分支hash一致。
 
 主树开发inspect PID26256与实际发布件inspect PID28988各2/2，均由InspectDone正常结束，9216背景像素静止、进度连续与3秒换图、扩边末/原图0/4/10%/中央读数全过；1280/760实际屏幕已目视。主树publish完整载荷/许可校验通过，546文件286.4MB，版本仍0.2.5，桌面Momoka.lnk参数为空并指向artifacts/publish/win-x64/Momoka.exe。证据artifacts/carousel-static-master（tests/publish/ui/publish-ui/delivery-receipt），来源树63文件已保留并逐hash一致，Demo已复制preserved-demo；无上传或真实播放/服务器写入，其余页面未重跑。无新增包，原图左8%轻柔化为批准效果的一部分。
