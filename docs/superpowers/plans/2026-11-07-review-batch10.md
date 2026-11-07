@@ -30,10 +30,10 @@
 **Files:** tools/sign-release.ps1；新 tools/test-sign-release.ps1；docs/开发与验证.md。
 **Interfaces:** 原 Path/string[] 与 Status/switch 保持；无新增生产依赖。
 
-- [ ] 写完整脚本匿名运行夹具，记录外部写入、目标哈希、签名读取与退出码，覆盖两宿主；旧代码必须在 Status+Path 与冲突组合红。
-- [ ] 运行 `pwsh -NoProfile -File tools/test-sign-release.ps1 -Phase red`，保留失败日志。
-- [ ] 做上述最小修正，运行相同 green 命令，全部通过。
-- [ ] 更新帮助、文档与本计划完成项，脚本/差异检查后提交。
+- [x] 写完整脚本匿名运行夹具，记录外部写入、目标哈希、签名读取与退出码，覆盖两宿主；旧代码在 Status+Path 与冲突组合红。
+- [x] 运行 `pwsh -NoProfile -File tools/test-sign-release.ps1 -Phase red`，112 项中 32 失败，完整日志保留。
+- [x] 做上述最小修正，运行相同 green 命令，112/112 通过。
+- [x] 更新帮助、文档与本计划完成项，脚本/差异检查后提交。
 
 ### Task 2: 安装器完整验收
 

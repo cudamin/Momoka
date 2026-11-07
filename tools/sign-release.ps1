@@ -61,11 +61,14 @@ param(
     [ValidateSet('Off', 'On')]
     [string]$SetShellSmartScreen,
 
-    # 只看状态，不签名。
+    # 只看证书及 Path 文件的签名状态，不签名；不能与写入开关混用。
     [switch]$Status
 )
 
 $ErrorActionPreference = 'Stop'
+if ($Status -and ($Setup -or $TrustPublisher -or $SetAppCheck -or $SetShellSmartScreen)) {
+    throw '-Status 只读，不能与 -Setup、-TrustPublisher、-SetAppCheck 或 -SetShellSmartScreen 混用。'
+}
 $repo = (Resolve-Path -LiteralPath (Split-Path -Parent $PSScriptRoot)).Path
 $pfxPath = Join-Path $repo 'artifacts\code-signing-Momoka.pfx'
 
@@ -390,6 +393,14 @@ foreach ($p in $Path) {
     }
 }
 if ($targets.Count -eq 0) { throw '没找到可签的文件。' }
+
+if ($Status) {
+    foreach ($t in $targets) {
+        $sig = Get-AuthenticodeSignature -LiteralPath $t
+        Write-Output ("  {0}`n    状态 {1}   签名者 {2}" -f $t, $sig.Status, $(if ($sig.SignerCertificate) { $sig.SignerCertificate.Subject } else { '（无）' }))
+    }
+    return
+}
 
 $cert = Get-MomokaCert -WantThumbprint $Thumbprint
 $signtool = Get-SignTool
