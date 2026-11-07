@@ -1,3 +1,10 @@
+## 2026-11-07 第七批R05-002已完成主树实际交付
+
+产品9bf59ff、探针f1dbff2/7a23432整合主树，最后产品/验证5a7b9e0；保留a6eea28详情布局。Plex写成功先确认、补读独立，503/403失败保状态，401补读只重读。主树Release/x64零警告错误，最终完整4121/4121、协议238、实际卡片/详情81，实际发布WinUI十二场景/二十图全部通过；发布Shell重生成后又验81及真实GUI，不用发布前字节冒充最终。旧红及共享锁16失败保留，见SEVENTH-REPAIRS。
+
+实际交付artifacts/publish/win-x64/Momoka.exe 0.2.5.0、546文件300333951字节286.4MB，载荷/许可通过；Core与最终全测hash一致，Shell与最终专项/GUI一致。快捷方式目标/工作目录实核正确、参数空。证据artifacts/review-batch7-master（delivery-receipt/tested-source-final/gui-published，保存开发回执）。无真实服务、凭据、播放/写入、ZIP/MSIX或上传。
+
+本批没有待合/待交付产品，主树写入与发布结束；文档收尾不重建。专用probe树已原生归档，19份开发证据逐SHA保存；primary开发树保留。下一候选R04-003明确false分组参数遗漏，未修；不重复已修R04-002/R05各号和R17三项。用户仍授权连续修复，不恢复旧分区暂停规则。
 ## 2026-11-07 第七批 R05-002 已完成产品开发验证，待匿名GUI与主树交付
 
 基点29cf082，隔离树review-recovery-batch3仅修Plex写成功后补读误报/重写。SetWatched返回无正文确认，独立metadata补读；卡片复用RefreshConfirmed、详情保留确认位并提示已保存但刷新失败。Session全局认证重试不改，原HTTP任务完成才确认；不混ResumeSlot失败消费或R07详情全局排序。
