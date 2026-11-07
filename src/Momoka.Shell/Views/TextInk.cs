@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -28,6 +29,13 @@ namespace Momoka.Shell.Views;
 /// </summary>
 internal static class TextInk
 {
+    private static readonly ConditionalWeakTable<FrameworkElement, DropShadow> Shadows = new();
+
+    internal static void SetForeground(FrameworkElement host, Momoka.Theming.ThemeColor foreground)
+    {
+        if (Shadows.TryGetValue(host, out var shadow))
+            shadow.Color = foreground.Luminance > 0.5 ? Ink : Windows.UI.Color.FromArgb(255, 255, 255, 255);
+    }
     /// <summary>
     /// 影子的墨。同轮播那四条边缘渐变和详情页头图那道罩子（<c>#0C0E11</c>）：它压的是一张照片，不是主题色 ——
     /// 剧照不会因为用户挑了哪一套配色就变亮，所以这一支故意不跟主题走。
@@ -103,6 +111,8 @@ internal static class TextInk
         shadow.Color = Ink;
         shadow.BlurRadius = (float)blur;
         shadow.Opacity = 0.9f;
+        Shadows.Remove(host);
+        Shadows.Add(host, shadow);
 
         // 往下偏一点点，不是四面均匀：字下面暗一档看着是「浮在图上」，四面一样就成了外发光。
         shadow.Offset = new Vector3(0, 1, 0);

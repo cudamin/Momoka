@@ -944,6 +944,8 @@
                             <Button
                                 x:Uid="SettingsPage_ColorSwatch"
                                 AutomationProperties.Name="{x:Bind Label}"
+                                Tag="{x:Bind}"
+                                Loaded="OnColorSwatchLoaded"
                                 Background="{x:Bind Swatch, Mode=OneWay}"
                                 BorderBrush="{StaticResource EgBorderBrush}"
                                 BorderThickness="1"
@@ -962,9 +964,7 @@
                                                 <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
                                             </Style>
                                         </Flyout.FlyoutPresenterStyle>
-                                        <local:HtmlColorPicker
-                                            Margin="16"
-                                            Color="{x:Bind Color, Mode=TwoWay}" />
+                                        <local:HtmlColorPicker Margin="16" Color="{x:Bind Color, Mode=TwoWay}" />
                                     </Flyout>
                                 </Button.Flyout>
                             </Button>

@@ -27,10 +27,10 @@ internal sealed partial class ShellNavigationProbe
         Require(fade.Parent == picture.Parent
             && fade.Opacity == 1 && Math.Abs(fade.ActualHeight - picture.ActualHeight) < 0.01
             && Math.Abs(fade.ActualWidth - picture.ActualWidth) < 0.01, "渐变没有独立覆盖实际图片盒子");
-        var ink = DetailHero.ScrimInk;
+        var ink = ShellPrefs.AppearanceColor(true, page.ViewModel.AppearanceSettings);
         Require(page.ViewModel.UseAcrylicBackdrop
             ? fade.Background is AcrylicBrush acrylic
-                && acrylic.TintColor == ThemeHost.ToColor(ThemeHost.Current.Colors.Window)
+                && acrylic.TintColor == ThemeHost.ToColor(ink)
                 && acrylic.FallbackColor == acrylic.TintColor
                 && acrylic.TintOpacity == page.ViewModel.BackdropStrength
                 && acrylic.Opacity == (page.ViewModel.BackdropStrength == 0 ? 0 : 1)
@@ -249,7 +249,7 @@ internal sealed partial class ShellNavigationProbe
             {
                 var y = Math.Clamp((int)(picture.ActualHeight * scale * along), 0, bitmap.PixelHeight - 1);
                 var at = (y * bitmap.PixelWidth + x) * 4;
-                var ink = DetailHero.ScrimInk;
+                var ink = ShellPrefs.AppearanceColor(true, page.ViewModel.AppearanceSettings);
                 var alpha = ScrimExpected(page) / 255d;
                 var expected = new[] { ink.B, ink.G, ink.R };
                 var color = ThemeHost.ToColor(ThemeHost.Current.Colors.Window);

@@ -97,6 +97,7 @@ namespace Microsoft.UI.Xaml.Controls
     {
         public Microsoft.UI.Xaml.ResourceDictionary Resources { get; set; } = new();
         public Microsoft.UI.Xaml.Media.Brush? Background { get; set; }
+        public Microsoft.UI.Xaml.Media.Brush? Foreground { get; set; }
         public double Opacity { get; set; } = 1;
     }
 

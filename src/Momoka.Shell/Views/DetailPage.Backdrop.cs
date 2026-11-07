@@ -13,7 +13,9 @@ public sealed partial class DetailPage
 
     private Color ReadingShadeColor => Color.FromArgb(
         AppearanceOpacity.ReadingShadeAlpha(ViewModel.BackdropStrength, ViewModel.GaussianBackdropApplied),
-        DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B);
+        ShellPrefs.AppearanceColor(true, ViewModel.AppearanceSettings).R,
+        ShellPrefs.AppearanceColor(true, ViewModel.AppearanceSettings).G,
+        ShellPrefs.AppearanceColor(true, ViewModel.AppearanceSettings).B);
 
     private void PaintBackdropFade()
     {
@@ -34,11 +36,11 @@ public sealed partial class DetailPage
             });
         }
         BackdropEdgeFade.Visibility = ViewModel.Showcase ? Visibility.Collapsed : Visibility.Visible;
-        BackdropFade.Background = ViewModel.UseAcrylicBackdrop
+        BackdropFade.Background = _actionAccessibility.HighContrast ? new SolidColorBrush(color) : ViewModel.UseAcrylicBackdrop
             ? new AcrylicBrush
             {
-                TintColor = color,
-                FallbackColor = color,
+                TintColor = ThemeHost.ToColor(ShellPrefs.AppearanceColor(true, ViewModel.AppearanceSettings)),
+                FallbackColor = ThemeHost.ToColor(ShellPrefs.AppearanceColor(true, ViewModel.AppearanceSettings)),
                 TintOpacity = ViewModel.BackdropStrength,
                 TintLuminosityOpacity = ViewModel.BackdropStrength,
                 Opacity = ViewModel.BackdropStrength == 0 ? 0 : 1,

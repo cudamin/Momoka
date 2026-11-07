@@ -292,6 +292,27 @@ public sealed partial class PosterCard : UserControl
         static Style Ink(string key) => (Style)Application.Current.Resources[key];
     }
 
+    private readonly Dictionary<TextBlock, SolidColorBrush> _backdropInk = [];
+
+    internal void ApplyBackdropInk(Func<FrameworkElement, Momoka.Theming.ThemeColor>? read)
+    {
+        foreach (var text in new[] { TitleLine, SubLine, SourceLine, NoteLine })
+        {
+            if (read is null)
+            {
+                text.ClearValue(TextBlock.ForegroundProperty);
+                continue;
+            }
+            if (!_backdropInk.TryGetValue(text, out var brush))
+            {
+                brush = new SolidColorBrush();
+                _backdropInk.Add(text, brush);
+            }
+            brush.Color = ThemeHost.ToColor(read(text));
+            text.Foreground = brush;
+        }
+    }
+
     private static void OnCardChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
         var card = (PosterCard)sender;

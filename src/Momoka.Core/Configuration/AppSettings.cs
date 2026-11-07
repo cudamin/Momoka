@@ -1428,6 +1428,9 @@ public sealed class UiSettings
     /// <summary>电影、剧与季详情背景使用应用内亚克力，普通与窄窗同样生效；缺键关闭，不影响首页轮播。</summary>
     public bool UseAcrylicBackdrop { get; set; }
 
+    /// <summary>电影、剧与季的沉浸模式；关闭使用简洁卡面并隐藏背景图，保留外观偏好。</summary>
+    public bool EnableImmersive { get; set; } = true;
+
     /// <summary>电影、剧与季的宽版式固定使用沉浸模式；仍要求背景图且不进入紧凑版式。</summary>
     public bool AlwaysImmersive { get; set; }
 

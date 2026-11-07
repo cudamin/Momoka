@@ -179,14 +179,13 @@ internal sealed partial class ShellNavigationProbe
             }
             Require(fixture.Settings.Ui.ControlBackgroundOpacity == 37 && fixture.Settings.Ui.BackdropOpacity == 45,
                 "不透明度滑块没有写回设置");
-            var toggleRow = appearance.Rows.OfType<SettingToggleRow>().Single(row => row.Label == "固定使用沉浸模式（大屏模式）");
-            var toggleHost = Descendants(page).OfType<ContentPresenter>().Single(item => ReferenceEquals(item.Content, toggleRow));
-            toggleHost.StartBringIntoView();
-            await LayoutAsync(toggleHost);
-            var toggle = Descendants(toggleHost).OfType<ToggleSwitch>().Single();
-            ((IToggleProvider)new ToggleSwitchAutomationPeer(toggle).GetPattern(PatternInterface.Toggle)).Toggle();
+            var modeRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "显示模式");
+            modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "简洁模式");
+            Require(!appearance.Rows.Any(row => row.Label is "背景图效果" or "背景遮罩颜色" or "背景图不透明度（%）"),
+                "简洁模式没有隐藏完整背景设置组");
+            modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "沉浸模式");
             await UntilAsync(() => fixture.Settings.Ui.AlwaysImmersive);
-            Require(toggleRow.IsOn, "固定沉浸开关未跟随实际设置");
+            Require(fixture.Settings.Ui.EnableImmersive, "显示模式选择没有同步沉浸状态");
             Require(fixture.Actions.Plays == 0, "设置自定义探针意外请求播放");
 
             IReadOnlyList<DetailCardSetting> Stored(string type) => type switch
@@ -352,7 +351,7 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
                 await LayoutAsync(page);
-                Require(!page.ViewModel.Showcase, "普通尺寸不应触发沉浸布局");
+                Require(page.ViewModel.Showcase == (item.Type != EmbyItemType.Episode), "沉浸模式没有固定有背景图的宽窗布局");
                 var picture = Get<Border>(page, "BackdropPicture");
                 var expectedScrim = AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, 0.45);
                 // 集页宽版式那块板替掉了背景图（BackdropShown=false），滑块对它没有可画的层 —— 下面几条只对有图的页面成立。
@@ -409,9 +408,12 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => { page.UpdateLayout(); return page.ViewModel.IsCompact; });
                 Require(!page.ViewModel.Showcase, "固定沉浸挤掉了窄窗紧凑布局");
                 fixture.Settings.Ui.AlwaysImmersive = false;
+                fixture.Settings.Ui.EnableImmersive = false;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
-                Require(!page.ViewModel.Showcase, "关闭固定沉浸没有恢复自动模式");
+                Require(!page.ViewModel.Showcase, "简洁模式仍触发沉浸布局");
+                fixture.Settings.Ui.EnableImmersive = true;
+                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 fixture.Settings.Ui.BackdropOpacity = 100;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
@@ -566,8 +568,8 @@ internal sealed partial class ShellNavigationProbe
                 && acrylic.FallbackColor == Windows.UI.Color.FromArgb(255, 255, 255, 255),
                 "操作亚克力没有保留当前白色染色与回退");
             Require(Get<TextBlock>(page, "Overview").Foreground is SolidColorBrush text
-                && text.Color == ((SolidColorBrush)Application.Current.Resources["EgOnScrimBrush"]).Color,
-                "高斯简介文字没有保持视频/音频的白色");
+                && (text.Color == Microsoft.UI.Colors.White || text.Color == Windows.UI.Color.FromArgb(255, 22, 22, 22)),
+                "高斯简介文字没有选取可读的深浅色");
             Require(ReferenceEquals(settled, page.ViewModel.HeroImage), "切主题重新处理高斯图片");
             Require(Get<FrameworkElement>(page, "HeroBand") is Panel { Background: null }
                 or Panel { Background: SolidColorBrush { Color.A: 0 } }, "高斯头部重复叠暗");
@@ -576,7 +578,7 @@ internal sealed partial class ShellNavigationProbe
             Require(Get<Border>(page, "TitleWash").Background is null or SolidColorBrush { Color.A: 0 },
                 "高斯标题栏重复叠暗");
             Require(ScrimAlphaOf(page) == ScrimExpected(page) && ScrimAlphaOf(page) > 0,
-                "亮背景没有固定的深色阅读保护");
+                "高斯背景没有随强度变化的轻罩");
             RequireDetailBackdropFade(page);
             await CheckBackdropFadePixelsAsync(page);
             await SaveProbeScreenAsync($"detail-gaussian-{page.ViewModel.ItemType}-{theme.Id}-screen.png");

@@ -10,8 +10,8 @@ public sealed partial class SettingsViewModel
     private SettingSection DetailAppearanceCard()
     {
         var ui = Settings.Ui;
-        return new SettingSection("界面", "详情页外观", "调整媒体库详情页的控件底色、背景图和大屏布局。",
-        [
+        var rows = new List<SettingRow>
+        {
             Choice("按钮与选择框背景", new[] { ("半透明叠层", false), ("亚克力", true) },
                 () => ui.UseAcrylicControls, value => ui.UseAcrylicControls = value,
                 "详情按钮与闭合选择框使用相同背景，默认半透明叠层；展开列表保持亚克力。主页详情按钮一起切换。",
@@ -21,6 +21,20 @@ public sealed partial class SettingsViewModel
                 () => ui.ControlBackgroundOpacity, value => ui.ControlBackgroundOpacity = value,
                 "默认约5.88%，还原0.2.0的半透明白底。0常态完全透明，100完全不透明；悬停与按下保留反馈。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
+            Choice("显示模式", new[] { ("沉浸模式", true), ("简洁模式", false) },
+                () => ui.EnableImmersive,
+                value => { ui.EnableImmersive = value; ui.AlwaysImmersive = value; },
+                "电影、剧和季详情页有背景图时固定使用沉浸布局",
+                after: () =>
+                {
+                    ShellPrefs.ApplyAppearance(ui);
+                    RefreshDetailAppearance();
+                })
+        };
+        if (ui.EnableImmersive)
+        {
+            rows.AddRange(
+            [
             Choice("背景图效果", new[] { ("颜色遮罩", 0), ("高斯模糊", 1), ("亚克力", 2) },
                 () => ui.UseAcrylicBackdrop ? 2 : ui.UseGaussianBackdrop ? 1 : 0,
                 value =>
@@ -34,12 +48,18 @@ public sealed partial class SettingsViewModel
             Slider("背景图不透明度（%）", 0, 100, 1,
                 () => ui.BackdropOpacity, value => ui.BackdropOpacity = value,
                 "0 关闭背景处理；100 颜色遮罩和亚克力为实底，高斯最糊并保留图片。",
-                after: () => ShellPrefs.ApplyAppearance(ui)),
-            Toggle("固定使用沉浸模式（大屏模式）",
-                "电影、剧和季详情页有背景图时固定使用沉浸布局；窄窗口保留紧凑排版。关闭后随窗口大小自动切换。",
-                () => ui.AlwaysImmersive, value => ui.AlwaysImmersive = value,
                 after: () => ShellPrefs.ApplyAppearance(ui))
-        ]);
+            ]);
+        }
+        return new SettingSection("界面", "详情页外观", "调整媒体库详情页的控件底色、背景图和大屏布局。", rows);
+    }
+
+    private void RefreshDetailAppearance()
+    {
+        var section = Sections.FirstOrDefault(card => card.Title == "详情页外观");
+        if (section is null) return;
+        foreach (var color in section.Rows.OfType<SettingColorRow>()) color.CancelEdit();
+        section.UpdateRows(DetailAppearanceCard().Rows);
     }
 
     private SettingColorRow AppearanceColorRow(string label, bool backdrop, UiSettings ui)

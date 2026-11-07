@@ -505,8 +505,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <c>HeroHeightRatio</c> 的通知名单里，条目种类那一路在 <see cref="AnnounceShape"/> 里补一句。
     /// </para>
     /// </summary>
-    public bool Showcase => DetailHero.Immersive(Spacious || NearCrop, IsCompact, BackdropShown, ItemType,
-        _settings?.Settings.Ui.AlwaysImmersive == true);
+    public bool Showcase => DetailHero.Immersive(false, IsCompact, BackdropShown, ItemType,
+        _settings?.Settings.Ui.EnableImmersive != false);
 
     internal double ControlBackgroundOpacity => _settings?.Settings.Ui.ControlBackgroundOpacity ?? UiSettings.DefaultControlBackgroundOpacity;
 
@@ -528,6 +528,27 @@ public sealed partial class DetailViewModel : PageViewModel
 
     internal void RefreshAppearance()
     {
+        SyncBackdrop();
+        OnPropertyChanged(nameof(HeroCardVisibility));
+        OnPropertyChanged(nameof(HeroCardShown));
+        OnPropertyChanged(nameof(HeroPlainVisibility));
+        OnPropertyChanged(nameof(ScrimVisibility));
+        OnPropertyChanged(nameof(HeroContentAlignment));
+        OnPropertyChanged(nameof(HeroContent));
+        OnPropertyChanged(nameof(HeroRoom));
+        OnPropertyChanged(nameof(HeroInset));
+        OnPropertyChanged(nameof(TailInset));
+        OnPropertyChanged(nameof(TailMargin));
+        OnPropertyChanged(nameof(CardTailGapHeight));
+        OnPropertyChanged(nameof(HeroLayoutHeight));
+        OnPropertyChanged(nameof(HeroHeight));
+        OnPropertyChanged(nameof(ScrimHeight));
+        OnPropertyChanged(nameof(BodyMinHeight));
+        OnPropertyChanged(nameof(Narrow));
+        OnPropertyChanged(nameof(Squeeze));
+        OnPropertyChanged(nameof(ColumnVideoVisibility));
+        OnPropertyChanged(nameof(VideoLineVisibility));
+        OnPropertyChanged(nameof(ColumnPickersVisibility));
         OnPropertyChanged(nameof(UseGaussianBackdrop));
         OnPropertyChanged(nameof(UseAcrylicBackdrop));
         UpdateHeroBlur();
@@ -555,7 +576,10 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 集页整段上方合成的那一块面板在不在 —— <see cref="HeroCardVisibility"/>、<see cref="HeroPlainVisibility"/>、
     /// <see cref="ScrimVisibility"/>、<see cref="HeroInset"/> 和 <see cref="TailInset"/> 五处都问它，判据只写一份。
     /// </summary>
-    private bool HeroCard => IsEpisodePage && !IsCompact;
+    private bool HeroCard => (IsEpisodePage || PlainDetail) && !IsCompact;
+    private bool ImmersiveEnabled => _settings?.Settings.Ui.EnableImmersive != false;
+    private bool PlainDetail => !ImmersiveEnabled
+        && ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
     /// <summary>
     /// 头图和尾部的内容按多宽排 —— 页面本身的宽。从前是「至少 1280、窄了由 Viewbox 整体缩下去」：那一版换行的
@@ -603,6 +627,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>解好的头图原图像素 —— 裁切模糊的原料。导航换条目、换图时整个作废。</summary>
     private HeroPictureLoader.HeroPixels? _heroPixels;
+    internal HeroPictureLoader.HeroPixels? BackdropPixels => _heroPixels;
+    internal UiSettings AppearanceSettings => _settings?.Settings.Ui ?? new UiSettings();
 
     private NavigationTimingRun? _heroTiming;
     private DetailHeroCache? _heroCache;
@@ -1223,7 +1249,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 整页，收一点头部不会让任何东西掉出画面。
     /// </para>
     /// </summary>
-    private bool Crowdable => !IsCompact && !IsEpisodePage
+    private bool Crowdable => !IsCompact && !IsEpisodePage && !HeroCard
         && ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
     /// <summary>
@@ -1475,7 +1501,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// </summary>
     public Thickness SheetPadding => IsCompact ? new(28, 18, 28, 18)
-        : IsEpisodePage ? new(28)
+        : HeroCard ? new(28)
         : Showcase ? new(8, DetailHero.ShowcaseSheetTop, 8, DetailHero.ShowcaseSheetBottom)
         : new(8, 28, 8, 28);
 
@@ -1774,7 +1800,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// </summary>
     private bool SpreadsBackdrop(EmbyItem item) =>
-        (item.Type != EmbyItemType.Episode || IsCompact) && ItemArtwork.Hero(item).Count > 0;
+        (ImmersiveEnabled || item.Type is not (EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season))
+        && (item.Type != EmbyItemType.Episode || IsCompact) && ItemArtwork.Hero(item).Count > 0;
 
     /// <summary>
     /// Whether 单集 belongs down the page as rows rather than across it as cards. The rule itself is

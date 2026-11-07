@@ -454,19 +454,19 @@ Check("材质切换不重写资源键，亚克力100档回实底", () =>
 {
     var control = new ToggleButton();
     var brushes = ControlBackgroundBrushes.ForDetail(control);
-    var method = typeof(ControlBackgroundBrushes).GetMethod("Apply", [typeof(double), typeof(bool)])
+    var method = typeof(ControlBackgroundBrushes).GetMethod("Apply", [typeof(double), typeof(bool), typeof(Windows.UI.Color?)])
         ?? throw new InvalidOperationException("缺少可切换的亚克力背景");
     var keys = control.Resources.Keys.ToArray();
-    method.Invoke(brushes, [0d, true]);
+    method.Invoke(brushes, [0d, true, null]);
     if (control.Background is not AcrylicBrush { AlwaysUseFallback: false } glass)
         throw new InvalidOperationException("亚克力选项没有启用实际材质");
     Equal(0, glass.TintOpacity);
     Equal(0, glass.TintLuminosityOpacity ?? -1);
     Equal(1, glass.Opacity);
-    method.Invoke(brushes, [100d, true]);
+    method.Invoke(brushes, [100d, true, null]);
     if (!glass.AlwaysUseFallback || glass.FallbackColor.A != 255 || glass.Opacity != 1)
         throw new InvalidOperationException("亚克力100档未完全不透明");
-    method.Invoke(brushes, [0d, false]);
+    method.Invoke(brushes, [0d, false, null]);
     if (!glass.AlwaysUseFallback || glass.FallbackColor.A != 0 || glass.Opacity != 0)
         throw new InvalidOperationException("现有底色零档还画着东西");
     if (!keys.SequenceEqual(control.Resources.Keys) || !ReferenceEquals(glass, control.Background))
@@ -505,6 +505,7 @@ Check("亚克力三态与checked、主题和回退独立", () =>
 
 BackdropReadingTests.Run(Check);
 
+Check("自选控件颜色贯穿按钮选择框三态与端点", ControlTintTests.Run);
 Console.WriteLine($"外观透明度：{passed} 通过，{failed} 失败。");
 Console.WriteLine($"TOTAL {passed + failed}; PASS {passed}; FAIL {failed}; SKIP 0");
 return failed == 0 ? 0 : 1;

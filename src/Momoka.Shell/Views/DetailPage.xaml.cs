@@ -2163,6 +2163,7 @@ public sealed partial class DetailPage : Page, IShellContent
         // 同一件事的另一头：这个滚动视图变高变矮，正是因为它上面那行面包屑出现或收起，也就是背景那一层该往上
         // 顶多少变了的那一刻。见 LiftBackdrop。
         LiftBackdrop();
+        PaintReadingColors();
     }
 
     /// <summary>
@@ -2201,7 +2202,11 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     /// <summary>滚到哪儿了 —— 标题栏先接图上的黑底，再跟随正文纸面。</summary>
-    private void OnBodyViewChanged(ScrollView sender, object args) => PaintWash();
+    private void OnBodyViewChanged(ScrollView sender, object args)
+    {
+        PaintWash();
+        PaintReadingColors();
+    }
 
     /// <summary>
     /// 把标题栏那一条画成当前正从它下面经过的那一层。
