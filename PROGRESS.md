@@ -1,3 +1,11 @@
+## 2026-11-07 第三批两项修复已完成主树本地交付，写入已结束
+
+R02-002（3a93774）与R10-008（b61fd63）经d2f1232进入master。最终Release/x64 Core/Tests/Shell零警告错误，主测4000/4000、设置182、实际章节调用59及10个提取负例全部通过。发布参数不带调试信息，主测试用相同参数重编后Core与发布件SHA完全一致，并再次4000/4000；原共享mutex导致16败、相对包目录错误与红绿均保留。详见docs/superpowers/reviews/2026-11-05-full-code-review/THIRD-REPAIRS.md。
+
+实际交付artifacts/publish/win-x64/Momoka.exe仍0.2.5.0，546文件286.4MB、载荷许可通过；桌面快捷方式实核指向它且参数空。未上传或打新ZIP/MSIX，未实服播放/写入或运行实际章节/WinUI跳过。415份来源与红绿证据保存到artifacts/review-batch3-master/preserved并逐文件核SHA；本批隔离树997e122干净且已全合入，原生归档因当前聊天主工作树保护拒绝，保留review-recovery-batch3/Momoka。
+
+本批无待合或待交付代码；本会话停止主树写入、构建测试与发布，其他聊天可按规则接回主树并验证其整合。本条纯记录不重建或重发应用。
+
 ## 2026-11-07 第三批迁移与章节跳过修复进行中
 
 本批隔离树 C:/Users/89400/.codex/worktrees/review-recovery-batch3/Momoka，基点6b9fb3c；仅本会话写该树。主树轮播聊天已交付并明确停止主树写入/UI/发布，主树当前7975ea9且干净。选择R02-002与R10-008，计划docs/superpowers/plans/2026-11-07-review-batch3.md，不自动暂停。
