@@ -705,6 +705,16 @@ public sealed partial class PlayerPage : IWin32KeySink
 
         var stroke = new KeyStroke(token, Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld);
         var action = ShortcutCatalog.Lookup(ViewModel.ShortcutBindings, stroke);
+        if (ViewModel.PictureInHostWindow && !stroke.Ctrl && !stroke.Alt && !stroke.Shift
+            && key is VirtualKey.Up or VirtualKey.Down or VirtualKey.PageUp or VirtualKey.PageDown)
+        {
+            var context = ViewModel.CaptureInteraction();
+            var file = ViewModel.CaptureFreeze().FileGeneration;
+            var previous = _statsKeyTail;
+            _statsKeyTail = StatsKeyAsync(previous, context, file, key is VirtualKey.Up or VirtualKey.PageUp, action);
+            wakeChrome = false;
+            return true;
+        }
         if (action is null) return false;
         if (!ShortcutHandlers.TryGetValue(action, out var run))
         {
@@ -718,6 +728,22 @@ public sealed partial class PlayerPage : IWin32KeySink
 
         run();
         return true;
+    }
+
+    private Task _statsKeyTail = Task.CompletedTask;
+
+    private async Task StatsKeyAsync(Task previous, PlayerViewModel.InteractionContext context, long? file, bool up, string? action)
+    {
+        try
+        {
+            await previous.ConfigureAwait(true);
+            var handled = await ViewModel.ScrollStatsAsync(context, file, up).ConfigureAwait(true);
+            if (handled != false || !ViewModel.IsCurrentInteraction(context) || action is null) return;
+            if (ShortcutHandlers.TryGetValue(action, out var run)) run();
+            else ViewModel.RunAdditionalShortcut(action);
+            if (WakesChrome(action) && _chrome.WakeFully(Now)) Render();
+        }
+        catch (Exception error) { Log.Debug("播放器", $"统计按键未执行：{error.Message}"); }
     }
 
     /// <summary>

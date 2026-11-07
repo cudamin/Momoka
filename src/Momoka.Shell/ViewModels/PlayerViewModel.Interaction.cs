@@ -31,6 +31,29 @@ public sealed partial class PlayerViewModel
         && context.Attempt == _playbackAttempt && context.Generation == _generation
         && context.PlaybackGeneration == _playback.Generation && ReferenceEquals(context.Item, _nowPlaying);
 
+    internal readonly record struct FreezeContext(long Generation, long? FileGeneration);
+    internal FreezeContext CaptureFreeze() => new(_playback.Generation, _playback.ActiveFileGeneration);
+    internal bool IsCurrentFreeze(FreezeContext context) => !_lifetime.IsCancellationRequested && _playback.IsPlaying
+        && _playback.CanControl && context.Generation == _playback.Generation
+        && context.FileGeneration == _playback.ActiveFileGeneration;
+
+    internal void SetFrozenPaused(FreezeContext context, bool paused)
+    {
+        if (!IsCurrentFreeze(context)) return;
+        _ = _playback.CommandForActiveFileAsync(context.Generation, context.FileGeneration, "set", "pause", paused ? "yes" : "no");
+    }
+
+    internal async Task<bool?> ScrollStatsAsync(InteractionContext context, long? fileGeneration, bool up)
+    {
+        if (!IsCurrentInteraction(context)) return null;
+        var scrollable = await _playback.GetTextAsync("user-data/momoka-stats/scrollable").ConfigureAwait(true);
+        if (!IsCurrentInteraction(context) || fileGeneration != _playback.ActiveFileGeneration) return null;
+        if (scrollable is not ("yes" or "true")) return false;
+        await _playback.CommandForActiveFileAsync(context.PlaybackGeneration, fileGeneration,
+            "script-message-to", "stats", "momoka-scroll", up ? "up" : "down").ConfigureAwait(true);
+        return true;
+    }
+
     private VideoMenuSnapshot<EmbyItem>? _episodeMenuSnapshot;
     private InteractionContext _episodeMenuContext;
     private VideoMenuSnapshot<MediaSource>? _versionMenuSnapshot;

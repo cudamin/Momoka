@@ -65,6 +65,7 @@ public sealed partial class PlaybackService(
     public event Action<PlaybackUpdate<(string Key, string Value)>>? VideoWindowUpdated;
 
     public long Generation => Interlocked.Read(ref _playbackGeneration);
+    public long? ActiveFileGeneration => (_current as IFileScopedPlayerControl)?.FileGeneration;
     public bool IsPlaying => _current is not null;
     public bool? PictureInHostWindow => _current?.PictureInHostWindow;
     public MpvBackendKind? PlayingBackend => _active?.BackendKind;
