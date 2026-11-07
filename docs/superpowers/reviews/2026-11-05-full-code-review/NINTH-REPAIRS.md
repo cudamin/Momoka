@@ -1,0 +1,19 @@
+# 第九批解除下载标记失败回执修复
+
+用户授权自主选择必要修复、连续执行及主树交付。本批基点 b2708e4，仅处理 R01-004，复用 review-recovery-batch3 托管树。
+
+## 修复与验证
+
+- 解除下载标记有文件失败时，完整处理所有文件后返回退出码 1；全部成功、无待处理文件和只清点保持 0。仅在原失败汇总分支增加一行，不改筛选、MOTW 读取和删除规则。
+- tools/test-unblock-momoka.ps1 使用 PowerShell 7 创建真实匿名 ZIP 与 NTFS ADS，在 Windows PowerShell 5.1 和 PowerShell 7 分别运行完整生产脚本。失败文件持有可读但不共享删除的句柄；不模拟命令，不改 ACL。
+- 有效红：70 项中 4 失败，两宿主全失败/部分失败均错误返回 0，实际标记仍在。修后 70/70、失败 0、跳过 0；无候选、无标记、清点、全部成功/失败、部分失败及释放后重试均验证，主文件 SHA256 保持。
+- 首次从 Windows PowerShell 5.1 启动夹具时，.NET Framework 的 File.WriteAllText 拒绝 ADS 路径，夹具在前三项后中止；保留日志，不当作产品红。测试现显式要求 PowerShell 7 创建夹具，生产宿主覆盖不变。
+- 脚本 59 份编码/语法通过，初始变更 4 文本差异检查通过。一次独立复审、主树编译/完整测试与实际桌面交付待完成。
+
+证据：开发树 artifacts/review-batch9，red-17bac11aaf6f4768be63ce619fd63b93/results.json、green-6a2670df48e74e88938073d0596e4570/results.json，原夹具失败日志 harness-windows-powershell-ads-failed.log。
+
+## 范围与边界
+
+不重开前八批，不扩至 R01-005 的包身份识别或未确认的 MOTW 读取错误。没有真实下载目录、凭据、服务器、GUI、播放、安装、签名或 SmartScreen 提示验证；没有新依赖、版本、ZIP/MSIX 交付件、上传或推送。
+
+本会话负责主树写入、最终验证与实际交付；另一聊天在 228e 独立开发详情布局，未纳本批。现有 primary 托管工作树保留，无本批新临时分支。

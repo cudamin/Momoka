@@ -174,6 +174,7 @@ if ($done -lt $locked.Count) {
     Write-Output ''
     Write-Output ("    powershell -NoProfile -File `"{0}`" -Apply" -f $PSCommandPath)
     Write-Output ''
+    exit 1
 } else {
     Write-Output '再双击一次被拦的那个安装包试试：这次应当直接进安装向导，不再问「仍要运行」。'
 }
