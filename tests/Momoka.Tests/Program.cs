@@ -129,6 +129,12 @@ internal static class Program
             SettingsTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["device-header-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            DeviceHeaderTransmissionTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["danmaku-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;

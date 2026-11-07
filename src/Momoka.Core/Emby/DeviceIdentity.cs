@@ -13,8 +13,9 @@ public sealed record DeviceIdentity(string Client, string DeviceName, string Dev
         new(ClientName, Environment.MachineName, deviceId, version);
 
     /// <summary>
-    /// Emby parses this header by splitting on quotes, so any quote or control
-    /// character in a machine name would corrupt every request.
+    /// Emby parses this header by splitting on quotes. Keep delimiter protection and
+    /// printable ASCII: the default HTTP transport rejects Unicode header values.
+    /// A non-ASCII-only display name falls back to "unknown"; the stable device ID stays separate.
     /// </summary>
     public string ToAuthorizationHeader()
     {
@@ -30,7 +31,7 @@ public sealed record DeviceIdentity(string Client, string DeviceName, string Dev
         foreach (var character in value)
         {
             if (character is '"' or '\\' or ',' or ';') continue;
-            if (char.IsControl(character)) continue;
+            if (character is < ' ' or > '~') continue;
             buffer[length++] = character;
         }
 

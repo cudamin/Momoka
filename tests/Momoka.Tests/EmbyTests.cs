@@ -23,6 +23,7 @@ internal static class EmbyTests
         RegisterSort();
         RegisterFilters();
         RegisterIdentity();
+        DeviceHeaderTransmissionTests.Register();
         RegisterTimeFormat();
         RegisterItemModel();
         RegisterMetadataEdit();
@@ -1071,7 +1072,7 @@ internal static class EmbyTests
             var device = new DeviceIdentity(DeviceIdentity.ClientName, """我的"电脑",""", "dev-1", "2.0.0");
             var header = device.ToAuthorizationHeader();
 
-            Assert.Equal("MediaBrowser Client=\"Momoka\", Device=\"我的电脑\", DeviceId=\"dev-1\", Version=\"2.0.0\"", header);
+            Assert.Equal("MediaBrowser Client=\"Momoka\", Device=\"unknown\", DeviceId=\"dev-1\", Version=\"2.0.0\"", header);
         });
 
         Test("设备标识：空白名字回退成 unknown", () =>
