@@ -231,7 +231,7 @@ internal static class HttpRedirectTests
                         Assert.True(blocked.Disposed);
                     }
                     Assert.Equal("original", await File.ReadAllTextAsync(path));
-                    Assert.False(File.Exists(path + ".part"));
+                    Assert.Equal(0, Directory.GetFiles(root, "*.part").Length);
                     Assert.Equal("", handler.Sent[1].Token);
                     handler.AssertDisposed();
                 }

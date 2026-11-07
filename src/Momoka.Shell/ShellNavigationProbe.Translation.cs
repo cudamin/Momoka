@@ -27,7 +27,8 @@ internal sealed partial class ShellNavigationProbe
         paths.EnsureCreated();
         var fonts = new FontLibrary();
         Field(fonts, "_scan", Task.FromResult(FontCatalogue.Empty));
-        var credentials = new SubtitleTranslationCredentials(PassthroughSecretProtector.Instance);
+        var protector = new TranslationProbeProtector();
+        var credentials = new SubtitleTranslationCredentials(protector);
         var page = new SettingsPage();
         page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask,
@@ -68,6 +69,37 @@ internal sealed partial class ShellNavigationProbe
             await SettlePageAsync();
             Require(fixture.Settings.SubtitleTranslation.HasAiApiKey && secret.Draft.Length == 0 && input.Password.Length == 0,
                 "保存占位密钥后输入框没有清空或密文缺失");
+            var oldCipher = fixture.Settings.SubtitleTranslation.ProtectedAiApiKey;
+            var normalNote = secret.Note;
+            var oldNotesHidden = SettingRow.NotesHidden;
+            SettingRow.NotesHidden = true;
+            try
+            {
+                foreach (var empty in new[] { false, true })
+                {
+                    protector.Fail = true;
+                    protector.Empty = empty;
+                    input.Password = "offline-retry-placeholder";
+                    await SettlePageAsync();
+                    InvokeSubscriptionButton(Descendants(page).OfType<Button>().Single(control => control.Name == "SaveSecret"));
+                    await SettlePageAsync();
+                    Require(fixture.Settings.SubtitleTranslation.ProtectedAiApiKey == oldCipher
+                        && secret.Draft == "offline-retry-placeholder" && input.Password == secret.Draft
+                        && secret.NoteVisibility == Visibility.Collapsed && secret.Status.Contains("重试", StringComparison.Ordinal)
+                        && Descendants(page).OfType<TextBlock>().Any(text => text.Text == secret.Status && text.ActualHeight > 0),
+                        "精简模式下加密失败没有保留原密文、草稿或可见重试反馈");
+                    await CaptureAsync($"settings-translation-save-failure-{(empty ? "empty" : "throw")}");
+                    protector.Fail = false;
+                    InvokeSubscriptionButton(Descendants(page).OfType<Button>().Single(control => control.Name == "SaveSecret"));
+                    await SettlePageAsync();
+                    Require(credentials.GetAiApiKey(fixture.Settings.SubtitleTranslation) == "offline-retry-placeholder"
+                        && secret.Draft.Length == 0 && input.Password.Length == 0 && secret.Note == normalNote,
+                        "重试保存没有完成、清空输入或恢复说明");
+                    oldCipher = fixture.Settings.SubtitleTranslation.ProtectedAiApiKey;
+                }
+                await CaptureAsync("settings-translation-save-recovered");
+            }
+            finally { SettingRow.NotesHidden = oldNotesHidden; }
             InvokeSubscriptionButton(Descendants(page).OfType<Button>().Single(control => control.Name == "ClearSecret"));
             await SettlePageAsync();
             Require(!fixture.Settings.SubtitleTranslation.HasAiApiKey, "清除占位密钥没有写回设置");
@@ -136,5 +168,15 @@ internal sealed partial class ShellNavigationProbe
             await SettlePageAsync(); await SaveProbeScreenAsync(name + "-screen.png");
             scroll.ChangeView(0, 0, null, disableAnimation: true);
         }
+    }
+
+    private sealed class TranslationProbeProtector : ISecretProtector
+    {
+        public bool Fail { get; set; }
+        public bool Empty { get; set; }
+        public string Protect(string plaintext) => Fail
+            ? Empty ? "" : throw new InvalidOperationException(plaintext)
+            : "probe-protected:" + plaintext;
+        public string Unprotect(string protectedText) => protectedText["probe-protected:".Length..];
     }
 }

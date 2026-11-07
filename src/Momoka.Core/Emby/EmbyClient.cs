@@ -1182,10 +1182,10 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     // ---- 下载到设备 -----------------------------------------------------------
 
     /// <summary>
-    /// 把这个条目的原始文件下到 <paramref name="path"/>，返回一共多少字节。走的是服务器的下载接口，也就是
+    /// 把原始文件下到 <paramref name="path"/>（同名时编号），返回字节数与实际路径。走的是下载接口，也就是
     /// 原封不动的那个文件（不转码）。账号没有下载权限时服务器答 403。
     /// </summary>
-    public Task<long> DownloadToFileAsync(
+    public Task<(long Bytes, string Path)> DownloadToFileAsync(
         string itemId,
         string path,
         IProgress<(long Done, long? Total)>? progress,

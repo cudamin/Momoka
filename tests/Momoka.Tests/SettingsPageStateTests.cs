@@ -42,6 +42,58 @@ internal static class SettingsPageStateTests
     public static void Register(string shellAssemblyPath, string sourceRoot)
     {
         var fixture = new ShellFixture(shellAssemblyPath, sourceRoot);
+        foreach (var endpoint in new[] { "save", "after" })
+            TestHarness.Test($"翻译密钥：{endpoint}普通异常不能被加密错误处理吞掉", () =>
+            {
+                var row = fixture.NewRow("SettingSecretRow", "测试 API 密钥", (Action<string>)(_ => { }),
+                    (Func<bool>)(() => true),
+                    (Func<bool>)(() => endpoint == "save" ? throw new InvalidOperationException("save failed") : true),
+                    (Action)(() => { if (endpoint == "after") throw new InvalidOperationException("after failed"); }));
+                fixture.Set(row, "Draft", "placeholder");
+                Assert.Throws<InvalidOperationException>(() => fixture.Command(row, "CommitCommand").Execute(null));
+            });
+        foreach (var provider in Enum.GetValues<SubtitleTranslationProvider>())
+            foreach (var empty in new[] { false, true })
+                TestHarness.Test($"翻译密钥：{provider} {(empty ? "空密文" : "保护异常")}保留旧值并可重试", () =>
+                {
+                    var protector = new RetrySecretProtector { Fail = false };
+                    var credentials = new SubtitleTranslationCredentials(protector);
+                    var settings = new SubtitleTranslationSettings();
+                    credentials.SetApiKey(settings, provider, "old-placeholder");
+                    var before = System.Text.Json.JsonSerializer.Serialize(settings);
+                    var saves = 0;
+                    var applied = 0;
+                    var row = fixture.NewRow("SettingSecretRow", "测试 API 密钥",
+                        (Action<string>)(value => credentials.SetApiKey(settings, provider, value)),
+                        (Func<bool>)(() => true), (Func<bool>)(() => { saves++; return true; }), (Action)(() => applied++));
+                    var note = fixture.Get<string>(row, "Note");
+                    fixture.Set(row, "Draft", "new-placeholder");
+                    protector.Fail = true;
+                    protector.Empty = empty;
+                    fixture.Command(row, "CommitCommand").Execute(null);
+                    Assert.Equal(before, System.Text.Json.JsonSerializer.Serialize(settings));
+                    Assert.Equal("new-placeholder", fixture.Get<string>(row, "Draft"));
+                    Assert.Contains("重试", fixture.Get<string>(row, "Note"));
+                    Assert.DoesNotContain("new-placeholder", fixture.Get<string>(row, "Note"));
+                    Assert.Equal(0, saves);
+                    Assert.Equal(0, applied);
+                    fixture.SetStatic("SettingRow", "NotesHidden", true);
+                    try
+                    {
+                        Assert.Equal("Collapsed", fixture.Get<object>(row, "NoteVisibility").ToString());
+                        Assert.Contains("重试", fixture.Get<string>(row, "Status"));
+                        Assert.DoesNotContain("new-placeholder", fixture.Get<string>(row, "Status"));
+                    }
+                    finally { fixture.SetStatic("SettingRow", "NotesHidden", false); }
+                    protector.Fail = false;
+                    fixture.Command(row, "CommitCommand").Execute(null);
+                    Assert.Equal("new-placeholder", credentials.GetApiKey(settings, provider));
+                    Assert.Equal("", fixture.Get<string>(row, "Draft"));
+                    Assert.Equal(note, fixture.Get<string>(row, "Note"));
+                    Assert.DoesNotContain("无法加密", fixture.Get<string>(row, "Status"));
+                    Assert.Equal(1, saves);
+                    Assert.Equal(1, applied);
+                });
         TestHarness.Test("详情显示模式：选择栏在背景效果上方，简洁模式收起完整背景组并保留偏好", () =>
         {
             var settings = new FakeSettings();
@@ -487,6 +539,16 @@ internal static class SettingsPageStateTests
         public AccountProfile ResolveAccount(ServerProfile server, string username) => throw new InvalidOperationException("禁止真实账号路径");
         public void ExportPreferences(string path) => throw new InvalidOperationException("禁止配置 IO");
         public AppSettings ReadBackup(string path) => throw new InvalidOperationException("禁止配置 IO");
+    }
+
+    private sealed class RetrySecretProtector : ISecretProtector
+    {
+        public bool Fail { get; set; }
+        public bool Empty { get; set; }
+        public string Protect(string plaintext) => Fail
+            ? Empty ? "" : throw new InvalidOperationException(plaintext)
+            : "protected:" + plaintext;
+        public string Unprotect(string protectedText) => protectedText["protected:".Length..];
     }
 
     internal sealed class ShellFixture

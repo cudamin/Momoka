@@ -39,7 +39,7 @@ public sealed class SubtitleTranslationCredentials
         catch (Exception)
         {
             // Protector 的异常可能含敏感输入，不能携带 inner exception 或记日志。
-            throw new InvalidOperationException("无法加密字幕翻译密钥，原设置未更改。");
+            throw new System.Security.Cryptography.CryptographicException("无法加密字幕翻译密钥，原设置未更改。");
         }
         if (provider == SubtitleTranslationProvider.Google) settings.ProtectedGoogleApiKey = protectedKey;
         else if (provider == SubtitleTranslationProvider.Microsoft) settings.ProtectedMicrosoftApiKey = protectedKey;

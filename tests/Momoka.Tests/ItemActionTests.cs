@@ -495,10 +495,11 @@ internal static class ItemActionTests
                     CancellationToken.None));
 
                 Assert.Equal("GET", stub.Only("Items/m1/Download").Method);
-                Assert.Equal(10L, bytes);
+                Assert.Equal(10L, bytes.Bytes);
+                Assert.Equal(path, bytes.Path);
                 Assert.True(File.Exists(path), "下完那一份要真的在磁盘上");
                 Assert.Equal("0123456789", File.ReadAllText(path));
-                Assert.False(File.Exists(path + ".part"), "临时那一份下完要改名，不许留在原地");
+                Assert.Equal(0, Directory.GetFiles(Path.GetDirectoryName(path)!, Path.GetFileName(path) + "*.part").Length);
             }
             finally
             {
@@ -523,7 +524,7 @@ internal static class ItemActionTests
                 Assert.Contains("服务器说有 10 字节", error.Message);
 
                 Assert.False(File.Exists(path), "没下全就不该有这个文件");
-                Assert.False(File.Exists(path + ".part"), "半截那一份也要清掉");
+                Assert.Equal(0, Directory.GetFiles(Path.GetDirectoryName(path)!, Path.GetFileName(path) + "*.part").Length);
             }
             finally
             {

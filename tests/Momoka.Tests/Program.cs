@@ -244,6 +244,7 @@ internal static class Program
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             HttpDownloadErrorTests.Register();
+            DownloadCollisionTests.Register();
             HttpDeadlineTests.Register();
             HttpDiagnosticsTests.Register();
             return TestHarness.Run();
@@ -429,6 +430,7 @@ internal static class Program
         ItemMenuTests.Register();
         ItemIdentifyTests.Register();
         ItemActionTests.Register();
+        DownloadCollisionTests.Register();
         HomeCarouselTests.Register();
         HomeFoldTests.Register();
         BackdropBlurTests.Register();

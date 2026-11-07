@@ -126,14 +126,14 @@ internal static class HttpDownloadErrorTests
                     : Reply(HttpStatusCode.OK, new ByteArrayContent([7, 8, 9]))), RequestTimeout);
                 using var gate = new SemaphoreSlim(1);
                 using var cleanup = new CancellationTokenSource();
-                async Task<long> QueuedDownload(string destination)
+                async Task<(long Bytes, string Path)> QueuedDownload(string destination)
                 {
                     await gate.WaitAsync(cleanup.Token).ConfigureAwait(false);
                     try { return await http.DownloadToFileAsync(Url, destination, Context, null, cleanup.Token).ConfigureAwait(false); }
                     finally { gate.Release(); }
                 }
                 var first = QueuedDownload(path);
-                Task<long>? second = null;
+                Task<(long Bytes, string Path)>? second = null;
                 try
                 {
                     body.Started.WaitAsync(TestTimeout).GetAwaiter().GetResult();
@@ -141,13 +141,13 @@ internal static class HttpDownloadErrorTests
                     Assert.Equal(1, requests, "前项仍在等错误正文时后项保持排队");
                     var error = Assert.Catch<EmbyApiException>(() => first.WaitAsync(TestTimeout).GetAwaiter().GetResult());
                     AssertStatus(HttpStatusCode.ServiceUnavailable, error);
-                    Assert.Equal(3L, second.WaitAsync(TestTimeout).GetAwaiter().GetResult());
+                    Assert.Equal(3L, second.WaitAsync(TestTimeout).GetAwaiter().GetResult().Bytes);
                     Assert.True(File.ReadAllBytes(path + ".next").SequenceEqual(new byte[] { 7, 8, 9 }));
                     Assert.Equal(2, requests);
                     Assert.Equal(1, gate.CurrentCount);
                     Assert.True(content.Disposed);
                     AssertOldFile(path);
-                    Assert.False(File.Exists(path + ".next.part"));
+                    Assert.Equal(0, Directory.GetFiles(Path.GetDirectoryName(path)!, "*.part").Length);
                 }
                 finally
                 {
@@ -170,9 +170,11 @@ internal static class HttpDownloadErrorTests
                     Task.Delay(TimeSpan.FromMilliseconds(2400)).GetAwaiter().GetResult();
                     Assert.False(download.IsCompleted, "成功长下载不能套用短错误正文截止");
                     body.Resume();
-                    Assert.Equal(3L, download.WaitAsync(TestTimeout).GetAwaiter().GetResult());
-                    Assert.True(File.ReadAllBytes(path).SequenceEqual(new byte[] { 4, 5, 6 }));
-                    Assert.False(File.Exists(path + ".part"));
+                    var saved = download.WaitAsync(TestTimeout).GetAwaiter().GetResult();
+                    Assert.Equal(3L, saved.Bytes);
+                    Assert.True(File.ReadAllBytes(saved.Path).SequenceEqual(new byte[] { 4, 5, 6 }));
+                    AssertOldFile(path);
+                    Assert.Equal(0, Directory.GetFiles(Path.GetDirectoryName(path)!, "*.part").Length);
                 }
                 finally { cleanup.Cancel(); ObserveCompletion(download); }
             }));
@@ -220,7 +222,7 @@ internal static class HttpDownloadErrorTests
     private static void AssertOldFile(string path)
     {
         Assert.True(File.ReadAllBytes(path).SequenceEqual(new byte[] { 91, 92 }), "错误响应不得覆盖已有目标");
-        Assert.False(File.Exists(path + ".part"));
+        Assert.Equal(0, Directory.GetFiles(Path.GetDirectoryName(path)!, "*.part").Length);
     }
 
     private static void ObserveCompletion(Task task)

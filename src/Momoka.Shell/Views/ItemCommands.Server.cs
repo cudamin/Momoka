@@ -377,11 +377,11 @@ internal static partial class ItemCommands
             shell.Notify($"正在下载 {head}…");
 
             scope.ThrowIfUnavailable();
-            await scope.ExecuteAsync((client, token) => client.DownloadToFileAsync(file.Id, path, progress, token), CancellationToken.None)
+            var download = await scope.ExecuteAsync((client, token) => client.DownloadToFileAsync(file.Id, path, progress, token), CancellationToken.None)
                 .ConfigureAwait(true);
 
             saved++;
-            last = path;
+            last = download.Path;
         }
 
         // 最后那一句要说清落在哪儿：这是用户唯一一次看得到完整路径的机会。判断在 Core（四个分支都是用户看得见

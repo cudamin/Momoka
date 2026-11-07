@@ -123,7 +123,7 @@ internal static class ConfigurationTests
         {
             var settings = new SubtitleTranslationSettings { ProtectedAiApiKey = "old cipher" };
             var credentials = new SubtitleTranslationCredentials(new FailingProtector());
-            var error = Test.Throws<InvalidOperationException>(() => credentials.SetAiApiKey(settings, Fixture.Key));
+            var error = Test.Throws<System.Security.Cryptography.CryptographicException>(() => credentials.SetAiApiKey(settings, Fixture.Key));
             Test.Safe(error); Test.Equal("old cipher", settings.ProtectedAiApiKey);
             Test.Equal("", credentials.GetAiApiKey(settings));
         });
@@ -131,7 +131,7 @@ internal static class ConfigurationTests
         {
             var settings = new SubtitleTranslationSettings { ProtectedAiApiKey = "old cipher" };
             var credentials = new SubtitleTranslationCredentials(new EmptyProtector());
-            Test.Safe(Test.Throws<InvalidOperationException>(() => credentials.SetAiApiKey(settings, Fixture.Key)));
+            Test.Safe(Test.Throws<System.Security.Cryptography.CryptographicException>(() => credentials.SetAiApiKey(settings, Fixture.Key)));
             Test.Equal("old cipher", settings.ProtectedAiApiKey);
         });
         Test.Case("credentials/invalid-provider-and-null-guard", () =>

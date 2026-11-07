@@ -64,9 +64,9 @@ internal static class HttpDeadlineTests
 
                     body.Resume();
 
-                    Assert.Equal((long)expected.Length, download.WaitAsync(TestTimeout).GetAwaiter().GetResult());
+                    Assert.Equal((long)expected.Length, download.WaitAsync(TestTimeout).GetAwaiter().GetResult().Bytes);
                     Assert.True(File.ReadAllBytes(path).SequenceEqual(expected), "完整内容应当写入目标文件");
-                    Assert.False(File.Exists(path + ".part"));
+                    Assert.Equal(0, Directory.GetFiles(Path.GetDirectoryName(path)!, "*.part").Length);
                 }
                 finally
                 {
@@ -90,7 +90,7 @@ internal static class HttpDeadlineTests
 
                 Assert.Throws<OperationCanceledException>(() => download.WaitAsync(TestTimeout).GetAwaiter().GetResult());
                 Assert.False(File.Exists(path));
-                Assert.False(File.Exists(path + ".part"));
+                Assert.Equal(0, Directory.GetFiles(Path.GetDirectoryName(path)!, "*.part").Length);
             });
         });
     }

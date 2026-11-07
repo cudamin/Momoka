@@ -240,7 +240,7 @@ public sealed class EmbyHttp : IDisposable
     }
 
     /// <summary>
-    /// 「下载到设备」：把一个地址上的东西边下边写到磁盘上，写完返回一共多少字节。
+    /// 「下载到设备」：边下边写，返回字节数与实际落点；同名文件自动编号，已有文件不替换。
     /// <para>
     /// 先落成 <c>.part</c> 再改名，所以一次中断（关掉程序、断网）留下的是一个一眼看得出没下完的文件，而不是
     /// 一个大小不对却叫着正确名字的影片。整个内容不进内存：一个「读成 byte[] 再写」的写法在这里就是把十几个
@@ -251,7 +251,7 @@ public sealed class EmbyHttp : IDisposable
     /// 已经下了多少、一共多少（服务器没说长度时后者为空）。隔一段才报一次，见 <see cref="ReportEvery"/>。
     /// 拿 <see cref="Progress{T}"/> 造出来的话，回调会自己回到造它的那个线程上，界面不用再marshal一次。
     /// </param>
-    public async Task<long> DownloadToFileAsync(
+    public async Task<(long Bytes, string Path)> DownloadToFileAsync(
         Uri url,
         string path,
         RequestContext context,
@@ -262,20 +262,20 @@ public sealed class EmbyHttp : IDisposable
             .ConfigureAwait(false);
 
         var total = response.Content.Headers.ContentLength;
-        var temporary = path + ".part";
+        // 每次下载只拥有自己的残件；失败不能清掉另一次下载的 .part。
+        var temporary = path + "." + Guid.NewGuid().ToString("N") + ".part";
+        var ownsTemporary = false;
         var done = 0L;
 
         if (Path.GetDirectoryName(path) is { Length: > 0 } directory) Directory.CreateDirectory(directory);
 
         try
         {
-            var source = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            var target = new FileStream(
-                temporary, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20, useAsync: true);
-
-            await using (source.ConfigureAwait(false))
-            await using (target.ConfigureAwait(false))
             {
+                await using var source = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                await using var target = new FileStream(
+                    temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 1 << 20, useAsync: true);
+                ownsTemporary = true;
                 var buffer = new byte[1 << 20];
                 var reported = 0L;
 
@@ -301,16 +301,35 @@ public sealed class EmbyHttp : IDisposable
                 throw new IOException($"下载不完整：收到 {done} 字节，服务器说有 {expected} 字节");
 
             cancellationToken.ThrowIfCancellationRequested();
-            File.Move(temporary, path, overwrite: true);
+            // 检查与改名之间仍可能有另一下载或外部程序落盘，最终提交也必须禁止覆盖。
+            var savedPath = path;
+            for (var number = 2; ; number++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!File.Exists(savedPath) && !Directory.Exists(savedPath))
+                {
+                    try
+                    {
+                        File.Move(temporary, savedPath, overwrite: false);
+                        break;
+                    }
+                    catch (IOException) when (File.Exists(savedPath) || Directory.Exists(savedPath))
+                    {
+                        // 名称刚被占用，换下一份；磁盘、权限和源文件错误照常上抛。
+                    }
+                }
+                savedPath = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path) ?? "",
+                    $"{System.IO.Path.GetFileNameWithoutExtension(path)} ({number}){System.IO.Path.GetExtension(path)}");
+            }
             progress?.Report((done, total ?? done));
-            return done;
+            return (done, savedPath);
         }
         catch
         {
             // 下坏的那半个文件不留在磁盘上。删不掉就算了 —— 这一路已经在往上抛一个更值得说的错误。
             try
             {
-                if (File.Exists(temporary)) File.Delete(temporary);
+                if (ownsTemporary && File.Exists(temporary)) File.Delete(temporary);
             }
             catch (IOException)
             {
