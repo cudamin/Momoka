@@ -41,3 +41,11 @@ R048夹具产品68749c5已整合：只补真实列表helper和禁止配置载入
 整套编译未完成时提前运行设置专项，输入SHA守卫拒绝旧Probe输出；已停止并保留before-final-build-refused日志，最终整套编译成功后三专项重新通过，不改hash守卫或基线。首次方案错误配置、全方案8错、空白红、脚本数组绑定失败和夹具过程失败均保留。开发证据40+34+230份逐SHA保存，当前输出哈希见artifacts/review-batch9-master/tested-source.json。
 
 本会话将主树写入/构建/UI/发布所有权释放给已获用户授权协调的228e详情聊天。该聊天自行合入其UI和另获授权的单集UI，最终重验并一次发布；本会话跟进其回执后再登记第九批交付。当前所有修复已合入、闸门已通过，但实际发布尚未刷新，不能报已交付。
+
+## 最终统一交付完成
+
+实际发布源码c4a0b51，master45aef56仅最终文档；第九批9e018ff是祖先，5c9afa0/68749c5/b3418db与全部台账保留。统一发布聊天在最终提交重编并运行4135/4135、设置60/33/21、R04841/41、模式34，全零失败跳过；发布版实际宽窄1/1也通过。本会话只读核对这些最终日志、回执和实际文件，测试Core与发布Core均88B1B7BE4A4875F2B847C6ED04975D06A85FDF03F2C45A9ABB7C894FF34FDCA9，最终Shell构建与发布均73B39424DA7A59DB0B83DCD09F12A7A81709F0B008096B5EC110BFCB35F9CBA8。维护脚本SHA与70项绿回执一致。
+
+实际目录C:/Users/89400/Momoka/artifacts/publish/win-x64，0.2.5、546文件300355063字节（286.4MB），桌面快捷方式目标/工作目录正确、参数空；载荷、14GLSL/4HOOK与许可验证通过。回执artifacts/detail-unified-master/delivery-receipt.json，原红及本批交付检查在artifacts/review-batch9-master和开发artifacts/review-batch9/final-delivery-verification.json。无真实下载目录、SmartScreen、凭据、服务器播放/写入、签名、安装、ZIP/MSIX、上传或推送验证。
+
+R048辅助树已通过原生archive保存后移除；设置辅助树首轮归档被primary checkout保护拒绝，正在将聊天重新附回原primary后核对，未手工删除。原primary协调树保留；本记录纯文档，不重建或重发。无待合、待验、待交付产品。
