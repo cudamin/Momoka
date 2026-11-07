@@ -5,6 +5,11 @@
 当前Release/x64 Tests/Core/Shell及PlexAffordance零警告错误，协议238/238、实际卡片/Attach-Reload详情81/81，完整4119/4119、零失败零跳过；定向空白与13变更文本通过。旧代码协议4红/卡片详情8红已留存，首轮完整16红明确共享自检mutex占用，锁释放后完整重跑通过，证据artifacts/review-batch7。不读取真实配置/凭据/服务、不播放/写入或上传。
 
 另在review-plex-state-probe开发匿名真实控件/Toast/InfoBar与宽窄验证。主树此时a6eea28由详情沉浸聊天整合验证发布，本会话未写主树或覆盖交付；本批尚未合主树、未运行GUI、未刷新快捷方式。计划docs/superpowers/plans/2026-11-07-review-batch7.md。按当前用户指令连续完成，不自动暂停。
+
+## 2026-11-07 R05-002 匿名控件探针开发支线
+
+专用托管树 `C:/Users/89400/.codex/worktrees/review-plex-state-probe/Momoka` 从29cf082准备。仅修改新PlexState partial、运行登记、plex-state分区和解析测试及本说明；Plex产品修复由主线程在review-recovery-batch3实现。无窗口解析回归已有效红15过1败→绿16/16，Release/x64 Shell开发构建0警告0错误；后续控件断言完善以最终构建日志为准。没有启动GUI，不计真实控件或截图通过；旧产品有效红、整合绿及主树交付由主线程在桌面空闲时串行完成。说明与待办见 `docs/superpowers/reviews/2026-11-05-full-code-review/BATCH7-PROBE.md`，本树证据 `artifacts/review-batch7-probe`。未合／未交付，不上传。
+
 开发树收尾：aa60顶端acf9b58已是master祖先，工作区干净；相对master剩余5处均为后续纯记录，产品源码无独有差异。231份所需忽略证据已保存主树且逐hash核对。原生归档拒绝“The task's primary checkout cannot be removed.”，当前聊天主工作树受应用保护保留，未用文件系统绕过；本地只有master命名分支。主树交付不受影响。
 
 ## 2026-11-07 0.2.0详情控件默认效果已完成主树本地交付

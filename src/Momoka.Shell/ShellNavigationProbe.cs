@@ -65,6 +65,7 @@ internal sealed partial class ShellNavigationProbe
                 return;
             }
             await CaseAsync("首页详情按钮圆角轮廓、三态与旧模板实屏对照", HomeButtonEdgesAsync, 120, section: ShellProbeSections.Materials);
+            await CaseAsync("Plex 观看写后确认、真实卡片与宽窄详情刷新失败", PlexUserStateAsync, 90, section: ShellProbeSections.PlexState);
             await CaseAsync("亚克力操作按钮、翻页圆钮与手写设置卡片", AcrylicControlsAsync, 180, section: ShellProbeSections.Materials);
             await CaseAsync("筛选多选下拉等宽、滚动与单字段全选", FilterValuesAsync, 60, section: ShellProbeSections.Library);
             await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
