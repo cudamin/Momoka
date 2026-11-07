@@ -486,8 +486,7 @@ public static class SettingsMigration
         settings.EnsureDeviceId();
         settings.Ui.PageSize = Math.Clamp(settings.Ui.PageSize, 20, 500);
 
-        // 剧与单集共用版面。仅在剧偏好尚为空时迁入旧单集设置，已有剧选择始终优先；Plan复制记录，避免两键互相改写。
-        if (settings.Ui.SeriesCards is null or { Count: 0 }) settings.Ui.SeriesCards = settings.Ui.EpisodeCards;
+        // 三页各自保存；null、重复或旧版不认识的卡片统一收口，缺项按当前目录恢复默认显示。
         settings.Ui.SeriesCards = [.. DetailLayout.Plan(EmbyItemType.Series, settings.Ui.SeriesCards)];
         settings.Ui.EpisodeCards = [.. DetailLayout.Plan(EmbyItemType.Episode, settings.Ui.EpisodeCards)];
         settings.Ui.MovieCards = [.. DetailLayout.Plan(EmbyItemType.Movie, settings.Ui.MovieCards)];

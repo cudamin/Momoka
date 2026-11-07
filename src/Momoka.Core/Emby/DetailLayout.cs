@@ -47,11 +47,12 @@ public static class DetailLayout
         return plan;
     }
 
-    /// <summary>剧与单集读取同一份偏好；电影独立，季页等其他类型始终保留默认版面。</summary>
+    /// <summary>每个页面只读取属于自己的偏好；季页等其他类型始终保留默认版面。</summary>
     public static IReadOnlyList<DetailCardSetting> For(UiSettings ui, string itemType) =>
         Plan(itemType, itemType switch
         {
-            EmbyItemType.Series or EmbyItemType.Episode => ui.SeriesCards,
+            EmbyItemType.Series => ui.SeriesCards,
+            EmbyItemType.Episode => ui.EpisodeCards,
             EmbyItemType.Movie => ui.MovieCards,
             _ => null
         });

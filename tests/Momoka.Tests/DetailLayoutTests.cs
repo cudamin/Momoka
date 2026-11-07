@@ -40,44 +40,6 @@ internal static class DetailLayoutTests
             Assert.True(live.Ui.UseAcrylicControls && live.Ui.UseAcrylicBackdrop);
         });
 
-        Test("详情卡片：剧与单集读取同一偏好而不修改类型或存档", () =>
-        {
-            var ui = Customized();
-            foreach (var type in new[] { EmbyItemType.Series, EmbyItemType.Episode })
-            {
-                var plan = DetailLayout.For(ui, type);
-                Assert.Equal("cast,episodes,info,seasons,similar", Keys(plan));
-                Assert.False(plan[0].Visible);
-                plan[0].Visible = true;
-                Assert.False(ui.SeriesCards[0].Visible);
-                Assert.Equal("seasons", ui.EpisodeCards[0].Key);
-            }
-        });
-
-        Test("详情卡片：旧单集偏好只迁入空剧偏好，归一化和往返不覆盖剧设置", () =>
-        {
-            foreach (var series in new[] { "null", "[]" })
-            {
-                var source = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{\"SeriesCards\":"
-                    + series + ",\"EpisodeCards\":[{\"Key\":\"seasons\",\"Visible\":false}]}}",
-                    PassthroughSecretProtector.Instance);
-                Assert.Equal("seasons,episodes,info,cast,similar", Keys(source.Ui.SeriesCards));
-                Assert.False(source.Ui.SeriesCards[0].Visible);
-                source.Ui.SeriesCards[0].Visible = true;
-                Assert.False(source.Ui.EpisodeCards[0].Visible);
-                SettingsMigration.Normalize(source);
-                Assert.True(source.Ui.SeriesCards[0].Visible);
-                var restored = SettingsMigration.FromJson(JsonSerializer.Serialize(source), PassthroughSecretProtector.Instance);
-                Assert.True(restored.Ui.SeriesCards[0].Visible);
-                Assert.False(restored.Ui.EpisodeCards[0].Visible);
-            }
-            var existing = new AppSettings { Ui = Customized() };
-            SettingsMigration.Normalize(existing);
-            Assert.Equal("cast,episodes,info,seasons,similar", Keys(existing.Ui.SeriesCards));
-            Assert.False(existing.Ui.SeriesCards[0].Visible);
-            Assert.Equal("cast,episodes,info,seasons,similar", Keys(DetailLayout.For(existing.Ui, EmbyItemType.Episode)));
-        });
-
         Test("详情背景迁移：缺键使用20%，v26显式浓度仍按历史40%换算", () =>
         {
             foreach (var schema in new[] { 1, 2, 26, 27 })
@@ -201,12 +163,12 @@ internal static class DetailLayoutTests
             }
         });
 
-        Test("详情卡片：剧集共享偏好、电影独立，结果不引用存档中的可变对象", () =>
+        Test("详情卡片：三种页面偏好独立，归一化结果不引用存档中的可变对象", () =>
         {
             var ui = Customized();
             var series = DetailLayout.For(ui, EmbyItemType.Series);
             Assert.Equal("cast,episodes,info,seasons,similar", Keys(series));
-            Assert.Equal("cast,episodes,info,seasons,similar", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
+            Assert.Equal("seasons,episodes,info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
             Assert.Equal("similar,info,cast", Keys(DetailLayout.For(ui, EmbyItemType.Movie)));
             series[0].Visible = true;
             series[0].Key = "info";
@@ -227,8 +189,7 @@ internal static class DetailLayoutTests
                   }
                 }
                 """, PassthroughSecretProtector.Instance);
-            Assert.Equal("cast,episodes,info,seasons,similar", Keys(settings.Ui.SeriesCards));
-            Assert.False(settings.Ui.SeriesCards[0].Visible);
+            Assert.Equal("episodes,info,seasons,cast,similar", Keys(settings.Ui.SeriesCards));
             Assert.Equal("cast,episodes,info,seasons,similar", Keys(settings.Ui.EpisodeCards));
             Assert.False(settings.Ui.EpisodeCards[0].Visible);
             var restored = SettingsMigration.FromJson(JsonSerializer.Serialize(settings), PassthroughSecretProtector.Instance);

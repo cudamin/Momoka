@@ -1371,10 +1371,10 @@ public sealed class UiSettings
     /// <summary>界面动效开关；默认保留现有动画，关闭时直接显示最终状态。仍遵循 Windows 的动画设置。</summary>
     public bool AnimationsEnabled { get; set; } = true;
 
-    /// <summary>剧与单集共用的正文卡片排序与显示偏好，缺项按当前目录补全。</summary>
+    /// <summary>剧详情页正文卡片的排序与显示偏好，缺项按当前目录补全。</summary>
     public List<DetailCardSetting> SeriesCards { get; set; } = [];
 
-    /// <summary>旧单集正文偏好，仅用于JSON兼容；剧偏好为空时迁入SeriesCards。</summary>
+    /// <summary>单集详情页正文卡片的排序与显示偏好，与剧页各自保存。</summary>
     public List<DetailCardSetting> EpisodeCards { get; set; } = [];
 
     /// <summary>电影详情页正文卡片的排序与显示偏好。</summary>
