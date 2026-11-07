@@ -28,7 +28,6 @@ internal static class ReviewFoundationTests
             Assert.False(ItemFingerprint.Same(old, reordered));
             Assert.True(ItemFingerprint.Same(old, new EmbyItem { Id = "fixture", Name = "Movie", Tags = ["first", "second"] }));
         });
-        SessionTests.Register();
         foreach (var field in new[] { LibraryField.Director, LibraryField.PremiereDate, LibraryField.DateCreated,
             LibraryField.Filename, LibraryField.Framerate, LibraryField.ProductionYear })
         {

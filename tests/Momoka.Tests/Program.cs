@@ -7,6 +7,7 @@ internal static class Program
         if (args is ["review-foundation-core-fixture"])
         {
             ReviewFoundationTests.RegisterCore();
+            SessionTests.Register();
             return TestHarness.Run();
         }
         if (args is ["review-foundation-vm-fixture", var foundationShell, var foundationRoot])
@@ -425,6 +426,7 @@ internal static class Program
         LibraryFavoritesTests.Register();
         LibraryUpcomingTests.Register();
         LibraryDisplayTests.Register();
+        ReviewFoundationTests.RegisterCore();
         LibraryEpisodeFolderTests.Register();
         LibraryIndexTests.Register();
         MoviePilotSearchSitesTests.Register();
