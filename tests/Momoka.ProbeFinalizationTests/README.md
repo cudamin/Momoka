@@ -55,6 +55,26 @@
 
 ## 显式匿名实际自检宿主
 
+### 同程序集实际自检入口
+
+当独立 `dotnet exec` 宿主的入口程序集使 XAML 类型解析失败时，可显式运行
+`Run-AnonymousSameAssembly.ps1 -BuildOnly` 编译测试 apphost。该脚本只通过临时 MSBuild targets 注入
+`AnonymousEntry.cs` 并覆盖 StartupObject，保留 AssemblyName=Momoka、全部原 Shell 源码、XBF、PRI 和依赖；
+产物位于本树 `artifacts/anonymous-same-assembly/bin`，是带测试入口的验收产物，不能作为桌面交付件。
+普通产品构建从不导入这个 targets，也没有新增产品 CLI。
+
+```powershell
+& ./tests/Momoka.ProbeFinalizationTests/Run-AnonymousSameAssembly.ps1 -BuildOnly
+# 由唯一桌面验收会话在当前原生程序均已退出后串行启动：
+& ./artifacts/anonymous-same-assembly/bin/Momoka.exe --anonymous-selfcheck (Join-Path (Get-Location).Path ('artifacts/anonymous-selfcheck/run-' + [guid]::NewGuid().ToString('N')))
+```
+
+这个测试入口在真实 Momoka apphost 的 STA 线程调用同程序集的原 `Program.Run`，不走真实 profile 解析。
+自行生成空账号设置，关闭网络功能，保持生产 `selfCheck:true` 禁止播放策略；HTTP只计数不记录地址。
+实际计时器拍数、Report、退出码和前后六份生产源SHA写入 `same-assembly-receipt.json`；少于三拍、
+无报告或HTTP计数非零均不算完成。它仍是匿名局部自检，不代表真实服务器分支或正式闸门4全绿。
+默认无窗口回归同时执行输入拒绝前件，不启动这个 apphost。
+
 默认入口仍运行无窗口回归；`anonymous-selfcheck-host` 是验收专用入口，不能由默认测试或回归清单隐式启动。
 先成功编译当前 Release Shell 与本项目，核对两目录的 Core 字节相同，再显式运行：
 

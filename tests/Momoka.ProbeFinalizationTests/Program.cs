@@ -43,6 +43,7 @@ internal static partial class Program
         RegisterProbeLifetimes();
         RegisterCompositionFinalizer();
         RegisterAnonymousHostInputs();
+        RegisterSameAssemblyInputs();
         var failures = 0;
         foreach (var (name, run) in Cases)
         {
