@@ -92,6 +92,16 @@ public sealed partial class DanmakuPanel : UserControl
     private void OnPlayerChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(PlayerViewModel.DanmakuShown) && Current()) Seed();
+        else if (e.PropertyName == nameof(PlayerViewModel.DanmakuConnectionVersion) && Current() && _viewModel is { } vm)
+        {
+            _searchRequest++;
+            CancelPanelSearch();
+            _results.Clear();
+            _resultsSource = null;
+            Results.Visibility = LoadButton.Visibility = Visibility.Collapsed;
+            SearchButton.IsEnabled = true;
+            SeedSources(vm);
+        }
         else if (e.PropertyName == nameof(PlayerViewModel.DanmakuAvailable) && _viewModel is { DanmakuAvailable: false }) Current();
     }
 

@@ -27,7 +27,10 @@ panel = 'src/Momoka.Shell/Views/DanmakuPanel.xaml.cs'
 methods = extract(panel, '    private async void OnSearch(', '    private void SeedSources(')
 methods += '\n\n' + extract(panel, '    private void OnSourceChanged(', '    private void OnShowToggled(')
 methods += '\n\n' + extract(panel, '    internal void Close()', '    private bool Current()')
-(here / 'Panel.g.cs').write_text('#nullable enable\nusing Momoka.Danmaku;\nnamespace DanmakuReview;\ninternal sealed partial class Panel\n{\n' + methods + '\n}\n', encoding='utf-8', newline='\n')
+methods += '\n\n' + extract(panel, '    private void OnPlayerChanged(', '    private void Seed()')
+methods += '\n\n' + extract(panel, '    private void SeedSources(', '    private void OnSourceChanged(')
+methods = methods.replace('PlayerViewModel', 'PanelEndpoint')
+(here / 'Panel.g.cs').write_text('#nullable enable\nusing System.ComponentModel;\nusing Momoka.Danmaku;\nnamespace DanmakuReview;\ninternal sealed partial class Panel\n{\n' + methods + '\n}\n', encoding='utf-8', newline='\n')
 
 host = 'src/Momoka.Shell/ViewModels/PlayerViewModel.Danmaku.cs'
 methods = extract(host, '    private string DanmakuConnection() =>', '    private void RefreshDanmakuProperties()')

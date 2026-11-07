@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
+using System.ComponentModel;
 using Momoka.Configuration;
 using Momoka.Danmaku;
 using Momoka.Emby;
@@ -10,6 +11,17 @@ internal static class Program
 {
     private static int Main()
     {
+        Momoka.Tests.TestHarness.Test("R14-004 current panel refreshes sources after connection changes", () =>
+        {
+            var endpoint = new PanelEndpoint();
+            var panel = new Panel(endpoint);
+            panel.SeedForTest();
+            endpoint.Sources = [new("danmu_api", DanmakuSource.DanmuApi)];
+            endpoint.DanmakuConnectionVersion++;
+            panel.ConnectionChanged();
+            Momoka.Tests.Assert.Equal(DanmakuSource.DanmuApi, panel.SelectedSource);
+            Momoka.Tests.Assert.Equal("搜索danmu_api", panel.SearchLabel);
+        });
         Momoka.Tests.TestHarness.Test("R14-005 closing an old panel does not cancel resident replacement search", () =>
         {
             var endpoint = new PanelEndpoint();
@@ -176,10 +188,17 @@ internal sealed class Control
     public string Text { get; set; } = "anonymous title";
     public object? Content { get; set; }
     public object? SelectedItem { get; set; }
+    public object? ItemsSource { get; set; }
+    public string? DisplayMemberPath { get; set; }
+    public int SelectedIndex { get; set; }
 }
 
 internal sealed class PanelEndpoint
 {
+    internal bool DanmakuShown => true;
+    internal bool DanmakuAvailable => true;
+    internal IReadOnlyList<DanmakuSourceOption> Sources { get; set; } = [new("弹弹play", DanmakuSource.DandanPlay)];
+    internal IReadOnlyList<DanmakuSourceOption> DanmakuSearchSources() => Sources;
     public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged { add { } remove { } }
     private readonly TaskCompletionSource<DandanPlaySearchResult> _pending = new();
     internal int DanmakuConnectionVersion { get; set; }
@@ -202,8 +221,12 @@ internal sealed partial class Panel(PanelEndpoint endpoint)
     private readonly ObservableCollection<DandanPlayEpisode> _results = [];
     private bool _closed = false;
     private CancellationTokenSource? _searchCancellation;
-    private void OnPlayerChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args) { }
-    private readonly bool _sourceSeeding = false;
+    private bool _sourceSeeding = false;
+    private void Seed() { }
+    internal void SeedForTest() => SeedSources(_viewModel!);
+    internal void ConnectionChanged() => OnPlayerChanged(_viewModel, new(nameof(PanelEndpoint.DanmakuConnectionVersion)));
+    internal DanmakuSource SelectedSource => _searchSource;
+    internal string SearchLabel => SearchButton.Content?.ToString() ?? "";
     private int _searchRequest;
     private DanmakuSource _searchSource;
     private DanmakuSource? _resultsSource;
@@ -265,6 +288,7 @@ internal sealed partial class Host(AppSettings settings)
     internal void SeedDandan(DandanPlayEpisode episode) => _danmakuEpisode = episode;
     internal void Change() => DanmakuSettingsChanged();
     private void RefreshDanmakuProperties() { }
+    private void OnPropertyChanged(string name) { }
     private void CancelDanmakuRequests() { }
     private void RefreshDanmakuInput() { _ = DanmakuSending; _ = DanmakuSendStatus; _ = _preserveDanmakuDraft; }
     private Task ClearDanmakuAsync() => Task.CompletedTask;
