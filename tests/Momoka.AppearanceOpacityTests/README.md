@@ -17,3 +17,5 @@
 最终材质探针核对（2026-11-07）：选择框的读取期望经实际 ControlBackgroundBrushes.ApplyForeground 得出，不再固定要求白色。source-linked 明/暗背景与相反色拒绝、材质回退、系统强制前景共三项；首页验证非零材质后零档透明及原反馈，旧零档强开亚克力判据必须拒绝。GaussianProbeReading 仅保留实际代次/半径/布局读数供失稳诊断，不代替原图片实例或像素断言，也不延长原运行截止。真实选择框文字/箭头、展开列表和首页三态仍待父会话从最终主树跑实屏验收。
 
 选择框箭头诊断：材质探针在原前景判据前保存实际picker/glyph/fallback icon source颜色、本地Normal/Focused/FocusedPressed三键颜色及引用归属、焦点与模板状态、实际底色回退浓度到picker-glyph-reading.txt。类型不符或缺键原样记null/类型名，不当作通过；原前景失败和材质/弹层反例继续保留。两个source-linked原始读数测试验证异色、缺资源与非实色不被伪装。
+
+详情自定义运行范围按Series/Episode/Movie分成三项，使用同一真实检查正文；每类型仍120秒，共同季页和导入/默认/首页检查只在Movie执行一次。source-linked样本选择检查三类型完整、无重复、未知或空及缺样本拒绝，不替代实际三项WinUI。

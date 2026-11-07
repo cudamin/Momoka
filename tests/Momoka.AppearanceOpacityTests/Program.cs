@@ -524,6 +524,7 @@ Check("亚克力三态与checked、主题和回退独立", () =>
 
 BackdropReadingTests.Run(Check);
 PickerForegroundProbeTests.Run(Check);
+DetailCustomizationCaseTests.Run(Check);
 
 Check("自选控件颜色贯穿按钮选择框三态与端点", ControlTintTests.Run);
 Console.WriteLine($"外观透明度：{passed} 通过，{failed} 失败。");

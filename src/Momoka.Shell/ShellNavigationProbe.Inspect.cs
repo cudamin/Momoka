@@ -108,8 +108,9 @@ internal sealed partial class ShellNavigationProbe
             {
                 await CaseAsync("详情自定义设置：卡片排序、隐藏、拖拽提交与重入", DetailCustomizationSettingsAsync, 90,
                     section: ShellProbeSections.Settings);
-                await CaseAsync("详情自定义页面：实际顺序、隐藏恢复、遮罩强度与沉浸开关", DetailCustomizationPagesAsync, 120,
-                    section: ShellProbeSections.Library);
+                foreach (var type in DetailCustomizationProbeCases.Types)
+                    await CaseAsync($"详情自定义页面（{type}）：实际顺序、隐藏恢复、遮罩强度与沉浸开关",
+                        () => DetailCustomizationPagesAsync(type), 120, section: ShellProbeSections.Library);
             }
             finally { layout.Visibility = Visibility.Visible; }
         });

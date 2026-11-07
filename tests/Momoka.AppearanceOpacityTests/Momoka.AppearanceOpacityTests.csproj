@@ -12,5 +12,6 @@
     <Compile Include="../../src/Momoka.Shell/Views/ControlBackgroundBrushes.cs" Link="ControlBackgroundBrushes.cs" />
     <Compile Include="../../src/Momoka.Shell/ShellNavigationProbe.PickerForeground.cs" Link="PickerForegroundProbe.cs" />
     <Compile Include="../../src/Momoka.Shell/GaussianProbeReading.cs" Link="GaussianProbeReading.cs" />
+    <Compile Include="../../src/Momoka.Shell/DetailCustomizationProbeCases.cs" Link="DetailCustomizationProbeCases.cs" />
   </ItemGroup>
 </Project>

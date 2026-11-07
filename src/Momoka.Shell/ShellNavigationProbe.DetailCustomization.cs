@@ -206,7 +206,7 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>三种详情页的实际卡片顺序、隐藏恢复、即时外观及大屏模式；媒体与图片全部是假传输。</summary>
-    private async Task DetailCustomizationPagesAsync()
+    private async Task DetailCustomizationPagesAsync(string itemType)
     {
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
@@ -262,7 +262,7 @@ internal sealed partial class ShellNavigationProbe
         HomeMotion.ApplyPreference(false);
         try
         {
-            foreach (var item in new[] { series, episode, movie })
+            foreach (var item in DetailCustomizationProbeCases.Select([series, episode, movie], itemType))
             {
                 Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, item)), "自定义详情导航失败");
                 var page = (DetailPage)frame.Content;
@@ -424,29 +424,32 @@ internal sealed partial class ShellNavigationProbe
                 await CheckImmersiveSwitchAsync(page, fixture.Settings.Ui);
                 readings.Add($"{item.Type}：{string.Join(',', expected.Select(card => card.Key))}，隐藏恢复同实例，背景遮罩0/45/100，窄窗保留紧凑布局");
             }
-            // 季页使用原有顺序；剧与单集的自定义不应连带改掉它。
-            ResizeProbeClient(1100, 1120);
-            Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, seasons[0])), "季页导航失败");
-            var seasonPage = (DetailPage)frame.Content;
-            await UntilAsync(() => seasonPage.IsReady);
-            RequireCardOrder(seasonPage, new[] { "episodes", "info", "seasons", "cast", "similar" });
-            fixture.Settings.Ui.EnableImmersive = true;
-            ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-            await LayoutAsync(seasonPage);
-            Require(!seasonPage.ViewModel.Showcase, "没有背景图的季页被强制沉浸");
-            await CheckImmersiveSwitchAsync(seasonPage, fixture.Settings.Ui);
-            // 恢复默认与导入同样走通用通知，页面应当场重排，不需要再次导航。
-            Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, series)), "重入剧页导航失败");
-            var reopened = (DetailPage)frame.Content;
-            await UntilAsync(() => reopened.IsReady);
-            RequireCardOrder(reopened, fixture.Settings.Ui.SeriesCards.Select(card => card.Key));
-            SettingsPreferences.Apply(fixture.Settings, new AppSettings());
-            ShellPrefs.Apply(fixture.Settings.Ui);
-            await LayoutAsync(reopened);
-            RequireCardOrder(reopened, new[] { "episodes", "info", "seasons", "cast", "similar" });
-            reopened.Release();
-            _root.Children.Remove(frame);
-            await CheckHomeBackgroundOpacityAsync(fixture, movie, () => reads);
+            if (DetailCustomizationProbeCases.IncludesShared(itemType))
+            {
+                // 季页使用原有顺序；剧与单集的自定义不应连带改掉它。
+                ResizeProbeClient(1100, 1120);
+                Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, seasons[0])), "季页导航失败");
+                var seasonPage = (DetailPage)frame.Content;
+                await UntilAsync(() => seasonPage.IsReady);
+                RequireCardOrder(seasonPage, new[] { "episodes", "info", "seasons", "cast", "similar" });
+                fixture.Settings.Ui.EnableImmersive = true;
+                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                await LayoutAsync(seasonPage);
+                Require(!seasonPage.ViewModel.Showcase, "没有背景图的季页被强制沉浸");
+                await CheckImmersiveSwitchAsync(seasonPage, fixture.Settings.Ui);
+                // 恢复默认与导入同样走通用通知，页面应当场重排，不需要再次导航。
+                Require(frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, series)), "重入剧页导航失败");
+                var reopened = (DetailPage)frame.Content;
+                await UntilAsync(() => reopened.IsReady);
+                RequireCardOrder(reopened, fixture.Settings.Ui.SeriesCards.Select(card => card.Key));
+                SettingsPreferences.Apply(fixture.Settings, new AppSettings());
+                ShellPrefs.Apply(fixture.Settings.Ui);
+                await LayoutAsync(reopened);
+                RequireCardOrder(reopened, new[] { "episodes", "info", "seasons", "cast", "similar" });
+                reopened.Release();
+                _root.Children.Remove(frame);
+                await CheckHomeBackgroundOpacityAsync(fixture, movie, () => reads);
+            }
             Require(fixture.Actions.Plays == 0, "详情自定义探针意外请求播放");
 
             void SetCards(string type, List<DetailCardSetting> cards)
@@ -463,7 +466,7 @@ internal sealed partial class ShellNavigationProbe
             ThemeHost.Apply(savedTheme);
             HomeMotion.ApplyPreference(motionPreference);
             ResizeInspect(1420, 980);
-            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-customization-pages.txt"), readings);
+            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, $"detail-customization-pages-{itemType}.txt"), readings);
         }
     }
 
