@@ -54,6 +54,9 @@ internal sealed partial class ShellNavigationProbe
         {
             _window!.Fullscreen = false;
             _root.Children.Remove(page);
+            page.Detach();
+            page.Shutdown();
+            await vm.ShutdownAsync();
         }
     }
 }

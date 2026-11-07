@@ -27,6 +27,8 @@
             <ReadsSource ParameterType="System.String" Required="true" />
             <ThemeSource ParameterType="System.String" Required="true" />
             <PagesSource ParameterType="System.String" Required="true" />
+            <TransportSource ParameterType="System.String" Required="true" />
+            <PerformanceSource ParameterType="System.String" Required="true" />
             <OutputSource ParameterType="System.String" Required="true" />
         </ParameterGroup>
         <Task>
@@ -108,6 +110,13 @@
                     .Replace("private static void", "internal static void") +
                     "\n    private static SeasonState Failed(Exception error)\n    {\n" + seasonFailure + "\n    }\n}\n";
                 generated = "using Momoka.Configuration;\nusing Momoka.Playback;\nusing Momoka.Emby;\n" + generated;
+                var transport = File.ReadAllText(TransportSource).Replace("\r\n", "\n");
+                var transportFinally = between(transport, "            _window!.Fullscreen = false;\n            _root.Children.Remove(page);", "\n        }\n    }\n}") ;
+                var performance = File.ReadAllText(PerformanceSource).Replace("\r\n", "\n");
+                var renderWait = between(performance, "            var rendered = Pending<bool>();", "\n\n            page.Release();");
+                generated += "\ninternal sealed partial class ProbeLifetimeFixture\n{\n" +
+                    "    internal async Task CloseTransportAsync()\n    {\n        var page = Page;\n        var vm = Vm;\n" + transportFinally + "\n        await Task.CompletedTask;\n    }\n" +
+                    "    internal async Task WaitForRenderAsync()\n    {\n        var run = Run;\n" + renderWait + "\n    }\n}\n";
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
                     File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
@@ -124,6 +133,8 @@
             ReadsSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Reads.cs"
             ThemeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Theme.cs"
             PagesSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Pages.cs"
+            TransportSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.PlayerTransport.cs"
+            PerformanceSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.Performance.cs"
             OutputSource="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />
         <ItemGroup>
             <Compile Include="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />

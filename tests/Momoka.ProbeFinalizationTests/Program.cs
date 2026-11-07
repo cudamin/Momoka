@@ -30,6 +30,7 @@ internal static partial class Program
         RegisterVerificationReads();
         RegisterPlacementRead();
         RegisterCommandReads();
+        RegisterProbeLifetimes();
         var failures = 0;
         foreach (var (name, run) in Cases)
         {

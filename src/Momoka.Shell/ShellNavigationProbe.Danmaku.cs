@@ -333,7 +333,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(Get<bool>(nextPanel, "_closed") && Get<Flyout?>(holder, "_danmakuFlyout") is null,
                     "当前浮层关闭后未释放面板");
             }
-            finally { nextPanel.Close(); holder.ReleaseVideoSurface(); }
+            finally { nextPanel.Close(); holder.Detach(); holder.Shutdown(); }
         }
         finally { panel.Close(); _root.Children.Remove(panel); await vm.ShutdownAsync(); }
     }
