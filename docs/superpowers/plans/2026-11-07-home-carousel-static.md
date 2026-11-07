@@ -26,19 +26,19 @@
 
 ### Task 1: 高斯完整覆盖并柔和接缝
 
-- [ ] 更新HomeCarouselTests旧“完整原图不动/末列清晰”契约为“过渡后不动/全扩边高斯”；增加交错行与首列黑白阶跃、尾端/alpha/取消，跑本树当前Release主测试看红。
-- [ ] CarouselBackdrop新增TransitionWidth(width)=max(1,round(width*0.08))；移植批准Demo卷积与smootherstep。BannerBackdropCache规则v4→v5。
-- [ ] 重编译Tests/Core并跑主套件，预期0失败0跳过。
+- [x] 更新HomeCarouselTests旧“完整原图不动/末列清晰”契约为“过渡后不动/全扩边高斯”；增加交错行与首列黑白阶跃、尾端/alpha/取消，跑本树当前Release主测试看红。
+- [x] CarouselBackdrop新增TransitionWidth(width)=max(1,round(width*0.08))；移植批准Demo卷积与smootherstep。BannerBackdropCache规则v4→v5。
+- [x] 重编译Tests/Core并跑主套件，预期0失败0跳过。
 
 ### Task 2: 图片静止与实际验证
 
-- [ ] 在HomeBannerClock自然计时样本中断言背景两轴单位缩放；更新HomeBannerLibraries像素检查为扩边/首列/中段/过渡后/中央，删除手动1.045模拟。
-- [ ] 移除HomeBanner的Push/PushScale、Nudge、ScaleBand及两个调用；保留单位变换以兼容已有定位句柄，更新过时注释与诊断说明。
-- [ ] 构建Shell Release/x64，运行library分区实际WinUI检查与截图，预期所选检查无失败，新增断言可用反例验证；独立真实PNG比对正式算法与批准Demo一致。
-- [ ] 独立审查最终diff、相关格式/差异检查通过后提交。
+- [x] 在HomeBannerClock自然计时样本中断言背景两轴单位缩放；更新HomeBannerLibraries像素检查为扩边/首列/中段/过渡后/中央，删除手动1.045模拟。
+- [x] 移除HomeBanner的Push/PushScale、Nudge、ScaleBand及两个调用；保留单位变换以兼容已有定位句柄，更新过时注释与诊断说明。
+- [x] 构建Shell Release/x64，运行library分区实际WinUI检查与截图，预期所选检查无失败，新增断言可用反例验证；独立真实PNG比对正式算法与批准Demo一致。
+- [x] 独立审查最终diff、相关格式/差异检查通过后提交。
 
 ### Task 3: 主树交付
 
-- [ ] 确认主树没有其他写入/文件锁，整合本次提交，保护主树新改动。
-- [ ] 主树编译当前Tests/Core/Shell、主套件与受影响运行检查；发布到主树artifacts/publish/win-x64并核快捷方式/载荷/程序集hash。
-- [ ] 更新PROGRESS记录最终证据与覆盖范围，保留本树Demo与日志至整合完成；不上传GitHub。
+- [x] 确认主树没有其他写入/文件锁，整合本次提交，保护主树新改动。
+- [x] 主树编译当前Tests/Core/Shell、主套件与受影响运行检查；发布到主树artifacts/publish/win-x64并核快捷方式/载荷/程序集hash。
+- [x] 更新PROGRESS记录最终证据与覆盖范围，保留本树Demo与日志至整合完成；不上传GitHub。
