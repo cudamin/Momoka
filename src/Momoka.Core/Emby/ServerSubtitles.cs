@@ -29,7 +29,7 @@ public sealed class ServerSubtitles
         _snapshot = Snapshot(source);
     }
 
-    public bool IsCurrent => _scope.IsCurrent;
+    public bool IsCurrent => _scope.IsAvailable;
 
     public bool SupportsForcedOnly => !_scope.Connection.IsJellyfin;
 
@@ -40,25 +40,25 @@ public sealed class ServerSubtitles
 
     public async Task<List<RemoteSubtitleInfo>> SearchAsync(ServerSubtitleSearch search)
     {
-        _scope.ThrowIfNotCurrent();
+        _scope.ThrowIfUnavailable();
         var result = await _scope.ExecuteAsync((client, token) =>
             client.SearchSubtitlesAsync(_itemId, _sourceId, search, token), CancellationToken.None).ConfigureAwait(false);
-        _scope.ThrowIfNotCurrent();
+        _scope.ThrowIfUnavailable();
         return result;
     }
 
     public async Task DownloadAsync(RemoteSubtitleInfo subtitle)
     {
-        _scope.ThrowIfNotCurrent();
+        _scope.ThrowIfUnavailable();
         if (string.IsNullOrWhiteSpace(subtitle.Id)) throw new InvalidOperationException("字幕候选缺少下载标识，请重新搜索");
         await _scope.ExecuteAsync((client, token) =>
             client.DownloadSubtitleAsync(_itemId, _sourceId, subtitle.Id, token), CancellationToken.None).ConfigureAwait(false);
-        _scope.ThrowIfNotCurrent();
+        _scope.ThrowIfUnavailable();
     }
 
     public async Task DeleteAsync(MediaStream stream)
     {
-        _scope.ThrowIfNotCurrent();
+        _scope.ThrowIfUnavailable();
         if (!_source.MediaStreams.Contains(stream) || !stream.IsSubtitle || !stream.IsExternal)
             throw new InvalidOperationException("字幕列表已变化，请刷新后重新确认");
         var expected = TrackIdentity.From(stream);
@@ -69,10 +69,10 @@ public sealed class ServerSubtitles
         var matches = current.SubtitleStreams.Where(track => track.Index == expected.Index).ToArray();
         if (!_snapshot.SequenceEqual(Snapshot(current)) || matches.Length != 1 || TrackIdentity.From(matches[0]) != expected)
             throw new InvalidOperationException("服务器字幕列表已变化，未执行删除；请刷新后重新确认");
-        _scope.ThrowIfNotCurrent();
+        _scope.ThrowIfUnavailable();
         await _scope.ExecuteAsync((client, token) =>
             client.DeleteSubtitleAsync(_itemId, _sourceId, expected.Index, token), CancellationToken.None).ConfigureAwait(false);
-        _scope.ThrowIfNotCurrent();
+        _scope.ThrowIfUnavailable();
     }
 
     public async Task<MediaSource> ReloadAsync()
@@ -85,10 +85,10 @@ public sealed class ServerSubtitles
 
     private async Task<MediaSource> ReadSourceAsync()
     {
-        _scope.ThrowIfNotCurrent();
+        _scope.ThrowIfUnavailable();
         var item = await _scope.ExecuteAsync((client, token) =>
             client.GetItemAsync(_itemId, token, EmbyFields.Files), CancellationToken.None).ConfigureAwait(false);
-        _scope.ThrowIfNotCurrent();
+        _scope.ThrowIfUnavailable();
         var sources = item.MediaSources.Where(source => source.Id == _sourceId).ToArray();
         if (item.Id != _itemId || sources.Length != 1 || sources[0].Path != _sourcePath)
             throw new InvalidOperationException("媒体文件已变化，请关闭字幕管理后重新打开");

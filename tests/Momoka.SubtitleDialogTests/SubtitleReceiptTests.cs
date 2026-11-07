@@ -151,7 +151,7 @@ internal static class SubtitleReceiptTests
             Assert.False(f.Dialog.Touched);
             Assert.True(f.Dialog.NeedsRefresh);
             await f.CloseAsync();
-            Assert.Equal(0, f.Changed);
+            Assert.Equal(1, f.Changed);
             Assert.Equal(1, f.Transport.Writes);
             f.AssertOriginalOnly();
         });

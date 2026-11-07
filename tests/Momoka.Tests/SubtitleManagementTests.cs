@@ -12,6 +12,18 @@ internal static class SubtitleManagementTests
 {
     public static void Register()
     {
+        Test("R13-001 非默认但仍在线来源的字幕管理可继续读取原文件", () => Run(async () =>
+        {
+            using var fixture = new Fixture();
+            await fixture.SignIn("a");
+            var source = fixture.Session.Capture();
+            var operations = new ServerSubtitles(source, fixture.Item, fixture.Source);
+            fixture.ChangeDefaultOnly();
+            Assert.True(source.IsAvailable && !source.IsCurrent);
+            await operations.SearchAsync("chi");
+            Assert.True(operations.IsCurrent);
+            Assert.Equal("a.invalid", fixture.Transport.Requests.Last().Host);
+        }));
         Test("字幕管理界面：删除哈希匹配整行，保留语言、强制字幕与下载配置帮助", () =>
         {
             var root = RepositoryRoot();
@@ -89,7 +101,14 @@ internal static class SubtitleManagementTests
             using var fixture = new Fixture();
             await fixture.SignIn("a");
             var operations = new ServerSubtitles(fixture.Session.Capture(), fixture.Item, fixture.Source);
+            var original = fixture.Session.Capture();
             await fixture.SignIn("b");
+            if (original.IsAvailable)
+            {
+                await operations.SearchAsync("chi");
+                Assert.True(fixture.Transport.Requests.Last().Host == "a.invalid");
+            }
+            fixture.Session.SignOut(original.IdentityState.Server, original.IdentityState.Account);
             var count = fixture.Transport.Requests.Count;
             await Cancelled(() => operations.SearchAsync("chi"));
             await Cancelled(() => operations.DownloadAsync(new RemoteSubtitleInfo { Id = "candidate" }));
@@ -117,7 +136,9 @@ internal static class SubtitleManagementTests
             var reply = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
             fixture.Transport.SearchReply = reply.Task;
             var search = operations.SearchAsync("chi");
+            var original = fixture.Session.Capture();
             await fixture.SignIn("b");
+            fixture.Session.SignOut(original.IdentityState.Server, original.IdentityState.Account);
             reply.SetResult(Json("[]"));
             await Cancelled(() => search);
             Assert.True(fixture.Transport.Requests.Where(request => request.Path.Contains("RemoteSearch", StringComparison.Ordinal)).All(request => request.Host == "a.invalid"));
@@ -255,6 +276,14 @@ internal static class SubtitleManagementTests
             server.Accounts.Add(account);
             Settings.Servers.Add(server);
             Assert.True(await Session.TryRestoreAsync(server, account, CancellationToken.None));
+        }
+        internal void ChangeDefaultOnly()
+        {
+            var original = Session.Capture();
+            var other = new EmbySessionScope(Session, new EmbySessionScope.Identity(original.Client,
+                new ServerProfile { Id = "other" }, new AccountProfile { Id = "other" }));
+            typeof(EmbySession).GetField("_current", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(Session, other);
         }
 
         public void Dispose()

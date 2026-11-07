@@ -232,8 +232,9 @@ internal static class Program
                     f.Dialog.FixtureRefresh();
                     await ui.IdleAsync();
                     await f.CloseAsync();
-                    Assert.Equal(0, f.Changed, "Keep the caller's captured IsCurrent guard");
-                    Assert.Equal(InitialReads(mutation), f.Transport.Reads);
+                    Assert.Equal(revoked ? 0 : 1, f.Changed, "Only source lifetime cancellation rejects parent handoff");
+                    Assert.Equal(InitialReads(mutation) + (revoked ? 0 : 2), f.Transport.Reads,
+                        "Successful original-source recovery and the caller's parent refresh both read the original file");
                     Assert.True(f.Dialog.NeedsRefresh, "Source cancellation does not erase an already-incurred debt");
                     Assert.Equal(1, f.Transport.Writes);
                     f.AssertOriginalOnly();
