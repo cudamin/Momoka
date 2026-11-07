@@ -155,6 +155,7 @@ internal static class LibraryResumePagingTests
         {
             using var fixture = new Fixture(shell, 2, beforeAttach: seeded =>
             {
+                seeded.Transport.RecentPosterRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 var key = BrowsingPreferences.IdentityKey(seeded.Source("a").Connection);
                 seeded.Settings.Settings.Ui.RecentSearches[key] =
                 [
@@ -186,13 +187,15 @@ internal static class LibraryResumePagingTests
             }
             finally { ((IDisposable)withTerm).Dispose(); }
 
+            // Attach 就会发起异步海报读取，先取样再构造页面；线程池可能在 Attach 返回前已进入 HTTP。
+            var beforeSearch = fixture.RequestCount;
             var empty = fixture.CreateSearchView("");
             try
             {
                 Assert.True(Fixture.RecentSearchCount(empty, shell) > 0, "空搜索页要加载最近搜索");
-                var before = fixture.RequestCount;
-                await Task.Delay(150);
-                Assert.True(fixture.RequestCount > before, "空搜索页要为最近搜索请求海报");
+                var poster = await fixture.Transport.RecentPosterRequested!.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                Assert.Equal("/emby/Items/a-0/Images/Primary", poster.AbsolutePath);
+                Assert.True(fixture.RequestCount > beforeSearch, "空搜索页要为最近搜索请求海报");
             }
             finally { ((IDisposable)empty).Dispose(); }
 
@@ -1101,6 +1104,7 @@ internal static class LibraryResumePagingTests
         public Dictionary<string, List<EmbyItem>> NextUpRows { get; } = new(StringComparer.Ordinal);
         public ConcurrentQueue<string> NextUpReads { get; } = new();
         public ConcurrentQueue<string> Requests { get; } = new();
+        public TaskCompletionSource<Uri>? RecentPosterRequested { get; set; }
         public Func<Uri, HttpResponseMessage>? LatestReply { get; set; }
         public bool HomeReads { get; set; }
         public int HomeLatestCount { get; set; } = 1;
@@ -1139,6 +1143,13 @@ internal static class LibraryResumePagingTests
                 && uri.AbsolutePath.EndsWith("/favorite/list", StringComparison.Ordinal)), "夹具只允许媒体/标签读取");
             Assert.True(uri.Host is "a.invalid" or "b.invalid" or "c.invalid", "禁止夹具以外的来源");
             Requests.Enqueue(uri.AbsolutePath);
+            if (RecentPosterRequested is { } poster && uri.AbsolutePath == "/emby/Items/a-0/Images/Primary")
+            {
+                poster.TrySetResult(uri);
+                // 请求已到达就足以证明按需加载；明确缺图，不触发 WinUI 解码或暂态重试。
+                return new HttpResponseMessage(System.Net.HttpStatusCode.NotFound)
+                { Content = new ByteArrayContent([]) };
+            }
             if (uri.AbsolutePath.EndsWith("/Items/Latest", StringComparison.Ordinal) && LatestReply is not null)
                 return LatestReply(uri);
             var host = uri.Host.Split('.')[0];
