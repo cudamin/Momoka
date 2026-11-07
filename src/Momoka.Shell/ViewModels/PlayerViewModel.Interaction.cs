@@ -37,10 +37,10 @@ public sealed partial class PlayerViewModel
         && _playback.CanControl && context.Generation == _playback.Generation
         && context.FileGeneration == _playback.ActiveFileGeneration;
 
-    internal void SetFrozenPaused(FreezeContext context, bool paused)
+    internal Task<bool> SetFrozenPausedAsync(FreezeContext context, bool paused)
     {
-        if (!IsCurrentFreeze(context)) return;
-        _ = _playback.CommandForActiveFileAsync(context.Generation, context.FileGeneration, "set", "pause", paused ? "yes" : "no");
+        if (!IsCurrentFreeze(context)) return Task.FromResult(false);
+        return _playback.CommandForActiveFileAsync(context.Generation, context.FileGeneration, "set", "pause", paused ? "yes" : "no");
     }
 
     internal async Task<bool?> ScrollStatsAsync(InteractionContext context, long? fileGeneration, bool up)

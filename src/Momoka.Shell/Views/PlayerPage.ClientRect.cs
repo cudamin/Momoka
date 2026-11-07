@@ -43,6 +43,8 @@ public sealed partial class PlayerPage
     /// 净结果成了「停着」而没有人再来放开（见 <see cref="ReleaseResizeFreezeAsync"/>）。
     /// </summary>
     private Task _resizeFreeze = Task.CompletedTask;
+    private Task<bool> _freezePauseWrite = Task.FromResult(false);
+    private bool _freezePauseAccepted;
 
     internal Task ResizeChange => _resizeChange;
     internal bool ResizeFrameVisible => _resizeFrame is not null;
@@ -77,7 +79,7 @@ public sealed partial class PlayerPage
             return;
         }
 
-        ViewModel.SetFrozenPaused(_resizeFreezeContext, paused);
+        _freezePauseWrite = ViewModel.SetFrozenPausedAsync(_resizeFreezeContext, paused);
     }
 
     /// <summary>
@@ -341,7 +343,7 @@ public sealed partial class PlayerPage
                 if (pause.Release(Pending(window), ViewModel.IsCurrentFreeze(playback)))
                 {
                     _handoffMutedAt = Now;
-                    ViewModel.SetFrozenPaused(playback, false);
+                    await ViewModel.SetFrozenPausedAsync(playback, false).ConfigureAwait(true);
                 }
             }
         }
@@ -368,9 +370,13 @@ public sealed partial class PlayerPage
         if (!ViewModel.IsCurrentFreeze(playback) || !pause.Acquire(ViewModel.Paused)) return;
 
         _handoffMutedAt = Now;
-        ViewModel.SetFrozenPaused(playback, true);
+        if (!await ViewModel.SetFrozenPausedAsync(playback, true).ConfigureAwait(true))
+        {
+            pause.Release(pending: false, playbackCurrent: false);
+            return;
+        }
 
-        // 等它真的停住再抓帧 —— `SetPaused` 是不等结果的那一路（`SetPropertyAsync` 发完就丢）。
+        // 命令已确认，再等状态观察到暂停后抓帧。
         // 上限只给 12 拍（约 190ms）：真等不到也照走，坏处不过是抓到一帧在动的画面，
         // 不至于把用户按下去的那一下拖住。
         for (var step = 0; step < 12 && !ViewModel.Paused; step++)
@@ -567,6 +573,7 @@ public sealed partial class PlayerPage
         _resizePaused = true;
         _resizePauseContext = ViewModel.CaptureInteraction();
         _resizeFreezeContext = ViewModel.CaptureFreeze();
+        _freezePauseAccepted = PauseRequested is not null;
         _resizeFreeze = FreezeForResizeAsync();
     }
 
@@ -575,8 +582,9 @@ public sealed partial class PlayerPage
         // 与抓帧那一趟同一笔账：暂停徽标不该冒出来（见 PlayerPage.Muted 与 HandoffPulseMuteMilliseconds）。
         _handoffMutedAt = Now;
         SetPaused(true);
+        if (PauseRequested is null) _freezePauseAccepted = await _freezePauseWrite.ConfigureAwait(true);
 
-        // 等它真的停住才让收尾去抓帧 —— 发号那一句是不等结果的那一路（`SetPropertyAsync` 发完就丢）。
+        // 命令已确认，再等状态观察到暂停后抓帧；确认失败不取得恢复责任。
         // 上限只给 12 拍（约 190ms）：真等不到也照走，坏处不过是覆盖层上那帧还在动，
         // 不至于把用户松手那一下拖住。
         for (var step = 0; step < 12 && !ViewModel.Paused; step++)
@@ -611,11 +619,12 @@ public sealed partial class PlayerPage
             _resizePaused = false;
             return;
         }
-        var resume = ResizeFreeze.Resumes(_resizePaused, ViewModel.ResumeAfterWindowResize);
+        var resume = _freezePauseAccepted && ResizeFreeze.Resumes(_resizePaused, ViewModel.ResumeAfterWindowResize);
         _resizePaused = false;
         if (!resume) return;
         _handoffMutedAt = Now;
         SetPaused(false);
+        if (PauseRequested is null) await _freezePauseWrite.ConfigureAwait(true);
         for (var step = 0; step < 12 && generation == _resizeGeneration
              && (PauseRequested is not null ? ViewModel.IsCurrentInteraction(context) : ViewModel.IsCurrentFreeze(_resizeFreezeContext)) && ViewModel.Paused; step++)
             await Task.Delay(16);

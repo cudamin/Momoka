@@ -7,6 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
     <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="../Momoka.Tests/ResizeFreezeTests.cs" Link="ResizeFreezeTests.cs" />
   </ItemGroup>
   <UsingTask TaskName="ExtractInputRecovery" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup><Root ParameterType="System.String" Required="true" /><Output ParameterType="System.String" Required="true" /></ParameterGroup>
@@ -26,6 +27,7 @@
           "namespace Momoka.Shell.ViewModels { public sealed partial class PlayerViewModel {\n"+
           between(interaction,"    internal readonly record struct InteractionContext","\n    private VideoMenuSnapshot") + "\n} }\n"+
           "namespace Momoka.Shell.Views { using Windows.System; using Momoka.Shell.Interop; using Momoka.Diagnostics; using Momoka.Shell.ViewModels; public sealed partial class PlayerPage {\n"+
+          between(page,"    private void SetPaused(bool paused)","\n    /// <summary>\n    /// 缓冲与布局") +
           between(page,"    private void BeginResizeFreeze()","\n    private void CancelResizeChange()") +
           between(input,"    private bool ShortcutCommand(","\n    /// <summary>\n    /// 这一下可重绑键") + "\n} }\n";
         Directory.CreateDirectory(Path.GetDirectoryName(Output));File.WriteAllText(Output,source,new UTF8Encoding(false));

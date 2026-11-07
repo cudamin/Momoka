@@ -8,6 +8,7 @@ internal static class Program
     private static int Main()
     {
         ServiceBoundaryTests.Register();
+        ResizeFreezeTests.Register();
         Test("R11-001 首次UI发布后仍归同播放场次，拖边恢复", () =>
         {
             var page = new PlayerPage();
@@ -33,6 +34,22 @@ internal static class Program
             Assert.Equal(0, paused.Pauses.Count);
             var disabled = new PlayerPage(); disabled.ViewModel.ResumeAfterWindowResize = false;
             disabled.Begin(); Complete(disabled.Release()); Assert.True(disabled.Pauses.SequenceEqual([true]));
+        });
+        Test("R11-001 在飞冻结先确认暂停，再恢复，慢命令不反序", () =>
+        {
+            var page = new PlayerPage(); var pending = new TaskCompletionSource();
+            page.ViewModel.Playback.PendingPause = pending;
+            page.Begin();
+            var release = page.Release();
+            _ = Task.Delay(500).ContinueWith(_ => pending.SetResult(), CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            Complete(release);
+            Assert.True(page.Pauses.SequenceEqual([true, false]));
+        });
+        Test("R11-001 暂停被拒绝不向影片补发恢复", () =>
+        {
+            var page = new PlayerPage(); page.ViewModel.Playback.RejectPause = true;
+            page.Begin(); Complete(page.Release()); Assert.Equal(0, page.Pauses.Count);
         });
         foreach (var key in new[] { Windows.System.VirtualKey.Up, Windows.System.VirtualKey.Down, Windows.System.VirtualKey.PageUp, Windows.System.VirtualKey.PageDown })
             Test("R11-004 统计开启才处理按键，关闭恢复原动作 " + key, () =>

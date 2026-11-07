@@ -11,11 +11,18 @@ namespace Momoka.Shell.ViewModels
         public string? Scrollable { get; set; } = "false";
         public TaskCompletionSource<string?>? PendingRead { get; set; }
         public List<string[]> Commands { get; } = [];
+        public TaskCompletionSource? PendingPause { get; set; }
+        public Action<bool>? PauseApplied { get; set; }
+        public bool RejectPause { get; set; }
         public Task<string?> GetTextAsync(string name) => PendingRead?.Task ?? Task.FromResult(Scrollable);
-        public Task<bool> CommandForActiveFileAsync(long generation, long? file, params string[] args)
+        public async Task<bool> CommandForActiveFileAsync(long generation, long? file, params string[] args)
         {
-            if (generation != Generation || file != ActiveFileGeneration || !IsPlaying) return Task.FromResult(false);
-            Commands.Add(args); return Task.FromResult(true);
+            if (args is ["set", "pause", "yes"] && RejectPause) return false;
+            if (args is ["set", "pause", "yes"] && PendingPause is { } pending) await pending.Task;
+            if (generation != Generation || file != ActiveFileGeneration || !IsPlaying) return false;
+            Commands.Add(args);
+            if (args is ["set", "pause", var value]) PauseApplied?.Invoke(value == "yes");
+            return true;
         }
     }
     public sealed partial class PlayerViewModel
@@ -45,6 +52,8 @@ namespace Momoka.Shell.Views
         private bool _resizePaused, _resizeLoop = false, _onStage = true;
         private int _resizeGeneration;
         private Task _resizeFreeze = Task.CompletedTask;
+        private Task<bool> _freezePauseWrite = Task.FromResult(false);
+        private bool _freezePauseAccepted;
         private Window? _window = new();
         private Momoka.Shell.ViewModels.PlayerViewModel.InteractionContext _resizePauseContext;
         private Momoka.Shell.ViewModels.PlayerViewModel.FreezeContext _resizeFreezeContext;
@@ -59,6 +68,7 @@ namespace Momoka.Shell.Views
         private void Render() { }
         public PlayerPage()
         {
+            ViewModel.Playback.PauseApplied = paused => { ViewModel.Paused = paused; Pauses.Add(paused); };
             ShortcutHandlers["volume-up"] = () => Actions.Add("volume-up");
             ShortcutHandlers["volume-down"] = () => Actions.Add("volume-down");
             ShortcutHandlers["seek-backward-long"] = () => Actions.Add("seek-backward-long");
@@ -68,7 +78,6 @@ namespace Momoka.Shell.Views
         }
         public List<bool> Pauses { get; } = [];
         internal Action<bool>? PauseRequested { get; set; }
-        private void SetPaused(bool paused) { ViewModel.Paused = paused; Pauses.Add(paused); }
         public void Begin() => BeginResizeFreeze();
         public Task Release() => ReleaseResizeFreezeAsync();
         public void NextDrag() => _resizeGeneration++;
