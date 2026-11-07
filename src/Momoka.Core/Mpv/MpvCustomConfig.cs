@@ -85,6 +85,28 @@ public sealed class MpvCustomConfig : IDisposable
                     if (end < 0) throw new InvalidOperationException("include 的路径引号未闭合。");
                     value = value[1..end];
                 }
+                else if (value[0] == '%')
+                {
+                    // mpv options/parse_configfile.c uses UTF-8 byte lengths, including literal '#'.
+                    var marker = value.IndexOf('%', 1);
+                    if (marker < 0 || !int.TryParse(value.AsSpan(1, marker - 1), out var length) || length <= 0)
+                        throw new InvalidOperationException("include 的固定长度路径无效。");
+                    var bytes = Encoding.UTF8.GetBytes(value[(marker + 1)..]);
+                    if (length > bytes.Length) throw new InvalidOperationException("include 的固定长度路径不完整。");
+                    string tail;
+                    try
+                    {
+                        var utf8 = new UTF8Encoding(false, true);
+                        value = utf8.GetString(bytes.AsSpan(0, length));
+                        tail = utf8.GetString(bytes.AsSpan(length)).TrimStart();
+                    }
+                    catch (DecoderFallbackException)
+                    {
+                        throw new InvalidOperationException("include 的固定长度不能截断 UTF-8 字符。");
+                    }
+                    if (tail.Length > 0 && tail[0] != '#')
+                        throw new InvalidOperationException("include 的固定长度路径后有多余内容。");
+                }
                 else value = value.Split('#')[0].Trim();
                 var include = Path.GetFullPath(value, Path.GetDirectoryName(source)!);
                 line = "include=" + Copy(include, configRoot, ancestors).Replace('\\', '/');

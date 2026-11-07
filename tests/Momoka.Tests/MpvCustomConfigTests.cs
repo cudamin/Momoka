@@ -9,6 +9,36 @@ internal static class MpvCustomConfigTests
 {
     public static void Register()
     {
+        foreach (var name in new[] { "a.txt", "中文.conf", "part#one.conf" })
+            Test($"自定义配置：固定UTF8长度include保留路径{name}", () =>
+            {
+                var folder = Path.Combine(Path.GetTempPath(), "momoka-fixed-include-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(folder);
+                try
+                {
+                    File.WriteAllText(Path.Combine(folder, name), "osd-duration=1234\n");
+                    var source = Path.Combine(folder, "mpv.conf");
+                    File.WriteAllText(source, $"include=%{System.Text.Encoding.UTF8.GetByteCount(name)}%{name} # comment\n");
+                    using var prepared = MpvCustomConfig.Prepare(source);
+                    var include = File.ReadAllLines(prepared.FilePath).Single(line => line.StartsWith("include=", StringComparison.Ordinal))[8..];
+                    Assert.Equal("osd-duration=1234", File.ReadAllText(include).TrimEnd());
+                }
+                finally { Directory.Delete(folder, recursive: true); }
+            });
+        foreach (var value in new[] { "%99%a.txt", "%x%a.txt", "%2%中", "%5%a.txt garbage" })
+            Test($"自定义配置：拒绝非法固定长度include{value}", () =>
+            {
+                var folder = Path.Combine(Path.GetTempPath(), "momoka-bad-include-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(folder);
+                try
+                {
+                    File.WriteAllText(Path.Combine(folder, "a.txt"), "osd-duration=1234\n");
+                    var source = Path.Combine(folder, "mpv.conf");
+                    File.WriteAllText(source, "include=" + value + "\n");
+                    Assert.Throws<InvalidOperationException>(() => MpvCustomConfig.Prepare(source));
+                }
+                finally { Directory.Delete(folder, recursive: true); }
+            });
         Test("自定义配置：只在启用的内置独占模式解析路径", () =>
         {
             var settings = new MpvSettings();
