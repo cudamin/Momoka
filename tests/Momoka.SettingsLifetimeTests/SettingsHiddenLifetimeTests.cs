@@ -23,6 +23,34 @@ internal static class SettingsHiddenLifetimeTests
         TestHarness.Test("R-026 Hide与X重复收起只发送一次Hidden", HideParity);
         TestHarness.Test("R-026 真Close也先释放订阅与目录活动期", RealClose);
         TestHarness.Test("设置窗显现前清理旧关闭悬停而不移动光标", CaptionPointerReset);
+        foreach (var path in new[] { "Hide", "标题栏X", "离页", "Release", "Close" })
+            TestHarness.Test($"设置颜色草稿在{path}时跨卡取消且不保存", () => CancelAppearance(path));
+    }
+
+    private static void CancelAppearance(string path)
+    {
+        using var context = new FixtureContext();
+        using var fixture = new LifetimeFixture();
+        var page = fixture.NewCachedPage("主页");
+        var window = new SettingsWindow(page);
+        window.Show(new SettingsRequest(fixture.Services, "主页"));
+        var draft = ShellRuntime.Current.List(fixture.Vm, "Sections")[0]!;
+        var text = ShellRuntime.Current.List(draft, "Rows")[0]!;
+        var colors = new AppearanceColorFixture(fixture.Vm);
+        switch (path)
+        {
+            case "Hide": window.Hide(); break;
+            case "标题栏X": Assert.True(window.BoundaryWindow.RaiseClosing().Cancel); break;
+            case "离页": page.Leave(); break;
+            case "Release": page.Release(); break;
+            case "Close": window.Close(); break;
+            default: throw new AssertionException("未知释放入口");
+        }
+        colors.AssertCancelled();
+        page.Release();
+        colors.AssertCancelled();
+        Assert.Equal("尚未输完", ShellRuntime.Current.Get<string>(text, "Text"), "取消颜色不清除文字草稿");
+        Assert.Equal(0, fixture.Settings.Writes);
     }
 
     private static void CaptionPointerReset()

@@ -11330,3 +11330,10 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 最终复验曾出现原Service/Emby订阅断言偶发红（40过/1败），原样复验41/41仍保留两份日志。根因是假HTTP接收信号早于响应完成，生产合法随后进入Monitor才挂第三订阅；父授权只修夹具等待实际条件。原Emby/Jellyfin用例增加可控响应闸，修前39过/2败；夹具保持两秒上限等真实订阅挂齐，未到或提前结束明确失败，原断言不减。最终本树编译0警告/错误、完整41/41及10次匿名假HTTP通过，不修改生产顺序或仅加固定延时。
 - 当前生成handle/lifetime正文与本树产品源码逐字一致，夹具与ABI生成文件无DllImport，当前x64输出无PDB；仅本次文件格式校验退出0，6个文本的行尾/BOM/空白及git diff检查通过，回执含当前测试/Core与源文件SHA256。
 - 仅测试基础设施与相关文档；不改Core/Shell、主树、检查或基线，不启动GUI/native/媒体/服务器，不接真实账号、设置或凭据。本树交由父会话一次复核、整合后验证最终主树完整方案/主测试及实际交付；此阶段不宣称完整批次或主树交付完成，不删除树或推送。
+## 2026-11-07 第九批设置夹具生成兼容（独立树进行中）
+
+- 本代理独占 review9-settings-fixture，基点5c9afa0；仅改 SettingsLifetimeTests、SettingsProbeContractTests、HomeOrderProbeTests 及其README，父会话保留主树写入、全方案验证与发布权。
+- 三专项因原样ReleaseHosted新增颜色取消调用但生成器未抽取对应partial而各CS0103一错；原红保留artifacts/review-batch9-settings。补实际方法原样提取和真实Shell行代理，保留所有旧断言，新增两卡颜色草稿释放/重复取消覆盖。
+- 不改产品、不运行GUI/native/真实设置或服务器；构建、专项与生成输入拒绝验证完成后交父整合。
+- 独立夹具验证完成：本树5c9afa0三专项原始Release/x64编译各0警告1个CancelAppearanceColors错误。修后当前Shell及三专项构建0警告0错误；最终SettingsLifetime60/60、SettingsProbeContract33/33、HomeOrder21/21，均零失败零跳过。新增9项在生成取消方法空实现的独立复制项目中分别5/2/2失败，保留原色未恢复证据。三生成器缺方法/重复方法各拒绝、合法方法各成功；SettingsProbe颜色partial编译后漂移拒绝且恢复再33/33，共15项成功/拒绝判定通过。定向whitespace退出0但有工作区加载警告，14文本编码/diff通过。首driver继承负例LASTEXITCODE、hash项目参数拼接MSB1008过程失败保留；最终driver显式0。无产品变动、实际WinUI/native/真实服务器/设置操作或发布。
+- 本批只有测试夹具/README与本段记录，提交后交父会话整合；保留托管树和证据，不删除或发布。

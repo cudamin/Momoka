@@ -20,6 +20,7 @@
              AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
       <PageSource ParameterType="System.String" Required="true" />
+      <AppearanceColorsSource ParameterType="System.String" Required="true" />
       <WindowSource ParameterType="System.String" Required="true" />
       <OutputSource ParameterType="System.String" Required="true" />
     </ParameterGroup>
@@ -38,6 +39,7 @@
             return source.Substring(begin, finish - begin);
         };
         var page = File.ReadAllText(PageSource).Replace("\r\n", "\n");
+        var colors = File.ReadAllText(AppearanceColorsSource).Replace("\r\n", "\n");
         var window = File.ReadAllText(WindowSource).Replace("\r\n", "\n");
         var generated = "// Extracted verbatim from current production at build time; do not edit.\n#nullable enable\n" +
             "using System.ComponentModel;\nusing Momoka.Infrastructure;\nusing Momoka.Configuration;\nusing Momoka.Diagnostics;\n" +
@@ -53,6 +55,7 @@
             between(page, "    private bool Select(string category)", "\n    /// <summary>\n    /// What is really on screen") +
             between(page, "    internal object CurrentPage =>", "\n    /// <summary>\n    /// Drops whatever") +
             between(page, "    internal void ReleaseHosted()", "\n    /// <summary>\n    /// Counts realised") +
+            between(colors, "    private void CancelAppearanceColors()", "\n}") +
             "\n}\ninternal sealed partial class SettingsWindow\n{\n" +
             between(window, "    private const string Category = \"设置窗口\";", "    private SettingsWindow(Window window, Frame frame)") +
             between(window, "    internal bool IsOpen =>", "\n    /// <summary>Outer size") +
@@ -69,6 +72,7 @@
   <Target Name="GenerateSettingsLifetimeSources" BeforeTargets="CoreCompile">
     <ExtractSettingsLifetimeSources
       PageSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SettingsPage.xaml.cs"
+      AppearanceColorsSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SettingsPage.AppearanceColors.cs"
       WindowSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SettingsWindow.cs"
       OutputSource="$(IntermediateOutputPath)SettingsLifetime.g.cs" />
     <ItemGroup>

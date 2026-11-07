@@ -57,6 +57,18 @@ internal static class Program
 
     private static void Register(string root)
     {
+        foreach (var release in new[] { "ReleaseHosted", "Release" })
+            Test($"HomeOrder {release}取消两卡真实颜色草稿而保留主页表", () =>
+            {
+                using var f = new HomeOrderFixture();
+                var colors = new AppearanceColorFixture(f.Vm);
+                if (release == "ReleaseHosted") f.Page.ReleaseHosted();
+                else f.Page.Release();
+                colors.AssertCancelled();
+                f.Page.ReleaseHosted();
+                colors.AssertCancelled();
+                f.Stable();
+            });
         Test("HomeOrder 真实在线来源保留媒体库行，撤销来源只隐藏该行且偏好不丢", () =>
         {
             using var f = new HomeOrderFixture();
