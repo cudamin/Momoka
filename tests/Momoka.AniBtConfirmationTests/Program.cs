@@ -626,7 +626,8 @@ internal static class Program
                 new AniBtMatch([], null, "manual", "low", "fixture", 1)));
             row.ShowTarget(new("/library/current.mkv", "fixture", "details")
             {
-                SourcePath = "/library/renamed/current.mkv", DestinationPath = "/library/new/result.mkv"
+                SourcePath = "/library/renamed/current.mkv",
+                DestinationPath = "/library/new/result.mkv"
             });
             Assert.Equal("original-download.mkv", row.SourceName);
             Assert.Equal("/library/renamed/current.mkv", dialog.BoundValue("SourceDirectoryText", "Text", row));

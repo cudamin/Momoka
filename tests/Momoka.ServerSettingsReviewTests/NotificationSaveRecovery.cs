@@ -72,8 +72,11 @@ internal static class NotificationSaveRecovery
                 if (path.EndsWith("Defaults", StringComparison.Ordinal))
                     return new(HttpStatusCode.OK) { Content = new StringContent("{\"NotifierKey\":\"anonymous\",\"Enabled\":true}", Encoding.UTF8, "application/json") };
                 if (AllowReads)
-                    return new(HttpStatusCode.OK) { Content = new StringContent(path.EndsWith("Configured", StringComparison.Ordinal)
-                        ? JsonSerializer.Serialize(Posts.Take(1)) : "[]", Encoding.UTF8, "application/json") };
+                    return new(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(path.EndsWith("Configured", StringComparison.Ordinal)
+                        ? JsonSerializer.Serialize(Posts.Take(1)) : "[]", Encoding.UTF8, "application/json")
+                    };
                 return new(HttpStatusCode.InternalServerError) { Content = new StringContent("anonymous failure", Encoding.UTF8) };
             }
             return new(HttpStatusCode.OK) { Content = new StringContent("[]", Encoding.UTF8, "application/json") };

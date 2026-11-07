@@ -197,9 +197,15 @@ internal static class AniBtPrepareConcurrencyTests
                 reply = new
                 {
                     Items = Enumerable.Range(0, 8).Select(index => new
-                    { Id = $"episode-{index}", Name = "匿名动画", Type = "Episode", Path = Path(index),
-                        IndexNumber = Numbered ? (int?)5 : null, IndexNumberEnd = Numbered ? (int?)6 : null,
-                        ParentIndexNumber = Numbered ? (int?)0 : null }),
+                    {
+                        Id = $"episode-{index}",
+                        Name = "匿名动画",
+                        Type = "Episode",
+                        Path = Path(index),
+                        IndexNumber = Numbered ? (int?)5 : null,
+                        IndexNumberEnd = Numbered ? (int?)6 : null,
+                        ParentIndexNumber = Numbered ? (int?)0 : null
+                    }),
                     TotalRecordCount = 8
                 };
             else if (path == "/api/v1/history/transfer")

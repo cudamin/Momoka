@@ -112,7 +112,9 @@ internal static class ExternalSubtitleSelectionTests
     {
         var source = new MediaSource
         {
-            Id = "source", Container = "mkv", RunTimeTicks = 100 * TimeSpan.TicksPerSecond,
+            Id = "source",
+            Container = "mkv",
+            RunTimeTicks = 100 * TimeSpan.TicksPerSecond,
             MediaStreams = [
                 new() { Index = 1, Type = "Subtitle", Codec = "srt", IsExternal = true },
                 new() { Index = 2, Type = "Subtitle", Codec = "srt", IsExternal = true },

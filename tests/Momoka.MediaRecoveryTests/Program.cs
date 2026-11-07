@@ -58,12 +58,21 @@ internal static class Program
                 var original = Subscription();
                 var current = new Dictionary<string, object?>
                 {
-                    ["id"] = 12, ["name"] = "fixture", ["type"] = "电视剧", ["season"] = 1,
-                    ["media_source"] = "themoviedb", ["media_id"] = "42", ["episode_group"] = "group-a"
+                    ["id"] = 12,
+                    ["name"] = "fixture",
+                    ["type"] = "电视剧",
+                    ["season"] = 1,
+                    ["media_source"] = "themoviedb",
+                    ["media_id"] = "42",
+                    ["episode_group"] = "group-a"
                 };
                 current[field] = field switch
                 {
-                    "season" => 2, "type" => "电影", "media_source" => "douban", "media_id" => "43", _ => "group-b"
+                    "season" => 2,
+                    "type" => "电影",
+                    "media_source" => "douban",
+                    "media_id" => "43",
+                    _ => "group-b"
                 };
                 var data = JsonSerializer.SerializeToElement(new { subscribe = current, episodes = new { } });
                 Assert.Throws<MoviePilotException>(() => MoviePilotSubscriptionFiles.Parse(data, original));
@@ -80,7 +89,13 @@ internal static class Program
 
     private static MoviePilotSubscription Subscription() => MoviePilotSubscription.Parse(JsonSerializer.SerializeToElement(new
     {
-        id = 12, name = "fixture", type = "电视剧", season = 1, media_source = "themoviedb", media_id = "42", episode_group = "group-a"
+        id = 12,
+        name = "fixture",
+        type = "电视剧",
+        season = 1,
+        media_source = "themoviedb",
+        media_id = "42",
+        episode_group = "group-a"
     }))!;
 
     private static T Complete<T>(Task<T> task)

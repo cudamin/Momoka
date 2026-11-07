@@ -33,7 +33,8 @@ internal static class Program
             Check(!clock.Running, "off-tree refresh cannot start the clock");
             clock.SetActive(true);
             Check(clock.Running, "reattaching multiple slides resumes automatic paging");
-        }));
+        }
+        ));
         var passed = 0;
         var failed = 0;
         foreach (var test in Cases)

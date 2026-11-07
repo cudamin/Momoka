@@ -80,7 +80,9 @@ internal static class DetailSubjectRemovalTests
                 var subject = (EmbyItem)f.Get("CurrentItem")!;
                 var clicked = subject.Source!.Bind(new EmbyItem
                 {
-                    Id = subject.Id, Name = subject.Name, Type = subject.Type,
+                    Id = subject.Id,
+                    Name = subject.Name,
+                    Type = subject.Type,
                     MediaSources = subject.MediaSources.Select(source => new MediaSource { Id = source.Id, ItemId = subject.Id, Path = source.Path }).ToList()
                 });
                 var callback = (Action)Invoke(f.Vm, "CaptureCardReload", clicked)!;

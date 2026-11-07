@@ -53,7 +53,8 @@ internal static partial class ItemCommands
                 client.FnNas.GetItemEditDetailAsync(client.FnNasConnection, item.Id, token)).ConfigureAwait(true);
 
             var dialog = new FnNasMetadataDialog(detail, body => TellAsync(session, (client, token) =>
-                client.FnNas.SaveItemEditDetailAsync(client.FnNasConnection, body, token), shell, ItemCommand.EditMetadata)) { XamlRoot = root };
+                client.FnNas.SaveItemEditDetailAsync(client.FnNasConnection, body, token), shell, ItemCommand.EditMetadata))
+            { XamlRoot = root };
             await dialog.ShowAsync();
             if (!dialog.Changed) return;
 
