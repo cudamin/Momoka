@@ -3,6 +3,13 @@
 独树 `danmaku-send-probe-closure` 基于 master 3316d1a，范围仅 `ShellNavigationProbe.DanmakuSend.cs` 与现有 `Momoka.DanmakuSourceBoundaryTests`。R14 将 `ResetDanmakuInput` 改为可选 bool 参数后，探针反射调用仍传零参数；在第4个待发送请求时抛 `TargetParameterCountException`，假 HTTP 故意不响应取消，finally 的真实客户端关机等待因未释放 pending 而遮成整项60秒超时。显式传 false，并在 finally 先 TrySetCanceled 未完成 pending，生产断言及60秒预算不变，无产品功能改动。
 
 原样提取当前反射调用、清理与假 HTTP 传输，链接真实 Reset 与 DandanPlayClient；红测新增3项均timeout、原23项通过，修后新增3/3及原23/23、失败跳过0，Release测试/Core/Shell 0警告0错误。错误参数与普通断言负例均保留原始失败，真实客户端 admitted POST 在回报前结束。证据 `artifacts/danmaku-send-probe-closure` 保留原21136超时报告、app trace、源签名与红绿日志。未运行GUI/真实服务器/播放/发送，主树交付会话负责合流后 playback 实际路径及最终发布。
+## 2026-11-07 背景与按钮亚克力改成三项参数（已合主树）
+
+用户令「背景图和按钮新的亚克力改为三项可调，去掉高斯模糊和颜色遮罩」，并答复四点：范围是媒体详情页；按钮保留「半透明叠层／亚克力」二选一；那格整体浓度「是 WinUI 原生参数吗？不是就删掉」（不是，它是整支画笔的 Opacity，删）；背景色调自选固定色、默认 #808080。
+
+产品改动：设置 schema 28，`BackdropOpacity`／`UseGaussianBackdrop`／`UseAcrylicBackdrop` 退役，新增按钮与背景各两项染色浓度（出厂 55%）。按钮亚克力只写 TintColor／TintOpacity／TintLuminosityOpacity 与不透明回退色，画笔 Opacity 恒 1；悬停 +6、按下 +12 个百分点。背景固定亚克力，窄窗与集页卡面仍用固定 40% 实色阅读罩；详情页不再跑 CPU 高斯，九个字形影子宿主与 `GaussianBackdropApplied`／`BackdropStrength` 一并删除，裁切盒式模糊保留。首页轮播那颗详情按钮与两层图不改。
+
+验证：完整方案 Release/x64 0 警告 0 错误、whitespace 通过；主测试 4140/4140 失败跳过 0；`Momoka.AppearanceOpacityTests` 54/54。原生 `--probe-shell --probe-section settings --screen 2` 28/28，`library --screen 2` 30/30（含详情自定义页面、背景渐变与按钮材质）；期间修了两处：布局收尾后补排一次阅读色重画（旧遮罩 40% 时不会跨过深浅切换，换成玻璃后露出来了），以及探针里三处按旧滑块语义写的断言。截图 `settings-acrylic-controls-screen.png`、`backdrop-tint-*`、`detail-customization-*-screen.png` 已目视：设置行不裁剪，0/0 露出原图、100/100 盖上实色，默认 55/55 是偏灰的浅玻璃、字转深色仍可读。未合并主树、未发布、未上传；未真实播放或写服务器。
 
 ## 2026-11-07 两项详情改动与第九批已统一桌面交付
 

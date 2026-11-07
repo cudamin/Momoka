@@ -89,7 +89,6 @@
                      把整条牌子撑高又缩回去，通栏线跟着跳；Opacity 0 的元素照旧占位，出现了也不动布局。 -->
                 <StackPanel VerticalAlignment="Center">
                     <Grid>
-                        <Border x:Name="TitleInk" IsHitTestVisible="False" Visibility="Collapsed" />
                     <TextBlock
                         x:Name="TitleText"
                         MaxLines="1"

@@ -53,7 +53,6 @@ internal static partial class DetailActionReadinessTests
                 Assert.NotNull(enabled, "缺少沉浸模式总开关");
                 Set("PageWidth", 1200d);
                 Set("Viewport", 2000d);
-                f.Ui.UseGaussianBackdrop = true;
                 Refresh();
                 var target = f.Get("PlayTarget");
                 var notices = new List<string>();
@@ -62,7 +61,6 @@ internal static partial class DetailActionReadinessTests
                 Refresh();
                 Assert.False((bool)f.Get("BackdropShown")!);
                 Assert.False((bool)f.Get("Showcase")!);
-                Assert.False((bool)f.Get("UseGaussianBackdrop")!);
                 Assert.True((bool)f.Get("HeroCardShown")!);
                 Assert.Equal("Top", f.Get("HeroContentAlignment")!.ToString());
                 Assert.Equal(0d, (double)f.Get("TailMinHeight")!);
@@ -77,7 +75,6 @@ internal static partial class DetailActionReadinessTests
                 Assert.True((bool)f.Get("HeroCardShown")!);
                 enabled.SetValue(f.Ui, true);
                 Refresh();
-                Assert.True(f.Ui.UseGaussianBackdrop);
                 Assert.True((bool)f.Get("BackdropShown")!);
                 Assert.True((bool)f.Get("Showcase")!);
                 Assert.False((bool)f.Get("HeroCardShown")!);
@@ -158,14 +155,12 @@ internal static partial class DetailActionReadinessTests
             Set("PageWidth", 1200d);
             Set("Viewport", 900d);
             f.Ui.EnableImmersive = true;
-            f.Ui.UseGaussianBackdrop = true;
             Refresh();
             var target = f.Get("PlayTarget");
             var subline = f.Get("Subline");
             var shelf = f.Get("EpisodeShelf");
             Assert.True((bool)f.Get("Showcase")!);
             Assert.True((bool)f.Get("BackdropShown")!);
-            Assert.True((bool)f.Get("UseGaussianBackdrop")!);
             Assert.False((bool)f.Get("HeroCardShown")!);
             Assert.False((bool)f.Get("ShowShelfLines")!);
             Assert.Equal(260d, (double)f.Get("StillWidth")!);
@@ -198,7 +193,6 @@ internal static partial class DetailActionReadinessTests
             Assert.True(ReferenceEquals(target, f.Get("PlayTarget")), "模式切换不得换播放目标");
             Assert.Equal(subline, f.Get("Subline"));
             Assert.True(ReferenceEquals(shelf, f.Get("EpisodeShelf")), "模式切换不得重建集列表");
-            Assert.True(f.Ui.UseGaussianBackdrop);
         });
 
         Test("无图单集开启沉浸仍保留卡面，背景到达和收起即时更新", () =>
@@ -207,11 +201,9 @@ internal static partial class DetailActionReadinessTests
             Await(f.Load());
             f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 1200d);
             f.Ui.EnableImmersive = true;
-            f.Ui.UseGaussianBackdrop = true;
             f.Vm.GetType().GetMethod("RefreshAppearance", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(f.Vm, null);
             Assert.False((bool)f.Get("Showcase")!);
             Assert.True((bool)f.Get("HeroCardShown")!);
-            Assert.False((bool)f.Get("UseGaussianBackdrop")!);
             var notices = new List<string>();
             ((INotifyPropertyChanged)f.Vm).PropertyChanged += (_, args) => notices.Add(args.PropertyName ?? "");
             foreach (var artwork in new[] { true, false })
@@ -226,29 +218,6 @@ internal static partial class DetailActionReadinessTests
             }
         });
 
-        Test("高斯偏好仅在四种详情宽窗沉浸生效，窄窗无图保留偏好", () =>
-        {
-            foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
-            {
-                using var f = new Fixture(assembly, root, shape);
-                Await(f.Load());
-                f.Ui.UseGaussianBackdrop = true;
-                void Set(string name, object value) => f.Vm.GetType().GetProperty(name)!.SetValue(f.Vm, value);
-                Set("PageWidth", 1200d);
-                Set("Viewport", 2000d);
-                Set("HeroArt", true);
-                f.Ui.EnableImmersive = false;
-                Assert.False((bool)f.Get("UseGaussianBackdrop")!, "简洁模式不得启用高斯");
-                f.Ui.EnableImmersive = true;
-                Assert.True((bool)f.Get("UseGaussianBackdrop")!);
-                Set("PageWidth", 760d);
-                Assert.False((bool)f.Get("UseGaussianBackdrop")!, "紧凑版式不得启用高斯");
-                Set("PageWidth", 1200d);
-                Set("HeroArt", false);
-                Assert.False((bool)f.Get("UseGaussianBackdrop")!, "无图不得启用高斯");
-                Assert.True(f.Ui.UseGaussianBackdrop, "退出适用模式不能清空偏好");
-            }
-        });
         foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season })
             Test($"详情 {shape} 简洁模式关闭背景并使用卡面，切回恢复沉浸", () =>
             {

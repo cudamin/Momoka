@@ -9,22 +9,32 @@ internal static partial class SettingsTests
 {
     private static void RegisterReviewMigration()
     {
-        Test("迁移：旧背景读数保持大小写兼容及有效小数", () =>
+        Test("迁移：染色参数键保持大小写兼容及有效小数", () =>
         {
-            var loaded = SettingsMigration.FromJson("""{"SchemaVersion":26,"ui":{"backdropOpacity":37.5}}""", Protector);
-            Assert.Equal(62.5d, loaded.Ui.BackdropOpacity);
+            var loaded = SettingsMigration.FromJson("""{"SchemaVersion":28,"ui":{"backdroptintopacity":37.5}}""", Protector);
+            Assert.Equal(37.5d, loaded.Ui.BackdropTintOpacity);
+        });
+        Test("迁移：已退役的背景浓度与效果键被忽略，不写回保存文档", () =>
+        {
+            var loaded = SettingsMigration.FromJson(
+                """{"SchemaVersion":26,"Ui":{"BackdropOpacity":37.5,"UseGaussianBackdrop":true}}""", Protector);
+            var saved = JsonSerializer.Serialize(loaded, SettingsSerializer.WriteOptions);
+            foreach (var key in new[] { "BackdropOpacity", "UseGaussianBackdrop", "UseAcrylicBackdrop" })
+                Assert.False(saved.Contains(key, StringComparison.OrdinalIgnoreCase), "迁移后仍在写退役键：" + key);
         });
         foreach (var schema in new[] { 1, 2, 13, 17, 26, 27 })
         {
             foreach (var section in new[] { "", ",\"Ui\":{}", ",\"Ui\":null" })
             {
-                Test($"迁移：schema{schema}背景缺值{section}保持默认40而非64", () =>
+                Test($"迁移：schema{schema}染色缺值{section}保持出厂55", () =>
                 {
                     var json = "{\"SchemaVersion\":" + schema + section + "}";
                     var loaded = SettingsMigration.FromJson(json, Protector);
-                    Assert.Equal(40d, loaded.Ui.BackdropOpacity);
+                    Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, loaded.Ui.BackdropTintOpacity);
+                    Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, loaded.Ui.BackdropTintLuminosityOpacity);
                     var saved = JsonSerializer.Serialize(loaded, SettingsSerializer.WriteOptions);
-                    Assert.Equal(40d, SettingsMigration.FromJson(saved, Protector).Ui.BackdropOpacity);
+                    Assert.Equal(UiSettings.DefaultAcrylicTintOpacity,
+                        SettingsMigration.FromJson(saved, Protector).Ui.BackdropTintOpacity);
                 });
             }
         }

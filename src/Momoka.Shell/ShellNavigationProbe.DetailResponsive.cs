@@ -96,8 +96,6 @@ internal sealed partial class ShellNavigationProbe
 
         var readings = new List<string>();
         fixture.Settings.Ui.EnableImmersive = true;
-        fixture.Settings.Ui.UseGaussianBackdrop = false;
-        fixture.Settings.Ui.UseAcrylicBackdrop = false;
         var widths = new[] { 1280, 1200, 1100, 1024, 1023, 760 };
         try
         {
@@ -223,14 +221,14 @@ internal sealed partial class ShellNavigationProbe
             Require(page.ViewModel.Showcase && !page.ViewModel.IsCompact && page.ViewModel.BackdropShown,
                 "改变宽窗高度切换了沉浸模式");
             RequireResponsiveBindings(page);
-            Require(ScrimAlphaOf(page) == ScrimExpected(page), "改变宽窗高度改变了背景遮罩浓度");
+            RequireDetailBackdropFade(page);
             await SaveProbeScreenAsync($"detail-responsive-{page.ViewModel.ItemType}-height-{height}.png");
         }
         if (!_window!.IsMaximized) _window.ToggleMaximize();
         await UntilAsync(() => _window.IsMaximized && page.ViewModel.Showcase);
         await LayoutAsync(page);
         RequireResponsiveBindings(page);
-        Require(ScrimAlphaOf(page) == ScrimExpected(page), "最大化改变了背景遮罩浓度");
+        RequireDetailBackdropFade(page);
         await SaveProbeScreenAsync($"detail-responsive-{page.ViewModel.ItemType}-maximized.png");
         _window.ToggleMaximize();
         await UntilAsync(() => !_window.IsMaximized && Math.Abs(page.ViewModel.PageWidth - 1080) < 1);

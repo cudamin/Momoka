@@ -288,32 +288,12 @@ public static class SettingsMigration
             settings.Playback.SubtitleBold = storedWeight >= 550;
         }
 
-        // v27 turns 详情背景图那一格 into a direct reading of the scrim/blur strength (2026-11-06,
-        // 「百分之一百，遮罩完全不透明，高斯模糊拉到最模糊；百分之 0 关闭遮罩，关闭高斯模糊」). Up to v26 the
-        // number was an increment on top of two hard-coded picture opacities — 0.9 normally, 0.96 in the
-        // immersive layout — so the shipped 0 still drew a dimmed picture and 100 meant 「1.0」. Now 0 draws no
-        // scrim and no blur at all, 100 takes the scrim to fully opaque (and the blur to its maximum), with one
-        // value for both layouts. The stored 0 is the value nobody picked (it is the shipped default), so it
-        // lands on the new default; 1–100 meant 「stronger than the default」 and keeps that meaning by
-        // spreading over the new default→100 range.
-        if (version < 27)
-        {
-            // Repair/initializer already supplied today's 40 for an absent old field. The old
-            // default was zero; use the original document so a missing value is not raised twice.
-            var priorUi = root.EnumerateObject().LastOrDefault(property =>
-                property.Name.Equals("Ui", StringComparison.OrdinalIgnoreCase)).Value;
-            var priorOpacity = priorUi.ValueKind == JsonValueKind.Object
-                ? priorUi.EnumerateObject().LastOrDefault(property =>
-                    property.Name.Equals("BackdropOpacity", StringComparison.OrdinalIgnoreCase)).Value : default;
-            var raised = priorOpacity.ValueKind == JsonValueKind.Number
-                && priorOpacity.TryGetDouble(out var storedOpacity)
-                && double.IsFinite(storedOpacity)
-                    ? Math.Clamp(storedOpacity, 0, 100) : 0;
-            settings.Ui.BackdropOpacity = Math.Round(
-                UiSettings.DefaultBackdropOpacity
-                    + (100 - UiSettings.DefaultBackdropOpacity) * raised / 100, 1);
-        }
-
+        // v28 retires the background-treatment格 altogether (2026-11-07, 「背景图和按钮新的亚克力改为三项可调，
+        // 去掉高斯模糊和颜色遮罩」). 高斯模糊与颜色遮罩两个选项没了，背景固定走亚克力；那格
+        // Ui.BackdropOpacity 与 UseGaussianBackdrop / UseAcrylicBackdrop 一起从模型里删掉，旧文件里留着的键
+        // 反序列化时无声忽略（同 ShowWatchedIndicators 那条），没有需要换算的值。v27 曾经把旧增量换算成直接
+        // 读数的那一段，随它服务的字段一起退役，不再执行。新增的四项染色参数（按钮与背景各两项）缺键读出来
+        // 就是出厂 55%。
         settings.SchemaVersion = AppSettings.CurrentSchemaVersion;
         return Normalize(settings);
     }
@@ -497,10 +477,12 @@ public static class SettingsMigration
             ? HtmlColor.Format(backdropColor) : UiSettings.DefaultBackdropColor;
         settings.Ui.ControlBackgroundOpacity = double.IsFinite(settings.Ui.ControlBackgroundOpacity)
             ? Math.Clamp(settings.Ui.ControlBackgroundOpacity, 0, 100) : 0;
-        settings.Ui.BackdropOpacity = double.IsFinite(settings.Ui.BackdropOpacity)
-            ? Math.Clamp(settings.Ui.BackdropOpacity, 0, 100) : 0;
-        // 两键保留旧高斯配置兼容；手改或导入同时开启时，亚克力优先并写回互斥状态。
-        if (settings.Ui.UseAcrylicBackdrop) settings.Ui.UseGaussianBackdrop = false;
+        // 四项染色参数是百分比，0 与 100 都是有效档位；认不出来的数（手改、JSON 里写成字符串被当成默认除外）
+        // 回到出厂 55，而不是像浓度那样掉到 0 —— 0 会让质地整块消失，看起来像功能坏了。
+        settings.Ui.ControlTintOpacity = Tint(settings.Ui.ControlTintOpacity);
+        settings.Ui.ControlTintLuminosityOpacity = Tint(settings.Ui.ControlTintLuminosityOpacity);
+        settings.Ui.BackdropTintOpacity = Tint(settings.Ui.BackdropTintOpacity);
+        settings.Ui.BackdropTintLuminosityOpacity = Tint(settings.Ui.BackdropTintLuminosityOpacity);
 
         // 海报缓存的磁盘上限。范围和「MB 换字节」都在淘汰规则那一头（Emby.ImageCachePolicy），设置页那一行也读
         // 同一对常量 —— 一个比设置窄的框会显示一个文件里没有的数并在下次触碰时写回去，一个比设置宽的框会让人填进
@@ -699,6 +681,10 @@ public static class SettingsMigration
         }
 
         return settings;
+
+        // 染色参数是百分比，0/100 都是有效档位；认不出来的数回到出厂，不落到 0。
+        static double Tint(double value) => double.IsFinite(value)
+            ? Math.Clamp(value, 0, 100) : UiSettings.DefaultAcrylicTintOpacity;
     }
 
     private static AppSettings ReadCurrent(string json) =>

@@ -85,15 +85,6 @@ public sealed partial class DetailPage : Page, IShellContent
         NavigationTiming.Mark("init-begin");
         InitializeComponent();
         NavigationTiming.Mark("init-end");
-        TextInk.Attach(DetailTitleInk, TitleText, TextInk.TitleBlur);
-        TextInk.Attach(DetailPlateInk, TitlePlate, TextInk.PlateBlur);
-        TextInk.Attach(DetailGenreInk, GenreLine);
-        TextInk.Attach(DetailFactsInk, HeroFacts);
-        TextInk.Attach(DetailOverviewInk, Overview);
-        TextInk.Attach(DetailScoreInk, ScoreText);
-        TextInk.Attach(DetailScoreSourceInk, ScoreSourceText);
-        TextInk.Attach(DetailVideoInk, DetailVideoText);
-        TextInk.Attach(DetailDirectorsInk, DetailDirectorsText);
         PrepareAppearance();
         PaintScrim();
         BackdropThemeSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) =>
@@ -107,7 +98,7 @@ public sealed partial class DetailPage : Page, IShellContent
         // 沉浸版式那一支单独订阅：OnViewModelChanged 是 Plex 入口夹具原样提取的契约正文，往里塞这一页新加的
         // 字段会让那份提取出来的类编译不过。视图模型与这一页同寿，挂着不用退订。
         ViewModel.PropertyChanged += OnShowcaseChanged;
-        ViewModel.PropertyChanged += OnBackdropEffectChanged;
+        ViewModel.PropertyChanged += OnBackdropImageChanged;
 
         // 集带左沿换了一张卡：把季锚点（和牌子上的季名）跟着带子走。页面这一份控件与页同寿，不用退订。
         EpisodeStrip.LeadingChanged += OnEpisodeStripLeadingChanged;
@@ -152,11 +143,11 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     /// <summary>
-    /// 有背景图时压在图上的那层墨色 —— 浓度读设置里那一档：0 一点都不遮（图原样清晰），100 完全不透明。
+    /// 有背景图时压在图上的那层墨色 —— 窄窗与集页卡面不上亚克力那一层，压在图上的仍是这道实色罩子。
     /// 尾部、头部那一格和阅读遮罩都取这一个色，接缝才不会有第二档。
     /// </summary>
     private Color ScrimColor => Color.FromArgb(
-        AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, ViewModel.BackdropStrength),
+        AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, AppearanceOpacity.ReadingVeil),
         DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B);
 
     /// <summary>
@@ -185,8 +176,7 @@ public sealed partial class DetailPage : Page, IShellContent
         // 而且它会把板涂回罩子的末色 —— 板上那几块小面板的底边就对不上了。
         HeroTail.Background = ViewModel.HeroCardShown
             ? null
-            : new SolidColorBrush(UsesBackdropFade || ViewModel.GaussianBackdropApplied && ViewModel.BackdropShown
-                ? Color.FromArgb(0, ink.R, ink.G, ink.B) : ScrimColor);
+            : new SolidColorBrush(UsesBackdropFade ? Color.FromArgb(0, ink.R, ink.G, ink.B) : ScrimColor);
 
         // 普通三页透明：下层已经完成遮罩与主题收边，避免末端被二次压黑。
         HeroBand.Background = ViewModel.BackdropShown ? HeroTail.Background : null;
@@ -858,7 +848,7 @@ public sealed partial class DetailPage : Page, IShellContent
         var joined = ViewModel.HeroCardShown
             ? HeroTail.Background is null or SolidColorBrush { Color.A: 0 }
             : HeroTail.Background is SolidColorBrush { Color: var tailColor }
-                && tailColor == (UsesBackdropFade || ViewModel.GaussianBackdropApplied
+                && tailColor == (UsesBackdropFade
                     ? Color.FromArgb(0, DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B)
                     : ScrimColor);
         // 音轨那一行和剧情说明都不带框 ——「移除音频和剧情说明那两个栏的框」（2026-09-12）。它们站在那块大板上，
@@ -1243,8 +1233,8 @@ public sealed partial class DetailPage : Page, IShellContent
     private (bool Ok, string How) ScrimPaint()
     {
         var ink = DetailHero.ScrimInk;
-        var expected = Color.FromArgb(UsesBackdropFade || ViewModel.GaussianBackdropApplied
-            ? (byte)0 : AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, ViewModel.BackdropStrength),
+        var expected = Color.FromArgb(UsesBackdropFade
+            ? (byte)0 : AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, AppearanceOpacity.ReadingVeil),
             ink.R, ink.G, ink.B);
         var same = HeroTail.Background is SolidColorBrush { Color: var color } && color == expected
             && ReferenceEquals(TitleWash.Background, HeroTail.Background)
@@ -2112,7 +2102,10 @@ public sealed partial class DetailPage : Page, IShellContent
         // 同一件事的另一头：这个滚动视图变高变矮，正是因为它上面那行面包屑出现或收起，也就是背景那一层该往上
         // 顶多少变了的那一刻。见 LiftBackdrop。
         LiftBackdrop();
+        // 这一趟布局把字挪了位置，采样点跟着换；当场先按量到的位置画一遍，再把同一次重画排到布局收尾之后 ——
+        // 头图那一格的高经常在下一拍才定下来，只画这一次会留下一帧按旧位置算出来的字色。
         PaintReadingColors();
+        QueueReadingColors();
     }
 
     /// <summary>
