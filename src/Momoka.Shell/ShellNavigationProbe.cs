@@ -213,8 +213,9 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("集成跳过按钮单行、缩放、点击与键盘", PlayerSkipAsync, 45);
             await CaseAsync("三处关键词拖拽优先级与弹簧（宽窗）", () => SettingsPriorityFiltersAsync(1100), 45, section: ShellProbeSections.Settings);
             await CaseAsync("三处关键词拖拽优先级与弹簧（窄窗）", () => SettingsPriorityFiltersAsync(760), 45, section: ShellProbeSections.Settings);
-            await CaseAsync("从属设置显隐动画与偏好恢复（宽窗）", () => SettingsConditionalRowsAsync(1100), 45, section: ShellProbeSections.Settings);
-            await CaseAsync("从属设置显隐动画与偏好恢复（窄窗）", () => SettingsConditionalRowsAsync(760), 45, section: ShellProbeSections.Settings);
+            // Includes carousel, five HDR inputs, backend restoration and supporting-note screenshots.
+            await CaseAsync("从属设置显隐动画与偏好恢复（宽窗）", () => SettingsConditionalRowsAsync(1100), 75, section: ShellProbeSections.Settings);
+            await CaseAsync("从属设置显隐动画与偏好恢复（窄窗）", () => SettingsConditionalRowsAsync(760), 75, section: ShellProbeSections.Settings);
             // 主页卡新增一行「主页媒体库位置」（2026-10-16 从界面卡挪来、同时改名），宽窄两帧截图 + 三档写回。
             await CaseAsync("主页卡上的主页媒体库位置三档", SettingsHomeLibraryPlacementAsync, 30);
             // 设置 → 界面新增一行「开机自启」：拨开关写的是机器上的启动项（假实现），办不到时整行不显示，

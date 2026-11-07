@@ -279,6 +279,7 @@ internal sealed partial class ShellNavigationProbe
             await WaitForSettingsSettledAsync(page);
             carousel = page.ViewModel.Sections.Single(item => item.Title == "轮播图");
             AssertCarousel(true);
+            await SettingsRecoveryControlsAsync(page, fixture, width);
 
             void AssertCarousel(bool enabled)
             {
