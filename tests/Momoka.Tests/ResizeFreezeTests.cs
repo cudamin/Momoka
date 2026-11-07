@@ -68,10 +68,10 @@ internal static class ResizeFreezeTests
             Assert.Contains("ReleaseResizeFreezeAsync", page);
 
             // 发「暂停／恢复」的唯一出口，以及它的默认分支。探针在离线跑的时候把出口接到自己那个句柄上
-            // （它绕过 PlaybackService，`_current` 是空的），所以「没接出口时走 ViewModel.SetPaused」
+            // （它绕过 PlaybackService，`_current` 是空的），所以「没接出口时走固定文件暂停命令」
             // 这一行没有任何运行路径会踩到 —— 只能靠这里钉住，它是这条令在真实播放里唯一的落点。
             Assert.Contains("internal Action<bool>? PauseRequested { get; set; }", page);
-            Assert.Contains("ViewModel.SetPaused(paused);", page);
+            Assert.Contains("ViewModel.SetFrozenPausedAsync(_resizeFreezeContext, paused);", page);
             Assert.Contains("SetPaused(true);", page);
             Assert.Contains("SetPaused(false);", page);
             var settings = shell[Path.Combine("ViewModels", "SettingsViewModel.cs")];

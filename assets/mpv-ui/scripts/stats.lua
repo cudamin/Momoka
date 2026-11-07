@@ -403,7 +403,7 @@ local function append_perfdata(header, s, dedicated_page)
                      dedicated_page and "" or o.nl, dedicated_page and "" or o.indent,
                      bold("帧计时（Frame Timings）："), o.prefix_sep, font_small,
                      "(最近 / 平均 / 峰值，微秒 μs)", font_normal,
-                     dedicated_page and "  PageUp/PageDown 翻页" or "")
+                     dedicated_page and "  ↑/↓ 或 PageUp/PageDown 滚动" or "")
 
     for _,frame in ipairs(sorted_keys(vo_p)) do  -- ensure fixed display order
         local data = vo_p[frame]
@@ -1539,6 +1539,7 @@ end
 
 -- Call the function for `page` and print it to OSD
 local function print_page(page, after_scroll)
+    mp.set_property_native('user-data/momoka-stats/scrollable', pages[page].scroll == true)
     -- the page functions assume we start in ass-enabled mode.
     -- that's true for mp.set_osd_ass, but not for mp.osd_message.
     local ass_content = pages[page].f(after_scroll)
@@ -1576,6 +1577,7 @@ update_scale = function ()
 end
 
 local function clear_screen()
+    mp.set_property_native('user-data/momoka-stats/scrollable', false)
     if o.persistent_overlay then mp.set_osd_ass(0, 0, "") else mp.osd_message("", 0) end
 end
 
@@ -1586,6 +1588,10 @@ local function scroll_delta(d)
 end
 local function scroll_up() scroll_delta(-o.scroll_lines) end
 local function scroll_down() scroll_delta(o.scroll_lines) end
+mp.register_script_message('momoka-scroll', function(direction)
+    if not display_timer:is_enabled() or not pages[curr_page].scroll then return end
+    if direction == 'up' then scroll_up() elseif direction == 'down' then scroll_down() end
+end)
 
 local function reset_scroll_offsets()
     for _, page in pairs(pages) do

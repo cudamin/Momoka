@@ -13,3 +13,5 @@
 最终尾提交前实际Shell构建media-final-shell-build.log成功，随后重新执行37/32/39/21，日志后缀receipt。此前Shell构建因两处离线FnNasMetadataDialog构造者缺save委托失败，已同步为拒绝写入的委托，再重编；没有启动这些探针。边界与替身见各测试项目，真实WinUI关闭/布局与服务器权限尚未验。
 
 主树由另一聊天独占。本组尚未合入master、未刷新快捷方式；父代理统一整合并重新验证。共享Program未修改；新增MediaRecovery和MediaDialog为独立项目入口，需要统一登记到方案/开发文档时由父代理处理。
+
+UI批次撤回后R07-009重新成立，纳回本轮：真实当前详情VM宽1920/高600、强度0读得半径16（38项1红）。只在HeroBlurTarget先处理零强度，保持非零原裁切/高斯规则；原界面和预设未改。zero-green-shell-build.log实际Shell0警告0错误后，真实VM38/38，0→45→0恢复通过。未运行真实图片渲染/窗口拖动，交统一验收。

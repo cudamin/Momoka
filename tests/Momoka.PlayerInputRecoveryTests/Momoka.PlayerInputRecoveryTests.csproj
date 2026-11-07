@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
+    <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="../Momoka.Tests/ResizeFreezeTests.cs" Link="ResizeFreezeTests.cs" />
+  </ItemGroup>
+  <UsingTask TaskName="ExtractInputRecovery" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup><Root ParameterType="System.String" Required="true" /><Output ParameterType="System.String" Required="true" /></ParameterGroup>
+    <Task><Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string,string,string,string> between = (text,start,end) => {
+          int at=text.IndexOf(start,StringComparison.Ordinal), finish=at < 0 ? -1 : text.IndexOf(end,at+start.Length,StringComparison.Ordinal);
+          if(at<0 || finish<0 || text.IndexOf(start,at+start.Length,StringComparison.Ordinal)>=0) throw new InvalidOperationException("Missing/ambiguous source " + start);
+          return text.Substring(at,finish-at);
+        };
+        string interaction=File.ReadAllText(Path.Combine(Root,"src/Momoka.Shell/ViewModels/PlayerViewModel.Interaction.cs")).Replace("\r\n","\n");
+        string page=File.ReadAllText(Path.Combine(Root,"src/Momoka.Shell/Views/PlayerPage.ClientRect.cs")).Replace("\r\n","\n");
+        string input=File.ReadAllText(Path.Combine(Root,"src/Momoka.Shell/Views/PlayerPage.Input.cs")).Replace("\r\n","\n");
+        string capture=interaction.Contains("internal readonly record struct FreezeContext")
+          ? between(interaction,"    internal readonly record struct FreezeContext","\n    private VideoMenuSnapshot") : "";
+        string source="#nullable enable\nusing Momoka.Emby; using Momoka.Playback; using Momoka.Mpv; using System; using System.Threading; using System.Threading.Tasks;\n" +
+          "namespace Momoka.Shell.ViewModels { public sealed partial class PlayerViewModel {\n"+
+          between(interaction,"    internal readonly record struct InteractionContext","\n    private VideoMenuSnapshot") + "\n} }\n"+
+          "namespace Momoka.Shell.Views { using Windows.System; using Momoka.Shell.Interop; using Momoka.Diagnostics; using Momoka.Shell.ViewModels; public sealed partial class PlayerPage {\n"+
+          between(page,"    private void SetPaused(bool paused)","\n    /// <summary>\n    /// 缓冲与布局") +
+          between(page,"    private void BeginResizeFreeze()","\n    private void CancelResizeChange()") +
+          between(input,"    private bool ShortcutCommand(","\n    /// <summary>\n    /// 这一下可重绑键") + "\n} }\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(Output));File.WriteAllText(Output,source,new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="ExtractRecovery" BeforeTargets="CoreCompile">
+    <ExtractInputRecovery Root="$(MSBuildProjectDirectory)/../.." Output="$(IntermediateOutputPath)Recovery.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)Recovery.g.cs" /></ItemGroup>
+  </Target>
+</Project>
