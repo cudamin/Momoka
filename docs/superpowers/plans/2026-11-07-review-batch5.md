@@ -38,7 +38,7 @@
 
 ## Task 2: 飞牛版本时长
 
-**Files:** 修改 src/Momoka.Core/FnNas/FnNasMediaAdapter.cs、src/Momoka.Core/Playback/PlaybackPlanner.cs；在 FnNasMediaTests 登记版本时长回归。
+**Files:** 修改 src/Momoka.Core/FnNas/FnNasMediaAdapter.cs、src/Momoka.Core/Playback/PlaybackPlanner.cs；新增 FnNasMediaTests.VersionDurations.cs 并在 FnNasMediaTests 登记，Program 增加 fnnas-protocol-fixture 显式入口运行现有四套飞牛测试。
 
 **Interfaces:** 保持 DTO、Plan 和 FnNasPlaybackSelection 接口；采用当前适配器已有的服务端正时长补齐，所选源未知时请求/上报为 0。
 

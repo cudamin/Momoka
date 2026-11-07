@@ -250,6 +250,15 @@ internal static class Program
             MoviePilotLoginRedirectTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["fnnas-protocol-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            FnNasProtocolTests.Register();
+            FnNasLibraryInputTests.Register();
+            FnNasUserStateWriteTests.Register();
+            FnNasMediaTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["plex-protocol-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;

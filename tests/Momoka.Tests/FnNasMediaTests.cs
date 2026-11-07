@@ -14,6 +14,7 @@ internal static partial class FnNasMediaTests
     public static void Register()
     {
         RegisterRecovery();
+        RegisterVersionDurations();
         Test("飞牛媒体：登录、媒体库命名和 token 失效后同身份恢复", () =>
         {
             using var fixture = new Fixture();

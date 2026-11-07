@@ -248,11 +248,12 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
                 if (Number(progress, "ts") is { } position) item.UserData.PlaybackPositionTicks = Ticks(position);
                 if (Number(progress, "duration") is > 0 and var duration) item.RunTimeTicks = Ticks(duration);
             }
-            if (item.RunTimeTicks is null or <= 0 && item.DefaultMediaSource?.RunTimeTicks is > 0 and var sourceDuration)
-                item.RunTimeTicks = sourceDuration;
+            // 服务端条目/play-info 时长可补未知版本；默认版本推导值只补展示，不能再灌给其它版本。
             foreach (var source in item.MediaSources)
                 if (source.RunTimeTicks is null or <= 0 && item.RunTimeTicks is > 0)
                     source.RunTimeTicks = item.RunTimeTicks;
+            if (item.RunTimeTicks is null or <= 0 && item.DefaultMediaSource?.RunTimeTicks is > 0 and var sourceDuration)
+                item.RunTimeTicks = sourceDuration;
         }
         return item;
     }
