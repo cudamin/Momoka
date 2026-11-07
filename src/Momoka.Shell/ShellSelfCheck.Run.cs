@@ -452,7 +452,7 @@ internal static partial class ShellSelfCheck
         {
             var tree = new StringBuilder();
             Dump(shell, tree, 0);
-            Write(options.Paths, "selfcheck-shell-tree.txt", tree.ToString());
+            if (!Write(options.Paths, "selfcheck-shell-tree.txt", tree.ToString())) ExitCode = 1;
         }
 
         Log.Info(Category, !reportWritten ? "自检报告未能写出"

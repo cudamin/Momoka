@@ -39,7 +39,8 @@ internal sealed class ProbePlayer(SelfCheckInput input)
 internal static partial class ShellSelfCheck
 {
     // Thin accessors only; the result storage, write and close/finally logic are source-linked production.
-    internal static void ResetForFixture() => ExitCode = 1;
+    internal static void ResetForFixture() { ExitCode = 1; _requiredEvidenceFailed = false; }
+    internal static void FailRequiredEvidenceForFixture() { _requiredEvidenceFailed = true; ExitCode = 1; }
     internal static bool CompleteForFixture(AppPaths paths, string content, int failures,
         Action<string, string, Encoding>? writer = null) => CompleteReport(paths, content, failures, writer);
     internal static bool WriteForFixture(AppPaths paths, string name, string content,

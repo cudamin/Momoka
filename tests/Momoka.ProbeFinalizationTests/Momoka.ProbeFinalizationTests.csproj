@@ -29,6 +29,9 @@
             <PagesSource ParameterType="System.String" Required="true" />
             <TransportSource ParameterType="System.String" Required="true" />
             <PerformanceSource ParameterType="System.String" Required="true" />
+            <CompositionSource ParameterType="System.String" Required="true" />
+            <MotionSource ParameterType="System.String" Required="true" />
+            <ButtonEdgesSource ParameterType="System.String" Required="true" />
             <OutputSource ParameterType="System.String" Required="true" />
         </ParameterGroup>
         <Task>
@@ -117,6 +120,20 @@
                 generated += "\ninternal sealed partial class ProbeLifetimeFixture\n{\n" +
                     "    internal async Task CloseTransportAsync()\n    {\n        var page = Page;\n        var vm = Vm;\n" + transportFinally + "\n        await Task.CompletedTask;\n    }\n" +
                     "    internal async Task WaitForRenderAsync()\n    {\n        var run = Run;\n" + renderWait + "\n    }\n}\n";
+                var composition = File.ReadAllText(CompositionSource).Replace("\r\n", "\n");
+                var compositionTail = between(composition, "        finally\n        {\n            await ProbeFinalization.RunAsync", "\n\n        void Write(string message)");
+                generated += "\ninternal sealed partial class CompositionFinalizerFixture\n{\n" +
+                    "    internal async Task RunAsync()\n    {\n        var handle = Handle;\n        var page = Page;\n        var window = Window;\n        var report = Report;\n        var stopping = Stopping;\n        var passed = true;\n        try { await Task.CompletedTask; }\n" +
+                    compositionTail + "\n        void Write(string message) => report.Write(message);\n    }\n}\n";
+                var motion = File.ReadAllText(MotionSource).Replace("\r\n", "\n");
+                var motionTail = between(motion, "        catch (Exception error)\n        {\n            ExitCode = 1;\n            Write($\"结果：失败：{error}\");", "\n\n        void Write(string message)");
+                generated += "\ninternal sealed partial class MotionFinalizerFixture\n{\n" +
+                    "    internal async Task RunAsync()\n    {\n        var handle = Handle;\n        var shell = Shell;\n        var window = Window;\n        var services = Services;\n        var stopping = Stopping;\n        try { ExitCode = 0; Write(\"success\"); }\n" + motionTail +
+                    "\n        void Write(string message) => Report.Write(message);\n    }\n}\n";
+                var buttonEdges = File.ReadAllText(ButtonEdgesSource).Replace("\r\n", "\n");
+                var buttonTail = between(buttonEdges, "        finally\n        {\n", "\n        }\n    }\n}");
+                generated += "\ninternal sealed partial class ButtonFinalizerFixture\n{\n" +
+                    "    internal void Run()\n    {\n        var reads = new[] { \"anonymous evidence\" };\n        var holder = new object();\n        var savedTheme = new object();\n        var savedTopMost = false;\n        try { }\n" + buttonTail + "\n        }\n    }\n}\n";
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
                     File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
@@ -135,6 +152,9 @@
             PagesSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Pages.cs"
             TransportSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.PlayerTransport.cs"
             PerformanceSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.Performance.cs"
+            CompositionSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\CompositionPlaybackProbe.cs"
+            MotionSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\PlayerMotionProbe.cs"
+            ButtonEdgesSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.ButtonEdges.cs"
             OutputSource="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />
         <ItemGroup>
             <Compile Include="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />

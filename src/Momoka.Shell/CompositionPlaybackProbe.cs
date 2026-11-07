@@ -251,29 +251,38 @@ internal static partial class CompositionPlaybackProbe
         }
         finally
         {
-            try
+            await ProbeFinalization.RunAsync(async () =>
             {
                 if (handle is not null)
                 {
-                    try { await handle.StopAsync(); }
-                    finally { await handle.DisposeAsync(); }
+                    await AttemptAsync(handle.StopAsync);
+                    await AttemptAsync(async () => await handle.DisposeAsync());
                 }
-                page?.ReleaseVideoSurface();
+                Attempt(() => page?.ReleaseVideoSurface());
                 if (window is not null)
                 {
                     window.Closed -= stopping.Cancel;
-                    window.Dispose();
+                    Attempt(window.Dispose);
                 }
+            }, () => passed,
+                () => Write(passed ? "结果：自动断言通过；弹幕已作局部像素判定，其他画面和 OSD 仍需目视确认。" : "结果：失败"),
+                Failed, () => report?.Dispose(), () => Application.Current.Exit(), code => ExitCode = code);
+
+            async Task AttemptAsync(Func<Task> cleanup)
+            {
+                try { await cleanup(); }
+                catch (Exception error) { Failed(error); }
             }
-            catch (Exception error)
+            void Attempt(Action cleanup)
+            {
+                try { cleanup(); }
+                catch (Exception error) { Failed(error); }
+            }
+            void Failed(Exception error)
             {
                 passed = false;
-                Write($"清理失败：{error}");
+                Log.Error("本地合成诊断", "清理或报告未完成", error);
             }
-            ExitCode = passed ? 0 : 1;
-            Write(passed ? "结果：自动断言通过；弹幕已作局部像素判定，其他画面和 OSD 仍需目视确认。" : "结果：失败");
-            report?.Dispose();
-            Application.Current.Exit();
         }
 
         void Write(string message)

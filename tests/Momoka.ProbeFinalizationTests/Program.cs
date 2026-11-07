@@ -31,6 +31,7 @@ internal static partial class Program
         RegisterPlacementRead();
         RegisterCommandReads();
         RegisterProbeLifetimes();
+        RegisterCompositionFinalizer();
         var failures = 0;
         foreach (var (name, run) in Cases)
         {
@@ -61,6 +62,23 @@ internal static partial class Program
 
     private static void RegisterSelfCheck()
     {
+        Test("R17-004-required-capture-failure-survives-final-report", () =>
+        {
+            var paths = Paths("required-capture-failure");
+            ShellSelfCheck.FailRequiredEvidenceForFixture();
+            Ensure(ShellSelfCheck.CompleteForFixture(paths, "[通过] A\n结果：全部通过\n", 0), "final report can still persist");
+            Equal(1, ShellSelfCheck.ExitCode, "earlier required capture failure cannot be cleared by final report");
+            return Task.CompletedTask;
+        });
+        Test("R17-004-selfcheck-dump-tree-write-failure", async () =>
+        {
+            var paths = Paths("dump-tree-write-failure");
+            Directory.CreateDirectory(Path.Combine(paths.LogDirectory, "selfcheck-shell-tree.txt"));
+            var window = new ProbeWindow();
+            await ShellSelfCheck.RunScheduledForFixture(window, new(paths) { DumpUi = true });
+            Equal(1, ShellSelfCheck.ExitCode, "requested tree evidence failure is nonzero");
+            Equal(1, window.Closed, "failed tree evidence does not block close");
+        });
         Test("selfcheck-success", async () =>
         {
             var paths = Paths("selfcheck-success");

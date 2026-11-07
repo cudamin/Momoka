@@ -23,6 +23,14 @@ internal static class CursorVisibilityProbe
 
     internal static async Task RunAsync(StartupOptions options)
     {
+        ExitCode = 1;
+        try { await RunScopedAsync(options); }
+        catch (Exception error) { Log.Error("光标诊断", "报告或运行未完成", error); ExitCode = 1; }
+        finally { Application.Current.Exit(); }
+    }
+
+    private static async Task RunScopedAsync(StartupOptions options)
+    {
         Directory.CreateDirectory(options.Paths.LogDirectory);
         using var report = new StreamWriter(Path.Combine(options.Paths.LogDirectory, "cursor-probe.txt"))
         { AutoFlush = true };
@@ -163,11 +171,12 @@ internal static class CursorVisibilityProbe
                 "播放层退出后已解除输入连接和光标监听");
             await Until(() => !Gone(), 700, "退出播放层后系统光标恢复");
             shell = null;
-            ExitCode = 0;
             Write("结果：全部通过");
+            ExitCode = 0;
         }
         catch (Exception error)
         {
+            ExitCode = 1;
             Write($"结果：失败：{error}");
         }
         finally
@@ -206,14 +215,13 @@ internal static class CursorVisibilityProbe
             {
                 if (restorePointer) Native.SetCursorPos(originalPointer.X, originalPointer.Y);
                 if (originalForeground != IntPtr.Zero) Native.SetForegroundWindow(originalForeground);
-                Application.Current.Exit();
             }
         }
 
         void CleanupFailure(Exception error)
         {
             ExitCode = 1;
-            Write($"清理失败：{error}");
+            Log.Error("光标诊断", "清理未完成", error);
         }
 
         bool Gone()
