@@ -73,40 +73,16 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private const int FooterDecodeWidth = 760;
 
-    /// <summary>
-    /// The still beside the title. Fixed rather than scaled with the grid's poster width, unlike every
-    /// other card in the app. 头上那一格的高是按内容定死的（宽版式常态 352：<see cref="DetailHero.WideHeight"/>
-    /// 把 412 减掉键行 60，正好装下海报 300 加两道边；那一叠连键长过海报时带子按实测跟着长），
-    /// 再让这一张跟着海报一起宽，那格带子就装不下它了。
-    /// </summary>
-    private const int PosterStillWidth = 210;
+    /// <summary>四种详情封面统一使用集页的 260×375 上限，按原图比例显示。</summary>
+    private const int PosterStillWidth = 260;
 
-    private const int PosterStillHeight = 300;
-
-    /// <summary>
-    /// 集页那一格封面有多大 —— 260×375 是在参考截图上量的，和其余页面那 210×300 一样是个定值，不随窗口宽走。
-    /// <para>
-    /// 它从前是版面里唯一吃窗口宽的一格（按页面对 1280 的比例等比缩，同一个窗口宽上集页那张因此比剧页那张
-    /// 小一圈、窄窗口里还在继续小）。2026-10-13 当天两句：「固定集页面封面的大小，拉窄窗口时不要缩小」先把宽
-    /// 版式那一档钉住，接着「切换到窄窗口时可以缩小」给紧凑版式留了一条按页宽收的曲线（<c>DetailHero.StillWidth</c>）
-    /// —— 同一天最后一句「窄窗口下不要封面」把那条曲线连同它的自变量一起作废：紧凑版式下这一格整个不画
-    /// （<see cref="DetailHero.ShowsStill"/>），画它的只有宽版式，而宽版式不跟着窗口缩。
-    /// </para>
-    /// <para>
-    /// 画出来的宽高再由 <see cref="DetailHero.StillBox"/> 按图片自己的比例从这个盒子里收窄一点（2:3 的剧海报
-    /// 是 250×375）—— 盒子本身不变。
-    /// </para>
-    /// </summary>
-    private const int EpisodeStillWidth = 260;
-
-    /// <summary>同 <see cref="EpisodeStillWidth"/> —— 那一格的高。</summary>
-    private const int EpisodeStillHeight = 375;
+    private const int PosterStillHeight = 375;
 
     /// <summary>
     /// 按封面画出来的宽取图 —— 取图宽度就是那一格的上限，不会出现「窄窗开出来一张小图、拉宽了再放大」。
     /// 取图不看当前显隐，窗口跨过紧凑断点时可直接显示已有图片。
     /// </summary>
-    private int StillDecodeWidth => IsEpisodePage ? EpisodeStillWidth : PosterStillWidth;
+    private static int StillDecodeWidth => PosterStillWidth;
 
     /// <summary>How many lines of 简介 are shown before 阅读更多 appears.</summary>
     private const int CollapsedLines = 4;
@@ -238,6 +214,7 @@ public sealed partial class DetailViewModel : PageViewModel
         InfoRows.CollectionChanged += (_, _) =>
         {
             OnPropertyChanged(nameof(InfoVisibility));
+            OnPropertyChanged(nameof(MediaInfoVisibility));
             OnPropertyChanged(nameof(OtherInfoRuleVisibility));
         };
     }
@@ -334,7 +311,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>
     /// 右上角那张艺术图 —— 「给集页面右上角添加艺术图」（2026-09-12）。哪一张归这儿是
     /// <see cref="ItemArtwork.Corner"/> 的事（这一集自己的，没有就借剧集那一层的）；这里只存解出来的那张。
-    /// 只在集页上画（见 <see cref="CornerVisibility"/>），服务器两头都没有的那一档这一格空着。
+    /// 集页与简洁模式电影、剧页显示（见 <see cref="CornerVisibility"/>），没有艺术图时收起。
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CornerVisibility))]
@@ -414,7 +391,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 那个属性随之退役），缩到八成的组件又小又松；现在组件保持原大小，行装不下就换行，换行的落点跟着
     /// <see cref="HeroLayoutWidth"/>（就是页面本身的宽）走。
     /// </summary>
-    public bool IsCompact => DetailHero.IsCompact(PageWidth);
+    // 简洁模式在窄窗也保留封面与双栏操作。沉浸模式和单集仍使用原紧凑断点。
+    public bool IsCompact => !PlainDetail && DetailHero.IsCompact(PageWidth);
 
     /// <summary>沉浸开关开启时，电影、剧、季宽窗直接让开正文纸面；窄窗仍使用紧凑排版。</summary>
     public bool Showcase => DetailHero.Immersive(ImmersiveEnabled, IsCompact, BackdropShown, ItemType);
@@ -440,6 +418,14 @@ public sealed partial class DetailViewModel : PageViewModel
     internal void RefreshAppearance()
     {
         SyncBackdrop();
+        RefitArtwork();
+        OnPropertyChanged(nameof(IsCompact));
+        OnPropertyChanged(nameof(StillVisibility));
+        OnPropertyChanged(nameof(CompactVisibility));
+        OnPropertyChanged(nameof(CornerVisibility));
+        OnPropertyChanged(nameof(ColumnActionsVisibility));
+        OnPropertyChanged(nameof(WideProgressVisibility));
+        OnPropertyChanged(nameof(PickersVisibility));
         // 设置切换不改变条目类型，不能走 AnnounceShape 的同类型早退。
         OnPropertyChanged(nameof(HeroCardVisibility));
         OnPropertyChanged(nameof(HeroCardShown));
@@ -975,8 +961,8 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 封面按图片原始比例装入自己那一格的上限盒 —— 集页 260×375（<see cref="EpisodeStillWidth"/>），其余页面
-    /// 210×300（<see cref="PosterStillWidth"/>）。两个盒子都是定值，不随窗口宽走：画它的只有宽版式
+    /// 封面按图片原始比例装入统一的 260×375 上限盒（<see cref="PosterStillWidth"/>），
+    /// 尺寸不随窗口宽走：简洁模式始终显示封面，其他模式只在宽版式显示。
     /// （<see cref="CoverShown"/> —— 紧凑版式下四种页面都不画，2026-10-13「窄窗口下不要封面」），而宽版式的组件
     /// 本来就不跟着窗口缩（「固定集页面封面的大小，拉窄窗口时不要缩小」，同一天的第一句）。不画的档先把宽高归零，
     /// 避免隐藏封面仍占据头部高度。
@@ -998,8 +984,8 @@ public sealed partial class DetailViewModel : PageViewModel
             return;
         }
 
-        var maxW = IsEpisodePage ? (double)EpisodeStillWidth : PosterStillWidth;
-        var maxH = IsEpisodePage ? (double)EpisodeStillHeight : PosterStillHeight;
+        var maxW = (double)PosterStillWidth;
+        var maxH = (double)PosterStillHeight;
 
         if (_stillPixels is { } pixels
             && DetailHero.StillBox(pixels.Width, pixels.Height, maxW, maxH) is { } fit)
@@ -1022,6 +1008,7 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         OnPropertyChanged(nameof(CornerMaxWidth));
         OnPropertyChanged(nameof(CornerMaxHeight));
+        OnPropertyChanged(nameof(CornerVisibility));
 
         var maxW = CornerMaxWidth;
 
@@ -1032,7 +1019,7 @@ public sealed partial class DetailViewModel : PageViewModel
         {
             CornerHeight = fit.Height;
         }
-        else if (_cornerPixels is null)
+        else
         {
             CornerHeight = 0;
         }
@@ -1288,7 +1275,7 @@ public sealed partial class DetailViewModel : PageViewModel
     public Thickness TailInset => IsCompact
         ? new(2, 12, 2, 8)
         : HeroCard
-            ? new(StackLeft, 12, StackLeft, 0)
+            ? new(StackLeft, 12, PlainDetail ? 48 : StackLeft, 0)
             : new(
                 8,
                 IsEpisodePage
@@ -1855,16 +1842,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public Visibility PlateVisibility => Show(PlateImage is not null);
 
-    /// <summary>
-    /// 右上角那张艺术图画不画。三句话：图解出来了没有；这一页是不是集页 —— 用户点的名是「集页面」，剧、电影
-    /// 页面的那一角是他同一天下令去掉的（「去掉剧页面、电影页面右上角的艺术图」），季页从来不在里头；以及版式
-    /// 还宽得摆得下 —— 紧凑版式是单列，一张 480 宽的画没有地方站，让位。
-    /// <para>
-    /// 「是不是集页」跟着页面的种类走，所以要在 <see cref="AnnounceShape"/> 里喊一声；「宽窄」跟着
-    /// <see cref="PageWidth"/> 走，那一头的通知挂在它的 setter 上。
-    /// </para>
-    /// </summary>
-    public Visibility CornerVisibility => Show(CornerImage is not null && IsEpisodePage && !IsCompact);
+    /// <summary>集页与简洁模式电影、剧页显示艺术图；没有图或标题栏空间不足时收起。</summary>
+    public Visibility CornerVisibility => Show(CornerImage is not null && !IsCompact && CornerMaxWidth > 0
+        && (IsEpisodePage || PlainDetail && ItemType is EmbyItemType.Movie or EmbyItemType.Series));
 
     /// <summary>
     /// 页面最底下那张横幅画不画。两句话：图解出来了没有，以及这一页是不是那三种页面之一 —— 用户点的名是「电影
@@ -2164,6 +2144,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public Visibility InfoVisibility => Show(CardVisible("info") && (InfoRows.Count > 0 || OtherFacts.Count > 0));
 
+    public Visibility MediaInfoVisibility => Show(InfoRows.Count > 0);
+
     /// <summary>The episodes on screen, for the player's 下一集 and for the context menu's 本季 commands.</summary>
     internal IReadOnlyList<EmbyItem> Episodes => _episodes;
 
@@ -2284,6 +2266,10 @@ public sealed partial class DetailViewModel : PageViewModel
         _seed = request.Item;
         _settings = settings;
         RefreshCardLayout();
+
+        OnPropertyChanged(nameof(IsCompact));
+        OnPropertyChanged(nameof(StillVisibility));
+        OnPropertyChanged(nameof(CompactVisibility));
         _session = session;
         _images = images;
         _removed = request.Services?.GetService(typeof(RemovedMedia)) as RemovedMedia;
@@ -2519,6 +2505,10 @@ public sealed partial class DetailViewModel : PageViewModel
         _announcedShapeType = null;
         var lifetime = _lifetime;
         RefreshCardLayout();
+        RefitArtwork();
+        OnPropertyChanged(nameof(IsCompact));
+        OnPropertyChanged(nameof(StillVisibility));
+        OnPropertyChanged(nameof(CompactVisibility));
 
         // 单集 changes shape with the kind of page this is, and that is a fact about the item rather than
         // about the shelf — no collection has changed here, so nothing else would say it. Raised right after
@@ -3520,12 +3510,13 @@ public sealed partial class DetailViewModel : PageViewModel
 
         // 右上角那张艺术图（「给集页面右上角添加艺术图」）：哪一张归这儿由 <see cref="ItemArtwork.Corner"/> 定 ——
         // 这一集自己的，没有就借剧集那一层的（show 在 WhenAll 外头就已经在路上了，这里等它回来再问一次标签）。
-        // 只在集页上画，所以取图也只此一档：剧、电影页面的那一角是用户同一天去掉的，连问都不问。
+        // 电影和剧预取自身艺术图，使同页切到简洁模式时立即显示；集页保留借父剧的路径。
         async Task<BitmapImage?> CornerAsync(EmbyItem page, Task<EmbyItem?> show, CancellationToken token)
         {
-            if (page.Type != EmbyItemType.Episode) return null;
+            if (page.Type is not (EmbyItemType.Episode or EmbyItemType.Movie or EmbyItemType.Series)) return null;
 
-            var pick = ItemArtwork.Corner(page, await show.ConfigureAwait(true));
+            var pick = ItemArtwork.Corner(page,
+                page.Type == EmbyItemType.Episode ? await show.ConfigureAwait(true) : null);
 
             return await DecodeFirstAsync(Refs(pick), CornerDecodeWidth, token).ConfigureAwait(true);
         }

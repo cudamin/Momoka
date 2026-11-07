@@ -227,15 +227,48 @@ internal sealed partial class ShellNavigationProbe
         await LayoutAsync(page);
         Require(page.ViewModel.Showcase, "还原宽窗退出了沉浸模式");
         RequireResponsiveBindings(page);
-        foreach (var width in new[] { 1200, 760 })
+        foreach (var width in new[] { 1200, 760, 600, 1023, 1024 })
         {
             await ResizeResponsiveAsync(page, width, 900);
             ui.EnableImmersive = false;
             ShellPrefs.ApplyAppearance(ui);
             await LayoutAsync(page);
-            Require(!page.ViewModel.BackdropShown && !page.ViewModel.Showcase
-                && page.ViewModel.HeroCardShown == (width >= DetailHero.CompactFloor),
-                "关闭沉浸后没有使用宽窗卡面或仍铺背景");
+            var view = page.ViewModel;
+            Require(!view.BackdropShown && !view.Showcase && !view.IsCompact && view.HeroCardShown,
+                "简洁模式必须在所有窗口尺寸保留卡面");
+            var cover = Get<Border>(page, "PosterStill");
+            Require(cover.Visibility == Visibility.Visible && Math.Abs(cover.ActualWidth - 250) < 1
+                && Math.Abs(cover.ActualHeight - 375) < 1, "详情封面没有统一为集页尺寸");
+            Require(Get<StackPanel>(page, "CompactBlock").Visibility == Visibility.Collapsed
+                && Get<StackPanel>(page, "ColumnActions").Visibility == Visibility.Visible,
+                "简洁模式仍切换到窄窗操作");
+            var corner = Get<Image>(page, "CornerArt");
+            var hasCorner = view.ItemType is EmbyItemType.Movie or EmbyItemType.Series && view.CornerMaxWidth > 0;
+            Require((corner.Visibility == Visibility.Visible) == hasCorner && (!hasCorner || corner.Source is not null),
+                "简洁模式电影和剧的艺术图未按空间显示或季页错误显示艺术图");
+            if (hasCorner)
+            {
+                var picture = view.CornerImage;
+                try
+                {
+                    view.CornerImage = null;
+                    await LayoutAsync(page);
+                    Require(corner.Visibility == Visibility.Collapsed, "没有艺术图时仍留下空图框");
+                }
+                finally { view.CornerImage = picture; }
+                await LayoutAsync(page);
+                Require(corner.Visibility == Visibility.Visible, "艺术图恢复后没有立即显示");
+            }
+            var prose = Get<TextBlock>(page, "Overview");
+            Require(prose.ActualWidth > 120 && Bounds(prose, page).Right <= view.PageWidth + 1,
+                "简洁模式窄窗简介被内边距挤掉或超出页面");
+            Require(Get<StackPanel>(page, "HeroStack").ActualWidth > 120, "简洁模式窄窗标题列不可用");
+            var mediaTitle = Get<TextBlock>(page, "MediaInfoTitle");
+            Require((mediaTitle.Visibility == Visibility.Visible) == (view.InfoRows.Count > 0)
+                && mediaTitle.Text == "媒体信息", "媒体信息子标题未跟随文件表显隐");
+            if (view.InfoRows.Count > 0)
+                Require(Bounds(mediaTitle, page).Bottom <= Bounds(Get<ItemsRepeater>(page, "InfoTable"), page).Top,
+                    "媒体信息子标题没有位于文件信息上方");
             Require(page.ViewModel.TailMinHeight == 0, "关闭沉浸仍留有背景占位");
             RequireResponsiveBindings(page);
             await SaveProbeScreenAsync($"detail-responsive-{page.ViewModel.ItemType}-disabled-{width}.png");
@@ -244,6 +277,7 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(page.ViewModel.BackdropShown && page.ViewModel.Showcase == (width >= DetailHero.CompactFloor)
                 && !page.ViewModel.HeroCardShown, "恢复沉浸没有恢复宽窄排版与背景图");
+            Require(corner.Visibility == Visibility.Collapsed, "恢复沉浸后未收起电影或剧艺术图");
             RequireResponsiveBindings(page);
             Require(ReferenceEquals(target, page.ViewModel.PlayTarget), "开关切换或最大化改变了播放目标");
         }

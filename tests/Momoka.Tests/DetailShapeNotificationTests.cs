@@ -71,7 +71,8 @@ internal static partial class DetailActionReadinessTests
                 Assert.True(ReferenceEquals(target, f.Get("PlayTarget")), "外观切换改变播放目标");
                 Set("PageWidth", 760d);
                 Assert.False((bool)f.Get("BackdropShown")!);
-                Assert.False((bool)f.Get("HeroCardShown")!);
+                Assert.True((bool)f.Get("HeroCardShown")!, "简洁模式窄窗继续使用卡面");
+                Assert.False((bool)f.Get("IsCompact")!);
                 Set("PageWidth", 1200d);
                 Assert.True((bool)f.Get("HeroCardShown")!);
                 enabled.SetValue(f.Ui, true);
@@ -81,6 +82,70 @@ internal static partial class DetailActionReadinessTests
                 Assert.True((bool)f.Get("Showcase")!);
                 Assert.False((bool)f.Get("HeroCardShown")!);
             }
+        });
+
+        Test("详情封面：四类页面统一集页尺寸并保留原图比例", () =>
+        {
+            foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
+            {
+                using var f = new Fixture(assembly, root, shape);
+                Await(f.Load());
+                f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 1200d);
+                f.Vm.GetType().GetField("_stillPixels", Members)!.SetValue(f.Vm, (400, 600));
+                f.Vm.GetType().GetMethod("RefitArtwork", Members)!.Invoke(f.Vm, null);
+                Assert.Equal(250d, (double)f.Get("StillWidth")!);
+                Assert.Equal(375d, (double)f.Get("StillHeight")!);
+            }
+        });
+
+        Test("简洁模式：跨窄窗断点保留封面、双栏操作并同页恢复紧凑模式", () =>
+        {
+            foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season })
+            {
+                using var f = new Fixture(assembly, root, shape);
+                Await(f.Load());
+                f.Vm.GetType().GetField("_stillPixels", Members)!.SetValue(f.Vm, (400, 600));
+                void Refresh() => f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
+                var notices = new List<string>();
+                ((INotifyPropertyChanged)f.Vm).PropertyChanged += (_, args) => notices.Add(args.PropertyName ?? "");
+                foreach (var width in new[] { 600d, 760d, 1023d, 1024d, 1200d })
+                {
+                    f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
+                    f.Ui.EnableImmersive = false;
+                    notices.Clear();
+                    Refresh();
+                    Assert.False((bool)f.Get("IsCompact")!);
+                    Assert.True((bool)f.Get("HeroCardShown")!);
+                    Assert.Equal(250d, (double)f.Get("StillWidth")!);
+                    Assert.Equal(375d, (double)f.Get("StillHeight")!);
+                    Assert.Equal("Collapsed", f.Get("CompactVisibility")!.ToString());
+                    Assert.Equal("Visible", f.Get("ColumnActionsVisibility")!.ToString());
+                    foreach (var name in new[] { "IsCompact", "StillVisibility", "CompactVisibility", "CornerVisibility", "ColumnActionsVisibility", "WideProgressVisibility", "PickersVisibility" })
+                        Assert.True(notices.Contains(name), "模式切换缺少通知：" + name);
+                    f.Ui.EnableImmersive = true;
+                    Refresh();
+                    Assert.Equal(width < DetailHero.CompactFloor, (bool)f.Get("IsCompact")!);
+                    Assert.Equal(width < DetailHero.CompactFloor ? 0d : 375d, (double)f.Get("StillHeight")!);
+                }
+            }
+        });
+
+        Test("简洁模式：主体更正为单集时重新通知紧凑布局并清除封面占位", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Movie);
+            f.Ui.EnableImmersive = false;
+            f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 760d);
+            Await(f.Load());
+            f.Vm.GetType().GetField("_stillPixels", Members)!.SetValue(f.Vm, (400, 600));
+            f.Vm.GetType().GetMethod("RefitArtwork", Members)!.Invoke(f.Vm, null);
+            var notices = new List<string>();
+            ((INotifyPropertyChanged)f.Vm).PropertyChanged += (_, args) => notices.Add(args.PropertyName ?? "");
+            f.Seed.Type = EmbyItemType.Episode;
+            Await(f.Load());
+            Assert.True((bool)f.Get("IsCompact")!);
+            Assert.Equal(0d, (double)f.Get("StillHeight")!);
+            foreach (var name in new[] { "IsCompact", "CompactVisibility", "StillVisibility" })
+                Assert.True(notices.Contains(name), "类型更正缺少布局通知：" + name);
         });
 
         Test("沉浸总开关：单集仍宽窗卡面、窄窗背景", () =>
