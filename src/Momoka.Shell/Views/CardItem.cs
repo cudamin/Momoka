@@ -155,7 +155,7 @@ public sealed class CardItem : INotifyPropertyChanged
                 var key = PosterCache.Key(scope.Connection, _item.Id, EmbyImageStore.Primary, path, width);
                 if (PosterCache.TryGet(key, out var kept))
                 {
-                    SetCollageTile(index, kept);
+                    if (_wanted) SetCollageTile(index, kept);
                     continue;
                 }
 
