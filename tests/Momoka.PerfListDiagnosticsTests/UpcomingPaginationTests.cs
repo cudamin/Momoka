@@ -12,6 +12,29 @@ internal static class UpcomingPaginationTests
 {
     internal static void Register()
     {
+        Test("PERF-06 真LoadAsync：已删项过滤仍保留原始读进度，重载清旧offset", () =>
+            SingleThreadPump.Run(async () =>
+            {
+                using var env = new MemoryEnvironment();
+                var source = env.Source("removed", "account");
+                using var vm = new LibraryViewModel(env.Images);
+                vm.SwitchSource(source);
+                vm.Hide(source.Bind(Item("deleted", null)));
+                vm.Read = (_, _) => Task.FromResult<ItemsResult?>(new()
+                {
+                    Items = [source.Bind(Item("deleted", null)), source.Bind(Item("retained", null))],
+                    TotalRecordCount = 4
+                });
+                await vm.Load(true);
+                Assert.Equal("retained", vm.Cards.Single().Item.Id);
+                Assert.Equal(2, vm.ReadCount);
+                Assert.Equal(2, vm.RawReadEnd);
+                vm.Read = (_, _) => Task.FromResult<ItemsResult?>(new() { Items = [], TotalRecordCount = 0 });
+                await vm.Load(true);
+                Assert.Equal(0, vm.ReadCount);
+                Assert.Equal(0, vm.RawReadEnd);
+                Assert.Equal(0, vm.Cards.Count);
+            }));
         foreach (var dated in new[] { true, false })
             Test("PERF-06 真实分组：1万同" + (dated ? "日" : "未知日期") + "加100仅Add并保留集合／卡identity", () =>
             {

@@ -19,6 +19,10 @@ public sealed partial class LibraryViewModel : PageViewModel
     private readonly LoadGeneration _jumps = new();
     private readonly LoadGeneration _favoriteLoads = new();
     private readonly HashSet<string> _resumeRead = new(StringComparer.Ordinal);
+    private readonly RemovedMedia _removed = new();
+    private int _rawReadEnd;
+    internal void Hide(EmbyItem item) => _removed.Remember(item);
+    internal int RawReadEnd => _rawReadEnd;
     private CancellationToken _queryToken;
     private AggregateQueryCursor? _cursor;
     private bool _firstPage;

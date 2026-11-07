@@ -1,5 +1,7 @@
 # PERF-06 / PERF-10 定向真实源码回归
 
+2026-11-07 提取边界兼容：当前正式入口73项。夹具补实际 Core `RemovedMedia` 与原始 offset 字段，完整生产 `LoadAsync` 仍原样提取。新增已删项过滤不丢原始读取进度、reset 重载清旧 offset 的回归；当前 Release/x64 零警告错误、73/73通过。源码哈希、错误树、重解析路径、缺方法和守卫拒绝保持原有规则。
+
 ## 独立入口
 
 - 项目：tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj。
