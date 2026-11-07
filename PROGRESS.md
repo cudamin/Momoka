@@ -11210,3 +11210,6 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 新增35项；Plex旧8败后224/224，飞牛旧8败后139/139，零跳过。Tests/Core Release/x64、SDK10.0.400、DebugSymbols=false/DebugType=None零警告错误，15文本编码与定向空白通过。飞牛夹具首次漏PlaySessionId编译1错，已补齐重编，原失败保留artifacts/review-batch5。完整主测试与一次独立只读复审进行中。
 - 本会话负责本批主树整合、重验与实际桌面发布；其它活动聊天正在独立6d68树制作背景颜色Demo，本批避开其界面范围。当前未更新共享交付，无版本/依赖变动、ZIP/MSIX或上传。未连接真实服务、读取凭据、真实播放/写入或执行实际WinUI与Finish/EOF；匿名详情/规划/报文与分页规则不冒实服验收。
 - R05-002、R17-003/009/011本次只读重核仍成立，未纳本批，保留后续候选。详见FIFTH-REPAIRS.md。
+
+- 第五批主树最终交付完成：快进9c023c4保留0fd7e7e/df056d0，Tests/Core/Shell Release/x64零警告错误；完整4094/4094、Plex224/224、飞牛139/139，零失败零跳过。16文本及102文档链接、开发定向空白通过，一次独立复审无本批必要发现。17份原红/绿/编译失败已复制主树逐SHA核对。
+- publish/verify退出0，0.2.5.0，546文件300302207字节（比第四批+512字节）；已测Core/当前Core/发布Core均08D448CE…，Shell当前构建/发布均9ECFF465…；快捷方式目标/工作目录为主树artifacts/publish/win-x64、参数空。回执artifacts/review-batch5-master/delivery-receipt.json。无ZIP/MSIX/上传、真实服务、GUI、播放/写入或Finish/EOF验证。当前无待合或待交付产品，本会话释放主树写入占用；primary托管树按已确认保护保留。此条仅文档，不重建或重发。

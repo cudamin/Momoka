@@ -50,7 +50,7 @@
 ## Task 3: 批次收尾
 
 - [x] 一次独立只读复审本批范围，未发现本批必要新缺陷。
-- [ ] 同步后端技能、支持说明、第五批台账及 PROGRESS，保留其它候选的具体状态。
-- [ ] 检查其它聊天与主树状态后整合；主树 Tests/Core/Shell 零警告错误，完整主测试和本批专项通过。
-- [ ] 目标程序退出后，主树 tools/publish.ps1 -NoArchive -Shortcut -DotnetPath C:/Users/89400/.dotnet/dotnet.exe；核当前测试/发布 Core 哈希及快捷方式，保存证据。
-- [ ] 记录最终交付与验证缺口，不声明真实服务或实际播放通过。
+- [x] 同步后端技能、支持说明、第五批台账及 PROGRESS，保留其它候选的具体状态。
+- [x] 检查其它聊天与主树状态后整合；主树 Tests/Core/Shell 零警告错误，完整主测试和本批专项通过。
+- [x] 目标程序退出后，主树 tools/publish.ps1 -NoArchive -Shortcut -DotnetPath C:/Users/89400/.dotnet/dotnet.exe；核当前测试/发布 Core 哈希及快捷方式，保存证据。
+- [x] 记录最终交付与验证缺口，不声明真实服务或实际播放通过。
