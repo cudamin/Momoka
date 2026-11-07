@@ -1094,6 +1094,7 @@ internal static class LibraryResumePagingTests
 
         /// <summary>按来源闸住主页「接下来看」的读取。</summary>
         public Dictionary<string, Gate> HomeNextUpGates { get; } = new(StringComparer.Ordinal);
+        public bool FailHomeNextUp { get; set; }
         public bool FailNextResume { get; set; }
         public bool FailReleasedTag { get; set; }
         public ConcurrentQueue<(string Host, int Start, int Limit)> LibraryReads { get; } = new();
@@ -1152,6 +1153,7 @@ internal static class LibraryResumePagingTests
             }
             else if (uri.AbsolutePath.EndsWith("/Shows/NextUp", StringComparison.Ordinal))
             {
+                if (HomeReads && FailHomeNextUp) throw new IOException("fixture home next-up failure");
                 if (HomeReads && HomeNextUpGates.TryGetValue(host, out var homeNextGate))
                 {
                     homeNextGate.Entered.TrySetResult();

@@ -34,6 +34,36 @@ internal static class ReviewFoundationTests
     internal static int RunViews(string shellPath, string root)
     {
         var shell = new ShellFixture(shellPath, root);
+        Case("R06-005 NextUp后台失败保留暖缓存，成功空列表才清空", async () =>
+        {
+            using var fixture = new Fixture(shell, 2, firstKind: MediaServerKind.Jellyfin);
+            fixture.Transport.NextUpRows["a"] = [new EmbyItem { Id = "next", Name = "Next", Type = EmbyItemType.Episode }];
+            var store = new BrowseSnapshotStore();
+            var first = fixture.CreateLoadingHome(snapshots: store);
+            await fixture.LoadHome(first);
+            ((IDisposable)first).Dispose();
+            var home = fixture.CreateLoadingHome(snapshots: store);
+            try
+            {
+                Assert.True((bool)shell.Invoke(home, "RestoreSnapshot")!);
+                var shelf = fixture.HomeShelf(home, "接下来看");
+                Assert.Equal(1, Cards(shell, shelf).Count);
+                fixture.Transport.FailHomeNextUp = true;
+                await (Task)shell.Invoke(home, "BackgroundRefreshAsync")!;
+                Assert.Equal(1, Cards(shell, shelf).Count);
+                fixture.Transport.FailHomeNextUp = false;
+                fixture.Transport.NextUpRows["a"] = [];
+                await (Task)shell.Invoke(home, "BackgroundRefreshAsync")!;
+                Assert.Equal(0, Cards(shell, shelf).Count);
+            }
+            finally { ((IDisposable)home).Dispose(); }
+        });
+        Case("R06-010 固定媒体库标题不提供无目标入口，具体库仍可打开", () =>
+        {
+            Assert.Equal(HomeLayout.HomeRowTarget.None, HomeLayout.TargetOf(HomeLayout.Libraries));
+            Assert.Equal(HomeLayout.HomeRowTarget.Library, HomeLayout.TargetOf(HomeLayout.LibraryKey("movies")));
+            return Task.CompletedTask;
+        });
         foreach (var aggregate in new[] { false, true })
         {
             Case("R06-001 暖缓存少量新增后完整消费批次不漏随后页 " + aggregate, async () =>

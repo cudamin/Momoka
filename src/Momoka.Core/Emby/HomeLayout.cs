@@ -115,16 +115,14 @@ public static class HomeLayout
     /// <summary>
     /// 这把钥匙的那一排点进去是哪一页。<see cref="HomeRowTarget.None"/> 就是点不动。
     /// <para>
-    /// 媒体库那几排一个都不落（<see cref="LibraryId"/> 认得出前缀的就算数），三排固定的里「媒体库」那一排
-    /// 也是 <see cref="HomeRowTarget.Library"/> —— 它装的是这个账号那几个库的卡片，点它进的就是库列表那一条
-    /// 导航。剩下两排各归各的。
+    /// 具体媒体库按 <see cref="LibraryId"/> 导航；固定「媒体库」标题没有单个库目标，入口由库卡提供。
     /// </para>
     /// </summary>
     public static HomeRowTarget TargetOf(string? key) => key switch
     {
         Resume => HomeRowTarget.Resume,
         NextUp => HomeRowTarget.NextUp,
-        Libraries => HomeRowTarget.Library,
+        Libraries => HomeRowTarget.None,
         _ => LibraryId(key) is { Length: > 0 } ? HomeRowTarget.Library : HomeRowTarget.None
     };
 
