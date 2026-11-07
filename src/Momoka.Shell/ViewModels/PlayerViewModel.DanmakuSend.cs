@@ -87,7 +87,15 @@ public sealed partial class PlayerViewModel
     private async Task SendNativeDanmakuAsync(string payload)
     {
         var input = MpvDanmaku.ParseSend(payload);
-        if (input is null || input.Context != _danmakuInputContext || !_danmakuNativeRequests.Add(input.RequestId)) return;
+        if (input is null)
+        {
+            var envelope = MpvDanmaku.ParseSendEnvelope(payload);
+            if (envelope is null || envelope.Context != _danmakuInputContext || !_danmakuNativeRequests.Add(envelope.RequestId)) return;
+            await _playback.CommandAsync("script-message", MpvDanmaku.InputResult, JsonSerializer.Serialize(new
+            { context = envelope.Context, requestId = envelope.RequestId, success = false, message = "弹幕内容无效，请修改后重试。" })).ConfigureAwait(true);
+            return;
+        }
+        if (input.Context != _danmakuInputContext || !_danmakuNativeRequests.Add(input.RequestId)) return;
         await SendDanmakuTextAsync(input.Text, input.Context, input.RequestId).ConfigureAwait(true);
     }
 

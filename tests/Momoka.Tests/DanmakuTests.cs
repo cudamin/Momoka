@@ -663,6 +663,12 @@ internal static class DanmakuTests
         {
             var payload = JsonSerializer.Serialize(new { context = new string('a', 32), requestId = "1", text = "中文; quit" });
             Assert.Equal("中文; quit", MpvDanmaku.ParseSend(payload)!.Text);
+            var invalidText = JsonSerializer.Serialize(new { context = new string('a', 32), requestId = "recoverable", text = "bad\u0080" });
+            Assert.Null(MpvDanmaku.ParseSend(invalidText));
+            var parseEnvelope = typeof(MpvDanmaku).GetMethod("ParseSendEnvelope");
+            Assert.NotNull(parseEnvelope);
+            var envelope = parseEnvelope!.Invoke(null, [invalidText]);
+            Assert.NotNull(envelope);
             Assert.NotNull(VideoWindowContract.Parse([MpvDanmaku.Send, payload]));
             foreach (var invalid in new[] { "[]", "{}", "bad", new string('a', 2049),
                 JsonSerializer.Serialize(new { context = "old", requestId = "1", text = "测试" }),

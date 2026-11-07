@@ -45,6 +45,13 @@ public static class MpvDanmaku
 
     public static SendRequest? ParseSend(string payload)
     {
+        var input = ParseSendEnvelope(payload);
+        return input is { Text.Length: > 0 and <= 100 } && !input.Text.Any(char.IsControl) ? input : null;
+    }
+
+    /// <summary>只核请求归属，非法正文也能带回失败回执以解除独占输入的 pending。</summary>
+    public static SendRequest? ParseSendEnvelope(string payload)
+    {
         if (payload.Length > 2048) return null;
         try
         {
@@ -56,9 +63,8 @@ public static class MpvDanmaku
             var request = Read("requestId");
             var text = Read("text");
             if (context is not { Length: 32 } || !context.All(char.IsAsciiHexDigit)
-                || request is not { Length: > 0 and <= 80 } || request.Any(char.IsControl)
-                || text is not { Length: > 0 and <= 100 } || text.Any(char.IsControl)) return null;
-            return new(context, request, text);
+                || request is not { Length: > 0 and <= 80 } || request.Any(char.IsControl)) return null;
+            return new(context, request, text ?? "");
         }
         catch (JsonException) { return null; }
     }

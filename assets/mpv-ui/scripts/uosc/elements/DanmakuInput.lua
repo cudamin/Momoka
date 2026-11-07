@@ -81,7 +81,7 @@ end
 
 function DanmakuInput:insert(text)
 	if not self.focused or type(text) ~= 'string' then return end
-	text = text:gsub('[\r\n\t]', ' '):gsub('[%z\1-\31\127]', '')
+	text = text:gsub('[\r\n\t]', ' '):gsub('[%z\1-\31\127]', ''):gsub('\194[\128-\159]', '')
 	local head = self.selected_all and '' or self.text:sub(1, self.position)
 	local tail = self.selected_all and '' or self.text:sub(self.position + 1)
 	local remaining, parts = 100 - utf16_length(head .. tail), {}
