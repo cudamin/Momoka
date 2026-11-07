@@ -897,6 +897,61 @@ public static class ItemDetail
         return seasons.FirstOrDefault(season => SameSeasonAs(item, season));
     }
 
+    /// <summary>集页展示的单季列表。特别篇按正片季第一集的首播日归季，不修改服务器编号或播放队列。</summary>
+    public static IReadOnlyList<EmbyItem> DisplaySeasonEpisodes(
+        IReadOnlyList<EmbyItem> episodes, IReadOnlyList<EmbyItem> seasons, EmbyItem season)
+    {
+        var starts = DisplaySeasonStarts(episodes, seasons);
+        return AirOrder(episodes.Where(episode => IsSpecial(episode)
+            ? DisplaySpecialSeason(starts, episode) is { } owner
+                ? owner.Id.Length > 0 && season.Id.Length > 0
+                    ? owner.Id == season.Id : owner.IndexNumber == season.IndexNumber
+                : season.IndexNumber == 0
+            : SameSeasonAs(episode, season)).ToList());
+    }
+
+    /// <summary>打开特别篇时使用它的展示季；没有足够日期边界时仍使用 S00。</summary>
+    public static EmbyItem? DisplaySeasonOf(
+        IReadOnlyList<EmbyItem> episodes, IReadOnlyList<EmbyItem> seasons, EmbyItem episode) =>
+        IsSpecial(episode)
+            ? DisplaySpecialSeason(DisplaySeasonStarts(episodes, seasons), episode) ?? SeasonOf(seasons, episode)
+            : SeasonOf(seasons, episode);
+
+    private static (EmbyItem Season, DateTimeOffset? Date)[] DisplaySeasonStarts(
+        IReadOnlyList<EmbyItem> episodes, IReadOnlyList<EmbyItem> seasons)
+    {
+        var numbered = seasons.Where(season => season.IndexNumber > 0).OrderBy(season => season.IndexNumber).ToArray();
+        // 季清单读取失败时，仍用集列表已经给出的季身份；不拿第二集或季对象日期猜第一集首播日。
+        if (numbered.Length == 0)
+            numbered = episodes.Where(episode => episode.ParentIndexNumber > 0)
+                .GroupBy(episode => episode.ParentIndexNumber)
+                .OrderBy(group => group.Key)
+                .Select(group => new EmbyItem
+                {
+                    Id = group.First().SeasonId ?? "", Name = group.First().SeasonName ?? "",
+                    Type = EmbyItemType.Season, IndexNumber = group.Key
+                }).ToArray();
+        return numbered.Select(season => (season,
+            episodes.Where(episode => !IsSpecial(episode) && episode.IndexNumber == 1 && SameSeasonAs(episode, season))
+                .Select(episode => episode.PremiereDate).OrderBy(date => date is null).ThenBy(date => date).FirstOrDefault()))
+            .ToArray();
+    }
+
+    private static EmbyItem? DisplaySpecialSeason(
+        IReadOnlyList<(EmbyItem Season, DateTimeOffset? Date)> starts, EmbyItem episode)
+    {
+        if (episode.PremiereDate is not { } date || starts.Count == 0) return null;
+        if (starts[0].Date is { } first && date < first) return starts[0].Season;
+        for (var index = starts.Count - 1; index >= 0; index--)
+        {
+            var (season, start) = starts[index];
+            if (start is not { } from || date < from) continue;
+            if (index == starts.Count - 1 || starts[index + 1].Date is { } until && from < until && date < until)
+                return season;
+        }
+        return null;
+    }
+
     /// <summary>
     /// 剧页「其他信息」卡里的媒体信息该描述哪一集（2026-11-02 用户令「参考集页面的更多信息卡片给剧页面
     /// 的更多信息卡片也加上媒体信息，没有播放记录就用第一集的，有播放记录就用播放记录那一集」）。

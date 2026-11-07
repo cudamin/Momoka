@@ -129,6 +129,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 标记本季已看 knows what 本季 is.
     /// </summary>
     private readonly List<EmbyItem> _episodes = [];
+    private readonly List<EmbyItem> _shownEpisodes = [];
     private readonly HashSet<string> _deletedItems = new(StringComparer.Ordinal);
     private readonly HashSet<string> _deletedSourceIds = new(StringComparer.Ordinal);
     private readonly HashSet<string> _deletedSourcePaths = new(StringComparer.Ordinal);
@@ -2130,19 +2131,18 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 让人多点一次（用户令 2026-11-02「当剧集只有一季时，在剧页面不显示『全部剧集』卡片」）。季下拉框原来在同一个
     /// 条件上收起（<see cref="SeasonVisibility"/>），那颗 2026-11-02 已删；判据仍然只写这一份。
     /// <para>
-    /// 这一条对剧页和集页同时成立：集页那张卡由 <see cref="LoadSeasonShelfAsync"/> 填（同日用户令「集页面也加上
-    /// 全部剧季卡片」），单季的集页因此也不会画出这一块。电影、季两页的季卡永远是空的，整块收着。
+    /// 仅剧页显示全部剧季；集页于 2026-11-08 按用户指定移除，季菜单仍保留。
     /// </para>
     /// <para>
     /// 卡带里从 2026-11-03 晚起也列第 0 季（用户令要 S00 的封面），所以「一季正片 + 特别篇」的剧页、集页
-    /// 会画出这一块 —— 那两张卡指向两个不同的季页面，不是同一张卡摆两遍。
+    /// 会在剧页画出这一块，两个入口分别指向正片季和特别篇季。
     /// </para>
     /// </summary>
-    public Visibility SeasonShelfVisibility => Show(CardVisible("seasons") && SeasonShelf is { Cards.Count: > 1 });
+    public Visibility SeasonShelfVisibility => Show(_detail?.Type == EmbyItemType.Series
+        && CardVisible("seasons") && SeasonShelf is { Cards.Count: > 1 });
 
     /// <summary>
-    /// 集列表牌子能不能点开季列表。剧页和集页的集列表现在是全剧一条（按播出时间排），所以两页都要能按季
-    /// 把带子对到某一季的第一张；只有一季时没有可选的，牌子保持不可点。
+    /// 集列表牌子能不能点开季菜单。剧页按季定位全剧列表，集页替换为所选季；只有一季时不可点。
     /// </summary>
     public bool CanPickEpisodeSeason =>
         _detail?.Type is EmbyItemType.Series or EmbyItemType.Episode
@@ -2167,6 +2167,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>The episodes on screen, for the player's 下一集 and for the context menu's 本季 commands.</summary>
     internal IReadOnlyList<EmbyItem> Episodes => _episodes;
+    internal IReadOnlyList<EmbyItem> ShownEpisodes => _shownEpisodes;
 
     /// <summary>
     /// The fully loaded item behind this page. The page reads it when it needs to build a view-only
@@ -2400,12 +2401,9 @@ public sealed partial class DetailViewModel : PageViewModel
                 // An episode page lists its own siblings, which is what anyone who just finished one is
                 // looking for. It keeps itself as the play target, so retarget is false.
                 case EmbyItemType.Episode:
-                    // 集页那张「全部剧季」卡（2026-11-02 用户令「集页面也加上全部剧季卡片」）与兄弟集那一趟同时起：
-                    // 两者互不依赖，而季清单慢一点不该把集列表拖在后面。也在 EndLoad 之前落地 —— 页面说自己加载完的
-                    // 时候，屏上该有的都在；失败各自吞掉（季清单取不到就少一张卡，不影响这一页其余内容）。
-                    var seasonShelf = LoadSeasonShelfAsync(detail, token);
+                    // 先取得季边界，再发布单季列表，避免特别篇先显示在 S00 后又跳到正片季。
+                    await LoadSeasonShelfAsync(detail, token).ConfigureAwait(true);
                     await LoadEpisodesAsync(null, retarget: false, token).ConfigureAwait(true);
-                    await seasonShelf.ConfigureAwait(true);
                     break;
             }
             NavigationTiming.Mark("branch-end");
@@ -2742,6 +2740,7 @@ public sealed partial class DetailViewModel : PageViewModel
         _detail = item;
         _loadedSeason = null;
         _episodes.Clear();
+        _shownEpisodes.Clear();
         _infoEpisode = null;
         _infoSource = null;
 
@@ -3059,25 +3058,12 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 集页那张「全部剧季」卡 —— 2026-11-02 用户令「集页面也加上全部剧季卡片」。剧页那一份由
-    /// <see cref="LoadSeriesAsync"/> 顺手填好（它本来就要读这部剧的季清单去挑一季来列集）；集页没有那一趟 ——
-    /// 这一页不读这部剧自己的详情 —— 所以这里单独问一遍季清单。
-    /// <para>
-    /// **只填 <see cref="SeasonShelf"/>，不碰 <see cref="Seasons"/>**：那个集合是季选择器和自检在用的，而集页上的
-    /// 季选择器同一天已被删掉。两边都填会让自检读到的「季几行」在这一页翻倍，也会让 <see cref="SeasonVisibility"/>
-    /// 在一个没有选择器的页面上说「有」。
-    /// </para>
-    /// <para>
-    /// 卡片几张才画归 <see cref="SeasonShelfVisibility"/>（两张以上）；列的是服务器给的全部季，第 0 季也在
-    /// 里面（2026-11-03 晚用户令要它的封面），所以「一季正片 + 特别篇」的集页也会画出这张卡。
-    /// </para>
-    /// <para>
-    /// 失败当「这部剧没有季清单」：少一张卡，不是这一页加载失败（同 <see cref="LoadSimilarAsync"/>）。
-    /// </para>
+    /// 集页的季菜单与特别篇日期归季所需清单；不创建全部剧季卡片。
+    /// 读取失败时保留当前集的季锚点，集列表仍可用已有字段收窄。
     /// </summary>
     private async Task LoadSeasonShelfAsync(EmbyItem item, CancellationToken token)
     {
-        if (!Attached || SeasonShelf is not { } shelf) return;
+        if (!Attached) return;
 
         // 只有集页要这一趟：剧页的季清单在 LoadSeriesAsync 里已经回来并填好了，季页、电影页不要这张卡
         // （用户点名的只有集页）。
@@ -3092,7 +3078,6 @@ public sealed partial class DetailViewModel : PageViewModel
             // 同剧页：已经删掉的那一季不再摆一张通往空页面的卡（判据在 WasDeleted）；第 0 季照旧列进来 ——
             // 第 0 季的封面入口保留，和主集列表中的特别篇共用原有导航。
             seasons.RemoveAll(WasDeleted);
-            shelf.Fill(seasons, ItemDetail.SeasonSubtitle);
 
             // 集页的季列表和剧页共用同一支下拉；Seasons 填上之后，SelectedSeason 才能指向清单里的真季，
             // 而不是 LoadEpisodesAsync 用这一集自己的字段拼出来的临时锚点。
@@ -3132,8 +3117,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
         var scope = ItemDetail.EpisodeScope(page, season);
 
-        // 剧页和集页要的是「所有季连起来」的那一条（网页端的样子），所以不带 SeasonId 问全剧；
-        // 季页读的是这一季自己的清单，照旧按季问。三种入口的差别只写在这里。
+        // 剧页需要全剧列表；集页需要全剧日期来归入特别篇并保留连播队列，显示时再收窄为一个季。
+        // 季页保留服务器按季给的清单。
         var allSeasons = page.Type is EmbyItemType.Series or EmbyItemType.Episode;
         var episodes = await source
             .ExecuteAsync((client, ct) => client.GetEpisodesAsync(
@@ -3183,20 +3168,32 @@ public sealed partial class DetailViewModel : PageViewModel
 
         // 剧页的锚点是挑中的那一季；集页先从这一集自己的字段拼一个临时锚点，季清单回来后换成真季。
         // 季页不参与季下拉，_loadedSeason 只是这一页加载的是哪一季这个事实。
+        if (page.Type == EmbyItemType.Episode && !Seasons.Any(item => item.IndexNumber == 0)
+            && episodes.FirstOrDefault(ItemDetail.IsSpecial) is { } special
+            && ItemDetail.DisplaySeasonEpisodes(episodes, Seasons, SeasonAnchor(special)).FirstOrDefault() is { } unassigned)
+        {
+            var specialSeason = SeasonAnchor(unassigned);
+            if (specialSeason.Name.Length == 0) specialSeason.Name = "特别篇";
+            Seasons.Insert(0, specialSeason);
+        }
         _loadedSeason = season;
         if (page.Type == EmbyItemType.Series) AdoptEpisodeAnchor(season);
-        else if (page.Type == EmbyItemType.Episode) AdoptEpisodeAnchor(SeasonAnchor(page));
+        else if (page.Type == EmbyItemType.Episode)
+            AdoptEpisodeAnchor(season ?? ItemDetail.DisplaySeasonOf(episodes, Seasons, page) ?? SeasonAnchor(page));
         if (!Current()) return;
 
         _episodes.Clear();
         _episodes.AddRange(episodes);
+        _shownEpisodes.Clear();
+        _shownEpisodes.AddRange(page.Type == EmbyItemType.Episode && SelectedSeason is { } displaySeason
+            ? ItemDetail.DisplaySeasonEpisodes(episodes, Seasons, displaySeason) : episodes);
 
         // One shelf, two shapes. Rows on a season page — and the page itself goes in so the row that is this
         // page can mark itself, which on any other page matches nothing and marks nothing. Cards everywhere
         // else, where the second line is 「第 7 集 · 46 分钟」 rather than the card default's 「S02E09 ·
         // 剧名」: both halves of that are already on this page.
         timing?.Mark("episodes-publish-begin", episodes.Count);
-        shelf.FillDeferred(episodes, EpisodesAsList ? null : ItemDetail.EpisodeCardSubtitle, page);
+        shelf.FillDeferred(_shownEpisodes, EpisodesAsList ? null : ItemDetail.EpisodeCardSubtitle, page);
         if (!Current()) return;
         timing?.Mark("episodes-publish-end", episodes.Count);
 
@@ -3213,7 +3210,7 @@ public sealed partial class DetailViewModel : PageViewModel
         // 正在看的那一集；季页是竖列表，这个数不参与排版。
         EpisodeFocus = page.Type == EmbyItemType.Series
             ? Math.Max(0, ItemDetail.FirstEpisodeIndex(episodes, season))
-            : ItemDetail.EpisodeFocus(episodes, page);
+            : ItemDetail.EpisodeFocus(_shownEpisodes, page);
         if (!Current()) return;
 
         if (retarget)
@@ -3277,7 +3274,7 @@ public sealed partial class DetailViewModel : PageViewModel
     internal void FollowEpisode(EmbyItem? episode)
     {
         if (episode is null || !Attached) return;
-        if (_detail?.Type is not (EmbyItemType.Series or EmbyItemType.Episode)) return;
+        if (_detail?.Type != EmbyItemType.Series) return;
 
         if (ItemDetail.SeasonOf(Seasons, episode) is { } season)
         {
@@ -3670,32 +3667,41 @@ public sealed partial class DetailViewModel : PageViewModel
     // ---------------------------------------------------------------- 选择
 
     /// <summary>
-    /// 季锚点换了：只换标题和集带要对的季，不重新问服务器 —— 剧页、集页手上的集本来就是全季那一条，
-    /// 换季不该把别的季从列表里拿走。真正的滚动由页面在 <see cref="SelectEpisodeSeason"/> 返回索引后做
+    /// 季锚点换了：剧页改标题与定位，集页替换单季显示；均复用已读的全剧队列。
+    /// 真正的滚动由页面在 <see cref="SelectEpisodeSeason"/> 返回索引后做
     /// （索引 0 也要滚到开头，而 <c>ShelfStrip.FocusIndex</c> 的 0 表示「别动」）。
     /// </summary>
     partial void OnSelectedSeasonChanged(EmbyItem? value)
     {
-        if (_syncingSeason || value is null) return;
+        if (!Attached || _syncingSeason || value is null) return;
         if (_detail?.Type is not (EmbyItemType.Series or EmbyItemType.Episode)) return;
         if (_episodes.Count == 0) return;
         if (ReferenceEquals(value, _loadedSeason)) return;
 
         _loadedSeason = value;
+        if (_detail.Type == EmbyItemType.Episode && EpisodeShelf is { } shelf)
+        {
+            _shownEpisodes.Clear();
+            _shownEpisodes.AddRange(ItemDetail.DisplaySeasonEpisodes(_episodes, Seasons, value));
+            shelf.FillDeferred(_shownEpisodes, ItemDetail.EpisodeCardSubtitle, _detail);
+            EpisodeFocus = 0;
+        }
         UpdateEpisodeHeading(value);
         OnPropertyChanged(nameof(CanPickEpisodeSeason));
     }
 
     /// <summary>
-    /// 季列表里点了某一季：把锚点换过去，返回那一季第一张卡在全季列表里的位置（找不到时 -1）。
+    /// 季菜单选季：剧页返回全剧列表中的季起点；集页换成单季列表并返回 0，空季返回 -1。
     /// 页面拿这个数把集带对到左边沿；返回 -1 就保持原位。
     /// </summary>
     internal int SelectEpisodeSeason(EmbyItem season)
     {
-        if (!CanPickEpisodeSeason) return -1;
+        if (!Attached || !CanPickEpisodeSeason) return -1;
 
         SelectedSeason = season;
-        return ItemDetail.FirstEpisodeIndex(_episodes, season);
+        return _detail?.Type == EmbyItemType.Episode
+            ? _shownEpisodes.Count > 0 ? 0 : -1
+            : ItemDetail.FirstEpisodeIndex(_shownEpisodes, season);
     }
 
     partial void OnSelectedSourceChanged(SourceRow? value)
@@ -3900,7 +3906,7 @@ public sealed partial class DetailViewModel : PageViewModel
     internal EmbyItem? OpenFirstEpisode()
     {
         if (!Attached || EpisodeShelf is not { } shelf) return null;
-        var index = _episodes.FindIndex(item => item.Type == EmbyItemType.Episode);
+        var index = _shownEpisodes.FindIndex(item => item.Type == EmbyItemType.Episode);
         if (index < 0 || index >= shelf.Cards.Count) return null;
         var card = shelf.Cards[index];
 
@@ -3916,7 +3922,7 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         if (!Attached || _detail?.Type != EmbyItemType.Episode || EpisodeShelf is not { } shelf) return;
         var identity = _detail.IdentityKey;
-        var index = _episodes.FindIndex(item => item.IdentityKey == identity);
+        var index = _shownEpisodes.FindIndex(item => item.IdentityKey == identity);
         if (index >= 0 && index < shelf.Cards.Count) _ = shelf.Cards[index];
     }
 
@@ -3958,6 +3964,7 @@ public sealed partial class DetailViewModel : PageViewModel
         ShowTarget(null);
         TitleLink = null;
         _episodes.Clear();
+        _shownEpisodes.Clear();
         Seasons.Clear();
         SelectedSeason = _loadedSeason = null;
         EpisodeShelf?.Clear();
@@ -4077,6 +4084,7 @@ public sealed partial class DetailViewModel : PageViewModel
             // Collection notifications can move the strip's leading index immediately. Publish the
             // matching business index first so that callback cannot read the deleted season's DTO.
             _episodes.RemoveAll(Deleted);
+            _shownEpisodes.RemoveAll(Deleted);
             foreach (var shelf in shelves.OfType<CardShelf>())
             {
                 shelf.Cards.RemoveWhere(Deleted);

@@ -37,8 +37,7 @@ internal sealed partial class ShellNavigationProbe
     /// 事实那一行的「共 N 季」才对得上。
     /// </para>
     /// <para>
-    /// ④ 最后开一页集页（多季夹具第一季的第一集），验「集页面也加上全部剧季卡片」：两季的剧集页上那张卡在
-    /// 「其他信息」下面、高不为零，而且这一页也没有季选择栏。
+    /// ④ 集页只显示当前季，切季替换四集且保持播放落点；全部剧季区域不创建卡片、不占位置。
     /// </para>
     /// <para>
     /// ⑤ 每页顺手验同一对下拉（2026-11-02 用户报的那一条）：同一集在集页面的字幕「自动」写着具体语言，剧页、
@@ -444,14 +443,14 @@ internal sealed partial class ShellNavigationProbe
                 var view = page.ViewModel;
                 RequireNoSpecialRow(page);
                 RequireBodyOrder(page);
-                Require(view.SeasonShelf is { Cards.Count: 2 }
-                        && view.SeasonShelf.Cards[0].Item.Id == "sp-s0",
-                    "集页移除特别篇单集排后，S00 季封面入口也消失了");
+                Require(view.SeasonShelf is { Cards.Count: 0 }
+                        && Get<StackPanel>(page, "SeasonPanel").Visibility == Visibility.Collapsed,
+                    "集页仍显示全部剧季卡片");
                 Require(view.EpisodeShelf is { Cards.Count: 3 }
                         && view.SelectedSeason?.Id == "sp-s1",
                     "集页的全季集列表或锚点被特别篇带偏了");
 
-                readings.Add($"集页特别篇：额外单集排已移除、S00 季卡保留、锚点「{view.SelectedSeason?.Name}」");
+                readings.Add($"集页特别篇：额外单集排与全部剧季卡片已移除、锚点「{view.SelectedSeason?.Name}」");
                 foreach (var width in new[] { 1280, 760 })
                 {
                     ResizeProbeClient(width, 900);
@@ -461,6 +460,17 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(page);
                     await SaveProbeScreenAsync($"detail-episode-info-before-season-{width}.png");
                 }
+                page.Release();
+                specialEpisodeFrame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, details["sp-s0-e1"]));
+                var oadPage = (DetailPage)specialEpisodeFrame.Content;
+                await UntilAsync(() => oadPage.IsReady);
+                await LayoutAsync(oadPage);
+                Require(oadPage.ViewModel.SelectedSeason?.Id == "sp-s1"
+                        && oadPage.ViewModel.EpisodeFocus == 1
+                        && oadPage.ViewModel.ShownEpisodes.Select(item => item.Id)
+                            .SequenceEqual(["sp-s1-e1", "sp-s0-e1", "sp-s1-e2"]),
+                    "特别篇页没有归入第一季并定位在其播出日期位置");
+                await SaveProbeScreenAsync("detail-episode-special-assigned-season-760.png");
             }
             finally
             {
@@ -592,20 +602,34 @@ internal sealed partial class ShellNavigationProbe
                 var seasonPanel = Get<StackPanel>(page, "SeasonPanel");
                 var infoPanel = Get<StackPanel>(page, "InfoPanel");
 
-                Require(page.ViewModel.SeasonShelf is { Cards.Count: 2 },
-                    $"两季那部剧的集页，季卡带不是两张：{page.ViewModel.SeasonShelf?.Cards.Count ?? -1}");
-                Require(seasonPanel.Visibility == Visibility.Visible && seasonPanel.ActualHeight > 0,
-                    $"集页没有画出全部剧季卡：{seasonPanel.Visibility}、高 {seasonPanel.ActualHeight:0.#}");
+                Require(page.ViewModel.SeasonShelf is { Cards.Count: 0 }, "集页仍加载全部剧季卡片");
+                Require(seasonPanel.Visibility == Visibility.Collapsed && seasonPanel.ActualHeight == 0,
+                    $"集页全部剧季区域仍占位置：{seasonPanel.Visibility}、高 {seasonPanel.ActualHeight:0.#}");
                 Require(!HasSeasonPicker(page), "集页上还有季选择栏");
 
                 // 集页的集列表也是全季一条，并且锚点落在这一集所属的季（真季清单里的那一份，不是拼出来的）。
-                Require(page.ViewModel.EpisodeShelf is { Cards.Count: 8 },
-                    $"集页集列表不是全季八条：{page.ViewModel.EpisodeShelf?.Cards.Count ?? -1}");
+                Require(page.ViewModel.EpisodeShelf is { Cards.Count: 4 }
+                        && page.ViewModel.ShownEpisodes.All(item => item.ParentIndexNumber == 1),
+                    "集页没有限制为当前季四集");
                 Require(page.ViewModel.SelectedSeason?.Id == "two-s1"
                         && page.ViewModel.Seasons.Contains(page.ViewModel.SelectedSeason),
                     $"集页锚点不是清单里的第一季：{page.ViewModel.SelectedSeason?.Name}");
                 Require(page.ViewModel.CanPickEpisodeSeason && page.ViewModel.EpisodeFocus == 0,
                     "集页的季列表不可点，或集带没有开在正在看的那一集上");
+
+                var targetBefore = page.ViewModel.PlayTarget;
+                page.SelectEpisodeSeason(multiSeasons[1]);
+                await LayoutAsync(page);
+                Require(page.ViewModel.ShownEpisodes.Count == 4
+                        && page.ViewModel.ShownEpisodes.All(item => item.ParentIndexNumber == 2)
+                        && page.ViewModel.SelectedSeason?.Id == "two-s2"
+                        && ReferenceEquals(targetBefore, page.ViewModel.PlayTarget),
+                    "集页选第二季没有替换为单季列表，或改掉播放落点");
+                page.SelectEpisodeSeason(multiSeasons[0]);
+                await LayoutAsync(page);
+                Require(Get<ShelfStrip>(page, "EpisodeStrip").Requested == 0
+                        && page.ViewModel.ShownEpisodes.All(item => item.ParentIndexNumber == 1),
+                    "集页回到第一季没有回到列表开头");
 
                 // ⑤ 集页的下拉：这一页读的是它自己那一集（按 id 取详情，回包就是带轨道的那一份），同一对
                 // 下拉在三页上说的是同一件事。
@@ -662,9 +686,14 @@ internal sealed partial class ShellNavigationProbe
             var seasons = Get<StackPanel>(page, "SeasonPanel");
             Require(info.Visibility == Visibility.Visible && info.ActualHeight > 0,
                 "其他信息卡没有实际显示");
-            Require(Top(info, page) >= Top(episodes, page) + episodes.ActualHeight - 1
-                    && Top(seasons, page) >= Top(info, page) + info.ActualHeight - 1,
-                "卡片次序不是单集 → 其他信息 → 全部剧季");
+            Require(Top(info, page) >= Top(episodes, page) + episodes.ActualHeight - 1,
+                "其他信息没有接在集列表之后");
+            if (page.ViewModel.ItemType == EmbyItemType.Episode)
+                Require(seasons.Visibility == Visibility.Collapsed && seasons.ActualHeight == 0,
+                    "集页仍显示全部剧季区域");
+            else if (seasons.Visibility == Visibility.Visible)
+                Require(Top(seasons, page) >= Top(info, page) + info.ActualHeight - 1,
+                    "全部剧季没有接在其他信息之后");
         }
 
         // 某一条目被按 id 取过几次 —— 只数 /Items/{id} 那一趟（图片那条路在上面先走了 404）。屏上看不出来的

@@ -209,7 +209,8 @@ internal sealed partial class ShellNavigationProbe
 
             ResizeProbeClient(1280, 900);
             var episodePage = await Enter(episodes[1500]);
-            Require(episodePage.ViewModel.EpisodeFocus == 1500 && episodePage.ViewModel.Episodes.Count == 2000,
+            Require(episodePage.ViewModel.EpisodeFocus == 0 && episodePage.ViewModel.Episodes.Count == 2000
+                    && episodePage.ViewModel.ShownEpisodes.Count == 100,
                 "深处集页当前集定位或播放上下文缺失");
             Require(episodePage.ViewModel.EpisodeShelf!.Cards.MaterializedCount < 180,
                 "深处集页从头创建整个前缀");

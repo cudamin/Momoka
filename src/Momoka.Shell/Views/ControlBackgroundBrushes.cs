@@ -24,6 +24,16 @@ internal sealed class ControlBackgroundBrushes
     internal Control Control { get; }
     private readonly Dictionary<string, SolidColorBrush> _foregrounds = [];
 
+    internal void ApplyDefaultForeground(Windows.UI.Color? forced = null)
+    {
+        var color = forced ?? Resource("EgDetailActionTextBrush").Color;
+        var prefix = Control is ComboBox ? "ComboBox" : Control is ToggleButton ? "ToggleButton" : "Button";
+        foreach (var suffix in new[] { "", "PointerOver", "Pressed" })
+            ForegroundBrush(prefix + "Foreground" + suffix).Color = color;
+        foreach (var ink in _foregrounds.Values) ink.Color = color;
+        Control.Foreground = _foregrounds[prefix + "Foreground"];
+    }
+
     internal void ApplyForeground(ThemeColor background, bool materialFallback, Windows.UI.Color? forced = null)
     {
         var prefix = Control is ComboBox ? "ComboBox" : Control is ToggleButton ? "ToggleButton" : "Button";

@@ -40,11 +40,11 @@ internal static class DetailDeferredCardsTests
                 using var fixture = new Fixture(shell, 2000);
                 await fixture.Load();
                 Assert.Equal(2000, fixture.Episodes.Count);
-                Assert.Equal(2000, fixture.Cards.Count);
+                Assert.Equal(100, fixture.Cards.Count);
                 Assert.True(fixture.Created <= 1, "episode页最多先保留当前那张状态卡");
-                Assert.Equal("episode-1500", fixture.CardItem(fixture.Cards[1500]!).Id);
+                Assert.Equal("episode-1550", fixture.CardItem(fixture.Cards[50]!).Id);
                 Assert.True(fixture.Created <= 2);
-                Assert.Equal(1500, fixture.Get<int>("EpisodeFocus"));
+                Assert.Equal(0, fixture.Get<int>("EpisodeFocus"));
                 Assert.True(fixture.Episodes[499].Id == "episode-499" && fixture.Episodes[1500].Id == "episode-1500");
             });
             Case("P3 真详情：离页清掉按需源，不复活卡片或图片需求", async () =>
@@ -56,6 +56,44 @@ internal static class DetailDeferredCardsTests
                 Assert.Equal(0, cards.Count);
                 Assert.Equal(0, fixture.Created);
                 Assert.Equal(1, fixture.Transport.EpisodeReads);
+            });
+            Case("集页换季：替换为单季列表，不重读、不改变播放队列和落点", async () =>
+            {
+                using var fixture = new Fixture(shell, 2000);
+                await fixture.Load();
+                var seasons = fixture.Get<IList>("Seasons");
+                seasons.Add(new EmbyItem { Id = "season-15", Type = EmbyItemType.Season, IndexNumber = 15 });
+                var next = new EmbyItem { Id = "season-16", Type = EmbyItemType.Season, IndexNumber = 16 };
+                seasons.Add(next);
+                var target = fixture.Get<EmbyItem>("PlayTarget");
+                Assert.Equal(0, (int)fixture.Invoke("SelectEpisodeSeason", next)!);
+                Assert.Equal(100, fixture.Cards.Count);
+                Assert.Equal("episode-1600", fixture.CardItem(fixture.Cards[0]!).Id);
+                Assert.Equal(2000, fixture.Episodes.Count);
+                Assert.Equal(1, fixture.Transport.EpisodeReads);
+                Assert.True(ReferenceEquals(target, fixture.Get<EmbyItem>("PlayTarget")));
+                fixture.Invoke("FollowEpisode", fixture.Episodes[0]);
+                Assert.True(ReferenceEquals(next, fixture.Get<EmbyItem>("SelectedSeason")));
+                fixture.Invoke("Cancel");
+                Assert.Equal(-1, (int)fixture.Invoke("SelectEpisodeSeason", seasons[0])!);
+                Assert.Equal(0, fixture.Cards.Count);
+            });
+            Case("集页缺少S00季：无日期特别篇仍保留可达的季菜单入口", async () =>
+            {
+                using var fixture = new Fixture(shell, 2000);
+                fixture.Transport.UndatedSpecial = true;
+                foreach (var number in Enumerable.Range(1, 19))
+                    fixture.Get<IList>("Seasons").Add(new EmbyItem
+                    { Id = "season-" + number, Type = EmbyItemType.Season, IndexNumber = number });
+                await fixture.Load();
+                var choices = fixture.Get<IReadOnlyList<EmbyItem>>("EpisodeSeasonChoices");
+                var special = choices.Single(item => item.IndexNumber == 0);
+                Assert.Equal(100, fixture.Cards.Count);
+                Assert.Equal(0, (int)fixture.Invoke("SelectEpisodeSeason", special)!);
+                Assert.Equal(1, fixture.Cards.Count);
+                Assert.Equal("episode-0", fixture.CardItem(fixture.Cards[0]!).Id);
+                var shelf = fixture.Get<object>("SeasonShelf");
+                Assert.Equal(0, ((IList)shell.Get<object>(shelf, "Cards")).Count);
             });
             Case("P3 真详情：读取取消后旧2000集响应不回填", async () =>
             {
@@ -101,7 +139,7 @@ internal static class DetailDeferredCardsTests
             });
             Case("P3 真详情：季选择使用全局索引，删除未访问季保持其它实例", async () =>
             {
-                using var fixture = new Fixture(shell, 2000);
+                using var fixture = new Fixture(shell, 2000, EmbyItemType.Series);
                 await fixture.Load();
                 var keep = fixture.Cards[1500]!;
                 var deletedSeason = fixture.Scope.Bind(new EmbyItem
@@ -133,7 +171,7 @@ internal static class DetailDeferredCardsTests
                 GC.WaitForPendingFinalizers();
                 GC.Collect();
                 Assert.False(temporary.IsAlive, "临时菜单卡应可回收");
-                var card = fixture.Cards[1500]!;
+                var card = fixture.Cards[0]!;
                 Assert.True(shell.Get<bool>(card, "Watched"));
                 Assert.True(shell.Get<bool>(card, "IsFavorite"));
                 Assert.True(fixture.Created <= 1, "保留菜单状态不能创建全部集");
@@ -280,6 +318,7 @@ internal static class DetailDeferredCardsTests
 
     private sealed class DetailReadTransport(int count) : HttpMessageHandler
     {
+        public bool UndatedSpecial { get; set; }
         public int EpisodeReads { get; private set; }
         public ReadGate? Hold { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
@@ -290,8 +329,9 @@ internal static class DetailDeferredCardsTests
             Assert.True(uri.AbsolutePath.EndsWith("/Shows/series/Episodes", StringComparison.Ordinal), "只应读取全剧集列表");
             Assert.False(uri.Query.Contains("SeasonId=", StringComparison.Ordinal), "长剧读数保持原全剧网络语义");
             EpisodeReads++;
-            var json = JsonSerializer.Serialize(new ItemsResult
-            { Items = Enumerable.Range(0, count).Reverse().Select(Episode).ToList(), TotalRecordCount = count });
+            var items = Enumerable.Range(0, count).Reverse().Select(Episode).ToList();
+            if (UndatedSpecial) items.Single(item => item.Id == "episode-0").PremiereDate = null;
+            var json = JsonSerializer.Serialize(new ItemsResult { Items = items, TotalRecordCount = count });
             if (Hold is { } gate)
             {
                 Hold = null;

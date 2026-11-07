@@ -47,7 +47,7 @@ internal sealed partial class ShellNavigationProbe
                 foreach (var (title, type, count) in new[]
                 {
                     ("剧页面卡片", EmbyItemType.Series, 5),
-                    ("单集页面卡片", EmbyItemType.Episode, 5),
+                    ("单集页面卡片", EmbyItemType.Episode, 4),
                     ("电影页面卡片", EmbyItemType.Movie, 3)
                 })
                 {
@@ -278,10 +278,8 @@ internal sealed partial class ShellNavigationProbe
                             .Where(node => node.Visibility == Visibility.Visible && node.ActualWidth > 0 && node.ActualHeight > 0)
                             .Select(node =>
                             {
-                                var actualBackground = (ThemeColor)Call(page, "ReadingBackground", node)!;
-                                var expected = page.ViewModel.BackdropShown && !page.ViewModel.HeroCardShown
-                                    ? BackdropReading.Foreground(actualBackground) : ThemeColor.Rgb(255, 255, 255);
-                                return node.Foreground is SolidColorBrush brush && brush.Color == ThemeHost.ToColor(expected);
+                                var expected = DefaultDetailForeground();
+                                return node.Foreground is SolidColorBrush brush && brush.Color == expected;
                             })));
                 }
                 catch (TimeoutException)
@@ -299,11 +297,9 @@ internal sealed partial class ShellNavigationProbe
                 {
                     var node = Get<TextBlock>(page, name);
                     if (node.Visibility != Visibility.Visible || node.ActualWidth <= 0 || node.ActualHeight <= 0) continue;
-                    var background = (ThemeColor)Call(page, "ReadingBackground", node)!;
-                    var expectedInk = page.ViewModel.BackdropShown && !page.ViewModel.HeroCardShown
-                        ? BackdropReading.Foreground(background) : ThemeColor.Rgb(255, 255, 255);
-                    Require(node.Foreground is SolidColorBrush text && text.Color == ThemeHost.ToColor(expectedInk),
-                        name + $" 没有根据实际背景更新阅读颜色：实际{(node.Foreground as SolidColorBrush)?.Color}，预期{ThemeHost.ToColor(expectedInk)}，尺寸{node.ActualWidth:0.#}×{node.ActualHeight:0.#}");
+                    var expectedInk = DefaultDetailForeground();
+                    Require(node.Foreground is SolidColorBrush text && text.Color == expectedInk,
+                        name + $" 没有恢复默认文字颜色：实际{(node.Foreground as SolidColorBrush)?.Color}，预期{expectedInk}");
                 }
                 var sheet = Get<StackPanel>(page, "BodySheet");
                 var originalPanels = sheet.Children.OfType<StackPanel>().ToArray();
@@ -432,6 +428,10 @@ internal sealed partial class ShellNavigationProbe
                 {
                     ThemeHost.Apply(theme);
                     await LayoutAsync(page);
+                    Require(readingNames.Select(name => Get<TextBlock>(page, name))
+                        .Where(node => node.Visibility == Visibility.Visible)
+                        .All(node => node.Foreground is SolidColorBrush ink && ink.Color == DefaultDetailForeground()),
+                        $"{item.Type}/{theme.Id} 切主题后文字没有保持默认角色颜色");
                     await SaveProbeScreenAsync($"detail-customization-{item.Type}-{theme.Id}-screen.png");
                     if (item.Type == EmbyItemType.Movie)
                         await CheckDetailMenuAcrylicAsync(page, fixture, theme.Id);
@@ -692,8 +692,8 @@ internal sealed partial class ShellNavigationProbe
                 && acrylic.FallbackColor == Windows.UI.Color.FromArgb(255, 255, 255, 255),
                 "操作亚克力没有保留当前白色染色与回退");
             Require(Get<TextBlock>(page, "Overview").Foreground is SolidColorBrush text
-                && (text.Color == Microsoft.UI.Colors.White || text.Color == Windows.UI.Color.FromArgb(255, 22, 22, 22)),
-                "高斯简介文字没有选取可读的深浅色");
+                && text.Color == DefaultDetailForeground(),
+                "高斯简介文字没有保持默认字色");
             var themeReading = GaussianReading(page);
             File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "detail-gaussian-generation.txt"),
                 $"{page.ViewModel.ItemType}/{theme.Id}: before({settledReading}), after({themeReading}), imageSame={ReferenceEquals(settled, page.ViewModel.HeroImage)}\n");
@@ -765,6 +765,11 @@ internal sealed partial class ShellNavigationProbe
         ShellPrefs.ApplyAppearance(ui);
         await UntilAsync(() => !page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady);
     }
+
+    private static Windows.UI.Color DefaultDetailForeground(string key = "EgOnScrimBrush") =>
+        new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast
+            ? new Windows.UI.ViewManagement.UISettings().GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground)
+            : ((SolidColorBrush)Application.Current.Resources[key]).Color;
 
     private static GaussianProbeReading GaussianReading(DetailPage page) => new(
         Get<int>(page.ViewModel, "_heroBlurRadius"), Get<int>(page.ViewModel, "_heroBlurGeneration"),

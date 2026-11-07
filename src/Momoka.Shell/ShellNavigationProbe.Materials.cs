@@ -218,12 +218,9 @@ internal sealed partial class ShellNavigationProbe
                                 await LayoutAsync(openPicker);
                                 var background = (ThemeColor)Call(detail, "ReadingBackground", openPicker)!;
                                 var foregroundFill = (AcrylicBrush)openPicker.Resources["ComboBoxBackground"];
-                                var system = new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast
-                                    ? new Windows.UI.ViewManagement.UISettings().GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground)
-                                    : (Windows.UI.Color?)null;
-                                Require(PickerForegroundMatches(openPicker.Foreground, background, foregroundFill,
-                                    !new Windows.UI.ViewManagement.UISettings().AdvancedEffectsEnabled, system),
-                                    "选择框文字没有遵守实际底色的阅读前景");
+                                Require(openPicker.Foreground is SolidColorBrush defaultInk
+                                    && defaultInk.Color == DefaultDetailForeground("EgDetailActionTextBrush"),
+                                    "选择框文字没有保持默认前景");
                                 var glyph = Descendants(openPicker).OfType<IconElement>().Single(control => control.Name == "DropDownGlyph");
                                 var glyphKeys = new[] { "ComboBoxDropDownGlyphForeground", "ComboBoxDropDownGlyphForegroundFocused", "ComboBoxDropDownGlyphForegroundFocusedPressed" };
                                 var glyphResources = glyphKeys.Select(key => openPicker.Resources.TryGetValue(key, out var value) ? value as SolidColorBrush : null).ToArray();
@@ -235,9 +232,9 @@ internal sealed partial class ShellNavigationProbe
                                     glyphResources.Select(brush => ReferenceEquals(glyph.Foreground, brush)).ToArray(), background, foregroundFill);
                                 File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "picker-glyph-reading.txt"),
                                     $"{theme.Id}/{width}/{openPicker.Name}: {glyphReading}\n");
-                                Require(PickerForegroundMatches(glyph.Foreground, background, foregroundFill,
-                                    !new Windows.UI.ViewManagement.UISettings().AdvancedEffectsEnabled, system),
-                                    "选择框箭头没有遵守实际底色的阅读前景：" + glyphReading);
+                                Require(glyph.Foreground is SolidColorBrush glyphInk
+                                    && glyphInk.Color == DefaultDetailForeground("EgDetailActionTextBrush"),
+                                    "选择框箭头没有保持默认前景：" + glyphReading);
                                 var popupRoot = openPicker.PopupPart?.Child
                                     ?? throw new InvalidOperationException("缺少选择框实际弹层");
                                 var popup = popupRoot as Border ?? Descendants(popupRoot).OfType<Border>()

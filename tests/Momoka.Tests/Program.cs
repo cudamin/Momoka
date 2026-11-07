@@ -4,6 +4,12 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["episode-display-fixture"])
+        {
+            EpisodeDisplayTests.Register();
+            DetailLayoutTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["font-fill-recovery-fixture", var fontShell, var fontRoot])
             return FontFillRecoveryTests.Run(fontShell, fontRoot);
         if (args is ["external-subtitle-selection-fixture"])
@@ -460,6 +466,7 @@ internal static class Program
         MoviePilotAvailabilityTests.Register();
         MoviePilotMediaDetailTests.Register();
         ItemDetailTests.Register();
+        EpisodeDisplayTests.Register();
         ItemArtworkTests.Register();
         ArtworkPreviewTests.Register();
         ItemMenuTests.Register();

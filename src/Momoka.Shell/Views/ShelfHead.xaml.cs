@@ -64,7 +64,9 @@ public sealed partial class ShelfHead : UserControl
         if (color is not { } ink)
         {
             TitleText.ClearValue(TextBlock.ForegroundProperty);
-            OpenGlyph.ClearValue(FontIcon.ForegroundProperty);
+            OpenGlyph.Foreground = Resource<Microsoft.UI.Xaml.Media.Brush>(OnScrim ? "EgOnScrimDimBrush" : "EgTextDimBrush");
+            var defaultColor = Resource<Microsoft.UI.Xaml.Media.SolidColorBrush>(OnScrim ? "EgOnScrimBrush" : "EgTextBrush").Color;
+            TextInk.SetForeground(TitleInk, Momoka.Theming.ThemeColor.Rgb(defaultColor.R, defaultColor.G, defaultColor.B));
             return;
         }
         _backdropInk.Color = ThemeHost.ToColor(ink);

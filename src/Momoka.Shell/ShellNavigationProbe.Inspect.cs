@@ -124,6 +124,11 @@ internal sealed partial class ShellNavigationProbe
             if (frame.Content is IShellContent previous) previous.Release();
             await AcrylicControlsAsync();
         });
+        AddCheck("InspectEpisodeSeasons", "集页分季与特别篇", async () =>
+        {
+            if (frame.Content is IShellContent previous) previous.Release();
+            await DetailSeriesInfoAsync();
+        });
         Add("InspectSubscriptionMaterial", "订阅卡片材质", async () =>
         {
             if (frame.Content is IShellContent previous) previous.Release();

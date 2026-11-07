@@ -179,7 +179,7 @@ public sealed partial class DetailPage
         var contrast = _actionAccessibility.HighContrast;
         var forced = contrast ? _actionUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground) : (Color?)null;
         foreach (var backgrounds in _controlBackgrounds)
-            backgrounds.ApplyForeground(ReadingBackground(backgrounds.Control), !_actionUiSettings.AdvancedEffectsEnabled, forced);
+            backgrounds.ApplyDefaultForeground(forced);
         // 模板中显式指定过颜色的非强调图标/连播文字，跟同一颗按钮走。
         foreach (var backgrounds in _controlBackgrounds)
         {
@@ -212,9 +212,11 @@ public sealed partial class DetailPage
             (DetailVideoText, DetailVideoInk), (DetailDirectorsText, DetailDirectorsInk),
             (ColumnAudioText, DetailVideoInk), (AudioText, DetailVideoInk) })
         {
+            var defaultBrush = text == GenreLine ? (SolidColorBrush)ViewModel.SublineBrush
+                : (SolidColorBrush)Application.Current.Resources[text == DetailDirectorsText ? "EgOnScrimDimBrush" : "EgOnScrimBrush"];
+            var defaultColor = defaultBrush.Color;
             var color = forced is { } system ? ThemeColor.Rgb(system.R, system.G, system.B)
-                : ViewModel.BackdropShown && !ViewModel.HeroCardShown ? BackdropReading.Foreground(ReadingBackground(text))
-                : ThemeColor.Rgb(255, 255, 255);
+                : ThemeColor.Rgb(defaultColor.R, defaultColor.G, defaultColor.B);
             if (!_readingColors.TryGetValue(text, out var brush))
             {
                 brush = new SolidColorBrush();
@@ -224,13 +226,12 @@ public sealed partial class DetailPage
             brush.Color = ThemeHost.ToColor(color);
             if (text != ColumnAudioText && text != AudioText) TextInk.SetForeground(host, color);
         }
-        var floating = ViewModel.Showcase && ViewModel.BackdropShown;
-        ThemeColor Read(FrameworkElement node) => forced is { } system ? ThemeColor.Rgb(system.R, system.G, system.B)
-            : BackdropReading.Foreground(ReadingBackground(node));
         foreach (var child in AppearanceChildren(BodySheet))
         {
-            if (child is ShelfHead head) head.ApplyBackdropInk(floating ? Read(head) : null);
-            else if (child is PosterCard card) card.ApplyBackdropInk(floating ? Read : null);
+            var systemInk = forced is { } system ? ThemeColor.Rgb(system.R, system.G, system.B) : (ThemeColor?)null;
+            if (child is ShelfHead head) head.ApplyBackdropInk(systemInk);
+            else if (child is PosterCard card)
+                card.ApplyBackdropInk(systemInk is { } ink ? _ => ink : null);
         }
         foreach (var group in new[] { ColumnPickers, PickerPanel })
             foreach (var text in AppearanceChildren(group).OfType<TextBlock>())
@@ -242,7 +243,7 @@ public sealed partial class DetailPage
                     _readingColors.Add(text, brush);
                     text.Foreground = brush;
                 }
-                brush.Color = ThemeHost.ToColor(Read(text));
+                brush.Color = forced ?? ((SolidColorBrush)Application.Current.Resources["EgOnScrimBrush"]).Color;
             }
     }
 

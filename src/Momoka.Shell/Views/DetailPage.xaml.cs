@@ -2534,7 +2534,7 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         if (!ViewModel.IsReady || ViewModel.Busy) return;
 
-        var episodes = ViewModel.Episodes;
+        var episodes = ViewModel.ShownEpisodes;
         if ((uint)index < (uint)episodes.Count) ViewModel.FollowEpisode(episodes[index]);
     }
 
