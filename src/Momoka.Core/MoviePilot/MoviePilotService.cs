@@ -337,7 +337,8 @@ public sealed partial class MoviePilotService : IDisposable
             if (_transportIdentity is { } existing && MatchesConfiguration(existing)) return existing;
             _imageFetcher = null;
             return _transportIdentity = new SessionIdentity(apiBase, moviePilot.Username?.Trim() ?? "", moviePilot.ProtectedPassword,
-                Interlocked.Read(ref _connectionGeneration)) { Client = _client.CreateConnection(apiBase) };
+                Interlocked.Read(ref _connectionGeneration))
+            { Client = _client.CreateConnection(apiBase) };
         }
     }
 

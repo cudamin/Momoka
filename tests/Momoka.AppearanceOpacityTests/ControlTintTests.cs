@@ -11,12 +11,15 @@ internal static class ControlTintTests
         var apply = typeof(ControlBackgroundBrushes).GetMethod("Apply", [typeof(double), typeof(bool), typeof(Windows.UI.Color?)]);
         if (apply is null) throw new InvalidOperationException("控件没有自选颜色入口");
         foreach (var key in new[] { "EgDetailActionBrush", "EgDetailActionHoverBrush", "EgDetailActionPressedBrush" })
-            Application.Current.Resources[key] = new SolidColorBrush { Color = key switch
+            Application.Current.Resources[key] = new SolidColorBrush
             {
-                "EgDetailActionHoverBrush" => 0x15FFFFFF,
-                "EgDetailActionPressedBrush" => 0x08FFFFFF,
-                _ => 0x0FFFFFFF
-            } };
+                Color = key switch
+                {
+                    "EgDetailActionHoverBrush" => 0x15FFFFFF,
+                    "EgDetailActionPressedBrush" => 0x08FFFFFF,
+                    _ => 0x0FFFFFFF
+                }
+            };
         foreach (var control in new Control[] { new Button(), new ComboBox(), new ToggleButton() })
         {
             var prefix = control is ComboBox ? "ComboBox" : control is ToggleButton ? "ToggleButton" : "Button";

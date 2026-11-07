@@ -107,8 +107,14 @@ internal static class RestoreParallelCorrectionTests
         internal Fixture(string branch, string prefix, bool knownId)
         {
             Directory.CreateDirectory(_root);
-            Server = new() { Id = "shared-profile", Name = "anonymous", Url = "https://pair.invalid" + prefix.TrimEnd('/'),
-                ServerKind = MediaServerKind.Emby, ServerId = knownId ? "same-server" : null };
+            Server = new()
+            {
+                Id = "shared-profile",
+                Name = "anonymous",
+                Url = "https://pair.invalid" + prefix.TrimEnd('/'),
+                ServerKind = MediaServerKind.Emby,
+                ServerId = knownId ? "same-server" : null
+            };
             foreach (var account in new[] { A, B })
             {
                 if (branch != "password") Vault.SetAccessToken(account, "placeholder-token-" + account.Id);
