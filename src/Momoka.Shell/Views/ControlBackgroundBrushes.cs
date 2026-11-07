@@ -36,12 +36,8 @@ internal sealed class ControlBackgroundBrushes
                 _foregrounds.Add(key, ink);
                 Control.Resources[key] = ink;
             }
-            var fill = (AcrylicBrush)Control.Resources[prefix + "Background" + suffix];
-            var color = fill.FallbackColor;
-            var amount = !fill.AlwaysUseFallback && materialFallback ? 1
-                : fill.AlwaysUseFallback ? fill.Opacity * color.A / 255d : fill.TintOpacity;
-            var surface = background.Mix(ThemeColor.Rgb(color.R, color.G, color.B), amount);
-            ink.Color = forced ?? ToColor(BackdropReading.Foreground(surface));
+            // 前景固定使用图片文字角色，不随主图、染色或指针状态切换黑白。
+            ink.Color = forced ?? Resource("EgOnScrimBrush").Color;
             if (suffix.Length == 0) Control.Foreground = ink;
         }
         if (Control is ComboBox)
@@ -60,8 +56,6 @@ internal sealed class ControlBackgroundBrushes
                 if (key.Contains("Focused", StringComparison.Ordinal) || key.Contains("Glyph", StringComparison.Ordinal)) copy.Color = ink.Color;
         }
     }
-
-    private static Windows.UI.Color ToColor(ThemeColor color) => new() { A = color.A, R = color.R, G = color.G, B = color.B };
 
     private ControlBackgroundBrushes(Control control, string prefix,
         SolidColorBrush normal, SolidColorBrush hover, SolidColorBrush pressed, SolidColorBrush disabled,
@@ -112,9 +106,12 @@ internal sealed class ControlBackgroundBrushes
             (SolidColorBrush)resources["EgBannerGhostHoverBrush"], (SolidColorBrush)resources["EgBannerGhostPressBrush"],
             Resource("ButtonBackgroundDisabled"));
 
-    public void Apply(double percent, bool useAcrylic = false, Windows.UI.Color? tint = null)
+    public void Apply(double percent, bool useAcrylic = false, Windows.UI.Color? tint = null,
+        double tintOpacity = 0.55, double luminosityOpacity = 0.55)
     {
         var amount = AppearanceOpacity.ControlBackground(percent);
+        tintOpacity = AppearanceOpacity.ControlBackground(tintOpacity * 100);
+        luminosityOpacity = AppearanceOpacity.ControlBackground(luminosityOpacity * 100);
         foreach (var (source, target, copy, feedback) in _brushes)
         {
             if (_lightSurface)
@@ -129,23 +126,24 @@ internal sealed class ControlBackgroundBrushes
                 acrylicInk.A = byte.MaxValue;
                 copy.TintColor = acrylicInk;
                 copy.FallbackColor = acrylicInk;
-                copy.TintOpacity = strength;
-                copy.TintLuminosityOpacity = 0;
-                copy.Opacity = useAcrylic && strength is > 0 and < 1 ? 1 : strength;
+                copy.TintOpacity = tintOpacity;
+                copy.TintLuminosityOpacity = luminosityOpacity;
+                copy.Opacity = strength;
                 copy.AlwaysUseFallback = !useAcrylic || strength is 0 or 1;
                 continue;
             }
             if (useAcrylic && amount < 1)
             {
                 // 亚克力跟着同一档浓度：0 档是一块什么都不画的玻璃，向右补到 100 的实底（由下面那条路接手）。
-                // 画刷本身保持不透明，系统关闭透明效果时 FallbackColor 仍是一块可读的主题表面。
+                // 滑块直接控制整层材质透明度；染色浓度固定，不再用染色冒充透明度。
                 var ink = tint ?? target.Color;
                 ink.A = byte.MaxValue;
                 copy.TintColor = ink;
                 copy.FallbackColor = ink;
-                copy.TintOpacity = amount;
-                copy.TintLuminosityOpacity = amount;
-                copy.Opacity = 1;
+                copy.TintOpacity = tintOpacity;
+                copy.TintLuminosityOpacity = luminosityOpacity;
+                var feedbackFloor = source.Color.A / 255d * source.Opacity;
+                copy.Opacity = feedback || _preserveDefault ? Math.Max(amount, feedbackFloor) : amount;
                 copy.AlwaysUseFallback = false;
                 continue;
             }
@@ -215,6 +213,11 @@ internal sealed class ControlBackgroundBrushes
         return copy;
     }
 
-    private static SolidColorBrush Resource(string key) => (SolidColorBrush)Application.Current.Resources[key];
+    private static SolidColorBrush Resource(string key) => Application.Current.Resources[key] switch
+    {
+        SolidColorBrush solid => solid,
+        AcrylicBrush glass => new SolidColorBrush { Color = glass.FallbackColor, Opacity = glass.Opacity },
+        _ => throw new InvalidOperationException("控件底色资源不是可用画刷：" + key)
+    };
 
 }

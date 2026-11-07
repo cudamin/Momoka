@@ -54,7 +54,7 @@
             </Setter>
         </Style>
         <Style x:Key="SettingsGroupToggle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="MinHeight" Value="0" />
             <Setter Property="Padding" Value="12,4,8,4" />
@@ -165,7 +165,7 @@
           这里的透明（同上头色板那一段，只是那儿要的正好相反）。
         -->
         <Style x:Key="EgHomeShiftStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <!-- 墨走角色表，不吃按钮自己那档：框架那档在 daylight 下是白底上的一层浅灰，两颗箭头几乎看不出在那儿。
                  置灰那一档不受影响 —— 「不可用」是视觉状态刷的，盖得过这里的设定（同上头色板那一段）。 -->
@@ -1524,7 +1524,7 @@
                     </AutoSuggestBox>
                     <Button x:Name="SettingsSearchButton" Width="32" Height="32" MinWidth="0" MinHeight="0"
                         HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0" CornerRadius="8"
-                        Background="Transparent" BorderThickness="0" AutomationProperties.Name="搜索设置项"
+                        Background="{ThemeResource EgActionGlassBrush}" BorderThickness="0" AutomationProperties.Name="搜索设置项"
                         Click="OnSettingsSearchClick">
                         <FontIcon Glyph="&#xE721;" FontSize="{StaticResource EgBodyFontSize}"
                             Foreground="{ThemeResource EgTextDimBrush}" />

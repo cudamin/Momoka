@@ -84,6 +84,7 @@ public sealed partial class DetailPage : Page, IShellContent
         ViewModel = new DetailViewModel();
         NavigationTiming.Mark("init-begin");
         InitializeComponent();
+        MediaTextColors.Attach(this);
         NavigationTiming.Mark("init-end");
         TextInk.Attach(DetailTitleInk, TitleText, TextInk.TitleBlur);
         TextInk.Attach(DetailPlateInk, TitlePlate, TextInk.PlateBlur);
@@ -1882,7 +1883,7 @@ public sealed partial class DetailPage : Page, IShellContent
     /// 做法 —— 内联元素绑不出来，只能在代码里搭；区别是这一行不是一排链接，而是几组「标签 + 值」，只有
     /// 数据库链接那几项是 <see cref="Hyperlink"/>。
     /// <para>
-    /// 标签走最暗的一支、普通值走暗墨 —— 和上面那张表同一个层次；链接走强调色，表示点得动。整行在窄窗口
+    /// 标签和普通值使用页面固定媒体字色；链接走强调色，表示点得动。整行在窄窗口
     /// 折行，不另起表格。
     /// </para>
     /// </summary>
@@ -1925,7 +1926,8 @@ public sealed partial class DetailPage : Page, IShellContent
             }
         }
 
-        static Brush Paint(string key) => (Brush)Application.Current.Resources[key];
+        Brush Paint(string key) => Resources.TryGetValue(key, out var value) && value is Brush brush
+            ? brush : (Brush)Application.Current.Resources[key];
     }
 
     /// <summary>
@@ -2529,6 +2531,7 @@ public sealed partial class DetailPage : Page, IShellContent
     internal void SelectEpisodeSeason(EmbyItem season)
     {
         var index = ViewModel.SelectEpisodeSeason(season);
-        if (index >= 0) EpisodeStrip.JumpTo(index);
+        if (index < 0) return;
+        if (ViewModel.EpisodeStripVisibility == Visibility.Visible) EpisodeStrip.JumpTo(index);
     }
 }

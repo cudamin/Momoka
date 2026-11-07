@@ -15,7 +15,7 @@
             <Setter Property="BorderThickness" Value="{StaticResource EgOutlineThickness}" />
             <Setter Property="BorderBrush" Value="{ThemeResource EgAccentBrush}" />
         </Style>
-        <!-- 保留平台按钮模板与焦点反馈；右下操作仅画图标，遮罩负责照片上的对比度。 -->
+        <!-- 保留平台模板与焦点反馈，右下操作仅画图标，遮罩负责照片上的对比度。 -->
         <Style x:Key="EgCardActionButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Width" Value="32" />
             <Setter Property="Height" Value="32" />
@@ -27,8 +27,7 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <!-- 播放键默认中性色；按钮自身悬停／按下才变强调色，不随整张封面的悬停换色。
-             框架模板从 ButtonBackgroundPointerOver 等主题键取色，因此覆盖放在按钮自己的 Resources。 -->
+        <!-- 中央播放键恢复原中性底色和悬停强调色；封面按钮不使用亚克力。 -->
         <Style x:Key="EgCardPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Width" Value="48" />
             <Setter Property="Height" Value="48" />
@@ -332,6 +331,7 @@
         <StackPanel Grid.Row="1" Margin="{x:Bind Card.TextMargin, Mode=OneWay}">
             <TextBlock
                 x:Name="TitleLine"
+                Foreground="{ThemeResource EgOnScrimBrush}"
                 FontWeight="SemiBold"
                 MaxLines="1"
                 Style="{StaticResource EgBodyStyle}"
@@ -342,6 +342,7 @@
                 ToolTipService.ToolTip="{x:Bind Card.Title, Mode=OneWay}" />
             <TextBlock
                 x:Name="SubLine"
+                Foreground="{ThemeResource EgOnScrimBrush}"
                 MaxLines="1"
                 Style="{StaticResource EgDataStyle}"
                 Text="{x:Bind Card.Subtitle, Mode=OneWay}"
@@ -354,7 +355,7 @@
                 x:Name="SourceLine"
                 MaxLines="1"
                 Style="{StaticResource EgCaptionStyle}"
-                Foreground="{ThemeResource EgTextFaintBrush}"
+                Foreground="{ThemeResource EgOnScrimBrush}"
                 Text="{x:Bind Card.SourceLine, Mode=OneWay}"
                 Visibility="{x:Bind Card.SourceLineVisibility, Mode=OneWay}"
                 TextAlignment="{x:Bind Card.TitleAlignment, Mode=OneWay}"
@@ -364,7 +365,7 @@
                 x:Name="NoteLine"
                 MaxLines="1"
                 Style="{StaticResource EgCaptionStyle}"
-                Foreground="{ThemeResource EgTextFaintBrush}"
+                Foreground="{ThemeResource EgOnScrimBrush}"
                 Text="{x:Bind Card.Note, Mode=OneWay}"
                 TextTrimming="CharacterEllipsis"
                 Visibility="{x:Bind Card.NoteVisibility, Mode=OneWay}" />

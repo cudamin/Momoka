@@ -15,14 +15,14 @@ namespace Momoka.Shell.Views;
 /// <paramref name="InsetRight"/> and <paramref name="InsetBottom"/> are the three icons' bottom-right
 /// corner measured from the artwork's, so 「贴在封面的右下角」 is a small number and centred is half a
 /// card. <paramref name="Chrome"/> is whether any of the three still paints a background in any of its
-/// three states — the grey circles and the black pill that 「仅保留白色的图标按钮」 took away.
+/// three states — the original icon-only corner buttons keep these backgrounds transparent.
 /// <paramref name="Watch"/> is whether the card can tell where the cursor really is, which is what takes
 /// the buttons back down when the pointer leaves the window without saying so.
 /// <para>
 /// 封面框线、中间播放键与无描边读数分开记录。<paramref name="FrameBorderless"/> 核三态都不画线。<paramref name="FrameRest"/> 是静止时的框线色，
 /// <paramref name="FrameActive"/> 是指针上来之后的色 —— 2026-10-27 起两者必须相同：封面不再画那圈绿框。
-/// <paramref name="PlayRest"/> 是播放键停着的底色（灰），<paramref name="PlayHover"/> 是指针压到键上的底色
-/// （强调色）—— 48 像素的圆在截图里认得出颜色，但「是不是调色板里那一支」还得靠读数。
+/// <paramref name="PlayRest"/> 与 <paramref name="PlayHover"/> 记录原播放键的中性底和悬停强调色；
+/// 材质身份和实际透明度另由定向材质探针读取，颜色读数不代替实时效果。
 /// <paramref name="FrameFocus"/> 是键盘那一半接上了没有：卡片自己接不到焦点，得往上找到外层容器，找不到的
 /// 话焦点那一半整个不存在，而那是完全没有症状的。
 /// </para>
@@ -300,7 +300,13 @@ public sealed partial class PosterCard : UserControl
         {
             if (read is null)
             {
-                text.ClearValue(TextBlock.ForegroundProperty);
+                if (!_backdropInk.TryGetValue(text, out var fixedBrush))
+                {
+                    fixedBrush = new SolidColorBrush();
+                    _backdropInk.Add(text, fixedBrush);
+                }
+                fixedBrush.Color = MediaTextColors.Current;
+                text.Foreground = fixedBrush;
                 continue;
             }
             if (!_backdropInk.TryGetValue(text, out var brush))
@@ -734,7 +740,7 @@ public sealed partial class PosterCard : UserControl
     /// 一支不是纯色的画刷（渐变、图片）在这里就是「没读到颜色」，而全透明的黑正好是自检要判红的东西。
     /// </summary>
     private static Windows.UI.Color Colour(Brush? brush) =>
-        brush is SolidColorBrush solid ? solid.Color : default;
+        brush is SolidColorBrush solid ? solid.Color : brush is AcrylicBrush acrylic ? acrylic.TintColor : default;
 
     /// <summary>
     /// 自检：whether one of the three corner buttons still fills itself in any of the states the pointer

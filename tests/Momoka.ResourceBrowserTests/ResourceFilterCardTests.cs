@@ -255,9 +255,9 @@ internal static class ResourceFilterCardTests
                 Assert.Equal(role, dark[key]);
                 Assert.True(role.StartsWith("Eg", StringComparison.Ordinal));
             }
-            Assert.Equal("EgAccentSoftBrush", light["ToggleButtonBackground"]);
+            Assert.Equal("EgActionGlassBrush", light["ToggleButtonBackground"]);
             Assert.Equal("EgBorderBrush", light["ToggleButtonBorderBrush"]);
-            Assert.Equal("EgAccentBrush", light["ToggleButtonBackgroundChecked"]);
+            Assert.Equal("EgActionGlassBrush", light["ToggleButtonBackgroundChecked"]);
             Assert.Equal("EgTextOnAccentBrush", light["ToggleButtonForegroundChecked"]);
             Assert.False(styles.Descendants().Any(node => node.Name.LocalName == "SolidColorBrush"));
             Assert.False(styles.Descendants().Attributes().Any(attribute => attribute.Name.LocalName == "HighContrastAdjustment"));
@@ -273,6 +273,7 @@ internal static class ResourceFilterCardTests
             Assert.Equal("1", tag.Attribute("BorderThickness")?.Value);
             var remove = Named(xml, "RemoveFilter");
             Assert.Equal("Button", remove.Name.LocalName);
+            Assert.Equal("{ThemeResource EgActionGlassBrush}", remove.Attribute("Background")?.Value);
             Assert.Equal("{x:Bind RemoveCommand}", remove.Attribute("Command")?.Value);
             Assert.Equal("{x:Bind RemoveName}", remove.Attribute("AutomationProperties.Name")?.Value);
             Assert.Null(remove.Attribute("Content"), "标签不是可误触的整颗移除按钮");

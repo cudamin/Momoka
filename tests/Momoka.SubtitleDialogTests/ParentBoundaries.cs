@@ -40,8 +40,9 @@ internal sealed partial class DetailViewModel : PageViewModel
     private long _lifetime;
     private readonly CancellationTokenSource? _versionLoad = null;
     private readonly CancellationTokenSource? _art = null;
-    // This movie-only boundary has no image reblur work; keep the real Cancel path's optional call.
-    private readonly CancellationTokenSource? _blurCancel = null;
+    // Movies have no current episode card; observe the real Cancel's release call at this boundary.
+    internal int FixtureEpisodeReleases { get; private set; }
+    private void ReleaseCurrentEpisodeCard() => FixtureEpisodeReleases++;
     private readonly IShellActions? _actions = null;
     private readonly IReadOnlyList<MediaVersion> _versions = [];
     internal EmbyItem? PlayTarget { get; private set; }

@@ -100,7 +100,7 @@
                         <TextBlock x:Uid="DiagnosticsPage_TextBlock13" Style="{StaticResource EgSubheadStyle}" />
                         <Button x:Name="DiagnosticsDetailsButton" Grid.Column="1" Content="详情"
                             AutomationProperties.Name="运行状态详情" Padding="6,0" MinHeight="22"
-                            Background="Transparent" BorderThickness="0" VerticalAlignment="Center">
+                            Background="{ThemeResource EgActionGlassBrush}" BorderThickness="0" VerticalAlignment="Center">
                             <Button.Flyout>
                                 <Flyout x:Name="DiagnosticsDetailsFlyout">
                                     <Flyout.FlyoutPresenterStyle>

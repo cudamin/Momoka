@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
+    <Compile Include="../../src/Momoka.Shell/GlobalControlAppearance.cs" Link="GlobalControlAppearance.cs"
+             Condition="Exists('../../src/Momoka.Shell/GlobalControlAppearance.cs')" />
+    <Compile Include="../../src/Momoka.Shell/Theme/ThemeHost.cs" Link="ThemeHost.cs" />
+    <Compile Include="../../src/Momoka.Shell/Theme/InputControlTheme.cs" Link="InputControlTheme.cs" />
+    <Compile Include="../../src/Momoka.Shell/ShellPrefs.cs" Link="ShellPrefs.cs" />
+  </ItemGroup>
+</Project>

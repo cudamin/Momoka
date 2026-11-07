@@ -5,12 +5,12 @@
          指向项目角色刷子，ThemeHost 原地换色时仍是同一份；不复制截图中的紫色。 -->
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Dark">
-            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgSurfaceBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgSurfaceHoverBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgAccentSoftBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgAccentSoftBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgAccentMutedBrush" />
+            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgActionGlassPressedBrush" />
             <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="EgBorderBrush" />
             <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="EgBorderStrongBrush" />
             <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="EgBorderStrongBrush" />
@@ -25,12 +25,12 @@
             <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgTextBrush" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
-            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgSurfaceBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgSurfaceHoverBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgAccentSoftBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgAccentSoftBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgAccentMutedBrush" />
+            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgActionGlassPressedBrush" />
             <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="EgBorderBrush" />
             <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="EgBorderStrongBrush" />
             <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="EgBorderStrongBrush" />
@@ -62,7 +62,7 @@
         <Setter Property="MinHeight" Value="30" />
         <Setter Property="Padding" Value="10,4" />
         <Setter Property="CornerRadius" Value="15" />
-        <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
+        <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
         <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
         <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
     </Style>

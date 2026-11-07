@@ -100,6 +100,7 @@ internal sealed partial class ShellNavigationProbe
             return Task.CompletedTask;
         });
         Add("InspectSettingsOpening", "聚合设置开窗", () => SettingsOpeningAsync(inspect: true));
+        AddCheck("InspectSettingsSearch", "设置搜索与输入控件", SettingsSearchLayoutAsync);
         Add("InspectDetailCustomization", "详情自定义", async () =>
         {
             if (frame.Content is IShellContent previous) previous.Release();
@@ -108,7 +109,7 @@ internal sealed partial class ShellNavigationProbe
             {
                 await CaseAsync("详情自定义设置：卡片排序、隐藏、拖拽提交与重入", DetailCustomizationSettingsAsync, 90,
                     section: ShellProbeSections.Settings);
-                await CaseAsync("详情自定义页面：实际顺序、隐藏恢复、遮罩强度与沉浸开关", DetailCustomizationPagesAsync, 120,
+                await CaseAsync("详情自定义页面：实际顺序、隐藏恢复、遮罩强度与沉浸开关", DetailCustomizationPagesAsync, 240,
                     section: ShellProbeSections.Library);
             }
             finally { layout.Visibility = Visibility.Visible; }
@@ -279,6 +280,9 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectDetailResize", "详情连续缩放回归", DetailResizeAsync);
         AddCheck("InspectDetailCoverGap", "详情封面等距", DetailCoverGapAsync);
         AddCheck("InspectEpisodeBand", "单集两种模式布局", EpisodeBandAsync);
+        AddCheck("InspectEpisodeSeason", "季度集列表", DetailSeriesInfoAsync);
+        AddCheck("InspectLongSeries", "长剧集列表", PerformanceLongSeriesAsync);
+        AddCheck("InspectGlobalControls", "全局按钮材质", GlobalControlsAsync);
         Add("InspectDone", "结束检查", () => { finished.TrySetResult(); return Task.CompletedTask; });
         frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services, "离线示例"));
         await LayoutAsync(layout);

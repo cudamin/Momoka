@@ -18,7 +18,7 @@
             <Setter Property="MinHeight" Value="52" />
             <Setter Property="Padding" Value="38,12,0,12" />
             <Setter Property="CornerRadius" Value="{StaticResource EgPickerCornerRadius}" />
-            <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="BorderBrush" Value="{ThemeResource EgBorderStrongBrush}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="FontSize" Value="{StaticResource EgBodyFontSize}" />
@@ -36,7 +36,7 @@
         <Style x:Key="ReorganizeActionStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="MinHeight" Value="36" />
             <Setter Property="Padding" Value="12,8" />
-            <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
             <Setter Property="BorderThickness" Value="0" />
         </Style>

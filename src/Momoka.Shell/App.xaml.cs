@@ -125,6 +125,7 @@ public partial class App : Application
             // 存盘，赋一次值就等于替用户改了主题。
             var theme = UiThemes.Resolve(_options.Theme ?? ui.Theme);
             ThemeHost.Apply(theme);
+            GlobalControlAppearance.Apply(ui);
 
             if (_options.Theme is { Length: > 0 } asked)
                 Log.Info(Category, string.Equals(theme.Id, asked, StringComparison.OrdinalIgnoreCase)

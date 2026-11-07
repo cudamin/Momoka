@@ -95,10 +95,10 @@
             Height="40"
             Padding="0,0,148,0"
             Background="Transparent">
-            <!-- 只保留图标，没有按钮底板。交互区域仍是标准 Button，键盘焦点和标题栏穿透区域不变。 -->
+            <!-- 标题栏图标按钮共用全局亚克力；键盘焦点和标题栏穿透区域不变。 -->
             <Grid.Resources>
                 <Style BasedOn="{StaticResource DefaultButtonStyle}" TargetType="Button">
-                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
                     <Setter Property="BorderThickness" Value="0" />
                     <Setter Property="CornerRadius" Value="8" />
                     <!-- 2026-11-01 用户令「再往下移一点，然后再稍微放大一点点」：托盘 32 高、从标题栏顶下 6 像素起，
@@ -221,7 +221,7 @@
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Center"
                 HorizontalContentAlignment="Left"
-                Background="Transparent"
+                Background="{ThemeResource EgActionGlassBrush}"
                 BorderThickness="0"
                 CornerRadius="{StaticResource EgCardCornerRadius}"
                 Visibility="Collapsed">
@@ -322,7 +322,7 @@
                     <StackPanel x:Name="AccountMenuBody" Width="280" Spacing="2">
                         <StackPanel.Resources>
                             <Style x:Key="AccountActionStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
                                 <Setter Property="BorderThickness" Value="0" />
                                 <Setter Property="Padding" Value="6,3" />
                                 <Setter Property="MinHeight" Value="32" />
@@ -382,7 +382,7 @@
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Center"
                 HorizontalContentAlignment="Left"
-                Background="Transparent"
+                Background="{ThemeResource EgActionGlassBrush}"
                 BorderThickness="0"
                 CornerRadius="{StaticResource EgCardCornerRadius}"
                 Click="OnSidebarSettingsClicked"
