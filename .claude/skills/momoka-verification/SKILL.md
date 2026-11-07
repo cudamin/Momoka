@@ -140,8 +140,9 @@ probe removes only its own Frame in finally so later root-child assertions retai
 AniBT candidates are previewable, not immediately submit-ready; execute and cancel the actual read-only
 preview before testing the second-stage confirmation. Keep placeholder writes explicitly rejected.
 
-A current self-check still uses the established check names/baseline, but validates all nine library
-view enum entries, actual live layout MinItemHeight and independently captured selected-field text
+A current self-check still uses the established check names/baseline, but validates the seven Emby
+views in `LibraryDisplayCatalog.EmbyViews`; the two Jellyfin views belong to their dedicated library probe.
+It also validates actual live layout MinItemHeight and independently captured selected-field text
 height. HDR optional-number labels are exact four/five according to mode. The episode surface uses
 the current card-border resource, not a retired mandatory outline. These diagnostic repairs do not
 change product UX or grant a baseline exception. The source-linked/malformed-reading fixtures do not

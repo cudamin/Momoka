@@ -67,10 +67,10 @@ metadata: {agent_created: true}
 ## 匹配与显隐
 
 - 自动匹配只接受**唯一且标题精确**的候选：`SeriesName` 优先，Unicode 归一化后只比较字母数字并忽略大小写。`hasMore`、多个结果、续季（`ParentIndexNumber` 不是 1）或特别篇都不猜，留给播放页手动搜索。
-- `IsConfigured` = 服务开启 + 内置 libmpv +（内置来源或自定义凭据齐全）。外部 mpv 后端不接入弹幕：设置卡片、分类入口、播放器按钮和快捷键行一起隐藏，但偏好保留，同一视频的草稿不因隐藏清空；切回内置后可继续。
+- `DandanPlayMatching.IsConfigured` checks the enabled flag and built-in libmpv. Effective selected-source readiness belongs to `DanmakuSourceRules.IsAvailable`: DandanPlay uses only the built-in credential; danmu_api also needs a valid configured base address. Combined mode can retain its usable source. External mpv hides dependent settings, player entries and shortcuts while preserving preferences and the current video's draft.
 - 设置分类名 `弹幕` 是跨文件契约：`SettingsViewModel.CardCategories`、`SettingsCategoryGlyphConverter`、`PlayerSettingsLinks`（令牌仍是 `danmaku`，菜单行文案仍写产品名 `弹弹play`）、探针断言和 `MpvUiTests` 的固定表都要一起改。只改一处会出现「点设置入口落在别的卡」或自检红项。侧栏与卡片标题只写「弹幕」；产品名、开关文案和错误提示里的「弹弹play」指服务本身，不是分类名。
-- 分类下是**三张卡**（2026-10-27 拆卡，`SettingsViewModel.Danmaku.cs` 的 `DanmakuSections`）：`弹幕`（启用、自动匹配、包含关联）、`显示与外观`（显示开关、输入栏、五个外观滑块）、`类型与屏蔽`（滚动/顶部/底部/彩色/合并、屏蔽词）。同一天用户又令删掉第四张 `应用凭据` 卡，它连同 AppId／AppSecret／开发者中心一起退役。行数归零的卡由 `SettingSection.SectionVisibility` 整张收起；三张卡的实例一直保留，`RefreshDanmakuPresentation` 按标题对号原地 `UpdateRows`。**不要再按 `Single(Category == "弹幕")` 找这张卡**，探针用的是 `DanmakuCards`／`DanmakuRows`。
-- 服务关闭时只剩「启用弹弹play」一行（第一张卡），另外两张卡整张收起。服务关闭或不可用时收起从属控件，但不重置偏好。
+- The category now has 四张卡 in `SettingsViewModel.DanmakuSections`: `弹幕`, `来源与聚合`, `显示与外观`, and `类型与屏蔽`. The source card selects DandanPlay, self-hosted danmu_api, or both, and carries the optional DPAPI-protected danmu_api access token. The retired `应用凭据` card and user-provided DandanPlay AppId/AppSecret remain absent; their removal does not mean all credential inputs are absent. Stable card instances update rows by title; empty sections collapse. Use `DanmakuCards` / `DanmakuRows`, never `Single(Category == "弹幕")`.
+- When disabled, retain the `启用弹幕` row and hide dependent rows/sections without resetting preferences. Source configuration and recovery entries remain accessible according to the effective-source rules.
 
 ## 渲染与发送边界
 

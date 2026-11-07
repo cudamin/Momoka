@@ -3699,7 +3699,7 @@ R02-003/R03-003/R03-005/R04-002/R04-004已修。产品/工具来源5a2ed21：x64
 
 ## 媒体库设置面板照网页版重做（2026-10-17 用户令）
 
-用户令（原话）：「很多地方都不一样，我授权你访问 http://192.168.31.230:8896/ 对照」，附网页端设置面板三张截图；随后「你好好查一下 Emby 的 API 吧能接的都接上，官方 api 没给的就先不要弄了」「电视剧和电影之间是不一样的，注意区分」。动手前读了 `CLAUDE.md`、shell 技能与 `momoka-emby-api/references/official-sdk.md`。本轮在主树动手，**保留进入本轮时那一批未提交工作**（同日详情页、主页实时、Plex、删服务器管理页等），只动自己这几处。已提交，未推送。
+用户令（原话）：「很多地方都不一样，我授权你访问 http://private-media-server.invalid:8896/ 对照」，附网页端设置面板三张截图；随后「你好好查一下 Emby 的 API 吧能接的都接上，官方 api 没给的就先不要弄了」「电视剧和电影之间是不一样的，注意区分」。动手前读了 `CLAUDE.md`、shell 技能与 `momoka-emby-api/references/official-sdk.md`。本轮在主树动手，**保留进入本轮时那一批未提交工作**（同日详情页、主页实时、Plex、删服务器管理页等），只动自己这几处。已提交，未推送。
 
 - **照着网页端的源码抄的**：抓了那台 4.10.1.0 的 `modules/viewsettings/viewsettings.js` 与 `.template.html`、`tabbedview/listcontroller.js`、`cardbuilder.js`、`common/itemmanager/baseitemcontroller.js`、`strings/zh-CN.json`。四组的顺序、七个视图、八档尺寸、十四项字段与两条说明文字都按它们来，没有凭截图猜。
 - **四组设置**：视图（海报／横幅图／光盘封面／徽标／缩略图／列表／表格）、图像大小（超小／特小／小／中／默认／大／特大／超大）、将项目分组到合集中、显示字段（标题／IMDb 评分／影评人评分／家长评分／年份／播放时长／类型／导演／标签／工作室／宣传语／概要／播放日期／创建日期）。**改一处就生效**，没有确定键 —— 网页端也是每改一处 `saveValues` + `refreshItems`。
@@ -5645,7 +5645,7 @@ Microsoft Defender SmartScreen 阻止了无法识别的应用启动。运行此�
 
 **这次留下的（与功能去留无关，将来若要「让 MP 记录播放进度」直接可用）：**
 
-- **Emby 服务器上那条通知**（直连 `Notifications/Services/Configured` 读出，脚本与读数在 `work/notify-probe/`）：服务 `webhooknotifications`，启用，事件 `library.new / library.deleted / playback.start / playback.pause / playback.unpause / **playback.stop**`，目标 `http://172.17.0.1:3001/api/v1/webhook?token=…`（Docker 网桥地址 ＝ 本机 MP 的后端端口）。事件与目的地都对，缺的只是 MP 得在线。
+- **Emby 服务器上那条通知**（直连 `Notifications/Services/Configured` 读出，脚本与读数在 `work/notify-probe/`）：服务 `webhooknotifications`，启用，事件 `library.new / library.deleted / playback.start / playback.pause / playback.unpause / **playback.stop**`，目标 `http://private-media-server.invalid:3001/api/v1/webhook?token=…`（Docker 网桥地址 ＝ 本机 MP 的后端端口）。事件与目的地都对，缺的只是 MP 得在线。
 - **MP 侧解析**（`app/modules/emby/emby.py` 的 `get_webhook_message`）：`percentage = PlaybackInfo.PositionTicks / Item.RunTimeTicks × 100`；它 docstring 里贴的第一份示例报文正是 `"Event": "playback.stop"` 的电影事件，且带 `PlaybackInfo.PositionTicks` —— **停止事件带位置**。插件读的 `ev.tmdb_id` 在 V3 是兼容属性（`media_source == TMDB` 时返回 `media_id`），读得到，不必改。
 - **插件侧**（`SpaceCleaner.on_webhook`）：只收 `playback.stop`／`playback.pause`／`media.stop` 一类，按 `tmdb:SxxExx`（电影 `tmdb:M`）写播放缓存，**只增不减**，同一剧集只留季集最靠后的一条。两个前提缺一不可：①插件必须启用「空间清理」或「智能RSS」—— `on_webhook` 第一句就是「两个都关直接丢」，而两个默认都是 `False`；②EmbyNian 的「上报播放进度到服务器」总开关必须开着（所有播放事件的源头都在这条路上）。
 - **判定口径在插件自己手里**：它用 `_watched_threshold`（默认 85%）判「已看」，与 EmbyNian 侧任何阈值都无关。
@@ -11401,3 +11401,9 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 产品79f5026/082f669/c275a06全部在master，最终c275a06 Tests/Core/Shell Release/x64零警告错误，完整4142/4142、翻译119/119、真实设置行44/44，零失败跳过。最终Core A50DD95E…与Tests/Shell所带Core一致、Shell BF1EA76A…；原mutex16红、旧Shell过程错及截图误匹配红保留，重编最终测试对齐提交信息。独立复核两项闭合，无新必要发现。
 - 最终Settings副屏与主屏均28/28退出0，PID22556/13220正常退出；副屏宽图截边不验收，主屏五主题宽窄及失败/恢复13图完整实屏已看，隐藏说明时Status可读。只跑Settings，108项未执行；无真实下载/凭据/服务器写入/播放/native管线或上传。证据artifacts/review-batch11-master，详见ELEVENTH-REPAIRS.md。
 - 用户已在0923聊天授权直接协调与最终统一交付。本会话现明确释放主树写入/构建/完整测试/UI/发布权给0923聊天，由其保留本批全部修复、整合独立视觉内容，最终master重验后一次实际publish -NoArchive -Shortcut。无待修/待合/待验本批产品，统一交付回执仍待；快捷方式当前仍前批程序。本会话只读跟进，不并发写树/运行/发布、不代合其UI；收到最终回执后核对并收尾。
+
+## 2026-11-07 第十二批剩余必要缺陷集中修复
+
+- 用户明确要求本聊天多开子代理，一轮修完。按历史133项逐条核当前源码，当前确认94项待处理：R01–06共17、R07–09共18、R10–13共24、R14–17共25、R18文档10；R07-009/R16-001由0923聊天当前视觉替代方案处理。旧清单不再当当前未修数量。
+- 本聊天primary review-recovery-batch3独占文档/R10–13及最终合流；repair-foundation-r01-r06、repair-media-r07-r13、remaining-shell-tools分别独占对应范围，所有中间构建/定向测试本树执行。主树/GUI/完整测试/统一发布仍由用户授权的0923聊天持有，最终串行交接；不重复发布、不上传，不读取真实凭据或进行服务器播放/写入。
+- R18十项文档原内容检查0/10，修后10/10，11个当前/负向测试全过；服务支持文档检查通过，15技能0错误/2 metadata未校验警告。遮蔽四历史文件六处RFC1918地址，保留路由/时间/结果；不改写Git历史。此阶段只有文档组验证完成，不代表94项产品/主树交付完成。
