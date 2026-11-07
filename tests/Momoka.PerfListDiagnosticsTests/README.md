@@ -1,5 +1,10 @@
 # PERF-06 / PERF-10 定向真实源码回归
 
+性能探针的末尾补页只等待本次 ScrollCompleted 关联与新页事实，不把分页追加后的锚点位移误判为静态滚动失败；
+通用精确偏移检查保持。长剧季跳等待实际滚动落点、Idle及选中季，再执行原有索引/按需卡数量断言。
+来源链接回归覆盖完成后追加位移、缺新页拒绝、正确季落点及旧季拒绝；不能代替真实WinUI滚动。
+飞牛匹配探针只增加开/关/旧读/新读阶段日志，原3秒超时及关闭/迟到读取断言不变，失败不归因于服务器或洗绿。
+
 2026-11-07 首次诊断标题验收：当前入口76项，额外编译链接完整 `ShellNavigationProbe.DiagnosticsTitle.cs` 与真实诊断VM/Core。托管拒绝读取的状态句柄仅发布匿名标题，不调用 Play/Start/监视或媒体；3例覆盖正常、截图失败与错误文字拒绝并验证页面清理。控件文字／布局是测试终端替身，不把这些用例当作真实WinUI绑定证据。真实入口 `--probe-shell --probe-section shell --screen 1` 保存 `diagnostics-initial-title-screen.png`／`diagnostics-current-title-screen.png`。
 
 2026-11-07 提取边界兼容：当前正式入口73项。夹具补实际 Core `RemovedMedia` 与原始 offset 字段，完整生产 `LoadAsync` 仍原样提取。新增已删项过滤不丢原始读取进度、reset 重载清旧 offset 的回归；当前 Release/x64 零警告错误、73/73通过。源码哈希、错误树、重解析路径、缺方法和守卫拒绝保持原有规则。

@@ -195,7 +195,8 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(returned);
                 var refilledEnd = returned.ViewModel.WindowEnd;
                 var refilledScroll = Get<ItemsView>(returned, "CardWall").ScrollView!;
-                await ScrollProbeAsync(refilledScroll, refilledScroll.ExtentHeight);
+                await TriggerPerformancePageAsync(refilledScroll,
+                    () => returned.ViewModel.WindowEnd > refilledEnd && !returned.ViewModel.Busy);
                 await UntilAsync(() => returned.ViewModel.WindowEnd > refilledEnd && !returned.ViewModel.Busy);
                 evidence.Add(new
                 {

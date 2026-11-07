@@ -16,6 +16,7 @@ internal static class PerfListDiagnosticsProgram
         DiagnosticsCoalescingTests.Register();
         DiagnosticsTests.Register();
         DiagnosticsTitleProbeTests.Register();
+        PerformanceCompletionTests.Register();
         return TestHarness.Run();
     }
 }

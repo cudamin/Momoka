@@ -266,15 +266,25 @@ internal sealed partial class ShellNavigationProbe
         Task? readA = null;
         Task? readB = null;
         Task? shown = null;
+        var phase = "prepare";
+        var phases = new List<string>();
+        void Stage(string value)
+        {
+            phase = value;
+            phases.Add(value);
+            File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "performance-match-phases.txt"), value + "\n");
+        }
         try
         {
             var opened = Pending<bool>();
             dialog.Opened += (_, _) => opened.TrySetResult(true);
             shown = ShowPerformanceDialogAsync(dialog);
+            Stage("first-open");
             await opened.Task.WaitAsync(TimeSpan.FromSeconds(3));
             readA = (Task)Call(dialog, "SearchAsync")!;
             Require(searches.Count == 1 && !searches[0].Token.IsCancellationRequested, "第一次搜索没有当前只读令牌");
             dialog.Hide();
+            Stage("first-close");
             await shown.WaitAsync(TimeSpan.FromSeconds(3));
             Require(searches[0].Token.IsCancellationRequested, "真实关闭没有取消只读请求");
             Require(Get<ProgressBar>(dialog, "Busy").Visibility == Visibility.Collapsed, "关闭后旧读取圈仍可见");
@@ -282,16 +292,19 @@ internal sealed partial class ShellNavigationProbe
             var reopened = Pending<bool>();
             dialog.Opened += (_, _) => reopened.TrySetResult(true);
             shown = ShowPerformanceDialogAsync(dialog);
+            Stage("second-open");
             await reopened.Task.WaitAsync(TimeSpan.FromSeconds(3));
             Get<TextBox>(dialog, "KeywordBox").Text = "新访问候选";
             readB = (Task)Call(dialog, "SearchAsync")!;
             Require(searches.Count == 2, "重开没有允许用户明确提交新搜索");
             searches[0].Reply.TrySetResult([new("旧候选", "tmdb", "1", "Movie", "2024-01-01")]);
+            Stage("old-read");
             await readA.WaitAsync(TimeSpan.FromSeconds(3));
             PerformanceProbeRules.MatchingReadCanceled(searches[0].Token.IsCancellationRequested,
                 Get<bool>(dialog, "_busy"), CountDialogRows(dialog));
             Require(Get<ProgressBar>(dialog, "Busy").Visibility == Visibility.Visible, "旧 finally 收起了新访问加载状态");
             searches[1].Reply.TrySetResult([new("新候选", "tmdb", "2", "Movie", "2024-01-02")]);
+            Stage("new-read");
             await readB.WaitAsync(TimeSpan.FromSeconds(3));
             Require(CountDialogRows(dialog) == 1 && !Get<bool>(dialog, "_busy"), "新访问没有收到自己的结果");
             var row = ((IEnumerable)Get<ListView>(dialog, "Results").ItemsSource).Cast<FnNasScrapCandidate>().Single();
@@ -300,6 +313,7 @@ internal sealed partial class ShellNavigationProbe
             await WaitForDiagnosticsFrameAsync();
             await SaveProbeScreenAsync("performance-match-new-visit-screen.png");
             dialog.Hide();
+            Stage("second-close");
             await shown.WaitAsync(TimeSpan.FromSeconds(3));
             await WritePerformanceEvidenceAsync("performance-match-close.json", new
             {
@@ -309,14 +323,20 @@ internal sealed partial class ShellNavigationProbe
                 lateResponseRejected = true,
                 reopenedResult = row.Title,
                 writes = 0,
-                realNetwork = false
+                realNetwork = false,
+                phases
             });
+        }
+        catch (Exception error)
+        {
+            throw new InvalidOperationException("飞牛匹配探针阶段失败：" + phase, error);
         }
         finally
         {
             dialog.Hide();
             foreach (var read in searches) read.Reply.TrySetResult([]);
-            if (shown is not null) await shown.WaitAsync(TimeSpan.FromSeconds(3));
+            try { if (shown is not null) await shown.WaitAsync(TimeSpan.FromSeconds(3)); }
+            catch (TimeoutException error) { throw new InvalidOperationException("飞牛匹配探针清理失败；原阶段=" + phase, error); }
             if (readA is not null) await readA.WaitAsync(TimeSpan.FromSeconds(3));
             if (readB is not null) await readB.WaitAsync(TimeSpan.FromSeconds(3));
         }
