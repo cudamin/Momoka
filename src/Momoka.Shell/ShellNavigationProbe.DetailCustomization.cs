@@ -637,7 +637,7 @@ internal sealed partial class ShellNavigationProbe
     {
         var fade = Get<Border>(page, "BackdropFade");
         return fade.Visibility == Visibility.Visible && fade.Background is AcrylicBrush acrylic
-            ? (byte)Math.Round(acrylic.Opacity == 0 ? 0 : acrylic.TintOpacity * byte.MaxValue) : (byte)0;
+            ? (byte)Math.Round(acrylic.Opacity * byte.MaxValue) : (byte)0;
     }
 
     private async Task<(byte[] Pixels, int Width, int Height)> ReadBackdropPixelsAsync(ImageSource picture)

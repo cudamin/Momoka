@@ -29,8 +29,8 @@ internal sealed partial class ShellNavigationProbe
         var ink = ExpectedBackdropBaseColor(page);
         Require(fade.Background is AcrylicBrush acrylic
             && acrylic.TintColor == ink && acrylic.FallbackColor == ink
-            && acrylic.TintOpacity == page.ViewModel.BackdropStrength
-            && acrylic.Opacity == (page.ViewModel.BackdropStrength == 0 ? 0 : 1)
+            && acrylic.TintOpacity == 0.55 && acrylic.TintLuminosityOpacity == 0.55
+            && acrylic.Opacity == page.ViewModel.BackdropStrength
             && acrylic.AlwaysUseFallback == (page.ViewModel.BackdropStrength == 1),
             "背景亚克力没有使用主图均色、当前不透明度或完全不透明回退");
         var edge = Get<Border>(page, "BackdropEdgeFade");
@@ -127,23 +127,23 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 var fade = Get<Border>(page, "BackdropFade");
                 var brush = (AcrylicBrush)fade.Background;
-                var last = brush.TintOpacity;
+                var last = brush.Opacity;
                 var lastColor = brush.TintColor;
                 try
                 {
-                    brush.TintOpacity = 0.91;
+                    brush.Opacity = 0.91;
                     var rejected = false;
                     try { RequireDetailBackdropFade(page); }
                     catch (InvalidOperationException) { rejected = true; }
                     Require(rejected, "背景检查没有拒绝错误不透明度反例");
-                    brush.TintOpacity = last;
+                    brush.Opacity = last;
                     brush.TintColor = Microsoft.UI.Colors.Lime;
                     rejected = false;
                     try { RequireDetailBackdropFade(page); }
                     catch (InvalidOperationException) { rejected = true; }
                     Require(rejected, "背景检查没有拒绝错误主图底色反例");
                 }
-                finally { brush.TintOpacity = last; brush.TintColor = lastColor; }
+                finally { brush.Opacity = last; brush.TintColor = lastColor; }
 
                 foreach (var width in new[] { 760, 1280 })
                 {
@@ -215,11 +215,13 @@ internal sealed partial class ShellNavigationProbe
         Require(fade.Background is AcrylicBrush, "像素检查缺少实际亚克力");
         var glass = (AcrylicBrush)fade.Background;
         var previousFallback = glass.AlwaysUseFallback;
+        var previousOpacity = glass.Opacity;
         try
         {
             // RTB不合成实时亚克力；只强制实际刷子的实色回退验证Tint来源与渐变几何，实时材质另看屏幕截图。
             picture.Background = new SolidColorBrush(Microsoft.UI.Colors.White);
             glass.AlwaysUseFallback = true;
+            glass.Opacity = previousOpacity == 0 ? 0 : 1;
             await LayoutAsync(page);
             var bitmap = new RenderTargetBitmap();
             await bitmap.RenderAsync(backdrop);
@@ -250,7 +252,7 @@ internal sealed partial class ShellNavigationProbe
             File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "backdrop-fade-pixels.txt"),
                 $"fallback-only; type={page.ViewModel.ItemType}; tint={baseColor}; clear={clear}; size={bitmap.PixelWidth}x{bitmap.PixelHeight}\n");
         }
-        finally { picture.Background = image; glass.AlwaysUseFallback = previousFallback; }
+        finally { picture.Background = image; glass.AlwaysUseFallback = previousFallback; glass.Opacity = previousOpacity; }
         await LayoutAsync(page);
     }
 
