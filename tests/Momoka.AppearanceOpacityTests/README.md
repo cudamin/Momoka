@@ -19,3 +19,5 @@
 选择框箭头诊断：材质探针在原前景判据前保存实际picker/glyph/fallback icon source颜色、本地Normal/Focused/FocusedPressed三键颜色及引用归属、焦点与模板状态、实际底色回退浓度到picker-glyph-reading.txt。类型不符或缺键原样记null/类型名，不当作通过；原前景失败和材质/弹层反例继续保留。两个source-linked原始读数测试验证异色、缺资源与非实色不被伪装。
 
 详情自定义运行范围按Series/Episode/Movie分成三项，使用同一真实检查正文；每类型仍120秒，共同季页和导入/默认/首页检查只在Movie执行一次。source-linked样本选择检查三类型完整、无重复、未知或空及缺样本拒绝，不替代实际三项WinUI。
+
+选择框字刷接线修复（2026-11-08）：真实模板在Loaded前已捕获箭头ThemeResource，后加同名键不会换掉其旧引用。ForDetail构造时提前建立选择框八个独立前景画刷，ApplyForeground只修改原对象颜色，使初始、焦点、展开箭头与字的可读前景同源；展开列表和禁用状态仍由平台管理。测试在模板捕获边界先读八键再切亮/暗/高对比，核无后插入/替换及原引用改变；故意替换key的旧引用反例必须拒绝。实际框架模板、箭头和fallback IconSource仍需主树运行核对，source-linked通过不是WinUI证明。

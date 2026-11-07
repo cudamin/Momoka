@@ -30,12 +30,7 @@ internal sealed class ControlBackgroundBrushes
         foreach (var suffix in new[] { "", "PointerOver", "Pressed" })
         {
             var key = prefix + "Foreground" + suffix;
-            if (!_foregrounds.TryGetValue(key, out var ink))
-            {
-                ink = new SolidColorBrush();
-                _foregrounds.Add(key, ink);
-                Control.Resources[key] = ink;
-            }
+            var ink = ForegroundBrush(key);
             var fill = (AcrylicBrush)Control.Resources[prefix + "Background" + suffix];
             var color = fill.FallbackColor;
             var amount = !fill.AlwaysUseFallback && materialFallback ? 1
@@ -47,18 +42,19 @@ internal sealed class ControlBackgroundBrushes
         if (Control is ComboBox)
         {
             var ink = _foregrounds[prefix + "Foreground"];
-            foreach (var key in new[] { "ComboBoxForegroundFocused", "ComboBoxForegroundFocusedPressed",
-                "ComboBoxDropDownGlyphForeground", "ComboBoxDropDownGlyphForegroundFocused", "ComboBoxDropDownGlyphForegroundFocusedPressed" })
-                if (!_foregrounds.ContainsKey(key))
-                {
-                    // 不动展开列表的 ComboBoxDropDownForeground/ComboBoxItemForeground。
-                    var copy = new SolidColorBrush();
-                    _foregrounds.Add(key, copy);
-                    Control.Resources[key] = copy;
-                }
             foreach (var (key, copy) in _foregrounds)
                 if (key.Contains("Focused", StringComparison.Ordinal) || key.Contains("Glyph", StringComparison.Ordinal)) copy.Color = ink.Color;
         }
+    }
+
+    private SolidColorBrush ForegroundBrush(string key)
+    {
+        if (_foregrounds.TryGetValue(key, out var ink)) return ink;
+        var initial = (Control.Foreground as SolidColorBrush)?.Color ?? ToColor(BackdropReading.Foreground(ThemeColor.Rgb(0, 0, 0)));
+        ink = new SolidColorBrush { Color = initial };
+        _foregrounds.Add(key, ink);
+        Control.Resources[key] = ink;
+        return ink;
     }
 
     private static Windows.UI.Color ToColor(ThemeColor color) => new() { A = color.A, R = color.R, G = color.G, B = color.B };
@@ -86,6 +82,13 @@ internal sealed class ControlBackgroundBrushes
         {
             resources[prefix + "BackgroundFocused"] = rest;
             resources[prefix + "BackgroundUnfocused"] = rest;
+            // The ComboBox template captures these ThemeResource brushes before Loaded. Inserting
+            // them during ApplyForeground is too late for AnimatedIcon/FallbackIconSource; seed the
+            // independent objects here and only change their colors later. Popup rows keep their keys.
+            foreach (var key in new[] { "ComboBoxForeground", "ComboBoxForegroundPointerOver", "ComboBoxForegroundPressed",
+                "ComboBoxForegroundFocused", "ComboBoxForegroundFocusedPressed", "ComboBoxDropDownGlyphForeground",
+                "ComboBoxDropDownGlyphForegroundFocused", "ComboBoxDropDownGlyphForegroundFocusedPressed" })
+                ForegroundBrush(key);
         }
         if (control is ToggleButton)
         {
