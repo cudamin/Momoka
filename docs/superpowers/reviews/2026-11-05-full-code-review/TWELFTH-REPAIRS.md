@@ -1,6 +1,6 @@
 # 第十二批必要修复台账
 
-96项必要问题修复已从 `bb28b67` 正常快进合入 master；匿名设置验收补件 `cace457` 已挑入为 `672d8b3`。当前处于主树最终验收，尚未更新桌面交付。阶段证据与最终交付分开记录。
+96项必要问题已合入 master，并于2026-11-08从最终应用提交 `3647af447abbea43d9a77ab97ff56369df00ea17` 发布到主树实际桌面目录。用户明确要求“弹幕发送别验了，快点交付吧”，该发送界面重验按要求跳过；原失败和终止记录保留，不声称全部运行检查通过。最终交付事实见文末，以下独立树记录均为阶段证据。
 
 ## 数量与唯一处置
 
@@ -24,9 +24,9 @@
 - root：primary`artifacts/review-batch12-playback`中current-core35/35、translation119/119、font2/2、dialog48/48、权限232/232、web-skin匿名DOM26/26；其余具体最终专项从父线程当前日志补。Web皮肤DOM不是真WebView，图片/设置VM不是真像素。
 - 末端夹具漂移：source `fixture-drift-final` dd84931..d2bb240六提交25测试文件，primary分别4d738fc/af29582/eaf4e86/e98ffcf/62c265f/bb28b67。`artifacts/fixture-drift-final/receipt.json`记R04842、Subtitle50、Search43、Perf73、ServerSettings实际6metadata、Natural69及10严格反例；19pins/83members。19当前哈希已只读独立匹配，仅4pins对应已读3074e20..dd84931变化，15未改。权限/Cancel/EOF原样提取，旧断言未删。独立media只读复核zero；没有代跑。
 
-## 联合验收待填与原红
+## 历史联合验收阶段与原红
 
-- 当前primary快照bb28b67已含修复及补件，但master合流已确认，尚未完成全方案最终验收、全部适用专项、全部适用GUI、发布目录和桌面shortcut；独立树绿不代表主树交付。
+- 当时primary快照bb28b67已含修复及补件，master已合流但最终验收与发布尚未完成；现已完成的项目见文末，不以独立树绿代替主树交付。
 - primary已有`artifacts/review-batch12-playback/full-current-tests.log`：4181项4180过1败，MoviePilot身份旧夹具把显式80当省略port。ce6e8cd仅将等价输入改显式3001，全部JWT断言保留；media已重编主Tests后只调用实际RegisterMoviePilot7/7。原full红保留，父线程必须跑最终full，不以7绿冲销整体红。
 - 用户撤回界面合流62b2201/dd84931，保留96缺陷修复；草稿和当前开发文档头部可能仍有历史视觉说明，最终不得声称季度列表/全局材质仍交付。
 - 不改/接受整份基线洗绿。缺运行路径必须明示，不用测试数量推导唯一覆盖。
@@ -39,11 +39,11 @@
 父线程当前Release/Shell确认后，单独执行：
 
 ```powershell
-$probe = Start-Process -FilePath 'C:\Users\89400\.codex\worktrees\review-recovery-batch3\Momoka\src\Momoka.Shell\bin\x64\Release\net10.0-windows10.0.19041.0\win-x64\Momoka.exe' -ArgumentList @('--probe-shell','--screen','1') -WorkingDirectory 'C:\Users\89400\.codex\worktrees\review-recovery-batch3\Momoka' -WindowStyle Hidden -PassThru -Wait
+$probe = Start-Process -FilePath 'C:\Users\89400\Momoka\src\Momoka.Shell\bin\x64\Release\net10.0-windows10.0.19041.0\win-x64\Momoka.exe' -ArgumentList @('--probe-shell','--screen','1') -WorkingDirectory 'C:\Users\89400\Momoka' -PassThru -Wait
 if ($probe.ExitCode -ne 0) { throw ('Shell probe failed: ' + $probe.ExitCode) }
 ```
 
-Hidden仅隐藏启动辅助窗口，探针真实HostWindow仍Show。每次独立目录为 `%LOCALAPPDATA%/Momoka/logs/shell-probe-<UTC>-<PID>/logs`。不加self-check/play/menu/osd，不指定伪data-dir；路径由Program隔离，无生产设置复制。完整读`shell-probe.json`与`shell-probe-scope.txt`，区分全部/未执行、每个Passed、正常退出与必需图片落地；inspect退出0不是案例通过。
+可见探针按正常窗口状态启动。每次独立目录为 `%LOCALAPPDATA%/Momoka/logs/shell-probe-<UTC>-<PID>/logs`。不加self-check/play/menu/osd，不指定伪data-dir；路径由Program隔离，无生产设置复制。完整读`shell-probe.json`与`shell-probe-scope.txt`，区分全部/未执行、每个Passed、正常退出与必需图片落地；inspect退出0不是案例通过。
 
 若只媒体阶段，`--probe-section metadata,favorites,library,moviepilot,anibt,settings,shortcuts,performance,covers,playback`是可复用并集；所有分区仍执行该分区全部具名case，不能称本组全部新触发都覆盖。统一96优先全自动一次。
 
@@ -60,12 +60,22 @@ Hidden仅隐藏启动辅助窗口，探针真实HostWindow仍Show。每次独立
 R08显式80/443、MFA分类、完整订阅身份/站点草稿、R07权限重核与64MiB读取前拒绝等仍以当前Core/VM/实际命令无窗口专项覆盖，不启动真实账号/文件picker制造匿名截图。
 R11暂停/恢复与stats Lua：probe-shell假handle/键盘入口不覆盖真实拖边命令、原生pause顺序或实际集成stats尾部滚动；PlayerInput18和Lua7是无窗口证据。需要在当前交付授权内另用隔离本地motion/实际stats运行或明确缺口，不能拿普通GUI分区绿替代。不得真实服务器播放、凭据或写入。
 
-## 最终父线程必须补的字段
+## 最终交付记录要求
 
 最终产品/工具/文档commit、master SHA；每个最终构建/测试suite实际数与skip/失败；GUI PID/运行目录/18分区总数/图片阅验；必要本地native probes及不可覆盖边界；publish/载荷验证/desktop shortcut路径与hash；原红保存位置和代价；未合/未验/未交付明确列出。禁止汇总独立suite计数为唯一测试覆盖，禁止把阶段文档默认“本轮未修”当current。
 
-## 2026-11-07 最终合流更新
+## 2026-11-07 历史合流阶段
 
 - master a0c7a45 已包含全部96项及两组匿名GUI补件；3258ffc仅补Danmaku/Subscription旧测试依赖，原生产方法与旧断言不删，原CS1739及5个CS0103保留。独树73/73和原3身份+1当前/旧/离页通知归属通过，主树统一最终专项待执行。
 - 133-96=37唯一ID逐项已与前十一批及基点既有修复核对，无重复、无不在FINDINGS的编号。R10-008由b61fd63/d2f1232、FINAL-T02由8f7063a此前合入，不计本批；R17-010亦为基点既有处理，保留当前fixture执行证据与历史覆盖差异，不宣称本批新修。
 - 新settings cace457→672d8b3、通知/诊断270bde9→a0c7a45只增强运行验收；子代理互审无必要遗漏，Native GUI由统一会话串行执行。
+
+## 2026-11-08 主树实际交付
+
+- 最终应用提交 `3647af4`：原96项及联合补口均已合入；`4551b0d`提前建立选择框前景画刷，`be909ae`相同HDR目录重入保留行和选项，`902e9a0`修最近搜索夹具晚采样，`3647af4`修发送探针反射参数与失败清理。补件按原根因归组，不新增唯一问题数量；用户撤回的界面没有重新引入。
+- 当前主树全方案Release构建0警告0错误；同参数x64 Shell/Tests重编0警告0错误，Core逐字节一致。完整主测试4181/4181、失败0、跳过0；十个实际VM专项依次9、35、39、19、38、32、39、45、2、14全部通过。发送边界原23项及新增3项通过，终结报告103/103、架构7/7；全方案whitespace退出0，保留工作区加载提示。文档10/10、文本310、脚本63通过。证据：主树 `artifacts/review-batch12-master/solution-final-3647af4.log` 与 `final-current-3647af4/`。
+- 已执行且相关源码未变的六专项71/51/80/103/36/32、DetailDelete21、Natural69及10严格反例后当前69、Page152、Lua52/10/7和匿名DOM26仍保留独立计数，不累加唯一覆盖。源码与实际当前参数核对记录在 `final-six-3316d1a/` 及阶段回执。
+- 实际GUI：settings PID1940为28/28；performance PID11116的10项通过，原材料红随后PID31992“详情按钮材质”1/1通过；PID17236设置及Series/Episode/Movie共4/4通过。PID21136为58项57通过1发送超时，原报告保留。最后PID32964重验按用户要求结束，只保存19条局部记录、174文件及退出-1；关闭窗口后的错误不作为新的完整验收结论，不重跑发送。原全量183项170通过13失败也不改写为全绿。
+- 匿名同程序集实际App PID16572计时器3次、HTTP0、报告全通过、退出0，六份运行相关源码至最终提交哈希未变；它不是保存账号的服务器自检。Composition20604和Motion8696本地集成探针退出0；Subtitle23268为18条通过。补看29张原图无必要像素新增缺陷，但四个时间轴主题PNG完全相同、部分设置/确认只有渲染图，不声称这些像素全部覆盖。Cursor11212“移动后系统光标可见”仍红，本轮报告/清理路径已执行，正常显隐不报通过。真实服务器、独占/uosc与外部mpv播放、系统省电/高对比切换未验。
+- 已实际执行 `tools/publish.ps1 -NoArchive -Shortcut`，退出0：主树 `artifacts/publish/win-x64`，版本0.2.5.0，自包含546文件、300507109字节；批准mpv清单59文件（50 UI、2 native）、许可及框架PRI校验通过。桌面 `C:/Users/89400/Desktop/Momoka.lnk` 目标为该目录Momoka.exe、工作目录相同、参数空；发布exe/Shell/Core/PRI及其当轮bin哈希一致，测试Core也与发布相同。收据 `artifacts/review-batch12-master/delivery-receipt-3647af4.json`；未push、上传、ZIP或MSIX。
+- 本批20辅助树干净且内容等效入主树，4146份证据、165036028字节已逐SHA保留，原失败不删除；归档依据 `final-evidence-audit/archive-ready-3647.json`。主聊天受保护工作树及其他聊天工作树不强行删除。

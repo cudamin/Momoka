@@ -11447,4 +11447,12 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 独立 managed worktree `recent-search-final-fixture/Momoka`，基点 `3316d1a38fe92faf92ef27638b652f72b0befa7e`；范围仅 `tests/Momoka.Tests/LibraryResumePagingTests.cs`，产品源码不改，不运行 GUI、登录或播放。
 - 主树 39 项中的唯一失败来自测试在空搜索 VM `Attach` 已发起海报任务后才记录请求计数。旧断言诊断明确在取样时已收到 `/emby/Items/a-0/Images/Primary`，39/38/1；改为动作前取样并等匿名 HTTP handler 的准确到达信号，保留计数增长和普通页/有词/非媒体库来源/恢复去重断言。该用例海报边界明确返回 404，避免未授权路由异常被图片后台路径吞掉。
 - 本树当前 Shell 与 Tests Release/x64、SDK 10.0.400、单节点/禁共享编译/禁 PDB均 0 警告 0 错误，Core逐 SHA 一致。修后39/39、0跳过；先确认请求已到再复用旧晚采样增长断言的确定性反例39/38/1，预期失败原因匹配。独立只读复审无必要问题。完整证据在本树 `artifacts/recent-search-final-fixture`，反例还原后再次编译及39项验证。
-- 仍待 root 挑拣本补件、主树最终测试和既定批次收尾；本树通过不能替代最终主树交付或真实窗口、媒体服务器验证。
+- 此处为独树阶段记录；现已挑入主树902e9a0，主树39/39通过，最终交付见下一节。本树通过仍不代表真实窗口或媒体服务器验证。
+
+## 2026-11-08 第十二批96项实际桌面交付完成
+
+- 最终应用提交3647af447abbea43d9a77ab97ff56369df00ea17；96=25+21+24+26，原94为视觉替代仍有效时阶段数。用户撤回界面保持撤回，联合补口与测试/探针前件不重复计数；以上672d8b3等待验记录均为历史阶段。
+- 当前主树方案与x64 Shell/Tests均0警告0错误，完整4181/4181、0失败0跳过；十个实际VM专项9/35/39/19/38/32/39/45/2/14全过，Boundary23+3、Finalization103、Architecture7全过；whitespace退出0保留workspace提示，文档10/10、文本310、脚本63通过。证据artifacts/review-batch12-master/final-current-3647af4。
+- 原GUI红及定点闭合分别记录，未把183项全量红改写为全绿。用户最新要求“弹幕发送别验了，快点交付吧”，故停止自建探针32964（正常关窗未退后仅结束此自建PID，退出-1），保存174文件及19条局部记录，不宣称发送实际界面通过。原Cursor显隐仍红；本地集成探针/匿名App与29图QA覆盖及未验边界见TWELFTH-REPAIRS文末。
+- 真正执行主树publish -NoArchive -Shortcut退出0；artifacts/publish/win-x64版本0.2.5.0，自包含546文件300507109字节。完整批准载荷/许可/PRI校验通过；桌面Momoka.lnk目标和工作目录均此目录、参数空。测试Core=发布Core64076C11…，发布Shell171A450C…与当轮bin一致；不复制DLL、不上传/push、不打ZIP/MSIX。交付收据artifacts/review-batch12-master/delivery-receipt-3647af4.json。
+- 20本批辅助树内容已等效合入、工作区干净，4146证据165036028字节已逐SHA保留；原生归档依据final-evidence-audit/archive-ready-3647.json。主聊天受保护工作树与其他聊天目录不强行清除。全部本批产品已合入并发布，无剩余产品提交待合；运行覆盖限制保留，不继续扩大修复范围。
