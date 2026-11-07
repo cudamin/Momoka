@@ -164,7 +164,17 @@ internal sealed partial class ShellNavigationProbe
             Require(page.SelectedCategory == "字幕" && page.ViewModel.Sections.Where(section => section.IsVisible)
                 .All(section => section.Category == "字幕"), "截图前实际分类与目标不同，不能把上一页截图当验收");
             var scroll = Descendants(page).OfType<ScrollViewer>().Single(view => view.Name == "SettingsScroll");
-            scroll.ChangeView(0, scroll.ScrollableHeight, null, disableAnimation: true);
+            if (name.StartsWith("settings-translation-save-", StringComparison.Ordinal))
+            {
+                var secret = TranslationRows().OfType<SettingSecretRow>().Single();
+                var status = Descendants(page).OfType<TextBlock>().Single(text => text.Text == secret.Status);
+                status.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.5 });
+                await SettlePageAsync();
+                var bounds = status.TransformToVisual(scroll).TransformBounds(new Windows.Foundation.Rect(0, 0, status.ActualWidth, status.ActualHeight));
+                Require(bounds.Y >= 0 && bounds.Bottom <= scroll.ActualHeight && bounds.Height > 0,
+                    "密钥状态不在截图可视区域，不能把译文外观截图当失败反馈验收");
+            }
+            else scroll.ChangeView(0, scroll.ScrollableHeight, null, disableAnimation: true);
             await SettlePageAsync(); await SaveProbeScreenAsync(name + "-screen.png");
             scroll.ChangeView(0, 0, null, disableAnimation: true);
         }
