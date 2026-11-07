@@ -102,7 +102,7 @@ public sealed partial class DetailPage
         DetailVideoInk.Visibility = DetailTitleInk.Visibility;
         DetailDirectorsInk.Visibility = DetailTitleInk.Visibility;
         PaintScrim();
-        // 滑块也要更新正在动画中的目标；停止旧故事板后按最新偏好落定，避免收尾又写回旧浓度。
+        // 模式与背景强度直接应用终值，窄窗仍使用自己的排版。
         SettleShowcase();
     }
 
@@ -120,7 +120,7 @@ public sealed partial class DetailPage
         DetailDirectorsInk.Visibility = DetailTitleInk.Visibility;
         PaintScrim();
         // 缓存命中可同步完成渲染；尺寸和窗口状态仍在写入时，留给统一布局结算。
-        if (!_sizing && !_applyingShowcase) SettleShowcase();
+        if (!_sizing) SettleShowcase();
     }
 
     private void PaintBackdropReading()

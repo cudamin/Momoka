@@ -109,44 +109,15 @@ public static class DetailHero
 
     /// <summary>
     /// 这一刻窗口算不算「铺开了」：最大化，或者面积过了 <see cref="ImmersiveShare"/>。窗口那一侧的两个数
-    /// （是不是最大化、面积多大）只有窗口自己知道，这里只把两句话并成一句给下面 <see cref="Immersive"/> 用。
+    /// （是不是最大化、面积多大）只有窗口自己知道，这里只把两句话并成一句给 <see cref="SubscriptionImmersive"/> 用。
     /// </summary>
     /// <param name="maximized">窗口这一刻是不是最大化。</param>
     /// <param name="share">客户区占工作区的面积比（<see cref="Share"/>）。</param>
     public static bool Spacious(bool maximized, double share) => maximized || share >= ImmersiveShare;
 
-    /// <summary>
-    /// 这一页要不要把正文那张纸整块让开、让下方组件直接压在固定的模糊背景上 —— 「剧集页面、电影页面和季页面
-    /// 进入最大化状态时，去掉下方组件的背景遮罩，并将下方组件整体上移」（2026-10-31，附参考图）；「窗口占屏幕
-    /// 五分之四面积时也要自动切换」（同日追加，见 <see cref="Spacious"/>）；「拉长窗口导致背景图接近被裁剪时
-    /// 自动切换」（2026-11-02，见 <see cref="NearCrop"/>）。
-    /// <para>
-    /// 四句话缺一不可：
-    /// <list type="bullet">
-    /// <item><paramref name="spacious"/>：窗口铺开了 —— 最大化、面积过了 <see cref="ImmersiveShare"/>，或者
-    /// 背景图已经/即将被裁掉（<see cref="NearCrop"/>；那一句由调用方并进来，这一支不看窗口），或
-    /// <paramref name="always"/> 已固定使用沉浸模式；
-    /// 收回纸面之后回到纸面版式（<see cref="PaperHeight"/>）。</item>
-    /// <item><paramref name="compact"/>：窄成紧凑版式时不参与 —— 那一档是另一套单列版面。</item>
-    /// <item><paramref name="artwork"/>：背后没有那张图就没有可透的东西，收掉纸面只会剩一页空黑。</item>
-    /// <item><paramref name="type"/>：只有<em>电影、剧、季</em>三页；单集页整段已经合成在一块板上
-    /// （<c>DetailViewModel.HeroCard</c>），不跟这一档走，人物、文件夹这些更没有正文可收。</item>
-    /// </list>
-    /// </para>
-    /// <para>
-    /// 判据放在 Core 而不是视图模型里：它决定的是三个版面数（<see cref="TailHeight(double, double, bool, double, double, bool)"/>
-    /// 和 <see cref="PaperHeight(double, bool, bool)"/> 的那一档），而「哪几种页面算这一档」是一个有唯一正确答案、
-    /// 错起来屏上只是「某一页没跟着变」的判断 —— 单测能盯住的正是这种。
-    /// </para>
-    /// </summary>
-    /// <param name="spacious">这一刻该不该让开纸面（<see cref="Spacious"/>，或者 <see cref="NearCrop"/> ——
-    /// 调用方把两条来路并成一个布尔交进来）：最大化、占工作区五分之四以上，或背景图已经/即将被裁掉。</param>
-    /// <param name="compact">这一页这次走不走紧凑版式（<see cref="IsCompact"/>）。</param>
-    /// <param name="artwork">服务器上有没有那张背景图 —— 同 <see cref="Height"/>：不是「位图解出来了没有」。</param>
-    /// <param name="type">这一页讲的条目类型（<see cref="EmbyItemType"/> 的字符串常量）。</param>
-    /// <param name="always">固定使用沉浸模式时不再要求大窗；紧凑版式、背景图与条目类型限制仍生效。</param>
-    public static bool Immersive(bool spacious, bool compact, bool artwork, string type, bool always = false) =>
-        (spacious || always) && !compact && artwork
+    /// <summary>详情沉浸开关直接决定宽窗布局；无图、窄窗和其它条目类型不收起正文纸面。</summary>
+    public static bool Immersive(bool enabled, bool compact, bool artwork, string type) =>
+        enabled && !compact && artwork
         && type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
     /// <summary>
@@ -390,12 +361,6 @@ public static class DetailHero
     /// 被判进来，而那一档观众看到的仍是一整张图 —— 换版式换得太早，纸面版式反而没有立足之地。
     /// </summary>
     public const double CropAhead = 0.98;
-
-    /// <summary>参考内容下沿接近视口底部；忽略未测量或无效的几何值。</summary>
-    public static bool ContentNearCrop(double contentBottom, double viewport) =>
-        double.IsFinite(contentBottom) && double.IsFinite(viewport)
-        && contentBottom > 0 && viewport > 0 && contentBottom >= viewport * CropAhead;
-
 
     /// <summary>
     /// 背景那张图的不透明度：常态 0.9 —— 压暗那么一档，亮图不把标题栏那一行字吃掉。

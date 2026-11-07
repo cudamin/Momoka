@@ -81,7 +81,7 @@ internal sealed partial class ShellNavigationProbe
             // 同日追加：季页面不要媒体信息（整块其他信息卡收起）。
             await CaseAsync("剧页单季不画全部剧季、其他信息卡与集页一致", DetailSeriesInfoAsync, 30, section: ShellProbeSections.Library);
             await CaseAsync("详情自定义设置：卡片排序、隐藏、拖拽提交与重入", DetailCustomizationSettingsAsync, 90, section: ShellProbeSections.Settings);
-            await CaseAsync("详情自定义页面：实际顺序、隐藏恢复、遮罩强度与固定沉浸", DetailCustomizationPagesAsync, 120, section: ShellProbeSections.Library);
+            await CaseAsync("详情自定义页面：实际顺序、隐藏恢复、遮罩强度与沉浸开关", DetailCustomizationPagesAsync, 120, section: ShellProbeSections.Library);
             await CaseAsync("详情背景主题渐变、沉浸收起与主页底边", BackdropFadeAsync, 120, section: ShellProbeSections.Library);
             // 集页封面只在宽版式里画（紧凑版式整个收掉），加上集页紧凑版式的那张背景图、以及尾部那条窄带在
             // 两档上的紧凑度：四档宽度各量一遍，截图 `detail-episode-band-<宽度>.png`。
@@ -90,7 +90,7 @@ internal sealed partial class ShellNavigationProbe
             // 范围」「当拉长窗口导致背景图接近被裁剪时，自动切换到最大化（无遮挡）页面状态」（2026-11-02）：
             // 电影、剧、季三页在六档宽度上各量一遍竖留白、带高与简介下沿，再单独量裁切触发与最大化两档。
             // 截图 `detail-responsive-<类型>-<宽度>.png` 与 `detail-responsive-crop-*`／`-maximized`。
-            await CaseAsync("电影/剧/季页面的窄窗紧凑与自动无遮挡", DetailResponsiveAsync, 150);
+            await CaseAsync("电影/剧/季页面的宽窗沉浸、窄窗紧凑与无图恢复", DetailResponsiveAsync, 150);
             await CaseAsync("电视媒体库封面显示网页版年份", SeriesCardDatesAsync, 30);
             await CaseAsync("Emby 元数据表单字段、锁定和宽窄布局", MetadataLayoutAsync, 75, section: ShellProbeSections.Metadata);
             await CaseAsync("Emby 元数据列表编辑、重排和取消", MetadataListsAsync, 45, section: ShellProbeSections.Metadata);

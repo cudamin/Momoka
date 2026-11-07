@@ -40,7 +40,7 @@ internal sealed partial class ShellNavigationProbe
             && (brush.Color.A == 0 || brush.Color.R == ink.R && brush.Color.G == ink.G && brush.Color.B == ink.B),
             "背景阅读遮罩浓度或颜色错误");
         var edge = Get<Border>(page, "BackdropEdgeFade");
-        Require((edge.Visibility == Visibility.Visible) == !page.ViewModel.Showcase, "收边应在普通与窄窗生效");
+        Require((edge.Visibility == Visibility.Visible) == !page.ViewModel.Showcase, "有背景时收边只应在窄窗紧凑布局生效");
         if (!page.ViewModel.Showcase)
         {
             Require(edge.Parent == picture.Parent && Math.Abs(edge.ActualHeight - picture.ActualHeight) < 0.01,
@@ -104,13 +104,13 @@ internal sealed partial class ShellNavigationProbe
                 Require(original.Width == rendered.Width && original.Height == rendered.Height,
                     "底边模糊改变了解码尺寸");
                 Require(original.Pixels.AsSpan().SequenceEqual(rendered.Pixels),
-                    "普通背景仍有局部接缝模糊或全图高斯");
+                    "窄窗原图仍有局部接缝模糊或全图高斯");
                 foreach (var gaussian in new[] { false, true })
                 {
                     ResizeProbeClient(760, 1120);
                     await UntilAsync(() => { page.UpdateLayout(); return page.ViewModel.IsCompact; });
                     fixture.Settings.Ui.UseGaussianBackdrop = gaussian;
-                    fixture.Settings.Ui.AlwaysImmersive = false;
+                    fixture.Settings.Ui.EnableImmersive = true;
                     ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                     await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
                     var baseline = reads;
@@ -120,7 +120,11 @@ internal sealed partial class ShellNavigationProbe
                             ResizeProbeClient(width, 1120);
                             ThemeHost.Apply(theme);
                             await LayoutAsync(page);
-                            await UntilAsync(() => Math.Abs(page.ViewModel.PageWidth - width) < 1);
+                            await UntilAsync(() => Math.Abs(page.ViewModel.PageWidth - width) < 1
+                                && page.ViewModel.GaussianBackdropReady
+                                && page.ViewModel.GaussianBackdropApplied == (gaussian && width >= DetailHero.CompactFloor));
+                            Require(page.ViewModel.Showcase == (width >= DetailHero.CompactFloor)
+                                && page.ViewModel.BackdropShown, "开启时宽窄背景布局不符合当前尺寸");
                             RequireDetailBackdropFade(page);
                             await CheckBackdropFadePixelsAsync(page);
                             await SaveProbeScreenAsync($"backdrop-fade-{type}-{gaussian}-{theme.Id}-{width}-screen.png");
@@ -174,12 +178,12 @@ internal sealed partial class ShellNavigationProbe
                 {
                     ResizeProbeClient(1100, 1120);
                     await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
-                    fixture.Settings.Ui.AlwaysImmersive = true;
+                    fixture.Settings.Ui.EnableImmersive = true;
                     fixture.Settings.Ui.UseGaussianBackdrop = gaussian;
                     ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                     await UntilAsync(() => page.ViewModel.GaussianBackdropReady && page.ViewModel.GaussianBackdropApplied == gaussian);
                     await LayoutAsync(page);
-                    Require(page.ViewModel.Showcase, "未进入固定沉浸");
+                    Require(page.ViewModel.Showcase, "开启时宽窗未进入沉浸布局");
                     RequireDetailBackdropFade(page);
                     await SaveProbeScreenAsync($"backdrop-fade-{type}-{gaussian}-immersive-screen.png");
                     ResizeProbeClient(760, 820);
@@ -189,9 +193,27 @@ internal sealed partial class ShellNavigationProbe
                     RequireDetailBackdropFade(page);
                 }
                 fixture.Settings.Ui.UseGaussianBackdrop = false;
-                fixture.Settings.Ui.AlwaysImmersive = false;
+                fixture.Settings.Ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
+                foreach (var width in new[] { 760, 1280 })
+                {
+                    ResizeProbeClient(width, 900);
+                    await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - width) < 1; });
+                    fixture.Settings.Ui.EnableImmersive = false;
+                    ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                    await LayoutAsync(page);
+                    Require(!page.ViewModel.BackdropShown && !page.ViewModel.Showcase
+                        && Get<Grid>(page, "Backdrop").Visibility == Visibility.Collapsed,
+                        "关闭沉浸后宽窄背景没有整层收起");
+                    RequireDetailBackdropFade(page);
+                    fixture.Settings.Ui.EnableImmersive = true;
+                    ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                    await LayoutAsync(page);
+                    Require(page.ViewModel.BackdropShown && page.ViewModel.Showcase == (width >= DetailHero.CompactFloor),
+                        "恢复沉浸后宽窄背景没有重新出现");
+                    RequireDetailBackdropFade(page);
+                }
                 await ScrollProbeAsync(Get<ScrollView>(page, "Body"), Get<ScrollView>(page, "Body").ScrollableHeight);
                 var seal = page.BodySeal();
                 Require(seal.Ok, seal.Detail);

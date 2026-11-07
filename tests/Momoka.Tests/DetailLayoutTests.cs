@@ -26,7 +26,7 @@ internal static class DetailLayoutTests
             Assert.False(Enabled(restored.Ui));
             SettingsPreferences.Apply(defaults, restored);
             Assert.False(Enabled(defaults.Ui));
-            Assert.True(defaults.Ui.AlwaysImmersive);
+            Assert.False(JsonSerializer.Serialize(defaults).Contains("AlwaysImmersive", StringComparison.Ordinal));
             Assert.True(defaults.Ui.UseGaussianBackdrop);
             SettingsPreferences.Apply(defaults, new AppSettings());
             Assert.True(Enabled(defaults.Ui));
@@ -45,15 +45,7 @@ internal static class DetailLayoutTests
                 Assert.Equal(value, SettingsMigration.FromJson(stored, PassthroughSecretProtector.Instance).Ui.ControlBackgroundOpacity);
             }
         });
-        Test("详情内容裁切：按内容位置预留百分之二，不再受背景比例影响", () =>
-        {
-            foreach (var (anchor, viewport, expected) in new (double, double, bool)[]
-            {
-                (0, 800, false), (783, 800, false), (784, 800, true), (900, 800, true),
-                (900, 0, false), (double.NaN, 800, false), (800, double.PositiveInfinity, false)
-            })
-                Assert.Equal(expected, DetailHero.ContentNearCrop(anchor, viewport));
-        });
+
 
         Test("详情卡片：旧配置缺键保留三个页面的默认顺序与可见性", () =>
         {
@@ -65,7 +57,7 @@ internal static class DetailLayoutTests
             Assert.True(DetailLayout.For(ui, EmbyItemType.Series).All(row => row.Visible));
             Assert.Equal(UiSettings.DefaultControlBackgroundOpacity, ui.ControlBackgroundOpacity);
             Assert.Equal(UiSettings.DefaultBackdropOpacity, ui.BackdropOpacity);
-            Assert.False(ui.AlwaysImmersive);
+            Assert.True(ui.EnableImmersive);
         });
 
         Test("详情透明度：v26 的增量读数换算成直接不透明度，旧的 0 落到新出厂浓度", () =>
@@ -157,7 +149,7 @@ internal static class DetailLayoutTests
             Assert.False(restored.Ui.MovieCards[0].Visible);
             Assert.Equal(37.5, restored.Ui.ControlBackgroundOpacity);
             Assert.Equal(43d, restored.Ui.BackdropOpacity);
-            Assert.True(restored.Ui.AlwaysImmersive);
+            Assert.True(restored.Ui.EnableImmersive);
         });
 
         Test("详情透明度：超界夹取、非有限值回默认，零和小数原样保留", () =>
@@ -181,7 +173,7 @@ internal static class DetailLayoutTests
             var source = new AppSettings { Ui = Customized() };
             source.Ui.ControlBackgroundOpacity = 25;
             source.Ui.BackdropOpacity = 60;
-            source.Ui.AlwaysImmersive = true;
+            source.Ui.EnableImmersive = false;
             var backup = SettingsPreferences.ToBackupDocument(source);
             var live = new AppSettings();
             live.Ui.WindowWidth = 1500;
@@ -193,34 +185,33 @@ internal static class DetailLayoutTests
             Assert.Equal("similar,info,cast", Keys(live.Ui.MovieCards));
             Assert.Equal(25d, live.Ui.ControlBackgroundOpacity);
             Assert.Equal(60d, live.Ui.BackdropOpacity);
-            Assert.True(live.Ui.AlwaysImmersive);
+            Assert.False(live.Ui.EnableImmersive);
             Assert.Equal(1500d, live.Ui.WindowWidth);
             SettingsPreferences.Apply(live, new AppSettings());
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(live.Ui.SeriesCards));
             Assert.True(live.Ui.SeriesCards.All(row => row.Visible));
             Assert.Equal(UiSettings.DefaultControlBackgroundOpacity, live.Ui.ControlBackgroundOpacity);
             Assert.Equal(UiSettings.DefaultBackdropOpacity, live.Ui.BackdropOpacity);
-            Assert.False(live.Ui.AlwaysImmersive);
+            Assert.True(live.Ui.EnableImmersive);
             Assert.Equal(1500d, live.Ui.WindowWidth);
             Assert.Equal(900d, live.Ui.WindowHeight);
         });
 
-        Test("固定沉浸：普通宽窗有图可启用，关闭继续遵循自动大窗规则", () =>
+        Test("沉浸开关：宽窗由开关直接控制，关闭不进入沉浸", () =>
         {
             foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season })
             {
-                Assert.True(DetailHero.Immersive(false, false, true, type, always: true));
                 Assert.False(DetailHero.Immersive(false, false, true, type));
                 Assert.True(DetailHero.Immersive(true, false, true, type));
             }
         });
 
-        Test("固定沉浸：不越过紧凑、无图或单集与其他类型限制", () =>
+        Test("沉浸开关：窄窗、无图及单集与其他类型保留原布局", () =>
         {
-            Assert.False(DetailHero.Immersive(false, true, true, EmbyItemType.Movie, always: true));
-            Assert.False(DetailHero.Immersive(false, false, false, EmbyItemType.Series, always: true));
+            Assert.False(DetailHero.Immersive(true, true, true, EmbyItemType.Movie));
+            Assert.False(DetailHero.Immersive(true, false, false, EmbyItemType.Series));
             foreach (var type in new[] { EmbyItemType.Episode, EmbyItemType.Person, EmbyItemType.Folder, "unknown", null! })
-                Assert.False(DetailHero.Immersive(true, false, true, type, always: true));
+                Assert.False(DetailHero.Immersive(true, false, true, type));
         });
     }
 

@@ -29,7 +29,7 @@ public static class ShellPrefs
 
     public static void ApplySidebar(UiSettings ui) => SidebarChanged?.Invoke(ui);
 
-    /// <summary>按钮底色、背景图和固定沉浸模式只更新画面，不触发主页重新查询。</summary>
+    /// <summary>按钮底色、背景图和沉浸模式只更新画面，不触发主页重新查询。</summary>
     public static event Action<UiSettings>? AppearanceChanged;
 
     public static void ApplyAppearance(UiSettings ui) => AppearanceChanged?.Invoke(ui);

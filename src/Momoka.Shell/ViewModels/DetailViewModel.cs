@@ -204,9 +204,6 @@ public sealed partial class DetailViewModel : PageViewModel
                 OnPropertyChanged(nameof(UseGaussianBackdrop));
                 UpdateHeroBlur();
             }
-            if (args.PropertyName is nameof(HeroContent) or nameof(TailIntrinsic)
-                or nameof(OverviewVisibility) or nameof(PickersVisibility) or nameof(HeaderLift) or nameof(PaperLine))
-                RefreshContentCrop();
         };
 
         // Four rows whose visibility is a count. [NotifyPropertyChangedFor] cannot watch a collection's
@@ -369,7 +366,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsCompact))]
     [NotifyPropertyChangedFor(nameof(Showcase))]
-    [NotifyPropertyChangedFor(nameof(NearCrop))]
     [NotifyPropertyChangedFor(nameof(Narrow))]
     [NotifyPropertyChangedFor(nameof(Squeeze))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutWidth))]
@@ -420,93 +416,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public bool IsCompact => DetailHero.IsCompact(PageWidth);
 
-    /// <summary>
-    /// 窗口这一刻铺开了没有 —— 最大化，或者面积占了所在显示器工作区的五分之四以上（2026-10-31 用户令
-    /// 「窗口占屏幕五分之四面积时也要自动切换」）。由视图在 <c>DetailPage</c> 挂上窗口时和每次
-    /// <c>GeometryChanged</c> 时写进来 —— 「这台窗口多大、是不是最大化」只有窗口自己知道
-    /// （<c>HostWindow.IsMaximized</c> 与客户区／工作区两个尺寸），视图模型不去问。
-    /// <para>
-    /// 它只喂 <see cref="Showcase"/>，而且是那一条判据的两条来路之一：另一条是
-    /// <see cref="NearCrop"/>（背景图已经/即将被裁掉，2026-11-02 用户令）。两条并成一句再交给
-    /// <see cref="DetailHero.Immersive"/>；铺开之后正文的纸面让开、下方组件整体上移，收窄之后回到纸面版式。
-    /// 别的版面一个数都不看它，所以它不需要进 <c>AnnounceShape</c> 那一批。
-    /// </para>
-    /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Showcase))]
-    [NotifyPropertyChangedFor(nameof(TailMinHeight))]
-    [NotifyPropertyChangedFor(nameof(PaperMinHeight))]
-    [NotifyPropertyChangedFor(nameof(PictureHeight))]
-    [NotifyPropertyChangedFor(nameof(TailSpacing))]
-    [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
-    [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
-    [NotifyPropertyChangedFor(nameof(SheetPadding))]
-    [NotifyPropertyChangedFor(nameof(SheetSpacing))]
-    [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
-    [NotifyPropertyChangedFor(nameof(ShowShelfLines))]
-    public partial bool Spacious { get; set; }
-
-    /// <summary>三页共用普通剧页集卡副标题下沿；与当前沉浸位置、滚动位置无关。</summary>
-    public bool NearCrop => DetailHero.ContentNearCrop(SeriesContentBottom, Viewport);
-
-    // 页面用项目字体测出集带标题与两行文字的高度。电影、季页也使用这份参考集带。
-    private double _seriesShelfTextBottom;
-    internal void SetSeriesShelfTextBottom(double height)
-    {
-        if (!double.IsFinite(height) || height <= 0 || Math.Abs(height - _seriesShelfTextBottom) < 0.5) return;
-        _seriesShelfTextBottom = height;
-        RefreshContentCrop();
-    }
-
-    public double SeriesContentBottom
-    {
-        get
-        {
-            if (_seriesShelfTextBottom <= 0 || IsCompact) return 0;
-            var hero = DetailHero.WideHeight(HeroContent,
-                DetailHero.Between(DetailHero.HeroTopRoom, DetailHero.HeroTopTight, Squeeze),
-                DetailHero.Between(DetailHero.HeroBottomRoom, DetailHero.HeroBottomTight, Squeeze));
-            var picture = DetailHero.PictureHeight(PageWidth, HeroHeightRatio, Viewport, hero);
-            var tail = Math.Max(TailIntrinsic + TailVertical(Squeeze),
-                DetailHero.TailHeight(Viewport, hero, BackdropShown, PaperLine, picture - HeaderLift, false));
-            return hero + tail + _seriesShelfTextBottom;
-        }
-    }
-
-    private void RefreshContentCrop()
-    {
-        OnPropertyChanged(nameof(SeriesContentBottom));
-        OnPropertyChanged(nameof(NearCrop));
-        OnPropertyChanged(nameof(Showcase));
-        OnPropertyChanged(nameof(TailMinHeight));
-        OnPropertyChanged(nameof(PaperMinHeight));
-        OnPropertyChanged(nameof(PictureHeight));
-        OnPropertyChanged(nameof(TailSpacing));
-        OnPropertyChanged(nameof(TailPanelPadding));
-        OnPropertyChanged(nameof(OverviewPanelPadding));
-        OnPropertyChanged(nameof(SheetPadding));
-        OnPropertyChanged(nameof(SheetSpacing));
-        OnPropertyChanged(nameof(BodyPanelPadding));
-        OnPropertyChanged(nameof(ShowShelfLines));
-        OnPropertyChanged(nameof(BackdropStrength));
-    }
-
-    /// <summary>
-    /// 这一页这一刻走不走「沉浸版式」—— 窗口铺开或参考集卡文字快被裁掉时，把正文那张不透明的纸整块让开，
-    /// 单集/剧季/相似/演职人员直接压在固定的模糊背景上，并且不再撑第一屏的留白（2026-10-31 用户令，附参考图）。
-    /// <para>
-    /// 判据在 Core（<see cref="DetailHero.Immersive"/>）：铺开（最大化、过五分之四，或参考集卡文字快被裁 ——
-    /// <see cref="Spacious"/> 与 <see cref="NearCrop"/> 两条来路）、宽版式、背后有图、条目是电影/剧/季。
-    /// 这里只是把页面的四个现状交过去 —— 哪几种页面算这一档是一个有唯一正确答案的判断，写在 Core 里才测得住。
-    /// </para>
-    /// <para>
-    /// 四个输入都不在这一个文件的属性表里各自成句：<see cref="Spacious"/> 自己的 setter 会通知，页宽跨过紧凑
-    /// 断点、背景图翻档和裁切那条线分别在 <c>PageWidth</c>／<c>HeroArt</c>／<c>Viewport</c>／
-    /// <c>HeroHeightRatio</c> 的通知名单里，条目种类那一路在 <see cref="AnnounceShape"/> 里补一句。
-    /// </para>
-    /// </summary>
-    public bool Showcase => DetailHero.Immersive(Spacious || NearCrop, IsCompact, BackdropShown, ItemType,
-        _settings?.Settings.Ui.AlwaysImmersive == true);
+    /// <summary>沉浸开关开启时，电影、剧、季宽窗直接让开正文纸面；窄窗仍使用紧凑排版。</summary>
+    public bool Showcase => DetailHero.Immersive(ImmersiveEnabled, IsCompact, BackdropShown, ItemType);
 
     internal double ControlBackgroundOpacity => _settings?.Settings.Ui.ControlBackgroundOpacity ?? UiSettings.DefaultControlBackgroundOpacity;
 
@@ -611,7 +522,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
     [NotifyPropertyChangedFor(nameof(PaperMinHeight))]
     [NotifyPropertyChangedFor(nameof(Showcase))]
-    [NotifyPropertyChangedFor(nameof(NearCrop))]
     [NotifyPropertyChangedFor(nameof(Squeeze))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
@@ -883,7 +793,6 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(PaperMinHeight))]
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
     [NotifyPropertyChangedFor(nameof(Showcase))]
-    [NotifyPropertyChangedFor(nameof(NearCrop))]
     [NotifyPropertyChangedFor(nameof(Squeeze))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
@@ -1441,7 +1350,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 版式这 20 的页边和 8 的板内边距之间就是一段接一段的空。四页共用这一支。
     /// </para>
     /// <para>
-    /// 2026-10-31「不够紧凑」：沉浸档（最大化时的电影/剧/季）也走 8 —— 那一档纸面和面板都让开了，宽版式那
+    /// 2026-10-31「不够紧凑」：沉浸档（启用时的电影/剧/季宽窗）也走 8 —— 那一档纸面和面板都让开了，宽版式那
     /// 24 的内边距不再衬出「板里的板」，留着只是把下方组件往下推。
     /// </para>
     /// <para>
@@ -2628,7 +2537,6 @@ public sealed partial class DetailViewModel : PageViewModel
         // 「这一页是不是电影/剧/季」也是沉浸版式（Showcase）和窄窗紧凑（Squeeze）的一句话；从一集翻到一部剧时
         // HeroArt 和视口可能一个字没改，那两处的通知一次都不会来。TailMinHeight / PaperMinHeight 读它，一并重喊。
         OnPropertyChanged(nameof(Showcase));
-        OnPropertyChanged(nameof(NearCrop));
         OnPropertyChanged(nameof(Narrow));
         OnPropertyChanged(nameof(Squeeze));
         OnPropertyChanged(nameof(HeroContent));

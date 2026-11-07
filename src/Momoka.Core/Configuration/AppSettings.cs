@@ -1421,9 +1421,6 @@ public sealed class UiSettings
     /// <summary>电影、剧与季允许沉浸背景；关闭后宽窗使用单集卡面，所有尺寸不铺背景图。缺键保留原体验。</summary>
     public bool EnableImmersive { get; set; } = true;
 
-    /// <summary>电影、剧与季的宽版式固定使用沉浸模式；仍要求背景图且不进入紧凑版式。</summary>
-    public bool AlwaysImmersive { get; set; }
-
     /// <summary>
     /// 服务器页的排序方式（<see cref="Momoka.Emby.ServerListOrder"/> 那份字符串）。缺键是 manual ——
     /// 旧设置文件读出来仍按保存顺序显示，拖拽换位直接写保存顺序，不要求迁移。
