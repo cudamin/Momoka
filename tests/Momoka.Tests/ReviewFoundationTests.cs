@@ -29,6 +29,27 @@ internal static class ReviewFoundationTests
             Assert.True(ItemFingerprint.Same(old, new EmbyItem { Id = "fixture", Name = "Movie", Tags = ["first", "second"] }));
         });
         SessionTests.Register();
+        foreach (var field in new[] { LibraryField.Director, LibraryField.PremiereDate, LibraryField.DateCreated,
+            LibraryField.Filename, LibraryField.Framerate, LibraryField.ProductionYear })
+        {
+            Test("R06-011 展示字段单独改变必须换卡 " + field, () =>
+            {
+                var old = new EmbyItem { Id = "fixture", Type = EmbyItemType.Series, ProductionYear = 2020, EndDate = DateTimeOffset.Parse("2021-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture) };
+                var changed = new EmbyItem { Id = "fixture", Type = EmbyItemType.Series, ProductionYear = 2020, EndDate = old.EndDate };
+                if (field == LibraryField.Director) changed.People = [new EmbyPerson { Name = "Director", Type = "Director" }];
+                if (field == LibraryField.PremiereDate) changed.PremiereDate = DateTimeOffset.Parse("2020-02-03T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
+                if (field == LibraryField.DateCreated) changed.DateCreated = DateTimeOffset.Parse("2020-02-03T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
+                if (field == LibraryField.Filename) changed.Path = "C:/fixture/new.mkv";
+                if (field == LibraryField.ProductionYear) changed.EndDate = DateTimeOffset.Parse("2022-01-01T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
+                if (field == LibraryField.Framerate)
+                {
+                    old.MediaSources = [new MediaSource { Id = "source", MediaStreams = [new MediaStream { Type = "Video", AverageFrameRate = 24 }] }];
+                    changed.MediaSources = [new MediaSource { Id = "source", MediaStreams = [new MediaStream { Type = "Video", AverageFrameRate = 30 }] }];
+                }
+                Assert.False(LibraryCardText.Cell(old, field) == LibraryCardText.Cell(changed, field), "实际单元文字必须发生变化");
+                Assert.False(ItemFingerprint.Same(old, changed), "已有展示字段改变不能复用旧卡");
+            });
+        }
     }
 
     internal static int RunViews(string shellPath, string root)
