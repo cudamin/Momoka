@@ -46,6 +46,11 @@ if ($SkipPublish) {
         throw "给了 -SkipPublish，但 $publishRoot 里没有 Momoka.exe。先跑一次不带这个开关的发布。"
     }
     Write-Output "跳过发布，拿 $publishRoot 里现成的那一份（它可能不是刚构建的，见 -SkipPublish 的说明）。"
+    # 跳过重建不能跳过完整验收：缺载荷、旧 DLL 或字节不符都必须在 ISCC 前拒绝。
+    # 验收成功不会设置 LASTEXITCODE；新 PowerShell 进程里的空值不能误判成失败。
+    $global:LASTEXITCODE = 0
+    & (Join-Path $PSScriptRoot 'verify-publish.ps1') -PublishRoot $publishRoot -RepositoryRoot $repo -SelfContained:(-not $FrameworkDependent)
+    if ($LASTEXITCODE -ne 0) { throw '发布验证失败。' }
 } else {
     # Splatting，不是「$(if ...) 传字符串」：开关没开时那个子表达式给出空串，Windows PowerShell 5.1 会把它当成
     # 一个空参数传下去，撞上 publish.ps1 那边 -Configuration 的 ValidateSet 直接死（2026-09-10 打 0.0.3 时撞的

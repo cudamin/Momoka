@@ -40,13 +40,13 @@
 **Files:** tools/installer.ps1；新 tools/test-installer.ps1；docs/开发与验证.md。
 **Interfaces:** 消费 verify-publish.ps1 的 PublishRoot、RepositoryRoot、SelfContained；不改变批准规则。
 
-- [ ] 复用完整非 PE 载荷夹具与生产验收器，仅替换外部发布器/ISCC；记录调用顺序、文件状态与退出码。
-- [ ] 运行 `pwsh -NoProfile -File tools/test-installer.ps1 -Phase red`，缺 native/DLL/许可/错误字节应暴露旧脚本仍调用 ISCC。
-- [ ] 编译前完整验收，按 `-not $FrameworkDependent` 传 SelfContained；相同 green 全通过。
-- [ ] 更新文档说明签名后哈希拒绝与模式要求，检查并提交。
+- [x] 复用完整非 PE 载荷夹具与生产验收器，仅替换外部发布器/ISCC；记录调用顺序、文件状态与退出码。
+- [x] 夹具接参和 XML 初始化错误保留，修正后 red-compiler 174 项中 88 失败，旧脚本仍调用 ISCC。
+- [x] SkipPublish 编译前完整验收，按 `-not $FrameworkDependent` 传 SelfContained；正常 publish 已验收不重复，green 174/174。
+- [x] 更新文档说明签名后哈希拒绝与模式要求，检查并提交。独立复核修正回执为实际执行副本 SHA；旧红原回执与更正说明分别保留。
 
 ### Task 3: 批次收尾
 
-- [ ] 一次独立只读范围复核，不反复扩大旧审查。
+- [x] 一次独立只读范围复核，无待修产品发现；证据来源字段已修正，不反复扩大旧审查。
 - [ ] 重新检查其他聊天/主树状态，串行合入 master；最终 Tests/Core Release/x64 编译、完整主测试及本批脚本回归全部通过。
 - [ ] 确认实际程序退出后主树 publish -NoArchive -Shortcut；核对验收、哈希和快捷方式，记录台账。不生成真实安装包或签名。
