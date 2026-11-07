@@ -35,8 +35,10 @@ function DanmakuInput:set_state(json)
 	local value = parse(json)
 	if not value or type(value.context) ~= 'string' or #value.context > 256 then return end
 	if value.context ~= self.context then
+		local draft = value.preserveDraft == true and self.text or ''
 		self:reset()
 		self.context = value.context
+		self.text, self.position = draft, #draft
 	end
 	self.visible = value.visible == true and self.context ~= ''
 	self.can_send, self.busy = value.canSend == true, value.busy == true

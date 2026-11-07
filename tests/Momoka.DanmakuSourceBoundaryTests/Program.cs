@@ -10,6 +10,24 @@ internal static class Program
 {
     private static int Main()
     {
+        Momoka.Tests.TestHarness.Test("R14-003 service off/on keeps current draft while revoking send context", () =>
+        {
+            var settings = Settings();
+            settings.Danmaku.AutoMatch = false;
+            var host = new Host(settings);
+            host.Seed(new(10001, "anonymous", "one"));
+            host.DanmakuDraft = "draft";
+            var original = host.InputContext;
+            settings.Danmaku.Enabled = false;
+            host.Change();
+            Momoka.Tests.Assert.Equal("draft", host.DanmakuDraft);
+            Momoka.Tests.Assert.True(original != host.InputContext);
+            settings.Danmaku.Enabled = true;
+            host.Change();
+            Momoka.Tests.Assert.Equal("draft", host.DanmakuDraft);
+            host.ResetForNewVideo();
+            Momoka.Tests.Assert.Equal("", host.DanmakuDraft);
+        });
         foreach (var switched in new[] { false, true })
             Momoka.Tests.TestHarness.Test($"danmaku source late search switched={switched}", () =>
             {
@@ -179,6 +197,15 @@ internal sealed partial class Panel(PanelEndpoint endpoint)
 
 internal sealed partial class Host(AppSettings settings)
 {
+    private string _danmakuInputContext = "original";
+    private readonly HashSet<string> _danmakuNativeRequests = [];
+    private CancellationTokenSource? _danmakuSend;
+    private bool _preserveDanmakuDraft;
+    private bool DanmakuSending;
+    internal string DanmakuDraft { get; set; } = "";
+    private string DanmakuSendStatus = "";
+    internal string InputContext => _danmakuInputContext;
+    internal void ResetForNewVideo() => ResetDanmakuInput();
     private AppSettings Settings { get; } = settings;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly EmbyItem? _nowPlaying = new() { Type = EmbyItemType.Movie, Name = "anonymous movie" };
@@ -214,7 +241,7 @@ internal sealed partial class Host(AppSettings settings)
     internal void Change() => DanmakuSettingsChanged();
     private void RefreshDanmakuProperties() { }
     private void CancelDanmakuRequests() { }
-    private void ResetDanmakuInput() { }
+    private void RefreshDanmakuInput() { _ = DanmakuSending; _ = DanmakuSendStatus; _ = _preserveDanmakuDraft; }
     private Task ClearDanmakuAsync() => Task.CompletedTask;
     private Task PingDanmakuAsync() => Task.CompletedTask;
     private Task LoadSourcesAsync(IReadOnlyList<(DanmakuSource Source, DandanPlayEpisode Episode)> selections)

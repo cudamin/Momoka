@@ -31,6 +31,7 @@ methods += '\n\n' + extract(panel, '    private void OnSourceChanged(', '    pri
 host = 'src/Momoka.Shell/ViewModels/PlayerViewModel.Danmaku.cs'
 methods = extract(host, '    private string DanmakuConnection() =>', '    private void RefreshDanmakuProperties()')
 methods += '\n\n' + extract(host, '    private void DanmakuSettingsChanged()', '    private async Task ScheduleDanmakuPushAsync()')
+methods += '\n\n' + extract('src/Momoka.Shell/ViewModels/PlayerViewModel.DanmakuSend.cs', '    private void ResetDanmakuInput(', '    private void RefreshDanmakuInput()')
 (here / 'Host.g.cs').write_text('#nullable enable\nusing Momoka.Danmaku;\nnamespace DanmakuReview;\ninternal sealed partial class Host\n{\n' + methods + '\n}\n', encoding='utf-8', newline='\n')
 settings = 'src/Momoka.Shell/ViewModels/SettingsViewModel.Danmaku.cs'
 methods = extract(settings, '    private IReadOnlyList<SettingSection> DanmakuSections()', '    private SettingFontRow DanmakuFont(')

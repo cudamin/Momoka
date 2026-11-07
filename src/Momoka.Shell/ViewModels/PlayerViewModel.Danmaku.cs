@@ -160,7 +160,7 @@ public sealed partial class PlayerViewModel
             _danmakuWarning = "";
             _danmakuSourceSummary = DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source);
             DanmakuStatus = DefaultDanmakuStatus;
-            ResetDanmakuInput();
+            ResetDanmakuInput(preserveDraft: true);
             _danmakuTransfer++;
             _ = ClearDanmakuAsync();
             if (DanmakuAvailable && _nowPlaying is { } current)
@@ -390,7 +390,7 @@ public sealed partial class PlayerViewModel
         _danmakuWarning = "";
         _danmakuSourceSummary = string.Join(" + ",
             selections.Select(selection => DanmakuSourceRules.SourceName(selection.Source)));
-        ResetDanmakuInput();
+        ResetDanmakuInput(preserveDraft: true);
         _danmakuTransfer++;
         DanmakuStatus = $"正在加载{_danmakuSourceSummary} 弹幕：{_danmakuLabel}…";
         await ClearDanmakuAsync().ConfigureAwait(true);
