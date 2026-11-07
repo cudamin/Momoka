@@ -444,6 +444,7 @@ public sealed partial class HomeBanner : UserControl
         {
             // 台上那张还在：位置跟着新清单走，钟不重来（字和图也没变，不重播抬升）。
             Show(keep, animate: !ReferenceEquals(next[keep], current));
+            if (previous.Count <= 1 || next.Count <= 1) SyncTimer();
         }
         else
         {

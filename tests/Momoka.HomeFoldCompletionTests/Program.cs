@@ -14,6 +14,26 @@ internal static class Program
     {
         RegisterMotion();
         RegisterPage();
+        Cases.Add(("R06-008 carousel-single-to-many-clock", () =>
+        {
+            var clock = new BannerClockFixture();
+            var first = new BannerSlide("first");
+            var second = new BannerSlide("second");
+            clock.Apply([first]);
+            Check(!clock.Running, "a single slide must stop the clock");
+            clock.Apply([first, second]);
+            Check(clock.Running, "adding a second slide must start automatic paging");
+            var started = clock.Starts;
+            clock.Apply([first, second, new BannerSlide("third")]);
+            Equal(started, clock.Starts, "ordinary nonempty refresh preserves the cycle");
+            clock.Apply([first]);
+            Check(!clock.Running, "returning to one slide stops the clock");
+            clock.SetActive(false);
+            clock.Apply([first, second]);
+            Check(!clock.Running, "off-tree refresh cannot start the clock");
+            clock.SetActive(true);
+            Check(clock.Running, "reattaching multiple slides resumes automatic paging");
+        }));
         var passed = 0;
         var failed = 0;
         foreach (var test in Cases)
