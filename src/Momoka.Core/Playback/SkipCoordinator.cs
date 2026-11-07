@@ -69,7 +69,7 @@ public sealed class SkipCoordinator
 
     /// <summary>
     /// Replaces the section list without forgetting decisions already taken. The player's own
-    /// chapters arrive a moment after playback starts and may fill in a kind Emby did not mark; a
+    /// chapters arrive a moment after playback starts and may add a distinct interval; a
     /// standing offer on Emby's own section must survive that.
     /// </summary>
     public void UpdateSections(IReadOnlyList<SkipSection> sections, double duration)

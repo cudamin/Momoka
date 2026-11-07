@@ -5,11 +5,11 @@
   "sources": [
     {
       "path": "src/Momoka.Core/Playback/IPlaybackBackend.cs",
-      "sha256": "07f85a40d012a7a8f4e88a3a699aa37964fee4a6c2cf3c3d3019f6653a81b9e6"
+      "sha256": "c507f868b13b2ac0b444bf73224ecb8b8181963b1ff23b86f7ebd0257f4c3399"
     },
     {
       "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
-      "sha256": "fb7e5ffa0abb167d19caeca8ede5d77cc18c7c95199b94834c23268b3e500cb6"
+      "sha256": "59b5ab7f9037197614c91ef4f9cab7497c9e673ab3065e6e9a83a7ad2a9e4e36"
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackContracts.cs",
@@ -33,7 +33,7 @@
     },
     {
       "path": "tests/Momoka.ShaderCommandGenerationTests/HandleFixture.cs",
-      "sha256": "a5b7ab1039a94b6ed177aa8c4504c84c5810b855de87dc7c7d6134cdfcd175f0"
+      "sha256": "c9544e22c49eed5df4687b9fa87ef6a6249fcd7fea61a2abb5862ecdb096018a"
     },
     {
       "path": "tests/Momoka.ShaderCommandGenerationTests/ServiceFixture.cs",
@@ -53,11 +53,11 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
-      "sha256": "d607380c54505c114c48e4075a7ad21e739d11a2cb31c29b2307b5b53e69eb8a"
+      "sha256": "3ecb13982b0ce84b9722f9e1696935bc7a7657038f927c9b616e69089748130b"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySession.cs",
-      "sha256": "48e5a109f693a9512263d77595c26fd5d598a0f3dfcaf0856112c9040ec450f4"
+      "sha256": "66a56d5076fd5daef5c09441282745c8b329665bbfdda346dee08d8981a4fe51"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
