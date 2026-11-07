@@ -27,6 +27,8 @@ internal sealed class SubtitleFixture : IDisposable
     internal SubtitleDialog Dialog { get; private set; } = null!;
     internal Task Caller { get; private set; } = Task.CompletedTask;
     internal int Changed { get; private set; }
+    internal void DenySubtitles() => _actions.Permissions = new(CanManageSubtitles: false);
+    internal IReadOnlyList<EmbySessionScope> PermissionScopes => _actions.PermissionScopes;
 
     internal SubtitleFixture(MediaServerKind product = MediaServerKind.Emby, string version = "10.10.7")
     {
@@ -105,6 +107,13 @@ internal sealed class SubtitleFixture : IDisposable
     }
     private sealed class FixtureActions : IShellActions
     {
+        internal ItemMenuPermissions Permissions { get; set; }
+        internal List<EmbySessionScope> PermissionScopes { get; } = [];
+        public ItemMenuPermissions MenuPermissionsFor(EmbySessionScope scope)
+        {
+            PermissionScopes.Add(scope);
+            return Permissions;
+        }
         public void Notify(string message, InfoBarSeverity severity = InfoBarSeverity.Informational) { }
     }
 }

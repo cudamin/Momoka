@@ -49,16 +49,18 @@
         var detail = File.ReadAllText(Path.Combine(SourceRoot, "ViewModels", "DetailViewModel.cs")).Replace("\r\n", "\n");
         var page = File.ReadAllText(Path.Combine(SourceRoot, "ViewModels", "PageViewModel.cs")).Replace("\r\n", "\n");
         var generated = "#nullable enable\n// Extracted verbatim from this tree at every build; do not edit.\n" +
-            "using Momoka.Configuration;\nusing Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Momoka.Playback;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\n" +
+            "using System.ComponentModel;\nusing Momoka.Configuration;\nusing Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Momoka.Playback;\nusing Momoka.Shell.Views;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\n" +
             "namespace Momoka.Shell.Views\n{\ninternal static partial class ItemCommands\n{\n" +
             between(server, "    private static async Task GuardAsync(", "\n    /// <summary>\n    /// 一次请求。") +
             between(server, "    private static async Task<T> AskAsync<T>(", "\n    /// <inheritdoc cref=\"AskAsync{T}\"/>") +
+            between(server, "    private static void RequirePermission(", "\n    /// <summary>\n    /// 取一段字节，") +
             line(server, "    private static XamlRoot? Root(FrameworkElement owner)") +
             between(server, "    private static Task SubtitlesAsync(\n", "\n    /// <summary>\n    /// 识别：打开那张表") +
             "\n}\n}\nnamespace Momoka.Shell.ViewModels\n{\ninternal sealed partial class DetailViewModel\n{\n" +
             line(detail, "    private bool Attached =>") +
             line(detail, "    private AppSettings Settings =>") +
             line(detail, "    private new bool IsCurrent(CancellationToken token) =>") +
+            between(detail, "    private void OnSubjectStateChanged(", "\n    private bool CanAct =>") +
             between(detail, "    internal void Reload()\n", "\n    /// <summary>Capture a successful delete callback") +
             between(detail, "    private async Task LoadAsync(string? committedNotice = null)\n", "\n    /// <summary>\n    /// 用点进来那张卡片先画一屏") +
             between(detail, "    public override void Cancel()\n", "\n    /// <inheritdoc />\n    public override void Dispose()") +

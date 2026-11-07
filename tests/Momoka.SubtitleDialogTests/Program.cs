@@ -11,6 +11,35 @@ internal static class Program
     private static int Main()
     {
         SubtitleReceiptTests.Register();
+        Case("字幕命令重新核权限，拒绝后零写入并允许关闭", async ui =>
+        {
+            using var f = new SubtitleFixture();
+            await f.OpenAsync();
+            f.DenySubtitles();
+            f.Dialog.FixtureDownload();
+            await ui.IdleAsync();
+            Assert.Equal(0, f.Transport.Writes);
+            Assert.True(f.PermissionScopes.Count > 0);
+            Assert.True(f.PermissionScopes.All(scope => ReferenceEquals(scope, f.Scope)));
+            await f.CloseAsync();
+        });
+        Case("详情取消退订真实主体状态处理器", ui =>
+        {
+            using var f = new SubtitleFixture();
+            var card = f.Parent.FixtureObserve();
+            Assert.Equal(1, card.Subscribers);
+            f.Item.UserData = new() { Played = true };
+            card.Change(nameof(Momoka.Shell.Views.CardItem.Watched));
+            Assert.True(f.Parent.Watched);
+            f.Parent.Cancel();
+            Assert.Equal(0, card.Subscribers);
+            f.Item.UserData.IsFavorite = true;
+            card.Change(nameof(Momoka.Shell.Views.CardItem.IsFavorite));
+            Assert.False(f.Parent.Favorite);
+            f.Parent.Cancel();
+            Assert.Equal(0, card.Subscribers);
+            return Task.CompletedTask;
+        });
         Case("已删除主体的父刷新不再读取或恢复播放目标", async ui =>
         {
             using var f = new SubtitleFixture();

@@ -33,6 +33,17 @@ internal sealed partial class DetailViewModel : PageViewModel
     private EpisodeShelfBoundary? EpisodeShelf => null;
     private EmbySessionScope? _scope;
     private EmbyItem? _seed;
+    private EmbyItem? _detail;
+    private CardItem? _subjectStateCard;
+    internal bool Watched { get; private set; }
+    internal bool Favorite { get; private set; }
+    internal CardItem FixtureObserve()
+    {
+        var card = new CardItem(_detail!);
+        _subjectStateCard = card;
+        card.PropertyChanged += OnSubjectStateChanged;
+        return card;
+    }
     private readonly RemovedMedia _removed = new();
     internal bool FixtureDeleted { get; private set; }
     internal void FixtureRemove(EmbyItem item) => _removed.Remember(item);
@@ -55,6 +66,7 @@ internal sealed partial class DetailViewModel : PageViewModel
         _actionsReady = true;
         _scope = scope;
         _seed = item;
+        _detail = item;
         _settings = new(new AppSettings());
         _settings.Settings.Playback.MediaSourceOrder = MediaSourceOrder.Default;
         Applied = item; // Initial displayed value, not a replacement for the real reload algorithm.
@@ -71,6 +83,7 @@ internal sealed partial class DetailViewModel : PageViewModel
     }
     private void Apply(EmbyItem item)
     {
+        _detail = item;
         Applied = item;
         _actionsReady = true;
     }
