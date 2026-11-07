@@ -64,6 +64,44 @@ internal static class SettingsLayoutTests
             Assert.Contains("appearanceRetainedOriginal = true", probe);
             Assert.False(probe.Contains("_heroBlurGeneration", StringComparison.Ordinal));
         });
+        TestHarness.Test("集页季度探针：正季边界、未知特典、投影与无请求换季接线", () =>
+        {
+            var series = Source("ShellNavigationProbe.DetailSeries.cs");
+            Assert.Contains("secondSeason.PremiereDate?.AddTicks(-1)", series);
+            Assert.Contains("equalSecond.PremiereDate = secondSeason.PremiereDate", series);
+            Assert.Contains("unknown.PremiereDate = null", series);
+            Assert.Contains("await pendingSeasonRequest.Task.WaitAsync", series);
+            Assert.Contains("await UntilAsync(() => page.ViewModel.Episodes.Count == 9)", series);
+            Assert.Contains("releaseSeasonRequest.TrySetResult(true)", series);
+            Assert.Contains("RequireEpisodeSeasonRows(page, secondIds)", series);
+            Assert.Contains("RequireEpisodeSeasonRows(page, firstIds)", series);
+            Assert.Contains("fixture.Transport.Requests.Count == baselineRequests", series);
+            Assert.Contains("SequenceEqual(subjects)", series);
+            Assert.Contains("view.SeasonShelf is not { Cards.Count: > 0 }", series);
+            Assert.Contains("rows.ItemsSourceView?.Count == expected.Count", series);
+            var settings = Source("ShellNavigationProbe.DetailCustomization.cs");
+            Assert.Contains("(\"单集页面卡片\", EmbyItemType.Episode, 4)", settings);
+            Assert.Contains("单集设置仍显示全部剧季卡片选项", settings);
+        });
+        TestHarness.Test("长剧集页季度探针：全剧上下文与局部竖列表分开核验", () =>
+        {
+            var probe = Source("ShellNavigationProbe.LongSeries.cs");
+            Assert.Contains("episodeView.Episodes.Count == 2000", probe);
+            Assert.Contains("episodeView.EpisodeShelf is { Cards.Count: 100 }", probe);
+            Assert.Contains("episodeView.EpisodeFocus == 0", probe);
+            Assert.Contains("ReferenceEquals(episodeTarget, episodeView.PlayTarget)", probe);
+            Assert.Contains("fixture.Transport.Requests.Count == episodeRequestCount", probe);
+        });
+        TestHarness.Test("亚克力透明度探针：控件画刷透明度实际跟随读数，Tint固定", () =>
+        {
+            var probe = Source("ShellNavigationProbe.DetailCustomization.cs");
+            Assert.Contains("Math.Abs(glass.Opacity - expected) < 0.001", probe);
+            Assert.Contains("glass.TintOpacity == 0.55 && glass.TintLuminosityOpacity == 0.55", probe);
+            Assert.Contains("Math.Abs(glass.Opacity - strength / 100) < 0.001", probe);
+            var materials = Source("ShellNavigationProbe.Materials.cs");
+            Assert.Contains("AcrylicBrush { AlwaysUseFallback: false } actual", materials);
+            Assert.Contains("fill.TintOpacity == 0.55 && fill.TintLuminosityOpacity == 0.55", materials);
+        });
         TestHarness.Test("详情卡片排序表：弹簧拖拽有完整开始结束与卸载处理", () =>
         {
             var document = Page("SettingsPage.xaml");

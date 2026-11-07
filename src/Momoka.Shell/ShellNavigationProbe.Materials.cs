@@ -677,21 +677,22 @@ internal sealed partial class ShellNavigationProbe
                         && VisualStateManager.GoToState(picker, state, false), "按钮或选择框缺少状态：" + state);
                     await LayoutAsync(picker);
                     var key = "ComboBoxBackground" + (state == "Normal" ? "" : state);
-                    Require(background.Background is AcrylicBrush { AlwaysUseFallback: true } actual
+                    Require(background.Background is AcrylicBrush { AlwaysUseFallback: false } actual
                         && ReferenceEquals(actual, picker.Resources[key]), $"{picker.Name}/{state} 未保持独立的选择框背景");
                     var buttonFill = Descendants(reference).OfType<ContentPresenter>()
                         .First(presenter => presenter.Name == "ContentPresenter").Background as AcrylicBrush;
                     var pickerFill = (AcrylicBrush)background.Background;
                     var alpha = (state == "Normal" ? 15d : state == "PointerOver" ? 21d : 8d) / 255;
-                    Require(buttonFill is { AlwaysUseFallback: true } && pickerFill.FallbackColor == buttonFill.FallbackColor
+                    Require(buttonFill is { AlwaysUseFallback: false } && pickerFill.FallbackColor == buttonFill.FallbackColor
                         && Math.Abs(pickerFill.Opacity - buttonFill.Opacity) < 0.001
                         && pickerFill.FallbackColor.A == 255 && pickerFill.FallbackColor.R == 255
-                        && Math.Abs(pickerFill.Opacity - alpha) < 0.001,
+                        && Math.Abs(pickerFill.Opacity - alpha) < 0.001
+                        && pickerFill.TintOpacity == 0.55 && pickerFill.TintLuminosityOpacity == 0.55,
                         picker.Name + "/" + state + " 选择框与按钮未共用平台默认薄白");
                     reads.Add($"{ThemeHost.Current.Id}/{picker.Name}/{state}: 保持选择框底色");
                 }
-                Require(picker.Background is AcrylicBrush { AlwaysUseFallback: true } resting
-                    && highlight.Background is AcrylicBrush { AlwaysUseFallback: true } focused
+                Require(picker.Background is AcrylicBrush { AlwaysUseFallback: false } resting
+                    && highlight.Background is AcrylicBrush { AlwaysUseFallback: false } focused
                     && focused.FallbackColor == resting.FallbackColor, picker.Name + " 聚焦底色没有回到按钮常态");
             }
             finally
@@ -716,12 +717,13 @@ internal sealed partial class ShellNavigationProbe
                 for (var index = 0; index < states.Length; index++)
                 {
                     Require(VisualStateManager.GoToState(control, states[index], false), "模板状态不存在：" + states[index]);
-                    await UntilAsync(() => Fill() is AcrylicBrush { AlwaysUseFallback: true });
+                    await UntilAsync(() => Fill() is AcrylicBrush { AlwaysUseFallback: false });
                     var fill = (AcrylicBrush)Fill()!;
                     var expectedOpacity = new[] { 15d, 21d, 8d }[index % 3] / 255;
                     Require(fill.FallbackColor == Windows.UI.Color.FromArgb(255, 255, 255, 255)
-                        && Math.Abs(fill.Opacity - expectedOpacity) < 0.001,
-                        "详情操作按钮未还原0.2.0默认薄白三态");
+                        && Math.Abs(fill.Opacity - expectedOpacity) < 0.001
+                        && fill.TintOpacity == 0.55 && fill.TintLuminosityOpacity == 0.55,
+                        "详情操作按钮未使用默认透明度与固定亚克力三态");
                     Require(!keys.Any(key => ReferenceEquals(fill, dark[key])), "详情操作按钮仍接共享玻璃");
                     if (index < 3) platform[index] = fill.FallbackColor;
                     else Require(fill.FallbackColor == platform[index - 3], "连播勾选底色未按回未勾选的三档");

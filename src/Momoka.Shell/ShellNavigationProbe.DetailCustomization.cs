@@ -47,12 +47,14 @@ internal sealed partial class ShellNavigationProbe
                 foreach (var (title, type, count) in new[]
                 {
                     ("剧页面卡片", EmbyItemType.Series, 5),
-                    ("单集页面卡片", EmbyItemType.Episode, 5),
+                    ("单集页面卡片", EmbyItemType.Episode, 4),
                     ("电影页面卡片", EmbyItemType.Movie, 3)
                 })
                 {
                     var section = page.ViewModel.Sections.Single(card => card.Title == title);
                     var row = section.Rows.OfType<SettingHomeLayoutRow>().Single();
+                    if (type == EmbyItemType.Episode)
+                        Require(row.Rows.All(card => card.Key != "seasons"), "单集设置仍显示全部剧季卡片选项");
                     var list = Descendants(page).OfType<ListView>()
                         .Single(control => ReferenceEquals(control.ItemsSource, row.Rows));
                     Require(row.EnableSpring && row.Rows.Count == count && list.CanDragItems && list.CanReorderItems
@@ -531,7 +533,13 @@ internal sealed partial class ShellNavigationProbe
         Require(view.TitleLink?.Id == episode.SeriesId && view.TitleLink?.Type == EmbyItemType.Series,
             "单集剧名导航不再指向所属剧");
         Require(view.Episodes.Count == 0 || view.Episodes.Any(item => item.Id == episode.Id),
-            "单集清单丢失当前集");
+            "单集完整播放上下文丢失当前集");
+        Require(Get<StackPanel>(page, "SeasonPanel").Visibility == Visibility.Collapsed,
+            "集页仍显示全部剧季卡片");
+        if (view.EpisodeShelf is { Cards.Count: > 0 })
+            Require(Get<ItemsRepeater>(page, "EpisodeList").Visibility == Visibility.Visible
+                && Get<ShelfStrip>(page, "EpisodeStrip").Visibility == Visibility.Collapsed,
+                "集页没有使用当前季度纵向集列表");
         Require(Get<StackPanel>(page, "ColumnPickers").Visibility == view.ColumnPickersVisibility
             && Get<StackPanel>(page, "PickerPanel").Visibility == view.PickersVisibility,
             "单集切换后文件选项容器未恢复");
@@ -695,8 +703,8 @@ internal sealed partial class ShellNavigationProbe
                                 var amount = strength / 100;
                                 var expected = !feedback ? amount : amount <= normal ? floor
                                     : floor + (1 - floor) * (amount - normal) / (1 - normal);
-                                Require(!glass.AlwaysUseFallback && glass.Opacity == 1
-                                    && Math.Abs(glass.TintOpacity - expected) < 0.001,
+                                Require(!glass.AlwaysUseFallback && Math.Abs(glass.Opacity - expected) < 0.001
+                                    && glass.TintOpacity == 0.55 && glass.TintLuminosityOpacity == 0.55,
                                     "亚克力中间档没有保留材质或浓度反馈");
                             }
                         }
@@ -803,8 +811,9 @@ internal sealed partial class ShellNavigationProbe
                     if (strength == 100)
                         Require(glass.AlwaysUseFallback && glass.Opacity == 1, "首页亚克力100档未回到实底");
                     else if (strength > 0)
-                        Require(!glass.AlwaysUseFallback && glass.Opacity == 1 && glass.TintOpacity >= strength / 100,
-                            "首页中间档没有使用亚克力");
+                        Require(!glass.AlwaysUseFallback && Math.Abs(glass.Opacity - strength / 100) < 0.001
+                            && glass.TintOpacity == 0.55 && glass.TintLuminosityOpacity == 0.55,
+                            "首页中间档没有按滑块调整亚克力透明度");
                     foreach (var layer in new[] { Get<Grid>(banner, "LayerA"), Get<Grid>(banner, "LayerB") })
                         Require(layer.Background is ImageBrush picture && Math.Abs(picture.Opacity - 1) < 0.001,
                             "详情背景设置改变了主页图片的不透明度");
