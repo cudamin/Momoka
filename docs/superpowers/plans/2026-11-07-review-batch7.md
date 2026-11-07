@@ -28,12 +28,12 @@
 
 ## Task 1 — 确认写入与补读分离
 
-- [ ] 在现有 PlexMediaTests 注册新匿名 Session 回归，记录写后503/401及取消的有效红。
-- [ ] PlexMediaAdapter 返回无正文确认，增加独立 GetUserDataAsync；EmbyClient 增加 Plex 独立补读入口。
-- [ ] 更新 WatchedCounts 为写后显式读取，保留原计数断言。
-- [ ] 就近扩展 ItemCommands 既有补读支持 Plex；详情扩展原飞牛确认/刷新提示到 Plex。
-- [ ] 使用真实 Attach/Reload 的 PlexAffordance 夹具验证卡片/详情、错误提示和隔离边界。
-- [ ] 定向编译/回归通过后提交产品与测试。
+- [x] 在现有 PlexMediaTests 注册新匿名 Session 回归，记录写后503/401及取消的有效红。
+- [x] PlexMediaAdapter 返回无正文确认，增加独立 GetUserDataAsync；EmbyClient 增加 Plex 独立补读入口。
+- [x] 更新 WatchedCounts 为写后显式读取，保留原计数断言。
+- [x] 就近扩展 ItemCommands 既有补读支持 Plex；详情扩展原飞牛确认/刷新提示到 Plex。
+- [x] 使用真实 Attach/Reload 的 PlexAffordance 夹具验证卡片/详情、错误提示和隔离边界。
+- [x] 定向编译/回归通过后提交产品与测试。
 
 ## Task 2 — 匿名运行与交付
 
