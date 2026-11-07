@@ -884,6 +884,7 @@ internal sealed class HostWindow : IDisposable
     /// </para>
     /// </summary>
     public (WindowBounds Bounds, bool Maximized) Placement { get; private set; }
+    internal bool UsedSavedPlacement { get; private set; }
 
     /// <summary>
     /// 用户自己挑的那一份几何 —— 播放前的窗口大小和位置，退出播放时窗口要回到这里。带上「当时是不是最大化」
@@ -2288,6 +2289,7 @@ internal sealed class HostWindow : IDisposable
     /// </param>
     public void Show(bool maximized, int screen = ScreenPlacement.WhereverWindows, WindowBounds saved = default)
     {
+        UsedSavedPlacement = false;
         var instance = Native.GetModuleHandle(null);
         EnsureClassRegistered(instance);
 
@@ -2339,6 +2341,7 @@ internal sealed class HostWindow : IDisposable
 
         if (restored.Width > 0)
         {
+            UsedSavedPlacement = true;
             Native.SetWindowPos(
                 Handle, Native.HwndTop,
                 restored.Left, restored.Top, restored.Width, restored.Height,

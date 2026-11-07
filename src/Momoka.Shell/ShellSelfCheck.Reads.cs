@@ -94,7 +94,7 @@ internal static partial class ShellSelfCheck
         // 命令行点过名的那一次不许沿用存档，否则报告里的几何就没了基准。自检默认带 --screen（副屏），所以这
         // 一条正常总是走「没沿用」那一支；有人哪天把默认改成不带，它当场变成一句真的断言。
         var directed = options.Screen != ScreenPlacement.WhereverWindows;
-        var adopted = ui.WindowWidth > 0 && recorded.Width == ui.WindowWidth && recorded.Height == ui.WindowHeight;
+        var adopted = window.UsedSavedPlacement;
         if (directed && adopted) ok = false;
 
         return (ok,
