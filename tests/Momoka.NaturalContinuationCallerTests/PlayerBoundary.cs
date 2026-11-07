@@ -73,7 +73,7 @@ public sealed partial class PlayerViewModel
     [
         _aspect, _shaderContext, _outputWatch, _shaderResolver, _shaderPinned, _coverBackdropItemId,
         _coverBackdropLoad, _coverGeneration, _replacingPlayback, _presentedHeadless, _preparingPictureInHost,
-        _seekTouched, _seekSent, _versionSwitchTarget, _volumeReady, _episodeLookup,
+        _seekTouched, _seekSent, _versionSwitchTarget, _volumeReady, _volumeConfirmedSample, _episodeLookup,
         _playerSkipSeeded
     ];
 

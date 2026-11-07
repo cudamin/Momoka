@@ -160,6 +160,7 @@ public sealed class ExtractCaller : BuildTask
             "PlayerShown", "PlayerHidden", "PictureAspectChanged", "ChaptersChanged", "PlaybackStarted"
         }) Emit(vm, name);
         Emit(events, "_volumeReady");
+        Emit(events, "_volumeConfirmedSample");
         Emit(versions, "_versionLoad");
         foreach (var name in new[]
         {

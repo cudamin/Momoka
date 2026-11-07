@@ -1,5 +1,11 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-07：本轮四份来源与平台输出同步
+
+逐项核对 `3074e20..dd84931`：19份来源仅4份变化，其余15份哈希一致。`IPlaybackBackend` 新增音量样本读取边界，`LibMpvBackend` 在共享API闸门下读取当前音量并记录样本，`PlaybackContracts` 增加样本并允许空版本来源，`PlayerViewModel.Events` 重置样本及拒绝旧音量回执。只更新这4份SHA256；base/date及完整源／成员校验不变。提取器额外输出真实 `_volumeConfirmedSample` 字段，呈现端点只读取其值，不模拟音量算法；`UsingTask` 按实际 AnyCPU／x64 输出布局加载同一提取器。缺源、hash漂移、语法／成员／根目录错误仍拒绝。
+
+官方 `Run-Caller.ps1` 当前69/69；`Test-SourceExtraction.ps1` 串行10个反例全部按预期退出1，随后当前源重新零警告错误编译并69/69。证据在本树 `artifacts/r046-caller/final-fixture-negative-serial`。首反例运行与同树另一默认Core构建撞写锁，第二案例退出1但错误原因不符，工具正确报红，保留 `final-fixture-negative`，未将退出1当拒绝通过。限定格式首次未指定环境 Configuration 导致加载警告，不作完成证据；随后设 Release 的 diagnostic 检查正常加载、0修改、退出0。
+
 ## 2026-11-05：删除后导航的来源同步
 
 核对 `0f3657d`：`EpisodeNavigation.cs` 只新增删除后的 `AfterRemoval`，原 `Step` 与自然续播提取成员未变；定点更新此文件 SHA256，保留完整源校验和提取器。当前实际 caller 51/51，调用参数必须是本树根和 `artifacts/r046-caller` 下的新输出目录。第一次遗漏参数的运行退出2，未计为行为回归失败或通过。

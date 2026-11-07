@@ -2,9 +2,10 @@
     <PropertyGroup>
         <R046SourceRoot Condition="'$(R046SourceRoot)' == ''">$(MSBuildProjectDirectory)\..\..</R046SourceRoot>
         <R046SourcePins Condition="'$(R046SourcePins)' == ''">$(MSBuildProjectDirectory)\SourcePins.json</R046SourcePins>
+        <R046ExtractorPlatformDirectory Condition="'$(Platform)' != '' and '$(Platform)' != 'AnyCPU'">$(Platform)\</R046ExtractorPlatformDirectory>
     </PropertyGroup>
     <UsingTask TaskName="Momoka.NaturalContinuationSourceExtractor.ExtractCaller"
-               AssemblyFile="$(MSBuildThisFileDirectory)SourceExtractor\bin\$(Configuration)\net10.0\Momoka.NaturalContinuationSourceExtractor.dll" />
+               AssemblyFile="$(MSBuildThisFileDirectory)SourceExtractor\bin\$(R046ExtractorPlatformDirectory)$(Configuration)\net10.0\Momoka.NaturalContinuationSourceExtractor.dll" />
     <Target Name="GenerateR046Caller" BeforeTargets="CoreCompile" DependsOnTargets="ResolveReferences">
         <ExtractCaller WorkspaceRoot="$(MSBuildProjectDirectory)\..\.."
                        SourceRoot="$(R046SourceRoot)" PinsPath="$(R046SourcePins)"
