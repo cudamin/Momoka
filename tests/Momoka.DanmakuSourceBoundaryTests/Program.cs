@@ -22,6 +22,17 @@ internal static class Program
             Momoka.Tests.Assert.Equal(DanmakuSource.DanmuApi, panel.SelectedSource);
             Momoka.Tests.Assert.Equal("搜索danmu_api", panel.SearchLabel);
         });
+        foreach (var valid in new[] { false, true })
+            Momoka.Tests.TestHarness.Test("R14-006 missing custom endpoint hides dependent settings " + valid, () =>
+            {
+                var settings = Settings();
+                settings.Danmaku.Source = DanmakuSourceMode.DanmuApi;
+                settings.Danmaku.DanmuApiBaseUrl = valid ? "https://source.invalid/" : "";
+                var labels = new SettingsRows(settings).Labels();
+                Momoka.Tests.Assert.True(labels.Contains("启用弹幕") && labels.Contains("弹幕来源") && labels.Contains("danmu_api 地址"));
+                Momoka.Tests.Assert.Equal(valid, labels.Contains("自动匹配弹幕"));
+                Momoka.Tests.Assert.Equal(valid, labels.Contains("弹幕字体"));
+            });
         Momoka.Tests.TestHarness.Test("R14-005 closing an old panel does not cancel resident replacement search", () =>
         {
             var endpoint = new PanelEndpoint();
