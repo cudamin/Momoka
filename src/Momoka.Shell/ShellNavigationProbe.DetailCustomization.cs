@@ -650,6 +650,7 @@ internal sealed partial class ShellNavigationProbe
         ShellPrefs.ApplyAppearance(ui);
         await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !ReferenceEquals(clearImage, page.ViewModel.HeroImage));
         var settled = page.ViewModel.HeroImage;
+        var settledReading = GaussianReading(page);
 
         foreach (var theme in UiThemes.All)
         {
@@ -664,7 +665,11 @@ internal sealed partial class ShellNavigationProbe
             Require(Get<TextBlock>(page, "Overview").Foreground is SolidColorBrush text
                 && (text.Color == Microsoft.UI.Colors.White || text.Color == Windows.UI.Color.FromArgb(255, 22, 22, 22)),
                 "高斯简介文字没有选取可读的深浅色");
-            Require(ReferenceEquals(settled, page.ViewModel.HeroImage), "切主题重新处理高斯图片");
+            var themeReading = GaussianReading(page);
+            File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "detail-gaussian-generation.txt"),
+                $"{page.ViewModel.ItemType}/{theme.Id}: before({settledReading}), after({themeReading}), imageSame={ReferenceEquals(settled, page.ViewModel.HeroImage)}\n");
+            Require(ReferenceEquals(settled, page.ViewModel.HeroImage),
+                $"切主题重新处理高斯图片：{theme.Id}, before({settledReading}), after({themeReading})");
             Require(Get<FrameworkElement>(page, "HeroBand") is Panel { Background: null }
                 or Panel { Background: SolidColorBrush { Color.A: 0 } }, "高斯头部重复叠暗");
             var tail = Get<StackPanel>(page, "HeroTail");
@@ -731,6 +736,12 @@ internal sealed partial class ShellNavigationProbe
         ShellPrefs.ApplyAppearance(ui);
         await UntilAsync(() => !page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady);
     }
+
+    private static GaussianProbeReading GaussianReading(DetailPage page) => new(
+        Get<int>(page.ViewModel, "_heroBlurRadius"), Get<int>(page.ViewModel, "_heroBlurGeneration"),
+        Get<bool>(page.ViewModel, "_heroRequestedGaussian"), Get<bool>(page.ViewModel, "_heroRendering"),
+        page.ViewModel.PageWidth, page.ViewModel.IsCompact, page.ViewModel.Showcase,
+        page.ViewModel.GaussianBackdropReady, page.ViewModel.GaussianBackdropApplied);
 
     /// <summary>这一页按设置该画出来的遮罩 alpha —— 探针比的是这个数，不自己另算一遍公式。</summary>
     private static byte ScrimExpected(DetailPage page) =>
@@ -972,13 +983,20 @@ internal sealed partial class ShellNavigationProbe
                         ThemeColor.Rgb(opaque.FallbackColor.R, opaque.FallbackColor.G, opaque.FallbackColor.B)) >= 4.5,
                     "主页详情按钮的100档底色没有完全不透明，或文字对比不足");
                 var owned = surface.Fill;
-                ui.ControlBackgroundOpacity = 0;
+                ui.ControlBackgroundOpacity = 37;
                 ui.UseAcrylicControls = true;
                 ShellPrefs.ApplyAppearance(ui);
                 await LayoutAsync(banner);
                 Require(ReferenceEquals(owned, surface.Fill)
                     && surface.Fill is AcrylicBrush { AlwaysUseFallback: false, Opacity: 1 },
                     "主页详情按钮没有即时切换亚克力");
+                ui.ControlBackgroundOpacity = 0;
+                ShellPrefs.ApplyAppearance(ui);
+                await LayoutAsync(banner);
+                Require(ReferenceEquals(owned, surface.Fill)
+                    && surface.Fill is AcrylicBrush { AlwaysUseFallback: true } clear
+                    && (state == "Normal" ? clear.Opacity == 0 : clear.Opacity * clear.FallbackColor.A / 255d > 0),
+                    "主页亚克力零档没有关闭常态底色或丢失反馈");
                 Require(ReferenceEquals(presenter.Foreground, foreground), "主页材质切换修改了文字");
                 ui.ControlBackgroundOpacity = 100;
                 ShellPrefs.ApplyAppearance(ui);

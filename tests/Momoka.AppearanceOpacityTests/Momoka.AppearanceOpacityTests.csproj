@@ -10,5 +10,7 @@
     <Compile Include="../../src/Momoka.Shell/AppearanceOpacity.cs" Link="AppearanceOpacity.cs" />
     <Compile Include="../../src/Momoka.Shell/ShellPrefs.cs" Link="ShellPrefs.cs" />
     <Compile Include="../../src/Momoka.Shell/Views/ControlBackgroundBrushes.cs" Link="ControlBackgroundBrushes.cs" />
+    <Compile Include="../../src/Momoka.Shell/ShellNavigationProbe.PickerForeground.cs" Link="PickerForegroundProbe.cs" />
+    <Compile Include="../../src/Momoka.Shell/GaussianProbeReading.cs" Link="GaussianProbeReading.cs" />
   </ItemGroup>
 </Project>

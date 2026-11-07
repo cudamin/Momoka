@@ -216,9 +216,18 @@ internal sealed partial class ShellNavigationProbe
                             {
                                 openPicker.IsDropDownOpen = true;
                                 await LayoutAsync(openPicker);
-                                Require(openPicker.Foreground is SolidColorBrush ink
-                                    && ink.Color == ((SolidColorBrush)Application.Current.Resources["EgDetailActionTextBrush"]).Color,
-                                    "选择框没有白色文字");
+                                var background = (ThemeColor)Call(detail, "ReadingBackground", openPicker)!;
+                                var foregroundFill = (AcrylicBrush)openPicker.Resources["ComboBoxBackground"];
+                                var system = new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast
+                                    ? new Windows.UI.ViewManagement.UISettings().GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground)
+                                    : (Windows.UI.Color?)null;
+                                Require(PickerForegroundMatches(openPicker.Foreground, background, foregroundFill,
+                                    !new Windows.UI.ViewManagement.UISettings().AdvancedEffectsEnabled, system),
+                                    "选择框文字没有遵守实际底色的阅读前景");
+                                var glyph = Descendants(openPicker).OfType<IconElement>().Single(control => control.Name == "DropDownGlyph");
+                                Require(PickerForegroundMatches(glyph.Foreground, background, foregroundFill,
+                                    !new Windows.UI.ViewManagement.UISettings().AdvancedEffectsEnabled, system),
+                                    "选择框箭头没有遵守实际底色的阅读前景");
                                 var popupRoot = openPicker.PopupPart?.Child
                                     ?? throw new InvalidOperationException("缺少选择框实际弹层");
                                 var popup = popupRoot as Border ?? Descendants(popupRoot).OfType<Border>()
