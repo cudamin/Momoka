@@ -11242,4 +11242,6 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 用户明确「不用 demo，直接改」。本会话仅在 c6cb/Momoka 开发：设置新增 EnableImmersive（缺键默认 true）；关闭后电影、剧、季宽窗复用集页卡面，所有尺寸不铺背景，单集原布局保留。固定沉浸入口随总开关收放，保留偏好；背景处理仍作用于单集窄窗，相关设置保留。
 - 开发 Release Shell/Tests 编译 0 警告/错误；完整 Core 4106/4106，详情设置专项36/36、实际 Release VM专项27/27。设置缺键回归先红后绿；独立复核发现并修正 ColumnPickersVisibility 通知遗漏，补断言在旧Shell上红、最终Shell上绿。自动化定位无缺失、差异/行尾检查通过。
 - 实际WinUI匿名夹具的设置与详情两项全绿；电影/剧/季1200和760宽度关闭背景、卡面切换及恢复截图已目视检查，无真实播放或服务器写入。证据 work/immersive-toggle/ui-final，来自独立 shell-probe-20261107-061028422-23252。
-- 待合入master后重新编译、测试、实际UI验证及主树发布；未上传GitHub。主树同时推进的第六批记录只有文档改动，本轮将保留。
+- 最终交付：开发3e96d72已挑入master为a6eea28，保留第六批全部记录；主树Shell/Tests编译0警告错误、完整4106/4106、实际VM27/27，实际WinUI两项及三类1200/760截图再次全过。2026-11-07 14:24发布/逐文件载荷验证通过，546文件300308863字节，桌面Momoka.lnk目标与工作目录均主树publish目录、参数空。
+- 发布以x64及无调试符号构建，最终x64测试Core SHA256与交付Core一致，当前Shell与交付Shell一致；最终x64全套4106/4106、详情36/36、VM27/27。额外默认平台全套曾因6d68聊天诊断同时占锁出现16项隔离检查失败，保留红日志；等待实际释放后最终x64串行全套通过，未更改检查或关闭其它聊天进程。证据work/immersive-toggle/delivery-receipt.json、master-ui、published-x64-full-tests.txt。
+- 无远程上传，无真实服务器写入或播放。本次产品/测试差异已全部进入master；c6cb为平台primary托管detached检出，不手工删除。此最终记录仅文档，不重建或重发应用，发布源码仍为a6eea28。
