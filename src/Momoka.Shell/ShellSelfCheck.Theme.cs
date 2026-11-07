@@ -370,7 +370,9 @@ internal static partial class ShellSelfCheck
                 var point = new NativePoint { X = x, Y = y };
                 if (!Native.ClientToScreen(window.Handle, ref point)) continue;
 
-                if (owner is null) (ours, owner) = OwnerAt(window, point);
+                var pointOwner = OwnerAt(window, point);
+                if (owner is null) (ours, owner) = pointOwner;
+                if (!pointOwner.Ours) continue;
 
                 var colorRef = Native.GetPixel(deviceContext, point.X, point.Y);
                 if (colorRef == 0xFFFFFFFF) continue; // CLR_INVALID

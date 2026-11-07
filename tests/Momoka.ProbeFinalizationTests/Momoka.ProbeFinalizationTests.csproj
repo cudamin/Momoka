@@ -24,6 +24,8 @@
             <SubtitleSource ParameterType="System.String" Required="true" />
             <NavigationSource ParameterType="System.String" Required="true" />
             <InspectSource ParameterType="System.String" Required="true" />
+            <ReadsSource ParameterType="System.String" Required="true" />
+            <ThemeSource ParameterType="System.String" Required="true" />
             <OutputSource ParameterType="System.String" Required="true" />
         </ParameterGroup>
         <Task>
@@ -86,6 +88,15 @@
                     "    internal void Register()\n    {\n        var layout = Layout;\n" +
                     "        void Add(string id, string label, Func<Task> action) => Action = action;\n" +
                     addCheck + "\n        AddCheck(\"fixture\", \"inspect ownership\", Check);\n    }\n}\n";
+                var reads = File.ReadAllText(ReadsSource).Replace("\r\n", "\n");
+                var theme = File.ReadAllText(ThemeSource).Replace("\r\n", "\n");
+                var placement = between(reads, "    private static (bool Ok, string Detail) ReportRememberedWindow(", "\n    /// <summary>");
+                var sample = between(theme, "    private static ScreenReading SampleScreen(", "\n    private static void Dump(");
+                generated += "\ninternal static partial class VerificationReadsFixture\n{\n" +
+                    placement.Replace("private static (bool Ok, string Detail)", "internal static (bool Ok, string Detail)") +
+                    "\n    internal sealed record ScreenReading(bool Rendered, string Detail);\n" +
+                    sample.Replace("private static ScreenReading", "internal static ScreenReading") + "\n}\n";
+                generated = "using Momoka.Configuration;\nusing Momoka.Playback;\n" + generated;
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
                     File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
@@ -99,6 +110,8 @@
             SubtitleSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\SubtitleSettingsProbe.cs"
             NavigationSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.cs"
             InspectSource="$(InspectOwnerSource)"
+            ReadsSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Reads.cs"
+            ThemeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Theme.cs"
             OutputSource="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />
         <ItemGroup>
             <Compile Include="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />

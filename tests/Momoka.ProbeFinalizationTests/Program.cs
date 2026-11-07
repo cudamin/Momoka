@@ -27,6 +27,7 @@ internal static partial class Program
         RegisterActualProbeCallers();
         RegisterFinalizerBoundaries();
         RegisterInspectOwnership();
+        RegisterVerificationReads();
         var failures = 0;
         foreach (var (name, run) in Cases)
         {
