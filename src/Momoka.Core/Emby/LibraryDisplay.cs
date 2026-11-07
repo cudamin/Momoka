@@ -618,8 +618,13 @@ public static class LibraryCardText
     }
 
     /// <summary>表格视图的一格：这一项字段在这条条目上的文字。标题那一格就是条目名本身。</summary>
-    public static string Cell(EmbyItem item, LibraryField field) =>
-        field == LibraryField.Title ? item.Name : Segment(item, field);
+    public static string Cell(EmbyItem item, LibraryField field) => field switch
+    {
+        LibraryField.Title => item.Name,
+        LibraryField.Tagline => item.Taglines.FirstOrDefault() ?? "",
+        LibraryField.Overview => item.Overview ?? "",
+        _ => Segment(item, field)
+    };
 
     public static string Title(EmbyItem item, IReadOnlyList<LibraryField> fields, LibrarySection section) =>
         !fields.Contains(LibraryField.Title) ? "" : section == LibrarySection.Episodes

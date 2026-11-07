@@ -32,6 +32,10 @@ public static class ItemFingerprint
         Add(text, item.IndexNumberEnd);
         Add(text, item.ParentIndexNumber);
         Add(text, item.ProductionYear);
+        Add(text, item.PremiereDate?.ToString("O", CultureInfo.InvariantCulture));
+        Add(text, item.EndDate?.ToString("O", CultureInfo.InvariantCulture));
+        Add(text, item.DateCreated?.ToString("O", CultureInfo.InvariantCulture));
+        Add(text, item.Path);
         Add(text, item.RunTimeTicks);
         Add(text, item.IsFolder);
         Add(text, item.Status);
@@ -56,9 +60,12 @@ public static class ItemFingerprint
         AddList(text, item.ParentBackdropImageTags);
         AddList(text, item.PosterPaths);
         AddList(text, item.Taglines);
+        AddList(text, item.Tags);
         AddList(text, item.Genres);
         AddList(text, item.Resolutions);
         AddList(text, item.Studios.Select(studio => studio.Name));
+        AddList(text, item.People.Where(person => string.Equals(person.Type, "Director", StringComparison.OrdinalIgnoreCase))
+            .Select(person => person.Name));
 
         foreach (var pair in item.ImageTags.OrderBy(pair => pair.Key, StringComparer.Ordinal))
         {
@@ -80,6 +87,7 @@ public static class ItemFingerprint
                 Add(text, stream.Codec);
                 Add(text, stream.Width);
                 Add(text, stream.Height);
+                Add(text, stream.AverageFrameRate);
                 Add(text, stream.BitRate);
                 Add(text, stream.ChannelLayout);
             }

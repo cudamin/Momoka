@@ -132,6 +132,7 @@ namespace Momoka.Shell.Views
             ContentFrame.Content = new object();
         }
         internal void InvalidateVisit() => _identityLoads.Cancel();
+        internal void RevokeHomeAccess() => _session!.SignOut();
         private void RebuildSidebarLibraries() { }
         private void SyncSidebar() { }
         private void ShowAccount(string? username, string? server) { }

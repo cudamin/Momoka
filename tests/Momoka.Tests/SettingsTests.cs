@@ -360,7 +360,7 @@ internal static partial class SettingsTests
             Assert.True(account.HasSavedToken);
         });
 
-        Test("迁移：v2 文件按当前结构直接读入", () =>
+        Test("设置往返：当前结构保留服务器与播放偏好", () =>
         {
             var original = SettingsMigration.NewDefaults();
             original.Servers[0].Name = "果服";

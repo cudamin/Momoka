@@ -5,10 +5,10 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
-    <!-- The baseline changes ONLY the two pinned old persistence files. Remaining current Core
-         source is compile-linked verbatim; no UI/Auth execution or legacy binary is reused. -->
+    <!-- The pinned old service does not call the later deferred-save queue. Exclude that queue,
+         which requires current Store APIs, while keeping all other Core source verbatim. -->
     <Compile Include="..\..\..\src\Momoka.Core\**\*.cs"
-      Exclude="..\..\..\src\Momoka.Core\bin\**;..\..\..\src\Momoka.Core\obj\**;..\..\..\src\Momoka.Core\Configuration\SettingsStore.cs;..\..\..\src\Momoka.Core\Services\SettingsService.cs" />
+      Exclude="..\..\..\src\Momoka.Core\bin\**;..\..\..\src\Momoka.Core\obj\**;..\..\..\src\Momoka.Core\Configuration\SettingsStore.cs;..\..\..\src\Momoka.Core\Configuration\SettingsSaveQueue.cs;..\..\..\src\Momoka.Core\Services\SettingsService.cs" />
     <Compile Include="$(PersistenceBaselineSourceRoot)\SettingsStore.cs" Link="Baseline\SettingsStore.cs" />
     <Compile Include="$(PersistenceBaselineSourceRoot)\SettingsService.cs" Link="Baseline\SettingsService.cs" />
   </ItemGroup>

@@ -2,12 +2,14 @@
 [CmdletBinding()]
 param(
     [ValidatePattern('^[a-zA-Z0-9-]+$')]
-    [string]$Phase = 'unblock'
+    [string]$Phase = 'unblock',
+    [string]$SourcePath = ''
 )
 
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $source = Join-Path $PSScriptRoot 'unblock-momoka.ps1'
+if ($SourcePath) { $source = [IO.Path]::GetFullPath($SourcePath) }
 $run = Join-Path $repo ('artifacts/review-batch9/' + $Phase + '-' + [guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($run) | Out-Null
 $results = [Collections.Generic.List[object]]::new()
@@ -20,7 +22,7 @@ function Check([bool]$Condition, [string]$Name) {
     Write-Output ("[{0}] {1}" -f $(if ($Condition) { '通过' } else { '失败' }), $Name)
 }
 
-function New-Archive([string]$Directory, [string]$Name, [bool]$Marked = $true) {
+function New-Archive([string]$Directory, [string]$Name, [bool]$Marked = $true, [string]$Manifest = '') {
     [IO.Directory]::CreateDirectory($Directory) | Out-Null
     $file = Join-Path $Directory $Name
     $stream = [IO.File]::Open($file, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
@@ -29,6 +31,10 @@ function New-Archive([string]$Directory, [string]$Name, [bool]$Marked = $true) {
         try {
             $writer = [IO.StreamWriter]::new($archive.CreateEntry('fixture.txt').Open(), $utf8)
             try { $writer.Write('anonymous fixture bytes') } finally { $writer.Dispose() }
+            if ($Manifest) {
+                $writer = [IO.StreamWriter]::new($archive.CreateEntry('AppxManifest.xml').Open(), $utf8)
+                try { $writer.Write($Manifest) } finally { $writer.Dispose() }
+            }
         } finally { $archive.Dispose() }
     } finally { $stream.Dispose() }
     if ($Marked) { [IO.File]::WriteAllText($file + ':Zone.Identifier', $zone, $utf8) }
@@ -73,6 +79,27 @@ foreach ($hostPath in $hosts) {
     $result = Run-Unblock $hostPath ([IO.Path]::GetDirectoryName($inventory.path)) ($hostName + '-inventory') $false
     Check ($result.code -eq 0 -and $result.output.Contains('以上只是清点')) "$hostName 只清点成功退出"
     Check ((Has-Mark $inventory.path) -and (Get-FileHash -LiteralPath $inventory.path).Hash -eq $inventory.hash) "$hostName 清点保留实际标记和文件字节"
+
+    foreach ($extension in @('msix', 'appx')) {
+        foreach ($identity in @('local', 'store', 'wrong-name', 'wrong-publisher', 'missing', 'malformed', 'dtd')) {
+            $name = if ($identity -eq 'store') { 'MOMOKA.Momoka' } elseif ($identity -eq 'wrong-name') { 'Other' } else { 'Momoka' }
+            $publisher = if ($identity -eq 'store') { 'CN=1AA8C022-887D-4E5B-BB1D-970781A617A5' } elseif ($identity -eq 'wrong-publisher') { 'CN=Other' } else { 'CN=Momoka' }
+            $manifest = '<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"><Identity Name="' + $name + '" Publisher="' + $publisher + '" Version="0.1.0.0" /></Package>'
+            if ($identity -eq 'missing') { $manifest = '' }
+            if ($identity -eq 'malformed') { $manifest = '<Package>' }
+            if ($identity -eq 'dtd') { $manifest = '<!DOCTYPE Package [<!ENTITY name "Momoka">]><Package><Identity Name="&name;" Publisher="CN=Momoka" /></Package>' }
+            $file = New-Archive (Join-Path $prefix ($extension + '-' + $identity)) ('Momoka-fixture.' + $extension) $true $manifest
+            $result = Run-Unblock $hostPath ([IO.Path]::GetDirectoryName($file.path)) ($hostName + '-' + $extension + '-' + $identity) $true
+            $accepted = $identity -in @('local', 'store')
+            Check ($result.code -eq 0 -and ((Has-Mark $file.path) -ne $accepted)) "$hostName $extension $identity 只解除已核对身份的包标记"
+            Check ((Get-FileHash -LiteralPath $file.path).Hash -eq $file.hash) "$hostName $extension $identity 主文件字节保持"
+        }
+        $file = Join-Path $prefix ('Momoka-broken.' + $extension)
+        [IO.File]::WriteAllText($file, 'not a zip', $utf8)
+        [IO.File]::WriteAllText($file + ':Zone.Identifier', $zone, $utf8)
+        $result = Run-Unblock $hostPath $prefix ($hostName + '-' + $extension + '-broken') $true
+        Check ($result.code -eq 0 -and (Has-Mark $file)) "$hostName $extension 损坏容器不解除标记"
+    }
 
     foreach ($scenario in @('success', 'failed', 'partial')) {
         $directory = Join-Path $prefix $scenario

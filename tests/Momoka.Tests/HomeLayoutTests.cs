@@ -353,8 +353,8 @@ internal static class HomeLayoutTests
             Assert.Equal(HomeLayout.HomeRowTarget.Resume, HomeLayout.TargetOf(HomeLayout.Resume));
             Assert.Equal(HomeLayout.HomeRowTarget.NextUp, HomeLayout.TargetOf(HomeLayout.NextUp));
 
-            // 「媒体库」那一排和每个库自己那一排，进的都是库。
-            Assert.Equal(HomeLayout.HomeRowTarget.Library, HomeLayout.TargetOf(HomeLayout.Libraries));
+            // 固定媒体库标题没有单库目标；具体库排仍可导航。
+            Assert.Equal(HomeLayout.HomeRowTarget.None, HomeLayout.TargetOf(HomeLayout.Libraries));
             Assert.Equal(HomeLayout.HomeRowTarget.Library, HomeLayout.TargetOf(HomeLayout.LibraryKey("1")));
 
             // 认不出的钥匙点不动 —— 和它们排不出版面是同一件事。

@@ -6,6 +6,14 @@ internal static class Program
     {
         if (args is ["font-fill-recovery-fixture", var fontShell, var fontRoot])
             return FontFillRecoveryTests.Run(fontShell, fontRoot);
+        if (args is ["review-foundation-core-fixture"])
+        {
+            ReviewFoundationTests.RegisterCore();
+            SessionTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["review-foundation-vm-fixture", var foundationShell, var foundationRoot])
+            return ReviewFoundationTests.RunViews(foundationShell, foundationRoot);
         if (args is ["jellyfin-latest-shelf-fixture", var latestShell, var latestRoot])
             return JellyfinLatestShelfTests.Run(latestShell, latestRoot);
         if (args is ["home-carousel-fixture"])
@@ -428,6 +436,7 @@ internal static class Program
         LibraryFavoritesTests.Register();
         LibraryUpcomingTests.Register();
         LibraryDisplayTests.Register();
+        ReviewFoundationTests.RegisterCore();
         LibraryEpisodeFolderTests.Register();
         LibraryIndexTests.Register();
         MoviePilotSearchSitesTests.Register();

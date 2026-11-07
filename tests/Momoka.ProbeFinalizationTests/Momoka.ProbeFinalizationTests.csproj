@@ -24,6 +24,7 @@
             <SubtitleSource ParameterType="System.String" Required="true" />
             <NavigationSource ParameterType="System.String" Required="true" />
             <InspectSource ParameterType="System.String" Required="true" />
+            <ProgramSource ParameterType="System.String" Required="true" />
             <OutputSource ParameterType="System.String" Required="true" />
         </ParameterGroup>
         <Task>
@@ -86,6 +87,9 @@
                     "    internal void Register()\n    {\n        var layout = Layout;\n" +
                     "        void Add(string id, string label, Func<Task> action) => Action = action;\n" +
                     addCheck + "\n        AddCheck(\"fixture\", \"inspect ownership\", Check);\n    }\n}\n";
+                var program = File.ReadAllText(ProgramSource).Replace("\r\n", "\n");
+                var exit = between(program, "            return options.ProbeShell ?", "\n        }\n        catch (Exception error)");
+                generated += "\ninternal static class ProgramExitFixture\n{\n    internal static int Exit(StartupOptions options)\n    {\n" + exit + "\n    }\n}\n";
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
                     File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
@@ -99,6 +103,7 @@
             SubtitleSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\SubtitleSettingsProbe.cs"
             NavigationSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.cs"
             InspectSource="$(InspectOwnerSource)"
+            ProgramSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Program.cs"
             OutputSource="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />
         <ItemGroup>
             <Compile Include="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />

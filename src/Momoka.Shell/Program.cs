@@ -534,7 +534,7 @@ internal static class Program
                 : options.ProbeSubtitles ? SubtitleSettingsProbe.ExitCode
                 : options.ProbeComposition ? CompositionPlaybackProbe.ExitCode
                 : options.ProbeCursor ? CursorVisibilityProbe.ExitCode
-                : options.ProbePlayerMotion ? PlayerMotionProbe.ExitCode : ShellSelfCheck.ExitCode;
+                : options.ProbePlayerMotion ? PlayerMotionProbe.ExitCode : options.SelfCheck ? ShellSelfCheck.ExitCode : 0;
         }
         catch (Exception error)
         {

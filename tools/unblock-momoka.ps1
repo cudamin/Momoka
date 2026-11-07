@@ -17,8 +17,8 @@
     「SmartScreen 只评估带标记的文件」对下载件仍然成立，本脚本仍值得先用；
     但若文件无标记仍被拦，先查完整性标签，别再翻注册表。
 
-    安全边界：只处理文件名以 Momoka 开头、扩展名是 .exe/.msix/.appx/.zip，并且（可执行文件
-    的）版本信息里 ProductName 或 CompanyName 就是 Momoka 的文件。别的一律不碰、只报告不改。
+    安全边界：只处理文件名以 Momoka 开头、扩展名是 .exe/.msix/.appx/.zip 的文件。可执行文件
+    核对版本信息，MSIX/AppX 核对仓库声明的包身份和发布者，ZIP 按名称匹配。
     默认先看不做，加 -Apply 才真动手。
 
     用法：
@@ -59,11 +59,53 @@ Write-Output ''
 
 # 只认 Momoka 自己的东西：文件名打头，扩展名在白名单里。
 $namePattern = '^Momoka[^\\/]*\.(exe|msix|appx|zip)$'
+$packageManifestPath = Join-Path $PSScriptRoot '../src/Momoka.Shell/Package.appxmanifest'
+$packageStoreIdentityPath = Join-Path $PSScriptRoot 'store-identity.json'
 
 function Test-MomokaProduct {
     param([string]$FullName, [string]$Extension)
     # 版本信息不适合读 .zip，压缩包按文件名认。
     if ($Extension -eq '.zip') { return $true }
+    if ($Extension -in @('.msix', '.appx')) {
+        $stream = $null
+        $archive = $null
+        $reader = $null
+        try {
+            Add-Type -AssemblyName System.IO.Compression
+            $stream = [IO.File]::OpenRead($FullName)
+            $archive = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Read)
+            $entries = @($archive.Entries | Where-Object { $_.FullName -ceq 'AppxManifest.xml' })
+            if ($entries.Count -ne 1 -or $entries[0].Length -gt 262144) { return $false }
+            $xmlSettings = [Xml.XmlReaderSettings]::new()
+            $xmlSettings.DtdProcessing = [Xml.DtdProcessing]::Prohibit
+            $xmlSettings.XmlResolver = $null
+            $xmlSettings.MaxCharactersInDocument = 262144
+            $reader = [Xml.XmlReader]::Create($entries[0].Open(), $xmlSettings)
+            $document = [Xml.XmlDocument]::new()
+            $document.XmlResolver = $null
+            $document.Load($reader)
+            $package = $document.DocumentElement
+            if ($package.LocalName -cne 'Package' -or $package.NamespaceURI -cne 'http://schemas.microsoft.com/appx/manifest/foundation/windows10') { return $false }
+            $identities = @($package.ChildNodes | Where-Object {
+                $_.LocalName -ceq 'Identity' -and $_.NamespaceURI -ceq $package.NamespaceURI
+            })
+            if ($identities.Count -ne 1) { return $false }
+            $identity = $identities[0]
+            # Read the same two identities that publish.ps1 packages; an extension alone is insufficient.
+            $local = [xml]([IO.File]::ReadAllText($packageManifestPath))
+            $store = [IO.File]::ReadAllText($packageStoreIdentityPath) | ConvertFrom-Json
+            return ($identity.GetAttribute('Name') -ceq $local.Package.Identity.Name -and
+                    $identity.GetAttribute('Publisher') -ceq $local.Package.Identity.Publisher) -or
+                ($identity.GetAttribute('Name') -ceq $store.identityName -and
+                    $identity.GetAttribute('Publisher') -ceq $store.publisher)
+        } catch {
+            return $false
+        } finally {
+            if ($reader) { $reader.Dispose() }
+            if ($archive) { $archive.Dispose() }
+            if ($stream) { $stream.Dispose() }
+        }
+    }
     try {
         # Trim 不能省：Inno Setup 写进 PE 的字符串资源是定长补空格的，ProductName 实际是
         # 「Momoka」后面跟 40 多个空格，直接 -eq 永远不成立 —— 这个坑让第一版脚本一个文件都没匹配到。

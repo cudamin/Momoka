@@ -22,6 +22,15 @@ internal static partial class Program
         _output = Path.Combine(root, "artifacts", "r071-r072", "fixture", "run-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_output);
         RegisterSelfCheck();
+        Test("R03-006 ordinary-close-exit", () =>
+        {
+            Equal(0, ProgramExitFixture.Exit(new(Paths("ordinary-close"))), "normal close succeeds without selfcheck");
+            Equal(1, ProgramExitFixture.Exit(new(Paths("selfcheck-pending")) { SelfCheck = true }), "unfinished selfcheck still fails");
+            Equal(12, ProgramExitFixture.Exit(new(Paths("composition-exit")) { ProbeComposition = true }), "composition keeps its own exit code");
+            Equal(13, ProgramExitFixture.Exit(new(Paths("cursor-exit")) { ProbeCursor = true }), "cursor keeps its own exit code");
+            Equal(14, ProgramExitFixture.Exit(new(Paths("motion-exit")) { ProbePlayerMotion = true }), "motion keeps its own exit code");
+            return Task.CompletedTask;
+        });
         foreach (var kind in Enum.GetValues<ProbeKind>()) RegisterProbe(kind);
         RegisterShellScope();
         RegisterActualProbeCallers();

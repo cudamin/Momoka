@@ -1345,7 +1345,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <see cref="LibraryRequest.IsFavorites"/> —— 从详情页钻进来的收藏分区 Tag 是空的。
     /// </summary>
     private bool CacheEligible => _snapshots is not null && _request is { IsSearch: false }
-        && !IsFavoritesPage && !IsRecommendedPage && !IsUpcomingPage;
+        && !_request.IsFavorites && !IsFavoritesPage && !IsRecommendedPage && !IsUpcomingPage;
 
     private void RefreshSnapshotKey()
     {
@@ -1388,7 +1388,22 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>删除原位改变集合并回退所属服务器的消费量，删除前发出的分页响应作废。</summary>
     internal async Task<bool> RemoveAsync(CardItem card, CancellationToken queryToken, bool deleted = true)
     {
-        if (!QueryCurrent(queryToken) || !Cards.Contains(card)) return false;
+        if (!QueryCurrent(queryToken)) return false;
+        if (IsRecommendedPage)
+        {
+            if (!card.IsCurrent || !RecommendedShelves.Any(shelf => shelf.Cards.Contains(card))) return false;
+            foreach (var shelf in RecommendedShelves)
+                foreach (var existing in shelf.Cards.Where(existing => existing.Item.IdentityKey == card.Item.IdentityKey).ToArray())
+                {
+                    existing.AbandonPoster();
+                    shelf.Cards.Remove(existing);
+                }
+            _total = RecommendedShelves.Sum(shelf => shelf.Cards.Count);
+            ShowEmptyNotice = _total == 0;
+            RowsArrived();
+            return true;
+        }
+        if (!Cards.Contains(card)) return false;
         if (IsFavoritesPage) return await RemoveFavoriteAsync(card, deleted).ConfigureAwait(true);
         // 容器会连带删除未加载的后代；查询刚切换时屏上也可能仍是旧排序，不能据旧集合推算新分页。
         if (WindowEligible || Aggregated || !_firstPage || deleted && (card.Item.IsFolder || card.Item.Type is EmbyItemType.Series
@@ -1711,7 +1726,9 @@ public sealed partial class LibraryViewModel : PageViewModel
             }
 
             if (!QueryCurrent(queryToken) || !IsCurrent(token)) return;
-            if (items.Count > wanted) items.RemoveRange(wanted, items.Count - wanted);
+            // A cursor has consumed complete server pages. Dropping the excess here would skip
+            // those records on the next append; an oversized result simply won't be cached.
+            if (cursor is null && items.Count > wanted) items.RemoveRange(wanted, items.Count - wanted);
 
             ApplyRefreshed(items, total, cursor);
             Log.Info(Category, $"暖缓存后台核对：{Heading} 内容有变化，已就地更新 {Cards.Count} 项");
@@ -1995,6 +2012,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (_active) return;
         _active = SourcesAvailable;
+        if (_active && !reload) _queryToken = _queries.Begin();
         if (_active && reload) _ = ReloadAsync();
     }
 

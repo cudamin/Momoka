@@ -17,6 +17,7 @@
         <ParameterGroup>
             <PageSource ParameterType="System.String" Required="true" />
             <RowsSource ParameterType="System.String" Required="true" />
+            <BannerSource ParameterType="System.String" Required="true" />
             <OutputSource ParameterType="System.String" Required="true" />
         </ParameterGroup>
         <Task>
@@ -48,6 +49,10 @@
                     between(page, "    public void Release()", "\n    /// <summary>\n    /// 标题栏那一行的墨") +
                     between(rows, "    private static double RowHeightOf", "\n    private static string RowTitle") +
                     "\n}\n";
+                var banner = File.ReadAllText(BannerSource).Replace("\r\n", "\n");
+                generated += "\ninternal sealed partial class BannerClockFixture\n{\n" +
+                    between(banner, "    internal void Apply(IReadOnlyList<BannerSlide> slides)", "\n    /// <summary>\n    /// 把第") +
+                    between(banner, "    private void SyncTimer()", "\n    /// <summary>\n    /// 带多高") + "\n}\n";
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
                     File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
@@ -58,6 +63,7 @@
         <ExtractHomeFoldSources
             PageSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomePage.xaml.cs"
             RowsSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomePage.Rows.cs"
+            BannerSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomeBanner.xaml.cs"
             OutputSource="$(IntermediateOutputPath)HomeFoldPage.g.cs" />
         <ItemGroup>
             <Compile Include="$(IntermediateOutputPath)HomeFoldPage.g.cs" />

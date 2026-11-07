@@ -999,8 +999,7 @@ public sealed partial class HomeViewModel : PageViewModel
             PublishRow(load);
         }
 
-        // 「接下来看」多带一份服务器总数，错误处理保持原样：只记一条、空手回来、不拖累整页，也不计入
-        // 后台核对的失败路数（那一排天然可能是空的）。
+        // 「接下来看」多带一份服务器总数；后台失败与成功空列表必须区分，避免删掉暖缓存。
         async Task ReadNextUpSourceAsync(RowRead load, int index)
         {
             var scope = _sources[index];
@@ -1019,6 +1018,11 @@ public sealed partial class HomeViewModel : PageViewModel
             catch (Exception error)
             {
                 Log.Warn(Category, $"读取{scope.DisplayName}的接下来看失败", error);
+                if (IsCurrent(token) && _backgroundLoad)
+                {
+                    _backgroundFailures++;
+                    if (_backgroundFatal is null && FailureDropsContent(error)) _backgroundFatal = error;
+                }
                 if (IsCurrent(token) && !NoticeOpen) Report("接下来看", error);
             }
             finally

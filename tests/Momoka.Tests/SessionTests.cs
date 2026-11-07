@@ -101,6 +101,9 @@ internal static class SessionTests
             Assert.Equal(false, permissions.CanDeleteContent);
             Assert.Equal(true, permissions.CanManageSubtitles, "两个字幕策略位有一个为 true 就算能管");
             Assert.Equal(default(ItemMenuPermissions), capabilities.PermissionsFor("不存在的来源"));
+            Assert.False(capabilities.Sources.Single().IsAdministrator, "R03-002 设置来源必须使用已确认的非管理员策略");
+            Assert.Equal(0, Wait(capabilities.GetAdminMenuPagesAsync(session.Capture().Key)).Count);
+            Assert.Equal(0, probe.Count("ConfigurationPages"), "已知非管理员不能发送插件管理请求");
         });
 
         Test("能力探测：读不到账号策略时菜单权限保持未知，不吓缩入口", () =>
