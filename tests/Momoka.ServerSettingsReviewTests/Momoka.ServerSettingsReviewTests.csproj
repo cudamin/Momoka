@@ -8,6 +8,9 @@
     <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
     <Compile Include="../../src/Momoka.Shell/Views/NotificationEditDialog.xaml.cs" Link="Production/NotificationEditDialog.cs" />
     <Compile Include="../../src/Momoka.Shell/Views/MetadataDialog.xaml.cs" Link="Production/MetadataDialog.cs" />
+    <Compile Include="../../src/Momoka.Shell/ViewModels/NotificationsViewModel.cs" Link="Production/NotificationsViewModel.cs" />
+    <Compile Include="../../src/Momoka.Shell/ViewModels/PageViewModel.cs" Link="Production/PageViewModel.cs" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
   <UsingTask TaskName="ExtractServerConnectionTest" TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
@@ -67,7 +70,7 @@
         var finish = text.IndexOf("\n}\n", start, StringComparison.Ordinal);
         var record = text.IndexOf("public sealed record NotificationEditorContext(", StringComparison.Ordinal);
         if (start < 0 || finish <= start || record <= finish) throw new InvalidOperationException("Notification source boundaries changed");
-        File.WriteAllText(Output, "#nullable enable\nusing Momoka.Emby;\nusing Momoka.Diagnostics;\nnamespace Momoka.Shell.ViewModels;\n" + text.Substring(record) +
+        File.WriteAllText(Output, "#nullable enable\nusing Momoka.Emby;\nusing Momoka.Diagnostics;\nnamespace Momoka.Shell.ViewModels;\n" +
             "\ninternal static class NotificationFetch\n{\nprivate const string Category = \"notification\";\n" + text.Substring(start, finish-start) +
             "\ninternal static async Task<IReadOnlyList<T>?> Fetch<T>(Func<CancellationToken, Task<List<T>>> read) => await TryAsync(read, \"fixture\", default);\n}\n");
       ]]></Code>
