@@ -5687,7 +5687,7 @@ Microsoft Defender SmartScreen 阻止了无法识别的应用启动。运行此�
 
 **这次留下的（与功能去留无关，将来若要「让 MP 记录播放进度」直接可用）：**
 
-- **Emby 服务器上那条通知**（直连 `Notifications/Services/Configured` 读出，脚本与读数在 `work/notify-probe/`）：服务 `webhooknotifications`，启用，事件 `library.new / library.deleted / playback.start / playback.pause / playback.unpause / **playback.stop**`，目标 `http://private-media-server.invalid:3001/api/v1/webhook?token=…`（Docker 网桥地址 ＝ 本机 MP 的后端端口）。事件与目的地都对，缺的只是 MP 得在线。
+- **Emby 服务器上那条通知**（直连 `Notifications/Services/Configured` 读出，脚本与读数在 `work/notify-probe/`）：服务 `webhooknotifications`，启用，事件 `library.new / library.deleted / playback.start / playback.pause / playback.unpause / **playback.stop**`，目标 `http://private-media-server.invalid:3001/api/v1/webhook?token=[redacted]`（Docker 网桥地址 ＝ 本机 MP 的后端端口）。事件与目的地都对，缺的只是 MP 得在线。
 - **MP 侧解析**（`app/modules/emby/emby.py` 的 `get_webhook_message`）：`percentage = PlaybackInfo.PositionTicks / Item.RunTimeTicks × 100`；它 docstring 里贴的第一份示例报文正是 `"Event": "playback.stop"` 的电影事件，且带 `PlaybackInfo.PositionTicks` —— **停止事件带位置**。插件读的 `ev.tmdb_id` 在 V3 是兼容属性（`media_source == TMDB` 时返回 `media_id`），读得到，不必改。
 - **插件侧**（`SpaceCleaner.on_webhook`）：只收 `playback.stop`／`playback.pause`／`media.stop` 一类，按 `tmdb:SxxExx`（电影 `tmdb:M`）写播放缓存，**只增不减**，同一剧集只留季集最靠后的一条。两个前提缺一不可：①插件必须启用「空间清理」或「智能RSS」—— `on_webhook` 第一句就是「两个都关直接丢」，而两个默认都是 `False`；②EmbyNian 的「上报播放进度到服务器」总开关必须开着（所有播放事件的源头都在这条路上）。
 - **判定口径在插件自己手里**：它用 `_watched_threshold`（默认 85%）判「已看」，与 EmbyNian 侧任何阈值都无关。

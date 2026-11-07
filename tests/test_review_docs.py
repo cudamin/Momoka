@@ -41,6 +41,9 @@ class ReviewDocsTests(unittest.TestCase):
     def test_private_address_rejected_without_echo(self):
         self.mutate("PROGRESS.md", "#", "# https://192.168.2.5:8096/Items/fixture", "R18-003")
 
+    def test_historical_webhook_credential_rejected(self):
+        self.mutate("PROGRESS.md", "#", "# https://fixture.invalid/webhook?api_key=fixture-secret", "R18-003")
+
     def test_realtime_token_in_query(self):
         self.mutate("docs/开发与验证.md", "Handshake", "`api_key` 与 `deviceId` 进查询串", "R18-004")
 

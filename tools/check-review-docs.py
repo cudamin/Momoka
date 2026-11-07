@@ -54,7 +54,9 @@ def check(root: Path) -> dict[str, bool]:
         and "shared folder" in en and "only files" in en
         and "以及你自己设置的截图目录与下载目录" not in cn
         and "(and any screenshot or download folders you configured)" not in en,
-        "R18-003": not any(private_urls(texts[name]) for name in FILES[15:]),
+        "R18-003": not any(private_urls(texts[name]) for name in FILES[15:])
+        and not re.search(r"https?://[^\s`\"]*[?&](?:api_key|token)=(?!\[redacted\]|placeholder)[^&\s`\"]+",
+                          texts["PROGRESS.md"]),
         "R18-004": "`api_key` 与 `deviceId` 进查询串" not in dev
         and "deviceId" in dev and "Handshake" in dev,
         "R18-005": "用户可改用自定义凭据" not in endpoint
