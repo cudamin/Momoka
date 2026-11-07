@@ -8,6 +8,16 @@ internal static class SettingsControlNameTests
 {
     internal static void Register()
     {
+        Test("R15-006：四处功能说明消费统一NotesVisibility", () =>
+        {
+            var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "SettingsPage.xaml"));
+            var notes = page.Descendants().Where(element => element.Name.LocalName == "TextBlock"
+                && ((string?)element.Attribute("Text") is { } text && (text.StartsWith("关闭后隐藏 AniBT", StringComparison.Ordinal)
+                    || text.StartsWith("搜索时默认使用的站点", StringComparison.Ordinal) || text == "{x:Bind PriorityHint}"
+                    || element.Ancestors().Any(parent => parent.Name.LocalName == "DataTemplate" && ((string?)parent.Attribute(XName.Get("DataType", "http://schemas.microsoft.com/winfx/2006/xaml"))) == "vm:SettingSubtitlePreviewRow") && text == "{x:Bind Note}"))).ToList();
+            Assert.Equal(4, notes.Count);
+            foreach (var note in notes) Assert.Equal("{x:Bind SupportingNotesVisibility, Mode=OneWay}", (string?)note.Attribute("Visibility"));
+        });
         foreach (var shape in new[] { "Slider", "Color" })
             Test("设置具体名称：" + shape + " 模板与资源不丢失当前行标签", () =>
             {

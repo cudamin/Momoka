@@ -79,6 +79,7 @@ public abstract class SettingRow : ObservableObject
     /// </summary>
     public Visibility NoteVisibility =>
         Note.Length == 0 ? Visibility.Collapsed : NotesVisibility;
+    public Visibility SupportingNotesVisibility => NotesVisibility;
 
     /// <summary>精简模式开着：整页的说明都收起。谁设、何时设，见 <see cref="NoteVisibility"/>。</summary>
     internal static bool NotesHidden { get; set; }
@@ -130,6 +131,7 @@ public abstract class SettingRow : ObservableObject
     internal void RefreshNoteVisibility()
     {
         OnPropertyChanged(nameof(NoteVisibility));
+        OnPropertyChanged(nameof(SupportingNotesVisibility));
         OnPropertyChanged(nameof(DividerThickness));
     }
 
