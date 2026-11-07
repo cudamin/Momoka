@@ -47,7 +47,7 @@ internal static class NeutralFeedbackTests
             Assert.Equal("OnOpen", cover.Attribute("Click")?.Value);
         });
 
-        Test("播放键原样式：中性底色，保留圆形尺寸与播放路由", () =>
+        Test("中性反馈：播放键默认灰底白字，保留圆形尺寸与播放路由", () =>
         {
             var card = View("PosterCard.xaml");
             var style = card.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgCardPlayButtonStyle");
@@ -88,7 +88,7 @@ internal static class NeutralFeedbackTests
             Assert.True(cleanup > hover && normal > cleanup, "探针失败也必须恢复默认态");
         });
 
-        Test("播放键亚克力：局部三态复用全局材质，前景语义保持", () =>
+        Test("中性反馈：强调色只覆盖播放按钮的指针和按下状态", () =>
         {
             var card = View("PosterCard.xaml");
             var button = card.Descendants().Single(element => Name(element) == "PlayButton");

@@ -26,10 +26,10 @@
             </Grid.ColumnDefinitions>
             <TextBlock x:Name="DialogTitleText" Style="{StaticResource EgSectionTitleStyle}"
                 TextWrapping="Wrap" VerticalAlignment="Center" />
-            <!-- 尺寸与筛选面板那颗 ✕ 同一套：全局亚克力底、8 DIP 内边距、E711；字号取次标题那档，
+            <!-- 尺寸与筛选面板那颗 ✕ 同一套：透明底、8 DIP 内边距、E711；字号取次标题那档，
                  压在 20 号标题右边才不至于显得是个小点（同下载弹窗的取消下载）。 -->
             <Button x:Name="HeaderCloseButton" Grid.Column="1" Click="OnClose"
-                AutomationProperties.Name="关闭字幕管理" Background="{ThemeResource EgActionGlassBrush}" BorderThickness="0"
+                AutomationProperties.Name="关闭字幕管理" Background="Transparent" BorderThickness="0"
                 Padding="8" ToolTipService.ToolTip="关闭" VerticalAlignment="Center">
                 <FontIcon FontSize="{StaticResource EgSubheadFontSize}" Glyph="&#xE711;" />
             </Button>

@@ -166,7 +166,6 @@ public sealed partial class HomePage : Page, IShellContent
     {
         NavigationTiming.Mark("page-ctor-begin");
         InitializeComponent();
-        MediaTextColors.Attach(this);
         NavigationTiming.Mark("init-end");
         _stayProbe = (_, _) => _stayAsked++;
 

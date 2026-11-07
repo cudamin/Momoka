@@ -49,7 +49,7 @@ internal static class SiteGridContractTests
                 node.Attribute(Xaml + "Key")?.Value == "SiteCardToggleStyle").Attribute("BasedOn")?.Value);
             Assert.False(controls.Descendants().Any(node => node.Name.LocalName is "ControlTemplate" or "Color" or "SolidColorBrush"));
             foreach (var dictionary in dictionaries.Where(node => node.Attribute(Xaml + "Key")!.Value != "HighContrast"))
-                Assert.Equal("EgActionGlassBrush", dictionary.Elements().Single(node =>
+                Assert.Equal("EgAccentSoftBrush", dictionary.Elements().Single(node =>
                     node.Attribute(Xaml + "Key")?.Value == "ToggleButtonBackgroundChecked").Attribute("ResourceKey")?.Value);
         });
 

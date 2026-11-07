@@ -28,7 +28,6 @@ internal sealed partial class ShellNavigationProbe
     private readonly ShellProbeReport _report;
     private readonly Grid _root = new();
     private HostWindow? _window;
-    private WindowBounds _probeWorkArea;
 
     private ShellNavigationProbe(StartupOptions options)
     {
@@ -82,7 +81,7 @@ internal sealed partial class ShellNavigationProbe
             // 同日追加：季页面不要媒体信息（整块其他信息卡收起）。
             await CaseAsync("剧页单季不画全部剧季、其他信息卡与集页一致", DetailSeriesInfoAsync, 30, section: ShellProbeSections.Library);
             await CaseAsync("详情自定义设置：卡片排序、隐藏、拖拽提交与重入", DetailCustomizationSettingsAsync, 90, section: ShellProbeSections.Settings);
-            await CaseAsync("详情自定义页面：实际顺序、隐藏恢复、遮罩强度与沉浸开关", DetailCustomizationPagesAsync, 240, section: ShellProbeSections.Library);
+            await CaseAsync("详情自定义页面：实际顺序、隐藏恢复、遮罩强度与沉浸开关", DetailCustomizationPagesAsync, 120, section: ShellProbeSections.Library);
             await CaseAsync("详情背景主题渐变、沉浸收起与主页底边", BackdropFadeAsync, 120, section: ShellProbeSections.Library);
             // 集页封面只在宽版式里画（紧凑版式整个收掉），加上集页紧凑版式的那张背景图、以及尾部那条窄带在
             // 两档上的紧凑度：四档宽度各量一遍，截图 `detail-episode-band-<宽度>.png`。
@@ -322,7 +321,6 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Add(page);
             _window = new HostWindow { Content = _root, FreeSizing = true };
             _window.Show(false, _options.Screen, new WindowBounds(80, 80, 1420, 980));
-            _probeWorkArea = _window.WorkArea();
             await LayoutAsync(page);
             await rendered.Task.WaitAsync(TimeSpan.FromSeconds(5));
             Require(page.IsLoaded && _root.IsLoaded && _root.XamlRoot.IsHostVisible,
@@ -437,15 +435,10 @@ internal sealed partial class ShellNavigationProbe
         Interop.Native.GetWindowRect(handle, out var outer);
         // HostWindow 自绘标题栏，AppWindow.ResizeClient 按系统标题栏重复增加了31px。
         // 只按当前真实非客户区差值换算，避免高矮断点和屏外守卫验证了错误尺寸。
-        var outerWidth = (int)Math.Round(width * scale) + outer.Width - client.Width;
-        var outerHeight = (int)Math.Round(height * scale) + outer.Height - client.Height;
-        var bounds = ScreenPlacement.KeepSizeVisible(_probeWorkArea,
-            new(outer.Left, outer.Top, outer.Left + outerWidth, outer.Top + outerHeight));
-        Require(bounds.Width == outerWidth && bounds.Height == outerHeight,
-            "当前屏幕工作区容纳不下探针要求的尺寸，请选择更大的屏幕");
-        Require(Interop.Native.SetWindowPos(handle, IntPtr.Zero, bounds.Left, bounds.Top,
-            outerWidth, outerHeight,
-            Interop.Native.SwpNoZOrder | Interop.Native.SwpNoActivate),
+        Require(Interop.Native.SetWindowPos(handle, IntPtr.Zero, 0, 0,
+            (int)Math.Round(width * scale) + outer.Width - client.Width,
+            (int)Math.Round(height * scale) + outer.Height - client.Height,
+            Interop.Native.SwpNoMove | Interop.Native.SwpNoZOrder | Interop.Native.SwpNoActivate),
             "探针窗口缩放失败");
     }
 

@@ -10,62 +10,6 @@ internal static class DetailLayoutTests
 {
     public static void Register()
     {
-        Test("单集卡片：移除全部剧季目录，不改变剧页目录或独立偏好", () =>
-        {
-            var ui = Customized();
-            Assert.Equal("episodes,info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
-            Assert.Equal("cast,episodes,info,seasons,similar", Keys(DetailLayout.For(ui, EmbyItemType.Series)));
-            Assert.Equal("seasons", ui.EpisodeCards[0].Key);
-            Assert.Equal("episodes,info,cast,similar", Keys(DetailLayout.Plan(EmbyItemType.Episode,
-                [new() { Key = "seasons" }, new() { Key = "episodes" }])));
-        });
-        Test("详情亚克力：新建默认固定材质与20%背景浓度", () =>
-        {
-            var ui = new UiSettings();
-            Assert.Equal(20d, ui.BackdropOpacity);
-            Assert.Equal(20d, UiSettings.DefaultBackdropOpacity);
-            Assert.True(ui.UseAcrylicControls);
-            Assert.True(ui.UseAcrylicBackdrop);
-            Assert.False(ui.UseGaussianBackdrop);
-        });
-
-        Test("详情亚克力：旧模式导入和归一化固定亚克力，保留浓度", () =>
-        {
-            var source = SettingsMigration.FromJson("""
-                {"SchemaVersion":27,"Ui":{"UseAcrylicControls":false,"UseAcrylicBackdrop":false,
-                  "UseGaussianBackdrop":true,"BackdropOpacity":37.5}}
-                """, PassthroughSecretProtector.Instance);
-            Assert.True(source.Ui.UseAcrylicControls);
-            Assert.True(source.Ui.UseAcrylicBackdrop);
-            Assert.False(source.Ui.UseGaussianBackdrop);
-            Assert.Equal(37.5, source.Ui.BackdropOpacity);
-            var live = new AppSettings();
-            SettingsPreferences.Apply(live, source);
-            Assert.True(live.Ui.UseAcrylicControls);
-            Assert.True(live.Ui.UseAcrylicBackdrop);
-            Assert.False(live.Ui.UseGaussianBackdrop);
-            SettingsPreferences.Apply(live, new AppSettings());
-            Assert.Equal(20d, live.Ui.BackdropOpacity);
-            Assert.True(live.Ui.UseAcrylicControls && live.Ui.UseAcrylicBackdrop);
-        });
-
-        Test("详情背景迁移：缺键使用20%，v26显式浓度仍按历史40%换算", () =>
-        {
-            foreach (var schema in new[] { 1, 2, 26, 27 })
-            {
-                var missing = SettingsMigration.FromJson("{\"SchemaVersion\":" + schema + ",\"Ui\":{}}",
-                    PassthroughSecretProtector.Instance);
-                Assert.Equal(20d, missing.Ui.BackdropOpacity);
-            }
-            foreach (var (stored, expected) in new[] { (0d, 40d), (43d, 65.8), (37.5, 62.5), (100d, 100d) })
-            {
-                var old = SettingsMigration.FromJson("{\"SchemaVersion\":26,\"Ui\":{\"BackdropOpacity\":"
-                    + stored.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "}}",
-                    PassthroughSecretProtector.Instance);
-                Assert.Equal(expected, old.Ui.BackdropOpacity);
-            }
-        });
-
         Test("沉浸总开关：缺键默认开启，显式关闭可保存导入并恢复默认", () =>
         {
             var property = typeof(UiSettings).GetProperty("EnableImmersive");
@@ -83,8 +27,7 @@ internal static class DetailLayoutTests
             SettingsPreferences.Apply(defaults, restored);
             Assert.False(Enabled(defaults.Ui));
             Assert.False(JsonSerializer.Serialize(defaults).Contains("AlwaysImmersive", StringComparison.Ordinal));
-            Assert.False(defaults.Ui.UseGaussianBackdrop);
-            Assert.True(defaults.Ui.UseAcrylicBackdrop);
+            Assert.True(defaults.Ui.UseGaussianBackdrop);
             SettingsPreferences.Apply(defaults, new AppSettings());
             Assert.True(Enabled(defaults.Ui));
         });
@@ -109,7 +52,7 @@ internal static class DetailLayoutTests
             var ui = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{}}",
                 PassthroughSecretProtector.Instance).Ui;
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Series)));
-            Assert.Equal("episodes,info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
+            Assert.Equal("episodes,info,seasons,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
             Assert.Equal("info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Movie)));
             Assert.True(DetailLayout.For(ui, EmbyItemType.Series).All(row => row.Visible));
             Assert.Equal(UiSettings.DefaultControlBackgroundOpacity, ui.ControlBackgroundOpacity);
@@ -117,11 +60,11 @@ internal static class DetailLayoutTests
             Assert.True(ui.EnableImmersive);
         });
 
-        Test("详情透明度：v26显式增量按历史40%换算，v27直接读数保留", () =>
+        Test("详情透明度：v26 的增量读数换算成直接不透明度，旧的 0 落到新出厂浓度", () =>
         {
             foreach (var (stored, expected) in new (double, double)[]
             {
-                (0, 40), (43, 65.8), (100, 100), (37.5, 62.5), (-5, 40), (250, 100)
+                (0, UiSettings.DefaultBackdropOpacity), (43, 65.8), (100, 100), (37.5, 62.5), (-5, 40), (250, 100)
             })
             {
                 var ui = SettingsMigration.FromJson(
@@ -177,7 +120,7 @@ internal static class DetailLayoutTests
             var ui = Customized();
             var series = DetailLayout.For(ui, EmbyItemType.Series);
             Assert.Equal("cast,episodes,info,seasons,similar", Keys(series));
-            Assert.Equal("episodes,info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
+            Assert.Equal("seasons,episodes,info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
             Assert.Equal("similar,info,cast", Keys(DetailLayout.For(ui, EmbyItemType.Movie)));
             series[0].Visible = true;
             series[0].Key = "info";
@@ -199,7 +142,7 @@ internal static class DetailLayoutTests
                 }
                 """, PassthroughSecretProtector.Instance);
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(settings.Ui.SeriesCards));
-            Assert.Equal("cast,episodes,info,similar", Keys(settings.Ui.EpisodeCards));
+            Assert.Equal("cast,episodes,info,seasons,similar", Keys(settings.Ui.EpisodeCards));
             Assert.False(settings.Ui.EpisodeCards[0].Visible);
             var restored = SettingsMigration.FromJson(JsonSerializer.Serialize(settings), PassthroughSecretProtector.Instance);
             Assert.Equal("similar,info,cast", Keys(restored.Ui.MovieCards));
@@ -238,7 +181,7 @@ internal static class DetailLayoutTests
             SettingsPreferences.Apply(live, backup);
             Assert.Equal("cast,episodes,info,seasons,similar", Keys(live.Ui.SeriesCards));
             Assert.False(live.Ui.SeriesCards[0].Visible);
-            Assert.Equal("episodes,info,cast,similar", Keys(live.Ui.EpisodeCards));
+            Assert.Equal("seasons,episodes,info,cast,similar", Keys(live.Ui.EpisodeCards));
             Assert.Equal("similar,info,cast", Keys(live.Ui.MovieCards));
             Assert.Equal(25d, live.Ui.ControlBackgroundOpacity);
             Assert.Equal(60d, live.Ui.BackdropOpacity);

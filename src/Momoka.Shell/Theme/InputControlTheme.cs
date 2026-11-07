@@ -4,7 +4,7 @@ namespace Momoka.Shell;
 
 /// <summary>
 /// 输入区域的底色规则（2026-10-29 改为输入玻璃）：
-/// 选择框的闭合态由全局控件材质管；文本输入的静止态由设置页卡片区的滚动资源
+/// 选择框的闭合态全用 <c>EgInputGlassBrush</c>；文本输入的静止态由设置页卡片区的滚动资源
 /// 局部接到同一支玻璃，聚焦态仍回窗口/侧边栏底色。
 /// 聚焦与悬停只加强中性边线；选择文字、开关与下拉选中项仍保留强调色。
 /// </summary>
@@ -17,6 +17,11 @@ internal static class InputControlTheme
     public static IReadOnlyList<(string Key, Func<UiTheme, ThemeColor> Pick)> Brushes { get; } =
     [
         ("EgInputGlassBrush", Glass),
+        ("ComboBoxBackground", Glass),
+        ("ComboBoxBackgroundPointerOver", Glass),
+        ("ComboBoxBackgroundPressed", Glass),
+        ("ComboBoxBackgroundFocused", Glass),
+        ("ComboBoxBackgroundUnfocused", Glass),
         ("ComboBoxBackgroundDisabled", Glass),
         ("ComboBoxBackgroundBorderBrushFocused", theme => theme.Colors.BorderStrong),
         ("TextControlBackground", theme => theme.Colors.Window),

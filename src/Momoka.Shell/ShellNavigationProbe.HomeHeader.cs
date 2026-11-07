@@ -247,7 +247,7 @@ internal sealed partial class ShellNavigationProbe
             Windows.UI.Color Role(string key) => Colour(Application.Current.Resources[key] as Brush);
 
             static Windows.UI.Color Colour(Brush? brush) =>
-                brush is SolidColorBrush solid ? solid.Color : brush is AcrylicBrush acrylic ? acrylic.TintColor : default;
+                brush is SolidColorBrush solid ? solid.Color : default;
 
             static IEnumerable<DependencyObject> Ancestors(DependencyObject element)
             {

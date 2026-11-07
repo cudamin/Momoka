@@ -52,7 +52,7 @@ internal static class AcrylicControlsTests
         {
             var page = Read("Views/DetailPage.xaml");
             foreach (var name in new[] { "ScoreSourceText", "HeroFacts", "Overview" })
-                Assert.Equal("{ThemeResource EgOnScrimBrush}", (string?)Named(page, name).Attribute("Foreground"));
+                Assert.Equal("{StaticResource EgOnScrimBrush}", (string?)Named(page, name).Attribute("Foreground"));
             Assert.Contains("public Brush SublineBrush => Painted(\"EgOnScrimBrush\")", Source("ViewModels/DetailViewModel.cs"));
             var readMore = page.Descendants(Xaml + "HyperlinkButton").Single(element =>
                 (string?)element.Attribute("AutomationProperties.AutomationId") == "DetailReadMoreButton");
@@ -83,8 +83,7 @@ internal static class AcrylicControlsTests
             Assert.Null(fade.Attribute("Opacity"));
             Assert.True(backdrop.Elements().ToList().IndexOf(fade) > backdrop.Elements().ToList().IndexOf(picture));
             var code = Source("Views/DetailPage.Backdrop.cs");
-            Assert.Contains("new AcrylicBrush", code);
-            Assert.Contains("settings.BackdropTintFromArtwork ? ViewModel.BackdropBaseColor", code);
+            Assert.Contains("new SolidColorBrush(ReadingShadeColor)", code);
             Assert.Contains("BackdropEdgeFade", code);
         });
         Test("详情接缝：图片底部渐变不移动纸面和正文布局", () =>
@@ -111,10 +110,9 @@ internal static class AcrylicControlsTests
             Assert.Contains("ForDetail(control, lightSurface: true)", code);
             Assert.Contains("ForDetail(picker, lightSurface: true)", code);
             foreach (var (key, color) in new[] { ("EgDetailActionBrush", "#0FFFFFFF"),
-                ("EgDetailActionHoverBrush", "#15FFFFFF"), ("EgDetailActionPressedBrush", "#08FFFFFF") })
+                ("EgDetailActionHoverBrush", "#15FFFFFF"), ("EgDetailActionPressedBrush", "#08FFFFFF"),
+                ("EgDetailActionTextBrush", "#FFFFFFFF") })
                 Assert.Equal(color, (string?)Resource(Read("Theme/Palette.xaml").Root!, key).Attribute("Color"));
-            Assert.Equal("{StaticResource EgMediaTextColor}", (string?)Resource(Theme("Dark"), "EgDetailActionTextBrush").Attribute("Color"));
-            Assert.Equal("#FFFFFFFF", Resource(Theme("Dark"), "EgMediaTextColor").Value);
             Assert.False(Source("Views/DetailPage.Appearance.cs").Contains("TextInk.Attach", StringComparison.Ordinal));
             Assert.False(code.Contains("picker.Resources[\"ComboBoxDropDownBackground\"]", StringComparison.Ordinal));
             Assert.False(code.Contains("picker.Resources[\"ComboBoxItemBackground\"", StringComparison.Ordinal));
@@ -349,7 +347,7 @@ internal static class AcrylicControlsTests
             }
         });
 
-        Test("海报卡悬停操作：保留原播放底色，右下三颗只画图标", () =>
+        Test("海报卡悬停操作：播放键回到中性灰底，右下三颗不再画亚克力", () =>
         {
             var card = Read("Views/PosterCard.xaml");
             var resources = card.Root!.Element(Xaml + "UserControl.Resources")!;
@@ -404,101 +402,22 @@ internal static class AcrylicControlsTests
                     (string?)Named(Read(file), name).Attribute("Background"), file + "/" + name);
         });
 
-        Test("按钮亚克力：全局三态与闭合选择框共用材质，菜单正文输入仍隔离", () =>
+        Test("按钮亚克力：局部按钮资源不覆盖全局菜单、正文和输入", () =>
         {
             foreach (var theme in new[] { "Dark", "Light" })
             {
                 var dictionary = Theme(theme);
-                foreach (var type in new[] { "Button", "ToggleButton", "ComboBox" })
-                    foreach (var (suffix, target) in States.Zip(GlassKeys))
-                        Assert.Equal(target, (string?)Resource(dictionary, type + "Background" + suffix).Attribute("ResourceKey"));
-                Assert.Equal("EgInputGlassBrush", (string?)Resource(dictionary, "ComboBoxBackgroundDisabled").Attribute("ResourceKey"));
-                Assert.Equal("AcrylicBrush", Resource(dictionary, "EgInputGlassBrush").Name.LocalName);
-                foreach (var prefix in new[] { "AccentButtonBackground", "ToggleButtonBackgroundChecked" })
-                    foreach (var (suffix, target) in States.Zip(GlassKeys))
-                        Assert.Equal(target, (string?)Resource(dictionary, prefix + suffix).Attribute("ResourceKey"));
+                foreach (var entry in dictionary.Elements().Where(element =>
+                    (string?)element.Attribute("ResourceKey") is { } key && GlassKeys.Contains(key)))
+                    Assert.False(((string?)entry.Attribute(X + "Key"))?.StartsWith("Button", StringComparison.Ordinal) == true
+                        || ((string?)entry.Attribute(X + "Key"))?.StartsWith("ToggleButton", StringComparison.Ordinal) == true,
+                        "按钮模板资源被改成了全局亚克力");
                 Assert.Equal("EgSurfaceBrush", (string?)Resource(dictionary, "MenuFlyoutPresenterBackground").Attribute("ResourceKey"));
                 Assert.Equal("EgSurfaceBrush", (string?)Resource(dictionary, "FlyoutPresenterBackground").Attribute("ResourceKey"));
                 Assert.Equal("{StaticResource EgWindowColor}", (string?)Resource(dictionary, "EgFrostBrush").Attribute("TintColor"));
             }
         });
 
-        Test("局部播放与箭头：封面保留原样式，轮播使用全局亚克力且文字固定", () =>
-        {
-            var poster = Read("Views/PosterCard.xaml");
-            foreach (var name in new[] { "TitleLine", "SubLine", "SourceLine", "NoteLine" })
-                Assert.Equal("{ThemeResource EgOnScrimBrush}", (string?)Named(poster, name).Attribute("Foreground"));
-            var banner = Read("Views/HomeBanner.xaml");
-            var resources = banner.Root!.Element(Xaml + "UserControl.Resources")!;
-            Assert.Equal("{ThemeResource EgActionGlassBrush}", Setter(Resource(resources, "EgBannerPageButtonStyle"), "Background"));
-            var play = Resource(resources, "EgBannerPlayStyle");
-            Assert.Equal("{StaticResource DefaultButtonStyle}", (string?)play.Attribute("BasedOn"));
-            Assert.Equal("{ThemeResource EgActionGlassBrush}", Setter(play, "Background"));
-            foreach (var name in new[] { "PlayButton", "PrevButton", "NextButton" })
-            {
-                var button = Named(banner, name);
-                Assert.Equal("EgActionGlassHoverBrush", FindLocalResource(button, "ButtonBackgroundPointerOver")?.Attribute("ResourceKey")?.Value);
-                Assert.Equal("EgActionGlassPressedBrush", FindLocalResource(button, "ButtonBackgroundPressed")?.Attribute("ResourceKey")?.Value);
-            }
-        });
-        Test("全局按钮探针：定向入口和实际模板三态、透明度、染色与禁止起播保留", () =>
-        {
-            var inspect = Source("ShellNavigationProbe.Inspect.cs");
-            Assert.Contains("InspectGlobalControls", inspect);
-            var probe = Source("ShellNavigationProbe.Materials.cs");
-            Assert.Contains("new[] { 0d, 20, 100 }", probe);
-            Assert.Contains("(20d, 80d), (80d, 20d)", probe);
-            Assert.Contains("ReferenceEquals(fill, shared)", probe);
-            Assert.Contains("ActualFill(control)", probe);
-            Assert.Contains("GlobalPlainCombo", probe);
-            Assert.Contains("全局材质检查误触发播放", probe);
-        });
-        Test("全局按钮夹具：固定行约束测量，模板详情不占可见页面并返回真实匿名JSON", () =>
-        {
-            var probe = Source("ShellNavigationProbe.Materials.cs");
-            Assert.Contains("new[] { 60d, 260, 200, 260 }", probe);
-            Assert.Contains("holder.RowDefinitions.Add(new RowDefinition", probe);
-            Assert.Contains("? Json(movie) : FakeTransport.Standard(request)", probe);
-            Assert.Contains("全局材质模板详情没有加载正确匿名条目", probe);
-            Assert.Contains("frame.Content = null;", probe);
-            Assert.Contains("_root.Children.Remove(frame);", probe);
-            Assert.False(probe.Contains("holder.Children.Add(frame)", StringComparison.Ordinal));
-        });
-        Test("局部主按钮：登录与三种确认表的显式背景接全局亚克力", () =>
-        {
-            var signIn = Read("Views/SignInPage.xaml");
-            var dictionaries = signIn.Descendants(Xaml + "ResourceDictionary")
-                .Where(item => (string?)item.Attribute(X + "Key") is "Dark" or "Light");
-            foreach (var dictionary in dictionaries)
-                foreach (var (suffix, role) in new[] { ("", "EgActionGlassBrush"), ("PointerOver", "EgActionGlassHoverBrush"), ("Pressed", "EgActionGlassPressedBrush") })
-                    Assert.Equal(role, Resource(dictionary, "AccentButtonBackground" + suffix).Attribute("ResourceKey")?.Value);
-            Assert.Equal("{ThemeResource EgActionGlassBrush}", Setter(Resource(signIn.Descendants(Xaml + "ResourceDictionary").First(), "SignInPrimaryButtonStyle"), "Background"));
-            foreach (var name in new[] { "AniBtScrapeDialog.xaml", "MoviePilotDownloadDialog.xaml", "MoviePilotSeriesReorganizeDialog.xaml" })
-            {
-                var dialog = Read("Views/" + name);
-                var primary = dialog.Root!.Element(Xaml + "ContentDialog.PrimaryButtonStyle")!.Element(Xaml + "Style")!;
-                Assert.Equal("{ThemeResource EgActionGlassBrush}", Setter(primary, "Background"));
-                var resources = dialog.Root.Element(Xaml + "ContentDialog.Resources")!;
-                Assert.Equal("EgActionGlassHoverBrush", Resource(resources, "AccentButtonBackgroundPointerOver").Attribute("ResourceKey")?.Value);
-                Assert.Equal("EgActionGlassPressedBrush", Resource(resources, "AccentButtonBackgroundPressed").Attribute("ResourceKey")?.Value);
-            }
-            var season = Read("Views/MoviePilotSeasonPicker.xaml");
-            Assert.True(season.Descendants().Any(item => item.Attribute(X + "Key")?.Value == "AccentButtonBackground"
-                && item.Attribute("ResourceKey")?.Value == "EgActionGlassBrush"));
-        });
-        Test("局部选择卡：站点与资源筛选六态背景统一，文字边线保持角色", () =>
-        {
-            foreach (var path in new[] { "Theme/MoviePilotSiteControls.xaml", "Views/MoviePilotResourceFilterStyles.xaml" })
-                foreach (var dictionary in Read(path).Descendants(Xaml + "ResourceDictionary")
-                    .Where(item => (string?)item.Attribute(X + "Key") is "Dark" or "Light"))
-                    foreach (var key in new[] { "ToggleButtonBackground", "ToggleButtonBackgroundChecked" })
-                        foreach (var (suffix, role) in new[] { ("", "EgActionGlassBrush"), ("PointerOver", "EgActionGlassHoverBrush"), ("Pressed", "EgActionGlassPressedBrush") })
-                            Assert.Equal(role, Resource(dictionary, key + suffix).Attribute("ResourceKey")?.Value);
-            var probe = Source("ShellNavigationProbe.Materials.cs");
-            Assert.Contains("GlobalAccentButton", probe);
-            Assert.Contains("GlobalCheckedToggle", probe);
-            Assert.Contains("\"Checked\", \"CheckedPointerOver\", \"CheckedPressed\"", probe);
-        });
         Test("亚克力探针：materials 是唯一全量分区项且拒绝真实播放组合", () =>
         {
             Assert.True(ShellProbeSections.IsKnown("MATERIALS"), "材料分区尚未接入");
@@ -523,7 +442,7 @@ internal static class AcrylicControlsTests
             Assert.Contains("detail.ViewModel.PlayTarget?.HasResumePosition == true", source);
             Assert.Contains("== 6,", source);
             Assert.Contains("详情操作排未在时限内出现", source);
-            Assert.Contains("封面按钮没有恢复原样式", source);
+            Assert.Contains("海报悬停按钮仍画底色或播放键未回到中性灰底", source);
             Assert.Contains("poster-actions-restored-screen.png", source);
             Assert.Contains("详情操作按钮仍接共享玻璃", source);
             Assert.Contains("detail-actions-restored-screen.png", source);
@@ -542,8 +461,8 @@ internal static class AcrylicControlsTests
             Assert.Contains("Require(request.Method == HttpMethod.Get || request.Method == HttpMethod.Head", source);
             Assert.Contains("Require(fixture.Actions.Plays == 0", source);
             Assert.Contains("fixture.Transport.Requests.All", source);
-            Assert.Contains("acrylic.TintColor == tint && acrylic.FallbackColor == tint", source);
-            Assert.Contains("acrylic.Opacity - expectedOpacity", source);
+            Assert.Contains("acrylic.TintColor == ThemeHost.ToColor(colors[index])", source);
+            Assert.Contains("acrylic.FallbackColor == ThemeHost.ToColor(colors[index])", source);
             Assert.Contains("VisualStateManager.GoToState(control, states[index], false)", source);
             Assert.Contains("ReferenceEquals(Fill(), expected)", source);
             Assert.Contains("\"Checked\", \"CheckedPointerOver\", \"CheckedPressed\"", source);

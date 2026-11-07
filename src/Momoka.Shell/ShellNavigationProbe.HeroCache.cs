@@ -69,10 +69,6 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => changed.ViewModel.HeroImage is not null && changed.IsReady);
             await LayoutAsync(changed);
             Require(!ReferenceEquals(first, changed.ViewModel.HeroImage), "图片标签变更仍沿用旧背景");
-            var clearedPicture = changed.ViewModel.HeroImage;
-            var clearedPixels = changed.ViewModel.BackdropPixels;
-            Require(clearedPixels is not null, "背景缓存检查缺少实际像素");
-            var oldTicket = cache.Begin(fixture.Session.Capture(), ItemArtwork.Hero(seed)[0], 1280);
             var settingsPaths = new AppPaths(Path.Combine(_options.Paths.Root, "hero-cache-settings"));
             settingsPaths.EnsureCreated();
             using var moviePilot = new MoviePilotClient(new RejectNetwork());
@@ -87,23 +83,14 @@ internal sealed partial class ShellNavigationProbe
                 Require(cache.Bytes == 0, "真实设置清除未清理详情背景缓存");
             }
             finally { settingsPage.ViewModel.Dispose(); }
-            foreach (var (width, viewport, strength) in new[] { (1280d, 300d, 100d), (760d, 900d, 0d), (1280d, 900d, 20d) })
-            {
-                changed.ViewModel.PageWidth = width;
-                changed.ViewModel.Viewport = viewport;
-                fixture.Settings.Ui.BackdropOpacity = strength;
-                changed.ViewModel.UpdateHeroBlur();
-                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-                await LayoutAsync(changed);
-                Require(ReferenceEquals(clearedPicture, changed.ViewModel.HeroImage)
-                    && changed.ViewModel.GaussianBackdropReady && !changed.ViewModel.GaussianBackdropApplied,
-                    "清理后窗口或外观调整仍重新模糊原图");
-                Require(cache.Bytes == 0, "清理前取得的像素在外观更新后重新填回缓存");
-            }
-            // 缓存边界独立验证旧票迟到：真实Remember入口必须拒绝清理前的原像素/位图。
-            cache.RememberPixels(oldTicket, clearedPixels!);
-            cache.RememberPicture(oldTicket, clearedPixels!, 0, (BitmapImage)clearedPicture!);
-            Require(cache.Bytes == 0, "清理后迟到的原图结果重新填充缓存");
+            var beforeBlur = changed.ViewModel.HeroImage;
+            var generation = Get<int>(changed.ViewModel, "_heroBlurGeneration");
+            changed.ViewModel.PageWidth = 1280;
+            changed.ViewModel.Viewport = 300;
+            changed.ViewModel.UpdateHeroBlur();
+            Require(Get<int>(changed.ViewModel, "_heroBlurGeneration") > generation, "检查没有实际请求新模糊半径");
+            await UntilAsync(() => !ReferenceEquals(beforeBlur, changed.ViewModel.HeroImage));
+            Require(cache.Bytes == 0, "清理前取得的像素在重糊后重新填回缓存");
             ResizeProbeClient(760, 900);
             await LayoutAsync(changed);
             await SaveProbeScreenAsync("performance-hero-cache-760-screen.png");
@@ -120,7 +107,6 @@ internal sealed partial class ShellNavigationProbe
                 changedTagReloaded = true,
                 settingsClearExecuted = true,
                 clearRejectedOldPixels = true,
-                appearanceRetainedOriginal = true,
                 realNetwork = false,
                 mediaLoaded = false
             });

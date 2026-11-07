@@ -21,9 +21,6 @@
     Background="{ThemeResource LayerFillColorDefaultBrush}">
 
     <Page.Resources>
-        <SolidColorBrush x:Key="EgTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
-        <SolidColorBrush x:Key="EgTextDimBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
-        <SolidColorBrush x:Key="EgTextFaintBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
         <!-- 头图上那六颗键：带字的两颗一个高度，只有图标的四颗是同边长的方块。三个样式的高度、边长和
              圆角都取词表 —— 以前是写死的 38 配 19，19 是「一半高」也就是药丸，而这一版里圆角只有两档：
              图是 0，你会去按的东西是 8。两个都必须 BasedOn 框架自己的样式，否则连模板都拿不到。 -->
@@ -225,7 +222,7 @@
                 </Border.Background>
             </Border>
 
-            <!-- 所有详情共用主图底色的固定亚克力，滚动内容不重复叠底。 -->
+            <!-- 剧/季/电影的固定阅读遮罩，沉浸高斯同样保留，滚动内容不重复叠暗。 -->
             <Border x:Name="BackdropFade" Height="{x:Bind ViewModel.PictureHeight, Mode=OneWay}"
                     VerticalAlignment="Top" IsHitTestVisible="False" Visibility="Collapsed" />
             <!-- 阅读遮罩之上只在图片最后20%收边，末色精确接主题底色。 -->
@@ -590,7 +587,7 @@
                                         x:Name="ScoreSourceText"
                                         VerticalAlignment="Center"
                                         Style="{StaticResource EgOnScrimDataStyle}"
-                                        Foreground="{ThemeResource EgOnScrimBrush}"
+                                        Foreground="{StaticResource EgOnScrimBrush}"
                                         Text="{x:Bind ViewModel.ScoreLabel, Mode=OneWay}" />
                                     </Grid>
                                 </StackPanel>
@@ -601,7 +598,7 @@
                                     x:Name="HeroFacts"
                                     VerticalAlignment="Center"
                                     Style="{StaticResource EgOnScrimDataStyle}"
-                                    Foreground="{ThemeResource EgOnScrimBrush}"
+                                    Foreground="{StaticResource EgOnScrimBrush}"
                                     Text="{x:Bind ViewModel.Facts, Mode=OneWay}" />
                                 </Grid>
                             </StackPanel>
@@ -649,7 +646,7 @@
                                         x:Uid="DetailPage_TextBlock2"
                                         Style="{StaticResource EgOnScrimBodyStyle}"
                                         VerticalAlignment="Center"
-                                        Foreground="{ThemeResource EgOnScrimBrush}" />
+                                        Foreground="{StaticResource EgOnScrimBrush}" />
                                     <local:EgPicker
                                         x:Name="ColumnSourcePicker"
                                         FontSize="{StaticResource EgBodyFontSize}"
@@ -673,7 +670,7 @@
                                         x:Uid="DetailPage_TextBlock3"
                                         Style="{StaticResource EgOnScrimBodyStyle}"
                                         VerticalAlignment="Center"
-                                        Foreground="{ThemeResource EgOnScrimBrush}" />
+                                        Foreground="{StaticResource EgOnScrimBrush}" />
                                     <local:EgPicker
                                         x:Name="ColumnAudioPicker"
                                         FontSize="{StaticResource EgBodyFontSize}"
@@ -706,7 +703,7 @@
                                         x:Uid="DetailPage_TextBlock4"
                                         Style="{StaticResource EgOnScrimBodyStyle}"
                                         VerticalAlignment="Center"
-                                        Foreground="{ThemeResource EgOnScrimBrush}" />
+                                        Foreground="{StaticResource EgOnScrimBrush}" />
                                     <local:EgPicker
                                         x:Name="ColumnSubtitlePicker"
                                         FontSize="{StaticResource EgBodyFontSize}"
@@ -1056,7 +1053,7 @@
                                     SelectedItem="{x:Bind ViewModel.SelectedSource, Mode=TwoWay}"
                                     Visibility="{x:Bind ViewModel.SourceVisibility, Mode=OneWay}">
                                     <local:EgPicker.Header>
-                                        <TextBlock x:Uid="DetailPage_TextBlock2" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{ThemeResource EgOnScrimBrush}" />
+                                        <TextBlock x:Uid="DetailPage_TextBlock2" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
                                     </local:EgPicker.Header>
                                 </local:EgPicker>
                                 <local:EgPicker
@@ -1070,12 +1067,12 @@
                                     SelectedItem="{x:Bind ViewModel.SelectedAudio, Mode=TwoWay}"
                                     Visibility="{x:Bind ViewModel.AudioVisibility, Mode=OneWay}">
                                     <local:EgPicker.Header>
-                                        <TextBlock x:Uid="DetailPage_TextBlock3" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{ThemeResource EgOnScrimBrush}" />
+                                        <TextBlock x:Uid="DetailPage_TextBlock3" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
                                     </local:EgPicker.Header>
                                 </local:EgPicker>
                                 <StackPanel Spacing="8" MinWidth="200"
                                             Visibility="{x:Bind ViewModel.SingleAudioVisibility, Mode=OneWay}">
-                                    <TextBlock x:Uid="DetailPage_TextBlock3" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{ThemeResource EgOnScrimBrush}" />
+                                    <TextBlock x:Uid="DetailPage_TextBlock3" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
                                     <TextBlock
                                         x:Name="AudioText"
                                         Style="{StaticResource EgOnScrimBodyStyle}"
@@ -1093,7 +1090,7 @@
                                     SelectedItem="{x:Bind ViewModel.SelectedSubtitle, Mode=TwoWay}"
                                     Visibility="{x:Bind ViewModel.SubtitleVisibility, Mode=OneWay}">
                                     <local:EgPicker.Header>
-                                        <TextBlock x:Uid="DetailPage_TextBlock4" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{ThemeResource EgOnScrimBrush}" />
+                                        <TextBlock x:Uid="DetailPage_TextBlock4" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
                                     </local:EgPicker.Header>
                                 </local:EgPicker>
                             </local:WrapRow>
@@ -1284,7 +1281,7 @@
                             <TextBlock
                                 x:Name="Overview"
                                 FontSize="{StaticResource EgBodyFontSize}"
-                                Foreground="{ThemeResource EgOnScrimBrush}"
+                                Foreground="{StaticResource EgOnScrimBrush}"
                                 HorizontalAlignment="Left"
                                 IsTextSelectionEnabled="True"
                                 IsTextTrimmedChanged="OnOverviewTrimmedChanged"
@@ -1342,8 +1339,26 @@
                         MinHeight="{x:Bind ViewModel.PaperMinHeight, Mode=OneWay}"
                         Padding="{x:Bind ViewModel.SheetPadding, Mode=OneWay}"
                         Spacing="{x:Bind ViewModel.SheetSpacing, Mode=OneWay}">
-                        <!-- 剧页保留全剧横带；季页和集页使用竖列表。集页只投影当前季度，
-                             S00按首播日期归季，完整业务集索引仍由VM保留；所有形状共用EpisodeShelf。 -->
+                        <!-- 单集：季页一行一集的竖置列表，剧页和集页一条横向翻页带 ——「只有季页的集使用竖置
+                             列表列表就好，另外两个页面使用竖置翻页」。两种形状共用上面这一个标题和季切换（切换
+                             季替换的就是下面这批集），也共用同一个 EpisodeShelf；露哪一个由 DetailViewModel 按
+                             页面自己的类型算（ItemDetail.EpisodesAsList），视图这边不判断类型 —— 四种页面共用
+                             这一份 markup，上一次把判断写在这儿，给季页改的列表就连剧页和集页一起改掉了。
+
+                             <b>这一带从前只有剧页和季页摆在纸上，集页那一档压在头图底下那段画面里</b>（「音频
+                             字幕和集数的位置调换」，搬家由 DetailPage.PlaceEpisodes 在运行时换父级做）。2026-09-12
+                             集页整段上方合成了一块大面板（HeroCardTop／HeroCardBottom）之后，再压在那一格里就是
+                             「板里套板」—— 他一句「集的框要和上面分开」把它摁回纸上：四种页面同一层、同一套墨、
+                             同一圈框（那一圈正是他要的「剧页面那种样式」）。搬家的机制连同它买过的两个 bug 一并
+                             作废，见 DetailPage.PlaceEpisodes 上那段旧账。
+
+                             季页读的是「这一季有哪些集」，所以一行一集：左边 16:9 剧照，右边「1. 集名」、
+                             「日期 · 时长」和两行简介，正在打开的那一集左缘一条 accent 竖条。剧页和集页上这批集
+                             只是旁边的邻居，横着一条、箭头一次翻一屏，不占着整页的高度 —— 代价是横卡放不下那两行
+                             简介，「你在这里」也改由 FocusIndex 表达（带子直接开在正在看的那一集上）。
+
+                             页面本身已经在 ScrollView 里，所以列表这边不套第二个滚动条；两边视口外的项都由
+                             ItemsRepeater 自己回收，长季不会一次解码几十张图，收起来的那一种一张都不会解码。 -->
                         <StackPanel
                             x:Name="EpisodePanel"
                             Style="{StaticResource EgBodyPanelStyle}"

@@ -44,6 +44,8 @@ internal sealed partial class ShellNavigationProbe
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
         fixture.Settings.Ui.EnableImmersive = false;
+        fixture.Settings.Ui.UseGaussianBackdrop = false;
+        fixture.Settings.Ui.UseAcrylicBackdrop = false;
         ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
 
         var series = Series();

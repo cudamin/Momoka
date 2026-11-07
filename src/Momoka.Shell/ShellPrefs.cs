@@ -34,11 +34,7 @@ public static class ShellPrefs
     /// <summary>按钮底色、背景图和沉浸模式只更新画面，不触发主页重新查询。</summary>
     public static event Action<UiSettings>? AppearanceChanged;
 
-    public static void ApplyAppearance(UiSettings ui)
-    {
-        GlobalControlAppearance.Apply(ui);
-        AppearanceChanged?.Invoke(ui);
-    }
+    public static void ApplyAppearance(UiSettings ui) => AppearanceChanged?.Invoke(ui);
 
     // 草稿只属于打开拾色器的设置对象，不进入 AppSettings，也不会随别的设置保存。
     private static UiSettings? _controlPreviewOwner;

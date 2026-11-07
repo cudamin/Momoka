@@ -108,6 +108,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     /// <summary>组字回车补提交那一趟的取消源；离页、换来源与普通提交都收掉它。</summary>
     private CancellationTokenSource? _imeSubmit;
+    private readonly SolidColorBrush _tabSelected = new();
     private readonly SolidColorBrush _tabForeground = new();
 
     /// <summary>
@@ -120,7 +121,6 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         NavigationTiming.Mark("page-ctor-begin");
         InitializeComponent();
-        MediaTextColors.Attach(this);
         NavigationTiming.Mark("init-end");
 
         // 这一面墙一格多宽是按窗口宽度算的（见 LibraryViewModel.ResizeGrid）：窗口一停就把新宽度推过去。
@@ -205,10 +205,8 @@ public sealed partial class LibraryPage : Page, IShellContent
             };
             // Scoped resource overrides keep the selected pill neutral, like the web reference,
             // while theme roles still switch when the app's theme changes.
-            foreach (var (key, brush) in new[] { ("ToggleButtonBackgroundChecked", "EgActionGlassBrush"),
-                ("ToggleButtonBackgroundCheckedPointerOver", "EgActionGlassHoverBrush"),
-                ("ToggleButtonBackgroundCheckedPressed", "EgActionGlassPressedBrush") })
-                tab.Resources[key] = Application.Current.Resources[brush];
+            foreach (var key in new[] { "ToggleButtonBackgroundChecked", "ToggleButtonBackgroundCheckedPointerOver",
+                "ToggleButtonBackgroundCheckedPressed" }) tab.Resources[key] = _tabSelected;
             foreach (var key in new[] { "ToggleButtonForegroundChecked", "ToggleButtonForegroundCheckedPointerOver",
                 "ToggleButtonForegroundCheckedPressed" }) tab.Resources[key] = _tabForeground;
             AutomationProperties.SetAutomationId(tab, "LibrarySection" + entry.Section);
@@ -222,7 +220,8 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     private void UpdateTabColors(UiTheme theme)
     {
-        _tabForeground.Color = MediaTextColors.Current;
+        _tabSelected.Color = ThemeHost.ToColor(theme.Colors.Text.Mix(theme.Colors.Window, 0.6));
+        _tabForeground.Color = ThemeHost.ToColor(theme.Colors.Text);
     }
 
     private async void OnBrowseSectionClick(object sender, RoutedEventArgs e)

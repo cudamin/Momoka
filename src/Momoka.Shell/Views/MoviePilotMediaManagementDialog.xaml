@@ -15,7 +15,7 @@
     </ContentDialog.Resources>
     <ContentDialog.CloseButtonStyle>
         <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
             <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
         </Style>
     </ContentDialog.CloseButtonStyle>

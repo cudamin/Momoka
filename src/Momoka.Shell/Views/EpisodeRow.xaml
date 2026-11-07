@@ -23,8 +23,7 @@
     <UserControl.Resources>
         <!-- 中央播放键，比 PosterCard 的 48 略小：列表行的图没有卡片那么大。BasedOn 是必须的，
              同 PosterCard 里那一条的注解。 -->
-        <Style x:Key="EgRowPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+        <Style x:Key="EgRowPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
             <Setter Property="Width" Value="44" />
             <Setter Property="Height" Value="44" />
             <Setter Property="MinWidth" Value="0" />
@@ -35,16 +34,18 @@
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
 
-        <!-- 选中状态保留左侧标记；媒体文字始终使用主题固定字色。 -->
+        <!-- 行标题的两种写法，只差一个前景色：正在看的那一集用 accent 色，其余用正文色。写成两个
+             键控 Style 让代码去换挂，而不是代码里取画刷 —— EgAccentBrush 定义在 Palette.xaml 的
+             ThemeDictionaries 里，用 Resources[key] 取会抛，只有 XAML 解析器认得它。
+             基座是词表里的正文样式，字号和字体因此不在这儿重写一遍。 -->
         <Style x:Key="EgRowTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource EgBodyStyle}">
-            <Setter Property="Foreground" Value="{ThemeResource EgOnScrimBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="MaxLines" Value="1" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         </Style>
 
         <Style x:Key="EgRowTitleCurrentStyle" TargetType="TextBlock" BasedOn="{StaticResource EgRowTitleStyle}">
-            <Setter Property="Foreground" Value="{ThemeResource EgOnScrimBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgAccentBrush}" />
         </Style>
     </UserControl.Resources>
 
@@ -152,7 +153,6 @@
             <TextBlock
                 MaxLines="1"
                 Style="{StaticResource EgDataStyle}"
-                Foreground="{ThemeResource EgOnScrimBrush}"
                 Text="{x:Bind Card.RowInfo, Mode=OneWay}"
                 TextTrimming="CharacterEllipsis"
                 Visibility="{x:Bind Card.RowInfoVisibility, Mode=OneWay}" />
@@ -162,7 +162,6 @@
                 LineHeight="19"
                 MaxLines="2"
                 Style="{StaticResource EgCaptionStyle}"
-                Foreground="{ThemeResource EgOnScrimBrush}"
                 Text="{x:Bind Card.RowOverview, Mode=OneWay}"
                 TextTrimming="CharacterEllipsis"
                 TextWrapping="Wrap"

@@ -179,10 +179,6 @@ internal static class AniBtResourceLayoutTests
             var styles = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Theme/Styles.xaml"));
             var facet = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/MoviePilotResourceFacetPicker.xaml"))
                 .Descendants().Single(node => node.Attribute(x + "Name")?.Value == "OpenFacet");
-            Assert.Equal("{ThemeResource EgActionGlassBrush}", facet.Attribute("Background")?.Value);
-            var filters = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml"))
-                .Descendants().Single(node => node.Attribute(x + "Name")?.Value == "FilterExpander");
-            Assert.Equal("{ThemeResource EgActionGlassBrush}", filters.Attribute("Background")?.Value);
             foreach (var key in new[] { "EgResourceButtonStyle" })
             {
                 var style = styles.Descendants().Single(node => node.Attribute(x + "Key")?.Value == key);

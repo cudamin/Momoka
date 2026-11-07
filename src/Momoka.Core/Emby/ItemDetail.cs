@@ -853,85 +853,6 @@ public static class ItemDetail
     ];
 
     /// <summary>
-    /// 单集页面的展示季号。普通集保留原季号；S00按正片季首播边界归入展示季，不修改服务器的季ID或编号。
-    /// 季首播优先使用季条目日期，缺失时取该季最早普通集日期；完全没有日期边界的特别篇留在S00。
-    /// </summary>
-    public static int? EpisodeSeasonNumber(IReadOnlyList<EmbyItem> episodes, IReadOnlyList<EmbyItem> seasons,
-        EmbyItem episode) => EpisodeDisplaySeason(episode, seasons, EpisodeSeasonBoundaries(episodes, seasons));
-
-    /// <summary>
-    /// 单集页只展示当前或所选季的集，特别篇按首播日期插入。返回原条目引用，保留全剧输入和原媒体身份。
-    /// 没有季号时按真实季ID筛选；连季ID也缺失时只保留当前条目，避免把无关的未知季混在一起。
-    /// </summary>
-    public static IReadOnlyList<EmbyItem> EpisodeSeasonItems(IReadOnlyList<EmbyItem> episodes,
-        IReadOnlyList<EmbyItem> seasons, EmbyItem current, EmbyItem? selectedSeason = null)
-    {
-        var boundaries = EpisodeSeasonBoundaries(episodes, seasons);
-        var number = selectedSeason is null ? EpisodeDisplaySeason(current, seasons, boundaries)
-            : selectedSeason.IndexNumber;
-        if (number is { } chosen)
-            return AirOrder([.. episodes.Where(episode => EpisodeDisplaySeason(episode, seasons, boundaries) == chosen)]);
-
-        var seasonId = selectedSeason?.Id ?? current.SeasonId;
-        if (!string.IsNullOrEmpty(seasonId))
-            return AirOrder([.. episodes.Where(episode => episode.SeasonId == seasonId)]);
-
-        return [.. episodes.Where(episode => ReferenceEquals(episode, current)
-            || current.Id.Length > 0 && episode.IdentityKey == current.IdentityKey)];
-    }
-
-    private static IReadOnlyList<(int Number, DateTimeOffset? Premiere)> EpisodeSeasonBoundaries(
-        IReadOnlyList<EmbyItem> episodes, IReadOnlyList<EmbyItem> seasons)
-    {
-        var dates = new SortedDictionary<int, DateTimeOffset?>();
-        var explicitDates = new HashSet<int>();
-        foreach (var season in seasons)
-        {
-            if (season.IndexNumber is not { } number || number <= 0) continue;
-            dates.TryAdd(number, null);
-            if (season.PremiereDate is { } premiere && explicitDates.Add(number)) dates[number] = premiere;
-        }
-        foreach (var episode in episodes)
-        {
-            if (EpisodeOriginalSeason(episode, seasons) is not { } number || number <= 0) continue;
-            dates.TryAdd(number, null);
-            if (!explicitDates.Contains(number) && episode.PremiereDate is { } premiere
-                && (dates[number] is null || premiere < dates[number])) dates[number] = premiere;
-        }
-        return [.. dates.Select(pair => (pair.Key, pair.Value))];
-    }
-
-    private static int? EpisodeDisplaySeason(EmbyItem episode, IReadOnlyList<EmbyItem> seasons,
-        IReadOnlyList<(int Number, DateTimeOffset? Premiere)> boundaries)
-    {
-        var number = EpisodeOriginalSeason(episode, seasons);
-        if (number != 0 || episode.PremiereDate is not { } premiere) return number;
-        int? result = null;
-        DateTimeOffset? latest = null;
-        var hasDates = false;
-        foreach (var boundary in boundaries)
-        {
-            if (boundary.Premiere is not { } start) continue;
-            hasDates = true;
-            if (start <= premiere && (latest is null || start >= latest))
-            {
-                result = boundary.Number;
-                latest = start;
-            }
-        }
-        return result ?? (hasDates ? boundaries[0].Number : 0);
-    }
-
-    private static int? EpisodeOriginalSeason(EmbyItem episode, IReadOnlyList<EmbyItem> seasons)
-    {
-        if (episode.ParentIndexNumber is { } number) return number;
-        if (episode.SeasonId is { Length: > 0 } id)
-            return seasons.FirstOrDefault(season => season.Id == id)?.IndexNumber;
-        return episode.SeasonName is { Length: > 0 } name
-            ? seasons.FirstOrDefault(season => season.Name == name)?.IndexNumber : null;
-    }
-
-    /// <summary>
     /// 某一季在集列表里的第一张卡 —— 季列表里点了一季之后，集带要把它对到左边沿。
     /// <paramref name="season"/> 为 null 时答 0（整份列表的开头）；这一季一集都没有时答 -1，调用方保持原位。
     /// </summary>
@@ -1090,10 +1011,21 @@ public static class ItemDetail
         page is { Type: EmbyItemType.Episode } && episode.Id == page.Id;
 
     /// <summary>
-    /// 季页与单集页用纵向列表展示一季的内容；剧页仍使用全剧横向卡带。
-    /// 按页面条目类型决定形状，避免单集页的局部调整改变剧页和电影页。
+    /// Whether 单集 is drawn down the page as a list of rows rather than across it as a strip of cards —
+    /// 「只有季页的集使用竖置列表列表就好，另外两个页面使用竖置翻页」.
+    /// <para>
+    /// A season page is a season's own contents: it is read top to bottom, one row per episode, with the
+    /// date, the length and the first lines of the synopsis — the list *is* the page. On a series page and
+    /// on an episode's own page the same episodes are context beside something else (all the seasons, or
+    /// the file you opened), and a band one card tall that pages sideways is what belongs there.
+    /// </para>
+    /// <para>
+    /// A function of the type alone, and here rather than in the page, because 电影、剧、季、集 share one
+    /// detail page: the shape has to be derivable from the item, or a change meant for one of the four
+    /// silently applies to all of them. That is exactly how the list leaked onto the other two pages.
+    /// </para>
     /// </summary>
-    public static bool EpisodesAsList(string? type) => type is EmbyItemType.Season or EmbyItemType.Episode;
+    public static bool EpisodesAsList(string? type) => type == EmbyItemType.Season;
 
     /// <summary>
     /// What a card in the paging strip says under the still: 「第 7 集  ·  46 分钟」, or only the part the

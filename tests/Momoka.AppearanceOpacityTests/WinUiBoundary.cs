@@ -5,7 +5,6 @@ namespace Microsoft.UI.Xaml
     {
         private readonly Dictionary<object, Func<object>> _deferred = [];
 
-        public Uri? Source { get; set; }
         public List<ResourceDictionary> MergedDictionaries { get; } = [];
         public Dictionary<object, object> ThemeDictionaries { get; } = [];
 
@@ -87,7 +86,6 @@ namespace Windows.UI
 {
     public record struct Color(byte A, byte R, byte G, byte B)
     {
-        public static Color FromArgb(byte a, byte r, byte g, byte b) => new(a, r, g, b);
         public static implicit operator Color(uint value) =>
             new((byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value);
     }

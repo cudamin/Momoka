@@ -118,7 +118,7 @@ internal static class SettingsPageStateTests
                     Assert.Equal(1, saves);
                     Assert.Equal(1, applied);
                 });
-        TestHarness.Test("详情显示模式：亚克力三项中文调节，简洁模式收起并保留偏好", () =>
+        TestHarness.Test("详情显示模式：选择栏在背景效果上方，简洁模式收起完整背景组并保留偏好", () =>
         {
             var settings = new FakeSettings();
             settings.Settings.Ui.EnableImmersive = true;
@@ -133,8 +133,7 @@ internal static class SettingsPageStateTests
             var mode = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "显示模式");
             Assert.Equal("SettingChoiceRow", mode.GetType().Name);
             Assert.Equal("电影、剧、季和单集详情页有背景图时固定使用沉浸布局", fixture.Get<string>(mode, "Note"));
-            var effect = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "背景染色来源");
-            Assert.False(rows.Cast<object>().Any(row => fixture.Get<string>(row, "Label") is "背景图效果" or "背景遮罩颜色" or "按钮与选择框背景"));
+            var effect = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "背景图效果");
             Assert.Equal(rows.IndexOf(mode) + 1, rows.IndexOf(effect));
             var choices = fixture.List(mode, "Choices");
             Assert.True(choices.Cast<object>().Select(choice => fixture.Get<string>(choice, "Label"))
@@ -142,16 +141,17 @@ internal static class SettingsPageStateTests
             fixture.Set(mode, "Selected", choices[1]!);
             Assert.False(settings.Settings.Ui.EnableImmersive);
             Assert.False(rows.Cast<object>().Any(row => fixture.Get<string>(row, "Label") is
-                "背景染色来源" or "背景染色颜色" or "背景色调不透明度（%）" or "背景亮度不透明度（%）" or "背景图不透明度（%）"));
+                "背景图效果" or "背景遮罩颜色" or "背景图不透明度（%）"));
             Assert.Equal("#123456", settings.Settings.Ui.BackdropColor);
             Assert.Equal(37d, settings.Settings.Ui.BackdropOpacity);
             Assert.True(settings.Settings.Ui.UseGaussianBackdrop);
             fixture.Set(mode, "Selected", choices[0]!);
             Assert.True(settings.Settings.Ui.EnableImmersive);
-            Assert.Equal(4, rows.Cast<object>().Count(row => fixture.Get<string>(row, "Label") is
-                "背景染色来源" or "背景染色颜色" or "背景色调不透明度（%）" or "背景亮度不透明度（%）" or "背景图不透明度（%）"));
+            Assert.Equal(3, rows.Cast<object>().Count(row => fixture.Get<string>(row, "Label") is
+                "背景图效果" or "背景遮罩颜色" or "背景图不透明度（%）"));
             Assert.True(ReferenceEquals(mode, rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "显示模式")));
-            Assert.Equal(37d, settings.Settings.Ui.BackdropOpacity);
+            var restoredColor = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "背景遮罩颜色");
+            Assert.Equal("#123456", fixture.Get<string>(restoredColor, "Color"));
         });
         TestHarness.Test("外观颜色行：草稿只预览，取消不保存，完成只提交一次", () =>
         {

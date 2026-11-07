@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Emby;
 using Windows.UI;
 
 namespace Momoka.Shell.Views;
@@ -7,10 +8,14 @@ namespace Momoka.Shell.Views;
 public sealed partial class DetailPage
 {
     // 阅读保护固定在图片层，滚动内容和标题栏不再重复叠暗。沉浸背景也必须压住任意位置的亮部。
-    private bool UsesBackdropFade => ViewModel.BackdropShown;
+    private bool UsesBackdropFade => ViewModel.BackdropShown
+        && (ViewModel.Showcase || ViewModel.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season);
 
-    private Color ReadingShadeColor => Color.FromArgb(0,
-        ViewModel.BackdropBaseColor.R, ViewModel.BackdropBaseColor.G, ViewModel.BackdropBaseColor.B);
+    private Color ReadingShadeColor => Color.FromArgb(
+        AppearanceOpacity.ReadingShadeAlpha(ViewModel.BackdropStrength, ViewModel.GaussianBackdropApplied),
+        ShellPrefs.AppearanceColor(true, ViewModel.AppearanceSettings).R,
+        ShellPrefs.AppearanceColor(true, ViewModel.AppearanceSettings).G,
+        ShellPrefs.AppearanceColor(true, ViewModel.AppearanceSettings).B);
 
     private void PaintBackdropFade()
     {
@@ -31,19 +36,18 @@ public sealed partial class DetailPage
             });
         }
         BackdropEdgeFade.Visibility = ViewModel.Showcase ? Visibility.Collapsed : Visibility.Visible;
-        var settings = ViewModel.AppearanceSettings;
-        var tint = settings.BackdropTintFromArtwork ? ViewModel.BackdropBaseColor : ShellPrefs.AppearanceColor(true, settings);
-        BackdropFade.Background = _actionAccessibility.HighContrast ? new SolidColorBrush(color)
-            : new AcrylicBrush
+        BackdropFade.Background = _actionAccessibility.HighContrast ? new SolidColorBrush(color) : ViewModel.UseAcrylicBackdrop
+            ? new AcrylicBrush
             {
-                TintColor = ThemeHost.ToColor(tint),
-                FallbackColor = ThemeHost.ToColor(tint),
-                TintOpacity = AppearanceOpacity.ControlBackground(settings.BackdropTintOpacity),
-                TintLuminosityOpacity = AppearanceOpacity.ControlBackground(settings.BackdropTintLuminosityOpacity),
-                Opacity = ViewModel.BackdropStrength,
+                TintColor = ThemeHost.ToColor(ShellPrefs.AppearanceColor(true, ViewModel.AppearanceSettings)),
+                FallbackColor = ThemeHost.ToColor(ShellPrefs.AppearanceColor(true, ViewModel.AppearanceSettings)),
+                TintOpacity = ViewModel.BackdropStrength,
+                TintLuminosityOpacity = ViewModel.BackdropStrength,
+                Opacity = ViewModel.BackdropStrength == 0 ? 0 : 1,
                 AlwaysUseFallback = ViewModel.BackdropStrength == 1,
                 TintTransitionDuration = TimeSpan.Zero
-            };
+            }
+            : new SolidColorBrush(ReadingShadeColor);
         BackdropFade.Visibility = UsesBackdropFade ? Visibility.Visible : Visibility.Collapsed;
     }
 }
