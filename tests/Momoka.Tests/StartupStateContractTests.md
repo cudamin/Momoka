@@ -91,6 +91,7 @@ if ($LASTEXITCODE -ne 0) { throw '相关截图恢复反射调用者回归失败'
 `NuGetAudit=false` 仅这次固定缓存的离线还原，不修改仓库源或审计设置。构建用原包／分析器，没有新工程或包。
 `desired-invariants` 可作为上述测试开关的末尾兼容参数，仍执行同一套正确契约；**正式入口不再提供将旧错误算通过的模式**。
 错参数退出2，错误树／非标准程序集路径在加载前拒绝；不会退回全 Core 跑器。
+使用 x64 编译时直接执行本树 `tests/Momoka.Tests/bin/x64/Release/net10.0/Momoka.Tests.dll`，后接上述专项、Shell 路径和树根；不要以 `dotnet run --no-build` 选择默认平台旧输出。兼容尾参仅适用于本节上述三个专项，缺失程序集仍由原夹具拒绝并返回失败。
 
 ## 本树红／绿证据
 

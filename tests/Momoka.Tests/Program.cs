@@ -13,6 +13,7 @@ internal static class Program
         if (args is ["verification-harness-fixture"])
         {
             TestHarnessTests.Register();
+            TestEntryPointTests.Register();
             StubTransportTests.Register();
             return TestHarness.Run();
         }
@@ -161,8 +162,12 @@ internal static class Program
         }
         if (args is ["startup-state-contract-fixture", var startupShell, var startupRoot])
             return StartupStateContractTests.Run(startupShell, startupRoot);
+        if (args is ["startup-state-contract-fixture", var startupCompatShell, var startupCompatRoot, "desired-invariants"])
+            return StartupStateContractTests.Run(startupCompatShell, startupCompatRoot);
         if (args is ["startup-reapply-notice-fixture", var reapplyShell, var reapplyRoot])
             return StartupReapplyNoticeTests.Run(reapplyShell, reapplyRoot);
+        if (args is ["startup-reapply-notice-fixture", var reapplyCompatShell, var reapplyCompatRoot, "desired-invariants"])
+            return StartupReapplyNoticeTests.Run(reapplyCompatShell, reapplyCompatRoot);
         if (args is ["settings-search-fixture", var searchShell, var searchRoot])
             return SettingsSearchTests.Run(searchShell, searchRoot);
         if (args is ["settings-page-state-fixture", var shellAssembly, var sourceRoot])
@@ -186,6 +191,8 @@ internal static class Program
             return LibraryFavoriteSourceTests.Run(favoriteShell, favoriteRoot);
         if (args is ["settings-screenshot-restore-fixture", var screenshotShell, var screenshotRoot])
             return SettingsScreenshotRestoreTests.Run(screenshotShell, screenshotRoot);
+        if (args is ["settings-screenshot-restore-fixture", var screenshotCompatShell, var screenshotCompatRoot, "desired-invariants"])
+            return SettingsScreenshotRestoreTests.Run(screenshotCompatShell, screenshotCompatRoot);
         if (args is ["fnnas-library-editor-fixture", var editorShell, var editorRoot])
             return FnNasLibraryEditorTests.Run(editorShell, editorRoot);
         if (args is ["fnnas-user-state-fixture", var stateShell, var stateRoot])
@@ -328,11 +335,17 @@ internal static class Program
             MoviePilotTransferSubmissionTests.Register();
             return TestHarness.Run();
         }
+        if (args.Length != 0)
+        {
+            Console.Error.WriteLine("未知测试参数或参数数量错误；无参数运行完整套件，请按专项文档提供参数。");
+            return 2;
+        }
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Console.WriteLine("Momoka Core 测试");
         Console.WriteLine();
 
         TestHarnessTests.Register();
+        TestEntryPointTests.Register();
         StubTransportTests.Register();
         ActivationListenerTests.Register();
         PlaybackTests.Register();
