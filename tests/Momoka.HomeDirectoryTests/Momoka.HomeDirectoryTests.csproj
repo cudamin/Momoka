@@ -13,6 +13,7 @@
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
     <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="UiQueue.cs" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\FoundationProbeReadings.cs" Link="Production\FoundationProbeReadings.cs" />
   </ItemGroup>
   <UsingTask TaskName="ExtractHomeDirectorySources" TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">

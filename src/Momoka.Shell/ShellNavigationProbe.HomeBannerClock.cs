@@ -183,13 +183,37 @@ internal sealed partial class ShellNavigationProbe
                 $"摘掉台下那张让进度条回退了（{beforeDrop:0.00}→{scale.ScaleX:0.00}）");
             readings.Add($"坏图摘除：读数 {counter.Text}，条 {beforeDrop:0.00}→{scale.ScaleX:0.00}");
 
+            // R06-008: retaining the current image across the one/many boundary must also
+            // reconcile the real DispatcherQueueTimer, including its visible countdown.
+            var retained = banner.Current!;
+            var neighbour = slides.First(slide => slide.Item.Id != retained.Item.Id);
+            var timer = Get<Microsoft.UI.Dispatching.DispatcherQueueTimer>(banner, "_timer");
+            banner.Apply([retained]);
+            await Task.Delay(180);
+            FoundationProbeReadings.Clock(retained.Item.Id, banner.Current!.Item.Id, false, timer.IsRunning, scale.ScaleX);
+            Require(Get<StackPanel>(banner, "SlideStatus").Visibility == Visibility.Collapsed,
+                "只剩单张时读数容器仍显示");
+            banner.ApplyDwell(3);
+            banner.Apply([retained, neighbour]);
+            await Task.Delay(250);
+            FoundationProbeReadings.Clock(retained.Item.Id, banner.Current!.Item.Id, true, timer.IsRunning, scale.ScaleX);
+            Require(Get<StackPanel>(banner, "SlideStatus").Visibility == Visibility.Visible,
+                "增加第二张时读数容器没有恢复");
+            await SaveProbeScreenAsync("home-banner-single-to-many-screen.png");
+            await WaitAsync(() => banner.Current!.Item.Id == neighbour.Item.Id, 6000);
+            banner.Apply([neighbour]);
+            await Task.Delay(180);
+            FoundationProbeReadings.Clock(neighbour.Item.Id, banner.Current!.Item.Id, false, timer.IsRunning, scale.ScaleX);
+            await SaveProbeScreenAsync("home-banner-many-to-single-screen.png");
+            readings.Add("单张→两张启钟并自动翻页；两张→单张停钟且保留当前图");
+
             // 一个能站住的都没有时整条带收起来，不是留一块黑底加几行字。
             banner.Apply([new BannerSlide(broken, fixture.Images)]);
             await WaitAsync(() => banner.Visibility == Visibility.Collapsed, 6000);
             Require(dropped.Count(id => id == broken.Id) == 2, $"坏图只报了一次：{string.Join('、', dropped)}");
             readings.Add("只剩坏图：整条带收起");
 
-            Require(readings.Count == 7, $"轮播读秒与静止检查没有走完（{readings.Count} 条读数）");
+            Require(readings.Count == 8, $"轮播读秒与静止检查没有走完（{readings.Count} 条读数）");
         }
         finally
         {

@@ -18,6 +18,7 @@ internal static class Program
         Console.OutputEncoding = Encoding.UTF8;
         Console.WriteLine("R-062 目录交接＋R03-005 关闭账号生命周期；真实VM/Core、匿名HTTP、无窗口或真实服务器");
         AccountShutdownTests.Register(Test);
+        FoundationProbeReadingTests.Register(Test);
         foreach (var leaveEarly in new[] { false, true })
         {
             Test("R03-004 返回历史主页使用本次有效目录并保留滚动 " + leaveEarly, async () =>

@@ -115,6 +115,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("电视节目收藏分排、分页、失败恢复与宽窄布局", LibraryFavoritesAsync, 60);
             await CaseAsync("电视节目预告日期分组、加载动画、分页和恢复", LibraryUpcomingAsync, 45);
             await CaseAsync("切回 Emby 恢复查询代次", ResumeQueryAsync);
+            await CaseAsync("当前搜索来源、迟到旧查询与 Frame 返回（匿名UI）", FoundationSearchReturnAsync, 45, section: ShellProbeSections.Search);
             await CaseAsync("剧页换季只换锚点与集带起点", EpisodeSeasonAnchorAsync);
             await CaseAsync("旧导航恢复不补新搜索", NavigationRestoreRaceAsync);
             await CaseAsync("分页失败立即停止", PagingFailureAsync);
@@ -178,6 +179,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("当前封面预览失败反馈与原标签刷新恢复", CoverCurrentFailureAsync, 30);
             await CaseAsync("候选完整60张列表与四路并发上限", CoverCandidateLimitAsync, 30);
             await CaseAsync("完整返回历史和主页按钮", ShellHistoryAsync);
+            await CaseAsync("迟到目录的历史主页、固定标题与滚动恢复（匿名UI）", FoundationHomeDirectoryReturnAsync, 45, section: ShellProbeSections.Shell);
             await CaseAsync("收藏入口显隐、跳转及取消最后一项", FavoritesNavigationAsync);
             await CaseAsync("收藏页聚合所有在线账号与分账号筛选", FavoriteAccountsAsync, 30);
             await CaseAsync("收藏刷新、切服和退出的迟到结果隔离", FavoritesRaceAsync);

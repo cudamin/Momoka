@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
+using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Mpv;
@@ -149,6 +150,12 @@ internal sealed partial class ShellNavigationProbe
         mpv.Pipeline = VideoPipelineKind.Standalone;
         mpv.CustomConfigEnabled = false;
         mpv.CustomConfigPath = @"C:\offline\remembered-mpv.conf";
+        var ui = fixture.Settings.Ui;
+        ui.ShowHomeBanner = true;
+        ui.CarouselMedia = CarouselMediaType.Series;
+        ui.CarouselSource = CarouselSource.Random;
+        ui.CarouselCount = 9;
+        ui.CarouselSeconds = 11;
         using var moviePilot = new MoviePilotClient(new RejectNetwork());
         var paths = new AppPaths(Path.Combine(_options.Paths.Root, $"conditional-settings-{width}"));
         paths.EnsureCreated();
@@ -243,6 +250,62 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
             Require(HasRow("mpv.conf 路径") && mpv.ScreenshotWebpQuality == 73, "重入没有保留开关和从属值");
+
+            page.SelectedCategory = "主页";
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            var carousel = page.ViewModel.Sections.Single(item => item.Title == "轮播图");
+            var owner = page.ViewModel.HomeRows;
+            var banner = Descendants(page).OfType<ToggleSwitch>()
+                .Single(control => AutomationProperties.GetName(control) == "显示主页轮播大图");
+            AssertCarousel(true);
+            await SaveProbeScreenAsync($"settings-conditional-carousel-{width}-visible-screen.png");
+            Toggle(banner);
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            AssertCarousel(false);
+            Require(ReferenceEquals(owner, page.ViewModel.HomeRows), "隐藏轮播从属行替换了主页排序所有者");
+            await SaveProbeScreenAsync($"settings-conditional-carousel-{width}-hidden-screen.png");
+            banner = Descendants(page).OfType<ToggleSwitch>()
+                .Single(control => AutomationProperties.GetName(control) == "显示主页轮播大图");
+            Toggle(banner);
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            AssertCarousel(true);
+            Require(ReferenceEquals(owner, page.ViewModel.HomeRows), "恢复轮播从属行替换了主页排序所有者");
+            await SaveProbeScreenAsync($"settings-conditional-carousel-{width}-restored-screen.png");
+            await page.ViewModel.ReloadAsync();
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            carousel = page.ViewModel.Sections.Single(item => item.Title == "轮播图");
+            AssertCarousel(true);
+
+            void AssertCarousel(bool enabled)
+            {
+                FoundationProbeReadings.Carousel(enabled, carousel.Rows.Select(row => row.Label));
+                var rowsHost = Descendants(page).OfType<ItemsControl>().Single(control => ReferenceEquals(control.ItemsSource, carousel.Rows));
+                var labels = Descendants(rowsHost).OfType<TextBlock>().Where(text => text.ActualHeight > 0)
+                    .Select(text => text.Text).Where(text => text == "显示主页轮播大图" || FoundationProbeReadings.CarouselLabels.Contains(text))
+                    .ToArray();
+                FoundationProbeReadings.Carousel(enabled, labels);
+                Require(ui.ShowHomeBanner == enabled && ui.CarouselMedia == CarouselMediaType.Series
+                    && ui.CarouselSource == CarouselSource.Random && ui.CarouselCount == 9 && ui.CarouselSeconds == 11,
+                    "轮播显隐丢失非默认偏好");
+                var actualSwitch = Descendants(rowsHost).OfType<ToggleSwitch>()
+                    .Single(control => AutomationProperties.GetName(control) == "显示主页轮播大图");
+                Require(actualSwitch.Visibility == Visibility.Visible && actualSwitch.ActualHeight > 0 && actualSwitch.IsOn == enabled,
+                    "轮播恢复开关不可达");
+                foreach (var label in FoundationProbeReadings.CarouselLabels)
+                    Require(Descendants(rowsHost).OfType<Control>().Any(control => AutomationProperties.GetName(control) == label) == enabled,
+                        "轮播从属控件残留或恢复缺失：" + label);
+                if (!enabled) return;
+                foreach (var choice in carousel.Rows.OfType<SettingChoiceRow>())
+                    Require(ReferenceEquals(Descendants(rowsHost).OfType<ComboBox>().Single(control => AutomationProperties.GetName(control) == choice.Label).SelectedItem, choice.Selected),
+                        "恢复的轮播下拉未显示保存值：" + choice.Label);
+                foreach (var number in carousel.Rows.OfType<SettingNumberRow>())
+                    Require(Descendants(rowsHost).OfType<NumberBox>().Single(control => AutomationProperties.GetName(control) == number.Label).Value == number.Value,
+                        "恢复的轮播数字框未显示保存值：" + number.Label);
+            }
         }
         finally
         {
