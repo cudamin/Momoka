@@ -116,6 +116,13 @@ internal sealed class FnNasFixture : IDisposable
 
 internal sealed class ShellActions : IShellActions
 {
+    internal ItemMenuPermissions Permissions { get; set; }
+    internal List<EmbySessionScope> PermissionScopes { get; } = [];
+    public ItemMenuPermissions MenuPermissionsFor(EmbySessionScope scope)
+    {
+        PermissionScopes.Add(scope);
+        return Permissions;
+    }
     internal List<(string Text, InfoBarSeverity Severity)> Notices { get; } = [];
     public void Notify(string text, InfoBarSeverity severity = InfoBarSeverity.Informational) => Notices.Add((text, severity));
 }

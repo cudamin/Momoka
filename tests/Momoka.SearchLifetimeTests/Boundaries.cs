@@ -177,6 +177,7 @@ namespace Momoka.Shell.Views
     public interface IShellActions
     {
         void Notify(string text, Microsoft.UI.Xaml.Controls.InfoBarSeverity severity = Microsoft.UI.Xaml.Controls.InfoBarSeverity.Informational);
+        Momoka.Emby.ItemMenuPermissions MenuPermissionsFor(Momoka.Emby.EmbySessionScope scope);
     }
     internal static partial class ItemCommands
     {

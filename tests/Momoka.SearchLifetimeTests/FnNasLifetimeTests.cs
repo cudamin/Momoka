@@ -14,6 +14,25 @@ internal static class FnNasLifetimeTests
     internal static void Register(List<(string Name, Func<Task> Run)> cases)
     {
         void Test(string name, Func<Task> run) => cases.Add(("PERF-12 " + name, run));
+        Test("匹配确认后权限撤销，实际Tell拒绝写且来源固定", async () =>
+        {
+            using var f = new FnNasFixture();
+            var changed = 0;
+            ContentDialog.ShowEndpoint = async control =>
+            {
+                var dialog = (FnNasMatchDialog)control;
+                await dialog.SubmitFixture();
+                dialog.Results.Select(((IReadOnlyList<FnNasScrapCandidate>)dialog.Results.ItemsSource!)[0]);
+                f.Actions.Permissions = new(IsAdministrator: false);
+                return ContentDialogResult.Primary;
+            };
+            await f.MatchAsync(() => changed++);
+            Check.Equal(0, f.Http.Writes);
+            Check.Equal(0, changed);
+            Check.Equal(1, f.Actions.PermissionScopes.Count);
+            Check.Same(f.Scope, f.Actions.PermissionScopes.Single());
+            Check.Contains("当前账号已不允许", f.Actions.Notices.Single().Text);
+        });
         Test("打开/重开不自动搜索，未打开/关闭后也不能提交", async () =>
         {
             var searches = 0;

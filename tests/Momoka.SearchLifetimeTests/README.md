@@ -1,5 +1,7 @@
 # PERF-01 / PERF-12：搜索访问生命周期回归
 
+2026-11-07 提取边界兼容：当前正式入口43项。`TellAsync`／`RequirePermission` 继续来自完整生产提取范围，新增窄权限值与来源回执，核对匹配确认后权限撤销时零写、零 changed、错误反馈保留且检查原 scope。当前 Release/x64 零警告错误、43/43通过；不删权限调用或旧生命周期断言。
+
 这是独立离线定向项目，不使用主测试跑器、`SelfCheckRun`、用户互斥锁或真实桌面。
 本项目的 `bin/obj` 属于本项目；为复用 Core 已有 friend assembly，输出程序集名为
 `Momoka.Tests.dll`，**不是** `tests/Momoka.Tests` 的完整测试输出，不能互换路径。
