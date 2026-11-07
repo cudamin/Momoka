@@ -74,6 +74,7 @@ public sealed class PlaybackPlanner(
         var resolver = ticket.ShaderSettings is { } shaderSettings ? new ShaderGroupResolver(shaderSettings) : shaders;
         var decision = resolver.Resolve(item, source, ticket.Parent, (ticket.OutputWidth, ticket.OutputHeight));
         var tracks = ResolveTracks(ticket, source);
+        var externalSelection = tracks.SubtitlesDisabled ? -1 : map.ExternalSubtitleIndexes.IndexOf(tracks.SubtitleIndex ?? -1);
         var chainOptions = decision.Group?.ToMpvOptions(ShaderGroupCatalog.ShaderRoot) ?? [];
 
         // 国漫判定（用户令 2026-09-26「新增国漫播放进度自定义百分比标记已看」）：在计划层做掉、结论随票走，
@@ -111,7 +112,8 @@ public sealed class PlaybackPlanner(
             HttpHeaders = BuildHeaders(connection),
             StartSeconds = TimeFormat.ToSeconds(ticket.ExactStart ? Math.Max(0, ticket.StartTicks) : ResumeFrom(ticket.StartTicks)),
             AudioId = map.AudioId(tracks.AudioIndex),
-            SubtitleId = map.SubtitleId(tracks.SubtitleIndex),
+            SubtitleId = externalSelection >= 0 ? null : map.SubtitleId(tracks.SubtitleIndex),
+            SelectedExternalSubtitle = externalSelection >= 0 ? externalSubtitles[externalSelection] : null,
             SubtitlesDisabled = tracks.SubtitlesDisabled,
             ExternalSubtitles = externalSubtitles,
             SubtitleLanguage = TrackLanguagePriority.FromTokens(settings.Playback.SubtitleLanguages),

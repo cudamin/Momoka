@@ -635,7 +635,7 @@ internal static class PlaybackLifecycleTests
         }
     }
 
-    internal sealed class Handle : IPlaybackHandle, IPlayerControl
+    internal sealed class Handle : IPlaybackHandle, IPlayerControl, IFileScopedPlayerControl
     {
         private TaskCompletionSource<PlaybackExit> _exit = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private Action<PlayerStatus>? _statusChanged;
@@ -653,9 +653,20 @@ internal static class PlaybackLifecycleTests
         public double? Position { get; set; } = 0;
         public Func<CancellationToken, Task<double?>>? ReadPosition { get; init; }
         public Func<string, CancellationToken, Task<string?>>? ReadText { get; set; }
+        public Func<CancellationToken, Task<IReadOnlyList<MpvTrack>>>? ReadTracks { get; set; }
         public PlayerStatus Status { get; private set; } = new();
         public event Action<bool>? PauseChanged;
-        public event Action<IReadOnlyList<MpvTrack>>? TracksChanged { add { } remove { } }
+        public event Action<IReadOnlyList<MpvTrack>>? TracksChanged;
+        public IReadOnlyList<MpvTrack> CurrentTracks { get; set; } = [];
+        public Func<IReadOnlyList<string>, CancellationToken, Task<bool>>? OnCommand { get; set; }
+        public long FileGeneration { get; set; }
+        public List<long> FileCommands { get; } = [];
+        public Task<bool> CommandForFileAsync(long generation, IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+        {
+            FileCommands.Add(generation);
+            return generation == FileGeneration ? CommandAsync(arguments, cancellationToken) : Task.FromResult(false);
+        }
+        public void PublishTracks(IReadOnlyList<MpvTrack> tracks) { CurrentTracks = tracks; TracksChanged?.Invoke(tracks); }
         public event Action<PlayerStatus>? StatusChanged
         {
             add { _statusChanged += value; if (Started.Task.IsCompleted) Listening.TrySetResult(); }
@@ -694,10 +705,10 @@ internal static class PlaybackLifecycleTests
         public ValueTask DisposeAsync() { DisposeCount++; return ValueTask.CompletedTask; }
         public Task ShowMessageAsync(string text) => Task.CompletedTask;
         public Task SetPropertyAsync(string name, object? value, CancellationToken cancellationToken) => Task.CompletedTask;
-        public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<MpvTrack>>([]);
+        public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken) => ReadTracks?.Invoke(cancellationToken) ?? Task.FromResult(CurrentTracks);
         public Task<double?> GetNumberAsync(string name, CancellationToken cancellationToken) => Task.FromResult<double?>(null);
         public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken) =>
             ReadText?.Invoke(name, cancellationToken) ?? Task.FromResult<string?>(null);
-        public Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken) => Task.FromResult(true);
+        public Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken) => OnCommand?.Invoke(arguments, cancellationToken) ?? Task.FromResult(true);
     }
 }

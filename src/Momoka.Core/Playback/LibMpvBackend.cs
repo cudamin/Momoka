@@ -300,7 +300,7 @@ public sealed class LibMpvBackend(
         Set(context, "start", FormatSeconds(request.StartSeconds));
 
         if (request.AudioId is { } audioId) Set(context, "aid", audioId.ToString(CultureInfo.InvariantCulture));
-        if (request.SubtitlesDisabled) Set(context, "sid", "no");
+        if (request.SubtitlesDisabled || request.SelectedExternalSubtitle is not null) Set(context, "sid", "no");
         else if (request.SubtitleId is { } subtitleId) Set(context, "sid", subtitleId.ToString(CultureInfo.InvariantCulture));
 
         if (!string.IsNullOrWhiteSpace(request.AudioLanguage)) Set(context, "alang", request.AudioLanguage);
@@ -332,6 +332,7 @@ public sealed class LibMpvBackend(
         // 独占模式的 Lua UI 装配选项（osc=no、mpv 自带 OSD 条关闭、无边框、字体目录、脚本路径）。
         // 放在管线契约之前：契约是必需项，永远后写后赢。
         foreach (var option in uiOptions ?? []) Set(context, option.Key, option.Value);
+        if (request.SelectedExternalSubtitle is not null) Set(context, "sid", "no");
 
         // 独占模式那扇 mpv 窗口的窗口策略（窗口形状跟画面、出生尺寸下限、拖窗吸附）—— 参考项目 mpv.conf
         // 那一组里的三条，理由与出处见 StandaloneWindowPolicy。与上面那串同在管线契约之前，且都不是必需项。

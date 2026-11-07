@@ -49,6 +49,14 @@ public sealed partial class PlayerViewModel
     internal long NewIntentForFixture() => _startIntent.Begin();
     internal void ChangeEpisodesForFixture(IReadOnlyList<EmbyItem> episodes) => Episodes = episodes;
     internal Task StepForFixture(int offset) => StepEpisodeAsync(offset);
+    internal Task VersionForFixture(MediaVersion version)
+    {
+        _versions = [version];
+        return StartVersionAsync(version.Source);
+    }
+    internal void SetStatusForFixture(PlayerStatus status) => Status = status;
+    internal bool? PreparingInHost => _preparingPictureInHost;
+    internal bool PresentedHeadless => _presentedHeadless == true;
     internal bool HasEpisodeLookup => _episodeLookup is not null;
     internal SkipCoordinator SkipPlanForFixture => _skips;
     internal void SeedSkipForFixture(IReadOnlyList<SkipSection> sections, double duration)

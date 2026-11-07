@@ -11,7 +11,13 @@ internal static class UserQueueCases
         var b = f.Episode("b");
         var c = f.Episode("c");
         a.IndexNumber = 1; b.IndexNumber = 2; c.IndexNumber = 3;
-        if (mode == "cross-series") c.SeriesId = "other-series";
+        if (mode == "cross-series")
+        {
+            c.SeriesId = "other-series";
+            var other = f.Series(); other.Id = "other-series";
+            f.Transport.Item(f.A, other);
+            f.Transport.Item(f.A, f.Series());
+        }
         var reads = 0;
         f.Transport.Episodes(f.A, "series", _ =>
         {

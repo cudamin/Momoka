@@ -48,9 +48,10 @@ public static class EpisodeNavigation
         int offset)
     {
         if (offset is not (-1 or 1)) throw new ArgumentOutOfRangeException(nameof(offset));
-        var index = IndexOf(episodes, currentIdentityKey);
+        var index = episodes is UserPlaybackQueue queue ? queue.IndexOfCurrent(currentIdentityKey) : IndexOf(episodes, currentIdentityKey);
         if (index < 0 || index + offset < 0 || index + offset >= episodes.Count) return null;
-        return new(episodes[index + offset], episodes);
+        return new(episodes[index + offset], episodes is UserPlaybackQueue currentQueue
+            ? new UserPlaybackQueue(currentQueue) { CurrentIndex = index + offset } : episodes);
     }
 
     /// <summary>确认删除当前单集后，按原有顺序先找同来源同剧的上一集；首集才改找下一集。</summary>

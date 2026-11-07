@@ -6,6 +6,20 @@ internal static class Program
     {
         if (args is ["font-fill-recovery-fixture", var fontShell, var fontRoot])
             return FontFillRecoveryTests.Run(fontShell, fontRoot);
+        if (args is ["external-subtitle-selection-fixture"])
+        {
+            ExternalSubtitleSelectionTests.Register();
+            PlaybackTrackStateTests.Register();
+            R10ReportingTests.Register();
+            PlaybackLifecycleTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["review-playback-reporting-fixture"])
+        {
+            R10ReportingTests.Register();
+            PlaybackLifecycleTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["review-foundation-core-fixture"])
         {
             ReviewFoundationTests.RegisterCore();
@@ -380,6 +394,7 @@ internal static class Program
         MarkedWatchedSourceTests.Register();
         KeywordPriorityTests.Register();
         PlaybackLifecycleTests.Register();
+        R10ReportingTests.Register();
         MediaVersionDiscoveryTests.Register();
         MediaSourceSizeTests.Register();
         BackendLifecycleTests.Register();
@@ -390,6 +405,7 @@ internal static class Program
         Anime4KTests.Register();
         ShaderTransactionTests.Register();
         PlaybackTrackStateTests.Register();
+        ExternalSubtitleSelectionTests.Register();
         SubtitleFileTests.Register();
         SubtitleBehaviorTests.Register();
         SubtitleForcedOnlyTests.Register();

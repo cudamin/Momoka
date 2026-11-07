@@ -7,6 +7,34 @@ namespace Momoka.Playback;
 
 public sealed partial class PlaybackService
 {
+    private async Task SelectInitialExternalSubtitleAsync(PlayingAttempt attempt, IReadOnlyList<MpvTrack> tracks)
+    {
+        var target = attempt.Request.SelectedExternalSubtitle;
+        if (target is null || !IsCurrent(attempt) || !attempt.Handle.HasControlChannel
+            || attempt.Handle is not IPlayerControl { Status.Loaded: true } control
+            || Volatile.Read(ref attempt.ExternalSubtitleSelection) != 0) return;
+        // A manual selection owns the primary track from this point; never chase the initial choice again.
+        if (tracks.Any(track => track.IsSubtitle && track.Selected && track.MainSelection is null or 0))
+        {
+            Interlocked.CompareExchange(ref attempt.ExternalSubtitleSelection, 1, 0);
+            return;
+        }
+        var matches = tracks.Where(track => track.IsSubtitle && track.External && track.Id > 0
+            && Uri.TryCreate(track.ExternalFilename, UriKind.Absolute, out var file)
+            && Uri.Compare(target, file, UriComponents.AbsoluteUri, UriFormat.UriEscaped, StringComparison.Ordinal) == 0).ToArray();
+        if (matches.Length != 1 || Interlocked.CompareExchange(ref attempt.ExternalSubtitleSelection, 1, 0) != 0) return;
+        try
+        {
+            if (!IsCurrent(attempt)) return;
+            string[] command = ["set", "sid", matches[0].Id.ToString(System.Globalization.CultureInfo.InvariantCulture)];
+            var accepted = control is IFileScopedPlayerControl fileControl && attempt.FileGeneration is { } generation
+                ? await fileControl.CommandForFileAsync(generation, command, CancellationToken.None).ConfigureAwait(false)
+                : await control.CommandAsync(command, CancellationToken.None).ConfigureAwait(false);
+            if (!accepted) Log.Warn(Category, "目标外挂字幕未能选择，未尝试其他字幕");
+        }
+        catch (Exception error) { Log.Warn(Category, "选择目标外挂字幕失败", error); }
+    }
+
     private async Task<PlaybackExit> MonitorAsync(EmbySessionScope scope, PlayingAttempt attempt, CancellationToken cancellationToken)
     {
         var handle = attempt.Handle;
@@ -287,16 +315,20 @@ public sealed partial class PlaybackService
 
     private async Task ReportPauseAsync(EmbySessionScope scope, PlayingAttempt attempt, bool paused)
     {
+        var revision = Interlocked.Increment(ref attempt.PauseRevision);
+        bool Current() => IsCurrent(attempt) && revision == Volatile.Read(ref attempt.PauseRevision);
         try
         {
-            if (!IsCurrent(attempt)) return;
+            if (!Current()) return;
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(3));
             var position = await attempt.Handle.GetPositionAsync(deadline.Token).WaitAsync(deadline.Token).ConfigureAwait(false);
-            if (!IsCurrent(attempt) || position is not { } seconds || !double.IsFinite(seconds) || seconds < 0) return;
+            if (!Current()
+                || position is not { } seconds || !double.IsFinite(seconds) || seconds < 0) return;
             var ticks = TimeFormat.ToTicks(seconds);
+            if (!Current()) return;
             Raise(ProgressChanged, new PlaybackProgress(ticks, attempt.Request.RunTimeTicks, paused,
                 attempt.Request.Title, attempt.Generation));
-            await ReportProgressAsync(scope, attempt, ticks, paused, paused ? "pause" : "unpause", CancellationToken.None)
+            await ReportProgressAsync(scope, attempt, ticks, paused, paused ? "pause" : "unpause", CancellationToken.None, revision)
                 .ConfigureAwait(false);
         }
         catch (OperationCanceledException) { }
@@ -304,12 +336,13 @@ public sealed partial class PlaybackService
     }
 
     private async Task ReportProgressAsync(EmbySessionScope scope, PlayingAttempt attempt,
-        long ticks, bool paused, string eventName, CancellationToken cancellationToken)
+        long ticks, bool paused, string eventName, CancellationToken cancellationToken, long? pauseRevision = null)
     {
         await attempt.Reports.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (!IsCurrent(attempt) || attempt.StopReported) return;
+            if (!IsCurrent(attempt) || attempt.StopReported
+                || pauseRevision is { } revision && revision != Volatile.Read(ref attempt.PauseRevision)) return;
             await ReportAsync(scope, "进度", (client, token) => client.ReportPlaybackProgressAsync(
                 Build(attempt, ticks, paused, eventName), token), cancellationToken).ConfigureAwait(false);
         }

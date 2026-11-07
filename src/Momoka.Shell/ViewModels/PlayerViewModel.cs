@@ -153,8 +153,10 @@ public sealed partial class PlayerViewModel : ObservableObject
     private IReadOnlyList<MediaVersion> _versions = [];
     private int _versionDiscovery;
     private sealed record PendingPlayback(EmbyItem Item, EmbyItem? Parent, IReadOnlyList<EmbyItem> Episodes,
-        EmbySessionScope Scope, long Intent);
+        EmbySessionScope Scope, long Intent, int Attempt, long StartTicks);
     private PendingPlayback? _pendingPlayback;
+    private int _activePlaybackAttempt;
+    private long _activeStartTicks;
 
     /// <summary>See the class remarks: the reason the player survives the seam between two episodes.</summary>
     private int _playerHold;

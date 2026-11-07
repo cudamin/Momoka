@@ -1824,7 +1824,8 @@ internal static class PlaybackTests
             var request = planner.Plan(ticket, Connection());
 
             Assert.Equal(2, request.AudioId, "容器里第二条音轨");
-            Assert.Equal(2, request.SubtitleId, "外挂字幕排在内封之后");
+            Assert.Null(request.SubtitleId, "外挂字幕按实际文件名选，不猜加载编号");
+            Assert.Equal(request.ExternalSubtitles[0], request.SelectedExternalSubtitle);
             Assert.Equal(1, request.ExternalSubtitles.Count);
             Assert.Contains("Subtitles/4", request.ExternalSubtitles[0].AbsoluteUri);
             Assert.Equal(4, request.SubtitleStreamIndex, "上报给服务器的仍是 Emby 的索引");
