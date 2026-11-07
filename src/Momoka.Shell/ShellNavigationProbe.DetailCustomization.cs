@@ -131,6 +131,14 @@ internal sealed partial class ShellNavigationProbe
                     .SequenceEqual(row.Rows.Select(card => (card.Key, card.Visible))), title + " 重入丢失偏好");
             }
             var appearance = page.ViewModel.Sections.Single(section => section.Title == "详情页外观");
+            var defaultRow = appearance.Rows.OfType<SettingSliderRow>()
+                .Single(row => row.Label == "按钮与选择框底色不透明度（%）");
+            var defaultHost = Descendants(page).OfType<ContentPresenter>().Single(item => ReferenceEquals(item.Content, defaultRow));
+            defaultHost.StartBringIntoView();
+            await LayoutAsync(defaultHost);
+            Require(Math.Abs(defaultRow.Value - UiSettings.DefaultControlBackgroundOpacity) < 0.000001
+                && Math.Abs(fixture.Settings.Ui.ControlBackgroundOpacity - UiSettings.DefaultControlBackgroundOpacity) < 0.000001,
+                "打开设置把精确默认不透明度改成了吸附值");
             foreach (var (label, choice) in new[]
             {
                 ("按钮与选择框背景", "亚克力"), ("背景图效果", "高斯模糊")
@@ -554,9 +562,9 @@ internal sealed partial class ShellNavigationProbe
             var play = Descendants(Get<StackPanel>(page, "CompactBlock")).OfType<Button>().First();
             var action = Descendants(play).OfType<ContentPresenter>().Single(part => part.Name == "ContentPresenter").Background;
             Require(action is AcrylicBrush { AlwaysUseFallback: false } acrylic
-                && acrylic.TintColor == ((SolidColorBrush)Application.Current.Resources["EgDetailActionBrush"]).Color
-                && acrylic.FallbackColor == ((SolidColorBrush)Application.Current.Resources["EgDetailActionBrush"]).Color,
-                "浅色操作亚克力没有保留当前浅色面");
+                && acrylic.TintColor == Windows.UI.Color.FromArgb(255, 255, 255, 255)
+                && acrylic.FallbackColor == Windows.UI.Color.FromArgb(255, 255, 255, 255),
+                "操作亚克力没有保留当前白色染色与回退");
             Require(Get<TextBlock>(page, "Overview").Foreground is SolidColorBrush text
                 && text.Color == ((SolidColorBrush)Application.Current.Resources["EgOnScrimBrush"]).Color,
                 "高斯简介文字没有保持视频/音频的白色");
@@ -705,12 +713,9 @@ internal sealed partial class ShellNavigationProbe
                     var feedback = state is "PointerOver" or "Pressed" or "CheckedPointerOver" or "CheckedPressed";
                     if (controls.Contains(control) || control is EgPicker)
                     {
-                        var key = state.Contains("PointerOver", StringComparison.Ordinal) ? "EgDetailActionHoverBrush"
-                            : state.Contains("Pressed", StringComparison.Ordinal) ? "EgDetailActionPressedBrush" : "EgDetailActionBrush";
-                        var expected = (SolidColorBrush)Application.Current.Resources[key];
-                        var expectedOpacity = state.Contains("Pressed", StringComparison.Ordinal) ? 0.12 : feedback ? 0.06 : 0;
-                        Require(color == expected.Color && Math.Abs(opacity - expectedOpacity) < 0.001,
-                            control.Name + "/" + state + " 灰底零档或反馈不正确");
+                        var expectedOpacity = state.Contains("Pressed", StringComparison.Ordinal) ? 8d / 255 : feedback ? 21d / 255 : 0;
+                        Require(color == Windows.UI.Color.FromArgb(255, 255, 255, 255) && Math.Abs(opacity - expectedOpacity) < 0.001,
+                            control.Name + "/" + state + " 薄白零档或反馈不正确");
                     }
                     else
                         Require(feedback ? baseline > 0 : baseline == 0 && color.A == 0,
@@ -721,7 +726,7 @@ internal sealed partial class ShellNavigationProbe
                     Require(VisualStateManager.GoToState(control, state, false), "外观调整后控件丢失状态：" + state);
                     await LayoutAsync(control);
                     Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } adjusted
-                            && Math.Abs(adjusted.Opacity * adjusted.FallbackColor.A / 255d - Math.Min(1, 0.37 + baseline)) < 0.001,
+                            && Math.Abs(adjusted.Opacity * adjusted.FallbackColor.A / 255d - ExpectedStrength()) < 0.001,
                         control.Name + "/" + state + " 底色浓度不是滑块读数");
                     Require(control.Opacity == 1 && ReferenceEquals(control.Foreground, foreground),
                         "底色调节改变了整个控件或文字画刷");
@@ -745,7 +750,7 @@ internal sealed partial class ShellNavigationProbe
                     ui.ControlBackgroundOpacity = 37;
                     ShellPrefs.ApplyAppearance(ui);
                     Require(Fill() is AcrylicBrush { AlwaysUseFallback: false } thicker
-                        && Math.Abs(thicker.TintOpacity - Math.Min(1, 0.37 + baseline)) < 0.001,
+                        && Math.Abs(thicker.TintOpacity - ExpectedStrength()) < 0.001,
                         "亚克力没有随不透明度增加");
                     ui.ControlBackgroundOpacity = 99.9;
                     ShellPrefs.ApplyAppearance(ui);
@@ -758,6 +763,10 @@ internal sealed partial class ShellNavigationProbe
                     ShellPrefs.ApplyAppearance(ui);
                     Require(control.Opacity == 1 && ReferenceEquals(control.Foreground, foreground),
                         "材质切换改变文字或整个按钮的不透明度");
+
+                    double ExpectedStrength() => controls.Contains(control) || control is EgPicker
+                        ? !feedback ? 0.37 : baseline + (1 - baseline) * (0.37 - 15d / 255) / (1 - 15d / 255)
+                        : Math.Min(1, 0.37 + baseline);
                 }
             }
             finally { VisualStateManager.GoToState(control, restore, false); }

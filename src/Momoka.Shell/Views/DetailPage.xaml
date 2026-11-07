@@ -750,7 +750,7 @@
                                             <FontIcon
                                                 FontSize="14"
                                                 Glyph="&#xE768;"
-                                                Foreground="{StaticResource EgDetailActionAccentBrush}"
+                                                Foreground="{StaticResource EgAccentBrush}"
                                                 Visibility="{x:Bind ViewModel.ResumePlay, Mode=OneWay}" />
                                             <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
                                         </StackPanel>
@@ -780,9 +780,9 @@
                                              而字自己钉在浅墨上 —— 那支 accent 于是只落在没写 Foreground 的 FontIcon 上。
                                              背景三态由 PrepareAppearance 一次添加局部画刷，不能在这里再声明别名。 -->
                                         <ToggleButton.Resources>
-                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgDetailActionAccentBrush" />
-                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgDetailActionAccentBrush" />
-                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgDetailActionAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
                                         </ToggleButton.Resources>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <FontIcon FontSize="14" Glyph="&#xE8EE;" />
@@ -801,7 +801,7 @@
                                                 Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
                                             <FontIcon
                                                 FontSize="15"
-                                                Foreground="{ThemeResource EgDetailActionAccentBrush}"
+                                                Foreground="{ThemeResource EgAccentBrush}"
                                                 Glyph="&#xE73E;"
                                                 Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
                                             <TextBlock x:Uid="DetailPage_WatchedOn" Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
@@ -1144,7 +1144,7 @@
                                         <FontIcon
                                             FontSize="14"
                                             Glyph="&#xE768;"
-                                            Foreground="{StaticResource EgDetailActionAccentBrush}"
+                                            Foreground="{StaticResource EgAccentBrush}"
                                             Visibility="{x:Bind ViewModel.ResumePlay, Mode=OneWay}" />
                                         <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
                                     </StackPanel>
@@ -1171,9 +1171,9 @@
                                     Style="{StaticResource EgPillToggleButtonStyle}"
                                     Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
                                     <ToggleButton.Resources>
-                                        <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgDetailActionAccentBrush" />
-                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgDetailActionAccentBrush" />
-                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgDetailActionAccentBrush" />
+                                        <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
+                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
+                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
                                     </ToggleButton.Resources>
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <FontIcon FontSize="14" Glyph="&#xE8EE;" />
@@ -1192,7 +1192,7 @@
                                             Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
                                         <FontIcon
                                             FontSize="15"
-                                            Foreground="{ThemeResource EgDetailActionAccentBrush}"
+                                            Foreground="{ThemeResource EgAccentBrush}"
                                             Glyph="&#xE73E;"
                                             Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
                                         <TextBlock x:Uid="DetailPage_WatchedOn" Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />

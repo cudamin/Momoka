@@ -14,7 +14,7 @@ public sealed partial class DetailPage
     private void PrepareAppearance()
     {
         foreach (var key in new[] { "EgDetailActionBrush", "EgDetailActionHoverBrush", "EgDetailActionPressedBrush",
-            "EgDetailActionTextBrush", "EgDetailActionAccentBrush" })
+            "EgDetailActionTextBrush" })
         {
             var brush = (Microsoft.UI.Xaml.Media.SolidColorBrush)Microsoft.UI.Xaml.Application.Current.Resources[key];
             _actionColors.Add((brush, brush.Color));
@@ -42,14 +42,10 @@ public sealed partial class DetailPage
                 "ComboBoxDropDownGlyphForegroundFocusedPressed" })
                 picker.Resources[key] = ink;
             picker.Foreground = (Microsoft.UI.Xaml.Media.Brush)ink;
-            picker.Resources["ComboBoxDropDownBackground"] = resources["EgDetailActionBrush"];
             foreach (var suffix in new[] { "", "Pressed", "PointerOver", "Selected", "SelectedUnfocused",
                 "SelectedPressed", "SelectedPointerOver" })
                 picker.Resources["ComboBoxItemForeground" + suffix] = ink;
-            foreach (var suffix in new[] { "PointerOver", "Selected" })
-                picker.Resources["ComboBoxItemBackground" + suffix] = resources["EgDetailActionHoverBrush"];
-            foreach (var suffix in new[] { "Pressed", "SelectedUnfocused", "SelectedPressed", "SelectedPointerOver" })
-                picker.Resources["ComboBoxItemBackground" + suffix] = resources["EgDetailActionPressedBrush"];
+            // 展开面与行背景留给 Palette 的亚克力及 WinUI 原状态，闭合态才与按钮共用薄白。
             _controlBackgrounds.Add(ControlBackgroundBrushes.ForDetail(picker, lightSurface: true));
         }
     }

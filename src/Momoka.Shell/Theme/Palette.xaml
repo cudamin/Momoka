@@ -596,12 +596,11 @@
 
     <!-- 详情页头图上的文字。头图永远是一张压了深色遮罩的剧照，所以这两个刷子故意不进
          ThemeDictionaries：跟着主题走的话，浅色主题下就是深色字压在深色遮罩上。 -->
-    <!-- 用户批准的详情灰底白字；浓度独立由滑块控制，默认25%，不叠文字阴影。 -->
-    <SolidColorBrush x:Key="EgDetailActionBrush" Color="#FFB0B0B0" />
-    <SolidColorBrush x:Key="EgDetailActionHoverBrush" Color="#FFC3C3C3" />
-    <SolidColorBrush x:Key="EgDetailActionPressedBrush" Color="#FF9B9B9B" />
+    <!-- 0.2.0 默认按钮的薄白三态；详情闭合选择框共用，滑块调整有效浓度，默认15/255。 -->
+    <SolidColorBrush x:Key="EgDetailActionBrush" Color="#0FFFFFFF" />
+    <SolidColorBrush x:Key="EgDetailActionHoverBrush" Color="#15FFFFFF" />
+    <SolidColorBrush x:Key="EgDetailActionPressedBrush" Color="#08FFFFFF" />
     <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="#FFFFFFFF" />
-    <SolidColorBrush x:Key="EgDetailActionAccentBrush" Color="#FFFFFFFF" />
     <SolidColorBrush x:Key="EgOnScrimBrush" Color="#FFF3F5F8" />
     <SolidColorBrush x:Key="EgOnScrimDimBrush" Color="#FFC9D0D9" />
 

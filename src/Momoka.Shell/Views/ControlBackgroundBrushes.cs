@@ -12,7 +12,7 @@ namespace Momoka.Shell.Views;
 /// <para>
 /// 滑块的读数就是底色自己的不透明度（2026-11-06 用户令「0 改为完全透明，100 改为完全不透明」）：0 档常态什么
 /// 都不画，悬停与按下仍留原来那层薄白 —— 那是指针的手感，不是要关掉的那块板。
-/// 详情操作按钮与选择框使用中性灰底、白字；常态按滑块读数，悬停与按下增加少量反馈。
+/// 详情按钮与闭合选择框共用平台薄白三态；默认还原 0.2.0 的 15/21/8 alpha，展开列表独立用亚克力。
 /// </para>
 /// </summary>
 internal sealed class ControlBackgroundBrushes
@@ -76,11 +76,16 @@ internal sealed class ControlBackgroundBrushes
         {
             if (_lightSurface)
             {
-                // 颜色与浓度分开：不能为了浅色面钉实底或72%的下限。零与满档按精确实色处理。
-                var feedbackAmount = ReferenceEquals(source, Resource("EgDetailActionPressedBrush")) ? 0.12 : 0.06;
-                var strength = Math.Min(1, amount + (feedback ? feedbackAmount : 0));
-                copy.TintColor = target.Color;
-                copy.FallbackColor = target.Color;
+                // 常态是滑块直接读数；默认以下保留悬停/按下反馈，默认以上各态连续补到满档。
+                // 不用「默认值相等」特判，邻近小数档、导入值与系统实底也走同一条曲线。
+                var normal = Resource("EgDetailActionBrush").Color.A / 255d;
+                var feedbackFloor = source.Color.A / 255d;
+                var strength = !feedback ? amount : amount <= normal ? feedbackFloor
+                    : feedbackFloor + (1 - feedbackFloor) * (amount - normal) / (1 - normal);
+                var ink = target.Color;
+                ink.A = byte.MaxValue;
+                copy.TintColor = ink;
+                copy.FallbackColor = ink;
                 copy.TintOpacity = strength;
                 copy.TintLuminosityOpacity = 0;
                 copy.Opacity = useAcrylic && strength is > 0 and < 1 ? 1 : strength;

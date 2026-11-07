@@ -508,7 +508,7 @@ public sealed partial class DetailViewModel : PageViewModel
     public bool Showcase => DetailHero.Immersive(Spacious || NearCrop, IsCompact, BackdropShown, ItemType,
         _settings?.Settings.Ui.AlwaysImmersive == true);
 
-    internal double ControlBackgroundOpacity => _settings?.Settings.Ui.ControlBackgroundOpacity ?? 0;
+    internal double ControlBackgroundOpacity => _settings?.Settings.Ui.ControlBackgroundOpacity ?? UiSettings.DefaultControlBackgroundOpacity;
 
     internal bool UseAcrylicControls => _settings?.Settings.Ui.UseAcrylicControls == true;
     public bool UseGaussianBackdrop => Showcase && !UseAcrylicBackdrop && _settings?.Settings.Ui.UseGaussianBackdrop == true;
