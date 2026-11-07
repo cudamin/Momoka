@@ -12,7 +12,7 @@ namespace Momoka.Configuration;
 /// </summary>
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 27;
+    public const int CurrentSchemaVersion = 28;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -1380,21 +1380,25 @@ public sealed class UiSettings
     /// <summary>电影详情页正文卡片的排序与显示偏好。</summary>
     public List<DetailCardSetting> MovieCards { get; set; } = [];
 
-    /// <summary>按钮与闭合选择框共用的 RGB 底色；透明度由独立偏好决定。</summary>
+    /// <summary>
+    /// 按钮与闭合选择框的颜色。半透明叠层时是那层底色的 RGB；换成亚克力时同一个数就是画笔的 TintColor ——
+    /// 两种模式都只是「这颗按钮是什么颜色」，没必要存两份。
+    /// </summary>
     public string ControlBackgroundColor { get; set; } = DefaultControlBackgroundColor;
 
     public const string DefaultControlBackgroundColor = "#FFFFFF";
 
-    /// <summary>背景处理的 RGB 遮罩色；高斯、普通遮罩和亚克力共用。</summary>
+    /// <summary>背景图上那层亚克力的 TintColor。自选固定色，换图不跟着改。</summary>
     public string BackdropColor { get; set; } = DefaultBackdropColor;
 
     public const string DefaultBackdropColor = "#808080";
 
     /// <summary>
-    /// 详情按钮与选择框底色的不透明度（%）：0 完全透明（没有底色），100 完全不透明。
+    /// 半透明叠层模式下按钮底色的不透明度（%）：0 完全透明（没有底色），100 完全不透明。
     /// <para>
     /// 2026-11-06 用户令「0 改为完全透明，100 改为完全不透明」：这一格从「在原底色上再加多少」改成直接读数，
     /// 所以 0 档真的什么都不画。悬停与按下仍保留原来那层薄白 —— 那是按钮的手感，不是底色。
+    /// 亚克力模式不用这一格：那边由下面两项染色参数决定材质，不再另叠一层整体浓度。
     /// </para>
     /// </summary>
     public double ControlBackgroundOpacity { get; set; } = DefaultControlBackgroundOpacity;
@@ -1403,30 +1407,32 @@ public sealed class UiSettings
     public const double DefaultControlBackgroundOpacity = 15d / 255 * 100;
 
     /// <summary>
-    /// 详情背景图上那层处理的强度（%）：0 关闭遮罩、模糊与亚克力（背景图原样清晰），100 遮罩或亚克力完全
-    /// 不透明（选高斯模糊时模糊拉满）；普通与沉浸版式共用这一档，高斯仍只在沉浸生效。
+    /// 按钮亚克力的 TintOpacity（%）：染色层压得多浓，越高颜色盖得越实。
     /// <para>
-    /// 2026-11-06 定稿：这一格管的是<b>压在图上的遮罩／模糊</b>，不是图片自己的透明度。老版把它当「在原浓度上
-    /// 再加多少」，0 档仍是一张压到 0.9 的图。缺键的旧文件由 <c>SettingsMigration</c> 按旧的增量语义换算，
-    /// 落在 <see cref="DefaultBackdropOpacity"/>。
+    /// 2026-11-07 用户令「背景图和按钮新的亚克力改为三项可调，去掉高斯模糊和颜色遮罩」：WinUI 的
+    /// <c>AcrylicBrush</c> 只有 TintColor、TintOpacity、TintLuminosityOpacity 三个参数，此前那格「整体浓度」
+    /// 驱动的是整支画笔的 <c>Opacity</c>，不属于亚克力自己的参数，随本次一起退役。
     /// </para>
     /// </summary>
-    public double BackdropOpacity { get; set; } = DefaultBackdropOpacity;
+    public double ControlTintOpacity { get; set; } = DefaultAcrylicTintOpacity;
+
+    /// <summary>按钮亚克力的 TintLuminosityOpacity（%）：管背后那张图的明暗透上来多少，与染色层各管一头。</summary>
+    public double ControlTintLuminosityOpacity { get; set; } = DefaultAcrylicTintOpacity;
+
+    /// <summary>背景亚克力的 TintOpacity（%），同 <see cref="ControlTintOpacity"/>。</summary>
+    public double BackdropTintOpacity { get; set; } = DefaultAcrylicTintOpacity;
+
+    /// <summary>背景亚克力的 TintLuminosityOpacity（%），同 <see cref="ControlTintLuminosityOpacity"/>。</summary>
+    public double BackdropTintLuminosityOpacity { get; set; } = DefaultAcrylicTintOpacity;
 
     /// <summary>
-    /// 背景图那层处理的出厂强度（%）。旧版是普通 0.9／沉浸 0.96 两档图的不透明度写死（遮罩最浓 0xB8），
-    /// 用户令「降低默认的背景图不透明度」：出厂降到这一档，遮罩比老观感淡、图比原来清楚；滑块仍可拖到 100。
+    /// 四项染色参数的出厂值（%）：0.55。项目里几块既有玻璃（<c>EgFrostBrush</c>、<c>EgActionGlassBrush</c>）
+    /// 用的就是 0.55 这一档，按「透上来的份量约等于 (1-L)×(1-T)」算下来两成左右透光。
     /// </summary>
-    public const double DefaultBackdropOpacity = 40;
+    public const double DefaultAcrylicTintOpacity = 55;
 
-    /// <summary>按钮与选择框使用应用内亚克力；缺键保留现有底色。</summary>
+    /// <summary>按钮与选择框使用应用内亚克力；缺键保留半透明叠层。</summary>
     public bool UseAcrylicControls { get; set; }
-
-    /// <summary>仅电影、剧与季的沉浸背景使用真正高斯模糊，并保留深色阅读保护；不影响首页轮播。</summary>
-    public bool UseGaussianBackdrop { get; set; }
-
-    /// <summary>电影、剧与季详情背景使用应用内亚克力，普通与窄窗同样生效；缺键关闭，不影响首页轮播。</summary>
-    public bool UseAcrylicBackdrop { get; set; }
 
     /// <summary>电影、剧与季的沉浸模式；关闭使用简洁卡面并隐藏背景图，保留外观偏好。</summary>
     public bool EnableImmersive { get; set; } = true;

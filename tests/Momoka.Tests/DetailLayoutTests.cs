@@ -19,7 +19,7 @@ internal static class DetailLayoutTests
                 PassthroughSecretProtector.Instance);
             Assert.True(Enabled(defaults.Ui));
             var disabled = SettingsMigration.FromJson(
-                "{\"SchemaVersion\":27,\"Ui\":{\"EnableImmersive\":false,\"AlwaysImmersive\":true,\"UseGaussianBackdrop\":true}}",
+                "{\"SchemaVersion\":28,\"Ui\":{\"EnableImmersive\":false,\"AlwaysImmersive\":true,\"BackdropTintOpacity\":37}}",
                 PassthroughSecretProtector.Instance);
             Assert.False(Enabled(disabled.Ui));
             var restored = SettingsMigration.FromJson(JsonSerializer.Serialize(disabled), PassthroughSecretProtector.Instance);
@@ -27,7 +27,7 @@ internal static class DetailLayoutTests
             SettingsPreferences.Apply(defaults, restored);
             Assert.False(Enabled(defaults.Ui));
             Assert.False(JsonSerializer.Serialize(defaults).Contains("AlwaysImmersive", StringComparison.Ordinal));
-            Assert.True(defaults.Ui.UseGaussianBackdrop);
+            Assert.Equal(37d, defaults.Ui.BackdropTintOpacity);
             SettingsPreferences.Apply(defaults, new AppSettings());
             Assert.True(Enabled(defaults.Ui));
         });
@@ -56,26 +56,23 @@ internal static class DetailLayoutTests
             Assert.Equal("info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Movie)));
             Assert.True(DetailLayout.For(ui, EmbyItemType.Series).All(row => row.Visible));
             Assert.Equal(UiSettings.DefaultControlBackgroundOpacity, ui.ControlBackgroundOpacity);
-            Assert.Equal(UiSettings.DefaultBackdropOpacity, ui.BackdropOpacity);
+            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, ui.BackdropTintOpacity);
+            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, ui.BackdropTintLuminosityOpacity);
             Assert.True(ui.EnableImmersive);
         });
 
-        Test("详情透明度：v26 的增量读数换算成直接不透明度，旧的 0 落到新出厂浓度", () =>
+        Test("详情外观：v28 退役背景浓度与两支效果键，旧文件不报错也不留下幽灵值", () =>
         {
-            foreach (var (stored, expected) in new (double, double)[]
-            {
-                (0, UiSettings.DefaultBackdropOpacity), (43, 65.8), (100, 100), (37.5, 62.5), (-5, 40), (250, 100)
-            })
+            foreach (var version in new[] { 26, 27, 28 })
             {
                 var ui = SettingsMigration.FromJson(
-                    "{\"SchemaVersion\":26,\"Ui\":{\"BackdropOpacity\":" + stored.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + "}}",
+                    "{\"SchemaVersion\":" + version + ",\"Ui\":{\"BackdropOpacity\":37,\"UseGaussianBackdrop\":true,\"UseAcrylicBackdrop\":true}}",
                     PassthroughSecretProtector.Instance).Ui;
-                Assert.Equal(expected, ui.BackdropOpacity);
+                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, ui.BackdropTintOpacity);
+                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, ui.BackdropTintLuminosityOpacity);
+                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, ui.ControlTintOpacity);
+                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, ui.ControlTintLuminosityOpacity);
             }
-            // 已经是 v27 的文件原样保留：用户自己拖出来的 0 就是「关掉背景图」。
-            var current = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{\"BackdropOpacity\":0}}",
-                PassthroughSecretProtector.Instance).Ui;
-            Assert.Equal(0d, current.BackdropOpacity);
         });
 
         Test("详情卡片：重复和无效键不占位，补全遗漏且不改变用户隐藏状态", () =>
@@ -137,7 +134,7 @@ internal static class DetailLayoutTests
                     "SeriesCards":null,
                     "EpisodeCards":[null,{"Key":"cast","Visible":false},{"Key":"cast"},{"Key":"bad"}],
                     "MovieCards":[{"Key":"similar","Visible":false}],
-                    "ControlBackgroundOpacity":37.5,"BackdropOpacity":43,"AlwaysImmersive":true
+                    "ControlBackgroundOpacity":37.5,"BackdropTintOpacity":43,"AlwaysImmersive":true
                   }
                 }
                 """, PassthroughSecretProtector.Instance);
@@ -148,22 +145,31 @@ internal static class DetailLayoutTests
             Assert.Equal("similar,info,cast", Keys(restored.Ui.MovieCards));
             Assert.False(restored.Ui.MovieCards[0].Visible);
             Assert.Equal(37.5, restored.Ui.ControlBackgroundOpacity);
-            Assert.Equal(43d, restored.Ui.BackdropOpacity);
+            Assert.Equal(43d, restored.Ui.BackdropTintOpacity);
             Assert.True(restored.Ui.EnableImmersive);
         });
 
-        Test("详情透明度：超界夹取、非有限值回默认，零和小数原样保留", () =>
+        Test("详情染色：超界夹取、非有限值回出厂，零和小数原样保留", () =>
         {
             foreach (var (input, controls, backdrop) in new (double, double, double)[]
             {
                 (-1, 0, 0), (101, 100, 100), (0, 0, 0), (37.5, 37.5, 37.5), (100, 100, 100),
-                (double.NaN, 0, 0), (double.PositiveInfinity, 0, 0), (double.NegativeInfinity, 0, 0)
+                (double.NaN, 55, 55), (double.PositiveInfinity, 55, 55), (double.NegativeInfinity, 55, 55)
             })
             {
-                var settings = new AppSettings { Ui = new UiSettings { ControlBackgroundOpacity = input, BackdropOpacity = input } };
+                var settings = new AppSettings
+                {
+                    Ui = new UiSettings
+                    {
+                        ControlBackgroundOpacity = input,
+                        BackdropTintOpacity = input,
+                        BackdropTintLuminosityOpacity = input
+                    }
+                };
                 SettingsMigration.Normalize(settings);
-                Assert.Equal(controls, settings.Ui.ControlBackgroundOpacity);
-                Assert.Equal(backdrop, settings.Ui.BackdropOpacity);
+                Assert.Equal(Math.Clamp(double.IsFinite(input) ? input : 0, 0, 100), settings.Ui.ControlBackgroundOpacity);
+                Assert.Equal(backdrop, settings.Ui.BackdropTintOpacity);
+                Assert.Equal(backdrop, settings.Ui.BackdropTintLuminosityOpacity);
                 _ = JsonSerializer.Serialize(settings);
             }
         });
@@ -172,7 +178,8 @@ internal static class DetailLayoutTests
         {
             var source = new AppSettings { Ui = Customized() };
             source.Ui.ControlBackgroundOpacity = 25;
-            source.Ui.BackdropOpacity = 60;
+            source.Ui.BackdropTintOpacity = 60;
+            source.Ui.ControlTintLuminosityOpacity = 65;
             source.Ui.EnableImmersive = false;
             var backup = SettingsPreferences.ToBackupDocument(source);
             var live = new AppSettings();
@@ -184,14 +191,16 @@ internal static class DetailLayoutTests
             Assert.Equal("episodes,info,cast,similar", Keys(live.Ui.EpisodeCards));
             Assert.Equal("similar,info,cast", Keys(live.Ui.MovieCards));
             Assert.Equal(25d, live.Ui.ControlBackgroundOpacity);
-            Assert.Equal(60d, live.Ui.BackdropOpacity);
+            Assert.Equal(60d, live.Ui.BackdropTintOpacity);
+            Assert.Equal(65d, live.Ui.ControlTintLuminosityOpacity);
             Assert.False(live.Ui.EnableImmersive);
             Assert.Equal(1500d, live.Ui.WindowWidth);
             SettingsPreferences.Apply(live, new AppSettings());
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(live.Ui.SeriesCards));
             Assert.True(live.Ui.SeriesCards.All(row => row.Visible));
             Assert.Equal(UiSettings.DefaultControlBackgroundOpacity, live.Ui.ControlBackgroundOpacity);
-            Assert.Equal(UiSettings.DefaultBackdropOpacity, live.Ui.BackdropOpacity);
+            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, live.Ui.BackdropTintOpacity);
+            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, live.Ui.ControlTintLuminosityOpacity);
             Assert.True(live.Ui.EnableImmersive);
             Assert.Equal(1500d, live.Ui.WindowWidth);
             Assert.Equal(900d, live.Ui.WindowHeight);

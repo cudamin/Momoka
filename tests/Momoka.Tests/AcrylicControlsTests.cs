@@ -83,7 +83,9 @@ internal static class AcrylicControlsTests
             Assert.Null(fade.Attribute("Opacity"));
             Assert.True(backdrop.Elements().ToList().IndexOf(fade) > backdrop.Elements().ToList().IndexOf(picture));
             var code = Source("Views/DetailPage.Backdrop.cs");
-            Assert.Contains("new SolidColorBrush(ReadingShadeColor)", code);
+            // 2026-11-07 起背景固定亚克力：图上那层是三参数画笔，高对比度才退回实色。
+            Assert.Contains("new AcrylicBrush", code);
+            Assert.Contains("TintLuminosityOpacity", code);
             Assert.Contains("BackdropEdgeFade", code);
         });
         Test("详情接缝：图片底部渐变不移动纸面和正文布局", () =>

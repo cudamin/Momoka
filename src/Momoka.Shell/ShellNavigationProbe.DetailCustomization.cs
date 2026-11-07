@@ -139,36 +139,59 @@ internal sealed partial class ShellNavigationProbe
             Require(Math.Abs(defaultRow.Value - UiSettings.DefaultControlBackgroundOpacity) < 0.000001
                 && Math.Abs(fixture.Settings.Ui.ControlBackgroundOpacity - UiSettings.DefaultControlBackgroundOpacity) < 0.000001,
                 "打开设置把精确默认不透明度改成了吸附值");
-            foreach (var (label, choice) in new[]
-            {
-                ("按钮与选择框背景", "亚克力"), ("背景图效果", "高斯模糊")
-            })
+
+            // 按钮：两种材质各自只有一套参数。切到亚克力时三行染色参数当场出现、叠层那格收起；
+            // 切回叠层时反过来（2026-11-07 用户令「三项可调」）。
+            await Choose("按钮与选择框背景", "亚克力");
+            await UntilAsync(() => appearance.Rows.OfType<SettingSliderRow>()
+                .Any(row => row.Label == "按钮与选择框染色不透明度（%）"));
+            Require(fixture.Settings.Ui.UseAcrylicControls, "材质选择没有写回设置");
+            Require(appearance.Rows.OfType<SettingSliderRow>().All(row => row.Label != "按钮与选择框底色不透明度（%）"),
+                "亚克力模式仍留着半透明叠层的浓度行");
+            await Set("按钮与选择框染色不透明度（%）", 37);
+            await Set("按钮与选择框明暗不透明度（%）", 45);
+            Require(fixture.Settings.Ui.ControlTintOpacity == 37 && fixture.Settings.Ui.ControlTintLuminosityOpacity == 45,
+                "按钮染色参数没有写回设置");
+            await SaveProbeScreenAsync("settings-acrylic-controls-screen.png");
+            await Choose("按钮与选择框背景", "半透明叠层");
+            await UntilAsync(() => appearance.Rows.OfType<SettingSliderRow>()
+                .Any(row => row.Label == "按钮与选择框底色不透明度（%）"));
+            Require(!fixture.Settings.Ui.UseAcrylicControls
+                && appearance.Rows.OfType<SettingSliderRow>().All(row => row.Label != "按钮与选择框染色不透明度（%）"),
+                "切回半透明叠层没有恢复底色浓度行");
+            await Set("按钮与选择框底色不透明度（%）", 37);
+            Require(fixture.Settings.Ui.ControlBackgroundOpacity == 37, "底色浓度滑块没有写回设置");
+
+            // 背景：效果选择与遮罩颜色退役，只剩色调与两档浓度。
+            Require(appearance.Rows.OfType<SettingChoiceRow>().All(row => row.Label != "背景图效果")
+                && appearance.Rows.OfType<SettingColorRow>().Any(row => row.Label == "背景亚克力色调")
+                && appearance.Rows.OfType<SettingSliderRow>().All(row => row.Label != "背景图不透明度（%）"),
+                "背景仍然留着效果选择、遮罩颜色或浓度行");
+            await Set("背景染色不透明度（%）", 42);
+            await Set("背景明暗不透明度（%）", 51);
+            Require(fixture.Settings.Ui.BackdropTintOpacity == 42 && fixture.Settings.Ui.BackdropTintLuminosityOpacity == 51,
+                "背景染色参数没有写回设置");
+            var modeRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "显示模式");
+            modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "简洁模式");
+            Require(!appearance.Rows.Any(row => row.Label is "背景亚克力色调" or "背景染色不透明度（%）" or "背景明暗不透明度（%）"),
+                "简洁模式没有隐藏完整背景设置组");
+            modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "沉浸模式");
+            await UntilAsync(() => fixture.Settings.Ui.EnableImmersive);
+            Require(appearance.Rows.OfType<SettingColorRow>().Any(row => row.Label == "背景亚克力色调")
+                && fixture.Settings.Ui.EnableImmersive, "显示模式选择没有同步沉浸状态或恢复背景行");
+            Require(fixture.Actions.Plays == 0, "设置自定义探针意外请求播放");
+
+            async Task Choose(string label, string choice)
             {
                 var row = appearance.Rows.OfType<SettingChoiceRow>().Single(item => item.Label == label);
-                Require(row.Choices.Count == (label == "背景图效果" ? 3 : 2), label + " 缺少背景效果选择");
                 var host = Descendants(page).OfType<ContentPresenter>().Single(item => ReferenceEquals(item.Content, row));
                 host.StartBringIntoView();
                 await LayoutAsync(host);
-                var picker = Descendants(host).OfType<ComboBox>().Single();
-                picker.SelectedItem = row.Choices.Single(item => item.Label == choice);
+                Descendants(host).OfType<ComboBox>().Single().SelectedItem = row.Choices.Single(item => item.Label == choice);
                 await UntilAsync(() => row.Selected?.Label == choice);
-                await SaveProbeScreenAsync(label == "背景图效果" ? "settings-gaussian-choice-screen.png" : "settings-acrylic-choice-screen.png");
             }
-            Require(fixture.Settings.Ui.UseAcrylicControls && fixture.Settings.Ui.UseGaussianBackdrop,
-                "材质选择没有写回设置");
-            var effectRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "背景图效果");
-            effectRow.Selected = effectRow.Choices.Single(choice => choice.Label == "亚克力");
-            Require(fixture.Settings.Ui.UseAcrylicBackdrop && !fixture.Settings.Ui.UseGaussianBackdrop,
-                "亚克力选择未保存或与高斯同时开启");
-            await LayoutAsync(page);
-            await SaveProbeScreenAsync("settings-backdrop-acrylic-choice-screen.png");
-            effectRow.Selected = effectRow.Choices.Single(choice => choice.Label == "高斯模糊");
-            Require(!fixture.Settings.Ui.UseAcrylicBackdrop && fixture.Settings.Ui.UseGaussianBackdrop,
-                "切回高斯未关闭亚克力");
-            foreach (var (label, value) in new[]
-            {
-                ("按钮与选择框底色不透明度（%）", 37d), ("背景图不透明度（%）", 45d)
-            })
+
+            async Task Set(string label, double value)
             {
                 var row = appearance.Rows.OfType<SettingSliderRow>().Single(item => item.Label == label);
                 var host = Descendants(page).OfType<ContentPresenter>().Single(item => ReferenceEquals(item.Content, row));
@@ -177,16 +200,6 @@ internal sealed partial class ShellNavigationProbe
                 Descendants(host).OfType<Slider>().Single().Value = value;
                 await UntilAsync(() => Math.Abs(row.Value - value) < 0.01);
             }
-            Require(fixture.Settings.Ui.ControlBackgroundOpacity == 37 && fixture.Settings.Ui.BackdropOpacity == 45,
-                "不透明度滑块没有写回设置");
-            var modeRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "显示模式");
-            modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "简洁模式");
-            Require(!appearance.Rows.Any(row => row.Label is "背景图效果" or "背景遮罩颜色" or "背景图不透明度（%）"),
-                "简洁模式没有隐藏完整背景设置组");
-            modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "沉浸模式");
-            await UntilAsync(() => fixture.Settings.Ui.EnableImmersive);
-            Require(fixture.Settings.Ui.EnableImmersive, "显示模式选择没有同步沉浸状态");
-            Require(fixture.Actions.Plays == 0, "设置自定义探针意外请求播放");
 
             IReadOnlyList<DetailCardSetting> Stored(string type) => type switch
             {
@@ -273,7 +286,7 @@ internal sealed partial class ShellNavigationProbe
                 try
                 {
                     await UntilAsync(() => DetailCustomizationProbeCases.Ready(Get<bool>(page, "_readingQueued"),
-                        Get<bool>(page, "_appearanceObserved"), page.ViewModel.GaussianBackdropReady,
+                        Get<bool>(page, "_appearanceObserved"), page.ViewModel.HeroImage is not null,
                         readingNames.Select(name => Get<TextBlock>(page, name))
                             .Where(node => node.Visibility == Visibility.Visible && node.ActualWidth > 0 && node.ActualHeight > 0)
                             .Select(node =>
@@ -285,7 +298,7 @@ internal sealed partial class ShellNavigationProbe
                 catch (TimeoutException)
                 {
                     File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "detail-reading-ready.txt"),
-                        $"{itemType}: queued={Get<bool>(page, "_readingQueued")}, observed={Get<bool>(page, "_appearanceObserved")}, imageReady={page.ViewModel.GaussianBackdropReady}\n"
+                        $"{itemType}: queued={Get<bool>(page, "_readingQueued")}, observed={Get<bool>(page, "_appearanceObserved")}, imageReady={page.ViewModel.HeroImage is not null}\n"
                         + string.Join("\n", readingNames.Select(name =>
                         {
                             var node = Get<TextBlock>(page, name);
@@ -373,53 +386,54 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(1100, 1120);
                 await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
                 await ScrollProbeAsync(Get<ScrollView>(page, "Body"), 0);
-                // 设置页那一段刚把「背景图效果」选成高斯模糊，这里测的是暗色遮罩那一支，先切回来再比浓度。
-                fixture.Settings.Ui.UseGaussianBackdrop = false;
-                fixture.Settings.Ui.BackdropOpacity = 45;
+                // 背景固定亚克力：三项参数直接落到那支画笔上，不再有浓度档位，也不再另跑一遍 CPU 高斯。
                 fixture.Settings.Ui.EnableImmersive = true;
+                fixture.Settings.Ui.BackdropTintOpacity = 45;
+                fixture.Settings.Ui.BackdropTintLuminosityOpacity = 45;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-                await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
                 await LayoutAsync(page);
                 Require(page.ViewModel.Showcase && page.ViewModel.BackdropShown && !page.ViewModel.HeroCardShown,
                     "开启时剧、电影或单集宽窗没有进入沉浸布局");
                 RequireImmersiveSurface(page);
                 var picture = Get<Border>(page, "BackdropPicture");
-                var expectedScrim = AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, 0.45);
                 var masked = page.ViewModel.BackdropShown;
                 if (masked)
                 {
-                    Require(ScrimAlphaOf(page) == expectedScrim,
-                        $"背景图遮罩没有立即按 45% 落下（{ScrimAlphaOf(page)}，该是 {expectedScrim}）；"
-                        + $"fade={Get<Border>(page, "BackdropFade").Visibility}、"
-                        + $"tail={(Get<StackPanel>(page, "HeroTail").Background as SolidColorBrush)?.Color}、"
-                        + $"有图={page.ViewModel.BackdropShown}、沉浸={page.ViewModel.Showcase}、"
-                        + $"高斯={page.ViewModel.GaussianBackdropApplied}、强度={page.ViewModel.BackdropStrength:0.###}");
-                    Require(picture.Opacity == 1, "背景图本身被调了透明度（该调的是图上那层遮罩）");
+                    RequireBackdropAcrylic(page, 0.45, 0.45);
+                    Require(picture.Opacity == 1, "背景图本身被调了透明度（该调的是图上那层材料）");
                 }
                 await CheckControlBackgroundOpacityAsync(page, fixture.Settings.Ui);
                 fixture.Settings.Ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
                 Require(page.ViewModel.Showcase, "开启时有图宽窗没有保持沉浸布局");
-                if (masked)
-                    Require(ScrimAlphaOf(page) == expectedScrim, "沉浸版式把背景图遮罩浓度改掉了");
+                if (masked) RequireBackdropAcrylic(page, 0.45, 0.45);
                 var band = Get<Grid>(page, "HeroBand");
                 var heroHeight = band.ActualHeight;
-                fixture.Settings.Ui.BackdropOpacity = 0;
+                // 0 档是「这块材料什么都不盖」，不是「把图收走」：画面照旧站在那儿。
+                fixture.Settings.Ui.BackdropTintOpacity = 0;
+                fixture.Settings.Ui.BackdropTintLuminosityOpacity = 0;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
                 if (masked)
                 {
-                    Require(ScrimAlphaOf(page) == 0, "0 档还留着遮罩");
-                    // 0 档是「关掉遮罩」，不是「把图收走」：画面照旧站在那儿，只是不再压那一层墨。
+                    RequireBackdropAcrylic(page, 0, 0);
                     Require(picture.Opacity == 1, "0 档把背景图本身调透明了");
                 }
-                // 关掉遮罩只收那层墨，版式不动：海报、片名和那排键还在原位。
-                Require(Math.Abs(band.ActualHeight - heroHeight) < 0.5, "关掉遮罩改变了头图那一格的高");
+                Require(Math.Abs(band.ActualHeight - heroHeight) < 0.5, "改动染色参数改变了头图那一格的高");
                 await SaveProbeScreenAsync($"detail-customization-{item.Type}-backdrop-clear.png");
-                fixture.Settings.Ui.BackdropOpacity = 45;
+                fixture.Settings.Ui.BackdropTintOpacity = 100;
+                fixture.Settings.Ui.BackdropTintLuminosityOpacity = 100;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-                await CheckGaussianBackdropAsync(page, fixture.Settings.Ui, () => reads);
+                await LayoutAsync(page);
+                if (masked) RequireBackdropAcrylic(page, 1, 1);
+                await SaveProbeScreenAsync($"detail-customization-{item.Type}-backdrop-solid.png");
+                fixture.Settings.Ui.BackdropTintOpacity = 45;
+                fixture.Settings.Ui.BackdropTintLuminosityOpacity = 45;
+                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                await LayoutAsync(page);
+                // 染色参数只重画材质，不重新请求图片：三条滑块来回拖也不该多走一次网络。
+                Require(reads > 0 && page.ViewModel.HeroImage is not null, "染色参数改动丢了背景图");
                 ResizeProbeClient(1100, 1120);
                 await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
                 fixture.Settings.Ui.EnableImmersive = true;
@@ -443,12 +457,14 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
                 Require(!page.ViewModel.Showcase && page.ViewModel.IsCompact && page.ViewModel.BackdropShown, "开启时窄窗未保持紧凑排版与背景图");
-                fixture.Settings.Ui.BackdropOpacity = 100;
-                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
-                await LayoutAsync(page);
-                if (masked) Require(ScrimAlphaOf(page) == byte.MaxValue, "100 档遮罩没有完全不透明");
+                // 窄窗：电影、剧、季仍铺那块玻璃；单集的紧凑版式不上玻璃，压在图上的还是固定 40% 的实色罩子。
+                var glassy = page.ViewModel.Showcase || item.Type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
+                if (glassy) RequireBackdropAcrylic(page, 0.45, 0.45);
+                else if (masked)
+                    Require(ScrimAlphaOf(page) == AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, AppearanceOpacity.ReadingVeil),
+                        "窄窗单集的实色阅读罩浓度不对");
                 await CheckImmersiveSwitchAsync(page, fixture.Settings.Ui);
-                readings.Add($"{item.Type}：{string.Join(',', expected.Select(card => card.Key))}，隐藏恢复同实例，背景遮罩0/45/100，窄窗保留紧凑布局");
+                readings.Add($"{item.Type}：{string.Join(',', expected.Select(card => card.Key))}，隐藏恢复同实例，背景染色0/45/100，窄窗保留紧凑布局");
             }
             if (DetailCustomizationProbeCases.IncludesShared(itemType))
             {
@@ -499,8 +515,6 @@ internal sealed partial class ShellNavigationProbe
     private async Task CheckImmersiveSwitchAsync(DetailPage page, UiSettings ui)
     {
         var enabled = ui.EnableImmersive;
-        var gaussian = ui.UseGaussianBackdrop;
-        var acrylic = ui.UseAcrylicBackdrop;
         var target = page.ViewModel.PlayTarget;
         var subject = page.ViewModel.CurrentItem;
         var title = page.ViewModel.Title;
@@ -528,9 +542,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(Get<StackPanel>(page, "ColumnPickers").Visibility == page.ViewModel.ColumnPickersVisibility,
                     "同页切换后视频信息父容器没有同步显隐");
                 if (!oldEpisodeBackdrop) Require(page.ViewModel.TailMinHeight == 0, "无背景仍保留了背景留白");
-                Require(ReferenceEquals(target, page.ViewModel.PlayTarget)
-                    && ui.UseGaussianBackdrop == gaussian && ui.UseAcrylicBackdrop == acrylic,
-                    "外观切换改变播放目标或清空背景效果偏好");
+                Require(ReferenceEquals(target, page.ViewModel.PlayTarget), "外观切换改变播放目标");
                 Require(page.ViewModel.Title == title && page.ViewModel.Subline == subline
                     && ReferenceEquals(subject, page.ViewModel.CurrentItem), "外观切换改变详情主体或标题");
                 await ScrollProbeAsync(Get<ScrollView>(page, "Body"), 0);
@@ -619,167 +631,32 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    private async Task CheckGaussianBackdropAsync(DetailPage page, UiSettings ui, Func<int> requestCount)
+    /// <summary>
+    /// 背景那层亚克力的三项参数是不是照设置落到了画笔上 —— 探针比的是画笔自己的读数，不另算一遍公式。
+    /// </summary>
+    private static void RequireBackdropAcrylic(DetailPage page, double tintOpacity, double luminosityOpacity)
     {
-        ui.EnableImmersive = true;
-        await ResizeResponsiveAsync(page, 760, 820);
-        await ScrollProbeAsync(Get<ScrollView>(page, "Body"), 0);
-        ui.UseGaussianBackdrop = false;
-        ShellPrefs.ApplyAppearance(ui);
-        await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
-        var normal = page.ViewModel.HeroImage;
-        var originalPixels = await ReadBackdropPixelsAsync(normal!);
-        var baselineReads = requestCount();
-
-        // 强度就是模糊程度：100 拉满、45 比它清楚、0 回到原图（2026-11-06 用户令）。
-        ui.BackdropOpacity = 100;
-        ui.UseGaussianBackdrop = true;
-        ui.UseAcrylicControls = true;
-        ui.ControlBackgroundOpacity = 25;
-        ShellPrefs.ApplyAppearance(ui);
-        await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
-        Require(ReferenceEquals(normal, page.ViewModel.HeroImage), "窄窗紧凑背景被高斯偏好重新处理");
-        ResizeProbeClient(1100, 1120);
-        await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
-        ui.EnableImmersive = true;
-        ShellPrefs.ApplyAppearance(ui);
-        await UntilAsync(() => page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady
-            && !ReferenceEquals(normal, page.ViewModel.HeroImage));
-        Require(page.ViewModel.Showcase && !page.ViewModel.IsCompact, "开启高斯后的宽窗未保持沉浸布局");
-        Require(!ReferenceEquals(normal, page.ViewModel.HeroImage), "高斯背景没有渲染新的图片");
-        var full = page.ViewModel.HeroImage;
-        var fullPixels = await ReadBackdropPixelsAsync(full!);
-        Require(originalPixels.Width == fullPixels.Width && originalPixels.Height == fullPixels.Height,
-            "高斯改变了图片尺寸");
-        var original = PictureVariation(originalPixels.Pixels, originalPixels.Width);
-        var fullBlur = PictureVariation(fullPixels.Pixels, fullPixels.Width);
-        Require(fullBlur.Variation < original.Variation * 0.9 && Math.Abs(fullBlur.Mean - original.Mean) < 2,
-            $"高斯拉满没有平滑图像边界或错误压暗：纹理{original.Variation:0.###}→{fullBlur.Variation:0.###}，均值{original.Mean:0.###}→{fullBlur.Mean:0.###}");
-
-        ui.BackdropOpacity = 45;
-        ShellPrefs.ApplyAppearance(ui);
-        await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !ReferenceEquals(full, page.ViewModel.HeroImage));
-        var halfPixels = await ReadBackdropPixelsAsync(page.ViewModel.HeroImage!);
-        var half = PictureVariation(halfPixels.Pixels, halfPixels.Width);
-        // 夹具那张图本身很平，纹理差是零点几的量级：判据取「相对更大 5% 且至少多 0.01」，不写死一个绝对门槛。
-        Require(half.Variation > fullBlur.Variation + Math.Max(0.01, fullBlur.Variation * 0.05),
-            $"强度减半没有变清楚：拉满{fullBlur.Variation:0.###}→45%{half.Variation:0.###}");
-
-        var halfImage = page.ViewModel.HeroImage;
-        ui.BackdropOpacity = 0;
-        ShellPrefs.ApplyAppearance(ui);
-        await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !ReferenceEquals(halfImage, page.ViewModel.HeroImage));
-        var clearPixels = await ReadBackdropPixelsAsync(page.ViewModel.HeroImage!);
-        var clear = PictureVariation(clearPixels.Pixels, clearPixels.Width);
-        Require(Math.Abs(clear.Variation - original.Variation) < 0.01 && Math.Abs(clear.Mean - original.Mean) < 0.01,
-            $"0 档没有关掉模糊：纹理{original.Variation:0.###}→{clear.Variation:0.###}，均值{original.Mean:0.###}→{clear.Mean:0.###}");
-
-        var clearImage = page.ViewModel.HeroImage;
-        ui.BackdropOpacity = 45;
-        ShellPrefs.ApplyAppearance(ui);
-        await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !ReferenceEquals(clearImage, page.ViewModel.HeroImage));
-        var settled = page.ViewModel.HeroImage;
-        var settledReading = GaussianReading(page);
-
-        foreach (var theme in UiThemes.All)
-        {
-            ThemeHost.Apply(theme);
-            await LayoutAsync(page);
-            var play = Descendants(Get<StackPanel>(page, "CompactBlock")).OfType<Button>().First();
-            var action = Descendants(play).OfType<ContentPresenter>().Single(part => part.Name == "ContentPresenter").Background;
-            Require(action is AcrylicBrush { AlwaysUseFallback: false } acrylic
-                && acrylic.TintColor == Windows.UI.Color.FromArgb(255, 255, 255, 255)
-                && acrylic.FallbackColor == Windows.UI.Color.FromArgb(255, 255, 255, 255),
-                "操作亚克力没有保留当前白色染色与回退");
-            Require(Get<TextBlock>(page, "Overview").Foreground is SolidColorBrush text
-                && text.Color == DefaultDetailForeground(),
-                "高斯简介文字没有保持默认字色");
-            var themeReading = GaussianReading(page);
-            File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "detail-gaussian-generation.txt"),
-                $"{page.ViewModel.ItemType}/{theme.Id}: before({settledReading}), after({themeReading}), imageSame={ReferenceEquals(settled, page.ViewModel.HeroImage)}\n");
-            Require(ReferenceEquals(settled, page.ViewModel.HeroImage),
-                $"切主题重新处理高斯图片：{theme.Id}, before({settledReading}), after({themeReading})");
-            Require(Get<FrameworkElement>(page, "HeroBand") is Panel { Background: null }
-                or Panel { Background: SolidColorBrush { Color.A: 0 } }, "高斯头部重复叠暗");
-            var tail = Get<StackPanel>(page, "HeroTail");
-            Require(tail.Background is null or SolidColorBrush { Color.A: 0 }, "高斯尾部重复叠暗");
-            Require(Get<Border>(page, "TitleWash").Background is null or SolidColorBrush { Color.A: 0 },
-                "高斯标题栏重复叠暗");
-            Require(ScrimAlphaOf(page) == ScrimExpected(page) && ScrimAlphaOf(page) > 0,
-                "高斯背景没有随强度变化的轻罩");
-            RequireDetailBackdropFade(page);
-            await CheckBackdropFadePixelsAsync(page);
-            await SaveProbeScreenAsync($"detail-gaussian-{page.ViewModel.ItemType}-{theme.Id}-screen.png");
-        }
-        {
-            ResizeProbeClient(1100, 1120);
-            await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
-            ui.EnableImmersive = true;
-            ShellPrefs.ApplyAppearance(ui);
-            await UntilAsync(() => page.ViewModel.GaussianBackdropReady);
-            await LayoutAsync(page);
-            Require(page.ViewModel.Showcase && page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady,
-                "宽窗沉浸没有保留高斯图片");
-            RequireDetailBackdropFade(page);
-            var sheet = Get<StackPanel>(page, "BodySheet");
-            Require(sheet.Children.OfType<StackPanel>().SelectMany(panel => panel.Children.OfType<ShelfHead>()).All(head => head.Ink),
-                "高斯沉浸货架标题缺少字形保护");
-            Require(Get<StackPanel>(page, "InfoPanel").Background is AcrylicBrush { FallbackColor.A: 255 },
-                "高斯沉浸信息表没有保持可读深色亚克力卡面");
-            await SaveProbeScreenAsync($"detail-gaussian-immersive-{page.ViewModel.ItemType}-screen.png");
-            ui.EnableImmersive = true;
-            ResizeProbeClient(760, 820);
-            await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 760) < 1; });
-            ShellPrefs.ApplyAppearance(ui);
-            await UntilAsync(() => page.ViewModel.GaussianBackdropReady && !page.ViewModel.GaussianBackdropApplied);
-            Require(ui.EnableImmersive && ui.UseGaussianBackdrop && page.ViewModel.IsCompact && page.ViewModel.BackdropShown,
-                "切到窄窗清空高斯偏好或丢失紧凑背景");
-            var compactPixels = await ReadBackdropPixelsAsync(page.ViewModel.HeroImage!);
-            Require(compactPixels.Width == originalPixels.Width && compactPixels.Height == originalPixels.Height
-                && compactPixels.Pixels.AsSpan().SequenceEqual(originalPixels.Pixels), "窄窗未恢复原图像素");
-            await LayoutAsync(page);
-        }
-        ui.UseGaussianBackdrop = false;
-        ShellPrefs.ApplyAppearance(ui);
-        await UntilAsync(() => !page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady);
-        Require(page.ViewModel.HeroImage is not null, "切回遮罩模式丢失背景图");
-        RequireDetailBackdropFade(page);
-        Require(page.ViewModel.ItemType == EmbyItemType.Episode
-            ? Get<Grid>(page, "HeroBand").Background is SolidColorBrush { Color.A: > 0 }
-            : ScrimAlphaOf(page) > 0, "切回后暗色遮罩未恢复");
-        // 快速来回切换：晚到的旧模式不能覆盖当前高斯结果。
-        ResizeProbeClient(1100, 1120);
-        await UntilAsync(() => { page.UpdateLayout(); return Math.Abs(page.ViewModel.PageWidth - 1100) < 1; });
-        ui.EnableImmersive = true;
-        ui.UseGaussianBackdrop = true;
-        ShellPrefs.ApplyAppearance(ui);
-        ui.UseGaussianBackdrop = false;
-        ShellPrefs.ApplyAppearance(ui);
-        ui.UseGaussianBackdrop = true;
-        ShellPrefs.ApplyAppearance(ui);
-        await UntilAsync(() => page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady);
-        Require(requestCount() == baselineReads, "背景效果切换重新请求媒体或图片");
-        ui.UseGaussianBackdrop = false;
-        ui.UseAcrylicControls = false;
-        ui.EnableImmersive = true;
-        ShellPrefs.ApplyAppearance(ui);
-        await UntilAsync(() => !page.ViewModel.GaussianBackdropApplied && page.ViewModel.GaussianBackdropReady);
+        var fade = Get<Border>(page, "BackdropFade");
+        var ink = ShellPrefs.AppearanceColor(true, page.ViewModel.AppearanceSettings);
+        var tint = ThemeHost.ToColor(ink);
+        tint.A = 255;
+        Require(fade.Background is AcrylicBrush acrylic
+            && fade.Visibility == Visibility.Visible
+            && acrylic.TintColor == tint
+            && acrylic.FallbackColor == tint
+            && Math.Abs(acrylic.TintOpacity - tintOpacity) < 0.001
+            && acrylic.TintLuminosityOpacity is { } luminosity
+            && Math.Abs(luminosity - luminosityOpacity) < 0.001
+            && acrylic.Opacity == 1
+            && !acrylic.AlwaysUseFallback,
+            $"背景亚克力三项参数不对：{fade.Background}、tint={tintOpacity:0.###}/{luminosityOpacity:0.###}、"
+            + $"可见={fade.Visibility}");
     }
 
     private static Windows.UI.Color DefaultDetailForeground(string key = "EgOnScrimBrush") =>
         new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast
             ? new Windows.UI.ViewManagement.UISettings().GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground)
             : ((SolidColorBrush)Application.Current.Resources[key]).Color;
-
-    private static GaussianProbeReading GaussianReading(DetailPage page) => new(
-        Get<int>(page.ViewModel, "_heroBlurRadius"), Get<int>(page.ViewModel, "_heroBlurGeneration"),
-        Get<bool>(page.ViewModel, "_heroRequestedGaussian"), Get<bool>(page.ViewModel, "_heroRendering"),
-        page.ViewModel.PageWidth, page.ViewModel.IsCompact, page.ViewModel.Showcase,
-        page.ViewModel.GaussianBackdropReady, page.ViewModel.GaussianBackdropApplied);
-
-    /// <summary>这一页按设置该画出来的遮罩 alpha —— 探针比的是这个数，不自己另算一遍公式。</summary>
-    private static byte ScrimExpected(DetailPage page) =>
-        AppearanceOpacity.ReadingShadeAlpha(page.ViewModel.BackdropStrength, page.ViewModel.GaussianBackdropApplied);
 
     /// <summary>
     /// 屏上实际阅读遮罩的 alpha；有图详情读取整块背景遮罩，无图时尾部读数为 0。
@@ -885,22 +762,26 @@ internal sealed partial class ShellNavigationProbe
                     ui.UseAcrylicControls = true;
                     ShellPrefs.ApplyAppearance(ui);
                     await LayoutAsync(control);
+                    var tint = ui.ControlTintOpacity / 100 + (state is "PointerOver" or "CheckedPointerOver" ? 0.06
+                        : state is "Pressed" or "CheckedPressed" ? 0.12 : 0);
                     Require(ReferenceEquals(Fill(), owned) && Fill() is AcrylicBrush glass
-                        && (feedback ? !glass.AlwaysUseFallback && Math.Abs(glass.TintOpacity - baseline) < 0.001
-                            : glass.AlwaysUseFallback && glass.Opacity == 0) && glass.FallbackColor.A == 255,
-                        control.Name + "/" + state + " 亚克力零档不是完全透明或丢了主题回退");
+                        && !glass.AlwaysUseFallback && glass.Opacity == 1
+                        && Math.Abs(glass.TintOpacity - tint) < 0.001
+                        && glass.TintLuminosityOpacity is { } luminosity
+                        && Math.Abs(luminosity - ui.ControlTintLuminosityOpacity / 100) < 0.001
+                        && glass.FallbackColor.A == 255,
+                        control.Name + "/" + state + " 亚克力的三项参数或回退不对");
+                    // 「整体浓度」已经退役：亚克力在 0 与 100 两档是同一块材料，滑块只管半透明叠层那一条路。
                     ui.ControlBackgroundOpacity = 37;
                     ShellPrefs.ApplyAppearance(ui);
-                    Require(Fill() is AcrylicBrush { AlwaysUseFallback: false } thicker
-                        && Math.Abs(thicker.TintOpacity - ExpectedStrength()) < 0.001,
-                        "亚克力没有随不透明度增加");
-                    ui.ControlBackgroundOpacity = 99.9;
-                    ShellPrefs.ApplyAppearance(ui);
-                    await LayoutAsync(control);
+                    Require(Fill() is AcrylicBrush sameTint && Math.Abs(sameTint.TintOpacity - tint) < 0.000001,
+                        "亚克力仍被已退役的浓度滑块影响");
                     ui.ControlBackgroundOpacity = 100;
                     ShellPrefs.ApplyAppearance(ui);
-                    Require(Fill() is AcrylicBrush { AlwaysUseFallback: true, Opacity: 1, FallbackColor.A: 255 },
-                        "亚克力100档仍透出背景");
+                    await LayoutAsync(control);
+                    Require(Fill() is AcrylicBrush { AlwaysUseFallback: false, Opacity: 1 } denser
+                        && Math.Abs(denser.TintOpacity - tint) < 0.000001,
+                        "亚克力100档被当成实底");
                     ui.UseAcrylicControls = false;
                     ShellPrefs.ApplyAppearance(ui);
                     Require(control.Opacity == 1 && ReferenceEquals(control.Foreground, foreground),
@@ -983,7 +864,6 @@ internal sealed partial class ShellNavigationProbe
             foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })
             {
                 ui.ControlBackgroundOpacity = 0;
-                ui.BackdropOpacity = 0;
                 ShellPrefs.ApplyAppearance(ui);
                 Require(VisualStateManager.GoToState(button, state, false), "首页详情按钮缺少状态：" + state);
                 await LayoutAsync(banner);
@@ -995,7 +875,6 @@ internal sealed partial class ShellNavigationProbe
                 var opacity = baseline.Opacity;
                 var foreground = presenter.Foreground;
                 ui.ControlBackgroundOpacity = 37;
-                ui.BackdropOpacity = 45;
                 ShellPrefs.ApplyAppearance(ui);
                 Require(VisualStateManager.GoToState(button, state, false), "首页详情按钮外观调整后丢失状态：" + state);
                 await LayoutAsync(banner);
@@ -1045,10 +924,11 @@ internal sealed partial class ShellNavigationProbe
             ui.ControlBackgroundOpacity = 0;
             ui.UseAcrylicControls = true;
             var homePicture = banner.FrontPicture;
-            ui.UseGaussianBackdrop = true;
+            // 详情那三项染色参数不归首页管：改了它们，轮播的图与那三道遮罩都不该跟着动。
+            ui.BackdropTintOpacity = 12;
+            ui.BackdropTintLuminosityOpacity = 78;
             ShellPrefs.ApplyAppearance(ui);
-            await UntilAsync(() => !banner.GaussianBackdropApplied && banner.GaussianBackdropReady);
-            Require(ReferenceEquals(homePicture, banner.FrontPicture), "高斯偏好改动了首页轮播图片");
+            Require(ReferenceEquals(homePicture, banner.FrontPicture), "背景染色参数改动了首页轮播图片");
             foreach (var theme in UiThemes.All)
             {
                 ThemeHost.Apply(theme);
@@ -1057,17 +937,17 @@ internal sealed partial class ShellNavigationProbe
                 Require(Get<Border>(banner, "Top").Visibility == Visibility.Visible
                     && Get<Border>(banner, "Fade").Visibility == Visibility.Visible
                     && Get<Border>(banner, "RightShade").Visibility == Visibility.Visible,
-                    "详情高斯偏好撤掉了主页轮播原遮罩");
+                    "详情背景参数撤掉了主页轮播原遮罩");
                 RequireHomeWithoutBottomFade(banner);
-                await SaveProbeScreenAsync($"home-gaussian-{theme.Id}-screen.png");
+                await SaveProbeScreenAsync($"home-backdrop-tint-{theme.Id}-screen.png");
             }
-            ui.UseGaussianBackdrop = false;
+            ui.BackdropTintOpacity = 55;
+            ui.BackdropTintLuminosityOpacity = 55;
             ui.UseAcrylicControls = false;
             ShellPrefs.ApplyAppearance(ui);
-            await UntilAsync(() => !banner.GaussianBackdropApplied && banner.GaussianBackdropReady);
             Require(Get<Border>(banner, "Fade").Visibility == Visibility.Visible, "主页切回后遮罩没有恢复");
             RequireHomeWithoutBottomFade(banner);
-            Require(requestCount() == baselineReads, "主页高斯切换重新请求了图片或媒体");
+            Require(requestCount() == baselineReads, "主页外观切换重新请求了图片或媒体");
         }
         finally { _root.Children.Remove(banner); }
     }

@@ -8,7 +8,8 @@ internal static class ControlTintTests
 {
     internal static void Run()
     {
-        var apply = typeof(ControlBackgroundBrushes).GetMethod("Apply", [typeof(double), typeof(bool), typeof(Windows.UI.Color?)]);
+        var apply = typeof(ControlBackgroundBrushes).GetMethod("Apply",
+            [typeof(double), typeof(bool), typeof(Windows.UI.Color?), typeof(double), typeof(double)]);
         if (apply is null) throw new InvalidOperationException("控件没有自选颜色入口");
         foreach (var key in new[] { "EgDetailActionBrush", "EgDetailActionHoverBrush", "EgDetailActionPressedBrush" })
             Application.Current.Resources[key] = new SolidColorBrush
@@ -28,16 +29,30 @@ internal static class ControlTintTests
                 foreach (var acrylic in new[] { false, true })
                     foreach (var percent in new[] { 0d, 14.71, 100d })
                     {
-                        apply.Invoke(backgrounds, [percent, acrylic, color]);
+                        apply.Invoke(backgrounds, [percent, acrylic, color, 0.37, 0.42]);
                         foreach (var suffix in new[] { "", "PointerOver", "Pressed" })
                         {
                             var brush = (AcrylicBrush)control.Resources[prefix + "Background" + suffix];
                             if (brush.TintColor != color || brush.FallbackColor != color)
                                 throw new InvalidOperationException(prefix + suffix + " 没有应用自选颜色");
-                            if (percent == 0 && suffix.Length == 0 && brush.Opacity != 0)
-                                throw new InvalidOperationException("自选颜色零档不是透明");
-                            if (percent == 100 && (brush.Opacity != 1 || !brush.AlwaysUseFallback))
-                                throw new InvalidOperationException("自选颜色满档不是实底");
+                            if (acrylic)
+                            {
+                                // 亚克力只认三项：颜色、染色浓度（悬停/按下各 +6/+12 个百分点）与明暗浓度。
+                                var expected = 0.37 + suffix switch { "PointerOver" => 0.06, "Pressed" => 0.12, _ => 0 };
+                                if (Math.Abs(brush.TintOpacity - expected) > 0.000001)
+                                    throw new InvalidOperationException(prefix + suffix + " 染色浓度不对：" + brush.TintOpacity);
+                                if (Math.Abs((brush.TintLuminosityOpacity ?? -1) - 0.42) > 0.000001)
+                                    throw new InvalidOperationException(prefix + suffix + " 明暗浓度不对");
+                                if (brush.AlwaysUseFallback || brush.Opacity != 1)
+                                    throw new InvalidOperationException(prefix + suffix + " 亚克力提前回退或整层透明");
+                            }
+                            else
+                            {
+                                if (percent == 0 && suffix.Length == 0 && brush.Opacity != 0)
+                                    throw new InvalidOperationException("自选颜色零档不是透明");
+                                if (percent == 100 && (brush.Opacity != 1 || !brush.AlwaysUseFallback))
+                                    throw new InvalidOperationException("自选颜色满档不是实底");
+                            }
                         }
                     }
             var white = Momoka.Theming.ThemeColor.Rgb(255, 255, 255);

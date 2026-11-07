@@ -47,17 +47,6 @@ public sealed partial class ShelfHead : UserControl
         typeof(ShelfHead),
         new PropertyMetadata(false, OnScrimChanged));
 
-    /// <summary>只有透明高斯背景上的标题需要字形软影；其他货架默认不改变外观。</summary>
-    public static readonly DependencyProperty InkProperty = DependencyProperty.Register(
-        nameof(Ink), typeof(bool), typeof(ShelfHead), new PropertyMetadata(false, OnInkChanged));
-
-    public bool Ink
-    {
-        get => (bool)GetValue(InkProperty);
-        set => SetValue(InkProperty, value);
-    }
-
-    private bool _inkAttached;
     private readonly Microsoft.UI.Xaml.Media.SolidColorBrush _backdropInk = new();
     internal void ApplyBackdropInk(Momoka.Theming.ThemeColor? color)
     {
@@ -65,25 +54,11 @@ public sealed partial class ShelfHead : UserControl
         {
             TitleText.ClearValue(TextBlock.ForegroundProperty);
             OpenGlyph.Foreground = Resource<Microsoft.UI.Xaml.Media.Brush>(OnScrim ? "EgOnScrimDimBrush" : "EgTextDimBrush");
-            var defaultColor = Resource<Microsoft.UI.Xaml.Media.SolidColorBrush>(OnScrim ? "EgOnScrimBrush" : "EgTextBrush").Color;
-            TextInk.SetForeground(TitleInk, Momoka.Theming.ThemeColor.Rgb(defaultColor.R, defaultColor.G, defaultColor.B));
             return;
         }
         _backdropInk.Color = ThemeHost.ToColor(ink);
         TitleText.Foreground = _backdropInk;
         OpenGlyph.Foreground = _backdropInk;
-        TextInk.SetForeground(TitleInk, ink);
-    }
-
-    private static void OnInkChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
-    {
-        var head = (ShelfHead)sender;
-        if ((bool)args.NewValue && !head._inkAttached)
-        {
-            TextInk.Attach(head.TitleInk, head.TitleText);
-            head._inkAttached = true;
-        }
-        head.TitleInk.Visibility = (bool)args.NewValue ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>

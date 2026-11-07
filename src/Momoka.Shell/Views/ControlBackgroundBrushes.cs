@@ -11,14 +11,18 @@ namespace Momoka.Shell.Views;
 /// 框架 2.3.9 的 DefaultButtonStyle/DefaultToggleButtonStyle 在三种状态分别读取这些资源键，
 /// 所以必须提供整组三态，不能只给 Background 填一支刷子。
 /// <para>
-/// 滑块的读数就是底色自己的不透明度（2026-11-06 用户令「0 改为完全透明，100 改为完全不透明」）：0 档常态什么
-/// 都不画，悬停与按下仍留原来那层薄白 —— 那是指针的手感，不是要关掉的那块板。
-/// 详情按钮与闭合选择框共用平台薄白三态；默认还原 0.2.0 的 15/21/8 alpha，展开列表独立用亚克力。
+/// 两种材质各有一套参数（2026-11-07 用户令「背景图和按钮新的亚克力改为三项可调，去掉高斯模糊和颜色遮罩」）：
+/// 半透明叠层只有底色和它的不透明度；亚克力就是 <c>AcrylicBrush</c> 自己的三项 —— TintColor、TintOpacity、
+/// TintLuminosityOpacity。不再有第四格「整体浓度」：那一个是整支画笔的 <c>Opacity</c>，不属于亚克力参数。
+/// </para>
+/// <para>
+/// 详情按钮与闭合选择框共用这套材质；主页轮播那颗「详情」按钮仍按原来的底色浓度走，不吃这三项。
 /// </para>
 /// </summary>
 internal sealed class ControlBackgroundBrushes
 {
-    private readonly List<(SolidColorBrush Source, SolidColorBrush Target, AcrylicBrush Copy, bool Feedback)> _brushes = [];
+    // Extra 是这一态在底色／染色浓度上多推的份额：悬停 6 个百分点、按下 12，禁用不推。
+    private readonly List<(SolidColorBrush Source, SolidColorBrush Target, AcrylicBrush Copy, bool Feedback, double Extra)> _brushes = [];
     private readonly bool _preserveDefault;
     private readonly bool _lightSurface;
     internal Control Control { get; }
@@ -76,10 +80,10 @@ internal sealed class ControlBackgroundBrushes
         Control = control;
         _preserveDefault = preserveDefault;
         _lightSurface = lightSurface;
-        var rest = Copy(normal, lightSurface ? "EgDetailActionBrush" : "EgSurfaceElevatedBrush", feedback: false);
-        var over = Copy(hover, lightSurface ? "EgDetailActionHoverBrush" : "EgSurfaceHoverBrush", feedback: true);
-        var down = Copy(pressed, lightSurface ? "EgDetailActionPressedBrush" : "EgSurfaceAltBrush", feedback: true);
-        var off = Copy(disabled, "EgSurfaceElevatedBrush", feedback: false);
+        var rest = Copy(normal, lightSurface ? "EgDetailActionBrush" : "EgSurfaceElevatedBrush", false, 0);
+        var over = Copy(hover, lightSurface ? "EgDetailActionHoverBrush" : "EgSurfaceHoverBrush", true, 0.06);
+        var down = Copy(pressed, lightSurface ? "EgDetailActionPressedBrush" : "EgSurfaceAltBrush", true, 0.12);
+        var off = Copy(disabled, "EgSurfaceElevatedBrush", false, 0);
         // XAML 不声明下面这些键；此处仅在构造时新增一次，以后只修改画刷。
         // WinUI 的别名重写按对象移除，可能报 0x800F0902；资源枚举也不能作为别名复制依据。
         // 保留原字典与所有前景资源，避免重写、移除或枚举已经存在的别名。
@@ -125,11 +129,32 @@ internal sealed class ControlBackgroundBrushes
             (SolidColorBrush)resources["EgBannerGhostHoverBrush"], (SolidColorBrush)resources["EgBannerGhostPressBrush"],
             Resource("ButtonBackgroundDisabled"));
 
-    public void Apply(double percent, bool useAcrylic = false, Windows.UI.Color? tint = null)
+    /// <summary>
+    /// 按当前设置重画三态（外加选中／禁用）的底色。<paramref name="percent"/> 是半透明叠层的底色不透明度；
+    /// <paramref name="tintOpacity"/> 与 <paramref name="luminosityOpacity"/> 是亚克力的两项浓度（0–1），
+    /// 只在 <paramref name="useAcrylic"/> 为真时生效。<paramref name="tint"/> 是那颗按钮的颜色，两种材质共用。
+    /// </summary>
+    public void Apply(double percent, bool useAcrylic = false, Windows.UI.Color? tint = null,
+        double tintOpacity = 0.55, double luminosityOpacity = 0.55)
     {
         var amount = AppearanceOpacity.ControlBackground(percent);
-        foreach (var (source, target, copy, feedback) in _brushes)
+        foreach (var (source, target, copy, feedback, extra) in _brushes)
         {
+            if (_lightSurface && useAcrylic)
+            {
+                // 三项就是亚克力的全部可调项：色相来自 tint，染色与明暗各一档。指针反馈不另叠一层、
+                // 也不动整支画笔的 Opacity，只把染色浓度往上推几个百分点 —— 材质的颜色和明暗仍是用户选的那一套。
+                var acrylicInk = tint ?? target.Color;
+                acrylicInk.A = byte.MaxValue;
+                copy.TintColor = acrylicInk;
+                copy.FallbackColor = acrylicInk;
+                copy.TintOpacity = Math.Clamp(tintOpacity + extra, 0, 1);
+                copy.TintLuminosityOpacity = Math.Clamp(luminosityOpacity, 0, 1);
+                copy.Opacity = 1;
+                // 系统关掉透明效果（省电、远程桌面）时平台自己落到上面那块不透明的 FallbackColor。
+                copy.AlwaysUseFallback = false;
+                continue;
+            }
             if (_lightSurface)
             {
                 // 常态是滑块直接读数；默认以下保留悬停/按下反馈，默认以上各态连续补到满档。
@@ -144,8 +169,8 @@ internal sealed class ControlBackgroundBrushes
                 copy.FallbackColor = acrylicInk;
                 copy.TintOpacity = strength;
                 copy.TintLuminosityOpacity = 0;
-                copy.Opacity = useAcrylic && strength is > 0 and < 1 ? 1 : strength;
-                copy.AlwaysUseFallback = !useAcrylic || strength is 0 or 1;
+                copy.Opacity = strength;
+                copy.AlwaysUseFallback = true;
                 continue;
             }
             if (amount == 0 && !_preserveDefault)
@@ -159,8 +184,8 @@ internal sealed class ControlBackgroundBrushes
             }
             if (useAcrylic && amount < 1)
             {
-                // 亚克力跟着同一档浓度：0 档是一块什么都不画的玻璃，向右补到 100 的实底（由下面那条路接手）。
-                // 画刷本身保持不透明，系统关闭透明效果时 FallbackColor 仍是一块可读的主题表面。
+                // 主页那颗「详情」按钮保持 0.2.0 的算法：浓度就是整支画笔的不透明度，亚克力只换材质不改形状。
+                // 2026-11-07 用户把三项染色参数限定在媒体详情页，这一支没有跟着换。
                 var ink = tint ?? target.Color;
                 ink.A = byte.MaxValue;
                 copy.TintColor = ink;
@@ -224,7 +249,7 @@ internal sealed class ControlBackgroundBrushes
         }
     }
 
-    private AcrylicBrush Copy(SolidColorBrush source, string targetKey, bool feedback)
+    private AcrylicBrush Copy(SolidColorBrush source, string targetKey, bool feedback, double extra)
     {
         var copy = new AcrylicBrush
         {
@@ -233,7 +258,7 @@ internal sealed class ControlBackgroundBrushes
             AlwaysUseFallback = true,
             TintTransitionDuration = TimeSpan.Zero
         };
-        _brushes.Add((source, Resource(targetKey), copy, feedback));
+        _brushes.Add((source, Resource(targetKey), copy, feedback, extra));
         return copy;
     }
 

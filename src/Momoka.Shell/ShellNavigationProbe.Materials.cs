@@ -257,11 +257,13 @@ internal sealed partial class ShellNavigationProbe
                                 foreach (var (state, alpha) in new[] { ("PointerOver", 15), ("Pressed", 10), ("Selected", 15),
                                     ("SelectedUnfocused", 10), ("SelectedPointerOver", 10), ("SelectedPressed", 15) })
                                 {
-                                    Require(VisualStateManager.GoToState(row, state, false), "下拉条目缺少状态：" + state);
-                                    await LayoutAsync(row);
-                                    Require(rowSurface.Background is SolidColorBrush fill && fill.Color.A == alpha
-                                        && fill.Color.R == 255 && fill.Color.G == 255 && fill.Color.B == 255,
-                                        "下拉条目未恢复平台薄白：" + state);
+                                    await WaitForLayoutAsync(() =>
+                                    {
+                                        Require(VisualStateManager.GoToState(row, state, false), "下拉条目缺少状态：" + state);
+                                        row.UpdateLayout();
+                                        return rowSurface.Background is SolidColorBrush fill && fill.Color.A == alpha
+                                            && fill.Color.R == 255 && fill.Color.G == 255 && fill.Color.B == 255;
+                                    }, $"下拉条目未恢复平台薄白：{state}，实际 {rowSurface.Background}");
                                 }
                                 await SaveProbeScreenAsync($"detail-picker-open-{theme.Id}-{width}-screen.png");
                             }

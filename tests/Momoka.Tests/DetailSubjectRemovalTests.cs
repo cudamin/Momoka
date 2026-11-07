@@ -420,9 +420,14 @@ internal static class DetailSubjectRemovalTests
             Vm.GetType().GetProperty("PageWidth", Members)!.SetValue(Vm, width);
             Vm.GetType().GetProperty("Viewport", Members)!.SetValue(Vm, viewport);
             Vm.GetType().GetProperty("HeroHeightRatio", Members)!.SetValue(Vm, 9d / 16);
-            _settings.Settings.Ui.UseGaussianBackdrop = false;
         }
-        public void BackdropStrength(double value) => _settings.Settings.Ui.BackdropOpacity = value;
+
+        // 2026-11-07 起「背景强度」由亚克力的两项染色浓度表达：都拖到 0 时那层材料什么都不盖。
+        public void BackdropStrength(double value)
+        {
+            _settings.Settings.Ui.BackdropTintOpacity = value;
+            _settings.Settings.Ui.BackdropTintLuminosityOpacity = value;
+        }
         public void SelectSourceRow(object row) => Vm.GetType().GetProperty("SelectedSource", Members)!.SetValue(Vm, row);
         public void SelectForeignVersion()
         {

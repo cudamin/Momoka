@@ -1,8 +1,23 @@
+## 2026-11-08 背景与按钮亚克力三项参数主树交付
+
+产品提交 67c5372（合 f14ca28 与工作树 896d6ab），四处冲突按「新语义优先、保留主树修复」解决：详情视图模型保留裁切模糊并把「强度 0 不模糊」映射为两项染色浓度都为 0；探针留亚克力断言、删退役高斯检查与诊断字段；外观专项取新语义；主树 R07-009 强度用例改由两项浓度驱动。
+
+最终主树 Release/x64 0 警告 0 错误，`format whitespace` 与 `check-diff`（29 个文本文件）通过；主测试 4179/4179、外观专项 67/67，失败跳过均 0。原生探针在副屏串行：settings 28/28、library 32/32（含详情自定义页面、背景渐变与按钮材质、R07 新用例），截图 `settings-acrylic-controls-screen.png`、`detail-customization-*-screen.png`、`backdrop-tint-*` 已目视。
+
+`tools/publish.ps1 -NoArchive -Shortcut` 已刷新主树 `artifacts/publish/win-x64`：546 文件 286.6 MB，批准载荷与着色器许可校验通过；发布 `Momoka.dll` 与构建输出同 `0B852B1356865A2345EA465CD3012577D430FCE10E6234A08AA4E6B1D9C4DF39`，`Momoka.exe` `987164A4745895256000C662073A1ADB4B3C6CC352BD399C39B5BC21B944BB85`。发布程序自身再跑 settings 28/28 退出 0。快捷方式写回被沙箱权限拒绝（`.lnk` ACL 只对 SB\CodexSandboxUsers 只读），但读回目标仍是 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`，本次只替换该目录内容、目标未变，无需重写。未上传、未真实播放或写服务器；临时工作树 `workbuddy/master-dac8bdc5`（顶端 896d6ab）内容已全部进入 master，待该会话关闭后再删。
+
 ## 2026-11-08 弹幕发送探针可选参数与失败清理（待统一合入）
 
 独树 `danmaku-send-probe-closure` 基于 master 3316d1a，范围仅 `ShellNavigationProbe.DanmakuSend.cs` 与现有 `Momoka.DanmakuSourceBoundaryTests`。R14 将 `ResetDanmakuInput` 改为可选 bool 参数后，探针反射调用仍传零参数；在第4个待发送请求时抛 `TargetParameterCountException`，假 HTTP 故意不响应取消，finally 的真实客户端关机等待因未释放 pending 而遮成整项60秒超时。显式传 false，并在 finally 先 TrySetCanceled 未完成 pending，生产断言及60秒预算不变，无产品功能改动。
 
 原样提取当前反射调用、清理与假 HTTP 传输，链接真实 Reset 与 DandanPlayClient；红测新增3项均timeout、原23项通过，修后新增3/3及原23/23、失败跳过0，Release测试/Core/Shell 0警告0错误。错误参数与普通断言负例均保留原始失败，真实客户端 admitted POST 在回报前结束。证据 `artifacts/danmaku-send-probe-closure` 保留原21136超时报告、app trace、源签名与红绿日志。未运行GUI/真实服务器/播放/发送，主树交付会话负责合流后 playback 实际路径及最终发布。
+## 2026-11-07 背景与按钮亚克力改成三项参数（已合主树）
+
+用户令「背景图和按钮新的亚克力改为三项可调，去掉高斯模糊和颜色遮罩」，并答复四点：范围是媒体详情页；按钮保留「半透明叠层／亚克力」二选一；那格整体浓度「是 WinUI 原生参数吗？不是就删掉」（不是，它是整支画笔的 Opacity，删）；背景色调自选固定色、默认 #808080。
+
+产品改动：设置 schema 28，`BackdropOpacity`／`UseGaussianBackdrop`／`UseAcrylicBackdrop` 退役，新增按钮与背景各两项染色浓度（出厂 55%）。按钮亚克力只写 TintColor／TintOpacity／TintLuminosityOpacity 与不透明回退色，画笔 Opacity 恒 1；悬停 +6、按下 +12 个百分点。背景固定亚克力，窄窗与集页卡面仍用固定 40% 实色阅读罩；详情页不再跑 CPU 高斯，九个字形影子宿主与 `GaussianBackdropApplied`／`BackdropStrength` 一并删除，裁切盒式模糊保留。首页轮播那颗详情按钮与两层图不改。
+
+验证：完整方案 Release/x64 0 警告 0 错误、whitespace 通过；主测试 4140/4140 失败跳过 0；`Momoka.AppearanceOpacityTests` 54/54。原生 `--probe-shell --probe-section settings --screen 2` 28/28，`library --screen 2` 30/30（含详情自定义页面、背景渐变与按钮材质）；期间修了两处：布局收尾后补排一次阅读色重画（旧遮罩 40% 时不会跨过深浅切换，换成玻璃后露出来了），以及探针里三处按旧滑块语义写的断言。截图 `settings-acrylic-controls-screen.png`、`backdrop-tint-*`、`detail-customization-*-screen.png` 已目视：设置行不裁剪，0/0 露出原图、100/100 盖上实色，默认 55/55 是偏灰的浅玻璃、字转深色仍可读。未合并主树、未发布、未上传；未真实播放或写服务器。
 
 ## 2026-11-07 两项详情改动与第九批已统一桌面交付
 
@@ -11464,3 +11479,7 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 当前 Shell/Core 与 Tests Release 编译 0 警告 0 错误。完整4185/4185通过、0跳过；首轮16项自检夹具因另一GUI诊断占用互斥锁而红，桌面空闲后完整重跑全部通过。当前真实VM货架10/10、删除恢复38/38、归季和布局17/17、外观72/72、字体2/2通过；重复计数不累计。证据 artifacts/detail-season。检查了19个变更文本路径，编码/行尾/空白通过。
 - 两轮只读审查发现的空季ID误合并、取消后旧选季回调复活货架、高对比标题前景及缺S00入口均定点修正；实际回归保留对应失败证据。Inspect「集页分季与特别篇」调用更新后的实际页面探针；详情自定义、材料、长剧断言已同步。
 - 运行验证尚未完成：另一轮主目录GUI探针34488占用同一桌面；本轮29264尝试被已有诊断互斥拒绝，未取得窗口。主树原合并冲突已由其会话处理成67c5372，待本轮代码安全整合、最终重验与发布；桌面快捷方式仍未刷新本轮改动。不上传。
+
+- 已整合 master 67c5372 的亚克力三参数变更，保留其退役高斯设置；默认字色、单季及特别篇规则不回退。手动冲突只在自定义探针中删除已退役高斯段并保留默认前景判据。
+- 本树实际检查台21448：集页分季与特别篇、设置排序隐藏重入、Series/Episode/Movie三类五主题与宽窄详情均通过，保存15张主题截图并视觉复核。材料检查文字/箭头均通过，旧下拉PointerOver单次取样红；已改为等待同一状态稳定，不改变平台薄白原值，待定向重验。证据已从运行目录保留到 artifacts/detail-season/ui-21448。
+- 整合版当前Shell/Core与Tests重新编译0警告0错误且Core SHA一致；完整回归正在最终运行。之前同树编译与已启动检查台21448发生文件锁，已正常结束检查台后重编，不用失败输出交付。master当前06382b7干净，待最终验证后合入与发布。

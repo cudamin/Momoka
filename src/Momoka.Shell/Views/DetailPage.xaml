@@ -460,7 +460,6 @@
                             -->
                             <Grid x:Name="DetailPlateRow"
                                 Visibility="{x:Bind ViewModel.PlateVisibility, Mode=OneWay}">
-                                <Border x:Name="DetailPlateInk" IsHitTestVisible="False" Visibility="Collapsed" />
                             <Image
                                 x:Name="TitlePlate"
                                 AutomationProperties.AccessibilityView="Raw"
@@ -515,7 +514,6 @@
                                          轮播那一支（52，和轮播上那个片名同一个键）：长片名折两行时，Bahnschrift 的行距
                                          装不下雅黑的字，两行直接叠在一起（见 Styles.xaml 上那个键）。 -->
                                     <Grid>
-                                        <Border x:Name="DetailTitleInk" IsHitTestVisible="False" Visibility="Collapsed" />
                                     <TextBlock
                                         x:Name="TitleText"
                                         Style="{StaticResource EgHeroTitleStyle}"
@@ -543,7 +541,6 @@
                                 Visibility="{x:Bind ViewModel.SublineVisibility, Mode=OneWay}" />
 
                             <Grid Visibility="{x:Bind ViewModel.GenreVisibility, Mode=OneWay}">
-                                <Border x:Name="DetailGenreInk" IsHitTestVisible="False" Visibility="Collapsed" />
                             <TextBlock
                                 x:Name="GenreLine"
                                 FontSize="{x:Bind ViewModel.SublineFontSize, Mode=OneWay}"
@@ -574,7 +571,6 @@
                                         Foreground="{ThemeResource EgAccentBrush}"
                                         Glyph="&#xE735;" />
                                     <Grid>
-                                        <Border x:Name="DetailScoreInk" IsHitTestVisible="False" Visibility="Collapsed" />
                                     <TextBlock
                                         x:Name="ScoreText"
                                         VerticalAlignment="Center"
@@ -582,7 +578,6 @@
                                         Text="{x:Bind ViewModel.Score, Mode=OneWay}" />
                                     </Grid>
                                     <Grid>
-                                        <Border x:Name="DetailScoreSourceInk" IsHitTestVisible="False" Visibility="Collapsed" />
                                     <TextBlock
                                         x:Name="ScoreSourceText"
                                         VerticalAlignment="Center"
@@ -593,7 +588,6 @@
                                 </StackPanel>
 
                                 <Grid>
-                                    <Border x:Name="DetailFactsInk" IsHitTestVisible="False" Visibility="Collapsed" />
                                 <TextBlock
                                     x:Name="HeroFacts"
                                     VerticalAlignment="Center"
@@ -606,7 +600,6 @@
                             <!-- 「视频：…」那一行的独立一份 —— 集页的宽版式不画它（那一页它下到文件选项那排
                                  chips 里了，和音频、字幕一起换行），其余版式照旧在这里。 -->
                             <Grid Visibility="{x:Bind ViewModel.VideoLineVisibility, Mode=OneWay}">
-                                <Border x:Name="DetailVideoInk" IsHitTestVisible="False" Visibility="Collapsed" />
                             <TextBlock
                                 x:Name="DetailVideoText"
                                 Style="{StaticResource EgOnScrimBodyStyle}"
@@ -1277,7 +1270,6 @@
                             Spacing="2"
                             Visibility="{x:Bind ViewModel.OverviewVisibility, Mode=OneWay}">
                             <Grid>
-                                <Border x:Name="DetailOverviewInk" IsHitTestVisible="False" Visibility="Collapsed" />
                             <TextBlock
                                 x:Name="Overview"
                                 FontSize="{StaticResource EgBodyFontSize}"
@@ -1300,7 +1292,6 @@
                                 Visibility="{x:Bind ViewModel.ReadMoreVisibility, Mode=OneWay}" />
                             <!-- 导演 prose 行，Emby 的详情页把导演放在简介底下而不是只埋在演职人员里。 -->
                             <Grid Margin="0,6,0,0" Visibility="{x:Bind ViewModel.DirectorsVisibility, Mode=OneWay}">
-                                <Border x:Name="DetailDirectorsInk" IsHitTestVisible="False" Visibility="Collapsed" />
                             <TextBlock
                                 x:Name="DetailDirectorsText"
                                 FontSize="{StaticResource EgBodyFontSize}"
