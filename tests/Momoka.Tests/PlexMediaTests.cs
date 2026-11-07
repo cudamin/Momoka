@@ -25,6 +25,7 @@ internal static partial class PlexMediaTests
         RegisterLibraries();
         RegisterBitrates();
         RegisterWatchedCounts();
+        RegisterWatchedWrites();
         RegisterNextUpPaging();
         PlexV2LoginTests.Register();
         Test("Plex 媒体：登录、媒体库命名和令牌失效后同身份恢复", () =>
@@ -232,9 +233,15 @@ internal static partial class PlexMediaTests
         public List<Uri> Requests { get; } = [];
         public int Logins { get; private set; }
         public bool Expire { get; set; }
+        public HttpStatusCode? MetadataFailure { get; set; }
+        public bool ExpireMetadata { get; set; }
+        public HttpStatusCode? WriteFailure { get; set; }
+        public bool ExpireWrite { get; set; }
+        public bool BadMetadata { get; set; }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var uri = request.RequestUri!;
             if (uri.Host is not ("plex.invalid" or "plex.tv")) throw new InvalidOperationException("Unexpected host: " + uri.Host);
             Requests.Add(uri);
@@ -255,6 +262,25 @@ internal static partial class PlexMediaTests
             {
                 Expire = false;
                 return new HttpResponseMessage(HttpStatusCode.Unauthorized);
+            }
+            if (uri.AbsolutePath == "/library/metadata/10")
+            {
+                if (ExpireMetadata)
+                {
+                    ExpireMetadata = false;
+                    return new HttpResponseMessage(HttpStatusCode.Unauthorized);
+                }
+                if (MetadataFailure is { } failure) return new HttpResponseMessage(failure);
+                if (BadMetadata) return Raw("{\"MediaContainer\":{\"Metadata\":[]}}");
+            }
+            if (uri.AbsolutePath is "/:/scrobble" or "/:/unscrobble")
+            {
+                if (ExpireWrite)
+                {
+                    ExpireWrite = false;
+                    return new HttpResponseMessage(HttpStatusCode.Unauthorized);
+                }
+                if (WriteFailure is { } failure) return new HttpResponseMessage(failure);
             }
 
             var container = uri.AbsolutePath switch

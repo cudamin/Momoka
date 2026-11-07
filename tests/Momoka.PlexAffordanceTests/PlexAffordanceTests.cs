@@ -9,7 +9,7 @@ using Momoka.Shell.Views;
 
 namespace Momoka.Tests;
 
-internal static class PlexAffordanceTests
+internal static partial class PlexAffordanceTests
 {
     private static string _root = "";
     private static ShellAssembly _shell = null!;
@@ -34,6 +34,7 @@ internal static class PlexAffordanceTests
             Console.WriteLine("R-029/R-030 实际卡片命令／详情VM／题材页面契约；假HTTP、无native或真实UI");
             RegisterCards();
             RegisterDetails();
+            RegisterWatchedWrites();
             RegisterGenres();
             return TestHarness.Run();
         }

@@ -3835,9 +3835,9 @@ public sealed partial class DetailViewModel : PageViewModel
                 .ConfigureAwait(true);
 
             if (!scope.IsAvailable) return;
-            if (scope.Connection.IsFnNas)
+            if (scope.Connection.IsFnNas || scope.Connection.IsPlex)
             {
-                // The native endpoint acknowledged this bit before any detail refresh. Preserve it
+                // The write endpoint acknowledged this bit before any detail refresh. Preserve it
                 // even when the optional server-derived counts or episode list cannot be read back.
                 item.UserData ??= new EmbyUserData();
                 item.UserData.Played = !played;
@@ -3857,7 +3857,8 @@ public sealed partial class DetailViewModel : PageViewModel
             // Re-read rather than flipped locally: marking a season watched moves every episode's tick
             // and the show's unplayed count with it, and only the server knows what it did.
             if (Attached && lifetime == _lifetime && ReferenceEquals(item, _detail) && scope.IsAvailable)
-                await LoadAsync(scope.Connection.IsFnNas ? "观看状态已保存，但刷新详情失败" : null).ConfigureAwait(true);
+                await LoadAsync(scope.Connection.IsFnNas || scope.Connection.IsPlex
+                    ? "观看状态已保存，但刷新详情失败" : null).ConfigureAwait(true);
         }
         catch (OperationCanceledException) { }
         catch (Exception error)

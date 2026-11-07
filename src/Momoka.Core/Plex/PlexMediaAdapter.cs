@@ -288,9 +288,14 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
 
     public async Task<EmbyUserData?> SetWatchedAsync(string id, bool watched, CancellationToken ct)
     {
+        // A successful scrobble has already saved the target bit. Keep an optional metadata read
+        // outside this task so a read failure cannot discard confirmation or replay the write.
         await client.SetWatchedAsync(connection, id, watched, ct).ConfigureAwait(false);
-        return Item(First(await client.GetMetadataAsync(connection, id, ct).ConfigureAwait(false))).UserData;
+        return null;
     }
+
+    public async Task<EmbyUserData?> GetUserDataAsync(string id, CancellationToken ct) =>
+        Item(First(await client.GetMetadataAsync(connection, id, ct).ConfigureAwait(false))).UserData;
 
     public Task ReportPlaybackStartAsync(PlaybackReport report, CancellationToken ct) =>
         ReportAsync(report, "playing", ct);

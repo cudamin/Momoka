@@ -607,7 +607,7 @@ internal static partial class ItemCommands
                     // 那一格该换成下一集还是撤掉，页面比这一头清楚（见 Show 的 watched）。
                     watched?.Invoke(card);
                 }
-                await RefreshFnNasUserStateAsync(session, shell, card, identity, order, change).ConfigureAwait(true);
+                await RefreshConfirmedUserStateAsync(session, shell, card, identity, order, change).ConfigureAwait(true);
             },
             finished: () => order.Complete(change));
     }
@@ -631,7 +631,7 @@ internal static partial class ItemCommands
             {
                 if (!Patch(card, identity, order, change, data)) return;
                 shell.RefreshFavorites(item);
-                await RefreshFnNasUserStateAsync(session, shell, card, identity, order, change).ConfigureAwait(true);
+                await RefreshConfirmedUserStateAsync(session, shell, card, identity, order, change).ConfigureAwait(true);
             },
             finished: () => order.Complete(change));
     }
@@ -679,13 +679,15 @@ internal static partial class ItemCommands
         return true;
     }
 
-    private static async Task RefreshFnNasUserStateAsync(EmbySessionScope scope, IShellActions shell, CardItem card,
+    private static async Task RefreshConfirmedUserStateAsync(EmbySessionScope scope, IShellActions shell, CardItem card,
         string identity, ItemUserStateOrder order, ItemUserStateOrder.Change change)
     {
-        if (!scope.Connection.IsFnNas || !card.IsCurrent || card.Item.IdentityKey != identity) return;
+        if (!(scope.Connection.IsFnNas || scope.Connection.IsPlex && change.Watched)
+            || !card.IsCurrent || card.Item.IdentityKey != identity) return;
         try
         {
-            var data = await scope.ExecuteAsync((client, token) => client.GetFnNasUserDataAsync(card.Item.Id, token),
+            var data = await scope.ExecuteAsync((client, token) => scope.Connection.IsPlex
+                    ? client.GetPlexUserDataAsync(card.Item.Id, token) : client.GetFnNasUserDataAsync(card.Item.Id, token),
                 CancellationToken.None).ConfigureAwait(true);
             if (!card.IsCurrent || card.Item.IdentityKey != identity || data is null) return;
             if (order.RefreshConfirmed(change, card.Item.UserData, data) is not { } state) return;

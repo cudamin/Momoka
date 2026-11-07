@@ -1,3 +1,10 @@
+## 2026-11-07 第七批 R05-002 已完成产品开发验证，待匿名GUI与主树交付
+
+基点29cf082，隔离树review-recovery-batch3仅修Plex写成功后补读误报/重写。SetWatched返回无正文确认，独立metadata补读；卡片复用RefreshConfirmed、详情保留确认位并提示已保存但刷新失败。Session全局认证重试不改，原HTTP任务完成才确认；不混ResumeSlot失败消费或R07详情全局排序。
+
+当前Release/x64 Tests/Core/Shell及PlexAffordance零警告错误，协议238/238、实际卡片/Attach-Reload详情81/81，完整4119/4119、零失败零跳过；定向空白与13变更文本通过。旧代码协议4红/卡片详情8红已留存，首轮完整16红明确共享自检mutex占用，锁释放后完整重跑通过，证据artifacts/review-batch7。不读取真实配置/凭据/服务、不播放/写入或上传。
+
+另在review-plex-state-probe开发匿名真实控件/Toast/InfoBar与宽窄验证。主树此时a6eea28由详情沉浸聊天整合验证发布，本会话未写主树或覆盖交付；本批尚未合主树、未运行GUI、未刷新快捷方式。计划docs/superpowers/plans/2026-11-07-review-batch7.md。按当前用户指令连续完成，不自动暂停。
 开发树收尾：aa60顶端acf9b58已是master祖先，工作区干净；相对master剩余5处均为后续纯记录，产品源码无独有差异。231份所需忽略证据已保存主树且逐hash核对。原生归档拒绝“The task's primary checkout cannot be removed.”，当前聊天主工作树受应用保护保留，未用文件系统绕过；本地只有master命名分支。主树交付不受影响。
 
 ## 2026-11-07 0.2.0详情控件默认效果已完成主树本地交付
