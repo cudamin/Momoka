@@ -22,6 +22,8 @@ internal sealed record HomeRequest(
     Windowing.HostWindow? Window,
     Action<MoviePilotSubscription>? OpenSubscription = null)
 {
+    internal Func<IReadOnlyList<EmbyItem>>? CurrentLibraryViews { get; init; }
+    internal IReadOnlyList<EmbyItem> EffectiveLibraryViews => CurrentLibraryViews?.Invoke() ?? LibraryViews;
     /// <summary>返回栈里的那一份请求记着离开时的滚动位置；暖缓存恢复后按它落回原处。</summary>
     public double ScrollOffset { get; set; }
 }
@@ -1392,7 +1394,7 @@ public sealed partial class HomePage : Page, IShellContent
         ViewModel.UseRemovedMedia(services.GetRequiredService<RemovedMedia>());
         ViewModel.Attach(
             _actions,
-            request.LibraryViews,
+            request.EffectiveLibraryViews,
             settings,
             _session,
             services.GetRequiredService<EmbyImageStore>(),

@@ -18,6 +18,25 @@ internal static class Program
         Console.OutputEncoding = Encoding.UTF8;
         Console.WriteLine("R-062 目录交接＋R03-005 关闭账号生命周期；真实VM/Core、匿名HTTP、无窗口或真实服务器");
         AccountShutdownTests.Register(Test);
+        foreach (var leaveEarly in new[] { false, true })
+        {
+            Test("R03-004 返回历史主页使用本次有效目录并保留滚动 " + leaveEarly, async () =>
+            {
+                using var f = new Fixture(MediaServerKind.Emby);
+                var entering = f.Shell.Enter();
+                await f.Transport.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                f.Shell.GoTo("home");
+                var request = ((Momoka.Shell.Views.HomePage)f.Shell.ContentFrame.Content!).Request;
+                request.ScrollOffset = 150;
+                if (leaveEarly) f.Shell.LeaveForOtherPage();
+                f.Transport.Release();
+                await entering.WaitAsync(TimeSpan.FromSeconds(10));
+                Assert.Equal(2, request.EffectiveLibraryViews.Count, "目录成功后历史请求不能永久保留空快照");
+                Assert.Equal(150d, request.ScrollOffset);
+                f.Shell.RevokeHomeAccess();
+                Assert.Equal(0, request.EffectiveLibraryViews.Count, "旧访问撤销后不能再回放旧来源目录");
+            });
+        }
         foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
         {
             Test("R-062 目录挂起先到主页，再交接合法目录快照 " + kind, async () =>

@@ -1103,7 +1103,13 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         if (tag == "home")
         {
-            Open(typeof(HomePage), new HomeRequest(_services, _libraryViews.ToArray(), _window, OpenSubscription), "主页", tag);
+            var homeScope = _session?.IsSignedIn == true ? _session.Capture() : null;
+            var homeSources = SourcesStamp();
+            Open(typeof(HomePage), new HomeRequest(_services, _libraryViews.ToArray(), _window, OpenSubscription)
+            {
+                CurrentLibraryViews = () => !_closing && homeScope?.IsCurrent == true && SourcesStamp() == homeSources
+                    ? _libraryViews.ToArray() : []
+            }, "主页", tag);
             return;
         }
 
