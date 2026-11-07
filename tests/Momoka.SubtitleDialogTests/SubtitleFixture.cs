@@ -28,8 +28,10 @@ internal sealed class SubtitleFixture : IDisposable
     internal Task Caller { get; private set; } = Task.CompletedTask;
     internal int Changed { get; private set; }
 
-    internal SubtitleFixture()
+    internal SubtitleFixture(MediaServerKind product = MediaServerKind.Emby, string version = "10.10.7")
     {
+        Transport.Product = product;
+        Transport.Version = version;
         var secrets = new NoSecrets();
         var paths = new AppPaths(Path.Combine(AppContext.BaseDirectory, "no-settings-io"));
         Session = (EmbySession)Activator.CreateInstance(typeof(EmbySession), Private, null,
@@ -44,7 +46,11 @@ internal sealed class SubtitleFixture : IDisposable
     {
         var http = (EmbyHttp)typeof(EmbySession).GetField("_http", Private)!.GetValue(Session)!;
         var connection = new EmbyConnection(new Uri("http://r056-" + name + ".invalid/emby/"), "",
-            name + "-user", name + "-user", "offline-" + name, _device);
+            name + "-user", name + "-user", "offline-" + name, _device)
+        {
+            ServerKind = Transport.Product,
+            ServerVersion = Transport.Version
+        };
         var identityType = typeof(EmbySessionScope).GetNestedType("Identity", BindingFlags.NonPublic)!;
         var identity = Activator.CreateInstance(identityType, Private | BindingFlags.Public, null,
             [new EmbyClient(http, connection), new ServerProfile { Id = name + "-server" },
@@ -114,6 +120,10 @@ internal sealed class ReadPlan
 internal sealed class SubtitleTransport : HttpMessageHandler
 {
     private readonly Queue<ReadPlan> _reads = new();
+    internal MediaServerKind Product { get; set; }
+    internal string Version { get; set; } = "10.10.7";
+    internal bool ApplyDownloads { get; set; } = true;
+    private string ItemId => Product == MediaServerKind.Jellyfin ? "11111111111111111111111111111111" : "item";
     internal List<MediaStream> Tracks { get; } = [Track(1, "original")];
     internal List<(string Method, string Host, string Path)> Requests { get; } = [];
     internal int Reads { get; private set; }
@@ -135,12 +145,12 @@ internal sealed class SubtitleTransport : HttpMessageHandler
 
     internal EmbyItem Snapshot() => new()
     {
-        Id = "item",
+        Id = ItemId,
         Name = "virtual-movie",
         Type = EmbyItemType.Movie,
         MediaSources = [new MediaSource
         {
-            Id = "file", Name = "virtual-file", Path = "/virtual/not-opened/movie.mkv",
+            Id = Product == MediaServerKind.Jellyfin ? ItemId : "file", Name = "virtual-file", Path = "/virtual/not-opened/movie.mkv",
             MediaStreams = [.. Tracks.Select(track => Track(track.Index, track.Title!))]
         }]
     };
@@ -162,7 +172,7 @@ internal sealed class SubtitleTransport : HttpMessageHandler
         if (uri.Host is not ("r056-original.invalid" or "r056-replacement.invalid"))
             throw new InvalidOperationException("Unexpected host in source fixture");
 
-        if (request.Method == HttpMethod.Get && uri.AbsolutePath.EndsWith("/Items/item", StringComparison.Ordinal))
+        if (request.Method == HttpMethod.Get && uri.AbsolutePath.EndsWith("/Items/" + ItemId, StringComparison.Ordinal))
         {
             Reads++;
             if (_reads.TryDequeue(out var plan))
@@ -175,19 +185,35 @@ internal sealed class SubtitleTransport : HttpMessageHandler
         }
         if (request.Method == HttpMethod.Get && uri.AbsolutePath.Contains("/RemoteSearch/Subtitles/", StringComparison.Ordinal))
             return Json(Array.Empty<RemoteSubtitleInfo>());
+        // The actual Jellyfin parent detail read requests optional skip markers as well as files.
+        if (Product == MediaServerKind.Jellyfin && request.Method == HttpMethod.Get
+            && uri.AbsolutePath.EndsWith("/MediaSegments/" + ItemId, StringComparison.Ordinal))
+            return Json(new { Items = Array.Empty<object>() });
 
         var downloading = request.Method == HttpMethod.Post && uri.AbsolutePath.Contains("/RemoteSearch/Subtitles/", StringComparison.Ordinal);
         var deleting = request.Method == HttpMethod.Delete && uri.AbsolutePath.Contains("/Subtitles/", StringComparison.Ordinal);
         if (!downloading && !deleting) throw new InvalidOperationException("Forbidden endpoint in R056 fixture: " + request.Method + " " + uri.AbsolutePath);
         Writes++;
         if (WriteFailure is { } rejected) return new(rejected);
-        if (downloading) Tracks.Add(Track(Tracks.Max(track => track.Index) + 1, "downloaded-" + Writes));
-        else Tracks.RemoveAll(track => track.Index == int.Parse(uri.Segments[^1], System.Globalization.CultureInfo.InvariantCulture));
-        AppliedWrites++;
+        if (downloading)
+        {
+            if (ApplyDownloads)
+            {
+                Tracks.Add(Track(Tracks.Max(track => track.Index) + 1, "downloaded-" + Writes));
+                AppliedWrites++;
+            }
+        }
+        else
+        {
+            Tracks.RemoveAll(track => track.Index == int.Parse(uri.Segments[^1], System.Globalization.CultureInfo.InvariantCulture));
+            AppliedWrites++;
+        }
         WriteEntered.TrySetResult();
         if (WriteGate is { } gate) await gate.Task.WaitAsync(token).ConfigureAwait(false);
         if (LoseResponse) throw ResponseLoss;
-        return downloading ? Json(new SubtitleDownloadResult { NewIndex = Tracks[^1].Index }) : new(HttpStatusCode.NoContent);
+        return downloading && Product != MediaServerKind.Jellyfin
+            ? Json(new SubtitleDownloadResult { NewIndex = Tracks[^1].Index })
+            : new(HttpStatusCode.NoContent);
     }
 
     private static HttpResponseMessage Json<T>(T value) => new(HttpStatusCode.OK)

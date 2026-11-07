@@ -33,6 +33,9 @@ public sealed class ServerSubtitles
 
     public bool SupportsForcedOnly => !_scope.Connection.IsJellyfin;
 
+    /// <summary>Jellyfin returns 204 even after provider failure and queues successful indexing separately.</summary>
+    public bool DownloadProvidesConfirmation => !_scope.Connection.IsJellyfin;
+
     public Task<List<RemoteSubtitleInfo>> SearchAsync(string language) => SearchAsync(new ServerSubtitleSearch(language));
 
     public async Task<List<RemoteSubtitleInfo>> SearchAsync(ServerSubtitleSearch search)

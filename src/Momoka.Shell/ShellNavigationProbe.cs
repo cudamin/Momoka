@@ -100,6 +100,7 @@ internal sealed partial class ShellNavigationProbe
             // 2026-10-29 用户令：所有弹窗点外面就关，字幕管理右上角一颗 ✕、右下角那颗去掉。真模板真弹窗，
             // 遮罩那一层只能验到「找得到、铺满、不在弹窗树里」；真实按下那一米归 UIA 鼠标回归（见 DialogDismissAsync 头上那段）。
             await CaseAsync("弹窗点外面关闭与字幕弹窗右上角关闭钮", DialogDismissAsync, 45, section: ShellProbeSections.Metadata);
+            await CaseAsync("字幕无确认回执、只读恢复与关闭（匿名UIA）", SubtitleDownloadReceiptAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("电影与电视剧网页分类、工具栏、作用域及主题", LibraryBrowseAsync, 120);
             await CaseAsync("Jellyfin 媒体库标签、排序、筛选、布局与建议", JellyfinLibraryAsync, 90);
             await CaseAsync("Emby与Jellyfin继续观看紧凑页头", LibraryHeaderPolishAsync, 90, section: ShellProbeSections.Library);

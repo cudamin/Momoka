@@ -128,6 +128,63 @@ internal sealed partial class ShellNavigationProbe
         Require(true, $"{insideRead}；{reopenRead}；{headerRead}；{busyRead}");
     }
 
+    /// <summary>Real subtitle controls and UIA with inert delegates; a returned request does not prove a download.</summary>
+    private async Task SubtitleDownloadReceiptAsync()
+    {
+        foreach (var width in new[] { 1100, 760 })
+        {
+            ResizeProbeClient(width, 900);
+            await LayoutAsync(_root);
+            var writes = 0;
+            var reads = 0;
+            var source = new MediaSource
+            {
+                Id = "offline-receipt", Name = "离线文件.mkv",
+                MediaStreams = [new MediaStream { Index = 1, Type = "Subtitle", Codec = "srt", IsExternal = true, Title = "已有字幕" }]
+            };
+            var dialog = new SubtitleDialog(new EmbyItem { Id = "offline-receipt", Name = "字幕请求回执核对（离线）" }, source,
+                _ => Task.FromResult(new List<RemoteSubtitleInfo> { new() { Id = "offline-candidate", Name = "离线候选" } }),
+                _ => { writes++; return Task.CompletedTask; },
+                _ => throw new InvalidOperationException("只读核对不可删除"),
+                () => { reads++; return Task.FromResult(source); },
+                supportsForcedOnly: false, downloadProvidesConfirmation: false)
+            { XamlRoot = _root.XamlRoot };
+            var shown = dialog.ShowAsync().AsTask();
+            try
+            {
+                await LayoutAsync(dialog);
+                var search = Get<Button>(dialog, "SearchButton");
+                await UntilAsync(() => search.IsLoaded && search.ActualWidth > 0 && search.IsEnabled);
+                MetadataInvoke(search);
+                await UntilAsync(() => !dialog.ProbeBusy && Descendants(dialog).OfType<Button>().Any(button =>
+                    button.Name == "DownloadSubtitleButton" && button.IsLoaded && button.ActualWidth > 0 && button.IsEnabled));
+                await LayoutAsync(dialog);
+                MetadataInvoke(Descendants(dialog).OfType<Button>().Single(button => button.Name == "DownloadSubtitleButton"));
+                await UntilAsync(() => writes == 1 && reads == 1 && !dialog.ProbeBusy);
+                var status = Get<TextBlock>(dialog, "Status");
+                var refresh = Get<Button>(dialog, "RefreshTracksButton");
+                Require(!dialog.Touched && dialog.NeedsRefresh && status.Visibility == Visibility.Visible
+                    && status.Text.Contains("请求已返回", StringComparison.Ordinal)
+                    && status.Text.Contains("未确认", StringComparison.Ordinal)
+                    && !status.Text.Contains("已挂上", StringComparison.Ordinal), "无确认回执被显示为所选字幕已添加");
+                Require(refresh.Visibility == Visibility.Visible && refresh.IsEnabled && dialog.ProbeHeader().CloseEnabled,
+                    "未确认时缺少可用的只读刷新或关闭出口");
+                MetadataInvoke(refresh);
+                await UntilAsync(() => reads == 2 && !dialog.ProbeBusy);
+                Require(writes == 1 && !dialog.Touched && dialog.NeedsRefresh && Get<bool>(dialog, "_tracksStale")
+                    && !Get<ItemsControl>(dialog, "Tracks").IsEnabled && !Get<ItemsControl>(dialog, "Results").IsEnabled
+                    && !Get<Button>(dialog, "SearchButton").IsEnabled
+                    && status.Text.Contains("未确认", StringComparison.Ordinal)
+                    && !status.Text.Contains("已挂上", StringComparison.Ordinal), "未变的只读GET解除保护、重发写入或覆盖未确认状态");
+                await LayoutAsync(dialog);
+                await SaveProbeScreenAsync($"subtitle-receipt-{width}-screen.png");
+                MetadataInvoke(Get<Button>(dialog, "HeaderCloseButton"));
+                Require(await shown == ContentDialogResult.None, "未确认请求完成后右上角关闭不可用");
+            }
+            finally { dialog.Hide(); await shown; }
+        }
+    }
+
     private (SubtitleDialog Dialog, Windows.Foundation.IAsyncOperation<ContentDialogResult> Shown) SubtitleFixture(
         string name, Func<Task> download)
     {

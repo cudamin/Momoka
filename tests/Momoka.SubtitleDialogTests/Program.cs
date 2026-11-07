@@ -10,6 +10,7 @@ internal static class Program
 
     private static int Main()
     {
+        SubtitleReceiptTests.Register();
         Case("已删除主体的父刷新不再读取或恢复播放目标", async ui =>
         {
             using var f = new SubtitleFixture();
