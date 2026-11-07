@@ -70,7 +70,7 @@
                     <Button x:Name="FnNasUserBack" Content="返回" Command="{x:Bind ViewModel.BackCommand}" />
                     <TextBlock Text="{x:Bind ViewModel.EditorTitle, Mode=OneWay}" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
                 </StackPanel>
-                <ScrollView x:Name="FnNasUserEditorScroll" Grid.Row="1">
+                <ScrollView x:Name="FnNasUserEditorScroll" Grid.Row="1" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}">
                     <StackPanel Spacing="16" Padding="0,0,20,16">
                         <Border Style="{StaticResource FnNasCard}" Visibility="{x:Bind ViewModel.IdentityVisibility, Mode=OneWay}">
                             <StackPanel Spacing="16">

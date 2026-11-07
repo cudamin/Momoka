@@ -33,7 +33,7 @@
                 Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
         </StackPanel>
         <Grid Grid.Row="1" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
-            <ScrollView x:Name="FnNasSettingsScroll">
+            <ScrollView x:Name="FnNasSettingsScroll" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}">
                 <StackPanel Spacing="16" Padding="0,0,20,20">
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>

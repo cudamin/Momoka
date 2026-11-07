@@ -8,6 +8,14 @@ internal static class SettingsControlNameTests
 {
     internal static void Register()
     {
+        foreach (var editor in new[] { ("FnNasLibrariesPage.xaml", "FnNasLibraryEditorScroll"),
+            ("FnNasUsersPage.xaml", "FnNasUserEditorScroll"), ("FnNasSettingsPage.xaml", "FnNasSettingsScroll") })
+            Test("R15-002：原生管理保存期间正文不可编辑 " + editor.Item1, () =>
+            {
+                var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", editor.Item1));
+                var body = page.Descendants().Single(element => (string?)element.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")) == editor.Item2);
+                Assert.Equal("{x:Bind ViewModel.CanUse, Mode=OneWay}", (string?)body.Attribute("IsEnabled"));
+            });
         Test("R15-006：四处功能说明消费统一NotesVisibility", () =>
         {
             var page = XDocument.Load(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "SettingsPage.xaml"));
