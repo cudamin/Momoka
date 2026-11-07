@@ -217,7 +217,7 @@ public sealed partial class PlexMediaAdapter
                     Name = Path.GetFileName(Text(part, "file")),
                     Container = Blank(Text(part, "container")),
                     Size = Number(part, "size") is { } size ? (long)size : null,
-                    Bitrate = Integer(media, "bitrate"),
+                    Bitrate = Bitrate(media),
                     RunTimeTicks = Number(media, "duration") is { } ms ? Ticks(ms) : null,
                     DirectStreamUrl = client.GetMediaUrl(connection, key),
                     SupportsDirectPlay = true,
@@ -253,7 +253,7 @@ public sealed partial class PlexMediaAdapter
                 Channels = Integer(stream, "channels"),
                 Width = Integer(stream, "width"),
                 Height = Integer(stream, "height"),
-                BitRate = Integer(stream, "bitrate"),
+                BitRate = Bitrate(stream),
                 BitDepth = Integer(stream, "bitDepth"),
                 VideoRange = Blank(Text(stream, "videoRange")),
                 VideoRangeType = DynamicRangeType(stream),
@@ -264,6 +264,14 @@ public sealed partial class PlexMediaAdapter
                 DeliveryUrl = delivery
             });
         }
+    }
+
+    // Plex 的 Media/Stream 用 kbps；共享模型用 bit/s。先扩大类型，避免大码率回绕为负数。
+    private static int? Bitrate(JsonObject value)
+    {
+        if (Integer(value, "bitrate") is not { } kilobits) return null;
+        var bits = (long)kilobits * 1000;
+        return bits is >= int.MinValue and <= int.MaxValue ? (int)bits : null;
     }
 
     private static void AddProviderIds(EmbyItem item, JsonObject value)
