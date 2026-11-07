@@ -11203,3 +11203,10 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 
 - 第四批最终主树交付完成：快进4a6f1e4后Tests/Core/Shell Release/x64零警告零错误；完整4059/4059、Plex207/207，零失败零跳过。10文件编码/差异和定向Core/Tests空白通过。原码率11败、观看16败及格式退出2保留，17份开发证据已复制主树并逐文件核SHA。一次独立只读复审无必要发现。
 - publish/verify退出0，版本0.2.5.0，546文件300301695字节（286.4MB）；已测试Core、当前构建和实际发布Core均F6EAA1CB…，Shell当前构建/实际发布均14A58377…；快捷方式Target/WorkingDirectory为主树artifacts/publish/win-x64、Arguments空。旧桌面进程已自行退出后执行交付，无终止操作。回执artifacts/review-batch4-master/delivery-receipt.json；无新ZIP/MSIX/上传、真实Plex/WinUI/播放/服务器写入验证。两产品均在master，无待合或待交付代码，本会话释放主树写入占用。复用primary托管树保留；本条仅文档记录，不重建或重发。
+
+## 2026-11-07 第五批后端分页与版本时长修复（开发树已验证，收尾进行中）
+
+- 用户授权自行选择必要修复并连续完成；基点634d375，复用review-recovery-batch3托管树。产品0fd7e7e修R05-003的Plex原始分页漏页，df056d0修R05-001的飞牛默认版展示时长污染，并增加明确的飞牛协议专项入口。
+- 新增35项；Plex旧8败后224/224，飞牛旧8败后139/139，零跳过。Tests/Core Release/x64、SDK10.0.400、DebugSymbols=false/DebugType=None零警告错误，15文本编码与定向空白通过。飞牛夹具首次漏PlaySessionId编译1错，已补齐重编，原失败保留artifacts/review-batch5。完整主测试与一次独立只读复审进行中。
+- 本会话负责本批主树整合、重验与实际桌面发布；其它活动聊天正在独立6d68树制作背景颜色Demo，本批避开其界面范围。当前未更新共享交付，无版本/依赖变动、ZIP/MSIX或上传。未连接真实服务、读取凭据、真实播放/写入或执行实际WinUI与Finish/EOF；匿名详情/规划/报文与分页规则不冒实服验收。
+- R05-002、R17-003/009/011本次只读重核仍成立，未纳本批，保留后续候选。详见FIFTH-REPAIRS.md。

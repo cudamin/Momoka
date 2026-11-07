@@ -31,10 +31,10 @@
 
 **Interfaces:** 保持 GetNextUpAsync(string? seriesId, int limit, CancellationToken ct) 与 List<EmbyItem> 不变，使用 GetOnDeckAsync 的现有分页头。
 
-- [ ] 写测试覆盖后页目标、跨页限量与顺序、ResumeRow 替换、空/无目标、缺总数、短页总数、取消/后页失败和零请求输入。
-- [ ] 当前 Tests/Core 编译后运行 plex-protocol-fixture，确认旧代码出现预期断言失败并保存日志。
-- [ ] 实现按原始页数推进的循环，继续使用现有字段解析，不新增猜测的服务端筛选参数。
-- [ ] 重编并运行同专项，要求失败/跳过为零；定向空白检查后提交产品及测试，正文中文并带规定署名。
+- [x] 写测试覆盖后页目标、跨页限量与顺序、ResumeRow 替换、空/无目标、缺总数、短页总数、取消/后页失败和零请求输入。
+- [x] 当前 Tests/Core 编译后运行 plex-protocol-fixture，确认旧代码出现预期断言失败并保存日志。
+- [x] 实现按原始页数推进的循环，继续使用现有字段解析，不新增猜测的服务端筛选参数。
+- [x] 重编并运行同专项，要求失败/跳过为零；定向空白检查后提交产品及测试，正文中文并带规定署名。
 
 ## Task 2: 飞牛版本时长
 
@@ -42,14 +42,14 @@
 
 **Interfaces:** 保持 DTO、Plan 和 FnNasPlaybackSelection 接口；采用当前适配器已有的服务端正时长补齐，所选源未知时请求/上报为 0。
 
-- [ ] 写匿名多版本回归，经实际 GetItemAsync → Plan → PlaybackRecord 观察默认 120 秒、未知版、已知 240 秒及条目/play-info 已知对照。
-- [ ] 编译并执行 fnnas-protocol-fixture，确认原代码失败并保留证据。
-- [ ] 先补服务端条目时长，再用默认版补展示；Planner 飞牛分支不再借展示值填未知源。
-- [ ] 重编运行同专项，失败/跳过为零；空白检查后提交产品及测试。
+- [x] 写匿名多版本回归，经实际 GetItemAsync → Plan → PlaybackRecord 观察默认 120 秒、未知版、已知 240 秒及条目/play-info 已知对照。
+- [x] 编译并执行 fnnas-protocol-fixture，确认原代码失败并保留证据。
+- [x] 先补服务端条目时长，再用默认版补展示；Planner 飞牛分支不再借展示值填未知源。
+- [x] 重编运行同专项，失败/跳过为零；空白检查后提交产品及测试。
 
 ## Task 3: 批次收尾
 
-- [ ] 一次独立只读复审本批范围，必要发现用红绿测试修正。
+- [x] 一次独立只读复审本批范围，未发现本批必要新缺陷。
 - [ ] 同步后端技能、支持说明、第五批台账及 PROGRESS，保留其它候选的具体状态。
 - [ ] 检查其它聊天与主树状态后整合；主树 Tests/Core/Shell 零警告错误，完整主测试和本批专项通过。
 - [ ] 目标程序退出后，主树 tools/publish.ps1 -NoArchive -Shortcut -DotnetPath C:/Users/89400/.dotnet/dotnet.exe；核当前测试/发布 Core 哈希及快捷方式，保存证据。
