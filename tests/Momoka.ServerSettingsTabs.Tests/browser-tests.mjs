@@ -79,6 +79,27 @@ async function contentBelowHeader(page) {
 }
 
 try {
+  await test('both: upstream hide and inline display continue to own submit visibility', async () => {
+    for (const product of ['emby', 'jellyfin']) {
+      const page = await createPage(product);
+      try {
+        await page.evaluate(() => {
+          const upstream = document.createElement('style');
+          upstream.textContent = '.hide { display: none !important; }';
+          document.head.prepend(upstream);
+          const button = document.createElement('button');
+          button.id = 'fixtureSubmit'; button.className = 'button-submit hide'; button.textContent = '保存';
+          document.body.append(button);
+        });
+        await tick(page);
+        assert.equal(await visible(page, '#fixtureSubmit'), false);
+        await page.evaluate(() => document.getElementById('fixtureSubmit').classList.remove('hide'));
+        assert.equal(await visible(page, '#fixtureSubmit'), true);
+        await page.evaluate(() => { document.getElementById('fixtureSubmit').style.display = 'none'; });
+        assert.equal(await visible(page, '#fixtureSubmit'), false);
+      } finally { await page.close(); }
+    }
+  });
   await test('emby: actual contained header, page actions, headroom and drawer offsets remain usable', async () => {
     const page = await createPage('emby', { realHeader: true });
     try {

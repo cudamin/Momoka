@@ -281,7 +281,6 @@ public static partial class EmbyWebConsole
               letter-spacing: 0 !important;
             }
             .button-submit, .raised.submit {
-              display: inline-flex !important;
               align-items: center !important;
               justify-content: center !important;
               box-sizing: border-box !important;

@@ -303,7 +303,6 @@ public static partial class EmbyWebConsole
             }
             .button-submit, .raised.submit,
             .MuiButton-containedPrimary, .MuiButton-contained.MuiButton-colorPrimary {
-              display: inline-flex !important;
               align-items: center !important;
               justify-content: center !important;
               box-sizing: border-box !important;
