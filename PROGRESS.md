@@ -1,3 +1,11 @@
+## 2026-11-07 第八批 R04-003 已合主树并完成桌面交付
+
+产品0b5e234与探针已进入master392ab80，保留其它聊天外观及两模式最新代码。主树Release/x64编译0警告错误、完整4135/4135、协议111/111、实际推荐VM2/2；最终主树GUI2520和实际发布GUI13140均两版宽窄四回执四实屏通过。发布生成最终Shell后VM与GUI再通过。旧产品请求/VM/GUI有效红、前件缺UserViews失败和format排版初红均保留，无基线放宽。详见EIGHTH-REPAIRS与batch8计划。
+
+实际交付artifacts/publish/win-x64/Momoka.exe 0.2.5.0、546文件300344711字节286.4MB，载荷/许可通过；已测/发布Core0B848030…、最终Shell622682F6…，桌面链接目标/工作目录正确、参数空。回执artifacts/review-batch8-master/delivery-receipt.json，35份开发证据逐SHA保存。专项与完整套件重叠不累加；匿名分组边界不是官方服务器运行，未验证真实登录/入库/播放/写入，不push/上传或生成ZIP/MSIX。
+
+当前无待合或待交付产品，释放主树写入与发布；primary隔离树保留。此条为纯文档收尾，不重建或重发。原第八批待办记录为历史，以本条为准。
+
 ## 2026-11-07 第八批 R04-003 修复完成，待主树重验与桌面交付
 
 仅修GetLatestAsync显式false，默认true/版本路由/过滤不变。实际协议111/111、真实Release推荐VM2/2、完整4134/4134，零失败跳过；匿名实际页面PID2508两版宽窄四回执四图通过，独立复审零必要发现。旧产品请求7红/VM2红/GUI2468折叠红及首轮前件缺UserViews失败均保留artifacts/review-batch8；修复后已补新版匿名目录回答。详见EIGHTH-REPAIRS和batch8计划。

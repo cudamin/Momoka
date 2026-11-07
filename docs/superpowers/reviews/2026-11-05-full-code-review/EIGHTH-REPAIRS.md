@@ -23,3 +23,13 @@ JellyfinProtocolTests 注册实际 Core HTTP 回归：两版同剧/不同剧 fal
 不重开 R04-001/002/004、R05-001～005、第六批R17项；不复审全库。此次仅协议修复，无UI设计改变，匿名页面用于验收。已授权主树整合及日常桌面交付，不推送、上传或生成新ZIP/MSIX。真实服务器、凭据、播放及观看记录不在本批范围。
 
 其它聊天仍有在途UI工作，主树新增选色/显示模式75c9a2b将保留。此前PID24320终止授权不用于新进程；当前诊断退出后才串行运行本批。
+
+## 主树最终验证与交付
+
+产品0b5e234，经9fc4f6e保留主树50489f5外观/两模式代码，392ab80保留7b696a3文档收尾；主树快进至392ab80，只有PROGRESS冲突且双方记录都保留。最终主树Tests/Core/Shell Release/x64零警告错误，完整4135/4135、协议111/111、正式推荐VM2/2零失败跳过；专项与完整套件有重叠不累加。两版真实页面PID2520四回执四实屏通过，实际发布程序PID13140再获四回执四图。发布重生Shell字节后重新跑正式VM2/2和发布GUI。
+
+主树实际交付artifacts/publish/win-x64/Momoka.exe，0.2.5.0、546文件300344711字节、286.4MB，14GLSL/4HOOK、mpv清单及许可校验通过；快捷方式目标/工作目录正确，参数空。已测/发布Core SHA256 0B8480303A00E09AC34558686661D9BFAC231D25568AEC698682EA2F5F20BA5D；最终Shell 622682F641059AAEBEF8B042150B54FD11093202307E98427832C4C09FEC1EB7。
+
+14变更文本/定向空白/76相对文档链接通过。format首次报匿名回执排版，已定点修正；最终exit0但加载工作区提示警告，日志保留，不冒全方案零诊断。没有修改基线。证据artifacts/review-batch8-master（full-tests/protocol/shelf/gui-master/gui-published/publish/delivery-receipt/tested-source，35份开发证据逐SHA保存）。仅jellyfin-latest自动区域执行，其余176检查未执行，不称全探针通过。
+
+没有真实Jellyfin登录、入库、服务器写入或播放验证，无新依赖、ZIP/MSIX、push/上传。本批无待合/待交付产品；本会话释放主树写入与发布。复用受保护primary树保持可恢复证据，没有新临时分支需删；纯文档收尾不重建或重发。
