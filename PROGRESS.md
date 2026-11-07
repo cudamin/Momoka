@@ -11243,3 +11243,10 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 
 - 第六批最终桌面交付完成：发布源码593a969，载荷/着色器/许可验证退出0，0.2.5.0、546文件300302207字节（较第五批0）。因发布前文档提交改变程序集Git版本号，已在最终同提交重编Tests/Core并重跑4105/4105，零失败零跳过；三兼容61/34/14同发布Shell再验全过。已测Core/当前Core/实际Core均88FA7933…，Shell构建/发布均4949183E…，快捷方式目标/工作目录主树publish目录、参数空。回执artifacts/review-batch6-master/delivery-receipt.json。
 - 无待合/待交付修复，本会话释放主树占用；无GUI、真实服务、凭据、播放、写入、Finish/EOF、ZIP/MSIX或上传。本批Perf子树内容和证据已在主树，原生归档报告Another active task still uses this worktree，未手工绕过；primary托管树保留。此最终记录仅文档，不再重建或重发。
+
+# 2026-11-07 详情页沉浸模式总开关
+
+- 用户明确「不用 demo，直接改」。本会话仅在 c6cb/Momoka 开发：设置新增 EnableImmersive（缺键默认 true）；关闭后电影、剧、季宽窗复用集页卡面，所有尺寸不铺背景，单集原布局保留。固定沉浸入口随总开关收放，保留偏好；背景处理仍作用于单集窄窗，相关设置保留。
+- 开发 Release Shell/Tests 编译 0 警告/错误；完整 Core 4106/4106，详情设置专项36/36、实际 Release VM专项27/27。设置缺键回归先红后绿；独立复核发现并修正 ColumnPickersVisibility 通知遗漏，补断言在旧Shell上红、最终Shell上绿。自动化定位无缺失、差异/行尾检查通过。
+- 实际WinUI匿名夹具的设置与详情两项全绿；电影/剧/季1200和760宽度关闭背景、卡面切换及恢复截图已目视检查，无真实播放或服务器写入。证据 work/immersive-toggle/ui-final，来自独立 shell-probe-20261107-061028422-23252。
+- 待合入master后重新编译、测试、实际UI验证及主树发布；未上传GitHub。主树同时推进的第六批记录只有文档改动，本轮将保留。

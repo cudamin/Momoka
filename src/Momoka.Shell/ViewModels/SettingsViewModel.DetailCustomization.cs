@@ -10,8 +10,16 @@ public sealed partial class SettingsViewModel
     private SettingSection DetailAppearanceCard()
     {
         var ui = Settings.Ui;
-        return new SettingSection("界面", "详情页外观", "调整媒体库详情页的控件底色、背景图和大屏布局。",
-        [
+        var rows = new List<SettingRow>
+        {
+            Toggle("启用沉浸模式",
+                "关闭后，电影、剧和季详情页改用单集页面的卡片布局，不显示背景图；单集页面保持原布局。",
+                () => ui.EnableImmersive, value => ui.EnableImmersive = value,
+                after: () =>
+                {
+                    ShellPrefs.ApplyAppearance(ui);
+                    RefreshDetailAppearance();
+                }),
             Choice("按钮与选择框背景", new[] { ("半透明叠层", false), ("亚克力", true) },
                 () => ui.UseAcrylicControls, value => ui.UseAcrylicControls = value,
                 "详情按钮与闭合选择框使用相同背景，默认半透明叠层；展开列表保持亚克力。主页详情按钮一起切换。",
@@ -27,18 +35,23 @@ public sealed partial class SettingsViewModel
                     ui.UseAcrylicBackdrop = value == 2;
                     ui.UseGaussianBackdrop = value == 1;
                 },
-                "电影、剧和季可用亚克力，普通与窄窗同样生效；高斯仅沉浸模式生效并保留深色阅读保护。主页轮播不受影响。",
+                "电影、剧和季可用亚克力，普通与窄窗同样生效；高斯仅沉浸模式生效。单集窄窗口仍可使用亚克力，主页轮播不受影响。",
                 after: () => ShellPrefs.ApplyAppearance(ui)),
             Slider("背景图不透明度（%）", 0, 100, 1,
                 () => ui.BackdropOpacity, value => ui.BackdropOpacity = value,
-                "0 关闭背景处理；100 暗色遮罩和亚克力为实底，高斯最糊。高斯非零档保留深色阅读保护。",
-                after: () => ShellPrefs.ApplyAppearance(ui)),
-            Toggle("固定使用沉浸模式（大屏模式）",
+                "0 关闭背景处理；100 暗色遮罩和亚克力为实底，高斯最糊。关闭沉浸模式后，仍可调整单集窄窗口背景。",
+                after: () => ShellPrefs.ApplyAppearance(ui))
+        };
+        if (ui.EnableImmersive)
+            rows.Add(Toggle("固定使用沉浸模式（大屏模式）",
                 "电影、剧和季详情页有背景图时固定使用沉浸布局；窄窗口保留紧凑排版。关闭后随窗口大小自动切换。",
                 () => ui.AlwaysImmersive, value => ui.AlwaysImmersive = value,
-                after: () => ShellPrefs.ApplyAppearance(ui))
-        ]);
+                after: () => ShellPrefs.ApplyAppearance(ui)));
+        return new SettingSection("界面", "详情页外观", "调整媒体库详情页的控件底色、背景图和大屏布局。", rows);
     }
+
+    private void RefreshDetailAppearance() =>
+        Sections.FirstOrDefault(section => section.Title == "详情页外观")?.UpdateRows(DetailAppearanceCard().Rows);
 
     private IReadOnlyList<SettingSection> DetailLayoutCards()
     {
