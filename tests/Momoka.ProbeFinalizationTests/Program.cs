@@ -460,6 +460,14 @@ internal static partial class Program
             run.Verify(0);
             Equal(0, run.ShellChecks.Count, "inspect retains no-Case behavior only after reports persist");
         });
+        foreach (var ok in new[] { true, false })
+            Test("R17-007-shell-inspect-executed-" + ok, async () =>
+            {
+                var run = new ProbeRun(ProbeKind.Shell, Path.Combine(_output, "inspect-executed-" + ok));
+                await run.ExecuteAsync(() => run.RecordAsync(ok), inspect: true);
+                run.Verify(ok ? 0 : 1);
+                Equal(1, run.ShellChecks.Count, "executed inspect case still determines result");
+            });
         Test("shell-inspect-final-failure", async () =>
         {
             var run = new ProbeRun(ProbeKind.Shell, Path.Combine(_output, "shell-inspect-final-failure"));
