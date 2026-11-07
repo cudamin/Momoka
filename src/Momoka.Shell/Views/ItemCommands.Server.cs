@@ -67,11 +67,20 @@ internal static partial class ItemCommands
     }
 
     /// <inheritdoc cref="AskAsync{T}"/>
-    private static async Task TellAsync(EmbySessionScope session, Func<EmbyClient, CancellationToken, Task> work)
+    private static async Task TellAsync(EmbySessionScope session, Func<EmbyClient, CancellationToken, Task> work,
+        IShellActions? shell = null, ItemCommand? command = null)
     {
         session.ThrowIfUnavailable();
+        if (shell is not null && command is { } action && !ItemMenu.Allows(action, shell.MenuPermissionsFor(session)))
+            throw new InvalidOperationException("当前账号已不允许此操作，请重新打开菜单核对权限");
         await session.ExecuteAsync(work, CancellationToken.None).ConfigureAwait(false);
         session.ThrowIfUnavailable();
+    }
+
+    private static void RequirePermission(IShellActions shell, EmbySessionScope session, ItemCommand command)
+    {
+        if (!ItemMenu.Allows(command, shell.MenuPermissionsFor(session)))
+            throw new InvalidOperationException("当前账号已不允许此操作，请重新打开菜单核对权限");
     }
 
     /// <summary>
@@ -181,7 +190,7 @@ internal static partial class ItemCommands
                 var editor = new EmbyMetadataEditor(session);
                 var document = await editor.LoadAsync(item.Id, CancellationToken.None).ConfigureAwait(true);
                 var embyDialog = new EmbyMetadataDialog(item.Name, document.Edit, document.Info,
-                    edit => editor.SaveAsync(document, edit, CancellationToken.None))
+                    edit => { RequirePermission(shell, session, ItemCommand.EditMetadata); return editor.SaveAsync(document, edit, CancellationToken.None); })
                 { XamlRoot = root };
                 embyDialog.SetItemType(item.Type);
                 if (await embyDialog.ShowAsync() == ContentDialogResult.Primary && embyDialog.Changed)
@@ -200,7 +209,7 @@ internal static partial class ItemCommands
                 // A failed request must not mutate the baseline and make the retry look unchanged.
                 var updated = (System.Text.Json.Nodes.JsonObject)json.DeepClone();
                 if (!edit.ApplyTo(updated)) return false;
-                await TellAsync(session, (client, token) => client.UpdateItemAsync(item.Id, updated, token))
+                await TellAsync(session, (client, token) => client.UpdateItemAsync(item.Id, updated, token), shell, ItemCommand.EditMetadata)
                     .ConfigureAwait(true);
                 return true;
             })
@@ -241,7 +250,7 @@ internal static partial class ItemCommands
             if (dialog.Chosen is { } existing)
             {
                 await TellAsync(session, (client, token) =>
-                        client.AddToCollectionAsync(existing.Id, [item.Id], token))
+                        client.AddToCollectionAsync(existing.Id, [item.Id], token), shell, ItemCommand.AddToCollection)
                     .ConfigureAwait(true);
 
                 shell.Notify($"已把「{item.Name}」加入合集「{existing.Name}」");
@@ -249,6 +258,7 @@ internal static partial class ItemCommands
             }
 
             if (dialog.NewName is not { Length: > 0 } name) return;
+            RequirePermission(shell, session, ItemCommand.AddToCollection);
 
             var created = await AskAsync(session, (client, token) =>
                     client.CreateCollectionAsync(name, [item.Id], token))
@@ -377,6 +387,8 @@ internal static partial class ItemCommands
             shell.Notify($"正在下载 {head}…");
 
             scope.ThrowIfUnavailable();
+            if (!ItemMenu.Allows(ItemCommand.Download, shell.MenuPermissionsFor(scope)))
+                throw new InvalidOperationException("当前账号已不允许下载，请重新打开菜单核对权限");
             var download = await scope.ExecuteAsync((client, token) => client.DownloadToFileAsync(file.Id, path, progress, token), CancellationToken.None)
                 .ConfigureAwait(true);
 
@@ -421,11 +433,11 @@ internal static partial class ItemCommands
                 (id, type, tag, width, index) => FetchAsync(session, (client, token) =>
                     client.GetImageBytesAsync(id, type, tag, width, token, index)),
                 (id, type, index, chosen) => TellAsync(session, (client, token) => client.ApplyRemoteImageAsync(
-                    id, type, chosen.Url, chosen.ProviderName, token)),
+                    id, type, chosen.Url, chosen.ProviderName, token), shell, ItemCommand.ChangeCover),
                 (id, type, index) => TellAsync(session, (client, token) =>
-                    client.DeleteImageAsync(id, type, index, token)),
+                    client.DeleteImageAsync(id, type, index, token), shell, ItemCommand.ChangeCover),
                 (id, type, picked) => TellAsync(session, (client, token) => client.UploadImageAsync(
-                    id, type, picked.Bytes, ArtworkFile.ContentType(picked.FileName), token)),
+                    id, type, picked.Bytes, ArtworkFile.ContentType(picked.FileName), token), shell, ItemCommand.ChangeCover),
                 id => ReloadAsync(session, id),
                 session.Connection.IsJellyfin ? null : (address, cancellationToken) => FetchAsync(session, (client, token) =>
                     client.GetRemoteImageBytesAsync(address, token), cancellationToken))
@@ -473,7 +485,9 @@ internal static partial class ItemCommands
 
             var subtitles = new ServerSubtitles(session, full, source);
             var dialog = new SubtitleDialog(full, source,
-                subtitles.SearchAsync, subtitles.DownloadAsync, subtitles.DeleteAsync, subtitles.ReloadAsync,
+                search => { RequirePermission(shell, session, ItemCommand.Subtitles); return subtitles.SearchAsync(search); },
+                subtitle => { RequirePermission(shell, session, ItemCommand.Subtitles); return subtitles.DownloadAsync(subtitle); },
+                stream => { RequirePermission(shell, session, ItemCommand.Subtitles); return subtitles.DeleteAsync(stream); }, subtitles.ReloadAsync,
                 subtitles.SupportsForcedOnly, subtitles.DownloadProvidesConfirmation)
             {
                 XamlRoot = root
@@ -522,8 +536,8 @@ internal static partial class ItemCommands
                         client.GetRemoteSearchImageAsync(url, result.SearchProviderName, token))
                     : Task.FromResult<byte[]?>(null),
                 (result, replaceImages) => TellAsync(session, (client, token) =>
-                    client.ApplyRemoteSearchResultAsync(item.Id, result, replaceImages, token)),
-                session.Connection.IsJellyfin ? null : () => TellAsync(session, (client, token) => client.ResetMetadataAsync(item.Id, token)))
+                    client.ApplyRemoteSearchResultAsync(item.Id, result, replaceImages, token), shell, ItemCommand.Identify),
+                session.Connection.IsJellyfin ? null : () => TellAsync(session, (client, token) => client.ResetMetadataAsync(item.Id, token), shell, ItemCommand.Identify))
             {
                 XamlRoot = root
             };
@@ -560,7 +574,7 @@ internal static partial class ItemCommands
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
 
             await TellAsync(session, (client, token) => client.RefreshItemAsync(
-                    card.Item.Id, dialog.Mode, dialog.ReplaceImages, dialog.ReplaceThumbnails, token))
+                    card.Item.Id, dialog.Mode, dialog.ReplaceImages, dialog.ReplaceThumbnails, token), shell, ItemCommand.RefreshMetadata)
                 .ConfigureAwait(true);
 
             shell.Notify($"已请求刷新「{card.Item.Name}」的元数据，服务器在后台处理");
@@ -570,7 +584,7 @@ internal static partial class ItemCommands
     private static void ScanLibrary(EmbySessionScope session, IShellActions shell) =>
         _ = GuardAsync(shell, "扫描媒体库失败", async () =>
         {
-            await TellAsync(session, (client, token) => client.ScanLibraryAsync(token)).ConfigureAwait(true);
+            await TellAsync(session, (client, token) => client.ScanLibraryAsync(token), shell, ItemCommand.ScanLibrary).ConfigureAwait(true);
             shell.Notify("已开始扫描媒体库，服务器在后台处理");
         });
 
@@ -623,7 +637,7 @@ internal static partial class ItemCommands
 
             if (!agreed) return;
 
-            await TellAsync(session, (client, token) => client.DeleteItemAsync(item.Id, token)).ConfigureAwait(true);
+            await TellAsync(session, (client, token) => client.DeleteItemAsync(item.Id, token), shell, ItemCommand.Delete).ConfigureAwait(true);
 
             shell.Notify($"已删除「{item.Name}」");
             if (removed is not null) removed(card);

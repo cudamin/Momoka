@@ -299,6 +299,18 @@ internal static class AniBtReceiptStateTests
             fixture.AssertTraffic(1, 0, 1);
         });
 
+        Test("R09-003 扫描前身份核验抛异常仍保留已完成回执", () =>
+        {
+            using var fixture = new ReceiptFixture(new FileCase(), new FileCase());
+            var rows = fixture.Submit(canContinue: () => fixture.Writes.Count == 0
+                ? true : throw new MoviePilotOperationBlockedException("匿名连接已关闭"));
+            Assert.True(rows[0].Success);
+            Assert.Contains("已完成整理", rows[0].Message);
+            Assert.Contains("手动扫描", rows[0].Message);
+            Assert.False(rows[1].Success);
+            fixture.AssertTraffic(1, 0, 2);
+        });
+
         Test("R038 实际 Submit：完成后在扫描前取消，仍保留完成且手动恢复", () =>
         {
             using var fixture = new ReceiptFixture(new FileCase());

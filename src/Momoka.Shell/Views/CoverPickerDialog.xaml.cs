@@ -182,7 +182,7 @@ public sealed partial class CoverPickerDialog : ContentDialog
         {
             if (_closed) return;
             Log.Warn(Category, "选图片文件失败", error);
-            Notice.Text = $"打不开文件选择框：{Failure.Describe(error)}";
+            Notice.Text = $"选择图片失败：{Failure.Describe(error)}";
             Notice.Visibility = Visibility.Visible;
         }
         finally

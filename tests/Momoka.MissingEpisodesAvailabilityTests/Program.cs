@@ -27,6 +27,28 @@ internal static class Program
             return Task.CompletedTask;
         });
         foreach (var anime in new[] { false, true }) Register(anime);
+        Case("R09-006 关闭AniBT时单集动画分类不能复活入口，打开后关闭立即收表", async () =>
+        {
+            await using var f = new MissingEpisodesFixture(anime: true);
+            f.Available(true);
+            f.Missing[0].Genres = ["动画"];
+            f.Settings.MoviePilot.AniBtEnabled = false;
+            f.Shell.Settings.MoviePilot.AniBtEnabled = false;
+            var opening = f.Open();
+            var dialog = await f.NextDialog();
+            Check.True(dialog.Rows.All(row => row.AnimeSearchVisibility == Visibility.Collapsed), "genre never overrides capability");
+            await f.Finish(opening, dialog);
+            f.Settings.MoviePilot.AniBtEnabled = true;
+            f.Shell.Settings.MoviePilot.AniBtEnabled = true;
+            opening = f.Open();
+            dialog = await f.NextDialog();
+            Visible(dialog, anime: true);
+            f.Settings.MoviePilot.AniBtEnabled = false;
+            f.Shell.DispatcherQueue.Drain();
+            Check.False(dialog.IsOpen, "dedicated AniBT event closes old capability snapshot");
+            await opening.WaitAsync(TimeSpan.FromSeconds(10));
+            Check.Equal(0, f.Shell.AniBtQueries.Count, "no disabled search handoff");
+        });
         Case("父剧补齐动画资格仍按原 MP 连接授权", async () =>
         {
             await using var f = new MissingEpisodesFixture(season: true, parentAnime: true);

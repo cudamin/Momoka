@@ -194,6 +194,7 @@ internal sealed class DeleteFixture : IDisposable
 
 public class DetailActionsProxy : DispatchProxy
 {
+    public ItemMenuPermissions Permissions { get; set; }
     public List<(string Message, string Severity)> Notices { get; } = [];
     public int Refreshes { get; set; }
     public int Plays { get; set; }
@@ -214,6 +215,7 @@ public class DetailActionsProxy : DispatchProxy
 
 internal sealed class CommandActions(DetailActionsProxy proxy) : IShellActions
 {
+    public ItemMenuPermissions MenuPermissionsFor(EmbySessionScope scope) => proxy.Permissions;
     public void Notify(string message, InfoBarSeverity severity = InfoBarSeverity.Informational) => proxy.Notices.Add((message, severity.ToString()));
     public void RefreshFavorites(EmbyItem? changed = null) => proxy.Refreshes++;
     public bool MoviePilotEnabled => false;

@@ -16,6 +16,29 @@ internal static class SubscribeSettingsTests
     internal static void Register(List<(string Name, Func<Task> Run)> cases)
     {
         void Test(string name, Func<Task> test) => cases.Add((name, test));
+        Test("R08-006 订阅详情AniBT开关双向生效，释放后不接旧通知", async () =>
+        {
+            using var f = new SubscriptionFixture();
+            await f.ConnectAsync();
+            using var vm = new MoviePilotMediaViewModel();
+            vm.Attach(f.Service, f.Media());
+            vm.AniBtSearch = true;
+            typeof(MoviePilotMediaViewModel).GetProperty(nameof(vm.Detail))!.SetValue(vm,
+                new MoviePilotMediaDetail(f.Media(), Json("{\"genres\":[{\"name\":\"Animation\"}],\"original_language\":\"ja\"}")));
+            typeof(MoviePilotMediaViewModel).GetField("_subscriptionStateKnown", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(vm, true);
+            Check.True(vm.CanSearchAniBt);
+            var notices = 0;
+            vm.PropertyChanged += (_, args) => { if (args.PropertyName == nameof(vm.AniBtVisibility)) notices++; };
+            f.Settings.MoviePilot.AniBtEnabled = false;
+            Check.Equal(Visibility.Collapsed, vm.AniBtVisibility);
+            Check.True(notices > 0);
+            f.Settings.MoviePilot.AniBtEnabled = true;
+            Check.True(vm.CanSearchAniBt);
+            vm.Cancel();
+            var after = notices;
+            f.Settings.MoviePilot.AniBtEnabled = false;
+            Check.Equal(after, notices);
+        });
         foreach (var mode in Enum.GetValues<MoviePilotSubscribeMode>())
         {
             Test("按季新增 payload/读回 " + mode, async () =>

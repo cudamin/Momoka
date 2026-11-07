@@ -26,7 +26,9 @@ public sealed partial class LibraryViewModel
     /// indexes and child/episode lists retain their own semantics; Plex only implements section roots.
     /// FnNas root types exclude Episode, and an episode filter must keep the complete displayed context.
     /// </summary>
-    internal bool WindowEligible => !_windowRejected && !Aggregated && !UsesQueryCursor && _request is
+    // Confirmed local omissions break the server's index-to-visible-card mapping. Keep the ordinary
+    // raw read cursor until the server index catches up, rather than restoring an invalid window anchor.
+    internal bool WindowEligible => _removed.Count == 0 && !_windowRejected && !Aggregated && !UsesQueryCursor && _request is
     {
         IsSearch: false, IsFavorites: false, Row: null, Genre: null, PersonId: null,
         ParentId.Length: > 0, ParentType: null or EmbyItemType.CollectionFolder,

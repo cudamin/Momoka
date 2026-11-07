@@ -91,7 +91,7 @@ public sealed record PlaybackTicket
 /// which is most of them.
 /// </summary>
 public sealed record PlaybackChoice(
-    MediaSource Source,
+    MediaSource? Source,
     int? AudioStreamIndex,
     int? SubtitleStreamIndex,
     bool SubtitlesDisabled,

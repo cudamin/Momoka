@@ -56,16 +56,16 @@ public sealed partial class IdentifyCandidate : INotifyPropertyChanged
 
     public Visibility EmptyMark => _picture is null ? Visibility.Visible : Visibility.Collapsed;
 
-    internal async Task LoadAsync(Func<RemoteSearchResult, Task<byte[]?>> fetch)
+    internal async Task LoadAsync(Func<RemoteSearchResult, Task<byte[]?>> fetch, Func<bool>? canContinue = null)
     {
         if (Result.ImageUrl is not { Length: > 0 }) return;
         var generation = ++_generation;
         try
         {
             var bytes = await fetch(Result).ConfigureAwait(true);
-            if (generation != _generation || bytes is not { Length: > 0 }) return;
+            if (generation != _generation || canContinue?.Invoke() == false || bytes is not { Length: > 0 }) return;
             var picture = await PosterLoader.DecodeAsync(bytes, 140).ConfigureAwait(true);
-            if (generation == _generation) Picture = picture;
+            if (generation == _generation && canContinue?.Invoke() != false) Picture = picture;
         }
         catch (OperationCanceledException)
         {
@@ -119,6 +119,9 @@ public sealed partial class IdentifyDialog : ContentDialog
     private readonly Func<Task>? _remove;
     private readonly List<(string Key, TextBox Box)> _idBoxes = [];
     private IdentifyCandidate? _chosen;
+    private bool _closed;
+    private bool _writing;
+    private int _readRevision;
 
     /// <summary>这一趟里改过服务器上的东西没有。调用方据此决定要不要重读那一页。</summary>
     public bool Touched { get; private set; }
@@ -150,6 +153,8 @@ public sealed partial class IdentifyDialog : ContentDialog
         _picture = picture;
         _apply = apply;
         _remove = remove;
+        Closing += (_, args) => { if (_writing) args.Cancel = true; };
+        Closed += (_, _) => { _closed = true; _readRevision++; };
 
         // 标题里带上片名：开着这张表的时候，菜单早没了，而一屏「某某片子对哪一条记录」是很容易认错的。
         Title = $"识别 — {item.Name}";
@@ -170,6 +175,7 @@ public sealed partial class IdentifyDialog : ContentDialog
         try
         {
             var fields = await _fields().ConfigureAwait(true);
+            if (_closed) return;
             foreach (var info in fields)
             {
                 var column = new StackPanel { Spacing = Space("EgSpaceXS") };
@@ -191,12 +197,14 @@ public sealed partial class IdentifyDialog : ContentDialog
         }
         catch (Exception error)
         {
-            Report("读取标识符字段失败", error);
+            if (!_closed) Report("读取标识符字段失败", error);
         }
     }
 
     private async void OnSearch(object sender, RoutedEventArgs e)
     {
+        if (_closed || _writing) return;
+        var revision = ++_readRevision;
         var ids = _idBoxes.Select(entry => (entry.Key, Value: entry.Box.Text)).ToList();
 
         if (!ItemIdentify.HasCriteria(NameBox.Text, ids.Select(entry => entry.Value)))
@@ -212,6 +220,7 @@ public sealed partial class IdentifyDialog : ContentDialog
         {
             var results = await _search(ItemIdentify.SearchQuery(_item, NameBox.Text, YearBox.Text, ids))
                 .ConfigureAwait(true);
+            if (_closed || revision != _readRevision) return;
 
             Candidates.Clear();
             foreach (var result in results) Candidates.Add(new IdentifyCandidate(result, _picture is not null));
@@ -221,15 +230,15 @@ public sealed partial class IdentifyDialog : ContentDialog
 
             // 海报一张张来：先把格子摆出来，图各自到位 —— 等全部取回来再画会让一屏结果卡在那里不动。
             if (_picture is { } picture)
-                foreach (var candidate in Candidates) _ = candidate.LoadAsync(picture);
+                foreach (var candidate in Candidates) _ = candidate.LoadAsync(picture, () => !_closed && revision == _readRevision);
         }
         catch (Exception error)
         {
-            Report("搜索刮削源失败", error);
+            if (!_closed && revision == _readRevision) Report("搜索刮削源失败", error);
         }
         finally
         {
-            SetBusy(false);
+            if (!_closed && revision == _readRevision) SetBusy(false);
         }
     }
 
@@ -249,13 +258,15 @@ public sealed partial class IdentifyDialog : ContentDialog
 
     private async void OnApply(object sender, RoutedEventArgs e)
     {
-        if (_chosen is not { } candidate) return;
+        if (_closed || _writing || _chosen is not { } candidate) return;
 
         SetBusy(true);
+        _writing = true;
         try
         {
             await _apply(candidate.Result, ReplaceImages.IsChecked == true).ConfigureAwait(true);
             Touched = true;
+            _writing = false;
             Hide();
         }
         catch (Exception error)
@@ -264,6 +275,7 @@ public sealed partial class IdentifyDialog : ContentDialog
         }
         finally
         {
+            _writing = false;
             SetBusy(false);
         }
     }
@@ -281,12 +293,14 @@ public sealed partial class IdentifyDialog : ContentDialog
 
     private async void OnConfirmRemove(object sender, RoutedEventArgs e)
     {
-        if (_remove is not { } remove) return;
+        if (_closed || _writing || _remove is not { } remove) return;
         SetBusy(true);
+        _writing = true;
         try
         {
             await remove().ConfigureAwait(true);
             Touched = true;
+            _writing = false;
             Hide();
         }
         catch (Exception error)
@@ -296,6 +310,7 @@ public sealed partial class IdentifyDialog : ContentDialog
         }
         finally
         {
+            _writing = false;
             SetBusy(false);
         }
     }

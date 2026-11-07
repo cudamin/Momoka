@@ -263,14 +263,12 @@ internal static class FnNasUserStateWriteTests
         var vm = shell.NewRow("DetailViewModel");
         var contract = vm.GetType().Assembly.GetType("Momoka.Shell.Views.IShellActions", throwOnError: true)!;
         actions = (FnNasStateActionsProxy)DispatchProxy.Create(contract, typeof(FnNasStateActionsProxy));
-        const BindingFlags fields = BindingFlags.Instance | BindingFlags.NonPublic;
-        foreach (var (name, value) in new (string, object)[]
-        {
-            ("_active", true), ("_settings", new FakeSettings()), ("_scope", state.Scope), ("_session", state.Session),
-            ("_detail", item), ("_seed", item), ("_actions", actions)
-        }) vm.GetType().GetField(name, fields)!.SetValue(vm, value);
-        shell.Set(vm, "Watched", item.IsWatched);
-        shell.Set(vm, "Favorite", item.UserData?.IsFavorite == true);
+        var request = Activator.CreateInstance(vm.GetType().Assembly.GetType("Momoka.Shell.Views.DetailRequest", true)!, nonPublic: true)!;
+        request.GetType().GetProperty("Item")!.SetValue(request, item);
+        var images = new EmbyImageStore(state.Session, Path.Combine(shell.Root, "artifacts", "media-recovery", "fnnas-images"));
+        shell.Invoke(vm, "Attach", request, actions, new FakeSettings(), state.Session, images);
+        shell.Invoke(vm, "Apply", item);
+        Assert.True(shell.Command(vm, "ToggleFavoriteCommand").CanExecute(null), "真实主体发布后才检验收藏请求");
         return vm;
     }
 

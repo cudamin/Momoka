@@ -121,6 +121,21 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <see cref="HasMore"/> reads as 「ask and find out」.
     /// </summary>
     private const int NotLoaded = -1;
+    private RemovedMedia _removed = new();
+    private int _rawReadEnd;
+
+    internal void RememberRemoved(EmbyItem item)
+    {
+        _rawReadEnd = Math.Max(_rawReadEnd, WindowEnd);
+        _removed.Remember(item);
+        _queries.Cancel();
+        _queryToken = _queries.Begin();
+        foreach (var card in Cards.Where(card => _removed.Hides(card.Item)).ToArray())
+        {
+            card.AbandonPoster();
+            Cards.Remove(card);
+        }
+    }
 
     /// <summary>
     /// Which grid this is: the navigation payload, and at the same time the witness that
@@ -821,7 +836,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 「nothing has been asked」 and 「everything has arrived」 must not look the same to the pager.
     /// </summary>
     internal bool HasMore => !IsRecommendedPage && !IsFavoritesPage && !(_request?.IsSearch == true && string.IsNullOrWhiteSpace(_request.SearchTerm))
-        && (UsesQueryCursor ? _cursor?.HasMore ?? true : _total < 0 || (IsUpcomingPage ? _upcomingReadCount : WindowEnd) < _total);
+        && (UsesQueryCursor ? _cursor?.HasMore ?? true : _total < 0
+            || (IsUpcomingPage ? _upcomingReadCount : _removed.Count > 0 ? _rawReadEnd : WindowEnd) < _total);
 
     // ---------------------------------------------------------------- 推荐页（若干排货架）
 
@@ -1284,6 +1300,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             if (_sources.Count == 1) _scope = _sources[0];
         }
         _request = request;
+        _removed = request.Services.GetService(typeof(RemovedMedia)) as RemovedMedia ?? _removed;
         _sourceTokens = BrowseSnapshotKeys.Sources(_sources);
         _restoredFromCache = false;
         _windowStart = 0;
@@ -1344,7 +1361,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 才按查询键复用条目。收藏页按 <see cref="IsFavoritesPage"/> 判定（分区与来源），不能只看
     /// <see cref="LibraryRequest.IsFavorites"/> —— 从详情页钻进来的收藏分区 Tag 是空的。
     /// </summary>
-    private bool CacheEligible => _snapshots is not null && _request is { IsSearch: false }
+    private bool CacheEligible => _removed.Count == 0 && _snapshots is not null && _request is { IsSearch: false }
         && !_request.IsFavorites && !IsFavoritesPage && !IsRecommendedPage && !IsUpcomingPage;
 
     private void RefreshSnapshotKey()
@@ -1559,7 +1576,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
             // 原有卡片原位保留，只移除消失的项并补入需要的项，避免容器、焦点和海报整页重建。
             var retained = Cards.DistinctBy(card => card.Item.IdentityKey).ToDictionary(card => card.Item.IdentityKey, StringComparer.Ordinal);
-            var desired = items.Select(item => retained.TryGetValue(item.IdentityKey, out var existing) ? existing
+            var desired = items.Where(item => !_removed.Hides(item)).Select(item => retained.TryGetValue(item.IdentityKey, out var existing) ? existing
                 : NewCard(item)).ToArray();
             _cursor = cursor;
             _resumeRead.Clear();
@@ -1636,7 +1653,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         foreach (var card in Cards) card.AbandonPoster();
         Cards.Clear();
         _windowStart = snapshot.StartIndex;
-        foreach (var item in snapshot.Items) Cards.Add(NewCard(item));
+        foreach (var item in snapshot.Items.Where(item => !_removed.Hides(item))) Cards.Add(NewCard(item));
         timing?.Mark("library-cards-end", Cards.Count);
 
         _total = snapshot.Total;
@@ -1793,6 +1810,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         var selected = new List<CardItem>(items.Count);
         foreach (var item in items)
         {
+            if (_removed.Hides(item)) continue;
             CardItem? keep = null;
             foreach (var card in existing)
             {
@@ -1903,6 +1921,7 @@ public sealed partial class LibraryViewModel : PageViewModel
                 return;
             }
             _windowStart = 0;
+            _rawReadEnd = 0;
             _windowRejected = false;
             _windowNeedsPrefix = false;
             ClearAnchor();
@@ -1928,7 +1947,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         RefreshUpcomingState();
         try
         {
-            var start = reset ? 0 : IsUpcomingPage ? _upcomingReadCount : WindowEnd;
+            var start = reset ? 0 : IsUpcomingPage ? _upcomingReadCount : _removed.Count > 0 ? _rawReadEnd : WindowEnd;
             // HTTP 可以先完成而页面接收回调仍在队列里。读取只消费副本，在同一 UI 提交点确认
             // 查询/载入仍有效后，才把新游标和它的卡片一起发布；已看/删除取消旧页时原账不受影响。
             var cursor = UsesQueryCursor ? (_cursor ?? NewCursor()).Copy() : null;
@@ -1954,12 +1973,14 @@ public sealed partial class LibraryViewModel : PageViewModel
             }
             if (result is not null)
             {
+                _rawReadEnd = start + result.Items.Count;
                 // Upcoming pages share one identity set for the whole append, including duplicates
                 // within the new page. Source-qualified keys and the existing generation guards stay intact.
                 var upcomingKeys = IsUpcomingPage
                     ? Cards.Select(card => card.Item.IdentityKey).ToHashSet(StringComparer.Ordinal) : null;
                 foreach (var item in result.Items)
                 {
+                    if (_removed.Hides(item)) continue;
                     if (IsResumePage) _resumeRead.Add(item.IdentityKey);
                     if (upcomingKeys is not null && !upcomingKeys.Add(item.IdentityKey)
                         || IsResumePage && Cards.Any(card => card.Item.IdentityKey == item.IdentityKey)) continue;

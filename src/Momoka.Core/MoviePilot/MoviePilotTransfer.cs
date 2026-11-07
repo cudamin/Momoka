@@ -24,7 +24,12 @@ public sealed record MoviePilotTransferOptions(
     IReadOnlyList<MoviePilotMediaSource> MediaSources, string DefaultMediaSource = "themoviedb");
 
 /// <summary>要整理的一个文件：Emby 侧的名字加完整路径，路径必须是 MoviePilot 看得见的那一份。</summary>
-public sealed record MoviePilotTransferFile(string Name, string Path);
+public sealed record MoviePilotTransferFile(string Name, string Path)
+{
+    public int? Season { get; init; }
+    public int? Episode { get; init; }
+    public int? EpisodeEnd { get; init; }
+}
 
 /// <summary>
 /// 一次手动整理要带走的全部身份：文件（可一批 —— 季/整部剧是多个单集）、按什么类型整理、对上哪部片、

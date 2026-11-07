@@ -23,6 +23,30 @@ internal static class LibraryResumePagingTests
         try
         {
             var shell = new ShellFixture(shellAssemblyPath, sourceRoot);
+            Case("R09-008 删除主体记忆过滤后续旧索引及跨来源同ID", async () =>
+            {
+                using var f = new Fixture(shell, 25);
+                foreach (var row in f.Transport.Rows["a"]) row.Type = EmbyItemType.Movie;
+                var vm = f.CreateLibraryView();
+                try
+                {
+                    await (Task)shell.Invoke(vm, "LoadAsync", true)!;
+                    var cards = ((System.Collections.IEnumerable)shell.Get<object>(vm, "Cards")).Cast<object>().ToArray();
+                    var removed = shell.Get<EmbyItem>(cards[0], "Item");
+                    var method = vm.GetType().GetMethod("RememberRemoved", BindingFlags.Instance | BindingFlags.NonPublic);
+                    method?.Invoke(vm, [removed]);
+                    await (Task)shell.Invoke(vm, "ReloadAsync")!;
+                    var current = ((System.Collections.IEnumerable)shell.Get<object>(vm, "Cards")).Cast<object>().ToArray();
+                    Assert.True(current.All(card => shell.Get<EmbyItem>(card, "Item").Id != removed.Id));
+                    Assert.Equal(19, current.Length);
+                    await (Task)shell.Invoke(vm, "LoadAsync", false)!;
+                    current = ((System.Collections.IEnumerable)shell.Get<object>(vm, "Cards")).Cast<object>().ToArray();
+                    Assert.Equal(24, current.Length);
+                    Assert.Equal(24, current.Select(card => shell.Get<EmbyItem>(card, "Item").IdentityKey).Distinct().Count());
+                    Assert.False(shell.Get<bool>(vm, "HasMore"), "隐藏行仍计入服务器原始消费量");
+                }
+                finally { ((IDisposable)vm).Dispose(); }
+            });
             Register(shell);
             return TestHarness.Run();
         }
@@ -1290,7 +1314,8 @@ internal static class LibraryResumePagingTests
 
     private sealed class NoServices : IServiceProvider
     {
-        public object? GetService(Type serviceType) => throw new AssertionException("夹具不调用容器或产品入口");
+        public object? GetService(Type serviceType) => serviceType == typeof(RemovedMedia)
+            ? null : throw new AssertionException("夹具不调用容器或产品入口");
     }
 
     private sealed class NoSecrets : ISecretProtector

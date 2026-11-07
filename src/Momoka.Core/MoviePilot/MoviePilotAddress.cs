@@ -70,7 +70,7 @@ public static class MoviePilotAddress
             return false;
         }
 
-        address = new UriBuilder(parsed.Scheme, parsed.Host, Port(parsed)).Uri;
+        address = new UriBuilder(parsed.Scheme, parsed.Host, Port(parsed, trimmed)).Uri;
         return true;
     }
 
@@ -79,10 +79,21 @@ public static class MoviePilotAddress
     /// UI's port: someone running the API there on purpose is a configuration this has no business
     /// overriding, and the connection test is what tells him he guessed wrong.
     /// <para>
-    /// Only a port nobody typed moves, which is what <see cref="Uri.IsDefaultPort"/> reports.
+    /// Uri.IsDefaultPort also accepts an explicitly written 80/443; inspect the original authority.
     /// </para>
     /// </summary>
-    private static int Port(Uri parsed) => parsed.IsDefaultPort ? DefaultApiPort : parsed.Port;
+    private static int Port(Uri parsed, string original) =>
+        !parsed.IsDefaultPort || HasExplicitPort(original) ? parsed.Port : DefaultApiPort;
+
+    private static bool HasExplicitPort(string original)
+    {
+        var start = original.IndexOf("://", StringComparison.Ordinal) + 3;
+        var authority = original[start..].Split(['/', '?', '#'], 2)[0];
+        authority = authority[(authority.LastIndexOf('@') + 1)..];
+        return authority.StartsWith('[')
+            ? authority.IndexOf(']') is var end && end >= 0 && authority.Length > end + 1 && authority[end + 1] == ':'
+            : authority.Contains(':');
+    }
 
     /// <summary>
     /// The three boxes the settings card shows for one stored address: the http/https pick, the host, and
@@ -114,9 +125,7 @@ public static class MoviePilotAddress
             && parsed.Scheme is "http" or "https"
             && parsed.Host.Length > 0)
         {
-            // 3001 is never a scheme's default port, so IsDefaultPort is exactly 「no port was written」 —
-            // which is what keeps the box empty for a bare host and fills it only for a port the user gave.
-            var port = parsed.IsDefaultPort ? "" : parsed.Port.ToString(CultureInfo.InvariantCulture);
+            var port = HasExplicitPort(candidate) ? parsed.Port.ToString(CultureInfo.InvariantCulture) : "";
             return new Parts(parsed.Scheme, parsed.Host, port);
         }
 

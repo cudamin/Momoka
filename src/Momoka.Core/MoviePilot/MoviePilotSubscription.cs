@@ -235,7 +235,7 @@ public sealed record MoviePilotSubscriptionFiles(IReadOnlyList<MoviePilotSubscri
         var current = MoviePilotSubscription.Parse(MoviePilotSubscription.Member(data, "subscribe"));
         if (current is null)
             throw new MoviePilotException("MoviePilot 暂未提供这条订阅的文件统计，请稍后刷新");
-        if (current.Id != subscription.Id)
+        if (current.Id != subscription.Id || MoviePilotSubscriptionIdentity.Of(current) != MoviePilotSubscriptionIdentity.Of(subscription))
             throw new MoviePilotException("订阅已不存在或文件统计身份不匹配，请刷新列表");
         var episodes = MoviePilotSubscription.Member(data, "episodes");
         if (episodes.ValueKind != JsonValueKind.Object)

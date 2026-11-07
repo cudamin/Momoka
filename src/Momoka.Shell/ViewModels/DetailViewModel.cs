@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Text;
@@ -2216,6 +2217,21 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 已经成立的播放目标、已观看和收藏不该跟着一起等。首次读取、换条目和读取失败仍从 false 开始。
     /// </summary>
     private bool _actionsReady;
+    private CardItem? _subjectStateCard;
+
+    private void ObserveSubjectState(EmbyItem item)
+    {
+        if (_subjectStateCard is { } previous) previous.PropertyChanged -= OnSubjectStateChanged;
+        _subjectStateCard = new CardItem(item, _images!, CardSize.PosterWidth);
+        _subjectStateCard.PropertyChanged += OnSubjectStateChanged;
+    }
+
+    private void OnSubjectStateChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (!Attached || !ReferenceEquals(sender, _subjectStateCard) || _detail is not { } item) return;
+        if (args.PropertyName == nameof(CardItem.Watched)) Watched = item.IsWatched;
+        if (args.PropertyName == nameof(CardItem.IsFavorite)) Favorite = item.UserData?.IsFavorite == true;
+    }
 
     private bool CanAct => Attached && _actionsReady;
 
@@ -2709,6 +2725,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private void Apply(EmbyItem item)
     {
+        ObserveSubjectState(item);
         if (item.Id == _seed?.Id && item.Source?.Key == _scope?.Key)
             item.MediaSources.RemoveAll(SourceWasDeleted);
         // 这一趟要不要重取那四张图：<see cref="Preview"/> 刚用卡片那一份起过一次，而完整条目回来时那几个图片标签
@@ -3755,7 +3772,9 @@ public sealed partial class DetailViewModel : PageViewModel
         // here would turn a server that reports its files late into a button that does nothing.
         if ((SelectedSource?.Source ?? target.DefaultMediaSource) is not { } source)
         {
-            await _actions.PlayAsync(target, parent, episodes: episodes).ConfigureAwait(true);
+            var intent = new PlaybackChoice(null, null, null, SelectedSubtitle?.Disable == true,
+                fromStart || !Settings.Playback.ResumeFromSavedPosition ? 0 : target.ResumeTicks);
+            await _actions.PlayAsync(target, parent, intent, episodes).ConfigureAwait(true);
             return;
         }
 
@@ -3769,33 +3788,25 @@ public sealed partial class DetailViewModel : PageViewModel
     [RelayCommand(CanExecute = nameof(CanAct))]
     private async Task ToggleWatchedAsync()
     {
-        if (!Attached || _detail is not { } item) return;
+        if (!CanAct || _detail is not { } item) return;
 
         var played = item.IsWatched;
         var lifetime = _lifetime;
         var scope = _scope!;
+        var card = _subjectStateCard!;
+        var order = card.UserStateOrder;
+        var change = order.BeginWatched(!played);
 
         try
         {
-            await scope.ExecuteAsync((client, token) => played
+            var response = await scope.ExecuteAsync((client, token) => played
                     ? client.MarkUnplayedAsync(item.Id, token)
                     : client.MarkPlayedAsync(item.Id, token), CancellationToken.None)
                 .ConfigureAwait(true);
 
             if (!scope.IsAvailable) return;
-            if (scope.Connection.IsFnNas || scope.Connection.IsPlex)
-            {
-                // The write endpoint acknowledged this bit before any detail refresh. Preserve it
-                // even when the optional server-derived counts or episode list cannot be read back.
-                item.UserData ??= new EmbyUserData();
-                item.UserData.Played = !played;
-                if (played)
-                {
-                    item.UserData.PlaybackPositionTicks = 0;
-                    item.UserData.PlayedPercentage = 0;
-                }
-                if (Attached && lifetime == _lifetime && ReferenceEquals(item, _detail)) Watched = !played;
-            }
+            if (order.Apply(change, card.Item.UserData, response) is not { } confirmed) return;
+            card.ApplyUserState(confirmed, watched: true);
 
             // 标记为已看（played 为 false 的那一次）还要替服务器补报一趟播放停止，位置按用户令报 100%，好让
             // 服务器上那条通知立刻把 playback.stop 转发出去（用户令 2026-10-09，见 IShellActions.ReportMarkedWatched）。
@@ -3814,6 +3825,7 @@ public sealed partial class DetailViewModel : PageViewModel
             if (Attached && lifetime == _lifetime)
                 _actions?.Notify($"更新观看状态失败：{Failure.Describe(error)}", InfoBarSeverity.Error);
         }
+        finally { order.Complete(change); }
     }
 
     [RelayCommand(CanExecute = nameof(CanFavorite))]
@@ -3825,10 +3837,13 @@ public sealed partial class DetailViewModel : PageViewModel
         var favorite = item.UserData?.IsFavorite == true;
         var lifetime = _lifetime;
         var scope = _scope!;
+        var card = _subjectStateCard!;
+        var order = card.UserStateOrder;
+        var change = order.BeginFavorite(!favorite);
 
         try
         {
-            await scope.ExecuteAsync(
+            var response = await scope.ExecuteAsync(
                     (client, token) => client.SetFavoriteAsync(item.Id, !favorite, token), CancellationToken.None)
                 .ConfigureAwait(true);
 
@@ -3837,11 +3852,11 @@ public sealed partial class DetailViewModel : PageViewModel
             // 演职人员 row and its 更多类似 row, all re-fetched to answer a question the click already
             // answered. The item's own copy is updated too, so the next click reads the current value.
             if (!scope.IsAvailable) return;
-            item.UserData ??= new EmbyUserData();
-            item.UserData.IsFavorite = !favorite;
+            if (order.Apply(change, card.Item.UserData, response) is not { } confirmed) return;
+            card.ApplyUserState(confirmed, watched: false);
             _actions?.RefreshFavorites(item);
             if (!Attached || lifetime != _lifetime || !ReferenceEquals(item, _detail)) return;
-            Favorite = !favorite;
+            Favorite = confirmed.IsFavorite;
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
@@ -3849,6 +3864,7 @@ public sealed partial class DetailViewModel : PageViewModel
             if (Attached && lifetime == _lifetime)
                 _actions?.Notify($"更新收藏失败：{Failure.Describe(error)}", InfoBarSeverity.Error);
         }
+        finally { order.Complete(change); }
     }
 
     [RelayCommand]
@@ -3954,15 +3970,20 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     internal Action CaptureReload()
+        => CaptureReloadFor(_detail);
+
+    internal Action CaptureCardReload(EmbyItem item) => CaptureReloadFor(item);
+
+    private Action CaptureReloadFor(EmbyItem? item)
     {
         var lifetime = _lifetime;
         var source = _scope?.Key;
-        var item = _detail;
         var beforeSources = item?.MediaSources.Select(media => media.Id).ToArray() ?? [];
         return () =>
         {
             if (!Attached || lifetime != _lifetime || source != _scope?.Key || item is null
-                || _detail?.Id != item.Id || _detail.Source?.Key != source) return;
+                || item.Source?.Key != source) return;
+            if (_detail?.Id != item.Id) { Reload(); return; }
             // A normal same-ID read may have replaced the DTO while the delete dialog was open.
             // Compare the captured source list to the confirmed command's edited DTO and apply only
             // removed file IDs to this still-owned subject, including late version/detail reads.
@@ -4032,6 +4053,12 @@ public sealed partial class DetailViewModel : PageViewModel
     internal async Task RemoveAsync(CardItem removed)
     {
         if (!Attached || !removed.IsCurrent) return;
+        if (_detail is { } subject && removed.Scope?.Key == _scope?.Key && RemovedMedia.Covers(removed.Item, subject))
+        {
+            _deletedItems.Add(removed.Item.Id);
+            ClearDeletedSubject();
+            return;
+        }
         CardShelf?[] shelves = [EpisodeShelf, SeasonShelf, SimilarShelf];
         if (!shelves.Any(shelf => shelf?.Cards.Contains(removed) == true)) return;
         _deletedItems.Add(removed.Item.Id);
@@ -4097,6 +4124,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <inheritdoc />
     public override void Cancel()
     {
+        if (_subjectStateCard is { } card) card.PropertyChanged -= OnSubjectStateChanged;
+        _subjectStateCard = null;
         _active = false;
         _actionsReady = false;
         _versionLoad?.Cancel();

@@ -9,7 +9,12 @@ using Momoka.MoviePilot;
 namespace Momoka.AniBt;
 
 public sealed record AniBtScrapeRow(string TargetPath, string SourceName, AniBtMatch Match,
-    MoviePilotTransferHistory? History = null);
+    MoviePilotTransferHistory? History = null)
+{
+    public int? Season { get; init; }
+    public int? Episode { get; init; }
+    public int? EpisodeEnd { get; init; }
+}
 
 public sealed record AniBtScrapeResult(string TargetPath, bool Success, string Message)
 {
@@ -213,7 +218,8 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                     var sourceName = SourceName(file.Path, matches);
                     var match = await client.MatchAsync(sourceName, token).ConfigureAwait(false);
                     moviePilot.CheckAniBtConnection(connection, token);
-                    rows[index] = new(file.Path, sourceName, match, matches.Count == 1 ? matches[0] : null);
+                    rows[index] = new(file.Path, sourceName, match, matches.Count == 1 ? matches[0] : null)
+                    { Season = file.Season, Episode = file.Episode, EpisodeEnd = file.EpisodeEnd };
                 }).ConfigureAwait(false);
         }
         catch
@@ -575,10 +581,10 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
     private static async Task<string> ScanAfterTransferAsync(EmbyClient emby, Func<bool>? canContinue,
         CancellationToken cancellationToken)
     {
-        if (canContinue?.Invoke() == false)
-            return "；媒体库身份已改变，没有请求 Emby 扫描；请在正确媒体库手动扫描，勿重复整理";
         try
         {
+            if (canContinue?.Invoke() == false)
+                return "；媒体库身份已改变，没有请求 Emby 扫描；请在正确媒体库手动扫描，勿重复整理";
             cancellationToken.ThrowIfCancellationRequested();
             await emby.ScanLibraryAsync(cancellationToken).ConfigureAwait(false);
             return "；已请求 Emby 扫描媒体库，收录新路径和移除旧条目由服务器决定";

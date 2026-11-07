@@ -158,6 +158,16 @@ public readonly record struct ItemMenuPermissions(
 /// </summary>
 public static class ItemMenu
 {
+    public static bool Allows(ItemCommand command, ItemMenuPermissions permissions) => command switch
+    {
+        ItemCommand.Download => CanDownload(permissions),
+        ItemCommand.Delete or ItemCommand.ManageVersions => CanDelete(permissions),
+        ItemCommand.Subtitles => CanManageSubtitles(permissions),
+        ItemCommand.EditMetadata or ItemCommand.ChangeCover or ItemCommand.Identify or ItemCommand.RefreshMetadata
+            or ItemCommand.ScanLibrary or ItemCommand.FnNasMatch or ItemCommand.FnNasUnmatch
+            or ItemCommand.AddToCollection => IsAdministrator(permissions),
+        _ => true
+    };
     /// <summary>
     /// 这个条目的菜单，从上到下。分隔线已经摆好：空的那一段不会留下一条线，也不会有两条线挨在一起、
     /// 或者一条线开头结尾（见 <see cref="Join"/>）。
@@ -175,7 +185,7 @@ public static class ItemMenu
         bool jellyfin = false, bool fnNas = false, bool plex = false, bool aniBtScrapeAvailable = true,
         bool moviePilotManagementAvailable = false, bool moviePilotSmartAvailable = false,
         ItemMenuPermissions permissions = default, bool aniBtEnabled = true) => fnNas
-        ? Join(Opening(item, false), UserState(item, true), FnNasManagement(item),
+        ? Join(Opening(item, false), UserState(item, true), FnNasManagement(item, permissions),
             MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, moviePilotManagementAvailable, moviePilotSmartAvailable,
                 manualReorganize: false, aniBtEnabled: aniBtEnabled), Navigation(item))
         // Plex answers 已观看/未观看 but has no per-item favourite, so that row is left out rather than
@@ -221,19 +231,25 @@ public static class ItemMenu
     /// 具体那一集上。删除和其余五项都要求「目录里的一个条目」，媒体库本身和演职人员不在其中。
     /// </para>
     /// </summary>
-    private static List<ItemMenuEntry> FnNasManagement(EmbyItem item)
+    private static List<ItemMenuEntry> FnNasManagement(EmbyItem item, ItemMenuPermissions permissions)
     {
         if (!IsCatalogue(item)) return [];
 
         var rows = new List<ItemMenuEntry>(8);
-        if (IsFile(item)) rows.Add(new(ItemCommand.ManageVersions, "管理版本"));
-        rows.Add(new(ItemCommand.FnNasMatch, "手动匹配影片"));
-        rows.Add(new(ItemCommand.FnNasUnmatch, "解除匹配影片"));
-        rows.Add(ItemMenuEntry.Rule);
-        rows.Add(new(ItemCommand.RefreshMetadata, "刷新元数据"));
-        rows.Add(new(ItemCommand.EditMetadata, "编辑元数据"));
-        rows.Add(ItemMenuEntry.Rule);
-        rows.Add(new(ItemCommand.Delete, "删除"));
+        if (IsFile(item) && CanDelete(permissions)) rows.Add(new(ItemCommand.ManageVersions, "管理版本"));
+        if (IsAdministrator(permissions))
+        {
+            rows.Add(new(ItemCommand.FnNasMatch, "手动匹配影片"));
+            rows.Add(new(ItemCommand.FnNasUnmatch, "解除匹配影片"));
+            rows.Add(ItemMenuEntry.Rule);
+            rows.Add(new(ItemCommand.RefreshMetadata, "刷新元数据"));
+            rows.Add(new(ItemCommand.EditMetadata, "编辑元数据"));
+        }
+        if (CanDelete(permissions))
+        {
+            if (rows.Count > 0) rows.Add(ItemMenuEntry.Rule);
+            rows.Add(new(ItemCommand.Delete, "删除"));
+        }
         return rows;
     }
 

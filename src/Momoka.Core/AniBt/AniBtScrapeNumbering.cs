@@ -13,6 +13,10 @@ internal sealed partial record AniBtScrapeNumbering(int? Season, string Episode)
 
     internal static AniBtScrapeNumbering Resolve(AniBtScrapeRow row, int? season, string episode)
     {
+        season = row.Season ?? season;
+        if (row.Episode is { } known)
+            episode = known.ToString(CultureInfo.InvariantCulture)
+                + (row.EpisodeEnd is { } end && end > known ? "-" + end.ToString(CultureInfo.InvariantCulture) : "");
         var numbered = SeasonEpisode().Match(MoviePilotTransfer.PathName(row.TargetPath));
         var historySeason = HistorySeason().Match(row.History?.Seasons ?? "");
         var historyEpisode = HistoryEpisode().Match(row.History?.Episodes ?? "");

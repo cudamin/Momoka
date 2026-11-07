@@ -42,7 +42,7 @@ internal sealed partial class ShellNavigationProbe
                         _ => throw new InvalidOperationException("表面检查不下载字幕"),
                         _ => throw new InvalidOperationException("表面检查不删除字幕")),
                     new MissingEpisodesDialog(item, [], (_, _) => Task.FromResult<byte[]?>(null)),
-                    new FnNasMetadataDialog(new JsonObject { ["Name"] = item.Name }),
+                    new FnNasMetadataDialog(new JsonObject { ["Name"] = item.Name }, _ => throw new InvalidOperationException("表面检查不保存元数据")),
                     new FnNasMatchDialog(item.Name, (_, _) => Task.FromResult<IReadOnlyList<Momoka.FnNas.FnNasScrapResult>>([])),
                     new FnNasVersionsDialog(item.Name, [])
                 };

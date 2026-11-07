@@ -31,7 +31,7 @@ internal static class AniBtPrepareConcurrencyTests
                 Assert.True(next >= 4);
             }
             foreach (var index in Enumerable.Range(4, 4).Reverse()) fixture.Matches.Complete(index);
-            var plan = pending.WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+            var plan = Complete(pending);
             Assert.Equal(4, fixture.Matches.Peak);
             Assert.Equal(8, fixture.Matches.Requests);
             Assert.Equal(0, fixture.Matches.Active);
@@ -51,7 +51,7 @@ internal static class AniBtPrepareConcurrencyTests
             var pending = fixture.Prepare();
             var first = Enumerable.Range(0, 4).Select(_ => fixture.Matches.Next()).ToArray();
             fixture.Matches.Fail(first[0]);
-            Assert.Throws<AniBtException>(() => pending.WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult());
+            Assert.Throws<AniBtException>(() => Complete(pending));
             Assert.Equal(4, fixture.Matches.Requests);
             Assert.Equal(3, fixture.Matches.Canceled);
             Assert.Equal(0, fixture.Matches.Active);
@@ -63,7 +63,7 @@ internal static class AniBtPrepareConcurrencyTests
             var pending = fixture.Prepare();
             for (var index = 0; index < 4; index++) fixture.Matches.Next();
             fixture.Stop.Cancel();
-            Assert.Throws<OperationCanceledException>(() => pending.WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult());
+            Assert.Throws<OperationCanceledException>(() => Complete(pending));
             Assert.Equal(4, fixture.Matches.Requests);
             Assert.Equal(4, fixture.Matches.Canceled);
             Assert.Equal(0, fixture.Matches.Active);
@@ -78,14 +78,45 @@ internal static class AniBtPrepareConcurrencyTests
             fixture.Settings.MoviePilot.Url = "http://192.0.2.10:3001";
             fixture.InstallSession();
             fixture.Matches.Complete(first[0]);
-            Assert.Throws<MoviePilotOperationBlockedException>(() => pending.WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult());
+            Assert.Throws<MoviePilotOperationBlockedException>(() => Complete(pending));
             Assert.Equal(4, fixture.Matches.Requests);
             Assert.Equal(3, fixture.Matches.Canceled);
             Assert.Equal(0, fixture.Matches.Active);
         });
+
+        Test("R09-004 实际收集与匹配保留每文件特别篇及双集编号，不回退旧名称", () =>
+        {
+            using var fixture = new Fixture(numbered: true);
+            var pending = fixture.Prepare();
+            var first = Enumerable.Range(0, 4).Select(_ => fixture.Matches.Next()).ToArray();
+            foreach (var index in first)
+            {
+                fixture.Matches.Complete(index);
+                fixture.Matches.Next();
+            }
+            foreach (var index in Enumerable.Range(4, 4)) fixture.Matches.Complete(index);
+            var plan = Complete(pending);
+            foreach (var row in plan.Rows)
+            {
+                var numbering = AniBtScrapeNumbering.Resolve(row, plan.Season, plan.Episode);
+                Assert.Equal(0, numbering.Season);
+                Assert.Equal("5-6", numbering.Episode);
+            }
+        });
     }
 
     private static string Path(int index) => $"/library/Anonymous S01E{index + 1:00}.mkv";
+
+    private static T Complete<T>(Task<T> task)
+    {
+        using var ended = new ManualResetEventSlim();
+        _ = task.ContinueWith(_ => ended.Set(), CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        Assert.True(ended.Wait(TimeSpan.FromSeconds(5)), "匿名匹配未结束");
+        if (task.Exception is { } error) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.InnerException!).Throw();
+        if (task.IsCanceled) throw new TaskCanceledException(task);
+        return task.Result;
+    }
 
     private sealed class Fixture : IDisposable
     {
@@ -101,8 +132,9 @@ internal static class AniBtPrepareConcurrencyTests
         internal MatchTransport Matches { get; } = new();
         internal CancellationTokenSource Stop { get; } = new();
 
-        internal Fixture()
+        internal Fixture(bool numbered = false)
         {
+            _transport.Numbered = numbered;
             Settings.MoviePilot.Enabled = true;
             Settings.MoviePilot.Url = "http://192.0.2.10:3001";
             Settings.MoviePilot.Username = "anonymous-fixture";
@@ -152,6 +184,7 @@ internal static class AniBtPrepareConcurrencyTests
 
     private sealed class HttpClientTransport : HttpMessageHandler
     {
+        internal bool Numbered { get; set; }
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -164,7 +197,9 @@ internal static class AniBtPrepareConcurrencyTests
                 reply = new
                 {
                     Items = Enumerable.Range(0, 8).Select(index => new
-                    { Id = $"episode-{index}", Name = "匿名动画", Type = "Episode", Path = Path(index) }),
+                    { Id = $"episode-{index}", Name = "匿名动画", Type = "Episode", Path = Path(index),
+                        IndexNumber = Numbered ? (int?)5 : null, IndexNumberEnd = Numbered ? (int?)6 : null,
+                        ParentIndexNumber = Numbered ? (int?)0 : null }),
                     TotalRecordCount = 8
                 };
             else if (path == "/api/v1/history/transfer")
@@ -204,7 +239,7 @@ internal static class AniBtPrepareConcurrencyTests
         internal int Active => Volatile.Read(ref _active);
         internal int Peak => Volatile.Read(ref _peak);
         internal int Canceled => Volatile.Read(ref _canceled);
-        internal int Next() => _started.Reader.ReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+        internal int Next() => AniBtPrepareConcurrencyTests.Complete(_started.Reader.ReadAsync().AsTask());
         internal void Complete(int index) => _replies[index].SetResult(true);
         internal void Fail(int index) => _replies[index].SetResult(false);
 
