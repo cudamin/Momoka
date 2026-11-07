@@ -1977,6 +1977,7 @@ public sealed partial class SettingsViewModel : PageViewModel
                     // 当场一起换，不等重开这一页（同页状态变化当场更新的规矩）。
                     HomeRows?.Restate(HomeRowsNote(ui));
                     RefreshHomeRows();
+                    RefreshHomeCarouselRows();
                     ShellPrefs.Apply(ui);
                 }),
 
@@ -2045,11 +2046,18 @@ public sealed partial class SettingsViewModel : PageViewModel
         return
         [
             new SettingSection("主页", "轮播图",
-                "主页最上面那条会自己走的大图：摆不摆、放哪一类、几张、一张站几秒。", carouselRows),
+                "主页最上面那条会自己走的大图：摆不摆、放哪一类、几张、一张站几秒。",
+                ui.ShowHomeBanner ? carouselRows : carouselRows.Take(1).ToArray()),
             new SettingSection("主页", "主页版面",
                 "媒体库那一排摆在第一屏的哪儿，以及主页上那几排的次序和显示与否，包括每个媒体库自己那一排。",
                 layoutRows)
         ];
+    }
+
+    private void RefreshHomeCarouselRows()
+    {
+        var section = Sections.FirstOrDefault(section => section.Category == "主页" && section.Title == "轮播图");
+        section?.UpdateRows(HomeSections()[0].Rows);
     }
 
     /// <summary>自检用：那张可拖拽的表这一次建出来的那一行。</summary>

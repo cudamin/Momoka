@@ -42,6 +42,28 @@ internal static class SettingsPageStateTests
     public static void Register(string shellAssemblyPath, string sourceRoot)
     {
         var fixture = new ShellFixture(shellAssemblyPath, sourceRoot);
+        TestHarness.Test("R06-009 轮播关闭收起从属行，开启原位恢复偏好", () =>
+        {
+            var settings = new FakeSettings();
+            settings.Settings.Ui.ShowHomeBanner = false;
+            settings.Settings.Ui.CarouselCount = 7;
+            settings.Settings.Ui.CarouselSeconds = 11;
+            var vm = fixture.NewViewModel();
+            fixture.Attach(vm, settings, fixture.NewLauncher());
+            var sections = ((IEnumerable)fixture.Invoke(vm, "HomeSections")!).Cast<object>().ToArray();
+            foreach (var section in sections) fixture.List(vm, "Sections").Add(section);
+            var rows = fixture.List(sections[0], "Rows");
+            Assert.Equal(1, rows.Count);
+            var toggle = rows[0]!;
+            fixture.Set(toggle, "IsOn", true);
+            Assert.Equal(5, rows.Count);
+            Assert.True(ReferenceEquals(toggle, rows[0]));
+            fixture.Set(toggle, "IsOn", false);
+            Assert.Equal(1, rows.Count);
+            Assert.Equal(7, settings.Settings.Ui.CarouselCount);
+            Assert.Equal(11d, settings.Settings.Ui.CarouselSeconds);
+            ((IDisposable)vm).Dispose();
+        });
         foreach (var endpoint in new[] { "save", "after" })
             TestHarness.Test($"翻译密钥：{endpoint}普通异常不能被加密错误处理吞掉", () =>
             {
