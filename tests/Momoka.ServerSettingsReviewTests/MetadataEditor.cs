@@ -18,7 +18,7 @@ internal static class MetadataEditor
     public static async Task RunAsync()
     {
         var errors = new List<string>();
-        foreach (var mode in new[] { "unchanged", "title", "list", "failure", "cancel" })
+        foreach (var mode in new[] { "unchanged", "title", "list", "failure", "cancel", "permission" })
         {
             using var fixture = new Fixture();
             MetadataDialog? shown = null;
@@ -27,6 +27,15 @@ internal static class MetadataEditor
                 shown = (MetadataDialog)dialog;
                 if (mode == "cancel") return ContentDialogResult.None;
                 if (mode is "title" or "failure") shown.NameBox.Text = "User draft";
+                if (mode == "permission")
+                {
+                    shown.NameBox.Text = "Rejected draft";
+                    fixture.Permissions = new(IsAdministrator: false);
+                    await shown.SaveAsync();
+                    if (!shown.IsOpen || shown.NameBox.Text != "Rejected draft" || !shown.Problem.IsOpen)
+                        errors.Add("permission rejection discarded draft");
+                    return ContentDialogResult.None;
+                }
                 if (mode == "list") shown.TagsBox.Text = "\"Sci-Fi, Fantasy\"、Other";
                 if (mode == "failure")
                 {
@@ -40,8 +49,10 @@ internal static class MetadataEditor
                 return ContentDialogResult.Primary;
             };
             await ItemCommands.Run(fixture.Scope, fixture, new FrameworkElement(), new CardItem { Item = new EmbyItem { Id = "item", Type = EmbyItemType.Movie } }, () => fixture.Changed++);
-            var expectedWrites = mode is "unchanged" or "cancel" ? 0 : mode == "failure" ? 2 : 1;
+            var expectedWrites = mode is "unchanged" or "cancel" or "permission" ? 0 : mode == "failure" ? 2 : 1;
             if (fixture.Transport.Writes != expectedWrites) errors.Add(mode + " unexpected write count " + fixture.Transport.Writes);
+            if (mode == "permission" && (fixture.Changed != 0 || fixture.PermissionScopes.Count != 1
+                || !ReferenceEquals(fixture.PermissionScopes.Single(), fixture.Scope))) errors.Add("permission check lost command source");
             if (mode is "title" or "list" or "failure")
             {
                 var expectedTags = mode == "list" ? "[\"Sci-Fi, Fantasy\",\"Other\"]" : "[\"Sci-Fi, Fantasy\"]";
@@ -60,7 +71,7 @@ internal static class MetadataEditor
         }
         if ((new ItemMetadataEdit { Name = "item", Tags = "\"unfinished" }).Problem is null) errors.Add("unclosed list quote was accepted");
         if (errors.Count > 0) throw new InvalidOperationException(string.Join(Environment.NewLine, errors));
-        Console.WriteLine("R24/R25: 5 actual command and linked metadata dialog cases passed.");
+        Console.WriteLine("R24/R25: 6 actual command and linked metadata dialog cases passed.");
     }
     private sealed class Fixture : IDisposable, IShellActions
     {
@@ -68,6 +79,13 @@ internal static class MetadataEditor
         public EmbySession Session { get; }
         public EmbySessionScope Scope { get; }
         public int Changed;
+        internal ItemMenuPermissions Permissions { get; set; }
+        internal List<EmbySessionScope> PermissionScopes { get; } = [];
+        public ItemMenuPermissions MenuPermissionsFor(EmbySessionScope scope)
+        {
+            PermissionScopes.Add(scope);
+            return Permissions;
+        }
         public Fixture()
         {
             var device = DeviceIdentity.Create("anonymous", "1");

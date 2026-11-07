@@ -1,5 +1,7 @@
 # Server and settings review regressions
 
+2026-11-07 fixture compatibility: the complete production IO-helper range still includes `RequirePermission`. The narrow shell boundary now supplies explicit permission values and records the checked scope. Metadata command coverage has six cases: revoking permission before saving sends no write, keeps the draft/error/retry state, and does not publish `changed`. Current Release/x64 compiles with zero warnings/errors and the full standalone executable passes; no production source or previous assertion was removed.
+
 This fixture extracts the complete current `ServersViewModel.TestAsync` member at build time, refusing missing or ambiguous boundaries. It executes that method with inert UI load/notice endpoints, the actual Core session, gateway and isolated settings IO. Only anonymous placeholder secrets are available and all HTTP ends at an in-memory handler.
 
 R28 covers unchanged and replaced server identities, with and without a preceding connection test, then executes the actual saved-token/password restore chain. It also covers missing IDs and profiles without accounts. The test must preserve a known credential binding and must send no credential in the anonymous test.

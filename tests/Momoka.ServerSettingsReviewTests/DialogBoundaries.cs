@@ -92,7 +92,11 @@ namespace Momoka.Shell.Views
 {
     public sealed class ThemeValue { public bool IsDark => true; }
     public static class ThemeHost { public static ThemeValue Current { get; } = new(); }
-    internal interface IShellActions { void Notify(string message, InfoBarSeverity severity = InfoBarSeverity.Informational); }
+    internal interface IShellActions
+    {
+        void Notify(string message, InfoBarSeverity severity = InfoBarSeverity.Informational);
+        Momoka.Emby.ItemMenuPermissions MenuPermissionsFor(Momoka.Emby.EmbySessionScope scope);
+    }
     internal sealed class CardItem { public required Momoka.Emby.EmbyItem Item { get; init; } }
     public sealed partial class MetadataDialog
     {
