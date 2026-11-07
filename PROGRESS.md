@@ -11456,3 +11456,4 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 原GUI红及定点闭合分别记录，未把183项全量红改写为全绿。用户最新要求“弹幕发送别验了，快点交付吧”，故停止自建探针32964（正常关窗未退后仅结束此自建PID，退出-1），保存174文件及19条局部记录，不宣称发送实际界面通过。原Cursor显隐仍红；本地集成探针/匿名App与29图QA覆盖及未验边界见TWELFTH-REPAIRS文末。
 - 真正执行主树publish -NoArchive -Shortcut退出0；artifacts/publish/win-x64版本0.2.5.0，自包含546文件300507109字节。完整批准载荷/许可/PRI校验通过；桌面Momoka.lnk目标和工作目录均此目录、参数空。测试Core=发布Core64076C11…，发布Shell171A450C…与当轮bin一致；不复制DLL、不上传/push、不打ZIP/MSIX。交付收据artifacts/review-batch12-master/delivery-receipt-3647af4.json。
 - 20本批辅助树内容已等效合入、工作区干净，4146证据165036028字节已逐SHA保留；原生归档依据final-evidence-audit/archive-ready-3647.json。主聊天受保护工作树与其他聊天目录不强行清除。全部本批产品已合入并发布，无剩余产品提交待合；运行覆盖限制保留，不继续扩大修复范围。
+- 原生归档前5树均被“Another active task still uses this worktree”保护拒绝，归档0；其余15树不重复尝试，全部暂留，不绕过保护删除。仅工作树清理未完成，产品发布已经完成；回执artifacts/review-batch12-master/archive-close-result.json。

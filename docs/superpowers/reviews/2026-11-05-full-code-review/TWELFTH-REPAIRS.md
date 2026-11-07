@@ -79,3 +79,4 @@ R11暂停/恢复与stats Lua：probe-shell假handle/键盘入口不覆盖真实�
 - 匿名同程序集实际App PID16572计时器3次、HTTP0、报告全通过、退出0，六份运行相关源码至最终提交哈希未变；它不是保存账号的服务器自检。Composition20604和Motion8696本地集成探针退出0；Subtitle23268为18条通过。补看29张原图无必要像素新增缺陷，但四个时间轴主题PNG完全相同、部分设置/确认只有渲染图，不声称这些像素全部覆盖。Cursor11212“移动后系统光标可见”仍红，本轮报告/清理路径已执行，正常显隐不报通过。真实服务器、独占/uosc与外部mpv播放、系统省电/高对比切换未验。
 - 已实际执行 `tools/publish.ps1 -NoArchive -Shortcut`，退出0：主树 `artifacts/publish/win-x64`，版本0.2.5.0，自包含546文件、300507109字节；批准mpv清单59文件（50 UI、2 native）、许可及框架PRI校验通过。桌面 `C:/Users/89400/Desktop/Momoka.lnk` 目标为该目录Momoka.exe、工作目录相同、参数空；发布exe/Shell/Core/PRI及其当轮bin哈希一致，测试Core也与发布相同。收据 `artifacts/review-batch12-master/delivery-receipt-3647af4.json`；未push、上传、ZIP或MSIX。
 - 本批20辅助树干净且内容等效入主树，4146份证据、165036028字节已逐SHA保留，原失败不删除；归档依据 `final-evidence-audit/archive-ready-3647.json`。主聊天受保护工作树及其他聊天工作树不强行删除。
+- 原生归档尝试前5树均因仍有会话使用而拒绝，归档0；其余15树不重复尝试，工作树暂留，不绕过工具保护。该清理限制不改变已完成的产品发布；结果见 `artifacts/review-batch12-master/archive-close-result.json`。
