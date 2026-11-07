@@ -27,37 +27,39 @@ internal static class GaussianBackdropTests
             Assert.Contains("ViewModel.GaussianBackdropApplied", source);
             Assert.False(source.Contains("? Color.FromArgb(0, 0, 0, 0)", StringComparison.Ordinal));
         });
-        Test("高斯背景：缺键默认暗罩和原底色，两模式JSON与恢复独立保存", () =>
+        Test("详情材质：旧高斯键往返与恢复默认固定亚克力，浓度独立保存", () =>
         {
             var settings = SettingsMigration.FromJson("{\"SchemaVersion\":26,\"Ui\":{}}", PassthroughSecretProtector.Instance);
             Assert.False(settings.Ui.UseGaussianBackdrop);
-            Assert.False(settings.Ui.UseAcrylicControls);
+            Assert.True(settings.Ui.UseAcrylicControls);
             settings.Ui.UseGaussianBackdrop = true;
             settings.Ui.UseAcrylicControls = true;
             settings.Ui.BackdropOpacity = 37;
             var restored = SettingsMigration.FromJson(JsonSerializer.Serialize(settings), PassthroughSecretProtector.Instance);
-            Assert.True(restored.Ui.UseGaussianBackdrop);
+            Assert.False(restored.Ui.UseGaussianBackdrop);
+            Assert.True(restored.Ui.UseAcrylicBackdrop);
             Assert.True(restored.Ui.UseAcrylicControls);
             var live = new AppSettings();
             live.Ui.WindowWidth = 1280;
             SettingsPreferences.Apply(live, SettingsPreferences.ToBackupDocument(restored));
-            Assert.True(live.Ui.UseGaussianBackdrop);
+            Assert.False(live.Ui.UseGaussianBackdrop);
+            Assert.True(live.Ui.UseAcrylicBackdrop);
             Assert.True(live.Ui.UseAcrylicControls);
             Assert.Equal(37d, live.Ui.BackdropOpacity);
             SettingsPreferences.Apply(live, new AppSettings());
             Assert.False(live.Ui.UseGaussianBackdrop);
-            Assert.False(live.Ui.UseAcrylicControls);
+            Assert.True(live.Ui.UseAcrylicControls);
             Assert.Equal(UiSettings.DefaultBackdropOpacity, live.Ui.BackdropOpacity);
             Assert.Equal(1280d, live.Ui.WindowWidth);
         });
-        Test("亚克力背景：缺键保持暗罩，新安装默认关闭", () =>
+        Test("亚克力背景：缺键与新安装默认固定开启", () =>
         {
-            AssertStoredAcrylic(new AppSettings(), false);
+            AssertStoredAcrylic(new AppSettings(), true);
             var settings = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{}}", PassthroughSecretProtector.Instance);
-            AssertStoredAcrylic(settings, false);
+            AssertStoredAcrylic(settings, true);
             Assert.False(settings.Ui.UseGaussianBackdrop);
         });
-        Test("亚克力背景：JSON往返保留新模式与强度，不改变控件材质", () =>
+        Test("亚克力背景：JSON往返保留强度，旧关闭控件材质归一化开启", () =>
         {
             var settings = SettingsMigration.FromJson(
                 "{\"SchemaVersion\":27,\"Ui\":{\"UseAcrylicBackdrop\":true,\"BackdropOpacity\":37,\"UseAcrylicControls\":false}}",
@@ -65,10 +67,10 @@ internal static class GaussianBackdropTests
             var restored = SettingsMigration.FromJson(JsonSerializer.Serialize(settings), PassthroughSecretProtector.Instance);
             AssertStoredAcrylic(restored, true);
             Assert.False(restored.Ui.UseGaussianBackdrop);
-            Assert.False(restored.Ui.UseAcrylicControls);
+            Assert.True(restored.Ui.UseAcrylicControls);
             Assert.Equal(37d, restored.Ui.BackdropOpacity);
         });
-        Test("亚克力背景：导入偏好原地恢复，恢复默认关闭并保留窗口", () =>
+        Test("亚克力背景：导入偏好原地恢复，恢复默认仍开启并保留窗口", () =>
         {
             var source = SettingsMigration.FromJson(
                 "{\"SchemaVersion\":27,\"Ui\":{\"UseAcrylicBackdrop\":true,\"BackdropOpacity\":63}}",
@@ -83,12 +85,12 @@ internal static class GaussianBackdropTests
             Assert.False(live.Ui.UseGaussianBackdrop);
             Assert.Equal(63d, live.Ui.BackdropOpacity);
             SettingsPreferences.Apply(live, new AppSettings());
-            AssertStoredAcrylic(live, false);
+            AssertStoredAcrylic(live, true);
             Assert.False(live.Ui.UseGaussianBackdrop);
             Assert.Equal(UiSettings.DefaultBackdropOpacity, live.Ui.BackdropOpacity);
             Assert.Equal(1280d, live.Ui.WindowWidth);
         });
-        Test("亚克力背景：冲突配置优先亚克力，旧高斯文件继续保留高斯", () =>
+        Test("亚克力背景：冲突配置与旧高斯文件统一使用亚克力", () =>
         {
             var conflict = SettingsMigration.FromJson(
                 "{\"SchemaVersion\":27,\"Ui\":{\"UseAcrylicBackdrop\":true,\"UseGaussianBackdrop\":true}}",
@@ -98,8 +100,8 @@ internal static class GaussianBackdropTests
             var legacy = SettingsMigration.FromJson(
                 "{\"SchemaVersion\":27,\"Ui\":{\"UseGaussianBackdrop\":true}}",
                 PassthroughSecretProtector.Instance);
-            Assert.True(legacy.Ui.UseGaussianBackdrop);
-            AssertStoredAcrylic(legacy, false);
+            Assert.False(legacy.Ui.UseGaussianBackdrop);
+            AssertStoredAcrylic(legacy, true);
         });
         Test("真高斯：单点响应符合归一化指数核而非盒式", () =>
         {

@@ -13,6 +13,9 @@ namespace Momoka.Configuration;
 /// </summary>
 public static class SettingsMigration
 {
+    // v26增量浓度迁移保持当时发布的40%起点，不随今天的默认浓度改变已保存的用户选择。
+    private const double LegacyBackdropOpacity = 40;
+
     public static AppSettings FromJson(string json, ISecretProtector protector)
     {
         if (string.IsNullOrWhiteSpace(json)) return NewDefaults();
@@ -288,30 +291,26 @@ public static class SettingsMigration
             settings.Playback.SubtitleBold = storedWeight >= 550;
         }
 
-        // v27 turns 详情背景图那一格 into a direct reading of the scrim/blur strength (2026-11-06,
-        // 「百分之一百，遮罩完全不透明，高斯模糊拉到最模糊；百分之 0 关闭遮罩，关闭高斯模糊」). Up to v26 the
-        // number was an increment on top of two hard-coded picture opacities — 0.9 normally, 0.96 in the
-        // immersive layout — so the shipped 0 still drew a dimmed picture and 100 meant 「1.0」. Now 0 draws no
-        // scrim and no blur at all, 100 takes the scrim to fully opaque (and the blur to its maximum), with one
-        // value for both layouts. The stored 0 is the value nobody picked (it is the shipped default), so it
-        // lands on the new default; 1–100 meant 「stronger than the default」 and keeps that meaning by
-        // spreading over the new default→100 range.
+        // v27 changed the old picture-opacity increment into a direct background-treatment strength.
+        // Preserve its historical conversion for explicit v26 values: 0→40, 100→100, with values between
+        // those points linear. Missing old fields use today's default so lowering the acrylic default
+        // does not reinterpret saved numeric preferences or apply the old conversion twice.
         if (version < 27)
         {
-            // Repair/initializer already supplied today's 40 for an absent old field. The old
-            // default was zero; use the original document so a missing value is not raised twice.
+            // An absent field keeps today's initializer. Only an explicit old numeric value
+            // takes the historical increment conversion, independent of today's default.
             var priorUi = root.EnumerateObject().LastOrDefault(property =>
                 property.Name.Equals("Ui", StringComparison.OrdinalIgnoreCase)).Value;
             var priorOpacity = priorUi.ValueKind == JsonValueKind.Object
                 ? priorUi.EnumerateObject().LastOrDefault(property =>
                     property.Name.Equals("BackdropOpacity", StringComparison.OrdinalIgnoreCase)).Value : default;
-            var raised = priorOpacity.ValueKind == JsonValueKind.Number
-                && priorOpacity.TryGetDouble(out var storedOpacity)
-                && double.IsFinite(storedOpacity)
-                    ? Math.Clamp(storedOpacity, 0, 100) : 0;
-            settings.Ui.BackdropOpacity = Math.Round(
-                UiSettings.DefaultBackdropOpacity
-                    + (100 - UiSettings.DefaultBackdropOpacity) * raised / 100, 1);
+            if (priorOpacity.ValueKind == JsonValueKind.Number
+                && priorOpacity.TryGetDouble(out var storedOpacity) && double.IsFinite(storedOpacity))
+            {
+                var raised = Math.Clamp(storedOpacity, 0, 100);
+                settings.Ui.BackdropOpacity = Math.Round(
+                    LegacyBackdropOpacity + (100 - LegacyBackdropOpacity) * raised / 100, 1);
+            }
         }
 
         settings.SchemaVersion = AppSettings.CurrentSchemaVersion;
@@ -487,7 +486,8 @@ public static class SettingsMigration
         settings.EnsureDeviceId();
         settings.Ui.PageSize = Math.Clamp(settings.Ui.PageSize, 20, 500);
 
-        // 三页各自保存；null、重复或旧版不认识的卡片统一收口，缺项按当前目录恢复默认显示。
+        // 剧与单集共用版面。仅在剧偏好尚为空时迁入旧单集设置，已有剧选择始终优先；Plan复制记录，避免两键互相改写。
+        if (settings.Ui.SeriesCards is null or { Count: 0 }) settings.Ui.SeriesCards = settings.Ui.EpisodeCards;
         settings.Ui.SeriesCards = [.. DetailLayout.Plan(EmbyItemType.Series, settings.Ui.SeriesCards)];
         settings.Ui.EpisodeCards = [.. DetailLayout.Plan(EmbyItemType.Episode, settings.Ui.EpisodeCards)];
         settings.Ui.MovieCards = [.. DetailLayout.Plan(EmbyItemType.Movie, settings.Ui.MovieCards)];
@@ -499,8 +499,10 @@ public static class SettingsMigration
             ? Math.Clamp(settings.Ui.ControlBackgroundOpacity, 0, 100) : 0;
         settings.Ui.BackdropOpacity = double.IsFinite(settings.Ui.BackdropOpacity)
             ? Math.Clamp(settings.Ui.BackdropOpacity, 0, 100) : 0;
-        // 两键保留旧高斯配置兼容；手改或导入同时开启时，亚克力优先并写回互斥状态。
-        if (settings.Ui.UseAcrylicBackdrop) settings.Ui.UseGaussianBackdrop = false;
+        // 旧模式键保留JSON兼容，加载、导入、保存及恢复默认都固定使用亚克力。
+        settings.Ui.UseAcrylicControls = true;
+        settings.Ui.UseAcrylicBackdrop = true;
+        settings.Ui.UseGaussianBackdrop = false;
 
         // 海报缓存的磁盘上限。范围和「MB 换字节」都在淘汰规则那一头（Emby.ImageCachePolicy），设置页那一行也读
         // 同一对常量 —— 一个比设置窄的框会显示一个文件里没有的数并在下次触碰时写回去，一个比设置宽的框会让人填进

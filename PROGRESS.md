@@ -1,3 +1,9 @@
+## 2026-11-07 剧集共用偏好与固定亚克力（Core独立树）
+
+本树为C:\Users\89400\.codex\worktrees\detail-appearance-core\Momoka，基于483c22c，只写AppSettings、SettingsMigration、Emby/DetailLayout与相关Core测试。剧与单集共读SeriesCards，旧EpisodeCards仅剧偏好空时迁入，保留兼容键与记录复制；背景默认20%，加载/导入/恢复默认固定亚克力，v26显式旧浓度按历史40起点换算，缺键用当前默认。实际ItemType与播放目标不变。
+
+测试先行5个行为回归：原产品42项37过5红；实现后42/42、存储182/182，完整4140/4140失败跳过0。Release/x64 Tests/Core零警告错误，行尾/BOM/空白检查通过。证据artifacts/detail-appearance-core，含红绿构建与测试、完整日志。未启动UI、播放、真实服务器或发布；待根代理合并Shell改动并走交付验证。
+
 ## 2026-11-07 两项详情改动与第九批已统一桌面交付
 
 最终产品c4a0b51（af8852d整合第九批9e018ff、封面a35517b、单集5910486及b4e074c探针）已发布，master保留三方改动。四类封面统一260×375上限，简洁电影/剧/季保留双栏与封面，简洁电影/剧自身艺术图、媒体信息子标题，单集开启沉浸沿剧页；布局后阅读色与状态通知修正全部入提交。

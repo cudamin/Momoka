@@ -1371,10 +1371,10 @@ public sealed class UiSettings
     /// <summary>界面动效开关；默认保留现有动画，关闭时直接显示最终状态。仍遵循 Windows 的动画设置。</summary>
     public bool AnimationsEnabled { get; set; } = true;
 
-    /// <summary>剧详情页正文卡片的排序与显示偏好，缺项按当前目录补全。</summary>
+    /// <summary>剧与单集共用的正文卡片排序与显示偏好，缺项按当前目录补全。</summary>
     public List<DetailCardSetting> SeriesCards { get; set; } = [];
 
-    /// <summary>单集详情页正文卡片的排序与显示偏好，与剧页各自保存。</summary>
+    /// <summary>旧单集正文偏好，仅用于JSON兼容；剧偏好为空时迁入SeriesCards。</summary>
     public List<DetailCardSetting> EpisodeCards { get; set; } = [];
 
     /// <summary>电影详情页正文卡片的排序与显示偏好。</summary>
@@ -1385,7 +1385,7 @@ public sealed class UiSettings
 
     public const string DefaultControlBackgroundColor = "#FFFFFF";
 
-    /// <summary>背景处理的 RGB 遮罩色；高斯、普通遮罩和亚克力共用。</summary>
+    /// <summary>旧背景遮罩色，仅保留JSON兼容；亚克力颜色由当前主图提供。</summary>
     public string BackdropColor { get; set; } = DefaultBackdropColor;
 
     public const string DefaultBackdropColor = "#808080";
@@ -1403,30 +1403,24 @@ public sealed class UiSettings
     public const double DefaultControlBackgroundOpacity = 15d / 255 * 100;
 
     /// <summary>
-    /// 详情背景图上那层处理的强度（%）：0 关闭遮罩、模糊与亚克力（背景图原样清晰），100 遮罩或亚克力完全
-    /// 不透明（选高斯模糊时模糊拉满）；普通与沉浸版式共用这一档，高斯仍只在沉浸生效。
-    /// <para>
-    /// 2026-11-06 定稿：这一格管的是<b>压在图上的遮罩／模糊</b>，不是图片自己的透明度。老版把它当「在原浓度上
-    /// 再加多少」，0 档仍是一张压到 0.9 的图。缺键的旧文件由 <c>SettingsMigration</c> 按旧的增量语义换算，
-    /// 落在 <see cref="DefaultBackdropOpacity"/>。
-    /// </para>
+    /// 详情主图上亚克力染色层的不透明度（%）：0不染色，100使用完全不透明的主图底色。
+    /// 普通与沉浸版式共用这一档；图片本身始终保留原始不透明度。
     /// </summary>
     public double BackdropOpacity { get; set; } = DefaultBackdropOpacity;
 
     /// <summary>
-    /// 背景图那层处理的出厂强度（%）。旧版是普通 0.9／沉浸 0.96 两档图的不透明度写死（遮罩最浓 0xB8），
-    /// 用户令「降低默认的背景图不透明度」：出厂降到这一档，遮罩比老观感淡、图比原来清楚；滑块仍可拖到 100。
+    /// 主图亚克力染色层的默认不透明度（%）；已保存的有效自选浓度保持原值。
     /// </summary>
-    public const double DefaultBackdropOpacity = 40;
+    public const double DefaultBackdropOpacity = 20;
 
-    /// <summary>按钮与选择框使用应用内亚克力；缺键保留现有底色。</summary>
-    public bool UseAcrylicControls { get; set; }
+    /// <summary>按钮与选择框固定使用应用内亚克力；旧键保留JSON兼容。</summary>
+    public bool UseAcrylicControls { get; set; } = true;
 
-    /// <summary>仅电影、剧与季的沉浸背景使用真正高斯模糊，并保留深色阅读保护；不影响首页轮播。</summary>
+    /// <summary>已退役的详情高斯模式，仅保留JSON兼容；归一化固定关闭。</summary>
     public bool UseGaussianBackdrop { get; set; }
 
-    /// <summary>电影、剧与季详情背景使用应用内亚克力，普通与窄窗同样生效；缺键关闭，不影响首页轮播。</summary>
-    public bool UseAcrylicBackdrop { get; set; }
+    /// <summary>详情背景固定使用应用内亚克力；旧键保留JSON兼容。</summary>
+    public bool UseAcrylicBackdrop { get; set; } = true;
 
     /// <summary>电影、剧与季的沉浸模式；关闭使用简洁卡面并隐藏背景图，保留外观偏好。</summary>
     public bool EnableImmersive { get; set; } = true;
