@@ -52,6 +52,7 @@ internal static class Program
         }
         if (args is ["detail-customization-fixture"])
         {
+            EpisodeSeasonItemsTests.Register();
             DetailLayoutTests.Register();
             AppearanceColorSettingsTests.Register();
             GaussianBackdropTests.Register();

@@ -22,6 +22,7 @@ internal static class ItemDetailTests
 
     public static void Register()
     {
+        EpisodeSeasonItemsTests.Register();
         RegisterHeadings();
         RegisterFacts();
         RegisterSources();
@@ -1165,15 +1166,13 @@ internal static class ItemDetailTests
             Assert.False(episodes.Exists(episode => ItemDetail.IsCurrentEpisode(episode, null)));
         });
 
-        Test("单集：只有季页画成竖置列表", () =>
+        Test("单集：季页与集页画纵列表，剧页保持横带", () =>
         {
-            // 「只有季页的集使用竖置列表列表就好，另外两个页面使用竖置翻页」。四种页面共用一份详情页，
-            // 所以这条规则必须是「按页面自己的类型算」的纯函数 —— 上一次它是页面上的一句话，于是给季页
-            // 改的列表连剧页和集页一起改掉了。
+            // 单集页改为当季列表，剧页仍保持全剧横带；按实际类型区分，不合并两页行为。
             Assert.True(ItemDetail.EpisodesAsList(EmbyItemType.Season));
 
             Assert.False(ItemDetail.EpisodesAsList(EmbyItemType.Series));
-            Assert.False(ItemDetail.EpisodesAsList(EmbyItemType.Episode));
+            Assert.True(ItemDetail.EpisodesAsList(EmbyItemType.Episode));
             Assert.False(ItemDetail.EpisodesAsList(EmbyItemType.Movie));
 
             // 类型还没读到的那一瞬间（页面刚构造、请求还没回来）按横带算，和电影页同一档。

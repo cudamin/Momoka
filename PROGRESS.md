@@ -1,3 +1,9 @@
+## 2026-11-07 单集当季列表与特别篇日期归属（Core独立树）
+
+本树9c8dea6基础上实现ItemDetail.EpisodeSeasonNumber/EpisodeSeasonItems：普通集按原季号，特别篇以季首播或该季最早普通集日期归入展示季，早于首季归首季、等于次季首播归次季、无日期或完全无已知边界留S00。返回原DTO引用、全剧输入不变；单集目录退役全部剧季卡，剧页目录与独立偏好保持。季/单集纵列表，剧页横带。
+
+7组新回归先红（47项40过7红），后专项47/47；Release/x64 Tests/Core零警告错误，完整4145/4145失败跳过0。证据artifacts/detail-appearance-core/season-*，包含跨年/等日/缺日期/缺季DTO/真实ID回退/原字段不变。未启动UI、真实服务、播放或发布；根代理接入当季Shelf投影并验证真实页面。
+
 ## 2026-11-07 取消剧集共用页面（Core范围更正）
 
 用户最新指示不合并剧页面和集页面。本树在ef8d251基础上定点恢复SeriesCards/EpisodeCards独立读取与归一化，删除旧单集向剧偏好的迁入，DetailLayout与483c22c基点逐字节一致；未撤销默认20%、固定亚克力和历史40起点浓度迁移。退役两项共享版面回归，原独立偏好/空值/往返覆盖恢复。Correction Release/x64 Tests/Core零警告错误，详情专项40/40、设置存储182/182，失败跳过0；证据artifacts/detail-appearance-core/correction-*。完整4140日志属于前轮，最终全量与UI由根代理集成交付验证。
