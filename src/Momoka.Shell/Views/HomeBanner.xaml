@@ -45,13 +45,15 @@
             <Setter Property="Margin" Value="8,0,8,0" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Background" Value="{StaticResource EgBannerPageRestBrush}" />
-            <Setter Property="Foreground" Value="{StaticResource EgOnScrimBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgOnScrimBrush}" />
             <!-- 默认收起：指针在带上才浮出，同 ShelfStrip。 -->
             <Setter Property="Visibility" Value="Collapsed" />
         </Style>
 
-        <Style x:Key="EgBannerPlayStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+        <Style x:Key="EgBannerPlayStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgOnScrimBrush}" />
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="142" />
             <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
@@ -65,7 +67,7 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="{StaticResource EgBannerDotBrush}" />
             <Setter Property="Background" Value="{StaticResource EgBannerGhostRestBrush}" />
-            <Setter Property="Foreground" Value="{StaticResource EgOnScrimBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgOnScrimBrush}" />
             <!-- 同货架圆钮，用同一条矢量轮廓画底色和边线，避免亚克力圆角背景与边线分别裁剪。
                  16 DIP 圆角和 1 DIP 线宽与上方样式一致；内容仍保留原边线占位与按钮语义。 -->
             <Setter Property="Template">
@@ -367,7 +369,7 @@
                         <TextBlock
                             x:Name="SynopsisText"
                             Style="{StaticResource EgOnScrimBodyStyle}"
-                            Foreground="{StaticResource EgOnScrimDimBrush}"
+                            Foreground="{ThemeResource EgOnScrimDimBrush}"
                             LineHeight="24"
                             MaxLines="2"
                             TextWrapping="Wrap"
@@ -387,6 +389,12 @@
                         <!-- 强调色键，四个态全交给 AccentButtonStyle：Palette 那三份词典连 AccentFillColor* 一起
                              改，ThemeHost 换主题时也一起重涂，所以这颗键跟着主题走（同详情页头图上那一颗）。 -->
                         <Button x:Name="PlayButton" Style="{StaticResource EgBannerPlayStyle}" Click="OnPlayClicked">
+                            <Button.Resources>
+                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+                                <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
+                                <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimBrush" />
+                            </Button.Resources>
                             <StackPanel Orientation="Horizontal" Spacing="9">
                                 <FontIcon
                                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
@@ -416,8 +424,8 @@
                     IsTabStop="False"
                     Click="OnPrevClicked">
                     <Button.Resources>
-                        <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgBannerPageHoverBrush" />
-                        <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgBannerPagePressBrush" />
+                        <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+                        <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
                         <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
                         <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimBrush" />
                     </Button.Resources>
@@ -434,8 +442,8 @@
                     IsTabStop="False"
                     Click="OnNextClicked">
                     <Button.Resources>
-                        <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgBannerPageHoverBrush" />
-                        <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgBannerPagePressBrush" />
+                        <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+                        <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
                         <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
                         <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimBrush" />
                     </Button.Resources>

@@ -9,6 +9,65 @@ internal static partial class DetailActionReadinessTests
 {
     private static void RegisterShapeTests(Assembly assembly, string root)
     {
+        Test("主图底色按原图身份缓存，换图和清空即时回退", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Movie);
+            Await(f.Load());
+            var type = assembly.GetType("Momoka.Shell.Media.HeroPictureLoader+HeroPixels", true)!;
+            var field = f.Vm.GetType().GetField("_heroPixels", Members)!;
+            object Pixels(byte blue, byte green, byte red) => Activator.CreateInstance(type, [new byte[] { blue, green, red, 255 }, 1, 1])!;
+            field.SetValue(f.Vm, Pixels(30, 20, 10));
+            Assert.Equal(Momoka.Theming.ThemeColor.Rgb(10, 20, 30), (Momoka.Theming.ThemeColor)f.Get("BackdropBaseColor")!);
+            f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, 600d);
+            Assert.Equal(Momoka.Theming.ThemeColor.Rgb(10, 20, 30), (Momoka.Theming.ThemeColor)f.Get("BackdropBaseColor")!);
+            field.SetValue(f.Vm, Pixels(60, 50, 40));
+            Assert.Equal(Momoka.Theming.ThemeColor.Rgb(40, 50, 60), (Momoka.Theming.ThemeColor)f.Get("BackdropBaseColor")!);
+            field.SetValue(f.Vm, null);
+            var theme = (Momoka.Theming.UiTheme)assembly.GetType("Momoka.Shell.ThemeHost", true)!
+                .GetProperty("Current")!.GetValue(null)!;
+            Assert.Equal(theme.Colors.Window, (Momoka.Theming.ThemeColor)f.Get("BackdropBaseColor")!);
+        });
+
+        Test("单集仅展示归属季度，切季保持播放目标和全剧上下文", () =>
+        {
+            using var f = new Fixture(assembly, root, Shape.Episode);
+            DateTimeOffset Date(int year, int month, int day) => new(year, month, day, 0, 0, 0, TimeSpan.Zero);
+            var first = f.Transport.Seasons[0];
+            first.PremiereDate = Date(2020, 1, 1);
+            var second = new EmbyItem { Id = "s2", Type = EmbyItemType.Season, IndexNumber = 2,
+                SeriesId = "series", Name = "第二季", PremiereDate = Date(2021, 1, 1) };
+            var specials = new EmbyItem { Id = "s0", Type = EmbyItemType.Season, IndexNumber = 0,
+                SeriesId = "series", Name = "特别篇" };
+            f.Transport.Seasons.Add(second);
+            f.Transport.Seasons.Add(specials);
+            f.Seed.PremiereDate = Date(2020, 1, 1);
+            EmbyItem Episode(string id, int season, DateTimeOffset? date) => new()
+            { Id = id, Name = id, Type = EmbyItemType.Episode, SeriesId = "series",
+                SeasonId = season == 0 ? "s0" : "s2", ParentIndexNumber = season, IndexNumber = 2, PremiereDate = date };
+            f.Transport.Episodes.Add(Episode("sp-first", 0, Date(2020, 6, 1)));
+            f.Transport.Episodes.Add(Episode("second", 2, Date(2021, 1, 1)));
+            f.Transport.Episodes.Add(Episode("sp-second", 0, Date(2021, 1, 1)));
+            f.Transport.Episodes.Add(Episode("sp-unknown", 0, null));
+            Await(f.Load());
+            string[] Ids() => ((System.Collections.IEnumerable)f.Get("EpisodeShelf")!.GetType().GetProperty("Cards")!
+                .GetValue(f.Get("EpisodeShelf"))!).Cast<object>().Select(card =>
+                    ((EmbyItem)card.GetType().GetProperty("Item")!.GetValue(card)!).Id).ToArray();
+            Assert.True(Ids().SequenceEqual(new[] { "episode", "sp-first" }));
+            Assert.Equal("Visible", f.Get("EpisodeListVisibility")!.ToString());
+            Assert.Equal("Collapsed", f.Get("EpisodeStripVisibility")!.ToString());
+            Assert.Equal("Collapsed", f.Get("SeasonShelfVisibility")!.ToString());
+            Assert.Equal(5, ((IReadOnlyList<EmbyItem>)f.Get("Episodes")!).Count);
+            var target = f.Get("PlayTarget");
+            f.Vm.GetType().GetMethod("SelectEpisodeSeason", Members)!.Invoke(f.Vm, [second]);
+            Assert.True(Ids().Order().SequenceEqual(new[] { "second", "sp-second" }.Order()));
+            Assert.True(ReferenceEquals(target, f.Get("PlayTarget")));
+            f.Vm.GetType().GetMethod("SelectEpisodeSeason", Members)!.Invoke(f.Vm, [specials]);
+            Assert.True(Ids().SequenceEqual(new[] { "sp-unknown" }));
+            f.Vm.GetType().GetMethod("SelectEpisodeSeason", Members)!.Invoke(f.Vm, [first]);
+            Assert.True(Ids().SequenceEqual(new[] { "episode", "sp-first" }));
+            Assert.True(ReferenceEquals(target, f.Get("PlayTarget")));
+        });
+
         Test("详情两种模式：开启宽窗固定沉浸，窄窗仍紧凑，关闭一律无背景", () =>
         {
             foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season })
@@ -165,7 +224,8 @@ internal static partial class DetailActionReadinessTests
             var shelf = f.Get("EpisodeShelf");
             Assert.True((bool)f.Get("Showcase")!);
             Assert.True((bool)f.Get("BackdropShown")!);
-            Assert.True((bool)f.Get("UseGaussianBackdrop")!);
+            Assert.False((bool)f.Get("UseGaussianBackdrop")!);
+                Assert.True((bool)f.Get("UseAcrylicBackdrop")!);
             Assert.False((bool)f.Get("HeroCardShown")!);
             Assert.False((bool)f.Get("ShowShelfLines")!);
             Assert.Equal(260d, (double)f.Get("StillWidth")!);
@@ -226,7 +286,7 @@ internal static partial class DetailActionReadinessTests
             }
         });
 
-        Test("高斯偏好仅在四种详情宽窗沉浸生效，窄窗无图保留偏好", () =>
+        Test("旧高斯偏好不再启用处理，四类详情固定亚克力", () =>
         {
             foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
             {
@@ -240,7 +300,8 @@ internal static partial class DetailActionReadinessTests
                 f.Ui.EnableImmersive = false;
                 Assert.False((bool)f.Get("UseGaussianBackdrop")!, "简洁模式不得启用高斯");
                 f.Ui.EnableImmersive = true;
-                Assert.True((bool)f.Get("UseGaussianBackdrop")!);
+                Assert.False((bool)f.Get("UseGaussianBackdrop")!);
+                Assert.True((bool)f.Get("UseAcrylicBackdrop")!);
                 Set("PageWidth", 760d);
                 Assert.False((bool)f.Get("UseGaussianBackdrop")!, "紧凑版式不得启用高斯");
                 Set("PageWidth", 1200d);

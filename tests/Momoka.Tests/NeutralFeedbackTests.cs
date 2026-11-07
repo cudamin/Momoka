@@ -47,13 +47,13 @@ internal static class NeutralFeedbackTests
             Assert.Equal("OnOpen", cover.Attribute("Click")?.Value);
         });
 
-        Test("中性反馈：播放键默认灰底白字，保留圆形尺寸与播放路由", () =>
+        Test("播放键亚克力：复用全局背景，保留圆形尺寸与播放路由", () =>
         {
             var card = View("PosterCard.xaml");
             var style = card.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgCardPlayButtonStyle");
             Assert.Equal("{StaticResource DefaultButtonStyle}", style.Attribute("BasedOn")?.Value);
-            Assert.Equal("{ThemeResource EgSurfaceHoverBrush}", Setter(style, "Background"));
-            Assert.Equal("{ThemeResource EgTextBrush}", Setter(style, "Foreground"));
+            Assert.Equal("{ThemeResource EgActionGlassBrush}", Setter(style, "Background"));
+            Assert.Equal("{ThemeResource EgOnScrimBrush}", Setter(style, "Foreground"));
             Assert.Equal("48", Setter(style, "Width"));
             Assert.Equal("48", Setter(style, "Height"));
             Assert.Equal("24", Setter(style, "CornerRadius"));
@@ -88,17 +88,17 @@ internal static class NeutralFeedbackTests
             Assert.True(cleanup > hover && normal > cleanup, "探针失败也必须恢复默认态");
         });
 
-        Test("中性反馈：强调色只覆盖播放按钮的指针和按下状态", () =>
+        Test("播放键亚克力：局部三态复用全局材质，前景语义保持", () =>
         {
             var card = View("PosterCard.xaml");
             var button = card.Descendants().Single(element => Name(element) == "PlayButton");
             var resources = button.Elements().Single(element => element.Name.LocalName == "Button.Resources");
             var expected = new Dictionary<string, string>
             {
-                ["ButtonBackgroundPointerOver"] = "EgAccentBrush",
-                ["ButtonBackgroundPressed"] = "EgAccentPressedBrush",
-                ["ButtonForegroundPointerOver"] = "EgTextOnAccentBrush",
-                ["ButtonForegroundPressed"] = "EgTextOnAccentBrush"
+                ["ButtonBackgroundPointerOver"] = "EgActionGlassHoverBrush",
+                ["ButtonBackgroundPressed"] = "EgActionGlassPressedBrush",
+                ["ButtonForegroundPointerOver"] = "EgOnScrimBrush",
+                ["ButtonForegroundPressed"] = "EgOnScrimBrush"
             };
             Assert.Equal(expected.Count, resources.Elements().Count());
             foreach (var (key, role) in expected)
@@ -129,8 +129,8 @@ internal static class NeutralFeedbackTests
             var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "ShellSelfCheck.Reads.cs"));
             Assert.Contains("corner.FrameBorderless", code);
             Assert.Contains("Format(corner.FrameActive) == Format(corner.FrameRest)", code);
-            Assert.Contains("Format(corner.PlayRest) == ColorOf(\"EgSurfaceHoverBrush\")", code);
-            Assert.Contains("Format(corner.PlayHover) == accent", code);
+            Assert.Contains("Format(corner.PlayRest) == GlassTint(\"EgActionGlassBrush\")", code);
+            Assert.Contains("Format(corner.PlayHover) == GlassTint(\"EgActionGlassHoverBrush\")", code);
             Assert.False(code.Contains("Format(corner.FrameActive) == accent", StringComparison.Ordinal));
         });
     }

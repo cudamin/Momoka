@@ -28,6 +28,9 @@
     Background="{ThemeResource LayerFillColorDefaultBrush}">
 
     <Page.Resources>
+        <SolidColorBrush x:Key="EgTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+        <SolidColorBrush x:Key="EgTextDimBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+        <SolidColorBrush x:Key="EgTextFaintBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
         <Style x:Key="LibraryPillStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Height" Value="32" />
             <Setter Property="MinWidth" Value="0" />

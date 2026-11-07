@@ -1,3 +1,17 @@
+## 2026-11-07 固定亚克力与季度集列表（0923待统一交付）
+
+用户取消剧/集页面合并，保留原独立布局与卡片偏好；追加集页只显示当前季，S00以正季首播边界归季并按日期插入，早首季归首季、无日期留S00，不改原季号/身份，全剧DTO保留播放上下文。集页去全部季卡。亚克力固定，独立暗罩退役，省电由WinUI内建FallbackColor自动回退；背景默认主图底色/20%，三Tint项中文可调，按钮/闭合选择框全球生效（普通/主按钮/选中开关/卡片操作/翻页），深色媒体文字固定白、浅色固定深，高对比用系统。
+
+Core纯函数/迁移、源linked外观/全球专项已实施；有效红绿与各原红保留。最终当前Tests/Core/Shell Release x64零警告错误，外观60/60、全球6/6、主测试首4159/4159；后新增primary3项后4162测试运行因同桌面diagnostic mutex16红，须UI结束后重新编译串行全量。实际WinUI10864全球/季度/设置3绿，tint第一次精确Opacity/私字段误判修后实际参数通过；27428五主题120实屏已拍但关闭沉浸单集旧断言红，长剧/部分截图屏外红；30176全球（含主按钮/checked）与长剧绿，设置绿，详情新增截图120秒超时实际流程收尾已完，已按新增规模240秒并原截止守卫保留。根最后UI必须重跑所需失败路径，不称全部通过。
+
+用户已明确授权0923接管主树并统一交付，保留第十一批79f5026/c275a06已合下载/密钥修复。主树末确认c275a06干净、无Momoka进程，原聊天idle/interrupted而未完成交付；本会话接管后在主树重新构建测试与适用原生检查，最终发布主树artifacts/publish/win-x64并核快捷方式。当前快捷方式仍旧版本，无上传/真实播放/服务器写入。证据本树artifacts/shared-detail-acrylic与AppData原生4676/8968/10864/29524/27428/30176各唯一日志；两个辅助树证据待复制保留和原生归档。
+
+## 2026-11-07 全局按钮与闭合选择框材质（资源独立树）
+
+本树83a3c93基础上复用EgActionGlass三刷接标准Button/Toggle非禁用背景与Combo闭合三态，公共二级/图标/资源操作样式常态同刷；选择框材质与EgInputGlassBrush分离，菜单、卡面、文本输入、色板和命中区域不改。GlobalControlAppearance原地写三刷的自选Tint/Fallback与独立染色/明度、15/21/8反馈曲线；ThemeHost通知前重放偏好，系统高对比不改。EgOnScrim/Dim/DetailActionText搬入Dark/Light/HighContrast，深白浅深并补ThemeHost角色目录，Palette颜色字面值79（原81），未扩基线。
+
+独立源码链接helper回归先5红后6/6；当前Release/x64 Shell与Tests/Core零警告错误，input-theme28/28、input-focus21/21、acrylic-controls29/29失败跳过0。Global测试覆盖颜色预览、主题通知时状态、原刷身份、输入/卡面/高对比隔离与边界。证据artifacts/detail-appearance-core/global-*。未启动UI或发布；root接ShellPrefs调用并修改自定义媒体按钮/探针预期，最终全量与真实WinUI由交付会话执行。
+
 ## 2026-11-07 亚克力染色与明度参数（Core独立树）
 
 本树4bb3a59基础上新增控件/背景两组TintOpacity与TintLuminosityOpacity百分比，四项默认55、有限值夹取0至100、非有限值回55；背景颜色默认取主图，可关闭BackdropTintFromArtwork后用自选BackdropColor。RGB设置、旧整体透明度与固定亚克力模式保持，Fallback由Shell跟随实际Tint并由平台处理省电。

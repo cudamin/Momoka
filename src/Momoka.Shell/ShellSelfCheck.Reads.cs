@@ -261,7 +261,7 @@ internal static partial class ShellSelfCheck
         {
             if (group is not { } corner) continue;
 
-            ok &= !corner.Chrome
+            ok &= corner.Chrome
                 && corner.HostSurfaceTransparent
                 && corner.InsetRight is > 0 and <= 16
                 && corner.InsetBottom is > 0 and <= 16
@@ -271,8 +271,8 @@ internal static partial class ShellSelfCheck
                 && Format(corner.FrameRest) != accent
                 && corner.FrameRest.A > 0
                 && corner.FrameFocus
-                && (!corner.Play || Format(corner.PlayRest) == ColorOf("EgSurfaceHoverBrush")
-                    && Format(corner.PlayHover) == accent);
+                && (!corner.Play || Format(corner.PlayRest) == GlassTint("EgActionGlassBrush")
+                    && Format(corner.PlayHover) == GlassTint("EgActionGlassHoverBrush"));
         }
 
         return (ok, $"{Describe("媒体库卡片", library)}；{Describe("可播放卡片", playable)}");
@@ -286,6 +286,9 @@ internal static partial class ShellSelfCheck
 
             return null;
         }
+
+        static string GlassTint(string key) => Format(((Microsoft.UI.Xaml.Media.AcrylicBrush)
+            Microsoft.UI.Xaml.Application.Current.Resources[key]).TintColor);
 
         static string Describe(string what, CardHoverProbe? probe) => probe is not { } card
             ? $"{what} 未出现"

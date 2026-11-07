@@ -9,8 +9,8 @@
     IsPrimaryButtonEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}">
     <ContentDialog.Resources>
         <x:Double x:Key="ContentDialogMaxWidth">536</x:Double>
-        <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
-        <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+        <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+        <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
         <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
         <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
         <Style x:Key="DownloadPickerStyle" TargetType="ComboBox" BasedOn="{StaticResource EgComboBoxStyle}">
@@ -22,7 +22,7 @@
     </ContentDialog.Resources>
     <ContentDialog.PrimaryButtonStyle>
         <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgAccentBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="Foreground" Value="{ThemeResource EgTextOnAccentBrush}" />
             <Setter Property="MinHeight" Value="36" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -30,7 +30,7 @@
     </ContentDialog.PrimaryButtonStyle>
     <ContentDialog.CloseButtonStyle>
         <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="MinHeight" Value="36" />

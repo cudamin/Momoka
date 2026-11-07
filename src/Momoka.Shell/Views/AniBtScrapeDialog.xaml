@@ -9,14 +9,14 @@
     PrimaryButtonClick="OnSubmit">
     <ContentDialog.Resources>
         <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
-        <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
-        <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+        <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+        <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
         <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
         <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
     </ContentDialog.Resources>
     <ContentDialog.PrimaryButtonStyle>
         <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource EgAccentBrush}" />
+            <Setter Property="Background" Value="{ThemeResource EgActionGlassBrush}" />
             <Setter Property="Foreground" Value="{ThemeResource EgTextOnAccentBrush}" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>

@@ -1,3 +1,9 @@
+# 当前亚克力透明度与染色专项
+
+当前正式背景和按钮/闭合选择框固定亚克力。整层Brush.Opacity按滑块调节，TintOpacity、TintLuminosityOpacity分别调节且默认55%。FallbackColor自动跟TintColor，平台省电策略负责回退。深色媒体文字固定纯白，浅色固定深色，不根据图片采色切换。下面旧两材质/高斯描述仅为保留的历史算法兼容测试范围，不表示仍有这些设置入口。
+
+实际来源链接覆盖颜色、材质参数、0/20/40/99.9/100、三态/checked、画刷对象/字色稳定及通知/取消。运行不创建窗口、不联网；实际材质和系统省电策略须与源码/实屏证据分别报告。
+
 # 外观透明度专项
 
 `C:\Users\89400\.dotnet\dotnet.exe run --project tests/Momoka.AppearanceOpacityTests/Momoka.AppearanceOpacityTests.csproj -c Release`

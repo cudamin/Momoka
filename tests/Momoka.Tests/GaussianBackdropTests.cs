@@ -11,20 +11,20 @@ internal static class GaussianBackdropTests
 {
     public static void Register()
     {
-        Test("高斯背景：仅详情沉浸生效，普通版式和首页不读取高斯偏好", () =>
+        Test("固定亚克力：详情不启用旧高斯偏好，首页保留扩边", () =>
         {
             var root = Root();
             var model = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/ViewModels/DetailViewModel.cs"));
-            Assert.Contains("public bool UseGaussianBackdrop => Showcase &&", model);
+            Assert.Contains("public bool UseGaussianBackdrop => false", model);
             var home = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/Views/HomeBanner.xaml.cs"));
             Assert.False(home.Contains("slide.SetGaussianBackdrop(ui.UseGaussianBackdrop)", StringComparison.Ordinal));
             Assert.False(home.Contains("slide.SetGaussianBackdrop(_appearanceSettings?.UseGaussianBackdrop", StringComparison.Ordinal));
         });
-        Test("高斯背景：固定背景承担阅读遮罩，模糊不再撤掉保护", () =>
+        Test("固定亚克力：背景染色使用主图底色", () =>
         {
             var source = File.ReadAllText(Path.Combine(Root(), "src/Momoka.Shell/Views/DetailPage.Backdrop.cs"));
-            Assert.Contains("AppearanceOpacity.ReadingShadeAlpha", source);
-            Assert.Contains("ViewModel.GaussianBackdropApplied", source);
+            Assert.Contains("new AcrylicBrush", source);
+            Assert.Contains("ViewModel.BackdropBaseColor", source);
             Assert.False(source.Contains("? Color.FromArgb(0, 0, 0, 0)", StringComparison.Ordinal));
         });
         Test("详情材质：旧高斯键往返与恢复默认固定亚克力，浓度独立保存", () =>

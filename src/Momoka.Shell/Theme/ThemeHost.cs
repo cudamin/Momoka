@@ -35,6 +35,7 @@ public static class ThemeHost
 
     private static readonly ThemeColor White = ThemeColor.Rgb(0xFF, 0xFF, 0xFF);
     private static readonly ThemeColor Black = ThemeColor.Rgb(0, 0, 0);
+    private static readonly ThemeColor MediaDark = ThemeColor.Rgb(22, 22, 22);
 
     /// <summary>
     /// 每个画刷键 → 这套主题里的哪个角色。前二十条是我们自己的角色名，后面那些是框架控件真正读的键。
@@ -56,6 +57,9 @@ public static class ThemeHost
         ("EgTextBrush", theme => theme.Colors.Text),
         ("EgTextDimBrush", theme => theme.Colors.TextDim),
         ("EgTextFaintBrush", theme => theme.Colors.TextFaint),
+        ("EgOnScrimBrush", theme => theme.IsDark ? White : MediaDark),
+        ("EgOnScrimDimBrush", theme => theme.IsDark ? White : MediaDark),
+        ("EgDetailActionTextBrush", theme => theme.IsDark ? White : MediaDark),
         ("EgTextOnAccentBrush", theme => theme.Colors.TextOnAccent),
         ("EgAccentBrush", theme => theme.Colors.Accent),
         ("EgAccentHoverBrush", theme => theme.Colors.AccentHover),
@@ -72,9 +76,9 @@ public static class ThemeHost
         ("EgFrostBrush", theme => theme.Colors.Window),
 
         // 详情操作和货架翻页的三态玻璃；tint 与实色回退一起更新，已经打开的模板握住同一个对象。
-        ("EgActionGlassBrush", theme => theme.Colors.SurfaceElevated),
-        ("EgActionGlassHoverBrush", theme => theme.Colors.SurfaceHover),
-        ("EgActionGlassPressedBrush", theme => theme.Colors.SurfaceAlt),
+        ("EgActionGlassBrush", theme => GlobalControlAppearance.TintColor(theme.Colors.SurfaceElevated)),
+        ("EgActionGlassHoverBrush", theme => GlobalControlAppearance.TintColor(theme.Colors.SurfaceHover)),
+        ("EgActionGlassPressedBrush", theme => GlobalControlAppearance.TintColor(theme.Colors.SurfaceAlt)),
 
         // 悬停/按下的叠加层。不取自主题的任何一个角色 —— 它按深浅在白和黑之间翻，因为它要压在
         // *下面那层是什么* 上面，而不是配合某个色相。数字和 HostWindow.PaintCaption 给系统窗口按钮
@@ -191,7 +195,9 @@ public static class ThemeHost
                 switch (found)
                 {
                     case SolidColorBrush brush:
-                        brush.Color = ToColor(pick(theme));
+                        // 媒体前景由元素选择的深浅字典固定，颜色不再随图片或主题色相变化。
+                        brush.Color = ToColor(key is "EgOnScrimBrush" or "EgOnScrimDimBrush" or "EgDetailActionTextBrush"
+                            ? name == "Dark" ? White : MediaDark : pick(theme));
                         break;
 
                     // 亚克力（EgFrostBrush）：改的是它的两个颜色，两个 Opacity 留给调色板 —— 那两个数是
@@ -220,6 +226,7 @@ public static class ThemeHost
                 Roots.RemoveAt(index);   // 页面早关了，弱引用是为了不把它们钉在内存里
         }
 
+        GlobalControlAppearance.Refresh();
         Changed?.Invoke(theme);
     }
 

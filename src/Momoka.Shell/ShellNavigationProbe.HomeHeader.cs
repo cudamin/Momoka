@@ -159,7 +159,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(art.BorderThickness == new Thickness(0), "键盘焦点仍让封面出现主题色外圈");
                 Require(Colour(host.FocusVisualPrimaryBrush) == Role("EgTextBrush")
                     && Colour(host.FocusVisualSecondaryBrush) == Role("EgWindowBrush"), "主页卡片焦点提示不是中性色");
-                Require(Colour(play.Background) == Role("EgSurfaceHoverBrush"), "封面悬停把播放键提前变成强调色");
+                Require(Colour(play.Background) == Role("EgActionGlassBrush"), "封面悬停把播放键提前变成强调色");
                 await SaveProbeScreenAsync($"home-card-neutral-{width}-screen.png");
                 if (width == 1280)
                 {
@@ -169,19 +169,19 @@ internal sealed partial class ShellNavigationProbe
                         await LayoutAsync(home);
                         Require(VisualStateManager.GoToState(play, "Normal", false), "播放按钮缺少默认状态");
                         await LayoutAsync(play);
-                        Require(Colour(Presenter(play)?.Background) == Role("EgSurfaceHoverBrush"), "播放键默认不是中性面色");
+                        Require(Colour(Presenter(play)?.Background) == Role("EgActionGlassBrush"), "播放键默认不是中性面色");
                         await SaveProbeScreenAsync($"home-card-play-normal-{theme.Id}-screen.png");
                         Require(VisualStateManager.GoToState(play, "PointerOver", false), "播放按钮缺少指针状态");
                         await LayoutAsync(play);
-                        Require(Colour(Presenter(play)?.Background) == Role("EgAccentBrush"), "播放键指针态不是主题色");
-                        Require(Colour(Presenter(play)?.Foreground) == Role("EgTextOnAccentBrush"), "播放键指针态文字对比色错误");
+                        Require(Colour(Presenter(play)?.Background) == Role("EgActionGlassHoverBrush"), "播放键指针态不是主题色");
+                        Require(Colour(Presenter(play)?.Foreground) == Role("EgOnScrimBrush"), "播放键指针态文字对比色错误");
                         await SaveProbeScreenAsync($"home-card-play-hover-{theme.Id}-screen.png");
                         Require(VisualStateManager.GoToState(play, "Pressed", false), "播放按钮缺少按下状态");
                         await LayoutAsync(play);
-                        Require(Colour(Presenter(play)?.Background) == Role("EgAccentPressedBrush"), "播放键按下状态没有使用主题色");
+                        Require(Colour(Presenter(play)?.Background) == Role("EgActionGlassPressedBrush"), "播放键按下状态没有使用主题色");
                         VisualStateManager.GoToState(play, "Normal", false);
                         await LayoutAsync(play);
-                        Require(Colour(Presenter(play)?.Background) == Role("EgSurfaceHoverBrush"), "播放键离开后未恢复中性色");
+                        Require(Colour(Presenter(play)?.Background) == Role("EgActionGlassBrush"), "播放键离开后未恢复中性色");
                         var check = ShellSelfCheck.ReadCards(home);
                         Require(check is { Ok: true }, "实际封面自检不通过：" + check?.Detail);
                     }
@@ -247,7 +247,7 @@ internal sealed partial class ShellNavigationProbe
             Windows.UI.Color Role(string key) => Colour(Application.Current.Resources[key] as Brush);
 
             static Windows.UI.Color Colour(Brush? brush) =>
-                brush is SolidColorBrush solid ? solid.Color : default;
+                brush is SolidColorBrush solid ? solid.Color : brush is AcrylicBrush acrylic ? acrylic.TintColor : default;
 
             static IEnumerable<DependencyObject> Ancestors(DependencyObject element)
             {

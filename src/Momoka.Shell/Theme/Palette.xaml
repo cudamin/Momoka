@@ -42,6 +42,10 @@
              readers (DiagnosticsViewModel.Resolve, PlayerPage.BrushFor), ThemeHost's Painted list, and
              the self-check's PaintedDictionaries all name this key; they moved with it. -->
         <ResourceDictionary x:Key="Dark">
+            <Color x:Key="EgMediaTextColor">#FFFFFFFF</Color>
+            <SolidColorBrush x:Key="EgOnScrimBrush" Color="{StaticResource EgMediaTextColor}" />
+            <SolidColorBrush x:Key="EgOnScrimDimBrush" Color="{StaticResource EgMediaTextColor}" />
+            <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="{StaticResource EgMediaTextColor}" />
 
             <!-- surfaces -->
             <Color x:Key="EgWindowColor">#FF0C1116</Color>
@@ -313,12 +317,24 @@
                  选择框给改了」—— 那两页的选择框各自在 DetailPage 里钉回旧底色，见 PickerPanel 那几行注释）。
                  悬停、按下和聚焦不另换浓度：反馈仍由框线和箭头给，键盘焦点保留中性边线，不包主题色。
                  展开浮层仍用上面那支专用亚克力。 -->
-            <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgInputGlassBrush" />
-            <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgInputGlassBrush" />
-            <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgInputGlassBrush" />
-            <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgInputGlassBrush" />
-            <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgActionGlassBrush" />
             <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
             <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushFocused" Color="{StaticResource EgBorderStrongColor}" />
 
             <!-- TextBox、PasswordBox、AutoSuggestBox 和 NumberBox 的内层均读 TextControl*。
@@ -337,6 +353,10 @@
         <!-- Not the app's normal theme, but the framework demands a Light dictionary and a user who
              turns the system light should not get unreadable text. Same roles, inverted surfaces. -->
         <ResourceDictionary x:Key="Light">
+            <Color x:Key="EgMediaTextColor">#FF161616</Color>
+            <SolidColorBrush x:Key="EgOnScrimBrush" Color="{StaticResource EgMediaTextColor}" />
+            <SolidColorBrush x:Key="EgOnScrimDimBrush" Color="{StaticResource EgMediaTextColor}" />
+            <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="{StaticResource EgMediaTextColor}" />
             <Color x:Key="EgWindowColor">#FFF1F3F6</Color>
             <Color x:Key="EgSurfaceColor">#FFFFFFFF</Color>
             <Color x:Key="EgSurfaceAltColor">#FFE8EBEF</Color>
@@ -527,12 +547,24 @@
 
             <!-- 与 Dark 同一套输入角色，浅色派生也不增加独立输入底色。
                  2026-10-29：闭合下拉各态改为输入玻璃（同 Dark 那份的理由）。 -->
-            <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgInputGlassBrush" />
-            <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgInputGlassBrush" />
-            <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgInputGlassBrush" />
-            <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgInputGlassBrush" />
-            <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgActionGlassBrush" />
             <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
+            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
             <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushFocused" Color="{StaticResource EgBorderStrongColor}" />
 
             <!-- 输入框的背景、边线和焦点厚度与 Dark 对齐。高对比度保留框架的系统资源。 -->
@@ -550,10 +582,12 @@
         <!-- High contrast takes the system's own colours; overriding them here would be exactly the
              wrong thing to do. Only the app's role names are mapped, onto system brushes. -->
         <ResourceDictionary x:Key="HighContrast">
+            <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="EgOnScrimBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="EgOnScrimDimBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgDetailActionBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgDetailActionHoverBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgDetailActionPressedBrush" Color="{ThemeResource SystemColorWindowColor}" />
-            <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgDetailActionAccentBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="{ThemeResource SystemColorWindowColor}" />
@@ -586,6 +620,17 @@
             <SolidColorBrush x:Key="EgActionGlassBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgActionGlassHoverBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgActionGlassPressedBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ButtonBackground" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ToggleButtonBackground" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackground" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgOverlayHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="EgOverlayPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
         </ResourceDictionary>
@@ -594,15 +639,10 @@
     <!-- 与主题无关的颜色 —— 只有这三个。字号、字体、圆角那一整段搬到 Theme/Styles.xaml 去了：
          判据是「换主题会不会动它」，颜色会，字号和圆角不会。 -->
 
-    <!-- 详情页头图上的文字。头图永远是一张压了深色遮罩的剧照，所以这两个刷子故意不进
-         ThemeDictionaries：跟着主题走的话，浅色主题下就是深色字压在深色遮罩上。 -->
     <!-- 0.2.0 默认按钮的薄白三态；详情闭合选择框共用，滑块调整有效浓度，默认15/255。 -->
     <SolidColorBrush x:Key="EgDetailActionBrush" Color="#0FFFFFFF" />
     <SolidColorBrush x:Key="EgDetailActionHoverBrush" Color="#15FFFFFF" />
     <SolidColorBrush x:Key="EgDetailActionPressedBrush" Color="#08FFFFFF" />
-    <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="#FFFFFFFF" />
-    <SolidColorBrush x:Key="EgOnScrimBrush" Color="#FFF3F5F8" />
-    <SolidColorBrush x:Key="EgOnScrimDimBrush" Color="#FFC9D0D9" />
 
     <!-- 主页第一屏那条大图的底（HomeBanner 的 Band）。剧照 2026-09-11 起铺满整条带（「去掉首页封面轮播图的黑边」，
          UniformToFill），所以这个底色只在图还没解码到的那一瞬、还有整条带收起来之前的那一帧看得见 —— 从前它还是

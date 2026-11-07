@@ -412,7 +412,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(view.EpisodeShelf is { Cards.Count: 9 }
                         && view.EpisodeShelf.Cards.Select(card => card.Item.Id)
                             .SequenceEqual(["sp-s0-e2", "sp-s1-e1", "sp-s0-e1", "sp-s1-e2", "sp-s0-e3",
-                                "sp-s2-e1", "sp-s0-e4", "sp-s2-e2", "sp-s0-e5"]),
+                                "sp-s0-e4", "sp-s2-e1", "sp-s2-e2", "sp-s0-e5"]),
                     "全季集列表没有把 OAD 按播出日期插进第一季两集之间："
                         + string.Join("、", view.EpisodeShelf?.Cards.Select(card => card.Item.Id) ?? []));
                 Require(view.SelectedSeason?.Id == "sp-s0",
@@ -463,7 +463,7 @@ internal sealed partial class ShellNavigationProbe
                     var target = view.PlayTarget;
                     var subjects = view.Episodes.Select(item => (item.Id, item.SeasonId, item.ParentIndexNumber)).ToArray();
                     var firstIds = new[] { "sp-s0-e2", "sp-s1-e1", "sp-s0-e1", "sp-s1-e2", "sp-s0-e3" };
-                    var secondIds = new[] { "sp-s2-e1", "sp-s0-e4", "sp-s2-e2" };
+                    var secondIds = new[] { "sp-s0-e4", "sp-s2-e1", "sp-s2-e2" };
                     var initialIds = current.PremiereDate is null ? new[] { "sp-s0-e5" }
                         : current.Id == "sp-s0-e4" ? secondIds : firstIds;
                     Require(view.SelectedSeason?.Id == (current.PremiereDate is null ? "sp-s0"

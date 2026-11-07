@@ -84,6 +84,7 @@ public sealed partial class DetailPage : Page, IShellContent
         ViewModel = new DetailViewModel();
         NavigationTiming.Mark("init-begin");
         InitializeComponent();
+        MediaTextColors.Attach(this);
         NavigationTiming.Mark("init-end");
         TextInk.Attach(DetailTitleInk, TitleText, TextInk.TitleBlur);
         TextInk.Attach(DetailPlateInk, TitlePlate, TextInk.PlateBlur);
@@ -2529,6 +2530,7 @@ public sealed partial class DetailPage : Page, IShellContent
     internal void SelectEpisodeSeason(EmbyItem season)
     {
         var index = ViewModel.SelectEpisodeSeason(season);
-        if (index >= 0) EpisodeStrip.JumpTo(index);
+        if (index < 0) return;
+        if (ViewModel.EpisodeStripVisibility == Visibility.Visible) EpisodeStrip.JumpTo(index);
     }
 }

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
@@ -776,9 +777,10 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(ui);
                 await LayoutAsync(page);
                 RequireDetailBackdropFade(page);
-                var play = Get<Button>(page, "ColumnPlayButton");
+                var play = Descendants(page).OfType<Button>().Single(button =>
+                    AutomationProperties.GetAutomationId(button) == "ColumnPlayButton");
                 var control = (AcrylicBrush)play.Resources["ButtonBackground"];
-                Require(control.TintOpacity == tint / 100 && control.TintLuminosityOpacity == luminosity / 100
+                Require(Math.Abs(control.TintOpacity - tint / 100) < 0.001 && Math.Abs((control.TintLuminosityOpacity ?? -1) - luminosity / 100) < 0.001
                     && control.FallbackColor == control.TintColor, "按钮色调/亮度属性没有实际下发到亚克力");
                 var backdrop = (AcrylicBrush)Get<Border>(page, "BackdropFade").Background;
                 Require(backdrop.TintColor == Windows.UI.Color.FromArgb(255, 36, 90, 142)

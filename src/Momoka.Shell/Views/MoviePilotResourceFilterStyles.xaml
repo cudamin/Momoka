@@ -5,18 +5,18 @@
     <!-- 只重定向平台模板的颜色槽；原生 Toggle、键盘焦点及禁用态不另造模板。 -->
     <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
-            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgAccentSoftBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
+            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
             <StaticResource x:Key="ToggleButtonForeground" ResourceKey="EgAccentBrush" />
             <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="EgAccentHoverBrush" />
             <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="EgAccentBrush" />
             <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="EgBorderBrush" />
             <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
             <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="EgAccentBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgAccentBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgAccentHoverBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgAccentPressedBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgActionGlassPressedBrush" />
             <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgTextOnAccentBrush" />
             <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgTextOnAccentBrush" />
             <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgTextOnAccentBrush" />
@@ -25,18 +25,18 @@
             <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="EgAccentPressedBrush" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
-            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgAccentSoftBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
+            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgActionGlassPressedBrush" />
             <StaticResource x:Key="ToggleButtonForeground" ResourceKey="EgAccentBrush" />
             <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="EgAccentHoverBrush" />
             <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="EgAccentBrush" />
             <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="EgBorderBrush" />
             <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
             <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="EgAccentBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgAccentBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgAccentHoverBrush" />
-            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgAccentPressedBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgActionGlassBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgActionGlassHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgActionGlassPressedBrush" />
             <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgTextOnAccentBrush" />
             <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgTextOnAccentBrush" />
             <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgTextOnAccentBrush" />

@@ -33,9 +33,13 @@ internal sealed partial class ShellNavigationProbe
             && acrylic.TintColor == ink && acrylic.FallbackColor == ink
             && Math.Abs(acrylic.TintOpacity - ui.BackdropTintOpacity / 100) < 0.001
             && Math.Abs((acrylic.TintLuminosityOpacity ?? -1) - ui.BackdropTintLuminosityOpacity / 100) < 0.001
-            && acrylic.Opacity == page.ViewModel.BackdropStrength
+            && Math.Abs(acrylic.Opacity - page.ViewModel.BackdropStrength) < 0.001
             && acrylic.AlwaysUseFallback == (page.ViewModel.BackdropStrength == 1),
-            "背景亚克力没有使用主图均色、当前不透明度或完全不透明回退");
+            $"背景亚克力参数不一致：期待色={ink}、浓度={ui.BackdropTintOpacity}/{ui.BackdropTintLuminosityOpacity}、"
+                + $"透明度={page.ViewModel.BackdropStrength}；实际="
+                + (fade.Background is AcrylicBrush actual
+                    ? $"{actual.TintColor}/{actual.FallbackColor}、{actual.TintOpacity}/{actual.TintLuminosityOpacity}、{actual.Opacity}、回退={actual.AlwaysUseFallback}"
+                    : fade.Background?.GetType().Name));
         var edge = Get<Border>(page, "BackdropEdgeFade");
         Require((edge.Visibility == Visibility.Visible) == !page.ViewModel.Showcase, "有背景时收边只应在窄窗紧凑布局生效");
         if (!page.ViewModel.Showcase)
@@ -155,9 +159,10 @@ internal sealed partial class ShellNavigationProbe
                     fixture.Settings.Ui.EnableImmersive = false;
                     ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                     await LayoutAsync(page);
-                    Require(!page.ViewModel.BackdropShown && !page.ViewModel.Showcase
-                        && Get<Grid>(page, "Backdrop").Visibility == Visibility.Collapsed,
-                        "关闭沉浸后宽窄背景没有整层收起");
+                    var keepEpisodeBackground = type == EmbyItemType.Episode && width < DetailHero.CompactFloor;
+                    Require(page.ViewModel.BackdropShown == keepEpisodeBackground && !page.ViewModel.Showcase
+                        && (Get<Grid>(page, "Backdrop").Visibility == Visibility.Visible) == keepEpisodeBackground,
+                        "关闭沉浸后背景不符合各页面的原宽窄布局");
                     RequireDetailBackdropFade(page);
                     fixture.Settings.Ui.EnableImmersive = true;
                     ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
