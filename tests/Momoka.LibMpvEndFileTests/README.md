@@ -1,5 +1,7 @@
 # R048：libmpv REDIRECT 结束判定离线回归
 
+2026-11-07 提取边界兼容：当前正式入口42项（含本轮资源回归），每次构建原样提取 `ParentForFollowing`，夹具只补其父对象依赖与匿名来源输入。新增同来源同剧保留父对象、跨来源／跨剧／空剧ID清空的回归；不复制判定、不初始化原生播放器。当前 Release/x64 零警告错误、42/42通过，历史27项红绿记录原样保留。
+
 独立运行 27 项，只链接本树真实 `LibMpvHandle` / `LibMpvLifetimeGate`、命令 marshal、ABI 声明、节点读取器与 `PlayerViewModel.NextEpisodeToAutoPlay` 方法。构建时的边界提取不唯一就失败；handle 方法正文逐字保留，仅将其命名空间隔离，原生端点改为托管假调用。实际 `ProcessEvent` 在真实 lifetime gate 下接收 marshal 内存，不匹配 `Classify` 字符串、不复制结束算法。
 
 ## 入口（PowerShell，在当前工作树根）

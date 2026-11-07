@@ -26,6 +26,7 @@ internal sealed class ServiceFixture : IAsyncDisposable
     internal ReportBoundary Transport { get; } = new();
     internal PlaybackService Service { get; }
     internal EmbySessionScope Target { get; }
+    internal EmbySessionScope DefaultScope => _default;
     internal Task<PlaybackResult>? Play { get; private set; }
     internal List<EmbyItem?> NowPlaying { get; } = [];
     internal EmbyItem Item { get; }

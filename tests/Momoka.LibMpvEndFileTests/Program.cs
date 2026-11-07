@@ -38,6 +38,20 @@ internal static class Program
 
     private static void Register()
     {
+        Test("实际 VM 后继父对象：同来源同剧保留，跨剧或跨来源清空", async () =>
+        {
+            await using var f = new ServiceFixture();
+            using var vm = new AutoNextBoundary();
+            vm.Parent = new Momoka.Emby.EmbyItem { Id = "series", Type = "Series" };
+            var current = new Momoka.Emby.EmbyItem { Id = "a", Type = "Episode", SeriesId = "series" };
+            var next = new Momoka.Emby.EmbyItem { Id = "b", Type = "Episode", SeriesId = "series" };
+            Assert.True(ReferenceEquals(vm.Parent, vm.Following(current, next, f.Target, f.Target)));
+            Assert.Null(vm.Following(current, next, f.DefaultScope, f.Target));
+            next.SeriesId = "other-series";
+            Assert.Null(vm.Following(current, next, f.Target, f.Target));
+            next.SeriesId = null;
+            Assert.Null(vm.Following(current, next, f.Target, f.Target));
+        });
         Test("离线边界：配置载入端点拒绝执行，不回退真实 libmpv", () =>
         {
             var error = Assert.Catch<AssertionException>(() =>
