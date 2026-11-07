@@ -356,7 +356,8 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
             ("Fields", EmbyFields.Browse),
             ("ParentId", parentId),
             ("IsPlayed", unplayedOnly ? "false" : null),
-            ("GroupItems", groupItems ? "true" : null),
+            // Jellyfin defaults to grouping when omitted; latest episode shelves need explicit false.
+            ("GroupItems", groupItems ? "true" : "false"),
             ("IncludeItemTypes", includeItemTypes));
         return http.GetJsonAsync<List<EmbyItem>>(url, Context, cancellationToken);
     }

@@ -14,6 +14,16 @@ internal static class StartupArgsTests
 {
     public static void Register()
     {
+        Test("Jellyfin最新货架：独立匿名区域拒绝播放和手动检查混用", () =>
+        {
+            Assert.True(StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "JELLYFIN-LATEST"])!
+                .SetEquals(["jellyfin-latest"]));
+            StartupArgs.ValidateShellProbe(["--probe-shell", "--probe-section", "jellyfin-latest", "--screen", "1"]);
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(
+                ["--probe-shell", "--probe-section", "jellyfin-latest", "--play"]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(
+                ["--probe-shell", "inspect", "--probe-section", "jellyfin-latest"]));
+        });
         Test("Plex 状态探针：独立分区只选自身，错误组合不进入正常客户端", () =>
         {
             var selected = StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "PLEX-STATE,plex-state"]);

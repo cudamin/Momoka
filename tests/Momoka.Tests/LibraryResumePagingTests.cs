@@ -850,7 +850,7 @@ internal static class LibraryResumePagingTests
         public Fixture(ShellFixture shell, int count, bool secondSource = false, bool aggregate = false,
             bool favorites = false, MediaServerKind secondKind = MediaServerKind.Emby, bool thirdSource = false,
             MediaServerKind firstKind = MediaServerKind.Emby, HomeLayout.HomeRowTarget row = HomeLayout.HomeRowTarget.Resume,
-            Action<Fixture>? beforeAttach = null)
+            Action<Fixture>? beforeAttach = null, string? firstVersion = null)
         {
             _shell = shell;
             var settings = Settings;
@@ -860,7 +860,7 @@ internal static class LibraryResumePagingTests
             var device = new DeviceIdentity("fixture", "fixture", "fixture", "0");
             _session = new EmbySession(settings.Settings, new SettingsStore(paths, new NoSecrets()),
                 new CredentialVault(new NoSecrets()), device, Transport);
-            AddSource("a", count, device, firstKind);
+            AddSource("a", count, device, firstKind, firstVersion);
             if (secondSource) AddSource("b", count, device, secondKind);
             if (thirdSource) AddSource("c", count, device, MediaServerKind.FnNas);
             SelectDefault("a");
@@ -870,7 +870,8 @@ internal static class LibraryResumePagingTests
             Assert.Equal(0, Transport.Requests.Count, "Attach 不能登录、读取目录或保存配置");
         }
 
-        private void AddSource(string host, int count, DeviceIdentity device, MediaServerKind kind = MediaServerKind.Emby)
+        private void AddSource(string host, int count, DeviceIdentity device, MediaServerKind kind = MediaServerKind.Emby,
+            string? version = null)
         {
             var server = new ServerProfile
             {
@@ -882,7 +883,7 @@ internal static class LibraryResumePagingTests
             var account = new AccountProfile { Id = "account-" + host, Username = "fixture" };
             var connection = new EmbyConnection(new Uri("https://" + host + ".invalid/" + (kind == MediaServerKind.FnNas ? "v/" : "emby/")),
                 "placeholder-only", "fixture-user", "fixture", server.Name, device)
-            { ServerKind = kind };
+            { ServerKind = kind, ServerVersion = version };
             var http = (EmbyHttp)typeof(EmbySession).GetField("_http", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(_session)!;
             var identity = new EmbySessionScope.Identity(new EmbyClient(http, connection), server, account);
             var scope = new EmbySessionScope(_session, identity);
@@ -1074,6 +1075,7 @@ internal static class LibraryResumePagingTests
         public Dictionary<string, List<EmbyItem>> NextUpRows { get; } = new(StringComparer.Ordinal);
         public ConcurrentQueue<string> NextUpReads { get; } = new();
         public ConcurrentQueue<string> Requests { get; } = new();
+        public Func<Uri, HttpResponseMessage>? LatestReply { get; set; }
         public bool HomeReads { get; set; }
         public int HomeLatestCount { get; set; } = 1;
         public ConcurrentQueue<(string Host, string? Parent, int Limit)> HomeLatestRequests { get; } = new();
@@ -1110,6 +1112,8 @@ internal static class LibraryResumePagingTests
                 && uri.AbsolutePath.EndsWith("/favorite/list", StringComparison.Ordinal)), "夹具只允许媒体/标签读取");
             Assert.True(uri.Host is "a.invalid" or "b.invalid" or "c.invalid", "禁止夹具以外的来源");
             Requests.Enqueue(uri.AbsolutePath);
+            if (uri.AbsolutePath.EndsWith("/Items/Latest", StringComparison.Ordinal) && LatestReply is not null)
+                return LatestReply(uri);
             var host = uri.Host.Split('.')[0];
             var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
                 .Select(value => value.Split('=', 2)).ToDictionary(pair => pair[0], pair => Uri.UnescapeDataString(pair[1]), StringComparer.Ordinal);

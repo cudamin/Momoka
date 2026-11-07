@@ -19,6 +19,7 @@ internal static partial class JellyfinProtocolTests
     public static void Register()
     {
         RegisterRestoreCorrections();
+        RegisterLatest();
         Test("Jellyfin：反向代理基址和显示地址往返保留路径", () =>
         {
             var address = EmbyServerAddress.Normalize("https://jellyfin.invalid/media/?x=1#view", MediaServerKind.Jellyfin);
