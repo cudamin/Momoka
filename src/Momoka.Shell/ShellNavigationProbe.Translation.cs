@@ -167,7 +167,8 @@ internal sealed partial class ShellNavigationProbe
             if (name.StartsWith("settings-translation-save-", StringComparison.Ordinal))
             {
                 var secret = TranslationRows().OfType<SettingSecretRow>().Single();
-                var status = Descendants(page).OfType<TextBlock>().Single(text => text.Text == secret.Status);
+                var status = Descendants(page).OfType<TextBlock>().Single(text => text.Text == secret.Status
+                    && text.Visibility == Visibility.Visible && text.ActualHeight > 0);
                 status.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.5 });
                 await SettlePageAsync();
                 var bounds = status.TransformToVisual(scroll).TransformBounds(new Windows.Foundation.Rect(0, 0, status.ActualWidth, status.ActualHeight));
