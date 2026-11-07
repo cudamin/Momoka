@@ -41,6 +41,18 @@ internal static class Program
 
     private static void Register()
     {
+        foreach (var release in new[] { "ReleaseHosted", "Release" })
+            Test($"探针设置页{release}取消两卡真实颜色草稿而不保存", () => WithPage((_, fixture, page) =>
+            {
+                ShellNavigationProbe.BeginVisitForContract(page);
+                var colors = new AppearanceColorFixture(fixture.Vm);
+                if (release == "ReleaseHosted") page.ReleaseHosted();
+                else page.Release();
+                colors.AssertCancelled();
+                page.ReleaseHosted();
+                colors.AssertCancelled();
+                Assert.Equal(0, fixture.Settings.Writes);
+            }));
         Test("旧 VM-only 夹具没有开启页面活动期，管理刷新确实不执行", () => WithPage((context, fixture, page) =>
         {
             Assert.False(page.Active);

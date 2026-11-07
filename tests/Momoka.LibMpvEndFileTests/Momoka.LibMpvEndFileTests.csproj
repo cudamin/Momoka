@@ -11,6 +11,7 @@
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <Compile Include="..\..\src\Momoka.Core\Mpv\LibMpvNodes.cs" Link="Production\LibMpvNodes.cs" />
     <Compile Include="..\..\src\Momoka.Core\Mpv\LibMpvFrame.cs" Link="Production\LibMpvFrame.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\MpvListValue.cs" Link="Production\MpvListValue.cs" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
   </ItemGroup>
   <!-- Link the entire real handle and lifetime gate; replace only the native API endpoints.

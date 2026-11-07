@@ -13,8 +13,14 @@ internal static class CardPresentationTests
             Test("回退卡片展示：保留服务器原名与单集原文 " + kind, () => CardImageContext.Run(async () =>
             {
                 await using var fixture = new CardImageFixture(false, kind);
-                var item = fixture.Scope.Bind(new EmbyItem { Id = "episode", Type = EmbyItemType.Episode,
-                    Name = "延康双雄 (2021) {tmdbid=123}", SeriesName = "牧神记", ProductionYear = 2021 });
+                var item = fixture.Scope.Bind(new EmbyItem
+                {
+                    Id = "episode",
+                    Type = EmbyItemType.Episode,
+                    Name = "延康双雄 (2021) {tmdbid=123}",
+                    SeriesName = "牧神记",
+                    ProductionYear = 2021
+                });
                 var card = new CardItem(item, fixture.Images, 170, centeredText: kind == MediaServerKind.FnNas);
                 Assert.Equal(item.Name, card.Title);
                 Assert.Equal(item.CardSubtitle, card.Subtitle);

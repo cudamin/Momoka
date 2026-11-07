@@ -123,7 +123,8 @@ internal static class SubtitleTargetTests
                 [new AppSettings(), new SettingsStore(paths, secrets), new CredentialVault(secrets), device, Transport], null)!;
             var http = (EmbyHttp)typeof(EmbySession).GetField("_http", Private)!.GetValue(_session)!;
             var connection = new EmbyConnection(new Uri(product == MediaServerKind.Jellyfin ? "https://subtitle-target.invalid/media/" : "https://subtitle-target.invalid/media/emby/"),
-                "", "user", "user", "offline", device) { ServerKind = product, ServerVersion = version };
+                "", "user", "user", "offline", device)
+            { ServerKind = product, ServerVersion = version };
             var identityType = typeof(EmbySessionScope).GetNestedType("Identity", BindingFlags.NonPublic)!;
             var identity = Activator.CreateInstance(identityType, Private | BindingFlags.Public, null,
                 [new EmbyClient(http, connection), new ServerProfile { Id = "server" }, new AccountProfile { Id = "account" }], null)!;

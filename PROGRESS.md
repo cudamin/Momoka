@@ -11342,3 +11342,23 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 首次依赖restore成功；首轮当前Shell Release编译0警告0错误。随后按根实现收窄BackdropFade到单集Showcase、用户授权的跨聊天统一海报260×375和单集沉浸信息表独立阅读底追加断言；最终当前Shell Release编译0警告0错误（末轮156秒）。两次局部 `format whitespace --verify-no-changes --no-restore` 退出0但报告工作区加载警告；产品外五文件LF/无BOM/末尾LF、`git diff --check`通过。
 - 按根会话桌面独占要求未运行App、UI探针或截图，未读取真实设置/凭据、登录、播放、服务器写入或上传。探针代码编译不是运行验证；根会话合入后须当轮实际跑成功与失败路径并目视本次截图，不能称本树探针已经通过或已交付。
 - 最终跨聊天整合由228e持有：其a35517b与本提交同改DetailResponsive，合并必须保留其三类简洁窄窗不compact/Art/MediaInfoTitle断言、接入本提交的Episode主循环及false单集窄窗背景分支；DetailCustomization.CheckImmersiveSwitch也须同步其它三类false强制卡面，不能改变单集旧窄窗规则。合入后运行library分区或inspect的详情自定义、响应式详情、单集带子入口，并执行新增正文不透明反例；本树未跑上述UI。
+- 主树第九批完整闸门仍由本会话占用；已收到228e详情聊天协调消息，该聊天保持独立开发并等待本会话明确释放。当前22edd06整合纯空白修正；两个独立专项夹具进行中，完成后本会话重验并发布再释放主树写入/构建/UI/发布。Python已用当轮cmd内设置PATH验证提取编译通过，未改机器。
+
+- 228e聊天用户已直接授权双方协调；本会话只读核对后给其短暂桌面验证时段，暂缓完整主测试共享锁，主树写入/构建/发布仍本会话持有。等待其正常诊断退出再最终整合和交付，无进程终止。
+### 第九批 R048 测试夹具依赖修正（独立树待整合）
+
+- 父会话完整方案发现既有 R048 夹具漂移，授权仅在 `review9-native-fixture/Momoka`（基点5c9afa0）补真实夹具依赖：链接实际 `MpvListValue.cs`，配置载入端点只抛 `AssertionException`，原40项及完整handle/lifetime gate提取边界保留，新增1项禁止配置载入回归。
+- 原当前源码Release/x64无调试符号构建红为0警告/2错误（CS0117、CS0122）；新增保护用例先编译红。修后当前专项41/41、失败0跳过0，10次匿名假HTTP；将自有端点临时改为返回0的反证为40过/1败/0跳过，新增保护明确失败，随后逐字节恢复。日志与退出码保留 `artifacts/review-batch9-native/`。
+- 最终复验曾出现原Service/Emby订阅断言偶发红（40过/1败），原样复验41/41仍保留两份日志。根因是假HTTP接收信号早于响应完成，生产合法随后进入Monitor才挂第三订阅；父授权只修夹具等待实际条件。原Emby/Jellyfin用例增加可控响应闸，修前39过/2败；夹具保持两秒上限等真实订阅挂齐，未到或提前结束明确失败，原断言不减。最终本树编译0警告/错误、完整41/41及10次匿名假HTTP通过，不修改生产顺序或仅加固定延时。
+- 当前生成handle/lifetime正文与本树产品源码逐字一致，夹具与ABI生成文件无DllImport，当前x64输出无PDB；仅本次文件格式校验退出0，6个文本的行尾/BOM/空白及git diff检查通过，回执含当前测试/Core与源文件SHA256。
+- 仅测试基础设施与相关文档；不改Core/Shell、主树、检查或基线，不启动GUI/native/媒体/服务器，不接真实账号、设置或凭据。本树交由父会话一次复核、整合后验证最终主树完整方案/主测试及实际交付；此阶段不宣称完整批次或主树交付完成，不删除树或推送。
+## 2026-11-07 第九批设置夹具生成兼容（独立树进行中）
+
+- 本代理独占 review9-settings-fixture，基点5c9afa0；仅改 SettingsLifetimeTests、SettingsProbeContractTests、HomeOrderProbeTests 及其README，父会话保留主树写入、全方案验证与发布权。
+- 三专项因原样ReleaseHosted新增颜色取消调用但生成器未抽取对应partial而各CS0103一错；原红保留artifacts/review-batch9-settings。补实际方法原样提取和真实Shell行代理，保留所有旧断言，新增两卡颜色草稿释放/重复取消覆盖。
+- 不改产品、不运行GUI/native/真实设置或服务器；构建、专项与生成输入拒绝验证完成后交父整合。
+- 独立夹具验证完成：本树5c9afa0三专项原始Release/x64编译各0警告1个CancelAppearanceColors错误。修后当前Shell及三专项构建0警告0错误；最终SettingsLifetime60/60、SettingsProbeContract33/33、HomeOrder21/21，均零失败零跳过。新增9项在生成取消方法空实现的独立复制项目中分别5/2/2失败，保留原色未恢复证据。三生成器缺方法/重复方法各拒绝、合法方法各成功；SettingsProbe颜色partial编译后漂移拒绝且恢复再33/33，共15项成功/拒绝判定通过。定向whitespace退出0但有工作区加载警告，14文本编码/diff通过。首driver继承负例LASTEXITCODE、hash项目参数拼接MSB1008过程失败保留；最终driver显式0。无产品变动、实际WinUI/native/真实服务器/设置操作或发布。
+- 本批只有测试夹具/README与本段记录，提交后交父会话整合；保留托管树和证据，不删除或发布。
+
+- 第九批最终测试源码25c3a7f：全方案Release0警告0错误、当前Tests/Core x64重编0/0，完整4135/4135失败0跳过0；实际Shell三个设置60/33/21，最终R04841/41，空白退出0带workspace加载警告，31文本检查通过，原红均保留。两阶段独立复核无必要发现。证据artifacts/review-batch9-master；源/输出SHA见tested-source.json。
+- 本会话现释放主树写入/构建/UI/发布所有权给用户授权协调的228e详情聊天，由其自行合UI后最终重验并一次实际发布。产品5c9afa0、空白6ba95cb、R04868749c5、设置b3418db已在master；无待合修复，尚待统一交付回执，快捷方式当前仍前批应用。本会话继续跟进回执，不报已交付。不要自动合该聊天UI或覆盖它发布目录。

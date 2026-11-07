@@ -14,6 +14,10 @@ internal static partial class LibMpvNative
     internal static int mpv_observe_property(IntPtr context, ulong id, string name, int format) =>
         throw new AssertionException("R048 不调用 Start/原生属性订阅");
 
+    // The full handle includes shader batching, but this EOF/lifetime fixture must never load config.
+    internal static int mpv_load_config_file(IntPtr context, string filename) =>
+        throw new AssertionException("R048 不载入配置或调用原生配置端点");
+
     internal static int mpv_command(IntPtr context, IntPtr[] args)
     {
         var command = args.TakeWhile(pointer => pointer != IntPtr.Zero)

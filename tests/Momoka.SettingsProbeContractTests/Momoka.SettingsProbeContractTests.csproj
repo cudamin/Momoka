@@ -14,6 +14,7 @@
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
     <Compile Include="..\Momoka.SettingsLifetimeTests\ShellRuntime.cs" Link="Support\ShellRuntime.cs" />
     <Compile Include="..\Momoka.SettingsLifetimeTests\LifetimeFixture.cs" Link="Support\LifetimeFixture.cs" />
+    <Compile Include="..\Momoka.SettingsLifetimeTests\AppearanceColorFixture.cs" Link="Support\AppearanceColorFixture.cs" />
     <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\Views\IShellContent.cs" Link="Production\IShellContent.cs" />
     <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\Views\ISessionScopedPage.cs" Link="Production\ISessionScopedPage.cs" />
     <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\Views\SettingsPage.Motion.cs" Link="Production\SettingsPage.Motion.cs" />
@@ -52,6 +53,7 @@
             return source.Substring(first, last - first);
         };
         var page = read("src/Momoka.Shell/Views/SettingsPage.xaml.cs");
+        var colors = read("src/Momoka.Shell/Views/SettingsPage.AppearanceColors.cs");
         var probe = read("src/Momoka.Shell/ShellNavigationProbe.Settings.cs");
         var motion = read("src/Momoka.Shell/ShellNavigationProbe.SettingsMotion.cs");
         var shared = read("src/Momoka.Shell/ShellNavigationProbe.cs");
@@ -71,6 +73,7 @@
             between(page, "    private void UpdateCategoryGroups()", "\n    /// <summary>\n    /// 分组表每次") +
             between(page, "    internal void ReleaseHosted()", "\n    /// <summary>\n    /// Ends this visit\u0027s reads") +
             between(page, "    public void Release() => ReleaseHosted();", "\n") +
+            between(colors, "    private void CancelAppearanceColors()", "\n}") +
             "\n}\n}\nnamespace Momoka.Shell\n{\ninternal sealed partial class ShellNavigationProbe\n{\n" +
             between(probe, "    private static void BeginSettingsFixtureVisit(SettingsPage page)", "\n    private async Task SettingsEntranceAsync()") +
             between(probe, "    private static Task WaitForSettingsRowsLoadedAsync(SettingsPage page, ItemsControl rows)", "    private static void AssertSettingsSettled(SettingsPage page)") +

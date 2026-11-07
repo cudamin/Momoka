@@ -802,7 +802,9 @@ internal static class MoviePilotMediaManagementTests
     {
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(new
         {
-            id, src = source, dest = target,
+            id,
+            src = source,
+            dest = target,
             src_fileitem = new { storage = "local", type = "file", path = source },
             dest_fileitem = new { storage = "local", type = "file", path = target }
         }));

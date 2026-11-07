@@ -139,7 +139,8 @@ internal sealed partial class ShellNavigationProbe
             var reads = 0;
             var source = new MediaSource
             {
-                Id = "offline-receipt", Name = "离线文件.mkv",
+                Id = "offline-receipt",
+                Name = "离线文件.mkv",
                 MediaStreams = [new MediaStream { Index = 1, Type = "Subtitle", Codec = "srt", IsExternal = true, Title = "已有字幕" }]
             };
             var dialog = new SubtitleDialog(new EmbyItem { Id = "offline-receipt", Name = "字幕请求回执核对（离线）" }, source,

@@ -1,3 +1,13 @@
+# 2026-11-07 颜色取消生命周期生成兼容
+
+三项设置相关夹具保留实际 ReleaseHosted 的颜色取消调用，构建时从当前 SettingsPage.AppearanceColors.cs 原样提取 CancelAppearanceColors。颜色行代理只转发当前显式 Shell DLL 的 CancelEdit，不复制颜色状态或保存逻辑，不以空方法绕过新调用。SettingsProbeContract 同时将该partial纳入原输入SHA清单。
+
+共享匿名夹具在两张设置卡各建一行真实确认颜色，改草稿后检查释放恢复原色、结束编辑、不保存，重复释放也只结束一次。SettingsLifetime 另覆盖 Hide、标题栏X、离页、Release、Close；Probe/HomeOrder覆盖 ReleaseHosted与Release。所有既有守卫、集合/行身份、草稿、行类型及动画拒绝检查保留。它们不证明实际WinUI拾色器或弹窗关闭。
+
+在当前树使用SDK10.0.400，restore显式 --packages C:\Users\89400\.nuget\packages；构建统一Release/x64、单节点、BuildInParallel=false、UseSharedCompilation=false、MSBuildNodeReuse=false、DebugSymbols=false、DebugType=None。先成功编译当前Shell与专项，再直接运行本轮 tests/Momoka.HomeOrderProbeTests/bin/x64/Release/net10.0/Momoka.HomeOrderProbeTests.dll，传本树标准x64 Release Momoka.dll及本树绝对根。下文历史计数/命令不代替本轮证据。
+
+本轮证据：本树5c9afa0三专项原始Release/x64编译各0警告1个CancelAppearanceColors错误。修后当前Shell及三专项构建0警告0错误；最终SettingsLifetime60/60、SettingsProbeContract33/33、HomeOrder21/21，均零失败零跳过。新增9项在生成取消方法空实现的独立复制项目中分别5/2/2失败，保留原色未恢复证据。三生成器缺方法/重复方法各拒绝、合法方法各成功；SettingsProbe颜色partial编译后漂移拒绝且恢复再33/33，共15项成功/拒绝判定通过。定向whitespace退出0但有工作区加载警告，14文本编码/diff通过。首driver继承负例LASTEXITCODE、hash项目参数拼接MSB1008过程失败保留；最终driver显式0。无产品变动、实际WinUI/native/真实服务器/设置操作或发布。 证据目录为本树artifacts/review-batch9-settings；父会话负责主树整合和最终验证交付。
+
 # HomeOrder 运行探针活动期回归
 
 使用当前主页卡片和在线来源验证 `ShellNavigationProbe.HomeOrder.cs` 的隔离活动期；同时覆盖 SettingsPage 离页后分类通知不得更新绑定的守卫。
