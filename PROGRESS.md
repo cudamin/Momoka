@@ -14,7 +14,9 @@
 
 **另修三条陈旧前提**（不是本轮产品改动）：library 分区自 `a9e2418`（19:26 按当前偏好重写出厂值）之后没跑过，`CheckControlBackgroundOpacityAsync` 与 `CheckHomeBackgroundOpacityAsync` 还假设「出厂是半透明叠层 + 按钮底色是白」—— 现在显式切回叠层，底色按用户选的按钮色（出厂 `#808080`）比；`CheckControlBackgroundOpacityAsync` 的「100 档按钮浅、其余深」换成「等于用户选的按钮色」。
 
-验证（本树最终代码）：全方案 Release **0 警告 0 错误**；完整主测试 **4208/4208、0 失败 0 跳过**（`TEMP`/`TMP` 指本树 `work/tmp`）；`--probe-shell --probe-section library --screen 2` **33/33、0 失败、退出 0**（`shell-probe-20261108-142341065-26232`）。读数：`detail-cover-gap` 左距 42、上距 42.05（封面上距与左距相等）；`detail-responsive` 819 紧凑／820 宽、带高 427（1280）；`detail-episode-band` 820 宽版式、封面 250×375、板底留 54（说明 8 ＋ 展开 30 ＋ 收尾格 16）；窗口级左右空位五块面板逐一相等。截图目视 `detail-customization-Episode-1100-restored.png`（「其他信息」卡左 18、右 20）、`detail-episode-band-820.png`、`detail-body-alignment-*.png`。
+验证（本树最终代码）：全方案 Release **0 警告 0 错误**；完整主测试 **4208/4208、0 失败 0 跳过**（`TEMP`/`TMP` 指本树 `work/tmp`）；`--probe-shell --probe-section library --screen 2` **33/33、0 失败、退出 0**（`shell-probe-20261108-142341065-26232`）。
+
+合入 master（`b28c0e3`，含 `ab1bf59` 文件选项行高）后在本树重验：全方案 Release **0 警告 0 错误**；完整主测试 **4209/4209、0 失败 0 跳过**；`--probe-shell --probe-section library --screen 2` **34/34、0 失败、退出 0**（`shell-probe-20261108-144840551-19880`，含另一会话新增的「文件选项三行的竖距」与上面修好的三条材质检查）。读数：`detail-cover-gap` 左距 42、上距 42.05（封面上距与左距相等）；`detail-responsive` 819 紧凑／820 宽、带高 427（1280）；`detail-episode-band` 820 宽版式、封面 250×375、板底留 54（说明 8 ＋ 展开 30 ＋ 收尾格 16）；窗口级左右空位五块面板逐一相等。截图目视 `detail-customization-Episode-1100-restored.png`（「其他信息」卡左 18、右 20）、`detail-episode-band-820.png`、`detail-body-alignment-*.png`。
 
 过程红项照实保留：本轮头两次 probe 各有一条与本批无关的红 —— 筛选多选下拉在探针窗口被别的窗口抢走激活时超时（`shell-probe-20261108-131003337-13032`、`-132945669-192`，第三次安静重跑通过），以及 19:26 那三条陈旧材质前提（上面已修）；另有一次启动被另一会话的探针占着桌面（`shell-probe-20261108-141236120-11808` 的进程，非本树）当场拒绝，等它退出后重跑。
 
