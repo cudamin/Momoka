@@ -1,3 +1,13 @@
+## 2026-11-08 封面播放键与翻页键亚克力：主树整合与桌面交付
+
+本树 `58e32ad`（`cb90323` 产品提交 ＋ 合并 master `27d5211` 的窗口模式淡出）以 `--ff-only` 合入主树；`PROGRESS.md` 一处冲突按「新语义优先、双方历史都留」解决。主树里另一会话删掉的三份 `.claude/skills/momoka-code-review/*` 未提交改动原样保留，没有触碰。
+
+主树**最终整合代码**重验：Release/x64 `Momoka.Shell` 与 `Momoka.Tests` 均 0 警告 0 错误；完整主测试 **4207/4207、0 失败 0 跳过**（`TEMP`/`TMP` 指主树 `work/tmp`）；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。副屏 `--probe-shell --probe-section materials,library --screen 2` **35/35、0 失败、退出 0**（`shell-probe-20261108-073643074-27700`），封面播放键的中心/两态、两颗轮播箭头的玻璃断言与实屏截图都在这一轮重跑过。此前副屏被浏览器和编辑器挡住那一轮的 10 项「窗口被遮挡」红、以及 `shell-probe-20261108-065055937-10628` 那条已知无关的筛选弹层复选行宽 0，都只作为过程记录保留，没有拿来充当本批证据。
+
+交付：`tools/publish.ps1 -NoArchive -Shortcut` 刷新主树 `artifacts/publish/win-x64`（旧目录按沙箱老规矩先挪到 `C:\Users\89400\Momoka-stale\publish-20261108-1548` 再跑）：**546 文件、286.6 MB**，GLSL/HOOK 着色器许可与批准 mpv 清单逐文件校验通过；发布 `Momoka.dll` 与构建输出同为 `2808D2D5403E114EE509FEDEDE956977FFFA75158A93C9DC52600B2AC46EFC1`。快捷方式写回仍被沙箱 ACL 拒绝（`tools/shortcut.ps1` UnauthorizedAccessException，与前几批同一条），直接在 `.lnk` 二进制里读回目标仍是 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`，本次只换该目录内容、路径未变。**桌面交付完成**。未真实登录、未真实播放、未写服务器、未上传。
+
+临时分支 `workbuddy/master-bc8948bd` 的内容已全部进入 master；本聊天的工作树 `WorkBuddy/Worktrees/Momoka/master-bc8948bd` 待会话关闭后按上一轮同一口径删除（这一条交付段只存在于 master，分支不需要跟着更新）。
+
 ## 2026-11-08 封面播放键与翻页键改亚克力、详情封面加播放键（本树已验，待主树整合交付）
 
 用户两条令：①「封面上的播放按钮还有翻页按钮改成亚克力材质」，追问后范围定为「主页轮播图的翻页按钮＋主页下方列表的翻页按钮＋封面上的播放按钮」，并补「轮播图的详情按钮不改」；②「给剧页面和电影页面左上角的封面加上播放按钮」，出现方式选「悬停浮现」，颜色「鼠标移到封面上时为中性玻璃，鼠标移到播放按钮上时切换为强调色玻璃」。
