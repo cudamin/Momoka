@@ -8,14 +8,21 @@ public sealed class DanmakuSettings
 {
     public bool Enabled { get; set; }
 
-    public DanmakuSourceMode Source { get; set; } = DanmakuSourceMode.DandanPlay;
+    /// <summary>
+    /// 弹幕来源。出厂「两个都用」（2026-11-08 用户令「把当前的系统设置设为默认」，此前只有弹弹play）：
+    /// 合并模式下 danmu_api 没填地址时仍可用弹弹play（见 <c>DanmakuSourceRules.IsAvailable</c>），所以这个默认
+    /// 不会把没配过 danmu_api 的人挡在门外。认不出来的值由 <see cref="Normalize"/> 拨回它。
+    /// </summary>
+    public DanmakuSourceMode Source { get; set; } = DanmakuSourceMode.Both;
     public string DanmuApiBaseUrl { get; set; } = "";
     public string ProtectedDanmuApiToken { get; set; } = "";
 
     public bool AutoMatch { get; set; } = true;
     public bool WithRelated { get; set; } = true;
     public bool Show { get; set; } = true;
-    public bool ShowInput { get; set; } = true;
+
+    /// <summary>播放页的弹幕输入框；出厂关（2026-11-08 按当前设置抄成默认，此前是开）。</summary>
+    public bool ShowInput { get; set; }
     public double Opacity { get; set; } = 70;
     public double FontSize { get; set; } = 36;
     public double Speed { get; set; } = 1;
@@ -38,7 +45,7 @@ public sealed class DanmakuSettings
 
     public void Normalize()
     {
-        if (!Enum.IsDefined(Source)) Source = DanmakuSourceMode.DandanPlay;
+        if (!Enum.IsDefined(Source)) Source = DanmakuSourceMode.Both;
         var address = DanmuApiBaseUrl ?? "";
         DanmuApiBaseUrl = address[..Math.Min(address.Length, 2048)].Trim();
         var token = ProtectedDanmuApiToken ?? "";

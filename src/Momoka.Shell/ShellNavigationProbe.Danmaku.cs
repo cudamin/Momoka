@@ -47,11 +47,21 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(DanmakuRows(page).OfType<SettingSliderRow>().Count() == 5, "开启后没有显示外观设置");
             Require(!DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "AppId"), "应用凭据已退役，设置里仍出现 AppId");
-            Require(!DanmakuRows(page).OfType<SettingSecretRow>().Any(), "弹弹play 来源下仍出现 danmu_api 令牌行");
             var sourceRow = DanmakuRows(page).OfType<SettingChoiceRow>().Single(row => row.Label == "弹幕来源");
             var sourceCombo = Descendants(page).OfType<ComboBox>().Single(control => AutomationProperties.GetName(control) == "弹幕来源");
             Require(sourceCombo.Items.Count == sourceRow.Choices.Count, "来源下拉没有画全三档");
+
+            // 2026-11-08 出厂来源改成「两个都用」：合并模式下 danmu_api 的地址与令牌两行本来就该在。
+            Require(fixture.Settings.Danmaku.Source == DanmakuSourceMode.Both, "出厂来源不是「两个都用」");
+            Require(DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "danmu_api 地址"), "合并模式下没有地址行");
+            Require(DanmakuRows(page).OfType<SettingSecretRow>().Any(row => row.Label == "danmu_api 令牌"), "合并模式下没有令牌行");
+            sourceCombo.SelectedItem = sourceRow.Choices.Single(choice => choice.Label == "弹弹play");
+            await UntilAsync(() => page.IsContentMotionSettled);
+            await LayoutAsync(page);
+            Require(fixture.Settings.Danmaku.Source == DanmakuSourceMode.DandanPlay, "来源下拉未写回弹弹play");
             Require(!DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "danmu_api 地址"), "弹弹play 来源下不应出现地址行");
+            Require(!DanmakuRows(page).OfType<SettingSecretRow>().Any(), "弹弹play 来源下仍出现 danmu_api 令牌行");
+
             sourceCombo.SelectedItem = sourceRow.Choices.Single(choice => choice.Label.StartsWith("danmu_api", StringComparison.Ordinal));
             await UntilAsync(() => page.IsContentMotionSettled);
             await LayoutAsync(page);
@@ -96,10 +106,11 @@ internal sealed partial class ShellNavigationProbe
             await SaveProbeScreenAsync($"settings-danmaku-on-{width}-screen.png");
 
             var inputToggle = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "显示弹幕输入栏");
-            Require(inputToggle.IsOn, "输入栏没有默认开启");
-            inputToggle.IsOn = false;
+            // 2026-11-08 出厂关（「把当前的系统设置设为默认」）：这一行验的是开关写回，不再假设初始是开。
+            Require(!inputToggle.IsOn, "出厂输入栏不是关闭");
+            inputToggle.IsOn = true;
             await LayoutAsync(page);
-            Require(!fixture.Settings.Danmaku.ShowInput && fixture.Settings.Danmaku.Show, "关闭输入栏影响了弹幕显示或未保存偏好");
+            Require(fixture.Settings.Danmaku.ShowInput && fixture.Settings.Danmaku.Show, "打开输入栏影响了弹幕显示或未保存偏好");
             var show = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "显示弹幕");
             ((IToggleProvider)new ToggleSwitchAutomationPeer(show).GetPattern(PatternInterface.Toggle)).Toggle();
             await UntilAsync(() => page.IsContentMotionSettled);
@@ -110,7 +121,7 @@ internal sealed partial class ShellNavigationProbe
             ((IToggleProvider)new ToggleSwitchAutomationPeer(show).GetPattern(PatternInterface.Toggle)).Toggle();
             await UntilAsync(() => page.IsContentMotionSettled);
             await LayoutAsync(page);
-            Require(!fixture.Settings.Danmaku.ShowInput && DanmakuRows(page).OfType<SettingToggleRow>().Any(row => row.Label == "显示弹幕输入栏"), "恢复弹幕未保留输入栏偏好或未恢复开关");
+            Require(fixture.Settings.Danmaku.ShowInput && DanmakuRows(page).OfType<SettingToggleRow>().Any(row => row.Label == "显示弹幕输入栏"), "恢复弹幕未保留输入栏偏好或未恢复开关");
             Require(DanmakuRows(page).OfType<SettingSliderRow>().Single(row => row.Label == "不透明度（%）").Value == 55, "恢复显示时滑块不是原值");
             enabled.IsOn = false;
             await UntilAsync(() => page.IsContentMotionSettled);

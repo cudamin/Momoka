@@ -36,7 +36,6 @@ namespace Momoka.Shell.ViewModels
         public IReadOnlyDictionary<string, string> ShortcutBindings { get; } = new Dictionary<string, string>();
         public bool RunAdditionalShortcut(string action) => true;
         public FakePlayback Playback => _playback;
-        public bool ResumeAfterWindowResize { get; set; } = true;
         public void FirstPublish() { _generation++; _interactionVersion++; _nowPlaying = new EmbyItem { Id = "current" }; }
         public void Swap() { _playback.Generation++; _playback.ActiveFileGeneration++; }
         public void NativeSwapGap() => _playback.ActiveFileGeneration++;

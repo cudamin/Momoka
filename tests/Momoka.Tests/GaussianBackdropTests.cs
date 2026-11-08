@@ -25,13 +25,13 @@ internal static class GaussianBackdropTests
             var carousel = File.ReadAllText(Path.Combine(root, "src/Momoka.Core/Emby/CarouselBackdrop.cs"));
             Assert.Contains("GaussianBackdrop.Apply", carousel);
         });
-        Test("背景亚克力：四项染色参数缺键读出 55，显式值与 JSON 往返原样保留", () =>
+        Test("背景亚克力：四项染色参数缺键读出各自出厂值，显式值与 JSON 往返原样保留", () =>
         {
             var settings = SettingsMigration.FromJson("{\"SchemaVersion\":28,\"Ui\":{}}", PassthroughSecretProtector.Instance);
-            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.ControlTintOpacity);
-            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.ControlTintLuminosityOpacity);
-            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.BackdropTintOpacity);
-            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.BackdropTintLuminosityOpacity);
+            Assert.Equal(UiSettings.DefaultControlTintOpacity, settings.Ui.ControlTintOpacity);
+            Assert.Equal(UiSettings.DefaultControlTintLuminosityOpacity, settings.Ui.ControlTintLuminosityOpacity);
+            Assert.Equal(UiSettings.DefaultBackdropTintOpacity, settings.Ui.BackdropTintOpacity);
+            Assert.Equal(UiSettings.DefaultBackdropTintLuminosityOpacity, settings.Ui.BackdropTintLuminosityOpacity);
             settings.Ui.ControlTintOpacity = 12;
             settings.Ui.ControlTintLuminosityOpacity = 34;
             settings.Ui.BackdropTintOpacity = 56;
@@ -47,8 +47,8 @@ internal static class GaussianBackdropTests
             Assert.Equal(56d, live.Ui.BackdropTintOpacity);
             Assert.Equal(78d, live.Ui.BackdropTintLuminosityOpacity);
             SettingsPreferences.Apply(live, new AppSettings());
-            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, live.Ui.BackdropTintOpacity);
-            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, live.Ui.ControlTintLuminosityOpacity);
+            Assert.Equal(UiSettings.DefaultBackdropTintOpacity, live.Ui.BackdropTintOpacity);
+            Assert.Equal(UiSettings.DefaultControlTintLuminosityOpacity, live.Ui.ControlTintLuminosityOpacity);
             Assert.Equal(1280d, live.Ui.WindowWidth);
         });
         Test("背景亚克力：旧文件里的退役键被忽略，不再迁移出浓度或效果", () =>
@@ -56,13 +56,13 @@ internal static class GaussianBackdropTests
             var settings = SettingsMigration.FromJson(
                 "{\"SchemaVersion\":27,\"Ui\":{\"UseGaussianBackdrop\":true,\"UseAcrylicBackdrop\":true,\"BackdropOpacity\":37}}",
                 PassthroughSecretProtector.Instance);
-            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.BackdropTintOpacity);
+            Assert.Equal(UiSettings.DefaultBackdropTintOpacity, settings.Ui.BackdropTintOpacity);
             using var document = JsonDocument.Parse(JsonSerializer.Serialize(settings));
             var ui = document.RootElement.GetProperty("Ui");
             foreach (var key in new[] { "UseGaussianBackdrop", "UseAcrylicBackdrop", "BackdropOpacity" })
                 Assert.False(ui.TryGetProperty(key, out _), "保存文档仍在写已退役的键：" + key);
         });
-        Test("背景亚克力：非有限值回出厂 55，0 与 100 两个端点原样保留", () =>
+        Test("背景亚克力：非有限值回各自出厂值，0 与 100 两个端点原样保留", () =>
         {
             foreach (var value in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity })
             {
@@ -77,10 +77,10 @@ internal static class GaussianBackdropTests
                     }
                 };
                 SettingsMigration.Normalize(settings);
-                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.ControlTintOpacity);
-                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.ControlTintLuminosityOpacity);
-                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.BackdropTintOpacity);
-                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, settings.Ui.BackdropTintLuminosityOpacity);
+                Assert.Equal(UiSettings.DefaultControlTintOpacity, settings.Ui.ControlTintOpacity);
+                Assert.Equal(UiSettings.DefaultControlTintLuminosityOpacity, settings.Ui.ControlTintLuminosityOpacity);
+                Assert.Equal(UiSettings.DefaultBackdropTintOpacity, settings.Ui.BackdropTintOpacity);
+                Assert.Equal(UiSettings.DefaultBackdropTintLuminosityOpacity, settings.Ui.BackdropTintLuminosityOpacity);
             }
             foreach (var (input, expected) in new[] { (0d, 0d), (100d, 100d), (-20d, 0d), (180d, 100d), (37.5, 37.5) })
             {

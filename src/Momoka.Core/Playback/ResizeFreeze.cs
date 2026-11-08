@@ -1,7 +1,7 @@
 namespace Momoka.Playback;
 
 /// <summary>
-/// 拖动窗口边沿改大小这一趟：要不要冻住 mpv、松手之后要不要替用户放开（用户令 2026-09-23）。
+/// 拖动窗口边沿改大小这一趟：要不要冻住 mpv（用户令 2026-09-23）。
 /// <para>
 /// <b>被调整的是哪一扇窗。</b>集成模式里画面合成在<b>应用自己的窗口</b>（<c>HostWindow</c>，也就是播放页手里那个
 /// <c>_window</c>）的视觉树里，进程内的 mpv 没有自己的窗口 —— 所以「暂停 mpv」就是往它发 <c>pause=yes</c>，
@@ -29,6 +29,10 @@ namespace Momoka.Playback;
 /// 那种趟里客户区尺寸根本没变（<c>WM_SIZE</c> 不来，冻结因此不会开始），若照「松开就放开」办，用户自己按下的
 /// 暂停会被一次单纯的挪窗悄悄解开。
 /// </para>
+/// <para>
+/// <b>松手之后一定放开（2026-11-08 用户令）。</b>「调整窗口大小后继续播放」那一格从设置里删掉了，固定为开：
+/// 冻过的那一趟收尾就接着放，要停在暂停就自己按暂停 —— 这一档没有第二个答案，所以这里只剩「什么时候冻」一问答。
+/// </para>
 /// </summary>
 public static class ResizeFreeze
 {
@@ -42,11 +46,4 @@ public static class ResizeFreeze
     /// </summary>
     public static bool Freezes(bool userPaused, bool onStage, bool pictureInHostWindow) =>
         !userPaused && onStage && pictureInHostWindow;
-
-    /// <summary>
-    /// 松手之后要不要替用户放开。<paramref name="froze"/> 是「这一趟是我们冻的」，<paramref name="resumeAfterResize"/>
-    /// 是设置里那一行（<c>PlaybackSettings.ResumeAfterWindowResize</c>，装机默认开）：关掉它＝松开之后停在暂停，
-    /// 要用户自己按播放。
-    /// </summary>
-    public static bool Resumes(bool froze, bool resumeAfterResize) => froze && resumeAfterResize;
 }

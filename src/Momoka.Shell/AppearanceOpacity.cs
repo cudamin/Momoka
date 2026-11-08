@@ -16,10 +16,13 @@ internal static class AppearanceOpacity
     public static double ControlBackground(double percent) => Percent(percent) / 100;
 
     /// <summary>
-    /// 染色参数的百分比读数 → 0..1。0 与 100 都是有效档位（全透 / 全实），只有认不出来的值才回到出厂 55%。
+    /// 染色参数的百分比读数 → 0..1。0 与 100 都是有效档位（全透 / 全实），只有认不出来的值才回到
+    /// <paramref name="fallbackPercent"/> —— 那是调用方那一格自己的出厂值：2026-11-08 起四项各报各的
+    /// （按钮 10/50、背景 0/50），不再共用当年那块玻璃的 55%。
     /// </summary>
-    public static double Tint(double percent) => double.IsFinite(percent)
-        ? Math.Clamp(percent, 0, 100) / 100 : UiSettings.DefaultAcrylicTintOpacity / 100;
+    public static double Tint(double percent, double fallbackPercent) => double.IsFinite(percent)
+        ? Math.Clamp(percent, 0, 100) / 100
+        : Math.Clamp(fallbackPercent, 0, 100) / 100;
 
     /// <summary>
     /// 这层亚克力挡在画面前面的份额：0 全透明，1 完全不透。

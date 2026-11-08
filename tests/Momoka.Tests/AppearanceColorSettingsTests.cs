@@ -16,15 +16,15 @@ internal static class AppearanceColorSettingsTests
                 var settings = SettingsMigration.FromJson("{\"SchemaVersion\":28,\"Ui\":{\"ControlBackgroundColor\":"
                     + raw + ",\"BackdropColor\":" + raw + ",\"ControlBackgroundOpacity\":0,\"BackdropTintOpacity\":15.25}}",
                     PassthroughSecretProtector.Instance);
-                Assert.Equal("#FFFFFF", Color(settings.Ui, "ControlBackgroundColor"));
-                Assert.Equal("#808080", Color(settings.Ui, "BackdropColor"));
+                Assert.Equal("#808080", Color(settings.Ui, "ControlBackgroundColor"));
+                Assert.Equal("#404040", Color(settings.Ui, "BackdropColor"));
                 Assert.Equal(0d, settings.Ui.ControlBackgroundOpacity);
                 Assert.Equal(15.25, settings.Ui.BackdropTintOpacity);
             }
             var missing = SettingsMigration.FromJson("{\"SchemaVersion\":28}", PassthroughSecretProtector.Instance);
-            Assert.Equal("#FFFFFF", Color(missing.Ui, "ControlBackgroundColor"));
-            Assert.Equal("#808080", Color(missing.Ui, "BackdropColor"));
-            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, missing.Ui.BackdropTintOpacity);
+            Assert.Equal("#808080", Color(missing.Ui, "ControlBackgroundColor"));
+            Assert.Equal("#404040", Color(missing.Ui, "BackdropColor"));
+            Assert.Equal(UiSettings.DefaultBackdropTintOpacity, missing.Ui.BackdropTintOpacity);
         });
         TestHarness.Test("外观颜色：保存、偏好导入与恢复默认保留独立RGB，窗口记录不变", () =>
         {
@@ -44,8 +44,8 @@ internal static class AppearanceColorSettingsTests
             Assert.Equal(0d, live.Ui.BackdropTintOpacity);
             Assert.Equal(100d, live.Ui.ControlTintOpacity);
             SettingsPreferences.Apply(live, new AppSettings());
-            Assert.Equal("#FFFFFF", Color(live.Ui, "ControlBackgroundColor"));
-            Assert.Equal("#808080", Color(live.Ui, "BackdropColor"));
+            Assert.Equal("#808080", Color(live.Ui, "ControlBackgroundColor"));
+            Assert.Equal("#404040", Color(live.Ui, "BackdropColor"));
             Assert.Equal(1510d, live.Ui.WindowWidth);
         });
     }

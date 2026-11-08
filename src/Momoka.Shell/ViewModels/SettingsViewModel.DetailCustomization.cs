@@ -44,7 +44,7 @@ public sealed partial class SettingsViewModel
         {
             rows.Add(Slider("按钮与选择框底色不透明度（%）", 0, 100, 0.01,
                 () => ui.ControlBackgroundOpacity, value => ui.ControlBackgroundOpacity = value,
-                "默认约5.88%，还原0.2.0的半透明白底。0常态完全透明，100完全不透明；悬停与按下保留反馈。",
+                "出厂 39.25%（那层中灰底的浓度）。0 常态完全透明，100 完全不透明；悬停与按下保留反馈。",
                 after: () => ShellPrefs.ApplyAppearance(ui)));
         }
         rows.Add(Choice("显示模式", new[] { ("沉浸模式", true), ("简洁模式", false) },

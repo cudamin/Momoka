@@ -621,28 +621,10 @@ internal static class PlayerMotionProbe
                     // 「用户按下的暂停谁也不许碰」的是 ResizeFreeze 的单测与页面自己那笔冻结账，不在这里。
                     Require(!page.ResizeFrozen, "松手后拖边那一趟的冻结账已还清");
                 }
-                // 「调整窗口大小后继续播放」关掉的那一档（用户令 2026-09-23）：拖动照样冻住，松手**不**放开。
-                // 只验默认那一档的话，把设置读反（`!resume` 写成 `resume`）照样全绿 —— 而这一档正是这一行
-                // 设置存在的全部理由，所以它必须有自己的腿。
-                Write("阶段：设定为「保持暂停」的拖边");
-                var probeSettings = services!.GetRequiredService<AppSettings>();
-                await handle.SetPropertyAsync("pause", false, token);
-                await Until(() => !control.Status.Paused, "保持暂停档之前先让播放走起来");
-                probeSettings.Playback.ResumeAfterWindowResize = false;
-                ApplyResize(window, monitor.Left, monitor.Top, 900, 506, ResizeEdge.BottomRight);
-                await Until(() => control.Status.Paused, "保持暂停档：拖动期间 mpv 已停住");
-                Native.SendMessage(window.Handle, Native.WmExitSizeMove, IntPtr.Zero, IntPtr.Zero);
-                await page.ResizeChange.WaitAsync(TimeSpan.FromSeconds(2), token);
-                Require(control.Status.Paused, "设定为保持暂停时，松手后不替用户放开");
-                var frozenAt = await handle.GetPositionAsync(token);
-                await Task.Delay(200, token);
-                var stillAt = await handle.GetPositionAsync(token);
-                Require(frozenAt is { } pinA && stillAt is { } pinB && Math.Abs(pinB - pinA) < 0.05,
-                    "保持暂停那一档：松手之后画面确实还停着");
-                probeSettings.Playback.ResumeAfterWindowResize = true;
-                await handle.SetPropertyAsync("pause", false, token);
-                await Until(() => !control.Status.Paused, "保持暂停那一档验完，恢复播放");
-
+                // 「松手后停在暂停」那一档随设置行一起退役（2026-11-08 用户令「删掉这个选项，固定设置为打开」）：
+                // 现在没有第二个答案，探针也就不再有一条「设定为保持暂停」的腿。松手必继续放这一半由上面的
+                // 循环（`松手后按设定恢复播放`）与 ResizeFreeze 的单测覆盖；「用户自己按的暂停谁也不许碰」
+                // 仍由页面那笔冻结账守着。
                 Write("阶段：收尾期间再次拖边");
                 ApplyResize(window, monitor.Left, monitor.Top, 780, 440, ResizeEdge.BottomRight);
                 Native.SendMessage(window.Handle, Native.WmExitSizeMove, IntPtr.Zero, IntPtr.Zero);

@@ -28,12 +28,10 @@ internal static class Program
                 Complete(page.Release());
                 Assert.True(page.Pauses.SequenceEqual([true]));
             });
-        Test("R11-001 原本暂停及关闭恢复偏好不发恢复", () =>
+        Test("R11-001 原本暂停不发恢复", () =>
         {
             var paused = new PlayerPage(); paused.ViewModel.Paused = true; paused.Begin(); Complete(paused.Release());
             Assert.Equal(0, paused.Pauses.Count);
-            var disabled = new PlayerPage(); disabled.ViewModel.ResumeAfterWindowResize = false;
-            disabled.Begin(); Complete(disabled.Release()); Assert.True(disabled.Pauses.SequenceEqual([true]));
         });
         Test("R11-001 在飞冻结先确认暂停，再恢复，慢命令不反序", () =>
         {

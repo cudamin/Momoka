@@ -32,10 +32,10 @@ internal static class DetailLayoutTests
             Assert.True(Enabled(defaults.Ui));
         });
 
-        Test("详情控件：新建与缺键默认平台薄白，显式偏好仍保留", () =>
+        Test("详情控件：新建与缺键默认按当前外观，显式偏好仍保留", () =>
         {
-            Assert.Equal(15d / 255 * 100, new UiSettings().ControlBackgroundOpacity);
-            Assert.Equal(15d / 255 * 100, UiSettings.DefaultControlBackgroundOpacity);
+            Assert.Equal(39.25, new UiSettings().ControlBackgroundOpacity);
+            Assert.Equal(39.25, UiSettings.DefaultControlBackgroundOpacity);
             var ui = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{\"ControlBackgroundOpacity\":0}}",
                 PassthroughSecretProtector.Instance).Ui;
             Assert.Equal(0d, ui.ControlBackgroundOpacity);
@@ -56,8 +56,8 @@ internal static class DetailLayoutTests
             Assert.Equal("info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Movie)));
             Assert.True(DetailLayout.For(ui, EmbyItemType.Series).All(row => row.Visible));
             Assert.Equal(UiSettings.DefaultControlBackgroundOpacity, ui.ControlBackgroundOpacity);
-            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, ui.BackdropTintOpacity);
-            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, ui.BackdropTintLuminosityOpacity);
+            Assert.Equal(UiSettings.DefaultBackdropTintOpacity, ui.BackdropTintOpacity);
+            Assert.Equal(UiSettings.DefaultBackdropTintLuminosityOpacity, ui.BackdropTintLuminosityOpacity);
             Assert.True(ui.EnableImmersive);
         });
 
@@ -68,10 +68,10 @@ internal static class DetailLayoutTests
                 var ui = SettingsMigration.FromJson(
                     "{\"SchemaVersion\":" + version + ",\"Ui\":{\"BackdropOpacity\":37,\"UseGaussianBackdrop\":true,\"UseAcrylicBackdrop\":true}}",
                     PassthroughSecretProtector.Instance).Ui;
-                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, ui.BackdropTintOpacity);
-                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, ui.BackdropTintLuminosityOpacity);
-                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, ui.ControlTintOpacity);
-                Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, ui.ControlTintLuminosityOpacity);
+                Assert.Equal(UiSettings.DefaultBackdropTintOpacity, ui.BackdropTintOpacity);
+                Assert.Equal(UiSettings.DefaultBackdropTintLuminosityOpacity, ui.BackdropTintLuminosityOpacity);
+                Assert.Equal(UiSettings.DefaultControlTintOpacity, ui.ControlTintOpacity);
+                Assert.Equal(UiSettings.DefaultControlTintLuminosityOpacity, ui.ControlTintLuminosityOpacity);
             }
         });
 
@@ -149,12 +149,12 @@ internal static class DetailLayoutTests
             Assert.True(restored.Ui.EnableImmersive);
         });
 
-        Test("详情染色：超界夹取、非有限值回出厂，零和小数原样保留", () =>
+        Test("详情染色：超界夹取、非有限值回各自出厂，零和小数原样保留", () =>
         {
-            foreach (var (input, controls, backdrop) in new (double, double, double)[]
+            foreach (var input in new[]
             {
-                (-1, 0, 0), (101, 100, 100), (0, 0, 0), (37.5, 37.5, 37.5), (100, 100, 100),
-                (double.NaN, 55, 55), (double.PositiveInfinity, 55, 55), (double.NegativeInfinity, 55, 55)
+                -1d, 101d, 0d, 37.5, 100d,
+                double.NaN, double.PositiveInfinity, double.NegativeInfinity
             })
             {
                 var settings = new AppSettings
@@ -168,8 +168,12 @@ internal static class DetailLayoutTests
                 };
                 SettingsMigration.Normalize(settings);
                 Assert.Equal(Math.Clamp(double.IsFinite(input) ? input : 0, 0, 100), settings.Ui.ControlBackgroundOpacity);
-                Assert.Equal(backdrop, settings.Ui.BackdropTintOpacity);
-                Assert.Equal(backdrop, settings.Ui.BackdropTintLuminosityOpacity);
+                Assert.Equal(
+                    double.IsFinite(input) ? Math.Clamp(input, 0, 100) : UiSettings.DefaultBackdropTintOpacity,
+                    settings.Ui.BackdropTintOpacity);
+                Assert.Equal(
+                    double.IsFinite(input) ? Math.Clamp(input, 0, 100) : UiSettings.DefaultBackdropTintLuminosityOpacity,
+                    settings.Ui.BackdropTintLuminosityOpacity);
                 _ = JsonSerializer.Serialize(settings);
             }
         });
@@ -199,8 +203,8 @@ internal static class DetailLayoutTests
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(live.Ui.SeriesCards));
             Assert.True(live.Ui.SeriesCards.All(row => row.Visible));
             Assert.Equal(UiSettings.DefaultControlBackgroundOpacity, live.Ui.ControlBackgroundOpacity);
-            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, live.Ui.BackdropTintOpacity);
-            Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, live.Ui.ControlTintLuminosityOpacity);
+            Assert.Equal(UiSettings.DefaultBackdropTintOpacity, live.Ui.BackdropTintOpacity);
+            Assert.Equal(UiSettings.DefaultControlTintLuminosityOpacity, live.Ui.ControlTintLuminosityOpacity);
             Assert.True(live.Ui.EnableImmersive);
             Assert.Equal(1500d, live.Ui.WindowWidth);
             Assert.Equal(900d, live.Ui.WindowHeight);

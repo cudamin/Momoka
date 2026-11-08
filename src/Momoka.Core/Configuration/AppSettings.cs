@@ -652,26 +652,10 @@ public sealed class PlaybackSettings
     /// </summary>
     public bool AutoFullscreenOnPlayback { get; set; }
 
-    /// <summary>
-    /// 拖窗口边沿改完大小、松开鼠标之后继续播放（用户令 2026-09-23）。关掉它＝松开之后停在暂停，要用户自己按播放。
-    /// <para>
-    /// <b>调整开始那一下一定冻，没有开关</b> —— 那是同一道令的另一半，判据在 <see cref="Playback.ResizeFreeze"/>：
-    /// 拖动那一段的画面是靠合成变换拉伸着跟窗口走的，mpv 先停住，松手后盖上去的那张静止帧与撤掉时屏上那帧
-    /// 才是同一帧。这一行只管松手之后往哪边走。
-    /// </para>
-    /// <para>
-    /// <b>只对集成模式有效。</b>那一档的画面嵌在本窗口的视觉树里、窗口是应用自己的；独占模式与外部 mpv.exe
-    /// 的画面在 mpv 自建的顶层窗口里，用户拖的是它那扇窗，走不到这条路上（<see cref="Playback.ResizeFreeze.Freezes"/>
-    /// 里那一问）。
-    /// </para>
-    /// <para>
-    /// 装机默认开，所以缺这个键的旧设置文件读出来就是「继续播放」，不需要为它加一条迁移 —— 同
-    /// <see cref="AutoFullscreenOnPlayback"/> 那条。这一行改完当场生效：拖边收尾那一拍现读设置文件里的值
-    /// （<c>PlayerViewModel.ResumeAfterWindowResize</c>），与 <see cref="AutoFullscreenOnPlayback"/> 去同一个
-    /// 地方读，不经过任何通知管道。
-    /// </para>
-    /// </summary>
-    public bool ResumeAfterWindowResize { get; set; } = true;
+    // 「调整窗口大小后继续播放」那一格 2026-11-08 按用户令删掉了（「在设置中删掉这个选项，固定设置为打开」）：
+    // 拖边收尾从此一律替用户放开，判据只剩 Playback.ResizeFreeze.Freezes 那一半（什么时候冻）。
+    // **不留一个存而不用的键** —— 反序列化碰到没处放的键本来就不出声，所以旧设置文件里存着的 false 照旧读得起来、
+    // 也没人再听它的，升级之后行为就是用户要的那一档，不需要迁移。
 
     /// <summary>
     /// 播放页置顶开关的持久化偏好：「对播放页面"是否置顶"的设置进行持久化保存，程序重启后仍保留上次
@@ -679,14 +663,18 @@ public sealed class PlaybackSettings
     /// <para>
     /// 记的是用户<b>拨过开关之后</b>的那一档：下一次播放接管窗口时按它把置顶立回去（真正动手的仍是
     /// <c>HostWindow.TopMost</c>，这里只是记账）。退出播放把窗口的置顶放下（照旧），但不动这份偏好 ——
-    /// 放下是「还给浏览窗口」，不是「替用户改主意」。用户没拨过开关时它是默认的 false，行为与从前一致。
+    /// 放下是「还给浏览窗口」，不是「替用户改主意」。
+    /// </para>
+    /// <para>
+    /// <b>装机默认开（2026-11-08 用户令「把当前的系统设置设为默认」）。</b>此前是关，与「从没拨过开关」
+    /// 的老行为一致；这一档改成开之后，新装和「恢复默认」交出来的都是置顶，用户自己拨过关的照旧按存着的值走。
     /// </para>
     /// <para>
     /// 全屏进出让位那套规则（前台被挡时 HWND_NOTOPMOST）对<b>手动置顶</b>本来就不生效，持久化的偏好
     /// 落在窗口上就是手动置顶，两套规则互不干扰。
     /// </para>
     /// </summary>
-    public bool PinWindowTopmost { get; set; }
+    public bool PinWindowTopmost { get; set; } = true;
 
     /// <summary>The smallest 字幕字号 worth offering; below this the text is not readable at any distance.</summary>
     public const int MinimumSubtitleFontSize = 16;
@@ -1383,15 +1371,22 @@ public sealed class UiSettings
     /// <summary>
     /// 按钮与闭合选择框的颜色。半透明叠层时是那层底色的 RGB；换成亚克力时同一个数就是画笔的 TintColor ——
     /// 两种模式都只是「这颗按钮是什么颜色」，没必要存两份。
+    /// <para>
+    /// 出厂 <c>#808080</c>（2026-11-08 用户令「把当前的系统设置设为默认」，此前是纯白 <c>#FFFFFF</c>）：
+    /// 亚克力默认开着时它就是那层染色，叠层模式下它是一层中灰底。
+    /// </para>
     /// </summary>
     public string ControlBackgroundColor { get; set; } = DefaultControlBackgroundColor;
 
-    public const string DefaultControlBackgroundColor = "#FFFFFF";
+    public const string DefaultControlBackgroundColor = "#808080";
 
-    /// <summary>背景图上那层亚克力的 TintColor。自选固定色，换图不跟着改。</summary>
+    /// <summary>
+    /// 背景图上那层亚克力的 TintColor。自选固定色，换图不跟着改。
+    /// <para>出厂 <c>#404040</c>（2026-11-08 同上，此前是 <c>#808080</c>）。</para>
+    /// </summary>
     public string BackdropColor { get; set; } = DefaultBackdropColor;
 
-    public const string DefaultBackdropColor = "#808080";
+    public const string DefaultBackdropColor = "#404040";
 
     /// <summary>
     /// 半透明叠层模式下按钮底色的不透明度（%）：0 完全透明（没有底色），100 完全不透明。
@@ -1400,11 +1395,15 @@ public sealed class UiSettings
     /// 所以 0 档真的什么都不画。悬停与按下仍保留原来那层薄白 —— 那是按钮的手感，不是底色。
     /// 亚克力模式不用这一格：那边由下面两项染色参数决定材质，不再另叠一层整体浓度。
     /// </para>
+    /// <para>
+    /// 出厂 39.25%（2026-11-08「把当前的系统设置设为默认」，此前是 0.2.0 那层薄白的 15/255 ≈ 5.88%）——
+    /// 就是用户调好那一档的存档读数，原样抄成出厂值。
+    /// </para>
     /// </summary>
     public double ControlBackgroundOpacity { get; set; } = DefaultControlBackgroundOpacity;
 
-    /// <summary>0.2.0 平台薄白常态的不透明度（%）；已保存的有效偏好保持原值。</summary>
-    public const double DefaultControlBackgroundOpacity = 15d / 255 * 100;
+    /// <summary>按钮叠层底色的出厂不透明度（%）：39.25，见 <see cref="ControlBackgroundOpacity"/>。</summary>
+    public const double DefaultControlBackgroundOpacity = 39.25;
 
     /// <summary>
     /// 按钮亚克力的 TintOpacity（%）：染色层压得多浓，越高颜色盖得越实。
@@ -1413,26 +1412,45 @@ public sealed class UiSettings
     /// <c>AcrylicBrush</c> 只有 TintColor、TintOpacity、TintLuminosityOpacity 三个参数，此前那格「整体浓度」
     /// 驱动的是整支画笔的 <c>Opacity</c>，不属于亚克力自己的参数，随本次一起退役。
     /// </para>
+    /// <para>
+    /// 出厂 10%（2026-11-08 按当前设置抄成默认）。四项染色参数从此<b>各报各的出厂值</b>，不再共用当年那块
+    /// 玻璃的 55% —— 一个数同时代表四格时，改其中一格就得把另外三格一起拖走。
+    /// </para>
     /// </summary>
-    public double ControlTintOpacity { get; set; } = DefaultAcrylicTintOpacity;
+    public double ControlTintOpacity { get; set; } = DefaultControlTintOpacity;
 
-    /// <summary>按钮亚克力的 TintLuminosityOpacity（%）：管背后那张图的明暗透上来多少，与染色层各管一头。</summary>
-    public double ControlTintLuminosityOpacity { get; set; } = DefaultAcrylicTintOpacity;
+    /// <summary>按钮亚克力 TintOpacity 的出厂值（%）：10，见 <see cref="ControlTintOpacity"/>。</summary>
+    public const double DefaultControlTintOpacity = 10;
 
-    /// <summary>背景亚克力的 TintOpacity（%），同 <see cref="ControlTintOpacity"/>。</summary>
-    public double BackdropTintOpacity { get; set; } = DefaultAcrylicTintOpacity;
+    /// <summary>按钮亚克力的 TintLuminosityOpacity（%）：管背后那张图的明暗透上来多少，与染色层各管一头。出厂 50%。</summary>
+    public double ControlTintLuminosityOpacity { get; set; } = DefaultControlTintLuminosityOpacity;
 
-    /// <summary>背景亚克力的 TintLuminosityOpacity（%），同 <see cref="ControlTintLuminosityOpacity"/>。</summary>
-    public double BackdropTintLuminosityOpacity { get; set; } = DefaultAcrylicTintOpacity;
+    /// <summary>按钮亚克力 TintLuminosityOpacity 的出厂值（%）：50。</summary>
+    public const double DefaultControlTintLuminosityOpacity = 50;
 
     /// <summary>
-    /// 四项染色参数的出厂值（%）：0.55。项目里几块既有玻璃（<c>EgFrostBrush</c>、<c>EgActionGlassBrush</c>）
-    /// 用的就是 0.55 这一档，按「透上来的份量约等于 (1-L)×(1-T)」算下来两成左右透光。
+    /// 背景亚克力的 TintOpacity（%），同 <see cref="ControlTintOpacity"/>。
+    /// 出厂 0%（2026-11-08 按当前设置抄成默认）：染色层全透，背景的观感只由下面那档明暗决定。
     /// </summary>
-    public const double DefaultAcrylicTintOpacity = 55;
+    public double BackdropTintOpacity { get; set; } = DefaultBackdropTintOpacity;
 
-    /// <summary>按钮与选择框使用应用内亚克力；缺键保留半透明叠层。</summary>
-    public bool UseAcrylicControls { get; set; }
+    /// <summary>背景亚克力 TintOpacity 的出厂值（%）：0。</summary>
+    public const double DefaultBackdropTintOpacity = 0;
+
+    /// <summary>背景亚克力的 TintLuminosityOpacity（%），同 <see cref="ControlTintLuminosityOpacity"/>。出厂 50%。</summary>
+    public double BackdropTintLuminosityOpacity { get; set; } = DefaultBackdropTintLuminosityOpacity;
+
+    /// <summary>背景亚克力 TintLuminosityOpacity 的出厂值（%）：50。</summary>
+    public const double DefaultBackdropTintLuminosityOpacity = 50;
+
+    /// <summary>
+    /// 按钮与选择框使用应用内亚克力。
+    /// <para>
+    /// 出厂开（2026-11-08「把当前的系统设置设为默认」，此前是关）。旧设置文件里存着的 false 照旧生效，
+    /// 缺键才读成开。
+    /// </para>
+    /// </summary>
+    public bool UseAcrylicControls { get; set; } = true;
 
     /// <summary>电影、剧与季的沉浸模式；关闭使用简洁卡面并隐藏背景图，保留外观偏好。</summary>
     public bool EnableImmersive { get; set; } = true;

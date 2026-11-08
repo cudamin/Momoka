@@ -26,14 +26,14 @@ internal static partial class SettingsTests
         {
             foreach (var section in new[] { "", ",\"Ui\":{}", ",\"Ui\":null" })
             {
-                Test($"迁移：schema{schema}染色缺值{section}保持出厂55", () =>
+                Test($"迁移：schema{schema}染色缺值{section}保持各自出厂值", () =>
                 {
                     var json = "{\"SchemaVersion\":" + schema + section + "}";
                     var loaded = SettingsMigration.FromJson(json, Protector);
-                    Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, loaded.Ui.BackdropTintOpacity);
-                    Assert.Equal(UiSettings.DefaultAcrylicTintOpacity, loaded.Ui.BackdropTintLuminosityOpacity);
+                    Assert.Equal(UiSettings.DefaultBackdropTintOpacity, loaded.Ui.BackdropTintOpacity);
+                    Assert.Equal(UiSettings.DefaultBackdropTintLuminosityOpacity, loaded.Ui.BackdropTintLuminosityOpacity);
                     var saved = JsonSerializer.Serialize(loaded, SettingsSerializer.WriteOptions);
-                    Assert.Equal(UiSettings.DefaultAcrylicTintOpacity,
+                    Assert.Equal(UiSettings.DefaultBackdropTintOpacity,
                         SettingsMigration.FromJson(saved, Protector).Ui.BackdropTintOpacity);
                 });
             }

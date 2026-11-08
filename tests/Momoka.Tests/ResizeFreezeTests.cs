@@ -3,7 +3,9 @@ using Momoka.Playback;
 namespace Momoka.Tests;
 
 /// <summary>
-/// 「拖窗口边沿改大小时自动暂停 mpv」（用户令 2026-09-23）这条判据的两半：纯函数本身，以及它那几处接线还在不在。
+/// 「拖窗口边沿改大小时自动暂停 mpv，松手接着放」这条判据的两半：纯函数本身，以及它那几处接线还在不在。
+/// （用户令 2026-09-23；2026-11-08 用户令删掉「调整窗口大小后继续播放」那一格、固定为开，松手这一半从此没有
+/// 第二个答案。）
 /// <para>
 /// 这一条在屏上的样子是「拖的时候画面停住、松手接着放」，而它坏掉的样子一个都不显眼：把用户自己按下的暂停
 /// 当成我们的而「恢复」掉、在浏览页拖窗口时凭空暂停一次、或者拖动结束后播放再也没回来（一笔没人还的账）。
@@ -32,39 +34,37 @@ internal static class ResizeFreezeTests
                 "独占模式：拖的是 mpv 那扇窗，暂停 mpv 不是这条令要的");
         });
 
-        // 结束那一问：只有「这一趟是我们冻的」才谈得上放开 —— 拖动标题移动窗口也会进同一个模态回环，
-        // 那一趟里尺寸没变、冻结没开始，若照样放开，用户自己按的暂停就被一次挪窗解开了。
-        TestHarness.Test("拖边放开：没冻过的那一趟绝不放开", () =>
+        // 松手那一半：2026-11-08 起固定接着放，设置里不再有那一格。守住的是「放开只对真的冻过的那一趟」——
+        // 挪窗（尺寸没变、没冻过）与用户自己按的暂停都不许被一次收尾解开；那两条路径各由页面开头的
+        // `if (!_resizePaused) return;` 与 PlayerInputRecoveryTests 的「原本暂停不发恢复」钉着。
+        TestHarness.Test("拖边放开：固定接着放，设置里不再有这一档", () =>
         {
-            Assert.False(ResizeFreeze.Resumes(froze: false, resumeAfterResize: true),
-                "挪窗那一趟（尺寸没变、没冻过）不许碰暂停");
-            Assert.True(ResizeFreeze.Resumes(true, true), "冻过、设置说继续 —— 放开");
-        });
+            var shell = Source("src", "Momoka.Shell");
+            var page = shell[Path.Combine("Views", "PlayerPage.ClientRect.cs")];
+            Assert.Contains("if (!_resizePaused) return;", page);
+            Assert.Contains("var resume = _freezePauseAccepted;", page);
+            Assert.DoesNotContain("ResizeFreeze.Resumes", page);
 
-        // 设置那一行（装机默认开）：关掉它就是「松开之后停在暂停，要自己按播放」。
-        TestHarness.Test("拖边放开：设置说保持暂停就不放开", () =>
-        {
-            Assert.False(ResizeFreeze.Resumes(froze: true, resumeAfterResize: false));
-            Assert.Equal(true, new Momoka.Configuration.PlaybackSettings().ResumeAfterWindowResize,
-                "装机默认是「继续播放」——缺这个键的旧设置文件读出来也是它");
+            foreach (var file in new[] { "SettingsViewModel.cs", "PlayerViewModel.cs" })
+                Assert.DoesNotContain("ResumeAfterWindowResize",
+                    shell[Path.Combine("ViewModels", file)], "设置行已删，Shell 里不该再有这一档的读法");
         });
 
         // 源码守卫：四条接线少任何一条，屏上的症状分别是「拖完再也不动」「拖动时不停」「挪窗把暂停解开」
-        // 「设置页那一行是个摆设」，而它们各自都能在测试全绿的情况下发生。
+        // 「暂停指令失败了也照样放开」，而它们各自都能在测试全绿的情况下发生。
         TestHarness.Test("拖边冻结的四条接线都在", () =>
         {
             var shell = Source("src", "Momoka.Shell");
             var page = shell[Path.Combine("Views", "PlayerPage.ClientRect.cs")];
 
             Assert.Contains("ResizeFreeze.Freezes(", page);
-            Assert.Contains("ResizeFreeze.Resumes(", page);
             Assert.Contains("if (_resizeLoop) BeginResizeFreeze();", page);
 
             // 冻结的触发点必须是「客户区真的报出新尺寸」那一拍：WM_ENTERSIZEMOVE 拖标题移动窗口时也会来。
             Assert.Contains("_resizeLoop = true;", page);
             Assert.Contains("_resizeLoop = false;", page);
 
-            // 那笔账的放行口：拖边收尾、取消、以及设置页那一行的写手。
+            // 那笔账的放行口：拖边收尾与取消。
             Assert.Contains("ReleaseResizeFreezeAsync", page);
 
             // 发「暂停／恢复」的唯一出口，以及它的默认分支。探针在离线跑的时候把出口接到自己那个句柄上
@@ -74,10 +74,6 @@ internal static class ResizeFreezeTests
             Assert.Contains("ViewModel.SetFrozenPausedAsync(_resizeFreezeContext, paused);", page);
             Assert.Contains("SetPaused(true);", page);
             Assert.Contains("SetPaused(false);", page);
-            var settings = shell[Path.Combine("ViewModels", "SettingsViewModel.cs")];
-            Assert.Contains("playback.ResumeAfterWindowResize", settings);
-            var viewModel = shell[Path.Combine("ViewModels", "PlayerViewModel.cs")];
-            Assert.Contains("Settings.Playback.ResumeAfterWindowResize", viewModel);
         });
     }
 

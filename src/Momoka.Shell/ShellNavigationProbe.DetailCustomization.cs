@@ -131,6 +131,12 @@ internal sealed partial class ShellNavigationProbe
                     .SequenceEqual(row.Rows.Select(card => (card.Key, card.Visible))), title + " 重入丢失偏好");
             }
             var appearance = page.ViewModel.Sections.Single(section => section.Title == "详情页外观");
+            // 2026-11-08 出厂材质改成亚克力（「把当前的系统设置设为默认」）：先切回半透明叠层，才量得到
+            // 「底色不透明度」那格的精确默认值；这一下切换本身也是下面「两种材质各自只有一套参数」的入口。
+            Require(fixture.Settings.Ui.UseAcrylicControls, "出厂材质不是亚克力");
+            await Choose("按钮与选择框背景", "半透明叠层");
+            await UntilAsync(() => appearance.Rows.OfType<SettingSliderRow>()
+                .Any(row => row.Label == "按钮与选择框底色不透明度（%）"));
             var defaultRow = appearance.Rows.OfType<SettingSliderRow>()
                 .Single(row => row.Label == "按钮与选择框底色不透明度（%）");
             var defaultHost = Descendants(page).OfType<ContentPresenter>().Single(item => ReferenceEquals(item.Content, defaultRow));

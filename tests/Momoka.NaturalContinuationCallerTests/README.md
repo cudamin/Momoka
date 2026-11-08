@@ -1,5 +1,9 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-08：拖边继续播放固定为开的来源同步
+
+「调整窗口大小后继续播放」那一格按用户令删掉（固定为开），`PlayerViewModel.cs` 少了 `ResumeAfterWindowResize` 这一条只读属性；自然接续提取的成员（`NextEpisodeToAutoPlay`、`StepEpisodeAsync`、`StartPlaybackAsync` 等）与其它 18 份 pin 一字未动。只同步 `PlayerViewModel.cs` 一项 SHA256（`4da577b…` → `1704256…`），base/date、提取器与全部断言不变。
+
 ## 2026-11-07：本轮四份来源与平台输出同步
 
 逐项核对 `3074e20..dd84931`：19份来源仅4份变化，其余15份哈希一致。`IPlaybackBackend` 新增音量样本读取边界，`LibMpvBackend` 在共享API闸门下读取当前音量并记录样本，`PlaybackContracts` 增加样本并允许空版本来源，`PlayerViewModel.Events` 重置样本及拒绝旧音量回执。只更新这4份SHA256；base/date及完整源／成员校验不变。提取器额外输出真实 `_volumeConfirmedSample` 字段，呈现端点只读取其值，不模拟音量算法；`UsingTask` 按实际 AnyCPU／x64 输出布局加载同一提取器。缺源、hash漂移、语法／成员／根目录错误仍拒绝。

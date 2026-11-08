@@ -592,7 +592,7 @@ public sealed partial class PlayerPage
     }
 
     /// <summary>
-    /// 松手之后按设定替用户放开（<see cref="ResizeFreeze.Resumes"/>：这一趟冻过 ∧ 设置里那一行说继续）。
+    /// 松手之后替用户放开（2026-11-08 起固定如此：设置里那一格已删，冻过的那一趟收尾就接着放）。
     /// <para>
     /// <b>先等我们那一下 <c>pause=yes</c> 落地再发放开</b>：两条命令要是次序倒了，净结果就是「停着」，
     /// 而此后没有任何人会再来放开它 —— 那正是这条路上唯一一个不可接受的坏法。等错方向不花钱：
@@ -619,7 +619,9 @@ public sealed partial class PlayerPage
             _resizePaused = false;
             return;
         }
-        var resume = _freezePauseAccepted && ResizeFreeze.Resumes(_resizePaused, ViewModel.ResumeAfterWindowResize);
+        // 放开只对「真的冻过、而且那一下暂停是我们发的」这一趟：`_resizePaused` 已在上面判过，
+        // `_freezePauseAccepted` 是「暂停指令确实落地了」—— 没落地就没有可放开的东西。
+        var resume = _freezePauseAccepted;
         _resizePaused = false;
         if (!resume) return;
         _handoffMutedAt = Now;

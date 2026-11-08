@@ -25,14 +25,14 @@ Check("外观颜色预览与其他设置保存隔离，清除后恢复真实设�
     {
         if (((Momoka.Theming.ThemeColor)read.Invoke(null, new object[] { false, ui })!).ToHex() != "#FF123456")
             throw new InvalidOperationException("预览颜色未生效");
-        if ((string)control.GetValue(ui)! != "#FFFFFF") throw new InvalidOperationException("预览修改了活设置");
+        if ((string)control.GetValue(ui)! != "#808080") throw new InvalidOperationException("预览修改了活设置");
         var saved = System.Text.Json.JsonSerializer.Serialize(new AppSettings { Ui = ui });
         if (saved.Contains("#123456", StringComparison.Ordinal)) throw new InvalidOperationException("其他保存写入预览颜色");
-        if (((Momoka.Theming.ThemeColor)read.Invoke(null, new object[] { false, new UiSettings() })!).ToHex() != "#FFFFFFFF")
+        if (((Momoka.Theming.ThemeColor)read.Invoke(null, new object[] { false, new UiSettings() })!).ToHex() != "#FF808080")
             throw new InvalidOperationException("预览泄漏到其他设置拥有者");
     }
     finally { preview.Invoke(null, new object?[] { false, null, ui }); }
-    if (((Momoka.Theming.ThemeColor)read.Invoke(null, new object[] { false, ui })!).ToHex() != "#FFFFFFFF")
+    if (((Momoka.Theming.ThemeColor)read.Invoke(null, new object[] { false, ui })!).ToHex() != "#FF808080")
         throw new InvalidOperationException("取消未恢复真实颜色");
 });
 Check("零档没有按钮底色", () => Equal(0, AppearanceOpacity.ControlBackground(0)));
@@ -46,19 +46,22 @@ Check("非有限按钮值回到零档", () =>
 });
 Check("染色参数 0 与 100 就是两端", () =>
 {
-    Equal(0, AppearanceOpacity.Tint(0));
-    Equal(1, AppearanceOpacity.Tint(100));
-    Equal(0.45, AppearanceOpacity.Tint(45));
+    Equal(0, AppearanceOpacity.Tint(0, 0));
+    Equal(1, AppearanceOpacity.Tint(100, 0));
+    Equal(0.45, AppearanceOpacity.Tint(45, 0));
 });
 Check("染色参数越界夹取", () =>
 {
-    Equal(0, AppearanceOpacity.Tint(-1));
-    Equal(1, AppearanceOpacity.Tint(140));
+    Equal(0, AppearanceOpacity.Tint(-1, 0));
+    Equal(1, AppearanceOpacity.Tint(140, 0));
 });
-Check("非有限染色值回出厂 55%", () =>
+Check("非有限染色值回调用方给的出厂档", () =>
 {
     foreach (var value in new[] { double.NaN, double.NegativeInfinity, double.PositiveInfinity })
-        Equal(UiSettings.DefaultAcrylicTintOpacity / 100, AppearanceOpacity.Tint(value));
+    {
+        Equal(0.5, AppearanceOpacity.Tint(value, 50));
+        Equal(0, AppearanceOpacity.Tint(value, 0));
+    }
 });
 Check("覆盖份额是 (1-L)(1-T) 的补数", () =>
 {

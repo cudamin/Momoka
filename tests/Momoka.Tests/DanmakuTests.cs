@@ -82,7 +82,7 @@ internal static class DanmakuTests
             var settings = SettingsMigration.Normalize(new AppSettings { Danmaku = null! });
             Assert.False(settings.Danmaku.Enabled);
             Assert.True(settings.Danmaku.AutoMatch);
-            Assert.True(settings.Danmaku.ShowInput);
+            Assert.False(settings.Danmaku.ShowInput);
             settings.Danmaku.Opacity = double.NaN;
             settings.Danmaku.FontSize = double.PositiveInfinity;
             settings.Danmaku.Speed = -1;
@@ -118,18 +118,18 @@ internal static class DanmakuTests
             var live = new AppSettings();
             live.Danmaku.Enabled = true;
             live.Danmaku.Opacity = 35;
-            live.Danmaku.ShowInput = false;
+            live.Danmaku.ShowInput = true;
             live.Danmaku.BlockedWords = "测试,spoiler";
             var reference = live.Danmaku;
             var backup = SettingsPreferences.ToBackupDocument(live);
             Assert.False(backup.Danmaku.Enabled);
             Assert.Equal(35d, backup.Danmaku.Opacity);
-            Assert.False(backup.Danmaku.ShowInput);
+            Assert.True(backup.Danmaku.ShowInput);
             SettingsPreferences.Apply(live, new AppSettings());
             Assert.True(ReferenceEquals(reference, live.Danmaku));
             Assert.True(live.Danmaku.Enabled);
             Assert.Equal(70d, live.Danmaku.Opacity);
-            Assert.True(live.Danmaku.ShowInput);
+            Assert.False(live.Danmaku.ShowInput);
         });
 
         Test("弹幕：服务开启且内置后端即可用，外部后端与关闭都不算", () =>
@@ -715,10 +715,10 @@ internal static class DanmakuTests
             Assert.Equal("show-playback-info", native["Ctrl+i"]);
         });
 
-        Test("弹幕：来源默认弹弹play，未知值归一，地址与令牌限长", () =>
+        Test("弹幕：来源默认两个都用，未知值归一，地址与令牌限长", () =>
         {
             var settings = SettingsMigration.Normalize(new AppSettings { Danmaku = null! });
-            Assert.Equal(DanmakuSourceMode.DandanPlay, settings.Danmaku.Source);
+            Assert.Equal(DanmakuSourceMode.Both, settings.Danmaku.Source);
             Assert.Equal("", settings.Danmaku.DanmuApiBaseUrl);
             Assert.Equal("", settings.Danmaku.ProtectedDanmuApiToken);
 
@@ -726,7 +726,7 @@ internal static class DanmakuTests
             settings.Danmaku.DanmuApiBaseUrl = "  http://127.0.0.1:9321  ";
             settings.Danmaku.ProtectedDanmuApiToken = new string('x', 9000);
             SettingsMigration.Normalize(settings);
-            Assert.Equal(DanmakuSourceMode.DandanPlay, settings.Danmaku.Source);
+            Assert.Equal(DanmakuSourceMode.Both, settings.Danmaku.Source);
             Assert.Equal("http://127.0.0.1:9321", settings.Danmaku.DanmuApiBaseUrl);
             Assert.Equal(8192, settings.Danmaku.ProtectedDanmuApiToken.Length);
         });
@@ -735,20 +735,20 @@ internal static class DanmakuTests
         {
             var live = new AppSettings();
             live.Danmaku.Enabled = true;
-            live.Danmaku.Source = DanmakuSourceMode.Both;
+            live.Danmaku.Source = DanmakuSourceMode.DanmuApi;
             live.Danmaku.DanmuApiBaseUrl = "http://127.0.0.1:9321";
             live.Danmaku.ProtectedDanmuApiToken = "cipher-token";
             live.Danmaku.Opacity = 35;
 
             var backup = SettingsPreferences.ToBackupDocument(live);
-            Assert.Equal(DanmakuSourceMode.DandanPlay, backup.Danmaku.Source);
+            Assert.Equal(DanmakuSourceMode.Both, backup.Danmaku.Source);
             Assert.Equal("", backup.Danmaku.DanmuApiBaseUrl);
             Assert.Equal("", backup.Danmaku.ProtectedDanmuApiToken);
             Assert.Equal(35d, backup.Danmaku.Opacity);
 
             SettingsPreferences.Apply(live, new AppSettings());
             Assert.True(live.Danmaku.Enabled);
-            Assert.Equal(DanmakuSourceMode.Both, live.Danmaku.Source);
+            Assert.Equal(DanmakuSourceMode.DanmuApi, live.Danmaku.Source);
             Assert.Equal("http://127.0.0.1:9321", live.Danmaku.DanmuApiBaseUrl);
             Assert.Equal("cipher-token", live.Danmaku.ProtectedDanmuApiToken);
             Assert.Equal(70d, live.Danmaku.Opacity);

@@ -225,7 +225,7 @@ internal static class SettingsPageStateTests
             var row = fixture.Invoke(vm, "AppearanceColorRow", "背景亚克力色调", true, settings.Settings.Ui, null)!;
             fixture.Invoke(row, "BeginEdit");
             fixture.Set(row, "Color", "#123456");
-            Assert.Equal("#808080", settings.Settings.Ui.BackdropColor);
+            Assert.Equal(UiSettings.DefaultBackdropColor, settings.Settings.Ui.BackdropColor);
             Assert.Equal(0, settings.TrySaveCalls);
             Assert.False(System.Text.Json.JsonSerializer.Serialize(settings.Settings).Contains("#123456", StringComparison.Ordinal));
             fixture.Invoke(row, "CommitEdit");

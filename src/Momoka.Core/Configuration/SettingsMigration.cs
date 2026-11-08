@@ -478,11 +478,12 @@ public static class SettingsMigration
         settings.Ui.ControlBackgroundOpacity = double.IsFinite(settings.Ui.ControlBackgroundOpacity)
             ? Math.Clamp(settings.Ui.ControlBackgroundOpacity, 0, 100) : 0;
         // 四项染色参数是百分比，0 与 100 都是有效档位；认不出来的数（手改、JSON 里写成字符串被当成默认除外）
-        // 回到出厂 55，而不是像浓度那样掉到 0 —— 0 会让质地整块消失，看起来像功能坏了。
-        settings.Ui.ControlTintOpacity = Tint(settings.Ui.ControlTintOpacity);
-        settings.Ui.ControlTintLuminosityOpacity = Tint(settings.Ui.ControlTintLuminosityOpacity);
-        settings.Ui.BackdropTintOpacity = Tint(settings.Ui.BackdropTintOpacity);
-        settings.Ui.BackdropTintLuminosityOpacity = Tint(settings.Ui.BackdropTintLuminosityOpacity);
+        // 各回各的出厂值（2026-11-08 起四格不再共用一个数），而不是像浓度那样一律掉到 0 —— 对按钮那两格，
+        // 0 会让质地整块消失，看起来像功能坏了；背景那两格的出厂本来就是 0/50。
+        settings.Ui.ControlTintOpacity = Tint(settings.Ui.ControlTintOpacity, UiSettings.DefaultControlTintOpacity);
+        settings.Ui.ControlTintLuminosityOpacity = Tint(settings.Ui.ControlTintLuminosityOpacity, UiSettings.DefaultControlTintLuminosityOpacity);
+        settings.Ui.BackdropTintOpacity = Tint(settings.Ui.BackdropTintOpacity, UiSettings.DefaultBackdropTintOpacity);
+        settings.Ui.BackdropTintLuminosityOpacity = Tint(settings.Ui.BackdropTintLuminosityOpacity, UiSettings.DefaultBackdropTintLuminosityOpacity);
 
         // 海报缓存的磁盘上限。范围和「MB 换字节」都在淘汰规则那一头（Emby.ImageCachePolicy），设置页那一行也读
         // 同一对常量 —— 一个比设置窄的框会显示一个文件里没有的数并在下次触碰时写回去，一个比设置宽的框会让人填进
@@ -682,9 +683,9 @@ public static class SettingsMigration
 
         return settings;
 
-        // 染色参数是百分比，0/100 都是有效档位；认不出来的数回到出厂，不落到 0。
-        static double Tint(double value) => double.IsFinite(value)
-            ? Math.Clamp(value, 0, 100) : UiSettings.DefaultAcrylicTintOpacity;
+        // 染色参数是百分比，0/100 都是有效档位；认不出来的数回到该字段自己的出厂值，不一律落到 0。
+        static double Tint(double value, double fallback) => double.IsFinite(value)
+            ? Math.Clamp(value, 0, 100) : fallback;
     }
 
     private static AppSettings ReadCurrent(string json) =>

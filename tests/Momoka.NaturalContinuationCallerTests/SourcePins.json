@@ -49,7 +49,7 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.cs",
-      "sha256": "4da577b53b8113477033f153f8e2d985291a9f7e701399611ad78101de8a2edc"
+      "sha256": "17042566937d43cd2d4b75ada68132040ef92e8d9f614b78841b0af91414656d"
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",

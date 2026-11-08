@@ -11612,3 +11612,13 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 主树构建20084运行InspectFnNasDetail通过：电影/单集1280与760人员头像、相似卡片、当前季、空态隐藏恢复和人物作品页，18张实屏已复核；季牌子只有季名，保留主树近期产品要求。本项为匿名只读UI，不代表完整library分区、真实人物作品请求或真实播放；本次零服务器写入、零播放，前轮实服只读证据保留。证据artifacts/fnnas-detail-merged，源树证据保存到artifacts/fnnas-detail-original。
 - publish -NoArchive -Shortcut成功，主树实际artifacts/publish/win-x64更新，546文件286.6MB，批准native/mpv UI/许可/PRI校验通过；发布Shell与当前bin一致，SHA为DE1488B9F7CF083145234C398682F9036674888BF0AEC62EA0BB20322AF70FFC。桌面Momoka.lnk目标和工作目录核对为该主树目录，版本0.2.5.0；收据artifacts/fnnas-detail-merged/delivery-receipt.json。未push，未制作ZIP/MSIX。
 - 主树另一会话删除momoka-code-review三个技能文件的未提交改动保留，不暂存不回填。本轮已完成主树整合、验证和桌面交付；源树49e0干净且产品与测试内容已逐文件进入master。应用归档工具拒绝删除当前聊天的primary checkout，按宿主保护保留，不绕过；顶端b99fc80与已复制证据为恢复线索。
+
+## 2026-11-08 删掉拖边继续播放开关，按当前设置重写出厂值（本树，待合入主树）
+
+- 用户令：「1.在设置中删掉这个选项，固定设置为打开 2.把当前的系统设置设为默认」，随后补「播放管线保留默认独占模式」。范围按确认档：设置页偏好全按当前值；服务器、账号、窗口几何、音量、每库排序筛选视图不动。
+- 设置 → 播放行为删掉「调整窗口大小后继续播放」。`PlaybackSettings.ResumeAfterWindowResize`、`ResizeFreeze.Resumes`、`PlayerViewModel.ResumeAfterWindowResize` 一起退役：拖边开始照旧冻住（`ResizeFreeze.Freezes` 三问不变），收尾由 `_freezePauseAccepted` 直接决定接着放；旧设置文件里的 false 被反序列化器丢掉，不需要迁移。`--probe-player-motion` 的「设定为保持暂停」阶段删除。
+- 出厂值按本机存档改写：`Playback.PinWindowTopmost` 开；`Danmaku.Source` 两者合并、`ShowInput` 关；`Ui` 按钮色 `#808080`、背景色 `#404040`、叠层浓度 39.25%、按钮染色 10/50、背景染色 0/50、`UseAcrylicControls` 开；播放管线按用户明确要求仍出厂独占。四项染色各持出厂常量，`AppearanceOpacity.Tint` 的兜底改由调用方传入，`SettingsMigration` 的非有限值各回各档。已存有效偏好原样保留。
+- 单测：主套件 4207/4207、0 失败 0 跳过（`TEMP` 指向可写目录；默认 `C:\WINDOWS\TEMP` 时两条下载用例因权限红，属环境，未改测试）；`Momoka.PlayerInputRecoveryTests` 17/17；`Momoka.AppearanceOpacityTests` 68/68。更新 ResizeFreeze／DetailLayout／Gaussian／Danmaku／AppearanceColor／SettingsPageState／ReviewMigration 与 R046 源哈希（只 `PlayerViewModel.cs`，`4da577b…`→`1704256…`，提取成员未变）。
+- 运行：本树 `publish -NoArchive` 到 `artifacts/publish/win-x64` 与 `artifacts/probe-run`（546 文件 286.6 MB，发布校验通过）。`--probe-player-motion`（副屏、本地彩条素材）自动断言通过；`--probe-shell --probe-section settings --screen 1` 28/28 通过，含详情自定义的材质切换与弹幕默认来源／输入栏。实屏 `settings-playback-sections-1100` 已无该行，`settings-acrylic-controls` 显示 `#808080`／`#404040`／0／50。
+- 主树合并、重验与桌面发布待做；本树提交见下一行记录。
+

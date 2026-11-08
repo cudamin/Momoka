@@ -434,19 +434,23 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>详情按钮亚克力的 TintOpacity（0–1）。半透明叠层用不到它。</summary>
     internal double ControlTintOpacity => AppearanceOpacity.Tint(
-        _settings?.Settings.Ui.ControlTintOpacity ?? UiSettings.DefaultAcrylicTintOpacity);
+        _settings?.Settings.Ui.ControlTintOpacity ?? UiSettings.DefaultControlTintOpacity,
+        UiSettings.DefaultControlTintOpacity);
 
     /// <summary>详情按钮亚克力的 TintLuminosityOpacity（0–1）。</summary>
     internal double ControlTintLuminosityOpacity => AppearanceOpacity.Tint(
-        _settings?.Settings.Ui.ControlTintLuminosityOpacity ?? UiSettings.DefaultAcrylicTintOpacity);
+        _settings?.Settings.Ui.ControlTintLuminosityOpacity ?? UiSettings.DefaultControlTintLuminosityOpacity,
+        UiSettings.DefaultControlTintLuminosityOpacity);
 
     /// <summary>背景亚克力的 TintOpacity（0–1）。背景固定走亚克力，两档浓度不再有别的入口。</summary>
     internal double BackdropTintOpacity => AppearanceOpacity.Tint(
-        _settings?.Settings.Ui.BackdropTintOpacity ?? UiSettings.DefaultAcrylicTintOpacity);
+        _settings?.Settings.Ui.BackdropTintOpacity ?? UiSettings.DefaultBackdropTintOpacity,
+        UiSettings.DefaultBackdropTintOpacity);
 
     /// <summary>背景亚克力的 TintLuminosityOpacity（0–1）。</summary>
     internal double BackdropTintLuminosityOpacity => AppearanceOpacity.Tint(
-        _settings?.Settings.Ui.BackdropTintLuminosityOpacity ?? UiSettings.DefaultAcrylicTintOpacity);
+        _settings?.Settings.Ui.BackdropTintLuminosityOpacity ?? UiSettings.DefaultBackdropTintLuminosityOpacity,
+        UiSettings.DefaultBackdropTintLuminosityOpacity);
 
     /// <summary>
     /// 这层材料挡住了画面多少（0–1）：两项浓度都拖到 0 就是「什么都不盖」，图按原样清晰显示。
