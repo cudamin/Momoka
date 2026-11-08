@@ -1,3 +1,20 @@
+## 2026-11-08 沉浸档右上角艺术图与集页封面悬停遮罩：主树整合与桌面交付
+
+用户两条令：①「参考集页面，新增沉浸模式下在右上角显示艺术图」；②「集页面鼠标移到左上角的封面的时候要显示遮罩」。追问后①的范围选「电影、剧、集三页都加」—— 两种模式同一个答案，不再按模式分档。
+
+产品（`b90e9da`）：
+- 右上角那张艺术图（`ItemArtwork.Corner`）不再看模式：判据收在 Core 的 `DetailHero.ShowsCorner`（有图、非紧凑版式、题栏还让得出位置、电影/剧/集之一），视图模型的 `CornerShown` 与带高 `HeroContent` 读同一句。`CornerImage` 到货时把带高那几支一并重喊 —— `ShowCorner` 先排尺寸再换图，不补这一句「尺寸没变、只是图来了」那一次带子会留在没有这一角的那一档。季页不必写进判据：`CornerAsync` 根本不为季问艺术图。
+- 集页左上角封面加一层悬停遮罩（`CoverShade`，`EgScrimBrush`、0.78、同海报卡 `HoverShade`）：只在集页、只在有封面的那一档；指针进封面淡入 200ms、离开 160ms 收回，和封面播放键共用一次指针判定与一段动画。`DetailPage.CoverPlay.cs` 里那套名字随之从 CoverPlay 改成 CoverHover（`PrepareCoverHover`／`SyncCoverHover`／`ShowCoverHoverSample`）。
+- `EgPicker` 补一条：框被栏宽压着时弹层自己也封顶。艺术图占掉一栏之后标题栏变窄，电影页 1280 上那颗长名音轨的弹层原本探出选择框右沿 95 像素、压在角上那张画上（集页从 2026-09-12 起是同一个处境，只是没有读数盯着）。**第一版把 `MaxWidth` 绑到 `ActualWidth` 是错的**：绑定没生效，弹层收成 0 宽（读数 366–366），而「弹层不许探出右沿」那条断言反而绿了；现在是盯弹层 `SizeChanged`、收起时清掉，并给探针补了一条「弹层不能比选择框窄」把那个坏法钉住。
+
+验证（本树 `b90e9da`）：Shell 与 Tests Release/x64 均 0 警告 0 错误；完整主测试 **4208/4208、0 失败 0 跳过**；`format whitespace` 与 `git diff --check` 退出 0；`--probe-shell --probe-section library` **33/33、0 失败、退出 0**（`shell-probe-20261108-095826388-13648`）。读数：弹层 366–829（与框同宽）、艺术图 360×202.67 → 540×304、沉浸单集四档显隐正确（1280／1024 显示、1023／768 收起）。截图目视过 `detail-episode-immersive-1280.png`（沉浸集页右上角那张画）、`detail-responsive-Movie-1280.png`（电影页沉浸档，片名/下拉/键都没有被挤坏）、`detail-episode-cover-shade.png`（遮罩亮起那一帧）。过程红项照实保留：筛选多选下拉那条在探针窗口被别的窗口抢走激活时两次超时（同一代码安静重跑 33/33，`shell-probe-20261108-090721136-24192`、`shell-probe-20261108-094551891-26544`），弹层 0 宽那一条也是红着改的（`shell-probe-20261108-093229905-19184`）。
+
+主树：`de5d03e` → `b90e9da` 以 `--ff-only` 合入；另一会话删掉的三份 `.claude/skills/momoka-code-review/*` 未提交改动原样保留。主树**最终整合代码**重验：全方案 Release **0 警告 0 错误**；完整主测试 **4208/4208、0 失败 0 跳过**（`TEMP`/`TMP` 指主树 `work/tmp`）；`--probe-shell --probe-section library` **33/33、0 失败、退出 0**（`shell-probe-20261108-101755454-28560`）；`format whitespace` 与 `git diff --check` 退出 0。
+
+交付：`tools/publish.ps1 -NoArchive -Shortcut` 刷新主树 `artifacts/publish/win-x64`：**546 文件、286.6 MB**，GLSL/HOOK 着色器许可与批准 mpv 清单（59 文件：50 UI、2 native）逐文件校验通过；发布 `Momoka.dll` 与构建输出同为 `256631EFB2B1314001DAAA5A8253AB76412FD34A7789E0316D6A2A8189C7A5D5`。快捷方式写回仍被沙箱 ACL 拒绝（`tools/shortcut.ps1` UnauthorizedAccessException，与前几批同一条），直接读 `.lnk` 里的路径段仍是 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`，本次只换该目录内容、路径未变。**桌面交付完成**。未真实登录、未真实播放、未写服务器、未上传。
+
+临时分支 `workbuddy/master-b1603d54` 顶端 `b90e9da`，内容已全部进入 master；本聊天的工作树 `WorkBuddy/Worktrees/Momoka/master-b1603d54` 待会话关闭后按上一轮同一口径删除（这一条交付段只存在于 master，分支不需要跟着更新）。
+
 ## 2026-11-08 封面播放键与翻页键亚克力：主树整合与桌面交付
 
 本树 `58e32ad`（`cb90323` 产品提交 ＋ 合并 master `27d5211` 的窗口模式淡出）以 `--ff-only` 合入主树；`PROGRESS.md` 一处冲突按「新语义优先、双方历史都留」解决。主树里另一会话删掉的三份 `.claude/skills/momoka-code-review/*` 未提交改动原样保留，没有触碰。
