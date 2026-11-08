@@ -11622,3 +11622,11 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 运行：本树 `publish -NoArchive` 到 `artifacts/publish/win-x64` 与 `artifacts/probe-run`（546 文件 286.6 MB，发布校验通过）。`--probe-player-motion`（副屏、本地彩条素材）自动断言通过；`--probe-shell --probe-section settings --screen 1` 28/28 通过，含详情自定义的材质切换与弹幕默认来源／输入栏。实屏 `settings-playback-sections-1100` 已无该行，`settings-acrylic-controls` 显示 `#808080`／`#404040`／0／50。
 - 主树合并、重验与桌面发布待做；本树提交见下一行记录。
 
+### 主树交付记录
+
+- 产品提交 c292050 已挑入 master 为 a9e2418（PROGRESS 自动合并）；主树另有 momoka-code-review 三个技能文件的未提交删除，未暂存、未回填。
+- 主树 Release/x64 全方案编译 0 警告 0 错误；完整 4207/4207、0 失败 0 跳过（`TEMP` 指向可写目录）；`Momoka.PlayerInputRecoveryTests` 17/17；`Momoka.AppearanceOpacityTests` 68/68。
+- 主树发布件 `--probe-player-motion`（副屏、本地彩条素材）自动断言通过。`--probe-shell --probe-section settings --screen 1` 串行三次：27/28、27/28、28/28；前两次红项都是「像素探针窗口被遮挡或移到屏外」（分别落在弹幕宽窗与自定义 mpv.conf 宽窗），同一用例在另一次运行或窄窗通过，按环境遮挡如实保留记录，最终一次全绿。
+- `publish -NoArchive -Shortcut` 更新主树 `artifacts/publish/win-x64`：546 文件 286.6 MB，批准 native／mpv UI／许可／PRI 校验通过。快捷方式重写被桌面写入拒绝（`UnauthorizedAccessException`）；现有 `Momoka.lnk` 的目标与工作目录经读文件核对仍是该发布目录，桌面启动的就是这一份。未上传、未 push。
+
+
