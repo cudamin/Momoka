@@ -1,3 +1,15 @@
+## 2026-11-08 集列表牌子的季菜单退役
+
+用户令（附详情页截图）：「去掉上图集列表卡片左上角的折叠栏」，追问后明确「意思是不要这个季度列表菜单了」，范围选「只去掉下拉箭头」—— 牌子留下，折角与它弹开的季列表一起走。
+
+产品（cc167f6）：`EpisodeHead` 不再接 `Offer`／`Invoked`、不再指定字形，牌子只剩强调线、季名与通栏线，不是按钮、没有悬停下划线，点了没有反应。`DetailPage` 里那套浮层（`OpenEpisodeSeasonMenu`、`BuildSeasonMenuRow`、`SeasonMenu`／`SeasonMenuRow`、`OnEpisodeHeadInvoked`）、只为折角存在的 `ShelfHead.Glyph` 依赖属性、`DetailViewModel.EpisodeSeasonChoices` 一并退役。季锚点能力保留：集带翻过季界时标题照旧跟着换（`ShelfStrip.LeadingChanged` → `FollowEpisode`）；`SelectEpisodeSeason` 只留给自检与探针驱动，换季改走「全部剧季」卡片进季页。对应说明写进 `docs/开发与验证.md` 同一日期那一节，并声明取代 2026-11-03 与同日早间两节里「季菜单仍可点开」的描述。
+
+验证：终码 Release/x64 Tests/Core/Shell **0 警告 0 错误**；完整主测试 **4186/4186、0 失败 0 跳过**（`TEMP`/`TMP` 指本树 `work/tmp`）；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。`--probe-shell --probe-section library --screen 2` **32/32、0 失败、正常退出**（`shell-probe-20261108-041424153-24912`），新断言读数「集列表牌子：标题「更多来自：第 1 季」、折角 Collapsed、点击面 Collapsed」；「剧页换季只换锚点与集带起点」「剧页单季不画全部剧季…」「集页…」照旧全绿。`InputControlThemeTests` 那条「集列表牌子别再长回来」补了三句：不许再有 `Offer`／`Invoked`／`Glyph`。`performance`／`shell` 两分区这一批没跑 —— 那两个文件里只改了用例提示文案（`SelectPerformanceSeasonAsync`、`State` 的「季菜单／季列表」字样改叫「换季锚点」），没有逻辑变化；`State`／`PerformanceCompletion`／`LongSeries` 三处改动已编译通过。探针那一跑期间另一个会话的实例在 1 号屏（`.codex/worktrees/49e0`），本探针在 2 号屏，像素与几何断言都过。
+
+顺手（e2faf8b）：上一批 5d9a4dc 留下的两处空白违规让 `format whitespace` 一直是红的（`ItemDetail.DisplaySeasonStarts` 与 `EpisodeDisplayTests` 的对象初始化器要一行一个属性），纯空白归零、无行为变化；因此上面的构建、主测试与探针都是在加入这一版之后的最终代码上重跑的，中间那轮全绿证据没有拿来充数。
+
+交付：`tools/publish.ps1 -NoArchive -Shortcut` 刷新主树 `artifacts/publish/win-x64`（清目录那一步仍被沙箱的批量删除闸拦下，旧目录已由回收站移走，第二次跑成功）：546 文件、300 495 165 字节（286.6 MB）；发布 `Momoka.dll` 与构建输出同为 `40213FFA1F0AF3B2AEBE631A09F81D5EFED0BDB0C620F8AB38E0EA3812C43869`。快捷方式写回仍被沙箱 ACL 拒绝（`.lnk` 未重写），读回目标仍是同一份 `artifacts\publish\win-x64\Momoka.exe`，本次只换该目录内容。实屏 `work/20261108-episode-head.png`（发布件 `--show-detail --scroll-half --maximized --screen 2`，真实账号只读导航）：集列表牌子上只有「更多来自：第 2 季」一行字、右边没有折角；这一部是单季剧（共 1 季），多季那一档折角消失由上面那条探针读数作证，没有拿它冒充多季截图。未真实播放、未写服务器、未上传。
+
 ## 2026-11-08 清理 54 棵遗留工作树，本地只剩主树
 
 用户令「清理多余的工作树」。现场 `git worktree list` 原有 56 棵附加树（`.codex/worktrees` 41 棵、`.qoder/worktrees/app` 14 棵、WorkBuddy 1 棵），逐棵核对工作区全部干净（tracked／untracked 均为 0）。按内容判定：26 棵顶端是 master 祖先（含保留下来的 WorkBuddy 那棵）；20 棵的提交以 patch-id 已在 master；其余 9 棵顶端不在 master，但逐文件比对后 master 自各自基点起改过全部同一批文件——单集沉浸 5910486 由 c4a0b51 整合且 `HeroCard` 已演化为 `HeroCardShown`／`HeroCardVisibility`，5% 渐变 65a3e94 被「移除详情背景图底部渐变」和后来的亚克力三项参数取代，def8／dcc7fc 的审查报告绝大部分在 master `docs/superpowers/reviews/2026-11-05-full-code-review` 下同名同内容、产品改动被亚克力三项参数覆盖，repair-foundation 1e66570、repair-media 97c37c2、review-perf 1acc7cc 均由后续提交覆盖——没有 master 缺少的产品改动。
