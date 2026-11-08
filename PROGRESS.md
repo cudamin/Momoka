@@ -18,6 +18,10 @@
 
 边界与代价：全屏退出仍是硬切（用户本轮选择；整屏覆盖层每拍重传不划算）；竖屏片这一类「客户区不是按宽度收窄」的几何，改铺时画面会随窗口一道重新 fit 一次 —— 常见横向片源下 `AspectLock.Fit` 保持宽度与中心，屏上位置分毫不动；淡出期间窗口已还给浏览几何，主页可点（280ms 的窗口，比改动前那两帧略长）。未真实登录、未真实播放服务器、未写服务器、未上传。
 
+交付：产品 `dcf2186` 已 ff 合入主树（合入前主树 HEAD 就是本树基点 `0fd08e0`，另一会话删掉的三份 `.claude/skills/momoka-code-review/*` 未提交改动原样保留、未触碰）。主树重验：Release/x64 全方案 **0 警告 0 错误**；完整主测试 **4202/4202、0 失败 0 跳过**；`Momoka.PlayerExitHandoffTests` 8/8、`Momoka.PlayerMotionProbeTests` 23/23；主树构建上 `--probe-player-motion --screen 2` 退出 0（`player-motion-probe-20261108-065101572-26300`，淡出 282ms、18 个取值、两段矩形 `1064x532 → 1064x792`）；`format whitespace` 与 `git diff --check` 通过。发布 `tools/publish.ps1 -NoArchive -Shortcut` 刷新主树 `artifacts/publish/win-x64`：546 文件、`du` 287.8 MB，发布 `Momoka.dll` 与构建输出同为 `F45B3FBA7286CFF6E8CDE1C5324B8FA962E71BEA2A93BEDC6F9CB82DE6D523FE`；旧目录按沙箱的老规矩先挪到 `C://Users//89400//Momoka-stale//publish-20261108-1452` 再跑。发布件自身再跑 `--probe-player-motion --screen 2` 退出 0（`player-motion-probe-20261108-070026038-18212`，淡出 281ms、18 个取值）。快捷方式写回仍被沙箱 ACL 拒绝（`tools/shortcut.ps1` UnauthorizedAccessException，与前几批同一条），读 `.lnk` 得到目标仍是 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`、本次只换该目录内容。发布件探针头两次被另一会话的界面探针占着桌面挡红（遮挡守卫，两次原报告保留），其进程退出后同代码第三跑全绿。
+
+临时分支 `workbuddy/master-23469d62` 顶端 `dcf2186`，内容已全部进入 master；本聊天的工作树 `WorkBuddy/Worktrees/Momoka/master-23469d62` 待会话关闭后按上一轮同一条口径删除（本文件这一条交付段只存在于 master，分支不需要跟着更新）。未上传远程。
+
 ## 2026-11-08 集列表牌子的季菜单退役
 
 用户令（附详情页截图）：「去掉上图集列表卡片左上角的折叠栏」，追问后明确「意思是不要这个季度列表菜单了」，范围选「只去掉下拉箭头」—— 牌子留下，折角与它弹开的季列表一起走。
