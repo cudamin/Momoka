@@ -17,13 +17,21 @@ internal sealed partial class ShellNavigationProbe
 {
     private static void RequireDetailBackdropFade(DetailPage page)
     {
-        var expected = page.ViewModel.BackdropShown
+        // 2026-11-08 用户令「窄窗口的背景图不要加亚克力」：窄过紧凑断点那一档只有实色阅读罩，没有这块材料。
+        var narrow = page.ViewModel.PageWidth is > 0 and < DetailHero.CompactFloor;
+        var expected = page.ViewModel.BackdropShown && !narrow
             && (page.ViewModel.Showcase
                 || page.ViewModel.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season);
         var fade = Get<Border>(page, "BackdropFade");
         Require((fade.Visibility == Visibility.Visible) == expected, "底部渐变显隐不符合页面及沉浸模式");
         Require(!Descendants(page).OfType<Border>().Any(border => border.Name == "BackdropShade"), "重复阅读遮罩仍然存在");
-        if (!expected) return;
+        if (!expected)
+        {
+            if (page.ViewModel.BackdropShown && narrow)
+                Require(ScrimAlphaOf(page) == AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, AppearanceOpacity.ReadingVeil),
+                    $"窄窗背景图上不是那道固定实色罩子：{ScrimAlphaOf(page)}");
+            return;
+        }
         var picture = Get<Border>(page, "BackdropPicture");
         Require(fade.Parent == picture.Parent
             && fade.Opacity == 1 && Math.Abs(fade.ActualHeight - picture.ActualHeight) < 0.01

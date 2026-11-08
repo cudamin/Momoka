@@ -121,6 +121,22 @@ public static class DetailHero
         && type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode;
 
     /// <summary>
+    /// 背景图上那层亚克力画不画：有图、窗口宽过紧凑断点，并且这一档本来就该铺材料（沉浸档，或电影/剧/季的
+    /// 宽窗卡面）。
+    /// <para>
+    /// 2026-11-08 用户令「窄窗口的背景图不要加亚克力」：窄窗那一档不画这块玻璃，压在图上的换回固定 40% 的
+    /// 实色阅读罩（<c>DetailPage.PaintScrim</c> 的 HeroTail／HeroBand 那一支）—— 和集页卡面同一档。判据是
+    /// 窗口宽窄本身，不是「紧凑版式」：简洁模式没有紧凑版式，但屏上一样是窄窗，那一档同样不铺材料。
+    /// </para>
+    /// </summary>
+    /// <param name="artwork">背后有没有那张图。</param>
+    /// <param name="narrow">窗口宽是不是窄过 <see cref="CompactFloor"/>。</param>
+    /// <param name="immersive">这一页此刻是不是沉浸版式（<see cref="Immersive"/>）。</param>
+    /// <param name="type">条目类型。</param>
+    public static bool BackdropMaterial(bool artwork, bool narrow, bool immersive, string type) =>
+        artwork && !narrow && (immersive || type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season);
+
+    /// <summary>
     /// MoviePilot 订阅详情页的大窗模式（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」，同日追加
     /// 「拉长窗口导致背景图快要被裁切时也要自动切换」）。
     /// <para>

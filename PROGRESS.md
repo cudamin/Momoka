@@ -1,3 +1,16 @@
+## 2026-11-08 沉浸详情卡片小字、信息卡亚克力与窄窗背景材质
+
+用户三条令：①「更换下方小字字体颜色」（附「第 10 集 · 24 分钟」「Raku Ichijou (vo…」两张卡片截图），追问后选「压图浅灰白 #C9D0D9」，范围「只有详情页压在背景图上的卡片」并补一句「沉浸模式下」；②「参考集页面给其他媒体页面的其他信息也加上亚克力背景」；③「窄窗口的背景图不要加亚克力」。
+
+产品：
+- 详情页沉浸档把正文四条卡片带（单集／全部剧季／演职人员／更多类似）的 `ShelfStrip.OnScrim` 打开：卡片标题走 `EgOnScrimBodyStyle`、副行走 `EgOnScrimDataStyle`（`EgOnScrimDimBrush` #C9D0D9）；纸面档（简洁模式、窄窗紧凑）退回主题正文与 `EgTextDimBrush` #9FA4A8。媒体库墙、搜索、主页卡片没动。
+- `InfoPanel.Background` 在沉浸档一律指到 `CardMaterialSource.Background`：电影、剧、季三页的「其他信息」和集页同一块深色亚克力卡面（此前只有集页有；`fa948c8` 那一版曾经四页都铺，`62b2201` 撤回时收成了单集）。
+- 背景材料判据收进 Core 纯函数 `DetailHero.BackdropMaterial`：窗口窄过 `CompactFloor` 不铺亚克力，压图改回 `PaintScrim` 那支固定 40% 实色阅读罩；宽窗行为不变（沉浸档或电影/剧/季卡面照旧铺）。
+
+验证：主树 Release/x64 Tests/Core/Shell 均 0 警告 0 错误。完整 4186/4186、0 失败 0 跳过（`TEMP`/`TMP` 指到本树 `work/tmp`；默认沙箱 TEMP 是 `C:\WINDOWS\TEMP`，两条下载用例会因无权枚举而红，属环境）。亚克力专项 31/31。`--probe-shell --probe-section library --screen 2` 最终 32/32、退出 0（`shell-probe-20261108-030705756-16892`，456 张图）：前两跑各有一处与本批无关的环境红 —— 第一跑 Series 截图 `Win32Exception(6) 句柄无效`（GDI 取屏），第二跑「轮播读秒连续」超时样本；同代码第三跑全绿，两处原报告保留。截图已目视：`detail-customization-Series-emby-dark-screen.png`（剧页「其他信息」现在是和集页同一块亚克力卡面）、`detail-immersive-enabled-Movie-760-screen.png`（760 窄窗背景图清晰、只剩实色压暗，没有玻璃）、`detail-customization-Episode-emby-dark-screen.png`。
+
+边界：窄窗只去掉背景图那层材料，白色片名压的仍是原固定 40% 实色罩子；季页集列表的「日期 · 时长」行走 `EpisodeRow`，没有跟着换墨；MoviePilot 订阅页的同类背景材料未动。未真实播放、未写服务器。
+
 ## 2026-11-08 背景与按钮亚克力三项参数主树交付
 
 产品提交 67c5372（合 f14ca28 与工作树 896d6ab），四处冲突按「新语义优先、保留主树修复」解决：详情视图模型保留裁切模糊并把「强度 0 不模糊」映射为两项染色浓度都为 0；探针留亚克力断言、删退役高斯检查与诊断字段；外观专项取新语义；主树 R07-009 强度用例改由两项浓度驱动。

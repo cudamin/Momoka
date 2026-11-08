@@ -9,8 +9,13 @@ namespace Momoka.Shell.Views;
 public sealed partial class DetailPage
 {
     // 阅读保护固定在图片层，滚动内容和标题栏不再重复叠暗。沉浸背景也必须压住任意位置的亮部。
-    private bool UsesBackdropFade => ViewModel.BackdropShown
-        && (ViewModel.Showcase || ViewModel.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season);
+    // 2026-11-08 用户令「窄窗口的背景图不要加亚克力」：窄窗那一档这块材料不上，压在图上的回到下面那道
+    // 40% 实色罩子（PaintScrim 的 HeroTail／HeroBand 那一支）。规则本体在 Core，窄窗与页面类型各一句。
+    private bool UsesBackdropFade => DetailHero.BackdropMaterial(
+        ViewModel.BackdropShown, NarrowWindow, ViewModel.Showcase, ViewModel.ItemType);
+
+    /// <summary>窗口窄过紧凑断点（<see cref="DetailHero.CompactFloor"/>）；还没量到宽时不算窄。</summary>
+    private bool NarrowWindow => ViewModel.PageWidth is > 0 and < DetailHero.CompactFloor;
 
     /// <summary>
     /// 没上亚克力那一层时的阅读底色（窄窗与集页卡面）：固定的 40% 实色罩子，和 2026-11-06 那版

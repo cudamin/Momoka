@@ -60,6 +60,36 @@ internal static class AcrylicControlsTests
             Assert.Equal("{ThemeResource EgAccentBrush}", (string?)Named(page, "ScoreStack")
                 .Elements(Xaml + "FontIcon").Single().Attribute("Foreground"));
         });
+        Test("详情沉浸：卡片副行换成压图浅灰白，纸面档保持主题暗字", () =>
+        {
+            var palette = Read("Theme/Palette.xaml").Root!;
+            Assert.Equal("#FFC9D0D9", (string?)Resource(palette, "EgOnScrimDimBrush").Attribute("Color"));
+            Assert.Equal("#FF9FA4A8", Resource(Theme("Dark"), "EgTextDimColor").Value);
+            var styles = Read("Theme/Styles.xaml").Root!;
+            Assert.Equal("{StaticResource EgOnScrimDimBrush}", Setter(Resource(styles, "EgOnScrimDataStyle"), "Foreground"));
+            Assert.Equal("{ThemeResource EgTextDimBrush}", Setter(Resource(styles, "EgDataStyle"), "Foreground"));
+            // 卡片自己那一支：OnScrim 换的是样式，不是把画刷抄一份（抄了就不跟主题走）。
+            Assert.Contains("EgOnScrimDataStyle", Source("Views/PosterCard.xaml.cs"));
+            // 详情页：沉浸档四条卡片带一起换墨，纸面档换回来。
+            var showcase = Source("Views/DetailPage.Showcase.cs");
+            foreach (var strip in new[] { "EpisodeStrip", "SeasonRow", "CastRow", "SimilarRow" })
+                Assert.Contains(strip, showcase);
+            Assert.Contains("strip.OnScrim = showcase;", showcase);
+        });
+        Test("详情沉浸：四类页面的其他信息卡都保留亚克力卡面", () =>
+        {
+            var code = Source("Views/DetailPage.Appearance.cs");
+            Assert.Contains("InfoPanel.Background = ViewModel.Showcase ? CardMaterialSource.Background : _panelFill;", code);
+            // 从前只管单集页；用户 2026-11-08 要求电影、剧、季也加同一块卡面，判据里不该再有类型分支。
+            var paint = code[code.IndexOf("private void PaintBackdropReading()", StringComparison.Ordinal)..];
+            paint = paint[..paint.IndexOf('}')];
+            Assert.False(paint.Contains("EmbyItemType", StringComparison.Ordinal));
+            var card = Resource(Theme("Dark"), "CardBackgroundFillColorDefaultBrush");
+            Assert.Equal("AcrylicBrush", card.Name.LocalName);
+            Assert.Equal("0.65", (string?)card.Attribute("TintOpacity"));
+            Assert.Equal("0.45", (string?)card.Attribute("TintLuminosityOpacity"));
+            Assert.Equal("{StaticResource EgSurfaceAltColor}", (string?)card.Attribute("TintColor"));
+        });
         Test("详情菜单：透明表面使用轻透系统亚克力", () =>
         {
             var style = Resource(Read("Theme/Styles.xaml").Root!, "EgDetailMenuPresenterStyle");

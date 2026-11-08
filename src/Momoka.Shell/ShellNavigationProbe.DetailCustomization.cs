@@ -457,12 +457,12 @@ internal sealed partial class ShellNavigationProbe
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
                 Require(!page.ViewModel.Showcase && page.ViewModel.IsCompact && page.ViewModel.BackdropShown, "开启时窄窗未保持紧凑排版与背景图");
-                // 窄窗：电影、剧、季仍铺那块玻璃；单集的紧凑版式不上玻璃，压在图上的还是固定 40% 的实色罩子。
-                var glassy = page.ViewModel.Showcase || item.Type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
-                if (glassy) RequireBackdropAcrylic(page, 0.45, 0.45);
-                else if (masked)
+                // 2026-11-08 用户令「窄窗口的背景图不要加亚克力」：这一档只有固定 40% 实色罩子，四类页面一样。
+                Require(Get<Border>(page, "BackdropFade").Visibility == Visibility.Collapsed,
+                    "窄窗背景图上仍画着亚克力层");
+                if (masked)
                     Require(ScrimAlphaOf(page) == AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, AppearanceOpacity.ReadingVeil),
-                        "窄窗单集的实色阅读罩浓度不对");
+                        "窄窗背景图的实色阅读罩浓度不对");
                 await CheckImmersiveSwitchAsync(page, fixture.Settings.Ui);
                 readings.Add($"{item.Type}：{string.Join(',', expected.Select(card => card.Key))}，隐藏恢复同实例，背景染色0/45/100，窄窗保留紧凑布局");
             }
@@ -539,6 +539,10 @@ internal sealed partial class ShellNavigationProbe
                 var expectedCard = subject?.Type != EmbyItemType.Episode || wide;
                 Require(page.ViewModel.HeroCardShown == expectedCard && card.Visibility == (expectedCard ? Visibility.Visible : Visibility.Collapsed),
                     "简洁三类详情始终保留卡面，单集恢复原宽窗卡片布局");
+                // 沉浸关掉之后卡片带回到主题那套墨、信息卡回到正文面板共享的那支画刷。
+                RequireCardInk(page, onScrim: false);
+                Require(ReferenceEquals(Get<StackPanel>(page, "InfoPanel").Background, Get<AcrylicBrush>(page, "_panelFill")),
+                    "纸面信息卡没有回到正文面板底色");
                 Require(Get<StackPanel>(page, "ColumnPickers").Visibility == page.ViewModel.ColumnPickersVisibility,
                     "同页切换后视频信息父容器没有同步显隐");
                 if (!oldEpisodeBackdrop) Require(page.ViewModel.TailMinHeight == 0, "无背景仍保留了背景留白");
@@ -582,12 +586,47 @@ internal sealed partial class ShellNavigationProbe
             "沉浸正文仍保留卡片底色或描边");
         Require(Get<Border>(page, "BodyPaper").Background is SolidColorBrush { Color.A: 0 },
             "沉浸正文纸面仍遮住固定背景");
-        if (page.ViewModel.ItemType == EmbyItemType.Episode)
-            Require(Get<StackPanel>(page, "InfoPanel").Background is AcrylicBrush { FallbackColor.A: 255, Opacity: 1 },
-                "单集沉浸信息表没有保留可读亚克力卡面");
+        // 2026-11-08 用户令「参考集页面给其他媒体页面的其他信息也加上亚克力背景」：四类页面都保留可读卡面。
+        Require(Get<StackPanel>(page, "InfoPanel").Background is AcrylicBrush { FallbackColor.A: 255, Opacity: 1 },
+            "沉浸信息表没有保留可读亚克力卡面");
+        RequireCardInk(page, onScrim: true);
         Require(!page.ViewModel.ShowShelfLines && page.ViewModel.TailMinHeight == 0
             && Get<Border>(page, "CardTailGap").ActualHeight < 0.01,
             "沉浸仍保留货架线条或卡面收尾留白");
+    }
+
+    /// <summary>
+    /// 正文那四条卡片带的副行现在用的是哪一套墨。沉浸档里它们没有纸面接着，站的正是背景图，
+    /// 所以必须是压在图上那支浅灰白；纸面档回到主题自己的暗字。卡片是回收着建的，另抓已建出来的那张读颜色。
+    /// 一张卡都没建出来的页面（没有演职人员、没有相似条目的电影）能核的只有带自己那一档。
+    /// </summary>
+    private static void RequireCardInk(DetailPage page, bool onScrim)
+    {
+        var expected = ((SolidColorBrush)Application.Current.Resources[
+            onScrim ? "EgOnScrimDimBrush" : "EgTextDimBrush"]).Color;
+        foreach (var name in new[] { "EpisodeStrip", "SeasonRow", "CastRow", "SimilarRow" })
+        {
+            var strip = Get<ShelfStrip>(page, name);
+            Require(strip.OnScrim == onScrim,
+                (onScrim ? "沉浸卡片带没有换成压图浅墨：" : "纸面卡片带仍用压图浅墨：") + name);
+            foreach (var card in CardsIn(strip))
+            {
+                var subline = Get<TextBlock>(card, "SubLine");
+                if (subline.Visibility != Visibility.Visible) continue;
+                Require(subline.Foreground is SolidColorBrush ink && ink.Color == expected,
+                    $"{name} 副行颜色是{(subline.Foreground as SolidColorBrush)?.Color}，该是{expected}");
+            }
+        }
+    }
+
+    private static IEnumerable<PosterCard> CardsIn(DependencyObject node)
+    {
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(node); index++)
+        {
+            var child = VisualTreeHelper.GetChild(node, index);
+            if (child is PosterCard card) yield return card;
+            foreach (var nested in CardsIn(child)) yield return nested;
+        }
     }
 
     private static void RequireEpisodeSubject(DetailPage page, EmbyItem episode)

@@ -224,6 +224,22 @@ internal static class DetailLayoutTests
             foreach (var type in new[] { EmbyItemType.Person, EmbyItemType.Folder, "unknown", null! })
                 Assert.False(DetailHero.Immersive(true, false, true, type));
         });
+
+        Test("背景材料：窄窗不铺亚克力，宽窗按沉浸档或三页卡面", () =>
+        {
+            // 2026-11-08 用户令「窄窗口的背景图不要加亚克力」：窄窗一律没有这块材料。
+            foreach (var immersive in new[] { true, false })
+                foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode })
+                    Assert.False(DetailHero.BackdropMaterial(true, narrow: true, immersive, type));
+            // 宽窗：沉浸档四类都有；非沉浸档只有电影、剧、季有，单集的卡面不铺。
+            Assert.True(DetailHero.BackdropMaterial(true, false, true, EmbyItemType.Movie));
+            Assert.True(DetailHero.BackdropMaterial(true, false, true, EmbyItemType.Episode));
+            Assert.False(DetailHero.BackdropMaterial(true, false, false, EmbyItemType.Episode));
+            foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season })
+                Assert.True(DetailHero.BackdropMaterial(true, false, false, type));
+            // 没有图就什么都没有。
+            Assert.False(DetailHero.BackdropMaterial(false, false, true, EmbyItemType.Series));
+        });
     }
 
     private static string Keys(IEnumerable<DetailCardSetting> rows) => string.Join(',', rows.Select(row => row.Key));

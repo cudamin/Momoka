@@ -29,6 +29,9 @@ public sealed partial class DetailPage
     private IEnumerable<StackPanel> BodyPanels =>
         BodySheet.Children.OfType<StackPanel>();
 
+    /// <summary>正文里那四条卡片带 —— 沉浸档里它们是直接站在背景图上的，纸面档才站在纸上。</summary>
+    private IEnumerable<ShelfStrip> BodyStrips => [EpisodeStrip, SeasonRow, CastRow, SimilarRow];
+
     /// <summary>第一帧之前准备本页的正文画刷。</summary>
     private void PrepareShowcase()
     {
@@ -113,6 +116,12 @@ public sealed partial class DetailPage
         _sheetBrush.Color = showcase ? WashColor : PaperColor;
         _panelFill.Opacity = showcase ? 0 : 1;
         _panelLine.Opacity = showcase ? 0 : 1;
+
+        // 沉浸档里这四条带没有纸面接着，卡片底下那两行字直接压在剧照上：换成压在图上那一套浅墨
+        // （标题近白、副行 #C9D0D9）。主题那支暗字（#9FA4A8）压在彩色画面上一比一点六，几乎读不出来
+        // —— 用户 2026-11-08 截图点名的就是它。纸面档照旧用主题自己的正文与暗字。
+        foreach (var strip in BodyStrips) strip.OnScrim = showcase;
+
         PaintBackdropReading();
 
         HeroTail.MinHeight = ViewModel.TailMinHeight;
