@@ -6,10 +6,26 @@ namespace Momoka.Shell.Windowing
         internal IntPtr Handle { get; } = new(1);
         internal bool Fullscreen { get; set; }
     }
+
+    /// <summary>
+    /// 退场观测里唯一用到覆盖层的地方是「窗口还原之后的客户区」这一读。
+    /// <see cref="Bounds"/> 由夹具在停止回调里改，模拟「窗口还回浏览几何」。
+    /// </summary>
+    internal static class VideoFrameOverlay
+    {
+        internal static Momoka.Shell.Interop.NativeRect Bounds { get; set; }
+        internal static Momoka.Shell.Interop.NativeRect ClientRect(IntPtr window) => Bounds;
+    }
 }
 
 namespace Momoka.Shell.Interop
 {
+    internal struct NativePoint
+    {
+        internal int X;
+        internal int Y;
+    }
+
     internal struct NativeRect
     {
         internal int Left;
@@ -59,6 +75,25 @@ namespace Momoka.Shell.Interop
             bounds = Bounds;
             return true;
         }
+
+        // 屏幕取样：给一个可控灰阶，ScreenLuma 读到的就是 Luma 本身。
+        internal static int Luma { get; set; } = 90;
+        internal static int Samples { get; private set; }
+        internal static bool GetClientRect(IntPtr handle, out NativeRect client)
+        {
+            client = new NativeRect { Right = 800, Bottom = 450 };
+            return true;
+        }
+        internal static bool ClientToScreen(IntPtr handle, ref NativePoint point) => true;
+        internal static IntPtr GetDC(IntPtr window) => new(7);
+        internal static int ReleaseDC(IntPtr window, IntPtr device) => 1;
+        internal static uint GetPixel(IntPtr device, int x, int y)
+        {
+            Samples++;
+            var value = (uint)Math.Clamp(Luma, 0, 255);
+            return value | (value << 8) | (value << 16);
+        }
+        internal static void ResetSamples() => Samples = 0;
     }
 }
 
@@ -81,6 +116,10 @@ namespace Momoka.Shell.Views
         internal Task WindowChange { get; set; } = Task.CompletedTask;
         internal (bool Active, bool Animating, bool Identity, bool CoverHidden, bool SurfaceReady) MotionProbeState =>
             (Active, Animating, Identity, false, false);
+
+        /// <summary>退场观测要读的两样：停止前交接，以及正式路径不等它走完的那条淡出。</summary>
+        internal PlayerState ViewModel { get; } = new();
+        internal Task ExitFade { get; set; } = Task.CompletedTask;
 
         internal void BeginMotionProbe(bool fullscreen)
         {
@@ -107,10 +146,21 @@ namespace Momoka.Shell.Views
             window.Fullscreen = false;
         }
     }
+
+    internal sealed class PlayerState
+    {
+        internal Func<Task>? PrepareStopAsync { get; set; }
+    }
 }
 
 namespace Momoka.Shell
 {
+    /// <summary>实屏截图在夹具里只是端点：不创建窗口、不碰屏幕。</summary>
+    internal static class CompositionPlaybackProbe
+    {
+        internal static Task SaveScreenAsync(Momoka.Shell.Windowing.HostWindow window, string file) => Task.CompletedTask;
+    }
+
     internal sealed class ProbeTimer
     {
         internal bool Started { get; private set; }

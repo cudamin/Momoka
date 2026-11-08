@@ -32,8 +32,9 @@ internal static class Program
             (string Name, Func<Task> Body)[] cases =
             [
                 ("R18 可见本进程覆盖层实际矩形一致才记录一致", () => OverlayAsync("match")),
+                ("R18 只在原客户区出现过的覆盖层不算已改铺", () => OverlayAsync("before-only")),
                 ("R18 整屏越界矩形被记录为不符", () => OverlayAsync("mismatch")),
-                ("R18 零采样明确报告缺口", () => OverlayAsync("missing")),
+                ("R18 零采样不计为通过", () => OverlayAsync("missing")),
                 ("R18 外进程同类窗口不算证据", () => OverlayAsync("foreign")),
                 ("R18 不同类窗口不算证据", () => OverlayAsync("wrong-class")),
                 ("R18 矩形读取失败不算证据", () => OverlayAsync("unreadable")),
@@ -71,46 +72,83 @@ internal static class Program
         }
     }
 
+    /// <summary>
+    /// 退场观测的两种矩形、零样本与异常。2026-11-08 起这一段比原来多证一件事：覆盖层先铺原客户区、
+    /// 再改铺「窗口还原之后的客户区」，然后才是淡出 —— 所以「匹配」不再是单值相等，而是只出现这两个矩形。
+    /// </summary>
     private static async Task OverlayAsync(string mode)
     {
-        var expected = new NativeRect { Left = 100, Top = 120, Right = 900, Bottom = 570 };
+        var before = new NativeRect { Left = 100, Top = 120, Right = 900, Bottom = 570 };
+        var fade = new NativeRect { Left = 100, Top = 40, Right = 900, Bottom = 650 };
         Native.OverlayVisible = false;
         Native.OverlayRead = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         Native.ForeignOverlay = mode == "foreign";
         Native.WrongOverlayClass = mode == "wrong-class";
         Native.OverlayReadFails = mode == "unreadable";
-        Native.OverlayBounds = mode == "mismatch" ? new NativeRect { Right = 1920, Bottom = 1080 } : expected;
+        Native.OverlayBounds = mode == "mismatch"
+            ? new NativeRect { Right = 1920, Bottom = 1080 }
+            : mode == "before-only" ? before : fade;
+        Native.Luma = 120;
+        VideoFrameOverlay.Bounds = before;
+        var window = new HostWindow();
+        var page = new PlayerPage(window) { ExitFade = Task.Delay(280) };
+        page.ViewModel.PrepareStopAsync = async () =>
+        {
+            Native.OverlayVisible = mode != "missing";
+            if (mode is "match" or "mismatch" or "stop-error" or "before-only")
+                await Native.OverlayRead.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            // 窗口还回浏览几何：这一刻的客户区就是覆盖层改铺之后的那个矩形。
+            VideoFrameOverlay.Bounds = fade;
+            await Task.Delay(30);
+            if (mode == "stop-error") throw new InvalidOperationException("original-stop-error");
+            Native.OverlayVisible = false;
+        };
         var report = new List<string>();
+        (string Text, bool Seen, bool Matched, bool LastFade, int Distinct, long Fade) evidence;
         try
         {
-            await PlayerMotionProbe.ObserveForFixture(async () =>
-            {
-                Native.OverlayVisible = mode != "missing";
-                if (mode is "match" or "mismatch" or "stop-error")
-                    await Native.OverlayRead.Task.WaitAsync(TimeSpan.FromSeconds(2));
-                await Task.Delay(30);
-                if (mode == "stop-error") throw new InvalidOperationException("original-stop-error");
-                Native.OverlayVisible = false;
-            }, expected, report.Add, default);
+            evidence = await PlayerMotionProbe.ObserveForFixture(page, window, before, null, report.Add, default);
             Check(mode != "stop-error", "停止异常被吞掉");
         }
-        catch (InvalidOperationException error) when (mode == "stop-error" && error.Message == "original-stop-error") { }
+        catch (InvalidOperationException error) when (mode == "stop-error" && error.Message == "original-stop-error")
+        {
+            return;
+        }
         finally { Native.OverlayVisible = false; }
-        var text = string.Join("\n", report);
-        if (mode is "match" or "stop-error") Check(text.Contains("矩形一致", StringComparison.Ordinal), "实际可見窗口矩形未记录");
-        else if (mode == "mismatch") Check(text.Contains("矩形不符", StringComparison.Ordinal), "错误矩形未被记录：" + text);
-        else Check(text.Contains("采样缺口", StringComparison.Ordinal) && !text.Contains("矩形一致", StringComparison.Ordinal), "缺证据被标为通过");
+        var text = evidence.Text + "\n" + string.Join("\n", report);
+        if (mode is "match" or "stop-error")
+        {
+            Check(evidence.Seen && evidence.Matched, "实际可见窗口矩形未被认成「改铺前后两个」：" + text);
+            Check(text.Contains("改铺后", StringComparison.Ordinal), "证据没有写出改铺后的矩形：" + text);
+        }
+        else if (mode == "before-only")
+        {
+            Check(evidence.Seen && evidence.Matched && !evidence.LastFade,
+                "只在原客户区出现过的覆盖层不该被当成「已经改铺」：" + text);
+        }
+        else if (mode == "mismatch")
+        {
+            Check(!evidence.Matched, "越界矩形被认成了改铺前后的客户区：" + text);
+        }
+        else
+        {
+            Check(!evidence.Seen && text.Contains("0 次可见采样", StringComparison.Ordinal), "缺证据被标为通过：" + text);
+        }
     }
 
     private static void CheckStopHandoffWiring(string root)
     {
         var source = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/PlayerMotionProbe.cs"));
-        Check(source.Contains("await ObserveStopHandoffAsync(page.ViewModel.PrepareStopAsync!, stopClient, Write, token)", StringComparison.Ordinal),
+        Check(source.Contains("ObserveStopHandoffAsync(page, window, stopClient,", StringComparison.Ordinal),
             "R18 停止前必须实际调用覆盖层观察");
         Check(source.Contains("var stopClient = VideoFrameOverlay.ClientRect(window.Handle)", StringComparison.Ordinal),
             "R18 必须捕获停止前客户区");
+        Check(source.Contains("await page.ExitFade;", StringComparison.Ordinal),
+            "R18 必须等退场淡出走完再收尾，否则采不到后半段");
         Check(source.Contains("Native.NextWindow(IntPtr.Zero, after, \"MomokaVideoFrame\", null)", StringComparison.Ordinal),
             "R18 必须枚举真实覆盖层窗口");
+        Check(source.Contains("exit-fade-screen.png", StringComparison.Ordinal),
+            "R18 窗口化退场必须留一张淡出中的实屏");
     }
 
     private static void VerifySource(string root, bool baseline)

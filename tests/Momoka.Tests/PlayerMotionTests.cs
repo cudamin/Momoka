@@ -209,6 +209,31 @@ internal static class PlayerMotionTests
             Assert.True(PlayerMotion.ExitMilliseconds >= 200, "溶解要留够时间，太短读起来还是硬切");
         });
 
+        // 2026-11-08 用户令「确保进入与退出的动画时长、缓动曲线协调统一」：窗口模式退出补的那一段淡出
+        // 与进场共用一个总时长，曲线只从 ExitFadeAlpha 出来 —— 两处各写一个数就是它们迟早会分开的原因。
+        TestHarness.Test("进退场共用同一个总时长", () =>
+        {
+            Assert.Equal(PlayerMotion.EnterMilliseconds, PlayerMotion.ExitMilliseconds);
+        });
+
+        TestHarness.Test("退场淡出由全不透明匀速走到零", () =>
+        {
+            Assert.Equal((byte)255, PlayerMotion.ExitFadeAlpha(0), "起手那一拍画面还亮着");
+            Assert.Equal((byte)0, PlayerMotion.ExitFadeAlpha(1), "走到头就是没有");
+            Assert.Equal((byte)128, PlayerMotion.ExitFadeAlpha(0.5), "一半时间掉一半");
+            Assert.Equal((byte)191, PlayerMotion.ExitFadeAlpha(0.25), "匀速：四分之一处还剩四分之三");
+            Assert.Equal((byte)255, PlayerMotion.ExitFadeAlpha(-1));
+            Assert.Equal((byte)0, PlayerMotion.ExitFadeAlpha(2));
+
+            var previous = PlayerMotion.ExitFadeAlpha(0);
+            for (var step = 1; step <= 32; step++)
+            {
+                var alpha = PlayerMotion.ExitFadeAlpha(step / 32d);
+                Assert.True(alpha <= previous, $"每一步都必须比上一拍更淡（第 {step} 步：{previous} → {alpha}）");
+                previous = alpha;
+            }
+        });
+
         TestHarness.Test("退场的留帧是一路溶解，不是一步压到 15%", () =>
         {
             Assert.Equal(0d, PlayerMotion.ExitDimAt(-1));

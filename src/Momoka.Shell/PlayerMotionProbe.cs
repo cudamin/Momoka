@@ -90,26 +90,88 @@ internal static class PlayerMotionProbe
         return samples;
     }
 
-    private static string StopOverlayEvidence(NativeRect expected, IReadOnlyList<StopOverlaySample> samples, string? failure)
+    /// <summary>客户区里某一点的亮度（0~255），读不到给 −1。退场淡出那一段靠这条曲线判断「淡了」而不是「切了」。</summary>
+    private static int ScreenLuma(IntPtr handle, double x, double y)
     {
-        if (failure is not null) return $"R18 覆盖层采样缺口：{failure}；不计为通过";
-        if (samples.Count == 0) return "R18 覆盖层采样缺口：停止调用期间未观察到可见的本进程 MomokaVideoFrame；不计为通过";
-        var matches = samples.All(sample => sample.Process == (uint)Environment.ProcessId
-            && sample.ClassName == "MomokaVideoFrame" && sample.Bounds.Left == expected.Left
-            && sample.Bounds.Top == expected.Top && sample.Bounds.Right == expected.Right && sample.Bounds.Bottom == expected.Bottom);
-        return $"R18 覆盖层矩形{(matches ? "一致" : "不符")}：{samples.Count} 次可见本进程窗口采样；"
-            + $"预期客户区={expected.Left},{expected.Top},{expected.Width}x{expected.Height}；"
-            + (matches ? "仅为独立运行诊断，不替代画面验收" : "未通过诊断，检查下方实际矩形");
+        if (!Native.GetClientRect(handle, out var client) || client.Width <= 0 || client.Height <= 0) return -1;
+        var device = Native.GetDC(IntPtr.Zero);
+        if (device == IntPtr.Zero) return -1;
+        try
+        {
+            var point = new NativePoint
+            {
+                X = (int)Math.Round((client.Width - 1) * x),
+                Y = (int)Math.Round((client.Height - 1) * y)
+            };
+            if (!Native.ClientToScreen(handle, ref point)) return -1;
+            var color = Native.GetPixel(device, point.X, point.Y);
+            if (color == 0xFFFFFFFF) return -1;
+            var red = (int)(color & 0xFF);
+            var green = (int)((color >> 8) & 0xFF);
+            var blue = (int)((color >> 16) & 0xFF);
+            return (red * 299 + green * 587 + blue * 114) / 1000;
+        }
+        finally { Native.ReleaseDC(IntPtr.Zero, device); }
     }
 
-    private static async Task ObserveStopHandoffAsync(Func<Task> prepareStop, NativeRect expected,
-        Action<string> write, CancellationToken token)
+    /// <summary>
+    /// 退场交接的实测证据：覆盖层窗口的两段矩形、它在屏上活了多久、以及客户区中心逐拍亮度。
+    /// <para>
+    /// <b>2026-11-08 起这条要多证一件事：退场是淡出去的，不是两帧后撤层的硬切。</b>从前这一趟只在
+    /// 「停止调用期间看到过本进程的 MomokaVideoFrame」这一层作答 —— 那是结构证据，硬切也能满足它。
+    /// 现在三个数目说话：覆盖层在屏上的存活时长（硬切只有三十来毫秒）、中心点亮度的<b>不同取值个数</b>
+    /// （硬切只有「彩条」和「主页」两个），以及最后一个矩形必须已经是新客户区（先改铺、再淡）。
+    /// </para>
+    /// </summary>
+    private sealed record StopHandoffEvidence(
+        IReadOnlyList<StopOverlaySample> Overlays,
+        IReadOnlyList<(long At, int Luma, bool Overlay)> Curve,
+        NativeRect Before,
+        NativeRect Fade,
+        long FadeMilliseconds,
+        string? Failure)
+    {
+        internal bool OverlaySeen => Overlays.Count > 0;
+
+        /// <summary>采样到的每一段矩形都必须是「改铺前」或「改铺后」那一个 —— 别处冒出来的矩形就是另一回事。</summary>
+        internal bool RectsMatch => Overlays.All(sample => sample.Process == (uint)Environment.ProcessId
+            && sample.ClassName == "MomokaVideoFrame"
+            && (Same(sample.Bounds, Before) || Same(sample.Bounds, Fade)));
+
+        internal bool LastRectIsFade => Overlays.Count > 0 && Same(Overlays[^1].Bounds, Fade);
+
+        internal int DistinctLuma => Curve.Where(sample => sample.Luma >= 0).Select(sample => sample.Luma)
+            .Distinct().Count();
+
+        internal int FirstLuma => Curve.FirstOrDefault(sample => sample.Luma >= 0).Luma;
+
+        internal int LastLuma => Curve.LastOrDefault(sample => sample.Luma >= 0).Luma;
+
+        internal string Describe()
+        {
+            var rects = string.Join("；", Overlays
+                .DistinctBy(sample => (sample.Bounds.Left, sample.Bounds.Top, sample.Bounds.Right, sample.Bounds.Bottom))
+                .Select(sample => $"{sample.Bounds.Left},{sample.Bounds.Top},{sample.Bounds.Width}x{sample.Bounds.Height}"));
+            var luma = string.Join(" ", Curve.Select(sample => $"{sample.Luma}{(sample.Overlay ? "●" : "")}"));
+            return $"R18 覆盖层：{Overlays.Count} 次可见采样，矩形 {rects}（改铺前 {Before.Width}x{Before.Height}、"
+                + $"改铺后 {Fade.Width}x{Fade.Height}）；淡出 {FadeMilliseconds}ms；"
+                + $"中心亮度逐拍 {luma}（●＝那一刻覆盖层在屏上；不同取值 {DistinctLuma} 个）";
+        }
+
+        private static bool Same(NativeRect left, NativeRect right) => left.Left == right.Left
+            && left.Top == right.Top && left.Right == right.Right && left.Bottom == right.Bottom;
+    }
+
+    private static async Task<StopHandoffEvidence> ObserveStopHandoffAsync(PlayerPage page, HostWindow window,
+        NativeRect before, string? screenshot, Action<string> write, CancellationToken token)
     {
         using var sampling = CancellationTokenSource.CreateLinkedTokenSource(token);
         sampling.CancelAfter(TimeSpan.FromSeconds(6));
         var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var observed = new List<StopOverlaySample>();
+        var curve = new List<(long At, int Luma, bool Overlay)>();
         string? failure = null;
+        var clock = Stopwatch.StartNew();
         var sampler = Task.Run(async () =>
         {
             try
@@ -119,7 +181,10 @@ internal static class PlayerMotionProbe
                 ready.TrySetResult();
                 while (!sampling.IsCancellationRequested)
                 {
-                    observed.AddRange(ReadStopOverlays().Where(sample => !previous.Contains(sample.Window)));
+                    var live = ReadStopOverlays().Where(sample => !previous.Contains(sample.Window)).ToList();
+                    observed.AddRange(live);
+                    // 中心点：播放时它是彩条中间那一条，退场之后是主页；淡的那几拍应当取到中间档。
+                    curve.Add((clock.ElapsedMilliseconds, ScreenLuma(window.Handle, 0.5, 0.5), live.Count > 0));
                     await Task.Delay(4, sampling.Token).ConfigureAwait(false);
                 }
             }
@@ -128,17 +193,38 @@ internal static class PlayerMotionProbe
             finally { ready.TrySetResult(); }
         }, CancellationToken.None);
         await ready.Task;
-        try { await prepareStop(); }
+        var fade = before;
+        long fadeMilliseconds = 0;
+        try
+        {
+            await page.ViewModel.PrepareStopAsync!();
+            // 窗口已经还回浏览几何：这一刻的客户区就是覆盖层改铺之后的那个矩形。
+            fade = VideoFrameOverlay.ClientRect(window.Handle);
+            // 淡出刚起跑的一张实屏：画面自己在屏上的位置、以及它四周补的那圈舞台色都在这一张里。
+            // 存不下也照常往下走，只留一行诊断 —— 它不是判据，判据是下面那条亮度曲线。
+            if (screenshot is not null)
+            {
+                try
+                {
+                    await CompositionPlaybackProbe.SaveScreenAsync(window, screenshot);
+                    write($"R18 退场淡出实屏：{screenshot}");
+                }
+                catch (Exception error) { write($"R18 退场淡出实屏没存下来：{error.GetType().Name}"); }
+            }
+            // 正式路径不等淡出（停播放要跟着用户那一下走），探针在这里等它，好把整段看完。
+            await page.ExitFade;
+        }
         finally
         {
+            fadeMilliseconds = clock.ElapsedMilliseconds;
             sampling.Cancel();
             await sampler;
-            write(StopOverlayEvidence(expected, observed, failure));
             foreach (var sample in observed.DistinctBy(sample => (sample.Window, sample.Bounds.Left, sample.Bounds.Top,
                 sample.Bounds.Right, sample.Bounds.Bottom)))
                 write($"R18 覆盖层实际窗口 HWND=0x{sample.Window:X} PID={sample.Process} class={sample.ClassName} "
                     + $"rect={sample.Bounds.Left},{sample.Bounds.Top},{sample.Bounds.Width}x{sample.Bounds.Height}");
         }
+        return new StopHandoffEvidence(observed, curve, before, fade, fadeMilliseconds, failure);
     }
 
     private static async Task RunScoped(StartupOptions options)
@@ -1003,9 +1089,44 @@ internal static class PlayerMotionProbe
                 page.ViewModel.CoverUp = false;
                 await Task.Delay(350, token);
 
+                // 窗口化这一趟先按一个更扁的比例把窗口整形（20:9），退场时窗口必然要还回浏览几何 ——
+                // 这样「覆盖层改铺到新客户区」才是**真的一次改铺**，不是两个一模一样的矩形。
+                if (!fullscreen)
+                {
+                    window.PictureAspect = 2.0;
+                    window.FitToPicture();
+                    await Task.Delay(260, token);
+                }
+
                 Require(page.ViewModel.PrepareStopAsync is not null, "停止前的页面交接已经接线");
                 var stopClient = VideoFrameOverlay.ClientRect(window.Handle);
-                await ObserveStopHandoffAsync(page.ViewModel.PrepareStopAsync!, stopClient, Write, token);
+                var handoff = await ObserveStopHandoffAsync(page, window, stopClient,
+                    fullscreen ? null : Path.Combine(options.Paths.LogDirectory, "exit-fade-screen.png"), Write, token);
+                Write(handoff.Describe());
+                Require(handoff.Failure is null, $"R18 覆盖层采样没有缺口（{handoff.Failure}）");
+                Require(handoff.OverlaySeen, "R18 覆盖层在退场期间真的在屏上");
+                Require(handoff.RectsMatch, "R18 覆盖层只出现在「改铺前」与「改铺后」两个客户区矩形上");
+                if (fullscreen)
+                {
+                    // 用户 2026-11-08 选「只做窗口模式」：全屏退出仍是当拍收摊 —— 那一层不该改铺，也不该淡。
+                    // 判据不用时长：从全屏还回浏览几何那一趟本身就要一两百毫秒，拿它当「淡了没有」会误判
+                    // （2026-11-08 实测一次 289ms，全是交接时间）。
+                    Require(!handoff.LastRectIsFade, "全屏退出不改铺覆盖层");
+                    Require(handoff.DistinctLuma <= 2,
+                        $"全屏退出保持当拍收摊，不做淡出（中心亮度读到 {handoff.DistinctLuma} 个取值）");
+                }
+                else
+                {
+                    Require(handoff.Before.Width != handoff.Fade.Width || handoff.Before.Height != handoff.Fade.Height,
+                        "这一趟窗口确实改过形，「改铺到新客户区」那一条才算被验到");
+                    Require(handoff.LastRectIsFade, "R18 覆盖层先改铺到新客户区，再开始淡");
+                    Require(handoff.FadeMilliseconds >= 200,
+                        $"退场淡出确实走了整段（从按下返回到覆盖层撤掉 {handoff.FadeMilliseconds}ms）");
+                    Require(handoff.DistinctLuma >= 4,
+                        $"屏上中心点的亮度逐拍在变，不是硬切（只有 {handoff.DistinctLuma} 个取值）");
+                    Require(handoff.LastLuma != handoff.FirstLuma,
+                        $"屏上停在了另一个画面上（{handoff.FirstLuma} → {handoff.LastLuma}）");
+                }
                 Require(control.Status.Loaded, "先返回浏览页时后端仍有视频，尚未发送停止");
                 Require(!page.PlayerVisible && shell.SignInVisible && !window.PlaybackTitleBar && !window.Fullscreen,
                     "停止前浏览页已显示，播放器及全屏已收回");
@@ -1015,6 +1136,8 @@ internal static class PlayerMotionProbe
                 Require(restored.Left == browse.Left && restored.Top == browse.Top
                     && restored.Width == browse.Width && restored.Height == browse.Height,
                     "直接返回恢复原浏览窗口");
+                // 上面那一次整形是这一趟为了验「改铺」摆出来的，别让它跟着走进下一轮。
+                window.PictureAspect = 0;
 
                 await handle.StopAsync();
                 await handle.DisposeAsync();

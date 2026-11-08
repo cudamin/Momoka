@@ -13,6 +13,29 @@
 验证（本树）：`src/Momoka.Shell`、`tests/Momoka.Tests` Release/x64 均 0 警告 0 错误；完整主测试 **4205/4205、0 失败 0 跳过**（`TEMP`/`TMP` 指本树 `work/tmp`）；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0；亚克力专项 36/36、中性反馈 21/21。副屏 `--probe-shell --probe-section materials,library --screen 2` **35/35、0 失败、退出 0**（`shell-probe-20261108-070808739-3052`），含封面播放键的中心与两态、两颗轮播箭头的玻璃断言；截图 `detail-cover-play-screen.png`、`poster-actions-restored-screen.png`、`home-banner-arrows-screen.png` 已目视，副本存 `work/20261108-acrylic-buttons/`。过程中两轮旧报告的教训：播放键缩放原点不居中导致中心偏 1.9 像素（已修）；封面按钮对齐断言挂在旧元素上（已改到槽位）。另有一轮副屏被浏览器和编辑器挡住、10 项像素检查报「窗口被遮挡」，那一轮的证据没有拿来充数。未真实播放、未写服务器、未上传。
 
 待办：本树 `workbuddy/master-bc8948bd` 尚未合入 master（主树已领先两条提交），也还没有按主规则在主树重验与发布；桌面快捷方式仍是旧版。
+## 2026-11-08 窗口模式退场淡出（集成管线）
+
+用户令：集成模式下以窗口模式运行的播放器页面，进出播放页都要过渡动画；进场淡入／滑入、退场淡出／滑出，流畅不卡顿、不改布局与功能、与整体风格一致、两向时长与缓动协调统一、动画期间不闪屏不元素错位。追问后三项拍板：退场用**纯淡出**、进场**保持现状**、**只做窗口模式**（全屏退出维持直接返回）。
+
+现状（先读源码核过，没有凭印象动手）：进场本来就有（`TransitionPage` 280ms，前 140ms 淡入 + 12px 上浮 + 1.8% 收拢）；**退场没有** —— 按返回／Esc／关窗走 `ReturnToBrowseBeforeStopAsync`，抓一帧铺成屏幕坐标覆盖层、还原窗口、`_exitSnap` 当拍收摊、两帧后撤层，屏上是「最后一帧 → 主页」的硬切（2026-09-25 用户令「不能直接切回主页吗」的产物）。
+
+产品：`PlayerMotion.ExitMilliseconds` 由 240 提到 280 并与 `EnterMilliseconds` 同一个数；新增 `ExitFadeAlpha(progress)`（线性，255→0）。`VideoFrameOverlay` 增 `alpha`／`surround` 两个可选参数、并把 DIB 留存下来（同尺寸只换不透明度，不重画不重传）；退场在窗口还原后把覆盖层改铺到**新客户区**（`AspectLock.Fit` 保持宽度与中心，画面在屏上的位置随之不动）、四周补舞台色（`PlayerStageBrush`），再逐拍淡出。淡出**不等**它走完就返回，停播放照旧跟着用户那一下 —— 否则画面已淡走、声音还要再响三百毫秒。新增 `FadeExitAsync`（等浏览页就绪 ≤800ms → 280ms 匀速淡 → 撤层；`generation` 过期即停手并撤层），`CancelExitFade` 挂在 `EnterPlayer` 与 `StopPlayerMotion` 上。全屏退出、抓不到帧、系统关动画三种情形保持当拍收摊。
+
+**淡出不能用 `UpdateLayeredWindow` 的 `SourceConstantAlpha`**：2026-11-08 用独立探针（400×400 纯红分层窗口、同一块位图不换）实测，那个常量从 255 降到 0 屏上像素一个数都没变（`AlphaFormat` 取 0 或 1 都一样）；同一个窗口改调 `SetLayeredWindowAttributes(LWA_ALPHA)`，255→200→100→0 逐档变淡，读到的是「红 → 混进桌面底色 → 桌面原色」。实现因此走 SLA，位图那一侧完全不动。这条写进了规格、`VideoFrameOverlay.Fade` 的注释与开发文档 —— 先前那版按 `SourceConstantAlpha` 写的实现被探针当场读破（覆盖层在屏上四百毫秒、中心亮度一个值没变）。
+
+验证（都在本树最终代码上）：
+- Release/x64 全方案 **0 警告 0 错误**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。
+- 完整主测试 **4202/4202、0 失败 0 跳过**（`TEMP`/`TMP` 指本树 `work/tmp`）。红测保留在案：加时长断言后首跑「进退场共用同一个总时长 期望 <280>，实际 <240>」，4201 过 1 失败。
+- `Momoka.PlayerExitHandoffTests` **8/8**：逐字跑 `ReturnToBrowseBeforeStopAsync` + `FadeExitAsync`，断言「原客户区 → 新客户区 → alpha 255 单调降到 0（≥8 拍、中间档 ≥3）→ 撤层一次」，并覆盖就绪等待（320ms 与永不就绪两档）、淡到一半换片、全屏退出、关动画五条分支。**红对照**：把 `fading` 临时改成 `false` 后同一专项 6/8 失败（两条不依赖淡出的用例照旧通过），随后原样恢复。
+- `Momoka.PlayerMotionProbeTests` **23/23**：夹具原样编译当前探针的观测段；新增「只在原客户区出现过（不算已改铺）」一例与「窗口化退场必须留一张淡出中实屏」的接线检查。
+- `--probe-player-motion work/resize-bars-fixture.mp4 --screen 2` **退出 0**（隔离本地素材、独立数据目录、副屏；`player-motion-probe-20261108-063719141-13840`）。窗口化那趟的 R18 读数：覆盖层两段矩形 `2568,666,1064x532` → `2568,536,1064x792`（这一趟先按 20:9 整形，退场必须还回浏览几何，于是「改铺」是真的改铺），中心亮度逐拍 `36 … 145 145 … 126 120 114 108 102 96 90 83 77 71 59 52 46 41 35`（**17 个不同取值**），应用日志「退场淡出 282ms（等浏览页就绪 0ms，层 1064x792）」。实屏 `exit-fade-screen.png` 已目视：六条彩条按原宽度占满中段，上下两道是舞台色的围边，没有主页透出来、也没有悬空的画面带。全屏那趟反过来：不改铺、亮度只有 1 个取值 —— 与「只做窗口模式」一致。中途两跑在时间轴截图那一步红过（「像素探针窗口被遮挡或移到屏外」），归因为另一会话的应用窗口压在副屏探针窗口上；它退出后同代码重跑全绿，红报告同样保留。
+- 期间另有一轮完整主测试 16 项红（「已有当前用户的自检运行中」），归因为另一会话的 Momoka 实例（PID 26300，另一棵工作树）持有共享自检 mutex；该实例退出后同代码重跑全绿，原报告保留不当作本批证据。
+
+边界与代价：全屏退出仍是硬切（用户本轮选择；整屏覆盖层每拍重传不划算）；竖屏片这一类「客户区不是按宽度收窄」的几何，改铺时画面会随窗口一道重新 fit 一次 —— 常见横向片源下 `AspectLock.Fit` 保持宽度与中心，屏上位置分毫不动；淡出期间窗口已还给浏览几何，主页可点（280ms 的窗口，比改动前那两帧略长）。未真实登录、未真实播放服务器、未写服务器、未上传。
+
+交付：产品 `dcf2186` 已 ff 合入主树（合入前主树 HEAD 就是本树基点 `0fd08e0`，另一会话删掉的三份 `.claude/skills/momoka-code-review/*` 未提交改动原样保留、未触碰）。主树重验：Release/x64 全方案 **0 警告 0 错误**；完整主测试 **4202/4202、0 失败 0 跳过**；`Momoka.PlayerExitHandoffTests` 8/8、`Momoka.PlayerMotionProbeTests` 23/23；主树构建上 `--probe-player-motion --screen 2` 退出 0（`player-motion-probe-20261108-065101572-26300`，淡出 282ms、18 个取值、两段矩形 `1064x532 → 1064x792`）；`format whitespace` 与 `git diff --check` 通过。发布 `tools/publish.ps1 -NoArchive -Shortcut` 刷新主树 `artifacts/publish/win-x64`：546 文件、`du` 287.8 MB，发布 `Momoka.dll` 与构建输出同为 `F45B3FBA7286CFF6E8CDE1C5324B8FA962E71BEA2A93BEDC6F9CB82DE6D523FE`；旧目录按沙箱的老规矩先挪到 `C://Users//89400//Momoka-stale//publish-20261108-1452` 再跑。发布件自身再跑 `--probe-player-motion --screen 2` 退出 0（`player-motion-probe-20261108-070026038-18212`，淡出 281ms、18 个取值）。快捷方式写回仍被沙箱 ACL 拒绝（`tools/shortcut.ps1` UnauthorizedAccessException，与前几批同一条），读 `.lnk` 得到目标仍是 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`、本次只换该目录内容。发布件探针头两次被另一会话的界面探针占着桌面挡红（遮挡守卫，两次原报告保留），其进程退出后同代码第三跑全绿。
+
+临时分支 `workbuddy/master-23469d62` 顶端 `dcf2186`，内容已全部进入 master；本聊天的工作树 `WorkBuddy/Worktrees/Momoka/master-23469d62` 待会话关闭后按上一轮同一条口径删除（本文件这一条交付段只存在于 master，分支不需要跟着更新）。未上传远程。
 
 ## 2026-11-08 集列表牌子的季菜单退役
 

@@ -49,7 +49,11 @@
                     "using System.Diagnostics;\nusing Momoka.Diagnostics;\nusing Momoka.Shell.Interop;\n" +
                     "using Momoka.Shell.Views;\nusing Momoka.Shell.Windowing;\nnamespace Momoka.Shell;\n" +
                     "internal static class PlayerMotionProbe\n{\n" + overlay +
-                    "    internal static Task ObserveForFixture(Func<Task> stop, NativeRect expected, Action<string> write, CancellationToken token) => ObserveStopHandoffAsync(stop, expected, write, token);\n" +
+                    "    internal static async Task<(string Text, bool Seen, bool Matched, bool LastFade, int Distinct, long Fade)> ObserveForFixture(PlayerPage page, HostWindow window, NativeRect before, string? screenshot, Action<string> write, CancellationToken token)\n" +
+                    "    {\n" +
+                    "        var evidence = await ObserveStopHandoffAsync(page, window, before, screenshot, write, token);\n" +
+                    "        return (evidence.Describe(), evidence.OverlaySeen, evidence.RectsMatch, evidence.LastRectIsFade, evidence.DistinctLuma, evidence.FadeMilliseconds);\n" +
+                    "    }\n" +
                     "    internal const string SourcePath = @\"" + sourcePath + "\";\n" +
                     "    internal const string SourceHash = \"" + SourceHash + "\";\n" +
                     "    internal const string OverlaySourcePath = @\"" + Path.GetFullPath(OverlaySource).Replace("\"", "\"\"") + "\";\n" +
