@@ -47,7 +47,8 @@ internal sealed partial class ShellNavigationProbe
                 foreach (var (title, type, count) in new[]
                 {
                     ("剧页面卡片", EmbyItemType.Series, 5),
-                    ("单集页面卡片", EmbyItemType.Episode, 4),
+                    // 集页 2026-11-09 起没有「更多类似」（用户令），设置页那一行只剩 集列表／其他信息／演职人员。
+                    ("单集页面卡片", EmbyItemType.Episode, 3),
                     ("电影页面卡片", EmbyItemType.Movie, 3)
                 })
                 {

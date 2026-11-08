@@ -97,6 +97,7 @@ internal sealed partial class ShellNavigationProbe
         episode.ParentBackdropImageTags.Add("fixture");
 
         var poster = await FixtureImageAsync(400, 600);
+        var still = await FixtureImageAsync(640, 360);
         var backdrop = await FixtureImageAsync();
         var artwork = await FixtureImageAsync(1600, 900);
         fixture.Transport.Reply = (request, _) =>
@@ -104,7 +105,11 @@ internal sealed partial class ShellNavigationProbe
             var path = request.RequestUri!.AbsolutePath;
             if (path.Contains("/Images/", StringComparison.Ordinal))
             {
-                var bytes = path.Contains("/Images/Primary", StringComparison.Ordinal) ? poster
+                // 封面那一格取的是**剧集那一层**的海报（2026-11-09 用户令「集页左上角统一使用剧封面，不要用集封面」）。
+                // 两张图因此长得不一样：本集自己那张是 16:9 的剧照（640×360），剧那张是 2:3 的海报（400×600）——
+                // 取错了源，下面按 400×600 算出来的 250×375 就量不上，屏上也不会是一张竖的。
+                var bytes = path.Contains("/Images/Primary", StringComparison.Ordinal)
+                    ? path.Contains("/" + episode.Id + "/Images/", StringComparison.Ordinal) ? still : poster
                     : path.Contains("/Images/Art", StringComparison.Ordinal) ? artwork : backdrop;
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) });
             }
@@ -126,6 +131,13 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.ViewModel.HeroImage is not null);
             await UntilAsync(() => page.ViewModel.CornerImage is not null);
 
+            // 集页没有「更多类似」（2026-11-09 用户令「Emby、飞牛、Jellyfin 的集页面统一不显示更多类似」）：
+            // 目录里没有这一条，请求也不发，于是标题、卡带和间距整块收起。
+            Require(page.ViewModel.SimilarShelf is { Cards.Count: 0 }
+                && page.ViewModel.SimilarVisibility == Visibility.Collapsed
+                && Get<StackPanel>(page, "SimilarPanel").Visibility == Visibility.Collapsed,
+                "集页仍摆着更多类似");
+
             var coverWidths = new Dictionary<int, double>();
             foreach (var width in new[] { 1280, 820, 819, 768 })
             {
@@ -145,7 +157,9 @@ internal sealed partial class ShellNavigationProbe
                 var backdropLayer = Get<Grid>(page, "Backdrop");
                 var picture = Get<Border>(page, "BackdropPicture");
 
-                // 期望值走 Core 那一支：400×600 的竖图装进 260×375 那一格（贴高，宽收到 250）。
+                // 期望值走 Core 那一支：400×600 的竖图装进 260×375 那一格（贴高，宽收到 250）。这张 400×600 是
+                // **剧集那一层**的海报；本集自己那张 16:9 的剧照（640×360）装进来会是 260×146 —— 所以下面这条
+                // 断言同时也是「集页用的是剧封面，不是集封面」（2026-11-09 用户令）的判据。
                 var fit = DetailHero.StillBox(400, 600, 260, 375) ?? default;
 
                 // 封面：宽版式画（「固定集页面封面的大小，拉窄窗口时不要缩小」——1280 和 820 上是同一个数），

@@ -2815,7 +2815,8 @@ public sealed partial class DetailViewModel : PageViewModel
         // 这一趟要不要重取那四张图：<see cref="Preview"/> 刚用卡片那一份起过一次，而完整条目回来时那几个图片标签
         // 通常一个字都没变 —— 那时候整批留着。重取的代价不是一次下载（缓存都在），是屏上的图先被清空再回来，
         // 也就是点一张封面进来看见的那一次闪。
-        var keepArtwork = ItemArtwork.SamePictures(_detail, item);
+        // 封面另加一句：集页那一格借的是剧集那一层的海报，而「这部剧是谁」可能这一趟才问出来（见 SameCoverSource）。
+        var keepArtwork = ItemArtwork.SamePictures(_detail, item) && ItemArtwork.SameCoverSource(_detail, item);
 
         // 上一页那部剧只在还是同一部剧时留着（同一页的重新读取省一趟）：单集和季都认同一个 SeriesId ——
         // 季页的头几行同样要这部剧（见 LoadSeasonSeriesAsync）。换集、换剧、回电影页都作废。
@@ -3381,7 +3382,10 @@ public sealed partial class DetailViewModel : PageViewModel
     private async Task LoadSimilarAsync(EmbyItem item, CancellationToken token)
     {
         if (!Attached || SimilarShelf is not { } shelf) return;
-        if (item.Type == EmbyItemType.Person) return;
+        // 集页不摆这一排（2026-11-09 用户令「Emby、飞牛、Jellyfin 的集页面统一不显示更多类似」）。判据就是版面
+        // 目录本身（DetailLayout.EpisodeCards 里已经没有 similar），所以这一趟请求也跟着不发 —— 集页底下摆的是
+        // 同一部剧的兄弟集，再拉一排别的片子只会把那一排挤下去。人物页同理，服务器那边也一样不返回推荐。
+        if (item.Type == EmbyItemType.Person || !CardVisible(DetailLayout.Similar)) return;
 
         try
         {
@@ -3471,9 +3475,9 @@ public sealed partial class DetailViewModel : PageViewModel
         _heroTiming = NavigationTiming.Capture();
 
         // 左上角那一格封面（「集页面的封面改用剧页面的封面」，2026-09-12）：集页取剧集那一层的 Primary ——
-        // 就是剧页面上那张 2:3 海报，借的也是同一条路（show 在 WhenAll 外头就已经在路上了）；借不到（没有
-        // SeriesId、服务器没应答、或者剧自己连一张封面都没有）才退回本集自己的那几张 —— 有一张剧照总比
-        // 空着一格强。其余页面照旧取自己的 Primary / Thumb。
+        // 就是剧页面上那张 2:3 海报，借的也是同一条路（show 在 WhenAll 外头就已经在路上了）。2026-11-09 用户令
+        // 「统一使用剧封面，不要用集封面」之后这一格只有这一个来源：没有 SeriesId、服务器没应答、或者剧自己连
+        // 一张封面都没有时它空着，不再退回本集自己的剧照。其余页面照旧取自己的 Primary / Thumb。
         // 集页简洁宽窗不铺背景图，沉浸宽窗与紧凑版式铺图；取图不看这一页这次铺不铺：
         // 窗口从宽拉窄跨过紧凑断点的那一下答案就从不要翻成要，图已经在手，画面就地出来，不用再等一趟往返
         // （2026-10-13「再给集页面的窄窗口加背景图」）。集页多问的倒是另一趟：剧集那一层的条目。右上角那张
@@ -3593,7 +3597,9 @@ public sealed partial class DetailViewModel : PageViewModel
         }
 
         // 左上角那格封面：集页取剧集那一层的 Primary（「集页面的封面改用剧页面的封面」—— 剧页面上那张 2:3
-        // 海报），其余页面取自己的。借不到才退回本集自己的那几张 —— 有一张剧照总比空着一格强。
+        // 海报），其余页面取自己的。剧那一层取不到时这一格就空着，**不再退回本集自己的那几张** —— 2026-11-09
+        // 用户令「Emby、飞牛、Jellyfin 的集页面左上角统一使用剧封面，不要用集封面」：本集那张 16:9 的剧照正是
+        // 「集封面」，摆在这一格说的就是另一件事（从前「有一张剧照总比空着一格强」那一版到这里作废）。
         async Task<BitmapImage?> StillAsync(EmbyItem page, Task<EmbyItem?> show, CancellationToken token)
         {
             if (page.Type != EmbyItemType.Episode)
@@ -3605,19 +3611,11 @@ public sealed partial class DetailViewModel : PageViewModel
 
             var series = await show.ConfigureAwait(true);
 
-            if (series is not null)
-            {
-                var poster = await DecodeFirstAsync(
+            return series is null
+                ? null
+                : await DecodeFirstAsync(
                     series, [EmbyImageStore.Primary, EmbyImageStore.Thumb], StillDecodeWidth, token)
                     .ConfigureAwait(true);
-
-                if (poster is not null) return poster;
-            }
-
-            return await DecodeFirstAsync(
-                page,
-                [EmbyImageStore.Primary, EmbyImageStore.Thumb, EmbyImageStore.Backdrop],
-                StillDecodeWidth, token).ConfigureAwait(true);
         }
 
         // 右上角那张艺术图（「给集页面右上角添加艺术图」）：哪一张归这儿由 <see cref="ItemArtwork.Corner"/> 定 ——

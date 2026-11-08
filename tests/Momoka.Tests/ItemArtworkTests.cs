@@ -840,6 +840,49 @@ internal static partial class ItemArtworkTests
 
             Assert.True(ItemArtwork.SamePictures(one, other));
         });
+
+        RegisterCoverSource();
+    }
+
+    /// <summary>
+    /// 集页那一格封面借的是剧集那一层的海报（2026-11-09 用户令「统一使用剧封面，不要用集封面」）。所以「要画的
+    /// 还是不是同一张」除了图片标签，还要看这部剧是不是同一部 —— 飞牛的列表条目没有 <c>tv_guid</c>，剧的 id 是
+    /// 详情那一趟才补回来的，那一拍之前手上那张图（或者空着的那一格）说的不是这部剧。
+    /// </summary>
+    private static void RegisterCoverSource()
+    {
+        Test("封面来源：集页的剧从无到有就要重取", () =>
+        {
+            // 列表种子（飞牛：没有 tv_guid）对详情补回剧 id 的那一份。图片标签一个字没变，但封面换了来源。
+            var seed = Episode("ep50", (EmbyImageStore.Primary, "still"));
+            var detail = Episode("ep50", (EmbyImageStore.Primary, "still"));
+            detail.SeriesId = "series9";
+
+            Assert.False(ItemArtwork.SameCoverSource(seed, detail), "剧刚问出来，封面必须重取");
+            Assert.True(ItemArtwork.SameCoverSource(detail, detail), "剧还是同一部，封面不用重取");
+
+            var other = Episode("ep50", (EmbyImageStore.Primary, "still"));
+            other.SeriesId = "series10";
+            Assert.False(ItemArtwork.SameCoverSource(detail, other), "换了所属剧，封面跟着换");
+        });
+
+        Test("封面来源：电影、剧、季页取自己的图，不受这条影响", () =>
+        {
+            foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season })
+            {
+                var before = Item("x51", (EmbyImageStore.Primary, "p"));
+                before.Type = type;
+                var after = Item("x51", (EmbyImageStore.Primary, "p"));
+                after.Type = type;
+                after.SeriesId = "whatever";
+
+                Assert.True(ItemArtwork.SameCoverSource(before, after), type + " 的封面说的是自己");
+            }
+
+            // 还没有画过第一屏（没有「上一份」）时不算同一张 —— 与 SamePictures 同一个口径。
+            var episode = Episode("ep52", (EmbyImageStore.Primary, "still"));
+            Assert.False(ItemArtwork.SameCoverSource(null, episode));
+        });
     }
 
     private static EmbyItem Item(string id, params (string Type, string Tag)[] tags)

@@ -52,7 +52,7 @@ internal static class DetailLayoutTests
             var ui = SettingsMigration.FromJson("{\"SchemaVersion\":27,\"Ui\":{}}",
                 PassthroughSecretProtector.Instance).Ui;
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Series)));
-            Assert.Equal("episodes,info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
+            Assert.Equal("episodes,info,cast", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
             Assert.Equal("info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Movie)));
             Assert.True(DetailLayout.For(ui, EmbyItemType.Series).All(row => row.Visible));
             Assert.Equal(UiSettings.DefaultControlBackgroundOpacity, ui.ControlBackgroundOpacity);
@@ -100,6 +100,25 @@ internal static class DetailLayoutTests
             Assert.True(plan.Skip(1).All(row => row.Visible));
         });
 
+        Test("详情卡片：集页没有更多类似，存档里的旧勾选被丢掉", () =>
+        {
+            // 2026-11-09 用户令「Emby、飞牛、Jellyfin 的集页面统一不显示更多类似」：目录里没有这一条，
+            // 于是老 settings.json 里那份勾选不占位、设置页也不再列出来 —— 集页收尾的是演职人员。
+            var plan = DetailLayout.Plan(EmbyItemType.Episode,
+            [
+                new() { Key = "episodes" }, new() { Key = "info" },
+                new() { Key = "cast" }, new() { Key = "similar", Visible = true }
+            ]);
+            Assert.Equal("episodes,info,cast", Keys(plan));
+            Assert.True(!plan.Any(row => row.Key == DetailLayout.Similar), "集页目录里还留着更多类似");
+
+            // 剧页和电影页不受影响：那一排还在目录里，也还听用户的勾选。
+            Assert.True(DetailLayout.For(new UiSettings(), EmbyItemType.Series).Any(row => row.Key == DetailLayout.Similar),
+                "剧页的更多类似跟着集页一起没了");
+            Assert.True(DetailLayout.For(new UiSettings(), EmbyItemType.Movie).Any(row => row.Key == DetailLayout.Similar),
+                "电影页的更多类似跟着集页一起没了");
+        });
+
         Test("详情卡片：季页和其他页面不继承任何自定义顺序或隐藏", () =>
         {
             var ui = Customized();
@@ -117,7 +136,7 @@ internal static class DetailLayoutTests
             var ui = Customized();
             var series = DetailLayout.For(ui, EmbyItemType.Series);
             Assert.Equal("cast,episodes,info,seasons,similar", Keys(series));
-            Assert.Equal("episodes,info,cast,similar", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
+            Assert.Equal("episodes,info,cast", Keys(DetailLayout.For(ui, EmbyItemType.Episode)));
             Assert.Equal("similar,info,cast", Keys(DetailLayout.For(ui, EmbyItemType.Movie)));
             series[0].Visible = true;
             series[0].Key = "info";
@@ -139,7 +158,7 @@ internal static class DetailLayoutTests
                 }
                 """, PassthroughSecretProtector.Instance);
             Assert.Equal("episodes,info,seasons,cast,similar", Keys(settings.Ui.SeriesCards));
-            Assert.Equal("cast,episodes,info,similar", Keys(settings.Ui.EpisodeCards));
+            Assert.Equal("cast,episodes,info", Keys(settings.Ui.EpisodeCards));
             Assert.False(settings.Ui.EpisodeCards[0].Visible);
             var restored = SettingsMigration.FromJson(JsonSerializer.Serialize(settings), PassthroughSecretProtector.Instance);
             Assert.Equal("similar,info,cast", Keys(restored.Ui.MovieCards));
@@ -192,7 +211,7 @@ internal static class DetailLayoutTests
             SettingsPreferences.Apply(live, backup);
             Assert.Equal("cast,episodes,info,seasons,similar", Keys(live.Ui.SeriesCards));
             Assert.False(live.Ui.SeriesCards[0].Visible);
-            Assert.Equal("episodes,info,cast,similar", Keys(live.Ui.EpisodeCards));
+            Assert.Equal("episodes,info,cast", Keys(live.Ui.EpisodeCards));
             Assert.Equal("similar,info,cast", Keys(live.Ui.MovieCards));
             Assert.Equal(25d, live.Ui.ControlBackgroundOpacity);
             Assert.Equal(60d, live.Ui.BackdropTintOpacity);

@@ -329,6 +329,23 @@ public static class ItemArtwork
         [EmbyImageStore.Primary, EmbyImageStore.Thumb, EmbyImageStore.Backdrop];
 
     /// <summary>
+    /// 这一趟要画的那张封面还是不是上一趟那一张。集页左上角那一格借的是**剧集那一层**的海报（2026-11-09 用户令
+    /// 「统一使用剧封面，不要用集封面」，取图在 <c>DetailViewModel.StillAsync</c>），而「这部剧是谁」不一定写在
+    /// 点进来那张卡片上 —— 飞牛的列表条目没有 <c>tv_guid</c>，剧的 id 是详情那一趟才补回来的。
+    /// <para>
+    /// 所以 <see cref="SamePictures"/> 那句「本集的图片标签没变」不足以说明封面没变：剧从无到有的时候，手上那张图
+    /// （或者空着的那一格）说的还是另一件事，必须重取。其余页面没有这层借用，答案恒为 true。
+    /// </para>
+    /// </summary>
+    public static bool SameCoverSource(EmbyItem? before, EmbyItem after)
+    {
+        if (after.Type != EmbyItemType.Episode) return true;
+
+        return before is { Type: EmbyItemType.Episode }
+            && string.Equals(before.SeriesId, after.SeriesId, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Whether the server holds this kind for this item. 背景图 is asked of its own list, because Emby sends
     /// backdrops as an array (an item can have several) and everything else as one tag.
     /// </summary>

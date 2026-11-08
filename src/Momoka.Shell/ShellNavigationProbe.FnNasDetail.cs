@@ -62,6 +62,18 @@ internal sealed partial class ShellNavigationProbe
                     Require(page.ViewModel.SeasonShelf is { Cards.Count: 0 }
                         && Get<StackPanel>(page, "SeasonPanel").Visibility == Visibility.Collapsed,
                         "单集详情多出全部剧季区域");
+
+                    // 左上角那一格封面用的是**剧集那一层**的海报（2026-11-09 用户令「Emby、飞牛、Jellyfin 的
+                    // 集页面左上角统一使用剧封面，不要用集封面」）。这条夹具的单集故意没有 tv_guid（列表上的飞牛
+                    // 单集就是这样），剧是详情那一趟才补回来的 —— 所以它同时钉住「剧问出来之后封面要重取」
+                    // （ItemArtwork.SameCoverSource）：本集自己那张 1280×720 的剧照装进 260×375 会是 260×146，
+                    // 只有 400×600 的剧海报才量得到 250×375。
+                    await UntilAsync(() => page.ViewModel.StillImage is not null);
+                    var poster = DetailHero.StillBox(400, 600, 260, 375) ?? default;
+                    Require(Math.Abs(page.ViewModel.StillWidth - poster.Width) < 0.6
+                        && Math.Abs(page.ViewModel.StillHeight - poster.Height) < 0.6,
+                        $"飞牛集页的封面不是剧海报：量到 {page.ViewModel.StillWidth:0.#}×{page.ViewModel.StillHeight:0.#}，"
+                            + $"该是 {poster.Width:0.#}×{poster.Height:0.#}");
                 }
 
                 foreach (var width in new[] { 1280, 760 })
@@ -162,10 +174,13 @@ internal sealed partial class ShellNavigationProbe
         bool episode, int width, string state)
     {
         var view = page.ViewModel;
-        Require(view.CastShelf is { Cards.Count: 2 } && view.SimilarShelf is { Cards.Count: 2 },
-            "飞牛人员或更多类似仍为空，或推荐没有排除主体");
-        var cast = view.CastShelf!;
+        // 集页自 2026-11-09 起不摆「更多类似」（用户令「Emby、飞牛、Jellyfin 的集页面统一不显示更多类似」）：
+        // 那一排既没有卡片，也没有请求（DetailViewModel.LoadSimilarAsync 对集页直接返回），容器整块收起。
         var similar = view.SimilarShelf!;
+        Require(view.CastShelf is { Cards.Count: 2 }, "飞牛演职人员仍为空");
+        Require(episode ? similar.Cards.Count == 0 : similar.Cards.Count == 2,
+            episode ? "飞牛集页仍摆着更多类似" : "飞牛更多类似为空，或推荐没有排除主体");
+        var cast = view.CastShelf!;
         // 2026-11-08：题材与字幕的原始读数不能再上屏。飞牛的 item.genres 是数字 ID、字幕流是 zho + subrip，
         // 照抄出来就是「1 · 10 · 2 · 9」和「zho · SUBRIP」—— 这里核对屏上换成了名字。
         if (!episode)
@@ -179,17 +194,20 @@ internal sealed partial class ShellNavigationProbe
             && card.Item.Source?.Connection.IsFnNas == true), "人物卡类型或来源不正确");
         var subject = episode ? FnNasDetailProbeServer.SeriesId : FnNasDetailProbeServer.MovieId;
         Require(server.PeopleReads.Contains(episode ? FnNasDetailProbeServer.SeasonId : subject), "没有为当前电影或所属季读取人物");
-        Require(similar.Cards.All(card => card.Item.Id != subject
-            && card.Item.Type == (episode ? EmbyItemType.Series : EmbyItemType.Movie)), "推荐包含自己或类型错误");
+        if (!episode)
+            Require(similar.Cards.All(card => card.Item.Id != subject && card.Item.Type == EmbyItemType.Movie),
+                "推荐包含自己或类型错误");
         Require(cast.Cards.All(card => card.Item.ImageTags.GetValueOrDefault("Primary")?.StartsWith("/person/", StringComparison.Ordinal) == true),
             "人物头像路径没有进入现有图片管道");
         var castPanel = Get<StackPanel>(page, "CastPanel");
         var similarPanel = Get<StackPanel>(page, "SimilarPanel");
-        Require(castPanel.Visibility == Visibility.Visible && similarPanel.Visibility == Visibility.Visible,
-            "有内容的人员或推荐容器仍被隐藏");
+        Require(castPanel.Visibility == Visibility.Visible, "有内容的人员容器仍被隐藏");
+        Require(similarPanel.Visibility == (episode ? Visibility.Collapsed : Visibility.Visible),
+            episode ? "集页的更多类似容器没有收起" : "有内容的推荐容器仍被隐藏");
         await LayoutAsync(page);
-        Require(castPanel.ActualHeight > 0 && similarPanel.ActualHeight > 0
-            && Bounds(castPanel, page).Bottom <= Bounds(similarPanel, page).Top + 1,
+        Require(castPanel.ActualHeight > 0
+            && (episode || (similarPanel.ActualHeight > 0
+                && Bounds(castPanel, page).Bottom <= Bounds(similarPanel, page).Top + 1)),
             "人员和推荐没有实际布局或顺序倒置");
         await ScrollFnNasDetailPanelAsync(page, shell, castPanel);
         await UntilAsync(() => cast.Cards.All(card => card.Poster is not null));
@@ -198,13 +216,16 @@ internal sealed partial class ShellNavigationProbe
             && card.Card?.Poster is not null && ReferenceEquals(Get<Image>(card, "Poster").Source, card.Card.Poster)),
             "人员头像没有进入实际人物模板");
         await SaveProbeScreenAsync($"fnnas-detail-{(episode ? "episode" : "movie")}-{width}-{state}-cast-screen.png");
-        await ScrollFnNasDetailPanelAsync(page, shell, similarPanel);
-        await UntilAsync(() => similar.Cards.All(card => card.Poster is not null));
-        var recommendationCards = Descendants(Get<ShelfStrip>(page, "SimilarRow")).OfType<PosterCard>().ToArray();
-        Require(recommendationCards.Length == 2 && recommendationCards.All(card => card.Card?.Poster is not null
-            && ReferenceEquals(Get<Image>(card, "Poster").Source, card.Card.Poster)),
-            "推荐没有进入实际海报模板");
-        await SaveProbeScreenAsync($"fnnas-detail-{(episode ? "episode" : "movie")}-{width}-{state}-similar-screen.png");
+        if (!episode)
+        {
+            await ScrollFnNasDetailPanelAsync(page, shell, similarPanel);
+            await UntilAsync(() => similar.Cards.All(card => card.Poster is not null));
+            var recommendationCards = Descendants(Get<ShelfStrip>(page, "SimilarRow")).OfType<PosterCard>().ToArray();
+            Require(recommendationCards.Length == 2 && recommendationCards.All(card => card.Card?.Poster is not null
+                && ReferenceEquals(Get<Image>(card, "Poster").Source, card.Card.Poster)),
+                "推荐没有进入实际海报模板");
+            await SaveProbeScreenAsync($"fnnas-detail-movie-{width}-{state}-similar-screen.png");
+        }
         Require(!view.NoticeOpen && !Descendants(page).OfType<InfoBar>().Any(bar => bar.IsOpen), "名单或推荐加载后出现错误横幅");
     }
 

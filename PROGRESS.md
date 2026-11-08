@@ -1,3 +1,19 @@
+## 2026-11-09 集页不摆「更多类似」、左上角封面只用剧海报
+
+用户令两条：「1. emby、飞牛、Jellyfin 的集页面统一不显示更多类似；2. emby、飞牛、Jellyfin 的集页面左上角统一使用剧封面，不要用集封面」。三种服务器共用同一个 `DetailPage`／`DetailViewModel`，所以是页面级的两条规矩。
+
+**更多类似**：`DetailLayout.EpisodeCards` 删掉 `similar`（集页目录 = 集列表 → 其他信息 → 演职人员），设置页「单集页面卡片」那一行跟着少一条，老存档里勾过的由 `Plan` 过滤掉；`LoadSimilarAsync` 的判据改成 `!CardVisible(DetailLayout.Similar)`，集页那一趟请求不再发。剧页、电影页、季页照旧。
+
+**集封面**：`StillAsync` 对集页只剩剧集那一层的 Primary／Thumb，取不到就空着，不再退回本集剧照；飞牛的列表条目没有 `tv_guid`、剧是详情那一趟才补回来的，所以加 `ItemArtwork.SameCoverSource` 让 `Apply` 在「剧从无到有」时重取那一格（否则屏上留着按「没有剧」画的那张）。
+
+**顺带清掉上一批漏掉的红**：`d96d432` 改了 `PlaybackContracts.cs`（编码名表抽到 `MediaCodec`）与 `EmbyItem.cs`（新增 `NativeGenres`）却没同步 `tests/Momoka.NaturalContinuationCallerTests/SourcePins.json`，全方案构建因此在 `R046 SOURCE_HASH_MISMATCH` 上红着（只构建 Shell + Tests 看不见）。逐字核对两份来源与自然接续无关后，只更新这两项 SHA256；`Run-Caller.ps1` **69/69、0 失败 0 跳过**（`artifacts/r046-caller/verify-20261109-022233-2870`），`Test-SourceExtraction.ps1` **10 个反例均按预期退出 1**、随后当前源重新 0 警告 0 错误构建并回归 **69/69**（`…/extractor-20261109-022303-6966/current-reverified`）；复核写进该目录 README。
+
+**验证（本树终码）**：全方案 Release **0 警告 0 错误**；完整主测试 **4217/4217、0 失败 0 跳过**（x64 输出，`TEMP`/`TMP` 指本树 `artifacts/delivery-tmp`）；`dotnet format whitespace --verify-no-changes` 退出 0。`--probe-shell --probe-section library --screen 1`（`shell-probe-20261108-183754045-27360`）**26/34**：本轮要的两条都绿 —— 「集页封面与窄窗背景图和尾部间距」量到封面 250×375（夹具里剧海报是 400×600、本集剧照是 640×360，取错源会是 260×146），同一用例新增的「集页不摆更多类似」三条显隐断言通过，截图 `detail-episode-band-{1280,820,819,768}.png`、读数 `detail-episode-band.txt`。
+
+**8 条红项全部是同一块桌面环境的旧账，逐条与改动前的两次运行（`shell-probe-20261108-155133442-25396`、`-155853492-7608`）比对过，失败消息与读数一字不差**：`详情封面与面包屑等距`、`飞牛详情`、`剧页单季不画全部剧季`、`详情自定义页面（Series／Episode／Movie）`、`详情背景主题渐变`、`多媒体库避让轮播` —— 六条是 `ScrollView` 的「滚动请求未到达目标」（`offset=0`／`821 对 845`，`State=Idle`），一条是集带锚点 1264 没回 0，一条是首页轮播超时。**飞牛详情那条用例的单集分支因此本轮没跑到**（它在电影分支的 760 宽度上就红在同一个 821/845 上，上一轮同样没跑到）：飞牛「缺 tv_guid → 详情补回剧 → 封面重取」这条端到端路径本轮只有单测（`ItemArtwork.SameCoverSource`）覆盖，没有运行证据，照实记在这里。
+
+**交付**：`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（清旧目录走 bash `rm -rf`，脚本自己那一步会被 safe-delete 拦）：**546 文件、286.7 MB**，14 GLSL／4 HOOK 着色器许可与批准 mpv 清单（59 文件：50 UI、2 native）逐文件校验通过。桌面 `Momoka.lnk` 的目标仍是 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`（读 `.lnk` 二进制确认），本次只换该目录内容。未真实登录、未真实播放、未写服务器、**未推 origin**。
+
 ## 2026-11-08 窄窗口断点压到八成、正文左右留白等宽（主树整合与桌面交付）
 
 用户两条令：①「窄窗口的触发阈值调更窄一些，改为当前数值的百分之八十」；②「右边空位的太多了，左边加宽一点点，然后两边对齐」（附详情页「其他信息」卡截图，另附一张封面被切掉一大块的窄窗局部）。

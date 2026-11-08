@@ -13,7 +13,13 @@ public static class DetailLayout
 
     private static readonly string[] AllCards = [Episodes, Info, Seasons, Cast, Similar];
     private static readonly string[] MovieCards = [Info, Cast, Similar];
-    private static readonly string[] EpisodeCards = [Episodes, Info, Cast, Similar];
+
+    /// <summary>
+    /// 集页的卡片目录。这里没有 <see cref="Similar"/> —— 2026-11-09 用户令「Emby、飞牛、Jellyfin 的集页面统一不显示
+    /// 更多类似」：那一排推荐说的是「接下来看什么」，而集页已经在底下摆着同一部剧的兄弟集，两者摆在一页上只有后者
+    /// 是这一集的人要的。目录里没有这一条，设置页那一行也就不会列出来（<see cref="Plan"/> 按目录过滤存档）。
+    /// </summary>
+    private static readonly string[] EpisodeCards = [Episodes, Info, Cast];
 
     public static string Title(string key) => key switch
     {
