@@ -928,8 +928,10 @@ public static class ItemDetail
                 .OrderBy(group => group.Key)
                 .Select(group => new EmbyItem
                 {
-                    Id = group.First().SeasonId ?? "", Name = group.First().SeasonName ?? "",
-                    Type = EmbyItemType.Season, IndexNumber = group.Key
+                    Id = group.First().SeasonId ?? "",
+                    Name = group.First().SeasonName ?? "",
+                    Type = EmbyItemType.Season,
+                    IndexNumber = group.Key
                 }).ToArray();
         return numbered.Select(season => (season,
             episodes.Where(episode => !IsSpecial(episode) && episode.IndexNumber == 1 && SameSeasonAs(episode, season))

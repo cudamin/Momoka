@@ -68,8 +68,11 @@ internal static class EpisodeDisplayTests
     { Id = "s" + number, Name = "第" + number + "季", Type = EmbyItemType.Season, IndexNumber = number };
     private static EmbyItem Episode(int season, int number, string? date) => new()
     {
-        Id = season + "-" + number, Type = EmbyItemType.Episode, SeasonId = "s" + season,
-        ParentIndexNumber = season, IndexNumber = number,
+        Id = season + "-" + number,
+        Type = EmbyItemType.Episode,
+        SeasonId = "s" + season,
+        ParentIndexNumber = season,
+        IndexNumber = number,
         PremiereDate = date is null ? null : DateTimeOffset.Parse(date)
     };
 }
