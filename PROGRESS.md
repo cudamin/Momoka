@@ -11697,7 +11697,7 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 
 
 
-## 2026-11-08 飞牛字幕标签与题材 ID（本树，待合入主树）
+## 2026-11-08 飞牛字幕标签与题材 ID（主树）
 
 - 用户报：三张飞牛库详情页的字幕下拉截图（「chi · 1 · SUBRIP」等）「飞牛的字幕识别有问题吧，修一下」，以及详情页片名下面那行「1．10·2·9」「是何意味，没看懂」。
 - 字幕那三行是**机器读数照抄**：飞牛 `stream/list` 的 `subtitle_streams` 只给 `language=chi`、`codec_name=subrip`，标题是 mkv 工具链写的英文（「Simplified, Mandarin Chinese」）。`MediaStream.ToDisplayLabel` 改成人话：语言码经 `TrackLanguagePriority.Describe` 换中文名，编码走新的 `MediaCodec.Describe`（`subrip` → SRT、`hdmv_pgs_subtitle` → PGS），标题经新的 `TrackLanguagePriority.DescribeTitle` 按逗号分段换名字（`Simplified` → 简体、`Traditional, Yue Chinese` → 繁体、粤语），只把语言又说了一遍的标题省掉（`bul` + 「Bulgarian」→「保加利亚语 · SRT」）。服务器给了 `DisplayTitle` 仍照抄，Emby 那条路一个字没变。
@@ -11707,3 +11707,4 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 测试：主套件 **4214/4214、0 失败 0 跳过**（`TEMP` 指向可写目录；默认 `C:\WINDOWS\TEMP` 时两条下载用例因权限红，属环境）。新增 5 条：飞牛机器读数换人话与标题去重、`Describe`／`DescribeTitle`、题材 ID 换名与三种回退、详情经 `tag/genres` 只读一趟、映射表读不到仍显示条目。受影响的假传输（DeepBrowseProtocol、MediaSourceSize、MediaVersionDiscovery、人物作品）补 `tag/genres` 路由或放行，原断言（分页、体积、版本发现、人物作品协议）不变。
 - 运行：Shell Release **0 警告 0 错误**；`--probe-shell --probe-section library --screen 1` **34/34、0 失败、退出 0**（`shell-probe-20261108-152646651-1636`）。飞牛详情新增两条断言核对屏上：题材是「动画 · 动作」而不是 `2 · 7`、字幕行是「中文 · SRT」而不是 `zho · SUBRIP`。假传输，不联网、不播放、不写服务器。
 - 未覆盖：没有在真实飞牛服务器上再读一遍 `tag/genres`（映射表来自已核对过的官方端点与筛选面板）；标题只翻认得的词，没登记的词原样保留，因此像「Signs & Songs (Traditional)」这种整段认不出的照抄英文。
+- 交付：产品与测试提交 `d96d432` 已在 master。`publish -NoArchive -Shortcut` 更新主树 `artifacts/publish/win-x64`（546 文件 286.7 MB，发布校验通过；发布 Shell 与当前 bin 的 `Momoka.dll` 同为 `6d83ccbb…`）。快捷方式重写仍被桌面写入拒绝（`UnauthorizedAccessException`）；读 `Momoka.lnk` 二进制核对，目标与工作目录仍是 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`，桌面启动的就是这一份。未 push、未打包。
