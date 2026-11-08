@@ -76,6 +76,32 @@ internal static partial class FnNasMediaTests
             Assert.Equal(8.4f, item.CommunityRating);
             Assert.Equal("1080p,4k", string.Join(',', item.Resolutions));
         });
+        // 详情页的类型行曾经写着「1 · 10 · 2 · 9」（2026-11-08 用户问「这个 1．10·2·9 是何意味」）：
+        // item.genres 是飞牛自己的题材 ID，名字在 tag/genres 那张表里。
+        Test("飞牛媒体：题材 ID 换成中文名，原始 ID 留给回传服务端的请求", () =>
+        {
+            var names = new Dictionary<string, string> { ["1"] = "动作", ["10"] = "冒险", ["2"] = "科幻", ["9"] = "惊悚" };
+            var item = FnNasMediaAdapter.Item(new JsonObject
+            {
+                ["guid"] = "movie",
+                ["title"] = "奥德赛",
+                ["type"] = "Movie",
+                ["genres"] = new JsonArray(1, 10, 2, 9)
+            }, names);
+
+            Assert.Equal("动作,冒险,科幻,惊悚", string.Join(',', item.Genres));
+            Assert.Equal("1,10,2,9", string.Join(',', item.NativeGenres), "回传服务端要的是 ID，不是名字");
+
+            // 映射表没到手（tag/genres 读失败）时保留原始 ID：难看，但那是真读数，不猜也不留空。
+            var raw = FnNasMediaAdapter.Item(new JsonObject
+            { ["guid"] = "movie", ["type"] = "Movie", ["genres"] = new JsonArray(1, 10) });
+            Assert.Equal("1,10", string.Join(',', raw.Genres));
+            Assert.Equal("1,10", string.Join(',', raw.NativeGenres));
+
+            // 表里没有的新题材原样留着。
+            var unknown = FnNasMediaAdapter.Item(new JsonObject { ["type"] = "Movie", ["genres"] = new JsonArray(99) }, names);
+            Assert.Equal("99", unknown.Genres.Single());
+        });
         // 卡片右上角那颗集数角标（2026-10-25 用户令「参考 Emby 库」）：飞牛列表里 local_number_of_episodes 是
         // 这部剧在库里的合计，local_number_of_seasons 是季数，两者各走各的字段。
         Test("飞牛媒体：剧集带本地集数，季与集不带", () =>

@@ -222,6 +222,22 @@ internal static class PlaybackTests
             Assert.Equal("葡萄牙语", TrackLanguagePriority.Describe("pt-BR"), "地区后缀不该让语言变成两个字母");
             Assert.Equal("", TrackLanguagePriority.Describe(null));
             Assert.Equal("qqq", TrackLanguagePriority.Describe("qqq"), "认不出来也要把原文留着");
+            // 飞牛的标题写英文名（bul + Bulgarian）：认出来才能在标签里省掉重复的那一遍。
+            Assert.Equal("保加利亚语", TrackLanguagePriority.Describe("Bulgarian"));
+            Assert.Equal("阿拉伯语", TrackLanguagePriority.Describe("Arabic"));
+            Assert.Equal("简体", TrackLanguagePriority.Describe("Simplified"));
+            Assert.Equal("繁体", TrackLanguagePriority.Describe("Traditional"));
+        });
+
+        Test("轨道显示：标题里认得的词换成名字，认不得的整段照抄", () =>
+        {
+            Assert.Equal("简体、普通话", TrackLanguagePriority.DescribeTitle("Simplified, Mandarin Chinese"));
+            Assert.Equal("繁体、粤语", TrackLanguagePriority.DescribeTitle("Traditional, Yue Chinese"));
+            Assert.Equal("中文", TrackLanguagePriority.DescribeTitle("Chinese"));
+            Assert.Equal("", TrackLanguagePriority.DescribeTitle("   "));
+            // 一段里认不出就整段照抄（不做逐词替换）：半中半英的一句比原文更难读。
+            Assert.Equal("Signs & Songs (Traditional)", TrackLanguagePriority.DescribeTitle("Signs & Songs (Traditional)"));
+            Assert.Equal("1", TrackLanguagePriority.DescribeTitle("1"), "纯数字标题照原样留着，它至少能把两条轨分开");
         });
 
         Test("轨道显示：音轨列出语言、标题、编码、声道与码率", () =>

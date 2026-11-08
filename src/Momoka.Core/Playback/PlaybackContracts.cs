@@ -364,47 +364,10 @@ public sealed record MpvTrack(int Id, string Type, string? Language, string? Tit
     }
 
     /// <summary>
-    /// mpv's codec name, spelled the way a player usually spells it. Anything unrecognised is
-    /// upper-cased and left alone rather than hidden: an unfamiliar codec name is still information.
+    /// mpv's codec name, spelled the way a player usually spells it. The table lives in
+    /// <see cref="MediaCodec"/> because the detail page's track pickers read the same names.
     /// </summary>
-    private string CodecLabel()
-    {
-        var codec = (Codec ?? "").Trim();
-        if (codec.Length == 0) return "";
-
-        var known = codec.ToLowerInvariant() switch
-        {
-            "eac3" or "e-ac-3" => "E-AC3",
-            "ac3" => "AC3",
-            "truehd" => "TrueHD",
-            "dts" => "DTS",
-            "dtshd" or "dts-hd" => "DTS-HD",
-            "aac" => "AAC",
-            "opus" => "Opus",
-            "vorbis" => "Vorbis",
-            "flac" => "FLAC",
-            "alac" => "ALAC",
-            "mp3" => "MP3",
-            "mp2" => "MP2",
-            "subrip" or "srt" => "SRT",
-            "ass" => "ASS",
-            "ssa" => "SSA",
-            "webvtt" or "vtt" => "WebVTT",
-            "mov_text" => "MOV 文本",
-            "hdmv_pgs_subtitle" or "pgs" => "PGS",
-            "dvd_subtitle" or "vobsub" => "VobSub",
-            "dvb_subtitle" => "DVB",
-            "dvb_teletext" => "图文电视",
-            "eia_608" or "cc" => "CC",
-            "text" => "文本",
-            _ => ""
-        };
-
-        // PCM comes in a dozen spellings (pcm_s16le, pcm_f32be …) and the tail is of no interest here.
-        if (known.Length == 0 && codec.StartsWith("pcm", StringComparison.OrdinalIgnoreCase)) known = "PCM";
-
-        return known.Length > 0 ? known : codec.ToUpperInvariant();
-    }
+    private string CodecLabel() => MediaCodec.Describe(Codec);
 
     /// <summary>
     /// The channel layout in the words a listener uses. mpv's own string is preferred for anything

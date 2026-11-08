@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Momoka.Infrastructure;
+using Momoka.Playback;
 
 namespace Momoka.Emby;
 
@@ -448,20 +449,39 @@ public sealed class MediaStream
     public bool IsTextSubtitle => IsSubtitle && Codec is not null && Codec.ToLowerInvariant() is
         "srt" or "subrip" or "ass" or "ssa" or "webvtt" or "vtt" or "mov_text" or "text" or "microdvd" or "sami" or "smi";
 
-    /// <summary>A label good enough for a track picker even when the server sends nothing useful.</summary>
+    /// <summary>
+    /// A label good enough for a track picker even when the server sends nothing useful.
+    /// <para>
+    /// 服务器给了可读的 <see cref="DisplayTitle"/> 就照抄（Emby 通常给的就是「简体中文 (SRT)」那种写法）。
+    /// 自己拼的时候三处都要换成人话，因为飞牛的流只发机器读数：语言是 <c>chi</c>／<c>bul</c>、编码是
+    /// <c>subrip</c>，照抄出来是「chi · 1 · SUBRIP」—— 2026-11-08 用户报的就是这个（「飞牛的字幕识别有
+    /// 问题吧」）。语言码换成名字，标题里认得的词也换成名字（<c>Traditional</c> → 繁体），编码走
+    /// <see cref="MediaCodec"/>（<c>subrip</c> → SRT）。标题要是只把语言又说了一遍（<c>bul</c> + 「Bulgarian」），
+    /// 那一句就省掉，不写两遍同一件事。
+    /// </para>
+    /// </summary>
     public string ToDisplayLabel()
     {
         if (!string.IsNullOrWhiteSpace(DisplayTitle)) return Decorate(DisplayTitle!);
 
         var parts = new List<string>(4);
-        if (!string.IsNullOrWhiteSpace(DisplayLanguage)) parts.Add(DisplayLanguage!);
-        else if (!string.IsNullOrWhiteSpace(Language)) parts.Add(Language!);
-        if (!string.IsNullOrWhiteSpace(Title)) parts.Add(Title!);
-        if (!string.IsNullOrWhiteSpace(Codec)) parts.Add(Codec!.ToUpperInvariant());
-        if (IsAudio && !string.IsNullOrWhiteSpace(ChannelLayout)) parts.Add(ChannelLayout!);
+        var language = LanguageLabel();
+        if (language.Length > 0) parts.Add(language);
+        var title = TrackLanguagePriority.DescribeTitle(Title);
+        if (title.Length > 0 && !title.Equals(language, StringComparison.OrdinalIgnoreCase)) parts.Add(title);
+        var codec = MediaCodec.Describe(Codec);
+        if (codec.Length > 0) parts.Add(codec);
+        if (IsAudio && !string.IsNullOrWhiteSpace(ChannelLayout)) parts.Add(ChannelLayout!.Trim());
         if (parts.Count == 0) parts.Add($"轨道 {Index}");
         return Decorate(string.Join(" · ", parts));
     }
+
+    /// <summary>
+    /// 轨道的语言名。服务器的可读语言优先照抄 —— Emby 的 <see cref="DisplayLanguage"/> 已经是「Chinese」
+    /// 「日语」这类名字；只有机器码时才换成名字，认不出来的码原样留着。
+    /// </summary>
+    private string LanguageLabel() =>
+        !string.IsNullOrWhiteSpace(DisplayLanguage) ? DisplayLanguage!.Trim() : TrackLanguagePriority.Describe(Language);
 
     private string Decorate(string label)
     {
@@ -842,6 +862,15 @@ public sealed class EmbyItem
     public double? PrimaryImageAspectRatio { get; set; }
 
     public List<string> Genres { get; set; } = [];
+
+    /// <summary>
+    /// 服务端原样给的题材取值。飞牛的 <c>item.genres</c> 是数字 ID（<c>[1,10,2,9]</c>），适配器把它们换成
+    /// 中文名填进 <see cref="Genres"/>，原值留在这里给必须回传服务端的请求用 —— 飞牛的「更多类似」就是拿
+    /// 首个题材 ID 当 <c>item/list</c> 的筛选条件（见 <c>FnNasMediaAdapter.GetSimilarAsync</c>）。Emby／
+    /// Jellyfin／Plex 的题材本来就是名字，这一项不填。
+    /// </summary>
+    [JsonIgnore]
+    public List<string> NativeGenres { get; set; } = [];
 
     /// <summary>Free-form server tags; some libraries carry 动画/动漫 here rather than in Genres.</summary>
     public List<string> Tags { get; set; } = [];

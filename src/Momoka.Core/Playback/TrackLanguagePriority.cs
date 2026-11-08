@@ -138,88 +138,131 @@ public static class TrackLanguagePriority
     /// never offered as a choice and never expanded into mpv codes, so a code that is missing here
     /// costs nothing but the raw code in a menu row.
     /// <para>
-    /// Both the two- and three-letter forms are listed, because a muxer may have written either.
+    /// Both the two- and three-letter forms are listed, because a muxer may have written either. The
+    /// English name is listed too: 飞牛 sends a track title like <c>Bulgarian</c> next to the code
+    /// <c>bul</c>, and without it the row would read 「保加利亚语 · Bulgarian」 — the same language
+    /// said twice, once in a language the reader may not know (2026-11-08).
     /// </para>
     /// </summary>
     private static readonly Dictionary<string, string> ExtraNames = new(StringComparer.OrdinalIgnoreCase)
     {
         ["hu"] = "匈牙利语",
         ["hun"] = "匈牙利语",
+        ["hungarian"] = "匈牙利语",
         ["th"] = "泰语",
         ["tha"] = "泰语",
+        ["thai"] = "泰语",
         ["vi"] = "越南语",
         ["vie"] = "越南语",
+        ["vietnamese"] = "越南语",
         ["id"] = "印尼语",
         ["ind"] = "印尼语",
+        ["indonesian"] = "印尼语",
         ["ms"] = "马来语",
         ["msa"] = "马来语",
         ["may"] = "马来语",
+        ["malay"] = "马来语",
         ["hi"] = "印地语",
         ["hin"] = "印地语",
+        ["hindi"] = "印地语",
         ["ar"] = "阿拉伯语",
         ["ara"] = "阿拉伯语",
+        ["arabic"] = "阿拉伯语",
         ["nl"] = "荷兰语",
         ["nld"] = "荷兰语",
         ["dut"] = "荷兰语",
+        ["dutch"] = "荷兰语",
         ["pl"] = "波兰语",
         ["pol"] = "波兰语",
+        ["polish"] = "波兰语",
         ["tr"] = "土耳其语",
         ["tur"] = "土耳其语",
+        ["turkish"] = "土耳其语",
         ["sv"] = "瑞典语",
         ["swe"] = "瑞典语",
+        ["swedish"] = "瑞典语",
         ["da"] = "丹麦语",
         ["dan"] = "丹麦语",
+        ["danish"] = "丹麦语",
         ["no"] = "挪威语",
         ["nor"] = "挪威语",
         ["nb"] = "挪威语",
         ["nob"] = "挪威语",
+        ["norwegian"] = "挪威语",
         ["fi"] = "芬兰语",
         ["fin"] = "芬兰语",
+        ["finnish"] = "芬兰语",
         ["cs"] = "捷克语",
         ["ces"] = "捷克语",
         ["cze"] = "捷克语",
+        ["czech"] = "捷克语",
         ["sk"] = "斯洛伐克语",
         ["slk"] = "斯洛伐克语",
         ["slo"] = "斯洛伐克语",
+        ["slovak"] = "斯洛伐克语",
         ["el"] = "希腊语",
         ["ell"] = "希腊语",
         ["gre"] = "希腊语",
+        ["greek"] = "希腊语",
         ["he"] = "希伯来语",
         ["heb"] = "希伯来语",
         ["iw"] = "希伯来语",
+        ["hebrew"] = "希伯来语",
         ["uk"] = "乌克兰语",
         ["ukr"] = "乌克兰语",
+        ["ukrainian"] = "乌克兰语",
         ["ro"] = "罗马尼亚语",
         ["ron"] = "罗马尼亚语",
         ["rum"] = "罗马尼亚语",
+        ["romanian"] = "罗马尼亚语",
         ["bg"] = "保加利亚语",
         ["bul"] = "保加利亚语",
+        ["bulgarian"] = "保加利亚语",
         ["hr"] = "克罗地亚语",
         ["hrv"] = "克罗地亚语",
+        ["croatian"] = "克罗地亚语",
         ["sr"] = "塞尔维亚语",
         ["srp"] = "塞尔维亚语",
+        ["serbian"] = "塞尔维亚语",
         ["sl"] = "斯洛文尼亚语",
         ["slv"] = "斯洛文尼亚语",
+        ["slovenian"] = "斯洛文尼亚语",
         ["et"] = "爱沙尼亚语",
         ["est"] = "爱沙尼亚语",
+        ["estonian"] = "爱沙尼亚语",
         ["lv"] = "拉脱维亚语",
         ["lav"] = "拉脱维亚语",
+        ["latvian"] = "拉脱维亚语",
         ["lt"] = "立陶宛语",
         ["lit"] = "立陶宛语",
+        ["lithuanian"] = "立陶宛语",
         ["fa"] = "波斯语",
         ["fas"] = "波斯语",
         ["per"] = "波斯语",
+        ["persian"] = "波斯语",
         ["bn"] = "孟加拉语",
         ["ben"] = "孟加拉语",
+        ["bengali"] = "孟加拉语",
         ["ta"] = "泰米尔语",
         ["tam"] = "泰米尔语",
+        ["tamil"] = "泰米尔语",
         ["te"] = "泰卢固语",
         ["tel"] = "泰卢固语",
+        ["telugu"] = "泰卢固语",
         ["tl"] = "菲律宾语",
         ["fil"] = "菲律宾语",
+        ["filipino"] = "菲律宾语",
         ["mul"] = "多语言",
+        ["multiple"] = "多语言",
         ["und"] = "未标注",
-        ["zxx"] = "无语言"
+        ["zxx"] = "无语言",
+
+        // 简繁与方言：字幕标题里最常见的那几个词，本身就是一条轨的区分点（「中文 · 繁体」）。
+        ["simplified"] = "简体",
+        ["traditional"] = "繁体",
+        ["mandarin chinese"] = "普通话",
+        ["yue"] = "粤语",
+        ["yue chinese"] = "粤语"
     };
 
     /// <summary>The languages the settings page offers, in display order.</summary>
@@ -259,6 +302,34 @@ public static class TrackLanguagePriority
         var stem = code[..dash];
         if (ByToken.TryGetValue(stem, out entry)) return entry.Label;
         return ExtraNames.TryGetValue(stem, out name) ? name : trimmed;
+    }
+
+    /// <summary>
+    /// 轨道标题在屏上的写法：把标题里认得的词换成名字，认不得的部分原样留着。
+    /// <para>
+    /// 飞牛的内封字幕标题是 mkv 工具链写进去的英文（实测「Simplified, Mandarin Chinese」「Traditional,
+    /// Yue Chinese」），照抄在中文界面里就是半句外语。这里按逗号分段、逐段换名字，<b>段内不做逐词替换</b>：
+    /// 一段整个认得出才换（<c>Mandarin Chinese</c> → 普通话），认不出就整段照抄
+    /// （<c>Signs &amp; Songs (Traditional)</c> 原样留着），不会出现半中半英的一段。
+    /// </para>
+    /// <para>
+    /// <b>只影响显示。</b>选轨用的标题匹配（<see cref="KeywordFilter"/>、<see cref="Matches"/> 的
+    /// <c>includeTitle</c>）读的仍是 <c>MediaStream.Title</c> 原文，这里换过的字不会被当成「这条轨写着
+    /// 简体」的依据。
+    /// </para>
+    /// </summary>
+    public static string DescribeTitle(string? title)
+    {
+        var trimmed = (title ?? "").Trim();
+        if (trimmed.Length == 0) return "";
+
+        var parts = trimmed.Split([',', '，'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0) return "";
+
+        var names = new List<string>(parts.Length);
+        foreach (var part in parts) names.Add(Describe(part));
+
+        return string.Join("、", names);
     }
 
     /// <summary>

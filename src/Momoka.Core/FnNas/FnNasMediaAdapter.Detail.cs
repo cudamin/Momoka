@@ -11,7 +11,7 @@ public sealed partial class FnNasMediaAdapter
         if (item.Type != EmbyItemType.Episode || !string.IsNullOrWhiteSpace(item.SeriesId)) return;
         if (string.IsNullOrWhiteSpace(item.SeasonId))
             throw new FnNasApiException("飞牛影视单集详情缺少所属季，无法读取剧集列表");
-        var season = Item(await client.GetItemAsync(connection, item.SeasonId, ct).ConfigureAwait(false));
+        var season = MapItem(await client.GetItemAsync(connection, item.SeasonId, ct).ConfigureAwait(false));
         if (season.Id != item.SeasonId || season.Type != EmbyItemType.Season || string.IsNullOrWhiteSpace(season.SeriesId))
             throw new FnNasApiException("飞牛影视季详情缺少有效的父剧信息，无法读取剧集列表");
         item.SeriesId = season.SeriesId;
@@ -54,16 +54,19 @@ public sealed partial class FnNasMediaAdapter
     public async Task<List<EmbyItem>> GetSimilarAsync(string id, int limit, CancellationToken ct)
     {
         if (limit <= 0) return [];
-        var item = Item(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false));
+        await GenreNamesAsync(ct).ConfigureAwait(false);
+        var item = MapItem(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false));
         await ResolveEpisodeSeriesAsync(item, ct).ConfigureAwait(false);
         if (item.Type is EmbyItemType.Episode or EmbyItemType.Season)
         {
             if (string.IsNullOrWhiteSpace(item.SeriesId)) return [];
-            item = Item(await client.GetItemAsync(connection, item.SeriesId, ct).ConfigureAwait(false));
+            item = MapItem(await client.GetItemAsync(connection, item.SeriesId, ct).ConfigureAwait(false));
         }
         if (item.Type is not (EmbyItemType.Movie or EmbyItemType.Series)) return [];
         var selection = new FnNasFilterSelection();
-        var genre = item.Genres.FirstOrDefault(value => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) && number > 0);
+        // 筛选要的是服务端自己的题材 ID，不是屏上的名字（见 EmbyItem.NativeGenres）。
+        var genres = item.NativeGenres.Count > 0 ? item.NativeGenres : item.Genres;
+        var genre = genres.FirstOrDefault(value => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) && number > 0);
         if (genre is not null) selection.Genres.Add(genre);
         var query = Query(new ItemQuery
         {
@@ -81,7 +84,7 @@ public sealed partial class FnNasMediaAdapter
             query["page"] = page;
             var response = await client.GetItemsAsync(connection, query, ct).ConfigureAwait(false);
             var values = DetailList(response);
-            foreach (var candidate in values.Select(Item))
+            foreach (var candidate in values.Select(MapItem))
                 if (candidate.Type == item.Type && candidate.Id.Length > 0 && candidate.Id != item.Id && candidate.Id != id
                     && seen.Add(candidate.Id)) result.Add(candidate);
             if (values.Count == 0 || page * (Integer(query, "page_size") ?? 1) >= (Integer(response, "total") ?? values.Count)) break;
@@ -100,7 +103,7 @@ public sealed partial class FnNasMediaAdapter
             {
                 var response = await client.GetPersonItemsAsync(connection, query.PersonId!, job, page, ct).ConfigureAwait(false);
                 var values = DetailList(response);
-                items.AddRange(values.Select(Item));
+                items.AddRange(values.Select(MapItem));
                 if (values.Count == 0 || page * 200 >= (Integer(response, "total") ?? values.Count)) break;
             }
         IEnumerable<EmbyItem> unique = items.Where(item => item.Id.Length > 0).DistinctBy(item => item.Id);

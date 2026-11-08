@@ -1630,11 +1630,39 @@ internal static class EmbyTests
 
             var label = stream.ToDisplayLabel();
             Assert.Contains("日语", label);
-            Assert.Contains("EAC3", label);
+            // 编码名与播放中那几行读数同一份（MediaCodec）：eac3 在这里也写 E-AC3，不再是 EAC3。
+            Assert.Contains("E-AC3", label);
             Assert.Contains("5.1", label);
 
             var forcedExternal = new MediaStream { Index = 3, Type = "Subtitle", DisplayTitle = "中文", IsForced = true, IsExternal = true };
             Assert.Equal("中文（强制）（外挂）", forcedExternal.ToDisplayLabel());
+        });
+
+        // 飞牛的内封字幕流只发机器读数：language=chi、title=Simplified、codec_name=subrip。照抄出来是
+        // 「chi · Simplified · SUBRIP」，2026-11-08 用户报「飞牛的字幕识别有问题吧」就是这三张下拉截图。
+        Test("轨道标签：飞牛的机器读数换成人话，重复的标题不写两遍", () =>
+        {
+            string Label(string? language, string? title, string codec = "subrip") => new MediaStream
+            {
+                Index = 2,
+                Type = "Subtitle",
+                Language = language,
+                Title = title,
+                Codec = codec
+            }.ToDisplayLabel();
+
+            Assert.Equal("中文 · SRT", Label("chi", ""));
+            Assert.Equal("中文 · 简体 · SRT", Label("chi", "Simplified"));
+            Assert.Equal("中文 · 繁体 · SRT", Label("chi", "Traditional"));
+            Assert.Equal("中文 · 简体、普通话 · SRT", Label("chi", "Simplified, Mandarin Chinese"));
+            Assert.Equal("中文 · 繁体、粤语 · SRT", Label("chi", "Traditional, Yue Chinese"));
+            // 标题只是把语言又说了一遍（bul + Bulgarian）时不写两遍；没登记的码仍原样留着。
+            Assert.Equal("保加利亚语 · SRT", Label("bul", "Bulgarian"));
+            Assert.Equal("阿拉伯语 · SRT", Label("ara", ""));
+            Assert.Equal("qqq · SRT", Label("qqq", ""));
+            // 认不出的标题整段照抄，不会变成半中半英的一句；编码名也照旧给得出来。
+            Assert.Equal("中文 · Signs & Songs (Traditional) · SRT", Label("chi", "Signs & Songs (Traditional)"));
+            Assert.Equal("中文 · PGS", Label("chi", "", "hdmv_pgs_subtitle"));
         });
     }
 

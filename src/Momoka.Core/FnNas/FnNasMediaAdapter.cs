@@ -118,11 +118,13 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
 
     public async Task<ItemsResult> GetItemsAsync(ItemQuery query, CancellationToken ct)
     {
+        // 题材名要在映射之前到手（一次会话一趟，见 GenreNamesAsync）。读不到也照常翻页，只是题材写原始 ID。
+        await GenreNamesAsync(ct).ConfigureAwait(false);
         if (!string.IsNullOrEmpty(query.PersonId)) return await GetPersonItemsAsync(query, ct).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {
             var matches = await client.SearchAsync(connection, query.SearchTerm, ct).ConfigureAwait(false);
-            var items = matches.Select(Item).Where(item => query.IncludeItemTypes.Count == 0
+            var items = matches.Select(MapItem).Where(item => query.IncludeItemTypes.Count == 0
                 || query.IncludeItemTypes.Contains(item.Type, StringComparer.Ordinal));
             return Page(items, query.StartIndex, query.Limit);
         }
@@ -131,7 +133,7 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
         var response = query.IsFavorite
             ? await client.GetFavoritesAsync(connection, request, ct).ConfigureAwait(false)
             : await client.GetItemsAsync(connection, request, ct).ConfigureAwait(false);
-        var values = Objects(response, "list").Select(Item).ToList();
+        var values = Objects(response, "list").Select(MapItem).ToList();
         var total = Integer(response, "total") ?? values.Count;
         Log.Debug("fnnas", $"item/list {request.ToJsonString()} -> total={total} list={values.Count}");
         var offset = Math.Max(0, query.StartIndex) % Math.Max(1, query.Limit);
@@ -141,7 +143,7 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
             var next = query.IsFavorite
                 ? await client.GetFavoritesAsync(connection, request, ct).ConfigureAwait(false)
                 : await client.GetItemsAsync(connection, request, ct).ConfigureAwait(false);
-            values.AddRange(Objects(next, "list").Select(Item));
+            values.AddRange(Objects(next, "list").Select(MapItem));
         }
         return new ItemsResult { Items = values.Skip(offset).Take(Math.Max(0, query.Limit)).ToList(), TotalRecordCount = total };
     }
@@ -212,7 +214,7 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
     {
         try
         {
-            return Item(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false));
+            return MapItem(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false));
         }
         catch (FnNasApiException error) when (!ct.IsCancellationRequested && error.CanSkipOptionalRead)
         {
@@ -232,12 +234,17 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
 
     private static readonly string[] ArtworkKinds = [EmbyImageStore.Art, EmbyImageStore.Thumb];
 
-    public async Task<ItemsResult> QueryResumeAsync(int startIndex, int limit, CancellationToken ct) =>
-        Page((await client.GetContinueWatchingAsync(connection, ct).ConfigureAwait(false)).Select(Item), startIndex, limit);
+    public async Task<ItemsResult> QueryResumeAsync(int startIndex, int limit, CancellationToken ct)
+    {
+        await GenreNamesAsync(ct).ConfigureAwait(false);
+        var items = await client.GetContinueWatchingAsync(connection, ct).ConfigureAwait(false);
+        return Page(items.Select(MapItem), startIndex, limit);
+    }
 
     public async Task<EmbyItem> GetItemAsync(string id, CancellationToken ct, bool includePeople = true)
     {
-        var item = Item(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false));
+        await GenreNamesAsync(ct).ConfigureAwait(false);
+        var item = MapItem(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false));
         await ResolveEpisodeSeriesAsync(item, ct).ConfigureAwait(false);
         if (item.IsPlayable)
         {
@@ -275,22 +282,26 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
         return item;
     }
 
-    public async Task<List<EmbyItem>> GetSeasonsAsync(string seriesId, CancellationToken ct) =>
-        (await client.GetSeasonsAsync(connection, seriesId, ct).ConfigureAwait(false)).Select(value =>
+    public async Task<List<EmbyItem>> GetSeasonsAsync(string seriesId, CancellationToken ct)
+    {
+        await GenreNamesAsync(ct).ConfigureAwait(false);
+        return (await client.GetSeasonsAsync(connection, seriesId, ct).ConfigureAwait(false)).Select(value =>
         {
-            var item = Item(value); item.Type = EmbyItemType.Season; item.IsFolder = true;
+            var item = MapItem(value); item.Type = EmbyItemType.Season; item.IsFolder = true;
             item.SeriesId = seriesId; item.ParentId = seriesId; return item;
         }).ToList();
+    }
 
     public async Task<List<EmbyItem>> GetEpisodesAsync(string seriesId, string? seasonId, CancellationToken ct)
     {
+        await GenreNamesAsync(ct).ConfigureAwait(false);
         var seasons = string.IsNullOrEmpty(seasonId)
             ? (await GetSeasonsAsync(seriesId, ct).ConfigureAwait(false)).Select(item => item.Id).ToArray() : [seasonId];
         var episodes = new List<EmbyItem>();
         foreach (var season in seasons)
             foreach (var value in await client.GetEpisodesAsync(connection, season, ct).ConfigureAwait(false))
             {
-                var item = Item(value); item.Type = EmbyItemType.Episode; item.IsFolder = false;
+                var item = MapItem(value); item.Type = EmbyItemType.Episode; item.IsFolder = false;
                 item.SeasonId = season; item.ParentId = season; item.SeriesId = seriesId; episodes.Add(item);
             }
         return episodes;
@@ -323,7 +334,7 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
     }
 
     public async Task<EmbyUserData?> GetUserDataAsync(string id, CancellationToken ct) =>
-        Item(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false)).UserData;
+        MapItem(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false)).UserData;
 
     public Task ReportPlaybackAsync(PlaybackReport report, CancellationToken ct) =>
         client.ReportPlaybackAsync(connection, PlaybackRecord(report), ct);

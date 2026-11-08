@@ -68,6 +68,30 @@ internal static partial class FnNasMediaTests
             Assert.Equal(200, body["page_size"]!.GetValue<int>());
             Assert.Equal(2, body.Count, "guid 仅在路径中，不能混进人员请求正文");
         });
+        // 2026-11-08 用户问详情页那行「1．10·2·9」：item.genres 是 ID，名字要问 tag/genres。
+        Test("飞牛详情：题材经 tag/genres 换成名字，一次会话只读一趟", () =>
+        {
+            using var fixture = DetailListsFixture();
+            var detail = fixture.Session.Client.GetItemAsync("movie", default).GetAwaiter().GetResult();
+            // 夹具的 movie 是 genres:["invalid",2]，映射表只有 2→动画：认得的换名字，认不得的原样留着。
+            Assert.Equal("invalid,动画", string.Join(',', detail.Genres));
+            Assert.Equal("invalid,2", string.Join(',', detail.NativeGenres));
+            Assert.True(fixture.Transport.Paths.Contains("/v/api/v1/tag/genres"));
+
+            fixture.Transport.Paths.Clear();
+            _ = fixture.Session.Client.GetItemAsync("movie", default).GetAwaiter().GetResult();
+            Assert.False(fixture.Transport.Paths.Contains("/v/api/v1/tag/genres"), "映射表不该每次翻页、开详情都问一遍");
+        });
+        Test("飞牛详情：题材映射表读不到时照常显示条目，题材保留原始 ID", () =>
+        {
+            using var fixture = DetailListsFixture();
+            var previous = fixture.Transport.Override;
+            fixture.Transport.Override = (request, token) => request.RequestUri!.AbsolutePath == "/v/api/v1/tag/genres"
+                ? Task.FromResult(DetailEnvelope("null", -4)) : previous!(request, token);
+            var detail = fixture.Session.Client.GetItemAsync("movie", default).GetAwaiter().GetResult();
+            Assert.Equal("movie", detail.Id);
+            Assert.Equal("invalid,2", string.Join(',', detail.Genres), "读不到名字就写原值，不能吞掉题材");
+        });
         Test("飞牛更多类似：同类型题材评分排序，排除自身与重复，单集推荐父剧同类", () =>
         {
             using var fixture = DetailListsFixture();
@@ -106,9 +130,12 @@ internal static partial class FnNasMediaTests
         Test("飞牛人员作品：合并已确认的四种职业，去重后分页", () =>
         {
             using var fixture = DetailListsFixture();
+            var previous = fixture.Transport.Override;
             fixture.Transport.Bodies.Clear();
-            fixture.Transport.Override = (request, _) =>
+            fixture.Transport.Override = (request, token) =>
             {
+                // 人物作品也走 GetItemsAsync：映射前的题材映射表不属于这一条协议，交回夹具。
+                if (request.RequestUri!.AbsolutePath == "/v/api/v1/tag/genres") return previous!(request, token);
                 Assert.Equal("/v/api/v1/person/item/list", request.RequestUri!.AbsolutePath);
                 var body = fixture.Transport.Bodies.Last();
                 Assert.Equal("person-a", body["person_guid"]!.GetValue<string>());

@@ -166,6 +166,13 @@ internal sealed partial class ShellNavigationProbe
             "飞牛人员或更多类似仍为空，或推荐没有排除主体");
         var cast = view.CastShelf!;
         var similar = view.SimilarShelf!;
+        // 2026-11-08：题材与字幕的原始读数不能再上屏。飞牛的 item.genres 是数字 ID、字幕流是 zho + subrip，
+        // 照抄出来就是「1 · 10 · 2 · 9」和「zho · SUBRIP」—— 这里核对屏上换成了名字。
+        if (!episode)
+            Require(view.SublineGenres.SequenceEqual(["动画", "动作"]),
+                "题材没有换成名字：" + string.Join(" · ", view.SublineGenres));
+        var subtitleRow = view.SubtitleTracks.FirstOrDefault(row => row.Stream is not null);
+        Require(subtitleRow?.Text == "中文 · SRT", "字幕轨道标签仍是机器读数：" + (subtitleRow?.Text ?? "（没有字幕行）"));
         Require(cast.Cards.Select(card => card.Item.Name).SequenceEqual(["匿名导演", "匿名演员"])
             && cast.Cards.Select(card => card.Subtitle).SequenceEqual(["导演", "主角"]), "演职人员姓名、职业或角色映射错误");
         Require(cast.Cards.All(card => card.Item.Type == EmbyItemType.Person
@@ -280,6 +287,9 @@ internal sealed partial class ShellNavigationProbe
                 return FnNasEnvelope(Array.Empty<object>());
             if (path.EndsWith("/api/v1/mediadb/sum", StringComparison.Ordinal)) return FnNasEnvelope(new { total = 0 });
             if (path.EndsWith("/api/v1/play/list", StringComparison.Ordinal)) return FnNasEnvelope(Array.Empty<object>());
+            // 条目映射会先问题材映射表：2／7 就是 Item() 里那个 genres 数组的两个 ID。
+            if (path.EndsWith("/api/v1/tag/genres", StringComparison.Ordinal))
+                return FnNasEnvelope(new[] { new { id = 2, value = "动画" }, new { id = 7, value = "动作" } });
             if (path.Contains("/api/v1/sys/img/", StringComparison.Ordinal))
             {
                 ImageReads.Enqueue(path);

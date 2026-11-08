@@ -343,6 +343,8 @@ internal static partial class MediaVersionDiscoveryTests
             "/v/api/v1/item/native-movie" => movie,
             "/v/api/v1/stream/list/native-movie" => "{\"files\":[{\"guid\":\"same-source\",\"path\":\"/media/movie.mkv\"}]}",
             "/v/api/v1/play/info" => "{\"ts\":0,\"duration\":100}",
+            // 条目映射要先问题材映射表（tag/genres）；混合来源夹具只关心版本发现，这里回空表。
+            "/v/api/v1/tag/genres" => "[]",
             var route when route.StartsWith("/v/api/v1/person/list/", StringComparison.Ordinal) => "{\"total\":0,\"list\":[]}",
             _ => throw new InvalidOperationException("Unexpected mixed-source fixture path: " + request.RequestUri.AbsolutePath)
         };

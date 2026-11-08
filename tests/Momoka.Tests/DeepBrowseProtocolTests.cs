@@ -130,6 +130,13 @@ internal static class DeepBrowseProtocolTests
             string json;
             if (fnnas)
             {
+                // 条目映射前会先读一趟题材映射表（GET tag/genres）；它不属于分页读取，不记进 Ranges。
+                if (request.RequestUri.AbsolutePath.EndsWith("/tag/genres", StringComparison.Ordinal))
+                {
+                    Assert.Equal(HttpMethod.Get, request.Method);
+                    return new HttpResponseMessage(HttpStatusCode.OK)
+                    { Content = new StringContent("{\"code\":0,\"data\":[]}", Encoding.UTF8, "application/json") };
+                }
                 Assert.Equal(HttpMethod.Post, request.Method);
                 Assert.Equal("/v/api/v1/item/list", request.RequestUri.AbsolutePath);
                 var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancellationToken))!.AsObject();

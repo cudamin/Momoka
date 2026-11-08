@@ -11696,3 +11696,14 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - `publish -NoArchive -Shortcut` 更新主树 `artifacts/publish/win-x64`：546 文件 286.6 MB，批准 native／mpv UI／许可／PRI 校验通过。快捷方式重写被桌面写入拒绝（`UnauthorizedAccessException`）；现有 `Momoka.lnk` 的目标与工作目录经读文件核对仍是该发布目录，桌面启动的就是这一份。未上传、未 push。
 
 
+
+## 2026-11-08 飞牛字幕标签与题材 ID（本树，待合入主树）
+
+- 用户报：三张飞牛库详情页的字幕下拉截图（「chi · 1 · SUBRIP」等）「飞牛的字幕识别有问题吧，修一下」，以及详情页片名下面那行「1．10·2·9」「是何意味，没看懂」。
+- 字幕那三行是**机器读数照抄**：飞牛 `stream/list` 的 `subtitle_streams` 只给 `language=chi`、`codec_name=subrip`，标题是 mkv 工具链写的英文（「Simplified, Mandarin Chinese」）。`MediaStream.ToDisplayLabel` 改成人话：语言码经 `TrackLanguagePriority.Describe` 换中文名，编码走新的 `MediaCodec.Describe`（`subrip` → SRT、`hdmv_pgs_subtitle` → PGS），标题经新的 `TrackLanguagePriority.DescribeTitle` 按逗号分段换名字（`Simplified` → 简体、`Traditional, Yue Chinese` → 繁体、粤语），只把语言又说了一遍的标题省掉（`bul` + 「Bulgarian」→「保加利亚语 · SRT」）。服务器给了 `DisplayTitle` 仍照抄，Emby 那条路一个字没变。
+- 编码表从 `MpvTrack.CodecLabel` 抽到 `MediaCodec` 两处共用：同一份文件在详情页和播放里现在写同一个名字（`eac3` 因此从详情页的 EAC3 变成 E-AC3）。`ExtraNames` 补了英文语言名（Bulgarian／Arabic…）与 simplified／traditional／mandarin chinese／yue chinese —— 认出来才谈得上换名字与去重；匹配用的 `ByToken` 没有改。
+- 「1．10·2·9」是**题材 ID**：`item.genres` 是飞牛自己的数字题材，名字在 `tag/genres?lan=zh-CN`。`FnNasMediaAdapter.Item` 映射时换名字填 `Genres`，原值留新的 `EmbyItem.NativeGenres`；「更多类似」要拿首个题材 ID 当 `item/list` 的筛选条件，改读 NativeGenres。映射表一次会话只读一趟（`GenreNamesAsync` 串行去重，读失败记住不再重试），读不到就保留原始 ID，不猜不留空。筛选面板与条目映射的界面语言合并成 `FnNasMediaAdapter.ContentLanguage`。
+- 连带：动画着色器档位与国漫进度规则读的是 `item.Genres`，飞牛上第一次能读到「动画」这个类型（此前是数字，永远不匹配）。
+- 测试：主套件 **4214/4214、0 失败 0 跳过**（`TEMP` 指向可写目录；默认 `C:\WINDOWS\TEMP` 时两条下载用例因权限红，属环境）。新增 5 条：飞牛机器读数换人话与标题去重、`Describe`／`DescribeTitle`、题材 ID 换名与三种回退、详情经 `tag/genres` 只读一趟、映射表读不到仍显示条目。受影响的假传输（DeepBrowseProtocol、MediaSourceSize、MediaVersionDiscovery、人物作品）补 `tag/genres` 路由或放行，原断言（分页、体积、版本发现、人物作品协议）不变。
+- 运行：Shell Release **0 警告 0 错误**；`--probe-shell --probe-section library --screen 1` **34/34、0 失败、退出 0**（`shell-probe-20261108-152646651-1636`）。飞牛详情新增两条断言核对屏上：题材是「动画 · 动作」而不是 `2 · 7`、字幕行是「中文 · SRT」而不是 `zho · SUBRIP`。假传输，不联网、不播放、不写服务器。
+- 未覆盖：没有在真实飞牛服务器上再读一遍 `tag/genres`（映射表来自已核对过的官方端点与筛选面板）；标题只翻认得的词，没登记的词原样保留，因此像「Signs & Songs (Traditional)」这种整段认不出的照抄英文。

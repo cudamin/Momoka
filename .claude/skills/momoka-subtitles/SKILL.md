@@ -51,6 +51,7 @@ description: "Audit, fix and verify Momoka subtitle settings and playback behavi
 - 语言、标题关键词优先级、forced/default 标记是不同维度。当前字幕语言仅看语言字段；标题关键词按表内次序定优先级（越靠上越优先），“候补”是软降权，不擅自恢复旧的标题猜语言或硬排除。
 - 明确的默认轨回退和任意语言兜底不是一回事。检查无默认、空语言表、回退关闭、强制模式及不可用默认轨的组合。
 - 更新实际选择时也更新“自动”行的说明；不能实际播日语、下拉却还说按中文音轨不显示字幕。
+- **下拉里那一行字是拼出来的，不是服务器原话。** `MediaStream.ToDisplayLabel` 在服务器没给 `DisplayTitle` 时自己拼：语言码换成名字（`chi` → 中文）、编码换成播放器短名（`subrip` → SRT，表在 `MediaCodec`）、标题里认得的词换名字（`TrackLanguagePriority.DescribeTitle`，`Traditional` → 繁体）、只把语言又说一遍的标题省掉。飞牛的流只有 `chi`/`subrip`，2026-11-08 之前那里写的是「chi · 1 · SUBRIP」。**只改显示**：标题匹配、语言匹配读的仍是 `MediaStream.Title` 与 `Language` 原文。
 
 ## 外观：测内核，别照抄注释
 

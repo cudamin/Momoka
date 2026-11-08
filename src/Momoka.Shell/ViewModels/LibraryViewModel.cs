@@ -2502,7 +2502,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             var tagListType = FnNasLibraryQuery.TagListType(defaultType);
             var options = await scope.ExecuteAsync((client, ct) => client.GetFnNasFilterOptionsAsync(
                 folder ? null : request.ParentId, folder ? request.ParentId : null,
-                tagListType, request.IsFavorites, "zh-CN", ct), token).ConfigureAwait(true);
+                tagListType, request.IsFavorites, Momoka.FnNas.FnNasMediaAdapter.ContentLanguage, ct), token).ConfigureAwait(true);
             if (!FnNasFilterLoadCurrent(token, scope, request)) return;
             BuildFnNasFilterRows(options, defaultType);
         }

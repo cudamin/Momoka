@@ -364,6 +364,10 @@ internal static class MediaSourceSizeTests
             if (path.EndsWith("/play/info", StringComparison.Ordinal))
                 Assert.Equal(HttpMethod.Post, request.Method, "飞牛只读进度接口使用既有 POST");
             else Assert.Equal(HttpMethod.Get, request.Method, "体积读取不能写服务器或起播");
+            // 条目映射先问题材映射表；这个夹具只关心体积，回空表。
+            if (path.EndsWith("/tag/genres", StringComparison.Ordinal))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                { Content = new StringContent("{\"code\":0,\"data\":[]}", Encoding.UTF8, "application/json") });
             var body = path.StartsWith("/api/v1/item/", StringComparison.Ordinal)
                 ? "{\"code\":0,\"data\":{\"guid\":\"movie\",\"type\":\"Movie\"}}"
                 : path.EndsWith("/play/info", StringComparison.Ordinal) ? "{\"code\":0,\"data\":{}}" : json;

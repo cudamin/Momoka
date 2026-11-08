@@ -85,6 +85,12 @@ public sealed partial class FnNasMediaAdapter
         if (!string.IsNullOrWhiteSpace(value)) tags[key] = value;
     }
 
+    /// <summary>
+    /// 界面语言。题材与地区的映射表按它取中文名，筛选面板与条目映射用的是同一份 —— 两处各写一个
+    /// 「zh-CN」迟早会分叉。
+    /// </summary>
+    public const string ContentLanguage = "zh-CN";
+
     public async Task<FnNasFilterOptions> GetFilterOptionsAsync(string? ancestorGuid, string? parentGuid, string? type,
         bool favorites, string language, CancellationToken ct)
     {
@@ -134,6 +140,53 @@ public sealed partial class FnNasMediaAdapter
         return map;
     }
 
+    /// <summary>题材取值换成屏上的名字；映射表里没有的取值原样留着 —— 没登记的新题材仍是信息，不该被吞掉。</summary>
+    private static List<string> GenreLabels(IEnumerable<string> values, IReadOnlyDictionary<string, string>? names)
+    {
+        var result = new List<string>();
+        foreach (var value in values)
+            result.Add(names is not null && names.TryGetValue(value, out var name) && name.Length > 0 ? name : value);
+        return result;
+    }
+
+    private readonly SemaphoreSlim _genreGate = new(1, 1);
+    private Dictionary<string, string>? _genreNames;
+    private bool _genreReadFailed;
+
+    /// <summary>
+    /// <c>tag/genres</c> 的「ID → 名字」表。一次会话只读一趟，翻页、开详情都不再问第二遍。
+    /// <para>
+    /// 读不到就记住这一趟失败，不再重试：题材只是屏上的显示名，不值得为它在每次翻页时多挂一个会失败的
+    /// 请求；下次启动会重新读。读失败时条目保留原始 ID，不猜也不留空。
+    /// </para>
+    /// </summary>
+    private async Task<Dictionary<string, string>?> GenreNamesAsync(CancellationToken ct)
+    {
+        if (_genreNames is not null || _genreReadFailed) return _genreNames;
+
+        await _genreGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            if (_genreNames is not null || _genreReadFailed) return _genreNames;
+            var tags = await OptionalReadAsync(() => client.GetGenreTagsAsync(connection, ContentLanguage, ct), "tag/genres", ct)
+                .ConfigureAwait(false);
+            if (tags is null)
+            {
+                _genreReadFailed = true;
+                return null;
+            }
+            _genreNames = Map(tags, "id");
+            return _genreNames;
+        }
+        finally
+        {
+            _genreGate.Release();
+        }
+    }
+
+    /// <summary>把一份条目 JSON 映射成条目，题材顺带换成名字（映射表没到手时保留原值）。</summary>
+    private EmbyItem MapItem(JsonObject value) => Item(value, _genreNames);
+
     public static EmbyItem Library(JsonObject value)
     {
         var item = Item(value);
@@ -157,7 +210,12 @@ public sealed partial class FnNasMediaAdapter
         return item;
     }
 
-    public static EmbyItem Item(JsonObject value)
+    /// <summary>
+    /// 一份条目 JSON 映射成 Momoka 的条目。<paramref name="genreNames"/> 是 <c>tag/genres</c> 的 ID→名字表：
+    /// 飞牛的 <c>genres</c> 是数字 ID，不换名字的话详情页类型行就是「1 · 10 · 2 · 9」（2026-11-08 用户
+    /// 「这个 1．10·2·9 是何意味」）。表没到手时原样保留 ID —— 屏上难看，但那是真的读数，不是猜的。
+    /// </summary>
+    public static EmbyItem Item(JsonObject value, IReadOnlyDictionary<string, string>? genreNames = null)
     {
         var nativeType = Text(value, "type");
         var type = nativeType switch
@@ -172,6 +230,7 @@ public sealed partial class FnNasMediaAdapter
         };
         var duration = Number(value, "duration");
         var position = Number(value, "ts") ?? Number(value, "watched_ts") ?? 0;
+        var genres = Strings(value["genres"]).ToList();
         var item = new EmbyItem
         {
             Id = Text(value, "guid"),
@@ -196,7 +255,8 @@ public sealed partial class FnNasMediaAdapter
             // 卡片右上角的集数角标只给剧集：季/集的 local_number_of_episodes 是「这一季有几集」，写在那两张卡上
             // 会变成一句和这一页无关的话。剧集这一格是跨季合计（JOJO 本地两季共 3 集 → 3）。
             LocalEpisodeCount = type == EmbyItemType.Series ? Integer(value, "local_number_of_episodes") : null,
-            Genres = Strings(value["genres"]).ToList(),
+            Genres = GenreLabels(genres, genreNames),
+            NativeGenres = genres,
             UserData = new EmbyUserData
             {
                 Played = Flag(value, "watched") || Flag(value, "is_watched"),
