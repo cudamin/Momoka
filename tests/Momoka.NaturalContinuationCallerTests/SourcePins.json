@@ -13,7 +13,7 @@
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackContracts.cs",
-      "sha256": "da01080b20b5e8cd3af65d40a51af4e40387a0e90f1ebb407a392ba20f9963f3"
+      "sha256": "d6d85590fb89808272bd0e229aa047db32e323719013f2ea911b365c93ae938b"
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackContinuation.cs",
@@ -65,7 +65,7 @@
     },
     {
       "path": "src/Momoka.Core/Emby/EmbyItem.cs",
-      "sha256": "3a638b58df555369d49fc8dc13fef3d85869d6449e105432cb5b515ff40e6ca0"
+      "sha256": "0307aef8d93f0b6052af735612a61d3103e502ebaeba224897eb34020e29da83"
     },
     {
       "path": "src/Momoka.Core/Playback/EpisodeNavigation.cs",

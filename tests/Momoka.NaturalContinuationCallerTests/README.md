@@ -1,5 +1,11 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-09：上一批漏同步的两份来源
+
+`d96d432`（飞牛字幕标签与题材 ID 换成人话）改了两份被钉住的来源，但当时没更新 `SourcePins.json`，于是全方案构建在 `R046 SOURCE_HASH_MISMATCH` 上红着 —— 只构建 Shell + Tests 看不见它。逐字核对后确认与自然接续无关：`PlaybackContracts.cs` 把 mpv 编码名那张表从 `MpvTrack.CodecLabel` 抽到 `Core/Emby/MediaCodec`（详情页的轨道下拉要读同一套写法），`EmbyItem.cs` 新增 `NativeGenres`（飞牛的 `genres` 是数字 ID，映射时换名字，原值留在这个新字段里给「更多类似」的筛选条件用）。提取的自然接续成员、来源 identity/id、自动接集与 lease 规则一字未动，其余 17 份 pin 逐份核对一致。
+
+只同步这两项 SHA256（`da01080…` → `d6d8559…`、`3a638b5…` → `0307aef…`），base/date、提取器与全部断言不变。同步后 `Run-Caller.ps1` **69/69、0 失败 0 跳过**（`artifacts/r046-caller/verify-20261109-022233-2870`）；`Test-SourceExtraction.ps1` **10 个反例均按预期退出 1**，之后当前源重新零警告错误构建并回归 **69/69**（`artifacts/r046-caller/extractor-20261109-022303-6966/current-reverified`）。
+
 ## 2026-11-08：分辨率档位修复的来源同步
 
 `EmbyItem.cs` 的档位不再只看高度：新增 `MediaStream.ResolutionLabel`（宽高一起读，见 `MediaResolution`），`ToQualityLabel` 与 `ToFileInfoLabel` 改读它，旧的 `DescribeHeight` 删除。自然接续提取的 `PlayerViewModel` 成员、来源 identity/id、自动接集与 lease 规则一字未动，其余 18 份 pin 逐份核对一致。只同步 `EmbyItem.cs` 一项 SHA256（`d87c8f9…` → `3a638b5…`），base/date、提取器与全部断言不变。
