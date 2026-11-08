@@ -18,7 +18,23 @@
 
 过程红项照实保留：本轮头两次 probe 各有一条与本批无关的红 —— 筛选多选下拉在探针窗口被别的窗口抢走激活时超时（`shell-probe-20261108-131003337-13032`、`-132945669-192`，第三次安静重跑通过），以及 19:26 那三条陈旧材质前提（上面已修）；另有一次启动被另一会话的探针占着桌面（`shell-probe-20261108-141236120-11808` 的进程，非本树）当场拒绝，等它退出后重跑。
 
-## 2026-11-08 分辨率档位按宽高一起读：《摩加迪沙》1920×804 不再读成 720p（本树已验，待主树整合交付）
+## 2026-11-08 文件选项三行同一个行高（本树已验，待主树整合交付）
+
+用户令（附详情页那三行的截图）：「调整媒体页面这三个选项的间距、让它们不管有没有选择框间距都一致」。
+
+现象：宽版式片名栏里那三行（视频／音频／字幕）只有下拉那几行是 32 高（框架 ComboBox 的 MinHeight），音轨只有一条时音频那一行只是一句话、只有一行字的高（20 上下），而两段间距又都是写死的 10 ——「这个文件有几条音轨」于是会改掉三行的竖距。电影、剧、季页上「视频：…」是片名栏里独立的一份（`DetailVideoText`），集页宽版式才把它挪进那排下拉里，两处都得撑。
+
+改法：`Theme/Styles.xaml` 新增 `EgPickerRowHeight`（32，跟着 ComboBox 的默认最小高）；`DetailPage.xaml` 里视频那两份、媒体源、音频、字幕都写 `MinHeight`，纯文字那几行的字改成在格子里居中；行间于是只剩各自容器的 Spacing（片名栏 10、文件选项 10）。紧凑版式尾部那一份同样处理：唯一音轨那段文字也占住一个选择框的高，换行那一排里这一列不再比旁边两颗下拉矮一截。
+
+验证（本树终码）：全方案 Release **0 警告 0 错误**；完整主测试 **4209/4209、0 失败 0 跳过**（`TEMP`/`TMP` 指本树 `work/tmp`；默认 `C:\WINDOWS\TEMP` 时那两条下载用例会因权限红，属环境）；`dotnet format whitespace --verify-no-changes` 与 `tools/check-diff.ps1`（7 个文件）通过。`--probe-shell --probe-section library --screen 2`（`shell-probe-20261108-141236120-11808`）**30/34**：新增用例「文件选项三行的竖距」通过，读数「单音轨（音频是文字）：视频行 105–137（高 32）、音频行 147–179（高 32）、字幕行 189–221（高 32），空隙 10／10，选择框高 32，Spacing 10／10」，加两条音轨变成下拉之后**同一个数**；「文件选项长名称、断点与隐藏行」「文件选项下拉展开的位置与宽度」「电影/剧/季页连续缩放跨断点后布局稳定」照旧全绿。截图目视 `detail-picker-rhythm-text-screen.png` 与 `-picker-screen.png`：两种状态下三行竖距一致。
+
+四条红项如实保留，非本改动引入：`详情自定义页面（Series／Episode／Movie）` 的「实际控件底色不是可调画刷」与 `详情背景主题渐变、沉浸收起与主页底边` 的「首页详情按钮底色浓度不是滑块读数」。归因：`a9e2418`（19:26 出厂默认 `UseAcrylicControls = true`）之后 library 分区没有重跑过（那一批只跑了 settings 28/28）；每个用例各建一份夹具、读到的是出厂默认的亚克力，而 `CheckControlBackgroundOpacityAsync` 在循环开头仍按「半透明叠层」期待 `AcrylicBrush { AlwaysUseFallback: true }`，`ControlBackgroundBrushes.Apply(..., useAcrylic: true)` 却把 `AlwaysUseFallback` 置 false（`ControlBackgroundBrushes.cs:155`）—— 消息与代码逐字对得上。同一时段另一工作树 `master-d0fe1c88` 的同族三条也在红（消息是 `/Normal 薄白零档或反馈不正确`，那边正在改这块），本次没有去动它。
+
+主树：`ab1bf59` 以 `--ff-only` 合入 master（用户选「合入主树，先不发布」）。主树这一份是同一个提交、内容与本树验证的完全一致，但没有在主树重跑构建与探针；**桌面交付目录 `artifacts/publish/win-x64` 没有刷新，桌面版仍是旧版** —— 发布留给正在那边改外观／亚克力的交付会话，避免两边抢同一个交付目录。
+
+未做：没有真实登录或播放。主测试那两轮 16 项红是另一个会话的 library 探针占着自检锁（`已有当前用户的自检运行中`），它退出后同一份代码重跑 4209/4209，两轮红记录保留。
+
+## 2026-11-08 分辨率档位按宽高一起读：《摩加迪沙》1920×804 不再读成 720p（主树整合与桌面交付）
 
 用户报「摩加迪沙分瓣率识别错误」，附两张截图：详情页「媒体信息」写着 `1920 x 804`，而「视频：」那行写的是 `11.5 GB · 720p · x264 · DTS · WiKi`。
 
@@ -33,6 +49,12 @@
 验证（本树）：Core 与 Tests Release 编译 **0 警告 0 错误**；完整主测试 **4208/4208、0 失败 0 跳过**（`TEMP`/`TMP` 指本树 `work/tmp`；不设这两个变量时 `C:\WINDOWS\TEMP` 拒绝访问，会红两条与本次无关的下载用例，设了即过）；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。
 
 未验证：没有真实登录或播放去看详情页那一行，文案由单测钉住、版式没动。媒体库列表「分辨率」列从此与「视频：」同一口径（`2160p`→`4K`、`804p`→`1080p`），这是本轮唯一一处超出用户截图范围的可见变化。
+
+主树整合：`5075543`（产品）、`610187e`（进度）、`ec2b4db`（R046 来源 pin）以 `--ff-only` 合入 master。合入时全方案构建先被 `Momoka.NaturalContinuationCallerTests` 的 `R046 SOURCE_HASH_MISMATCH src/Momoka.Core/Emby/EmbyItem.cs` 拦下：本次只动档位读数，自然接续提取的成员与来源 identity／自动接集／lease 规则未变，其余 18 份 pin 逐份核对一致，按该夹具的流程只同步这一份 SHA256（`d87c8f9…` → `3a638b5…`）并记进它的 README。主树另一会话那三份 `.claude/skills/momoka-code-review/*` 未提交删除原样保留。
+
+主树**最终整合代码**重验：全方案 Release **0 警告 0 错误**；完整主测试 **4208/4208、0 失败 0 跳过**（`TEMP`/`TMP` 指主树 `work/tmp`）；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。
+
+交付：用户先关掉正在运行的 Momoka 后，`tools/publish.ps1 -NoArchive -Shortcut` 刷新主树 `artifacts/publish/win-x64`：**546 文件、286.6 MB**，GLSL/HOOK 着色器许可与批准 mpv 清单（59 文件：50 UI、2 native）逐文件校验通过；发布 `Momoka.dll` 与构建输出同为 `957C9BE21330D14760E62ECB77FD69806BE3E48845F73953D41F62188EAE057A`（7,282,688 字节）。快捷方式写回仍被沙箱 ACL 拒绝（`tools/shortcut.ps1` UnauthorizedAccessException，与前几批同一条），直接在 `.lnk` 二进制里读回目标仍是 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`，本次只换该目录内容、路径未变；`Momoka.exe` FileVersion `0.2.5.0`、ProductVersion `0.2.5+ec2b4db3c646972b071b0ad6dc4a26dff31c69b0`。**桌面交付完成**。未真实登录、未真实播放、未写服务器、未上传。
 
 ## 2026-11-08 沉浸档右上角艺术图与集页封面悬停遮罩：主树整合与桌面交付
 

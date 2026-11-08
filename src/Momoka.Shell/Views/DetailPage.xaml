@@ -664,16 +664,29 @@
                             </StackPanel>
 
                             <!-- 「视频：…」那一行的独立一份 —— 集页的宽版式不画它（那一页它下到文件选项那排
-                                 chips 里了，和音频、字幕一起换行），其余版式照旧在这里。 -->
-                            <Grid Visibility="{x:Bind ViewModel.VideoLineVisibility, Mode=OneWay}">
+                                 chips 里了，和音频、字幕一起换行），其余版式照旧在这里。
+                                 它和下面那排文件选项是同一件事的三行里的第一行（电影、剧、季页上视频那一行就在
+                                 这儿），所以同样按 EgPickerRowHeight 撑住、字在格里居中 —— 这一行只有一句话，
+                                 不撑的话它与音频那一行之间的空隙会比音频与字幕之间的大一圈（用户 2026-11-08
+                                 「让它们不管有没有选择框间距都一致」）。 -->
+                            <Grid
+                                MinHeight="{StaticResource EgPickerRowHeight}"
+                                Visibility="{x:Bind ViewModel.VideoLineVisibility, Mode=OneWay}">
                             <TextBlock
                                 x:Name="DetailVideoText"
+                                VerticalAlignment="Center"
                                 Style="{StaticResource EgOnScrimBodyStyle}"
                                 Text="{x:Bind ViewModel.VideoLine, Mode=OneWay}"
                                 Visibility="{x:Bind ViewModel.VideoLineVisibility, Mode=OneWay}" />
                             </Grid>
 
-                            <!-- 四种详情宽窗共用播放按钮上方的文件选项。唯一音轨显示文字，有多个音轨才提供下拉。 -->
+                            <!-- 四种详情宽窗共用播放按钮上方的文件选项。唯一音轨显示文字，有多个音轨才提供下拉。
+
+                                 三行（视频／音频／字幕）一律按 EgPickerRowHeight 摆、字在格里居中：有没有
+                                 下拉都不改行高，行与行之间于是只剩这个 StackPanel 的 Spacing（用户
+                                 2026-11-08：「调整媒体页面这三个选项的间距、让它们不管有没有选择框间距都
+                                 一致」）。从前只有下拉那几行是 32 高、纯文字那几行只有一行字的高，同一部片子
+                                 换一条音轨，三行的竖距就换一套。 -->
                             <StackPanel
                                 x:Name="ColumnPickers"
                                 Spacing="10"
@@ -688,13 +701,17 @@
                                     <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="ButtonBackground" />
                                     <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="ButtonBackgroundDisabled" />
                                 </StackPanel.Resources>
-                                <TextBlock
-                                    VerticalAlignment="Center"
-                                    Style="{StaticResource EgOnScrimBodyStyle}"
-                                    Text="{x:Bind ViewModel.VideoLine, Mode=OneWay}"
-                                    Visibility="{x:Bind ViewModel.ColumnVideoVisibility, Mode=OneWay}" />
+                                <Grid
+                                    MinHeight="{StaticResource EgPickerRowHeight}"
+                                    Visibility="{x:Bind ViewModel.ColumnVideoVisibility, Mode=OneWay}">
+                                    <TextBlock
+                                        VerticalAlignment="Center"
+                                        Style="{StaticResource EgOnScrimBodyStyle}"
+                                        Text="{x:Bind ViewModel.VideoLine, Mode=OneWay}" />
+                                </Grid>
                                 <!-- Auto 标签 + 剩余宽度：长名称不能把选择框撑出片名栏。 -->
                                 <Grid
+                                    MinHeight="{StaticResource EgPickerRowHeight}"
                                     ColumnSpacing="10"
                                     Visibility="{x:Bind ViewModel.SourceVisibility, Mode=OneWay}">
                                     <Grid.ColumnDefinitions>
@@ -719,6 +736,7 @@
                                         SelectedItem="{x:Bind ViewModel.SelectedSource, Mode=TwoWay}" />
                                 </Grid>
                                 <Grid
+                                    MinHeight="{StaticResource EgPickerRowHeight}"
                                     ColumnSpacing="10"
                                     Visibility="{x:Bind ViewModel.AudioRowVisibility, Mode=OneWay}">
                                     <Grid.ColumnDefinitions>
@@ -752,6 +770,7 @@
                                         Visibility="{x:Bind ViewModel.SingleAudioVisibility, Mode=OneWay}" />
                                 </Grid>
                                 <Grid
+                                    MinHeight="{StaticResource EgPickerRowHeight}"
                                     ColumnSpacing="10"
                                     Visibility="{x:Bind ViewModel.SubtitleVisibility, Mode=OneWay}">
                                     <Grid.ColumnDefinitions>
@@ -1130,14 +1149,19 @@
                                         <TextBlock x:Uid="DetailPage_TextBlock3" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
                                     </local:EgPicker.Header>
                                 </local:EgPicker>
+                                <!-- 音轨只有一条时这一格是一句话、不是下拉；下面那格仍按 EgPickerRowHeight 撑住，
+                                     免得换行那一排里这一列比旁边两颗下拉矮一截（同宽版式那三行，2026-11-08）。 -->
                                 <StackPanel Spacing="8" MinWidth="200"
                                             Visibility="{x:Bind ViewModel.SingleAudioVisibility, Mode=OneWay}">
                                     <TextBlock x:Uid="DetailPage_TextBlock3" Style="{StaticResource EgOnScrimBodyStyle}" Foreground="{StaticResource EgOnScrimBrush}" />
-                                    <TextBlock
-                                        x:Name="AudioText"
-                                        Style="{StaticResource EgOnScrimBodyStyle}"
-                                        Text="{x:Bind ViewModel.SingleAudioText, Mode=OneWay}"
-                                        TextWrapping="Wrap" />
+                                    <Grid MinHeight="{StaticResource EgPickerRowHeight}">
+                                        <TextBlock
+                                            x:Name="AudioText"
+                                            VerticalAlignment="Center"
+                                            Style="{StaticResource EgOnScrimBodyStyle}"
+                                            Text="{x:Bind ViewModel.SingleAudioText, Mode=OneWay}"
+                                            TextWrapping="Wrap" />
+                                    </Grid>
                                 </StackPanel>
                                 <local:EgPicker
                                     x:Name="SubtitlePicker"

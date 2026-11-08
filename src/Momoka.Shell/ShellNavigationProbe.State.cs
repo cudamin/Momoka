@@ -533,6 +533,133 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
+    /// <summary>
+    /// 文件选项那三行的竖距 —— 用户 2026-11-08：「调整媒体页面这三个选项的间距、让它们不管有没有选择框间距都
+    /// 一致」。同一部片子上，音轨只有一条时音频那一行是一句话，加两条音轨就变成下拉；三行的行高与行间空隙
+    /// 在这两种状态下要是同一套数，否则换个文件就换一种节奏。
+    /// <para>
+    /// 量的都是根坐标里的矩形：视频那一行（纯文字）、音频那一行（先文字、再变下拉）、字幕那一行（下拉）。
+    /// 两处空隙要彼此相等、各自等于所在容器的 Spacing（片名栏那 10 与文件选项那 10），纯文字那一行的高要
+    /// 等于真下拉的高 —— <c>EgPickerRowHeight</c> 一旦和框架的 ComboBox 漂开，最后那一条就会红。
+    /// </para>
+    /// <para>
+    /// 读数落在 <c>detail-picker-rhythm.txt</c>，两种状态各拍一张实屏
+    /// （<c>detail-picker-rhythm-text-screen.png</c>／<c>-picker-screen.png</c>）。宽版式那一份才在片名栏里，
+    /// 窗口取 1280 DIP 那一档；紧凑版式那一份只有一段文字，另有 <see cref="DetailPickerLayoutAsync"/> 看着。
+    /// </para>
+    /// </summary>
+    private async Task PickerRowRhythmAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        // 前一条用例可能把窗口留在最大化上；最大化时 ResizeInspect 会被忽略，下面那一档宽度就到不了。
+        if (_window!.IsMaximized) _window.ToggleMaximize();
+        await SettleAsync();
+        var image = await FixtureImageAsync();
+        var movie = Movie("movie-rhythm");
+        movie.Name = "离线电影 · 文件选项竖距";
+        movie.ImageTags["Primary"] = "fixture";
+        movie.ImageTags["Art"] = "fixture";
+        var source = new MediaSource
+        {
+            Id = "source-a",
+            Name = "离线版本 · 1080p",
+            Size = 403L * 1024 * 1024,
+            Container = "mkv",
+            MediaStreams =
+            [
+                new() { Index = 0, Type = "Video", Codec = "av1", Width = 1920, Height = 1080 },
+                new() { Index = 1, Type = "Audio", DisplayTitle = "OPUS stereo", IsDefault = true },
+                new() { Index = 2, Type = "Subtitle", DisplayTitle = "简体中文", IsDefault = true },
+                new() { Index = 3, Type = "Subtitle", DisplayTitle = "English" }
+            ]
+        };
+        movie.MediaSources = [source];
+        fixture.Transport.Reply = (request, _) =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.Contains("/Images/", StringComparison.Ordinal))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(image) });
+            if (path.EndsWith("/Items/movie-rhythm", StringComparison.Ordinal)) return Task.FromResult(Json(movie));
+            return Task.FromResult(FakeTransport.Standard(request));
+        };
+        var frame = new Frame();
+        var readings = new List<string>();
+        _root.Children.Add(frame);
+        try
+        {
+            frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, movie));
+            var page = (DetailPage)frame.Content;
+            var vm = page.ViewModel;
+            await UntilAsync(() => page.IsReady && vm.AudioTracks.Count > 1 && vm.SubtitleTracks.Count > 2);
+            var scale = _root.XamlRoot.RasterizationScale;
+            ResizeInspect((int)Math.Ceiling(1280 * scale), (int)Math.Ceiling(900 * scale));
+            await LayoutAsync(page);
+            Require(!vm.IsCompact, "1280 DIP 上是紧凑版式，片名栏那一份文件选项没有画出来");
+
+            // 电影页上「视频：…」是片名栏里独立的一份（DetailVideoText），不是 ColumnPickers 里那条
+            // （那条只给集页的宽版式）。它和下面那排是同一个 StackPanel 的孩子，所以视频与音频之间的空隙
+            // 由 HeroStack.Spacing 给、音频与字幕之间由 ColumnPickers.Spacing 给 —— 两处都得是同一个数。
+            var stack = Get<StackPanel>(page, "HeroStack");
+            var panel = Get<StackPanel>(page, "ColumnPickers");
+            var videoText = Get<TextBlock>(page, "DetailVideoText");
+            Require(videoText.Visibility == Visibility.Visible && videoText.ActualHeight > 0,
+                "电影页上没有画「视频：…」那一行，量不到三行里的第一行");
+            var video = (FrameworkElement)videoText.Parent;
+            var audio = (FrameworkElement)Get<TextBlock>(page, "ColumnAudioText").Parent;
+            var subtitle = (FrameworkElement)Get<EgPicker>(page, "ColumnSubtitlePicker").Parent;
+            var box = Get<EgPicker>(page, "ColumnSubtitlePicker");
+
+            void Rhythm(string state)
+            {
+                var (v, a, s) = (Box(video), Box(audio), Box(subtitle));
+                var first = a.Top - v.Bottom;
+                var second = s.Top - a.Bottom;
+                var height = Box(box).Height;
+                readings.Add($"{state}：视频行 {v.Top:0.#}–{v.Bottom:0.#}（高 {v.Height:0.#}）、"
+                    + $"音频行 {a.Top:0.#}–{a.Bottom:0.#}（高 {a.Height:0.#}）、"
+                    + $"字幕行 {s.Top:0.#}–{s.Bottom:0.#}（高 {s.Height:0.#}），"
+                    + $"空隙 {first:0.#}／{second:0.#}，选择框高 {height:0.#}，"
+                    + $"Spacing {stack.Spacing:0.#}／{panel.Spacing:0.#}");
+                Require(Math.Abs(first - second) < 0.5, $"{state}：两处空隙不一样：{first:0.#} 对 {second:0.#}");
+                Require(Math.Abs(first - stack.Spacing) < 0.5,
+                    $"{state}：视频与音频之间 {first:0.#}，片名栏的 Spacing 是 {stack.Spacing:0.#}");
+                Require(Math.Abs(second - panel.Spacing) < 0.5,
+                    $"{state}：音频与字幕之间 {second:0.#}，文件选项的 Spacing 是 {panel.Spacing:0.#}");
+                Require(Math.Abs(v.Height - height) < 0.5,
+                    $"{state}：纯文字那一行 {v.Height:0.#} 高，选择框是 {height:0.#} —— 有没有框会换竖距");
+                Require(Math.Abs(a.Height - height) < 0.5,
+                    $"{state}：音频那一行 {a.Height:0.#} 高，选择框是 {height:0.#}");
+            }
+
+            Rhythm("单音轨（音频是文字）");
+            await SaveProbeScreenAsync("detail-picker-rhythm-text-screen.png");
+
+            source.MediaStreams.Add(new() { Index = 4, Type = "Audio", DisplayTitle = "国语 · AAC 2.0" });
+            source.MediaStreams.Add(new() { Index = 5, Type = "Audio", DisplayTitle = "英语 · AAC 5.1" });
+            await vm.ReloadAsync();
+            await UntilAsync(() => page.IsReady && vm.AudioTracks.Count > 3);
+            await LayoutAsync(page);
+            Require(Get<EgPicker>(page, "ColumnAudioPicker").Visibility == Visibility.Visible
+                && Get<TextBlock>(page, "ColumnAudioText").Visibility == Visibility.Collapsed,
+                "加了音轨之后音频那一行没有换成下拉");
+
+            Rhythm("多音轨（音频是下拉）");
+            await SaveProbeScreenAsync("detail-picker-rhythm-picker-screen.png");
+            Require(fixture.Actions.Plays == 0, "文件选项竖距检查意外请求播放");
+        }
+        finally
+        {
+            try { File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-picker-rhythm.txt"), readings); }
+            finally
+            {
+                (frame.Content as IShellContent)?.Release();
+                _root.Children.Remove(frame);
+                ResizeInspect(1420, 980);
+            }
+        }
+    }
+
     private async Task HiddenHomeAsync()
     {
         using var fixture = CreateFixture();
