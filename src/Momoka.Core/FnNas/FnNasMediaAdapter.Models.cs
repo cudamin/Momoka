@@ -286,6 +286,14 @@ public sealed partial class FnNasMediaAdapter
         // 竖版海报不进来：那正是轮播明确不要的那一种（ItemArtwork.BannerOrder 里没有 Primary）。
         else if (width is > 0 && height is > 0 && width > height) item.ImageTags["Thumb"] = poster;
         item.BackdropImageTags = Strings(value["backdrops"]).ToList();
+        // 徽标：官方详情页剧名上方那一枚读 <c>item.logos</c>（2026-11-08 重读 0.9.8 官方前端
+        // `bf29a647…-6FIxsjyh.js` 的 `heroTitleProps:{logo:_(r)}`，值是一张图的路径，和 poster／backdrops
+        // 同一种地址）。列表不发这一格，只有详情才有 —— 详情页那一趟本来就拿到了。
+        if (Strings(value["logos"]).FirstOrDefault() is { Length: > 0 } logo) item.ImageTags["Logo"] = logo;
+        // 家长分级：官方详情信息行读的是 <c>content_ratings</c>（同一份前端 `contentRatings:n`，经通用
+        // 下划线转驼峰得到），而编辑表单那一头是单数 <c>content_rating</c>。两处都认，先详情后表单。
+        if (Strings(value["content_ratings"]).Concat(Strings(value["content_rating"])).FirstOrDefault() is { Length: > 0 } certification)
+            item.OfficialRating = certification;
         // 横幅海报右下角的清晰度角标；详情页的流信息仍走 stream/list，这里只读列表已经带上的档位。
         if (value["media_stream"] is JsonObject media) item.Resolutions = Strings(media["resolutions"]).ToList();
         return item;

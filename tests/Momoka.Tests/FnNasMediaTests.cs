@@ -102,6 +102,35 @@ internal static partial class FnNasMediaTests
             var unknown = FnNasMediaAdapter.Item(new JsonObject { ["type"] = "Movie", ["genres"] = new JsonArray(99) }, names);
             Assert.Equal("99", unknown.Genres.Single());
         });
+        // 详情页只出现在 item/{guid} 里的那两格（2026-11-08 用户令「其他媒体库也有徽标、评级」）：徽标读
+        // logos，家长分级读 content_ratings。字段名读的是官方 0.9.8 前端 —— hero 的
+        // heroTitleProps:{logo:_(item.logos)}、信息行的 contentRatings（下划线转驼峰即 content_ratings）。
+        Test("飞牛详情：徽标与家长分级按官方字段落到共享条目上", () =>
+        {
+            var item = FnNasMediaAdapter.Item(new JsonObject
+            {
+                ["guid"] = "movie",
+                ["title"] = "奥德赛",
+                ["type"] = "Movie",
+                ["logos"] = "/poster/logo.webp",
+                ["content_ratings"] = "TV-14"
+            });
+
+            Assert.Equal("/poster/logo.webp", item.ImageTags["Logo"]);
+            Assert.Equal("TV-14", item.OfficialRating);
+            Assert.Equal(EmbyImageStore.Logo, ItemArtwork.Plate(item)!.Value.ImageType,
+                "有徽标的条目，剧名头上那一枚就是徽标");
+
+            // 编辑表单那一头是单数 content_rating：两个键都认，先详情后表单。
+            var edit = FnNasMediaAdapter.Item(new JsonObject
+            { ["guid"] = "movie", ["type"] = "Movie", ["content_rating"] = "R" });
+            Assert.Equal("R", edit.OfficialRating);
+
+            // 两格都没有就是空着：不凭空造一张图，也不给一个猜的分级。
+            var bare = FnNasMediaAdapter.Item(new JsonObject { ["guid"] = "movie", ["type"] = "Movie" });
+            Assert.False(bare.ImageTags.ContainsKey("Logo"));
+            Assert.Null(bare.OfficialRating);
+        });
         // 卡片右上角那颗集数角标（2026-10-25 用户令「参考 Emby 库」）：飞牛列表里 local_number_of_episodes 是
         // 这部剧在库里的合计，local_number_of_seasons 是季数，两者各走各的字段。
         Test("飞牛媒体：剧集带本地集数，季与集不带", () =>
