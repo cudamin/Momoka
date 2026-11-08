@@ -1,4 +1,4 @@
-## 2026-11-08 窄窗口断点压到八成、正文左右留白等宽（本树已验，待主树整合交付）
+## 2026-11-08 窄窗口断点压到八成、正文左右留白等宽（主树整合与桌面交付）
 
 用户两条令：①「窄窗口的触发阈值调更窄一些，改为当前数值的百分之八十」；②「右边空位的太多了，左边加宽一点点，然后两边对齐」（附详情页「其他信息」卡截图，另附一张封面被切掉一大块的窄窗局部）。
 
@@ -17,6 +17,10 @@
 验证（本树最终代码）：全方案 Release **0 警告 0 错误**；完整主测试 **4208/4208、0 失败 0 跳过**（`TEMP`/`TMP` 指本树 `work/tmp`）；`--probe-shell --probe-section library --screen 2` **33/33、0 失败、退出 0**（`shell-probe-20261108-142341065-26232`）。
 
 合入 master（`b28c0e3`，含 `ab1bf59` 文件选项行高）后在本树重验：全方案 Release **0 警告 0 错误**；完整主测试 **4209/4209、0 失败 0 跳过**；`--probe-shell --probe-section library --screen 2` **34/34、0 失败、退出 0**（`shell-probe-20261108-144840551-19880`，含另一会话新增的「文件选项三行的竖距」与上面修好的三条材质检查）。读数：`detail-cover-gap` 左距 42、上距 42.05（封面上距与左距相等）；`detail-responsive` 819 紧凑／820 宽、带高 427（1280）；`detail-episode-band` 820 宽版式、封面 250×375、板底留 54（说明 8 ＋ 展开 30 ＋ 收尾格 16）；窗口级左右空位五块面板逐一相等。截图目视 `detail-customization-Episode-1100-restored.png`（「其他信息」卡左 18、右 20）、`detail-episode-band-820.png`、`detail-body-alignment-*.png`。
+
+主树：`2e07d4d`（本分支顶端，含 `7dba485` 合入的 master `b28c0e3`）以 `--ff-only` 合入 master。合并后本分支代码与主树 HEAD 逐字节相同；**主树工作区当时有另一会话未提交的 `EmbyItem`／`FnNasMediaAdapter*`／`PlaybackContracts` 改动**（正在写，R046 源哈希尚未更新，主树那次构建因此在 `NaturalContinuationCallerTests` 报 `SOURCE_HASH_MISMATCH`）—— 那些改动不属于本次交付，没有触碰、没有暂存、没有打进发布件；主树里那三份 `.claude/skills/momoka-code-review/*` 的未提交删除也原样保留。
+
+交付：从本工作树（代码与主树 HEAD 相同、`libmpv-2.dll` 从主树根复制）执行 `tools/publish.ps1 -NoArchive -OutputRoot C://Users//89400//Momoka//artifacts` 刷新主树 `artifacts/publish/win-x64`：**546 文件、286.7 MB**，14 GLSL／4 HOOK 着色器许可与批准 mpv 清单（59 文件：50 UI、2 native）逐文件校验通过；`Momoka.exe` 668160 字节、`Momoka.dll` 7290880 字节（23:08）。桌面 `Momoka.lnk` 的目标仍是 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`（读 `.lnk` 二进制确认），本次只换该目录内容。**桌面交付完成**（同时把另一会话已合入的 `ab1bf59` 文件选项行高一起带上）。未真实登录、未真实播放、未写服务器、未上传。
 
 过程红项照实保留：本轮头两次 probe 各有一条与本批无关的红 —— 筛选多选下拉在探针窗口被别的窗口抢走激活时超时（`shell-probe-20261108-131003337-13032`、`-132945669-192`，第三次安静重跑通过），以及 19:26 那三条陈旧材质前提（上面已修）；另有一次启动被另一会话的探针占着桌面（`shell-probe-20261108-141236120-11808` 的进程，非本树）当场拒绝，等它退出后重跑。
 
