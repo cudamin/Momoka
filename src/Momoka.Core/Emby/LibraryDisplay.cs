@@ -679,8 +679,7 @@ public static class LibraryCardText
         // 文件本身那几项只从媒体源读 —— 没问 MediaSources 的请求里它们是空的，正好整段不画。
         LibraryField.Filename => FileName(item),
         LibraryField.Container => item.DefaultMediaSource?.Container ?? "",
-        LibraryField.Resolution => item.DefaultMediaSource?.PrimaryVideoStream?.Height is > 0 and var height
-            ? height + "p" : "",
+        LibraryField.Resolution => item.DefaultMediaSource?.PrimaryVideoStream?.ResolutionLabel ?? "",
         LibraryField.Bitrate => item.DefaultMediaSource?.Bitrate is > 0 and var bitrate
             ? (bitrate / 1_000_000d).ToString("0.#", CultureInfo.InvariantCulture) + " Mbps" : "",
         LibraryField.FileSize => TimeFormat.FileSize(item.DefaultMediaSource?.Size),

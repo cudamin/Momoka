@@ -1339,7 +1339,7 @@ internal static class EmbyTests
             };
             Assert.Equal("1080p  ·  H264  ·  AC3", PlaybackTitles.Subline(noGroup));
 
-            // 没有服务器点名的默认音轨号：退到第一条音轨。分辨率写的是高度档（2160 读作 4K）。
+            // 没有服务器点名的默认音轨号：退到第一条音轨。分辨率写的是档位（2160 读作 4K）。
             var firstAudio = new MediaSource
             {
                 Path = @"D:\media\Movie-GRP.mkv",
@@ -1418,6 +1418,55 @@ internal static class EmbyTests
                 """;
             var parsed = System.Text.Json.JsonSerializer.Deserialize<MediaSource>(json, EmbyHttp.Json)!;
             Assert.Equal("HDR/DV", parsed.PrimaryVideoStream!.DynamicRangeLabel);
+        });
+
+        Test("分辨率档位：宽银幕裁切按宽度读，不因高度掉档", () =>
+        {
+            static string Label(int? width, int? height) =>
+                new MediaStream { Type = "Video", Width = width, Height = height }.ResolutionLabel;
+
+            // 用户 2026-11-08 报的那一份：《摩加迪沙》1920×804（2.39:1 裁掉黑边），「视频：」那行
+            // 原先把 804 读成 720p。宽度说是 1080p，档位就该是 1080p。
+            Assert.Equal("1080p", Label(1920, 804));
+            // 同族：720p 与 4K 的宽银幕，以及 DCI 4K 的 4096×1716。
+            Assert.Equal("720p", Label(1280, 536));
+            Assert.Equal("4K", Label(3840, 1600));
+            Assert.Equal("4K", Label(4096, 1716));
+            // 反方向：4:3 的 1440×1080 宽度只够 720p 那档，档位由高度说。
+            Assert.Equal("1080p", Label(1440, 1080));
+            // 竖屏视频按短边算，别拿 1920 的高度读成 4K。
+            Assert.Equal("1080p", Label(1080, 1920));
+            // 32:9 条幅不拿宽度提档：5120×1440 是 1440p，不是 4K。
+            Assert.Equal("1440p", Label(5120, 1440));
+            // 标准档位与旧读数一致。
+            Assert.Equal("4K", Label(3840, 2160));
+            Assert.Equal("1080p", Label(1920, 1080));
+            Assert.Equal("720p", Label(1280, 720));
+            Assert.Equal("576p", Label(720, 576));
+            Assert.Equal("480p", Label(720, 480));
+            // 认不出的高度照写像素数；只有一边时用那一边，两边都没有就是空串。
+            Assert.Equal("404p", Label(720, 404));
+            Assert.Equal("1080p", Label(null, 1080));
+            Assert.Equal("1080p", Label(1920, null));
+            Assert.Equal("", Label(null, null));
+            Assert.Equal("", Label(0, 0));
+
+            // 详情页「视频：」与播放页第二行共用 ToFileInfoLabel；同一份文件也走一遍完整读数。
+            var source = new MediaSource
+            {
+                Path = @"\\NAS\media\电影\摩加迪沙 (2021)\摩加迪沙.Escape from Mogadishu.2021.BluRay.1080p.x264.DTS-WiKi.mkv",
+                Size = 12_348_030_976,
+                MediaStreams =
+                {
+                    new MediaStream { Index = 1, Type = "Video", Codec = "h264", Width = 1920, Height = 804 },
+                    new MediaStream { Index = 2, Type = "Audio", Codec = "dts" }
+                }
+            };
+            Assert.Equal("11.5 GB  ·  1080p  ·  x264  ·  DTS  ·  WiKi", PlaybackTitles.Subline(source));
+            // 进度条中间、版本菜单右列与播放信息浮层读的是 ToQualityLabel，同一份文件同一个档位。
+            Assert.Equal("1080p  ·  H264  ·  11.5 GB", source.ToQualityLabel());
+            // 媒体库列表的「分辨率」列与这两行同一口径（Cell 是表格视图那一格）。
+            Assert.Equal("1080p", LibraryCardText.Cell(new EmbyItem { MediaSources = [source] }, LibraryField.Resolution));
         });
 
         Test("杜比视界：Emby 4.10 的 DolbyVision 也进 HDR 管线，媒体信息照抄服务器原文", () =>

@@ -398,6 +398,13 @@ public sealed class MediaStream
         }
     }
 
+    /// <summary>
+    /// 分辨率档位：「1080p」「4K」… —— 宽高一起读，宽银幕裁切出来的 <c>1920×804</c> 不会掉成 720p
+    /// （见 <see cref="MediaResolution.Describe"/>）。两维都没给是空串。
+    /// </summary>
+    [JsonIgnore]
+    public string ResolutionLabel => MediaResolution.Describe(Width, Height);
+
     /// <summary>粗档位、细分档位与 Emby 4.10 的扩展枚举拼成一串，给上面的判据读；都缺就是空串。</summary>
     private string RangeText => string.Join(' ',
         new[] { VideoRange, VideoRangeType, ExtendedVideoType }.Where(value => !string.IsNullOrWhiteSpace(value)));
@@ -517,7 +524,7 @@ public sealed class MediaSource
     {
         var parts = new List<string>(4);
         var video = PrimaryVideoStream;
-        if (video?.Height is > 0) parts.Add(DescribeHeight(video.Height.Value));
+        if (video?.ResolutionLabel is { Length: > 0 } resolution) parts.Add(resolution);
         if (!string.IsNullOrWhiteSpace(video?.Codec)) parts.Add(video!.Codec!.ToUpperInvariant());
         if (!string.IsNullOrWhiteSpace(Container)) parts.Add(Container!.ToUpperInvariant());
         if (includeSize && TimeFormat.FileSize(Size) is { Length: > 0 } size) parts.Add(size);
@@ -542,7 +549,7 @@ public sealed class MediaSource
         var video = PrimaryVideoStream;
 
         if (TimeFormat.FileSize(Size) is { Length: > 0 } size) parts.Add(size);
-        if (video?.Height is > 0) parts.Add(DescribeHeight(video.Height.Value));
+        if (video?.ResolutionLabel is { Length: > 0 } resolution) parts.Add(resolution);
         if (video is not null && VideoCodecLabel(video) is { Length: > 0 } codec) parts.Add(codec);
         if (video?.DynamicRangeLabel is { Length: > 0 } range) parts.Add(range);
         if (PrimaryAudioCodec() is { Length: > 0 } audioCodec) parts.Add(audioCodec.ToUpperInvariant());
@@ -623,15 +630,6 @@ public sealed class MediaSource
         audio ??= AudioStreams.FirstOrDefault();
         return audio?.Codec;
     }
-
-    private static string DescribeHeight(int height) => height switch
-    {
-        >= 2000 => "4K",
-        >= 1000 => "1080p",
-        >= 700 => "720p",
-        >= 500 => "576p",
-        _ => $"{height}p"
-    };
 }
 
 /// <summary>

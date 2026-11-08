@@ -152,14 +152,15 @@ public sealed record FnNasVersion(string MediaGuid, string Path, long? Size, str
     private static long? Long(JsonObject value, string key) =>
         value[key] is JsonValue scalar && long.TryParse(scalar.ToString(), out var number) ? number : null;
 
-    /// <summary>服务器有时只给高度而没有 <c>resolution</c>。</summary>
-    private static string Height(JsonObject value) => Long(value, "height") switch
-    {
-        >= 2000 => "4K",
-        >= 1000 => "1080p",
-        >= 700 => "720p",
-        _ => ""
-    };
+    /// <summary>
+    /// 服务器有时只给高度而没有 <c>resolution</c>。这一份响应里没有宽度，档位只能按高度读 ——
+    /// 与 <see cref="MediaResolution.Describe"/> 同一套档位，宽银幕片源在这里仍会掉档，要等服务器
+    /// 把 <c>resolution</c> 发下来才对得上。
+    /// </summary>
+    private static string Height(JsonObject value) =>
+        Long(value, "height") is { } height and > 0 and <= int.MaxValue
+            ? MediaResolution.Describe(null, (int)height)
+            : "";
 
     private static string SizeText(long bytes)
     {

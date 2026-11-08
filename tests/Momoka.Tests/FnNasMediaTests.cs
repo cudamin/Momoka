@@ -807,6 +807,14 @@ internal static partial class FnNasMediaTests
             Assert.Equal("1080p", version.Resolution);
             Assert.Contains("GB", version.Detail);
 
+            // 没有 resolution 时按 height 读档位，与 MediaResolution 同一套（1440 认作 1440p，
+            // 480 不再被吞掉）；这一份响应不带宽度，宽银幕片源在这里仍按高度走。
+            static string ByHeight(int height) => FnNasVersion.From(JsonNode.Parse(
+                $$"""{"media_guid":"file","file_path":"/media/b.mkv","height":{{height}}}""")!.AsObject()).Resolution;
+            Assert.Equal("1440p", ByHeight(1440));
+            Assert.Equal("480p", ByHeight(480));
+            Assert.Equal("", ByHeight(0));
+
             var result = FnNasScrapResult.From(JsonNode.Parse("""
                 {"title":"片名","source":"tmdb","source_id":42,"type":"Movie","release_date":"2024-01-01"}
                 """)!.AsObject());
