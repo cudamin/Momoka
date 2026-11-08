@@ -13,6 +13,22 @@
 **8 条红项全部是同一块桌面环境的旧账，逐条与改动前的两次运行（`shell-probe-20261108-155133442-25396`、`-155853492-7608`）比对过，失败消息与读数一字不差**：`详情封面与面包屑等距`、`飞牛详情`、`剧页单季不画全部剧季`、`详情自定义页面（Series／Episode／Movie）`、`详情背景主题渐变`、`多媒体库避让轮播` —— 六条是 `ScrollView` 的「滚动请求未到达目标」（`offset=0`／`821 对 845`，`State=Idle`），一条是集带锚点 1264 没回 0，一条是首页轮播超时。**飞牛详情那条用例的单集分支因此本轮没跑到**（它在电影分支的 760 宽度上就红在同一个 821/845 上，上一轮同样没跑到）：飞牛「缺 tv_guid → 详情补回剧 → 封面重取」这条端到端路径本轮只有单测（`ItemArtwork.SameCoverSource`）覆盖，没有运行证据，照实记在这里。
 
 **交付**：`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（清旧目录走 bash `rm -rf`，脚本自己那一步会被 safe-delete 拦）：**546 文件、286.7 MB**，14 GLSL／4 HOOK 着色器许可与批准 mpv 清单（59 文件：50 UI、2 native）逐文件校验通过。桌面 `Momoka.lnk` 的目标仍是 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`（读 `.lnk` 二进制确认），本次只换该目录内容。未真实登录、未真实播放、未写服务器、**未推 origin**。
+## 2026-11-08 飞牛详情补上徽标与家长分级（本树已验，未发布）
+
+用户令（附 Emby《奥德赛》详情页截图）：「参考上图 emby 媒体库，确保其他四个媒体库，也有徽标、艺术图、影片类型、评分、播出时间、制作公司、时长、评级、视频、音频、字幕、还有最底部的横幅（以上这些服务端有给就加上，没给就算了）」。问定范围：Emby 之外的四家（Jellyfin、飞牛影视、Plex、MoviePilot 媒体详情）。
+
+**逐家核对**（详情页是同一套界面，差别只在各家适配器给不给数据）：**Emby** 12 项齐全；**Jellyfin** 与 Emby 同一条 `EmbyClient` 协议、同一套 JSON 字段（10.10.7 详情读取 2026-10-26 实服验过），不用改；**飞牛** 缺徽标、家长分级与题材名字（题材那一半已由 `d96d432` 在 master 上做完：`tag/genres` 换中文名、原始 ID 留 `NativeGenres`）；**Plex** 除了徽标与真正的横幅图（`clearLogo`／`banner`）本来都有，而这两样没有服务端源码、也没有真实服务器可核对，按「读源码再动手」没有动；**MoviePilot 媒体详情**本来就有类型、评分、播出时间、制作公司、时长与艺术图，徽标／评级／音视频／页尾横幅服务端（TMDB 详情）不给。
+
+**本提交（`6c01ffb`）只补飞牛还缺的两格**，都在 `item/{guid}` 里：
+
+1. **徽标**：`logos` → `ImageTags["Logo"]`。依据是官方 0.9.8 前端详情页的 `heroTitleProps:{logo:_(item.logos)}`（`bf29a647…-6FIxsjyh.js`），值和 `posters`／`backdrops` 一样是一张图的路径，走 `api/v1/sys/img/`；列表不发这一格。
+2. **家长分级**：`content_ratings` → `OfficialRating`（详情信息行的 `contentRatings`）；编辑表单那一头是单数 `content_rating`，两处都认、先详情后表单。
+
+**飞牛没给的照实留空**：详情键集里只有 `production_countries`（出品国家）没有制作公司；没有 `banner`，页尾横幅空着（`ItemArtwork.Footer` 只认横幅图，不退档）；《奥德赛》那条 `vote_average=0`（同一条详情响应读回），评分行不画，不是客户端吞了。
+
+**验证**：Shell／Tests Release 均 **0 警告 0 错误**；完整主测试 **4215/4215、0 失败 0 跳过**（`TEMP`／`TMP` 指本机可写临时目录；默认 `C:\WINDOWS\TEMP` 时那两条下载用例会因权限红，属环境）；`fnnas-protocol-fixture` **157/157**（新增「徽标与家长分级按官方字段落到共享条目上」：`logos`／`content_ratings`、单数 `content_rating`、两格都空时不造图不猜分级）；`format whitespace` 通过。**实屏这一轮没拿到**：同一份映射在并入 master 之前拍过一张（`work/fnnas-detail-after2.png`：徽标、`动作 · 历史 · 冒险 · 科幻奇幻`、`R` 都在屏上，改动前那张 `fnnas-detail-before.png` 是 `1 · 10 · 2 · 9` 且无徽标），并入 master 后重拍时窗口只画出棋盘格占位和黑块（23:55，屏幕已休眠），**不拿它当通过**，等下一轮亮屏补拍。
+
+**没发布**：主树此刻有另一个会话未提交的改动（`TrackLanguagePriority.cs`、`EmbyTests.cs`、`PlaybackTests.cs`），`tools/publish.ps1` 会连它们一起编进交付件；桌面交付留给下一次干净窗口。
 
 ## 2026-11-08 窄窗口断点压到八成、正文左右留白等宽（主树整合与桌面交付）
 
