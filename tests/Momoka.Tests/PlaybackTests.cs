@@ -234,6 +234,8 @@ internal static class PlaybackTests
             Assert.Equal("简体、普通话", TrackLanguagePriority.DescribeTitle("Simplified, Mandarin Chinese"));
             Assert.Equal("繁体、粤语", TrackLanguagePriority.DescribeTitle("Traditional, Yue Chinese"));
             Assert.Equal("中文", TrackLanguagePriority.DescribeTitle("Chinese"));
+            // 「名字 + 序号」：序号是分开两条同语言轨用的，翻名字时留着。
+            Assert.Equal("繁体 1", TrackLanguagePriority.DescribeTitle("Traditional 1"));
             Assert.Equal("", TrackLanguagePriority.DescribeTitle("   "));
             // 一段里认不出就整段照抄（不做逐词替换）：半中半英的一句比原文更难读。
             Assert.Equal("Signs & Songs (Traditional)", TrackLanguagePriority.DescribeTitle("Signs & Songs (Traditional)"));

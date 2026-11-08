@@ -310,7 +310,8 @@ public static class TrackLanguagePriority
     /// 飞牛的内封字幕标题是 mkv 工具链写进去的英文（实测「Simplified, Mandarin Chinese」「Traditional,
     /// Yue Chinese」），照抄在中文界面里就是半句外语。这里按逗号分段、逐段换名字，<b>段内不做逐词替换</b>：
     /// 一段整个认得出才换（<c>Mandarin Chinese</c> → 普通话），认不出就整段照抄
-    /// （<c>Signs &amp; Songs (Traditional)</c> 原样留着），不会出现半中半英的一段。
+    /// （<c>Signs &amp; Songs (Traditional)</c> 原样留着），不会出现半中半英的一段。唯一的例外是
+    /// 「名字 + 序号」（<c>Traditional 1</c> → 繁体 1）—— 序号是区分两条同语言轨用的，翻名字时得留着。
     /// </para>
     /// <para>
     /// <b>只影响显示。</b>选轨用的标题匹配（<see cref="KeywordFilter"/>、<see cref="Matches"/> 的
@@ -327,9 +328,28 @@ public static class TrackLanguagePriority
         if (parts.Length == 0) return "";
 
         var names = new List<string>(parts.Length);
-        foreach (var part in parts) names.Add(Describe(part));
+        foreach (var part in parts)
+        {
+            var name = Describe(part);
+            names.Add(name == part ? DescribeNumbered(part) : name);
+        }
 
         return string.Join("、", names);
+    }
+
+    /// <summary>
+    /// 「Traditional 1」这种「名字 + 序号」的标题：序号是 muxer 用来分开同语言两条轨的，不能丢；
+    /// 名字认得出就换成名字（→「繁体 1」），认不出就整段照抄。只认末尾那一段纯数字，其余不动。
+    /// </summary>
+    private static string DescribeNumbered(string part)
+    {
+        var space = part.LastIndexOf(' ');
+        if (space <= 0 || space == part.Length - 1) return part;
+        var suffix = part[(space + 1)..];
+        if (!suffix.All(char.IsAsciiDigit)) return part;
+        var stem = part[..space];
+        var name = Describe(stem);
+        return name == stem ? part : name + " " + suffix;
     }
 
     /// <summary>

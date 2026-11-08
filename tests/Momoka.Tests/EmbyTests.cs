@@ -1654,6 +1654,7 @@ internal static class EmbyTests
             Assert.Equal("中文 · SRT", Label("chi", ""));
             Assert.Equal("中文 · 简体 · SRT", Label("chi", "Simplified"));
             Assert.Equal("中文 · 繁体 · SRT", Label("chi", "Traditional"));
+            Assert.Equal("中文 · 繁体 1 · SRT", Label("chi", "Traditional 1"), "序号是分开两条同语言轨用的，留着");
             Assert.Equal("中文 · 简体、普通话 · SRT", Label("chi", "Simplified, Mandarin Chinese"));
             Assert.Equal("中文 · 繁体、粤语 · SRT", Label("chi", "Traditional, Yue Chinese"));
             // 标题只是把语言又说了一遍（bul + Bulgarian）时不写两遍；没登记的码仍原样留着。
