@@ -48,6 +48,29 @@ internal static class AcrylicControlsTests
             foreach (var name in new[] { "DetailVideoText", "ColumnAudioText", "AudioText" })
                 Assert.Equal("{StaticResource EgOnScrimBodyStyle}", (string?)Named(page, name).Attribute("Style"));
         });
+        // 用户 2026-11-08：「调整媒体页面这三个选项的间距、让它们不管有没有选择框间距都一致」。
+        // 选择框天生 32 高，纯文字那几行只有一行字的高 —— 三行都按同一个行高摆，字在格里居中，
+        // 行间就只剩外面那个 StackPanel 的 Spacing。真实像素与空隙由探针「文件选项三行的竖距」量。
+        Test("详情文件选项：三行同一个行高，有没有选择框都不改竖距", () =>
+        {
+            var page = Read("Views/DetailPage.xaml");
+            const string RowHeight = "{StaticResource EgPickerRowHeight}";
+            var rows = Named(page, "ColumnPickers").Elements(Xaml + "Grid").ToList();
+            Assert.Equal(4, rows.Count, "片名栏那一份文件选项不是四行（视频、媒体源、音频、字幕）");
+            foreach (var row in rows)
+                Assert.Equal(RowHeight, (string?)row.Attribute("MinHeight"));
+            // 纯文字那一行：字在格子里居中，行高才撑得住。
+            var video = rows[0].Elements(Xaml + "TextBlock").Single();
+            Assert.Equal("Center", (string?)video.Attribute("VerticalAlignment"));
+            Assert.Equal("{StaticResource EgOnScrimBodyStyle}", (string?)video.Attribute("Style"));
+            // 电影、剧、季页上「视频：…」是片名栏里独立的那一份（集页宽版式才走上面那条），同一个行高。
+            Assert.Equal(RowHeight, (string?)Named(page, "DetailVideoText").Parent!.Attribute("MinHeight"));
+            Assert.Equal("Center", (string?)Named(page, "DetailVideoText").Attribute("VerticalAlignment"));
+            // 紧凑版式那一份：唯一音轨的那段文字也占住一个选择框的高，换行那一排才不塌一截。
+            Assert.Equal(RowHeight, (string?)Named(page, "AudioText").Parent!.Attribute("MinHeight"));
+            // 这个数跟着框架 ComboBox 的默认最小高（32），不是另一套刻度。
+            Assert.Equal("32", Resource(Read("Theme/Styles.xaml").Root!, "EgPickerRowHeight").Value);
+        });
         Test("详情头图：分类和固定说明统一视频白色，主题链接与星标不变", () =>
         {
             var page = Read("Views/DetailPage.xaml");
