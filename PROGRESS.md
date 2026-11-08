@@ -11545,4 +11545,4 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 主树当前Release/x64 Core、Tests和Shell重新编译，0警告0错误；完整4200/4200、飞牛专项110/110、实际LibraryViewModel专项1/1，均0失败0跳过。19个本轮变更文本的行尾/BOM/空白检查、三项目变更范围的dotnet format whitespace和自动化扫描通过。最终测试与发布Core一致：F2095A5C9A0DDCCA6211F409B6BE64EA66C0B0CB51318FDB3170ABBBAED1D0FF。
 - 主树构建20084运行InspectFnNasDetail通过：电影/单集1280与760人员头像、相似卡片、当前季、空态隐藏恢复和人物作品页，18张实屏已复核；季牌子只有季名，保留主树近期产品要求。本项为匿名只读UI，不代表完整library分区、真实人物作品请求或真实播放；本次零服务器写入、零播放，前轮实服只读证据保留。证据artifacts/fnnas-detail-merged，源树证据保存到artifacts/fnnas-detail-original。
 - publish -NoArchive -Shortcut成功，主树实际artifacts/publish/win-x64更新，546文件286.6MB，批准native/mpv UI/许可/PRI校验通过；发布Shell与当前bin一致，SHA为DE1488B9F7CF083145234C398682F9036674888BF0AEC62EA0BB20322AF70FFC。桌面Momoka.lnk目标和工作目录核对为该主树目录，版本0.2.5.0；收据artifacts/fnnas-detail-merged/delivery-receipt.json。未push，未制作ZIP/MSIX。
-- 主树另一会话删除momoka-code-review三个技能文件的未提交改动保留，不暂存不回填。本轮已完成主树整合、验证和桌面交付；源树49e0干净且产品内容与master逐文件一致后清理，顶端b99fc80与验证证据保留为恢复线索。
+- 主树另一会话删除momoka-code-review三个技能文件的未提交改动保留，不暂存不回填。本轮已完成主树整合、验证和桌面交付；源树49e0干净且产品与测试内容已逐文件进入master。应用归档工具拒绝删除当前聊天的primary checkout，按宿主保护保留，不绕过；顶端b99fc80与已复制证据为恢复线索。
