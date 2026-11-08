@@ -262,7 +262,7 @@ internal static partial class MediaVersionDiscoveryTests
             var emby = await fixture.AddAsync("a", "one.invalid");
             var fnnas = await fixture.AddAsync("b", "fnnas.invalid", MediaServerKind.FnNas);
             var episode = await fnnas.ExecuteAsync((client, token) => client.GetItemAsync("native-episode", token), default);
-            Assert.True(string.IsNullOrEmpty(episode.SeriesId));
+            Assert.Equal("native-show", episode.SeriesId, "完整飞牛详情现已沿父季恢复所属剧");
 
             var result = await MediaVersionDiscovery.FindAsync(fixture.Session, episode, MediaSourceOrder.Default, default);
 
@@ -343,6 +343,7 @@ internal static partial class MediaVersionDiscoveryTests
             "/v/api/v1/item/native-movie" => movie,
             "/v/api/v1/stream/list/native-movie" => "{\"files\":[{\"guid\":\"same-source\",\"path\":\"/media/movie.mkv\"}]}",
             "/v/api/v1/play/info" => "{\"ts\":0,\"duration\":100}",
+            var route when route.StartsWith("/v/api/v1/person/list/", StringComparison.Ordinal) => "{\"total\":0,\"list\":[]}",
             _ => throw new InvalidOperationException("Unexpected mixed-source fixture path: " + request.RequestUri.AbsolutePath)
         };
         return FnNasJsonReply(data);

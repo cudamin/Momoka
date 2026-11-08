@@ -118,6 +118,7 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
 
     public async Task<ItemsResult> GetItemsAsync(ItemQuery query, CancellationToken ct)
     {
+        if (!string.IsNullOrEmpty(query.PersonId)) return await GetPersonItemsAsync(query, ct).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {
             var matches = await client.SearchAsync(connection, query.SearchTerm, ct).ConfigureAwait(false);
@@ -234,9 +235,10 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
     public async Task<ItemsResult> QueryResumeAsync(int startIndex, int limit, CancellationToken ct) =>
         Page((await client.GetContinueWatchingAsync(connection, ct).ConfigureAwait(false)).Select(Item), startIndex, limit);
 
-    public async Task<EmbyItem> GetItemAsync(string id, CancellationToken ct)
+    public async Task<EmbyItem> GetItemAsync(string id, CancellationToken ct, bool includePeople = true)
     {
         var item = Item(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false));
+        await ResolveEpisodeSeriesAsync(item, ct).ConfigureAwait(false);
         if (item.IsPlayable)
         {
             var streams = await OptionalReadAsync(() => client.GetStreamsAsync(connection, id, ct), "stream/list", ct).ConfigureAwait(false);
@@ -254,6 +256,21 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
                     source.RunTimeTicks = item.RunTimeTicks;
             if (item.RunTimeTicks is null or <= 0 && item.DefaultMediaSource?.RunTimeTicks is > 0 and var sourceDuration)
                 item.RunTimeTicks = sourceDuration;
+        }
+        if (includePeople && item.Type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode)
+        {
+            // 实服 0.8.45 的剧名单可能为空、季上才有人。单集先借当前季，空时再退父剧。
+            item.People = await ReadPeopleAsync(item.Type == EmbyItemType.Episode ? item.SeasonId! : item.Id, ct).ConfigureAwait(false);
+            if (item.Type == EmbyItemType.Episode && item.People.Count == 0 && !string.IsNullOrWhiteSpace(item.SeriesId))
+                item.People = await ReadPeopleAsync(item.SeriesId, ct).ConfigureAwait(false);
+            if (item.Type == EmbyItemType.Series && item.People.Count == 0)
+            {
+                var seasons = await OptionalReadAsync(() => client.GetSeasonsAsync(connection, item.Id, ct), "season/list", ct)
+                    .ConfigureAwait(false);
+                var latest = seasons?.OrderByDescending(value => Integer(value, "season_number") ?? 0)
+                    .FirstOrDefault(value => Text(value, "guid").Length > 0);
+                if (latest is not null) item.People = await ReadPeopleAsync(Text(latest, "guid"), ct).ConfigureAwait(false);
+            }
         }
         return item;
     }

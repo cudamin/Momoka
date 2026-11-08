@@ -11529,3 +11529,12 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 主树真实VM单季/选季/取消/菜单状态10/10、删除恢复38/38、日期与布局17/17、外观68/68、架构7/7通过；专项重叠不累计。主树36444集页分季与特别篇、设置排序隐藏重入及Series/Episode/Movie三类五主题宽窄实屏全部通过。3824材料重验通过（等待原状态稳定，薄白颜色断言未改变），15张主树主题截图已复核。无真实服务器播放、无观看记录变更。
 - publish -NoArchive -Shortcut退出0，桌面Momoka.lnk目标与工作目录均为主树artifacts/publish/win-x64，版本0.2.5.0。546文件286.6MB、批准native/mpv UI/许可/PRI验证通过；发布Shell与当前bin一致，测试Core和发布Core同为B410797D…；交付收据artifacts/detail-season-final/delivery-receipt.json，完整证据保存在同目录。不push、不打ZIP/MSIX。
 - 本轮产品、验证与桌面发布均完成；当前ec16树干净、内容已进入master，证据保留到主树，当前聊天受保护工作树暂留。
+
+## 2026-11-08 飞牛详情标识、演职人员与更多类似（独立树，待用户恢复合并）
+
+- 工作树 `C:\Users\89400\.codex\worktrees\49e0\Momoka`，基线1562881。修复单集详情缺tv_guid后空ID请求季列表：沿parent_guid读取父季恢复父剧；季的parent_guid映射父剧。独立POST person/list取姓名/角色/职业/头像，单集借所在季、空退父剧，父剧空借最新季；最多40名。人物卡作品按官方Actor/Director/Screenplay/Producer读取、去重排序分页，无效筛选在UI与命令/服务层收起和拒绝。Files读取不额外取人员。
+- 更多类似通过官方已有item/list按同类型、首个有效题材及评分倒序筛选，单集/季以父剧为主体，排除自身重复，最多补3页；无题材按同类型。已读0.9.8官方SDK/详情包可执行源码，未猜测Similar路由。人员与层级实服形状另以当前0.8.45核对。
+- 当前Release Core/Tests/Shell均0警告0错误，完整4200/4200、飞牛专项110/110、实际LibraryViewModel筛选守卫1/1，无跳过。人员二页/重复信用、编剧卡作品二页、取消/来源退出、硬错误/畸形响应及推荐真实分页边界均覆盖；独立复审无待处理发现。格式与Git空白检查通过，自动化扫描完成，新增检查台按钮具名InspectFnNasDetail。
+- 当前独立发布件运行InspectFnNasDetail通过，电影/单集1280及760人员头像、推荐、当前季、空态隐藏恢复及人物作品入口共18张实屏，零播放零写入。第一次探针的电影紧凑断言误用已修，旧失败报告保留；旧中间Shell筛选显隐报告红，最终发布件与实际VM均已绿。单项结果不代表完整library分区。界面与完整测试共享锁，另会话占用时拒绝启动；此前16项互斥锁失败不洗绿，释放后全套重验通过。
+- 当前真实服务器只读36请求：网页0.9.8／服务0.8.45，第96集无tv_guid但恢复父剧成功、11人员/7相似/16集，父剧11人员/7相似，电影40人员/10相似；无播放、进度上报或服务器写入。证据 `artifacts/fnnas-detail-fix/`，含live-read-receipt.json、ui-probe.json、ui-receipt.json及screens。真实人物作品接口尚未额外运行，仅匿名HTTP与实际UI覆盖。
+- publish -NoArchive（未传Shortcut）只更新本树artifacts/publish/win-x64，546文件286.6MB，批准native/mpv UI/许可/PRI通过；测试与发布Core同为5E78C6534CDD23CB4B423151330735877AC6483AF60766E19425208A5D67C4B6。用户明确“主树仍在工作，先保留已验证修复”：不合并、不推送、不改桌面快捷方式，桌面仍是旧版。本树完成后保持供下一交付会话整合，合入后必须重验再发布主树。

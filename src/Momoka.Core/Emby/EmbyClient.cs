@@ -161,7 +161,8 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     public async Task<EmbyItem> GetItemAsync(string itemId, CancellationToken cancellationToken,
         string fields = EmbyFields.Detail, MediaSourceOrder order = MediaSourceOrder.Default)
     {
-        if (Connection.IsFnNas) return await FnNasMedia.GetItemAsync(itemId, cancellationToken).ConfigureAwait(false);
+        if (Connection.IsFnNas) return await FnNasMedia.GetItemAsync(itemId, cancellationToken,
+            includePeople: fields == EmbyFields.Detail || fields.Split(',').Contains("People", StringComparer.Ordinal)).ConfigureAwait(false);
         if (Connection.IsPlex) return await PlexMedia.GetItemAsync(itemId, cancellationToken).ConfigureAwait(false);
         var url = Url($"Users/{Connection.UserId}/Items/{itemId}", ("Fields", fields));
         var item = await http.GetJsonAsync<EmbyItem>(url, Context, cancellationToken).ConfigureAwait(false);
@@ -572,7 +573,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public async Task<List<EmbyItem>> GetSimilarAsync(string itemId, int limit, CancellationToken cancellationToken)
     {
-        if (Connection.IsFnNas) return [];
+        if (Connection.IsFnNas) return await FnNasMedia.GetSimilarAsync(itemId, limit, cancellationToken).ConfigureAwait(false);
         if (Connection.IsPlex) return await PlexMedia.GetSimilarAsync(itemId, limit, cancellationToken).ConfigureAwait(false);
         var url = Url($"Items/{itemId}/Similar",
             ("UserId", Connection.UserId),

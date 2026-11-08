@@ -109,6 +109,21 @@ public sealed partial class FnNasClient(FnNasHttp http)
     public Task<JsonObject> GetItemAsync(FnNasConnection c, string guid, CancellationToken ct = default) =>
         ObjectAsync(c, HttpMethod.Get, "api/v1/item/" + FnNasEndpoint.Segment(guid), null, ct);
 
+    public Task<JsonObject> GetPeopleAsync(FnNasConnection c, string guid, int page, CancellationToken ct = default) =>
+        ObjectAsync(c, HttpMethod.Post, "api/v1/person/list/" + FnNasEndpoint.Segment(guid),
+            new JsonObject { ["page"] = page, ["page_size"] = 200 }, ct);
+
+    public Task<JsonObject> GetPersonItemsAsync(FnNasConnection c, string guid, string job, int page, CancellationToken ct = default) =>
+        ObjectAsync(c, HttpMethod.Post, "api/v1/person/item/list", new JsonObject
+        {
+            ["person_guid"] = guid,
+            ["job"] = job,
+            ["page"] = page,
+            ["page_size"] = 200,
+            ["sort_column"] = "update_time",
+            ["sort_type"] = "desc"
+        }, ct);
+
     /// <summary>一个条目背后的文件，也就是「管理版本」表上的各行。</summary>
     public Task<IReadOnlyList<JsonObject>> GetItemFilesAsync(FnNasConnection c, string guid, CancellationToken ct = default) =>
         ListAsync(c, HttpMethod.Get, "api/v1/media/itemfile/" + FnNasEndpoint.Segment(guid), null, ct);

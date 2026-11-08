@@ -355,6 +355,12 @@ internal static class MediaSourceSizeTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var path = request.RequestUri!.AbsolutePath;
+            if (path.Contains("/person/list/", StringComparison.Ordinal))
+            {
+                Assert.Equal(HttpMethod.Post, request.Method, "人员列表是只读 POST");
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                { Content = new StringContent("{\"code\":0,\"data\":{\"total\":0,\"list\":[]}}", Encoding.UTF8, "application/json") });
+            }
             if (path.EndsWith("/play/info", StringComparison.Ordinal))
                 Assert.Equal(HttpMethod.Post, request.Method, "飞牛只读进度接口使用既有 POST");
             else Assert.Equal(HttpMethod.Get, request.Method, "体积读取不能写服务器或起播");

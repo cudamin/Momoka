@@ -15,6 +15,7 @@ internal static partial class FnNasMediaTests
     {
         RegisterRecovery();
         RegisterVersionDurations();
+        RegisterDetailLists();
         Test("飞牛媒体：登录、媒体库命名和 token 失效后同身份恢复", () =>
         {
             using var fixture = new Fixture();
@@ -927,6 +928,7 @@ internal static partial class FnNasMediaTests
                 "/v/api/v1/play/info" => "{\"ts\":12,\"duration\":90}",
                 "/v/api/v1/stream/list/movie" => "{\"files\":[{\"guid\":\"file\",\"path\":\"/media/test.mkv\"}],\"video_streams\":[{\"guid\":\"video\",\"media_guid\":\"file\",\"index\":0,\"codec_name\":\"h264\",\"resolution_type\":\"1080p\",\"bps\":8000000}],\"audio_streams\":[{\"guid\":\"audio\",\"media_guid\":\"file\",\"index\":1,\"codec_name\":\"aac\"}]}",
                 "/v/api/v1/item/list" => "",
+                var route when route.StartsWith("/v/api/v1/person/list/", StringComparison.Ordinal) => "{\"total\":0,\"list\":[]}",
                 _ => throw new InvalidOperationException("Unexpected fixture path: " + path)
             };
             if (data.Length == 0)

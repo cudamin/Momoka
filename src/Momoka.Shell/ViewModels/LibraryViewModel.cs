@@ -434,8 +434,8 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     public ObservableCollection<FnNasFilterRow> FnNasFilterRows { get; } = [];
 
-    public Visibility FnNasFilterVisibility => Show(IsFnNas && FnNasFilterOpen);
-    public Visibility FnNasFilterTextVisibility => Show(IsFnNas);
+    public Visibility FnNasFilterVisibility => Show(IsFnNas && _request?.PersonId is null && FnNasFilterOpen);
+    public Visibility FnNasFilterTextVisibility => Show(IsFnNas && _request?.PersonId is null);
     public Visibility FnNasFilterLoadingVisibility => Show(FnNasFilterLoading);
 
     internal bool IsFnNas => _scope?.Connection.IsFnNas == true;
@@ -1258,7 +1258,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         && Section != LibrarySection.Folders && Section != LibrarySection.Collections
         && (IsJellyfin ? JellyfinFiltersSupported : SupportsFilterPanel)
         // 飞牛搜索走的是 /search/list，它没有标签参数；在搜索页摆一个不起作用的筛选比不摆更糟。
-        && !(IsFnNas && _request?.IsSearch == true));
+        && !(IsFnNas && (_request?.IsSearch == true || _request?.PersonId is not null)));
 
     /// <summary>
     /// Handed the navigation payload and the four capabilities one grid draws from, once per navigation to
@@ -2468,7 +2468,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     internal async Task ToggleFnNasFilterAsync()
     {
-        if (!IsFnNas) return;
+        if (!IsFnNas || _request?.PersonId is not null) return;
         if (FnNasFilterOpen)
         {
             FnNasFilterOpen = false;

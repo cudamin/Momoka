@@ -103,7 +103,10 @@
 | --- | --- | --- | --- |
 | GET | `/api/v1/tag/list?ancestor_guid=|parent_guid=&is_favorite=&type=` | 筛选可选值（类型/分辨率/地区/年代等）；库根用 `ancestor_guid`、文件夹页用 `parent_guid`，`is_favorite` 总会发，`type=Directory,Video` 只给 `Others` 库 | 0.9.8 官方前端 |
 | GET | `/api/v1/tag/genres` · `/tag/iso3166` · `/tag/iso6391` · `/tag/iso6392` | 类型 / 地区 / 语言标签映射（带 `lan`） | 抓包 |
-| POST | `/api/v1/person/list/{item_guid}` | 演员/导演（正文 `{page, page_size}`） | 抓包 |
+| POST | `/api/v1/person/list/{item_guid}` | 演职人员，正文仅 `{page, page_size}`；响应 `{total,list}`，人员含 `person_guid/name/original_name/job/role/profile_path` | 0.9.8 官方前端 |
+| POST | `/api/v1/person/item/list` | 人物作品，正文 `{person_guid,job,page,page_size,sort_column:"update_time",sort_type:"desc"}`；官方分别请求 Actor/Director/Screenplay/Producer | 0.9.8 官方前端 |
+
+2026-11-08核对官方缓存SDK `14a77ac952fc83b785b65592c335e16d-BGXwY7Sz.js` 的路径参数删除分支及详情包 `74c95604043427f0bee1d0e16bfa53af-DZn1lJtt.js` 的 JB/ZB hook：人员列表GUID只进路径；电影/季名单按各自ID读取。实服0.9.8/0.8.45第96集的父剧名单为空、季上11人，Momoka单集先借季，空退剧；剧空借最新季。“更多类似”用既有item/list同类型/题材筛选，不新增未核对路由。
 
 ## 图片
 
