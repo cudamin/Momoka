@@ -166,9 +166,9 @@ internal sealed partial class ShellNavigationProbe
             }
 
             await SelectPerformanceSeasonAsync(series, seasons[0], strip);
-            Require(view.SelectedSeason?.Id == seasons[0].Id, "季菜单跳到S00失败");
+            Require(view.SelectedSeason?.Id == seasons[0].Id, "换季锚点跳到S00失败");
             await SelectPerformanceSeasonAsync(series, seasons[19], strip);
-            Require(view.SelectedSeason?.Id == seasons[19].Id, "季菜单跳到最后季失败");
+            Require(view.SelectedSeason?.Id == seasons[19].Id, "换季锚点跳到最后季失败");
             Require(view.Episodes.Count == 2000 && cards.Count == 2000 && cards.MaterializedCount < 240,
                 "季跳改变全局索引或物化整个前缀");
 

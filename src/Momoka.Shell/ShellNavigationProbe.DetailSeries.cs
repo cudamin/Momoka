@@ -245,8 +245,18 @@ internal sealed partial class ShellNavigationProbe
                 // 季选择栏 2026-11-02 随用户令一起删了：这一页按名字找不到那颗 EgPicker。
                 Require(!HasSeasonPicker(page), "剧页上还有季选择栏");
 
-                // 2026-11-03：剧页集列表是全季一条（两季各两集），按播出日期排；牌子上的「第x季」能点出
-                // 季列表，选一季只移动集带起点、不重读、不改播放落点。
+                // 2026-11-08 用户令「不要这个季度列表菜单了」：牌子只剩季名 —— 折角与点击面都收着，
+                // 点它什么也不会发生（那份浮层连同 SeasonMenu／SeasonMenuRow 一并退役）。
+                var head = Get<ShelfHead>(page, "EpisodeHead");
+                var door = head.DoorState;
+                Require(door.Glyph == Visibility.Collapsed && door.Scope == Visibility.Collapsed,
+                    $"集列表牌子还留着季菜单的门：折角 {door.Glyph}、点击面 {door.Scope}");
+                Require(head.Title.Contains("更多来自", StringComparison.Ordinal),
+                    $"集列表牌子的季名没了：{head.Title}");
+                readings.Add($"集列表牌子：标题「{head.Title}」、折角 {door.Glyph}、点击面 {door.Scope}");
+
+                // 2026-11-03：剧页集列表是全季一条（两季各两集），按播出日期排；换季只移动集带起点、
+                // 不重读、不改播放落点。屏上那颗季菜单已退役，这一条由探针直接驱动视图模型核对。
                 var view = page.ViewModel;
                 Require(view.EpisodeShelf is { Cards.Count: 8 },
                     $"剧页集列表不是全季八条：{view.EpisodeShelf?.Cards.Count ?? -1}");
@@ -255,19 +265,9 @@ internal sealed partial class ShellNavigationProbe
                             "two-s2-e1", "two-s2-e2", "two-s2-e3", "two-s2-e4"]),
                     "剧页集列表没有按播出日期排：" + string.Join("、", view.EpisodeShelf.Cards.Select(card => card.Item.Id)));
                 Require(view.SelectedSeason?.Id == "two-s1", $"剧页锚点不是第一季：{view.SelectedSeason?.Name}");
-                Require(view.CanPickEpisodeSeason, "两季的剧页集列表牌子不可点");
+                Require(view.CanPickEpisodeSeason, "两季的剧页季锚点不可切");
                 Require(view.PlayTarget?.Id == "two-s1-e1",
                     $"剧页播放落点不是播出最早的集：{view.PlayTarget?.Id}");
-
-                var seasonMenu = page.OpenEpisodeSeasonMenu();
-                Require(seasonMenu is { Rows.Count: 2 },
-                    $"季列表不是两行：{seasonMenu?.Rows.Count ?? -1}");
-                Require(seasonMenu!.Rows.Count(row => row.Selected) == 1
-                        && seasonMenu.Rows.Single(row => row.Selected).Season.Id == "two-s1",
-                    "季列表没有标出当前季");
-                await UntilAsync(() => seasonMenu.Rows.All(row => row.Row.ActualHeight > 0));
-                await SaveProbeScreenAsync("detail-season-menu-1280.png");
-                seasonMenu.Flyout.Hide();
 
                 var strip = Get<ShelfStrip>(page, "EpisodeStrip");
                 page.SelectEpisodeSeason(multiSeasons[1]);
@@ -615,8 +615,10 @@ internal sealed partial class ShellNavigationProbe
                         && page.ViewModel.Seasons.Contains(page.ViewModel.SelectedSeason),
                     $"集页锚点不是清单里的第一季：{page.ViewModel.SelectedSeason?.Name}");
                 Require(page.ViewModel.CanPickEpisodeSeason && page.ViewModel.EpisodeFocus == 0,
-                    "集页的季列表不可点，或集带没有开在正在看的那一集上");
+                    "集页的季锚点不可切，或集带没有开在正在看的那一集上");
 
+                // 季菜单 2026-11-08 退役后集页屏上没有换季入口，这一条核的仍是视图模型那一侧的契约：
+                // 换锚点替换为单季列表、不重读、不动播放落点。
                 var targetBefore = page.ViewModel.PlayTarget;
                 page.SelectEpisodeSeason(multiSeasons[1]);
                 await LayoutAsync(page);

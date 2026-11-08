@@ -1969,8 +1969,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <see cref="Seasons"/>, so a non-empty list already says so.
     /// <para>
     /// 屏上那颗季选择栏 2026-11-02 按用户令删掉；2026-11-03 集列表改为全季一条之后，季列表改由牌子本身
-    /// 点开（<see cref="CanPickEpisodeSeason"/>）。<see cref="Seasons"/>／<see cref="SelectedSeason"/> 仍是
-    /// 那一页的季锚点：换它只换标题和集带起点，不再按季重读。
+    /// 点开（<see cref="CanPickEpisodeSeason"/>），这一版又在 2026-11-08 按用户令把那份季菜单一并退役 ——
+    /// 屏上再没有按季挑选的入口。<see cref="Seasons"/>／<see cref="SelectedSeason"/> 仍是那一页的季锚点：
+    /// 集带翻过季界会换它（<see cref="FollowEpisode"/>），只换标题与集带起点，不再按季重读。
     /// </para>
     /// </summary>
     public Visibility SeasonVisibility => Show(Seasons.Count > 1);
@@ -2139,7 +2140,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 让人多点一次（用户令 2026-11-02「当剧集只有一季时，在剧页面不显示『全部剧集』卡片」）。季下拉框原来在同一个
     /// 条件上收起（<see cref="SeasonVisibility"/>），那颗 2026-11-02 已删；判据仍然只写这一份。
     /// <para>
-    /// 仅剧页显示全部剧季；集页于 2026-11-08 按用户指定移除，季菜单仍保留。
+    /// 仅剧页显示全部剧季；集页于 2026-11-08 按用户指定移除，同日集列表牌子上的季菜单也一并退役 ——
+    /// 集页上已没有任何换季入口。
     /// </para>
     /// <para>
     /// 卡带里从 2026-11-03 晚起也列第 0 季（用户令要 S00 的封面），所以「一季正片 + 特别篇」的剧页、集页
@@ -2150,15 +2152,17 @@ public sealed partial class DetailViewModel : PageViewModel
         && CardVisible("seasons") && SeasonShelf is { Cards.Count: > 1 });
 
     /// <summary>
-    /// 集列表牌子能不能点开季菜单。剧页按季定位全剧列表，集页替换为所选季；只有一季时不可点。
+    /// 这一页的季锚点换得动吗：剧页、集页，且服务器给了不止一季。
     /// </summary>
+    /// <remarks>
+    /// 名字里那个 Pick 指的是「按季挑选」，而那块牌子上的季菜单 2026-11-08 已按用户令退役 —— 屏上现在没有
+    /// 入口，这一条仍是 <see cref="SelectEpisodeSeason"/> 的前置判据，并由自检与探针驱动。名字保留，是因为
+    /// 它同时被绑过牌子的 <c>Offer</c>，改了名那些读数与断言也得跟着改，换不来更清楚的意思。
+    /// </remarks>
     public bool CanPickEpisodeSeason =>
         _detail?.Type is EmbyItemType.Series or EmbyItemType.Episode
         && _episodes.Count > 0
         && Seasons.Count > 1;
-
-    /// <summary>季列表里要列出哪些季 —— 服务器给的那一份，包含第 0 季。</summary>
-    internal IReadOnlyList<EmbyItem> EpisodeSeasonChoices => [.. Seasons];
 
     public Visibility SimilarVisibility => Show(CardVisible("similar") && SimilarShelf is { Cards.Count: > 0 });
 
@@ -3058,14 +3062,14 @@ public sealed partial class DetailViewModel : PageViewModel
 
         // 「全部剧季」列服务器给的全部季，第 0 季（特别篇）也在里面 —— 2026-11-03 晚用户令「全部剧集卡片要
         // 显示特别篇（S00季）的封面」，原先把第 0 季滤掉的那一刀因此撤掉。顺序照服务器给的那一份（第 0 季
-        // 在最前），和集列表牌子的季菜单同源。2026-11-04 删除重复的特别篇单集排后，季封面入口仍保留。
+        // 在最前），和集列表牌子上的季名同源。2026-11-04 删除重复的特别篇单集排后，季封面入口仍保留。
         SeasonShelf?.Fill(seasons, ItemDetail.SeasonSubtitle);
 
         await LoadEpisodesAsync(picked, retarget: true, token).ConfigureAwait(true);
     }
 
     /// <summary>
-    /// 集页的季菜单与特别篇日期归季所需清单；不创建全部剧季卡片。
+    /// 集页的季锚点与特别篇日期归季所需清单；不创建全部剧季卡片。
     /// 读取失败时保留当前集的季锚点，集列表仍可用已有字段收窄。
     /// </summary>
     private async Task LoadSeasonShelfAsync(EmbyItem item, CancellationToken token)
@@ -3086,7 +3090,7 @@ public sealed partial class DetailViewModel : PageViewModel
             // 第 0 季的封面入口保留，和主集列表中的特别篇共用原有导航。
             seasons.RemoveAll(WasDeleted);
 
-            // 集页的季列表和剧页共用同一支下拉；Seasons 填上之后，SelectedSeason 才能指向清单里的真季，
+            // 集页的季清单和剧页同源；Seasons 填上之后，SelectedSeason 才能指向清单里的真季，
             // 而不是 LoadEpisodesAsync 用这一集自己的字段拼出来的临时锚点。
             _syncingSeason = true;
             try
@@ -3693,9 +3697,13 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 季菜单选季：剧页返回全剧列表中的季起点；集页换成单季列表并返回 0，空季返回 -1。
+    /// 换季锚点：剧页返回全剧列表中的季起点；集页换成单季列表并返回 0，空季返回 -1。
     /// 页面拿这个数把集带对到左边沿；返回 -1 就保持原位。
     /// </summary>
+    /// <remarks>
+    /// 屏上那颗季菜单 2026-11-08 已按用户令退役，这一条现在是自检与探针驱动的入口（集带翻过季界走的仍是
+    /// <see cref="FollowEpisode"/>）。换季只改锚点与标题，不重读、不动播放落点 —— 那几条由两侧共同核对。
+    /// </remarks>
     internal int SelectEpisodeSeason(EmbyItem season)
     {
         if (!Attached || !CanPickEpisodeSeason) return -1;

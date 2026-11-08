@@ -113,7 +113,9 @@
                         Style="{StaticResource EgDataStyle}"
                         VerticalAlignment="Center" />
                 </Border>
-                <!-- 大于号：跟在读数右边，和这块牌子是不是按钮无关（详情页也画，只是没接动作）。
+                <!-- 大于号：跟在读数右边，随 Offer 显隐。首页那几排用它表示「进得去」；详情页的牌子都不是
+                     按钮，这一枚收着 —— 集列表牌子原来挂的是向下的折角（点开季列表），那颗连同季菜单
+                     2026-11-08 按用户令退役，字形不再可换，就固定这一枚大于号。
                      前景不走 EgDataStyle —— 那一支 TargetType 是 TextBlock，FontIcon 认不了；直接点 EgTextDimBrush，
                      压在剧照上那一档由代码后置换成同一支浅墨（见 OnScrimChanged）。 -->
                 <FontIcon

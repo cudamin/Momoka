@@ -78,7 +78,7 @@ internal static class DetailDeferredCardsTests
                 Assert.Equal(-1, (int)fixture.Invoke("SelectEpisodeSeason", seasons[0])!);
                 Assert.Equal(0, fixture.Cards.Count);
             });
-            Case("集页缺少S00季：无日期特别篇仍保留可达的季菜单入口", async () =>
+            Case("集页缺少S00季：无日期特别篇仍在季清单里，切过去就是它那一集", async () =>
             {
                 using var fixture = new Fixture(shell, 2000);
                 fixture.Transport.UndatedSpecial = true;
@@ -86,8 +86,8 @@ internal static class DetailDeferredCardsTests
                     fixture.Get<IList>("Seasons").Add(new EmbyItem
                     { Id = "season-" + number, Type = EmbyItemType.Season, IndexNumber = number });
                 await fixture.Load();
-                var choices = fixture.Get<IReadOnlyList<EmbyItem>>("EpisodeSeasonChoices");
-                var special = choices.Single(item => item.IndexNumber == 0);
+                var special = fixture.Get<IList>("Seasons").Cast<EmbyItem>()
+                    .Single(item => item.IndexNumber == 0);
                 Assert.Equal(100, fixture.Cards.Count);
                 Assert.Equal(0, (int)fixture.Invoke("SelectEpisodeSeason", special)!);
                 Assert.Equal(1, fixture.Cards.Count);

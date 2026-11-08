@@ -67,7 +67,7 @@ internal sealed partial class ShellNavigationProbe
         }
         catch (Exception error)
         {
-            throw new InvalidOperationException("季菜单实际滚动未完成：" + season.Id + "\n" + string.Join("\n", trace), error);
+            throw new InvalidOperationException("换季锚点的实际滚动未完成：" + season.Id + "\n" + string.Join("\n", trace), error);
         }
         finally
         {

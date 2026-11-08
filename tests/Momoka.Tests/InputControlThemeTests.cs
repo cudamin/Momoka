@@ -176,6 +176,12 @@ internal static class InputControlThemeTests
             Assert.Null(shelf.Element(shelf.Name.Namespace + "ShelfHead.Resources"), "集列表牌子又有了局部下拉资源");
             Assert.False(shelf.Descendants().Any(element => element.Name.LocalName is "EgPicker" or "ComboBox"),
                 "集列表牌子的右端又长出了季选择栏");
+
+            // 2026-11-08 用户令「不要这个季度列表菜单了」：牌子只剩季名 —— 没有折角（Glyph）、没有点击面
+            // （Offer）、也没有把季列表弹出来的那条事件（Invoked）。这一条盯着它别再长回来。
+            Assert.Null(shelf.Attribute("Offer"));
+            Assert.Null(shelf.Attribute("Invoked"));
+            Assert.Null(shelf.Attribute("Glyph"));
         });
         Test("输入主题：点空白处把焦点交给卡片区，输入框回到玻璃", () =>
         {

@@ -58,7 +58,7 @@ internal sealed partial class ShellNavigationProbe
         await vm.ReloadAsync();
 
         Require(vm.Episodes.Count == 2, $"剧页没有拿到全季集列表：{vm.Episodes.Count} 集");
-        Require(vm.Seasons.Count == 2 && vm.CanPickEpisodeSeason, "两季的剧页没有季列表可点");
+        Require(vm.Seasons.Count == 2 && vm.CanPickEpisodeSeason, "两季的剧页季锚点不可切");
         Require(vm.SelectedSeason?.Id == "a", $"剧页锚点不是第一季：{vm.SelectedSeason?.Name}");
         Require(vm.PlayTarget?.Id == "ep-a", $"播放落点不是播出最早的集：{vm.PlayTarget?.Id}");
         Require(vm.EpisodeShelf?.Title.Contains(vm.SelectedSeason!.Name, StringComparison.Ordinal) == true
@@ -77,7 +77,7 @@ internal sealed partial class ShellNavigationProbe
             $"换季锚点后标题没跟着走：{vm.EpisodeShelf?.Title}");
         Require(vm.SelectEpisodeSeason(vm.Seasons.First()) == 0
                 && vm.SelectEpisodeSeason(vm.Seasons.Last()) == 1,
-            "季列表没有给出正确的第一张卡位置");
+            "换季没有给出正确的第一张卡位置");
     }
 
     private async Task NavigationRestoreRaceAsync()
