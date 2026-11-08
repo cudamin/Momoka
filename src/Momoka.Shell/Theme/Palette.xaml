@@ -117,25 +117,52 @@
                 TintOpacity="0.55" />
 
             <!-- 详情操作和货架翻页共用的三态玻璃；禁用态仍走平台实色。
-                 tint 按既有浮起/悬停/次面分档，FallbackColor 同色且不透明，ThemeHost 换色不替换对象。 -->
+                 tint 按既有浮起/悬停/次面分档，FallbackColor 同色且不透明，ThemeHost 换色不替换对象。
+                 2026-11-08 用户令「主页下方列表的翻页按钮改成亚克力材质」：三态把染色与明暗都松下来一档
+                 （0.55/0.5 → 0.45/0.3），圆钮压在封面上时透得出来底下那张海报 —— 从前那两个数加起来只透
+                 两成，屏上和一块实心圆看不出分别。字形仍是 EgTextBrush，圆外那圈描边照旧给按钮立边。 -->
             <AcrylicBrush
                 x:Key="EgActionGlassBrush"
                 FallbackColor="{StaticResource EgSurfaceElevatedColor}"
                 TintColor="{StaticResource EgSurfaceElevatedColor}"
-                TintLuminosityOpacity="0.5"
-                TintOpacity="0.55" />
+                TintLuminosityOpacity="0.3"
+                TintOpacity="0.45" />
             <AcrylicBrush
                 x:Key="EgActionGlassHoverBrush"
                 FallbackColor="{StaticResource EgSurfaceHoverColor}"
                 TintColor="{StaticResource EgSurfaceHoverColor}"
-                TintLuminosityOpacity="0.5"
+                TintLuminosityOpacity="0.3"
                 TintOpacity="0.55" />
             <AcrylicBrush
                 x:Key="EgActionGlassPressedBrush"
                 FallbackColor="{StaticResource EgSurfaceAltColor}"
                 TintColor="{StaticResource EgSurfaceAltColor}"
-                TintLuminosityOpacity="0.5"
+                TintLuminosityOpacity="0.3"
+                TintOpacity="0.7" />
+
+            <!-- 封面上的播放键（海报卡、详情页左上角那一张）和轮播/货架的翻页键共用的三态玻璃。
+                 它压在剧照正中，白色的播放字形要在最亮的画面上仍读得出，所以 tint 取窗口底色那支深色而不是
+                 抬升面：抬升面本身就亮，做成半透明之后在白海报上会把字吃掉。Luminosity 收在本项目常用的
+                 0.35，透上来的是明暗，不是把图糊回原样。悬停与按下换成强调色玻璃，字翻成深墨
+                 （EgTextOnAccentBrush），和实心强调键同一套对比。 -->
+            <AcrylicBrush
+                x:Key="EgPlayGlassBrush"
+                FallbackColor="{StaticResource EgWindowColor}"
+                TintColor="{StaticResource EgWindowColor}"
+                TintLuminosityOpacity="0.35"
                 TintOpacity="0.55" />
+            <AcrylicBrush
+                x:Key="EgPlayGlassHoverBrush"
+                FallbackColor="{StaticResource EgAccentColor}"
+                TintColor="{StaticResource EgAccentColor}"
+                TintLuminosityOpacity="0.25"
+                TintOpacity="0.8" />
+            <AcrylicBrush
+                x:Key="EgPlayGlassPressedBrush"
+                FallbackColor="{StaticResource EgAccentPressedColor}"
+                TintColor="{StaticResource EgAccentPressedColor}"
+                TintLuminosityOpacity="0.2"
+                TintOpacity="0.9" />
 
             <!-- 菜单和浮出层（2026-10-30 用户：「更多菜单里的一些弹窗背景不要用亚克力，卡片和按钮等可以用」）。
                  框架给 MenuFlyoutPresenter 的是桌面亚克力（采的是桌面，不是应用内容），给普通 Flyout 的是
@@ -414,6 +441,27 @@
                 TintLuminosityOpacity="0.9"
                 TintOpacity="0.8" />
 
+            <!-- 同 Dark 那份：封面播放键与翻页键的三态玻璃。浅色这边静止档的 tint 是近白窗口色，
+                 字走深墨；悬停换成深绿强调色玻璃，字翻成浅墨。 -->
+            <AcrylicBrush
+                x:Key="EgPlayGlassBrush"
+                FallbackColor="{StaticResource EgWindowColor}"
+                TintColor="{StaticResource EgWindowColor}"
+                TintLuminosityOpacity="0.35"
+                TintOpacity="0.55" />
+            <AcrylicBrush
+                x:Key="EgPlayGlassHoverBrush"
+                FallbackColor="{StaticResource EgAccentColor}"
+                TintColor="{StaticResource EgAccentColor}"
+                TintLuminosityOpacity="0.25"
+                TintOpacity="0.8" />
+            <AcrylicBrush
+                x:Key="EgPlayGlassPressedBrush"
+                FallbackColor="{StaticResource EgAccentPressedColor}"
+                TintColor="{StaticResource EgAccentPressedColor}"
+                TintLuminosityOpacity="0.2"
+                TintOpacity="0.9" />
+
             <!-- 同 Dark 那份：菜单与普通浮出层的底改回实心面色和主题边线。 -->
             <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="EgSurfaceBrush" />
             <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="EgBorderBrush" />
@@ -586,6 +634,9 @@
             <SolidColorBrush x:Key="EgActionGlassBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgActionGlassHoverBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgActionGlassPressedBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgPlayGlassBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgPlayGlassHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="EgPlayGlassPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="EgOverlayHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="EgOverlayPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
         </ResourceDictionary>

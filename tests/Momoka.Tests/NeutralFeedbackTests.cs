@@ -49,17 +49,23 @@ internal static class NeutralFeedbackTests
 
         Test("中性反馈：播放键默认灰底白字，保留圆形尺寸与播放路由", () =>
         {
-            var card = View("PosterCard.xaml");
-            var style = card.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgCardPlayButtonStyle");
+            // 2026-11-08 起这一份样式住进 Styles.xaml，海报卡和详情页左上角的封面合用它（见材质专项）。
+            var styles = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Theme", "Styles.xaml"));
+            var style = styles.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgOverlayPlayButtonStyle");
             Assert.Equal("{StaticResource DefaultButtonStyle}", style.Attribute("BasedOn")?.Value);
-            Assert.Equal("{ThemeResource EgSurfaceHoverBrush}", Setter(style, "Background"));
+            Assert.Equal("{ThemeResource EgPlayGlassBrush}", Setter(style, "Background"));
             Assert.Equal("{ThemeResource EgTextBrush}", Setter(style, "Foreground"));
             Assert.Equal("48", Setter(style, "Width"));
             Assert.Equal("48", Setter(style, "Height"));
             Assert.Equal("24", Setter(style, "CornerRadius"));
             Assert.Equal("0", Setter(style, "BorderThickness"));
+            var glyph = styles.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgPlayGlyphStyle");
+            Assert.Equal("20", Setter(glyph, "FontSize"));
+            var card = View("PosterCard.xaml");
             var button = card.Descendants().Single(element => Name(element) == "PlayButton");
             Assert.Equal("OnPlayClicked", button.Attribute("Click")?.Value);
+            Assert.Equal("{StaticResource EgOverlayPlayButtonStyle}", button.Attribute("Style")?.Value);
+            Assert.Equal("{StaticResource EgPlayGlyphStyle}", button.Elements().Single(element => element.Name.LocalName == "FontIcon").Attribute("Style")?.Value);
             Assert.Equal("{x:Bind Card.PlayVisibility, Mode=OneWay}", button.Attribute("Visibility")?.Value);
         });
 
@@ -95,8 +101,8 @@ internal static class NeutralFeedbackTests
             var resources = button.Elements().Single(element => element.Name.LocalName == "Button.Resources");
             var expected = new Dictionary<string, string>
             {
-                ["ButtonBackgroundPointerOver"] = "EgAccentBrush",
-                ["ButtonBackgroundPressed"] = "EgAccentPressedBrush",
+                ["ButtonBackgroundPointerOver"] = "EgPlayGlassHoverBrush",
+                ["ButtonBackgroundPressed"] = "EgPlayGlassPressedBrush",
                 ["ButtonForegroundPointerOver"] = "EgTextOnAccentBrush",
                 ["ButtonForegroundPressed"] = "EgTextOnAccentBrush"
             };
@@ -129,7 +135,7 @@ internal static class NeutralFeedbackTests
             var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "ShellSelfCheck.Reads.cs"));
             Assert.Contains("corner.FrameBorderless", code);
             Assert.Contains("Format(corner.FrameActive) == Format(corner.FrameRest)", code);
-            Assert.Contains("Format(corner.PlayRest) == ColorOf(\"EgSurfaceHoverBrush\")", code);
+            Assert.Contains("Format(corner.PlayRest) == ColorOf(\"EgWindowBrush\")", code);
             Assert.Contains("Format(corner.PlayHover) == accent", code);
             Assert.False(code.Contains("Format(corner.FrameActive) == accent", StringComparison.Ordinal));
         });

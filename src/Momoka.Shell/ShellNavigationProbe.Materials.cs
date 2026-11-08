@@ -198,6 +198,32 @@ internal sealed partial class ShellNavigationProbe
                             var controls = Descendants(group).OfType<Control>().Where(control =>
                                 (control is Button or ToggleButton) && control.Visibility == Visibility.Visible).ToArray();
                             Require(controls.Length == 6, "详情操作排缺少按钮或连播");
+                            // 封面上的播放键（2026-11-08）：宽版式有封面才有它，窄窗连封面一起收。
+                            if (width == 1280)
+                            {
+                                Require(detail.ViewModel.CoverPlayVisibility == Visibility.Visible,
+                                    "剧页封面上的播放键没有出现");
+                                var cover = detail.ProbeCoverPlay();
+                                Require(cover.Shown && Math.Abs(cover.Size - 48) < 0.5
+                                    && Math.Abs(cover.OffsetX) <= 1 && Math.Abs(cover.OffsetY) <= 1,
+                                    $"封面播放键没有落在封面正中：{cover.Size:0} 见方、偏移 {cover.OffsetX:0.#},{cover.OffsetY:0.#}");
+                                Require(cover.RestTint == ThemeHost.ToColor(theme.Colors.Window)
+                                    && cover.HoverTint == ThemeHost.ToColor(theme.Colors.Accent),
+                                    $"封面播放键的静止/指针态不是玻璃：{cover.RestTint} → {cover.HoverTint}");
+                                reads.Add($"{theme.Id}/{width}/封面播放键：{cover.Size:0} 见方，"
+                                    + $"偏移 {cover.OffsetX:0.#},{cover.OffsetY:0.#}，静止={cover.RestTint}，指针={cover.HoverTint}");
+                            }
+                            else
+                                Require(detail.ViewModel.CoverPlayVisibility == Visibility.Collapsed,
+                                    "窄窗没有封面，播放键却还在");
+                            if (samples && detail.ViewModel.CoverPlayVisibility == Visibility.Visible)
+                            {
+                                // 受控样本：把封面播放键亮一帧拍照，不代表真实指针手势。
+                                detail.ShowCoverPlaySample(true);
+                                await LayoutAsync(detail);
+                                await SaveProbeScreenAsync("detail-cover-play-screen.png");
+                                detail.ShowCoverPlaySample(false);
+                            }
                             foreach (var control in controls)
                                 await CheckRestoredActionAsync(control);
                             var reference = controls.OfType<Button>().Single(control =>
@@ -321,8 +347,8 @@ internal sealed partial class ShellNavigationProbe
                                 .FirstOrDefault(card => card.Card?.Item.Type == EmbyItemType.Movie);
                             Require(poster is not null, "货架没有可播放卡片");
                             var hover = poster!.ProbeHover();
-                            Require(!hover.Chrome && hover.PlayRest == ThemeHost.ToColor(theme.Colors.SurfaceHover),
-                                "海报悬停按钮仍画底色或播放键未回到中性灰底");
+                            Require(!hover.Chrome && hover.PlayRest == ThemeHost.ToColor(theme.Colors.Window),
+                                "海报悬停按钮仍画底色或播放键未回到中性玻璃");
                             reads.Add($"{theme.Id}/{width}/海报卡：右下三颗{(hover.Chrome ? "仍有底色" : "三态都不画底色")}，"
                                 + $"播放键常态={hover.PlayRest}，指针强调色={hover.PlayHover}");
                             if (samples)

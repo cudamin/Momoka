@@ -12,118 +12,155 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <UserControl.Resources>
-        <!-- 翻页箭头的三个态，同 ShelfStrip 里那三个：盖在剧照上，所以跟主题无关。 -->
-        <SolidColorBrush x:Key="EgBannerPageRestBrush" Color="#8C0C0E11" />
-        <SolidColorBrush x:Key="EgBannerPageHoverBrush" Color="#D90C0E11" />
-        <SolidColorBrush x:Key="EgBannerPagePressBrush" Color="#F20C0E11" />
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <!-- 高对比度不上亚克力：那一档的整个意思是「别让任何东西半透明」，箭头退回系统窗口色、
+                     字形退回系统字色（同 Theme/ActionButtons.xaml 那条路）。 -->
+                <ResourceDictionary x:Key="HighContrast">
+                    <SolidColorBrush x:Key="EgBannerPageRestBrush" Color="{ThemeResource SystemColorWindowColor}" />
+                    <SolidColorBrush x:Key="EgBannerPageHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+                    <SolidColorBrush x:Key="EgBannerPagePressBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+                    <!-- 只换翻页箭头自己的那支墨，不碰 EgOnScrimBrush：「详情」键和带上的字仍走原来那一支
+                         （2026-11-08 用户令「轮播图的详情按钮不改」）。 -->
+                    <SolidColorBrush x:Key="EgBannerPageInkBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
 
-        <!-- 右下张数读数那条底条和「详情」键的边框用这一支；代码里按 Resources 取键，键少一个会在自检里就抛出来。 -->
-        <SolidColorBrush x:Key="EgBannerDotBrush" Color="#59F3F5F8" />
+            <!-- 翻页箭头的三个态，同 ShelfStrip 里那三个：盖在剧照上，所以不跟主题走。
+                 2026-11-08 用户令「主页轮播图的翻页按钮改成亚克力」：三支实色换成同一支深色的磨砂玻璃，
+                 tint 固定在这支压图用的深色上（不取窗口底色 —— 浅色主题那支接近白，白字形会看不见），
+                 三态靠染色浓度分档：静止半透、悬停与按下一档比一档实。箭头只在指针停在带上时浮出。 -->
+            <Color x:Key="EgBannerPageColor">#FF0C0E11</Color>
+            <!-- 箭头自己的字形墨：常态与带上的字同一支浅墨，高对比度单独换系统字色。
+                 单列一支是为了不碰「详情」键 —— 那颗键的墨走 EgOnScrimBrush，用户 2026-11-08 明确不改它。 -->
+            <StaticResource x:Key="EgBannerPageInkBrush" ResourceKey="EgOnScrimBrush" />
+            <AcrylicBrush
+                x:Key="EgBannerPageRestBrush"
+                FallbackColor="{StaticResource EgBannerPageColor}"
+                TintColor="{StaticResource EgBannerPageColor}"
+                TintLuminosityOpacity="0.35"
+                TintOpacity="0.55" />
+            <AcrylicBrush
+                x:Key="EgBannerPageHoverBrush"
+                FallbackColor="{StaticResource EgBannerPageColor}"
+                TintColor="{StaticResource EgBannerPageColor}"
+                TintLuminosityOpacity="0.3"
+                TintOpacity="0.72" />
+            <AcrylicBrush
+                x:Key="EgBannerPagePressBrush"
+                FallbackColor="{StaticResource EgBannerPageColor}"
+                TintColor="{StaticResource EgBannerPageColor}"
+                TintLuminosityOpacity="0.3"
+                TintOpacity="0.88" />
 
-        <!-- 带子自己的底在 Theme/Palette.xaml 里（EgBannerBaseBrush）：图还没解码到的那一瞬、整条带收起来之前的
-              那一帧，看见的就是它（2026-09-11 剧照铺满整条带之后，它不再在带子的左右两边露面）。右边那一列媒体库
-              2026-09-08 删掉之后，用这一支画刷的只剩这一条带。 -->
+            <!-- 右下张数读数那条底条和「详情」键的边框用这一支；代码里按 Resources 取键，键少一个会在自检里就抛出来。 -->
+            <SolidColorBrush x:Key="EgBannerDotBrush" Color="#59F3F5F8" />
 
-        <!-- 播放键原来是一块写死的白底黑字，四支画刷四个态。改成跟主题走的强调色之后那四支全没用了 ——
-             详情页头图上的播放键本来就是强调色，同一个产品两个最大的画面上，最主要的那颗键不该一个白
-             一个绿。 -->
-        <SolidColorBrush x:Key="EgBannerGhostRestBrush" Color="#20F3F5F8" />
-        <SolidColorBrush x:Key="EgBannerGhostHoverBrush" Color="#38F3F5F8" />
-        <SolidColorBrush x:Key="EgBannerGhostPressBrush" Color="#50F3F5F8" />
+            <!-- 带子自己的底在 Theme/Palette.xaml 里（EgBannerBaseBrush）：图还没解码到的那一瞬、整条带收起来之前的
+                  那一帧，看见的就是它（2026-09-11 剧照铺满整条带之后，它不再在带子的左右两边露面）。右边那一列媒体库
+                  2026-09-08 删掉之后，用这一支画刷的只剩这一条带。 -->
 
-        <!-- 三个键的高度和圆角都取词表，跟详情页头图上那六颗一样：38 高、圆角 8。BasedOn 是必须的，见
-             ShelfStrip 里同一处注释：隐式样式只在没设过 Style 时生效。
-             左右边距 8（原来 14）：这两颗贴着带的边沿走，「按钮旁边移动一些」—— 它们各占的那一段（8 到 46）是
-             留给箭头的两条窄栏，而字块站在左上区域、左边距比左边那条窄栏更宽（见下面 Info 的 Margin），两边不同
-             列，所以箭头落进字块的高度范围时也压不到字。 -->
-        <Style x:Key="EgBannerPageButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Width" Value="{StaticResource EgActionHeight}" />
-            <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
-            <Setter Property="MinWidth" Value="0" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="8,0,8,0" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Background" Value="{StaticResource EgBannerPageRestBrush}" />
-            <Setter Property="Foreground" Value="{StaticResource EgOnScrimBrush}" />
-            <!-- 默认收起：指针在带上才浮出，同 ShelfStrip。 -->
-            <Setter Property="Visibility" Value="Collapsed" />
-        </Style>
+            <!-- 播放键原来是一块写死的白底黑字，四支画刷四个态。改成跟主题走的强调色之后那四支全没用了 ——
+                 详情页头图上的播放键本来就是强调色，同一个产品两个最大的画面上，最主要的那颗键不该一个白
+                 一个绿。 -->
+            <SolidColorBrush x:Key="EgBannerGhostRestBrush" Color="#20F3F5F8" />
+            <SolidColorBrush x:Key="EgBannerGhostHoverBrush" Color="#38F3F5F8" />
+            <SolidColorBrush x:Key="EgBannerGhostPressBrush" Color="#50F3F5F8" />
 
-        <Style x:Key="EgBannerPlayStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
-            <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
-            <Setter Property="MinWidth" Value="142" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
-            <Setter Property="Padding" Value="24,0,24,2" />
-        </Style>
+            <!-- 三个键的高度和圆角都取词表，跟详情页头图上那六颗一样：38 高、圆角 8。BasedOn 是必须的，见
+                 ShelfStrip 里同一处注释：隐式样式只在没设过 Style 时生效。
+                 左右边距 8（原来 14）：这两颗贴着带的边沿走，「按钮旁边移动一些」—— 它们各占的那一段（8 到 46）是
+                 留给箭头的两条窄栏，而字块站在左上区域、左边距比左边那条窄栏更宽（见下面 Info 的 Margin），两边不同
+                 列，所以箭头落进字块的高度范围时也压不到字。 -->
+            <Style x:Key="EgBannerPageButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Width" Value="{StaticResource EgActionHeight}" />
+                <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Margin" Value="8,0,8,0" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Background" Value="{StaticResource EgBannerPageRestBrush}" />
+                <Setter Property="Foreground" Value="{StaticResource EgBannerPageInkBrush}" />
+                <!-- 默认收起：指针在带上才浮出，同 ShelfStrip。 -->
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Style>
 
-        <Style x:Key="EgBannerGhostStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
-            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
-            <Setter Property="Padding" Value="22,0,22,2" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="{StaticResource EgBannerDotBrush}" />
-            <Setter Property="Background" Value="{StaticResource EgBannerGhostRestBrush}" />
-            <Setter Property="Foreground" Value="{StaticResource EgOnScrimBrush}" />
-            <!-- 同货架圆钮，用同一条矢量轮廓画底色和边线，避免亚克力圆角背景与边线分别裁剪。
-                 16 DIP 圆角和 1 DIP 线宽与上方样式一致；内容仍保留原边线占位与按钮语义。 -->
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Grid Background="Transparent">
-                            <VisualStateManager.VisualStateGroups>
-                                <VisualStateGroup x:Name="CommonStates">
-                                    <VisualState x:Name="Normal" />
-                                    <VisualState x:Name="PointerOver">
-                                        <VisualState.Setters>
-                                            <Setter Target="Surface.Fill" Value="{ThemeResource ButtonBackgroundPointerOver}" />
-                                            <Setter Target="Surface.Stroke" Value="{ThemeResource ButtonBorderBrushPointerOver}" />
-                                            <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundPointerOver}" />
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                    <VisualState x:Name="Pressed">
-                                        <VisualState.Setters>
-                                            <Setter Target="Surface.Fill" Value="{ThemeResource ButtonBackgroundPressed}" />
-                                            <Setter Target="Surface.Stroke" Value="{ThemeResource ButtonBorderBrushPressed}" />
-                                            <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundPressed}" />
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                    <VisualState x:Name="Disabled">
-                                        <VisualState.Setters>
-                                            <Setter Target="Surface.Fill" Value="{ThemeResource ButtonBackgroundDisabled}" />
-                                            <Setter Target="Surface.Stroke" Value="{ThemeResource ButtonBorderBrushDisabled}" />
-                                            <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundDisabled}" />
-                                        </VisualState.Setters>
-                                    </VisualState>
-                                </VisualStateGroup>
-                            </VisualStateManager.VisualStateGroups>
-                            <Rectangle
-                                x:Name="Surface"
-                                Fill="{TemplateBinding Background}"
-                                Stroke="{TemplateBinding BorderBrush}"
-                                StrokeThickness="1"
-                                RadiusX="16"
-                                RadiusY="16"
-                                Stretch="Fill"
-                                IsHitTestVisible="False"
-                                UseLayoutRounding="False" />
-                            <ContentPresenter
-                                x:Name="ContentPresenter"
-                                Content="{TemplateBinding Content}"
-                                ContentTemplate="{TemplateBinding ContentTemplate}"
-                                ContentTransitions="{TemplateBinding ContentTransitions}"
-                                Foreground="{TemplateBinding Foreground}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                Padding="{TemplateBinding Padding}"
-                                HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
-                                AutomationProperties.AccessibilityView="Raw" />
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <Style x:Key="EgBannerPlayStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+                <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
+                <Setter Property="MinWidth" Value="142" />
+                <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+                <Setter Property="Padding" Value="24,0,24,2" />
+            </Style>
+
+            <Style x:Key="EgBannerGhostStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
+                <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+                <Setter Property="Padding" Value="22,0,22,2" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="BorderBrush" Value="{StaticResource EgBannerDotBrush}" />
+                <Setter Property="Background" Value="{StaticResource EgBannerGhostRestBrush}" />
+                <Setter Property="Foreground" Value="{StaticResource EgOnScrimBrush}" />
+                <!-- 同货架圆钮，用同一条矢量轮廓画底色和边线，避免亚克力圆角背景与边线分别裁剪。
+                     16 DIP 圆角和 1 DIP 线宽与上方样式一致；内容仍保留原边线占位与按钮语义。 -->
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid Background="Transparent">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters>
+                                                <Setter Target="Surface.Fill" Value="{ThemeResource ButtonBackgroundPointerOver}" />
+                                                <Setter Target="Surface.Stroke" Value="{ThemeResource ButtonBorderBrushPointerOver}" />
+                                                <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundPointerOver}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <VisualState.Setters>
+                                                <Setter Target="Surface.Fill" Value="{ThemeResource ButtonBackgroundPressed}" />
+                                                <Setter Target="Surface.Stroke" Value="{ThemeResource ButtonBorderBrushPressed}" />
+                                                <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundPressed}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled">
+                                            <VisualState.Setters>
+                                                <Setter Target="Surface.Fill" Value="{ThemeResource ButtonBackgroundDisabled}" />
+                                                <Setter Target="Surface.Stroke" Value="{ThemeResource ButtonBorderBrushDisabled}" />
+                                                <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundDisabled}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <Rectangle
+                                    x:Name="Surface"
+                                    Fill="{TemplateBinding Background}"
+                                    Stroke="{TemplateBinding BorderBrush}"
+                                    StrokeThickness="1"
+                                    RadiusX="16"
+                                    RadiusY="16"
+                                    Stretch="Fill"
+                                    IsHitTestVisible="False"
+                                    UseLayoutRounding="False" />
+                                <ContentPresenter
+                                    x:Name="ContentPresenter"
+                                    Content="{TemplateBinding Content}"
+                                    ContentTemplate="{TemplateBinding ContentTemplate}"
+                                    ContentTransitions="{TemplateBinding ContentTransitions}"
+                                    Foreground="{TemplateBinding Foreground}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    Padding="{TemplateBinding Padding}"
+                                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                    AutomationProperties.AccessibilityView="Raw" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <!--
@@ -418,8 +455,8 @@
                     <Button.Resources>
                         <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgBannerPageHoverBrush" />
                         <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgBannerPagePressBrush" />
-                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
-                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimBrush" />
+                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgBannerPageInkBrush" />
+                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgBannerPageInkBrush" />
                     </Button.Resources>
                 </Button>
 
@@ -436,8 +473,8 @@
                     <Button.Resources>
                         <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgBannerPageHoverBrush" />
                         <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgBannerPagePressBrush" />
-                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgOnScrimBrush" />
-                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgOnScrimBrush" />
+                        <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgBannerPageInkBrush" />
+                        <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgBannerPageInkBrush" />
                     </Button.Resources>
                 </Button>
 

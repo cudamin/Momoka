@@ -179,7 +179,9 @@ internal static class AcrylicControlsTests
         Test("主页轮播：详情圆角底色与边线共用矢量轮廓，内容不再绘制圆角背景", () =>
         {
             var page = Read("Views/HomeBanner.xaml");
-            var style = Resource(page.Root!.Element(Xaml + "UserControl.Resources")!, "EgBannerGhostStyle");
+            // 2026-11-08 起资源外面包了一层显式 ResourceDictionary（高对比度要一份 ThemeDictionaries）。
+            var resources = page.Root!.Element(Xaml + "UserControl.Resources")!.Element(Xaml + "ResourceDictionary")!;
+            var style = Resource(resources, "EgBannerGhostStyle");
             var surface = style.Descendants(Xaml + "Rectangle").Single();
             Assert.Equal("{TemplateBinding Background}", (string?)surface.Attribute("Fill"));
             Assert.Equal("{TemplateBinding BorderBrush}", (string?)surface.Attribute("Stroke"));
@@ -379,25 +381,35 @@ internal static class AcrylicControlsTests
             }
         });
 
-        Test("海报卡悬停操作：播放键回到中性灰底，右下三颗不再画亚克力", () =>
+        Test("海报卡悬停操作：播放键改成亚克力，右下三颗仍不画底色", () =>
         {
+            // 2026-11-08 用户令「封面上的播放按钮改成亚克力材质」：样式搬进 Styles.xaml 与详情页封面共用。
+            var styles = Read("Theme/Styles.xaml");
+            var play = Resource(styles.Root!, "EgOverlayPlayButtonStyle");
+            Assert.Equal("{ThemeResource EgPlayGlassBrush}", Setter(play, "Background"));
             var card = Read("Views/PosterCard.xaml");
+            var button = Named(card, "PlayButton");
+            Assert.Equal("{StaticResource EgOverlayPlayButtonStyle}", (string?)button.Attribute("Style"));
+            foreach (var (key, glass) in new[]
+            {
+                ("ButtonBackgroundPointerOver", "EgPlayGlassHoverBrush"),
+                ("ButtonBackgroundPressed", "EgPlayGlassPressedBrush")
+            })
+                Assert.Equal(glass, LocalTarget(button, key), key);
             var resources = card.Root!.Element(Xaml + "UserControl.Resources")!;
-            var play = Resource(resources, "EgCardPlayButtonStyle");
-            Assert.Equal("{ThemeResource EgSurfaceHoverBrush}", Setter(play, "Background"));
             var action = Resource(resources, "EgCardActionButtonStyle");
             Assert.Equal("Transparent", Setter(action, "Background"));
             Assert.Null(Setter(action, "CornerRadius"), "右下操作组不再带玻璃圆角");
 
             foreach (var name in new[] { "WatchedButton", "FavoriteButton", "MoreButton" })
             {
-                var button = Named(card, name);
-                Assert.Null(FindLocalResource(button, "ButtonBackground"), "按钮常态仍带局部底色");
-                Assert.Equal("Transparent", (string?)FindLocalResource(button, "ButtonBackgroundPointerOver")?.Attribute("Color"));
-                Assert.Equal("Transparent", (string?)FindLocalResource(button, "ButtonBackgroundPressed")?.Attribute("Color"));
-                Assert.Equal("EgOnScrimBrush", FindLocalResource(button, "ButtonForegroundPointerOver")
+                var actionButton = Named(card, name);
+                Assert.Null(FindLocalResource(actionButton, "ButtonBackground"), "按钮常态仍带局部底色");
+                Assert.Equal("Transparent", (string?)FindLocalResource(actionButton, "ButtonBackgroundPointerOver")?.Attribute("Color"));
+                Assert.Equal("Transparent", (string?)FindLocalResource(actionButton, "ButtonBackgroundPressed")?.Attribute("Color"));
+                Assert.Equal("EgOnScrimBrush", FindLocalResource(actionButton, "ButtonForegroundPointerOver")
                     ?.Attribute("ResourceKey")?.Value);
-                Assert.Equal("EgOnScrimDimBrush", FindLocalResource(button, "ButtonForegroundPressed")
+                Assert.Equal("EgOnScrimDimBrush", FindLocalResource(actionButton, "ButtonForegroundPressed")
                     ?.Attribute("ResourceKey")?.Value);
             }
 
@@ -405,6 +417,163 @@ internal static class AcrylicControlsTests
             Assert.False(actions.Descendants().Any(element =>
                 (string?)element.Attribute("Source") == "ms-appx:///Theme/ActionButtons.xaml"),
                 "右下操作组仍合入亚克力字典");
+        });
+
+        Test("封面播放键亚克力：两份主题三态是玻璃，高对比度退回系统实色", () =>
+        {
+            foreach (var theme in new[] { "Dark", "Light" })
+            {
+                var dictionary = Theme(theme);
+                foreach (var (key, tint) in new[]
+                {
+                    ("EgPlayGlassBrush", "EgWindowColor"),
+                    ("EgPlayGlassHoverBrush", "EgAccentColor"),
+                    ("EgPlayGlassPressedBrush", "EgAccentPressedColor")
+                })
+                {
+                    var brush = Resource(dictionary, key);
+                    Assert.Equal("AcrylicBrush", brush.Name.LocalName, theme + "/" + key);
+                    Assert.Equal("{StaticResource " + tint + "}", (string?)brush.Attribute("TintColor"), theme + "/" + key);
+                    Assert.Equal((string?)brush.Attribute("TintColor"), (string?)brush.Attribute("FallbackColor"), theme + "/" + key);
+                    foreach (var opacity in new[] { "TintOpacity", "TintLuminosityOpacity" })
+                    {
+                        var value = double.Parse((string?)brush.Attribute(opacity) ?? "1", CultureInfo.InvariantCulture);
+                        Assert.True(value is > 0 and < 1, theme + "/" + key + "/" + opacity + " 不透背后的画面");
+                    }
+                }
+            }
+
+            var contrast = Theme("HighContrast");
+            Assert.Equal("SolidColorBrush", Resource(contrast, "EgPlayGlassBrush").Name.LocalName);
+            Assert.Equal("SolidColorBrush", Resource(contrast, "EgPlayGlassHoverBrush").Name.LocalName);
+            Assert.Equal("SolidColorBrush", Resource(contrast, "EgPlayGlassPressedBrush").Name.LocalName);
+
+            // ThemeHost 不涂这几支的话，换主题时它们会停在第一帧的字面值上 —— 自检「主题角色覆盖」正是在问这个。
+            var host = Source("Theme/ThemeHost.cs");
+            foreach (var key in new[] { "EgPlayGlassBrush", "EgPlayGlassHoverBrush", "EgPlayGlassPressedBrush" })
+                Assert.Contains("(\"" + key + "\",", host);
+        });
+
+        Test("详情封面播放键：只在电影与剧页出现，悬停浮现并复用海报卡那一份玻璃", () =>
+        {
+            var page = Read("Views/DetailPage.xaml");
+            var slot = Named(page, "CoverSlot");
+            var cover = Named(page, "CoverButton");
+            var play = Named(page, "CoverPlayButton");
+            Assert.Equal(slot, cover.Parent, "封面按钮要留在同一个槽里");
+            Assert.Equal(slot, play.Parent, "播放键必须是封面按钮的兄弟：电影、剧两页的封面按钮命令停用、整颗不可命中");
+            Assert.Equal("OnCoverPointerEntered", (string?)slot.Attribute("PointerEntered"));
+            Assert.Equal("OnCoverPointerExited", (string?)slot.Attribute("PointerExited"));
+            Assert.Equal("{x:Bind ViewModel.CoverAlignment, Mode=OneWay}", (string?)slot.Attribute("VerticalAlignment"),
+                "对齐从封面按钮挪到槽位，集页居中、其余页靠顶仍要靠同一条判据");
+            Assert.Equal("{x:Bind ViewModel.CoverPlayVisibility, Mode=OneWay}", (string?)play.Attribute("Visibility"));
+            Assert.Equal("{x:Bind ViewModel.PlayCommand}", (string?)play.Attribute("Command"));
+            Assert.Equal("{StaticResource EgOverlayPlayButtonStyle}", (string?)play.Attribute("Style"));
+            Assert.Equal("False", (string?)play.Attribute("IsTabStop"), "主播放键已经在操作排里，封面这颗不进 Tab 顺序");
+            Assert.Equal("0", (string?)play.Attribute("Opacity"));
+            Assert.Equal("False", (string?)play.Attribute("IsHitTestVisible"));
+            Assert.Equal("0.5,0.5", (string?)play.Attribute("RenderTransformOrigin"), "缩放要从圆心起，量出来的中心才不会偏");
+            Assert.Equal("{StaticResource EgPlayGlyphStyle}",
+                (string?)play.Elements(Xaml + "FontIcon").Single().Attribute("Style"));
+            foreach (var (key, glass) in new[]
+            {
+                ("ButtonBackgroundPointerOver", "EgPlayGlassHoverBrush"),
+                ("ButtonBackgroundPressed", "EgPlayGlassPressedBrush"),
+                ("ButtonForegroundPointerOver", "EgTextOnAccentBrush")
+            })
+                Assert.Equal(glass, LocalTarget(play, key), key);
+
+            // 「只有这两页」和「跟着播放目标走」是视图模型的判据，页面只照着绑。
+            var vm = Source("ViewModels/DetailViewModel.cs");
+            Assert.Contains("public Visibility CoverPlayVisibility => Show(CoverPlayShown);", vm);
+            Assert.Contains("private bool CoverPlayShown => StillVisibility == Visibility.Visible && PlayTarget is not null", vm);
+            Assert.Contains("&& ItemType is EmbyItemType.Movie or EmbyItemType.Series;", vm);
+            Assert.Contains("[NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]", vm);
+            Assert.Equal(3, vm.Split("OnPropertyChanged(nameof(CoverPlayVisibility));", StringSplitOptions.None).Length - 1,
+                "版面、重读与类型更正三处都要重喊这一格");
+        });
+
+        Test("翻页按钮亚克力：轮播箭头三态换玻璃，高对比度留系统实色", () =>
+        {
+            var banner = Read("Views/HomeBanner.xaml");
+            var dictionary = banner.Root!.Element(Xaml + "UserControl.Resources")!.Element(Xaml + "ResourceDictionary")!;
+            foreach (var (key, opacity) in new[]
+            {
+                ("EgBannerPageRestBrush", "0.55"),
+                ("EgBannerPageHoverBrush", "0.72"),
+                ("EgBannerPagePressBrush", "0.88")
+            })
+            {
+                var brush = Resource(dictionary, key);
+                Assert.Equal("AcrylicBrush", brush.Name.LocalName, key);
+                Assert.Equal("{StaticResource EgBannerPageColor}", (string?)brush.Attribute("TintColor"), key);
+                Assert.Equal(opacity, (string?)brush.Attribute("TintOpacity"), key);
+                var luminosity = double.Parse((string?)brush.Attribute("TintLuminosityOpacity") ?? "1", CultureInfo.InvariantCulture);
+                Assert.True(luminosity is > 0 and < 0.5, key + " 的明暗浓度还停在不透的那一档");
+            }
+
+            var style = Resource(dictionary, "EgBannerPageButtonStyle");
+            Assert.Equal("{StaticResource EgBannerPageRestBrush}", Setter(style, "Background"));
+            foreach (var name in new[] { "PrevButton", "NextButton" })
+            {
+                var button = Named(banner, name);
+                Assert.Equal("EgBannerPageHoverBrush", LocalTarget(button, "ButtonBackgroundPointerOver"), name);
+                Assert.Equal("EgBannerPagePressBrush", LocalTarget(button, "ButtonBackgroundPressed"), name);
+            }
+
+            var themes = dictionary.Element(Xaml + "ResourceDictionary.ThemeDictionaries")!;
+            var contrast = themes.Elements().Single(element => (string?)element.Attribute(X + "Key") == "HighContrast");
+            foreach (var key in new[] { "EgBannerPageRestBrush", "EgBannerPageHoverBrush", "EgBannerPagePressBrush" })
+                Assert.Equal("SolidColorBrush", Resource(contrast, key).Name.LocalName, key);
+        });
+
+        Test("主页轮播：详情按钮不跟着翻页键换材质", () =>
+        {
+            // 2026-11-08 用户令「轮播图的详情按钮不改」：翻页键换成玻璃，那颗「详情」键仍走原来的
+            // 半透明叠层画刷与 EgOnScrim 墨；两者只共用「不跟主题走」这一条。
+            var banner = Read("Views/HomeBanner.xaml");
+            var dictionary = banner.Root!.Element(Xaml + "UserControl.Resources")!.Element(Xaml + "ResourceDictionary")!;
+            var ghost = Resource(dictionary, "EgBannerGhostStyle");
+            Assert.Equal("{StaticResource EgBannerGhostRestBrush}", Setter(ghost, "Background"));
+            Assert.Equal("{StaticResource EgOnScrimBrush}", Setter(ghost, "Foreground"));
+            var page = Resource(dictionary, "EgBannerPageButtonStyle");
+            Assert.Equal("{StaticResource EgBannerPageInkBrush}", Setter(page, "Foreground"));
+            Assert.Contains("ControlBackgroundBrushes.ForBanner(OpenButton, Resources)", Source("Views/HomeBanner.xaml.cs"));
+            Assert.False(Source("Views/HomeBanner.xaml.cs").Contains("EgBannerPage", StringComparison.Ordinal),
+                "详情按钮不该接翻页键那套玻璃");
+        });
+
+        Test("翻页按钮亚克力：货架圆钮三态透得出背后的封面", () =>
+        {
+            var roles = new Dictionary<string, string>
+            {
+                ["EgActionGlassBrush"] = "EgSurfaceElevatedColor",
+                ["EgActionGlassHoverBrush"] = "EgSurfaceHoverColor",
+                ["EgActionGlassPressedBrush"] = "EgSurfaceAltColor"
+            };
+            foreach (var (key, role) in roles)
+            {
+                var dark = Resource(Theme("Dark"), key);
+                Assert.Equal("AcrylicBrush", dark.Name.LocalName, key);
+                Assert.Equal("{StaticResource " + role + "}", (string?)dark.Attribute("TintColor"), key);
+                var light = Resource(Theme("Light"), key);
+                Assert.Equal("AcrylicBrush", light.Name.LocalName, "Light/" + key);
+                Assert.Equal("0.8", (string?)light.Attribute("TintOpacity"), "Light/" + key);
+            }
+
+            // 深色那档的明暗浓度要从 0.5 松下来，否则 48 DIP 的圆钮和一块实心圆在屏上没分别。
+            foreach (var (key, opacity) in new[]
+            {
+                ("EgActionGlassBrush", "0.45"),
+                ("EgActionGlassHoverBrush", "0.55"),
+                ("EgActionGlassPressedBrush", "0.7")
+            })
+            {
+                var dark = Resource(Theme("Dark"), key);
+                Assert.Equal(opacity, (string?)dark.Attribute("TintOpacity"), key);
+                var luminosity = double.Parse((string?)dark.Attribute("TintLuminosityOpacity") ?? "1", CultureInfo.InvariantCulture);
+                Assert.True(luminosity <= 0.3, key + " 的明暗浓度还停在不透的那一档");
+            }
         });
 
         Test("卡片亚克力：媒体库分类胶囊、搜索来源栏和飞牛筛选复用设置卡片刷子", () =>
@@ -474,7 +643,9 @@ internal static class AcrylicControlsTests
             Assert.Contains("detail.ViewModel.PlayTarget?.HasResumePosition == true", source);
             Assert.Contains("== 6,", source);
             Assert.Contains("详情操作排未在时限内出现", source);
-            Assert.Contains("海报悬停按钮仍画底色或播放键未回到中性灰底", source);
+            Assert.Contains("海报悬停按钮仍画底色或播放键未回到中性玻璃", source);
+            Assert.Contains("封面播放键没有落在封面正中", source);
+            Assert.Contains("ProbeCoverPlay()", source);
             Assert.Contains("poster-actions-restored-screen.png", source);
             Assert.Contains("详情操作按钮仍接共享玻璃", source);
             Assert.Contains("detail-actions-restored-screen.png", source);

@@ -271,7 +271,7 @@ internal static partial class ShellSelfCheck
                 && Format(corner.FrameRest) != accent
                 && corner.FrameRest.A > 0
                 && corner.FrameFocus
-                && (!corner.Play || Format(corner.PlayRest) == ColorOf("EgSurfaceHoverBrush")
+                && (!corner.Play || Format(corner.PlayRest) == ColorOf("EgWindowBrush")
                     && Format(corner.PlayHover) == accent);
         }
 

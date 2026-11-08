@@ -313,6 +313,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StillVisibility))]
+    [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
     public partial ImageSource? StillImage { get; set; }
 
@@ -377,6 +378,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroCardShown))]
     [NotifyPropertyChangedFor(nameof(ScrimVisibility))]
     [NotifyPropertyChangedFor(nameof(StillVisibility))]
+    [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(CompactVisibility))]
     [NotifyPropertyChangedFor(nameof(CornerVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroInset))]
@@ -446,6 +448,7 @@ public sealed partial class DetailViewModel : PageViewModel
         RefitArtwork();
         OnPropertyChanged(nameof(IsCompact));
         OnPropertyChanged(nameof(StillVisibility));
+        OnPropertyChanged(nameof(CoverPlayVisibility));
         OnPropertyChanged(nameof(CompactVisibility));
         OnPropertyChanged(nameof(CornerVisibility));
         OnPropertyChanged(nameof(ColumnActionsVisibility));
@@ -1556,6 +1559,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(NotResumePlay))]
     [NotifyPropertyChangedFor(nameof(PlayVisibility))]
     [NotifyPropertyChangedFor(nameof(RestartVisibility))]
+    [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
     [NotifyPropertyChangedFor(nameof(ProgressValue))]
     [NotifyPropertyChangedFor(nameof(ResumeRemain))]
     [NotifyPropertyChangedFor(nameof(ResumeVisibility))]
@@ -1916,6 +1920,23 @@ public sealed partial class DetailViewModel : PageViewModel
     public Visibility NotResumePlay => Show(PlayTarget?.HasResumePosition != true);
 
     public Visibility PlayVisibility => Show(PlayTarget is not null);
+
+    /// <summary>
+    /// 左上角那张封面上的播放键画不画 —— 2026-11-08 用户令「给剧页面和电影页面左上角的封面加上播放按钮」。
+    /// <para>
+    /// 只有电影和剧这两页有它：季页的封面说的是这一季、集页那张是可点进剧页的剧封面，两处都不该多出一颗
+    /// 「放什么」说不清的键。紧凑版式没有封面（<see cref="StillVisibility"/> 已经含这一条），图没到的时候
+    /// 也不画 —— 一颗浮在空格子上的播放键没有意义。
+    /// </para>
+    /// <para>
+    /// 播放目标直接复用 <see cref="PlayTarget"/>：它已经回答了「点下去放哪一集」—— 电影是自己，剧是下一个
+    /// 没看的集；剧还没拿到集时它是 null，这颗键和主播放键一起收起。
+    /// </para>
+    /// </summary>
+    public Visibility CoverPlayVisibility => Show(CoverPlayShown);
+
+    private bool CoverPlayShown => StillVisibility == Visibility.Visible && PlayTarget is not null
+        && ItemType is EmbyItemType.Movie or EmbyItemType.Series;
 
     public Visibility RestartVisibility => Show(PlayTarget?.HasResumePosition == true);
 
@@ -2316,6 +2337,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
         OnPropertyChanged(nameof(IsCompact));
         OnPropertyChanged(nameof(StillVisibility));
+        OnPropertyChanged(nameof(CoverPlayVisibility));
         OnPropertyChanged(nameof(CompactVisibility));
         _session = session;
         _images = images;
@@ -2552,6 +2574,7 @@ public sealed partial class DetailViewModel : PageViewModel
         RefitArtwork();
         OnPropertyChanged(nameof(IsCompact));
         OnPropertyChanged(nameof(StillVisibility));
+        OnPropertyChanged(nameof(CoverPlayVisibility));
         OnPropertyChanged(nameof(CompactVisibility));
 
         // 单集 changes shape with the kind of page this is, and that is a fact about the item rather than

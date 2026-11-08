@@ -27,22 +27,9 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <!-- 播放键默认中性色；按钮自身悬停／按下才变强调色，不随整张封面的悬停换色。
-             框架模板从 ButtonBackgroundPointerOver 等主题键取色，因此覆盖放在按钮自己的 Resources。 -->
-        <Style x:Key="EgCardPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
-            <Setter Property="Width" Value="48" />
-            <Setter Property="Height" Value="48" />
-            <Setter Property="MinWidth" Value="0" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="CornerRadius" Value="24" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Background" Value="{ThemeResource EgSurfaceHoverBrush}" />
-            <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
-            <Setter Property="FocusVisualPrimaryBrush" Value="{ThemeResource EgTextBrush}" />
-            <Setter Property="FocusVisualSecondaryBrush" Value="{ThemeResource EgSurfaceBrush}" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
-        </Style>
+        <!-- 播放键的尺寸、圆角与三态玻璃在 Theme/Styles.xaml 的 EgOverlayPlayButtonStyle —— 详情页左上角
+             那张封面上新加的一颗用同一份（2026-11-08）。悬停／按下换成强调色玻璃、字翻成深墨，写在下面
+             按钮自己的 Resources 里：框架模板从 Button* 键取色，样式只能给常态。 -->
     </UserControl.Resources>
 
     <!-- 宽度和海报比例继续由页面的 CardSize 决定，动画只改变绘制，不改变测量。 -->
@@ -265,20 +252,20 @@
                         Click="OnPlayClicked"
                         HorizontalAlignment="Center"
                         RenderTransformOrigin="0.5,0.5"
-                        Style="{StaticResource EgCardPlayButtonStyle}"
+                        Style="{StaticResource EgOverlayPlayButtonStyle}"
                         ToolTipService.ToolTip="{x:Bind Card.PlayActionTip, Mode=OneWay}"
                         VerticalAlignment="Center"
                         Visibility="{x:Bind Card.PlayVisibility, Mode=OneWay}">
                         <Button.Resources>
-                            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgAccentBrush" />
-                            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgPlayGlassHoverBrush" />
+                            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgPlayGlassPressedBrush" />
                             <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
                             <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
                         </Button.Resources>
                         <Button.RenderTransform>
                             <ScaleTransform x:Name="PlayMotion" ScaleX="0.92" ScaleY="0.92" />
                         </Button.RenderTransform>
-                        <FontIcon Margin="2,0,0,0" FontSize="20" Glyph="&#xE768;" />
+                        <FontIcon Glyph="&#xE768;" Style="{StaticResource EgPlayGlyphStyle}" />
                     </Button>
                     <StackPanel
                         x:Name="Actions"

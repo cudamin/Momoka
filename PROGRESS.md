@@ -1,3 +1,19 @@
+## 2026-11-08 封面播放键与翻页键改亚克力、详情封面加播放键（本树已验，待主树整合交付）
+
+用户两条令：①「封面上的播放按钮还有翻页按钮改成亚克力材质」，追问后范围定为「主页轮播图的翻页按钮＋主页下方列表的翻页按钮＋封面上的播放按钮」，并补「轮播图的详情按钮不改」；②「给剧页面和电影页面左上角的封面加上播放按钮」，出现方式选「悬停浮现」，颜色「鼠标移到封面上时为中性玻璃，鼠标移到播放按钮上时切换为强调色玻璃」。
+
+产品：
+- `Palette` 新增 `EgPlayGlass` 三态（Dark/Light 各一份，高对比度退回系统实色），`ThemeHost` 三笔一起涂。静止取窗口底色（TintOpacity 55% / Luminosity 35%），悬停与按下换成强调色／强调按下色（80% / 90%）。
+- 海报卡悬停播放键从实心 `EgSurfaceHoverBrush` 换成这套玻璃；样式上移到 `Theme/Styles.xaml` 的 `EgOverlayPlayButtonStyle`、字形合到 `EgPlayGlyphStyle`，详情页封面那颗共用同一份。悬停仍是强调色玻璃＋深墨字形。
+- 详情页新 `CoverSlot` 包住封面按钮，播放键是它的**兄弟**而不是内容里的孩子：电影、剧两页封面按钮的打开命令停用、整颗不可命中，塞进按钮里会一起失灵。视图模型加 `CoverPlayVisibility` —— 只有电影与剧、宽版式、有图且有播放目标时才画。指针进封面才淡入（`HoverWatch` 兜底），指针移到键上换强调色玻璃；缩放从圆心起，离场收回到 0.92 与透明。新文件 `Views/DetailPage.CoverPlay.cs`。
+- 轮播翻页箭头三支实色换成一支固定深色（#0C0E11）的磨砂玻璃，三态靠 0.55 / 0.72 / 0.88 的染色浓度分档；字形单列一支 `EgBannerPageInkBrush`（高对比度换系统字色）。**「详情」键的材质、边框、字形一个字节没动**，专项测试 `主页轮播：详情按钮不跟着翻页键换材质` 盯着它。
+- 货架圆钮本来已是 `EgActionGlassBrush`，只把深色那档的浓度从 0.55/0.5 松到 0.45/0.3（悬停 0.55、按下 0.7），压在封面上的圆才透得出底下那张海报。
+- 自检与探针跟着换：`PosterCard.Colour` 与两处探针的 `Colour` 现在读亚克力的 TintColor；自检播放键判据从 `EgSurfaceHoverBrush` 改到 `EgWindowBrush`；`EpisodeBand` 的对齐断言改读 `CoverSlot`；`Materials` 新增封面播放键的中心/尺寸/两态检查与 `detail-cover-play-screen.png` 样本；`HomeBannerClock` 新增两颗箭头的玻璃断言与 `home-banner-arrows-screen.png`。
+
+验证（本树）：`src/Momoka.Shell`、`tests/Momoka.Tests` Release/x64 均 0 警告 0 错误；完整主测试 **4205/4205、0 失败 0 跳过**（`TEMP`/`TMP` 指本树 `work/tmp`）；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0；亚克力专项 36/36、中性反馈 21/21。副屏 `--probe-shell --probe-section materials,library --screen 2` **35/35、0 失败、退出 0**（`shell-probe-20261108-070808739-3052`），含封面播放键的中心与两态、两颗轮播箭头的玻璃断言；截图 `detail-cover-play-screen.png`、`poster-actions-restored-screen.png`、`home-banner-arrows-screen.png` 已目视，副本存 `work/20261108-acrylic-buttons/`。过程中两轮旧报告的教训：播放键缩放原点不居中导致中心偏 1.9 像素（已修）；封面按钮对齐断言挂在旧元素上（已改到槽位）。另有一轮副屏被浏览器和编辑器挡住、10 项像素检查报「窗口被遮挡」，那一轮的证据没有拿来充数。未真实播放、未写服务器、未上传。
+
+待办：本树 `workbuddy/master-bc8948bd` 尚未合入 master（主树已领先两条提交），也还没有按主规则在主树重验与发布；桌面快捷方式仍是旧版。
+
 ## 2026-11-08 集列表牌子的季菜单退役
 
 用户令（附详情页截图）：「去掉上图集列表卡片左上角的折叠栏」，追问后明确「意思是不要这个季度列表菜单了」，范围选「只去掉下拉箭头」—— 牌子留下，折角与它弹开的季列表一起走。

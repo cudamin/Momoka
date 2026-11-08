@@ -732,9 +732,15 @@ public sealed partial class PosterCard : UserControl
 
     /// <summary>
     /// 一支不是纯色的画刷（渐变、图片）在这里就是「没读到颜色」，而全透明的黑正好是自检要判红的东西。
+    /// 亚克力报它的 <c>TintColor</c>：一张玻璃没有「一个颜色」，而这里问的是「这套主题的哪一档色写进去了」，
+    /// 答法和 ThemeHost.ColorOf 对玻璃那一支一样（2026-11-08 播放键改成玻璃之后多出来的情况）。
     /// </summary>
-    private static Windows.UI.Color Colour(Brush? brush) =>
-        brush is SolidColorBrush solid ? solid.Color : default;
+    private static Windows.UI.Color Colour(Brush? brush) => brush switch
+    {
+        SolidColorBrush solid => solid.Color,
+        AcrylicBrush acrylic => acrylic.TintColor,
+        _ => default
+    };
 
     /// <summary>
     /// 自检：whether one of the three corner buttons still fills itself in any of the states the pointer

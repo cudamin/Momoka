@@ -115,6 +115,21 @@ internal sealed partial class ShellNavigationProbe
             // 悬停和焦点都占着：从前这两样都会把钟停掉、把条清零。现在它们只管箭头。
             Field(banner, "_hover", true);
             Field(banner, "_focusWithin", true);
+            // 2026-11-08 用户令「主页轮播图的翻页按钮改成亚克力」：悬停这一拍两颗箭头要浮出来，底是玻璃。
+            Call(banner, "SyncArrows");
+            var arrowInk = (Windows.UI.Color)banner.Resources["EgBannerPageColor"];
+            foreach (var arrow in new[] { Get<Button>(banner, "PrevButton"), Get<Button>(banner, "NextButton") })
+            {
+                Require(arrow.Visibility == Visibility.Visible, "轮播悬停后翻页箭头没有浮出");
+                Require(arrow.Background is AcrylicBrush glass
+                        && glass.TintColor == arrowInk
+                        && !glass.AlwaysUseFallback,
+                    "轮播翻页箭头的常态不是深色玻璃");
+                foreach (var state in new[] { "ButtonBackgroundPointerOver", "ButtonBackgroundPressed" })
+                    Require(arrow.Resources.TryGetValue(state, out var found) && found is AcrylicBrush,
+                        "轮播翻页箭头的 " + state + " 不是玻璃");
+            }
+            await SaveProbeScreenAsync("home-banner-arrows-screen.png");
             // Pixel capture can take longer than a three-second cycle. Capture stationary pixels
             // under a separate long dwell, then start and measure the actual short clock afterwards.
             banner.ApplyDwell(30);

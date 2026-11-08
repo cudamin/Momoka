@@ -379,38 +379,80 @@
                         <!-- 封面点得动（同日「点击封面可以进入剧页面」）：集页上这一张就是剧页面上那张
                              封面，点下去进这部剧自己的页面 —— 和剧名那颗是同一个命令（OpenTitleCommand，落点在
                              剧集那一头）；其余页面上封面说的就是本页自己，命令停用，点下去不会空转。
-                             拆底和框的三个刷子同剧名那颗（默认样式的 Disabled 态会在内容后面垫一块灰底）。 -->
-                        <Button
-                            x:Name="CoverButton"
-                            x:Uid="DetailPage_CoverButton"
-                            AutomationProperties.AutomationId="CoverButton"
-                            BorderThickness="0"
-                            Command="{x:Bind ViewModel.OpenTitleCommand}"
-                            MinHeight="0"
-                            MinWidth="0"
-                            Padding="0"
-                            VerticalAlignment="{x:Bind ViewModel.CoverAlignment, Mode=OneWay}"
-                            ToolTipService.ToolTip="{x:Bind ViewModel.TitleTip, Mode=OneWay}">
-                            <Button.Resources>
-                                <SolidColorBrush x:Key="ButtonBackground" Color="Transparent" />
-                                <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#26FFFFFF" />
-                                <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#3DFFFFFF" />
-                                <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
-                            </Button.Resources>
-                            <Border
-                                x:Name="PosterStill"
-                                Background="#33000000"
-                                CornerRadius="{StaticResource EgPosterCornerRadius}"
-                                Height="{x:Bind ViewModel.StillHeight, Mode=OneWay}"
-                                SizeChanged="OnCoverSizeChanged"
-                                Visibility="{x:Bind ViewModel.StillVisibility, Mode=OneWay}"
-                                Width="{x:Bind ViewModel.StillWidth, Mode=OneWay}">
-                                <Image
-                                    x:Name="PosterImage"
-                                    Source="{x:Bind ViewModel.StillImage, Mode=OneWay}"
-                                    Stretch="Uniform" />
-                            </Border>
-                        </Button>
+                             拆底和框的三个刷子同剧名那颗（默认样式的 Disabled 态会在内容后面垫一块灰底）。
+
+                             外面这层 CoverSlot 是 2026-11-08 为「剧页面和电影页面左上角的封面加上播放按钮」
+                             加的：播放键要浮在封面上，而电影、剧这两页的封面按钮因为命令停用而整个不可命中
+                             —— 把它塞进那颗按钮里，键会跟着一起失灵。所以拆成兄弟两层，指针事件由这层
+                             接到；集页上这颗播放键收着（CoverPlayVisibility 只管电影和剧），封面照旧
+                             点进剧页。VerticalAlignment 从按钮挪到这一层，版面一个像素不动。 -->
+                        <Grid
+                            x:Name="CoverSlot"
+                            Background="Transparent"
+                            PointerEntered="OnCoverPointerEntered"
+                            PointerExited="OnCoverPointerExited"
+                            VerticalAlignment="{x:Bind ViewModel.CoverAlignment, Mode=OneWay}">
+                            <Button
+                                x:Name="CoverButton"
+                                x:Uid="DetailPage_CoverButton"
+                                AutomationProperties.AutomationId="CoverButton"
+                                BorderThickness="0"
+                                Command="{x:Bind ViewModel.OpenTitleCommand}"
+                                MinHeight="0"
+                                MinWidth="0"
+                                Padding="0"
+                                ToolTipService.ToolTip="{x:Bind ViewModel.TitleTip, Mode=OneWay}">
+                                <Button.Resources>
+                                    <SolidColorBrush x:Key="ButtonBackground" Color="Transparent" />
+                                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#26FFFFFF" />
+                                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#3DFFFFFF" />
+                                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
+                                </Button.Resources>
+                                <Border
+                                    x:Name="PosterStill"
+                                    Background="#33000000"
+                                    CornerRadius="{StaticResource EgPosterCornerRadius}"
+                                    Height="{x:Bind ViewModel.StillHeight, Mode=OneWay}"
+                                    SizeChanged="OnCoverSizeChanged"
+                                    Visibility="{x:Bind ViewModel.StillVisibility, Mode=OneWay}"
+                                    Width="{x:Bind ViewModel.StillWidth, Mode=OneWay}">
+                                    <Image
+                                        x:Name="PosterImage"
+                                        Source="{x:Bind ViewModel.StillImage, Mode=OneWay}"
+                                        Stretch="Uniform" />
+                                </Border>
+                            </Button>
+
+                            <!-- 封面上的播放键：指针移到封面上才淡进来，走的是媒体库海报卡与这一页共用的
+                                 EgOverlayPlayButtonStyle —— 静止深色磨砂玻璃，指针移到这颗键自己身上才换
+                                 强调色玻璃（同海报卡那颗，2026-11-08 用户确认颜色就按这个走）。
+                                 不可聚焦：这一页的主播放键就在下面那排操作键里，封面这颗是鼠标的快捷方式，
+                                 再进一次 Tab 顺序只会让键盘多按一下。收着的状态也不吃指针。 -->
+                            <Button
+                                x:Name="CoverPlayButton"
+                                AutomationProperties.Name="{x:Bind ViewModel.PlayText, Mode=OneWay}"
+                                Command="{x:Bind ViewModel.PlayCommand}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                IsHitTestVisible="False"
+                                IsTabStop="False"
+                                Opacity="0"
+                                RenderTransformOrigin="0.5,0.5"
+                                Style="{StaticResource EgOverlayPlayButtonStyle}"
+                                ToolTipService.ToolTip="{x:Bind ViewModel.PlayText, Mode=OneWay}"
+                                Visibility="{x:Bind ViewModel.CoverPlayVisibility, Mode=OneWay}">
+                                <Button.Resources>
+                                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgPlayGlassHoverBrush" />
+                                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgPlayGlassPressedBrush" />
+                                    <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                                    <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                                </Button.Resources>
+                                <Button.RenderTransform>
+                                    <ScaleTransform x:Name="CoverPlayMotion" ScaleX="0.92" ScaleY="0.92" />
+                                </Button.RenderTransform>
+                                <FontIcon Glyph="&#xE768;" Style="{StaticResource EgPlayGlyphStyle}" />
+                            </Button>
+                        </Grid>
 
                         <StackPanel
                             x:Name="HeroStack"

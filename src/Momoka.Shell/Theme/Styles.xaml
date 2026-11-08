@@ -585,6 +585,39 @@
     </Style>
 
     <!--
+      封面正中的播放键：海报卡悬停时那一颗，和详情页左上角封面上那一颗共用。
+
+      48 见方的圆，静止是深色磨砂玻璃（EgPlayGlassBrush），指针移到这颗键上才换强调色玻璃 —— 整张封面
+      悬停不替它换色。三态里的悬停与按下写在按钮自己的 Resources 里（PosterCard、DetailPage 的标记），
+      因为 DefaultButtonStyle 的模板按键取色，样式只能给常态；这也是两颗键必须共用这一份的理由：
+      尺寸、圆角、字色和焦点环各写一遍，迟早只改一处。
+
+      高对比度下 EgPlayGlass* 在 Palette 里退回系统实色，前景的 EgTextBrush / EgTextOnAccentBrush
+      也随之换成系统字色，焦点环两笔跟着走 —— 不另做一套模板。
+    -->
+    <Style x:Key="EgOverlayPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+        <Setter Property="Width" Value="48" />
+        <Setter Property="Height" Value="48" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="24" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="{ThemeResource EgPlayGlassBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
+        <Setter Property="FocusVisualPrimaryBrush" Value="{ThemeResource EgTextBrush}" />
+        <Setter Property="FocusVisualSecondaryBrush" Value="{ThemeResource EgSurfaceBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <!-- 那颗键里的字形：48 的圆里 20 号的播放符号，左边多让 2 —— 三角形自带的重心偏左，补一点才看着居中。
+         原来写在海报卡那一颗上；2026-11-08 详情页封面上的那颗要同一种字，两处合到这一份里。 -->
+    <Style x:Key="EgPlayGlyphStyle" TargetType="FontIcon">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="Margin" Value="2,0,0,0" />
+    </Style>
+
+    <!--
       搜索框的输入层。原生文本框的上下内边距会让 40 DIP 搜索框里的文字偏上；模板保留（光标、清除键、输入法
       和键盘都在里面），只把输入与占位文字居中。搜索页那一颗和「在 MoviePilot 搜索版本」窗口那一颗共用这一份
       —— 两处的框必须一样高、字站在同一条线上，各写一份就迟早只改一处。

@@ -76,6 +76,12 @@ public static class ThemeHost
         ("EgActionGlassHoverBrush", theme => theme.Colors.SurfaceHover),
         ("EgActionGlassPressedBrush", theme => theme.Colors.SurfaceAlt),
 
+        // 封面播放键的三态玻璃（海报卡与详情页封面）。静止档取窗口底 —— 它是一块压在剧照上的深色玻璃，
+        // 不是主题的抬升面；悬停与按下换成强调色，字同时翻成深墨，和实心强调键同一套对比。
+        ("EgPlayGlassBrush", theme => theme.Colors.Window),
+        ("EgPlayGlassHoverBrush", theme => theme.Colors.Accent),
+        ("EgPlayGlassPressedBrush", theme => theme.Colors.AccentPressed),
+
         // 悬停/按下的叠加层。不取自主题的任何一个角色 —— 它按深浅在白和黑之间翻，因为它要压在
         // *下面那层是什么* 上面，而不是配合某个色相。数字和 HostWindow.PaintCaption 给系统窗口按钮
         // 设的那组一致，标题栏两头才是同一种手感。

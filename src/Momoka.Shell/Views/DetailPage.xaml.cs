@@ -94,6 +94,7 @@ public sealed partial class DetailPage : Page, IShellContent
         });
         PrepareShowcase();
         PrepareCardLayout();
+        PrepareCoverPlay();
 
         // 沉浸版式那一支单独订阅：OnViewModelChanged 是 Plex 入口夹具原样提取的契约正文，往里塞这一页新加的
         // 字段会让那份提取出来的类编译不过。视图模型与这一页同寿，挂着不用退订。
@@ -124,6 +125,7 @@ public sealed partial class DetailPage : Page, IShellContent
         {
             ThemeHost.Changed -= OnThemeChanged;
             StopAppearance();
+            HideCoverPlay();
             if (_window is not null)
             {
                 _window.GeometryChanged -= OnWindowGeometryChanged;
