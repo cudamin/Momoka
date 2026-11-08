@@ -1648,6 +1648,13 @@ internal static class ItemDetailTests
 
             // 还没量到页宽（第一次布局之前）照走桌面版式：先按宽的布一遍、量出来再换，就是「闪一下」那一类跳。
             Assert.False(DetailHero.IsCompact(0));
+
+            // 2026-11-08 用户令「窄窗口的触发阈值调更窄一些，改为当前数值的百分之八十」：
+            // 断点 = 1024 × 0.8 = 819.2，不取整。819 是紧凑、820 是宽 —— 两侧各有一条探针用例
+            // （DetailResponsive／EpisodeBand／DetailArtwork／State 的 819／820 两档）。
+            Assert.Equal(819.2, DetailHero.CompactFloor);
+            Assert.True(DetailHero.IsCompact(819));
+            Assert.False(DetailHero.IsCompact(820));
         });
 
         Test("紧凑：带高是画面条和片名那一叠里高的那个", () =>
@@ -1696,9 +1703,11 @@ internal static class ItemDetailTests
             Assert.Equal(0d, DetailHero.Narrow(0));
             Assert.Equal(0d, DetailHero.Narrow(double.NaN));
 
-            // 1280 上约三成、1200 上六成；一路窄下去只增不减，拖窗口没有台阶。
-            Assert.True(Math.Abs(DetailHero.Narrow(1280) - 0.33) < 0.005);
-            Assert.True(Math.Abs(DetailHero.Narrow(1200) - 0.6145) < 0.001);
+            // 1280 上约一成七、1200 上约三成三；一路窄下去只增不减，拖窗口没有台阶。
+            // （断点 2026-11-08 从 1024 压到 819.2 之后，同样的窗口落在曲线的更早一段：1280 从三成三掉到
+            // 一成七，1200 从六成一掉到三成三 —— 越窄越紧凑这件事没变，只是「窄」的起点往后挪了。）
+            Assert.True(Math.Abs(DetailHero.Narrow(1280) - 0.165) < 0.005);
+            Assert.True(Math.Abs(DetailHero.Narrow(1200) - 0.3328) < 0.001);
 
             var previous = 1d;
             for (var width = DetailHero.NarrowTo + 1; width <= DetailHero.NarrowFrom; width += 7)
@@ -1741,11 +1750,12 @@ internal static class ItemDetailTests
 
         Test("窄窗：封面等距顶边固定，底边仍随窗口收紧", () =>
         {
-            // 海报尺寸保留；顶部20与面包屑下方约12合成32的留白。
-            Assert.Equal(344d, DetailHero.WideHeight(300, DetailHero.HeroTopRoom, DetailHero.HeroBottomRoom));
+            // 海报尺寸保留；顶部30与面包屑下方约12合成42的留白（2026-11-08 封面左边从 32 挪到 42
+            // —— 正文纸面左右各让 10 那一笔 —— 上沿补同样的 10 才不歪）。
+            Assert.Equal(354d, DetailHero.WideHeight(300, DetailHero.HeroTopRoom, DetailHero.HeroBottomRoom));
 
             // 上距保持，底边24→12，宽窄两档仍留12的压缩余量。
-            Assert.Equal(332d, DetailHero.WideHeight(300, DetailHero.HeroTopTight, DetailHero.HeroBottomTight));
+            Assert.Equal(342d, DetailHero.WideHeight(300, DetailHero.HeroTopTight, DetailHero.HeroBottomTight));
 
             // 那一叠比海报还高的时候带子跟着长，压缩只动留白。
             Assert.Equal(472d, DetailHero.WideHeight(420, 28, 24));
@@ -2145,7 +2155,7 @@ internal static class ItemDetailTests
             Assert.False(DetailHero.ShowsStill(compact: true));
 
             // 宽版式（还没量到宽也算宽 —— IsCompact 对 0 是 false）照旧画：紧凑线以上一张不少，
-            // 窗口从窄拉宽跨过 1024 的那一下封面就地回来。
+            // 窗口从窄拉宽跨过 CompactFloor 的那一下封面就地回来。
             Assert.True(DetailHero.ShowsStill(compact: false));
         });
 

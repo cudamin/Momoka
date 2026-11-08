@@ -89,7 +89,7 @@ internal sealed partial class ShellNavigationProbe
                 var crumb = Bounds(trailText, shell);
                 var prose = Bounds(Get<TextBlock>(page, "Overview"), shell);
                 var hero = Bounds(Get<Grid>(page, "HeroContent"), shell);
-                Require(Math.Abs(box.Left - (box.Top - crumb.Bottom)) < 1 && Math.Abs(box.Left - 32) < 1,
+                Require(Math.Abs(box.Left - (box.Top - crumb.Bottom)) < 1 && Math.Abs(box.Left - 42) < 1,
                     $"{width} 封面左右/上方留白不等：左{box.Left:0.##}，上{box.Top - crumb.Bottom:0.##}");
                 Require(Math.Abs(prose.Left - box.Left) < 1, $"{width} 剧情未与封面左沿对齐");
                 var sheet = Get<StackPanel>(page, "BodySheet");
@@ -109,6 +109,13 @@ internal sealed partial class ShellNavigationProbe
                     Require(Math.Abs(sheetRight - Bounds(bodyPanel, shell).Right - 8) < 1
                         && Math.Abs(sheetRight - Bounds(bodyHead, shell).Right - 32) < 1,
                         $"{width} {bodyPanel.Name} 右侧留白未与左侧一致");
+                    // 2026-11-08 用户令「右边空位的太多了，左边加宽一点点，然后两边对齐」：量的不是纸面内那一层
+                    // （上面两句只说明板自己的内边距没歪），而是这一块在**窗口**里左右两侧的空位 —— 纸面那一层
+                    // 从前只让右边 20，整页因此偏左。两边各让 10 之后这两个数必须相等。
+                    var shellWidth = shell.ActualWidth;
+                    Require(Math.Abs(Bounds(bodyHead, shell).Left - (shellWidth - Bounds(bodyHead, shell).Right)) < 1,
+                        $"{width} {bodyPanel.Name} 窗口左右空位不等：左 {Bounds(bodyHead, shell).Left:0.##}，"
+                            + $"右 {shellWidth - Bounds(bodyHead, shell).Right:0.##}");
                     foreach (var row in bodyPanel.Children.OfType<ShelfStrip>())
                     {
                         Require(Math.Abs(Bounds(row, shell).Left - box.Left) < 1,

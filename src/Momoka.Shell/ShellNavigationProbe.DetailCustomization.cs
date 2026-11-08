@@ -754,6 +754,16 @@ internal sealed partial class ShellNavigationProbe
         var pickers = Descendants(page).OfType<EgPicker>()
             .Where(picker => picker.ActualWidth > 0 && picker.ActualHeight > 0).ToArray();
         Require(controls.Length > 0 && pickers.Length > 0, "外观夹具没有操作按钮或选择框");
+        // 出厂材质 2026-11-08 19:26 起是亚克力（a9e2418「把当前的系统设置设为默认」）。这一段前半量的是
+        // 半透明叠层的浓度读数，所以显式切到叠层，不靠上一个检查留下的状态；亚克力那一支在循环后半段
+        // 自己切过去（0 与 100 两档是同一块材料，滑块只管叠层）。library 分区自那次出厂值改动之后没跑过，
+        // 这条前提到 2026-11-08 21:10 才重新被量到 —— 红的是检查的前提，不是产品。
+        ui.UseAcrylicControls = false;
+        ShellPrefs.ApplyAppearance(ui);
+        // 半透明叠层那一路的底色是**用户选的按钮色**（a9e2418 起 Tint 由调用方传入，出厂 #808080），
+        // 不是从前那支白。下面「薄白零档」和「不透明底色」两句按这一支色比，不再写死白色。
+        var ink = ShellPrefs.AppearanceColor(false, ui);
+        var expectedInk = Windows.UI.Color.FromArgb(255, ink.R, ink.G, ink.B);
         foreach (var control in controls.Concat(pickers.Cast<Control>()))
         {
             control.ApplyTemplate();
@@ -770,7 +780,9 @@ internal sealed partial class ShellNavigationProbe
                     Require(VisualStateManager.GoToState(control, state, false), "控件缺少状态：" + state);
                     await LayoutAsync(control);
                     var zero = Fill();
-                    Require(zero is AcrylicBrush { AlwaysUseFallback: true }, "实际控件底色不是可调画刷");
+                    Require(zero is AcrylicBrush { AlwaysUseFallback: true },
+                        "实际控件底色不是可调画刷：" + (control.Name.Length > 0 ? control.Name : control.GetType().Name)
+                            + "/" + state + " 拿到 " + (zero is null ? "null" : zero.GetType().Name));
                     var color = ((AcrylicBrush)zero!).FallbackColor;
                     var opacity = zero!.Opacity;
                     var baseline = opacity * color.A / 255d;
@@ -778,8 +790,9 @@ internal sealed partial class ShellNavigationProbe
                     if (controls.Contains(control) || control is EgPicker)
                     {
                         var expectedOpacity = state.Contains("Pressed", StringComparison.Ordinal) ? 8d / 255 : feedback ? 21d / 255 : 0;
-                        Require(color == Windows.UI.Color.FromArgb(255, 255, 255, 255) && Math.Abs(opacity - expectedOpacity) < 0.001,
-                            control.Name + "/" + state + " 薄白零档或反馈不正确");
+                        Require(color == expectedInk && Math.Abs(opacity - expectedOpacity) < 0.001,
+                            control.Name + "/" + state + " 薄白零档或反馈不正确："
+                                + $"色 {color}（该 {expectedInk}）、不透明度 {opacity:0.###}（该 {expectedOpacity:0.###}）");
                     }
                     else
                         Require(feedback ? baseline > 0 : baseline == 0 && color.A == 0,
@@ -798,10 +811,11 @@ internal sealed partial class ShellNavigationProbe
                     ShellPrefs.ApplyAppearance(ui);
                     Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } opaque && opaque.FallbackColor.A == 255 && opaque.Opacity == 1,
                         "底色100档未完全不透明");
-                    Require(Fill() is AcrylicBrush { AlwaysUseFallback: true } readable && (controls.Contains(control) || control is EgPicker
-                        ? readable.FallbackColor.R > 128 && readable.FallbackColor.G > 128 && readable.FallbackColor.B > 128
-                        : readable.FallbackColor.R < 128 && readable.FallbackColor.G < 128 && readable.FallbackColor.B < 128),
-                        "操作按钮或选择框的不透明底色不符合各自配色");
+                    // 100 档的不透明底色就是用户选的按钮色本身（从前写死「按钮浅、其余深」两档，那是白底时代的分法）。
+                    Require(Fill() is AcrylicBrush { AlwaysUseFallback: true, FallbackColor: var opaqueInk }
+                            && opaqueInk == expectedInk,
+                        control.Name + "/" + state + " 100 档不透明底色不是用户选的按钮色："
+                            + (Fill() is AcrylicBrush brush ? brush.FallbackColor.ToString() : "非亚克力"));
                     var owned = Fill();
                     ui.ControlBackgroundOpacity = 0;
                     ui.UseAcrylicControls = true;
@@ -904,6 +918,10 @@ internal sealed partial class ShellNavigationProbe
             banner.Apply([new BannerSlide(item, fixture.Images)]);
             await UntilAsync(() => banner.FrontPicture is not null);
             await LayoutAsync(banner);
+            // 同 CheckControlBackgroundOpacityAsync：出厂材质已是亚克力，这一段量的是半透明叠层那条路
+            // （浓度就是整支画笔的不透明度），所以显式切回叠层。
+            ui.UseAcrylicControls = false;
+            ShellPrefs.ApplyAppearance(ui);
             var button = Get<Button>(banner, "OpenButton");
             var baselineReads = requestCount();
             foreach (var state in new[] { "Normal", "PointerOver", "Pressed" })

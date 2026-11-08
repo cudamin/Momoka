@@ -105,7 +105,7 @@ internal static partial class DetailActionReadinessTests
                 void Refresh() => f.Vm.GetType().GetMethod("RefreshAppearance", Members)!.Invoke(f.Vm, null);
                 var notices = new List<string>();
                 ((INotifyPropertyChanged)f.Vm).PropertyChanged += (_, args) => notices.Add(args.PropertyName ?? "");
-                foreach (var width in new[] { 600d, 760d, 1023d, 1024d, 1200d })
+                foreach (var width in new[] { 600d, 760d, 819d, 820d, 1200d })
                 {
                     f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
                     f.Ui.EnableImmersive = false;
@@ -189,7 +189,7 @@ internal static partial class DetailActionReadinessTests
             f.Ui.EnableImmersive = true;
             Refresh();
             Assert.False((bool)f.Get("Showcase")!);
-            foreach (var width in new[] { 1024d, 1023d, 1200d }) Set("PageWidth", width);
+            foreach (var width in new[] { 820d, 819d, 1200d }) Set("PageWidth", width);
             Assert.True((bool)f.Get("Showcase")!);
             Assert.Equal(375d, (double)f.Get("StillHeight")!);
             Assert.True(ReferenceEquals(target, f.Get("PlayTarget")), "模式切换不得换播放目标");

@@ -72,7 +72,8 @@ internal sealed partial class ShellNavigationProbe
                         await LayoutAsync(page);
                         var hero = Get<Border>(page, "HeroCardTop");
                         Require(hero.Visibility == page.ViewModel.HeroCardVisibility, "宽窄切换后集页面板绑定失效");
-                        Require((hero.Visibility == Visibility.Visible) == (scenario == "corrected" && width > 1024),
+                        Require((hero.Visibility == Visibility.Visible)
+                                == (scenario == "corrected" && width >= DetailHero.CompactFloor),
                             "存根、类型更正或窗口断点后的面板形态错误");
                         await SaveProbeScreenAsync($"performance-detail-shape-{scenario}-{width}-screen.png");
                     }

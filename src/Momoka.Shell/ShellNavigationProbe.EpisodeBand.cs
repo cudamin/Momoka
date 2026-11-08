@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -17,8 +18,8 @@ internal sealed partial class ShellNavigationProbe
     /// <para>
     /// 两条版式规矩落在同一页上，所以这一条用例把同一页在四档宽度上各量一遍：
     /// <list type="bullet">
-    /// <item>关闭沉浸时1280 与 1024（宽版式）：封面画出来都是 250×375，背景层收着，保留旧卡面。</item>
-    /// <item>1023 与 768（紧凑版式）：封面整个收掉（<see cref="DetailHero.ShowsStill"/> 对紧凑档是 false），
+    /// <item>关闭沉浸时1280 与 820（宽版式）：封面画出来都是 250×375，背景层收着，保留旧卡面。</item>
+    /// <item>819 与 768（紧凑版式）：封面整个收掉（<see cref="DetailHero.ShowsStill"/> 对紧凑档是 false），
     /// 背景那一层开始画 —— 那正是参考图上窄版式头图的样子。</item>
     /// </list>
     /// </para>
@@ -126,7 +127,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.ViewModel.CornerImage is not null);
 
             var coverWidths = new Dictionary<int, double>();
-            foreach (var width in new[] { 1280, 1024, 1023, 768 })
+            foreach (var width in new[] { 1280, 820, 819, 768 })
             {
                 ResizeProbeClient(width, 900);
                 await UntilAsync(() =>
@@ -137,7 +138,7 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
 
                 var compact = page.ViewModel.IsCompact;
-                Require(compact == (width < 1024), $"{width} 这一档的版式不对：IsCompact={compact}");
+                Require(compact == (width < DetailHero.CompactFloor), $"{width} 这一档的版式不对：IsCompact={compact}");
 
                 var view = page.ViewModel;
                 var cover = Get<Border>(page, "PosterStill");
@@ -147,7 +148,7 @@ internal sealed partial class ShellNavigationProbe
                 // 期望值走 Core 那一支：400×600 的竖图装进 260×375 那一格（贴高，宽收到 250）。
                 var fit = DetailHero.StillBox(400, 600, 260, 375) ?? default;
 
-                // 封面：宽版式画（「固定集页面封面的大小，拉窄窗口时不要缩小」——1280 和 1024 上是同一个数），
+                // 封面：宽版式画（「固定集页面封面的大小，拉窄窗口时不要缩小」——1280 和 820 上是同一个数），
                 // 紧凑版式整个收掉（「窄窗口下不要封面」，四种页面同一个答案）。
                 if (compact)
                 {
@@ -239,7 +240,17 @@ internal sealed partial class ShellNavigationProbe
                     var under = cardBottom - textBottom;
                     var coverBottom = cover.TransformToVisual(page).TransformPoint(default).Y + cover.ActualHeight;
                     var wantGap = Math.Max(DetailHero.OverviewMinGap, coverBottom + DetailHero.OverviewExtraGap - actionsBottom);
-                    var wantBottom = Math.Max(tailTop + foot, textBottom + view.OverviewPanelPadding.Bottom + foot);
+                    // 简介被截断时面板里还有一颗「展开」（2026-11-08 起宽版式一直撑到 819，820 这一档说明栏只有
+                    // 一百多宽，一段长简介必然被截断）：它和说明之间隔着面板自己的 Spacing，算板底时要把这一颗
+                    // 连同那一道间距一起算进去 —— 不然板底下那三十来像素会被当成「没贴住内容的空气」。
+                    var overviewPanel = Get<StackPanel>(page, "OverviewPanel");
+                    var readMore = Descendants(overviewPanel).OfType<HyperlinkButton>()
+                        .FirstOrDefault(button => AutomationProperties.GetAutomationId(button) == "DetailReadMoreButton");
+                    var readMoreRoom = readMore is { Visibility: Visibility.Visible, ActualHeight: > 0 }
+                        ? readMore.ActualHeight + overviewPanel.Spacing
+                        : 0;
+                    var wantBottom = Math.Max(tailTop + foot,
+                        textBottom + readMoreRoom + view.OverviewPanelPadding.Bottom + foot);
                     Require(view.TailMargin.Top < -1,
                         $"{width} 这一档宽版式没有提拉剧情说明：{view.TailMargin}");
                     Require(Math.Abs(gap - wantGap) < 1.5,
@@ -255,11 +266,12 @@ internal sealed partial class ShellNavigationProbe
                         $"{width} 这一档板底的收尾格 {foot:0.##}，该是 {DetailHero.CardTailGap:0.##}"
                             + "（不足 16 板底那两个圆角就画不出来）");
                     Require(Math.Abs(cardBottom - wantBottom) < 1.5,
-                        $"{width} 这一档板底下沿 {cardBottom:0.#} 没贴住内容（该是 {wantBottom:0.#}：说明底 {textBottom:0.#} 加面板的"
-                            + $" {view.OverviewPanelPadding.Bottom:0.#} 再加收尾格 {foot:0.#}，或带子底下 {tailTop:0.#}）");
+                        $"{width} 这一档板底下沿 {cardBottom:0.#} 没贴住内容（该是 {wantBottom:0.#}：说明底 {textBottom:0.#} 加展开"
+                            + $" {readMoreRoom:0.#}、面板的 {view.OverviewPanelPadding.Bottom:0.#} 再加收尾格 {foot:0.#}，"
+                            + $"或带子底下 {tailTop:0.#}）");
                     Require(under >= DetailHero.CardTailGap - 0.01,
                         $"{width} 这一档字到板底只剩 {under:0.#}，板底那两个 16 的圆角画不出来");
-                    Require(Same(view.HeroInset, new Thickness(48, 28, 48, 0)),
+                    Require(Same(view.HeroInset, new Thickness(58, 28, 58, 0)),
                         $"{width} 这一档封面留白被意外改变：{view.HeroInset}");
                     readings.Add($"{width} 提拉 {view.TailMargin.Top:0.#}，说明距剩余 {gap:0.#}"
                         + $"（封面下沿 {coverBottom:0.#}），板底留 {under:0.#}"
@@ -307,12 +319,12 @@ internal sealed partial class ShellNavigationProbe
                 }
             }
 
-            // 这一条是用户第一句话本身：宽版式里 1280 到 1024 窄了 256 像素，封面一个像素不动。
-            Require(Math.Abs(coverWidths[1280] - coverWidths[1024]) < 0.5 && coverWidths[1280] > 0,
-                $"宽版式收窄窗口时封面跟着缩了：1280 上 {coverWidths[1280]:0.##}、1024 上 {coverWidths[1024]:0.##}");
+            // 这一条是用户第一句话本身：宽版式里 1280 到 820 窄了 460 像素，封面一个像素不动。
+            Require(Math.Abs(coverWidths[1280] - coverWidths[820]) < 0.5 && coverWidths[1280] > 0,
+                $"宽版式收窄窗口时封面跟着缩了：1280 上 {coverWidths[1280]:0.##}、820 上 {coverWidths[820]:0.##}");
             // 而跨过紧凑断点那一下它是整个收掉，不是缩成一小条（最后一句「窄窗口下不要封面」）。
-            Require(coverWidths[1023] == 0 && coverWidths[768] == 0,
-                $"紧凑版式里那一格还占着地方：1023 上 {coverWidths[1023]:0.##}、768 上 {coverWidths[768]:0.##}");
+            Require(coverWidths[819] == 0 && coverWidths[768] == 0,
+                $"紧凑版式里那一格还占着地方：819 上 {coverWidths[819]:0.##}、768 上 {coverWidths[768]:0.##}");
 
             var maximum = _window!.WorkArea().Width / _root.XamlRoot.RasterizationScale;
             var midpoint = (int)Math.Round((DetailHero.CornerGrowFrom + maximum) / 2);
@@ -361,7 +373,7 @@ internal sealed partial class ShellNavigationProbe
             ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
             var target = page.ViewModel.PlayTarget;
             var expectedPoster = DetailHero.StillBox(400, 600, 260, 375) ?? default;
-            foreach (var width in new[] { 1280, 1024, 1023, 768, 1280 })
+            foreach (var width in new[] { 1280, 820, 819, 768, 1280 })
             {
                 await ResizeResponsiveAsync(page, width, 900);
                 await LayoutAsync(page);
@@ -390,11 +402,11 @@ internal sealed partial class ShellNavigationProbe
                     Require(Get<Grid>(page, "CoverSlot").VerticalAlignment == VerticalAlignment.Top
                         && Get<Grid>(page, "HeroContent").VerticalAlignment == VerticalAlignment.Bottom,
                         "单集沉浸封面或文字栏未使用剧页对齐");
-                    Require(view.TailMargin == default && view.HeroInset.Left == 32,
-                        "单集沉浸仍使用旧卡面简介提拉或48/60左距");
+                    Require(view.TailMargin == default && view.HeroInset.Left == 42,
+                        "单集沉浸仍使用旧卡面简介提拉或 58/42 左距");
                     RequireImmersiveSurface(page);
                     RequireResponsiveBindings(page);
-                    if (width == 1024)
+                    if (width == 820)
                     {
                         var fill = Get<AcrylicBrush>(page, "_panelFill");
                         var opacity = fill.Opacity;

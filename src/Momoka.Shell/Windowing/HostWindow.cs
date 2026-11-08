@@ -81,7 +81,7 @@ internal sealed class HostWindow : IDisposable
     private const int DefaultHeight = 800;
 
     /// <summary>
-    /// 客户区最窄能到多少。900 是多年来的旧数；详情页换了紧凑版式（<c>DetailHero.CompactFloor</c> = 1024，
+    /// 客户区最窄能到多少。900 是多年来的旧数；详情页换了紧凑版式（<c>DetailHero.CompactFloor</c> = 819.2，
     /// 参考手机版式的那一档）之后，窗口得能拖进那条线底下它才看得见，所以放到 600 —— 比那条线低出一大截，
     /// 紧凑版式在最窄的那一段（600 到 700）也是完整的单列版式，而不是一换过去就顶着最小宽。
     /// </summary>

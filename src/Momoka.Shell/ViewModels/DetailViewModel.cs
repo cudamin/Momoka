@@ -830,6 +830,16 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(PictureHeight))]
     [NotifyPropertyChangedFor(nameof(Showcase))]
     [NotifyPropertyChangedFor(nameof(Squeeze))]
+    // 视口也会改 Squeeze（FitShare 拿「剧情说明会不会掉出画面」算它），而带高、头部留白和尾部留白都是
+    // Squeeze 的派生值 —— 只喊 Squeeze 没有用，没人绑它。只改高度的那一次 resize（620／1120）宽度没变，
+    // PageWidth 不喊，这几句是唯一会把新留白送到屏上的地方（2026-11-08 探针「头部带高没有按实际排版更新」
+    // 读到的就是漏了这一句：带子停在上一档的 417，视图模型已经是 420）。
+    [NotifyPropertyChangedFor(nameof(HeroInset))]
+    [NotifyPropertyChangedFor(nameof(HeroRoom))]
+    [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
+    [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(ScrimHeight))]
+    [NotifyPropertyChangedFor(nameof(TailInset))]
     [NotifyPropertyChangedFor(nameof(TailSpacing))]
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
     [NotifyPropertyChangedFor(nameof(OverviewPanelPadding))]
@@ -1264,7 +1274,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 收到 24，和页边那 60、顶上那 28 一个量级。
     /// </para>
     /// <para>
-    /// 默认宽详情封面与剧情左沿统一32；顶部20接面包屑模板留白，封面上距与左距一致。
+    /// 默认宽详情封面与剧情左沿统一42；顶部30接面包屑模板留白（约12），封面上距与左距一致。
     /// 左沿取剧情说明的实际文字左沿；右侧补回同样的距离，保持封面、片名与按钮区域原有宽度。
     /// </para>
     /// <para>
@@ -1272,9 +1282,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 宽页面的讲究 —— 单列的窄页面上它就是把字挤到中间去的空气。
     /// </para>
     /// <para>
-    /// 集页那块板上（<see cref="HeroCard"/>）左右收到 48：板的外沿在 28，28 + 20 就是板上内容的左边 ——
-    /// 和底下 <see cref="TailInset"/> 那 48 同一竖线，海报、片名、播放键和音轨那一行因此全落在板的同一条
-    /// 边上。60 那一档的讲究是「压在剧照上的内容多让一点」，而板上没有剧照要躲。
+    /// 集页那块板上（<see cref="HeroCard"/>）左右收到 58：板的外沿在 38，38 + 20 就是板上内容的左边 ——
+    /// 和底下 <see cref="TailInset"/> 那条 <see cref="StackLeft"/> 同一竖线，海报、片名、播放键和音轨那一行
+    /// 因此全落在板的同一条边上。60 那一档的讲究是「压在剧照上的内容多让一点」，而板上没有剧照要躲。
     /// </para>
     /// <para>
     /// 集页宽版式连底下那道 16 也收成 0（2026-11-02「自动剪裁下方多余的空白区域」）：剧情说明提上去之后
@@ -1286,7 +1296,7 @@ public sealed partial class DetailViewModel : PageViewModel
     public Thickness HeroInset => IsCompact
         ? new(20, 20, 20, 16)
         : HeroCard
-            ? new(48, 28, 48, 0)
+            ? new(58, 28, 58, 0)
             : IsEpisodePage && !Showcase
                 ? new(60, 28, 60, 16)
                 : new(
@@ -1300,8 +1310,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 之间因此只隔一小截，和那一段里几块之间的间距同一个量级；其余页面 14，窗口窄下来时按
     /// <see cref="Squeeze"/> 收到 10。底下 4 —— 和正文纸面之间本来就没有可看的缝，纸面自己那 20 会接着垫。
     /// <para>
-    /// 左右 20 是「组件不够紧凑」之后从 28 收下来的：24 的板内边距加在这里，字落在 44 的竖线上，和底下
-    /// 纸面（20 + 24）正好同一条。
+    /// 左右 18 是 2026-11-08 那笔「右边空位的太多了，左边加宽一点点，然后两边对齐」之后的位置：正文纸面
+    /// （<c>BodySheet</c>）的滚动条车道从「只让右边 20」改成左右各 10（<c>DetailPage</c> 里那一句），
+    /// 板内边距 24 加在这里，字落在 42 的竖线上，和底下纸面（10 + 8 + 24）正好同一条。
     /// </para>
     /// <para>
     /// 紧凑版式左右只给 2：这一段里每块板（<c>EgBodyPanelStyle</c>）自带 24 的内边距，2 + 24 正好是头图上
@@ -1309,7 +1320,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 就是这条线站直。
     /// </para>
     /// <para>
-    /// 集页那块板上（<see cref="HeroCard"/>）左右同样收到 48（28 的板沿加 20 的内边距，两处同一竖线），
+    /// 集页那块板上（<see cref="HeroCard"/>）左右跟着板沿走（<see cref="StackLeft"/>，58 的板内沿加 20），
     /// 底下给到 0 —— 那一块最后只剩剧情说明，而说明被提上去之后（见 <see cref="TailMargin"/>），板底到字之间
     /// 只剩说明自己的 8 加尾部最后那一格的 16（<see cref="OverviewPanelPadding"/>／<see
     /// cref="CardTailGapHeight"/>）：用户 2026-11-02 要的「剪裁下方空位、留点空位」。
@@ -1323,13 +1334,13 @@ public sealed partial class DetailViewModel : PageViewModel
     public Thickness TailInset => IsCompact
         ? new(2, 12, 2, 8)
         : HeroCard
-            ? new(StackLeft, 12, PlainDetail ? 48 : StackLeft, 0)
+            ? new(StackLeft, 12, PlainDetail ? 58 : StackLeft, 0)
             : new(
-                8,
+                18,
                 IsEpisodePage && !Showcase
                     ? 12
                     : DetailHero.Between(DetailHero.TailTopRoom, DetailHero.TailTopTight, Squeeze),
-                32,
+                22,
                 4);
 
     /// <summary>

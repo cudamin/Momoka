@@ -3,7 +3,7 @@
   一个条目的详情页：电影、剧、季、单集共用这一页。
 
   背景画在固定的窗口大小容器里，那张图画在一个跟宽走的高度的盒子上（PictureHeight）：宽的窗口上跟视口
-  一样高、UniformToFill 铺满；窄下来之后跟页宽走，整张图等比缩小。页面窄过 1024（CompactFloor）换紧凑
+  一样高、UniformToFill 铺满；窄下来之后跟页宽走，整张图等比缩小。页面窄过 819.2（CompactFloor）换紧凑
   版式：单列、不再缩放，播放和操作排到画面底下的暗区里（CompactBlock）。
 
   文字用 EgOnScrim 两个刷子，它们不随主题走 —— 头图上永远压着深色遮罩，浅色主题的深色字会看不见。
@@ -295,9 +295,10 @@
                          紧凑版式那块）自带 EgSurfaceAltBrush 的底，比板亮一档才读得出是板里的板 —— 这两级正是
                          页面上已有的那两级（纸上那几块板也是这么叠在纸面上的）。
 
-                         左右 28 和正文那张纸自己的内边距同一个数（BodySheet.Padding），所以板的外沿和纸上
-                         那几块板的外沿落在同一条竖线上；顶上那 8 是这一格上沿和面包屑之间的一截空气，往下
-                         留给内容的是 HeroInset 顶上那 28（板边到字之间因此是 20）。
+                         左右 38 = 正文纸面那层左右各让的 10（BodySheet.Margin）加它自己的内边距 28，所以板的
+                         外沿和纸上那几块板的外沿落在同一条竖线上（2026-11-08 之前是 28，纸面只让右边 20 的那
+                         一版）；顶上那 8 是这一格上沿和面包屑之间的一截空气，往下留给内容的是 HeroInset
+                         顶上那 28（板边到字之间因此是 20）。
 
                          有剧照的那三页这一块整个收着（HeroCardVisibility 只对集页成立）—— 那三页整段压在照片
                          上，一块不透明的板会把照片盖掉。收着的时候它一个像素都不占，那些页面的版面一个数没动。
@@ -310,7 +311,7 @@
                         BorderBrush="{ThemeResource EgBorderBrush}"
                         BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadiusTop}"
-                        Margin="28,8,28,0"
+                        Margin="38,8,38,0"
                         Visibility="{x:Bind ViewModel.HeroCardVisibility, Mode=OneWay}" />
 
                     <!-- 有背景图时 HeroBand 整块复用 HeroTail 的半透明黑底，与 TitleWash 连成一片（PaintScrim）。
@@ -999,8 +1000,9 @@
                     <Border x:Name="BodyPaper" Grid.Row="1" IsHitTestVisible="False" />
 
                     <!-- 集页整段上方那一块面板的下半截（上半截是头图那一格里的 HeroCardTop）。两块的左右留白
-                         完全一样（各 28），下沿就贴在尾部这一格的底上 —— 板底到正文纸面之间不再留缝：纸面和
-                         页底色是同一支画刷，留一段也看不出来。圆角只有下边那两个，上边那两个在 HeroCardTop 上。
+                         完全一样（各 38，2026-11-08 起跟着正文纸面那道 10 一起右移），下沿就贴在尾部这一格的
+                         底上 —— 板底到正文纸面之间不再留缝：纸面和页底色是同一支画刷，留一段也看不出来。
+                         圆角只有下边那两个，上边那两个在 HeroCardTop 上。
                          板自己不给内边距，最后那一块（剧情说明）和板底之间那 20 是 TailInset 给的（那一个数还管着
                          内容本身的左右，见 DetailViewModel.TailInset）—— 板只画一张底，摆内容的是里面那一叠。
                          这一格里没有第四块：集带在正文纸上（「集的框要和上面分开」），纸面上沿正好贴着板底。
@@ -1013,7 +1015,7 @@
                         BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadiusBottom}"
                         IsHitTestVisible="False"
-                        Margin="28,0,28,0"
+                        Margin="38,0,38,0"
                         Visibility="{x:Bind ViewModel.HeroCardVisibility, Mode=OneWay}" />
 
                     <!-- 这一段不是又一张卡片：它是头图下沿那块压暗了的画面接着往下延。底色必须和 HeroScrim 的
@@ -1155,7 +1157,8 @@
                         </StackPanel>
 
                         <!-- ============ 紧凑版式的那一块 ============ -->
-                        <!-- 页面窄过 1024（DetailHero.CompactFloor —— 「缩小到一定程度后 UI 参考手机版式切换」）
+                        <!-- 页面窄过 819.2（DetailHero.CompactFloor —— 「缩小到一定程度后 UI 参考手机版式切换」，
+                             2026-11-08 用户令改成原 1024 的八成）
                              就换单列的紧凑版式：头图上只剩片名那一叠（封面在这一档整个不画 —— 2026-10-13
                              「窄窗口下不要封面」，四种页面同一个答案，见 DetailHero.ShowsStill），宽版式那排键
                              让位，同一排键和断点进度排在这里 —— 画面底下那段压暗的暗区里。
@@ -1388,10 +1391,16 @@
                          这里的 Background 只是第一帧和设计时的值：构造函数里会换成 DetailPage 自己持有的那支
                          画刷（DetailPage.Showcase.cs），沉浸档要把它淡成尾部那道半透明黑，全局的 EgWindowBrush
                          不能改。几个面板的内边距同理（BodyPanelPadding）。 -->
+                    <!-- 正文左右留白相等（2026-11-08 用户令「右边空位的太多了，左边加宽一点点，然后两边对齐」）：
+                         这一层从前只让右边 20（EgScrollBarLane），左 0 右 20 —— 屏上就是左边几乎贴边、右边空出
+                         一条，卡片看着偏左。现在把那条车道对半分：左右各 10。20 是滚动条自己的 12 加 2 与 6 的
+                         空隙（见 Styles.xaml）；对半之后右边那 10 仍把 13 宽的滚动条挡在卡片外面
+                         （10 + 纸面内边距 8 = 18），左边补的 10 让纸上的字连同头图那条竖线一起右移，
+                         两边因此等宽。 -->
                     <StackPanel
                         x:Name="BodySheet"
                         Grid.Row="1"
-                        Margin="{StaticResource EgScrollBarLane}"
+                        Margin="10,0,10,0"
                         MinHeight="{x:Bind ViewModel.PaperMinHeight, Mode=OneWay}"
                         Padding="{x:Bind ViewModel.SheetPadding, Mode=OneWay}"
                         Spacing="{x:Bind ViewModel.SheetSpacing, Mode=OneWay}">

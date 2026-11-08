@@ -96,7 +96,8 @@ internal sealed partial class ShellNavigationProbe
 
         var readings = new List<string>();
         fixture.Settings.Ui.EnableImmersive = true;
-        var widths = new[] { 1280, 1200, 1100, 1024, 1023, 760 };
+        // 819／820 是紧凑版式断点（DetailHero.CompactFloor = 819.2）两侧各一档。
+        var widths = new[] { 1280, 1200, 1100, 820, 819, 760 };
         try
         {
             foreach (var item in new[] { movie, series, season, episode })
@@ -214,7 +215,10 @@ internal sealed partial class ShellNavigationProbe
         var sheet = Get<StackPanel>(page, "BodySheet");
         Require(Same(sheet.Padding, view.SheetPadding) && Math.Abs(sheet.Spacing - view.SheetSpacing) < 0.01,
             "正文留白或竖距没有同步绑定");
-        Require(Math.Abs(Get<Grid>(page, "HeroBand").ActualHeight - view.HeroHeight) < 1.5, "头部带高没有按实际排版更新");
+        var band = Get<Grid>(page, "HeroBand");
+        Require(Math.Abs(band.ActualHeight - view.HeroHeight) < 1.5,
+            $"头部带高没有按实际排版更新：带 {band.ActualHeight:0.##} 对视图模型 {view.HeroHeight:0.##}"
+                + $"（页宽 {view.PageWidth:0.##}、那一叠 {view.HeroContent:0.##}、紧凑 {view.IsCompact}）");
         Require((Get<Grid>(page, "Backdrop").Visibility == Visibility.Visible) == view.BackdropShown, "背景整层显隐没有同步绑定");
         if (view.BackdropShown)
             Require(Math.Abs(Get<Border>(page, "BackdropPicture").ActualHeight - view.PictureHeight) < 1.5,
@@ -247,7 +251,7 @@ internal sealed partial class ShellNavigationProbe
         await LayoutAsync(page);
         Require(page.ViewModel.Showcase, "还原宽窗退出了沉浸模式");
         RequireResponsiveBindings(page);
-        foreach (var width in new[] { 1200, 760, 600, 1023, 1024 })
+        foreach (var width in new[] { 1200, 760, 600, 819, 820 })
         {
             await ResizeResponsiveAsync(page, width, 900);
             ui.EnableImmersive = false;
@@ -290,8 +294,11 @@ internal sealed partial class ShellNavigationProbe
                 Require(corner.Visibility == Visibility.Visible, "艺术图恢复后没有立即显示");
             }
             var prose = Get<TextBlock>(page, "Overview");
-            Require(prose.ActualWidth > 120 && Bounds(prose, page).Right <= view.PageWidth + 1,
-                "简洁模式窄窗简介被内边距挤掉或超出页面");
+            // 门槛 100 而不是 120：紧凑断点 2026-11-08 从 1024 压到 819.2 之后，集页在 819／820 上仍走宽版式，
+            // 简介那一栏按 StackLeft 对称收（819 上正文 111 宽，1024 时代是 131）—— 一百出头仍读得成行，
+            // 100 是「没被内边距挤掉」的地板；右边那条「不超出页面」照旧。
+            Require(prose.ActualWidth > 100 && Bounds(prose, page).Right <= view.PageWidth + 1,
+                $"简洁模式窄窗简介被内边距挤掉或超出页面：{prose.ActualWidth:0.#} 宽");
             Require(Get<StackPanel>(page, "HeroStack").ActualWidth > 120, "简洁模式窄窗标题列不可用");
             var mediaTitle = Get<TextBlock>(page, "MediaInfoTitle");
             Require((mediaTitle.Visibility == Visibility.Visible) == (view.InfoRows.Count > 0)

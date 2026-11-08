@@ -459,7 +459,7 @@ internal sealed partial class ShellNavigationProbe
                     "版本选择没有在文件名前显示各自体积");
                 vm.SelectedAudio = vm.AudioTracks[1];
                 if (all) vm.SelectedSubtitle = vm.SubtitleTracks[2];
-                foreach (var width in new[] { 760, 1023, 1024, 1064, 1280 })
+                foreach (var width in new[] { 760, 819, 820, 1064, 1280 })
                 {
                     var scale = _root.XamlRoot.RasterizationScale;
                     var pixels = (int)Math.Ceiling(width * scale);
@@ -470,7 +470,7 @@ internal sealed partial class ShellNavigationProbe
                     pixels += (int)Math.Round((width - vm.PageWidth) * scale);
                     ResizeInspect(pixels, height);
                     await LayoutAsync(page);
-                    Require(Math.Abs(vm.PageWidth - width) < 0.6 && vm.IsCompact == (width < 1024),
+                    Require(Math.Abs(vm.PageWidth - width) < 0.6 && vm.IsCompact == (width < DetailHero.CompactFloor),
                         $"没有到达指定页面宽度：要求 {width}，实际 {vm.PageWidth:0.00}");
                     var fit = page.PickerFit();
                     var label = all ? "all" : "audio";

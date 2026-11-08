@@ -149,13 +149,20 @@ internal static class AcrylicControlsTests
             Assert.False(code.Contains("picker.Resources[\"ComboBoxDropDownBackground\"]", StringComparison.Ordinal));
             Assert.False(code.Contains("picker.Resources[\"ComboBoxItemBackground\"", StringComparison.Ordinal));
         });
-        Test("详情正文：卡片给滚动条预留车道，背景纸面仍铺满", () =>
+        Test("详情正文：卡片左右留白等宽，背景纸面仍铺满", () =>
         {
             var page = Read("Views/DetailPage.xaml");
-            Assert.Equal("{StaticResource EgScrollBarLane}", (string?)Named(page, "BodySheet").Attribute("Margin"));
+            // 2026-11-08 用户令「右边空位的太多了，左边加宽一点点，然后两边对齐」：这一层从前挂的是
+            // EgScrollBarLane（0,0,20,0）—— 只让右边 20，屏上就是左边贴边、右边空一条，卡片偏左。
+            // 现在把那条车道对半分，左右各 10；两个数必须相等，否则整页又歪回去。
+            var lane = (string?)Named(page, "BodySheet").Attribute("Margin");
+            Assert.Equal("10,0,10,0", lane);
+            var sides = lane!.Split(',');
+            Assert.Equal(sides[0], sides[2]);
             Assert.Null(Named(page, "BodyPaper").Attribute("Margin"));
             Assert.Null(Named(page, "Body").Attribute("Padding"));
             var styles = Read("Theme/Styles.xaml");
+            // 车道本身还是 20（12 的滚动条 + 2 + 6 的空隙），只是详情页不再把它整条压到右边。
             Assert.Equal("0,0,20,0", Resource(styles.Root!, "EgScrollBarLane").Value);
             var code = Source("Views/DetailPage.xaml.cs");
             var seal = code[code.IndexOf("internal (bool Ok, string Detail) BodySeal()", StringComparison.Ordinal)..];

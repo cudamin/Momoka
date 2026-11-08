@@ -64,7 +64,9 @@ internal sealed partial class ShellNavigationProbe
                     if (state == "poster") await UntilAsync(() => page.ViewModel.StillImage is not null);
                     if (state == "backdrop") await UntilAsync(() => page.ViewModel.HeroImage is not null);
                 }
-                foreach (var width in new[] { 0, 1280, 1023, 1024 })
+                // 819／820 是紧凑版式断点（DetailHero.CompactFloor = 819.2）两侧各一档：
+                // 819 走紧凑版式，820 仍是宽版式。写死的是「断点两侧」，断点本身只写在 Core 那一处。
+                foreach (var width in new[] { 0, 1280, 819, 820 })
                 {
                     if (width > 0)
                     {
