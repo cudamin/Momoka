@@ -1,3 +1,13 @@
+## 2026-11-08 清理 54 棵遗留工作树，本地只剩主树
+
+用户令「清理多余的工作树」。现场 `git worktree list` 原有 56 棵附加树（`.codex/worktrees` 41 棵、`.qoder/worktrees/app` 14 棵、WorkBuddy 1 棵），逐棵核对工作区全部干净（tracked／untracked 均为 0）。按内容判定：26 棵顶端是 master 祖先（含保留下来的 WorkBuddy 那棵）；20 棵的提交以 patch-id 已在 master；其余 9 棵顶端不在 master，但逐文件比对后 master 自各自基点起改过全部同一批文件——单集沉浸 5910486 由 c4a0b51 整合且 `HeroCard` 已演化为 `HeroCardShown`／`HeroCardVisibility`，5% 渐变 65a3e94 被「移除详情背景图底部渐变」和后来的亚克力三项参数取代，def8／dcc7fc 的审查报告绝大部分在 master `docs/superpowers/reviews/2026-11-05-full-code-review` 下同名同内容、产品改动被亚克力三项参数覆盖，repair-foundation 1e66570、repair-media 97c37c2、review-perf 1acc7cc 均由后续提交覆盖——没有 master 缺少的产品改动。
+
+唯一 master 没有的独有内容是 d0d5 那棵的「外观方案 B」Demo（`demos/appearance-profiles` 与两份设计文档，用户后来撤销了先 Demo 的规则），已原样复制到 `work/preserved-d0d5-demo/` 留档再删，顶端 9d69b9d 记此备查。另有两份性能探针夹具输入（fixture-drift-final、review-perf-source-root 各一个 `LibraryViewModel.cs` 副本）主树没有，存到 `work/preserved-perf-fixtures/`。
+
+删除 54 棵（`git worktree remove`），`git worktree prune` 清掉 6cbf 与 detail-two-modes-probes 的空登记，`.qoder/worktrees` 删空后整个移除。`.codex/worktrees` 下另有 57 个早前清理中断留下的残留目录：只含 `.codex-worktree-name` 标记的 51 个，加 def8 8.08 GB、review-recovery-batch3 2.20 GB、ee68 0.35 GB、review-priority-fixes 0.31 GB、detail-window-crash 0.28 GB、repair-media-r07-r13 0.06 GB 六棵无登记目录；里面是 dll/nupkg/msix/zip 构建产物与原始运行日志，不再重复保存，def8 按用户当次确认删除。合计释放约 20 GB。
+
+保留 `WorkBuddy/Worktrees/Momoka/master-dac8bdc5`（896d6ab，447 MB）：内容已全在 master，用户选择等那个聊天窗口关掉再删，这条仍依据 PROGRESS 上一轮「待该会话关闭后再删」。清理期间另一个会话已在主树提交 9bae297／1562881 并新开 49e0、fnnas-detail-probe 两棵工作树，本会话没有触碰它们，本次提交只含本文件，未夹带其它会话的未提交改动。
+
 ## 2026-11-08 沉浸详情卡片小字、信息卡亚克力与窄窗背景材质
 
 用户三条令：①「更换下方小字字体颜色」（附「第 10 集 · 24 分钟」「Raku Ichijou (vo…」两张卡片截图），追问后选「压图浅灰白 #C9D0D9」，范围「只有详情页压在背景图上的卡片」并补一句「沉浸模式下」；②「参考集页面给其他媒体页面的其他信息也加上亚克力背景」；③「窄窗口的背景图不要加亚克力」。
