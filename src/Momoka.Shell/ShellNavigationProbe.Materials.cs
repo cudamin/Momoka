@@ -219,10 +219,10 @@ internal sealed partial class ShellNavigationProbe
                             if (samples && detail.ViewModel.CoverPlayVisibility == Visibility.Visible)
                             {
                                 // 受控样本：把封面播放键亮一帧拍照，不代表真实指针手势。
-                                detail.ShowCoverPlaySample(true);
+                                detail.ShowCoverHoverSample(true);
                                 await LayoutAsync(detail);
                                 await SaveProbeScreenAsync("detail-cover-play-screen.png");
-                                detail.ShowCoverPlaySample(false);
+                                detail.ShowCoverHoverSample(false);
                             }
                             foreach (var control in controls)
                                 await CheckRestoredActionAsync(control);

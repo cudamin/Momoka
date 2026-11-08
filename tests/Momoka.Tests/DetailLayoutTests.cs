@@ -240,6 +240,23 @@ internal static class DetailLayoutTests
             // 没有图就什么都没有。
             Assert.False(DetailHero.BackdropMaterial(false, false, true, EmbyItemType.Series));
         });
+
+        Test("右上角艺术图：电影、剧、集两种模式都摆，季页与紧凑版式不摆", () =>
+        {
+            // 2026-11-08 用户令「沉浸模式下在右上角显示艺术图」：从前这一角按模式分档（集页，以及简洁模式的
+            // 电影和剧页），沉浸档整页站在背景图上，于是它被一起收掉了。现在模式不再是判据。
+            foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Episode })
+            {
+                Assert.True(DetailHero.ShowsCorner(true, compact: false, 360, type));
+                // 图没到、题栏让不出位置、紧凑版式 —— 三条都收着。
+                Assert.False(DetailHero.ShowsCorner(false, compact: false, 360, type));
+                Assert.False(DetailHero.ShowsCorner(true, compact: false, 0, type));
+                Assert.False(DetailHero.ShowsCorner(true, compact: true, 360, type));
+            }
+            // 季页没有这一角（取图那一头不为季问艺术图），其余类型同样不摆。
+            foreach (var type in new[] { EmbyItemType.Season, EmbyItemType.Person, EmbyItemType.Folder, "unknown", null! })
+                Assert.False(DetailHero.ShowsCorner(true, compact: false, 360, type));
+        });
     }
 
     private static string Keys(IEnumerable<DetailCardSetting> rows) => string.Join(',', rows.Select(row => row.Key));

@@ -148,6 +148,18 @@ internal sealed partial class ShellNavigationProbe
                             $"{item.Type} {width} 唯一音轨未保留文字或仍显示下拉");
                         Require(Get<Border>(page, "PosterStill").Visibility == view.StillVisibility,
                             $"{item.Type} {width} 封面显隐没有跟随宽窄排版");
+                        // 右上角那张艺术图：电影、剧、集三页在沉浸档也画（2026-11-08「沉浸模式下在右上角显示
+                        // 艺术图」），季页没有可画的（取图那一头不为季问艺术图）。期望值走 Core 那一句，
+                        // 这里量的是「控件显隐跟没跟上」和「画出来有没有压出带子」。
+                        var corner = Get<Image>(page, "CornerArt");
+                        var wantCorner = DetailHero.ShowsCorner(view.CornerImage is not null, view.IsCompact,
+                            view.CornerMaxWidth, view.ItemType);
+                        Require((corner.Visibility == Visibility.Visible) == wantCorner
+                                && (!wantCorner || corner.Source is not null),
+                            $"{item.Type} {width} 沉浸档的艺术图显隐不对：{corner.Visibility}"
+                                + $"（该 {(wantCorner ? "显示" : "收起")}）");
+                        Require(page.ViewModel.HeroHeight >= corner.ActualHeight - 0.5,
+                            $"{item.Type} {width} 艺术图溢出头部高度：{corner.ActualHeight:0.#} 对 {page.ViewModel.HeroHeight:0.#}");
                         Require(ReferenceEquals(target, view.PlayTarget), "缩放窗口改变了播放目标");
                         if (width == 1280)
                         {
@@ -250,12 +262,18 @@ internal sealed partial class ShellNavigationProbe
             Require(oldEpisodeCompact ? cover.Visibility == Visibility.Collapsed
                 : cover.Visibility == Visibility.Visible && Math.Abs(cover.ActualWidth - 250) < 1
                     && Math.Abs(cover.ActualHeight - 375) < 1, "详情封面没有统一为集页尺寸");
+            // 悬停遮罩只在集页上（2026-11-08「集页面鼠标移到左上角的封面的时候要显示遮罩」）：其余三页的封面
+            // 要么另有播放键，要么根本点不动，一层遮罩只会在那里说谎。
+            Require(Get<Border>(page, "CoverShade").Visibility
+                    == (view.ItemType == EmbyItemType.Episode && cover.Visibility == Visibility.Visible
+                        ? Visibility.Visible : Visibility.Collapsed),
+                "悬停遮罩没有按页面类型显隐");
             Require((Get<StackPanel>(page, "CompactBlock").Visibility == Visibility.Visible) == oldEpisodeCompact
                 && (Get<StackPanel>(page, "ColumnActions").Visibility == Visibility.Visible) == !oldEpisodeCompact,
                 "简洁模式仍切换到窄窗操作");
             var corner = Get<Image>(page, "CornerArt");
-            var hasCorner = !oldEpisodeCompact && view.CornerMaxWidth > 0
-                && view.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Episode;
+            var hasCorner = DetailHero.ShowsCorner(view.CornerImage is not null, view.IsCompact,
+                view.CornerMaxWidth, view.ItemType);
             Require((corner.Visibility == Visibility.Visible) == hasCorner && (!hasCorner || corner.Source is not null),
                 "简洁模式电影和剧的艺术图未按空间显示或季页错误显示艺术图");
             if (hasCorner)
@@ -291,7 +309,14 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(page.ViewModel.BackdropShown && page.ViewModel.Showcase == (width >= DetailHero.CompactFloor)
                 && !page.ViewModel.HeroCardShown, "恢复沉浸没有恢复宽窄排版与背景图");
-            Require(corner.Visibility == Visibility.Collapsed, "恢复沉浸后未收起电影或剧艺术图");
+            // 2026-11-08 起沉浸档也摆这一角（「沉浸模式下在右上角显示艺术图」），所以这里问的是「跟没跟上」，
+            // 不再是「有没有收起来」—— 宽版式上电影、剧、集三页都该在，窄窗那一档照旧收起。上面那一份读数
+            // 是简洁模式的（那一档电影、剧不是紧凑版式），所以这里重问一遍。
+            var immersiveCorner = DetailHero.ShowsCorner(page.ViewModel.CornerImage is not null,
+                page.ViewModel.IsCompact, page.ViewModel.CornerMaxWidth, page.ViewModel.ItemType);
+            Require((corner.Visibility == Visibility.Visible) == immersiveCorner
+                    && (!immersiveCorner || corner.Source is not null),
+                $"恢复沉浸后艺术图的显隐不对：{corner.Visibility}（该 {(immersiveCorner ? "显示" : "收起")}）");
             RequireResponsiveBindings(page);
             Require(ReferenceEquals(target, page.ViewModel.PlayTarget), "开关切换或最大化改变了播放目标");
             if (page.ViewModel.Showcase) RequireImmersiveSurface(page);

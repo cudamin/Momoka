@@ -428,8 +428,8 @@ public static class DetailHero
     /// <summary>
     /// 右上角艺术图的默认高度，和 <see cref="CornerWidth"/> 组成 360×202.5 的 16:9 上限盒。
     /// <para>
-    /// 这一格<b>算进集页的带高</b>（<c>DetailViewModel.HeroRoom</c>）：艺术图顶对齐摆在这一格里，带子矮过
-    /// 它就是一截画压在底下的音轨那一行上。放大后的高度仍须参与带高计算。
+    /// 这一格<b>算进带高</b>（<c>DetailViewModel.HeroRoom</c>，摆出来的那一档都算，不只集页）：艺术图顶对齐摆在
+    /// 这一格里，带子矮过它就是一截画压在底下的音轨那一行上。放大后的高度仍须参与带高计算。
     /// </para>
     /// </summary>
     public const double CornerHeight = 202.5;
@@ -491,7 +491,7 @@ public static class DetailHero
     /// <param name="pageWidth">这一页看得见的那一段有多宽。</param>
     /// <param name="stillWidth">封面这一次画多宽 —— 集页 <c>DetailViewModel.EpisodeStillWidth</c>（260），
     /// 其余页面 <c>PosterStillWidth</c>（210）；紧凑版式下封面整个不画（<see cref="ShowsStill"/>），
-    /// 交进来的是 0，而那一档角图本来也不画（只有集页的宽版式有它，<c>DetailViewModel.HeroCard</c>）。</param>
+    /// 交进来的是 0，而那一档角图本来也不画（<see cref="ShowsCorner"/>）。</param>
     public static double CornerBoxWidth(double pageWidth, double stillWidth, double scale = 1)
     {
         const double insets = 96, spacings = 44, minTitle = 308;
@@ -499,6 +499,28 @@ public static class DetailHero
         return Math.Clamp(pageWidth - insets - stillWidth - spacings - minTitle, 0,
             CornerWidth * Math.Clamp(scale, 1, CornerScaleLimit));
     }
+
+    /// <summary>
+    /// 右上角那张艺术图这一档版面摆不摆 —— 四句话：这张图解出来了没有、这一档是不是紧凑版式、题栏之外还让不让得出
+    /// 位置（<see cref="CornerBoxWidth"/>），以及这一页是不是电影、剧或集。
+    /// <para>
+    /// 2026-11-08 用户令「沉浸模式下在右上角显示艺术图」：从前这一角按模式分档 —— 集页和简洁模式的电影、剧页摆
+    /// （2026-11-07「简洁模式的电影和剧页也显示自身艺术图」），沉浸档整页站在背景图上，于是它被一起收掉了。现在
+    /// 两种模式同一个答案：这一角占的是带子里第三栏，和背后铺不铺背景图没有关系，翻模式时它不跟着来去。
+    /// </para>
+    /// <para>
+    /// 季页不在里头，而且不必写在这一句里：<c>ItemArtwork.Corner</c> 只认艺术图一种，季自己几乎不会有，取图那一头
+    /// 也只替电影、剧、集三页问它（<c>DetailViewModel.CornerAsync</c>）—— 于是季页上这个答案永远是「没有图」。
+    /// 紧凑版式那一档连封面都收着（<see cref="ShowsStill"/>），第一屏全给那一叠字，角上再钉一张画就是把字挤窄。
+    /// </para>
+    /// </summary>
+    /// <param name="artwork">这张艺术图解出来没有（不是「服务器上有没有」—— 这一角没有按标签预排的版面）。</param>
+    /// <param name="compact">这一页走不走紧凑版式。</param>
+    /// <param name="room">题栏之外还让得出多宽；0 就是让不出。</param>
+    /// <param name="type">条目类型。</param>
+    public static bool ShowsCorner(bool artwork, bool compact, double room, string type) =>
+        artwork && !compact && room > 0
+        && type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Episode;
 
     /// <summary>
     /// 片名左边那张封面真正画多大 —— 「海报下方会被裁切，要能看到完整的海报」。集页上摆的是剧的那张海报

@@ -49,9 +49,9 @@ public readonly record struct ArtworkKind(string ImageType, string Name, double 
 /// <item>徽标 <c>Logo</c> and 横幅图 <c>Banner</c> are name plates — a picture of the title. 「统一改为在剧名
 /// 上方显示徽标」 puts one just above the text title on every detail page (<see cref="Plate"/>).</item>
 /// <item>艺术图 <c>Art</c> is wide artwork with no title on it; it is the hero's second choice
-/// (<see cref="HeroOrder"/>). It stands in the episode page's top-right corner (<see cref="Corner"/>,
-/// 2026-09-12 「给集页面右上角添加艺术图」— the same corner on 剧 and 电影 pages was removed that same day,
-/// so the corner is the episode page's alone now).</item>
+/// (<see cref="HeroOrder"/>). It stands in the top-right corner of the 电影、剧、集 pages (<see cref="Corner"/>,
+/// 2026-09-12 「给集页面右上角添加艺术图」; 2026-11-07 the 电影 and 剧 pages got it back in 简洁模式,
+/// 2026-11-08 in 沉浸模式 too).</item>
 /// <item>背景图 <c>Backdrop</c> is what the hero wants first; 缩略图 <c>Thumb</c> is what a 16:9 card wants
 /// first (<c>CardItem.PreferWide</c>) and the hero's third choice.</item>
 /// <item>The home page's carousel is the same three wide kinds and nothing else
@@ -60,7 +60,8 @@ public readonly record struct ArtworkKind(string ImageType, string Name, double 
 /// <para>
 /// 一个位置一样图 —— 「统一改为在剧名上方显示徽标」定下的规矩。从前那一版把徽标和艺术图合成一个角的两档
 /// （艺术图优先，没有就摆徽标），于是同一个位置在不同条目上说着不同的话；现在徽标只认剧名上方那一格，服务器
-/// 没有就是那一格空着。（右上角那一格曾经是艺术图的，跟着那次「统一」落地、又随它整个退场。）
+/// 没有就是那一格空着。（右上角那一格曾经是艺术图的，跟着那次「统一」退场，2026-09-12 又在集页上回来了，
+/// 2026-11-07／11-08 扩到电影、剧两页 —— 现在它只摆艺术图，不再兼名牌。）
 /// </para>
 /// <para>
 /// 三处向上借一层：名牌、轮播底图和集页/季页的头图都会用剧集那一层的图（<see cref="Plate"/>、
@@ -141,9 +142,9 @@ public static class ItemArtwork
     }
 
     /// <summary>
-    /// 右上角那张艺术图，没有就是 null —— 「给集页面右上角添加艺术图」（2026-09-12）。这一角只在集页上摆：
-    /// 2026-11-07 用户要求简洁模式的电影和剧页也显示自身艺术图；「哪几页摆」由调用方按模式决定，
-    /// 这里只答「哪一张归这儿」。
+    /// 右上角那张艺术图，没有就是 null —— 「给集页面右上角添加艺术图」（2026-09-12）。这一角摆在电影、剧、集三页上
+    /// （2026-11-07 简洁模式的电影和剧页、2026-11-08 沉浸档一并加上）；「哪几页摆」由 <see cref="DetailHero.ShowsCorner"/>
+    /// 决定，这里只答「哪一张归这儿」。
     /// <para>
     /// 艺术图是横的、上面没有字，所以它当得起「角上摆一张画」这件事：徽标那一头是名牌、归剧名上方那一格
     /// （<see cref="Plate"/>），海报是竖的，缩略图和背景图各有各的活。
@@ -151,9 +152,10 @@ public static class ItemArtwork
     /// <para>
     /// 先问条目自己的，没有再借<paramref name="parent"/>（剧集那一层）的 —— 这一处和 <see cref="Footer"/> 同一个
     /// 道理：一集自己几乎不会有艺术图，而服务器也不往下发 <c>ParentArt</c>（ParentLogo、ParentBackdrop、
-    /// ParentThumb 都有，独缺这一个），剧集那个条目要调用方自己去取。集页的宽版式不铺背景图（同一天的另一句
-    /// 指令），所以从前「整页已经站在同一张艺术图上时这一角空着」的防重也不需要了 —— 那一档上没有第二处会画它
-    /// （紧凑版式铺图，可那一档这一角本来就收着，见 <c>DetailViewModel.CornerVisibility</c>）。
+    /// ParentThumb 都有，独缺这一个），剧集那个条目要调用方自己去取。从前这里还有一道防重（「整页已经站在同一张
+    /// 艺术图上时这一角空着」），靠的是「集页的宽版式不铺背景图」那一句；现在这一角也摆在铺背景图的页面上，
+    /// 防重退成 <see cref="Hero"/> 那一串的先后顺序 —— 头图先要背景图，两样撞上的只有「没有背景图也没有缩略图」
+    /// 的条目，那一档它既是画面也是角上那一张。
     /// </para>
     /// </summary>
     /// <param name="item">这一页的条目。</param>

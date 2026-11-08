@@ -41,7 +41,8 @@ namespace Momoka.Shell.Views;
 /// 44–244，弹层两次都是 44–602 —— 整排跟着重排，右边那一颗往左挪进弹层底下，屏上就是「选择栏与右侧的
 /// 组件重叠」。所以展开这一拍把框的宽度钉到列表那一份的宽度上（取展开前那一拍的宽度与列表宽度里大的
 /// 那个，免得选中最长那条时反被收窄；再按容器里剩下的地方封顶，免得把这一排顶出界）。收起时把
-/// <c>Width</c> 清回去，闭合态照旧由内容（选中那条轨道名）撑。
+/// <c>Width</c> 清回去，闭合态照旧由内容（选中那条轨道名）撑。弹层自己也跟着封顶（2026-11-08）：框被栏宽
+/// 压着的时候，弹层同样收到那个宽 —— 探出去的那一截会压在右边那张艺术图上。
 /// </para>
 /// <para>
 /// 为什么是子类而不是改模板：模板那一份是框架的 <c>DefaultComboBoxStyle</c>，抄一份进仓库就等于自己养一份
@@ -68,6 +69,9 @@ public sealed class EgPicker : ComboBox
     /// </summary>
     private double _restingWidth;
 
+    /// <summary>展开中的那一份弹层内容 —— 只在展开期间挂着，收起时解掉订阅并清掉封顶。</summary>
+    private FrameworkElement? _dropDown;
+
     public EgPicker()
     {
         SizeChanged += (_, e) =>
@@ -76,7 +80,7 @@ public sealed class EgPicker : ComboBox
         };
         // 列表那一份的宽度要等它自己布完才量得到，所以撑宽这一步排在下一个 UI 回合。
         DropDownOpened += (_, _) => DispatcherQueue.TryEnqueue(WidenToDropDown);
-        DropDownClosed += (_, _) => ClearValue(WidthProperty);
+        DropDownClosed += (_, _) => RestoreDropDownWidths();
     }
 
     /// <summary>
@@ -110,6 +114,12 @@ public sealed class EgPicker : ComboBox
     /// 站在片名那一栏的 <c>*</c> 格上，那格的宽就是它的上限，不封顶会把这一排顶出栏外（自检的
     /// <c>PickerFit</c> 读的就是这条）。
     /// </para>
+    /// <para>
+    /// 框被栏宽压着的时候，弹层自己也跟着封顶（2026-11-08）：它按最宽那条轨道名撑，会探出选择框右沿 —— 电影页
+    /// 1280 上右上角那张艺术图占掉一栏之后实测探出 95 像素，探出去的那一截正压在那张画上（集页从 2026-09-12 起
+    /// 一直是同一个处境，只是没有哪一条读数盯着它）。**不能只在展开那一拍量一次**：那一拍列表还是框那么宽，
+    /// 条目实例化之后才撑开，所以这里挂 <see cref="FrameworkElement.SizeChanged"/> 一路盯着。
+    /// </para>
     /// </summary>
     private void WidenToDropDown()
     {
@@ -118,6 +128,36 @@ public sealed class EgPicker : ComboBox
         var room = RoomInParent();
         var width = Math.Min(Math.Max(_restingWidth, list.ActualWidth), room);
         if (width > 0) Width = width;
+
+        _dropDown = list;
+        list.SizeChanged -= OnDropDownSizeChanged;
+        list.SizeChanged += OnDropDownSizeChanged;
+        ClampDropDown();
+    }
+
+    /// <summary>弹层比这一颗宽了就收到这一颗的宽 —— 有地方的时候它本来就窄不过框，这一句什么都不改。</summary>
+    private void ClampDropDown()
+    {
+        if (_dropDown is not { } list) return;
+
+        var cap = Width;
+        if (!double.IsFinite(cap) || cap <= 0) return;
+
+        if (list.ActualWidth > cap + 0.5) list.MaxWidth = cap;
+        else if (list.ActualWidth < cap - 0.5) list.ClearValue(FrameworkElement.MaxWidthProperty);
+    }
+
+    private void OnDropDownSizeChanged(object sender, SizeChangedEventArgs e) => ClampDropDown();
+
+    /// <summary>收起时把展开态钉下的宽度放回去 —— 下一次展开照旧由内容与容器重新撑。</summary>
+    private void RestoreDropDownWidths()
+    {
+        ClearValue(WidthProperty);
+
+        if (_dropDown is not { } list) return;
+        list.SizeChanged -= OnDropDownSizeChanged;
+        list.ClearValue(FrameworkElement.MaxWidthProperty);
+        _dropDown = null;
     }
 
     /// <summary>这一颗在它的父级里还剩多少横向地方；父级量不出来时不给上限（<c>WrapRow</c> 自己会换行）。</summary>

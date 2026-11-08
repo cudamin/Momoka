@@ -167,6 +167,19 @@ internal sealed partial class ShellNavigationProbe
                             + $" {cover.ActualWidth:0.##}×{cover.ActualHeight:0.##}");
                 }
 
+                // 封面上的悬停遮罩（2026-11-08「集页面鼠标移到左上角的封面的时候要显示遮罩」）：只在集页、
+                // 只在有封面的那一档；静止时不吃指针、也不是亮的 —— 亮起来的是指针压上去那一下。
+                var shade = Get<Border>(page, "CoverShade");
+                Require(shade.Visibility == (compact ? Visibility.Collapsed : Visibility.Visible),
+                    $"{width} 这一档悬停遮罩的显隐不对：{shade.Visibility}");
+                Require(!shade.IsHitTestVisible && Math.Abs(shade.Opacity) < 0.001,
+                    $"{width} 这一档悬停遮罩静止时不该吃指针、也不该是亮的：{shade.Opacity:0.##}");
+                if (!compact)
+                    Require(Math.Abs(shade.ActualWidth - cover.ActualWidth) < 0.5
+                            && Math.Abs(shade.ActualHeight - cover.ActualHeight) < 0.5,
+                        $"{width} 这一档悬停遮罩没有盖住封面：{shade.ActualWidth:0.#}×{shade.ActualHeight:0.#}"
+                            + $" 对 {cover.ActualWidth:0.#}×{cover.ActualHeight:0.#}");
+
                 // 背景那一层：宽版式不铺（「去掉集页面的背景图」），紧凑版式铺（「再给集页面的窄窗口加背景图」）。
                 var wantBackdrop = compact ? Visibility.Visible : Visibility.Collapsed;
                 Require(backdropLayer.Visibility == wantBackdrop,
@@ -271,6 +284,27 @@ internal sealed partial class ShellNavigationProbe
                     + $"（该 {page.ViewModel.PictureHeight:0.##}），尾部竖距 {tail.Spacing:0.##}，"
                     + $"面板内边距 {pickers.Padding}，纸面 {sheet.Padding}／{sheet.Spacing:0.##}");
                 await SaveProbeScreenAsync($"detail-episode-band-{width}.png");
+
+                // 受控样本：把遮罩亮一帧拍照，量它落在封面上哪儿、亮多少，再放回去 —— 和封面播放键那张样本
+                // 同一条规矩，不代表真实指针手势（自检没有指针）。
+                if (width == 1280)
+                {
+                    try
+                    {
+                        page.ShowCoverHoverSample(true);
+                        await LayoutAsync(page);
+                        var at = shade.TransformToVisual(cover).TransformPoint(default);
+                        Require(Math.Abs(at.X) < 0.5 && Math.Abs(at.Y) < 0.5
+                                && Math.Abs(shade.Opacity - 0.78) < 0.01,
+                            $"悬停遮罩没有盖在封面上：偏移 {at.X:0.#},{at.Y:0.#}，不透明度 {shade.Opacity:0.##}");
+                        await SaveProbeScreenAsync("detail-episode-cover-shade.png");
+                    }
+                    finally
+                    {
+                        page.ShowCoverHoverSample(false);
+                        await LayoutAsync(page);
+                    }
+                }
             }
 
             // 这一条是用户第一句话本身：宽版式里 1280 到 1024 窄了 256 像素，封面一个像素不动。
@@ -338,8 +372,11 @@ internal sealed partial class ShellNavigationProbe
                     $"开启沉浸的单集 {width} 未使用剧式宽窗或原紧凑背景");
                 RequireEpisodeSubject(page, episode);
                 Require(ReferenceEquals(target, view.PlayTarget), "单集沉浸缩放改变播放目标");
-                Require(Get<Image>(page, "CornerArt").Visibility == Visibility.Collapsed,
-                    "单集沉浸仍显示右上角艺术图");
+                // 2026-11-08「沉浸模式下在右上角显示艺术图」：集页的沉浸档也摆这一角（从前它只在卡面档显示），
+                // 紧凑版式照旧收起 —— 那一档连封面都没有。
+                Require(Get<Image>(page, "CornerArt").Visibility
+                        == (compact ? Visibility.Collapsed : Visibility.Visible),
+                    $"单集沉浸右上角艺术图的显隐不对：{Get<Image>(page, "CornerArt").Visibility}");
                 if (compact)
                 {
                     Require(cover.Visibility == Visibility.Collapsed && view.StillWidth == 0 && view.StillHeight == 0,

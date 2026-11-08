@@ -314,6 +314,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StillVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
+    [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
     public partial ImageSource? StillImage { get; set; }
 
@@ -329,10 +330,20 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>
     /// 右上角那张艺术图 —— 「给集页面右上角添加艺术图」（2026-09-12）。哪一张归这儿是
     /// <see cref="ItemArtwork.Corner"/> 的事（这一集自己的，没有就借剧集那一层的）；这里只存解出来的那张。
-    /// 集页与简洁模式电影、剧页显示（见 <see cref="CornerVisibility"/>），没有艺术图时收起。
+    /// 电影、剧、集三页在两种模式下都显示（见 <see cref="CornerVisibility"/>），没有艺术图时收起。
+    /// <para>
+    /// 图到没到也算进带高（<see cref="HeroContent"/> 按 <c>CornerShown</c> 分档）：<see cref="ShowCorner"/> 先
+    /// 排尺寸再换图，所以这一句把带高那几支一并喊上 —— 否则「尺寸没变、只是图来了」的那一次，带子会留在没有
+    /// 这一角的那一档上。
+    /// </para>
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CornerVisibility))]
+    [NotifyPropertyChangedFor(nameof(HeroContent))]
+    [NotifyPropertyChangedFor(nameof(HeroRoom))]
+    [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
+    [NotifyPropertyChangedFor(nameof(HeroHeight))]
+    [NotifyPropertyChangedFor(nameof(Squeeze))]
     public partial ImageSource? CornerImage { get; set; }
 
     /// <summary>
@@ -379,6 +390,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(ScrimVisibility))]
     [NotifyPropertyChangedFor(nameof(StillVisibility))]
     [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
+    [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
     [NotifyPropertyChangedFor(nameof(CompactVisibility))]
     [NotifyPropertyChangedFor(nameof(CornerVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroInset))]
@@ -449,6 +461,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(IsCompact));
         OnPropertyChanged(nameof(StillVisibility));
         OnPropertyChanged(nameof(CoverPlayVisibility));
+        OnPropertyChanged(nameof(CoverShadeVisibility));
         OnPropertyChanged(nameof(CompactVisibility));
         OnPropertyChanged(nameof(CornerVisibility));
         OnPropertyChanged(nameof(ColumnActionsVisibility));
@@ -896,13 +909,13 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 不算这一格自己的上下留白。带高（<see cref="HeroLayoutHeight"/>）和窄窗口那笔「还差多少」
     /// （<see cref="Squeeze"/>）都读它。
     /// <para>
-    /// 艺术图和那一叠是**取大**而不是相加：它占的是右栏（只画在集页的宽版式上，<see cref="CornerVisibility"/>），
-    /// 谁高听谁的；<see cref="CornerHeight"/> 在这里按 <see cref="HeroCard"/> 分一次档 —— 紧凑版式里那一角
-    /// 收着，它的高不该算进带子。
+    /// 艺术图和那一叠是**取大**而不是相加：它占的是右栏（<see cref="CornerVisibility"/>），谁高听谁的；
+    /// <see cref="CornerHeight"/> 在这里按 <see cref="CornerShown"/> 分一次档 —— 那一角收着的档（紧凑版式、
+    /// 没有图）不该把它的高算进带子。沉浸档 2026-11-08 起也摆这一角，于是这一句不再问「是不是卡面版式」。
     /// </para>
     /// </summary>
     public double HeroContent =>
-        Math.Max(Math.Max(StackRoom, StillHeight), HeroCard ? CornerHeight : 0);
+        Math.Max(Math.Max(StackRoom, StillHeight), CornerShown ? CornerHeight : 0);
 
     /// <summary>
     /// 带子里那一叠（剧照、片名、副标题、读数、那排键）连同上下留白实测要占多高。集页那一格的高就是它
@@ -1874,9 +1887,15 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public Visibility PlateVisibility => Show(PlateImage is not null);
 
-    /// <summary>集页与简洁模式电影、剧页显示艺术图；没有图或标题栏空间不足时收起。</summary>
-    public Visibility CornerVisibility => Show(CornerImage is not null && !IsCompact && CornerMaxWidth > 0
-        && (IsEpisodePage && !Showcase || PlainDetail && ItemType is EmbyItemType.Movie or EmbyItemType.Series));
+    /// <summary>
+    /// 右上角那张艺术图画不画 —— 电影、剧、集三页在两种模式下都画（2026-11-08「沉浸模式下在右上角显示艺术图」，
+    /// 从前沉浸档整页站在背景图上，这一角跟着收掉）；没有图、紧凑版式或题栏空间不足时收起。
+    /// </summary>
+    public Visibility CornerVisibility => Show(CornerShown);
+
+    /// <summary>同一句话的第二半：带高（<see cref="HeroContent"/>）读的是这个布尔值，不是 <c>Visibility</c>。</summary>
+    private bool CornerShown =>
+        DetailHero.ShowsCorner(CornerImage is not null, IsCompact, CornerMaxWidth, ItemType);
 
     /// <summary>
     /// 页面最底下那张横幅画不画。两句话：图解出来了没有，以及这一页是不是那三种页面之一 —— 用户点的名是「电影
@@ -1937,6 +1956,21 @@ public sealed partial class DetailViewModel : PageViewModel
 
     private bool CoverPlayShown => StillVisibility == Visibility.Visible && PlayTarget is not null
         && ItemType is EmbyItemType.Movie or EmbyItemType.Series;
+
+    /// <summary>
+    /// 左上角封面上的悬停遮罩画不画 —— 2026-11-08 用户令「集页面鼠标移到左上角的封面的时候要显示遮罩」。
+    /// <para>
+    /// 只有集页有它：那一页的封面点得动（进这部剧的页面），可那颗按钮自己的指针态画在图<em>底下</em>
+    /// （<c>Button.Background</c> 垫在内容后面），屏上一点反应都没有。电影、剧两页的封面另有播放键浮出来
+    /// （<see cref="CoverPlayVisibility"/>），季页那张既点不动也没有键 —— 都不需要这一层。
+    /// </para>
+    /// <para>
+    /// 图没到、或者紧凑版式没有封面时一起收起：<see cref="StillVisibility"/> 已经含这两条。
+    /// </para>
+    /// </summary>
+    public Visibility CoverShadeVisibility => Show(CoverShadeShown);
+
+    private bool CoverShadeShown => IsEpisodePage && StillVisibility == Visibility.Visible;
 
     public Visibility RestartVisibility => Show(PlayTarget?.HasResumePosition == true);
 
@@ -2338,6 +2372,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(IsCompact));
         OnPropertyChanged(nameof(StillVisibility));
         OnPropertyChanged(nameof(CoverPlayVisibility));
+        OnPropertyChanged(nameof(CoverShadeVisibility));
         OnPropertyChanged(nameof(CompactVisibility));
         _session = session;
         _images = images;
@@ -2575,6 +2610,7 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(IsCompact));
         OnPropertyChanged(nameof(StillVisibility));
         OnPropertyChanged(nameof(CoverPlayVisibility));
+        OnPropertyChanged(nameof(CoverShadeVisibility));
         OnPropertyChanged(nameof(CompactVisibility));
 
         // 单集 changes shape with the kind of page this is, and that is a fact about the item rather than
@@ -3571,7 +3607,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
         // 右上角那张艺术图（「给集页面右上角添加艺术图」）：哪一张归这儿由 <see cref="ItemArtwork.Corner"/> 定 ——
         // 这一集自己的，没有就借剧集那一层的（show 在 WhenAll 外头就已经在路上了，这里等它回来再问一次标签）。
-        // 电影和剧预取自身艺术图，使同页切到简洁模式时立即显示；集页保留借父剧的路径。
+        // 电影和剧取自身艺术图，集页保留借父剧的路径；三页在两种模式下都摆这一角（2026-11-08），所以这里不看
+        // 这一页这次走哪套版式 —— 翻模式时图已经在手，不用再等一趟往返。
         async Task<BitmapImage?> CornerAsync(EmbyItem page, Task<EmbyItem?> show, CancellationToken token)
         {
             if (page.Type is not (EmbyItemType.Episode or EmbyItemType.Movie or EmbyItemType.Series)) return null;

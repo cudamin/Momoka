@@ -366,6 +366,10 @@ internal sealed partial class ShellNavigationProbe
                     $"展开后选择框反而窄了：{closed.Width:0} → {open.Width:0}");
                 Require(list.Right <= open.Right + 0.5,
                     $"弹层探出选择框右沿 {list.Right - open.Right:0} 像素，压住了右边那一颗");
+                // 封顶不能把弹层收没了（2026-11-08 那条 MaxWidth 的第一版就是这样：读数 366–366，右沿那条
+                // 断言反而绿了）。框架保证弹层至少和框一样宽，这里就按那一条量。
+                Require(list.Width >= open.Width - 0.5,
+                    $"弹层比选择框还窄：{list.Width:0} 对 {open.Width:0}");
                 Require(fit.Ok, fit.Detail);
                 if (index == 0) await SaveProbeScreenAsync("detail-picker-open-screen.png");
                 audio.IsDropDownOpen = false;

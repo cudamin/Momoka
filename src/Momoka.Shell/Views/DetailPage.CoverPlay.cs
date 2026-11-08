@@ -7,45 +7,55 @@ using Microsoft.UI.Xaml.Media.Animation;
 namespace Momoka.Shell.Views;
 
 /// <summary>
-/// 左上角封面上的播放键（2026-11-08 用户令「给剧页面和电影页面左上角的封面加上播放按钮」）。
+/// 左上角封面上的两层浮层：播放键（2026-11-08 用户令「给剧页面和电影页面左上角的封面加上播放按钮」）和
+/// 集页那张悬停遮罩（同日「集页面鼠标移到左上角的封面的时候要显示遮罩」）。
 /// <para>
-/// 它和海报卡悬停时那颗是同一颗键：静止深色磨砂玻璃，指针移到键自己身上才换强调色玻璃。这一页只补两件
-/// 海报卡那边由 <c>PosterCard</c> 自己做掉的事 —— 「指针在封面上就浮出来」和「离开就收回去」。
+/// 播放键和海报卡悬停时那颗是同一颗键：静止深色磨砂玻璃，指针移到键自己身上才换强调色玻璃。这一页只补两件
+/// 海报卡那边由 <c>PosterCard</c> 自己做掉的事 —— 「指针在封面上就浮出来」和「离开就收回去」；遮罩那一层是
+/// 同一件事的另一半，两者共用一次指针判定和一段动画。
 /// </para>
 /// <para>
 /// 两半判断仍然分开：指针在不在封面上走 <see cref="HoverWatch"/>（事件只是快路径，鼠标从封面直接移出窗口
-/// 时那一声指针离开报的还是窗内最后一个坐标，靠它兜底，同 PosterCard 与 ShelfStrip），而「这一页该不该有
-/// 这颗键」问视图模型的 <c>CoverPlayVisibility</c>。两半都成立才让它可命中：透明按钮拦一次点击，代价是
-/// 用户以为封面点不进去。
+/// 时那一声指针离开报的还是窗内最后一个坐标，靠它兜底，同 PosterCard 与 ShelfStrip），而「这一页该不该有这
+/// 两样」问视图模型的 <c>CoverPlayVisibility</c>／<c>CoverShadeVisibility</c>。播放键要两半都成立才可命中：
+/// 透明按钮拦一次点击，代价是用户以为封面点不进去。
 /// </para>
 /// </summary>
 public sealed partial class DetailPage
 {
+    /// <summary>
+    /// 悬停遮罩的不透明度 —— 同 <c>PosterCard</c> 的 <c>HoverShade</c>（那一页是 0.78 与 <c>EgScrimBrush</c>
+    /// 一起写在一个 Storyboard 里）。两层说的是同一件事：「指针压在这一格上」，所以数也该是同一个。
+    /// </summary>
+    private const double CoverShadeOpacity = 0.78;
+
     private HoverWatch? _coverWatch;
     private Storyboard? _coverPlayMotion;
     private bool _coverHovered;
 
     /// <summary>
     /// 挂在构造里而不是 Loaded 里：这一页的实例会被复用，进树一次就多一支订阅。视图模型与页面同寿，
-    /// 所以不另退订；只在离树时把浮层收回去（<see cref="HideCoverPlay"/>）。
+    /// 所以不另退订；只在离树时把浮层收回去（<see cref="HideCoverHover"/>）。
     /// </summary>
-    private void PrepareCoverPlay()
+    private void PrepareCoverHover()
     {
         _coverWatch = new HoverWatch(CoverSlot, up =>
         {
             _coverHovered = up;
-            SyncCoverPlay();
+            SyncCoverHover();
         });
-        ViewModel.PropertyChanged += OnCoverPlayVisibilityChanged;
+        ViewModel.PropertyChanged += OnCoverHoverVisibilityChanged;
     }
 
-    private void OnCoverPlayVisibilityChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    private void OnCoverHoverVisibilityChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
     {
-        if (args.PropertyName != nameof(ViewModels.DetailViewModel.CoverPlayVisibility)) return;
-        // 翻到季、集或者图片被删掉时这一格会收起来：指针还停在原处也不能让下一张封面带着上一张的亮度回来。
-        if (ViewModel.CoverPlayVisibility == Visibility.Visible) return;
+        if (args.PropertyName is not (nameof(ViewModels.DetailViewModel.CoverPlayVisibility)
+            or nameof(ViewModels.DetailViewModel.CoverShadeVisibility))) return;
+        // 两样都收着的时候（翻到季、或者图被删掉）指针还停在原处也不能让下一张封面带着上一张的亮度回来。
+        if (ViewModel.CoverPlayVisibility == Visibility.Visible
+            || ViewModel.CoverShadeVisibility == Visibility.Visible) return;
         _coverHovered = false;
-        SyncCoverPlay();
+        SyncCoverHover();
     }
 
     /// <summary>指针进封面：浮出。</summary>
@@ -64,48 +74,61 @@ public sealed partial class DetailPage
         _coverWatch?.Leave();
     }
 
-    /// <summary>页面离树：把浮层收回去，别让复用的实例带着一颗亮着的键回来。</summary>
-    private void HideCoverPlay()
+    /// <summary>页面离树：把浮层收回去，别让复用的实例带着一颗亮着的键、一层亮着的遮罩回来。</summary>
+    private void HideCoverHover()
     {
         _coverHovered = false;
         // Leave 自己会把 reveal(false) 走一遍；还没装表（构造里早退）时才需要直接落值。
         if (_coverWatch is { } watch) watch.Leave();
-        else SyncCoverPlay();
+        else SyncCoverHover();
     }
 
     /// <summary>
-    /// 浮层的两个终值（不透明度、0.92 的缩放）之间走一段短动画；中途换向从当前值继续，同 PosterCard。
-    /// 不给 <c>Visibility</c> 写值：那一格收不收由视图模型决定，这里只管它露得有多亮、能不能点。
+    /// 两样浮层的终值（播放键的不透明度与 0.92 的缩放、遮罩的不透明度）之间走一段短动画；中途换向从当前值继续，
+    /// 同 PosterCard。不给 <c>Visibility</c> 写值：这两格收不收由视图模型决定，这里只管它们露得有多亮、
+    /// 播放键能不能点。
+    /// <para>
+    /// 两样各有各的判据（<c>CoverPlayVisibility</c> 只管电影和剧、<c>CoverShadeVisibility</c> 只管集页），
+    /// 所以一页上最多只有一样是亮的；写在同一个 Storyboard 里是因为它们共用「指针在不在封面上」这一个状态，
+    /// 分开写就是两段各自起停、还会互相打断的动画。
+    /// </para>
     /// </summary>
-    private void SyncCoverPlay()
+    private void SyncCoverHover()
     {
-        var show = _coverHovered && ViewModel.CoverPlayVisibility == Visibility.Visible;
-        CoverPlayButton.IsHitTestVisible = show;
+        var play = _coverHovered && ViewModel.CoverPlayVisibility == Visibility.Visible;
+        var shade = _coverHovered && ViewModel.CoverShadeVisibility == Visibility.Visible;
+        CoverPlayButton.IsHitTestVisible = play;
 
-        var fromOpacity = CoverPlayButton.Opacity;
+        var fromPlay = CoverPlayButton.Opacity;
         var fromScale = CoverPlayMotion.ScaleX;
-        var toScale = show ? 1d : 0.92d;
+        var fromShade = CoverShade.Opacity;
+        var toPlay = play ? 1d : 0d;
+        var toScale = play ? 1d : 0.92d;
+        var toShade = shade ? CoverShadeOpacity : 0d;
 
         _coverPlayMotion?.Stop();
         _coverPlayMotion = null;
 
         void Settle()
         {
-            CoverPlayButton.Opacity = show ? 1 : 0;
+            CoverPlayButton.Opacity = toPlay;
             CoverPlayMotion.ScaleX = CoverPlayMotion.ScaleY = toScale;
+            CoverShade.Opacity = toShade;
         }
 
         if (XamlRoot is null || !HomeMotion.AnimationsEnabled
-            || Math.Abs(fromOpacity - (show ? 1 : 0)) < 0.001 && Math.Abs(fromScale - toScale) < 0.001)
+            || Math.Abs(fromPlay - toPlay) < 0.001 && Math.Abs(fromScale - toScale) < 0.001
+                && Math.Abs(fromShade - toShade) < 0.001)
         {
             Settle();
             return;
         }
 
         var board = new Storyboard();
-        Add(CoverPlayButton, "Opacity", fromOpacity, show ? 1 : 0);
+        Add(CoverPlayButton, "Opacity", fromPlay, toPlay);
         Add(CoverPlayMotion, "ScaleX", fromScale, toScale);
         Add(CoverPlayMotion, "ScaleY", fromScale, toScale);
+        Add(CoverShade, "Opacity", fromShade, toShade);
         _coverPlayMotion = board;
         board.Completed += (_, _) =>
         {
@@ -122,8 +145,8 @@ public sealed partial class DetailPage
             {
                 From = start,
                 To = end,
-                Duration = new Duration(TimeSpan.FromMilliseconds(show ? 200 : 160)),
-                EasingFunction = new CubicEase { EasingMode = show ? EasingMode.EaseOut : EasingMode.EaseIn }
+                Duration = new Duration(TimeSpan.FromMilliseconds(play || shade ? 200 : 160)),
+                EasingFunction = new CubicEase { EasingMode = play || shade ? EasingMode.EaseOut : EasingMode.EaseIn }
             };
             Storyboard.SetTarget(animation, target);
             Storyboard.SetTargetProperty(animation, path);
@@ -133,13 +156,14 @@ public sealed partial class DetailPage
 
     /// <summary>
     /// 受控样本：把浮层亮一帧给探针拍照，再放回去 —— 和海报卡那张「亮一帧」的样本同一条规矩，
-    /// 不代表真实指针手势（自检没有指针）。
+    /// 不代表真实指针手势（自检没有指针）。两样一起亮：探针要拍的是「指针压在封面上」这一态。
     /// </summary>
-    internal void ShowCoverPlaySample(bool show)
+    internal void ShowCoverHoverSample(bool show)
     {
         CoverPlayButton.Opacity = show ? 1 : 0;
         CoverPlayButton.IsHitTestVisible = show;
         CoverPlayMotion.ScaleX = CoverPlayMotion.ScaleY = show ? 1 : 0.92;
+        CoverShade.Opacity = show ? CoverShadeOpacity : 0;
     }
 
     /// <summary>

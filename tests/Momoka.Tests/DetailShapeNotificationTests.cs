@@ -167,6 +167,8 @@ internal static partial class DetailActionReadinessTests
             Assert.Equal(375d, (double)f.Get("StillHeight")!);
             Assert.Equal("Top", f.Get("CoverAlignment")!.ToString());
             Assert.Equal("Bottom", f.Get("HeroContentAlignment")!.ToString());
+            // 这一份夹具一张图都没有，所以角上那一格收着 —— 收的原因是「没有艺术图」，不是「沉浸档不摆它」
+            // （2026-11-08 起两种模式都摆，判据在 DetailHero.ShowsCorner，页面上由 ShellNavigationProbe 量）。
             Assert.Equal("Collapsed", f.Get("CornerVisibility")!.ToString());
             var notices = new List<string>();
             ((INotifyPropertyChanged)f.Vm).PropertyChanged += (_, args) => notices.Add(args.PropertyName ?? "");
