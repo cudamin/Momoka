@@ -1,4 +1,4 @@
-## 2026-11-08 分辨率档位按宽高一起读：《摩加迪沙》1920×804 不再读成 720p（本树已验，待主树整合交付）
+## 2026-11-08 分辨率档位按宽高一起读：《摩加迪沙》1920×804 不再读成 720p（主树整合与桌面交付）
 
 用户报「摩加迪沙分瓣率识别错误」，附两张截图：详情页「媒体信息」写着 `1920 x 804`，而「视频：」那行写的是 `11.5 GB · 720p · x264 · DTS · WiKi`。
 
@@ -13,6 +13,12 @@
 验证（本树）：Core 与 Tests Release 编译 **0 警告 0 错误**；完整主测试 **4208/4208、0 失败 0 跳过**（`TEMP`/`TMP` 指本树 `work/tmp`；不设这两个变量时 `C:\WINDOWS\TEMP` 拒绝访问，会红两条与本次无关的下载用例，设了即过）；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。
 
 未验证：没有真实登录或播放去看详情页那一行，文案由单测钉住、版式没动。媒体库列表「分辨率」列从此与「视频：」同一口径（`2160p`→`4K`、`804p`→`1080p`），这是本轮唯一一处超出用户截图范围的可见变化。
+
+主树整合：`5075543`（产品）、`610187e`（进度）、`ec2b4db`（R046 来源 pin）以 `--ff-only` 合入 master。合入时全方案构建先被 `Momoka.NaturalContinuationCallerTests` 的 `R046 SOURCE_HASH_MISMATCH src/Momoka.Core/Emby/EmbyItem.cs` 拦下：本次只动档位读数，自然接续提取的成员与来源 identity／自动接集／lease 规则未变，其余 18 份 pin 逐份核对一致，按该夹具的流程只同步这一份 SHA256（`d87c8f9…` → `3a638b5…`）并记进它的 README。主树另一会话那三份 `.claude/skills/momoka-code-review/*` 未提交删除原样保留。
+
+主树**最终整合代码**重验：全方案 Release **0 警告 0 错误**；完整主测试 **4208/4208、0 失败 0 跳过**（`TEMP`/`TMP` 指主树 `work/tmp`）；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。
+
+交付：用户先关掉正在运行的 Momoka 后，`tools/publish.ps1 -NoArchive -Shortcut` 刷新主树 `artifacts/publish/win-x64`：**546 文件、286.6 MB**，GLSL/HOOK 着色器许可与批准 mpv 清单（59 文件：50 UI、2 native）逐文件校验通过；发布 `Momoka.dll` 与构建输出同为 `957C9BE21330D14760E62ECB77FD69806BE3E48845F73953D41F62188EAE057A`（7,282,688 字节）。快捷方式写回仍被沙箱 ACL 拒绝（`tools/shortcut.ps1` UnauthorizedAccessException，与前几批同一条），直接在 `.lnk` 二进制里读回目标仍是 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`，本次只换该目录内容、路径未变；`Momoka.exe` FileVersion `0.2.5.0`、ProductVersion `0.2.5+ec2b4db3c646972b071b0ad6dc4a26dff31c69b0`。**桌面交付完成**。未真实登录、未真实播放、未写服务器、未上传。
 
 ## 2026-11-08 沉浸档右上角艺术图与集页封面悬停遮罩：主树整合与桌面交付
 
