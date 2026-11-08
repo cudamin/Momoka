@@ -416,8 +416,9 @@ public sealed partial class PlayerPage
             }
 
             // 就绪问的是「此刻框里那一页自己报没报就绪」——没有页面的场合（探针那条没导航过的路）
-            // 一律算就绪，于是立即溶解，与探针/自检同一条路（见 ShellPage.ActiveContentReady）。
-            var ready = _shell is null || _shell.ActiveContentReady;
+            // 一律算就绪，于是立即溶解，与探针/自检同一条路。判据只此一处（见 BrowseReady），
+            // 退场淡出那一条也读它。
+            var ready = BrowseReady;
 
             if (!ready && Now < deadline) return;
 
@@ -501,14 +502,16 @@ public sealed partial class PlayerPage
     /// 用户关闭播放页时直接交回现成的浏览页。必须先呈现再停 mpv：保留交换链引用并不能阻止
     /// mpv 的 stop/quit 把里面的像素清空。
     /// <para>
-    /// <b>2026-09-25 第三轮起，这一趟不留溶解、也不再让画面跟着窗口缩</b>（用户令「退出播放窗口化的一瞬间
-    /// 会有视频的残留画面，不能直接切回主页吗」）。第二轮这一趟走的是「等浏览页就绪 → 最后一帧逐拍溶解」，
-    /// 而窗口在那之前就已经缩回浏览几何 —— 画面跟着缩进小窗的那一截，用户读作「残留画面」。现在那一帧
-    /// 交在一块<b>不随窗口变形</b>的覆盖层上（见 ①②），本页当拍收摊，撤层时屏上就是主页。
+    /// <b>2026-09-25 第三轮起，这一趟不让画面跟着窗口缩</b>（用户令「退出播放窗口化的一瞬间会有视频的残留
+    /// 画面，不能直接切回主页吗」）。第二轮这一趟走的是「等浏览页就绪 → 最后一帧逐拍溶解」，而窗口在那之前
+    /// 就已经缩回浏览几何 —— 画面跟着缩进小窗的那一截，用户读作「残留画面」。现在那一帧交在一块<b>不随窗口
+    /// 变形</b>的覆盖层上（见 ①②），本页当拍收摊。
     /// </para>
     /// <para>
-    /// 停播放仍旧排在落定之后：调用方（<c>StopPlaybackAsync</c>）等这一趟返回才停 mpv，而这一趟在覆盖层
-    /// 撤掉之前不会返回 —— mpv 那一刀清像素时，屏上早就不靠它的像素活着了。
+    /// <b>2026-11-08 起，撤层之前先把它淡出去</b>（用户令「退出时采用淡出等对应的离场效果」，与进场同一个
+    /// 280ms）：覆盖层改铺到新客户区之后按常量 alpha 逐拍淡到全透明，露出早就排好版的主页。淡出<b>不等</b>
+    /// 它走完 —— 见 ④，停播放要跟着用户那一下走（声音不能陪着动画再响三百毫秒），而屏上已经由这一层接着，
+    /// mpv 那一刀清像素伤不到它。
     /// </para>
     /// </summary>
     internal async Task ReturnToBrowseBeforeStopAsync()
@@ -516,6 +519,9 @@ public sealed partial class PlayerPage
         if (!_onStage || !Attached || _window is not { Handle: var handle } window || handle == IntPtr.Zero) return;
         var context = ViewModel.CaptureInteraction();
         var generation = _presentationGeneration;
+        // 这一趟是不是从全屏退出来的 —— 全屏退出不做淡出（理由见 ②）。必须在 RestorePlayerToBrowse 之前读：
+        // 那一句会把窗口（连同全屏状态）一次还成浏览几何。
+        var wasFullscreen = window.Fullscreen;
         bool Current() => generation == _presentationGeneration && _window == window
             && window.Handle == handle && Attached && ViewModel.IsCurrentInteraction(context);
 
@@ -553,6 +559,29 @@ public sealed partial class PlayerPage
             window.RestorePlayerToBrowse();
             window.FreeSizing = false;
 
+            // ② 窗口已经还回浏览几何：把覆盖层改铺到**新的**客户区（2026-11-08）。
+            //
+            //    播放时的客户区与浏览几何通常只差高度（`AspectLock.Fit` 保持宽度、按中心缩放），所以按 contain
+            //    摆进新客户区的画面，在屏上的位置与尺寸分毫不动 —— 变的只是它四周多出来的那两道。那两道补成
+            //    舞台色（见 ExitSurroundColor）：透空的话屏上就是「一条悬空的画面带正在淡出」，补上才是
+            //    「播放页还在，只是化了」。
+            //
+            //    这一句与上面那次 SetWindowPos 在同一个同步块里，中间没有 await，因此不会有一帧露出没铺满的
+            //    窗口。从前这一趟不留过渡（用户令 2026-09-25「不能直接切回主页吗」），两帧后撤层，屏上是
+            //    「最后一帧 → 主页」的硬切；现在撤层之前先把它淡出去（见 ④）。
+            //
+            //    **全屏退出不走这一段**（用户 2026-11-08 选「只做窗口模式」）：那一趟覆盖层是整块显示器，
+            //    每拍整块重传不划算；更要紧的是窗口要从显示器缩回浏览几何，画面在屏上的位置必然变，
+            //    「原样停着再淡」这个前提根本不存在 —— 那种情况留在原地的还是一层不透明的层，两帧后撤层。
+            var fading = handoff is not null && !wasFullscreen && HomeMotion.AnimationsEnabled;
+            var fadeBounds = fading ? VideoFrameOverlay.ClientRect(handle) : default;
+            var surround = fading ? ExitSurroundColor : 0u;
+            if (fading)
+            {
+                handoff!.Show(fadeBounds, topmost: true, surround: surround);
+                VideoFrameOverlay.Flush();
+            }
+
             var landed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             _exitLanded = landed;
             _exitSnap = true;
@@ -568,10 +597,18 @@ public sealed partial class PlayerPage
                 Log.Warn(Category, "退场没在 3 秒内落定，照常停播放");
             }
 
-            // Layout and composition commit independently; retain the overlay for two rendered frames.
+            // Layout and composition commit independently; the browse page gets its own frames committed
+            // before the backend is allowed to clear the pixels it was feeding.
             await WaitFramesAsync(2);
-            handoff?.Dispose();
-            handoff = null;
+
+            // ④ 淡出（**不等它走完**）。停播放不能排在 280ms 之后：画面这一刻已经冻在覆盖层上，mpv 那一刀清
+            //    像素伤不到屏上，而声音得跟着用户那一下停 —— 让它陪着动画再响三百毫秒才是这一趟真正会被听出来
+            //    的地方。淡出自己按 generation 收尾（换片、卸载、收摊都会让它下一拍停手并撤层）。
+            if (fading)
+            {
+                _exitFadeTask = FadeExitAsync(handoff, fadeBounds, surround, generation);
+                handoff = null;
+            }
             VideoFrameOverlay.Flush();
             // 浏览页已经呈现，保持这一实例；撤层后再导航会先露出静态主页，再迟到地补播入场。
         }
@@ -581,12 +618,68 @@ public sealed partial class PlayerPage
         }
     }
 
+    /// <summary>
+    /// 退场那一层自己淡出去：先等浏览页就绪（≤<c>ExitReadyWaitMilliseconds</c>），再整段匀速淡到全透明并撤层。
+    /// <para>
+    /// <b>调用方不等它</b>（见 <c>ReturnToBrowseBeforeStopAsync</c> 的 ④）：停播放要跟着用户那一下走，
+    /// 而屏上已经由这一层接着。每拍只有两件事 —— 把整层的不透明度递给分层窗口（<c>SetLayeredWindowAttributes</c>，
+    /// 像素不重画也不重传，见 <c>VideoFrameOverlay.Fade</c>）、等一拍；曲线与时长都在 <c>PlayerMotion</c> 里，
+    /// 与进场同一个数。
+    /// </para>
+    /// <para>
+    /// 换片、卸载、收摊都会让这次退场的 <paramref name="generation"/> 过期：循环下一拍就停手，<c>finally</c>
+    /// 里撤层。屏上不会留下一层按着旧画面不放的窗口 —— 它不属于任何一棵 XAML 树，没人替它收。
+    /// 「系统动画关掉时不做」那一问由调用方判（它同时决定要不要改铺，见 ②）。
+    /// </para>
+    /// </summary>
+    private async Task FadeExitAsync(VideoFrameOverlay? overlay, NativeRect bounds, uint surround, int generation)
+    {
+        var waitedReady = 0L;
+        try
+        {
+            if (overlay is null) return;
+            _exitFade = overlay;
+            bool Current() => generation == _presentationGeneration && Attached && _window is not null;
+
+            // ③ 等浏览页把自己的内容画出来再淡。背景图要一次网络往返，图没到就淡完，露出来的是那块发灰的
+            //    空页面（2026-09-20 用户截图）。宽限到点照常淡出 —— 宁可露出那块灰，也不能卡在退场里出不来。
+            var readyStarted = Now;
+            var readyDeadline = readyStarted + ExitReadyWaitMilliseconds;
+            while (!BrowseReady && Now < readyDeadline && Current()) await WaitExitTickAsync().ConfigureAwait(true);
+            waitedReady = Now - readyStarted;
+
+            var started = Now;
+            while (Current())
+            {
+                var progress = Math.Clamp((Now - started) / (double)PlayerMotion.ExitMilliseconds, 0, 1);
+                overlay.Show(bounds, topmost: true,
+                    alpha: PlayerMotion.ExitFadeAlpha(progress), surround: surround);
+                if (progress >= 1) break;
+                await WaitExitTickAsync().ConfigureAwait(true);
+            }
+            Log.Debug(Category, $"退场淡出 {Now - started}ms（等浏览页就绪 {waitedReady}ms，"
+                + $"层 {bounds.Width}x{bounds.Height}）");
+        }
+        catch (Exception error)
+        {
+            // 层画不动了：当拍撤掉。停在半透明上比硬切更糟 —— 那会把一块半透明的旧画面留在主页上。
+            Log.Warn(Category, "退场淡出没走完，直接撤层", error);
+        }
+        finally
+        {
+            if (ReferenceEquals(_exitFade, overlay)) _exitFade = null;
+            overlay?.Dispose();
+            VideoFrameOverlay.Flush();
+        }
+    }
+
     private void StopPlayerMotion()
     {
         _inputSuspended = true;
         // 收摊这条路绕过 CompletePlayerExit，播放层这一位要在这里还 —— 一笔没人还的账就是「主页从此不再翻档」。
         _window?.SetPlayerLayer(false);
         CancelPageTransition();
+        CancelExitFade();
         ResetCover();
         ApplyPagePose(PlayerMotion.Pose.Visible);
         EndPlayerExit();

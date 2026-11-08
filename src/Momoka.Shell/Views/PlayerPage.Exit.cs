@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Diagnostics;
 using Momoka.Playback;
+using Momoka.Shell.Windowing;
 using Windows.UI;
 
 namespace Momoka.Shell.Views;
@@ -76,6 +77,68 @@ public sealed partial class PlayerPage
         ExitBackdrop.Visibility = Visibility.Collapsed;
         _videoTarget.RetainDim = 0;
         _videoTarget.RetainFill = false;
+    }
+
+    /// <summary>
+    /// 退场淡出那一层里，画面之外那一圈的底色：播放页的舞台色（<c>PlayerStageBrush</c>），分层窗口要的 BGRA。
+    /// <para>
+    /// 为什么要补这一圈：窗口还回浏览几何之后，客户区通常比播放时那块画面高，多出来的上下两道若透空，
+    /// 屏上就是「一条悬空的画面带正在淡出」。补成舞台色，读起来才是「播放页还在，只是化了」，两头说得通。
+    /// </para>
+    /// <para>
+    /// 取的是<b>本页画上去的那支画刷</b>而不是 Theme 里另找一个色号：舞台铺的就是它，两者必须是同一个数。
+    /// 解析不到（构造顺序、被替换）时退回全透明，那时屏上看到的和改动前一样，不会更糟。
+    /// </para>
+    /// </summary>
+    private uint ExitSurroundColor
+    {
+        get
+        {
+            var color = (Resources["PlayerStageBrush"] as SolidColorBrush)?.Color ?? default;
+            return (uint)(color.A << 24 | color.R << 16 | color.G << 8 | color.B);
+        }
+    }
+
+    /// <summary>
+    /// 此刻框里那一页自己报没报就绪。没有页面的场合（探针那条没导航过的路）一律算就绪，于是立即往下走。
+    /// <para>
+    /// 两处退场共用这一问：<see cref="ExitWhenBrowseReady"/> 的溶解与
+    /// <see cref="ReturnToBrowseBeforeStopAsync"/> 的淡出。背景图要一次网络往返才到，图没到就把最后一帧撤掉，
+    /// 露出来的是那张图位置上的空白 —— 2026-09-20 用户截图里那块发灰的空页面。
+    /// </para>
+    /// </summary>
+    private bool BrowseReady => _shell is null || _shell.ActiveContentReady;
+
+    /// <summary>
+    /// 退场淡出每一拍的等待。单列成一个方法是为了让逐字抽取 <see cref="ReturnToBrowseBeforeStopAsync"/> 的
+    /// 专项（<c>Momoka.PlayerExitHandoffTests</c>）能用假时钟把整段淡出一次跑完 —— 真等 280ms 能跑到，
+    /// 但断言会跟着机器忙不忙漂。
+    /// </summary>
+    private Task WaitExitTickAsync() => Task.Delay(PoseTickMilliseconds);
+
+    /// <summary>
+    /// 正在淡出的那一层。非空即「退场动画还在跑」—— 它不属于任何一棵 XAML 树，换片、卸载、收摊都要先把它
+    /// 收掉，否则屏上会留一层按着旧画面不放的分层窗口（<see cref="CancelExitFade"/>）。
+    /// </summary>
+    private VideoFrameOverlay? _exitFade;
+
+    /// <summary>
+    /// 最近一次退场淡出。正式路径不等它（停播放要跟着用户那一下走），探针等它跑完才好断言「层真的走了」。
+    /// </summary>
+    private Task _exitFadeTask = Task.CompletedTask;
+
+    /// <summary>探针与逐字抽取的专项读它：没有淡出在跑时是完成态。</summary>
+    internal Task ExitFade => _exitFadeTask;
+
+    /// <summary>
+    /// 收掉还没走完的退场淡出：撤层、放空引用。淡出那条循环下一拍会发现 <c>generation</c> 已经变了 ——
+    /// 这里先撤是为了「不差那一拍」：收摊这条路上屏上不该再留任何不属于页面树的东西。
+    /// </summary>
+    private void CancelExitFade()
+    {
+        var overlay = _exitFade;
+        _exitFade = null;
+        overlay?.Dispose();
     }
 
     /// <summary>

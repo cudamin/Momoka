@@ -10,9 +10,26 @@ internal sealed partial class VideoFrameOverlay : IDisposable
 {
     private const string ClassName = "MomokaVideoFrame";
     private const int Transparent = 0x20;
+    private const uint UlwAlpha = 4;
+    private const uint LwaAlpha = 2;
     private static readonly WindowProcedure Procedure = Dispatch;
     private static bool _registered;
     private IntPtr _window;
+
+    /// <summary>
+    /// 这一层已经画好的那块位图：内存 DC 与 DIB（DIB 一直选在 DC 里，<c>UpdateLayeredWindow</c> 直接读它）。
+    /// <para>
+    /// <b>2026-11-08 起留着不删。</b>从前每次 <c>Show</c> 现建一块、用完即弃 —— 一次性用完就撤的场合那是最省事
+    /// 的写法，但退场淡出要在这块画好之后连拧十几拍 alpha，每拍重画一遍整帧等于把一次淡出做成十几次截图。
+    /// 现在只有尺寸或底色变了才重画，其余每一拍只换 blend 里的常量 alpha。
+    /// </para>
+    /// </summary>
+    private IntPtr _memory;
+    private IntPtr _bitmap;
+    private IntPtr _oldBitmap;
+    private NativeRect _painted;
+    private uint _paintedSurround;
+    private bool _paintedOnce;
 
     /// <summary>要盖的那一帧；纯色模式（<see cref="_solid"/>）时为空。</summary>
     private readonly VideoFrame? _frame;
@@ -77,9 +94,76 @@ internal sealed partial class VideoFrameOverlay : IDisposable
         _fill = fill;
     }
 
-    internal unsafe void Show(NativeRect bounds, bool topmost)
+    /// <summary>
+    /// 把这一层铺到屏幕上的 <paramref name="bounds"/>。
+    /// <para>
+    /// <paramref name="alpha"/> 是整层的<b>不透明度</b>（255 为不透明）。255 那一档与改动前逐字一致（一次
+    /// <c>UpdateLayeredWindow</c>，像素现画现传）；小于 255 时改为逐拍只调
+    /// <c>SetLayeredWindowAttributes</c> —— 位图不重画也不重传。为什么不是 ULW 自带的
+    /// <c>BLENDFUNCTION.SourceConstantAlpha</c>，见 <see cref="Fade"/>。
+    /// </para>
+    /// <para>
+    /// <paramref name="surround"/> 是<b>画面之外那一圈</b>的底色（BGRA，0 为透空）。只有退场改铺新客户区时才给
+    /// 值：那时窗口比播放时的形状高，多出来的那几道若透空，画面看着就是一条悬空的带子 —— 补上播放页的舞台色，
+    /// 读作「播放页还在，只是化了」。画面按 contain 摆进新的 bounds，宽度与中心不变时它在屏上的位置分毫不动。
+    /// </para>
+    /// </summary>
+    internal unsafe void Show(NativeRect bounds, bool topmost, byte alpha = 255, uint surround = 0)
     {
         if (_window == IntPtr.Zero || bounds.Width <= 0 || bounds.Height <= 0) return;
+        var repaint = !_paintedOnce || !Same(_painted, bounds) || _paintedSurround != surround;
+        if (repaint) Paint(bounds, surround);
+        if (!_paintedOnce || _memory == IntPtr.Zero) return;
+        if (repaint) Present(bounds, topmost);
+        if (alpha < 255) Fade(alpha);
+    }
+
+    /// <summary>
+    /// 整层的不透明度（<c>LWA_ALPHA</c>）。<b>这是本机上唯一真能淡掉这一层的办法。</b>
+    /// <para>
+    /// 2026-11-08 实测（独立探针，纯红 400×400 分层窗口，同一块位图不换）：<c>UpdateLayeredWindow</c> 的
+    /// <c>BLENDFUNCTION.SourceConstantAlpha</c> 从 255 一路降到 0，屏上像素<b>一个数都没变</b>，
+    /// <c>AlphaFormat</c> 取 0 或 1 都一样；而 <c>SetLayeredWindowAttributes</c> 在 ULW 之后照常生效 ——
+    /// 同一个窗口 255→200→100→0 逐档变淡，读到的是「红 → 混进桌面底色 → 桌面原色」。所以淡出走这一支，
+    /// 位图那一侧完全不动。
+    /// </para>
+    /// <para>
+    /// 用它有一个前提：这一层此后不再重传像素。退场淡出正是这样用的（内容在改铺那一拍就定了），
+    /// 别的几处（拖边保留帧、起播整屏覆盖层）从头到尾都传 255，一行 ULW 都不受影响。
+    /// </para>
+    /// </summary>
+    private void Fade(byte alpha)
+    {
+        if (_window == IntPtr.Zero) return;
+        if (!SetLayeredWindowAttributes(_window, 0, alpha, LwaAlpha))
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+    }
+
+    /// <summary>把画好的那块位图交给 DWM，并按 <paramref name="topmost"/> 摆好这一层。</summary>
+    private unsafe void Present(NativeRect bounds, bool topmost)
+    {
+        var screen = Native.GetDC(IntPtr.Zero);
+        try
+        {
+            var position = new NativePoint { X = bounds.Left, Y = bounds.Top };
+            var size = new NativePoint { X = bounds.Width, Y = bounds.Height };
+            var origin = new NativePoint();
+            if (!UpdateLayeredWindow(_window, screen, ref position, ref size, _memory, ref origin, 0, IntPtr.Zero, UlwAlpha))
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            Native.SetWindowPos(_window, topmost ? Native.HwndTopMost : Native.HwndTop,
+                0, 0, 0, 0, Native.SwpNoMove | Native.SwpNoSize | Native.SwpNoActivate);
+            Native.ShowWindow(_window, Native.SwShowNoActivate);
+        }
+        finally
+        {
+            Native.ReleaseDC(IntPtr.Zero, screen);
+        }
+    }
+
+    /// <summary>把 <paramref name="bounds"/> 那一块画进新位图；尺寸与底色没变时由 <see cref="Show"/> 跳过。</summary>
+    private unsafe void Paint(NativeRect bounds, uint surround)
+    {
+        ReleaseBitmap();
         var screen = Native.GetDC(IntPtr.Zero);
         var memory = CreateCompatibleDC(screen);
         var info = new BitmapInfo
@@ -102,13 +186,9 @@ internal sealed partial class VideoFrameOverlay : IDisposable
         var old = SelectObject(memory, bitmap);
         try
         {
-            new Span<byte>((void*)bits, checked(bounds.Width * bounds.Height * 4)).Clear();
-            if (_solid)
-            {
-                // 无帧：整块铺不透明纯色（ULW_OPAQUE 下按不透明显示，与加载遮罩同色）。
-                new Span<uint>((void*)bits, bounds.Width * bounds.Height).Fill(_fill);
-            }
-            else if (_frame is { } frame)
+            // 先铺一层底：纯色模式是它自己的填充色，画面模式是调用方给的围边（默认透明）。
+            new Span<uint>((void*)bits, bounds.Width * bounds.Height).Fill(_solid ? _fill : surround);
+            if (!_solid && _frame is { } frame)
             {
                 var picture = frame.Picture;
                 var source = new BitmapInfo
@@ -140,24 +220,47 @@ internal sealed partial class VideoFrameOverlay : IDisposable
                         throw new Win32Exception(Marshal.GetLastWin32Error());
                 }
             }
-            var position = new NativePoint { X = bounds.Left, Y = bounds.Top };
-            var size = new NativePoint { X = bounds.Width, Y = bounds.Height };
-            var origin = new NativePoint();
-            if (!UpdateLayeredWindow(_window, screen, ref position, ref size, memory, ref origin,
-                    0, IntPtr.Zero, 4))
-                throw new Win32Exception(Marshal.GetLastWin32Error());
-            Native.SetWindowPos(_window, topmost ? Native.HwndTopMost : Native.HwndTop,
-                0, 0, 0, 0, Native.SwpNoMove | Native.SwpNoSize | Native.SwpNoActivate);
-            Native.ShowWindow(_window, Native.SwShowNoActivate);
+
+            _memory = memory;
+            _bitmap = bitmap;
+            _oldBitmap = old;
+            _painted = bounds;
+            _paintedSurround = surround;
+            _paintedOnce = true;
         }
-        finally
+        catch
         {
             SelectObject(memory, old);
             DeleteObject(bitmap);
             DeleteDC(memory);
+            throw;
+        }
+        finally
+        {
             Native.ReleaseDC(IntPtr.Zero, screen);
         }
     }
+
+    /// <summary>放掉已经画好的那块位图。<see cref="Show"/> 换尺寸前、以及 <see cref="Dispose"/> 都走这里。</summary>
+    private void ReleaseBitmap()
+    {
+        _paintedOnce = false;
+        if (_memory != IntPtr.Zero)
+        {
+            if (_bitmap != IntPtr.Zero) SelectObject(_memory, _oldBitmap);
+            DeleteDC(_memory);
+            _memory = IntPtr.Zero;
+            _oldBitmap = IntPtr.Zero;
+        }
+        if (_bitmap != IntPtr.Zero)
+        {
+            DeleteObject(_bitmap);
+            _bitmap = IntPtr.Zero;
+        }
+    }
+
+    private static bool Same(NativeRect left, NativeRect right) => left.Left == right.Left
+        && left.Top == right.Top && left.Right == right.Right && left.Bottom == right.Bottom;
 
     internal static NativeRect ClientRect(IntPtr window)
     {
@@ -195,6 +298,7 @@ internal sealed partial class VideoFrameOverlay : IDisposable
 
     public void Dispose()
     {
+        ReleaseBitmap();
         if (_window == IntPtr.Zero) return;
         Native.DestroyWindow(_window);
         _window = IntPtr.Zero;
@@ -240,6 +344,9 @@ internal sealed partial class VideoFrameOverlay : IDisposable
     private static partial int StretchDIBits(IntPtr device, int x, int y, int width, int height,
         int sourceX, int sourceY, int sourceWidth, int sourceHeight, IntPtr bits,
         ref BitmapInfo info, uint usage, uint operation);
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool SetLayeredWindowAttributes(IntPtr window, uint key, byte alpha, uint flags);
     [LibraryImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool UpdateLayeredWindow(IntPtr window, IntPtr destination, ref NativePoint position,

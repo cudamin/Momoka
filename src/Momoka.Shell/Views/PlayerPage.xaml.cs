@@ -745,6 +745,8 @@ public sealed partial class PlayerPage : UserControl
         // 退场底与压暗旋钮一定收掉：EnterPlayer 的入口闸只挡「已经在台上」，挡不住「上一次退场没走完
         // 就又进了播放」（换片、连播、用户手快）。一个留在屏上的退场底会盖住这一整趟播放。
         EndPlayerExit();
+        // 同一个道理，退场淡出那一层也要撤：它按着上一部片子的最后一帧，不进这一页的树就没人替它收。
+        CancelExitFade();
         if (_cursorHidden) _woke = "播放页就位";
         _chrome.Reset(Now);
         Render();

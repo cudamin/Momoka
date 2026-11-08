@@ -7,11 +7,15 @@ public static class PlayerMotion
     public const int EnterFadeMilliseconds = 140;
 
     /// <summary>
-    /// 退场（回主页）的时长。2026-09-20 由 190 提到 240：这一趟真正在动的东西不是这一页
-    /// （最后一帧的画面盖着整屏，页面那层不透明度淡不动它），而是那一帧自己的溶解，
-    /// 给它时间才看得出「退去」而不是「没了」。
+    /// 退场（回主页）的时长。<b>与进场同一个数</b>（2026-11-08 用户令「进入与退出的动画时长、缓动曲线
+    /// 协调统一」）：窗口模式退出那一段淡出、以及 <c>Detach</c> 那条溶解，都走这一颗。
+    /// <para>
+    /// 2026-09-20 由 190 提到 240：那一趟真正在动的东西不是这一页（最后一帧的画面盖着整屏，页面那层
+    /// 不透明度淡不动它），而是那一帧自己的溶解，给它时间才看得出「退去」而不是「没了」。2026-11-08 再
+    /// 与进场对齐到 <see cref="EnterMilliseconds"/>，两头从此是同一对时长。
+    /// </para>
     /// </summary>
-    public const int ExitMilliseconds = 240;
+    public const int ExitMilliseconds = EnterMilliseconds;
 
     public const int CoverMilliseconds = 240;
     public const double DepthScale = 1.018;
@@ -73,6 +77,27 @@ public static class PlayerMotion
     /// </para>
     /// </summary>
     public static double ExitDimAt(double progress) => Math.Clamp(progress, 0, 1);
+
+    /// <summary>
+    /// 窗口模式退出那一趟里，压在屏上那块覆盖层的<b>不透明度</b>：255 是还亮着，0 是已经没有它了。
+    /// <para>
+    /// 这一层是屏幕坐标的分层窗口，画面（SpriteVisual）不会跟着页面那层 <c>Opacity</c> 淡，所以退场的
+    /// 「淡出」只能拧它整层的不透明度 —— 这条曲线唯一的用途就是喂
+    /// <c>VideoFrameOverlay</c> 的 <c>SetLayeredWindowAttributes</c>（为什么不是 ULW 的
+    /// <c>SourceConstantAlpha</c>：那一支在本机实测不生效，读数记在那里）。
+    /// </para>
+    /// <para>
+    /// <b>匀速，与 <see cref="ExitDimAt"/> 同一条结论。</b>2026-09-20 量过：溶解配一条缓出曲线会让画面
+    /// 在头几十毫秒里掉掉大半、尾巴上再拖一条还读得出内容的残影。进场那段淡入走缓出是另一件事 ——
+    /// 它要在定位动画走完之前把浏览页盖住（<see cref="EnterFadeMilliseconds"/>）。
+    /// </para>
+    /// <para>
+    /// 两向共用 <see cref="EnterMilliseconds"/> 这一个数（<see cref="ExitMilliseconds"/> 与它相等），
+    /// 所以「时长、曲线协调统一」不是两处各写一遍的巧合。
+    /// </para>
+    /// </summary>
+    public static byte ExitFadeAlpha(double progress) =>
+        (byte)Math.Round(255 * (1 - Math.Clamp(progress, 0, 1)));
 
     /// <summary>与 XAML CubicEase.EaseOut 同一曲线，中途换向从当下这一帧续接。</summary>
     private static double Ease(double elapsed, int duration)
