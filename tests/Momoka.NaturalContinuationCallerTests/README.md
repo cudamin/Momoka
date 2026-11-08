@@ -1,5 +1,9 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-08：分辨率档位修复的来源同步
+
+`EmbyItem.cs` 的档位不再只看高度：新增 `MediaStream.ResolutionLabel`（宽高一起读，见 `MediaResolution`），`ToQualityLabel` 与 `ToFileInfoLabel` 改读它，旧的 `DescribeHeight` 删除。自然接续提取的 `PlayerViewModel` 成员、来源 identity/id、自动接集与 lease 规则一字未动，其余 18 份 pin 逐份核对一致。只同步 `EmbyItem.cs` 一项 SHA256（`d87c8f9…` → `3a638b5…`），base/date、提取器与全部断言不变。
+
 ## 2026-11-08：拖边继续播放固定为开的来源同步
 
 「调整窗口大小后继续播放」那一格按用户令删掉（固定为开），`PlayerViewModel.cs` 少了 `ResumeAfterWindowResize` 这一条只读属性；自然接续提取的成员（`NextEpisodeToAutoPlay`、`StepEpisodeAsync`、`StartPlaybackAsync` 等）与其它 18 份 pin 一字未动。只同步 `PlayerViewModel.cs` 一项 SHA256（`4da577b…` → `1704256…`），base/date、提取器与全部断言不变。
