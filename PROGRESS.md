@@ -22,6 +22,8 @@
 
 交付：从本工作树（代码与主树 HEAD 相同、`libmpv-2.dll` 从主树根复制）执行 `tools/publish.ps1 -NoArchive -OutputRoot C://Users//89400//Momoka//artifacts` 刷新主树 `artifacts/publish/win-x64`：**546 文件、286.7 MB**，14 GLSL／4 HOOK 着色器许可与批准 mpv 清单（59 文件：50 UI、2 native）逐文件校验通过；`Momoka.exe` 668160 字节、`Momoka.dll` 7290880 字节（23:08）。桌面 `Momoka.lnk` 的目标仍是 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`（读 `.lnk` 二进制确认），本次只换该目录内容。**桌面交付完成**（同时把另一会话已合入的 `ab1bf59` 文件选项行高一起带上）。未真实登录、未真实播放、未写服务器、未上传。
 
+临时分支 `workbuddy/master-d0fe1c88` 顶端 `2e07d4d` 的内容已全部进入 master；本聊天的工作树 `WorkBuddy/Worktrees/Momoka/master-d0fe1c88` 待会话关闭后按上一轮同一口径删除（本段交付记录只存在于 master，分支不需要跟着更新）。
+
 过程红项照实保留：本轮头两次 probe 各有一条与本批无关的红 —— 筛选多选下拉在探针窗口被别的窗口抢走激活时超时（`shell-probe-20261108-131003337-13032`、`-132945669-192`，第三次安静重跑通过），以及 19:26 那三条陈旧材质前提（上面已修）；另有一次启动被另一会话的探针占着桌面（`shell-probe-20261108-141236120-11808` 的进程，非本树）当场拒绝，等它退出后重跑。
 
 ## 2026-11-08 文件选项三行同一个行高（本树已验，待主树整合交付）
