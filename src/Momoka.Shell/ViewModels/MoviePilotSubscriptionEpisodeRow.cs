@@ -73,7 +73,6 @@ public sealed partial class MoviePilotSubscriptionEpisodeRow(
             || !Uri.TryCreate(Episode.ArtworkUrl, UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https")) return;
         if (_fetchImage is null) return;
         using var pending = CancellationTokenSource.CreateLinkedTokenSource(lifetime);
-        pending.CancelAfter(TimeSpan.FromSeconds(12));
         _artworkLoad = pending;
         var connection = service.ConnectionStamp;
         try

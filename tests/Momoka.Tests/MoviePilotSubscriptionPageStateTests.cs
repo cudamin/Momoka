@@ -30,6 +30,7 @@ internal static class MoviePilotSubscriptionPageStateTests
             {
                 var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(shell);
                 var type = assembly.GetType("Momoka.Shell.ViewModels.MoviePilotSubscriptionsViewModel", true)!;
+                RegisterImageLifetime(assembly);
                 Console.WriteLine("订阅分类与分集状态：真实Shell VM，禁止配置／凭据／网络／写入／窗口");
                 Console.WriteLine("Shell=" + shell);
                 foreach (var address in new[] { "", "http://[invalid" })
@@ -163,6 +164,66 @@ internal static class MoviePilotSubscriptionPageStateTests
             }
         }
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }
+    }
+
+    private static void RegisterImageLifetime(Assembly shell)
+    {
+        foreach (var series in new[] { false, true })
+            Test("MP 详情：数据读取完成后离页仍取消头图、季图、演职员和推荐图片 " + series, () =>
+            {
+                using var transport = new StubTransport()
+                    .Answer("login/access-token", "{\"access_token\":\"fixture-token\"}")
+                    .Answer("dashboard/system", "{}")
+                    .Answer("media/42", JsonSerializer.Serialize(new { title = "Fixture", type = series ? "电视剧" : "电影", media_source = "themoviedb", media_id = "42", poster_path = "/poster.jpg", backdrop_path = "/backdrop.jpg", season_info = series ? new[] { new { season_number = 1, name = "Season 1", episode_count = 1, poster_path = "/season.jpg" } } : [] }))
+                    .Answer("subscribe/", "[]")
+                    .Answer("media/groups/", "[]")
+                    .Answer("mediaserver/exists_remote", "{}")
+                    .Answer("tmdb/credits/", "[{\"id\":1,\"name\":\"Actor\",\"profile_path\":\"/actor.jpg\"}]")
+                    .Answer("tmdb/recommend/", "[{\"title\":\"Related\",\"type\":\"电影\",\"media_source\":\"themoviedb\",\"media_id\":\"43\",\"poster_path\":\"/related.jpg\"}]")
+                    .Answer("tmdb/similar/", "[]");
+                var settings = new AppSettings();
+                settings.MoviePilot.Enabled = true;
+                settings.MoviePilot.Url = "http://192.0.2.10:3001";
+                settings.MoviePilot.Username = "anonymous";
+                settings.MoviePilot.ProtectedPassword = "fixture-password";
+                using var client = new MoviePilotClient(transport);
+                using var service = new MoviePilotService(client, new MoviePilotCredentials(PassthroughSecretProtector.Instance), settings);
+                Assert.True(service.RefreshAvailabilityAsync().GetAwaiter().GetResult());
+                var type = shell.GetType("Momoka.Shell.ViewModels.MoviePilotMediaViewModel", true)!;
+                var vm = Activator.CreateInstance(type)!;
+                var media = new MoviePilotMedia { Title = "Fixture", Type = series ? "电视剧" : "电影", MediaSource = "themoviedb", MediaId = "42", ConnectionStamp = service.ConnectionStamp };
+                type.GetMethod("Attach", Members)!.Invoke(vm, [service, media, "", false, null, null, null, CancellationToken.None]);
+                var tokens = new List<CancellationToken>();
+                Func<string, CancellationToken, Task<byte[]>> fetch = async (_, token) =>
+                {
+                    tokens.Add(token);
+                    await Task.Delay(Timeout.Infinite, token);
+                    throw new AssertionException("不解码或生成图片");
+                };
+                type.GetField("_fetchImage", Members)!.SetValue(vm, fetch);
+                try
+                {
+                    ((Task)type.GetMethod("ReloadAsync", Members)!.Invoke(vm, null)!).GetAwaiter().GetResult();
+                    Assert.Equal(series ? 5 : 4, tokens.Count, "真实 Reload 已发起两张头图、季图、演职员和推荐图片");
+                    Assert.True(tokens.All(token => !token.IsCancellationRequested));
+                    if (series)
+                    {
+                        var previousSeason = tokens[2];
+                        var lifetime = (CancellationTokenSource)type.GetField("_lifetime", Members)!.GetValue(vm)!;
+                        ((Task)type.GetMethod("LoadSeasonsAsync", Members)!.Invoke(vm, [lifetime.Token])!).GetAwaiter().GetResult();
+                        Assert.True(previousSeason.IsCancellationRequested, "切组重读取消已结束季读取的后台季图");
+                        Assert.False(tokens[0].IsCancellationRequested, "切组仍保留当前媒体头图");
+                        Assert.False(tokens.Last().IsCancellationRequested);
+                    }
+                    var previousImages = tokens.ToArray();
+                    ((Task)type.GetMethod("ReloadAsync", Members)!.Invoke(vm, null)!).GetAwaiter().GetResult();
+                    Assert.True(previousImages.All(token => token.IsCancellationRequested), "刷新取消上一轮后台图片");
+                    Assert.True(tokens.Skip(previousImages.Length).All(token => !token.IsCancellationRequested));
+                    type.GetMethod("Cancel", Members)!.Invoke(vm, null);
+                    Assert.True(tokens.All(token => token.IsCancellationRequested), "Reload 结束后不能切断后台图片与页面的取消链");
+                }
+                finally { type.GetMethod("Cancel", Members)!.Invoke(vm, null); }
+            });
     }
 
     private static void RegisterEpisodeRows(Assembly shell, string root)

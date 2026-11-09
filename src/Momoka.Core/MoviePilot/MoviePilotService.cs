@@ -49,6 +49,8 @@ public sealed partial class MoviePilotService : IDisposable
 
     /// <summary>一次只让一趟登录在飞，省得同时来两次搜索各登一次。</summary>
     private readonly SemaphoreSlim _signIn = new(1, 1);
+    // 图片与 API 共用每服务器八连接的池；留出四条给季集、统计和后台连接检查。
+    private readonly SemaphoreSlim _imageReads = new(4, 4);
 
     private readonly object _sessionGate = new();
     private CachedSession? _session;
@@ -266,11 +268,20 @@ public sealed partial class MoviePilotService : IDisposable
     private async Task<byte[]> FetchImageAsync(SessionIdentity identity, string url, CancellationToken cancellationToken)
     {
         CheckIdentity(identity, cancellationToken);
-        var proxy = MoviePilotAddress.Combine(
-            identity.ApiBase, $"api/v1/system/cache/image?url={Uri.EscapeDataString(url)}");
-        var bytes = await identity.Client.GetBytesAsync(proxy, cancellationToken).ConfigureAwait(false);
-        CheckIdentity(identity, cancellationToken);
-        return bytes;
+        await _imageReads.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            CheckIdentity(identity, cancellationToken);
+            // 排队不计入取图期限。上游单次抓图默认二十秒，十二秒会过早放弃未缓存的图。
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(30));
+            var proxy = MoviePilotAddress.Combine(
+                identity.ApiBase, $"api/v1/system/cache/image?url={Uri.EscapeDataString(url)}");
+            var bytes = await identity.Client.GetBytesAsync(proxy, timeout.Token).ConfigureAwait(false);
+            CheckIdentity(identity, timeout.Token);
+            return bytes;
+        }
+        finally { _imageReads.Release(); }
     }
 
     /// <summary>

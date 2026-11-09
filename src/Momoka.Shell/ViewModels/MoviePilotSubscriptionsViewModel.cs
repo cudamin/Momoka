@@ -93,7 +93,7 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
         if (Poster is not null || _imageLoad is not null || !service.IsCurrentSubscription(Subscription)
             || !Uri.TryCreate(Subscription.Media.PosterUrl, UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https")) return;
         if (_fetchImage is null) return;
-        using var pending = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+        using var pending = new CancellationTokenSource();
         _imageLoad = pending;
         try
         {
@@ -114,7 +114,7 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
         if (Backdrop is not null || _backdropLoad is not null || !service.IsCurrentSubscription(Subscription)
             || !Uri.TryCreate(Subscription.Media.BackdropUrl, UriKind.Absolute, out var url) || url.Scheme is not ("http" or "https")) return;
         if (_fetchImage is null) return;
-        using var pending = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+        using var pending = new CancellationTokenSource();
         _backdropLoad = pending;
         try
         {

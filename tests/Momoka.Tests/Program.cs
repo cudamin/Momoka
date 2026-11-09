@@ -75,6 +75,7 @@ internal static class Program
         if (args is ["moviepilot-cookie-ownership-fixture"])
         {
             MoviePilotCookieOwnershipTests.Register();
+            MoviePilotImageConcurrencyTests.Register();
             return TestHarness.Run();
         }
         if (args is ["moviepilot-boundary-fixture"])

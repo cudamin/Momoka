@@ -146,6 +146,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     private Func<string, CancellationToken, Task<byte[]>>? _fetchImage;
     private CancellationTokenSource? _lifetime;
     private CancellationTokenSource? _groupLoad;
+    private CancellationTokenSource? _detailImages;
+    private CancellationTokenSource? _seasonImages;
     private readonly HashSet<MoviePilotMediaSeasonRow> _loadingEpisodes = [];
     private IReadOnlyList<MoviePilotSubscription> _subscriptions = [];
     private IReadOnlyDictionary<int, IReadOnlySet<int>>? _existing;
@@ -532,6 +534,10 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         _subscriptionStateKnown = false;
         _defaultSubscribeMode = MoviePilotSubscribeMode.Normal;
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(load, lifetime.Token);
+        _detailImages?.Cancel(); _detailImages?.Dispose();
+        // 图像任务晚于 Reload 完成，不能借用结束时会 Dispose 的 linked 取消链。
+        _detailImages = CancellationTokenSource.CreateLinkedTokenSource(load, lifetime.Token);
+        var imageToken = _detailImages.Token;
         try
         {
             var detail = await _service.MediaDetailAsync(_media, linked.Token);
@@ -560,7 +566,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             }
             if (!IsCurrent(load) || linked.IsCancellationRequested) return;
             OnPropertyChanged(nameof(AniBtVisibility)); OnPropertyChanged(nameof(CanSearchAniBt));
-            _ = LoadHeroImagesAsync(detail, linked.Token);
+            _ = LoadHeroImagesAsync(detail, imageToken);
             Title = detail.Media.Display; Overview = detail.Media.Overview ?? ""; Tagline = detail.Tagline;
             Meta = string.Join(" · ", new[] { detail.Media.Type, detail.Genres, detail.Media.SourceLabel + " " + detail.Media.MediaId }.Where(value => !string.IsNullOrEmpty(value)));
             Rating = detail.Vote is > 0 ? $"★ {detail.Vote:0.0} / 10" : "暂无评分";
@@ -579,7 +585,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             if (!Live || !IsCurrent(load)) return;
             FillGroups(groups);
             await LoadSeasonsAsync(linked.Token);
-            if (!_picker) await LoadRelatedAsync(linked.Token);
+            if (!_picker) await LoadRelatedAsync(imageToken);
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
@@ -652,6 +658,9 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         using var pending = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _groupLoad = pending;
         var group = GroupId;
+        _seasonImages?.Cancel(); _seasonImages?.Dispose();
+        _seasonImages = CancellationTokenSource.CreateLinkedTokenSource(_detailImages?.Token ?? _lifetime!.Token, _lifetime!.Token);
+        var imageToken = _seasonImages.Token;
         Seasons.Clear(); _existing = null; _libraryStatesKnown = false; _loadingEpisodes.Clear();
         NotifyState();
         SeasonNotice = "正在读取季信息…";
@@ -675,7 +684,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
                 else if (_picker && _initialSelection && _preselect == season.Number) row.Selected = true;
                 Seasons.Add(row);
                 row.PropertyChanged += (_, args) => { if (_picker && args.PropertyName is nameof(row.Selected) or nameof(row.ModeIndex) or nameof(row.ModeTouched)) UpdatePlanSummary(); };
-                _ = LoadSeasonImageAsync(row, pending.Token);
+                _ = LoadSeasonImageAsync(row, imageToken);
             }
             _preselect = null; _initialSelection = false;
             if (_picker) UpdatePlanSummary();
@@ -780,7 +789,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
                 var item = new MoviePilotMediaEpisodeRow(episode, _existing is null ? null : _existing.GetValueOrDefault(row.Season.Number)?.Contains(episode.Number) == true,
                     () => { if (CanInteract && Seasons.Contains(row)) _search?.Invoke(row.Season.Number, episode.Number); });
                 row.Episodes.Add(item);
-                _ = LoadEpisodeImageAsync(row, item, token);
+                _ = LoadEpisodeImageAsync(row, item, _seasonImages?.Token ?? token);
             }
             row.EpisodeNotice = episodes.Count == 0 ? "暂无剧集信息" : "";
         }
@@ -909,6 +918,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public override void Cancel()
     {
         if (_service is not null) _service.AniBtAvailabilityChanged -= OnAniBtAvailabilityChanged;
+        _detailImages?.Cancel(); _detailImages?.Dispose(); _detailImages = null;
+        _seasonImages?.Cancel(); _seasonImages?.Dispose(); _seasonImages = null;
         _lifetime?.Cancel(); _lifetime?.Dispose(); _lifetime = null;
         _fetchImage = null;
         _groupLoad?.Cancel(); _groupLoad = null;
