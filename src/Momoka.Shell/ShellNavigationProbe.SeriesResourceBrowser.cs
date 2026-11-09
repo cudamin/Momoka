@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Momoka.MoviePilot;
+using Momoka.Shell.Interop;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 
@@ -149,6 +150,11 @@ internal sealed partial class ShellNavigationProbe
         }
         async Task OpenAsync(string buttonName, string menuName)
         {
+            _window!.Activate();
+            var handle = WinRT.Interop.WindowNative.GetWindowHandle(_window);
+            await UntilAsync(() => Native.GetForegroundWindow() == handle);
+            var button = Get<Button>(picker, buttonName);
+            Require(button.IsLoaded && button.ActualWidth > 0 && button.ActualHeight > 0, "菜单按钮未完成布局");
             InvokeSeriesButton(picker, buttonName);
             var menu = Get<MenuFlyout>(picker, menuName);
             await UntilAsync(() => menu.IsOpen);

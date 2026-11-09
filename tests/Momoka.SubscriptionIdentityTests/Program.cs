@@ -30,6 +30,13 @@ foreach (var changeKind in new[] { "season", "group", "keyword-control" })
     media.Seasons.Add(new(new(2, "Second", 1, "", "", null), null, _ => { }, _ => { }));
     var view = new MoviePilotMediaSeasonsView();
     view.Attach(media, files);
+    if (media.Seasons.Any(row => row.Expanded)) failures.Add("season headers must start collapsed");
+    media.Seasons[0].Expanded = true;
+    view.Attach(media, files);
+    if (!media.Seasons[0].Expanded) failures.Add("reattach changed manual expansion");
+    media.Seasons[0].Expanded = false;
+    view.Attach(media, files);
+    if (media.Seasons.Any(row => row.Expanded)) failures.Add("reattach reopened a manually collapsed season");
     var before = HostSeason(media);
     var notifications = new List<string?>();
     files.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
@@ -46,6 +53,7 @@ foreach (var changeKind in new[] { "season", "group", "keyword-control" })
     });
     var selected = files.Selected?.Subscription ?? throw new InvalidOperationException("Missing reloaded subscription");
     var hostAfterEdit = HostSeason(media);
+    if (media.Seasons.Any(row => row.Expanded)) failures.Add("identity update expanded a season");
     var visibleEpisodeTitle = media.Seasons.FirstOrDefault(row => row.Files is not null)?.FilesEpisodes?.Single().RowTitle;
     var expectedHost = changeKind == "season" ? 2 : changeKind == "group" ? (int?)null : 1;
     if (before != 1 || !ReferenceEquals(card, files.Selected) || handler.Writes != 1)

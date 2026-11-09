@@ -22,7 +22,7 @@ internal sealed partial class ShellNavigationProbe
         var season = Get<StackPanel>(page, "SeasonPanel");
         var facts = Get<FrameworkElement>(page, "HeroFacts");
         static double Top(FrameworkElement node, UIElement root) => node.TransformToVisual(root).TransformPoint(default).Y;
-        Require(!Descendants(grid).Contains(facts) && !Descendants(grid).Contains(overview)
+        Require(ReferenceEquals(facts.Parent, Get<Grid>(page, "HeroRow")) && !Descendants(grid).Contains(overview)
             && surface.VerticalAlignment == VerticalAlignment.Top && hero.MinHeight <= 0.5,
             "资料卡、简介或背景图仍在撑高海报与操作头部");
         Require(primary.Children.Contains(overview) && primary.Children.Contains(season)
@@ -35,12 +35,14 @@ internal sealed partial class ShellNavigationProbe
             Require(Top(season, page) - Top(overview, page) - overview.ActualHeight is >= 6 and <= 10,
                 "简介与季之间没有收紧到正文间距");
         Require(side
-            ? ReferenceEquals(facts.Parent, Get<Grid>(page, "BodyLayout")) && Grid.GetRow(facts) == 0
-                && Math.Abs(Top(facts, page) - Top(Get<TextBlock>(page, "MediaTitle"), page)) < 1
-                && Math.Abs(facts.ActualWidth - 320) < 1 && primary.ActualWidth < page.ActualWidth - 320
+            ? Grid.GetRow(facts) == 0 && Grid.GetColumn(facts) == 1
+                && Math.Abs(facts.ActualWidth - 288) < 1
+                && Top(facts, page) >= Top(surface, page) - 2
             : Grid.GetColumn(facts) == 0 && Grid.GetRow(facts) == 1
-                && Top(facts, page) >= Top(primary, page) + primary.ActualHeight + 6,
-            "资料卡没有按宽窗对齐片名上沿、窄窗叠放的规则布局");
+                && Top(facts, page) >= Top(surface, page) + surface.ActualHeight + 6,
+            "资料卡没有在头部右侧或窄窗下方自然排列");
+        Require(Top(overview, page) >= Top(facts, page) + facts.ActualHeight,
+            "完整资料卡与下方正文发生重叠");
         Require(double.IsNaN(facts.Height) && !Descendants(facts).OfType<ScrollViewer>().Any(),
             "上方资料卡仍限制高度或裁掉完整字段");
         var factsPosition = facts.TransformToVisual(page).TransformPoint(default);
@@ -360,6 +362,10 @@ internal sealed partial class ShellNavigationProbe
             seasons.StartBringIntoView();
             await LayoutAsync(page);
             var season = page.MediaViewModel.Seasons.Single(row => row.Files is not null);
+            Require(page.MediaViewModel.Seasons.All(row => !row.Expanded), "季列表默认没有收起");
+            Require(Descendants(seasons).OfType<Expander>().All(control => !control.IsExpanded), "真实季折叠栏默认展开");
+            seasons.ShowSubscriptionFiles();
+            await LayoutAsync(page);
             var expander = Descendants(seasons).OfType<Expander>().Single(control => control.IsExpanded);
             var header = Descendants(expander).OfType<Microsoft.UI.Xaml.Controls.Primitives.ToggleButton>()
                 .Single(control => control.Name == "ExpanderHeader");
@@ -459,7 +465,7 @@ internal sealed partial class ShellNavigationProbe
             Require(surface.VerticalAlignment == VerticalAlignment.Top,
                 "沉浸档的头部没有按海报与操作内容收边");
             RequireSubscriptionBodyLayout(page, true);
-            Require(ReferenceEquals(facts.Parent, Get<Grid>(page, "BodyLayout")), "资料卡没有留在正文右列完整展示");
+            Require(ReferenceEquals(facts.Parent, Get<Grid>(page, "HeroRow")), "资料卡没有留在正文右列完整展示");
             await CheckSubscriptionAppearanceAsync(page, settings.Ui);
             Require(hero.MinHeight <= 0.5, "沉浸档的头部仍在按背景图让开第一屏");
             Require(Math.Abs(image.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001,
@@ -467,7 +473,7 @@ internal sealed partial class ShellNavigationProbe
             var expectedImage = DetailHero.ImmersivePictureHeight(media.Viewport, media.HeaderLift);
             Require(Math.Abs(image.ActualHeight - expectedImage) < 2,
                 $"沉浸档的背景没有铺到窗口下沿：图 {image.ActualHeight:0}、该是 {expectedImage:0}");
-            Require(Math.Abs(facts.ActualWidth - 320) < 1 && facts.HorizontalAlignment == HorizontalAlignment.Right, "沉浸档的资料卡没有并排在右端");
+            Require(Math.Abs(facts.ActualWidth - 288) < 1 && facts.HorizontalAlignment == HorizontalAlignment.Right, "沉浸档的资料卡没有并排在右端");
             readings.Add($"沉浸 1240：视口 {media.Viewport:0}、图 {image.ActualHeight:0}、头部 {hero.ActualHeight:0}、"
                 + $"纸面透明度 {(sheet.Background as SolidColorBrush)?.Color.A}、面板 {panel.Background.Opacity:0.##}");
             await SaveProbeScreenAsync("mp-subscription-mode-immersive-1240.png");

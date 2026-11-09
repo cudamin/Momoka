@@ -34,6 +34,33 @@ internal static class MoviePilotMediaDetailTests
 
     internal static void Register()
     {
+        Test("MP 网页资料卡：只显示来源字段，国家公司逐行，不混入时长", () =>
+        {
+            var detail = MoviePilotMediaDetail.Parse(Json("""{"title":"示例剧","media_source":"themoviedb","media_id":42,"tmdb_id":42,"type":"电视剧","original_name":"Example","status":"Returning Series","first_air_date":"2026-10-01","original_language":"ja","runtime":24,"production_countries":[{"name":"Japan"},{"name":"France"}],"production_companies":[{"name":"Studio A"},{"name":"Studio B"}]}"""), Media);
+            Assert.Equal("ID|原始标题|状态|上映日期|原始语言|出品国家|制作公司", string.Join('|', detail.Facts.Select(fact => fact.Label)));
+            Assert.Equal("Japan\nFrance", detail.Facts.Single(fact => fact.Label == "出品国家").Value);
+            Assert.Equal("Studio A\nStudio B", detail.Facts.Single(fact => fact.Label == "制作公司").Value);
+        });
+        Test("MP 网页资料卡：辅助 TMDB 优先而订阅主身份不变，豆瓣不加 TMDB 字段", () =>
+        {
+            var media = Media with { MediaSource = "douban" };
+            var data = Json("""{"title":"示例剧","media_source":"douban","media_id":42,"douban_id":42,"tmdb_id":99,"type":"电视剧","status":"Ended","original_language":"ja"}""");
+            var detail = MoviePilotMediaDetail.Parse(data, media);
+            Assert.Equal("99", detail.Facts[0].Value);
+            Assert.Equal("douban", detail.Media.MediaSource);
+            var bare = MoviePilotMediaDetail.Parse(Json("""{"title":"示例剧","media_source":"douban","media_id":42,"douban_id":42,"type":"电视剧","status":"Ended","original_language":"ja"}"""), media);
+            Assert.Equal("豆瓣 ID", bare.Facts.Single().Label);
+        });
+        Test("MP 网页资料卡：电影发行日期取对应类型最早有效值，最后字段无分隔线", () =>
+        {
+            var movie = Media with { Type = "电影" };
+            var detail = MoviePilotMediaDetail.Parse(Json("""{"title":"示例剧","media_source":"themoviedb","media_id":42,"tmdb_id":42,"type":"电影","release_dates":[{"type":4,"date":"2026-11-10T00:00:00Z","iso_code":"US"},{"type":4,"date":"2026-11-01T00:00:00Z","iso_code":"JP"},{"type":5,"date":"2026-12-01T00:00:00Z","iso_code":"DE"},{"type":4,"date":"invalid","iso_code":"FR"}]}"""), movie);
+            Assert.Equal("2026-11-01", detail.Facts.Single(fact => fact.Label == "数字发行").Value);
+            Assert.Equal("JP", detail.Facts.Single(fact => fact.Label == "数字发行").ReleaseCountry);
+            Assert.Equal("2026-12-01", detail.Facts.Single(fact => fact.Label == "实体发行").Value);
+            Assert.True(detail.Facts[^1].Last);
+            Assert.Equal(1, detail.Facts.Count(fact => fact.Last));
+        });
         Test("MP 选季名称：保留篇名、特别篇，通用季号不重复", () =>
         {
             foreach (var generic in new[] { "第 2 季", "Season 2", "season02", "S02", "s2", "" })

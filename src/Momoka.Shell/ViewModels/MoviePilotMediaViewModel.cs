@@ -13,6 +13,8 @@ using Momoka.Shell.Media;
 
 namespace Momoka.Shell.ViewModels;
 
+public sealed record MoviePilotRatingStar(double Fill);
+
 public sealed partial class MoviePilotMediaEpisodeRow(MoviePilotMediaEpisode episode, bool? exists, Action search) : ObservableObject
 {
     public MoviePilotMediaEpisode Episode { get; } = episode;
@@ -165,7 +167,9 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
 
     public ObservableCollection<MoviePilotEpisodeGroupRow> Groups { get; } = [];
     public ObservableCollection<MoviePilotMediaSeasonRow> Seasons { get; } = [];
-    public ObservableCollection<MoviePilotSubscriptionFact> Facts { get; } = [];
+    public ObservableCollection<MoviePilotMediaFact> Facts { get; } = [];
+    public ObservableCollection<MoviePilotRatingStar> Stars { get; } = [];
+    [ObservableProperty] public partial Visibility StarsVisibility { get; set; } = Visibility.Collapsed;
     public ObservableCollection<MoviePilotMediaLink> Links { get; } = [];
     public MoviePilotMediaDetail? Detail { get; private set; }
 
@@ -546,6 +550,10 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             Title = detail.Media.Display; Overview = detail.Media.Overview ?? ""; Tagline = detail.Tagline;
             Meta = string.Join(" · ", new[] { detail.Media.Type, detail.Genres, detail.Media.SourceLabel + " " + detail.Media.MediaId }.Where(value => !string.IsNullOrEmpty(value)));
             Rating = detail.Vote is > 0 ? $"★ {detail.Vote:0.0} / 10" : "暂无评分";
+            Stars.Clear();
+            if (detail.Vote is > 0 and <= 10 and var vote)
+                foreach (var index in Enumerable.Range(0, 10)) Stars.Add(new(Math.Clamp(Math.Floor(vote * 2) / 2 - index, 0, 1)));
+            StarsVisibility = Stars.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             Facts.Clear(); foreach (var fact in detail.Facts) Facts.Add(fact);
             Links.Clear(); foreach (var link in detail.Links) Links.Add(link);
             SubscribeLabel = !_subscriptionStateKnown ? "订阅状态未知" : detail.Media.Type == "电视剧" ? (_subscriptions.Count > 0 ? $"已订阅 {_subscriptions.Count} 季" : "选择订阅季")
@@ -901,7 +909,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         _lifetime?.Cancel(); _lifetime?.Dispose(); _lifetime = null;
         _fetchImage = null;
         _groupLoad?.Cancel(); _groupLoad = null;
-        Seasons.Clear(); Groups.Clear(); Facts.Clear(); Links.Clear(); Detail = null;
+        Seasons.Clear(); Groups.Clear(); Facts.Clear(); Stars.Clear(); StarsVisibility = Visibility.Collapsed; Links.Clear(); Detail = null;
         DetailError = "";
         _subscriptionStateKnown = false;
         _firstDetailLoad = false;

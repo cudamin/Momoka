@@ -49,7 +49,7 @@ public sealed partial class MoviePilotMediaSeasonsView : UserControl
         }
     }
 
-    /// <summary>季列表每次重读都会整批重建，行一上场就按订阅季号挂文件统计并展开，文件情况开页即见。</summary>
+    /// <summary>按订阅季号挂文件统计；保持默认收起及用户当前的展开状态。</summary>
     private void OnSeasonsChanged(object? sender, NotifyCollectionChangedEventArgs args) => FlagSubscriptionSeason();
 
     private void FlagSubscriptionSeason()
@@ -74,7 +74,6 @@ public sealed partial class MoviePilotMediaSeasonsView : UserControl
             row.FilesEmptyNotice = _files.FilterNotice;
             row.FilesFilterIndex = _files.FilterIndex;
             row.FilesEpisodes = _files.Episodes;
-            row.Expanded = true;
         }
     }
 

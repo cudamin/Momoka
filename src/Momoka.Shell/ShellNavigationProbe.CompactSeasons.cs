@@ -21,6 +21,9 @@ internal sealed partial class ShellNavigationProbe
             var vm = page.ViewModel;
             await UntilAsync(() => vm.IsReady && page.MediaViewModel.IsReady && vm.Episodes.Count == 8);
             var seasons = Get<MoviePilotMediaSeasonsView>(page, "MediaSeasons");
+            seasons.StartBringIntoView();
+            await LayoutAsync(page);
+            seasons.ShowSubscriptionFiles();
             var rows = vm.Episodes;
             Require(vm.Episodes[0].RowTitle == "第 1 集", "默认集名重复显示集号");
             Require(vm.Episodes.All(row => row.Artwork is null && row.DescriptionVisibility == Visibility.Collapsed), "无图无简介夹具不正确");
