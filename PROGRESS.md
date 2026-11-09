@@ -11792,3 +11792,11 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 判据换成 `DetailHero.SubscriptionImmersive(immersive, wide, artwork)`；`Spacious`／`Share`／`ImmersiveShare`／`NearCrop`／`CropAhead`、页面里的 `AttachWindow`／拖边 180ms 等待／260ms Storyboard／`ShowcaseAnimations` 一并退役。页面从 `MoviePilotSubscriptionRequest.Settings` 接 `ISettingsService`，`ShellPrefs.AppearanceChanged` 当场切换；没有图时头部不再按估算图高让开一整屏。
 - 产品提交 `3c88c3e`（本树 `workbuddy/master-3e536afb`，基点 `ee7ce4a`）。验证：Release Shell 0 警告 0 错误；Tests 编译 0/0；主测试 **4216/4216、0 失败 0 跳过**（`TEMP` 指向可写目录；默认 `C:/WINDOWS/TEMP` 时两条下载用例红，属环境）；`--probe-shell --probe-section moviepilot --screen 1` **36/36、退出 0**（`shell-probe-20261109-035406146-34012`），新用例「订阅详情沉浸与简洁模式切换」四段全过并保存 `mp-subscription-mode-{immersive-1240,plain-1240,plain-760,immersive-760,immersive-wide}.png`，逐张目视；「背景按页宽等比、下滑遮罩与纸面」改在 900 宽单列量。whitespace、`git diff --check`、`check-diff.ps1` 通过。
 - **已合入主树**（用户令「你直接合并」）：主树 `C:/Users/89400/Momoka` 上以 `--no-ff` 合入本分支，`docs/开发与验证.md` 顶部的两节按双方都保留解冲突。主树最终代码的重验与桌面发布见本文件末尾「主树交付」一节；发布完成前桌面快捷方式仍是旧版。
+
+### 主树交付（2026-11-09 13:0x）
+
+- 用户令「你直接合并」：`workbuddy/master-3e536afb` 以 `--no-ff` 合入 master 为 `4151b57`，`docs/开发与验证.md` 顶部两节（「隐藏没有封面的演职人员」与「MP 订阅沉浸／简洁」）都保留。
+- 主树 `dotnet build ./Momoka.sln -c Release` **0 警告 0 错误**；`tests/Momoka.Tests -p:Platform=x64` 重编 0/0；主测试 **4219/4219、0 失败 0 跳过**（`TEMP` 指向可写目录）。`--probe-shell --probe-section moviepilot --screen 1` **36/36、退出 0**（`shell-probe-20261109-044332535-30648`）：沉浸 1240（视口 1000、图 1000、头部 850、纸面 alpha 184、面板 0）、简洁 1240（卡面内边距 24、纸面 alpha 255、面板 1、资料卡 320）、简洁 760、窄窗沉浸 760、拉宽回沉浸五段全过；证据 `work/20261109-mp-subscription-mode/`。
+- `publish.ps1 -NoArchive -Shortcut`：发布验证通过，546 文件 286.7 MB；发布 `Momoka.dll` 与当前 bin 同为 `31d988ac…`，发布/构建 `Momoka.Core.dll` 同为 `67b8b290…`。快捷方式重写仍被桌面写入拒绝（`UnauthorizedAccessException`，与上批相同）；读 `Momoka.lnk` 二进制核对，目标仍是 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`、工作目录同目录、参数空 —— 桌面启动的就是这一份。
+- 发版注意：先跑普通 `dotnet build` 会把 `src/Momoka.Shell/bin/x64/Release/<tfm>/win-x64/Momoka.deps.json` 覆盖成非自包含版本，随后 publish 的载荷验证会以「待验 deps 未批准依赖：runtimepack.Microsoft.NETCore.App.Runtime.win-x64/10.0.11」拒绝。先按 publish 的同一组参数（`-r win-x64 -p:Platform=x64 -p:SelfContained=true -p:WindowsAppSDKSelfContained=true`）重建一次 Shell（必要时删掉那份 deps），再 publish 即通过。本轮未改脚本。
+- 未 push；未播放、未连真实服务器。
