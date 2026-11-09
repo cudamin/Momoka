@@ -1,6 +1,8 @@
 # 开发进度
 
-## 2026-11-10 MP 详情简介上移与季区亚克力（已整合，待最终验证发布）
+## 2026-11-10 MP 详情简介上移与季区亚克力（已交付）
+
+最终发布成功：publish.ps1 -NoArchive -Shortcut退出0，546文件/286.9MB、14GLSL/4HOOK及59批准mpv文件校验通过；桌面Momoka.lnk指向主树artifacts/publish/win-x64/Momoka.exe，工作目录相同、参数空。发布Shell与发布配置build哈希同FD9B5158A2E1EB554A8179B58434E7756AD74672688A0B7D17459013A1E2F581；发布Core981F16729A5413B73C85E4A2B9E79123C0878613B9F82FEE1F53050FD00FC8F2，测试Core为开发配置C810000F5DAD2F0F40A77E080C20B90C2F1168AC595727F38106228D1623894D，不冒称同二进制。发布程序45232本人三项3/3通过，最终实屏已目视，InspectDone正常退出。回执及日志artifacts/mp-compact-seasons-master；无真实服务器播放/写入或上传。当前e859是本聊天受保护primary工作树且无专门附件，已核对产品进入master，保留恢复线索f14a5a8，不用文件系统强删。
 
 主树原生3/3通过（shell-probe-20261109-162500956-25084），宽窄/五主题实屏已目视，检查台InspectDone正常结束；即将刷新桌面交付目录。
 
