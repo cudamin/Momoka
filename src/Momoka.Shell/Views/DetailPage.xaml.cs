@@ -36,6 +36,9 @@ public sealed partial class DetailPage : Page, IShellContent
 {
     private const string Category = "详情";
 
+    public static Visibility FileOptionsVisibility(Visibility video, Visibility pickers) =>
+        video == Visibility.Visible || pickers == Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
+
     private DetailRequest? _request;
 
     /// <summary>
