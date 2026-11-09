@@ -33,13 +33,14 @@
             </Border>
         </DataTemplate>
         <DataTemplate x:Key="MediaRelatedCardTemplate" x:DataType="vm:MoviePilotRelatedCard">
-            <Button x:Name="OpenRelatedMedia" Command="{x:Bind OpenCommand}" Style="{StaticResource EgArtworkTileStyle}" Width="{x:Bind CardWidth, Mode=OneWay}" AutomationProperties.Name="{x:Bind Title}">
+            <Button x:Name="OpenRelatedMedia" Command="{x:Bind OpenCommand}" Style="{StaticResource EgArtworkTileStyle}" Width="128" AutomationProperties.Name="{x:Bind Title}">
                 <StackPanel Spacing="8">
-                    <Border x:Name="RelatedArtwork" Height="{x:Bind ArtworkHeight, Mode=OneWay}" CornerRadius="6">
+                    <Border x:Name="RelatedArtwork" Height="184" CornerRadius="6">
                         <Border.Background><ImageBrush ImageSource="{x:Bind Poster, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background>
                     </Border>
-                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" TextTrimming="CharacterEllipsis" Margin="8,0" />
-                    <TextBlock Text="{x:Bind Subtitle}" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" Margin="8,0,8,8" />
+                    <TextBlock x:Name="RelatedTitle" Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" Margin="8,0"
+                        ToolTipService.ToolTip="{x:Bind Title}" />
+                    <TextBlock x:Name="RelatedSubtitle" Text="{x:Bind Subtitle}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" Margin="8,0,8,8" />
                 </StackPanel>
             </Button>
         </DataTemplate>
@@ -69,12 +70,11 @@
     </Grid>
     <ScrollViewer x:Name="DetailScroll" VerticalScrollBarVisibility="Auto" SizeChanged="OnDetailScrollSizeChanged" ViewChanged="OnDetailViewChanged">
         <StackPanel>
-            <!-- 资料卡与封面同排等高；卡内保留正常字号，滚动条隐藏。 -->
+            <!-- 封面与操作自然收边；资料卡完整展示，下方货架只收窄整体宽度。 -->
             <StackPanel x:Name="HeroSection">
             <StackPanel x:Name="HeroBlock" Padding="{x:Bind MediaViewModel.HeaderPadding, Mode=OneWay}" Spacing="12"
                 SizeChanged="OnHeroContentSizeChanged">
-            <Grid x:Name="HeroRow" Margin="0,12,0,12" ColumnSpacing="12">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <Grid x:Name="HeroRow" Margin="0,12,0,12">
                 <Border x:Name="HeroSurface" VerticalAlignment="Top" CornerRadius="{StaticResource EgCardCornerRadius}">
                 <Grid x:Name="HeroGrid" MinHeight="300" ColumnSpacing="{StaticResource EgSpaceXL}" RowSpacing="16" SizeChanged="OnHeroSizeChanged">
                     <Grid.RowDefinitions>
@@ -134,34 +134,6 @@
                     </StackPanel>
                 </Grid>
                 </Border>
-                <Border x:Name="HeroFacts" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Top"
-                    Width="320" Height="300" Padding="12" CornerRadius="{StaticResource EgCardCornerRadius}"
-                    BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-                    <Grid RowSpacing="{StaticResource EgSpaceM}">
-                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                        <StackPanel x:Name="SubscriptionRating" Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}"
-                            Visibility="{x:Bind SubscriptionSectionVisibility(ViewModel.Deleted), Mode=OneWay}">
-                            <ItemsRepeater x:Name="SubscriptionStars" ItemsSource="{x:Bind ViewModel.DetailStars, Mode=OneWay}">
-                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="2" /></ItemsRepeater.Layout>
-                                <ItemsRepeater.ItemTemplate>
-                                    <DataTemplate x:DataType="x:String">
-                                        <FontIcon Glyph="{x:Bind}" Style="{StaticResource EgRatingStarStyle}" />
-                                    </DataTemplate>
-                                </ItemsRepeater.ItemTemplate>
-                            </ItemsRepeater>
-                            <TextBlock Text="{x:Bind ViewModel.DetailRatingText, Mode=OneWay}" Style="{StaticResource EgDataStyle}" VerticalAlignment="Center" />
-                        </StackPanel>
-                        <ScrollViewer x:Name="FactsScroll" Grid.Row="1" VerticalScrollMode="Auto" VerticalScrollBarVisibility="Hidden"
-                            HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="媒体和订阅资料">
-                            <StackPanel x:Name="FactList" Spacing="0">
-                                <ItemsRepeater x:Name="MediaFacts" ItemsSource="{x:Bind MediaViewModel.Facts, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionFactTemplate}" />
-                                <ItemsRepeater x:Name="SubscriptionFacts" ItemsSource="{x:Bind ViewModel.DetailInfoFacts, Mode=OneWay}"
-                                    ItemTemplate="{StaticResource SubscriptionFactTemplate}" Visibility="{x:Bind SubscriptionSectionVisibility(ViewModel.Deleted), Mode=OneWay}" />
-                            </StackPanel>
-                        </ScrollViewer>
-                    </Grid>
-                </Border>
             </Grid>
             <InfoBar Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
@@ -177,7 +149,7 @@
             <Grid x:Name="BodyRow" ColumnSpacing="12" SizeChanged="OnBodyRowSizeChanged">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="HeroFactColumn" Width="320" /></Grid.ColumnDefinitions>
-                <StackPanel x:Name="BodyPrimary" Spacing="8" VerticalAlignment="Top">
+                <StackPanel x:Name="BodyPrimary" Spacing="8" VerticalAlignment="Top" SizeChanged="OnRelatedWidthChanged">
                     <StackPanel x:Name="HeroOverview" VerticalAlignment="Top"
                         Style="{StaticResource EgBodyPanelStyle}" Background="Transparent" BorderThickness="0"
                         Padding="0" Spacing="{StaticResource EgSpaceS}">
@@ -198,28 +170,53 @@
                 <local:MoviePilotMediaSeasonsView x:Name="MediaSeasons" />
             </StackPanel>
                 </StackPanel>
+                <Border x:Name="HeroFacts" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Top"
+                    Width="320" Padding="12" CornerRadius="{StaticResource EgCardCornerRadius}"
+                    BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    <Grid RowSpacing="{StaticResource EgSpaceM}">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <StackPanel x:Name="SubscriptionRating" Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}"
+                            Visibility="{x:Bind SubscriptionSectionVisibility(ViewModel.Deleted), Mode=OneWay}">
+                            <ItemsRepeater x:Name="SubscriptionStars" ItemsSource="{x:Bind ViewModel.DetailStars, Mode=OneWay}">
+                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="2" /></ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <FontIcon Glyph="{x:Bind}" Style="{StaticResource EgRatingStarStyle}" />
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                            <TextBlock Text="{x:Bind ViewModel.DetailRatingText, Mode=OneWay}" Style="{StaticResource EgDataStyle}" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <StackPanel x:Name="FactList" Grid.Row="1" Spacing="0">
+                            <ItemsRepeater x:Name="MediaFacts" ItemsSource="{x:Bind MediaViewModel.Facts, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionFactTemplate}" />
+                            <ItemsRepeater x:Name="SubscriptionFacts" ItemsSource="{x:Bind ViewModel.DetailInfoFacts, Mode=OneWay}"
+                                ItemTemplate="{StaticResource SubscriptionFactTemplate}" Visibility="{x:Bind SubscriptionSectionVisibility(ViewModel.Deleted), Mode=OneWay}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
             </Grid>
 
-            <StackPanel x:Name="PeoplePanel" Style="{StaticResource EgBodyPanelStyle}"
+            <StackPanel x:Name="PeoplePanel" HorizontalAlignment="Left" Style="{StaticResource EgBodyPanelStyle}"
                 Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
                 Spacing="10" Visibility="{x:Bind MediaViewModel.PeopleVisibility, Mode=OneWay}">
                 <local:ShelfHead Title="演员阵容" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
                 <local:ShelfStrip x:Name="MediaPeople" ItemsSource="{x:Bind MediaViewModel.People, Mode=OneWay}"
-                    ItemSpacing="12" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
+                    ItemSpacing="16" PictureHeight="184" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
             </StackPanel>
-            <StackPanel x:Name="RecommendationsPanel" Style="{StaticResource EgBodyPanelStyle}"
+            <StackPanel x:Name="RecommendationsPanel" HorizontalAlignment="Left" Style="{StaticResource EgBodyPanelStyle}"
                 Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
                 Spacing="10" Visibility="{x:Bind MediaViewModel.RecommendationsVisibility, Mode=OneWay}">
                 <local:ShelfHead Title="相关推荐" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
                 <local:ShelfStrip x:Name="MediaRecommendations" ItemsSource="{x:Bind MediaViewModel.Recommendations, Mode=OneWay}"
-                    ItemSpacing="12" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
+                    ItemSpacing="16" PictureHeight="184" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
             </StackPanel>
-            <StackPanel x:Name="SimilarPanel" Style="{StaticResource EgBodyPanelStyle}"
+            <StackPanel x:Name="SimilarPanel" HorizontalAlignment="Left" Style="{StaticResource EgBodyPanelStyle}"
                 Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
                 Spacing="10" Visibility="{x:Bind MediaViewModel.SimilarVisibility, Mode=OneWay}">
                 <local:ShelfHead Title="相似作品" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
                 <local:ShelfStrip x:Name="MediaSimilar" ItemsSource="{x:Bind MediaViewModel.Similar, Mode=OneWay}"
-                    ItemSpacing="12" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
+                    ItemSpacing="16" PictureHeight="184" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
             </StackPanel>
             </StackPanel>
         </StackPanel>

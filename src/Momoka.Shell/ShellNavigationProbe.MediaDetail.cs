@@ -21,7 +21,6 @@ internal sealed partial class ShellNavigationProbe
         var overview = Get<StackPanel>(page, "HeroOverview");
         var season = Get<StackPanel>(page, "SeasonPanel");
         var facts = Get<FrameworkElement>(page, "HeroFacts");
-        var poster = Get<Border>(page, "DetailPoster");
         static double Top(FrameworkElement node, UIElement root) => node.TransformToVisual(root).TransformPoint(default).Y;
         Require(!Descendants(grid).Contains(facts) && !Descendants(grid).Contains(overview)
             && surface.VerticalAlignment == VerticalAlignment.Top && hero.MinHeight <= 0.5,
@@ -36,13 +35,13 @@ internal sealed partial class ShellNavigationProbe
             Require(Top(season, page) - Top(overview, page) - overview.ActualHeight is >= 6 and <= 10,
                 "简介与季之间没有收紧到正文间距");
         Require(side
-            ? Grid.GetColumn(facts) == 1 && Grid.GetRow(facts) == 0 && Math.Abs(Top(facts, page) - Top(poster, page)) <= 1.5
+            ? Grid.GetColumn(facts) == 1 && Grid.GetRow(facts) == 0 && Top(overview, page) - Top(facts, page) is >= 0 and <= 97
                 && Math.Abs(facts.ActualWidth - 320) < 1 && primary.ActualWidth < page.ActualWidth - 320
             : Grid.GetColumn(facts) == 0 && Grid.GetRow(facts) == 1
                 && Top(facts, page) >= Top(primary, page) + primary.ActualHeight + 6,
-            "资料卡没有按宽窗与封面顶齐、窄窗叠放的规则布局");
-        Require(Math.Abs(facts.ActualHeight - poster.ActualHeight) <= 1,
-            $"资料卡没有与封面等高：卡片 {facts.ActualHeight:0.0}、封面 {poster.ActualHeight:0.0}");
+            "资料卡没有按宽窗正文右列、窄窗叠放的规则布局");
+        Require(double.IsNaN(facts.Height) && !Descendants(facts).OfType<ScrollViewer>().Any(),
+            "上方资料卡仍限制高度或裁掉完整字段");
         var factsPosition = facts.TransformToVisual(page).TransformPoint(default);
         foreach (var button in Get<WrapRow>(page, "DetailActions").Children.OfType<Button>().Where(button => button.Visibility == Visibility.Visible))
         {
@@ -459,7 +458,7 @@ internal sealed partial class ShellNavigationProbe
             Require(surface.VerticalAlignment == VerticalAlignment.Top,
                 "沉浸档的头部没有按海报与操作内容收边");
             RequireSubscriptionBodyLayout(page, true);
-            Require(ReferenceEquals(facts.Parent, Get<Grid>(page, "HeroRow")), "宽窗资料卡没有放在封面同一排");
+            Require(ReferenceEquals(facts.Parent, Get<Grid>(page, "BodyRow")), "资料卡没有留在正文右列完整展示");
             await CheckSubscriptionAppearanceAsync(page, settings.Ui);
             Require(hero.MinHeight <= 0.5, "沉浸档的头部仍在按背景图让开第一屏");
             Require(Math.Abs(image.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001,
@@ -532,7 +531,6 @@ internal sealed partial class ShellNavigationProbe
             // 翻到长货架末尾再缩窗，第 0 项已虚拟化；翻页必须采用现存卡片的新尺寸。
             for (var index = media.Recommendations.Count; index < 20; index++)
                 media.Recommendations.Add(new MoviePilotRelatedCard("推荐 " + index, "电影", () => { }));
-            media.ResizeRelatedCards(Get<Grid>(page, "BodyRow").ActualWidth);
             var strip = Get<ShelfStrip>(page, "MediaRecommendations");
             strip.StartBringIntoView();
             await LayoutAsync(page);

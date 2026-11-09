@@ -43,6 +43,17 @@ public sealed partial class ShelfStrip : UserControl
         typeof(ShelfStrip),
         new PropertyMetadata(16d, OnSpacingChanged));
 
+    public static readonly DependencyProperty PictureHeightProperty = DependencyProperty.Register(
+        nameof(PictureHeight), typeof(double), typeof(ShelfStrip),
+        new PropertyMetadata(0d, (owner, _) => ((ShelfStrip)owner).SyncBand()));
+
+    /// <summary>显式图片高度供可换行标题的货架定位翻页圆钮；普通货架保留原文字高度估算。</summary>
+    public double PictureHeight
+    {
+        get => (double)GetValue(PictureHeightProperty);
+        set => SetValue(PictureHeightProperty, value);
+    }
+
     public static readonly DependencyProperty FocusIndexProperty = DependencyProperty.Register(
         nameof(FocusIndex),
         typeof(int),
@@ -369,7 +380,8 @@ public sealed partial class ShelfStrip : UserControl
     /// <summary>48px 圆形按钮始终放在封面中线，不覆盖标题和续播信息。</summary>
     private void SyncBand()
     {
-        var band = Math.Max(MinBandHeight, ActualHeight - CardSize.Chrome - Scroller.Padding.Top);
+        var band = PictureHeight > 0 ? PictureHeight
+            : Math.Max(MinBandHeight, ActualHeight - CardSize.Chrome - Scroller.Padding.Top);
         var top = Scroller.Padding.Top + (band - MinBandHeight) / 2;
 
         Prev.Height = Next.Height = MinBandHeight;

@@ -9,7 +9,7 @@
             <StackPanel Width="{x:Bind CardWidth}" Spacing="8">
                 <local:MoviePilotSubscriptionPoster Card="{x:Bind}" Width="{x:Bind CardWidth}" Height="{x:Bind PosterHeight}"
                     OpenRequested="OnPosterOpen" MenuRequested="OnPosterMenu" PosterRequested="OnPosterRequested" />
-                <TextBlock Text="{x:Bind Title, Mode=OneWay}" TextTrimming="CharacterEllipsis" MaxLines="2" TextWrapping="Wrap"
+                <TextBlock x:Name="SubscriptionTitle" Text="{x:Bind Title, Mode=OneWay}" TextWrapping="Wrap"
                     Style="{StaticResource EgBodyStyle}" ToolTipService.ToolTip="{x:Bind Title, Mode=OneWay}" />
             </StackPanel>
         </DataTemplate>
@@ -25,7 +25,7 @@
             Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
         <local:ShelfStrip x:Name="MovieSubscriptions" ItemsSource="{x:Bind ViewModel.Movies, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionTemplate}"
-            ItemSpacing="18" Height="{x:Bind ViewModel.RowHeight, Mode=OneWay}" Visibility="{x:Bind ViewModel.MoviesVisibility, Mode=OneWay}" />
+            ItemSpacing="18" PictureHeight="255" Visibility="{x:Bind ViewModel.MoviesVisibility, Mode=OneWay}" />
       </StackPanel>
       <StackPanel Spacing="{StaticResource EgSpaceM}" Visibility="{x:Bind SeriesVisible(ViewModel.SeriesVisibility, ViewModel.NoticeOpen), Mode=OneWay}">
         <Grid>
@@ -38,7 +38,7 @@
             Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
         <local:ShelfStrip x:Name="SeriesSubscriptions" ItemsSource="{x:Bind ViewModel.Series, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionTemplate}"
-            ItemSpacing="18" Height="{x:Bind ViewModel.RowHeight, Mode=OneWay}" Visibility="{x:Bind ViewModel.SeriesVisibility, Mode=OneWay}" />
+            ItemSpacing="18" PictureHeight="255" Visibility="{x:Bind ViewModel.SeriesVisibility, Mode=OneWay}" />
       </StackPanel>
     </StackPanel>
 </UserControl>

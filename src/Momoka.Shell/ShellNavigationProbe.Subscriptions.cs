@@ -20,6 +20,7 @@ internal sealed partial class ShellNavigationProbe
     {
         using var server = new SubscriptionProbeServer();
         server.Poster = await FixtureImageAsync();
+        server.Items[1]["name"] = "这是一个需要超过两行才能完整显示的电影订阅长标题，保留年份也不应该被遮挡";
         var (settings, service) = SubscriptionService(server);
         var view = new MoviePilotSubscriptionsView();
         var scroll = new ScrollViewer { Content = view, Padding = new Thickness(28) };
@@ -52,6 +53,16 @@ internal sealed partial class ShellNavigationProbe
                 var covers = Descendants(view).OfType<Button>().Where(button => button.Name == "SubscriptionCover").ToArray();
                 Require(covers.Length >= 2 && covers.All(button => button.Tag is MoviePilotSubscriptionCard), "模板封面没有绑定真实订阅或句柄");
                 Require(Math.Abs(covers[0].ActualWidth - vm.Movies[0].CardWidth) < 1, "封面按钮未占满卡片宽度");
+                var titles = Descendants(view).OfType<TextBlock>().Where(text => text.Name == "SubscriptionTitle").ToArray();
+                Require(titles.Length >= 2 && titles.All(text => text.TextWrapping == TextWrapping.Wrap
+                    && text.TextTrimming == TextTrimming.None && text.MaxLines == 0), "订阅片名仍截成两行或单行省略");
+                foreach (var title in titles)
+                {
+                    var shelf = title.Parent;
+                    while (shelf is not ShelfStrip && shelf is FrameworkElement parent) shelf = parent.Parent;
+                    Require(shelf is ShelfStrip band && title.TransformToVisual(band).TransformPoint(new Windows.Foundation.Point(0, title.ActualHeight)).Y <= band.ActualHeight + 1,
+                        "订阅封面下方片名超出货架底边");
+                }
                 await UntilAsync(() => vm.Movies[0].Poster is not null);
                 InvokeSubscriptionButton(covers[0]);
                 ContentDialog? editor = null;
@@ -260,20 +271,14 @@ internal sealed partial class ShellNavigationProbe
                 //（用户令 2026-10-12）。
                 Get<ScrollViewer>(page, "DetailScroll").ChangeView(null, 0, null, true);
                 await LayoutAsync(page);
-                var factsScroll = Get<ScrollViewer>(page, "FactsScroll");
-                Require(factsScroll.VerticalScrollBarVisibility == ScrollBarVisibility.Hidden
-                    && !Descendants(Get<Border>(page, "HeroFacts")).OfType<Viewbox>().Any(),
-                    "评分资料卡应保留正常字号并隐藏滚动条");
-                factsScroll.ChangeView(null, factsScroll.ScrollableHeight, null, true);
-                await LayoutAsync(page);
+                var factsPanel = Get<Border>(page, "HeroFacts");
                 var subscriptionFields = Get<ItemsRepeater>(page, "SubscriptionFacts");
                 var lastFact = (FrameworkElement)subscriptionFields.GetOrCreateElement(vm.DetailInfoFacts.Count - 1);
                 await LayoutAsync(page);
-                var lastFactBottom = lastFact.TransformToVisual(factsScroll).TransformPoint(new Windows.Foundation.Point(0, lastFact.ActualHeight)).Y;
-                Require(lastFactBottom > 0 && lastFactBottom <= factsScroll.ViewportHeight + 1,
-                    $"隐藏滚动条后无法查看末行资料：末行 {lastFactBottom:0.0}、视口 {factsScroll.ViewportHeight:0.0}");
-                factsScroll.ChangeView(null, 0, null, true);
-                await LayoutAsync(page);
+                var lastFactBottom = lastFact.TransformToVisual(factsPanel).TransformPoint(new Windows.Foundation.Point(0, lastFact.ActualHeight)).Y;
+                Require(lastFactBottom > 0 && lastFactBottom <= factsPanel.ActualHeight - factsPanel.Padding.Bottom + 1
+                    && double.IsNaN(factsPanel.Height) && !Descendants(factsPanel).OfType<ScrollViewer>().Any(),
+                    $"资料卡仍裁掉字段或要求滚动：末行 {lastFactBottom:0.0}、卡高 {factsPanel.ActualHeight:0.0}");
                 await SaveSettledFrameAsync(page, $"mp-subscription-header-{width}.png");
                 if (width >= 1080) await SaveProbeScreenAsync($"mp-subscription-fit-{width}-screen.png");
                 // 窗口一变，季列表按新视口重新实现；把季列表重新滚进视野，折叠栏里的逐集行才有得读。
@@ -320,7 +325,7 @@ internal sealed partial class ShellNavigationProbe
                     "资料卡里还留着「媒体信息」或「订阅信息」小标题");
                 var card = ((Grid)facts.Child).Children.OfType<FrameworkElement>().ToList();
                 Require(card.Count == 2 && Descendants(card[0]).OfType<FrameworkElement>().Any(element => element.Name == "SubscriptionStars")
-                    && card[1] is ScrollViewer { Content: StackPanel { Spacing: 0 } list }
+                    && card[1] is StackPanel { Spacing: 0 } list
                     && list.Children.OfType<FrameworkElement>().Select(child => child.Name).SequenceEqual(new[] { "MediaFacts", "SubscriptionFacts" }),
                     "资料卡不是「评分星 + 一列字段」两段：" + string.Join("、", card.Select(child => child.Name)));
                 // 评分留在头部；简介与季在正文左列，资料卡在正文右列。
@@ -447,6 +452,8 @@ internal sealed partial class ShellNavigationProbe
                         $"{name} 那一段不是「板 + 牌子 + 货架带」：父级 {section?.GetType().Name ?? "空"}，子项 "
                             + string.Join("、", parts.Select(part => part.GetType().Name)));
                     var panel = section!;
+                    Require(Math.Abs(panel.ActualWidth - Get<StackPanel>(page, "BodyPrimary").ActualWidth) < 1,
+                        $"{name} 没有与正文左列同宽：列表 {panel.ActualWidth:0.0}、正文 {Get<StackPanel>(page, "BodyPrimary").ActualWidth:0.0}");
                     var panelFill = panel.Background as Microsoft.UI.Xaml.Media.AcrylicBrush;
                     // 2026-10-19 用户令「界面的卡片不要加白边」把 EgBodyPanelStyle 的静止描边收成 0，
                     // 这里仍要求板底，但不再要求外圈 —— 那根线是用户点名去掉的。
@@ -460,9 +467,16 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(page);
                     var tile = Descendants(strip).OfType<Button>().First(button => button.Name == "OpenRelatedMedia");
                     var artwork = Descendants(tile).OfType<Border>().First(border => border.Name == "RelatedArtwork");
-                    Require(tile.ActualWidth is >= 99 and <= 129 && artwork.ActualHeight < 186
-                        && Math.Abs(artwork.ActualHeight / tile.ActualWidth - 204d / 142) < 0.01,
-                        $"{name} 卡片没有自动收窄并保留封面比例：{tile.ActualWidth:0.0}×{artwork.ActualHeight:0.0}");
+                    Require(Math.Abs(tile.ActualWidth - 128) < 1 && Math.Abs(artwork.ActualHeight - 184) < 1,
+                        $"{name} 单卡尺寸不应随列表收窄而改变：{tile.ActualWidth:0.0}×{artwork.ActualHeight:0.0}");
+                    var titleText = Get<TextBlock>(tile, "RelatedTitle");
+                    Require(titleText.ActualHeight >= titleText.FontSize * 2, "长标题夹具没有真正换行");
+                    var subtitleText = Get<TextBlock>(tile, "RelatedSubtitle");
+                    Require(titleText.TextWrapping == TextWrapping.Wrap && titleText.TextTrimming == TextTrimming.None
+                        && titleText.MaxLines == 0 && titleText.TransformToVisual(tile).TransformPoint(default).Y >= artwork.ActualHeight,
+                        "封面下片名仍被省略、限制行数或与图片重叠");
+                    var subtitleBottom = subtitleText.TransformToVisual(tile).TransformPoint(new Windows.Foundation.Point(0, subtitleText.ActualHeight)).Y;
+                    Require(subtitleBottom <= tile.ActualHeight + 1, "推荐卡片文字被底边裁掉");
                     relatedReadings.Add($"{width} 宽 {name}：卡片 {tile.ActualWidth:0.0}×{artwork.ActualHeight:0.0}、板底 {panelFill!.TintColor}、带高 {strip.ActualHeight:0.0}、"
                         + $"牌子「{head!.Title}」、内层滚动面 ScrollView（无 ScrollViewer）");
                 }
@@ -1040,15 +1054,15 @@ internal sealed partial class ShellNavigationProbe
         private static object[] RelatedPeople() => Enumerable.Range(1, 6).Select(index => (object)new
         {
             id = "person-" + index,
-            name = "演员" + index,
-            character = "角色 " + index,
+            name = index == 1 ? "Doha Ramadan · 演员完整姓名" : "演员" + index,
+            character = index == 1 ? "Laila · 需要换行的完整角色说明" : "角色 " + index,
             profile_path = "https://poster.invalid/person-" + index + ".png"
         }).ToArray();
 
         /// <summary>相关推荐与相似作品那两段的夹具：六部作品，各有一张竖版海报。</summary>
         private static object[] RelatedMedia() => Enumerable.Range(1, 6).Select(index => (object)new
         {
-            title = "相关作品" + index,
+            title = index == 1 ? "书写人生与漫长的旅途：这是需要多行展示的完整电影名称" : "相关作品" + index,
             type = index % 2 == 0 ? "电影" : "电视剧",
             media_source = "themoviedb",
             media_id = 100 + index,

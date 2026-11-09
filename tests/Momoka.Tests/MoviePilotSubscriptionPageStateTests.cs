@@ -32,7 +32,7 @@ internal static class MoviePilotSubscriptionPageStateTests
                 var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(shell);
                 var type = assembly.GetType("Momoka.Shell.ViewModels.MoviePilotSubscriptionsViewModel", true)!;
                 RegisterImageLifetime(assembly);
-                RegisterRelatedCardSizing(assembly);
+
                 Console.WriteLine("订阅分类与分集状态：真实Shell VM，禁止配置／凭据／网络／写入／窗口");
                 Console.WriteLine("Shell=" + shell);
                 foreach (var address in new[] { "", "http://[invalid" })
@@ -171,7 +171,7 @@ internal static class MoviePilotSubscriptionPageStateTests
 
     private static void RegisterDetailLayout(string root)
     {
-        Test("MP 详情布局：头部自然收边，简介与季共左列，资料卡与封面同排", () =>
+        Test("MP 详情布局：头部自然收边，简介与季共左列，资料卡完整展示、下方列表只收窄总宽", () =>
         {
             var document = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"));
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -181,9 +181,13 @@ internal static class MoviePilotSubscriptionPageStateTests
             Assert.True(ReferenceEquals(primary.Parent, body));
             Assert.True(ReferenceEquals(Named("HeroOverview").Parent, primary));
             Assert.True(ReferenceEquals(Named("SeasonPanel").Parent, primary));
-            Assert.True(ReferenceEquals(Named("HeroFacts").Parent, Named("HeroRow")));
-            Assert.True(ReferenceEquals(Named("FactList").Parent, Named("FactsScroll")));
-            Assert.Equal("Hidden", (string?)Named("FactsScroll").Attribute("VerticalScrollBarVisibility"));
+            Assert.True(ReferenceEquals(Named("HeroFacts").Parent, body));
+            Assert.False(Named("HeroFacts").Attributes().Any(attribute => attribute.Name.LocalName == "Height"));
+            Assert.False(Named("HeroFacts").Descendants().Any(element => element.Name.LocalName == "ScrollViewer"));
+            Assert.Equal("128", (string?)Named("OpenRelatedMedia").Attribute("Width"));
+            Assert.Equal("184", (string?)Named("RelatedArtwork").Attribute("Height"));
+            Assert.Equal("Wrap", (string?)Named("RelatedTitle").Attribute("TextWrapping"));
+            Assert.False(Named("RelatedTitle").Attributes().Any(attribute => attribute.Name.LocalName is "TextTrimming" or "MaxLines"));
             Assert.False(Named("HeroSection").Attributes().Any(attribute => attribute.Name.LocalName == "MinHeight"));
             Assert.Equal("Top", (string?)Named("HeroSurface").Attribute("VerticalAlignment"));
             Assert.Equal("Top", (string?)Named("HeroOverview").Attribute("VerticalAlignment"));
@@ -200,36 +204,6 @@ internal static class MoviePilotSubscriptionPageStateTests
                 && (string?)element.Attribute("Height") == "*"));
         });
     }
-
-    private static void RegisterRelatedCardSizing(Assembly shell)
-    {
-        Test("MP 下方卡片：缩窄与拉宽更新原卡片尺寸，保持头像比例和内容", () =>
-        {
-            var type = shell.GetType("Momoka.Shell.ViewModels.MoviePilotMediaViewModel", true)!;
-            var cardType = shell.GetType("Momoka.Shell.ViewModels.MoviePilotRelatedCard", true)!;
-            var vm = Activator.CreateInstance(type)!;
-            var cards = new List<object>();
-            foreach (var name in new[] { "People", "Recommendations", "Similar" })
-            {
-                var collection = type.GetProperty(name)!.GetValue(vm)!;
-                var card = Activator.CreateInstance(cardType, "测试卡片", "说明", (Action)(() => { }))!;
-                collection.GetType().GetMethod("Add")!.Invoke(collection, [card]);
-                cards.Add(card);
-            }
-            foreach (var (width, expected) in new[] { (1240d, 128d), (1040d, 116.5), (760d, 100d), (1240d, 128d) })
-            {
-                type.GetMethod("ResizeRelatedCards", Members)!.Invoke(vm, [width]);
-                foreach (var card in cards)
-                {
-                    Assert.Equal(expected, (double)cardType.GetProperty("CardWidth")!.GetValue(card)!);
-                    var height = (double)cardType.GetProperty("ArtworkHeight")!.GetValue(card)!;
-                    Assert.True(Math.Abs(height / expected - 204d / 142) < 0.0001);
-                    Assert.Equal("测试卡片", (string)cardType.GetProperty("Title")!.GetValue(card)!);
-                }
-            }
-        });
-    }
-
 
     private static void RegisterImageLifetime(Assembly shell)
     {

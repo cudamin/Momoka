@@ -139,6 +139,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private void OnHeroContentSizeChanged(object sender, SizeChangedEventArgs args)
     {
         if (args.NewSize.Height > 0) MediaViewModel.HeroBandHeight = args.NewSize.Height;
+        UpdateFactsLift();
     }
 
     private void LiftBackdrop()
@@ -154,28 +155,46 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
             DetailBackdropRoot.Margin = new Thickness(0, -lift, 0, 0);
     }
 
-    // 宽窗把资料卡放到海报右侧；窄窗时排在简介与季下面。
+    // 资料卡保留正文右列完整高度，窄窗排在简介与季下面。
     private void OnBodyRowSizeChanged(object sender, SizeChangedEventArgs args) => ApplyBodyLayout(args.NewSize.Width);
 
     private void ApplyBodyLayout(double width)
     {
         var side = width >= FactsSideBreakpoint;
-        var parent = side ? HeroRow : BodyRow;
-        // 首次 Attach 时 Parent 尚未填好，按集合移出才能避免把同一元素加入两个容器。
-        if (!parent.Children.Contains(HeroFacts))
-        {
-            HeroRow.Children.Remove(HeroFacts);
-            BodyRow.Children.Remove(HeroFacts);
-            parent.Children.Add(HeroFacts);
-        }
         Grid.SetColumn(HeroFacts, side ? 1 : 0);
         Grid.SetRow(HeroFacts, side ? 0 : 1);
         HeroFactColumn.Width = side ? new GridLength(FactsSideWidth) : new GridLength(0);
         BodyRow.RowSpacing = side ? 0 : FactsStackedRowSpacing;
         HeroFacts.Width = side ? FactsSideWidth : Math.Min(FactsStackedMaxWidth, width);
-        MediaViewModel.ResizeRelatedCards(width);
+
         MediaViewModel.WideLayout = side;
-        HeroFacts.Margin = new Thickness(0, side && MediaViewModel.Plain ? HeroCardPadding : 0, 0, 0);
+        UpdateFactsLift();
+    }
+
+    // 列表视窗与简介/季的实际左列同宽，不改变每张演员或推荐卡片的尺寸。
+    private void OnRelatedWidthChanged(object sender, SizeChangedEventArgs args)
+    {
+        if (args.NewSize.Width <= 0) return;
+        foreach (var panel in new[] { PeoplePanel, RecommendationsPanel, SimilarPanel }) panel.Width = args.NewSize.Width;
+    }
+
+    private void UpdateFactsLift()
+    {
+        var lift = 0d;
+        if (MediaViewModel.WideLayout && HeroFacts.ActualWidth > 0)
+        {
+            var factsX = HeroFacts.TransformToVisual(this).TransformPoint(default).X;
+            var bodyTop = BodyRow.TransformToVisual(this).TransformPoint(default).Y;
+            lift = 96;
+            foreach (var child in HeroContent.Children.OfType<FrameworkElement>().Where(child => child.Visibility == Visibility.Visible))
+            {
+                var position = child.TransformToVisual(this).TransformPoint(default);
+                if (position.X + child.ActualWidth > factsX)
+                    lift = Math.Min(lift, Math.Max(0, bodyTop - position.Y - child.ActualHeight - 12));
+            }
+        }
+        var margin = new Thickness(0, -lift, 0, 0);
+        if (HeroFacts.Margin != margin) HeroFacts.Margin = margin;
     }
 
     private void OnHeroSizeChanged(object sender, SizeChangedEventArgs args)
@@ -186,7 +205,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         Grid.SetColumnSpan(HeroContent, compact ? 2 : 1);
         DetailPoster.Width = compact ? CompactPosterWidth : PosterWidth;
         DetailPoster.Height = compact ? CompactPosterHeight : PosterHeight;
-        HeroFacts.Height = DetailPoster.Height;
+        UpdateFactsLift();
         ApplyMaterialAppearance();
     }
 
@@ -259,7 +278,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 
         HeroSurface.VerticalAlignment = VerticalAlignment.Top;
         HeroOverview.VerticalAlignment = VerticalAlignment.Top;
-        HeroFacts.Margin = new Thickness(0, MediaViewModel.WideLayout && plain ? HeroCardPadding : 0, 0, 0);
+        UpdateFactsLift();
     }
 
     private static Brush? ResourceBrush(string key) =>
