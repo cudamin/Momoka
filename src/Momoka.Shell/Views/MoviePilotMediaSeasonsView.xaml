@@ -3,10 +3,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:Momoka.Shell.ViewModels"
     xmlns:local="using:Momoka.Shell.Views">
-    <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.SeasonsVisibility, Mode=OneWay}">
-        <TextBlock Text="季" Style="{StaticResource EgSectionTitleStyle}" />
+    <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.SeasonsVisibility, Mode=OneWay}">
+        <Grid ColumnSpacing="16">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+            <TextBlock x:Name="SeasonsHeading" Text="季" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
+            <TextBlock x:Name="EpisodeGroupsHeading" Grid.Column="1" Text="选择剧集组" Style="{StaticResource EgCaptionStyle}"
+                VerticalAlignment="Center" Visibility="{x:Bind ViewModel.GroupsVisibility, Mode=OneWay}" />
+        </Grid>
         <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.GroupsVisibility, Mode=OneWay}">
-            <TextBlock Text="选择剧集组" Style="{StaticResource EgCaptionStyle}" />
             <ItemsRepeater x:Name="EpisodeGroups" ItemsSource="{x:Bind ViewModel.Groups, Mode=OneWay}">
                 <ItemsRepeater.Layout><UniformGridLayout MinItemWidth="160" MinItemHeight="64" MinColumnSpacing="8" MinRowSpacing="8" ItemsStretch="Fill" /></ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>

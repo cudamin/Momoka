@@ -21,15 +21,26 @@ internal sealed partial class ShellNavigationProbe
         var overview = Get<StackPanel>(page, "HeroOverview");
         var season = Get<StackPanel>(page, "SeasonPanel");
         var facts = Get<FrameworkElement>(page, "HeroFacts");
+        var content = Get<StackPanel>(page, "HeroContent");
+        var actions = Get<WrapRow>(page, "DetailActions");
+        var poster = Get<Border>(page, "DetailPoster");
         static double Top(FrameworkElement node, UIElement root) => node.TransformToVisual(root).TransformPoint(default).Y;
-        Require(ReferenceEquals(facts.Parent, Get<Grid>(page, "HeroRow")) && !Descendants(grid).Contains(overview)
+        Require(ReferenceEquals(facts.Parent, Get<Grid>(page, "HeroRow")) && Descendants(grid).Contains(overview)
             && surface.VerticalAlignment == VerticalAlignment.Top && hero.MinHeight <= 0.5,
-            "资料卡、简介或背景图仍在撑高海报与操作头部");
-        Require(primary.Children.Contains(surface) && primary.Children.Contains(overview)
+            "资料卡位置或简介容器不对，或头部仍由背景图撑高");
+        Require(primary.Children.Contains(surface) && content.Children.Contains(overview)
             && overview.VerticalAlignment == VerticalAlignment.Top,
-            "简介没有紧随左列封面与操作");
-        Require(Top(overview, page) - Top(surface, page) - surface.ActualHeight is >= 6 and <= 10,
-            "简介与封面操作区之间仍有首屏占位或过大间距");
+            "简介没有放在按钮所在文字列");
+        Require(Top(overview, page) - Top(actions, page) - actions.ActualHeight is >= 10 and <= 14
+            && Math.Abs(overview.TransformToVisual(actions).TransformPoint(default).X) <= 1,
+            "简介没有紧随操作排或与按钮左对齐");
+        Require(poster.ActualWidth >= 154 && poster.ActualHeight >= 220
+            && Math.Abs(poster.ActualWidth / poster.ActualHeight - 0.7) < 0.001,
+            "放大的封面比例或窄版尺寸不对");
+        if (Grid.GetColumn(content) == 1)
+            Require(poster.ActualWidth > 210 && poster.ActualHeight > 300
+                && content.TransformToVisual(poster).TransformPoint(default).X >= poster.ActualWidth + 18,
+                "宽版封面未放大，或挤住了文字列");
         if (season.Visibility == Visibility.Visible)
         {
             Require(Top(season, page) >= Math.Max(Top(primary, page) + primary.ActualHeight, Top(facts, page) + facts.ActualHeight)
@@ -58,6 +69,57 @@ internal sealed partial class ShellNavigationProbe
             var position = button.TransformToVisual(page).TransformPoint(default);
             Require(position.X + button.ActualWidth <= factsPosition.X || position.Y + button.ActualHeight <= factsPosition.Y
                 || position.Y >= factsPosition.Y + facts.ActualHeight, "上移的资料卡盖住了操作按钮：" + button.Name);
+        }
+    }
+
+    private static void RequireSeasonHeadings(MoviePilotSubscriptionPage page)
+    {
+        var seasons = Get<MoviePilotMediaSeasonsView>(page, "MediaSeasons");
+        var heading = Get<TextBlock>(seasons, "SeasonsHeading");
+        var groups = Get<TextBlock>(seasons, "EpisodeGroupsHeading");
+        Require(groups.Visibility == page.MediaViewModel.GroupsVisibility, "剧集组标题没有跟随组选项隐藏或恢复");
+        if (groups.Visibility != Visibility.Visible) return;
+        var position = groups.TransformToVisual(heading).TransformPoint(default);
+        Require(position.X >= heading.ActualWidth + 12
+            && Math.Abs(position.Y + groups.ActualHeight / 2 - heading.ActualHeight / 2) < 1,
+            "季与选择剧集组没有在同一行居中对齐");
+    }
+
+    private async Task CheckCompanyWrappingAsync(MoviePilotSubscriptionPage page)
+    {
+        var fact = page.MediaViewModel.Facts.Single(value => value.Label == "制作公司");
+        var index = page.MediaViewModel.Facts.IndexOf(fact);
+        var longValue = fact with { Value = "InternationalAnimationProductionAndDistributionCompanyInternationalAnimationProductionAndDistributionCompany\n长名称动画制作发行有限公司" };
+        try
+        {
+            page.MediaViewModel.Facts[index] = longValue;
+            await LayoutAsync(page);
+            var facts = Get<Border>(page, "HeroFacts");
+            var text = Descendants(facts).OfType<TextBlock>().Single(value => value.Text == longValue.Value);
+            var wrappedHeight = text.ActualHeight;
+            var wrapping = text.TextWrapping;
+            try
+            {
+                text.TextWrapping = TextWrapping.NoWrap;
+                await LayoutAsync(page);
+                Require(wrappedHeight > text.ActualHeight + 8,
+                    $"长公司名称没有换行：值宽{text.ActualWidth:0.0}、换行高{wrappedHeight:0.0}、单行高{text.ActualHeight:0.0}");
+            }
+            finally
+            {
+                text.TextWrapping = wrapping;
+                await LayoutAsync(page);
+            }
+            var position = text.TransformToVisual(facts).TransformPoint(default);
+            Require(position.X >= 0 && position.X + text.ActualWidth <= facts.ActualWidth - 10
+                && position.Y + text.ActualHeight <= facts.ActualHeight - 6,
+                "换行后的公司名称超出资料卡边界");
+            await SaveProbeScreenAsync($"mp-company-wrap-{page.ActualWidth:0}-screen.png");
+        }
+        finally
+        {
+            page.MediaViewModel.Facts[index] = fact;
+            await LayoutAsync(page);
         }
     }
 
@@ -368,6 +430,7 @@ internal sealed partial class ShellNavigationProbe
             var seasons = Get<MoviePilotMediaSeasonsView>(page, "MediaSeasons");
             seasons.StartBringIntoView();
             await LayoutAsync(page);
+            RequireSeasonHeadings(page);
             var season = page.MediaViewModel.Seasons.Single(row => row.Files is not null);
             Require(page.MediaViewModel.Seasons.All(row => !row.Expanded), "季列表默认没有收起");
             Require(Descendants(seasons).OfType<Expander>().All(control => !control.IsExpanded), "真实季折叠栏默认展开");
@@ -492,6 +555,14 @@ internal sealed partial class ShellNavigationProbe
                 "沉浸档的头部没有按海报与操作内容收边");
             RequireSubscriptionBodyLayout(page, true);
             Require(ReferenceEquals(facts.Parent, Get<Grid>(page, "HeroRow")), "资料卡没有留在正文右列完整展示");
+            foreach (var width in new[] { 600, 1024, 1240 })
+            {
+                ResizeProbeClient(width, 1000);
+                await UntilAsync(() => Math.Abs(page.ActualWidth - width) <= 2);
+                await LayoutAsync(page);
+                RequireSubscriptionBodyLayout(page, media.WideLayout);
+                await SaveProbeScreenAsync($"mp-subscription-breakpoint-{width}-screen.png");
+            }
             await CheckSubscriptionAppearanceAsync(page, settings.Ui);
             Require(hero.MinHeight <= 0.5, "沉浸档的头部仍在按背景图让开第一屏");
             Require(Math.Abs(image.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001,

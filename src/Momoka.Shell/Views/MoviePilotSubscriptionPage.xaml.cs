@@ -28,14 +28,12 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private const double FactsSideBreakpoint = 960;
 
     /// <summary>
-    /// 头部封面的尺寸，照电影详情页那张竖版封面（<c>DetailViewModel.PosterStillWidth</c>／
-    /// <c>PosterStillHeight</c>，210×300）——用户令 2026-10-12：「参考电影页面封面的大小和位置修改订阅
-    /// 页面的封面」。紧凑版式按同一比例收小一档，位置仍是头部左侧、与片名同排、顶对齐。
+    /// 订阅详情封面适度放大，保持原来的 7:10 比例；紧凑版式收小一档，给完整简介留出宽度。
     /// </summary>
-    private const double PosterWidth = 210;
-    private const double PosterHeight = 300;
-    private const double CompactPosterWidth = 140;
-    private const double CompactPosterHeight = 200;
+    private const double PosterWidth = 238;
+    private const double PosterHeight = 340;
+    private const double CompactPosterWidth = 154;
+    private const double CompactPosterHeight = 220;
 
     private MoviePilotSubscriptionRequest? _request;
     private CancellationTokenSource? _pageLifetime;
@@ -162,6 +160,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     public static Visibility FactVisibility(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
     public static Visibility TextVisibility(string text) => FactVisibility(!string.IsNullOrWhiteSpace(text));
     public static Visibility ReleaseCountryVisibility(string country) => FactVisibility(country.Length > 0);
+    public static HorizontalAlignment FactAlignment(bool cloud, string country) => cloud || country.Length > 0
+        ? HorizontalAlignment.Right : HorizontalAlignment.Stretch;
     public static Windows.Foundation.Rect StarClip(double fill) => new(0, 0, 16 * fill, 20);
 
     private void OnBodyRowSizeChanged(object sender, SizeChangedEventArgs args)
