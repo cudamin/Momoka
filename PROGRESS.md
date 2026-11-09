@@ -14,7 +14,9 @@
 
 官方前端609ea05、后端6d9cf与上一轮相同，源码在work/upstream-layout-20261110；未核对真实部署版本。待master整合、重新编译测试原生验证和发布；当前快捷方式尚无本轮改动。
 
-## 2026-11-10 媒体库推送与官方首页轮询对齐（已整合，待统一发布）
+## 2026-11-10 媒体库推送与官方首页轮询对齐（已交付）
+
+用户授权两个窗口直接协调，MP窗口统一发布，本窗口只读核对：publish.ps1 -NoArchive -Shortcut退出0，546文件/286.9MB、59批准mpv文件校验通过；桌面Momoka.lnk目标与工作目录均为主树artifacts/publish/win-x64、参数空。发布Shell与最终发布配置bin均2B8C0B1C8E3F3F2E4255615B0001409C0984AD6B33E257D957376F5C6E4F6CF9；发布Core与x64 bin均BE542C164AF32AE7F6C470F2CBEC549EBCB0903A5543FD7394E8E24643781D6F（发布配置不同于测试bin，不混称同二进制）。发布件启动及MP三项由负责窗口实测3/3并正常关闭；本任务入库验证仍是只读连接/保活/协议，不含真实入库。完整发布日志artifacts/mp-detail-layout-master/publish.log及publish-hashes.json。fnnas子树证据已复制至work/push-audit-20261110/fnnas-task-watch-tests，确认产品/测试与57b8cb6一致后通过App归档并删除临时分支；本聊天5abb为受保护primary工作区，按此前工具保护保留。未推origin，三份既有技能删除保持原状。
 
 本批主树产品af819f6，整合HEAD c1ce061。主树最终Tests/Core、Shell和PageContract/ResourceBudget均重新编译0警告0错误；最终主测试4275/4275、实际首页VM59/59、PageContract170/170、消息预算26/26，0失败0跳过。实时69项包含于全量。最终Shell哈希EA51C99214604739EB2DF915F5457743C44014C93A0EA56C62157FC1C69FF803；测试Core哈希C0F389624471675E5B4A556ACB70850CEF85F39FB2ED6AD856FDA057BB140632。首次主树XAML编译WMC9999资源失败已保留input/output和日志，原样重试0/0；未清缓存或改依赖。格式/编码/差异通过。另一MP详情批次c1ce061已合入正补原生验收，避免同时发布共享目录；本批当前等待统一发布，不拿旧快捷方式作交付。证据work/push-audit-20261110/master-*。
 
