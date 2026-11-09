@@ -165,10 +165,28 @@ internal static class SettingsPageStateTests
                 fixture.Get<string>(choice, "Label") == "半透明叠层"));
             Assert.False(settings.Settings.Ui.UseAcrylicControls);
             Assert.True(Labels().Contains("按钮与选择框底色不透明度（%）"), "切回叠层没有恢复底色浓度行");
-            Assert.False(Labels().Any(label => label.Contains("染色不透明度", StringComparison.Ordinal)),
-                "叠层模式仍显示染色参数");
+            // 只问按钮那两行：背景亚克力那两行也叫「…染色不透明度」，按子串找会把它们一起算进来（沉浸模式下
+            // 它们本来就该在），于是这一条永远红着 —— 2026-11-09 按实际行名收紧。
+            Assert.False(Labels().Any(label => label is "按钮与选择框染色不透明度（%）" or "按钮与选择框明暗不透明度（%）"),
+                "叠层模式仍显示按钮染色参数：" + string.Join('|', Labels()));
 
             List<string> Labels() => rows.Cast<object>().Select(row => fixture.Get<string>(row, "Label")).ToList();
+        });
+        TestHarness.Test("详情页内容：隐藏没有封面的演职人员默认关，拨一下写回设置", () =>
+        {
+            var settings = new FakeSettings();
+            var vm = fixture.NewViewModel();
+            fixture.Attach(vm, settings, fixture.NewLauncher());
+            var section = fixture.Invoke(vm, "DetailContentCard")!;
+            var rows = fixture.List(section, "Rows");
+            var row = rows.Cast<object>().Single(item => fixture.Get<string>(item, "Label") == "隐藏没有封面的演职人员");
+            Assert.Equal("SettingToggleRow", row.GetType().Name);
+            Assert.False(fixture.Get<bool>(row, "IsOn"), "这一项默认该是关的");
+            Assert.False(settings.Settings.Ui.HideCastWithoutPortrait);
+            fixture.Set(row, "IsOn", true);
+            Assert.True(settings.Settings.Ui.HideCastWithoutPortrait, "打开没有写回设置");
+            fixture.Set(row, "IsOn", false);
+            Assert.False(settings.Settings.Ui.HideCastWithoutPortrait, "关掉没有写回设置");
         });
         TestHarness.Test("外观颜色行：草稿只预览，取消不保存，完成只提交一次", () =>
         {

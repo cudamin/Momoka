@@ -1144,6 +1144,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         AddCards(HomeSections());
         Sections.Add(InterfaceCard());
         Sections.Add(DetailAppearanceCard());
+        Sections.Add(DetailContentCard());
         AddCards(DetailLayoutCards());
         Sections.Add(PlayerCard());
         if (MpvCustomConfig.IsBuiltInBackend(Settings.Mpv)) Sections.Add(CustomMpvConfigCard());

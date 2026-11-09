@@ -762,7 +762,13 @@ public static class ItemDetail
     /// that is where the image store looks, so fetching a photo needs no new code path.
     /// </para>
     /// </summary>
-    public static IReadOnlyList<CastCredit> Cast(EmbyItem item, int limit = CastLimit)
+    /// <param name="portraitsOnly">
+    /// True to leave out everyone the server holds no portrait for — 设置 →「隐藏没有封面的演职人员」
+    /// (2026-11-09). The cap applies to the people that survive it, so a list whose first forty names are
+    /// half blank still fills the row with forty faces. The test is the tag the server sent, not whether the
+    /// image later downloads: a photo that fails to arrive leaves the same empty frame it always did.
+    /// </param>
+    public static IReadOnlyList<CastCredit> Cast(EmbyItem item, int limit = CastLimit, bool portraitsOnly = false)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var cast = new List<CastCredit>();
@@ -770,6 +776,10 @@ public static class ItemDetail
         foreach (var person in item.People)
         {
             if (person.Id.Length == 0 || person.Name.Length == 0) continue;
+
+            // 先按头像筛、再去重：Emby 同一个人的第二条署名带着同一张头像，筛在前面等于「第一条没图」不会
+            // 连累后面那条有图的；不筛的时候次序和从前一样，先到的那条署名照样是算数的那条。
+            if (portraitsOnly && person.PrimaryImageTag is not { Length: > 0 }) continue;
             if (!seen.Add(person.Id)) continue;
 
             var card = new EmbyItem

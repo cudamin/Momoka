@@ -119,6 +119,21 @@ internal sealed partial class ShellNavigationProbe
                     readings.Add($"{title}/{width}：{string.Join(',', row.Rows.Select(card => card.Key))}，拖中完整、完成保存、取消恢复");
                 }
             }
+
+            // 「详情页内容」那张新卡（用户令 2026-11-09）：演职人员开关默认关，拨一下写回设置、再拨回来。
+            var contentCard = page.ViewModel.Sections.Single(section => section.Title == "详情页内容");
+            var castRow = contentCard.Rows.OfType<SettingToggleRow>().Single(row => row.Label == "隐藏没有封面的演职人员");
+            var castHost = Descendants(page).OfType<ContentPresenter>().Single(item => ReferenceEquals(item.Content, castRow));
+            castHost.StartBringIntoView();
+            await LayoutAsync(castHost);
+            var castToggle = Descendants(castHost).OfType<ToggleSwitch>().Single();
+            Require(!castToggle.IsOn && !fixture.Settings.Ui.HideCastWithoutPortrait, "隐藏没有封面的演职人员不是默认关");
+            castToggle.IsOn = true;
+            await UntilAsync(() => fixture.Settings.Ui.HideCastWithoutPortrait);
+            castToggle.IsOn = false;
+            await UntilAsync(() => !fixture.Settings.Ui.HideCastWithoutPortrait);
+            readings.Add("详情页内容：隐藏没有封面的演职人员默认关，开与关都写回设置");
+
             var tables = page.ViewModel.DetailCards.ToArray();
             page.ReleaseHosted();
             BeginSettingsFixtureVisit(page);
@@ -349,6 +364,25 @@ internal sealed partial class ShellNavigationProbe
                 RequireCardOrder(page, expected.Select(card => card.Key));
                 Require(originalPanels.All(panel => sheet.Children.Contains(panel)), "排序重建了原有卡片实例");
                 Require(sheet.Children[sheet.Children.Count - 1] == Get<UIElement>(page, "FooterBanner"), "卡片排序移动了尾图");
+
+                // 「隐藏没有封面的演职人员」（用户令 2026-11-09）：夹具里一个带头像、一个没有。开着时那一排只剩
+                // 有头像的那位，关掉后两个人回来 —— 当场生效，不用重进页面。
+                var cast = page.ViewModel.CastShelf!;
+                var castPanel = Get<StackPanel>(page, "CastPanel");
+                Require(cast.Cards.Count == 2 && cast.Cards.Select(card => card.Item.Id).SequenceEqual(["person-1", "person-2"]),
+                    $"{item.Type} 演职人员不是夹具里那两个人：{string.Join(',', cast.Cards.Select(card => card.Item.Id))}");
+                fixture.Settings.Ui.HideCastWithoutPortrait = true;
+                ShellPrefs.ApplyDetailCast(fixture.Settings.Ui);
+                await UntilAsync(() => cast.Cards.Count == 1);
+                Require(castPanel.Visibility == Visibility.Visible && castPanel.ActualHeight > 0,
+                    $"{item.Type} 只剩一张有头像的脸时演职人员卡被收起");
+                Require(cast.Cards[0].Item.Id == "person-1" && cast.Cards[0].Item.PrimaryImageTag == "fixture",
+                    $"{item.Type} 隐藏没有封面时留下了没有头像的人：{cast.Cards[0].Item.Id}");
+                fixture.Settings.Ui.HideCastWithoutPortrait = false;
+                ShellPrefs.ApplyDetailCast(fixture.Settings.Ui);
+                await UntilAsync(() => cast.Cards.Count == 2);
+                Require(castPanel.Visibility == Visibility.Visible, $"{item.Type} 关掉隐藏后演职人员卡没有回来");
+
                 foreach (var width in new[] { 1100, 760 })
                 {
                     ResizeProbeClient(width, 820);

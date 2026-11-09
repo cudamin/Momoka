@@ -1456,6 +1456,21 @@ public sealed class UiSettings
     public bool EnableImmersive { get; set; } = true;
 
     /// <summary>
+    /// 演职人员那一排只列有头像的人 —— 「在设置中新增功能，隐藏没有封面的演职人员」（用户的话，2026-11-09）。
+    /// <para>
+    /// 判据是服务器有没有给这个人一张头像（<see cref="Emby.EmbyPerson.PrimaryImageTag"/>），不是那张图下载
+    /// 成不成功：下载失败的那一格照旧留着，和别处的封面一样。开着时上限也只数列出来的人 —— 前四十个里有一半
+    /// 没头像，就该看到四十张脸，而不是二十张。
+    /// </para>
+    /// <para>
+    /// 装机默认关，所以缺这个键的旧设置文件读出来就是全部列出，行为一个像素都不变，也不需要为它加一条迁移 ——
+    /// 同 <see cref="ShowHomeBanner"/> 那条。恢复默认（<see cref="SettingsPreferences"/>）对界面组是「默认当
+    /// 偏好」的整组抄法，这一项自动跟着回关。
+    /// </para>
+    /// </summary>
+    public bool HideCastWithoutPortrait { get; set; }
+
+    /// <summary>
     /// 服务器页的排序方式（<see cref="Momoka.Emby.ServerListOrder"/> 那份字符串）。缺键是 manual ——
     /// 旧设置文件读出来仍按保存顺序显示，拖拽换位直接写保存顺序，不要求迁移。
     /// </summary>

@@ -75,6 +75,18 @@ public static class ShellPrefs
 
     public static void ApplyDetailLayout(UiSettings ui) => DetailLayoutChanged?.Invoke(ui);
 
+    /// <summary>
+    /// 「隐藏没有封面的演职人员」改了：详情页那一排要按新值重排，不重建整页、也不重新读条目。
+    /// <para>
+    /// 单独一根线而不是搭 <see cref="DetailLayoutChanged"/> 的车：那一根说的是「哪几块卡片、什么次序」，
+    /// 订阅方收到就去重排版面；这一根只换演职人员那一排里的人。搭车也错不了（重排里带一句值没变就退出的
+    /// 守卫），可下一处照着搭车的地方就分不清哪根线是干什么的了。
+    /// </para>
+    /// </summary>
+    public static event Action<UiSettings>? DetailCastChanged;
+
+    public static void ApplyDetailCast(UiSettings ui) => DetailCastChanged?.Invoke(ui);
+
     public static event Action? ShortcutsChanged;
 
     public static void ApplyShortcuts() => ShortcutsChanged?.Invoke();
@@ -94,6 +106,7 @@ public static class ShellPrefs
         ApplySidebar(ui);
         ApplyAppearance(ui);
         ApplyDetailLayout(ui);
+        ApplyDetailCast(ui);
         Changed?.Invoke(ui);
     }
 }

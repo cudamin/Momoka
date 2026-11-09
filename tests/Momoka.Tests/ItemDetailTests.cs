@@ -820,6 +820,54 @@ internal static class ItemDetailTests
             Assert.Equal(ItemDetail.CastLimit, ItemDetail.Cast(item).Count);
             Assert.Equal(3, ItemDetail.Cast(item, 3).Count);
         });
+
+        Test("演职人员：隐藏没有封面的，只留服务器给了头像的人", () =>
+        {
+            var item = new EmbyItem
+            {
+                People =
+                [
+                    new EmbyPerson { Id = "p1", Name = "没图的人", Type = "Actor" },
+                    new EmbyPerson { Id = "p2", Name = "有图的人", Type = "Actor", PrimaryImageTag = "tag2" },
+                    new EmbyPerson { Id = "p3", Name = "空标签的人", Type = "Director", PrimaryImageTag = "" },
+                    new EmbyPerson { Id = "p4", Name = "也有图的人", Type = "Writer", PrimaryImageTag = "tag4" }
+                ]
+            };
+
+            Assert.Equal(4, ItemDetail.Cast(item).Count, "默认不筛，四个人都该在");
+            var portraits = ItemDetail.Cast(item, portraitsOnly: true);
+            Assert.Equal(2, portraits.Count);
+            Assert.Equal("p2,p4", string.Join(',', portraits.Select(credit => credit.Card.Id)));
+        });
+
+        Test("演职人员：隐藏没有封面时，上限数的是留下的人", () =>
+        {
+            var item = new EmbyItem();
+            for (var index = 0; index < 5; index++)
+                item.People.Add(new EmbyPerson { Id = $"p{index}", Name = $"没图 {index}", Type = "Actor" });
+            item.People.Add(new EmbyPerson { Id = "p5", Name = "有图 5", Type = "Actor", PrimaryImageTag = "tag5" });
+            item.People.Add(new EmbyPerson { Id = "p6", Name = "有图 6", Type = "Actor", PrimaryImageTag = "tag6" });
+
+            // 前五个人没有头像，不该把两个名额吃掉：那一排要的是两张脸，不是「前两个里恰好没有脸」。
+            Assert.Equal(2, ItemDetail.Cast(item, 2, portraitsOnly: true).Count);
+            Assert.Equal(2, ItemDetail.Cast(item, 2).Count, "不筛的时候仍是服务器排在前面的两个");
+        });
+
+        Test("演职人员：同一个人先来的那条没图，后面那条有图仍会出现", () =>
+        {
+            var item = new EmbyItem
+            {
+                People =
+                [
+                    new EmbyPerson { Id = "p1", Name = "同一人", Type = "Actor", Role = "旁白" },
+                    new EmbyPerson { Id = "p1", Name = "同一人", Type = "Actor", Role = "主演", PrimaryImageTag = "tag1" }
+                ]
+            };
+
+            var portraits = ItemDetail.Cast(item, portraitsOnly: true);
+            Assert.Equal(1, portraits.Count);
+            Assert.Equal("tag1", portraits[0].Card.PrimaryImageTag);
+        });
     }
 
     private static void RegisterEpisodes()

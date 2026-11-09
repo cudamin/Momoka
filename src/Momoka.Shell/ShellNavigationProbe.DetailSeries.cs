@@ -769,7 +769,12 @@ internal sealed partial class ShellNavigationProbe
         CommunityRating = 7.2f,
         ChildCount = seasons,
         // 演职人员那一块要有东西，才能和更多类似那块量上下沿。Emby 只在按 id 取详情时带 People。
-        People = [new EmbyPerson { Id = "person-1", Name = "离线演员", Role = "主演", Type = "Actor" }]
+        // 2026-11-09 起两个人：一个带头像、一个没有 —— 「隐藏没有封面的演职人员」那一档要靠这一对才量得出来。
+        People =
+        [
+            new EmbyPerson { Id = "person-1", Name = "离线演员", Role = "主演", Type = "Actor", PrimaryImageTag = "fixture" },
+            new EmbyPerson { Id = "person-2", Name = "离线场记", Role = "场记", Type = "Actor" }
+        ]
     };
 
     private static EmbyItem SeasonOf(EmbyItem series, string id, int number, int episodes = 2) => new()

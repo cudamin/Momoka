@@ -83,6 +83,28 @@ public sealed partial class SettingsViewModel
         section.UpdateRows(DetailAppearanceCard().Rows);
     }
 
+    /// <summary>
+    /// 详情页正文「显示什么」的那张卡 —— 「在设置中新增功能，隐藏没有封面的演职人员」（用户令 2026-11-09）。
+    /// <para>
+    /// 颜色和材质在「详情页外观」那张卡上，这里只管内容。演职人员那一排跟着这一项走的是三种服务器共用的
+    /// <c>DetailPage</c>；MoviePilot 的影视详情页是另一套页面（那一排叫「演职员」，人名来自 TMDB），不在这条
+    /// 开关名下。
+    /// </para>
+    /// </summary>
+    private SettingSection DetailContentCard()
+    {
+        var ui = Settings.Ui;
+        return new SettingSection("界面", "详情页内容", "详情页正文里各块内容显示什么。",
+        [
+            Toggle("隐藏没有封面的演职人员",
+                "演职人员那一排只列有头像的人；没有头像的人收起，一个都没有时这一块整块收起。关掉后照旧全部列出。"
+                    + "改完立即生效，不用重开详情页。",
+                () => ui.HideCastWithoutPortrait,
+                value => ui.HideCastWithoutPortrait = value,
+                after: () => ShellPrefs.ApplyDetailCast(ui))
+        ]);
+    }
+
     private SettingColorRow AppearanceColorRow(string label, bool backdrop, UiSettings ui, string? note = null)
     {
         var row = new SettingColorRow(label,

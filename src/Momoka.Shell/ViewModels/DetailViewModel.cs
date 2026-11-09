@@ -102,6 +102,12 @@ public sealed partial class DetailViewModel : PageViewModel
     private string? _announcedShapeType;
 
     /// <summary>
+    /// 演职人员那一排上一次是按哪一档造的：true 表示当时开着「隐藏没有封面的演职人员」。设置页改的是同一个
+    /// 设置对象，屏上这一排却已经按旧值造好了卡，靠这一格分辨「真要重排」和「别的设置顺手喊了一声」。
+    /// </summary>
+    private bool _castPortraitsOnly;
+
+    /// <summary>
     /// 集页背后那部剧，随取图那一趟一起回来（见 <see cref="LoadShowAsync"/>）。其他信息那一行要的类型、工作室
     /// 和刮削 id 都挂在剧集那一层 —— 单集自己身上这三样是空的 —— 所以缓存起来让取图和这一行共用一趟往返。
     /// </summary>
@@ -2896,7 +2902,7 @@ public sealed partial class DetailViewModel : PageViewModel
             _ = LoadArtworkAsync(item, _art);
         }
 
-        CastShelf?.Fill(ItemDetail.Cast(item).Select(credit => (credit.Card, (string?)credit.Credit)));
+        FillCast(item);
 
         var knownSourceRemoved = (_deletedSourceIds.Count > 0 || _deletedSourcePaths.Count > 0) && item.Id == _seed?.Id
             && item.Source?.Key == _scope?.Key && item.MediaSources.Count == 0;
@@ -2909,6 +2915,29 @@ public sealed partial class DetailViewModel : PageViewModel
         _actionsReady = true;
         NotifyActionAvailability();
         NavigationTiming.Mark("actions-ready");
+    }
+
+    /// <summary>
+    /// 演职人员那一排：按「隐藏没有封面的演职人员」筛一遍再交给货架。设置现读，不留快照 —— 设置页在另一个
+    /// 窗口里改完，这一页也要跟着变（<see cref="RefreshCast"/>）。
+    /// </summary>
+    private void FillCast(EmbyItem item)
+    {
+        _castPortraitsOnly = Settings.Ui.HideCastWithoutPortrait;
+        CastShelf?.Fill(ItemDetail.Cast(item, portraitsOnly: _castPortraitsOnly)
+            .Select(credit => (credit.Card, (string?)credit.Credit)));
+    }
+
+    /// <summary>
+    /// 「隐藏没有封面的演职人员」改了之后重排那一排，不等退出重进。只在这一项真变了的时候动手：外壳把同一句
+    /// 通知发给每一处订阅方，而改配色、改卡片次序都不该让四十张头像重新造一遍。条目还没回来时什么也不做 ——
+    /// <see cref="Apply"/> 会按当时的值造好。
+    /// </summary>
+    internal void RefreshCast()
+    {
+        if (_detail is not { } item) return;
+        if (_castPortraitsOnly == Settings.Ui.HideCastWithoutPortrait) return;
+        FillCast(item);
     }
 
     /// <summary>
