@@ -54,10 +54,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.IsReady && page.ViewModel.Cards.Count == 100);
             await LayoutAsync(page);
             var wall = Get<ItemsView>(page, "CardWall");
-            wall.StartBringItemIntoView(40, new BringIntoViewOptions { AnimationDesired = false, VerticalAlignmentRatio = 0 });
-            await UntilAsync(() => IsRealized(page, page.ViewModel.Cards[40].Item.IdentityKey, identityMatch: true)
-                && Math.Abs(AnchorY(page, page.ViewModel.Cards[40].Item.IdentityKey)) < 3);
-            await ScrollProbeAsync(wall.ScrollView!, wall.ScrollView!.VerticalOffset + 17);
+            await ScrollProbeAsync(wall.ScrollView!, 0);
             await LayoutAsync(page);
             var cards = page.ViewModel.Cards.ToArray();
             var collection = page.ViewModel.Cards;
@@ -65,8 +62,6 @@ internal sealed partial class ShellNavigationProbe
             for (var visit = 0; visit < 10; visit++)
             {
                 Require(frame.Navigate(typeof(Page)), "缓存库中间页面导航失败");
-                var savedAnchor = request.AnchorIdentityKey!;
-                var savedY = request.AnchorY;
                 // 用户的返回输入发生在下一帧；先完成中间页的真实卸载/加载生命周期，
                 // 避免同一次回调把尚未卸载的 ItemsView 移出又塞回。
                 await LayoutAsync((Page)frame.Content);
@@ -81,12 +76,12 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
                 await UntilAsync(() => page.IsLoaded && !Get<bool>(page, "_restoringAnchor")
                     && Get<object?>(page, "_pendingAnchor") is null);
-                await UntilAsync(() => IsRealized(page, savedAnchor) && Math.Abs(AnchorY(page, savedAnchor) - savedY) < 3
-                    && wall.ScrollView?.State == ScrollingInteractionState.Idle);
+                await UntilAsync(() => wall.ScrollView is { VerticalOffset: < 1, State: ScrollingInteractionState.Idle });
+                Require(IsRealized(page, page.ViewModel.Cards[0].Item.IdentityKey), "顶部复用没有显示第一项");
                 times.Add(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
             }
-            var anchor = request.AnchorIdentityKey!;
-            Require(anchor is not null && IsRealized(page, anchor) && Math.Abs(AnchorY(page, anchor) - request.AnchorY) < 3, "缓存返回丢失局部滚动锚点");
+            var anchor = page.ViewModel.Cards[0].Item.IdentityKey;
+            Require(IsRealized(page, anchor) && wall.ScrollView?.VerticalOffset < 1, "顶部复用没有保持第一项");
             await SaveProbeScreenAsync("performance-library-cache-return-1280-screen.png");
             ResizeProbeClient(760, 800);
             Require(frame.Navigate(typeof(Page)), "窄窗缓存中间导航失败");
@@ -94,7 +89,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => !page.IsLoaded);
             frame.GoBack();
             await LayoutAsync(page);
-            await UntilAsync(() => IsRealized(page, anchor!) && Math.Abs(AnchorY(page, anchor!) - request.AnchorY) < 3);
+            await UntilAsync(() => IsRealized(page, anchor) && wall.ScrollView?.VerticalOffset < 1);
             await SaveProbeScreenAsync("performance-library-cache-return-760-screen.png");
 
             holdNewLibrary = true;
@@ -112,6 +107,14 @@ internal sealed partial class ShellNavigationProbe
             Require(page.ViewModel.Cards.All(card => card.Item.Id.StartsWith("other-", StringComparison.Ordinal)), "另一库混入旧卡片");
             Require(Get<ItemsView>(page, "CardWall").ScrollView?.VerticalOffset < 1, "新请求零偏移继承了旧滚动");
             await SaveProbeScreenAsync("performance-library-cache-new-library-760-screen.png");
+            await ScrollProbeAsync(wall.ScrollView!, 400);
+            Require(wall.ScrollView!.VerticalOffset > 1, "深滚动淘汰前置未离开顶部");
+            Require(frame.Navigate(typeof(Page)), "深滚动库离页失败");
+            Require(page.NavigationCacheMode == NavigationCacheMode.Disabled, "深滚动页面必须交给快照锚点恢复");
+            await LayoutAsync((Page)frame.Content);
+            frame.GoBack();
+            Require(!ReferenceEquals(frame.Content, page), "深滚动页面仍复用不稳定控件");
+            await UntilAsync(() => frame.Content is LibraryPage restored && restored.IsReady);
             Require(frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services)), "缓存搜索导航失败");
             var search = (LibraryPage)frame.Content;
             Require(search.ViewModel.Cards.Count == 0, "搜索页继承旧库卡片");
@@ -145,11 +148,5 @@ internal sealed partial class ShellNavigationProbe
                 && poster.TransformToVisual(scroll).TransformPoint(new Point(0, 0)).Y + poster.ActualHeight > 0);
         }
 
-        static double AnchorY(LibraryPage page, string identity)
-        {
-            var wall = Get<ItemsView>(page, "CardWall");
-            var card = Descendants(wall).OfType<PosterCard>().First(poster => poster.Card?.Item.IdentityKey == identity);
-            return card.TransformToVisual(wall.ScrollView).TransformPoint(new Point(0, 0)).Y;
-        }
     }
 }

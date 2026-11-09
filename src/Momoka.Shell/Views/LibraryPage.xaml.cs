@@ -598,7 +598,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (ViewModel.RestoredFromCache)
         {
             // 卡片已经在集合里：先落回滚动位置，再让后台核对更新内容，不重读之前翻过的每一页。
-            if (ViewModel.HasSavedAnchor) _pendingAnchor = SavedScrollAnchor();
+            if (ViewModel.HasSavedAnchor && (request.ScrollOffset > 1 || ViewModel.WindowStart > 0)) _pendingAnchor = SavedScrollAnchor();
             else _pendingScroll = request.ScrollOffset;
             ApplyPendingScroll();
             _ = ViewModel.RevalidateAsync();
@@ -656,7 +656,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (_released) return;
         // Frame caches one instance per page type. Non-root, incomplete and oversized pages must not
         // turn search/results or unbounded card histories into an application-lifetime cache.
-        if (!ViewModel.NavigationReuseEligible) NavigationCacheMode = NavigationCacheMode.Disabled;
+        if (!ViewModel.NavigationReuseEligible || ViewModel.WindowStart > 0 || ContentScrollOffset > 1)
+            NavigationCacheMode = NavigationCacheMode.Disabled;
         _timing = null;
         _released = true;
         if (_moviePilot is { } moviePilot) moviePilot.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;
