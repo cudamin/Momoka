@@ -95,13 +95,17 @@ public sealed class FnNasTaskWatch : IAsyncDisposable
                     var tasks = await scope.ExecuteAsync((client, ct) =>
                         client.FnNas.GetRunningTasksAsync(client.FnNasConnection, ct), token).ConfigureAwait(false);
                     token.ThrowIfCancellationRequested();
-                    if (!Eligible(scope) || scope.PermissionRevision != permissionRevision) return;
+                    if (!Eligible(scope)) return;
                     var current = Ancestors(tasks);
                     lock (_gate)
                     {
                         if (!ReferenceEquals(_visit, visit) || token.IsCancellationRequested || !Eligible(scope)) return;
-                        if (previous is not null && HasRemoved(previous, current)) changed(scope.Key);
-                        previous = current;
+                        // 同身份令牌/权限更新只丢弃本次旧快照；保留基线，下轮用最新客户端继续读取。
+                        if (scope.PermissionRevision == permissionRevision)
+                        {
+                            if (previous is not null && HasRemoved(previous, current)) changed(scope.Key);
+                            previous = current;
+                        }
                     }
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested || !Eligible(scope)) { return; }

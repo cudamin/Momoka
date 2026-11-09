@@ -27,6 +27,7 @@ internal static class FnNasTaskWatchTests
         Test("飞牛任务：Emby来源不会走飞牛任务接口", () => Run(VerifyOtherProductAsync));
         Test("飞牛任务：旧权限响应即使已恢复管理员也不能跨代回调", () => Run(VerifyPermissionRevisionAsync));
         Test("飞牛任务：请求失败后的等待被取消不再发请求", () => Run(VerifyFailureReleaseAsync));
+        Test("飞牛任务：在途换令牌丢旧快照但继续轮询，新令牌真实完成仍回调", () => Run(VerifyInFlightTokenAsync));
         Test("飞牛任务：type精确匹配，无状态与祖先类别过滤，空和未知祖先保留JS差集边界", VerifyAncestorValues);
     }
 
@@ -270,9 +271,13 @@ internal static class FnNasTaskWatchTests
         fixture.Permission(false);
         fixture.Permission(true);
         pending.Response.SetResult(Reply("[]"));
-        await watch.DisposeAsync();
+        await fixture.WaitForDelayAsync().WaitAsync(TimeSpan.FromSeconds(1));
         Assert.Equal(0, fixture.Changes.Count);
-        Assert.Equal(2, fixture.TaskRequests);
+        await fixture.TickAsync();
+        await fixture.ReadAsync("[]");
+        Assert.Equal(1, fixture.Changes.Count, "只有新权限代次自己的响应可以提交");
+        await watch.DisposeAsync();
+        Assert.Equal(3, fixture.TaskRequests);
     }
 
     private static async Task VerifyFailureReleaseAsync()
@@ -288,6 +293,27 @@ internal static class FnNasTaskWatchTests
         await watch.DisposeAsync();
         Assert.Equal(1, fixture.TaskRequests);
         Assert.Equal(0, fixture.Changes.Count);
+    }
+
+    private static async Task VerifyInFlightTokenAsync()
+    {
+        using var fixture = new Fixture();
+        await fixture.RestoreAsync();
+        await using var watch = fixture.CreateWatch();
+        watch.Attach([fixture.Scope], fixture.Changed);
+        await fixture.ReadAsync("""[{"type":"TaskItemScrap","ancestor":"a"}]""");
+        await fixture.TickAsync();
+        var stale = await fixture.Requests.Reader.ReadAsync();
+        fixture.Session.ReplaceClient(fixture.Scope, fixture.Scope.CurrentConnection with { AccessToken = "NONSECRET-inflight" });
+        stale.Response.SetResult(Reply("[]"));
+        await fixture.WaitForDelayAsync().WaitAsync(TimeSpan.FromSeconds(1));
+        Assert.Equal(0, fixture.Changes.Count, "令牌替换前已派发的快照不能更新基线");
+        await fixture.TickAsync();
+        var current = await fixture.Requests.Reader.ReadAsync();
+        Assert.Equal("NONSECRET-inflight", current.Authorization);
+        current.Response.SetResult(Reply("[]"));
+        await fixture.WaitForDelayAsync();
+        Assert.Equal(fixture.Scope.Key, fixture.Changes.Single());
     }
 
     private static IReadOnlyList<JsonObject> Tasks(string json) => JsonNode.Parse(json)!.AsArray().Cast<JsonObject>().ToArray();
