@@ -12,11 +12,11 @@
 
 ## 范围与执行
 
-- [ ] 更新现有布局契约及原生几何检查，先确认旧布局失败。
-- [ ] 修改 MoviePilotSubscriptionPage.xaml/.xaml.cs 与 MoviePilotMediaSeasonsView.xaml；封面 238×340，窄版154×220，维持7:10比例；简介距操作12，标题与组标题同行。
-- [ ] 验证长英文/无空格公司名完整换行；检查760/1024/1240窗口、沉浸和简洁恢复、无组时隐藏组标题。
-- [ ] 编译当前Release Tests/Core/Shell，主测试和页面专项，原生三项及截图，独立复审。
-- [ ] 提交并安全整合master，重新验证后发布桌面目录；不上传。
+- [x] 更新现有布局契约及原生几何检查，先确认旧布局失败。
+- [x] 修改 MoviePilotSubscriptionPage.xaml/.xaml.cs 与 MoviePilotMediaSeasonsView.xaml；封面 238×340，窄版154×220，维持7:10比例；简介距操作12，标题与组标题同行。
+- [x] 验证长英文/无空格公司名完整换行；检查760/1024/1240窗口、沉浸和简洁恢复、无组时隐藏组标题。
+- [x] 编译当前Release Tests/Core/Shell，主测试和页面专项，原生三项及截图，独立复审。
+- [x] 提交并安全整合master，重新验证后发布桌面目录；不上传。
 
 ## 取舍与记录
 
