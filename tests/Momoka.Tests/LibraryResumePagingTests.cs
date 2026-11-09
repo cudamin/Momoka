@@ -1155,6 +1155,45 @@ internal static class LibraryResumePagingTests
             var host = uri.Host.Split('.')[0];
             var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
                 .Select(value => value.Split('=', 2)).ToDictionary(pair => pair[0], pair => Uri.UnescapeDataString(pair[1]), StringComparer.Ordinal);
+            if (HomeReads && uri.AbsolutePath.Contains("/library/", StringComparison.Ordinal))
+            {
+                var resume = uri.AbsolutePath.EndsWith("/onDeck", StringComparison.Ordinal);
+                var latest = uri.AbsolutePath.EndsWith("/recentlyAdded", StringComparison.Ordinal);
+                Assert.True(resume || latest || uri.AbsolutePath.EndsWith("/all", StringComparison.Ordinal),
+                    "主页重入夹具只接受 Plex 续播、最新与库页读取");
+                if (resume && FailHomeResumeHosts.Contains(host)) throw new IOException("fixture home resume failure");
+                var gate = resume ? HomeResumeGates.GetValueOrDefault(host)
+                    : latest && !uri.AbsolutePath.Contains("/sections/", StringComparison.Ordinal) ? HomeWatch : null;
+                var items = resume ? Rows[host].ToArray()
+                    : Enumerable.Range(0, HomeLatestCount).Select(index => new EmbyItem
+                    { Id = host + "-latest-" + index, Name = "最新电影", Type = EmbyItemType.Movie }).ToArray();
+                if (gate is not null)
+                {
+                    gate.Entered.TrySetResult();
+                    await gate.Release.Task.ConfigureAwait(false);
+                }
+                return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(new
+                    {
+                        MediaContainer = new
+                        {
+                            size = items.Length,
+                            totalSize = items.Length,
+                            Metadata = items.Select(item => new
+                            {
+                                ratingKey = item.Id,
+                                title = item.Name,
+                                type = "movie",
+                                duration = 1200000,
+                                viewOffset = 300000,
+                                thumb = "/library/metadata/" + item.Id + "/thumb/fixture",
+                                art = "/library/metadata/" + item.Id + "/art/fixture"
+                            }).ToArray()
+                        }
+                    }), System.Text.Encoding.UTF8, "application/json")
+                };
+            }
             string json;
             if (uri.AbsolutePath.EndsWith("/Items/Resume", StringComparison.Ordinal)
                 || uri.AbsolutePath.EndsWith("/UserItems/Resume", StringComparison.Ordinal))
