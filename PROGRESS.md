@@ -12006,3 +12006,9 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 修前实时专项 52 项37过15败；实现后52/52。独立复审定位周期更新取消在途发送会Abort连接，确定性阻塞发送回归53项52过1败；改为单一发送循环及合并唤醒后53/53，复审无必要遗留。Plex样例逐条验证解析，避免混合计数误过。
 - 本树 Release Core/Tests、Shell、ResourceBudget 编译均0警告0错误；主测试4248/4248、实时53/53、首页实际VM生命周期44/44、WebSocket容量26/26、兼容89/89，全为0失败0跳过，交叉套件不累加。定向dotnet format whitespace及15变更文本检查通过。证据在本树ignored `work/realtime-push/`。
 - 上述为匿名回环/内存REST、实际客户端与VM检查，不证明真实服务器、TLS/代理/共享账号或真实入库推送；没有登录、播放或改服务器。尚未主树整合/重验/发布，桌面仍旧版。最新主树ca812b6仅有既存技能删除，相关聊天均idle，下一步保留原改动整合并重验。
+
+### 媒体库推送主树交付
+
+- 产品82179a9已cherry-pick到master `1564ef2`；主树已有的三份技能删除逐项保留、未暂存。最终主树Release Tests/Core、Shell与ResourceBudget编译0警告0错误；完整主测试4251/4251（含实时53项）、实际首页VM44/44、WebSocket容量26/26均0失败0跳过；16变更文本及定向whitespace通过。
+- `publish.ps1 -NoArchive`退出0，主树实际交付目录546文件286.9MB、mpv批准清单59文件及许可通过。发布Shell与bin SHA256同为`DF4A659741FD80D02A74AFDF2B1F43BAF4136984D89650D10260312FC659DA3C`；发布Core与测试Core同为`496ADF82CDDAA4BDCA9C36CC0CF9A49C51177B856C63FC3547A7746A029AF162`。桌面Momoka.lnk只读核对目标/工作目录均主树artifacts/publish/win-x64，参数空，无需重写。
+- 主树最终证据位于`work/realtime-push-final/`，已复制独立树红/绿记录至其isolated-tree子目录；公开来源与边界见实时更新文档。未执行真实服务器登录、推送抓包、播放、WinUI截图或TLS代理验证；未推送origin。独立树82179a9的本任务内容已全部进入主树，准备按App归档回收。
