@@ -117,16 +117,9 @@
     <CornerRadius x:Key="EgSearchCornerRadius">10</CornerRadius>
     <CornerRadius x:Key="EgPickerCornerRadius">12</CornerRadius>
 
-    <!--
-      详情页文件选项那三行（视频／音频／字幕）的行高。有下拉的那几行天生就这么高 —— 框架 ComboBox 的
-      MinHeight 是 32（12,5,0,7 的内边距包住一行 14 号字）；只有一句话的那几行本来自成一行字的高（20 上下），
-      于是同一排里「这个文件有几条音轨」会改掉行与行之间的竖距（用户 2026-11-08：「调整媒体页面这三个选项
-      的间距、让它们不管有没有选择框间距都一致」）。三行都按这个数摆、字在格里居中，行与行之间就只剩
-      外面那个 StackPanel 的 Spacing。
-      这个数是跟着下拉量出来的，不是另一套刻度：改 ComboBox 样式、字号或内边距时一起核对，探针
-      「文件选项三行的竖距」会拿它和真下拉的高对一遍。
-    -->
-    <x:Double x:Key="EgPickerRowHeight">32</x:Double>
+    <!-- 详情文件选项的紧凑行高，纯文字与选择框共用。DetailPage 同步收紧选择框内边距及箭头的
+         ComboBoxMinHeight；保留 MinHeight 让长文字仍能换行。探针核对实际控件高度与两种音轨状态的间距。 -->
+    <x:Double x:Key="EgPickerRowHeight">28</x:Double>
     <Style x:Key="EgTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
         <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
     </Style>

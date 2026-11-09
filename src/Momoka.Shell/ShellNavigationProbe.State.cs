@@ -539,7 +539,7 @@ internal sealed partial class ShellNavigationProbe
     /// 在这两种状态下要是同一套数，否则换个文件就换一种节奏。
     /// <para>
     /// 量的都是根坐标里的矩形：视频那一行（纯文字）、音频那一行（先文字、再变下拉）、字幕那一行（下拉）。
-    /// 两处空隙要彼此相等、各自等于所在容器的 Spacing（片名栏那 10 与文件选项那 10），纯文字那一行的高要
+    /// 两处空隙要彼此相等、均为收紧后的 6 DIP，纯文字那一行的高要
     /// 等于真下拉的高 —— <c>EgPickerRowHeight</c> 一旦和框架的 ComboBox 漂开，最后那一条就会红。
     /// </para>
     /// <para>
@@ -598,9 +598,9 @@ internal sealed partial class ShellNavigationProbe
             Require(!vm.IsCompact, "1280 DIP 上是紧凑版式，片名栏那一份文件选项没有画出来");
 
             // 电影页上「视频：…」是片名栏里独立的一份（DetailVideoText），不是 ColumnPickers 里那条
-            // （那条只给集页的宽版式）。它和下面那排是同一个 StackPanel 的孩子，所以视频与音频之间的空隙
-            // 由 HeroStack.Spacing 给、音频与字幕之间由 ColumnPickers.Spacing 给 —— 两处都得是同一个数。
-            var stack = Get<StackPanel>(page, "HeroStack");
+            // （那条只给集页的宽版式）。它和下面那排在独立文件组里，所以视频与音频之间的空隙
+            // 由 FileOptions.Spacing 给、音频与字幕之间由 ColumnPickers.Spacing 给 —— 两处都得是同一个数。
+            var stack = Get<StackPanel>(page, "FileOptions");
             var panel = Get<StackPanel>(page, "ColumnPickers");
             var videoText = Get<TextBlock>(page, "DetailVideoText");
             Require(videoText.Visibility == Visibility.Visible && videoText.ActualHeight > 0,
@@ -622,6 +622,8 @@ internal sealed partial class ShellNavigationProbe
                     + $"空隙 {first:0.#}／{second:0.#}，选择框高 {height:0.#}，"
                     + $"Spacing {stack.Spacing:0.#}／{panel.Spacing:0.#}");
                 Require(Math.Abs(first - second) < 0.5, $"{state}：两处空隙不一样：{first:0.#} 对 {second:0.#}");
+                Require(Math.Abs(first - 6) < 0.5 && Math.Abs(height - 28) < 0.5,
+                    $"{state}：未收紧到 28 高、6 间距：高 {height:0.#}，间距 {first:0.#}");
                 Require(Math.Abs(first - stack.Spacing) < 0.5,
                     $"{state}：视频与音频之间 {first:0.#}，片名栏的 Spacing 是 {stack.Spacing:0.#}");
                 Require(Math.Abs(second - panel.Spacing) < 0.5,
@@ -646,6 +648,39 @@ internal sealed partial class ShellNavigationProbe
 
             Rhythm("多音轨（音频是下拉）");
             await SaveProbeScreenAsync("detail-picker-rhythm-picker-screen.png");
+            var rejected = false;
+            try
+            {
+                stack.Spacing = 10;
+                await LayoutAsync(page);
+                try { Rhythm("旧间距反例"); }
+                catch (InvalidOperationException) { rejected = true; }
+            }
+            finally
+            {
+                stack.Spacing = 6;
+                await LayoutAsync(page);
+            }
+            Require(rejected, "旧间距未被紧凑检查拒绝");
+            Rhythm("恢复紧凑间距");
+            foreach (var width in new[] { 1064, 760 })
+            {
+                ResizeInspect((int)Math.Ceiling(width * scale), (int)Math.Ceiling(900 * scale));
+                await LayoutAsync(page);
+                var fit = page.PickerFit();
+                Require(fit.Ok, fit.Detail);
+                readings.Add($"{width} DIP：{fit.Detail}");
+                if (!vm.IsCompact) Rhythm($"{width} DIP");
+                await SaveProbeScreenAsync($"detail-picker-rhythm-{width}-screen.png");
+            }
+            foreach (var visibility in new[] { Visibility.Visible, Visibility.Collapsed })
+            {
+                Require(DetailPage.FileOptionsVisibility(visibility, Visibility.Visible) == Visibility.Visible
+                    && DetailPage.FileOptionsVisibility(Visibility.Visible, visibility) == Visibility.Visible,
+                    "仍有内容时文件组被隐藏");
+            }
+            Require(DetailPage.FileOptionsVisibility(Visibility.Collapsed, Visibility.Collapsed) == Visibility.Collapsed,
+                "空文件组留下间距");
             Require(fixture.Actions.Plays == 0, "文件选项竖距检查意外请求播放");
         }
         finally

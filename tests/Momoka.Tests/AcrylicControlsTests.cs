@@ -49,7 +49,7 @@ internal static class AcrylicControlsTests
                 Assert.Equal("{StaticResource EgOnScrimBodyStyle}", (string?)Named(page, name).Attribute("Style"));
         });
         // 用户 2026-11-08：「调整媒体页面这三个选项的间距、让它们不管有没有选择框间距都一致」。
-        // 选择框天生 32 高，纯文字那几行只有一行字的高 —— 三行都按同一个行高摆，字在格里居中，
+        // 文件选项缩为 28 高、6 间距；文字与选择框仍须使用同一套行高，字在格里居中，
         // 行间就只剩外面那个 StackPanel 的 Spacing。真实像素与空隙由探针「文件选项三行的竖距」量。
         Test("详情文件选项：三行同一个行高，有没有选择框都不改竖距", () =>
         {
@@ -68,8 +68,20 @@ internal static class AcrylicControlsTests
             Assert.Equal("Center", (string?)Named(page, "DetailVideoText").Attribute("VerticalAlignment"));
             // 紧凑版式那一份：唯一音轨的那段文字也占住一个选择框的高，换行那一排才不塌一截。
             Assert.Equal(RowHeight, (string?)Named(page, "AudioText").Parent!.Attribute("MinHeight"));
-            // 这个数跟着框架 ComboBox 的默认最小高（32），不是另一套刻度。
-            Assert.Equal("32", Resource(Read("Theme/Styles.xaml").Root!, "EgPickerRowHeight").Value);
+            Assert.Equal("28", Resource(Read("Theme/Styles.xaml").Root!, "EgPickerRowHeight").Value);
+            var resources = page.Root!.Element(Xaml + "Page.Resources")!;
+            Assert.Equal("28", Resource(resources, "ComboBoxMinHeight").Value);
+            var style = resources.Elements(Xaml + "Style").Single(row => (string?)row.Attribute("TargetType") == "local:EgPicker");
+            Assert.Equal(RowHeight, Setter(style, "MinHeight"));
+            Assert.Equal("10,3,0,3", Setter(style, "Padding"));
+            var group = Named(page, "FileOptions");
+            Assert.Equal("6", (string?)group.Attribute("Spacing"));
+            Assert.Equal("6", (string?)Named(page, "ColumnPickers").Attribute("Spacing"));
+            Assert.True(ReferenceEquals(group, Named(page, "DetailVideoText").Parent!.Parent));
+            Assert.True(ReferenceEquals(group, Named(page, "ColumnPickers").Parent));
+            Assert.Equal("{x:Bind local:DetailPage.FileOptionsVisibility(ViewModel.VideoLineVisibility, ViewModel.ColumnPickersVisibility), Mode=OneWay}",
+                (string?)group.Attribute("Visibility"));
+            Assert.Equal("10", (string?)Named(page, "HeroStack").Attribute("Spacing"));
         });
         Test("详情头图：分类和固定说明统一视频白色，主题链接与星标不变", () =>
         {
