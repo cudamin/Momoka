@@ -1,6 +1,8 @@
 # 开发进度
 
-## 2026-11-09 MP 网页资料卡、全宽列表与季默认收起（用户自行验收，发布中）
+## 2026-11-09 MP 网页资料卡、全宽列表与季默认收起（已发布，用户自行验收）
+
+已交付产品cbc7d5d：tools/publish.ps1 -NoArchive -Shortcut退出0，546文件/286.9MB，14GLSL/4HOOK与59批准mpv载荷验证通过；桌面Momoka.lnk指向主树artifacts/publish/win-x64/Momoka.exe。发布配置的build与publish Momoka.dll SHA256一致。最终实屏由用户自行验收，首轮32/36失败记录保留且修复后未重跑；不宣称完整UI通过。已有三个技能删除保留未暂存，未push。
 
 用户最新要求覆盖前批相交收窄方案。右卡按官方前端v3 609ea05eac7efc7c2cb31edcf5364d26c9c592f1的MediaDetailView.vue实现：十星半星、来源优先字段、上映云图标、国家和公司逐行，取消右卡订阅字段和时长；电影有数据的数字/实体发行日期保留。后端只读核对55da2238df2b252a709ace231b45d244ff7cfc79，未访问真实部署。空国家/公司按项目显隐规则隐藏，区别于网页空行。
 
