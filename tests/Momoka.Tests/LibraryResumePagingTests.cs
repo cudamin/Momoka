@@ -1119,6 +1119,7 @@ internal static class LibraryResumePagingTests
 
         /// <summary>让某个来源的主页「继续观看」失败，别的来源照常返回。</summary>
         public HashSet<string> FailHomeResumeHosts { get; } = new(StringComparer.Ordinal);
+        public bool RejectHomeResumePermission { get; set; }
 
         /// <summary>按来源闸住主页「接下来看」的读取。</summary>
         public Dictionary<string, Gate> HomeNextUpGates { get; } = new(StringComparer.Ordinal);
@@ -1162,6 +1163,8 @@ internal static class LibraryResumePagingTests
                 Assert.True(resume || latest || uri.AbsolutePath.EndsWith("/all", StringComparison.Ordinal),
                     "主页重入夹具只接受 Plex 续播、最新与库页读取");
                 if (resume && FailHomeResumeHosts.Contains(host)) throw new IOException("fixture home resume failure");
+                if (resume && RejectHomeResumePermission)
+                    return new HttpResponseMessage(System.Net.HttpStatusCode.Forbidden) { Content = new StringContent("fixture forbidden") };
                 var gate = resume ? HomeResumeGates.GetValueOrDefault(host)
                     : latest && !uri.AbsolutePath.Contains("/sections/", StringComparison.Ordinal) ? HomeWatch : null;
                 var items = resume ? Rows[host].ToArray()

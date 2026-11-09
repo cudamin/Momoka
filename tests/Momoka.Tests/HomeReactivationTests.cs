@@ -107,6 +107,51 @@ internal static class HomeReactivationTests
             finally { ((IDisposable)home).Dispose(); }
         });
 
+        Case("主页实例重入：成功后后台权限失败清空，不沿用旧成功标记", async () =>
+        {
+            using var fixture = SafeFixture(shell);
+            var home = CreateHome(shell, fixture);
+            try
+            {
+                await Load(shell, home);
+                Assert.True(Cards(shell, home).Length > 0);
+                fixture.Transport.RejectHomeResumePermission = true;
+                await (Task)shell.Invoke(home, "BackgroundRefreshAsync")!;
+                Assert.True(shell.Get<bool>(home, "NoticeOpen"));
+                Assert.Equal(0, Values(shell, home, "Shelves").Length, "权限失败不继续显示旧内容");
+                shell.Invoke(home, "Cancel");
+                Assert.False(Reactivate(shell, home), "已清空的权限失败页不属于可复用的成功页");
+                Assert.Equal(0, Values(shell, home, "Slides").Length);
+            }
+            finally { ((IDisposable)home).Dispose(); }
+        });
+
+        Case("主页实例重入：成功后前台刷新挂起再离页，不沿用旧成功标记", async () =>
+        {
+            using var fixture = SafeFixture(shell);
+            var home = CreateHome(shell, fixture);
+            var gate = new Gate(true);
+            var loading = Task.CompletedTask;
+            try
+            {
+                await Load(shell, home);
+                fixture.Transport.HomeResumeGates["a"] = gate;
+                loading = (Task)shell.Invoke(home, "ReloadAsync")!;
+                await gate.Entered.Task;
+                shell.Invoke(home, "Cancel");
+                Assert.False(Reactivate(shell, home), "未完成的前台刷新已经改动内容，不能复用旧完成标记");
+                Assert.Equal(0, Values(shell, home, "Shelves").Length);
+                gate.Release.TrySetResult();
+                await loading;
+                Assert.Equal(0, Values(shell, home, "Shelves").Length, "前台旧响应不能重新填入离页内容");
+            }
+            finally
+            {
+                gate.Release.TrySetResult(); await loading; await Supplement(home);
+                ((IDisposable)home).Dispose();
+            }
+        });
+
         foreach (var auto in new[] { false, true })
         {
             Case("主页实例重入：旧" + (auto ? "定时检查" : "后台刷新") + "完成不解除新访问的在途标记", async () =>
