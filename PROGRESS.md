@@ -9,6 +9,12 @@
 受管树browse-image-gate/Momoka，基点6e53dbf。仅CardItem与BannerSlide真正的新图片读/渲染需求通过BrowsePresentation.WaitForImagesAsync等待本轮页面首帧；已解码缓存与现有图片直接显示。各调用仍持有独立loading取消源，等待链接来源Lifetime，放行后重新核请求引用/取消/来源；拼图先显示已缓存格，只延后缺格；轮播暖背景不等，需补徽标才等。没有改变Release/Abandon的回收边界。
 
 PageContract用最小可控制presentation边界执行真实卡/轮播/图片store；首轮155/162、7失败，实现后162/162；追加纯暖轮播与来源退出后最终164/164、0失败0跳过，Release编译0警告0错误。证据browse-gate-*.log。测试只用匿名假图片HTTP/受控解码，不执行UI、Shell构建、真实服务、播放、发布或推送。生产依赖的BrowsePresentation由主会话另一个集成提交提供，默认CompletedTask；主会话需合入helper后编译Shell并验证动画先呈现、图片晚到及旧导航归属。独立树未交付，快捷方式仍是旧版。
+## 2026-11-09 原生导航图片门控按所属Frame捕获（独立树待整合）
+
+父会话真实匿名探针32456的home Loaded明确gate仍pending但imageCalls=1，且没有browse-images-wait；此前AsyncLocal-only门控不能保证跨WinRT事件传递。新增DependencyObject owner重载，经当前控件祖先Frame或Page.Frame查条件弱表内的本轮门控；找不到浏览Frame立即继续，不使用ThreadStatic全局兜底，避免同线程其他窗口串门。调用方由父会话/data子片显式捕获Task传给Card/Banner/Detail异步链。上游PageStackEntry.PrepareContent确认在OnNavigatedTo前已设置Page.Frame。
+
+实际源链接4条新回归先15/19红，新增owner重载后19/19、0失败0跳过；Release编译/格式与行尾验证记录于artifacts/browse-presentation。原生32456红证据由父会话保留，修复后真实gate、图片淡入与切页仍由父会话统一编译/运行/交付，不能用控制台19项代替。未运行UI或网络、未发布/上传。
+
 ## 2026-11-09 浏览页面先淡入再放行图片（独立树待整合）
 
 受管独立树 browse-presentation/Momoka，基点6e53dbf。Shell保留Suppress，首次Loaded立即180ms纯透明度从0.8到1；不平移、不等旧页退出、不完全隐藏首屏。Navigating先建立访问图片门控，Rendering只排低优先级回调，异步续接再放行；换页、导航失败/取消和身份释放都取消旧回调并放行旧等待，调用方继续用自己的取消与访问归属。关应用/系统动画即时落定但图片门控继续；未上UI树默认不等待。AsyncLocal保留请求自己的门控，原生WinRT上下文效果待父会话实测。

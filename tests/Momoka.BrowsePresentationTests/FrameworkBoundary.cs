@@ -27,7 +27,10 @@ namespace Microsoft.UI.Xaml
 {
     public sealed class RoutedEventArgs : EventArgs;
     public delegate void RoutedEventHandler(object sender, RoutedEventArgs args);
-    public class DependencyObject;
+    public class DependencyObject
+    {
+        public DependencyObject? VisualParent { get; set; }
+    }
     public readonly record struct Duration(TimeSpan TimeSpan);
     public class FrameworkElement : DependencyObject
     {
@@ -63,6 +66,10 @@ namespace Microsoft.UI.Xaml
 
 namespace Microsoft.UI.Xaml.Controls
 {
+    public sealed class Page : Microsoft.UI.Xaml.FrameworkElement
+    {
+        public Frame? Frame { get; set; }
+    }
     public sealed class Frame : Microsoft.UI.Xaml.FrameworkElement
     {
         public object? Content { get; set; }
@@ -71,6 +78,10 @@ namespace Microsoft.UI.Xaml.Controls
 
 namespace Microsoft.UI.Xaml.Media
 {
+    public static class VisualTreeHelper
+    {
+        public static Microsoft.UI.Xaml.DependencyObject? GetParent(Microsoft.UI.Xaml.DependencyObject element) => element.VisualParent;
+    }
     public static class CompositionTarget
     {
         private static EventHandler<object>? _rendering;

@@ -15,6 +15,52 @@ internal static class Program
     private static int Main()
     {
         Test("未导航时图片立即放行", () => Assert.True(Gate().IsCompleted));
+        Test("原生回调失去异步上下文时仍取得所属Frame门控", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Begin();
+            var expected = Gate();
+            Task<Task> native;
+            using (ExecutionContext.SuppressFlow()) native = Task.Run<Task>(() => OwnerGate(fixture.Page));
+            while (!native.IsCompleted) Thread.Yield();
+            if (native.Exception is { } error) throw error.InnerException ?? error;
+            Assert.True(ReferenceEquals(expected, native.Result));
+            Assert.False(native.Result.IsCompleted);
+        });
+        Test("详情尚无视觉父节点时使用Page.Frame取得门控", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Begin();
+            var page = new Page { Frame = fixture.Frame };
+            Assert.True(ReferenceEquals(Gate(), OwnerGate(page)));
+        });
+        Test("同UI线程另一Frame和非浏览窗口不会串入门控", () =>
+        {
+            using var first = new Fixture();
+            using var second = new Fixture();
+            first.Begin();
+            var firstGate = Gate();
+            second.Begin();
+            var secondGate = Gate();
+            Assert.True(ReferenceEquals(firstGate, OwnerGate(first.Page)));
+            Assert.True(ReferenceEquals(secondGate, OwnerGate(second.Page)));
+            Assert.True(OwnerGate(new FrameworkElement()).IsCompletedSuccessfully);
+            first.Stop();
+            Assert.True(firstGate.IsCompletedSuccessfully);
+            Assert.False(secondGate.IsCompleted);
+            Assert.True(ReferenceEquals(secondGate, OwnerGate(second.Page)));
+        });
+        Test("owner捕获的旧Task不会被后续Frame门控替换", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Begin();
+            var captured = OwnerGate(fixture.Page);
+            fixture.Begin();
+            var next = OwnerGate(fixture.Page);
+            Assert.True(captured.IsCompletedSuccessfully);
+            Assert.False(next.IsCompleted);
+            Assert.False(ReferenceEquals(captured, next));
+        });
         Test("未进入原生UI树的调用不等待首帧", () =>
         {
             using var fixture = new Fixture();
@@ -223,7 +269,14 @@ internal static class Program
     private static Type Production => Assembly.GetExecutingAssembly().GetType("Momoka.Shell.Views.BrowsePresentation")
         ?? throw new AssertionException("Current production BrowsePresentation is missing");
 
-    private static Task Gate() => (Task)Production.GetMethod("WaitForImagesAsync", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, null)!;
+    private static Task Gate() => (Task)Production.GetMethod("WaitForImagesAsync", BindingFlags.Static | BindingFlags.NonPublic, [])!.Invoke(null, null)!;
+
+    private static Task OwnerGate(DependencyObject owner)
+    {
+        var method = Production.GetMethod("WaitForImagesAsync", BindingFlags.Static | BindingFlags.NonPublic, [typeof(DependencyObject)])
+            ?? throw new AssertionException("Current production owner image gate is missing");
+        return (Task)method.Invoke(null, [owner])!;
+    }
 
     private sealed class Fixture : IDisposable
     {
@@ -236,6 +289,7 @@ internal static class Program
             UISettings.Enabled = true;
             Frame.Load();
             Frame.Content = Page;
+            Page.VisualParent = Frame;
             if (loaded) Page.Load();
             _presentation = Activator.CreateInstance(Production, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
                 null, [Frame], null)!;

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -15,6 +16,7 @@ namespace Momoka.Shell.Views;
 internal sealed class BrowsePresentation(Frame frame)
 {
     private static readonly AsyncLocal<Task?> ImageGate = new();
+    private static readonly ConditionalWeakTable<Frame, BrowsePresentation> Owners = new();
     private readonly UISettings _systemSettings = new();
     private TaskCompletionSource? _images;
     private NavigationTimingRun? _timing;
@@ -38,6 +40,24 @@ internal sealed class BrowsePresentation(Frame frame)
         return gate;
     }
 
+    /// <summary>
+    /// WinRT 的 Loaded/导航回调未必带着发起方的 ExecutionContext，原生控件按所属 Frame 捕获。
+    /// 没有注册的浏览 Frame 直接继续，不借用同线程其他窗口的等待。
+    /// </summary>
+    internal static Task WaitForImagesAsync(DependencyObject owner)
+    {
+        for (DependencyObject? current = owner; current is not null; current = VisualTreeHelper.GetParent(current))
+        {
+            var frame = current as Frame ?? (current as Page)?.Frame;
+            if (frame is null) continue;
+            if (!Owners.TryGetValue(frame, out var presentation) || presentation._images is null) return Task.CompletedTask;
+            var gate = presentation._images.Task;
+            if (!gate.IsCompleted) presentation._timing?.Mark("browse-images-wait");
+            return gate;
+        }
+        return Task.CompletedTask;
+    }
+
     internal void Begin()
     {
         Stop();
@@ -46,6 +66,8 @@ internal sealed class BrowsePresentation(Frame frame)
         _images = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _timing = NavigationTiming.Capture();
         ImageGate.Value = _images.Task;
+        Owners.Remove(frame);
+        Owners.Add(frame, this);
     }
 
     internal void Attach()
@@ -186,6 +208,7 @@ internal sealed class BrowsePresentation(Frame frame)
     internal void Stop()
     {
         _generation++;
+        if (Owners.TryGetValue(frame, out var owner) && ReferenceEquals(owner, this)) Owners.Remove(frame);
         if (_page is { } page)
         {
             page.Loaded -= _loaded;
