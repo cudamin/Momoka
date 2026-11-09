@@ -19,6 +19,18 @@ internal static class MoviePilotImageConcurrencyTests
             () => CancellationAsync().GetAwaiter().GetResult());
         Test("MP 图片：账号往返后未取消的旧排队图片也不发请求",
             () => IdentityAsync().GetAwaiter().GetResult());
+        Test("MP 图片夹具：取消接收完成后才释放监听套接字",
+            () => StopListenerAsync().GetAwaiter().GetResult());
+    }
+
+    private static async Task StopListenerAsync()
+    {
+        for (var attempt = 0; attempt < 24; attempt++)
+        {
+            await using var server = new ImageServer();
+            using var client = new TcpClient();
+            await client.ConnectAsync(server.Origin.Host, server.Origin.Port);
+        }
     }
 
     private static MoviePilotService Service(MoviePilotClient client, Uri origin, out AppSettings settings)
@@ -207,8 +219,10 @@ internal static class MoviePilotImageConcurrencyTests
         public async ValueTask DisposeAsync()
         {
             await _stop.CancelAsync();
-            _listener.Stop();
-            await _accept.WaitAsync(TimeSpan.FromSeconds(3));
+            // 令牌可取消 AcceptTcpClientAsync。先等接收循环退出，避免 Stop 抢先释放套接字，
+            // 把本应正常取消的监听变成 ObjectDisposedException。
+            try { await _accept.WaitAsync(TimeSpan.FromSeconds(3)); }
+            finally { _listener.Stop(); }
             await Task.WhenAll(_handlers).WaitAsync(TimeSpan.FromSeconds(3));
             _stop.Dispose();
         }
