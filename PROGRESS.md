@@ -11949,3 +11949,9 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - `publish.ps1 -NoArchive -Shortcut`：发布验证通过，546 文件 286.7 MB；发布 `Momoka.dll` 与当前 bin 同为 `4ef7756e…`，发布/构建 `Momoka.Core.dll` 同为 `b6693eb3…`。快捷方式重写仍被桌面写入拒绝（`UnauthorizedAccessException`，与上批相同）；读 `Momoka.lnk` 二进制核对，目标仍是 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`、工作目录同目录、参数空 —— 桌面启动的就是这一份。
 - 发版注意：先跑普通 `dotnet build` 会把 `src/Momoka.Shell/bin/x64/Release/<tfm>/win-x64/Momoka.deps.json` 覆盖成非自包含版本，随后 publish 的载荷验证会以「待验 deps 未批准依赖：runtimepack.Microsoft.NETCore.App.Runtime.win-x64/10.0.11」拒绝。先按 publish 的同一组参数（`-r win-x64 -p:Platform=x64 -p:SelfContained=true -p:WindowsAppSDKSelfContained=true`）重建一次 Shell（必要时删掉那份 deps），再 publish 即通过。本轮未改脚本。
 - 未 push；未播放、未连真实服务器。
+
+## 2026-11-09 深返回探针采样时点修正（独立树，待整合验证）
+
+- 树 `C:/Users/89400/.codex/worktrees/deep-return-probe/Momoka`，基点 `8b207e2a`，仅改 `ShellNavigationProbe.DeepReturn.cs` 与检查台入口。44792 的 Jellyfin 深返回报告在截图前测到 -17，300ms 截图等待后的屏幕已到约 -177；Release 保存当时位置，旧探针把两个时点当成同一时点比较。保留原红证据，不归因环境、不改产品锚点。
+- 三次 Frame 导航使用正式同款 Suppress；截图前继续要求第1500项 -17±3 且 ScrollView Idle，截图后即时取位置再 Release。每后端 capture JSON 记录截图期间 Y/offset/state/focus 漂移，Release 与返回的3px门槛不变，不自动滚回掩盖漂移。检查台新增 `InspectDeepReturn` 供父会话串行定向运行。
+- 本树仅还原依赖与静态差异检查；父会话要求避免重复 Shell 构建，编译、相关运行路径及失败证据由最终整合树执行。本树不启动 UI、不发布、不上传。

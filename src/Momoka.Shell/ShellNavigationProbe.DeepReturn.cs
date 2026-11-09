@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Shell.Views;
@@ -101,7 +102,7 @@ internal sealed partial class ShellNavigationProbe
                     CollectionType = "movies"
                 };
                 ResizeProbeClient(1280, 800);
-                Require(frame.Navigate(typeof(LibraryPage), request), "深返回首个 Frame 导航失败");
+                Require(frame.Navigate(typeof(LibraryPage), request, new SuppressNavigationTransitionInfo()), "深返回首个 Frame 导航失败");
                 var page = (LibraryPage)frame.Content;
                 await UntilAsync(() => page.ViewModel.IsReady && page.ViewModel.Cards.Count > 0);
                 await LayoutAsync(page);
@@ -118,23 +119,42 @@ internal sealed partial class ShellNavigationProbe
                 await ScrollProbeAsync(wall.ScrollView!, wall.ScrollView!.VerticalOffset + 17);
                 await LayoutAsync(page);
                 await UntilAsync(() => IsRealized(page, anchorKey, identity: true)
-                    && Math.Abs(AnchorY(page, anchorKey) + 17) < 3);
-                var beforeY = AnchorY(page, anchorKey);
+                    && Math.Abs(AnchorY(page, anchorKey) + 17) < 3
+                    && wall.ScrollView!.State == ScrollingInteractionState.Idle);
+                var screenshotBeforeY = AnchorY(page, anchorKey);
+                var screenshotBeforeOffset = wall.ScrollView!.VerticalOffset;
+                var screenshotBeforeState = wall.ScrollView.State.ToString();
+                var screenshotBeforeFocus = Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(page.XamlRoot)?.GetType().Name;
                 await SaveProbeScreenAsync($"performance-deep-before-{kind}-1280-screen.png");
+                // Screen capture yields for 300 ms. Release must be compared with the position at
+                // that instant, while keeping any drift during capture visible in separate evidence.
+                var beforeY = AnchorY(page, anchorKey);
+                var beforeOffset = wall.ScrollView.VerticalOffset;
+                var beforeState = wall.ScrollView.State.ToString();
+                var beforeFocus = Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(page.XamlRoot)?.GetType().Name;
                 page.Release();
+                await WritePerformanceEvidenceAsync($"performance-deep-capture-{kind}.json", new
+                {
+                    backend = kind.ToString(), targetY = -17,
+                    screenshotBeforeY, beforeY, driftY = beforeY - screenshotBeforeY,
+                    screenshotBeforeOffset, beforeOffset,
+                    screenshotBeforeState, beforeState, screenshotBeforeFocus, beforeFocus,
+                    capturedIndex = request.AnchorIndex, capturedY = request.AnchorY,
+                    realNetwork = false, playback = false, serverWrites = false
+                });
                 Require(request.AnchorIdentityKey == anchorKey && request.AnchorIndex == 1500
                     && Math.Abs(request.AnchorY - beforeY) < 3,
-                    $"页面 Release 未捕获第1500项与局部偏移：index={request.AnchorIndex}, y={request.AnchorY}, expectedY={beforeY}");
+                    $"页面 Release 未捕获第1500项与局部偏移：backend={kind}, index={request.AnchorIndex}, y={request.AnchorY}, expectedY={beforeY}, screenshotBeforeY={screenshotBeforeY}");
                 var savedKey = request.AnchorIdentityKey!;
                 var savedY = request.AnchorY;
-                Require(frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services)), "深返回中间页面导航失败");
+                Require(frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services), new SuppressNavigationTransitionInfo()), "深返回中间页面导航失败");
                 var search = (LibraryPage)frame.Content;
                 await LayoutAsync(search);
                 search.Release();
                 Require(frame.CanGoBack, "真实 Frame 没有返回记录");
                 var beforeRead = reads.Count;
                 ResizeProbeClient(760, 800);
-                frame.GoBack();
+                frame.GoBack(new SuppressNavigationTransitionInfo());
                 var returned = (LibraryPage)frame.Content;
                 await UntilAsync(() => returned.ViewModel.IsReady && returned.ViewModel.RestoredFromCache);
                 await LayoutAsync(returned);
@@ -175,6 +195,8 @@ internal sealed partial class ShellNavigationProbe
                     savedIndex = request.AnchorIndex,
                     savedY,
                     beforeY,
+                    screenshotBeforeY,
+                    screenshotDriftY = beforeY - screenshotBeforeY,
                     windowStart = returned.ViewModel.WindowStart,
                     windowEnd = returned.ViewModel.WindowEnd,
                     snapshotItems = snapshot.Items.Count,
