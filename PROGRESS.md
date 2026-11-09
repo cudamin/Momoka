@@ -1,6 +1,10 @@
 # 开发进度
 
-## 2026-11-10 MP 订阅封面合并交付（主树验证通过，发布中）
+## 2026-11-10 MP 订阅封面合并交付（已交付）
+
+产品合并提交3c1348d。publish.ps1 -NoArchive -Shortcut退出0，546文件/286.9MB、14GLSL/4HOOK和59批准mpv载荷全部校验通过；桌面Momoka.lnk指向主树artifacts/publish/win-x64/Momoka.exe，工作目录相同、参数空。发布Shell与发布配置build哈希均9529C7539B779DD75667CE98C09A796748AEED136939DAB4E2BA485BFDF618CA，发布Core为C532CB455F8763F0D9E5CD4642023F2BE59C50903CDEDE9F7451C188935595F6。发布件本人单项检查通过（shell-probe-20261109-170015274-29528），长集数截图已目视，InspectDone正常退出。证据artifacts/mp-home-badges-delivery。没有推送origin。
+
+19f1树干净且444c8ec已完整进入master；通过应用登记后尝试归档，工具返回“The task's primary checkout cannot be removed.”，因此按应用保护保留当前主工作树，不用文件系统强删。三个主树既有技能删除仍未暂存。
 
 用户恢复「合并交付」，444c8ec合入1b2acd9基础的master；唯一开发文档冲突保留双方说明，主树既有主页刷新与季默认收起不变，三处code-review技能删除保持未暂存。新增检查台InspectSubscriptionCoversCheck和匿名常驻InspectSubscriptionCovers。运行发现PersonPicture默认不进入UIA树，增加AccessibilityView=Control，回归先红58/59后绿59/59。
 
