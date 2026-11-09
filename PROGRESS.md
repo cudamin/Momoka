@@ -1,3 +1,19 @@
+## 2026-11-09 设置新增「隐藏没有封面的演职人员」并交付
+
+用户令：「在设置中新增功能，隐藏没有封面的演职人员」。
+
+**产品**：设置 → 界面新增「详情页内容」卡（与「详情页外观」分开：那张管颜色材质，这张管正文显示什么），一行开关「隐藏没有封面的演职人员」，默认关。开着时详情页演职人员那一排只列服务器给了头像的人；一个都没有时整块按原规则收起；关掉后照旧全部列出。Emby、Jellyfin、飞牛共用同一个 `DetailPage`／`DetailViewModel`，头像来源都落在 `EmbyPerson.PrimaryImageTag`（飞牛是 `profile_path`），所以是页面级的一条规矩。MoviePilot 影视详情页是另一套页面（那一排叫「演职员」，人名来自 TMDB），不在这一项名下。
+
+**实现**：`ItemDetail.Cast(item, limit, portraitsOnly)` 去重前按头像标签筛，上限数筛完之后的人（前四十个里一半没头像仍看到四十张脸）；同一人先来的那条没图、后面那条有图仍会出现。`ShellPrefs.ApplyDetailCast` 单独一根线；`DetailViewModel.RefreshCast` 只在值真变了时重排那一排，`Apply` 与页面重入也按当前值重造；导入与恢复默认经 `ShellPrefs.Apply` 跟着走。
+
+**测试**：`ItemDetailTests` 三条（筛选、上限数筛完的人、重复署名）；`SettingsPageStateTests` 一条（默认关、拨动写回）。顺带修掉该文件里一条陈旧断言：按「染色不透明度」子串找会命中背景亚克力那两行，叠层模式永远红着；按实际按钮行名收紧。探针：设置分区新增「详情页内容」开关的拨动与写回；详情页自定义用例夹具改成有图／无图两个人，剧、集、电影三页各核「开着只剩一张脸、关掉两个人都回来、卡片不被收起」。
+
+**验证（主树产品终码 `7939927`；其后 `00ba0ff` 只动技能与文档，不涉产品代码）**：全方案 Release **0 警告 0 错误**（7 分 33 秒）；完整主测试 **4221/4221、0 失败 0 跳过**（`TEMP`／`TMP` 指 `artifacts/delivery-tmp`）；`settings-page-state-fixture` **46/46、0 失败**；`dotnet format whitespace --verify-no-changes` 退出 0；`git diff --check` 通过。`--probe-shell --probe-section settings --screen 1` **28/28、退出 0**（`shell-probe-20261109-041037601-34540`），读数「详情页内容：隐藏没有封面的演职人员默认关，开与关都写回设置」；`--probe-section library --screen 1` **34/34、退出 0**（`shell-probe-20261109-041647757-21796`），三条详情自定义用例全绿。过程红项照实记：本树第一次 library 是 33/34，红在「轮播读秒连续、悬停不停与无图摘除」（`轮播样本不属于当前停留周期或已超过其时长`），同一二进制复跑 34/34；另有一次完整主测试与另一会话的界面探针并行，16 条 `SelfCheckOutputIsolation` 因自检互斥体被占全红，等探针退出后复跑 4221/4221。
+
+**交付**：`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（清旧目录走 bash `rm -rf`，脚本那一步被 safe-delete 拦，与上一轮一致）：**546 文件、286.7 MB**，发布验证通过（14 GLSL／4 HOOK 着色器许可、批准 mpv 清单 59 文件）。`Momoka.exe` 668160 字节、时间戳 11-09 12:28；桌面 `Momoka.lnk` 目标仍是 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`（读 `.lnk` 二进制，偏移 740 命中 `Users89400\Momoka\artifacts\publish\win-x64\Momoka.exe`）；交付件 `Momoka.dll` 里「隐藏没有封面的演职人员」出现 3 次、「详情页内容」2 次。未真实登录、未真实播放、未写服务器、未推 origin。
+
+临时分支 `workbuddy/master-20d2d53d` 顶端 `7939927` 已以 `--ff-only` 合入 master，内容全部进入主树；工作树待会话关闭后按同一口径删除。
+
 ## 2026-11-09 合并并改名弹幕来源技能
 
 按用户指定的项目技能目录及 huangxd-/danmu_api 接口指南，将 `momoka-dandanplay` 改为 `momoka-danmaku`，统一弹弹play与自部署 danmu_api 的来源身份、匹配、聚合、四卡设置、OSD和发送边界。保留官方协议参考，更新内置凭据参考为当前已跟踪的 `website/worker` 文件，新增自部署协议参考与技能复核场景；同步 CLAUDE 索引、文档检查器的三处输入路径，以及功能文档的默认值、手动加载替换、发送条件、JSON格式、限流和草稿行为。
