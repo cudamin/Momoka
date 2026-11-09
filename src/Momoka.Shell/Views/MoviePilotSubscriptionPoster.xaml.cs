@@ -102,23 +102,27 @@ public sealed partial class MoviePilotSubscriptionPoster : UserControl
     {
         var fromZoom = PosterMotion.ScaleX;
         var fromPress = PressMotion.ScaleX;
+        var fromShade = HoverShade.Opacity;
         _motion?.Stop();
         _motion = null;
         var active = _hovered || _focused;
         var enabled = HomeMotion.AnimationsEnabled;
         var zoom = enabled && active ? 1.045 : 1;
         var press = enabled && _pressed ? 0.985 : 1;
-        // 主页订阅封面同样不画主题色外圈；悬停仍靠框内图片推近和更多按钮反馈。
+        var shade = _hovered ? 0.78 : 0;
+        // 与媒体库封面使用相同的暗罩和过渡，关闭动画后仍提供悬停反馈。
         Art.Style = (Style)Application.Current.Resources["EgFrameStyle"];
         void Settle()
         {
             PosterMotion.ScaleX = PosterMotion.ScaleY = zoom;
             PressMotion.ScaleX = PressMotion.ScaleY = press;
+            HoverShade.Opacity = shade;
         }
         if (!_live || XamlRoot is null || !enabled) { Settle(); return; }
         var board = new Storyboard();
         Add(PosterMotion, "ScaleX", fromZoom, zoom); Add(PosterMotion, "ScaleY", fromZoom, zoom);
         Add(PressMotion, "ScaleX", fromPress, press); Add(PressMotion, "ScaleY", fromPress, press);
+        Add(HoverShade, "Opacity", fromShade, shade);
         _motion = board;
         board.Completed += (_, _) =>
         {
@@ -147,6 +151,7 @@ public sealed partial class MoviePilotSubscriptionPoster : UserControl
         SubscriptionMore.Visibility = Visibility.Collapsed;
         _motion?.Stop(); _motion = null;
         PosterMotion.ScaleX = PosterMotion.ScaleY = PressMotion.ScaleX = PressMotion.ScaleY = 1;
+        HoverShade.Opacity = 0;
         Art.Style = (Style)Application.Current.Resources["EgFrameStyle"];
     }
 }

@@ -4,6 +4,14 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["moviepilot-subscription-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            MoviePilotSubscriptionTests.Register();
+            NeutralFeedbackTests.Register();
+            AgreementsTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["fnnas-detail-vm-fixture", var fnNasShell, var fnNasRoot])
             return FnNasDetailViewTests.Run(fnNasShell, fnNasRoot);
         if (args is ["fnnas-detail-fixture"])

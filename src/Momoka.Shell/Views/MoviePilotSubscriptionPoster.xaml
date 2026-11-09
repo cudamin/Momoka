@@ -16,13 +16,35 @@
                     </Grid>
                     <FontIcon Glyph="{x:Bind Card.Glyph, Mode=OneWay}" Style="{StaticResource EgArtworkEmptyGlyphStyle}"
                         Visibility="{x:Bind Card.EmptyPosterVisibility, Mode=OneWay}" />
+                    <Border x:Name="HoverShade" Background="{ThemeResource EgScrimBrush}" IsHitTestVisible="False" Opacity="0" />
                 </Grid>
             </Border>
         </Button>
-        <Border x:Name="SubscriptionProgress" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8,8,56,8" MaxWidth="106"
-            Background="{ThemeResource EgScrimBrush}" CornerRadius="8" Padding="8,4" IsHitTestVisible="False"
-            Visibility="{x:Bind Card.ProgressVisibility, Mode=OneWay}">
-            <TextBlock Text="{x:Bind Card.ProgressCount, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgOnScrimBrush}" />
+        <PersonPicture x:Name="SubscriptionSubscriber" Width="24" Height="24" Margin="8"
+            HorizontalAlignment="Left" VerticalAlignment="Top"
+            DisplayName="{x:Bind Card.SubscriberName, Mode=OneWay}" ProfilePicture="{x:Bind Card.SubscriberAvatar, Mode=OneWay}"
+            Visibility="{x:Bind Card.SubscriberVisibility, Mode=OneWay}"
+            AutomationProperties.AccessibilityView="Control"
+            AutomationProperties.Name="{x:Bind Card.SubscriberTooltip, Mode=OneWay}"
+            ToolTipService.ToolTip="{x:Bind Card.SubscriberTooltip, Mode=OneWay}" />
+        <Border x:Name="SubscriptionMetadata" VerticalAlignment="Bottom" Margin="6,8,43,8"
+            Background="{ThemeResource EgScrimBrush}" CornerRadius="6" Padding="2,4" IsHitTestVisible="False"
+            Visibility="{x:Bind Card.MetadataVisibility, Mode=OneWay}">
+            <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left">
+              <Grid ColumnSpacing="4">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <Border x:Name="SubscriptionProgress" Visibility="{x:Bind Card.ProgressVisibility, Mode=OneWay}">
+                    <TextBlock x:Name="SubscriptionProgressText" Text="{x:Bind Card.ProgressCount, Mode=OneWay}"
+                        Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgOnScrimBrush}" />
+                </Border>
+                <Grid x:Name="SubscriptionUpdated" Grid.Column="1" ColumnSpacing="3" Visibility="{x:Bind Card.UpdatedVisibility, Mode=OneWay}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <FontIcon Glyph="&#xE896;" FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgOnScrimBrush}" />
+                    <TextBlock x:Name="SubscriptionUpdatedText" Grid.Column="1" Text="{x:Bind Card.UpdatedText, Mode=OneWay}"
+                        Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgOnScrimBrush}" />
+                </Grid>
+              </Grid>
+            </Viewbox>
         </Border>
         <!-- 与 PosterCard 的 32px 更多按钮对齐；这里位于画框外层，边距包含画框的 1px 边线。 -->
         <Button x:Name="SubscriptionMore" Style="{StaticResource EgIconButtonStyle}" HorizontalAlignment="Right" VerticalAlignment="Bottom"

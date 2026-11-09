@@ -12,10 +12,37 @@ public sealed partial class MoviePilotService
         var data = await CallAsync((address, token, client) => client.GetAsync(address, token, "subscribe/", cancellationToken),
             cancellationToken, identity).ConfigureAwait(false);
         var stamp = TransferConnectionStamp(identity);
-        return MoviePilotSubscription.ParseList(data).Select(item => item with
+        var items = MoviePilotSubscription.ParseList(data);
+        var showSubscriber = items.Select(item => item.Username.Trim()).Where(name => name.Length > 0)
+            .Distinct(StringComparer.Ordinal).Take(2).Count() > 1;
+        var avatars = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (showSubscriber)
+        {
+            try
+            {
+                var session = await EnsureSessionAsync(identity, cancellationToken).ConfigureAwait(false);
+                if (session.Session.SuperUser)
+                {
+                    // 附加目录失败不能把已成功读取的订阅判成断线；沿用同一账号代次与取消边界。
+                    var users = await CallWithSessionAsync((address, token, client) =>
+                        client.GetAsync(address, token, "user/", cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+                    if (users.ValueKind == JsonValueKind.Array)
+                        foreach (var user in users.EnumerateArray())
+                            if (MoviePilotSubscription.Text(user, "name") is { Length: > 0 } name)
+                                avatars[name] = MoviePilotSubscription.Text(user, "avatar");
+                }
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (MoviePilotException) { /* 首字头像仍可标明订阅用户。 */ }
+            catch (HttpRequestException) { /* 用户目录是可选的显示数据。 */ }
+        }
+        CheckIdentity(identity, cancellationToken);
+        return items.Select(item => item with
         {
             ConnectionStamp = stamp,
-            Media = item.Media with { ConnectionStamp = stamp }
+            Media = item.Media with { ConnectionStamp = stamp },
+            ShowSubscriber = showSubscriber && !string.IsNullOrWhiteSpace(item.Username),
+            SubscriberAvatar = avatars.GetValueOrDefault(item.Username.Trim(), "")
         }).ToArray();
     }
 

@@ -45,6 +45,12 @@ internal static class NeutralFeedbackTests
             var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPoster.xaml.cs"));
             Assert.False(code.Contains("EgFrameActiveStyle", StringComparison.Ordinal));
             Assert.Equal("OnOpen", cover.Attribute("Click")?.Value);
+            var shade = view.Descendants().SingleOrDefault(element => Name(element) == "HoverShade");
+            Assert.NotNull(shade);
+            Assert.Equal("{ThemeResource EgScrimBrush}", shade!.Attribute("Background")?.Value);
+            Assert.Equal("False", shade.Attribute("IsHitTestVisible")?.Value);
+            var subscriber = view.Descendants().Single(element => Name(element) == "SubscriptionSubscriber");
+            Assert.Equal("Control", subscriber.Attribute("AutomationProperties.AccessibilityView")?.Value);
         });
 
         Test("中性反馈：播放键默认灰底白字，保留圆形尺寸与播放路由", () =>

@@ -27,6 +27,11 @@ internal sealed partial class ShellNavigationProbe
         new Momoka.Configuration.MoviePilotCredentials(Momoka.Configuration.PassthroughSecretProtector.Instance)
             .SetPassword(fixture.Settings.MoviePilot, "fixture");
         var image = await FixtureImageAsync();
+        using var subscriptionCoversServer = new SubscriptionProbeServer { Poster = image, SubscriberAvatars = true };
+        subscriptionCoversServer.Items[4]["username"] = "second-user";
+        subscriptionCoversServer.Items[4]["last_update"] = DateTimeOffset.Now.AddDays(-4).ToString("O");
+        using var subscriptionCoversService = SubscriptionService(subscriptionCoversServer).Item2;
+        MoviePilotSubscriptionsView? subscriptionCovers = null;
         var item = Series();
         item.Name = "离线示例 · 媒体导航与封面管理";
         item.BackdropImageTags = ["a", "b"];
@@ -143,6 +148,18 @@ internal sealed partial class ShellNavigationProbe
                 await CaseAsync("订阅季区域材质与摘要", MoviePilotMediaBackgroundAsync, 60);
             }
             finally { layout.Visibility = Visibility.Visible; }
+        });
+        AddCheck("InspectSubscriptionCoversCheck", "订阅封面信息检查", MoviePilotSubscriptionsAsync);
+        Add("InspectSubscriptionCovers", "订阅封面悬停", async () =>
+        {
+            if (frame.Content is IShellContent previous) previous.Release();
+            subscriptionCovers?.Release();
+            subscriptionCovers = new MoviePilotSubscriptionsView();
+            frame.Content = new ScrollViewer { Content = subscriptionCovers, Padding = new Thickness(24) };
+            subscriptionCovers.Attach(subscriptionCoversService, null);
+            await UntilAsync(() => subscriptionCovers.ViewModel.IsReady);
+            await LayoutAsync(subscriptionCovers);
+            await UntilAsync(() => subscriptionCovers.ViewModel.Movies[0].SubscriberAvatar is not null);
         });
         AddCheck("InspectMoviePilotSeriesResources", "MP 剧资源菜单检查", MoviePilotSeriesReorganizeAsync);
         Add("InspectDetailMenu", "详情菜单材质", async () =>
@@ -300,6 +317,7 @@ internal sealed partial class ShellNavigationProbe
         await Task.WhenAny(finished.Task, Task.Delay(TimeSpan.FromMinutes(8)));
         while (busy) await Task.Delay(100);
         moviePilotJourney?.Dispose();
+        subscriptionCovers?.Release();
         if (frame.Content is IShellContent page) page.Release();
         _root.Children.Remove(layout);
         HomeMotion.ApplyPreference(animationPreference);

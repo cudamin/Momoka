@@ -22,6 +22,7 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
 
     private CancellationTokenSource? _imageLoad;
     private CancellationTokenSource? _backdropLoad;
+    private CancellationTokenSource? _avatarLoad;
     private Func<string, CancellationToken, Task<byte[]>>? _fetchImage;
     internal bool UsesImages(Func<string, CancellationToken, Task<byte[]>> fetch) => ReferenceEquals(_fetchImage, fetch);
     public MoviePilotSubscriptionCard(MoviePilotSubscription subscription) => Subscription = subscription;
@@ -32,6 +33,12 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
     public string Progress => Subscription.ProgressLabel;
     public string ProgressCount => Subscription.ProgressCount;
     public Visibility ProgressVisibility => Progress.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public string UpdatedText => MoviePilotSubscriptionPresentation.Updated(Subscription.LastUpdate, DateTimeOffset.Now);
+    public Visibility UpdatedVisibility => UpdatedText.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility MetadataVisibility => Progress.Length > 0 || UpdatedText.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public string SubscriberName => Subscription.Username.Trim();
+    public string SubscriberTooltip => "订阅人：" + SubscriberName;
+    public Visibility SubscriberVisibility => Subscription.ShowSubscriber ? Visibility.Visible : Visibility.Collapsed;
     public string Overview => Subscription.Media.Overview ?? "";
     public string Identity => Subscription.Media.Confirmation;
     public string Glyph => Subscription.IsSeries ? "\uE7F4" : "\uE8B2";
@@ -80,8 +87,14 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
     [ObservableProperty]
     public partial BitmapImage? Backdrop { get; set; }
 
+    [ObservableProperty]
+    public partial BitmapImage? SubscriberAvatar { get; set; }
+
     public void Update(MoviePilotSubscription subscription)
     {
+        if (Subscription.SubscriberAvatar != subscription.SubscriberAvatar || Subscription.Username != subscription.Username
+            || !subscription.ShowSubscriber)
+        { _avatarLoad?.Cancel(); _avatarLoad = null; SubscriberAvatar = null; }
         if (Subscription.Media.PosterUrl != subscription.Media.PosterUrl) Release();
         if (Subscription.Media.BackdropUrl != subscription.Media.BackdropUrl) { _backdropLoad?.Cancel(); _backdropLoad = null; Backdrop = null; }
         Subscription = subscription;
@@ -105,6 +118,27 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
         finally { if (ReferenceEquals(_imageLoad, pending)) _imageLoad = null; }
     }
 
+    public async Task LoadSubscriberAvatarAsync(MoviePilotService service)
+    {
+        if (!Subscription.ShowSubscriber || SubscriberAvatar is not null || _avatarLoad is not null
+            || !service.IsCurrentSubscription(Subscription) || Subscription.SubscriberAvatar.Length == 0) return;
+        var source = Subscription.SubscriberAvatar;
+        using var pending = new CancellationTokenSource();
+        _avatarLoad = pending;
+        try
+        {
+            var bytes = MoviePilotSubscriptionPresentation.AvatarBytes(source);
+            if (bytes.Length == 0 && _fetchImage is not null && Uri.TryCreate(source, UriKind.Absolute, out var url)
+                && url.Scheme is "https" or "http") bytes = await _fetchImage(url.AbsoluteUri, pending.Token);
+            if (bytes.Length == 0 || pending.IsCancellationRequested) return;
+            var image = await PosterLoader.DecodeAsync(bytes, 32);
+            if (!pending.IsCancellationRequested && ReferenceEquals(_avatarLoad, pending)
+                && service.IsCurrentSubscription(Subscription)) SubscriberAvatar = image;
+        }
+        catch (Exception) { /* 缺图或图片失效时保留用户名首字头像与提示。 */ }
+        finally { if (ReferenceEquals(_avatarLoad, pending)) _avatarLoad = null; }
+    }
+
     /// <summary>
     /// 头部底图单独一趟：它比海报大得多（见 <see cref="BackdropDecodeWidth"/>），失败与缺图都只是不画这一层，
     /// 不影响标题、规则和操作。
@@ -126,7 +160,12 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
         finally { if (ReferenceEquals(_backdropLoad, pending)) _backdropLoad = null; }
     }
 
-    public void Release() { _imageLoad?.Cancel(); _imageLoad = null; Poster = null; _backdropLoad?.Cancel(); _backdropLoad = null; Backdrop = null; }
+    public void Release()
+    {
+        _imageLoad?.Cancel(); _imageLoad = null; Poster = null;
+        _backdropLoad?.Cancel(); _backdropLoad = null; Backdrop = null;
+        _avatarLoad?.Cancel(); _avatarLoad = null; SubscriberAvatar = null;
+    }
 }
 
 public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
@@ -471,7 +510,8 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
 
     public bool Owns(MoviePilotSubscriptionCard card) => Live && (_detail ? ReferenceEquals(Selected, card) : Movies.Contains(card) || Series.Contains(card));
     public bool NeedsReview(MoviePilotSubscriptionCard card) => _service?.SubscriptionNeedsReview(card.Subscription) == true;
-    public Task LoadPosterAsync(MoviePilotSubscriptionCard card) => Owns(card) && _service is { } service ? card.LoadPosterAsync(service) : Task.CompletedTask;
+    public Task LoadPosterAsync(MoviePilotSubscriptionCard card) => Owns(card) && _service is { } service
+        ? Task.WhenAll(card.LoadPosterAsync(service), card.LoadSubscriberAvatarAsync(service)) : Task.CompletedTask;
     public Task LoadEpisodeArtworkAsync(MoviePilotSubscriptionEpisodeRow row) => Live && _episodes.Contains(row)
         && _service is { } service && _lifetime is { } lifetime ? row.LoadArtworkAsync(service, lifetime.Token) : Task.CompletedTask;
 

@@ -29,6 +29,78 @@ internal static class MoviePilotSubscriptionTests
 
     internal static void Register()
     {
+        Test("MoviePilot 订阅封面：更新相对时间与缺失值", () =>
+        {
+            var now = DateTimeOffset.Parse("2026-11-09T12:00:00+08:00");
+            Assert.Equal("4天前", MoviePilotSubscriptionPresentation.Updated("2026-11-05T12:00:00+08:00", now));
+            Assert.Equal("2小时前", MoviePilotSubscriptionPresentation.Updated("2026-11-09T10:00:00+08:00", now));
+            Assert.Equal("3分钟内", MoviePilotSubscriptionPresentation.Updated("2026-11-09T12:03:00+08:00", now));
+            Assert.Equal("", MoviePilotSubscriptionPresentation.Updated("", now));
+            Assert.Equal("", MoviePilotSubscriptionPresentation.Updated("invalid", now));
+            Assert.Equal("100天前", MoviePilotSubscriptionPresentation.Updated(now.AddDays(-100).ToString("O"), now));
+        });
+        Test("MoviePilot 订阅封面：内嵌头像支持服务端 ico 类型并拒绝坏数据", () =>
+        {
+            Assert.True(MoviePilotSubscriptionPresentation.AvatarBytes("data:image/ico;base64,AQID").SequenceEqual(new byte[] { 1, 2, 3 }));
+            Assert.Equal(0, MoviePilotSubscriptionPresentation.AvatarBytes("data:image/png;base64,broken!").Length);
+            Assert.Equal(0, MoviePilotSubscriptionPresentation.AvatarBytes("https://images.invalid/avatar.png").Length);
+            Assert.Equal(0, MoviePilotSubscriptionPresentation.AvatarBytes("data:text/html;base64,AQID").Length);
+        });
+        Test("MoviePilot 订阅封面：多用户跨分类计数且头像按用户名匹配", () =>
+        {
+            using var transport = Transport().Answer("subscribe/", "[" + Series.TrimEnd('}') + ",\"username\":\" alice \"},"
+                + Series.Replace("\"id\":12", "\"id\":13").Replace("电视剧", "电影").TrimEnd('}') + ",\"username\":\"bob\"}]")
+                .Answer("user/", """[{"name":"alice","avatar":"data:image/ico;base64,AQID"},{"name":"bob","avatar":null}]""");
+            var items = Service(transport).SubscriptionsAsync(CancellationToken.None).GetAwaiter().GetResult();
+            Assert.True(items.All(item => item.ShowSubscriber));
+            Assert.Equal("data:image/ico;base64,AQID", items[0].SubscriberAvatar);
+            Assert.Equal("", items[1].SubscriberAvatar);
+            Assert.Equal(1, transport.SentTo("user/").Count);
+        });
+        Test("MoviePilot 订阅封面：单一用户不查头像且空用户名不参与计数", () =>
+        {
+            using var transport = Transport();
+            var item = Read(Service(transport));
+            Assert.False(item.ShowSubscriber);
+            Assert.Equal(0, transport.SentTo("user/").Count);
+        });
+        Test("MoviePilot 订阅封面：头像目录失败不收起成功读取的订阅", () =>
+        {
+            using var transport = Transport().Answer("subscribe/", "[" + Series.TrimEnd('}') + ",\"username\":\"alice\"},"
+                + Series.Replace("\"id\":12", "\"id\":13").TrimEnd('}') + ",\"username\":\"bob\"}]")
+                .Fail("user/", HttpStatusCode.Forbidden);
+            var service = Service(transport);
+            var items = service.SubscriptionsAsync(CancellationToken.None).GetAwaiter().GetResult();
+            Assert.Equal(2, items.Count);
+            Assert.True(service.Available);
+            Assert.True(items.All(item => item.ShowSubscriber && item.SubscriberAvatar.Length == 0));
+        });
+        Test("MoviePilot 订阅封面：头像目录期间切换账号不返回旧账号列表", () =>
+        {
+            using var transport = Transport().Answer("subscribe/", "[" + Series.TrimEnd('}') + ",\"username\":\"alice\"},"
+                + Series.Replace("\"id\":12", "\"id\":13").TrimEnd('}') + ",\"username\":\"bob\"}]").Answer("user/", "[]");
+            var settings = Settings();
+            var service = Service(transport, settings);
+            transport.When("user/", () => settings.MoviePilot.Username = "changed");
+            Assert.Throws<OperationCanceledException>(() => service.SubscriptionsAsync(CancellationToken.None).GetAwaiter().GetResult());
+        });
+        Test("MoviePilot 订阅封面：非管理员多来源只显示占位，不查询用户目录", () =>
+        {
+            using var transport = Transport().Answer("login/access-token", Session.Replace("true", "false"))
+                .Answer("subscribe/", "[" + Series.TrimEnd('}') + ",\"username\":\"alice\"},"
+                    + Series.Replace("\"id\":12", "\"id\":13").TrimEnd('}') + ",\"username\":\"bob\"}]");
+            var items = Service(transport).SubscriptionsAsync(CancellationToken.None).GetAwaiter().GetResult();
+            Assert.True(items.All(item => item.ShowSubscriber && item.SubscriberAvatar.Length == 0));
+            Assert.Equal(0, transport.SentTo("user/").Count);
+        });
+        Test("MoviePilot 订阅封面：用户名去空白去重后单用户隐藏头像", () =>
+        {
+            using var transport = Transport().Answer("subscribe/", "[" + Series.TrimEnd('}') + ",\"username\":\" alice \"},"
+                + Series.Replace("\"id\":12", "\"id\":13").TrimEnd('}') + ",\"username\":\"alice\"}]");
+            var items = Service(transport).SubscriptionsAsync(CancellationToken.None).GetAwaiter().GetResult();
+            Assert.True(items.All(item => !item.ShowSubscriber));
+            Assert.Equal(0, transport.SentTo("user/").Count);
+        });
         MoviePilotSubscriptionActivityTests.Register();
         PlaybackTests();
         Test("MoviePilot 订阅列表：分区保留来源、季号与数字字符串，忽略音乐且不以媒体编号合并", () =>

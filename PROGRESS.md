@@ -1,5 +1,13 @@
 # 开发进度
 
+## 2026-11-10 MP 订阅封面合并交付（主树验证通过，发布中）
+
+用户恢复「合并交付」，444c8ec合入1b2acd9基础的master；唯一开发文档冲突保留双方说明，主树既有主页刷新与季默认收起不变，三处code-review技能删除保持未暂存。新增检查台InspectSubscriptionCoversCheck和匿名常驻InspectSubscriptionCovers。运行发现PersonPicture默认不进入UIA树，增加AccessibilityView=Control，回归先红58/59后绿59/59。
+
+主树终码Tests/Core与Shell新编译0警告0错误；完整主测试4259/4259、订阅专项59/59、页面状态36/36、源链接身份3编辑+1通知归属，全部0失败0跳过。局部Shell空白检查无输出且退出0、check-diff和自动化句柄扫描通过。合并兼容与最后局部独立审查均零必要缺陷。
+
+原生终码单项通过，报告`C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261109-165403066-31260\logs\shell-probe.json`。1240/760、999/1000集、头像缺图与单用户隐藏/多人恢复、暗罩进入退出均通过，三张实屏已目视。真实winapp ui hover头像后UIA读到ToolTip「订阅人：fixture」，截图artifacts/mp-home-badges-delivery/tooltip-screen.png可见提示及整卡暗罩；移到外部控件后SubscriptionMore数量归零。首轮未前台hover由工具拒绝，先恢复目标窗口后才成功，不把坐标回执单独当成功证据。两个检查窗口均通过InspectDone正常退出。所有数据为匿名夹具，无真实服务登录、播放或写入；尚未推origin。即将发布主树实际目录并检查快捷方式。
+
 ## 2026-11-10 MP 详情简介上移与季区亚克力（已交付）
 
 最终发布成功：publish.ps1 -NoArchive -Shortcut退出0，546文件/286.9MB、14GLSL/4HOOK及59批准mpv文件校验通过；桌面Momoka.lnk指向主树artifacts/publish/win-x64/Momoka.exe，工作目录相同、参数空。发布Shell与发布配置build哈希同FD9B5158A2E1EB554A8179B58434E7756AD74672688A0B7D17459013A1E2F581；发布Core981F16729A5413B73C85E4A2B9E79123C0878613B9F82FEE1F53050FD00FC8F2，测试Core为开发配置C810000F5DAD2F0F40A77E080C20B90C2F1168AC595727F38106228D1623894D，不冒称同二进制。发布程序45232本人三项3/3通过，最终实屏已目视，InspectDone正常退出。回执及日志artifacts/mp-compact-seasons-master；无真实服务器播放/写入或上传。当前e859是本聊天受保护primary工作树且无专门附件，已核对产品进入master，保留恢复线索f14a5a8，不用文件系统强删。
@@ -3213,6 +3221,20 @@ R02-003/R03-003/R03-005/R04-002/R04-004已修。产品/工具来源5a2ed21：x64
 - 最新授权继续14～19、不设暂停；累计48稳定号（45静态记录、2条件候选、1显示建议）。保存交接不是系统压缩，无主动压缩工具；系统压缩后全文读`C:/Users/89400/Momoka/CLAUDE.md`。
 
 # 开发进度
+
+## 2026-11-09 主页 MP 订阅封面暗罩、更新时间与订阅人（本树提交，用户要求稍后整合发布）
+
+本任务工作树 `C:\Users\89400\.codex\worktrees\19f1\Momoka`，基于 `387c069`。用户明确要求「本次先提交，稍后再整合发布」：本次不合并 master、不推 origin、不覆盖交付目录，桌面快捷方式仍是旧版。主树存在另一会话未提交的 MoviePilot 详情修改，不覆盖或夹带。
+
+共用订阅封面采用 PosterCard 的 EgScrimBrush、0.78 悬停浓度与 240/180 ms 动画，暗罩不拦点击；集数右侧添加下载图标与 last_update 相对时间，无时间隐藏，长集数整体只缩小不截掉时间。整个订阅列表 username 去空白、去空、大小写敏感去重达到两人时显示左上 24 DIP 头像，tooltip 为原始用户名。管理员按 user/ 的 name/avatar 配对；支持后端 data:image/ico;base64，HTTP图片仍使用捕获账号代次的原代理管线，失败保留首字占位，单用户恢复时清头像并隐藏。
+
+源码依据：官方前端 v3 `609ea05eac7efc7c2cb31edcf5364d26c9c592f1` 的 SubscribeCard.vue、SubscribeListView.vue、subscribeSource.ts、SubscribeSourceMark.vue、formatters.ts 及对应测试；后端 v3 `6d9cf06085a8cbef0f3a7ed73aff99ba68d209c9` 的 user.py、subscribe.py、schemas/user.py、completion.py、refresh.py、library.py。另核对 v3.1.3 前端 `f4e722f0454da980bf0f11562d6d6b727e9f362e` / 后端 `7aa5d613b8641b94624f8879ad9596dbcd4edffa` 与 Dayjs 1.11.13 实现。按用户要求有意保持左上角、长期按天数、始终显示有效时间；不加入插件分类。last_update 也会由总集数变化与整理入库更新，不能承诺仅为下载成功时间。当前部署版本与真实服务未访问。
+
+终码 Tests/Core 和 Shell Release 均 0 警告 0 错误；新增 `moviepilot-subscription-fixture` **59/59、0失败0跳过**，覆盖时间、内嵌头像、跨分类人数、用户名去重、普通账户不读目录、目录403、切账号取消、封面暗罩接线与项目约定。源链接 SubscriptionIdentityTests **3身份编辑+1通知归属，0失败**；本机完整PATH使 cmd 找不到 py，缩短本进程PATH后原项目构建与运行通过，未改构建脚本。自动化扫描无缺失句柄；check-diff / git diff --check 通过。独立代码审查发现可选头像读取中重登失败可能丢掉已成功订阅结果，已将会话读取一并纳入可选目录容错，取消仍抛出。
+
+第一轮实际 WinUI moviepilot 分区 **36/36**，报告 `C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261109-151007249-41752\logs\shell-probe.json`；已目视 `mp-subscription-badges-1240-screen.png`、`mp-subscription-badges-760-screen.png`、`mp-subscription-hover-screen.png`。它覆盖普通集数的头像、回退、单人隐藏/多人恢复、tooltip绑定、遮罩进入退出和原菜单，不证明真实指针悬停与tooltip弹出。此后补的长集数 Viewbox 与断言尚未原生复验，不把前一轮证据冒充终码。
+
+完整主测试第一轮4236项有2失败：新增图标字号已改资源键，另一个无关图片探针超时单独复跑32/32；第二轮4238项有16失败，全为本用户桌面诊断锁被原生探针持有（日志 work/verification/core-tests-final.log），其余4222项通过。后续另一聊天的0cb4 inspect继续持锁，用户选择先提交。因此完整主测试当前不能记通过。待恢复：释放桌面锁后串行跑最终主测试与moviepilot原生检查、长集数截图和真实悬停；主树整合后重验并发布。匿名夹具，不读取真实凭据，不播放或写入真实订阅。
 
 ## 阶段12独立复核与后续自动推进（2026-10-22）
 
