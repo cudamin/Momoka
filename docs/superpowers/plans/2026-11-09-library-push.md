@@ -21,8 +21,8 @@
 
 - [x] Record fixed official sources, hashes, local choices and FnNas limitations in docs/媒体库实时更新.md; update Plex support and test usage documentation.
 - [x] Run current Release full main tests, relevant Shell compilation and offline lifecycle fixture; inspect diff and obtain one independent review for protocol, lifecycle and secret boundaries.
-- [ ] Resolve necessary findings, rerun affected checks, commit only this task's changes with project trailer.
-- [ ] Check main-tree ownership and integrate only when it can be done without interfering with current writers. Reverify final integrated code and publish by project policy; otherwise record concrete remaining work in PROGRESS.md and report the boundary.
+- [x] Resolve necessary findings, rerun affected checks, commit only this task's changes with project trailer.
+- [x] Check main-tree ownership and integrate only when it can be done without interfering with current writers. Reverify final integrated code and publish by project policy; otherwise record concrete remaining work in PROGRESS.md and report the boundary.
 
 ## Review focus
 
