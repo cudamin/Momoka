@@ -25,6 +25,8 @@ internal sealed partial class ShellNavigationProbe
         using var fixture = CreateFixture();
         fixture.Settings.Mpv.Pipeline = VideoPipelineKind.Integrated;
         fixture.Settings.Danmaku.Enabled = true;
+        Require(!fixture.Settings.Danmaku.ShowInput, "弹幕输入栏出厂应关闭");
+        fixture.Settings.Danmaku.ShowInput = true; // 本用例验证主动开启后的发送与一键恢复。
         var paths = new AppPaths(Path.Combine(_options.Paths.Root, "danmaku-send"));
         paths.EnsureCreated();
         using var transport = new DanmakuSendTransport();

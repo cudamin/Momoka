@@ -277,7 +277,9 @@ internal sealed partial class ShellNavigationProbe
             var sourceBox = Get<ComboBox>(panel, "SourceBox");
             Require(sourceBox.Visibility == Visibility.Visible && sourceBox.Items.Count == 2,
                 "合并模式面板没有提供两个搜索来源");
-            Require(vm.DanmakuInputVisible, "合并模式默认应显示发送栏");
+            Require(!fixture.Settings.Danmaku.ShowInput && !vm.DanmakuInputVisible, "合并模式默认应隐藏发送栏");
+            vm.ChangeDanmakuPreferences(settings => settings.ShowInput = true);
+            Require(vm.DanmakuInputVisible, "合并模式开启输入栏后未显示发送栏");
             vm.ChangeDanmakuPreferences(settings => settings.Source = DanmakuSourceMode.DanmuApi);
             Require(!vm.DanmakuInputVisible, "danmu_api 来源仍显示发送栏");
             vm.ChangeDanmakuPreferences(settings => settings.Source = DanmakuSourceMode.Both);
