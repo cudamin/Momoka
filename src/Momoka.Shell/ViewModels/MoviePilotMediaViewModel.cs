@@ -213,7 +213,13 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
     public partial BitmapImage? Backdrop { get; set; }
     public Visibility PosterEmptyVisibility => Show(Poster is null);
-    public Visibility BackdropVisibility => Show(Backdrop is not null);
+
+    /// <summary>
+    /// 背景那一层画不画：有图、而且这次选的是沉浸模式。简洁模式（2026-11-09 用户令「给 MP 订阅也新增
+    /// 沉浸模式还有简洁模式」）不铺背景图 —— 与电影／剧／季详情页关掉沉浸之后一样，图整张收起，
+    /// 头部改成一张卡面。
+    /// </summary>
+    public Visibility BackdropVisibility => Show(Backdrop is not null && Immersive);
 
     /// <summary>
     /// 背景那张位图的高 ÷ 宽（16:9 是 0.5625），图解出来时跟着 <see cref="Backdrop"/> 一起换。它喂背景
@@ -226,8 +232,6 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BackdropHeight))]
     [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
-    [NotifyPropertyChangedFor(nameof(NearCrop))]
-    [NotifyPropertyChangedFor(nameof(Showcase))]
     public partial double BackdropRatio { get; set; } = 9d / 16;
 
     /// <summary>
@@ -239,8 +243,6 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BackdropHeight))]
     [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
-    [NotifyPropertyChangedFor(nameof(NearCrop))]
-    [NotifyPropertyChangedFor(nameof(Showcase))]
     public partial double PageWidth { get; set; }
 
     /// <inheritdoc cref="PageWidth"/>
@@ -248,8 +250,6 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BackdropHeight))]
     [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
-    [NotifyPropertyChangedFor(nameof(NearCrop))]
-    [NotifyPropertyChangedFor(nameof(Showcase))]
     public partial double Viewport { get; set; }
 
     /// <summary>
@@ -283,8 +283,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// 第一屏；窄到「页宽 × 图的高宽比」够不着视口之后整张等比缩小、一像素不裁。下限是头部那一叠的实测高，
     /// 别让压在图上那几行字落到图外面去。
     /// <para>
-    /// 大窗模式（<see cref="Showcase"/>）里直接铺到窗口下沿（<see cref="DetailHero.ImmersivePictureHeight"/>）：
-    /// 那一档正文纸面变成半透明洗色，背景要从片名一直透到页尾。
+    /// 沉浸档（<see cref="Showcase"/>）里直接铺到窗口下沿（<see cref="DetailHero.ImmersivePictureHeight"/>）：
+    /// 那一档正文纸面变成半透明洗色，背景要从片名一直透到页尾。简洁模式不画图，这个数只剩留白的参考值。
     /// </para>
     /// </summary>
     public double BackdropHeight => Showcase
@@ -301,16 +301,32 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// 头部那一段自己至少要多高：把正文纸面的上沿推到图的下沿上，第一屏因此是「图 + 一条压暗的尾巴」，而不是
     /// 纸面切在画面中间（同电影详情页的 <c>HeroTail</c>）。头部那一叠本身比这还高时就按它自己的高走。
     /// <para>
-    /// 大窗模式里归 0：纸面让开、下方组件整体上移到头部那一叠的下面（同详情页沉浸档的尾部高度）。
+    /// 沉浸档里归 0：纸面让开、下方组件整体上移到头部那一叠的下面（同详情页沉浸档的尾部高度）。简洁模式与
+    /// 背后没有图时也归 0 —— 那两档没有图要垫，头部按自己那一叠的高走，第一屏不留一块空画面。
     /// </para>
     /// </summary>
-    public double HeroMinHeight => Showcase ? 0 : Math.Max(0, BackdropHeight - HeaderLift);
+    public double HeroMinHeight => Immersive && Backdrop is not null && !Showcase
+        ? Math.Max(0, BackdropHeight - HeaderLift)
+        : 0;
 
     /// <summary>
-    /// 这一页这一刻走不走「大窗模式」（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」）。
+    /// 设置里那条「显示模式」—— 2026-11-09 用户令「给 MP 订阅也新增沉浸模式还有简洁模式」：这一页从此和
+    /// 电影／剧／季详情页听同一个开关（<c>UiSettings.EnableImmersive</c>），由页面在挂上时与设置改动时写进来。
     /// <para>
-    /// 三句同时成立：窗口铺开（最大化，或面积占工作区五分之四以上，由页面从窗口那一侧写进
-    /// <see cref="Spacious"/>）、资料卡能并排的宽版式（<see cref="WideLayout"/>）、背后有背景图。
+    /// 开着是沉浸模式：宽版式且有图时正文纸面让开、背景从片名铺到窗口下沿（<see cref="Showcase"/>）；窄窗仍是
+    /// 「图 + 纸面」那一套。关掉是简洁模式（<see cref="Plain"/>）：不铺背景图，头部收成一张卡面。
+    /// </para>
+    /// </summary>
+    [ObservableProperty]
+    public partial bool Immersive { get; set; } = true;
+
+    /// <summary>简洁模式 —— 显示模式关掉沉浸之后这一页的样子：没有背景图，头部是一张卡。</summary>
+    public bool Plain => !Immersive;
+
+    /// <summary>
+    /// 这一页这一刻走不走沉浸档（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」；2026-11-09 并进显示模式）。
+    /// <para>
+    /// 三句同时成立：显示模式是沉浸、资料卡能并排的宽版式（<see cref="WideLayout"/>）、背后有背景图。
     /// 判据本体在 Core（<see cref="DetailHero.SubscriptionImmersive"/>）。
     /// </para>
     /// <para>
@@ -318,43 +334,26 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// 正文面板的底与框淡到 0、纸面和面板的留白收紧 —— 与电影／剧／季详情页的沉浸档同一副样子。
     /// </para>
     /// </summary>
-    public bool Showcase => DetailHero.SubscriptionImmersive(
-        Spacious, NearCrop, WideLayout, Backdrop is not null);
-
-    /// <summary>
-    /// 背景图这一刻是不是已经「接近被裁掉」—— 按页宽铺开的高占到视口的 98% 以上，再宽一点那张图就要
-    /// 按宽撑满、把下沿切在视口外面（2026-11-03 用户令「拉长窗口导致背景图快要被裁切时也要自动切换」，
-    /// 与详情页同一条判据 <see cref="DetailHero.NearCrop"/>）。
-    /// <para>
-    /// 与 <see cref="Spacious"/> 并肩站着：哪一条成立都进大窗模式。它只读版面三个数（页宽、图的高宽比、
-    /// 视口），这三个数一变就自己重算，所以窗口拖宽这一路不需要另挂窗口消息；收窄回到 98% 以下就退出。
-    /// </para>
-    /// </summary>
-    public bool NearCrop => DetailHero.NearCrop(PageWidth, BackdropRatio, Viewport);
-
-    /// <summary>窗口这一刻铺开了没有，由页面在挂上窗口时与每次窗口几何变化时写进来（同详情页）。</summary>
-    [ObservableProperty]
-    public partial bool Spacious { get; set; }
+    public bool Showcase => DetailHero.SubscriptionImmersive(Immersive, WideLayout, Backdrop is not null);
 
     /// <summary>
     /// 这一页这一刻是不是资料卡并排在右端的宽版式，由页面的 <c>ApplyHeroLayout</c> 按内容区宽度写进来。
-    /// 窄成单列时大窗模式不参与 —— 那是另一套版面（同详情页的紧凑档）。
+    /// 窄成单列时沉浸档不参与 —— 那是另一套版面（同详情页的紧凑档）。
     /// </summary>
     [ObservableProperty]
     public partial bool WideLayout { get; set; }
 
-    partial void OnSpaciousChanged(bool value) => AnnounceShowcase();
+    partial void OnImmersiveChanged(bool value) => AnnounceShowcase();
     partial void OnWideLayoutChanged(bool value) => AnnounceShowcase();
 
-    // 裁切那条来路只看页宽、视口与图的高宽比：这三个数一变，Showcase 连同它派生出来的显隐与留白一起重算。
-    partial void OnPageWidthChanged(double value) => AnnounceShowcase();
-    partial void OnViewportChanged(double value) => AnnounceShowcase();
-
-    /// <summary>背景那张图自己的不透明度：大窗模式里从 0.9 抬到 0.96（同详情页沉浸档）。</summary>
+    /// <summary>背景那张图自己的不透明度：沉浸档里从 0.9 抬到 0.96（同详情页沉浸档）。</summary>
     public double BackdropOpacity => Showcase ? DetailHero.ShowcaseBackdropOpacity : DetailHero.BackdropOpacity;
 
-    /// <summary>图下沿那道黑色渐变只在纸面版式里画：大窗模式里那条边已经不在屏上，压一道黑只是白费。</summary>
-    public Visibility BackdropFadeVisibility => Show(Backdrop is not null && !Showcase);
+    /// <summary>
+    /// 图下沿那道黑色渐变只在纸面版式里画：沉浸档里那条边已经不在屏上，压一道黑只是白费；简洁模式整张图都不在，
+    /// 更没有那条边。
+    /// </summary>
+    public Visibility BackdropFadeVisibility => Show(Backdrop is not null && Immersive && !Showcase);
 
     /// <summary>
     /// 正文纸面那一层的内边距（<c>BodySheet.Padding</c>）—— 常态照 <c>EgPageMargin</c>；大窗模式把上下收到
@@ -379,7 +378,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     private void AnnounceShowcase()
     {
         OnPropertyChanged(nameof(Showcase));
-        OnPropertyChanged(nameof(NearCrop));
+        OnPropertyChanged(nameof(Plain));
+        OnPropertyChanged(nameof(BackdropVisibility));
         OnPropertyChanged(nameof(BackdropHeight));
         OnPropertyChanged(nameof(BackdropFadeMargin));
         OnPropertyChanged(nameof(HeroMinHeight));

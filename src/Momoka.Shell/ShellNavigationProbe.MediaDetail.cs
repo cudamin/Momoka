@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
 using Momoka.MoviePilot;
+using Momoka.Services;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 
@@ -202,7 +203,9 @@ internal sealed partial class ShellNavigationProbe
             .TransformBounds(new Windows.Foundation.Rect(0, 0, element.ActualWidth, element.ActualHeight));
         try
         {
-            ResizeInspect(1240, 1000);
+            // 纸面 + 图那一套只活在单列版式里（2026-11-09 起宽版式有图默认走沉浸档，图铺满视口、纸面让开）。
+            // 900 宽的页面上内容区是 836，够不到资料卡并排的 960 —— 正是这一档。
+            ResizeInspect(900, 1000);
             await UntilAsync(() => page.ViewModel.IsReady && page.MediaViewModel.IsReady && page.MediaViewModel.Backdrop is not null);
             await LayoutAsync(page);
 
@@ -292,129 +295,132 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 订阅详情页的大窗模式（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」，同日追加「拉长窗口导致背景图
-    /// 快要被裁切时也要自动切换」）：窗口最大化后，正文纸面换成半透明洗色、面板的底与框淡到 0、头部不再撑
-    /// 第一屏、背景铺到窗口下沿并抬到 0.96，图下沿的黑色渐变收起；还原窗口后全部回到纸面版式。另在宽版式里
-    /// 把窗口压成一扇「图快被裁掉」的横窗（窗口没铺开），确认只因裁切也进大窗模式，拉高退线后回到纸面。
-    /// 每一次翻面都要走过渡动画（以 <c>ShowcaseAnimations</c> 计数证明）。
+    /// 订阅详情页的两种显示模式（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」；2026-11-09 用户令
+    /// 「给 MP 订阅也新增沉浸模式还有简洁模式」）。
+    /// <para>
+    /// 宽版式、有图时：沉浸模式把正文纸面换成半透明洗色、面板的底与框淡到 0、头部不再撑第一屏、背景铺到
+    /// 窗口下沿并抬到 0.96，图下沿的黑色渐变收起；设置里改成简洁模式后当场收起背景图、头部换成一张卡面
+    /// （底色、内边距、简介不再压在卡底），纸面与面板回来。窗口收窄成单列后两种模式各看一遍：沉浸仍是
+    /// 「图 + 纸面」，简洁仍然没有图。最后切回沉浸、拉宽，确认同一页不用重开就回到沉浸档。
+    /// </para>
+    /// <para>
+    /// 从前那套「窗口铺开／图快被裁」的门槛与过渡动画随判据收进开关一起退役：翻面只有设置与宽窄两条来路，
+    /// 两条都换整套版面，所以这里断言的是终值，不再数动画。
+    /// </para>
     /// </summary>
     private async Task MoviePilotSubscriptionShowcaseAsync()
     {
         using var server = new SubscriptionProbeServer { Poster = await FixtureImageAsync(), Related = true };
-        var (_, service) = SubscriptionService(server);
+        var (settings, service) = SubscriptionService(server);
+        using var settingsService = new SettingsService(null!, settings);
         var subscription = (await service.SubscriptionsAsync(CancellationToken.None)).First(item => item.IsSeries);
+        var strips = new List<TitleStrip>();
         var page = new MoviePilotSubscriptionPage();
         _root.Children.Add(page);
-        page.Attach(new(service, subscription));
+        // 这一条自己把窗口形态摆干净：先还原（最大化时改尺寸会被忽略），再给一扇宽版式的窗口。
+        if (_window!.IsMaximized) _window.ToggleMaximize();
+        ResizeProbeClient(1240, 1000);
+        page.Attach(new(service, subscription, Settings: settingsService, SetTitleStrip: strips.Add));
         var readings = new List<string>();
         try
         {
-            // 一条用例自己把窗口形态摆干净：先还原（最大化时 Resize 会被忽略），再给一扇宽版式、
-            // 但图还够不着视口的窗口（1200×800 DIP 下 16:10 的图约 750 高）。
-            if (_window!.IsMaximized) _window.ToggleMaximize();
-            ResizeProbeClient(1200, 800);
-            page.AttachWindow(_window);
-            await UntilAsync(() => page.ViewModel.IsReady && page.MediaViewModel.IsReady
-                && page.MediaViewModel.Backdrop is not null);
+            var media = page.MediaViewModel;
+            await UntilAsync(() => page.ViewModel.IsReady && media.IsReady && media.Backdrop is not null);
             await LayoutAsync(page);
 
-            var media = page.MediaViewModel;
             var sheet = Get<StackPanel>(page, "BodySheet");
+            var backdrop = Get<Grid>(page, "DetailBackdropRoot");
             var image = Get<Border>(page, "DetailBackdropBand");
             var fade = Get<Border>(page, "DetailBackdropFade");
             var hero = Get<StackPanel>(page, "HeroSection");
+            var surface = Get<Border>(page, "HeroSurface");
             var panel = Get<StackPanel>(page, "PeoplePanel");
+            var facts = Get<StackPanel>(page, "HeroFacts");
+            var overview = Get<StackPanel>(page, "HeroOverview");
 
-            Require(!media.Showcase && !media.Spacious && !media.NearCrop, "未铺开的窗口不该进大窗模式");
-            Require(media.WideLayout, "起始窗口不在宽版式，测不出裁切那条来路");
-            Require(sheet.Background is SolidColorBrush { Color.A: 255 }, "纸面版式的正文纸不是不透明");
-            Require(fade.Visibility == Visibility.Visible, "纸面版式下图下沿的黑色渐变被收起");
-            Require(Math.Abs(image.Opacity - DetailHero.BackdropOpacity) < 0.001,
-                $"纸面版式的背景不透明度不是 {DetailHero.BackdropOpacity}：{image.Opacity:0.###}");
-
-            var beforeEnter = page.ShowcaseAnimations;
-            if (!_window.IsMaximized) _window.ToggleMaximize();
-            await UntilAsync(() => media.Showcase && !page.ShowcaseAnimating
-                && Math.Abs(image.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001
-                && hero.MinHeight <= 0.5);
-            Require(media.Showcase && media.Spacious && media.WideLayout,
-                $"最大化后没有进入大窗模式：铺开={media.Spacious}、宽版式={media.WideLayout}、大窗={media.Showcase}");
-            if (HomeMotion.AnimationsEnabled)
-                Require(page.ShowcaseAnimations > beforeEnter,
-                    "最大化进入大窗时没有走过渡动画（ShowcaseAnimations 没有增加）");
-            var sheetBrush = sheet.Background as SolidColorBrush;
-            Require(sheetBrush is { } && sheetBrush.Color.A == DetailHero.ScrimCeiling,
-                "大窗模式的正文纸不是尾部那道半透明洗色");
-            Require(panel.Background is AcrylicBrush { Opacity: 0 }, "大窗模式的正文面板底没有淡到 0");
-            Require(fade.Visibility == Visibility.Collapsed, "大窗模式下图下沿的黑色渐变没有收起");
-            Require(!media.ShowShelfLines, "大窗模式的货架标题仍然画着横线");
+            // ---- 沉浸模式（出厂那一档）：宽版式一成立就铺图，不必先把窗口最大化 ----
+            Require(media.Immersive && media.Showcase && media.WideLayout,
+                $"宽版式下没有进入沉浸档：开关 {media.Immersive}、宽版式 {media.WideLayout}、沉浸 {media.Showcase}");
+            Require(backdrop.Visibility == Visibility.Visible, "沉浸档没有画背景图");
+            Require(sheet.Background is SolidColorBrush { Color.A: DetailHero.ScrimCeiling },
+                "沉浸档的正文纸不是尾部那道半透明洗色");
+            Require(panel.Background is AcrylicBrush { Opacity: 0 }, "沉浸档的正文面板底没有淡到 0");
+            Require(fade.Visibility == Visibility.Collapsed, "沉浸档图下沿的黑色渐变没有收起");
+            Require(!media.ShowShelfLines, "沉浸档的货架标题仍然画着横线");
+            Require(surface.Background is null && surface.Padding == default(Thickness),
+                "沉浸档的头部卡面没有让开（底色或内边距还在）");
+            Require(surface.VerticalAlignment == VerticalAlignment.Stretch,
+                "沉浸档的头部卡面没有撑满整行，简介压不到第一屏下沿");
+            Require(hero.MinHeight <= 0.5, "沉浸档的头部仍在按背景图让开第一屏");
+            Require(Math.Abs(image.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001,
+                $"沉浸档的背景不透明度不是 {DetailHero.ShowcaseBackdropOpacity}：{image.Opacity:0.###}");
             var expectedImage = DetailHero.ImmersivePictureHeight(media.Viewport, media.HeaderLift);
             Require(Math.Abs(image.ActualHeight - expectedImage) < 2,
-                $"大窗模式的背景没有铺到窗口下沿：图 {image.ActualHeight:0}、该是 {expectedImage:0}");
-            Require(Math.Abs(hero.ActualHeight - media.HeroBandHeight) < 2,
-                $"大窗模式的头部没有收到内容高：头部 {hero.ActualHeight:0}、内容 {media.HeroBandHeight:0}");
-            readings.Add($"大窗：视口 {media.Viewport:0}、抬升 {media.HeaderLift:0}、图 {image.ActualHeight:0}、"
-                + $"头部 {hero.ActualHeight:0}、纸面透明度 {sheetBrush?.Color.A}、面板 {panel.Background.Opacity:0.##}、"
-                + $"动画 {page.ShowcaseAnimations}");
-            await SaveProbeScreenAsync("mp-subscription-showcase-maximized.png");
+                $"沉浸档的背景没有铺到窗口下沿：图 {image.ActualHeight:0}、该是 {expectedImage:0}");
+            Require(Math.Abs(facts.ActualWidth - 320) < 1 && Grid.GetColumn(facts) == 1, "沉浸档的资料卡没有并排在右端");
+            readings.Add($"沉浸 1240：视口 {media.Viewport:0}、图 {image.ActualHeight:0}、头部 {hero.ActualHeight:0}、"
+                + $"纸面透明度 {(sheet.Background as SolidColorBrush)?.Color.A}、面板 {panel.Background.Opacity:0.##}");
+            await SaveProbeScreenAsync("mp-subscription-mode-immersive-1240.png");
 
-            var beforeExit = page.ShowcaseAnimations;
-            _window.ToggleMaximize();
-            await UntilAsync(() => !media.Showcase && !media.Spacious && !page.ShowcaseAnimating
-                && Math.Abs(image.Opacity - DetailHero.BackdropOpacity) < 0.001
-                && hero.MinHeight > 0.5);
-            if (HomeMotion.AnimationsEnabled)
-                Require(page.ShowcaseAnimations > beforeExit,
-                    "从最大化还原时没有走过渡动画（ShowcaseAnimations 没有增加）");
-            var restored = sheet.Background as SolidColorBrush;
-            Require(restored is { } && restored.Color.A == 255, "还原后正文纸没有回到不透明");
-            Require(panel.Background is AcrylicBrush { Opacity: 1 }, "还原后正文面板的底没有回来");
-            Require(fade.Visibility == Visibility.Visible, "还原后图下沿的黑色渐变没有回来");
-            Require(media.ShowShelfLines, "还原后货架标题的横线没有回来");
-            readings.Add($"纸面：视口 {media.Viewport:0}、图 {image.ActualHeight:0}、头部下限 {hero.MinHeight:0}、"
-                + $"纸面透明度 {restored?.Color.A}、面板 {panel.Background.Opacity:0.##}、动画 {page.ShowcaseAnimations}");
-            await SaveProbeScreenAsync("mp-subscription-showcase-paper.png");
+            // ---- 设置里改成简洁模式：当场收图、头部换成卡面 ----
+            settings.Ui.EnableImmersive = false;
+            ShellPrefs.ApplyAppearance(settings.Ui);
+            await UntilAsync(() => media.Plain && !media.Showcase);
+            await LayoutAsync(page);
+            Require(backdrop.Visibility == Visibility.Collapsed, "简洁模式仍铺着背景图");
+            Require(surface.Background is SolidColorBrush, "简洁模式的头部没有卡面底色");
+            Require(surface.Padding.Left >= 20 && surface.Padding.Top >= 20, "简洁模式的卡面没有内边距：" + surface.Padding);
+            Require(surface.VerticalAlignment == VerticalAlignment.Top && surface.ActualHeight < facts.ActualHeight - 40,
+                $"简洁模式的卡面没有按自己的内容收边：卡 {surface.ActualHeight:0}、资料卡 {facts.ActualHeight:0}");
+            Require(surface.BorderThickness == (Thickness)Application.Current.Resources["EgCardBorderThickness"],
+                "简洁模式的卡面没有接主题那一条描边");
+            Require(sheet.Background is SolidColorBrush { Color.A: 255 }, "简洁模式的正文纸不是不透明");
+            Require(panel.Background is AcrylicBrush { Opacity: 1 }, "简洁模式的正文面板底没有回来");
+            Require(fade.Visibility == Visibility.Collapsed, "简洁模式没有图，图下沿的渐变却还画着");
+            Require(hero.MinHeight <= 0.5, "简洁模式仍按背景图让开第一屏");
+            Require(overview.VerticalAlignment == VerticalAlignment.Top, "简洁模式的简介仍压在卡底，卡面中间空出一大块");
+            Require(strips.Count > 0 && strips[^1] == TitleStrip.Plain, "简洁模式的标题栏没有回到页面字色");
+            readings.Add($"简洁 1240：卡面内边距 {surface.Padding}、纸面透明度 {(sheet.Background as SolidColorBrush)?.Color.A}、"
+                + $"面板 {panel.Background.Opacity:0.##}、资料卡 {facts.ActualWidth:0}");
+            await SaveProbeScreenAsync("mp-subscription-mode-plain-1240.png");
 
-            // 裁切那条来路：窗口没有铺开，但按页宽铺开的图（1080 × 0.625 ≈ 675）已经高过视口 480 的 98%。
-            var beforeCrop = page.ShowcaseAnimations;
-            ResizeProbeClient(1080, 480);
-            await UntilAsync(() => media.NearCrop && media.Showcase && !page.ShowcaseAnimating
-                && Math.Abs(image.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001);
-            Require(!media.Spacious, "裁切用例的窗口已经铺开，测不出只因裁切才切换");
-            Require(media.WideLayout, "裁切用例落进了窄版式，测不出宽版式下的大窗模式");
-            if (HomeMotion.AnimationsEnabled)
-                Require(page.ShowcaseAnimations > beforeCrop,
-                    "拉宽触发裁切时没有走过渡动画（ShowcaseAnimations 没有增加）");
-            var cropBrush = sheet.Background as SolidColorBrush;
-            Require(cropBrush is { } && cropBrush.Color.A == DetailHero.ScrimCeiling,
-                "裁切触发后正文纸没有换成半透明洗色");
-            Require(panel.Background is AcrylicBrush { Opacity: 0 }, "裁切触发后正文面板底没有淡到 0");
-            Require(fade.Visibility == Visibility.Collapsed, "裁切触发后图下沿的黑色渐变没有收起");
-            readings.Add($"裁切：页宽 {media.PageWidth:0}、视口 {media.Viewport:0}、图比 {media.BackdropRatio:0.###}、"
-                + $"纸面透明度 {cropBrush?.Color.A}、面板 {panel.Background.Opacity:0.##}、动画 {page.ShowcaseAnimations}");
-            await SaveProbeScreenAsync("mp-subscription-showcase-crop.png");
+            // ---- 简洁模式收窄成单列：资料卡叠到头部下面，仍然不铺图 ----
+            ResizeProbeClient(760, 1000);
+            await UntilAsync(() => !media.WideLayout);
+            await LayoutAsync(page);
+            Require(media.Plain && !media.Showcase && backdrop.Visibility == Visibility.Collapsed,
+                "简洁模式窄窗又铺回了背景图");
+            Require(Grid.GetRow(facts) == 1 && Grid.GetColumn(facts) == 0, "简洁模式窄窗的资料卡没有叠到头部下面");
+            await SaveProbeScreenAsync("mp-subscription-mode-plain-760.png");
 
-            // 把窗口拉高一点、退回 98% 以下：应当回到纸面版式（仍在宽版式内，过渡计数继续增加）。
-            var beforeUncrop = page.ShowcaseAnimations;
-            ResizeProbeClient(1080, 700);
-            await UntilAsync(() => !media.NearCrop && !media.Showcase && !page.ShowcaseAnimating
-                && Math.Abs(image.Opacity - DetailHero.BackdropOpacity) < 0.001);
-            Require(media.WideLayout, "退出裁切用例落进了窄版式，测不出同一档版面内的还原");
-            if (HomeMotion.AnimationsEnabled)
-                Require(page.ShowcaseAnimations > beforeUncrop, "收回裁切线时没有走过渡动画");
-            var uncropBrush = sheet.Background as SolidColorBrush;
-            Require(uncropBrush is { } && uncropBrush.Color.A == 255, "收回裁切线后正文纸没有回到不透明");
-            Require(panel.Background is AcrylicBrush { Opacity: 1 }, "收回裁切线后正文面板的底没有回来");
-            readings.Add($"收回：页宽 {media.PageWidth:0}、视口 {media.Viewport:0}、裁切 {media.NearCrop}、"
-                + $"纸面透明度 {uncropBrush?.Color.A}、面板 {panel.Background.Opacity:0.##}、动画 {page.ShowcaseAnimations}");
-            await SaveProbeScreenAsync("mp-subscription-showcase-uncropped.png");
+            // ---- 窄窗切回沉浸：图回来，但仍是「图 + 纸面」（单列不参与沉浸档） ----
+            settings.Ui.EnableImmersive = true;
+            ShellPrefs.ApplyAppearance(settings.Ui);
+            await UntilAsync(() => media.Immersive && !media.Showcase);
+            await LayoutAsync(page);
+            Require(backdrop.Visibility == Visibility.Visible, "窄窗沉浸模式没有背景图");
+            Require(surface.Background is null, "窄窗沉浸模式的头部仍扣着卡面");
+            Require(sheet.Background is SolidColorBrush { Color.A: 255 }, "窄窗沉浸模式的正文纸不是不透明");
+            Require(overview.VerticalAlignment == VerticalAlignment.Bottom, "窄窗沉浸模式的简介没有回到第一屏下沿");
+            Require(strips.Count > 0 && strips[^1] == TitleStrip.OnScrim, "有图的窄窗没有把标题栏换成浅墨");
+            readings.Add($"沉浸 760：页宽 {media.PageWidth:0}、图 {image.ActualHeight:0}、头部下限 {hero.MinHeight:0}");
+            await SaveProbeScreenAsync("mp-subscription-mode-immersive-760.png");
+
+            // ---- 拉宽回沉浸档：同一页、不重开 ----
+            ResizeProbeClient(1240, 1000);
+            await UntilAsync(() => media.WideLayout && media.Showcase);
+            await LayoutAsync(page);
+            Require(sheet.Background is SolidColorBrush { Color.A: DetailHero.ScrimCeiling }
+                && panel.Background is AcrylicBrush { Opacity: 0 } && surface.Background is null,
+                "拉宽回沉浸档后纸面、面板或头部卡面没有跟着翻");
+            await SaveProbeScreenAsync("mp-subscription-mode-immersive-wide.png");
         }
         finally
         {
             if (_window?.IsMaximized == true) _window.ToggleMaximize();
             page.Release();
             _root.Children.Remove(page);
-            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "mp-subscription-showcase.txt"), readings);
+            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "mp-subscription-mode.txt"), readings);
             ResizeInspect(1420, 980);
         }
     }

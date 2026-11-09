@@ -146,7 +146,11 @@
                 SizeChanged="OnHeroContentSizeChanged">
 
             <!-- 头部这一行：左边是海报、片名与操作，右端是「媒体信息」卡（用户令 2026-10-12：媒体信息
-                 挪到右上角）。外面这层只管两个子项并排还是叠放，判据见 ApplyHeroLayout。 -->
+                 挪到右上角）。外面这层只管两个子项并排还是叠放，判据见 ApplyHeroLayout。
+                 2026-11-09 起左边那一格外面多一层 <c>HeroSurface</c>：简洁模式里它是那张卡面的底（底色、
+                 圆角、内边距，由 code-behind 的 ApplyHeroSurface 换上去），沉浸模式里整块透明让开、海报和
+                 字直接压在剧照上。它只包左边这一格、不包右端那张资料卡 —— 资料卡比这一叠高得多，包在一起
+                 会在卡面下半截留一大块空白；两张卡并排、各自按自己的内容收边才读得通。 -->
             <Grid x:Name="HeroRow" Margin="0,36,0,24" ColumnSpacing="{StaticResource EgSpaceXL}" SizeChanged="OnHeroRowSizeChanged">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
@@ -154,6 +158,7 @@
                     <ColumnDefinition x:Name="HeroFactColumn" Width="320" />
                 </Grid.ColumnDefinitions>
 
+                <Border x:Name="HeroSurface" CornerRadius="{StaticResource EgCardCornerRadius}">
                 <Grid x:Name="HeroGrid" MinHeight="300" ColumnSpacing="{StaticResource EgSpaceXL}" RowSpacing="16" SizeChanged="OnHeroSizeChanged">
                     <!-- 末行是「简介」那一格（用户令 2026-10-12）。它取剩余高度并把简介压在这一格的底上，
                          所以简介落在头部下沿 —— 与电影详情页同一个位置；窗口窄到内容比资料卡还高时这一格
@@ -255,6 +260,7 @@
                         </ItemsRepeater>
                     </StackPanel>
                 </Grid>
+                </Border>
 
                 <!-- 资料卡：页面右上角，全页只有这一张（用户令 2026-10-12）。版式照网页端那张卡（用户令
                      2026-10-12「参考网页端 复刻我给你的图片就行」）：卡上不带小标题，最上面一行是评分星，

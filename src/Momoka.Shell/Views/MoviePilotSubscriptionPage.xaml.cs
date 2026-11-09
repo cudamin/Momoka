@@ -4,10 +4,13 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Momoka.AniBt;
+using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.MoviePilot;
+using Momoka.Services;
 using Momoka.Shell.Platform;
 using Momoka.Shell.ViewModels;
+using Momoka.Theming;
 using Windows.UI;
 
 namespace Momoka.Shell.Views;
@@ -16,7 +19,7 @@ internal sealed record MoviePilotSubscriptionRequest(MoviePilotService Service, 
     EmbySessionScope? PlaybackScope = null, Func<MoviePilotPlaybackTarget, Task>? Play = null, Action<string>? SearchVersions = null,
     ISystemLauncher? Launcher = null, Action<MoviePilotMedia>? OpenMedia = null, MoviePilotMedia? Media = null,
     Action<TitleStrip>? SetTitleStrip = null, Action<AniBtSearchQuery>? SearchAniBt = null,
-    Action<MoviePilotMedia>? Subscribed = null);
+    Action<MoviePilotMedia>? Subscribed = null, ISettingsService? Settings = null);
 
 public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 {
@@ -52,6 +55,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 
     private MoviePilotSubscriptionRequest? _request;
     private CancellationTokenSource? _pageLifetime;
+    private bool _appearanceObserved;
     internal MoviePilotSubscriptionsViewModel ViewModel { get; } = new();
     internal MoviePilotMediaViewModel MediaViewModel { get; } = new();
     public Visibility SubscriptionVisibility => SubscriptionSectionVisibility(ViewModel.Deleted);
@@ -72,6 +76,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         PaintBackdropFade();
         PrepareShowcase();
         WatchShowcaseTheme();
+        WatchAppearance();
         ViewModel.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(MoviePilotSubscriptionsViewModel.SelectedIdentity)
@@ -81,9 +86,9 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         MediaViewModel.PropertyChanged += OnShowcaseChanged;
         MediaViewModel.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName is nameof(MediaViewModel.Backdrop) or nameof(MediaViewModel.DetailErrorVisibility))
-                _request?.SetTitleStrip?.Invoke(MediaViewModel.DetailErrorVisibility == Visibility.Visible || MediaViewModel.Backdrop is null
-                    ? TitleStrip.Plain : TitleStrip.OnScrim);
+            if (args.PropertyName is nameof(MediaViewModel.Backdrop) or nameof(MediaViewModel.DetailErrorVisibility)
+                or nameof(MediaViewModel.Immersive))
+                SyncTitleStrip();
         };
     }
 
@@ -134,17 +139,10 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     /// </summary>
     private void OnDetailScrollSizeChanged(object sender, SizeChangedEventArgs args)
     {
-        // 这一段里发生的 Showcase 翻面要等宽高都写完、再走「改尺寸」那一条结算（可以插过渡），
-        // 不让每一次写入各自当场落定 —— 同详情页 OnBodySizeChanged 的 _sizing。
-        _sizing = true;
-        try
-        {
-            if (args.NewSize.Width > 0) MediaViewModel.PageWidth = args.NewSize.Width;
-            if (args.NewSize.Height > 0) MediaViewModel.Viewport = args.NewSize.Height;
-        }
-        finally { _sizing = false; }
-
-        ResolveShowcaseAfterResize();
+        // 宽高各自写回视图模型，派生值（背景盒高、头部下限）跟着它们自己重算。模式翻面不在这里结算：
+        // 沉浸档只看宽版式与图（ApplyHeroLayout 与 Backdrop 那两条来路），尺寸只是让那几个数换个值。
+        if (args.NewSize.Width > 0) MediaViewModel.PageWidth = args.NewSize.Width;
+        if (args.NewSize.Height > 0) MediaViewModel.Viewport = args.NewSize.Height;
     }
 
     /// <summary>
@@ -197,6 +195,92 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         DetailPoster.Height = compact ? CompactPosterHeight : PosterHeight;
     }
 
+    /// <summary>头部那张卡面里，海报与字离卡沿的距离。</summary>
+    private const double HeroCardPadding = 24;
+
+    /// <summary>头部那一行在卡面里外两种模式下的外边距 —— 沉浸档照旧（压在图上，上面多让一截），卡面里归 0。</summary>
+    private const double HeroRowTop = 36;
+    private const double HeroRowBottom = 24;
+
+    /// <summary>
+    /// 设置 → 详情页外观里那条「显示模式」改了：这一页和电影／剧／季详情页一样当场跟上，不要求重开页面。
+    /// 设置窗口在另一条线上喊这一声，所以照详情页那一支把落定排回 UI 线程。
+    /// </summary>
+    private void WatchAppearance()
+    {
+        Loaded += (_, _) =>
+        {
+            _appearanceObserved = true;
+            ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
+            ShellPrefs.AppearanceChanged += OnAppearanceChanged;
+        };
+        Unloaded += (_, _) =>
+        {
+            _appearanceObserved = false;
+            ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
+        };
+    }
+
+    private void OnAppearanceChanged(UiSettings ui)
+    {
+        if (!_appearanceObserved) return;
+        if (DispatcherQueue.HasThreadAccess)
+        {
+            ApplyDisplayMode(ui);
+            return;
+        }
+
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (_appearanceObserved) ApplyDisplayMode(ui);
+        });
+    }
+
+    /// <summary>把显示模式写进视图模型，并让头部卡面、纸面与标题条跟上 —— 三样都是这一个开关的下游。</summary>
+    private void ApplyDisplayMode(UiSettings ui)
+    {
+        MediaViewModel.Immersive = ui.EnableImmersive;
+        ApplyHeroSurface();
+        SettleShowcase();
+        SyncTitleStrip();
+    }
+
+    /// <summary>
+    /// 头部那一叠的底：简洁模式里是一张卡面（底色、描边、圆角、内边距），沉浸模式里整块让开，让海报和字直接
+    /// 压在剧照上。两种模式换的是同一个 Border 的几样属性 —— 不另造两套标记，也不必让绑定去追模式。
+    /// </summary>
+    private void ApplyHeroSurface()
+    {
+        var plain = MediaViewModel.Plain;
+        HeroSurface.Background = plain ? ResourceBrush("EgSurfaceBrush") : null;
+        HeroSurface.BorderBrush = plain ? ResourceBrush("EgBorderBrush") : null;
+        HeroSurface.BorderThickness = plain ? CardBorderThickness : default;
+        HeroSurface.Padding = plain ? new Thickness(HeroCardPadding) : default;
+        HeroRow.Margin = plain ? default : new Thickness(0, HeroRowTop, 0, HeroRowBottom);
+
+        // 卡面按自己的内容收边（不跟着右边那张资料卡一起拉高，否则下半截是一块空卡面）；沉浸档要撑满整行，
+        // 简介才压得到第一屏下沿。
+        HeroSurface.VerticalAlignment = plain ? VerticalAlignment.Top : VerticalAlignment.Stretch;
+
+        // 简介那一格：沉浸档压在第一屏下沿（那一档有整屏的图要交代），卡面里紧跟操作排、不再沉到卡底 ——
+        // 行的位置不动：窄到单列时操作那一叠自己会挪到第 1 行，简介留在末行不会和它抢同一个格子。
+        HeroOverview.VerticalAlignment = plain ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+    }
+
+    private static Brush? ResourceBrush(string key) =>
+        Application.Current?.Resources.TryGetValue(key, out var value) == true ? value as Brush : null;
+
+    private static Thickness CardBorderThickness =>
+        Application.Current?.Resources.TryGetValue("EgCardBorderThickness", out var value) == true && value is Thickness thickness
+            ? thickness : default;
+
+    /// <summary>
+    /// 标题栏那一行字压不压在图上：有图、沉浸模式、详情没出错时用浅墨；简洁模式整张图不在，回到页面字色。
+    /// </summary>
+    private void SyncTitleStrip() => _request?.SetTitleStrip?.Invoke(
+        MediaViewModel.DetailErrorVisibility == Visibility.Visible || MediaViewModel.Backdrop is null || MediaViewModel.Plain
+            ? TitleStrip.Plain : TitleStrip.OnScrim);
+
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
@@ -219,12 +303,18 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         MediaViewModel.AniBtSearch = request.Subscription is not null && request.SearchAniBt is not null;
         MediaViewModel.OpenMedia = request.OpenMedia;
         MediaViewModel.OpenPerson = url => request.Launcher?.OpenUrl(url);
+        // 显示模式跟着设置走；没带设置（探针、旧入口）时按出厂的沉浸模式。写在 Bindings.Update 之前，
+        // 第一帧就是用户选的那一档。
+        MediaViewModel.Immersive = request.Settings?.Settings.Ui.EnableImmersive ?? true;
         // 订阅详情才把订阅视图模型交给季列表：匹配季号的折叠栏改装文件统计；纯媒体详情的季浏览照旧。
         MediaSeasons.Attach(MediaViewModel, request.Subscription is null ? null : ViewModel);
         Bindings.Update();
         // 尺寸没变时 SizeChanged 不会再发一次，这里按当前实际宽度补算一遍。尚未排版时读到 0，
         // 随后的 SizeChanged 会把它纠正过来。
         ApplyHeroLayout(HeroRow.ActualWidth);
+        ApplyHeroSurface();
+        SettleShowcase();
+        SyncTitleStrip();
         if (request.Subscription is not null) _ = ViewModel.ReloadAsync();
         _ = MediaViewModel.ReloadAsync();
     }
@@ -458,7 +548,9 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     {
         _request?.SetTitleStrip?.Invoke(TitleStrip.Plain);
         _pageLifetime?.Cancel(); _pageLifetime?.Dispose(); _pageLifetime = null;
-        DetachShowcase();
+        ThemeHost.Changed -= OnShowcaseThemeChanged;
+        _appearanceObserved = false;
+        ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         MediaViewModel.PropertyChanged -= OnShowcaseChanged;
         _request = null; ViewModel.Cancel(); MediaViewModel.Cancel(); MediaResources.Release();
     }
