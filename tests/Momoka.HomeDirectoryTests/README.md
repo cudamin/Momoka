@@ -8,6 +8,8 @@
 
 导航响应回归另外原样提取生产 BrowseTransition、HomePage 导航入口赋值、快照分支和 Loaded 回调。假 Frame 记录真实 Shell.Open 发出的转场参数；主页边界只替代网络、滚动与 HomeMotion，覆盖冷/暖/New/Back/Forward、重新冷访问和播放返回抑制的相互独立。实际动画像素、迟到货架与滚动由 performance/shell/playback 原生探针核验，控制台通过不替代运行验收。
 
+有限页面复用时，正式 ReleaseContent 先将 CacheSize 置零淘汰旧账号页面，再恢复生产容量2；本夹具记录这两次边界写入，并核对内容与双向历史一起清理。主页实际 VM 的成功重入、配置/来源失配、旧刷新与实时队列回归位于 `home-performance-fixture`，不由此处的控件边界替代。
+
 原目录分组保留15个用例，关闭分组新增16个，共31项，先restore、编译再运行：
 
 ```powershell

@@ -39,6 +39,7 @@ public sealed record Crumb(string Label, string Tag)
 public sealed partial class ShellPage : UserControl, IShellActions
 {
     private const string Category = "外壳";
+    private const int BrowsePageCacheSize = 2;
 
     public FavoritesViewModel Favorites { get; } = new();
 
@@ -174,6 +175,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         InitializeComponent();
         InitializeSidebar();
+        ContentFrame.CacheSize = BrowsePageCacheSize;
 
         ContentFrame.Navigating += (_, args) => BeginNavigation(args.SourcePageType);
         ContentFrame.Navigated += (_, _) => CompleteNavigation();
@@ -2637,6 +2639,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         if (ContentFrame.Content is IShellContent page) page.Release();
         ContentFrame.Content = null;
+        ContentFrame.CacheSize = 0;
+        ContentFrame.CacheSize = BrowsePageCacheSize;
         ContentFrame.BackStack.Clear();
         _backTrails.Clear();
         ContentFrame.ForwardStack.Clear();

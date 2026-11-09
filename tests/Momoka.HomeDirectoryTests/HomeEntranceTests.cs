@@ -63,6 +63,9 @@ namespace Momoka.Shell.Views
 
     internal sealed partial class HomePage
     {
+        private bool _shelfEntranceSuppressed;
+        private bool _foldScheduled;
+        private bool _overlayAgain;
         private HomeRequest? _request;
         private Momoka.Diagnostics.NavigationTimingRun? _timing;
         private Windowing.HostWindow? _window;
@@ -80,7 +83,8 @@ namespace Momoka.Shell.Views
             ViewModel.Restored = restored;
             var args = new NavigationEventArgs(mode);
             BeginVisit(Request, args);
-            RestoreVisit(Request, args);
+            if (_foldScheduled || _overlayAgain) throw new InvalidOperationException("新访问不能沿用旧布局欠账");
+            RestoreVisit(Request, args, reused: false);
         }
         internal void SuppressPlaybackEntrance() => _entranceSuppressed = true;
         internal void RaiseLoaded() => Loaded?.Invoke(this, null);

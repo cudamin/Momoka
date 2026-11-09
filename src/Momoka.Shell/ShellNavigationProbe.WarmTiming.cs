@@ -35,10 +35,13 @@ internal sealed partial class ShellNavigationProbe
         NavigationTiming.Start(new NavigationTimingRecorder(sink));
         var expected = new List<(string Run, string Name, int Count)>();
         var warmRuns = new List<string>();
+        frame.CacheSize = 2;
         try
         {
             foreach (var home in new[] { false, true })
             {
+                HomePage? retainedHome = null;
+                object[]? retainedRows = null;
                 for (var visit = 0; visit < 2; visit++)
                 {
                     var run = NavigationTiming.Click(home ? "probe-home" : "probe-library")!;
@@ -52,17 +55,19 @@ internal sealed partial class ShellNavigationProbe
                         await LayoutAsync(page);
                         if (visit == 1)
                         {
+                            Require(ReferenceEquals(retainedHome, page), "重复导航没有复用有限缓存中的主页");
+                            Require(retainedRows!.SequenceEqual(page.HomeRows), "重复导航重建了主页混排行");
                             Require(Get<bool>(page, "_shelfEntranceSuppressed"), "暖主页没有抑制货架重新入场");
                             Require(!Get<bool>(page, "_entranceSuppressed"), "暖主页改变了播放返回与翻档的抑制位");
                             AssertShelvesSettled(Get<ItemsRepeater>(page, "ShelfRepeater"));
                             var count = page.ViewModel.Shelves.Sum(shelf => shelf.Cards.Count);
-                            expected.Add((run.RunId, "home-restore", count));
-                            expected.Add((run.RunId, "home-cards", count));
                             warmRuns.Add(run.RunId);
                             // A later ambient click must not take ownership of this page's queued layout.
                             NavigationTiming.Click("probe-other");
                             Call(page, "ForceLayout");
                         }
+                        retainedHome = page;
+                        retainedRows = page.HomeRows.ToArray();
                     }
                     else
                     {
@@ -100,6 +105,8 @@ internal sealed partial class ShellNavigationProbe
             foreach (var item in expected) PerformanceProbeRules.TimingSpan(events, item.Run, item.Name, item.Count);
             Require(warmRuns.All(id => events.Any(entry => entry.RunId == id && entry.Stage == "snapshot-hit")),
                 "第二次导航没有命中快照");
+            Require(!events.Any(entry => entry.RunId == warmRuns[1] && entry.Stage == "home-cards-begin"),
+                "主页实例复用仍执行了快照卡片重建");
             Require(events.All(entry => entry.Scenario != "probe-other" || !entry.Stage.StartsWith("home-", StringComparison.Ordinal)),
                 "上一页布局借用了后续点击的运行");
             Require(events.Any(entry => entry.RunId == warmRuns[1] && entry.Stage == "home-force-layout-end"),

@@ -20,6 +20,20 @@ internal static class Program
         AccountShutdownTests.Register(Test);
         FoundationProbeReadingTests.Register(Test);
         HomeEntranceTests.Register(Test);
+        Test("浏览账号释放：清掉缓存页再恢复有限容量", () =>
+        {
+            using var f = new Fixture(MediaServerKind.Emby);
+            f.Shell.GoTo("home");
+            f.Shell.ContentFrame.ForwardStack.Add(new object());
+            f.Shell.ResetContent();
+            Assert.Equal("0,2", string.Join(',', f.Shell.ContentFrame.CacheWrites),
+                "账号释放必须先淘汰缓存页，不能让旧账号页面进入下一次访问");
+            Assert.Equal(2, f.Shell.ContentFrame.CacheSize);
+            Assert.True(f.Shell.ContentFrame.Content is null);
+            Assert.Equal(0, f.Shell.ContentFrame.BackStack.Count);
+            Assert.Equal(0, f.Shell.ContentFrame.ForwardStack.Count);
+            return Task.CompletedTask;
+        });
         foreach (var animations in new[] { false, true })
         {
             Test("浏览导航立即交接，不等待旧页离场：动画=" + animations, () =>

@@ -47,9 +47,12 @@ public sealed partial class HomePage : Page, IShellContent
 
     // 暖恢复与历史返回不把货架重新藏起来；与播放返回/翻档的抑制位分开。
     private bool _shelfEntranceSuppressed;
+    private IServiceProvider? _attachedServices;
 
     // 返回现成主页后不再补播入场；显式刷新或重新导航才开始新一轮。
     private bool _entranceSuppressed;
+    private int _navigation;
+    private bool _released;
 
     /// <summary>
     /// Resolved on navigation, for the card menus. The page needs it for nothing else — every request
@@ -169,6 +172,7 @@ public sealed partial class HomePage : Page, IShellContent
     {
         NavigationTiming.Mark("page-ctor-begin");
         InitializeComponent();
+        NavigationCacheMode = NavigationCacheMode.Enabled;
         NavigationTiming.Mark("init-end");
         _stayProbe = (_, _) => _stayAsked++;
 
@@ -229,6 +233,7 @@ public sealed partial class HomePage : Page, IShellContent
         // 挂在 Loaded 上是因为 XAML 里写不了 —— 见 HomeShelfMotion 那一段。
         Loaded += (_, _) =>
         {
+            if (_released) return;
             if (!_entranceSuppressed && !_shelfEntranceSuppressed) HomeMotion.Enter(this, ShelfRepeater, HomeRows.Count);
             UpdateLibraryOverlay();
 
@@ -610,6 +615,7 @@ public sealed partial class HomePage : Page, IShellContent
     /// </summary>
     private void UpdateLibraryOverlay()
     {
+        if (_released) return;
         if (_overlayRunning)
         {
             // 强制布局会把尺寸事件在量测过程中响回来。这里只记欠账，本趟结束再补排一趟，不递归。
@@ -794,6 +800,7 @@ public sealed partial class HomePage : Page, IShellContent
     /// </summary>
     private void ScheduleOverlay()
     {
+        if (_released) return;
         if (_overlayRunning)
         {
             _overlayAgain = true;
@@ -803,8 +810,10 @@ public sealed partial class HomePage : Page, IShellContent
         if (_foldScheduled || DispatcherQueue is not { } queue) return;
 
         _foldScheduled = true;
+        var navigation = _navigation;
         queue.TryEnqueue(() =>
         {
+            if (_released || navigation != _navigation) return;
             _foldScheduled = false;
             UpdateLibraryOverlay();
         });
@@ -1377,6 +1386,10 @@ public sealed partial class HomePage : Page, IShellContent
         }
 
         _request = request;
+        _released = false;
+        _navigation++;
+        _foldScheduled = false;
+        _overlayAgain = false;
         _timing = NavigationTiming.Capture();
         _entranceSuppressed = false;
         _shelfEntranceSuppressed = e.NavigationMode is NavigationMode.Back or NavigationMode.Forward;
@@ -1400,6 +1413,8 @@ public sealed partial class HomePage : Page, IShellContent
         // that goes when the shell stops handing a container around, and spreading it would turn one
         // deletion into a hunt.
         var services = request.Services;
+        var sameServices = ReferenceEquals(_attachedServices, services);
+        _attachedServices = services;
         _session = services.GetRequiredService<EmbySession>();
         _actions = services.GetRequiredService<IShellActions>();
         var settings = services.GetRequiredService<ISettingsService>();
@@ -1409,13 +1424,15 @@ public sealed partial class HomePage : Page, IShellContent
         ViewModel.UseSnapshots(services.GetRequiredService<BrowseSnapshotStore>());
         // 删掉媒体库文件的条目在本次运行里不再显示（服务器元数据要等下一次扫描才消失）。
         ViewModel.UseRemovedMedia(services.GetRequiredService<RemovedMedia>());
-        ViewModel.Attach(
-            _actions,
-            request.EffectiveLibraryViews,
-            settings,
-            _session,
-            services.GetRequiredService<EmbyImageStore>(),
-            services.GetRequiredService<IUiDispatcher>());
+        var images = services.GetRequiredService<EmbyImageStore>();
+        var dispatcher = services.GetRequiredService<IUiDispatcher>();
+        var reused = sameServices && ViewModel.TryReactivate(_actions, request.EffectiveLibraryViews,
+            settings, _session, images, dispatcher);
+        if (!reused)
+        {
+            HomeRows.Clear();
+            ViewModel.Attach(_actions, request.EffectiveLibraryViews, settings, _session, images, dispatcher);
+        }
 
         // 轮播的停留秒数（设置 → 主页 → 「封面轮换秒数」，2026-09-13）页面一进来就同步一次 —— 带子自己
         // 没有设置，它等的是这句话。
@@ -1432,7 +1449,7 @@ public sealed partial class HomePage : Page, IShellContent
         _watch.Start();
 
         // 同一身份和版面下有上次的条目就先摆出来，网络核对放到后台；没有快照才走首次读取。
-        var restored = ViewModel.RestoreSnapshot();
+        var restored = reused || ViewModel.RestoreSnapshot();
         _shelfEntranceSuppressed |= restored;
         NavigationTiming.Mark(restored ? "snapshot-hit" : "snapshot-miss");
         NavigationTiming.Mark("reload-start");
@@ -1449,6 +1466,10 @@ public sealed partial class HomePage : Page, IShellContent
 
     public void Release()
     {
+        _released = true;
+        _navigation++;
+        _foldScheduled = false;
+        _overlayAgain = false;
         _timing = null;
         _homeSettings = null;
         // 这一页走了，新入库的钟一起停：它问的是这一页上的数据，页都不在了没人接结果。
@@ -1491,6 +1512,7 @@ public sealed partial class HomePage : Page, IShellContent
     /// </summary>
     private void OnShellPrefsChanged(Configuration.UiSettings ui)
     {
+        if (_released) return;
         Banner.ApplyDwell(ui.CarouselSeconds);
         RefreshHomeRows();
         UpdateLibraryOverlay();

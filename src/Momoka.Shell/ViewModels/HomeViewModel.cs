@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Momoka.Diagnostics;
@@ -140,6 +141,10 @@ public sealed partial class HomeViewModel : PageViewModel
     private int _backgroundFailures;
     private Exception? _backgroundFatal;
     private bool _quietLoad;
+    private long _visit;
+    private long _watchOperation;
+    private string? _retainedFingerprint;
+    private bool _disposed;
     private bool Live => _active && _sources.Any(source => source.IsAvailable);
     private bool Visible(string key) => _all.Any(entry => entry.Row.Key == key && entry.Row.Visible);
 
@@ -335,6 +340,7 @@ public sealed partial class HomeViewModel : PageViewModel
         IUiDispatcher dispatcher)
     {
         Cancel();
+        ClearRetainedContent();
         _active = true;
         _scope = images.CaptureScope();
         _sources = session.Sources.ToArray();
@@ -354,9 +360,100 @@ public sealed partial class HomeViewModel : PageViewModel
 
         // 实时通道跟着这一页走：开着的时候服务器一推 LibraryChanged 就提前核对一次新入库，
         // 不必等 30 秒那一趟。它只是快路径 —— 连不上或者服务器不推，30 秒那一趟照旧。
-        _realtime.Attach(_sources, OnRealtimeLibraryChanged);
+        StartRealtime();
 
         BuildShelves();
+    }
+
+    /// <summary>同配置成功主页只重新认领活动，不重建货架、卡片或轮播。</summary>
+    internal bool TryReactivate(IShellActions actions, IReadOnlyList<EmbyItem> libraryViews,
+        ISettingsService settings, EmbySession session, EmbyImageStore images, IUiDispatcher dispatcher)
+    {
+        var sources = session.Sources;
+        var sameSources = _sources.Count == sources.Count && _sources.Count > 0
+            && _sources.Select((source, index) => source.IsAvailable && sources[index].IsAvailable
+                && source.Key == sources[index].Key
+                && ReferenceEquals(source.UserStateOwner, sources[index].UserStateOwner)).All(same => same);
+        if (_disposed || !IsReady || Busy || _retainedFingerprint is null || !sameSources
+            || !ReferenceEquals(_actions, actions) || !ReferenceEquals(_settings, settings)
+            || !ReferenceEquals(_session, session) || !ReferenceEquals(_images, images)
+            || !ReferenceEquals(_dispatcher, dispatcher)
+            || _retainedFingerprint != RetainedFingerprint(libraryViews, settings, sources))
+        {
+            Cancel();
+            ClearRetainedContent();
+            return false;
+        }
+
+        Cancel();
+        _active = true;
+        _scope = images.CaptureScope();
+        _sources = sources;
+        _sourceTokens = BrowseSnapshotKeys.Sources(sources);
+        _libraryViews = libraryViews;
+        _watchBusy = false;
+        _watchBaseline = Task.CompletedTask;
+        StartRealtime();
+        return true;
+    }
+
+    private string RetainedFingerprint(IReadOnlyList<EmbyItem> libraries, ISettingsService settings,
+        IReadOnlyList<EmbySessionScope> sources) => JsonSerializer.Serialize(new
+        {
+            sources = sources.Select(source => new { source.Key, source.DisplayName, source.Connection.ServerKind }),
+            libraries = libraries.Select(item => new
+            {
+                source = item.Source?.Key,
+                item.Id,
+                item.Name,
+                item.Type,
+                item.CollectionType,
+                item.RecursiveItemCount,
+                item.PrimaryImageItemId,
+                item.PrimaryImageTag,
+                item.ImageTags,
+                item.BackdropImageTags,
+                item.PosterPaths,
+                item.ParentLogoItemId,
+                item.ParentLogoImageTag,
+                item.ParentBackdropItemId,
+                item.ParentBackdropImageTags,
+                item.ParentThumbItemId,
+                item.ParentThumbImageTag
+            }),
+            settings.Settings.Ui.HomeRows,
+            settings.Settings.Ui.ShowHomeBanner,
+            settings.Settings.Ui.CarouselSource,
+            settings.Settings.Ui.CarouselMedia,
+            settings.Settings.Ui.CarouselCount,
+            settings.Settings.Ui.CarouselSeconds,
+            settings.Settings.Ui.HomeLibraryPlacement,
+            settings.Settings.Ui.ControlBackgroundColor,
+            settings.Settings.Ui.ControlBackgroundOpacity,
+            settings.Settings.Ui.UseAcrylicControls,
+            settings.Settings.AggregateMode,
+            removed = _removed?.Count ?? 0
+        });
+
+    private void ClearRetainedContent()
+    {
+        _retainedFingerprint = null;
+        foreach (var (_, shelf) in _all) shelf.Clear();
+        Shelves.Clear();
+        Slides = [];
+        LibraryShelf = null;
+        _libraryOnBanner = false;
+        LoadedCount = NotLoaded;
+        IsReady = false;
+    }
+
+    private void StartRealtime()
+    {
+        var visit = _visit;
+        _realtime.Attach(_sources, key =>
+        {
+            if (Volatile.Read(ref _visit) == visit) OnRealtimeLibraryChanged(key);
+        });
     }
 
     /// <summary>由页面在 <see cref="Attach"/> 前交给本页；暖缓存命中与否都不改变它的生命周期。</summary>
@@ -457,6 +554,7 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     internal Task ApplyLayoutAsync()
     {
+        _retainedFingerprint = null;
         BuildShelves();
         return LoadAsync();
     }
@@ -517,6 +615,9 @@ public sealed partial class HomeViewModel : PageViewModel
     /// <summary>暖缓存上屏后的后台核对；不写加载状态，失败保留当前内容。</summary>
     internal Task BackgroundRefreshAsync()
     {
+        if (!Live) return Task.CompletedTask;
+        var visit = _visit;
+        var operation = ++_watchOperation;
         _watchBusy = true;
         _quietLoad = true;
         var loading = LoadAsync();
@@ -528,7 +629,7 @@ public sealed partial class HomeViewModel : PageViewModel
         async Task CompleteAsync(Task inner)
         {
             try { await inner; }
-            finally { _watchBusy = false; }
+            finally { if (visit == _visit && operation == _watchOperation) _watchBusy = false; }
         }
     }
 
@@ -672,6 +773,7 @@ public sealed partial class HomeViewModel : PageViewModel
         card = resumeCard;
 
         var watched = card.Item;
+        var visit = _visit;
         var watchedRevision = card.WatchedRevision;
 
         // 下一集先问回来再动屏：问的这段时间那张卡还在原处（它已经带上已看的对勾了），回来才一次换掉 ——
@@ -681,7 +783,7 @@ public sealed partial class HomeViewModel : PageViewModel
             : null;
 
         // 这一趟往返里页面可能已经走了、或者换了账号：那就一个字都别动。
-        if (!Live || !card.IsCurrent || !shelf.Cards.Contains(card)
+        if (visit != _visit || !Live || !card.IsCurrent || !shelf.Cards.Contains(card)
             || card.WatchedRevision != watchedRevision || !card.Watched) return;
 
         var slot = ResumeSlot.Apply(shelf.Cards, card, next, shelf.NewCard);
@@ -744,10 +846,12 @@ public sealed partial class HomeViewModel : PageViewModel
         if (!ShowsAnything) return;
 
         _watchBusy = true;
+        var visit = _visit;
+        var operation = ++_watchOperation;
         try
         {
             if (await ProbeStampsAsync(CancellationToken.None).ConfigureAwait(true) is not { } stamps) return;
-            if (!Live) return;
+            if (visit != _visit || !Live) return;
 
             var changed = _watch.Changed(stamps);
             if (changed.Count == 0) return;
@@ -760,7 +864,7 @@ public sealed partial class HomeViewModel : PageViewModel
         }
         finally
         {
-            _watchBusy = false;
+            if (visit == _visit && operation == _watchOperation) _watchBusy = false;
         }
     }
 
@@ -777,8 +881,10 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     private void OnRealtimeLibraryChanged(string sourceKey)
     {
+        var visit = Volatile.Read(ref _visit);
         lock (_realtimeSources)
         {
+            if (!_active || visit != _visit) return;
             _realtimeDirty = true;
             if (sourceKey.Length > 0) _realtimeSources.Add(sourceKey);
             if (_realtimeScheduled) return;
@@ -787,7 +893,10 @@ public sealed partial class HomeViewModel : PageViewModel
 
         // 排到这一页自己的同步上下文上跑。拿不到队列（还没 Attach / 已经离页）就放过这一拍 ——
         // 30 秒那一趟还在，不会漏掉什么。
-        if (_dispatcher?.Post(() => _ = PumpRealtimeAsync()) != true) ClearRealtimeScheduled();
+        if (_dispatcher?.Post(() =>
+            {
+                if (visit == _visit && Live) _ = PumpRealtimeAsync();
+            }) != true) ClearRealtimeScheduled(visit);
     }
 
     /// <summary>
@@ -813,9 +922,10 @@ public sealed partial class HomeViewModel : PageViewModel
     }
 
     /// <summary>把这一拍交出去失败之后把「已排」放回去，否则下一批通知会被那一格挡住、再也排不上。</summary>
-    private void ClearRealtimeScheduled()
+    private void ClearRealtimeScheduled(long visit)
     {
-        lock (_realtimeSources) _realtimeScheduled = false;
+        lock (_realtimeSources)
+            if (visit == _visit) _realtimeScheduled = false;
     }
 
     /// <summary>
@@ -828,6 +938,7 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     private async Task<Dictionary<string, string>?> ProbeStampsAsync(CancellationToken token)
     {
+        var visit = _visit;
         var sources = _sources.Where(scope => scope.IsAvailable).ToArray();
         if (sources.Length == 0) return null;
 
@@ -847,6 +958,7 @@ public sealed partial class HomeViewModel : PageViewModel
         }
 
         var results = await Task.WhenAll(sources.Select(ReadAsync)).ConfigureAwait(true);
+        if (visit != _visit || !Live) return null;
 
         var stamps = new Dictionary<string, string>(StringComparer.Ordinal);
         Exception? failure = null;
@@ -913,6 +1025,7 @@ public sealed partial class HomeViewModel : PageViewModel
     {
         var quiet = _quietLoad;
         if (!Live || _session is null || _actions is null || _all.Length == 0) return;
+        if (!quiet) _retainedFingerprint = null;
 
         var token = quiet ? BeginBackgroundLoad() : BeginLoad();
         _backgroundLoad = quiet;
@@ -1029,7 +1142,7 @@ public sealed partial class HomeViewModel : PageViewModel
             {
                 load.Parts[index] ??= [];
                 load.Remaining--;
-                _nextUpTotal = loads.Where(state => state.Row.Key == HomeLayout.NextUp).Sum(state => state.Total);
+                if (IsCurrent(token)) _nextUpTotal = loads.Where(state => state.Row.Key == HomeLayout.NextUp).Sum(state => state.Total);
                 if (!quiet && IsCurrent(token)) PublishRow(load);
             }
         }
@@ -1173,6 +1286,7 @@ public sealed partial class HomeViewModel : PageViewModel
             // 身份或权限失效时不能继续展示旧内容：这一页整体清空并让错误提示接管，等用户刷新或重新登录。
             if (_backgroundFatal is not null)
             {
+                _retainedFingerprint = null;
                 if (_snapshots is not null && _snapshotKey is not null) _snapshots.InvalidateHome(_snapshotKey);
                 foreach (var (_, shelf) in _all) shelf.Clear();
                 Slides = [];
@@ -1227,7 +1341,12 @@ public sealed partial class HomeViewModel : PageViewModel
         // 需求 5 → 2026-09-13「轮播图改用前十个最近添加」，同日下午张数进了设置：轮播不再站在继续观看上，
         // 只站设置里那个来源发回来的头若干张（筛掉没有宽图、并掉同一部剧，是 HomeCarousel 的事）。关掉轮播
         // 就一张都不造，带子自己收起来。
-        if (refreshSlides) Slides = _banner ? BuildSlides(newest, carouselCount) : [];
+        if (refreshSlides)
+        {
+            var nextSlides = _banner ? BuildSlides(newest, carouselCount) : [];
+            Slides = nextSlides.Select(slide => Slides.FirstOrDefault(previous =>
+                previous.Signature == slide.Signature && previous.Item.IdentityKey == slide.Item.IdentityKey) ?? slide).ToArray();
+        }
         _refresh.Complete(refreshVersion, refreshSlides);
 
         LoadedCount = resumed.Count + next.Count + added.Count;
@@ -1240,6 +1359,8 @@ public sealed partial class HomeViewModel : PageViewModel
         Subheading = LoadedCount == 0 ? null : $"{LoadedCount} 项";
 
         EndLoad(token);
+        if (IsCurrent(token) && !NoticeOpen && _settings is not null)
+            _retainedFingerprint = RetainedFingerprint(_libraryViews, _settings, _sources);
         CaptureSnapshot();
         _supplement = CompleteSupplementAsync(libraryTotals, watch, token);
     }
@@ -1490,12 +1611,26 @@ public sealed partial class HomeViewModel : PageViewModel
     public override void Cancel()
     {
         CaptureSnapshot();
+        Interlocked.Increment(ref _visit);
+        _watchOperation++;
+        _watchBusy = false;
         _active = false;
         // 这一页走了，实时通道一起收：它听的是这一页上的数据，页都不在了没人接这个结果。
         _realtime.Release();
-        _realtimeDirty = false;
-        lock (_realtimeSources) _realtimeSources.Clear();
+        lock (_realtimeSources)
+        {
+            _realtimeDirty = false;
+            _realtimeScheduled = false;
+            _realtimeSources.Clear();
+        }
         base.Cancel();
+    }
+
+    public override void Dispose()
+    {
+        _disposed = true;
+        Cancel();
+        base.Dispose();
     }
 
     /// <summary>

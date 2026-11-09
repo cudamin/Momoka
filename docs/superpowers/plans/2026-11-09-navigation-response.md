@@ -41,3 +41,19 @@
 - [ ] 检查最终 diff、更新 PROGRESS，提交本片，报告证据及未完成运行验收。
 
 **Verification:** 用户级 dotnet.exe、Release、单节点、禁共享编译。HomeDirectoryTests 与 HomeFoldCompletionTests 退出 0/失败 0；Shell 构建 0 警告 0 错误；编码及差异检查通过。
+
+### Task 2: 同配置主页实例有限复用
+
+**Goal:** 同一会话/来源/目录/展示配置的成功主页再次导航时，保留已创建货架、卡片、轮播和混排行，仅激活监听并后台核对。
+
+**Files:** HomePage.xaml.cs、HomeViewModel.cs；ShellPage 的 CacheSize 两处与账号清理；现有 HomePerformanceTests / HomeDirectoryTests / WarmTiming / HomeReturn。
+
+**Interfaces:** `TryReactivate(actions, libraryViews, settings, session, images, dispatcher)`；失败返回 false 并清旧展示；成功不 Attach/Restore、不创建卡片/轮播。HomePage 只启用 Enabled 缓存，由 Shell 的容量 2 管理。
+
+- [ ] 实际 VM 红测试覆盖同配置引用保持、来源owner/目录/图片/布局/展示变化、失败页、旧AutoRefresh/背景finally归属。
+- [ ] 清缓存生产方法红绿：账号清理先 CacheSize=0 淘汰，再恢复容量2。
+- [ ] 实施 VM 成功内容标记、访问票与指纹守卫；来源/配置失配同步清旧展示，正常 Attach。
+- [ ] 页面缓存复用与活动票、Overlay/Loaded/事件归属、请求滚动恢复；MP订阅保留原刷新语义。
+- [ ] 原生暖返回断言同Page/card/slide/row引用，父会话运行；本树编译/定向测试后提交。
+
+**Verification:** 当前 Release 实际 VM 专项、HomeDirectory/翻档专项绿；Shell 0警告0错误；原生UI与网页对比仍由父会话完成。

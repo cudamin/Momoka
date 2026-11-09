@@ -152,6 +152,22 @@ internal static class HomeReactivationTests
             }
         });
 
+        Case("主页实例重入：成功后前台刷新失败，不沿用旧成功标记", async () =>
+        {
+            using var fixture = SafeFixture(shell);
+            var home = CreateHome(shell, fixture);
+            try
+            {
+                await Load(shell, home);
+                fixture.Transport.FailHomeResumeHosts.Add("a");
+                await Load(shell, home);
+                Assert.True(shell.Get<bool>(home, "IsReady") && shell.Get<bool>(home, "NoticeOpen"));
+                shell.Invoke(home, "Cancel");
+                Assert.False(Reactivate(shell, home), "失败的前台刷新不能继承更早成功访问的标记");
+            }
+            finally { ((IDisposable)home).Dispose(); }
+        });
+
         foreach (var auto in new[] { false, true })
         {
             Case("主页实例重入：旧" + (auto ? "定时检查" : "后台刷新") + "完成不解除新访问的在途标记", async () =>

@@ -430,6 +430,7 @@ internal static class Program
             var oldCompletion = Board(old).CaptureCompletion();
             scene.Page.Release();
             scene.Page.XamlRoot = new();
+            scene.Page.ResumeVisit();
             scene.Page.SetReal(true);
             var newer = scene.Start(true);
             oldCompletion();

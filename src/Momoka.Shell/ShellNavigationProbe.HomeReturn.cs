@@ -44,7 +44,7 @@ internal sealed partial class ShellNavigationProbe
             if (path.EndsWith("/Items/Latest", StringComparison.Ordinal)) return Task.FromResult(Json(items));
             return Task.FromResult(FakeTransport.Standard(request));
         };
-        var frame = new Frame();
+        var frame = new Frame { CacheSize = 2 };
         _root.Children.Add(frame);
         var samples = new List<object>();
         try
@@ -79,10 +79,19 @@ internal sealed partial class ShellNavigationProbe
                 Require(!home.ViewModel.LibraryOnBanner, "普通入场误把媒体库压上轮播");
                 await Task.Delay(800);
 
+                var retainedPage = home;
+                var retainedRows = home.HomeRows.ToArray();
+                var retainedCards = home.ViewModel.Shelves.SelectMany(shelf => shelf.Cards).ToArray();
+                var retainedSlides = home.ViewModel.Slides.ToArray();
                 Require(frame.Navigate(typeof(LibraryPage), LibraryRequest.For(fixture.Services, libraries[0])), "离开主页失败");
                 await UntilAsync(() => frame.Content is LibraryPage library && library.IsReady);
                 frame.GoBack();
                 home = (HomePage)frame.Content!;
+                Require(ReferenceEquals(retainedPage, home), "有限 Frame 缓存没有复用成功主页实例");
+                Require(retainedRows.SequenceEqual(home.HomeRows), "同配置主页返回重建了混排货架");
+                Require(retainedCards.SequenceEqual(home.ViewModel.Shelves.SelectMany(shelf => shelf.Cards)),
+                    "同配置主页返回重建了卡片");
+                Require(retainedSlides.SequenceEqual(home.ViewModel.Slides), "同配置主页返回重建了轮播对象");
                 Require(home.IsReady, "返回主页未使用暖缓存");
                 await UntilAsync(() => home.IsLoaded);
                 Require(Get<bool>(home, "_shelfEntranceSuppressed"), "历史返回主页仍允许货架重新入场");

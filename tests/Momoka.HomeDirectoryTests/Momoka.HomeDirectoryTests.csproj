@@ -39,6 +39,7 @@
             "using Momoka.Emby;\nusing Momoka.Configuration;\nusing Momoka.Diagnostics;\nusing Momoka.Services;\nusing Momoka.MoviePilot;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\nusing Microsoft.UI.Xaml.Media.Animation;\nusing Microsoft.Extensions.DependencyInjection;\nnamespace Momoka.Shell.Views;\n" +
             between(home, "internal sealed record HomeRequest(\n", "\n/// <summary>\n/// The home page's view.") +
             "\ninternal sealed partial class ShellPage\n{\n" +
+            between(shell, "    private const int BrowsePageCacheSize", "\n\n    public FavoritesViewModel") +
             between(shell, "    private static NavigationTransitionInfo BrowseTransition()", "\n    private void BeginNavigation(") +
             between(shell, "    public void GoTo(string tag, bool force = false)\n", "\n    /// <summary>\n    /// 设置 (需求 1") +
             between(shell, "    private async Task EnterShellAsync()\n", "\n    /// <summary>\n    /// 切换服务器 / 切换用户") +
@@ -55,11 +56,11 @@
             between(shell, "        SignIn.SignedIn += OnSignedIn;", "\n    }\n\n    /// <summary>\n    /// Handed the window") + "\n    }\n" +
             between(shell, "    private void ReleaseContent()\n", "\n}") + "\n}\n" +
             "\ninternal sealed partial class HomePage\n{\n" +
-            between(home, "    private bool _shelfEntranceSuppressed;", "\n    /// <summary>\n    /// Resolved on navigation") +
+            between(home, "    private bool _entranceSuppressed;", "\n    /// <summary>\n    /// Resolved on navigation") +
             "    internal void BeginVisit(HomeRequest request, NavigationEventArgs e)\n    {\n" +
             between(home, "        _request = request;", "\n        // 播放层把窗口交回来的那一拍") + "\n    }\n" +
-            "    internal void RestoreVisit(HomeRequest request, NavigationEventArgs e)\n    {\n" +
-            between(home, "        var restored = ViewModel.RestoreSnapshot();", "\n    }\n\n    public void Release()") + "\n    }\n" +
+            "    internal void RestoreVisit(HomeRequest request, NavigationEventArgs e, bool reused)\n    {\n" +
+            between(home, "        var restored = reused || ViewModel.RestoreSnapshot();", "\n    }\n\n    public void Release()") + "\n    }\n" +
             "    internal void WireLoaded()\n    {\n" +
             between(home, "        Loaded += (_, _) =>", "\n    }\n\n    /// <summary>\n    /// Created with the page rather") + "\n    }\n}\n";
         Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));

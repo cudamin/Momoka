@@ -28,6 +28,9 @@ namespace Microsoft.UI.Xaml.Controls
         public object? Content { get; set; }
         public List<object> BackStack { get; } = [];
         public List<object> ForwardStack { get; } = [];
+        private int _cacheSize = 2;
+        public List<int> CacheWrites { get; } = [];
+        public int CacheSize { get => _cacheSize; set { _cacheSize = value; CacheWrites.Add(value); } }
         public int Navigations { get; private set; }
         public object? LastParameter { get; private set; }
         public object? LastTransition { get; private set; }
@@ -139,6 +142,7 @@ namespace Momoka.Shell.Views
         }
         internal Task Enter() => EnterShellAsync();
         internal Task Retry() => RetryLibrariesAsync();
+        internal void ResetContent() => ReleaseContent();
         internal IReadOnlyList<EmbyItem> HomeSnapshot => (ContentFrame.Content as HomePage)?.Request.LibraryViews ?? [];
         internal void LeaveForOtherPage()
         {

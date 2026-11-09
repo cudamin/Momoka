@@ -133,6 +133,7 @@ namespace Momoka.Shell.Views
         internal void SetBefore(double? strip, double? info = null) =>
             _before = new FoldSites(new Dictionary<object, double>(), strip, info);
         internal void SetReal(bool real) => _foldReal = real;
+        internal void ResumeVisit() { _released = false; _navigation++; }
         internal void SetPlaced(bool on) => _foldOn = on;
         internal (double Line, bool HasNext)? ReadCoversLine() => MeasureCoversLine(0);
         internal void ReplaceMain(HomeFoldMotion motion) => _fold = motion;
