@@ -70,12 +70,13 @@ namespace Momoka.Shell.Views
         private int _navigation = 1;
         private readonly Microsoft.UI.Xaml.Controls.ScrollView? _scroll = new();
         private readonly LibraryRequest? _request;
+        private double? _pendingScroll;
+        private Momoka.Diagnostics.NavigationTimingRun? _timing;
         public LibraryVmBoundary ViewModel { get; } = new();
         public Microsoft.UI.Xaml.Controls.ItemsView CardWall { get; } = new();
         public Microsoft.UI.Dispatching.DispatcherQueue DispatcherQueue { get; } = new();
         public int AlphaSyncs { get; private set; }
-        public LibraryPage() { _request = ViewModel.Request; _released = false; }
-        private void ApplyPendingScroll() => RestorePendingAnchor();
+        public LibraryPage() { _request = ViewModel.Request; _released = false; _pendingScroll = null; _timing = null; }
         private void SyncAlphaFromScroll() => AlphaSyncs++;
         private static IEnumerable<Microsoft.UI.Xaml.DependencyObject> DescendantsOf(Microsoft.UI.Xaml.DependencyObject node)
         {

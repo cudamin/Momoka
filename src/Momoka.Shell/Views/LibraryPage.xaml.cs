@@ -122,6 +122,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         NavigationTiming.Mark("page-ctor-begin");
         InitializeComponent();
         NavigationTiming.Mark("init-end");
+        NavigationCacheMode = NavigationCacheMode.Enabled;
 
         // 这一面墙一格多宽是按窗口宽度算的（见 LibraryViewModel.ResizeGrid）：窗口一停就把新宽度推过去。
         // 计时器在这里建，是因为「停下来」这件事只有页面知道 —— 尺寸变化本身不带「这是最后一帧」。
@@ -518,6 +519,9 @@ public sealed partial class LibraryPage : Page, IShellContent
             return;
         }
 
+        _attaching = true;
+        var resumed = ViewModel.TryResumeNavigation(request, _settings!);
+        if (!resumed) ViewModel.ClearNavigationContent();
         _request = request;
         _released = false;
         _navigation++;
@@ -541,7 +545,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         _moviePilot.AvailabilityChanged += OnMoviePilotAvailabilityChanged;
         _settings.Settings.MoviePilot.AniBtChanged += OnAniBtSettingChanged;
         ViewModel.UseSnapshots(services.GetRequiredService<BrowseSnapshotStore>());
-        ViewModel.Attach(
+        if (!resumed) ViewModel.Attach(
             request,
             _actions,
             _settings,
@@ -565,12 +569,15 @@ public sealed partial class LibraryPage : Page, IShellContent
         {
             _suppressSourceApply = false;
         }
-        ApplySource();
+        if (!resumed) ApplySource();
 
         // Attach 期间的通知只跳过不执行；依赖接完、来源也定下之后跑一次最终版面。
         _attaching = false;
-        ApplyView();
-        BuildBrowseSections();
+        if (!resumed)
+        {
+            ApplyView();
+            BuildBrowseSections();
+        }
         NavigationTiming.Mark("attach-end");
 
         if (request.IsSearch && SearchSource != 0) ViewModel.Cancel();
@@ -578,7 +585,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         {
             // 同一身份与查询下有快照就先摆出来；没有才走首次读取。两条都由 LoadNavigationAsync 收尾，
             // 区别只在它是否等待网络、是否串行补读之前的页。
-            var restored = ViewModel.RestoreSnapshot();
+            var restored = resumed || ViewModel.RestoreSnapshot();
+            NavigationTiming.Mark(resumed ? "page-reuse-hit" : "page-reuse-miss");
             NavigationTiming.Mark(restored ? "snapshot-hit" : "snapshot-miss");
             NavigationTiming.Mark("reload-start");
             _ = LoadNavigationAsync(request, _navigation);
@@ -646,6 +654,9 @@ public sealed partial class LibraryPage : Page, IShellContent
     public void Release()
     {
         if (_released) return;
+        // Frame caches one instance per page type. Non-root, incomplete and oversized pages must not
+        // turn search/results or unbounded card histories into an application-lifetime cache.
+        if (!ViewModel.NavigationReuseEligible) NavigationCacheMode = NavigationCacheMode.Disabled;
         _timing = null;
         _released = true;
         if (_moviePilot is { } moviePilot) moviePilot.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;
@@ -677,6 +688,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         _restoringAnchor = false;
         ViewModel.ReleaseSearchPosters();
         _filterPane?.Dismiss();
+        CloseSettings();
         _moviePilotPanel?.Release();
         _moviePilotResources?.Release();
         _aniBtPanel?.Release();
@@ -722,32 +734,6 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         _scroll.ViewChanged += OnViewChanged;
         ApplyPendingScroll();
-    }
-
-    /// <summary>把暖缓存恢复后的滚动位置落下去；布局尚未就绪就等下一次 Loaded。</summary>
-    private void ApplyPendingScroll()
-    {
-        if (_pendingAnchor is not null)
-        {
-            RestorePendingAnchor();
-            return;
-        }
-        if (_pendingScroll is not { } offset) return;
-        if (offset <= 0)
-        {
-            _pendingScroll = null;
-            return;
-        }
-
-        var timing = _timing;
-        timing?.Mark("library-scroll-layout-begin");
-        CardWall.UpdateLayout();
-        timing?.Mark("library-scroll-layout-end", 1);
-        var scroll = CardWall.ScrollView ?? _scroll;
-        if (scroll is null) return;
-
-        scroll.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
-        _pendingScroll = null;
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e)

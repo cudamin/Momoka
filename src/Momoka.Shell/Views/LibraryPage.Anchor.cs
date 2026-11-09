@@ -133,4 +133,24 @@ public sealed partial class LibraryPage
             });
         });
     }
+
+    /// <summary>把暖缓存恢复后的滚动位置落下去；布局尚未就绪就等下一次 Loaded。</summary>
+    private void ApplyPendingScroll()
+    {
+        if (_pendingAnchor is not null)
+        {
+            RestorePendingAnchor();
+            return;
+        }
+        if (_pendingScroll is not { } offset) return;
+        var timing = _timing;
+        timing?.Mark("library-scroll-layout-begin");
+        CardWall.UpdateLayout();
+        timing?.Mark("library-scroll-layout-end", 1);
+        var scroll = CardWall.ScrollView ?? _scroll;
+        if (scroll is null) return;
+
+        scroll.ScrollTo(0, Math.Max(0, offset), new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+        _pendingScroll = null;
+    }
 }

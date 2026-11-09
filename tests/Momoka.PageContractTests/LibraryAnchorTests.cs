@@ -13,7 +13,8 @@ internal static class LibraryAnchorTests
         {
             ("empty-after-window-change-clears-page-owner", EmptyWindow),
             ("empty-recovery-does-not-cancel-new-anchor-owner", EmptyThenNewOwner),
-            ("query-replacement-clears-only-old-owner", QueryReplacement)
+            ("query-replacement-clears-only-old-owner", QueryReplacement),
+            ("new-request-zero-offset-does-not-reuse-old-scroll", ZeroOffset)
         };
         var failures = 0;
         foreach (var (name, run) in cases)
@@ -84,6 +85,17 @@ internal static class LibraryAnchorTests
         page.DispatcherQueue.Drain();
         Check(!Get<bool>(page, "_restoringAnchor") && Get<object?>(page, "_pendingAnchor") is null,
             "old query completion must release only its own state");
+    }
+
+    private static void ZeroOffset()
+    {
+        var page = Page("old");
+        var scroll = Get<Microsoft.UI.Xaml.Controls.ScrollView>(page, "_scroll");
+        scroll.VerticalOffset = 800;
+        typeof(LibraryPage).GetField("_pendingScroll", Members)!.SetValue(page, 0d);
+        Call(page, "ApplyPendingScroll");
+        Check(scroll.VerticalOffset == 0, "new zero-offset request must return an already-used scroller to its top");
+        Check(Get<double?>(page, "_pendingScroll") is null, "the zero-offset request must be consumed");
     }
 
     private static LibraryPage Page(string identity)

@@ -447,6 +447,95 @@ internal static class LibraryDeepReturnTests
             }
         });
 
+        Case("暖页复用：同一普通根请求保留卡片、窗口和新查询归属", async () =>
+        {
+            using var fixture = Movies(shell);
+            var (vm, _) = await Window(fixture, 1500);
+            try
+            {
+                var cards = Cards(vm).ToArray();
+                var collection = shell.Get<object>(vm, "Cards");
+                var start = shell.Get<int>(vm, "WindowStart");
+                var oldQuery = shell.Get<CancellationToken>(vm, "QueryToken");
+                shell.Invoke(vm, "Cancel");
+                Assert.True((bool)shell.Invoke(vm, "TryResumeNavigation", Request(vm), fixture.Settings)!, "成功根页面应直接恢复访问");
+                Assert.True(ReferenceEquals(collection, shell.Get<object>(vm, "Cards")));
+                Assert.True(Cards(vm).SequenceEqual(cards), "恢复不重建每一张卡");
+                Assert.Equal(start, shell.Get<int>(vm, "WindowStart"));
+                Assert.False((bool)shell.Invoke(vm, "QueryCurrent", oldQuery)!);
+                Assert.True((bool)shell.Invoke(vm, "QueryCurrent", shell.Get<CancellationToken>(vm, "QueryToken"))!);
+                var reads = fixture.Transport.LibraryReads.Count;
+                await (Task)shell.Invoke(vm, "RevalidateAsync")!;
+                Assert.Equal(reads + 1, fixture.Transport.LibraryReads.Count, "恢复后只读当前有限窗口");
+                Assert.True(Cards(vm).SequenceEqual(cards));
+            }
+            finally { ((IDisposable)vm).Dispose(); }
+        });
+
+        Case("暖页复用：新请求、可变分区和设置改变拒绝旧内容", async () =>
+        {
+            foreach (var change in new[] { "request", "section", "display", "source", "large" })
+            {
+                using var fixture = Movies(shell);
+                var vm = fixture.CreateLibraryView(new BrowseSnapshotStore());
+                try
+                {
+                    if (change == "large") fixture.Settings.TestPageSize = 500;
+                    await Load(vm, true);
+                    var request = Request(vm);
+                    shell.Invoke(vm, "Cancel");
+                    if (change == "request")
+                    {
+                        var other = fixture.CreateLibraryView();
+                        request = Request(other);
+                        ((IDisposable)other).Dispose();
+                    }
+                    if (change == "section") shell.Set(request, "Section", LibrarySection.Genres);
+                    if (change == "display") fixture.Settings.Settings.Ui.Display[BrowsingPreferences.LibraryKey(fixture.Source("a").Connection, "library")]
+                        = new LibraryDisplay { View = LibraryView.List };
+                    if (change == "source") fixture.RevokeHomeSource("a");
+                    Assert.False((bool)shell.Invoke(vm, "TryResumeNavigation", request, fixture.Settings)!, change);
+                }
+                finally { ((IDisposable)vm).Dispose(); }
+            }
+        });
+
+        Case("暖页复用：旧响应与旧finally不能影响新访问", async () =>
+        {
+            using var fixture = Movies(shell);
+            var (vm, _) = await Window(fixture, 1500);
+            try
+            {
+                var cards = Cards(vm).ToArray();
+                var gate = fixture.Transport.LibraryGate = new Gate(true);
+                var old = (Task)shell.Invoke(vm, "RevalidateAsync")!;
+                await gate.Entered.Task;
+                shell.Invoke(vm, "Cancel");
+                Assert.True((bool)shell.Invoke(vm, "TryResumeNavigation", Request(vm), fixture.Settings)!);
+                gate.Release.TrySetResult();
+                await old;
+                Assert.True(Cards(vm).SequenceEqual(cards));
+                Assert.True(shell.Get<bool>(vm, "IsReady"));
+                Assert.False(shell.Get<bool>(vm, "Busy"));
+            }
+            finally { ((IDisposable)vm).Dispose(); }
+        });
+
+        Case("暖页复用：换请求清除旧根内容和窗口后才可读新数据", async () =>
+        {
+            using var fixture = Movies(shell);
+            var (vm, _) = await Window(fixture, 1500);
+            try
+            {
+                shell.Invoke(vm, "ClearNavigationContent");
+                Assert.Equal(0, Cards(vm).Count);
+                Assert.Equal(0, shell.Get<int>(vm, "WindowStart"));
+                Assert.False(shell.Get<bool>(vm, "IsReady"));
+                Assert.False((bool)shell.Invoke(vm, "TryResumeNavigation", Request(vm), fixture.Settings)!);
+            }
+            finally { ((IDisposable)vm).Dispose(); }
+        });
+
         return TestHarness.Run();
 
         Fixture Movies(ShellFixture owner)

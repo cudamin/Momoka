@@ -28,6 +28,7 @@ namespace Microsoft.UI.Xaml.Controls
     public sealed class ItemContainer : Control;
     public sealed class ItemsView : Control
     {
+        public ScrollView? ScrollView { get; set; }
         public int BringCalls { get; private set; }
         public bool TryGetItemIndex(double x, double y, out int index) { index = 0; return Children.Count > 0; }
         public void UpdateLayout() { }

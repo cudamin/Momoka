@@ -8,7 +8,7 @@
 - 卡片测试以 `CARD_IMAGE_RESIZE_FIXTURE` 隔离，边界只替代 WinUI 值类型和位图解码；真实 Core 图片存储、SharedWork 和来源寿命仍执行。假图片 handler 只接受占位图片 GET，不运行登录或探测。R-014 继续使用真实图片存储与卡片源码，受控解码只用文本假字节，不证明实际 WinRT 的异常形态或画面。所有新夹具文件在本树测试输出下保留。
 - 本项目的诊断 Core 部分与主套件重叠；同时报告两边结果时不能把重叠项累加成不同覆盖。
 - 焦点测试编译链接实际 `FocusWatch`，用可控父子关系和事件边界验证海报／剧集行越过自身，选中外层 Button／ItemContainer、拒绝整张列表或滚动器、退订及重挂；设置名称测试解析真实模板与资源，验证行标签绑定不会被通用资源覆盖，并执行两种负向检查。真实 WinUI 焦点与 UIA 名称由 `--probe-shell --probe-section settings` 的「卡片焦点宿主与设置控件具体名称」用例补齐，不以这些边界测试代替。
-- `library-anchor-page-fixture` 编译链接完整生产 `LibraryPage.Anchor.cs`，以真实 CardItem 和可控调度队列覆盖空库清理、读回内容后恢复、旧空库回调不清新锚点以及查询替换。外层 VM、视觉坐标和 XAML 控件只作边界，不能证明真实 ItemsView 滚动或 Frame 布局；它与默认套件分别运行。用例数量以当次摘要为准（R16审查时默认137项），不能累加重叠覆盖。
+- `library-anchor-page-fixture` 编译链接完整生产 `LibraryPage.Anchor.cs`，以真实 CardItem 和可控调度队列覆盖空库清理、读回内容后恢复、旧空库回调不清新锚点以及查询替换，并执行正式 ApplyPendingScroll 验证新请求零偏移会将旧滚动器归零。外层 VM、视觉坐标和 XAML 控件只作边界，不能证明真实 ItemsView 滚动或 Frame 布局；它与默认套件分别运行。用例数量以当次摘要为准（R16审查时默认137项），不能累加重叠覆盖。
 - 使用与 Core 套件相同的互斥 passed／failed／skipped 运行器；不把预期修前失败放进正常产品套件。
 - 不读取用户设置、日志或凭据，不连接 MoviePilot、不创建窗口、不消费生产激活信号。
 - **不能证明**真实 WinUI 布局、输入、滚动、Frame 返回／前进、服务可用性及渲染。此类验收仍使用适用的隔离 UI 探针，不能因为本项目通过而省略。

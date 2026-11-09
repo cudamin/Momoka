@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
@@ -179,6 +180,9 @@ public sealed partial class LibraryViewModel : PageViewModel
     private BrowseSnapshotStore? _snapshots;
     private string? _snapshotKey;
     private bool _restoredFromCache;
+    private string? _retainedNavigationKey;
+    private string? _retainedPreferences;
+    private long _retainedPermissionRevision;
     private bool Aggregated => _sources.Count > 1;
     // 单来源继续观看同样按服务器消费量计数；补入的下一集只占显示槽，不占 Resume 偏移。
     private bool UsesQueryCursor => Aggregated || IsResumePage;
@@ -1356,6 +1360,72 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>这一页的卡片是先从快照恢复的；页面据此跳过串行重读、直接落回滚动位置。</summary>
     internal bool RestoredFromCache => _restoredFromCache;
 
+    /// <summary>Only a complete bounded root can retain its live controls and card state off-tree.</summary>
+    internal bool NavigationReuseEligible => WindowEligible && !_windowNeedsPrefix && _active && _firstPage && IsReady && !Busy && !_pageFailed
+        && Cards.Count <= BrowseSnapshotStore.MaxItemsPerSnapshot && _scope?.IsAvailable == true;
+
+    private string NavigationContentKey() => BrowseSnapshotKeys.Library(_sourceTokens, _request!, SortKey,
+        SortDescending, _filters, _fnNasFilters, _display, _settings!.PageSize);
+
+    private string NavigationPreferencesKey()
+    {
+        var ui = Settings.Ui;
+        var key = MemoryKey()!;
+        // Capture just this library's saved preferences: importing settings while the page is off-tree
+        // must not retain cards whose query or presentation now belongs to different preferences.
+        return JsonSerializer.Serialize(new object?[]
+        {
+            ui.Sort.GetValueOrDefault(key), ui.Filters.GetValueOrDefault(key),
+            ui.Display.GetValueOrDefault(key), ui.Views.GetValueOrDefault(key), _settings!.PageSize
+        }, EmbyHttp.Json);
+    }
+
+    internal bool TryResumeNavigation(LibraryRequest request, ISettingsService settings)
+    {
+        if (_active || _retainedNavigationKey is null || !ReferenceEquals(request, _request)
+            || !ReferenceEquals(settings, _settings) || !WindowEligible || _windowNeedsPrefix || !_firstPage
+            || !IsReady || Busy || _pageFailed || Cards.Count > BrowseSnapshotStore.MaxItemsPerSnapshot || _scope?.IsAvailable != true
+            || _scope.PermissionRevision != _retainedPermissionRevision
+            || _sourceTokens.Count != 1 || _sourceTokens[0].Key != _scope.Key
+            || !ReferenceEquals(_sourceTokens[0].Owner, _scope.UserStateOwner)
+            || _retainedNavigationKey != NavigationContentKey() || _retainedPreferences != NavigationPreferencesKey()) return false;
+
+        Resume(reload: false);
+        _restoredFromCache = true;
+        RowsArrived();
+        return true;
+    }
+
+    /// <summary>A cached page type can receive a different request; discard the old content before Attach.</summary>
+    internal void ClearNavigationContent()
+    {
+        Cancel();
+        _retainedNavigationKey = null;
+        _retainedPreferences = null;
+        foreach (var card in Cards) card.AbandonPoster();
+        Cards.Clear();
+        foreach (var shelf in RecommendedShelves) shelf.Clear();
+        RecommendedShelves.Clear();
+        foreach (var row in FavoriteRows)
+        {
+            foreach (var card in row.Cards) card.AbandonPoster();
+            row.Cards.Clear();
+        }
+        FavoriteRows.Clear();
+        VisibleFavoriteRows.Clear();
+        UpcomingDays.Clear();
+        _cursor = null;
+        _resumeRead.Clear();
+        _windowStart = 0;
+        _rawReadEnd = 0;
+        _firstPage = false;
+        _total = NotLoaded;
+        _restoredFromCache = false;
+        IsReady = false;
+        ShowEmptyNotice = false;
+        ClearNotice();
+    }
+
     /// <summary>
     /// 搜索、收藏、推荐和即将播出各有自己的结构或即时语义，不进入快照；普通网格（含聚合与继续观看）
     /// 才按查询键复用条目。收藏页按 <see cref="IsFavoritesPage"/> 判定（分区与来源），不能只看
@@ -2017,6 +2087,12 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     public override void Cancel()
     {
+        if (_active)
+        {
+            _retainedNavigationKey = NavigationReuseEligible ? NavigationContentKey() : null;
+            _retainedPreferences = _retainedNavigationKey is null ? null : NavigationPreferencesKey();
+            _retainedPermissionRevision = _scope?.PermissionRevision ?? -1;
+        }
         CaptureSnapshot();
         _active = false;
         _queries.Cancel();
