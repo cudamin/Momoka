@@ -47,6 +47,10 @@ namespace Microsoft.UI.Xaml.Controls
 namespace Momoka.Shell.Windowing { internal sealed class HostWindow; }
 namespace Momoka.Shell.Views
 {
+    internal sealed class BrowsePresentation
+    {
+        internal void Stop() { }
+    }
     internal interface IShellContent { void Release(); }
     internal sealed partial class HomePage : IShellContent
     {
@@ -88,6 +92,7 @@ namespace Momoka.Shell.Views
     }
     internal sealed partial class ShellPage
     {
+        private readonly BrowsePresentation _browsePresentation = new();
         private const string Category = "fixture-shell";
         private static readonly Dictionary<string, string> Hosted = [];
         private readonly LoadGeneration _identityLoads = new();

@@ -170,15 +170,27 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     /// <summary>The gesture that owns the navigation in flight; only set when stage timing is enabled.</summary>
     private NavigationTimingRun? _navigationRun;
+    private readonly BrowsePresentation _browsePresentation;
 
     public ShellPage()
     {
         InitializeComponent();
         InitializeSidebar();
         ContentFrame.CacheSize = BrowsePageCacheSize;
+        _browsePresentation = new BrowsePresentation(ContentFrame);
 
-        ContentFrame.Navigating += (_, args) => BeginNavigation(args.SourcePageType);
-        ContentFrame.Navigated += (_, _) => CompleteNavigation();
+        ContentFrame.Navigating += (_, args) =>
+        {
+            _browsePresentation.Begin();
+            BeginNavigation(args.SourcePageType);
+        };
+        ContentFrame.Navigated += (_, _) =>
+        {
+            _browsePresentation.Attach();
+            CompleteNavigation();
+        };
+        ContentFrame.NavigationStopped += (_, _) => _browsePresentation.Stop();
+        ContentFrame.NavigationFailed += (_, _) => _browsePresentation.Stop();
 
         // 深浅跟着当前主题走。登记之后换主题会连带把这棵树翻过去 —— 框架自己那些没被调色板覆盖的刷子
         // 只认 ElementTheme，不登记的话浅色主题下就是「白面配深色控件」。
@@ -2637,6 +2649,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void ReleaseContent()
     {
+        _browsePresentation.Stop();
         if (ContentFrame.Content is IShellContent page) page.Release();
         ContentFrame.Content = null;
         ContentFrame.CacheSize = 0;

@@ -3,6 +3,11 @@
 受管树browse-image-gate/Momoka，基点6e53dbf。仅CardItem与BannerSlide真正的新图片读/渲染需求通过BrowsePresentation.WaitForImagesAsync等待本轮页面首帧；已解码缓存与现有图片直接显示。各调用仍持有独立loading取消源，等待链接来源Lifetime，放行后重新核请求引用/取消/来源；拼图先显示已缓存格，只延后缺格；轮播暖背景不等，需补徽标才等。没有改变Release/Abandon的回收边界。
 
 PageContract用最小可控制presentation边界执行真实卡/轮播/图片store；首轮155/162、7失败，实现后162/162；追加纯暖轮播与来源退出后最终164/164、0失败0跳过，Release编译0警告0错误。证据browse-gate-*.log。测试只用匿名假图片HTTP/受控解码，不执行UI、Shell构建、真实服务、播放、发布或推送。生产依赖的BrowsePresentation由主会话另一个集成提交提供，默认CompletedTask；主会话需合入helper后编译Shell并验证动画先呈现、图片晚到及旧导航归属。独立树未交付，快捷方式仍是旧版。
+## 2026-11-09 浏览页面先淡入再放行图片（独立树待整合）
+
+受管独立树 browse-presentation/Momoka，基点6e53dbf。Shell保留Suppress，首次Loaded立即180ms纯透明度从0.8到1；不平移、不等旧页退出、不完全隐藏首屏。Navigating先建立访问图片门控，Rendering只排低优先级回调，异步续接再放行；换页、导航失败/取消和身份释放都取消旧回调并放行旧等待，调用方继续用自己的取消与访问归属。关应用/系统动画即时落定但图片门控继续；未上UI树默认不等待。AsyncLocal保留请求自己的门控，原生WinRT上下文效果待父会话实测。
+
+生产源链接专用先0/14红，最终15/15；未上树守卫追加先14/15红后15/15。HomeDirectory真实提取62/62，Release Shell/专用构建0警告0错误，格式和变更文本检查通过。证据artifacts/browse-presentation。未运行UI、真实服务器或播放，未发布/上传；父会话整合、原生门控/画面检查、完整测试与实际发布尚待完成。
 
 ## 2026-11-09 MP 详情等高资料卡与下方响应式紧凑卡片
 
