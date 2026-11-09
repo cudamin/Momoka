@@ -185,6 +185,14 @@ internal static class MoviePilotSubscriptionPageStateTests
             Assert.Equal("Top", (string?)Named("HeroSurface").Attribute("VerticalAlignment"));
             Assert.Equal("Top", (string?)Named("HeroOverview").Attribute("VerticalAlignment"));
             Assert.Equal("OnDetailViewChanged", (string?)Named("DetailScroll").Attribute("ViewChanged"));
+            var seasons = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotMediaSeasonsView.xaml"));
+            var group = seasons.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "SwitchEpisodeGroup");
+            Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", (string?)group.Attribute("Background"));
+            foreach (var key in new[] { "ButtonBackgroundPointerOver", "ButtonBackgroundPressed", "ButtonBackgroundDisabled" })
+                Assert.True(group.Descendants().Any(element => (string?)element.Attribute(x + "Key") == key
+                    && ((string?)element.Attribute("ResourceKey"))?.StartsWith("CardBackgroundFillColor", StringComparison.Ordinal) == true));
+            Assert.True(seasons.Descendants().Any(element => (string?)element.Attribute(x + "Key") == "ExpanderHeaderBackground"
+                && (string?)element.Attribute("ResourceKey") == "CardBackgroundFillColorDefaultBrush"));
             Assert.False(Named("HeroGrid").Descendants().Any(element => element.Name.LocalName == "RowDefinition"
                 && (string?)element.Attribute("Height") == "*"));
         });

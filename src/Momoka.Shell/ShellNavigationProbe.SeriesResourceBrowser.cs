@@ -172,18 +172,11 @@ internal sealed partial class ShellNavigationProbe
         }
         async Task CloseAsync(MenuFlyout menu, Action request)
         {
-            var closed = Pending<bool>();
-            void OnClosed(object? sender, object args) => closed.TrySetResult(true);
-            menu.Closed += OnClosed;
-            try
-            {
-                request();
-                await closed.Task.WaitAsync(TimeSpan.FromSeconds(5));
-                await UntilAsync(() => !VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
-                    .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutPresenter>().Any());
-                await LayoutAsync(picker);
-            }
-            finally { menu.Closed -= OnClosed; }
+            // 截图前后系统可能已轻关闭菜单；订阅一个不会再到来的 Closed 会误报超时。
+            request();
+            await UntilAsync(() => !menu.IsOpen && !VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+                .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutPresenter>().Any());
+            await LayoutAsync(picker);
         }
     }
 }

@@ -139,6 +139,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private void OnHeroContentSizeChanged(object sender, SizeChangedEventArgs args)
     {
         if (args.NewSize.Height > 0) MediaViewModel.HeroBandHeight = args.NewSize.Height;
+        UpdateFactsLift();
     }
 
     private void LiftBackdrop()
@@ -166,6 +167,27 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         BodyRow.RowSpacing = side ? 0 : FactsStackedRowSpacing;
         HeroFacts.Width = side ? FactsSideWidth : Math.Min(FactsStackedMaxWidth, width);
         MediaViewModel.WideLayout = side;
+        UpdateFactsLift();
+    }
+
+    private void UpdateFactsLift()
+    {
+        var lift = 0d;
+        if (MediaViewModel.WideLayout && HeroFacts.ActualWidth > 0)
+        {
+            // 只借海报旁的实际空白；长标题或多行操作不能被向上挪的资料卡盖住。
+            var factsX = HeroFacts.TransformToVisual(this).TransformPoint(default).X;
+            var bodyTop = BodyRow.TransformToVisual(this).TransformPoint(default).Y;
+            lift = 96;
+            foreach (var child in HeroContent.Children.OfType<FrameworkElement>().Where(child => child.Visibility == Visibility.Visible))
+            {
+                var position = child.TransformToVisual(this).TransformPoint(default);
+                if (position.X + child.ActualWidth > factsX)
+                    lift = Math.Min(lift, Math.Max(0, bodyTop - position.Y - child.ActualHeight - 12));
+            }
+        }
+        var margin = new Thickness(0, -lift, 0, 0);
+        if (HeroFacts.Margin != margin) HeroFacts.Margin = margin;
     }
 
     private void OnHeroSizeChanged(object sender, SizeChangedEventArgs args)
@@ -176,6 +198,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         Grid.SetColumnSpan(HeroContent, compact ? 2 : 1);
         DetailPoster.Width = compact ? CompactPosterWidth : PosterWidth;
         DetailPoster.Height = compact ? CompactPosterHeight : PosterHeight;
+        UpdateFactsLift();
         ApplyMaterialAppearance();
     }
 

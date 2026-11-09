@@ -35,11 +35,18 @@ internal sealed partial class ShellNavigationProbe
             Require(Top(season, page) - Top(overview, page) - overview.ActualHeight is >= 10 and <= 14,
                 "简介与季之间没有收紧到正文间距");
         Require(side
-            ? Grid.GetColumn(facts) == 1 && Grid.GetRow(facts) == 0 && Math.Abs(Top(facts, page) - Top(overview, page)) < 1.5
+            ? Grid.GetColumn(facts) == 1 && Grid.GetRow(facts) == 0 && Top(overview, page) - Top(facts, page) is >= 0 and <= 97
                 && Math.Abs(facts.ActualWidth - 320) < 1 && primary.ActualWidth < page.ActualWidth - 320
             : Grid.GetColumn(facts) == 0 && Grid.GetRow(facts) == 1
                 && Top(facts, page) >= Top(primary, page) + primary.ActualHeight + 10,
-            "资料卡没有按宽窗右列顶齐、窄窗叠放的规则布局");
+            "资料卡没有按宽窗利用空白上移、窄窗叠放的规则布局");
+        var factsPosition = facts.TransformToVisual(page).TransformPoint(default);
+        foreach (var button in Get<WrapRow>(page, "DetailActions").Children.OfType<Button>().Where(button => button.Visibility == Visibility.Visible))
+        {
+            var position = button.TransformToVisual(page).TransformPoint(default);
+            Require(position.X + button.ActualWidth <= factsPosition.X || position.Y + button.ActualHeight <= factsPosition.Y
+                || position.Y >= factsPosition.Y + facts.ActualHeight, "上移的资料卡盖住了操作按钮：" + button.Name);
+        }
     }
 
     private async Task CheckSubscriptionAppearanceAsync(MoviePilotSubscriptionPage page, UiSettings ui)
@@ -370,10 +377,13 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(page);
                     Require(expander.IsExpanded == expanded && season.Expanded == expanded, "季折叠状态未同步");
                     Require(summary.Text == originalSummary, "折叠切换丢失了入库摘要");
-                    Require(header.Background is Microsoft.UI.Xaml.Media.SolidColorBrush headerBrush
-                        && headerBrush.Color == ThemeHost.ToColor(theme.Colors.SurfaceAlt)
-                        && expander.Background is Microsoft.UI.Xaml.Media.SolidColorBrush contentBrush
-                        && contentBrush.Color == headerBrush.Color, "季标题与展开区域没有跟随当前主题");
+                    Require(header.Background is AcrylicBrush headerBrush
+                        && headerBrush.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceAlt)
+                        && expander.Background is AcrylicBrush contentBrush
+                        && contentBrush.TintColor == headerBrush.TintColor, "季标题与展开区域没有使用当前主题亚克力");
+                    foreach (var group in Descendants(seasons).OfType<Button>().Where(button => button.Name == "SwitchEpisodeGroup"))
+                        Require(group.Background is AcrylicBrush && group.Resources["ButtonBackgroundDisabled"] is AcrylicBrush,
+                            "剧集组选中或未选中卡片缺少亚克力");
                     var offset = seasons.TransformToVisual((UIElement)scroll.Content).TransformPoint(default).Y;
                     scroll.ChangeView(null, offset - 16, null, true);
                     await LayoutAsync(page);
@@ -446,6 +456,7 @@ internal sealed partial class ShellNavigationProbe
             Require(surface.VerticalAlignment == VerticalAlignment.Top,
                 "沉浸档的头部没有按海报与操作内容收边");
             RequireSubscriptionBodyLayout(page, true);
+            Require(facts.Margin.Top < -24, "资料卡没有利用上方空白向上移动");
             await CheckSubscriptionAppearanceAsync(page, settings.Ui);
             Require(hero.MinHeight <= 0.5, "沉浸档的头部仍在按背景图让开第一屏");
             Require(Math.Abs(image.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001,

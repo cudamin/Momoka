@@ -12,7 +12,13 @@
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="vm:MoviePilotEpisodeGroupRow">
                         <Button x:Name="SwitchEpisodeGroup" Command="{x:Bind SwitchCommand}" Style="{StaticResource EgArtworkTileStyle}"
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                             AutomationProperties.Name="{x:Bind SwitchName}" ToolTipService.ToolTip="{x:Bind SwitchHelp}">
+                            <Button.Resources>
+                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="CardBackgroundFillColorSecondaryBrush" />
+                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="CardBackgroundFillColorSecondaryBrush" />
+                                <StaticResource x:Key="ButtonBackgroundDisabled" ResourceKey="CardBackgroundFillColorDefaultBrush" />
+                            </Button.Resources>
                             <Grid>
                                 <StackPanel Orientation="Horizontal" Padding="12,8" Spacing="10">
                                     <FontIcon Glyph="&#xE8F1;" Foreground="{ThemeResource EgAccentBrush}" />
@@ -35,13 +41,13 @@
             <ItemsRepeater.ItemTemplate>
                 <DataTemplate x:DataType="vm:MoviePilotMediaSeasonRow">
                     <Expander x:Name="ExpandMediaSeason" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                        Background="{ThemeResource EgSurfaceAltBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
                         BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadius}"
                         IsExpanded="{x:Bind Expanded, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Title}">
                         <!-- 框架的折叠栏画刷已提前解析，须在此覆盖它实际读取的键，避免默认半透明白叠在深色面板上。 -->
                         <Expander.Resources>
-                            <StaticResource x:Key="ExpanderHeaderBackground" ResourceKey="EgSurfaceAltBrush" />
+                            <StaticResource x:Key="ExpanderHeaderBackground" ResourceKey="CardBackgroundFillColorDefaultBrush" />
                             <StaticResource x:Key="ExpanderHeaderBorderBrush" ResourceKey="EgBorderBrush" />
                             <StaticResource x:Key="ExpanderHeaderBorderPointerOverBrush" ResourceKey="EgBorderStrongBrush" />
                             <StaticResource x:Key="ExpanderHeaderBorderPressedBrush" ResourceKey="EgBorderStrongBrush" />

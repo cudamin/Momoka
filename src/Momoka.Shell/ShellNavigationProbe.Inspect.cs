@@ -140,6 +140,7 @@ internal sealed partial class ShellNavigationProbe
             }
             finally { layout.Visibility = Visibility.Visible; }
         });
+        AddCheck("InspectMoviePilotSeriesResources", "MP 剧资源菜单检查", MoviePilotSeriesReorganizeAsync);
         Add("InspectDetailMenu", "详情菜单材质", async () =>
         {
             if (frame.Content is IShellContent previous) previous.Release();
