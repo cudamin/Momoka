@@ -237,6 +237,15 @@ public sealed class CardItem : INotifyPropertyChanged
     /// </para>
     /// </summary>
     private bool _wanted;
+    private bool _posterPresented;
+
+    /// <summary>Keep first-show animation ownership with the card, without retaining its bitmap or container.</summary>
+    internal bool TryPresentPoster()
+    {
+        if (_posterPresented) return false;
+        _posterPresented = true;
+        return true;
+    }
 
     /// <summary>
     /// 当前换宽是否需要补图。与 _wanted 分开：容器暂时离树时可以继续等旧请求，

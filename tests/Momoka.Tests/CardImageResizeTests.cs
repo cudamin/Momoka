@@ -23,6 +23,22 @@ internal static class CardImageResizeTests
 
     public static void Register()
     {
+        Case("暖海报：同一卡片重新展示不重播淡入，新卡片仍首次淡入", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            var method = fixture.Card.GetType().GetMethod("TryPresentPoster", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(method, "生产卡片需要记录首次实际海报展示");
+            Assert.True((bool)method!.Invoke(fixture.Card, null)!);
+            Assert.False((bool)method.Invoke(fixture.Card, null)!);
+            fixture.Card.ClaimCard(fixture);
+            fixture.Card.ReleasePoster(fixture);
+            Assert.False((bool)method.Invoke(fixture.Card, null)!, "临时离树不应重新淡入");
+            fixture.Card.AbandonPoster();
+            Assert.False((bool)method.Invoke(fixture.Card, null)!, "丢掉位图不应丢掉已经展示的事实");
+            var other = new Momoka.Shell.Views.CardItem(fixture.Card.Item, fixture.Images, 170);
+            Assert.True((bool)method.Invoke(other, null)!, "另一个卡片的首次展示独立");
+        });
+
         Test("卡片夹具：完成的失败任务仍传播原异常，不因去同步等待而洗绿", () =>
         {
             var expected = new InvalidOperationException("synthetic fixture failure");

@@ -212,7 +212,8 @@ public sealed partial class PosterCard : UserControl
         _posterFade?.Stop();
         _posterFade = null;
 
-        if (!_live || XamlRoot is null || !HomeMotion.AnimationsEnabled)
+        var firstPresentation = Card?.TryPresentPoster() ?? false;
+        if (!firstPresentation || !_live || XamlRoot is null || !HomeMotion.AnimationsEnabled)
         {
             Poster.Opacity = 1;
             return;
