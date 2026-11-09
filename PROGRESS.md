@@ -1,3 +1,13 @@
+## 2026-11-09 飞牛徽标与家长分级合入主树并交付（实屏已验）
+
+用户令「合并 交付」。`fnnas-logo-rating` 变基到 `af94357` 后只剩 57 行（`FnNasMediaAdapter.Models.cs` 8 行映射、`FnNasMediaTests.cs` 29 行测试、飞牛技能与文档各一段、PROGRESS 一段），`git merge --ff-only` 快进成 `1faa1d6`。变基时只有两处文档冲突：飞牛文档取主树新写的字幕段＋本分支的徽标段（旧的重复段删掉），PROGRESS 两条记录按时间倒序并存。
+
+**验证（主树终码 `1faa1d6`）**：全方案 Release **0 警告 0 错误**（7 分 21 秒）；完整主测试 **4218/4218、0 失败 0 跳过**（`TEMP`／`TMP` 指 `artifacts/delivery-tmp`）；`dotnet format whitespace --verify-no-changes` 退出 0；`git diff --check` 通过。
+
+**交付**：`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（清旧目录走 bash `rm -rf`，脚本那一步会被 safe-delete 拦，与上一轮一致）：**546 文件、286.7 MB**，发布验证通过（14 GLSL／4 HOOK 着色器许可、批准 mpv 清单 59 文件）。`Momoka.exe` 时间戳 11-09 10:07；桌面 `Momoka.lnk` 目标仍是 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`（读 `.lnk` 二进制，偏移 853 处命中 `\Momoka\artifacts\publish\win-x64\Momoka.exe`）。
+
+**实屏（交付件本身，不是开发件）**：临时把活动服务器切到飞牛拍两张，拍完已原样切回 Emby（`LastServerId`／`LastAccountId` 与 `HomeRows`／`HomeRowsIdentity` 都还原，只有 `Ui.EpisodeCards` 由应用自己按新目录规整，属产品行为）。详情页顶部 `work/deliver-fnnas-detail-top.png`：剧名上方**徽标**在、副标题 `动作 · 历史 · 冒险 · 科幻奇幻`、事实行 `2026/7/15 · 2 小时 52 分 · R`、`视频：21.1 GB · 1080p · x264 · EAC3 · ZoroSenpai`、`音频：英语 · E-AC3 · 5.1(side)`、字幕下拉在；页尾 `work/deliver-fnnas-detail-bottom.png`：「其他信息」列出文件／格式／大小／时长／分辨率／码率／色深／音频／字幕／路径与类型，**底部没有横幅图**——飞牛没有 `banner`，照「没给就算了」留空。评分那一行仍不出现，服务端 `vote_average=0`。
+
 ## 2026-11-09 集页不摆「更多类似」、左上角封面只用剧海报
 
 用户令两条：「1. emby、飞牛、Jellyfin 的集页面统一不显示更多类似；2. emby、飞牛、Jellyfin 的集页面左上角统一使用剧封面，不要用集封面」。三种服务器共用同一个 `DetailPage`／`DetailViewModel`，所以是页面级的两条规矩。
