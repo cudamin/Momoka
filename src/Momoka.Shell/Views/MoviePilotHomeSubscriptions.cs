@@ -6,11 +6,10 @@ using Momoka.Shell.ViewModels;
 
 namespace Momoka.Shell.Views;
 
-/// <summary>主页两排订阅共用一次读取、一只刷新计时器和一套连接生命周期。</summary>
+/// <summary>主页两排订阅共用一次读取和一套连接生命周期；只在进入、手动刷新或连接恢复时读取。</summary>
 internal sealed class MoviePilotHomeSubscriptions
 {
     private readonly DispatcherQueue _dispatcher = DispatcherQueue.GetForCurrentThread();
-    private readonly DispatcherTimer _refresh = new() { Interval = TimeSpan.FromMinutes(1) };
     private Action<MoviePilotSubscription>? _open;
     internal MoviePilotService? Service { get; private set; }
     internal MoviePilotSubscriptionsViewModel ViewModel { get; } = new();
@@ -22,7 +21,6 @@ internal sealed class MoviePilotHomeSubscriptions
     {
         Movies = new(this, HomeLayout.MoviePilotMovies);
         Series = new(this, HomeLayout.MoviePilotSeries);
-        _refresh.Tick += async (_, _) => { if (!ViewModel.Busy && !ViewModel.Working) await ViewModel.ReloadAsync(); };
         ViewModel.PropertyChanged += (_, _) => Changed?.Invoke();
     }
 
@@ -34,14 +32,12 @@ internal sealed class MoviePilotHomeSubscriptions
         service.AvailabilityChanged += OnAvailabilityChanged;
         ViewModel.Attach(service);
         _ = ViewModel.ReloadAsync();
-        _refresh.Start();
     }
 
     internal void Release()
     {
         if (Service is { } service) service.AvailabilityChanged -= OnAvailabilityChanged;
         Service = null;
-        _refresh.Stop();
         ViewModel.Cancel();
         _open = null;
     }

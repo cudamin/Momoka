@@ -156,8 +156,8 @@
       顶上不再碰标题栏。2026-09-09 起外壳只有标题栏这一行 —— 第 1 行删掉之前这里顶的是 80；2026-11-01 标题栏
       加到 40（按钮下移并放大），这个负边距跟着走。
 
-      进度条和提示条也在滚动条里面，跟着内容一起滚 —— 它们原来在滚动条外面，占着页面顶上的两行；那两行没有别的
-      地方可去。两条都自带 12 的下边距，而不是靠 StackPanel.Spacing：收起来的时候它们该一个像素都不占。
+      进度条和提示条都跟着内容滚动。加载条放在 Overlay 已有的顶部留白内，不为短暂读取改变货架高度；
+      提示条仍占正常内容流并自带 12 的下边距，关闭后不占位置。
     -->
     <ScrollView x:Name="Scroller" Margin="0,-40,0,0" VerticalScrollBarVisibility="Auto">
         <!--
@@ -262,11 +262,6 @@
                  上。行与行的间隔见下面 StackLayout 那一句。 -->
             <Grid x:Name="Overlay" Background="Transparent" Padding="36,16,13,28">
                 <StackPanel>
-                    <ProgressBar
-                        IsIndeterminate="True"
-                        Margin="0,0,0,12"
-                        Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
-
                     <!-- TwoWay on IsOpen, so dismissing the bar is recorded rather than only drawn: the next
                          failure has to be able to reopen it, and a view model that thinks it is still open
                          would leave the second one invisible.
@@ -320,6 +315,13 @@
                         Style="{StaticResource EgBodyStyle}"
                         Visibility="{x:Bind local:HomePage.HomeEmptyVisibility(ViewModel.EmptyVisibility, HomeRows.Count), Mode=OneWay}" />
                 </StackPanel>
+                <!-- 放在既有的顶部留白内，刷新时不把整叠货架顶高再放回。 -->
+                <ProgressBar
+                    IsIndeterminate="True"
+                    IsHitTestVisible="False"
+                    VerticalAlignment="Top"
+                    Margin="0,-12,0,0"
+                    Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
             </Grid>
         </StackPanel>
     </ScrollView>

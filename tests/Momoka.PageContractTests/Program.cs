@@ -72,6 +72,7 @@ internal static class Program
         SettingsControlNameTests.Register();
         DeferredCardsTests.Register();
         FilterValuesTests.Register();
+        HomeSubscriptionRefreshTests.Register();
         return TestHarness.Run();
     }
 

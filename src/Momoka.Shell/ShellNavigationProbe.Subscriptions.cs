@@ -907,6 +907,7 @@ internal sealed partial class ShellNavigationProbe
 
         internal byte[] Poster { get; set; } = [];
         internal TaskCompletionSource<HttpResponseMessage>? PendingList { get; set; }
+        internal int SubscriptionReads { get; private set; }
 
         /// <summary>把电视剧媒体详情那一趟扣在手里，用来读「首次读取中的加载动画」。</summary>
         internal TaskCompletionSource<bool>? DetailGate { get; set; }
@@ -1033,8 +1034,12 @@ internal sealed partial class ShellNavigationProbe
                 if (UncertainNextWrite) { UncertainNextWrite = false; return Json(new { accepted = true }); }
                 return Json(new { success = true, data = (object?)null });
             }
-            if (path == "/api/v1/subscribe/") return FailSubscriptionRead ? new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
-                : PendingList is { } pending ? await pending.Task : Json(new { success = true, data = Items.Values.ToArray() });
+            if (path == "/api/v1/subscribe/")
+            {
+                SubscriptionReads++;
+                return FailSubscriptionRead ? new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                    : PendingList is { } pending ? await pending.Task : Json(new { success = true, data = Items.Values.ToArray() });
+            }
             // 剧集组那一节的两趟：组列表（media/groups）与默认排序的季列表（media/seasons，只用来算「默认」那一项
             // 的季数/集数）。两条都得排在下面那个 int.Parse 兜底之前 —— 它们的末段不是订阅编号。
             if (path.StartsWith("/api/v1/media/groups/", StringComparison.Ordinal)) return Json(new object[]

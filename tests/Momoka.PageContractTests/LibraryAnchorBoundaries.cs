@@ -8,7 +8,10 @@ namespace Microsoft.UI.Dispatching
     public enum DispatcherQueuePriority { Low }
     public sealed class DispatcherQueue
     {
+        public static DispatcherQueue GetForCurrentThread() => Current;
+        public static DispatcherQueue Current { get; } = new();
         public Queue<Action> Pending { get; } = new();
+        public bool TryEnqueue(Action callback) { Pending.Enqueue(callback); return true; }
         public bool TryEnqueue(DispatcherQueuePriority _, Action callback) { Pending.Enqueue(callback); return true; }
         public void Drain()
         {

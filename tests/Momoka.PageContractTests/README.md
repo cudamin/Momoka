@@ -3,6 +3,7 @@
 这个离线控制台项目编译链接实际 Shell 页面的 code-behind，不复制其 `Attach`／导航／释放逻辑。`PageBoundaries.cs` 只替代未启动的 XAML／WinUI 控件边界及外部数据属主，使这些方法可以在没有窗口和真实服务器的测试进程中运行。
 
 - 当前覆盖：订阅列表导航 Tag／重入／释放；诊断 VM 快照与通知交接；真实 CardItem／PosterCache 的首图在飞换宽、旧下载和解码迟到、离屏与重复 Loaded、来源撤销及缓存宽度；R-014 同键坏缓存的有界恢复、无损错误分类、共享请求与迟到缓存保护。
+- 订阅共享属主直接编译链接 `MoviePilotHomeSubscriptions`：受控时钟验证停留三分钟不再自动读取、重入首读与两个属主独立释放。VM 和时钟是边界替身，不代表真实网络或屏幕验证；实际主页停留 65 秒、手动刷新及连接恢复由 `HomeOrderAsync` 检查。
 - P3 长剧测试编译链接真实 `CardShelf`、`CardCollection` 与 `CardItem`：2000 项计数与深处索引只创建被访问卡，删除未访问季、清理及 30 次重新填充不创建隐藏卡；非泛型 `IList` 增删改、移动、完整枚举和复制保留原语义。这里不证明 WinRT 的 `IBindableVector` 投影及 `ItemsRepeater` 布局访问数量，真实 Frame 检查由性能探针执行。
 - 诊断页编译链接真实 `DiagnosticsViewModel` 与 `PageViewModel`，使用 Shell 已钉住的 `CommunityToolkit.Mvvm` 8.4.2 生成器，不升级依赖。`DIAGNOSTICS_VM_FIXTURE` 仅在本测试项目启用，主套件只登记 Core 日志测试。项目输出明确选 `Program` 为入口。
 - 卡片测试以 `CARD_IMAGE_RESIZE_FIXTURE` 隔离，边界只替代 WinUI 值类型和位图解码；真实 Core 图片存储、SharedWork 和来源寿命仍执行。假图片 handler 只接受占位图片 GET，不运行登录或探测。R-014 继续使用真实图片存储与卡片源码，受控解码只用文本假字节，不证明实际 WinRT 的异常形态或画面。所有新夹具文件在本树测试输出下保留。

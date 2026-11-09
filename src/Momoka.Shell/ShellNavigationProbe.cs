@@ -132,7 +132,7 @@ internal sealed partial class ShellNavigationProbe
             // 多候选恢复加五套真实主题截图已超过原12秒单场景预算；与其他多主题UI用例同为45秒。
             await CaseAsync("AniBT 逐文件识别、候选绑定和取消重新整理", AniBtScrapeAsync, 45);
             await CaseAsync("MoviePilot 连接控制入口、断线回退与恢复", MoviePilotAvailabilityAsync);
-            await CaseAsync("主页媒体库与订阅混排、显隐及偏好恢复", HomeOrderAsync, 45);
+            await CaseAsync("主页媒体库与订阅混排、显隐及偏好恢复", HomeOrderAsync, 120);
             await CaseAsync("主页排序只列当前来源、聚合切换与偏好恢复", HomeSourcesAsync, 60,
                 section: ShellProbeSections.Settings);
             await CaseAsync("所有账号的媒体库与最近添加、聚合搜索分页与详情来源", AggregateBrowsingAsync, 45);

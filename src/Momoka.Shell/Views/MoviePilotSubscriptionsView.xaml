@@ -19,8 +19,10 @@
         <Grid>
             <local:ShelfHead x:Name="MoviesHead" Note="{x:Bind ViewModel.MoviesNote, Mode=OneWay}" />
             <Button x:Name="RefreshSubscriptions" HorizontalAlignment="Right" Content="刷新订阅" Visibility="Collapsed" Style="{StaticResource EgSecondaryButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}" />
+            <!-- 加载条覆盖标题下沿，不额外撑高整排，避免触发主页媒体库自动换位。 -->
+            <ProgressBar IsIndeterminate="True" VerticalAlignment="Bottom" IsHitTestVisible="False"
+                Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
         </Grid>
-        <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
         <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
             Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
@@ -32,8 +34,9 @@
             <local:ShelfHead x:Name="SeriesHead" Note="{x:Bind ViewModel.SeriesNote, Mode=OneWay}" />
             <Button x:Name="RefreshSeriesSubscriptions" HorizontalAlignment="Right" Content="刷新订阅" Visibility="Collapsed"
                 Style="{StaticResource EgSecondaryButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}" />
+            <ProgressBar IsIndeterminate="True" VerticalAlignment="Bottom" IsHitTestVisible="False"
+                Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
         </Grid>
-        <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
         <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
             Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />

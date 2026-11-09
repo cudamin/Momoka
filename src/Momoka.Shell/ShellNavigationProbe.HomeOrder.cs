@@ -161,6 +161,8 @@ internal sealed partial class ShellNavigationProbe
                 Get<ScrollView>(home, "Scroller").ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
                 await LayoutAsync(home);
                 await SaveProbeScreenAsync($"home-subscription-order-{width}.png");
+                await HomeSubscriptionLoadingLayoutAsync(home, server, width);
+                await HomeLibraryLoadingLayoutAsync(home, fixture, width);
             }
 
             // 媒体库后面两排为 MP / Emby：压上轮播前后的默认界线必须相同。
@@ -186,6 +188,7 @@ internal sealed partial class ShellNavigationProbe
             Require(before.HasNext && after.HasNext && Math.Abs(before.Line - after.Line) < 2,
                 $"订阅混排的轮播折叠阈值漂移：{before.Line:0.0} → {after.Line:0.0}");
             await SaveProbeScreenAsync("home-subscription-order-overlay.png");
+            await HomeSubscriptionIdleAsync(home, server);
             fixture.Settings.Ui.HomeLibraryPlacement = HomeLibraryPlacement.BelowCarousel;
             ShellPrefs.Apply(fixture.Settings.Ui);
             await UntilAsync(() => home.IsReady && !home.ViewModel.LibraryOnBanner);
@@ -226,6 +229,122 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(frame);
             ResizeInspect(1420, 980);
         }
+    }
+
+    private async Task HomeSubscriptionIdleAsync(HomePage home, SubscriptionProbeServer server)
+    {
+        var vm = home.Subscriptions.ViewModel;
+        var scroller = Get<ScrollView>(home, "Scroller");
+        await UntilAsync(() => !vm.Busy);
+        await LayoutAsync(home);
+        await Task.Delay(600);
+        var reads = server.SubscriptionReads;
+        var rows = home.HomeRows.ToArray();
+        var offset = scroller.VerticalOffset;
+        var onBanner = home.ViewModel.LibraryOnBanner;
+        var overlay = Get<Border>(home, "LibraryOverlay");
+        var top = overlay.TransformToVisual(home).TransformPoint(default).Y;
+        await SaveProbeScreenAsync("home-subscription-idle-before-screen.png");
+        var began = Environment.TickCount64;
+        while (Environment.TickCount64 - began < 65_000)
+        {
+            await Task.Delay(100);
+            Require(!vm.Busy && server.SubscriptionReads == reads, "停留主页时仍触发订阅定时读取");
+            Require(home.ViewModel.LibraryOnBanner == onBanner && home.HomeRows.SequenceEqual(rows)
+                && Math.Abs(scroller.VerticalOffset - offset) < 1
+                && Math.Abs(overlay.TransformToVisual(home).TransformPoint(default).Y - top) < 1,
+                "停留主页时媒体库位置或滚动发生变化");
+        }
+        await SaveProbeScreenAsync("home-subscription-idle-after-screen.png");
+        await vm.RefreshCommand.ExecuteAsync(null);
+        Require(server.SubscriptionReads == reads + 1 && !vm.Busy, "取消定时刷新后手动刷新没有正常读取");
+        File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "home-subscription-idle.txt"),
+            $"idleMilliseconds={Environment.TickCount64 - began}; reads={reads}; afterManual={server.SubscriptionReads}; offset={offset:0.00}; top={top:0.00}");
+    }
+
+    private async Task HomeSubscriptionLoadingLayoutAsync(HomePage home, SubscriptionProbeServer server, int width)
+    {
+        var vm = home.Subscriptions.ViewModel;
+        await UntilAsync(() => !vm.Busy);
+        var views = Descendants(home).OfType<MoviePilotSubscriptionsView>().Where(view => view.Row is not null).ToArray();
+        Require(views.Length == 2, "订阅加载布局检查需要电影和电视剧两排");
+        var heights = views.Select(view => view.ActualHeight).ToArray();
+        var strips = views.Select(view => HomeFoldMotion.Find<ShelfStrip>(view)!).ToArray();
+        var tops = strips.Select(strip => strip.TransformToVisual(home).TransformPoint(default).Y).ToArray();
+        var gate = new TaskCompletionSource<HttpResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+        server.PendingList = gate;
+        var read = vm.RefreshCommand.ExecuteAsync(null);
+        try
+        {
+            await UntilAsync(() => vm.Busy);
+            await LayoutAsync(home);
+            await SaveProbeScreenAsync($"home-subscription-loading-{width}-screen.png");
+            for (var index = 0; index < views.Length; index++)
+            {
+                var height = views[index].ActualHeight;
+                var top = strips[index].TransformToVisual(home).TransformPoint(default).Y;
+                File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "home-subscription-loading.txt"),
+                    $"width={width}; row={index}; height={heights[index]:0.00}->{height:0.00}; top={tops[index]:0.00}->{top:0.00}\n");
+                Require(Math.Abs(height - heights[index]) < 1 && Math.Abs(top - tops[index]) < 1,
+                    "订阅加载条改变列表高度或封面位置");
+                Require(Descendants(views[index]).OfType<ProgressBar>().Any(bar =>
+                    bar.Visibility == Visibility.Visible && bar.ActualHeight > 0), "订阅加载进度不可见");
+            }
+        }
+        finally
+        {
+            server.PendingList = null;
+            gate.TrySetResult(Json(new { success = true, data = server.Items.Values.ToArray() }));
+            await read;
+        }
+        await LayoutAsync(home);
+        Require(views.Select((view, index) => Math.Abs(view.ActualHeight - heights[index]) < 1).All(same => same),
+            "订阅加载完成后列表高度没有保持");
+    }
+
+    private async Task HomeLibraryLoadingLayoutAsync(HomePage home, Fixture fixture, int width)
+    {
+        var reply = fixture.Transport.Reply;
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var repeater = Get<ItemsRepeater>(home, "ShelfRepeater");
+        var before = repeater.TransformToVisual(home).TransformPoint(default).Y;
+        fixture.Transport.Reply = async (request, token) =>
+        {
+            if (!request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal))
+            {
+                entered.TrySetResult();
+                await gate.Task.WaitAsync(token);
+            }
+            return await (reply?.Invoke(request, token) ?? Task.FromResult(FakeTransport.Standard(request)));
+        };
+        var read = home.ViewModel.ReloadAsync();
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            await LayoutAsync(home);
+            var during = repeater.TransformToVisual(home).TransformPoint(default).Y;
+            File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "home-library-loading.txt"),
+                $"width={width}; top={before:0.00}->{during:0.00}\n");
+            await SaveProbeScreenAsync($"home-library-loading-{width}-screen.png");
+            Require(home.ViewModel.Busy && Math.Abs(during - before) < 1,
+                "媒体库加载条改变主页列表位置");
+            var overlay = Get<Grid>(home, "Overlay");
+            var bar = overlay.Children.OfType<ProgressBar>().Single();
+            var barTop = bar.TransformToVisual(overlay).TransformPoint(default).Y;
+            Require(bar.Visibility == Visibility.Visible && bar.ActualHeight > 0
+                && barTop >= 0 && barTop + bar.ActualHeight <= overlay.Padding.Top,
+                "媒体库加载提示必须显示在既有顶部留白内");
+        }
+        finally
+        {
+            gate.TrySetResult();
+            await read;
+            fixture.Transport.Reply = reply;
+        }
+        await LayoutAsync(home);
+        Require(Math.Abs(repeater.TransformToVisual(home).TransformPoint(default).Y - before) < 1,
+            "媒体库刷新结束后主页列表发生回落");
     }
 
     private sealed class HomeOrderTransport(HttpMessageHandler inner) : DelegatingHandler(inner)

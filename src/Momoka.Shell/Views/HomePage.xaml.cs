@@ -64,8 +64,7 @@ public sealed partial class HomePage : Page, IShellContent
 
     /// <summary>
     /// 定时检查新入库的间隔。30 秒是「读起来是自动的」和「别拿服务器当心跳包打」之间的一档：这一趟每个来源
-    /// 只问一次最新的一小批（<see cref="HomeViewModel.AutoRefreshAsync"/>），真变了才重读整页。同页那两排
-    /// MoviePilot 订阅的钟是 1 分钟 —— 那是另一件事（订阅状态），间隔各按各的语义定。
+    /// 只问一次最新的一小批（<see cref="HomeViewModel.AutoRefreshAsync"/>），真变了才重读整页。
     /// </summary>
     private static readonly TimeSpan WatchInterval = TimeSpan.FromSeconds(30);
 

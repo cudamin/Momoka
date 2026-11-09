@@ -46,26 +46,34 @@ namespace Microsoft.UI.Xaml.Controls
 
 namespace Momoka.Shell.ViewModels
 {
-    public sealed class MoviePilotSubscriptionsViewModel
+    public sealed class MoviePilotSubscriptionsViewModel : System.ComponentModel.INotifyPropertyChanged
     {
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
         public string? PageCategory { get; private set; }
         internal void UsePageCategory(string key) => PageCategory = key;
         public int Reloads { get; private set; }
+        public int Cancels { get; private set; }
+        public bool Busy => false;
+        public bool Working => false;
+        public bool NoticeOpen => false;
+        public double RowHeight => 300;
+        public Microsoft.UI.Xaml.Visibility Visible => Microsoft.UI.Xaml.Visibility.Visible;
+        public List<MoviePilotSubscriptionCard> Movies { get; } = [];
+        public List<MoviePilotSubscriptionCard> Series { get; } = [];
+        public void Attach(MoviePilotService _) { }
+        public void Cancel() => Cancels++;
+        public void RefreshAvailability() => PropertyChanged?.Invoke(this, new(nameof(Visible)));
+        public bool Owns(MoviePilotSubscriptionCard card) => Movies.Contains(card) || Series.Contains(card);
         public Task ReloadAsync() { Reloads++; return Task.CompletedTask; }
+    }
+    public sealed class MoviePilotSubscriptionCard(MoviePilotSubscription subscription)
+    {
+        public MoviePilotSubscription Subscription { get; } = subscription;
     }
 }
 
 namespace Momoka.Shell.Views
 {
-    internal sealed class MoviePilotHomeSubscriptions
-    {
-        internal ViewModels.MoviePilotSubscriptionsViewModel ViewModel { get; } = new();
-        public object Movies { get; } = new();
-        public object Series { get; } = new();
-        public int Releases { get; private set; }
-        public void Release() => Releases++;
-    }
-
     internal sealed class MoviePilotSubscriptionsView
     {
         public ViewModels.MoviePilotSubscriptionsViewModel ViewModel { get; } = new();
