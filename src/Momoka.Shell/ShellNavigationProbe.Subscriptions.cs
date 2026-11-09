@@ -936,8 +936,14 @@ internal sealed partial class ShellNavigationProbe
             });
             if (path == "/api/v1/subscribe/4/activity/fixture-event") return Json(new
             {
-                event_id = "fixture-event", kind = "search", source = "manual", status = "completed", details_loaded = true,
-                started_at = "2026-11-09T10:00:00+08:00", counts = new { qualified = 2 }, details = new { reason = "订阅搜索完成" }
+                event_id = "fixture-event",
+                kind = "search",
+                source = "manual",
+                status = "completed",
+                details_loaded = true,
+                started_at = "2026-11-09T10:00:00+08:00",
+                counts = new { qualified = 2 },
+                details = new { reason = "订阅搜索完成" }
             });
             if (path.EndsWith("user/current", StringComparison.Ordinal)) return Json(new { is_active = true, is_superuser = true });
             if (path.EndsWith("system/global/user", StringComparison.Ordinal)) return Json(new { AI_AGENT_ENABLE = true });
