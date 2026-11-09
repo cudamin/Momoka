@@ -25,24 +25,31 @@ internal sealed partial class ShellNavigationProbe
         Require(ReferenceEquals(facts.Parent, Get<Grid>(page, "HeroRow")) && !Descendants(grid).Contains(overview)
             && surface.VerticalAlignment == VerticalAlignment.Top && hero.MinHeight <= 0.5,
             "资料卡、简介或背景图仍在撑高海报与操作头部");
-        Require(primary.Children.Contains(overview) && primary.Children.Contains(season)
+        Require(primary.Children.Contains(surface) && primary.Children.Contains(overview)
             && overview.VerticalAlignment == VerticalAlignment.Top,
-            "简介与季没有共用顶对齐的正文左列");
-        Require(Top(overview, page) >= Top(hero, page) + hero.ActualHeight - 1.5
-            && Top(overview, page) - Top(hero, page) - hero.ActualHeight <= 10,
-            "简介与头部之间仍有首屏占位或过大间距");
+            "简介没有紧随左列封面与操作");
+        Require(Top(overview, page) - Top(surface, page) - surface.ActualHeight is >= 6 and <= 10,
+            "简介与封面操作区之间仍有首屏占位或过大间距");
         if (season.Visibility == Visibility.Visible)
-            Require(Top(season, page) - Top(overview, page) - overview.ActualHeight is >= 6 and <= 10,
-                "简介与季之间没有收紧到正文间距");
+        {
+            Require(Top(season, page) >= Math.Max(Top(primary, page) + primary.ActualHeight, Top(facts, page) + facts.ActualHeight)
+                && Top(season, page) - Top(hero, page) - hero.ActualHeight is >= 6 and <= 10,
+                "全宽季区没有紧接完整头部，或覆盖了简介/资料卡");
+            Require(season.Background is AcrylicBrush { Opacity: 1 } or SolidColorBrush { Color.A: 255 },
+                "季区域没有保留主题材质或高对比度实色回退");
+        }
         Require(side
             ? Grid.GetRow(facts) == 0 && Grid.GetColumn(facts) == 1
                 && Math.Abs(facts.ActualWidth - 288) < 1
                 && Top(facts, page) >= Top(surface, page) - 2
             : Grid.GetColumn(facts) == 0 && Grid.GetRow(facts) == 1
-                && Top(facts, page) >= Top(surface, page) + surface.ActualHeight + 6,
+                && Top(facts, page) >= Top(primary, page) + primary.ActualHeight + 6,
             "资料卡没有在头部右侧或窄窗下方自然排列");
-        Require(Top(overview, page) >= Top(facts, page) + facts.ActualHeight,
-            "完整资料卡与下方正文发生重叠");
+        var overviewPosition = overview.TransformToVisual(page).TransformPoint(default);
+        var factPosition = facts.TransformToVisual(page).TransformPoint(default);
+        Require(side ? overviewPosition.X + overview.ActualWidth <= factPosition.X
+            : overviewPosition.Y + overview.ActualHeight <= factPosition.Y,
+            "完整资料卡与简介发生重叠");
         Require(double.IsNaN(facts.Height) && !Descendants(facts).OfType<ScrollViewer>().Any(),
             "上方资料卡仍限制高度或裁掉完整字段");
         var factsPosition = facts.TransformToVisual(page).TransformPoint(default);
@@ -374,7 +381,14 @@ internal sealed partial class ShellNavigationProbe
             foreach (var status in new[] { "正在读取文件统计…", "文件统计读取失败", originalSummary })
             {
                 page.ViewModel.FileSummary = status;
+                await LayoutAsync(page);
                 Require(summary.Text == status, "季标题没有同步统计的加载、失败或恢复状态");
+                var heart = Descendants((Grid)expander.Header).OfType<Button>().Single(button => button.Name == "SubscribeMediaSeason");
+                var summaryLeft = summary.TransformToVisual(heart).TransformPoint(default).X;
+                Require(summaryLeft + summary.ActualWidth <= 0 && summary.ActualWidth > 0,
+                    "季入库摘要没有完整排在爱心左侧");
+                Require(!Descendants((Grid)expander.Header).OfType<TextBlock>().Any(text => text.Text.StartsWith("首播于", StringComparison.Ordinal)),
+                    "详情季标题仍显示首播日期和季评分");
             }
             foreach (var theme in Momoka.Theming.UiThemes.All)
             {
@@ -386,6 +400,8 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(page);
                     Require(expander.IsExpanded == expanded && season.Expanded == expanded, "季折叠状态未同步");
                     Require(summary.Text == originalSummary, "折叠切换丢失了入库摘要");
+                    Require(Get<StackPanel>(page, "SeasonPanel").Background is AcrylicBrush { Opacity: 1 },
+                        "整个季区域的亚克力背景在沉浸模式被隐藏");
                     Require(header.Background is AcrylicBrush headerBrush
                         && headerBrush.TintColor == ThemeHost.ToColor(theme.Colors.SurfaceAlt)
                         && expander.Background is AcrylicBrush contentBrush
@@ -450,6 +466,16 @@ internal sealed partial class ShellNavigationProbe
             var panel = Get<StackPanel>(page, "PeoplePanel");
             var facts = Get<Border>(page, "HeroFacts");
             var overview = Get<StackPanel>(page, "HeroOverview");
+            var originalTagline = media.Tagline;
+            foreach (var tagline in new[] { "", "  ", "简介上方的标语" })
+            {
+                media.Tagline = tagline;
+                await LayoutAsync(page);
+                Require(Get<TextBlock>(page, "MediaTagline").Visibility == (string.IsNullOrWhiteSpace(tagline) ? Visibility.Collapsed : Visibility.Visible),
+                    "空标语仍占着简介上方的一行，或恢复后没有显示");
+            }
+            media.Tagline = originalTagline;
+            await LayoutAsync(page);
 
             // ---- 沉浸模式（出厂那一档）：宽版式一成立就铺图，不必先把窗口最大化 ----
             Require(media.Immersive && media.Showcase && media.WideLayout,

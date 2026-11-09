@@ -160,6 +160,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 
     public static Thickness FactBorder(bool last) => last ? default : new Thickness(0, 0, 0, 1);
     public static Visibility FactVisibility(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
+    public static Visibility TextVisibility(string text) => FactVisibility(!string.IsNullOrWhiteSpace(text));
     public static Visibility ReleaseCountryVisibility(string country) => FactVisibility(country.Length > 0);
     public static Windows.Foundation.Rect StarClip(double fill) => new(0, 0, 16 * fill, 20);
 

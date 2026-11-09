@@ -171,16 +171,17 @@ internal static class MoviePilotSubscriptionPageStateTests
 
     private static void RegisterDetailLayout(string root)
     {
-        Test("MP 详情布局：头部自然收边，简介与季共左列，网页资料卡参与头部自然高度、下方列表全宽", () =>
+        Test("MP 详情布局：简介紧随封面左列，完整资料卡右列，季与相关列表全宽", () =>
         {
             var document = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"));
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
             XElement Named(string name) => document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
             var primary = Named("BodyPrimary");
             var body = Named("BodyRow");
-            Assert.True(ReferenceEquals(primary.Parent, body));
+            Assert.True(ReferenceEquals(primary.Parent, Named("HeroRow")));
+            Assert.True(ReferenceEquals(Named("HeroSurface").Parent, primary));
             Assert.True(ReferenceEquals(Named("HeroOverview").Parent, primary));
-            Assert.True(ReferenceEquals(Named("SeasonPanel").Parent, primary));
+            Assert.True(ReferenceEquals(Named("SeasonPanel").Parent, body));
             Assert.True(ReferenceEquals(Named("HeroFacts").Parent, Named("HeroRow")));
             Assert.True(ReferenceEquals(body.Parent, Named("BodyFlow")));
             Assert.True(ReferenceEquals(Named("PeoplePanel").Parent, Named("BodyFlow")));
@@ -210,6 +211,12 @@ internal static class MoviePilotSubscriptionPageStateTests
                     && ((string?)element.Attribute("ResourceKey"))?.StartsWith("CardBackgroundFillColor", StringComparison.Ordinal) == true));
             Assert.True(seasons.Descendants().Any(element => (string?)element.Attribute(x + "Key") == "ExpanderHeaderBackground"
                 && (string?)element.Attribute("ResourceKey") == "CardBackgroundFillColorDefaultBrush"));
+            var status = seasons.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "SeasonHeaderStatus");
+            var heart = seasons.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "SubscribeMediaSeason");
+            Assert.True(ReferenceEquals(status.Parent, heart.Parent), "摘要和爱心必须在同一季标题行");
+            Assert.True(int.Parse((string)status.Attribute("Grid.Column")!) < int.Parse((string)heart.Attribute("Grid.Column")!));
+            Assert.Equal("{x:Bind HeaderStatus, Mode=OneWay}", (string?)status.Attribute("Text"));
+            Assert.False(seasons.Descendants().Attributes("Text").Any(attribute => attribute.Value == "{x:Bind SeasonMeta}"));
             Assert.False(Named("HeroGrid").Descendants().Any(element => element.Name.LocalName == "RowDefinition"
                 && (string?)element.Attribute("Height") == "*"));
         });
