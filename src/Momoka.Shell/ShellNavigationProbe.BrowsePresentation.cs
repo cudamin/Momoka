@@ -13,6 +13,7 @@ internal sealed partial class ShellNavigationProbe
     private async Task PerformanceBrowsePresentationAsync()
     {
         var samples = new List<object>();
+        var visit = Guid.NewGuid().ToString("N");
         foreach (var width in new[] { 1280, 760 })
         {
             using var fixture = CreateFixture();
@@ -23,27 +24,41 @@ internal sealed partial class ShellNavigationProbe
             var picture = await FixtureImageAsync(1280, 720);
             var library = fixture.Session.Capture().Bind(new EmbyItem
             {
-                Id = "presentation-library-" + width, Name = "匿名首帧媒体库", Type = EmbyItemType.CollectionFolder,
+                Id = "presentation-library-" + width + "-" + visit,
+                Name = "匿名首帧媒体库",
+                Type = EmbyItemType.CollectionFolder,
                 CollectionType = "movies"
             });
+            // 两种媒体库容器都走生产入口；窄窗直接以列表偏好导航，不能先让Poster预取再换模板。
+            var listView = width == 760;
+            if (listView) fixture.Settings.Ui.Display[BrowsingPreferences.LibraryKey(fixture.Session.Capture().Connection, library.Id)]
+                = new LibraryDisplay { View = LibraryView.List };
             fixture.Settings.Ui.HomeRows = HomeLayout.Save(HomeLayout.Plan(null, [library], true));
             foreach (var row in fixture.Settings.Ui.HomeRows) row.Visible = row.Key == HomeLayout.Libraries;
             var film = fixture.Session.Capture().Bind(new EmbyItem
             {
-                Id = "presentation-film-" + width, Name = "首帧文字先显示", Type = EmbyItemType.Movie,
+                Id = "presentation-film-" + width + "-" + visit,
+                Name = "首帧文字先显示",
+                Type = EmbyItemType.Movie,
                 Overview = "图片尚未返回时，这段文字已经可以阅读。",
-                ImageTags = new() { [EmbyImageStore.Primary] = "poster" }, BackdropImageTags = ["backdrop"]
+                ImageTags = new() { [EmbyImageStore.Primary] = "poster" },
+                BackdropImageTags = ["backdrop"]
             });
             var libraryFilm = fixture.Session.Capture().Bind(new EmbyItem
             {
-                Id = "presentation-library-film-" + width, Name = "库页晚到海报", Type = EmbyItemType.Movie,
+                Id = "presentation-library-film-" + width + "-" + visit,
+                Name = "库页晚到海报",
+                Type = EmbyItemType.Movie,
                 ImageTags = new() { [EmbyImageStore.Primary] = "library-poster" }
             });
             var detailFilm = fixture.Session.Capture().Bind(new EmbyItem
             {
-                Id = "presentation-detail-film-" + width, Name = "详情晚到背景", Type = EmbyItemType.Movie,
+                Id = "presentation-detail-film-" + width + "-" + visit,
+                Name = "详情晚到背景",
+                Type = EmbyItemType.Movie,
                 Overview = "详情文字先显示，图片在页面动画开始后再进入。",
-                ImageTags = new() { [EmbyImageStore.Primary] = "detail-poster" }, BackdropImageTags = ["detail-backdrop"]
+                ImageTags = new() { [EmbyImageStore.Primary] = "detail-poster" },
+                BackdropImageTags = ["detail-backdrop"]
             });
             var holds = new List<TaskCompletionSource<bool>>();
             var imageGate = Pending<bool>();
@@ -63,9 +78,15 @@ internal sealed partial class ShellNavigationProbe
                     var run = activeImageRun;
                     var released = sink.Has(run, "browse-images-released");
                     if (observingRequests && !released) Interlocked.Increment(ref prematureRequests);
-                    lock (requestObservations) requestObservations.Add(new { stage = "image-request", run,
-                        gateReleased = released, item = path.Split('/').SkipWhile(part => part != "Items").Skip(1).FirstOrDefault(),
-                        type = path.Split('/').LastOrDefault(), at = DateTimeOffset.UtcNow });
+                    lock (requestObservations) requestObservations.Add(new
+                    {
+                        stage = "image-request",
+                        run,
+                        gateReleased = released,
+                        item = path.Split('/').SkipWhile(part => part != "Items").Skip(1).FirstOrDefault(),
+                        type = path.Split('/').LastOrDefault(),
+                        at = DateTimeOffset.UtcNow
+                    });
                     var release = imageGate;
                     await release.Task.WaitAsync(token);
                     return new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(picture) };
@@ -75,8 +96,13 @@ internal sealed partial class ShellNavigationProbe
                 if (path.EndsWith("/Items/" + film.Id, StringComparison.Ordinal)) return Json(film);
                 if (path.EndsWith("/Items/" + detailFilm.Id, StringComparison.Ordinal)) return Json(detailFilm);
                 if (path.EndsWith("/Items/presentation-stale-" + width, StringComparison.Ordinal)) return Json(new EmbyItem
-                    { Id = "presentation-stale-" + width, Name = "离页图片仍属于旧请求", Type = EmbyItemType.Movie,
-                      BackdropImageTags = ["stale-backdrop"], ImageTags = new() { [EmbyImageStore.Primary] = "stale-poster" } });
+                {
+                    Id = "presentation-stale-" + width + "-" + visit,
+                    Name = "离页图片仍属于旧请求",
+                    Type = EmbyItemType.Movie,
+                    BackdropImageTags = ["stale-backdrop"],
+                    ImageTags = new() { [EmbyImageStore.Primary] = "stale-poster" }
+                });
                 if (path.EndsWith("/Items", StringComparison.Ordinal)) return Json(new ItemsResult { Items = [libraryFilm], TotalRecordCount = 1 });
                 return FakeTransport.Standard(request);
             };
@@ -111,8 +137,17 @@ internal sealed partial class ShellNavigationProbe
                         var slides = page.ViewModel.Slides.Count;
                         observedAtLoaded = $"gatePresent={images is not null};gatePending={gatePending};imageCalls={requests};"
                             + $"title={title ?? "<empty>"};slides={slides};isReady={page.IsReady};pageLoaded={page.IsLoaded}";
-                        observations.Add(new { stage = "home-loaded", gatePresent = images is not null, gatePending,
-                            imageCalls = requests, title, slides, isReady = page.IsReady, pageLoaded = page.IsLoaded });
+                        observations.Add(new
+                        {
+                            stage = "home-loaded",
+                            gatePresent = images is not null,
+                            gatePending,
+                            imageCalls = requests,
+                            title,
+                            slides,
+                            isReady = page.IsReady,
+                            pageLoaded = page.IsLoaded
+                        });
                         pendingCheck.TrySetResult(gatePending && requests == 0);
                     }
                     if (page.IsLoaded) Check();
@@ -138,9 +173,15 @@ internal sealed partial class ShellNavigationProbe
                 AssertPresentationStages(homeRun.RunId, enabled: true);
                 Require(Volatile.Read(ref prematureRequests) == 0, "主页图片请求早于首帧放行");
                 await UntilAsync(() => home.IsLoaded && Get<HomeBanner>(home, "Banner").Current?.Title == film.Name);
-                observations.Add(new { stage = "home-before-response-release", title = Get<HomeBanner>(home, "Banner").Current?.Title,
-                    slides = home.ViewModel.Slides.Count, isReady = home.IsReady, imageCalls = Volatile.Read(ref imageCalls),
-                    responseHeld = !imageGate.Task.IsCompleted });
+                observations.Add(new
+                {
+                    stage = "home-before-response-release",
+                    title = Get<HomeBanner>(home, "Banner").Current?.Title,
+                    slides = home.ViewModel.Slides.Count,
+                    isReady = home.IsReady,
+                    imageCalls = Volatile.Read(ref imageCalls),
+                    responseHeld = !imageGate.Task.IsCompleted
+                });
                 Require(Get<HomeBanner>(home, "Banner").FrontPicture is null, "匿名图片响应挂起时已有背景图");
                 await SaveProbeScreenAsync($"browse-home-text-before-images-{width}-screen.png");
                 imageGate.TrySetResult(true);
@@ -153,8 +194,14 @@ internal sealed partial class ShellNavigationProbe
                 holds.Add(imageGate);
                 var libraryRun = NavigationTiming.Click("probe-browse-library")!;
                 activeImageRun = libraryRun.RunId;
-                shell.OpenChild(new LibraryRequest { Services = fixture.Services, Source = fixture.Session.Capture(),
-                    ParentId = library.Id, CollectionType = "movies", Title = library.Name });
+                shell.OpenChild(new LibraryRequest
+                {
+                    Services = fixture.Services,
+                    Source = fixture.Session.Capture(),
+                    ParentId = library.Id,
+                    CollectionType = "movies",
+                    Title = library.Name
+                });
                 await UntilAsync(() => frame.Content is LibraryPage page && page.IsReady
                     && sink.Has(libraryRun.RunId, "browse-images-released"));
                 AssertPresentationStages(libraryRun.RunId, enabled: true);
@@ -163,10 +210,12 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(libraryPage);
                 Require(libraryPage.ViewModel.Cards.Single().Poster is null, "匿名海报响应挂起时已有新图");
                 imageGate.TrySetResult(true);
-                await UntilAsync(() => Descendants(libraryPage).OfType<PosterCard>()
-                    .Any(card => card.Card?.Item.Id == libraryFilm.Id && Property<bool>(card, "PosterArrivalRunning")));
-                await UntilAsync(() => Descendants(libraryPage).OfType<PosterCard>()
-                    .Where(card => card.Card?.Item.Id == libraryFilm.Id).All(card => !Property<bool>(card, "PosterArrivalRunning")));
+                await UntilAsync(() => listView
+                    ? Descendants(libraryPage).OfType<EpisodeRow>().Any(row => row.Card?.Item.Id == libraryFilm.Id && row.PosterArrivalRunning)
+                    : Descendants(libraryPage).OfType<PosterCard>().Any(card => card.Card?.Item.Id == libraryFilm.Id && card.PosterArrivalRunning));
+                await UntilAsync(() => listView
+                    ? Descendants(libraryPage).OfType<EpisodeRow>().Where(row => row.Card?.Item.Id == libraryFilm.Id).All(row => !row.PosterArrivalRunning)
+                    : Descendants(libraryPage).OfType<PosterCard>().Where(card => card.Card?.Item.Id == libraryFilm.Id).All(card => !card.PosterArrivalRunning));
                 await SaveProbeScreenAsync($"browse-library-images-settled-{width}-screen.png");
 
                 imageGate = Pending<bool>();
@@ -188,8 +237,11 @@ internal sealed partial class ShellNavigationProbe
                 observingRequests = false;
                 var stale = fixture.Session.Capture().Bind(new EmbyItem
                 {
-                    Id = "presentation-stale-" + width, Name = "离页图片仍属于旧请求", Type = EmbyItemType.Movie,
-                    BackdropImageTags = ["stale-backdrop"], ImageTags = new() { [EmbyImageStore.Primary] = "stale-poster" }
+                    Id = "presentation-stale-" + width,
+                    Name = "离页图片仍属于旧请求",
+                    Type = EmbyItemType.Movie,
+                    BackdropImageTags = ["stale-backdrop"],
+                    ImageTags = new() { [EmbyImageStore.Primary] = "stale-poster" }
                 });
                 imageGate = Pending<bool>();
                 holds.Add(imageGate);
@@ -206,16 +258,33 @@ internal sealed partial class ShellNavigationProbe
                 HomeMotion.ApplyPreference(false);
                 var offRun = NavigationTiming.Click("probe-browse-off")!;
                 activeImageRun = offRun.RunId;
-                shell.OpenChild(new LibraryRequest { Services = fixture.Services, Source = fixture.Session.Capture(),
-                    ParentId = library.Id, CollectionType = "movies", Title = "关闭动画仍呈现内容" });
+                shell.OpenChild(new LibraryRequest
+                {
+                    Services = fixture.Services,
+                    Source = fixture.Session.Capture(),
+                    ParentId = library.Id,
+                    CollectionType = "movies",
+                    Title = "关闭动画仍呈现内容"
+                });
                 await UntilAsync(() => sink.Has(offRun.RunId, "browse-images-released"));
                 AssertPresentationStages(offRun.RunId, enabled: false);
                 Require(frame.Opacity == 1, "关闭动画后页面仍透明");
                 Require(fixture.Actions.Plays == 0 && fixture.Transport.Requests.All(value => value.StartsWith("GET ", StringComparison.Ordinal)),
                     "首帧匿名检查发生播放或服务写入");
-                samples.Add(new { width, homeRun = homeRun.RunId, libraryRun = libraryRun.RunId,
-                    detailRun = detailRun.RunId, imageCalls, textBeforeImages = true, lateImageFade = true,
-                    events = sink.Snapshot(), realNetwork = false, playback = false });
+                samples.Add(new
+                {
+                    width,
+                    homeRun = homeRun.RunId,
+                    libraryRun = libraryRun.RunId,
+                    detailRun = detailRun.RunId,
+                    imageCalls,
+                    listView,
+                    textBeforeImages = true,
+                    lateImageFade = true,
+                    events = sink.Snapshot(),
+                    realNetwork = false,
+                    playback = false
+                });
                 completed = true;
 
                 void AssertPresentationStages(string run, bool enabled)
@@ -238,9 +307,16 @@ internal sealed partial class ShellNavigationProbe
                 {
                     await WritePerformanceEvidenceAsync($"browse-presentation-observations-{width}.json", new
                     {
-                        width, completed, observedAtLoaded, imageCalls = Volatile.Read(ref imageCalls),
-                        prematureRequests = Volatile.Read(ref prematureRequests), observations,
-                        requestObservations = RequestsSnapshot(), events = sink.Snapshot(), realNetwork = false, playback = false
+                        width,
+                        completed,
+                        observedAtLoaded,
+                        imageCalls = Volatile.Read(ref imageCalls),
+                        prematureRequests = Volatile.Read(ref prematureRequests),
+                        observations,
+                        requestObservations = RequestsSnapshot(),
+                        events = sink.Snapshot(),
+                        realNetwork = false,
+                        playback = false
                     });
                 }
                 finally

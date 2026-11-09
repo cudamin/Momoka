@@ -109,7 +109,7 @@ internal sealed partial class ShellNavigationProbe
                 {
                     home.UpdateLayout();
                     if (returnedBanner.FrontPicture is not null)
-                        Require(returnedBanner.FrontLayer.Opacity == 1, "暖返回恢复图片仍等待交叉淡入");
+                        Require(returnedBanner.FrontLayer.Opacity is >= 0 and <= 1, "暖返回图片透明度越界");
                     AssertShelvesSettled(repeater);
                     Call(home, "UpdateLibraryOverlay");
                     Require(!home.ViewModel.LibraryOnBanner, "暖返回先把媒体库摆上轮播再落回横排");
@@ -119,6 +119,10 @@ internal sealed partial class ShellNavigationProbe
                         "暖返回出现轮播上的媒体库宿主");
                     await Task.Delay(16);
                 }
+                // 同步缓存图保持可见，晚到图按用户要求淡入；文字与折叠阈值不随图动画改变。
+                await UntilAsync(() => !returnedBanner.ImageArrivalRunning);
+                Require(returnedBanner.FrontPicture is null || returnedBanner.FrontLayer.Opacity == 1,
+                    "返回后的图片淡入结束未恢复完全可见");
                 await SaveProbeScreenAsync($"home-navigation-return-{width}-screen.png");
                 samples.Add(new { width, line, animated, frames = 55, libraryOnBanner = false, shelvesSettled = true });
                 home.Release();
