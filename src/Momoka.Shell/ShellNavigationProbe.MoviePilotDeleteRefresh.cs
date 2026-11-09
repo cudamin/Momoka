@@ -22,7 +22,7 @@ internal sealed partial class ShellNavigationProbe
     {
         foreach (var action in new[] { MoviePilotHistoryAction.DeleteDestination, MoviePilotHistoryAction.DeleteAll })
         {
-            var server = new DeleteRefreshProbeServer();
+            var server = new DeleteRefreshProbeServer { Poster = await FixtureImageAsync() };
             using var fixture = CreateFixture(server);
             await fixture.SelectAsync();
             fixture.Settings.Ui.ShowHomeBanner = true;
@@ -162,6 +162,7 @@ internal sealed partial class ShellNavigationProbe
 
     private sealed class DeleteRefreshProbeServer : HttpMessageHandler
     {
+        internal byte[] Poster { get; init; } = [];
         internal const string MovieId = "mp-delete-refresh-movie";
         internal const string OtherId = "mp-delete-refresh-other";
         private const string Title = "离线删除刷新测试电影";
@@ -243,6 +244,8 @@ internal sealed partial class ShellNavigationProbe
         {
             token.ThrowIfCancellationRequested();
             var path = request.RequestUri!.AbsolutePath;
+            if (path.Contains("/Images/", StringComparison.Ordinal))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(Poster) });
             if (path.EndsWith("/Items/Resume", StringComparison.Ordinal))
             {
                 ResumeReads++;

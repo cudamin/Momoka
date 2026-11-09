@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Momoka.AniBt;
 using Momoka.Configuration;
 using Momoka.Emby;
@@ -56,10 +57,12 @@ internal sealed partial class ShellNavigationProbe
                 var titles = Descendants(view).OfType<TextBlock>().Where(text => text.Name == "SubscriptionTitle").ToArray();
                 Require(titles.Length >= 2 && titles.All(text => text.TextWrapping == TextWrapping.Wrap
                     && text.TextTrimming == TextTrimming.None && text.MaxLines == 0), "订阅片名仍截成两行或单行省略");
+                var longTitle = titles.Single(text => text.Text.StartsWith("这是一个需要超过两行", StringComparison.Ordinal));
+                Require(longTitle.ActualHeight > longTitle.FontSize * 3, "订阅长片名夹具没有实际展开到三行以上");
                 foreach (var title in titles)
                 {
-                    var shelf = title.Parent;
-                    while (shelf is not ShelfStrip && shelf is FrameworkElement parent) shelf = parent.Parent;
+                    DependencyObject? shelf = title;
+                    while (shelf is not null && shelf is not ShelfStrip) shelf = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(shelf);
                     Require(shelf is ShelfStrip band && title.TransformToVisual(band).TransformPoint(new Windows.Foundation.Point(0, title.ActualHeight)).Y <= band.ActualHeight + 1,
                         "订阅封面下方片名超出货架底边");
                 }
@@ -356,7 +359,7 @@ internal sealed partial class ShellNavigationProbe
                     && (heroOverview.Background is not Microsoft.UI.Xaml.Media.SolidColorBrush fill || fill.Color.A == 0),
                     "简介那一块还画着底色或外圈");
                 Require(width >= 1080
-                    ? Math.Abs(facts.ActualWidth - 320) < 1 && Grid.GetRow(facts) == 0 && Grid.GetColumn(facts) == 1
+                    ? Math.Abs(facts.ActualWidth - 320) < 1 && Grid.GetRow(facts) == 0 && ReferenceEquals(facts.Parent, Get<Grid>(page, "BodyLayout"))
                     : facts.ActualWidth > 320 && Grid.GetRow(facts) == 1 && Grid.GetColumn(facts) == 0,
                     $"资料卡在 {width} 宽下没有按预期并排或叠起来：宽 {facts.ActualWidth}，行 {Grid.GetRow(facts)}，列 {Grid.GetColumn(facts)}，页宽 {page.ActualWidth}");
                 // 这一页不画加载条（用户令 2026-10-12：「不要显示那个加载条」；此前是两份数据合并成的
@@ -452,8 +455,14 @@ internal sealed partial class ShellNavigationProbe
                         $"{name} 那一段不是「板 + 牌子 + 货架带」：父级 {section?.GetType().Name ?? "空"}，子项 "
                             + string.Join("、", parts.Select(part => part.GetType().Name)));
                     var panel = section!;
-                    Require(Math.Abs(panel.ActualWidth - Get<StackPanel>(page, "BodyPrimary").ActualWidth) < 1,
-                        $"{name} 没有与正文左列同宽：列表 {panel.ActualWidth:0.0}、正文 {Get<StackPanel>(page, "BodyPrimary").ActualWidth:0.0}");
+                    var factsBox = Get<Border>(page, "HeroFacts");
+                    var factsBottom = factsBox.TransformToVisual(page).TransformPoint(default).Y + factsBox.ActualHeight;
+                    var panelTop = panel.TransformToVisual(page).TransformPoint(default).Y;
+                    var overlaps = media.WideLayout && panelTop < factsBottom + 8;
+                    if (media.WideLayout) Require(!overlaps, "电视剧季列表下方应已离开资料卡，列表须恢复全宽");
+                    var expectedWidth = overlaps ? Get<StackPanel>(page, "BodyPrimary").ActualWidth : Get<Grid>(page, "BodyRow").ActualWidth;
+                    Require(Math.Abs(panel.ActualWidth - expectedWidth) < 1,
+                        $"{name} 没有按资料卡实际相交避让：宽 {panel.ActualWidth:0.0}、应为 {expectedWidth:0.0}、相交 {overlaps}");
                     var panelFill = panel.Background as Microsoft.UI.Xaml.Media.AcrylicBrush;
                     // 2026-10-19 用户令「界面的卡片不要加白边」把 EgBodyPanelStyle 的静止描边收成 0，
                     // 这里仍要求板底，但不再要求外圈 —— 那根线是用户点名去掉的。
@@ -462,25 +471,44 @@ internal sealed partial class ShellNavigationProbe
                     Require(Descendants(strip).OfType<ScrollViewer>().Count() == 0 && Descendants(strip).OfType<ScrollView>().Any(),
                         $"{name} 里还有内层 ScrollViewer —— 指针停在带上时它会吃掉整页的竖向滚轮");
                     Require(strip.Visibility == Visibility.Visible && ReferenceEquals(strip.ItemsSource, cards),
-                        $"{name} 没有装着夹具那六条内容（或整段收着）：{strip.Visibility}");
+                        $"{name} 没有装着夹具内容（或整段收着）：{strip.Visibility}");
                     strip.StartBringIntoView();
                     await LayoutAsync(page);
+                    if (media.WideLayout)
+                    {
+                        var scroller = Descendants(strip).OfType<ScrollView>().Single();
+                        var tiles = Descendants(strip).OfType<Button>().Where(button => button.Name == "OpenRelatedMedia").ToArray();
+                        var rightmost = tiles.Max(button => button.TransformToVisual(scroller).TransformPoint(default).X + button.ActualWidth);
+                        Require(scroller.ViewportWidth > panel.ActualWidth - 40 && rightmost >= scroller.ViewportWidth - 1,
+                            $"{name} 无遮挡时没有把实际卡片排到右边：视口 {scroller.ViewportWidth:0.0}、卡片最右 {rightmost:0.0}、列表 {panel.ActualWidth:0.0}");
+                    }
                     var tile = Descendants(strip).OfType<Button>().First(button => button.Name == "OpenRelatedMedia");
+                    Require(tile.Background is SolidColorBrush { Color.A: 0 } && tile.BorderThickness == default(Thickness),
+                        "演员或推荐封面下方仍有卡片底色或描边");
+                    foreach (var state in new[] { "Normal", "PointerOver", "Pressed", "Disabled" })
+                    {
+                        VisualStateManager.GoToState(tile, state, false);
+                        await LayoutAsync(tile);
+                        var captionHost = Descendants(tile).OfType<ContentPresenter>().Single(presenter => ReferenceEquals(presenter.Content, tile.Content));
+                        Require(captionHost.Background is null or SolidColorBrush { Color.A: 0 },
+                            $"演员或推荐文字区域在 {state} 状态重新出现底色");
+                    }
+                    VisualStateManager.GoToState(tile, "Normal", false);
                     var artwork = Descendants(tile).OfType<Border>().First(border => border.Name == "RelatedArtwork");
                     Require(Math.Abs(tile.ActualWidth - 128) < 1 && Math.Abs(artwork.ActualHeight - 184) < 1,
                         $"{name} 单卡尺寸不应随列表收窄而改变：{tile.ActualWidth:0.0}×{artwork.ActualHeight:0.0}");
-                    var titleText = Get<TextBlock>(tile, "RelatedTitle");
+                    var titleText = Descendants(tile).OfType<TextBlock>().Single(text => text.Name == "RelatedTitle");
                     Require(titleText.ActualHeight >= titleText.FontSize * 2, "长标题夹具没有真正换行");
-                    var subtitleText = Get<TextBlock>(tile, "RelatedSubtitle");
+                    var subtitleText = Descendants(tile).OfType<TextBlock>().Single(text => text.Name == "RelatedSubtitle");
                     Require(titleText.TextWrapping == TextWrapping.Wrap && titleText.TextTrimming == TextTrimming.None
                         && titleText.MaxLines == 0 && titleText.TransformToVisual(tile).TransformPoint(default).Y >= artwork.ActualHeight,
                         "封面下片名仍被省略、限制行数或与图片重叠");
                     var subtitleBottom = subtitleText.TransformToVisual(tile).TransformPoint(new Windows.Foundation.Point(0, subtitleText.ActualHeight)).Y;
                     Require(subtitleBottom <= tile.ActualHeight + 1, "推荐卡片文字被底边裁掉");
-                    relatedReadings.Add($"{width} 宽 {name}：卡片 {tile.ActualWidth:0.0}×{artwork.ActualHeight:0.0}、板底 {panelFill!.TintColor}、带高 {strip.ActualHeight:0.0}、"
+                    relatedReadings.Add($"{width} 宽 {name}：列表 {panel.ActualWidth:0.0}、相交 {overlaps}、卡片 {tile.ActualWidth:0.0}×{artwork.ActualHeight:0.0}、板底 {panelFill!.TintColor}、带高 {strip.ActualHeight:0.0}、"
                         + $"牌子「{head!.Title}」、内层滚动面 ScrollView（无 ScrollViewer）");
                 }
-                Require(media.People.Count == 6 && media.Recommendations.Count == 6 && media.Similar.Count == 6,
+                Require(media.People.Count == 12 && media.Recommendations.Count == 12 && media.Similar.Count == 12,
                     $"下方三段的内容没有读回来：{media.People.Count}／{media.Recommendations.Count}／{media.Similar.Count}");
                 // 卡片上的图是异步抓的：不等它落下来，那张截图上的三段就是三排空板（断言不看图，只截图不好看）。
                 await UntilAsync(() => media.People.All(card => card.Poster is not null)
@@ -553,7 +581,7 @@ internal sealed partial class ShellNavigationProbe
     /// </summary>
     private async Task MoviePilotMovieSubscriptionDetailAsync()
     {
-        using var server = new SubscriptionProbeServer();
+        using var server = new SubscriptionProbeServer { Related = true };
         server.Poster = await FixtureImageAsync();
         var (_, service) = SubscriptionService(server);
         var subscription = (await service.SubscriptionsAsync(CancellationToken.None)).First(item => !item.IsSeries);
@@ -603,7 +631,25 @@ internal sealed partial class ShellNavigationProbe
                 //    在 MoviePilotSubscriptionDetailAsync 里钉（那里断言它是 Visible）。
                 Require(Get<Button>(page, "PlayMediaLibraryItem").Visibility == Visibility.Collapsed,
                     "没有可播放片源，「播放已入库」却立着");
+                await UntilAsync(() => page.MediaViewModel.People.Count > 0 && page.MediaViewModel.Recommendations.Count > 0);
+                await LayoutAsync(page);
+                var movieFacts = Get<Border>(page, "HeroFacts");
+                var factsBottom = movieFacts.TransformToVisual(page).TransformPoint(default).Y + movieFacts.ActualHeight;
+                var overlapKinds = new HashSet<bool>();
+                foreach (var panelName in new[] { "PeoplePanel", "RecommendationsPanel", "SimilarPanel" })
+                {
+                    var relatedPanel = Get<StackPanel>(page, panelName);
+                    var top = relatedPanel.TransformToVisual(page).TransformPoint(default).Y;
+                    var overlaps = page.MediaViewModel.WideLayout && top < factsBottom + 8;
+                    overlapKinds.Add(overlaps);
+                    var expectedWidth = overlaps ? Get<StackPanel>(page, "BodyPrimary").ActualWidth : Get<Grid>(page, "BodyRow").ActualWidth;
+                    Require(Math.Abs(relatedPanel.ActualWidth - expectedWidth) < 1,
+                        $"电影 {panelName} 避让错误：顶 {top:0.0}、资料底 {factsBottom:0.0}、宽 {relatedPanel.ActualWidth:0.0}/{expectedWidth:0.0}");
+                }
+                if (page.MediaViewModel.WideLayout)
+                    Require(overlapKinds.Count == 2, "电影夹具必须同时覆盖重叠收窄与不重叠全宽，不能全部落在同一分支");
                 await SaveSettledFrameAsync(page, $"mp-movie-subscription-detail-{width}.png");
+                await SaveProbeScreenAsync($"mp-movie-overlap-{width}-screen.png");
             }
 
             // ⑥ 「更多」菜单在电影上的那一份：摊平的一层里没有「文件统计」（电影没有季折叠栏可滚），也没有
@@ -1050,8 +1096,8 @@ internal sealed partial class ShellNavigationProbe
             return Json(new { success = true, data = item });
         }
 
-        /// <summary>演职员那一段的夹具：六个人，各有一张头像。名字与角色都带序号，好按名字认行。</summary>
-        private static object[] RelatedPeople() => Enumerable.Range(1, 6).Select(index => (object)new
+        /// <summary>演职员夹具铺满宽窗并溢出，各有头像；完整验证原资料卡右侧也实际排入卡片。</summary>
+        private static object[] RelatedPeople() => Enumerable.Range(1, 12).Select(index => (object)new
         {
             id = "person-" + index,
             name = index == 1 ? "Doha Ramadan · 演员完整姓名" : "演员" + index,
@@ -1059,8 +1105,8 @@ internal sealed partial class ShellNavigationProbe
             profile_path = "https://poster.invalid/person-" + index + ".png"
         }).ToArray();
 
-        /// <summary>相关推荐与相似作品那两段的夹具：六部作品，各有一张竖版海报。</summary>
-        private static object[] RelatedMedia() => Enumerable.Range(1, 6).Select(index => (object)new
+        /// <summary>相关推荐与相似作品各十二部，确保宽窗右侧有足够内容可见。</summary>
+        private static object[] RelatedMedia() => Enumerable.Range(1, 12).Select(index => (object)new
         {
             title = index == 1 ? "书写人生与漫长的旅途：这是需要多行展示的完整电影名称" : "相关作品" + index,
             type = index % 2 == 0 ? "电影" : "电视剧",

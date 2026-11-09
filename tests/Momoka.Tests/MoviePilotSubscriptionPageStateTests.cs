@@ -171,7 +171,7 @@ internal static class MoviePilotSubscriptionPageStateTests
 
     private static void RegisterDetailLayout(string root)
     {
-        Test("MP 详情布局：头部自然收边，简介与季共左列，资料卡完整展示、下方列表只收窄总宽", () =>
+        Test("MP 详情布局：头部自然收边，简介与季共左列，资料卡完整展示、下方列表按重叠避让", () =>
         {
             var document = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"));
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -182,9 +182,17 @@ internal static class MoviePilotSubscriptionPageStateTests
             Assert.True(ReferenceEquals(Named("HeroOverview").Parent, primary));
             Assert.True(ReferenceEquals(Named("SeasonPanel").Parent, primary));
             Assert.True(ReferenceEquals(Named("HeroFacts").Parent, body));
+            Assert.True(ReferenceEquals(body.Parent, Named("BodyFlow")));
+            Assert.True(ReferenceEquals(Named("PeoplePanel").Parent, Named("BodyFlow")));
+            Assert.Equal("OnBodyLayoutUpdated", (string?)Named("BodyLayout").Attribute("LayoutUpdated"));
             Assert.False(Named("HeroFacts").Attributes().Any(attribute => attribute.Name.LocalName == "Height"));
             Assert.False(Named("HeroFacts").Descendants().Any(element => element.Name.LocalName == "ScrollViewer"));
             Assert.Equal("128", (string?)Named("OpenRelatedMedia").Attribute("Width"));
+            Assert.Equal("Transparent", (string?)Named("OpenRelatedMedia").Attribute("Background"));
+            Assert.Equal("0", (string?)Named("OpenRelatedMedia").Attribute("BorderThickness"));
+            foreach (var key in new[] { "ButtonBackgroundPointerOver", "ButtonBackgroundPressed", "ButtonBackgroundDisabled" })
+                Assert.True(Named("OpenRelatedMedia").Descendants().Any(element => (string?)element.Attribute(x + "Key") == key
+                    && (string?)element.Attribute("Color") == "Transparent"));
             Assert.Equal("184", (string?)Named("RelatedArtwork").Attribute("Height"));
             Assert.Equal("Wrap", (string?)Named("RelatedTitle").Attribute("TextWrapping"));
             Assert.False(Named("RelatedTitle").Attributes().Any(attribute => attribute.Name.LocalName is "TextTrimming" or "MaxLines"));

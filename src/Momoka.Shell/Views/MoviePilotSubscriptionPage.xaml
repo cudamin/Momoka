@@ -33,10 +33,18 @@
             </Border>
         </DataTemplate>
         <DataTemplate x:Key="MediaRelatedCardTemplate" x:DataType="vm:MoviePilotRelatedCard">
-            <Button x:Name="OpenRelatedMedia" Command="{x:Bind OpenCommand}" Style="{StaticResource EgArtworkTileStyle}" Width="128" AutomationProperties.Name="{x:Bind Title}">
+            <Button x:Name="OpenRelatedMedia" Command="{x:Bind OpenCommand}" Style="{StaticResource EgArtworkTileStyle}" Width="128"
+                Background="Transparent" BorderThickness="0" AutomationProperties.Name="{x:Bind Title}">
+                <Button.Resources>
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
+                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="Transparent" />
+                </Button.Resources>
                 <StackPanel Spacing="8">
-                    <Border x:Name="RelatedArtwork" Height="184" CornerRadius="6">
-                        <Border.Background><ImageBrush ImageSource="{x:Bind Poster, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background>
+                    <Border x:Name="RelatedArtwork" Height="184" CornerRadius="6" Background="{ThemeResource EgSurfaceAltBrush}">
+                        <Border CornerRadius="6">
+                            <Border.Background><ImageBrush ImageSource="{x:Bind Poster, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background>
+                        </Border>
                     </Border>
                     <TextBlock x:Name="RelatedTitle" Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" Margin="8,0"
                         ToolTipService.ToolTip="{x:Bind Title}" />
@@ -101,7 +109,7 @@
                             <TextBlock Text="{x:Bind ViewModel.LibraryBadge, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                                 Foreground="{ThemeResource EgAccentBrush}" />
                         </Border>
-                        <TextBlock Text="{x:Bind MediaViewModel.Title, Mode=OneWay}" Style="{StaticResource EgOnScrimPageTitleStyle}" TextWrapping="Wrap" />
+                        <TextBlock x:Name="MediaTitle" Text="{x:Bind MediaViewModel.Title, Mode=OneWay}" Style="{StaticResource EgOnScrimPageTitleStyle}" TextWrapping="Wrap" />
                         <TextBlock Text="{x:Bind MediaViewModel.Meta, Mode=OneWay}" Style="{StaticResource EgOnScrimDataStyle}" TextWrapping="Wrap" />
                         <TextBlock x:Name="MediaRating" Text="{x:Bind MediaViewModel.Rating, Mode=OneWay}"
                             Style="{StaticResource EgOnScrimDataStyle}" Foreground="{ThemeResource EgAccentBrush}" />
@@ -145,11 +153,13 @@
             <StackPanel x:Name="BodySheet" Background="{ThemeResource EgWindowBrush}"
                 Padding="{x:Bind MediaViewModel.BodySheetPadding, Mode=OneWay}"
                 Spacing="{x:Bind MediaViewModel.BodySheetSpacing, Mode=OneWay}">
-            <!-- 简介与季共用左列；窄窗时资料卡落到左列下方。 -->
+            <Grid x:Name="BodyLayout" LayoutUpdated="OnBodyLayoutUpdated">
+            <StackPanel x:Name="BodyFlow" VerticalAlignment="Top" Spacing="{x:Bind MediaViewModel.BodySheetSpacing, Mode=OneWay}">
+            <!-- 宽窗资料卡独立放右侧，正文和货架按实际交叠避让；窄窗资料卡回到正文下方。 -->
             <Grid x:Name="BodyRow" ColumnSpacing="12" SizeChanged="OnBodyRowSizeChanged">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="HeroFactColumn" Width="320" /></Grid.ColumnDefinitions>
-                <StackPanel x:Name="BodyPrimary" Spacing="8" VerticalAlignment="Top" SizeChanged="OnRelatedWidthChanged">
+                <StackPanel x:Name="BodyPrimary" Spacing="8" VerticalAlignment="Top">
                     <StackPanel x:Name="HeroOverview" VerticalAlignment="Top"
                         Style="{StaticResource EgBodyPanelStyle}" Background="Transparent" BorderThickness="0"
                         Padding="0" Spacing="{StaticResource EgSpaceS}">
@@ -218,6 +228,8 @@
                 <local:ShelfStrip x:Name="MediaSimilar" ItemsSource="{x:Bind MediaViewModel.Similar, Mode=OneWay}"
                     ItemSpacing="16" PictureHeight="184" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
             </StackPanel>
+            </StackPanel>
+            </Grid>
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

@@ -49,9 +49,12 @@ internal sealed partial class ShellNavigationProbe
         var created = MoviePilotWindow.TryCreate(_window);
         Require(created is not null, "MoviePilot 版本窗口建不出来");
         var window = created!;
+        var presenter = (Microsoft.UI.Windowing.OverlappedPresenter)window.AppWindow.Presenter;
+        var wasTopMost = presenter.IsAlwaysOnTop;
         var hidden = false;
         try
         {
+            presenter.IsAlwaysOnTop = true;
             window.Show(service, "测试资源", fixture.Launcher);
             var view = window.View;
             // 先把这一扇窗真的排过版（模板应用、Loaded 跑过、站点入口搬进框里）再读控件：
@@ -98,6 +101,20 @@ internal sealed partial class ShellNavigationProbe
                     $"{width} 宽时站点入口超过了这一档的宽度上限：{pickerBox.Width}");
 
                 var handle = Microsoft.UI.Win32Interop.GetWindowFromWindowId(window.AppWindow.Id);
+                Require(Native.SetWindowPos(handle, Native.HwndTopMost, 0, 0, 0, 0,
+                    Native.SwpNoMove | Native.SwpNoSize | Native.SwpNoActivate), "版本窗口截图前无法提升本轮窗口");
+                await Task.Delay(80);
+                Require(Native.GetVisibleFrame(handle, out var frame), "版本窗口截图前无法读取边框");
+                var hits = new List<string>();
+                foreach (var (x, y) in new[] { (0.05, 0.2), (0.95, 0.2), (0.05, 0.8), (0.95, 0.8) })
+                {
+                    var point = new NativePoint { X = frame.Left + 4 + (int)((frame.Width - 8) * x), Y = frame.Top + 4 + (int)((frame.Height - 8) * y) };
+                    var actual = Native.GetAncestor(Native.WindowFromPoint(point), Native.GaRoot);
+                    Native.GetWindowThreadProcessId(actual, out var owner);
+                    hits.Add($"{point.X},{point.Y}=0x{actual:X} pid={owner}");
+                }
+                File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, $"mp-window-{width}-owner.txt"),
+                    $"target=0x{handle:X}; foreground=0x{Native.GetForegroundWindow():X}; frame={frame.Left},{frame.Top},{frame.Width},{frame.Height}; " + string.Join("; ", hits));
                 // 标题栏小档图标就是那颗全透明的；大档仍是应用图标（任务栏、Alt-Tab 不该跟着变）。
                 var small = Native.SendMessage(handle, Native.WmGetIcon, (IntPtr)0, IntPtr.Zero);
                 var big = Native.SendMessage(handle, Native.WmGetIcon, (IntPtr)1, IntPtr.Zero);
@@ -206,6 +223,7 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
+            presenter.IsAlwaysOnTop = wasTopMost;
             fixture.Settings.MoviePilot.Enabled = false;
             ClosePopups();
             if (!hidden) window.Hide();

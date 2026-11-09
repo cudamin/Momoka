@@ -155,15 +155,24 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
             DetailBackdropRoot.Margin = new Thickness(0, -lift, 0, 0);
     }
 
-    // 资料卡保留正文右列完整高度，窄窗排在简介与季下面。
+    // 资料卡完整展开；下方列表只在纵向重叠时避让右列。
     private void OnBodyRowSizeChanged(object sender, SizeChangedEventArgs args) => ApplyBodyLayout(args.NewSize.Width);
 
     private void ApplyBodyLayout(double width)
     {
         var side = width >= FactsSideBreakpoint;
-        Grid.SetColumn(HeroFacts, side ? 1 : 0);
+        var parent = side ? BodyLayout : BodyRow;
+        if (!parent.Children.Contains(HeroFacts))
+        {
+            BodyLayout.Children.Remove(HeroFacts);
+            BodyRow.Children.Remove(HeroFacts);
+            parent.Children.Add(HeroFacts);
+        }
+        HeroFacts.HorizontalAlignment = side ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+        Grid.SetColumn(HeroFacts, 0);
         Grid.SetRow(HeroFacts, side ? 0 : 1);
         HeroFactColumn.Width = side ? new GridLength(FactsSideWidth) : new GridLength(0);
+        HeroSurface.Margin = side ? new Thickness(0, 0, FactsSideWidth + BodyRow.ColumnSpacing, 0) : default;
         BodyRow.RowSpacing = side ? 0 : FactsStackedRowSpacing;
         HeroFacts.Width = side ? FactsSideWidth : Math.Min(FactsStackedMaxWidth, width);
 
@@ -171,11 +180,22 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         UpdateFactsLift();
     }
 
-    // 列表视窗与简介/季的实际左列同宽，不改变每张演员或推荐卡片的尺寸。
-    private void OnRelatedWidthChanged(object sender, SizeChangedEventArgs args)
+    // 从上往下按最终纵坐标避让。自身宽度不会改变自身顶边，前一段换行后下一轮布局会修正后续段。
+    private void OnBodyLayoutUpdated(object? sender, object args)
     {
-        if (args.NewSize.Width <= 0) return;
-        foreach (var panel in new[] { PeoplePanel, RecommendationsPanel, SimilarPanel }) panel.Width = args.NewSize.Width;
+        if (DetailScroll.Visibility != Visibility.Visible || BodyRow.ActualWidth <= 0 || BodyPrimary.ActualWidth <= 0) return;
+        UpdateFactsLift();
+        var factsTop = HeroFacts.TransformToVisual(BodyLayout).TransformPoint(default).Y;
+        var factsBottom = factsTop + HeroFacts.ActualHeight;
+        foreach (var panel in new[] { PeoplePanel, RecommendationsPanel, SimilarPanel })
+        {
+            if (panel.Visibility != Visibility.Visible) continue;
+            var top = panel.TransformToVisual(BodyLayout).TransformPoint(default).Y;
+            var overlaps = MediaViewModel.WideLayout && top < factsBottom + 8
+                && top + panel.ActualHeight > factsTop;
+            var width = overlaps ? BodyPrimary.ActualWidth : BodyRow.ActualWidth;
+            if (double.IsNaN(panel.Width) || Math.Abs(panel.Width - width) > 0.5) panel.Width = width;
+        }
     }
 
     private void UpdateFactsLift()
@@ -185,7 +205,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         {
             var factsX = HeroFacts.TransformToVisual(this).TransformPoint(default).X;
             var bodyTop = BodyRow.TransformToVisual(this).TransformPoint(default).Y;
-            lift = 96;
+            // 资料卡上沿对齐片名；头部右侧让出资料栏，长片名和操作仍在左边完整换行。
+            lift = Math.Max(0, bodyTop - MediaTitle.TransformToVisual(this).TransformPoint(default).Y);
             foreach (var child in HeroContent.Children.OfType<FrameworkElement>().Where(child => child.Visibility == Visibility.Visible))
             {
                 var position = child.TransformToVisual(this).TransformPoint(default);
