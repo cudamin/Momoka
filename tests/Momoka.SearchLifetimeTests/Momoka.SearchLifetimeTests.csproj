@@ -59,6 +59,7 @@
             between(server, "    private static XamlRoot? Root(", "\n    /// <summary>打开所属剧集。") +
             between(fnnas, "    private static Task FnNasMatchAsync(", "\n    private static Task FnNasUnmatchAsync(") + "\n}\n" +
             "public sealed partial class LibraryPage : Page\n{\n" +
+            between(library, "    internal void CloseSettings()", "\n    /// <summary>点面板外面。") +
             between(library, "    public void Release()", "\n    private void OnLoaded(") +
             between(library, "    private int SearchSource\n", "\n    private void CancelTyping()") +
             between(library, "    private void ApplySource()", "\n    private void OnSearchCategoryChanged(") + "\n}\n" +

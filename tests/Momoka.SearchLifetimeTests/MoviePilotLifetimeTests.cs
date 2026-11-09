@@ -211,10 +211,14 @@ internal static class MoviePilotLifetimeTests
             Check.Equal(1, page.ViewModel.Resumes); Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.MoviePilotPanel.Visibility);
             page.SwitchFixture(1); Check.Equal(before, f.Http.Searches); Check.Equal(Microsoft.UI.Xaml.Visibility.Visible, page.MoviePilotPanel.Visibility);
             await page.MoviePilotPanel.SearchAsync("再次显式提交"); Check.Equal(before + 1, f.Http.Searches);
+            page.SettingsOverlay.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
             page.NavigateFromFixture(); Check.Equal(0, f.Subscribers); Check.Equal(0, page.MoviePilotPanel.ViewModel.Results.Count);
+            Check.Equal(Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Disabled, page.NavigationCacheMode);
+            Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.SettingsOverlay.Visibility);
             Check.Equal(1, page.Navigation); Check.Equal(1, page.Departures); Check.Equal(1, page.ViewModel.PosterReleases);
             Check.Equal(73d, page.SavedOffset); Check.Equal(3, page.SavedCount);
             page.Release(); Check.Equal(1, page.Navigation);
+            Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.SettingsOverlay.Visibility);
             before = f.Http.Searches; page.AttachFixture(f.Service); Check.Equal(2, f.Subscribers); Check.Equal(before, f.Http.Searches);
             await page.MoviePilotPanel.SearchAsync("返回后显式提交"); Check.Equal(before + 1, f.Http.Searches);
             page.NavigateFromFixture(); Check.Equal(0, f.Subscribers);

@@ -1,5 +1,8 @@
 # R-016 卡片用户状态顺序专项
 
+2026-11-10 全量验证：当前入口74项；补真实CardItem等待首帧期间来源撤销的回归，原等待不被放行且图片请求为零。源码链接项目使用精确Core友元访问来源Lifetime；无Frame的呈现边界固定完成，不代表真实首帧或图片解码覆盖。
+
+
 本项目独立运行，已纳入 Momoka.sln 与开发文档的离线验证命令；不修改 Momoka.Tests / PageContractTests 的公共 Program、csproj 或夹具。保留独立计数，普通 Core 或页面契约运行不会自动执行它；入口为 Momoka.Tests.ItemUserStateOrderTests.Main()。
 
 ## 验证的是实际生产代码

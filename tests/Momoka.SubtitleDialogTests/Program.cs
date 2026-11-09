@@ -27,11 +27,15 @@ internal static class Program
         {
             using var f = new SubtitleFixture();
             var card = f.Parent.FixtureObserve();
+            var presentation = new TaskCompletionSource();
+            f.Parent.FixtureImagePresentation = presentation.Task;
             Assert.Equal(1, card.Subscribers);
             f.Item.UserData = new() { Played = true };
             card.Change(nameof(Momoka.Shell.Views.CardItem.Watched));
             Assert.True(f.Parent.Watched);
             f.Parent.Cancel();
+            Assert.True(ReferenceEquals(Task.CompletedTask, f.Parent.FixtureImagePresentation));
+            Assert.False(presentation.Task.IsCompleted);
             Assert.Equal(0, card.Subscribers);
             f.Item.UserData.IsFavorite = true;
             card.Change(nameof(Momoka.Shell.Views.CardItem.IsFavorite));

@@ -77,7 +77,9 @@ internal static class DeleteCommandTests
             f.Await(f.Command("FnNasVersionsAsync", f.ChangedCallback(), f.RemovedCallback()));
             f.Context.Until(() => f.Get("Busy") is false);
             Assert.Equal(1, f.Transport.Deletes);
-            Assert.Equal(2, f.Transport.Gets);
+            Assert.Equal(3, f.Transport.Gets);
+            Assert.Equal(1, f.Transport.GenreGets);
+            Assert.Equal(1, f.Transport.SubjectGets);
             Assert.Equal("version-1", f.Transport.DeletedIds.Single());
             Assert.Equal(0, f.Removed);
             Assert.Equal(1, f.Changed);
@@ -181,7 +183,9 @@ internal static class DeleteCommandTests
         {
             using var f = new DeleteFixture();
             f.Reload();
-            Assert.Equal(1, f.Transport.Gets);
+            Assert.Equal(2, f.Transport.Gets);
+            Assert.Equal(1, f.Transport.GenreGets);
+            Assert.Equal(1, f.Transport.SubjectGets);
             Assert.Equal(0, f.Transport.Deletes);
             Assert.NotNull(f.Get("PlayTarget"));
             Assert.NotNull(f.Get("CurrentItem"));
@@ -204,6 +208,8 @@ internal static class DeleteCommandTests
             var target = (EmbyItem)f.Get("PlayTarget")!;
             f.Await(f.Command("FnNasVersionsAsync", f.ChangedCallback(), f.RemovedCallback()));
             f.Context.Until(() => f.Get("Busy") is false);
+            Assert.Equal(1, f.Transport.GenreGets);
+            Assert.Equal(1, f.Transport.SubjectGets);
             Assert.Equal(1, f.Transport.Deletes);
             Assert.Equal("version-1", f.Transport.DeletedIds.Single());
             Assert.Equal(2, f.SourceCount);
@@ -221,6 +227,8 @@ internal static class DeleteCommandTests
             f.Transport.FilesJson = TwoFiles;
             f.Await(f.Command("FnNasVersionsAsync", f.ChangedCallback(), f.RemovedCallback()));
             f.Context.Until(() => f.Get("Busy") is false);
+            Assert.Equal(1, f.Transport.GenreGets);
+            Assert.Equal(1, f.Transport.SubjectGets);
             f.ApplySame(2);
             Assert.Equal(1, ((EmbyItem)f.Get("CurrentItem")!).MediaSources.Count);
             Assert.Equal("version-2", f.SelectedId);

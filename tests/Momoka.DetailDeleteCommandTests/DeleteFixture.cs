@@ -267,6 +267,9 @@ internal sealed class DeleteTransport(MediaServerKind kind) : HttpMessageHandler
         Requests.Add((request.Method.Method, uri.AbsolutePath, body));
         var fnnas = kind == MediaServerKind.FnNas;
         var prefix = kind == MediaServerKind.Emby ? "/emby/" : "/";
+        if (fnnas && request.Method == HttpMethod.Get && uri.AbsolutePath == "/v/api/v1/tag/genres"
+            && uri.Query == "?lan=zh-CN")
+            return Response(HttpStatusCode.OK, """{"code":0,"data":[]}""");
         if (request.Method == HttpMethod.Delete && uri.AbsolutePath == (fnnas ? "/v/api/v1/item/item" : prefix + "Items/item"))
         {
             if (fnnas)
@@ -293,6 +296,8 @@ internal sealed class DeleteTransport(MediaServerKind kind) : HttpMessageHandler
     };
     public int Deletes => Requests.Count(request => request.Method == "DELETE");
     public int Gets => Requests.Count(request => request.Method == "GET");
+    public int GenreGets => Requests.Count(request => request.Method == "GET" && request.Path == "/v/api/v1/tag/genres");
+    public int SubjectGets => Requests.Count(request => request.Method == "GET" && request.Path == "/v/api/v1/item/item");
     public string[] DeletedIds
     {
         get

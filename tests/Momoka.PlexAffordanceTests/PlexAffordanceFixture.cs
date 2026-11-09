@@ -265,6 +265,7 @@ public class PlexActionsProxy : DispatchProxy
     {
         switch (targetMethod?.Name)
         {
+            case "MenuPermissionsFor": return new ItemMenuPermissions();
             case "Notify": Messages.Add((string)args![0]!); Severities.Add(args[1]!.ToString()!); return null;
             case "RefreshFavorites": FavoriteRefreshes.Add((EmbyItem)args![0]!); return null;
             case "ReportMarkedWatched": WatchedReports.Add((EmbyItem)args![0]!); return null;

@@ -1,5 +1,13 @@
 # 开发进度
 
+## 2026-11-10 全量探针与四闸门（有红保留，按授权提交推送）
+
+用户要求先休眠一小时再全验，酌情修复并推送。已合并origin文档/技能删除8e2a70e，修复源码链接夹具与飞牛题材请求、Plex权限代理、Windows PS原生stderr误判/退出码保护、剧资源探针HostWindow句柄，并规范六文件空白。最终方案0警告0错、空白/脚本/架构/重复率通过；主4275/4275，65专项首58过6败1跳，五套修复后通过、DOM14+26过，ResourceBudget原目录移动红保留（单独logs28过、原因未定）。
+
+全量Shell190/178/12，18区零跳过；修后剧资源1/1，外壳/材质补验16/14/2。字幕与Composition通过，cursor失败，motion加载超时后异常退出。闸门4红：185检查、5失败、4消失、6降级、1新增，未改基线。按用户酌情修复授权保留剩余运行红，不宣称全绿。细节见docs/verification/2026-11-10-full-verification.md；证据artifacts/verification-20261110。
+
+最终publish -NoArchive通过，546文件286.9MB，mpv批准载荷/许可校验通过；桌面快捷方式指主树发布目录。Shell发布/bin同SHA973C68C8D1FC1E627D5EB07B776E3A5B005D3E54726085192531592E2A2E6FCA，Core同DF4D54C399602C87B9246799A4970C5905D38CFA2FB2FDB651F31EF9938699C2。无真实服务器起播/写入；普通自检读取保存账号，匿名探针不混称实服覆盖。其他工作树在途改动未纳入或清理。
+
 ## 2026-11-10 MP 订阅详情文字列与公司换行（已交付）
 
 统一publish.ps1 -NoArchive -Shortcut退出0：546文件/286.9MB，14GLSL/4HOOK与59批准mpv文件校验通过。桌面Momoka.lnk目标与工作目录均主树artifacts/publish/win-x64，参数空。发布Shell及发布配置bin哈希均2B8C0B1C8E3F3F2E4255615B0001409C0984AD6B33E257D957376F5C6E4F6CF9，Core均BE542C164AF32AE7F6C470F2CBEC549EBCB0903A5543FD7394E8E24643781D6F。发布件三项3/3通过（shell-probe-20261109-172010184-38096），实屏已看，InspectDone正常退出；无真实服务器播放/写入或上传。日志与哈希artifacts/mp-detail-layout-master。e95f已确认内容全部入master，归档工具拒绝当前聊天primary checkout，按应用保护保留；临时分支已转回detached后删除，恢复线索6629bbd。

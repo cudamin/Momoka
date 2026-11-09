@@ -47,8 +47,11 @@ internal sealed partial class ShellNavigationProbe
             ResizeProbeClient(1280, 800);
             var request = new LibraryRequest
             {
-                Services = fixture.Services, Title = "匿名缓存库", Source = fixture.Session.Capture(),
-                ParentId = "cache-library", CollectionType = "movies"
+                Services = fixture.Services,
+                Title = "匿名缓存库",
+                Source = fixture.Session.Capture(),
+                ParentId = "cache-library",
+                CollectionType = "movies"
             };
             Require(frame.Navigate(typeof(LibraryPage), request, new SuppressNavigationTransitionInfo()), "缓存库首次导航失败");
             var page = (LibraryPage)frame.Content;
@@ -96,8 +99,16 @@ internal sealed partial class ShellNavigationProbe
             holdNewLibrary = true;
             Call(page, "OnSettingsClicked", page, new RoutedEventArgs());
             Require(Get<Grid>(page, "SettingsOverlay").Visibility == Visibility.Visible, "换库设置浮层前置未打开");
-            var other = request with { Title = "匿名另一库", ParentId = "other-library", ScrollOffset = 0,
-                AnchorQueryKey = null, AnchorIndex = -1, AnchorIdentityKey = null, LoadedCount = 0 };
+            var other = request with
+            {
+                Title = "匿名另一库",
+                ParentId = "other-library",
+                ScrollOffset = 0,
+                AnchorQueryKey = null,
+                AnchorIndex = -1,
+                AnchorIdentityKey = null,
+                LoadedCount = 0
+            };
             Require(frame.Navigate(typeof(LibraryPage), other, new SuppressNavigationTransitionInfo()), "同类型另一库导航失败");
             Require(ReferenceEquals(frame.Content, page) && page.ViewModel.Cards.Count == 0 && !page.IsReady,
                 "另一库主体未返回时仍展示旧库内容");
@@ -124,9 +135,18 @@ internal sealed partial class ShellNavigationProbe
             frame.GoBack(new SuppressNavigationTransitionInfo());
             Require(!ReferenceEquals(frame.Content, search), "搜索页仍被类型缓存持有");
             await File.WriteAllTextAsync(Path.Combine(_options.Paths.LogDirectory, "performance-library-cache.json"),
-                JsonSerializer.Serialize(new { visits = times.Count, layoutMilliseconds = times, reads,
-                    samePage = true, sameCards = true, newRequestCleared = true, searchEvicted = true,
-                    realNetwork = false, mediaLoaded = false }, new JsonSerializerOptions { WriteIndented = true }));
+                JsonSerializer.Serialize(new
+                {
+                    visits = times.Count,
+                    layoutMilliseconds = times,
+                    reads,
+                    samePage = true,
+                    sameCards = true,
+                    newRequestCleared = true,
+                    searchEvicted = true,
+                    realNetwork = false,
+                    mediaLoaded = false
+                }, new JsonSerializerOptions { WriteIndented = true }));
         }
         finally
         {

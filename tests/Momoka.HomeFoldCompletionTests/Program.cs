@@ -26,7 +26,8 @@ internal static class Program
             Check(ReferenceEquals(BrowsePresentation.Gate, poster.Card.Requests.Single()), "capture exact gate");
             poster.Request();
             Equal(2, poster.Card.Requests.Count, "still attached recycled control remains eligible");
-        }));
+        }
+        ));
         Cases.Add(("banner/prefetch-waits-for-tree-and-captures-own-gate", () =>
         {
             var banner = new BannerDemandFixture();
@@ -38,7 +39,8 @@ internal static class Program
             Check(ReferenceEquals(banner, BrowsePresentation.LastOwner), "resolve this banner's frame");
             Check(banner.Slides.All(slide => ReferenceEquals(BrowsePresentation.Gate, slide.Requests.Single())),
                 "visible slide and neighbors share their own navigation gate");
-        }));
+        }
+        ));
         Cases.Add(("episode/demand-waits-for-tree-and-captures-own-gate", () =>
         {
             var row = new EpisodeDemandFixture();
@@ -49,7 +51,8 @@ internal static class Program
             row.Request();
             Check(ReferenceEquals(row, BrowsePresentation.LastOwner), "list row resolves its own frame");
             Check(ReferenceEquals(BrowsePresentation.Gate, row.Card.Requests.Single()), "list row keeps exact gate");
-        }));
+        }
+        ));
         Cases.Add(("banner/warm-loaded-keeps-cached-art-but-fades-late-art", () =>
         {
             var banner = new BannerReturnFixture();
@@ -71,7 +74,8 @@ internal static class Program
             banner.RestoreImage();
             Equal(2, banner.Rises, "later slide keeps entry decoration");
             Equal(2, banner.ImageFades, "later slide keeps crossfade");
-        }));
+        }
+        ));
         Cases.Add(("R06-008 carousel-single-to-many-clock", () =>
         {
             var clock = new BannerClockFixture();

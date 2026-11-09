@@ -151,7 +151,8 @@ internal sealed partial class ShellNavigationProbe
         async Task OpenAsync(string buttonName, string menuName)
         {
             _window!.Activate();
-            var handle = WinRT.Interop.WindowNative.GetWindowHandle(_window);
+            var handle = _window.Handle;
+            Require(handle != nint.Zero, "整理清单探针窗口没有有效句柄");
             await UntilAsync(() => Native.GetForegroundWindow() == handle);
             var button = Get<Button>(picker, buttonName);
             Require(button.IsLoaded && button.ActualWidth > 0 && button.ActualHeight > 0, "菜单按钮未完成布局");

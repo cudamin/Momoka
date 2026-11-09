@@ -29,6 +29,12 @@ internal sealed partial class DetailViewModel : PageViewModel
     // The extracted Cancel path also drops image diagnostics/cache tickets; this fixture has no images.
     internal object? _heroTiming;
     internal object? _heroCacheTicket;
+    private Task _imagePresentation = Task.CompletedTask;
+    internal Task FixtureImagePresentation
+    {
+        get => _imagePresentation;
+        set => _imagePresentation = value;
+    }
     // Movies have no episode shelf; retain the real Cancel call without constructing a UI collection.
     private EpisodeShelfBoundary? EpisodeShelf => null;
     private EmbySessionScope? _scope;

@@ -60,6 +60,12 @@ namespace Momoka.Shell.Platform
 }
 namespace Momoka.Shell.Views
 {
+    // The diagnostics fixture measures list ownership without a browse Frame.
+    internal static class BrowsePresentation
+    {
+        internal static Task WaitForImagesAsync() => Task.CompletedTask;
+    }
+
     internal interface IShellActions
     {
         void Notify(string message, Microsoft.UI.Xaml.Controls.InfoBarSeverity severity);

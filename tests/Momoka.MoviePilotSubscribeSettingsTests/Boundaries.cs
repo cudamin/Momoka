@@ -80,6 +80,14 @@ namespace Microsoft.UI.Xaml.Controls
 
 namespace Momoka.Shell.Media
 {
+    // Picker contracts do not decode backdrop pixels; fail closed if that boundary is reached.
+    internal static class HeroPictureLoader
+    {
+        public sealed record HeroPixels(byte[] Pixels, int Width, int Height);
+        public static Task<HeroPixels?> DecodePixelsAsync(byte[] bytes, int maxWidth, CancellationToken token) =>
+            throw new InvalidOperationException("Subscription picker fixture must not decode backdrop pixels");
+    }
+
     internal static class PosterLoader
     {
         internal static Task<Microsoft.UI.Xaml.Media.Imaging.BitmapImage?> DecodeAsync(byte[] bytes, int width) =>

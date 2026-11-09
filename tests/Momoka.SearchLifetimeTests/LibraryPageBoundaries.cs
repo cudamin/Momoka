@@ -1,10 +1,15 @@
 // Only unused page controls/owners are boundaries. Release/OnNavigatedFrom/ApplySource/SearchSource
 // come verbatim from the current production file at every build; the MoviePilot panel/VM are complete.
-namespace Microsoft.UI.Xaml.Navigation { public sealed class NavigationEventArgs : EventArgs; }
+namespace Microsoft.UI.Xaml.Navigation
+{
+    public sealed class NavigationEventArgs : EventArgs;
+    public enum NavigationCacheMode { Disabled, Required, Enabled }
+}
 namespace Microsoft.UI.Xaml.Controls
 {
     public class Page : Microsoft.UI.Xaml.FrameworkElement
     {
+        public Microsoft.UI.Xaml.Navigation.NavigationCacheMode NavigationCacheMode { get; set; } = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Enabled;
         internal int Departures { get; private set; }
         protected virtual void OnNavigatedFrom(Microsoft.UI.Xaml.Navigation.NavigationEventArgs args) { Departures++; }
     }
@@ -40,6 +45,7 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.FrameworkElement AniBtSourceTab { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement EmbyContent { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement ToolbarSurface { get; } = new();
+        internal Microsoft.UI.Xaml.FrameworkElement SettingsOverlay { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement SearchUnavailableSurface { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBox SearchUnavailableTitle { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBox SearchUnavailableMessage { get; } = new();
@@ -81,6 +87,9 @@ namespace Momoka.Shell.Views
     }
     internal sealed class LibraryLifetimeViewModel
     {
+        // This fixture owns search results, which never qualify for retained root navigation.
+        public bool NavigationReuseEligible => false;
+        public int WindowStart => 0;
         public Microsoft.UI.Xaml.Visibility MoviePilotTabsVisibility { get; set; } = Microsoft.UI.Xaml.Visibility.Visible;
         public Microsoft.UI.Xaml.Visibility ToolbarVisibility { get; set; } = Microsoft.UI.Xaml.Visibility.Visible;
         public List<object> Cards { get; } = [new(), new(), new()];

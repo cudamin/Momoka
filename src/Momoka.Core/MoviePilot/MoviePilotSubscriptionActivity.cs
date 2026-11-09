@@ -26,10 +26,22 @@ public sealed partial record MoviePilotSubscriptionActivity(string EventId, stri
 {
     private static readonly IReadOnlyDictionary<string, string> Fields = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["include"] = "包含", ["exclude"] = "排除", ["quality"] = "质量", ["resolution"] = "分辨率", ["effect"] = "特效",
-        ["sites"] = "站点", ["filter_groups"] = "过滤规则组", ["best_version"] = "洗版", ["best_version_full"] = "仅洗全集",
-        ["start_episode"] = "开始集数", ["total_episode"] = "总集数", ["custom_words"] = "识别词", ["keyword"] = "搜索关键词",
-        ["search_interval"] = "搜索周期", ["state"] = "订阅状态", ["episode_group"] = "剧集组"
+        ["include"] = "包含",
+        ["exclude"] = "排除",
+        ["quality"] = "质量",
+        ["resolution"] = "分辨率",
+        ["effect"] = "特效",
+        ["sites"] = "站点",
+        ["filter_groups"] = "过滤规则组",
+        ["best_version"] = "洗版",
+        ["best_version_full"] = "仅洗全集",
+        ["start_episode"] = "开始集数",
+        ["total_episode"] = "总集数",
+        ["custom_words"] = "识别词",
+        ["keyword"] = "搜索关键词",
+        ["search_interval"] = "搜索周期",
+        ["state"] = "订阅状态",
+        ["episode_group"] = "剧集组"
     };
 
     internal static bool ValidIdentifier(string value) => value.Length is >= 1 and <= 64 &&
@@ -47,14 +59,25 @@ public sealed partial record MoviePilotSubscriptionActivity(string EventId, stri
             throw new MoviePilotException("MoviePilot 活动记录格式不正确，请重试");
         var title = kind switch
         {
-            "created" => "新建订阅", "updated" => "更新订阅规则", "status" => "订阅状态变更", "completed" => "订阅完成",
-            "refresh" => "刷新匹配", "search" => "订阅搜索", _ => "订阅活动"
+            "created" => "新建订阅",
+            "updated" => "更新订阅规则",
+            "status" => "订阅状态变更",
+            "completed" => "订阅完成",
+            "refresh" => "刷新匹配",
+            "search" => "订阅搜索",
+            _ => "订阅活动"
         };
         var phase = String(details, "phase");
         var result = phase == "queued" && status == "waiting" ? "已安排搜索" : status switch
         {
-            "waiting" => "等待继续", "running" => "正在处理", "failed" => "处理失败", "cancelled" => "已停止",
-            "completed" => "处理完成", "empty" => "无可下载资源", "not_submitted" => "未提交新下载", _ => "状态未知"
+            "waiting" => "等待继续",
+            "running" => "正在处理",
+            "failed" => "处理失败",
+            "cancelled" => "已停止",
+            "completed" => "处理完成",
+            "empty" => "无可下载资源",
+            "not_submitted" => "未提交新下载",
+            _ => "状态未知"
         };
         var summary = result;
         if (phase != "queued" && kind == "refresh")
@@ -67,7 +90,8 @@ public sealed partial record MoviePilotSubscriptionActivity(string EventId, stri
         var source = String(data, "source") switch
         {
             "manual" or "user" or "targeted" => "用户触发",
-            "automatic" or "system" or "scheduled" or "rss" => "自动触发", _ => "来源未知"
+            "automatic" or "system" or "scheduled" or "rss" => "自动触发",
+            _ => "来源未知"
         };
         return new(id, kind, source, status, title, summary, started, Describe(details), loaded);
     }
@@ -102,8 +126,12 @@ public sealed partial record MoviePilotSubscriptionActivity(string EventId, stri
                 if (title.Length == 0) continue;
                 var decision = String(resource, "decision") switch
                 {
-                    "submitted" => "已提交下载", "qualified" => "符合条件，未提交下载", "rejected" => "未满足下载条件",
-                    "failed" => "下载提交失败", "related" => "已关联，等待判断", _ => "处理结果未知"
+                    "submitted" => "已提交下载",
+                    "qualified" => "符合条件，未提交下载",
+                    "rejected" => "未满足下载条件",
+                    "failed" => "下载提交失败",
+                    "related" => "已关联，等待判断",
+                    _ => "处理结果未知"
                 };
                 var site = String(resource, "site");
                 var reason = String(resource, "reason");
@@ -120,8 +148,14 @@ public sealed partial record MoviePilotSubscriptionActivity(string EventId, stri
                 if (name.Length == 0) continue;
                 var state = String(site, "status") switch
                 {
-                    "checked" => "已检查候选", "success" => "请求成功", "completed" => "已完成", "failed" or "error" => "请求失败",
-                    "waiting" or "deferred" => "等待继续", "skipped" => "未请求", "received" => "已收到候选", _ => "状态未知"
+                    "checked" => "已检查候选",
+                    "success" => "请求成功",
+                    "completed" => "已完成",
+                    "failed" or "error" => "请求失败",
+                    "waiting" or "deferred" => "等待继续",
+                    "skipped" => "未请求",
+                    "received" => "已收到候选",
+                    _ => "状态未知"
                 };
                 Add(name + " · 发现 " + Count(site, "candidates") + " 项 · " + state);
             }
@@ -132,8 +166,13 @@ public sealed partial record MoviePilotSubscriptionActivity(string EventId, stri
                 var attemptCounts = MoviePilotSubscription.Member(attempt, "counts");
                 var state = String(attempt, "status") switch
                 {
-                    "waiting" => "等待继续", "running" => "正在处理", "failed" => "处理失败",
-                    "cancelled" => "已停止", "completed" => "处理完成", "empty" => "无可下载资源", _ => "状态未知"
+                    "waiting" => "等待继续",
+                    "running" => "正在处理",
+                    "failed" => "处理失败",
+                    "cancelled" => "已停止",
+                    "completed" => "处理完成",
+                    "empty" => "无可下载资源",
+                    _ => "状态未知"
                 };
                 Add("恢复执行 · " + state + " · 相关资源 " + Count(attemptCounts, "related") + " 项 · 提交下载 " + Count(attemptCounts, "submitted") + " 项");
                 Add(Describe(attempt));
@@ -151,7 +190,8 @@ public sealed partial record MoviePilotSubscriptionActivity(string EventId, stri
         JsonValueKind.Null or JsonValueKind.Undefined => "未设置",
         JsonValueKind.String => Safe(value),
         JsonValueKind.Number => value.GetRawText(),
-        JsonValueKind.True => "开启", JsonValueKind.False => "关闭",
+        JsonValueKind.True => "开启",
+        JsonValueKind.False => "关闭",
         JsonValueKind.Array => string.Join("、", value.EnumerateArray().Take(100).Select(Value).Where(item => item.Length > 0)),
         _ => ""
     };

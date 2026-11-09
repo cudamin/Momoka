@@ -149,6 +149,13 @@ namespace Momoka.Shell.Media
 
 namespace Momoka.Shell.Views
 {
+    // These command fixtures have no browse Frame or artwork presentation lifecycle.
+    internal static class BrowsePresentation
+    {
+        internal static Task WaitForImagesAsync() => Task.CompletedTask;
+        internal static Task WaitForImagesAsync(object owner) => Task.CompletedTask;
+    }
+
     public sealed class PosterCard : FrameworkElement
     {
         public CardItem? Card { get; set; }

@@ -318,7 +318,9 @@ internal static class Program
     }
     private static EmbyItem Item() => new()
     {
-        Id = "fixture", Name = "文字先显示", Type = EmbyItemType.Movie,
+        Id = "fixture",
+        Name = "文字先显示",
+        Type = EmbyItemType.Movie,
         ImageTags = new(StringComparer.Ordinal) { [EmbyImageStore.Logo] = "logo", [EmbyImageStore.Primary] = "cover" }
     };
     private static TaskCompletionSource Gate()

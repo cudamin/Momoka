@@ -1,5 +1,8 @@
 # 专项测试统一入口
 
+2026-11-10：Windows PowerShell 5.1下原生stderr只记日志，恢复错误偏好后按真实退出码判定；调用前清空退出码，未取得退出码也失败。runner回归使用真实.cmd/PowerShell子进程覆盖stderr成功、退出17及未取得退出码，仍保留编译失败、skip和清单完整性检查。
+
+
 架构专项同样要求当前 Shell/Core 成功编译，单选时也执行此前置。`quality.ps1` 构建失败或出现告警后明确记为未执行；`-SkipBuild` 只跳过全方案构建，架构部分仍通过专项入口重新编译当前产品和测试。`test-quality-dependencies.ps1` 覆盖失败、告警、成功和跳过全方案四种路径。Gaussian 背景专项已登记，runner 自测还对真实仓库执行清单完整性检查。
 
 `regression-suites.json` 显式登记当前全部顶层测试项目，`run-regressions.ps1` 检查清单与实际项目一致。新增或退役项目必须复核并更新清单，不自动猜测参数。既有测试、包装脚本、源码 pins 和断言不迁移；`build.cmd` 行为不变。

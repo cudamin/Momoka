@@ -52,7 +52,7 @@
         var reading = between(page, "    internal (bool Ok, string Detail) GenreRead()\n", "\n    /// <summary>\n    /// 评分那一格");
         var generated = "#nullable enable\n// Extracted verbatim from this tree at every build; missing boundaries fail the build.\n" +
             "using System.ComponentModel;\nusing Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Microsoft.UI.Xaml;\n" +
-            "using Momoka.Services;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Documents;\nusing DetailViewModel = Momoka.Tests.ReflectedDetail;\n" +
+            "using Momoka.Services;\nusing Momoka.Shell.Views;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Documents;\nusing DetailViewModel = Momoka.Tests.ReflectedDetail;\n" +
             "namespace Momoka.Shell.Views\n{\ninternal static partial class ItemCommands\n{\n" + guard + "\n" + ask + "\n}\n" + action + "\n}\n" +
             "namespace Momoka.Tests\n{\ninternal sealed partial class GenrePageContract\n{\n" + changed + "\n" + paint + "\n" + reading + "\n" +
             "    internal void Enter(object request, PlexActionsProxy _actions, FixtureServices services, EmbySession _session, EmbyImageStore images)\n    {\n" + enter + "\n    }\n}\n}\n";

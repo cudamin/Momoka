@@ -42,8 +42,12 @@ internal static class MoviePilotSubscriptionActions
         var scroll = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
         var dialog = new ContentDialog
         {
-            XamlRoot = root, RequestedTheme = owner.ActualTheme, Title = title,
-            Content = scroll, CloseButtonText = "关闭", DefaultButton = ContentDialogButton.None
+            XamlRoot = root,
+            RequestedTheme = owner.ActualTheme,
+            Title = title,
+            Content = scroll,
+            CloseButtonText = "关闭",
+            DefaultButton = ContentDialogButton.None
         };
         dialog.Resources["ContentDialogMaxWidth"] = 820d;
         AutomationProperties.SetAutomationId(dialog, "SubscriptionActionDialog");
@@ -70,8 +74,12 @@ internal static class MoviePilotSubscriptionActions
         if (title == "分享订阅")
         {
             panel.Children.Add(Text("将订阅规则公开分享到 MoviePilot 社区。"));
-            var shareTitle = new TextBox { Header = "标题", IsReadOnly = true,
-                Text = card.Subscription.Media.Title + (card.Subscription.Media.Season is { } season ? $" S{season:00}" : "") };
+            var shareTitle = new TextBox
+            {
+                Header = "标题",
+                IsReadOnly = true,
+                Text = card.Subscription.Media.Title + (card.Subscription.Media.Season is { } season ? $" S{season:00}" : "")
+            };
             var comment = new TextBox { Header = "分享说明", AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 90 };
             var user = new TextBox { Header = "分享人" };
             Id(shareTitle, "SubscriptionShareTitle"); Id(comment, "SubscriptionShareComment"); Id(user, "SubscriptionShareUser");
@@ -127,8 +135,13 @@ internal static class MoviePilotSubscriptionActions
                         load.Visibility = Visibility.Collapsed;
                     };
                     detailButtons.Add(load); content.Children.Add(load); content.Children.Add(details);
-                    var row = new Expander { Header = activity.Title + " · " + activity.StartedAt?.ToLocalTime().ToString("MM-dd HH:mm"),
-                        Content = content, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch };
+                    var row = new Expander
+                    {
+                        Header = activity.Title + " · " + activity.StartedAt?.ToLocalTime().ToString("MM-dd HH:mm"),
+                        Content = content,
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        HorizontalContentAlignment = HorizontalAlignment.Stretch
+                    };
                     Id(row, "SubscriptionActivityRow"); rows.Children.Add(row);
                 }
                 sync();
@@ -159,8 +172,12 @@ internal static class MoviePilotSubscriptionActions
                 rows.Children.Clear(); rows.Children.Add(Text(files.Summary));
                 foreach (var episode in files.Episodes)
                 {
-                    var row = new Expander { Header = $"{episode.Label} · {episode.Status}", HorizontalAlignment = HorizontalAlignment.Stretch,
-                        Content = Text(string.IsNullOrEmpty(episode.Files) ? "暂无入库或下载文件。" : episode.Files) };
+                    var row = new Expander
+                    {
+                        Header = $"{episode.Label} · {episode.Status}",
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        Content = Text(string.IsNullOrEmpty(episode.Files) ? "暂无入库或下载文件。" : episode.Files)
+                    };
                     Id(row, "SubscriptionFileRow"); rows.Children.Add(row);
                 }
             }
@@ -190,8 +207,13 @@ internal static class MoviePilotSubscriptionActions
     private static void Id(DependencyObject element, string id) => AutomationProperties.SetAutomationId(element, id);
     private static TextBlock Text(string text, string? id = null)
     {
-        var block = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true,
-            Style = (Style)Application.Current.Resources["EgBodyStyle"] };
+        var block = new TextBlock
+        {
+            Text = text,
+            TextWrapping = TextWrapping.Wrap,
+            IsTextSelectionEnabled = true,
+            Style = (Style)Application.Current.Resources["EgBodyStyle"]
+        };
         if (id is not null) Id(block, id);
         return block;
     }

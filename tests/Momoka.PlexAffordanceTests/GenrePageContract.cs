@@ -26,6 +26,8 @@ internal sealed class ReflectedDetail(object value) : INotifyPropertyChanged
     public object OtherFacts { get; } = new();
     public object SublineBrush { get; } = new();
     public Task LastLoad { get; private set; } = Task.CompletedTask;
+    public void UseImagePresentation(Task presentation) =>
+        ShellAssembly.Invoke(Value, nameof(UseImagePresentation), presentation);
     public void Attach(object request, PlexActionsProxy actions, ISettingsService settings, EmbySession session, EmbyImageStore images) =>
         ShellAssembly.Invoke(Value, "Attach", request, actions, settings, session, images);
     public Task ReloadAsync() => LastLoad = (Task)ShellAssembly.Invoke(Value, "ReloadAsync")!;

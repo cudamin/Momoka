@@ -26,10 +26,10 @@ internal static class FnNasArtwork
             }, default);
             if (failure == "500")
             {
-                if (handler.Logins != 1 || result.Single().BackdropImageTags.Count != 0)
+                if (handler.Logins != 1 || handler.GenreReads != 1 || result.Single().BackdropImageTags.Count != 0)
                     throw new InvalidOperationException("Transient artwork failure did not retain graceful fallback");
             }
-            else if (handler.Logins != 2 || handler.ListReads != 2 || result.Single().BackdropImageTags.Count != 1)
+            else if (handler.Logins != 2 || handler.ListReads != 2 || handler.GenreReads != 2 || result.Single().BackdropImageTags.Count != 1)
                 throw new InvalidOperationException("Artwork identity failure did not reauthenticate and retry the operation");
         }
         Console.WriteLine("R20: actual session reauthentication for artwork -2/401 and 500 fallback passed.");
@@ -39,6 +39,7 @@ internal static class FnNasArtwork
     {
         public int Logins { get; private set; }
         public int ListReads { get; private set; }
+        public int GenreReads { get; private set; }
         private bool _failed;
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -54,6 +55,8 @@ internal static class FnNasArtwork
                 "/v/api/v1/user/info" => "{\"guid\":\"user\",\"username\":\"anonymous\",\"is_admin\":1}",
                 "/v/api/v1/item/list" => List(),
                 "/v/api/v1/item/movie" => "{\"guid\":\"movie\",\"title\":\"anonymous\",\"type\":\"Movie\",\"backdrops\":\"/wide.webp\"}",
+                "/v/api/v1/tag/genres" when request.Method == HttpMethod.Get && request.Content is null
+                    && request.RequestUri!.Query == "?lan=zh-CN" => Genres(),
                 _ => throw new InvalidOperationException("Unexpected artwork fixture route: " + path)
             };
             if (path.EndsWith("/item/movie", StringComparison.Ordinal) && !_failed)
@@ -68,6 +71,11 @@ internal static class FnNasArtwork
         {
             ListReads++;
             return "{\"total\":1,\"list\":[{\"guid\":\"movie\",\"title\":\"anonymous\",\"type\":\"Movie\",\"poster\":\"/poster.webp\"}]}";
+        }
+        private string Genres()
+        {
+            GenreReads++;
+            return "[]";
         }
         private static Task<HttpResponseMessage> Reply(string body, int code = 0) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
         { Content = new StringContent("{\"code\":" + code + ",\"data\":" + body + "}", Encoding.UTF8, "application/json") });

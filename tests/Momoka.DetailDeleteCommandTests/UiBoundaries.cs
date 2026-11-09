@@ -92,6 +92,12 @@ namespace Momoka.Shell.ViewModels
 
 namespace Momoka.Shell.Views
 {
+    // Deletion contracts do not mount a browse Frame or load artwork.
+    internal static class BrowsePresentation
+    {
+        internal static Task WaitForImagesAsync() => Task.CompletedTask;
+    }
+
     internal static class ThemeHost
     {
         public static ThemeValue Current { get; } = new();

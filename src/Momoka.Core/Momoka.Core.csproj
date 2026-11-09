@@ -16,6 +16,10 @@
     <InternalsVisibleTo Include="Momoka.Tests" />
     <!-- Source-linked page/card tests exercise the same internal source lifetime as production. -->
     <InternalsVisibleTo Include="Momoka.PageContractTests" />
+    <InternalsVisibleTo Include="Momoka.ItemUserStateOrderTests" />
+    <InternalsVisibleTo Include="Momoka.PlexAffordanceTests" />
+    <InternalsVisibleTo Include="Momoka.DetailDeleteCommandTests" />
+    <InternalsVisibleTo Include="Momoka.AniBtEntryTests" />
   </ItemGroup>
 
 </Project>

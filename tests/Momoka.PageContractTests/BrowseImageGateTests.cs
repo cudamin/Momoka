@@ -271,7 +271,7 @@ namespace Momoka.Tests
                 Assert.True(request.Method == HttpMethod.Get && request.RequestUri?.Host == "banner.invalid");
                 Count++;
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-                    { Content = new ByteArrayContent(Encoding.UTF8.GetBytes("logo")) });
+                { Content = new ByteArrayContent(Encoding.UTF8.GetBytes("logo")) });
             }
         }
     }

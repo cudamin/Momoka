@@ -52,9 +52,17 @@ function Expand-Arguments($Entry, [string]$Evidence) {
 
 function Invoke-Logged([string]$Executable, [string[]]$Arguments, [string]$Log) {
     # Each argument is passed as its own value. Never evaluate a manifest string as shell code.
-    & $Executable @Arguments *> $Log
-    $code = $LASTEXITCODE
+    # Windows PowerShell turns redirected native stderr into an ErrorRecord. Expected diagnostics
+    # must stay in the log without interrupting the child before its real exit code is observed.
+    $savedPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $global:LASTEXITCODE = $null
+        & $Executable @Arguments *> $Log
+        $code = $global:LASTEXITCODE
+    } finally { $ErrorActionPreference = $savedPreference }
     Get-Content -LiteralPath $Log -Tail 8 | ForEach-Object { Write-Host $_ }
+    if ($null -eq $code) { throw "未取得进程退出码；日志 $Log" }
     if ($code -ne 0) { throw "退出码 $code；日志 $Log" }
 }
 

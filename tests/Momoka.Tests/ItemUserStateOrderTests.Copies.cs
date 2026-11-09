@@ -10,6 +10,23 @@ internal static partial class ItemUserStateOrderTests
 {
     private static void RegisterCardCopies()
     {
+        Case("卡片等待首帧时来源撤销，不放行图片请求", async () =>
+        {
+            await using var f = new ItemUserStateFixture();
+            var presentation = new TaskCompletionSource();
+            var card = f.NewCard(f.Scope.Bind(new EmbyItem
+            {
+                Id = "pending-artwork", Type = EmbyItemType.Movie,
+                ImageTags = new Dictionary<string, string> { ["Primary"] = "anonymous-artwork" }
+            }));
+            var loading = card.EnsurePosterAsync(presentation.Task);
+            Assert.False(loading.IsCompleted);
+            f.RevokeSource();
+            await loading.WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.False(presentation.Task.IsCompleted);
+            Assert.True(card.Poster is null);
+        });
+
         Case("状态副本：已确认后迟到的旧DTO不能用无正文收藏回滚已看", async () =>
         {
             await using var f = new ItemUserStateFixture();
