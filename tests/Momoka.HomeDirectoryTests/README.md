@@ -6,6 +6,8 @@
 
 没有执行真实 HomePage.Attach／HomeViewModel 完整加载、页面渲染／Frame历史／滚动／焦点或UIA；快照到库／最近添加排的下游实际布局与HTTP加载属于运行覆盖缺口。
 
+导航响应回归另外原样提取生产 BrowseTransition、HomePage 导航入口赋值、快照分支和 Loaded 回调。假 Frame 记录真实 Shell.Open 发出的转场参数；主页边界只替代网络、滚动与 HomeMotion，覆盖冷/暖/New/Back/Forward、重新冷访问和播放返回抑制的相互独立。实际动画像素、迟到货架与滚动由 performance/shell/playback 原生探针核验，控制台通过不替代运行验收。
+
 原目录分组保留15个用例，关闭分组新增16个，共31项，先restore、编译再运行：
 
 ```powershell

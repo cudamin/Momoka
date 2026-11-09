@@ -1,3 +1,11 @@
+## 2026-11-09 浏览导航直接交接与暖首页静态恢复（独立树待整合）
+
+工作树 `C:/Users/89400/.codex/worktrees/navigation-response/Momoka`，基点 `0625c44`。用户要求首页、媒体库、详情切换消除先停顿再转场，并以网页端作为最终速度标准。本片只把正式 Shell 浏览转场改为 Suppress，首页暖快照及 Back/Forward 不再重播货架入场；独立货架抑制位不改变原折叠与播放返回状态，显式刷新可以重新入场。没有增加页面实例缓存或调整数据加载。
+
+生产源提取回归先红 **7 项**（暖/历史货架重新入场及启用动画时 Frame 收到 Entrance），修复后 HomeDirectoryTests **61/61、0 失败、0 跳过**；HomeFoldCompletionTests **60/60、0 失败、0 跳过**。两专项与 Release Shell 最终编译均 **0 警告、0 错误**；变更文本编码/行尾与 git diff 检查通过。独立只读复审未发现必要缺陷，并核 WinUI 实现确认返回传入的 Suppress 沿历史记录供前进复用。红绿与构建证据在本树 `artifacts/navigation-response`。
+
+WarmTiming、HomeReturn、Foundation 已增加实际货架最终透明度/位置、正式 Shell 返回/前进的转场历史及滚动保持断言；**本片子会话未启动 UI，尚未执行这些新增运行路径**。主会话负责 performance/shell/playback 串行匿名探针、与网页端同条件计时、最终主树整合及交付；编译/专项通过不代表速度已经达标。本树未登录/访问真实服务、播放、发布或推 origin。
+
 ## 2026-11-09 返回主页媒体库误翻档合入主树并交付
 
 用户恢复指示「合并 交付」。临时提交 `de7d69b` 只挑入本次主页修复为 master `68849b2`；唯一冲突为 PROGRESS 顶部拼接，两批记录全部保留。主树既有三份 code-review 技能未提交删除保留。本次恢复已解除之前「暂停、不合并」，以下旧记录保留为当时状态。

@@ -85,9 +85,13 @@ internal sealed partial class ShellNavigationProbe
                 home = (HomePage)frame.Content!;
                 Require(home.IsReady, "返回主页未使用暖缓存");
                 await UntilAsync(() => home.IsLoaded);
+                Require(Get<bool>(home, "_shelfEntranceSuppressed"), "历史返回主页仍允许货架重新入场");
+                Require(!Get<bool>(home, "_entranceSuppressed"), "普通返回借用了播放返回与翻档抑制位");
+                repeater = Get<ItemsRepeater>(home, "ShelfRepeater");
                 for (var sample = 0; sample < 55; sample++)
                 {
                     home.UpdateLayout();
+                    AssertShelvesSettled(repeater);
                     Call(home, "UpdateLibraryOverlay");
                     Require(!home.ViewModel.LibraryOnBanner, "暖返回先把媒体库摆上轮播再落回横排");
                     Require(Get<HomeFoldMotion?>(home, "_fold") is null && Get<HomeFoldMotion?>(home, "_foldLate") is null,
@@ -97,7 +101,7 @@ internal sealed partial class ShellNavigationProbe
                     await Task.Delay(16);
                 }
                 await SaveProbeScreenAsync($"home-navigation-return-{width}-screen.png");
-                samples.Add(new { width, line, animated, frames = 55, libraryOnBanner = false });
+                samples.Add(new { width, line, animated, frames = 55, libraryOnBanner = false, shelvesSettled = true });
                 home.Release();
                 frame.Content = null;
                 frame.BackStack.Clear();

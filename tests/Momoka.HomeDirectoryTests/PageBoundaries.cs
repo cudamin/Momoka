@@ -9,6 +9,17 @@ namespace Microsoft.UI.Xaml
     public enum Visibility { Visible, Collapsed }
     public class FrameworkElement { public Visibility Visibility { get; set; } = Visibility.Visible; }
 }
+namespace Microsoft.UI.Xaml.Navigation
+{
+    public enum NavigationMode { New, Back, Forward, Refresh }
+    public sealed class NavigationEventArgs(NavigationMode mode) { public NavigationMode NavigationMode { get; } = mode; }
+}
+namespace Microsoft.UI.Xaml.Media.Animation
+{
+    public abstract class NavigationTransitionInfo;
+    public sealed class EntranceNavigationTransitionInfo : NavigationTransitionInfo;
+    public sealed class SuppressNavigationTransitionInfo : NavigationTransitionInfo;
+}
 namespace Microsoft.UI.Xaml.Controls
 {
     public enum InfoBarSeverity { Informational, Success, Warning, Error }
@@ -19,10 +30,12 @@ namespace Microsoft.UI.Xaml.Controls
         public List<object> ForwardStack { get; } = [];
         public int Navigations { get; private set; }
         public object? LastParameter { get; private set; }
+        public object? LastTransition { get; private set; }
         public void Navigate(Type page, object parameter, object? transition)
         {
             Navigations++;
             LastParameter = parameter;
+            LastTransition = transition;
             if (Content is not null) BackStack.Add(Content);
             Content = page == typeof(Momoka.Shell.Views.HomePage) ? new Momoka.Shell.Views.HomePage((Momoka.Shell.Views.HomeRequest)parameter) : new object();
         }
@@ -32,9 +45,10 @@ namespace Momoka.Shell.Windowing { internal sealed class HostWindow; }
 namespace Momoka.Shell.Views
 {
     internal interface IShellContent { void Release(); }
-    internal sealed class HomePage(HomeRequest request) : IShellContent
+    internal sealed partial class HomePage : IShellContent
     {
-        public HomeRequest Request { get; } = request;
+        internal HomePage(HomeRequest request) => Request = request;
+        public HomeRequest Request { get; }
         public void Release() { }
     }
     internal sealed class LibraryPage;
@@ -139,7 +153,6 @@ namespace Momoka.Shell.Views
         private void FillSwitchMenus() { }
         private void RememberTrail() { }
         private void SyncChrome() { }
-        private static object? BrowseTransition() => null;
         private void Notify(string message, Microsoft.UI.Xaml.Controls.InfoBarSeverity severity) => Notices.Add(message);
         private void OpenSubscription(MoviePilotSubscription subscription) => throw new Momoka.Tests.AssertionException("夹具不打开订阅");
         private void ShowSettings(string category) => throw new Momoka.Tests.AssertionException("夹具不打开设置");

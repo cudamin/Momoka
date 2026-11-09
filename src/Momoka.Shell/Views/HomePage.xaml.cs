@@ -45,6 +45,9 @@ public sealed partial class HomePage : Page, IShellContent
     // 暖缓存命中后等首帧布局再落回的滚动位置；只消费一次。
     private double? _restoredScroll;
 
+    // 暖恢复与历史返回不把货架重新藏起来；与播放返回/翻档的抑制位分开。
+    private bool _shelfEntranceSuppressed;
+
     // 返回现成主页后不再补播入场；显式刷新或重新导航才开始新一轮。
     private bool _entranceSuppressed;
 
@@ -226,7 +229,7 @@ public sealed partial class HomePage : Page, IShellContent
         // 挂在 Loaded 上是因为 XAML 里写不了 —— 见 HomeShelfMotion 那一段。
         Loaded += (_, _) =>
         {
-            if (!_entranceSuppressed) HomeMotion.Enter(this, ShelfRepeater, HomeRows.Count);
+            if (!_entranceSuppressed && !_shelfEntranceSuppressed) HomeMotion.Enter(this, ShelfRepeater, HomeRows.Count);
             UpdateLibraryOverlay();
 
             // 暖缓存上屏后回到离开时的位置。布局先落定，再一次性滚过去；动画关掉，返回不该像重新进场。
@@ -1376,6 +1379,7 @@ public sealed partial class HomePage : Page, IShellContent
         _request = request;
         _timing = NavigationTiming.Capture();
         _entranceSuppressed = false;
+        _shelfEntranceSuppressed = e.NavigationMode is NavigationMode.Back or NavigationMode.Forward;
         _window = request.Window;
         Tag = "home";
         NavigationTiming.Mark("attach-begin");
@@ -1429,6 +1433,7 @@ public sealed partial class HomePage : Page, IShellContent
 
         // 同一身份和版面下有上次的条目就先摆出来，网络核对放到后台；没有快照才走首次读取。
         var restored = ViewModel.RestoreSnapshot();
+        _shelfEntranceSuppressed |= restored;
         NavigationTiming.Mark(restored ? "snapshot-hit" : "snapshot-miss");
         NavigationTiming.Mark("reload-start");
         if (restored)
@@ -1567,6 +1572,7 @@ public sealed partial class HomePage : Page, IShellContent
     private void Reload()
     {
         _entranceSuppressed = false;
+        _shelfEntranceSuppressed = false;
         _ = ViewModel.ReloadAsync();
 
         // 重载之后是另一批货架，进场动画再放一遍（HomeMotion 那一拍是给「这一页刚画出来」用的，重载时那些

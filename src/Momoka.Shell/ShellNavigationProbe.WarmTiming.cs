@@ -52,6 +52,9 @@ internal sealed partial class ShellNavigationProbe
                         await LayoutAsync(page);
                         if (visit == 1)
                         {
+                            Require(Get<bool>(page, "_shelfEntranceSuppressed"), "暖主页没有抑制货架重新入场");
+                            Require(!Get<bool>(page, "_entranceSuppressed"), "暖主页改变了播放返回与翻档的抑制位");
+                            AssertShelvesSettled(Get<ItemsRepeater>(page, "ShelfRepeater"));
                             var count = page.ViewModel.Shelves.Sum(shelf => shelf.Cards.Count);
                             expected.Add((run.RunId, "home-restore", count));
                             expected.Add((run.RunId, "home-cards", count));

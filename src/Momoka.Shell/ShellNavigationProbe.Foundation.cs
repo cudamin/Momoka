@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
 using Momoka.Emby;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
@@ -133,6 +134,8 @@ internal sealed partial class ShellNavigationProbe
             Require(request.LibraryViews.Count == 0, "目录挂起夹具未经过空目录历史请求");
             shell.OpenChild(new LibraryRequest { Services = fixture.Services, Title = "目录到达时仍在其他页", ParentId = "library" });
             await UntilAsync(() => shell.ActiveContentReady);
+            Require(shell.Pages.BackStack.Last().NavigationTransitionInfo is SuppressNavigationTransitionInfo,
+                "正式 Shell 浏览导航仍把平台离场动画写进历史");
             var other = shell.Pages.Content;
             views.SetResult(Json(new { Items = libraries }));
             await entering;
@@ -141,6 +144,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => shell.ActiveContentReady && shell.Pages.Content is HomePage home && !home.ViewModel.Busy
                 && home.ViewModel.LibraryShelf?.Cards.Count == libraries.Length);
             var returned = (HomePage)shell.Pages.Content;
+            Require(Get<bool>(returned, "_shelfEntranceSuppressed"), "正式 Shell 返回主页没有抑制货架入场");
             var shelf = returned.ViewModel.LibraryShelf!;
             await LayoutAsync(returned);
             var repeater = Get<ItemsRepeater>(returned, "ShelfRepeater");
@@ -168,6 +172,16 @@ internal sealed partial class ShellNavigationProbe
                 && Math.Abs(Get<ScrollView>(home, "Scroller").VerticalOffset - offset) <= 1);
             returned = (HomePage)shell.Pages.Content;
             Require(((HomeRequest)returned.NavigationRequest!).ScrollOffset == offset, "返回主页导航请求丢失滚动位置");
+            Require(shell.Pages.ForwardStack.Last().NavigationTransitionInfo is SuppressNavigationTransitionInfo,
+                "正式 Shell 返回后的前进记录丢失立即交接策略");
+            Call(shell, "GoForward");
+            await UntilAsync(() => shell.ActiveContentReady && shell.Pages.Content is LibraryPage);
+            Call(shell, "GoBack");
+            await UntilAsync(() => shell.ActiveContentReady && shell.Pages.Content is HomePage home
+                && Math.Abs(Get<ScrollView>(home, "Scroller").VerticalOffset - offset) <= 1);
+            returned = (HomePage)shell.Pages.Content;
+            Require(Get<bool>(returned, "_shelfEntranceSuppressed"), "前进后再次返回主页重新播放了货架入场");
+            AssertShelvesSettled(Get<ItemsRepeater>(returned, "ShelfRepeater"));
             await SaveProbeScreenAsync("foundation-home-scroll-return-screen.png");
             Require(fixture.Actions.Plays == 0 && fixture.Transport.Requests.All(value => value.StartsWith("GET ", StringComparison.Ordinal)),
                 "目录返回匿名探针产生写入或播放");

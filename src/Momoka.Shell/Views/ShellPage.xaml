@@ -467,7 +467,7 @@
                 </BreadcrumbBar>
             </Grid>
 
-            <!-- 每次导航由 BrowseTransition 选择入场动效；系统关闭动画时直接切换。 -->
+            <!-- 浏览导航由 BrowseTransition 直接交接新页，页面内容的入场各自管理。 -->
             <Frame x:Name="ContentFrame" Grid.Row="1" />
         </Grid>
 

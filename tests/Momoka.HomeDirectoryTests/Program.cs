@@ -19,6 +19,21 @@ internal static class Program
         Console.WriteLine("R-062 目录交接＋R03-005 关闭账号生命周期；真实VM/Core、匿名HTTP、无窗口或真实服务器");
         AccountShutdownTests.Register(Test);
         FoundationProbeReadingTests.Register(Test);
+        HomeEntranceTests.Register(Test);
+        foreach (var animations in new[] { false, true })
+        {
+            Test("浏览导航立即交接，不等待旧页离场：动画=" + animations, () =>
+            {
+                using var f = new Fixture(MediaServerKind.Emby);
+                HomeMotion.AnimationsEnabled = animations;
+                f.Shell.GoTo("home");
+                Assert.True(f.Shell.ContentFrame.LastTransition is Microsoft.UI.Xaml.Media.Animation.SuppressNavigationTransitionInfo,
+                    "真实 Shell.Open 必须把立即交接策略传给 Frame");
+                f.Shell.GoTo(LibraryRequest.FavoritesTag);
+                Assert.True(f.Shell.ContentFrame.LastTransition is Microsoft.UI.Xaml.Media.Animation.SuppressNavigationTransitionInfo);
+                return Task.CompletedTask;
+            });
+        }
         foreach (var leaveEarly in new[] { false, true })
         {
             Test("R03-004 返回历史主页使用本次有效目录并保留滚动 " + leaveEarly, async () =>

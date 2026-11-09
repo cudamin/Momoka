@@ -1861,10 +1861,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
         await PlayAsync(item).ConfigureAwait(true);
     }
 
-    /// <summary>系统关闭动画时，所有浏览导航直接落定。</summary>
-    private static NavigationTransitionInfo BrowseTransition() => HomeMotion.AnimationsEnabled
-        ? new EntranceNavigationTransitionInfo()
-        : new SuppressNavigationTransitionInfo();
+    /// <summary>浏览导航当拍交接新页，不把首屏放在平台旧页离场之后。</summary>
+    private static NavigationTransitionInfo BrowseTransition() => new SuppressNavigationTransitionInfo();
 
     private void BeginNavigation(Type page)
     {
@@ -1927,7 +1925,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         _current = tag;
 
-        // 整体重设计使用平台入场过渡，缩短页面切换时的突兀感。
+        // 先交接新页；页面自己的内容入场不阻挡导航反馈。
         RememberTrail();
         ContentFrame.Navigate(page, parameter, BrowseTransition());
 
