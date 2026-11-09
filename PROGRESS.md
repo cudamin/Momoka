@@ -11998,3 +11998,11 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 树 `C:/Users/89400/.codex/worktrees/deep-return-probe/Momoka`，基点 `8b207e2a`，仅改 `ShellNavigationProbe.DeepReturn.cs` 与检查台入口。44792 的 Jellyfin 深返回报告在截图前测到 -17，300ms 截图等待后的屏幕已到约 -177；Release 保存当时位置，旧探针把两个时点当成同一时点比较。保留原红证据，不归因环境、不改产品锚点。
 - 三次 Frame 导航使用正式同款 Suppress；截图前继续要求第1500项 -17±3 且 ScrollView Idle，截图后即时取位置再 Release。每后端 capture JSON 记录截图期间 Y/offset/state/focus 漂移，Release 与返回的3px门槛不变，不自动滚回掩盖漂移。检查台新增 `InspectDeepReturn` 供父会话串行定向运行。
 - 本树仅还原依赖与静态差异检查；父会话要求避免重复 Shell 构建，编译、相关运行路径及失败证据由最终整合树执行。本树不启动 UI、不发布、不上传。
+
+## 2026-11-09 媒体库推送接入（本树验证，待主树整合）
+
+- 用户询问能否接入推送；本聊天在 `C:/Users/89400/.codex/worktrees/5abb/Momoka`，基点 `387c069`，实现 Plex 原生 WebSocket 通知，并补 Jellyfin ForceKeepAlive 应用心跳。保持首页生命周期、来源身份、请求头凭据、拒绝跳转和 30 秒 HTTP 核对；不增加常驻后台/系统通知。
+- Emby 官方 JS 与 C# 地址拼法不同，现有地址与官方 C# 相同，未凭单份 JS 改路径。飞牛 0.9.8 官方缓存仅见 HTTP 任务轮询及本地 EventEmitter，未取得原生入库推送协议，保留轮询。固定来源/哈希与限制见 `docs/媒体库实时更新.md`。
+- 修前实时专项 52 项37过15败；实现后52/52。独立复审定位周期更新取消在途发送会Abort连接，确定性阻塞发送回归53项52过1败；改为单一发送循环及合并唤醒后53/53，复审无必要遗留。Plex样例逐条验证解析，避免混合计数误过。
+- 本树 Release Core/Tests、Shell、ResourceBudget 编译均0警告0错误；主测试4248/4248、实时53/53、首页实际VM生命周期44/44、WebSocket容量26/26、兼容89/89，全为0失败0跳过，交叉套件不累加。定向dotnet format whitespace及15变更文本检查通过。证据在本树ignored `work/realtime-push/`。
+- 上述为匿名回环/内存REST、实际客户端与VM检查，不证明真实服务器、TLS/代理/共享账号或真实入库推送；没有登录、播放或改服务器。尚未主树整合/重验/发布，桌面仍旧版。最新主树ca812b6仅有既存技能删除，相关聊天均idle，下一步保留原改动整合并重验。

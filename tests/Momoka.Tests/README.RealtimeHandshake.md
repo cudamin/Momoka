@@ -14,7 +14,9 @@
 & "$HOME/.dotnet/dotnet.exe" run --project ./tests/Momoka.Tests/Momoka.Tests.csproj -c Release --no-build --no-restore -- realtime-handshake-fixture
 ```
 
-当前 37 项：20 项实际重定向边界、1 项等待首响应取消、原有 16 项协议／101／重连／来源退出／退避回归。注册于完整 Core；分套读数不能与完整 Core 相加。
+当前 53 项：30 项三产品实际重定向边界、1 项等待首响应取消、原有协议／101／重连／来源退出／退避回归，以及 Plex 原生通知和 Jellyfin 应用心跳。注册于完整 Core；分套读数不能与完整 Core 相加。
+
+2026-11-09 新增范围与固定上游证据见 [媒体库实时更新](../../docs/媒体库实时更新.md)。Plex Watch 实际接收并回调来源；有效与无效样例也逐条直接断言解析结果，避免混合计数提前满足。Jellyfin 在回环上验证立即／周期／更新／重连心跳，阻塞发送替身另验证周期更新不取消网络写入、无并行发送；替身不代替真实 socket 回环。
 
 ## 真实执行的隔离边界
 

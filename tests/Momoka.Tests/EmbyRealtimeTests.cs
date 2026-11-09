@@ -20,6 +20,7 @@ internal static partial class EmbyRealtimeTests
     public static void Register()
     {
         RegisterTransport();
+        RegisterPush();
         Test("实时通道：http 换 ws、路径接在反代前缀后面、只有设备号进查询串", () =>
         {
             var url = EmbyRealtimeProtocol.Build(new Uri("http://nas.invalid:8896"), "DEV42");
@@ -75,14 +76,14 @@ internal static partial class EmbyRealtimeTests
                 else Assert.Equal("synthetic&secret", headers["X-Emby-Token"]);
             }
         });
-        Test("实时通道：不支持飞牛和 Plex，空令牌、控制字符及非 HTTP 地址拒绝", () =>
+        Test("实时通道：不支持飞牛，空令牌、控制字符及非 HTTP 地址拒绝", () =>
         {
             var connection = new EmbyConnection(new Uri("http://nas.invalid"), "", "u", "u", "synthetic", DeviceIdentity.Create("d", "1"));
             Assert.Throws<ArgumentException>(() => EmbyRealtimeProtocol.Handshake(connection));
             Assert.Throws<ArgumentException>(() => EmbyRealtimeProtocol.Handshake(connection with { AccessToken = "bad\r\nheader" }));
             Assert.Throws<ArgumentException>(() => EmbyRealtimeProtocol.Build(new Uri("http://nas.invalid"), " "));
             Assert.Throws<ArgumentException>(() => EmbyRealtimeProtocol.Build(new Uri("ftp://nas.invalid"), "d"));
-            foreach (var kind in new[] { MediaServerKind.FnNas, MediaServerKind.Plex })
+            foreach (var kind in new[] { MediaServerKind.FnNas })
             {
                 Assert.False(EmbyRealtimeProtocol.Supports(kind));
                 Assert.Throws<NotSupportedException>(() => EmbyRealtimeProtocol.Build(new Uri("http://nas.invalid"), "d", kind));

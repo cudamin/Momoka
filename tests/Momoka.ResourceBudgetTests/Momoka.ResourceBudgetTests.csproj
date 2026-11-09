@@ -17,5 +17,6 @@
     <Compile Include="..\Momoka.Tests\EmbyRealtimeTests.cs" Link="Compatibility\EmbyRealtimeTests.cs" />
     <Compile Include="..\Momoka.Tests\EmbyRealtimeTests.Transport.cs" Link="Compatibility\EmbyRealtimeTests.Transport.cs" />
     <Compile Include="..\Momoka.Tests\EmbyRealtimeTests.Redirect.cs" Link="Compatibility\EmbyRealtimeTests.Redirect.cs" />
+    <Compile Include="..\Momoka.Tests\EmbyRealtimeTests.Push.cs" Link="Compatibility\EmbyRealtimeTests.Push.cs" />
   </ItemGroup>
 </Project>

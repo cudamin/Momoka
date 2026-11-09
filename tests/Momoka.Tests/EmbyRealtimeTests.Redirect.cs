@@ -12,7 +12,7 @@ internal static partial class EmbyRealtimeTests
 {
     private static void RegisterRedirectTransport()
     {
-        foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
+        foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin, MediaServerKind.Plex })
         {
             foreach (var status in new[] { 301, 302, 303, 307, 308 })
             {
@@ -51,7 +51,12 @@ internal static partial class EmbyRealtimeTests
         Assert.True(origin.RequestLine.StartsWith("GET ", StringComparison.Ordinal));
         Assert.DoesNotContain("synthetic-realtime-old", origin.RequestLine);
         Assert.DoesNotContain("api_key", origin.RequestLine);
-        if (kind == MediaServerKind.Jellyfin)
+        if (kind == MediaServerKind.Plex)
+        {
+            Assert.Equal("synthetic-realtime-old", origin.Headers["X-Plex-Token"]);
+            Assert.True(origin.Headers.ContainsKey("X-Plex-Client-Identifier"));
+        }
+        else if (kind == MediaServerKind.Jellyfin)
         {
             Assert.Contains("Token=\"synthetic-realtime-old\"", origin.Headers["Authorization"]);
             Assert.False(origin.Headers.ContainsKey("X-Emby-Token"));
@@ -102,6 +107,7 @@ internal static partial class EmbyRealtimeTests
             using var request = await ReadRedirectRequestAsync(listener, token, () => accepted = true);
             var credentials = request.Headers.Keys.Count(key => key.Equals("X-Emby-Token", StringComparison.OrdinalIgnoreCase)
                 || key.Equals("X-Emby-Authorization", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("X-Plex-Token", StringComparison.OrdinalIgnoreCase)
                 || key.Equals("Authorization", StringComparison.OrdinalIgnoreCase));
             await request.ReplyAsync("HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", token);
             return (1, credentials);

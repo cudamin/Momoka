@@ -16,7 +16,7 @@ namespace Momoka.Emby;
 /// </summary>
 public static class EmbyRealtimeProtocol
 {
-    public static bool Supports(MediaServerKind kind) => kind is MediaServerKind.Emby or MediaServerKind.Jellyfin;
+    public static bool Supports(MediaServerKind kind) => kind is MediaServerKind.Emby or MediaServerKind.Jellyfin or MediaServerKind.Plex;
 
     /// <summary>实时 URL 只包含端点和设备号。凭据通过 <see cref="Handshake"/> 的请求头传递。</summary>
     public static Uri Build(Uri apiBase, string deviceId, MediaServerKind kind = MediaServerKind.Emby)
@@ -31,13 +31,18 @@ public static class EmbyRealtimeProtocol
             _ => throw new ArgumentException("实时通道只支持 http/https", nameof(apiBase))
         };
         var basePath = apiBase.AbsolutePath.TrimEnd('/');
-        // 本轮只修凭据与生命周期。Emby 现有端点别名仍需真实服务器取证，不借鉴权修复猜改路径。
-        var endpoint = kind == MediaServerKind.Jellyfin ? "socket" : "embywebsocket";
+        // Emby 官方 JS 与 C# 使用不同别名；保留现有 C# 拼法，实服兼容仍需核对。
+        var endpoint = kind switch
+        {
+            MediaServerKind.Jellyfin => "socket",
+            MediaServerKind.Plex => ":/websockets/notifications",
+            _ => "embywebsocket"
+        };
         return new UriBuilder(apiBase)
         {
             Scheme = scheme,
             Path = $"{basePath}/{endpoint}",
-            Query = "deviceId=" + Uri.EscapeDataString(deviceId),
+            Query = kind == MediaServerKind.Plex ? "" : "deviceId=" + Uri.EscapeDataString(deviceId),
             Fragment = "",
             UserName = "",
             Password = ""
