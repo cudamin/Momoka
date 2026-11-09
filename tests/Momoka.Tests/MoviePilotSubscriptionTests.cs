@@ -29,6 +29,7 @@ internal static class MoviePilotSubscriptionTests
 
     internal static void Register()
     {
+        MoviePilotSubscriptionActivityTests.Register();
         PlaybackTests();
         Test("MoviePilot 订阅列表：分区保留来源、季号与数字字符串，忽略音乐且不以媒体编号合并", () =>
         {
