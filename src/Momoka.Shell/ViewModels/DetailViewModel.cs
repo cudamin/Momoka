@@ -3500,6 +3500,16 @@ public sealed partial class DetailViewModel : PageViewModel
     private async Task LoadArtworkAsync(EmbyItem item, CancellationTokenSource art)
     {
         if (!Attached) return;
+        // 文字与主体 GET 继续先行；缓存命中的图片也等这次页面首帧之后再开始解码/回填。
+        try
+        {
+            await Views.BrowsePresentation.WaitForImagesAsync().WaitAsync(art.Token).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        if (!Attached || !Fresh(art, item)) return;
         NavigationTiming.Mark("art-load-begin");
         _heroTiming = NavigationTiming.Capture();
 
@@ -3547,7 +3557,7 @@ public sealed partial class DetailViewModel : PageViewModel
         async Task Paint(Task<BitmapImage?> decode, Action<BitmapImage> assign)
         {
             var picture = await decode.ConfigureAwait(true);
-            if (Fresh(art, item) && picture is not null)
+            if (Attached && Fresh(art, item) && picture is not null)
             {
                 assign(picture);
                 NavigationTiming.Mark("image-assign");
@@ -3733,7 +3743,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// </summary>
     private bool Fresh(CancellationTokenSource art, EmbyItem item) =>
-        ReferenceEquals(_art, art) && ItemArtwork.SamePictures(_detail, item);
+        !art.IsCancellationRequested && ReferenceEquals(_art, art) && ItemArtwork.SamePictures(_detail, item);
 
     private async Task<BitmapImage?> DecodeFirstAsync(
         EmbyItem item, IReadOnlyList<string> types, int width, CancellationToken token)

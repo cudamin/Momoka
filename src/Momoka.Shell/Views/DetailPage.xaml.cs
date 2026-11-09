@@ -85,6 +85,7 @@ public sealed partial class DetailPage : Page, IShellContent
         NavigationTiming.Mark("init-begin");
         InitializeComponent();
         NavigationTiming.Mark("init-end");
+        WatchArtworkArrival();
         PrepareAppearance();
         PaintScrim();
         BackdropThemeSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) =>
@@ -111,6 +112,7 @@ public sealed partial class DetailPage : Page, IShellContent
         // 挂在构造里的话第二次上树时那份订阅已经在 Unloaded 里解掉了。先减再加，重复上树也只挂一支。
         Loaded += (_, _) =>
         {
+            WatchArtworkArrival();
             LiftBackdrop();
             ThemeHost.Changed -= OnThemeChanged;
             ThemeHost.Changed += OnThemeChanged;
@@ -123,6 +125,7 @@ public sealed partial class DetailPage : Page, IShellContent
         // navigation is fine.
         Unloaded += (_, _) =>
         {
+            StopArtworkArrival();
             ThemeHost.Changed -= OnThemeChanged;
             StopAppearance();
             HideCoverHover();
@@ -1657,6 +1660,7 @@ public sealed partial class DetailPage : Page, IShellContent
         }
 
         _request = request;
+        WatchArtworkArrival();
 
         // 页面实例会被导航栈复用：上一次停留时「已经排过版」的那一位不能带进新条目。等这一次的
         // OnBodySizeChanged 量到真实宽高后应用沉浸或窄窗布局。
@@ -1864,6 +1868,7 @@ public sealed partial class DetailPage : Page, IShellContent
 
     public void Release()
     {
+        StopArtworkArrival();
         StopAppearance();
         StopCardLayout();
         ViewModel.Cancel();

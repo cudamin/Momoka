@@ -14,6 +14,11 @@ PageContract用最小可控制presentation边界执行真实卡/轮播/图片sto
 受管独立树 browse-presentation/Momoka，基点6e53dbf。Shell保留Suppress，首次Loaded立即180ms纯透明度从0.8到1；不平移、不等旧页退出、不完全隐藏首屏。Navigating先建立访问图片门控，Rendering只排低优先级回调，异步续接再放行；换页、导航失败/取消和身份释放都取消旧回调并放行旧等待，调用方继续用自己的取消与访问归属。关应用/系统动画即时落定但图片门控继续；未上UI树默认不等待。AsyncLocal保留请求自己的门控，原生WinRT上下文效果待父会话实测。
 
 生产源链接专用先0/14红，最终15/15；未上树守卫追加先14/15红后15/15。HomeDirectory真实提取62/62，Release Shell/专用构建0警告0错误，格式和变更文本检查通过。证据artifacts/browse-presentation。未运行UI、真实服务器或播放，未发布/上传；父会话整合、原生门控/画面检查、完整测试与实际发布尚待完成。
+## 2026-11-09 详情图片首帧门控与晚到淡入（子树待整合）
+
+独立受管树 `detail-image-arrival/Momoka`，基点 `6e53dbf`；范围只含详情图片加载入口、详情五种图片接线、可复用 ImageArrivalFade 与独立测试。LoadArtworkAsync 等本轮 BrowsePresentation 首帧门控后才启动图片批次，主体 GET/预览文字继续先行；放行后和回填时核对 Attached/Fresh/取消。Source 晚到直接触发220ms纯Opacity Storyboard，已在屏同对象源和离树先到图不重播；ImageBrush 仅动画专用图片宿主，主题遮罩与画刷透明度保留。静止/空图不挂全局或系统监听，活跃动画结束/失败/取消/离页/关动画立即落定并退订。
+
+生产完整加载方法原样提取与helper/五图接线完整源码链接专项，首轮13/13预期红；缓存/取消回填与淡入修复后通过，性能新增静止订阅红后修复，ImageBrush宿主专项红后修复。最终当前Release Core/专项构建0警告0错误，15/15通过、0失败0跳过；没有运行UI、真实服务、播放或发布，Shell门控源码在另一树，整合后由主会话完整编译与运行验证。本树尚待整合，快捷方式仍是旧版。
 
 ## 2026-11-09 MP 详情等高资料卡与下方响应式紧凑卡片
 
