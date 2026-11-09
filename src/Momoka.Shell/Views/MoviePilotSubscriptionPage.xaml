@@ -19,16 +19,28 @@
             <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
             <Setter Property="Padding" Value="0" />
         </Style>
-        <DataTemplate x:Key="SubscriptionFactTemplate" x:DataType="mp:MoviePilotSubscriptionFact">
-            <Border BorderThickness="0,0,0,1" BorderBrush="{ThemeResource EgBorderBrush}" Padding="0,8">
+        <DataTemplate x:Key="SubscriptionFactTemplate" x:DataType="mp:MoviePilotMediaFact">
+            <Border BorderThickness="{x:Bind local:MoviePilotSubscriptionPage.FactBorder(Last), Mode=OneTime}" BorderBrush="{ThemeResource EgBorderBrush}" Padding="14,8">
                 <Grid ColumnSpacing="{StaticResource EgSpaceM}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Top" />
-                    <TextBlock Grid.Column="1" Text="{x:Bind Value}" Style="{StaticResource EgDataStyle}"
-                        HorizontalAlignment="Right" TextAlignment="Right" TextWrapping="Wrap" />
+                    <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" VerticalAlignment="Top" />
+                    <Grid Grid.Column="1" ColumnSpacing="6" HorizontalAlignment="Right">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Viewbox Width="16" Height="16" VerticalAlignment="Top" Margin="0,2,0,0"
+                            Visibility="{x:Bind local:MoviePilotSubscriptionPage.FactVisibility(Cloud), Mode=OneTime}">
+                            <Path Stroke="{ThemeResource EgTextDimBrush}" StrokeThickness="1.5"
+                                Data="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                        </Viewbox>
+                        <Border BorderThickness="1" BorderBrush="{ThemeResource EgTextDimBrush}" Padding="2,0" VerticalAlignment="Top"
+                            Visibility="{x:Bind local:MoviePilotSubscriptionPage.ReleaseCountryVisibility(ReleaseCountry), Mode=OneTime}">
+                            <TextBlock Text="{x:Bind ReleaseCountry}" Style="{StaticResource EgCaptionStyle}" />
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="{x:Bind Value}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold"
+                            HorizontalAlignment="Right" TextAlignment="Right" TextWrapping="Wrap" />
+                    </Grid>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -78,11 +90,13 @@
     </Grid>
     <ScrollViewer x:Name="DetailScroll" VerticalScrollBarVisibility="Auto" SizeChanged="OnDetailScrollSizeChanged" ViewChanged="OnDetailViewChanged">
         <StackPanel>
-            <!-- 封面与操作自然收边；资料卡完整展示，下方货架只收窄整体宽度。 -->
+            <!-- 资料卡参与头部自然高度，下方内容顺序排列、始终全宽。 -->
             <StackPanel x:Name="HeroSection">
             <StackPanel x:Name="HeroBlock" Padding="{x:Bind MediaViewModel.HeaderPadding, Mode=OneWay}" Spacing="12"
                 SizeChanged="OnHeroContentSizeChanged">
-            <Grid x:Name="HeroRow" Margin="0,12,0,12">
+            <Grid x:Name="HeroRow" Margin="0,12,0,12" ColumnSpacing="12" RowSpacing="8">
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="HeroFactColumn" Width="288" /></Grid.ColumnDefinitions>
                 <Border x:Name="HeroSurface" VerticalAlignment="Top" CornerRadius="{StaticResource EgCardCornerRadius}">
                 <Grid x:Name="HeroGrid" MinHeight="300" ColumnSpacing="{StaticResource EgSpaceXL}" RowSpacing="16" SizeChanged="OnHeroSizeChanged">
                     <Grid.RowDefinitions>
@@ -142,6 +156,34 @@
                     </StackPanel>
                 </Grid>
                 </Border>
+                <Border x:Name="HeroFacts" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Width="288" CornerRadius="{StaticResource EgCardCornerRadius}"
+                    BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    <Grid>
+                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <Border x:Name="SubscriptionRating" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,0,0,1" Padding="14,16"
+                            Visibility="{x:Bind MediaViewModel.StarsVisibility, Mode=OneWay}">
+                            <ItemsRepeater x:Name="SubscriptionStars" ItemsSource="{x:Bind MediaViewModel.Stars, Mode=OneWay}" HorizontalAlignment="Center">
+                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="8" /></ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:MoviePilotRatingStar">
+                                        <Grid Width="16" Height="20">
+                                            <FontIcon Glyph="&#xE734;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextBrush}" Opacity="0.23" />
+                                            <Grid>
+                                                <Grid.Clip><RectangleGeometry Rect="{x:Bind local:MoviePilotSubscriptionPage.StarClip(Fill), Mode=OneTime}" /></Grid.Clip>
+                                                <FontIcon Glyph="&#xE735;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgWarningBrush}" />
+                                            </Grid>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </Border>
+                        <StackPanel x:Name="FactList" Grid.Row="1" Spacing="0">
+                            <ItemsRepeater x:Name="MediaFacts" ItemsSource="{x:Bind MediaViewModel.Facts, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionFactTemplate}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
             </Grid>
             <InfoBar Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
@@ -153,12 +195,8 @@
             <StackPanel x:Name="BodySheet" Background="{ThemeResource EgWindowBrush}"
                 Padding="{x:Bind MediaViewModel.BodySheetPadding, Mode=OneWay}"
                 Spacing="{x:Bind MediaViewModel.BodySheetSpacing, Mode=OneWay}">
-            <Grid x:Name="BodyLayout" LayoutUpdated="OnBodyLayoutUpdated">
             <StackPanel x:Name="BodyFlow" VerticalAlignment="Top" Spacing="{x:Bind MediaViewModel.BodySheetSpacing, Mode=OneWay}">
-            <!-- 宽窗资料卡独立放右侧，正文和货架按实际交叠避让；窄窗资料卡回到正文下方。 -->
-            <Grid x:Name="BodyRow" ColumnSpacing="12" SizeChanged="OnBodyRowSizeChanged">
-                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="HeroFactColumn" Width="320" /></Grid.ColumnDefinitions>
+            <Grid x:Name="BodyRow" SizeChanged="OnBodyRowSizeChanged">
                 <StackPanel x:Name="BodyPrimary" Spacing="8" VerticalAlignment="Top">
                     <StackPanel x:Name="HeroOverview" VerticalAlignment="Top"
                         Style="{StaticResource EgBodyPanelStyle}" Background="Transparent" BorderThickness="0"
@@ -180,48 +218,24 @@
                 <local:MoviePilotMediaSeasonsView x:Name="MediaSeasons" />
             </StackPanel>
                 </StackPanel>
-                <Border x:Name="HeroFacts" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Top"
-                    Width="320" Padding="12" CornerRadius="{StaticResource EgCardCornerRadius}"
-                    BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-                    <Grid RowSpacing="{StaticResource EgSpaceM}">
-                        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                        <StackPanel x:Name="SubscriptionRating" Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}"
-                            Visibility="{x:Bind SubscriptionSectionVisibility(ViewModel.Deleted), Mode=OneWay}">
-                            <ItemsRepeater x:Name="SubscriptionStars" ItemsSource="{x:Bind ViewModel.DetailStars, Mode=OneWay}">
-                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="2" /></ItemsRepeater.Layout>
-                                <ItemsRepeater.ItemTemplate>
-                                    <DataTemplate x:DataType="x:String">
-                                        <FontIcon Glyph="{x:Bind}" Style="{StaticResource EgRatingStarStyle}" />
-                                    </DataTemplate>
-                                </ItemsRepeater.ItemTemplate>
-                            </ItemsRepeater>
-                            <TextBlock Text="{x:Bind ViewModel.DetailRatingText, Mode=OneWay}" Style="{StaticResource EgDataStyle}" VerticalAlignment="Center" />
-                        </StackPanel>
-                        <StackPanel x:Name="FactList" Grid.Row="1" Spacing="0">
-                            <ItemsRepeater x:Name="MediaFacts" ItemsSource="{x:Bind MediaViewModel.Facts, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionFactTemplate}" />
-                            <ItemsRepeater x:Name="SubscriptionFacts" ItemsSource="{x:Bind ViewModel.DetailInfoFacts, Mode=OneWay}"
-                                ItemTemplate="{StaticResource SubscriptionFactTemplate}" Visibility="{x:Bind SubscriptionSectionVisibility(ViewModel.Deleted), Mode=OneWay}" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
+
             </Grid>
 
-            <StackPanel x:Name="PeoplePanel" HorizontalAlignment="Left" Style="{StaticResource EgBodyPanelStyle}"
+            <StackPanel x:Name="PeoplePanel" Style="{StaticResource EgBodyPanelStyle}"
                 Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
                 Spacing="10" Visibility="{x:Bind MediaViewModel.PeopleVisibility, Mode=OneWay}">
                 <local:ShelfHead Title="演员阵容" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
                 <local:ShelfStrip x:Name="MediaPeople" ItemsSource="{x:Bind MediaViewModel.People, Mode=OneWay}"
                     ItemSpacing="16" PictureHeight="184" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
             </StackPanel>
-            <StackPanel x:Name="RecommendationsPanel" HorizontalAlignment="Left" Style="{StaticResource EgBodyPanelStyle}"
+            <StackPanel x:Name="RecommendationsPanel" Style="{StaticResource EgBodyPanelStyle}"
                 Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
                 Spacing="10" Visibility="{x:Bind MediaViewModel.RecommendationsVisibility, Mode=OneWay}">
                 <local:ShelfHead Title="相关推荐" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
                 <local:ShelfStrip x:Name="MediaRecommendations" ItemsSource="{x:Bind MediaViewModel.Recommendations, Mode=OneWay}"
                     ItemSpacing="16" PictureHeight="184" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
             </StackPanel>
-            <StackPanel x:Name="SimilarPanel" HorizontalAlignment="Left" Style="{StaticResource EgBodyPanelStyle}"
+            <StackPanel x:Name="SimilarPanel" Style="{StaticResource EgBodyPanelStyle}"
                 Padding="{x:Bind MediaViewModel.BodyPanelPadding, Mode=OneWay}"
                 Spacing="10" Visibility="{x:Bind MediaViewModel.SimilarVisibility, Mode=OneWay}">
                 <local:ShelfHead Title="相似作品" ShowLines="{x:Bind MediaViewModel.ShowShelfLines, Mode=OneWay}" />
@@ -229,7 +243,6 @@
                     ItemSpacing="16" PictureHeight="184" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
             </StackPanel>
             </StackPanel>
-            </Grid>
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

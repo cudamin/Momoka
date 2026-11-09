@@ -23,10 +23,9 @@ internal sealed record MoviePilotSubscriptionRequest(MoviePilotService Service, 
 
 public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 {
-    private const double FactsSideWidth = 320;
+    private const double FactsSideWidth = 288;
     private const double FactsStackedMaxWidth = 520;
     private const double FactsSideBreakpoint = 960;
-    private const double FactsStackedRowSpacing = 8;
 
     /// <summary>
     /// 头部封面的尺寸，照电影详情页那张竖版封面（<c>DetailViewModel.PosterStillWidth</c>／
@@ -127,7 +126,12 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     {
         // 宽高各自写回视图模型，派生值（背景盒高、头部下限）跟着它们自己重算。模式翻面不在这里结算：
         // 沉浸档只看宽版式与图（ApplyBodyLayout 与 Backdrop 那两条来路），尺寸只是让那几个数换个值。
-        if (args.NewSize.Width > 0) MediaViewModel.PageWidth = args.NewSize.Width;
+        if (args.NewSize.Width > 0)
+        {
+            MediaViewModel.PageWidth = args.NewSize.Width;
+            var padding = MediaViewModel.HeaderPadding;
+            ApplyBodyLayout(Math.Max(0, args.NewSize.Width - padding.Left - padding.Right));
+        }
         ApplyMaterialAppearance();
         if (args.NewSize.Height > 0) MediaViewModel.Viewport = args.NewSize.Height;
     }
@@ -139,7 +143,6 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private void OnHeroContentSizeChanged(object sender, SizeChangedEventArgs args)
     {
         if (args.NewSize.Height > 0) MediaViewModel.HeroBandHeight = args.NewSize.Height;
-        UpdateFactsLift();
     }
 
     private void LiftBackdrop()
@@ -155,67 +158,28 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
             DetailBackdropRoot.Margin = new Thickness(0, -lift, 0, 0);
     }
 
-    // 资料卡完整展开；下方列表只在纵向重叠时避让右列。
-    private void OnBodyRowSizeChanged(object sender, SizeChangedEventArgs args) => ApplyBodyLayout(args.NewSize.Width);
+    public static Thickness FactBorder(bool last) => last ? default : new Thickness(0, 0, 0, 1);
+    public static Visibility FactVisibility(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
+    public static Visibility ReleaseCountryVisibility(string country) => FactVisibility(country.Length > 0);
+    public static Windows.Foundation.Rect StarClip(double fill) => new(0, 0, 16 * fill, 20);
+
+    private void OnBodyRowSizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        var padding = MediaViewModel.HeaderPadding;
+        var width = DetailScroll.ActualWidth - padding.Left - padding.Right;
+        if (width > 0) ApplyBodyLayout(width);
+    }
 
     private void ApplyBodyLayout(double width)
     {
         var side = width >= FactsSideBreakpoint;
-        var parent = side ? BodyLayout : BodyRow;
-        if (!parent.Children.Contains(HeroFacts))
-        {
-            BodyLayout.Children.Remove(HeroFacts);
-            BodyRow.Children.Remove(HeroFacts);
-            parent.Children.Add(HeroFacts);
-        }
-        HeroFacts.HorizontalAlignment = side ? HorizontalAlignment.Right : HorizontalAlignment.Left;
-        Grid.SetColumn(HeroFacts, 0);
+        Grid.SetColumn(HeroFacts, side ? 1 : 0);
         Grid.SetRow(HeroFacts, side ? 0 : 1);
         HeroFactColumn.Width = side ? new GridLength(FactsSideWidth) : new GridLength(0);
-        HeroSurface.Margin = side ? new Thickness(0, 0, FactsSideWidth + BodyRow.ColumnSpacing, 0) : default;
-        BodyRow.RowSpacing = side ? 0 : FactsStackedRowSpacing;
+        HeroFacts.HorizontalAlignment = side ? HorizontalAlignment.Right : HorizontalAlignment.Left;
         HeroFacts.Width = side ? FactsSideWidth : Math.Min(FactsStackedMaxWidth, width);
-
+        HeroFacts.Margin = side ? new Thickness(0, HeroSurface.Padding.Top, 0, 0) : default;
         MediaViewModel.WideLayout = side;
-        UpdateFactsLift();
-    }
-
-    // 从上往下按最终纵坐标避让。自身宽度不会改变自身顶边，前一段换行后下一轮布局会修正后续段。
-    private void OnBodyLayoutUpdated(object? sender, object args)
-    {
-        if (DetailScroll.Visibility != Visibility.Visible || BodyRow.ActualWidth <= 0 || BodyPrimary.ActualWidth <= 0) return;
-        UpdateFactsLift();
-        var factsTop = HeroFacts.TransformToVisual(BodyLayout).TransformPoint(default).Y;
-        var factsBottom = factsTop + HeroFacts.ActualHeight;
-        foreach (var panel in new[] { PeoplePanel, RecommendationsPanel, SimilarPanel })
-        {
-            if (panel.Visibility != Visibility.Visible) continue;
-            var top = panel.TransformToVisual(BodyLayout).TransformPoint(default).Y;
-            var overlaps = MediaViewModel.WideLayout && top < factsBottom + 8
-                && top + panel.ActualHeight > factsTop;
-            var width = overlaps ? BodyPrimary.ActualWidth : BodyRow.ActualWidth;
-            if (double.IsNaN(panel.Width) || Math.Abs(panel.Width - width) > 0.5) panel.Width = width;
-        }
-    }
-
-    private void UpdateFactsLift()
-    {
-        var lift = 0d;
-        if (MediaViewModel.WideLayout && HeroFacts.ActualWidth > 0)
-        {
-            var factsX = HeroFacts.TransformToVisual(this).TransformPoint(default).X;
-            var bodyTop = BodyRow.TransformToVisual(this).TransformPoint(default).Y;
-            // 资料卡上沿对齐片名；头部右侧让出资料栏，长片名和操作仍在左边完整换行。
-            lift = Math.Max(0, bodyTop - MediaTitle.TransformToVisual(this).TransformPoint(default).Y);
-            foreach (var child in HeroContent.Children.OfType<FrameworkElement>().Where(child => child.Visibility == Visibility.Visible))
-            {
-                var position = child.TransformToVisual(this).TransformPoint(default);
-                if (position.X + child.ActualWidth > factsX)
-                    lift = Math.Min(lift, Math.Max(0, bodyTop - position.Y - child.ActualHeight - 12));
-            }
-        }
-        var margin = new Thickness(0, -lift, 0, 0);
-        if (HeroFacts.Margin != margin) HeroFacts.Margin = margin;
     }
 
     private void OnHeroSizeChanged(object sender, SizeChangedEventArgs args)
@@ -226,7 +190,6 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         Grid.SetColumnSpan(HeroContent, compact ? 2 : 1);
         DetailPoster.Width = compact ? CompactPosterWidth : PosterWidth;
         DetailPoster.Height = compact ? CompactPosterHeight : PosterHeight;
-        UpdateFactsLift();
         ApplyMaterialAppearance();
     }
 
@@ -297,9 +260,9 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         HeroSurface.Padding = plain ? new Thickness(HeroCardPadding) : default;
         HeroRow.Margin = plain ? default : new Thickness(0, HeroRowTop, 0, HeroRowBottom);
 
+        HeroFacts.Margin = MediaViewModel.WideLayout ? new Thickness(0, HeroSurface.Padding.Top, 0, 0) : default;
         HeroSurface.VerticalAlignment = VerticalAlignment.Top;
         HeroOverview.VerticalAlignment = VerticalAlignment.Top;
-        UpdateFactsLift();
     }
 
     private static Brush? ResourceBrush(string key) =>

@@ -69,6 +69,8 @@ internal sealed partial class ShellNavigationProbe
             var seasons = Get<MoviePilotMediaSeasonsView>(page, "MediaSeasons");
             seasons.StartBringIntoView();
             await LayoutAsync(page);
+            seasons.ShowSubscriptionFiles();
+            await LayoutAsync(page);
             // ItemsRepeater 换过一遍数据之后，旧那一格的容器要等布局把它收走：这一句等它收干净再量。
             // 收不干净（真在屏上画出两行同一个集）就照实报数 —— 2026-10-18 之前这里是一次 `Single`，
             // 撞上那半拍只给一句「Sequence contains more than one matching element」，看不出是几个、是哪个键。
@@ -145,7 +147,7 @@ internal sealed partial class ShellNavigationProbe
             var loaded = page.MediaViewModel.Seasons.Where(row => row.Files is not null).ToArray();
             Require(loaded.Length == 1, $"装着订阅统计的季有 {loaded.Length} 行（应为 1）");
             var restored = loaded[0];
-            Require(restored.Expanded && ReferenceEquals(restored.FilesEpisodes, files) && restored.FilesFilterIndex == 1, "切回原组没有恢复统计及筛选");
+            Require(!restored.Expanded && ReferenceEquals(restored.FilesEpisodes, files) && restored.FilesFilterIndex == 1, "切回原组没有恢复统计及筛选");
             var staleEpisode = vm.Episodes[0];
             server.Items.Remove(subscription.Id);
             await vm.ReloadAsync();

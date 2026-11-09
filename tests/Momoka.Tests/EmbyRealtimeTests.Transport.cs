@@ -16,7 +16,7 @@ internal static partial class EmbyRealtimeTests
     private static void RegisterTransport()
     {
         RegisterRedirectTransport();
-        foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
+        foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin, MediaServerKind.Plex })
             Test($"实时握手：{kind} 回环连接只经请求头鉴权，重连读取新令牌且不换来源", () =>
                 VerifyHandshakeAsync(kind).WaitAsync(TimeSpan.FromSeconds(12)).GetAwaiter().GetResult());
 
@@ -43,7 +43,7 @@ internal static partial class EmbyRealtimeTests
         CheckHandshake(second, source.CurrentConnection, "synthetic-realtime-new");
         await second.Socket.SendAsync(Encoding.UTF8.GetBytes("{\"MessageType\":\"Sessions\"}").AsMemory(),
             WebSocketMessageType.Text, true, CancellationToken.None);
-        await second.Socket.SendAsync(Encoding.UTF8.GetBytes("{\"MessageType\":\"LibraryChanged\"}").AsMemory(),
+        await second.Socket.SendAsync(Encoding.UTF8.GetBytes(kind == MediaServerKind.Plex ? PlexCreated : "{\"MessageType\":\"LibraryChanged\"}").AsMemory(),
             WebSocketMessageType.Text, true, CancellationToken.None);
         Assert.Equal(source.Key, await changed.Task.WaitAsync(TimeSpan.FromSeconds(3)));
         Assert.True(source.IsAvailable && source.IsCurrent);
@@ -73,7 +73,14 @@ internal static partial class EmbyRealtimeTests
             + " HTTP/1.1", accepted.RequestLine);
         Assert.DoesNotContain(token, accepted.RequestLine);
         Assert.DoesNotContain("api_key", accepted.RequestLine);
-        if (connection.IsJellyfin)
+        if (connection.IsPlex)
+        {
+            Assert.Equal("GET /proxy/:/websockets/notifications HTTP/1.1", accepted.RequestLine);
+            Assert.Equal(token, accepted.Headers["X-Plex-Token"]);
+            Assert.Equal(connection.Device.DeviceId, accepted.Headers["X-Plex-Client-Identifier"]);
+            Assert.False(accepted.Headers.ContainsKey("X-Emby-Token"));
+        }
+        else if (connection.IsJellyfin)
         {
             Assert.Contains("MediaBrowser ", accepted.Headers["Authorization"]);
             Assert.Contains("Token=\"" + token + "\"", accepted.Headers["Authorization"]);
@@ -176,6 +183,17 @@ internal static partial class EmbyRealtimeTests
         {
             Assert.Equal("127.0.0.1", request.RequestUri!.Host, "回环 REST 假传输拒绝真实服务器");
             var path = request.RequestUri.AbsolutePath;
+            if (kind == MediaServerKind.Plex)
+            {
+                var payload = path switch
+                {
+                    "/proxy/identity" or "/proxy/" => "{\"MediaContainer\":{\"machineIdentifier\":\"synthetic-server\",\"friendlyName\":\"synthetic-realtime\",\"version\":\"1.41\"}}",
+                    "/proxy/library/sections" => "{\"MediaContainer\":{\"Directory\":[]}}",
+                    _ => null
+                };
+                return Task.FromResult(new HttpResponseMessage(payload is null ? HttpStatusCode.NotFound : HttpStatusCode.OK)
+                { Content = new StringContent(payload ?? "{}", Encoding.UTF8, "application/json") });
+            }
             var json = path.EndsWith("System/Info/Public", StringComparison.Ordinal)
                 ? "{\"ServerName\":\"synthetic-realtime\",\"Version\":\"12.2\",\"Id\":\"synthetic-server\",\"ProductName\":\"" + kind + "\"}"
                 : path.EndsWith("UserViews", StringComparison.Ordinal) || path.EndsWith("/Views", StringComparison.Ordinal)

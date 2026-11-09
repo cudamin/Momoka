@@ -254,6 +254,11 @@ internal sealed partial class ShellNavigationProbe
             var seasonsView = Get<MoviePilotMediaSeasonsView>(page, "MediaSeasons");
             seasonsView.StartBringIntoView();
             await LayoutAsync(page);
+            Require(page.MediaViewModel.Seasons.All(row => !row.Expanded), "季列表应默认收起");
+            Require(Descendants(seasonsView).OfType<Expander>().All(control => !control.IsExpanded), "季栏默认展开");
+            await SaveProbeScreenAsync("mp-subscription-seasons-default-collapsed-screen.png");
+            seasonsView.ShowSubscriptionFiles();
+            await LayoutAsync(page);
             var host = Descendants(seasonsView).OfType<Expander>().First(expander => expander.Name == "ExpandMediaSeason" && expander.IsExpanded);
             // 电影那块独立的「入库与缺集」面板已按用户令（2026-10-12）整块删除：这一页上只该有折叠栏里
             // 这一份统计，页面上不再出现第二个「入库与缺集」（电影页上的显隐见 MoviePilotMovieSubscriptionDetailAsync）。
@@ -275,8 +280,8 @@ internal sealed partial class ShellNavigationProbe
                 Get<ScrollViewer>(page, "DetailScroll").ChangeView(null, 0, null, true);
                 await LayoutAsync(page);
                 var factsPanel = Get<Border>(page, "HeroFacts");
-                var subscriptionFields = Get<ItemsRepeater>(page, "SubscriptionFacts");
-                var lastFact = (FrameworkElement)subscriptionFields.GetOrCreateElement(vm.DetailInfoFacts.Count - 1);
+                var subscriptionFields = Get<ItemsRepeater>(page, "MediaFacts");
+                var lastFact = (FrameworkElement)subscriptionFields.GetOrCreateElement(page.MediaViewModel.Facts.Count - 1);
                 await LayoutAsync(page);
                 var lastFactBottom = lastFact.TransformToVisual(factsPanel).TransformPoint(new Windows.Foundation.Point(0, lastFact.ActualHeight)).Y;
                 Require(lastFactBottom > 0 && lastFactBottom <= factsPanel.ActualHeight - factsPanel.Padding.Bottom + 1
@@ -312,25 +317,24 @@ internal sealed partial class ShellNavigationProbe
                 var facts = Get<Border>(page, "HeroFacts");
                 Require(Get<Border>(page, "LibraryBadge").Visibility == Visibility.Visible && vm.LibraryBadge == "部分入库",
                     "入库徽标没有按文件统计显示");
-                Require(Get<ItemsRepeater>(page, "SubscriptionFacts").ItemsSource is IReadOnlyList<MoviePilotSubscriptionFact> { Count: > 0 },
-                    "订阅信息栏没有内容");
+                Require(!Descendants(facts).OfType<FrameworkElement>().Any(element => element.Name == "SubscriptionFacts"),
+                    "网页资料卡还混入订阅字段");
                 // 「订阅规则」那块卡已按用户令（2026-10-12「电影订阅界面去掉订阅规则板块」）整块删掉：
                 // 页面上不该再有这块标题，也不该再有它的列表或那句「沿用 MoviePilot 当前配置」的说明。
                 Require(!Descendants(page).OfType<TextBlock>().Any(text => text.Text == "订阅规则")
                     && Descendants(page).OfType<FrameworkElement>().All(element => element.Name is not ("RulePanel" or "SubscriptionRules")),
                     "页面上还立着「订阅规则」板块");
-                Require(vm.DetailRatingText == "8.5 / 10"
-                    && Get<ItemsRepeater>(page, "SubscriptionStars").ItemsSource is IReadOnlyList<string> { Count: 5 } stars
-                    && stars.Count(glyph => glyph == "\uE735") == 4, "评分星没有按订阅快照折算");
-                Require(Get<ItemsRepeater>(page, "MediaFacts").ItemsSource is IReadOnlyList<MoviePilotSubscriptionFact> { Count: > 0 },
-                    "媒体信息栏没有内容");
-                Require(!Descendants(facts).OfType<TextBlock>().Any(text => text.Text is "媒体信息" or "订阅信息"),
-                    "资料卡里还留着「媒体信息」或「订阅信息」小标题");
+                Require(Get<ItemsRepeater>(page, "SubscriptionStars").ItemsSource is IReadOnlyList<MoviePilotRatingStar> { Count: 10 } stars
+                    && stars.Count(star => star.Fill == 1) == 8 && stars.Count(star => star.Fill == 0.5) == 1,
+                    "十星评分没有使用媒体详情的半星值");
+                Require(Get<ItemsRepeater>(page, "MediaFacts").ItemsSource is IReadOnlyList<MoviePilotMediaFact> { Count: > 0 },
+                    "网页媒体字段没有内容");
+                Require(!Descendants(facts).OfType<TextBlock>().Any(text => text.Text is "媒体信息" or "订阅信息" or "订阅编号" or "时长"),
+                    "资料卡还保留网页没有的字段");
                 var card = ((Grid)facts.Child).Children.OfType<FrameworkElement>().ToList();
                 Require(card.Count == 2 && Descendants(card[0]).OfType<FrameworkElement>().Any(element => element.Name == "SubscriptionStars")
-                    && card[1] is StackPanel { Spacing: 0 } list
-                    && list.Children.OfType<FrameworkElement>().Select(child => child.Name).SequenceEqual(new[] { "MediaFacts", "SubscriptionFacts" }),
-                    "资料卡不是「评分星 + 一列字段」两段：" + string.Join("、", card.Select(child => child.Name)));
+                    && card[1] is StackPanel { Spacing: 0 } list && list.Children.Count == 1,
+                    "资料卡不是评分和一列媒体字段");
                 // 评分留在头部；简介与季在正文左列，资料卡在正文右列。
                 var rating = Get<TextBlock>(page, "MediaRating");
                 var heroOverview = Get<StackPanel>(page, "HeroOverview");
@@ -359,7 +363,7 @@ internal sealed partial class ShellNavigationProbe
                     && (heroOverview.Background is not Microsoft.UI.Xaml.Media.SolidColorBrush fill || fill.Color.A == 0),
                     "简介那一块还画着底色或外圈");
                 Require(width >= 1080
-                    ? Math.Abs(facts.ActualWidth - 320) < 1 && Grid.GetRow(facts) == 0 && ReferenceEquals(facts.Parent, Get<Grid>(page, "BodyLayout"))
+                    ? Math.Abs(facts.ActualWidth - 288) < 1 && Grid.GetRow(facts) == 0 && ReferenceEquals(facts.Parent, Get<Grid>(page, "HeroRow"))
                     : facts.ActualWidth > 320 && Grid.GetRow(facts) == 1 && Grid.GetColumn(facts) == 0,
                     $"资料卡在 {width} 宽下没有按预期并排或叠起来：宽 {facts.ActualWidth}，行 {Grid.GetRow(facts)}，列 {Grid.GetColumn(facts)}，页宽 {page.ActualWidth}");
                 // 这一页不画加载条（用户令 2026-10-12：「不要显示那个加载条」；此前是两份数据合并成的
@@ -458,11 +462,10 @@ internal sealed partial class ShellNavigationProbe
                     var factsBox = Get<Border>(page, "HeroFacts");
                     var factsBottom = factsBox.TransformToVisual(page).TransformPoint(default).Y + factsBox.ActualHeight;
                     var panelTop = panel.TransformToVisual(page).TransformPoint(default).Y;
-                    var overlaps = media.WideLayout && panelTop < factsBottom + 8;
-                    if (media.WideLayout) Require(!overlaps, "电视剧季列表下方应已离开资料卡，列表须恢复全宽");
-                    var expectedWidth = overlaps ? Get<StackPanel>(page, "BodyPrimary").ActualWidth : Get<Grid>(page, "BodyRow").ActualWidth;
-                    Require(Math.Abs(panel.ActualWidth - expectedWidth) < 1,
-                        $"{name} 没有按资料卡实际相交避让：宽 {panel.ActualWidth:0.0}、应为 {expectedWidth:0.0}、相交 {overlaps}");
+                    var overlaps = panelTop < factsBottom;
+                    var expectedWidth = Get<Grid>(page, "BodyRow").ActualWidth;
+                    Require(!overlaps && Math.Abs(panel.ActualWidth - expectedWidth) < 1,
+                        $"{name} 应完整全宽且不与资料卡重叠：{panel.ActualWidth:0.0}/{expectedWidth:0.0}");
                     var panelFill = panel.Background as Microsoft.UI.Xaml.Media.AcrylicBrush;
                     // 2026-10-19 用户令「界面的卡片不要加白边」把 EgBodyPanelStyle 的静止描边收成 0，
                     // 这里仍要求板底，但不再要求外圈 —— 那根线是用户点名去掉的。
@@ -635,19 +638,14 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
                 var movieFacts = Get<Border>(page, "HeroFacts");
                 var factsBottom = movieFacts.TransformToVisual(page).TransformPoint(default).Y + movieFacts.ActualHeight;
-                var overlapKinds = new HashSet<bool>();
                 foreach (var panelName in new[] { "PeoplePanel", "RecommendationsPanel", "SimilarPanel" })
                 {
                     var relatedPanel = Get<StackPanel>(page, panelName);
                     var top = relatedPanel.TransformToVisual(page).TransformPoint(default).Y;
-                    var overlaps = page.MediaViewModel.WideLayout && top < factsBottom + 8;
-                    overlapKinds.Add(overlaps);
-                    var expectedWidth = overlaps ? Get<StackPanel>(page, "BodyPrimary").ActualWidth : Get<Grid>(page, "BodyRow").ActualWidth;
-                    Require(Math.Abs(relatedPanel.ActualWidth - expectedWidth) < 1,
-                        $"电影 {panelName} 避让错误：顶 {top:0.0}、资料底 {factsBottom:0.0}、宽 {relatedPanel.ActualWidth:0.0}/{expectedWidth:0.0}");
+                    var expectedWidth = Get<Grid>(page, "BodyRow").ActualWidth;
+                    Require(top >= factsBottom && Math.Abs(relatedPanel.ActualWidth - expectedWidth) < 1,
+                        $"电影 {panelName} 应全宽且不重叠：顶 {top:0.0}、资料底 {factsBottom:0.0}、宽 {relatedPanel.ActualWidth:0.0}/{expectedWidth:0.0}");
                 }
-                if (page.MediaViewModel.WideLayout)
-                    Require(overlapKinds.Count == 2, "电影夹具必须同时覆盖重叠收窄与不重叠全宽，不能全部落在同一分支");
                 await SaveSettledFrameAsync(page, $"mp-movie-subscription-detail-{width}.png");
                 await SaveProbeScreenAsync($"mp-movie-overlap-{width}-screen.png");
             }
@@ -978,7 +976,7 @@ internal sealed partial class ShellNavigationProbe
                     tagline = "下一次相遇，在旅途的尽头。",
                     genres = Anime ? new[] { new { name = "动画" } } : Array.Empty<object>(),
                     production_countries = new[] { new { name = "日本" } },
-                    production_companies = new[] { new { name = "Example Studio" } },
+                    production_companies = new[] { new { name = "Passione" }, new { name = "KADOKAWA" }, new { name = "Docomo Anime Store" }, new { name = "AT-X" }, new { name = "D-techno" }, new { name = "Crunchyroll" }, new { name = "armabianca" }, new { name = "BS11" }, new { name = "Kansai Television" } },
                     season_info = new[] { new { season_number = 1, episode_count = 4, air_date = "2026-01-01", poster_path = "https://poster.invalid/4.png" }, new { season_number = 2, episode_count = 4, air_date = "2027-01-01", poster_path = "https://poster.invalid/4.png" } }
                 });
             }

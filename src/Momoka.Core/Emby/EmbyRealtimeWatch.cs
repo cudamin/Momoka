@@ -4,7 +4,7 @@ namespace Momoka.Emby;
 
 /// <summary>
 /// 主页那一条实时通道的账：给每一个可用来源（<see cref="EmbySessionScope"/>）各开一条
-/// <see cref="EmbyRealtimeConnection"/>，收到 <c>LibraryChanged</c> 时把来源的钥匙报上来。
+/// <see cref="EmbyRealtimeConnection"/>，收到 Emby/Jellyfin 或 Plex 库通知时把来源的钥匙报上来。
 /// <para>
 /// 跟着页面的寿命走：<c>HomePage</c> 导航进来时 <see cref="Attach"/>、离开时 <see cref="Release"/>。比 Emby
 /// Theater 收得紧 —— Theater 是全局常驻（登录成功就连、整个 app 生命周期不断，见

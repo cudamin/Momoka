@@ -5,8 +5,7 @@ using Momoka.Diagnostics;
 namespace Momoka.Emby;
 
 /// <summary>
-/// 一台服务器上的一条实时通道：连上 <c>/embywebsocket</c>，被动等着服务器推 <c>LibraryChanged</c>，每收到一条
-/// 就喊一声 <see cref="LibraryChanged"/>。
+/// 一台服务器上的一条实时通道：接收 Emby/Jellyfin 的 LibraryChanged 或 Plex 库通知，唤醒主页核对。
 /// <para>
 /// <b>为什么有这一层。</b>主页停着不动的时候，服务器新入库的内容不会自己出现 —— 这一页只在导航进来时读一次，
 /// 现在靠 <c>HomePage</c> 那只 30 秒的钟问一问（<see cref="LibraryWatch"/>）。那条路可靠，但最长有半分钟的空窗，
@@ -20,7 +19,7 @@ namespace Momoka.Emby;
 /// 真文件），所以整条路都按「可能一次都不来」来写。
 /// </para>
 /// <para>
-/// <b>只认 <c>LibraryChanged</c>，不订阅任何东西。</b>特别是不订阅 <c>Sessions</c>：真机实测那一类在播放期间是
+/// <b>不订阅播放状态。</b>Jellyfin 仅额外响应应用心跳，Plex 只识别库事件。特别是不订阅 <c>Sessions</c>：真机实测那一类在播放期间是
 /// 每 2 秒一条（90 秒 21 条），订阅它等于看片的时候主页一直在重读。Emby Theater 订阅了
 /// <c>Sessions</c> / <c>ActivityLogEntry</c> / <c>ScheduledTasksInfo</c> / <c>SessionEvents</c> 四类，
 /// 是因为它的播放器状态、服务端任务都靠那些事件驱动；Momoka 要的只是「有没有新入库」，所以一条都不订阅 ——
@@ -105,7 +104,8 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
     private async Task ListenOnceAsync(CancellationToken token)
     {
         // 不能读捕获时的 Connection 快照：静默重登后该来源的 Client 已经持有新令牌。
-        var handshake = EmbyRealtimeProtocol.Handshake(_scope.CurrentConnection);
+        var connection = _scope.CurrentConnection;
+        var handshake = EmbyRealtimeProtocol.Handshake(connection);
         // 系统默认握手会跟随跳转，并把 Emby 自定义鉴权头带到下一站。
         // 快路径无需自动换端点：同源、跨源都拒绝，仍由原地址重连和只读轮询兜底。
         // 保留默认代理及禁 Cookie／不复用握手连接的行为，只收紧重定向边界。
@@ -128,6 +128,8 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
         // 连上了：退避归零。下一次断线从头来（见 EmbyRealtimeBackoff.Reset）。
         _backoff.Reset();
         Log.Info(Category, $"{_scope.DisplayName} 实时通道已连接");
+
+        await using var heartbeat = connection.IsJellyfin ? new JellyfinRealtimeKeepAlive(socket, token) : null;
 
         var buffer = new byte[BufferBytes];
         // UTF-8 can finish a code point begun in the preceding receive. Keep the decoder across
@@ -167,10 +169,12 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
             // The server protocol is text JSON. Still count binary fragments above, but never turn
             // binary data (even JSON-looking bytes) into a library refresh.
             if (frame?.Text is not { } text) continue;
-            if (EmbyRealtimeProtocol.ReadMessageType(text) is not { } type) continue;
-            if (!EmbyRealtimeProtocol.IsLibraryChanged(type)) continue;
+            if (heartbeat is not null) await heartbeat.ReceiveAsync(text).ConfigureAwait(false);
+            var changed = connection.IsPlex ? Momoka.Plex.PlexRealtimeProtocol.IsLibraryChanged(text)
+                : EmbyRealtimeProtocol.IsLibraryChanged(EmbyRealtimeProtocol.ReadMessageType(text));
+            if (!changed) continue;
 
-            Log.Info(Category, $"{_scope.DisplayName} 收到 LibraryChanged，主页将核对新入库");
+            Log.Info(Category, $"{_scope.DisplayName} 收到库变更通知，主页将核对新入库");
             token.ThrowIfCancellationRequested();
             _onLibraryChanged(_scope.Key);
         }
