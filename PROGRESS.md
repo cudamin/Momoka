@@ -1,3 +1,9 @@
+## 2026-11-09 原生首帧与图片晚到检查交接（未构建运行）
+
+新增performance「真实首帧先呈现、晚图淡入与导航取消」及检查台InspectBrowsePresentation。真实Shell/Frame宽窄两档以匿名PNG响应挂起：Home Loaded观察生产_images门控未放行、图片HTTP零请求与标题已出现；等待真实导航start/first-frame/released及图片wait日志顺序，再放响应验证Banner/Poster/Detail真实淡入活跃与落定。另保留快速BackForward、旧图流离页与关闭动画。三种页面使用独立媒体/图片key，防已暖缓存误当晚图。
+
+依赖主会话BrowsePresentation、PosterArrivalRunning、HomeBanner.ImageArrivalRunning及DetailPage.ArtworkArrivalRunning，当前独立树没有该生产helper，因此本提交不构建Shell/运行UI、不宣称原生门控通过；此前PageContract164/164是调用边界证据。父会话合入所有产品后首次编译并串行执行，保存browse-presentation-runtime.json及宽窄真实截图，必要修订前置须保留失败记录。未真实联网/播放/发布/上传。
+
 ## 2026-11-09 卡片和轮播新图片等待首帧（子树待整合）
 
 受管树browse-image-gate/Momoka，基点6e53dbf。仅CardItem与BannerSlide真正的新图片读/渲染需求通过BrowsePresentation.WaitForImagesAsync等待本轮页面首帧；已解码缓存与现有图片直接显示。各调用仍持有独立loading取消源，等待链接来源Lifetime，放行后重新核请求引用/取消/来源；拼图先显示已缓存格，只延后缺格；轮播暖背景不等，需补徽标才等。没有改变Release/Abandon的回收边界。

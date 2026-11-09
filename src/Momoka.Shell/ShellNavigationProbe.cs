@@ -274,6 +274,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("性能：匿名导航阶段计时、顺序与隐私边界", PerformanceNavigationTimingAsync, 60, section: ShellProbeSections.Performance);
             await CaseAsync("性能：普通库深返回窗口、双向分页与宽窄锚点", PerformanceDeepLibraryReturnAsync, 90, section: ShellProbeSections.Performance);
             await CaseAsync("性能：普通根缓存返回、换库清空与搜索淘汰", PerformanceLibraryCacheAsync, 60, section: ShellProbeSections.Performance);
+            await CaseAsync("性能：真实首帧先呈现、晚图淡入与导航取消", PerformanceBrowsePresentationAsync, 90, section: ShellProbeSections.Performance);
             await CaseAsync("性能：详情同类型通知去重与真实绑定更新", PerformanceDetailShapeAsync, 30, section: ShellProbeSections.Performance);
             await CaseAsync("性能：2000集长剧按需卡、全局季跳与长季首屏", PerformanceLongSeriesAsync, 90, section: ShellProbeSections.Performance);
             await CaseAsync("性能：真实搜索页往返退订、来源切换与迟到通知", PerformanceSearchVisitsAsync, 45, section: ShellProbeSections.Performance);
