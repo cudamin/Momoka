@@ -1,4 +1,0 @@
-interface:
-  display_name: "Momoka 代码审查"
-  short_description: "只报告有充分证据的真实缺陷，允许零发现，避免硬找问题和不必要抽象"
-  default_prompt: "请使用 $momoka-code-review 审查本次改动，宁可零发现也不要硬找问题，默认不附带可选重构建议。"

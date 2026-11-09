@@ -2,8 +2,6 @@
 
 第三方媒体库客户端，支持 Emby、Jellyfin、飞牛影视和 Plex（实验性，未实服核对），界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
 
-项目播放基于https://github.com/dyphire/mpv-config 制作，感谢dyphire的开源
-
 [个人 Telegram 频道](https://t.me/Ebizuka_Tomo)  |  [微软商店](https://apps.microsoft.com/detail/9nqjl7k0h8x0?hl=zh-CN&gl=CN)  |  [QQ交流群：1039548970](https://qm.qq.com/q/vXph3vMyFW)
 
 ## 主要功能
@@ -20,11 +18,11 @@
 
 **多账号** — 设置 → 服务器里的“聚合模式”默认关闭：开启后支持多个账户同时在线，聚合在主页与搜索栏中。
 
-**弹弹play 弹幕** — 数据由 [弹弹play开放弹幕网络](https://www.dandanplay.com) 提供。默认关闭。
+**弹幕** — 数据由 [弹弹play开放弹幕网络](https://www.dandanplay.com) 提供，同时支持[danmu_api](https://github.com/huangxd-/danmu_api)。
 
 **实时字幕翻译** — 设置 → 字幕可选谷歌、微软和兼容 OpenAI 的 AI 服务，保留原字幕；默认关闭，需要自备 API 密钥，可能收费且启用后外发文字字幕。
 
-**播放器快捷键** — 截图、字幕开关、音字幕切轨、逐帧、片头、跳转回退、统计与弹幕控制等共 70 个可重绑动作；旧用户自定义按键优先，不被新增默认键覆盖。
+**播放器快捷键** — 截图、字幕开关、音字幕切轨、逐帧、片头、跳转回退、统计与弹幕控制；旧用户自定义按键优先，不被新增默认键覆盖。
 
 ## 系统要求
 
