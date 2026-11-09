@@ -20,6 +20,7 @@ internal static class Program
         {
             var release = Gate();
             var vm = new DetailArtworkFixture();
+            UseGate(vm, release.Task);
             var load = vm.Start(Item());
             Assert.Equal("文字先显示", vm.Title);
             Assert.Equal(0, vm.ShowRequests);
@@ -33,6 +34,7 @@ internal static class Program
         {
             var release = Gate();
             var vm = new DetailArtworkFixture();
+            UseGate(vm, release.Task);
             var load = vm.Start(Item());
             vm.Cancel();
             Await(load);
@@ -45,12 +47,66 @@ internal static class Program
         {
             var release = Gate();
             var vm = new DetailArtworkFixture();
+            UseGate(vm, release.Task);
             var load = vm.Start(Item());
             vm.ReplaceOwner();
             release.SetResult();
             Await(load);
             Assert.Equal(0, vm.ShowRequests);
             Assert.Equal(0, vm.DecodeRequests);
+        });
+        Test("详情已捕获门控不借新环境或下一次门控提前放行", () =>
+        {
+            BrowsePresentation.Gate = Task.CompletedTask;
+            var first = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var vm = new DetailArtworkFixture();
+            UseGate(vm, first.Task);
+            var load = vm.Start(Item());
+            UseGate(vm, Task.CompletedTask);
+            Assert.Equal("文字先显示", vm.Title);
+            Assert.Equal(0, vm.DecodeRequests);
+            first.SetResult();
+            Await(load);
+            Assert.True(vm.DecodeRequests > 0);
+        });
+        Test("没有显式页面门控的详情不受其它页面环境门控阻塞", () =>
+        {
+            BrowsePresentation.Gate = new TaskCompletionSource().Task;
+            var vm = new DetailArtworkFixture();
+            Await(vm.Start(Item()));
+            Assert.True(vm.DecodeRequests > 0);
+        });
+        Test("实际Cancel清上一页门控，重新Attach后的默认加载不等旧Task", () =>
+        {
+            var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var vm = new DetailArtworkFixture();
+            UseGate(vm, gate.Task);
+            var load = vm.Start(Item());
+            vm.Cancel();
+            Await(load);
+            vm.Reactivate();
+            BrowsePresentation.Gate = new TaskCompletionSource().Task;
+            Await(vm.Start(Item()));
+            Assert.True(vm.DecodeRequests > 0);
+            Assert.False(gate.Task.IsCompleted);
+        });
+        Test("详情导航接线先Attach重置后捕获当前页面门控再Reload", () =>
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "global.json"))) directory = directory.Parent;
+            Assert.NotNull(directory);
+            var page = File.ReadAllText(Path.Combine(directory!.FullName, "src", "Momoka.Shell", "Views", "DetailPage.xaml.cs"));
+            var navigation = page[page.IndexOf("protected override void OnNavigatedTo", StringComparison.Ordinal)..];
+            var attach = navigation.IndexOf("ViewModel.Attach(", StringComparison.Ordinal);
+            var gate = navigation.IndexOf("ViewModel.UseImagePresentation(BrowsePresentation.WaitForImagesAsync(this));", StringComparison.Ordinal);
+            var reload = navigation.IndexOf("ViewModel.ReloadAsync()", StringComparison.Ordinal);
+            Assert.True(attach >= 0 && gate > attach && reload > gate);
+            var vm = File.ReadAllText(Path.Combine(directory.FullName, "src", "Momoka.Shell", "ViewModels", "DetailViewModel.cs"));
+            var start = vm.IndexOf("    internal void Attach(", StringComparison.Ordinal);
+            var end = vm.IndexOf("    private new bool IsCurrent(", start, StringComparison.Ordinal);
+            var body = vm[start..end];
+            Assert.True(body.Contains("Cancel();", StringComparison.Ordinal));
+            Assert.False(body.Contains("LoadArtworkAsync(", StringComparison.Ordinal), "Attach不能在门控设置前发起图片批次");
         });
         Test("慢图片晚于首屏但取消后的响应不能回填", () =>
         {
@@ -268,8 +324,15 @@ internal static class Program
     private static TaskCompletionSource Gate()
     {
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        BrowsePresentation.Gate = release.Task;
+        // Native Frame callbacks do not inherit the caller's AsyncLocal context.
+        BrowsePresentation.Gate = Task.CompletedTask;
         return release;
+    }
+    private static void UseGate(DetailArtworkFixture vm, Task gate)
+    {
+        var method = typeof(DetailArtworkFixture).GetMethod("UseImagePresentation", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new AssertionException("生产VM缺少显式页面门控入口");
+        method.Invoke(vm, [gate]);
     }
     // The standalone offline runner deliberately waits at its console boundary, never in production UI.
 #pragma warning disable RS0030

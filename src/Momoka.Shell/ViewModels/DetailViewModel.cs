@@ -156,6 +156,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// load would lose the picture on every flick of the drop-down.
     /// </summary>
     private CancellationTokenSource? _art;
+    private Task _imagePresentation = Task.CompletedTask;
 
     /// <summary>
     /// 自检用的三个数，都是**这一页从建出来到扔掉的总数**，不是某一次载入的：先画那一屏落下的片名
@@ -585,6 +586,8 @@ public sealed partial class DetailViewModel : PageViewModel
     private DetailHeroCache.Ticket? _heroCacheTicket;
 
     internal void UseHeroCache(DetailHeroCache cache) => _heroCache = cache;
+
+    internal void UseImagePresentation(Task ready) => _imagePresentation = ready;
 
     /// <summary>
     /// 解好的封面（集页那张剧海报、其余页面的海报）原图像素 —— 按图收窄那一格的原料
@@ -3500,10 +3503,11 @@ public sealed partial class DetailViewModel : PageViewModel
     private async Task LoadArtworkAsync(EmbyItem item, CancellationTokenSource art)
     {
         if (!Attached) return;
+        var presentation = _imagePresentation;
         // 文字与主体 GET 继续先行；缓存命中的图片也等这次页面首帧之后再开始解码/回填。
         try
         {
-            await Views.BrowsePresentation.WaitForImagesAsync().WaitAsync(art.Token).ConfigureAwait(true);
+            await presentation.WaitAsync(art.Token).ConfigureAwait(true);
         }
         catch (OperationCanceledException)
         {
@@ -4254,6 +4258,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <inheritdoc />
     public override void Cancel()
     {
+        _imagePresentation = Task.CompletedTask;
         if (_subjectStateCard is { } card) card.PropertyChanged -= OnSubjectStateChanged;
         _subjectStateCard = null;
         _active = false;

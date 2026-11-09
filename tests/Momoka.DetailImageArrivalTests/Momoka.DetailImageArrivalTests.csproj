@@ -37,7 +37,10 @@
                 var generated = "// Complete production method, extracted verbatim at build time.\n#nullable enable\n" +
                     "using Momoka.Emby;\nusing Momoka.Diagnostics;\nusing Microsoft.UI.Xaml.Media.Imaging;\nnamespace Momoka.Shell.ViewModels;\n" +
                     "internal sealed partial class DetailArtworkFixture\n{\n" +
+                    between("    private Task _imagePresentation =", "\n\n    /// <summary>\n    /// 自检用的三个数") +
+                    between("    internal void UseImagePresentation(Task ready)", "\n\n    /// <summary>\n    /// 解好的封面") +
                     between("    private async Task LoadArtworkAsync(EmbyItem item, CancellationTokenSource art)", "\n    /// <summary>\n    /// 封面到了") +
+                    between("    public override void Cancel()", "\n    /// <inheritdoc />\n    public override void Dispose()") +
                     between("    private bool Fresh(CancellationTokenSource art, EmbyItem item) =>", "\n    private async Task<BitmapImage?> DecodeFirstAsync(\n        EmbyItem item,") + "\n}\n";
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)

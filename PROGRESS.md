@@ -16,6 +16,8 @@ PageContract用最小可控制presentation边界执行真实卡/轮播/图片sto
 生产源链接专用先0/14红，最终15/15；未上树守卫追加先14/15红后15/15。HomeDirectory真实提取62/62，Release Shell/专用构建0警告0错误，格式和变更文本检查通过。证据artifacts/browse-presentation。未运行UI、真实服务器或播放，未发布/上传；父会话整合、原生门控/画面检查、完整测试与实际发布尚待完成。
 ## 2026-11-09 详情图片首帧门控与晚到淡入（子树待整合）
 
+本批次原生导航验证证明 AsyncLocal 不穿过 Frame 的原生 OnNavigatedTo/Loaded 回调；原先环境门控实际未阻止请求。详情页改在 Attach（内部不发图片请求，Cancel重置上一页）后、Reload前显式捕获 `BrowsePresentation.WaitForImagesAsync(this)` 并传给VM，LoadArtwork同步入口保留本次Task后只等待该Task与art.Token，Cancel恢复CompletedTask。新增场景先17项5失败红，修复后17绿；再链接实际Cancel并核对导航接线顺序，最终当前Release Core/专项0警告0错误、19/19通过0失败0跳过。门控Frame归属由另一子树专项核对；本子树不运行UI，待主会话整合重验。
+
 独立受管树 `detail-image-arrival/Momoka`，基点 `6e53dbf`；范围只含详情图片加载入口、详情五种图片接线、可复用 ImageArrivalFade 与独立测试。LoadArtworkAsync 等本轮 BrowsePresentation 首帧门控后才启动图片批次，主体 GET/预览文字继续先行；放行后和回填时核对 Attached/Fresh/取消。Source 晚到直接触发220ms纯Opacity Storyboard，已在屏同对象源和离树先到图不重播；ImageBrush 仅动画专用图片宿主，主题遮罩与画刷透明度保留。静止/空图不挂全局或系统监听，活跃动画结束/失败/取消/离页/关动画立即落定并退订。
 
 生产完整加载方法原样提取与helper/五图接线完整源码链接专项，首轮13/13预期红；缓存/取消回填与淡入修复后通过，性能新增静止订阅红后修复，ImageBrush宿主专项红后修复。最终当前Release Core/专项构建0警告0错误，15/15通过、0失败0跳过；没有运行UI、真实服务、播放或发布，Shell门控源码在另一树，整合后由主会话完整编译与运行验证。本树尚待整合，快捷方式仍是旧版。

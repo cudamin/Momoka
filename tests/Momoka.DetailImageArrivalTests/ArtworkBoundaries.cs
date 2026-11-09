@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml.Media.Imaging;
+using System.ComponentModel;
 using Momoka.Emby;
 using Momoka.Shell.Views;
 
@@ -6,7 +7,7 @@ namespace Momoka.Shell.ViewModels
 {
     // The complete LoadArtworkAsync/Fresh methods are generated from the current production file.
     // Only UI/decode/cache endpoints and the surrounding page lifetime are inert here.
-    internal sealed partial class DetailArtworkFixture
+    internal sealed partial class DetailArtworkFixture : CancelBoundary
     {
         private const string Category = "fixture";
         private const int PlateDecodeWidth = 240;
@@ -26,7 +27,14 @@ namespace Momoka.Shell.ViewModels
         private int _heroBlurRadius;
         private bool _heroRendering;
         private int HeroBlurTarget => 0;
-        private bool Attached { get; set; } = true;
+        private bool _active = true;
+        private bool _actionsReady;
+        private FakeSubjectCard? _subjectStateCard = null;
+        private CancellationTokenSource? _versionLoad = null;
+        private CancellationTokenSource? _blurCancel = null;
+        private int _lifetime;
+        private FakeShelf? EpisodeShelf => null;
+        private bool Attached => _active;
         public int DecodeRequests { get; private set; }
         public int ShowRequests { get; private set; }
         public bool HoldDecode { get; set; }
@@ -40,15 +48,19 @@ namespace Momoka.Shell.ViewModels
         public double HeroHeightRatio { get; private set; }
         public string Title => _detail?.Name ?? "";
         internal bool HeroRendering => _heroRendering;
+        internal bool ActionsReady => _actionsReady;
+        public void Reactivate() => _active = true;
         public Task Start(EmbyItem item)
         {
             _detail = item;
             _art = new();
             return LoadArtworkAsync(item, _art);
         }
-        public void Cancel() { Attached = false; _art?.Cancel(); }
-        public void DetachWithoutCancellingTransport() => Attached = false;
+        public void DetachWithoutCancellingTransport() => _active = false;
         public void ReplaceOwner() => _art = new();
+        private void BusyChanged() { }
+        private void AnnounceAffordances() { }
+        private void OnSubjectStateChanged(object? sender, PropertyChangedEventArgs args) { }
         private Task<EmbyItem?> LoadShowAsync(EmbyItem item, CancellationTokenSource art)
         {
             ShowRequests++;
@@ -68,6 +80,13 @@ namespace Momoka.Shell.ViewModels
         private void ShowCorner(BitmapImage picture) => CornerImage = picture;
         private Task<BitmapImage?> RenderHeroAsync(HeroPictureLoader.HeroPixels pixels, int radius, CancellationToken token,
             DetailHeroCache.Ticket? ticket, object? timing) => Task.FromResult<BitmapImage?>(new());
+    }
+    internal class CancelBoundary { public virtual void Cancel() { } }
+    internal sealed class FakeShelf { public void Clear() { } }
+    internal sealed class FakeSubjectCard
+    {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public void Change() => PropertyChanged?.Invoke(this, new("fixture"));
     }
     internal sealed class FakeScope { public void ThrowIfNotAvailable() { } }
     internal sealed class FakeImages
