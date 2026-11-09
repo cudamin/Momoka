@@ -11751,3 +11751,10 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 之后补了「名字 + 序号」规则（`Traditional 1` → 繁体 1 —— 用户第二张截图里就是这一行），只改标签字符串，由两条单测钉住；主套件在终码上再跑 **4214/4214**。当晚 23:51 与 23:58 两次重跑 library 分区是 25/34、26/34，红的 8 项全是**与本改动无关**的滚动/遮挡用例（详情封面等距、三张详情自定义页、背景渐变、轮播读数、剧页单集），现场 `offset=0.0`、截图只有 6 KB（绿跑同一张 180 KB）—— 显示器已休眠、合成器不出帧，属环境红，按实记录、不洗绿。
 - 未覆盖：没有在真实飞牛服务器上再读一遍 `tag/genres`（映射表来自已核对过的官方端点与筛选面板）；标题只翻认得的词，没登记的词原样保留，因此像「Signs & Songs (Traditional)」这种整段认不出的照抄英文。
 - 交付：产品与测试提交 `d96d432` 已在 master。`publish -NoArchive` 两次更新主树 `artifacts/publish/win-x64`（终码 546 文件 286.7 MB，发布校验通过；发布 Shell 与当前 bin 的 `Momoka.dll` 同为 `2d14846b…`）。快捷方式重写仍被桌面写入拒绝（`UnauthorizedAccessException`）；读 `Momoka.lnk` 二进制核对，目标与工作目录仍是 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`，桌面启动的就是这一份。未 push、未打包。
+
+## 2026-11-09 MP 订阅详情接上沉浸／简洁显示模式（本树已验证，待合入主树）
+
+- 用户令「给 MP 订阅也新增沉浸模式还有简洁模式，然后自己调整一下页面布局」。订阅详情页（含从搜索／推荐打开的纯媒体详情）改听设置 → 详情页外观里的「显示模式」：沉浸模式在资料卡能并排的宽版式且有背景图时铺图、纸面让开、面板淡出、头部不再撑第一屏；简洁模式收起整张背景图，头部（海报、片名、操作、简介）收成一张卡面，右端资料卡仍是自己那张卡（两张卡各按内容收边），正文纸面与面板照旧。窄成单列时沉浸仍是「图 + 纸面」。
+- 判据换成 `DetailHero.SubscriptionImmersive(immersive, wide, artwork)`；`Spacious`／`Share`／`ImmersiveShare`／`NearCrop`／`CropAhead`、页面里的 `AttachWindow`／拖边 180ms 等待／260ms Storyboard／`ShowcaseAnimations` 一并退役。页面从 `MoviePilotSubscriptionRequest.Settings` 接 `ISettingsService`，`ShellPrefs.AppearanceChanged` 当场切换；没有图时头部不再按估算图高让开一整屏。
+- 产品提交 `3c88c3e`（本树 `workbuddy/master-3e536afb`，基点 `ee7ce4a`）。验证：Release Shell 0 警告 0 错误；Tests 编译 0/0；主测试 **4216/4216、0 失败 0 跳过**（`TEMP` 指向可写目录；默认 `C:/WINDOWS/TEMP` 时两条下载用例红，属环境）；`--probe-shell --probe-section moviepilot --screen 1` **36/36、退出 0**（`shell-probe-20261109-035406146-34012`），新用例「订阅详情沉浸与简洁模式切换」四段全过并保存 `mp-subscription-mode-{immersive-1240,plain-1240,plain-760,immersive-760,immersive-wide}.png`，逐张目视；「背景按页宽等比、下滑遮罩与纸面」改在 900 宽单列量。whitespace、`git diff --check`、`check-diff.ps1` 通过。
+- **未合入主树、未发布**：主树 `C:/Users/89400/Momoka` 12:12 仍在另一会话手里提交（`00ba0ff`），按「同树同时只有一个写入会话」保持本树待合；桌面快捷方式仍是旧版。合并后须按主树最终代码重跑编译、主测试与 moviepilot 分区实屏，再 publish 到主树交付目录。
