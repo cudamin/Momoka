@@ -41,6 +41,8 @@ public sealed record MoviePilotSubscription
     public string SavePath => Text(Data, "save_path");
     public string Downloader => Text(Data, "downloader");
     public string Username => Text(Data, "username");
+    public bool ShowSubscriber { get; init; }
+    public string SubscriberAvatar { get; init; } = "";
     public string CreatedAt => Text(Data, "date");
     public string LastUpdate => Text(Data, "last_update");
     public string LastSearch => Text(Data, "last_search");

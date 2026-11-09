@@ -21,6 +21,9 @@ internal sealed partial class ShellNavigationProbe
     {
         using var server = new SubscriptionProbeServer();
         server.Poster = await FixtureImageAsync();
+        server.SubscriberAvatars = true;
+        server.Items[4]["username"] = "second-user";
+        server.Items[4]["last_update"] = DateTimeOffset.Now.AddDays(-4).ToString("O");
         server.Items[1]["name"] = "这是一个需要超过两行才能完整显示的电影订阅长标题，保留年份也不应该被遮挡";
         var (settings, service) = SubscriptionService(server);
         var view = new MoviePilotSubscriptionsView();
@@ -81,6 +84,7 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => !vm.Working);
                 Require(server.Writes.Count == 0, "取消封面编辑仍然写入订阅");
                 await SaveSettledFrameAsync(host, $"mp-subscriptions-home-{width}.png");
+                await SaveProbeScreenAsync($"mp-subscription-badges-{width}-screen.png");
             }
             var card = vm.Series[0];
             var menu = MoviePilotSubscriptionMenu.Create(view, vm, card, () => opened = card.Subscription, service);
@@ -119,9 +123,16 @@ internal sealed partial class ShellNavigationProbe
             }
             var poster = Descendants(view).OfType<MoviePilotSubscriptionPoster>().First();
             var more = Get<Button>(poster, "SubscriptionMore");
+            var shade = Get<Border>(poster, "HoverShade");
             poster.SetHovered(false);
             Require(more.Visibility == Visibility.Collapsed, "未悬停封面时订阅管理按钮仍然显示");
             poster.SetHovered(true); await LayoutAsync(poster);
+            await UntilAsync(() => Math.Abs(shade.Opacity - 0.78) < 0.001);
+            Require(!shade.IsHitTestVisible, "悬停遮罩拦截了封面操作");
+            var avatar = Get<PersonPicture>(poster, "SubscriptionSubscriber");
+            await UntilAsync(() => avatar.ProfilePicture is not null);
+            Require(avatar.Visibility == Visibility.Visible && Equals(ToolTipService.GetToolTip(avatar), "订阅人：fixture"),
+                "多用户头像或用户名提示缺失");
             var subscriptionArt = Get<Border>(poster, "Art");
             Require(subscriptionArt.BorderThickness == new Thickness(0), "主页订阅海报悬停仍有主题色外圈");
             var subscriptionCover = Get<Button>(poster, "SubscriptionCover");
@@ -136,9 +147,14 @@ internal sealed partial class ShellNavigationProbe
             seriesPoster.SetHovered(true); await LayoutAsync(seriesPoster);
             var progress = Get<Border>(seriesPoster, "SubscriptionProgress");
             var progressPosition = progress.TransformToVisual(seriesPoster).TransformPoint(default);
+            var updated = Get<Grid>(seriesPoster, "SubscriptionUpdated");
+            var updatedText = Get<TextBlock>(seriesPoster, "SubscriptionUpdatedText");
+            Require(updated.Visibility == Visibility.Visible && updatedText.Text == "4天前"
+                && updated.TransformToVisual(seriesPoster).TransformPoint(default).X >= progressPosition.X + progress.ActualWidth,
+                "下载更新时间缺失或没有排在集数右侧");
             var seriesMore = Get<Button>(seriesPoster, "SubscriptionMore");
             Require(progress.Visibility == Visibility.Visible && progressPosition.X >= 0
-                && progressPosition.Y >= seriesPoster.ActualHeight - progress.ActualHeight - 9
+                && progressPosition.Y >= seriesPoster.ActualHeight - progress.ActualHeight - 13
                 && progressPosition.X + progress.ActualWidth < seriesMore.TransformToVisual(seriesPoster).TransformPoint(default).X,
                 "订阅进度没有放在封面内部左下角，或与更多按钮重叠");
             Require(Descendants(progress).OfType<TextBlock>().Single().Text == seriesPoster.Card!.ProgressCount,
@@ -161,13 +177,34 @@ internal sealed partial class ShellNavigationProbe
                 Require(poster.Zoom > 1 && poster.Zoom <= 1.045, "悬停未产生图片推近动画");
             }
             await SaveSettledFrameAsync(host, "mp-subscription-hover.png");
+            await SaveProbeScreenAsync("mp-subscription-hover-screen.png");
             poster.SetHovered(false);
             await UntilAsync(() => Math.Abs(poster.Zoom - 1) < 0.001 && more.Visibility == Visibility.Collapsed);
             Require(Math.Abs(poster.Zoom - 1) < 0.001 && more.Visibility == Visibility.Collapsed, "鼠标离开后缩放没有复原或管理按钮没有隐藏");
+            await UntilAsync(() => shade.Opacity < 0.001);
             seriesPoster.SetHovered(false);
             var first = vm.Movies[0];
             await vm.ReloadAsync();
             Require(ReferenceEquals(first, vm.Movies[0]), "刷新重建卡片而丢失行状态");
+            server.Items[4]["username"] = "fixture";
+            await vm.ReloadAsync();
+            Require(avatar.Visibility == Visibility.Collapsed && first.SubscriberAvatar is null,
+                "恢复单用户后头像没有立即隐藏并清理");
+            server.Items[4]["username"] = "second-user";
+            await vm.ReloadAsync();
+            await UntilAsync(() => avatar.Visibility == Visibility.Visible && avatar.ProfilePicture is not null);
+            server.Items[4]["total_episode"] = 1000;
+            server.Items[4]["lack_episode"] = 1;
+            await vm.ReloadAsync();
+            await LayoutAsync(seriesPoster);
+            var metadata = Get<Border>(seriesPoster, "SubscriptionMetadata");
+            var timeRight = updatedText.TransformToVisual(metadata).TransformPoint(new Windows.Foundation.Point(updatedText.ActualWidth, 0)).X;
+            Require(updatedText.Text == "4天前" && timeRight <= metadata.ActualWidth + 1,
+                "长集数挤掉了下载时间或越过底部标记");
+            await SaveProbeScreenAsync("mp-subscription-long-progress-screen.png");
+            server.Items[4]["total_episode"] = 4;
+            server.Items[4]["lack_episode"] = 2;
+            await vm.ReloadAsync();
             vm.UseConfirm((_, _, _) => Task.FromResult(false));
             await vm.ManageAsync(first, MoviePilotSubscriptionAction.Delete);
             Require(server.Writes.Count == 0 && vm.Movies.Count == 3, "取消确认仍然取消订阅");
@@ -906,6 +943,7 @@ internal sealed partial class ShellNavigationProbe
         internal bool CompactEpisodes { get; set; }
 
         internal byte[] Poster { get; set; } = [];
+        internal bool SubscriberAvatars { get; set; }
         internal TaskCompletionSource<HttpResponseMessage>? PendingList { get; set; }
 
         /// <summary>把电视剧媒体详情那一趟扣在手里，用来读「首次读取中的加载动画」。</summary>
@@ -922,7 +960,12 @@ internal sealed partial class ShellNavigationProbe
                 ImageRequests.Add(url);
                 return new(HttpStatusCode.OK) { Content = new ByteArrayContent(url == FailedImageUrl ? [] : Poster) };
             }
-            if (path.EndsWith("login/access-token", StringComparison.Ordinal)) return Json(new { access_token = "fixture-token" });
+            if (path.EndsWith("login/access-token", StringComparison.Ordinal)) return Json(new { access_token = "fixture-token", super_user = true });
+            if (path == "/api/v1/user/") return Json(new[]
+            {
+                new { name = "fixture", avatar = SubscriberAvatars ? "data:image/png;base64," + Convert.ToBase64String(Poster) : "" },
+                new { name = "second-user", avatar = "" }
+            });
             if (path.EndsWith("dashboard/system", StringComparison.Ordinal)) return Json(new { version = "fixture" });
             if (path == "/api/v1/site/rss") return Json(new[] { new { id = 8, name = "站点八", is_active = true } });
             if (path == "/api/v1/download/clients") return Json(new[] { new { name = "qbittorrent" } });

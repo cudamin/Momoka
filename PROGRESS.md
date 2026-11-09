@@ -3166,6 +3166,20 @@ R02-003/R03-003/R03-005/R04-002/R04-004已修。产品/工具来源5a2ed21：x64
 
 # 开发进度
 
+## 2026-11-09 主页 MP 订阅封面暗罩、更新时间与订阅人（本树提交，用户要求稍后整合发布）
+
+本任务工作树 `C:\Users\89400\.codex\worktrees\19f1\Momoka`，基于 `387c069`。用户明确要求「本次先提交，稍后再整合发布」：本次不合并 master、不推 origin、不覆盖交付目录，桌面快捷方式仍是旧版。主树存在另一会话未提交的 MoviePilot 详情修改，不覆盖或夹带。
+
+共用订阅封面采用 PosterCard 的 EgScrimBrush、0.78 悬停浓度与 240/180 ms 动画，暗罩不拦点击；集数右侧添加下载图标与 last_update 相对时间，无时间隐藏，长集数整体只缩小不截掉时间。整个订阅列表 username 去空白、去空、大小写敏感去重达到两人时显示左上 24 DIP 头像，tooltip 为原始用户名。管理员按 user/ 的 name/avatar 配对；支持后端 data:image/ico;base64，HTTP图片仍使用捕获账号代次的原代理管线，失败保留首字占位，单用户恢复时清头像并隐藏。
+
+源码依据：官方前端 v3 `609ea05eac7efc7c2cb31edcf5364d26c9c592f1` 的 SubscribeCard.vue、SubscribeListView.vue、subscribeSource.ts、SubscribeSourceMark.vue、formatters.ts 及对应测试；后端 v3 `6d9cf06085a8cbef0f3a7ed73aff99ba68d209c9` 的 user.py、subscribe.py、schemas/user.py、completion.py、refresh.py、library.py。另核对 v3.1.3 前端 `f4e722f0454da980bf0f11562d6d6b727e9f362e` / 后端 `7aa5d613b8641b94624f8879ad9596dbcd4edffa` 与 Dayjs 1.11.13 实现。按用户要求有意保持左上角、长期按天数、始终显示有效时间；不加入插件分类。last_update 也会由总集数变化与整理入库更新，不能承诺仅为下载成功时间。当前部署版本与真实服务未访问。
+
+终码 Tests/Core 和 Shell Release 均 0 警告 0 错误；新增 `moviepilot-subscription-fixture` **59/59、0失败0跳过**，覆盖时间、内嵌头像、跨分类人数、用户名去重、普通账户不读目录、目录403、切账号取消、封面暗罩接线与项目约定。源链接 SubscriptionIdentityTests **3身份编辑+1通知归属，0失败**；本机完整PATH使 cmd 找不到 py，缩短本进程PATH后原项目构建与运行通过，未改构建脚本。自动化扫描无缺失句柄；check-diff / git diff --check 通过。独立代码审查发现可选头像读取中重登失败可能丢掉已成功订阅结果，已将会话读取一并纳入可选目录容错，取消仍抛出。
+
+第一轮实际 WinUI moviepilot 分区 **36/36**，报告 `C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261109-151007249-41752\logs\shell-probe.json`；已目视 `mp-subscription-badges-1240-screen.png`、`mp-subscription-badges-760-screen.png`、`mp-subscription-hover-screen.png`。它覆盖普通集数的头像、回退、单人隐藏/多人恢复、tooltip绑定、遮罩进入退出和原菜单，不证明真实指针悬停与tooltip弹出。此后补的长集数 Viewbox 与断言尚未原生复验，不把前一轮证据冒充终码。
+
+完整主测试第一轮4236项有2失败：新增图标字号已改资源键，另一个无关图片探针超时单独复跑32/32；第二轮4238项有16失败，全为本用户桌面诊断锁被原生探针持有（日志 work/verification/core-tests-final.log），其余4222项通过。后续另一聊天的0cb4 inspect继续持锁，用户选择先提交。因此完整主测试当前不能记通过。待恢复：释放桌面锁后串行跑最终主测试与moviepilot原生检查、长集数截图和真实悬停；主树整合后重验并发布。匿名夹具，不读取真实凭据，不播放或写入真实订阅。
+
 ## 阶段12独立复核与后续自动推进（2026-10-22）
 
 - 工作树`C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，开始HEAD`0f56225edd7cc7a4c8b3798e732f08da33d583ee`，固定产品`c34a5e545333ea4c9f12ca2573bc6034029ecc04`；本轮866文件逐字节核对通过。无产品改动。
