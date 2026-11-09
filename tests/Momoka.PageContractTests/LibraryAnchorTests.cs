@@ -14,7 +14,9 @@ internal static class LibraryAnchorTests
             ("empty-after-window-change-clears-page-owner", EmptyWindow),
             ("empty-recovery-does-not-cancel-new-anchor-owner", EmptyThenNewOwner),
             ("query-replacement-clears-only-old-owner", QueryReplacement),
-            ("new-request-zero-offset-does-not-reuse-old-scroll", ZeroOffset)
+            ("new-request-zero-offset-does-not-reuse-old-scroll", ZeroOffset),
+            ("layout-unload-invalidates-queued-scroll-correction", LayoutUnload),
+            ("restore-keeps-requested-anchor-until-scrolling-settles", KeepRequestedAnchor)
         };
         var failures = 0;
         foreach (var (name, run) in cases)
@@ -96,6 +98,31 @@ internal static class LibraryAnchorTests
         Call(page, "ApplyPendingScroll");
         Check(scroll.VerticalOffset == 0, "new zero-offset request must return an already-used scroller to its top");
         Check(Get<double?>(page, "_pendingScroll") is null, "the zero-offset request must be consumed");
+    }
+
+    private static void LayoutUnload()
+    {
+        var page = Page("old");
+        Call(page, "BeforeWindowChange");
+        Call(page, "RestorePendingAnchor");
+        var scroll = Get<Microsoft.UI.Xaml.Controls.ScrollView>(page, "_scroll");
+        scroll.VerticalOffset = 100;
+        page.CardWall.LayoutAction = () => typeof(LibraryPage).GetField("_scroll", Members)!.SetValue(page, null);
+        page.DispatcherQueue.Drain();
+        Check(scroll.VerticalOffset == 100, "layout-unloaded scroller must not receive queued correction");
+        Check(Get<object?>(page, "_pendingAnchor") is not null, "new Loaded must retain the requested anchor");
+    }
+
+    private static void KeepRequestedAnchor()
+    {
+        var page = Page("old");
+        Call(page, "BeforeWindowChange");
+        var y = page.ViewModel.Request.AnchorY;
+        Call(page, "RestorePendingAnchor");
+        ((PosterCard)page.CardWall.Children[0]).Y = 0;
+        page.DispatcherQueue.Drain();
+        Check(page.ViewModel.Request.AnchorY == y,
+            "a dispatcher callback is not scroll completion and must not overwrite the saved anchor with an intermediate position");
     }
 
     private static LibraryPage Page(string identity)

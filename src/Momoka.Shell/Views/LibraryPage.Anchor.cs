@@ -90,7 +90,7 @@ public sealed partial class LibraryPage
             _anchorAttempts = 0;
             return;
         }
-        if (_scroll is null) return;
+        if (_scroll is not { } scroll) return;
         var local = -1;
         for (var index = 0; index < ViewModel.Cards.Count; index++)
             if (ViewModel.Cards[index].Item.IdentityKey == anchor.IdentityKey) { local = index; break; }
@@ -101,6 +101,7 @@ public sealed partial class LibraryPage
         var navigation = _navigation;
         var token = ViewModel.QueryToken;
         CardWall.UpdateLayout();
+        if (!AnchorContinuationCurrent(version, navigation, token) || !ReferenceEquals(_scroll, scroll)) return;
         CardWall.StartBringItemIntoView(local, new BringIntoViewOptions
         {
             AnimationDesired = false,
@@ -111,6 +112,9 @@ public sealed partial class LibraryPage
         {
             if (!AnchorContinuationCurrent(version, navigation, token)) return;
             CardWall.UpdateLayout();
+            // UpdateLayout 可同步触发卸载或后续导航；旧滚动器不能借新访问的锚点继续执行。
+            // 保留 pending，下一次 Loaded 取得当前滚动器后再恢复。
+            if (!AnchorContinuationCurrent(version, navigation, token) || !ReferenceEquals(_scroll, scroll)) return;
             if (RealizedAnchor(identity) is not { } element)
             {
                 if (++_anchorAttempts < 4) { RestorePendingAnchor(); return; }
@@ -118,17 +122,18 @@ public sealed partial class LibraryPage
                 _restoringAnchor = false;
                 return;
             }
-            var y = element.TransformToVisual(_scroll).TransformPoint(new Point(0, 0)).Y;
+            var y = element.TransformToVisual(scroll).TransformPoint(new Point(0, 0)).Y;
             if (double.IsFinite(y))
-                _scroll.ScrollTo(0, Math.Max(0, _scroll.VerticalOffset + y - anchor.Y),
+                scroll.ScrollTo(0, Math.Max(0, scroll.VerticalOffset + y - anchor.Y),
                     new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
             DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
             {
-                if (!AnchorContinuationCurrent(version, navigation, token)) return;
+                if (!AnchorContinuationCurrent(version, navigation, token) || !ReferenceEquals(_scroll, scroll)) return;
                 _pendingAnchor = null;
                 _restoringAnchor = false;
                 _anchorAttempts = 0;
-                RememberScrollAnchor();
+                // 已请求的锚点在这里仍是权威值。ScrollTo 尚可能在合成线程排队，
+                // 不把这一拍的中间位置写回；后续用户滚动/离页再捕获实际位置。
                 SyncAlphaFromScroll();
             });
         });

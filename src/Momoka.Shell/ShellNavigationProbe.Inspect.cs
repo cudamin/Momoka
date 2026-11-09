@@ -100,6 +100,7 @@ internal sealed partial class ShellNavigationProbe
             return Task.CompletedTask;
         });
         Add("InspectSettingsOpening", "聚合设置开窗", () => SettingsOpeningAsync(inspect: true));
+        AddCheck("InspectLibraryCache", "媒体库缓存往返", PerformanceLibraryCacheAsync);
         Add("InspectDetailCustomization", "详情自定义", async () =>
         {
             if (frame.Content is IShellContent previous) previous.Release();

@@ -29,9 +29,10 @@ namespace Microsoft.UI.Xaml.Controls
     public sealed class ItemsView : Control
     {
         public ScrollView? ScrollView { get; set; }
+        public Action? LayoutAction { get; set; }
         public int BringCalls { get; private set; }
         public bool TryGetItemIndex(double x, double y, out int index) { index = 0; return Children.Count > 0; }
-        public void UpdateLayout() { }
+        public void UpdateLayout() => LayoutAction?.Invoke();
         public void StartBringItemIntoView(int index, BringIntoViewOptions options) => BringCalls++;
     }
     public sealed class ScrollView : Control

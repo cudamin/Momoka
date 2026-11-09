@@ -79,6 +79,9 @@ internal sealed partial class ShellNavigationProbe
                 Require(!home.ViewModel.LibraryOnBanner, "普通入场误把媒体库压上轮播");
                 await Task.Delay(800);
 
+                // 夹具刚从固定下方切到自动档；先确认这份配置已成功读取，再测同配置的页面复用。
+                await home.ViewModel.ReloadAsync();
+                await LayoutAsync(home);
                 var retainedPage = home;
                 var retainedRows = home.HomeRows.ToArray();
                 var retainedCards = home.ViewModel.Shelves.SelectMany(shelf => shelf.Cards).ToArray();

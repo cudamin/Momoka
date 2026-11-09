@@ -181,8 +181,19 @@ internal sealed partial class ShellNavigationProbe
                 && Math.Abs(Get<ScrollView>(home, "Scroller").VerticalOffset - offset) <= 1);
             returned = (HomePage)shell.Pages.Content;
             Require(Get<bool>(returned, "_shelfEntranceSuppressed"), "前进后再次返回主页重新播放了货架入场");
+            await UntilAsync(() => returned.IsLoaded);
+            await LayoutAsync(returned);
             AssertShelvesSettled(Get<ItemsRepeater>(returned, "ShelfRepeater"));
             await SaveProbeScreenAsync("foundation-home-scroll-return-screen.png");
+            var retainedHome = shell.Pages.Content;
+            Require(shell.Pages.CacheSize == 2, "浏览缓存必须有明确的两页容量上限");
+            Call(shell, "ReleaseContent");
+            Require(shell.Pages.Content is null && shell.Pages.CacheSize == 2
+                && shell.Pages.BackStack.Count == 0 && shell.Pages.ForwardStack.Count == 0,
+                "释放身份后没有清理浏览页与历史，或没有恢复缓存容量");
+            shell.GoTo("home");
+            await UntilAsync(() => shell.ActiveContentReady && shell.Pages.Content is HomePage);
+            Require(!ReferenceEquals(retainedHome, shell.Pages.Content), "身份释放后复用了旧浏览页实例");
             Require(fixture.Actions.Plays == 0 && fixture.Transport.Requests.All(value => value.StartsWith("GET ", StringComparison.Ordinal)),
                 "目录返回匿名探针产生写入或播放");
         }

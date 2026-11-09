@@ -68,7 +68,7 @@ namespace Momoka.Shell.Views
     {
         private bool _released;
         private int _navigation = 1;
-        private readonly Microsoft.UI.Xaml.Controls.ScrollView? _scroll = new();
+        private Microsoft.UI.Xaml.Controls.ScrollView? _scroll = new();
         private readonly LibraryRequest? _request;
         private double? _pendingScroll;
         private Momoka.Diagnostics.NavigationTimingRun? _timing;

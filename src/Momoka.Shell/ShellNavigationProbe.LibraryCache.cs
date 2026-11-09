@@ -65,6 +65,12 @@ internal sealed partial class ShellNavigationProbe
             for (var visit = 0; visit < 10; visit++)
             {
                 Require(frame.Navigate(typeof(Page)), "缓存库中间页面导航失败");
+                var savedAnchor = request.AnchorIdentityKey!;
+                var savedY = request.AnchorY;
+                // 用户的返回输入发生在下一帧；先完成中间页的真实卸载/加载生命周期，
+                // 避免同一次回调把尚未卸载的 ItemsView 移出又塞回。
+                await LayoutAsync((Page)frame.Content);
+                await UntilAsync(() => !page.IsLoaded);
                 var oldQuery = page.ViewModel.QueryToken;
                 var started = System.Diagnostics.Stopwatch.GetTimestamp();
                 frame.GoBack();
@@ -73,6 +79,10 @@ internal sealed partial class ShellNavigationProbe
                     && cards.SequenceEqual(page.ViewModel.Cards), "普通根返回重新构造了卡片");
                 Require(!page.ViewModel.QueryCurrent(oldQuery), "普通根返回沿用了离页查询令牌");
                 await LayoutAsync(page);
+                await UntilAsync(() => page.IsLoaded && !Get<bool>(page, "_restoringAnchor")
+                    && Get<object?>(page, "_pendingAnchor") is null);
+                await UntilAsync(() => IsRealized(page, savedAnchor) && Math.Abs(AnchorY(page, savedAnchor) - savedY) < 3
+                    && wall.ScrollView?.State == ScrollingInteractionState.Idle);
                 times.Add(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
             }
             var anchor = request.AnchorIdentityKey!;
@@ -80,6 +90,8 @@ internal sealed partial class ShellNavigationProbe
             await SaveProbeScreenAsync("performance-library-cache-return-1280-screen.png");
             ResizeProbeClient(760, 800);
             Require(frame.Navigate(typeof(Page)), "窄窗缓存中间导航失败");
+            await LayoutAsync((Page)frame.Content);
+            await UntilAsync(() => !page.IsLoaded);
             frame.GoBack();
             await LayoutAsync(page);
             await UntilAsync(() => IsRealized(page, anchor!) && Math.Abs(AnchorY(page, anchor!) - request.AnchorY) < 3);
