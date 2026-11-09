@@ -35,3 +35,9 @@
 ## 未覆盖
 
 未建立 TLS 回环或模拟 HTTPS→HTTP 降级，未运行用户配置代理、真实 Emby／Jellyfin 握手、真实令牌／DPAPI 保存链、WinUI 页面、native 或播放。本地全拒跳转策略对 TLS 同样配置为不跳转，但此处不宣称真实 TLS 链已验。原有 libmpv 缺失的真实 runtime 门禁红项和旧快捷方式状态不变，专项通过不是正式交付。
+
+## 飞牛官方任务快照
+
+实时专项同时登记 FnNasTaskWatchTests：生产每次成功/失败请求结束后等3秒再读task/running，每来源一条循环。首次成功只建基线，精确TaskItemScrap类型的unique ancestor旧减当前触发目录回调；无status过滤。失败保留基线，最新scope权限/代次、释放、退出和重复附加拒绝旧结果，并异步等待实际读取结束。首页调用者决定Attach/Release，生命周期有意比官方顶层TaskStore更窄，不新增全局后台。
+
+十四项匿名内存HTTP测试使用实际Core、Session和FnNas接口；读取替身能挂起并忽略取消来证明晚结果拒绝和Dispose等待，延迟替身只用于决定性周期步进，生产固定3秒。没有真实服务器、凭据、扫描或媒体。原生飞牛入库推送仍未找到；task快照轮询不是WebSocket推送，也不直接读取媒体货架。

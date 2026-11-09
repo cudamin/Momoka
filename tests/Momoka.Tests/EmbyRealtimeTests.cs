@@ -19,6 +19,7 @@ internal static partial class EmbyRealtimeTests
 {
     public static void Register()
     {
+        FnNasTaskWatchTests.Register();
         RegisterTransport();
         RegisterPush();
         Test("实时通道：http 换 ws、路径接在反代前缀后面、只有设备号进查询串", () =>
