@@ -57,19 +57,18 @@
                         </Expander.Resources>
                         <Expander.Header>
                             <Grid ColumnSpacing="8">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <StackPanel Spacing="4">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
                                     <local:WrapRow Spacing="8" RowSpacing="4">
                                         <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" VerticalAlignment="Center" />
                                         <Border Background="{ThemeResource EgSurfaceElevatedBrush}" CornerRadius="8" Padding="8,2">
                                             <TextBlock Text="{x:Bind EpisodeCountLabel}" Style="{StaticResource EgDataStyle}" />
                                         </Border>
                                     </local:WrapRow>
-                                    <TextBlock Text="{x:Bind SeasonMeta}" Visibility="{x:Bind SeasonMetaVisibility}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-                                    <TextBlock Text="{x:Bind HeaderStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
-                                        Foreground="{ThemeResource EgAccentBrush}" TextWrapping="Wrap" />
                                 </StackPanel>
-                                <Button x:Name="SubscribeMediaSeason" Grid.Column="1" Command="{x:Bind SubscribeCommand}" Style="{StaticResource EgIconButtonStyle}"
+                                <TextBlock x:Name="SeasonHeaderStatus" Grid.Column="1" Text="{x:Bind HeaderStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                                    Foreground="{ThemeResource EgAccentBrush}" TextWrapping="Wrap" TextAlignment="Right" VerticalAlignment="Center" />
+                                <Button x:Name="SubscribeMediaSeason" Grid.Column="2" Command="{x:Bind SubscribeCommand}" Style="{StaticResource EgIconButtonStyle}"
                                     IsEnabled="{x:Bind Editable, Mode=OneWay}"
                                     ToolTipService.ToolTip="{x:Bind SubscribeLabel, Mode=OneWay}" AutomationProperties.Name="{x:Bind SubscribeLabel, Mode=OneWay}">
                                     <FontIcon Glyph="{x:Bind HeartGlyph, Mode=OneWay}" Foreground="{ThemeResource EgAccentBrush}" />

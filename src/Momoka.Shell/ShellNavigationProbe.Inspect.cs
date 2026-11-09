@@ -140,6 +140,7 @@ internal sealed partial class ShellNavigationProbe
             {
                 await CaseAsync("订阅详情卡片材质", MoviePilotSubscriptionDetailAsync, 60);
                 await CaseAsync("订阅卡片沉浸切换", MoviePilotSubscriptionShowcaseAsync, 60);
+                await CaseAsync("订阅季区域材质与摘要", MoviePilotMediaBackgroundAsync, 60);
             }
             finally { layout.Visibility = Visibility.Visible; }
         });

@@ -120,7 +120,8 @@ public sealed partial class MoviePilotSubscriptionPage
     private readonly AcrylicBrush _panelFill = new();
     private readonly SolidColorBrush _panelLine = new();
 
-    private IEnumerable<StackPanel> BodyPanels => [SeasonPanel, PeoplePanel, RecommendationsPanel, SimilarPanel];
+    // 季区始终保留 EgBodyPanelStyle 的主题亚克力，只有下方货架随沉浸模式让开底色。
+    private IEnumerable<StackPanel> BodyPanels => [PeoplePanel, RecommendationsPanel, SimilarPanel];
 
     private void PrepareShowcase()
     {
