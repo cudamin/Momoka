@@ -189,6 +189,7 @@ public sealed class BannerSlide : INotifyPropertyChanged
 
             if (Picture is null || _renderedGaussian != _useGaussian)
             {
+                if (!await WaitForPresentationAsync(cts).ConfigureAwait(true)) return;
                 // Sequential, and the picture first: it is the whole band, the logo is a stamp in one corner of
                 // it, and the two together would otherwise race for the one connection the session holds.
                 if (_backdropKey is { } pixelsKey && BannerBackdropCache.TryGetPixels(pixelsKey, out var keptPixels))
@@ -224,9 +225,13 @@ public sealed class BannerSlide : INotifyPropertyChanged
             }
             else
             {
-                var logo = await DecodeAsync(_logo, LogoWidth, cts.Token).ConfigureAwait(true);
-                if (!StillWanted(cts)) return;
-                Logo = logo;
+                if (_logo is not null && Logo is null)
+                {
+                    if (!await WaitForPresentationAsync(cts).ConfigureAwait(true)) return;
+                    var logo = await DecodeAsync(_logo, LogoWidth, cts.Token).ConfigureAwait(true);
+                    if (!StillWanted(cts)) return;
+                    Logo = logo;
+                }
             }
         }
         catch (OperationCanceledException)
@@ -253,6 +258,13 @@ public sealed class BannerSlide : INotifyPropertyChanged
     /// <summary>这一趟还是这一张在等：没被换下、没被取消，账号也还在。取消不是失败，不报。</summary>
     private bool StillWanted(CancellationTokenSource cts) =>
         ReferenceEquals(_loading, cts) && !cts.IsCancellationRequested && _scope?.IsAvailable == true;
+
+    private async Task<bool> WaitForPresentationAsync(CancellationTokenSource loading)
+    {
+        using var demand = CancellationTokenSource.CreateLinkedTokenSource(loading.Token, _scope!.Lifetime);
+        await BrowsePresentation.WaitForImagesAsync().WaitAsync(demand.Token).ConfigureAwait(true);
+        return StillWanted(loading);
+    }
 
     internal void SetGaussianBackdrop(bool enabled)
     {

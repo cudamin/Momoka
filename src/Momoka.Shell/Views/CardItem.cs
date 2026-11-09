@@ -160,6 +160,7 @@ public sealed class CardItem : INotifyPropertyChanged
                     continue;
                 }
 
+                if (!await WaitForPresentationAsync(cts, scope).ConfigureAwait(true)) return;
                 var bitmap = await _images.GetDecodedAsync(scope, _item.Id, EmbyImageStore.Primary, path,
                         EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), cts.Token)
                     .ConfigureAwait(true);
@@ -187,6 +188,13 @@ public sealed class CardItem : INotifyPropertyChanged
             if (ReferenceEquals(_loading, cts)) _loading = null;
             cts.Dispose();
         }
+    }
+
+    private async Task<bool> WaitForPresentationAsync(CancellationTokenSource loading, EmbySessionScope scope)
+    {
+        using var demand = CancellationTokenSource.CreateLinkedTokenSource(loading.Token, scope.Lifetime);
+        await BrowsePresentation.WaitForImagesAsync().WaitAsync(demand.Token).ConfigureAwait(true);
+        return ReferenceEquals(_loading, loading) && !loading.IsCancellationRequested && scope.IsAvailable;
     }
 
     /// <summary>
@@ -811,9 +819,14 @@ public sealed class CardItem : INotifyPropertyChanged
                 try
                 {
                     var candidateKey = PosterCache.Key(scope.Connection, picture.ItemId, picture.ImageType, picture.Tag, width);
-                    var image = PosterCache.TryGet(candidateKey, out var cached) ? cached
-                        : await _images.GetDecodedAsync(scope, picture.ItemId, picture.ImageType, picture.Tag,
+                    BitmapImage? image;
+                    if (PosterCache.TryGet(candidateKey, out var cached)) image = cached;
+                    else
+                    {
+                        if (!await WaitForPresentationAsync(cts, scope).ConfigureAwait(true)) return null;
+                        image = await _images.GetDecodedAsync(scope, picture.ItemId, picture.ImageType, picture.Tag,
                             EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), token).ConfigureAwait(true);
+                    }
                     if (image is not null) selected = picture;
                     return image;
                 }

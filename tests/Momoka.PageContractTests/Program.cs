@@ -63,6 +63,7 @@ internal static class Program
         });
         DiagnosticsTests.Register();
         CardImageResizeTests.Register();
+        BrowseImageGateTests.Register();
         CardPresentationTests.Register();
         BannerCacheTests.Register();
         ImageRecoveryTests.Register();
