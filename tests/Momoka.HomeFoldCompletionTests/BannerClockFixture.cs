@@ -51,6 +51,12 @@ internal sealed partial class BannerClockFixture
 
 internal sealed class BannerSlide(string id)
 {
+    internal List<Task?> Requests { get; } = [];
+    internal Task EnsureAsync(Task? presentation = null)
+    {
+        Requests.Add(presentation);
+        return Task.CompletedTask;
+    }
     internal Microsoft.UI.Xaml.Media.Imaging.BitmapImage? Logo { get; set; }
     internal Visibility LogoVisibility => Logo is null ? Visibility.Collapsed : Visibility.Visible;
     internal EmbyItem Item { get; } = new() { Id = id, Name = id };

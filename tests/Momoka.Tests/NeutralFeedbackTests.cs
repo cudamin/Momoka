@@ -73,11 +73,14 @@ internal static class NeutralFeedbackTests
         {
             var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "PosterCard.xaml.cs"));
             var begin = code.IndexOf("    public PosterCard()", StringComparison.Ordinal);
-            var end = code.IndexOf("    private void SyncPoster()", begin, StringComparison.Ordinal);
+            var end = code.IndexOf("    public event EventHandler<CardActionEventArgs>? ActionRequested;", begin, StringComparison.Ordinal);
+            Assert.True(begin >= 0 && end > begin, "构造与事件边界必须仍可定位");
             var constructor = code[begin..end];
             Assert.False(constructor.Contains("Paint();", StringComparison.Ordinal), "悬停或焦点不应反复重设同一封面样式");
             Assert.Equal(2, constructor.Split("AnimateCard();", StringSplitOptions.None).Length - 1,
                 "指针与焦点仍须各自更新动画");
+            Assert.True(constructor.Contains("new ImageArrivalFade(Poster)", StringComparison.Ordinal),
+                "海报须按实际图片Source到达启动淡入");
         });
 
         Test("中性反馈：播放键探针先应用模板，异常时也恢复默认态", () =>

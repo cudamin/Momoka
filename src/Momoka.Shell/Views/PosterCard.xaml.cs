@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
-using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Diagnostics;
 
 namespace Momoka.Shell.Views;
@@ -147,7 +146,10 @@ public sealed partial class PosterCard : UserControl
 
     private bool _pressed;
     private Storyboard? _motion;
-    private Storyboard? _posterFade;
+    private readonly ImageArrivalFade _posterArrival;
+    private readonly ImageArrivalFade[] _tileArrivals;
+
+    internal bool PosterArrivalRunning => _posterArrival.IsRunning;
 
     /// <summary>删除确认后的离场动画；<see cref="ResetRemoval"/> 或换卡时停掉。</summary>
     private Storyboard? _removal;
@@ -178,69 +180,16 @@ public sealed partial class PosterCard : UserControl
         Root.AddHandler(PointerCanceledEvent, new PointerEventHandler(OnPointerReleased), true);
         Root.AddHandler(PointerCaptureLostEvent, new PointerEventHandler(OnPointerReleased), true);
 
-        // 海报换了没有：<c>Source</c> 是绑上来的（Card.Poster），所以这一声是唯一能赶上「这张图开始载入了」的地方。
-        // 注册在构造里、不解绑：这个回调只碰自己这张卡的元素，而容器被回收时它照旧要接着管下一张卡的图。
-        Poster.RegisterPropertyChangedCallback(Image.SourceProperty, (_, _) => SyncPoster());
-
+        // 绑定晚到就淡入，不依赖缓存 BitmapImage 不保证重发的 ImageOpened。
+        _posterArrival = new ImageArrivalFade(Poster);
+        _tileArrivals =
+        [
+            new(FnNasPosterBackground),
+            new(FolderPoster0), new(FolderPoster1), new(FolderPoster2), new(FolderPoster3),
+            new(LibraryPoster0), new(LibraryPoster1), new(LibraryPoster2),
+        ];
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
-    }
-
-    /// <summary>
-    /// 海报该不该先藏着。**已经解出来的位图直接给不透明** —— 缓存命中的那一档屏上本来就没有「跳」这件事，淡入只
-    /// 会让它慢半拍；还没解出来（或者根本没图）就先透明，等 <see cref="OnPosterOpened"/> 淡进来，在那之前透过来
-    /// 的是占位字形。
-    /// <para>
-    /// 判「解出来了没有」问的是位图自己的 <c>PixelWidth</c>，不是「有没有 Source」：一张刚交给元素、还没解码的
-    /// <c>BitmapImage</c> 两者都非空，而它此刻画不出任何东西。也不能光等 <c>ImageOpened</c> —— 一张早就解好的
-    /// 位图交给一个新元素时那一声不一定还会响，而漏一声的代价是这张卡永远停在透明上，屏上就是一张空卡。
-    /// </para>
-    /// </summary>
-    private void SyncPoster()
-    {
-        _posterFade?.Stop();
-        _posterFade = null;
-        Poster.Opacity = Poster.Source is BitmapImage { PixelWidth: > 0 } ? 1 : 0;
-    }
-
-    /// <summary>
-    /// 海报解出来了：220 毫秒淡进来。没进树（自检里那些卡片）就直接落到终值 —— 同 <c>HomeBanner.Play</c>，那时
-    /// <c>Begin()</c> 既没人看也没有意义。
-    /// </summary>
-    private void OnPosterOpened(object sender, RoutedEventArgs e)
-    {
-        _posterFade?.Stop();
-        _posterFade = null;
-
-        var firstPresentation = Card?.TryPresentPoster() ?? false;
-        if (!firstPresentation || !_live || XamlRoot is null || !HomeMotion.AnimationsEnabled)
-        {
-            Poster.Opacity = 1;
-            return;
-        }
-
-        var fade = new DoubleAnimation
-        {
-            From = 0,
-            To = 1,
-            Duration = new Duration(TimeSpan.FromMilliseconds(220)),
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-        };
-
-        Storyboard.SetTarget(fade, Poster);
-        Storyboard.SetTargetProperty(fade, "Opacity");
-
-        var board = new Storyboard();
-        board.Children.Add(fade);
-        _posterFade = board;
-        board.Completed += (_, _) =>
-        {
-            if (!ReferenceEquals(_posterFade, board)) return;
-            Poster.Opacity = 1;
-            board.Stop();
-            _posterFade = null;
-        };
-        board.Begin();
     }
 
     /// <summary>
@@ -335,13 +284,12 @@ public sealed partial class PosterCard : UserControl
         // ItemsRepeater 也会在仍然加载着的容器里换内容；新条目不能继承上一张的悬停、按压或淡入。
         card._watch.Leave();
         card.ResetMotion();
-        card.SyncPoster();
 
-        // 无条件发起。**信不过 _live 这道门**：回收池会对看得到的容器喊一声 Unloaded 而此后 Loaded 再也不来
+        // 已在树的容器始终可请求。**信不过 _live 这道门**：回收池会对看得到的容器喊一声 Unloaded 而此后 Loaded 再也不来
         // （2026-09-05、2026-09-12 两回实测，日志里那几批「加载图片失败一个字没有、灰占位卡却在屏上」的封面
         // 就是它），那之后 _live 永远是 false，绑到这个容器上的每一张卡都一次请求都不发。而 Card 会被赋值只有
-        // 一种原因：回收池把这个容器交给这一条目摆上屏。发错了的代价最多是一张进了 PosterCache 的位图，正是
-        // 不设这道门时也天天在发生的事；不发错的代价是那张卡永远灰着。
+        // 一种原因：回收池把这个容器交给这一条目摆上屏。首次赋卡尚未挂树时由 Loaded 再请求，
+        // 已经显示却收到回收幻影的容器仍有 XamlRoot，Begin 不能把它拦住。
         card.Begin();
     }
 
@@ -470,8 +418,6 @@ public sealed partial class PosterCard : UserControl
     {
         _motion?.Stop();
         _motion = null;
-        _posterFade?.Stop();
-        _posterFade = null;
         ResetRemoval();
         _hovered = _pressed = false;
         CardMotion.ScaleX = CardMotion.ScaleY = 1;
@@ -585,7 +531,12 @@ public sealed partial class PosterCard : UserControl
     /// Deliberately not awaited: a container coming into view must not block the layout pass on a
     /// download. Everything that can go wrong is handled inside <see cref="CardItem.EnsurePosterAsync"/>.
     /// </summary>
-    private void Begin() => _ = Card?.EnsurePosterAsync();
+    private void Begin()
+    {
+        // 初次赋卡可能早于挂入页面；Loaded 会重试。回收幻影仍有 XamlRoot，不能用 _live 拦它。
+        if (XamlRoot is null) return;
+        _ = Card?.EnsurePosterAsync(BrowsePresentation.WaitForImagesAsync(this));
+    }
 
     private void OnPointerEntered(object sender, PointerRoutedEventArgs e) => _watch.Enter();
 

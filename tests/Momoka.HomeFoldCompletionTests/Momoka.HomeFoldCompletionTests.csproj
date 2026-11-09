@@ -18,6 +18,8 @@
             <PageSource ParameterType="System.String" Required="true" />
             <RowsSource ParameterType="System.String" Required="true" />
             <BannerSource ParameterType="System.String" Required="true" />
+            <PosterSource ParameterType="System.String" Required="true" />
+            <EpisodeSource ParameterType="System.String" Required="true" />
             <OutputSource ParameterType="System.String" Required="true" />
         </ParameterGroup>
         <Task>
@@ -58,6 +60,14 @@
                     between(banner, "        // 控件返回可视树时重新订阅当前图片", "\n        SyncTimer();\n\n        if (XamlRoot") + "\n    }\n" +
                     between(banner, "    private void Paint(BitmapImage? picture)", "\n    /// <summary>\n    /// 台上那层。") +
                     between(banner, "    private void PaintLogo(BannerSlide slide)", "\n    /// <summary>\n    /// 精选标识") + "\n}\n";
+                generated += "\ninternal sealed partial class BannerDemandFixture\n{\n" +
+                    between(banner, "    private void Prefetch()", "\n    /// <summary>\n    /// 箭头在不在屏上。") + "\n}\n";
+                var poster = File.ReadAllText(PosterSource).Replace("\r\n", "\n");
+                generated += "\ninternal sealed partial class PosterDemandFixture\n{\n" +
+                    between(poster, "    private void Begin()", "\n    private void OnPointerEntered") + "\n}\n";
+                var episode = File.ReadAllText(EpisodeSource).Replace("\r\n", "\n");
+                generated += "\ninternal sealed partial class EpisodeDemandFixture\n{\n" +
+                    between(episode, "    private void Begin()", "\n    private void OnPointerEntered") + "\n}\n";
                 generated = generated.Replace("using Microsoft.UI.Xaml.Controls;\n", "using Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Media.Animation;\nusing Microsoft.UI.Xaml.Media.Imaging;\n");
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
@@ -70,6 +80,8 @@
             PageSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomePage.xaml.cs"
             RowsSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomePage.Rows.cs"
             BannerSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomeBanner.xaml.cs"
+            PosterSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\PosterCard.xaml.cs"
+            EpisodeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\EpisodeRow.xaml.cs"
             OutputSource="$(IntermediateOutputPath)HomeFoldPage.g.cs" />
         <ItemGroup>
             <Compile Include="$(IntermediateOutputPath)HomeFoldPage.g.cs" />

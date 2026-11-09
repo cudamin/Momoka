@@ -1,8 +1,10 @@
 # R066 主页翻档完成／归属专项
 
-轮播暖返回专项原样提取 HomeBanner.Loaded 的选片尾段及 Paint/PaintLogo：首访保留入场，第二次Loaded不再Rise，迟到恢复图/徽标直接最终透明度；随后正常换片保留交叉淡入。边界只替代控件值、Storyboard及Show的文本赋值，不创建窗口/WinRT图像。真实HomeReturn另核文字和恢复图片当帧完全不透明。
+轮播暖返回专项原样提取 HomeBanner.Loaded 的选片尾段及 Paint/PaintLogo：首访保留入场，第二次Loaded不再Rise，同步恢复缓存图直接可见，随后才到的背景图/徽标正常淡入；正常轮播保持交叉淡入。边界只替代控件值、Storyboard及Show的文本赋值，不创建窗口/WinRT图像。真实HomeReturn核文字和折叠位置不变、图片淡入最终完全可见；首帧门控探针另核延迟图片实际淡入。
 
 独立控制台夹具，先编译当前源，再运行；不加入或运行全 Core／SelfCheck mutex 套件。
+
+图片需求专项另原样提取 PosterCard.Begin 和 HomeBanner.Prefetch：首次绑定没有可视树时不发新图请求，挂树后按当前控件捕获门控；仍在树的回收容器继续可请求。这里替代门控查找和图片客户端，真实 Frame 所属关系由 BrowsePresentation 专项与原生探针验证。
 
 ## 覆盖边界
 

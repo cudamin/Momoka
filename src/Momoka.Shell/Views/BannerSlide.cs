@@ -159,7 +159,7 @@ public sealed class BannerSlide : INotifyPropertyChanged
     /// drops the slide. The logo is optional and is not part of that verdict.
     /// </para>
     /// </summary>
-    public async Task EnsureAsync()
+    public async Task EnsureAsync(Task? presentation = null)
     {
         // 来源已经失效：连构造时从缓存装进来的那张也不能继续画 —— 「不能沿用旧图」说的是这个。
         if (_scope?.IsAvailable != true)
@@ -189,7 +189,8 @@ public sealed class BannerSlide : INotifyPropertyChanged
 
             if (Picture is null || _renderedGaussian != _useGaussian)
             {
-                if (!await WaitForPresentationAsync(cts).ConfigureAwait(true)) return;
+                presentation ??= BrowsePresentation.WaitForImagesAsync();
+                if (!await WaitForPresentationAsync(cts, presentation).ConfigureAwait(true)) return;
                 // Sequential, and the picture first: it is the whole band, the logo is a stamp in one corner of
                 // it, and the two together would otherwise race for the one connection the session holds.
                 if (_backdropKey is { } pixelsKey && BannerBackdropCache.TryGetPixels(pixelsKey, out var keptPixels))
@@ -227,7 +228,8 @@ public sealed class BannerSlide : INotifyPropertyChanged
             {
                 if (_logo is not null && Logo is null)
                 {
-                    if (!await WaitForPresentationAsync(cts).ConfigureAwait(true)) return;
+                    presentation ??= BrowsePresentation.WaitForImagesAsync();
+                    if (!await WaitForPresentationAsync(cts, presentation).ConfigureAwait(true)) return;
                     var logo = await DecodeAsync(_logo, LogoWidth, cts.Token).ConfigureAwait(true);
                     if (!StillWanted(cts)) return;
                     Logo = logo;
@@ -259,10 +261,10 @@ public sealed class BannerSlide : INotifyPropertyChanged
     private bool StillWanted(CancellationTokenSource cts) =>
         ReferenceEquals(_loading, cts) && !cts.IsCancellationRequested && _scope?.IsAvailable == true;
 
-    private async Task<bool> WaitForPresentationAsync(CancellationTokenSource loading)
+    private async Task<bool> WaitForPresentationAsync(CancellationTokenSource loading, Task presentation)
     {
         using var demand = CancellationTokenSource.CreateLinkedTokenSource(loading.Token, _scope!.Lifetime);
-        await BrowsePresentation.WaitForImagesAsync().WaitAsync(demand.Token).ConfigureAwait(true);
+        await presentation.WaitAsync(demand.Token).ConfigureAwait(true);
         return StillWanted(loading);
     }
 

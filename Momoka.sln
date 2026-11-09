@@ -133,6 +133,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.MediaDialogRecoveryT
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.PlayerInputRecoveryTests", "tests\Momoka.PlayerInputRecoveryTests\Momoka.PlayerInputRecoveryTests.csproj", "{13665BE0-73F3-57EB-A117-C17BB7EE3B6B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.BrowsePresentationTests", "tests\Momoka.BrowsePresentationTests\Momoka.BrowsePresentationTests.csproj", "{A1DACE34-331A-417F-9AA3-589CA2A07B9A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.DetailImageArrivalTests", "tests\Momoka.DetailImageArrivalTests\Momoka.DetailImageArrivalTests.csproj", "{A1FBFBCD-362A-4030-B927-1886E8E2EB79}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -391,6 +395,14 @@ Global
 		{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1DACE34-331A-417F-9AA3-589CA2A07B9A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1DACE34-331A-417F-9AA3-589CA2A07B9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1DACE34-331A-417F-9AA3-589CA2A07B9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1DACE34-331A-417F-9AA3-589CA2A07B9A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1FBFBCD-362A-4030-B927-1886E8E2EB79}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1FBFBCD-362A-4030-B927-1886E8E2EB79}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1FBFBCD-362A-4030-B927-1886E8E2EB79}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1FBFBCD-362A-4030-B927-1886E8E2EB79}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{13665BE0-73F3-57EB-A117-C17BB7EE3B6B} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}

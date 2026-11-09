@@ -14,23 +14,63 @@ internal static class Program
     {
         RegisterMotion();
         RegisterPage();
-        Cases.Add(("banner/warm-loaded-restores-without-decoration", () =>
+        Cases.Add(("poster/demand-waits-for-tree-and-captures-own-gate", () =>
+        {
+            var poster = new PosterDemandFixture();
+            BrowsePresentation.Gate = new TaskCompletionSource().Task;
+            poster.Request();
+            Equal(0, poster.Card.Requests.Count, "off-tree binding cannot bypass the owner gate");
+            poster.XamlRoot = new object();
+            poster.Request();
+            Check(ReferenceEquals(poster, BrowsePresentation.LastOwner), "resolve this control's frame");
+            Check(ReferenceEquals(BrowsePresentation.Gate, poster.Card.Requests.Single()), "capture exact gate");
+            poster.Request();
+            Equal(2, poster.Card.Requests.Count, "still attached recycled control remains eligible");
+        }));
+        Cases.Add(("banner/prefetch-waits-for-tree-and-captures-own-gate", () =>
+        {
+            var banner = new BannerDemandFixture();
+            BrowsePresentation.Gate = new TaskCompletionSource().Task;
+            banner.Request();
+            Check(banner.Slides.All(slide => slide.Requests.Count == 0), "off-tree Show waits for Loaded");
+            banner.XamlRoot = new object();
+            banner.Request();
+            Check(ReferenceEquals(banner, BrowsePresentation.LastOwner), "resolve this banner's frame");
+            Check(banner.Slides.All(slide => ReferenceEquals(BrowsePresentation.Gate, slide.Requests.Single())),
+                "visible slide and neighbors share their own navigation gate");
+        }));
+        Cases.Add(("episode/demand-waits-for-tree-and-captures-own-gate", () =>
+        {
+            var row = new EpisodeDemandFixture();
+            BrowsePresentation.Gate = new TaskCompletionSource().Task;
+            row.Request();
+            Equal(0, row.Card.Requests.Count, "off-tree list row cannot bypass gate");
+            row.XamlRoot = new object();
+            row.Request();
+            Check(ReferenceEquals(row, BrowsePresentation.LastOwner), "list row resolves its own frame");
+            Check(ReferenceEquals(BrowsePresentation.Gate, row.Card.Requests.Single()), "list row keeps exact gate");
+        }));
+        Cases.Add(("banner/warm-loaded-keeps-cached-art-but-fades-late-art", () =>
         {
             var banner = new BannerReturnFixture();
             banner.Loaded();
             Equal(1, banner.Rises, "first visit retains entry");
+            banner.DuringShow = () => { banner.RestoreImage(); banner.RestoreLogo(); };
             banner.Loaded();
             Equal(1, banner.Rises, "warm Loaded must not replay text entry");
-            banner.RestoreImage();
-            banner.RestoreLogo();
             Equal(0, banner.ImageFades, "restored image must not fade in again");
             Equal(0, banner.LogoFades, "restored logo must not fade in again");
             Equal(1d, banner.PictureOpacity, "restored picture is fully visible");
             Equal(1d, banner.LogoOpacity, "restored logo is fully visible");
+            banner.DuringShow = null;
+            banner.RestoreImage();
+            banner.RestoreLogo();
+            Equal(1, banner.ImageFades, "late image after warm entry must fade");
+            Equal(1, banner.LogoFades, "late logo after warm entry must fade");
             banner.Advance();
             banner.RestoreImage();
             Equal(2, banner.Rises, "later slide keeps entry decoration");
-            Equal(1, banner.ImageFades, "later slide keeps crossfade");
+            Equal(2, banner.ImageFades, "later slide keeps crossfade");
         }));
         Cases.Add(("R06-008 carousel-single-to-many-clock", () =>
         {

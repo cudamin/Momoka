@@ -107,6 +107,7 @@ public sealed class CardItem : INotifyPropertyChanged
     private readonly bool _fnNasWide;
 
     private CancellationTokenSource? _loading;
+    private Task? _presentation;
 
     /// <summary>服务器明说没有这张图（404，或这个条目压根没有这一种图）。终局答案，不再问。</summary>
     private bool _missing;
@@ -137,7 +138,7 @@ public sealed class CardItem : INotifyPropertyChanged
     /// 封面拼图：与单张海报共用同一套缓存、取消、回收和失败冷却。
     /// 图还没到时先留透明格，字形占位仍透出来。
     /// </summary>
-    private async Task EnsureCollageAsync()
+    private async Task EnsureCollageAsync(Task? presentation)
     {
         if (Scope is not { IsAvailable: true } scope || _loading is not null) return;
         if (Enumerable.Range(0, CollageTileCount).All(index => _collageTiles[index] is not null)) return;
@@ -160,7 +161,9 @@ public sealed class CardItem : INotifyPropertyChanged
                     continue;
                 }
 
-                if (!await WaitForPresentationAsync(cts, scope).ConfigureAwait(true)) return;
+                presentation ??= BrowsePresentation.WaitForImagesAsync();
+                _presentation = presentation;
+                if (!await WaitForPresentationAsync(cts, scope, presentation).ConfigureAwait(true)) return;
                 var bitmap = await _images.GetDecodedAsync(scope, _item.Id, EmbyImageStore.Primary, path,
                         EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), cts.Token)
                     .ConfigureAwait(true);
@@ -190,10 +193,10 @@ public sealed class CardItem : INotifyPropertyChanged
         }
     }
 
-    private async Task<bool> WaitForPresentationAsync(CancellationTokenSource loading, EmbySessionScope scope)
+    private async Task<bool> WaitForPresentationAsync(CancellationTokenSource loading, EmbySessionScope scope, Task presentation)
     {
         using var demand = CancellationTokenSource.CreateLinkedTokenSource(loading.Token, scope.Lifetime);
-        await BrowsePresentation.WaitForImagesAsync().WaitAsync(demand.Token).ConfigureAwait(true);
+        await presentation.WaitAsync(demand.Token).ConfigureAwait(true);
         return ReferenceEquals(_loading, loading) && !loading.IsCancellationRequested && scope.IsAvailable;
     }
 
@@ -245,16 +248,6 @@ public sealed class CardItem : INotifyPropertyChanged
     /// </para>
     /// </summary>
     private bool _wanted;
-    private bool _posterPresented;
-
-    /// <summary>Keep first-show animation ownership with the card, without retaining its bitmap or container.</summary>
-    internal bool TryPresentPoster()
-    {
-        if (_posterPresented) return false;
-        _posterPresented = true;
-        return true;
-    }
-
     /// <summary>
     /// 当前换宽是否需要补图。与 _wanted 分开：容器暂时离树时可以继续等旧请求，
     /// 但不该因窗口换宽另开请求；显式 EnsurePosterAsync（Loaded / 换卡）才重新开启。
@@ -638,7 +631,7 @@ public sealed class CardItem : INotifyPropertyChanged
 
         // 首图尚未返回也得重启；离屏后只是继续等旧图，不因此开启新宽度请求。
         // 容器再把它递进来时，EnsurePosterAsync 会按最新宽度取。
-        if (_resizeWanted) _ = EnsurePosterAsync();
+        if (_resizeWanted) _ = EnsurePosterAsync(_presentation);
     }
 
     /// <summary>画出来的图有多高。索引卡自带宽高比时按它算（见 <see cref="_aspect"/>），否则按两档形状。</summary>
@@ -780,14 +773,15 @@ public sealed class CardItem : INotifyPropertyChanged
     /// 那一趟请求照旧在路上 —— 容器又回来的时候由这一句把它抬起来，那一趟的结果于是照旧塞得回来。
     /// </para>
     /// </summary>
-    public async Task EnsurePosterAsync()
+    public async Task EnsurePosterAsync(Task? presentation = null)
     {
         _wanted = true;
         _resizeWanted = true;
+        if (presentation is not null) _presentation = presentation;
 
         if (FolderCollage || LibraryWall)
         {
-            await EnsureCollageAsync().ConfigureAwait(true);
+            await EnsureCollageAsync(presentation).ConfigureAwait(true);
             return;
         }
 
@@ -808,6 +802,8 @@ public sealed class CardItem : INotifyPropertyChanged
 
         var cts = new CancellationTokenSource();
         _loading = cts;
+        presentation ??= BrowsePresentation.WaitForImagesAsync();
+        _presentation = presentation;
 
         try
         {
@@ -823,7 +819,7 @@ public sealed class CardItem : INotifyPropertyChanged
                     if (PosterCache.TryGet(candidateKey, out var cached)) image = cached;
                     else
                     {
-                        if (!await WaitForPresentationAsync(cts, scope).ConfigureAwait(true)) return null;
+                        if (!await WaitForPresentationAsync(cts, scope, presentation).ConfigureAwait(true)) return null;
                         image = await _images.GetDecodedAsync(scope, picture.ItemId, picture.ImageType, picture.Tag,
                             EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), token).ConfigureAwait(true);
                     }
@@ -945,6 +941,7 @@ public sealed class CardItem : INotifyPropertyChanged
     /// </summary>
     public void AbandonPoster()
     {
+        _presentation = null;
         _holder = null;
         _wanted = false;
         _resizeWanted = false;

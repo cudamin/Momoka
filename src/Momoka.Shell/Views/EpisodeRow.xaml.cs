@@ -69,10 +69,14 @@ public sealed partial class EpisodeRow : UserControl
     private bool _hovered;
 
     private bool _focused;
+    private readonly ImageArrivalFade _posterArrival;
+
+    internal bool PosterArrivalRunning => _posterArrival.IsRunning;
 
     public EpisodeRow()
     {
         InitializeComponent();
+        _posterArrival = new ImageArrivalFade(Poster);
 
         _watch = new HoverWatch(Root, up =>
         {
@@ -157,7 +161,11 @@ public sealed partial class EpisodeRow : UserControl
     /// Deliberately not awaited: a container coming into view must not block the layout pass on a
     /// download. Everything that can go wrong is handled inside <see cref="CardItem.EnsurePosterAsync"/>.
     /// </summary>
-    private void Begin() => _ = Card?.EnsurePosterAsync();
+    private void Begin()
+    {
+        if (XamlRoot is null) return;
+        _ = Card?.EnsurePosterAsync(BrowsePresentation.WaitForImagesAsync(this));
+    }
 
     private void OnPointerEntered(object sender, PointerRoutedEventArgs e) => _watch.Enter();
 

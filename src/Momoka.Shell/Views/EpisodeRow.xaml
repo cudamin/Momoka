@@ -95,6 +95,7 @@
                     Glyph="{x:Bind Card.Glyph, Mode=OneWay}" />
 
                 <Image
+                    x:Name="Poster"
                     Source="{x:Bind Card.Poster, Mode=OneWay}"
                     Stretch="UniformToFill" />
 

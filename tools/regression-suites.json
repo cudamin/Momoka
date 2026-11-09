@@ -4,6 +4,26 @@
   "shellAssembly": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
   "suites": [
     {
+      "id": "Momoka.BrowsePresentationTests",
+      "project": "tests/Momoka.BrowsePresentationTests/Momoka.BrowsePresentationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.BrowsePresentationTests/README.md",
+      "notes": "实际页面动画和图片门控源码，受控Loaded/Rendering/队列边界；不证明原生WinRT上下文或实屏。"
+    },
+    {
+      "id": "Momoka.DetailImageArrivalTests",
+      "project": "tests/Momoka.DetailImageArrivalTests/Momoka.DetailImageArrivalTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.DetailImageArrivalTests/README.md",
+      "notes": "实际图片淡入及详情图片加载控制流，匿名受控解码与Storyboard；不启动窗口或真实服务。"
+    },
+    {
       "id": "Momoka.AppearanceOpacityTests",
       "project": "tests/Momoka.AppearanceOpacityTests/Momoka.AppearanceOpacityTests.csproj",
       "mode": "dotnet",

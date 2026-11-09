@@ -58,6 +58,7 @@ public sealed partial class HomeBanner : UserControl
     private static readonly TimeSpan CrossFade = TimeSpan.FromMilliseconds(650);
     private bool _everLoaded;
     private bool _restoringEntry;
+    private bool _paintingEntry;
 
     /// <summary>一行字抬起来用多久。</summary>
     private static readonly TimeSpan Lift = TimeSpan.FromMilliseconds(600);
@@ -544,7 +545,7 @@ public sealed partial class HomeBanner : UserControl
         Brush(rising).ImageSource = picture;
         _second = !_second;
 
-        if (_restoringEntry)
+        if (_restoringEntry && _paintingEntry)
         {
             rising.Opacity = 1;
             falling.Opacity = 0;
@@ -568,6 +569,8 @@ public sealed partial class HomeBanner : UserControl
     /// 不是 <c>Image</c>）。
     /// </summary>
     internal Grid FrontLayer => _second ? LayerB : LayerA;
+
+    internal bool ImageArrivalRunning => _motions.ContainsKey("image");
 
     /// <summary>台上那张图。读的地方有几处（换图前先比一比、自检报「还在取还是已上图」），所以收成一句。</summary>
     internal ImageSource? FrontPicture => Brush(FrontLayer).ImageSource;
@@ -612,7 +615,7 @@ public sealed partial class HomeBanner : UserControl
             return;
         }
 
-        if (_restoringEntry)
+        if (_restoringEntry && _paintingEntry)
         {
             LogoRow.Opacity = 1;
             LogoShift.Y = 0;
@@ -768,12 +771,15 @@ public sealed partial class HomeBanner : UserControl
     /// </summary>
     private void Prefetch()
     {
+        // 初始绑定早于可视树时还不知道所属 Frame；Loaded 中的 Show 会重新发起。
+        if (XamlRoot is null) return;
+        var presentation = BrowsePresentation.WaitForImagesAsync(this);
         var back = HomeCarousel.Step(_index, -1, _slides.Count);
         var next = HomeCarousel.Step(_index, 1, _slides.Count);
 
         for (var i = 0; i < _slides.Count; i++)
         {
-            if (i == _index || i == back || i == next) _ = _slides[i].EnsureAsync();
+            if (i == _index || i == back || i == next) _ = _slides[i].EnsureAsync(presentation);
             else _slides[i].Release();
         }
     }
@@ -1146,7 +1152,10 @@ public sealed partial class HomeBanner : UserControl
         _everLoaded = true;
         if (_slides.Count > 0)
         {
-            Show(_index, animate: !_restoringEntry);
+            // 同步恢复的缓存图保持可见；随后才到的图片和徽标仍走各自的淡入。
+            _paintingEntry = true;
+            try { Show(_index, animate: !_restoringEntry); }
+            finally { _paintingEntry = false; }
         }
         SyncTimer();
 

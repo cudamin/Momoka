@@ -1,3 +1,14 @@
+## 2026-11-09 恢复页面动画与后到图片淡入（本树完成，待主树交付）
+
+用户指出上一轮取消动画不符合体验，要求点击后先有UI反馈、图片后加载且淡入。本批保留Suppress消除平台150ms旧页退出等待，Shell在新页Loaded后独立180ms纯透明度入场；不整体平移，避免影响背景和滚动坐标。Frame本轮首Rendering之后经Low队列放行新图；已解码图直接恢复，后到主海报/飞牛拼图/列表行/详情五图统一220ms淡入，暖轮播仅同步恢复图片直出，晚到图仍原交叉淡入。图片静止时不挂全局事件。
+
+首版AsyncLocal门控在真实WinRT回调丢失：32456记录Loaded gatePending=True但imageCalls=1，明确红。改为控件按所属Frame捕获Task，显式传Card/Banner/Detail；无树绑定等待Loaded，回收幻影XamlRoot仍在不拦。Card显式参数与候选/换宽测试来自2c601a7，因同文件清理改用精确补丁整合。旧TryPresentPoster卡片标记无法表达新图到达，已删死代码及对应模型测试，改由完整ImageArrivalFade同Source/晚Source/离树/取消回归覆盖。
+
+本树最终产品Release/x64零警告错误，完整主测试4232/4232，0失败0跳过；Browse19/19、Detail图片19/19、Home需求/轮播/翻档64/64、PageContract167/167、HomeDirectory62/62。首次主测试因删SyncPoster使NeutralFeedback提取锚点失效4231/4232；改为事件边界并保留原断言后完整通过。首次NuGet漏洞服务不可达警告后按现有离线缓存restore重编零警告，没有修改仓库安全配置。
+
+原生44792 performance/shell/playback为33/34，新增首帧/图片双宽1280海报及760列表全部通过，Loaded imageCalls=0且所有新图在release之后；长剧焦点及返回主页通过。唯一深滚动旧探针截图前Y=-17、300ms截图等待后实际Y=-177，Release保存当前值正确；独立代理正在对齐正式Suppress并修正采样时点，待主树验证。此前18448首版门控及焦点红、30540遮挡和重复缓存前置超时记录保留。
+
+最终产品定向29408首帧/晚图检查通过，真实屏幕录制12秒/353帧，已查看文字先出/背景淡入/库封面/详情逐帧和宽窄截图。证据artifacts/navigation-animation，原生logs为shell-probe-20261109-122035554-29408及121410845-44792。Rendering不是DWM呈现，原用户所有切换不慢于网页的严格对照仍未完成，不宣称点击第一帧保证。产品尚未合master/发布；主树已有3个技能删除保留，不推origin。
 ## 2026-11-09 原生首帧与图片晚到检查交接（未构建运行）
 
 新增performance「真实首帧先呈现、晚图淡入与导航取消」及检查台InspectBrowsePresentation。真实Shell/Frame宽窄两档以匿名PNG响应挂起：Home Loaded观察生产_images门控未放行、图片HTTP零请求与标题已出现；等待真实导航start/first-frame/released及图片wait日志顺序，再放响应验证Banner/Poster/Detail真实淡入活跃与落定。另保留快速BackForward、旧图流离页与关闭动画。三种页面使用独立媒体/图片key，防已暖缓存误当晚图。

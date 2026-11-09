@@ -78,6 +78,7 @@
                 <!-- 飞牛横卡的底：同一张海报放大、压暗，竖版封面摆在正中（见 CardItem.FnNasWide）。 -->
                 <Grid Visibility="{x:Bind Card.FnNasWideVisibility, Mode=OneWay}">
                     <Image
+                        x:Name="FnNasPosterBackground"
                         Opacity="0.55"
                         RenderTransformOrigin="0.5,0.5"
                         Source="{x:Bind Card.Poster, Mode=OneWay}"
@@ -90,7 +91,6 @@
                 </Grid>
                 <Image
                     x:Name="Poster"
-                    ImageOpened="OnPosterOpened"
                     RenderTransformOrigin="0.5,0.5"
                     Source="{x:Bind Card.Poster, Mode=OneWay}"
                     Stretch="{x:Bind Card.PosterStretch, Mode=OneWay}">
@@ -120,7 +120,7 @@
                         Background="Transparent"
                         CornerRadius="4"
                         Visibility="{x:Bind Card.FolderTile0Visibility, Mode=OneWay}">
-                        <Image Source="{x:Bind Card.FolderTile0, Mode=OneWay}" Stretch="UniformToFill" />
+                        <Image x:Name="FolderPoster0" Source="{x:Bind Card.FolderTile0, Mode=OneWay}" Stretch="UniformToFill" />
                     </Border>
                     <Border
                         Grid.Row="{x:Bind Card.FolderTile1Row, Mode=OneWay}"
@@ -130,7 +130,7 @@
                         Background="Transparent"
                         CornerRadius="4"
                         Visibility="{x:Bind Card.FolderTile1Visibility, Mode=OneWay}">
-                        <Image Source="{x:Bind Card.FolderTile1, Mode=OneWay}" Stretch="UniformToFill" />
+                        <Image x:Name="FolderPoster1" Source="{x:Bind Card.FolderTile1, Mode=OneWay}" Stretch="UniformToFill" />
                     </Border>
                     <Border
                         Grid.Row="{x:Bind Card.FolderTile2Row, Mode=OneWay}"
@@ -140,7 +140,7 @@
                         Background="Transparent"
                         CornerRadius="4"
                         Visibility="{x:Bind Card.FolderTile2Visibility, Mode=OneWay}">
-                        <Image Source="{x:Bind Card.FolderTile2, Mode=OneWay}" Stretch="UniformToFill" />
+                        <Image x:Name="FolderPoster2" Source="{x:Bind Card.FolderTile2, Mode=OneWay}" Stretch="UniformToFill" />
                     </Border>
                     <Border
                         Grid.Row="{x:Bind Card.FolderTile3Row, Mode=OneWay}"
@@ -150,7 +150,7 @@
                         Background="Transparent"
                         CornerRadius="4"
                         Visibility="{x:Bind Card.FolderTile3Visibility, Mode=OneWay}">
-                        <Image Source="{x:Bind Card.FolderTile3, Mode=OneWay}" Stretch="UniformToFill" />
+                        <Image x:Name="FolderPoster3" Source="{x:Bind Card.FolderTile3, Mode=OneWay}" Stretch="UniformToFill" />
                     </Border>
                 </Grid>
                 <!-- 飞牛媒体库的封面墙：官方库卡在 poster_type=Multiple 时把 posters 去重后最多三张并排，
@@ -162,13 +162,13 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0" Visibility="{x:Bind Card.LibraryTile0Visibility, Mode=OneWay}">
-                        <Image Source="{x:Bind Card.LibraryTile0, Mode=OneWay}" Stretch="UniformToFill" />
+                        <Image x:Name="LibraryPoster0" Source="{x:Bind Card.LibraryTile0, Mode=OneWay}" Stretch="UniformToFill" />
                     </Border>
                     <Border Grid.Column="1" Visibility="{x:Bind Card.LibraryTile1Visibility, Mode=OneWay}">
-                        <Image Source="{x:Bind Card.LibraryTile1, Mode=OneWay}" Stretch="UniformToFill" />
+                        <Image x:Name="LibraryPoster1" Source="{x:Bind Card.LibraryTile1, Mode=OneWay}" Stretch="UniformToFill" />
                     </Border>
                     <Border Grid.Column="2" Visibility="{x:Bind Card.LibraryTile2Visibility, Mode=OneWay}">
-                        <Image Source="{x:Bind Card.LibraryTile2, Mode=OneWay}" Stretch="UniformToFill" />
+                        <Image x:Name="LibraryPoster2" Source="{x:Bind Card.LibraryTile2, Mode=OneWay}" Stretch="UniformToFill" />
                     </Border>
                 </Grid>
                 <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="4"

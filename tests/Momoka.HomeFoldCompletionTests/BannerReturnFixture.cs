@@ -12,6 +12,7 @@ namespace Momoka.Shell.Views
         private bool _second;
         private bool _everLoaded;
         private bool _restoringEntry;
+        private bool _paintingEntry;
         private readonly Layer LayerA = new();
         private readonly Layer LayerB = new();
         private readonly Layer LogoImage = new();
@@ -23,6 +24,7 @@ namespace Momoka.Shell.Views
         internal int Rises { get; private set; }
         internal int ImageFades { get; private set; }
         internal int LogoFades { get; private set; }
+        internal Action? DuringShow { get; set; }
         internal double PictureOpacity => FrontLayer.Opacity;
         internal double LogoOpacity => LogoRow.Opacity;
         private Layer FrontLayer => _second ? LayerB : LayerA;
@@ -39,7 +41,12 @@ namespace Momoka.Shell.Views
             _restoringEntry = false;
             Show(0);
         }
-        private void Show(int index, bool animate = true) { _index = index; if (animate) Rises++; }
+        private void Show(int index, bool animate = true)
+        {
+            _index = index;
+            if (animate) Rises++;
+            DuringShow?.Invoke();
+        }
         private void PaintBackdropShade() { }
         private void PaintOpenButtonInk() { }
         private void StopMotion(string channel) { }
