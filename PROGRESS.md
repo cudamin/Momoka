@@ -1,6 +1,9 @@
 # 开发进度
 
-## 2026-11-10 MP 订阅详情文字列与公司换行（主树验证通过，准备发布）
+## 2026-11-10 MP 订阅详情文字列与公司换行（已交付）
+
+统一publish.ps1 -NoArchive -Shortcut退出0：546文件/286.9MB，14GLSL/4HOOK与59批准mpv文件校验通过。桌面Momoka.lnk目标与工作目录均主树artifacts/publish/win-x64，参数空。发布Shell及发布配置bin哈希均2B8C0B1C8E3F3F2E4255615B0001409C0984AD6B33E257D957376F5C6E4F6CF9，Core均BE542C164AF32AE7F6C470F2CBEC549EBCB0903A5543FD7394E8E24643781D6F。发布件三项3/3通过（shell-probe-20261109-172010184-38096），实屏已看，InspectDone正常退出；无真实服务器播放/写入或上传。日志与哈希artifacts/mp-detail-layout-master。e95f已确认内容全部入master，归档工具拒绝当前聊天primary checkout，按应用保护保留；临时分支已转回detached后删除，恢复线索6629bbd。
+
 
 产品6629bbd已合入master c1ce061。主树最终Shell与Tests/Core编译0/0；完整4275/4275、页面36/36、0失败0跳过，统一完整测试与编译日志在work/push-audit-20261110并已复制artifacts/mp-detail-layout-master。主树原生三项3/3（shell-probe-20261109-171507974-8016），宽窄/公司换行/季标题实屏已看、InspectDone正常结束。即将统一发布桌面目录。
 
