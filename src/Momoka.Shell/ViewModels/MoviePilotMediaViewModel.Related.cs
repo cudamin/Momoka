@@ -11,12 +11,26 @@ public sealed partial class MoviePilotRelatedCard(string title, string subtitle,
 {
     public string Title { get; } = title;
     public string Subtitle { get; } = subtitle;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ArtworkHeight))]
+    public partial double CardWidth { get; set; } = 128;
+    public double ArtworkHeight => CardWidth * 204 / 142;
     [ObservableProperty] public partial BitmapImage? Poster { get; set; }
     public IRelayCommand OpenCommand { get; } = new RelayCommand(open);
 }
 
 public sealed partial class MoviePilotMediaViewModel
 {
+    private double _relatedCardWidth = 128;
+
+    // 八张紧凑卡随正文宽度收缩，窄窗保留可读下限；仅更新尺寸，不重建内容或滚动位置。
+    internal void ResizeRelatedCards(double width)
+    {
+        if (width <= 0) return;
+        _relatedCardWidth = Math.Clamp((width - 24 - 7 * 12) / 8, 100, 128);
+        foreach (var card in People.Concat(Recommendations).Concat(Similar)) card.CardWidth = _relatedCardWidth;
+    }
+
     public ObservableCollection<MoviePilotRelatedCard> People { get; } = [];
     public ObservableCollection<MoviePilotRelatedCard> Recommendations { get; } = [];
     public ObservableCollection<MoviePilotRelatedCard> Similar { get; } = [];
@@ -39,7 +53,7 @@ public sealed partial class MoviePilotMediaViewModel
                 People.Clear();
                 foreach (var person in people)
                 {
-                    var card = new MoviePilotRelatedCard(person.Name, person.Character, () => { if (Live) OpenPerson?.Invoke(person.Url); });
+                    var card = new MoviePilotRelatedCard(person.Name, person.Character, () => { if (Live) OpenPerson?.Invoke(person.Url); }) { CardWidth = _relatedCardWidth };
                     People.Add(card); _ = LoadRelatedImageAsync(card, person.ImageUrl, token);
                 }
                 OnPropertyChanged(nameof(PeopleVisibility));
@@ -57,7 +71,7 @@ public sealed partial class MoviePilotMediaViewModel
                 rows.Clear();
                 foreach (var item in items)
                 {
-                    var card = new MoviePilotRelatedCard(item.Display, item.Type ?? "", () => { if (Live) OpenMedia?.Invoke(item); });
+                    var card = new MoviePilotRelatedCard(item.Display, item.Type ?? "", () => { if (Live) OpenMedia?.Invoke(item); }) { CardWidth = _relatedCardWidth };
                     rows.Add(card); _ = LoadRelatedImageAsync(card, item.PosterUrl ?? "", token);
                 }
                 OnPropertyChanged(similar ? nameof(SimilarVisibility) : nameof(RecommendationsVisibility));

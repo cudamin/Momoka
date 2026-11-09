@@ -350,9 +350,9 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public Visibility BackdropFadeVisibility => Show(Backdrop is not null && Immersive && !Showcase);
 
     /// <summary>所有模式使用同一套紧凑留白。</summary>
-    public Thickness BodySheetPadding => new(PageMargin.Left, 12, PageMargin.Right, 12);
+    public Thickness BodySheetPadding => new(PageMargin.Left, 8, PageMargin.Right, 8);
     public Thickness HeaderPadding => new(PageMargin.Left, 12, PageMargin.Right, 0);
-    public double BodySheetSpacing => 12;
+    public double BodySheetSpacing => 8;
     public Thickness BodyPanelPadding => new(12);
 
     /// <summary>大窗模式里货架标题前那条强调条与底下那条通栏线都收起（同详情页）。</summary>

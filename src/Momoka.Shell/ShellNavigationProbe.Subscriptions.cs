@@ -260,7 +260,22 @@ internal sealed partial class ShellNavigationProbe
                 //（用户令 2026-10-12）。
                 Get<ScrollViewer>(page, "DetailScroll").ChangeView(null, 0, null, true);
                 await LayoutAsync(page);
+                var factsScroll = Get<ScrollViewer>(page, "FactsScroll");
+                Require(factsScroll.VerticalScrollBarVisibility == ScrollBarVisibility.Hidden
+                    && !Descendants(Get<Border>(page, "HeroFacts")).OfType<Viewbox>().Any(),
+                    "评分资料卡应保留正常字号并隐藏滚动条");
+                factsScroll.ChangeView(null, factsScroll.ScrollableHeight, null, true);
+                await LayoutAsync(page);
+                var subscriptionFields = Get<ItemsRepeater>(page, "SubscriptionFacts");
+                var lastFact = (FrameworkElement)subscriptionFields.GetOrCreateElement(vm.DetailInfoFacts.Count - 1);
+                await LayoutAsync(page);
+                var lastFactBottom = lastFact.TransformToVisual(factsScroll).TransformPoint(new Windows.Foundation.Point(0, lastFact.ActualHeight)).Y;
+                Require(lastFactBottom > 0 && lastFactBottom <= factsScroll.ViewportHeight + 1,
+                    $"隐藏滚动条后无法查看末行资料：末行 {lastFactBottom:0.0}、视口 {factsScroll.ViewportHeight:0.0}");
+                factsScroll.ChangeView(null, 0, null, true);
+                await LayoutAsync(page);
                 await SaveSettledFrameAsync(page, $"mp-subscription-header-{width}.png");
+                if (width >= 1080) await SaveProbeScreenAsync($"mp-subscription-fit-{width}-screen.png");
                 // 窗口一变，季列表按新视口重新实现；把季列表重新滚进视野，折叠栏里的逐集行才有得读。
                 seasonsView.StartBringIntoView();
                 await LayoutAsync(page);
@@ -286,7 +301,7 @@ internal sealed partial class ShellNavigationProbe
                 // 评分来自订阅快照。资料卡全页只有一张（用户令 2026-10-12「怎么变成两个卡片了」），
                 // 卡上不再分「媒体信息」「订阅信息」两个小标题 —— 照网页端那张卡：评分星在最上面，下面一列
                 // 「标签 / 值」（用户令 2026-10-12「为什么你弄了一个媒体信息一个订阅信息，只需要留这个」）。
-                var facts = Get<StackPanel>(page, "HeroFacts");
+                var facts = Get<Border>(page, "HeroFacts");
                 Require(Get<Border>(page, "LibraryBadge").Visibility == Visibility.Visible && vm.LibraryBadge == "部分入库",
                     "入库徽标没有按文件统计显示");
                 Require(Get<ItemsRepeater>(page, "SubscriptionFacts").ItemsSource is IReadOnlyList<MoviePilotSubscriptionFact> { Count: > 0 },
@@ -303,9 +318,9 @@ internal sealed partial class ShellNavigationProbe
                     "媒体信息栏没有内容");
                 Require(!Descendants(facts).OfType<TextBlock>().Any(text => text.Text is "媒体信息" or "订阅信息"),
                     "资料卡里还留着「媒体信息」或「订阅信息」小标题");
-                var card = facts.Children.OfType<FrameworkElement>().ToList();
+                var card = ((Grid)facts.Child).Children.OfType<FrameworkElement>().ToList();
                 Require(card.Count == 2 && Descendants(card[0]).OfType<FrameworkElement>().Any(element => element.Name == "SubscriptionStars")
-                    && card[1] is StackPanel { Spacing: 0 } list
+                    && card[1] is ScrollViewer { Content: StackPanel { Spacing: 0 } list }
                     && list.Children.OfType<FrameworkElement>().Select(child => child.Name).SequenceEqual(new[] { "MediaFacts", "SubscriptionFacts" }),
                     "资料卡不是「评分星 + 一列字段」两段：" + string.Join("、", card.Select(child => child.Name)));
                 // 评分留在头部；简介与季在正文左列，资料卡在正文右列。
@@ -403,9 +418,19 @@ internal sealed partial class ShellNavigationProbe
                 // ——指针停在哪条带上整页就滚不动（用户报「往下翻页之后不能往上翻」）。所以带子必须是
                 // ShelfStrip（用的是 ScrollView），段里一个 ScrollViewer 都不许再有。
                 var media = page.MediaViewModel;
+                var body = Get<Grid>(page, "BodyRow");
+                var previousPanel = (FrameworkElement)body;
+                foreach (var name in new[] { "PeoplePanel", "RecommendationsPanel", "SimilarPanel" })
+                {
+                    var nextPanel = Get<StackPanel>(page, name);
+                    var gap = nextPanel.TransformToVisual(page).TransformPoint(default).Y
+                        - previousPanel.TransformToVisual(page).TransformPoint(default).Y - previousPanel.ActualHeight;
+                    Require(gap is >= 6 and <= 10, $"{name} 前仍有过大留白或重叠：{gap:0.0}");
+                    previousPanel = nextPanel;
+                }
                 var sections = new (string Name, string Title, object Cards)[]
                 {
-                    ("MediaPeople", "演职员", media.People),
+                    ("MediaPeople", "演员阵容", media.People),
                     ("MediaRecommendations", "相关推荐", media.Recommendations),
                     ("MediaSimilar", "相似作品", media.Similar)
                 };
@@ -431,7 +456,14 @@ internal sealed partial class ShellNavigationProbe
                         $"{name} 里还有内层 ScrollViewer —— 指针停在带上时它会吃掉整页的竖向滚轮");
                     Require(strip.Visibility == Visibility.Visible && ReferenceEquals(strip.ItemsSource, cards),
                         $"{name} 没有装着夹具那六条内容（或整段收着）：{strip.Visibility}");
-                    relatedReadings.Add($"{width} 宽 {name}：板底 {panelFill!.TintColor}、带高 {strip.ActualHeight:0.0}、"
+                    strip.StartBringIntoView();
+                    await LayoutAsync(page);
+                    var tile = Descendants(strip).OfType<Button>().First(button => button.Name == "OpenRelatedMedia");
+                    var artwork = Descendants(tile).OfType<Border>().First(border => border.Name == "RelatedArtwork");
+                    Require(tile.ActualWidth is >= 99 and <= 129 && artwork.ActualHeight < 186
+                        && Math.Abs(artwork.ActualHeight / tile.ActualWidth - 204d / 142) < 0.01,
+                        $"{name} 卡片没有自动收窄并保留封面比例：{tile.ActualWidth:0.0}×{artwork.ActualHeight:0.0}");
+                    relatedReadings.Add($"{width} 宽 {name}：卡片 {tile.ActualWidth:0.0}×{artwork.ActualHeight:0.0}、板底 {panelFill!.TintColor}、带高 {strip.ActualHeight:0.0}、"
                         + $"牌子「{head!.Title}」、内层滚动面 ScrollView（无 ScrollViewer）");
                 }
                 Require(media.People.Count == 6 && media.Recommendations.Count == 6 && media.Similar.Count == 6,

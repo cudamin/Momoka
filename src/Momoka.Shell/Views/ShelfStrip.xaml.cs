@@ -342,12 +342,18 @@ public sealed partial class ShelfStrip : UserControl
     }
 
     /// <summary>
-    /// 卡片间距：第一张卡的宽度加一个间隔。量到就记下来，量不到就用记着的那个 —— 见 <see cref="_pitch"/>。
+    /// 卡片间距：已实现卡片的宽度加一个间隔。首项被虚拟化后仍可量到缩窗后的新宽度。
     /// </summary>
     private double Measure()
     {
-        if (Repeater.TryGetElement(0) is FrameworkElement first && first.ActualWidth > 0)
-            _pitch = first.ActualWidth + ItemSpacing;
+        var count = VisualTreeHelper.GetChildrenCount(Repeater);
+        for (var index = 0; index < count; index++)
+        {
+            if (VisualTreeHelper.GetChild(Repeater, index) is not FrameworkElement item
+                || Repeater.GetElementIndex(item) < 0 || item.ActualWidth <= 0) continue;
+            _pitch = item.ActualWidth + ItemSpacing;
+            break;
+        }
 
         return _pitch;
     }
