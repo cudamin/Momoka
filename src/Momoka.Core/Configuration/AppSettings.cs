@@ -1452,7 +1452,13 @@ public sealed class UiSettings
     /// </summary>
     public bool UseAcrylicControls { get; set; } = true;
 
-    /// <summary>电影、剧与季的沉浸模式；关闭使用简洁卡面并隐藏背景图，保留外观偏好。</summary>
+    /// <summary>
+    /// 电影、剧、季、单集与 MoviePilot 订阅详情的沉浸模式；关闭使用简洁卡面并隐藏背景图，保留外观偏好。
+    /// <para>
+    /// 2026-11-09 起 MoviePilot 订阅详情页也听这一格（用户令「给 MP 订阅也新增沉浸模式还有简洁模式」）：
+    /// 开着时宽版式且有图就铺图，关掉则整张背景图收起、头部收成一张卡面。
+    /// </para>
+    /// </summary>
     public bool EnableImmersive { get; set; } = true;
 
     /// <summary>

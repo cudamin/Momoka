@@ -133,7 +133,8 @@ internal static class SettingsPageStateTests
             var rows = fixture.List(section, "Rows");
             var mode = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "显示模式");
             Assert.Equal("SettingChoiceRow", mode.GetType().Name);
-            Assert.Equal("电影、剧、季和单集详情页有背景图时固定使用沉浸布局", fixture.Get<string>(mode, "Note"));
+            Assert.Equal("电影、剧、季、单集与 MoviePilot 订阅详情页有背景图时使用沉浸布局；关掉改用不铺图的简洁卡面",
+                fixture.Get<string>(mode, "Note"));
             // 亚克力这套：色调 + 两档浓度，没有第四格整体浓度；背景那三行排在显示模式之后。
             Assert.True(Labels().SequenceEqual(new[]
             {

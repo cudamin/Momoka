@@ -85,36 +85,6 @@ public static class DetailHero
     /// </param>
     public static double Height(bool artwork) => artwork ? ArtHeight : PlainHeight;
 
-    /// <summary>
-    /// 窗口「铺开了」的那条线：占所在显示器可用面积的五分之四（2026-10-31 用户令「窗口占屏幕五分之四面积时
-    /// 也要自动切换」）。最大化当然也算 —— 那一档本来就是一整块工作区，不必再量一次。
-    /// </summary>
-    public const double ImmersiveShare = 0.8;
-
-    /// <summary>
-    /// 窗口面积占工作区的比例。量不出来（窗口还没建、显示器没读到、客户区是空的）时给 0 —— 低于任何一条线。
-    /// <para>
-    /// 比的是面积而不是某一条边：用户说「占屏幕五分之四面积」，一扇 89%×89% 的窗口正好过线，一扇只拉宽、
-    /// 高度不动的不算 —— 后者画面上仍是「一条窄带」，与参考图那种整页铺开的版面不是一回事。
-    /// </para>
-    /// </summary>
-    /// <param name="windowWidth">客户区宽（物理像素）。</param>
-    /// <param name="windowHeight">客户区高（物理像素）。</param>
-    /// <param name="areaWidth">窗口所在显示器的工作区宽（物理像素，任务栏之外）。</param>
-    /// <param name="areaHeight">同上，高。</param>
-    public static double Share(double windowWidth, double windowHeight, double areaWidth, double areaHeight) =>
-        windowWidth > 0 && windowHeight > 0 && areaWidth > 0 && areaHeight > 0
-            ? windowWidth * windowHeight / (areaWidth * areaHeight)
-            : 0;
-
-    /// <summary>
-    /// 这一刻窗口算不算「铺开了」：最大化，或者面积过了 <see cref="ImmersiveShare"/>。窗口那一侧的两个数
-    /// （是不是最大化、面积多大）只有窗口自己知道，这里只把两句话并成一句给 <see cref="SubscriptionImmersive"/> 用。
-    /// </summary>
-    /// <param name="maximized">窗口这一刻是不是最大化。</param>
-    /// <param name="share">客户区占工作区的面积比（<see cref="Share"/>）。</param>
-    public static bool Spacious(bool maximized, double share) => maximized || share >= ImmersiveShare;
-
     /// <summary>详情沉浸开关直接决定宽窗布局；无图、窄窗和其它条目类型不收起正文纸面。</summary>
     public static bool Immersive(bool enabled, bool compact, bool artwork, string type) =>
         enabled && !compact && artwork
@@ -137,20 +107,23 @@ public static class DetailHero
         artwork && !narrow && (immersive || type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season);
 
     /// <summary>
-    /// MoviePilot 订阅详情页的大窗模式（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」，同日追加
-    /// 「拉长窗口导致背景图快要被裁切时也要自动切换」）。
+    /// MoviePilot 订阅详情页的沉浸档（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」；2026-11-09
+    /// 用户令「给 MP 订阅也新增沉浸模式还有简洁模式」，把它并进设置里那条显示模式）。
     /// <para>
-    /// 判据与详情页同一套，只是没有「条目类型」这一句：这一页本来就只讲电影或剧。剩下几句缺一不可 ——
-    /// 窗口铺开（<paramref name="spacious"/>）或背景图快被裁掉（<paramref name="nearCrop"/>）、宽版式
-    /// （资料卡能并排）、背后有那张图；否则收掉纸面只会剩一页空黑，或者换成另一套单列版面。
+    /// 三句同时成立：设置里选的是沉浸模式（<paramref name="immersive"/>）、资料卡能并排的宽版式
+    /// （<paramref name="wide"/>）、背后有那张图。与电影／剧／季详情页的 <see cref="Immersive"/> 同一条判据 ——
+    /// 窗口铺没铺开不再参与：显示模式是用户亲口选的一档，宽版式一成立就该按他选的那一档排，不必再把窗口
+    /// 拖到最大化才算数（从前那两句 <c>Spacious</c>／<c>NearCrop</c> 连同它们量的窗口几何一起退役）。
+    /// </para>
+    /// <para>
+    /// 关掉就是简洁模式：不铺背景图、头部收成一张卡面，正文纸面与面板照旧。
     /// </para>
     /// </summary>
-    /// <param name="spacious">窗口这一刻铺开了没有（<see cref="Spacious"/>）。</param>
-    /// <param name="nearCrop">背景图按页宽铺开已经/即将高过视口（<see cref="NearCrop"/>）。</param>
+    /// <param name="immersive">设置 → 详情页外观里「显示模式」是不是沉浸模式。</param>
     /// <param name="wide">这一页这一次的资料卡能不能并排在右端（内容区够宽）。</param>
     /// <param name="artwork">背后有没有那张背景图。</param>
-    public static bool SubscriptionImmersive(bool spacious, bool nearCrop, bool wide, bool artwork) =>
-        (spacious || nearCrop) && wide && artwork;
+    public static bool SubscriptionImmersive(bool immersive, bool wide, bool artwork) =>
+        immersive && wide && artwork;
 
     /// <summary>
     /// 订阅详情页沉浸档里背景图铺多高 —— 直接铺到窗口下沿：那一档正文纸面变成半透明洗色，背景要从片名
@@ -349,37 +322,6 @@ public static class DetailHero
 
         return Math.Clamp((roomyTotal - (pictureBottom - FitMargin)) / slack, 0, 1);
     }
-
-    /// <summary>
-    /// 背景图「快要被裁掉」了没有 —— 按页宽铺开的高占到视口 98% 以上就算。再宽一点那张图就要按宽撑满、
-    /// 把下沿切在视口外面，而切掉的那一截正是片子自己的构图。
-    /// <para>
-    /// 这一句是「铺开」的第二条来路（第一条是最大化／占工作区五分之四，见 <see cref="Spacious"/>）：
-    /// 窗口没铺开、但画面已经快被切的时候，无遮挡版式比一张被切掉下沿的图更合适。
-    /// </para>
-    /// <para>
-    /// 只量图自己的形状，不读 <see cref="PictureHeight"/>：后者被带高垫过底，带子高的时候会把它抬到视口，
-    /// 于是「有没有画面可切」这件事被版面自己答成了「没有」。
-    /// </para>
-    /// </summary>
-    /// <param name="pageWidth">这一页看得见的那一段有多宽。</param>
-    /// <param name="heightRatio">背景那张位图的高 ÷ 宽；不成话（没解出来）按 16:9 兜底，同
-    /// <see cref="PictureHeight"/> —— 第一帧本来就用那个估值布版面。</param>
-    /// <param name="viewport">页面可视区的高；0 是「还没量」。</param>
-    public static bool NearCrop(double pageWidth, double heightRatio, double viewport)
-    {
-        if (viewport <= 0) return false;
-
-        var ratio = SaneRatio(heightRatio) ? heightRatio : 9d / 16;
-        return Math.Max(pageWidth, 0) * ratio >= viewport * CropAhead;
-    }
-
-    /// <summary>
-    /// <see cref="NearCrop"/> 的那条线：图占到视口这个比例就算「接近被裁」。2% 是「已经贴到屏幕下沿、
-    /// 再宽一点就切」那一档；放到 4%（0.96）时，1080p 屏上一扇 1440×900 的窗口（视口 832、图 810）也会
-    /// 被判进来，而那一档观众看到的仍是一整张图 —— 换版式换得太早，纸面版式反而没有立足之地。
-    /// </summary>
-    public const double CropAhead = 0.98;
 
     /// <summary>
     /// 背景那张图的不透明度：常态 0.9 —— 压暗那么一档，亮图不把标题栏那一行字吃掉。

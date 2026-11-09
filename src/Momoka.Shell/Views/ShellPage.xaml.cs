@@ -626,13 +626,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         // 详情页要认显示器多大（纸面上沿那条线跟着显示器走，见 DetailHero.PaperLineFor），挂在这一个事件上
         // 而不是 OpenDetail 里：后退/前进重建的详情页实例不走 OpenDetail，却一样要从外壳领窗口。
-        // 订阅详情页的大窗模式也要读窗口形态（最大化／占工作区五分之四），同样在这一处递。
         ContentFrame.Navigated += (_, _) =>
         {
             switch (ContentFrame.Content)
             {
                 case DetailPage detail: detail.AttachWindow(window); break;
-                case MoviePilotSubscriptionPage subscription: subscription.AttachWindow(window); break;
             }
         };
 
@@ -1454,7 +1452,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
             SearchMoviePilotVersions, _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMoviePilotMedia,
             SetTitleStrip: SetTitleStrip,
             SearchAniBt: SearchAniBtVersions,
-            Subscribed: subscribed), BrowseTransition());
+            Subscribed: subscribed,
+            Settings: _services.GetRequiredService<ISettingsService>()), BrowseTransition());
         _trail.Add(new Crumb(subscription.Title, string.Empty));
         _current = null;
         SyncChrome();
@@ -1468,7 +1467,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
         RememberTrail();
         ContentFrame.Navigate(typeof(MoviePilotSubscriptionPage), new MoviePilotSubscriptionRequest(service, null,
             Launcher: _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMedia: OpenMoviePilotMedia, Media: media,
-            SetTitleStrip: SetTitleStrip, Subscribed: OpenMoviePilotSubscriptionsAfterSubscribe), BrowseTransition());
+            SetTitleStrip: SetTitleStrip, Subscribed: OpenMoviePilotSubscriptionsAfterSubscribe,
+            Settings: _services.GetRequiredService<ISettingsService>()), BrowseTransition());
         _trail.Add(new Crumb(media.Display, string.Empty));
         _current = null;
         SyncChrome();

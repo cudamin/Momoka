@@ -50,7 +50,7 @@ public sealed partial class SettingsViewModel
         rows.Add(Choice("显示模式", new[] { ("沉浸模式", true), ("简洁模式", false) },
             () => ui.EnableImmersive,
             value => ui.EnableImmersive = value,
-            "电影、剧、季和单集详情页有背景图时固定使用沉浸布局",
+            "电影、剧、季、单集与 MoviePilot 订阅详情页有背景图时使用沉浸布局；关掉改用不铺图的简洁卡面",
             after: () =>
             {
                 ShellPrefs.ApplyAppearance(ui);
