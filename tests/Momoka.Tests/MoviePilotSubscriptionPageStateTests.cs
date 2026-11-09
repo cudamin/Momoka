@@ -171,7 +171,7 @@ internal static class MoviePilotSubscriptionPageStateTests
 
     private static void RegisterDetailLayout(string root)
     {
-        Test("MP 详情布局：简介紧随封面左列，完整资料卡右列，季与相关列表全宽", () =>
+        Test("MP 详情布局：简介紧随操作文字列，完整资料卡右列，季与相关列表全宽", () =>
         {
             var document = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"));
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -180,7 +180,8 @@ internal static class MoviePilotSubscriptionPageStateTests
             var body = Named("BodyRow");
             Assert.True(ReferenceEquals(primary.Parent, Named("HeroRow")));
             Assert.True(ReferenceEquals(Named("HeroSurface").Parent, primary));
-            Assert.True(ReferenceEquals(Named("HeroOverview").Parent, primary));
+            Assert.True(ReferenceEquals(Named("HeroOverview").Parent, Named("HeroContent")));
+            Assert.True(ReferenceEquals(Named("DetailActions").ElementsAfterSelf().First(), Named("HeroOverview")));
             Assert.True(ReferenceEquals(Named("SeasonPanel").Parent, body));
             Assert.True(ReferenceEquals(Named("HeroFacts").Parent, Named("HeroRow")));
             Assert.True(ReferenceEquals(body.Parent, Named("BodyFlow")));
@@ -204,6 +205,10 @@ internal static class MoviePilotSubscriptionPageStateTests
             Assert.Equal("Top", (string?)Named("HeroOverview").Attribute("VerticalAlignment"));
             Assert.Equal("OnDetailViewChanged", (string?)Named("DetailScroll").Attribute("ViewChanged"));
             var seasons = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotMediaSeasonsView.xaml"));
+            var seasonHeading = seasons.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "SeasonsHeading");
+            var groupHeading = seasons.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "EpisodeGroupsHeading");
+            Assert.True(ReferenceEquals(seasonHeading.Parent, groupHeading.Parent));
+            Assert.Equal("{x:Bind ViewModel.GroupsVisibility, Mode=OneWay}", (string?)groupHeading.Attribute("Visibility"));
             var group = seasons.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "SwitchEpisodeGroup");
             Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", (string?)group.Attribute("Background"));
             foreach (var key in new[] { "ButtonBackgroundPointerOver", "ButtonBackgroundPressed", "ButtonBackgroundDisabled" })

@@ -27,7 +27,8 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" VerticalAlignment="Top" />
-                    <Grid Grid.Column="1" ColumnSpacing="6" HorizontalAlignment="Right">
+                    <Grid Grid.Column="1" ColumnSpacing="6"
+                        HorizontalAlignment="{x:Bind local:MoviePilotSubscriptionPage.FactAlignment(Cloud, ReleaseCountry), Mode=OneTime}">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                         <Viewbox Width="16" Height="16" VerticalAlignment="Top" Margin="0,2,0,0"
                             Visibility="{x:Bind local:MoviePilotSubscriptionPage.FactVisibility(Cloud), Mode=OneTime}">
@@ -39,7 +40,7 @@
                             <TextBlock Text="{x:Bind ReleaseCountry}" Style="{StaticResource EgCaptionStyle}" />
                         </Border>
                         <TextBlock Grid.Column="1" Text="{x:Bind Value}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold"
-                            HorizontalAlignment="Right" TextAlignment="Right" TextWrapping="Wrap" />
+                            HorizontalAlignment="Stretch" TextAlignment="Right" TextWrapping="Wrap" />
                     </Grid>
                 </Grid>
             </Border>
@@ -90,7 +91,7 @@
     </Grid>
     <ScrollViewer x:Name="DetailScroll" VerticalScrollBarVisibility="Auto" SizeChanged="OnDetailScrollSizeChanged" ViewChanged="OnDetailViewChanged">
         <StackPanel>
-            <!-- 简介紧随左侧封面和操作；右卡自然长高，下方季与相关列表保持全宽。 -->
+            <!-- 简介紧随文字列操作；右卡自然长高，下方季与相关列表保持全宽。 -->
             <StackPanel x:Name="HeroSection">
             <StackPanel x:Name="HeroBlock" Padding="{x:Bind MediaViewModel.HeaderPadding, Mode=OneWay}" Spacing="12"
                 SizeChanged="OnHeroContentSizeChanged">
@@ -99,7 +100,7 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="HeroFactColumn" Width="288" /></Grid.ColumnDefinitions>
                 <StackPanel x:Name="BodyPrimary" Spacing="8" VerticalAlignment="Top">
                 <Border x:Name="HeroSurface" VerticalAlignment="Top" CornerRadius="{StaticResource EgCardCornerRadius}">
-                <Grid x:Name="HeroGrid" MinHeight="300" ColumnSpacing="{StaticResource EgSpaceXL}" RowSpacing="16" SizeChanged="OnHeroSizeChanged">
+                <Grid x:Name="HeroGrid" MinHeight="340" ColumnSpacing="20" RowSpacing="16" SizeChanged="OnHeroSizeChanged">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -108,7 +109,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
-                    <Border x:Name="DetailPoster" Width="210" Height="300" VerticalAlignment="Top" Style="{StaticResource EgFrameStyle}">
+                    <Border x:Name="DetailPoster" Width="238" Height="340" VerticalAlignment="Top" Style="{StaticResource EgFrameStyle}">
                         <Grid>
                             <Grid.Background>
                                 <ImageBrush ImageSource="{x:Bind MediaViewModel.Poster, Mode=OneWay}" Stretch="UniformToFill" />
@@ -154,25 +155,25 @@
                                 <FontIcon FontSize="{StaticResource EgSubheadFontSize}" Glyph="&#xE712;" />
                             </Button>
                         </local:WrapRow>
+                        <StackPanel x:Name="HeroOverview" VerticalAlignment="Top"
+                            Style="{StaticResource EgBodyPanelStyle}" Background="Transparent" BorderThickness="0"
+                            Padding="0" Spacing="{StaticResource EgSpaceS}">
+                            <TextBlock x:Name="MediaTagline" Text="{x:Bind MediaViewModel.Tagline, Mode=OneWay}"
+                                Visibility="{x:Bind local:MoviePilotSubscriptionPage.TextVisibility(MediaViewModel.Tagline), Mode=OneWay}"
+                                Style="{StaticResource EgDataStyle}" FontStyle="Italic" TextWrapping="Wrap" />
+                            <TextBlock Text="简介" Style="{StaticResource EgSectionTitleStyle}" />
+                            <TextBlock Text="{x:Bind MediaViewModel.Overview, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
+                                TextWrapping="Wrap" MaxWidth="{StaticResource EgProseWidth}" HorizontalAlignment="Left" />
+                            <ItemsRepeater x:Name="MediaSourceLinks" ItemsSource="{x:Bind MediaViewModel.Links, Mode=OneWay}">
+                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="8" /></ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="mp:MoviePilotMediaLink">
+                                    <HyperlinkButton x:Name="OpenMediaSource" Content="{x:Bind Label}" NavigateUri="{x:Bind Url}" />
+                                </DataTemplate></ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
                 </Border>
-                    <StackPanel x:Name="HeroOverview" VerticalAlignment="Top"
-                        Style="{StaticResource EgBodyPanelStyle}" Background="Transparent" BorderThickness="0"
-                        Padding="0" Spacing="{StaticResource EgSpaceS}">
-                        <TextBlock x:Name="MediaTagline" Text="{x:Bind MediaViewModel.Tagline, Mode=OneWay}"
-                            Visibility="{x:Bind local:MoviePilotSubscriptionPage.TextVisibility(MediaViewModel.Tagline), Mode=OneWay}"
-                            Style="{StaticResource EgDataStyle}" FontStyle="Italic" TextWrapping="Wrap" />
-                        <TextBlock Text="简介" Style="{StaticResource EgSectionTitleStyle}" />
-                        <TextBlock Text="{x:Bind MediaViewModel.Overview, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
-                            TextWrapping="Wrap" MaxWidth="{StaticResource EgProseWidth}" HorizontalAlignment="Left" />
-                        <ItemsRepeater x:Name="MediaSourceLinks" ItemsSource="{x:Bind MediaViewModel.Links, Mode=OneWay}">
-                            <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="8" /></ItemsRepeater.Layout>
-                            <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="mp:MoviePilotMediaLink">
-                                <HyperlinkButton x:Name="OpenMediaSource" Content="{x:Bind Label}" NavigateUri="{x:Bind Url}" />
-                            </DataTemplate></ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
-                    </StackPanel>
                 </StackPanel>
                 <Border x:Name="HeroFacts" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top"
                     Width="288" CornerRadius="{StaticResource EgCardCornerRadius}"

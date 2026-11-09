@@ -325,10 +325,12 @@ internal sealed partial class ShellNavigationProbe
                     && double.IsNaN(factsPanel.Height) && !Descendants(factsPanel).OfType<ScrollViewer>().Any(),
                     $"资料卡仍裁掉字段或要求滚动：末行 {lastFactBottom:0.0}、卡高 {factsPanel.ActualHeight:0.0}");
                 await SaveSettledFrameAsync(page, $"mp-subscription-header-{width}.png");
-                if (width >= 1080) await SaveProbeScreenAsync($"mp-subscription-fit-{width}-screen.png");
+                await SaveProbeScreenAsync($"mp-subscription-fit-{width}-screen.png");
+                await CheckCompanyWrappingAsync(page);
                 // 窗口一变，季列表按新视口重新实现；把季列表重新滚进视野，折叠栏里的逐集行才有得读。
                 seasonsView.StartBringIntoView();
                 await LayoutAsync(page);
+                RequireSeasonHeadings(page);
                 host = Descendants(seasonsView).OfType<Expander>().First(expander => expander.Name == "ExpandMediaSeason" && expander.IsExpanded);
                 await LayoutAsync(page);
                 await SaveProbeScreenAsync($"mp-subscription-season-{width}-screen.png");
