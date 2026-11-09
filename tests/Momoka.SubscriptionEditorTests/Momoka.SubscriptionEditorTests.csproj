@@ -8,6 +8,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSubscriptionEditorViewModel.cs" Link="Production\MoviePilotSubscriptionEditorViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSubscriptionActionsViewModel.cs" Link="Production\MoviePilotSubscriptionActionsViewModel.cs" />
     <Compile Include="..\Momoka.MoviePilotSubscribeSettingsTests\Fixture.cs" Link="Fixture.cs" />
     <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotSubscriptionEditor.xaml" LogicalName="Editor.xaml" />
     <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotSubscriptionEditor.xaml.cs" LogicalName="Editor.cs" />

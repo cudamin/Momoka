@@ -23,25 +23,10 @@ internal sealed record MoviePilotSubscriptionRequest(MoviePilotService Service, 
 
 public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 {
-    /// <summary>资料卡并排时的宽度。</summary>
     private const double FactsSideWidth = 320;
-
-    /// <summary>资料卡叠起来时的最宽：再宽下去标签和值会被拉开成两页纸。</summary>
     private const double FactsStackedMaxWidth = 520;
-
-    /// <summary>
-    /// 资料卡并排所需的最小内容宽度。左边那一格要放得下海报、片名与那一排操作键，再加卡片自己和中间
-    /// 那道 24 的间隔；低于它就让整张卡落到头部下面，宽度铺满内容区。
-    /// <para>
-    /// 这一处没用 <c>AdaptiveTrigger</c>：探针实测本页的自适应状态在窗口收窄后没有生效（状态名读回为空），
-    /// 而这里的判据本来就该按**内容区**宽度算（页面四边的内缩要先减掉），按窗口宽度反而要另配一个补偿数。
-    /// 纯摆位，留在 code-behind。
-    /// </para>
-    /// </summary>
     private const double FactsSideBreakpoint = 960;
-
-    /// <summary>叠起来时两块之间的纵向间隔，就是页面的主间距（Theme/Styles.xaml 的 EgSpaceXL）。</summary>
-    private const double FactsStackedRowSpacing = 24;
+    private const double FactsStackedRowSpacing = 12;
 
     /// <summary>
     /// 头部封面的尺寸，照电影详情页那张竖版封面（<c>DetailViewModel.PosterStillWidth</c>／
@@ -75,6 +60,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         InitializeComponent();
         PaintBackdropFade();
         PrepareShowcase();
+        PrepareActionAppearance();
         WatchShowcaseTheme();
         WatchAppearance();
         ViewModel.PropertyChanged += (_, args) =>
@@ -140,13 +126,14 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private void OnDetailScrollSizeChanged(object sender, SizeChangedEventArgs args)
     {
         // 宽高各自写回视图模型，派生值（背景盒高、头部下限）跟着它们自己重算。模式翻面不在这里结算：
-        // 沉浸档只看宽版式与图（ApplyHeroLayout 与 Backdrop 那两条来路），尺寸只是让那几个数换个值。
+        // 沉浸档只看宽版式与图（ApplyBodyLayout 与 Backdrop 那两条来路），尺寸只是让那几个数换个值。
         if (args.NewSize.Width > 0) MediaViewModel.PageWidth = args.NewSize.Width;
+        ApplyMaterialAppearance();
         if (args.NewSize.Height > 0) MediaViewModel.Viewport = args.NewSize.Height;
     }
 
     /// <summary>
-    /// 头部那一叠（封面、片名、操作、资料卡、简介）本来多高 —— 背景那张至少垫住它，否则头部下半截会落到
+    /// 头部那一叠（封面、片名、操作）本来多高 —— 背景那张至少垫住它，否则头部下半截会落到
     /// 图外面那段页底色上。量的是让开高度那一层里面这一叠，所以「让开多少」不会回头改这个数。
     /// </summary>
     private void OnHeroContentSizeChanged(object sender, SizeChangedEventArgs args)
@@ -167,21 +154,17 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
             DetailBackdropRoot.Margin = new Thickness(0, -lift, 0, 0);
     }
 
-    /// <summary>
-    /// 头部那一行的资料卡怎么摆：内容区够宽就并排在海报与片名的右侧（页面右上角），不够就落到头部下面。
-    /// </summary>
-    private void OnHeroRowSizeChanged(object sender, SizeChangedEventArgs args) => ApplyHeroLayout(args.NewSize.Width);
+    // 正文右列保留固定宽；窄窗时资料卡排在简介与季下面。
+    private void OnBodyRowSizeChanged(object sender, SizeChangedEventArgs args) => ApplyBodyLayout(args.NewSize.Width);
 
-    private void ApplyHeroLayout(double width)
+    private void ApplyBodyLayout(double width)
     {
         var side = width >= FactsSideBreakpoint;
         Grid.SetColumn(HeroFacts, side ? 1 : 0);
         Grid.SetRow(HeroFacts, side ? 0 : 1);
         HeroFactColumn.Width = side ? new GridLength(FactsSideWidth) : new GridLength(0);
-        HeroRow.RowSpacing = side ? 0 : FactsStackedRowSpacing;
+        BodyRow.RowSpacing = side ? 0 : FactsStackedRowSpacing;
         HeroFacts.Width = side ? FactsSideWidth : Math.Min(FactsStackedMaxWidth, width);
-
-        // 大窗模式要的是「资料卡能并排」这一档版面；窄成单列时不参与（同详情页的紧凑档）。
         MediaViewModel.WideLayout = side;
     }
 
@@ -193,14 +176,15 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         Grid.SetColumnSpan(HeroContent, compact ? 2 : 1);
         DetailPoster.Width = compact ? CompactPosterWidth : PosterWidth;
         DetailPoster.Height = compact ? CompactPosterHeight : PosterHeight;
+        ApplyMaterialAppearance();
     }
 
     /// <summary>头部那张卡面里，海报与字离卡沿的距离。</summary>
-    private const double HeroCardPadding = 24;
+    private const double HeroCardPadding = 12;
 
     /// <summary>头部那一行在卡面里外两种模式下的外边距 —— 沉浸档照旧（压在图上，上面多让一截），卡面里归 0。</summary>
-    private const double HeroRowTop = 36;
-    private const double HeroRowBottom = 24;
+    private const double HeroRowTop = 12;
+    private const double HeroRowBottom = 12;
 
     /// <summary>
     /// 设置 → 详情页外观里那条「显示模式」改了：这一页和电影／剧／季详情页一样当场跟上，不要求重开页面。
@@ -211,12 +195,14 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         Loaded += (_, _) =>
         {
             _appearanceObserved = true;
+            StartMaterialWatch();
             ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
             ShellPrefs.AppearanceChanged += OnAppearanceChanged;
         };
         Unloaded += (_, _) =>
         {
             _appearanceObserved = false;
+            _appearanceSystemTimer?.Stop();
             ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         };
     }
@@ -239,8 +225,10 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     /// <summary>把显示模式写进视图模型，并让头部卡面、纸面与标题条跟上 —— 三样都是这一个开关的下游。</summary>
     private void ApplyDisplayMode(UiSettings ui)
     {
+        _appearanceSettings = ui;
         MediaViewModel.Immersive = ui.EnableImmersive;
         ApplyHeroSurface();
+        ApplyMaterialAppearance();
         SettleShowcase();
         SyncTitleStrip();
     }
@@ -258,13 +246,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         HeroSurface.Padding = plain ? new Thickness(HeroCardPadding) : default;
         HeroRow.Margin = plain ? default : new Thickness(0, HeroRowTop, 0, HeroRowBottom);
 
-        // 卡面按自己的内容收边（不跟着右边那张资料卡一起拉高，否则下半截是一块空卡面）；沉浸档要撑满整行，
-        // 简介才压得到第一屏下沿。
-        HeroSurface.VerticalAlignment = plain ? VerticalAlignment.Top : VerticalAlignment.Stretch;
-
-        // 简介那一格：沉浸档压在第一屏下沿（那一档有整屏的图要交代），卡面里紧跟操作排、不再沉到卡底 ——
-        // 行的位置不动：窄到单列时操作那一叠自己会挪到第 1 行，简介留在末行不会和它抢同一个格子。
-        HeroOverview.VerticalAlignment = plain ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+        HeroSurface.VerticalAlignment = VerticalAlignment.Top;
+        HeroOverview.VerticalAlignment = VerticalAlignment.Top;
     }
 
     private static Brush? ResourceBrush(string key) =>
@@ -291,6 +274,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     {
         _pageLifetime?.Cancel(); _pageLifetime?.Dispose(); _pageLifetime = new();
         _request = request;
+        MediaViewModel.PropertyChanged -= OnShowcaseChanged;
+        MediaViewModel.PropertyChanged += OnShowcaseChanged;
         var media = request.Subscription?.Media ?? request.Media;
         if (media is null) return;
         if (request.Subscription is not null) ViewModel.Attach(request.Service, request.Subscription);
@@ -305,14 +290,16 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         MediaViewModel.OpenPerson = url => request.Launcher?.OpenUrl(url);
         // 显示模式跟着设置走；没带设置（探针、旧入口）时按出厂的沉浸模式。写在 Bindings.Update 之前，
         // 第一帧就是用户选的那一档。
-        MediaViewModel.Immersive = request.Settings?.Settings.Ui.EnableImmersive ?? true;
+        _appearanceSettings = request.Settings?.Settings.Ui ?? new UiSettings();
+        MediaViewModel.Immersive = _appearanceSettings.EnableImmersive;
         // 订阅详情才把订阅视图模型交给季列表：匹配季号的折叠栏改装文件统计；纯媒体详情的季浏览照旧。
         MediaSeasons.Attach(MediaViewModel, request.Subscription is null ? null : ViewModel);
         Bindings.Update();
         // 尺寸没变时 SizeChanged 不会再发一次，这里按当前实际宽度补算一遍。尚未排版时读到 0，
         // 随后的 SizeChanged 会把它纠正过来。
-        ApplyHeroLayout(HeroRow.ActualWidth);
+        ApplyBodyLayout(BodyRow.ActualWidth);
         ApplyHeroSurface();
+        ApplyMaterialAppearance();
         SettleShowcase();
         SyncTitleStrip();
         if (request.Subscription is not null) _ = ViewModel.ReloadAsync();
@@ -550,6 +537,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         _pageLifetime?.Cancel(); _pageLifetime?.Dispose(); _pageLifetime = null;
         ThemeHost.Changed -= OnShowcaseThemeChanged;
         _appearanceObserved = false;
+        _appearanceSystemTimer?.Stop();
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         MediaViewModel.PropertyChanged -= OnShowcaseChanged;
         _request = null; ViewModel.Cancel(); MediaViewModel.Cancel(); MediaResources.Release();

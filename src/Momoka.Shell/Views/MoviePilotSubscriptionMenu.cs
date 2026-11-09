@@ -40,14 +40,7 @@ internal static class MoviePilotSubscriptionMenu
     }
 
     /// <summary>
-    /// 把订阅管理那一组项填进给定的项集合。分成「建浮层」和「装项」两半，是为了让调用方自己拿主意浮层怎么来
-    /// （封面那颗更多键走 <see cref="Create"/>，可用性探针直接把项读出来）。
-    /// <para>
-    /// 这一份是**封面更多键**的项集合，落点就在封面所在的那一页（「媒体详情」在这里是打开订阅详情页）。订阅
-    /// 详情页那颗更多键原先也装这一份，用户令 2026-10-12「更多按钮不要折叠，去掉重复的选项」之后不再共用：
-    /// 那边摊平成一层、重复的项去掉，「媒体详情」由落点更准的「文件统计」替掉，见
-    /// <c>MoviePilotSubscriptionPage.BuildMoreMenu</c>。
-    /// </para>
+    /// 按官方订阅卡的动作顺序构建封面菜单。详情导航与文件统计各有落点。
     /// </summary>
     internal static void Fill(IList<MenuFlyoutItemBase> items, FrameworkElement owner, MoviePilotSubscriptionsViewModel vm,
         MoviePilotSubscriptionCard card, Action open, MoviePilotService? service)
@@ -59,21 +52,24 @@ internal static class MoviePilotSubscriptionMenu
             (subscription, save, remove) => MoviePilotSubscriptionEditor.ShowAsync(owner, subscription, service, save, remove)));
         Add("搜索", "\uE721", () => _ = vm.ManageAsync(card, MoviePilotSubscriptionAction.Search));
         Add(card.Subscription.Paused ? "恢复" : "暂停", card.Subscription.Paused ? "\uE768" : "\uE769",
-            () => _ = vm.ManageAsync(card, pauseAction));
-        Add("重置", "\uE777", () => _ = vm.ManageAsync(card, MoviePilotSubscriptionAction.Reset));
+            () => _ = vm.ManageAsync(card, pauseAction), color: "EgInfoBrush");
+        Add("重置", "\uE777", () => _ = vm.ManageAsync(card, MoviePilotSubscriptionAction.Reset), color: "EgWarningBrush");
+        if (service is not null)
+        {
+            if (card.Subscription.IsSeries)
+                Add("分享", "\uE72D", () => _ = MoviePilotSubscriptionActions.ShareAsync(owner, vm, card, service), color: "EgAccentBrush");
+            Add("订阅活动", "\uE9D9", () => _ = MoviePilotSubscriptionActions.ActivityAsync(owner, vm, card, service), false);
+        }
         Add("媒体详情", "\uE946", open, false);
-        // 「文件统计」只在电视剧上有落点：它滚到订阅季折叠栏里那份统计。电影那块独立面板已按用户令
-        // （2026-10-12）删掉，这一项在电影上无处可去，跟着一起收起（不是置灰）。
-        if (card.Subscription.IsSeries) Add("文件统计", "\uE9F9", open, false);
-        items.Add(new MenuFlyoutSeparator());
-        Add("取消订阅", "\uE74D", () => _ = vm.ManageAsync(card, MoviePilotSubscriptionAction.Delete));
+        if (service is not null) Add("文件统计", "\uE9F9", () => _ = MoviePilotSubscriptionActions.FilesAsync(owner, vm, card, service), false);
+        Add("取消订阅", "\uE74D", () => _ = vm.ManageAsync(card, MoviePilotSubscriptionAction.Delete), color: "EgDangerBrush");
         return;
 
-        void Add(string title, string glyph, Action action, bool write = true)
+        void Add(string title, string glyph, Action action, bool write = true, string? color = null)
         {
-            var item = new MenuFlyoutItem { Text = title, Icon = new FontIcon { Glyph = glyph }, IsEnabled = vm.Owns(card) && (!write || vm.CanManage && !needsReview) };
+            var item = new MenuFlyoutItem { Text = title, Icon = new FontIcon { Glyph = glyph }, IsEnabled = vm.Owns(card) && !vm.Working && (!write || vm.CanManage && !needsReview) };
             AutomationProperties.SetAutomationId(item, "Subscription" + title);
-            MoviePilotMenuBrand.Apply(item);
+            if (color is not null) item.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources[color];
             item.Click += (_, _) => action();
             items.Add(item);
         }

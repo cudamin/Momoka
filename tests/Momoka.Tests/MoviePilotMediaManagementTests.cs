@@ -149,16 +149,17 @@ internal static class MoviePilotMediaManagementTests
             Assert.False(noAi.SelectMany(row => row.Children ?? (IReadOnlyList<ItemMenuEntry>)[])
                 .Any(row => row.Command == ItemCommand.MoviePilotSmartReorganize));
         });
-        Test("MP 菜单品牌：条目更多菜单不再套 MP 图标，订阅菜单保留", () =>
+        Test("MP 菜单品牌：条目与订阅封面使用普通动作菜单，详情保留品牌", () =>
         {
             var root = new DirectoryInfo(AppContext.BaseDirectory);
             while (root is not null && !File.Exists(Path.Combine(root.FullName, "CLAUDE.md"))) root = root.Parent;
             Assert.True(root is not null, "找不到当前源码树");
             var itemMenu = File.ReadAllText(Path.Combine(root!.FullName, "src", "Momoka.Shell", "Views", "ItemCommands.cs"));
             Assert.False(itemMenu.Contains("MoviePilotMenuBrand", StringComparison.Ordinal), "条目更多菜单仍在套 MP 图标");
-            foreach (var page in new[] { "MoviePilotSubscriptionMenu.cs", "MoviePilotSubscriptionPage.xaml.cs" })
-                Assert.Contains("MoviePilotMenuBrand.Apply(item)",
-                    File.ReadAllText(Path.Combine(root.FullName, "src", "Momoka.Shell", "Views", page)));
+            Assert.False(File.ReadAllText(Path.Combine(root.FullName, "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionMenu.cs"))
+                .Contains("MoviePilotMenuBrand.Apply(item)", StringComparison.Ordinal), "订阅封面菜单仍重复显示 MP 标志");
+            Assert.Contains("MoviePilotMenuBrand.Apply(item)",
+                File.ReadAllText(Path.Combine(root.FullName, "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml.cs")));
         });
         Test("MP 菜单品牌：与设置页共享白色三路径，未残留紫色 SVG", () =>
         {

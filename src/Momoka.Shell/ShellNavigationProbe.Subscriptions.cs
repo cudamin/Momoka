@@ -54,8 +54,54 @@ internal sealed partial class ShellNavigationProbe
                 Require(Math.Abs(covers[0].ActualWidth - vm.Movies[0].CardWidth) < 1, "封面按钮未占满卡片宽度");
                 await UntilAsync(() => vm.Movies[0].Poster is not null);
                 InvokeSubscriptionButton(covers[0]);
-                Require(opened?.Id == 1, "封面点击没有打开媒体详情");
+                ContentDialog? editor = null;
+                await UntilAsync(() => (editor = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetOpenPopupsForXamlRoot(view.XamlRoot)
+                    .SelectMany(popup => Descendants(popup.Child)).OfType<ContentDialog>()
+                    .FirstOrDefault(dialog => dialog.Content is MoviePilotSubscriptionEditor)) is not null);
+                var editorView = (MoviePilotSubscriptionEditor)editor!.Content;
+                await UntilAsync(() => !editorView.ViewModel.Busy);
+                Require(!editorView.ViewModel.NoticeOpen, "封面编辑未读取有效的站点和目录选项");
+                Require(opened is null && server.Writes.Count == 0, "封面编辑仍导航到详情或尚未保存已发生写入");
+                await SaveProbeScreenAsync($"mp-home-edit-{width}.png");
+                editor!.Hide();
+                await UntilAsync(() => !vm.Working);
+                Require(server.Writes.Count == 0, "取消封面编辑仍然写入订阅");
                 await SaveSettledFrameAsync(host, $"mp-subscriptions-home-{width}.png");
+            }
+            var card = vm.Series[0];
+            var menu = MoviePilotSubscriptionMenu.Create(view, vm, card, () => opened = card.Subscription, service);
+            Require(menu.Items.OfType<MenuFlyoutItem>().Select(item => item.Text).SequenceEqual(
+                new[] { "编辑", "搜索", "暂停", "重置", "分享", "订阅活动", "媒体详情", "文件统计", "取消订阅" }), "主页订阅菜单未对齐网页顺序");
+            foreach (var action in new[] { "分享订阅", "订阅活动", "文件统计" })
+            {
+                var show = action switch
+                {
+                    "分享订阅" => MoviePilotSubscriptionActions.ShareAsync(view, vm, card, service),
+                    "订阅活动" => MoviePilotSubscriptionActions.ActivityAsync(view, vm, card, service),
+                    _ => MoviePilotSubscriptionActions.FilesAsync(view, vm, card, service)
+                };
+                ContentDialog? dialog = null;
+                await UntilAsync(() => (dialog = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetOpenPopupsForXamlRoot(view.XamlRoot)
+                    .SelectMany(popup => Descendants(popup.Child)).OfType<ContentDialog>()
+                    .FirstOrDefault(item => Equals(item.Title, action))) is not null);
+                await UntilAsync(() => !Descendants(dialog!).OfType<ProgressBar>().Any(bar => bar.Visibility == Visibility.Visible));
+                if (action is "订阅活动" or "文件统计")
+                    await UntilAsync(() => Descendants(dialog!).OfType<Expander>().Any());
+                Require(!Descendants(dialog!).OfType<InfoBar>().Any(bar => bar.IsOpen), action + "匿名数据读取失败");
+                if (action == "分享订阅") Require(!dialog!.IsPrimaryButtonEnabled, "空分享表单仍可提交");
+                if (action == "订阅活动")
+                {
+                    Descendants(dialog!).OfType<Expander>().Single().IsExpanded = true;
+                    await LayoutAsync(dialog!);
+                    var details = Descendants(dialog!).OfType<Button>().Single(button => AutomationProperties.GetAutomationId(button) == "SubscriptionActivityDetails");
+                    InvokeSubscriptionButton(details);
+                    await UntilAsync(() => details.Visibility == Visibility.Collapsed);
+                    Require(Descendants(dialog!).OfType<TextBlock>().Any(text => text.Text.Contains("搜索完成", StringComparison.Ordinal)), "活动详情没有读取并显示");
+                }
+                await SaveProbeScreenAsync("mp-home-" + action + ".png");
+                dialog!.Hide();
+                await show;
+                Require(server.Writes.Count == 0, "取消或只读弹窗触发服务器写入");
             }
             var poster = Descendants(view).OfType<MoviePilotSubscriptionPoster>().First();
             var more = Get<Button>(poster, "SubscriptionMore");
@@ -262,9 +308,7 @@ internal sealed partial class ShellNavigationProbe
                     && card[1] is StackPanel { Spacing: 0 } list
                     && list.Children.OfType<FrameworkElement>().Select(child => child.Name).SequenceEqual(new[] { "MediaFacts", "SubscriptionFacts" }),
                     "资料卡不是「评分星 + 一列字段」两段：" + string.Join("、", card.Select(child => child.Name)));
-                // 评分与简介都在头部（用户令 2026-10-12「参考电影页面简介和评分的位置进行修改」）：评分跟在媒体
-                // 身份行下面（电影详情页的评分也在那一行）、资料卡里不再留第二份；简介与资料站链接贴头部下沿
-                //（电影详情页的简介也在头部下沿），正文那张卡里不再有第二块简介。
+                // 评分留在头部；简介与季在正文左列，资料卡在正文右列。
                 var rating = Get<TextBlock>(page, "MediaRating");
                 var heroOverview = Get<StackPanel>(page, "HeroOverview");
                 var heroGrid = Get<Grid>(page, "HeroGrid");
@@ -274,16 +318,13 @@ internal sealed partial class ShellNavigationProbe
                     "资料卡里还留着第二份评分");
                 Require(Descendants(heroOverview).OfType<TextBlock>().Count(text => text.Text == "简介") == 1
                     && Descendants(page).OfType<TextBlock>().Count(text => text.Text == "简介") == 1,
-                    "简介没有跟着进头部，或屏上出现了两份简介");
+                    "简介缺失，或屏上出现了两份简介");
                 Require(Descendants(heroOverview).OfType<FrameworkElement>().Any(element => element.Name == "MediaSourceLinks"),
-                    "资料站链接没有跟着简介进头部");
+                    "资料站链接没有跟着简介显示");
                 Require(rating.TransformToVisual(page).TransformPoint(default).Y
                         < heroOverview.TransformToVisual(page).TransformPoint(default).Y,
                     "评分没有排在简介上面");
-                // 简介压在这一格的下沿：末行是「*」，简介 Bottom 对齐，所以它的下缘就是头部的下缘。
-                Require(Math.Abs(heroOverview.TransformToVisual(heroGrid).TransformPoint(default).Y
-                        + heroOverview.ActualHeight - heroGrid.ActualHeight) < 1,
-                    $"简介没有贴在头部下沿：简介底 {heroOverview.TransformToVisual(heroGrid).TransformPoint(default).Y + heroOverview.ActualHeight:0.0}，头部高 {heroGrid.ActualHeight:0.0}");
+                RequireSubscriptionBodyLayout(page, width >= 1080);
                 // 一张卡：正文右栏那第二张（DetailFacts）已经取消，屏上只剩头部右侧这一张。
                 Require(Descendants(page).OfType<FrameworkElement>().All(element => element.Name != "DetailFacts"),
                     "页面上还立着第二张资料卡");
@@ -791,6 +832,22 @@ internal sealed partial class ShellNavigationProbe
             }
             if (path.EndsWith("login/access-token", StringComparison.Ordinal)) return Json(new { access_token = "fixture-token" });
             if (path.EndsWith("dashboard/system", StringComparison.Ordinal)) return Json(new { version = "fixture" });
+            if (path == "/api/v1/site/rss") return Json(new[] { new { id = 8, name = "站点八", is_active = true } });
+            if (path == "/api/v1/download/clients") return Json(new[] { new { name = "qbittorrent" } });
+            if (path == "/api/v1/download/paths") return Json(new[] { new { name = "电视剧", download_path = "/媒体库/电视剧", save_path = "local:/媒体库/电视剧" } });
+            if (path == "/api/v1/rule/groups") return Json(new { rule_groups = Array.Empty<object>() });
+            if (path == "/api/v1/subscribe/4/activity") return Json(new
+            {
+                items = new[] { new { event_id = "fixture-event", kind = "search", source = "manual", status = "completed",
+                    started_at = "2026-11-09T10:00:00+08:00", details_loaded = false,
+                    counts = new { matched = 2 }, details = new { reason = "订阅搜索完成" } } },
+                next_cursor = (string?)null
+            });
+            if (path == "/api/v1/subscribe/4/activity/fixture-event") return Json(new
+            {
+                event_id = "fixture-event", kind = "search", source = "manual", status = "completed", details_loaded = true,
+                started_at = "2026-11-09T10:00:00+08:00", counts = new { qualified = 2 }, details = new { reason = "订阅搜索完成" }
+            });
             if (path.EndsWith("user/current", StringComparison.Ordinal)) return Json(new { is_active = true, is_superuser = true });
             if (path.EndsWith("system/global/user", StringComparison.Ordinal)) return Json(new { AI_AGENT_ENABLE = true });
             if (path == "/api/v1/system/setting/public/DefaultTvSubscribeConfig")

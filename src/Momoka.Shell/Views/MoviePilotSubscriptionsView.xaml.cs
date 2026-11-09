@@ -87,7 +87,12 @@ public sealed partial class MoviePilotSubscriptionsView : UserControl
         Row?.Key != HomeLayout.MoviePilotSeries && (visible == Visibility.Visible || notice) ? Visibility.Visible : Visibility.Collapsed;
     private Visibility SeriesVisible(Visibility visible, bool notice) =>
         Row?.Key != HomeLayout.MoviePilotMovies && (visible == Visibility.Visible || notice) ? Visibility.Visible : Visibility.Collapsed;
-    private void OnPosterOpen(object? sender, EventArgs args) { if (sender is MoviePilotSubscriptionPoster { Card: { } card }) Open(card); }
+    private void OnPosterOpen(object? sender, EventArgs args)
+    {
+        if (sender is not MoviePilotSubscriptionPoster { Card: { } card }) return;
+        _ = ViewModel.EditAsync(card,
+            (subscription, save, remove) => MoviePilotSubscriptionEditor.ShowAsync(this, subscription, Source.Service, save, remove));
+    }
     private void OnPosterRequested(object? sender, EventArgs args)
     { if (sender is MoviePilotSubscriptionPoster { Card: { } card }) _ = ViewModel.LoadPosterAsync(card); }
     private void OnPosterMenu(object? sender, EventArgs args)

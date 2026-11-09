@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.Loader;
 using System.Text;
 using System.Text.Json;
+using System.Xml.Linq;
 using Momoka.Configuration;
 using Momoka.MoviePilot;
 using static Momoka.Tests.TestHarness;
@@ -154,6 +155,7 @@ internal static class MoviePilotSubscriptionPageStateTests
                     Assert.Contains("Click=\"OnRefresh\"", xaml);
                 });
                 RegisterEpisodeRows(assembly, root);
+                RegisterDetailLayout(root);
                 return TestHarness.Run();
             }
             finally { AssemblyLoadContext.Default.Resolving -= Resolve; }
@@ -165,6 +167,29 @@ internal static class MoviePilotSubscriptionPageStateTests
         }
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }
     }
+
+    private static void RegisterDetailLayout(string root)
+    {
+        Test("MP 详情布局：头部自然收边，简介与季共左列，资料卡在正文右列", () =>
+        {
+            var document = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionPage.xaml"));
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            XElement Named(string name) => document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
+            var primary = Named("BodyPrimary");
+            var body = Named("BodyRow");
+            Assert.True(ReferenceEquals(primary.Parent, body));
+            Assert.True(ReferenceEquals(Named("HeroOverview").Parent, primary));
+            Assert.True(ReferenceEquals(Named("SeasonPanel").Parent, primary));
+            Assert.True(ReferenceEquals(Named("HeroFacts").Parent, body));
+            Assert.False(Named("HeroSection").Attributes().Any(attribute => attribute.Name.LocalName == "MinHeight"));
+            Assert.Equal("Top", (string?)Named("HeroSurface").Attribute("VerticalAlignment"));
+            Assert.Equal("Top", (string?)Named("HeroOverview").Attribute("VerticalAlignment"));
+            Assert.Equal("OnDetailViewChanged", (string?)Named("DetailScroll").Attribute("ViewChanged"));
+            Assert.False(Named("HeroGrid").Descendants().Any(element => element.Name.LocalName == "RowDefinition"
+                && (string?)element.Attribute("Height") == "*"));
+        });
+    }
+
 
     private static void RegisterImageLifetime(Assembly shell)
     {

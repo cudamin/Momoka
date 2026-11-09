@@ -214,6 +214,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
     public partial BitmapImage? Backdrop { get; set; }
+    internal HeroPictureLoader.HeroPixels? BackdropPixels { get; private set; }
     public Visibility PosterEmptyVisibility => Show(Poster is null);
 
     /// <summary>
@@ -299,17 +300,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// </summary>
     public Thickness BackdropFadeMargin => new(0, Math.Max(0, BackdropHeight - FadeHeight), 0, 0);
 
-    /// <summary>
-    /// 头部那一段自己至少要多高：把正文纸面的上沿推到图的下沿上，第一屏因此是「图 + 一条压暗的尾巴」，而不是
-    /// 纸面切在画面中间（同电影详情页的 <c>HeroTail</c>）。头部那一叠本身比这还高时就按它自己的高走。
-    /// <para>
-    /// 沉浸档里归 0：纸面让开、下方组件整体上移到头部那一叠的下面（同详情页沉浸档的尾部高度）。简洁模式与
-    /// 背后没有图时也归 0 —— 那两档没有图要垫，头部按自己那一叠的高走，第一屏不留一块空画面。
-    /// </para>
-    /// </summary>
-    public double HeroMinHeight => Immersive && Backdrop is not null && !Showcase
-        ? Math.Max(0, BackdropHeight - HeaderLift)
-        : 0;
+    /// <summary>头部按内容量高，背景图不会给正文增加首屏占位。</summary>
+    public double HeroMinHeight => 0;
 
     /// <summary>
     /// 设置里那条「显示模式」—— 2026-11-09 用户令「给 MP 订阅也新增沉浸模式还有简洁模式」：这一页从此和
@@ -357,21 +349,11 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     /// </summary>
     public Visibility BackdropFadeVisibility => Show(Backdrop is not null && Immersive && !Showcase);
 
-    /// <summary>
-    /// 正文纸面那一层的内边距（<c>BodySheet.Padding</c>）—— 常态照 <c>EgPageMargin</c>；大窗模式把上下收到
-    /// 10／14，左右不动（同详情页沉浸档）。
-    /// </summary>
-    public Thickness BodySheetPadding => Showcase
-        ? new(PageMargin.Left, DetailHero.ShowcaseSheetTop, PageMargin.Right, DetailHero.ShowcaseSheetBottom)
-        : PageMargin;
-
-    /// <summary>正文纸面上那几块之间的竖距（<c>BodySheet.Spacing</c>）—— 常态 <c>EgSpaceXL</c>，大窗模式 8。</summary>
-    public double BodySheetSpacing => Showcase ? DetailHero.ShowcaseSheetSpacing : SpaceXl;
-
-    /// <summary>正文面板自己的上下内边距 —— 大窗模式从 24 收到 10，左右不动（同详情页沉浸档）。</summary>
-    public Thickness BodyPanelPadding => Showcase
-        ? new(24, DetailHero.ShowcasePanelPadding, 24, DetailHero.ShowcasePanelPadding)
-        : new(24);
+    /// <summary>所有模式使用同一套紧凑留白。</summary>
+    public Thickness BodySheetPadding => new(PageMargin.Left, 12, PageMargin.Right, 12);
+    public Thickness HeaderPadding => new(PageMargin.Left, 12, PageMargin.Right, 0);
+    public double BodySheetSpacing => 12;
+    public Thickness BodyPanelPadding => new(12);
 
     /// <summary>大窗模式里货架标题前那条强调条与底下那条通栏线都收起（同详情页）。</summary>
     public bool ShowShelfLines => !Showcase;
@@ -398,12 +380,6 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         && app.Resources.TryGetValue("EgPageMargin", out var value) && value is Thickness margin
         ? margin
         : new(32, 28, 32, 28);
-
-    /// <summary>主题刻度里的 XL（<c>EgSpaceXL</c>），读不到时退回 24。</summary>
-    private static double SpaceXl => Application.Current is { } app
-        && app.Resources.TryGetValue("EgSpaceXL", out var value) && value is double space
-        ? space
-        : 24;
 
     /// <summary>图下沿那道黑色渐变的高度 —— 同电影详情页 <c>DetailViewModel.PictureFadeHeight</c>。</summary>
     private const double FadeHeight = 64;
@@ -622,8 +598,10 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
                 if (_fetchImage is null) return;
                 var bytes = await _fetchImage(url, token);
                 var image = await PosterLoader.DecodeAsync(bytes, backdrop ? 1200 : 240);
+                var pixels = backdrop ? await HeroPictureLoader.DecodePixelsAsync(bytes, 1200, token) : null;
                 if (!Live || token.IsCancellationRequested || !ReferenceEquals(detail, Detail)) return;
-                if (backdrop) Backdrop = image; else Poster = image;
+                if (backdrop) { BackdropPixels = pixels; Backdrop = image; }
+                else Poster = image;
             }
             catch (Exception) { }
         }
@@ -928,6 +906,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         _subscriptionStateKnown = false;
         _firstDetailLoad = false;
         AnnounceInitialLoading();
+        BackdropPixels = null;
         Poster = Backdrop = null; ClearRelated(); Submitting = false;
         _loadingEpisodes.Clear();
         base.Cancel(); NotifyState();

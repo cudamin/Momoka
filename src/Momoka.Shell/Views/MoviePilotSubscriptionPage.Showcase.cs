@@ -2,47 +2,126 @@ using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Shell.ViewModels;
 using Windows.UI;
 
 namespace Momoka.Shell.Views;
 
-/// <summary>
-/// 订阅详情页的两种显示模式（2026-11-03 用户令「给 mp 订阅页面也增强大窗模式」；2026-11-09 用户令
-/// 「给 MP 订阅也新增沉浸模式还有简洁模式」把它并进设置里那条显示模式）。
-/// <para>
-/// 沉浸档的判据与电影／剧／季详情页同一套（<see cref="DetailHero.SubscriptionImmersive"/>）：显示模式是沉浸、
-/// 资料卡能并排的宽版式、背后有那张图。成立时正文那张不透明的纸换成尾部那道半透明洗色，面板的底与框淡到 0，
-/// 头部不再撑第一屏，下方组件整体上移、直接压在固定的剧照上；背景图从页顶铺到窗口下沿并略微更不透明，图下沿
-/// 的黑色渐变收起。关掉就是简洁模式：整张背景图收起，头部收成一张卡面（<c>ApplyHeroSurface</c>），正文纸面与
-/// 那几块面板照旧。
-/// </para>
-/// <para>
-/// 翻面只有两条来路 —— 设置里改显示模式，以及窗口宽度跨过宽窄断点 —— 两条都是「换了一整套版面」，所以当场落定，
-/// 不插过渡：从前那套窗口几何（最大化／占工作区五分之四／图快被裁）连同它 180ms 的等待与 260ms 的 Storyboard
-/// 一起退役了（判据收进开关之后没有第三条来路能翻面）。
-/// </para>
-/// </summary>
+/// <summary>详情页模式、卡面和外观材质的即时更新。</summary>
 public sealed partial class MoviePilotSubscriptionPage
 {
-    /// <summary>正文那张纸的底色，构造函数里换成这一支（沉浸档要把它淡成半透明洗色，不能改全局画刷）。</summary>
+    private UiSettings _appearanceSettings = new();
+    private readonly List<ControlBackgroundBrushes> _actionBackgrounds = [];
+    private readonly AcrylicBrush _backdropFill = new() { TintTransitionDuration = TimeSpan.Zero };
+    private readonly SolidColorBrush _backdropShade = new();
+    private readonly Windows.UI.ViewManagement.AccessibilitySettings _accessibility = new();
+    private readonly Windows.UI.ViewManagement.UISettings _systemAppearance = new();
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _appearanceSystemTimer;
+    private bool _lastHighContrast;
+    private bool _lastAdvancedEffects;
+
+    private void PrepareActionAppearance()
+    {
+        foreach (var button in DetailActions.Children.OfType<Button>())
+            _actionBackgrounds.Add(ControlBackgroundBrushes.ForDetail(button, lightSurface: true));
+        ApplyMaterialAppearance();
+    }
+
+    private void StartMaterialWatch()
+    {
+        _lastHighContrast = _accessibility.HighContrast;
+        _lastAdvancedEffects = _systemAppearance.AdvancedEffectsEnabled;
+        _appearanceSystemTimer ??= DispatcherQueue.CreateTimer();
+        _appearanceSystemTimer.Interval = TimeSpan.FromSeconds(1);
+        _appearanceSystemTimer.Tick -= CheckMaterialSystem;
+        _appearanceSystemTimer.Tick += CheckMaterialSystem;
+        _appearanceSystemTimer.Start();
+        ApplyMaterialAppearance();
+    }
+
+    private void CheckMaterialSystem(Microsoft.UI.Dispatching.DispatcherQueueTimer sender, object args)
+    {
+        var contrast = _accessibility.HighContrast;
+        var effects = _systemAppearance.AdvancedEffectsEnabled;
+        if (!_appearanceObserved || contrast == _lastHighContrast && effects == _lastAdvancedEffects) return;
+        _lastHighContrast = contrast;
+        _lastAdvancedEffects = effects;
+        ApplyMaterialAppearance();
+    }
+
+    // 背景和按钮各使用自己的三项设置；窄窗保留媒体详情页的实色阅读罩。
+    private void ApplyMaterialAppearance()
+    {
+        var ui = _appearanceSettings;
+        var contrast = _accessibility.HighContrast;
+        var tint = contrast ? _systemAppearance.GetColorValue(Windows.UI.ViewManagement.UIColorType.Background)
+            : ThemeHost.ToColor(ShellPrefs.AppearanceColor(true, ui));
+        tint.A = byte.MaxValue;
+        var narrow = MediaViewModel.PageWidth is > 0 and < DetailHero.CompactFloor;
+        var material = !narrow;
+        if (contrast || !material)
+        {
+            _backdropShade.Color = contrast ? tint : Color.FromArgb(
+                AppearanceOpacity.ScrimAlpha(DetailHero.ScrimCeiling, AppearanceOpacity.ReadingVeil), tint.R, tint.G, tint.B);
+            DetailBackdropScrim.Background = _backdropShade;
+        }
+        else
+        {
+            _backdropFill.TintColor = tint;
+            _backdropFill.FallbackColor = tint;
+            _backdropFill.TintOpacity = AppearanceOpacity.Tint(ui.BackdropTintOpacity, UiSettings.DefaultBackdropTintOpacity);
+            _backdropFill.TintLuminosityOpacity = AppearanceOpacity.Tint(ui.BackdropTintLuminosityOpacity, UiSettings.DefaultBackdropTintLuminosityOpacity);
+            _backdropFill.Opacity = 1;
+            _backdropFill.AlwaysUseFallback = false;
+            DetailBackdropScrim.Background = _backdropFill;
+        }
+
+        var controlTint = contrast ? tint : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ui));
+        foreach (var brushes in _actionBackgrounds)
+        {
+            brushes.Apply(contrast ? 100 : ui.ControlBackgroundOpacity, !contrast && ui.UseAcrylicControls, controlTint,
+                AppearanceOpacity.Tint(ui.ControlTintOpacity, UiSettings.DefaultControlTintOpacity),
+                AppearanceOpacity.Tint(ui.ControlTintLuminosityOpacity, UiSettings.DefaultControlTintLuminosityOpacity));
+        }
+        RefreshActionInk();
+    }
+
+    private void OnDetailViewChanged(object sender, ScrollViewerViewChangedEventArgs args) => RefreshActionInk();
+
+    // 滚动改变按钮背后的固定画面，只重算文字颜色，不重建或重置材质。
+    private void RefreshActionInk()
+    {
+        var ui = _appearanceSettings;
+        var material = MediaViewModel.PageWidth <= 0 || MediaViewModel.PageWidth >= DetailHero.CompactFloor;
+        var foreground = _accessibility.HighContrast
+            ? _systemAppearance.GetColorValue(Windows.UI.ViewManagement.UIColorType.Foreground) : (Color?)null;
+        foreach (var brushes in _actionBackgrounds)
+        {
+            var reading = ThemeHost.Current.Colors.Window;
+            if (MediaViewModel.Immersive && MediaViewModel.Backdrop is not null)
+            {
+                reading = BackdropInk.Sample(brushes.Control, DetailBackdropBand, MediaViewModel.BackdropPixels, true, reading);
+                var overlay = ShellPrefs.AppearanceColor(true, ui);
+                var coverage = material ? AppearanceOpacity.Coverage(
+                    AppearanceOpacity.Tint(ui.BackdropTintOpacity, UiSettings.DefaultBackdropTintOpacity),
+                    AppearanceOpacity.Tint(ui.BackdropTintLuminosityOpacity, UiSettings.DefaultBackdropTintLuminosityOpacity))
+                    : AppearanceOpacity.ReadingVeil;
+                if (material && !_systemAppearance.AdvancedEffectsEnabled) coverage = 1;
+                reading = reading.Mix(overlay, coverage);
+            }
+            brushes.ApplyForeground(reading, !_systemAppearance.AdvancedEffectsEnabled, foreground);
+        }
+    }
+
     private readonly SolidColorBrush _sheetBrush = new();
 
-    /// <summary>正文四块面板的底与框 —— 沉浸档里淡到 0。</summary>
     private readonly AcrylicBrush _panelFill = new();
     private readonly SolidColorBrush _panelLine = new();
 
-    /// <summary>
-    /// 四块正文面板，从上往下：季、演职员、相关推荐、相似作品。它们在标记里都挂着
-    /// <c>EgBodyPanelStyle</c>，这里把底色和描边换成自己持有的画刷，好让透明度能跟着模式翻。
-    /// </summary>
     private IEnumerable<StackPanel> BodyPanels => [SeasonPanel, PeoplePanel, RecommendationsPanel, SimilarPanel];
 
-    /// <summary>
-    /// 构造时准备这几支画刷，并给背景图定下常态那一档不透明度。都在 <c>InitializeComponent</c> 之后、上树之前
-    /// 做完 —— 第一帧就是对的。
-    /// </summary>
     private void PrepareShowcase()
     {
         _sheetBrush.Color = PaperColor;
@@ -59,10 +138,6 @@ public sealed partial class MoviePilotSubscriptionPage
         }
     }
 
-    /// <summary>
-    /// 这一页上树／离树时挂上与摘下主题订阅。与详情页同一支写法：页面实例可能被复用，挂一次、走时解掉；
-    /// 先减再加，重复上树也只挂一支。
-    /// </summary>
     private void WatchShowcaseTheme()
     {
         Loaded += (_, _) =>
@@ -73,11 +148,11 @@ public sealed partial class MoviePilotSubscriptionPage
         Unloaded += (_, _) => ThemeHost.Changed -= OnShowcaseThemeChanged;
     }
 
-    /// <summary>换了主题：面板那两档颜色跟着换；纸面在还原档也要换（沉浸档它一直是尾部那道半透明黑，与主题无关）。</summary>
     private void OnShowcaseThemeChanged(Momoka.Theming.UiTheme theme)
     {
         RefreshPanelBrushes();
         if (!MediaViewModel.Showcase) _sheetBrush.Color = PaperColor;
+        ApplyMaterialAppearance();
     }
 
     private void RefreshPanelBrushes()
@@ -98,7 +173,6 @@ public sealed partial class MoviePilotSubscriptionPage
         _panelLine.Color = BrushColor("EgBorderBrush");
     }
 
-    /// <summary>主题里那支窗口色 —— 正文那张纸原本的底。</summary>
     private static Color PaperColor => BrushColor("EgWindowBrush");
 
     private static Color BrushColor(string key) => Application.Current is { } app
@@ -111,26 +185,18 @@ public sealed partial class MoviePilotSubscriptionPage
             _ => Color.FromArgb(255, 0x30, 0x39, 0x41)
         };
 
-    /// <summary>
-    /// 沉浸档的纸面用它 —— 与图下沿那道罩子最浓的一档同色（<see cref="DetailHero.ScrimCeiling"/>），
-    /// 正文和上方那一段因此接得上，接缝看不出来。
-    /// </summary>
-    private static Color WashColor => Color.FromArgb(
-        DetailHero.ScrimCeiling, DetailHero.ScrimInk.R, DetailHero.ScrimInk.G, DetailHero.ScrimInk.B);
+    // 背景亚克力覆盖整页；正文不再重复叠暗，以免上下出现硬分界。
+    private static Color WashColor => Color.FromArgb(0, 0, 0, 0);
 
-    /// <summary>
-    /// 视图模型里的 <c>Showcase</c>／<c>Plain</c> 从任何一条来路翻面（设置开关、宽窄版式跨断点、背景图到手）：
-    /// 当场落定。两种模式之间换的是整套版面，插过渡反而像一次卡顿。
-    /// </summary>
     private void OnShowcaseChanged(object? sender, PropertyChangedEventArgs args)
     {
         if (args.PropertyName is nameof(MoviePilotMediaViewModel.Showcase) or nameof(MoviePilotMediaViewModel.Plain))
+        {
             SettleShowcase();
+            ApplyMaterialAppearance();
+        }
     }
 
-    /// <summary>
-    /// 落定：纸面色、面板透明度、背景图不透明度直接写终值。头部下限与背景盒高绑在视图模型上，自己会跟上。
-    /// </summary>
     private void SettleShowcase()
     {
         var showcase = MediaViewModel.Showcase;

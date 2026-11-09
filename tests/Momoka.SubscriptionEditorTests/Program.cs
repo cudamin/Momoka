@@ -16,6 +16,7 @@ internal static class Program
     private static async Task<int> Main()
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
+        Add("订阅活动分页、详情、分享与弹窗访问期", SubscriptionActionsTests.RunAsync);
         Add("原订阅草稿往返不发送任何未改字段", () =>
         {
             var original = Subscription(); var vm = Create(original);

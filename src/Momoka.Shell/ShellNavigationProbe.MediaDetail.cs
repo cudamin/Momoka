@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
+using Momoka.Configuration;
 using Momoka.MoviePilot;
 using Momoka.Services;
 using Momoka.Shell.ViewModels;
@@ -11,6 +12,99 @@ namespace Momoka.Shell;
 
 internal sealed partial class ShellNavigationProbe
 {
+    private static void RequireSubscriptionBodyLayout(MoviePilotSubscriptionPage page, bool side)
+    {
+        var hero = Get<StackPanel>(page, "HeroSection");
+        var grid = Get<Grid>(page, "HeroGrid");
+        var surface = Get<Border>(page, "HeroSurface");
+        var primary = Get<StackPanel>(page, "BodyPrimary");
+        var overview = Get<StackPanel>(page, "HeroOverview");
+        var season = Get<StackPanel>(page, "SeasonPanel");
+        var facts = Get<StackPanel>(page, "HeroFacts");
+        static double Top(FrameworkElement node, UIElement root) => node.TransformToVisual(root).TransformPoint(default).Y;
+        Require(!Descendants(grid).Contains(facts) && !Descendants(grid).Contains(overview)
+            && surface.VerticalAlignment == VerticalAlignment.Top && hero.MinHeight <= 0.5,
+            "资料卡、简介或背景图仍在撑高海报与操作头部");
+        Require(primary.Children.Contains(overview) && primary.Children.Contains(season)
+            && overview.VerticalAlignment == VerticalAlignment.Top,
+            "简介与季没有共用顶对齐的正文左列");
+        Require(Top(overview, page) >= Top(hero, page) + hero.ActualHeight - 1.5
+            && Top(overview, page) - Top(hero, page) - hero.ActualHeight <= 14,
+            "简介与头部之间仍有首屏占位或过大间距");
+        if (season.Visibility == Visibility.Visible)
+            Require(Top(season, page) - Top(overview, page) - overview.ActualHeight is >= 10 and <= 14,
+                "简介与季之间没有收紧到正文间距");
+        Require(side
+            ? Grid.GetColumn(facts) == 1 && Grid.GetRow(facts) == 0 && Math.Abs(Top(facts, page) - Top(overview, page)) < 1.5
+                && Math.Abs(facts.ActualWidth - 320) < 1 && primary.ActualWidth < page.ActualWidth - 320
+            : Grid.GetColumn(facts) == 0 && Grid.GetRow(facts) == 1
+                && Top(facts, page) >= Top(primary, page) + primary.ActualHeight + 10,
+            "资料卡没有按宽窗右列顶齐、窄窗叠放的规则布局");
+    }
+
+    private async Task CheckSubscriptionAppearanceAsync(MoviePilotSubscriptionPage page, UiSettings ui)
+    {
+        var original = (ui.BackdropColor, ui.BackdropTintOpacity, ui.BackdropTintLuminosityOpacity,
+            ui.ControlBackgroundColor, ui.ControlBackgroundOpacity, ui.UseAcrylicControls,
+            ui.ControlTintOpacity, ui.ControlTintLuminosityOpacity);
+        try
+        {
+            ui.BackdropColor = "#123456";
+            ui.BackdropTintOpacity = 37;
+            ui.BackdropTintLuminosityOpacity = 61;
+            ui.ControlBackgroundColor = "#345678";
+            ui.ControlBackgroundOpacity = 27;
+            ui.UseAcrylicControls = true;
+            ui.ControlTintOpacity = 43;
+            ui.ControlTintLuminosityOpacity = 59;
+            ShellPrefs.ApplyAppearance(ui);
+            await LayoutAsync(page);
+            var scrim = Get<Border>(page, "DetailBackdropScrim");
+            var contrast = new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast;
+            Require(contrast || scrim.Background is AcrylicBrush { AlwaysUseFallback: false, Opacity: 1 } glass
+                && glass.TintColor.R == 0x12 && glass.TintColor.G == 0x34 && glass.TintColor.B == 0x56
+                && Math.Abs(glass.TintOpacity - 0.37) < 0.000001
+                && Math.Abs((glass.TintLuminosityOpacity ?? -1) - 0.61) < 0.000001,
+                "MP 背景亚克力没有即时采用三项外观设置");
+            foreach (var button in Get<WrapRow>(page, "DetailActions").Children.OfType<Button>())
+            {
+                Require(button.Resources["ButtonBackground"] is AcrylicBrush { Opacity: 1 } fill
+                    && (contrast || !fill.AlwaysUseFallback && fill.TintColor.R == 0x34
+                        && Math.Abs(fill.TintOpacity - 0.43) < 0.000001
+                        && Math.Abs((fill.TintLuminosityOpacity ?? -1) - 0.59) < 0.000001),
+                    button.Name + " 没有跟随按钮亚克力三项设置");
+                Require(button.Foreground is SolidColorBrush, button.Name + " 没有独立的可访问前景画刷");
+            }
+            var buttonFill = Get<Button>(page, "MoreActions").Resources["ButtonBackground"];
+            var backdropFill = scrim.Background;
+            var scroll = Get<ScrollViewer>(page, "DetailScroll");
+            var offset = scroll.VerticalOffset;
+            scroll.ChangeView(null, 80, null, true);
+            await LayoutAsync(page);
+            Require(ReferenceEquals(buttonFill, Get<Button>(page, "MoreActions").Resources["ButtonBackground"])
+                && ReferenceEquals(backdropFill, scrim.Background), "滚动刷新前景时重建或重置了按钮／背景材质");
+            scroll.ChangeView(null, offset, null, true);
+            await LayoutAsync(page);
+            ui.UseAcrylicControls = false;
+            ui.ControlBackgroundOpacity = 47;
+            ShellPrefs.ApplyAppearance(ui);
+            await LayoutAsync(page);
+            foreach (var button in Get<WrapRow>(page, "DetailActions").Children.OfType<Button>())
+                Require(button.Resources["ButtonBackground"] is AcrylicBrush { AlwaysUseFallback: true } fill
+                    && Math.Abs(fill.Opacity - (contrast ? 1 : 0.47)) < 0.000001,
+                    button.Name + " 没有即时切换半透明叠层和底色不透明度");
+            Require(contrast || scrim.Background is AcrylicBrush, "切换按钮材质改变了背景图亚克力");
+        }
+        finally
+        {
+            (ui.BackdropColor, ui.BackdropTintOpacity, ui.BackdropTintLuminosityOpacity,
+                ui.ControlBackgroundColor, ui.ControlBackgroundOpacity, ui.UseAcrylicControls,
+                ui.ControlTintOpacity, ui.ControlTintLuminosityOpacity) = original;
+            ShellPrefs.ApplyAppearance(ui);
+            await LayoutAsync(page);
+        }
+    }
+
     private async Task MoviePilotMediaBrowsingAsync()
     {
         using var server = new SubscriptionProbeServer { Poster = await FixtureImageAsync() };
@@ -342,15 +436,17 @@ internal sealed partial class ShellNavigationProbe
             Require(media.Immersive && media.Showcase && media.WideLayout,
                 $"宽版式下没有进入沉浸档：开关 {media.Immersive}、宽版式 {media.WideLayout}、沉浸 {media.Showcase}");
             Require(backdrop.Visibility == Visibility.Visible, "沉浸档没有画背景图");
-            Require(sheet.Background is SolidColorBrush { Color.A: DetailHero.ScrimCeiling },
-                "沉浸档的正文纸不是尾部那道半透明洗色");
+            Require(sheet.Background is SolidColorBrush { Color.A: 0 },
+                "沉浸档正文仍有独立底色，上下背景出现分层");
             Require(panel.Background is AcrylicBrush { Opacity: 0 }, "沉浸档的正文面板底没有淡到 0");
             Require(fade.Visibility == Visibility.Collapsed, "沉浸档图下沿的黑色渐变没有收起");
             Require(!media.ShowShelfLines, "沉浸档的货架标题仍然画着横线");
             Require(surface.Background is null && surface.Padding == default(Thickness),
                 "沉浸档的头部卡面没有让开（底色或内边距还在）");
-            Require(surface.VerticalAlignment == VerticalAlignment.Stretch,
-                "沉浸档的头部卡面没有撑满整行，简介压不到第一屏下沿");
+            Require(surface.VerticalAlignment == VerticalAlignment.Top,
+                "沉浸档的头部没有按海报与操作内容收边");
+            RequireSubscriptionBodyLayout(page, true);
+            await CheckSubscriptionAppearanceAsync(page, settings.Ui);
             Require(hero.MinHeight <= 0.5, "沉浸档的头部仍在按背景图让开第一屏");
             Require(Math.Abs(image.Opacity - DetailHero.ShowcaseBackdropOpacity) < 0.001,
                 $"沉浸档的背景不透明度不是 {DetailHero.ShowcaseBackdropOpacity}：{image.Opacity:0.###}");
@@ -369,28 +465,29 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(backdrop.Visibility == Visibility.Collapsed, "简洁模式仍铺着背景图");
             Require(surface.Background is SolidColorBrush, "简洁模式的头部没有卡面底色");
-            Require(surface.Padding.Left >= 20 && surface.Padding.Top >= 20, "简洁模式的卡面没有内边距：" + surface.Padding);
-            Require(surface.VerticalAlignment == VerticalAlignment.Top && surface.ActualHeight < facts.ActualHeight - 40,
-                $"简洁模式的卡面没有按自己的内容收边：卡 {surface.ActualHeight:0}、资料卡 {facts.ActualHeight:0}");
+            Require(surface.Padding.Left == 12 && surface.Padding.Top == 12, "简洁模式的卡面没有内边距：" + surface.Padding);
+            Require(surface.VerticalAlignment == VerticalAlignment.Top,
+                "简洁模式的卡面没有按自己的内容收边");
+            RequireSubscriptionBodyLayout(page, true);
             Require(surface.BorderThickness == (Thickness)Application.Current.Resources["EgCardBorderThickness"],
                 "简洁模式的卡面没有接主题那一条描边");
             Require(sheet.Background is SolidColorBrush { Color.A: 255 }, "简洁模式的正文纸不是不透明");
             Require(panel.Background is AcrylicBrush { Opacity: 1 }, "简洁模式的正文面板底没有回来");
             Require(fade.Visibility == Visibility.Collapsed, "简洁模式没有图，图下沿的渐变却还画着");
             Require(hero.MinHeight <= 0.5, "简洁模式仍按背景图让开第一屏");
-            Require(overview.VerticalAlignment == VerticalAlignment.Top, "简洁模式的简介仍压在卡底，卡面中间空出一大块");
+            Require(overview.VerticalAlignment == VerticalAlignment.Top, "简洁模式的简介没有顶对齐");
             Require(strips.Count > 0 && strips[^1] == TitleStrip.Plain, "简洁模式的标题栏没有回到页面字色");
             readings.Add($"简洁 1240：卡面内边距 {surface.Padding}、纸面透明度 {(sheet.Background as SolidColorBrush)?.Color.A}、"
                 + $"面板 {panel.Background.Opacity:0.##}、资料卡 {facts.ActualWidth:0}");
             await SaveProbeScreenAsync("mp-subscription-mode-plain-1240.png");
 
-            // ---- 简洁模式收窄成单列：资料卡叠到头部下面，仍然不铺图 ----
+            // ---- 简洁模式收窄成单列：资料卡叠到正文左列下面，仍然不铺图 ----
             ResizeProbeClient(760, 1000);
             await UntilAsync(() => !media.WideLayout);
             await LayoutAsync(page);
             Require(media.Plain && !media.Showcase && backdrop.Visibility == Visibility.Collapsed,
                 "简洁模式窄窗又铺回了背景图");
-            Require(Grid.GetRow(facts) == 1 && Grid.GetColumn(facts) == 0, "简洁模式窄窗的资料卡没有叠到头部下面");
+            RequireSubscriptionBodyLayout(page, false);
             await SaveProbeScreenAsync("mp-subscription-mode-plain-760.png");
 
             // ---- 窄窗切回沉浸：图回来，但仍是「图 + 纸面」（单列不参与沉浸档） ----
@@ -401,7 +498,10 @@ internal sealed partial class ShellNavigationProbe
             Require(backdrop.Visibility == Visibility.Visible, "窄窗沉浸模式没有背景图");
             Require(surface.Background is null, "窄窗沉浸模式的头部仍扣着卡面");
             Require(sheet.Background is SolidColorBrush { Color.A: 255 }, "窄窗沉浸模式的正文纸不是不透明");
-            Require(overview.VerticalAlignment == VerticalAlignment.Bottom, "窄窗沉浸模式的简介没有回到第一屏下沿");
+            Require(overview.VerticalAlignment == VerticalAlignment.Top, "窄窗沉浸模式的简介没有顶对齐");
+            RequireSubscriptionBodyLayout(page, false);
+            Require(Get<Border>(page, "DetailBackdropScrim").Background is SolidColorBrush,
+                "窄窗背景仍在使用亚克力而非实色阅读罩");
             Require(strips.Count > 0 && strips[^1] == TitleStrip.OnScrim, "有图的窄窗没有把标题栏换成浅墨");
             readings.Add($"沉浸 760：页宽 {media.PageWidth:0}、图 {image.ActualHeight:0}、头部下限 {hero.MinHeight:0}");
             await SaveProbeScreenAsync("mp-subscription-mode-immersive-760.png");
@@ -410,9 +510,10 @@ internal sealed partial class ShellNavigationProbe
             ResizeProbeClient(1240, 1000);
             await UntilAsync(() => media.WideLayout && media.Showcase);
             await LayoutAsync(page);
-            Require(sheet.Background is SolidColorBrush { Color.A: DetailHero.ScrimCeiling }
+            Require(sheet.Background is SolidColorBrush { Color.A: 0 }
                 && panel.Background is AcrylicBrush { Opacity: 0 } && surface.Background is null,
                 "拉宽回沉浸档后纸面、面板或头部卡面没有跟着翻");
+            RequireSubscriptionBodyLayout(page, true);
             await SaveProbeScreenAsync("mp-subscription-mode-immersive-wide.png");
         }
         finally
