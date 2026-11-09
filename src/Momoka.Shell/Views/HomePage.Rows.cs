@@ -71,10 +71,6 @@ public sealed partial class HomePage
         timing?.Mark("home-mixed-layout-end", 1);
         if (HomeFoldMotion.Find<ShelfStrip>(element) is not { ActualHeight: > 0 } strip) return null;
         var line = ScreenTopAtScrollZero(strip);
-        // 新实现的货架可能正在入场或补位；阈值取布局坐标，不把动画位移算进来。
-        for (DependencyObject? node = strip; node is not null && !ReferenceEquals(node, ShelfRepeater);
-            node = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(node))
-            if (node is FrameworkElement { RenderTransform: Microsoft.UI.Xaml.Media.TranslateTransform drift }) line -= drift.Y;
         if (ViewModel.LibraryOnBanner)
         {
             if (_libraryFlowHeight <= 0) return null;

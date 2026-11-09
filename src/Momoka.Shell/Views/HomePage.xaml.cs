@@ -1059,8 +1059,21 @@ public sealed partial class HomePage : Page, IShellContent
     /// <see cref="UpdateLibraryOverlay"/>。
     /// </summary>
     private double ScreenTopAtScrollZero(FrameworkElement element) =>
-        element.TransformToVisual(null).TransformPoint(new Windows.Foundation.Point(0, 0)).Y
-        + Scroller.VerticalOffset;
+        LayoutTopIn(element, null) + Scroller.VerticalOffset;
+
+    /// <summary>
+    /// 翻档判定只读布局位置。返回主页时模板根的入场上浮，以及补位时的位移，都会进入 TransformToVisual；
+    /// 把这些临时位移当作标题高度或封面界线，就会先误压上轮播、动画结束后再落回横排。
+    /// 动画起落点仍用 TopIn 读取现场位置。
+    /// </summary>
+    private static double LayoutTopIn(FrameworkElement element, UIElement? space)
+    {
+        var top = element.TransformToVisual(space).TransformPoint(new Windows.Foundation.Point(0, 0)).Y;
+        for (DependencyObject? node = element; node is not null && !ReferenceEquals(node, space);
+            node = VisualTreeHelper.GetParent(node))
+            if (node is FrameworkElement { RenderTransform: TranslateTransform drift }) top -= drift.Y;
+        return top;
+    }
 
     /// <summary>
     /// 一排货架的牌子有多高、牌子到排卡之间让了多大的空当：从那一排的子树里把牌子翻出来量，空当取挂牌子那层
@@ -1073,8 +1086,8 @@ public sealed partial class HomePage : Page, IShellContent
     {
         if (HomeFoldMotion.Find<ShelfHead>(shelf) is not { } head || head.ActualHeight <= 0) return null;
         if (HomeFoldMotion.Find<ShelfStrip>(shelf) is not { } strip) return null;
-        var headBottom = TopIn(head, shelf) + head.ActualHeight;
-        return (headBottom, Math.Max(0, TopIn(strip, shelf) - headBottom));
+        var headBottom = LayoutTopIn(head, shelf) + head.ActualHeight;
+        return (headBottom, Math.Max(0, LayoutTopIn(strip, shelf) - headBottom));
     }
 
     /// <summary>

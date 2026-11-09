@@ -134,6 +134,7 @@ namespace Momoka.Shell.Views
             _before = new FoldSites(new Dictionary<object, double>(), strip, info);
         internal void SetReal(bool real) => _foldReal = real;
         internal void SetPlaced(bool on) => _foldOn = on;
+        internal (double Line, bool HasNext)? ReadCoversLine() => MeasureCoversLine(0);
         internal void ReplaceMain(HomeFoldMotion motion) => _fold = motion;
         internal void ReplaceLate(HomeFoldMotion motion) => _foldLate = motion;
         internal void SetFlowIndex(int index) => _homeLibraryFlowIndex = index;

@@ -6,8 +6,9 @@
 
 - 编译链接完整真实 `src/Momoka.Shell/Views/HomeFoldMotion.cs`。构建时以唯一首尾标记从当前 HomePage.xaml.cs **原样提取** fold 字段、Fold／量测／UpdateLibraryOverlay／ScheduleFold／ApplyLibraryChrome／HandBack、完成／取消以及 PreparePlaybackReturn／Release 方法；Rows partial 只读提取 RowHeightOf，**不改、不测试 R062 目录快照**。找不到或标记不唯一即构建失败。
 - UI 元素、预先给定的布局值、宿主 Content／Visibility、DispatcherQueue 与 Storyboard 是无 HWND／WinRT 的框架边界。Storyboard 可保留已排队 Completed、重复投递、控制 Begin 失败和 Stop 重入；Stop 先退回 Begin 保存的本地值，真实动画类再落定到 Y=0／Opacity=1。
+- 默认档量测回归执行真实 ScreenTopAtScrollZero／LayoutTopIn／HeadOf／MeasureCoversLine，框架边界可累加到目标坐标系之前的父链位移。模板根入场 Y=20、整排及祖先正负位移、单个后续货架和滚动恢复都不能改变界线，也不能清除仍在运行的变换。普通导航的 Loaded／Frame 与实际混排仍由匿名 WinUI 探针覆盖。
 - HomeViewModel 不复制：夹具只喂 LibraryOnBanner／Shelf／Slides 等读值，并在现有 SetLibraryOverlay 端口发布预先给定的布局快照。使用真实 Core 的 HomeFold／HomeCarousel 和 NullLogSink；混排目录、未用页面／设置／业务／播放器边界拒绝执行。
-- 52 项：动画边界 15、实际页面控制流 37。新增同档媒体库视口为轮播读数留出右边距、读数隐藏后恢复及重复应用不另起动画。核心回归为压上动画完成 → 关闭轮播 → 宿主 Content=null、Overlay=Collapsed、当前横排媒体库一份；同时覆盖真正回程保留原载体、迟一拍在主动画完成后仍可跑、快速翻档／旧完成／规划失败／离页／播放返回／关闭动画，以及原 260ms、150+110ms 换手与 520ms 防抖等待。
+- 实际数量以本次运行 TOTAL 为准。新增同档媒体库视口为轮播读数留出右边距、读数隐藏后恢复及重复应用不另起动画。核心回归为压上动画完成 → 关闭轮播 → 宿主 Content=null、Overlay=Collapsed、当前横排媒体库一份；同时覆盖真正回程保留原载体、迟一拍在主动画完成后仍可跑、快速翻档／旧完成／规划失败／离页／播放返回／关闭动画，以及原 260ms、150+110ms 换手与 520ms 防抖等待。
 - 没有启动 App、真实 UI／输入／截图、native 或播放器，不读取真实设置／凭据／DPAPI／服务器，不 publish／push／升级／放宽基线。本结果**不是**实际 WinUI 渲染、焦点、命中、帧时序或真实播放验收。
 
 ## 命令

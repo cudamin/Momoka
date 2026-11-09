@@ -195,6 +195,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("整剧删除清除后代并保留新查询", DeleteContainerAsync);
             await CaseAsync("详情封面删除保持其他货架与播放目标", DeleteDetailCardAsync);
             await CaseAsync("播放返回主页不补播入场", HomePlaybackReturnAsync, 30);
+            await CaseAsync("普通返回主页不误压上轮播与自动下移", HomeNavigationReturnAsync, 30);
             // 2026-10-11 起该用例多四帧分区截图（播放行为分类的资源筛选、截图卡滚进视口各两帧），12 秒的
             // 默认限时不够了 —— 与视频基础输出用例同款理由（多轮控件切换与截图设 45 秒）。
             await CaseAsync("Anime4K 固定配置组选择与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, anime4KOnly: true), 30, section: ShellProbeSections.Shaders);

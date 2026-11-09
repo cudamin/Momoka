@@ -231,6 +231,37 @@ internal static class Program
 
     private static void RegisterPage()
     {
+        Case("page/auto-return-entrance-does-not-move-library-onto-carousel", () =>
+        {
+            var scene = new Scene();
+            scene.Page.ViewModel.LibraryPlacement = HomeLibraryPlacement.Auto;
+            var stable = scene.Page.ReadCoversLine()!.Value.Line;
+            scene.Page.Scroller.ActualHeight = stable + 10;
+            var template = new FrameworkElement { RenderTransform = new TranslateTransform() };
+            scene.FillerRow.TestChildren.Add(template);
+            foreach (var child in scene.FillerRow.TestChildren.Where(child => !ReferenceEquals(child, template)))
+                child.TestParent = template;
+            template.TestParent = scene.FillerRow;
+
+            foreach (var shift in new[] { 20d, 10d, 5d, 0d })
+            {
+                ((TranslateTransform)template.RenderTransform!).Y = shift;
+                Equal(stable, scene.Page.ReadCoversLine()!.Value.Line, "entrance is rendering, not a different layout threshold");
+                scene.Page.UpdateFold();
+                Check(!scene.Page.ViewModel.LibraryOnBanner, "return must keep the library below the carousel");
+                scene.AssertFlowOnly();
+                Equal(0, Storyboard.Created.Count, "return cannot invent an up/down fold trip");
+            }
+        });
+        Case("page/auto-threshold-ignores-row-and-ancestor-motion", () =>
+        {
+            var scene = new Scene();
+            var stable = scene.Page.ReadCoversLine()!.Value.Line;
+            var ancestor = new FrameworkElement { RenderTransform = new TranslateTransform { Y = -80 } };
+            scene.FillerRow.TestParent = ancestor;
+            ((TranslateTransform)scene.FillerRow.RenderTransform!).Y = 240;
+            Equal(stable, scene.Page.ReadCoversLine()!.Value.Line, "row and parent motion leave the threshold unchanged");
+        });
         Case("page/library-viewport-reserves-and-restores-carousel-status-room", () =>
         {
             var scene = new Scene(initialOn: true);
@@ -246,6 +277,18 @@ internal static class Program
             scene.Page.Apply();
             Equal(new Thickness(36, 0, 36, 4), scene.Page.LibraryOverlay.Margin,
                 "hidden status restores the original viewport width");
+        });
+        Case("page/auto-single-following-row-keeps-scroll-and-live-transform", () =>
+        {
+            var scene = new Scene();
+            scene.Page.HomeRows.RemoveAt(2);
+            var stable = scene.Page.ReadCoversLine()!.Value.Line;
+            scene.FillerRow.TestTop -= 120;
+            scene.Page.Scroller.VerticalOffset = 120;
+            var drift = (TranslateTransform)scene.FillerRow.RenderTransform!;
+            drift.Y = -90;
+            Equal(stable, scene.Page.ReadCoversLine()!.Value.Line, "scroll restoration and animation preserve the single-row threshold");
+            Equal(-90d, drift.Y, "measurement cannot stop or reset the running visual animation");
         });
         Case("page/default-static-layout-has-only-flow-shelf", () =>
         {

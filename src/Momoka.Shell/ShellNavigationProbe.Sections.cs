@@ -133,6 +133,7 @@ internal sealed partial class ShellNavigationProbe
         [nameof(WatchedResumeSlotAsync)] = ShellProbeSections.Playback,
         [nameof(PlaybackBusyAsync)] = ShellProbeSections.Playback,
         [nameof(HomePlaybackReturnAsync)] = ShellProbeSections.Playback,
+        [nameof(HomeNavigationReturnAsync)] = ShellProbeSections.Playback,
         [nameof(PlayerSkipAsync)] = ShellProbeSections.Playback,
     };
 }

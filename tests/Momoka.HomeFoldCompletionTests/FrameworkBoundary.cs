@@ -59,6 +59,7 @@ namespace Microsoft.UI.Xaml
     public class DependencyObject
     {
         public List<DependencyObject> TestChildren { get; } = [];
+        public DependencyObject? TestParent { get; set; }
     }
     public class UIElement : DependencyObject
     {
@@ -82,7 +83,7 @@ namespace Microsoft.UI.Xaml
         public double Opacity { get; set; } = 1;
         public Transform? RenderTransform { get; set; } = new MatrixTransform();
         public double TestTop { get; set; }
-        public GeneralTransform TransformToVisual(UIElement? space) => new(TestTop, RenderTransform);
+        public GeneralTransform TransformToVisual(UIElement? space) => new(TestTop, this, space);
     }
 }
 
@@ -94,15 +95,21 @@ namespace Microsoft.UI.Xaml.Media
     {
         public double Y { get; set; }
     }
-    public sealed class GeneralTransform(double top, Transform? transform)
+    public sealed class GeneralTransform(double top, DependencyObject element, UIElement? space)
     {
-        public Point TransformPoint(Point point) => new(point.X,
-            point.Y + top + (transform is TranslateTransform drift ? drift.Y : 0));
+        public Point TransformPoint(Point point)
+        {
+            var translated = 0.0;
+            for (DependencyObject? node = element; node is not null && !ReferenceEquals(node, space); node = node.TestParent)
+                if (node is FrameworkElement { RenderTransform: TranslateTransform drift }) translated += drift.Y;
+            return new Point(point.X, point.Y + top + translated);
+        }
     }
     public static class VisualTreeHelper
     {
         public static int GetChildrenCount(DependencyObject node) => node.TestChildren.Count;
         public static DependencyObject GetChild(DependencyObject node, int index) => node.TestChildren[index];
+        public static DependencyObject? GetParent(DependencyObject node) => node.TestParent;
     }
 }
 
