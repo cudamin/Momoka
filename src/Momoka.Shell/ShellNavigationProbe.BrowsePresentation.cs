@@ -73,6 +73,9 @@ internal sealed partial class ShellNavigationProbe
             shell.Attach(fixture.Services);
             _root.Children.Add(shell);
             var sink = new BrowseTimingSink();
+            var observations = new List<object>();
+            var observedAtLoaded = "Home Loaded尚未发生";
+            var completed = false;
             NavigationTiming.Start(new NavigationTimingRecorder(sink));
             var entrance = HomeMotion.PreferenceEnabled;
             try
@@ -91,8 +94,16 @@ internal sealed partial class ShellNavigationProbe
                     {
                         var presenter = Get<object>(shell, "_browsePresentation");
                         var images = Get<TaskCompletionSource?>(presenter, "_images");
-                        pendingCheck.TrySetResult(images is { Task.IsCompleted: false } && Volatile.Read(ref imageCalls) == 0
-                            && Get<HomeBanner>(page, "Banner").Current?.Title == film.Name);
+                        var gatePending = images is { Task.IsCompleted: false };
+                        var requests = Volatile.Read(ref imageCalls);
+                        var banner = Get<HomeBanner>(page, "Banner");
+                        var title = banner.Current?.Title;
+                        var slides = page.ViewModel.Slides.Count;
+                        observedAtLoaded = $"gatePresent={images is not null};gatePending={gatePending};imageCalls={requests};"
+                            + $"title={title ?? "<empty>"};slides={slides};isReady={page.IsReady};pageLoaded={page.IsLoaded}";
+                        observations.Add(new { stage = "home-loaded", gatePresent = images is not null, gatePending,
+                            imageCalls = requests, title, slides, isReady = page.IsReady, pageLoaded = page.IsLoaded });
+                        pendingCheck.TrySetResult(gatePending && requests == 0);
                     }
                     if (page.IsLoaded) Check();
                     else
@@ -108,12 +119,16 @@ internal sealed partial class ShellNavigationProbe
                 {
                     await (Task)Call(shell, "EnterShellAsync")!;
                     Require(await pendingCheck.Task.WaitAsync(TimeSpan.FromSeconds(3)),
-                        "真实Home Loaded前图片访问绕过首帧门控，或文字没有先上屏");
+                        "真实Home Loaded时首帧门控或图片请求前置不成立：" + observedAtLoaded);
                 }
                 finally { frame.Navigated -= Navigated; }
                 var home = (HomePage)frame.Content;
                 await UntilAsync(() => sink.Has(homeRun.RunId, "browse-images-released") && Volatile.Read(ref imageCalls) > 0);
                 AssertPresentationStages(homeRun.RunId, enabled: true);
+                await UntilAsync(() => home.IsLoaded && Get<HomeBanner>(home, "Banner").Current?.Title == film.Name);
+                observations.Add(new { stage = "home-before-response-release", title = Get<HomeBanner>(home, "Banner").Current?.Title,
+                    slides = home.ViewModel.Slides.Count, isReady = home.IsReady, imageCalls = Volatile.Read(ref imageCalls),
+                    responseHeld = !imageGate.Task.IsCompleted });
                 Require(Get<HomeBanner>(home, "Banner").FrontPicture is null, "匿名图片响应挂起时已有背景图");
                 await SaveProbeScreenAsync($"browse-home-text-before-images-{width}-screen.png");
                 imageGate.TrySetResult(true);
@@ -183,6 +198,7 @@ internal sealed partial class ShellNavigationProbe
                 samples.Add(new { width, homeRun = homeRun.RunId, libraryRun = libraryRun.RunId,
                     detailRun = detailRun.RunId, imageCalls, textBeforeImages = true, lateImageFade = true,
                     events = sink.Snapshot(), realNetwork = false, playback = false });
+                completed = true;
 
                 void AssertPresentationStages(string run, bool enabled)
                 {
@@ -203,12 +219,23 @@ internal sealed partial class ShellNavigationProbe
             }
             finally
             {
-                foreach (var release in holds) release.TrySetResult(true);
-                Call(shell, "ReleaseContent");
-                shell.SignInRoot.Detach();
-                _root.Children.Remove(shell);
-                NavigationTiming.Stop();
-                HomeMotion.ApplyPreference(entrance);
+                try
+                {
+                    await WritePerformanceEvidenceAsync($"browse-presentation-observations-{width}.json", new
+                    {
+                        width, completed, observedAtLoaded, imageCalls = Volatile.Read(ref imageCalls),
+                        observations, events = sink.Snapshot(), realNetwork = false, playback = false
+                    });
+                }
+                finally
+                {
+                    foreach (var release in holds) release.TrySetResult(true);
+                    Call(shell, "ReleaseContent");
+                    shell.SignInRoot.Detach();
+                    _root.Children.Remove(shell);
+                    NavigationTiming.Stop();
+                    HomeMotion.ApplyPreference(entrance);
+                }
             }
         }
         await WritePerformanceEvidenceAsync("browse-presentation-runtime.json", samples);
