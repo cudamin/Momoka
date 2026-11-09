@@ -135,12 +135,22 @@ internal sealed partial class ShellNavigationProbe
                 page.Release();
                 await WritePerformanceEvidenceAsync($"performance-deep-capture-{kind}.json", new
                 {
-                    backend = kind.ToString(), targetY = -17,
-                    screenshotBeforeY, beforeY, driftY = beforeY - screenshotBeforeY,
-                    screenshotBeforeOffset, beforeOffset,
-                    screenshotBeforeState, beforeState, screenshotBeforeFocus, beforeFocus,
-                    capturedIndex = request.AnchorIndex, capturedY = request.AnchorY,
-                    realNetwork = false, playback = false, serverWrites = false
+                    backend = kind.ToString(),
+                    targetY = -17,
+                    screenshotBeforeY,
+                    beforeY,
+                    driftY = beforeY - screenshotBeforeY,
+                    screenshotBeforeOffset,
+                    beforeOffset,
+                    screenshotBeforeState,
+                    beforeState,
+                    screenshotBeforeFocus,
+                    beforeFocus,
+                    capturedIndex = request.AnchorIndex,
+                    capturedY = request.AnchorY,
+                    realNetwork = false,
+                    playback = false,
+                    serverWrites = false
                 });
                 Require(request.AnchorIdentityKey == anchorKey && request.AnchorIndex == 1500
                     && Math.Abs(request.AnchorY - beforeY) < 3,
