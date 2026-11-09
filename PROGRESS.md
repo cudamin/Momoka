@@ -1,4 +1,4 @@
-## 2026-11-09 MP 图片排队与详情自动返回主页（修复待整合验收）
+## 2026-11-09 MP 图片排队与详情自动返回主页（主树验证并交付）
 
 用户报告主页订阅封面大量空白，打开 MP 详情后图片不出、稍后自动回主页。根因由匿名原生 HTTP/1.1 回环复现：图片与 API 共用八连接池，详情演职员、推荐等图片不限并发会耗尽连接，后台十秒检查排队超时后撤销可用性并回主页；订阅卡十二秒取图期限还把排队时间算了进去。另用真实 Shell VM 复现 Reload 结束后局部 linked CTS 被释放，离页取消不能再传给后台图片。
 
@@ -6,7 +6,15 @@
 
 上游依据：当日只读确认实际 MoviePilot v3.2.3，六张订阅图片均返回 200，约四秒；后端 tag `5662004dca2be1151de7b50784e3aca6a81544d5` 的 `app/application/image.py`、`app/startup/composition/network.py`、`app/adapters/network/http.py` 证明图片请求默认二十秒。前端 tag `12555631ce5346dddffab2cfa329da7c8d8bf996` 的 `MediaCard.vue`、`SubscribeCard.vue` 与图片 helper 已核；未全局改写尺寸或签名 URL。当前 v3 源码另核后端 `4620ceacda78b1e0d0f903aebb320fdb6d613420`、前端 `ae956ef259fc3ff17a34c2e5247536829f5eefa1`。实际读取未写订阅、媒体或播放记录。
 
-本树 Release Core／Tests／Shell 构建零警告零错误；原生 Cookie／图片专项 13/13，真实订阅及详情 VM 专项 35/35；新增原生并发和取消用例、真实 VM 离页取消用例均有修改前失败证据。完整主测试第一次按用户要求暂停，不算通过。恢复后主树已更新至 `4151b57`；本修复需保留其 MP 沉浸／简洁模式，合入后重新完整测试、运行 MP 分区并检查实屏，再发布主树桌面目录。尚未上传。
+产品提交 `f098c64` 已挑入 master 为 `17adce6`，保留 `4151b57` 的 MP 沉浸／简洁模式；只在 PROGRESS 拼接记录时有冲突，两边记录均保留。主树原有三份审查技能的未提交删除未动。临时工作树 `1e91/Momoka` 无未提交修改，产品内容全部进入主树。
+
+最终验证：主树 Release Core／Tests／Shell 构建零警告零错误；完整主测试 **4222/4222、零失败零跳过**（`artifacts/mp-image-validation/core-tests-after-unlock.log`）；原生 Cookie／图片专项 **13/13**，实际主树订阅与详情 VM 专项 **35/35**。新增原生并发、取消及真实 VM 离页取消均有修改前失败证据。改动文本行尾与空白检查通过；定向 `dotnet format whitespace --verify-no-changes` 通过。修复后实际 Core 读取当前服务器全部 **16 张订阅图，16 成功、0 失败**，同期连接检查正常；不代表冷缓存或所有远端图源永久可用。
+
+运行验证：交付件 `--probe-shell --probe-section moviepilot --screen 1` **36/36**，`shell-probe-20261109-045558324-26668`；已查看主页订阅、详情分集、窄窗实屏及图片恢复截图，其余分区未执行。之后从当前主树自包含输出复制独立 UI 运行目录，Core／Shell SHA256 与最终桌面发布件相同，执行真实 Shell 检查台 Journey：订阅详情停留 **70.6 秒**，新增 **3 次** `dashboard/system` 检查，页面、导航记录、前进后退栈保持不变，写请求 **0**；`journey-result.json`、首尾状态和窗口截图保存在 `artifacts/mp-image-validation`。该回环图是匿名 PNG，不冒充真实服务器 GUI，真实服务只做前述图片读取。未播放、未修改真实订阅或媒体库。
+
+过程问题如实保留：第一次完整测试按用户令暂停；恢复后另一个诊断中途占锁导致 16 条自检隔离测试失败，用户关闭该窗口后完整重跑全绿。一次 Shell 构建被运行进程锁住，关闭后重建全绿。一次隐藏启动的探针宿主未变可见，改用正常可见的应用启动后 36 项执行完毕。另一发布会话重建过程中出现输出不存在和框架依赖／自包含 deps 不一致，未放宽校验；最终稳定自包含输出完整验收通过。
+
+交付：另一会话已用主树终码刷新桌面 `artifacts/publish/win-x64`；本轮独立运行 `verify-publish.ps1 -SelfContained` 验收通过（`publish-verification-stable.log`），**546 文件、286.7 MB、14 GLSL／4 HOOK、59 份批准 mpv 载荷**。最终发布件与主树 Shell 输出哈希一致：`Momoka.dll=31D988ACC33D499BEB99761E87320EF914F8A098DE61674984F0CEAB2DFB4877`，`Momoka.Core.dll=67B8B290244280FB4B83C9E8F96B9E60B77BDF555DA6508A43F787460B2A5597`。桌面 `Momoka.lnk` 已核对指向该目录且目标存在；无版本号或依赖升级，未推 origin。
 
 ## 2026-11-09 设置新增「隐藏没有封面的演职人员」并交付
 
