@@ -9,9 +9,9 @@ import re
 FILES = (
     "PRIVACY.md", "README.md", "website/index.html", "website/dist/index.html",
     "docs/开发与验证.md", "docs/MoviePilot订阅.md", "docs/Plex支持.md",
-    ".claude/skills/momoka-dandanplay/SKILL.md",
-    ".claude/skills/momoka-dandanplay/references/credential-endpoint.md",
-    ".claude/skills/momoka-dandanplay/references/protocol.md",
+    ".claude/skills/momoka-danmaku/SKILL.md",
+    ".claude/skills/momoka-danmaku/references/credential-endpoint.md",
+    ".claude/skills/momoka-danmaku/references/protocol.md",
     ".claude/skills/momoka-playback/SKILL.md",
     ".claude/skills/momoka-verification/SKILL.md",
     ".claude/skills/momoka-fnnas-media-api/references/http-and-auth.md",

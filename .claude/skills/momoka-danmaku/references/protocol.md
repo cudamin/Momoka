@@ -1,6 +1,6 @@
 # 弹弹play v2 协议参考
 
-依据：`src/Momoka.Core/Danmaku/DandanPlayClient*.cs`、`DanmakuComment.cs`、`DandanPlayMatching.cs` 与官方 [开放弹幕网络](https://doc.dandanplay.com/open/)、[Swagger](https://api.dandanplay.net/swagger)。额度与审核状态来自 2026-10-25 开发者中心观测，属于会变化的事实，使用前重新核对。
+返回 [弹幕技能](../SKILL.md)。本页仅适用于弹弹play官方来源；[danmu_api](danmu-api.md) 使用另一套鉴权与自动匹配。依据是 `src/Momoka.Core/Danmaku/DandanPlayClient*.cs`、`DanmakuComment.cs`、`DandanPlayMatching.cs`；官方 [开放弹幕网络](https://doc.dandanplay.com/open/) 与 [Swagger](https://api.dandanplay.net/swagger) 用于核对接口。额度和审核状态以开发者中心当前值为准。
 
 ## 基址与签名
 
@@ -23,7 +23,7 @@ X-Signature: base64(SHA256(appId + timestamp + path + appSecret))
 | --- | --- | --- | --- | --- |
 | 搜索剧集 | `GET /api/v2/search/episodes?anime=<title>&v2=true[&episode=N]` | 是 | 不跟随 | 2 小时 |
 | 获取弹幕 | `GET /api/v2/comment/{episodeId}?withRelated=<true|false>&chConvert=0` | 是 | 允许最多 3 次，仅限官方 HTTPS 子域 | 2 小时 |
-| 发送应用弹幕 | `POST /api/v2/comment/{episodeId}/app` | 是 | 不跟随 | 成功后删缓存 |
+| 发送应用弹幕 | `POST /api/v2/comment/{episodeId}/app` | 是 | 不跟随 | 请求派发后删缓存 |
 
 ### 搜索
 
@@ -78,7 +78,7 @@ X-Signature: base64(SHA256(appId + timestamp + path + appSecret))
 { "time": 12.5, "mode": 1, "color": 16777215, "comment": "文本", "userName": "Momoka" }
 ```
 
-- `time` = 点击时视频时间 − 当前弹幕延迟，夹在 0–86400；文本 1–100 个 UTF-16 字符、无控制字符。
+- `CommentTime` 用点击时视频时间减去当前弹幕延迟，下限归零；`ValidateComment` 拒绝非有限数或超过 86400 秒的值，不把上限静默截断。文本去首尾空白后为 1–100 个 UTF-16 字符、无控制字符。
 - 成功必须同时满足：`success === true`、`errorCode === 0`、`cid` 为正整数。只判断 HTTP 200 会把“结果未确认”误报成成功。
 - **只写入本应用私有弹幕库。** 公开文档没有提供基础层用户登录并写主弹幕库的流程；当前客户端不登录、不发主库。不要把 `/app` 的 `cid` 解释为主库评论 ID。
 - 不跟随重定向、不自动重试。超时或读回执失败时提示“结果未确认，可能已送达”，避免用户立即重复发送。
@@ -110,7 +110,7 @@ X-Signature: base64(SHA256(appId + timestamp + path + appSecret))
 
 ## 额度与主库
 
-- 2026-10-25 基础层观测：搜索 100/日、获取弹幕 100/日、发送 10/日（各约 2,400/月）；番剧详情/文件识别 200/日（约 4,800/月）。所有内置用户共享同一份额度，以开发者中心实时值为准。
+- 所有内置用户共享同一份应用额度。不要从历史记录推断当前日/月配额，尤其不要把读取和发送额度混为同值；需要容量判断时在开发者中心重新核对。
 - 公开页的接口说明不等于应用后台额度；实际受限时返回 429。
 - 当前内置凭据只面向 Momoka 自己的应用层级；扩大分发前先核对官方授权与额度。
 - 主弹幕库写入：**未实现、未验证、不要承诺**。用户登录、OAuth、关注/历史同步都不在当前范围；接入前先取得官方明确文档与授权。
@@ -134,7 +134,7 @@ X-Signature: base64(SHA256(appId + timestamp + path + appSecret))
 ## 未覆盖
 
 - 没有真实服务的长稳监控、额度耗尽演练或主库写入验证。
-- 没有视频文件哈希识别；匹配是按媒体元数据标题搜索。
+- 官方来源没有视频文件哈希识别；自动匹配按媒体元数据标题搜索。danmu_api 的 `fileName` 自动匹配另见对应参考，同样不读取视频字节来算哈希。
 - 没有关注、观看历史、用户 OAuth 或跨设备同步。
 - 没有高级脚本弹幕、弹幕举报、删除或编辑。
 - 公开文档与 Swagger 可能滞后；新增接口前先以官方文档和开发者中心核对，再写测试固定本地行为。
