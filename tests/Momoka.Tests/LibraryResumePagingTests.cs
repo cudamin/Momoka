@@ -1108,6 +1108,8 @@ internal static class LibraryResumePagingTests
         public Func<Uri, HttpResponseMessage>? LatestReply { get; set; }
         public bool HomeReads { get; set; }
         public int HomeLatestCount { get; set; } = 1;
+        public bool HomeWatchUsesCurrentResult { get; set; }
+        public Func<Uri, Task<HttpResponseMessage>>? FnNasHomeReply { get; set; }
         public ConcurrentQueue<(string Host, string? Parent, int Limit)> HomeLatestRequests { get; } = new();
         public Gate? HomeTotals { get; set; }
         public Dictionary<string, Gate> HomeTotalGates { get; } = new(StringComparer.Ordinal);
@@ -1141,9 +1143,12 @@ internal static class LibraryResumePagingTests
         {
             var uri = request.RequestUri!;
             Assert.True(request.Method == HttpMethod.Get || (request.Method == HttpMethod.Post
-                && uri.AbsolutePath.EndsWith("/favorite/list", StringComparison.Ordinal)), "夹具只允许媒体/标签读取");
+                && (uri.AbsolutePath.EndsWith("/favorite/list", StringComparison.Ordinal)
+                    || FnNasHomeReply is not null && uri.AbsolutePath.EndsWith("/api/v1/item/list", StringComparison.Ordinal))), "夹具只允许媒体/标签读取");
             Assert.True(uri.Host is "a.invalid" or "b.invalid" or "c.invalid", "禁止夹具以外的来源");
             Requests.Enqueue(uri.AbsolutePath);
+            if (FnNasHomeReply is not null && uri.AbsolutePath.Contains("/api/v1/", StringComparison.Ordinal))
+                return await FnNasHomeReply(uri).ConfigureAwait(false);
             if (RecentPosterRequested is { } poster && uri.AbsolutePath == "/emby/Items/a-0/Images/Primary")
             {
                 poster.TrySetResult(uri);
@@ -1174,6 +1179,9 @@ internal static class LibraryResumePagingTests
                 {
                     gate.Entered.TrySetResult();
                     await gate.Release.Task.ConfigureAwait(false);
+                    if (latest && HomeWatchUsesCurrentResult)
+                        items = Enumerable.Range(0, HomeLatestCount).Select(index => new EmbyItem
+                        { Id = host + "-latest-" + index, Name = "最新电影", Type = EmbyItemType.Movie }).ToArray();
                 }
                 return new HttpResponseMessage(System.Net.HttpStatusCode.OK)
                 {

@@ -1,5 +1,16 @@
 # 开发进度
 
+## 2026-11-10 媒体库推送与官方首页轮询对齐（待主树整合）
+
+用户要求继续找飞牛推送、验证四家，并指定「官方客户端怎么做的你就这么改」。本树5abb基点d052f03；飞牛Core由隔离树fnnas-task-watch交付02c23ef/290e550/57b8cb6，前两条挑拣为41f63a1/e1d1647，最后一条按文件合入以保留本树README改动。
+
+本次重新读取真实官方前端：Emby/Jellyfin关联34资源、飞牛65JS（5,644,474字节、434依赖）、Plex Web4.163.0。实服Emby HomeSections四个latestmedia无RefreshInterval，只有onnow300000；Jellyfin与Plex首页也无媒体周期轮询。删除首页30秒全服最新列表timer，保留推送、首读/手动刷新；Plex10秒轮询属官方推荐货架页，Momoka没有该页。飞牛原生推送仍未找到，按官方admin任务完成后3秒串行task/running、旧TaskItemScrap ancestor消失更新目录/计数；已知零库隐藏、新库/非正到正首读，已有正数货架保留。任务基线跨同身份权限/令牌更新与来源集合变化保留，离页取消。读取期媒体通知和较晚基线回归已修；官方DOM事件3秒/10秒合并未搬，Momoka保留既有单队列与24项指纹判据，生命周期仍收窄到首页。
+
+真实只读150秒：Emby4.10.1.0/Jellyfin10.10.7均101且不被远端断开，Jellyfin ForceKeepAlive1/KeepAlive5；三来源Latest成功，飞牛管理员task/running成功0任务、目录/计数3库，设置SHA不变。用户明确Plex只协议测试、本轮不安排真实入库，故没有真实LibraryChanged证据、不播放不扫描不写媒体。研究与回执：主树work/push-audit-20261110各产品目录；本树work/push-audit-20261110/live（真实地址/凭据不进报告）。
+
+阶段验证：Core/Tests/Shell Release均0警告0错误；完整4267/4267，实时69/69，实际HomeVM59/59，websocket预算26/26，0失败0跳过（套件重叠不累加）。busy四场景先49项45过4败→全过，较晚基线和未接飞牛先57项50过7败；后续Core程序集不匹配、旧Shell入口重命名、假HTTP未放行genre等诊断失败日志均保留，最终只认当前编译。工具live probe有NU1900离线漏洞源警告，与正式Core/Tests/Shell构建分开。最终权限幂等小简化与格式修改后当前编译/59项将再确认，主树需统一整合重验发布。未推origin。
+
+
 ## 2026-11-10 MP 订阅封面合并交付（已交付）
 
 产品合并提交3c1348d。publish.ps1 -NoArchive -Shortcut退出0，546文件/286.9MB、14GLSL/4HOOK和59批准mpv载荷全部校验通过；桌面Momoka.lnk指向主树artifacts/publish/win-x64/Momoka.exe，工作目录相同、参数空。发布Shell与发布配置build哈希均9529C7539B779DD75667CE98C09A796748AEED136939DAB4E2BA485BFDF618CA，发布Core为C532CB455F8763F0D9E5CD4642023F2BE59C50903CDEDE9F7451C188935595F6。发布件本人单项检查通过（shell-probe-20261109-170015274-29528），长集数截图已目视，InspectDone正常退出。证据artifacts/mp-home-badges-delivery。没有推送origin。

@@ -2,7 +2,7 @@
 
 ## 当前行为与取舍
 
-实际 `EmbyRealtimeConnection.ListenOnceAsync` 将 `HttpMessageInvoker` 传入 `ClientWebSocket.ConnectAsync`，其 `SocketsHttpHandler` 明确 `AllowAutoRedirect=false`。同源和跨源重定向一律当作握手失败，不把身份头带到下一站；原来源的指数退避重连与只读库轮询保持原样。只收紧跳转边界，默认代理、禁 Cookie 与不复用握手连接的行为保留。反向代理应直接接收既有 WebSocket 端点，而不是依赖客户端自动换端点。
+实际 `EmbyRealtimeConnection.ListenOnceAsync` 将 `HttpMessageInvoker` 传入 `ClientWebSocket.ConnectAsync`，其 `SocketsHttpHandler` 明确 `AllowAutoRedirect=false`。同源和跨源重定向一律当作握手失败，不把身份头带到下一站；保持原来源指数退避重连。2026-11-10 另按官方首页删除通用库轮询，见媒体库实时更新文档。默认代理、禁 Cookie 与不复用握手连接的行为保留。反向代理应直接接收既有 WebSocket 端点，而不是依赖客户端自动换端点。
 
 没有恢复查询串令牌、没有改变 Emby／Jellyfin 端点拼法，也没有改其它 REST 客户端的跳转规则。
 
@@ -14,7 +14,7 @@
 & "$HOME/.dotnet/dotnet.exe" run --project ./tests/Momoka.Tests/Momoka.Tests.csproj -c Release --no-build --no-restore -- realtime-handshake-fixture
 ```
 
-当前 53 项：30 项三产品实际重定向边界、1 项等待首响应取消、原有协议／101／重连／来源退出／退避回归，以及 Plex 原生通知和 Jellyfin 应用心跳。注册于完整 Core；分套读数不能与完整 Core 相加。
+当前 69 项：30 项三产品实际重定向边界、1 项等待首响应取消、原有协议／101／重连／来源退出／退避回归、Plex 原生通知、Jellyfin 应用心跳，以及 16 项飞牛任务监控。注册于完整 Core；分套读数不能与完整 Core 相加。
 
 2026-11-09 新增范围与固定上游证据见 [媒体库实时更新](../../docs/媒体库实时更新.md)。Plex Watch 实际接收并回调来源；有效与无效样例也逐条直接断言解析结果，避免混合计数提前满足。Jellyfin 在回环上验证立即／周期／更新／重连心跳，阻塞发送替身另验证周期更新不取消网络写入、无并行发送；替身不代替真实 socket 回环。
 
@@ -34,12 +34,14 @@
 
 ## 未覆盖
 
-未建立 TLS 回环或模拟 HTTPS→HTTP 降级，未运行用户配置代理、真实 Emby／Jellyfin 握手、真实令牌／DPAPI 保存链、WinUI 页面、native 或播放。本地全拒跳转策略对 TLS 同样配置为不跳转，但此处不宣称真实 TLS 链已验。原有 libmpv 缺失的真实 runtime 门禁红项和旧快捷方式状态不变，专项通过不是正式交付。
+本专项未建立 TLS 回环或模拟 HTTPS→HTTP 降级，不运行用户配置代理、真实令牌保存、WinUI 页面、native 或播放。本地全拒跳转策略对 TLS 同样配置为不跳转，但不宣称真实 TLS 链已验。2026-11-10 的独立只读实服握手/心跳结果见媒体库实时更新文档；它不属于匿名回环专项，也不证明新媒体事件已实际送达。
 
 ## 飞牛官方任务快照
 
 实时专项同时登记 FnNasTaskWatchTests：生产每次成功/失败请求结束后等3秒再读task/running，每来源一条循环。首次成功只建基线，精确TaskItemScrap类型的unique ancestor旧减当前触发目录回调；无status过滤。失败保留基线，最新scope权限/代次、释放、退出和重复附加拒绝旧结果，并异步等待实际读取结束。首页调用者决定Attach/Release，生命周期有意比官方顶层TaskStore更窄，不新增全局后台。
 
-十五项匿名内存HTTP测试使用实际Core、Session和FnNas接口；读取替身能挂起并忽略取消来证明晚结果拒绝和Dispose等待，延迟替身只用于决定性周期步进，生产固定3秒。没有真实服务器、凭据、扫描或媒体。原生飞牛入库推送仍未找到；task快照轮询不是WebSocket推送，也不直接读取媒体货架。
+十六项匿名内存HTTP测试使用实际Core、Session和FnNas接口；读取替身能挂起并忽略取消来证明晚结果拒绝和Dispose等待，延迟替身只用于决定性周期步进，生产固定3秒。没有真实服务器、凭据、扫描或媒体。原生飞牛入库推送仍未找到；task快照轮询不是WebSocket推送，也不直接读取媒体货架。
 
 同身份令牌/权限修订跨在途读取时只丢弃该快照，保留上一成功基线，下一周期沿最新客户端继续读取；当前管理员资格失去才结束。修改周期与响应晚归属由新旧令牌及降权恢复匿名样例验证。
+
+相同在线身份重复 Attach 不重启；来源集合变化保留未变身份的成功任务基线，新身份重新建立基线，Release 清除本页基线。资格停止与幂等判断在同一锁内，避免快速降权恢复后误停。

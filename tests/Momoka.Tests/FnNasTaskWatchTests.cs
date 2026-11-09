@@ -28,6 +28,7 @@ internal static class FnNasTaskWatchTests
         Test("飞牛任务：旧权限响应即使已恢复管理员也不能跨代回调", () => Run(VerifyPermissionRevisionAsync));
         Test("飞牛任务：请求失败后的等待被取消不再发请求", () => Run(VerifyFailureReleaseAsync));
         Test("飞牛任务：在途换令牌丢旧快照但继续轮询，新令牌真实完成仍回调", () => Run(VerifyInFlightTokenAsync));
+        Test("飞牛任务：新增来源不丢旧来源基线，新身份首读不继承旧身份", () => Run(VerifySourceSetAsync));
         Test("飞牛任务：type精确匹配，无状态与祖先类别过滤，空和未知祖先保留JS差集边界", VerifyAncestorValues);
     }
 
@@ -193,9 +194,11 @@ internal static class FnNasTaskWatchTests
         watch.Attach([fixture.Scope], fixture.Changed);
         var first = await fixture.Requests.Reader.ReadAsync();
         watch.Attach([fixture.Scope], fixture.Changed);
-        Assert.True(first.Token.IsCancellationRequested);
-        Assert.Equal(1, fixture.TaskRequests, "新代必须等旧请求真正退出");
+        Assert.False(first.Token.IsCancellationRequested, "同Key同UserStateOwner重附加必须幂等");
+        Assert.Equal(1, fixture.TaskRequests, "同来源不能重开读取");
         first.Response.SetResult(Reply("[]"));
+        await fixture.WaitForDelayAsync();
+        await fixture.TickAsync();
         await fixture.ReadAsync("[]");
         Assert.Equal(2, fixture.TaskRequests);
         Assert.Equal(1, fixture.MaxConcurrent);
@@ -210,6 +213,7 @@ internal static class FnNasTaskWatchTests
         watch.Attach([fixture.Scope], fixture.Changed);
         await fixture.ReadAsync("""[{"type":"TaskItemScrap","ancestor":"a"}]""");
         fixture.Session.ReplaceClient(fixture.Scope, fixture.Scope.CurrentConnection with { AccessToken = "NONSECRET-new" });
+        watch.Attach([fixture.Scope], fixture.Changed);
         await fixture.TickAsync();
         var request = await fixture.Requests.Reader.ReadAsync();
         Assert.Equal("NONSECRET-new", request.Authorization);
@@ -314,6 +318,48 @@ internal static class FnNasTaskWatchTests
         current.Response.SetResult(Reply("[]"));
         await fixture.WaitForDelayAsync();
         Assert.Equal(fixture.Scope.Key, fixture.Changes.Single());
+    }
+
+    private static async Task VerifySourceSetAsync()
+    {
+        using var first = new Fixture();
+        using var second = new Fixture();
+        await first.RestoreAsync();
+        await second.RestoreAsync();
+        await using var watch = first.CreateWatch();
+        watch.Attach([first.Scope], first.Changed);
+        await first.ReadAsync("""[{"type":"TaskItemScrap","ancestor":"a"}]""");
+        // First's controlled delay is shared by both loops, so request completion
+        // is observed directly for the added source before reading the next delay.
+        watch.Attach([first.Scope, second.Scope], first.Changed);
+        _ = await first.Delays.Reader.ReadAsync(); // Cancelled old generation's queued delay.
+        var oldSource = await first.Requests.Reader.ReadAsync();
+        var newSource = await second.Requests.Reader.ReadAsync();
+        oldSource.Response.SetResult(Reply("[]"));
+        _ = await first.Delays.Reader.ReadAsync(); // The retained source has committed its result.
+        newSource.Response.SetResult(Reply("[]"));
+        _ = await first.Delays.Reader.ReadAsync(); // The new source established its own baseline.
+        Assert.Equal(first.Scope.Key, first.Changes.Single(), "保留身份的成功基线必须跨来源集合调整");
+        watch.Release();
+        await watch.DisposeAsync();
+
+        using var replacement = new Fixture();
+        await replacement.RestoreAsync();
+        await using var changedIdentity = first.CreateWatch();
+        changedIdentity.Attach([replacement.Scope], first.Changed);
+        var initial = await replacement.Requests.Reader.ReadAsync();
+        initial.Response.SetResult(Reply("""[{"type":"TaskItemScrap","ancestor":"replacement"}]"""));
+        _ = await first.Delays.Reader.ReadAsync();
+        Assert.Equal(1, first.Changes.Count, "新UserStateOwner不能借旧基线发完成通知");
+        using var sameKeyNewIdentity = new Fixture();
+        sameKeyNewIdentity.Server.Id = replacement.Server.Id;
+        sameKeyNewIdentity.Account.Id = replacement.Account.Id;
+        await sameKeyNewIdentity.RestoreAsync();
+        changedIdentity.Attach([sameKeyNewIdentity.Scope], first.Changed);
+        var nextIdentity = await sameKeyNewIdentity.Requests.Reader.ReadAsync();
+        nextIdentity.Response.SetResult(Reply("[]"));
+        _ = await first.Delays.Reader.ReadAsync();
+        Assert.Equal(1, first.Changes.Count, "同Key但UserStateOwner不同仍必须新基线");
     }
 
     private static IReadOnlyList<JsonObject> Tasks(string json) => JsonNode.Parse(json)!.AsArray().Cast<JsonObject>().ToArray();

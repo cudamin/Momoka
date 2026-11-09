@@ -15,6 +15,8 @@ public sealed class FnNasTaskWatch : IAsyncDisposable
     private static readonly object MissingAncestor = new();
     private readonly object _gate = new();
     private readonly Func<CancellationToken, Task> _delay;
+    private Dictionary<string, SourceState> _sources = [];
+    private Action<string>? _changed;
     private CancellationTokenSource? _visit;
     private Task _loop = Task.CompletedTask;
     private bool _disposed;
@@ -23,7 +25,7 @@ public sealed class FnNasTaskWatch : IAsyncDisposable
 
     internal FnNasTaskWatch(Func<CancellationToken, Task> delay) => _delay = delay;
 
-    /// <summary>每个在线管理员来源一条串行循环；再次附加先取消并等待上一代读取结束。</summary>
+    /// <summary>同一批在线身份重复附加不重启；来源调整保留未变身份基线，再等待上一代读取结束。</summary>
     public void Attach(IReadOnlyList<EmbySessionScope> sources, Action<string> onDirectoryChanged)
     {
         ArgumentNullException.ThrowIfNull(sources);
@@ -31,18 +33,32 @@ public sealed class FnNasTaskWatch : IAsyncDisposable
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
+            var current = sources.Where(Eligible).DistinctBy(scope => scope.Key).ToArray();
+            _changed = onDirectoryChanged;
+            if (_visit is not null && !_loop.IsCompleted && current.Length == _sources.Count
+                && current.All(scope => _sources.TryGetValue(scope.Key, out var state)
+                    && ReferenceEquals(state.Scope.UserStateOwner, scope.UserStateOwner) && !state.Stopped)) return;
+            var next = new Dictionary<string, SourceState>();
+            foreach (var scope in current)
+            {
+                var state = _sources.TryGetValue(scope.Key, out var existing)
+                    && ReferenceEquals(existing.Scope.UserStateOwner, scope.UserStateOwner) ? existing : new SourceState(scope);
+                state.Scope = scope;
+                state.Stopped = false;
+                next.Add(scope.Key, state);
+            }
+            _sources = next;
             _visit?.Cancel();
             var previous = _loop;
             var visit = new CancellationTokenSource();
             _visit = visit;
-            var current = sources.Where(Eligible).DistinctBy(scope => scope.Key).ToArray();
             _loop = Task.Run(async () =>
             {
                 try
                 {
                     await previous.ConfigureAwait(false);
                     if (visit.IsCancellationRequested) return;
-                    await Task.WhenAll(current.Select(scope => WatchAsync(scope, visit, onDirectoryChanged))).ConfigureAwait(false);
+                    await Task.WhenAll(next.Values.Select(state => WatchAsync(state, visit))).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -61,6 +77,8 @@ public sealed class FnNasTaskWatch : IAsyncDisposable
         {
             _visit?.Cancel();
             _visit = null;
+            _sources.Clear();
+            _changed = null;
         }
     }
 
@@ -72,6 +90,8 @@ public sealed class FnNasTaskWatch : IAsyncDisposable
             _disposed = true;
             _visit?.Cancel();
             _visit = null;
+            _sources.Clear();
+            _changed = null;
             loop = _loop;
         }
         await loop.ConfigureAwait(false);
@@ -80,14 +100,26 @@ public sealed class FnNasTaskWatch : IAsyncDisposable
     private static bool Eligible(EmbySessionScope scope) =>
         scope.Connection.IsFnNas && scope.IsAvailable && scope.IsAdministrator == true;
 
-    private async Task WatchAsync(EmbySessionScope scope, CancellationTokenSource visit, Action<string> changed)
+    private bool CanContinue(SourceState state, CancellationTokenSource visit, CancellationToken token)
     {
+        lock (_gate)
+        {
+            if (!ReferenceEquals(_visit, visit) || token.IsCancellationRequested) return false;
+            if (Eligible(state.Scope)) return true;
+            // 与 Attach 的幂等判定同锁：决定结束后不能再被误当作活着的循环。
+            state.Stopped = true;
+            return false;
+        }
+    }
+
+    private async Task WatchAsync(SourceState state, CancellationTokenSource visit)
+    {
+        var scope = state.Scope;
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(visit.Token, scope.Lifetime);
         var token = lifetime.Token;
-        IReadOnlyList<object?>? previous = null;
         try
         {
-            while (!token.IsCancellationRequested && Eligible(scope))
+            while (CanContinue(state, visit, token))
             {
                 var permissionRevision = scope.PermissionRevision;
                 try
@@ -95,30 +127,42 @@ public sealed class FnNasTaskWatch : IAsyncDisposable
                     var tasks = await scope.ExecuteAsync((client, ct) =>
                         client.FnNas.GetRunningTasksAsync(client.FnNasConnection, ct), token).ConfigureAwait(false);
                     token.ThrowIfCancellationRequested();
-                    if (!Eligible(scope)) return;
+                    if (!CanContinue(state, visit, token)) return;
                     var current = Ancestors(tasks);
                     lock (_gate)
                     {
-                        if (!ReferenceEquals(_visit, visit) || token.IsCancellationRequested || !Eligible(scope)) return;
+                        if (!CanContinue(state, visit, token)) return;
                         // 同身份令牌/权限更新只丢弃本次旧快照；保留基线，下轮用最新客户端继续读取。
                         if (scope.PermissionRevision == permissionRevision)
                         {
-                            if (previous is not null && HasRemoved(previous, current)) changed(scope.Key);
-                            previous = current;
+                            if (state.Previous is not null && HasRemoved(state.Previous, current)) _changed?.Invoke(scope.Key);
+                            state.Previous = current;
                         }
                     }
                 }
-                catch (OperationCanceledException) when (token.IsCancellationRequested || !Eligible(scope)) { return; }
+                catch (OperationCanceledException) when (!CanContinue(state, visit, token)) { return; }
                 catch (Exception error)
                 {
                     // 失败不是空任务表。保留上次成功快照，下一次成功后再判断真实消失。
                     Log.Debug(Category, $"任务快照读取失败（{error.GetType().Name}）");
                 }
-                if (token.IsCancellationRequested || !Eligible(scope)) return;
+                if (!CanContinue(state, visit, token)) return;
                 await _delay(token).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        finally
+        {
+            lock (_gate)
+                if (ReferenceEquals(_visit, visit)) state.Stopped = true;
+        }
+    }
+
+    private sealed class SourceState(EmbySessionScope scope)
+    {
+        public EmbySessionScope Scope { get; set; } = scope;
+        public IReadOnlyList<object?>? Previous { get; set; }
+        public bool Stopped { get; set; }
     }
 
     /// <summary>

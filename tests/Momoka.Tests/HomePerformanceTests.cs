@@ -12,6 +12,8 @@ internal static class HomePerformanceTests
     {
         var shell = new ShellFixture(shellPath, root);
         HomeReactivationTests.Register(shell);
+        HomePushRefreshTests.Register(shell, root);
+        HomeFnNasTaskTests.Register(shell);
         Case("聚合主页：库总数和后台检查挂起不阻塞内容可用", async () =>
         {
             using var fixture = new Fixture(shell, 2, secondSource: true);

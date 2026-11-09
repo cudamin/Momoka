@@ -5,30 +5,10 @@ using Momoka.Diagnostics;
 namespace Momoka.Emby;
 
 /// <summary>
-/// 一台服务器上的一条实时通道：接收 Emby/Jellyfin 的 LibraryChanged 或 Plex 库通知，唤醒主页核对。
-/// <para>
-/// <b>为什么有这一层。</b>主页停着不动的时候，服务器新入库的内容不会自己出现 —— 这一页只在导航进来时读一次，
-/// 现在靠 <c>HomePage</c> 那只 30 秒的钟问一问（<see cref="LibraryWatch"/>）。那条路可靠，但最长有半分钟的空窗，
-/// 而且每一拍都是一次实打实的请求。这条通道把空窗压到约一秒，代价是零次轮询：真机实测过，空闲 35 秒、60 秒
-/// 各收到 <b>0 条</b>消息，服务器不发就是不发。
-/// </para>
-/// <para>
-/// <b>它只是「快路径」，不是替代品。</b>30 秒那一趟留着不动（见 <c>HomeViewModel.AutoRefreshAsync</c>）：
-/// 这条通道连不上、或者服务器根本没推 <c>LibraryChanged</c> 的时候，行为<b>等于今天</b> —— 不会更差。这一点是
-/// 有意设计的：<c>LibraryChanged</c> 在 Momoka 这台服务器上<b>没能实证</b>（库在 NAS 上，探针够不到文件系统去投
-/// 真文件），所以整条路都按「可能一次都不来」来写。
-/// </para>
-/// <para>
-/// <b>不订阅播放状态。</b>Jellyfin 仅额外响应应用心跳，Plex 只识别库事件。特别是不订阅 <c>Sessions</c>：真机实测那一类在播放期间是
-/// 每 2 秒一条（90 秒 21 条），订阅它等于看片的时候主页一直在重读。Emby Theater 订阅了
-/// <c>Sessions</c> / <c>ActivityLogEntry</c> / <c>ScheduledTasksInfo</c> / <c>SessionEvents</c> 四类，
-/// 是因为它的播放器状态、服务端任务都靠那些事件驱动；Momoka 要的只是「有没有新入库」，所以一条都不订阅 ——
-/// 不订阅的时候，这条连接在空闲和播放期间都是静默的。
-/// </para>
-/// <para>
-/// <b>一条连接对一个 <see cref="EmbySessionScope"/>。</b>多账号聚合时每个来源各连各的：某个来源连不上不该让
-/// 别的来源也失去快路径，而且各来源的令牌本来就不同。
-/// </para>
+/// 一条来源的原生库通知连接，收到事件后由首页核对数据。
+/// Emby/Jellyfin 接 LibraryChanged，Plex 接库 timeline/status；不订阅播放状态或扫描进度。
+/// URL 无令牌，凭据只走请求头；断线退避重连，页面退出后取消。
+/// 2026-11-10 实服 Emby/Jellyfin 均经头部握手 101 并保持 150 秒；未安排真实入库。
 /// </summary>
 internal sealed class EmbyRealtimeConnection : IAsyncDisposable
 {
@@ -65,7 +45,7 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
     /// 连接 → 收消息 → 断了退避重来，直到 <see cref="DisposeAsync"/>。
     /// <para>
     /// 这一圈里**不抛异常出去**：一条通道连不上不该把整个循环打死、也不该让调用的那一头看到红。每一轮失败只
-    /// 记一条日志（Debug 档，因为它本来就是「快路径断了还有兜底」这种事，不该在 Info 里刷屏）。
+    /// 记一条 Debug 日志，避免连接故障反复刷屏。
     /// </para>
     /// </summary>
     private async Task RunAsync(CancellationToken token)
@@ -107,7 +87,7 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
         var connection = _scope.CurrentConnection;
         var handshake = EmbyRealtimeProtocol.Handshake(connection);
         // 系统默认握手会跟随跳转，并把 Emby 自定义鉴权头带到下一站。
-        // 快路径无需自动换端点：同源、跨源都拒绝，仍由原地址重连和只读轮询兜底。
+        // 不自动换端点：同源、跨源跳转都拒绝，仍由原地址退避重连。
         // 保留默认代理及禁 Cookie／不复用握手连接的行为，只收紧重定向边界。
         using var invoker = new HttpMessageInvoker(new SocketsHttpHandler
         {

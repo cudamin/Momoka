@@ -11,7 +11,7 @@ namespace Momoka.Emby;
 /// 不必等下一次用户操作。
 /// </para>
 /// <para>
-/// 上界卡在 <see cref="MaxSeconds"/>：通道断了本来就有 30 秒轮询兜底，重连间隔比兜底那一趟还长就没有意义了。
+/// 上界卡在 <see cref="MaxSeconds"/>，限制故障期间请求频率，同时在网络恢复后及时重新连接。
 /// </para>
 /// </summary>
 public sealed class EmbyRealtimeBackoff
@@ -19,7 +19,7 @@ public sealed class EmbyRealtimeBackoff
     /// <summary>第一次重连等这么久。快，是因为多数断线是瞬时的（切网、服务器重启刚起来）。</summary>
     public const int FirstSeconds = 1;
 
-    /// <summary>退避的上界。到这儿就一直是这个间隔（见类型注释：再长不如交给 30 秒那道兜底）。</summary>
+    /// <summary>退避的上界；到这儿就一直按这个间隔重试。</summary>
     public const int MaxSeconds = 30;
 
     private int _seconds;

@@ -90,12 +90,11 @@ public sealed partial class HomeViewModel : PageViewModel
 
     /// <summary>
     /// 「服务器上有没有新入库的东西」的账（<see cref="LibraryWatch"/>）：整页重读时记下每个来源此刻最新的一批，
-    /// 定时那一趟（<see cref="AutoRefreshAsync"/>）拿新的一批和它比。变了才重读 —— 没变也重读，等于每隔半分钟
-    /// 把一页海报连轮播全拆了重装。
+    /// 收到通知后由 <see cref="AutoRefreshAsync"/> 比较；只有数据变化才重读货架和轮播。
     /// </summary>
     private readonly LibraryWatch _watch = new();
 
-    /// <summary>定时那一趟还在路上。防止 30 秒的钟比一趟往返还快时叠上第二趟。</summary>
+    /// <summary>已有核对或后台刷新在途，通知合并到完成之后。</summary>
     private bool _watchBusy;
 
     /// <summary>
@@ -120,13 +119,12 @@ public sealed partial class HomeViewModel : PageViewModel
     /// <summary>
     /// 实时通道。<c>HomePage</c> 导航进来时开、离开时收（<see cref="Attach"/> / <see cref="Cancel"/>）。
     /// <para>
-    /// 这是**快路径**：收到 <c>LibraryChanged</c> 就提前走一遍核对，把 30 秒那一趟的空窗压到约一秒。
-    /// 30 秒那一趟留着不动，所以这条通道连不上、或者服务器不推的时候，行为等于没有它。
+    /// 收到库通知后核对列表，不再另设固定 30 秒媒体列表轮询。
     /// </para>
     /// </summary>
     private readonly EmbyRealtimeWatch _realtime = new();
 
-    /// <summary>这一场读取故障已经记过日志了。定时检查每半分钟一趟，不设这一格就是每半分钟一条同样的警告。</summary>
+    /// <summary>一次连续读取故障只记一条日志。</summary>
     private bool _watchReported;
 
     private EmbySessionScope? _scope;
@@ -156,7 +154,7 @@ public sealed partial class HomeViewModel : PageViewModel
 
     /// <summary>
     /// 这一页上有没有东西会因为「服务器新入库」而换掉（<see cref="HomeLayout.CanRefresh"/>）：轮播开着，或者
-    /// 至少有一排读服务器条目清单的货架勾着。都不是的时候定时检查和实时通道都不该再问服务器 —— 隐藏的行不联网。
+    /// 至少有一排读服务器条目清单的货架勾着。都不是的时候入库核对和实时通道都不该再问服务器 —— 隐藏的行不联网。
     /// </summary>
     private bool ShowsAnything => HomeLayout.CanRefresh(_all.Select(entry => entry.Row), _banner);
 
@@ -358,8 +356,7 @@ public sealed partial class HomeViewModel : PageViewModel
         _settings = settings;
         _dispatcher = dispatcher;
 
-        // 实时通道跟着这一页走：开着的时候服务器一推 LibraryChanged 就提前核对一次新入库，
-        // 不必等 30 秒那一趟。它只是快路径 —— 连不上或者服务器不推，30 秒那一趟照旧。
+        // 实时通道跟着这一页走；官方最新媒体栏目没有常驻轮询兜底。
         StartRealtime();
 
         BuildShelves();
@@ -454,6 +451,7 @@ public sealed partial class HomeViewModel : PageViewModel
         {
             if (Volatile.Read(ref _visit) == visit) OnRealtimeLibraryChanged(key);
         });
+        StartFnNasTasks();
     }
 
     /// <summary>由页面在 <see cref="Attach"/> 前交给本页；暖缓存命中与否都不改变它的生命周期。</summary>
@@ -622,14 +620,21 @@ public sealed partial class HomeViewModel : PageViewModel
         _quietLoad = true;
         var loading = LoadAsync();
         // LoadAsync 在第一个 await 之前已经把 quiet 读进局部变量；这里马上复位，
-        // 之后用户手动刷新或定时检查都不会被误当成后台核对。
+        // 之后手动刷新或通知核对都不会被误当成后台核对。
         _quietLoad = false;
         return CompleteAsync(loading);
 
         async Task CompleteAsync(Task inner)
         {
             try { await inner; }
-            finally { if (visit == _visit && operation == _watchOperation) _watchBusy = false; }
+            finally
+            {
+                if (visit == _visit && operation == _watchOperation)
+                {
+                    _watchBusy = false;
+                    ScheduleRealtime();
+                }
+            }
         }
     }
 
@@ -820,7 +825,7 @@ public sealed partial class HomeViewModel : PageViewModel
     internal Task RefreshPlaybackAsync() => LoadAsync(refreshSlides: false);
 
     /// <summary>
-    /// 定时看看服务器上有没有新入库的东西（见 <see cref="LibraryWatch"/>）：有新内容才整页重读一遍，货架和
+    /// 收到通知后核对新入库（见 <see cref="LibraryWatch"/>）：有新内容才整页重读一遍，货架和
     /// 轮播一起换；没变化就什么都不动。
     /// <para>
     /// 用户令（2026-10-16）「有新媒体入库时主页不会自动刷新」：从别的页面返回时这一页本来就会重读一次
@@ -828,19 +833,18 @@ public sealed partial class HomeViewModel : PageViewModel
     /// 之后服务器新入库的内容不会自己出现。
     /// </para>
     /// <para>
-    /// 这一趟只问一句「最新的一批变没变」（每个来源一次），**不重读整页**：没变也重读，等于每隔半分钟把一页
-    /// 海报连轮播全拆了重装。真变了才走 <see cref="LoadAsync"/> —— 那和用户自己按刷新、从别的页面返回时走的
+    /// 这一趟只问「最新的一批变没变」（每个来源一次）。真变了才走 <see cref="LoadAsync"/>，
+    /// 和用户自己按刷新、从别的页面返回时走的
     /// 是同一条路（含轮播，用户 2026-10-16 选定「货架+轮播一起更新」）。
     /// </para>
     /// <para>
-    /// 钟在页面上（<c>HomePage</c>），这一头只有这一件事。还没 <c>Attach</c>、已经离页、正在读、或者上一趟
-    /// 还没回来，都直接放过这一拍。
+    /// 正在读取或基线未完成时保留通知，完成后再执行；离页后不再请求。
     /// </para>
     /// </summary>
     internal async Task AutoRefreshAsync()
     {
         if (!Live || _session is null || _actions is null || _all.Length == 0) return;
-        if (Busy || _watchBusy || !_watchBaseline.IsCompleted) return;
+        if (Busy || _watchBusy || _directoryBusy || !_watchBaseline.IsCompleted) return;
 
         // 空页面（全不勾、轮播也关着）没有东西可换：这一拍连那一句「变了没有」都不问。
         if (!ShowsAnything) return;
@@ -857,14 +861,18 @@ public sealed partial class HomeViewModel : PageViewModel
             if (changed.Count == 0) return;
 
             // 先记下新的一批再重读：重读那一趟自己也会记一遍，但万一它读不成（比如最新那一条接口刚好抽风），
-            // 没有这一句就会每半分钟拿同一个变化重读一次，一直刷下去。
+            // 避免同一批连续通知反复触发相同变化。
             _watch.Reset(stamps);
-            Log.Info(Category, $"定时检查：{string.Join('、', changed.Select(SourceName))} 有新入库，重读主页");
+            Log.Info(Category, $"入库核对：{string.Join('、', changed.Select(SourceName))} 内容变化，重读主页");
             await LoadAsync().ConfigureAwait(true);
         }
         finally
         {
-            if (visit == _visit && operation == _watchOperation) _watchBusy = false;
+            if (visit == _visit && operation == _watchOperation)
+            {
+                _watchBusy = false;
+                ScheduleRealtime();
+            }
         }
     }
 
@@ -887,12 +895,19 @@ public sealed partial class HomeViewModel : PageViewModel
             if (!_active || visit != _visit) return;
             _realtimeDirty = true;
             if (sourceKey.Length > 0) _realtimeSources.Add(sourceKey);
-            if (_realtimeScheduled) return;
+        }
+        ScheduleRealtime();
+    }
+
+    private void ScheduleRealtime()
+    {
+        var visit = Volatile.Read(ref _visit);
+        lock (_realtimeSources)
+        {
+            if (!_active || visit != _visit || !_realtimeDirty || _realtimeScheduled) return;
             _realtimeScheduled = true;
         }
-
-        // 排到这一页自己的同步上下文上跑。拿不到队列（还没 Attach / 已经离页）就放过这一拍 ——
-        // 30 秒那一趟还在，不会漏掉什么。
+        // 读取尚未完成时只保留脏位；对应读取完成后会再次排队，不借定时器补漏。
         if (_dispatcher?.Post(() =>
             {
                 if (visit == _visit && Live) _ = PumpRealtimeAsync();
@@ -901,24 +916,48 @@ public sealed partial class HomeViewModel : PageViewModel
 
     /// <summary>
     /// 把攒下的实时通知折成一趟核对。<see cref="AutoRefreshAsync"/> 本来就是「问一句变了没有、真变了才重读」，
-    /// 这一趟直接复用它 —— 快路径和 30 秒那一趟走的是同一条路，两边的判据、防重刷、日志都是同一套。
+    /// 没有定时兜底；忙碌期间保留脏位，由读取完成重新唤醒。
     /// </summary>
     private async Task PumpRealtimeAsync()
     {
+        var visit = _visit;
         string[] sources;
+        string[] directories;
         lock (_realtimeSources)
         {
             if (!_realtimeDirty) { _realtimeScheduled = false; return; }
+            if (!Live || Busy || _watchBusy || _directoryBusy || !_watchBaseline.IsCompleted)
+            {
+                _realtimeScheduled = false;
+                return;
+            }
             _realtimeDirty = false;
-            sources = [.. _realtimeSources];
-            _realtimeSources.Clear();
+            directories = [.. _directorySources];
+            _directorySources.Clear();
+            // 目录刷新要 await；这期间媒体通知仍保留在集合里，不能被新的首读基线吸收。
+            sources = directories.Length == 0 ? [.. _realtimeSources] : [];
+            if (directories.Length == 0) _realtimeSources.Clear();
+            else _realtimeDirty = _realtimeSources.Count > 0;
             _realtimeScheduled = false;
         }
 
         if (sources.Length > 0)
-            Log.Info(Category, $"实时通道：{string.Join('、', sources.Select(SourceName))} 有新入库，提前核对一次");
+            Log.Info(Category, $"实时通道：{string.Join('、', sources.Select(SourceName))} 有库变更，核对一次");
 
-        await AutoRefreshAsync().ConfigureAwait(true);
+        foreach (var source in directories)
+        {
+            if (visit != _visit || !Live) return;
+            await RefreshFnNasDirectoryAsync(source).ConfigureAwait(true);
+        }
+        if (visit != _visit || !Live) return;
+        if (directories.Length > 0) { ScheduleRealtime(); return; }
+        if (sources.Length > 0) await AutoRefreshAsync().ConfigureAwait(true);
+    }
+
+    protected override void BusyChanged()
+    {
+        base.BusyChanged();
+        if (!Busy) ScheduleRealtime();
     }
 
     /// <summary>把这一拍交出去失败之后把「已排」放回去，否则下一批通知会被那一格挡住、再也排不上。</summary>
@@ -932,14 +971,14 @@ public sealed partial class HomeViewModel : PageViewModel
     /// 每个来源此刻最新的一批入库，折成一行字（<see cref="LibraryWatch.Stamp"/>）。
     /// <para>
     /// 读不出来的来源**不放进结果里**：调用方拿它和上一次的读数比，缺了一个来源会被读成「变了」，那正是多账号
-    /// 聚合时每半分钟白刷一次的来源（见 <see cref="LibraryWatch"/>）。这一趟失败也不弹提示条 —— 用户没让做什么
+    /// 聚合时把失败误判为删除的来源（见 <see cref="LibraryWatch"/>）。这一趟失败也不弹提示条 —— 用户没让做什么
     /// 事，一个后台的例行问询不该在屏上留一条红 —— 只记日志，而且同一场故障只记一条（<see cref="_watchReported"/>）。
     /// </para>
     /// </summary>
     private async Task<Dictionary<string, string>?> ProbeStampsAsync(CancellationToken token)
     {
         var visit = _visit;
-        var sources = _sources.Where(scope => scope.IsAvailable).ToArray();
+        var sources = _sources.Where(scope => scope.IsAvailable && EmbyRealtimeProtocol.Supports(scope.Connection.ServerKind)).ToArray();
         if (sources.Length == 0) return null;
 
         async Task<(string Key, string? Stamp, Exception? Error)> ReadAsync(EmbySessionScope scope)
@@ -976,7 +1015,7 @@ public sealed partial class HomeViewModel : PageViewModel
         else if (!_watchReported)
         {
             _watchReported = true;
-            Log.Warn(Category, "定时检查服务器最新入库失败，这一趟按没有变化处理（同一场故障只记这一条）", failure);
+            Log.Warn(Category, "通知核对服务器最新入库失败，这一趟按没有变化处理（同一场故障只记这一条）", failure);
         }
 
         return stamps.Count > 0 ? stamps : null;
@@ -1025,6 +1064,7 @@ public sealed partial class HomeViewModel : PageViewModel
     {
         var quiet = _quietLoad;
         if (!Live || _session is null || _actions is null || _all.Length == 0) return;
+        _directoryVersion++;
         if (!quiet) _retainedFingerprint = null;
 
         var token = quiet ? BeginBackgroundLoad() : BeginLoad();
@@ -1160,7 +1200,7 @@ public sealed partial class HomeViewModel : PageViewModel
 
         var reuseCarouselStamps = refreshSlides && _banner && carouselMedia == Emby.CarouselMediaType.All
             && carouselUi?.CarouselSource != Emby.CarouselSource.Random;
-        // 基线和下一次定时检查使用相同Limit，避免服务器按数量分组时前缀发生差异。
+        // 基线和下一次通知核对使用相同Limit，避免服务器按数量分组时前缀发生差异。
         _watchLimit = reuseCarouselStamps ? latestSize : LatestSize;
         var carouselStamps = new Dictionary<string, string>(StringComparer.Ordinal);
         var latest = refreshSlides && _banner ? FetchAsync("轮播", CarouselAsync, token,
@@ -1221,6 +1261,13 @@ public sealed partial class HomeViewModel : PageViewModel
 
             if (HomeLayout.LibraryId(row.Key) is not { Length: > 0 } id) continue;
             if (_libraryViews.FirstOrDefault(library => HomeLayout.LibraryKey(library) == row.Key) is not { } library) continue;
+            // 飞牛官方首页只挂载 sum>0 的货架；其他来源推送引起的整页刷新也不能把已知空库重新读回来。
+            if (library.Source?.Connection.IsFnNas == true && library.RecursiveItemCount == 0)
+            {
+                shelf.Clear();
+                shelf.NoteOverride = "0 项";
+                continue;
+            }
 
             // Jellyfin 的剧集库走 /Items/Latest 会只认单集、电影：只有剧集（还没扫出单集）的库回空表，
             // 这一排就被当成空排摘掉。改用条目查询直接列剧集，见 HomeLatest。
@@ -1245,7 +1292,7 @@ public sealed partial class HomeViewModel : PageViewModel
                 libraryTotals[row.Key] = FetchTotalAsync(library, countQuery, token, source);
         }
 
-        // 定时检查（见 AutoRefreshAsync）的基线也是这一趟记下的：整页重读之后，屏上这一份就是「服务器此刻的
+        // 通知核对（见 AutoRefreshAsync）的基线也是这一趟记下的：整页重读之后，屏上这一份就是「服务器此刻的
         // 样子」。和别的请求一起发出去，不另起一趟往返。空页面上没有可换的东西，这一句省掉 —— 否则「隐藏的行
         // 不联网」就在这一句上破功（见 ShowsAnything）。
         var watch = ShowsAnything
@@ -1272,7 +1319,7 @@ public sealed partial class HomeViewModel : PageViewModel
 
         _ = PublishSlidesWhenReadyAsync();
 
-        // 库总数和定时检查的基线是辅助读数：慢来源不能让已经取到的内容一直留在加载状态。
+        // 库总数和入库核对的基线是辅助读数：慢来源不能让已经取到的内容一直留在加载状态。
         await Task.WhenAll(pending.Append<Task>(latest)).ConfigureAwait(true);
 
         if (!IsCurrent(token)) return;
@@ -1376,9 +1423,22 @@ public sealed partial class HomeViewModel : PageViewModel
 
         async Task CompleteWatchAsync()
         {
-            var stamps = await watch.ConfigureAwait(true);
-            if (!IsCurrent(token)) return;
-            if (stamps is not null) _watch.Reset(stamps);
+            try
+            {
+                var stamps = await watch.ConfigureAwait(true);
+                if (!IsCurrent(token)) return;
+                if (stamps is not null)
+                {
+                    // 货架与基线并行读取。通知后的较晚基线可能已含新条目，不能当成货架也已显示。
+                    lock (_realtimeSources)
+                        _watch.Reset(stamps.Where(pair => !_realtimeSources.Contains(pair.Key))
+                            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
+                }
+            }
+            finally
+            {
+                if (IsCurrent(token)) ScheduleRealtime();
+            }
         }
 
         async Task CompleteTotalAsync(string key, Task<int> request)
@@ -1614,14 +1674,23 @@ public sealed partial class HomeViewModel : PageViewModel
         Interlocked.Increment(ref _visit);
         _watchOperation++;
         _watchBusy = false;
+        _directoryBusy = false;
+        _directoryVersion++;
+        _directoryRead?.Cancel();
+        _directoryRead = null;
         _active = false;
         // 这一页走了，实时通道一起收：它听的是这一页上的数据，页都不在了没人接这个结果。
         _realtime.Release();
+        _fnNasTasks.Release();
+        if (_session is not null && _taskPermissionsChanged is not null)
+            _session.PermissionsChanged -= _taskPermissionsChanged;
+        _taskPermissionsChanged = null;
         lock (_realtimeSources)
         {
             _realtimeDirty = false;
             _realtimeScheduled = false;
             _realtimeSources.Clear();
+            _directorySources.Clear();
         }
         base.Cancel();
     }

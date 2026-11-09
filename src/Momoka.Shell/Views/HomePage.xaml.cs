@@ -23,6 +23,7 @@ internal sealed record HomeRequest(
     Action<MoviePilotSubscription>? OpenSubscription = null)
 {
     internal Func<IReadOnlyList<EmbyItem>>? CurrentLibraryViews { get; init; }
+    internal Action<EmbySessionScope, IReadOnlyList<EmbyItem>>? LibraryDirectoryUpdated { get; init; }
     internal IReadOnlyList<EmbyItem> EffectiveLibraryViews => CurrentLibraryViews?.Invoke() ?? LibraryViews;
     /// <summary>返回栈里的那一份请求记着离开时的滚动位置；暖缓存恢复后按它落回原处。</summary>
     public double ScrollOffset { get; set; }
@@ -61,21 +62,6 @@ public sealed partial class HomePage : Page, IShellContent
     private EmbySession? _session;
     private IShellActions? _actions;
     private Windowing.HostWindow? _window;
-
-    /// <summary>
-    /// 定时检查新入库的间隔。30 秒是「读起来是自动的」和「别拿服务器当心跳包打」之间的一档：这一趟每个来源
-    /// 只问一次最新的一小批（<see cref="HomeViewModel.AutoRefreshAsync"/>），真变了才重读整页。
-    /// </summary>
-    private static readonly TimeSpan WatchInterval = TimeSpan.FromSeconds(30);
-
-    /// <summary>
-    /// 「有没有新入库的东西」的那只钟。挂在这一页的寿命上：导航进来开始走、<see cref="Release"/> 停。
-    /// <para>
-    /// 用户令（2026-10-16）「有新媒体入库时主页不会自动刷新」：从别的页面返回时这一页本来就会重读一次，
-    /// 缺的正是「就停在这一页上」那一档。
-    /// </para>
-    /// </summary>
-    private readonly DispatcherQueueTimer _watch;
 
     /// <summary>
     /// 自检那一条「点卡片不挪页」的现场：按焦点之前这一页停在哪儿（-1 是还没按过）、焦点交出去了没有、这一页
@@ -174,18 +160,6 @@ public sealed partial class HomePage : Page, IShellContent
         NavigationCacheMode = NavigationCacheMode.Enabled;
         NavigationTiming.Mark("init-end");
         _stayProbe = (_, _) => _stayAsked++;
-
-        // 定时看看服务器上有没有新入库的东西（见 HomeViewModel.AutoRefreshAsync）。播放层占着窗口的那一段
-        // 不发：那时这一页在播放层后面，重读白搭一趟，而且会在返回的动画底下换掉整页 —— 返回该有的刷新由
-        // ShellPage.RefreshActive 那一头负责。停/起跟着这一页的寿命走，见 OnNavigatedTo 与 Release。
-        _watch = DispatcherQueue.GetForCurrentThread().CreateTimer();
-        _watch.Interval = WatchInterval;
-        _watch.IsRepeating = true;
-        _watch.Tick += (_, _) =>
-        {
-            if (_window?.PlayerLayer == true) return;
-            _ = ViewModel.AutoRefreshAsync();
-        };
 
         // 这一页的三件事都挂在轮播上：剧照一上来就把外壳那 40 像素顶回去（SyncBleed），标题栏那一行的墨
         // 跟着带面走（PaintInk），竖滚动条不从带子上压过去（PlaceScrollBar —— 「滚动条不要延伸到轮播图上，
@@ -1425,6 +1399,7 @@ public sealed partial class HomePage : Page, IShellContent
         ViewModel.UseRemovedMedia(services.GetRequiredService<RemovedMedia>());
         var images = services.GetRequiredService<EmbyImageStore>();
         var dispatcher = services.GetRequiredService<IUiDispatcher>();
+        ViewModel.UseLibraryDirectory(request.LibraryDirectoryUpdated);
         var reused = sameServices && ViewModel.TryReactivate(_actions, request.EffectiveLibraryViews,
             settings, _session, images, dispatcher);
         if (!reused)
@@ -1442,10 +1417,6 @@ public sealed partial class HomePage : Page, IShellContent
         // 版面（拖拽出来的次序、勾掉的那几排）改完当场生效：设置页在另一个窗口里，它改完喊一声，这一页重排。
         ShellPrefs.Changed -= OnShellPrefsChanged;
         ShellPrefs.Changed += OnShellPrefsChanged;
-
-        // 新入库的钟跟着这一页走。首读由下面那句 ReloadAsync 发出去，钟从导航这一刻起走 —— 两件事各管各的：
-        // 钟只问「变了没有」，重读走的是和刷新同一条路（见 HomeViewModel.AutoRefreshAsync）。
-        _watch.Start();
 
         // 同一身份和版面下有上次的条目就先摆出来，网络核对放到后台；没有快照才走首次读取。
         var restored = reused || ViewModel.RestoreSnapshot();
@@ -1471,8 +1442,6 @@ public sealed partial class HomePage : Page, IShellContent
         _overlayAgain = false;
         _timing = null;
         _homeSettings = null;
-        // 这一页走了，新入库的钟一起停：它问的是这一页上的数据，页都不在了没人接结果。
-        _watch.Stop();
         Subscriptions.Release();
         ShellPrefs.Changed -= OnShellPrefsChanged;
         if (_window is not null) _window.PlayerLayerEnded -= OnPlayerLayerEnded;

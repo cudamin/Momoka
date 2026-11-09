@@ -1120,7 +1120,12 @@ public sealed partial class ShellPage : UserControl, IShellActions
             Open(typeof(HomePage), new HomeRequest(_services, _libraryViews.ToArray(), _window, OpenSubscription)
             {
                 CurrentLibraryViews = () => !_closing && homeScope?.IsCurrent == true && SourcesStamp() == homeSources
-                    ? _libraryViews.ToArray() : []
+                    ? _libraryViews.ToArray() : [],
+                LibraryDirectoryUpdated = (source, views) =>
+                {
+                    if (!_closing && homeScope?.IsCurrent == true && source.IsAvailable && SourcesStamp() == homeSources)
+                        ApplyLibraryDirectory(source, views);
+                }
             }, "主页", tag);
             return;
         }
@@ -2358,6 +2363,31 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Log.Info(Category, result.Items.Count == _libraries.Count
             ? $"媒体库 {_libraries.Count} 个已读入"
             : $"媒体库 {_libraries.Count} 个已读入（来源共 {result.Items.Count} 个，音乐库已屏蔽）");
+    }
+
+    /// <summary>首页完成的单来源目录读取同步提交到导航缓存，不触发导航或第二次读取。</summary>
+    private void ApplyLibraryDirectory(EmbySessionScope source, IReadOnlyList<EmbyItem> views)
+    {
+        var index = _libraryViews.FindIndex(view => view.Source?.Key == source.Key);
+        _libraryViews.RemoveAll(view => view.Source?.Key == source.Key);
+        var current = views.Where(view => view.Source?.Key == source.Key && !EmbyItemType.IsMusicLibrary(view.CollectionType)).ToArray();
+        _libraryViews.InsertRange(index < 0 ? _libraryViews.Count : Math.Min(index, _libraryViews.Count), current);
+        foreach (var key in _libraries.Where(pair => pair.Value.Source?.Key == source.Key).Select(pair => pair.Key).ToArray())
+            _libraries.Remove(key);
+        foreach (var view in current)
+        {
+            var key = HomeLayout.LibraryKey(view);
+            _libraries[key] = new LibraryRequest
+            {
+                Services = _services!,
+                Title = view.Name,
+                Tag = key,
+                ParentId = view.Id,
+                Source = source,
+                CollectionType = view.CollectionType
+            };
+        }
+        RebuildSidebarLibraries();
     }
 
     /// <summary>

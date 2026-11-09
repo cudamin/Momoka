@@ -140,7 +140,7 @@ internal static partial class EmbyRealtimeTests
             backoff.Reset();
             Assert.Equal(1, (int)backoff.Next().TotalSeconds);
         });
-        Test("实时退避：上界不超过 30 秒，再长不如交给 30 秒那道兜底", () =>
+        Test("实时退避：上界不超过 30 秒，限制故障期间的连接频率", () =>
         {
             var backoff = new EmbyRealtimeBackoff();
             for (var i = 0; i < 40; i++)
