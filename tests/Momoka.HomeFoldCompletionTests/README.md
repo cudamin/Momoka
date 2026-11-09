@@ -1,5 +1,7 @@
 # R066 主页翻档完成／归属专项
 
+轮播暖返回专项原样提取 HomeBanner.Loaded 的选片尾段及 Paint/PaintLogo：首访保留入场，第二次Loaded不再Rise，迟到恢复图/徽标直接最终透明度；随后正常换片保留交叉淡入。边界只替代控件值、Storyboard及Show的文本赋值，不创建窗口/WinRT图像。真实HomeReturn另核文字和恢复图片当帧完全不透明。
+
 独立控制台夹具，先编译当前源，再运行；不加入或运行全 Core／SelfCheck mutex 套件。
 
 ## 覆盖边界

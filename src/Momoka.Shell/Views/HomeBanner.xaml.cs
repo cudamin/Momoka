@@ -56,6 +56,8 @@ public sealed partial class HomeBanner : UserControl
     /// 摆不下两个。
     /// </summary>
     private static readonly TimeSpan CrossFade = TimeSpan.FromMilliseconds(650);
+    private bool _everLoaded;
+    private bool _restoringEntry;
 
     /// <summary>一行字抬起来用多久。</summary>
     private static readonly TimeSpan Lift = TimeSpan.FromMilliseconds(600);
@@ -497,7 +499,11 @@ public sealed partial class HomeBanner : UserControl
         _current = slide;
         slide.PropertyChanged += OnSlideChanged;
 
-        if (animate) Rise();
+        if (animate)
+        {
+            _restoringEntry = false;
+            Rise();
+        }
         Paint(slide.Picture);
         PaintLogo(slide);
         Prefetch();
@@ -537,6 +543,13 @@ public sealed partial class HomeBanner : UserControl
 
         Brush(rising).ImageSource = picture;
         _second = !_second;
+
+        if (_restoringEntry)
+        {
+            rising.Opacity = 1;
+            falling.Opacity = 0;
+            return;
+        }
 
         var board = new Storyboard();
         board.Children.Add(FadeTo(rising, 1, CrossFade, TimeSpan.Zero));
@@ -596,6 +609,13 @@ public sealed partial class HomeBanner : UserControl
         if (slide.Logo is null)
         {
             LogoRow.Opacity = 0;
+            return;
+        }
+
+        if (_restoringEntry)
+        {
+            LogoRow.Opacity = 1;
+            LogoShift.Y = 0;
             return;
         }
 
@@ -1122,9 +1142,11 @@ public sealed partial class HomeBanner : UserControl
         }
 
         // 控件返回可视树时重新订阅当前图片；Unloaded 释放过的图允许从磁盘缓存重读。
+        _restoringEntry = _everLoaded;
+        _everLoaded = true;
         if (_slides.Count > 0)
         {
-            Show(_index);
+            Show(_index, animate: !_restoringEntry);
         }
         SyncTimer();
 

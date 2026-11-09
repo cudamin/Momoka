@@ -3,6 +3,12 @@
 受管树 `library-navigation-cache/Momoka`，基点 `7eaaf7f`。只保留成功就绪且不超过400卡的普通根 LibraryPage；同请求、来源登录owner、权限与查询/本库显示偏好不变时恢复既有VM与集合，开启新查询归属后后台核对。新请求先清旧数据，零偏移归零，非合资格页面离页退出Enabled缓存；设置浮层离页统一收起。主会话须设置Shell Frame CacheSize=2并在ReleaseContent清Enabled缓存，以覆盖账号切换；本子树不改Shell。该路径只优化重复普通根，超过上限、搜索/收藏/推荐/人物与子页仍走原读取。
 
 实际VM回归先17/21、4项缺复用入口红，实现后21/21；生产滚动源链接专项先3/4红（新零偏移仍保留800），实现后4/4；PageContract完整152/152。最终Shell和Tests当前Release编译0警告0错误，主测试4231/4231、0失败0跳过；独立复审确认关闭设置修复后暂无其他必要缺陷。编译与回归日志在本树`library-cache-*.log`；首次probe编译CS0103局部helper不可见已修并保留原日志。新增performance「普通根缓存返回、换库清空与搜索淘汰」记录真实Frame10次对象保持、宽窄锚点、新库等待清空/零偏移、打开设置换库关闭与搜索淘汰，交主会话串行运行。独立复审P2旧设置浮层已修，未运行UI、真实服务、播放、发布或上传；主树整合与最终速度对照尚未完成，快捷方式仍是旧版。
+## 2026-11-09 轮播暖返回装饰立即落定（独立树待整合）
+
+最后屏幕定位发现缓存主页Rendering虽约80ms，HomeBanner重入Loaded仍调用Show默认Rise600ms，恢复图继续CrossFade650ms。小片记录曾Loaded，暖重入Show不播文字入场；本次恢复的图与徽标直接写最终透明度/位移，下一次正常换片Show仍恢复原CrossFade/Rise。没有持有整批图片或改变Unloaded释放策略。
+
+现有翻档夹具原样提取HomeBanner的Loaded选片尾段、Paint及PaintLogo；先红1项（第二次Loaded Rise从1到2），修复后61/61、0失败、0跳过，定向Release编译0警告0错误，证据 `artifacts/navigation-response/*banner*`。HomeReturn追加暖文字/恢复图片最终透明度断言，**本片未构建Shell/运行UI**，由父会话合入并编译后实屏核验；没有发布或推送。
+
 ## 2026-11-09 同配置主页有限复用与访问归属（独立树待运行整合）
 
 本片在 `C:/Users/89400/.codex/worktrees/navigation-response/Momoka` 继续，之前导航交接提交 `19df242` 后用户仍要求不慢于网页端。HomePage 使用 Enabled 缓存，由 Shell 容量2管理；账号退出/来源切换的 ReleaseContent 先将缓存容量置零淘汰，再恢复2。仅相同服务、在线来源Key/登录owner、目录/图片、主页行顺序/名称/显隐及轮播/展示配置，而且之前成功加载的主页可重新激活；保留货架/卡片/轮播/混排行并后台核对，变化或失败则同步清旧内容走正常Attach。MP订阅仍沿用原Attach/Release刷新；轮播图片离树仍由控件释放，本片不宣称所有首页对象或位图均保留。

@@ -53,6 +53,12 @@
                 generated += "\ninternal sealed partial class BannerClockFixture\n{\n" +
                     between(banner, "    internal void Apply(IReadOnlyList<BannerSlide> slides)", "\n    /// <summary>\n    /// 把第") +
                     between(banner, "    private void SyncTimer()", "\n    /// <summary>\n    /// 带多高") + "\n}\n";
+                generated += "\ninternal sealed partial class BannerReturnFixture\n{\n" +
+                    "    internal void PaintVisit()\n    {\n" +
+                    between(banner, "        // 控件返回可视树时重新订阅当前图片", "\n        SyncTimer();\n\n        if (XamlRoot") + "\n    }\n" +
+                    between(banner, "    private void Paint(BitmapImage? picture)", "\n    /// <summary>\n    /// 台上那层。") +
+                    between(banner, "    private void PaintLogo(BannerSlide slide)", "\n    /// <summary>\n    /// 精选标识") + "\n}\n";
+                generated = generated.Replace("using Microsoft.UI.Xaml.Controls;\n", "using Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Media.Animation;\nusing Microsoft.UI.Xaml.Media.Imaging;\n");
                 Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
                 if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
                     File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));

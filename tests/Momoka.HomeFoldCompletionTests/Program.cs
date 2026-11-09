@@ -14,6 +14,24 @@ internal static class Program
     {
         RegisterMotion();
         RegisterPage();
+        Cases.Add(("banner/warm-loaded-restores-without-decoration", () =>
+        {
+            var banner = new BannerReturnFixture();
+            banner.Loaded();
+            Equal(1, banner.Rises, "first visit retains entry");
+            banner.Loaded();
+            Equal(1, banner.Rises, "warm Loaded must not replay text entry");
+            banner.RestoreImage();
+            banner.RestoreLogo();
+            Equal(0, banner.ImageFades, "restored image must not fade in again");
+            Equal(0, banner.LogoFades, "restored logo must not fade in again");
+            Equal(1d, banner.PictureOpacity, "restored picture is fully visible");
+            Equal(1d, banner.LogoOpacity, "restored logo is fully visible");
+            banner.Advance();
+            banner.RestoreImage();
+            Equal(2, banner.Rises, "later slide keeps entry decoration");
+            Equal(1, banner.ImageFades, "later slide keeps crossfade");
+        }));
         Cases.Add(("R06-008 carousel-single-to-many-clock", () =>
         {
             var clock = new BannerClockFixture();

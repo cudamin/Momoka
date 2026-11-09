@@ -97,12 +97,19 @@ internal sealed partial class ShellNavigationProbe
                 Require(retainedSlides.SequenceEqual(home.ViewModel.Slides), "同配置主页返回重建了轮播对象");
                 Require(home.IsReady, "返回主页未使用暖缓存");
                 await UntilAsync(() => home.IsLoaded);
+                var returnedBanner = Get<HomeBanner>(home, "Banner");
+                Require(Get<bool>(returnedBanner, "_restoringEntry"), "暖返回轮播重新播放了装饰入场");
+                Require(Get<FrameworkElement>(returnedBanner, "TitleRow").Opacity == 1
+                    && Get<FrameworkElement>(returnedBanner, "CaptionRow").Opacity == 1,
+                    "暖返回轮播文字仍在淡入");
                 Require(Get<bool>(home, "_shelfEntranceSuppressed"), "历史返回主页仍允许货架重新入场");
                 Require(!Get<bool>(home, "_entranceSuppressed"), "普通返回借用了播放返回与翻档抑制位");
                 repeater = Get<ItemsRepeater>(home, "ShelfRepeater");
                 for (var sample = 0; sample < 55; sample++)
                 {
                     home.UpdateLayout();
+                    if (returnedBanner.FrontPicture is not null)
+                        Require(returnedBanner.FrontLayer.Opacity == 1, "暖返回恢复图片仍等待交叉淡入");
                     AssertShelvesSettled(repeater);
                     Call(home, "UpdateLibraryOverlay");
                     Require(!home.ViewModel.LibraryOnBanner, "暖返回先把媒体库摆上轮播再落回横排");
