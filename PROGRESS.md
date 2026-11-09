@@ -6,7 +6,7 @@
 
 主树真实HomeOrder单项通过（shell-probe-20261109-160309235-43800）：1100/760加载中主页列表16→16，订阅两排行高356/338与封面顶67/658不变；停留65375ms订阅读取维持3，手动变4，滚动0/库顶247不变，关闭恢复通过。已查看主树截图。全部匿名内存服务，不真实登录、播放或写服务器。
 
-publish.ps1 -NoArchive -Shortcut退出0：546文件/286.9MB，14GLSL/4HOOK及59批准mpv载荷验证通过。桌面Momoka.lnk指向主树artifacts/publish/win-x64/Momoka.exe。Shell发布文件与发布配置构建哈希一致AFFF50DBF2315902AC2FA4A0F04F4FDB6638FDA27C58CEBE4D11DBB6F79B297E。发布件定向HomeOrder通过（shell-probe-20261109-161319397-36336）：65422ms驻留、读取3→手动4及相同几何均通过，已查看宽窄与停留前后截图并关闭检查窗口，证据artifacts/home-refresh-delivery；没有推送origin。
+publish.ps1 -NoArchive -Shortcut退出0：546文件/286.9MB，14GLSL/4HOOK及59批准mpv载荷验证通过。桌面Momoka.lnk指向主树artifacts/publish/win-x64/Momoka.exe。Shell发布文件与发布配置构建哈希一致AFFF50DBF2315902AC2FA4A0F04F4FDB6638FDA27C58CEBE4D11DBB6F79B297E。发布件定向HomeOrder通过（shell-probe-20261109-161319397-36336）：65422ms驻留、读取3→手动4及相同几何均通过，已查看宽窄与停留前后截图并关闭检查窗口，证据artifacts/home-refresh-delivery；没有推送origin。 0cb4树干净且全部提交已进入master，归档工具拒绝删除当前聊天主工作树（The task's primary checkout cannot be removed），因此按应用保护保留。
 ## 2026-11-09 主页周期性跳动：取消订阅轮询并稳定加载提示（待整合）
 
 本树0cb4，基点387c069。实际用户日志app-20261109-000031显示每60秒Auto界线1170→1155、视口1162不变，媒体库先上移约520ms后回落。根因为MoviePilot一分钟订阅轮询让加载条临时增加3+12=15 DIP。按用户指示删除共享订阅属主的计时器，保留进入、手动与连接恢复读取；随后用户追问首次/返回和媒体库刷新，补修订阅两条进度条置于现有标题Grid下沿、主页条置于Overlay原有16DIP顶部留白，不改变真实内容/错误提示的正常布局与30秒新入库检查。
