@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  MoviePilot 的订阅列表：电影一条、电视剧一条，各是侧边栏里的一个目的地（2026-10-13）。
+  MoviePilot 的订阅列表：侧边栏按电影／电视剧分类，首页的 MP 订阅库汇总两类。
 
   版式与主页那两排订阅是同一套 —— 这一页不自己画卡片，直接把 MoviePilotSubscriptionsView 接上来，
   再按这一条入口筛掉另一半（Row 给哪一排，另一排自己收着，见那个视图的 MoviesVisible／SeriesVisible）。

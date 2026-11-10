@@ -86,7 +86,10 @@ public sealed partial class MoviePilotSubscriptionsView : UserControl
     private Visibility MoviesVisible(Visibility visible, bool notice) =>
         Row?.Key != HomeLayout.MoviePilotSeries && (visible == Visibility.Visible || notice) ? Visibility.Visible : Visibility.Collapsed;
     private Visibility SeriesVisible(Visibility visible, bool notice) =>
-        Row?.Key != HomeLayout.MoviePilotMovies && (visible == Visibility.Visible || notice) ? Visibility.Visible : Visibility.Collapsed;
+        Row?.Key != HomeLayout.MoviePilotMovies && (visible == Visibility.Visible || SeriesNoticeVisible(notice)) ? Visibility.Visible : Visibility.Collapsed;
+    private bool SeriesNoticeVisible(bool notice) => notice && Row?.Key != MoviePilotSubscriptionsRequest.LibraryKey;
+    private Visibility SeriesNoticeVisibility(Visibility visibility) =>
+        Row?.Key == MoviePilotSubscriptionsRequest.LibraryKey ? Visibility.Collapsed : visibility;
     private void OnPosterOpen(object? sender, EventArgs args)
     {
         if (sender is not MoviePilotSubscriptionPoster { Card: { } card }) return;

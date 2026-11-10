@@ -228,7 +228,7 @@ public sealed partial class CardShelf : ObservableObject
             CardItem? keep = null;
             foreach (var card in existing)
             {
-                if (used.Contains(card)) continue;
+                if (card.IsNavigation || used.Contains(card)) continue;
                 if (!string.Equals(card.Item.IdentityKey, item.IdentityKey, StringComparison.Ordinal)) continue;
                 if (!ItemFingerprint.Same(card.Item, item)) continue;
                 keep = card;
@@ -239,6 +239,10 @@ public sealed partial class CardShelf : ObservableObject
             else used.Add(keep);
             selected.Add(keep);
         }
+
+        // Local destinations are outside the server DTO list. Keep their containers and focus
+        // during an incremental refresh; their owner removes them when availability changes.
+        selected.AddRange(existing.Where(card => card.IsNavigation));
 
         foreach (var card in existing)
         {

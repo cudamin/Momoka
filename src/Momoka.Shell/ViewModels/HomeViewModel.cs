@@ -645,7 +645,7 @@ public sealed partial class HomeViewModel : PageViewModel
         _snapshots.StoreHome(_snapshotKey, _sourceTokens, new HomeSnapshot
         {
             Rows = [.. _all.Where(entry => entry.Row.Visible).Select(entry => new HomeRowSnapshot(
-                entry.Row.Key, [.. entry.Shelf.Cards.Select(card => card.Item)], entry.Shelf.NoteOverride))],
+                entry.Row.Key, [.. entry.Shelf.Cards.Where(card => !card.IsNavigation).Select(card => card.Item)], entry.Shelf.NoteOverride))],
             SlideItems = [.. Slides.Select(slide => slide.Item)],
             LoadedCount = LoadedCount,
             Subheading = Subheading,
@@ -673,6 +673,7 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     private void PublishShelves()
     {
+        SyncMoviePilotLibrary();
         var timing = NavigationTiming.Capture();
         timing?.Mark("home-shelves-begin");
         var visibleShelves = _all.Where(entry => entry.Row.Visible && entry.Shelf.Cards.Count > 0)
@@ -1607,6 +1608,11 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     internal void Open(CardItem card)
     {
+        if (card.IsNavigation)
+        {
+            if (_active && ReferenceEquals(card, _moviePilotLibrary)) card.OpenNavigation();
+            return;
+        }
         if (_actions is null || !Live || !card.IsCurrent) return;
 
         // A library's own card routes through the pane entry that opens it, so the pane highlight and

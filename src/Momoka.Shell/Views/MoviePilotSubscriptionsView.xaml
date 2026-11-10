@@ -38,7 +38,7 @@
                 Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
         </Grid>
         <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
-            Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}"
+            Visibility="{x:Bind SeriesNoticeVisibility(ViewModel.NoticeVisibility), Mode=OneWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
         <local:ShelfStrip x:Name="SeriesSubscriptions" ItemsSource="{x:Bind ViewModel.Series, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionTemplate}"
             ItemSpacing="18" PictureHeight="255" Visibility="{x:Bind ViewModel.SeriesVisibility, Mode=OneWay}" />

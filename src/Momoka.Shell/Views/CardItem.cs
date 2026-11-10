@@ -46,6 +46,7 @@ public sealed class CardItem : INotifyPropertyChanged
 
     private readonly EmbyItem _item;
     private readonly EmbyImageStore _images;
+    private readonly Action? _navigate;
     /// <summary>
     /// 画出来、解码、取图三处共用的那个宽度。**不是 readonly**：窗口被拖动时整面墙一起换宽度（见
     /// <see cref="Resize"/>），三处必须一起动，否则卡片要么糊要么白占内存。
@@ -315,11 +316,13 @@ public sealed class CardItem : INotifyPropertyChanged
         bool sourceLine = false,
         bool fnNasWide = false,
         bool cardLayout = false,
-        bool episodeFrame = false)
+        bool episodeFrame = false,
+        Action? navigate = null)
     {
         _item = item;
         _images = images;
-        Scope = images.CaptureScope(item);
+        _navigate = navigate;
+        Scope = navigate is null ? images.CaptureScope(item) : null;
         if (item.Source is null) Scope?.Bind(item);
         _userState = Scope is { } scope
             ? StateGroups.GetValue(scope.UserStateOwner, static _ => new UserStateGroups()).Join(this)
@@ -364,6 +367,9 @@ public sealed class CardItem : INotifyPropertyChanged
     internal EmbySessionScope? Scope { get; }
 
     internal bool IsCurrent => Scope?.IsAvailable == true;
+    internal bool IsNavigation => _navigate is not null;
+    internal void OpenNavigation() => _navigate?.Invoke();
+    public Visibility MoreVisibility => Show(!IsNavigation);
 
     internal ItemUserStateOrder UserStateOrder
     {

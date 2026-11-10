@@ -307,6 +307,7 @@
                         <Button
                             x:Name="MoreButton"
                             x:Uid="PosterCard_MoreButton"
+                            Visibility="{x:Bind Card.MoreVisibility, Mode=OneWay}"
                             Click="OnMoreClicked"
                             Style="{StaticResource EgCardActionButtonStyle}">
                             <FontIcon FontSize="20" Glyph="&#xE712;" />
