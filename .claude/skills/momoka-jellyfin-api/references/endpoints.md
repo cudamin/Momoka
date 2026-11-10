@@ -26,6 +26,7 @@ The left column is what `EmbyClient*.cs`, `EmbyServerGateway` and `EmbyUrl` call
 | `GET /Items/{Id}/Download` | `GET /Items/{itemId}/Download` | |
 | `POST /Collections` | same | |
 | `POST /Collections/{Id}/Items` | `POST /Collections/{collectionId}/Items` | |
+| `POST /Collections/{Id}/Items/Delete` | `DELETE /Collections/{collectionId}/Items` | Member removal only; `Ids` query, never delete media. |
 
 Jellyfin also documents `GET /Items/Filters2` next to the legacy `GET /Items/Filters`; the latter is what Momoka's `GetFilterValuesAsync` matches.
 

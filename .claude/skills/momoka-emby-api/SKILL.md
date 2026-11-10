@@ -122,3 +122,13 @@ Evidence and fixed upstream source hashes are in [媒体库实时更新](../../.
 ## 交付
 
 改到协议层时同步本技能与 [docs/开发与验证.md](../../../docs/开发与验证.md) 的相关命令。`references/endpoints.md` 声明了对照的服务器版本与快照日期，**换基准时一起更新**。
+
+## Collection membership
+
+`CollectionManagement` binds add/create/remove writes to the original source and checks current permissions inside every `ExecuteAsync` attempt, including authentication retries. Emby uses the administrator fallback and an explicit item's `CanEditItems` override from the current web predicate; do not apply Jellyfin's `EnableCollectionManagement` as an Emby account grant. Removing uses POST `Collections/{id}/Items/Delete?Ids=...`, never `DeleteItemAsync`.
+
+An Emby `CanEditItems=true` grant carries its producing request's `PermissionReadRevision`. A changed account snapshot invalidates this older grant, so it cannot override a current denial during add/create/remove or reauthentication. Fresh item grants still allow their ordinary-account override. The fingerprint includes the grant's revision to prevent retaining an old card after a fresh read.
+
+The library page prepares `CollectionMembership` only for its current BoxSet members. It includes source ownership, collection/member IDs and the current query token; leaving or changing that query invalidates old menu commands. Collection relations are not stored on the media DTO. Unknown permissions retain the existing server-rejection fallback. Core tests plus the actual library VM and extracted command fixture are anonymous and do not establish real server writes or rendered controls.
+
+`LibraryCollectionsAsync` is registered in the library probe section and as `InspectLibraryCollections`. It invokes the real card More button, checks granted/denied/restored menus, removes one anonymous relation and verifies a remaining member plus preserved media/user state. Its screenshots and `collections-receipt.json` establish rendered coverage only when this current-tree probe actually runs successfully.

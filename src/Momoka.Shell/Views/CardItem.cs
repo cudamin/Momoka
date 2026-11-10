@@ -29,6 +29,9 @@ public sealed class CardItem : INotifyPropertyChanged
 {
     private const string Category = "卡片";
 
+    /// <summary>仅由当前合集页准备，不能作为媒体本身的持久属性。</summary>
+    internal CollectionMembership? CollectionMembership { get; set; }
+
     // Only live card groups are retained. Captured scopes share the online identity owner, while
     // another account or a later login cannot inherit its state or in-flight command order.
     private static readonly ConditionalWeakTable<object, UserStateGroups> StateGroups = new();

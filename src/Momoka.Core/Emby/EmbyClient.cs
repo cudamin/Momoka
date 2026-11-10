@@ -680,7 +680,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         http.PostJsonAsync<CollectionCreationResult>(
             Url("Collections",
                 ("Name", name),
-                ("Ids", string.Join(',', itemIds)),
+                ("Ids", string.Join(',', itemIds.Select(CollectionId))),
                 // 不锁：锁住的合集不再接受刮削，而这一步只是「把几样东西归到一处」。
                 ("IsLocked", "false")),
             null,
@@ -693,7 +693,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         IReadOnlyList<string> itemIds,
         CancellationToken cancellationToken) =>
         http.PostAsync(
-            Url($"Collections/{collectionId}/Items", ("Ids", string.Join(',', itemIds))),
+            Url($"Collections/{CollectionSegment(collectionId)}/Items", ("Ids", string.Join(',', itemIds.Select(CollectionId)))),
             null,
             Context,
             cancellationToken);

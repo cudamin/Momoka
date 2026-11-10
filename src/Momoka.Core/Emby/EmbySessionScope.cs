@@ -31,6 +31,9 @@ public sealed class EmbySessionScope
     /// <summary>同身份客户端权限快照的代次；旧能力读取与页面操作不能跨新快照回填。</summary>
     public long PermissionRevision => _session.CurrentPermissions(this).Revision;
 
+    /// <summary>读取该身份的当前合集权限，不能复用捕获时的旧策略。</summary>
+    public bool? CanManageCollections => IsAvailable ? CurrentConnection.CanManageCollections : null;
+
     /// <summary>同一在线身份的作用域共享此所有者；退出再登录后使用新的所有者。</summary>
     public object UserStateOwner => IdentityState.UserStateOwner;
 
@@ -54,23 +57,25 @@ public sealed class EmbySessionScope
     {
         item.Source = this;
         if (item.UserStateReadRevision < 0) item.UserStateReadRevision = UserStateRevision;
+        if (item.PermissionReadRevision < 0) item.PermissionReadRevision = PermissionRevision;
         return item;
     }
 
-    public T Bind<T>(T result) => Bind(result, UserStateRevision);
+    public T Bind<T>(T result) => Bind(result, UserStateRevision, PermissionRevision);
 
-    internal T Bind<T>(T result, long readRevision)
+    internal T Bind<T>(T result, long readRevision, long permissionRevision)
     {
         void BindRead(EmbyItem item)
         {
             item.Source = this;
             item.UserStateReadRevision = readRevision;
+            item.PermissionReadRevision = permissionRevision;
         }
         if (result is EmbyItem item) BindRead(item);
-        else if (result is ItemsResult query) Bind(query.Items, readRevision);
-        else if (result is MovieRecommendation recommendation) Bind(recommendation.Items, readRevision);
+        else if (result is ItemsResult query) Bind(query.Items, readRevision, permissionRevision);
+        else if (result is MovieRecommendation recommendation) Bind(recommendation.Items, readRevision, permissionRevision);
         else if (result is IEnumerable<MovieRecommendation> recommendations)
-            foreach (var group in recommendations) Bind(group.Items, readRevision);
+            foreach (var group in recommendations) Bind(group.Items, readRevision, permissionRevision);
         else if (result is IEnumerable<EmbyItem> items)
             foreach (var entry in items) BindRead(entry);
         return result;

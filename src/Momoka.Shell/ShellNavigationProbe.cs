@@ -113,6 +113,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("弹窗点外面关闭与字幕弹窗右上角关闭钮", DialogDismissAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("字幕无确认回执、只读恢复与关闭（匿名UIA）", SubtitleDownloadReceiptAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("电影与电视剧网页分类、工具栏、作用域及主题", LibraryBrowseAsync, 120);
+            await CaseAsync("Emby与Jellyfin合集菜单权限、移除和恢复（匿名UIA）", LibraryCollectionsAsync, 60, section: ShellProbeSections.Library);
             await CaseAsync("Jellyfin 媒体库标签、排序、筛选、布局与建议", JellyfinLibraryAsync, 90);
             await CaseAsync("Jellyfin 两版最新剧集逐集保留（匿名宽窄货架）", JellyfinLatestShelfAsync, 90, section: ShellProbeSections.JellyfinLatest);
             await CaseAsync("Emby与Jellyfin继续观看紧凑页头", LibraryHeaderPolishAsync, 90, section: ShellProbeSections.Library);
@@ -726,6 +727,8 @@ internal sealed partial class ShellNavigationProbe
         public void SetTitleStrip(TitleStrip strip) { }
         /// <summary>「更多」菜单的能力补齐探针要拨这几档：开机探测是异步的，菜单先开、能力后到。</summary>
         public bool MoviePilotEnabled { get; set; }
+        public Func<EmbySessionScope, ItemMenuPermissions>? MenuPermissions { get; set; }
+        public ItemMenuPermissions MenuPermissionsFor(EmbySessionScope scope) => MenuPermissions?.Invoke(scope) ?? default;
         public event EventHandler? MoviePilotAvailabilityChanged;
         public void RaiseMoviePilotAvailabilityChanged() => MoviePilotAvailabilityChanged?.Invoke(this, EventArgs.Empty);
         public void OpenMoviePilotMedia(Momoka.MoviePilot.MoviePilotMedia media, Momoka.MoviePilot.MoviePilotSubscription? subscription = null) { }

@@ -1,6 +1,7 @@
 # R025 实际详情删除命令专项
 
 2026-11-10 媒体库第一批补飞牛单条续播移除：原样提取 `FnNasRemoveContinueAsync`、身份所有者在飞守卫及真实 Invoke 分支，继续使用实际 ConfirmDialog/EmbyClient/FnNasClient。覆盖确认、取消、拒绝、普通条目/详情排除、等待确认时来源撤销，以及请求在飞重复点击仅一次写入；不调用媒体删除回调或修改用户进度。新增的是命令测试，真实WinUI菜单与确认布局由library原生探针核对。
+2026-11-10 合集关系专项追加原样 `RemoveCollectionMemberAsync` 与真实 Invoke 分支：Emby/Jellyfin 成功只写关系，取消前零写，403不刷新，迟到成功且已离页不刷新新页。构建证明新增 `ItemCommands.Server.cs`，共五份产品源；仍核对 Shell、fixture 与 Core 哈希。界面仍为边界替身，不证明原生菜单或实际服务器写入。
 
 2026-11-10 全量验证：当前21项；匿名飞牛传输补精确GET tag/genres?lan=zh-CN并返回空映射。重新加载同时断言题材一次和真正的主体GET一次，防止题材请求先失败而误测成主体读取失败；原DELETE、来源及目标断言保留。
 

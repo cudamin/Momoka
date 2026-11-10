@@ -25,6 +25,16 @@
 主树与正式发布件local-media分区2/2：真实临时目录已有电影、新增剧集、首页打开后再新增一集，实际链接/NFO/PNG及库归属通过；首页显示两个本地库且剧集从1项变2项，宽窄与逐库列表实屏已目视。正式证据shell-probe-20261110-124037434-1440，汇总artifacts/local-libraries-20261110。匿名HTTP和临时dummy媒体，不读取真实影片或提交远端媒体整理/刷新。
 
 publish.ps1 -NoArchive -Shortcut成功，547文件287.4MB、60批准mpv载荷通过；快捷方式指向主树artifacts/publish/win-x64、参数空。发布Shell/Core/PRI与当前发布bin哈希一致；Shell A05DA2A9E747C0AD71F677CE5A0090E42B329DCF8023663989124683F4E9FE69。未上传远端。尚未接应用内本地播放，库页可看内容及打开所在文件夹；首页仍沿用已有登录门控；真实TMDB/MP部署版本与用户媒体自动操作未实测。监控按配置库范围工作，不安装独立Windows后台服务。
+## 2026-11-10 第一批媒体库：合集授权与成员移除（独立子树，待集成）
+
+用户授权第一批实现。本项从 e545dfd 建立 library-batch1-collections 工作树。Jellyfin 将 EnableCollectionManagement 与管理员策略映射成独立 CanManageCollections，贯穿登录/恢复、当前来源与菜单；Emby 仍按管理员且尊重条目 CanEditItems 的明确覆盖。能力探测仅更新当前合集权限，不改变令牌或持久设置，迟到权限不能覆盖新代次。
+
+合集页卡片在打开菜单时绑定当前来源、合集、成员与查询 lifetime；离页、换查询和来源退出后失效，普通文件夹下钻不继承。新“从合集中移除”仅解除关系：Emby POST Collections/{id}/Items/Delete，Jellyfin DELETE Collections/{id}/Items；已有创建/加入沿用接口并经同一身份/权限服务，每次认证重试前复核。没有修改布局或飞牛续播。
+
+TDD红证据：基础5项、服务6项、当前快照2项、迟到权限/指纹2项均按缺失行为失败。独立复审再确认两类竞态（3红项）：Emby旧CanEditItems授权跨降权、并发权限探测旧响应覆盖新同值拒绝；修后关联137/137通过，包含读取期间降权与新旧指纹。条目授权标记PermissionReadRevision，只允许新鲜的Emby条目授权覆盖账号策略；每次读请求及认证重试捕获客户端与代次。能力确认和缓存同时核本次Probe代次与来源PermissionRevision。
+
+最后复审修复后Core/Tests/Shell与实际命令项目Release构建0警告0错误，关联137/137、实际库VM40/40、实际关系/删除命令26/26通过；用户状态真实命令74/74在末次请求代次细化前已过。改动C#空白校验通过（工作区加载提示），34个变更路径编码/空白与63个PowerShell脚本检查通过。全方案格式检查另检出基底4份测试旧空白，未夹带修改。完整主测试复审修复前串行4349/4349、0失败0跳过；并发原生探针导致过一次16项自检锁红，串行重跑通过，原日志保留。完整主测与原生UI由父代理集成后统一重验。新增匿名LibraryCollectionsAsync和InspectLibraryCollections，真实更多按钮、两家1100/760菜单、移除后2→1、媒体/收藏/续播保留、权限隐藏恢复与离页失效；本子树未运行UI。证据 artifacts/collection-batch1；不连接真实服务器、不起播、不媒体写入，不推送或发布。
+
 
 ## 2026-11-10 后端审查两项修复（已交付）
 

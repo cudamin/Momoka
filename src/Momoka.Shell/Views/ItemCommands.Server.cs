@@ -71,7 +71,7 @@ internal static partial class ItemCommands
         IShellActions? shell = null, ItemCommand? command = null)
     {
         session.ThrowIfUnavailable();
-        if (shell is not null && command is { } action && !ItemMenu.Allows(action, shell.MenuPermissionsFor(session)))
+        if (shell is not null && command is { } action && !ItemMenu.Allows(action, shell.MenuPermissionsFor(session), session.Connection.ServerKind))
             throw new InvalidOperationException("当前账号已不允许此操作，请重新打开菜单核对权限");
         await session.ExecuteAsync(work, CancellationToken.None).ConfigureAwait(false);
         session.ThrowIfUnavailable();
@@ -79,7 +79,7 @@ internal static partial class ItemCommands
 
     private static void RequirePermission(IShellActions shell, EmbySessionScope session, ItemCommand command)
     {
-        if (!ItemMenu.Allows(command, shell.MenuPermissionsFor(session)))
+        if (!ItemMenu.Allows(command, shell.MenuPermissionsFor(session), session.Connection.ServerKind))
             throw new InvalidOperationException("当前账号已不允许此操作，请重新打开菜单核对权限");
     }
 
@@ -249,22 +249,28 @@ internal static partial class ItemCommands
 
             if (dialog.Chosen is { } existing)
             {
-                await TellAsync(session, (client, token) =>
-                        client.AddToCollectionAsync(existing.Id, [item.Id], token), shell, ItemCommand.AddToCollection)
-                    .ConfigureAwait(true);
+                var management = new CollectionManagement(session, () => shell.MenuPermissionsFor(session));
+                await management.AddAsync(existing.Id, item, CancellationToken.None).ConfigureAwait(true);
 
                 shell.Notify($"已把「{item.Name}」加入合集「{existing.Name}」");
                 return;
             }
 
             if (dialog.NewName is not { Length: > 0 } name) return;
-            RequirePermission(shell, session, ItemCommand.AddToCollection);
-
-            var created = await AskAsync(session, (client, token) =>
-                    client.CreateCollectionAsync(name, [item.Id], token))
-                .ConfigureAwait(true);
+            var creator = new CollectionManagement(session, () => shell.MenuPermissionsFor(session));
+            var created = await creator.CreateAsync(name, item, CancellationToken.None).ConfigureAwait(true);
 
             shell.Notify($"已新建合集「{created.Name ?? name}」，并放入「{item.Name}」");
+        });
+
+    private static Task RemoveCollectionMemberAsync(EmbySessionScope session, IShellActions shell, CardItem card, Action? changed) =>
+        GuardAsync(shell, "移出合集失败", async () =>
+        {
+            if (card.CollectionMembership is not { } membership || !membership.Matches(card.Item)) return;
+            var management = new CollectionManagement(session, () => shell.MenuPermissionsFor(session));
+            await management.RemoveAsync(membership, card.Item, CancellationToken.None).ConfigureAwait(true);
+            shell.Notify($"已从合集中移出「{card.Item.Name}」");
+            if (membership.Matches(card.Item)) changed?.Invoke();
         });
 
     /// <summary>

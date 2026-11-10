@@ -113,7 +113,10 @@ public enum ItemCommand
     /// <summary>直接使用 AniBT Open API 搜索番剧及其资源。</summary>
     AniBtVersions,
 
-    Delete
+    Delete,
+
+    /// <summary>只解除当前合集的成员关系，不删除媒体。</summary>
+    RemoveFromCollection
 }
 
 /// <summary>
@@ -135,7 +138,8 @@ public readonly record struct ItemMenuPermissions(
     bool? IsAdministrator = null,
     bool? CanDownload = null,
     bool? CanDeleteContent = null,
-    bool? CanManageSubtitles = null);
+    bool? CanManageSubtitles = null,
+    bool? CanManageCollections = null);
 
 /// <summary>
 /// 一张卡片的「更多」菜单上有哪几条、按什么次序、每条写什么字 —— 整个答案由条目自己决定，一个输入一个输出。
@@ -161,16 +165,17 @@ public readonly record struct ItemMenuPermissions(
 /// </summary>
 public static class ItemMenu
 {
-    public static bool Allows(ItemCommand command, ItemMenuPermissions permissions) => command switch
-    {
-        ItemCommand.Download => CanDownload(permissions),
-        ItemCommand.Delete or ItemCommand.ManageVersions => CanDelete(permissions),
-        ItemCommand.Subtitles => CanManageSubtitles(permissions),
-        ItemCommand.EditMetadata or ItemCommand.ChangeCover or ItemCommand.Identify or ItemCommand.RefreshMetadata
-            or ItemCommand.ScanLibrary or ItemCommand.FnNasMatch or ItemCommand.FnNasUnmatch
-            or ItemCommand.AddToCollection => IsAdministrator(permissions),
-        _ => true
-    };
+    public static bool Allows(ItemCommand command, ItemMenuPermissions permissions,
+        MediaServerKind kind = MediaServerKind.Emby, EmbyItem? item = null) => command switch
+        {
+            ItemCommand.Download => CanDownload(permissions),
+            ItemCommand.Delete or ItemCommand.ManageVersions => CanDelete(permissions),
+            ItemCommand.Subtitles => CanManageSubtitles(permissions),
+            ItemCommand.AddToCollection or ItemCommand.RemoveFromCollection => ItemCollections.CanManage(kind, permissions, item),
+            ItemCommand.EditMetadata or ItemCommand.ChangeCover or ItemCommand.Identify or ItemCommand.RefreshMetadata
+                or ItemCommand.ScanLibrary or ItemCommand.FnNasMatch or ItemCommand.FnNasUnmatch => IsAdministrator(permissions),
+            _ => true
+        };
     /// <summary>
     /// 这个条目的菜单，从上到下。分隔线已经摆好：空的那一段不会留下一条线，也不会有两条线挨在一起、
     /// 或者一条线开头结尾（见 <see cref="Join"/>）。
@@ -187,7 +192,8 @@ public static class ItemMenu
     public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false,
         bool jellyfin = false, bool fnNas = false, bool plex = false, bool aniBtScrapeAvailable = true,
         bool moviePilotManagementAvailable = false, bool moviePilotSmartAvailable = false,
-        ItemMenuPermissions permissions = default, bool aniBtEnabled = true, bool allowResumeRemoval = true) => fnNas
+        ItemMenuPermissions permissions = default, bool aniBtEnabled = true, bool allowResumeRemoval = true,
+        CollectionMembership? collectionMembership = null) => fnNas
         ? Join(Opening(item, false), FnNasUserState(item, allowResumeRemoval), FnNasManagement(item, permissions),
             MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, moviePilotManagementAvailable, moviePilotSmartAvailable,
                 manualReorganize: false, aniBtEnabled: aniBtEnabled), Navigation(item))
@@ -201,7 +207,7 @@ public static class ItemMenu
         Opening(item, jellyfin),
         MissingEpisodes(item),
         UserState(item, jellyfin),
-        Organising(item, jellyfin, permissions),
+        Organising(item, jellyfin, permissions, collectionMembership),
         MoviePilotBlock(item, moviePilotEnabled, animeGenre, aniBtScrapeAvailable, moviePilotManagementAvailable, moviePilotSmartAvailable,
             aniBtEnabled: aniBtEnabled),
         Metadata(item, jellyfin, permissions),
@@ -348,10 +354,13 @@ public static class ItemMenu
     }
 
     /// <summary>把它放进哪儿、拿到哪儿去：合集和下载。</summary>
-    private static List<ItemMenuEntry> Organising(EmbyItem item, bool jellyfin, ItemMenuPermissions permissions)
+    private static List<ItemMenuEntry> Organising(EmbyItem item, bool jellyfin, ItemMenuPermissions permissions, CollectionMembership? membership)
     {
-        var rows = new List<ItemMenuEntry>(2);
-        if (IsCatalogue(item) && CanEdit(permissions))
+        var rows = new List<ItemMenuEntry>(3);
+        if (membership?.Matches(item) == true
+            && ItemCollections.CanManage(jellyfin ? MediaServerKind.Jellyfin : MediaServerKind.Emby, permissions, item))
+            rows.Add(new(ItemCommand.RemoveFromCollection, "从合集中移除"));
+        if (IsCatalogue(item) && ItemCollections.CanManage(jellyfin ? MediaServerKind.Jellyfin : MediaServerKind.Emby, permissions, item))
             rows.Add(new(ItemCommand.AddToCollection, jellyfin ? "加入集合" : "添加到合集…"));
         if ((IsFile(item) || IsEpisodeSet(item)) && CanDownload(permissions))
             rows.Add(new(ItemCommand.Download, jellyfin ? "下载" : "下载到设备"));
@@ -446,7 +455,7 @@ public static class ItemMenu
             : [];
 
     /// <summary>
-    /// 编辑这一条（编辑元数据、改封面、加入合集）。官方网页端在条目没答 <c>CanEditItems</c> 时要求管理员；
+    /// 编辑这一条（编辑元数据、改封面）。官方网页端在条目没答 <c>CanEditItems</c> 时要求管理员；
     /// 这里只按账号策略判断，管理员未知就照旧显示，由服务器拒绝。
     /// </summary>
     private static bool CanEdit(ItemMenuPermissions permissions) => permissions.IsAdministrator != false;

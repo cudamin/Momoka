@@ -59,29 +59,36 @@ public sealed class EmbyUserPolicy
     /// <summary>用户策略里的「允许管理字幕」。</summary>
     public bool? EnableSubtitleManagement { get; set; }
 
+    /// <summary>Jellyfin 普通用户的合集管理授权；Emby 不借用这一策略。</summary>
+    public bool? EnableCollectionManagement { get; set; }
+
     /// <summary>
     /// 把这一份策略写进连接快照。只写能确认的值：可空策略字段仍为 null 时表示服务器没答，菜单按未知处理。
     /// </summary>
     public EmbyConnection ApplyTo(EmbyConnection connection)
     {
-        var permissions = ToPermissions();
+        var permissions = ToPermissions(connection.ServerKind);
         return connection with
         {
             IsAdministrator = permissions.IsAdministrator,
             CanDownload = permissions.CanDownload,
             CanDeleteContent = permissions.CanDeleteContent,
-            CanManageSubtitles = permissions.CanManageSubtitles
+            CanManageSubtitles = permissions.CanManageSubtitles,
+            CanManageCollections = permissions.CanManageCollections
         };
     }
 
     /// <summary>「更多」菜单用的账号能力。两个字幕策略位有一个为 true 就算能管；都没答时留 null。</summary>
-    public ItemMenuPermissions ToPermissions() => new(
+    public ItemMenuPermissions ToPermissions(MediaServerKind kind = MediaServerKind.Emby) => new(
         IsAdministrator,
         EnableContentDownloading,
         EnableContentDeletion,
         EnableSubtitleDownloading == true || EnableSubtitleManagement == true
             ? true
-            : EnableSubtitleDownloading == false && EnableSubtitleManagement == false ? false : null);
+            : EnableSubtitleDownloading == false && EnableSubtitleManagement == false ? false : null,
+        kind == MediaServerKind.Jellyfin
+            ? (IsAdministrator || EnableCollectionManagement == true ? true : EnableCollectionManagement)
+            : IsAdministrator);
 }
 
 public sealed class AuthenticationResult
@@ -204,6 +211,9 @@ public sealed record EmbyConnection(
     /// 两个策略位都没答时是 null。
     /// </summary>
     public bool? CanManageSubtitles { get; init; }
+
+    /// <summary>合集管理独立于删除媒体和管理服务器；null 为尚未确认。</summary>
+    public bool? CanManageCollections { get; init; }
 
     public bool IsJellyfin => ServerKind == MediaServerKind.Jellyfin;
     public bool IsFnNas => ServerKind == MediaServerKind.FnNas;

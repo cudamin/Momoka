@@ -59,6 +59,45 @@ internal static class LibraryResumePagingTests
 
     private static void Register(ShellFixture shell)
     {
+        Case("合集页：真实VM只给当前账号当前成员生成关系，离页和下钻立即失效", async () =>
+        {
+            using var fixture = new Fixture(shell, 3, secondSource: true);
+            var vm = fixture.CreateLibraryView(collectionType: null, parentType: EmbyItemType.BoxSet);
+            try
+            {
+                await (Task)shell.Invoke(vm, "LoadAsync", true)!;
+                shell.Invoke(vm, "PrepareCollectionMembers");
+                var cards = CardObjects(vm);
+                Assert.Equal(3, cards.Count);
+                foreach (var card in cards)
+                {
+                    var membership = shell.Get<CollectionMembership>(card, "CollectionMembership");
+                    Assert.Equal("library", membership.CollectionId);
+                    Assert.True(membership.Matches(shell.Get<EmbyItem>(card, "Item")));
+                }
+                fixture.SelectDefault("b");
+                shell.Invoke(vm, "PrepareCollectionMembers");
+                Assert.True(cards.All(card => shell.Get<CollectionMembership>(card, "CollectionMembership").Source.Key == fixture.Source("a").Key),
+                    "切默认账号不能改变页面来源");
+                var captured = shell.Get<CollectionMembership>(cards[0], "CollectionMembership");
+                shell.Invoke(vm, "Cancel");
+                Assert.False(captured.Matches(shell.Get<EmbyItem>(cards[0], "Item")));
+                shell.Invoke(vm, "PrepareCollectionMembers");
+                Assert.True(cards.All(card => shell.Get<object?>(card, "CollectionMembership") is null));
+            }
+            finally { ((IDisposable)vm).Dispose(); }
+
+            var folder = fixture.CreateLibraryView(collectionType: null, parentType: EmbyItemType.Folder);
+            try
+            {
+                await (Task)shell.Invoke(folder, "LoadAsync", true)!;
+                shell.Invoke(folder, "PrepareCollectionMembers");
+                Assert.True(CardObjects(folder).All(card => shell.Get<object?>(card, "CollectionMembership") is null),
+                    "下钻到媒体文件夹不能继承上层合集关系");
+            }
+            finally { ((IDisposable)folder).Dispose(); }
+        });
+
         Case("首页继续观看文案：真实货架 Fill、换集与重新填充保持各自格式", async () =>
         {
             using var fixture = new Fixture(shell, 1);

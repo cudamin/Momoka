@@ -1619,6 +1619,17 @@ public sealed partial class LibraryViewModel : PageViewModel
             // 搜索结果里的单集用另一档框线（见 PosterCard 的 EpisodeFrameStyle）；别的页面不动。
             episodeFrame: _request?.IsSearch == true);
 
+    /// <summary>只在当前合集页生成关系上下文；查询取消后旧菜单立即失效。</summary>
+    internal void PrepareCollectionMembers()
+    {
+        foreach (var card in Cards)
+            card.CollectionMembership = _active && _scope is { IsAvailable: true } source
+                && _request is { ParentType: EmbyItemType.BoxSet, ParentId.Length: > 0, IsSearch: false, Row: null }
+                && source.Connection.ServerKind is MediaServerKind.Emby or MediaServerKind.Jellyfin
+                && card.Scope is { } owner && ReferenceEquals(owner.UserStateOwner, source.UserStateOwner)
+                    ? new CollectionMembership(source, _request.ParentId, card.Item.Id, _queryToken) : null;
+    }
+
     /// <summary>
     /// 卡片底下那一行字。勾了字段就按勾的拼；一项能说的都没有时交回卡片自己的副标题（
     /// 剧集的「S01E02 · 剧名」、文件夹的「文件夹」），总比留一行空白强。

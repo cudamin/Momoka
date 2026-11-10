@@ -28,6 +28,7 @@
 | GET | `/Users/{Id}` | 当前用户策略：下载、删除、字幕与管理员权限；`ServerCapabilities.ProbeAsync` 按来源读取，供「更多」菜单收起无权限入口 |
 | POST | `/Collections` | 新建合集并加入条目；`CreateCollectionAsync` |
 | POST | `/Collections/{Id}/Items` | 加入已有合集；`AddToCollectionAsync` |
+| POST | `/Collections/{Id}/Items/Delete` | 只解除成员关系；`RemoveFromCollectionAsync`，不删除媒体文件 |
 
 ### Emby 原生元数据编辑目录（2026-10-28）
 
