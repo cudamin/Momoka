@@ -176,6 +176,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         InitializeComponent();
         InitializeSidebar();
+        HomeNavigation.SelectionChanged += OnHomeNavigationChanged;
+        ContentHost.SizeChanged += (_, args) =>
+        {
+            if (Math.Abs(args.NewSize.Width - args.PreviousSize.Width) > 0.5) ScheduleHomeNavigationSize();
+        };
         ContentFrame.CacheSize = BrowsePageCacheSize;
         _browsePresentation = new BrowsePresentation(ContentFrame);
 
@@ -283,7 +288,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>只缩放按钮内容，点击范围和非客户区穿透矩形始终保持布局尺寸。</summary>
     private void WireTitleFeedback()
     {
-        foreach (var button in new[] { NavToggleButton, HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton, AccountButton })
+        foreach (var button in new[] { NavToggleButton, HomeButton, SettingsButton, SearchButton, BackButton, ForwardButton, AccountButton })
         {
             button.PointerEntered += OnTitlePointerEntered;
             button.PointerExited += OnTitlePointerExited;
@@ -378,6 +383,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         _titleStrip = strip;
         PaintTitleInk();
+        SyncHomeNavigation();
     }
 
     /// <summary>标题栏那一条此刻按哪一档在画，给自检读（<c>ShellSelfCheck.Reads.ReadHome</c> 的页眉那一行）。</summary>
@@ -411,6 +417,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void PaintTitleInk()
     {
+        PaintHomeNavigation();
         var onScrim = _titleStrip == TitleStrip.OnScrim;
         var highContrast = new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast;
 
@@ -1984,7 +1991,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // 主页那颗按钮在主页上自己变暗（同两支箭头「走不动就暗」的规矩）：_current 是 "home" 就是已经在主页，
         // 下钻和别的页面会把它清空，那时按钮亮着、一按回主页。
         HomeButton.IsEnabled = _session?.IsSignedIn == true && (_current != "home" || _librariesFailed);
-        FavoritesButton.IsEnabled = _session?.IsSignedIn == true && _current != LibraryRequest.FavoritesTag;
 
         ApplyChrome(ContentFrame.CanGoBack, ContentFrame.CanGoForward, _trail.Count);
         SyncSidebar();
@@ -2079,12 +2085,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _ = Favorites.RefreshAsync();
         if (_librariesFailed) _ = RetryLibrariesAsync();
         else GoTo("home");
-    }
-
-    private void OnFavoritesClicked(object sender, RoutedEventArgs e)
-    {
-        NavigationTiming.Click("favorites-button");
-        GoTo(LibraryRequest.FavoritesTag);
     }
 
     public void RefreshFavorites(EmbyItem? changed = null)

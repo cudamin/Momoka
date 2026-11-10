@@ -12212,3 +12212,14 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 独立树 `native-http-redirect-security/Momoka`，基点059e3c6；只改原生/外部backend、HTTP transport、inline/builder、相关测试与文档。固定随包mpv270367e8a/FFmpegc705686a3的全局headers跨302泄露已由旧原生探针复现；失败先行回归两项0/2。改每个文件独立受管loopback GET/HEAD streaming，认证逐跳同源保留、离源不恢复、初始外源不带头；清nativeheaders与proxy、字幕反映射、动态sub-add、Range及中断取消。认证HLS/DASH/清单拒绝；上游按.NET系统网络配置。
 
 本树Release Core/Tests编译0警告0错误，定向51/51及播放/字幕382/382，0失败0跳过；随包批准DLL受管+原生302→404零正文探针4/4，四种认证头目标收到0。仅离线loopback，无真实服务器播放/历史写入、UI或外部mpv实际版本验收。Plex结构化Part/EDL接线和最终主树全量/源pin/发布由主代理整合后执行；本树不上传、不合并、不发布。Release Shell及ShaderCommandGeneration源码提取编译0/0；最终退出竞争和锁收束后重编0/0、定向51/51、原生4/4及差异/编码/空白检查通过。
+
+
+## 2026-11-10 首页收藏胶囊与紧凑右键菜单（4f9e，待整合）
+
+- 用户要求：主页顶部首页/收藏切换叠在轮播上，移除左上爱心；播放右键缩小。追加随窗口缩小、高透明亚克力、重新测试。
+- 实现：原生SelectorBar保留导航/UIA，固定120×36外包Viewbox，600..1200内容宽度对应100×30..120×36；亚克力Tint/Luminosity均12%，主题色重画，高对比度系统实色。空收藏可进入，纯Plex隐藏，恢复来源/轮播/历史返回同步。内部动态行尺寸曾触发WinUI LayoutCycle，已替换外层缩放并通过侧栏启用路径。
+- 右键：WinUI整树12.75 DIP；uosc仅picture追加0.92倍率。两份Lua的批准记录仅定点更新大小/hash。既有工具取消测试暴露文件创建与PID写完的竞态，改为有界等完整PID并finally取消回收，未改生产Runner。
+- 本树证据：Release Shell与Tests构建0警告0错误；main-tests-retest.log 4511/4511；player-tools-fixture 16/16；uosc-retest.log 56/56；favorites最终7/7（shell-probe-20261110-134649032-28724）；宽1280/760/600与五主题实屏，高透明与缩放均核对；集成菜单与无网络合成纯色独占菜单截图在artifacts/ui-review-home。未播放真实媒体。
+- 尚未交付：侧栏开关后滚动位置/历史联合断言在本树仍红，已扩充实际读数待复验；上一轮其余shell/shortcuts18项通过。主树另一会话正在占用共享桌面，不能绕过隔离锁。master持续合入其他功能，须按三方合并保留本地媒体库、权限/同账号请求修复，并在最终主树重验发布。此记录不代表全部验证通过或快捷方式已更新。
+
+- 最终本树复验：关闭隐藏导航的无效尺寸/选择同步后，shell,favorites联合21/21，进程退出0（shell-probe-20261110-140740790-29396）；侧栏开关/滚动/宽窄与Plex恢复均过。亚克力值来自WinRT浮点，断言改为1e-5容差并保留实际读数。之前LayoutCycle/原生退出及桌面遮挡失败保留日志，不充作通过证据。播放菜单独立检查已通过；待主树最终整合重验与发布。

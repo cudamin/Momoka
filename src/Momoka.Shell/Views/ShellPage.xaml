@@ -37,7 +37,7 @@
     <!--
       外壳一行，浮在页面上面，40 像素高（<c>ChromeHeight</c>）：
 
-        没有侧边栏： 主页 · 收藏 · 设置 · 搜索 · 后退 · 前进 ┄┄ 拖动区 ┄┄ 账号 ┄┄ 系统那三颗窗口按钮
+        没有侧边栏： 主页 · 设置 · 搜索 · 后退 · 前进 ┄┄ 拖动区 ┄┄ 账号 ┄┄ 系统那三颗窗口按钮
         侧边栏模式： 导航开关(≡) · 后退 · 前进 ┄┄ 拖动区 ┄┄ 系统那三颗窗口按钮
         ────────────────────────────────────────────────────────────────────
         页面（从窗口最左边开始；侧边栏模式时它让开那条栏的宽）
@@ -142,14 +142,6 @@
                 <Button x:Name="HomeButton" x:Uid="ShellPage_HomeButton" Click="OnHomeClicked">
                     <Viewbox Width="26" Height="26">
                         <PathIcon Data="F1 M 2.92,9.61 L 11.42,2.51 A 0.9,0.9 0 0 1 12.58,3.89 L 4.08,10.99 A 0.9,0.9 0 0 1 2.92,9.61 Z M 12.58,2.51 L 21.08,9.61 A 0.9,0.9 0 0 1 19.92,10.99 L 11.42,3.89 A 0.9,0.9 0 0 1 12.58,2.51 Z M 6.1,9.2 L 6.1,20 A 0.9,0.9 0 0 1 4.3,20 L 4.3,9.2 A 0.9,0.9 0 0 1 6.1,9.2 Z M 5.2,19.1 L 9.5,19.1 A 0.9,0.9 0 0 1 9.5,20.9 L 5.2,20.9 A 0.9,0.9 0 0 1 5.2,19.1 Z M 8.6,20 L 8.6,14.5 A 0.9,0.9 0 0 1 10.4,14.5 L 10.4,20 A 0.9,0.9 0 0 1 8.6,20 Z M 9.5,13.6 L 14.5,13.6 A 0.9,0.9 0 0 1 14.5,15.4 L 9.5,15.4 A 0.9,0.9 0 0 1 9.5,13.6 Z M 15.4,14.5 L 15.4,20 A 0.9,0.9 0 0 1 13.6,20 L 13.6,14.5 A 0.9,0.9 0 0 1 15.4,14.5 Z M 14.5,19.1 L 18.8,19.1 A 0.9,0.9 0 0 1 18.8,20.9 L 14.5,20.9 A 0.9,0.9 0 0 1 14.5,19.1 Z M 17.9,20 L 17.9,9.2 A 0.9,0.9 0 0 1 19.7,9.2 L 19.7,20 A 0.9,0.9 0 0 1 17.9,20 Z" />
-                    </Viewbox>
-                </Button>
-                <!-- 收藏爱心与两旁共用 24 坐标系和 26 的放大框，轮廓约 1.8，避免字体图标偏小偏细。
-                     F0 按两道互不相交的闭合轮廓挖空；前景仍继承按钮，收藏页入口不表示当前媒体已收藏。 -->
-                <Button x:Name="FavoritesButton" x:Uid="ShellPage_FavoritesButton" Click="OnFavoritesClicked"
-                    Visibility="Collapsed">
-                    <Viewbox Width="26" Height="26">
-                        <PathIcon Data="F0 M 12,21.4 C 11.75,21.4 11.5,21.3 11.3,21.12 L 3.7,13.64 C 1.1,11 1.35,6.5 4.35,4.36 C 6.73,2.67 9.72,3.24 12,5.6 C 14.28,3.24 17.27,2.67 19.65,4.36 C 22.65,6.5 22.9,11 20.3,13.64 L 12.7,21.12 C 12.5,21.3 12.25,21.4 12,21.4 Z M 12,19.14 L 18.94,12.29 C 20.93,10.27 20.74,7.12 18.6,5.71 C 16.77,4.5 14.7,5.1 12.74,7.35 C 12.34,7.81 11.66,7.81 11.26,7.35 C 9.3,5.1 7.23,4.5 5.4,5.71 C 3.26,7.12 3.07,10.27 5.06,12.29 Z" />
                     </Viewbox>
                 </Button>
                 <Button x:Name="SettingsButton" x:Uid="ShellPage_SettingsButton" Click="OnSettingsClicked">
@@ -469,6 +461,55 @@
 
             <!-- 浏览导航由 BrowseTransition 直接交接新页，页面内容的入场各自管理。 -->
             <Frame x:Name="ContentFrame" Grid.Row="1" />
+
+            <!-- 与 Frame 同层，有轮播时直接叠在图上；普通页面由 SyncHomeNavigation 留出顶部空间。 -->
+            <Viewbox x:Name="HomeNavigationHost" Grid.Row="1" Canvas.ZIndex="2"
+                HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0"
+                Width="120" Height="36" Stretch="Uniform" Visibility="Collapsed">
+            <SelectorBar x:Name="HomeNavigation" Width="120" Height="36"
+                HorizontalAlignment="Center" Padding="4" CornerRadius="18"
+                Visibility="Collapsed" AutomationProperties.Name="首页与收藏">
+                <SelectorBar.Resources>
+                    <ResourceDictionary>
+                        <ResourceDictionary.ThemeDictionaries>
+                            <ResourceDictionary x:Key="Dark">
+                                <AcrylicBrush x:Key="HomeNavigationBrush" TintOpacity="0.12" TintLuminosityOpacity="0.12" />
+                                <StaticResource x:Key="SelectorBarItemForegroundSelected" ResourceKey="EgTextBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="Light">
+                                <AcrylicBrush x:Key="HomeNavigationBrush" TintOpacity="0.12" TintLuminosityOpacity="0.12" />
+                                <StaticResource x:Key="SelectorBarItemForegroundSelected" ResourceKey="EgTextBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="HighContrast">
+                                <SolidColorBrush x:Key="HomeNavigationBrush" Color="{ThemeResource SystemColorWindowColor}" />
+                                <SolidColorBrush x:Key="SelectorBarItemForegroundSelected" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                                <SolidColorBrush x:Key="SelectorBarItemForegroundPointerOver" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                                <SolidColorBrush x:Key="SelectorBarItemForegroundPressed" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                            </ResourceDictionary>
+                        </ResourceDictionary.ThemeDictionaries>
+                        <StaticResource x:Key="SelectorBarItemBackgroundSelected" ResourceKey="EgOverlayPressedBrush" />
+                        <StaticResource x:Key="SelectorBarItemBackgroundPointerOver" ResourceKey="EgSurfaceHoverBrush" />
+                        <StaticResource x:Key="SelectorBarItemBackgroundPressed" ResourceKey="EgSurfaceElevatedBrush" />
+                        <StaticResource x:Key="SelectorBarItemForeground" ResourceKey="EgTextDimBrush" />
+                        <StaticResource x:Key="SelectorBarItemForegroundPointerOver" ResourceKey="EgTextBrush" />
+                        <StaticResource x:Key="SelectorBarItemForegroundPressed" ResourceKey="EgTextBrush" />
+                        <StaticResource x:Key="SelectorBarItemPillFill" ResourceKey="SubtleFillColorTransparentBrush" />
+                    <Style x:Key="HomeNavigationItemStyle" TargetType="SelectorBarItem">
+                        <Setter Property="Height" Value="28" />
+                        <Setter Property="MinHeight" Value="28" />
+                        <Setter Property="MinWidth" Value="56" />
+                        <Setter Property="Padding" Value="12,4" />
+                        <Setter Property="CornerRadius" Value="14" />
+                        <Setter Property="FontSize" Value="{StaticResource EgBodyFontSize}" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                        <Setter Property="HorizontalContentAlignment" Value="Center" />
+                    </Style>
+                    </ResourceDictionary>
+                </SelectorBar.Resources>
+                <SelectorBarItem x:Name="HomeNavigationHome" Text="首页" AutomationProperties.Name="首页" Style="{StaticResource HomeNavigationItemStyle}" />
+                <SelectorBarItem x:Name="HomeNavigationFavorites" Text="收藏" AutomationProperties.Name="收藏" Style="{StaticResource HomeNavigationItemStyle}" />
+            </SelectorBar>
+            </Viewbox>
         </Grid>
 
         <!-- 只承载导航菜单，页面仍留在原来的 Frame 中。关闭模式时不改页面的父节点或返回栈。

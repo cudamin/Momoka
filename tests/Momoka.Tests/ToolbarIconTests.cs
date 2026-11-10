@@ -2,46 +2,38 @@ using System.Xml.Linq;
 
 namespace Momoka.Tests;
 
-/// <summary>顶部图标的缩放与轮廓契约；真实像素和视觉线重由 Shell 探针验证。</summary>
+/// <summary>主页导航的层级与可访问性契约；真实导航、布局与选中态由 Shell 探针验证。</summary>
 internal static class ToolbarIconTests
 {
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     internal static void Register()
     {
-        TestHarness.Test("顶部收藏：爱心与主页和设置共用图标尺寸", () =>
+        TestHarness.Test("主页导航：首页收藏共用内容层胶囊且移除标题栏爱心", () =>
         {
             var document = Shell();
-            var heart = IconFrame(document, "FavoritesButton");
-            foreach (var name in new[] { "HomeButton", "SettingsButton" })
+            Assert.True(!document.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "FavoritesButton"));
+            var navigation = Named(document, "HomeNavigation");
+            Assert.Equal("SelectorBar", navigation.Name.LocalName);
+            Assert.True(navigation.Ancestors().Any(element => element.Attribute(Xaml + "Name")?.Value == "ContentHost"));
+            Assert.True(!navigation.Ancestors().Any(element => element.Attribute(Xaml + "Name")?.Value == "AppTitleBar"));
+            Assert.Equal("Center", navigation.Attribute("HorizontalAlignment")?.Value);
+            var glass = navigation.Descendants().Where(element => element.Name.LocalName == "AcrylicBrush").ToArray();
+            Assert.Equal(2, glass.Length);
+            Assert.True(glass.All(brush => brush.Attribute("TintOpacity")?.Value == "0.12"
+                && brush.Attribute("TintLuminosityOpacity")?.Value == "0.12"));
+        });
+        TestHarness.Test("主页导航：两个原生选择项有稳定名称和文字", () =>
+        {
+            var document = Shell();
+            foreach (var (name, text) in new[] { ("HomeNavigationHome", "首页"), ("HomeNavigationFavorites", "收藏") })
             {
-                var neighbor = IconFrame(document, name);
-                Assert.Equal(neighbor.Attribute("Width")?.Value, heart.Attribute("Width")?.Value);
-                Assert.Equal(neighbor.Attribute("Height")?.Value, heart.Attribute("Height")?.Value);
+                var item = Named(document, name);
+                Assert.Equal("SelectorBarItem", item.Name.LocalName);
+                Assert.Equal(text, item.Attribute("Text")?.Value);
+                Assert.Equal(text, item.Attribute("AutomationProperties.Name")?.Value);
             }
-            Assert.True(heart.Elements().Single().Name.LocalName == "PathIcon",
-                "爱心应使用固定轮廓，避免系统图标字体改变尺寸和线重");
         });
-        TestHarness.Test("顶部收藏：爱心保留空心轮廓与按钮状态前景", () =>
-        {
-            var document = Shell();
-            var button = Named(document, "FavoritesButton");
-            var icon = IconFrame(document, "FavoritesButton").Elements().Single();
-            var data = icon.Attribute("Data")?.Value ?? string.Empty;
-            Assert.True(data.StartsWith("F0 ", StringComparison.Ordinal), "两道闭合轮廓以奇偶规则挖空爱心");
-            Assert.Equal(2, data.Count(character => character == 'M'));
-            Assert.Equal(2, data.Count(character => character == 'Z'));
-            Assert.True(icon.Attribute("Foreground") is null, "图标继续继承停用、主题与高对比度前景");
-            Assert.Equal("OnFavoritesClicked", button.Attribute("Click")?.Value);
-            Assert.Equal("Collapsed", button.Attribute("Visibility")?.Value);
-        });
-    }
-
-    private static XElement IconFrame(XDocument document, string name)
-    {
-        var frame = Named(document, name).Elements().Single();
-        Assert.Equal("Viewbox", frame.Name.LocalName);
-        return frame;
     }
 
     private static XElement Named(XDocument document, string name) => document.Descendants().Single(element =>

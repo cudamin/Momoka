@@ -69,6 +69,7 @@ internal sealed partial class ShellNavigationProbe
 
         var shell = new ShellPage();
         shell.Attach(fixture.Services);
+        fixture.Actions.TitleStripChanged = shell.SetTitleStrip;
         // Only lend the already-running probe window for title-bar geometry; no player is attached.
         Field(shell, "_window", _window);
         _root.Children.Add(shell);
@@ -158,7 +159,9 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(shell);
             Require(ReferenceEquals(libraryPage, frame.Content) && history == frame.BackStack.Count
                 && forward == frame.ForwardStack.Count && Math.Abs(offset - scroll.VerticalOffset) < 1,
-                "开关侧栏丢失页面、返回记录或滚动位置");
+                $"开关侧栏丢失页面、返回记录或滚动位置：page={ReferenceEquals(libraryPage, frame.Content)} "
+                + $"history={history}/{frame.BackStack.Count} forward={forward}/{frame.ForwardStack.Count} "
+                + $"offset={offset:R}/{scroll.VerticalOffset:R} extent={scroll.ExtentHeight:R} viewport={scroll.ViewportHeight:R}");
             Require(!nav.IsPaneOpen && Math.Abs(host.ActualWidth - 48) < 1, "窄窗未自动收成图标栏");
             AssertSidebarGeometry(shell, host, true);
             DumpSidebarLayout(shell, "760 compact");
@@ -217,17 +220,16 @@ internal sealed partial class ShellNavigationProbe
 
             favorite = true;
             await shell.Favorites.RefreshAsync();
-            Require(Get<NavigationViewItem>(shell, "SidebarFavorites").Visibility == Visibility.Visible
-                && Get<Button>(shell, "FavoritesButton").Visibility == Visibility.Collapsed, "收藏未转移到侧栏");
+            Require(Get<NavigationViewItem>(shell, "SidebarFavorites").Visibility == Visibility.Visible, "侧栏收藏入口缺失");
             await ToggleAsync(false);
             foreach (var width in new[] { 1240, 760 })
             {
                 ResizeProbeClient(width, 900);
                 await LayoutAsync(shell);
-                var heart = Get<Button>(shell, "FavoritesButton");
-                Require(heart.Visibility == Visibility.Visible && heart.Content is Viewbox { Width: 26, Height: 26 },
-                    "顶部爱心没有与相邻按钮使用同规格图形");
-                await SaveProbeScreenAsync($"toolbar-heart-{width}-screen.png");
+                Require(shell.ProbeTitleActions().Ok, "移除爱心后标题栏布局不合法");
+                Require(Get<SelectorBar>(shell, "HomeNavigation").Visibility == Visibility.Collapsed,
+                    "媒体库页错误显示首页收藏导航");
+                await SaveProbeScreenAsync($"toolbar-navigation-{width}-screen.png");
             }
             await ToggleAsync(true);
             favorite = false;

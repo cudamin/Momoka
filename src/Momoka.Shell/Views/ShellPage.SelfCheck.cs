@@ -75,8 +75,7 @@ public sealed partial class ShellPage
 
             // 顺序就是屏幕上从左到右的顺序。侧边栏模式里前三颗是「导航开关、后退、前进」—— 开关 2026-10-13
             // 从侧边栏内部挪到标题栏左上角，两支箭头因此紧跟在它右边（见 ShellPage.Sidebar.cs）。
-            Button[] keys = SidebarShown ? [NavToggleButton, BackButton, ForwardButton] : FavoritesButton.Visibility == Visibility.Visible
-                ? [HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton]
+            Button[] keys = SidebarShown ? [NavToggleButton, BackButton, ForwardButton]
                 : [HomeButton, SettingsButton, SearchButton, BackButton, ForwardButton];
 
             // 前两颗跟去过哪儿无关，所以三种状态下都得亮着 —— 一颗跟着导航变暗的设置按键，是按不出设置窗口。
