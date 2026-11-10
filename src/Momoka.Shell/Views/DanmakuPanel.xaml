@@ -28,9 +28,11 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="70" />
                     </Grid.ColumnDefinitions>
-                    <TextBox x:Name="TitleBox" CornerRadius="{StaticResource EgSearchCornerRadius}" PlaceholderText="作品名称" MaxLength="120" AutomationProperties.Name="弹幕作品名称" />
-                    <TextBox x:Name="EpisodeBox" Grid.Column="1" PlaceholderText="集数" MaxLength="6" AutomationProperties.Name="弹幕集数，留空搜索全部" />
+                    <TextBox x:Name="TitleBox" Header="作品名称" CornerRadius="{StaticResource EgSearchCornerRadius}" PlaceholderText="作品名称" MaxLength="120" AutomationProperties.Name="弹幕作品名称或B站编号和链接" />
+                    <TextBox x:Name="EpisodeBox" Header="集数" Grid.Column="1" PlaceholderText="集数" MaxLength="6" AutomationProperties.Name="弹幕集数，留空搜索全部" />
                 </Grid>
+                <TextBlock x:Name="SearchHint" Text="搜索后请手动选择与当前视频对应的分集或分P；B站来源不自动匹配本地影片。"
+                           Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" Visibility="Collapsed" />
                 <Button x:Name="SearchButton" Content="搜索" Click="OnSearch" HorizontalAlignment="Stretch" />
                 <ListView x:Name="Results" MaxHeight="200" Padding="{StaticResource EgScrollBarLane}" SelectionMode="Single" SelectionChanged="OnResultSelected" Visibility="Collapsed" AutomationProperties.Name="弹幕剧集搜索结果">
                     <ListView.ItemTemplate>

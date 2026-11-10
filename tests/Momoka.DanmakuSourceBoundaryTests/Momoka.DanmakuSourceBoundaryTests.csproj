@@ -3,6 +3,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <PythonCommand Condition="'$(PythonCommand)' == ''">py</PythonCommand>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
@@ -11,9 +12,10 @@
     <Compile Include="$(IntermediateOutputPath)Host.g.cs" />
     <Compile Include="$(IntermediateOutputPath)Settings.g.cs" />
     <Compile Include="$(IntermediateOutputPath)SendProbe.g.cs" />
+    <Compile Include="$(IntermediateOutputPath)Playback.g.cs" />
     <Compile Include="../../src/Momoka.Shell/ProbeReports.cs" Link="Production/ProbeReports.cs" />
   </ItemGroup>
   <Target Name="ExtractDanmakuBoundaries" BeforeTargets="BeforeCompile">
-    <Exec Command="py &quot;$(MSBuildThisFileDirectory)extract.py&quot; --output &quot;$(MSBuildProjectDirectory)/$(IntermediateOutputPath).&quot;" />
+    <Exec Command="&quot;$(PythonCommand)&quot; &quot;$(MSBuildThisFileDirectory)extract.py&quot; --output &quot;$(MSBuildProjectDirectory)/$(IntermediateOutputPath).&quot;" />
   </Target>
 </Project>

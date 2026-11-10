@@ -21,6 +21,7 @@ public sealed partial class PlayerViewModel
     private IReadOnlyList<DanmakuComment> _danmakuComments = [];
     private DandanPlayEpisode? _danmakuEpisode;
     private DandanPlayEpisode? _danmakuDanmuApiEpisode;
+    private DandanPlayEpisode? _danmakuBilibiliEpisode;
     private bool _danmakuFetched;
     private long _danmakuSerial;
     private long _danmakuTransfer;
@@ -28,9 +29,11 @@ public sealed partial class PlayerViewModel
     private int _danmakuSearchRequest;
     private int _danmakuDandanCount;
     private int _danmakuDanmuApiCount;
+    private int _danmakuBilibiliCount;
     private double _danmakuDelay;
     private string _danmakuConnection = "";
     private string _danmuApiConnection = "";
+    private string _bilibiliConnection = "";
     internal int DanmakuConnectionVersion { get; private set; }
     private string _danmakuSourceSummary = "弹弹play";
     private string _danmakuLabel = "";
@@ -45,8 +48,10 @@ public sealed partial class PlayerViewModel
     public bool DanmakuShown => Settings.Danmaku.Show;
     public string DanmakuToggleLabel => DanmakuShown ? "关闭弹幕" : "开启弹幕";
     public bool DanmakuSendSupported => DanmakuSourceRules.CanSend(Settings.Danmaku.Source);
-    internal string DanmakuSearchTitle => _nowPlaying is { } item ? DandanPlayMatching.Title(item) : "";
-    internal string DanmakuSearchEpisode => _nowPlaying is { } item ? DandanPlayMatching.EpisodeNumber(item) ?? "" : "";
+    internal string DanmakuSearchTitle => Settings.Danmaku.Source != DanmakuSourceMode.Bilibili && _nowPlaying is { } item
+        ? DandanPlayMatching.Title(item) : "";
+    internal string DanmakuSearchEpisode => Settings.Danmaku.Source != DanmakuSourceMode.Bilibili && _nowPlaying is { } item
+        ? DandanPlayMatching.EpisodeNumber(item) ?? "" : "";
     internal DanmakuSettings DanmakuPreferences => Settings.Danmaku;
     internal Task<FontCatalogue> DanmakuFontsAsync() => _danmakuFonts.LoadAsync();
 
@@ -71,8 +76,9 @@ public sealed partial class PlayerViewModel
 
     internal void RequestDanmaku() { if (DanmakuAvailable) DanmakuRequested?.Invoke(); }
 
-    private string DefaultDanmakuStatus =>
-        $"弹幕来源：{DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source)}；搜索作品后选择对应剧集。";
+    private string DefaultDanmakuStatus => Settings.Danmaku.Source == DanmakuSourceMode.Bilibili
+        ? "哔哩哔哩弹幕请手动输入 BV / av / ep / ss 编号、链接或番剧影视关键词，再选择对应分集。"
+        : $"弹幕来源：{DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source)}；搜索作品后选择对应剧集。";
 
     private void ResetDanmaku(EmbyItem? item)
     {
@@ -82,15 +88,18 @@ public sealed partial class PlayerViewModel
         _danmakuComments = [];
         _danmakuEpisode = null;
         _danmakuDanmuApiEpisode = null;
+        _danmakuBilibiliEpisode = null;
         _danmakuFetched = false;
         _danmakuDelay = 0;
         _danmakuDandanCount = 0;
         _danmakuDanmuApiCount = 0;
+        _danmakuBilibiliCount = 0;
         _danmakuLabel = "";
         _danmakuWarning = "";
         _danmakuSourceSummary = DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source);
         _danmakuConnection = DanmakuConnection();
         _danmuApiConnection = DanmuApiConnection();
+        _bilibiliConnection = BilibiliConnection();
         DanmakuConnectionVersion++;
         OnPropertyChanged(nameof(DanmakuConnectionVersion));
         ResetDanmakuInput();
@@ -118,13 +127,16 @@ public sealed partial class PlayerViewModel
         _danmakuStylePush = null;
     }
 
-    // 换片、切后端、换来源、改地址或改令牌都要重载弹幕；令牌密文只用于比较，不写日志。
+    // 换片、切后端、换来源和改连接身份都要重载；凭据密文只用于比较，不写日志。
     private string DanmakuConnection() =>
         $"{DanmakuAvailable}\n{Settings.Danmaku.WithRelated}\n{Settings.Danmaku.Source}\n"
-        + $"{Settings.Danmaku.DanmuApiBaseUrl}\n{Settings.Danmaku.ProtectedDanmuApiToken}";
+        + $"{Settings.Danmaku.DanmuApiBaseUrl}\n{Settings.Danmaku.ProtectedDanmuApiToken}\n{BilibiliConnection()}";
 
     private string DanmuApiConnection() =>
         $"{Settings.Danmaku.DanmuApiBaseUrl}\n{Settings.Danmaku.ProtectedDanmuApiToken}";
+
+    private string BilibiliConnection() =>
+        $"{Settings.Danmaku.BilibiliUserId}\n{Settings.Danmaku.ProtectedBilibiliCookie}";
 
     private void RefreshDanmakuProperties()
     {
@@ -147,17 +159,23 @@ public sealed partial class PlayerViewModel
             DanmakuConnectionVersion++;
             OnPropertyChanged(nameof(DanmakuConnectionVersion));
             var customConnection = DanmuApiConnection();
+            var bilibiliConnection = BilibiliConnection();
             var chosenDandan = _danmakuEpisode;
             // 自部署集号只在分配它的实例/凭据范围内有效；读取选项变化仍保留选择。
             var chosenCustom = customConnection == _danmuApiConnection ? _danmakuDanmuApiEpisode : null;
+            // cid 与来源、登录身份一起保留；账号退出或 cookie 更新后要求重新手动选择。
+            var chosenBilibili = bilibiliConnection == _bilibiliConnection ? _danmakuBilibiliEpisode : null;
             _danmuApiConnection = customConnection;
+            _bilibiliConnection = bilibiliConnection;
             CancelDanmakuRequests();
             _danmakuComments = [];
             _danmakuEpisode = null;
             _danmakuDanmuApiEpisode = null;
+            _danmakuBilibiliEpisode = null;
             _danmakuFetched = false;
             _danmakuDandanCount = 0;
             _danmakuDanmuApiCount = 0;
+            _danmakuBilibiliCount = 0;
             _danmakuLabel = "";
             _danmakuWarning = "";
             _danmakuSourceSummary = DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source);
@@ -173,6 +191,8 @@ public sealed partial class PlayerViewModel
                     selections.Add((DanmakuSource.DandanPlay, chosenDandan));
                 if (chosenCustom is not null && DanmakuSourceRules.Includes(Settings.Danmaku.Source, DanmakuSource.DanmuApi))
                     selections.Add((DanmakuSource.DanmuApi, chosenCustom));
+                if (chosenBilibili is not null && DanmakuSourceRules.Includes(Settings.Danmaku.Source, DanmakuSource.Bilibili))
+                    selections.Add((DanmakuSource.Bilibili, chosenBilibili));
                 if (selections.Count > 0) _ = LoadSourcesAsync(selections);
                 else if (Settings.Danmaku.AutoMatch) _ = AutoMatchDanmakuAsync(current);
             }
@@ -212,12 +232,15 @@ public sealed partial class PlayerViewModel
     }
 
     private DanmakuSource DefaultSearchSource() =>
-        DanmakuSourceRules.IncludesDandanPlay(Settings.Danmaku.Source)
-            ? DanmakuSource.DandanPlay
-            : DanmakuSource.DanmuApi;
+        DanmakuSourceRules.AvailableSources(Settings).FirstOrDefault();
 
     private async Task AutoMatchDanmakuAsync(EmbyItem item)
     {
+        if (Settings.Danmaku.Source == DanmakuSourceMode.Bilibili)
+        {
+            DanmakuStatus = DefaultDanmakuStatus;
+            return;
+        }
         var context = CaptureInteraction();
         if (DandanPlayMatching.Title(item).Trim().Length < 2) return;
         // 续季与特别篇不发含糊的自动请求；仍然可以从播放页手动搜索。
@@ -385,9 +408,11 @@ public sealed partial class PlayerViewModel
         _danmakuComments = [];
         _danmakuEpisode = null;
         _danmakuDanmuApiEpisode = null;
+        _danmakuBilibiliEpisode = null;
         _danmakuFetched = false;
         _danmakuDandanCount = 0;
         _danmakuDanmuApiCount = 0;
+        _danmakuBilibiliCount = 0;
         _danmakuLabel = selections[0].Episode.Label;
         _danmakuWarning = "";
         _danmakuSourceSummary = string.Join(" + ",
@@ -412,19 +437,32 @@ public sealed partial class PlayerViewModel
                     .ConfigureAwait(true);
                 if (!DanmakuAvailable || !IsCurrentPlayback(context) || request != _danmakuRequest) return;
                 comments.AddRange(fetched);
-                if (source == DanmakuSource.DandanPlay)
+                switch (source)
                 {
-                    _danmakuEpisode = episode;
-                    _danmakuDandanCount = fetched.Count;
-                    _danmakuLabel = episode.Label;
+                    case DanmakuSource.DandanPlay:
+                        _danmakuEpisode = episode;
+                        _danmakuDandanCount = fetched.Count;
+                        _danmakuLabel = episode.Label;
+                        break;
+                    case DanmakuSource.DanmuApi:
+                        _danmakuDanmuApiEpisode = episode;
+                        _danmakuDanmuApiCount = fetched.Count;
+                        if (_danmakuEpisode is null) _danmakuLabel = episode.Label;
+                        break;
+                    case DanmakuSource.Bilibili:
+                        _danmakuBilibiliEpisode = episode;
+                        _danmakuBilibiliCount = fetched.Count;
+                        if (_danmakuEpisode is null) _danmakuLabel = episode.Label;
+                        break;
                 }
-                else
+                var count = source switch
                 {
-                    _danmakuDanmuApiEpisode = episode;
-                    _danmakuDanmuApiCount = fetched.Count;
-                    if (_danmakuEpisode is null) _danmakuLabel = episode.Label;
-                }
-                loaded.Add($"{DanmakuSourceRules.SourceName(source)} {fetched.Count} 条");
+                    DanmakuSource.DandanPlay => _danmakuDandanCount,
+                    DanmakuSource.DanmuApi => _danmakuDanmuApiCount,
+                    DanmakuSource.Bilibili => _danmakuBilibiliCount,
+                    _ => fetched.Count
+                };
+                loaded.Add($"{DanmakuSourceRules.SourceName(source)} {count} 条");
                 sourceLabels.Add(DanmakuSourceRules.SourceName(source));
             }
             catch (OperationCanceledException) { return; }

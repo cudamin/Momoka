@@ -5,6 +5,7 @@
         <AssemblyName>Momoka.DanmakuPerformanceTests</AssemblyName>
         <RootNamespace>Momoka.Tests</RootNamespace>
         <IsPackable>false</IsPackable>
+        <PythonCommand Condition="'$(PythonCommand)' == ''">py</PythonCommand>
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
@@ -13,6 +14,6 @@
         <Compile Include="$(IntermediateOutputPath)PlayerViewModel.Danmaku.Load.g.cs" />
     </ItemGroup>
     <Target Name="ExtractDanmakuLoadOwnership" BeforeTargets="BeforeCompile">
-        <Exec Command="py &quot;$(MSBuildThisFileDirectory)extract-ownership.py&quot; --root &quot;$(MSBuildThisFileDirectory)..\..&quot; --output &quot;$(MSBuildProjectDirectory)\$(IntermediateOutputPath)PlayerViewModel.Danmaku.Load.g.cs&quot;" />
+        <Exec Command="&quot;$(PythonCommand)&quot; &quot;$(MSBuildThisFileDirectory)extract-ownership.py&quot; --root &quot;$(MSBuildThisFileDirectory)..\..&quot; --output &quot;$(MSBuildProjectDirectory)\$(IntermediateOutputPath)PlayerViewModel.Danmaku.Load.g.cs&quot;" />
     </Target>
 </Project>
