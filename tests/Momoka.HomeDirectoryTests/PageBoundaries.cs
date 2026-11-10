@@ -60,7 +60,14 @@ namespace Momoka.Shell.Views
     }
     internal sealed class LibraryPage;
     internal sealed class MoviePilotSubscriptionsPage;
-    internal sealed record MoviePilotSubscriptionsRequest(MoviePilotService Service, string Key, Action<MoviePilotSubscription> Open);
+    internal sealed record MoviePilotSubscriptionsRequest(MoviePilotService Service, string Key, Action<MoviePilotSubscription> Open)
+    {
+        // 与 Views/MoviePilotSubscriptionsPage.xaml.cs 里那一份同值：主页面板新增的「MP 订阅库」入口按这两个
+        // 成员导航，夹具少了它们就编译不过（2026-11-10 合并后全方案构建红在 Momoka.HomeDirectoryTests）。
+        internal const string LibraryKey = "mp-subscriptions";
+        internal const string LibraryTitle = "MP 订阅库";
+        internal string Title => Key == LibraryKey ? LibraryTitle : HomeLayout.FixedTitle(Key)!;
+    }
     internal sealed class LibraryRequest
     {
         public const string SearchTag = "search";
