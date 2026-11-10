@@ -9,6 +9,9 @@ namespace Microsoft.Extensions.DependencyInjection
     internal static class BoundaryServiceExtensions
     {
         internal static T? GetService<T>(this IServiceProvider services) => (T?)services.GetService(typeof(T));
+        internal static T GetRequiredService<T>(this IServiceProvider services) =>
+            services.GetService(typeof(T)) is T service ? service
+                : throw new Momoka.Tests.AssertionException("匿名夹具缺少所请求的服务：" + typeof(T).Name);
     }
 }
 
@@ -65,6 +68,14 @@ namespace Momoka.Shell.Views
         internal event Action PlayerHidden { add { } remove { } }
         internal event Action MediaInfoRequested { add { } remove { } }
         internal event Action SettingsRequested { add { } remove { } }
+        private Action<string>? _playerDialogs;
+        internal event Action<string> PlayerDialogRequested { add => _playerDialogs += value; remove => _playerDialogs -= value; }
+        internal int PlayerDialogSubscribers => _playerDialogs?.GetInvocationList().Length ?? 0;
+        internal void RaisePlayerDialog(string action)
+        {
+            if (_playerDialogs is null) throw new Momoka.Tests.AssertionException("匿名目录夹具禁止未订阅的播放器对话框：" + action);
+            _playerDialogs(action);
+        }
         internal event Action DanmakuRequested { add { } remove { } }
         internal event Action<string, InfoBarSeverity> Noticed { add { } remove { } }
         internal event Action RefreshRequested { add { } remove { } }
@@ -119,6 +130,7 @@ namespace Momoka.Shell.Views
         private void OnHeadlessPlaybackHidden() { }
         private void OnHeadlessMediaInfoRequested() { }
         private void OnPlayerSettingsRequested() { }
+        private void OnPlayerDialogRequested(string action) => throw new Momoka.Tests.AssertionException("匿名目录夹具禁止播放器对话框：" + action);
         private void OnDanmakuRequested() { }
         private void RefreshActive() { }
         private void Notify(string message) => Notify(message, InfoBarSeverity.Informational);

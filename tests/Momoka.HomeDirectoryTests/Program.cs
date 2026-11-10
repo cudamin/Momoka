@@ -20,6 +20,34 @@ internal static class Program
         AccountShutdownTests.Register(Test);
         FoundationProbeReadingTests.Register(Test);
         HomeEntranceTests.Register(Test);
+        Test("目录夹具新增本地媒体与播放器对话框边界均明确拒绝", () =>
+        {
+            using var f = new Fixture(MediaServerKind.Emby);
+            Assert.Throws<AssertionException>(() => f.Shell.GoTo("local-library:unexpected"));
+            Assert.Equal(0, f.Shell.ContentFrame.Navigations);
+            Assert.Equal(0, f.Transport.Writes);
+            var local = new Momoka.Shell.Services.LocalLibraryCoordinator();
+            var launcher = new Momoka.Shell.Platform.SystemLauncher();
+            Assert.Throws<AssertionException>(() => _ = local.Libraries);
+            Assert.Throws<AssertionException>(() => new LocalLibraryRequest(local, "unexpected", launcher));
+            Assert.Throws<AssertionException>(() => new LocalLibraryPage());
+            Assert.Throws<AssertionException>(() => launcher.OpenFolder("unused"));
+            Assert.Throws<AssertionException>(() => launcher.OpenUrl("https://unused.invalid"));
+            Assert.Throws<AssertionException>(() => f.Shell.PlayerStop.RaisePlayerDialog("unexpected"));
+            var requested = 0;
+            void RejectDialog(string action) { requested++; throw new AssertionException("拒绝测试播放器对话框：" + action); }
+            f.Shell.PlayerStop.PlayerDialogRequested += RejectDialog;
+            Assert.Equal(1, f.Shell.PlayerStop.PlayerDialogSubscribers);
+            Assert.Throws<AssertionException>(() => f.Shell.PlayerStop.RaisePlayerDialog("unexpected"));
+            Assert.Equal(1, requested);
+            f.Shell.PlayerStop.PlayerDialogRequested -= RejectDialog;
+            Assert.Equal(0, f.Shell.PlayerStop.PlayerDialogSubscribers);
+            Assert.True(ReferenceEquals(local, Microsoft.Extensions.DependencyInjection.BoundaryServiceExtensions
+                .GetRequiredService<Momoka.Shell.Services.LocalLibraryCoordinator>(new RegisteredBoundary(local))));
+            Assert.Throws<AssertionException>(() => Microsoft.Extensions.DependencyInjection.BoundaryServiceExtensions
+                .GetRequiredService<Momoka.Shell.Services.LocalLibraryCoordinator>(new RegisteredBoundary(null)));
+            return Task.CompletedTask;
+        });
         Test("浏览账号释放：清掉缓存页再恢复有限容量", () =>
         {
             using var f = new Fixture(MediaServerKind.Emby);
@@ -210,6 +238,11 @@ internal static class Program
         Assert.True(plan.Any(row => row.Key == HomeLayout.LibraryKey(f.Shell.HomeSnapshot[0])));
         Assert.True(plan.Any(row => row.Key == HomeLayout.LibraryKey(f.Shell.HomeSnapshot[1])));
         Assert.Equal(0, f.Transport.Writes);
+    }
+
+    private sealed class RegisteredBoundary(object? service) : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => service;
     }
 
     private sealed class Fixture : IDisposable

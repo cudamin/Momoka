@@ -3,6 +3,11 @@
 ## 2026-11-10 第一批整合回归：身份比较夹具
 
 主树7795627完整主测4567/4546/21失败，18项来自历史纯身份夹具用空Session构造scope，新PermissionReadRevision正常读取当前会话触发空引用；另外3项真实重登接续回归由隔离实现者修复。纯身份夹具改用无网络/凭据的真实内存Session，释放后仅保留来源key/名称，PermissionRevision明确为-1、不授权。未放宽生产权限判断。新增browse-identity-fixture保留原聚合/主页/删除身份断言，55/55通过；Plex相关263/263、删除后选集9/9通过，当前Tests/Core Release0警告0错误。最终全测在接续修复合入后重跑，旧失败日志保留。
+## 2026-11-10 主树轮播夹具编译边界同步（独立，待整合）
+
+树 `C:/Users/89400/.codex/worktrees/library-batch1-clock-fixture/Momoka`、分支 `codex/library-batch1-clock-fixture`，基点master `7795627`。实际抽取的Shell新增本地库导航与PlayerDialogRequested退订，匿名HomeDirectoryTests缺LocalLibraryRequest/LocalLibraryPage/LocalLibraryCoordinator/Platform.ISystemLauncher及GetRequiredService/事件handler，当前树fresh编译重现11错；不运行旧78项冒充通过。只补测试边界：本地库请求/页面/读取及系统启动均明确拒绝，服务按真类型解析，播放器对话框事件保留订阅/退订且误触明确拒绝，不复制产品流程、不改Shell或依赖。
+
+最终Tests/Core Release/x64 fresh编译0警告0错误，79/79、0失败0跳过（既有78+1项边界拒绝/事件/服务解析断言），日志保留 `artifacts/clock-fixture/red-build.log`、`build.log`、`tests.log`。未运行UI/full/publish/真实服务器，原生轮播由根代理最终主树串行重验；未push或自行合入。
 
 ## 2026-11-10 轮播采样窗口诊断修正（独立验证工具，待原生重验）
 
