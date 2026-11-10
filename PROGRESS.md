@@ -12235,3 +12235,5 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 主树最终shortcuts实际运行5/5通过、0失败；其余190项分区未运行，不称全量Shell自检。证据`C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261110-113315350-35324/logs`，逐张核对760字幕菜单与固定失败提示实屏。先前窗口遮挡/坐标与合成未落定失败保留，不复用为最终证据。用户明确允许副屏40秒验收后完成本轮。
 - tools/publish.ps1 -NoArchive -Shortcut成功，547文件287.3MB，批准mpv载荷60文件完整校验。2026-11-10 19:41桌面快捷方式指向`C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`；未上传远端。
 - 真实服务器播放未执行；外部mpv完整窗口、Whisper/ffsubsync程序和真实云翻译仍未运行验收。随包缺cropdetect而自动去黑边隐藏；点外关闭无本轮可靠实按证据。细节见docs/播放菜单与工具.md。
+
+- 2026-11-10 集成拖边回归（测试子代理）：独立树 C:\Users\89400\.codex\worktrees\resize-handoff-tests\Momoka，仅新增 tests/Momoka.ResizeHandoffTests 与方案/专项登记。逐字提取页面首帧、冻结、收尾和Host待目标，主实施树SourceRoot当前Release/x64编译0警告0错误；16/16通过0跳过，三份单守卫负例各1项对应红。产品提交由主实施会话完成；本测试提交待根代理cherry-pick后按当前树重新验证，未GUI/native/指针/生产设置/主树交付。
