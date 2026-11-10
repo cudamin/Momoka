@@ -93,11 +93,17 @@ public static class SettingsPreferences
         var danmakuSource = danmaku.Source;
         var danmakuBaseUrl = danmaku.DanmuApiBaseUrl;
         var danmakuToken = danmaku.ProtectedDanmuApiToken;
+        var bilibiliCookie = danmaku.ProtectedBilibiliCookie;
+        var bilibiliName = danmaku.BilibiliUserName;
+        var bilibiliId = danmaku.BilibiliUserId;
         Overwrite(danmaku, source.Danmaku);
         danmaku.Enabled = danmakuEnabled;
         danmaku.Source = danmakuSource;
         danmaku.DanmuApiBaseUrl = danmakuBaseUrl;
         danmaku.ProtectedDanmuApiToken = danmakuToken;
+        danmaku.ProtectedBilibiliCookie = bilibiliCookie;
+        danmaku.BilibiliUserName = bilibiliName;
+        danmaku.BilibiliUserId = bilibiliId;
 
         // 音量不是设置页上的一行，是播放器上次被留在哪儿（见 AudioSettings.Volume）—— 留目的地自己的那一份。
         var volume = destination.Audio.Volume;

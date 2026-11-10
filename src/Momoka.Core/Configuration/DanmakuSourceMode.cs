@@ -5,5 +5,6 @@ public enum DanmakuSourceMode
 {
     DandanPlay = 0,
     DanmuApi = 1,
-    Both = 2
+    Both = 2,
+    Bilibili = 3
 }

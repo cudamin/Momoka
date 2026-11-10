@@ -4,6 +4,11 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["bilibili-fixture"])
+        {
+            BilibiliSettingsTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["trailer-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -545,6 +550,7 @@ internal static class Program
         PinIndicatorTests.Register();
         AboutTests.Register();
         DanmakuTests.Register();
+        BilibiliSettingsTests.Register();
         UpdateTests.Register();
         MoviePilotTests.Register();
         AniBtTests.Register();
