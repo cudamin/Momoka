@@ -183,7 +183,7 @@ public sealed partial class DetailPage : Page, IShellContent
         // 比纸面更深的底；100 档一路压到完全不透明。普通三页这一层透明，遮罩由背景层那道阅读遮罩画。
         // 集页那块板上这一层不画（HeroCardShown）：那一段的底由 HeroCardBottom 给，再压一层近乎同色的黑白费，
         // 而且它会把板涂回罩子的末色 —— 板上那几块小面板的底边就对不上了。
-        HeroTail.Background = ViewModel.HeroCardShown
+        HeroTail.Background = ViewModel.HeroCardShown || PlainMica
             ? null
             : new SolidColorBrush(UsesBackdropFade ? Color.FromArgb(0, ink.R, ink.G, ink.B) : ScrimColor);
 
@@ -822,7 +822,9 @@ public sealed partial class DetailPage : Page, IShellContent
         // 沉浸档（Showcase）的纸面整块让开，底色是尾部那道半透明洗色而不是不透明的纸色；两档要的
         // 不是同一个「不透明」。
         var showcase = ViewModel.Showcase;
-        var opaque = BodyPaper.Background is SolidColorBrush { Color.A: 255 }
+        var opaque = PlainMica && PlainBackdrop.SystemBackdrop is MicaBackdrop
+                && BodyPaper.Background is SolidColorBrush { Color.A: 0 }
+            || BodyPaper.Background is SolidColorBrush { Color.A: 255 }
             || showcase && BodyPaper.Background is SolidColorBrush { Color: var paperColor }
                 && paperColor == WashColor;
         var moved = Math.Abs(box.Top - tail.Bottom) < 0.5;
@@ -2149,6 +2151,8 @@ public sealed partial class DetailPage : Page, IShellContent
         // 同样赶在提前返回之前写。
         ViewModel.HeaderLift = Math.Max(0, lift);
 
+        if (Math.Abs(PlainBackdrop.Margin.Top + lift) >= 0.5)
+            PlainBackdrop.Margin = new Thickness(0, -lift, 0, 0);
         if (Math.Abs(Backdrop.Margin.Top + lift) < 0.5) return;
 
         Backdrop.Margin = new Thickness(0, -lift, 0, 0);
@@ -2283,7 +2287,7 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         _washedInk = DetailHero.WashedOver(paperCover, _washedInk);
 
-        _actions?.SetTitleStrip(!ViewModel.BackdropShown
+        _actions?.SetTitleStrip(PlainMica ? TitleStrip.PagePainted : !ViewModel.BackdropShown
             ? TitleStrip.Plain
             : _washedInk ? TitleStrip.PagePainted : TitleStrip.OnScrim);
     }

@@ -131,6 +131,7 @@ public sealed partial class MoviePilotSubscriptionPage
 
         // 监听本页的 ThemeResource 替换，覆盖系统高对比度；不订阅需要 CoreWindow 的系统事件。
         CardMaterialSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => RefreshPanelBrushes());
+        MicaLayerSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => ApplyPlainMica());
         RefreshPanelBrushes();
         foreach (var panel in BodyPanels)
         {
@@ -152,8 +153,9 @@ public sealed partial class MoviePilotSubscriptionPage
     private void OnShowcaseThemeChanged(Momoka.Theming.UiTheme theme)
     {
         RefreshPanelBrushes();
-        if (!MediaViewModel.Showcase) _sheetBrush.Color = PaperColor;
+        if (!MediaViewModel.Showcase) _sheetBrush.Color = MediaViewModel.Plain ? Microsoft.UI.Colors.Transparent : PaperColor;
         ApplyMaterialAppearance();
+        ApplyPlainMica();
     }
 
     private void RefreshPanelBrushes()
@@ -198,10 +200,27 @@ public sealed partial class MoviePilotSubscriptionPage
         }
     }
 
+    private void ApplyPlainMica()
+    {
+        var plain = MediaViewModel.Plain;
+        DetailMica.Apply(PlainBackdrop, plain && _appearanceObserved, alternate: true);
+        DetailMica.Apply(HeroMica, plain && _appearanceObserved);
+        foreach (var panel in BodyPanels)
+            panel.Background = plain ? MicaLayerSource.Background : _panelFill;
+        HeroFacts.Background = plain ? MicaLayerSource.Background : CardMaterialSource.Background;
+    }
+
+    private void ReleasePlainMica()
+    {
+        PlainBackdrop.SystemBackdrop = null;
+        HeroMica.SystemBackdrop = null;
+    }
+
     private void SettleShowcase()
     {
         var showcase = MediaViewModel.Showcase;
-        _sheetBrush.Color = showcase ? WashColor : PaperColor;
+        _sheetBrush.Color = MediaViewModel.Plain ? Microsoft.UI.Colors.Transparent : showcase ? WashColor : PaperColor;
+        ApplyPlainMica();
         _panelFill.Opacity = showcase ? 0 : 1;
         _panelLine.Opacity = showcase ? 0 : 1;
         DetailBackdropBand.Opacity = showcase

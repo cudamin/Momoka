@@ -184,7 +184,7 @@ internal static partial class DetailActionReadinessTests
                 Assert.True(notices.Contains(name), "模式变化缺少通知：" + name);
             Set("PageWidth", 760d);
             Assert.False((bool)f.Get("HeroCardShown")!);
-            Assert.True((bool)f.Get("BackdropShown")!);
+            Assert.False((bool)f.Get("BackdropShown")!, "简洁模式窄窗应显示云母，不再恢复剧照");
             Assert.Equal(0d, (double)f.Get("StillWidth")!);
             f.Ui.EnableImmersive = true;
             Refresh();

@@ -28,7 +28,8 @@ internal sealed partial class ShellNavigationProbe
         Require(ReferenceEquals(facts.Parent, Get<Grid>(page, "HeroRow")) && Descendants(grid).Contains(overview)
             && surface.VerticalAlignment == VerticalAlignment.Top && hero.MinHeight <= 0.5,
             "资料卡位置或简介容器不对，或头部仍由背景图撑高");
-        Require(primary.Children.Contains(surface) && content.Children.Contains(overview)
+        Require(surface.Parent is Grid materialHost && primary.Children.Contains(materialHost)
+            && materialHost.Children.Contains(Get<SystemBackdropElement>(page, "HeroMica")) && content.Children.Contains(overview)
             && overview.VerticalAlignment == VerticalAlignment.Top,
             "简介没有放在按钮所在文字列");
         Require(Top(overview, page) - Top(actions, page) - actions.ActualHeight is >= 10 and <= 14
@@ -581,21 +582,30 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => media.Plain && !media.Showcase);
             await LayoutAsync(page);
             Require(backdrop.Visibility == Visibility.Collapsed, "简洁模式仍铺着背景图");
-            Require(surface.Background is SolidColorBrush, "简洁模式的头部没有卡面底色");
+            Require(surface.Background is null && Get<SystemBackdropElement>(page, "HeroMica").SystemBackdrop is MicaBackdrop,
+                "简洁模式的头部没有使用 Mica");
             Require(surface.Padding.Left == 12 && surface.Padding.Top == 12, "简洁模式的卡面没有内边距：" + surface.Padding);
             Require(surface.VerticalAlignment == VerticalAlignment.Top,
                 "简洁模式的卡面没有按自己的内容收边");
             RequireSubscriptionBodyLayout(page, true);
             Require(surface.BorderThickness == (Thickness)Application.Current.Resources["EgCardBorderThickness"],
                 "简洁模式的卡面没有接主题那一条描边");
-            Require(sheet.Background is SolidColorBrush { Color.A: 255 }, "简洁模式的正文纸不是不透明");
-            Require(panel.Background is AcrylicBrush { Opacity: 1 }, "简洁模式的正文面板底没有回来");
+            Require(sheet.Background is SolidColorBrush { Color.A: 0 }
+                && Get<SystemBackdropElement>(page, "PlainBackdrop").SystemBackdrop is MicaBackdrop, "简洁模式正文遮住了 Mica Alt");
+            Require(ReferenceEquals(panel.Background, Get<Border>(page, "MicaLayerSource").Background), "简洁模式正文没有使用云母叠层");
             Require(fade.Visibility == Visibility.Collapsed, "简洁模式没有图，图下沿的渐变却还画着");
             Require(hero.MinHeight <= 0.5, "简洁模式仍按背景图让开第一屏");
             Require(overview.VerticalAlignment == VerticalAlignment.Top, "简洁模式的简介没有顶对齐");
-            Require(strips.Count > 0 && strips[^1] == TitleStrip.Plain, "简洁模式的标题栏没有回到页面字色");
+            Require(strips.Count > 0 && strips[^1] == TitleStrip.PagePainted, "简洁模式的标题栏没有回到页面字色");
             readings.Add($"简洁 1240：卡面内边距 {surface.Padding}、纸面透明度 {(sheet.Background as SolidColorBrush)?.Color.A}、"
                 + $"面板 {panel.Background.Opacity:0.##}、资料卡 {facts.ActualWidth:0}");
+            foreach (var theme in Momoka.Theming.UiThemes.All)
+            {
+                ThemeHost.Apply(theme.Id);
+                await LayoutAsync(page);
+                Require(sheet.Background is SolidColorBrush { Color.A: 0 }, "换主题后正文挡住云母");
+                await SaveProbeScreenAsync($"mp-subscription-mica-{theme.Id}-1240-screen.png");
+            }
             await SaveProbeScreenAsync("mp-subscription-mode-plain-1240.png");
 
             // ---- 简洁模式收窄成单列：资料卡叠到正文左列下面，仍然不铺图 ----
@@ -605,6 +615,13 @@ internal sealed partial class ShellNavigationProbe
             Require(media.Plain && !media.Showcase && backdrop.Visibility == Visibility.Collapsed,
                 "简洁模式窄窗又铺回了背景图");
             RequireSubscriptionBodyLayout(page, false);
+            foreach (var theme in Momoka.Theming.UiThemes.All)
+            {
+                ThemeHost.Apply(theme.Id);
+                await LayoutAsync(page);
+                Require(sheet.Background is SolidColorBrush { Color.A: 0 }, "窄窗换主题后正文挡住云母");
+                await SaveProbeScreenAsync($"mp-subscription-mica-{theme.Id}-760-screen.png");
+            }
             await SaveProbeScreenAsync("mp-subscription-mode-plain-760.png");
 
             // ---- 窄窗切回沉浸：图回来，但仍是「图 + 纸面」（单列不参与沉浸档） ----

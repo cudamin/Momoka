@@ -114,7 +114,8 @@ internal static class AcrylicControlsTests
         Test("详情沉浸：四类页面的其他信息卡都保留亚克力卡面", () =>
         {
             var code = Source("Views/DetailPage.Appearance.cs");
-            Assert.Contains("InfoPanel.Background = ViewModel.Showcase ? CardMaterialSource.Background : _panelFill;", code);
+            Assert.Contains("InfoPanel.Background = PlainMica ? MicaLayerSource.Background", code);
+            Assert.Contains(": ViewModel.Showcase ? CardMaterialSource.Background : _panelFill;", code);
             // 从前只管单集页；用户 2026-11-08 要求电影、剧、季也加同一块卡面，判据里不该再有类型分支。
             var paint = code[code.IndexOf("private void PaintBackdropReading()", StringComparison.Ordinal)..];
             paint = paint[..paint.IndexOf('}')];

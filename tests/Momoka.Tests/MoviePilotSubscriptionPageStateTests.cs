@@ -195,7 +195,10 @@ internal static class MoviePilotSubscriptionPageStateTests
             var primary = Named("BodyPrimary");
             var body = Named("BodyRow");
             Assert.True(ReferenceEquals(primary.Parent, Named("HeroRow")));
-            Assert.True(ReferenceEquals(Named("HeroSurface").Parent, primary));
+            var materialHost = Named("HeroSurface").Parent!;
+            Assert.True(ReferenceEquals(materialHost.Parent, primary));
+            Assert.True(ReferenceEquals(Named("HeroMica").Parent, materialHost));
+            Assert.Equal("False", (string?)Named("HeroMica").Attribute("IsHitTestVisible"));
             Assert.True(ReferenceEquals(Named("HeroOverview").Parent, Named("HeroContent")));
             Assert.True(ReferenceEquals(Named("DetailActions").ElementsAfterSelf().First(), Named("HeroOverview")));
             Assert.True(ReferenceEquals(Named("SeasonPanel").Parent, body));

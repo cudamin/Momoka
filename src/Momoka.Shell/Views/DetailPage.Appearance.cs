@@ -70,6 +70,7 @@ public sealed partial class DetailPage
     private void StopAppearance()
     {
         _appearanceObserved = false;
+        ReleasePlainMica();
         _appearanceSystemTimer?.Stop();
         _appearanceLifetime++;
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
@@ -126,7 +127,8 @@ public sealed partial class DetailPage
         // 信息卡的逐行标签、内联链接与数据统一留在深色亚克力卡面上，避免整段文字另做蒙版寿命管理。
         // 2026-11-08 用户令「参考集页面给其他媒体页面的其他信息也加上亚克力背景」：这张卡在沉浸档四类页面上
         // 都保留卡面，不再只管单集页（电影、剧、季三页从前在这里让开，表里的暗字直接压在剧照上）。
-        InfoPanel.Background = ViewModel.Showcase ? CardMaterialSource.Background : _panelFill;
+        InfoPanel.Background = PlainMica ? MicaLayerSource.Background
+            : ViewModel.Showcase ? CardMaterialSource.Background : _panelFill;
         PaintReadingColors();
     }
 

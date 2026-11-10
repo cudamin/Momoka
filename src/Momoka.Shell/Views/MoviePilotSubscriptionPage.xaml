@@ -68,6 +68,9 @@
     </Page.Resources>
 
     <Grid Loaded="OnDetailLoaded" SizeChanged="OnDetailSizeChanged">
+        <SystemBackdropElement x:Name="PlainBackdrop" IsHitTestVisible="False" />
+        <Border x:Name="MicaLayerSource" Width="0" Height="0" IsHitTestVisible="False"
+                Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}" />
         <Border x:Name="CardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
     <Grid x:Name="DetailContent" Visibility="{x:Bind MediaViewModel.DetailContentVisibility, Mode=OneWay}">
@@ -99,6 +102,9 @@
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="HeroFactColumn" Width="288" /></Grid.ColumnDefinitions>
                 <StackPanel x:Name="BodyPrimary" Spacing="8" VerticalAlignment="Top">
+                <Grid>
+                <SystemBackdropElement x:Name="HeroMica" IsHitTestVisible="False"
+                    CornerRadius="{StaticResource EgCardCornerRadius}" />
                 <Border x:Name="HeroSurface" VerticalAlignment="Top" CornerRadius="{StaticResource EgCardCornerRadius}">
                 <Grid x:Name="HeroGrid" MinHeight="340" ColumnSpacing="20" RowSpacing="16" SizeChanged="OnHeroSizeChanged">
                     <Grid.RowDefinitions>
@@ -174,6 +180,7 @@
                     </StackPanel>
                 </Grid>
                 </Border>
+                </Grid>
                 </StackPanel>
                 <Border x:Name="HeroFacts" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top"
                     Width="288" CornerRadius="{StaticResource EgCardCornerRadius}"

@@ -151,6 +151,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         // 头部那一段让开的高度是「图的下沿折进滚动内容坐标」，所以要减掉这一截（赶在提前返回之前写：
         // 换主题、面包屑显隐都会挪它，而那些时候边距未必变）。
         MediaViewModel.HeaderLift = lift;
+        if (Math.Abs(PlainBackdrop.Margin.Top + lift) > 0.5)
+            PlainBackdrop.Margin = new Thickness(0, -lift, 0, 0);
 
         if (Math.Abs(DetailBackdropRoot.Margin.Top + lift) > 0.5)
             DetailBackdropRoot.Margin = new Thickness(0, -lift, 0, 0);
@@ -211,12 +213,14 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         {
             _appearanceObserved = true;
             StartMaterialWatch();
+            SettleShowcase();
             ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
             ShellPrefs.AppearanceChanged += OnAppearanceChanged;
         };
         Unloaded += (_, _) =>
         {
             _appearanceObserved = false;
+            ReleasePlainMica();
             _appearanceSystemTimer?.Stop();
             ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         };
@@ -255,7 +259,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private void ApplyHeroSurface()
     {
         var plain = MediaViewModel.Plain;
-        HeroSurface.Background = plain ? ResourceBrush("EgSurfaceBrush") : null;
+        HeroSurface.Background = null;
         HeroSurface.BorderBrush = plain ? ResourceBrush("EgBorderBrush") : null;
         HeroSurface.BorderThickness = plain ? CardBorderThickness : default;
         HeroSurface.Padding = plain ? new Thickness(HeroCardPadding) : default;
@@ -277,8 +281,9 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     /// 标题栏那一行字压不压在图上：有图、沉浸模式、详情没出错时用浅墨；简洁模式整张图不在，回到页面字色。
     /// </summary>
     private void SyncTitleStrip() => _request?.SetTitleStrip?.Invoke(
-        MediaViewModel.DetailErrorVisibility == Visibility.Visible || MediaViewModel.Backdrop is null || MediaViewModel.Plain
-            ? TitleStrip.Plain : TitleStrip.OnScrim);
+        MediaViewModel.Plain ? TitleStrip.PagePainted
+            : MediaViewModel.DetailErrorVisibility == Visibility.Visible || MediaViewModel.Backdrop is null
+                ? TitleStrip.Plain : TitleStrip.OnScrim);
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
@@ -553,6 +558,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         _pageLifetime?.Cancel(); _pageLifetime?.Dispose(); _pageLifetime = null;
         ThemeHost.Changed -= OnShowcaseThemeChanged;
         _appearanceObserved = false;
+        ReleasePlainMica();
         _appearanceSystemTimer?.Stop();
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         MediaViewModel.PropertyChanged -= OnShowcaseChanged;

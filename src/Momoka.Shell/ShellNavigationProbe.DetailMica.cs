@@ -1,0 +1,116 @@
+using System.Net;
+using Microsoft.UI.Composition.SystemBackdrops;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Momoka.Emby;
+using Momoka.Shell.Views;
+using Momoka.Theming;
+
+namespace Momoka.Shell;
+
+internal sealed partial class ShellNavigationProbe
+{
+    private async Task DetailMicaAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        var savedTheme = ThemeHost.Current.Id;
+        var savedAppearance = fixture.Settings.Ui.EnableImmersive;
+        var picture = await FixtureImageAsync(400, 600);
+        var items = new[] { Series(), Season("a"), Episode("a"), new EmbyItem { Id = "mica-movie", Type = EmbyItemType.Movie } };
+        foreach (var item in items)
+        {
+            item.Name = "云母详情 · " + item.Type;
+            item.Overview = "核对简洁详情页的系统云母、信息卡、主题切换与导航恢复。";
+            item.ImageTags["Primary"] = "fixture";
+            item.BackdropImageTags.Add("fixture");
+        }
+        fixture.Transport.Reply = (request, _) =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.Contains("/Images/", StringComparison.Ordinal))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(picture) });
+            var item = items.FirstOrDefault(candidate => path.EndsWith("/Items/" + candidate.Id, StringComparison.Ordinal));
+            return Task.FromResult(item is null ? FakeTransport.Standard(request) : Json(item));
+        };
+        fixture.Settings.Ui.EnableImmersive = false;
+        ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+        var shell = new ShellPage();
+        shell.Attach(fixture.Services);
+        Field(shell, "_window", _window);
+        _root.Children.Add(shell);
+        var reads = new List<string>();
+        try
+        {
+            if (_window!.IsMaximized) _window.ToggleMaximize();
+            await (Task)Call(shell, "EnterShellAsync")!;
+            await UntilAsync(() => shell.ActiveContentReady);
+            foreach (var item in items)
+            {
+                shell.OpenDetail(DetailRequest.For(fixture.Services, item));
+                var page = (DetailPage)Get<Frame>(shell, "ContentFrame").Content;
+                // Fixture DI uses a rejecting action sink; connect the real shell only for its title paint.
+                Field(page, "_actions", shell);
+                page.AttachWindow(_window);
+                await UntilAsync(() => page.IsReady);
+                foreach (var width in new[] { 1200, 760 })
+                {
+                    await ResizeResponsiveAsync(page, width, 900);
+                    foreach (var theme in UiThemes.All)
+                    {
+                        ThemeHost.Apply(theme.Id);
+                        await LayoutAsync(shell);
+                        Call(page, "SettleShowcase");
+                        var mica = Get<SystemBackdropElement>(page, "PlainBackdrop");
+                        var top = Get<SystemBackdropElement>(page, "HeroMicaTop");
+                        Require(mica.SystemBackdrop is MicaBackdrop { Kind: MicaKind.BaseAlt }, "简洁页面缺少 Mica Alt");
+                        Require(Get<Border>(page, "BodyPaper").Background is SolidColorBrush { Color.A: 0 }, "正文实色挡住云母");
+                        Require(!page.ViewModel.BackdropShown && Get<StackPanel>(page, "HeroTail").Background is null, "简洁详情仍铺图或黑色尾部");
+                        Require(!page.ViewModel.HeroCardShown || top.SystemBackdrop is MicaBackdrop { Kind: MicaKind.Base }, "头部卡面缺少 Mica");
+                        Require(Math.Abs(Bounds(mica, shell).Top) < 1 && Bounds(mica, shell).Bottom >= shell.ActualHeight - 1,
+                            "云母背景未覆盖整个真实外壳");
+                        Require(shell.TrailBase is null && shell.TitleStripNow == TitleStrip.PagePainted, "面包屑实色挡住云母");
+                        Require(Get<Border>(page, "PlainHeroSurface").Opacity == 0
+                            && Get<Border>(page, "HeroScrim").Opacity == 0, "旧顶部渐变挡住简洁云母");
+                        var paper = (SolidColorBrush)Get<Border>(page, "BodyPaper").Background;
+                        var original = paper.Color;
+                        try
+                        {
+                            paper.Color = Microsoft.UI.Colors.Black;
+                            var rejected = false;
+                            try { Require(paper.Color.A == 0, "正文实色挡住云母"); }
+                            catch (InvalidOperationException) { rejected = true; }
+                            Require(rejected, "云母检查没有拒绝旧实色正文");
+                        }
+                        finally { paper.Color = original; }
+                        reads.Add($"{item.Type}/{width}/{theme.Id}: BaseAlt + Base, top={Bounds(mica, shell).Top:0.##}, body=transparent");
+                        await SaveProbeScreenAsync($"detail-mica-{item.Type}-{width}-{theme.Id}-screen.png");
+                    }
+                }
+                fixture.Settings.Ui.EnableImmersive = true;
+                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                await LayoutAsync(page);
+                Require(Get<SystemBackdropElement>(page, "PlainBackdrop").SystemBackdrop is null
+                    && Get<SystemBackdropElement>(page, "HeroMicaTop").SystemBackdrop is null, "沉浸恢复后未释放简洁材质");
+                fixture.Settings.Ui.EnableImmersive = false;
+                ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                await LayoutAsync(page);
+                Require(Get<SystemBackdropElement>(page, "PlainBackdrop").SystemBackdrop is MicaBackdrop, "简洁恢复没有重新连接材质");
+                page.Release();
+                Require(Get<SystemBackdropElement>(page, "PlainBackdrop").SystemBackdrop is null
+                    && Get<SystemBackdropElement>(page, "HeroMicaBottom").SystemBackdrop is null, "离页未释放材质");
+            }
+        }
+        finally
+        {
+            Call(shell, "ReleaseContent");
+            shell.SignInRoot.Detach();
+            _root.Children.Remove(shell);
+            fixture.Settings.Ui.EnableImmersive = savedAppearance;
+            ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+            ThemeHost.Apply(savedTheme);
+            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-mica.txt"), reads);
+        }
+    }
+}

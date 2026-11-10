@@ -259,7 +259,7 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             var view = page.ViewModel;
             var oldEpisodeCompact = view.ItemType == EmbyItemType.Episode && width < DetailHero.CompactFloor;
-            Require(view.BackdropShown == oldEpisodeCompact && !view.Showcase
+            Require(!view.BackdropShown && !view.Showcase
                 && view.IsCompact == oldEpisodeCompact && view.HeroCardShown == !oldEpisodeCompact,
                 "简洁电影剧季始终保留卡面，单集保持原宽窄布局");
             var cover = Get<Border>(page, "PosterStill");

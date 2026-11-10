@@ -1,3 +1,11 @@
+## 2026-11-10 简洁详情 Mica / Mica Alt（e91e，待主树集成）
+
+从617faba开始。电影/剧/季/单集与MP媒体详情局部BaseAlt底层、Base头卡、系统云母叠层；简洁单集窄窗停止铺图，旧纯色纸面与顶部渐变让开，保持布局与播放目标。页面离树/Release清理局部材质，Loaded恢复；不改HostWindow播放背景和全局Palette。
+
+本树Shell和Tests/Core Release构建0警告0错误；主测试4569/4569，0失败0跳过；实际Shell详情46/46、MP页面40/40、材质37/37。首轮全测16项因其他桌面诊断锁占用失败，1项旧源码断言失败；串行完整重跑已全绿。基线详情新断言45/46红→46/46绿。首轮MP原生检查发现旧父级契约需更新；实屏发现窄集页旧渐变，已修复重验。最终本树原生报告 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261110-143339031-35480/logs/shell-probe.json` 7/7通过：云母、MP云母、详情布局、自定义设置和Series/Episode/Movie；含四类型×两宽×五主题40张及MP两宽×五主题10张实屏，实际检查主题联系图。全部匿名，无真实播放/服务器写入/上传。源码diff空白通过；解决方案定向format退出0但工作区加载警告，Shell项目定向format无加载警告且0文件需格式化。独立只读审查无确定产品问题。主树正在由其他会话交付，合入后仍需重编、主测试、适用原生复验和发布，快捷方式暂未更新本改动。
+
+已读源：WinUI main `19550674112fad8339c42a5374cf3ae9674440ec` 的 controls/dev/SystemBackdropElement/SystemBackdropElement.cpp；Gallery main `6de91feccadfbb0a796b71caedead5a2284f730e` 的SystemBackdropElementMicaAlt_xaml.txt。实际引用WinUI2.3.9的find-api验证SystemBackdropElement/SystemBackdrop/CornerRadius，generic.xaml系统云母叠层含高对比度系统色。MP前端v3 `a2020f8dd09f430834b65c1f568ef65439e303ce` 的MediaDetailView.vue与后端v3 `c1c505358d347067732e1d7e066e72aa9f75f3b4` 的media.py已读；本轮原生材质有意不同于网页图片背景，无协议同步，未核部署版本。
+
 # 开发进度
 
 ## 2026-11-10 第一批媒体库已桌面交付

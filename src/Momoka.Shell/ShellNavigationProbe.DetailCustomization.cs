@@ -572,8 +572,7 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
                 var card = Get<Border>(page, "HeroCardTop");
                 var wide = width == 1200;
-                var oldEpisodeBackdrop = !wide && subject?.Type == EmbyItemType.Episode
-                    && ItemArtwork.Hero(subject).Count > 0;
+                const bool oldEpisodeBackdrop = false;
                 Require(page.ViewModel.BackdropShown == oldEpisodeBackdrop && !page.ViewModel.Showcase
                     && Get<Grid>(page, "Backdrop").Visibility == (oldEpisodeBackdrop ? Visibility.Visible : Visibility.Collapsed),
                     "关闭沉浸后背景未恢复该类型原有宽窄规则");
@@ -582,7 +581,7 @@ internal sealed partial class ShellNavigationProbe
                     "简洁三类详情始终保留卡面，单集恢复原宽窗卡片布局");
                 // 沉浸关掉之后卡片带回到主题那套墨、信息卡回到正文面板共享的那支画刷。
                 RequireCardInk(page, onScrim: false);
-                Require(ReferenceEquals(Get<StackPanel>(page, "InfoPanel").Background, Get<AcrylicBrush>(page, "_panelFill")),
+                Require(ReferenceEquals(Get<StackPanel>(page, "InfoPanel").Background, Get<Border>(page, "MicaLayerSource").Background),
                     "纸面信息卡没有回到正文面板底色");
                 Require(Get<StackPanel>(page, "ColumnPickers").Visibility == page.ViewModel.ColumnPickersVisibility,
                     "同页切换后视频信息父容器没有同步显隐");

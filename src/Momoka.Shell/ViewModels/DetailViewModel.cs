@@ -1769,8 +1769,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </para>
     /// </summary>
     private bool SpreadsBackdrop(EmbyItem item) =>
-        (ImmersiveEnabled || item.Type is not (EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season))
-        && (item.Type != EmbyItemType.Episode || ImmersiveEnabled || IsCompact) && ItemArtwork.Hero(item).Count > 0;
+        (ImmersiveEnabled || item.Type is not (EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode))
+        && ItemArtwork.Hero(item).Count > 0;
 
     /// <summary>
     /// Whether 单集 belongs down the page as rows rather than across it as cards. The rule itself is

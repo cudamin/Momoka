@@ -185,6 +185,9 @@
     </Page.Resources>
 
     <Grid>
+        <SystemBackdropElement x:Name="PlainBackdrop" IsHitTestVisible="False" />
+        <Border x:Name="MicaLayerSource" Width="0" Height="0" IsHitTestVisible="False"
+                Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}" />
         <!-- 零尺寸资源接收器：系统主题替换卡片画刷时，同步用于沉浸动画的私有副本。 -->
         <Border x:Name="CardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
@@ -279,7 +282,7 @@
                          罩子垫着右上角那张艺术图 —— 一张亮画压在浅色主题的面上分不出边沿（片名头上那枚徽标不靠
                          这一道，它站在底下那道渐深的罩子里）。有图的时候这两样都由 Backdrop 那一层管，这一层必须
                          整个让开：一块不透明的底色会把那张图盖掉，而两道顶罩叠起来会在这一格的上沿接出一道横线。 -->
-                    <Border
+                    <Border x:Name="PlainHeroSurface"
                         Background="{ThemeResource EgSurfaceBrush}"
                         Visibility="{x:Bind ViewModel.HeroPlainVisibility, Mode=OneWay}">
                         <Border Height="190" VerticalAlignment="Top">
@@ -318,7 +321,10 @@
                         BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadiusTop}"
                         Margin="38,8,38,0"
-                        Visibility="{x:Bind ViewModel.HeroCardVisibility, Mode=OneWay}" />
+                        Visibility="{x:Bind ViewModel.HeroCardVisibility, Mode=OneWay}">
+                        <SystemBackdropElement x:Name="HeroMicaTop" IsHitTestVisible="False"
+                            CornerRadius="{StaticResource EgCardCornerRadiusTop}" />
+                    </Border>
 
                     <!-- 有背景图时 HeroBand 整块复用 HeroTail 的半透明黑底，与 TitleWash 连成一片（PaintScrim）。
                          下面的旧渐变只留给无背景图、又没有集页面板的版式。
@@ -1043,7 +1049,10 @@
                         CornerRadius="{StaticResource EgCardCornerRadiusBottom}"
                         IsHitTestVisible="False"
                         Margin="38,0,38,0"
-                        Visibility="{x:Bind ViewModel.HeroCardVisibility, Mode=OneWay}" />
+                        Visibility="{x:Bind ViewModel.HeroCardVisibility, Mode=OneWay}">
+                        <SystemBackdropElement x:Name="HeroMicaBottom" IsHitTestVisible="False"
+                            CornerRadius="{StaticResource EgCardCornerRadiusBottom}" />
+                    </Border>
 
                     <!-- 这一段不是又一张卡片：它是头图下沿那块压暗了的画面接着往下延。底色必须和 HeroScrim 的
                          最后一个停点一模一样（七成二的黑，见 DetailHero.ScrimCeiling），才能让原来那条分界消失 ——
