@@ -7,6 +7,7 @@ internal static class PlayerToolsSettingsUiTests
 {
     internal static void Register(SettingsPageStateTests.ShellFixture fixture)
     {
+        PlayerCaptureGeometryTests.Register(fixture);
         TestHarness.Test("播放工具设置：三张卡在统一分类，未配置也保留路径恢复入口", () =>
         {
             var settings = new SettingsPageStateTests.FakeSettings();

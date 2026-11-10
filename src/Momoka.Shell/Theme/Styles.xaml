@@ -243,6 +243,7 @@
     <Style TargetType="local:MoviePilotSiteDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:NotificationEditDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:NotificationServicePicker" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:PlayerCaptureDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:RefreshMetadataDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
     <Style TargetType="local:SubtitleDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
 
