@@ -9,6 +9,11 @@ internal static class Program
             PlayerToolDownloadTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["player-tools-fixture"])
+        {
+            PlayerToolTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["trailer-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -436,6 +441,7 @@ internal static class Program
         ExternalSubtitleSelectionTests.Register();
         SubtitleFileTests.Register();
         SubtitleBehaviorTests.Register();
+        PlayerToolTests.Register();
         SubtitleForcedOnlyTests.Register();
         SubtitleManagementTests.Register();
         SubtitleTargetTests.Register();
