@@ -68,6 +68,19 @@ internal static partial class ShortcutTests
             Assert.True(AdditionalShortcuts.Plan("screenshot-each-frame-video")!.Requirement.HasFlag(PlayerMenuRequirement.ManagedCapture));
             Assert.False(PlayerMenuCatalog.Commands.Any(node => node.Commands.Any(command => command.Contains("vd-lavc-assume-old-x264"))));
         });
+        Test("播放分析：已装箱脚本入口与能力要求共用目录", () =>
+        {
+            foreach (var id in new[] { "video-detect-crop", "skip-to-silence" })
+            {
+                var node = AdditionalShortcuts.Plan(id)!;
+                Assert.Equal("script-message-to", node.Commands.Single()[0]);
+                Assert.Equal(MpvAnalysis.ScriptName, node.Commands.Single()[1]);
+                Assert.True(node.RequireProperties.Contains(MpvAnalysis.ReadyProperty));
+                Assert.Equal("", node.Notice);
+            }
+            foreach (var value in new[] { "yes", "true", "1", "\"true\"" }) Assert.True(MpvAnalysis.IsTrue(value));
+            Assert.False(MpvAnalysis.IsTrue("false"));
+        });
         Test("扩展播放菜单：标点键可持久化并转换成mpv名称", () =>
         {
             foreach (var pair in new[] { ("Minus", "-"), ("Equal", "="), ("Comma", ","),

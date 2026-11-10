@@ -241,7 +241,7 @@ public static class InlineSwitch
         {
             "sub-delay", "sub-visibility", "secondary-sid", "secondary-sub-visibility",
             "secondary-sub-delay", "secondary-sub-pos", "secondary-sub-ass-override",
-            "audio-delay", "speed", "volume", "mute"
+            "video-crop", "audio-delay", "speed", "volume", "mute"
         }) Add(name);
 
         return names;

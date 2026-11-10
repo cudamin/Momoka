@@ -5381,7 +5381,8 @@ internal static class PlaybackTests
             foreach (var node in PlayerMenuCatalog.Flatten(PlayerMenuCatalog.Root)
                 .Where(node => node.Kind == PlayerMenuKind.Command))
             {
-                Assert.True(node.Notice.Length > 0, node.Label);
+                Assert.True(node.Notice.Length > 0 || node.Commands.All(command => command.Count > 2
+                    && command[0] == "script-message-to" && command[1] == MpvAnalysis.ScriptName), node.Label);
             }
         });
 
@@ -5392,7 +5393,8 @@ internal static class PlaybackTests
                 foreach (var command in node.Commands)
                 {
                     // libmpv 里没有 Lua，随附配置里那些 script-message 行按下去什么都不会发生。
-                    Assert.False(command[0].StartsWith("script-", StringComparison.Ordinal),
+                    Assert.False(command[0].StartsWith("script-", StringComparison.Ordinal)
+                        && !(command.Count > 2 && command[0] == "script-message-to" && command[1] == MpvAnalysis.ScriptName),
                         $"{node.Label}：{command[0]}");
                 }
             }

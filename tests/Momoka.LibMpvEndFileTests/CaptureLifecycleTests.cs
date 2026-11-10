@@ -7,6 +7,25 @@ internal static class CaptureLifecycleTests
 {
     internal static void Register(Action<string, Func<Task>> test)
     {
+        test("播放分析：活跃检测不能同窗覆盖到下一票", async () =>
+        {
+            await using var f = new HandleFixture(standalone: true);
+            f.Ready();
+            f.Native.Text["user-data/momoka-analysis-active"] = "true";
+            f.Handle.HandOver();
+            Assert.False(await f.Handle.SwapToAsync(HandleFixture.Request(), CancellationToken.None));
+            Assert.Equal(0, f.Native.LoadCalls);
+        });
+        test("播放分析：宿主消息带当前脚本代次，未知代次拒绝", async () =>
+        {
+            await using var f = new HandleFixture();
+            f.Ready();
+            var command = new[] { "script-message-to", MpvAnalysis.ScriptName, "silence" };
+            Assert.False(await f.Handle.CommandAsync(command, CancellationToken.None));
+            f.Native.Text["user-data/momoka-analysis-generation"] = "7";
+            Assert.True(await f.Handle.CommandAsync(command, CancellationToken.None));
+            Assert.Equal("7", f.Native.Commands.Last()[^1]);
+        });
         test("逐帧截图：文件边界无法停止时退出实例，不继续后继文件", async () =>
         {
             await using var f = new HandleFixture();

@@ -7,6 +7,8 @@ internal static class NativeMenuShortcuts
 
     internal static IReadOnlyList<ShortcutAction> Actions { get; } =
     [
+        new("video-detect-crop", "去黑边检测开关", K("C", shift: true)),
+        new("skip-to-silence", "跳到下一个静音位置", K("F3")),
         new("osd-timeline", "OSD 时间轴开关", K("O")),
         new("osd-position", "显示当前播放位置", K("O", shift: true)),
         new("video-aspect-cycle", "循环切换宽高比", K("A", alt: true, shift: true)),

@@ -17,7 +17,9 @@ public enum PlayerMenuRequirement
     D3D11 = 256,
     H264 = 512,
     Chapters = 1024,
-    ManagedCapture = 2048
+    ManagedCapture = 2048,
+    CropDetection = 4096,
+    SilenceDetection = 8192
 }
 
 /// <summary>What one row of the 画面菜单 is.</summary>
@@ -100,6 +102,9 @@ public static class PlayerMenuCatalog
     public static IReadOnlyList<PlayerMenuNode> Root { get; } = Describe(
     [
         Group("导航",
+            Item("跳到下一个静音位置", "", "script-message-to", MpvAnalysis.ScriptName, "silence")
+                with { Shortcut = "skip-to-silence", Requirement = PlayerMenuRequirement.SilenceDetection,
+                    RequireProperties = [MpvAnalysis.ReadyProperty, MpvAnalysis.SilenceProperty] },
             Item("开/关 显示 OSD 时间轴", "OSD 时间轴:${osd-level}", "cycle-values", "osd-level", "3", "1")
                 with { Shortcut = "osd-timeline" },
             Item("显示当前播放位置", "播放位置:${time-pos} / ${duration}", "show-progress")
@@ -198,6 +203,9 @@ public static class PlayerMenuCatalog
                     "cycle", "tone-mapping-visualize") with { Shortcut = "hdr-visualize" })),
 
         Group("视频",
+            Item("开/关 去黑边", "", "script-message-to", MpvAnalysis.ScriptName, "crop")
+                with { Shortcut = "video-detect-crop", Requirement = PlayerMenuRequirement.CropDetection,
+                    RequireProperties = [MpvAnalysis.ReadyProperty, MpvAnalysis.CropProperty] },
             Item("切换 视频轨", "视频轨:${vid}", "cycle", "vid") with { Shortcut = "video-next" },
             Group("切换 解码方式",
                 Pick("软解", "解码方式:${hwdec}", "hwdec", "no", "set", "hwdec", "no"),

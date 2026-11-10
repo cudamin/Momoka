@@ -43,6 +43,8 @@ public static class MpvArgumentBuilder
         // 装箱缺失只是没有统计面板，不是起播失败 —— 缺席即跳过。
         if (MpvStats.Exists(AppContext.BaseDirectory))
             arguments.Add($"--script={MpvStats.ScriptPath(AppContext.BaseDirectory)}");
+        if (MpvAnalysis.Exists(AppContext.BaseDirectory))
+            arguments.Add($"--script={MpvAnalysis.ScriptPath(AppContext.BaseDirectory)}");
 
         // Belt and braces, as in the libmpv backend: --no-config already blocks the watch_later file,
         // and the client owning the start position is meant to be the rule rather than a side effect.

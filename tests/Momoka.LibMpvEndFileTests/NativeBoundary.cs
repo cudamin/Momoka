@@ -4,6 +4,7 @@ internal sealed class NativeBoundary
 {
     internal List<string[]> Commands { get; } = [];
     internal List<string> Reads { get; } = [];
+    internal Dictionary<string, string> Text { get; } = new(StringComparer.Ordinal);
     internal List<string> Writes { get; } = [];
     internal Action<string[]>? OnCommand { get; set; }
     internal Func<string[], int>? CommandResult { get; set; }

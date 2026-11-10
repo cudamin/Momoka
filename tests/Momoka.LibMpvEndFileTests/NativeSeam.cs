@@ -42,6 +42,7 @@ internal static partial class LibMpvNative
     {
         Boundary.Reads.Add(name);
         // The fake standalone file has a video track; profile-list is intentionally unavailable.
+        if (Boundary.Text.TryGetValue(name, out var value)) return Marshal.StringToCoTaskMemUTF8(value);
         return name == "vid" ? Marshal.StringToCoTaskMemUTF8("1") : IntPtr.Zero;
     }
 

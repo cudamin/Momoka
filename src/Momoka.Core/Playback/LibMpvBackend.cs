@@ -167,6 +167,10 @@ public sealed class LibMpvBackend(
                 Log.Warn(Category, $"统计脚本装箱缺失（{MpvStats.ScriptRelativePath}），本次播放没有统计面板");
             }
 
+            if (customConfig is null && MpvAnalysis.Exists(AppContext.BaseDirectory)
+                && !Run(context, "load-script", MpvAnalysis.ScriptPath(AppContext.BaseDirectory)))
+                Log.Warn(Category, "播放分析脚本装载失败，本次播放没有黑边/静音检测");
+
             LibMpvNative.mpv_request_log_messages(context, "warn");
 
             if (MpvDanmaku.Exists(AppContext.BaseDirectory)
@@ -763,6 +767,9 @@ internal sealed class LibMpvHandle(
         if (!Swapable || _contextClosed.Task.IsCompleted || !InlineSwitch.SameSignature(signature!, signatureFor!(request))
             || !InlineSwitch.CanTakeOver(_stopRequested, _handedOver, _exit.Task.IsCompleted, _apiGate.IsDestroyed)) return false;
 
+        // Analysis restores temporary settings in its unload hook. Recreate while it owns a task,
+        // rather than allowing that hook to restore old speed/crop values over a successor ticket.
+        if (MpvAnalysis.IsTrue(ReadText("user-data/momoka-analysis-active"))) return false;
         IReadOnlyList<KeyValuePair<string, string>> filmOptions;
         try { filmOptions = InlineSwitch.FilmScoped(_filmDefaults, request, ReadText("profile-list")); }
         catch (Exception error)
@@ -1816,6 +1823,12 @@ internal sealed class LibMpvHandle(
     private bool Command(params string[] arguments)
     {
         // 返回值交出去，不只是写进日志：调用方要拿它决定「按了截图之后到底要不要说已保存」。
+        if (arguments.Length >= 3 && arguments[0] == "script-message-to" && arguments[1] == MpvAnalysis.ScriptName)
+        {
+            var generation = ReadNativeText("user-data/momoka-analysis-generation");
+            if (generation is null) return false;
+            return LibMpvBackend.Run(context, [.. arguments, generation]);
+        }
         return _eachFrameScreenshot.Execute(arguments, command => LibMpvBackend.Run(context, command));
     }
 }
