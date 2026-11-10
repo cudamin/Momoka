@@ -694,9 +694,9 @@ internal static class DanmakuTests
             Assert.Equal("toggle-mute", ShortcutCatalog.Lookup(bindings, new("D", false, false, false)));
             Assert.True(resolved["toggle-danmaku"].IsEmpty);
             Assert.Equal(ShortcutCatalog.Actions.Count, resolved.Count);
-            var rebound = ShortcutCatalog.Rebind(bindings, "toggle-danmaku", new("K", false, false, false));
+            var rebound = ShortcutCatalog.Rebind(bindings, "toggle-danmaku", new("F12", true, true, true));
             Assert.Null(rebound.Conflict);
-            Assert.Equal("toggle-danmaku", ShortcutCatalog.Lookup(rebound.Bindings, new("K", false, false, false)));
+            Assert.Equal("toggle-danmaku", ShortcutCatalog.Lookup(rebound.Bindings, new("F12", true, true, true)));
             Assert.Equal("toggle-mute", ShortcutCatalog.Lookup(rebound.Bindings, new("D", false, false, false)));
         });
 

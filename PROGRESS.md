@@ -16,6 +16,15 @@
 测试先Core3/3红（规则缺失）、VM4/4红（菜单/命令缺失），再通知2红（同页View与Cancel/Resume菜单通知）。独立复审发现目录拼图灰首图与旧卡片比例未更新，补真实CardItem/PageContract及VM比例有效红后修正；第一个新测试曾因夹具null/属性错误类型失败，已修测试后取得预期红，不计产品反证。
 
 初轮当前Core/Tests/Shell Release均0警告0错误；Core布局3/3、实际VM6/6、收藏来源13/13、深返回21/21。修正前完整主测试4331/4331、0失败0跳过，证据artifacts/fnnas-layout/full-tests.log。修正后PageContract176/176通过，最终Shell Release构建0警告0错误，VM6/6（含真实卡片比例）、收藏来源13/13、深返回21/21均再验通过，编码13文件通过、自动化缺句柄0；完整最终集成套件及真实WinUI宽窄/菜单/图像/恢复由根代理重跑，不沿用修正前绿色。现有FnNasMixed探针新增Other/目录1280/760、实际StackLayout/行宽、RowPoster及Image.Source、列表勾选、目录重新进入恢复；本树只编译，未启动应用。外部详细审查和计划为指定visualizations/fnnas-audit.md。
+## 2026-11-10 多本地媒体库与自动监控（已交付）
+
+用户最终要求多个目录一目录一媒体库，首页逐库显示；识别独立选择Momoka直连TMDB或MP，整理选择直接改名/软链接/硬链接。设置保存及显式开启后处理已有和新增，文件稳定且无写句柄才识别；持久处理账本防重，视频与NFO成功才入库，图片失败保留部分状态。应用运行期间后台工作，关闭设置页继续，退出应用停止；诊断启动不启真实目录监控。手动结果同样入本地索引。移除库不删除文件。
+
+产品提交49e2ddb/6b95786/02cc3b4/369bc0f/8dfd3cc/fe46d41、监控1f5b643、首页8c2715e、协调设置5e5ae6c已进入master d328265；后续主树11ab16c使库卡原地更新数量，2e2333a及11ab16c的探针核对实际SubLine。主树Core/Tests/Shell Release均0警告0错误；完整默认4535/4535、协调器5/5、手动VM6/6、本地库VM12/12，页面契约最终176/176（包含新增卡片通知红绿）。全量后的最后改动仅Shell导航卡文本与其专项，相关176项及真实UI重验。原先互斥锁失败、遮挡、窄窗尺寸和旧卡数字像素证据保留，没有当作通过。
+
+主树与正式发布件local-media分区2/2：真实临时目录已有电影、新增剧集、首页打开后再新增一集，实际链接/NFO/PNG及库归属通过；首页显示两个本地库且剧集从1项变2项，宽窄与逐库列表实屏已目视。正式证据shell-probe-20261110-124037434-1440，汇总artifacts/local-libraries-20261110。匿名HTTP和临时dummy媒体，不读取真实影片或提交远端媒体整理/刷新。
+
+publish.ps1 -NoArchive -Shortcut成功，547文件287.4MB、60批准mpv载荷通过；快捷方式指向主树artifacts/publish/win-x64、参数空。发布Shell/Core/PRI与当前发布bin哈希一致；Shell A05DA2A9E747C0AD71F677CE5A0090E42B329DCF8023663989124683F4E9FE69。未上传远端。尚未接应用内本地播放，库页可看内容及打开所在文件夹；首页仍沿用已有登录门控；真实TMDB/MP部署版本与用户媒体自动操作未实测。监控按配置库范围工作，不安装独立Windows后台服务。
 
 ## 2026-11-10 后端审查两项修复（已交付）
 
@@ -12194,6 +12203,27 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 
 用户最新明确“mp官方怎么弄的你就怎么改”，覆盖此前删除轮询的指示。已固定源码并形成计划；对齐范围是MP汇总／电影／电视剧订阅列表，官方首页无订阅货架。Core子代理写匿名签名测试时工具SyntaxError后被内容过滤器明确禁止重试／换格式／工具／子代理绕过，停止该部分；Core与VM独立树均无代码修改。页面排程隔离试验175/178红→178/178绿仅验证替身VM边界，尚无真实VM/产品集成；已将精确三文件差异与日志保存在work/mp-polling并定点撤回实验，未把不可编译半成品合入或发布。技能已记录用户新裁定及未完成状态，不能继续以旧删轮询要求阻止对齐。当前只交付文档，不声称MP功能已改。
 
+- 2026-11-10 播放工具 Core：独立树 player-tools-core 从 4799a2d 添加显式工具配置、固定本地参数计划、可取消执行及 SRT 全片翻译。上游 input.conf 和 slicing_copy/mpv-animated/autosubsync/sub-fastwhisper 已核对；真实匿名 FFmpeg 片段/SRT/GIF 通过。当前树只负责 Core，待父会话整合菜单/设置后在主树重验发布。
+
+## 2026-11-10 原生播放菜单与快捷键扩展（隔离开发）
+
+- 树：`C:/Users/89400/.codex/worktrees/player-native-menu/Momoka`，临时分支 `codex/player-native-menu`，基于4799a2d。专属Core菜单/快捷键、同窗复位与原生截图控制。Shell动态菜单和工具接入由主交付会话整合。
+- 对照 `C:/mpv_config-2026.08.12/portable_config/input.conf` 读取原命令，新增73个可重绑动作，总143个，原70默认键保持。新增帧同步候选、主次字幕位移/延迟/兼容、视频与音频快捷操作、原始带字幕和逐帧截图、全部现有调色/滤镜/HDR操作快捷键。OEM词汇加Minus/Equal/Comma/Period/Backquote。
+- 目录与键盘共用同一命令/反馈/适用性计划，RequireProperties明确列出实际属性，宿主动态动作HostAction与原生命令互斥。选轨和恢复只要求有轨，格式相关项按实际文本/ASS/位图字幕隐藏。
+- 裸随包mpv `v0.41.0-1163-g270367e8a`，无配置/脚本/媒体/音视频窗口：17项属性原值set及13项新增cycle命令全部接受。证据 `work/native-menu-options.json`、`work/native-menu-commands.json`。命令接受不证明真实图形或声音效果。
+- mpv `270367e8a` 的 `player/screenshot.c:526` 将逐帧命令存在进程上下文，Core完整句柄现于native gate跟踪自有模式：切换前停止、start/end文件边界停止、首次写拒绝撤销已登记循环、普通单帧清状态。停止只toggle既有模式，不额外保存一张。仅内置非自定义配置显示逐帧入口。`video/decode/vd_lavc.c:834` 的old-x264只在decoder初始化生效，当前菜单剔除；不能以set成功冒充即时兼容。
+- 测试先红：菜单5项缺项，逐帧完整handle3项缺陷。实现后 `Momoka.LibMpvEndFileTests` 46/46通过，0跳过；只managed native seam/匿名假HTTP，无原生初始化或真实播放。最终`native-menu-fixture`474/474通过（0跳过），本次改动文件whitespace与git diff --check通过。全测试项目whitespace仍报基线已有DetailTrailerTests:165和ItemTrailerTests:116共3项，不作本任务无关修复。待主交付会话合入master、重验UI/最终代码并发布；本树未发布、未推送。
+
+- 2026-11-10独立审查截图边界补强：合法标志白名单避免未知命令失败后重试误开；start/end停止拒绝时关闭入场并退出实例；uosc备用菜单截图也走宿主带代际的同一入口。完整handle新增拒绝反例先红，最终47/47；真实Lua无媒体53/53，0错误，改动文件format/check-diff通过。Shell探针commit 9dcc2b2待父整合依赖编译与串行运行，尚不能算窗口验证。
+
+- 2026-11-10补显式播放分析/typed章节：受控momoka_analysis脚本、MpvAnalysis能力常量/IsTrue、Core动作video-detect-crop/skip-to-silence（总145个原生动作）、两后端装箱装载与消息代次附加、活跃检测拒同窗覆盖和video-crop复位。真实DLL直接滤镜probe证实cropdetect缺失，入口隐藏；silencedetect有，本树5秒合成图/音无窗口无声音核静音扫描完成位置3.6667/speed1/af空，typed章节2项写读成功（work/analysis-local-result.json）。真实Lua假端点7/7，缺crop分支5/5；当前Core/Tests编译0警告错误，菜单专项475/475，完整handle49/49、0skip；改动format/py_compile/check-diff通过。未运行UI、真实服务器或真实HDR/独占图形；等待父交付会话整合并重验/发布。
+
+## 2026-11-10 播放右键菜单与工具整合
+
+- 本批参考本地2026.08.12配置及GitHub e235480f，现162个可重绑动作，原70默认键保持；轨道/设备/章节、主次字幕、画面/音频/HDR、截图、静音扫描及外部工具接入同一菜单。工具路径显式配置，完整本地下载后固定参数处理，换片取消、无覆盖输出，字幕回载守文件代次。
+- 本树Release Shell/Tests均0警告错误；native-menu-fixture475/475、player-tools16/16、download+章节+备份5/5、真实Settings/Controller57/57通过。最终离线shortcuts探针5/5通过：`C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261110-105357671-27088/logs`，含宽窄菜单、设置、裁切与固定失败提示实屏。此前失败已定位隐藏启动窗口、原始UIA岛坐标和失败提示滚出，修正后同项全部通过。
+- 随包无cropdetect故自动去黑边隐藏；silencedetect和typed章节桥以本地合成媒体实际通过。FFmpeg片段/GIF/SRT/裁切/拼图/WAV及alass匿名SRT同步实际通过；Whisper/ffsubsync程序和真实云翻译未运行。真实媒体库播放未执行；实体Escape停止Computer Use后不再操作桌面，点外关闭未取得本轮实按通过证据。
+- 待整合最新master的Plex多段与受管HTTP改动，重验主树并发布。当前主树另有LocalMedia探针未提交内容，整合时须保留；本条不是交付完成声明。
 ## 2026-11-10 Plex 顺序分段时间轴修复（待批次整合）
 
 独立工作树 `plex-multipart-timeline/Momoka` 基于 `059e3c6`，负责 Plex 映射、播放资源模型/纯构造与离线回归，未修改 backend。一个 Media 只提供一个版本，其 Part 顺序使用 EDL 整片时钟；多段 ID 使用 `media:` 域，避免与单文件 Part ID 混淆。源时长来自有效 Part 总和，缺/非法/溢出时长及内置轨道布局不一致略过该版本，保留其他版本。多段 server 外挂字幕轨因缺独立时间轴隐藏，内置轨和关闭字幕可用；旧外挂选择明确拒绝。`MpvMediaResource.Build` 逐段调用安全地址映射再 UTF-8 长度转义，首段 `layout=this`，不写空 start 参数。
@@ -12208,3 +12238,16 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 独立树 `native-http-redirect-security/Momoka`，基点059e3c6；只改原生/外部backend、HTTP transport、inline/builder、相关测试与文档。固定随包mpv270367e8a/FFmpegc705686a3的全局headers跨302泄露已由旧原生探针复现；失败先行回归两项0/2。改每个文件独立受管loopback GET/HEAD streaming，认证逐跳同源保留、离源不恢复、初始外源不带头；清nativeheaders与proxy、字幕反映射、动态sub-add、Range及中断取消。认证HLS/DASH/清单拒绝；上游按.NET系统网络配置。
 
 本树Release Core/Tests编译0警告0错误，定向51/51及播放/字幕382/382，0失败0跳过；随包批准DLL受管+原生302→404零正文探针4/4，四种认证头目标收到0。仅离线loopback，无真实服务器播放/历史写入、UI或外部mpv实际版本验收。Plex结构化Part/EDL接线和最终主树全量/源pin/发布由主代理整合后执行；本树不上传、不合并、不发布。Release Shell及ShaderCommandGeneration源码提取编译0/0；最终退出竞争和锁收束后重编0/0、定向51/51、原生4/4及差异/编码/空白检查通过。
+
+## 2026-11-10 本地媒体库首页和列表页（待主代理整合）
+
+独立树 local-library-home/Momoka，基点2f429fd；首页每个非空源目录配置对应媒体库排的一张本地导航卡，名称/已入库数量/本机海报随Changed实时同步；MP同步只清自己的导航钥匙。新增独立LocalLibraryPage/VM/Row，过滤IsInLibrary，显示标题/年/季集/目标路径/状态，刷新和打开存在的目录，预留未接时隐藏的播放委托。CardItem新增限定本机普通图片文件的12MiB读取路径、取消/尺寸/需求守卫。
+
+独立LocalLibraryPageTests实际编译链接生产VM/Row/PageViewModel/Artwork，以正式Core条目模型和受控Coordinator/配置/WinUI边界运行12/12，0失败0跳过；真实临时图片读取、源契约和导航重入覆盖，不是UI/Explorer/真实解码或播放证据。自动化句柄扫描0缺失，diff空白检查通过。Shell首次编译修正Home退订误位后，重复构建导致intermediatexaml文件锁并连带WMC错误；主代理整合完整编译/UI待验。无服务器登录时Shell仍展示登录页，本轮未扩大登录体系；临时模型/协调器stub不提交。本树未合入master、未发布、未上传，主代理负责sln/专项manifest及图片源测试编译链接登记与最终交付。
+## 2026-11-10 播放菜单与工具主树交付完成
+
+- 产品提交9a68e2a、主树整合2f429fd，最终UI验收修正28b2692/3e91604；保留同日主树本机媒体、Plex分段和受管HTTP修复。Plex多段媒体的外部工具在服务及菜单双重收起，避免只下载首段；原生当前画面控制照常。
+- 主树Release Tests/Core与Shell均0警告0错误。完整默认4511/4511，0失败0跳过；真实Settings/Controller57/57、完整native-handle49/49。主树Lua uosc55/55、analysis7/7、缺cropdetect分支5/5通过。
+- 主树最终shortcuts实际运行5/5通过、0失败；其余190项分区未运行，不称全量Shell自检。证据`C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261110-113315350-35324/logs`，逐张核对760字幕菜单与固定失败提示实屏。先前窗口遮挡/坐标与合成未落定失败保留，不复用为最终证据。用户明确允许副屏40秒验收后完成本轮。
+- tools/publish.ps1 -NoArchive -Shortcut成功，547文件287.3MB，批准mpv载荷60文件完整校验。2026-11-10 19:41桌面快捷方式指向`C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`；未上传远端。
+- 真实服务器播放未执行；外部mpv完整窗口、Whisper/ffsubsync程序和真实云翻译仍未运行验收。随包缺cropdetect而自动去黑边隐藏；点外关闭无本轮可靠实按证据。细节见docs/播放菜单与工具.md。

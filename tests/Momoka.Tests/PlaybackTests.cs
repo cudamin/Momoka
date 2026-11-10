@@ -5380,7 +5380,8 @@ internal static class PlaybackTests
             foreach (var node in PlayerMenuCatalog.Flatten(PlayerMenuCatalog.Root)
                 .Where(node => node.Kind == PlayerMenuKind.Command))
             {
-                Assert.True(node.Notice.Length > 0, node.Label);
+                Assert.True(node.Notice.Length > 0 || node.Commands.All(command => command.Count > 2
+                    && command[0] == "script-message-to" && command[1] == MpvAnalysis.ScriptName), node.Label);
             }
         });
 
@@ -5391,7 +5392,8 @@ internal static class PlaybackTests
                 foreach (var command in node.Commands)
                 {
                     // libmpv 里没有 Lua，随附配置里那些 script-message 行按下去什么都不会发生。
-                    Assert.False(command[0].StartsWith("script-", StringComparison.Ordinal),
+                    Assert.False(command[0].StartsWith("script-", StringComparison.Ordinal)
+                        && !(command.Count > 2 && command[0] == "script-message-to" && command[1] == MpvAnalysis.ScriptName),
                         $"{node.Label}：{command[0]}");
                 }
             }
@@ -5458,8 +5460,8 @@ internal static class PlaybackTests
                 string.Join(' ', Row("切换 pgs 字幕输出到黑边").Commands[0]));
             Assert.Equal("cycle sub-gray", string.Join(' ', Row("切换 pgs 字幕灰度转换").Commands[0]));
 
-            // 没有等价按键的行不许硬凑：裁切填充、宽高比子菜单都没有快捷键。
-            Assert.Null(Row("开/关 裁切填充").Shortcut);
+            // 裁切填充新增真快捷键；子菜单容器只负责展开，不显示叶子动作的键。
+            Assert.Equal("video-crop", Row("开/关 裁切填充").Shortcut);
             Assert.Null(PlayerMenuCatalog.Root.Single(node => node.Label == "画面").Children
                 .Single(node => node.Label == "切换 宽高比").Shortcut);
 
@@ -5496,7 +5498,7 @@ internal static class PlaybackTests
                     // mpv 的 seek 不带 absolute/relative 时默认 relative —— 「exact」与「relative+exact」同义。
                     Assert.Equal(command[1], node.Commands[0][1]);
                     Assert.Equal("relative+exact", command[^1]);
-                    Assert.Equal("exact", node.Commands[0][^1]);
+                    Assert.Equal("relative+exact", node.Commands[0][^1]);
                     continue;
                 }
 

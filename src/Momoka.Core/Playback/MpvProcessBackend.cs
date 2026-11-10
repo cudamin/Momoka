@@ -385,6 +385,12 @@ internal sealed class MpvProcessHandle(Process process) : IPlaybackHandle, IPlay
         if (arguments.Count == 0) return true;
         if (_ipc is not { IsConnected: true }) return false;
 
+        if (arguments.Count >= 3 && arguments[0] == "script-message-to" && arguments[1] == MpvAnalysis.ScriptName)
+        {
+            var generation = await GetTextAsync("user-data/momoka-analysis-generation", cancellationToken).ConfigureAwait(false);
+            if (generation is null) return false;
+            return await _ipc.SendAsync(cancellationToken, [.. arguments, generation]).ConfigureAwait(false);
+        }
         return await _ipc.SendAsync(cancellationToken, [.. HttpTransport?.MapCommand(arguments) ?? [.. arguments]]).ConfigureAwait(false);
     }
 

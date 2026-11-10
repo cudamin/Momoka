@@ -104,6 +104,7 @@ namespace Momoka.Shell.ViewModels
         public void Activate() => Runtime.Invoke(Inner, "Activate");
         public void UseConfirm(object ignored) { }
         public void UseFilePickers(object save, object open) { }
+        public void UsePlayerToolsPickers(object executable, object directory) { }
     }
 }
 
@@ -120,6 +121,8 @@ namespace Momoka.Shell.Views
     {
         internal static object SaveFor(object page) => new();
         internal static object OpenFor(object page) => new();
+        internal static object ExecutableFor(object page) => new();
+        internal static object DirectoryFor(object page) => new();
     }
     public sealed partial class SettingsPage
     {

@@ -2,6 +2,26 @@ using Momoka.Playback;
 
 namespace Momoka.Mpv;
 
+[Flags]
+public enum PlayerMenuRequirement
+{
+    None = 0,
+    Video = 1,
+    Audio = 2,
+    Subtitle = 4,
+    SecondarySubtitle = 8,
+    TextSubtitle = 16,
+    AssSubtitle = 32,
+    ImageSubtitle = 64,
+    Hdr = 128,
+    D3D11 = 256,
+    H264 = 512,
+    Chapters = 1024,
+    ManagedCapture = 2048,
+    CropDetection = 4096,
+    SilenceDetection = 8192
+}
+
 /// <summary>What one row of the 画面菜单 is.</summary>
 public enum PlayerMenuKind
 {
@@ -46,6 +66,15 @@ public sealed record PlayerMenuNode(
     /// </summary>
     public PlayerMenuState? State { get; init; }
 
+    /// <summary>Runtime capabilities required for this row; hiding never changes preferences.</summary>
+    public PlayerMenuRequirement Requirement { get; init; }
+
+    /// <summary>Additional readable properties needed by multi-command or non-property actions.</summary>
+    public IReadOnlyList<string> RequireProperties { get; init; } = [];
+
+    /// <summary>Host-owned action for dynamic rows; mutually exclusive with native Commands.</summary>
+    public string? HostAction { get; init; }
+
     /// <summary>
     /// The rebindable action（<see cref="ShortcutCatalog"/>）that does exactly what this row does, or null for
     /// the rows no key reaches. Display only — the row still runs <see cref="Commands"/>. Both menus draw the
@@ -62,67 +91,32 @@ public sealed record PlayerMenuNode(
 }
 
 /// <summary>
-/// The right-click 画面菜单, as data.
-/// <para>
-/// Its rows come from the bundled mpv configuration's own uosc menu — the <c>#menu:</c> annotations in
-/// <c>input.conf</c> — because that tree is what someone who has used this configuration already knows,
-/// down to the wording of 「开/关 裁切填充」. Reading it at runtime is what a client that shipped uosc
-/// would do, and this one cannot: playback starts with <c>--no-config</c> so that the user's own
-/// <c>input.conf</c> cannot overwrite the parameters the client depends on, and uosc is Lua, which the
-/// bundled <c>libmpv-2.dll</c> was built without. So the tree was walked once, at development time, and
-/// what survived the walk is here.
-/// </para>
-/// <para>
-/// What did not survive, and why — the menu is shorter than the configuration's by design:
-/// </para>
-/// <list type="bullet">
-/// <item><description>
-/// Every <c>script-message</c>, <c>script-message-to</c> and <c>script-binding</c> row: 打开菜单, 历史,
-/// 字幕下载/同步/AI 生成, 章节制作, 去黑边, 撤消跳转, 剪切与动图. They address scripts that are not
-/// running, so the rows would be buttons that do nothing — the worst kind of menu entry.
-/// </description></item>
-/// <item><description>
-/// uosc's dynamic <c>#@audio-devices</c> generator — the device list is 设置 → 音频's job, not a menu row's.
-/// Its sibling <c>#@state=</c>, the annotation that ticks the current value, did not drop out so much as move
-/// here: the client reads the row's property when the menu opens and ticks the match — radio choices like
-/// 解码方式, on/off rows like 抖动补偿. That the read makes opening asynchronous is fine; both pipelines already
-/// build this menu on an <c>async</c> path. Which rows can honestly show a state and which cannot is
-/// <see cref="PlayerMenuState"/>; the <see cref="PlayerMenuNode.Notice"/> still says which way a toggle went.
-/// </description></item>
-/// <item><description>
-/// Rows the client already owns better: 音轨/字幕轨/静音/延迟 (the 浮层 has them, with the tracks' real
-/// names and the delay's current value), 上个/下个文件 (there is no playlist — 上一集/下一集 walk the
-/// Emby season), 窗口缩放 and 置顶 (the window is the shell's, not mpv's).
-/// </description></item>
-/// <item><description>
-/// 次字幕 rows, and anything about the second subtitle track: nothing in the client loads one.
-/// </description></item>
-/// </list>
-/// <para>
-/// 截屏 <b>used to be on that list and is not any more.</b> The reason it was — 「with <c>--no-config</c> there
-/// is no <c>screenshot-directory</c>, so the files would land next to the executable without the user being
-/// told where」 — stopped being true once <see cref="Infrastructure.AppPaths.ScreenshotDirectory"/> existed and
-/// <see cref="MpvBaseline"/> started naming it on every launch, with the path and an 「打开」 button on the
-/// 关于 card. The three rows differ in what is in the picture, so each one says so rather than being called
-/// 「截屏 1/2/3」.
-/// </para>
-/// <para>
-/// Kept as data in Core rather than built as a <c>MenuFlyout</c> in the shell so that the tree is
-/// checkable without a window: what has to be right here is that every row runs something, that no
-/// submenu is empty, and that the argument lists are mpv's real spelling.
-/// </para>
+/// Shared native playback menu for the integrated page and standalone window.
+/// Commands originate in dyphire/mpv-config's 2026-08-12 input.conf; script-dependent rows are
+/// supplied by the host only when their tools are configured. Typed argument lists, current-value
+/// checks and capability requirements keep display, keyboard dispatch and file reset in agreement.
 /// </summary>
 public static class PlayerMenuCatalog
 {
     /// <summary>The menu, top level first. Order is the configuration's.</summary>
-    public static IReadOnlyList<PlayerMenuNode> Root { get; } =
+    public static IReadOnlyList<PlayerMenuNode> Root { get; } = Describe(
     [
         Group("导航",
+            Item("跳到下一个静音位置", "", "script-message-to", MpvAnalysis.ScriptName, "silence")
+                with { Shortcut = "skip-to-silence", Requirement = PlayerMenuRequirement.SilenceDetection,
+                    RequireProperties = [MpvAnalysis.ReadyProperty, MpvAnalysis.SilenceProperty] },
+            Item("开/关 显示 OSD 时间轴", "OSD 时间轴:${osd-level}", "cycle-values", "osd-level", "3", "1")
+                with { Shortcut = "osd-timeline" },
+            Item("显示当前播放位置", "播放位置:${time-pos} / ${duration}", "show-progress")
+                with { Shortcut = "osd-position" },
+            Item("跳到片头", "已跳到片头", "seek", "0", "absolute+exact") with { Shortcut = "seek-start" },
+            Item("回到上次跳转前的位置", "已返回跳转前的位置", "revert-seek") with { Shortcut = "revert-seek" },
+            Rule,
             Item("上一章节", "章节:${chapter}", "add", "chapter", "-1") with { Shortcut = "chapter-previous" },
             Item("下一章节", "章节:${chapter}", "add", "chapter", "1") with { Shortcut = "chapter-next" },
             Rule,
-            Item("精准后退 1 秒", "后退 1 秒", "seek", "-1", "exact") with { Shortcut = "seek-backward-fine" },
-            Item("精准前进 1 秒", "前进 1 秒", "seek", "1", "exact") with { Shortcut = "seek-forward-fine" },
+            Item("精准后退 1 秒", "后退 1 秒", "seek", "-1", "relative+exact") with { Shortcut = "seek-backward-fine" },
+            Item("精准前进 1 秒", "前进 1 秒", "seek", "1", "relative+exact") with { Shortcut = "seek-forward-fine" },
             Item("上一帧", "当前帧:${estimated-frame-number}", "frame-back-step") with { Shortcut = "frame-backward" },
             Item("下一帧", "当前帧:${estimated-frame-number}", "frame-step") with { Shortcut = "frame-forward" }),
 
@@ -156,6 +150,8 @@ public static class PlayerMenuCatalog
                 ["set", "video-aspect-override", "no"]),
             Rule,
             Flag("开/关 自动 ICC 校色", "ICC 自动校色:${icc-profile-auto}", "icc-profile-auto", "cycle", "icc-profile-auto"),
+            Flag("开/关 非线性色彩转换", "非线性色彩转换:${sigmoid-upscaling}", "sigmoid-upscaling", "cycle", "sigmoid-upscaling")
+                with { Shortcut = "video-nonlinear" },
             Group("调色",
                 Item("对比度 -1", "对比度:${contrast}", "add", "contrast", "-1"),
                 Item("对比度 +1", "对比度:${contrast}", "add", "contrast", "1"),
@@ -202,9 +198,15 @@ public static class PlayerMenuCatalog
                     "cycle-values", "target-trc", "auto", "pq", "gamma2.2"),
                 Item("切换 HDR 参考白亮度", "HDR 参考白亮度:${hdr-reference-white}",
                     "cycle-values", "hdr-reference-white", "100", "203"),
-                Item("切换 色域映射模式", "色域映射模式:${gamut-mapping-mode}", "cycle", "gamut-mapping-mode"))),
+                Item("切换 色域映射模式", "色域映射模式:${gamut-mapping-mode}", "cycle", "gamut-mapping-mode"),
+                Flag("切换 色调映射可视化", "色调映射可视化:${tone-mapping-visualize}", "tone-mapping-visualize",
+                    "cycle", "tone-mapping-visualize") with { Shortcut = "hdr-visualize" })),
 
         Group("视频",
+            Item("开/关 去黑边", "", "script-message-to", MpvAnalysis.ScriptName, "crop")
+                with { Shortcut = "video-detect-crop", Requirement = PlayerMenuRequirement.CropDetection,
+                    RequireProperties = [MpvAnalysis.ReadyProperty, MpvAnalysis.CropProperty] },
+            Item("切换 视频轨", "视频轨:${vid}", "cycle", "vid") with { Shortcut = "video-next" },
             Group("切换 解码方式",
                 Pick("软解", "解码方式:${hwdec}", "hwdec", "no", "set", "hwdec", "no"),
                 Pick("自动选择硬解加速模式", "解码方式:${hwdec}", "hwdec", "auto-safe", "set", "hwdec", "auto-safe"),
@@ -220,10 +222,20 @@ public static class PlayerMenuCatalog
                     ["set", "video-sync", "display-resample"], ["set", "interpolation", "yes"])
                     with { State = new("interpolation", PlayerMenuMatch.Bool, Radio: true) },
                 Pick("关闭", "插值已关闭", "interpolation", "no", "set", "interpolation", "no")),
+            Flag("开/关 flip 模式", "D3D11 flip 模式:${d3d11-flip}", "d3d11-flip", "cycle", "d3d11-flip")
+                with { Shortcut = "video-flip", Requirement = PlayerMenuRequirement.D3D11 },
             Flag("开/关 反交错", "去交错:${deinterlace}", "deinterlace", "cycle", "deinterlace"),
-            Item("切换 帧同步模式", "帧同步模式:${video-sync}",
-                "cycle-values", "video-sync",
-                "display-resample", "display-tempo", "audio", "display-vdrop", "display-resample-vdrop")),
+            Group("切换 帧同步模式",
+                Pick("audio", "帧同步模式:${video-sync}", "video-sync", "audio", "set", "video-sync", "audio"),
+                Pick("display-resample", "帧同步模式:${video-sync}", "video-sync", "display-resample",
+                    "set", "video-sync", "display-resample"),
+                Pick("display-tempo", "帧同步模式:${video-sync}", "video-sync", "display-tempo", "set", "video-sync", "display-tempo"),
+                Pick("display-vdrop", "帧同步模式:${video-sync}", "video-sync", "display-vdrop", "set", "video-sync", "display-vdrop"),
+                Pick("display-resample-vdrop", "帧同步模式:${video-sync}", "video-sync", "display-resample-vdrop",
+                    "set", "video-sync", "display-resample-vdrop"),
+                Item("循环切换", "帧同步模式:${video-sync}", "cycle-values", "video-sync",
+                    "display-resample", "display-tempo", "audio", "display-vdrop", "display-resample-vdrop")
+                    with { Shortcut = "video-sync-cycle" })),
 
         Group("视频滤镜",
             Item("清空", "清空视频滤镜", "vf", "clr", ""),
@@ -244,13 +256,29 @@ public static class PlayerMenuCatalog
             // not read the manual. 「带着色器」 matters here more than in most players — this client's whole
             // 画质档位 scheme is shaders, so 「what the chain did to this frame」 is a real question, and only
             // the first row answers it.
-            Item("截图 — 当前尺寸（含字幕和着色器）", "已保存到 ${screenshot-directory}", "screenshot", "scaled+subtitles")
+            Item("截图 — 当前尺寸（含字幕和着色器）", "截图已保存到 ${screenshot-directory}", "screenshot", "scaled+subtitles")
                 with { Shortcut = "screenshot" },
-            Item("截图 — 原始尺寸（不带字幕）", "已保存到 ${screenshot-directory}", "screenshot", "video")
+            Item("截图 — 原始尺寸（不带字幕）", "截图已保存到 ${screenshot-directory}", "screenshot", "video")
                 with { Shortcut = "screenshot-original" },
-            Item("截图 — 整个播放窗口（含控件）", "已保存到 ${screenshot-directory}", "screenshot", "window")),
+            Item("截图 — 整个播放窗口（含控件）", "截图已保存到 ${screenshot-directory}", "screenshot", "window")
+                with { Shortcut = "screenshot-window" },
+            Item("截图 — 原始尺寸（含字幕）", "截图已保存到 ${screenshot-directory}", "screenshot", "subtitles")
+                with { Shortcut = "screenshot-subtitles" },
+            Rule,
+            Item("开/关 逐帧截图（原始尺寸，含字幕）", "已切换逐帧截图；再次执行停止，目录:${screenshot-directory}",
+                "screenshot", "subtitles+each-frame") with { Shortcut = "screenshot-each-frame-subtitles" },
+            Item("开/关 逐帧截图（原始尺寸，不含字幕）", "已切换逐帧截图；再次执行停止，目录:${screenshot-directory}",
+                "screenshot", "video+each-frame") with { Shortcut = "screenshot-each-frame-video" },
+            Item("开/关 逐帧截图（整个播放窗口）", "已切换逐帧截图；再次执行停止，目录:${screenshot-directory}",
+                "screenshot", "window+each-frame") with { Shortcut = "screenshot-each-frame-window" }),
 
         Group("音频",
+            Item("切换 音频轨", "音频轨:${aid}", "cycle", "aid") with { Shortcut = "audio-next" },
+            Flag("切换 静音", "静音:${mute}", "mute", "cycle", "mute") with { Shortcut = "toggle-mute" },
+            Item("延迟 -0.1", "音频延迟:${audio-delay}", "add", "audio-delay", "-0.1") with { Shortcut = "audio-delay-decrease" },
+            Item("延迟 +0.1", "音频延迟:${audio-delay}", "add", "audio-delay", "0.1") with { Shortcut = "audio-delay-increase" },
+            Item("延迟 重置", "音频延迟:${audio-delay}", "set", "audio-delay", "0") with { Shortcut = "audio-delay-reset" },
+            Rule,
             Group("音频通道输出方式",
                 Pick("7.1 声道输出", "音频通道输出方式:${audio-channels}", "audio-channels", "7.1",
                     "set", "audio-channels", "7.1"),
@@ -276,9 +304,32 @@ public static class PlayerMenuCatalog
             Flag("开/关 下混归一化", "5.1 下混归一化:${audio-normalize-downmix}", "audio-normalize-downmix",
                 "cycle", "audio-normalize-downmix"),
             Rule,
-            Flag("切换 音频独占模式", "音频独占模式:${audio-exclusive}", "audio-exclusive", "cycle", "audio-exclusive")),
+            Flag("切换 音频独占模式", "音频独占模式:${audio-exclusive}", "audio-exclusive", "cycle", "audio-exclusive"),
+            Flag("开/关 精确跳转时丢帧", "精确跳转时丢帧:${hr-seek-framedrop}", "hr-seek-framedrop", "cycle", "hr-seek-framedrop")
+                with { Shortcut = "audio-hr-seek-drop", Requirement = PlayerMenuRequirement.Video }),
 
         Group("字幕",
+            Item("切换 字幕轨", "字幕轨:${sid}", "cycle", "sid") with { Shortcut = "subtitle-next" },
+            Item("切换 次字幕", "次字幕轨:${secondary-sid}", "cycle", "secondary-sid") with { Shortcut = "secondary-subtitle-next" },
+            Flag("切换 字幕可见性", "字幕可见性:${sub-visibility}", "sub-visibility", "cycle", "sub-visibility")
+                with { Shortcut = "toggle-subtitle" },
+            Flag("切换 次字幕可见性", "次字幕可见性:${secondary-sub-visibility}", "secondary-sub-visibility", "cycle", "secondary-sub-visibility")
+                with { Shortcut = "secondary-subtitle-toggle", Requirement = PlayerMenuRequirement.SecondarySubtitle },
+            Item("切换 默认字体", "字幕字体:${sub-font}", "cycle-values", "sub-font", "sans-serif", "Microsoft YaHei", "SimSun")
+                with { Shortcut = "subtitle-font", Requirement = PlayerMenuRequirement.TextSubtitle },
+            Rule,
+            Item("次字幕上移", "次字幕位置:${secondary-sub-pos}", "add", "secondary-sub-pos", "-1")
+                with { Shortcut = "secondary-subtitle-position-up", Requirement = PlayerMenuRequirement.SecondarySubtitle },
+            Item("次字幕下移", "次字幕位置:${secondary-sub-pos}", "add", "secondary-sub-pos", "1")
+                with { Shortcut = "secondary-subtitle-position-down", Requirement = PlayerMenuRequirement.SecondarySubtitle },
+            Item("字幕延迟 -0.1", "字幕延迟:${sub-delay}", "add", "sub-delay", "-0.1") with { Shortcut = "subtitle-delay-decrease" },
+            Item("字幕延迟 +0.1", "字幕延迟:${sub-delay}", "add", "sub-delay", "0.1") with { Shortcut = "subtitle-delay-increase" },
+            Item("次字幕延迟 -0.1", "次字幕延迟:${secondary-sub-delay}", "add", "secondary-sub-delay", "-0.1")
+                with { Shortcut = "secondary-subtitle-delay-decrease", Requirement = PlayerMenuRequirement.SecondarySubtitle },
+            Item("次字幕延迟 +0.1", "次字幕延迟:${secondary-sub-delay}", "add", "secondary-sub-delay", "0.1")
+                with { Shortcut = "secondary-subtitle-delay-increase", Requirement = PlayerMenuRequirement.SecondarySubtitle },
+            Item("次字幕延迟归零", "次字幕延迟:${secondary-sub-delay}", "set", "secondary-sub-delay", "0")
+                with { Shortcut = "secondary-subtitle-delay-reset", Requirement = PlayerMenuRequirement.SecondarySubtitle },
             Item("字幕上移", "字幕上移:${sub-pos}", "add", "sub-pos", "-1") with { Shortcut = "subtitle-position-up" },
             Item("字幕下移", "字幕下移:${sub-pos}", "add", "sub-pos", "1") with { Shortcut = "subtitle-position-down" },
             Item("字号 -0.1", "字幕缩小:${sub-scale}", "add", "sub-scale", "-0.1") with { Shortcut = "subtitle-scale-down" },
@@ -288,6 +339,19 @@ public static class PlayerMenuCatalog
             Item("跳转下一条字幕", "下一条字幕", "sub-seek", "1") with { Shortcut = "subtitle-seek-next" },
             Rule,
             Group("兼容性",
+                Item("切换 次字幕样式覆盖", "次字幕样式覆盖:${secondary-sub-ass-override}", "cycle", "secondary-sub-ass-override")
+                    with { Shortcut = "subtitle-secondary-style", Requirement = PlayerMenuRequirement.SecondarySubtitle },
+                Item("切换 字幕混合视频帧", "字幕混合视频帧:${blend-subtitles}", "cycle", "blend-subtitles")
+                    with { Shortcut = "subtitle-blend", Requirement = PlayerMenuRequirement.Video },
+                Item("切换 字幕颜色转换方式", "字幕颜色转换方式:${sub-ass-vsfilter-color-compat}", "cycle", "sub-ass-vsfilter-color-compat")
+                    with { Shortcut = "subtitle-color-compat", Requirement = PlayerMenuRequirement.AssSubtitle },
+                Item("切换 使用视频信息", "字幕使用视频信息:${sub-ass-use-video-data}", "cycle", "sub-ass-use-video-data")
+                    with { Shortcut = "subtitle-video-data", Requirement = PlayerMenuRequirement.AssSubtitle },
+                Flag("切换 bidi 双向检测兼容性", "bidi 双向检测兼容性:${sub-vsfilter-bidi-compat}", "sub-vsfilter-bidi-compat",
+                    "cycle", "sub-vsfilter-bidi-compat") with { Shortcut = "subtitle-bidi", Requirement = PlayerMenuRequirement.TextSubtitle },
+                Item("切换 ass 字幕阴影边框缩放", "ASS 阴影边框缩放:${sub-ass-style-overrides}", "cycle-values", "sub-ass-style-overrides",
+                    "ScaledBorderAndShadow=no", "ScaledBorderAndShadow=yes")
+                    with { Shortcut = "subtitle-border-scale", Requirement = PlayerMenuRequirement.AssSubtitle },
                 Item("切换 渲染样式", "字幕渲染样式:${sub-ass-override}", "cycle", "sub-ass-override")
                     with { Shortcut = "subtitle-render-style" },
                 Flag("切换 字幕时序修复", "字幕时序修复:${sub-fix-timing}", "sub-fix-timing", "cycle", "sub-fix-timing")
@@ -305,19 +369,61 @@ public static class PlayerMenuCatalog
                     with { Shortcut = "subtitle-pgs-gray" },
                 Item("重载当前字幕", "重载当前字幕", "sub-reload")
                     with { Shortcut = "subtitle-reload" }),
-            // 字幕延迟 is deliberately not here: it is on the 浮层's ⚙ menu and on Z / Shift+Z, where the
-            // current value is shown. 恢复初始 still resets it, because that is what 「初始」 means.
             Steps("恢复初始", "重置字幕状态",
                 ["set", "sub-pos", "100"],
                 ["set", "sub-scale", "1.0"],
-                ["set", "sub-delay", "0"])),
+                ["set", "sub-delay", "0"],
+                ["set", "secondary-sub-pos", "0"],
+                ["set", "secondary-sub-delay", "0"]) with { Shortcut = "subtitle-reset" }),
 
         Group("片段循环",
             Item("设定/清除 片段循环", "片段循环:${ab-loop-a} - ${ab-loop-b}", "ab-loop")
                 with { Shortcut = "toggle-ab-loop" },
             Toggle("开/关 循环播放", "循环播放:${loop-file}", "loop-file", "inf", "cycle-values", "loop-file", "inf", "no")
                 with { Shortcut = "toggle-loop" })
-    ];
+    ]);
+
+    private static IReadOnlyList<PlayerMenuNode> Describe(IReadOnlyList<PlayerMenuNode> nodes,
+        PlayerMenuRequirement inherited = PlayerMenuRequirement.None)
+    {
+        return nodes.Select(node =>
+        {
+            var requirement = inherited | node.Requirement;
+            if (node.Kind == PlayerMenuKind.Group)
+            {
+                requirement |= node.Label switch
+                {
+                    "画面" or "视频" or "视频滤镜" or "截屏" => PlayerMenuRequirement.Video,
+                    "音频" => PlayerMenuRequirement.Audio,
+                    "字幕" => PlayerMenuRequirement.Subtitle,
+                    "HDR 相关" => PlayerMenuRequirement.Hdr,
+                    _ => PlayerMenuRequirement.None
+                };
+                return node with { Requirement = requirement, Children = Describe(node.Children, requirement) };
+            }
+            if (node.Kind != PlayerMenuKind.Command) return node;
+            var shortcut = node.Shortcut ?? NativeMenuShortcuts.ActionFor(node.Commands);
+            requirement |= shortcut switch
+            {
+                "chapter-previous" or "chapter-next" => PlayerMenuRequirement.Chapters,
+                "screenshot-each-frame-subtitles" or "screenshot-each-frame-video" or "screenshot-each-frame-window"
+                    => PlayerMenuRequirement.ManagedCapture,
+                "frame-forward" or "frame-backward" => PlayerMenuRequirement.Video,
+                "subtitle-ass-margins" => PlayerMenuRequirement.AssSubtitle,
+                "subtitle-pgs-margins" or "subtitle-pgs-gray" => PlayerMenuRequirement.ImageSubtitle,
+                "subtitle-position-up" or "subtitle-position-down" or "subtitle-scale-down" or "subtitle-scale-up"
+                    or "subtitle-seek-previous" or "subtitle-seek-next" or "subtitle-render-style"
+                    or "subtitle-timing-fix" or "subtitle-srt-margins" => PlayerMenuRequirement.TextSubtitle,
+                _ => PlayerMenuRequirement.None
+            };
+            var properties = node.RequireProperties.Concat(node.Commands.SelectMany(command =>
+                command.Count > 1 && command[0] is "set" or "cycle" or "cycle-values" or "add" or "multiply" or "toggle"
+                    ? new[] { command[1] }
+                    : command.Count > 0 && command[0] is "vf" or "af" ? new[] { command[0] } : []))
+                .Where(property => property != "chapter").Distinct(StringComparer.Ordinal).ToArray();
+            return node with { Shortcut = shortcut, Requirement = requirement, RequireProperties = properties };
+        }).ToArray();
+    }
 
     /// <summary>
     /// Every node in the tree, parents before children. For anything that has to look at all of them —

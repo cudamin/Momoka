@@ -195,6 +195,9 @@ public partial class App : Application
             // After the window is up, not before: restoring a saved token is a round trip to the
             // server, and there is no reason for the user to watch a blank screen during it.
             _ = StartAsync(shell);
+            // 诊断启动只能展示/读取，不启动用户已保存目录上的自动写入。
+            if (!_options.Tooling && !_options.SelfCheck)
+                _ = StartLocalLibrariesAsync(services.GetRequiredService<Services.LocalLibraryCoordinator>());
         }
         catch (Exception error)
         {
@@ -292,6 +295,8 @@ public partial class App : Application
         _activation = null;
         try
         {
+            if (_container?.GetService<Services.LocalLibraryCoordinator>() is { } libraries)
+                await libraries.StopAsync().ConfigureAwait(true);
             if (_shell is not null) await _shell.ShutdownAsync().WaitAsync(TimeSpan.FromSeconds(25)).ConfigureAwait(true);
         }
         catch (TimeoutException) { Log.Warn(Category, "播放收尾超时，最终上报可能未完成"); }
@@ -302,6 +307,12 @@ public partial class App : Application
                 && !await settings.FlushAsync().ConfigureAwait(true))
                 Log.Warn(Category, "退出前设置排空失败，内存修改尚未全部保存");
         }
+    }
+
+    private static async Task StartLocalLibrariesAsync(Services.LocalLibraryCoordinator libraries)
+    {
+        try { await libraries.StartAsync(); }
+        catch (Exception) { Log.Warn(Category, "本地媒体库监控未能启动，请检查本机整理设置。"); }
     }
 
     private void OnWindowClosed()

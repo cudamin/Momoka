@@ -38,6 +38,7 @@ public static class PlayerSettingsLinks
         new("字幕", "subtitle", "字幕"),
         new("视频输出", "video", "视频输出"),
         new("音频输出", "audio", "音频输出"),
+        new("播放工具", "tools", "播放工具"),
         new("弹弹play", "danmaku", "弹幕"),
     ];
 

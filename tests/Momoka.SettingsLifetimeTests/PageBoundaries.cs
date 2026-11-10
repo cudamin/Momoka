@@ -222,6 +222,7 @@ namespace Momoka.Shell.ViewModels
         public void Activate() => Runtime.Invoke(Inner, "Activate");
         public void UseConfirm(object ignored) { }
         public void UseFilePickers(object save, object open) { }
+        public void UsePlayerToolsPickers(object executable, object directory) { }
         internal void Attach(ISettingsService settings, ShaderStaging shaders, FontLibrary fonts, AppPaths paths,
             Platform.ISystemLauncher launcher, Platform.IStartupRegistration startup, AudioDeviceCatalogue devices,
             Func<Task> subtitle, Func<string, Task> directory, Func<Task> screenshot, MoviePilotService moviePilot,
@@ -275,6 +276,8 @@ namespace Momoka.Shell.Views
     {
         internal static object SaveFor(object page) => new();
         internal static object OpenFor(object page) => new();
+        internal static object ExecutableFor(object page) => new();
+        internal static object DirectoryFor(object page) => new();
     }
 
     public sealed partial class SettingsPage

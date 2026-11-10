@@ -562,14 +562,35 @@ public sealed partial class PlayerViewModel
     internal Task RunMenuNodeAsync(PlayerMenuNode node)
     {
         var context = CaptureInteraction();
-        return QueuePictureCommand(() => RunMenuCommandsAsync(node, context));
+        if (node.HostAction is { } action) return RunHostMenuActionAsync(action, context);
+        var fileGeneration = _playback.ActiveFileGeneration;
+        return QueuePictureCommand(() => RunMenuCommandsAsync(node, context, fileGeneration));
     }
 
-    private async Task RunMenuCommandsAsync(PlayerMenuNode node, InteractionContext context)
+    private async Task RunMenuCommandsAsync(PlayerMenuNode node, InteractionContext context, long? fileGeneration)
     {
         try
         {
             if (!IsCurrentInteraction(context)) return;
+            if (node.RequireProperties.Count > 0)
+            {
+                var readings = new Dictionary<string, string?>(_menuReadings, StringComparer.Ordinal);
+                foreach (var property in node.RequireProperties)
+                    readings[property] = await _playback.GetTextAsync(property).ConfigureAwait(true);
+                if (!IsCurrentInteraction(context) || fileGeneration != _playback.ActiveFileGeneration) return;
+                _menuReadings = readings;
+            }
+            if (!IsCurrentInteraction(context) || fileGeneration != _playback.ActiveFileGeneration) return;
+            if ((node.Requirement & AvailableMenuRequirements(_menuReadings)) != node.Requirement) return;
+            if (node.RequireProperties.Any(property => _menuReadings.GetValueOrDefault(property) is null)) return;
+            if (node.Shortcut is "subtitle-delay-decrease" or "subtitle-delay-increase" or "subtitle-delay-reset"
+                or "audio-delay-decrease" or "audio-delay-increase" or "audio-delay-reset")
+            {
+                var subtitle = node.Shortcut.StartsWith("subtitle-", StringComparison.Ordinal);
+                if (node.Shortcut.EndsWith("-reset", StringComparison.Ordinal)) ResetDelay(subtitle);
+                else NudgeDelay(subtitle, node.Shortcut.EndsWith("-decrease", StringComparison.Ordinal) ? -0.1 : 0.1);
+                return;
+            }
             if (PlayingWithSvp && node.Commands.Any(MpvSvp.BlocksCommand)) return;
             if (!ShaderStateKnown && node.Commands.Any(command => command.Count > 1
                 && ShaderGroupCatalog.NeutralOptions.Any(option => option.Key == command[1])))
@@ -586,7 +607,7 @@ public sealed partial class PlayerViewModel
             foreach (var command in node.Commands)
             {
                 if (!IsCurrentInteraction(context)) return;
-                done &= await _playback.CommandAsync([.. command]).ConfigureAwait(true);
+                done &= await _playback.CommandForActiveFileAsync(context.PlaybackGeneration, fileGeneration, [.. command]).ConfigureAwait(true);
             }
 
             if (!IsCurrentInteraction(context)) return;

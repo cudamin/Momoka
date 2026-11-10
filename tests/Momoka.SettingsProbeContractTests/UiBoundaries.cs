@@ -550,6 +550,8 @@ namespace Momoka.Shell.Views
     {
         internal static object SaveFor(object page) => new();
         internal static object OpenFor(object page) => new();
+        internal static object ExecutableFor(object page) => new();
+        internal static object DirectoryFor(object page) => new();
     }
     public sealed partial class SettingsPage
     {
@@ -720,6 +722,7 @@ namespace Momoka.Shell.ViewModels
         public Task RefreshServerAdministrationAsync() => (Task)Runtime.Invoke(Inner, "RefreshServerAdministrationAsync")!;
         public void UseConfirm(object ignored) { }
         public void UseFilePickers(object save, object open) { }
+        public void UsePlayerToolsPickers(object executable, object directory) { }
     }
 }
 

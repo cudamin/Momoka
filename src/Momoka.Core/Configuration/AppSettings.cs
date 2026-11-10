@@ -50,11 +50,15 @@ public sealed class AppSettings
 
     public SubtitleTranslationSettings SubtitleTranslation { get; set; } = new();
 
+    public PlayerToolsSettings PlayerTools { get; set; } = new();
+
     /// <summary>
     /// The MoviePilot service, if the user has one. Sits last because it is the newest and least central
     /// thing here — the whole app works without it, and it is off by default.
     /// </summary>
     public MoviePilotSettings MoviePilot { get; set; } = new();
+
+    public LocalMediaSettings LocalMedia { get; set; } = new();
 
     public ServerProfile? FindServer(string? id) =>
         id is null ? null : Servers.FirstOrDefault(server => server.Id == id);

@@ -71,11 +71,17 @@ public sealed partial class PlayerViewModel
 
     /// <summary>自检只检查处理器在不在，不执行动作，也不接触播放后端。</summary>
     internal bool HandlesAdditionalShortcut(string action) =>
-        AdditionalShortcutHandlers.ContainsKey(action) || AdditionalShortcuts.Plan(action) is not null;
+        AdditionalShortcutHandlers.ContainsKey(action) || PlayerToolShortcuts.Contains(action) || AdditionalShortcuts.Plan(action) is not null;
 
     internal bool RunAdditionalShortcut(string action)
     {
         if (!_playback.CanControl) return false;
+        if (PlayerToolShortcuts.Contains(action))
+        {
+            var row = PlayerMenuCatalog.Flatten(BuildCurrentMenu()).FirstOrDefault(node => node.HostAction == action);
+            if (row is not null) _ = RunMenuNodeAsync(row);
+            return true;
+        }
         if (AdditionalShortcutHandlers.TryGetValue(action, out var run))
         {
             run();

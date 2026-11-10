@@ -87,3 +87,8 @@ $sdk = 'C:\Users\89400\.dotnet\dotnet.exe'
 # 仅在本次编译成功后执行。
 & $sdk 'tests/Momoka.LibMpvEndFileTests/bin/x64/Release/net10.0/Momoka.LibMpvEndFileTests.dll'
 ```
+
+
+## 2026-11-10 逐帧截图生命周期
+
+增加4项完整真实handle/native gate回归；当前总46项。Core命名规则EachFrameScreenshot原样链接，原生端点增加仅对测试可注入的拒绝码。覆盖CommandForFileAsync旧代拒绝、Swap在loadfile前停止、写失败时撤销mpv已先登记的循环、单帧后不误重开、重复start/end事件只停一次。红态3项失败，绿态46/46、0跳过。停止命令只是已有each-frame开关的第二次触发，不额外截一帧。仍无native初始化、真实媒体、用户配置或真实服务器操作。

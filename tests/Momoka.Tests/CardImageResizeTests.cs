@@ -40,6 +40,19 @@ internal static class CardImageResizeTests
                 .Invoke(card, null);
             Assert.Null(property.GetValue(card));
         });
+        Test("本地库导航卡：原地更新标题数量并通知绑定", () =>
+        {
+            var method = typeof(Momoka.Shell.Views.CardItem).GetMethod("UpdateNavigationText", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(method, "首页实时更新不能仅换卡让可见容器保留旧数量");
+            var card = new Momoka.Shell.Views.CardItem(new Momoka.Emby.EmbyItem { Id = "local-library:a", Name = "电影", Type = Momoka.Emby.EmbyItemType.CollectionFolder },
+                null!, 200, subtitle: "本地 · 1 项", navigate: () => { });
+            var changed = new List<string>();
+            card.PropertyChanged += (_, args) => changed.Add(args.PropertyName ?? "");
+            method!.Invoke(card, ["电影库", "本地 · 2 项"]);
+            Assert.Equal("电影库", card.Title);
+            Assert.Equal("本地 · 2 项", card.Subtitle);
+            Assert.True(changed.Contains(nameof(card.Subtitle)));
+        });
         Test("卡片夹具：完成的失败任务仍传播原异常，不因去同步等待而洗绿", () =>
         {
             var expected = new InvalidOperationException("synthetic fixture failure");

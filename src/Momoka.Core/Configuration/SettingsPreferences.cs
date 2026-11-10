@@ -80,6 +80,11 @@ public static class SettingsPreferences
         Overwrite(destination.Shaders, source.Shaders);
         Overwrite(destination.Shortcuts, source.Shortcuts);
 
+        // 可执行文件与输出目录是本机配置，不从可分享的备份导入另一个程序。
+        destination.PlayerTools.WhisperModel = source.PlayerTools.WhisperModel;
+        destination.PlayerTools.WhisperDevice = source.PlayerTools.WhisperDevice;
+        destination.PlayerTools.WhisperLanguage = source.PlayerTools.WhisperLanguage;
+
         // 只恢复语言和译文外观，不把另一台机器的连接/密钥/开关覆盖过来。
         destination.SubtitleTranslation.SourceLanguage = source.SubtitleTranslation.SourceLanguage;
         destination.SubtitleTranslation.TargetLanguage = source.SubtitleTranslation.TargetLanguage;

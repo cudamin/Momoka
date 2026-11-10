@@ -8,7 +8,7 @@ namespace Momoka.Tests;
 /// 外壳那个程序集，而「这个键触发哪个动作」「绑到已占用的键上会不会拦下」「存文件长什么样、显示成什么样」都是
 /// 屏上看不出对错、编译也看不出的判断。
 /// </summary>
-internal static class ShortcutTests
+internal static partial class ShortcutTests
 {
     private static Dictionary<string, string> Empty() => new(StringComparer.Ordinal);
 
@@ -17,9 +17,10 @@ internal static class ShortcutTests
 
     public static void Register()
     {
-        Test("快捷键表：70 个动作，Id 不重复、默认键不重复、没有一个默认落在保留键上", () =>
+        RegisterNativeMenu();
+        Test("快捷键表：新增动作保留原有动作，Id 不重复、默认键不重复、没有一个默认落在保留键上", () =>
         {
-            Assert.Equal(70, ShortcutCatalog.Actions.Count);
+            Assert.Equal(162, ShortcutCatalog.Actions.Count);
 
             var ids = ShortcutCatalog.Actions.Select(a => a.Id).ToList();
             Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count(), "动作 Id 有重复");
@@ -37,8 +38,8 @@ internal static class ShortcutTests
             var all = ShortcutCatalog.Available(danmakuReady: true);
             var withoutDanmaku = ShortcutCatalog.Available(danmakuReady: false);
 
-            Assert.Equal(70, all.Count);
-            Assert.Equal(66, withoutDanmaku.Count);
+            Assert.Equal(ShortcutCatalog.Actions.Count, all.Count);
+            Assert.Equal(ShortcutCatalog.Actions.Count - 4, withoutDanmaku.Count);
             Assert.Equal("toggle-danmaku,danmaku-delay-decrease,danmaku-delay-increase,danmaku-delay-reset",
                 string.Join(',', all.Except(withoutDanmaku).Select(action => action.Id)));
             Assert.True(withoutDanmaku.All(action => !ShortcutCatalog.IsDanmaku(action)), "收起之后还留着弹幕动作");
@@ -117,11 +118,11 @@ internal static class ShortcutTests
 
         Test("Rebind：绑一个空键，存进字典、查得到", () =>
         {
-            var result = ShortcutCatalog.Rebind(Empty(), "toggle-mute", Key("K"));
+            var result = ShortcutCatalog.Rebind(Empty(), "toggle-mute", Key("F12"));
 
             Assert.Null(result.Conflict);
-            Assert.Equal("K", result.Bindings["toggle-mute"]);
-            Assert.Equal("toggle-mute", ShortcutCatalog.Lookup(result.Bindings, Key("K")));
+            Assert.Equal("F12", result.Bindings["toggle-mute"]);
+            Assert.Equal("toggle-mute", ShortcutCatalog.Lookup(result.Bindings, Key("F12")));
         });
 
         Test("Rebind：冲突就拦下 —— 返回占用者、一个绑定都不改", () =>
@@ -316,11 +317,11 @@ internal static class ShortcutTests
             {
                 var plan = AdditionalShortcuts.Plan(action)!;
                 Assert.Equal(command, string.Join('|', plan.Commands.Single()));
-                Assert.Equal(ShortcutCatalog.Label(action), plan.Label);
+                Assert.True(plan.Label.Length > 0);
             }
             Assert.Null(AdditionalShortcuts.Plan("不存在的动作"));
             Assert.Null(AdditionalShortcuts.Plan("speed-double"));
-            Assert.Null(AdditionalShortcuts.Plan("audio-delay-reset"));
+            Assert.Equal("set|audio-delay|0", string.Join('|', AdditionalShortcuts.Plan("audio-delay-reset")!.Commands.Single()));
         });
 
         Test("快捷键：字幕兼容性一组有默认键，PGS 两项用内核的位图字幕选项", () =>

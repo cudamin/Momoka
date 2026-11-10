@@ -11,6 +11,58 @@ internal static class Program
             FnNasLibraryDisplayTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["player-tool-download-fixture"])
+        {
+            PlayerToolDownloadTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["player-tool-child-failure", var failureOutput])
+        {
+            File.WriteAllText(failureOutput, "partial");
+            return 7;
+        }
+        if (args is ["player-tool-child-wait", var waitingOutput])
+        {
+            File.WriteAllText(waitingOutput, Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            Thread.Sleep(30_000);
+            return 0;
+        }
+        if (args is ["player-tools-fixture"])
+        {
+            PlayerToolTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["native-menu-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            ShortcutTests.Register();
+            PlaybackTests.Register();
+            InlineSwitchTests.Register();
+            MpvUiTests.Register();
+            VideoOutputTests.Register();
+            SvpTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["local-media-settings-fixture"])
+        {
+            LocalMediaSettingsTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["local-media-vm-fixture", var localMediaShell, var localMediaRoot])
+            return LocalMediaViewModelTests.Run(localMediaShell, localMediaRoot);
+        if (args is ["local-library-coordinator-fixture", var libraryShell, var libraryRoot])
+            return LocalLibraryCoordinatorTests.Run(libraryShell, libraryRoot);
+        if (args is ["local-media-fixture"])
+        {
+            LocalMediaSettingsTests.Register();
+            LocalMediaTests.Register();
+            LocalMediaMonitorTests.Register();
+            LocalLibraryHomeTests.Register();
+            LocalLibraryArtworkTests.Register();
+            MoviePilotLocalMediaTests.Register();
+            TmdbLocalMediaTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["trailer-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -453,6 +505,7 @@ internal static class Program
         ExternalSubtitleSelectionTests.Register();
         SubtitleFileTests.Register();
         SubtitleBehaviorTests.Register();
+        PlayerToolTests.Register();
         SubtitleForcedOnlyTests.Register();
         SubtitleManagementTests.Register();
         SubtitleTargetTests.Register();
@@ -570,6 +623,13 @@ internal static class Program
         DanmakuTests.Register();
         UpdateTests.Register();
         MoviePilotTests.Register();
+        LocalMediaSettingsTests.Register();
+        LocalMediaTests.Register();
+        LocalMediaMonitorTests.Register();
+        LocalLibraryHomeTests.Register();
+        LocalLibraryArtworkTests.Register();
+        MoviePilotLocalMediaTests.Register();
+        TmdbLocalMediaTests.Register();
         AniBtTests.Register();
         AniBtSeriesIdentityTests.Register();
         AniBtPrepareConcurrencyTests.Register();
@@ -591,6 +651,7 @@ internal static class Program
         ProbeEvidenceTests.Register();
         CompactImagesProbeTests.Register();
         PerformanceProbeRulesTests.Register();
+        PlayerToolDownloadTests.Register();
         AgreementsTests.Register();
 
         return TestHarness.Run();

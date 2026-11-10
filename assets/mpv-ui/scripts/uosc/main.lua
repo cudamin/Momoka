@@ -561,7 +561,7 @@ function create_default_menu_items()
 				},
 				{title = '音频设备', value = 'script-binding uosc/audio-device'},
 				{title = '剪辑版本', value = 'script-binding uosc/editions'},
-				{title = '截图', value = 'async screenshot'},
+				{title = '截图', value = 'script-message momoka-shortcut screenshot'},
 				-- 状态归 stats 脚本，菜单与控制条共用同一个三态入口。
 				{title = '统计', value = 'script-binding stats/cycle-stats'},
 				{title = '按键绑定', value = 'script-binding uosc/keybinds'},

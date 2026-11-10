@@ -50,6 +50,7 @@ public sealed class CardItem : INotifyPropertyChanged
     public bool AllowResumeRemoval { get; init; } = true;
     private readonly EmbyImageStore _images;
     private readonly Action? _navigate;
+    private readonly string _localPosterPath;
     /// <summary>
     /// 画出来、解码、取图三处共用的那个宽度。**不是 readonly**：窗口被拖动时整面墙一起换宽度（见
     /// <see cref="Resize"/>），三处必须一起动，否则卡片要么糊要么白占内存。
@@ -81,8 +82,8 @@ public sealed class CardItem : INotifyPropertyChanged
     private readonly bool _indicators;
 
     /// <summary>What to write on the second line instead of the item's own; null to use the item's.</summary>
-    private readonly string? _subtitle;
-    private readonly string? _title;
+    private string? _subtitle;
+    private string? _title;
     private readonly ArtworkRef? _artwork;
 
     /// <summary>第三行：勾了宣传语或概要才有，null 就是这一行整行收起。</summary>
@@ -321,11 +322,13 @@ public sealed class CardItem : INotifyPropertyChanged
         bool fnNasWide = false,
         bool cardLayout = false,
         bool episodeFrame = false,
-        Action? navigate = null)
+        Action? navigate = null,
+        string? localPosterPath = null)
     {
         _item = item;
         _images = images;
         _navigate = navigate;
+        _localPosterPath = LocalLibraryArtwork.NormalizePath(localPosterPath);
         Scope = navigate is null ? images.CaptureScope(item) : null;
         if (item.Source is null) Scope?.Bind(item);
         _userState = Scope is { } scope
@@ -584,6 +587,14 @@ public sealed class CardItem : INotifyPropertyChanged
 
     public string Subtitle => _subtitle ?? _item.CardSubtitle;
 
+    /// <summary>本地媒体库的入库数量变化保持卡片及可见容器，直接通知已绑定文本。</summary>
+    internal void UpdateNavigationText(string title, string subtitle)
+    {
+        if (!IsNavigation) return;
+        if (_title != title) { _title = title; Raise(nameof(Title)); Raise(nameof(TitleVisibility)); }
+        if (_subtitle != subtitle) { _subtitle = subtitle; Raise(nameof(Subtitle)); Raise(nameof(SubtitleVisibility)); }
+    }
+
     /// <summary>
     /// 第三行：这一项属于哪台服务器。空串时整行收起。只有多账号主页的继续观看卡会传
     /// <c>sourceLine: true</c>；浏览、搜索和详情货架一律空着。
@@ -800,6 +811,11 @@ public sealed class CardItem : INotifyPropertyChanged
         }
 
         if (_missing || _poster is not null || _loading is not null) return;
+        if (_localPosterPath.Length > 0)
+        {
+            await EnsureLocalPosterAsync().ConfigureAwait(true);
+            return;
+        }
         if (Scope is not { IsAvailable: true } scope) return;
 
         // 上一次「没取到」还没隔够冷却时间就不问了：滚动一路会把同一张卡反复递进来，不拦的话一次断网就是每一趟
@@ -943,6 +959,33 @@ public sealed class CardItem : INotifyPropertyChanged
 
         Poster = null;
         ClearCollageTiles();
+    }
+
+    /// <summary>导航卡的本机海报不捕获服务器来源，仍遵守取消、尺寸与容器需求。</summary>
+    private async Task EnsureLocalPosterAsync()
+    {
+        if (_failedAt != default && !ImageCachePolicy.WorthRetrying(_failedAt, DateTime.UtcNow)) return;
+        var loading = new CancellationTokenSource();
+        var width = _width;
+        _loading = loading;
+        try
+        {
+            var bytes = await LocalLibraryArtwork.ReadAsync(_localPosterPath, loading.Token).ConfigureAwait(true);
+            if (!Current()) return;
+            var bitmap = await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true);
+            if (Current() && _wanted) Poster = bitmap;
+        }
+        catch (Exception error) when (error is OperationCanceledException or IOException or UnauthorizedAccessException
+            or ArgumentException or System.Runtime.InteropServices.COMException)
+        {
+            if (Current()) _failedAt = DateTime.UtcNow;
+        }
+        finally
+        {
+            if (ReferenceEquals(loading, _loading)) _loading = null;
+            loading.Dispose();
+        }
+        bool Current() => !loading.IsCancellationRequested && ReferenceEquals(loading, _loading) && width == _width;
     }
 
     /// <summary>这个容器是不是此刻拿着这张卡的那一个。</summary>

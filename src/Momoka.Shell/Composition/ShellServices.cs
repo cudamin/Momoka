@@ -53,6 +53,7 @@ internal static class ShellServices
         services.AddSingleton<SubtitleTranslationCredentials>();
         services.AddSingleton(_ => new Momoka.Translation.SubtitleTranslationClient());
         services.AddSingleton<Momoka.Shell.Services.SubtitleTranslationController>();
+        services.AddSingleton<PlayerCaptureController>();
         services.AddSingleton(provider => new DandanPlayBuiltInCredentialSource(
             provider.GetRequiredService<ISecretProtector>(),
             Path.Combine(paths.Root, "cache", "danmaku", "builtin-credential.bin")));
@@ -152,6 +153,7 @@ internal static class ShellServices
             () => provider.GetRequiredService<SettingsStore>().Save(provider.GetRequiredService<AppSettings>())));
         services.AddSingleton<Momoka.AniBt.AniBtClient>();
         services.AddSingleton<Momoka.AniBt.AniBtService>();
+        services.AddSingleton<Momoka.Shell.Services.LocalLibraryCoordinator>();
 
         // ---- 检查更新 ---------------------------------------------------------------------------------
         // 「开启应用后自动检查有没有新版本」。单例不是为了共享状态（它没有状态），而是因为它自带一个
@@ -206,6 +208,7 @@ internal static class ShellServices
         // ValidateOnBuild is here to catch. The page is built by the shell's XAML and handed this in
         // AttachWindow, which is the one place a container is in scope.
         services.AddSingleton<PlayerViewModel>();
+        services.AddSingleton<Momoka.Shell.Services.PlayerToolsController>();
 
         return services.BuildServiceProvider(new ServiceProviderOptions
         {

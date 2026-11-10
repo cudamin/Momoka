@@ -45,7 +45,8 @@ public sealed partial class HomeViewModel
         var changed = false;
         for (var index = cards.Count - 1; index >= 0; index--)
         {
-            if (!cards[index].IsNavigation || ReferenceEquals(cards[index], wanted)) continue;
+            if (!cards[index].IsNavigation || cards[index].Item.Id != MoviePilotSubscriptionsRequest.LibraryKey
+                || ReferenceEquals(cards[index], wanted)) continue;
             cards[index].AbandonPoster();
             cards.RemoveAt(index);
             changed = true;

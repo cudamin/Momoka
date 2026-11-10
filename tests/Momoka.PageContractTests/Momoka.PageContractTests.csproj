@@ -9,6 +9,7 @@
     <StartupObject>Momoka.Tests.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="..\..\src\Momoka.Shell\Media\LocalLibraryArtwork.cs" Link="Shell\LocalLibraryArtwork.cs" />
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <!-- Same pinned generator as the Shell; no package upgrade. -->
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />

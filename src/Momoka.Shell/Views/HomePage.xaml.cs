@@ -10,6 +10,7 @@ using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Services;
 using Momoka.Shell.Platform;
+using Momoka.Shell.Services;
 using Momoka.Shell.ViewModels;
 using Windows.Foundation;
 
@@ -23,6 +24,7 @@ internal sealed record HomeRequest(
     Action<MoviePilotSubscription>? OpenSubscription = null)
 {
     internal Action? OpenSubscriptionLibrary { get; init; }
+    internal Action<string>? OpenLocalLibrary { get; init; }
     internal Func<IReadOnlyList<EmbyItem>>? CurrentLibraryViews { get; init; }
     internal Action<EmbySessionScope, IReadOnlyList<EmbyItem>>? LibraryDirectoryUpdated { get; init; }
     internal IReadOnlyList<EmbyItem> EffectiveLibraryViews => CurrentLibraryViews?.Invoke() ?? LibraryViews;
@@ -63,6 +65,7 @@ public sealed partial class HomePage : Page, IShellContent
     private EmbySession? _session;
     private IShellActions? _actions;
     private Windowing.HostWindow? _window;
+    private LocalLibraryCoordinator? _localLibraries;
 
     /// <summary>
     /// 自检那一条「点卡片不挪页」的现场：按焦点之前这一页停在哪儿（-1 是还没按过）、焦点交出去了没有、这一页
@@ -1409,6 +1412,13 @@ public sealed partial class HomePage : Page, IShellContent
             ViewModel.Attach(_actions, request.EffectiveLibraryViews, settings, _session, images, dispatcher);
         }
         ViewModel.UseMoviePilotLibrary(Subscriptions.Service!, request.OpenSubscriptionLibrary);
+        if (_localLibraries is { } previousLocalLibraries) previousLocalLibraries.Changed -= OnLocalLibrariesChanged;
+        _localLibraries = services.GetService<LocalLibraryCoordinator>();
+        ViewModel.UseLocalLibraries(_localLibraries, request.OpenLocalLibrary);
+        if (_localLibraries is { } localLibraries)
+        {
+            localLibraries.Changed += OnLocalLibrariesChanged;
+        }
 
         // 轮播的停留秒数（设置 → 主页 → 「封面轮换秒数」，2026-09-13）页面一进来就同步一次 —— 带子自己
         // 没有设置，它等的是这句话。
@@ -1446,6 +1456,8 @@ public sealed partial class HomePage : Page, IShellContent
         _homeSettings = null;
         Subscriptions.Release();
         ShellPrefs.Changed -= OnShellPrefsChanged;
+        if (_localLibraries is { } localLibraries) localLibraries.Changed -= OnLocalLibrariesChanged;
+        _localLibraries = null;
         if (_window is not null) _window.PlayerLayerEnded -= OnPlayerLayerEnded;
 
         // 这一页走了，把标题栏还回它自己的规矩（别的页都按主题那支墨）。不还的话下一次它就一直浅着。
@@ -1487,6 +1499,17 @@ public sealed partial class HomePage : Page, IShellContent
         RefreshHomeRows();
         UpdateLibraryOverlay();
         _ = ViewModel.ApplyLayoutAsync();
+    }
+
+    private void OnLocalLibrariesChanged(object? sender, EventArgs args)
+    {
+        if (_released || sender is not LocalLibraryCoordinator service || !ReferenceEquals(service, _localLibraries)) return;
+        var navigation = _navigation;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (_released || navigation != _navigation || !ReferenceEquals(service, _localLibraries)) return;
+            ViewModel.RefreshLocalLibraries();
+        });
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)

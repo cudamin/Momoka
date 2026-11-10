@@ -170,6 +170,10 @@ public sealed class LibMpvBackend(
                 Log.Warn(Category, $"统计脚本装箱缺失（{MpvStats.ScriptRelativePath}），本次播放没有统计面板");
             }
 
+            if (customConfig is null && MpvAnalysis.Exists(AppContext.BaseDirectory)
+                && !Run(context, "load-script", MpvAnalysis.ScriptPath(AppContext.BaseDirectory)))
+                Log.Warn(Category, "播放分析脚本装载失败，本次播放没有黑边/静音检测");
+
             LibMpvNative.mpv_request_log_messages(context, "warn");
 
             if (MpvDanmaku.Exists(AppContext.BaseDirectory)
@@ -602,6 +606,7 @@ internal sealed class LibMpvHandle(
 
     /// <summary>刚发过一条 <c>loadfile</c> 换片：事件线程在 file-loaded 那一拍清掉上一集的读数。</summary>
     private volatile bool _swapping;
+    private readonly EachFrameScreenshot _eachFrameScreenshot = new();
 
     /// <summary>独占模式的窗口已经立起来了（`vo-configured`），`force-window` 已改回 yes —— 只做一次。</summary>
     private volatile bool _windowHeld;
@@ -768,6 +773,9 @@ internal sealed class LibMpvHandle(
         if (!Swapable || _contextClosed.Task.IsCompleted || !InlineSwitch.SameSignature(signature!, signatureFor!(request))
             || !InlineSwitch.CanTakeOver(_stopRequested, _handedOver, _exit.Task.IsCompleted, _apiGate.IsDestroyed)) return false;
 
+        // Analysis restores temporary settings in its unload hook. Recreate while it owns a task,
+        // rather than allowing that hook to restore old speed/crop values over a successor ticket.
+        if (MpvAnalysis.IsTrue(ReadText("user-data/momoka-analysis-active"))) return false;
         IReadOnlyList<KeyValuePair<string, string>> filmOptions;
         try { filmOptions = InlineSwitch.FilmScoped(_filmDefaults, request, ReadText("profile-list")); }
         catch (Exception error)
@@ -776,6 +784,8 @@ internal sealed class LibMpvHandle(
             return false;
         }
 
+        // Screenshot repetition is process-scoped in mpv, so stop it before handing this context to another file.
+        if (!_eachFrameScreenshot.Stop(arguments => LibMpvBackend.Run(context, arguments))) return false;
         var nextTransport = PlaybackHttpTransport.Create(request);
         PlaybackRequest nativeRequest;
         try { nativeRequest = nextTransport?.Prepare(request) ?? request; }
@@ -925,6 +935,7 @@ internal sealed class LibMpvHandle(
                 return true;
 
             case LibMpvNative.EventEndFile:
+                if (!StopRepeatingScreenshotAtFileBoundary()) break;
                 var end = Marshal.PtrToStructure<LibMpvNative.MpvEventEndFile>(mpvEvent.Data);
                 Log.Debug(Category, $"内置播放器报告文件结束：reason={end.Reason} error={end.Error}");
 
@@ -945,6 +956,7 @@ internal sealed class LibMpvHandle(
                 break;
 
             case LibMpvNative.EventStartFile:
+                if (!StopRepeatingScreenshotAtFileBoundary()) break;
                 // 新文件的装载从此开始：换片那一刻起，「这一跑」的读数就该重新算了（位置尤其要紧 ——
                 // 留着上一集的位置，这一集被停掉时上报的「看到哪儿」就是别人的）。
                 if (_swapping)
@@ -1835,10 +1847,27 @@ internal sealed class LibMpvHandle(
     /// <see cref="LibMpvBackend.Run"/> — the same call the arrow keys' <c>keybind</c> goes through before
     /// this handle exists.
     /// </summary>
+    private bool StopRepeatingScreenshotAtFileBoundary()
+    {
+        if (_eachFrameScreenshot.Stop(arguments => LibMpvBackend.Run(context, arguments))) return true;
+        // Continuing would allow a process-scoped screenshot loop to write the successor file.
+        _stopRequested = true;
+        _contextClosed.TrySetResult();
+        Log.Warn(Category, "逐帧截图无法停止，退出当前播放器实例以保护下一文件");
+        LibMpvBackend.Run(context, "quit");
+        return false;
+    }
+
     private bool Command(params string[] arguments)
     {
         // 返回值交出去，不只是写进日志：调用方要拿它决定「按了截图之后到底要不要说已保存」。
-        return LibMpvBackend.Run(context, arguments);
+        if (arguments.Length >= 3 && arguments[0] == "script-message-to" && arguments[1] == MpvAnalysis.ScriptName)
+        {
+            var generation = ReadNativeText("user-data/momoka-analysis-generation");
+            if (generation is null) return false;
+            return LibMpvBackend.Run(context, [.. arguments, generation]);
+        }
+        return _eachFrameScreenshot.Execute(arguments, command => LibMpvBackend.Run(context, command));
     }
 }
 

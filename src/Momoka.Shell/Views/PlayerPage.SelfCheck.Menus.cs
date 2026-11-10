@@ -43,7 +43,7 @@ public sealed partial class PlayerPage
 
         var (rows, groups, rules) = CountMenu(PictureMenu.Items);
 
-        var catalogue = PlayerMenuCatalog.Flatten(PlayerMenuCatalog.Root).ToList();
+        var catalogue = PlayerMenuCatalog.Flatten(ViewModel.BuildCurrentMenu()).ToList();
         var wantRows = catalogue.Count(node => node.Kind is not (PlayerMenuKind.Group or PlayerMenuKind.Separator));
         var wantGroups = catalogue.Count(node => node.Kind == PlayerMenuKind.Group);
         var wantRules = catalogue.Count(node => node.Kind == PlayerMenuKind.Separator);
@@ -60,7 +60,8 @@ public sealed partial class PlayerPage
         // 裁切填充 by name, because it is the row the whole menu was missing for: panscan has no button
         // anywhere else in the chrome, so if this one row failed to build the feature would be unreachable
         // again with every count still adding up.
-        var panscan = catalogue.Any(node => node.Label.Contains("裁切填充", StringComparison.Ordinal));
+        var panscan = !ViewModel.Tracks.Any(track => track.Type == "video")
+            || catalogue.Any(node => node.Label.Contains("裁切填充", StringComparison.Ordinal));
 
         // 打勾: every row the catalogue marks checkable（解码方式, 声道布局, 抖动补偿…）must have built as a
         // radio/toggle and been registered for refresh. Counted against the catalogue, not a number here, so a

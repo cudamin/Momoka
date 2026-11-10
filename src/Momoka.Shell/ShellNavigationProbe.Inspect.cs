@@ -246,6 +246,8 @@ internal sealed partial class ShellNavigationProbe
             };
             await dialog.ShowAsync();
         });
+        Add("InspectPlayerCapture", "截图裁切（离线）", InspectPlayerCaptureAsync);
+        Add("InspectPlayerCaptureCheck", "截图裁切验证", () => CaseAsync("截图裁切的真实控件、取消与宽窄布局", PlayerCaptureDialogAsync, 30, section: ShellProbeSections.Shortcuts));
         Add("InspectFnNasEdit", "飞牛编辑元数据", async () =>
         {
             var detail = JsonNode.Parse("""

@@ -2,6 +2,24 @@
 local bindings = {}
 local active = {}
 
+-- Match the host's canonical key spelling. A punctuation key is one key, never command text.
+local named_keys = {
+	SPACE = true, BS = true, DEL = true, INS = true, HOME = true, END = true,
+	PGUP = true, PGDWN = true, LEFT = true, RIGHT = true, UP = true, DOWN = true,
+}
+local punctuation_keys = {['['] = true, [']'] = true, ['-'] = true, ['='] = true,
+	[','] = true, ['.'] = true, ['`'] = true}
+local function valid_key(key)
+	if #key >= 48 then return false end
+	local bare = key
+	for _, modifier in ipairs({'Ctrl+', 'Alt+', 'Shift+'}) do
+		if bare:sub(1, #modifier) == modifier then bare = bare:sub(#modifier + 1) end
+	end
+	if named_keys[bare] or punctuation_keys[bare] or bare:match('^[a-z0-9]$') then return true end
+	local number = bare:match('^F(%d+)$')
+	return number ~= nil and tostring(tonumber(number)) == number and tonumber(number) >= 1 and tonumber(number) <= 12
+end
+
 function momoka_clear_shortcuts()
 	for _, name in ipairs(active) do mp.remove_key_binding(name) end
 	active = {}
@@ -31,7 +49,7 @@ mp.register_script_message('momoka-shortcuts', function(json)
 	local next_bindings = {}
 	for key, action in pairs(values) do
 		if type(key) == 'string' and type(action) == 'string'
-			and #key < 48 and key:match('^[%w%+%[%]]+$')
+			and valid_key(key)
 			and (action == '' or action:match('^[a-z%-]+$')) then
 			next_bindings[key] = action
 		end

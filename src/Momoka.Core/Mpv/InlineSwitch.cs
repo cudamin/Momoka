@@ -138,6 +138,7 @@ public static class InlineSwitch
         var plan = new List<KeyValuePair<string, string>>(8)
         {
             new("start", Math.Max(0, next.StartSeconds).ToString("0.###", CultureInfo.InvariantCulture)),
+            new("vid", "auto"),
             new("aid", next.AudioId?.ToString(CultureInfo.InvariantCulture) ?? "auto"),
             new("sid", next.SubtitlesDisabled || next.SelectedExternalSubtitle is not null
                 ? "no"
@@ -221,7 +222,7 @@ public static class InlineSwitch
                 {
                     case "set" or "cycle" or "cycle-values" or "add" or "multiply" or "toggle":
                         // chapter 是位置不是设置：换文件时 mpv 自己把它拨回去，写它反而把新片子拖到旧章上。
-                        if (!string.Equals(command[1], "chapter", StringComparison.Ordinal)) Add(command[1]);
+                        if (command[1] is not ("chapter" or "vid" or "aid" or "sid")) Add(command[1]);
                         break;
 
                     case "vf" or "af":
@@ -240,7 +241,7 @@ public static class InlineSwitch
         {
             "sub-delay", "sub-visibility", "secondary-sid", "secondary-sub-visibility",
             "secondary-sub-delay", "secondary-sub-pos", "secondary-sub-ass-override",
-            "audio-delay", "speed", "volume", "mute"
+            "video-crop", "audio-delay", "speed", "volume", "mute"
         }) Add(name);
 
         return names;

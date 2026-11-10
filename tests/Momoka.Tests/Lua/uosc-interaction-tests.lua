@@ -451,6 +451,34 @@ do
 				require_equal(keys['Ctrl+F9'], nil)
 				fixture_messages['momoka-shortcuts']('{}')
 			end)
+			test('OEM punctuation shortcuts accept exact keys and canonical modifiers', function()
+				local values = {
+					['-'] = 'video-zoom-out', ['='] = 'video-zoom-in', [','] = 'frame-backward',
+					['.'] = 'frame-forward', ['`'] = 'toggle-stats', ['Ctrl+-'] = 'video-zoom-out',
+					['Alt+='] = 'video-zoom-in', ['Ctrl+Shift+,'] = 'frame-backward',
+					['Ctrl+Alt+.'] = 'frame-forward', ['Ctrl+Alt+Shift+`'] = 'toggle-stats',
+				}
+				fixture_messages['momoka-shortcuts'](utils.format_json(values))
+				for key in pairs(values) do
+					if not keys[key] then error('missing punctuation binding ' .. key) end
+				end
+				fixture_messages['momoka-shortcuts']('{}')
+			end)
+			test('host shortcuts reject compound key injection and malformed modifiers', function()
+				local values = {
+					['x;quit'] = 'toggle-pause', ['Ctrl+Ctrl+x'] = 'toggle-pause',
+					['Alt+Ctrl+x'] = 'toggle-pause', ['Ctrl++x'] = 'toggle-pause',
+					['F13'] = 'toggle-pause', ['LEFT RIGHT'] = 'toggle-pause',
+					['Ctrl+'] = 'toggle-pause', ['x\nquit'] = 'toggle-pause',
+					['Ctrl+F9'] = 'toggle-pause',
+				}
+				fixture_messages['momoka-shortcuts'](utils.format_json(values))
+				for key in pairs(values) do
+					if key ~= 'Ctrl+F9' and keys[key] then error('unsafe key accepted ' .. key) end
+				end
+				if not keys['Ctrl+F9'] then error('valid key was lost') end
+				fixture_messages['momoka-shortcuts']('{}')
+			end)
 			test('new adjustment shortcuts repeat but reset and loop actions fire once', function()
 				fixture_messages['momoka-shortcuts'](utils.format_json({
 					['Alt+LEFT'] = 'video-pan-left', ['Ctrl+['] = 'video-zoom-out',
@@ -743,6 +771,15 @@ do
 				end
 				input_state({visible = false}); draw_input()
 				require_equal(input.geometry, nil)
+			end)
+			test('fallback screenshot uses the host file-scoped shortcut', function()
+				local function find(items)
+					for _, item in ipairs(items) do
+						if item.title == '截图' then return item.value end
+						if item.items then local value = find(item.items); if value then return value end end
+					end
+				end
+				require_equal(find(create_default_menu_items()), 'script-message momoka-shortcut screenshot')
 			end)
 			test('external track reload advertises a registered F5 key', function()
 				properties['track-list'] = {{type = 'sub', id = 1, external = true, title = 'fixture.srt'}}
