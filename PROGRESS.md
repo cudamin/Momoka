@@ -1,5 +1,15 @@
 # 开发进度
 
+## 2026-11-10 媒体库第一批：主树验收与桌面交付
+
+四项产品已合主树：飞牛可选单条续播移除（栏目保留，确认删除记录可能影响断点）、Jellyfin普通用户合集授权、Emby/Jellyfin当前合集成员移除、飞牛Other/目录列表及偏好恢复。整合保留4db8637的本地媒体库与播放工具；修复同账号重登接续、旧条目授权/探测代次及内部合集确认误失效系统权限缓存。来源比较旧夹具改为真实无网络内存Session，不放宽生产权限。
+
+主树dc82b2f产品最终Tests/Core/Shell Release0警告0错误；完整4571/4571、0失败0跳过，日志artifacts/library-batch1/delivery-full-tests-uncontended.log。完整前轮4570/4571的一项图片等待夹具外部6秒截止超时保留；定向composition-readiness32/32后停止并行编译再跑完整4571全过。当前权限54/54（permissions-delivery.log）、合并实际命令34/34、布局VM6/6、库VM40/40、页面契约177/177、目录与轮播读数79/79均过，重复覆盖不累加。
+
+主树原生library分区35/37（shell-probe-20261110-135043697-5540）：飞牛续播/Other目录列表/恢复及修正轮播读数通过；详情截图被遮挡、合集菜单覆盖取样点两条红保留，不声称整分区全过。合集截图原生诊断确认左下点命中同PID PopupWindowSiteBridge；改用第二个真实成员卡的相同菜单拍照，仍严格核四点宿主归属、不改变视频遮挡守卫或产品菜单。最新inspect29656（shell-probe-20261110-143215467-29656）合集1/1，Emby/Jellyfin1100/760、权限拒绝/恢复及2→1均过，媒体/收藏/续播保留，receipt两关系请求各一次、媒体2项、Plays0；八张实屏及四点/菜单几何已检查。诊断自身有原失败与修后成功运行证据，窗口均InspectDone退出。
+
+待当轮发布主树artifacts/publish/win-x64及核桌面快捷方式，临时树归档/分支清理在交付后执行。未获上传授权，无真实媒体服务器播放、删除记录或合集写入。
+
 ## 2026-11-10 合集内部确认保留系统权限缓存（独立子树，待主树集成）
 
 从主树617faba建立library-batch1-permission-probe。R011原54项中Emby“同值true新确认覆盖旧Probe false”53过1败是生产回归：System/Info403的本轮管理员false缓存仍为旧revision；紧随的合集null→false内部确认升revision，导致全局IsAdministrator丢掉刚确认false而回旧connection true，与按来源菜单权限false矛盾。保留原54契约，不改前件或断言。ConfirmCollectionPermission仅确认并返回代次，不在会话锁或能力锁内发事件；Probe发布来源缓存，并只为相同owner且系统缓存代次正好等于确认前代次迁移revision，管理员/版本读数保留。通知在两锁外且全部缓存发布后，明确外部Replace仍使旧缓存失效；通知重入升权后该来源没有晚写回。

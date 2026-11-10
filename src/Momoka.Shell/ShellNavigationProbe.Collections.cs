@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
+using Momoka.Shell.Interop;
 using Momoka.Services;
 using Momoka.Shell.Views;
 
@@ -79,12 +80,14 @@ internal sealed partial class ShellNavigationProbe
                 {
                     ResizeProbeClient(width, 800);
                     await LayoutAsync(page);
-                    await OpenMenuAsync("collection-first");
+                    // 第一张长菜单覆盖客户区左下取样点，原生 Popup 的根 HWND 与宿主不同。
+                    // 第二张真实成员的菜单具有相同权限/关系，截图保留严格宿主遮挡守卫。
+                    await OpenMenuAsync("collection-second");
                     Require(Has(ItemCommand.AddToCollection) && Has(ItemCommand.RemoveFromCollection), "获授权成员缺少合集操作");
                     if (kind == MediaServerKind.Jellyfin)
                         Require(!Has(ItemCommand.EditMetadata) && !Has(ItemCommand.ChangeCover) && !Has(ItemCommand.Delete),
                             "普通用户的合集授权扩大成媒体编辑或删除权限");
-                    await SaveProbeScreenAsync($"collections-{kind}-{width}-menu-screen.png");
+                    await SaveCollectionsMenuAsync($"collections-{kind}-{width}-menu-screen.png");
                     CloseMenus();
                     await SettleAsync();
                 }
@@ -140,6 +143,32 @@ internal sealed partial class ShellNavigationProbe
                 new ButtonAutomationPeer(Get<Button>(card, "MoreButton")).Invoke();
                 await UntilAsync(() => MenuItems().Length > 0);
                 Require(card.Card!.CollectionMembership?.Matches(card.Card.Item) == true, "原生卡片菜单未绑定当前合集关系");
+            }
+            async Task SaveCollectionsMenuAsync(string name)
+            {
+                await Task.Delay(300);
+                var handle = _window!.Handle;
+                Require(Native.GetClientRect(handle, out var client), "合集截图无法读取客户区");
+                var origin = new NativePoint();
+                Require(Native.ClientToScreen(handle, ref origin), "合集截图无法读取屏幕原点");
+                var log = Path.Combine(_options.Paths.LogDirectory, "collections-window-ownership.txt");
+                foreach (var presenter in VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+                    .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutPresenter>())
+                {
+                    var bounds = presenter.TransformToVisual(_root).TransformBounds(new(0, 0, presenter.ActualWidth, presenter.ActualHeight));
+                    await File.AppendAllTextAsync(log, $"file={name} menu={bounds} origin={origin.X},{origin.Y} client={client.Width},{client.Height}\n");
+                }
+                foreach (var (column, row) in new[] { (0.05, 0.2), (0.95, 0.2), (0.05, 0.8), (0.95, 0.8) })
+                {
+                    var point = new NativePoint { X = origin.X + (int)(client.Width * column), Y = origin.Y + (int)(client.Height * row) };
+                    var under = Native.WindowFromPoint(point);
+                    var root = Native.GetAncestor(under, Native.GaRoot);
+                    Native.GetWindowThreadProcessId(under, out var process);
+                    var className = new char[256];
+                    var length = Native.GetClassName(under, className, className.Length);
+                    await File.AppendAllTextAsync(log, $"file={name} point={point.X},{point.Y} expected={handle:X} under={under:X} root={root:X} pid={process} class={new string(className, 0, Math.Max(0, length))}\n");
+                }
+                await SaveProbeScreenAsync(name);
             }
             MenuFlyoutItem[] MenuItems() => VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
                 .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutItem>().ToArray();
