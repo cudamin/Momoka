@@ -62,6 +62,7 @@ public sealed class PlaybackPlanner(
     {
         var item = ticket.Item;
         var source = ticket.Source;
+        var mediaParts = connection.IsPlex ? Momoka.Plex.PlexPlaybackSelection.MediaParts(connection.ApiBase, source) : [];
         var map = MpvTrackMap.Build(source);
 
         var externalSubtitles = map.ExternalSubtitleIndexes
@@ -101,6 +102,7 @@ public sealed class PlaybackPlanner(
             MediaUrl = connection.IsFnNas ? Momoka.FnNas.FnNasPlaybackSelection.MediaUrl(connection, source)
                 : connection.IsPlex ? Momoka.Plex.PlexPlaybackSelection.MediaUrl(connection.ApiBase, source)
                 : EmbyUrl.Stream(connection.ApiBase, item.Id, source.Id, source.Container),
+            MediaParts = mediaParts,
             FnNasSelection = connection.IsFnNas
                 ? Momoka.FnNas.FnNasPlaybackSelection.FromSource(source, runTimeTicks) : null,
             PlexSelection = connection.IsPlex
@@ -223,6 +225,9 @@ public sealed class PlaybackPlanner(
     /// </summary>
     private (int? AudioIndex, int? SubtitleIndex, bool SubtitlesDisabled) ResolveTracks(PlaybackTicket ticket, MediaSource source)
     {
+        if (source.MediaParts.Count > 1 && !ticket.SubtitlesDisabled && ticket.SubtitleStreamIndex is { } requested
+            && !source.SubtitleStreams.Any(stream => stream.Index == requested))
+            throw new NotSupportedException("Plex 多段版本不支持该分段外挂字幕轨");
         var map = MpvTrackMap.Build(source);
         var explicitAudio = source.AudioStreams.FirstOrDefault(stream =>
             stream.Index == ticket.AudioStreamIndex && map.CanSelect(stream.Index));

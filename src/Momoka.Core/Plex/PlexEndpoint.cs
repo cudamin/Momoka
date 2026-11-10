@@ -114,9 +114,7 @@ public static class PlexEndpoint
     }
 
     /// <summary>
-    /// The part key a playback report needs, recovered from the address the file is fetched from.
-    /// <c>/:/timeline</c> wants the key exactly as the server wrote it in the <c>Part</c> element, and
-    /// that is what <see cref="Api"/> put after the base — so it is read back off the end of the path.
+    /// The provider-relative key recovered from an address below the confirmed server/proxy base.
     /// </summary>
     public static string RelativeKey(Uri apiBase, Uri url)
     {

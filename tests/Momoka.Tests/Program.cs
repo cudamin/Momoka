@@ -337,6 +337,8 @@ internal static class Program
             PlexMediaTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["plex-multipart-native-fixture", var plexNative])
+            return PlexMultipartNativeTests.Run(plexNative);
         if (args is ["deep-browse-protocol-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;

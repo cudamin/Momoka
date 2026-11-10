@@ -49,7 +49,7 @@ server failed to match to a film.
 | --- | --- | --- |
 | Mark watched | `GET /:/scrobble?key={ratingKey}&identifier=com.plexapp.plugins.library` | |
 | Mark unwatched | `GET /:/unscrobble?key={ratingKey}&identifier=…` | |
-| Playback report | `GET /:/timeline?ratingKey=&key=&state=&time=&duration=&identifier=…` | `time` and `duration` in **milliseconds**; `key` is the part key; `state` is `playing`, `paused` or `stopped`. |
+| Playback report | `GET /:/timeline?ratingKey=&key=&state=&time=&duration=&identifier=…` | Whole-item `time` and `duration` in **milliseconds**; `key` is the item metadata key, confirmed in official Kodi `97191f2` `nowplayingmanager.py`; `state` is `playing`, `paused` or `stopped`. |
 
 `/:/…` cannot be expressed as a relative `Uri` — the leading colon reads as a scheme — which is what
 `PlexEndpoint.Special` exists for.

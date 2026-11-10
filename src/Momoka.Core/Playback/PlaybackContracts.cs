@@ -120,10 +120,13 @@ public sealed record PlaybackRequest
 {
     public Momoka.FnNas.FnNasPlaybackSelection? FnNasSelection { get; init; }
 
-    /// <summary>Plex reports against the file (the part) rather than the item; see the type's own note.</summary>
+    /// <summary>Plex's metadata key and whole-version duration for timeline reporting.</summary>
     public Momoka.Plex.PlexPlaybackSelection? PlexSelection { get; init; }
 
     public required Uri MediaUrl { get; init; }
+
+    /// <summary>Ordered files on one continuous timeline; empty for an ordinary single file.</summary>
+    public IReadOnlyList<PlaybackPart> MediaParts { get; init; } = [];
 
     /// <summary>Native window state retained across a replacement; null uses the normal launch preference.</summary>
     public bool? Fullscreen { get; init; }

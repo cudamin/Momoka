@@ -19,7 +19,7 @@ Project rules live in [CLAUDE.md](../../../CLAUDE.md). This skill records only w
 | `PlexHttp` | The sole HTTP boundary, including the one request that leaves the server's origin |
 | `PlexClient` | Paths, field names, paging headers, the timeline/scrobble verbs |
 | `PlexMediaAdapter` + `.Models.cs` | Plex JSON → `EmbyItem` / `MediaSource` / `MediaStream` / `ItemsResult` |
-| `PlexPlaybackSelection` | The part key and duration a playback report needs |
+| `PlexPlaybackSelection` | The metadata key and whole-version duration a playback report needs |
 
 Session, DI, `EmbySessionScope` and capability-dependent visibility are shared and owned by [momoka-winui-shell](../momoka-winui-shell/SKILL.md). Playback planning, mpv options and progress reporting are owned by [momoka-playback](../momoka-playback/SKILL.md). `MediaServerKind.Plex` is a branch inside `EmbyClient`, `EmbySession`, `EmbyServerGateway`, `EmbyServerAddress` and `MediaServerHeaders` — there is no per-backend factory in DI, and adding one would be a redesign, not a Plex change.
 
@@ -103,6 +103,14 @@ Favorites are a separate capability from watched state. `CardItem.CanFavorite` a
 Plex cross-library genre navigation is not implemented by this client. `DetailViewModel.CanOpenGenre` keeps its labels as plain text for Plex, rejects old clicks and never borrows the default management scope. `DetailPage` repaints after capability changes and immediately after resubscribing on reentry, even when the genre collection did not change. Emby/Jellyfin links and their routes stay intact. `Momoka.PlexAffordanceTests` executes the actual card commands, current Shell detail VM and extracted page paint/read/notification methods, with fake HTTP and inert framework values. Its template bindings and property assertions are not rendered WinUI or UIA evidence; see its repository README for commands and runtime gaps.
 
 ## Verification
+
+### Multipart versions
+
+One `Media` is one selectable version. Its ordered `Part` files become `MediaSource.MediaParts` and `PlaybackRequest.MediaParts`, then `MpvMediaResource.Build` constructs one EDL timeline after every URL is mapped by the transport. Never expand Parts into versions or substitute the first Part for an incomplete timeline. Reject a version with missing/nonpositive/nonfinite/overflowing Part durations or incompatible internal stream layout; preserve its other usable Media versions. Multipart server sidecar subtitles are hidden because they need a parallel timeline; keep embedded tracks and single-Part sidecars. A stale explicit hidden track selection is refused.
+
+Fixed mpv `270367e8af` source: `demux_edl.c` parses UTF-8 byte-length quoting, uses named `length` with the `start` parameter absent, chooses `layout=this` from the first Part and accumulates segment time. Unknown native lengths can become one second, so do not rely on that fallback. `demux_timeline.c` rebases timestamps and continues at internal EOF; only the final segment yields whole-file EOF. EDL needs `access-references` enabled. The offline probe accepts only the approved DLL and self-generated PCM, with null outputs and no configuration, scripts or automatic sidecars; it does not prove backend/window/server behavior.
+
+Fixed official `plexinc/plex-for-kodi` `97191f248a20223bb93296789c010ff2204a9c76`, `lib/_included_packages/plexnet/nowplayingmanager.py:171-187`, reports `timeline.item.key`, not `Part.key`; `lib/player.py:174-186` uses current playback plus the Part offset. `PlexPlaybackSelection.MetadataKey` is the item metadata path; report position and duration stay on the whole-version clock. Older part-key wording was incorrect. See [Plex支持](../../../docs/Plex支持.md) and `PlexMultipartTests` for boundaries and repeatable fixtures.
 
 - `PlexProtocolTests` covers address normalisation, escape guards, token placement, redirects, error translation, the account exchange, paging headers and query building.
 - `PlexMediaTests` covers sign-in, re-authentication after a 401, restore without a second account login, library filtering, search, detail mapping, seasons/episodes, next-up, playback planning, reporting and the menu — all through `EmbySession` against a fake transport.

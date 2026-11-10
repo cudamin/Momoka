@@ -44,7 +44,7 @@ internal static partial class PlexProtocolTests
             Assert.Throws<ArgumentException>(() => PlexEndpoint.Api(Base, "https://other.invalid/"));
             Assert.Throws<ArgumentException>(() => PlexEndpoint.Special(Base, ":/timeline", "?a=b#fragment"));
             Assert.Equal("http://plex.invalid:32400/:/timeline?ratingKey=1", PlexEndpoint.Special(Base, ":/timeline", "?ratingKey=1").AbsoluteUri);
-            // The part key a timeline report needs is read back off the end of the media address.
+            // Provider-relative keys exclude the configured server/proxy base.
             Assert.Equal("/library/parts/20/1/file.mkv",
                 PlexEndpoint.RelativeKey(Base, new Uri("http://plex.invalid:32400/library/parts/20/1/file.mkv")));
             Assert.DoesNotContain(Secret, Connection.ToString());
@@ -140,7 +140,7 @@ internal static partial class PlexProtocolTests
             Assert.Contains("key=10", transport.Requests[0].Uri.Query);
             Assert.Contains("identifier=com.plexapp.plugins.library", transport.Requests[0].Uri.Query);
 
-            client.ReportTimelineAsync(Connection, "10", "/library/parts/20/1/file.mkv", "playing",
+            client.ReportTimelineAsync(Connection, "10", "/library/metadata/10", "playing",
                 30 * TimeSpan.TicksPerSecond, 90 * TimeSpan.TicksPerSecond).GetAwaiter().GetResult();
             var timeline = transport.Requests[1];
             Assert.Equal("/:/timeline", timeline.Uri.AbsolutePath);

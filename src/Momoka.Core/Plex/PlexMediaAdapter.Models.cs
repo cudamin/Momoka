@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
+using Momoka.Diagnostics;
 using Momoka.Emby;
+using Momoka.Playback;
 
 namespace Momoka.Plex;
 
@@ -203,39 +205,89 @@ public sealed partial class PlexMediaAdapter
     /// <summary>
     /// The files behind one item, and the tracks inside them.
     /// <para>
-    /// Plex nests <c>Media</c> → <c>Part</c> → <c>Stream</c>, and every part is a playable file, so one
-    /// item can legitimately produce several sources. The part's <c>key</c> is the address the file is
-    /// fetched from — a path, not a URL, which is why the token stays in the request headers.
+    /// Each Media is a version; its Parts are sequential files on that version's timeline.
+    /// Part keys remain credential-free addresses, authenticated at the transport boundary.
     /// </para>
     /// </summary>
     public static List<MediaSource> Sources(JsonObject value, string itemId, PlexClient client, PlexConnection connection)
     {
         var result = new List<MediaSource>();
-        foreach (var media in Objects(value, "Media"))
-            foreach (var part in Objects(media, "Part"))
+        foreach (var media in Elements(value, "Media"))
+        {
+            var parts = Elements(media, "Part").ToArray();
+            if (parts.Length == 0) continue;
+            var first = parts[0];
+            if (parts.Any(part => string.IsNullOrWhiteSpace(Text(part, "key")))) continue;
+            var source = new MediaSource
             {
-                var key = Text(part, "key");
-                if (key.Length == 0) continue;
-                var source = new MediaSource
+                Id = parts.Length == 1 ? Text(first, "id")
+                    : "media:" + (Blank(Text(media, "id")) ?? "part:" + Text(first, "id")),
+                ItemId = itemId,
+                Path = Blank(Text(first, "file")),
+                Name = Path.GetFileName(Text(first, "file")),
+                Container = Blank(Text(first, "container")),
+                Size = Number(first, "size") is { } size ? (long)size : null,
+                Bitrate = Bitrate(media),
+                RunTimeTicks = Number(media, "duration") is { } ms ? Ticks(ms) : null,
+                DirectStreamUrl = client.GetMediaUrl(connection, Text(first, "key")),
+                SupportsDirectPlay = true,
+                SupportsDirectStream = true
+            };
+            AddStreams(source, first);
+            if (parts.Length > 1)
+            {
+                var timeline = new List<PlaybackPart>(parts.Length);
+                long duration = 0;
+                var valid = true;
+                foreach (var part in parts)
                 {
-                    Id = Text(part, "id"),
-                    ItemId = itemId,
-                    Path = Blank(Text(part, "file")),
-                    Name = Path.GetFileName(Text(part, "file")),
-                    Container = Blank(Text(part, "container")),
-                    Size = Number(part, "size") is { } size ? (long)size : null,
-                    Bitrate = Bitrate(media),
-                    RunTimeTicks = Number(media, "duration") is { } ms ? Ticks(ms) : null,
-                    DirectStreamUrl = client.GetMediaUrl(connection, key),
-                    SupportsDirectPlay = true,
-                    SupportsDirectStream = true
-                };
-                AddStreams(source, part);
-                source.DefaultAudioStreamIndex = source.MediaStreams.FirstOrDefault(stream => stream.IsAudio && stream.IsDefault)?.Index;
-                source.DefaultSubtitleStreamIndex = source.MediaStreams.FirstOrDefault(stream => stream.IsSubtitle && stream.IsDefault)?.Index;
-                result.Add(source);
+                    // EDL guesses a one-second segment when native duration is also unknown. Never expose
+                    // that invented timeline, nor keep just the first Part as a supposedly whole version.
+                    var milliseconds = Number(part, "duration");
+                    if (milliseconds is not > 0 || !double.IsFinite(milliseconds.Value)
+                        || milliseconds.Value >= long.MaxValue / (double)TimeSpan.TicksPerMillisecond)
+                    { valid = false; break; }
+                    var ticks = Ticks(milliseconds.Value);
+                    if (ticks <= 0 || ticks > long.MaxValue - duration) { valid = false; break; }
+                    var partSource = new MediaSource();
+                    AddStreams(partSource, part);
+                    if (!InternalLayout(source).SequenceEqual(InternalLayout(partSource))) { valid = false; break; }
+                    timeline.Add(new PlaybackPart(client.GetMediaUrl(connection, Text(part, "key")), ticks));
+                    duration += ticks;
+                }
+                if (!valid)
+                {
+                    Log.Warn("plex", "Plex 多段版本缺少有效分段时长或内置轨道布局不一致，略过该版本");
+                    continue;
+                }
+                // Part-local sidecar subtitles need their own parallel timeline. They are inapplicable
+                // to this whole-version resource; keep embedded tracks and all ordinary single-file tracks.
+                source.MediaStreams.RemoveAll(stream => stream.IsExternal);
+                source.MediaParts = timeline;
+                source.RunTimeTicks = duration;
+                source.Size = TotalSize(parts);
             }
+            source.DefaultAudioStreamIndex = source.MediaStreams.FirstOrDefault(stream => stream.IsAudio && stream.IsDefault)?.Index;
+            source.DefaultSubtitleStreamIndex = source.MediaStreams.FirstOrDefault(stream => stream.IsSubtitle && stream.IsDefault)?.Index;
+            result.Add(source);
+        }
         return result;
+    }
+
+    private static IEnumerable<(string Type, string? Codec, string? Language, string? Title, bool Forced)> InternalLayout(MediaSource source) =>
+        source.MediaStreams.Where(stream => !stream.IsExternal).OrderBy(stream => stream.Index)
+            .Select(stream => (stream.Type, stream.Codec, stream.Language, stream.Title, stream.IsForced));
+
+    private static long? TotalSize(IEnumerable<JsonObject> parts)
+    {
+        long total = 0;
+        foreach (var part in parts)
+        {
+            if (Number(part, "size") is not { } size || size < 0 || !double.IsFinite(size)
+                || size >= long.MaxValue || size > long.MaxValue - total) return null;
+            total += (long)size;
+        }
+        return total;
     }
 
     private static void AddStreams(MediaSource source, JsonObject part)

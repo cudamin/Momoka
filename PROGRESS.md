@@ -12166,3 +12166,13 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 ### 2026-11-10 MP官方列表轮询对齐未完成
 
 用户最新明确“mp官方怎么弄的你就怎么改”，覆盖此前删除轮询的指示。已固定源码并形成计划；对齐范围是MP汇总／电影／电视剧订阅列表，官方首页无订阅货架。Core子代理写匿名签名测试时工具SyntaxError后被内容过滤器明确禁止重试／换格式／工具／子代理绕过，停止该部分；Core与VM独立树均无代码修改。页面排程隔离试验175/178红→178/178绿仅验证替身VM边界，尚无真实VM/产品集成；已将精确三文件差异与日志保存在work/mp-polling并定点撤回实验，未把不可编译半成品合入或发布。技能已记录用户新裁定及未完成状态，不能继续以旧删轮询要求阻止对齐。当前只交付文档，不声称MP功能已改。
+
+## 2026-11-10 Plex 顺序分段时间轴修复（待批次整合）
+
+独立工作树 `plex-multipart-timeline/Momoka` 基于 `059e3c6`，负责 Plex 映射、播放资源模型/纯构造与离线回归，未修改 backend。一个 Media 只提供一个版本，其 Part 顺序使用 EDL 整片时钟；多段 ID 使用 `media:` 域，避免与单文件 Part ID 混淆。源时长来自有效 Part 总和，缺/非法/溢出时长及内置轨道布局不一致略过该版本，保留其他版本。多段 server 外挂字幕轨因缺独立时间轴隐藏，内置轨和关闭字幕可用；旧外挂选择明确拒绝。`MpvMediaResource.Build` 逐段调用安全地址映射再 UTF-8 长度转义，首段 `layout=this`，不写空 start 参数。
+
+固定上游核对：mpv `270367e8af` 的 demux_edl/timeline（未知长度会造1秒、首段布局、累积时间与内部EOF）；官方 Plex Kodi `97191f248a20223bb93296789c010ff2204a9c76` nowplayingmanager:171-187 与 player:174-186 证明 timeline key 是条目 metadata key、位置整片计算，已纠正旧 Part key 报告与说明。协议仍仅离线验证。
+
+本树 restore 后当前 Core/Tests Release 0警告0错误，Plex定向263/263、0失败0跳过，回归先在旧实现240项中出现2个目标失败。批准SHA256内核的本地生成PCM null输出探针8/8：总时长5秒、3.5秒续播=第二段1.5秒、跨段/边界seek、首段自然EOF不结束、全片EOF一次。首次禁引用让EDL整体拒绝、一次未等日志消费的探针断言失败均保留；最终 native-04.txt 退出0，EDL允许引用但输入全部自生成PCM、不接收媒体路径/URL，禁用户配置、脚本及自动外挂。whitespace、git diff/check-diff通过。证据 `artifacts/plex-multipart-evidence`。
+
+未真实服务器起播/上报/改观看记录，未验证实际WinUI、独占窗口、外部mpv或多段真实字幕。待主代理按P2→P1整合backend逐段安全transport，组合原生探针及批次完整闸门；当前未合入master、未发布、未上传。
