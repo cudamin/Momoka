@@ -12212,3 +12212,11 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 独立树 `native-http-redirect-security/Momoka`，基点059e3c6；只改原生/外部backend、HTTP transport、inline/builder、相关测试与文档。固定随包mpv270367e8a/FFmpegc705686a3的全局headers跨302泄露已由旧原生探针复现；失败先行回归两项0/2。改每个文件独立受管loopback GET/HEAD streaming，认证逐跳同源保留、离源不恢复、初始外源不带头；清nativeheaders与proxy、字幕反映射、动态sub-add、Range及中断取消。认证HLS/DASH/清单拒绝；上游按.NET系统网络配置。
 
 本树Release Core/Tests编译0警告0错误，定向51/51及播放/字幕382/382，0失败0跳过；随包批准DLL受管+原生302→404零正文探针4/4，四种认证头目标收到0。仅离线loopback，无真实服务器播放/历史写入、UI或外部mpv实际版本验收。Plex结构化Part/EDL接线和最终主树全量/源pin/发布由主代理整合后执行；本树不上传、不合并、不发布。Release Shell及ShaderCommandGeneration源码提取编译0/0；最终退出竞争和锁收束后重编0/0、定向51/51、原生4/4及差异/编码/空白检查通过。
+
+## 2026-11-10 播放菜单与工具主树交付完成
+
+- 产品提交9a68e2a、主树整合2f429fd，最终UI验收修正28b2692/3e91604；保留同日主树本机媒体、Plex分段和受管HTTP修复。Plex多段媒体的外部工具在服务及菜单双重收起，避免只下载首段；原生当前画面控制照常。
+- 主树Release Tests/Core与Shell均0警告0错误。完整默认4511/4511，0失败0跳过；真实Settings/Controller57/57、完整native-handle49/49。主树Lua uosc55/55、analysis7/7、缺cropdetect分支5/5通过。
+- 主树最终shortcuts实际运行5/5通过、0失败；其余196项分区未运行，不称全量Shell自检。证据`C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261110-113315350-35324/logs`，逐张核对760字幕菜单与固定失败提示实屏。先前窗口遮挡/坐标与合成未落定失败保留，不复用为最终证据。用户明确允许副屏40秒验收后完成本轮。
+- tools/publish.ps1 -NoArchive -Shortcut成功，547文件287.3MB，批准mpv载荷60文件完整校验。2026-11-10 19:41桌面快捷方式指向`C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`；未上传远端。
+- 真实服务器播放未执行；外部mpv完整窗口、Whisper/ffsubsync程序和真实云翻译仍未运行验收。随包缺cropdetect而自动去黑边隐藏；点外关闭无本轮可靠实按证据。细节见docs/播放菜单与工具.md。
