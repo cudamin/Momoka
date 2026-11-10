@@ -1,5 +1,11 @@
 # 开发进度
 
+## 2026-11-10 轮播采样窗口诊断修正（独立验证工具，待原生重验）
+
+树 `C:/Users/89400/.codex/worktrees/library-batch1-clock-probe/Momoka`、分支 `codex/library-batch1-clock-probe`，基点 `33ef27c`。根代理当前原生 library 报告 `shell-probe-20261110-125423956-26244` 为 35/36，轮播仅保存一条像素静止读数，缺失败样本时间，不能确认产品提前换片或改记通过。仅改探针与读数规则：自然停留用独立10秒周期收8个样本，再重置三秒验证本轮第一次换片；周期内旧起点、提前换图/重启仍严格拒绝，超期只结束采样且不足仍失败。每样本校验前写 index/started/actualStarted/now/elapsed/currentId/samePicture/progress，now只读一次；禁止等后轮第二张补本轮证据。未改HomeBanner产品行为。
+
+当轮新增9项先因缺正式采样判据红（62/71），补迟到掩盖早重启反例再红（71/72）；独立复审补错过首轮负例红（72/76），再补目标相同但已经绕圈的时长边界。日志在本树 `artifacts/clock-probe/` 保留红绿。最终HomeDirectoryTests/Core Release与Shell Release/x64编译均0警告0错误，78/78、0失败0跳过；4文件行尾/BOM/空白检查通过。本树未运行UI、未发布、未访问真实服务器或播放。根代理串行重验检查台单项HomeClock与library后才能关闭原生失败；不沿用旧报告洗绿，不push或自行合主树。
+
 ## 2026-11-10 媒体库第一批：飞牛单条续播移除
 
 用户授权第一批。集成树 `C:/Users/89400/.codex/worktrees/3d0c/Momoka`、分支 `codex/library-batch1`，基底 `e545dfd`。按官方网页0.9.8首页/主包/SDK实际调用，新增独立单条移除命令：仅play/list记录guid提供入口，确认说明删除播放记录可能影响断点；普通库/详情/合成下一集不出现，marker进入卡片指纹。DELETE只传item_guid，不套Emby隐藏或标未看。确认及在飞按身份所有者+条目防重入；刷新捕获Home导航代次，不调用RemovedMedia/媒体删除回调。

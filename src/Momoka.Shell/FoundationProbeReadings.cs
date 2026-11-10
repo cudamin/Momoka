@@ -40,6 +40,34 @@ internal static class FoundationProbeReadings
             "停留时长没到就换片或进度失效");
     }
 
+    // A late dispatcher continuation can observe a completed cycle. It is not an in-cycle sample;
+    // only readings strictly before the deadline may establish that the picture and clock stayed put.
+    internal static bool DwellSample(long started, long actualStarted, long now, bool samePicture, double progress, long dwellMilliseconds)
+    {
+        if (actualStarted != started)
+            Check(actualStarted >= started && actualStarted - started >= dwellMilliseconds,
+                "轮播停留时长未到就重启周期");
+        if (now >= started && now - started >= dwellMilliseconds) return false;
+        Dwell(started, actualStarted, now, samePicture, progress, dwellMilliseconds);
+        return true;
+    }
+
+    internal static void DwellProgress(IReadOnlyList<double> samples, int required)
+    {
+        Check(required >= 2 && samples.Count >= required, $"轮播周期内有效样本不足：{samples.Count}/{required}");
+        Check(samples.All(value => double.IsFinite(value) && value is >= 0 and < 1), "轮播停留进度样本失效");
+        for (var index = 1; index < samples.Count; index++)
+            Check(samples[index] >= samples[index - 1] - 1e-6, "轮播停留进度倒退");
+        Check(samples[^1] > 0.1 && samples[^1] > samples[0] + 1e-6, "轮播停留进度没有连续前进");
+    }
+
+    internal static void DwellAdvance(string first, string expected, string actual, long started, long actualStarted, long dwellMilliseconds)
+    {
+        Check(first != expected && actual == expected, "轮播采样错过本次第一个换片周期");
+        Check(actualStarted >= started && actualStarted - started >= dwellMilliseconds
+            && actualStarted - started < dwellMilliseconds * 2, "轮播换片提前或未观察到第一个有效周期");
+    }
+
     internal static void Directory(int expectedShelves, int loadedShelves, double scrollableHeight) =>
         Check(expectedShelves > 1 && loadedShelves == expectedShelves && double.IsFinite(scrollableHeight) && scrollableHeight > 0,
             "主页滚动恢复夹具缺少可滚动的有效货架");
