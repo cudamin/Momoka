@@ -61,6 +61,23 @@ internal static class Program
             Assert.Null(page.Tag);
             Assert.Equal(0, page.ContractAttaches);
         });
+        Test("首页 MP 订阅库汇总电影和电视剧并保留返回目的地", () =>
+        {
+            var page = new MoviePilotSubscriptionsPage();
+            var request = Request("mp-subscriptions");
+            page.ContractNavigateTo(request);
+            Assert.Equal("MP 订阅库", page.ContractTitle);
+            Assert.Equal("暂无订阅。", page.ContractEmptyText);
+            Assert.Equal("mp-subscriptions", page.ContractRowKey);
+            Assert.Equal("mp-subscriptions", page.Tag as string);
+            page.ContractNavigateFrom();
+            page.ContractNavigateTo(request);
+            Assert.Equal("mp-subscriptions", page.ContractRowKey);
+            Assert.Equal(2, page.ContractAttaches);
+            page.Release();
+            page.Release();
+            Assert.Equal(2, page.ContractDetaches);
+        });
         DiagnosticsTests.Register();
         CardImageResizeTests.Register();
         BrowseImageGateTests.Register();

@@ -80,8 +80,13 @@ namespace Momoka.Shell.Views
         public int Attaches { get; private set; }
         public int Detaches { get; private set; }
         public int Releases { get; private set; }
+        public string? RowKey { get; private set; }
         public void AttachRow(MoviePilotHomeSubscriptions owner, object row, MoviePilotService service,
-            Action<MoviePilotSubscription> open) => Attaches++;
+            Action<MoviePilotSubscription> open)
+        {
+            Attaches++;
+            RowKey = ((MoviePilotHomeRow)row).Key;
+        }
         public void DetachRow() => Detaches++;
         public void Release() => Releases++;
     }
@@ -101,6 +106,8 @@ namespace Momoka.Shell.Views
         private void InitializeComponent() { }
 
         internal string ContractTitle => PageTitle.Text;
+        internal string ContractEmptyText => EmptyText.Text;
+        internal string? ContractRowKey => Subscriptions.RowKey;
         internal string? ContractPageCategory => _owner?.ViewModel.PageCategory;
         internal int ContractAttaches => Subscriptions.Attaches;
         internal int ContractDetaches => Subscriptions.Detaches;

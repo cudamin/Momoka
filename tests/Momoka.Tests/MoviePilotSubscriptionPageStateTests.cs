@@ -54,6 +54,22 @@ internal static class MoviePilotSubscriptionPageStateTests
                         mediaType.GetMethod("Cancel", Members)!.Invoke(media, null);
                         Assert.Equal(0, transport.Writes);
                     });
+                foreach (var kind in new[] { "both", "movie", "series", "empty" })
+                    Test("MP 订阅库汇总空态与集合恢复 " + kind, () =>
+                    {
+                        using var f = new Fixture(type, "mp-subscriptions", kind);
+                        var movies = f.Get("Movies");
+                        var series = f.Get("Series");
+                        f.Read();
+                        Assert.Equal(kind == "empty" ? "Visible" : "Collapsed", f.Get("EmptyStateVisibility").ToString());
+                        Assert.Equal("Collapsed", f.Get("LoadingVisibility").ToString());
+                        f.Transport.Kind = "both";
+                        f.Read();
+                        Assert.Equal("Collapsed", f.Get("EmptyStateVisibility").ToString());
+                        Assert.True(ReferenceEquals(movies, f.Get("Movies")));
+                        Assert.True(ReferenceEquals(series, f.Get("Series")));
+                        Assert.Equal(0, f.Transport.Writes);
+                    });
                 foreach (var series in new[] { false, true })
                 {
                     var key = series ? Momoka.Emby.HomeLayout.MoviePilotSeries : Momoka.Emby.HomeLayout.MoviePilotMovies;
@@ -444,7 +460,7 @@ internal static class MoviePilotSubscriptionPageStateTests
             }
             if (Hold) await _pending.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
             var body = Fail ? "{\"success\":false,\"message\":\"anonymous fixture error\"}" : JsonSerializer.Serialize(
-                (Kind == "both" ? new[] { "movie", "series" } : new[] { Kind }).Select((kind, index) => new
+                (Kind == "empty" ? [] : Kind == "both" ? new[] { "movie", "series" } : new[] { Kind }).Select((kind, index) => new
                 { id = index + 1, name = "Fixture", type = kind == "series" ? "电视剧" : "电影", media_source = "themoviedb", media_id = "42", state = "N" }));
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
         }

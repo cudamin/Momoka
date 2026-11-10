@@ -8,17 +8,20 @@ using Momoka.Shell.ViewModels;
 namespace Momoka.Shell.Views;
 
 /// <summary>
-/// 侧边栏那两条 MoviePilot 订阅入口要打开的一页。<see cref="Key"/> 是
-/// <see cref="HomeLayout.MoviePilotMovies"/> 或 <see cref="HomeLayout.MoviePilotSeries"/> —— 主页那两排用的是
-/// 同一对钥匙，所以标题和筛选都只有一处来源。
+/// MoviePilot 订阅列表目的地。侧栏按电影／电视剧分类，首页媒体库入口汇总两类。
 /// </summary>
 /// <param name="Open">
 /// 点一张订阅卡片之后往哪儿走。外壳递进来（打开订阅详情是外壳的事），页面只负责把卡片交出去。
 /// </param>
-internal sealed record MoviePilotSubscriptionsRequest(MoviePilotService Service, string Key, Action<MoviePilotSubscription> Open);
+internal sealed record MoviePilotSubscriptionsRequest(MoviePilotService Service, string Key, Action<MoviePilotSubscription> Open)
+{
+    internal const string LibraryKey = "mp-subscriptions";
+    internal const string LibraryTitle = "MP 订阅库";
+    internal string Title => Key == LibraryKey ? LibraryTitle : HomeLayout.FixedTitle(Key)!;
+}
 
 /// <summary>
-/// 一页 MoviePilot 订阅（电影或电视剧）。数据、刷新与菜单全部来自
+/// 一页 MoviePilot 订阅（全部、电影或电视剧）。数据、刷新与菜单全部来自
 /// <see cref="MoviePilotSubscriptionsView"/> 那一套 —— 这一页只给它一个标题、一条读取中的转圈和一个空态，
 /// 另加一层「连不上就退出去」的寿命管理。
 /// </summary>
@@ -57,9 +60,11 @@ public sealed partial class MoviePilotSubscriptionsPage : Page, IShellContent
         _owner = new MoviePilotHomeSubscriptions();
         _owner.ViewModel.UsePageCategory(request.Key);
         var series = request.Key == HomeLayout.MoviePilotSeries;
-        PageTitle.Text = HomeLayout.FixedTitle(request.Key)!;
-        EmptyText.Text = series ? "暂无电视剧订阅。" : "暂无电影订阅。";
-        Subscriptions.AttachRow(_owner, series ? _owner.Series : _owner.Movies, request.Service, request.Open);
+        var all = request.Key == MoviePilotSubscriptionsRequest.LibraryKey;
+        PageTitle.Text = request.Title;
+        EmptyText.Text = all ? "暂无订阅。" : series ? "暂无电视剧订阅。" : "暂无电影订阅。";
+        var row = all ? new MoviePilotHomeRow(_owner, request.Key) : series ? _owner.Series : _owner.Movies;
+        Subscriptions.AttachRow(_owner, row, request.Service, request.Open);
 
         // 转圈／空态那两档绑的是**这一页的 ViewModel**，而它要等 AttachRow 把 Row 落定才指向这一页自己那份
         // 订阅数据（AttachRow 之前拿到的是 MoviePilotSubscriptionsView 的备用属主）。绑定路径换了一个对象，

@@ -71,6 +71,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
             await CaseAsync("侧边栏模式、导航与宽窄布局", SidebarAsync, 45);
             await CaseAsync("侧栏 MoviePilot 订阅入口、可用性显隐与订阅列表页", MoviePilotSidebarAsync, 45);
+            await CaseAsync("首页 MP 订阅库入口、汇总与连接恢复", HomeMoviePilotLibraryAsync, 60, section: ShellProbeSections.MoviePilot);
             await CaseAsync("电影/剧/季页连续缩放跨断点后布局稳定", DetailResizeAsync, 120, section: ShellProbeSections.Library);
             await CaseAsync("详情封面与面包屑等距", DetailCoverGapAsync, 60, section: ShellProbeSections.Library);
             await CaseAsync("飞牛详情：父剧标识、演职人员和更多类似宽窄与空态恢复", FnNasDetailAsync, 120, section: ShellProbeSections.Library);

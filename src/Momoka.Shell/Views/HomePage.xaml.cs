@@ -22,6 +22,7 @@ internal sealed record HomeRequest(
     Windowing.HostWindow? Window,
     Action<MoviePilotSubscription>? OpenSubscription = null)
 {
+    internal Action? OpenSubscriptionLibrary { get; init; }
     internal Func<IReadOnlyList<EmbyItem>>? CurrentLibraryViews { get; init; }
     internal Action<EmbySessionScope, IReadOnlyList<EmbyItem>>? LibraryDirectoryUpdated { get; init; }
     internal IReadOnlyList<EmbyItem> EffectiveLibraryViews => CurrentLibraryViews?.Invoke() ?? LibraryViews;
@@ -194,7 +195,7 @@ public sealed partial class HomePage : Page, IShellContent
             RefreshHomeRows();
             if (!ViewModel.ShelvesChangeIsOverlay) ScheduleFold();
         };
-        Subscriptions.Changed += () => { RefreshHomeRows(); ScheduleFold(); };
+        Subscriptions.Changed += () => { ViewModel.RefreshMoviePilotLibrary(); RefreshHomeRows(); ScheduleFold(); };
         ViewModel.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(ViewModel.IsReady)) RefreshHomeRows();
@@ -1407,6 +1408,7 @@ public sealed partial class HomePage : Page, IShellContent
             HomeRows.Clear();
             ViewModel.Attach(_actions, request.EffectiveLibraryViews, settings, _session, images, dispatcher);
         }
+        ViewModel.UseMoviePilotLibrary(Subscriptions.Service!, request.OpenSubscriptionLibrary);
 
         // 轮播的停留秒数（设置 → 主页 → 「封面轮换秒数」，2026-09-13）页面一进来就同步一次 —— 带子自己
         // 没有设置，它等的是这句话。
@@ -1542,14 +1544,20 @@ public sealed partial class HomePage : Page, IShellContent
     /// 标记已看走的是另一条路（<c>watched</c>）：那一件事只需补一张卡，见 <see cref="HomeViewModel.MarkedWatched"/>。
     /// </para>
     /// </summary>
-    private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args) =>
+    private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args)
+    {
+        if (sender is Button { Content: PosterCard { Card.IsNavigation: true } }) { args.Handled = true; return; }
         ItemCommands.Handle(_session, _actions, sender, args,
             changed: Reload, removed: RemoveCard, watched: ViewModel.MarkedWatched);
+    }
 
     /// <summary>需求 6：the same commands from the strip that appears on a card under the pointer.</summary>
-    private void OnCardActionRequested(object? sender, CardActionEventArgs args) =>
+    private void OnCardActionRequested(object? sender, CardActionEventArgs args)
+    {
+        if (sender is PosterCard { Card.IsNavigation: true }) return;
         ItemCommands.Handle(_session, _actions, sender, args,
             changed: Reload, removed: RemoveCard, watched: ViewModel.MarkedWatched);
+    }
 
     /// <summary>删除成功：和 MoviePilot 那两个删除范围走同一条离场动画与摘除路径。</summary>
     private void RemoveCard(CardItem card) => _ = RemoveAsync(card.Item);

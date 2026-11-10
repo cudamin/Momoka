@@ -296,6 +296,8 @@ internal sealed partial class ShellNavigationProbe
         Add("InspectMoviePilotSnapshot", "记录 MP 状态", () => { moviePilotJourney?.Capture(); return Task.CompletedTask; }, keepJourney: true);
         Add("InspectMoviePilotMediaManagement", "MP 媒体管理", InspectMediaManagementAsync);
         AddCheck("InspectHomePolish", "首页原版布局验证", HomeBannerLibrariesAsync);
+        AddCheck("InspectHomeMoviePilotLibrary", "首页 MP 订阅库验证", HomeMoviePilotLibraryAsync);
+        AddCheck("InspectMoviePilotSidebar", "MP 分类订阅导航验证", MoviePilotSidebarAsync);
         AddCheck("InspectHomeClock", "轮播静止与读秒验证", HomeBannerClockAsync);
         AddCheck("InspectHomeRefresh", "主页订阅停留与手动刷新", HomeOrderAsync);
         AddCheck("InspectHeaderPolish", "继续观看页头验证", LibraryHeaderPolishAsync);

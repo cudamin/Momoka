@@ -1119,6 +1119,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             var homeSources = SourcesStamp();
             Open(typeof(HomePage), new HomeRequest(_services, _libraryViews.ToArray(), _window, OpenSubscription)
             {
+                OpenSubscriptionLibrary = () => GoTo(MoviePilotSubscriptionsRequest.LibraryKey),
                 CurrentLibraryViews = () => !_closing && homeScope?.IsCurrent == true && SourcesStamp() == homeSources
                     ? _libraryViews.ToArray() : [],
                 LibraryDirectoryUpdated = (source, views) =>
@@ -1145,11 +1146,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         // MoviePilot 的两条订阅入口（侧边栏）。服务不可用时这两条入口本来就收着，这里再守一道：迟到的
         // 点击不能把一页读不出东西的订阅列表推上来。
-        if (tag is HomeLayout.MoviePilotMovies or HomeLayout.MoviePilotSeries)
+        if (tag is HomeLayout.MoviePilotMovies or HomeLayout.MoviePilotSeries or MoviePilotSubscriptionsRequest.LibraryKey)
         {
             if (_moviePilotService?.Available != true) return;
             var request = new MoviePilotSubscriptionsRequest(_moviePilotService, tag, OpenSubscription);
-            Open(typeof(MoviePilotSubscriptionsPage), request, HomeLayout.FixedTitle(tag)!, tag);
+            Open(typeof(MoviePilotSubscriptionsPage), request, request.Title, tag);
             return;
         }
 
