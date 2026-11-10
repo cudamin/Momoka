@@ -125,12 +125,9 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
     public async Task<List<EmbyItem>> GetViewsAsync(CancellationToken ct)
     {
         var container = await client.GetSectionsAsync(connection, ct).ConfigureAwait(false);
-        // Music and photo libraries are dropped rather than shown: this client has no music face at all
-        // and no photo browser, so a library reached through one would be a wall of folders that answers
-        // a click with nothing worth looking at. Hidden rather than half-built, same as the shell's own
-        // rule for Emby's music libraries.
+        // Music uses artist sections; photos still have no corresponding browser.
         return Items(container)
-            .Where(section => Text(section, "type") is "movie" or "show")
+            .Where(section => Text(section, "type") is "movie" or "show" or "artist")
             .Select(Library)
             .ToList();
     }
@@ -153,6 +150,8 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
             return new ItemsResult { Items = found, TotalRecordCount = Integer(container, "totalSize") ?? found.Count };
         }
         if (string.IsNullOrWhiteSpace(query.ParentId)) throw new NotSupportedException("Plex 需要指定媒体库才能浏览");
+
+        if (IsMusicQuery(query)) return await GetMusicItemsAsync(query, ct).ConfigureAwait(false);
 
         var page = await client
             .GetSectionItemsAsync(connection, query.ParentId, Query(query), query.StartIndex, query.Limit, ct)
@@ -195,6 +194,8 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
         var pool = new List<EmbyItem>();
         foreach (var library in await GetViewsAsync(ct).ConfigureAwait(false))
         {
+            // Adding music sections must not feed artists/tracks into the video Home carousel.
+            if (EmbyItemType.IsMusicLibrary(library.CollectionType) != types.Any(EmbyItemType.IsMusic)) continue;
             var page = await GetItemsAsync(new ItemQuery
             {
                 ParentId = library.Id,
@@ -222,7 +223,7 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
         var container = await client.GetMetadataAsync(connection, id, ct).ConfigureAwait(false);
         var value = First(container);
         var item = Item(value);
-        if (item.IsPlayable)
+        if (item.IsPlayable || item.Type == EmbyItemType.Audio)
         {
             item.MediaSources = Sources(value, item.Id, client, connection);
             foreach (var source in item.MediaSources) source.RunTimeTicks ??= item.RunTimeTicks;

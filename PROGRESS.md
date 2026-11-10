@@ -1,5 +1,13 @@
 # 开发进度
 
+## 2026-11-10 Plex 音乐协议适配（独立子树，待音乐批次整合）
+
+树 `C:/Users/89400/.codex/worktrees/plex-music/Momoka`、分支 `codex/plex-music`，基点 `617faba`。Plex artist section 映射为 music，artist/album/track 映射 MusicArtist/MusicAlbum/Audio，保留方形封面与专辑继承图、碟号/曲号/时长；Audio 详情沿现有 Media/Part/Stream 读取原文件和音轨，不把艺术家塞入 SeriesId。ItemQuery.ParentItemType 是本地路由提示，不发到 Emby/Jellyfin；音乐库根 type=8/9/10，艺术家专辑及专辑曲目 children，艺术家全曲 allLeaves，歌单 items，分页继续使用容器头。歌单枚举是当前 Plex 服务账号的 `/playlists/all?playlistType=audio`，并非单音乐库独属；专辑与歌单曲目保留服务端顺序。无提示时先核对 sections 再读父媒体，不凭数字猜 namespace；拒绝混合音乐类型查询，避免静默返回错误类型。视频随机轮播跳过音乐 section。
+
+先读官方 `plexinc/plex-for-kodi` develop 固定提交 `97191f248a20223bb93296789c010ff2204a9c76`：`lib/_included_packages/plexnet/plexobjects.py:10-18` 的 type 8/9/10、`plexlibrary.py:126-152,344-354` 的 artist section 和 section all、`audio.py:40-56,81-98,108-162` 的 children/allLeaves/曲目父项与封面、`plexlibrary.py:401-468,556-573` 的歌单路由、`lib/player.py:871-883` 的 originalTitle 优先曲目艺术家和专辑/碟号/曲号。上游只读副本在本树 artifacts/upstream/plex-for-kodi；相关四文件 SHA256 分别为 `5C9A5A995918D6F43CCEAF10F303DECA17158DCA49F1EBCAFB86B82480570B66`、`CAF72029CE184A01D2A8AD99475702DAC57D545DAE73661718630595BCEFA696`、`9921447BC1DE8BBA1A1C3C676E8231AB068ED6382306088E36EB850CE1EAA03D`、`9B773E52B408A05B93522845176E00C35FE3AD1F614649D4DD363669C7895A4D`。上游 Kodi 曾把容器分页放查询串；本次保留现有 Momoka 容器头契约和对应回归，不宣称已核对真实 PMS。
+
+先行红测 273 项/12 失败复现缺功能；补混合类型拒绝时 276 项/1 失败后修复。当前树 Tests/Core Release fresh 编译 0 警告 0 错误，`plex-protocol-fixture` 276/276、0 失败 0 跳过，`git diff --check` 通过；证据 artifacts/plex-music-final-build.log、plex-music-final-tests.log。一次全主测试 4579 项/4563 通过/16 失败/0 跳过，16 项均为已占用用户级自检 mutex 的 SelfCheckTests/SelfCheckOutputIsolationTests 环境红，完整命名及栈保留 plex-music-full-tests.log，不能算全测通过。全测试运行期间误再次编译被自身 Tests DLL 锁定产生 MSB3027，已恢复串行且最终 fresh 构建 0/0。最终整合代理统一串行跑完整测试与适用 UI/音频探针；专辑/艺术家共享元数据字段由音乐批次根代理补齐。本树不读取真实账号、不真实播放/写库，不合并/推送/发布。
+
 ## 2026-11-10 第一批整合回归：身份比较夹具
 
 主树7795627完整主测4567/4546/21失败，18项来自历史纯身份夹具用空Session构造scope，新PermissionReadRevision正常读取当前会话触发空引用；另外3项真实重登接续回归由隔离实现者修复。纯身份夹具改用无网络/凭据的真实内存Session，释放后仅保留来源key/名称，PermissionRevision明确为-1、不授权。未放宽生产权限判断。新增browse-identity-fixture保留原聚合/主页/删除身份断言，55/55通过；Plex相关263/263、删除后选集9/9通过，当前Tests/Core Release0警告0错误。最终全测在接续修复合入后重跑，旧失败日志保留。

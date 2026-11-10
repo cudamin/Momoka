@@ -102,6 +102,12 @@ public sealed class ItemQuery
 {
     public string? ParentId { get; init; }
 
+    /// <summary>
+    /// Local routing hint for backends whose library sections and media containers share numeric IDs.
+    /// Never sent to Emby/Jellyfin; the server's own ParentId/ArtistIds remain their query contract.
+    /// </summary>
+    public string? ParentItemType { get; init; }
+
     public string? SearchTerm { get; init; }
 
     public bool Recursive { get; init; }
