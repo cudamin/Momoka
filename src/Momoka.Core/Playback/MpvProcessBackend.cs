@@ -38,7 +38,7 @@ public sealed class MpvProcessBackend(MpvSettings settings) : IPlaybackBackend
             {
                 FileName = settings.ExecutablePath,
                 UseShellExecute = false,
-                CreateNoWindow = false,
+                CreateNoWindow = request.AudioOnly,
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,
                 // So that anything mpv itself resolves relative to its own folder — a codec list, a

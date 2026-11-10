@@ -9,6 +9,11 @@ internal static class Program
             FnMusicTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["music-playback-fixture"])
+        {
+            MusicPlaybackTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["browse-identity-fixture"])
         {
             AggregateQueryTests.Register();
@@ -500,6 +505,7 @@ internal static class Program
         ActivationListenerTests.Register();
         PlaybackHttpTransportTests.Register();
         PlaybackTests.Register();
+        MusicPlaybackTests.Register();
         EpisodeRemovalTests.Register();
         MarkedWatchedSourceTests.Register();
         KeywordPriorityTests.Register();

@@ -1,3 +1,14 @@
+## 2026-11-10 音乐 AudioOnly Core 子任务
+
+- 从 `617fabab967ba220acb1ebb06439d283b9ff87ab` 创建原生隔离工作树 `music-audio-only/Momoka`。只改 Core 播放、必要 mpv 路径、后端工厂和定向测试；Shell、媒体模型与服务器协议由根会话整合。
+- `PlaybackTicket` / `PlaybackRequest.AudioOnly` 与 `PlaybackUpdate<T>` / `PlaybackProgress.AudioOnly` 显式捕获音乐模式，包括空条目收尾；`PlaybackService.IsAudioOnly`、`ValidateAudio` 和末尾可选 `audioBackendFactory` 提供音乐固定内置受控后端入口。共享原有身份、取消、单实例互斥和普通开始/进度/停止上报。音乐不参与影视阈值通知接管和客户端已看写入，不保留 EOF、不交换原生上下文。
+- 音频计划只读取共享 `MpvOutputOptions.BuildAudio`；无字幕、视频着色器、SVP。原生强制 `video=no` / `vo=null` / `force-window=no` / `fullscreen=no`，不请求 surface、读取自定义配置或加载视频 UI/统计/分析/弹幕脚本。纯音频 FileLoaded 不执行视频窗口兜底。外部参数层亦钉无窗防线，实际音乐入口仍固定内置。
+- 上游：Emby 官方 `Emby.ApiClients` 提交 `f8499bd9d0e356b8a204a27b142765494dc6f450`，`Clients/Emby.ApiClient/Emby.ApiClient/Api/AudioServiceApi.cs` 的 `GetAudioByIdStream` / `GetAudioByIdStreamByContainer` 使用 `/Audio/{Id}/stream[.{Container}]` 与 `Static`；Jellyfin 提交 `797999fc9bd49a9f0853916e2933e3ad06173503`，`Jellyfin.Api/Controllers/AudioController.cs` 的 `GetAudioStream` / `GetAudioStreamByContainer` 同一条静态音频路由。通过 Git/原始官方源码读取；web 工具访问原始源码失败，不代表源码未读取。
+- TDD：新增前置 11 项在旧源码全部失败（Videos 路由、原始音频地址、无窗输出、事件音频标记），实现后 11/11；扩充到 16 项，包括模式互斥、无控制拒绝、原生加载事件、影视阈值排除。临时撤除 FileLoaded 的 AudioOnly 守卫后该用例失败（15/16），恢复后重新编译并跑绿。无真实服务器播放、应用启动或服务器写入。
+- 本树使用 `%USERPROFILE%/.dotnet/dotnet.exe` 10.0.400，restore Core/Tests；PATH 的 8.0.403 不满足当前 global.json。基线 Release Core/Tests 0 警告 0 错误，生命周期定向 24/24。根代理要求仅定向测试，避免主测试用户级互斥锁冲突；根会话负责最终全量与 UI 验证。
+
+- 最终当前代码：Release Core/Tests 构建 **0 警告 0 错误**；`music-playback-fixture` **16/16，0 失败 0 跳过**；`review-playback-reporting-fixture` **24/24，0 失败 0 跳过**。定向 `dotnet format whitespace --verify-no-changes --no-restore --include ...` 与 `git diff --check` 均退出 0。未运行原生实际 DLL 音频/实屏窗口或 Shell 探针；本记录不宣称全量交付。
+
 # 开发进度
 
 ## 2026-11-10 Plex 音乐协议适配（独立子树，待音乐批次整合）

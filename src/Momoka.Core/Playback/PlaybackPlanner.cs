@@ -60,6 +60,7 @@ public sealed class PlaybackPlanner(
     /// </param>
     public PlaybackRequest Plan(PlaybackTicket ticket, EmbyConnection connection, string? audioDevice = null)
     {
+        if (ticket.AudioOnly) return PlanAudio(ticket, connection, audioDevice);
         var item = ticket.Item;
         var source = ticket.Source;
         var mediaParts = connection.IsPlex ? Momoka.Plex.PlexPlaybackSelection.MediaParts(connection.ApiBase, source) : [];
@@ -136,6 +137,47 @@ public sealed class PlaybackPlanner(
         WarnAboutUnavailableTracks(tracks, map);
         return request;
     }
+
+    private PlaybackRequest PlanAudio(PlaybackTicket ticket, EmbyConnection connection, string? audioDevice)
+    {
+        var source = ticket.Source;
+        var address = source.DirectStreamUrl;
+        if (address is not null && (!address.IsAbsoluteUri || address.Scheme is not ("http" or "https")
+            || address.UserInfo.Length != 0 || address.Fragment.Length != 0
+            || address.Scheme != connection.ApiBase.Scheme || address.Host != connection.ApiBase.Host
+            || address.Port != connection.ApiBase.Port || HasCredentialQuery(address)))
+            throw new InvalidOperationException("音乐媒体地址必须是同源且不含凭据的 HTTP(S) 原始文件");
+        if (connection.IsPlex) address = Momoka.Plex.PlexPlaybackSelection.MediaUrl(connection.ApiBase, source);
+        address ??= EmbyUrl.Stream(connection.ApiBase, ticket.Item.Id, source.Id, source.Container, audioOnly: true);
+        var duration = source.RunTimeTicks ?? ticket.Item.RunTimeTicks ?? 0;
+        var map = MpvTrackMap.Build(source);
+        return new PlaybackRequest
+        {
+            AudioOnly = true,
+            MediaUrl = address,
+            MediaParts = connection.IsPlex ? Momoka.Plex.PlexPlaybackSelection.MediaParts(connection.ApiBase, source) : [],
+            PlexSelection = connection.IsPlex
+                ? Momoka.Plex.PlexPlaybackSelection.FromSource(ticket.Item.Id, connection.ApiBase, source, duration) : null,
+            Title = ticket.Item.Name,
+            HttpHeaders = BuildHeaders(connection),
+            StartSeconds = TimeFormat.ToSeconds(Math.Max(0, ticket.StartTicks)),
+            AudioId = map.AudioId(ticket.AudioStreamIndex),
+            AudioStreamIndex = ticket.AudioStreamIndex,
+            SubtitlesDisabled = true,
+            PlayerOptions = MpvOutputOptions.BuildAudio(settings.Audio, audioDevice),
+            RunTimeTicks = duration,
+            ItemId = ticket.Item.Id,
+            MediaSourceId = source.Id
+        };
+    }
+
+    private static bool HasCredentialQuery(Uri address) => address.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
+        .Select(pair => Uri.UnescapeDataString(pair.Split('=', 2)[0]))
+        .Any(key => key.Equals("api_key", StringComparison.OrdinalIgnoreCase)
+            || key.Equals("token", StringComparison.OrdinalIgnoreCase)
+            || key.Equals("access_token", StringComparison.OrdinalIgnoreCase)
+            || key.Equals("X-Emby-Token", StringComparison.OrdinalIgnoreCase)
+            || key.Equals("X-Plex-Token", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// Everything mpv is configured with, in the order the last-value-wins rule needs: the client's

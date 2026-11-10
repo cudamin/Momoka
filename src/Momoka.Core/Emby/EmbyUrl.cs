@@ -28,10 +28,13 @@ public static class EmbyUrl
     /// travels in an <c>X-Emby-Token</c> header that mpv sends via --http-header-fields,
     /// so it stays out of proxy and server access logs.
     /// </summary>
-    public static Uri Stream(Uri apiBase, string itemId, string? mediaSourceId, string? container)
+    public static Uri Stream(Uri apiBase, string itemId, string? mediaSourceId, string? container) =>
+        Stream(apiBase, itemId, mediaSourceId, container, audioOnly: false);
+
+    public static Uri Stream(Uri apiBase, string itemId, string? mediaSourceId, string? container, bool audioOnly)
     {
         var extension = string.IsNullOrWhiteSpace(container) ? "" : "." + container.Split(',')[0].Trim();
-        return Combine(apiBase, $"Videos/{itemId}/stream{extension}",
+        return Combine(apiBase, $"{(audioOnly ? "Audio" : "Videos")}/{itemId}/stream{extension}",
             ("Static", "true"),
             ("MediaSourceId", mediaSourceId));
     }

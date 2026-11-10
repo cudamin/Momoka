@@ -12,6 +12,8 @@ public readonly record struct PlaybackProgress(long PositionTicks, long RunTimeT
     public PlaybackProgress(long PositionTicks, long RunTimeTicks, bool IsPaused, string Title)
         : this(PositionTicks, RunTimeTicks, IsPaused, Title, 0) { }
 
+    public bool AudioOnly { get; init; }
+
     public double Fraction => RunTimeTicks > 0 ? Math.Clamp(PositionTicks / (double)RunTimeTicks, 0, 1) : 0;
     public string Clock => RunTimeTicks > 0
         ? $"{TimeFormat.Clock(PositionTicks)} / {TimeFormat.Clock(RunTimeTicks)}"
@@ -19,7 +21,10 @@ public readonly record struct PlaybackProgress(long PositionTicks, long RunTimeT
 }
 
 /// <summary>The generation is captured at the source, before a UI dispatcher can delay delivery.</summary>
-public readonly record struct PlaybackUpdate<T>(long Generation, T Value);
+public readonly record struct PlaybackUpdate<T>(long Generation, T Value)
+{
+    public bool AudioOnly { get; init; }
+}
 
 /// <summary>
 /// Owns playback and server reporting independently of any page. Request cancellation, handle ownership,
@@ -31,7 +36,8 @@ public sealed partial class PlaybackService(
     Func<IPlaybackBackend> backendFactory,
     PlaybackPlanner planner,
     AudioDeviceCatalogue? audioDevices = null,
-    bool allowPlayback = true)
+    bool allowPlayback = true,
+    Func<IPlaybackBackend>? audioBackendFactory = null)
 {
     private const string Category = "playback";
     private const int MarkWatchedFloor = 50;
@@ -71,12 +77,13 @@ public sealed partial class PlaybackService(
 
     public long Generation => Interlocked.Read(ref _playbackGeneration);
     public bool IsPlaying => _current is not null;
+    public bool IsAudioOnly => _active?.Request.AudioOnly == true;
     public long? ActiveFileGeneration => (_current as IFileScopedPlayerControl)?.FileGeneration;
     public EmbyItem? NowPlaying => _current is not null && _playingItem is { } item && item.Generation == Generation
         ? item.Item : null;
     public bool? PictureInHostWindow => _current?.PictureInHostWindow;
     public MpvBackendKind? PlayingBackend => _active?.BackendKind;
-    public bool PlayingWithSvp => _active?.Request.SvpEnabled == true;
+    public bool PlayingWithSvp => _active is { Request: { AudioOnly: false, SvpEnabled: true } };
     public PlayerStatus Status => (_current as IPlayerControl)?.Status ?? new PlayerStatus();
     public bool CanControl => _current is IPlayerControl and IPlaybackHandle { HasControlChannel: true };
     public bool ReadsOverlap => _current?.ReadsOverlap ?? false;
@@ -110,11 +117,12 @@ public sealed partial class PlaybackService(
     public string? AudioDeviceInUse { get; private set; }
     public void NoteAudioDevice(string? description) => AudioDeviceInUse = description;
     public string? Validate() => backendFactory().Validate();
+    public string? ValidateAudio() => (audioBackendFactory ?? backendFactory)().Validate();
 
-    private async Task<string?> ResolveAudioDeviceAsync()
+    private async Task<string?> ResolveAudioDeviceAsync(bool audioOnly = false)
     {
         var stored = settings.Audio.Device.Trim();
-        if (stored.Length == 0 || audioDevices is null || settings.Mpv.Backend != MpvBackendKind.BuiltInLibMpv) return null;
+        if (stored.Length == 0 || audioDevices is null || !audioOnly && settings.Mpv.Backend != MpvBackendKind.BuiltInLibMpv) return null;
         var devices = await audioDevices.LoadAsync().ConfigureAwait(false);
         var usable = AudioDeviceCatalogue.UsableDevice(stored, devices);
         if (usable.Length > 0) return usable;
@@ -145,10 +153,10 @@ public sealed partial class PlaybackService(
         }
     }
 
-    private void RaiseNowPlaying(EmbyItem? item, long generation)
+    private void RaiseNowPlaying(EmbyItem? item, long generation, bool audioOnly = false)
     {
         if (generation == Generation) _playingItem = new(generation, item);
-        Raise(NowPlayingUpdated, new PlaybackUpdate<EmbyItem?>(generation, item));
+        Raise(NowPlayingUpdated, new PlaybackUpdate<EmbyItem?>(generation, item) { AudioOnly = audioOnly });
         Raise(NowPlayingChanged, item);
     }
 

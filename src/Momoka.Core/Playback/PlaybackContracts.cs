@@ -10,6 +10,9 @@ namespace Momoka.Playback;
 /// </summary>
 public sealed record PlaybackTicket
 {
+    /// <summary>Music has no video surface, window or video configuration.</summary>
+    public bool AudioOnly { get; init; }
+
     public required EmbyItem Item { get; init; }
 
     public required MediaSource Source { get; init; }
@@ -118,6 +121,8 @@ public sealed record LaunchRecord(
 /// </summary>
 public sealed record PlaybackRequest
 {
+    public bool AudioOnly { get; init; }
+
     public Momoka.FnNas.FnNasPlaybackSelection? FnNasSelection { get; init; }
 
     /// <summary>Plex's metadata key and whole-version duration for timeline reporting.</summary>

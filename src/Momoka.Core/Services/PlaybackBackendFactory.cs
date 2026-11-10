@@ -32,6 +32,9 @@ public sealed class PlaybackBackendFactory(AppSettings settings, ShaderStaging s
     /// Builds the player the settings ask for. Called once per playback, so switching between embedded
     /// libmpv and the standalone mpv.exe takes effect on the very next play.
     /// </summary>
+    /// <summary>Music always uses a controlled in-process player with no video surface.</summary>
+    public IPlaybackBackend CreateAudio() => new LibMpvBackend(settings.Mpv, settings.Playback, () => null);
+
     public IPlaybackBackend Create()
     {
         shaders.Ensure();
