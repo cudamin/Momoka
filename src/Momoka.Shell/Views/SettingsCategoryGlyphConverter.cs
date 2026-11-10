@@ -25,6 +25,7 @@ public sealed class SettingsCategoryGlyphConverter : IValueConverter
     private static readonly IReadOnlyDictionary<string, int> Glyphs = new Dictionary<string, int>(StringComparer.Ordinal)
     {
         ["播放器"] = 0xE768,       // Play
+        ["播放工具"] = 0xE90F,     // Repair
         ["播放行为"] = 0xE81C,     // History（续播、进度）
         ["字幕"] = 0xE8D2,         // Font（字）
         ["弹幕"] = 0xE8F2,     // Message

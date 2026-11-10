@@ -42,6 +42,7 @@ internal static class SettingsPageStateTests
     public static void Register(string shellAssemblyPath, string sourceRoot)
     {
         var fixture = new ShellFixture(shellAssemblyPath, sourceRoot);
+        PlayerToolsSettingsUiTests.Register(fixture);
         TestHarness.Test("R06-009 轮播关闭收起从属行，开启原位恢复偏好", () =>
         {
             var settings = new FakeSettings();

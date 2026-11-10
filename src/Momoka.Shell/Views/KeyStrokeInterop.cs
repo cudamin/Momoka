@@ -35,6 +35,11 @@ internal static class KeyStrokeInterop
         VirtualKey.Escape => "Escape",
         (VirtualKey)219 => "BracketLeft",
         (VirtualKey)221 => "BracketRight",
+        (VirtualKey)189 => "Minus",
+        (VirtualKey)187 => "Equal",
+        (VirtualKey)188 => "Comma",
+        (VirtualKey)190 => "Period",
+        (VirtualKey)192 => "Backquote",
         _ => null
     };
 }
