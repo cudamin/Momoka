@@ -1,8 +1,12 @@
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.Configuration;
 using Momoka.MoviePilot;
+using Momoka.Infrastructure;
+using Momoka.Shell.Platform;
+using Momoka.Shell.Services;
 using Momoka.Shell.Views;
 
 namespace Momoka.Shell;
@@ -23,6 +27,10 @@ internal sealed partial class ShellNavigationProbe
         settings.TargetDirectory = Path.Combine(directory, "target");
         settings.Provider = "moviepilot";
         await ConnectMoviePilotAsync(fixture);
+        using var coordinator = new LocalLibraryCoordinator(fixture.SettingsService, PassthroughSecretProtector.Instance,
+            fixture.Services.GetRequiredService<MoviePilotService>(), new AppPaths(directory),
+            new UiDispatcher(Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread()!));
+        var services = new LocalLibrariesProbeServices(fixture.Services, coordinator);
         var frame = new Frame { Margin = new Thickness(24, 42, 24, 18) };
         _root.Children.Add(frame);
         var topMost = _window!.TopMost;
@@ -30,7 +38,7 @@ internal sealed partial class ShellNavigationProbe
         _window.TopMost = true;
         try
         {
-            frame.Navigate(typeof(LocalMediaPage), new LocalMediaRequest(fixture.Services));
+            frame.Navigate(typeof(LocalMediaPage), new LocalMediaRequest(services));
             var page = (LocalMediaPage)frame.Content;
             await LayoutAsync(page);
             var vm = page.ViewModel;
@@ -80,7 +88,9 @@ internal sealed partial class ShellNavigationProbe
             Require(!vm.CanScan && !vm.CanApply, "MP断线仍能执行");
             await ConnectMoviePilotAsync(fixture);
             await UntilAsync(() => vm.MpAvailable);
+            Get<ComboBox>(page, "LocalMediaMethod").SelectedIndex = 0;
             Require(vm.CanScan && vm.TargetDirectory == settings.TargetDirectory, "连接恢复未恢复输入");
+            Require(vm.Libraries.Count == 1 && vm.SelectedLibrary is not null, "旧目录没有成为一个本地媒体库");
             Require(server.Writes == 0, "本机整理发出了服务器写请求");
         }
         finally

@@ -43,10 +43,15 @@ internal static class Program
         }
         if (args is ["local-media-vm-fixture", var localMediaShell, var localMediaRoot])
             return LocalMediaViewModelTests.Run(localMediaShell, localMediaRoot);
+        if (args is ["local-library-coordinator-fixture", var libraryShell, var libraryRoot])
+            return LocalLibraryCoordinatorTests.Run(libraryShell, libraryRoot);
         if (args is ["local-media-fixture"])
         {
             LocalMediaSettingsTests.Register();
             LocalMediaTests.Register();
+            LocalMediaMonitorTests.Register();
+            LocalLibraryHomeTests.Register();
+            LocalLibraryArtworkTests.Register();
             MoviePilotLocalMediaTests.Register();
             TmdbLocalMediaTests.Register();
             return TestHarness.Run();
@@ -612,6 +617,9 @@ internal static class Program
         MoviePilotTests.Register();
         LocalMediaSettingsTests.Register();
         LocalMediaTests.Register();
+        LocalMediaMonitorTests.Register();
+        LocalLibraryHomeTests.Register();
+        LocalLibraryArtworkTests.Register();
         MoviePilotLocalMediaTests.Register();
         TmdbLocalMediaTests.Register();
         AniBtTests.Register();

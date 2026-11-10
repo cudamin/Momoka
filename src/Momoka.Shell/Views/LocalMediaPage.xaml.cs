@@ -39,6 +39,7 @@ public sealed partial class LocalMediaPage : Page, IShellContent
         _released = false;
         _moviePilot = request.Services.GetRequiredService<MoviePilotService>();
         ViewModel.Attach(request.Services.GetRequiredService<ISettingsService>(), request.Services.GetRequiredService<ISecretProtector>(), _moviePilot);
+        if (request.Services.GetService<Services.LocalLibraryCoordinator>() is { } coordinator) ViewModel.UseLibraries(coordinator);
         _moviePilot.AvailabilityChanged += AvailabilityChanged;
     }
 
@@ -59,6 +60,9 @@ public sealed partial class LocalMediaPage : Page, IShellContent
     private async void OnApply(object sender, RoutedEventArgs args) => await ViewModel.ApplyAsync();
     private async void OnSearch(object sender, RoutedEventArgs args) => await ViewModel.SearchAsync();
     private async void OnUpdatePreview(object sender, RoutedEventArgs args) => await ViewModel.CorrectAsync();
+    private void OnNewLibrary(object sender, RoutedEventArgs args) => ViewModel.NewLibrary();
+    private async void OnSaveLibrary(object sender, RoutedEventArgs args) => await ViewModel.SaveLibraryAsync();
+    private async void OnRemoveLibrary(object sender, RoutedEventArgs args) => await ViewModel.RemoveLibraryAsync();
     private void OnStop(object sender, RoutedEventArgs args) => ViewModel.Stop();
     private void OnSaveToken(object sender, RoutedEventArgs args) { ViewModel.SaveToken(LocalMediaToken.Password); LocalMediaToken.Password = ""; }
     private void OnClearToken(object sender, RoutedEventArgs args) { ViewModel.SaveToken(""); LocalMediaToken.Password = ""; }

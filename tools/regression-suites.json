@@ -4,6 +4,16 @@
   "shellAssembly": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
   "suites": [
     {
+      "id": "Momoka.LocalLibraryPageTests",
+      "project": "tests/Momoka.LocalLibraryPageTests/Momoka.LocalLibraryPageTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.LocalLibraryPageTests/README.md",
+      "notes": "真实本地库VM与Row的离线生命周期和临时文件图片读取；不启动WinUI、Explorer、播放或真实服务器。"
+    },
+    {
       "id": "Momoka.BrowsePresentationTests",
       "project": "tests/Momoka.BrowsePresentationTests/Momoka.BrowsePresentationTests.csproj",
       "mode": "dotnet",

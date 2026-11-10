@@ -49,8 +49,8 @@ public sealed partial class LocalMediaViewModel : ObservableObject, IDisposable
     public bool NeedsTarget => MethodIndex != 2;
     public bool ProviderReady => IsMoviePilot ? MpAvailable : HasToken;
     public bool CanScan => _attached && !Busy && ProviderReady && !string.IsNullOrWhiteSpace(SourceDirectory)
-        && (!NeedsTarget || !string.IsNullOrWhiteSpace(TargetDirectory));
-    public bool CanApply => _attached && !Busy && ProviderReady && Rows.Any(row => row.Ready && row.Selected);
+        && (!NeedsTarget || !string.IsNullOrWhiteSpace(TargetDirectory)) && HasSavedRule;
+    public bool CanApply => _attached && !Busy && ProviderReady && HasSavedRule && Rows.Any(row => row.Ready && row.Selected);
     public bool CanCorrect => _attached && !Busy && ProviderReady && CurrentRow is { Attempted: false };
     public bool CanChooseCandidate => CanCorrect && Candidate is not null;
     public bool ShowCorrection => ProviderReady && CurrentRow is { Attempted: false };
@@ -100,6 +100,7 @@ public sealed partial class LocalMediaViewModel : ObservableObject, IDisposable
             if (!_settings.TrySave()) throw new IOException();
             Invalidate("读取令牌已保存，请重新扫描。", save: false);
             OpenTmdb();
+            if (_coordinator is not null) _ = _coordinator.RecognitionChangedAsync();
         }
         catch (Exception) { Notice = "无法保存读取令牌，请检查本机设置文件权限后重试。"; }
         Changed();
@@ -275,7 +276,9 @@ public sealed partial class LocalMediaViewModel : ObservableObject, IDisposable
                 row.Ready = row.Selected = false;
                 row.Plan = null;
                 row.Status = "正在整理…";
-                var result = await Task.Run(() => LocalMediaOrganizer.ExecuteAsync(plan, _images, operation.Token));
+                var result = _coordinator is not null && SelectedLibrary is { } library
+                    ? await _coordinator.ExecuteManualAsync(library.Id, plan, _images, operation.Token)
+                    : await Task.Run(() => LocalMediaOrganizer.ExecuteAsync(plan, _images, operation.Token));
                 row.Results = result.Items;
                 row.Status = result.Summary;
                 row.ResultDetails = string.Join("\n", result.Items.Select(item => $"{(item.Success ? "完成" : "失败")} · {item.Path}\n{item.Message}"));
@@ -288,42 +291,9 @@ public sealed partial class LocalMediaViewModel : ObservableObject, IDisposable
         finally { End(operation); }
     }
 
-    private static LocalMediaMetadata FromMoviePilot(MoviePilotLocalRecognition value)
-    {
-        var media = value.Detail.Media;
-        return new(media.Title, media.Year, media.Type == "电视剧" ? LocalMediaType.Episode : LocalMediaType.Movie, media.MediaSource!, media.MediaId!)
-        {
-            Season = value.Season,
-            Episode = value.Episode,
-            EpisodeId = value.EpisodeId ?? "",
-            EpisodeTitle = value.EpisodeTitle ?? "",
-            Overview = media.Overview ?? "",
-            EpisodeOverview = value.EpisodeOverview ?? "",
-            PosterUrl = media.PosterUrl ?? "",
-            BackdropUrl = media.BackdropUrl ?? "",
-            EpisodeImageUrl = value.EpisodeImageUrl ?? "",
-            Premiered = Date(value.Detail.Text("release_date", "first_air_date")),
-            EpisodeAired = Date(value.EpisodeAirDate)
-        };
-    }
+    private static LocalMediaMetadata FromMoviePilot(MoviePilotLocalRecognition value) => Services.LocalLibraryCoordinator.FromMoviePilot(value);
 
-    private static LocalMediaMetadata FromTmdb(TmdbLocalMetadata value) => new(value.Title, value.Year > 0 ? value.Year : null,
-        value.IsSeries ? LocalMediaType.Episode : LocalMediaType.Movie, "themoviedb", value.Id)
-    {
-        Season = value.Season,
-        Episode = value.Episode,
-        EpisodeId = value.EpisodeId ?? "",
-        EpisodeTitle = value.EpisodeTitle ?? "",
-        Overview = value.Overview ?? "",
-        EpisodeOverview = value.EpisodeOverview ?? "",
-        PosterUrl = value.PosterUrl ?? "",
-        BackdropUrl = value.BackdropUrl ?? "",
-        EpisodeImageUrl = value.EpisodeImageUrl ?? "",
-        Premiered = Date(value.Premiered),
-        EpisodeAired = Date(value.EpisodeAired)
-    };
-
-    private static DateOnly? Date(string? value) => DateOnly.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ? date : null;
+    private static LocalMediaMetadata FromTmdb(TmdbLocalMetadata value) => Services.LocalLibraryCoordinator.FromTmdb(value);
     private static int ReadNumber(string value, int minimum, string label) => int.TryParse(value, out var number) && number >= minimum
         ? number : throw new InvalidOperationException($"请填写有效的{label}（至少 {minimum}）。");
     private static string ErrorText(Exception error) => error is IOException or UnauthorizedAccessException or InvalidOperationException or MoviePilotException
@@ -361,14 +331,14 @@ public sealed partial class LocalMediaViewModel : ObservableObject, IDisposable
     }
     private void Invalidate(string notice = "选项已变化，请重新扫描或校正。", bool save = true)
     {
-        if (!_attached) return;
+        if (!_attached || _selectingLibrary) return;
         _revision++;
         Stop();
         foreach (var row in Rows.Where(row => !row.Attempted)) { row.Plan = null; row.Ready = row.Selected = false; row.Status = "预览已失效"; }
         Candidate = null;
         Candidates.Clear();
         Notice = notice;
-        if (save && _settings is not null)
+        if (save && _settings is not null && _coordinator is null)
         {
             var value = _settings.Settings.LocalMedia;
             value.SourceDirectory = SourceDirectory;
@@ -385,6 +355,7 @@ public sealed partial class LocalMediaViewModel : ObservableObject, IDisposable
     {
         foreach (var name in new[] { nameof(Editable), nameof(IsMoviePilot), nameof(IsMomoka), nameof(NeedsTarget), nameof(ProviderReady), nameof(CanScan), nameof(CanApply), nameof(CanCorrect), nameof(CanChooseCandidate), nameof(ShowCorrection), nameof(ShowEpisodeFields), nameof(TokenStatus), nameof(MethodNote), nameof(ApplyLabel), nameof(CurrentFileName) })
             OnPropertyChanged(name);
+        LibrariesStateChanged();
     }
     partial void OnSourceDirectoryChanged(string value) => Invalidate();
     partial void OnTargetDirectoryChanged(string value) => Invalidate();
@@ -433,6 +404,7 @@ public sealed partial class LocalMediaViewModel : ObservableObject, IDisposable
         _revision++;
         Stop();
         _tmdb?.Dispose();
+        if (_coordinator is not null) _coordinator.Changed -= LibrariesChanged;
         foreach (var row in Rows) { row.Plan = null; row.Ready = false; row.PropertyChanged -= RowChanged; }
         Changed();
     }

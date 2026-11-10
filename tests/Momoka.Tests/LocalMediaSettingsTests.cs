@@ -8,6 +8,25 @@ internal static class LocalMediaSettingsTests
 {
     internal static void Register()
     {
+        Test("本地媒体库：旧单目录迁移一次且多个库独立保存", () =>
+        {
+            var property = typeof(LocalMediaSettings).GetProperty("Libraries");
+            Assert.NotNull(property, "缺少多个媒体库配置");
+            var settings = new AppSettings();
+            settings.LocalMedia.SourceDirectory = @"C:\fixture\movies";
+            settings.LocalMedia.TargetDirectory = @"D:\fixture\organized";
+            var normalized = SettingsMigration.Normalize(settings);
+            var libraries = ((System.Collections.IList)property!.GetValue(normalized.LocalMedia)!);
+            Assert.Equal(1, libraries.Count);
+            var item = libraries[0]!;
+            Assert.Equal(@"C:\fixture\movies", item.GetType().GetProperty("SourceDirectory")!.GetValue(item));
+            Assert.Equal(false, item.GetType().GetProperty("MonitorEnabled")!.GetValue(item), "迁移不能偷偷启用已有目录监控");
+            SettingsMigration.Normalize(settings);
+            Assert.Equal(1, libraries.Count);
+            var restored = SettingsMigration.FromJson(JsonSerializer.Serialize(settings), PassthroughSecretProtector.Instance);
+            Assert.Equal(1, ((System.Collections.IList)property.GetValue(restored.LocalMedia)!).Count);
+            Assert.Equal(0, ((System.Collections.IList)property.GetValue(SettingsPreferences.ToBackupDocument(settings).LocalMedia)!).Count);
+        });
         Test("本机整理：目录和链接偏好持久化，不进入可分享配置", () =>
         {
             var settings = new AppSettings();

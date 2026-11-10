@@ -153,6 +153,7 @@ internal static class ShellServices
             () => provider.GetRequiredService<SettingsStore>().Save(provider.GetRequiredService<AppSettings>())));
         services.AddSingleton<Momoka.AniBt.AniBtClient>();
         services.AddSingleton<Momoka.AniBt.AniBtService>();
+        services.AddSingleton<Momoka.Shell.Services.LocalLibraryCoordinator>();
 
         // ---- 检查更新 ---------------------------------------------------------------------------------
         // 「开启应用后自动检查有没有新版本」。单例不是为了共享状态（它没有状态），而是因为它自带一个
