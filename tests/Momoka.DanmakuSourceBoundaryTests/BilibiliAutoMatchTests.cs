@@ -87,7 +87,7 @@ internal static class BilibiliAutoMatchTests
                 Momoka.Tests.Assert.Equal(0, host.ExternalCalls);
                 Momoka.Tests.Assert.False(host.Fetched);
             });
-        foreach (var stale in new[] { "playback", "cancel", "cookie", "source" })
+        foreach (var stale in new[] { "playback", "cancel", "cookie", "source", "automatch" })
             Test("Bilibili auto match cannot apply old search result after " + stale, () =>
             {
                 var settings = BilibiliPlayerTests.Settings();
@@ -99,6 +99,7 @@ internal static class BilibiliAutoMatchTests
                 if (stale == "cancel") host.CancelSearch();
                 if (stale == "cookie") settings.Danmaku.ProtectedBilibiliCookie = "replacement protected cookie";
                 if (stale == "source") settings.Danmaku.Source = DanmakuSourceMode.DandanPlay;
+                if (stale == "automatch") settings.Danmaku.AutoMatch = false;
                 host.PendingSearch.SetResult((new([new(7, "真实作品", "3")], false), ""));
                 pending.GetAwaiter().GetResult();
                 Momoka.Tests.Assert.False(host.Fetched);

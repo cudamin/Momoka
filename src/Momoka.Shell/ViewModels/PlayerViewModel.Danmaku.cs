@@ -260,7 +260,8 @@ public sealed partial class PlayerViewModel
                 var (matches, error) = await SearchSourceAsync(DandanPlayMatching.Title(item),
                     DandanPlayMatching.EpisodeNumber(item), DanmakuSource.Bilibili, token).ConfigureAwait(true);
                 if (!IsCurrentPlayback(context) || request != _danmakuSearchRequest || !DanmakuAvailable
-                    || token.IsCancellationRequested || Settings.Danmaku.Source != DanmakuSourceMode.Bilibili
+                    || !Settings.Danmaku.AutoMatch || token.IsCancellationRequested
+                    || Settings.Danmaku.Source != DanmakuSourceMode.Bilibili
                     || connection != BilibiliConnection()) return;
                 var match = error.Length == 0 ? BilibiliMatching.UniqueMatch(item, matches) : null;
                 if (match is not null)
