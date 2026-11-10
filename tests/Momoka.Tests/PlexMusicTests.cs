@@ -11,6 +11,23 @@ internal static class PlexMusicTests
 {
     public static void Register()
     {
+        Test("Plex 音乐搜索：限定当前音乐库，不落到全服务搜索", () =>
+        {
+            using var fixture = new Fixture();
+            _ = fixture.Read(new ItemQuery
+            {
+                ParentId = "3",
+                ParentItemType = EmbyItemType.CollectionFolder,
+                IncludeItemTypes = [EmbyItemType.Audio],
+                SearchTerm = "歌",
+                StartIndex = 2,
+                Limit = 1
+            });
+            var request = fixture.Transport.Requests.Last();
+            Assert.Equal("/proxy/library/sections/3/all", request.Path);
+            Assert.Contains("title=歌", request.Query);
+            Assert.Contains("type=10", request.Query);
+        });
         Test("Plex 音乐：音乐库保留 section key 与 music 类型，照片仍排除", () =>
         {
             using var fixture = new Fixture();
@@ -163,7 +180,8 @@ internal static class PlexMusicTests
             using var fixture = new Fixture();
             var query = new ItemQuery
             {
-                ParentId = "3", IncludeItemTypes = [EmbyItemType.Audio, EmbyItemType.MusicAlbum]
+                ParentId = "3",
+                IncludeItemTypes = [EmbyItemType.Audio, EmbyItemType.MusicAlbum]
             };
             typeof(ItemQuery).GetProperty("ParentItemType")?.SetValue(query, EmbyItemType.CollectionFolder);
             Assert.Throws<NotSupportedException>(() => fixture.Read(query));

@@ -12,6 +12,15 @@ public sealed partial class PlayerViewModel
     private readonly FakePlayback _playback;
     private readonly MemorySettings _settings;
     private readonly Tape _tape;
+    // Optional video tool owners are absent in this caller-only fixture. Keep the real null-conditional
+    // cancellation sites intact; invoking an unarranged owner must fail rather than perform external work.
+    private CancellationBoundary? _playerTools = null;
+    private CancellationBoundary? _playerCapture = null;
+
+    private sealed class CancellationBoundary
+    {
+        internal void Cancel() => throw new InvalidOperationException("自然接续测试未安装视频工具所有者");
+    }
 
     internal PlayerViewModel(FakePlayback playback, MemorySettings settings, EmbySession session, Tape tape)
     {

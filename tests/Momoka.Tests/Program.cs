@@ -4,6 +4,11 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["music-fixture"])
+        {
+            MusicTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["fnmusic-fixture"])
         {
             FnMusicTests.Register();
@@ -41,7 +46,11 @@ internal static class Program
         }
         if (args is ["player-tool-child-wait", var waitingOutput])
         {
-            File.WriteAllText(waitingOutput, Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            // Publish the readiness receipt only after its writer has closed; File.Exists alone
+            // otherwise lets the parent race the exclusive File.WriteAllText handle.
+            var ready = waitingOutput + ".ready";
+            File.WriteAllText(ready, Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            File.Move(ready, waitingOutput);
             Thread.Sleep(30_000);
             return 0;
         }
@@ -672,6 +681,7 @@ internal static class Program
         CompactImagesProbeTests.Register();
         PerformanceProbeRulesTests.Register();
         PlayerToolDownloadTests.Register();
+        MusicTests.Register();
         AgreementsTests.Register();
 
         return TestHarness.Run();

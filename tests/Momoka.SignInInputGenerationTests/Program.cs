@@ -442,7 +442,7 @@ internal static partial class Program
             CheckCurrentSuccess(f, attempt);
         });
 
-        foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin, MediaServerKind.FnNas, MediaServerKind.Plex })
+        foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin, MediaServerKind.FnNas, MediaServerKind.Plex, MediaServerKind.FnMusic })
         {
             Case($"R008 {kind}等价地址编辑不撤销当前票", async () =>
             {

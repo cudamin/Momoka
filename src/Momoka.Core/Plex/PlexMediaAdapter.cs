@@ -139,6 +139,9 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
             || !string.IsNullOrEmpty(query.NameStartsWith))
             throw new NotSupportedException("Plex 尚不支持此浏览条件");
         if (query.IsResumable) return await QueryResumeAsync(query.StartIndex, query.Limit, ct).ConfigureAwait(false);
+        if (IsMusicQuery(query) && query.ParentItemType == EmbyItemType.CollectionFolder
+            && !query.IncludeItemTypes.Contains(EmbyItemType.Playlist) && !string.IsNullOrWhiteSpace(query.ParentId))
+            return await GetMusicItemsAsync(query, ct).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {
             if (query.IncludeItemTypes.Count > 0)

@@ -1,3 +1,18 @@
+# 开发进度
+
+## 2026-11-11 音乐媒体库与飞牛音乐（待运行交付）
+
+工作树 `C:/Users/89400/.codex/worktrees/f974/Momoka`，分支 `codex/music-libraries`，基点617faba。已实现 Emby/Jellyfin/Plex 音乐库与独立飞牛音乐密码连接、恢复、歌曲/专辑/艺术家/歌单/收藏浏览，歌曲分页及完整队列。窗口底部亚克力播放栏包含封面、曲名/歌手、进度、上一曲/暂停/停止/下一曲、模式、收藏、队列、音量；方块停止取消准备/结束播放并清空隐藏，导航不停止音乐。AudioOnly复用现有单会话生命周期，固定内置受控libmpv，无视频surface/窗口/着色器/SVP/uosc/弹幕，音乐/视频互斥。官方协议证据与不支持范围见 `docs/音乐媒体库.md`、`docs/飞牛音乐协议.md`。
+
+离线证据：当前完整Release方案0警告0错误（临时收短进程Path解决cmd的超长PATH找不到py，不改机器环境）；最终主测试4630/4630、失败0跳过0（135937ms）；末轮发现受控工具ready文件先创建后关闭的测试竞态，改成关闭后原子改名发布回执并重验。音乐VM12/12，Plex277/277，FnMusic18/18，AudioOnly21/21，登录输入130/130，HomeDirectory82/82，原生句柄shader60/60，自然EOF27/27、caller69/69，caller提取器10反例均正确拒绝后当前源重验。九个相关专项全绿见 `artifacts/verification/music-related-final/summary.json`。新增控件扫描668交互节点，未定位0；差异/UTF8/LF和变更范围空白检查通过（format workspace加载警告仍如实保留）。全方案暴露的既有测试源码链接/空边界已逐项修复，未裁剪生产控制流或删除断言。
+
+本地真实libmpv静音探针92检查、4场景通过；两种视频管线设置下音频Loaded、暂停、seek、音量、Stop/EOF正常，48次顶层窗口采样均0，脚本哨兵未加载。证据 `artifacts/verification/music-native/REPRODUCE.md`，报告SHA256 `09880D4E0A750C59E6C8160133A963CFE15AC82B1711B338870D0C19E9F18033`。不代表物理音响或真实服务器验收。
+
+**最终运行交付仍受阻，不合master、不更新桌面。** 早期音乐五主题1280/760/360实屏正常（150636691-4508），后续`music,shell,playback`虽控件树和布局存在，但客户区实屏纯灰，登录/侧栏ScrollTo完成关联号返回而offset=0；不能据属性/计数称视觉通过。原master未含音乐的Shell构建也复现相同空白/滚动失败：`shell-probe-20261110-162849028-3296`，基线Momoka.dll SHA256 `D1294A048BA53DF31BA9DCAF7095A34322ED4A1F82C2520137137249EC339988`。音乐页及播放栏构造前的纯文字标记也灰，暂未证明是新增音乐UI回归。官方ScrollPresenter非动画操作在无ValuesChanged后仍可兜底Completed；原offset和像素断言保持严格。
+
+诊断对照已撤回：ProgressRing替换、保留启动页、RequestCommitAsync、SiteBridge重显与标准Window对照均未解决，不留无证产品修复。仅保留正式音乐探针与侧栏音乐期望。部分旧播放截图由RenderTargetBitmap先渲染后实屏可见，不能当首帧正常证据。失败报告及空白PNG已复制 `artifacts/verification/music-runtime-block/`。独立自包含验证产物 `artifacts/music-validation-runtime/publish/win-x64` 通过发布载荷校验547文件/287.6MB，但未更新桌面；快捷方式仍是旧版。继续工作应先复现并解决正常呈现/滚动，确认最终实屏后再按现行规则合master、重验并正式发布。未真实登录飞牛音乐、播放真实媒体、收藏或上报用户历史，未推送GitHub。
+
+
 ## 2026-11-10 音乐会话隔离视频服务入口
 
 - 音乐播放期间忽略截图目录/截图选项/字幕外观的实时推送，拒绝着色器切换与播放器工具捕获。批次等待后仍重新核对AudioOnly和原有播放代次，视频路径保留原行为。只改`PlaybackService.cs` / `PlaybackService.PlayerTools.cs`及音乐回归测试，不改原生参数或生命周期。
@@ -16,6 +31,7 @@
 - 最终当前代码：Release Core/Tests 构建 **0 警告 0 错误**；`music-playback-fixture` **16/16，0 失败 0 跳过**；`review-playback-reporting-fixture` **24/24，0 失败 0 跳过**。定向 `dotnet format whitespace --verify-no-changes --no-restore --include ...` 与 `git diff --check` 均退出 0。未运行原生实际 DLL 音频/实屏窗口或 Shell 探针；本记录不宣称全量交付。
 
 # 开发进度
+
 
 ## 2026-11-10 Plex 音乐协议适配（独立子树，待音乐批次整合）
 

@@ -495,6 +495,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         HomePage home => home.IsReady,
         LibraryPage library => library.IsReady,
+        MusicLibraryPage music => music.ViewModel.IsReady,
         DetailPage detail => detail.IsReady,
         _ => true
     };
@@ -617,6 +618,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         if (_services is null) return;
         _window = window;
         Player.Attach(_services.GetRequiredService<PlayerViewModel>(), this, window);
+        AttachMusic();
         Player.ViewModel.Noticed += Notify;
         Player.ViewModel.RefreshRequested += RefreshActive;
         Player.ViewModel.PreparePresentation = PreparePlaybackPresentation;
@@ -675,6 +677,15 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _aggregateLoads.Cancel();
         _accountMode.Dispose();
         _identityLoads.Cancel();
+        ++_shellPlayIntent;
+        if (_music is not null)
+        {
+            Music.Noticed -= Notify;
+            Music.PropertyChanged -= OnMusicChanged;
+            Music.BeforeStart = null;
+            await Music.StopAsync();
+            Music.Dispose();
+        }
         if (_services?.GetService<Momoka.Shell.Services.SubtitleTranslationController>() is { } translation)
         {
             translation.Noticed -= OnSubtitleTranslationNotice;
@@ -712,16 +723,24 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// resolve them itself. Not an overload: two methods differing only in this would be ambiguous at
     /// every existing call site, all of which pass <c>episodes</c> by name.
     /// </param>
-    internal Task PlayAsync(
+    internal async Task PlayAsync(
         EmbyItem item,
         EmbyItem? parent = null,
         PlaybackChoice? choice = null,
         IReadOnlyList<EmbyItem>? episodes = null)
     {
-        if (_services is null || _shutdownTask is not null) return Task.CompletedTask;
-        return !Player.Attached
+        if (_services is null || _shutdownTask is not null) return;
+        var intent = ++_shellPlayIntent;
+        if (Momoka.Music.MusicCatalog.IsAudio(item.Type))
+        {
+            await Music.PlayAsync(item, episodes);
+            return;
+        }
+        await Music.StopAsync();
+        if (intent != _shellPlayIntent) return;
+        await (!Player.Attached
             ? Player.ViewModel.PlayReplacingAsync(item, parent, choice, episodes)
-            : Player.ViewModel.PlayAsync(item, parent, choice, episodes);
+            : Player.ViewModel.PlayAsync(item, parent, choice, episodes));
     }
 
     private void PreparePlaybackPresentation(bool headless)
@@ -988,6 +1007,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
             case LibraryPage library:
                 _ = library.ViewModel.ReloadAsync();
                 break;
+            case MusicLibraryPage music:
+                _ = music.ViewModel.ReloadAsync();
+                break;
             case MoviePilotSubscriptionsPage subscriptions:
                 _ = subscriptions.ViewModel.ReloadAsync();
                 break;
@@ -1170,7 +1192,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         if (_libraries.TryGetValue(tag, out var library))
         {
-            Open(typeof(LibraryPage), library, library.Title, tag);
+            Open(Momoka.Music.MusicCatalog.IsLibrary(library.CollectionType) ? typeof(MusicLibraryPage) : typeof(LibraryPage), library, library.Title, tag);
             return;
         }
 
@@ -1449,6 +1471,16 @@ public sealed partial class ShellPage : UserControl, IShellActions
             return;
         }
 
+        if (Momoka.Music.MusicCatalog.IsAudio(item.Type))
+        {
+            _ = PlayAsync(item);
+            return;
+        }
+        if (Momoka.Music.MusicCatalog.IsContainer(item.Type) || Momoka.Music.MusicCatalog.IsLibrary(item.CollectionType))
+        {
+            OpenMusicContainer(item, null);
+            return;
+        }
         if (DetailRequest.Supports(item))
         {
             OpenDetail(DetailRequest.For(_services, item));
@@ -2351,13 +2383,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         foreach (var view in result.Items)
         {
-            // 需求 3：「屏蔽媒体库里音乐的内容」. Filtered here rather than in each place a library can be
-            // reached, because this loop is the only source of both: the requests that open a library, and
-            // the 媒体库 row on the home page, which is this same list drawn as cards —— 顶部标签栏 2026-09-08
-            // 删掉之后，那一排卡片是进各媒体库唯一的入口。A music library dropped here cannot be reached from
-            // anywhere, and 继续观看/接下来看/最近添加 drop their own music rows in HomeViewModel because those
-            // three span every library.
-            if (EmbyItemType.IsMusicLibrary(view.CollectionType)) continue;
+            // 音乐库进入专用歌曲页面；音乐视频继续保持既有目录策略，不交给纯音频播放器。
+            if (string.Equals(view.CollectionType, "musicvideos", StringComparison.OrdinalIgnoreCase)) continue;
 
             var tag = HomeLayout.LibraryKey(view);
 
@@ -2375,9 +2402,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         }
 
         RebuildSidebarLibraries();
-        Log.Info(Category, result.Items.Count == _libraries.Count
-            ? $"媒体库 {_libraries.Count} 个已读入"
-            : $"媒体库 {_libraries.Count} 个已读入（来源共 {result.Items.Count} 个，音乐库已屏蔽）");
+        Log.Info(Category, $"媒体库 {_libraries.Count} 个已读入");
     }
 
     /// <summary>首页完成的单来源目录读取同步提交到导航缓存，不触发导航或第二次读取。</summary>
@@ -2385,7 +2410,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         var index = _libraryViews.FindIndex(view => view.Source?.Key == source.Key);
         _libraryViews.RemoveAll(view => view.Source?.Key == source.Key);
-        var current = views.Where(view => view.Source?.Key == source.Key && !EmbyItemType.IsMusicLibrary(view.CollectionType)).ToArray();
+        var current = views.Where(view => view.Source?.Key == source.Key
+            && !string.Equals(view.CollectionType, "musicvideos", StringComparison.OrdinalIgnoreCase)).ToArray();
         _libraryViews.InsertRange(index < 0 ? _libraryViews.Count : Math.Min(index, _libraryViews.Count), current);
         foreach (var key in _libraries.Where(pair => pair.Value.Source?.Key == source.Key).Select(pair => pair.Key).ToArray())
             _libraries.Remove(key);

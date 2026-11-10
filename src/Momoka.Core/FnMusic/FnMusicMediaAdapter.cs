@@ -16,8 +16,15 @@ public sealed partial class FnMusicMediaAdapter(FnMusicClient client, FnMusicCon
         var config = await client.GetConfigurationAsync(mount, ct).ConfigureAwait(false);
         if (Text(config, "serverGUID").Length == 0 || !Version.TryParse(Text(config, "serverVersion"), out _)
             || !Version.TryParse(Text(config, "mediasrvVersion"), out _)) throw new EmbyApiException("该地址未返回可识别的飞牛音乐服务器信息");
-        return new PublicSystemInfo { ProductName = "飞牛音乐", DetectedServerKind = MediaServerKind.FnMusic,
-            ApiBase = mount, Id = Text(config, "serverGUID"), ServerName = Text(config, "serverName"), Version = Text(config, "serverVersion") };
+        return new PublicSystemInfo
+        {
+            ProductName = "飞牛音乐",
+            DetectedServerKind = MediaServerKind.FnMusic,
+            ApiBase = mount,
+            Id = Text(config, "serverGUID"),
+            ServerName = Text(config, "serverName"),
+            Version = Text(config, "serverVersion")
+        };
     }
 
     public static async Task<EmbyConnection> SignInAsync(FnMusicClient client, Uri mount, string username, string password,
@@ -36,9 +43,14 @@ public sealed partial class FnMusicMediaAdapter(FnMusicClient client, FnMusicCon
         if (user.Id != confirmed.Id) throw new EmbyApiException("飞牛音乐登录身份不一致");
         return new EmbyConnection(mount, token, confirmed.Id, confirmed.Name, info.ServerName ?? mount.Host, device)
         {
-            ServerKind = MediaServerKind.FnMusic, ServerId = info.Id, ServerVersion = info.Version ?? version,
-            IsAdministrator = confirmed.Policy?.IsAdministrator, CanDownload = false, CanDeleteContent = false,
-            CanManageSubtitles = false, CanManageCollections = false
+            ServerKind = MediaServerKind.FnMusic,
+            ServerId = info.Id,
+            ServerVersion = info.Version ?? version,
+            IsAdministrator = confirmed.Policy?.IsAdministrator,
+            CanDownload = false,
+            CanDeleteContent = false,
+            CanManageSubtitles = false,
+            CanManageCollections = false
         };
     }
 
@@ -46,9 +58,21 @@ public sealed partial class FnMusicMediaAdapter(FnMusicClient client, FnMusicCon
     {
         var id = Text(value, "guid"); var name = Text(value, "name"); var role = Text(value, "role");
         if (id.Length == 0 || name.Length == 0 || role is not ("admin" or "member")) throw new EmbyApiException("飞牛音乐用户信息缺少有效身份字段");
-        return new EmbyUser { Id = id, Name = name, HasPassword = true, Policy = new()
-        { IsAdministrator = role == "admin", EnableContentDownloading = false, EnableContentDeletion = false,
-            EnableSubtitleDownloading = false, EnableSubtitleManagement = false, EnableCollectionManagement = false } };
+        return new EmbyUser
+        {
+            Id = id,
+            Name = name,
+            HasPassword = true,
+            Policy = new()
+            {
+                IsAdministrator = role == "admin",
+                EnableContentDownloading = false,
+                EnableContentDeletion = false,
+                EnableSubtitleDownloading = false,
+                EnableSubtitleManagement = false,
+                EnableCollectionManagement = false
+            }
+        };
     }
 
     public async Task<EmbyUser> GetCurrentUserAsync(CancellationToken ct) => User(await client.GetAsync(connection, "user/me", ct).ConfigureAwait(false));
@@ -67,8 +91,10 @@ public sealed partial class FnMusicMediaAdapter(FnMusicClient client, FnMusicCon
         var (container, guid) = Container(query.ParentId);
         if (query.ArtistIds.Count > 1) throw new NotSupportedException("飞牛音乐每次只支持一个艺术家查询");
         var artist = query.ArtistIds.FirstOrDefault() ?? (container == "artist" ? guid : null);
+        if (artist is not null && Container(artist) is ("artist", { } artistGuid)) artist = artistGuid;
         string path; var parameters = new List<(string Key, string? Value)>();
         var isSearch = !string.IsNullOrWhiteSpace(query.SearchTerm);
+        if (isSearch && query.IsFavorite) throw new NotSupportedException("飞牛音乐暂不支持在收藏内搜索");
         if (isSearch)
         {
             if (container is not null || artist is not null) throw new NotSupportedException("飞牛音乐不支持容器内搜索");
@@ -103,7 +129,7 @@ public sealed partial class FnMusicMediaAdapter(FnMusicClient client, FnMusicCon
             var all = Rows(data).Select(value => Item(value, type)).ToList();
             return new() { Items = all.Skip(start).Take(limit).ToList(), TotalRecordCount = Total(data, all.Count) };
         }
-        parameters.Add(("sort", Sort(query, type, container)));
+        if (!string.IsNullOrEmpty(query.SortBy)) parameters.Add(("sort", Sort(query, type, container)));
         var page = start / limit + 1; var skip = start % limit; var items = new List<EmbyItem>(); var total = 0;
         do
         {
@@ -146,8 +172,11 @@ public sealed partial class FnMusicMediaAdapter(FnMusicClient client, FnMusicCon
         : client.GetCoverAsync(connection, tag, width <= 160 ? 160 : width <= 600 ? 600 : width <= 1024 ? 1024 : width <= 1600 ? 1600 : 2000, ct);
 
     public async Task ReportPlaybackStartAsync(PlaybackReport report, CancellationToken ct) =>
-        await client.PostAsync(connection, "event/report", new() { ["events"] = new JsonArray(new JsonObject
-        { ["eventType"] = "track_play", ["occurredAt"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), ["payload"] = new JsonObject { ["trackGUID"] = report.ItemId } }) }, ct).ConfigureAwait(false);
+        await client.PostAsync(connection, "event/report", new()
+        {
+            ["events"] = new JsonArray(new JsonObject
+            { ["eventType"] = "track_play", ["occurredAt"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), ["payload"] = new JsonObject { ["trackGUID"] = report.ItemId } })
+        }, ct).ConfigureAwait(false);
 
     private static string Family(string type) => type switch { EmbyItemType.MusicAlbum => "album", EmbyItemType.MusicArtist => "artist", EmbyItemType.Playlist => "playlist", _ => "track" };
     private static string Sort(ItemQuery query, string type, string? container)

@@ -533,6 +533,9 @@
 
         <local:SignInPage x:Name="SignIn" />
 
+        <local:MusicPlayerBar x:Name="MusicBar" Canvas.ZIndex="12" Visibility="Collapsed"
+            VerticalAlignment="Bottom" Margin="20,0,20,16" MaxWidth="1120" />
+
         <!-- The player, a sibling rather than a page in the frame. It has to be able to take the whole
              window: the island is one shared surface, so anything still visible behind it would paint
              its own opaque background over the region where mpv's child window shows through. -->

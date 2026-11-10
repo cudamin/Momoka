@@ -18,6 +18,7 @@
     <Compile Include="..\..\src\Momoka.Core\Mpv\LibMpvNodes.cs" Link="Production\LibMpvNodes.cs" />
     <Compile Include="..\..\src\Momoka.Core\Mpv\LibMpvFrame.cs" Link="Production\LibMpvFrame.cs" />
     <Compile Include="..\..\src\Momoka.Core\Mpv\MpvListValue.cs" Link="Production\MpvListValue.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\EachFrameScreenshot.cs" Link="Production\EachFrameScreenshot.cs" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
     <Compile Include="..\Momoka.Tests\ShaderTransactionTests.cs" Link="ShaderTransactionTests.cs" />
     <None Include="..\..\assets\shaders\**\*.glsl;..\..\assets\shaders\**\*.hook">

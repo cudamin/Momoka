@@ -70,6 +70,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         if (Connection.IsFnMusic) return FnMusicMedia.GetItemsAsync(query, cancellationToken);
         if (Connection.IsFnNas) return FnNasMedia.GetItemsAsync(query, cancellationToken);
         if (Connection.IsPlex) return PlexMedia.GetItemsAsync(query, cancellationToken);
+        if (MusicItems(query, cancellationToken) is { } music) return music;
         var url = Url($"Users/{Connection.UserId}/Items", query.ToParameters());
         return http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken);
     }
@@ -968,8 +969,13 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public async Task<EmbySystemInfo> GetSystemInfoAsync(CancellationToken cancellationToken)
     {
-        if (Connection.IsFnMusic) return new() { ServerName = Connection.ServerName, Version = Connection.ServerVersion,
-            Id = Connection.ServerId, IsRestricted = true };
+        if (Connection.IsFnMusic) return new()
+        {
+            ServerName = Connection.ServerName,
+            Version = Connection.ServerVersion,
+            Id = Connection.ServerId,
+            IsRestricted = true
+        };
         if (Connection.IsFnNas) return await FnNasMedia.GetSystemInfoAsync(Connection.ServerName, Connection.ServerVersion, cancellationToken).ConfigureAwait(false);
         if (Connection.IsPlex) return await PlexMedia.GetSystemInfoAsync(Connection.ServerName, Connection.ServerVersion, cancellationToken).ConfigureAwait(false);
         if (Connection.IsJellyfin)

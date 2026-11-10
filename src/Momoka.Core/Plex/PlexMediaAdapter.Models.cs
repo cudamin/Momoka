@@ -32,6 +32,7 @@ public sealed partial class PlexMediaAdapter
         };
 
         var pairs = new List<PlexParameter> { new("sort", query.Descending ? sort + ":desc" : sort) };
+        if (!string.IsNullOrWhiteSpace(query.SearchTerm)) pairs.Add(new("title", query.SearchTerm.Trim()));
         if (Type(query.IncludeItemTypes) is { Length: > 0 } type) pairs.Add(new("type", type));
         // Plex filters watched state with one key rather than Emby's Filters list: 1 keeps the unwatched,
         // 0 keeps the watched.
@@ -147,6 +148,16 @@ public sealed partial class PlexMediaAdapter
         };
 
         item.ProductionYear = Integer(value, "year") ?? item.PremiereDate?.Year;
+        if (type is EmbyItemType.Audio or EmbyItemType.MusicAlbum)
+        {
+            var artistName = type == EmbyItemType.Audio
+                ? Blank(Text(value, "originalTitle")) ?? Text(value, "grandparentTitle") : Text(value, "parentTitle");
+            var artistId = Text(value, type == EmbyItemType.Audio ? "grandparentRatingKey" : "parentRatingKey");
+            item.Artists = string.IsNullOrWhiteSpace(artistName) ? [] : [artistName];
+            item.ArtistItems = string.IsNullOrEmpty(artistId) ? [] : [new() { Id = artistId, Name = artistName }];
+            item.Album = type == EmbyItemType.Audio ? Blank(Text(value, "parentTitle")) : item.Name;
+            item.AlbumId = type == EmbyItemType.Audio ? Blank(Text(value, "parentRatingKey")) : item.Id;
+        }
         AddProviderIds(item, value);
         AddArtwork(item, value, type);
         return item;

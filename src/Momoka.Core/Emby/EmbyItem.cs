@@ -28,9 +28,8 @@ public static class EmbyItemType
         new(StringComparer.OrdinalIgnoreCase) { Movie, Episode, Video, MusicVideo, Trailer };
 
     /// <summary>
-    /// The types this app deliberately does not show. It plays video through mpv and has no music face at
-    /// all — no album grid, no track list, no queue — so a music library reached through it is a wall of
-    /// folders that answer a click with nothing worth looking at. Hidden rather than half-built.
+    /// Music is excluded from the existing video shelves/search; the music page handles audio,
+    /// albums and artists with its own browse and playback contracts.
     /// </summary>
     private static readonly HashSet<string> Music =
         new(StringComparer.OrdinalIgnoreCase) { Audio, MusicAlbum, MusicArtist, MusicVideo };
@@ -59,7 +58,7 @@ public static class EmbyItemType
     /// </summary>
     public static bool TracksUserState(string? type) => type is null || !Stateless.Contains(type);
 
-    /// <summary>Whether this item's type is one of the music ones the shell hides.</summary>
+    /// <summary>Whether this type belongs outside the video-only shelves.</summary>
     public static bool IsMusic(string? type) => type is not null && Music.Contains(type);
 
     /// <summary>Whether a library's <c>CollectionType</c> makes it a music library.</summary>

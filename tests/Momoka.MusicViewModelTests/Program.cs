@@ -11,6 +11,8 @@ internal static class Program
         {
             ("停止拒绝迟到 metadata，原生后端从未启动", StopMetadataAsync),
             ("停止拒绝迟到队列载入，并清空播放栏与队列", StopLoaderAsync),
+            ("队列未载完时切槽不能丢弃余页", QueueLoadingNavigationAsync),
+            ("未提交搜索不能污染显示列表的分页与播放队列", DraftSearchAsync),
             ("旧视频事件排队不撤销新的音乐意图", QueuedVideoAsync),
             ("自动下一曲拒绝上一首迟到收藏", LateFavoriteAsync),
             ("确认音量保存并用于下一曲启动", VolumeNextAsync),
@@ -50,6 +52,39 @@ internal static class Program
         release.TrySetResult();
         await play;
         Require(fixture.Backend.Starts.Count == 0, "迟到 metadata 启动了后端");
+    }
+
+    private static async Task QueueLoadingNavigationAsync()
+    {
+        await using var fixture = new Fixture();
+        var entered = Signal();
+        var release = Signal();
+        var a = fixture.Track("a");
+        var b = fixture.Track("b");
+        var c = fixture.Track("c");
+        var play = fixture.Music.PlayAsync(a, [a, b], async _ => { entered.TrySetResult(); await release.Task; return new[] { a, b, c }; });
+        await entered.Task;
+        await fixture.Music.NextAsync();
+        await fixture.Music.SelectAsync(1);
+        Require(fixture.Backend.Starts.Count == 0, "余页未齐时从部分队列起播");
+        release.TrySetResult();
+        await UntilAsync(() => fixture.Backend.Handles.Length == 1);
+        Require(fixture.Music.Queue.Count == 3, "切槽丢失余页");
+        await fixture.Music.StopAsync();
+        await play;
+    }
+
+    private static async Task DraftSearchAsync()
+    {
+        await using var fixture = new Fixture();
+        fixture.Transport.Reply = (request, _) => Task.FromResult(Page(fixture.Transport, request.Query));
+        using var library = fixture.Library();
+        await library.ReloadAsync();
+        library.Search = "尚未提交";
+        await library.LoadMoreAsync();
+        _ = await library.CaptureQueueLoader()(default);
+        Require(fixture.Transport.Requests.All(request => !request.Query.Contains("SearchTerm", StringComparison.Ordinal)),
+            "旧列表采用了未提交的搜索词");
     }
 
     private static async Task StopLoaderAsync()
@@ -264,8 +299,12 @@ internal static class Program
     private static System.Net.Http.HttpResponseMessage Page(Transport transport, string query)
     {
         var start = query.Contains("StartIndex=80", StringComparison.Ordinal) ? 80 : 0;
-        return Transport.Json(new ItemsResult { Items = Enumerable.Range(start, start == 0 ? 80 : 20)
-            .Select(index => transport.Track("t" + index)).ToList(), TotalRecordCount = 100 });
+        return Transport.Json(new ItemsResult
+        {
+            Items = Enumerable.Range(start, start == 0 ? 80 : 20)
+            .Select(index => transport.Track("t" + index)).ToList(),
+            TotalRecordCount = 100
+        });
     }
     private static TaskCompletionSource Signal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }

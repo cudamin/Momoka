@@ -1,5 +1,11 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-11：音乐整合的剩余来源核对
+
+逐份追溯 SourcePins 原哈希对应 Git 版本并审阅差异：Transport/PlayerVM 新增可选工具取消；Events 新增菜单属性读取及 AudioOnly 拒绝，实际 caller 抽取的 OnNowPlayingChanged 对视频仍保持原控制流；Session/Scope 增加当前合集权限和同账号重登的来源核对；Item 增加权限、飞牛续播标志及音乐元数据。定点同步这六份完整源哈希，并给真实 Transport 中可选的工具取消保留空边界，不裁剪方法。ShaderCommandGenerationTests 仅链接提取完整 handle 所需的真实 EachFrameScreenshot，对应项目文件哈希同步。
+
+当前 caller 69/69 通过，Test-SourceExtraction 的10个变异样本均按预期构建失败，随后当前源重新零警告零错误构建并69/69；测试不能证明实际视频窗口或真实服务器接续。
+
 ## 2026-11-10：AudioOnly 四份 Core 来源复核
 
 定点更新 `LibMpvBackend.cs`、`PlaybackContracts.cs`、`PlaybackService.Continuation.cs` 与 `PlaybackService.Lifecycle.cs` 完整源 SHA256。AudioOnly 是默认 false 的新增模式，音乐不使用视频保留/swap；视频的 ticket/scope/取消/expected lease、完整 Start 签名和原有 caller 递归/await-dispose 未改变。提取器仍严格检查全部 pins、完整语法节点、六参 Play 与自然接续 fence，不接受其它历史漂移。

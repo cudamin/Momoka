@@ -29,7 +29,7 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs",
-      "sha256": "3a474221a039b8cb9b61c4127670ae69f8e8bad9b730c3319eea5421c784613f"
+      "sha256": "be77961d19d82bb176cde4ea4c393ad3a40de5175b1029c2809d8917ec7cbafc"
     },
     {
       "path": "tests/Momoka.ShaderCommandGenerationTests/HandleFixture.cs",
@@ -45,27 +45,27 @@
     },
     {
       "path": "tests/Momoka.ShaderCommandGenerationTests/Momoka.ShaderCommandGenerationTests.csproj",
-      "sha256": "9bd3b5661a1cf29ec5d52e3a993ed6bcca305c91982a41a6509e63824c1dc7a3"
+      "sha256": "6c945c20a25a8f7d46a620831c7bc6614e02e315dcced2bb9801a473c5ff9718"
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.cs",
-      "sha256": "17042566937d43cd2d4b75ada68132040ef92e8d9f614b78841b0af91414656d"
+      "sha256": "3e9a19f4c17d4339369c5eed512fe5e333c64e2c8cd455f6f40a7f23b88f0911"
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
-      "sha256": "b9870281f2013dca9009cb0741859e97231576d1006fdd1b9939612f40e74477"
+      "sha256": "3b78ddf20c63837fde1a26e50fdf304365d82775981cefb546b6bc85d786ecb9"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySession.cs",
-      "sha256": "66a56d5076fd5daef5c09441282745c8b329665bbfdda346dee08d8981a4fe51"
+      "sha256": "3a53f2f136fe13cdabfaab315befb1e16468552430df07a92aca73343e02b908"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
-      "sha256": "ea7931946e0cdcee210fd1736136f69fdb708b193ed02974cee74051f95d8fa5"
+      "sha256": "50488d65cfd338aef25aabc113cb2ffa4027abae25ffd220a7bf456458c1c9a0"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbyItem.cs",
-      "sha256": "f92ffa6f5501bd81f2f9abca1484e5bcaf5223d98847de4e02fc282f7c0b2d9b"
+      "sha256": "eee00dbc824d105dd632fe7b2058599b8a800ad6b388d983d1442418d532c7ad"
     },
     {
       "path": "src/Momoka.Core/Playback/EpisodeNavigation.cs",

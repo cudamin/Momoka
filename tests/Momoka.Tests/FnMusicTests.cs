@@ -17,6 +17,17 @@ internal static class FnMusicTests
 
     public static void Register()
     {
+        Test("飞牛音乐：包装艺术家与歌单原序、收藏搜索边界", () =>
+        {
+            using var fixture = new Fixture();
+            var client = fixture.Client();
+            client.GetItemsAsync(new ItemQuery { ParentId = "fnmusic:artist:artist", ArtistIds = ["fnmusic:artist:artist"], IncludeItemTypes = [EmbyItemType.Audio], Limit = 1 }, default).GetAwaiter().GetResult();
+            Assert.Contains("artistGUID=artist", fixture.Transport.Requests.Last().Query);
+            client.GetItemsAsync(new ItemQuery { ParentId = "fnmusic:playlist:playlist", IncludeItemTypes = [EmbyItemType.Audio], SortBy = "", Limit = 1 }, default).GetAwaiter().GetResult();
+            Assert.False(fixture.Transport.Requests.Last().Query.Contains("sort=", StringComparison.Ordinal));
+            Assert.Throws<NotSupportedException>(() => client.GetItemsAsync(new ItemQuery
+            { ParentId = "music", IncludeItemTypes = [EmbyItemType.Audio], IsFavorite = true, SearchTerm = "song" }, default).GetAwaiter().GetResult());
+        });
         Test("飞牛音乐：签名使用音乐应用身份与最终路径", () =>
         {
             var get = FnMusicSigner.Create(HttpMethod.Get, new Uri("https://fixture.invalid/music/api/v1/track/list?b=2&a=旧&a=null&a=更新+空格&empty=&x=undefined"), null, "123456", 1794268800000);
