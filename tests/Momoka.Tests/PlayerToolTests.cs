@@ -185,7 +185,7 @@ internal static class PlayerToolTests
             var ffmpeg = Path.Combine(root, "ffmpeg.exe");
             var ffprobe = Path.Combine(root, "ffprobe.exe");
             var media = Path.Combine(root, "media.mkv");
-            var subtitle = Path.Combine(root, "字幕 [一],x.srt");
+            var subtitle = Path.Combine(root, "字幕 'x [一],y.srt");
             File.WriteAllBytes(exe, [0]);
             File.WriteAllBytes(ffmpeg, [0]);
             File.WriteAllBytes(ffprobe, [0]);

@@ -149,8 +149,8 @@ public sealed class PlayerToolPlan
                         RequireExtension(sub, ".srt", ".ass", ".ssa");
                         inputs.Add(sub);
                         // Shift a separate text subtitle to the clipped timeline before rendering.
-                        filter = "setpts=PTS+" + Number(input.StartSeconds) + "/TB,subtitles=filename='" + EscapeFilterPath(sub) +
-                            "',setpts=PTS-STARTPTS," + filter;
+                        filter = "setpts=PTS+" + Number(input.StartSeconds) + "/TB,subtitles=filename=" + EscapeFilterPath(sub) +
+                            ",setpts=PTS-STARTPTS," + filter;
                     }
                     args.AddRange(["-an", "-sn", "-filter_complex",
                         "[" + Stream(input.VideoStreamIndex, "0:v:0") + "]" + filter +
@@ -179,8 +179,14 @@ public sealed class PlayerToolPlan
         if (!extensions.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase))
             throw new PlayerToolException("播放工具不支持此输入或输出格式。");
     }
-    private static string EscapeFilterPath(string path) => path.Replace("\\", "/", StringComparison.Ordinal)
-        .Replace("'", "'\\''", StringComparison.Ordinal).Replace(":", "\\:", StringComparison.Ordinal)
-        .Replace("[", "\\[", StringComparison.Ordinal).Replace("]", "\\]", StringComparison.Ordinal)
-        .Replace(",", "\\,", StringComparison.Ordinal).Replace(";", "\\;", StringComparison.Ordinal);
+    private static string EscapeFilterPath(string path)
+    {
+        // FFmpeg parses the option value and then the containing filtergraph. Escape both layers;
+        // shell quoting is neither needed nor correct because ProcessStartInfo uses ArgumentList.
+        var value = path.Replace("\\", "/", StringComparison.Ordinal).Replace(":", "\\:", StringComparison.Ordinal)
+            .Replace("'", "\\'", StringComparison.Ordinal);
+        return value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("'", "\\'", StringComparison.Ordinal)
+            .Replace("[", "\\[", StringComparison.Ordinal).Replace("]", "\\]", StringComparison.Ordinal)
+            .Replace(",", "\\,", StringComparison.Ordinal).Replace(";", "\\;", StringComparison.Ordinal);
+    }
 }
