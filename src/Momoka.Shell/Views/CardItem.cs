@@ -29,6 +29,9 @@ public sealed class CardItem : INotifyPropertyChanged
 {
     private const string Category = "卡片";
 
+    /// <summary>仅由当前合集页准备，不能作为媒体本身的持久属性。</summary>
+    internal CollectionMembership? CollectionMembership { get; set; }
+
     // Only live card groups are retained. Captured scopes share the online identity owner, while
     // another account or a later login cannot inherit its state or in-flight command order.
     private static readonly ConditionalWeakTable<object, UserStateGroups> StateGroups = new();
@@ -45,6 +48,9 @@ public sealed class CardItem : INotifyPropertyChanged
     private const int PersonGlyph = 0xE77B;
 
     private readonly EmbyItem _item;
+
+    /// <summary>详情预览可能沿用续播 seed；详情菜单不继承列表记录的移除入口。</summary>
+    public bool AllowResumeRemoval { get; init; } = true;
     private readonly EmbyImageStore _images;
     private readonly Action? _navigate;
     private readonly string _localPosterPath;
@@ -225,6 +231,7 @@ public sealed class CardItem : INotifyPropertyChanged
 
     private void RaiseCollageTile(int index)
     {
+        if (index == 0) Raise(nameof(RowPoster));
         Raise(index switch
         {
             0 => nameof(FolderTile0),
@@ -662,8 +669,12 @@ public sealed class CardItem : INotifyPropertyChanged
             if (ReferenceEquals(_poster, value)) return;
             _poster = value;
             Raise();
+            Raise(nameof(RowPoster));
         }
     }
+
+    /// <summary>列表行只显示一张图；目录封面拼图以第一张已到达海报作为首图。</summary>
+    public BitmapImage? RowPoster => Poster ?? FolderTile0;
 
     public bool Watched => _item.IsWatched;
 

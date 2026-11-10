@@ -1300,7 +1300,7 @@ public sealed partial class DetailPage : Page, IShellContent
             || ViewModel.CurrentItem is not { } item)
             return false;
 
-        var card = new CardItem(item, images, CardSize.PosterWidth);
+        var card = new CardItem(item, images, CardSize.PosterWidth) { AllowResumeRemoval = false };
 
         ItemCommands.Run(ItemCommand.ChangeCover, session, actions, this, card,
             siblings: ViewModel.Episodes, changed: ViewModel.Reload);
@@ -2308,7 +2308,7 @@ public sealed partial class DetailPage : Page, IShellContent
             return;
 
         ViewModel.EnsureCurrentEpisodeCard();
-        var card = new CardItem(item, images, CardSize.PosterWidth);
+        var card = new CardItem(item, images, CardSize.PosterWidth) { AllowResumeRemoval = false };
         ItemCommands.Show(
             session,
             actions,

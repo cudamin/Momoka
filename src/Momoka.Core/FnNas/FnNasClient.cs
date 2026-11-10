@@ -176,8 +176,11 @@ public sealed partial class FnNasClient(FnNasHttp http)
     public Task ReportPlaybackAsync(FnNasConnection c, JsonObject record, CancellationToken ct = default) =>
         ActionAsync(c, HttpMethod.Post, "api/v1/play/record", record, ct);
 
-    public Task RemoveContinueWatchingAsync(FnNasConnection c, string itemGuid, CancellationToken ct = default) =>
-        ActionAsync(c, HttpMethod.Delete, "api/v1/play/record", new JsonObject { ["item_guid"] = itemGuid }, ct);
+    public Task RemoveContinueWatchingAsync(FnNasConnection c, string itemGuid, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(itemGuid);
+        return ActionAsync(c, HttpMethod.Delete, "api/v1/play/record", new JsonObject { ["item_guid"] = itemGuid }, ct);
+    }
 
     public Task SetFavoriteAsync(FnNasConnection c, string itemGuid, bool favorite, CancellationToken ct = default) =>
         ActionAsync(c, favorite ? HttpMethod.Put : HttpMethod.Delete, "api/v1/item/favorite", new JsonObject { ["item_guid"] = itemGuid }, ct);

@@ -45,8 +45,35 @@ namespace Microsoft.UI.Xaml.Controls
     }
 }
 namespace Momoka.Shell.Windowing { internal sealed class HostWindow; }
+namespace Momoka.Shell.Platform
+{
+    internal interface ISystemLauncher { void OpenFolder(string path); void OpenUrl(string url); }
+    internal sealed class SystemLauncher : ISystemLauncher
+    {
+        public void OpenFolder(string path) => throw new Momoka.Tests.AssertionException("匿名目录夹具禁止系统目录启动");
+        public void OpenUrl(string url) => throw new Momoka.Tests.AssertionException("匿名目录夹具禁止系统浏览器启动");
+    }
+}
+namespace Momoka.Shell.Services
+{
+    internal sealed class LocalLibraryCoordinator
+    {
+        internal IReadOnlyList<LocalMediaLibrarySettings> Libraries =>
+            throw new Momoka.Tests.AssertionException("匿名服务器目录夹具禁止读取本地媒体库");
+    }
+}
 namespace Momoka.Shell.Views
 {
+    internal sealed class LocalLibraryRequest
+    {
+        internal const string Prefix = "local-library:";
+        internal LocalLibraryRequest(Services.LocalLibraryCoordinator service, string id, Platform.ISystemLauncher launcher) =>
+            throw new Momoka.Tests.AssertionException("匿名服务器目录夹具禁止本地媒体库请求");
+    }
+    internal sealed class LocalLibraryPage
+    {
+        internal LocalLibraryPage() => throw new Momoka.Tests.AssertionException("匿名服务器目录夹具禁止本地媒体库页面");
+    }
     internal sealed class BrowsePresentation
     {
         internal void Stop() { }

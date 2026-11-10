@@ -76,12 +76,14 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(banner);
 
         var readings = new List<string>();
+        var sampleLog = Path.Combine(_options.Paths.LogDirectory, "home-banner-clock-samples.txt");
         var dropped = new List<string>();
         BannerSlide? opened = null;
         banner.OpenRequested += (_, slide) => opened = slide;
         banner.SlideDropped += (_, slide) => dropped.Add(slide.Item.Id);
         try
         {
+            File.WriteAllText(sampleLog, "");
             await LayoutAsync(banner);
 
             var slides = items.Select(item => new BannerSlide(item, fixture.Images)).ToArray();
@@ -144,16 +146,19 @@ internal sealed partial class ShellNavigationProbe
             Require(ReferenceEquals(picture, banner.FrontPicture) && beforePicture.SequenceEqual(afterPicture),
                 "自然停留期间右侧背景像素发生移动");
             readings.Add($"自然停留背景区域 {beforePicture.Length / 4} 像素完全一致");
-            banner.ApplyDwell(3);
+            // Natural dwell needs enough uncontended samples. Keep its ten-second window separate
+            // from the minimum three-second advance check; Task.Delay is not an elapsed-time promise.
+            const int SampleDwellSeconds = 10;
+            const int RequiredSamples = 8;
+            banner.ApplyDwell(SampleDwellSeconds);
             var cycleStarted = Get<long>(banner, "_cycleStarted");
             var elapsedSamples = new List<long>();
-            for (var index = 0; index < 8; index++)
+            for (var index = 0; index < RequiredSamples; index++)
             {
                 await Task.Delay(150);
+                if (!Sample("自然停留", index, cycleStarted, picture, SampleDwellSeconds * 1000L, out var elapsed)) break;
                 samples.Add(scale.ScaleX);
-                elapsedSamples.Add(Environment.TickCount64 - cycleStarted);
-                FoundationProbeReadings.Dwell(cycleStarted, Get<long>(banner, "_cycleStarted"), Environment.TickCount64,
-                    ReferenceEquals(picture, banner.FrontPicture), scale.ScaleX, 3000);
+                elapsedSamples.Add(elapsed);
                 var camera = (ScaleTransform)banner.FrontLayer.RenderTransform;
                 cameraSamples.Add($"{camera.ScaleX:0.0000}/{camera.ScaleY:0.0000}");
                 Require(ReferenceEquals(picture, banner.FrontPicture)
@@ -162,17 +167,28 @@ internal sealed partial class ShellNavigationProbe
             }
             readings.Add("背景自然停留，两轴单位缩放：" + string.Join("、", cameraSamples));
 
-            var rising = true;
-            for (var index = 1; index < samples.Count; index++)
-                if (samples[index] < samples[index - 1] - 1e-6) rising = false;
-
-            Require(rising && samples[^1] > 0.1,
-                $"指针和焦点在带上时进度条没有连续前进：{string.Join("、", samples.Select(value => $"{value:0.00}"))}");
+            FoundationProbeReadings.DwellProgress(samples, RequiredSamples);
             Require(counter.Text.StartsWith("01  /  03", StringComparison.Ordinal), "停留时长没到就换片了");
             readings.Add($"悬停＋焦点：实际起点{cycleStarted}、取样{string.Join('、', elapsedSamples)}ms，进度 {samples[0]:0.00}→{samples[^1]:0.00}，读数仍是 {counter.Text}");
 
             // 跑满就翻页，条接着从 0 再走 —— 不是停在满格、也不是半路回退。
-            await WaitAsync(() => counter.Text.StartsWith("02  /  03", StringComparison.Ordinal), 6000);
+            banner.ApplyDwell(3);
+            var shortStarted = Get<long>(banner, "_cycleStarted");
+            var shortPicture = banner.FrontPicture;
+            var shortId = banner.Current!.Item.Id;
+            for (var index = 0; ; index++)
+            {
+                await Task.Delay(50);
+                if (!Sample("三秒换片", index, shortStarted, shortPicture, 3000, out _)) break;
+            }
+            // Wait only for this cycle's first transition. Waiting for a label can otherwise accept
+            // the second slide after a whole extra lap when the dispatcher missed the first one.
+            await WaitAsync(() => Get<long>(banner, "_cycleStarted") != shortStarted
+                || !ReferenceEquals(shortPicture, banner.FrontPicture), 6000);
+            Sample("首个换片", 0, shortStarted, shortPicture, 3000, out _);
+            FoundationProbeReadings.DwellAdvance(shortId, items[1].Id, banner.Current!.Item.Id,
+                shortStarted, Get<long>(banner, "_cycleStarted"), 3000);
+            Require(counter.Text.StartsWith("02  /  03", StringComparison.Ordinal), "首个换片周期读数不是第二张");
             Require(scale.ScaleX < 0.6, $"翻页之后进度条没有从头开始：{scale.ScaleX:0.00}");
             readings.Add($"3 秒到点：读数 {counter.Text}，条 {scale.ScaleX:0.00}");
             var nextCamera = (ScaleTransform)banner.FrontLayer.RenderTransform;
@@ -239,12 +255,29 @@ internal sealed partial class ShellNavigationProbe
             readings.Add("只剩坏图：整条带收起");
 
             Require(readings.Count == 8, $"轮播读秒与静止检查没有走完（{readings.Count} 条读数）");
+
+            bool Sample(string phase, int index, long started, ImageSource? expectedPicture, long dwell, out long elapsed)
+            {
+                var actualStarted = Get<long>(banner, "_cycleStarted");
+                var currentId = banner.Current?.Item.Id ?? "";
+                var samePicture = ReferenceEquals(expectedPicture, banner.FrontPicture);
+                var progress = scale.ScaleX;
+                var now = Environment.TickCount64;
+                elapsed = now - started;
+                // Persist before the guard so a failed or expired sample cannot erase its diagnosis.
+                File.AppendAllText(sampleLog, FormattableString.Invariant(
+                    $"phase={phase} index={index} started={started} actualStarted={actualStarted} now={now} elapsed={elapsed} currentId={currentId} samePicture={samePicture} progress={progress:R} dwell={dwell}\n"));
+                return FoundationProbeReadings.DwellSample(started, actualStarted, now, samePicture, progress, dwell);
+            }
         }
         finally
         {
-            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "home-banner-clock.txt"), readings);
-            _root.Children.Remove(banner);
-            ResizeProbeClient(1420, 980);
+            try { File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "home-banner-clock.txt"), readings); }
+            finally
+            {
+                _root.Children.Remove(banner);
+                ResizeProbeClient(1420, 980);
+            }
         }
     }
 

@@ -626,6 +626,11 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         Connection.IsFnNas ? FnNasMedia.GetUserDataAsync(itemId, cancellationToken)
             : throw new NotSupportedException("当前服务器不是飞牛影视");
 
+    /// <summary>删除飞牛单条播放记录；独立于 Emby 隐藏续播，不伪造进度或已看状态。</summary>
+    public Task RemoveFnNasContinueWatchingAsync(string itemId, CancellationToken cancellationToken) =>
+        Connection.IsFnNas ? FnNas.RemoveContinueWatchingAsync(FnNasConnection, itemId, cancellationToken)
+            : throw new NotSupportedException("当前服务器不是飞牛影视");
+
     /// <summary>Plex 已看写入确认后的独立补读；认证重试只重读，不重新提交已确认操作。</summary>
     public Task<EmbyUserData?> GetPlexUserDataAsync(string itemId, CancellationToken cancellationToken) =>
         Connection.IsPlex ? PlexMedia.GetUserDataAsync(itemId, cancellationToken)
@@ -675,7 +680,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         http.PostJsonAsync<CollectionCreationResult>(
             Url("Collections",
                 ("Name", name),
-                ("Ids", string.Join(',', itemIds)),
+                ("Ids", string.Join(',', itemIds.Select(CollectionId))),
                 // 不锁：锁住的合集不再接受刮削，而这一步只是「把几样东西归到一处」。
                 ("IsLocked", "false")),
             null,
@@ -688,7 +693,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         IReadOnlyList<string> itemIds,
         CancellationToken cancellationToken) =>
         http.PostAsync(
-            Url($"Collections/{collectionId}/Items", ("Ids", string.Join(',', itemIds))),
+            Url($"Collections/{CollectionSegment(collectionId)}/Items", ("Ids", string.Join(',', itemIds.Select(CollectionId)))),
             null,
             Context,
             cancellationToken);

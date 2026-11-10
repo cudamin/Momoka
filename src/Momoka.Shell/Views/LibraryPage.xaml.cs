@@ -1070,8 +1070,11 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// as it does for an invoke, and a metadata save reloads the page rather than patching the card —
     /// an edit can move the item's title, its artwork and its position in the sort all at once.
     /// </summary>
-    private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args) =>
+    private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args)
+    {
+        ViewModel.PrepareCollectionMembers();
         ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched);
+    }
 
     /// <summary>需求 6：the same commands from the strip that appears on a card under the pointer.</summary>
     private void OnCardActionRequested(object? sender, CardActionEventArgs args)
@@ -1082,6 +1085,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             _lastActionAt = Environment.TickCount64;
         }
 
+        ViewModel.PrepareCollectionMembers();
         ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched);
     }
 
@@ -1293,20 +1297,25 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     private void OnFnNasFilterCloseClicked(object sender, RoutedEventArgs e) => ViewModel.CloseFnNasFilter();
 
-    private void OnFnNasLayoutMenuOpening(object sender, object e)
+    private void OnFnNasLayoutMenuOpening(object sender, object e) => BuildFnNasLayoutMenu();
+
+    internal IReadOnlyList<string> BuildFnNasLayoutMenu()
     {
         // 每次打开重建，和排序菜单同一套：勾要跟着刚刚落下的那一次选择走。
-        FnNasLayoutList.ItemsSource = new[]
-        {
-            new LayoutEntry("竖幅海报", !ViewModel.FnNasLayoutWide, false),
-            new LayoutEntry("横幅海报", ViewModel.FnNasLayoutWide, true)
-        };
+        var entries = ViewModel.FnNasViews()
+            .Select(view => new LayoutEntry(ViewModel.FnNasViewLabel(view), view == ViewModel.View, View: view)).ToArray();
+        FnNasLayoutList.ItemsSource = entries;
+        return [.. entries.Select(entry => entry.Label)];
     }
+
+    internal void ShowFnNasLayoutMenu() => FnNasLayoutButton.Flyout?.ShowAt(FnNasLayoutButton);
+
+    internal void HideFnNasLayoutMenu() => FnNasLayoutMenu.Hide();
 
     private void OnFnNasLayoutItemClick(object sender, ItemClickEventArgs e)
     {
         if (e.ClickedItem is not LayoutEntry entry) return;
-        ViewModel.SetFnNasLayout(entry.Wide);
+        ViewModel.ChooseFnNasView(entry.View);
         FnNasLayoutMenu.Hide();
     }
 

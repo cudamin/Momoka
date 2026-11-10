@@ -1190,7 +1190,7 @@ public sealed partial class HomePage : Page, IShellContent
 
         if (target?.Card is not { } card) return null;
 
-        ItemCommands.Show(_session, _actions, target, card, position: null, changed: Reload, watched: ViewModel.MarkedWatched);
+        ItemCommands.Show(_session, _actions, target, card, position: null, changed: CaptureCardReload(), watched: ViewModel.MarkedWatched);
         return card.Title;
     }
 
@@ -1571,7 +1571,7 @@ public sealed partial class HomePage : Page, IShellContent
     {
         if (sender is Button { Content: PosterCard { Card.IsNavigation: true } }) { args.Handled = true; return; }
         ItemCommands.Handle(_session, _actions, sender, args,
-            changed: Reload, removed: RemoveCard, watched: ViewModel.MarkedWatched);
+            changed: CaptureCardReload(), removed: RemoveCard, watched: ViewModel.MarkedWatched);
     }
 
     /// <summary>需求 6：the same commands from the strip that appears on a card under the pointer.</summary>
@@ -1579,11 +1579,20 @@ public sealed partial class HomePage : Page, IShellContent
     {
         if (sender is PosterCard { Card.IsNavigation: true }) return;
         ItemCommands.Handle(_session, _actions, sender, args,
-            changed: Reload, removed: RemoveCard, watched: ViewModel.MarkedWatched);
+            changed: CaptureCardReload(), removed: RemoveCard, watched: ViewModel.MarkedWatched);
     }
 
     /// <summary>删除成功：和 MoviePilot 那两个删除范围走同一条离场动画与摘除路径。</summary>
     private void RemoveCard(CardItem card) => _ = RemoveAsync(card.Item);
+
+    private Action CaptureCardReload()
+    {
+        var navigation = _navigation;
+        return () =>
+        {
+            if (!_released && navigation == _navigation) Reload();
+        };
+    }
 
     /// <summary>需求 5：播放 on the carousel. Fire and forget, same as every other play on this page.</summary>
     private void OnBannerPlayRequested(object? sender, BannerSlide slide) => _ = ViewModel.PlayAsync(slide);

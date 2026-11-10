@@ -130,3 +130,13 @@ On 2026-10-26 Jellyfin 10.10.7 passed saved-token restore, library/detail reads,
 ## Delivery
 
 When the supported boundary changes, update this skill, the "which product" boundary in `momoka-emby-api`, [docs/开发与验证.md](../../../docs/开发与验证.md), and the domain docs that declare which server they were written against. Keep this skill from drifting into a copy of the Jellyfin specification: link the version you measured and name the route you chose.
+
+## Collection management permission and membership
+
+Jellyfin collection operations allow `IsAdministrator` or `EnableCollectionManagement`; this maps to the dedicated `CanManageCollections`, independently of media deletion and server administration. The current source and capability snapshot own this grant; a late policy read must not overwrite a newer identity revision. Preserve unknown as unknown and reject a confirmed denial before writes. Emby instead follows its own item/admin predicate.
+
+Concurrent permission probes also check their probe generation before source confirmation and cache publication. A newer same-value denied result need not change `PermissionRevision`, so source revision alone cannot reject an older allowed response.
+
+`CollectionManagement` checks source ownership and current permission on every authenticated attempt. DELETE `Collections/{collectionId}/Items?Ids=...` only removes members. A `CollectionMembership` prepared for the current BoxSet page binds the collection, member and query lifetime; ordinary folders and actor/search pages cannot borrow it. Existing create/add remain POST. The `subtitle-target-fixture`, `library-resume-paging-fixture` and `Momoka.DetailDeleteCommandTests` cover anonymous protocol, actual VM context and actual command callbacks, not real Jellyfin changes or WinUI rendering.
+
+The library section's `LibraryCollectionsAsync` / inspect `InspectLibraryCollections` uses a nonadministrator anonymous Jellyfin policy with collection management granted and media deletion denied. It exercises the actual card menu and success refresh, then denial/restoration; do not claim rendered coverage until its current-tree run and screenshots pass.

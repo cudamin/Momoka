@@ -22,6 +22,7 @@ public static class ItemFingerprint
 
         var text = new StringBuilder(320);
         Add(text, item.Id);
+        Add(text, item.IsFnNasResumeRecord);
         Add(text, item.Name);
         Add(text, item.Type);
         Add(text, item.SeriesId);
@@ -38,6 +39,8 @@ public static class ItemFingerprint
         Add(text, item.Path);
         Add(text, item.RunTimeTicks);
         Add(text, item.IsFolder);
+        Add(text, item.CanEditItems);
+        if (item.CanEditItems == true) Add(text, item.PermissionReadRevision);
         Add(text, item.Status);
         Add(text, item.OfficialRating);
         Add(text, item.CommunityRating);

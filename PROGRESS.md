@@ -1,5 +1,57 @@
 # 开发进度
 
+## 2026-11-10 媒体库第一批：主树验收与桌面交付
+
+四项产品已合主树：飞牛可选单条续播移除（栏目保留，确认删除记录可能影响断点）、Jellyfin普通用户合集授权、Emby/Jellyfin当前合集成员移除、飞牛Other/目录列表及偏好恢复。整合保留4db8637的本地媒体库与播放工具；修复同账号重登接续、旧条目授权/探测代次及内部合集确认误失效系统权限缓存。来源比较旧夹具改为真实无网络内存Session，不放宽生产权限。
+
+主树dc82b2f产品最终Tests/Core/Shell Release0警告0错误；完整4571/4571、0失败0跳过，日志artifacts/library-batch1/delivery-full-tests-uncontended.log。完整前轮4570/4571的一项图片等待夹具外部6秒截止超时保留；定向composition-readiness32/32后停止并行编译再跑完整4571全过。当前权限54/54（permissions-delivery.log）、合并实际命令34/34、布局VM6/6、库VM40/40、页面契约177/177、目录与轮播读数79/79均过，重复覆盖不累加。
+
+主树原生library分区35/37（shell-probe-20261110-135043697-5540）：飞牛续播/Other目录列表/恢复及修正轮播读数通过；详情截图被遮挡、合集菜单覆盖取样点两条红保留，不声称整分区全过。合集截图原生诊断确认左下点命中同PID PopupWindowSiteBridge；改用第二个真实成员卡的相同菜单拍照，仍严格核四点宿主归属、不改变视频遮挡守卫或产品菜单。最新inspect29656（shell-probe-20261110-143215467-29656）合集1/1，Emby/Jellyfin1100/760、权限拒绝/恢复及2→1均过，媒体/收藏/续播保留，receipt两关系请求各一次、媒体2项、Plays0；八张实屏及四点/菜单几何已检查。诊断自身有原失败与修后成功运行证据，窗口均InspectDone退出。
+
+待当轮发布主树artifacts/publish/win-x64及核桌面快捷方式，临时树归档/分支清理在交付后执行。未获上传授权，无真实媒体服务器播放、删除记录或合集写入。
+
+## 2026-11-10 合集内部确认保留系统权限缓存（独立子树，待主树集成）
+
+从主树617faba建立library-batch1-permission-probe。R011原54项中Emby“同值true新确认覆盖旧Probe false”53过1败是生产回归：System/Info403的本轮管理员false缓存仍为旧revision；紧随的合集null→false内部确认升revision，导致全局IsAdministrator丢掉刚确认false而回旧connection true，与按来源菜单权限false矛盾。保留原54契约，不改前件或断言。ConfirmCollectionPermission仅确认并返回代次，不在会话锁或能力锁内发事件；Probe发布来源缓存，并只为相同owner且系统缓存代次正好等于确认前代次迁移revision，管理员/版本读数保留。通知在两锁外且全部缓存发布后，明确外部Replace仍使旧缓存失效；通知重入升权后该来源没有晚写回。
+
+新增主测试2项事件即时读数与锁持有断言、回调内显式升权保留true/版本；红139项137过2败，绿139/139。当前Core/Tests/Shell及R011 Release构建0警告0错误；R011原54/54通过（同树Shell/Core哈希一致，匿名加载实际SettingsVM），0失败0跳过。定向格式及6路径编码/空白检查通过；证据artifacts/permission-probe与artifacts/r011-current-permission/result-20261110-140324-1731.json。两生产文件的独立只读复审无必要P1/P2。无UI/全测/实服/起播/上传，最终完整与原生检查由主树集成会话负责。
+
+## 2026-11-10 第一批整合回归：身份比较夹具
+
+主树7795627完整主测4567/4546/21失败，18项来自历史纯身份夹具用空Session构造scope，新PermissionReadRevision正常读取当前会话触发空引用；另外3项真实重登接续回归由隔离实现者修复。纯身份夹具改用无网络/凭据的真实内存Session，释放后仅保留来源key/名称，PermissionRevision明确为-1、不授权。未放宽生产权限判断。新增browse-identity-fixture保留原聚合/主页/删除身份断言，55/55通过；Plex相关263/263、删除后选集9/9通过，当前Tests/Core Release0警告0错误。最终全测在接续修复合入后重跑，旧失败日志保留。
+## 2026-11-10 主树轮播夹具编译边界同步（独立，待整合）
+
+树 `C:/Users/89400/.codex/worktrees/library-batch1-clock-fixture/Momoka`、分支 `codex/library-batch1-clock-fixture`，基点master `7795627`。实际抽取的Shell新增本地库导航与PlayerDialogRequested退订，匿名HomeDirectoryTests缺LocalLibraryRequest/LocalLibraryPage/LocalLibraryCoordinator/Platform.ISystemLauncher及GetRequiredService/事件handler，当前树fresh编译重现11错；不运行旧78项冒充通过。只补测试边界：本地库请求/页面/读取及系统启动均明确拒绝，服务按真类型解析，播放器对话框事件保留订阅/退订且误触明确拒绝，不复制产品流程、不改Shell或依赖。
+
+最终Tests/Core Release/x64 fresh编译0警告0错误，79/79、0失败0跳过（既有78+1项边界拒绝/事件/服务解析断言），日志保留 `artifacts/clock-fixture/red-build.log`、`build.log`、`tests.log`。未运行UI/full/publish/真实服务器，原生轮播由根代理最终主树串行重验；未push或自行合入。
+## 2026-11-10 合集集成后的同账号请求接续回归（独立子树，待主树集成）
+
+从主树7795627创建library-batch1-session-regression，修复完整主测试检出的三项同账号手动重登回归。原自动重登返回的新客户端可能属于用户已重建的身份，不能再用已退出旧scope覆盖fresh。重试按原key和完整IsSameIdentityAs取得当前在线来源/client，在同一生命周期锁捕获权限代次；仅新Identity重采用户状态确认代次。结果绑定发起重试时捕获的owner，响应后owner再次退出则取消，绝不绑定第三次登录。捕获scope入口仍有旧lifetime，CollectionManagement闭包仍守原来源owner，不允许借新身份继续旧合集写。
+
+现有三项更新Source/owner、旧来源失效、新PermissionReadRevision与旧2次/新1次UserStateRevision断言；新增捕获合集写入退出重登仅原1写，以及接续响应期间第三次登录取消旧结果。红：233项230过3败，均为原OperationCanceledException回归；修复后当前Core/Tests Release构建0警告0错误、会话相关234/234与合集137/137通过，0失败0跳过，证据artifacts/session-regression。独立只读复审无必要P1/P2。只修改会话及测试与说明，不运行UI/全测、不真实登录/播放/写库，不推送；交父代理合入并完成主树最终验证。
+
+## 2026-11-10 轮播采样窗口诊断修正（独立验证工具，待原生重验）
+
+树 `C:/Users/89400/.codex/worktrees/library-batch1-clock-probe/Momoka`、分支 `codex/library-batch1-clock-probe`，基点 `33ef27c`。根代理当前原生 library 报告 `shell-probe-20261110-125423956-26244` 为 35/36，轮播仅保存一条像素静止读数，缺失败样本时间，不能确认产品提前换片或改记通过。仅改探针与读数规则：自然停留用独立10秒周期收8个样本，再重置三秒验证本轮第一次换片；周期内旧起点、提前换图/重启仍严格拒绝，超期只结束采样且不足仍失败。每样本校验前写 index/started/actualStarted/now/elapsed/currentId/samePicture/progress，now只读一次；禁止等后轮第二张补本轮证据。未改HomeBanner产品行为。
+
+当轮新增9项先因缺正式采样判据红（62/71），补迟到掩盖早重启反例再红（71/72）；独立复审补错过首轮负例红（72/76），再补目标相同但已经绕圈的时长边界。日志在本树 `artifacts/clock-probe/` 保留红绿。最终HomeDirectoryTests/Core Release与Shell Release/x64编译均0警告0错误，78/78、0失败0跳过；4文件行尾/BOM/空白检查通过。本树未运行UI、未发布、未访问真实服务器或播放。根代理串行重验检查台单项HomeClock与library后才能关闭原生失败；不沿用旧报告洗绿，不push或自行合主树。
+
+## 2026-11-10 媒体库第一批：飞牛单条续播移除
+
+用户授权第一批。集成树 `C:/Users/89400/.codex/worktrees/3d0c/Momoka`、分支 `codex/library-batch1`，基底 `e545dfd`。按官方网页0.9.8首页/主包/SDK实际调用，新增独立单条移除命令：仅play/list记录guid提供入口，确认说明删除播放记录可能影响断点；普通库/详情/合成下一集不出现，marker进入卡片指纹。DELETE只传item_guid，不套Emby隐藏或标未看。确认及在飞按身份所有者+条目防重入；刷新捕获Home导航代次，不调用RemovedMedia/媒体删除回调。
+
+当轮Tests/Core与Shell Release/x64编译0警告0错误；飞牛专项161/161、真实命令29/29、用户状态排序74/74通过。先观察缺接口红，再实现；重入用例首轮确实等待超时，守卫后通过；真实等待确认时撤销来源零写。新增匿名library原生探针本轮PID26244/日志 `shell-probe-20261110-125423956-26244` 中“飞牛单条续播移除与取消失败恢复”通过，四张实屏目视：取消/拒绝保留两条，确认后另一条续播与相同影片最新货架保留；无播放或真实服务器写入。当前整分区仍在运行，不能当最终主树整批证据。
+
+列表子项待合入 `f607a04`（独立树library-batch1-fnnas-layout）；合集子项待实现者提交。主树已前进至 `4db8637`，保留其他聊天成果后集成，最终主树重验完整测试/运行检查并发布实际目录。未获上传授权，不push。
+## 2026-11-10 飞牛 Other/目录列表布局（首批独立实现，待集成验证）
+
+树 `C:\Users\89400\.codex\worktrees\library-batch1-fnnas-layout\Momoka`，分支 `codex/library-batch1-fnnas-layout`，基点 e545dfd。用户已授权直接实现首批，根代理整合与实屏串行负责；本树禁止合入、push、发布及真实服务器写入/起播。
+
+重新读取官方网页0.9.8业务包74c956…DZn1lJtt（SHA256 92a8bece…5527）的Hq/AN/MN/NN/PN及列表Ue条件：Other/目录可切列表，普通Movie/TV只横竖海报。IPTV浏览原有过滤保持，Core只保留对应条件。新FnNasLibraryDisplay集中合法视图/恢复，LibraryDisplay可空FnNasPosterView从旧横竖值迁移；菜单和VM用同一条件，目录按source+parentID保存。首选List暂时失效只运行期回海报，不覆盖已存偏好。复用EpisodeRow/StackLayout，图像来源用RowPoster兼容目录拼图首张。
+
+测试先Core3/3红（规则缺失）、VM4/4红（菜单/命令缺失），再通知2红（同页View与Cancel/Resume菜单通知）。独立复审发现目录拼图灰首图与旧卡片比例未更新，补真实CardItem/PageContract及VM比例有效红后修正；第一个新测试曾因夹具null/属性错误类型失败，已修测试后取得预期红，不计产品反证。
+
+初轮当前Core/Tests/Shell Release均0警告0错误；Core布局3/3、实际VM6/6、收藏来源13/13、深返回21/21。修正前完整主测试4331/4331、0失败0跳过，证据artifacts/fnnas-layout/full-tests.log。修正后PageContract176/176通过，最终Shell Release构建0警告0错误，VM6/6（含真实卡片比例）、收藏来源13/13、深返回21/21均再验通过，编码13文件通过、自动化缺句柄0；完整最终集成套件及真实WinUI宽窄/菜单/图像/恢复由根代理重跑，不沿用修正前绿色。现有FnNasMixed探针新增Other/目录1280/760、实际StackLayout/行宽、RowPoster及Image.Source、列表勾选、目录重新进入恢复；本树只编译，未启动应用。外部详细审查和计划为指定visualizations/fnnas-audit.md。
 ## 2026-11-10 多本地媒体库与自动监控（已交付）
 
 用户最终要求多个目录一目录一媒体库，首页逐库显示；识别独立选择Momoka直连TMDB或MP，整理选择直接改名/软链接/硬链接。设置保存及显式开启后处理已有和新增，文件稳定且无写句柄才识别；持久处理账本防重，视频与NFO成功才入库，图片失败保留部分状态。应用运行期间后台工作，关闭设置页继续，退出应用停止；诊断启动不启真实目录监控。手动结果同样入本地索引。移除库不删除文件。
@@ -9,6 +61,16 @@
 主树与正式发布件local-media分区2/2：真实临时目录已有电影、新增剧集、首页打开后再新增一集，实际链接/NFO/PNG及库归属通过；首页显示两个本地库且剧集从1项变2项，宽窄与逐库列表实屏已目视。正式证据shell-probe-20261110-124037434-1440，汇总artifacts/local-libraries-20261110。匿名HTTP和临时dummy媒体，不读取真实影片或提交远端媒体整理/刷新。
 
 publish.ps1 -NoArchive -Shortcut成功，547文件287.4MB、60批准mpv载荷通过；快捷方式指向主树artifacts/publish/win-x64、参数空。发布Shell/Core/PRI与当前发布bin哈希一致；Shell A05DA2A9E747C0AD71F677CE5A0090E42B329DCF8023663989124683F4E9FE69。未上传远端。尚未接应用内本地播放，库页可看内容及打开所在文件夹；首页仍沿用已有登录门控；真实TMDB/MP部署版本与用户媒体自动操作未实测。监控按配置库范围工作，不安装独立Windows后台服务。
+## 2026-11-10 第一批媒体库：合集授权与成员移除（独立子树，待集成）
+
+用户授权第一批实现。本项从 e545dfd 建立 library-batch1-collections 工作树。Jellyfin 将 EnableCollectionManagement 与管理员策略映射成独立 CanManageCollections，贯穿登录/恢复、当前来源与菜单；Emby 仍按管理员且尊重条目 CanEditItems 的明确覆盖。能力探测仅更新当前合集权限，不改变令牌或持久设置，迟到权限不能覆盖新代次。
+
+合集页卡片在打开菜单时绑定当前来源、合集、成员与查询 lifetime；离页、换查询和来源退出后失效，普通文件夹下钻不继承。新“从合集中移除”仅解除关系：Emby POST Collections/{id}/Items/Delete，Jellyfin DELETE Collections/{id}/Items；已有创建/加入沿用接口并经同一身份/权限服务，每次认证重试前复核。没有修改布局或飞牛续播。
+
+TDD红证据：基础5项、服务6项、当前快照2项、迟到权限/指纹2项均按缺失行为失败。独立复审再确认两类竞态（3红项）：Emby旧CanEditItems授权跨降权、并发权限探测旧响应覆盖新同值拒绝；修后关联137/137通过，包含读取期间降权与新旧指纹。条目授权标记PermissionReadRevision，只允许新鲜的Emby条目授权覆盖账号策略；每次读请求及认证重试捕获客户端与代次。能力确认和缓存同时核本次Probe代次与来源PermissionRevision。
+
+最后复审修复后Core/Tests/Shell与实际命令项目Release构建0警告0错误，关联137/137、实际库VM40/40、实际关系/删除命令26/26通过；用户状态真实命令74/74在末次请求代次细化前已过。改动C#空白校验通过（工作区加载提示），34个变更路径编码/空白与63个PowerShell脚本检查通过。全方案格式检查另检出基底4份测试旧空白，未夹带修改。完整主测试复审修复前串行4349/4349、0失败0跳过；并发原生探针导致过一次16项自检锁红，串行重跑通过，原日志保留。完整主测与原生UI由父代理集成后统一重验。新增匿名LibraryCollectionsAsync和InspectLibraryCollections，真实更多按钮、两家1100/760菜单、移除后2→1、媒体/收藏/续播保留、权限隐藏恢复与离页失效；本子树未运行UI。证据 artifacts/collection-batch1；不连接真实服务器、不起播、不媒体写入，不推送或发布。
+
 
 ## 2026-11-10 后端审查两项修复（已交付）
 

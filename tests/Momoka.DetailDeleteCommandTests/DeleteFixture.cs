@@ -249,6 +249,12 @@ internal sealed class DeleteTransport(MediaServerKind kind) : HttpMessageHandler
     public string FilesJson { get; set; } = """{"code":0,"msg":"","data":[{"media_guid":"version-1","file_path":"/anonymous/1.mkv","file_size":1048576,"height":1080}]}""";
     public HttpStatusCode DeleteStatus { get; set; } = HttpStatusCode.OK;
     public string DeleteJson { get; set; } = """{"code":0,"msg":"","data":{}}""";
+    public int ContinueDeletes { get; private set; }
+    public HttpStatusCode ContinueStatus { get; set; } = HttpStatusCode.OK;
+    public bool HoldContinue { get; set; }
+    public TaskCompletionSource ContinueEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _continueRelease = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public void ReleaseContinue() => _continueRelease.TrySetResult();
     public HttpStatusCode FilesStatus { get; set; } = HttpStatusCode.OK;
     public bool HoldDelete { get; set; }
     public TaskCompletionSource DeleteEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -266,7 +272,24 @@ internal sealed class DeleteTransport(MediaServerKind kind) : HttpMessageHandler
         var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync(token);
         Requests.Add((request.Method.Method, uri.AbsolutePath, body));
         var fnnas = kind == MediaServerKind.FnNas;
+        if (fnnas && request.Method == HttpMethod.Delete && uri.AbsolutePath == "/v/api/v1/play/record")
+        {
+            ContinueDeletes++;
+            Assert.Equal("{\"item_guid\":\"item\"}", body);
+            ContinueEntered.TrySetResult();
+            if (HoldContinue) await _continueRelease.Task.ConfigureAwait(false);
+            return Response(ContinueStatus, """{"code":0,"data":null}""");
+        }
         var prefix = kind == MediaServerKind.Emby ? "/emby/" : "/";
+        if (!fnnas && uri.AbsolutePath == prefix + "Collections/set/Items" + (kind == MediaServerKind.Emby ? "/Delete" : ""))
+        {
+            Assert.Equal(kind == MediaServerKind.Emby ? "POST" : "DELETE", request.Method.Method);
+            Assert.Equal("?Ids=item", uri.Query);
+            Assert.Equal("", body);
+            DeleteEntered.TrySetResult();
+            if (HoldDelete) await _release.Task.ConfigureAwait(false);
+            return Response(DeleteStatus, "");
+        }
         if (fnnas && request.Method == HttpMethod.Get && uri.AbsolutePath == "/v/api/v1/tag/genres"
             && uri.Query == "?lan=zh-CN")
             return Response(HttpStatusCode.OK, """{"code":0,"data":[]}""");
@@ -294,7 +317,10 @@ internal sealed class DeleteTransport(MediaServerKind kind) : HttpMessageHandler
     {
         Content = new StringContent(json, Encoding.UTF8, "application/json")
     };
-    public int Deletes => Requests.Count(request => request.Method == "DELETE");
+    public int CollectionWrites => Requests.Count(request => request.Path.Contains("Collections/set/Items", StringComparison.Ordinal));
+    public int MediaDeletes => Requests.Count(request => request.Method == "DELETE" && !request.Path.Contains("Collections/", StringComparison.Ordinal)
+        && request.Path != "/v/api/v1/play/record");
+    public int Deletes => MediaDeletes;
     public int Gets => Requests.Count(request => request.Method == "GET");
     public int GenreGets => Requests.Count(request => request.Method == "GET" && request.Path == "/v/api/v1/tag/genres");
     public int SubjectGets => Requests.Count(request => request.Method == "GET" && request.Path == "/v/api/v1/item/item");

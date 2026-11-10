@@ -154,9 +154,13 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
         // Probe hasn't answered yet (or the identity was replaced): use whatever the confirmed connection
         // already carries. A restored Emby connection has no policy snapshot, so this is usually 「unknown」
         // and the menu keeps its entries until the probe below fills them in.
-        var connection = source.Connection;
-        return new ItemMenuPermissions(connection.IsAdministrator, connection.CanDownload,
-            connection.CanDeleteContent, connection.CanManageSubtitles);
+        try
+        {
+            var connection = source.CurrentConnection;
+            return new ItemMenuPermissions(connection.IsAdministrator, connection.CanDownload,
+                connection.CanDeleteContent, connection.CanManageSubtitles, connection.CanManageCollections);
+        }
+        catch (OperationCanceledException) { return default; }
     }
 
     /// <inheritdoc />
@@ -272,7 +276,7 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
         // 入口照旧显示，真没权限由服务器拒绝。
         try
         {
-            await ProbeSourcePermissionsAsync(token).ConfigureAwait(false);
+            await ProbeSourcePermissionsAsync(generation, token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -283,24 +287,37 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
         }
     }
 
-    private async Task ProbeSourcePermissionsAsync(CancellationToken token)
+    private async Task ProbeSourcePermissionsAsync(long generation, CancellationToken token)
     {
         foreach (var source in session.Sources)
         {
             if (source.Connection.ServerKind is not (MediaServerKind.Emby or MediaServerKind.Jellyfin)) continue;
             if (!source.IsAvailable) continue;
+            lock (_gate) { if (generation != _generation) return; }
 
             var revision = source.PermissionRevision;
             try
             {
                 var user = await source.ExecuteAsync((client, ct) => client.GetCurrentUserAsync(ct), token)
                     .ConfigureAwait(false);
-                var permissions = user.Policy?.ToPermissions() ?? default;
+                var permissions = user.Policy?.ToPermissions(source.Connection.ServerKind) ?? default;
+                var confirmed = -1L;
                 lock (_gate)
                 {
-                    if (source.IsAvailable && source.PermissionRevision == revision)
-                        _sourcePermissions[source.Key] = (permissions, source.UserStateOwner, revision);
+                    if (generation != _generation || token.IsCancellationRequested) return;
+                    confirmed = session.ConfirmCollectionPermission(source, permissions.CanManageCollections, revision);
+                    if (source.IsAvailable && source.PermissionRevision == confirmed)
+                    {
+                        _sourcePermissions[source.Key] = (permissions, source.UserStateOwner, confirmed);
+                        // This same probe changed only collection permission. Keep its already-confirmed
+                        // system result valid for the migrated revision; external replacements still expire it.
+                        if (_scope is { } scope && ReferenceEquals(scope.UserStateOwner, source.UserStateOwner)
+                            && _permissionRevision == revision) _permissionRevision = confirmed;
+                    }
                 }
+                // Observers may reenter capabilities or replace a client. Both caches must be published,
+                // and neither the capability nor session lock may be held while calling them.
+                if (confirmed >= 0 && confirmed != revision) session.NotifyPermissionsChanged(source);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
             {

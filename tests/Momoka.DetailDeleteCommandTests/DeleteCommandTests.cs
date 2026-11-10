@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.Emby;
+using Momoka.Shell.Views;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
@@ -10,6 +11,138 @@ internal static class DeleteCommandTests
     private const string TwoFiles = """{"code":0,"msg":"","data":[{"media_guid":"version-1","file_path":"/anonymous/1.mkv","file_size":1048576,"height":1080},{"media_guid":"version-2","path":"/anonymous/2.mkv","size":2097152,"resolution":"4K"}]}""";
     public static void Register()
     {
+        Test("飞牛续播命令：真实等待确认期间来源退出，不写入也不回调", () =>
+        {
+            using var f = new DeleteFixture();
+            f.Card.Item.IsFnNasResumeRecord = true;
+            f.Dialogs.PendingConfirm = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            var refreshed = 0;
+            var operation = f.Command("FnNasRemoveContinueAsync", () => refreshed++, f.RemovedCallback());
+            f.Context.Drain();
+            Assert.Equal(1, f.Dialogs.Confirmations.Count);
+            Assert.False(operation.IsCompleted);
+            f.Revoke();
+            f.Dialogs.PendingConfirm.SetResult(ContentDialogResult.Primary);
+            f.Await(operation);
+            Assert.Equal(0, f.Transport.ContinueDeletes);
+            Assert.Equal(0, refreshed);
+        });
+        Test("飞牛续播命令：确认提交在飞时拒绝同项重入，完成可重试", () =>
+        {
+            using var f = new DeleteFixture();
+            f.Card.Item.IsFnNasResumeRecord = true;
+            f.Transport.HoldContinue = true;
+            var refreshed = 0;
+            var first = f.Command("FnNasRemoveContinueAsync", () => refreshed++, f.RemovedCallback());
+            f.Context.Await(f.Transport.ContinueEntered.Task);
+            f.Await(f.Command("FnNasRemoveContinueAsync", () => refreshed++, f.RemovedCallback()));
+            Assert.Equal(1, f.Transport.ContinueDeletes);
+            Assert.Equal(1, f.Dialogs.Confirmations.Count);
+            f.Transport.ReleaseContinue();
+            f.Await(first);
+            Assert.Equal(1, refreshed);
+            f.Await(f.Command("FnNasRemoveContinueAsync", () => refreshed++, f.RemovedCallback()));
+            Assert.Equal(2, f.Transport.ContinueDeletes);
+        });
+        Test("飞牛续播命令：确认后仅删除播放记录，刷新不走媒体删除", () =>
+        {
+            using var f = new DeleteFixture();
+            f.Card.Item.IsFnNasResumeRecord = true;
+            var original = f.Card.Item.UserData;
+            var refreshed = 0;
+            f.Await(f.Command("FnNasRemoveContinueAsync", () => refreshed++, f.RemovedCallback()));
+            Assert.Equal(1, f.Transport.ContinueDeletes);
+            Assert.Equal(0, f.Transport.Deletes);
+            Assert.Equal(1, refreshed);
+            Assert.Equal(0, f.Removed);
+            Assert.True(ReferenceEquals(original, f.Card.Item.UserData));
+            Assert.Equal("移除", f.Dialogs.Confirmations.Single().PrimaryButtonText);
+            Assert.Contains("断点续播", (string)f.Dialogs.Confirmations.Single().Content!);
+        });
+        foreach (var boundary in new[] { "cancel", "revoked", "ordinary", "denied", "detail" })
+            Test("飞牛续播命令：" + boundary + "不得刷新或误删媒体", () =>
+            {
+                using var f = new DeleteFixture();
+                f.Card.Item.IsFnNasResumeRecord = boundary != "ordinary";
+                if (boundary == "cancel") f.Dialogs.ConfirmResult = ContentDialogResult.None;
+                if (boundary == "revoked") f.Dialogs.BeforeConfirm = f.Revoke;
+                if (boundary == "denied") f.Transport.ContinueStatus = System.Net.HttpStatusCode.Forbidden;
+                if (boundary == "detail")
+                {
+                    f.Attach("item");
+                    f.Card.Item.IsFnNasResumeRecord = true;
+                    typeof(CardItem).GetProperty(nameof(CardItem.AllowResumeRemoval))!.SetValue(f.Card, false);
+                }
+                var refreshed = 0;
+                f.Await(f.Command("FnNasRemoveContinueAsync", () => refreshed++, f.RemovedCallback()));
+                Assert.Equal(boundary == "denied" ? 1 : 0, f.Transport.ContinueDeletes);
+                Assert.Equal(0, refreshed);
+                Assert.Equal(0, f.Removed);
+                Assert.Equal(0, f.Transport.Deletes);
+            });
+        foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
+        {
+            Test($"合集实际命令：{kind}移除成员只发送关系请求且保留媒体", () =>
+            {
+                using var f = new DeleteFixture(kind);
+                f.Card.CollectionMembership = new CollectionMembership(f.Scope, "set", f.Card.Item.Id, default);
+                f.Actions.Permissions = new(IsAdministrator: false, CanManageCollections: true);
+                var changed = 0;
+                var command = typeof(Momoka.Shell.Views.ItemCommands).GetMethod("RemoveCollectionMemberAsync", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+                f.Await((Task)command.Invoke(null, [f.Scope, new CommandActions(f.Actions), f.Card, (Action)(() => changed++)])!);
+                Assert.Equal(1, f.Transport.CollectionWrites);
+                Assert.Equal(0, f.Transport.MediaDeletes);
+                Assert.Equal(1, changed);
+                Assert.True(f.CanPlay);
+                Assert.Equal(1, f.SourceCount);
+            });
+        }
+        Test("合集实际命令：取消页面上下文后零写零刷新", () =>
+        {
+            using var f = new DeleteFixture(MediaServerKind.Emby);
+            using var page = new CancellationTokenSource();
+            f.Card.CollectionMembership = new CollectionMembership(f.Scope, "set", f.Card.Item.Id, page.Token);
+            page.Cancel();
+            var changed = 0;
+            var command = typeof(Momoka.Shell.Views.ItemCommands).GetMethod("RemoveCollectionMemberAsync", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+            f.Await((Task)command.Invoke(null, [f.Scope, new CommandActions(f.Actions), f.Card, (Action)(() => changed++)])!);
+            Assert.Equal(0, f.Transport.CollectionWrites);
+            Assert.Equal(0, changed);
+        });
+        Test("合集实际命令：写失败保留卡片，零刷新并反馈错误", () =>
+        {
+            using var f = new DeleteFixture(MediaServerKind.Jellyfin);
+            f.Card.CollectionMembership = new CollectionMembership(f.Scope, "set", f.Card.Item.Id, default);
+            f.Actions.Permissions = new(IsAdministrator: false, CanManageCollections: true);
+            f.Transport.DeleteStatus = System.Net.HttpStatusCode.Forbidden;
+            var changed = 0;
+            var command = typeof(Momoka.Shell.Views.ItemCommands).GetMethod("RemoveCollectionMemberAsync", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+            f.Await((Task)command.Invoke(null, [f.Scope, new CommandActions(f.Actions), f.Card, (Action)(() => changed++)])!);
+            Assert.Equal(1, f.Transport.CollectionWrites);
+            Assert.Equal(0, changed);
+            Assert.True(f.CanPlay);
+            Assert.True(f.Actions.Notices.Any(notice => notice.Severity == "Error"));
+        });
+        Test("合集实际命令：关系写入成功时已离页，不刷新新页面", () =>
+        {
+            using var f = new DeleteFixture(MediaServerKind.Jellyfin);
+            using var page = new CancellationTokenSource();
+            f.Card.CollectionMembership = new CollectionMembership(f.Scope, "set", f.Card.Item.Id, page.Token);
+            f.Actions.Permissions = new(IsAdministrator: false, CanManageCollections: true);
+            f.Transport.HoldDelete = true;
+            var changed = 0;
+            var command = typeof(ItemCommands).GetMethod("RemoveCollectionMemberAsync", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+            var writing = (Task)command.Invoke(null, [f.Scope, new CommandActions(f.Actions), f.Card, (Action)(() => changed++)])!;
+            f.Context.Until(() => f.Transport.DeleteEntered.Task.IsCompleted);
+            page.Cancel();
+            f.Transport.ReleaseDelete();
+            f.Await(writing);
+            Assert.Equal(1, f.Transport.CollectionWrites);
+            Assert.Equal(0, changed);
+            Assert.Equal(0, f.Transport.MediaDeletes);
+            Assert.True(f.CanPlay);
+        });
+
         Test("R07-007 删除确认期间明确降权，提交前拒绝旧确认", () =>
         {
             using var f = new DeleteFixture(MediaServerKind.Emby);

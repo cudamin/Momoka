@@ -300,8 +300,8 @@ internal static class AggregateQueryTests
     {
         var connection = new EmbyConnection(new Uri($"https://{server}.invalid/"), "fixture", account, account,
             server, DeviceIdentity.Create("aggregate-fixture", "test"));
-        return new EmbySessionScope(null!, new EmbySessionScope.Identity(new EmbyClient(null!, connection),
-            new ServerProfile { Id = server, Name = server }, new AccountProfile { Id = account, Username = account }));
+        return AnonymousScopeFixture.DetachedIdentity(connection,
+            new ServerProfile { Id = server, Name = server }, new AccountProfile { Id = account, Username = account });
     }
 
     private static void Case(string name, Func<Task> run) =>

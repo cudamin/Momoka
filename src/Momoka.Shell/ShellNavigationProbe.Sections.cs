@@ -42,6 +42,7 @@ internal sealed partial class ShellNavigationProbe
         [nameof(LibraryBrowseAsync)] = ShellProbeSections.Library,
         [nameof(JellyfinLibraryAsync)] = ShellProbeSections.Library,
         [nameof(FnNasLibrarySpacingAsync)] = ShellProbeSections.Library,
+        [nameof(FnNasContinueRemovalAsync)] = ShellProbeSections.Library,
         [nameof(FnNasMixedLibraryAsync)] = ShellProbeSections.Library,
         [nameof(FnNasEpisodeCountAsync)] = ShellProbeSections.Library,
         [nameof(FnNasHomeAsync)] = ShellProbeSections.Library,

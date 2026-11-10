@@ -409,7 +409,11 @@ public sealed class EmbySession : IDisposable
                 {
                     var current = await InvokeAsync(candidate, static (client, ct) => client.GetCurrentUserAsync(ct), cancellationToken).ConfigureAwait(false);
                     if (!string.Equals(current.Id, userId, StringComparison.Ordinal)) return false;
-                    connection = connection with { IsAdministrator = current.Policy?.IsAdministrator };
+                    connection = connection with
+                    {
+                        IsAdministrator = current.Policy?.IsAdministrator,
+                        CanManageCollections = current.Policy?.ToPermissions(connection.ServerKind).CanManageCollections
+                    };
                     candidate = new EmbyClient(_http, connection);
                 }
                 var views = await InvokeAsync(candidate, static (client, ct) => client.GetViewsAsync(ct), cancellationToken).ConfigureAwait(false);
@@ -510,6 +514,20 @@ public sealed class EmbySession : IDisposable
             return IsAvailable(scope) ? (scope.Client.Connection.IsAdministrator, scope.IdentityState.PermissionRevision) : (null, -1);
     }
 
+    /// <summary>只确认同代次合集权限；调用方发布其缓存后在锁外通知，不改变令牌或播放连接。</summary>
+    internal long ConfirmCollectionPermission(EmbySessionScope source, bool? allowed, long revision)
+    {
+        lock (_lifecycleGate)
+        {
+            if (!IsAvailable(source) || source.IdentityState.PermissionRevision != revision) return -1;
+            var connection = source.Client.Connection;
+            if (connection.CanManageCollections == allowed) return revision;
+            source.IdentityState.Client = new EmbyClient(_http, connection with { CanManageCollections = allowed });
+            source.IdentityState.PermissionRevision++;
+            return source.IdentityState.PermissionRevision;
+        }
+    }
+
     /// <summary>
     /// 仅替换已在线同身份的确认快照，无认证或持久化副作用；调用方在完成原有提交后再发权限通知。
     /// 捕获 Scope 的 Connection 与 Lifetime 不变，执行请求仍按原身份取得最新客户端。
@@ -553,7 +571,13 @@ public sealed class EmbySession : IDisposable
         CancellationToken cancellationToken)
     {
         var readRevision = scope.UserStateRevision;
-        var client = scope.Client;
+        long permissionRevision;
+        EmbyClient client;
+        lock (_lifecycleGate)
+        {
+            permissionRevision = scope.PermissionRevision;
+            client = scope.Client;
+        }
         T result;
         try { result = await InvokeAsync(client, operation, cancellationToken).ConfigureAwait(false); }
         catch (EmbyTokenExpiredException)
@@ -561,9 +585,23 @@ public sealed class EmbySession : IDisposable
             var fresh = await TryReauthenticateAsync(scope, client, cancellationToken).ConfigureAwait(false);
             if (fresh is null) throw;
             cancellationToken.ThrowIfCancellationRequested();
+            lock (_lifecycleGate)
+            {
+                if (!_sources.TryGetValue(scope.Key, out var current) || !IsAvailable(current)
+                    || !current.Client.Connection.IsSameIdentityAs(client.Connection))
+                    throw new OperationCanceledException("重新登录所属的服务器账号已改变");
+                // Session-level requests may follow a manual login of the same account. The scoped
+                // overload still owns the old lifetime, and its operation guards retain old ownership.
+                // Bind the retry to the identity that sends it, never to the exited source or a later login.
+                if (!ReferenceEquals(current.IdentityState, scope.IdentityState)) readRevision = current.UserStateRevision;
+                scope = new EmbySessionScope(this, current.IdentityState);
+                fresh = current.Client;
+                permissionRevision = scope.PermissionRevision;
+            }
             result = await InvokeAsync(fresh, operation, cancellationToken).ConfigureAwait(false);
         }
-        return scope.Bind(result, readRevision);
+        scope.ThrowIfUnavailable();
+        return scope.Bind(result, readRevision, permissionRevision);
     }
 
     private static async Task<T> InvokeAsync<T>(EmbyClient client, Func<EmbyClient, CancellationToken, Task<T>> operation, CancellationToken cancellationToken)

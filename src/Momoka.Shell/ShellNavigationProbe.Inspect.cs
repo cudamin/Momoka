@@ -106,6 +106,7 @@ internal sealed partial class ShellNavigationProbe
         });
         Add("InspectSettingsOpening", "聚合设置开窗", () => SettingsOpeningAsync(inspect: true));
         AddCheck("InspectLibraryCache", "媒体库缓存往返", PerformanceLibraryCacheAsync);
+        AddCheck("InspectLibraryCollections", "合集移除与权限", LibraryCollectionsAsync);
         AddCheck("InspectDeepReturn", "媒体库深返回锚点", PerformanceDeepLibraryReturnAsync);
         AddCheck("InspectBrowsePresentation", "首帧和晚图淡入", PerformanceBrowsePresentationAsync);
         Add("InspectDetailCustomization", "详情自定义", async () =>
@@ -307,6 +308,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectHomeCardPolish", "首页按钮与主题验证", HomeHeaderAsync);
         AddCheck("InspectJellyfinPolish", "Jellyfin列表验证", JellyfinLibraryAsync);
         AddCheck("InspectFnNasPolish", "飞牛列表验证", FnNasLibrarySpacingAsync);
+        AddCheck("InspectFnNasContinueRemoval", "飞牛续播移除验证", FnNasContinueRemovalAsync);
         AddCheck("InspectFnNasDetail", "飞牛详情人员与类似验证", FnNasDetailAsync);
         AddCheck("InspectSearchPolish", "搜索布局回归", SearchHeaderLayoutAsync);
         AddCheck("InspectDetailResponsive", "详情布局回归", DetailResponsiveAsync);

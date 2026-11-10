@@ -641,8 +641,8 @@
                                 </Flyout>
                             </Button.Flyout>
                         </Button>
-                        <!-- 飞牛官网页端的「布局」：只有竖幅海报与横幅海报两项。Emby 那颗齿轮里的分组与
-                             显示字段对飞牛的接口没有作用，所以飞牛收起齿轮、改摆这一颗。 -->
+                        <!-- 飞牛布局按原生页面裁剪：其他库和目录可选列表，电影/电视只选横竖海报。
+                             Emby 的分组和显示字段对飞牛接口无效，因此保留独立布局菜单。 -->
                         <Button x:Name="FnNasLayoutButton" Style="{StaticResource LibraryPillStyle}"
                             Visibility="{x:Bind ViewModel.LayoutVisibility, Mode=OneWay}"
                             ToolTipService.ToolTip="布局" AutomationProperties.Name="布局">

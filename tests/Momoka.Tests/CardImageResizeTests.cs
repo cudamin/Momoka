@@ -23,6 +23,23 @@ internal static class CardImageResizeTests
 
     public static void Register()
     {
+        Test("飞牛列表首图：目录拼图到达及释放会更新单图投影，普通海报不受影响", () =>
+        {
+            var item = new Momoka.Emby.EmbyItem { Id = "folder", Type = Momoka.Emby.EmbyItemType.Folder };
+            var card = new Momoka.Shell.Views.CardItem(item, null!, 170, navigate: () => { });
+            var property = card.GetType().GetProperty("RowPoster");
+            Assert.True(property is not null, "列表行缺少目录封面首图投影");
+            var changes = new List<string?>();
+            card.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
+            var bitmap = new BitmapImage();
+            card.GetType().GetMethod("SetCollageTile", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .Invoke(card, [0, bitmap]);
+            Assert.True(ReferenceEquals(bitmap, property!.GetValue(card)));
+            Assert.True(changes.Contains("RowPoster"));
+            card.GetType().GetMethod("ClearCollageTiles", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
+                .Invoke(card, null);
+            Assert.Null(property.GetValue(card));
+        });
         Test("本地库导航卡：原地更新标题数量并通知绑定", () =>
         {
             var method = typeof(Momoka.Shell.Views.CardItem).GetMethod("UpdateNavigationText", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);

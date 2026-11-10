@@ -43,7 +43,8 @@ $restore = @('--packages', [IO.Path]::GetFullPath($Packages), '--disable-paralle
 $build = @('-c', 'Release', '--no-restore', '-m:1', '-p:BuildInParallel=false',
     '-p:UseSharedCompilation=false', '-p:MSBuildNodeReuse=false')
 $sourcePaths = @('src/Momoka.Shell/ViewModels/DetailViewModel.cs', 'src/Momoka.Shell/Views/DetailPage.xaml.cs',
-    'src/Momoka.Shell/Views/ItemCommands.cs', 'src/Momoka.Shell/Views/ItemCommands.FnNas.cs')
+    'src/Momoka.Shell/Views/ItemCommands.cs', 'src/Momoka.Shell/Views/ItemCommands.FnNas.cs',
+    'src/Momoka.Shell/Views/ItemCommands.Server.cs')
 $before = @($sourcePaths | ForEach-Object {
     [pscustomobject]@{ Path = $_; Sha256 = (Get-FileHash -LiteralPath (Join-Path $root $_) -Algorithm SHA256).Hash }
 })

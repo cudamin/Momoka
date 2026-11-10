@@ -311,7 +311,8 @@ internal static partial class ItemCommands
             plex: card.Scope?.Connection.IsPlex == true, aniBtScrapeAvailable: card.Scope?.IsCurrent == true,
             moviePilotManagementAvailable: shell.MoviePilotMediaManagementEnabled,
             moviePilotSmartAvailable: shell.MoviePilotSmartReorganizeEnabled,
-            permissions: permissions, aniBtEnabled: shell.AniBtEnabled))
+            permissions: permissions, aniBtEnabled: shell.AniBtEnabled, allowResumeRemoval: card.AllowResumeRemoval,
+            collectionMembership: card.CollectionMembership))
         {
             if (row.Command is not { } command)
             {
@@ -410,7 +411,7 @@ internal static partial class ItemCommands
         Action<CardItem>? watched)
     {
         if (card.Scope is not { IsAvailable: true } scope) return;
-        if (!ItemMenu.Allows(command, shell.MenuPermissionsFor(scope))) return;
+        if (!ItemMenu.Allows(command, shell.MenuPermissionsFor(scope), scope.Connection.ServerKind, card.Item)) return;
         if (!ItemMenu.Supports(command, scope.Connection.IsJellyfin, scope.Connection.IsFnNas, scope.Connection.IsPlex)) return;
         if ((ItemMenu.IsMoviePilot(command) || command is ItemCommand.AniBtScrape or ItemCommand.AniBtVersions) && !shell.MoviePilotEnabled) return;
         if (command is (ItemCommand.AniBtScrape or ItemCommand.AniBtVersions) && !shell.AniBtEnabled) return;
@@ -449,8 +450,16 @@ internal static partial class ItemCommands
                 HideFromResume(scope, shell, card, changed);
                 break;
 
+            case ItemCommand.RemoveContinueWatching:
+                _ = FnNasRemoveContinueAsync(scope, shell, owner, card, changed);
+                break;
+
             case ItemCommand.AddToCollection:
                 _ = CollectAsync(scope, shell, owner, card);
+                break;
+
+            case ItemCommand.RemoveFromCollection:
+                _ = RemoveCollectionMemberAsync(scope, shell, card, changed);
                 break;
 
             case ItemCommand.Download:
@@ -786,6 +795,8 @@ internal static partial class ItemCommands
             ItemCommand.Favorite => 0xE734,
             ItemCommand.Unfavorite => 0xE8D9,
             ItemCommand.HideFromResume => 0xE894,
+            ItemCommand.RemoveContinueWatching => 0xE894,
+            ItemCommand.RemoveFromCollection => 0xECC9,
             ItemCommand.AddToCollection => 0xE8F4,
             ItemCommand.Download => 0xE896,
             ItemCommand.EditMetadata => 0xE70F,

@@ -103,6 +103,8 @@ internal sealed partial class ShellNavigationProbe
             });
             var page = (LibraryPage)frame.Content;
             await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
+            Require(string.Join(',', page.BuildFnNasLayoutMenu()) == "竖幅海报,横幅海报",
+                "飞牛电影库不应提供列表布局");
 
             Require(page.ViewModel.Cards.Count == 4,
                 $"分类为 Movie 的混合库只显示了 {page.ViewModel.Cards.Count} 项，官方 All 应回电影、节目、文件夹、视频四项");
@@ -190,6 +192,32 @@ internal sealed partial class ShellNavigationProbe
                 $"文件夹页里的竖版海报应裁满，实际 {folderTvCard.PosterStretch}");
             await SaveProbeScreenAsync("library-fnnas-folder-filter-screen.png");
 
+            folder.ViewModel.CloseFnNasFilter();
+            Require(string.Join(',', folder.BuildFnNasLayoutMenu()) == "海报墙,列表", "飞牛目录应提供海报墙/列表");
+            folder.ViewModel.ChooseFnNasView(LibraryView.List);
+            await UntilAsync(() => folder.ViewModel.IsReady && !folder.ViewModel.Busy);
+            await VerifyFnNasListLayoutAsync(folder, "folder");
+            var folderRequest = new LibraryRequest
+            {
+                Services = fixture.Services, Title = "文件夹", ParentId = "fn-folder", ParentType = EmbyItemType.Folder
+            };
+            folder.Release();
+            frame.Navigate(typeof(LibraryPage), folderRequest);
+            folder = (LibraryPage)frame.Content;
+            await UntilAsync(() => folder.ViewModel.IsReady && !folder.ViewModel.Busy);
+            Require(folder.ViewModel.View == LibraryView.List, "飞牛目录重新进入未恢复列表偏好");
+            folder.Release();
+            frame.Navigate(typeof(LibraryPage), new LibraryRequest
+            {
+                Services = fixture.Services, Title = "其他媒体", ParentId = "fn-other", CollectionType = "homevideos"
+            });
+            var other = (LibraryPage)frame.Content;
+            await UntilAsync(() => other.ViewModel.IsReady && !other.ViewModel.Busy);
+            Require(string.Join(',', other.BuildFnNasLayoutMenu()) == "竖幅海报,横幅海报,列表", "Other库应提供列表");
+            other.ViewModel.ChooseFnNasView(LibraryView.List);
+            await UntilAsync(() => other.ViewModel.IsReady && !other.ViewModel.Busy);
+            await VerifyFnNasListLayoutAsync(other, "other");
+
             Require(fixture.Actions.Plays == 0, "飞牛混合库检查意外请求播放");
         }
         finally
@@ -197,6 +225,32 @@ internal sealed partial class ShellNavigationProbe
             (frame.Content as IShellContent)?.Release();
             frame.Content = null;
             _root.Children.Remove(frame);
+        }
+    }
+
+    private async Task VerifyFnNasListLayoutAsync(LibraryPage page, string context)
+    {
+        foreach (var width in new[] { 1280, 760 })
+        {
+            ResizeProbeClient(width, 900);
+            await LayoutAsync(page);
+            var wall = Get<ItemsView>(page, "CardWall");
+            Require(page.ViewModel.View == LibraryView.List && wall.Layout is StackLayout,
+                "飞牛列表没有使用单列StackLayout");
+            var rows = Descendants(wall).OfType<EpisodeRow>().ToArray();
+            Require(rows.Length > 0 && rows.All(row => row.ActualWidth >= wall.ActualWidth - 50),
+                "飞牛列表行没有占满内容宽度");
+            Require(rows.All(row => row.ActualHeight > 0), "飞牛列表行未排版");
+            await UntilAsync(() => rows.All(row => row.Card?.RowPoster is not null));
+            Require(rows.All(row => Get<Microsoft.UI.Xaml.Controls.Image>(row, "Poster").Source is not null),
+                "飞牛列表中的视频或子目录未显示首图");
+            await SaveProbeScreenAsync($"library-fnnas-{context}-list-{width}-screen.png");
+            page.ShowFnNasLayoutMenu();
+            await LayoutAsync(page);
+            Require(Get<ListView>(page, "FnNasLayoutList").Items.Cast<LayoutEntry>()
+                .Single(entry => entry.IsChecked).View == LibraryView.List, "飞牛布局菜单未勾选列表");
+            await SaveProbeScreenAsync($"library-fnnas-{context}-list-menu-{width}-screen.png");
+            page.HideFnNasLayoutMenu();
         }
     }
 

@@ -714,6 +714,13 @@ public sealed class EmbyItem
     [JsonIgnore]
     public long UserStateReadRevision { get; set; } = -1;
 
+    /// <summary>来自飞牛 play/list 的可移除记录；普通条目与合成下一集不能继承此入口。</summary>
+    [JsonIgnore]
+    public bool IsFnNasResumeRecord { get; set; }
+    /// <summary>条目授权所属的读取代次；旧CanEditItems不能跨同身份权限更新继续授权。</summary>
+    [JsonIgnore]
+    public long PermissionReadRevision { get; set; } = -1;
+
     /// <summary>区分不同服务器、不同账号上编号相同的条目。</summary>
     [JsonIgnore]
     public string IdentityKey => Source is { } source ? $"{source.Key}:{Id}" : Id;
@@ -941,6 +948,9 @@ public sealed class EmbyItem
     public string? SeriesThumbImageTag { get; set; }
 
     public EmbyUserData? UserData { get; set; }
+
+    /// <summary>Emby 条目级编辑授权，明确值优先于管理员策略；Jellyfin 合集按账号策略。</summary>
+    public bool? CanEditItems { get; set; }
 
     public List<MediaSource> MediaSources { get; set; } = [];
 

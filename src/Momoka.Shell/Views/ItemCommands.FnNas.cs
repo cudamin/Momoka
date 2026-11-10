@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.Diagnostics;
@@ -13,6 +14,43 @@ namespace Momoka.Shell.Views;
 internal static partial class ItemCommands
 {
     private const string FnNasLanguage = "zh-CN";
+    private static readonly ConditionalWeakTable<object, HashSet<string>> ContinueRemovals = new();
+
+    private static Task FnNasRemoveContinueAsync(
+        EmbySessionScope session,
+        IShellActions shell,
+        FrameworkElement owner,
+        CardItem card,
+        Action? changed) =>
+        GuardAsync(shell, "从继续观看移除失败", async () =>
+        {
+            var item = card.Item;
+            if (!session.Connection.IsFnNas || !card.IsCurrent || !card.AllowResumeRemoval
+                || !item.IsFnNasResumeRecord || string.IsNullOrWhiteSpace(item.Id)) return;
+            var pending = ContinueRemovals.GetValue(session.UserStateOwner, static _ => new(StringComparer.Ordinal));
+            lock (pending)
+                if (!pending.Add(item.Id)) return;
+            try
+            {
+                var identity = item.IdentityKey;
+                // 官方 0.9.8 删除 play/list 的 guid，没有 HideFromResume 或 ts:0。
+                // 增加确认是有意保护播放记录；服务端断点语义尚无真实写入证据。
+                if (!await ConfirmDialog.ForLibrary(owner)("从继续观看移除",
+                        $"将删除「{item.Name}」的这条播放记录，并从继续观看中移除。此操作可能影响断点续播。", "移除")
+                    .ConfigureAwait(true)) return;
+                if (!card.IsCurrent || card.Item.IdentityKey != identity || !card.AllowResumeRemoval
+                    || !card.Item.IsFnNasResumeRecord) return;
+                await TellAsync(session, (client, token) => client.RemoveFnNasContinueWatchingAsync(item.Id, token),
+                    shell, ItemCommand.RemoveContinueWatching).ConfigureAwait(true);
+                shell.Notify($"已从继续观看移除「{item.Name}」");
+                // 只重读该页，不调用媒体删除/Remember，也不猜测服务器返回的进度。
+                changed?.Invoke();
+            }
+            finally
+            {
+                lock (pending) pending.Remove(item.Id);
+            }
+        });
 
     private static Task FnNasRefreshAsync(
         EmbySessionScope session,

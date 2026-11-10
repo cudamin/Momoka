@@ -4,6 +4,21 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["browse-identity-fixture"])
+        {
+            AggregateQueryTests.Register();
+            HomeLayoutTests.Register();
+            RemovedMediaTests.Register();
+            EpisodeRemovalTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["fnnas-layout-vm-fixture", var layoutShell, var layoutRoot])
+            return FnNasLibraryDisplayViewTests.Run(layoutShell, layoutRoot);
+        if (args is ["fnnas-layout-fixture"])
+        {
+            FnNasLibraryDisplayTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["player-tool-download-fixture"])
         {
             PlayerToolDownloadTests.Register();
@@ -528,6 +543,7 @@ internal static class Program
         FnNasLibraryInputTests.Register();
         FnNasUserStateWriteTests.Register();
         FnNasMediaTests.Register();
+        FnNasLibraryDisplayTests.Register();
         PlexProtocolTests.Register();
         PlexMediaTests.Register();
         JellyfinWebConsoleTests.Register();
