@@ -59,11 +59,10 @@ internal sealed partial class ShellNavigationProbe
                     var failure = (InfoBar)dialog.FindName("CaptureError");
                     Require(attempts == 1 && failure.IsOpen && failure.Visibility == Visibility.Visible,
                         "保存失败没有留在当前弹窗显示");
-                    failure.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
                     await Task.Delay(350);
-                    var scroll = (ScrollViewer)dialog.FindName("CaptureScroll");
-                    var bounds = failure.TransformToVisual(scroll).TransformBounds(new Windows.Foundation.Rect(0, 0, failure.ActualWidth, failure.ActualHeight));
-                    Require(bounds.Height > 0 && bounds.Y >= 0 && bounds.Bottom <= scroll.ViewportHeight + 1,
+                    var content = (FrameworkElement)dialog.Content;
+                    var bounds = failure.TransformToVisual(content).TransformBounds(new Windows.Foundation.Rect(0, 0, failure.ActualWidth, failure.ActualHeight));
+                    Require(bounds.Height > 0 && bounds.Y >= 0 && bounds.Bottom <= content.ActualHeight + 1,
                         "保存失败提示没有进入截图可见区域。");
                     await SaveCaptureDialogScreenAsync($"player-capture-failed-{width}-screen.png");
                     await dialog.SaveAsync();

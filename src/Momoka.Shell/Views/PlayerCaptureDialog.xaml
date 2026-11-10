@@ -12,33 +12,36 @@
     <ContentDialog.Resources>
         <x:Double x:Key="ContentDialogMaxWidth">920</x:Double>
     </ContentDialog.Resources>
-    <ScrollViewer x:Name="CaptureScroll" MaxHeight="640" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel x:Name="CaptureBody" Spacing="12">
-            <TextBlock x:Name="CaptureInstruction" Text="在图片上拖动选择区域，或输入像素位置与尺寸。" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
-            <Grid x:Name="CapturePreview" Height="360" Background="{ThemeResource EgSurfaceBrush}"
-                SizeChanged="OnPreviewSizeChanged"
-                PointerPressed="OnPreviewPressed" PointerMoved="OnPreviewMoved"
-                PointerReleased="OnPreviewReleased" PointerCanceled="OnPreviewCanceled" PointerCaptureLost="OnPreviewCanceled">
-                <Image x:Name="CaptureImage" Stretch="Uniform" />
-                <Canvas x:Name="CaptureSelectionLayer" IsHitTestVisible="False">
-                    <Border x:Name="CaptureSelection" BorderBrush="{ThemeResource EgAccentBrush}" BorderThickness="2" />
-                </Canvas>
-            </Grid>
-            <TextBlock x:Name="CaptureDimensions" Style="{StaticResource EgDataStyle}" />
-            <Grid ColumnSpacing="12" RowSpacing="12">
-                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
-                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                <NumberBox x:Name="CaptureX" Header="左侧 X（像素）" Minimum="0" SmallChange="1" SpinButtonPlacementMode="Compact" ValueChanged="OnCropValueChanged" />
-                <NumberBox x:Name="CaptureY" Grid.Column="1" Header="顶部 Y（像素）" Minimum="0" SmallChange="1" SpinButtonPlacementMode="Compact" ValueChanged="OnCropValueChanged" />
-                <NumberBox x:Name="CaptureWidth" Grid.Row="1" Header="宽度（像素）" Minimum="1" SmallChange="1" SpinButtonPlacementMode="Compact" ValueChanged="OnCropValueChanged" />
-                <NumberBox x:Name="CaptureHeight" Grid.Row="1" Grid.Column="1" Header="高度（像素）" Minimum="1" SmallChange="1" SpinButtonPlacementMode="Compact" ValueChanged="OnCropValueChanged" />
-            </Grid>
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <Button x:Name="CaptureWholeImage" Content="整张图片" Click="OnWholeImage" />
-                <Button x:Name="CaptureSubtitleRegion" Content="底部字幕区域" Click="OnSubtitleRegion" />
+    <Grid RowSpacing="12">
+        <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <ScrollViewer x:Name="CaptureScroll" MaxHeight="570" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="CaptureBody" Spacing="12">
+                <TextBlock x:Name="CaptureInstruction" Text="在图片上拖动选择区域，或输入像素位置与尺寸。" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                <Grid x:Name="CapturePreview" Height="360" Background="{ThemeResource EgSurfaceBrush}"
+                    SizeChanged="OnPreviewSizeChanged"
+                    PointerPressed="OnPreviewPressed" PointerMoved="OnPreviewMoved"
+                    PointerReleased="OnPreviewReleased" PointerCanceled="OnPreviewCanceled" PointerCaptureLost="OnPreviewCanceled">
+                    <Image x:Name="CaptureImage" Stretch="Uniform" />
+                    <Canvas x:Name="CaptureSelectionLayer" IsHitTestVisible="False">
+                        <Border x:Name="CaptureSelection" BorderBrush="{ThemeResource EgAccentBrush}" BorderThickness="2" />
+                    </Canvas>
+                </Grid>
+                <TextBlock x:Name="CaptureDimensions" Style="{StaticResource EgDataStyle}" />
+                <Grid ColumnSpacing="12" RowSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <NumberBox x:Name="CaptureX" Header="左侧 X（像素）" Minimum="0" SmallChange="1" SpinButtonPlacementMode="Compact" ValueChanged="OnCropValueChanged" />
+                    <NumberBox x:Name="CaptureY" Grid.Column="1" Header="顶部 Y（像素）" Minimum="0" SmallChange="1" SpinButtonPlacementMode="Compact" ValueChanged="OnCropValueChanged" />
+                    <NumberBox x:Name="CaptureWidth" Grid.Row="1" Header="宽度（像素）" Minimum="1" SmallChange="1" SpinButtonPlacementMode="Compact" ValueChanged="OnCropValueChanged" />
+                    <NumberBox x:Name="CaptureHeight" Grid.Row="1" Grid.Column="1" Header="高度（像素）" Minimum="1" SmallChange="1" SpinButtonPlacementMode="Compact" ValueChanged="OnCropValueChanged" />
+                </Grid>
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button x:Name="CaptureWholeImage" Content="整张图片" Click="OnWholeImage" />
+                    <Button x:Name="CaptureSubtitleRegion" Content="底部字幕区域" Click="OnSubtitleRegion" />
+                </StackPanel>
+                <ProgressBar x:Name="CaptureSaving" IsIndeterminate="True" Visibility="Collapsed" />
             </StackPanel>
-            <ProgressBar x:Name="CaptureSaving" IsIndeterminate="True" Visibility="Collapsed" />
-            <InfoBar x:Name="CaptureError" IsOpen="False" Visibility="Collapsed" Severity="Error" IsClosable="True" />
-        </StackPanel>
-    </ScrollViewer>
+        </ScrollViewer>
+        <InfoBar x:Name="CaptureError" Grid.Row="1" IsOpen="False" Visibility="Collapsed" Severity="Error" IsClosable="True" />
+    </Grid>
 </ContentDialog>
