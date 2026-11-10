@@ -1,3 +1,9 @@
+## 2026-11-10 音乐会话隔离视频服务入口
+
+- 音乐播放期间忽略截图目录/截图选项/字幕外观的实时推送，拒绝着色器切换与播放器工具捕获。批次等待后仍重新核对AudioOnly和原有播放代次，视频路径保留原行为。只改`PlaybackService.cs` / `PlaybackService.PlayerTools.cs`及音乐回归测试，不改原生参数或生命周期。
+- 回归先行：实际Service+记录命令的边界句柄新增5项，旧代码**16/21通过，5失败**；截图目录1次写、截图选项2次写、字幕11次写，着色器与工具入口误允许。加入守卫后**21/21，0失败0跳过**；视频`playback-review-fixture` **382/382**（含字幕/着色器完整发送和代次回归）；`player-tools-fixture` **16/16**。当前Release Core/Tests构建**0警告0错误**；定向空白校验与`git diff --check`退出0。
+- 不重跑实际native probe（原生初始化、参数、窗口、停止与EOF没有变化），不运行完整主套件；根会话负责最终整合验证。
+
 ## 2026-11-10 音乐 AudioOnly Core 子任务
 
 - 从 `617fabab967ba220acb1ebb06439d283b9ff87ab` 创建原生隔离工作树 `music-audio-only/Momoka`。只改 Core 播放、必要 mpv 路径、后端工厂和定向测试；Shell、媒体模型与服务器协议由根会话整合。

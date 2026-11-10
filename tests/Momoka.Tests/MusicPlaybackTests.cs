@@ -198,6 +198,35 @@ internal static class MusicPlaybackTests
             Assert.False(fixture.Transport.Requests.Any(request => request.IsStart));
             Assert.False(fixture.Service.IsPlaying);
         });
+
+        foreach (var operation in new[] { "截图目录", "截图选项", "字幕外观", "着色器", "播放器工具" })
+        {
+            Case($"音乐会话：{operation}入口不读写视频状态", async () =>
+            {
+                using var fixture = new PlaybackLifecycleTests.Fixture();
+                var handle = new VideoWriteHandle();
+                fixture.Backend.Next = (_, _) => Task.FromResult<IPlaybackHandle>(handle);
+                var playing = fixture.Service.PlayAsync(Ticket(), CancellationToken.None);
+                await handle.Started.Task;
+                try
+                {
+                    switch (operation)
+                    {
+                        case "截图目录": await fixture.Service.ApplyScreenshotDirectoryAsync("unused-screenshots"); break;
+                        case "截图选项": await fixture.Service.ApplyScreenshotOptionsAsync(); break;
+                        case "字幕外观": await fixture.Service.ApplySubtitleStyleAsync(); break;
+                        case "着色器": Assert.False(await fixture.Service.SetShaderGroupAsync(null)); break;
+                        case "播放器工具":
+                            Assert.False(fixture.Service.CanUsePlayerTools);
+                            Assert.Null(fixture.Service.CapturePlayerToolSession());
+                            break;
+                    }
+                    Assert.Equal(0, handle.Writes.Count, "音乐不能收到视频选项写入");
+                    Assert.Equal(0, handle.Reads, "音乐不读取视频恢复基线");
+                }
+                finally { await fixture.Service.StopAsync(); await playing; }
+            });
+        }
     }
 
     private static PlaybackTicket Ticket()
@@ -220,5 +249,42 @@ internal static class MusicPlaybackTests
             await Task.Delay(5);
         }
         throw new TimeoutException("等待音乐状态上报");
+    }
+
+    private sealed class VideoWriteHandle : IPlaybackHandle, IPlayerControl
+    {
+        private readonly TaskCompletionSource<PlaybackExit> _exit = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public List<string> Writes { get; } = [];
+        public int Reads { get; private set; }
+        public bool HasControlChannel => true;
+        public bool IsPaused => false;
+        public PlayerStatus Status => new() { Loaded = true };
+        public event Action<bool>? PauseChanged { add { } remove { } }
+        public event Action<PlayerStatus>? StatusChanged { add { } remove { } }
+        public event Action<IReadOnlyList<MpvTrack>>? TracksChanged { add { } remove { } }
+        public Task<double?> GetPositionAsync(CancellationToken cancellationToken) => Task.FromResult<double?>(0);
+        public Task<PlaybackExit> WaitForExitAsync(CancellationToken cancellationToken)
+        {
+            Started.TrySetResult();
+            return _exit.Task.WaitAsync(cancellationToken);
+        }
+        public Task StopAsync() { _exit.TrySetResult(new(PlaybackEndReason.Stopped, 0, 0, null)); return Task.CompletedTask; }
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        public Task ShowMessageAsync(string text) => Task.CompletedTask;
+        public Task SetPropertyAsync(string name, object? value, CancellationToken cancellationToken)
+        {
+            Writes.Add(name);
+            return Task.CompletedTask;
+        }
+        public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<MpvTrack>>([]);
+        public Task<double?> GetNumberAsync(string name, CancellationToken cancellationToken) => Task.FromResult<double?>(0);
+        public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken) { Reads++; return Task.FromResult<string?>("0"); }
+        public Task<IReadOnlyList<string>?> GetStringListAsync(string name, CancellationToken cancellationToken) { Reads++; return Task.FromResult<IReadOnlyList<string>?>([]); }
+        public Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+        {
+            Writes.Add(string.Join(' ', arguments));
+            return Task.FromResult(true);
+        }
     }
 }

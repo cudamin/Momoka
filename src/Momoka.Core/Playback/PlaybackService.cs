@@ -308,7 +308,8 @@ public sealed partial class PlaybackService(
         return handle is null ? Task.CompletedTask : SetPropertyAsync(handle, Generation, name, value);
     }
 
-    public Task ApplyScreenshotDirectoryAsync(string directory) => SetPropertyAsync("screenshot-directory", directory);
+    public Task ApplyScreenshotDirectoryAsync(string directory) => IsAudioOnly
+        ? Task.CompletedTask : SetPropertyAsync("screenshot-directory", directory);
 
     /// <summary>
     /// 「截图格式与画质那几行改了，推给正在播的那一部」（用户令 2026-10-11：截图参数做成设置页的自定义选项）。
@@ -319,13 +320,13 @@ public sealed partial class PlaybackService(
     /// </summary>
     public async Task ApplyScreenshotOptionsAsync()
     {
-        if (_current is not { } handle) return;
+        if (IsAudioOnly || _current is not { } handle) return;
         var generation = Generation;
         var revision = Interlocked.Increment(ref _screenshotOptionsRevision);
         var options = MpvBaseline.ScreenshotOptions.From(settings.Mpv).ToMpvOptions().ToArray();
         var scoped = handle as IFileScopedPlayerControl;
         var file = scoped?.FileGeneration;
-        bool Current() => IsCurrent(handle, generation) && revision == Volatile.Read(ref _screenshotOptionsRevision)
+        bool Current() => !IsAudioOnly && IsCurrent(handle, generation) && revision == Volatile.Read(ref _screenshotOptionsRevision)
             && (scoped is null || file == scoped.FileGeneration);
         await _screenshotOptionsGate.WaitAsync().ConfigureAwait(false);
         try
@@ -366,14 +367,14 @@ public sealed partial class PlaybackService(
     /// <summary>Unspecified live options restore mpv defaults; omitting a write would keep the old value.</summary>
     public async Task ApplySubtitleStyleAsync()
     {
-        if (_current is not { } handle) return;
+        if (IsAudioOnly || _current is not { } handle) return;
         var generation = Generation;
         var revision = Interlocked.Increment(ref _subtitleStyleRevision);
         var scoped = handle as IFileScopedPlayerControl;
         var file = scoped?.FileGeneration;
         var wanted = MpvOutputOptions.SubtitleAppearance(settings.Playback)
             .ToDictionary(option => option.Key, option => option.Value, StringComparer.Ordinal);
-        bool Current() => ReferenceEquals(_current, handle) && Generation == generation
+        bool Current() => !IsAudioOnly && ReferenceEquals(_current, handle) && Generation == generation
             && Volatile.Read(ref _subtitleStyleRevision) == revision
             && (scoped is null || _active is { Ending: false } && file == scoped.FileGeneration);
 
@@ -529,7 +530,7 @@ public sealed partial class PlaybackService(
     public async Task<bool> SetShaderGroupAsync(ShaderGroup? group)
     {
         var handle = _current;
-        if (handle is not IPlayerControl control || !handle.HasControlChannel) return false;
+        if (IsAudioOnly || handle is not IPlayerControl control || !handle.HasControlChannel) return false;
         var generation = Generation;
         // The native file counter is not the service counter: HandOver and Swap each advance it.
         // Capture once before waiting/reading, and retain it for both writes and rollback.
@@ -650,7 +651,7 @@ public sealed partial class PlaybackService(
 
         // A retained handle may already contain B while the service has not established B yet.
         // Do not bind a new transaction in that handoff gap; normal external controls keep their contract.
-        bool Current() => ReferenceEquals(_current, handle) && generation == Generation
+        bool Current() => !IsAudioOnly && ReferenceEquals(_current, handle) && generation == Generation
             && (fileControl is null || _active is { Ending: false } && fileGeneration == fileControl.FileGeneration)
             && (batchControl is null || batchGeneration == batchControl.FileGeneration);
 
