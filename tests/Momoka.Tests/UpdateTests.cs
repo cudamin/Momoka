@@ -148,6 +148,9 @@ internal static class UpdateTests
             var group = props.Root!.Elements("PropertyGroup").Single(value => value.Element("Version") is not null);
             var version = group.Element("Version")!.Value;
             var packageVersion = $"{version}.0";
+            Assert.True(Version.TryParse(packageVersion, out var storeVersion), "商店包版本必须是四段整数");
+            Assert.True(storeVersion!.Major > 0 || storeVersion.Minor > 0 || storeVersion.Build > 0, "商店包不能使用全零占位版本");
+            Assert.Equal(0, storeVersion.Revision, "微软商店要求保留第四段为零");
             Assert.Equal(packageVersion, group.Element("AssemblyVersion")!.Value, "程序集四段版本与发行号一致");
             Assert.Equal(packageVersion, group.Element("FileVersion")!.Value, "文件四段版本与商店包版本一致");
 
