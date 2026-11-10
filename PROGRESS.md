@@ -12217,6 +12217,6 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 
 - 产品提交9a68e2a、主树整合2f429fd，最终UI验收修正28b2692/3e91604；保留同日主树本机媒体、Plex分段和受管HTTP修复。Plex多段媒体的外部工具在服务及菜单双重收起，避免只下载首段；原生当前画面控制照常。
 - 主树Release Tests/Core与Shell均0警告0错误。完整默认4511/4511，0失败0跳过；真实Settings/Controller57/57、完整native-handle49/49。主树Lua uosc55/55、analysis7/7、缺cropdetect分支5/5通过。
-- 主树最终shortcuts实际运行5/5通过、0失败；其余196项分区未运行，不称全量Shell自检。证据`C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261110-113315350-35324/logs`，逐张核对760字幕菜单与固定失败提示实屏。先前窗口遮挡/坐标与合成未落定失败保留，不复用为最终证据。用户明确允许副屏40秒验收后完成本轮。
+- 主树最终shortcuts实际运行5/5通过、0失败；其余190项分区未运行，不称全量Shell自检。证据`C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261110-113315350-35324/logs`，逐张核对760字幕菜单与固定失败提示实屏。先前窗口遮挡/坐标与合成未落定失败保留，不复用为最终证据。用户明确允许副屏40秒验收后完成本轮。
 - tools/publish.ps1 -NoArchive -Shortcut成功，547文件287.3MB，批准mpv载荷60文件完整校验。2026-11-10 19:41桌面快捷方式指向`C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`；未上传远端。
 - 真实服务器播放未执行；外部mpv完整窗口、Whisper/ffsubsync程序和真实云翻译仍未运行验收。随包缺cropdetect而自动去黑边隐藏；点外关闭无本轮可靠实按证据。细节见docs/播放菜单与工具.md。
