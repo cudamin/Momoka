@@ -84,6 +84,9 @@ public sealed class LibraryDisplay
 
     public LibraryCardSize CardSize { get; set; } = LibraryCardSize.Default;
 
+    /// <summary>飞牛列表切回海报时恢复的形状；旧偏好为空时从 View 的横/竖海报推导。</summary>
+    public LibraryView? FnNasPosterView { get; set; }
+
     /// <summary>
     /// 「将项目分组到合集中」—— 发 <c>GroupItemsIntoCollections</c>。网页端默认开着。
     /// </summary>
@@ -96,6 +99,7 @@ public sealed class LibraryDisplay
     {
         View = View,
         CardSize = CardSize,
+        FnNasPosterView = FnNasPosterView,
         GroupIntoCollections = GroupIntoCollections,
         Fields = [.. Fields]
     };
@@ -111,6 +115,7 @@ public sealed class LibraryDisplay
         {
             View = Enum.IsDefined(View) ? View : LibraryView.Poster,
             CardSize = Enum.IsDefined(CardSize) ? CardSize : LibraryCardSize.Default,
+            FnNasPosterView = FnNasPosterView is LibraryView.Poster or LibraryView.Thumb ? FnNasPosterView : null,
             GroupIntoCollections = GroupIntoCollections,
             Fields = [.. LibraryDisplayCatalog.CanonicalOrder.Where(known.Contains)]
         };

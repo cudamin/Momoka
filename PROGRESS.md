@@ -7,6 +7,15 @@
 当轮Tests/Core与Shell Release/x64编译0警告0错误；飞牛专项161/161、真实命令29/29、用户状态排序74/74通过。先观察缺接口红，再实现；重入用例首轮确实等待超时，守卫后通过；真实等待确认时撤销来源零写。新增匿名library原生探针本轮PID26244/日志 `shell-probe-20261110-125423956-26244` 中“飞牛单条续播移除与取消失败恢复”通过，四张实屏目视：取消/拒绝保留两条，确认后另一条续播与相同影片最新货架保留；无播放或真实服务器写入。当前整分区仍在运行，不能当最终主树整批证据。
 
 列表子项待合入 `f607a04`（独立树library-batch1-fnnas-layout）；合集子项待实现者提交。主树已前进至 `4db8637`，保留其他聊天成果后集成，最终主树重验完整测试/运行检查并发布实际目录。未获上传授权，不push。
+## 2026-11-10 飞牛 Other/目录列表布局（首批独立实现，待集成验证）
+
+树 `C:\Users\89400\.codex\worktrees\library-batch1-fnnas-layout\Momoka`，分支 `codex/library-batch1-fnnas-layout`，基点 e545dfd。用户已授权直接实现首批，根代理整合与实屏串行负责；本树禁止合入、push、发布及真实服务器写入/起播。
+
+重新读取官方网页0.9.8业务包74c956…DZn1lJtt（SHA256 92a8bece…5527）的Hq/AN/MN/NN/PN及列表Ue条件：Other/目录可切列表，普通Movie/TV只横竖海报。IPTV浏览原有过滤保持，Core只保留对应条件。新FnNasLibraryDisplay集中合法视图/恢复，LibraryDisplay可空FnNasPosterView从旧横竖值迁移；菜单和VM用同一条件，目录按source+parentID保存。首选List暂时失效只运行期回海报，不覆盖已存偏好。复用EpisodeRow/StackLayout，图像来源用RowPoster兼容目录拼图首张。
+
+测试先Core3/3红（规则缺失）、VM4/4红（菜单/命令缺失），再通知2红（同页View与Cancel/Resume菜单通知）。独立复审发现目录拼图灰首图与旧卡片比例未更新，补真实CardItem/PageContract及VM比例有效红后修正；第一个新测试曾因夹具null/属性错误类型失败，已修测试后取得预期红，不计产品反证。
+
+初轮当前Core/Tests/Shell Release均0警告0错误；Core布局3/3、实际VM6/6、收藏来源13/13、深返回21/21。修正前完整主测试4331/4331、0失败0跳过，证据artifacts/fnnas-layout/full-tests.log。修正后PageContract176/176通过，最终Shell Release构建0警告0错误，VM6/6（含真实卡片比例）、收藏来源13/13、深返回21/21均再验通过，编码13文件通过、自动化缺句柄0；完整最终集成套件及真实WinUI宽窄/菜单/图像/恢复由根代理重跑，不沿用修正前绿色。现有FnNasMixed探针新增Other/目录1280/760、实际StackLayout/行宽、RowPoster及Image.Source、列表勾选、目录重新进入恢复；本树只编译，未启动应用。外部详细审查和计划为指定visualizations/fnnas-audit.md。
 
 ## 2026-11-10 后端审查两项修复（已交付）
 

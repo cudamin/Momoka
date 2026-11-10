@@ -96,7 +96,7 @@
 
                 <Image
                     x:Name="Poster"
-                    Source="{x:Bind Card.Poster, Mode=OneWay}"
+                    Source="{x:Bind Card.RowPoster, Mode=OneWay}"
                     Stretch="UniformToFill" />
 
                 <!-- 全看完那颗方块，与 PosterCard 同一处右上角、同一个样式键。 -->

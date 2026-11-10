@@ -303,9 +303,11 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </para>
     /// </summary>
     private LibraryDisplay _display = new();
+    private LibraryView? _fnNasCardView;
 
     /// <summary>这一面墙的视图形状。改它走 <see cref="ApplyDisplay"/>，不要直接赋值。</summary>
-    public LibraryView View => _display.View;
+    public LibraryView View => IsFnNas && _request?.Row is null && _request?.IsSearch != true && _request?.PersonId is null
+        ? FnNasLibraryDisplay.EffectiveView(_display, CollectionType, IsFolderDrillDown) : _display.View;
 
     /// <summary>网页端「图像大小」那一档。</summary>
     public LibraryCardSize CardSize => _display.CardSize;
@@ -672,10 +674,13 @@ public sealed partial class LibraryViewModel : PageViewModel
             && !(Section == LibrarySection.Favorites && IsFavoritesPage));
 
     public Visibility ToolbarVisibility => Show(HasToolbar);
-    /// <summary>Emby 那颗齿轮里的分组与显示字段对飞牛不生效，飞牛改用官网页端的「布局」两项。</summary>
+    /// <summary>Emby 的分组与显示字段对飞牛不生效，飞牛使用按页面条件裁剪的原生布局菜单。</summary>
     public Visibility SettingsVisibility => Show((IsSectionLibrary || IsFolderDrillDown) && HasToolbar && !IsFnNas && !IsJellyfin);
-    public Visibility LayoutVisibility => Show(IsFnNas && HasToolbar && !IsResumePage && !Aggregated && !IsBrowseIndex
-        && Section != LibrarySection.Folders);
+    public Visibility LayoutVisibility => Show(CanChooseFnNasLayout);
+
+    private bool CanChooseFnNasLayout => _active && IsFnNas && _scope?.IsAvailable == true && HasToolbar
+        && !IsResumePage && !Aggregated && !IsBrowseIndex && _request is { IsSearch: false, PersonId: null, Genre: null, IsFavorites: false }
+        && (CollectionType is not null || IsFolderDrillDown);
 
     /// <summary>
     /// Jellyfin Web's own 视图 button. It replaces Emby's gear on a Jellyfin library: the gear's grouping
@@ -786,6 +791,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     private void RefreshBrowseChrome()
     {
+        if (IsFnNas) RaiseDisplay();
         // 换页会换字段表（文件夹 / 集 / 索引页 / 其余），生效的字段跟着这一页重算。
         _fields = LibraryDisplayCatalog.Applied(_display.Fields, Section, View, IndexKind, CollectionType);
         RefreshEmptyNotice();
@@ -2095,6 +2101,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         }
         CaptureSnapshot();
         _active = false;
+        OnPropertyChanged(nameof(LayoutVisibility));
         _queries.Cancel();
         _jumps.Cancel();
         _favoriteLoads.Cancel();
@@ -2109,6 +2116,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (_active) return;
         _active = SourcesAvailable;
+        OnPropertyChanged(nameof(LayoutVisibility));
         if (_active && !reload) _queryToken = _queries.Begin();
         if (_active && reload) _ = ReloadAsync();
     }
@@ -2328,6 +2336,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     private static bool SameDisplay(LibraryDisplay left, LibraryDisplay right) =>
         left.View == right.View
         && left.CardSize == right.CardSize
+        && left.FnNasPosterView == right.FnNasPosterView
         && left.GroupIntoCollections == right.GroupIntoCollections
         && left.Fields.SequenceEqual(right.Fields);
 
@@ -2692,21 +2701,26 @@ public sealed partial class LibraryViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 飞牛工具栏上的「布局」：官网页端只有竖幅海报与横幅海报两项。横幅落到缩略图视图，
-    /// 仍是客户端自己的显示设置，不改服务器上的媒体库。
+    /// 飞牛工具栏的布局。目录只切海报墙/列表，Other 库另外提供列表；电影/电视仍只选横竖海报。
+    /// 保留最后的海报形状和首选列表，不把页面暂时不适用时的回退写进偏好。
     /// </summary>
-    internal void SetFnNasLayout(bool wide)
+    internal void ChooseFnNasView(LibraryView view)
     {
-        if (!IsFnNas) return;
-        var next = wide ? LibraryView.Thumb : LibraryView.Poster;
-        var size = wide ? LibraryCardSize.Smaller : LibraryCardSize.Default;
-        if (View == next && CardSize == size) return;
-        var display = _display.Clone();
-        display.View = next;
-        // 飞牛的布局菜单没有「图像大小」第二档；横幅按官网页端的密度收小，竖幅回到默认。
-        display.CardSize = size;
-        ApplyDisplay(display);
+        if (!CanChooseFnNasLayout || !FnNasViews().Contains(view)) return;
+        ApplyDisplay(FnNasLibraryDisplay.Choose(_display, view, CollectionType, IsFolderDrillDown));
     }
+
+    internal IReadOnlyList<LibraryView> FnNasViews() => CanChooseFnNasLayout
+        ? FnNasLibraryDisplay.Views(CollectionType, IsFolderDrillDown) : [];
+
+    internal string FnNasViewLabel(LibraryView view) => view switch
+    {
+        LibraryView.List => "列表",
+        LibraryView.Thumb => "横幅海报",
+        _ => IsFolderDrillDown ? "海报墙" : "竖幅海报"
+    };
+
+    internal void SetFnNasLayout(bool wide) => ChooseFnNasView(wide ? LibraryView.Thumb : LibraryView.Poster);
 
     /// <summary>The layout choices Jellyfin Web offers on this tab, in the web client's menu order.</summary>
     internal IReadOnlyList<LibraryView> JellyfinViews() =>
@@ -3027,6 +3041,19 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>把依赖这套设置的读数一起喊一遍（行高、格宽、视图名、取图顺序）。</summary>
     private void RaiseDisplay()
     {
+        if (IsFnNas)
+        {
+            var changedView = _fnNasCardView is { } previous && previous != View;
+            _fnNasCardView = View;
+            if (changedView && _images is not null)
+                for (var index = 0; index < Cards.Count; index++)
+                {
+                    var previousCard = Cards[index];
+                    var replacement = NewCard(previousCard.Item);
+                    previousCard.AbandonPoster();
+                    Cards[index] = replacement;
+                }
+        }
         // 这一页真正生效的字段：换页（文件夹 ↔ 节目 ↔ 集 ↔ 索引页）也要重算，所以放在这里而不是只算一次。
         _fields = LibraryDisplayCatalog.Applied(_display.Fields, Section, View, IndexKind, CollectionType);
         // 卡片宽度就是这一面墙此刻按哪一档画的 —— 自检与探针读的是它，它得跟着图像大小走。
@@ -3149,7 +3176,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// every time one was opened.
     /// </summary>
     private string? MemoryKey() =>
-        _request is { CollectionType: not null, ParentId: { Length: > 0 } id } && _scope is { IsAvailable: true } scope
+        _request is { ParentId: { Length: > 0 } id } && (CollectionType is not null || IsFnNas && IsFolderDrillDown)
+            && _scope is { IsAvailable: true } scope
             ? BrowsingPreferences.LibraryKey(scope.Connection, id)
                 + (Section == LibrarySection.Items ? "" : "/section/" + Section) : null;
 

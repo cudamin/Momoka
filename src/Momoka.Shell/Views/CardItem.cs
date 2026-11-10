@@ -227,6 +227,7 @@ public sealed class CardItem : INotifyPropertyChanged
 
     private void RaiseCollageTile(int index)
     {
+        if (index == 0) Raise(nameof(RowPoster));
         Raise(index switch
         {
             0 => nameof(FolderTile0),
@@ -654,8 +655,12 @@ public sealed class CardItem : INotifyPropertyChanged
             if (ReferenceEquals(_poster, value)) return;
             _poster = value;
             Raise();
+            Raise(nameof(RowPoster));
         }
     }
+
+    /// <summary>列表行只显示一张图；目录封面拼图以第一张已到达海报作为首图。</summary>
+    public BitmapImage? RowPoster => Poster ?? FolderTile0;
 
     public bool Watched => _item.IsWatched;
 

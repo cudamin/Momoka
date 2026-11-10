@@ -4,6 +4,13 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["fnnas-layout-vm-fixture", var layoutShell, var layoutRoot])
+            return FnNasLibraryDisplayViewTests.Run(layoutShell, layoutRoot);
+        if (args is ["fnnas-layout-fixture"])
+        {
+            FnNasLibraryDisplayTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["trailer-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -475,6 +482,7 @@ internal static class Program
         FnNasLibraryInputTests.Register();
         FnNasUserStateWriteTests.Register();
         FnNasMediaTests.Register();
+        FnNasLibraryDisplayTests.Register();
         PlexProtocolTests.Register();
         PlexMediaTests.Register();
         JellyfinWebConsoleTests.Register();
