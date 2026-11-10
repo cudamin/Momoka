@@ -6,6 +6,7 @@ internal static class PlayerCaptureGeometryTests
 {
     internal static void Register(SettingsPageStateTests.ShellFixture fixture)
     {
+        PlayerCaptureControllerTests.Register(fixture);
         TestHarness.Test("截图裁切：默认全图与字幕底部三成使用原图像素", () =>
         {
             var full = Invoke("Default", 1920, 1080, false);

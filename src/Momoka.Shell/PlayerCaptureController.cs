@@ -44,6 +44,14 @@ public sealed class PlayerCaptureController : IDisposable
     public int PendingCount => _pending.Count;
     public event Action<string, bool>? Noticed;
 
+    public void Cancel()
+    {
+        _operation?.Cancel();
+        _dialog?.Revoke();
+        _pending.Clear();
+        _queueWidth = 0;
+    }
+
     public async Task<string?> ShowCropAsync(XamlRoot root, bool subtitleRegion)
     {
         if (_disposed || _operation is not null || !_playback.CanControl) return null;
