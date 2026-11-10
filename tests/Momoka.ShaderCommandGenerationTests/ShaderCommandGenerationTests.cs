@@ -10,6 +10,14 @@ internal static partial class ShaderCommandGenerationTests
     private static ShaderGroup Group => ShaderGroupCatalog.For(GpuTier.Low)[1];
     public static void Register()
     {
+        Case("认证换片：真实 handle 清除旧原生代理并保持全局头为空", async () =>
+        {
+            await using var f = new HandleFixture();
+            f.Native.Values["http-proxy"] = "http://old-proxy.invalid";
+            await f.SwapAsync();
+            Assert.Equal("", f.Native.Values["http-proxy"]);
+            Assert.True(f.Native.PropertyWrites.Contains("http-header-fields"));
+        });
         Case("R8 真实句柄在临时命令前固定配置恢复值", async () =>
         {
             await using var f = new HandleFixture(custom: true);

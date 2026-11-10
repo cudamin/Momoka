@@ -33,7 +33,7 @@
     },
     {
       "path": "tests/Momoka.ShaderCommandGenerationTests/HandleFixture.cs",
-      "sha256": "c9544e22c49eed5df4687b9fa87ef6a6249fcd7fea61a2abb5862ecdb096018a"
+      "sha256": "0fce8e066300ff9bec2251257c36c514301386988123ac21d15d4cbdb6332340"
     },
     {
       "path": "tests/Momoka.ShaderCommandGenerationTests/ServiceFixture.cs",

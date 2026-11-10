@@ -22,6 +22,11 @@ internal sealed class HandleFixture : IAsyncDisposable
             [], [], [], [])
         { UsesSvp = svp, UsesCustomConfig = custom };
         Handle = new LibMpvHandle(Native.Context, null, signature, _ => signature);
+        // Only accept a capability registered by this exact handle for the anonymous fixture origin.
+        // No HTTP request is made here; arbitrary loopback URLs remain forbidden native inputs.
+        Native.IsMappedFixtureResource = address => Handle.HttpTransport?.Original(address) is { } original
+            && original != address && Uri.TryCreate(original, UriKind.Absolute, out var resource)
+            && resource.Host == "r051.invalid";
         typeof(LibMpvHandle).GetField("_filmDefaults", Private)!.SetValue(Handle,
             InlineSwitch.PerFilmNames.ToDictionary(name => name,
                 name => ShaderGroupCatalog.NeutralOptions.FirstOrDefault(pair => pair.Key == name).Value ?? "",
