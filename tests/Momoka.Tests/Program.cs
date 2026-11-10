@@ -4,6 +4,11 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["player-tool-download-fixture"])
+        {
+            PlayerToolDownloadTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["trailer-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -568,6 +573,7 @@ internal static class Program
         ProbeEvidenceTests.Register();
         CompactImagesProbeTests.Register();
         PerformanceProbeRulesTests.Register();
+        PlayerToolDownloadTests.Register();
         AgreementsTests.Register();
 
         return TestHarness.Run();
