@@ -12,6 +12,8 @@ using Momoka.MoviePilot;
 using Momoka.Mpv;
 using Momoka.Playback;
 using Momoka.Shell.Interop;
+using Momoka.Shell.Services;
+using Momoka.Translation;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 
@@ -295,7 +297,12 @@ internal sealed partial class ShellNavigationProbe
         var shaders = new ShaderGroupResolver(fixture.Settings.Shaders);
         var playback = new PlaybackService(fixture.Session, fixture.Settings, () => throw new InvalidOperationException("快捷键探针禁止创建真实后端"),
             new PlaybackPlanner(fixture.Settings, shaders, paths.ShaderCacheDirectory, paths.ScreenshotDirectory), allowPlayback: false);
-        var vm = new PlayerViewModel(playback, fixture.SettingsService, fixture.Session, fixture.Images, shaders, fixture.Dispatcher, client);
+        using var translationHttp = new HttpClient(new RejectNetwork());
+        using var translation = new SubtitleTranslationClient(translationHttp);
+        using var tools = new PlayerToolsController(playback, fixture.SettingsService, paths, translation,
+            new SubtitleTranslationCredentials(PassthroughSecretProtector.Instance));
+        var vm = new PlayerViewModel(playback, fixture.SettingsService, fixture.Session, fixture.Images, shaders, fixture.Dispatcher, client,
+            playerTools: tools);
         var handle = new ShortcutProbeHandle();
         Field(playback, "_current", handle);
         // 模拟完整在播身份，让 SetProperty/音频延迟的生命周期守卫也参与测试；构造不会启动后端或上报。
@@ -309,8 +316,23 @@ internal sealed partial class ShellNavigationProbe
         var page = new PlayerPage();
         page.Attach(vm, new ShellPage(), _window!);
         _root.Children.Add(page);
+        var video = new MpvTrack(1, "video", null, "离线视频", true, true) { Codec = "h264", FfmpegIndex = 0 };
+        var audio = new MpvTrack(2, "audio", "jpn", "离线音轨", true, true) { Codec = "aac", FfmpegIndex = 1 };
+        var ass = new MpvTrack(3, "sub", "chi", "ASS 测试字幕", false, true) { Codec = "ass", MainSelection = 0, FfmpegIndex = 2 };
+        var pgs = new MpvTrack(4, "sub", "chi", "PGS 测试字幕", false, true) { Codec = "hdmv_pgs_subtitle", Image = true, MainSelection = 0, FfmpegIndex = 3 };
+        var second = new MpvTrack(5, "sub", "eng", "次字幕测试", false, true) { Codec = "subrip", MainSelection = 1, FfmpegIndex = 4 };
+        var originalGeneration = Get<int>(vm, "_generation");
         try
         {
+            SetTracks([video, audio, ass, pgs with { Selected = false }, second]);
+            foreach (var property in PlayerMenuCatalog.Commands.SelectMany(node => node.RequireProperties)
+                .Concat(PlayerMenuCatalog.CheckProperties).Distinct(StringComparer.Ordinal)) handle.Text[property] = "0";
+            handle.Text["gpu-api"] = "d3d11";
+            handle.Text["current-gpu-context"] = "d3d11";
+            handle.Text["video-params/gamma"] = "pq";
+            handle.Text["audio-device-list"] = "[{\"name\":\"auto\",\"description\":\"默认设备\"},{\"name\":\"wasapi/offline\",\"description\":\"离线耳机\"}]";
+            handle.Text["audio-device"] = "auto";
+            vm.BuildCurrentMenu(handle.Text);
             var mapping = page.ProbeShortcuts();
             Require(mapping.Ok, mapping.Detail);
             var quiet = page.ProbeQuietKeys();
@@ -322,6 +344,8 @@ internal sealed partial class ShellNavigationProbe
             await Get<Task>(vm, "_pictureCommandTask");
             Require(handle.Commands.Contains("set|video-pan-x|0") && handle.Commands.Contains("set|video-pan-y|0"), "画面归零没有发送两轴命令");
 
+            SetTracks([video, audio, ass with { Selected = false }, pgs, second]);
+            vm.BuildCurrentMenu(handle.Text);
             // 字幕 → 兼容性那组快捷键（2026-11-02）：位图字幕的两条走内核的 stretch-image-subs-to-screen / sub-gray，
             // 重载是纯命令；这里对假后端核对实际发出的命令，不加载字幕也不播放。
             Require(vm.RunAdditionalShortcut("subtitle-pgs-margins"), "PGS 黑边没有处理器");
@@ -330,6 +354,8 @@ internal sealed partial class ShellNavigationProbe
             Require(vm.RunAdditionalShortcut("subtitle-pgs-gray"), "PGS 灰度没有处理器");
             await Get<Task>(vm, "_pictureCommandTask");
             Require(handle.Commands.Contains("cycle|sub-gray"), "PGS 灰度没有发送实际命令");
+            SetTracks([video, audio, ass, pgs with { Selected = false }, second]);
+            vm.BuildCurrentMenu(handle.Text);
             Require(vm.RunAdditionalShortcut("subtitle-render-style"), "渲染样式没有处理器");
             await Get<Task>(vm, "_pictureCommandTask");
             Require(handle.Commands.Contains("cycle|sub-ass-override"), "渲染样式没有发送实际命令");
@@ -341,6 +367,8 @@ internal sealed partial class ShellNavigationProbe
             Require(vm.RunAdditionalShortcut("subtitle-delay-reset") && vm.SubtitleDelay == 0 && handle.Numbers["sub-delay"] == 0, "字幕归零未同步状态和命令");
             Require(vm.RunAdditionalShortcut("audio-delay-reset"), "音频归零没有处理器");
             await UntilAsync(() => handle.Commands.Contains("set|audio-delay|0"));
+
+            await CheckDynamicMenusAsync();
 
             // 拒绝第一轴后继续复位第二轴，最后不能显示成功通知。
             handle.Accept = arguments => !(arguments.Count > 1 && arguments[1] == "video-pan-x");
@@ -364,6 +392,8 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
+            var menu = Get<MenuFlyout>(page, "PictureMenu");
+            menu.Hide();
             _root.Children.Remove(page);
             page.Detach();
             page.Shutdown();
@@ -371,12 +401,120 @@ internal sealed partial class ShellNavigationProbe
             Field(playback, "_active", null);
             await vm.ShutdownAsync();
         }
+
+        void SetTracks(IReadOnlyList<MpvTrack> value)
+        {
+            Field(vm, "<Tracks>k__BackingField", value);
+            handle.Tracks = value;
+        }
+
+        async Task CheckDynamicMenusAsync()
+        {
+            var readings = new List<string>();
+            var menu = Get<MenuFlyout>(page, "PictureMenu");
+            Require(!Rows().Any(row => row.HostAction?.StartsWith("tool-", StringComparison.Ordinal) == true), "未配置工具仍显示操作");
+            Require(Rows().Any(row => row.Commands.Any(command => command.Count > 2 && command[1] == "audio-device")), "音频设备列表缺失");
+            foreach (var property in new[] { "vid", "aid", "sid", "secondary-sid" })
+                Require(Rows().Any(row => row.Commands.Any(command => command.Count > 2 && command[1] == property)), "动态轨道缺失:" + property);
+            var assMenu = Rebuild();
+            Require(assMenu.Any(row => row.Shortcut == "subtitle-border-scale") && !assMenu.Any(row => row.Shortcut == "subtitle-pgs-gray"), "ASS/PGS操作显隐错误");
+            var firstCrop = MenuRows(menu.Items).Single(row => row.Tag is PlayerMenuNode { Shortcut: "video-crop" });
+            fixture.Settings.Shortcuts.Bindings["video-crop"] = "Ctrl+F10";
+            Rebuild();
+            var secondCrop = MenuRows(menu.Items).Single(row => row.Tag is PlayerMenuNode { Shortcut: "video-crop" });
+            Require(!ReferenceEquals(firstCrop, secondCrop) && secondCrop.KeyboardAcceleratorTextOverride == "Ctrl + F10", "菜单未重建或快捷键提示未更新");
+            fixture.Settings.Shortcuts.Bindings.Remove("video-crop");
+            SetTracks([video, audio, ass with { Selected = false }, pgs with { Selected = false }, second]);
+            var off = Rebuild();
+            Require(off.Any(row => row.Shortcut == "subtitle-reset") && off.Any(row => row.Shortcut == "subtitle-next"), "关闭字幕丢失恢复入口");
+            Require(!off.Any(row => row.Shortcut is "subtitle-border-scale" or "subtitle-pgs-gray"), "关闭主字幕仍显示格式操作");
+            SetTracks([video, audio, ass with { Selected = false }, pgs, second with { Selected = false }]);
+            var image = Rebuild();
+            Require(image.Any(row => row.Shortcut == "subtitle-pgs-gray") && !image.Any(row => row.Shortcut == "subtitle-border-scale"), "PGS操作未恢复");
+            Require(image.Any(row => row.Shortcut == "secondary-subtitle-next") && !image.Any(row => row.Shortcut == "secondary-subtitle-position-up"), "次字幕关闭仍显示位移操作或丢失选择入口");
+            SetTracks([video, audio, ass, pgs with { Selected = false }, second]);
+            Require(Rebuild().Any(row => row.Shortcut == "secondary-subtitle-position-up"), "次字幕恢复未恢复位移操作");
+            var toolDirectory = Path.Combine(paths.Root, "fake-tools");
+            Directory.CreateDirectory(toolDirectory);
+            foreach (var name in new[] { "ffmpeg.exe", "ffprobe.exe", "ffsubsync.exe", "alass.exe", "whisper.exe" })
+                File.WriteAllText(Path.Combine(toolDirectory, name), "Offline probe placeholder; never execute.");
+            var settings = fixture.Settings.PlayerTools;
+            settings.FfmpegPath = Path.Combine(toolDirectory, "ffmpeg.exe");
+            settings.FfsubsyncPath = Path.Combine(toolDirectory, "ffsubsync.exe");
+            settings.AlassPath = Path.Combine(toolDirectory, "alass.exe");
+            settings.FasterWhisperPath = Path.Combine(toolDirectory, "whisper.exe");
+            Require(Rebuild().Any(row => row.HostAction == "tool-subtitle-export")
+                && Rows().Any(row => row.HostAction == "tool-subtitle-sync") && Rows().Any(row => row.HostAction == "tool-subtitle-generate"), "配置工具没有恢复相应操作");
+            Require(!Rows().Any(row => row.HostAction is "tool-gif" or "tool-clip"), "没有完整时间区间仍显示导出操作");
+            settings.FfmpegPath = "";
+            Require(!Rebuild().Any(row => row.HostAction?.StartsWith("tool-", StringComparison.Ordinal) == true), "清空工具路径仍显示工具操作");
+            var old = handle.Commands.Count;
+            handle.Text["sigmoid-upscaling"] = null;
+            Require(!Rebuild().Any(row => row.Shortcut == "video-nonlinear"), "内核属性未知仍显示无效操作");
+            vm.RunAdditionalShortcut("video-nonlinear");
+            await Get<Task>(vm, "_pictureCommandTask");
+            Require(handle.Commands.Skip(old).All(command => !command.Contains("sigmoid-upscaling", StringComparison.Ordinal)), "隐藏动作仍向内核发送无效属性");
+            handle.Text["sigmoid-upscaling"] = "yes";
+            SetTracks([video, audio, ass, pgs with { Selected = false }, second]);
+            Rebuild();
+            foreach (var width in new[] { 1280, 760 })
+            {
+                ResizeProbeClient(width, 820);
+                await LayoutAsync(page);
+                menu.ShowAt(page, new Microsoft.UI.Xaml.Controls.Primitives.FlyoutShowOptions
+                    { Position = new Windows.Foundation.Point(80, 80) });
+                await LayoutAsync(page);
+                Require(menu.IsOpen, "播放右键菜单未打开");
+                var subtitleGroup = menu.Items.OfType<MenuFlyoutSubItem>().Single(group => group.Text == "字幕");
+                var expansion = new MenuFlyoutSubItemAutomationPeer(subtitleGroup).GetPattern(PatternInterface.ExpandCollapse) as IExpandCollapseProvider
+                    ?? throw new InvalidOperationException("字幕子菜单没有可展开入口");
+                expansion.Expand();
+                await LayoutAsync(page);
+                Require(expansion.ExpandCollapseState == ExpandCollapseState.Expanded, "字幕子菜单没有实际展开");
+                await SaveProbeScreenAsync($"player-menu-expanded-{width}-screen.png");
+                readings.Add($"width={width}; rows={Rows().Count}; uiRows={MenuRows(menu.Items).Count()}; hints=current; ASS/PGS/secondary/tool restoration verified");
+                menu.Hide();
+            }
+            // Retain a real row after rebuilding, then invalidate the original playback identity before Invoke.
+            var stale = MenuRows(menu.Items).Single(row => row.Tag is PlayerMenuNode { Shortcut: "video-crop" });
+            var peer = new MenuFlyoutItemAutomationPeer(stale);
+            var invoke = peer.GetPattern(PatternInterface.Invoke) as IInvokeProvider
+                ?? throw new InvalidOperationException("菜单操作没有自动化Invoke入口");
+            var before = handle.Commands.Count;
+            Field(vm, "_generation", originalGeneration + 1);
+            invoke.Invoke();
+            await LayoutAsync(page);
+            await Get<Task>(vm, "_pictureCommandTask");
+            Require(handle.Commands.Count == before, "旧菜单行仍执行到了替换播放");
+            Field(vm, "_generation", originalGeneration);
+            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "player-menu-expanded-evidence.txt"), readings);
+
+            List<PlayerMenuNode> Rows() => PlayerMenuCatalog.Flatten(vm.BuildCurrentMenu(handle.Text))
+                .Where(node => node.Kind == PlayerMenuKind.Command).ToList();
+            List<PlayerMenuNode> Rebuild()
+            {
+                vm.BuildCurrentMenu(handle.Text);
+                Call(page, "OnPictureMenuOpening", page, new object());
+                return Rows();
+            }
+            static IEnumerable<MenuFlyoutItem> MenuRows(IEnumerable<MenuFlyoutItemBase> items)
+            {
+                foreach (var item in items)
+                {
+                    if (item is MenuFlyoutItem row) yield return row;
+                    if (item is MenuFlyoutSubItem group)
+                        foreach (var child in MenuRows(group.Items)) yield return child;
+                }
+            }
+        }
     }
 
     private sealed class ShortcutProbeHandle : IPlaybackHandle, IPlayerControl
     {
         public List<string> Commands { get; } = [];
         public Dictionary<string, double> Numbers { get; } = new(StringComparer.Ordinal);
+        public Dictionary<string, string?> Text { get; } = new(StringComparer.Ordinal);
+        public IReadOnlyList<MpvTrack> Tracks { get; set; } = [];
         public Func<IReadOnlyList<string>, bool> Accept { get; set; } = _ => true;
         public TaskCompletionSource<bool>? Pending { get; set; }
         public bool HasControlChannel => true;
@@ -395,9 +533,9 @@ internal sealed partial class ShellNavigationProbe
             if (double.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), CultureInfo.InvariantCulture, out var number)) Numbers[name] = number;
             return Task.CompletedTask;
         }
-        public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<MpvTrack>>([]);
+        public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken) => Task.FromResult(Tracks);
         public Task<double?> GetNumberAsync(string name, CancellationToken cancellationToken) => Task.FromResult<double?>(Numbers.GetValueOrDefault(name));
-        public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
+        public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken) => Task.FromResult(Text.GetValueOrDefault(name));
         public Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
         {
             Commands.Add(string.Join('|', arguments));
