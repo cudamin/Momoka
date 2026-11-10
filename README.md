@@ -2,6 +2,8 @@
 
 第三方媒体库客户端，支持 Emby、Jellyfin、飞牛影视和 Plex（实验性，未实服核对），界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
 
+项目播放器基于https://github.com/dyphire/mpv-config 制作
+
 [个人 Telegram 频道](https://t.me/Ebizuka_Tomo)  |  [微软商店](https://apps.microsoft.com/detail/9nqjl7k0h8x0?hl=zh-CN&gl=CN)  |  [QQ交流群：1039548970](https://qm.qq.com/q/vXph3vMyFW)
 
 ## 主要功能
