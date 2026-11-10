@@ -478,6 +478,8 @@ internal sealed partial class ShellNavigationProbe
                 expansion.Expand();
                 await UntilAsync(() => expansion.ExpandCollapseState == ExpandCollapseState.Expanded);
                 page.UpdateLayout();
+                await WaitForDiagnosticsFrameAsync();
+                await Task.Delay(250);
                 Require(expansion.ExpandCollapseState == ExpandCollapseState.Expanded, "字幕子菜单没有实际展开");
                 var childRow = subtitleGroup.Items.OfType<MenuFlyoutItem>().First();
                 var bounds = FrameworkElementAutomationPeer.CreatePeerForElement(childRow)!.GetBoundingRectangle();
