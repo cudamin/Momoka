@@ -7,7 +7,6 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Momoka.Configuration;
-using Momoka.Danmaku;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -103,15 +102,6 @@ public sealed partial class SettingsPage : Page, IShellContent
         // 「恢复默认设置」按下之后要问一次，而对话框要这一页的 XamlRoot（见 ConfirmDialog）。同 ServersPage 的
         // 那一句，也是同一个理由：视图模型手上只有问题和答案，摆得出对话框的只有页面。
         ViewModel.UseConfirm(ConfirmDialog.For(this));
-        ViewModel.UseBilibiliLogin(async token =>
-        {
-            var activity = _activityToken;
-            if (_request is null || !_activity.IsCurrent(activity)) return null;
-            using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(activity, token);
-            return await BilibiliLoginDialog.ShowAsync(this,
-                _request.Services.GetRequiredService<AppPaths>(),
-                _request.Services.GetRequiredService<BilibiliClient>(), lifetime.Token);
-        });
 
         // 「关于」卡上的「备份配置文件」「恢复配置」两颗按钮要弹文件框，而文件框同样要这一页的 XamlRoot 才拿得到
         // 窗口句柄（见 SettingsFile）。同上一句一手交出去。

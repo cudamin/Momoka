@@ -24,7 +24,6 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
     private readonly AppSettings _settings;
     private readonly IDandanPlayCredentialSource? _credentials;
     private readonly ISecretProtector? _protector;
-    private readonly BilibiliClient? _bilibili;
     private readonly string _cacheDirectory;
     private readonly HttpClient _http;
     private readonly Func<DateTimeOffset> _clock;
@@ -38,12 +37,11 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
 
     public DandanPlayClient(AppSettings settings, string cacheDirectory,
         HttpMessageHandler? handler = null, Func<DateTimeOffset>? clock = null,
-        IDandanPlayCredentialSource? credentials = null, ISecretProtector? protector = null, BilibiliClient? bilibili = null)
+        IDandanPlayCredentialSource? credentials = null, ISecretProtector? protector = null)
     {
         _settings = settings;
         _credentials = credentials;
         _protector = protector;
-        _bilibili = bilibili;
         _cacheDirectory = cacheDirectory;
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
         _http = new HttpClient(handler ?? new SocketsHttpHandler
@@ -62,15 +60,13 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
     public async Task<DandanPlaySearchResult> SearchAsync(string title, string? episode, DanmakuSource source,
         CancellationToken cancellationToken = default)
     {
-        using var operation = BeginOperation(cancellationToken);
-        cancellationToken = operation.Token;
-        if (source == DanmakuSource.Bilibili)
-            return await Bilibili().SearchAsync(title, episode, cancellationToken).ConfigureAwait(false);
         title = title.Trim();
         if (title.Length is < 2 or > 120) throw new DandanPlayException("请输入 2～120 个字符的作品名称。");
         if (episode is { Length: > 0 } && (episode.Length > 6 || !episode.All(char.IsAsciiDigit)
             || !int.TryParse(episode, out var episodeNumber) || episodeNumber <= 0))
             throw new DandanPlayException("集数必须是正整数，留空可搜索全部剧集。");
+        using var operation = BeginOperation(cancellationToken);
+        cancellationToken = operation.Token;
         var path = "/api/v2/search/episodes?anime=" + Uri.EscapeDataString(title) + "&v2=true";
         if (!string.IsNullOrEmpty(episode)) path += "&episode=" + Uri.EscapeDataString(episode);
         using var document = await GetAsync(path, comments: false, source, cancellationToken).ConfigureAwait(false);
@@ -104,17 +100,11 @@ public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
         if (episodeId <= 0) throw new DandanPlayException("弹幕库编号无效。");
         using var operation = BeginOperation(cancellationToken);
         cancellationToken = operation.Token;
-        if (source == DanmakuSource.Bilibili)
-            return await Bilibili().GetCommentsAsync(episodeId, cancellationToken).ConfigureAwait(false);
         // 缓存、凭据与闸门都可能已预热，ConfigureAwait(false) 不会强制切线程。
         // 整条读取/JSON 解析/转换/稳定排序都在同一个后台边界内，不能只包异步读盘。
         return await Task.Run(() => ReadCommentsAsync(episodeId, withRelated, source, cancellationToken),
             cancellationToken).ConfigureAwait(false);
     }
-
-    // 借用 DI 管理的 B站客户端，来源分派仍计入本客户端关闭时的在途操作。
-    private BilibiliClient Bilibili() => _bilibili
-        ?? throw new DandanPlayException("B站弹幕服务尚未初始化，请重新打开应用。");
 
     private async Task<IReadOnlyList<DanmakuComment>> ReadCommentsAsync(long episodeId, bool withRelated,
         DanmakuSource source, CancellationToken cancellationToken)

@@ -80,7 +80,6 @@ public sealed partial class DanmakuPanel : UserControl
         ShowToggle.Visibility = Visibility.Collapsed;
         TitleBox.Visibility = Visibility.Collapsed;
         EpisodeBox.Visibility = Visibility.Collapsed;
-        SearchHint.Visibility = Visibility.Collapsed;
         SettingsButton.Visibility = Visibility.Collapsed;
         Appearance.Visibility = Visibility.Collapsed;
         SourceBox.Visibility = Visibility.Collapsed;
@@ -168,8 +167,7 @@ public sealed partial class DanmakuPanel : UserControl
         SearchButton.IsEnabled = false;
         try
         {
-            var episode = EpisodeBox.Text.Trim();
-            var matches = await _viewModel.SearchDanmakuAsync(TitleBox.Text, episode, source, cancellation.Token).ConfigureAwait(true);
+            var matches = await _viewModel.SearchDanmakuAsync(TitleBox.Text, EpisodeBox.Text.Trim(), source, cancellation.Token).ConfigureAwait(true);
             if (request != _searchRequest || !Current() || connectionVersion != _viewModel.DanmakuConnectionVersion) return;
             _results.Clear();
             _resultsSource = source;
@@ -200,7 +198,6 @@ public sealed partial class DanmakuPanel : UserControl
 
     private void SeedSources(PlayerViewModel viewModel)
     {
-        var previousSource = _searchSource;
         var sources = viewModel.DanmakuSearchSources();
         _sourceSeeding = true;
         try
@@ -213,21 +210,6 @@ public sealed partial class DanmakuPanel : UserControl
             SearchButton.Content = sources.Count > 0 ? $"搜索{sources[0].Label}" : "搜索";
         }
         finally { _sourceSeeding = false; }
-        ConfigureSearch(previousSource);
-    }
-
-    private void ConfigureSearch(DanmakuSource previousSource)
-    {
-        var bilibili = _searchSource == DanmakuSource.Bilibili;
-        TitleBox.Header = bilibili ? "B站编号、链接或关键词" : "作品名称";
-        TitleBox.PlaceholderText = bilibili ? "BV / av / ep / ss 或番剧影视关键词" : "作品名称";
-        TitleBox.MaxLength = bilibili ? 2048 : 120;
-        EpisodeBox.Visibility = Visibility.Visible;
-        SearchHint.Visibility = bilibili ? Visibility.Visible : Visibility.Collapsed;
-        if (previousSource == _searchSource || !bilibili && previousSource != DanmakuSource.Bilibili) return;
-        // 进出B站时按当前视频重新填查询，不把上个来源的编号或链接当成作品关键词。
-        TitleBox.Text = _viewModel?.DanmakuSearchTitle ?? "";
-        EpisodeBox.Text = _viewModel?.DanmakuSearchEpisode ?? "";
     }
 
     private void OnSourceChanged(object sender, SelectionChangedEventArgs e)
@@ -237,10 +219,8 @@ public sealed partial class DanmakuPanel : UserControl
         CancelPanelSearch();
         _resultsSource = null;
         SearchButton.IsEnabled = true;
-        var previousSource = _searchSource;
         _searchSource = option.Source;
         SearchButton.Content = $"搜索{option.Label}";
-        ConfigureSearch(previousSource);
         _results.Clear();
         Results.Visibility = Visibility.Collapsed;
         LoadButton.Visibility = Visibility.Collapsed;

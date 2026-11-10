@@ -1,7 +1,5 @@
-using Microsoft.UI.Xaml.Controls;
 using Momoka.Configuration;
 using Momoka.Danmaku;
-using Momoka.Infrastructure;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -9,9 +7,6 @@ public sealed partial class SettingsViewModel
 {
     private const string DanmakuCategory = "弹幕";
     private SettingFontRow? _danmakuFont;
-    private Func<CancellationToken, Task<(string CookieHeader, long UserId, string Name)?>>? _bilibiliLogin;
-    private readonly LoadGeneration _bilibiliLogins = new();
-    private bool _bilibiliLoginBusy;
     private static readonly (string Label, int Value)[] DanmakuDensityModes = [("正常", 0), ("较多", 1), ("重叠", 2)];
     private static readonly (string Label, int Value)[] DanmakuBorderStyles = [("描边", 0), ("重墨", 1), ("45° 投影", 2)];
 
@@ -19,8 +14,7 @@ public sealed partial class SettingsViewModel
     [
         ("弹弹play", DanmakuSourceMode.DandanPlay),
         ("danmu_api（自己部署）", DanmakuSourceMode.DanmuApi),
-        ("两者合并", DanmakuSourceMode.Both),
-        ("哔哩哔哩", DanmakuSourceMode.Bilibili)
+        ("两者合并", DanmakuSourceMode.Both)
     ];
 
     /// <summary>
@@ -49,13 +43,13 @@ public sealed partial class SettingsViewModel
         var rows = new List<SettingRow>
         {
             Toggle("启用弹幕", "默认关闭。开启后使用「来源与聚合」里选择的来源；弹弹play 使用 Momoka 内置凭据，"
-                + "danmu_api 使用你自己部署的服务，B 站使用本机登录账号。搜索或自动匹配会把作品名称和集数发送到所选服务，"
-                + "不上传视频、媒体服务器地址或媒体服务器登录信息。",
+                + "danmu_api 使用你自己部署的服务。搜索或自动匹配会把作品名称和集数发送到所选服务，"
+                + "不上传视频、媒体服务器地址或登录信息。",
                 () => settings.Enabled, value => settings.Enabled = value, after: RefreshDanmakuRows),
         };
         if (configured)
         {
-            rows.Add(Toggle("自动匹配弹幕", "播放时按作品名称和集数查找弹幕，B站只自动加载唯一且精确对应的结果。"
+            rows.Add(Toggle("自动匹配弹幕", "自动匹配只接受能确认的作品与集数；danmu_api 会带年份并核对集号。"
                 + "续季、特别篇或不确定的结果在播放页手动搜索选择，避免串集。",
                 () => settings.AutoMatch, value => settings.AutoMatch = value, after: RefreshDanmakuRows));
             if (DanmakuSourceRules.IncludesDandanPlay(settings.Source))
@@ -66,13 +60,9 @@ public sealed partial class SettingsViewModel
         var sourceRows = new List<SettingRow>();
         if (settings.Enabled && DandanPlayMatching.CanRender(Settings.Mpv))
         {
-            sourceRows.Add(Choice("弹幕来源", DanmakuSources, () => settings.Source, value =>
-            {
-                settings.Source = value;
-                if (value != DanmakuSourceMode.Bilibili) CancelBilibiliLogin();
-            },
+            sourceRows.Add(Choice("弹幕来源", DanmakuSources, () => settings.Source, value => settings.Source = value,
                 "每个人填自己部署的 danmu_api；Momoka 不提供公共服务。两者合并会同时请求两个来源，"
-                + "并消耗弹弹play 的共享额度；B 站登录后可自动匹配，也可用编号或链接手动选择。",
+                + "并消耗弹弹play 的共享额度。",
                 after: RefreshDanmakuRows));
             if (DanmakuSourceRules.IncludesDanmuApi(settings.Source))
             {
@@ -86,19 +76,6 @@ public sealed partial class SettingsViewModel
                     TrySaveDanmuApiToken, RefreshDanmakuRows);
                 tokenRow.Restate("可选。服务未启用令牌时留空；保存后不回填明文，也不进入配置备份。");
                 sourceRows.Add(tokenRow);
-            }
-            if (settings.Source == DanmakuSourceMode.Bilibili)
-            {
-                var signedIn = settings.ProtectedBilibiliCookie.Length > 0;
-                if (signedIn)
-                {
-                    sourceRows.Add(Fact("B 站账户", "登录信息只保存在本机，不进入配置备份。",
-                        settings.BilibiliUserName.Length > 0 ? settings.BilibiliUserName : "已登录"));
-                    sourceRows.Add(Fact("重新登录 B 站", "打开隔离的官方登录页；成功保存后才替换当前账号。", "", "重新登录", () => _ = LoginBilibiliAsync()));
-                    sourceRows.Add(Fact("退出 B 站", "只清除 Momoka 本机登录信息。", "", "退出登录", SignOutBilibili));
-                }
-                else
-                    sourceRows.Add(Fact("登录 B 站", "使用 B 站官方网页登录；完成后可自动匹配当前影片的弹幕。", "", "登录 B 站", () => _ = LoginBilibiliAsync()));
             }
         }
 
@@ -160,7 +137,7 @@ public sealed partial class SettingsViewModel
                 rows),
             new SettingSection(DanmakuCategory, "来源与聚合",
                 "弹弹play 使用 Momoka 内置凭据；danmu_api 需要你自己部署并填写地址。"
-                + "两者合并会同时请求两个来源，并消耗弹弹play 的共享额度。B 站需登录并手动选择视频。",
+                + "两者合并会同时请求两个来源，并消耗弹弹play 的共享额度。",
                 sourceRows),
             new SettingSection(DanmakuCategory, "显示与外观",
                 "弹幕开关、输入栏和画面上的大小与疏密；改完立刻作用到正在播的片子。", displayRows),
@@ -186,88 +163,8 @@ public sealed partial class SettingsViewModel
         return saved;
     }
 
-    /// <summary>页面提供官方登录窗口；视图模型只接收已验证回执并负责本机保存。</summary>
-    internal void UseBilibiliLogin(Func<CancellationToken, Task<(string CookieHeader, long UserId, string Name)?>> login) =>
-        _bilibiliLogin = login;
-
-    internal void CancelBilibiliLogin()
-    {
-        _bilibiliLogins.Cancel();
-        _bilibiliLoginBusy = false;
-    }
-
-    private async Task LoginBilibiliAsync()
-    {
-        if (_settings is null || !_active || _disposed || _bilibiliLoginBusy || _bilibiliLogin is null
-            || Settings.Danmaku.Source != DanmakuSourceMode.Bilibili || !Settings.Danmaku.Enabled
-            || !DandanPlayMatching.CanRender(Settings.Mpv)) return;
-        var service = _settings;
-        var token = _bilibiliLogins.Begin();
-        _bilibiliLoginBusy = true;
-        try
-        {
-            var receipt = await _bilibiliLogin(token);
-            if (!_bilibiliLogins.IsCurrent(token) || !_active || _disposed || !ReferenceEquals(_settings, service)
-                || Settings.Danmaku.Source != DanmakuSourceMode.Bilibili || !Settings.Danmaku.Enabled
-                || !DandanPlayMatching.CanRender(Settings.Mpv) || receipt is null) return;
-            var account = receipt.Value;
-            if (account.UserId <= 0) throw new InvalidOperationException();
-            var encrypted = BilibiliSession.Protect(_secretProtector, account.CookieHeader);
-            if (!_bilibiliLogins.IsCurrent(token)) return;
-            if (!TrySaveBilibiliAccount(encrypted, account.UserId, account.Name))
-            {
-                Notify(null, "B 站登录信息未能保存，原账号未更改。请检查磁盘空间后重新登录。", InfoBarSeverity.Error);
-                return;
-            }
-            RefreshDanmakuRows();
-            Notify(null, "B 站账号已登录，将按弹幕设置匹配当前影片。", InfoBarSeverity.Success);
-        }
-        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-        catch (Exception)
-        {
-            // WebView、保护器或 HTTP 异常可能含网页登录信息，固定消息不传 inner exception 或日志。
-            if (_bilibiliLogins.IsCurrent(token) && _active && !_disposed)
-                Notify(null, "B 站登录未完成，原账号未更改。请重新登录。", InfoBarSeverity.Error);
-        }
-        finally { if (_bilibiliLogins.IsCurrent(token)) _bilibiliLoginBusy = false; }
-    }
-
-    private void SignOutBilibili()
-    {
-        if (_settings is null || !_active || _disposed || Settings.Danmaku.Source != DanmakuSourceMode.Bilibili
-            || !Settings.Danmaku.Enabled || !DandanPlayMatching.CanRender(Settings.Mpv)) return;
-        CancelBilibiliLogin();
-        if (!TrySaveBilibiliAccount("", 0, ""))
-        {
-            Notify(null, "B 站退出信息未能保存，原账号未更改。请检查磁盘空间后重试。", InfoBarSeverity.Error);
-            return;
-        }
-        RefreshDanmakuRows();
-        Notify(null, "已清除 Momoka 本机的 B 站登录信息。", InfoBarSeverity.Success);
-    }
-
-    private bool TrySaveBilibiliAccount(string encrypted, long userId, string name)
-    {
-        var settings = Settings.Danmaku;
-        var previous = (settings.ProtectedBilibiliCookie, settings.BilibiliUserId, settings.BilibiliUserName);
-        settings.ProtectedBilibiliCookie = encrypted;
-        settings.BilibiliUserId = userId;
-        settings.BilibiliUserName = name;
-        var saved = false;
-        try { saved = _settings!.TrySave(); }
-        catch (Exception) { /* 不回显可能含凭据的保存异常，统一按未保存回滚。 */ }
-        finally
-        {
-            if (!saved)
-                (settings.ProtectedBilibiliCookie, settings.BilibiliUserId, settings.BilibiliUserName) = previous;
-            SyncSaveState();
-        }
-        return saved;
-    }
-
     private void RefreshDanmakuRows()
     {
-        if (!Settings.Danmaku.Enabled) CancelBilibiliLogin();
         RefreshDanmakuPresentation();
         ApplyDanmakuSettings();
     }
@@ -289,7 +186,6 @@ public sealed partial class SettingsViewModel
 
     private void RefreshDanmakuAvailability()
     {
-        if (!DandanPlayMatching.CanRender(Settings.Mpv)) CancelBilibiliLogin();
         var existing = Sections.Where(section => section.Category == DanmakuCategory).ToList();
         if (!DandanPlayMatching.CanRender(Settings.Mpv))
         {

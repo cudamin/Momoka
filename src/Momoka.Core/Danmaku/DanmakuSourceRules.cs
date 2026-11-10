@@ -9,7 +9,6 @@ public static class DanmakuSourceRules
     {
         DanmakuSource.DandanPlay => mode is DanmakuSourceMode.DandanPlay or DanmakuSourceMode.Both,
         DanmakuSource.DanmuApi => mode is DanmakuSourceMode.DanmuApi or DanmakuSourceMode.Both,
-        DanmakuSource.Bilibili => mode == DanmakuSourceMode.Bilibili,
         _ => false
     };
 
@@ -26,22 +25,18 @@ public static class DanmakuSourceRules
         DanmakuSource.DandanPlay => settings.Danmaku.Enabled && DandanPlayMatching.CanRender(settings.Mpv),
         DanmakuSource.DanmuApi => settings.Danmaku.Enabled && DandanPlayMatching.CanRender(settings.Mpv)
             && DanmuApiEndpoint.TryCreate(settings.Danmaku.DanmuApiBaseUrl, null, out _, out _),
-        DanmakuSource.Bilibili => settings.Danmaku.Enabled && DandanPlayMatching.CanRender(settings.Mpv)
-            && settings.Danmaku.BilibiliUserId > 0 && !string.IsNullOrWhiteSpace(settings.Danmaku.ProtectedBilibiliCookie),
         _ => false
     };
 
     /// <summary>至少有一个被选中的来源可以发起请求；合并模式缺 danmu_api 地址时仍可用弹弹play。</summary>
     public static bool IsAvailable(AppSettings settings) => IsSourceReady(settings, DanmakuSource.DandanPlay)
         && IncludesDandanPlay(settings.Danmaku.Source)
-        || IsSourceReady(settings, DanmakuSource.DanmuApi) && IncludesDanmuApi(settings.Danmaku.Source)
-        || IsSourceReady(settings, DanmakuSource.Bilibili) && Includes(settings.Danmaku.Source, DanmakuSource.Bilibili);
+        || IsSourceReady(settings, DanmakuSource.DanmuApi) && IncludesDanmuApi(settings.Danmaku.Source);
 
     public static string SourceName(DanmakuSource source) => source switch
     {
         DanmakuSource.DandanPlay => "弹弹play",
         DanmakuSource.DanmuApi => "danmu_api",
-        DanmakuSource.Bilibili => "哔哩哔哩",
         _ => "弹幕"
     };
 
@@ -50,7 +45,6 @@ public static class DanmakuSourceRules
         DanmakuSourceMode.DandanPlay => "弹弹play",
         DanmakuSourceMode.DanmuApi => "danmu_api",
         DanmakuSourceMode.Both => "弹弹play + danmu_api",
-        DanmakuSourceMode.Bilibili => "哔哩哔哩",
         _ => "弹幕"
     };
 
@@ -62,8 +56,6 @@ public static class DanmakuSourceRules
             && IsSourceReady(settings, DanmakuSource.DandanPlay)) sources.Add(DanmakuSource.DandanPlay);
         if (IncludesDanmuApi(settings.Danmaku.Source)
             && IsSourceReady(settings, DanmakuSource.DanmuApi)) sources.Add(DanmakuSource.DanmuApi);
-        if (Includes(settings.Danmaku.Source, DanmakuSource.Bilibili)
-            && IsSourceReady(settings, DanmakuSource.Bilibili)) sources.Add(DanmakuSource.Bilibili);
         return sources;
     }
 }

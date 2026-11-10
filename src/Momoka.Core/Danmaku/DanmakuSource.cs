@@ -4,6 +4,5 @@ namespace Momoka.Danmaku;
 public enum DanmakuSource
 {
     DandanPlay = 0,
-    DanmuApi = 1,
-    Bilibili = 2
+    DanmuApi = 1
 }

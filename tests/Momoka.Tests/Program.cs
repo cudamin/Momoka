@@ -4,14 +4,6 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
-        if (args is ["bilibili-fixture"])
-        {
-            BilibiliSettingsTests.Register();
-            BilibiliSessionTests.Register();
-            BilibiliClientTests.Register();
-            BilibiliRoutingTests.Register();
-            return TestHarness.Run();
-        }
         if (args is ["trailer-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -236,8 +228,6 @@ internal static class Program
             return SettingsSearchTests.Run(searchShell, searchRoot);
         if (args is ["settings-page-state-fixture", var shellAssembly, var sourceRoot])
             return SettingsPageStateTests.Run(shellAssembly, sourceRoot);
-        if (args is ["settings-bilibili-fixture", var bilibiliShell, var bilibiliRoot])
-            return SettingsBilibiliTests.Run(bilibiliShell, bilibiliRoot);
         if (args is ["settings-applicability-fixture", var applicabilityShell, var applicabilityRoot])
             return SettingsApplicabilityTests.Run(applicabilityShell, applicabilityRoot);
         if (args is ["library-resume-paging-fixture", var resumeShell, var resumeRoot])
@@ -555,10 +545,6 @@ internal static class Program
         PinIndicatorTests.Register();
         AboutTests.Register();
         DanmakuTests.Register();
-        BilibiliSettingsTests.Register();
-        BilibiliSessionTests.Register();
-        BilibiliClientTests.Register();
-        BilibiliRoutingTests.Register();
         UpdateTests.Register();
         MoviePilotTests.Register();
         AniBtTests.Register();

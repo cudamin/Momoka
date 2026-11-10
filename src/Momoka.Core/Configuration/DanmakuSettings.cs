@@ -16,9 +16,6 @@ public sealed class DanmakuSettings
     public DanmakuSourceMode Source { get; set; } = DanmakuSourceMode.Both;
     public string DanmuApiBaseUrl { get; set; } = "";
     public string ProtectedDanmuApiToken { get; set; } = "";
-    public string ProtectedBilibiliCookie { get; set; } = "";
-    public string BilibiliUserName { get; set; } = "";
-    public long BilibiliUserId { get; set; }
 
     public bool AutoMatch { get; set; } = true;
     public bool WithRelated { get; set; } = true;
@@ -53,17 +50,6 @@ public sealed class DanmakuSettings
         DanmuApiBaseUrl = address[..Math.Min(address.Length, 2048)].Trim();
         var token = ProtectedDanmuApiToken ?? "";
         ProtectedDanmuApiToken = token[..Math.Min(token.Length, 8192)].Trim();
-        // 密文不能截断后继续当作已登录；异常长度一并清掉身份。
-        ProtectedBilibiliCookie = (ProtectedBilibiliCookie ?? "").Trim();
-        if (ProtectedBilibiliCookie.Length > 32768 || BilibiliUserId <= 0)
-            ProtectedBilibiliCookie = "";
-        if (ProtectedBilibiliCookie.Length == 0)
-        {
-            BilibiliUserId = 0;
-            BilibiliUserName = "";
-        }
-        var userName = new string((BilibiliUserName ?? "").Where(character => !char.IsControl(character)).ToArray());
-        BilibiliUserName = userName[..Math.Min(userName.Length, 100)].Trim();
         var words = BlockedWords ?? "";
         BlockedWords = words[..Math.Min(words.Length, 4000)];
         Opacity = Clamp(Opacity, 10, 100, 70);

@@ -12,8 +12,6 @@ internal static class Program
     private static async Task<int> Main()
     {
         var sendProbeFailures = await SendProbeTests.RunAsync();
-        BilibiliPlayerTests.Register();
-        BilibiliAutoMatchTests.Register();
         Momoka.Tests.TestHarness.Test("R14-004 current panel refreshes sources after connection changes", () =>
         {
             var endpoint = new PanelEndpoint();
@@ -141,7 +139,7 @@ internal static class Program
                     Momoka.Tests.Assert.Equal((0, 0, "", ""), host.ResetSnapshot);
                 });
         foreach (var pipeline in new[] { VideoPipelineKind.Integrated, VideoPipelineKind.Standalone })
-            foreach (var source in new[] { DanmakuSourceMode.DandanPlay, DanmakuSourceMode.DanmuApi, DanmakuSourceMode.Both, DanmakuSourceMode.Bilibili })
+            foreach (var source in new[] { DanmakuSourceMode.DandanPlay, DanmakuSourceMode.DanmuApi, DanmakuSourceMode.Both })
                 Momoka.Tests.TestHarness.Test($"danmaku input preference {pipeline} {source}", () =>
                 {
                     var settings = Settings();
@@ -180,8 +178,6 @@ internal static class Program
         settings.Danmaku.Enabled = true;
         settings.Danmaku.AutoMatch = true;
         settings.Danmaku.DanmuApiBaseUrl = "https://source-a.invalid/";
-        settings.Danmaku.ProtectedBilibiliCookie = "protected anonymous fixture";
-        settings.Danmaku.BilibiliUserId = 42;
         return settings;
     }
 }
@@ -197,15 +193,11 @@ internal sealed class QueueContext : SynchronizationContext, IDisposable
 internal enum Visibility { Visible, Collapsed }
 internal sealed class RoutedEventArgs : EventArgs;
 internal sealed class SelectionChangedEventArgs : EventArgs;
-internal static class Grid { internal static void SetColumnSpan(Control control, int span) { } }
 internal sealed class Control
 {
     public bool IsEnabled { get; set; } = true;
     public Visibility Visibility { get; set; }
     public string Text { get; set; } = "anonymous title";
-    public int MaxLength { get; set; } = 120;
-    public string PlaceholderText { get; set; } = "";
-    public object? Header { get; set; }
     public object? Content { get; set; }
     public object? SelectedItem { get; set; }
     public object? ItemsSource { get; set; }
@@ -215,8 +207,6 @@ internal sealed class Control
 
 internal sealed class PanelEndpoint
 {
-    internal string DanmakuSearchTitle => "anonymous local title";
-    internal string DanmakuSearchEpisode => "3";
     internal bool DanmakuShown => true;
     internal bool DanmakuAvailable => true;
     internal IReadOnlyList<DanmakuSourceOption> Sources { get; set; } = [new("弹弹play", DanmakuSource.DandanPlay)];
@@ -229,10 +219,8 @@ internal sealed class PanelEndpoint
     internal long? LoadedId { get; private set; }
     internal int Cancellations { get; private set; }
     internal CancellationToken SearchToken { get; private set; }
-    internal string Query { get; private set; } = "";
-    internal string Episode { get; private set; } = "";
     internal Task<DandanPlaySearchResult> SearchDanmakuAsync(string title, string episode, DanmakuSource source, CancellationToken cancellationToken)
-    { Query = title; Episode = episode; SearchSource = source; SearchToken = cancellationToken; return _pending.Task; }
+    { SearchSource = source; SearchToken = cancellationToken; return _pending.Task; }
     internal Task LoadDanmakuAsync(DandanPlayEpisode episode, DanmakuSource source)
     { LoadSource = source; LoadedId = episode.EpisodeId; return Task.CompletedTask; }
     internal void CompleteSearch(DandanPlayEpisode episode) => _pending.SetResult(new([episode], false));
@@ -256,13 +244,6 @@ internal sealed partial class Panel(PanelEndpoint endpoint)
     private DanmakuSource? _resultsSource;
     private int _resultsConnectionVersion;
     private readonly Control SearchButton = new(), TitleBox = new(), EpisodeBox = new(), Results = new(), LoadButton = new(), SourceBox = new();
-    private readonly Control SearchHint = new();
-    internal string Query => TitleBox.Text;
-    internal string EpisodeQuery => EpisodeBox.Text;
-    internal bool EpisodeVisible => EpisodeBox.Visibility == Visibility.Visible;
-    internal int QueryMaximum => TitleBox.MaxLength;
-    internal string QueryPlaceholder => TitleBox.PlaceholderText;
-    internal void SetQuery(string title, string episode) { TitleBox.Text = title; EpisodeBox.Text = episode; }
     private bool Current() => !_closed;
     internal int Count => _results.Count;
     internal bool SearchEnabled => SearchButton.IsEnabled;
@@ -290,15 +271,12 @@ internal sealed partial class Host(AppSettings settings)
     private readonly EmbyItem? _nowPlaying = new() { Type = EmbyItemType.Movie, Name = "anonymous movie" };
     private string _danmakuConnection = "";
     private string _danmuApiConnection = "";
-    private string _bilibiliConnection = "";
     internal int DanmakuConnectionVersion { get; private set; }
     private DandanPlayEpisode? _danmakuEpisode;
     private DandanPlayEpisode? _danmakuDanmuApiEpisode;
-    private DandanPlayEpisode? _danmakuBilibiliEpisode;
     private IReadOnlyList<DanmakuComment> _danmakuComments = [];
     private bool _danmakuFetched;
     private int _danmakuDandanCount, _danmakuDanmuApiCount;
-    private int _danmakuBilibiliCount;
     private string _danmakuLabel = "", _danmakuWarning = "", _danmakuSourceSummary = "";
     private long _danmakuTransfer;
     private bool DanmakuAvailable => DanmakuSourceRules.IsAvailable(Settings);
@@ -309,7 +287,6 @@ internal sealed partial class Host(AppSettings settings)
     internal int AutoMatches { get; private set; }
     internal (int DandanCount, int CustomCount, string Label, string Warning) ResetSnapshot =>
         (_danmakuDandanCount, _danmakuDanmuApiCount, _danmakuLabel, _danmakuWarning);
-    internal int BilibiliCount => _danmakuBilibiliCount;
     internal void Seed(DandanPlayEpisode episode)
     {
         _danmakuDanmuApiEpisode = episode;
@@ -321,13 +298,6 @@ internal sealed partial class Host(AppSettings settings)
         _danmuApiConnection = DanmuApiConnection();
     }
     internal void SeedDandan(DandanPlayEpisode episode) => _danmakuEpisode = episode;
-    internal void SeedBilibili(DandanPlayEpisode episode)
-    {
-        _danmakuBilibiliEpisode = episode;
-        _danmakuBilibiliCount = 4;
-        _danmakuConnection = DanmakuConnection();
-        _bilibiliConnection = $"{Settings.Danmaku.BilibiliUserId}\n{Settings.Danmaku.ProtectedBilibiliCookie}";
-    }
     internal void Change() => DanmakuSettingsChanged();
     private void RefreshDanmakuProperties() { }
     private void OnPropertyChanged(string name) { }

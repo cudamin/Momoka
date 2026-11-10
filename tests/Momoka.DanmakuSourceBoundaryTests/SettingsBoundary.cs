@@ -35,15 +35,12 @@ internal sealed partial class SettingsRows(AppSettings settings)
     private static SettingRow Choice<T>(string label, (string Label, T Value)[] choices, Func<T> get, Action<T> set, string description, Action after) => new(label);
     private static SettingRow Text(string label, string placeholder, Func<string> get, Action<string> set, string description, Action after) => new(label);
     private static SettingRow Slider(string label, double min, double max, double step, Func<double> get, Action<double> set, string description = "", Action? after = null) => new(label);
-    private static SettingRow Fact(string label, string description, string value, string? button = null, Action? action = null) => new(label);
+    private static SettingRow Fact(string label, string description, string value, string button, Action action) => new(label);
     private static SettingRow DanmakuFont(DanmakuSettings settings) => new("弹幕字体");
     private void Save() { }
     private void RefreshDanmakuRows() { }
     private static void ApplyDanmakuSettings() { }
     private bool TrySaveDanmuApiToken() => true;
-    private static void CancelBilibiliLogin() { }
-    private static Task LoginBilibiliAsync() => Task.CompletedTask;
-    private static void SignOutBilibili() { }
     private sealed class NoSecrets : ISecretProtector
     {
         public string Protect(string plainText) => throw new InvalidOperationException("Fixture never reads or writes secrets.");

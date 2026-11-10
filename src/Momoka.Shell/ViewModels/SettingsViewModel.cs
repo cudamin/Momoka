@@ -814,7 +814,6 @@ public sealed partial class SettingsViewModel : PageViewModel
     public override void Cancel()
     {
         _active = false;
-        CancelBilibiliLogin();
         _administrationLoads.Cancel();
         _ = FlushSettingsAsync();
         base.Cancel();
@@ -824,7 +823,6 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         _disposed = true;
         _active = false;
-        _bilibiliLogins.Dispose();
         _administrationPages.Clear();
         _administrationLoads.Dispose();
         _ = FlushSettingsAsync();
@@ -1134,7 +1132,6 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         // 精简模式是页级状态（SettingRow.NotesHidden），建卡之前先对齐 —— 行的可见性在容器落到树上那一刻
         // 才求值，这里晚了才是错的。恢复默认那趟重走这里，同一句话把它拨回新文档的样子。
-        CancelBilibiliLogin();
         SettingRow.NotesHidden = Settings.Ui.CompactMode;
 
         // 建卡次序照左栏那份（CardCategories，用户令 2026-10-11 排的序），好让分类走查、Cards 分组这些

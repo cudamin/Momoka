@@ -49,7 +49,7 @@ internal sealed partial class ShellNavigationProbe
             Require(!DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "AppId"), "应用凭据已退役，设置里仍出现 AppId");
             var sourceRow = DanmakuRows(page).OfType<SettingChoiceRow>().Single(row => row.Label == "弹幕来源");
             var sourceCombo = Descendants(page).OfType<ComboBox>().Single(control => AutomationProperties.GetName(control) == "弹幕来源");
-            Require(sourceCombo.Items.Count == 4 && sourceCombo.Items.Count == sourceRow.Choices.Count, "来源下拉没有画全四档");
+            Require(sourceCombo.Items.Count == sourceRow.Choices.Count, "来源下拉没有画全三档");
 
             // 2026-11-08 出厂来源改成「两个都用」：合并模式下 danmu_api 的地址与令牌两行本来就该在。
             Require(fixture.Settings.Danmaku.Source == DanmakuSourceMode.Both, "出厂来源不是「两个都用」");
@@ -79,30 +79,6 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(DanmakuRows(page).OfType<SettingToggleRow>().Any(row => row.Label == "包含关联弹幕"), "合并模式没有恢复关联弹幕");
             Require(fixture.Settings.Danmaku.Source == DanmakuSourceMode.Both, "来源下拉未写回合并模式");
-
-            // B站使用隔离假回执，只验证账户入口、保存与显隐；不打开官网或读取浏览器 Cookie。
-            sourceCombo.SelectedItem = sourceRow.Choices.Single(choice => choice.Label == "哔哩哔哩");
-            await UntilAsync(() => page.IsContentMotionSettled);
-            await LayoutAsync(page);
-            Require(DanmakuRows(page).Any(row => row.Label == "登录 B 站"), "B站未登录没有恢复入口");
-            Require(!DanmakuRows(page).Any(row => row.Label is "显示弹幕" or "自动匹配弹幕" or "包含关联弹幕"), "B站未登录仍显示从属项");
-            await SaveProbeScreenAsync($"settings-bilibili-signin-{width}-screen.png");
-            page.ViewModel.UseBilibiliLogin(_ => Task.FromResult<(string CookieHeader, long UserId, string Name)?>(
-                ("SESSDATA=offline-placeholder; bili_jct=offline-placeholder; DedeUserID=42", 42, "离线 B 站账号")));
-            DanmakuRows(page).OfType<SettingFactRow>().Single(row => row.Label == "登录 B 站").RunCommand.Execute(null);
-            await UntilAsync(() => fixture.Settings.Danmaku.BilibiliUserId == 42 && page.IsContentMotionSettled);
-            await LayoutAsync(page);
-            Require(DanmakuRows(page).Any(row => row.Label == "B 站账户")
-                && DanmakuRows(page).Any(row => row.Label == "退出 B 站")
-                && DanmakuRows(page).Any(row => row.Label == "显示弹幕"), "B站登录后未恢复账户和外观");
-            Require(DanmakuRows(page).Any(row => row.Label == "自动匹配弹幕"), "B站登录后未恢复自动匹配设置");
-            Require(!DanmakuRows(page).Any(row => row.Label is "包含关联弹幕" or "显示弹幕输入栏"), "B站显示了其他来源的关联或发送选项");
-            await SaveProbeScreenAsync($"settings-bilibili-account-{width}-screen.png");
-            DanmakuRows(page).OfType<SettingFactRow>().Single(row => row.Label == "退出 B 站").RunCommand.Execute(null);
-            await UntilAsync(() => fixture.Settings.Danmaku.BilibiliUserId == 0 && page.IsContentMotionSettled);
-            Require(fixture.Settings.Danmaku.ProtectedBilibiliCookie.Length == 0
-                && DanmakuRows(page).Any(row => row.Label == "登录 B 站"), "B站退出未清除凭据或恢复登录入口");
-
             sourceCombo.SelectedItem = sourceRow.Choices.Single(choice => choice.Label == "弹弹play");
             await UntilAsync(() => page.IsContentMotionSettled);
             await LayoutAsync(page);
@@ -332,19 +308,6 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(panel);
             Require(Get<StackPanel>(panel, "Appearance").Visibility == Visibility.Visible && opacity.Value == 45, "面板恢复显示未恢复偏好");
             await SaveProbeScreenAsync($"player-danmaku-panel-{width}-screen.png");
-            vm.ChangeDanmakuPreferences(settings =>
-            {
-                settings.Source = DanmakuSourceMode.Bilibili;
-                settings.ProtectedBilibiliCookie = "offline-placeholder";
-                settings.BilibiliUserId = 42;
-            });
-            await LayoutAsync(panel);
-            Require(Get<TextBox>(panel, "TitleBox").MaxLength == 2048, "B站面板仍截断完整视频链接");
-            Require(Get<TextBlock>(panel, "SearchHint").Visibility == Visibility.Visible && !vm.DanmakuInputVisible,
-                "B站面板缺少手动匹配提示或错误显示发送入口");
-            await SaveProbeScreenAsync($"player-bilibili-panel-{width}-screen.png");
-            vm.ChangeDanmakuPreferences(settings => settings.Source = DanmakuSourceMode.Both);
-            await LayoutAsync(panel);
             var block = Get<TextBox>(panel, "BlockBox");
             block.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 1 });
             await LayoutAsync(block);
