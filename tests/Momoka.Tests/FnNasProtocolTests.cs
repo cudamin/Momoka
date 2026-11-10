@@ -13,6 +13,20 @@ internal static partial class FnNasProtocolTests
 
     public static void Register()
     {
+        Test("飞牛续播移除：签名覆盖DELETE单条正文，不夹带读取", () =>
+        {
+            using var transport = new FixtureTransport(request =>
+            {
+                CheckSignature(request);
+                Assert.Equal(HttpMethod.Delete, request.Method);
+                Assert.Equal("/v/api/v1/play/record", request.Uri.AbsolutePath);
+                Assert.Equal("{\"item_guid\":\"episode-guid\"}", request.Body);
+                return Reply("null");
+            });
+            using var http = new FnNasHttp(transport);
+            new FnNasClient(http).RemoveContinueWatchingAsync(Connection, "episode-guid").GetAwaiter().GetResult();
+            Assert.Equal(1, transport.Requests.Count);
+        });
         RegisterTransferBudgets();
         Test("飞牛地址：登录页、反向代理前缀和无协议地址归一", () =>
         {

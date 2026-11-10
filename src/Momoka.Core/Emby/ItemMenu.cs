@@ -31,6 +31,9 @@ public enum ItemCommand
     /// <summary>从继续观看中移除：进度留着，只是这个条目不再出现在那一排里。</summary>
     HideFromResume,
 
+    /// <summary>删除飞牛继续观看的单条播放记录，断点由服务器决定。</summary>
+    RemoveContinueWatching,
+
     AddToCollection,
 
     /// <summary>下载到设备。一个文件下一个，一部剧或者一季把里头的单集都下下来。</summary>
@@ -184,8 +187,8 @@ public static class ItemMenu
     public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false,
         bool jellyfin = false, bool fnNas = false, bool plex = false, bool aniBtScrapeAvailable = true,
         bool moviePilotManagementAvailable = false, bool moviePilotSmartAvailable = false,
-        ItemMenuPermissions permissions = default, bool aniBtEnabled = true) => fnNas
-        ? Join(Opening(item, false), UserState(item, true), FnNasManagement(item, permissions),
+        ItemMenuPermissions permissions = default, bool aniBtEnabled = true, bool allowResumeRemoval = true) => fnNas
+        ? Join(Opening(item, false), FnNasUserState(item, allowResumeRemoval), FnNasManagement(item, permissions),
             MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, moviePilotManagementAvailable, moviePilotSmartAvailable,
                 manualReorganize: false, aniBtEnabled: aniBtEnabled), Navigation(item))
         // Plex answers 已观看/未观看 but has no per-item favourite, so that row is left out rather than
@@ -211,6 +214,7 @@ public static class ItemMenu
     /// </summary>
     public static bool Supports(ItemCommand command, bool jellyfin, bool fnNas = false, bool plex = false)
     {
+        if (command == ItemCommand.RemoveContinueWatching) return fnNas;
         if (IsMoviePilot(command) && command != ItemCommand.MoviePilotReorganize || command == ItemCommand.AniBtVersions) return true;
         if (fnNas) return command is ItemCommand.Play or ItemCommand.Details or ItemCommand.Open or ItemCommand.MarkPlayed
             or ItemCommand.MarkUnplayed or ItemCommand.Favorite or ItemCommand.Unfavorite or ItemCommand.OpenSeries
@@ -220,6 +224,14 @@ public static class ItemMenu
         if (plex) return command is ItemCommand.Play or ItemCommand.Details or ItemCommand.Open or ItemCommand.MarkPlayed
             or ItemCommand.MarkUnplayed or ItemCommand.OpenSeries or ItemCommand.MoviePilotVersions or ItemCommand.AniBtVersions;
         return !jellyfin || command != ItemCommand.HideFromResume;
+    }
+
+    private static List<ItemMenuEntry> FnNasUserState(EmbyItem item, bool allowResumeRemoval)
+    {
+        var rows = UserState(item, true);
+        if (allowResumeRemoval && item.IsFnNasResumeRecord && !string.IsNullOrWhiteSpace(item.Id))
+            rows.Add(new(ItemCommand.RemoveContinueWatching, "从继续观看移除"));
+        return rows;
     }
 
     /// <summary>

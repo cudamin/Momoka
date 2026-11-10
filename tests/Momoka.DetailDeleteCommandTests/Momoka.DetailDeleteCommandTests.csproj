@@ -42,7 +42,7 @@
         var fnnas = File.ReadAllText(Path.Combine(SourceRoot, "ItemCommands.FnNas.cs")).Replace("\r\n", "\n");
         var commands = File.ReadAllText(Path.Combine(SourceRoot, "ItemCommands.cs")).Replace("\r\n", "\n");
         var generated = "#nullable enable\n// Verbatim current-tree production bodies; never edit generated output.\n" +
-            "using Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Momoka.FnNas;\nusing Momoka.Infrastructure;\n" +
+            "using System.Runtime.CompilerServices;\nusing Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Momoka.FnNas;\nusing Momoka.Infrastructure;\n" +
             "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nnamespace Momoka.Shell.Views;\n" +
             "internal static partial class ItemCommands\n{\n" +
             between(commands, "    private const string Category", "    /// <summary>\n    /// The handler both grids attach.") +
@@ -52,8 +52,11 @@
             between(server, "    private static XamlRoot? Root(", "\n    /// <summary>打开所属剧集。") +
             between(server, "    private static Task DeleteAsync(", "\n}") +
             between(fnnas, "    private static Task FnNasVersionsAsync(", "\n    private static Task FnNasMatchAsync(") +
+            between(fnnas, "    private static readonly ConditionalWeakTable<object, HashSet<string>> ContinueRemovals", "\n    private static Task FnNasRemoveContinueAsync(") +
+            between(fnnas, "    private static Task FnNasRemoveContinueAsync(", "\n    private static Task FnNasRefreshAsync(") +
             between(fnnas, "    private static Task FnNasDeleteAsync(", "\n}") +
             between(commands, "    private static void Invoke(", "            case ItemCommand.Play:") +
+            between(commands, "            case ItemCommand.RemoveContinueWatching:", "            case ItemCommand.AddToCollection:") +
             between(commands, "            case ItemCommand.ManageVersions:", "            case ItemCommand.FnNasMatch:") +
             "            default: throw new InvalidOperationException(\"Fixture rejects unrelated command\");\n" +
             between(commands, "            case ItemCommand.Delete:\n                _ = DeleteAsync(", "\n    /// <summary>\n    /// 已看，") + "\n}\n" +

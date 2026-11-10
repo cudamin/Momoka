@@ -714,6 +714,10 @@ public sealed class EmbyItem
     [JsonIgnore]
     public long UserStateReadRevision { get; set; } = -1;
 
+    /// <summary>来自飞牛 play/list 的可移除记录；普通条目与合成下一集不能继承此入口。</summary>
+    [JsonIgnore]
+    public bool IsFnNasResumeRecord { get; set; }
+
     /// <summary>区分不同服务器、不同账号上编号相同的条目。</summary>
     [JsonIgnore]
     public string IdentityKey => Source is { } source ? $"{source.Key}:{Id}" : Id;

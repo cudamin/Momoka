@@ -16,6 +16,7 @@ internal static partial class FnNasMediaTests
         RegisterRecovery();
         RegisterVersionDurations();
         RegisterDetailLists();
+        RegisterContinueRemoval();
         Test("飞牛媒体：登录、媒体库命名和 token 失效后同身份恢复", () =>
         {
             using var fixture = new Fixture();
@@ -953,22 +954,33 @@ internal static partial class FnNasMediaTests
         public List<string> Authorizations { get; } = [];
         public int Logins { get; private set; }
         public bool Expire { get; set; }
+        public string ContinueRecords { get; set; } = "[]";
+        public bool ContinueDeleteDenied { get; set; }
+        public HttpMethod? LastMethod { get; private set; }
+        public string? LastPath { get; private set; }
+        public string? LastBody { get; private set; }
         public Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>?>? Override { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Assert.Equal("fnnas.invalid", request.RequestUri!.Host);
             var path = request.RequestUri.AbsolutePath; Paths.Add(path);
+            LastMethod = request.Method;
+            LastPath = path;
             RequestUris.Add(request.RequestUri.PathAndQuery);
             JsonObject? body = null;
             if (request.Content is { } content)
             {
                 var text = await content.ReadAsStringAsync(cancellationToken);
+                LastBody = text;
                 if (text.TrimStart().StartsWith('{')) body = JsonNode.Parse(text) as JsonObject;
                 if (body is not null) Bodies.Add(body);
             }
             if (request.Headers.TryGetValues("Authorization", out var authorization))
                 Authorizations.Add(authorization.Single());
             if (Override?.Invoke(request, cancellationToken) is { } pending) return await pending;
+            if (path == "/v/api/v1/play/list") return Reply(ContinueRecords);
+            if (path == "/v/api/v1/play/record" && request.Method == HttpMethod.Delete)
+                return Reply("null", ContinueDeleteDenied ? -5 : 0);
             if (path.EndsWith("/System/Info/Public", StringComparison.Ordinal)) return new(HttpStatusCode.NotFound);
             if (Expire && path.EndsWith("/mediadb/list", StringComparison.Ordinal))
             { Expire = false; return Reply("null", -2); }

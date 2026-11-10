@@ -45,6 +45,9 @@ public sealed class CardItem : INotifyPropertyChanged
     private const int PersonGlyph = 0xE77B;
 
     private readonly EmbyItem _item;
+
+    /// <summary>详情预览可能沿用续播 seed；详情菜单不继承列表记录的移除入口。</summary>
+    public bool AllowResumeRemoval { get; init; } = true;
     private readonly EmbyImageStore _images;
     private readonly Action? _navigate;
     /// <summary>

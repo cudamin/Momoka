@@ -170,6 +170,7 @@ internal sealed class DialogPlan
     public int? Selection { get; set; } = 0;
     public bool FailConfirm { get; set; }
     public Action? BeforeConfirm { get; set; }
+    public TaskCompletionSource<ContentDialogResult>? PendingConfirm { get; set; }
     public List<FnNasVersion> Versions { get; } = [];
     public List<ContentDialog> Confirmations { get; } = [];
     public int VersionDialogs { get; private set; }
@@ -184,10 +185,10 @@ internal sealed class DialogPlan
         }
         Assert.Equal(ContentDialogButton.Close, dialog.DefaultButton, "实际确认默认必须取消");
         Assert.Equal("取消", dialog.CloseButtonText);
-        Assert.Equal("删除", dialog.PrimaryButtonText);
+        Assert.True(dialog.PrimaryButtonText is "删除" or "移除");
         Confirmations.Add(dialog);
         BeforeConfirm?.Invoke();
         if (FailConfirm) throw new InvalidOperationException("anonymous dialog busy");
-        return Task.FromResult(ConfirmResult);
+        return PendingConfirm?.Task ?? Task.FromResult(ConfirmResult);
     }
 }

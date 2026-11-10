@@ -22,6 +22,7 @@ public static class ItemFingerprint
 
         var text = new StringBuilder(320);
         Add(text, item.Id);
+        Add(text, item.IsFnNasResumeRecord);
         Add(text, item.Name);
         Add(text, item.Type);
         Add(text, item.SeriesId);

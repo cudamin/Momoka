@@ -238,7 +238,12 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
     {
         await GenreNamesAsync(ct).ConfigureAwait(false);
         var items = await client.GetContinueWatchingAsync(connection, ct).ConfigureAwait(false);
-        return Page(items.Select(MapItem), startIndex, limit);
+        return Page(items.Select(value =>
+        {
+            var item = MapItem(value);
+            item.IsFnNasResumeRecord = item.Id.Length > 0;
+            return item;
+        }), startIndex, limit);
     }
 
     public async Task<EmbyItem> GetItemAsync(string id, CancellationToken ct, bool includePeople = true)

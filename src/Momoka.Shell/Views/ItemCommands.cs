@@ -311,7 +311,7 @@ internal static partial class ItemCommands
             plex: card.Scope?.Connection.IsPlex == true, aniBtScrapeAvailable: card.Scope?.IsCurrent == true,
             moviePilotManagementAvailable: shell.MoviePilotMediaManagementEnabled,
             moviePilotSmartAvailable: shell.MoviePilotSmartReorganizeEnabled,
-            permissions: permissions, aniBtEnabled: shell.AniBtEnabled))
+            permissions: permissions, aniBtEnabled: shell.AniBtEnabled, allowResumeRemoval: card.AllowResumeRemoval))
         {
             if (row.Command is not { } command)
             {
@@ -447,6 +447,10 @@ internal static partial class ItemCommands
 
             case ItemCommand.HideFromResume:
                 HideFromResume(scope, shell, card, changed);
+                break;
+
+            case ItemCommand.RemoveContinueWatching:
+                _ = FnNasRemoveContinueAsync(scope, shell, owner, card, changed);
                 break;
 
             case ItemCommand.AddToCollection:
@@ -786,6 +790,7 @@ internal static partial class ItemCommands
             ItemCommand.Favorite => 0xE734,
             ItemCommand.Unfavorite => 0xE8D9,
             ItemCommand.HideFromResume => 0xE894,
+            ItemCommand.RemoveContinueWatching => 0xE894,
             ItemCommand.AddToCollection => 0xE8F4,
             ItemCommand.Download => 0xE896,
             ItemCommand.EditMetadata => 0xE70F,
