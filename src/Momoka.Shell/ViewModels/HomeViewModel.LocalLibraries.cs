@@ -47,7 +47,7 @@ public sealed partial class HomeViewModel
                 var name = string.IsNullOrWhiteSpace(library.Name) ? Path.GetFileName(library.SourceDirectory.TrimEnd('\\', '/')) : library.Name;
                 if (string.IsNullOrWhiteSpace(name)) name = "本地媒体库";
                 var subtitle = $"本地 · {entries.Length} 项";
-                var stamp = name + "\n" + subtitle + "\n" + Momoka.Shell.Media.LocalLibraryArtwork.StampFor(poster);
+                var stamp = Momoka.Shell.Media.LocalLibraryArtwork.StampFor(poster);
                 if (!_localLibraryCards.TryGetValue(key, out var kept) || kept.Stamp != stamp)
                 {
                     kept.Card?.AbandonPoster();
@@ -63,6 +63,7 @@ public sealed partial class HomeViewModel
                     kept = (card, stamp);
                     _localLibraryCards[key] = kept;
                 }
+                kept.Card.UpdateNavigationText(name, subtitle);
                 wanted.Add(kept.Card);
             }
         }

@@ -79,8 +79,8 @@ public sealed class CardItem : INotifyPropertyChanged
     private readonly bool _indicators;
 
     /// <summary>What to write on the second line instead of the item's own; null to use the item's.</summary>
-    private readonly string? _subtitle;
-    private readonly string? _title;
+    private string? _subtitle;
+    private string? _title;
     private readonly ArtworkRef? _artwork;
 
     /// <summary>第三行：勾了宣传语或概要才有，null 就是这一行整行收起。</summary>
@@ -582,6 +582,14 @@ public sealed class CardItem : INotifyPropertyChanged
     public Visibility CurrentVisibility => Show(IsCurrentEpisode);
 
     public string Subtitle => _subtitle ?? _item.CardSubtitle;
+
+    /// <summary>本地媒体库的入库数量变化保持卡片及可见容器，直接通知已绑定文本。</summary>
+    internal void UpdateNavigationText(string title, string subtitle)
+    {
+        if (!IsNavigation) return;
+        if (_title != title) { _title = title; Raise(nameof(Title)); Raise(nameof(TitleVisibility)); }
+        if (_subtitle != subtitle) { _subtitle = subtitle; Raise(nameof(Subtitle)); Raise(nameof(SubtitleVisibility)); }
+    }
 
     /// <summary>
     /// 第三行：这一项属于哪台服务器。空串时整行收起。只有多账号主页的继续观看卡会传

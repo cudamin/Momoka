@@ -69,6 +69,8 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(width, 860);
                 await UntilAsync(() => { _root.UpdateLayout(); return Math.Abs(_root.ActualWidth - width) < 1; });
                 await LayoutAsync(home);
+                await UntilAsync(() => Descendants(home).OfType<PosterCard>().Any(card => card.Card?.Item.Id == "local-library:series"
+                    && Get<TextBlock>(card, "SubLine").Text == "本地 · 2 项"));
                 await SaveProbeScreenAsync($"local-libraries-home-{width}-screen.png");
             }
             var localCard = home.ViewModel.LibraryShelf!.Cards.Single(card => card.Item.Id == "local-library:movies");
