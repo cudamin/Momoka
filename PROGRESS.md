@@ -1,3 +1,9 @@
+## 2026-11-10 简洁详情云母已合入并交付
+
+产品提交 `d92c448` 已 cherry-pick 为主树 `ab756c7`；仅开发文档新增段落冲突，两侧内容均保留。主树当前Shell/Tests/Core Release均0警告0错误，完整4571/4571、详情实际VM46/46、MP页面40/40；主树定向格式无加载警告、0文件需改。原生报告 `C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261110-145040707-9404/logs/shell-probe.json` 7/7通过，四类型双宽五主题40张和MP双宽五主题10张实屏，详情布局57个截图/读数文件及设置与三类详情自定义恢复均重跑。单项覆盖不冒充全量，真实服务/播放/系统高对比度切换未执行。
+
+`publish.ps1 -NoArchive -Shortcut` 成功，547文件/287.5 MB载荷验证通过。快捷方式 `C:/Users/89400/Desktop/Momoka.lnk` 指向主树 `artifacts/publish/win-x64/Momoka.exe`；Momoka.dll/Core.dll/PRI与当前发布构建哈希一致，见 `artifacts/mica/delivery.json`。主树证据存 `artifacts/mica`，本轮未上传。e91e任务产品文件逐项与主树一致，待清理的临时树顶端为d92c448，未提交内容为空；原生截图位于独立日志目录，不随工作树清理删除。
+
 ## 2026-11-10 简洁详情 Mica / Mica Alt（e91e，待主树集成）
 
 从617faba开始。电影/剧/季/单集与MP媒体详情局部BaseAlt底层、Base头卡、系统云母叠层；简洁单集窄窗停止铺图，旧纯色纸面与顶部渐变让开，保持布局与播放目标。页面离树/Release清理局部材质，Loaded恢复；不改HostWindow播放背景和全局Palette。
