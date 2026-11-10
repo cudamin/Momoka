@@ -136,6 +136,8 @@ public sealed partial class PlayerViewModel
     /// <summary>停止播放. Asks mpv to quit rather than cancelling, so the final position is still reported.</summary>
     internal Task StopAsync()
     {
+        _playerTools?.Cancel();
+        _playerCapture?.Cancel();
         InvalidateMenuInteractions();
         ResetTimelineDrag();
         CancelEpisodeLookup();
@@ -213,6 +215,8 @@ public sealed partial class PlayerViewModel
 
         // 这一次起播的意图票：新的 Begin 作废所有旧起播（最后点选的那次胜出），用户停止作废全部。
         // 各段网络之后 IsCurrent 对不上就静默放弃 —— 取消不是错误。
+        _playerTools?.Cancel();
+        _playerCapture?.Cancel();
         var intent = continuingIntent ?? _startIntent.Begin();
         CancelEpisodeLookup();
         InvalidateMenuInteractions();

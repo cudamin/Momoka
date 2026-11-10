@@ -672,7 +672,7 @@ internal static class MpvUiTests
         {
             var links = PlayerSettingsLinks.All;
 
-            Assert.Equal(4, links.Count);
+            Assert.Equal(5, links.Count);
             Assert.Equal(links.Count, links.Select(link => link.Token).Distinct(StringComparer.Ordinal).Count());
             Assert.Equal(links.Count, links.Select(link => link.Label).Distinct(StringComparer.Ordinal).Count());
             Assert.Equal(links.Count, links.Select(link => link.Category).Distinct(StringComparer.Ordinal).Count());
@@ -686,7 +686,7 @@ internal static class MpvUiTests
 
             // 文案就是用户点名的四个词，落点就是设置页那四张卡 —— 写死一遍，免得改表时两边一起悄悄漂开。
             Assert.Equal(
-                "字幕/subtitle/字幕、视频输出/video/视频输出、音频输出/audio/音频输出、弹弹play/danmaku/弹幕",
+                "字幕/subtitle/字幕、视频输出/video/视频输出、音频输出/audio/音频输出、播放工具/tools/播放工具、弹弹play/danmaku/弹幕",
                 string.Join('、', links.Select(link => $"{link.Label}/{link.Token}/{link.Category}")));
 
             foreach (var link in links)
@@ -728,7 +728,7 @@ internal static class MpvUiTests
             foreach (var available in new[] { false, true, false, true })
             {
                 var rows = PlayerSettingsLinks.Available(available);
-                Assert.Equal(available ? "subtitle,video,audio,danmaku" : "subtitle,video,audio",
+                Assert.Equal(available ? "subtitle,video,audio,tools,danmaku" : "subtitle,video,audio,tools",
                     string.Join(',', rows.Select(link => link.Token)));
                 foreach (var row in rows)
                     Assert.True(ReferenceEquals(row, PlayerSettingsLinks.For(row.Token)), "显隐不能重建或修改设置落点");

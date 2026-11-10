@@ -8,6 +8,26 @@ internal static class PlayerToolDownloadTests
 {
     public static void Register()
     {
+        Test("章节导出：CHP/OGM保持毫秒排序并拒绝注入换行", () =>
+        {
+            var chapters = new[] { new SkipChapter(63.125, "第二章\n伪造"), new SkipChapter(0, "开场") };
+            Assert.Equal("00:00:00.000 开场\n00:01:03.125 第二章 伪造\n", PlayerChapterDocument.Write(chapters, false));
+            Assert.Equal("CHAPTER01=00:00:00.000\nCHAPTER01NAME=开场\nCHAPTER02=00:01:03.125\nCHAPTER02NAME=第二章 伪造\n",
+                PlayerChapterDocument.Write(chapters, true));
+            Assert.Throws<ArgumentOutOfRangeException>(() => PlayerChapterDocument.Write([new(double.NaN, "无效")], false));
+        });
+        Test("播放工具偏好：备份和导入不替换本机可执行程序", () =>
+        {
+            var live = new Momoka.Configuration.AppSettings();
+            live.PlayerTools.FfmpegPath = "C:\\local\\ffmpeg.exe";
+            live.PlayerTools.WhisperModel = "small";
+            var backup = Momoka.Configuration.SettingsPreferences.ToBackupDocument(live);
+            Assert.Equal("", backup.PlayerTools.FfmpegPath);
+            Assert.Equal("small", backup.PlayerTools.WhisperModel);
+            backup.PlayerTools.FfmpegPath = "C:\\other\\program.exe";
+            Momoka.Configuration.SettingsPreferences.Apply(live, backup);
+            Assert.Equal("C:\\local\\ffmpeg.exe", live.PlayerTools.FfmpegPath);
+        });
         Test("工具下载：离开原来源后不再携带认证，回原站也不恢复", () => Run(async directory =>
         {
             var calls = 0;

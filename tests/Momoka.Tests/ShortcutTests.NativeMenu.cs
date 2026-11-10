@@ -53,7 +53,7 @@ internal static partial class ShortcutTests
         });
         Test("扩展播放菜单：每个新增动作都执行真实目录，要求属性完整且恢复入口可达", () =>
         {
-            foreach (var action in ShortcutCatalog.Actions.Skip(70))
+            foreach (var action in ShortcutCatalog.Actions.Skip(70).Where(action => !PlayerToolShortcuts.Contains(action.Id)))
             {
                 var node = AdditionalShortcuts.Plan(action.Id);
                 Assert.NotNull(node, action.Id);

@@ -7,8 +7,11 @@ public sealed partial class PlaybackService
     {
         var attempt = _active;
         if (attempt is null || !IsCurrent(attempt) || !attempt.Scope.IsAvailable || !CanControl) return null;
+        var scoped = attempt.Handle as IFileScopedPlayerControl;
+        var fileGeneration = scoped?.FileGeneration;
         return new PlayerToolSession(attempt.Request, attempt.Scope.Lifetime,
-            () => IsCurrent(attempt) && attempt.Scope.IsAvailable && IsCurrent(attempt.Handle, attempt.Generation));
+            () => IsCurrent(attempt) && attempt.Scope.IsAvailable && IsCurrent(attempt.Handle, attempt.Generation)
+                && (scoped is null || scoped.FileGeneration == fileGeneration));
     }
 
     public sealed class PlayerToolSession
@@ -48,7 +51,8 @@ public sealed partial class PlaybackService
                 throw new PlayerToolDownloadException("无法确认当前外挂字幕的来源。");
             using var client = PlayerToolDownload.CreateClient();
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, Lifetime);
-            await PlayerToolDownload.CopyAsync(client, url, _request.HttpHeaders, destination, null, linked.Token).ConfigureAwait(false);
+            var headers = Momoka.Emby.EmbyHttpRedirect.SameOrigin(_request.MediaUrl, url) ? _request.HttpHeaders : [];
+            await PlayerToolDownload.CopyAsync(client, url, headers, destination, null, linked.Token).ConfigureAwait(false);
             if (!IsCurrent) throw new OperationCanceledException(cancellationToken);
             return destination;
         }

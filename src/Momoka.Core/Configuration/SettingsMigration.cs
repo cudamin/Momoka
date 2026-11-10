@@ -659,6 +659,8 @@ public static class SettingsMigration
         settings.Danmaku.Normalize();
         settings.SubtitleTranslation ??= new SubtitleTranslationSettings();
         settings.SubtitleTranslation.Normalize();
+        settings.PlayerTools ??= new PlayerToolsSettings();
+        settings.PlayerTools.Normalize();
 
         foreach (var server in settings.Servers)
         {

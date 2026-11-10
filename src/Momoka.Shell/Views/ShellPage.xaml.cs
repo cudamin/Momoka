@@ -636,6 +636,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Player.ViewModel.PlayerHidden += OnHeadlessPlaybackHidden;
         Player.ViewModel.MediaInfoRequested += OnHeadlessMediaInfoRequested;
         Player.ViewModel.SettingsRequested += OnPlayerSettingsRequested;
+        Player.ViewModel.PlayerDialogRequested += OnPlayerDialogRequested;
         Player.ViewModel.DanmakuRequested += OnDanmakuRequested;
 
         // 详情页要认显示器多大（纸面上沿那条线跟着显示器走，见 DetailHero.PaperLineFor），挂在这一个事件上
@@ -687,6 +688,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Player.ViewModel.PlayerHidden -= OnHeadlessPlaybackHidden;
         Player.ViewModel.MediaInfoRequested -= OnHeadlessMediaInfoRequested;
         Player.ViewModel.SettingsRequested -= OnPlayerSettingsRequested;
+        Player.ViewModel.PlayerDialogRequested -= OnPlayerDialogRequested;
         Player.ViewModel.DanmakuRequested -= OnDanmakuRequested;
         Player.ViewModel.Noticed -= Notify;
         Player.ViewModel.RefreshRequested -= RefreshActive;

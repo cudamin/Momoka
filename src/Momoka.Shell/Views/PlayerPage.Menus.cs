@@ -37,7 +37,6 @@ public sealed partial class PlayerPage
     /// while the film keeps playing — a hint frozen at build time would keep naming the old key.
     /// </summary>
     private readonly List<(MenuFlyoutItem Item, PlayerMenuNode Node)> _pictureShortcuts = [];
-    private int _pictureStaticCount;
 
     // ---- 选集 --------------------------------------------------------------------
 
@@ -201,7 +200,7 @@ public sealed partial class PlayerPage
             var off = new RadioMenuFlyoutItem
             {
                 Text = offRow,
-                IsChecked = tracks.All(track => !track.Selected)
+                IsChecked = tracks.All(track => !track.Selected || track.MainSelection == 1)
             };
             off.Click += (_, _) =>
             {
@@ -223,7 +222,7 @@ public sealed partial class PlayerPage
             var row = new RadioMenuFlyoutItem
             {
                 Text = track.DisplayName.Length > 0 ? track.DisplayName : $"轨道 {track.Id}",
-                IsChecked = track.Selected,
+                IsChecked = track.Selected && (audio || track.MainSelection != 1),
                 Tag = track.Id
             };
 
@@ -435,38 +434,29 @@ public sealed partial class PlayerPage
 
     /// <summary>
     /// 画面: mpv's own video controls — 缩放、旋转、去色带、锐化、重置 — as a menu. Its structure（labels and
-    /// commands）never changes, so it is built once and kept; what does change is which rows are current —
+    /// commands）are shared with the native window. Rebuild on open so tracks and available tools stay current —
     /// 解码方式, 声道布局, 抖动补偿… — and that is refreshed on every open by reading those properties from mpv
     /// (see <see cref="RefreshPictureChecksAsync"/>). The rows are <see cref="PlayerMenuCatalog"/>'s, in Core: a
     /// table of labels, mpv commands and — for the checkable ones — the property that ticks them, which is why
     /// adding one is a line of data rather than a handler.
     /// </summary>
-    private bool _pictureMenuUsesSvp;
+    private int _pictureOpenRequest;
+    private IReadOnlyList<PlayerMenuNode> _pictureNodes = [];
 
     private void OnPictureMenuOpening(object sender, object e)
     {
-        var svp = ViewModel.PlayingWithSvp;
-        if (_pictureMenuUsesSvp != svp)
-        {
-            PictureMenu.Items.Clear();
-            _pictureMenuUsesSvp = svp;
-        }
-        if (PictureMenu.Items.Count == 0)
-        {
-            _pictureChecks.Clear();
-            _pictureShortcuts.Clear();
+        RebuildPictureMenu();
+        _ = RefreshPictureChecksAsync();
+    }
 
-            // 画面目录（PlayerMenuCatalog）在前，下面接一段分隔与「更多」那一棵 —— 2026-09-27 晚右下角那颗
-            // 「更多」按钮撤下后，着色器/跳过/自动连播/播放信息这几行只有这一处入口，整棵并进右键菜单里。
-            // **`ProbePictureMenu` 那一条自检把这几行也数进去**（它按目录算期望行数），所以它两侧的计数
-            // 同步加上了这一棵 —— 见那条判据旁的注释。
-            foreach (var item in BuildMenuItems(MpvSvp.Menu(svp))) PictureMenu.Items.Add(item);
-            PictureMenu.Items.Add(new MenuFlyoutSeparator());
-            _pictureStaticCount = PictureMenu.Items.Count;
-        }
-
-        while (PictureMenu.Items.Count > _pictureStaticCount)
-            PictureMenu.Items.RemoveAt(PictureMenu.Items.Count - 1);
+    private void RebuildPictureMenu()
+    {
+        PictureMenu.Items.Clear();
+        _pictureChecks.Clear();
+        _pictureShortcuts.Clear();
+        _pictureNodes = ViewModel.BuildCurrentMenu();
+        foreach (var item in BuildMenuItems(_pictureNodes)) PictureMenu.Items.Add(item);
+        if (PictureMenu.Items.Count > 0) PictureMenu.Items.Add(new MenuFlyoutSeparator());
         var more = new MenuFlyout { Placement = FlyoutPlacementMode.Top };
         OnMoreMenuOpening(more, Root);
         while (more.Items.Count > 0)
@@ -483,7 +473,6 @@ public sealed partial class PlayerPage
                 ? shortcutTexts.GetValueOrDefault(action)
                 : null;
 
-        _ = RefreshPictureChecksAsync();
     }
 
     /// <summary>
@@ -494,17 +483,27 @@ public sealed partial class PlayerPage
     /// </summary>
     private async Task RefreshPictureChecksAsync()
     {
-        if (!Attached || _pictureChecks.Count == 0) return;
+        if (!Attached) return;
         var viewModel = ViewModel;
         var context = viewModel.CaptureInteraction();
-        var checks = _pictureChecks.ToArray();
+        var request = ++_pictureOpenRequest;
 
         var values = await ViewModel.ReadMenuChecksAsync().ConfigureAwait(true);
-        if (!Attached || !ReferenceEquals(viewModel, ViewModel) || !ViewModel.IsCurrentInteraction(context)) return;
+        if (!Attached || request != _pictureOpenRequest || !ReferenceEquals(viewModel, ViewModel) || !ViewModel.IsCurrentInteraction(context)) return;
+        var desired = ViewModel.BuildCurrentMenu(values);
+        var same = PlayerMenuCatalog.Flatten(_pictureNodes).Select(MenuIdentity)
+            .SequenceEqual(PlayerMenuCatalog.Flatten(desired).Select(MenuIdentity));
+        // A slow IPC read must not tear down the submenu a person has already opened.
+        var expanded = XamlRoot is not null && Microsoft.UI.Xaml.Media.VisualTreeHelper.GetOpenPopupsForXamlRoot(XamlRoot)
+            .Count(popup => popup.Child is MenuFlyoutPresenter) > 1;
+        if (!same && !expanded) RebuildPictureMenu();
 
-        foreach (var (item, node) in checks)
+        foreach (var (item, node) in _pictureChecks)
             SetChecked(item, node.IsCheckedBy(values));
     }
+
+    private static string MenuIdentity(PlayerMenuNode node) =>
+        $"{node.Kind}|{node.Label}|{node.HostAction}|{node.Shortcut}|" + string.Join(';', node.Commands.Select(command => string.Join('\t', command)));
 
     private static void SetChecked(MenuFlyoutItem item, bool value)
     {
@@ -524,6 +523,7 @@ public sealed partial class PlayerPage
     /// </summary>
     private IEnumerable<MenuFlyoutItemBase> BuildMenuItems(IReadOnlyList<PlayerMenuNode> nodes)
     {
+        var context = ViewModel.CaptureInteraction();
         foreach (var node in nodes)
         {
             switch (node.Kind)
@@ -550,7 +550,7 @@ public sealed partial class PlayerPage
 
                     row.Click += (source, args) =>
                     {
-                        if (Attached && source is MenuFlyoutItem { Tag: PlayerMenuNode picked })
+                        if (Attached && ViewModel.IsCurrentInteraction(context) && source is MenuFlyoutItem { Tag: PlayerMenuNode picked })
                             _ = ViewModel.RunMenuNodeAsync(picked);
                     };
 

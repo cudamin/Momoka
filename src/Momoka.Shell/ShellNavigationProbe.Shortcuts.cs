@@ -226,6 +226,8 @@ internal sealed partial class ShellNavigationProbe
                 await SaveReturnFrameAsync(page, name.Replace("-screen.png", "-render.png", StringComparison.Ordinal));
                 await SettleShortcutPictureAsync();
                 settingsWindow.Activate();
+                Native.ShowWindow(handle, Native.SwShow);
+                Native.SetForegroundWindow(handle);
                 // 激活后再次提升本轮自己的窗口：系统可能让刚激活的非置顶主窗挡住新建的紧凑窗口。
                 if (!Momoka.Shell.Interop.Native.SetWindowPos(handle, Momoka.Shell.Interop.Native.HwndTopMost,
                     0, 0, 0, 0, Momoka.Shell.Interop.Native.SwpNoMove | Momoka.Shell.Interop.Native.SwpNoSize | Momoka.Shell.Interop.Native.SwpNoActivate))
@@ -456,22 +458,41 @@ internal sealed partial class ShellNavigationProbe
             Require(handle.Commands.Skip(old).All(command => !command.Contains("sigmoid-upscaling", StringComparison.Ordinal)), "隐藏动作仍向内核发送无效属性");
             handle.Text["sigmoid-upscaling"] = "yes";
             SetTracks([video, audio, ass, pgs with { Selected = false }, second]);
+            page.Visibility = Visibility.Visible;
             Rebuild();
             foreach (var width in new[] { 1280, 760 })
             {
                 ResizeProbeClient(width, 820);
                 await LayoutAsync(page);
+                Native.ShowWindow(_window!.Handle, Native.SwShow);
+                Native.SetForegroundWindow(_window.Handle);
+                _window.TopMost = true;
                 menu.ShowAt(page, new Microsoft.UI.Xaml.Controls.Primitives.FlyoutShowOptions
-                    { Position = new Windows.Foundation.Point(80, 80) });
+                { Position = new Windows.Foundation.Point(80, 80) });
                 await LayoutAsync(page);
                 Require(menu.IsOpen, "播放右键菜单未打开");
                 var subtitleGroup = menu.Items.OfType<MenuFlyoutSubItem>().Single(group => group.Text == "字幕");
-                var expansion = new MenuFlyoutSubItemAutomationPeer(subtitleGroup).GetPattern(PatternInterface.ExpandCollapse) as IExpandCollapseProvider
+                var expansion = FrameworkElementAutomationPeer.CreatePeerForElement(subtitleGroup)?.GetPattern(PatternInterface.ExpandCollapse) as IExpandCollapseProvider
                     ?? throw new InvalidOperationException("字幕子菜单没有可展开入口");
                 expansion.Expand();
                 await LayoutAsync(page);
                 Require(expansion.ExpandCollapseState == ExpandCollapseState.Expanded, "字幕子菜单没有实际展开");
-                await SaveProbeScreenAsync($"player-menu-expanded-{width}-screen.png");
+                var childRow = subtitleGroup.Items.OfType<MenuFlyoutItem>().First();
+                var bounds = FrameworkElementAutomationPeer.CreatePeerForElement(childRow)!.GetBoundingRectangle();
+                Require(bounds.Width > 0 && bounds.Height > 0, "字幕子菜单没有真实屏幕坐标");
+                // The island's in-process peer reports root-relative logical coordinates.
+                var origin = new Momoka.Shell.Interop.NativePoint();
+                Require(Native.ClientToScreen(_window.Handle, ref origin), "菜单宿主屏幕原点不可用");
+                var scale = page.XamlRoot.RasterizationScale;
+                var point = new Momoka.Shell.Interop.NativePoint
+                { X = origin.X + (int)((bounds.X + bounds.Width / 2) * scale), Y = origin.Y + (int)((bounds.Y + bounds.Height / 2) * scale) };
+                var popupHandle = Native.GetAncestor(Native.WindowFromPoint(point), Native.GaRoot);
+                Native.GetWindowThreadProcessId(popupHandle, out var owner);
+                File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "player-menu-pixels.txt"),
+                    $"width={width}; bounds={bounds}; point={point.X},{point.Y}; hwnd={popupHandle:X}; owner={owner}\n");
+                Require(owner == (uint)Environment.ProcessId, "菜单像素不属于本次探针");
+                await CompositionPlaybackProbe.SaveWindowScreenAsync(popupHandle,
+                    Path.Combine(_options.Paths.LogDirectory, $"player-menu-expanded-{width}-screen.png"));
                 readings.Add($"width={width}; rows={Rows().Count}; uiRows={MenuRows(menu.Items).Count()}; hints=current; ASS/PGS/secondary/tool restoration verified");
                 menu.Hide();
             }

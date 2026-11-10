@@ -338,8 +338,8 @@
     {
       "path": "mpv-ui/scripts/uosc/lib/momoka_shortcuts.lua",
       "source": "assets/mpv-ui/scripts/uosc/lib/momoka_shortcuts.lua",
-      "size": 1535,
-      "sha256": "1faa728ab2e20f388d4a0145952bcd7fb64b2555024bffcca09b790acd620375"
+      "size": 2390,
+      "sha256": "804dca94046f6601eaa55251d7c312e4a3671a1427828bab7fa2af58e0150d52"
     },
     {
       "path": "mpv-ui/scripts/uosc/lib/std.lua",
@@ -368,8 +368,14 @@
     {
       "path": "mpv-ui/scripts/uosc/main.lua",
       "source": "assets/mpv-ui/scripts/uosc/main.lua",
-      "size": 84727,
-      "sha256": "c6c36d0b22e44484c6d3cae01f19c68e7ba607519fda8cddb9982b16e6abb38d"
+      "size": 84752,
+      "sha256": "32e79c0e3d7774cfbabcf97d4b8b24ea3950b9c96790ab92e159db178c108161"
+    },
+    {
+      "path": "mpv-ui/scripts/momoka_analysis.lua",
+      "source": "assets/mpv-ui/scripts/momoka_analysis.lua",
+      "size": 10080,
+      "sha256": "4041aff4393c4e103a623ddfbb823ff2ac375ffa9e3ca2a3700d800076bb03f8"
     }
   ],
   "evidence": [

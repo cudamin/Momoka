@@ -230,7 +230,7 @@ public sealed partial class PlayerViewModel
         var request = ++_pictureMenuRequest;
         var checks = await ReadMenuChecksAsync().ConfigureAwait(true);
         if (!IsCurrentInteraction(context) || request != _pictureMenuRequest) return;
-        var catalogue = MpvSvp.Menu(PlayingWithSvp);
+        var catalogue = BuildCurrentMenu(checks);
         var snapshot = new VideoMenuSnapshot<PlayerMenuNode>([.. PlayerMenuCatalog.Flatten(catalogue)
             .Where(node => node.Kind == PlayerMenuKind.Command)]);
         _pictureMenuSnapshot = snapshot;
@@ -324,13 +324,22 @@ public sealed partial class PlayerViewModel
         var values = new Dictionary<string, string?>(StringComparer.Ordinal);
         var context = CaptureInteraction();
 
-        foreach (var property in PlayerMenuCatalog.CheckProperties)
+        foreach (var property in PlayerMenuCatalog.CheckProperties
+            .Concat(PlayerMenuCatalog.Commands.SelectMany(node => node.RequireProperties)).Concat(new[]
+            { "vid", "aid", "sid", "secondary-sid", "chapter", "audio-device", "audio-device-list",
+                "video-params/gamma", "current-gpu-context", "gpu-api", "user-data/momoka-analysis-ready",
+                "user-data/momoka-analysis-crop-available", "user-data/momoka-analysis-silence-available" }).Distinct(StringComparer.Ordinal))
         {
             if (!IsCurrentInteraction(context)) return new Dictionary<string, string?>(StringComparer.Ordinal);
             values[property] = await _playback.GetTextAsync(property).ConfigureAwait(true);
         }
 
-        return IsCurrentInteraction(context) ? values : new Dictionary<string, string?>(StringComparer.Ordinal);
+        if (IsCurrentInteraction(context))
+        {
+            _menuReadings = values;
+            return values;
+        }
+        return new Dictionary<string, string?>(StringComparer.Ordinal);
     }
 
     /// <summary>

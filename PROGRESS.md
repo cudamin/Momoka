@@ -12181,3 +12181,10 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 2026-11-10独立审查截图边界补强：合法标志白名单避免未知命令失败后重试误开；start/end停止拒绝时关闭入场并退出实例；uosc备用菜单截图也走宿主带代际的同一入口。完整handle新增拒绝反例先红，最终47/47；真实Lua无媒体53/53，0错误，改动文件format/check-diff通过。Shell探针commit 9dcc2b2待父整合依赖编译与串行运行，尚不能算窗口验证。
 
 - 2026-11-10补显式播放分析/typed章节：受控momoka_analysis脚本、MpvAnalysis能力常量/IsTrue、Core动作video-detect-crop/skip-to-silence（总145个原生动作）、两后端装箱装载与消息代次附加、活跃检测拒同窗覆盖和video-crop复位。真实DLL直接滤镜probe证实cropdetect缺失，入口隐藏；silencedetect有，本树5秒合成图/音无窗口无声音核静音扫描完成位置3.6667/speed1/af空，typed章节2项写读成功（work/analysis-local-result.json）。真实Lua假端点7/7，缺crop分支5/5；当前Core/Tests编译0警告错误，菜单专项475/475，完整handle49/49、0skip；改动format/py_compile/check-diff通过。未运行UI、真实服务器或真实HDR/独占图形；等待父交付会话整合并重验/发布。
+
+## 2026-11-10 播放右键菜单与工具整合
+
+- 本批参考本地2026.08.12配置及GitHub e235480f，现162个可重绑动作，原70默认键保持；轨道/设备/章节、主次字幕、画面/音频/HDR、截图、静音扫描及外部工具接入同一菜单。工具路径显式配置，完整本地下载后固定参数处理，换片取消、无覆盖输出，字幕回载守文件代次。
+- 本树Release Shell/Tests均0警告错误；native-menu-fixture475/475、player-tools16/16、download+章节+备份5/5、真实Settings/Controller57/57通过。最终离线shortcuts探针5/5通过：`C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261110-105357671-27088/logs`，含宽窄菜单、设置、裁切与固定失败提示实屏。此前失败已定位隐藏启动窗口、原始UIA岛坐标和失败提示滚出，修正后同项全部通过。
+- 随包无cropdetect故自动去黑边隐藏；silencedetect和typed章节桥以本地合成媒体实际通过。FFmpeg片段/GIF/SRT/裁切/拼图/WAV及alass匿名SRT同步实际通过；Whisper/ffsubsync程序和真实云翻译未运行。真实媒体库播放未执行；实体Escape停止Computer Use后不再操作桌面，点外关闭未取得本轮实按通过证据。
+- 待整合最新master的Plex多段与受管HTTP改动，重验主树并发布。当前主树另有LocalMedia探针未提交内容，整合时须保留；本条不是交付完成声明。

@@ -207,6 +207,7 @@ internal static class ShellServices
         // ValidateOnBuild is here to catch. The page is built by the shell's XAML and handed this in
         // AttachWindow, which is the one place a container is in scope.
         services.AddSingleton<PlayerViewModel>();
+        services.AddSingleton<Momoka.Shell.Services.PlayerToolsController>();
 
         return services.BuildServiceProvider(new ServiceProviderOptions
         {

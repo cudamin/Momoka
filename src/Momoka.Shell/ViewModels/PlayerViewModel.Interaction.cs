@@ -69,6 +69,7 @@ public sealed partial class PlayerViewModel
         _versionMenuSnapshot = null;
         _pictureMenuSnapshot = null;
         _pictureMenuRequest++;
+        _menuReadings = new Dictionary<string, string?>();
     }
 
     private void SelectEpisodeMenu(string value)
