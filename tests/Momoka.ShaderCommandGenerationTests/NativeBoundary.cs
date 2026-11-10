@@ -126,13 +126,14 @@ internal sealed class NativeBoundary
     internal void Write(string name, string value)
     {
         if (!InlineSwitch.PerFilmNames.Contains(name, StringComparer.Ordinal)
-            && !new[] { "start", "aid", "sid", "alang", "slang", "sub-files", "http-header-fields", "http-proxy", "force-media-title", "pause" }
+            && !new[] { "start", "vid", "aid", "sid", "alang", "slang", "sub-files", "http-header-fields", "http-proxy", "force-media-title", "pause" }
                 .Contains(name, StringComparer.Ordinal))
         {
             ForbiddenCalls++;
             throw new AssertionException("R051 拒绝未安排的 native 属性写：" + name);
         }
         // Do not retain/log even the placeholder HTTP header value.
+        if (name == "vid") Assert.Equal("auto", value, "逐文件视频选择恢复为实际 PerFile 契约");
         if (name == "http-proxy") Assert.Equal("", value, "本机能力地址必须清空原生代理");
         PropertyWrites.Add(name);
         if (name != "http-header-fields") Values[name] = value;

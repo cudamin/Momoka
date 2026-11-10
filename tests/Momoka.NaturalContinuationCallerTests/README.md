@@ -1,5 +1,11 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-10：AudioOnly 四份 Core 来源复核
+
+定点更新 `LibMpvBackend.cs`、`PlaybackContracts.cs`、`PlaybackService.Continuation.cs` 与 `PlaybackService.Lifecycle.cs` 完整源 SHA256。AudioOnly 是默认 false 的新增模式，音乐不使用视频保留/swap；视频的 ticket/scope/取消/expected lease、完整 Start 签名和原有 caller 递归/await-dispose 未改变。提取器仍严格检查全部 pins、完整语法节点、六参 Play 与自然接续 fence，不接受其它历史漂移。
+
+当前子树四份 hash 与整合树相同，除此六份历史来源仍有 drift，构建在 `PlayerViewModel.Transport.cs` 的旧 pin 上失败（本树实际 `be77961d19d82bb176cde4ea4c393ad3a40de5175b1029c2809d8917ec7cbafc`），没有运行旧 caller 输出。其余六份（Transport、VM、Events、Session、Scope、Item）由根整合会话逐份核历史差异后更新并重编译、运行；这里不宣称 caller 专项通过。
+
 ## 2026-11-10：播放认证与多段时间轴来源同步
 
 核对本批 LibMpvBackend 的本机 HTTP 传输归属、取消与逐段 EDL 加载，PlaybackContracts 仅增加 MediaParts 及纠正 Plex 上报注释，EmbyItem 增加 MediaParts 并保留已合入的预告字段；定点更新这三份完整源 SHA256。实际 VM 自然接续成员、其余来源、提取器和断言不变。原样链接的 handle 与调用者专项须在整合后重新编译运行，不能沿用分项报告。
