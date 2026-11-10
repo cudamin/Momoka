@@ -198,6 +198,52 @@ internal static class PlayerToolTests
             Reject(() => document.ShiftMilliseconds(-2000));
             Reject(() => document.ShiftMilliseconds(long.MaxValue));
         });
+        Test("工具执行：退出失败清掉本次半成品", () =>
+        {
+            if (!OperatingSystem.IsWindows()) return;
+            WithFiles((_, media, output, _) =>
+            {
+                var executable = Environment.ProcessPath!;
+                var assembly = typeof(PlayerToolTests).Assembly.Location;
+                var target = output + ".srt";
+                var args = new List<string>();
+                if (Path.GetFileNameWithoutExtension(executable).Equals("dotnet", StringComparison.OrdinalIgnoreCase)) args.Add(assembly);
+                args.AddRange(["player-tool-child-failure", target]);
+                var plan = PlayerToolPlan.Image(executable, args.AsReadOnly(), target, Array.AsReadOnly(new[] { media }));
+                Reject(() => PlayerToolRunner.RunAsync(plan, CancellationToken.None).GetAwaiter().GetResult());
+                Assert.False(File.Exists(target));
+            });
+        });
+        Test("工具执行：取消时等待子进程退出并清理半成品", () =>
+        {
+            if (!OperatingSystem.IsWindows()) return;
+            WithFiles((_, media, output, _) =>
+            {
+                var executable = Environment.ProcessPath!;
+                var assembly = typeof(PlayerToolTests).Assembly.Location;
+                var target = output + ".srt";
+                var args = new List<string>();
+                if (Path.GetFileNameWithoutExtension(executable).Equals("dotnet", StringComparison.OrdinalIgnoreCase)) args.Add(assembly);
+                args.AddRange(["player-tool-child-wait", target]);
+                var plan = PlayerToolPlan.Image(executable, args.AsReadOnly(), target, Array.AsReadOnly(new[] { media }));
+                using var cancel = new CancellationTokenSource();
+                var running = PlayerToolRunner.RunAsync(plan, cancel.Token);
+                var deadline = Environment.TickCount64 + 10_000;
+                while (!File.Exists(target) && !running.IsCompleted && Environment.TickCount64 < deadline) Thread.Sleep(10);
+                Assert.True(File.Exists(target), "受控工具应已写出半成品");
+                var pid = int.Parse(File.ReadAllText(target), CultureInfo.InvariantCulture);
+                cancel.Cancel();
+                try { running.GetAwaiter().GetResult(); throw new AssertionException("未取消"); }
+                catch (OperationCanceledException) { }
+                try
+                {
+                    using var process = System.Diagnostics.Process.GetProcessById(pid);
+                    Assert.True(process.HasExited);
+                }
+                catch (ArgumentException) { }
+                Assert.False(File.Exists(target));
+            });
+        });
     }
 
     private static void WithFiles(Action<PlayerToolsSettings, string, string, string> run)

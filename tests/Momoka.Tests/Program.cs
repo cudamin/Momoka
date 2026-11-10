@@ -9,6 +9,17 @@ internal static class Program
             PlayerToolDownloadTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["player-tool-child-failure", var failureOutput])
+        {
+            File.WriteAllText(failureOutput, "partial");
+            return 7;
+        }
+        if (args is ["player-tool-child-wait", var waitingOutput])
+        {
+            File.WriteAllText(waitingOutput, Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            Thread.Sleep(30_000);
+            return 0;
+        }
         if (args is ["player-tools-fixture"])
         {
             PlayerToolTests.Register();
