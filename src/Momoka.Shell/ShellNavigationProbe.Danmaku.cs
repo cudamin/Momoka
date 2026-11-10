@@ -95,7 +95,8 @@ internal sealed partial class ShellNavigationProbe
             Require(DanmakuRows(page).Any(row => row.Label == "B 站账户")
                 && DanmakuRows(page).Any(row => row.Label == "退出 B 站")
                 && DanmakuRows(page).Any(row => row.Label == "显示弹幕"), "B站登录后未恢复账户和外观");
-            Require(!DanmakuRows(page).Any(row => row.Label is "自动匹配弹幕" or "包含关联弹幕" or "显示弹幕输入栏"), "B站显示了其他来源的匹配或发送选项");
+            Require(DanmakuRows(page).Any(row => row.Label == "自动匹配弹幕"), "B站登录后未恢复自动匹配设置");
+            Require(!DanmakuRows(page).Any(row => row.Label is "包含关联弹幕" or "显示弹幕输入栏"), "B站显示了其他来源的关联或发送选项");
             await SaveProbeScreenAsync($"settings-bilibili-account-{width}-screen.png");
             DanmakuRows(page).OfType<SettingFactRow>().Single(row => row.Label == "退出 B 站").RunCommand.Execute(null);
             await UntilAsync(() => fixture.Settings.Danmaku.BilibiliUserId == 0 && page.IsContentMotionSettled);
@@ -331,6 +332,19 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(panel);
             Require(Get<StackPanel>(panel, "Appearance").Visibility == Visibility.Visible && opacity.Value == 45, "面板恢复显示未恢复偏好");
             await SaveProbeScreenAsync($"player-danmaku-panel-{width}-screen.png");
+            vm.ChangeDanmakuPreferences(settings =>
+            {
+                settings.Source = DanmakuSourceMode.Bilibili;
+                settings.ProtectedBilibiliCookie = "offline-placeholder";
+                settings.BilibiliUserId = 42;
+            });
+            await LayoutAsync(panel);
+            Require(Get<TextBox>(panel, "TitleBox").MaxLength == 2048, "B站面板仍截断完整视频链接");
+            Require(Get<TextBlock>(panel, "SearchHint").Visibility == Visibility.Visible && !vm.DanmakuInputVisible,
+                "B站面板缺少手动匹配提示或错误显示发送入口");
+            await SaveProbeScreenAsync($"player-bilibili-panel-{width}-screen.png");
+            vm.ChangeDanmakuPreferences(settings => settings.Source = DanmakuSourceMode.Both);
+            await LayoutAsync(panel);
             var block = Get<TextBox>(panel, "BlockBox");
             block.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 1 });
             await LayoutAsync(block);

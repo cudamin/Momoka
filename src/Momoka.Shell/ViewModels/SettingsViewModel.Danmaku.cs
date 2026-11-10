@@ -55,10 +55,9 @@ public sealed partial class SettingsViewModel
         };
         if (configured)
         {
-            if (settings.Source != DanmakuSourceMode.Bilibili)
-                rows.Add(Toggle("自动匹配弹幕", "自动匹配只接受能确认的作品与集数；danmu_api 会带年份并核对集号。"
-                    + "续季、特别篇或不确定的结果在播放页手动搜索选择，避免串集。",
-                    () => settings.AutoMatch, value => settings.AutoMatch = value, after: RefreshDanmakuRows));
+            rows.Add(Toggle("自动匹配弹幕", "播放时按作品名称和集数查找弹幕，B站只自动加载唯一且精确对应的结果。"
+                + "续季、特别篇或不确定的结果在播放页手动搜索选择，避免串集。",
+                () => settings.AutoMatch, value => settings.AutoMatch = value, after: RefreshDanmakuRows));
             if (DanmakuSourceRules.IncludesDandanPlay(settings.Source))
                 rows.Add(Toggle("包含关联弹幕", "同时获取弹弹play 关联的第三方网站弹幕；修改后重新加载当前弹幕库。",
                     () => settings.WithRelated, value => settings.WithRelated = value, after: RefreshDanmakuRows));
@@ -73,7 +72,7 @@ public sealed partial class SettingsViewModel
                 if (value != DanmakuSourceMode.Bilibili) CancelBilibiliLogin();
             },
                 "每个人填自己部署的 danmu_api；Momoka 不提供公共服务。两者合并会同时请求两个来源，"
-                + "并消耗弹弹play 的共享额度；B 站在登录后手动搜索并选择视频或分 P。",
+                + "并消耗弹弹play 的共享额度；B 站登录后可自动匹配，也可用编号或链接手动选择。",
                 after: RefreshDanmakuRows));
             if (DanmakuSourceRules.IncludesDanmuApi(settings.Source))
             {
@@ -99,7 +98,7 @@ public sealed partial class SettingsViewModel
                     sourceRows.Add(Fact("退出 B 站", "只清除 Momoka 本机登录信息。", "", "退出登录", SignOutBilibili));
                 }
                 else
-                    sourceRows.Add(Fact("登录 B 站", "使用隔离的 B 站官方网页登录；完成后在播放页手动选择弹幕视频。", "", "登录 B 站", () => _ = LoginBilibiliAsync()));
+                    sourceRows.Add(Fact("登录 B 站", "使用 B 站官方网页登录；完成后可自动匹配当前影片的弹幕。", "", "登录 B 站", () => _ = LoginBilibiliAsync()));
             }
         }
 
@@ -221,7 +220,7 @@ public sealed partial class SettingsViewModel
                 return;
             }
             RefreshDanmakuRows();
-            Notify(null, "B 站账号已登录。请在播放页手动选择弹幕视频。", InfoBarSeverity.Success);
+            Notify(null, "B 站账号已登录，将按弹幕设置匹配当前影片。", InfoBarSeverity.Success);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception)

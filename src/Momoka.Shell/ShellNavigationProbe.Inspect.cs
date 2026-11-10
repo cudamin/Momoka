@@ -107,6 +107,8 @@ internal sealed partial class ShellNavigationProbe
         Add("InspectSettingsOpening", "聚合设置开窗", () => SettingsOpeningAsync(inspect: true));
         AddCheck("InspectDanmakuWide", "弹幕设置宽屏", () => SettingsDanmakuAsync(1100), ShellProbeSections.Settings);
         AddCheck("InspectDanmakuNarrow", "弹幕设置窄屏", () => SettingsDanmakuAsync(760), ShellProbeSections.Settings);
+        AddCheck("InspectDanmakuPanelWide", "弹幕面板宽屏", () => DanmakuPanelAsync(1100), ShellProbeSections.Playback);
+        AddCheck("InspectDanmakuPanelNarrow", "弹幕面板窄屏", () => DanmakuPanelAsync(360), ShellProbeSections.Playback);
         AddCheck("InspectLibraryCache", "媒体库缓存往返", PerformanceLibraryCacheAsync);
         AddCheck("InspectDeepReturn", "媒体库深返回锚点", PerformanceDeepLibraryReturnAsync);
         AddCheck("InspectBrowsePresentation", "首帧和晚图淡入", PerformanceBrowsePresentationAsync);

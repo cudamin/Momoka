@@ -52,7 +52,7 @@ internal static class SettingsBilibiliTests
             Assert.False(rows.Any(row => state.Label(row) == "自动匹配弹幕"));
             Assert.False(rows.Any(row => state.Label(row) == "退出 B 站"));
         });
-        TestHarness.Test("B站设置：登录后原地恢复外观、只手动匹配且不显示发送", () =>
+        TestHarness.Test("B站设置：登录后原地恢复外观和自动匹配，不显示发送", () =>
         {
             var state = fixture.Create();
             state.Settings.Settings.Danmaku.ProtectedBilibiliCookie = "placeholder-protected";
@@ -63,7 +63,7 @@ internal static class SettingsBilibiliTests
             Assert.True(labels.Contains("B 站账户"));
             Assert.True(labels.Contains("退出 B 站"));
             Assert.True(labels.Contains("显示弹幕"));
-            Assert.False(labels.Contains("自动匹配弹幕"));
+            Assert.True(labels.Contains("自动匹配弹幕"));
             Assert.False(labels.Contains("包含关联弹幕"));
             Assert.False(labels.Contains("显示弹幕输入栏"));
         });

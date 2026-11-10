@@ -63,7 +63,8 @@ internal static class ShellServices
             provider.GetRequiredService<AppSettings>(),
             Path.Combine(paths.Root, "cache", "danmaku"),
             credentials: provider.GetRequiredService<DandanPlayBuiltInCredentialSource>(),
-            protector: provider.GetRequiredService<ISecretProtector>()));
+            protector: provider.GetRequiredService<ISecretProtector>(),
+            bilibili: provider.GetRequiredService<BilibiliClient>()));
         services.AddSingleton<SettingsStore>();
 
         // The settings object is loaded once and then edited in place by the settings page, so it has to

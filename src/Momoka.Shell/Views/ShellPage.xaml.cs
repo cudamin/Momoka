@@ -674,6 +674,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _aggregateLoads.Cancel();
         _accountMode.Dispose();
         _identityLoads.Cancel();
+        // 首次等待前撤销独立设置窗口及网页登录，不依赖播放上报能否及时结束。
+        _settingsWindow?.Close();
+        _settingsWindow = null;
+        var bilibiliShutdown = _services?.GetService<Momoka.Danmaku.BilibiliClient>()?.ShutdownAsync()
+            ?? Task.CompletedTask;
         if (_services?.GetService<Momoka.Shell.Services.SubtitleTranslationController>() is { } translation)
         {
             translation.Noticed -= OnSubtitleTranslationNotice;
@@ -691,11 +696,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Player.ViewModel.Noticed -= Notify;
         Player.ViewModel.RefreshRequested -= RefreshActive;
         Player.ViewModel.PreparePresentation = null;
-        await Player.ViewModel.ShutdownAsync().ConfigureAwait(true);
+        try { await Player.ViewModel.ShutdownAsync().ConfigureAwait(true); }
+        finally { await bilibiliShutdown.ConfigureAwait(true); }
         Player.Shutdown();
-
-        _settingsWindow?.Close();
-        _settingsWindow = null;
 
         _moviePilotWindow?.Close();
         _moviePilotWindow = null;
