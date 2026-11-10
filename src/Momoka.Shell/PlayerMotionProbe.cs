@@ -21,8 +21,11 @@ internal static class PlayerMotionProbe
     internal static int ExitCode { get; private set; } = 1;
 
     internal static bool IsRequested(string[] args) => args.Any(argument =>
-        argument.TrimStart('-', '/').Split('=', 2)[0]
-            .Equals("probe-player-motion", StringComparison.OrdinalIgnoreCase));
+        argument.TrimStart('-', '/').Split('=', 2)[0].ToLowerInvariant()
+            is "probe-player-motion" or "probe-resize" or "probe-resize-manual");
+
+    internal static bool IsResizeRequested(string[] args) => args.Any(argument =>
+        argument.TrimStart('-', '/').Split('=', 2)[0].ToLowerInvariant() is "probe-resize" or "probe-resize-manual");
 
     /// <summary>报告初始化也在保护之内：哪怕建不了报告文件，也要走 finally 里的保证退出。</summary>
     internal static async Task RunAsync(StartupOptions options)
@@ -31,6 +34,12 @@ internal static class PlayerMotionProbe
         try
         {
             ExitCode = 1;
+            if (options.ProbeResizeOnly)
+            {
+                await PlayerResizeProbe.RunAsync(options);
+                ExitCode = 0;
+                return;
+            }
             await RunScoped(options);
         }
         catch (Exception error)

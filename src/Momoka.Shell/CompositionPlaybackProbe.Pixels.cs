@@ -9,6 +9,32 @@ namespace Momoka.Shell;
 
 internal static partial class CompositionPlaybackProbe
 {
+    internal sealed record ResizeScreenFrame(int Width, int Height, byte[] Bytes, bool Stable, long At)
+    {
+        internal int Errors => Bytes.Length == 0 ? 0 : CompositionProbePixels.ResizeErrors(Bytes, Width, Height);
+        internal Task SaveAsync(string path) => EncodeAsync(new ScreenPixels(Width, Height, Bytes), path);
+    }
+
+    internal static ResizeScreenFrame CaptureResizeFrame(IntPtr handle, long at)
+    {
+        var before = VideoFrameOverlay.ClientRect(handle);
+        ScreenPixels screen;
+        try { screen = CapturePixels(handle); }
+        catch (InvalidOperationException) when (!SameRect(before, VideoFrameOverlay.ClientRect(handle)))
+        {
+            return new(before.Width, before.Height, [], false, at);
+        }
+        var after = VideoFrameOverlay.ClientRect(handle);
+        var stable = before.Left == after.Left && before.Top == after.Top
+            && before.Width == after.Width && before.Height == after.Height
+            && screen.OriginX == before.Left && screen.OriginY == before.Top
+            && screen.Width == after.Width && screen.Height == after.Height;
+        return new(screen.Width, screen.Height, screen.Bytes, stable, at);
+    }
+
+    private static bool SameRect(NativeRect left, NativeRect right) => left.Left == right.Left
+        && left.Top == right.Top && left.Width == right.Width && left.Height == right.Height;
+
     internal static Task SaveScreenAsync(HostWindow window, string file) => SaveScreenAsync(window.Handle, file);
 
     /// <summary>框架设置窗口与原生播放窗口共用实际客户区、遮挡守卫和屏幕取样。</summary>
@@ -127,7 +153,14 @@ internal static partial class CompositionPlaybackProbe
                 Y = y + (int)(height * row)
             };
             if (Native.GetAncestor(Native.WindowFromPoint(point), 2) != handle)
-                throw new InvalidOperationException("像素探针窗口被遮挡或移到屏外，不能把其他窗口的像素当作视频");
+            {
+                var under = Native.WindowFromPoint(point);
+                Native.GetWindowThreadProcessId(under, out var pid);
+                var name = new char[128];
+                var length = Native.GetClassName(under, name, name.Length);
+                throw new InvalidOperationException($"像素探针窗口被遮挡或移到屏外，不能把其他窗口的像素当作视频；"
+                    + $"point={point.X},{point.Y} target=0x{handle:X} under=0x{under:X} pid={pid} class={new string(name, 0, Math.Max(length, 0))}");
+            }
         }
     }
 

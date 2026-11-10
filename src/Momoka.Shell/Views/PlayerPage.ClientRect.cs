@@ -17,6 +17,9 @@ public sealed partial class PlayerPage
     private int _windowChangeGeneration;
     private int _resizeGeneration;
     private VideoFrameOverlay? _resizeFrame;
+    private Task? _resizeCapture;
+    private NativeRect _resizeTarget;
+    private bool _resizeCaptureFailed;
     private Task _resizeChange = Task.CompletedTask;
 
     /// <summary>
@@ -424,25 +427,91 @@ public sealed partial class PlayerPage
     }
 
     /// <summary>
-    /// 连续调整窗口时，窗口自己报出来的真实客户区（<c>WM_SIZE</c> 那一拍，早于 XAML 的 <c>SizeChanged</c>）。
-    /// <para>
-    /// <b>只把客户区交给画面层，不在这里手动排树</b>（2026-09-22 定）。这里一度试过对页面、Root、VideoHost
-    /// 各来一次 Measure/Arrange，想让 XAML 布局追平 <c>WM_SIZE</c> —— 实测无效，而且本来就不必：
-    /// 岛的尺寸在这一拍已经是新的（探针实测 <c>island=1048,589</c> 与客户区同步），落后的是那棵树自己的布局，
-    /// 它晚一拍（16ms）就追上了，肉眼看不见，也没有任何东西依赖它 —— 画面的摆放读的是窗口报出来的客户区
-    /// （<see cref="Windowing.CompositionVideoTarget.ResizePresentation"/> 里钉住的 <c>_snappedClient</c>），
-    /// 不吃这一拍。反过来，每次 <c>WM_SIZE</c> 都全树排两遍，拖动时是白吃的开销。
-    /// </para>
+    /// 先承接下一块客户区，再允许 HWND 改尺寸。仅改 Composition 属性不能保证它与 HWND 同拍提交；
+    /// 2026-11-10 独立取屏复现右侧、底部露底。首帧异步取得前保留原窗口，后续每拍复用同一暂停帧。
     /// </summary>
+    private bool OnClientSizeChanging(NativeRect client)
+    {
+        if (!_resizeLoop || !_onStage || !ViewModel.PictureInHostWindow || _window is null) return true;
+        _resizeTarget = client;
+        BeginResizeFreeze();
+        if (_resizeFrame is null && _videoTarget.HasPicture && !_resizeCaptureFailed)
+        {
+            _resizeCapture ??= PrepareResizeFrameAsync(_window, _resizeGeneration, ViewModel.CaptureInteraction());
+            return false;
+        }
+        try
+        {
+            if (_resizeFrame is not null)
+                _resizeFrame.Show(client, _window.Fullscreen || _window.TopMost);
+        }
+        catch (Exception error)
+        {
+            _resizeFrame?.Dispose();
+            _resizeFrame = null;
+            _resizeCaptureFailed = true;
+            Log.Warn("播放器", "拖边帧承接不可用", error);
+        }
+        return true;
+    }
+
+    private async Task PrepareResizeFrameAsync(HostWindow window, int generation, PlayerViewModel.InteractionContext context)
+    {
+        var playback = ViewModel.CaptureFreeze();
+        bool Owned() => _resizeLoop && generation == _resizeGeneration && _window == window
+            && window.Handle != IntPtr.Zero;
+        bool Current() => Owned() && _onStage && Attached
+            && (PauseRequested is not null ? ViewModel.IsCurrentPlayback(context) : ViewModel.IsCurrentFreeze(playback));
+        VideoFrameOverlay? overlay = null;
+        try
+        {
+            await Task.Yield(); // HostWindow records this sizing target after the callback returns.
+            // Keep the current window until its paused frame is ready; never block the XAML thread
+            // on a GPU readback. A pure move never reaches this path or pauses/captures playback.
+            await _resizeFreeze;
+            if (!Current()) return;
+            if (_resizePaused && (!_freezePauseAccepted || (PauseRequested is null && !ViewModel.Paused)))
+                throw new InvalidOperationException("拖边暂停未确认，不保留静止帧");
+            var frame = await _videoTarget.CaptureFrameAsync().WaitAsync(TimeSpan.FromMilliseconds(350));
+            if (!Current()) return;
+            if (frame is null) throw new InvalidOperationException("拖边时无法取得当前视频帧");
+            overlay = new VideoFrameOverlay(window.Handle, frame);
+            _resizeFrame = overlay;
+            overlay.Show(_resizeTarget, window.Fullscreen || window.TopMost);
+            VideoFrameOverlay.Flush();
+            window.ResumeInteractiveResize();
+        }
+        catch (Exception error)
+        {
+            if (!Current()) return;
+            if (ReferenceEquals(_resizeFrame, overlay)) _resizeFrame = null;
+            overlay?.Dispose();
+            _resizeCaptureFailed = true;
+            Log.Warn("播放器", "拖边帧承接不可用，回退合成缩放", error);
+            try { window.ResumeInteractiveResize(); }
+            catch (Exception resumeError)
+            {
+                window.CancelPendingInteractiveResize();
+                Log.Warn("播放器", "恢复拖边目标失败，等待下一次尺寸事件", resumeError);
+            }
+        }
+        finally
+        {
+            if (Owned() && !Current())
+            {
+                _resizeCapture = null;
+                _resizeCaptureFailed = true;
+                window.CancelPendingInteractiveResize();
+            }
+        }
+    }
+
     private void OnClientSizeChanged(NativeRect client)
     {
         if (!_onStage || !ViewModel.PictureInHostWindow || _window is null) return;
 
-        // 尺寸真的开始变了 —— **调整的「开始」在这一拍，不在 WM_ENTERSIZEMOVE**。
-        //
-        // 用户令 2026-09-23：「当检测到窗口大小调整时自动暂停 mpv 播放器」。这一拍（WM_SIZE）是整条路上
-        // 唯一能证明「客户区真的变了」的地方；而 WM_ENTERSIZEMOVE 拖标题移动窗口时照样会来，拿它当触发点
-        // 等于每次挪窗都冻一次、松手再放开 —— 一次纯粹的位置调整会平白断一下声音、断一下画面。
+        // WM_SIZING 先冻结并承接首帧；这里也守住只收到 WM_SIZE 的调用。
+        // WM_ENTERSIZEMOVE 同样用于纯移动，不能在那里暂停或抓帧。
         if (_resizeLoop) BeginResizeFreeze();
 
         _videoTarget.ResizePresentation(client);
@@ -464,13 +533,14 @@ public sealed partial class PlayerPage
             _resizeLoop = true;
             if (!_onStage || !ViewModel.PictureInHostWindow) return;
             _resizeGeneration++;
-            _resizeFrame?.Dispose();
-            _resizeFrame = null;
+            _resizeCapture = null;
+            _resizeCaptureFailed = false;
             _videoTarget.SetInteractiveResize(true);
         }
         else
         {
             _resizeLoop = false;
+            _resizeCapture = null;
             // 松手之后有两条路，两条都管住那笔冻结账：有几何收尾的走 FinishResizeAsync（放开排在保留帧
             // 撤掉之后 —— 早一步放开，盖着的那帧还停在旧内容上而声音已经走过去了，撤掉时画面会往前跳），
             // 没有几何收尾的（这一趟没挂链）就当场放开。
@@ -496,16 +566,18 @@ public sealed partial class PlayerPage
         {
             // 缓冲在松手之前就追上了（这一趟没怎么改尺寸）：没有覆盖层可撤，放开当场做。
             _videoTarget.SetInteractiveResize(false);
+            _resizeFrame?.Dispose();
+            _resizeFrame = null;
             await ReleaseResizeFreezeAsync();
             return;
         }
         var context = ViewModel.CaptureInteraction();
-        VideoFrameOverlay? overlay = null;
+        VideoFrameOverlay? overlay = _resizeFrame;
         bool Current() => generation == _resizeGeneration && _window == window && window.Handle != IntPtr.Zero
             && _onStage && Attached && ViewModel.IsCurrentInteraction(context);
         try
         {
-            if (_videoTarget.HasAttachedVisual && Cover.Visibility != Microsoft.UI.Xaml.Visibility.Visible)
+            if (overlay is null && _videoTarget.HasAttachedVisual && Cover.Visibility != Microsoft.UI.Xaml.Visibility.Visible)
             {
                 var frame = await _videoTarget.CaptureFrameAsync().WaitAsync(TimeSpan.FromMilliseconds(350));
                 if (!Current()) return;
@@ -540,8 +612,13 @@ public sealed partial class PlayerPage
         finally
         {
             if (Current()) _videoTarget.SetInteractiveResize(false);
-            if (ReferenceEquals(_resizeFrame, overlay)) _resizeFrame = null;
-            overlay?.Dispose();
+            var handedToNextDrag = generation != _resizeGeneration && _window == window && _onStage && Attached
+                && ViewModel.IsCurrentPlayback(context) && ReferenceEquals(_resizeFrame, overlay);
+            if (!handedToNextDrag)
+            {
+                if (ReferenceEquals(_resizeFrame, overlay)) _resizeFrame = null;
+                overlay?.Dispose();
+            }
         }
 
         // 覆盖层已经撤掉，屏上那一帧就是接下来要接着放的那一帧 —— 这时候才谈放开。
@@ -636,6 +713,8 @@ public sealed partial class PlayerPage
     {
         _resizeGeneration++;
         _resizeLoop = false;
+        _window?.CancelPendingInteractiveResize();
+        _resizeCapture = null;
         _resizeFrame?.Dispose();
         _resizeFrame = null;
         _videoTarget.SetInteractiveResize(false);
