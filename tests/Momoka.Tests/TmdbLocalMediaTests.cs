@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Reflection;
 using System.Text;
 using Momoka.Metadata;
 using static Momoka.Tests.TestHarness;
@@ -14,6 +15,7 @@ internal static class TmdbLocalMediaTests
         MatchingTests();
         HttpTests();
         ImageTests();
+        TimeoutTests();
     }
 
     private static void ParsingTests()
@@ -243,7 +245,7 @@ internal static class TmdbLocalMediaTests
             Assert.Throws<ArgumentException>(() => client.DetailsAsync("42", true, null, 1, default).GetAwaiter().GetResult());
             Assert.Throws<ArgumentException>(() => client.DetailsAsync("42", false, 1, 1, default).GetAwaiter().GetResult());
             Assert.Equal(0, stub.Total);
-            Assert.Throws<ArgumentException>(() => new TmdbClient("\r\nsecret"));
+            Assert.Throws<TmdbException>(() => new TmdbClient("\r\nsecret"));
         });
         Test("TMDB 取消：调用方取消保持取消异常", () =>
         {
@@ -289,6 +291,101 @@ internal static class TmdbLocalMediaTests
                 Assert.Throws<TmdbException>(() => client.FetchImageAsync("https://image.tmdb.org/t/p/original/a.jpg", default).GetAwaiter().GetResult());
             }
         });
+    }
+
+    private static void TimeoutTests()
+    {
+        foreach (var image in new[] { false, true })
+        {
+            Test($"TMDB 总超时：收到响应头后挂起的{(image ? "图片" : "JSON")}响应体也超时", () =>
+            {
+                using var stream = new HangingStream();
+                using var handler = new ResponseTransport(() => HangingResponse(stream, image));
+                using var client = new TmdbClient("anonymous", handler);
+                SetTimeout(client, TimeSpan.FromMilliseconds(100));
+                var error = Assert.Catch<TmdbException>(() => Request(client, image, default)
+                    .WaitAsync(TimeSpan.FromSeconds(1)).GetAwaiter().GetResult());
+                Assert.Contains("超时", error.Message);
+                Assert.True(stream.Disposed, "超时应释放响应和响应体");
+                Assert.Null(error.InnerException);
+            });
+            Test($"TMDB 用户取消：读取{(image ? "图片" : "JSON")}响应体中取消仍是取消异常", () =>
+            {
+                using var stream = new HangingStream();
+                using var handler = new ResponseTransport(() => HangingResponse(stream, image));
+                using var client = new TmdbClient("anonymous", handler);
+                using var cancel = new CancellationTokenSource();
+                var task = Request(client, image, cancel.Token);
+                stream.ReadStarted.Task.WaitAsync(TimeSpan.FromSeconds(1)).GetAwaiter().GetResult();
+                cancel.Cancel();
+                Assert.Throws<OperationCanceledException>(() => task.WaitAsync(TimeSpan.FromSeconds(1)).GetAwaiter().GetResult());
+                Assert.True(stream.Disposed, "用户取消也应释放响应体");
+            });
+        }
+        Test("TMDB 无效令牌：空值、控制字符和非ASCII均是安全用户错误", () =>
+        {
+            foreach (var token in new[] { null, "", " ", "anonymous-secret\r\nInjected", "anonymous-secret\t", "anonymous-secret\u007f", "anonymous-secret中文" })
+            {
+                var error = Assert.Catch<TmdbException>(() => new TmdbClient(token!));
+                Assert.DoesNotContain("anonymous-secret", error.ToString());
+                Assert.Null(error.InnerException);
+                Assert.Null(error.StatusCode);
+            }
+        });
+    }
+
+    private static Task Request(TmdbClient client, bool image, CancellationToken ct) => image
+        ? client.FetchImageAsync("https://image.tmdb.org/t/p/original/a.jpg", ct)
+        : client.SearchAsync("Movie", false, null, ct);
+
+    private static void SetTimeout(TmdbClient client, TimeSpan timeout)
+    {
+        // 修改真实HttpClient配置以缩短时间；生产只保留统一的20秒预算，没有测试开关。
+        var field = typeof(TmdbClient).GetField("_http", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        var http = (HttpClient)field!.GetValue(client)!;
+        http.Timeout = timeout;
+    }
+
+    private static HttpResponseMessage HangingResponse(Stream stream, bool image)
+    {
+        var content = new StreamContent(stream);
+        content.Headers.ContentType = new MediaTypeHeaderValue(image ? "image/jpeg" : "application/json");
+        return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+    }
+
+    private sealed class HangingStream : Stream
+    {
+        private readonly CancellationTokenSource _stop = new();
+        public TaskCompletionSource ReadStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public bool Disposed { get; private set; }
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _stop.Token);
+            ReadStarted.TrySetResult();
+            await Task.Delay(Timeout.InfiniteTimeSpan, linked.Token).ConfigureAwait(false);
+            return 0;
+        }
+        public override void Flush() => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && !Disposed)
+            {
+                Disposed = true;
+                _stop.Cancel();
+                _stop.Dispose();
+            }
+            base.Dispose(disposing);
+        }
     }
 
     private static TmdbMediaCandidate Candidate(string id, string title, string original, int year) =>

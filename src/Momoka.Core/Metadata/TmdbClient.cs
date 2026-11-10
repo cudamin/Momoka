@@ -21,7 +21,7 @@ public sealed class TmdbClient : IDisposable
     public TmdbClient(string readAccessToken, HttpMessageHandler? handler = null)
     {
         if (string.IsNullOrWhiteSpace(readAccessToken) || readAccessToken.Any(character => character <= ' ' || character >= 127))
-            throw new ArgumentException("请提供有效的TMDB API Read Access Token。", nameof(readAccessToken));
+            throw new TmdbException("请提供有效的TMDB API Read Access Token。");
         _token = readAccessToken;
         handler ??= new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false };
         // 实际HTTP传输也不追随重定向；测试注入的匿名handler只替代网络边界。
@@ -102,12 +102,20 @@ public sealed class TmdbClient : IDisposable
             throw new ArgumentException("图片必须来自TMDB的HTTPS图片地址。", nameof(url));
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         request.Headers.Accept.ParseAdd("image/jpeg,image/png,image/webp");
-        using var response = await SendAsync(request, ct).ConfigureAwait(false);
-        var type = response.Content.Headers.ContentType?.MediaType;
-        if (type is not ("image/jpeg" or "image/png" or "image/webp")) throw new TmdbException("TMDB图片格式无效。");
-        var bytes = await ReadBoundedAsync(response.Content, MaxImageBytes, ct).ConfigureAwait(false);
-        if (!HasImageSignature(bytes, type)) throw new TmdbException("TMDB图片内容无效。");
-        return bytes;
+        using var timeout = RequestTimeout(ct);
+        try
+        {
+            using var response = await SendAsync(request, timeout.Token).ConfigureAwait(false);
+            var type = response.Content.Headers.ContentType?.MediaType;
+            if (type is not ("image/jpeg" or "image/png" or "image/webp")) throw new TmdbException("TMDB图片格式无效。");
+            var bytes = await ReadBoundedAsync(response.Content, MaxImageBytes, timeout.Token).ConfigureAwait(false);
+            if (!HasImageSignature(bytes, type)) throw new TmdbException("TMDB图片内容无效。");
+            return bytes;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new TmdbException("读取TMDB图片超时，请稍后重试。");
+        }
     }
 
     private async Task<JsonDocument> ApiAsync(string route, CancellationToken ct)
@@ -115,10 +123,26 @@ public sealed class TmdbClient : IDisposable
         using var request = new HttpRequestMessage(HttpMethod.Get, ApiBase + route);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
         request.Headers.Accept.ParseAdd("application/json");
-        using var response = await SendAsync(request, ct).ConfigureAwait(false);
-        var bytes = await ReadBoundedAsync(response.Content, MaxJsonBytes, ct).ConfigureAwait(false);
-        try { return JsonDocument.Parse(bytes); }
-        catch (JsonException) { throw InvalidResponse(); }
+        using var timeout = RequestTimeout(ct);
+        try
+        {
+            using var response = await SendAsync(request, timeout.Token).ConfigureAwait(false);
+            var bytes = await ReadBoundedAsync(response.Content, MaxJsonBytes, timeout.Token).ConfigureAwait(false);
+            try { return JsonDocument.Parse(bytes); }
+            catch (JsonException) { throw InvalidResponse(); }
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new TmdbException("读取TMDB响应超时，请稍后重试。");
+        }
+    }
+
+    private CancellationTokenSource RequestTimeout(CancellationToken ct)
+    {
+        // ResponseHeadersRead使HttpClient.Timeout只覆盖响应头；同一个预算必须继续约束响应体。
+        var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(_http.Timeout);
+        return timeout;
     }
 
     private async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
