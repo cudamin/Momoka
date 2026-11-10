@@ -596,6 +596,7 @@ internal sealed class LibMpvHandle(
 
     /// <summary>刚发过一条 <c>loadfile</c> 换片：事件线程在 file-loaded 那一拍清掉上一集的读数。</summary>
     private volatile bool _swapping;
+    private readonly EachFrameScreenshot _eachFrameScreenshot = new();
 
     /// <summary>独占模式的窗口已经立起来了（`vo-configured`），`force-window` 已改回 yes —— 只做一次。</summary>
     private volatile bool _windowHeld;
@@ -770,6 +771,8 @@ internal sealed class LibMpvHandle(
             return false;
         }
 
+        // Screenshot repetition is process-scoped in mpv, so stop it before handing this context to another file.
+        if (!_eachFrameScreenshot.Stop(arguments => LibMpvBackend.Run(context, arguments))) return false;
         _apiGate.NextGeneration();
         foreach (var (name, value) in filmOptions)
         {
@@ -892,6 +895,7 @@ internal sealed class LibMpvHandle(
                 return true;
 
             case LibMpvNative.EventEndFile:
+                _eachFrameScreenshot.Stop(arguments => LibMpvBackend.Run(context, arguments));
                 var end = Marshal.PtrToStructure<LibMpvNative.MpvEventEndFile>(mpvEvent.Data);
                 Log.Debug(Category, $"内置播放器报告文件结束：reason={end.Reason} error={end.Error}");
 
@@ -912,6 +916,7 @@ internal sealed class LibMpvHandle(
                 break;
 
             case LibMpvNative.EventStartFile:
+                _eachFrameScreenshot.Stop(arguments => LibMpvBackend.Run(context, arguments));
                 // 新文件的装载从此开始：换片那一刻起，「这一跑」的读数就该重新算了（位置尤其要紧 ——
                 // 留着上一集的位置，这一集被停掉时上报的「看到哪儿」就是别人的）。
                 if (_swapping)
@@ -1800,7 +1805,7 @@ internal sealed class LibMpvHandle(
     private bool Command(params string[] arguments)
     {
         // 返回值交出去，不只是写进日志：调用方要拿它决定「按了截图之后到底要不要说已保存」。
-        return LibMpvBackend.Run(context, arguments);
+        return _eachFrameScreenshot.Execute(arguments, command => LibMpvBackend.Run(context, command));
     }
 }
 

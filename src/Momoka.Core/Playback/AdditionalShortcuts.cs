@@ -52,6 +52,8 @@ public static class AdditionalShortcuts
     /// </summary>
     public static PlayerMenuNode? Plan(string action)
     {
+        // Menu and keyboard share the exact same command, capability and feedback plan.
+        if (PlayerMenuCatalog.Commands.FirstOrDefault(node => node.Shortcut == action) is { } menu) return menu;
         IReadOnlyList<IReadOnlyList<string>>? commands = action switch
         {
             "video-pan-reset" => [["set", "video-pan-x", "0"], ["set", "video-pan-y", "0"]],

@@ -12168,3 +12168,12 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 用户最新明确“mp官方怎么弄的你就怎么改”，覆盖此前删除轮询的指示。已固定源码并形成计划；对齐范围是MP汇总／电影／电视剧订阅列表，官方首页无订阅货架。Core子代理写匿名签名测试时工具SyntaxError后被内容过滤器明确禁止重试／换格式／工具／子代理绕过，停止该部分；Core与VM独立树均无代码修改。页面排程隔离试验175/178红→178/178绿仅验证替身VM边界，尚无真实VM/产品集成；已将精确三文件差异与日志保存在work/mp-polling并定点撤回实验，未把不可编译半成品合入或发布。技能已记录用户新裁定及未完成状态，不能继续以旧删轮询要求阻止对齐。当前只交付文档，不声称MP功能已改。
 
 - 2026-11-10 播放工具 Core：独立树 player-tools-core 从 4799a2d 添加显式工具配置、固定本地参数计划、可取消执行及 SRT 全片翻译。上游 input.conf 和 slicing_copy/mpv-animated/autosubsync/sub-fastwhisper 已核对；真实匿名 FFmpeg 片段/SRT/GIF 通过。当前树只负责 Core，待父会话整合菜单/设置后在主树重验发布。
+
+## 2026-11-10 原生播放菜单与快捷键扩展（隔离开发）
+
+- 树：`C:/Users/89400/.codex/worktrees/player-native-menu/Momoka`，临时分支 `codex/player-native-menu`，基于4799a2d。专属Core菜单/快捷键、同窗复位与原生截图控制。Shell动态菜单和工具接入由主交付会话整合。
+- 对照 `C:/mpv_config-2026.08.12/portable_config/input.conf` 读取原命令，新增73个可重绑动作，总143个，原70默认键保持。新增帧同步候选、主次字幕位移/延迟/兼容、视频与音频快捷操作、原始带字幕和逐帧截图、全部现有调色/滤镜/HDR操作快捷键。OEM词汇加Minus/Equal/Comma/Period/Backquote。
+- 目录与键盘共用同一命令/反馈/适用性计划，RequireProperties明确列出实际属性，宿主动态动作HostAction与原生命令互斥。选轨和恢复只要求有轨，格式相关项按实际文本/ASS/位图字幕隐藏。
+- 裸随包mpv `v0.41.0-1163-g270367e8a`，无配置/脚本/媒体/音视频窗口：17项属性原值set及13项新增cycle命令全部接受。证据 `work/native-menu-options.json`、`work/native-menu-commands.json`。命令接受不证明真实图形或声音效果。
+- mpv `270367e8a` 的 `player/screenshot.c:526` 将逐帧命令存在进程上下文，Core完整句柄现于native gate跟踪自有模式：切换前停止、start/end文件边界停止、首次写拒绝撤销已登记循环、普通单帧清状态。停止只toggle既有模式，不额外保存一张。仅内置非自定义配置显示逐帧入口。`video/decode/vd_lavc.c:834` 的old-x264只在decoder初始化生效，当前菜单剔除；不能以set成功冒充即时兼容。
+- 测试先红：菜单5项缺项，逐帧完整handle3项缺陷。实现后 `Momoka.LibMpvEndFileTests` 46/46通过，0跳过；只managed native seam/匿名假HTTP，无原生初始化或真实播放。最终`native-menu-fixture`474/474通过（0跳过），本次改动文件whitespace与git diff --check通过。全测试项目whitespace仍报基线已有DetailTrailerTests:165和ItemTrailerTests:116共3项，不作本任务无关修复。待主交付会话合入master、重验UI/最终代码并发布；本树未发布、未推送。

@@ -747,7 +747,10 @@ internal static class MpvUiTests
                     command.Contains("screenshot", StringComparer.Ordinal))));
 
             Assert.Equal("截屏", group.Label);
-            Assert.Equal(3, group.Children.Count);
+            foreach (var mode in new[] { "scaled+subtitles", "video", "window", "subtitles",
+                "subtitles+each-frame", "video+each-frame", "window+each-frame" })
+                Assert.True(group.Children.Any(child => child.Commands.Any(command => command.Count > 1
+                    && command[0] == "screenshot" && command[1] == mode)), mode);
 
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
             while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln")))

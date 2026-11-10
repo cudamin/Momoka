@@ -152,7 +152,8 @@ public static class ShortcutCatalog
         new("speed-half", "切换到 0.5 倍速", K("1", ctrl: true)),
         new("speed-one-and-half", "切换到 1.5 倍速", K("2", ctrl: true)),
         new("speed-double", "切换到 2 倍速", K("3", ctrl: true)),
-        new("danmaku-delay-reset", "弹幕延迟归零", K("D", shift: true))
+        new("danmaku-delay-reset", "弹幕延迟归零", K("D", shift: true)),
+        .. NativeMenuShortcuts.Actions
     ];
 
     /// <summary>这个动作此刻真正生效的键：动过就用动过的，没动过用默认，显式解绑（空串）就是 <see cref="KeyStroke.None"/>。</summary>
@@ -330,6 +331,11 @@ public static class ShortcutCatalog
         "Back" => "Backspace",
         "BracketLeft" => "[",
         "BracketRight" => "]",
+        "Minus" => "-",
+        "Equal" => "=",
+        "Comma" => ",",
+        "Period" => ".",
+        "Backquote" => "`",
         "Escape" => "Esc",
         _ => key
     };

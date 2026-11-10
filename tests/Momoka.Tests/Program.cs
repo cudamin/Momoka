@@ -14,6 +14,17 @@ internal static class Program
             PlayerToolTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["native-menu-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            ShortcutTests.Register();
+            PlaybackTests.Register();
+            InlineSwitchTests.Register();
+            MpvUiTests.Register();
+            VideoOutputTests.Register();
+            SvpTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["trailer-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;

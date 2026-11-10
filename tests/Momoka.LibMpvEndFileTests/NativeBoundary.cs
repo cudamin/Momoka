@@ -6,6 +6,7 @@ internal sealed class NativeBoundary
     internal List<string> Reads { get; } = [];
     internal List<string> Writes { get; } = [];
     internal Action<string[]>? OnCommand { get; set; }
+    internal Func<string[], int>? CommandResult { get; set; }
     internal Func<IntPtr>? WaitEvent { get; set; }
     internal Action<string, string>? OnWrite { get; set; }
     internal Action? OnDestroy { get; set; }

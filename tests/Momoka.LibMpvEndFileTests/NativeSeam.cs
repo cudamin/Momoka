@@ -24,7 +24,7 @@ internal static partial class LibMpvNative
             .Select(pointer => Marshal.PtrToStringUTF8(pointer) ?? "").ToArray();
         Boundary.Commands.Add(command);
         Boundary.OnCommand?.Invoke(command);
-        return 0;
+        return Boundary.CommandResult?.Invoke(command) ?? 0;
     }
 
     internal static int mpv_command_ret(IntPtr context, IntPtr[] args, IntPtr result) =>

@@ -34,6 +34,11 @@ public static class VideoWindowShortcuts
             "Down" => "DOWN",
             "BracketLeft" => "[",
             "BracketRight" => "]",
+            "Minus" => "-",
+            "Equal" => "=",
+            "Comma" => ",",
+            "Period" => ".",
+            "Backquote" => "`",
             { Length: 1 } value when char.IsAsciiLetterOrDigit(value[0]) => value.ToLowerInvariant(),
             { Length: 2 or 3 } value when value[0] == 'F' && int.TryParse(value.AsSpan(1), out var number)
                 && number is >= 1 and <= 12 => value,
