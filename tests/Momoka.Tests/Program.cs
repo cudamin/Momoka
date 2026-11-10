@@ -7,6 +7,7 @@ internal static class Program
         if (args is ["bilibili-fixture"])
         {
             BilibiliSettingsTests.Register();
+            BilibiliSessionTests.Register();
             return TestHarness.Run();
         }
         if (args is ["trailer-fixture"])
@@ -551,6 +552,7 @@ internal static class Program
         AboutTests.Register();
         DanmakuTests.Register();
         BilibiliSettingsTests.Register();
+        BilibiliSessionTests.Register();
         UpdateTests.Register();
         MoviePilotTests.Register();
         AniBtTests.Register();
