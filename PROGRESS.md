@@ -10,7 +10,7 @@
 
 产品 b9cfd8d 与 Core 49c994f 已合入 master 924a4e8，文档冲突保留双方内容。主树最终 Shell/Tests/Core 新编译 0 警告 0 错误，主测试 4286/4286、实际详情 VM 46/46，0 失败 0 跳过；自动化缺句柄 0，22 文件编码/差异通过。主树 12356 和正式发布件 7624 的原生预告检查均 1/1，含宽窄菜单、实际重试和隐藏恢复，实屏已目视，均经 InspectDone 正常退出。证据 artifacts/trailers-master（发布实屏 shell-probe-20261110-052205734-7624）。
 
-publish.ps1 -NoArchive -Shortcut 退出 0，546 文件/287.0 MB、59 批准 mpv 载荷通过。桌面快捷方式目标与工作目录均主树 artifacts/publish/win-x64，参数空。Shell/Core/PRI 发布与本次发布配置 bin 的 SHA256 全部一致，Shell 0F4DBA7384FA74EC94E373AE0002A570F587E2800DA205616F0B8E876E90332D。未上传 GitHub；无真实服务器播放/写入，未证明真实预告媒体或浏览器网站的可播放性。主树现有首页封面对齐改动保持。开发树与 Core 子树已确认没有主树缺少的产品差异，后者可归档；2920 为当前受保护工作区，保留恢复线索 b9cfd8d。
+publish.ps1 -NoArchive -Shortcut 退出 0，546 文件/287.0 MB、59 批准 mpv 载荷通过。桌面快捷方式目标与工作目录均主树 artifacts/publish/win-x64，参数空。Shell/Core/PRI 发布与本次发布配置 bin 的 SHA256 全部一致，Shell 0F4DBA7384FA74EC94E373AE0002A570F587E2800DA205616F0B8E876E90332D。未上传 GitHub；无真实服务器播放/写入，未证明真实预告媒体或浏览器网站的可播放性。主树现有首页封面对齐改动保持。开发树与 Core 子树已确认没有主树缺少的产品差异；Core 子树归档被应用以 Another active task still uses this worktree 拒绝，按保护保留、不强删。2920 为当前受保护工作区，保留恢复线索 b9cfd8d。
 
 用户要求新增看预告片，选定先使用媒体服务器数据。本轮支持 Emby/Jellyfin 本地预告自身 ID 从零播放、远程 HTTP(S) 预告浏览器打开，Plex/FnNas 隐藏。树 2920、基点 f65563c；Core 在独立 trailer-core 树。设计/计划在 docs/superpowers 对应 2026-11-10-trailers 文件。
 
