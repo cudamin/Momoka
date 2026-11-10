@@ -548,12 +548,13 @@ internal static class DetailSubjectRemovalTests
 public class DetailDeleteActionsProxy : DispatchProxy
 {
     public int Plays { get; private set; }
+    public object?[]? PlaybackArguments { get; private set; }
     public Momoka.Playback.PlaybackChoice? Choice { get; private set; }
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
     {
         switch (targetMethod?.Name)
         {
-            case "PlayAsync": Plays++; Choice = (Momoka.Playback.PlaybackChoice?)args![2]; return Task.CompletedTask;
+            case "PlayAsync": Plays++; PlaybackArguments = args; Choice = (Momoka.Playback.PlaybackChoice?)args![2]; return Task.CompletedTask;
             case "Notify": return null;
             case "RefreshFavorites": return null;
             case "get_MoviePilotEnabled":

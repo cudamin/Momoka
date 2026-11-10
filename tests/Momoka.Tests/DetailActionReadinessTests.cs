@@ -31,6 +31,7 @@ internal static partial class DetailActionReadinessTests
                 ? context.LoadFromAssemblyPath(Path.Combine(directory, name.Name + ".dll")) : null;
             var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(dll);
             RegisterShapeTests(assembly, root);
+            RegisterTrailerTests(assembly, root);
 
             Test("P1 主体Apply前不提前放开按钮", () =>
             {
@@ -183,6 +184,7 @@ internal static partial class DetailActionReadinessTests
         private readonly EmbyImageStore _images;
         public ReadinessTransport Transport { get; } = new();
         public DetailDeleteActionsProxy Actions { get; }
+        public TrailerLauncherProxy Launcher { get; }
         public object Vm { get; }
         public UiSettings Ui => _settings.Settings.Ui;
         public EmbyItem Seed { get; }
@@ -205,6 +207,7 @@ internal static partial class DetailActionReadinessTests
             typeof(EmbySession).GetField("_current", Members)!.SetValue(_session, _scope);
             _images = new EmbyImageStore(_session, Path.Combine(output, "images"));
             Actions = (DetailDeleteActionsProxy)DispatchProxy.Create(assembly.GetType("Momoka.Shell.Views.IShellActions", true)!, typeof(DetailDeleteActionsProxy));
+            Launcher = (TrailerLauncherProxy)DispatchProxy.Create(assembly.GetType("Momoka.Shell.Platform.ISystemLauncher", true)!, typeof(TrailerLauncherProxy));
             Vm = Activator.CreateInstance(assembly.GetType("Momoka.Shell.ViewModels.DetailViewModel", true)!)!;
 
             var series = _scope.Bind(new EmbyItem
@@ -265,6 +268,7 @@ internal static partial class DetailActionReadinessTests
             var assembly = _assembly;
             var request = Activator.CreateInstance(assembly.GetType("Momoka.Shell.Views.DetailRequest", true)!, nonPublic: true)!;
             request.GetType().GetProperty("Item")!.SetValue(request, item);
+            request.GetType().GetProperty("Services")!.SetValue(request, new TrailerServices(Launcher));
             Invoke(Vm, "Attach", request, Actions, _settings, _session, _images);
         }
 
@@ -276,6 +280,7 @@ internal static partial class DetailActionReadinessTests
 
         public void Dispose()
         {
+            Transport.TrailerRelease.TrySetResult(true);
             Transport.DetailRelease.TrySetResult(true);
             Transport.EpisodesRelease.TrySetResult(true);
             Transport.SimilarRelease.TrySetResult(true);
@@ -320,6 +325,12 @@ internal static partial class DetailActionReadinessTests
         public List<EmbyItem> Seasons { get; } = [];
         public List<EmbyItem> Episodes { get; } = [];
         public List<EmbyItem> Similar { get; } = [];
+        public List<EmbyItem> Trailers { get; } = [];
+        public int TrailerRequests { get; private set; }
+        public bool HoldTrailers { get; set; }
+        public HttpStatusCode TrailerStatus { get; set; } = HttpStatusCode.OK;
+        public TaskCompletionSource<bool> TrailerRequested { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource<bool> TrailerRelease { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource<bool> DetailRequested { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource<bool> DetailRelease { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource<bool> EpisodesRequested { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -340,6 +351,14 @@ internal static partial class DetailActionReadinessTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             var path = request.RequestUri?.AbsolutePath ?? "";
+            if (path.EndsWith("/LocalTrailers", StringComparison.Ordinal))
+            {
+                TrailerRequests++;
+                TrailerRequested.TrySetResult(true);
+                // Deliberately ignore cancellation here, so the VM must reject a late response too.
+                if (HoldTrailers) await TrailerRelease.Task.ConfigureAwait(false);
+                return TrailerStatus == HttpStatusCode.OK ? Json(Trailers) : Status(TrailerStatus);
+            }
             if (path.Contains("/Images/", StringComparison.OrdinalIgnoreCase)) return Status(HttpStatusCode.NotFound);
 
             if (path.EndsWith("/Similar", StringComparison.OrdinalIgnoreCase))
