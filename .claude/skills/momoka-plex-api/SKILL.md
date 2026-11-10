@@ -1,6 +1,6 @@
 ---
 name: "momoka-plex-api"
-description: "Develop or review Momoka's Plex backend: the Core/Plex transport, Plex-account sign-in through plex.tv, library browsing, media mapping and playback reporting. Use when changing PlexEndpoint, PlexHttp, PlexClient, PlexMediaAdapter or PlexPlaybackSelection, when diagnosing a Plex address, token, redirect, browse or playback problem, or when deciding which features Plex hides. Shared session and playback lifetimes belong to momoka-winui-shell and momoka-playback."
+description: "Develop or review Momoka's Plex backend: the Core/Plex transport, Plex-account sign-in through plex.tv, library browsing, media mapping and playback reporting. Use when changing PlexEndpoint, PlexHttp, PlexClient, PlexMediaAdapter, PlexPlaybackSelection or PlexRealtimeProtocol, when diagnosing a Plex address, token, redirect, browse or playback problem, or when deciding which features Plex hides. Shared session and playback lifetimes belong to momoka-winui-shell and momoka-playback."
 ---
 
 # Momoka — Plex protocol layer
@@ -67,6 +67,17 @@ A container's array is named for what is inside it: `Metadata` for films and epi
 
 Library sections are not media entries: `Library` assigns the section's `key` to `EmbyItem.Id` and throws `InvalidDataException` when that key is missing, null or blank, rather than returning a clickable empty-ID library. Do not fall back to `ratingKey` for a section or change `Item` to read `key` globally: films, shows and seasons still use their media `ratingKey`. `PlexMediaTests.Libraries` feeds `GetViews` results directly into browse, per-library recently-added and random-carousel requests, and checks distinct section IDs and source-scoped navigation keys without signing in.
 
+## Library notifications
+
+Plex uses `/:/websockets/notifications` under the confirmed server/proxy base. Send `X-Plex-Token` and `X-Plex-Client-Identifier` in headers; the official browser's query-string token is not copied. Receive notifications after connecting without sending a subscription command. `PlexRealtimeProtocol` parses events and the shared `EmbyRealtimeConnection` owns socket lifetime, rejected redirects, latest-identity reconnect and 1/2/4/8/16/30-second backoff.
+
+- `NotificationContainer.type=timeline`: consider `TimelineEntry` only for `identifier=com.plexapp.plugins.library`, positive `itemID/sectionID` and numeric integer state 0/5/9. State 5 is metadata processed, not proof that a new import completed.
+- `type=status`: `StatusNotification.notificationName=LIBRARY_UPDATE` also wakes the check. Preserve the official older `_elementType` / `_children` envelope support; unrelated playback/progress/DVR messages do not qualify.
+- Home checks the first 24 IDs/order before refreshing shelves and carousel. It has no generic 30-second media polling, no reconnect-triggered HTTP catch-up and no guaranteed replay of missed events; page entry/manual reads remain.
+- Official Plex Web **4.163.0 / 8246fd2** uses notifications to invalidate Home hubs. Its 10-second scan polling belongs only to `DirectoryHubsPageContent`, followed by a scan-end refresh. Momoka exposes Plex `Items`, not that recommended-hubs page; do not move its timer to Home or add activities/hubs solely as a fallback.
+
+The fixed source/byte evidence and local filtering differences are in [媒体库实时更新](../../../docs/媒体库实时更新.md). Plex was **protocol-tested only**: there is no configured real Plex source, live handshake or real import-delivery result. `EmbyRealtimeTests.Push.cs`, `realtime-handshake-fixture` and Home/resource tests verify anonymous messages, headers and lifecycle; official source and these tests do not establish live PMS availability.
+
 ## Terrain
 
 | Concern | Where it lives |
@@ -97,7 +108,7 @@ Plex cross-library genre navigation is not implemented by this client. `DetailVi
 - `PlexMediaTests` covers sign-in, re-authentication after a 401, restore without a second account login, library filtering, search, detail mapping, seasons/episodes, next-up, playback planning, reporting and the menu — all through `EmbySession` against a fake transport.
 - `PlexV2LoginTests.Register()` is called by the existing `PlexMediaTests.Register()`; no shared runner edit is needed for the full Core suite. The dedicated `plex-login-fixture` driver should call `PlexV2LoginTests.Register();` followed by `TestHarness.Run()` once. It exercises the current `EmbySession`, gateway and Core/Plex path with a synthetic handler; no real socket is opened. Persistence is isolated under the current worktree's `artifacts/staged-repair/batch07/r005/fixtures`.
 - R-005 coverage includes the top-level account-to-PMS handshake, no adoption/persistence before PMS approval, 401/403, missing/wrong-type identity/token, profile-name ownership, unproven nested/string-id rejection, token headers and redirect/cancellation, reauthentication identity changes, and saved-token/password restore. Existing media/protocol account fixtures use the same bare v2 shape, not a wrapper that only makes tests green.
-- All suites are offline. They say what this client sends and how it reads the answers it is handed. Official static code corroborates the v2 response contract only; neither source reading nor fake HTTP is a live-account, PMS, DPAPI, playback, 2FA or PIN pass.
+- All suites are offline. They say what this client sends and how it reads the answers it is handed. Official static code corroborates the v2 response contract and the notification behavior described above; neither source reading nor fake HTTP is a live-account, PMS, DPAPI, playback, 2FA or PIN pass.
 - A live check is a new authorization question under CLAUDE.md's three tiers, and a Plex server is not the user's Emby library. Read-only first: address → 「连接」 → confirm the product and server name → then sign in. Record the server version and the observed response shapes in [docs/Plex支持.md](../../../docs/Plex支持.md).
 - Anything touching `PlexHttp` headers, redirect handling, error classification or `PlexEndpoint` needs the test project run, not only UI checks. No live-server coverage exists; report that gap as a gap.
 

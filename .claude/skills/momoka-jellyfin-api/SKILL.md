@@ -1,6 +1,6 @@
 ---
 name: "momoka-jellyfin-api"
-description: "Momoka's REST protocol layer for Jellyfin servers: base address without the /emby/ prefix, the Authorization: MediaBrowser header and which legacy auth forms Jellyfin 12 disables by default, product detection through GET /System/Info/Public, the route map from the current Emby calls to their Jellyfin 12 equivalents, and the version drift between Jellyfin 12 and the legacy routes older clients still use. Use when adding, reviewing or debugging Jellyfin server support in Core/Emby (EmbyServerAddress, DeviceIdentity, EmbyHttp, EmbyUrl, EmbyClient*), or when a route that works on Emby 404s or silently misbehaves on Jellyfin; Emby-only behavior belongs to momoka-emby-api, and feature semantics belong to the domain skills and docs/."
+description: "Momoka's REST protocol layer for Jellyfin servers: base address without the /emby/ prefix, the Authorization: MediaBrowser header and which legacy auth forms Jellyfin 12 disables by default, product detection through GET /System/Info/Public, the route map from the current Emby calls to their Jellyfin 12 equivalents, and the version drift between Jellyfin 12 and the legacy routes older clients still use. Use when adding, reviewing or debugging Jellyfin server support in Core/Emby (EmbyServerAddress, DeviceIdentity, EmbyHttp, EmbyUrl, EmbyClient*), or investigating Jellyfin library notifications, ForceKeepAlive, Home refresh, or routes that work on Emby but fail on Jellyfin; Emby-only behavior belongs to momoka-emby-api, and feature semantics belong to the domain skills and docs/."
 ---
 
 # Momoka — Jellyfin Server REST protocol layer
@@ -109,7 +109,13 @@ A profile saved as Emby may really belong to Jellyfin. `EmbySession.ResolveResto
 
 ## Realtime
 
-The socket handshake follows the same standard `Authorization: MediaBrowser` credential format as REST; no token is placed in the URL. Each reconnect reads the original source's latest connection and is cancelled when that source exits. Loopback 101 tests cover actual client header transmission and reconnect/cancellation, not a live Jellyfin server or complete server compatibility. Do not fall back to `api_key` for Jellyfin 12 when legacy authentication is disabled.
+Append `socket` to the confirmed Jellyfin API base, preserving proxy prefixes. The handshake uses `Authorization: MediaBrowser` as REST does; never put the token in the URL or fall back to `api_key` for Jellyfin 12 with legacy authentication disabled. The shared `EmbyRealtimeConnection` rejects all redirects, reads the original source's latest connection at reconnect, and cancels when Home or that source exits.
+
+`LibraryChanged` wakes Home's first-24-ID/order comparison; playback/session/user-data messages do not trigger a full media refresh. **Home has no periodic media-list polling and no extra HTTP read triggered solely by socket reconnection.** The verified 10.10.7 `recentlyAdded.ts` / `emby-itemscontainer.js` chain uses library-change events without a refresh interval. Official remote changes merge for 10 seconds; Momoka retains its existing single queue and fingerprint check, including pending changes during an active read. Entering Home and manual refresh still read; missed events have no replay guarantee.
+
+`ForceKeepAlive` is an application message: on `{"MessageType":"ForceKeepAlive","Data":60}`, immediately send `{"MessageType":"KeepAlive"}` and repeat at half the supplied period. Frame Ping/Pong is not a substitute. `JellyfinRealtimeKeepAlive` maintains one send loop; a changed period wakes the wait without cancelling an in-flight write, and source/page/socket exit cancels it. Its accepted integer range 2..3600 seconds is a local resource limit, not the server's advertised compatibility range.
+
+On 2026-11-10 the configured Jellyfin **10.10.7** accepted the header handshake with 101; 150 seconds of observation received ForceKeepAlive once and KeepAlive five times without remote disconnect. No real import or LibraryChanged was observed; this does not establish real import delivery or Jellyfin 12 compatibility. `realtime-handshake-fixture`, `HomePushRefreshTests` and websocket resource tests supply separate offline coverage. See [媒体库实时更新](../../../docs/媒体库实时更新.md) for fixed server/client source revisions and evidence.
 
 ## Automatic restore final identity
 

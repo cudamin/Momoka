@@ -20,6 +20,24 @@
 - 列表字段（该版本实测）：`id`、`name`、`year`、`type`、`keyword`、`media_source`、`media_id`、`season`、`poster`、`backdrop`、`description`、`include`、`exclude`、`quality`、`resolution`、`effect`、`total_episode`、`start_episode`、`lack_episode`、`completed_episode`、`state`、`last_update`、`sites`、`downloader`、`save_path` 等。只投影界面要用的字段。
 - 上述只读核对中，该服务器 `GET /api/v1/openapi.json` 返回 **404**，而同一会话里 `GET /api/v1/dashboard/system` 正常返回 `version`。这是该次部署的观测；项目的 `MoviePilotProbe.RunAsync` 在登录后读取 `dashboard/system`、`mediaserver/clients` 和 `download/clients`，没有 OpenAPI 请求。拿不到 schema 时，**契约以对应 tag 的官方源码为准**；不能跳过版本确认，也不能猜字段。
 
+## MP 订阅库与刷新
+
+2026-11-10 核对当前 Momoka：
+
+- 首页媒体库列表的「MP 订阅库」（`mp-subscriptions`）由 `HomeViewModel.MoviePilotLibrary.cs` 创建，仅是本地导航卡；MoviePilot可用时显示，入口汇总电影和电视剧。它没有媒体服务器Source，不请求四后端的库目录或入库WebSocket，也不存进媒体快照。
+- 首页两排订阅与 `MoviePilotSubscriptionsPage` 复用 `MoviePilotHomeSubscriptions`／`MoviePilotSubscriptionsViewModel`，读取 `GET subscribe/` 全量后分类；两排共用一次读取，独立页面各有自己的寿命。进入／返回、显式刷新、连接恢复及本页已确认管理操作会更新；没有订阅内容计时器。连接健康且停留原页时，外部新增订阅或入库不会使该列表自动刷新。
+- 订阅详情按需读取 `subscribe/{id}`、`subscribe/files/{id}`，并补播出日期与当前媒体服务器目标匹配；没有后台入库通知订阅。列表的订阅进度和详情的文件入库统计不是同一份数据，不能把媒体服务器货架刷新当作MP统计已更新。
+- `ShellPage.MoviePilot.cs` 仍每30秒检测 `RefreshAvailabilityAsync`，可用时读 `HistoryCapabilitiesAsync`。健康状态不变不会每次触发订阅回读；恢复可用才通知订阅属主。不能把这个连接检测报成“MP每30秒刷新影片”。
+- 本地原一分钟订阅轮询已按用户要求于2026-11-09删除，以解决加载条引起的首页周期跳动；后续MP库复用这套行为。`PROGRESS.md` 保留匿名驻留与手动刷新验证记录，`Momoka.PageContractTests` 和 `MoviePilotSubscriptionPageStateTests` 是页面寿命／状态回归入口。这是当前产品选择，不是上游没有轮询的证明。
+
+同日重新只读核对官方GitHub：前端v3提交 `609ea05eac7efc7c2cb31edcf5364d26c9c592f1`，后端v3提交 `af963b47b350f07b7ee407ab54a5eb9b4091ab35`。本轮没有读取真实部署版本，不能把分支HEAD当成用户服务器版本。
+
+- [SubscribeListView.vue](https://github.com/jxxghp/MoviePilot-Frontend/blob/609ea05eac7efc7c2cb31edcf5364d26c9c592f1/src/views/subscribe/SubscribeListView.vue#L625)：页面活动且浏览器可见时，每2500毫秒查询 `subscribe/execution/batches?limit=10`；批次签名变化，或存在活动卡／读取错误且距全量请求至少15秒，才静默回读 `subscribe/`。挂载、激活及重新可见也触发相应读取。这是条件轮询，不是影片入库推送。
+- [subexecution.py](https://github.com/jxxghp/MoviePilot/blob/af963b47b350f07b7ee407ab54a5eb9b4091ab35/app/api/endpoints/subexecution.py#L119) 的批次接口返回当前用户可访问订阅的搜索执行进度；[subscribe.py](https://github.com/jxxghp/MoviePilot/blob/af963b47b350f07b7ee407ab54a5eb9b4091ab35/app/api/endpoints/subscribe.py#L119) 为列表补 `execution_status`。任务进度变化不能直接证明新增影片已入库。
+- [订阅日志流](https://github.com/jxxghp/MoviePilot/blob/af963b47b350f07b7ee407ab54a5eb9b4091ab35/app/api/endpoints/subexecution.py#L214) 是 `subscribe/{id}/logs` 的SSE，给日志视图逐行显示；不要将日志流或活动弹窗轮询当作订阅库入库通知。
+
+因此本地订阅列表刷新与官方当前策略存在明确差异。本次只记录，未增加批次轮询或日志订阅；若另行要求对齐，应先确认实际服务器版本、页面范围与期望刷新行为，并保留不引起布局跳动的加载方式。此次只读源码核对没有证明真实MP入库事件或推送送达。
+
 ## 三个进度不是一回事
 
 - `total_episode` / `lack_episode` 是**订阅目标范围内的下载进度**。`total_episode - lack_episode` 不等于已入库集数；界面上叫"订阅进度"，不要叫"下载进度"，更不能当入库进度。
