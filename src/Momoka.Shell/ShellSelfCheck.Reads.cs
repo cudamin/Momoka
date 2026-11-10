@@ -846,8 +846,9 @@ internal static partial class ShellSelfCheck
     /// 删除、下载、改封面、挂字幕）自检一律不碰。
     /// </para>
     /// <para>
-    /// 判红只判「请求本身错了」：400、404、405，或者答回来的 JSON 解不动（那意味着 DTO 对不上）。连不上、超时、
-    /// 403（这个账号不是管理员）都只报不判 —— 那些是网络和账号的事，把它们判红就是把一关的成败交给网络。
+    /// 判红的两种：一是<b>请求本身错了</b> —— 400、404、405，或者答回来的 JSON 解不动（那意味着 DTO 对不上）；
+    /// 二是<b>这一步没问完</b> —— 连不上、超时、403（这个账号不是管理员）。后者不是接口的错，可也不能算验过：
+    /// 2026-11-07 的 R17-005 起，没答上来的步骤与「请求发错了」一样记红，只是措辞分开。
     /// </para>
     /// </summary>
     private static async Task<(bool Ok, string Detail)?> ProbeCommandsAsync(IServiceProvider services)
@@ -855,7 +856,7 @@ internal static partial class ShellSelfCheck
         var session = services.GetRequiredService<EmbySession>();
         if (!session.IsSignedIn) return null;
 
-        // 自己的一份预算：这一条排在整段走完之后，那时候按拍算的期限早就花完了。
+        // 前置那一趟的预算：这一条排在整段走完之后，那时候按拍算的期限早就花完了。
         using var budget = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         var notes = new List<string>();
@@ -881,14 +882,14 @@ internal static partial class ShellSelfCheck
         if (found.Items.FirstOrDefault() is not { } file) return null;
 
 
-        await Step("合集列表", async token =>
+        await Step("合集列表", 15, async token =>
         {
             var list = await session.ExecuteAsync((client, t) => client.GetCollectionsAsync(t), token)
                 .ConfigureAwait(true);
             return $"合集 {list.Count} 个";
         }).ConfigureAwait(true);
 
-        await Step("候选封面", async token =>
+        await Step("候选封面", 20, async token =>
         {
             var images = await session
                 .ExecuteAsync((client, t) => client.GetRemoteImagesAsync(file.Id, EmbyImageStore.Primary, t), token)
@@ -897,7 +898,7 @@ internal static partial class ShellSelfCheck
             return $"候选封面 {images.Images.Count} 张（刮削源 {images.Providers.Count} 家）";
         }).ConfigureAwait(true);
 
-        await Step("刷新元数据", async token =>
+        await Step("刷新元数据", 20, async token =>
         {
             await session
                 .ExecuteAsync((client, t) => client.ValidateItemRefreshAsync(file.Id, t), token)
@@ -906,10 +907,10 @@ internal static partial class ShellSelfCheck
             return "刷新接口通（只走 ValidationOnly，没改任何东西）";
         }).ConfigureAwait(true);
 
-        // 最后一条：搜字幕要服务器去问字幕站，慢起来是十几秒，前面几条不该等它。
+        // 这一条要等服务器去问字幕站，慢起来十几秒 —— 所以它排在最后，预算也单给一份。
         if (file.DefaultMediaSource is { } source)
         {
-            await Step("字幕搜索", async token =>
+            await Step("字幕搜索", 40, async token =>
             {
                 var subtitles = await session
                     .ExecuteAsync((client, t) => client.SearchSubtitlesAsync(file.Id, source.Id, "chi", t), token)
@@ -926,7 +927,7 @@ internal static partial class ShellSelfCheck
         // 「下载一整部剧」靠的是这一句：单集列表点名要 MediaSources 的时候到底带不带回来。带的话一趟就够，不带
         // 的话下每一集之前要各补问一次（见 ItemCommands 的 SaveAsync）—— 两条路都通，可这台服务器走的是哪一条
         // 只有问过才知道，而它决定的是一次下载发 1 趟还是 25 趟请求。
-        await Step("单集列表带媒体源", async token =>
+        await Step("单集列表带媒体源", 25, async token =>
         {
             var shows = await session.ExecuteAsync((client, t) => client.GetItemsAsync(new ItemQuery
             {
@@ -950,7 +951,7 @@ internal static partial class ShellSelfCheck
         // 路径或参数发错了是 404/400，屏上一张空表看不出区别，只有真问一遍才知道这台服务器认不认。另外要问出
         // 一件事：**默认那一趟到底含不含特别篇和未播出**。它决定「特别篇／预告」两颗开关是本地筛就够（默认
         // 已经含了），还是根本没有东西可筛。所以这里扫一批剧，看有多少部的默认结果里真的带第 0 季／未来首播。
-        await Step("遗漏集", async token =>
+        await Step("遗漏集", 60, async token =>
         {
             var shows = await session.ExecuteAsync((client, t) => client.GetItemsAsync(new ItemQuery
             {
@@ -966,14 +967,30 @@ internal static partial class ShellSelfCheck
             var withSpecials = 0;
             var withUnaired = 0;
             var widest = (Name: "", All: new List<EmbyItem>());
+            var asked = 0;
 
             foreach (var show in shows.Items)
             {
-                var all = await Ask(show.Id, null, null).ConfigureAwait(true);
+                List<EmbyItem> all;
+                try
+                {
+                    all = await Ask(show.Id, null, null).ConfigureAwait(true);
+                }
+                catch (OperationCanceledException)
+                {
+                    // 预算用尽：这趟已经问通过至少一部剧，路由本身是通的，剩下没扫完的按实际扫到的报 ——
+                    // 「服务器慢」不是「接口发错了」，别把这一步记成红。一部都没问完的那种在下面拦。
+                    break;
+                }
+
+                asked++;
                 if (all.Any(ItemDetail.MissingIsSpecial)) withSpecials++;
                 if (all.Any(episode => ItemDetail.MissingIsUnaired(episode, now))) withUnaired++;
                 if (all.Count > widest.All.Count) widest = (show.Name, all);
             }
+
+            // 一部都没问完 = Shows/Missing 这条路由还没被证明能用，不能报通过。
+            if (asked == 0) throw new TimeoutException("一部剧都没问完");
 
             var seasons = widest.All
                 .GroupBy(episode => episode.ParentIndexNumber?.ToString() ?? "无季号")
@@ -988,7 +1005,8 @@ internal static partial class ShellSelfCheck
                     + $" 剧集缩略图[{(sample.SeriesThumbImageTag is { Length: > 0 } ? "有" : "无")}]"
                     + $" 简介{sample.Overview?.Length ?? 0}字";
 
-            return $"扫了 {shows.Items.Count} 部剧：默认结果里含第 0 季的 {withSpecials} 部、含未来首播的 {withUnaired} 部；"
+            var scope = asked == shows.Items.Count ? $"{asked} 部剧" : $"{asked} 部剧（共 {shows.Items.Count} 部，预算用尽）";
+            return $"扫了 {scope}：默认结果里含第 0 季的 {withSpecials} 部、含未来首播的 {withUnaired} 部；"
                 + $"缺得最多的是《{widest.Name}》{widest.All.Count} 集（{string.Join("、", seasons)}）；{shape}";
 
             Task<List<EmbyItem>> Ask(string id, bool? unaired, bool? special) =>
@@ -997,11 +1015,16 @@ internal static partial class ShellSelfCheck
 
         return (ok, $"拿《{file.Name}》问的：{string.Join("；", notes)}");
 
-        async Task Step(string what, Func<CancellationToken, Task<string>> work)
+        // 每一步各给一份预算。以前是一条 30 秒的预算给整段合用，而这些步骤的耗时差得很远（等字幕站那趟
+        // 慢起来十几秒，遗漏集要一部一部地扫 24 部剧）—— 结果排在后面的「遗漏集」每次都只答一句「操作已取消」，
+        // 等于这一条从 2026-11-04 起就没真验过；R17-005 之后它还变成一条红。按步计时：谁慢谁自己慢，不连坐。
+        async Task Step(string what, int seconds, Func<CancellationToken, Task<string>> work)
         {
+            using var step = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
+
             try
             {
-                notes.Add(await work(budget.Token).ConfigureAwait(true));
+                notes.Add(await work(step.Token).ConfigureAwait(true));
             }
             catch (Exception error) when (Fatal(error))
             {

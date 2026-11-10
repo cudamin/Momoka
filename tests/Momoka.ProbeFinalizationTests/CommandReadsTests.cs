@@ -21,6 +21,23 @@ namespace Momoka.Tests
                 var result = await CommandReadsFixture.ProbeCommandsAsync(services);
                 Ensure(result is { Ok: false }, "failed service step must not count as verified success");
             });
+            Test("R17-005-missing-episodes-first-cancel", async () =>
+            {
+                // 遗漏集第一部剧就被预算掐掉：Shows/Missing 这条路由还没被证明能用，不能报通过。
+                var services = new CommandServiceProvider { Session = new() { Failure = new OperationCanceledException("anonymous"), FailAt = 8 } };
+                var result = await CommandReadsFixture.ProbeCommandsAsync(services);
+                Ensure(result is { Ok: false }, "a missing-episode scan that never answered must not count as verified");
+            });
+            Test("R17-005-missing-episodes-partial-scan", async () =>
+            {
+                // 第一部的 Shows/Missing 已经问通、第二部被预算掐掉：路由验过了，剩下没扫完的按实际扫到的报，不记红。
+                var services = new CommandServiceProvider
+                {
+                    Session = new() { Failure = new OperationCanceledException("anonymous"), FailAt = 9, SeriesCount = 2 }
+                };
+                var result = await CommandReadsFixture.ProbeCommandsAsync(services);
+                Ensure(result is { Ok: true }, "a scan cut short after the route answered still counts as verified");
+            });
             Test("R17-005-no-fixture", async () =>
             {
                 var result = await CommandReadsFixture.ProbeCommandsAsync(new CommandServiceProvider());
@@ -57,12 +74,21 @@ namespace Momoka.Shell
         internal bool HasFile { get; init; }
         internal int FailAt { get; init; }
         internal Exception? Failure { get; init; }
+
+        /// <summary>一次 Items 查询答回来几条剧 —— 遗漏集那一关按条数一部一部地问。</summary>
+        internal int SeriesCount { get; init; } = 1;
+
         private int _calls;
         internal Task<T> ExecuteAsync<T>(Func<EmbyClient, CancellationToken, Task<T>> read, CancellationToken token)
         {
             if (++_calls == FailAt) return Task.FromException<T>(Failure!);
             object result = typeof(T) == typeof(ItemsResult)
-                ? new ItemsResult { Items = HasFile || FailAt > 0 ? [new() { Id = "anonymous", Type = EmbyItemType.Movie }] : [] }
+                ? new ItemsResult
+                {
+                    Items = HasFile || FailAt > 0
+                        ? [.. Enumerable.Range(0, SeriesCount).Select(_ => new EmbyItem { Id = "anonymous", Type = EmbyItemType.Movie })]
+                        : []
+                }
                 : typeof(T) == typeof(List<EmbyItem>) ? new List<EmbyItem>()
                 : typeof(T) == typeof(RemoteImageResult) ? new RemoteImageResult()
                 : throw new InvalidOperationException("unexpected fixture response " + typeof(T));
