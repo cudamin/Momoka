@@ -17,6 +17,21 @@ internal static class BilibiliClientTests
 
     internal static void Register()
     {
+        Test("B站：明确ep或分P链接优先于播放器预填集数", async () =>
+        {
+            foreach (var input in new[] { "https://www.bilibili.com/video/BV17x411w7KC/?p=2", "ep202" })
+            {
+                using var client = Client(new Handler((request, _) => Task.FromResult(Json(request.RequestUri!.AbsolutePath switch
+                {
+                    "/x/web-interface/nav" => Nav,
+                    "/x/web-interface/view" => Video,
+                    "/pgc/view/web/season" => Season,
+                    _ => throw new AssertionException("不应请求其他地址")
+                }))));
+                var result = await client.SearchAsync(input, "1");
+                Assert.Equal(input == "ep202" ? 402L : 12L, result.Episodes.Single().EpisodeId);
+            }
+        });
         Test("B站：登录确认只向固定nav发送白名单会话并读取帐号", () =>
         {
             using var handler = new Handler((request, _) =>

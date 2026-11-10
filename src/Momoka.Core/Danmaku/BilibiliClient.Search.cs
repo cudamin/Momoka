@@ -22,6 +22,8 @@ public sealed partial class BilibiliClient
             || !int.TryParse(episode, NumberStyles.None, CultureInfo.InvariantCulture, out episodeNumber) || episodeNumber <= 0))
             throw new DandanPlayException("集数必须是正整数，留空可搜索全部剧集。");
         var target = ParseTarget(title);
+        // 用户已明确选择的分集/分P优先，不能被播放器从当前片源预填的集数再次筛掉。
+        if (target is { Kind: "ep_id" } or { Page: > 0 }) episodeNumber = 0;
         using var navDocument = await ValidateIdentityAsync(session, token).ConfigureAwait(false);
         var cookie = session.Cookie;
         var results = new List<DandanPlayEpisode>();
