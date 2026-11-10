@@ -38,7 +38,20 @@ internal sealed partial class ShellNavigationProbe
             Require(vm.Rows.Count == 1 && vm.Rows[0].Ready && vm.CanApply, "匿名电影没有生成实际链接计划");
             foreach (var width in new[] { 1100, 760 })
             {
-                ResizeProbeClient(width, 860);
+                for (var attempt = 0; attempt < 3; attempt++)
+                {
+                    if (_window.IsMaximized) _window.ToggleMaximize();
+                    ResizeProbeClient(width, 860);
+                    var deadline = Environment.TickCount64 + 2500;
+                    while (Environment.TickCount64 < deadline)
+                    {
+                        _root.UpdateLayout();
+                        if (Math.Abs(_root.ActualWidth - width) < 1) break;
+                        await Task.Delay(16);
+                    }
+                    if (Math.Abs(_root.ActualWidth - width) < 1) break;
+                }
+                Require(Math.Abs(_root.ActualWidth - width) < 1, $"窗口实际宽度 {_root.ActualWidth} 未达到 {width}；客户区 {_window.ClientSize}，缩放 {_root.XamlRoot.RasterizationScale}");
                 await LayoutAsync(page);
                 Require(Get<TextBox>(page, "LocalMediaSource").ActualWidth > 120, "窄窗源目录输入被挤出");
                 await SaveProbeScreenAsync($"local-media-preview-{width}-screen.png");
