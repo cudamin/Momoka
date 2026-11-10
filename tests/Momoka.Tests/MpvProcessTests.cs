@@ -331,12 +331,11 @@ internal static class MpvProcessTests
                 var valid = stage switch
                 {
                     0 => verb == "set_property" && command[1].GetString() == "http-header-fields"
-                        && command[2].GetArrayLength() == 2 && command[2][0].GetString() == "X-Emby-Token: " + Token
-                        && command[2][1].GetString() == "X-Emby-Authorization: " + Authorization,
+                        && command[2].GetArrayLength() == 0,
                     1 => verb == "set_property" && command[1].GetString() == "options/sub-files"
-                        && command[2].GetArrayLength() == 1 && command[2][0].GetString() == Subtitle,
+                        && command[2].GetArrayLength() == 1 && IsLocalResource(command[2][0].GetString(), ".ass"),
                     2 => verb == "set_property" && command[1].GetString() == "options/start" && command[2].GetString() == "1234.5",
-                    3 => verb == "loadfile" && command[1].GetString() == Media && command[2].GetString() == "replace",
+                    3 => verb == "loadfile" && IsLocalResource(command[1].GetString(), ".mkv") && command[2].GetString() == "replace",
                     _ => false
                 };
                 await audit.WriteLineAsync(valid ? $"stage:{stage}" : "bad-sequence");
@@ -373,4 +372,9 @@ internal static class MpvProcessTests
         }
         return 0;
     }
+
+    private static bool IsLocalResource(string? value, string extension) =>
+        Uri.TryCreate(value, UriKind.Absolute, out var resource) && resource.Scheme == "http"
+            && resource.Host == "127.0.0.1" && resource.AbsolutePath.EndsWith(extension, StringComparison.Ordinal)
+            && !value.Contains(Token, StringComparison.Ordinal) && !value.Contains(Authorization, StringComparison.Ordinal);
 }

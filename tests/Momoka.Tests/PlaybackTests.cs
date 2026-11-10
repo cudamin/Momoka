@@ -401,7 +401,7 @@ internal static class PlaybackTests
             Assert.DoesNotContain("--sid=3", line);
         });
 
-        Test("启动参数：HTTP 头和媒体只在 IPC 加载命令中", () =>
+        Test("启动参数：服务器 HTTP 头不进入 native，媒体只在 IPC 加载命令中", () =>
         {
             var request = Request() with
             {
@@ -420,8 +420,7 @@ internal static class PlaybackTests
             var commands = MpvArgumentBuilder.LoadCommands(request);
             Assert.Equal("http-header-fields", commands[0][1]);
             var headers = (string[])commands[0][2]!;
-            Assert.Equal(2, headers.Length);
-            Assert.Equal("X-Emby-Authorization: " + request.HttpHeaders[1].Value, headers[1]);
+            Assert.Equal(0, headers.Length);
             Assert.Equal("loadfile", commands[^1][0]);
             Assert.Equal(request.MediaUrl.AbsoluteUri, commands[^1][1]);
         });

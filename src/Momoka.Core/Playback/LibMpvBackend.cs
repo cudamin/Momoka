@@ -73,8 +73,11 @@ public sealed class LibMpvBackend(
         IntPtr context = IntPtr.Zero;
         MpvCustomConfig? customConfig = null;
         IDisposable? svpLease = null;
+        PlaybackHttpTransport? httpTransport = null;
         try
         {
+            httpTransport = PlaybackHttpTransport.Create(request);
+            var nativeRequest = httpTransport?.Prepare(request) ?? request;
             var dllPath = ResolveLibMpv() ?? throw new InvalidOperationException(Validate() ?? $"找不到 {LibraryName}");
             if (MpvCustomConfig.Resolve(settings) is { } customPath) customConfig = MpvCustomConfig.Prepare(customPath);
 
@@ -125,7 +128,7 @@ public sealed class LibMpvBackend(
             // uosc 请求与弹幕图层的文件序号、加载回执都经 ClientMessage；集成模式也要保留弹幕通道。
             PruneEvents(context, keepClientMessage: uiOptions is not null || MpvDanmaku.Exists(AppContext.BaseDirectory));
 
-            var (surface, pipelineOptions) = ApplyOptions(context, request, uiOptions, customConfig);
+            var (surface, pipelineOptions) = ApplyOptions(context, nativeRequest, uiOptions, customConfig);
             if (request.SvpEnabled)
             {
                 var ipcError = LibMpvNative.mpv_set_option_string(context, "input-ipc-server", MpvSvp.PipePath);
@@ -189,11 +192,12 @@ public sealed class LibMpvBackend(
             var signature = Signature(settings, playback, request, uiOptions ?? []) with { UsesCustomConfig = customConfig is not null };
             var handle = new LibMpvHandle(context, surface, signature,
                 next => Signature(settings, playback, next, uiOptions ?? []))
-            { CustomConfig = customConfig, SvpLease = svpLease };
+            { CustomConfig = customConfig, SvpLease = svpLease, HttpTransport = httpTransport };
+            httpTransport = null;
             customConfig = null;
             svpLease = null;
             context = IntPtr.Zero;
-            try { handle.Start(request, cancellationToken); }
+            try { handle.Start(nativeRequest, cancellationToken); }
             catch
             {
                 await handle.DisposeAsync().ConfigureAwait(false);
@@ -210,6 +214,7 @@ public sealed class LibMpvBackend(
         }
         finally
         {
+            httpTransport?.Cancel();
             try
             {
                 if (context != IntPtr.Zero) LibMpvNative.mpv_terminate_destroy(context);
@@ -219,6 +224,7 @@ public sealed class LibMpvBackend(
                 try { customConfig?.Dispose(); }
                 finally { svpLease?.Dispose(); }
             }
+            if (httpTransport is not null) await httpTransport.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -260,6 +266,9 @@ public sealed class LibMpvBackend(
         Set(context, "load-scripts", "no");
         Set(context, "log-file", "");
         Set(context, "input-ipc-server", "");
+        // The upstream leg uses .NET's proxy/certificate policy. Never proxy a local capability URL.
+        if (LibMpvNative.mpv_set_option_string(context, "http-proxy", "") < 0)
+            throw new InvalidOperationException("内置播放器未能关闭本地转发地址的代理，已停止启动");
         Set(context, "save-watch-history", "no");
 
         // youtube-dl 钩子整个停掉。这里的媒体 URL 只有两种形状——Emby 的直连流和本机文件——ytdl 对
@@ -317,15 +326,10 @@ public sealed class LibMpvBackend(
         if (request.ExternalSubtitles.Count > 0)
             Set(context, "sub-files", MpvListValue.JoinFiles(request.ExternalSubtitles.Select(uri => uri.AbsoluteUri)));
 
-        // http-header-fields-append 是命令行专有写法，libmpv 的 mpv_set_option_string 认不出来
-        // （option not found）。http-header-fields 才是可设置的选项：逗号分隔、反斜杠转义。
-        if (request.HttpHeaders.Count > 0)
-        {
-            var fields = string.Join(",",
-                request.HttpHeaders.Select(header => $"{header.Key}: {MpvListValue.Escape(header.Value)}"));
-            if (LibMpvNative.mpv_set_option_string(context, "http-header-fields", fields) < 0)
-                throw new InvalidOperationException("内置播放器未接受认证请求头，已停止启动");
-        }
+        // FFmpeg and curl forward custom global headers into redirects and nested resources.
+        // Credentials stay in the managed transport; clearing must succeed even after custom config.
+        if (LibMpvNative.mpv_set_option_string(context, "http-header-fields", "") < 0)
+            throw new InvalidOperationException("内置播放器未能清除全局 HTTP 请求头，已停止启动");
 
         if (!string.IsNullOrWhiteSpace(request.Title)) Set(context, "force-media-title", request.Title);
 
@@ -526,6 +530,8 @@ internal sealed class LibMpvHandle(
     public bool UsesCustomConfig => signature?.UsesCustomConfig == true;
     public IReadOnlyDictionary<string, string>? ShaderRestoreOptions { get; private set; }
     internal IDisposable? SvpLease { get; init; }
+    internal PlaybackHttpTransport? HttpTransport { get; set; }
+    private Task _retiredHttpTransports = Task.CompletedTask;
     private const string Category = "mpv";
     private const int ClientMessageMaxArgs = 32;
 
@@ -699,7 +705,7 @@ internal sealed class LibMpvHandle(
         if (!Command("loadfile", request.MediaUrl.AbsoluteUri, "replace"))
             throw new InvalidOperationException("内置播放器未接受媒体加载命令");
         cancellationToken.ThrowIfCancellationRequested();
-        Log.Info(Category, $"内置播放器开始播放 {request.MediaUrl.AbsoluteUri}");
+        Log.Info(Category, "内置播放器已发送媒体加载请求");
     }
 
     // ---- taking the next file in the same window ---------------------------------
@@ -770,31 +776,58 @@ internal sealed class LibMpvHandle(
             return false;
         }
 
+        var nextTransport = PlaybackHttpTransport.Create(request);
+        PlaybackRequest nativeRequest;
+        try { nativeRequest = nextTransport?.Prepare(request) ?? request; }
+        catch
+        {
+            RetireTransport(nextTransport);
+            throw;
+        }
         _apiGate.NextGeneration();
-        foreach (var (name, value) in filmOptions)
+        try
         {
+            foreach (var (name, value) in filmOptions)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!Write(name, value)) { RetireTransport(nextTransport); return false; }
+            }
+            foreach (var (name, value) in InlineSwitch.PerFile(nativeRequest))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!Write(name, value)) { RetireTransport(nextTransport); return false; }
+            }
             cancellationToken.ThrowIfCancellationRequested();
-            if (!Write(name, value)) return false;
         }
-        foreach (var (name, value) in InlineSwitch.PerFile(request))
+        catch
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!Write(name, value)) return false;
+            RetireTransport(nextTransport);
+            throw;
         }
-        cancellationToken.ThrowIfCancellationRequested();
+        var previousTransport = HttpTransport;
+        HttpTransport = nextTransport;
         _swapping = true;
         _exit = new TaskCompletionSource<PlaybackExit>(TaskCreationOptions.RunContinuationsAsynchronously);
         _finishedReason = null;
         _handedOver = false;
         Interlocked.Exchange(ref _lastPositionMs, -1);
-        if (!Command("loadfile", request.MediaUrl.AbsoluteUri, "replace"))
+        if (!Command("loadfile", nativeRequest.MediaUrl.AbsoluteUri, "replace"))
         {
+            RetireTransport(previousTransport);
             _swapping = false;
             _exit.TrySetResult(new PlaybackExit(PlaybackEndReason.Error, null, -1, "换片加载命令未被接受"));
             return false;
         }
+        RetireTransport(previousTransport);
         Log.Info(Category, $"独占换片：不关窗口，同一个 mpv 换源 —— {request.Title}");
         return true;
+    }
+
+    private void RetireTransport(PlaybackHttpTransport? transport)
+    {
+        if (transport is null) return;
+        transport.Cancel();
+        _retiredHttpTransports = Task.WhenAll(_retiredHttpTransports, transport.DisposeAsync().AsTask());
     }
 
     /// <summary>
@@ -1452,7 +1485,7 @@ internal sealed class LibMpvHandle(
         return Task.Run(() => _apiGate.RunFor(generation, () =>
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return !_handedOver && !_stopRequested && Command(copy);
+            return !_handedOver && !_stopRequested && Command(HttpTransport?.MapCommand(copy) ?? copy);
         }), CancellationToken.None);
     }
 
@@ -1623,7 +1656,8 @@ internal sealed class LibMpvHandle(
                     Codec = LibMpvNodes.String(map, "codec"),
                     MainSelection = LibMpvNodes.Int(map, "main-selection"),
                     FfmpegIndex = LibMpvNodes.Int(map, "ff-index"),
-                    ExternalFilename = LibMpvNodes.String(map, "external-filename"),
+                    ExternalFilename = HttpTransport?.Original(LibMpvNodes.String(map, "external-filename"))
+                        ?? LibMpvNodes.String(map, "external-filename"),
                     Channels = LibMpvNodes.String(map, "demux-channels"),
                     ChannelCount = LibMpvNodes.Int(map, "demux-channel-count") ?? 0,
                     SampleRate = LibMpvNodes.Int(map, "demux-samplerate") ?? 0,
@@ -1669,6 +1703,7 @@ internal sealed class LibMpvHandle(
     {
         _contextClosed.TrySetResult();
         _stopRequested = true;
+        HttpTransport?.Cancel();
         await Task.Run(() =>
         {
             StopComposition();
@@ -1698,6 +1733,7 @@ internal sealed class LibMpvHandle(
                 _contextClosed.TrySetResult();
                 _stopRequested = true;
                 _leaveLoop = true;
+                HttpTransport?.Cancel();
                 _disposeWork = Task.Run(DisposeAllAsync);
                 _disposeTask = WaitForShutdownAsync(_disposeWork, "释放");
             }
@@ -1728,6 +1764,8 @@ internal sealed class LibMpvHandle(
     private async Task DisposeAllAsync()
     {
         DisposeCore();
+        if (HttpTransport is { } transport) await transport.DisposeAsync().ConfigureAwait(false);
+        await _retiredHttpTransports.ConfigureAwait(false);
         if (_lateDestroyTask is { } late) await late.ConfigureAwait(false);
     }
 

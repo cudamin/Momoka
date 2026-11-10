@@ -26,41 +26,52 @@ public sealed class MpvProcessBackend(MpvSettings settings) : IPlaybackBackend
         if (Validate() is { } problem) throw new InvalidOperationException(problem);
 
         cancellationToken.ThrowIfCancellationRequested();
-        var pipeName = MpvIpcClient.CreatePipeName();
-        var arguments = MpvArgumentBuilder.Build(request, MpvIpcClient.ToPipePath(pipeName));
-
-        var start = new ProcessStartInfo
-        {
-            FileName = settings.ExecutablePath,
-            UseShellExecute = false,
-            CreateNoWindow = false,
-            RedirectStandardError = true,
-            RedirectStandardOutput = true,
-            // So that anything mpv itself resolves relative to its own folder — a codec list, a
-            // fontconfig cache — behaves as it would if it had been launched from there by hand.
-            WorkingDirectory = Path.GetDirectoryName(settings.ExecutablePath) ?? Environment.CurrentDirectory
-        };
-
-        foreach (var argument in arguments) start.ArgumentList.Add(argument);
-
-        Log.Info(Category, "启动外部 mpv：通过验证身份的管道传递播放请求");
-        if (request.ShaderProfile is { } profile)
-            Log.Info(Category, $"着色器配置组：{profile}（{request.ShaderReason}）");
-
-        var process = Process.Start(start) ?? throw new InvalidOperationException("无法启动 mpv 进程");
-        var handle = new MpvProcessHandle(process);
+        PlaybackHttpTransport? transport = null;
         try
         {
-            await handle.AttachAsync(pipeName, request, settings.EnableIpc, cancellationToken).ConfigureAwait(false);
-            return handle;
+            transport = PlaybackHttpTransport.Create(request);
+            var nativeRequest = transport?.Prepare(request) ?? request;
+            var pipeName = MpvIpcClient.CreatePipeName();
+            var arguments = MpvArgumentBuilder.Build(request, MpvIpcClient.ToPipePath(pipeName));
+
+            var start = new ProcessStartInfo
+            {
+                FileName = settings.ExecutablePath,
+                UseShellExecute = false,
+                CreateNoWindow = false,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                // So that anything mpv itself resolves relative to its own folder — a codec list, a
+                // fontconfig cache — behaves as it would if it had been launched from there by hand.
+                WorkingDirectory = Path.GetDirectoryName(settings.ExecutablePath) ?? Environment.CurrentDirectory
+            };
+
+            foreach (var argument in arguments) start.ArgumentList.Add(argument);
+
+            Log.Info(Category, "启动外部 mpv：通过验证身份的管道传递播放请求");
+            if (request.ShaderProfile is { } profile)
+                Log.Info(Category, $"着色器配置组：{profile}（{request.ShaderReason}）");
+
+            var process = Process.Start(start) ?? throw new InvalidOperationException("无法启动 mpv 进程");
+            var handle = new MpvProcessHandle(process) { HttpTransport = transport };
+            transport = null;
+            try
+            {
+                await handle.AttachAsync(pipeName, nativeRequest, settings.EnableIpc, cancellationToken).ConfigureAwait(false);
+                return handle;
+            }
+            catch
+            {
+                // Attach 一失败，这个句柄就没人接了：进程不带自毁，客户端这边一场空，mpv 却在前台继续放。
+                // 交给句柄自己收拾 —— DisposeAsync 开头会送还活着的 mpv 走（见它那句注释），所以这里只管
+                // 放回去再重抛，让调用方看到真正的失败原因。
+                await handle.DisposeAsync().ConfigureAwait(false);
+                throw;
+            }
         }
-        catch
+        finally
         {
-            // Attach 一失败，这个句柄就没人接了：进程不带自毁，客户端这边一场空，mpv 却在前台继续放。
-            // 交给句柄自己收拾 —— DisposeAsync 开头会送还活着的 mpv 走（见它那句注释），所以这里只管
-            // 放回去再重抛，让调用方看到真正的失败原因。
-            await handle.DisposeAsync().ConfigureAwait(false);
-            throw;
+            if (transport is not null) await transport.DisposeAsync().ConfigureAwait(false);
         }
     }
 }
@@ -68,6 +79,7 @@ public sealed class MpvProcessBackend(MpvSettings settings) : IPlaybackBackend
 /// <summary>One mpv process plus its control channel.</summary>
 internal sealed class MpvProcessHandle(Process process) : IPlaybackHandle, IPlayerControl
 {
+    internal PlaybackHttpTransport? HttpTransport { get; init; }
     private const string Category = "mpv";
     private readonly CancellationTokenSource _finished = new();
 
@@ -206,7 +218,7 @@ internal sealed class MpvProcessHandle(Process process) : IPlaybackHandle, IPlay
     {
         if (name == "track-list")
         {
-            var tracks = ParseTracks(message.Data);
+            var tracks = HttpTransport?.OriginalTracks(ParseTracks(message.Data)) ?? ParseTracks(message.Data);
             if (tracks.Count > 0) TracksChanged?.Invoke(tracks);
             return;
         }
@@ -333,6 +345,7 @@ internal sealed class MpvProcessHandle(Process process) : IPlaybackHandle, IPlay
     public async Task StopAsync()
     {
         _stopRequested = true;
+        HttpTransport?.Cancel();
 
         if (_startup is { IsConnected: true })
         {
@@ -372,7 +385,7 @@ internal sealed class MpvProcessHandle(Process process) : IPlaybackHandle, IPlay
         if (arguments.Count == 0) return true;
         if (_ipc is not { IsConnected: true }) return false;
 
-        return await _ipc.SendAsync(cancellationToken, [.. arguments]).ConfigureAwait(false);
+        return await _ipc.SendAsync(cancellationToken, [.. HttpTransport?.MapCommand(arguments) ?? [.. arguments]]).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken)
@@ -385,7 +398,8 @@ internal sealed class MpvProcessHandle(Process process) : IPlaybackHandle, IPlay
         try
         {
             using var document = JsonDocument.Parse(raw);
-            return ParseTracks(document.RootElement);
+            var tracks = ParseTracks(document.RootElement);
+            return HttpTransport?.OriginalTracks(tracks) ?? tracks;
         }
         catch (JsonException)
         {
@@ -585,6 +599,7 @@ internal sealed class MpvProcessHandle(Process process) : IPlaybackHandle, IPlay
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposeStarted, 1) != 0) return;
+        HttpTransport?.Cancel();
         // 句柄一放出去，这个进程就没人管了。正常收尾那一头 mpv 已经退了，这一下只花一次 HasExited 的钱；
         // 句柄还活着就被 Dispose 的那些路（起播失败、上报那一句抛了别的错）却正是 mpv 被漏在外面继续放
         // 的地方 —— 从前这里只拆观察用的管线，从不开口请 mpv 走，两个后端的 Dispose 语义也从此一致。
@@ -625,5 +640,6 @@ internal sealed class MpvProcessHandle(Process process) : IPlaybackHandle, IPlay
 
         _finished.Dispose();
         process.Dispose();
+        if (HttpTransport is { } transport) await transport.DisposeAsync().ConfigureAwait(false);
     }
 }

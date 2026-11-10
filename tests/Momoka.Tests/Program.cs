@@ -10,6 +10,16 @@ internal static class Program
             ItemTrailerTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["playback-http-native-probe", var probeDll])
+            return PlaybackHttpNativeProbe.Run(probeDll);
+        if (args is ["playback-http-fixture"])
+        {
+            PlaybackHttpTransportTests.Register();
+            MpvProcessTests.Register();
+            MpvCustomConfigTests.Register();
+            InlineSwitchTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["moviepilot-subscription-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -414,6 +424,7 @@ internal static class Program
         TestEntryPointTests.Register();
         StubTransportTests.Register();
         ActivationListenerTests.Register();
+        PlaybackHttpTransportTests.Register();
         PlaybackTests.Register();
         EpisodeRemovalTests.Register();
         MarkedWatchedSourceTests.Register();
