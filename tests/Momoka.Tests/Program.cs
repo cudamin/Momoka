@@ -4,6 +4,14 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["browse-identity-fixture"])
+        {
+            AggregateQueryTests.Register();
+            HomeLayoutTests.Register();
+            RemovedMediaTests.Register();
+            EpisodeRemovalTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["fnnas-layout-vm-fixture", var layoutShell, var layoutRoot])
             return FnNasLibraryDisplayViewTests.Run(layoutShell, layoutRoot);
         if (args is ["fnnas-layout-fixture"])

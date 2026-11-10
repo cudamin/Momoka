@@ -1,5 +1,9 @@
 # 开发进度
 
+## 2026-11-10 第一批整合回归：身份比较夹具
+
+主树7795627完整主测4567/4546/21失败，18项来自历史纯身份夹具用空Session构造scope，新PermissionReadRevision正常读取当前会话触发空引用；另外3项真实重登接续回归由隔离实现者修复。纯身份夹具改用无网络/凭据的真实内存Session，释放后仅保留来源key/名称，PermissionRevision明确为-1、不授权。未放宽生产权限判断。新增browse-identity-fixture保留原聚合/主页/删除身份断言，55/55通过；Plex相关263/263、删除后选集9/9通过，当前Tests/Core Release0警告0错误。最终全测在接续修复合入后重跑，旧失败日志保留。
+
 ## 2026-11-10 轮播采样窗口诊断修正（独立验证工具，待原生重验）
 
 树 `C:/Users/89400/.codex/worktrees/library-batch1-clock-probe/Momoka`、分支 `codex/library-batch1-clock-probe`，基点 `33ef27c`。根代理当前原生 library 报告 `shell-probe-20261110-125423956-26244` 为 35/36，轮播仅保存一条像素静止读数，缺失败样本时间，不能确认产品提前换片或改记通过。仅改探针与读数规则：自然停留用独立10秒周期收8个样本，再重置三秒验证本轮第一次换片；周期内旧起点、提前换图/重启仍严格拒绝，超期只结束采样且不足仍失败。每样本校验前写 index/started/actualStarted/now/elapsed/currentId/samePicture/progress，now只读一次；禁止等后轮第二张补本轮证据。未改HomeBanner产品行为。

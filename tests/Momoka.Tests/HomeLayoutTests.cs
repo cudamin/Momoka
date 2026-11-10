@@ -485,8 +485,8 @@ internal static class HomeLayoutTests
         var connection = new EmbyConnection(new Uri("https://fixture.invalid/"), "fixture", account, account,
             server, DeviceIdentity.Create("home-layout-fixture", "test"))
         { ServerKind = kind };
-        var scope = new EmbySessionScope(null!, new EmbySessionScope.Identity(new EmbyClient(null!, connection),
-            new ServerProfile { Id = server, Name = server }, new AccountProfile { Id = account, Username = account }));
+        var scope = AnonymousScopeFixture.DetachedIdentity(connection,
+            new ServerProfile { Id = server, Name = server }, new AccountProfile { Id = account, Username = account });
         return scope.Bind(Library(id, name));
     }
 
@@ -498,8 +498,8 @@ internal static class HomeLayoutTests
         {
             ServerKind = MediaServerKind.FnNas
         };
-        var scope = new EmbySessionScope(null!, new EmbySessionScope.Identity(new EmbyClient(null!, connection),
-            new ServerProfile { Id = "fn", Name = "飞牛" }, new AccountProfile { Id = "user", Username = "user" }));
+        var scope = AnonymousScopeFixture.DetachedIdentity(connection,
+            new ServerProfile { Id = "fn", Name = "飞牛" }, new AccountProfile { Id = "user", Username = "user" });
         return scope.Bind(new EmbyItem
         {
             Id = id,

@@ -90,7 +90,7 @@ internal static class EpisodeRemovalTests
     {
         var connection = new EmbyConnection(new Uri($"https://{server}.invalid/"), "fixture", "fixture", "fixture",
             server, DeviceIdentity.Create("episode-removal-fixture", "test"));
-        return new EmbySessionScope(null!, new EmbySessionScope.Identity(new EmbyClient(null!, connection),
-            new ServerProfile { Id = server }, new AccountProfile { Id = "fixture" }));
+        return AnonymousScopeFixture.DetachedIdentity(connection,
+            new ServerProfile { Id = server }, new AccountProfile { Id = "fixture" });
     }
 }
