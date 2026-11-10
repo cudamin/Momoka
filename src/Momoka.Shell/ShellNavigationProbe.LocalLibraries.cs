@@ -63,6 +63,7 @@ internal sealed partial class ShellNavigationProbe
             var updateDeadline = Environment.TickCount64 + 15000;
             while (Environment.TickCount64 < updateDeadline && coordinator.EntriesFor("series").Count(entry => entry.IsInLibrary) < 2) await Task.Delay(50);
             Require(coordinator.EntriesFor("series").Count(entry => entry.IsInLibrary) == 2, "首页打开后的新文件没有自动入库");
+            await UntilAsync(() => home.ViewModel.LibraryShelf?.Cards.SingleOrDefault(card => card.Item.Id == "local-library:series")?.Subtitle == "本地 · 2 项");
             foreach (var width in new[] { 1280, 760 })
             {
                 ResizeProbeClient(width, 860);
