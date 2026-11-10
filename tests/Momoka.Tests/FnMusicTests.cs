@@ -60,6 +60,41 @@ internal static class FnMusicTests
             Assert.False(fixture.Session.TryRestoreAsync(fixture.Server, fixture.Account, default).GetAwaiter().GetResult());
             Assert.True(fixture.Transport.Requests.All(request => request.Cookie is null));
         });
+        Test("飞牛音乐恢复：裸 NAS 根同时安装影视仍恢复音乐账号", () =>
+        {
+            using var fixture = new SessionFixture();
+            fixture.Server.Url = "https://fixture.invalid/";
+            fixture.Account.UserId = "user";
+            fixture.Account.ProtectedAccessToken = "fixture-token";
+            fixture.Transport.OffersVideo = true;
+            Assert.True(fixture.Session.TryRestoreAsync(fixture.Server, fixture.Account, default).GetAwaiter().GetResult());
+            Assert.Equal(Kind, fixture.Session.Connection!.ServerKind);
+            Assert.Equal("https://fixture.invalid/music/", fixture.Session.Connection.ApiBase.AbsoluteUri);
+            Assert.Equal("server", fixture.Session.Connection.ServerId);
+            Assert.Equal("user", fixture.Session.Connection.UserId);
+            Assert.Equal(0, fixture.Transport.Logins);
+            Assert.Equal("/music/api/v1/sys/config", fixture.Transport.Requests[0].Path);
+            Assert.Null(fixture.Transport.Requests[0].Cookie);
+            Assert.True(fixture.Transport.Requests.All(request => request.Path.StartsWith("/music/api/v1/", StringComparison.Ordinal)));
+        });
+        Test("飞牛音乐恢复：裸 NAS 根仍拒绝音乐服务器或用户身份变化", () =>
+        {
+            foreach (var differentServer in new[] { true, false })
+            {
+                using var fixture = new SessionFixture();
+                fixture.Server.Url = "https://fixture.invalid/";
+                fixture.Account.UserId = "user";
+                fixture.Account.ProtectedAccessToken = "fixture-token";
+                fixture.Transport.OffersVideo = true;
+                if (differentServer) fixture.Transport.MusicServerId = "replacement-server";
+                else fixture.Transport.MusicUserId = "replacement-user";
+                Assert.False(fixture.Session.TryRestoreAsync(fixture.Server, fixture.Account, default).GetAwaiter().GetResult());
+                Assert.False(fixture.Session.IsSignedIn);
+                Assert.Equal(0, fixture.Transport.Logins);
+                Assert.True(fixture.Transport.Requests.All(request => request.Path.StartsWith("/music/api/v1/", StringComparison.Ordinal)));
+                if (differentServer) Assert.True(fixture.Transport.Requests.All(request => request.Cookie is null));
+            }
+        });
         Test("飞牛音乐：CUE与访问受限曲目不提供错误原流", () =>
         {
             using var fixture = new Fixture(); var client = fixture.Client(); fixture.Transport.Cue = true;
@@ -204,17 +239,27 @@ internal static class FnMusicTests
         internal bool RedirectCover { get; set; }
         internal bool ExpireOnce { get; set; }
         internal int Logins { get; private set; }
+        internal bool OffersVideo { get; set; }
+        internal string MusicServerId { get; set; } = "server";
+        internal string MusicUserId { get; set; } = "user";
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var uri = request.RequestUri!;
             var body = request.Content is null ? null : JsonNode.Parse(await request.Content.ReadAsStringAsync(cancellationToken)) as JsonObject;
             var cookie = request.Headers.TryGetValues("Cookie", out var cookies) ? string.Join(';', cookies) : null;
             Requests.Add(new(uri.AbsolutePath, uri.Query, cookie, body, uri.Host));
+            if (OffersVideo && uri.AbsolutePath is "/v/api/v1/sys/version" or "/v/api/v1/sys/config")
+            {
+                var video = uri.AbsolutePath.EndsWith("version", StringComparison.Ordinal)
+                    ? new JsonObject { ["version"] = "0.9.8", ["mediasrvVersion"] = "0.8.45" }
+                    : new JsonObject { ["server_guid"] = "video-server", ["server_name"] = "影视" };
+                return new(HttpStatusCode.OK) { Content = new StringContent(new JsonObject { ["code"] = 0, ["data"] = video }.ToJsonString(), Encoding.UTF8, "application/json") };
+            }
             if (!uri.AbsolutePath.StartsWith("/music/api/v1/", StringComparison.Ordinal)) return new(HttpStatusCode.NotFound);
             var route = uri.AbsolutePath["/music/api/v1/".Length..];
             JsonNode? data;
             var code = 0;
-            if (route == "sys/config") data = new JsonObject { ["serverGUID"] = "server", ["serverName"] = "音乐库", ["serverVersion"] = "1.1.19", ["mediasrvVersion"] = "0.8.45" };
+            if (route == "sys/config") data = new JsonObject { ["serverGUID"] = MusicServerId, ["serverName"] = "音乐库", ["serverVersion"] = "1.1.19", ["mediasrvVersion"] = "0.8.45" };
             else if (route == "user/password-login") { Logins++; LoginBody = body; data = new JsonObject { ["userToken"] = "fixture-token", ["user"] = User() }; }
             else if (route == "user/me") data = User();
             else if (Failure != 0) { code = Failure; data = null; }
@@ -234,7 +279,7 @@ internal static class FnMusicTests
             }
             return new(HttpStatusCode.OK) { Content = new StringContent(new JsonObject { ["code"] = code, ["msg"] = "", ["data"] = data }.ToJsonString(), Encoding.UTF8, "application/json") };
         }
-        private static JsonObject User() => new() { ["guid"] = "user", ["name"] = "listener", ["role"] = "member" };
+        private JsonObject User() => new() { ["guid"] = MusicUserId, ["name"] = "listener", ["role"] = "member" };
         private static JsonObject Spec() => new() { ["path"] = "/library/song.flac", ["codec"] = "flac", ["format"] = "flac", ["channel"] = 2, ["duration"] = 12300, ["sampleRate"] = 48000, ["bitDepth"] = 24, ["bitrate"] = 800000, ["size"] = 2000000 };
         private JsonObject Track(string id) => new() { ["guid"] = id, ["title"] = "歌曲", ["name"] = "容器", ["duration"] = 12300, ["audioSpec"] = Spec(), ["artists"] = new JsonArray(new JsonObject { ["guid"] = "artist", ["name"] = "歌手" }), ["album"] = new JsonObject { ["guid"] = "album", ["name"] = "专辑" }, ["coverId"] = "track_cover", ["isFavorite"] = true, ["isCue"] = Cue, ["accessStatus"] = AccessStatus };
     }
