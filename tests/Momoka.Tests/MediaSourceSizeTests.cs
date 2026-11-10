@@ -134,13 +134,13 @@ internal static class MediaSourceSizeTests
                 Assert.Null(Read(http, MediaServerKind.Emby).MediaSources.Single().Size);
             }
         });
-        Test("版本体积：Plex 每个 Part 的体积保留，缺失时不借另一 Part", () =>
+        Test("版本体积：Plex 各 Media 版本独立保留体积，缺失时不借另一版本", () =>
         {
             using var http = new EmbyHttp(new Replies("""
-                {"MediaContainer":{"Metadata":[{"ratingKey":"movie","type":"movie","Media":[{"Part":[
-                  {"id":"first","key":"/library/parts/first/file.mkv","file":"/media/first.mkv","size":5368709120},
-                  {"id":"second","key":"/library/parts/second/file.mkv","file":"/media/second.mkv","size":"2684354560"},
-                  {"id":"unknown","key":"/library/parts/unknown/file.mkv","file":"/media/unknown.mkv"}]}]}]}}
+                {"MediaContainer":{"Metadata":[{"ratingKey":"movie","type":"movie","Media":[
+                  {"Part":[{"id":"first","key":"/library/parts/first/file.mkv","file":"/media/first.mkv","size":5368709120}]},
+                  {"Part":[{"id":"second","key":"/library/parts/second/file.mkv","file":"/media/second.mkv","size":"2684354560"}]},
+                  {"Part":[{"id":"unknown","key":"/library/parts/unknown/file.mkv","file":"/media/unknown.mkv"}]}]}]}}
                 """));
             var item = Read(http, MediaServerKind.Plex);
             Assert.Equal(5L * 1024 * 1024 * 1024, item.MediaSources[0].Size);
@@ -148,6 +148,20 @@ internal static class MediaSourceSizeTests
             Assert.Null(item.MediaSources[2].Size);
             Assert.Equal("5 GB · first.mkv", new MediaVersion(item, item.MediaSources[0]).LabelFor(false));
             Assert.Equal("unknown.mkv", new MediaVersion(item, item.MediaSources[2]).LabelFor(false));
+        });
+        Test("版本体积：Plex 多段版本合计所有 Part，任一缺失则保持未知", () =>
+        {
+            foreach (var secondSize in new[] { ",\"size\":2684354560", "" })
+            {
+                using var http = new EmbyHttp(new Replies("""
+                    {"MediaContainer":{"Metadata":[{"ratingKey":"movie","type":"movie","Media":[{"id":"whole","Part":[
+                      {"id":"first","duration":3600000,"key":"/library/parts/first/file.mkv","file":"/media/first.mkv","size":5368709120},
+                      {"id":"second","duration":3600000,"key":"/library/parts/second/file.mkv","file":"/media/second.mkv"
+                    """ + secondSize + "}]}]}]}}"));
+                var source = Read(http, MediaServerKind.Plex).MediaSources.Single();
+                if (secondSize.Length == 0) Assert.Null(source.Size);
+                else Assert.Equal(7680L * 1024 * 1024, source.Size);
+            }
         });
         RegisterEmbySupplementary();
     }
