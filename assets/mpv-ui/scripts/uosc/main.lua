@@ -243,6 +243,7 @@ defaults = {
 	-- 级联子面板走同一个 Menu 元件，一起缩。0.88 是「约 12%」的落点：字号 16→14、行高 32→28、
 	-- 最小宽 216→190。
 	menu_scale = 0.88,
+	menu_picture_scale = 0.92, -- Keep the context menu compact without shrinking track/episode pickers.
 	menu_font_size = 16,
 	menu_gap = 1,
 	menu_min_width = 216,

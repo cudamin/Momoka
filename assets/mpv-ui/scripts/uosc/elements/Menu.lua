@@ -318,7 +318,7 @@ function Menu:update_content_dimensions()
 	-- options.menu_scale 是菜单自己的缩放档（2026-10-17 用户令整体缩小约 12%，见 main.lua 选项区）：
 	-- 乘在 state.scale 上，于是字号、行高、内边距、最小宽、勾选列、悬停让空、面板间距、圆角与描边
 	-- 一起缩，级联子面板同尺；state.scale 本身不动，控制条/顶栏/其余控件不受影响。
-	local menu_scale = state.scale * options.menu_scale
+	local menu_scale = state.scale * options.menu_scale * (self.type == 'picture' and options.menu_picture_scale or 1)
 	self.menu_scale = menu_scale
 	self.font_size = round(options.menu_font_size * menu_scale * options.font_scale)
 	self.item_height = round(self.font_size * (1 + options.menu_gap))

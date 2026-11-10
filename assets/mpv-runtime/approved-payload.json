@@ -176,8 +176,8 @@
     {
       "path": "mpv-ui/scripts/uosc/elements/Menu.lua",
       "source": "assets/mpv-ui/scripts/uosc/elements/Menu.lua",
-      "size": 77564,
-      "sha256": "c466d090de73ce413b58342e5b7290284ba5a2f8e1ea35b405c3187ea15a4167"
+      "size": 77627,
+      "sha256": "54da1105ecfef3e3cbdc9a4a4319a4f11d52e1a3f2e916b8ccbcae3599fb4e65"
     },
     {
       "path": "mpv-ui/scripts/uosc/elements/PauseIndicator.lua",
@@ -368,8 +368,8 @@
     {
       "path": "mpv-ui/scripts/uosc/main.lua",
       "source": "assets/mpv-ui/scripts/uosc/main.lua",
-      "size": 84752,
-      "sha256": "32e79c0e3d7774cfbabcf97d4b8b24ea3950b9c96790ab92e159db178c108161"
+      "size": 84854,
+      "sha256": "8f490eb7d603b861c039e3222a2e05ab90e2105f3b18f612e9215033ad4c5c46"
     },
     {
       "path": "mpv-ui/scripts/momoka_analysis.lua",
