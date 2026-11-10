@@ -154,6 +154,7 @@ mp.register_script_message('crop', function(generation) if current(generation) t
 mp.register_script_message('silence', function(generation) if current(generation) then silence_command() end end)
 mp.register_script_message('chapters', function(json, generation)
     if not current(generation) or type(json) ~= 'string' or #json > 3000000 then return end
+    if not json:match('^%s*%[') or not json:match('%]%s*$') then tell('章节数据无效'); return end
     local nodes = utils.parse_json(json)
     if type(nodes) ~= 'table' or #nodes > 10000 then tell('章节数据无效'); return end
     for _, node in ipairs(nodes) do

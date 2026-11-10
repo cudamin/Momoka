@@ -55,6 +55,7 @@ end)
 test('chapter bridge validates data and rejects stale generations',function()
  fixture_messages.chapters('[{"time":1,"title":"Chapter"}]',generation());eq(fixture_props['chapter-list'][1].title,'Chapter')
  fixture_messages.chapters('[{"time":-1,"title":"Bad"}]',generation());eq(fixture_props['chapter-list'][1].title,'Chapter')
+ fixture_messages.chapters('{}',generation());eq(fixture_props['chapter-list'][1].title,'Chapter')
  fixture_messages.chapters('[{"time":2,"title":"Old"}]','-1');eq(fixture_props['chapter-list'][1].title,'Chapter')
 end)
 for k,v in pairs(fixture_original)do fixture_native[k]=v end
