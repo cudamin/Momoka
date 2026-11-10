@@ -1,6 +1,6 @@
 ---
 name: "momoka-danmaku"
-description: "Use when developing, reviewing or troubleshooting Momoka danmaku (弹幕) from DandanPlay (弹弹play), self-hosted huangxd-/danmu_api, or both: source selection, authentication, matching, aggregation, settings, rendering and sending. Covers Core/Danmaku, DandanPlayClient*, DanmuApiEndpoint, DanmakuSourceRules, DanmakuMatchRules, DanmakuSettings, SettingsViewModel.Danmaku, PlayerViewModel.Danmaku*, momoka_danmaku.lua, uosc DanmakuInput and website/worker credentials. General subtitle styling belongs to momoka-subtitles; playback pipeline and backend lifetimes belong to momoka-playback."
+description: "Use when developing, reviewing or troubleshooting Momoka danmaku from DandanPlay, self-hosted danmu_api or Bilibili: source selection, Bilibili web login and cookies, matching, aggregation, settings, rendering and sending. Covers Core/Danmaku, BilibiliClient, BilibiliSession, DandanPlayClient, DanmakuSettings, SettingsViewModel.Danmaku, PlayerViewModel.Danmaku, BilibiliLoginDialog, momoka_danmaku.lua and uosc DanmakuInput. General subtitle styling belongs to momoka-subtitles; playback lifetimes belong to momoka-playback."
 metadata: {agent_created: true}
 ---
 
@@ -9,6 +9,14 @@ metadata: {agent_created: true}
 规则归 [CLAUDE.md](../../../CLAUDE.md)，命令以 [开发与验证](../../../docs/开发与验证.md) 为准。功能说明见 [弹幕与快捷键](../../../docs/弹幕与快捷键.md)。本技能统一负责弹弹play、用户自部署的 `danmu_api`、客户端聚合、弹幕设置、独立 OSD 与发送链路；播放后端和管线生命周期归 [momoka-playback](../momoka-playback/SKILL.md)，字幕归 [momoka-subtitles](../momoka-subtitles/SKILL.md)，界面显隐通则归 [momoka-winui-shell](../momoka-winui-shell/SKILL.md)。
 
 ## 先确定来源和证据
+
+### Bilibili source
+
+- `Bilibili` is a separate mode; the persisted `Both` value still means DandanPlay plus danmu_api only. Do not silently enlarge that selection.
+- Read [the pinned source evidence](../../../docs/bilibili-source-reference.md) before changing routes or fields. `BilibiliClient` owns fixed official HTTPS requests; `BilibiliSession` owns cookie normalization and protection. The official login page runs in a separate private WebView2 profile. Validate candidate cookies against `nav` before saving; cancellation must prevent late account replacement.
+- Bilibili matching is manual: bangumi/film keywords or BV/av/ep/ss references resolve to `cid`. Shared result records retain their historical DandanPlay names, but their numeric IDs are meaningful only together with the source. Never treat a Bilibili cid as a DandanPlay send target or a danmu_api episode.
+- XML provides the current ordinary danmaku pool, not the full history. Only ordinary supported modes reach the shared renderer. Requests do not play media or write danmaku. Login cookies and account metadata are machine-local connection state and excluded from preference backups.
+- Exercise `bilibili-fixture` with fake HTTP and the actual settings/login ownership tests. Those do not prove live authentication, platform risk-control acceptance or real standalone playback. Keep those gaps explicit under CLAUDE.md.
 
 1. 先查 `DanmakuSettings.Source`、`DanmakuSourceRules` 和本次操作的具体来源。`Both` 是选择模式，每次 HTTP 请求仍只属于一个 `DanmakuSource`；两源的 `episodeId` 可以重号。
 2. 按问题读取 [弹弹play 协议](references/protocol.md)、[内置凭据端点](references/credential-endpoint.md) 或 [danmu_api 协议与上游核对](references/danmu-api.md)。后者记录已读上游提交和真实路由，不把 README 的兼容宣称当作 Momoka 已实现的能力。
