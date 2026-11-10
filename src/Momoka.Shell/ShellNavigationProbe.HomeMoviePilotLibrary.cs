@@ -65,21 +65,21 @@ internal sealed partial class ShellNavigationProbe
             await home.ViewModel.BackgroundRefreshAsync();
             Require(cardRemovals == 0, "刷新拆掉了 MP 库卡");
             foreach (var placement in new[] { HomeLibraryPlacement.BelowCarousel, HomeLibraryPlacement.OnCarousel })
-            foreach (var width in new[] { 1280, 760 })
-            {
-                fixture.Settings.Ui.HomeLibraryPlacement = placement;
-                ResizeProbeClient(width, 900);
-                Call(home, "UpdateLibraryOverlay");
-                await LayoutAsync(home);
-                var holder = placement == HomeLibraryPlacement.OnCarousel ? (FrameworkElement)Get<Border>(home, "LibraryOverlay") : home;
-                var strip = Descendants(holder).OfType<ShelfStrip>().First(strip => ReferenceEquals(strip.ItemsSource, home.ViewModel.LibraryShelf.Cards));
-                strip.FocusOn(home.ViewModel.LibraryShelf.Cards.Count - 1);
-                await LayoutAsync(strip);
-                var poster = Descendants(strip).OfType<PosterCard>().Single(poster => ReferenceEquals(poster.Card, card));
-                Require(poster.ActualWidth > 0 && Bounds(poster, strip).Left >= -1
-                    && Bounds(poster, strip).Right <= strip.ActualWidth + 1, "MP 库卡被截断");
-                await SaveProbeScreenAsync($"mp-library-{placement}-{width}-screen.png");
-            }
+                foreach (var width in new[] { 1280, 760 })
+                {
+                    fixture.Settings.Ui.HomeLibraryPlacement = placement;
+                    ResizeProbeClient(width, 900);
+                    Call(home, "UpdateLibraryOverlay");
+                    await LayoutAsync(home);
+                    var holder = placement == HomeLibraryPlacement.OnCarousel ? (FrameworkElement)Get<Border>(home, "LibraryOverlay") : home;
+                    var strip = Descendants(holder).OfType<ShelfStrip>().First(strip => ReferenceEquals(strip.ItemsSource, home.ViewModel.LibraryShelf.Cards));
+                    strip.FocusOn(home.ViewModel.LibraryShelf.Cards.Count - 1);
+                    await LayoutAsync(strip);
+                    var poster = Descendants(strip).OfType<PosterCard>().Single(poster => ReferenceEquals(poster.Card, card));
+                    Require(poster.ActualWidth > 0 && Bounds(poster, strip).Left >= -1
+                        && Bounds(poster, strip).Right <= strip.ActualWidth + 1, "MP 库卡被截断");
+                    await SaveProbeScreenAsync($"mp-library-{placement}-{width}-screen.png");
+                }
             var overlay = Get<Border>(home, "LibraryOverlay");
             var button = Descendants(overlay).OfType<Button>().Single(button => button.Content is PosterCard poster && ReferenceEquals(poster.Card, card));
             ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)).Invoke();
