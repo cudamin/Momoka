@@ -4,6 +4,12 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["trailer-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            ItemTrailerTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["moviepilot-subscription-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -483,6 +489,7 @@ internal static class Program
         MoviePilotAvailabilityTests.Register();
         MoviePilotMediaDetailTests.Register();
         ItemDetailTests.Register();
+        ItemTrailerTests.Register();
         EpisodeDisplayTests.Register();
         ItemArtworkTests.Register();
         ArtworkPreviewTests.Register();
