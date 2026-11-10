@@ -173,6 +173,31 @@ internal static class PlayerToolTests
                 Reject(() => PlayerImageTools.Stitch(settings, Enumerable.Repeat(image, 101).ToArray(), output + ".png"));
             });
         });
+        Test("AI 字幕：提取选中音轨与片段，未知音轨拒绝", () =>
+        {
+            WithFiles((settings, media, output, _) =>
+            {
+                var input = new PlayerToolInput(media, output + ".wav") { AudioStreamIndex = 4, StartSeconds = 12.5, EndSeconds = 14 };
+                var plan = PlayerToolPlan.PrepareAudio(settings, input);
+                Assert.True(plan.Arguments.Contains("0:4"));
+                Assert.True(plan.Arguments.Contains("16000"));
+                Assert.True(plan.Arguments.Contains("pcm_s16le"));
+                Assert.True(plan.Arguments.Contains("file,pipe"));
+                Assert.Equal("1.5", plan.Arguments[plan.Arguments.ToList().IndexOf("-t") + 1]);
+                Reject(() => PlayerToolPlan.PrepareAudio(settings, input with { AudioStreamIndex = null }));
+                Reject(() => PlayerToolPlan.PrepareAudio(settings, input with { EndSeconds = 10 }));
+            });
+        });
+        Test("AI 字幕：片段时间轴加回起点且不改变原字幕", () =>
+        {
+            var document = SrtDocument.Parse("1\n00:00:01,000 --> 00:00:02,000\nfixture\n");
+            var shifted = document.ShiftMilliseconds(12500);
+            Assert.Equal(13500L, shifted.Cues[0].StartMilliseconds);
+            Assert.Equal(14500L, shifted.Cues[0].EndMilliseconds);
+            Assert.Equal(1000L, document.Cues[0].StartMilliseconds);
+            Reject(() => document.ShiftMilliseconds(-2000));
+            Reject(() => document.ShiftMilliseconds(long.MaxValue));
+        });
     }
 
     private static void WithFiles(Action<PlayerToolsSettings, string, string, string> run)

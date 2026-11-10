@@ -41,6 +41,28 @@ public sealed class PlayerToolPlan
         IReadOnlyList<string> inputs) => new(executable, arguments, output, inputs,
             new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(new Dictionary<string, string>()));
 
+    /// <summary>AI 识别先提取明确选中的音轨；可选择当前标记片段，子程序仅收到本地 PCM 音频。</summary>
+    public static PlayerToolPlan PrepareAudio(PlayerToolsSettings settings, PlayerToolInput input)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(input);
+        var media = PlayerToolPaths.RequireMediaInput(input.MediaPath);
+        var output = PlayerToolPaths.RequireOutput(input.OutputPath);
+        RequireExtension(output, ".wav");
+        if (!PlayerToolPaths.IsExecutableAvailable(settings.FfmpegPath)) throw new PlayerToolException("生成 AI 字幕需要配置 FFmpeg。");
+        if (input.AudioStreamIndex is not { } audio) throw new PlayerToolException("无法确认选中的音轨，请刷新后重试。");
+        RequireIndex(audio);
+        if (!double.IsFinite(input.StartSeconds) || input.StartSeconds < 0 || input.EndSeconds is { } end &&
+            (!double.IsFinite(end) || end <= input.StartSeconds)) throw new PlayerToolException("音轨提取时间范围无效。");
+        var args = new List<string> { "-hide_banner", "-nostdin", "-loglevel", "error", "-n", "-protocol_whitelist", "file,pipe" };
+        if (input.StartSeconds > 0) args.AddRange(["-ss", Number(input.StartSeconds)]);
+        args.AddRange(["-i", media]);
+        if (input.EndSeconds is { } endSeconds) args.AddRange(["-t", Number(endSeconds - input.StartSeconds)]);
+        args.AddRange(["-map", "0:" + audio.ToString(CultureInfo.InvariantCulture), "-vn", "-sn", "-dn",
+            "-c:a", "pcm_s16le", "-ac", "1", "-ar", "16000", output]);
+        return Image(PlayerToolPaths.RequireInput(settings.FfmpegPath), args.AsReadOnly(), output, Array.AsReadOnly(new[] { media }));
+    }
+
     public static PlayerToolPlan Create(PlayerToolsSettings settings, PlayerToolAction action, PlayerToolInput input)
     {
         ArgumentNullException.ThrowIfNull(settings);

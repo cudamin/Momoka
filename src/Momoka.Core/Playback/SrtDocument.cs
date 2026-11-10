@@ -50,6 +50,22 @@ public sealed partial class SrtDocument
         return text.ToString();
     }
 
+    public SrtDocument ShiftMilliseconds(long offset)
+    {
+        try
+        {
+            var shifted = Cues.Select(cue => cue with
+            {
+                StartMilliseconds = checked(cue.StartMilliseconds + offset),
+                EndMilliseconds = checked(cue.EndMilliseconds + offset)
+            }).ToArray();
+            if (shifted.Any(cue => cue.StartMilliseconds < 0 || cue.EndMilliseconds <= cue.StartMilliseconds))
+                throw new PlayerToolException("字幕时间偏移超出有效范围。");
+            return new(Array.AsReadOnly(shifted));
+        }
+        catch (OverflowException) { throw new PlayerToolException("字幕时间偏移超出有效范围。"); }
+    }
+
     public async Task<SrtDocument> TranslateAsync(SubtitleTranslationClient client, SubtitleTranslationSettings settings,
         string apiKey, CancellationToken cancellationToken, IProgress<int>? progress = null)
     {
