@@ -236,6 +236,8 @@ internal static class Program
             return SettingsSearchTests.Run(searchShell, searchRoot);
         if (args is ["settings-page-state-fixture", var shellAssembly, var sourceRoot])
             return SettingsPageStateTests.Run(shellAssembly, sourceRoot);
+        if (args is ["settings-bilibili-fixture", var bilibiliShell, var bilibiliRoot])
+            return SettingsBilibiliTests.Run(bilibiliShell, bilibiliRoot);
         if (args is ["settings-applicability-fixture", var applicabilityShell, var applicabilityRoot])
             return SettingsApplicabilityTests.Run(applicabilityShell, applicabilityRoot);
         if (args is ["library-resume-paging-fixture", var resumeShell, var resumeRoot])

@@ -105,6 +105,8 @@ internal sealed partial class ShellNavigationProbe
             return Task.CompletedTask;
         });
         Add("InspectSettingsOpening", "聚合设置开窗", () => SettingsOpeningAsync(inspect: true));
+        AddCheck("InspectDanmakuWide", "弹幕设置宽屏", () => SettingsDanmakuAsync(1100), ShellProbeSections.Settings);
+        AddCheck("InspectDanmakuNarrow", "弹幕设置窄屏", () => SettingsDanmakuAsync(760), ShellProbeSections.Settings);
         AddCheck("InspectLibraryCache", "媒体库缓存往返", PerformanceLibraryCacheAsync);
         AddCheck("InspectDeepReturn", "媒体库深返回锚点", PerformanceDeepLibraryReturnAsync);
         AddCheck("InspectBrowsePresentation", "首帧和晚图淡入", PerformanceBrowsePresentationAsync);
@@ -325,13 +327,13 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Remove(layout);
         HomeMotion.ApplyPreference(animationPreference);
 
-        void AddCheck(string id, string label, Func<Task> check) => Add(id, label, async () =>
+        void AddCheck(string id, string label, Func<Task> check, string section = ShellProbeSections.Library) => Add(id, label, async () =>
         {
             layout.Visibility = Visibility.Collapsed;
             Task? running = null;
             try
             {
-                await CaseAsync(label, () => running = check(), 180, section: ShellProbeSections.Library);
+                await CaseAsync(label, () => running = check(), 180, section: section);
             }
             finally
             {

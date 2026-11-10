@@ -56,6 +56,9 @@ internal static class ShellServices
         services.AddSingleton(provider => new DandanPlayBuiltInCredentialSource(
             provider.GetRequiredService<ISecretProtector>(),
             Path.Combine(paths.Root, "cache", "danmaku", "builtin-credential.bin")));
+        services.AddSingleton(provider => new BilibiliClient(
+            provider.GetRequiredService<AppSettings>(),
+            provider.GetRequiredService<ISecretProtector>()));
         services.AddSingleton(provider => new DandanPlayClient(
             provider.GetRequiredService<AppSettings>(),
             Path.Combine(paths.Root, "cache", "danmaku"),
