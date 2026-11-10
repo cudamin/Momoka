@@ -36,7 +36,7 @@
 - [subexecution.py](https://github.com/jxxghp/MoviePilot/blob/af963b47b350f07b7ee407ab54a5eb9b4091ab35/app/api/endpoints/subexecution.py#L119) 的批次接口返回当前用户可访问订阅的搜索执行进度；[subscribe.py](https://github.com/jxxghp/MoviePilot/blob/af963b47b350f07b7ee407ab54a5eb9b4091ab35/app/api/endpoints/subscribe.py#L119) 为列表补 `execution_status`。任务进度变化不能直接证明新增影片已入库。
 - [订阅日志流](https://github.com/jxxghp/MoviePilot/blob/af963b47b350f07b7ee407ab54a5eb9b4091ab35/app/api/endpoints/subexecution.py#L214) 是 `subscribe/{id}/logs` 的SSE，给日志视图逐行显示；不要将日志流或活动弹窗轮询当作订阅库入库通知。
 
-因此本地订阅列表刷新与官方当前策略存在明确差异。本次只记录，未增加批次轮询或日志订阅；若另行要求对齐，应先确认实际服务器版本、页面范围与期望刷新行为，并保留不引起布局跳动的加载方式。此次只读源码核对没有证明真实MP入库事件或推送送达。
+因此本地订阅列表刷新与官方当前策略存在明确差异。用户随后于2026-11-10明确要求“mp官方怎么弄的你就怎么改”，覆盖此前删除一分钟轮询的选择；目标是MP汇总／电影／电视剧订阅列表采用上述条件批次轮询，首页本地扩展订阅排和详情不套用这套列表规则。该产品修改尚未完成：Core测试生成被内容过滤器阻止，未合入或发布未完成代码。此前无轮询只是当前实现，不再是保留它的用户要求。此次只读源码核对没有证明真实MP入库事件或推送送达。
 
 ## 三个进度不是一回事
 
