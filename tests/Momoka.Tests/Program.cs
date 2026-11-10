@@ -4,6 +4,21 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["local-media-settings-fixture"])
+        {
+            LocalMediaSettingsTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["local-media-vm-fixture", var localMediaShell, var localMediaRoot])
+            return LocalMediaViewModelTests.Run(localMediaShell, localMediaRoot);
+        if (args is ["local-media-fixture"])
+        {
+            LocalMediaSettingsTests.Register();
+            LocalMediaTests.Register();
+            MoviePilotLocalMediaTests.Register();
+            TmdbLocalMediaTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["trailer-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -562,6 +577,10 @@ internal static class Program
         DanmakuTests.Register();
         UpdateTests.Register();
         MoviePilotTests.Register();
+        LocalMediaSettingsTests.Register();
+        LocalMediaTests.Register();
+        MoviePilotLocalMediaTests.Register();
+        TmdbLocalMediaTests.Register();
         AniBtTests.Register();
         AniBtSeriesIdentityTests.Register();
         AniBtPrepareConcurrencyTests.Register();

@@ -56,6 +56,8 @@ public sealed class AppSettings
     /// </summary>
     public MoviePilotSettings MoviePilot { get; set; } = new();
 
+    public LocalMediaSettings LocalMedia { get; set; } = new();
+
     public ServerProfile? FindServer(string? id) =>
         id is null ? null : Servers.FirstOrDefault(server => server.Id == id);
 

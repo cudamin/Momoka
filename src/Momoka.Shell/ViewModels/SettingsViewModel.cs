@@ -369,7 +369,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 见 <see cref="BuildCategoryGroups"/>。
     /// </summary>
     private static IReadOnlyList<string> SidebarCategories(bool serverAdministration, MediaServerKind kind) =>
-        [.. CardCategories[..^1], "服务器", "诊断",
+        [.. CardCategories[..^1], "本机整理", "服务器", "诊断",
             .. (serverAdministration ? MomokaAdministrationCategories(kind) : []),
             LastCardCategory];
 
@@ -397,7 +397,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 由 <see cref="ServerAdministrationCategories"/> 带着来去；Jellyfin 的「网页控制台」仍是固定一项。
     /// </para>
     /// </summary>
-    private static readonly string[] FixedHostedCategories = ["服务器", "诊断"];
+    private static readonly string[] FixedHostedCategories = ["本机整理", "服务器", "诊断"];
 
     /// <summary>
     /// 「通知」那一页. Named because the navigation switch and the self-check both have to say it —

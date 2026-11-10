@@ -359,6 +359,12 @@ public static class SettingsMigration
         if (settings.Danmaku is null) settings.Danmaku = new DanmakuSettings();
         if (settings.SubtitleTranslation is null) settings.SubtitleTranslation = new SubtitleTranslationSettings();
         if (settings.MoviePilot is null) settings.MoviePilot = new MoviePilotSettings();
+        settings.LocalMedia ??= new();
+        settings.LocalMedia.SourceDirectory ??= "";
+        settings.LocalMedia.TargetDirectory ??= "";
+        settings.LocalMedia.ProtectedTmdbToken ??= "";
+        if (settings.LocalMedia.Method is not ("rename" or "hardlink" or "symboliclink")) settings.LocalMedia.Method = "hardlink";
+        if (settings.LocalMedia.Provider is not ("momoka" or "moviepilot")) settings.LocalMedia.Provider = "momoka";
         // 与账号密文一致：显式 null 是损坏文档，不能当作未保存密码继续读入。
         // 缺键或合法空串仍由初始化器保留；Store 会保留坏主文件并尝试有效备份。
         if (settings.MoviePilot.ProtectedPassword is null)

@@ -24,12 +24,13 @@ public static class ShellProbeSections
     public const string Materials = "materials";
     public const string PlexState = "plex-state";
     public const string JellyfinLatest = "jellyfin-latest";
+    public const string LocalMedia = "local-media";
     /// <summary>手动离线试用，不属于自动全量探针，也不计自动检查通过数。</summary>
     public const string SearchPreview = "search-preview";
 
     public static readonly IReadOnlyList<string> All =
     [
-        Shell, Settings, Shortcuts, Shaders, Svp, Library, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback, Metadata, Performance, Materials, PlexState, JellyfinLatest,
+        Shell, Settings, Shortcuts, Shaders, Svp, Library, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback, Metadata, Performance, Materials, PlexState, JellyfinLatest, LocalMedia,
     ];
 
     public static bool IsKnown(string name) =>
