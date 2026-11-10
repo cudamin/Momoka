@@ -474,8 +474,10 @@ internal sealed partial class ShellNavigationProbe
                 var subtitleGroup = menu.Items.OfType<MenuFlyoutSubItem>().Single(group => group.Text == "字幕");
                 var expansion = FrameworkElementAutomationPeer.CreatePeerForElement(subtitleGroup)?.GetPattern(PatternInterface.ExpandCollapse) as IExpandCollapseProvider
                     ?? throw new InvalidOperationException("字幕子菜单没有可展开入口");
+                subtitleGroup.Focus(FocusState.Programmatic);
                 expansion.Expand();
-                await LayoutAsync(page);
+                await UntilAsync(() => expansion.ExpandCollapseState == ExpandCollapseState.Expanded);
+                page.UpdateLayout();
                 Require(expansion.ExpandCollapseState == ExpandCollapseState.Expanded, "字幕子菜单没有实际展开");
                 var childRow = subtitleGroup.Items.OfType<MenuFlyoutItem>().First();
                 var bounds = FrameworkElementAutomationPeer.CreatePeerForElement(childRow)!.GetBoundingRectangle();
