@@ -8,8 +8,9 @@ public sealed record LocalMediaSource(string Path, long Length, DateTime LastWri
 public static partial class LocalMediaOrganizer
 {
     public static LocalMediaPlan Prepare(LocalMediaSource source, string targetRoot, LocalMediaMetadata metadata,
-        LocalMediaLinkMode mode)
+        LocalMediaLinkMode mode, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(metadata);
         ValidateMetadata(metadata);
@@ -23,7 +24,7 @@ public static partial class LocalMediaOrganizer
         using var leases = new LocalMediaFiles();
         leases.Directories(sourceRoot, create: false);
         leases.Directories(targetRoot, create: false);
-        var snapshot = LocalMediaFiles.Snapshot(path, leases.Read(path));
+        var snapshot = LocalMediaFiles.Snapshot(path, leases.Read(path), cancellationToken);
         if (snapshot.Length != source.Length || snapshot.LastWriteTimeUtc != source.LastWriteTimeUtc)
             throw new IOException("源文件在扫描后发生变化，请重新扫描");
         var title = SafeName(metadata.Title);
@@ -40,26 +41,28 @@ public static partial class LocalMediaOrganizer
         var sourceStem = Path.GetFileNameWithoutExtension(path);
         foreach (var subtitle in Directory.EnumerateFiles(Path.GetDirectoryName(path)!).Order(StringComparer.OrdinalIgnoreCase))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!SubtitleExtensions.Contains(Path.GetExtension(subtitle))) continue;
             var subtitleStem = Path.GetFileNameWithoutExtension(subtitle);
             if (!subtitleStem.Equals(sourceStem, StringComparison.OrdinalIgnoreCase) &&
                 !subtitleStem.StartsWith(sourceStem + ".", StringComparison.OrdinalIgnoreCase)) continue;
             var suffix = subtitleStem[sourceStem.Length..] + Path.GetExtension(subtitle);
             sidecars.Add(new(Path.Combine(directory, name + suffix), LocalMediaOutputKind.SubtitleLink, subtitle));
-            snapshots.Add(LocalMediaFiles.Snapshot(subtitle, leases.Read(subtitle)));
+            snapshots.Add(LocalMediaFiles.Snapshot(subtitle, leases.Read(subtitle), cancellationToken));
         }
         sidecars.Add(new(Path.Combine(directory, name + ".nfo"), metadata.MediaType == LocalMediaType.Movie
             ? LocalMediaOutputKind.MovieNfo : LocalMediaOutputKind.EpisodeNfo));
         if (!rename && metadata.MediaType == LocalMediaType.Episode)
             sidecars.Add(new(Path.Combine(seriesDirectory, "tvshow.nfo"), LocalMediaOutputKind.SeriesNfo));
         var imageDirectory = !rename && metadata.MediaType == LocalMediaType.Episode ? seriesDirectory : directory;
-        if (metadata.PosterUrl.Length > 0) sidecars.Add(new(Path.Combine(imageDirectory, rename ? name + "-poster.jpg" : "poster.jpg"), LocalMediaOutputKind.Poster, ImageUrl: metadata.PosterUrl));
-        if (metadata.BackdropUrl.Length > 0) sidecars.Add(new(Path.Combine(imageDirectory, rename ? name + "-fanart.jpg" : "fanart.jpg"), LocalMediaOutputKind.Backdrop, ImageUrl: metadata.BackdropUrl));
+        if (metadata.PosterUrl.Length > 0) sidecars.Add(new(Path.Combine(imageDirectory, (rename ? name + "-poster" : "poster") + ImageExtension(metadata.PosterUrl)), LocalMediaOutputKind.Poster, ImageUrl: metadata.PosterUrl));
+        if (metadata.BackdropUrl.Length > 0) sidecars.Add(new(Path.Combine(imageDirectory, (rename ? name + "-fanart" : "fanart") + ImageExtension(metadata.BackdropUrl)), LocalMediaOutputKind.Backdrop, ImageUrl: metadata.BackdropUrl));
         if (metadata.MediaType == LocalMediaType.Episode && metadata.EpisodeImageUrl.Length > 0)
-            sidecars.Add(new(Path.Combine(directory, name + "-thumb.jpg"), LocalMediaOutputKind.EpisodeImage, ImageUrl: metadata.EpisodeImageUrl));
+            sidecars.Add(new(Path.Combine(directory, name + "-thumb" + ImageExtension(metadata.EpisodeImageUrl)), LocalMediaOutputKind.EpisodeImage, ImageUrl: metadata.EpisodeImageUrl));
         var plan = new LocalMediaPlan(source with { Path = path, RootPath = sourceRoot }, targetRoot, target, metadata, mode,
             Array.AsReadOnly(sidecars.ToArray()))
         { Snapshots = Array.AsReadOnly(snapshots.ToArray()) };
+        cancellationToken.ThrowIfCancellationRequested();
         RequireTargets(plan, leases);
         return plan;
     }
@@ -102,6 +105,12 @@ public static partial class LocalMediaOrganizer
 
     private static bool Inside(string path, string root) => path.Equals(root, StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith(Path.TrimEndingDirectorySeparator(root) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+
+    private static string ImageExtension(string url)
+    {
+        var extension = Uri.TryCreate(url, UriKind.Absolute, out var uri) ? Path.GetExtension(uri.AbsolutePath).ToLowerInvariant() : "";
+        return extension is ".png" or ".webp" ? extension : ".jpg";
+    }
 
     private static string SafeName(string text)
     {

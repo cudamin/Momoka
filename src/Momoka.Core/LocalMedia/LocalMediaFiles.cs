@@ -70,11 +70,25 @@ internal sealed class LocalMediaFiles : IDisposable
         return stream;
     }
 
-    internal static LocalMediaSnapshot Snapshot(string path, FileStream stream)
+    internal static LocalMediaSnapshot Snapshot(string path, FileStream stream, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         stream.Position = 0;
-        var hash = Convert.ToHexString(SHA256.HashData(stream));
-        stream.Position = 0;
+        using var hashBuilder = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = new byte[128 * 1024];
+        try
+        {
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var count = stream.Read(buffer, 0, buffer.Length);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (count == 0) break;
+                hashBuilder.AppendData(buffer, 0, count);
+            }
+        }
+        finally { stream.Position = 0; }
+        var hash = Convert.ToHexString(hashBuilder.GetHashAndReset());
         if (!GetFileInformationByHandle(stream.SafeFileHandle, out var info)) Throw(Marshal.GetLastPInvokeError());
         var time = ((long)info.LastWriteTime.dwHighDateTime << 32) | (uint)info.LastWriteTime.dwLowDateTime;
         return new(path, stream.Length, DateTime.FromFileTimeUtc(time), hash,

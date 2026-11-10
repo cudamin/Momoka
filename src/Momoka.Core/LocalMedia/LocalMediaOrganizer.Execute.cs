@@ -20,15 +20,21 @@ public static partial class LocalMediaOrganizer
             cancellationToken.ThrowIfCancellationRequested();
             foreach (var expected in plan.Snapshots)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var stream = leases.Read(expected.Path, rename: plan.Mode == LocalMediaLinkMode.Rename);
-                var current = LocalMediaFiles.Snapshot(expected.Path, stream);
+                var current = LocalMediaFiles.Snapshot(expected.Path, stream, cancellationToken);
                 if (current != expected) throw new IOException("源视频或字幕已改变，请重新扫描和确认");
                 reads.Add(expected.Path, stream);
             }
+            cancellationToken.ThrowIfCancellationRequested();
             RequireTargets(plan, leases);
             foreach (var directory in new[] { Path.GetDirectoryName(plan.TargetPath)! }.Concat(plan.Sidecars.Select(item => Path.GetDirectoryName(item.Path)!)).Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
                 leases.Directories(directory, create: true);
+            }
             leases.Recheck();
+            cancellationToken.ThrowIfCancellationRequested();
             CreateMedia(plan.Source.Path, plan.TargetPath, plan.Mode, reads[plan.Source.Path], leases);
             results.Add(new(plan.TargetPath, LocalMediaOutputKind.VideoLink, true, plan.Mode == LocalMediaLinkMode.Rename ? "已改名" : "已建立链接"));
             foreach (var sidecar in plan.Sidecars)
@@ -54,6 +60,7 @@ public static partial class LocalMediaOrganizer
                         {
                             bytes = await imageFetch(sidecar.ImageUrl, cancellationToken).ConfigureAwait(false);
                             if (bytes.Length is 0 or > 64 * 1024 * 1024) throw new IOException("图片为空或超过64 MiB，未写入");
+                            RequireImageType(sidecar.Path, bytes);
                         }
                         else bytes = Nfo(plan.Metadata, sidecar.Kind);
                         cancellationToken.ThrowIfCancellationRequested();
@@ -76,6 +83,16 @@ public static partial class LocalMediaOrganizer
             results.Add(new(plan.TargetPath, LocalMediaOutputKind.VideoLink, false, error.Message));
             return new(Array.AsReadOnly(results.ToArray()), false);
         }
+    }
+
+    private static void RequireImageType(string path, ReadOnlySpan<byte> bytes)
+    {
+        var actual = bytes.Length >= 3 && bytes[0] == 255 && bytes[1] == 216 && bytes[2] == 255 ? ".jpg"
+            : bytes.Length >= 8 && bytes[..8].SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }) ? ".png"
+                : bytes.Length >= 12 && bytes[..4].SequenceEqual("RIFF"u8) && bytes.Slice(8, 4).SequenceEqual("WEBP"u8) ? ".webp" : "";
+        if (actual.Length == 0) throw new IOException("图片格式无法识别，仅接受 JPEG、PNG 或 WEBP；未写入图片");
+        if (!actual.Equals(Path.GetExtension(path), StringComparison.OrdinalIgnoreCase))
+            throw new IOException("图片实际格式与预览目标后缀不一致；未写入图片，请重新核对图片来源");
     }
 
     private static void CreateMedia(string source, string target, LocalMediaLinkMode mode, FileStream sourceLease, LocalMediaFiles leases)

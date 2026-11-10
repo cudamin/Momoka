@@ -236,7 +236,7 @@ public static class LocalMediaTests
             var result = LocalMediaOrganizer.ExecuteAsync(plan, (_, _) =>
             {
                 File.WriteAllText(poster, "someone-else");
-                return Task.FromResult(new byte[] { 1, 2, 3 });
+                return Task.FromResult(Jpeg());
             }, CancellationToken.None).GetAwaiter().GetResult();
             Assert.False(result.Success);
             Assert.Equal("someone-else", File.ReadAllText(poster));
@@ -251,7 +251,7 @@ public static class LocalMediaTests
             var result = LocalMediaOrganizer.ExecuteAsync(plan, (_, _) =>
             {
                 cancellation.Cancel();
-                return Task.FromResult(new byte[] { 1, 2, 3 });
+                return Task.FromResult(Jpeg());
             }, cancellation.Token).GetAwaiter().GetResult();
             Assert.True(result.Cancelled);
             Assert.False(result.Success);
@@ -311,6 +311,78 @@ public static class LocalMediaTests
             cancellation.Cancel();
             Assert.Throws<OperationCanceledException>(() => LocalMediaOrganizer.Scan(fixture.Source, true, cancellation.Token));
         });
+
+        Test("本机图片：PNG计划路径和真实字节一致", () =>
+        {
+            using var fixture = Video();
+            var plan = Prepare(fixture, Movie() with { PosterUrl = "https://example.invalid/image.PNG?token=private" });
+            var poster = plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.Poster);
+            Assert.Equal("poster.png", Path.GetFileName(poster.Path));
+            var bytes = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10, 0 };
+            var result = LocalMediaOrganizer.ExecuteAsync(plan, (_, _) => Task.FromResult(bytes), CancellationToken.None).GetAwaiter().GetResult();
+            Assert.True(result.Success, result.Summary);
+            Assert.True(File.ReadAllBytes(poster.Path).SequenceEqual(bytes));
+            Assert.False(File.Exists(Path.ChangeExtension(poster.Path, ".jpg")));
+        });
+
+        Test("本机图片：WEBP输出保持预览后缀", () =>
+        {
+            using var fixture = Video();
+            var plan = Prepare(fixture, Movie() with { BackdropUrl = "https://example.invalid/image.webp" });
+            var image = plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.Backdrop);
+            Assert.Equal("fanart.webp", Path.GetFileName(image.Path));
+            var bytes = new byte[] { 82, 73, 70, 70, 12, 0, 0, 0, 87, 69, 66, 80, 86, 80, 56, 32 };
+            Assert.True(LocalMediaOrganizer.ExecuteAsync(plan, (_, _) => Task.FromResult(bytes), CancellationToken.None).GetAwaiter().GetResult().Success);
+            Assert.True(File.ReadAllBytes(image.Path).SequenceEqual(bytes));
+        });
+
+        Test("本机图片：未知或无后缀采用JPEG计划并拒绝PNG", () =>
+        {
+            using var fixture = Video();
+            var plan = Prepare(fixture, Movie() with { PosterUrl = "https://example.invalid/image?token=private" });
+            var image = plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.Poster);
+            Assert.Equal("poster.jpg", Path.GetFileName(image.Path));
+            var bytes = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+            var result = LocalMediaOrganizer.ExecuteAsync(plan, (_, _) => Task.FromResult(bytes), CancellationToken.None).GetAwaiter().GetResult();
+            Assert.False(result.Success);
+            Assert.False(File.Exists(image.Path));
+            Assert.True(File.Exists(plan.TargetPath));
+            Assert.DoesNotContain("private", string.Join(";", result.Items.Select(item => item.Message)));
+        });
+
+        Test("本机图片：显式PNG后缀拒绝JPEG且不偷偷改路径", () =>
+        {
+            using var fixture = Video();
+            var plan = Prepare(fixture, Movie() with { EpisodeImageUrl = "", PosterUrl = "https://example.invalid/image.png" });
+            var image = plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.Poster);
+            var result = LocalMediaOrganizer.ExecuteAsync(plan, (_, _) => Task.FromResult(Jpeg()), CancellationToken.None).GetAwaiter().GetResult();
+            Assert.False(result.Success);
+            Assert.False(File.Exists(image.Path));
+            Assert.False(File.Exists(Path.ChangeExtension(image.Path, ".jpg")));
+        });
+
+        Test("本机图片：非图片字节拒绝且保留部分完成", () =>
+        {
+            using var fixture = Video();
+            var plan = Prepare(fixture, Movie() with { PosterUrl = "https://example.invalid/image.jpg" });
+            var result = LocalMediaOrganizer.ExecuteAsync(plan, (_, _) => Task.FromResult(new byte[] { 1, 2, 3 }), CancellationToken.None).GetAwaiter().GetResult();
+            Assert.False(result.Success);
+            Assert.True(result.Items.Any(item => item.Kind == LocalMediaOutputKind.VideoLink && item.Success));
+            Assert.False(File.Exists(plan.Sidecars.Single(item => item.Kind == LocalMediaOutputKind.Poster).Path));
+        });
+
+        Test("本机规划：开始已取消时不读取hash也不写目标", () =>
+        {
+            using var fixture = Video();
+            var source = LocalMediaOrganizer.Scan(fixture.Source, true, CancellationToken.None).Single();
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            var method = typeof(LocalMediaOrganizer).GetMethods().SingleOrDefault(item => item.Name == "Prepare" && item.GetParameters().Length == 5);
+            Assert.NotNull(method, "Prepare应接收取消令牌");
+            var error = Assert.Catch<TargetInvocationException>(() => method!.Invoke(null, [source, fixture.Target, Movie(), LocalMediaLinkMode.HardLink, cancellation.Token]));
+            Assert.True(error.InnerException is OperationCanceledException);
+            Assert.False(Directory.Exists(fixture.Target));
+        });
     }
 
     private static LocalMediaMetadata Movie() => new("Film", 2026, LocalMediaType.Movie, "themoviedb", "123");
@@ -322,7 +394,8 @@ public static class LocalMediaTests
     }
     private static LocalMediaPlan Prepare(MediaFiles files, LocalMediaMetadata metadata) =>
         LocalMediaOrganizer.Prepare(LocalMediaOrganizer.Scan(files.Source, true, CancellationToken.None).Single(), files.Target, metadata, LocalMediaLinkMode.HardLink);
-    private static Task<byte[]> Images(string _, CancellationToken cancellation) => Task.FromResult(new byte[] { 1, 2, 3 });
+    private static byte[] Jpeg() => [255, 216, 255, 224, 0, 2, 255, 217];
+    private static Task<byte[]> Images(string _, CancellationToken cancellation) => Task.FromResult(Jpeg());
     private static LocalMediaResult Execute(LocalMediaPlan plan) => LocalMediaOrganizer.ExecuteAsync(plan, Images, CancellationToken.None).GetAwaiter().GetResult();
     private static uint NativeLinkCount(string path)
     {
