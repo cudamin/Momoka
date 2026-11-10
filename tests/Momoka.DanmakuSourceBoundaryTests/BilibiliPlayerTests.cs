@@ -20,7 +20,7 @@ internal static class BilibiliPlayerTests
             Momoka.Tests.Assert.Equal("edited manual keyword", panel.Query);
             Momoka.Tests.Assert.Equal("5", panel.EpisodeQuery);
         });
-        Test("Bilibili panel accepts manual links and clears local metadata on source change", () =>
+        Test("Bilibili panel accepts manual links and seeds current title and episode on source change", () =>
         {
             var endpoint = new PanelEndpoint();
             var panel = new Panel(endpoint);
@@ -29,13 +29,13 @@ internal static class BilibiliPlayerTests
             endpoint.Sources = [new("哔哩哔哩", DanmakuSource.Bilibili)];
             endpoint.DanmakuConnectionVersion++;
             panel.ConnectionChanged();
-            Momoka.Tests.Assert.Equal("", panel.Query);
-            Momoka.Tests.Assert.Equal("", panel.EpisodeQuery);
-            Momoka.Tests.Assert.False(panel.EpisodeVisible);
+            Momoka.Tests.Assert.Equal("anonymous local title", panel.Query);
+            Momoka.Tests.Assert.Equal("3", panel.EpisodeQuery);
+            Momoka.Tests.Assert.True(panel.EpisodeVisible);
             Momoka.Tests.Assert.True(panel.QueryMaximum >= 2048);
             Momoka.Tests.Assert.Contains("BV", panel.QueryPlaceholder);
         });
-        Test("Bilibili panel sends only manually entered query and ignores hidden episode value", () =>
+        Test("Bilibili panel sends manually entered query and optional episode refinement", () =>
         {
             using var context = new QueueContext();
             SynchronizationContext.SetSynchronizationContext(context);
@@ -46,27 +46,26 @@ internal static class BilibiliPlayerTests
             panel.StartSearch();
             Momoka.Tests.Assert.Equal(DanmakuSource.Bilibili, endpoint.SearchSource);
             Momoka.Tests.Assert.Equal("https://www.bilibili.com/video/BV1fixture", endpoint.Query);
-            Momoka.Tests.Assert.Equal("", endpoint.Episode);
+            Momoka.Tests.Assert.Equal("3", endpoint.Episode);
             panel.Close();
             endpoint.CompleteSearch(new(7, "manual work", "part two"));
             context.Drain();
         });
-        Test("Bilibili default search reaches configured source without sending local title", () =>
+        Test("Bilibili default search reaches configured source with current title and episode", () =>
         {
             using var host = new PlaybackHost(Settings());
             Momoka.Tests.Assert.Equal(DanmakuSource.Bilibili, host.SearchSource);
-            Momoka.Tests.Assert.Equal("", host.DanmakuSearchTitle);
-            Momoka.Tests.Assert.Equal("", host.DanmakuSearchEpisode);
+            Momoka.Tests.Assert.Equal("private local series", host.DanmakuSearchTitle);
+            Momoka.Tests.Assert.Equal("3", host.DanmakuSearchEpisode);
         });
-        foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Episode })
-            Test("Bilibili auto match keeps manual selection and no external calls " + type, () =>
+        foreach (var season in new[] { 0, 2 })
+            Test("Bilibili auto match keeps special or later season manual without external calls " + season, () =>
             {
                 using var host = new PlaybackHost(Settings());
-                host.MatchAsync(new() { Name = "private local title", SeriesName = "private series", Type = type,
-                    ParentIndexNumber = 2, IndexNumber = 3 }).GetAwaiter().GetResult();
+                host.MatchAsync(new() { Name = "private local title", SeriesName = "private series", Type = EmbyItemType.Episode,
+                    ParentIndexNumber = season, IndexNumber = 3 }).GetAwaiter().GetResult();
                 Momoka.Tests.Assert.Equal(0, host.ExternalCalls);
                 Momoka.Tests.Assert.Contains("手动", host.DanmakuStatus);
-                Momoka.Tests.Assert.Contains("哔哩哔哩", host.DanmakuStatus);
             });
         Test("Bilibili successful load is counted separately and cannot establish private send target", () =>
         {
@@ -134,7 +133,7 @@ internal static class BilibiliPlayerTests
             });
     }
 
-    private static AppSettings Settings()
+    internal static AppSettings Settings()
     {
         var settings = new AppSettings();
         settings.Danmaku.Enabled = true;
@@ -175,8 +174,16 @@ internal sealed partial class PlaybackHost(AppSettings settings) : IDisposable
     internal bool HasPrivateTarget => _danmakuEpisode is not null;
     internal PlaybackTransport Client => _dandanPlay;
     internal int ExternalCalls { get; private set; }
+    internal string Query { get; private set; } = "";
+    internal string? EpisodeQuery { get; private set; }
+    internal DanmakuSource? QueriedSource { get; private set; }
+    internal CancellationToken SearchToken { get; private set; }
+    internal DandanPlaySearchResult Matches { get; set; } = DandanPlaySearchResult.Empty;
+    internal string MatchError { get; set; } = "";
+    internal TaskCompletionSource<(DandanPlaySearchResult Result, string Error)>? PendingSearch { get; set; }
     internal int Generation { get; set; }
     internal Task MatchAsync(EmbyItem item) => AutoMatchDanmakuAsync(item);
+    internal void CancelSearch() => CancelDanmakuSearch();
     private int CaptureInteraction() => Generation;
     private bool IsCurrentPlayback(int context) => context == Generation;
     private void CancelDanmakuSearch() { _danmakuSearchRequest++; _danmakuSearch?.Cancel(); }
@@ -187,7 +194,7 @@ internal sealed partial class PlaybackHost(AppSettings settings) : IDisposable
     private Task PushDanmakuAsync() => Task.CompletedTask;
     private Task<int?> DanmakuSeriesYearAsync(EmbyItem item, CancellationToken token) { ExternalCalls++; return Task.FromResult<int?>(null); }
     private Task<(DandanPlaySearchResult Result, string Error)> SearchSourceAsync(string title, string? episode, DanmakuSource source, CancellationToken token)
-    { ExternalCalls++; return Task.FromResult((DandanPlaySearchResult.Empty, "")); }
+    { ExternalCalls++; Query = title; EpisodeQuery = episode; QueriedSource = source; SearchToken = token; return PendingSearch?.Task ?? Task.FromResult((Matches, MatchError)); }
     public void Dispose() { _lifetime.Cancel(); _danmakuSearch?.Dispose(); _danmakuLoad?.Dispose(); _lifetime.Dispose(); }
     private sealed class PlaybackBoundary { internal bool IsPlaying => true; }
 }

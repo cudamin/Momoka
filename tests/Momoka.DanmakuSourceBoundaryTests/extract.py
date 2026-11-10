@@ -39,6 +39,7 @@ methods += '\n\n' + extract('src/Momoka.Shell/ViewModels/PlayerViewModel.Danmaku
 (here / 'Host.g.cs').write_text('#nullable enable\nusing Momoka.Danmaku;\nnamespace DanmakuReview;\ninternal sealed partial class Host\n{\n' + methods + '\n}\n', encoding='utf-8', newline='\n')
 
 methods = extract(host, '    public bool DanmakuSendSupported =>', '    internal DanmakuSettings DanmakuPreferences =>')
+methods += '\n\n' + extract(host, '    private string BilibiliConnection() =>', '    private void RefreshDanmakuProperties()')
 methods += '\n\n' + extract(host, '    private string DefaultDanmakuStatus =>', '    private void ResetDanmaku(')
 methods += '\n\n' + extract(host, '    private DanmakuSource DefaultSearchSource() =>', '    private async Task<int?> DanmakuSeriesYearAsync(')
 methods += '\n\n' + extract(host, '    internal Task LoadDanmakuAsync(DandanPlayEpisode episode) =>', '    private async Task PushDanmakuAsync()')

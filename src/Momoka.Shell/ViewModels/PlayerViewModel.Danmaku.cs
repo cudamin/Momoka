@@ -48,10 +48,8 @@ public sealed partial class PlayerViewModel
     public bool DanmakuShown => Settings.Danmaku.Show;
     public string DanmakuToggleLabel => DanmakuShown ? "关闭弹幕" : "开启弹幕";
     public bool DanmakuSendSupported => DanmakuSourceRules.CanSend(Settings.Danmaku.Source);
-    internal string DanmakuSearchTitle => Settings.Danmaku.Source != DanmakuSourceMode.Bilibili && _nowPlaying is { } item
-        ? DandanPlayMatching.Title(item) : "";
-    internal string DanmakuSearchEpisode => Settings.Danmaku.Source != DanmakuSourceMode.Bilibili && _nowPlaying is { } item
-        ? DandanPlayMatching.EpisodeNumber(item) ?? "" : "";
+    internal string DanmakuSearchTitle => _nowPlaying is { } item ? DandanPlayMatching.Title(item) : "";
+    internal string DanmakuSearchEpisode => _nowPlaying is { } item ? DandanPlayMatching.EpisodeNumber(item) ?? "" : "";
     internal DanmakuSettings DanmakuPreferences => Settings.Danmaku;
     internal Task<FontCatalogue> DanmakuFontsAsync() => _danmakuFonts.LoadAsync();
 
@@ -77,7 +75,7 @@ public sealed partial class PlayerViewModel
     internal void RequestDanmaku() { if (DanmakuAvailable) DanmakuRequested?.Invoke(); }
 
     private string DefaultDanmakuStatus => Settings.Danmaku.Source == DanmakuSourceMode.Bilibili
-        ? "哔哩哔哩弹幕请手动输入 BV / av / ep / ss 编号、链接或番剧影视关键词，再选择对应分集。"
+        ? "哔哩哔哩弹幕按片名和集数自动匹配；结果不确定时可输入 BV / av / ep / ss 编号或链接手动选择。"
         : $"弹幕来源：{DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source)}；搜索作品后选择对应剧集。";
 
     private void ResetDanmaku(EmbyItem? item)
@@ -236,11 +234,7 @@ public sealed partial class PlayerViewModel
 
     private async Task AutoMatchDanmakuAsync(EmbyItem item)
     {
-        if (Settings.Danmaku.Source == DanmakuSourceMode.Bilibili)
-        {
-            DanmakuStatus = DefaultDanmakuStatus;
-            return;
-        }
+        if (!Settings.Danmaku.AutoMatch) return;
         var context = CaptureInteraction();
         if (DandanPlayMatching.Title(item).Trim().Length < 2) return;
         // 续季与特别篇不发含糊的自动请求；仍然可以从播放页手动搜索。
@@ -260,6 +254,22 @@ public sealed partial class PlayerViewModel
         DanmakuStatus = "正在匹配弹幕…";
         try
         {
+            if (Settings.Danmaku.Source == DanmakuSourceMode.Bilibili)
+            {
+                var connection = BilibiliConnection();
+                var (matches, error) = await SearchSourceAsync(DandanPlayMatching.Title(item),
+                    DandanPlayMatching.EpisodeNumber(item), DanmakuSource.Bilibili, token).ConfigureAwait(true);
+                if (!IsCurrentPlayback(context) || request != _danmakuSearchRequest || !DanmakuAvailable
+                    || token.IsCancellationRequested || Settings.Danmaku.Source != DanmakuSourceMode.Bilibili
+                    || connection != BilibiliConnection()) return;
+                var match = error.Length == 0 ? BilibiliMatching.UniqueMatch(item, matches) : null;
+                if (match is not null)
+                    await LoadSourcesAsync([(DanmakuSource.Bilibili, match)]).ConfigureAwait(true);
+                else
+                    DanmakuStatus = error.Length > 0 ? $"{error}；可手动搜索并选择哔哩哔哩弹幕。"
+                        : "哔哩哔哩未找到能唯一确认的作品和集数，请手动搜索并选择对应分集。";
+                return;
+            }
             DandanPlaySearchResult dandan = DandanPlaySearchResult.Empty;
             var dandanError = "";
             if (DanmakuSourceRules.IsSourceReady(Settings, DanmakuSource.DandanPlay)

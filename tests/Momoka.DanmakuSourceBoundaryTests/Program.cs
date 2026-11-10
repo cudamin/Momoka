@@ -13,6 +13,7 @@ internal static class Program
     {
         var sendProbeFailures = await SendProbeTests.RunAsync();
         BilibiliPlayerTests.Register();
+        BilibiliAutoMatchTests.Register();
         Momoka.Tests.TestHarness.Test("R14-004 current panel refreshes sources after connection changes", () =>
         {
             var endpoint = new PanelEndpoint();

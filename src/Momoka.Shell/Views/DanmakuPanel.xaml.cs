@@ -168,7 +168,7 @@ public sealed partial class DanmakuPanel : UserControl
         SearchButton.IsEnabled = false;
         try
         {
-            var episode = source == DanmakuSource.Bilibili ? "" : EpisodeBox.Text.Trim();
+            var episode = EpisodeBox.Text.Trim();
             var matches = await _viewModel.SearchDanmakuAsync(TitleBox.Text, episode, source, cancellation.Token).ConfigureAwait(true);
             if (request != _searchRequest || !Current() || connectionVersion != _viewModel.DanmakuConnectionVersion) return;
             _results.Clear();
@@ -222,13 +222,12 @@ public sealed partial class DanmakuPanel : UserControl
         TitleBox.Header = bilibili ? "B站编号、链接或关键词" : "作品名称";
         TitleBox.PlaceholderText = bilibili ? "BV / av / ep / ss 或番剧影视关键词" : "作品名称";
         TitleBox.MaxLength = bilibili ? 2048 : 120;
-        Grid.SetColumnSpan(TitleBox, bilibili ? 2 : 1);
-        EpisodeBox.Visibility = bilibili ? Visibility.Collapsed : Visibility.Visible;
+        EpisodeBox.Visibility = Visibility.Visible;
         SearchHint.Visibility = bilibili ? Visibility.Visible : Visibility.Collapsed;
         if (previousSource == _searchSource || !bilibili && previousSource != DanmakuSource.Bilibili) return;
-        // 进入B站只接收手动输入，不能把另一个来源预填的本地作品名称悄悄带过去。
-        TitleBox.Text = bilibili ? "" : _viewModel?.DanmakuSearchTitle ?? "";
-        EpisodeBox.Text = bilibili ? "" : _viewModel?.DanmakuSearchEpisode ?? "";
+        // 进出B站时按当前视频重新填查询，不把上个来源的编号或链接当成作品关键词。
+        TitleBox.Text = _viewModel?.DanmakuSearchTitle ?? "";
+        EpisodeBox.Text = _viewModel?.DanmakuSearchEpisode ?? "";
     }
 
     private void OnSourceChanged(object sender, SelectionChangedEventArgs e)
