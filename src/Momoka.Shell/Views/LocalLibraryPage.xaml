@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page x:Class="Momoka.Shell.Views.LocalLibraryPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Momoka.Shell.Views"
+    xmlns:vm="using:Momoka.Shell.ViewModels"
+    Background="{ThemeResource LayerFillColorDefaultBrush}">
+    <Grid Padding="{StaticResource EgPageMargin}" RowSpacing="{StaticResource EgSpaceL}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel Spacing="{StaticResource EgSpaceS}">
+            <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" Style="{StaticResource EgPageTitleStyle}" TextWrapping="Wrap"
+                AutomationProperties.HeadingLevel="Level1" />
+            <TextBlock Text="{x:Bind ViewModel.SourceDirectory, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+            <local:WrapRow Spacing="{StaticResource EgSpaceL}" RowSpacing="{StaticResource EgSpaceS}">
+                <TextBlock Text="{x:Bind ViewModel.CountText, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
+                <Button x:Name="LocalLibraryRefresh" Content="刷新媒体库" Style="{StaticResource EgSecondaryButtonStyle}" Click="OnRefresh"
+                    Visibility="{x:Bind local:LocalLibraryPage.Show(ViewModel.Available), Mode=OneWay}" />
+                <Button x:Name="LocalLibraryOpenSource" Content="打开源目录" Style="{StaticResource EgSecondaryButtonStyle}" Click="OnOpenSource"
+                    Visibility="{x:Bind local:LocalLibraryPage.Show(ViewModel.Available), Mode=OneWay}" />
+            </local:WrapRow>
+            <TextBlock Text="{x:Bind ViewModel.Status, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+        </StackPanel>
+        <ProgressBar Grid.Row="1" IsIndeterminate="{x:Bind ViewModel.Busy, Mode=OneWay}"
+            Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" AutomationProperties.Name="正在刷新本地媒体库" />
+        <InfoBar x:Name="LocalLibraryNotice" Grid.Row="2" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
+            Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
+            Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
+        <ListView x:Name="LocalLibraryEntries" Grid.Row="3" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}"
+            SelectionMode="None" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="vm:LocalLibraryRow">
+                    <Grid Margin="0,8,0,8" ColumnSpacing="{StaticResource EgSpaceL}" Tag="{x:Bind}"
+                        Loaded="OnRowLoaded" Unloaded="OnRowUnloaded" AutomationProperties.Name="{x:Bind Title}">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <Border Width="96" Height="144" CornerRadius="{StaticResource EgPosterCornerRadius}" Background="{ThemeResource EgSurfaceBrush}">
+                            <Grid>
+                                <FontIcon Glyph="&#xE8B2;" Foreground="{ThemeResource EgTextDimBrush}" />
+                                <Image Source="{x:Bind Poster, Mode=OneWay}" Stretch="UniformToFill" />
+                            </Grid>
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="{StaticResource EgSpaceS}" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgSubheadStyle}" TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind MetadataText}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind EpisodeTitle}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind TargetPath}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}"
+                                TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                            <local:WrapRow Spacing="{StaticResource EgSpaceM}" RowSpacing="{StaticResource EgSpaceS}">
+                                <TextBlock Text="{x:Bind Status}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+                                <Button x:Name="LocalLibraryOpenLocation" Content="打开所在文件夹" Tag="{x:Bind}" Click="OnOpenLocation" />
+                                <Button x:Name="LocalLibraryPlay" Content="播放" Tag="{x:Bind}" Click="OnPlay"
+                                    Visibility="{x:Bind PlayVisibility, Mode=OneWay}" />
+                            </local:WrapRow>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <TextBlock Grid.Row="3" Text="还没有已入库的影视文件。后台扫描与刮削完成后会显示在这里。"
+            Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap"
+            Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    </Grid>
+</Page>

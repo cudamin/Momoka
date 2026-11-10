@@ -1122,6 +1122,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             Open(typeof(HomePage), new HomeRequest(_services, _libraryViews.ToArray(), _window, OpenSubscription)
             {
                 OpenSubscriptionLibrary = () => GoTo(MoviePilotSubscriptionsRequest.LibraryKey),
+                OpenLocalLibrary = id => GoTo(LocalLibraryRequest.Prefix + id),
                 CurrentLibraryViews = () => !_closing && homeScope?.IsCurrent == true && SourcesStamp() == homeSources
                     ? _libraryViews.ToArray() : [],
                 LibraryDirectoryUpdated = (source, views) =>
@@ -1153,6 +1154,17 @@ public sealed partial class ShellPage : UserControl, IShellActions
             if (_moviePilotService?.Available != true) return;
             var request = new MoviePilotSubscriptionsRequest(_moviePilotService, tag, OpenSubscription);
             Open(typeof(MoviePilotSubscriptionsPage), request, request.Title, tag);
+            return;
+        }
+
+        if (tag.StartsWith(LocalLibraryRequest.Prefix, StringComparison.Ordinal))
+        {
+            var service = _services.GetRequiredService<Momoka.Shell.Services.LocalLibraryCoordinator>();
+            var id = tag[LocalLibraryRequest.Prefix.Length..];
+            var localLibrary = service.Libraries.FirstOrDefault(library => library.Id == id && !string.IsNullOrWhiteSpace(library.SourceDirectory));
+            if (localLibrary is null) return;
+            var request = new LocalLibraryRequest(service, id, _services.GetRequiredService<Platform.ISystemLauncher>());
+            Open(typeof(LocalLibraryPage), request, localLibrary.Name, tag);
             return;
         }
 

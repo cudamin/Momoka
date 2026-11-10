@@ -12212,3 +12212,9 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 独立树 `native-http-redirect-security/Momoka`，基点059e3c6；只改原生/外部backend、HTTP transport、inline/builder、相关测试与文档。固定随包mpv270367e8a/FFmpegc705686a3的全局headers跨302泄露已由旧原生探针复现；失败先行回归两项0/2。改每个文件独立受管loopback GET/HEAD streaming，认证逐跳同源保留、离源不恢复、初始外源不带头；清nativeheaders与proxy、字幕反映射、动态sub-add、Range及中断取消。认证HLS/DASH/清单拒绝；上游按.NET系统网络配置。
 
 本树Release Core/Tests编译0警告0错误，定向51/51及播放/字幕382/382，0失败0跳过；随包批准DLL受管+原生302→404零正文探针4/4，四种认证头目标收到0。仅离线loopback，无真实服务器播放/历史写入、UI或外部mpv实际版本验收。Plex结构化Part/EDL接线和最终主树全量/源pin/发布由主代理整合后执行；本树不上传、不合并、不发布。Release Shell及ShaderCommandGeneration源码提取编译0/0；最终退出竞争和锁收束后重编0/0、定向51/51、原生4/4及差异/编码/空白检查通过。
+
+## 2026-11-10 本地媒体库首页和列表页（待主代理整合）
+
+独立树 local-library-home/Momoka，基点2f429fd；首页每个非空源目录配置对应媒体库排的一张本地导航卡，名称/已入库数量/本机海报随Changed实时同步；MP同步只清自己的导航钥匙。新增独立LocalLibraryPage/VM/Row，过滤IsInLibrary，显示标题/年/季集/目标路径/状态，刷新和打开存在的目录，预留未接时隐藏的播放委托。CardItem新增限定本机普通图片文件的12MiB读取路径、取消/尺寸/需求守卫。
+
+独立LocalLibraryPageTests实际编译链接生产VM/Row/PageViewModel/Artwork，以正式Core条目模型和受控Coordinator/配置/WinUI边界运行12/12，0失败0跳过；真实临时图片读取、源契约和导航重入覆盖，不是UI/Explorer/真实解码或播放证据。自动化句柄扫描0缺失，diff空白检查通过。Shell首次编译修正Home退订误位后，重复构建导致intermediatexaml文件锁并连带WMC错误；主代理整合完整编译/UI待验。无服务器登录时Shell仍展示登录页，本轮未扩大登录体系；临时模型/协调器stub不提交。本树未合入master、未发布、未上传，主代理负责sln/专项manifest及图片源测试编译链接登记与最终交付。

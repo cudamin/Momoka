@@ -674,6 +674,7 @@ public sealed partial class HomeViewModel : PageViewModel
     private void PublishShelves()
     {
         SyncMoviePilotLibrary();
+        SyncLocalLibraries();
         var timing = NavigationTiming.Capture();
         timing?.Mark("home-shelves-begin");
         var visibleShelves = _all.Where(entry => entry.Row.Visible && entry.Shelf.Cards.Count > 0)
@@ -1610,7 +1611,8 @@ public sealed partial class HomeViewModel : PageViewModel
     {
         if (card.IsNavigation)
         {
-            if (_active && ReferenceEquals(card, _moviePilotLibrary)) card.OpenNavigation();
+            if (_active && (ReferenceEquals(card, _moviePilotLibrary)
+                || _localLibraryCards.Values.Any(entry => ReferenceEquals(entry.Card, card)))) card.OpenNavigation();
             return;
         }
         if (_actions is null || !Live || !card.IsCurrent) return;
