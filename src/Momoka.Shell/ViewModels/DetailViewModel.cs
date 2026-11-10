@@ -2401,6 +2401,7 @@ public sealed partial class DetailViewModel : PageViewModel
         _session = session;
         _images = images;
         _removed = request.Services?.GetService(typeof(RemovedMedia)) as RemovedMedia;
+        _trailerLauncher = request.Services?.GetService(typeof(Platform.ISystemLauncher)) as Platform.ISystemLauncher;
 
         // 版面高在这一句就定了下来，早于任何一次网络往返 —— 「点击主页封面后窗口会闪一下」说的就是这一句以前
         // 得等图。列表接口回来的条目已经带着 ImageTags，而这一页正是从那张列表上点进来的。
@@ -2445,7 +2446,7 @@ public sealed partial class DetailViewModel : PageViewModel
             return;
         }
 
-        var token = BeginLoad();
+        var token = BeginLoad(_ => ResetTrailers());
         NavigationTiming.Mark("load-begin");
 
         try
@@ -2599,6 +2600,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     private void AnnounceAffordances()
     {
+        OnPropertyChanged(nameof(TrailerVisibility));
         OnPropertyChanged(nameof(FavoriteActionVisibility));
         OnPropertyChanged(nameof(CanOpenGenre));
         ToggleFavoriteCommand.NotifyCanExecuteChanged();
@@ -2916,6 +2918,8 @@ public sealed partial class DetailViewModel : PageViewModel
         RefreshOtherInfo();
 
         _actionsReady = true;
+        _trailersReady = true;
+        OnPropertyChanged(nameof(TrailerVisibility));
         NotifyActionAvailability();
         NavigationTiming.Mark("actions-ready");
     }
@@ -4263,6 +4267,7 @@ public sealed partial class DetailViewModel : PageViewModel
         _subjectStateCard = null;
         _active = false;
         _actionsReady = false;
+        ResetTrailers();
         _versionLoad?.Cancel();
         _lifetime++;
         base.Cancel();

@@ -846,6 +846,13 @@
                                         </StackPanel>
                                     </Button>
 
+                                    <Button
+                                        x:Name="ColumnTrailerButton"
+                                        Content="预告片"
+                                        Click="OnTrailersClick"
+                                        Style="{StaticResource EgPillButtonStyle}"
+                                        Visibility="{x:Bind ViewModel.TrailerVisibility, Mode=OneWay}" />
+
                                     <!-- 连播 —— 「集页面加一个连播按钮」（2026-09-12）。开的是设置里那同一档
                                          「自动播放下一集」（一集放完自动接下一集，播放器 ⚙ 菜单和设置页写的
                                          也是它），不是这一页自己的状态：三处（宽版式两排、紧凑一块）和那两个
@@ -1246,6 +1253,13 @@
                                         <TextBlock x:Uid="DetailPage_TextBlock1" />
                                     </StackPanel>
                                 </Button>
+
+                                <Button
+                                    x:Name="CompactTrailerButton"
+                                    Content="预告片"
+                                    Click="OnTrailersClick"
+                                    Style="{StaticResource EgPillButtonStyle}"
+                                    Visibility="{x:Bind ViewModel.TrailerVisibility, Mode=OneWay}" />
 
                                 <!-- 连播，和宽版式那两颗同一个开关同一句话；紧凑版式这颗也是**勾上只换图标色**
                                      （2026-10-11 起：底按回不带勾的三档，字钉在浅墨上，accent 只落在图标上；

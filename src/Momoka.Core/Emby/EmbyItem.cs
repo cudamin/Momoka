@@ -755,6 +755,12 @@ public sealed class EmbyItem
 
     public string? Overview { get; set; }
 
+    /// <summary>关联在此条目下的服务器内预告数量；缺失时不假定存在。</summary>
+    public int? LocalTrailerCount { get; set; }
+
+    /// <summary>服务器提供的预告网页地址。播放前由 <see cref="ItemTrailers.Remote"/> 筛选。</summary>
+    public List<MediaTrailerUrl>? RemoteTrailers { get; set; }
+
     public int? ProductionYear { get; set; }
 
     public DateTimeOffset? PremiereDate { get; set; }
