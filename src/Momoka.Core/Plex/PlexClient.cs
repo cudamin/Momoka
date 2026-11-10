@@ -106,15 +106,15 @@ public sealed partial class PlexClient(PlexHttp http)
             Query([new("key", ratingKey), new("identifier", LibraryIdentifier)])), c.Call, ct);
 
     /// <summary>
-    /// A playback report. Plex wants the position in milliseconds and the part key exactly as its own
-    /// metadata spelled it; <paramref name="state"/> is <c>playing</c>, <c>paused</c> or <c>stopped</c>.
+    /// A playback report uses the item metadata key and whole-item position in milliseconds.
+    /// <paramref name="state"/> is <c>playing</c>, <c>paused</c> or <c>stopped</c>.
     /// </summary>
-    public Task ReportTimelineAsync(PlexConnection c, string ratingKey, string partKey, string state,
+    public Task ReportTimelineAsync(PlexConnection c, string ratingKey, string metadataKey, string state,
         long positionTicks, long durationTicks, CancellationToken ct = default) =>
         http.GetAsync(PlexEndpoint.Special(c.ApiBase, ":/timeline", Query(
         [
             new("ratingKey", ratingKey),
-            new("key", partKey),
+            new("key", metadataKey),
             new("state", state),
             new("time", Milliseconds(positionTicks).ToString()),
             new("duration", Milliseconds(durationTicks).ToString()),

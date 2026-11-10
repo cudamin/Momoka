@@ -307,7 +307,8 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
         ReportAsync(report, "stopped", ct);
 
     private Task ReportAsync(PlaybackReport report, string state, CancellationToken ct) =>
-        client.ReportTimelineAsync(connection, report.ItemId, report.PlexSelection?.PartKey ?? "", state,
+        client.ReportTimelineAsync(connection, report.ItemId, report.PlexSelection?.MetadataKey
+            ?? "/library/metadata/" + PlexEndpoint.Segment(report.ItemId), state,
             report.PositionTicks, report.PlexSelection?.DurationTicks ?? 0, ct);
 
     private static IEnumerable<EmbyItem> Children(JsonObject container, string type, string parentId, string seriesId) =>

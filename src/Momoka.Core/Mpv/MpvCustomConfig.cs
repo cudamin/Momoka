@@ -127,7 +127,7 @@ public sealed class MpvCustomConfig : IDisposable
         string[] owned =
         [
             "config", "config-dir", "use-filedir-conf", "input-conf", "input-ipc", "script", "scripts", "load-scripts",
-            "log-file", "dump-stats", "terminal", "msg-level", "playlist", "http-header-fields",
+            "log-file", "dump-stats", "terminal", "msg-level", "playlist", "http-header-fields", "http-proxy",
             "resume-playback", "save-position-on-quit", "save-watch-history", "watch-later", "watch-history",
             "idle", "keep-open", "start", "end", "length", "sub-files", "audio-files", "external-files",
             "vo", "wid", "d3d11-output-mode", "d3d11-exclusive-fs", "d3d11-composition-size", "force-window",

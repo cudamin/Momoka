@@ -37,6 +37,7 @@ public static class MpvArgumentBuilder
         // is now the only thing that decides where a file starts, and mpv keeps no second record of the
         // position to disagree with the server's.
         arguments.Add("--no-config");
+        arguments.Add("--http-proxy=");
 
         // 播放统计（参考项目那一套统计项的中文覆盖版，见 MpvStats）。--no-config 让 mpv 不再读用户配置目录
         // 里那棵 scripts/，所以这一份必须自己交出去；`--script`（单数）重复出现是累加，不与别的脚本互相顶掉。
@@ -97,10 +98,10 @@ public static class MpvArgumentBuilder
     /// </summary>
     public static IReadOnlyList<object?[]> LoadCommands(PlaybackRequest request) =>
     [
-        ["set_property", "http-header-fields", request.HttpHeaders.Select(header => $"{header.Key}: {header.Value}").ToArray()],
+        ["set_property", "http-header-fields", Array.Empty<string>()],
         ["set_property", "options/sub-files", request.ExternalSubtitles.Select(uri => uri.AbsoluteUri).ToArray()],
         ["set_property", "options/start", Seconds(request.StartSeconds)],
-        ["loadfile", request.MediaUrl.AbsoluteUri, "replace"]
+        ["loadfile", MpvMediaResource.Build(request), "replace"]
     ];
 
     private static bool OwnsStartup(string name) =>

@@ -30,6 +30,7 @@ internal sealed class NativeBoundary
     internal List<string> PropertyWrites { get; } = [];
     internal Func<string[], int>? Result { get; set; }
     internal Func<string[], int>? LoadResult { get; set; }
+    internal Func<string, bool>? IsMappedFixtureResource { get; set; }
     internal Action? Shutdown { get; set; }
     internal Action<string>? BeforeRead { get; set; }
     internal string? Missing { get; set; }
@@ -77,7 +78,7 @@ internal sealed class NativeBoundary
                 if (result >= 0) Values[arguments[1]] = arguments[2];
                 return result;
             case "loadfile" when arguments.Length == 3 && arguments[2] == "replace"
-                && new Uri(arguments[1]).Host == "r051.invalid":
+                && (new Uri(arguments[1]).Host == "r051.invalid" || IsMappedFixtureResource?.Invoke(arguments[1]) == true):
                 var load = new NativeCommand(File, [.. arguments]);
                 Commands.Add(load);
                 load.Result = LoadResult?.Invoke(arguments) ?? 0;
@@ -125,13 +126,14 @@ internal sealed class NativeBoundary
     internal void Write(string name, string value)
     {
         if (!InlineSwitch.PerFilmNames.Contains(name, StringComparer.Ordinal)
-            && !new[] { "start", "aid", "sid", "alang", "slang", "sub-files", "http-header-fields", "force-media-title", "pause" }
+            && !new[] { "start", "aid", "sid", "alang", "slang", "sub-files", "http-header-fields", "http-proxy", "force-media-title", "pause" }
                 .Contains(name, StringComparer.Ordinal))
         {
             ForbiddenCalls++;
             throw new AssertionException("R051 拒绝未安排的 native 属性写：" + name);
         }
         // Do not retain/log even the placeholder HTTP header value.
+        if (name == "http-proxy") Assert.Equal("", value, "本机能力地址必须清空原生代理");
         PropertyWrites.Add(name);
         if (name != "http-header-fields") Values[name] = value;
     }

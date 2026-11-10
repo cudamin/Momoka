@@ -497,6 +497,10 @@ public sealed class MediaSource
     [JsonIgnore]
     public Uri? DirectStreamUrl { get; set; }
 
+    /// <summary>Ordered files of one Plex Media version; never separate version-picker entries.</summary>
+    [JsonIgnore]
+    public IReadOnlyList<PlaybackPart> MediaParts { get; set; } = [];
+
     public string Id { get; set; } = "";
 
     /// <summary>

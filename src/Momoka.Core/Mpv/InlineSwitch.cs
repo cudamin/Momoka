@@ -151,10 +151,10 @@ public static class InlineSwitch
                 // libmpv 实测确认（逗号不切分、分号才切成多条），换片走的属性接口分隔符与启动选项一致。所以用
                 // MpvListValue.JoinFiles，别用逗号那家（Escape）；从前误按逗号列表拼，两条以上外挂字幕会被并成一条坏路径。
                 : MpvListValue.JoinFiles(next.ExternalSubtitles.Select(uri => uri.AbsoluteUri))),
-            new("http-header-fields", next.HttpHeaders.Count == 0
-                ? ""
-                : string.Join(",",
-                    next.HttpHeaders.Select(header => $"{header.Key}: {MpvListValue.Escape(header.Value)}"))),
+            // Authenticated resources are served by the handle's managed HTTP transport.
+            // Never leave credentials in native global state, including across inline switches.
+            new("http-header-fields", ""),
+            new("http-proxy", ""),
             new("force-media-title", next.Title),
             new("pause", "no"),
         };

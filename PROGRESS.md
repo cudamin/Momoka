@@ -1,5 +1,15 @@
 # 开发进度
 
+## 2026-11-10 后端审查两项修复（已交付）
+
+用户授权自行决定修复。已修经匿名复现确认的两项：原生播放不再持有服务器认证头，由每文件受管 HTTP 转发逐跳约束来源，跨源及回跳不恢复认证；Plex 一 Media 一版本，Part 顺序组成整片 EDL 时间轴，按 metadata key 上报整片位置，避免首段 EOF 提前标已看。两位隔离实现者及独立复审完成，组合加载和夹具由交付会话收尾。产品 c359b33/ec306a9/b2b0dd4、测试 457ca33/f0a26cb/4e54376 均在 master；未上传 GitHub。
+
+主树当前 Core/Tests/Shell Release 编译 0 警告 0 错误；完整主测试 4328/4328、0 失败 0 跳过。原生批准 DLL 重定向 4/4、本地 EDL 8/8、受管逐段 HTTP+EDL 13/13；切链实际 handle 60/60、自然 EOF 27/27、结束事件 42/42、来源撤销 31/31、真实 caller 69/69。开发树另保留提取器十个反例正确拒绝及当前源重验。全量初轮旧 Part 独立体积夹具失败，已改为真实独立 Media 样本并补多段合计/未知体积；专项初轮不认识 http-proxy 和能力地址失败，已仅放行空代理及当前 handle 注册、反映射至匿名来源的地址，保留其它拒绝，原红日志不覆盖。
+
+publish.ps1 -NoArchive -Shortcut 退出 0，546 文件/287.0 MB、59 批准 mpv 载荷及许可通过；快捷方式目标与工作目录为主树 artifacts/publish/win-x64，参数空。发布 Shell/Core/PRI 与当前发布配置 bin 哈希逐件一致，Shell D350F35E73FA52BD5BF7716F9D4F0A9BB36EFEA91283AA4435AB730C0EF38291，Core 936A00D5810D720E8C36FAD0AB1C5E3F16EE7170AD006C3775E6864BD6A7591E。审查、红绿、主树验证与发布证据集中 artifacts/backend-fixes-master-20261110；子树证据已保留后申请原生归档，主开发树8242保留本任务历史。
+
+覆盖限制：无真实服务器播放或观看记录写入，无实际外部 mpv、独占/集成窗口视觉运行验证；没有重跑无关 UI 全探针/闸门4。认证 HLS/DASH/播放列表明确不支持，原文件上游改用 .NET 系统代理与证书校验；多段外挂字幕隐藏，缺有效分段时长或内置轨不一致的版本排除，保留其它版本与单文件外挂字幕。未扩大到已被证伪的审查疑点。
+
 ## 2026-11-10 首页继续观看封面顶部对齐（已交付）
 
 用户截图的封面均为256×144，缺副标题的电影因首页宿主Button沿用WinUI默认VerticalAlignment=Center整卡下沉7 DIP。HomePage的CardTemplate显式Top，保留图片尺寸与空字段收起；HomeHeader匿名探针改用有、无年份混排，核对Art和TitleLine顶边及尺寸，并注入Center反例后恢复。旧产品运行26236测得封面Y13／20、标题165／172并按预期失败；修复开发件7604和正式发布件18408均1/1通过，1280／760全排封面Y6、标题158，实屏已目视，InspectDone正常退出。首次Hidden进程28032因宿主不可见退出，不计入产品结果；一次探针编译误用不存在常量已修正，最终Shell/Core/Tests均0警告0错误，主测试4275/4275、0失败0跳过，独立复审无阻塞。
@@ -12188,3 +12198,17 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 本树Release Shell/Tests均0警告错误；native-menu-fixture475/475、player-tools16/16、download+章节+备份5/5、真实Settings/Controller57/57通过。最终离线shortcuts探针5/5通过：`C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261110-105357671-27088/logs`，含宽窄菜单、设置、裁切与固定失败提示实屏。此前失败已定位隐藏启动窗口、原始UIA岛坐标和失败提示滚出，修正后同项全部通过。
 - 随包无cropdetect故自动去黑边隐藏；silencedetect和typed章节桥以本地合成媒体实际通过。FFmpeg片段/GIF/SRT/裁切/拼图/WAV及alass匿名SRT同步实际通过；Whisper/ffsubsync程序和真实云翻译未运行。真实媒体库播放未执行；实体Escape停止Computer Use后不再操作桌面，点外关闭未取得本轮实按通过证据。
 - 待整合最新master的Plex多段与受管HTTP改动，重验主树并发布。当前主树另有LocalMedia探针未提交内容，整合时须保留；本条不是交付完成声明。
+## 2026-11-10 Plex 顺序分段时间轴修复（待批次整合）
+
+独立工作树 `plex-multipart-timeline/Momoka` 基于 `059e3c6`，负责 Plex 映射、播放资源模型/纯构造与离线回归，未修改 backend。一个 Media 只提供一个版本，其 Part 顺序使用 EDL 整片时钟；多段 ID 使用 `media:` 域，避免与单文件 Part ID 混淆。源时长来自有效 Part 总和，缺/非法/溢出时长及内置轨道布局不一致略过该版本，保留其他版本。多段 server 外挂字幕轨因缺独立时间轴隐藏，内置轨和关闭字幕可用；旧外挂选择明确拒绝。`MpvMediaResource.Build` 逐段调用安全地址映射再 UTF-8 长度转义，首段 `layout=this`，不写空 start 参数。
+
+固定上游核对：mpv `270367e8af` 的 demux_edl/timeline（未知长度会造1秒、首段布局、累积时间与内部EOF）；官方 Plex Kodi `97191f248a20223bb93296789c010ff2204a9c76` nowplayingmanager:171-187 与 player:174-186 证明 timeline key 是条目 metadata key、位置整片计算，已纠正旧 Part key 报告与说明。协议仍仅离线验证。
+
+本树 restore 后当前 Core/Tests Release 0警告0错误，Plex定向263/263、0失败0跳过，回归先在旧实现240项中出现2个目标失败。批准SHA256内核的本地生成PCM null输出探针8/8：总时长5秒、3.5秒续播=第二段1.5秒、跨段/边界seek、首段自然EOF不结束、全片EOF一次。首次禁引用让EDL整体拒绝、一次未等日志消费的探针断言失败均保留；最终 native-04.txt 退出0，EDL允许引用但输入全部自生成PCM、不接收媒体路径/URL，禁用户配置、脚本及自动外挂。whitespace、git diff/check-diff通过。证据 `artifacts/plex-multipart-evidence`。
+
+未真实服务器起播/上报/改观看记录，未验证实际WinUI、独占窗口、外部mpv或多段真实字幕。待主代理按P2→P1整合backend逐段安全transport，组合原生探针及批次完整闸门；当前未合入master、未发布、未上传。
+## 2026-11-10 原生播放跨源HTTP认证修复（待主代理整合）
+
+独立树 `native-http-redirect-security/Momoka`，基点059e3c6；只改原生/外部backend、HTTP transport、inline/builder、相关测试与文档。固定随包mpv270367e8a/FFmpegc705686a3的全局headers跨302泄露已由旧原生探针复现；失败先行回归两项0/2。改每个文件独立受管loopback GET/HEAD streaming，认证逐跳同源保留、离源不恢复、初始外源不带头；清nativeheaders与proxy、字幕反映射、动态sub-add、Range及中断取消。认证HLS/DASH/清单拒绝；上游按.NET系统网络配置。
+
+本树Release Core/Tests编译0警告0错误，定向51/51及播放/字幕382/382，0失败0跳过；随包批准DLL受管+原生302→404零正文探针4/4，四种认证头目标收到0。仅离线loopback，无真实服务器播放/历史写入、UI或外部mpv实际版本验收。Plex结构化Part/EDL接线和最终主树全量/源pin/发布由主代理整合后执行；本树不上传、不合并、不发布。Release Shell及ShaderCommandGeneration源码提取编译0/0；最终退出竞争和锁收束后重编0/0、定向51/51、原生4/4及差异/编码/空白检查通过。

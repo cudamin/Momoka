@@ -76,7 +76,7 @@ Videos/{itemId}/stream{ext}?Static=true&MediaSourceId=…
 ## 别自己发明的地方
 
 - **基址只在一处归一。** `EmbyServerAddress.Normalize` 把任何输入统一成恒以 `/emby/` 结尾的 `ApiBase`（用户粘进来的 `/emby` 先被剥掉再拼回）。所以 `EmbyUrl.Combine` 里的相对路径**不带 `/emby`**。
-- **凭据通过头传递，传递通道同样要核对。** `EmbyHttp.SendAsync` 为每次请求设置 `X-Emby-Authorization` 和 `X-Emby-Token`，`EmbyUrl.Stream` 不带 `api_key`。内置后端由 `LibMpvBackend` 通过进程内 API 设置 `http-header-fields`；外部后端先由 `MpvProcessBackend` 校验 IPC 服务端属于刚启动的进程，再发送 `MpvArgumentBuilder.LoadCommands` 构造的请求头和加载命令。不要将令牌放入 URL、启动参数或日志；具体链路见 [播放技能](../momoka-playback/SKILL.md)。`EmbyHttp.Redact` 去掉日志 URL 的 query，不能代替这些传递边界。
+- **凭据通过受管逐请求头传递，传递通道同样要核对。** `EmbyHttp.SendAsync` 为每次请求设置 `X-Emby-Authorization` 和 `X-Emby-Token`，`EmbyUrl.Stream` 不带 `api_key`。播放由 `PlaybackHttpTransport` 逐请求、逐重定向管理认证，native全局 `http-header-fields` 清空；内置与外部后端只加载随机loopback能力地址，外部仍先核对IPC服务端PID。离开初始来源后不恢复认证，未知嵌套资源不能取得服务器头。不要将令牌放入 URL、启动参数或日志；范围与不支持的认证HLS/清单见 [播放技能](../momoka-playback/SKILL.md)。`EmbyHttp.Redact` 去掉日志 URL 的 query，不能代替这些传递边界。
 - **逐请求头，别动 `DefaultRequestHeaders`。** v1 在每次调用前改它，一并发取海报就自己跟自己抢（`EmbyHttp.cs:13-16`）。
 - **路径段要过守卫。** `LibraryId`（`EmbyClient.Libraries.cs:120`）和 `UserSegment`（`EmbyClient.Users.cs:130`）拒绝 `.`、`..` 和含 `/ \ ? #` 的 id，再 `Uri.EscapeDataString`。新写把 id 拼进路径的方法时照抄这两个，别直接插值。
 

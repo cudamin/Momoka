@@ -27,6 +27,7 @@ internal static partial class PlexMediaTests
         RegisterWatchedCounts();
         RegisterWatchedWrites();
         RegisterNextUpPaging();
+        PlexMultipartTests.Register();
         PlexV2LoginTests.Register();
         Test("Plex 媒体：登录、媒体库命名和令牌失效后同身份恢复", () =>
         {
@@ -153,7 +154,7 @@ internal static partial class PlexMediaTests
             var next = fixture.Session.Client.GetNextUpAsync(1, default, "30").GetAwaiter().GetResult();
             Assert.Equal("41", next.Single().Id);
         });
-        Test("Plex 媒体：详情进入播放规划，进度上报带 part key 与毫秒位置", () =>
+        Test("Plex 媒体：详情进入播放规划，进度上报带 metadata key 与毫秒位置", () =>
         {
             using var fixture = new Fixture(); fixture.Login();
             var item = fixture.Session.Client.GetItemAsync("10", default).GetAwaiter().GetResult();
@@ -168,7 +169,7 @@ internal static partial class PlexMediaTests
             Assert.Equal("X-Plex-Token", request.HttpHeaders[0].Key);
             Assert.Equal(fixture.Session.Connection!.AccessToken, request.HttpHeaders[0].Value);
             Assert.Equal("10", request.PlexSelection!.RatingKey);
-            Assert.Equal("/library/parts/20/1/file.mkv", request.PlexSelection.PartKey);
+            Assert.Equal("/library/metadata/10", request.PlexSelection.MetadataKey);
             Assert.Equal("http://plex.invalid:32400/library/streams/3", request.ExternalSubtitles.Single().AbsoluteUri);
 
             var report = new PlaybackReport

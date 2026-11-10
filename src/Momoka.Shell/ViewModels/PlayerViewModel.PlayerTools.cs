@@ -112,6 +112,7 @@ public sealed partial class PlayerViewModel
     {
         if (_playerTools is null) return [];
         if (_playerTools.Busy) return [HostRow(_playerTools.Status, "tool-status"), HostRow("取消工具任务", "tool-cancel")];
+        if (!_playback.CanUsePlayerTools) return [];
         var tools = Settings.PlayerTools;
         var rows = new List<PlayerMenuNode>();
         var ffmpeg = PlayerToolPaths.IsExecutableAvailable(tools.FfmpegPath);
