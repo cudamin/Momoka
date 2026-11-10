@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.ComponentModel;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.Configuration;
 using Momoka.Emby;
@@ -58,6 +59,27 @@ namespace Momoka.Shell.Views
         internal int Closed { get; private set; }
         internal void Shutdown() => Closed++;
     }
+    /// <summary>A controlled shutdown endpoint, never a replacement music implementation.</summary>
+    internal sealed class MusicVmBoundary : IDisposable
+    {
+        internal bool Hold { get; set; }
+        internal int Stops { get; private set; }
+        internal int Disposals { get; private set; }
+        internal Func<Task>? BeforeStart { get; set; }
+        internal TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal event Action<string, InfoBarSeverity>? Noticed;
+        internal event PropertyChangedEventHandler? PropertyChanged;
+        internal void RaiseNotice(string text) => Noticed?.Invoke(text, InfoBarSeverity.Informational);
+        internal void RaiseVisibility() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Visible"));
+        internal Task StopAsync()
+        {
+            Stops++;
+            Entered.TrySetResult();
+            return Hold ? Release.Task : Task.CompletedTask;
+        }
+        public void Dispose() => Disposals++;
+    }
     internal sealed class PlayerVmBoundary
     {
         internal bool Hold { get; set; }
@@ -106,6 +128,19 @@ namespace Momoka.Shell.Views
     }
     internal sealed partial class ShellPage
     {
+        private long _shellPlayIntent;
+        private MusicVmBoundary? _music;
+        private MusicVmBoundary Music => _music ?? throw new Momoka.Tests.AssertionException("关闭不能解析尚未附加的音乐服务");
+        internal int MusicVisibilityUpdates { get; private set; }
+        internal long PlayIntent => _shellPlayIntent;
+        internal MusicVmBoundary AttachMusicForShutdown()
+        {
+            _music = new MusicVmBoundary { BeforeStart = () => throw new Momoka.Tests.AssertionException("关闭期间不能启动音乐") };
+            _music.Noticed += Notify;
+            _music.PropertyChanged += OnMusicChanged;
+            return _music;
+        }
+        private void OnMusicChanged(object? sender, PropertyChangedEventArgs args) => MusicVisibilityUpdates++;
         internal Momoka.Shell.ViewModels.SignInViewModel Login => SignIn.ViewModel;
         internal bool LoginVisible => SignInVisible;
         internal bool ContentVisible => ContentHost.Visibility == Microsoft.UI.Xaml.Visibility.Visible;

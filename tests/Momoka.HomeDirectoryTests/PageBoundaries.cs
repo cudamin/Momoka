@@ -34,11 +34,13 @@ namespace Microsoft.UI.Xaml.Controls
         public int Navigations { get; private set; }
         public object? LastParameter { get; private set; }
         public object? LastTransition { get; private set; }
+        public Type? LastPage { get; private set; }
         public void Navigate(Type page, object parameter, object? transition)
         {
             Navigations++;
             LastParameter = parameter;
             LastTransition = transition;
+            LastPage = page;
             if (Content is not null) BackStack.Add(Content);
             Content = page == typeof(Momoka.Shell.Views.HomePage) ? new Momoka.Shell.Views.HomePage((Momoka.Shell.Views.HomeRequest)parameter) : new object();
         }
@@ -86,6 +88,7 @@ namespace Momoka.Shell.Views
         public void Release() { }
     }
     internal sealed class LibraryPage;
+    internal sealed class MusicLibraryPage;
     internal sealed class MoviePilotSubscriptionsPage;
     internal sealed record MoviePilotSubscriptionsRequest(MoviePilotService Service, string Key, Action<MoviePilotSubscription> Open)
     {
