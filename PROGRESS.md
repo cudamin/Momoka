@@ -12218,3 +12218,10 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 独立树 local-library-home/Momoka，基点2f429fd；首页每个非空源目录配置对应媒体库排的一张本地导航卡，名称/已入库数量/本机海报随Changed实时同步；MP同步只清自己的导航钥匙。新增独立LocalLibraryPage/VM/Row，过滤IsInLibrary，显示标题/年/季集/目标路径/状态，刷新和打开存在的目录，预留未接时隐藏的播放委托。CardItem新增限定本机普通图片文件的12MiB读取路径、取消/尺寸/需求守卫。
 
 独立LocalLibraryPageTests实际编译链接生产VM/Row/PageViewModel/Artwork，以正式Core条目模型和受控Coordinator/配置/WinUI边界运行12/12，0失败0跳过；真实临时图片读取、源契约和导航重入覆盖，不是UI/Explorer/真实解码或播放证据。自动化句柄扫描0缺失，diff空白检查通过。Shell首次编译修正Home退订误位后，重复构建导致intermediatexaml文件锁并连带WMC错误；主代理整合完整编译/UI待验。无服务器登录时Shell仍展示登录页，本轮未扩大登录体系；临时模型/协调器stub不提交。本树未合入master、未发布、未上传，主代理负责sln/专项manifest及图片源测试编译链接登记与最终交付。
+## 2026-11-10 播放菜单与工具主树交付完成
+
+- 产品提交9a68e2a、主树整合2f429fd，最终UI验收修正28b2692/3e91604；保留同日主树本机媒体、Plex分段和受管HTTP修复。Plex多段媒体的外部工具在服务及菜单双重收起，避免只下载首段；原生当前画面控制照常。
+- 主树Release Tests/Core与Shell均0警告0错误。完整默认4511/4511，0失败0跳过；真实Settings/Controller57/57、完整native-handle49/49。主树Lua uosc55/55、analysis7/7、缺cropdetect分支5/5通过。
+- 主树最终shortcuts实际运行5/5通过、0失败；其余190项分区未运行，不称全量Shell自检。证据`C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261110-113315350-35324/logs`，逐张核对760字幕菜单与固定失败提示实屏。先前窗口遮挡/坐标与合成未落定失败保留，不复用为最终证据。用户明确允许副屏40秒验收后完成本轮。
+- tools/publish.ps1 -NoArchive -Shortcut成功，547文件287.3MB，批准mpv载荷60文件完整校验。2026-11-10 19:41桌面快捷方式指向`C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`；未上传远端。
+- 真实服务器播放未执行；外部mpv完整窗口、Whisper/ffsubsync程序和真实云翻译仍未运行验收。随包缺cropdetect而自动去黑边隐藏；点外关闭无本轮可靠实按证据。细节见docs/播放菜单与工具.md。
