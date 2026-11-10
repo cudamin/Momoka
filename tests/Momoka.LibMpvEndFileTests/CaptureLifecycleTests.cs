@@ -7,6 +7,16 @@ internal static class CaptureLifecycleTests
 {
     internal static void Register(Action<string, Func<Task>> test)
     {
+        test("逐帧截图：文件边界无法停止时退出实例，不继续后继文件", async () =>
+        {
+            await using var f = new HandleFixture();
+            f.Ready();
+            await f.Handle.CommandAsync(["screenshot", "video+each-frame"], CancellationToken.None);
+            f.Native.CommandResult = command => command[0] == "screenshot" ? -12 : 0;
+            f.Dispatch(LibMpvNative.EventStartFile);
+            Assert.Equal(1, f.Native.QuitCalls);
+            Assert.False(await f.Handle.CommandAsync(["screenshot", "video"], CancellationToken.None));
+        });
         test("逐帧截图：换片前只停止，不额外截帧；旧代命令不能重开", async () =>
         {
             await using var f = new HandleFixture(standalone: true);

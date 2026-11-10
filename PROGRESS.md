@@ -12177,3 +12177,5 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 裸随包mpv `v0.41.0-1163-g270367e8a`，无配置/脚本/媒体/音视频窗口：17项属性原值set及13项新增cycle命令全部接受。证据 `work/native-menu-options.json`、`work/native-menu-commands.json`。命令接受不证明真实图形或声音效果。
 - mpv `270367e8a` 的 `player/screenshot.c:526` 将逐帧命令存在进程上下文，Core完整句柄现于native gate跟踪自有模式：切换前停止、start/end文件边界停止、首次写拒绝撤销已登记循环、普通单帧清状态。停止只toggle既有模式，不额外保存一张。仅内置非自定义配置显示逐帧入口。`video/decode/vd_lavc.c:834` 的old-x264只在decoder初始化生效，当前菜单剔除；不能以set成功冒充即时兼容。
 - 测试先红：菜单5项缺项，逐帧完整handle3项缺陷。实现后 `Momoka.LibMpvEndFileTests` 46/46通过，0跳过；只managed native seam/匿名假HTTP，无原生初始化或真实播放。最终`native-menu-fixture`474/474通过（0跳过），本次改动文件whitespace与git diff --check通过。全测试项目whitespace仍报基线已有DetailTrailerTests:165和ItemTrailerTests:116共3项，不作本任务无关修复。待主交付会话合入master、重验UI/最终代码并发布；本树未发布、未推送。
+
+- 2026-11-10独立审查截图边界补强：合法标志白名单避免未知命令失败后重试误开；start/end停止拒绝时关闭入场并退出实例；uosc备用菜单截图也走宿主带代际的同一入口。完整handle新增拒绝反例先红，最终47/47；真实Lua无媒体53/53，0错误，改动文件format/check-diff通过。Shell探针commit 9dcc2b2待父整合依赖编译与串行运行，尚不能算窗口验证。

@@ -895,7 +895,7 @@ internal sealed class LibMpvHandle(
                 return true;
 
             case LibMpvNative.EventEndFile:
-                _eachFrameScreenshot.Stop(arguments => LibMpvBackend.Run(context, arguments));
+                if (!StopRepeatingScreenshotAtFileBoundary()) break;
                 var end = Marshal.PtrToStructure<LibMpvNative.MpvEventEndFile>(mpvEvent.Data);
                 Log.Debug(Category, $"内置播放器报告文件结束：reason={end.Reason} error={end.Error}");
 
@@ -916,7 +916,7 @@ internal sealed class LibMpvHandle(
                 break;
 
             case LibMpvNative.EventStartFile:
-                _eachFrameScreenshot.Stop(arguments => LibMpvBackend.Run(context, arguments));
+                if (!StopRepeatingScreenshotAtFileBoundary()) break;
                 // 新文件的装载从此开始：换片那一刻起，「这一跑」的读数就该重新算了（位置尤其要紧 ——
                 // 留着上一集的位置，这一集被停掉时上报的「看到哪儿」就是别人的）。
                 if (_swapping)
@@ -1802,6 +1802,17 @@ internal sealed class LibMpvHandle(
     /// <see cref="LibMpvBackend.Run"/> — the same call the arrow keys' <c>keybind</c> goes through before
     /// this handle exists.
     /// </summary>
+    private bool StopRepeatingScreenshotAtFileBoundary()
+    {
+        if (_eachFrameScreenshot.Stop(arguments => LibMpvBackend.Run(context, arguments))) return true;
+        // Continuing would allow a process-scoped screenshot loop to write the successor file.
+        _stopRequested = true;
+        _contextClosed.TrySetResult();
+        Log.Warn(Category, "逐帧截图无法停止，退出当前播放器实例以保护下一文件");
+        LibMpvBackend.Run(context, "quit");
+        return false;
+    }
+
     private bool Command(params string[] arguments)
     {
         // 返回值交出去，不只是写进日志：调用方要拿它决定「按了截图之后到底要不要说已保存」。

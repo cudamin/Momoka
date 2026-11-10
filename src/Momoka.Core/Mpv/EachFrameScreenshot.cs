@@ -11,6 +11,10 @@ internal sealed class EachFrameScreenshot
         var flags = arguments.Count > 1 ? arguments[1] : "subtitles";
         var toggles = flags.Split('+').Contains("each-frame", StringComparer.Ordinal)
             || arguments.Count > 2 && arguments[2] == "each-frame";
+        // Only the catalogue's fixed spellings are tracked. A malformed command may fail before
+        // mpv registers a loop, so retrying it as a toggle could accidentally start one.
+        if (flags is not ("subtitles" or "video" or "window" or "scaled+subtitles"
+            or "subtitles+each-frame" or "video+each-frame" or "window+each-frame")) return send(arguments.ToArray());
         var wasRunning = _mode is not null;
         var success = send(arguments.ToArray());
         if (!toggles)

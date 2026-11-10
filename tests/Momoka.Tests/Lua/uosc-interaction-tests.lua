@@ -772,6 +772,15 @@ do
 				input_state({visible = false}); draw_input()
 				require_equal(input.geometry, nil)
 			end)
+			test('fallback screenshot uses the host file-scoped shortcut', function()
+				local function find(items)
+					for _, item in ipairs(items) do
+						if item.title == '截图' then return item.value end
+						if item.items then local value = find(item.items); if value then return value end end
+					end
+				end
+				require_equal(find(create_default_menu_items()), 'script-message momoka-shortcut screenshot')
+			end)
 			test('external track reload advertises a registered F5 key', function()
 				properties['track-list'] = {{type = 'sub', id = 1, external = true, title = 'fixture.srt'}}
 				local open = create_select_tracklist_type_menu_opener({type = 'sub', prop = 'sid', title = 'Subtitles'})
