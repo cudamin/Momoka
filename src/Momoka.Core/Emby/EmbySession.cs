@@ -591,12 +591,20 @@ public sealed class EmbySession : IDisposable
             cancellationToken.ThrowIfCancellationRequested();
             lock (_lifecycleGate)
             {
-                scope.ThrowIfUnavailable();
-                fresh = scope.Client;
+                if (!_sources.TryGetValue(scope.Key, out var current) || !IsAvailable(current)
+                    || !current.Client.Connection.IsSameIdentityAs(client.Connection))
+                    throw new OperationCanceledException("重新登录所属的服务器账号已改变");
+                // Session-level requests may follow a manual login of the same account. The scoped
+                // overload still owns the old lifetime, and its operation guards retain old ownership.
+                // Bind the retry to the identity that sends it, never to the exited source or a later login.
+                if (!ReferenceEquals(current.IdentityState, scope.IdentityState)) readRevision = current.UserStateRevision;
+                scope = new EmbySessionScope(this, current.IdentityState);
+                fresh = current.Client;
                 permissionRevision = scope.PermissionRevision;
             }
             result = await InvokeAsync(fresh, operation, cancellationToken).ConfigureAwait(false);
         }
+        scope.ThrowIfUnavailable();
         return scope.Bind(result, readRevision, permissionRevision);
     }
 

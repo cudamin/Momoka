@@ -8,6 +8,11 @@
 树 `C:/Users/89400/.codex/worktrees/library-batch1-clock-fixture/Momoka`、分支 `codex/library-batch1-clock-fixture`，基点master `7795627`。实际抽取的Shell新增本地库导航与PlayerDialogRequested退订，匿名HomeDirectoryTests缺LocalLibraryRequest/LocalLibraryPage/LocalLibraryCoordinator/Platform.ISystemLauncher及GetRequiredService/事件handler，当前树fresh编译重现11错；不运行旧78项冒充通过。只补测试边界：本地库请求/页面/读取及系统启动均明确拒绝，服务按真类型解析，播放器对话框事件保留订阅/退订且误触明确拒绝，不复制产品流程、不改Shell或依赖。
 
 最终Tests/Core Release/x64 fresh编译0警告0错误，79/79、0失败0跳过（既有78+1项边界拒绝/事件/服务解析断言），日志保留 `artifacts/clock-fixture/red-build.log`、`build.log`、`tests.log`。未运行UI/full/publish/真实服务器，原生轮播由根代理最终主树串行重验；未push或自行合入。
+## 2026-11-10 合集集成后的同账号请求接续回归（独立子树，待主树集成）
+
+从主树7795627创建library-batch1-session-regression，修复完整主测试检出的三项同账号手动重登回归。原自动重登返回的新客户端可能属于用户已重建的身份，不能再用已退出旧scope覆盖fresh。重试按原key和完整IsSameIdentityAs取得当前在线来源/client，在同一生命周期锁捕获权限代次；仅新Identity重采用户状态确认代次。结果绑定发起重试时捕获的owner，响应后owner再次退出则取消，绝不绑定第三次登录。捕获scope入口仍有旧lifetime，CollectionManagement闭包仍守原来源owner，不允许借新身份继续旧合集写。
+
+现有三项更新Source/owner、旧来源失效、新PermissionReadRevision与旧2次/新1次UserStateRevision断言；新增捕获合集写入退出重登仅原1写，以及接续响应期间第三次登录取消旧结果。红：233项230过3败，均为原OperationCanceledException回归；修复后当前Core/Tests Release构建0警告0错误、会话相关234/234与合集137/137通过，0失败0跳过，证据artifacts/session-regression。独立只读复审无必要P1/P2。只修改会话及测试与说明，不运行UI/全测、不真实登录/播放/写库，不推送；交父代理合入并完成主树最终验证。
 
 ## 2026-11-10 轮播采样窗口诊断修正（独立验证工具，待原生重验）
 

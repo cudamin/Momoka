@@ -125,6 +125,8 @@ Evidence and fixed upstream source hashes are in [媒体库实时更新](../../.
 
 ## Collection membership
 
+Session-level requests retain the established same-account retry after a manual logout/login overlaps automatic reauthentication. Resolve the available source by the original account key and full connection identity, capture client and permission revision together, and bind the result to the owner that actually sent the retry. A new identity gets its own user-state revision; an owner revoked before the response is published must not receive the result or lend it to a later login. Source-scoped operations still own their original lifetime and collection writes retain their original owner guards.
+
 `CollectionManagement` binds add/create/remove writes to the original source and checks current permissions inside every `ExecuteAsync` attempt, including authentication retries. Emby uses the administrator fallback and an explicit item's `CanEditItems` override from the current web predicate; do not apply Jellyfin's `EnableCollectionManagement` as an Emby account grant. Removing uses POST `Collections/{id}/Items/Delete?Ids=...`, never `DeleteItemAsync`.
 
 An Emby `CanEditItems=true` grant carries its producing request's `PermissionReadRevision`. A changed account snapshot invalidates this older grant, so it cannot override a current denial during add/create/remove or reauthentication. Fresh item grants still allow their ordinary-account override. The fingerprint includes the grant's revision to prevent retaining an old card after a fresh read.

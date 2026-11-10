@@ -328,6 +328,9 @@ internal static class SessionTests
 
             // When 钩子在重登的响应送达之前插手，里面同步跑完「退出登录 + 重新登录」；里面那一趟登录会
             // 再进同一个钩子，靠这面旗跳过，不然就是自己套自己。
+            var original = session.Capture();
+            original.ConfirmUserStateChange();
+            original.ConfirmUserStateChange();
             var once = 0;
             transport.When("Users/AuthenticateByName", () =>
             {
@@ -336,6 +339,9 @@ internal static class SessionTests
                 session.SignOut();
                 session.SignInAsync(server, account, "pw", account.Username, true, CancellationToken.None)
                     .GetAwaiter().GetResult();
+                var current = session.Capture();
+                session.ReplaceClient(current, current.CurrentConnection with { IsAdministrator = false, CanManageCollections = false });
+                current.ConfirmUserStateChange();
             });
 
             var items = Wait(session.ExecuteAsync(
@@ -346,6 +352,7 @@ internal static class SessionTests
             Assert.True(account.HasSavedToken, "退出之后重新登录写下的令牌要还在 —— 作废的是重登那一趟，不是他");
             Assert.Equal(1, announced, "退出登录那一声照旧只喊一次");
             Assert.Equal(2, transport.Count("Items"), "401 那一趟，加上换到新 client 之后的重试");
+            AssertReplacementResult(session, original, items![0]);
         });
 
         Test("令牌中途过期：重登也被拒，就不再原地打转", () =>
@@ -390,6 +397,9 @@ internal static class SessionTests
                 account.RememberPassword = true;
                 Assert.True(Wait(session.TryRestoreAsync(server, account, CancellationToken.None)));
 
+                var original = session.Capture();
+                original.ConfirmUserStateChange();
+                original.ConfirmUserStateChange();
                 var announced = 0;
                 session.SignedOut += (_, _) => announced++;
                 var once = false;
@@ -400,6 +410,9 @@ internal static class SessionTests
                     session.SignOut();
                     session.SignInAsync(server, account, "pw", account.Username, true, CancellationToken.None)
                         .GetAwaiter().GetResult();
+                    var current = session.Capture();
+                    session.ReplaceClient(current, current.CurrentConnection with { IsAdministrator = false, CanManageCollections = false });
+                    current.ConfirmUserStateChange();
                     if (timesOut) throw new TaskCanceledException("旧重登超时");
                 });
 
@@ -420,8 +433,72 @@ internal static class SessionTests
                 Assert.Equal(1, announced, "只通知用户主动退出的那一次");
                 Assert.Null(failure, "相同服务器与账号的新连接可以接续原请求");
                 Assert.True(items is { Count: 1 });
+                AssertReplacementResult(session, original, items![0]);
             });
         }
+
+        Test("捕获来源的合集写入：退出再登录同账号也不借新身份重试", () =>
+        {
+            var transport = new StubTransport().Answer("Views", Views).Answer("System/Info/Public", PublicInfo)
+                .Answer("Users/AuthenticateByName", SignedIn)
+                .Sequence("Collections/set/Items", (HttpStatusCode.Unauthorized, ""), (HttpStatusCode.OK, ""));
+            var (session, server, account) = Signed(transport);
+            using var lifetime = session;
+            account.ProtectedPassword = PassthroughSecretProtector.Instance.Protect("pw");
+            account.RememberPassword = true;
+            Assert.True(Wait(session.TryRestoreAsync(server, account, default)));
+            var original = session.Capture();
+            var item = original.Bind(new EmbyItem { Id = "m1", CanEditItems = true });
+            var management = new CollectionManagement(original, () => new(IsAdministrator: true, CanManageCollections: true));
+            var once = false;
+            transport.When("Users/AuthenticateByName", () =>
+            {
+                if (once) return;
+                once = true;
+                session.SignOut();
+                Wait(session.SignInAsync(server, account, "pw", account.Username, true, default));
+            });
+            Assert.Throws<OperationCanceledException>(() => Wait(management.AddAsync("set", item, default)));
+            Assert.Equal(1, transport.Count("Collections/set/Items"), "捕获来源写入不能接续到新登录身份");
+            Assert.False(original.IsAvailable);
+            Assert.True(session.IsSignedIn);
+            Assert.False(ReferenceEquals(original.UserStateOwner, session.Capture().UserStateOwner));
+        });
+        Test("同账号接续重试：响应期间再次登录，不把第二身份结果绑定第三身份", () =>
+        {
+            var transport = new StubTransport().Answer("Views", Views).Answer("System/Info/Public", PublicInfo)
+                .Answer("Users/AuthenticateByName", SignedIn)
+                .Sequence("Items", (HttpStatusCode.Unauthorized, ""), (HttpStatusCode.OK, OneItem));
+            var (session, server, account) = Signed(transport);
+            using var lifetime = session;
+            account.ProtectedPassword = PassthroughSecretProtector.Instance.Protect("pw");
+            account.RememberPassword = true;
+            Assert.True(Wait(session.TryRestoreAsync(server, account, default)));
+            var original = session.Capture();
+            EmbySessionScope? retrySource = null;
+            var once = false;
+            transport.When("Users/AuthenticateByName", () =>
+            {
+                if (once) return;
+                once = true;
+                session.SignOut();
+                Wait(session.SignInAsync(server, account, "pw", account.Username, true, default));
+                retrySource = session.Capture();
+                transport.When("Items", () =>
+                {
+                    session.SignOut();
+                    Wait(session.SignInAsync(server, account, "pw", account.Username, true, default));
+                });
+            });
+            Assert.Throws<OperationCanceledException>(() => Wait(session.ExecuteAsync(
+                (client, token) => client.GetLatestAsync(null, 10, token), default)));
+            Assert.Equal(2, transport.Count("Items"));
+            Assert.False(original.IsAvailable);
+            Assert.NotNull(retrySource);
+            Assert.False(retrySource!.IsAvailable);
+            Assert.True(session.IsSignedIn);
+            Assert.False(ReferenceEquals(retrySource.UserStateOwner, session.Capture().UserStateOwner));
+        });
 
         foreach (var changeServer in new[] { false, true })
             foreach (var duringReauthentication in new[] { false, true })
@@ -470,6 +547,21 @@ internal static class SessionTests
                     Assert.Equal(1, transport.SentTo("PlayedItems").Count, "旧账号的标记观看不能发送给新账号或新服务器");
                 });
             }
+    }
+
+    private static void AssertReplacementResult(EmbySession session, EmbySessionScope original, EmbyItem item)
+    {
+        var current = session.Capture();
+        Assert.False(original.IsAvailable, "旧来源仍必须退出，不能为接续请求复活它");
+        Assert.NotNull(item.Source);
+        Assert.True(item.Source!.IsAvailable);
+        Assert.True(ReferenceEquals(current.UserStateOwner, item.Source.UserStateOwner), "接续结果必须属于新在线身份");
+        Assert.False(ReferenceEquals(original.UserStateOwner, item.Source.UserStateOwner), "结果不能污染已退出旧来源");
+        Assert.Equal(1L, item.PermissionReadRevision, "接续结果标记新客户端已确认的权限代次");
+        Assert.Equal(current.PermissionRevision, item.PermissionReadRevision);
+        Assert.Equal(current.UserStateRevision, item.UserStateReadRevision);
+        Assert.Equal(1L, item.UserStateReadRevision, "新身份不能继承旧来源的两次用户状态确认");
+        Assert.Equal(false, item.Source.CanManageCollections);
     }
 
     /// <summary>
