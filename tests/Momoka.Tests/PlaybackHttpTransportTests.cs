@@ -11,6 +11,31 @@ internal static class PlaybackHttpTransportTests
 {
     public static void Register()
     {
+        Case("分段认证：每段先映射再交给外部与内置播放器的 EDL", async () =>
+        {
+            var request = Request() with
+            {
+                MediaParts =
+                [
+                    new(Request().MediaUrl, 2 * TimeSpan.TicksPerSecond),
+                    new(new Uri("https://origin.invalid/second.wav"), 3 * TimeSpan.TicksPerSecond)
+                ]
+            };
+            using var endpoint = new Endpoint();
+            await using var transport = new PlaybackHttpTransport(request, endpoint);
+            var native = transport.Prepare(request);
+            Assert.Equal(2, native.MediaParts.Count);
+            Assert.True(native.MediaParts.All(part => part.MediaUrl.IsLoopback));
+            Assert.Equal(0, native.HttpHeaders.Count);
+            var resource = MpvMediaResource.Build(native);
+            Assert.DoesNotContain("origin.invalid", resource);
+            Assert.DoesNotContain("placeholder-only", resource);
+            Assert.Equal(resource, (string)MpvArgumentBuilder.LoadCommands(native)[^1][1]!);
+            using var client = new HttpClient(new SocketsHttpHandler { UseProxy = false });
+            foreach (var part in native.MediaParts) await client.GetByteArrayAsync(part.MediaUrl);
+            Assert.Equal(2, endpoint.Sent.Count);
+            Assert.True(endpoint.Sent.All(sent => sent.Headers.ContainsKey("X-Emby-Token")));
+        });
         Test("播放认证边界：外部 mpv 永远不持有服务器 HTTP 头", () =>
         {
             var commands = MpvArgumentBuilder.LoadCommands(Request());

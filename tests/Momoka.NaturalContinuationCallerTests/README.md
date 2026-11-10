@@ -1,5 +1,9 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-10：播放认证与多段时间轴来源同步
+
+核对本批 LibMpvBackend 的本机 HTTP 传输归属、取消与逐段 EDL 加载，PlaybackContracts 仅增加 MediaParts 及纠正 Plex 上报注释，EmbyItem 增加 MediaParts 并保留已合入的预告字段；定点更新这三份完整源 SHA256。实际 VM 自然接续成员、其余来源、提取器和断言不变。原样链接的 handle 与调用者专项须在整合后重新编译运行，不能沿用分项报告。
+
 ## 2026-11-09：上一批漏同步的两份来源
 
 `d96d432`（飞牛字幕标签与题材 ID 换成人话）改了两份被钉住的来源，但当时没更新 `SourcePins.json`，于是全方案构建在 `R046 SOURCE_HASH_MISMATCH` 上红着 —— 只构建 Shell + Tests 看不见它。逐字核对后确认与自然接续无关：`PlaybackContracts.cs` 把 mpv 编码名那张表从 `MpvTrack.CodecLabel` 抽到 `Core/Emby/MediaCodec`（详情页的轨道下拉要读同一套写法），`EmbyItem.cs` 新增 `NativeGenres`（飞牛的 `genres` 是数字 ID，映射时换名字，原值留在这个新字段里给「更多类似」的筛选条件用）。提取的自然接续成员、来源 identity/id、自动接集与 lease 规则一字未动，其余 17 份 pin 逐份核对一致。

@@ -99,7 +99,7 @@ public static class MpvArgumentBuilder
         ["set_property", "http-header-fields", Array.Empty<string>()],
         ["set_property", "options/sub-files", request.ExternalSubtitles.Select(uri => uri.AbsoluteUri).ToArray()],
         ["set_property", "options/start", Seconds(request.StartSeconds)],
-        ["loadfile", request.MediaUrl.AbsoluteUri, "replace"]
+        ["loadfile", MpvMediaResource.Build(request), "replace"]
     ];
 
     private static bool OwnsStartup(string name) =>

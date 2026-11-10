@@ -61,6 +61,7 @@ public sealed class PlaybackHttpTransport : IAsyncDisposable
     public PlaybackRequest Prepare(PlaybackRequest request) => request with
     {
         MediaUrl = new Uri(Map(request.MediaUrl)),
+        MediaParts = request.MediaParts.Select(part => part with { MediaUrl = new Uri(Map(part.MediaUrl)) }).ToArray(),
         ExternalSubtitles = request.ExternalSubtitles.Select(resource => new Uri(Map(resource))).ToArray(),
         SelectedExternalSubtitle = request.SelectedExternalSubtitle is { } selected ? new Uri(Map(selected)) : null,
         HttpHeaders = []

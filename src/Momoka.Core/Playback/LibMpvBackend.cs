@@ -702,7 +702,7 @@ internal sealed class LibMpvHandle(
         _eventThread.Start();
 
         cancellationToken.ThrowIfCancellationRequested();
-        if (!Command("loadfile", request.MediaUrl.AbsoluteUri, "replace"))
+        if (!Command("loadfile", MpvMediaResource.Build(request), "replace"))
             throw new InvalidOperationException("内置播放器未接受媒体加载命令");
         cancellationToken.ThrowIfCancellationRequested();
         Log.Info(Category, "内置播放器已发送媒体加载请求");
@@ -811,7 +811,7 @@ internal sealed class LibMpvHandle(
         _finishedReason = null;
         _handedOver = false;
         Interlocked.Exchange(ref _lastPositionMs, -1);
-        if (!Command("loadfile", nativeRequest.MediaUrl.AbsoluteUri, "replace"))
+        if (!Command("loadfile", MpvMediaResource.Build(nativeRequest), "replace"))
         {
             RetireTransport(previousTransport);
             _swapping = false;
