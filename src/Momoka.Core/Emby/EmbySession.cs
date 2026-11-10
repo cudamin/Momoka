@@ -514,10 +514,9 @@ public sealed class EmbySession : IDisposable
             return IsAvailable(scope) ? (scope.Client.Connection.IsAdministrator, scope.IdentityState.PermissionRevision) : (null, -1);
     }
 
-    /// <summary>合集中每次写入与菜单共用当前策略；探测不改变令牌或播放连接。</summary>
+    /// <summary>只确认同代次合集权限；调用方发布其缓存后在锁外通知，不改变令牌或播放连接。</summary>
     internal long ConfirmCollectionPermission(EmbySessionScope source, bool? allowed, long revision)
     {
-        var changed = false;
         lock (_lifecycleGate)
         {
             if (!IsAvailable(source) || source.IdentityState.PermissionRevision != revision) return -1;
@@ -525,11 +524,8 @@ public sealed class EmbySession : IDisposable
             if (connection.CanManageCollections == allowed) return revision;
             source.IdentityState.Client = new EmbyClient(_http, connection with { CanManageCollections = allowed });
             source.IdentityState.PermissionRevision++;
-            revision = source.IdentityState.PermissionRevision;
-            changed = true;
+            return source.IdentityState.PermissionRevision;
         }
-        if (changed) NotifyPermissionsChanged(source);
-        return revision;
     }
 
     /// <summary>

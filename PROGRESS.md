@@ -1,5 +1,11 @@
 # 开发进度
 
+## 2026-11-10 合集内部确认保留系统权限缓存（独立子树，待主树集成）
+
+从主树617faba建立library-batch1-permission-probe。R011原54项中Emby“同值true新确认覆盖旧Probe false”53过1败是生产回归：System/Info403的本轮管理员false缓存仍为旧revision；紧随的合集null→false内部确认升revision，导致全局IsAdministrator丢掉刚确认false而回旧connection true，与按来源菜单权限false矛盾。保留原54契约，不改前件或断言。ConfirmCollectionPermission仅确认并返回代次，不在会话锁或能力锁内发事件；Probe发布来源缓存，并只为相同owner且系统缓存代次正好等于确认前代次迁移revision，管理员/版本读数保留。通知在两锁外且全部缓存发布后，明确外部Replace仍使旧缓存失效；通知重入升权后该来源没有晚写回。
+
+新增主测试2项事件即时读数与锁持有断言、回调内显式升权保留true/版本；红139项137过2败，绿139/139。当前Core/Tests/Shell及R011 Release构建0警告0错误；R011原54/54通过（同树Shell/Core哈希一致，匿名加载实际SettingsVM），0失败0跳过。定向格式及6路径编码/空白检查通过；证据artifacts/permission-probe与artifacts/r011-current-permission/result-20261110-140324-1731.json。两生产文件的独立只读复审无必要P1/P2。无UI/全测/实服/起播/上传，最终完整与原生检查由主树集成会话负责。
+
 ## 2026-11-10 第一批整合回归：身份比较夹具
 
 主树7795627完整主测4567/4546/21失败，18项来自历史纯身份夹具用空Session构造scope，新PermissionReadRevision正常读取当前会话触发空引用；另外3项真实重登接续回归由隔离实现者修复。纯身份夹具改用无网络/凭据的真实内存Session，释放后仅保留来源key/名称，PermissionRevision明确为-1、不授权。未放宽生产权限判断。新增browse-identity-fixture保留原聚合/主页/删除身份断言，55/55通过；Plex相关263/263、删除后选集9/9通过，当前Tests/Core Release0警告0错误。最终全测在接续修复合入后重跑，旧失败日志保留。

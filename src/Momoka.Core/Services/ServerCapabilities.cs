@@ -301,13 +301,23 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
                 var user = await source.ExecuteAsync((client, ct) => client.GetCurrentUserAsync(ct), token)
                     .ConfigureAwait(false);
                 var permissions = user.Policy?.ToPermissions(source.Connection.ServerKind) ?? default;
+                var confirmed = -1L;
                 lock (_gate)
                 {
                     if (generation != _generation || token.IsCancellationRequested) return;
-                    revision = session.ConfirmCollectionPermission(source, permissions.CanManageCollections, revision);
-                    if (source.IsAvailable && source.PermissionRevision == revision)
-                        _sourcePermissions[source.Key] = (permissions, source.UserStateOwner, revision);
+                    confirmed = session.ConfirmCollectionPermission(source, permissions.CanManageCollections, revision);
+                    if (source.IsAvailable && source.PermissionRevision == confirmed)
+                    {
+                        _sourcePermissions[source.Key] = (permissions, source.UserStateOwner, confirmed);
+                        // This same probe changed only collection permission. Keep its already-confirmed
+                        // system result valid for the migrated revision; external replacements still expire it.
+                        if (_scope is { } scope && ReferenceEquals(scope.UserStateOwner, source.UserStateOwner)
+                            && _permissionRevision == revision) _permissionRevision = confirmed;
+                    }
                 }
+                // Observers may reenter capabilities or replace a client. Both caches must be published,
+                // and neither the capability nor session lock may be held while calling them.
+                if (confirmed >= 0 && confirmed != revision) session.NotifyPermissionsChanged(source);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
             {

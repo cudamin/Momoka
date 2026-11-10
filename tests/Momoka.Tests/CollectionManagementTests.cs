@@ -222,6 +222,53 @@ internal static class CollectionManagementTests
             Assert.Equal(true, fixture.Source.CanManageCollections);
             Assert.Equal(true, fixture.Capabilities.PermissionsFor(fixture.Source.Key).CanManageCollections);
         });
+        Test("合集权限：内部确认通知时系统管理员缓存与来源权限已经一致", () =>
+        {
+            using var fixture = RestrictedEmbyFixture();
+            var notifications = 0;
+            bool? system = null;
+            ItemMenuPermissions observed = default;
+            var locksReleased = false;
+            var capabilityGate = typeof(ServerCapabilities).GetField("_gate", Members)!.GetValue(fixture.Capabilities)!;
+            var lifecycleGate = typeof(EmbySession).GetField("_lifecycleGate", Members)!.GetValue(fixture.Session)!;
+            fixture.Session.PermissionsChanged += (_, source) =>
+            {
+                notifications++;
+                system = fixture.Capabilities.IsAdministrator;
+                observed = fixture.Capabilities.PermissionsFor(source.Key);
+                locksReleased = !Monitor.IsEntered(capabilityGate) && !Monitor.IsEntered(lifecycleGate);
+            };
+            fixture.Capabilities.ProbeAsync().GetAwaiter().GetResult();
+            Assert.Equal(1, notifications);
+            Assert.Equal(false, system);
+            Assert.Equal(false, observed.IsAdministrator);
+            Assert.Equal(false, observed.CanManageCollections);
+            Assert.True(locksReleased, "用户事件不能在能力锁或会话锁内执行");
+            Assert.Equal(false, fixture.Capabilities.IsAdministrator);
+            Assert.Equal(new Version(4, 10, 1, 0), fixture.Capabilities.ServerVersion);
+        });
+        Test("合集权限：内部确认通知重入显式升权，旧Probe不覆盖新快照且版本保留", () =>
+        {
+            using var fixture = RestrictedEmbyFixture();
+            var notifications = 0;
+            bool? beforeSystem = null;
+            bool? beforeSource = null;
+            fixture.Session.PermissionsChanged += (_, source) =>
+            {
+                notifications++;
+                beforeSystem = fixture.Capabilities.IsAdministrator;
+                beforeSource = fixture.Capabilities.PermissionsFor(source.Key).IsAdministrator;
+                fixture.Session.ReplaceClient(source, source.CurrentConnection with { IsAdministrator = true, CanManageCollections = true });
+            };
+            fixture.Capabilities.ProbeAsync().GetAwaiter().GetResult();
+            Assert.Equal(1, notifications);
+            Assert.Equal(false, beforeSystem);
+            Assert.Equal(false, beforeSource);
+            Assert.Equal(true, fixture.Capabilities.IsAdministrator);
+            Assert.Equal(true, fixture.Capabilities.PermissionsFor(fixture.Source.Key).IsAdministrator);
+            Assert.Equal(true, fixture.Source.CanManageCollections);
+            Assert.Equal(new Version(4, 10, 1, 0), fixture.Capabilities.ServerVersion);
+        });
         Test("合集权限：新探测同值拒绝先完成，旧探测不能恢复授权", async () =>
         {
             using var transport = new ProbeOrderTransport();
@@ -269,6 +316,16 @@ internal static class CollectionManagementTests
     private static CollectionManagement Service(CollectionFixture fixture)
     {
         return new CollectionManagement(fixture.Source, () => fixture.Capabilities.PermissionsFor(fixture.Source.Key));
+    }
+
+    private static CollectionFixture RestrictedEmbyFixture()
+    {
+        var fixture = new CollectionFixture(MediaServerKind.Emby);
+        fixture.Session.ReplaceClient(fixture.Source, fixture.Source.CurrentConnection with { IsAdministrator = true, CanManageCollections = null });
+        fixture.Transport.Answer("System/Info/Public", """{"ServerName":"anonymous","Version":"4.10.1.0"}""")
+            .Fail("System/Info", HttpStatusCode.Forbidden)
+            .Answer("Users/user", """{"Id":"user","Policy":{"IsAdministrator":false}}""");
+        return fixture;
     }
 
     private static CollectionMembership Membership(CollectionFixture fixture, string collectionId, string itemId, CancellationToken page = default)
