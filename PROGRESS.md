@@ -1,5 +1,11 @@
 # 开发进度
 
+## 2026-11-10 首页继续观看封面顶部对齐（已交付）
+
+用户截图的封面均为256×144，缺副标题的电影因首页宿主Button沿用WinUI默认VerticalAlignment=Center整卡下沉7 DIP。HomePage的CardTemplate显式Top，保留图片尺寸与空字段收起；HomeHeader匿名探针改用有、无年份混排，核对Art和TitleLine顶边及尺寸，并注入Center反例后恢复。旧产品运行26236测得封面Y13／20、标题165／172并按预期失败；修复开发件7604和正式发布件18408均1/1通过，1280／760全排封面Y6、标题158，实屏已目视，InspectDone正常退出。首次Hidden进程28032因宿主不可见退出，不计入产品结果；一次探针编译误用不存在常量已修正，最终Shell/Core/Tests均0警告0错误，主测试4275/4275、0失败0跳过，独立复审无阻塞。
+
+用户关闭旧应用后publish.ps1 -NoArchive -Shortcut退出0，546文件286.9MB与59批准载荷校验通过。桌面Momoka.lnk目标和工作目录均主树artifacts/publish/win-x64、参数空；Shell/Core/PRI发布与当前bin逐件SHA256一致，Shell为571355F51285D5446FCA90F7061660E247DE566B99870CF0D224D21449B44340。证据artifacts/cover-alignment-*及本机logs/shell-probe-20261110-044254062-18408。未执行全量Shell探针、未播放或访问真实服务器、未上传GitHub；本次为日常布局交付，不重打版本安装包。
+
 ## 2026-11-10 发布 0.2.7 与微软商店包（已完成）
 
 用户要求更新版本、打包发布GitHub并生成微软商店安装包。版本537c641升0.2.7/0.2.7.0并补商店四段版本回归，6ffcf1f仅规范探针嵌套缩进；c670993合入其他任务已提交的飞牛技能文档。发布对象c670993，GitHub v0.2.7延续现有prerelease，https://github.com/cudamin/Momoka/releases/tag/v0.2.7 已公开；EXE、ZIP、Store MSIX和SHA256SUMS全部上传，API返回uploaded、字节长度和sha256逐件核对一致。

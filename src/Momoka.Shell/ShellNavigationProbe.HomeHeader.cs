@@ -29,6 +29,7 @@ internal sealed partial class ShellNavigationProbe
             Id = "header-movie-" + index,
             Name = "离线影片 " + (index + 1),
             Type = EmbyItemType.Movie,
+            ProductionYear = index % 2 == 0 ? 2021 : null,
             ImageTags = new() { ["Primary"] = "poster" },
             BackdropImageTags = ["backdrop"]
         }).ToArray();
@@ -72,6 +73,7 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(width, 760);
                 await LayoutAsync(home);
                 await Task.Delay(450);
+                await CheckCardAlignmentAsync(width);
                 foreach (var caption in new[] { initialTitle, "离线服务器 · 最近添加 · 纪录片" })
                 {
                     head.Title = caption;
@@ -231,6 +233,44 @@ internal sealed partial class ShellNavigationProbe
             }
             Require(fixture.Actions.Plays == 0, "标题与边框检查意外触发播放");
             File.WriteAllLines(System.IO.Path.Combine(_options.Paths.LogDirectory, "home-header-hit-area.txt"), readings);
+
+            async Task CheckCardAlignmentAsync(int width)
+            {
+                var cards = Descendants(strip).OfType<PosterCard>().Where(card => card.Card is not null).ToArray();
+                Require(cards.Any(card => card.Card!.SubtitleVisibility == Visibility.Visible)
+                    && cards.Any(card => card.Card!.SubtitleVisibility == Visibility.Collapsed),
+                    "封面对齐夹具没有同时呈现有、无副标题的卡片");
+                Rect Bounds(FrameworkElement element) => element.TransformToVisual(strip)
+                    .TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+                bool Aligned(string name)
+                {
+                    var tops = cards.Select(card => Bounds(Get<FrameworkElement>(card, name)).Top).ToArray();
+                    return tops.Max() - tops.Min() < 1;
+                }
+                var artBounds = cards.Select(card => Bounds(Get<Border>(card, "Art"))).ToArray();
+                File.AppendAllLines(System.IO.Path.Combine(_options.Paths.LogDirectory, "home-card-alignment.txt"),
+                    cards.Select((card, index) => $"width={width}; item={card.Card!.Item.Id}; subtitle={card.Card.SubtitleVisibility}; "
+                        + $"art={artBounds[index]}; titleTop={Bounds(Get<TextBlock>(card, "TitleLine")).Top}"));
+                await SaveProbeScreenAsync($"home-card-alignment-{width}-screen.png");
+                Require(artBounds.All(bounds => Math.Abs(bounds.Width - Momoka.Infrastructure.CardSize.HomeWideWidth) < 1
+                    && Math.Abs(bounds.Height - Momoka.Infrastructure.CardSize.HeightFor(Momoka.Infrastructure.CardSize.HomeWideWidth, true)) < 1),
+                    "继续观看封面尺寸不一致");
+                Require(Aligned("Art") && Aligned("TitleLine"), "有、无副标题的继续观看封面和标题没有顶端对齐");
+
+                // 恢复平台默认的居中对齐，必须能重现少一行文字时整张卡片下沉。
+                var shortCard = cards.First(card => card.Card!.SubtitleVisibility == Visibility.Collapsed);
+                var host = Ancestors(shortCard).OfType<Button>().First();
+                var alignment = host.VerticalAlignment;
+                try
+                {
+                    host.VerticalAlignment = VerticalAlignment.Center;
+                    await LayoutAsync(home);
+                    Require(!Aligned("Art") && !Aligned("TitleLine"), "对齐检查未检出旧的居中布局");
+                }
+                finally { host.VerticalAlignment = alignment; }
+                await LayoutAsync(home);
+                Require(Aligned("Art") && Aligned("TitleLine"), "恢复顶部对齐后卡片仍有高低差");
+            }
 
             void SetStripHover(bool visible)
             {

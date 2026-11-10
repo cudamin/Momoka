@@ -43,6 +43,7 @@
                 FocusVisualSecondaryBrush="{ThemeResource EgWindowBrush}"
                 Click="OnCardClicked"
                 ContextRequested="OnCardContextRequested"
+                VerticalAlignment="Top"
                 Padding="0">
                 <Button.Resources>
                     <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
