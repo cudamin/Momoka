@@ -1,6 +1,6 @@
 ---
 name: "momoka-fnnas-media-api"
-description: "Develop or review Momoka's 飞牛影视 / fnOS media backend: Core/FnNas transport, authx, login, media mapping and playback, plus the native account and server-settings pages shown in exclusive mode. Use when changing FnNasClient, FnNasMediaAdapter, FnNasPasswordViewModel / FnNasPreferencesViewModel, FnNasLibrariesPage / FnNasUsersPage / FnNasSettingsPage / FnNasTasksPage, or diagnosing trimemedia login and signatures. Excludes the fnOS system WebSocket API; shared playback and shell lifetimes belong to their domain skills."
+description: "Develop or review Momoka's 飞牛影视 / fnOS media backend: Core/FnNas transport, authx, login, media mapping and playback, plus the native account and server-settings pages shown in exclusive mode. Use when changing FnNasClient, FnNasMediaAdapter, FnNasTaskWatch, HomeViewModel.FnNasTasks, FnNasPasswordViewModel / FnNasPreferencesViewModel, FnNasLibrariesPage / FnNasUsersPage / FnNasSettingsPage / FnNasTasksPage, or investigating library arrival notifications, task polling, trimemedia login and signatures. Excludes the fnOS system WebSocket API; shared playback and shell lifetimes belong to their domain skills."
 ---
 
 # Momoka — 飞牛影视媒体协议
@@ -46,6 +46,23 @@ File/operation permission code `-16` is not proof of rejected credentials; `-2`,
 `mediadb/list.category` classifies the library, not its contents. Live read-only check on 2026-11-01 (0.9.8 / 0.8.43): the library named 混合影片 had `category=Movie` but contained 12 shows + 1 movie + 1 folder (14 items); 电视节目 had `category=TV` but also held 2 movies and 7 folders (54 items). The official library root always asks All — `tags.type=[Movie,TV,Directory,Video]` — and so must Momoka. Narrowing by category showed only 1 of 14. FnNas libraries are also never Emby section libraries in the Shell (no tab strip).
 
 Folders use `poster_list` in `item/list` (BT had four child posters); there is no single `poster`. The official card composes 1–4 of them into a cover wall, and Momoka maps them to `EmbyItem.PosterPaths` and renders the same 1/2/3/4 layouts. Libraries (`mediadb/list`) instead carry `poster_type` (0 = Multiple, 1 = Single) plus a `posters` array; with Multiple the official library card takes the first three unique posters side by side, and only Single uses the uploaded `poster`. Momoka maps those to the same `PosterPaths` (max 3) and draws the three-column library wall; a live read-only check on 2026-11-02 matched the web card's first three posters. Folder drill-down sends `parent_guid` with an empty `tags` object and **must omit `exclude_grouped_video`**: the same server answered `total=0` for `parent_guid + exclude_grouped_video=1`, while omitting it returned BT's 47 videos. Library roots keep `exclude_grouped_video=1` so episodes/seasons stay grouped. `HomeLatest.LibraryTypes` follows the same All set for FnNas shelves.
+
+## 入库更新与任务轮询
+
+2026-11-10 核对官方网页 **0.9.8**／媒体服务 **0.8.45** 的完整 65 个 JS，未发现影视入库 WebSocket/SSE 通道。该结论只覆盖这版网页，不证明其他客户端或未公开服务端接口不存在。不要把 fnOS 系统 WebSocket、flv 的媒体流 WebSocket 或页面内 `EventEmitter` 当成影视入库推送。
+
+| 帐号 | 官方网页 | Momoka 当前行为 |
+| --- | --- | --- |
+| 普通账号／非管理员 | 不查 `task/running`，也没有影片列表周期刷新；页面挂载、可见启用、查询变化等按需读取 | 进入／返回首页和手动刷新读取；停留原页不会自动发现入库 |
+| 管理员 | 适用页面首次 GET `task/running`；每次请求完成后等 3 秒再读，不重叠 | 只对首页当前在线管理员启用；离页取消，权限变化重新核对 |
+
+- 首页检测的是**任务快照中某库的扫描任务消失**：旧、新列表分别筛精确 `type == "TaskItemScrap"`，取去重 `ancestor`，比较旧集合减新集合。不按 `status` 过滤；任务新增、状态从 Running 变 Success 但仍在列表、同库仍有另一个扫描任务，都不触发。不能把它简化成“任务列表真假”或声称已收到新媒体事件。
+- 触发后只重读 `mediadb/list`、`mediadb/sum`。已有非空货架不重拉 `item/list`；计数变零隐藏，新库或空库变非空才首次读取对应货架。管理员任务轮询不是每 3 秒刷新全部影片。
+- `media:library:refreshed` 是手动 `mdb.refresh` 成功后发出的页面本地事件，任务轮询不发。`staleTime=5000` 只标记缓存过期；首页返回时的 30 秒常量仅节流继续观看的 `play/list`，两者都不是最新影片的定时刷新。
+- 协议与基线归 `src/Momoka.Core/FnNas/FnNasTaskWatch.cs`，首页消费归 `HomeViewModel.FnNasTasks.cs`。保留上次成功快照，读取失败不当成空任务；使用当前 `IsAdministrator`／`PermissionRevision` 和身份寿命，拒绝旧身份或旧权限响应。官方 TaskStore 跨多个路由存活，Momoka 有意收窄到首页，不称全局行为完全一致。
+- `task/running` 返回 `{code,msg,data}` 中的任务对象数组；官方免 `authx`，仍需身份。Momoka 既有额外签名的请求已在上述服务版本只读成功，不据此改共享签名策略。实服任务读取、目录和计数成功不证明真实入库通知送达；本次没有安排真实入库，也未实测普通账号请求任务接口会被服务端怎样拒绝。
+
+继续修改时先读仓库 [媒体库实时更新](../../../docs/媒体库实时更新.md)，其中保留官方产物名称、哈希与调用条件；版本变化后重新核对。回归入口为 `FnNasTaskWatchTests`、`HomeFnNasTaskTests`，分别覆盖任务／权限基线和首页目录／货架生命周期。给普通账号补周期拉取或扩大管理员货架刷新属于新的产品行为，不能说是照搬当前官方实现。
 
 ## Optional reads and transfer budgets
 
