@@ -37,6 +37,10 @@ public sealed class PlayerToolPlan
     public IReadOnlyDictionary<string, string> Environment { get; }
     internal IReadOnlyList<string> Inputs { get; }
 
+    internal static PlayerToolPlan Image(string executable, IReadOnlyList<string> arguments, string output,
+        IReadOnlyList<string> inputs) => new(executable, arguments, output, inputs,
+            new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(new Dictionary<string, string>()));
+
     public static PlayerToolPlan Create(PlayerToolsSettings settings, PlayerToolAction action, PlayerToolInput input)
     {
         ArgumentNullException.ThrowIfNull(settings);

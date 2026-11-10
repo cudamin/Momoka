@@ -148,6 +148,31 @@ internal static class PlayerToolTests
             Assert.Equal("翻译", translated.Cues[0].Text);
             Assert.Equal("Original", doc.Cues[0].Text);
         });
+        Test("图片工具：裁切参数仅使用选区像素，不执行命令模板", () =>
+        {
+            WithFiles((settings, media, output, _) =>
+            {
+                var image = Path.ChangeExtension(media, ".png");
+                File.Copy(media, image);
+                var plan = PlayerImageTools.Crop(settings, image, output + ".png", new(2, 3, 10, 12));
+                Assert.True(plan.Arguments.Contains("crop=10:12:2:3"));
+                Assert.False(plan.Arguments.Contains("powershell"));
+                Reject(() => PlayerImageTools.Crop(settings, image, output + ".png", new(-1, 3, 10, 12)));
+            });
+        });
+        Test("图片工具：拼图按顺序接入每张图，数量不足拒绝", () =>
+        {
+            WithFiles((settings, media, output, _) =>
+            {
+                var image = Path.ChangeExtension(media, ".png");
+                File.Copy(media, image);
+                var plan = PlayerImageTools.Stitch(settings, [image, image], output + ".png");
+                Assert.Equal(2, plan.Arguments.Count(argument => argument == "-i"));
+                Assert.True(plan.Arguments.Contains("[stitched]"));
+                Reject(() => PlayerImageTools.Stitch(settings, [image], output + ".png"));
+                Reject(() => PlayerImageTools.Stitch(settings, Enumerable.Repeat(image, 101).ToArray(), output + ".png"));
+            });
+        });
     }
 
     private static void WithFiles(Action<PlayerToolsSettings, string, string, string> run)
