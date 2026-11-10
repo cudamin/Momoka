@@ -27,6 +27,10 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
 
     private async Task<PublicSystemInfo> DetectAsync(string address, CancellationToken cancellationToken, bool embyFamilyOnly)
     {
+        // An explicit /music entry is strong product evidence: probe it before unrelated products.
+        var explicitMusic = !embyFamilyOnly && Uri.TryCreate(address.Contains("://", StringComparison.Ordinal) ? address : "http://" + address,
+            UriKind.Absolute, out var entered) && entered.AbsolutePath.Split('/').Contains("music", StringComparer.Ordinal);
+        if (explicitMusic) return await Momoka.FnMusic.FnMusicMediaAdapter.DetectAsync(http.FnMusicClient, address, cancellationToken).ConfigureAwait(false);
         var plain = EmbyServerAddress.Normalize(address, MediaServerKind.Jellyfin);
         var emby = EmbyServerAddress.Normalize(address);
         var plex = Momoka.Plex.PlexEndpoint.Normalize(address);
@@ -77,7 +81,15 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
         }
         catch (Momoka.Plex.PlexApiException)
         {
-            throw failure ?? new EmbyApiException("无法识别媒体服务器");
+            // No credential has been sent; an unspecified origin may also host the music application.
+        }
+        try
+        {
+            return await Momoka.FnMusic.FnMusicMediaAdapter.DetectAsync(http.FnMusicClient, address, cancellationToken).ConfigureAwait(false);
+        }
+        catch (EmbyApiException error)
+        {
+            throw failure ?? error;
         }
     }
 
@@ -95,7 +107,7 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
     /// </summary>
     public Task<List<EmbyUser>> GetPublicUsersAsync(Uri apiBase, CancellationToken cancellationToken,
         MediaServerKind kind = MediaServerKind.Emby) =>
-        kind is MediaServerKind.FnNas or MediaServerKind.Plex ? Task.FromResult(new List<EmbyUser>())
+        kind is MediaServerKind.FnNas or MediaServerKind.Plex or MediaServerKind.FnMusic ? Task.FromResult(new List<EmbyUser>())
         : http.GetJsonAsync<List<EmbyUser>>(EmbyUrl.Combine(apiBase, "Users/Public"), new(device, null, ServerKind: kind), cancellationToken);
 
     public async Task<EmbyConnection> AuthenticateAsync(
@@ -108,6 +120,10 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
         string? serverId = null)
     {
         if (string.IsNullOrWhiteSpace(username)) throw new EmbyAuthenticationException("请填写用户名");
+
+        if (kind == MediaServerKind.FnMusic)
+            return await Momoka.FnMusic.FnMusicMediaAdapter.SignInAsync(http.FnMusicClient, apiBase, username, password, device,
+                serverVersion, serverId, cancellationToken).ConfigureAwait(false);
 
         if (kind == MediaServerKind.FnNas)
             return await Momoka.FnNas.FnNasMediaAdapter.SignInAsync(http.FnNasClient, apiBase, username, password, device,

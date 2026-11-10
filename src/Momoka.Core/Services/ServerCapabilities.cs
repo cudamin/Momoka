@@ -143,6 +143,7 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
     {
         var source = session.Sources.FirstOrDefault(value => value.Key == sourceKey);
         if (source is not { IsAvailable: true }) return default;
+        if (source.Connection.IsFnMusic) return new(false, false, false, false, false);
 
         lock (_gate)
         {

@@ -4,6 +4,7 @@ public sealed partial class EmbyClient
 {
     private Uri Url(string path, params (string Key, string? Value)[] query)
     {
+        if (Connection.IsFnMusic) throw new NotSupportedException("飞牛音乐不支持此影视操作");
         if (Connection.IsFnNas) throw new NotSupportedException("飞牛影视不支持此 Emby 操作");
         if (Connection.IsPlex) throw new NotSupportedException("Plex 不支持此 Emby 操作");
         if (!Connection.IsJellyfin) return EmbyUrl.Combine(ApiBase, path, query);
@@ -51,7 +52,8 @@ public sealed partial class EmbyClient
     }
 
     public Task<EmbyUser> GetCurrentUserAsync(CancellationToken cancellationToken) =>
-        Connection.IsFnNas ? FnNasMedia.GetCurrentUserAsync(cancellationToken)
+        Connection.IsFnMusic ? FnMusicMedia.GetCurrentUserAsync(cancellationToken)
+        : Connection.IsFnNas ? FnNasMedia.GetCurrentUserAsync(cancellationToken)
         : Connection.IsPlex ? PlexMedia.GetCurrentUserAsync(cancellationToken)
         : http.GetJsonAsync<EmbyUser>(Url(Connection.IsJellyfin ? "Users/Me" : $"Users/{Connection.UserId}"), Context, cancellationToken);
 }

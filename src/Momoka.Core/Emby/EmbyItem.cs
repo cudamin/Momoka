@@ -704,6 +704,12 @@ public sealed class EmbyStudio
     public string Name { get; set; } = "";
 }
 
+public sealed class EmbyNamedId
+{
+    public string Name { get; set; } = "";
+    public string Id { get; set; } = "";
+}
+
 public sealed class EmbyItem
 {
     /// <summary>运行期所属服务器账号；不进入服务器 JSON 或持久化设置。</summary>
@@ -823,6 +829,12 @@ public sealed class EmbyItem
     public string? SeasonName { get; set; }
 
     public string? ParentId { get; set; }
+
+    public string? Album { get; set; }
+    public string? AlbumId { get; set; }
+    public List<string> Artists { get; set; } = [];
+    public List<EmbyNamedId> ArtistItems { get; set; } = [];
+    public List<EmbyNamedId> AlbumArtists { get; set; } = [];
 
     public int? ChildCount { get; set; }
 

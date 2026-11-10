@@ -4,6 +4,11 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["fnmusic-fixture"])
+        {
+            FnMusicTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["browse-identity-fixture"])
         {
             AggregateQueryTests.Register();
@@ -542,6 +547,7 @@ internal static class Program
         FnNasProtocolTests.Register();
         FnNasLibraryInputTests.Register();
         FnNasUserStateWriteTests.Register();
+        FnMusicTests.Register();
         FnNasMediaTests.Register();
         FnNasLibraryDisplayTests.Register();
         PlexProtocolTests.Register();

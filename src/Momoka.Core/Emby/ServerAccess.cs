@@ -69,6 +69,7 @@ public static class ServerAccess
     {
         MediaServerKind.Jellyfin => "Jellyfin",
         MediaServerKind.FnNas => "飞牛影视",
+        MediaServerKind.FnMusic => "飞牛音乐",
         MediaServerKind.Plex => "Plex",
         _ => "Emby"
     };
