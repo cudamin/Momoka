@@ -81,7 +81,7 @@ internal sealed partial class ShellNavigationProbe
             Require(fixture.Settings.Danmaku.Source == DanmakuSourceMode.Both, "来源下拉未写回合并模式");
 
             // B站使用隔离假回执，只验证账户入口、保存与显隐；不打开官网或读取浏览器 Cookie。
-            sourceCombo.SelectedItem = sourceRow.Choices.Single(choice => choice.Label == "B 站");
+            sourceCombo.SelectedItem = sourceRow.Choices.Single(choice => choice.Label == "哔哩哔哩");
             await UntilAsync(() => page.IsContentMotionSettled);
             await LayoutAsync(page);
             Require(DanmakuRows(page).Any(row => row.Label == "登录 B 站"), "B站未登录没有恢复入口");

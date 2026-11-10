@@ -20,7 +20,7 @@ public sealed partial class SettingsViewModel
         ("弹弹play", DanmakuSourceMode.DandanPlay),
         ("danmu_api（自己部署）", DanmakuSourceMode.DanmuApi),
         ("两者合并", DanmakuSourceMode.Both),
-        ("B 站", DanmakuSourceMode.Bilibili)
+        ("哔哩哔哩", DanmakuSourceMode.Bilibili)
     ];
 
     /// <summary>

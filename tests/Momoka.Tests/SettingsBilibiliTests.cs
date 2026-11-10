@@ -46,7 +46,7 @@ internal static class SettingsBilibiliTests
             var rows = state.Rows();
             var choices = state.Get<IEnumerable>(rows.Single(row => state.Label(row) == "弹幕来源"), "Choices").Cast<object>().ToArray();
             Assert.Equal(4, choices.Length);
-            Assert.True(choices.Any(choice => state.Get<string>(choice, "Label") == "B 站"));
+            Assert.True(choices.Any(choice => state.Get<string>(choice, "Label") == "哔哩哔哩"));
             Assert.True(rows.Any(row => state.Label(row) == "登录 B 站"));
             Assert.False(rows.Any(row => state.Label(row) == "显示弹幕"));
             Assert.False(rows.Any(row => state.Label(row) == "自动匹配弹幕"));
@@ -177,7 +177,7 @@ internal static class SettingsBilibiliTests
             var choices = state.Get<IEnumerable>(source, "Choices").Cast<object>().ToArray();
             var property = source.GetType().GetProperty("Selected")!;
             property.SetValue(source, choices.Single(choice => state.Get<string>(choice, "Label") == "弹弹play"));
-            property.SetValue(source, choices.Single(choice => state.Get<string>(choice, "Label") == "B 站"));
+            property.SetValue(source, choices.Single(choice => state.Get<string>(choice, "Label") == "哔哩哔哩"));
             Assert.True(token.IsCancellationRequested);
             var saved = state.Settings.Saves;
             completion.SetResult(("SESSDATA=placeholder-session", 42, "迟到账号"));
