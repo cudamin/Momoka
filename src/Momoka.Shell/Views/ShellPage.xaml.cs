@@ -176,7 +176,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         InitializeComponent();
         InitializeSidebar();
-        HomeNavigation.SelectionChanged += OnHomeNavigationChanged;
         ContentFrame.CacheSize = BrowsePageCacheSize;
         _browsePresentation = new BrowsePresentation(ContentFrame);
 
@@ -284,7 +283,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>只缩放按钮内容，点击范围和非客户区穿透矩形始终保持布局尺寸。</summary>
     private void WireTitleFeedback()
     {
-        foreach (var button in new[] { NavToggleButton, HomeButton, SettingsButton, SearchButton, BackButton, ForwardButton, AccountButton })
+        foreach (var button in new[] { NavToggleButton, HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, AccountButton })
         {
             button.PointerEntered += OnTitlePointerEntered;
             button.PointerExited += OnTitlePointerExited;
@@ -412,7 +411,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void PaintTitleInk()
     {
-        PaintHomeNavigation();
         var onScrim = _titleStrip == TitleStrip.OnScrim;
         var highContrast = new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast;
 
@@ -2043,33 +2041,23 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // 主页那颗按钮在主页上自己变暗（同两支箭头「走不动就暗」的规矩）：_current 是 "home" 就是已经在主页，
         // 下钻和别的页面会把它清空，那时按钮亮着、一按回主页。
         HomeButton.IsEnabled = _session?.IsSignedIn == true && (_current != "home" || _librariesFailed);
-        SyncHomeNavigation();
+        SyncTitleActions();
 
-        ApplyChrome(ContentFrame.CanGoBack, ContentFrame.CanGoForward, _trail.Count);
+        ApplyChrome(ContentFrame.CanGoBack, _trail.Count);
         SyncSidebar();
     }
 
     /// <summary>
-    /// Keep the back/forward buttons and the breadcrumb row in sync with the current navigation state.
+    /// Keep the back button and the breadcrumb row in sync with the current navigation state.
     /// <para>
-    /// 首页上没有这两颗（2026-11-11 用户令「主页不显示前进后退按钮」）：那一格被首页／收藏胶囊占着。
-    /// 它们只是收起，Alt+← / Alt+→ 仍挂在外壳的加速器上，主页按下去照样能用。
+    /// 2026-11-11 起返回每一页都在这一排、走不动时只是变暗（用户令「左上角统一留主页、收藏、设置、搜索、
+    /// 返回」）：旧的「首页不显示箭头」「媒体库与详情页只留后退+主页」两条按页型收起的分档同日退役。
+    /// 前进按钮也退了役 —— Alt+→ 仍挂在外壳的加速器上，鼠标前进侧键照旧（见 OnRootPointerPressed）。
     /// </para>
     /// </summary>
-    private void ApplyChrome(bool canGoBack, bool canGoForward, int crumbs)
+    private void ApplyChrome(bool canGoBack, int crumbs)
     {
         BackButton.IsEnabled = canGoBack;
-        ForwardButton.IsEnabled = canGoForward;
-
-        // 首页那一格由首页/收藏胶囊占着（2026-11-11 用户令「主页不显示前进后退按钮」）；
-        // 媒体库与媒体详情页只要 后退(左) + 主页(右)，前进收起；其余页面三颗都在。
-        var onHome = _current == "home";
-        // 收藏页也是 LibraryPage，但那不是「媒体库」：只有在不是首页/收藏页的时候才按媒体页算。
-        var media = _current != LibraryRequest.FavoritesTag && IsMediaPage();
-        var back = onHome ? Visibility.Collapsed : Visibility.Visible;
-        var forward = onHome || media ? Visibility.Collapsed : Visibility.Visible;
-        if (BackButton.Visibility != back) BackButton.Visibility = back;
-        if (ForwardButton.Visibility != forward) ForwardButton.Visibility = forward;
 
         // The whole row, not just the trail inside it: one crumb only repeats the heading the page draws
         // right below, and a row left standing empty is a band of nothing 38 pixels tall.
@@ -2172,16 +2160,14 @@ public sealed partial class ShellPage : UserControl, IShellActions
     }
 
     /// <summary>
-    /// 媒体库与媒体详情页：左端只留 后退 + 主页（2026-11-11 用户令）。按内容页类型认，不按标签猜 ——
-    /// 音乐库、本机库、飞牛库与详情页各是各的类型，标签还会随来源不同而变。
+    /// 标题栏那颗「收藏」（2026-11-11 用户令「左上角统一留…收藏」）：进收藏页，聚合所有在线账号的收藏。
+    /// 它只在有收藏时露面（见 <see cref="SyncTitleActions"/>），所以这里那道门是防迟到点击，不是显隐判据。
     /// </summary>
-    private bool IsMediaPage() => ContentFrame.Content is LibraryPage or MusicLibraryPage
-        or LocalLibraryPage or FnNasLibrariesPage or DetailPage;
-
-    private void OnForwardClicked(object sender, RoutedEventArgs e)
+    private void OnFavoritesClicked(object sender, RoutedEventArgs e)
     {
-        NavigationTiming.Click("forward-button");
-        GoForward();
+        if (_session?.IsSignedIn != true || !Favorites.HasItems) return;
+        NavigationTiming.Click("favorites-button");
+        GoTo(LibraryRequest.FavoritesTag);
     }
 
     private void OnBackInvoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
@@ -2726,7 +2712,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         RebuildSidebarLibraries();
 
         // 账号那颗也收起来：没登录它没的可切，而且在登录卡上它上面的菜单（切换服务器／注销）一个都不通。
-        // 标题栏那一排（主页、设置、搜索、两支箭头）照旧留着 —— 它是窗口的外壳。
+        // 标题栏那一排（主页、收藏、设置、搜索、返回）照旧留着 —— 它是窗口的外壳。
         AccountButton.Visibility = Visibility.Collapsed;
         SignIn.Visibility = Visibility.Visible;
 

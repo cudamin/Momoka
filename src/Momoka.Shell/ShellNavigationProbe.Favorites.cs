@@ -16,13 +16,6 @@ internal sealed partial class ShellNavigationProbe
 {
     private async Task FavoritesNavigationAsync()
     {
-        static void Select(SelectorBarItem item)
-        {
-            var provider = FrameworkElementAutomationPeer.CreatePeerForElement(item)?.GetPattern(PatternInterface.SelectionItem)
-                as ISelectionItemProvider ?? throw new InvalidOperationException("首页/收藏胶囊没有 UIA 选择入口");
-            provider.Select();
-        }
-
         static void Invoke(Button button)
         {
             var provider = FrameworkElementAutomationPeer.CreatePeerForElement(button)?.GetPattern(PatternInterface.Invoke)
@@ -40,7 +33,7 @@ internal sealed partial class ShellNavigationProbe
             Name = "首页轮播",
             Type = EmbyItemType.Movie,
             BackdropImageTags = ["backdrop"],
-            Overview = "首页／收藏胶囊站在标题栏左上角，轮播图保持贴顶。"
+            Overview = "标题栏左上统一留主页、收藏、设置、搜索、返回，轮播图保持贴顶。"
         };
         fixture.Session.Capture().Bind(bannerItem);
         var favorite = new EmbyItem
@@ -82,85 +75,77 @@ internal sealed partial class ShellNavigationProbe
             await (Task)Call(shell, "EnterShellAsync")!;
             await LayoutAsync(shell);
             await shell.Favorites.RefreshAsync();
-            var pill = Get<SelectorBar>(shell, "HomeNavigation");
-            var homeTab = Get<SelectorBarItem>(shell, "HomeNavigationHome");
-            var favoritesTab = Get<SelectorBarItem>(shell, "HomeNavigationFavorites");
             var homeButton = Get<Button>(shell, "HomeButton");
+            var favoritesButton = Get<Button>(shell, "FavoritesButton");
+            var settingsButton = Get<Button>(shell, "SettingsButton");
+            var searchButton = Get<Button>(shell, "SearchButton");
             var backButton = Get<Button>(shell, "BackButton");
-            var forwardButton = Get<Button>(shell, "ForwardButton");
             await LayoutAsync(shell);
 
-            // 首页：胶囊占着主页那颗按钮的位置，两支箭头收起（2026-11-11 用户令）。
-            Require(shell.FindName("FavoritesButton") is null, "收藏星标仍在源码里");
-            Require(pill.Visibility == Visibility.Visible && homeButton.Visibility == Visibility.Collapsed,
-                "首页没有用胶囊替换主页按钮");
-            Require(ReferenceEquals(pill.SelectedItem, homeTab), "首页没有选中胶囊的「首页」");
-            Require(favoritesTab.Visibility == Visibility.Visible, "有收藏能力的来源丢了「收藏」那一半");
-            Require(backButton.Visibility == Visibility.Collapsed && forwardButton.Visibility == Visibility.Collapsed,
-                "主页仍显示前进/后退按钮");
-            Require(shell.Pages.Margin.Top == 0, "胶囊又给页面留了旧的顶部占位");
+            // 首页、空收藏：统一那一排只剩四颗（收藏没有内容可去，收起），主页与返回在首页走不动、暗着。
+            Require(favoritesButton.Visibility == Visibility.Collapsed, "没有收藏时收藏按钮没有收起");
+            Require(homeButton.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Visible,
+                "统一的一排缺了主页或返回");
+            Require(settingsButton.Visibility == Visibility.Visible && searchButton.Visibility == Visibility.Visible,
+                "设置或搜索没在左上这一排");
+            Require(!homeButton.IsEnabled && !backButton.IsEnabled, "首页上主页或返回没有变暗");
+            Require(Left(homeButton, shell) < Left(settingsButton, shell)
+                && Left(settingsButton, shell) < Left(searchButton, shell)
+                && Left(searchButton, shell) < Left(backButton, shell), "标题栏这一排的次序不是 主页·(收藏)·设置·搜索·返回");
+            Require(shell.Pages.Margin.Top == 0, "标题栏又给页面留了旧的顶部占位");
             Require(shell.ProbeTitleActions().Ok, "首页标题栏布局不合法" + shell.ProbeTitleActions().Detail);
-            var top = pill.TransformToVisual(shell).TransformPoint(new(0, 0));
-            Require(top.Y >= 0 && top.Y + pill.ActualHeight <= HomePage.ChromeHeight && top.X <= 24,
-                "胶囊没有落在左上角标题栏");
-            await SaveProbeScreenAsync("favorites-pill-home-screen.png");
+            Require(Left(homeButton, shell) <= 24 && Top(homeButton, shell) + homeButton.ActualHeight <= HomePage.ChromeHeight,
+                "标题栏那一排没有从左上角起");
+            await SaveProbeScreenAsync("favorites-star-home-empty-screen.png");
 
-            // 空收藏仍可进入（旧规矩不变），回来走「首页」那一半。
-            Select(favoritesTab);
-            await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag
-                && shell.Pages.Content is LibraryPage { ViewModel.IsReady: true });
-            var emptyPage = (LibraryPage)shell.Pages.Content;
-            Require(emptyPage.ViewModel.Cards.Count == 0, "初始空收藏不能进入空列表");
-            Require(ReferenceEquals(pill.SelectedItem, favoritesTab) && pill.Visibility == Visibility.Visible,
-                "收藏页没有同步胶囊选中项或收起胶囊");
-            Require(backButton.Visibility == Visibility.Visible && forwardButton.Visibility == Visibility.Visible,
-                "收藏页没有恢复前进/后退按钮");
-            Require(shell.ProbeTitleActions().Ok, "收藏页标题栏布局不合法" + shell.ProbeTitleActions().Detail);
-            await SaveProbeScreenAsync("favorites-empty-screen.png");
-            Select(homeTab);
-            await UntilAsync(() => shell.CurrentTag == "home");
-            await LayoutAsync(shell);
-            Require(pill.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Collapsed,
-                "从收藏页回到首页没有恢复胶囊或收起箭头");
-
-            // 有收藏之后，胶囊在两种宽度都留在标题栏里，收藏页能进。
+            // 有收藏之后星标露面，并且站在主页与设置之间。
             ItemCommands.ToggleFavorite(fixture.Session, shell, new CardItem(favorite, fixture.Images, 170));
             await UntilAsync(() => shell.Favorites.HasItems);
             await LayoutAsync(shell);
-            Select(favoritesTab);
+            Require(favoritesButton.Visibility == Visibility.Visible, "有收藏后收藏按钮没有出现");
+            Require(Left(homeButton, shell) < Left(favoritesButton, shell)
+                && Left(favoritesButton, shell) < Left(settingsButton, shell), "收藏没有排在主页与设置之间");
+            Require(shell.ProbeTitleActions().Ok, "有收藏时标题栏布局不合法" + shell.ProbeTitleActions().Detail);
+            await SaveProbeScreenAsync("favorites-star-home-screen.png");
+
+            // 星标进收藏页：聚合在线账号的收藏，季也在里面。
+            Invoke(favoritesButton);
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag
                 && shell.Pages.Content is LibraryPage { ViewModel.IsReady: true });
             var page = (LibraryPage)shell.Pages.Content;
             Require(page.ViewModel.Cards.Count == 1 && page.ViewModel.Cards[0].Item.Type == EmbyItemType.Season,
-                "胶囊的「收藏」没有打开包含季的收藏页面");
+                "收藏按钮没有打开包含季的收藏页面");
             Require(page.ViewModel.FavoriteAccountFilterVisibility == Visibility.Collapsed
                 && Get<Button>(page, "FavoriteAccountButton").Visibility == Visibility.Collapsed,
                 "单账号收藏页仍显示账号筛选");
+            Require(backButton.Visibility == Visibility.Visible && backButton.IsEnabled,
+                "收藏页的返回没有露出来或按不动");
+            Require(shell.ProbeTitleActions().Ok, "收藏页标题栏布局不合法" + shell.ProbeTitleActions().Detail);
             foreach (var width in new[] { 1240, 760 })
             {
                 ResizeInspect(width, 800);
                 await LayoutAsync(shell);
-                var origin = pill.TransformToVisual(shell).TransformPoint(new(0, 0));
-                Require(origin.Y >= 0 && origin.Y + pill.ActualHeight <= HomePage.ChromeHeight,
-                    "收藏页的胶囊没有落在标题栏");
-                Require(ReferenceEquals(pill.SelectedItem, favoritesTab), "收藏页没有同步选中「收藏」");
+                var origin = favoritesButton.TransformToVisual(shell).TransformPoint(new(0, 0));
+                Require(origin.Y >= 0 && origin.Y + favoritesButton.ActualHeight <= HomePage.ChromeHeight,
+                    "收藏页的收藏按钮没有落在标题栏");
                 Require(shell.ProbeTitleActions().Ok, "收藏页标题栏自检失败" + shell.ProbeTitleActions().Detail);
                 await SaveReturnFrameAsync(shell, $"favorites-{width}.png");
                 await SaveProbeScreenAsync($"favorites-screen-{width}.png");
             }
 
-            // 取消最后一项：留在空收藏页，胶囊不动（它还有「首页」那一半）。
+            // 取消最后一项：留在空收藏页（旧规矩不变），星标随之收起。
             ItemCommands.ToggleFavorite(fixture.Session, shell, page.ViewModel.Cards[0]);
             await UntilAsync(() => !shell.Favorites.HasItems && page.ViewModel.Cards.Count == 0);
             await LayoutAsync(shell);
-            Require(pill.Visibility == Visibility.Visible && ReferenceEquals(pill.SelectedItem, favoritesTab),
-                "取消最后一项收藏后胶囊收起或丢了选中项");
+            Require(favoritesButton.Visibility == Visibility.Collapsed, "取消最后一项收藏后星标没有收起");
             Require(page.ViewModel.ShowEmptyNotice && shell.CurrentTag == LibraryRequest.FavoritesTag,
                 "取消最后一项收藏没有停留在空收藏页");
+            Require(shell.ProbeTitleActions().Ok, "空收藏页标题栏布局不合法" + shell.ProbeTitleActions().Detail);
             await SaveReturnFrameAsync(shell, "favorites-empty.png");
             await SaveProbeScreenAsync("favorites-empty-screen.png");
 
-            Select(homeTab);
+            // 空态没有星标可点，用返回离开；主页照旧不给页面留旧导航空间。
+            Invoke(backButton);
             await UntilAsync(() => shell.CurrentTag == "home");
             await LayoutAsync(shell);
             Require(shell.Pages.Margin.Top == 0, "无轮播主页缓存返回残留旧导航空间");
@@ -178,8 +163,8 @@ internal sealed partial class ShellNavigationProbe
                 var center = banner.TransformToVisual(shell).TransformPoint(new(0, 0));
                 Require(shell.Pages.Margin.Top == 0 && Math.Abs(center.Y) < 1,
                     "轮播被旧导航占位向下推离窗口顶边");
-                Require(pill.Visibility == Visibility.Visible && shell.ProbeTitleActions().Ok,
-                    "轮播页的胶囊没有正确排列");
+                Require(favoritesButton.Visibility == Visibility.Visible && shell.ProbeTitleActions().Ok,
+                    "轮播页的标题栏那一排没有正确排列");
                 await SaveProbeScreenAsync($"home-favorites-banner-{width}-screen.png");
             }
             fixture.Settings.Ui.ShowHomeBanner = false;
@@ -188,30 +173,30 @@ internal sealed partial class ShellNavigationProbe
             Require(shell.Pages.Margin.Top == 0, "关闭轮播后残留旧导航留白");
             await SaveProbeScreenAsync("home-favorites-no-banner-screen.png");
 
-            // 历史：收藏页 → 后退回首页（箭头在收藏页露着），再前进回收藏页；胶囊选中项跟着走。
-            Select(favoritesTab);
+            // 历史：收藏页 → 返回回首页（返回在收藏页是亮的），再前进回收藏页；星标全程都在。
+            Invoke(favoritesButton);
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag);
             await LayoutAsync(shell);
             Invoke(backButton);
             await UntilAsync(() => shell.CurrentTag == "home");
             await LayoutAsync(shell);
-            Require(ReferenceEquals(pill.SelectedItem, homeTab), "历史返回首页后胶囊没有切回「首页」");
-            Require(backButton.Visibility == Visibility.Collapsed && forwardButton.Visibility == Visibility.Collapsed,
-                "历史返回首页后箭头没有收起");
-            var forward = Get<Button>(shell, "ForwardButton");
+            Require(favoritesButton.Visibility == Visibility.Visible, "历史返回首页后星标丢了（收藏还在）");
+            Require(!backButton.IsEnabled, "回到首页后返回按钮仍按得动");
             Call(shell, "GoForward");
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag);
 
+            // 登录卡：收藏清空、星标收起，外壳那一排照旧留着。
             Call(shell, "ShowSignIn", new object?[] { null, false, null });
-            Require(pill.Visibility == Visibility.Collapsed && homeButton.Visibility == Visibility.Visible,
-                "退出登录没有收起胶囊或没让主页按钮回来");
+            Require(favoritesButton.Visibility == Visibility.Collapsed, "退出登录没有收起星标");
+            Require(homeButton.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Visible
+                && settingsButton.Visibility == Visibility.Visible, "登录卡上标题栏那一排缺了按键");
             fixture.Session.SignOut();
             fixture.Transport.Reply = new PlexStateProbeServer(false).ReplyAsync;
             await fixture.SelectAsync("home-navigation-plex.invalid", kind: MediaServerKind.Plex);
             await (Task)Call(shell, "EnterShellAsync")!;
             await LayoutAsync(shell);
-            Require(pill.Visibility == Visibility.Collapsed && homeButton.Visibility == Visibility.Visible
-                && shell.Pages.Margin.Top == 0, "纯 Plex 仍显示收藏胶囊或残留占位");
+            Require(favoritesButton.Visibility == Visibility.Collapsed
+                && shell.Pages.Margin.Top == 0, "纯 Plex 仍显示收藏星标或残留占位");
             await SaveProbeScreenAsync("home-favorites-plex-screen.png");
             fixture.Session.SignOut();
             fixture.Transport.Reply = (request, _) => Query(request, "Filters")?.Contains("IsFavorite", StringComparison.Ordinal) == true
@@ -221,8 +206,7 @@ internal sealed partial class ShellNavigationProbe
             await (Task)Call(shell, "EnterShellAsync")!;
             await shell.Favorites.RefreshAsync();
             await LayoutAsync(shell);
-            Require(pill.Visibility == Visibility.Visible && ReferenceEquals(pill.SelectedItem, homeTab),
-                "恢复有收藏的来源后没有恢复胶囊");
+            Require(favoritesButton.Visibility == Visibility.Visible, "恢复有收藏的来源后没有恢复星标");
             await SaveProbeScreenAsync("home-favorites-restored-screen.png");
         }
         finally

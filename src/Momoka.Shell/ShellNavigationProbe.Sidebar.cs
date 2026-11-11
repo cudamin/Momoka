@@ -211,7 +211,7 @@ internal sealed partial class ShellNavigationProbe
                 "账号没有落在左下角");
             Require(Left(account, shell) + account.ActualWidth <= host.ActualWidth + 1,
                 "账号溢出了侧边栏的宽");
-            // 导航开关站在标题栏最左边（标题的位置），收藏和后退排在它右边。
+            // 导航开关站在标题栏最左边（标题的位置），主页与返回排在它右边。
             var backButton = Get<Button>(shell, "BackButton");
             Require(Left(toggle, shell) <= 20 && Left(toggle, shell) < Left(backButton, shell)
                 && Top(toggle, shell) + toggle.ActualHeight <= HomePage.ChromeHeight + 1,
@@ -234,10 +234,13 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(width, 900);
                 await LayoutAsync(shell);
                 Require(shell.ProbeTitleActions().Ok, "收藏页加入后标题栏布局不合法" + shell.ProbeTitleActions().Detail);
-                // 胶囊只在首页与收藏页露面；媒体库页要用的是主页按钮。
-                Require(Get<SelectorBar>(shell, "HomeNavigation").Visibility == Visibility.Collapsed
-                    && Get<Button>(shell, "HomeButton").Visibility == Visibility.Visible,
-                    "媒体库页错误显示首页/收藏胶囊");
+                // 2026-11-11 起标题栏不再按页型换脸：媒体库页上也是同一排，收藏此刻有内容、所以也在。
+                Require(Get<Button>(shell, "HomeButton").Visibility == Visibility.Visible
+                    && Get<Button>(shell, "FavoritesButton").Visibility == Visibility.Visible
+                    && Get<Button>(shell, "SettingsButton").Visibility == Visibility.Visible
+                    && Get<Button>(shell, "SearchButton").Visibility == Visibility.Visible
+                    && Get<Button>(shell, "BackButton").Visibility == Visibility.Visible,
+                    "媒体库页的标题栏那一排缺了按键");
                 await SaveProbeScreenAsync($"toolbar-navigation-{width}-screen.png");
             }
             await ToggleAsync(true);
