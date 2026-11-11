@@ -355,8 +355,10 @@ internal sealed class ShellAssembly
     private sealed class NoServices : IServiceProvider
     {
         private readonly RemovedMedia _removed = new();
-        public object? GetService(Type serviceType) => serviceType == typeof(RemovedMedia)
-            ? _removed : serviceType.FullName == "Momoka.Shell.Platform.ISystemLauncher" ? null
+        public object? GetService(Type serviceType) => serviceType == typeof(RemovedMedia) ? _removed
+            // A launcher is optional in the actual Attach path. This genre fixture never opens a
+            // trailer/browser, so retain its null value without allowing another service to run.
+            : serviceType.FullName == "Momoka.Shell.Platform.ISystemLauncher" ? null
             : throw new AssertionException("不启动容器/App：" + serviceType.FullName);
     }
 }

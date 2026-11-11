@@ -328,7 +328,7 @@ internal static class DiagnosticsTests
         {
             AdvancePlayback(generation);
             typeof(PlaybackService).GetMethod("RaiseNowPlaying", BindingFlags.NonPublic | BindingFlags.Instance)!
-                .Invoke(_playback, [new Momoka.Emby.EmbyItem { Name = title, Type = Momoka.Emby.EmbyItemType.Movie }, generation]);
+                .Invoke(_playback, [new Momoka.Emby.EmbyItem { Name = title, Type = Momoka.Emby.EmbyItemType.Movie }, generation, false]);
         }
 
         internal void AdvancePlayback(long generation)

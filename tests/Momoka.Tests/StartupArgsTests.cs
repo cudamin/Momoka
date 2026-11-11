@@ -14,6 +14,11 @@ internal static class StartupArgsTests
 {
     public static void Register()
     {
+        Test("音乐界面探针：独立分区拒绝真实播放组合", () =>
+        {
+            Assert.True(StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "MUSIC"])!.SetEquals(["music"]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(["--probe-shell", "--probe-section", "music", "--play"]));
+        });
         Test("Jellyfin最新货架：独立匿名区域拒绝播放和手动检查混用", () =>
         {
             Assert.True(StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "JELLYFIN-LATEST"])!

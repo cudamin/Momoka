@@ -324,6 +324,7 @@ namespace Momoka.Shell.Views
     }
     internal sealed class ServersPage : RejectedPage { }
     internal sealed class DiagnosticsPage : RejectedPage { }
+    internal sealed class LocalMediaPage : RejectedPage { }
     internal sealed class NotificationsPage : RejectedPage { }
     internal sealed class FnNasPasswordPage : RejectedPage { }
     internal sealed class FnNasLibrariesPage : RejectedPage { }
@@ -337,6 +338,7 @@ namespace Momoka.Shell.Views
     }
     internal sealed record ServerRequest(IServiceProvider Services);
     internal sealed record DiagnosticsRequest(IServiceProvider Services);
+    internal sealed record LocalMediaRequest(IServiceProvider Services);
     internal sealed record NotificationsRequest(IServiceProvider Services, string? SourceKey);
     internal sealed record FnNasPasswordRequest(IServiceProvider Services, string? SourceKey);
     internal sealed record FnNasLibrariesRequest(IServiceProvider Services, string? SourceKey);

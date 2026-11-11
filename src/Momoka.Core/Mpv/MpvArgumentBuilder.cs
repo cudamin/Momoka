@@ -42,9 +42,9 @@ public static class MpvArgumentBuilder
         // 播放统计（参考项目那一套统计项的中文覆盖版，见 MpvStats）。--no-config 让 mpv 不再读用户配置目录
         // 里那棵 scripts/，所以这一份必须自己交出去；`--script`（单数）重复出现是累加，不与别的脚本互相顶掉。
         // 装箱缺失只是没有统计面板，不是起播失败 —— 缺席即跳过。
-        if (MpvStats.Exists(AppContext.BaseDirectory))
+        if (!request.AudioOnly && MpvStats.Exists(AppContext.BaseDirectory))
             arguments.Add($"--script={MpvStats.ScriptPath(AppContext.BaseDirectory)}");
-        if (MpvAnalysis.Exists(AppContext.BaseDirectory))
+        if (!request.AudioOnly && MpvAnalysis.Exists(AppContext.BaseDirectory))
             arguments.Add($"--script={MpvAnalysis.ScriptPath(AppContext.BaseDirectory)}");
 
         // Belt and braces, as in the libmpv backend: --no-config already blocks the watch_later file,
@@ -86,7 +86,9 @@ public static class MpvArgumentBuilder
         }
         if (request.SelectedExternalSubtitle is not null) arguments.Add("--sid=no");
 
-        if (request.Fullscreen is { } fullscreen)
+        if (request.AudioOnly)
+            foreach (var option in LibMpvPipelinePolicy.BuildAudioOnly([])) arguments.Add($"--{option.Name}={option.Value}");
+        else if (request.Fullscreen is { } fullscreen)
             arguments.Add($"--fullscreen={(fullscreen ? "yes" : "no")}");
 
         return arguments;

@@ -1,5 +1,21 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-11-11：音乐合入主树后的权限通知来源
+
+逐份核对19项来源，仅 `EmbySession.cs` 与音乐分支不同：主树已把内部合集权限通知移到 `ServerCapabilities` 发布来源及系统缓存之后，在锁外通知；音乐专用探测同时保留。只同步这一项完整字节哈希。四份被抽取的 PlayerViewModel 来源、提取器、方法和接续守卫未变，仍须执行当前 caller 与全部拒绝反例。
+
+## 2026-11-11：音乐整合的剩余来源核对
+
+逐份追溯 SourcePins 原哈希对应 Git 版本并审阅差异：Transport/PlayerVM 新增可选工具取消；Events 新增菜单属性读取及 AudioOnly 拒绝，实际 caller 抽取的 OnNowPlayingChanged 对视频仍保持原控制流；Session/Scope 增加当前合集权限和同账号重登的来源核对；Item 增加权限、飞牛续播标志及音乐元数据。定点同步这六份完整源哈希，并给真实 Transport 中可选的工具取消保留空边界，不裁剪方法。ShaderCommandGenerationTests 仅链接提取完整 handle 所需的真实 EachFrameScreenshot，对应项目文件哈希同步。
+
+当前 caller 69/69 通过，Test-SourceExtraction 的10个变异样本均按预期构建失败，随后当前源重新零警告零错误构建并69/69；测试不能证明实际视频窗口或真实服务器接续。
+
+## 2026-11-10：AudioOnly 四份 Core 来源复核
+
+定点更新 `LibMpvBackend.cs`、`PlaybackContracts.cs`、`PlaybackService.Continuation.cs` 与 `PlaybackService.Lifecycle.cs` 完整源 SHA256。AudioOnly 是默认 false 的新增模式，音乐不使用视频保留/swap；视频的 ticket/scope/取消/expected lease、完整 Start 签名和原有 caller 递归/await-dispose 未改变。提取器仍严格检查全部 pins、完整语法节点、六参 Play 与自然接续 fence，不接受其它历史漂移。
+
+当前子树四份 hash 与整合树相同，除此六份历史来源仍有 drift，构建在 `PlayerViewModel.Transport.cs` 的旧 pin 上失败（本树实际 `be77961d19d82bb176cde4ea4c393ad3a40de5175b1029c2809d8917ec7cbafc`），没有运行旧 caller 输出。其余六份（Transport、VM、Events、Session、Scope、Item）由根整合会话逐份核历史差异后更新并重编译、运行；这里不宣称 caller 专项通过。
+
 ## 2026-11-10：播放认证与多段时间轴来源同步
 
 核对本批 LibMpvBackend 的本机 HTTP 传输归属、取消与逐段 EDL 加载，PlaybackContracts 仅增加 MediaParts 及纠正 Plex 上报注释，EmbyItem 增加 MediaParts 并保留已合入的预告字段；定点更新这三份完整源 SHA256。实际 VM 自然接续成员、其余来源、提取器和断言不变。原样链接的 handle 与调用者专项须在整合后重新编译运行，不能沿用分项报告。

@@ -688,7 +688,12 @@ public sealed class EmbySession : IDisposable
         PublicSystemInfo info;
         try
         {
-            info = connection.IsProbedProduct
+            // A saved FnMusic profile may still contain the NAS gateway root. Probe its normalized
+            // music mount directly so an independently installed video application cannot replace it.
+            info = connection.IsFnMusic
+                ? await Momoka.FnMusic.FnMusicMediaAdapter.DetectAsync(_http.FnMusicClient,
+                    connection.ApiBase.AbsoluteUri, cancellationToken).ConfigureAwait(false)
+                : connection.IsProbedProduct
                 ? await Gateway.DetectAsync(address, cancellationToken).ConfigureAwait(false)
                 : await Gateway.DetectEmbyFamilyAsync(address, cancellationToken).ConfigureAwait(false);
         }

@@ -12,8 +12,12 @@ public sealed class PlexFilterSelection
     public bool HasConditions => Type.Length > 0 && TypeIsExplicit != false || Count > 0;
     public bool IsBlank => Type.Length == 0 && Values.Values.All(values => values.Count == 0);
     public int Count => Values.Count(pair => pair.Value.Count > 0);
-    public PlexFilterSelection Clone() => new() { Type = Type, TypeIsExplicit = TypeIsExplicit,
-        Values = Values.ToDictionary(pair => pair.Key, pair => new List<string>(pair.Value), StringComparer.Ordinal) };
+    public PlexFilterSelection Clone() => new()
+    {
+        Type = Type,
+        TypeIsExplicit = TypeIsExplicit,
+        Values = Values.ToDictionary(pair => pair.Key, pair => new List<string>(pair.Value), StringComparer.Ordinal)
+    };
     public void Clear() { Values.Clear(); }
 }
 

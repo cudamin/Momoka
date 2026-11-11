@@ -117,6 +117,19 @@ internal static class LibMpvPipelinePolicy
         return options;
     }
 
+    internal static IReadOnlyList<LibMpvPipelineOption> BuildAudioOnly(IReadOnlyList<KeyValuePair<string, string>> playerOptions)
+    {
+        var options = playerOptions.Where(option => !IsOwnedOption(option.Key)
+            && option.Key is not ("video" or "fullscreen" or "osc"))
+            .Select(option => new LibMpvPipelineOption(option.Key, option.Value)).ToList();
+        foreach (var (name, value) in new KeyValuePair<string, string>[]
+        {
+            new("video", "no"), new("vo", "null"), new("force-window", "no"), new("fullscreen", "no"),
+            new("osc", "no"), new("input-default-bindings", "no"), new("input-vo-keyboard", "no"), new("input-media-keys", "no")
+        }) options.Add(new(name, value, Required: true));
+        return options;
+    }
+
     private static bool IsOwnedOption(string name)
     {
         // Also filter CLI-style negations and list suffixes (vo-append, vo-clr, ...), so a

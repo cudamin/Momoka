@@ -8,6 +8,9 @@ public sealed partial class PlexMediaAdapter
 {
     private static void AddBrowseRelations(EmbyItem item, JsonObject value)
     {
+        // Music keeps its own genre metadata; its section must never become a type=1 video query.
+        if (item.Type is not (EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season
+            or EmbyItemType.Episode or EmbyItemType.Video)) return;
         var section = NativeId(value, "librarySectionID");
         item.PlexSectionId = section;
         // Episodes and seasons belong to a show library; local tag discovery lists shows once.

@@ -89,9 +89,30 @@ public sealed partial class PlexClient(PlexHttp http)
         RootAsync(PlexEndpoint.Api(c.ApiBase, "library/metadata/" + PlexEndpoint.Segment(ratingKey)
             + Query([new("includeChapters", "1"), new("includeMarkers", "1")])), c.Call, ct);
 
-    /// <summary>Seasons of a show, or episodes of a season — Plex serves both from <c>children</c>.</summary>
+    /// <summary>Show/season and artist/album children share this metadata endpoint.</summary>
     public Task<JsonObject> GetChildrenAsync(PlexConnection c, string ratingKey, CancellationToken ct = default) =>
         RootAsync(PlexEndpoint.Api(c.ApiBase, "library/metadata/" + PlexEndpoint.Segment(ratingKey) + "/children"), c.Call, ct);
+
+    public Task<JsonObject> GetChildrenAsync(PlexConnection c, string ratingKey, int start, int size,
+        CancellationToken ct = default) =>
+        RootAsync(PlexEndpoint.Api(c.ApiBase, "library/metadata/" + PlexEndpoint.Segment(ratingKey) + "/children"),
+            c.Call with { Headers = Page(start, size) }, ct);
+
+    /// <summary>All tracks under an artist, across that artist's albums.</summary>
+    public Task<JsonObject> GetAllLeavesAsync(PlexConnection c, string ratingKey, int start, int size,
+        CancellationToken ct = default) =>
+        RootAsync(PlexEndpoint.Api(c.ApiBase, "library/metadata/" + PlexEndpoint.Segment(ratingKey) + "/allLeaves"),
+            c.Call with { Headers = Page(start, size) }, ct);
+
+    /// <summary>Plex playlists belong to the server account, rather than one library section.</summary>
+    public Task<JsonObject> GetAudioPlaylistsAsync(PlexConnection c, int start, int size, CancellationToken ct = default) =>
+        RootAsync(PlexEndpoint.Api(c.ApiBase, "playlists/all" + Query([new("playlistType", "audio")])),
+            c.Call with { Headers = Page(start, size) }, ct);
+
+    public Task<JsonObject> GetPlaylistItemsAsync(PlexConnection c, string ratingKey, int start, int size,
+        CancellationToken ct = default) =>
+        RootAsync(PlexEndpoint.Api(c.ApiBase, "playlists/" + PlexEndpoint.Segment(ratingKey) + "/items"),
+            c.Call with { Headers = Page(start, size) }, ct);
 
     public Task<JsonObject> GetSimilarAsync(PlexConnection c, string ratingKey, int size, CancellationToken ct = default) =>
         RootAsync(PlexEndpoint.Api(c.ApiBase, "library/metadata/" + PlexEndpoint.Segment(ratingKey) + "/similar"),

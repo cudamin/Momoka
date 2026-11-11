@@ -131,6 +131,7 @@ public sealed partial class ShellPage
         var width = shown ? Sidebar.IsPaneOpen ? Sidebar.OpenPaneLength : Sidebar.CompactPaneLength : 0;
         SidebarHost.Width = width;
         ContentHost.Margin = new Thickness(width, 0, 0, 0);
+        PlaceMusicBar();
 
         // 标题栏那一排的缩进：侧边栏在屏上时是 11，其余时候是 18（标记里那个值）。11 是「导航开关的字形
         // 和栏里那几项对齐」算出来的 —— 开关靠左摆、字形宽 26（2026-11-01 从 24 放大到 26），所以它的中线

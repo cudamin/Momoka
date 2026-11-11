@@ -59,7 +59,7 @@ public sealed partial class ShellPage
         var top = HomeNavigation.Visibility == Visibility.Visible && !overlay
             ? HomeNavigationHost.Height + HomeNavigationHost.Margin.Top * 2 : 0;
         if (Math.Abs(ContentFrame.Margin.Top - top) > 0.01)
-            ContentFrame.Margin = new Thickness(0, top, 0, 0);
+            ContentFrame.Margin = new Thickness(0, top, 0, ContentFrame.Margin.Bottom);
     }
 
     private void PaintHomeNavigation()

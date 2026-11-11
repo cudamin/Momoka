@@ -22,6 +22,7 @@ internal static partial class PlexMediaTests
 {
     public static void Register()
     {
+        PlexMusicTests.Register();
         RegisterLibraries();
         RegisterLibraryCatalog();
         RegisterBitrates();
@@ -45,7 +46,7 @@ internal static partial class PlexMediaTests
             // the saved password and replays the same call on the same identity.
             fixture.Transport.Expire = true;
             var libraries = scope.ExecuteAsync((client, ct) => client.GetViewsAsync(ct), default).GetAwaiter().GetResult();
-            Assert.Equal("电影,剧集", string.Join(',', libraries.Select(library => library.Name)));
+            Assert.Equal("电影,剧集,音乐", string.Join(',', libraries.Select(library => library.Name)));
             Assert.Equal(2, fixture.Transport.Logins);
             Assert.True(scope.IsCurrent);
 
@@ -59,15 +60,15 @@ internal static partial class PlexMediaTests
             fixture.Account.UserId = "7";
             fixture.Account.ProtectedAccessToken = PassthroughSecretProtector.Instance.Protect("fixture-token");
             Assert.True(fixture.Session.TryRestoreAsync(fixture.Server, fixture.Account, default).GetAwaiter().GetResult());
-            Assert.Equal("电影,剧集", string.Join(',', fixture.Session.TakeRestoredViews()!.Select(library => library.Name)));
+            Assert.Equal("电影,剧集,音乐", string.Join(',', fixture.Session.TakeRestoredViews()!.Select(library => library.Name)));
             Assert.Equal(0, fixture.Transport.Logins);
         });
-        Test("Plex 媒体：音乐库被挡在外面，浏览只认电影与剧集", () =>
+        Test("Plex 媒体：音乐库与电影剧集一起从会话读回", () =>
         {
             using var fixture = new Fixture(); fixture.Login();
             var libraries = fixture.Session.Client.GetViewsAsync(default).GetAwaiter().GetResult();
-            Assert.Equal(2, libraries.Count);
-            Assert.DoesNotContain("音乐", string.Join(',', libraries.Select(library => library.Name)));
+            Assert.Equal(3, libraries.Count);
+            Assert.Equal("music", libraries[2].CollectionType);
             Assert.Equal("movies", libraries[0].CollectionType);
         });
         Test("Plex 媒体：搜索按电影剧集分类", () =>

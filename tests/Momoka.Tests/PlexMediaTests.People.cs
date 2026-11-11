@@ -10,6 +10,19 @@ internal static partial class PlexMediaTests
 {
     private static void RegisterBrowsePeople()
     {
+        Test("Plex 人物关系：音乐与播放列表不生成电影类型关联", () =>
+        {
+            foreach (var type in new[] { "artist", "album", "track", "playlist" })
+            {
+                var item = PlexMediaAdapter.Item(JsonNode.Parse($$"""
+                    {"ratingKey":"40","type":"{{type}}","title":"音乐","librarySectionID":"9",
+                     "Genre":[{"id":"7","tag":"流行"}],"Director":[{"id":"12","tag":"署名"}]}
+                    """)!.AsObject());
+                Assert.Equal(0, item.PlexGenres.Count);
+                Assert.Equal(0, item.People.Count);
+                Assert.Equal("流行", item.Genres.Single());
+            }
+        });
         Test("Plex 人物：演员导演编剧保留署名与头像，同名不同身份不合并", () =>
         {
             var item = PlexMediaAdapter.Item(JsonNode.Parse("""

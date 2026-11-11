@@ -89,7 +89,7 @@ internal static class Program
                 if (leaveEarly) f.Shell.LeaveForOtherPage();
                 f.Transport.Release();
                 await entering.WaitAsync(TimeSpan.FromSeconds(10));
-                Assert.Equal(2, request.EffectiveLibraryViews.Count, "目录成功后历史请求不能永久保留空快照");
+                Assert.Equal(3, request.EffectiveLibraryViews.Count, "目录成功后历史请求保留视频与音乐目录");
                 Assert.Equal(150d, request.ScrollOffset);
                 f.Shell.RevokeHomeAccess();
                 Assert.Equal(0, request.EffectiveLibraryViews.Count, "旧访问撤销后不能再回放旧来源目录");
@@ -107,8 +107,8 @@ internal static class Program
                 var stale = f.Shell.ContentFrame.Content;
                 f.Transport.Release();
                 await entering.WaitAsync(TimeSpan.FromSeconds(10));
-                Assert.Equal(2, f.Shell.Directory.Count, "音乐库继续被真实Shell过滤");
-                Assert.Equal(2, f.Shell.HomeSnapshot.Count);
+                Assert.Equal(3, f.Shell.Directory.Count, "音乐库与视频库一起交给真实Shell目录");
+                Assert.Equal(3, f.Shell.HomeSnapshot.Count);
                 Assert.False(ReferenceEquals(stale, f.Shell.ContentFrame.Content));
                 Assert.Equal(2, f.Shell.ContentFrame.Navigations);
                 CheckSnapshot(f);
@@ -135,7 +135,7 @@ internal static class Program
                 await entering.WaitAsync(TimeSpan.FromSeconds(10));
                 Assert.True(ReferenceEquals(other, f.Shell.ContentFrame.Content));
                 Assert.Equal(1, f.Shell.ContentFrame.Navigations);
-                Assert.Equal(2, f.Shell.Directory.Count);
+                Assert.Equal(3, f.Shell.Directory.Count);
             });
             Test("R-062 目录await期间撤销旧访问，不交接到现有主页 " + kind, async () =>
             {
@@ -220,6 +220,22 @@ internal static class Program
             CheckSnapshot(f);
             Assert.Equal(3, f.Shell.ContentFrame.Navigations);
         });
+        Test("音乐目录：真实GoTo选择音乐页面并保留来源与section标识", async () =>
+        {
+            using var f = new Fixture(MediaServerKind.Emby);
+            var entering = f.Shell.Enter();
+            await f.Transport.Entered.Task;
+            f.Transport.Release();
+            await entering;
+            var music = f.Shell.Directory.Single(item => item.CollectionType == "music");
+            f.Shell.GoTo(HomeLayout.LibraryKey(music));
+            Assert.Equal(typeof(MusicLibraryPage), f.Shell.ContentFrame.LastPage);
+            var request = (LibraryRequest)f.Shell.ContentFrame.LastParameter!;
+            Assert.Equal("music", request.ParentId);
+            Assert.Equal("music", request.CollectionType);
+            Assert.True(ReferenceEquals(music.Source, request.Source));
+            Assert.Equal(0, f.Transport.Writes);
+        });
         var failures = 0;
         foreach (var test in Cases)
         {
@@ -232,11 +248,15 @@ internal static class Program
 
     private static void CheckSnapshot(Fixture f)
     {
-        Assert.Equal("movies,shows", string.Join(',', f.Shell.HomeSnapshot.Select(item => item.Id)));
+        Assert.Equal(f.ExpectedIds, string.Join(',', f.Shell.HomeSnapshot.Select(item => item.Id)));
         Assert.True(f.Shell.HomeSnapshot.All(item => item.Source is { IsAvailable: true }));
         var plan = HomeLayout.Plan(null, f.Shell.HomeSnapshot);
         Assert.True(plan.Any(row => row.Key == HomeLayout.LibraryKey(f.Shell.HomeSnapshot[0])));
         Assert.True(plan.Any(row => row.Key == HomeLayout.LibraryKey(f.Shell.HomeSnapshot[1])));
+        if (f.Shell.HomeSnapshot.Count == 3)
+            Assert.False(plan.Any(row => row.Key == HomeLayout.LibraryKey(f.Shell.HomeSnapshot[2])),
+                "音乐目录不生成视频最近添加排；type=" + f.Shell.HomeSnapshot[2].CollectionType
+                + "；keys=" + string.Join(',', plan.Select(row => row.Key)));
         Assert.Equal(0, f.Transport.Writes);
     }
 
@@ -253,8 +273,10 @@ internal static class Program
         private readonly List<CancellationTokenSource> _lifetimes = [];
         public DirectoryTransport Transport { get; } = new();
         public ShellPage Shell { get; }
+        public string ExpectedIds { get; }
         public Fixture(MediaServerKind kind, bool second = false, bool restored = false)
         {
+            ExpectedIds = restored ? "movies,shows" : "movies,shows,music";
             var settings = new AppSettings();
             var secrets = new NoSecrets();
             var device = new DeviceIdentity("fixture", "fixture", "fixture", "0");

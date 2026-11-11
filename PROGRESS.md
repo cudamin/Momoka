@@ -1,3 +1,17 @@
+## 2026-11-11 音乐统一界面合入主树与交付验证
+
+按用户连续“合并、交付”授权，整合 master 3c316db 与音乐分支 d98718c，保留首页收藏胶囊、详情云母、窗口缩放与合集权限通知修复。音乐统一使用 MusicLibraryPage 与同一底部亚克力播放栏，不按 Emby/Jellyfin/Plex/飞牛音乐另建界面；已同步 CLAUDE.md、Shell 技能和音乐文档。
+
+独立审查发现顶部导航与音乐底栏互相覆盖 ContentFrame.Margin；新增真实 Shell 方法交叉测试在旧组合准确报“未播放音乐时丢失首页导航预留”，修为各自保留另一轴。补齐主树窗口缩放新增事件在字幕拖放测试的真实订阅/退订与误发拒绝边界；19份 caller pins 逐份核对仅 EmbySession 内部合集通知调整漂移，定点更新该项，未裁剪生产提取。
+
+主树完整 Release 方案 0警告0错误；完整主测试4635/4635、0失败0跳过（143492ms）。首轮因另一树 inspect 持共享锁产生16失败，原报告保留，退出后串行重验全绿。15个相关专项全通过，含音乐VM12、字幕拖放75、缩放17、登录输入130、HomeDirectory82、自然EOF27、句柄60；caller69/69，10个提取器反例均预期拒绝后当前源重编重跑69/69。自动化扫描667交互元素，未定位0；变更编码、行尾和空白通过。
+
+当前主树 music,shell,playback,favorites 原生探针31/31通过，169个不相关检查未执行，不称全探针通过。五主题×1280/760/360的音乐实屏和侧栏音乐页已目视，灰屏问题本次未复现；方块停止实控验证通过。当前Core本地静音WAV/libmpv92项、4场景通过，48次顶层窗口采样均0，报告SHA256 98D4BB58337C2D541FE0215A6B3EEA0F9739E5C60AEC6254C1EDA66ABFDD5A28。证据 artifacts/verification/music-merge；分支历史证据已保留于 music-branch-evidence。未使用真实服务器播放、收藏或历史写入，未验证物理音箱；无远端上传授权。
+
+合并提交48d4830已完成；主树 publish.ps1 -NoArchive -Shortcut 成功，547文件、287.7MB，60项批准mpv载荷全部通过。桌面 Momoka.lnk 目标和工作目录已核对，Momoka.exe/Momoka.dll/Core.dll/PRI四份SHA256均匹配本次发布构建，回执 artifacts/verification/music-merge/delivery-receipt.json。版本保持0.2.7，未上传GitHub、未生成新安装包。
+
+五个音乐子树已由原生工具归档，list_artifacts确认全部为archived_worktree；恢复线索：fnmusic-core9284b52、plex-music95abab4、music-audio-only508686c、music-vm-tests21b8772、music-test-seams eb88956。内容审计均无主树缺少的产品/测试行为，VM树7份脏文件为已整合旧副本并随归档保留；必要ignored证据已复制到主树。六个本批临时分支已删除。f974是本聊天的工作区，按宿主主工作区保护保留，已脱离临时分支停在已合入的d98718c；不作第二交付线。其他聊天工作树未动。
+
 ## 2026-11-10 简洁详情云母已合入并交付
 
 产品提交 `d92c448` 已 cherry-pick 为主树 `ab756c7`；仅开发文档新增段落冲突，两侧内容均保留。主树当前Shell/Tests/Core Release均0警告0错误，完整4571/4571、详情实际VM46/46、MP页面40/40；主树定向格式无加载警告、0文件需改。原生报告 `C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261110-145040707-9404/logs/shell-probe.json` 7/7通过，四类型双宽五主题40张和MP双宽五主题10张实屏，详情布局57个截图/读数文件及设置与三类详情自定义恢复均重跑。单项覆盖不冒充全量，真实服务/播放/系统高对比度切换未执行。
@@ -35,6 +49,50 @@
 从主树617faba建立library-batch1-permission-probe。R011原54项中Emby“同值true新确认覆盖旧Probe false”53过1败是生产回归：System/Info403的本轮管理员false缓存仍为旧revision；紧随的合集null→false内部确认升revision，导致全局IsAdministrator丢掉刚确认false而回旧connection true，与按来源菜单权限false矛盾。保留原54契约，不改前件或断言。ConfirmCollectionPermission仅确认并返回代次，不在会话锁或能力锁内发事件；Probe发布来源缓存，并只为相同owner且系统缓存代次正好等于确认前代次迁移revision，管理员/版本读数保留。通知在两锁外且全部缓存发布后，明确外部Replace仍使旧缓存失效；通知重入升权后该来源没有晚写回。
 
 新增主测试2项事件即时读数与锁持有断言、回调内显式升权保留true/版本；红139项137过2败，绿139/139。当前Core/Tests/Shell及R011 Release构建0警告0错误；R011原54/54通过（同树Shell/Core哈希一致，匿名加载实际SettingsVM），0失败0跳过。定向格式及6路径编码/空白检查通过；证据artifacts/permission-probe与artifacts/r011-current-permission/result-20261110-140324-1731.json。两生产文件的独立只读复审无必要P1/P2。无UI/全测/实服/起播/上传，最终完整与原生检查由主树集成会话负责。
+
+## 2026-11-11 音乐媒体库与飞牛音乐（待运行交付）
+
+工作树 `C:/Users/89400/.codex/worktrees/f974/Momoka`，分支 `codex/music-libraries`，基点617faba。已实现 Emby/Jellyfin/Plex 音乐库与独立飞牛音乐密码连接、恢复、歌曲/专辑/艺术家/歌单/收藏浏览，歌曲分页及完整队列。窗口底部亚克力播放栏包含封面、曲名/歌手、进度、上一曲/暂停/停止/下一曲、模式、收藏、队列、音量；方块停止取消准备/结束播放并清空隐藏，导航不停止音乐。AudioOnly复用现有单会话生命周期，固定内置受控libmpv，无视频surface/窗口/着色器/SVP/uosc/弹幕，音乐/视频互斥。官方协议证据与不支持范围见 `docs/音乐媒体库.md`、`docs/飞牛音乐协议.md`。
+
+离线证据：当前完整Release方案0警告0错误（临时收短进程Path解决cmd的超长PATH找不到py，不改机器环境）；最终主测试4630/4630、失败0跳过0（135937ms）；末轮发现受控工具ready文件先创建后关闭的测试竞态，改成关闭后原子改名发布回执并重验。音乐VM12/12，Plex277/277，FnMusic18/18，AudioOnly21/21，登录输入130/130，HomeDirectory82/82，原生句柄shader60/60，自然EOF27/27、caller69/69，caller提取器10反例均正确拒绝后当前源重验。九个相关专项全绿见 `artifacts/verification/music-related-final/summary.json`。新增控件扫描668交互节点，未定位0；差异/UTF8/LF和变更范围空白检查通过（format workspace加载警告仍如实保留）。全方案暴露的既有测试源码链接/空边界已逐项修复，未裁剪生产控制流或删除断言。
+
+本地真实libmpv静音探针92检查、4场景通过；两种视频管线设置下音频Loaded、暂停、seek、音量、Stop/EOF正常，48次顶层窗口采样均0，脚本哨兵未加载。证据 `artifacts/verification/music-native/REPRODUCE.md`，报告SHA256 `09880D4E0A750C59E6C8160133A963CFE15AC82B1711B338870D0C19E9F18033`。不代表物理音响或真实服务器验收。
+
+**最终运行交付仍受阻，不合master、不更新桌面。** 早期音乐五主题1280/760/360实屏正常（150636691-4508），后续`music,shell,playback`虽控件树和布局存在，但客户区实屏纯灰，登录/侧栏ScrollTo完成关联号返回而offset=0；不能据属性/计数称视觉通过。原master未含音乐的Shell构建也复现相同空白/滚动失败：`shell-probe-20261110-162849028-3296`，基线Momoka.dll SHA256 `D1294A048BA53DF31BA9DCAF7095A34322ED4A1F82C2520137137249EC339988`。音乐页及播放栏构造前的纯文字标记也灰，暂未证明是新增音乐UI回归。官方ScrollPresenter非动画操作在无ValuesChanged后仍可兜底Completed；原offset和像素断言保持严格。
+
+诊断对照已撤回：ProgressRing替换、保留启动页、RequestCommitAsync、SiteBridge重显与标准Window对照均未解决，不留无证产品修复。仅保留正式音乐探针与侧栏音乐期望。部分旧播放截图由RenderTargetBitmap先渲染后实屏可见，不能当首帧正常证据。失败报告及空白PNG已复制 `artifacts/verification/music-runtime-block/`。独立自包含验证产物 `artifacts/music-validation-runtime/publish/win-x64` 通过发布载荷校验547文件/287.6MB，但未更新桌面；快捷方式仍是旧版。继续工作应先复现并解决正常呈现/滚动，确认最终实屏后再按现行规则合master、重验并正式发布。未真实登录飞牛音乐、播放真实媒体、收藏或上报用户历史，未推送GitHub。
+
+
+## 2026-11-10 音乐会话隔离视频服务入口
+
+- 音乐播放期间忽略截图目录/截图选项/字幕外观的实时推送，拒绝着色器切换与播放器工具捕获。批次等待后仍重新核对AudioOnly和原有播放代次，视频路径保留原行为。只改`PlaybackService.cs` / `PlaybackService.PlayerTools.cs`及音乐回归测试，不改原生参数或生命周期。
+- 回归先行：实际Service+记录命令的边界句柄新增5项，旧代码**16/21通过，5失败**；截图目录1次写、截图选项2次写、字幕11次写，着色器与工具入口误允许。加入守卫后**21/21，0失败0跳过**；视频`playback-review-fixture` **382/382**（含字幕/着色器完整发送和代次回归）；`player-tools-fixture` **16/16**。当前Release Core/Tests构建**0警告0错误**；定向空白校验与`git diff --check`退出0。
+- 不重跑实际native probe（原生初始化、参数、窗口、停止与EOF没有变化），不运行完整主套件；根会话负责最终整合验证。
+
+## 2026-11-10 音乐 AudioOnly Core 子任务
+
+- 从 `617fabab967ba220acb1ebb06439d283b9ff87ab` 创建原生隔离工作树 `music-audio-only/Momoka`。只改 Core 播放、必要 mpv 路径、后端工厂和定向测试；Shell、媒体模型与服务器协议由根会话整合。
+- `PlaybackTicket` / `PlaybackRequest.AudioOnly` 与 `PlaybackUpdate<T>` / `PlaybackProgress.AudioOnly` 显式捕获音乐模式，包括空条目收尾；`PlaybackService.IsAudioOnly`、`ValidateAudio` 和末尾可选 `audioBackendFactory` 提供音乐固定内置受控后端入口。共享原有身份、取消、单实例互斥和普通开始/进度/停止上报。音乐不参与影视阈值通知接管和客户端已看写入，不保留 EOF、不交换原生上下文。
+- 音频计划只读取共享 `MpvOutputOptions.BuildAudio`；无字幕、视频着色器、SVP。原生强制 `video=no` / `vo=null` / `force-window=no` / `fullscreen=no`，不请求 surface、读取自定义配置或加载视频 UI/统计/分析/弹幕脚本。纯音频 FileLoaded 不执行视频窗口兜底。外部参数层亦钉无窗防线，实际音乐入口仍固定内置。
+- 上游：Emby 官方 `Emby.ApiClients` 提交 `f8499bd9d0e356b8a204a27b142765494dc6f450`，`Clients/Emby.ApiClient/Emby.ApiClient/Api/AudioServiceApi.cs` 的 `GetAudioByIdStream` / `GetAudioByIdStreamByContainer` 使用 `/Audio/{Id}/stream[.{Container}]` 与 `Static`；Jellyfin 提交 `797999fc9bd49a9f0853916e2933e3ad06173503`，`Jellyfin.Api/Controllers/AudioController.cs` 的 `GetAudioStream` / `GetAudioStreamByContainer` 同一条静态音频路由。通过 Git/原始官方源码读取；web 工具访问原始源码失败，不代表源码未读取。
+- TDD：新增前置 11 项在旧源码全部失败（Videos 路由、原始音频地址、无窗输出、事件音频标记），实现后 11/11；扩充到 16 项，包括模式互斥、无控制拒绝、原生加载事件、影视阈值排除。临时撤除 FileLoaded 的 AudioOnly 守卫后该用例失败（15/16），恢复后重新编译并跑绿。无真实服务器播放、应用启动或服务器写入。
+- 本树使用 `%USERPROFILE%/.dotnet/dotnet.exe` 10.0.400，restore Core/Tests；PATH 的 8.0.403 不满足当前 global.json。基线 Release Core/Tests 0 警告 0 错误，生命周期定向 24/24。根代理要求仅定向测试，避免主测试用户级互斥锁冲突；根会话负责最终全量与 UI 验证。
+
+- 最终当前代码：Release Core/Tests 构建 **0 警告 0 错误**；`music-playback-fixture` **16/16，0 失败 0 跳过**；`review-playback-reporting-fixture` **24/24，0 失败 0 跳过**。定向 `dotnet format whitespace --verify-no-changes --no-restore --include ...` 与 `git diff --check` 均退出 0。未运行原生实际 DLL 音频/实屏窗口或 Shell 探针；本记录不宣称全量交付。
+
+# 开发进度
+
+
+## 2026-11-10 Plex 音乐协议适配（独立子树，待音乐批次整合）
+
+树 `C:/Users/89400/.codex/worktrees/plex-music/Momoka`、分支 `codex/plex-music`，基点 `617faba`。Plex artist section 映射为 music，artist/album/track 映射 MusicArtist/MusicAlbum/Audio，保留方形封面与专辑继承图、碟号/曲号/时长；Audio 详情沿现有 Media/Part/Stream 读取原文件和音轨，不把艺术家塞入 SeriesId。ItemQuery.ParentItemType 是本地路由提示，不发到 Emby/Jellyfin；音乐库根 type=8/9/10，艺术家专辑及专辑曲目 children，艺术家全曲 allLeaves，歌单 items，分页继续使用容器头。歌单枚举是当前 Plex 服务账号的 `/playlists/all?playlistType=audio`，并非单音乐库独属；专辑与歌单曲目保留服务端顺序。无提示时先核对 sections 再读父媒体，不凭数字猜 namespace；拒绝混合音乐类型查询，避免静默返回错误类型。视频随机轮播跳过音乐 section。
+
+先读官方 `plexinc/plex-for-kodi` develop 固定提交 `97191f248a20223bb93296789c010ff2204a9c76`：`lib/_included_packages/plexnet/plexobjects.py:10-18` 的 type 8/9/10、`plexlibrary.py:126-152,344-354` 的 artist section 和 section all、`audio.py:40-56,81-98,108-162` 的 children/allLeaves/曲目父项与封面、`plexlibrary.py:401-468,556-573` 的歌单路由、`lib/player.py:871-883` 的 originalTitle 优先曲目艺术家和专辑/碟号/曲号。上游只读副本在本树 artifacts/upstream/plex-for-kodi；相关四文件 SHA256 分别为 `5C9A5A995918D6F43CCEAF10F303DECA17158DCA49F1EBCAFB86B82480570B66`、`CAF72029CE184A01D2A8AD99475702DAC57D545DAE73661718630595BCEFA696`、`9921447BC1DE8BBA1A1C3C676E8231AB068ED6382306088E36EB850CE1EAA03D`、`9B773E52B408A05B93522845176E00C35FE3AD1F614649D4DD363669C7895A4D`。上游 Kodi 曾把容器分页放查询串；本次保留现有 Momoka 容器头契约和对应回归，不宣称已核对真实 PMS。
+
+先行红测 273 项/12 失败复现缺功能；补混合类型拒绝时 276 项/1 失败后修复。当前树 Tests/Core Release fresh 编译 0 警告 0 错误，`plex-protocol-fixture` 276/276、0 失败 0 跳过，`git diff --check` 通过；证据 artifacts/plex-music-final-build.log、plex-music-final-tests.log。一次全主测试 4579 项/4563 通过/16 失败/0 跳过，16 项均为已占用用户级自检 mutex 的 SelfCheckTests/SelfCheckOutputIsolationTests 环境红，完整命名及栈保留 plex-music-full-tests.log，不能算全测通过。全测试运行期间误再次编译被自身 Tests DLL 锁定产生 MSB3027，已恢复串行且最终 fresh 构建 0/0。最终整合代理统一串行跑完整测试与适用 UI/音频探针；专辑/艺术家共享元数据字段由音乐批次根代理补齐。本树不读取真实账号、不真实播放/写库，不合并/推送/发布。
+## 2026-11-10 飞牛音乐独立协议适配（子树，待整合）
+
+基点617faba，官方匿名1.1.19/0.8.45产物73个JS核对后新增Core/FnMusic，沿用加密账号保存/恢复，Cookie只音乐后端，资源URL无凭据；歌曲/专辑/艺术家/歌单分页、容器、搜索、封面、歌曲喜欢与普通原流，拒绝CUE/ISO与失效访问。官方文件/哈希、身份生命周期和未实现面见docs/飞牛音乐协议.md。先9项全部红，当前Release0警告0错误及定向15/15；首轮全主测遇自检mutex与提前探测回归，探测顺序已修。按根代理要求停止子树全主测，由整合后串行跑；不宣称全量通过，未真实登录/播放/写入、合并/推送/发布。
 
 ## 2026-11-10 第一批整合回归：身份比较夹具
 
@@ -12340,7 +12398,7 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 
 - 2026-11-10 集成拖边回归（测试子代理）：独立树 C:\Users\89400\.codex\worktrees\resize-handoff-tests\Momoka，仅新增 tests/Momoka.ResizeHandoffTests 与方案/专项登记。逐字提取页面首帧、冻结、收尾和Host待目标，主实施树SourceRoot当前Release/x64编译0警告0错误；16/16通过0跳过，三份单守卫负例各1项对应红。产品提交由主实施会话完成；本测试提交待根代理cherry-pick后按当前树重新验证，未GUI/native/指针/生产设置/主树交付。
 
-2026-11-10 集成缩放：codex/integrated-resize-smooth（307d）已修复 HWND 与视频提交间右下露底，主测试4537/4537、交接16/Input18/Motion23专项通过；3px自动453稳定帧与真实鼠标4事务/1982稳定帧均0坏帧，录像和范围见 docs/verification/2026-11-10-integrated-resize.md。主树另一会话仍修改ShellNavigationProbe.Collections.cs，待产品提交合入主树后重验、发布共同目录，桌面快捷方式未刷新。
+2026-11-10 集成缩放：codex/integrated-resize-smooth（307d）已修复 HWND 与视频提交间右下露底，主测试4537/4537、交接16/Input17/Motion23专项通过；3px自动453稳定帧与真实鼠标4事务/1982稳定帧均0坏帧，录像和范围见 docs/verification/2026-11-10-integrated-resize.md。主树另一会话仍修改ShellNavigationProbe.Collections.cs，待产品提交合入主树后重验、发布共同目录，桌面快捷方式未刷新。
 
 2026-11-10 集成缩放收尾：产品8a68a6f、回归1288773；本树合入媒体库主树e91d7f5至7e08947，Release组合4573/4573与398稳定缩放样本0坏帧。主树随后被界面会话接管合并（文档冲突），本树保留待主树合入/重验/共同发布；未推远端。详见docs/verification/2026-11-10-integrated-resize.md。
 
@@ -12366,3 +12424,8 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 2026-11-11 独立审查修复：题材Hyperlink捕获访问期、原subject/source/actions及typed关系，重新Attach或离页后旧Click不借新详情执行。实际page/VM新增Plex异源与同源换片且Reload完成回归先红2项，修复后重编专项验证；最终主树native由根任务验收。
 - 2026-11-11 Task2审查round1：修复正式ApplySource的Cancel→Resume(false)及暖返回续读，恢复访问建立新CTS/epoch并重新确认PMS目录。TypeIsExplicit区分自动默认(false)、主动选择(true)及旧非空选择(null按主动保留)，显式Type4无Values遇空目录拒绝，不放宽；同字段options校验新增操作代次，逆序旧响应/错误不能覆盖最后选择。原8项VM5过3败、协议274项273过1败；最后当前Release/x64 Shell/Tests/Core0警告0错误，实际VM8/8、协议274/274，0失败0跳过。8文本差异/encoding/whitespace通过。无真实PMS或原生UI，等待root整合复验。
 - 2026-11-11 Task2审查round2：有原生titleSort后目录刷新Type为空，重置普通浏览认可的EmbySortBy.Name/升序，避免Retry/Clear退回旧Query时抛无效排序；显式媒体类型/Values保持不变且仍拒绝放宽。新增Retry/Clear两条实际VM先红（10项8过2败），最终10/10、0失败0跳过，原显式类型、导航恢复与逆序选择全部保持通过。仅一趟最后Shell Release/x64编译0警告0错误，当前Tests/Core0警告错误；2文本差异和VM whitespace verify退出0（format加载工作区有警告如实保留）。无原生UI/PMS，待root整合。
+## 2026-11-11 集成窗口缩放主树交付完成
+
+用户明确要求合并交付。d649eba合入全部分支内容，产品自动合并、PROGRESS追加冲突保留双方。主树验收补出拖回原尺寸松手1坏帧，889c219修正承接帧提前撤回，源链接新增用例先红后绿。最终Release Shell/Tests零警告零错误，主测试4574/4574，ResizeHandoff17/Input17/Motion23专项通过；真实鼠标4事务26尺寸变化2557稳定样本0坏帧，发布版531稳定样本0坏帧。publish.ps1 -NoArchive -Shortcut成功（547文件287.5MB、批准mpv60文件），桌面快捷方式目标/工作目录及EXE/DLL/PRI哈希核对一致。证据artifacts/resize-delivery-20261111，报告docs/verification/2026-11-10-integrated-resize.md；未真实服务器起播，未上传GitHub。分支顶端a69c065全部已进入master，准备归档307d干净工作树并删除临时分支。
+
+307d清理结果：应用archive_worktree返回 The task's primary checkout cannot be removed.，按保护保留、不绕过删除；工作树干净并detach于a69c065，已删除全部合入主树的codex/integrated-resize-smooth临时分支。

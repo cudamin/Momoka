@@ -2,6 +2,8 @@ using System.Net;
 using System.Reflection;
 using System.Text.Json;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation.Peers;
+using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.Emby;
 using Momoka.Shell.ViewModels;
@@ -72,14 +74,37 @@ internal sealed partial class ShellNavigationProbe
             var titleSort = view.SortEntries().Single(entry => entry.Option.Value == "titleSort");
             view.ChooseSort(titleSort.Option);
             await UntilAsync(() => !view.Busy);
+            view.ClosePlexFilter();
+            await LayoutAsync(page);
+            page.ShowSortMenu();
+            await LayoutAsync(page);
+            var sortList = Get<ListView>(page, "SortList");
+            Require(sortList.Items.Cast<SortEntry>().Select(entry => entry.Option.Value).SequenceEqual(new[] { "titleSort", "addedAt" }),
+                "真实排序菜单没有使用Plex目录");
+            await SaveProbeScreenAsync("discovery-sort-menu-760-screen.png");
+            Get<Microsoft.UI.Xaml.Controls.Primitives.FlyoutBase>(page, "SortMenu").Hide();
+            await LayoutAsync(page);
             var jump = await view.JumpToAsync("B");
             Require(jump is { Index: 3, Letter: "B" } && server.AlphabetReads == 1,
                 "Plex字母跳转没有使用服务端桶计数");
             Require(view.Cards[jump!.Value.Index].Item.Name.StartsWith('B'), "Plex 字母位置没有落在 B 桶");
-            view.FlipSort(titleSort.Option);
+            var alphabet = Get<AlphaBar>(page, "Alpha");
+            var letter = Descendants(alphabet).OfType<Button>().Single(button => Equals(button.Content, "B"));
+            ((IInvokeProvider)FrameworkElementAutomationPeer.CreatePeerForElement(letter).GetPattern(PatternInterface.Invoke)).Invoke();
+            await UntilAsync(() => server.AlphabetReads == 2 && Get<string?>(alphabet, "_currentLetter") == "B");
+            await LayoutAsync(page);
+            Require(Get<ScrollView>(page, "_scroll").VerticalOffset > 0, "实际字母按钮没有滚动到目标行");
+            await SaveProbeScreenAsync("discovery-alpha-B-760-screen.png");
+            page.ShowSortMenu();
+            await LayoutAsync(page);
+            var reverse = Descendants(sortList).OfType<Button>().Single(button => button.Tag is EmbySortOption option
+                && option.Value == "titleSort" && button.Visibility == Visibility.Visible);
+            ((IInvokeProvider)FrameworkElementAutomationPeer.CreatePeerForElement(reverse).GetPattern(PatternInterface.Invoke)).Invoke();
             await UntilAsync(() => !view.Busy && server.ItemQueries.Last().Contains("titleSort%3Adesc", StringComparison.OrdinalIgnoreCase));
             Require(view.AlphaVisibility == Visibility.Collapsed, "降序仍展示不可用的正向字母跳转");
+            Get<Microsoft.UI.Xaml.Controls.Primitives.FlyoutBase>(page, "SortMenu").Hide();
             evidence.Add(new { CombinedFilters = 4, AlphaIndex = jump.Value.Index, Descending = true });
+            await view.TogglePlexFilterAsync();
             await PlexActionAsync(view, "ClearPlexFiltersAsync");
             Require(view.FilterCount == 0 && !view.NoticeOpen, "清除Plex筛选失败");
             server.FailCatalog = true;

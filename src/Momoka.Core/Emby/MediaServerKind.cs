@@ -11,7 +11,10 @@ public enum MediaServerKind
     /// <c>X-Plex-Token</c>, an account is authenticated by Plex's account service rather than by the
     /// server, and browsing goes through <c>/library/sections</c>. See <c>src/Momoka.Core/Plex/</c>.
     /// </summary>
-    Plex
+    Plex,
+
+    /// <summary>飞牛音乐的独立 /music 应用，登录态为 music-token Cookie。</summary>
+    FnMusic
 }
 
 /// <summary>Shared REST and playback authentication; credentials never enter a URL or launch arguments.</summary>
@@ -19,6 +22,12 @@ public static class MediaServerHeaders
 {
     public static List<KeyValuePair<string, string>> Create(DeviceIdentity device, string? accessToken, MediaServerKind kind)
     {
+        if (kind == MediaServerKind.FnMusic)
+        {
+            if (string.IsNullOrEmpty(accessToken) || accessToken.Any(char.IsControl))
+                throw new InvalidOperationException("飞牛音乐登录凭据无效");
+            return [new("Cookie", "music-token=" + Uri.EscapeDataString(accessToken))];
+        }
         // 原始媒体 Range 请求只需 Authorization。管理和浏览 API 的 authx 由 FnNasHttp 负责。
         if (kind == MediaServerKind.FnNas)
         {

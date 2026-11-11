@@ -132,7 +132,8 @@ internal static class ShellServices
             // 设备核对（2026-09-30）：起播前拿设备目录对一遍设置里挑的端点，已不在线就退回系统默认。
             // 目录与播放服务同进程单例 —— 设置页枚举过一次的结果，起播核对直接复用。
             provider.GetRequiredService<AudioDeviceCatalogue>(),
-            allowPlayback: !selfCheck));
+            allowPlayback: !selfCheck,
+            audioBackendFactory: provider.GetRequiredService<PlaybackBackendFactory>().CreateAudio));
 
         // ---- the optional second service ---------------------------------------------------------------
         // MoviePilot, when the user has one. Registered unconditionally rather than behind a check on the
@@ -208,6 +209,7 @@ internal static class ShellServices
         // ValidateOnBuild is here to catch. The page is built by the shell's XAML and handed this in
         // AttachWindow, which is the one place a container is in scope.
         services.AddSingleton<PlayerViewModel>();
+        services.AddSingleton<MusicPlaybackViewModel>();
         services.AddSingleton<Momoka.Shell.Services.PlayerToolsController>();
 
         return services.BuildServiceProvider(new ServiceProviderOptions

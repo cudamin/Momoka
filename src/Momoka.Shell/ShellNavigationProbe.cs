@@ -52,6 +52,14 @@ internal sealed partial class ShellNavigationProbe
         {
             ThemeHost.Apply(_options.Theme ?? "midnight");
             await InitializeProbeWindowAsync();
+            // Music also exercises the real navigation shell; the music controls themselves cannot
+            // establish directory dispatch or sidebar integration. Keep this under the same selected scope.
+            if (_options.ProbeSections is { Count: 1 } musicOnly && musicOnly.Contains(ShellProbeSections.Music))
+            {
+                await CaseAsync("音乐媒体库与底部亚克力播放栏", MusicAsync, 120, section: ShellProbeSections.Music);
+                await CaseAsync("侧边栏音乐目录与导航", SidebarAsync, 60, section: ShellProbeSections.Music);
+                return;
+            }
             // inspect 是留给人手点的那一版检查台：它自己建假身份和假数据，前面的整套用例既拖时间又
             // 会占着同一块桌面。直接进检查台，截图和手动操作都只针对它。
             if (_options.InspectShell)
@@ -70,6 +78,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("Plex 人物题材身份与同库作品导航", LibraryDiscoveryPeopleAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("Plex 服务端筛选排序、字母跳转与目录恢复", LibraryDiscoveryFiltersAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("亚克力操作按钮、翻页圆钮与手写设置卡片", AcrylicControlsAsync, 180, section: ShellProbeSections.Materials);
+            await CaseAsync("音乐媒体库与底部亚克力播放栏", MusicAsync, 120, section: ShellProbeSections.Music);
             await CaseAsync("筛选多选下拉等宽、滚动与单字段全选", FilterValuesAsync, 60, section: ShellProbeSections.Library);
             await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
             await CaseAsync("侧边栏模式、导航与宽窄布局", SidebarAsync, 45);

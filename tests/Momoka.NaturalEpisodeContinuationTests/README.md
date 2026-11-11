@@ -1,5 +1,11 @@
 # R-046 自然 EOF 同窗口接续的托管源码回归
 
+## 2026-11-10：AudioOnly 整合前置边界复核
+
+实际完整 handle/gate 提取没有固定历史 hash；构建写入当前 `source-proof.json`，运行核同树实际源字节。AudioOnly 在启动、surface、FileLoaded 和 swap 入口增加排除，但视频的保留、交接、Stop 与原生代次路径仍原样抽取。当前 handle 另有既有 `EachFrameScreenshot` 内部依赖；只补同树生产源 Compile Link，不复制类或删提取。当前 `InlineSwitch.PerFile` 的既有 `vid=auto` 写入在托管 native seam 精确允许，其它值及未知属性继续拒绝。
+
+本树先行构建因内部类型不可见失败；补 link 后 27 项中 7 项由 `vid` 未安排而拒绝，精确补边界后重新 Release/x64 编译 **0 警告 0 错误**，实际专项 **27/27、0 失败 0 跳过**。没有实际 DLL、窗口或媒体播放。
+
 本项目执行真实 PlaybackService 生命周期以及完整原样提取的 LibMpvHandle、LibMpvLifetimeGate 和命令 marshalling；不复制同窗接续状态机。复用 [切链执行点专项](../Momoka.ShaderCommandGenerationTests/README.md) 的托管 native seam，仅新增匿名边界输入、自然 end-file 事件与 fallback handle。
 
 ## 显式所有权

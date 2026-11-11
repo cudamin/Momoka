@@ -33,6 +33,7 @@ public sealed partial class PlexMediaAdapter
         };
 
         var pairs = new List<PlexParameter> { new("sort", query.Descending ? sort + ":desc" : sort) };
+        if (!string.IsNullOrWhiteSpace(query.SearchTerm)) pairs.Add(new("title", query.SearchTerm.Trim()));
         if (query.PlexRelation is { } relation)
         {
             pairs.Add(new("type", relation.ItemType.ToString(CultureInfo.InvariantCulture)));
@@ -62,6 +63,9 @@ public sealed partial class PlexMediaAdapter
             EmbyItemType.Series => "2",
             EmbyItemType.Season => "3",
             EmbyItemType.Episode => "4",
+            EmbyItemType.MusicArtist => "8",
+            EmbyItemType.MusicAlbum => "9",
+            EmbyItemType.Audio => "10",
             _ => ""
         }).Where(value => value.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
         return mapped.Length == 1 ? mapped[0] : null;
@@ -81,6 +85,7 @@ public sealed partial class PlexMediaAdapter
         {
             "movie" => "movies",
             "show" => "tvshows",
+            "artist" => "music",
             _ => "homevideos"
         };
         return item;
@@ -95,6 +100,10 @@ public sealed partial class PlexMediaAdapter
             "show" => EmbyItemType.Series,
             "season" => EmbyItemType.Season,
             "episode" => EmbyItemType.Episode,
+            "artist" => EmbyItemType.MusicArtist,
+            "album" => EmbyItemType.MusicAlbum,
+            "track" => EmbyItemType.Audio,
+            "playlist" => EmbyItemType.Playlist,
             "clip" => EmbyItemType.Video,
             "collection" => EmbyItemType.BoxSet,
             "" => EmbyItemType.Folder,
@@ -114,7 +123,8 @@ public sealed partial class PlexMediaAdapter
             Id = Text(value, "ratingKey"),
             Name = Text(value, "title"),
             Type = type,
-            IsFolder = type is EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.BoxSet or EmbyItemType.Folder,
+            IsFolder = type is EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.BoxSet or EmbyItemType.Folder
+                or EmbyItemType.MusicArtist or EmbyItemType.MusicAlbum or EmbyItemType.Playlist,
             OriginalTitle = Blank(Text(value, "originalTitle")),
             Overview = Blank(Text(value, "summary")),
             SortName = Blank(Text(value, "titleSort")),
@@ -126,8 +136,8 @@ public sealed partial class PlexMediaAdapter
             IndexNumber = Integer(value, "index"),
             ParentIndexNumber = Integer(value, "parentIndex"),
             ParentId = Blank(Text(value, "parentRatingKey")),
-            SeriesId = Blank(Text(value, "grandparentRatingKey")),
-            SeriesName = Blank(Text(value, "grandparentTitle")),
+            SeriesId = type == EmbyItemType.Episode ? Blank(Text(value, "grandparentRatingKey")) : null,
+            SeriesName = type == EmbyItemType.Episode ? Blank(Text(value, "grandparentTitle")) : null,
             SeasonId = type == EmbyItemType.Episode ? Blank(Text(value, "parentRatingKey")) : null,
             ChildCount = childCount,
             Genres = Tags(value, "Genre"),
@@ -145,6 +155,16 @@ public sealed partial class PlexMediaAdapter
 
         item.ProductionYear = Integer(value, "year") ?? item.PremiereDate?.Year;
         AddBrowseRelations(item, value);
+        if (type is EmbyItemType.Audio or EmbyItemType.MusicAlbum)
+        {
+            var artistName = type == EmbyItemType.Audio
+                ? Blank(Text(value, "originalTitle")) ?? Text(value, "grandparentTitle") : Text(value, "parentTitle");
+            var artistId = Text(value, type == EmbyItemType.Audio ? "grandparentRatingKey" : "parentRatingKey");
+            item.Artists = string.IsNullOrWhiteSpace(artistName) ? [] : [artistName];
+            item.ArtistItems = string.IsNullOrEmpty(artistId) ? [] : [new() { Id = artistId, Name = artistName }];
+            item.Album = type == EmbyItemType.Audio ? Blank(Text(value, "parentTitle")) : item.Name;
+            item.AlbumId = type == EmbyItemType.Audio ? Blank(Text(value, "parentRatingKey")) : item.Id;
+        }
         AddProviderIds(item, value);
         AddArtwork(item, value, type);
         return item;
@@ -232,7 +252,7 @@ public sealed partial class PlexMediaAdapter
                 ItemId = itemId,
                 Path = Blank(Text(first, "file")),
                 Name = Path.GetFileName(Text(first, "file")),
-                Container = Blank(Text(first, "container")),
+                Container = Blank(FirstNonEmpty(Text(first, "container"), Text(media, "container"))),
                 Size = Number(first, "size") is { } size ? (long)size : null,
                 Bitrate = Bitrate(media),
                 RunTimeTicks = Number(media, "duration") is { } ms ? Ticks(ms) : null,
@@ -368,7 +388,8 @@ public sealed partial class PlexMediaAdapter
     /// </summary>
     private static void AddArtwork(EmbyItem item, JsonObject value, string type)
     {
-        var poster = FirstNonEmpty(Text(value, "thumb"), Text(value, "parentThumb"), Text(value, "grandparentThumb"));
+        var poster = FirstNonEmpty(Text(value, "thumb"), Text(value, "parentThumb"), Text(value, "grandparentThumb"),
+            type == EmbyItemType.Playlist ? Text(value, "composite") : "");
         var wide = FirstNonEmpty(Text(value, "art"), Text(value, "parentArt"), Text(value, "grandparentArt"));
         if (poster.Length > 0) item.ImageTags["Primary"] = poster;
         if (wide.Length > 0)
@@ -378,7 +399,12 @@ public sealed partial class PlexMediaAdapter
         }
         // An episode's thumb is a 16:9 still and everything else's is a 2:3 poster. Saying which is what
         // lets a library card decide between a poster grid and a wide strip before the image arrives.
-        item.PrimaryImageAspectRatio = type == EmbyItemType.Episode ? 16d / 9d : 2d / 3d;
+        item.PrimaryImageAspectRatio = type switch
+        {
+            EmbyItemType.Episode => 16d / 9d,
+            EmbyItemType.Audio or EmbyItemType.MusicAlbum or EmbyItemType.MusicArtist or EmbyItemType.Playlist => 1d,
+            _ => 2d / 3d
+        };
     }
 
     private static string FirstNonEmpty(params string[] values) =>
@@ -417,5 +443,6 @@ public sealed partial class PlexMediaAdapter
     /// all the names are read rather than one being guessed at.
     /// </summary>
     internal static IEnumerable<JsonObject> Items(JsonObject container) =>
-        Objects(container, "Metadata").Concat(Objects(container, "Directory")).Concat(Objects(container, "Video"));
+        Elements(container, "Metadata").Concat(Elements(container, "Directory")).Concat(Elements(container, "Video"))
+            .Concat(Elements(container, "Track"));
 }

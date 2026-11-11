@@ -24,6 +24,9 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
 
     private Momoka.Plex.PlexMediaAdapter? _plexAdapter;
     private Momoka.Plex.PlexMediaAdapter PlexMedia => _plexAdapter ??= new(Plex, PlexConnection);
+    private Momoka.FnMusic.FnMusicMediaAdapter? _fnMusicAdapter;
+    private Momoka.FnMusic.FnMusicMediaAdapter FnMusicMedia => _fnMusicAdapter ??= new(http.FnMusicClient,
+        new(Connection.ApiBase, Connection.AccessToken));
 
     /// <summary>飞牛管理页通过已捕获的 session scope 取得协议客户端，不另保存或复制当前账号。</summary>
     public Momoka.FnNas.FnNasClient FnNas => Connection.IsFnNas ? http.FnNasClient
@@ -49,6 +52,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
 
     public async Task<List<EmbyItem>> GetViewsAsync(CancellationToken cancellationToken)
     {
+        if (Connection.IsFnMusic) return await FnMusicMedia.GetViewsAsync(cancellationToken).ConfigureAwait(false);
         if (Connection.IsFnNas) return await FnNasMedia.GetViewsAsync(cancellationToken).ConfigureAwait(false);
         if (Connection.IsPlex) return await PlexMedia.GetViewsAsync(cancellationToken).ConfigureAwait(false);
         // The only browse call that used to ask for no fields, and it shows on the library cards: no
@@ -65,8 +69,10 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     {
         if (query.PlexRelation is not null && !Connection.IsPlex)
             throw new NotSupportedException("Plex 关联条件不能用于其他服务器");
+        if (Connection.IsFnMusic) return FnMusicMedia.GetItemsAsync(query, cancellationToken);
         if (Connection.IsFnNas) return FnNasMedia.GetItemsAsync(query, cancellationToken);
         if (Connection.IsPlex) return PlexMedia.GetItemsAsync(query, cancellationToken);
+        if (MusicItems(query, cancellationToken) is { } music) return music;
         var url = Url($"Users/{Connection.UserId}/Items", query.ToParameters());
         return http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken);
     }
@@ -163,6 +169,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     public async Task<EmbyItem> GetItemAsync(string itemId, CancellationToken cancellationToken,
         string fields = EmbyFields.Detail, MediaSourceOrder order = MediaSourceOrder.Default)
     {
+        if (Connection.IsFnMusic) return await FnMusicMedia.GetItemAsync(itemId, cancellationToken).ConfigureAwait(false);
         if (Connection.IsFnNas) return await FnNasMedia.GetItemAsync(itemId, cancellationToken,
             includePeople: fields == EmbyFields.Detail || fields.Split(',').Contains("People", StringComparer.Ordinal)).ConfigureAwait(false);
         if (Connection.IsPlex) return await PlexMedia.GetItemAsync(itemId, cancellationToken).ConfigureAwait(false);
@@ -324,6 +331,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     public async Task<ItemsResult> QueryResumeAsync(int startIndex, int limit, CancellationToken cancellationToken,
         string? parentId = null)
     {
+        if (Connection.IsFnMusic) return new();
         if (Connection.IsFnNas) return await FnNasMedia.QueryResumeAsync(startIndex, limit, cancellationToken).ConfigureAwait(false);
         if (Connection.IsPlex) return await PlexMedia.QueryResumeAsync(startIndex, limit, cancellationToken).ConfigureAwait(false);
         var url = Url($"Users/{Connection.UserId}/Items/Resume",
@@ -352,6 +360,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         bool unplayedOnly = true,
         bool groupItems = true)
     {
+        if (Connection.IsFnMusic) return Task.FromResult(new List<EmbyItem>());
         if (Connection.IsFnNas) return FnNasMedia.GetLatestAsync(parentId, limit, includeItemTypes, cancellationToken);
         if (Connection.IsPlex) return PlexMedia.GetLatestAsync(parentId, limit, includeItemTypes, cancellationToken);
         var url = Url($"Users/{Connection.UserId}/Items/Latest",
@@ -375,6 +384,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         IReadOnlyList<string> includeItemTypes,
         CancellationToken cancellationToken)
     {
+        if (Connection.IsFnMusic) return [];
         if (Connection.IsFnNas) return await FnNasMedia.GetRandomAsync(limit, includeItemTypes, cancellationToken).ConfigureAwait(false);
         if (Connection.IsPlex) return await PlexMedia.GetRandomAsync(limit, includeItemTypes, cancellationToken).ConfigureAwait(false);
         var url = Url($"Users/{Connection.UserId}/Items", new ItemQuery
@@ -421,6 +431,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     public async Task<ItemsResult> QueryNextUpAsync(int startIndex, int limit, CancellationToken cancellationToken,
         string? seriesId = null, string? parentId = null)
     {
+        if (Connection.IsFnMusic) return new();
         // 飞牛与 Plex 的适配只做「一部剧的下一集」，不分页也没有全服清单。
         if (Connection.IsFnNas)
         {
@@ -613,6 +624,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// <inheritdoc cref="MarkPlayedAsync"/>
     public Task<EmbyUserData?> SetFavoriteAsync(string itemId, bool isFavorite, CancellationToken cancellationToken)
     {
+        if (Connection.IsFnMusic) return FnMusicMedia.SetFavoriteAsync(itemId, isFavorite, cancellationToken);
         if (Connection.IsFnNas) return FnNasMedia.SetFavoriteAsync(itemId, isFavorite, cancellationToken);
         // Plex's server API has no per-item favourite flag at all — favourites there belong to the
         // account service, not to the library — so this is refused rather than faked as a label.
@@ -868,17 +880,20 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     // ---- playback reporting ---------------------------------------------------
 
     public Task ReportPlaybackStartAsync(PlaybackReport report, CancellationToken cancellationToken) =>
-        Connection.IsFnNas ? FnNasMedia.ReportPlaybackAsync(report, cancellationToken)
+        Connection.IsFnMusic ? FnMusicMedia.ReportPlaybackStartAsync(report, cancellationToken)
+        : Connection.IsFnNas ? FnNasMedia.ReportPlaybackAsync(report, cancellationToken)
         : Connection.IsPlex ? PlexMedia.ReportPlaybackStartAsync(report, cancellationToken)
         : http.PostAsync(Url("Sessions/Playing"), report, Context, cancellationToken);
 
     public Task ReportPlaybackProgressAsync(PlaybackReport report, CancellationToken cancellationToken) =>
-        Connection.IsFnNas ? FnNasMedia.ReportPlaybackAsync(report, cancellationToken)
+        Connection.IsFnMusic ? Task.CompletedTask
+        : Connection.IsFnNas ? FnNasMedia.ReportPlaybackAsync(report, cancellationToken)
         : Connection.IsPlex ? PlexMedia.ReportPlaybackProgressAsync(report, cancellationToken)
         : http.PostAsync(Url("Sessions/Playing/Progress"), report, Context, cancellationToken);
 
     public Task ReportPlaybackStoppedAsync(PlaybackReport report, CancellationToken cancellationToken) =>
-        Connection.IsFnNas ? FnNasMedia.ReportPlaybackAsync(report, cancellationToken)
+        Connection.IsFnMusic ? Task.CompletedTask
+        : Connection.IsFnNas ? FnNasMedia.ReportPlaybackAsync(report, cancellationToken)
         : Connection.IsPlex ? PlexMedia.ReportPlaybackStoppedAsync(report, cancellationToken)
         : http.PostAsync(Url("Sessions/Playing/Stopped"), report, Context, cancellationToken);
 
@@ -956,6 +971,13 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public async Task<EmbySystemInfo> GetSystemInfoAsync(CancellationToken cancellationToken)
     {
+        if (Connection.IsFnMusic) return new()
+        {
+            ServerName = Connection.ServerName,
+            Version = Connection.ServerVersion,
+            Id = Connection.ServerId,
+            IsRestricted = true
+        };
         if (Connection.IsFnNas) return await FnNasMedia.GetSystemInfoAsync(Connection.ServerName, Connection.ServerVersion, cancellationToken).ConfigureAwait(false);
         if (Connection.IsPlex) return await PlexMedia.GetSystemInfoAsync(Connection.ServerName, Connection.ServerVersion, cancellationToken).ConfigureAwait(false);
         if (Connection.IsJellyfin)
@@ -989,6 +1011,8 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     public Task<byte[]> GetImageBytesAsync(string itemId, string imageType, string? tag, int maxWidth, CancellationToken cancellationToken,
         int? index = null)
     {
+        if (Connection.IsFnMusic) return imageType == EmbyImageStore.Primary ? FnMusicMedia.GetImageAsync(tag, maxWidth, cancellationToken)
+            : throw new NotSupportedException("飞牛音乐不支持此图像类型");
         if (Connection.IsFnNas) return FnNasMedia.GetImageAsync(tag, maxWidth, cancellationToken);
         if (Connection.IsPlex) return PlexMedia.GetImageAsync(tag, maxWidth, cancellationToken);
         var url = EmbyUrl.Image(ApiBase, itemId, imageType, tag, maxWidth, index);
@@ -998,6 +1022,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// <summary>The still for one chapter of an item; <paramref name="index"/> is its position in <c>Chapters</c>.</summary>
     public Task<byte[]> GetChapterImageBytesAsync(string itemId, int index, string? tag, int maxWidth, CancellationToken cancellationToken)
     {
+        if (Connection.IsFnMusic) throw new NotSupportedException("飞牛音乐不提供章节缩略图");
         if (Connection.IsFnNas) throw new NotSupportedException("飞牛影视不提供章节缩略图");
         if (Connection.IsPlex) throw new NotSupportedException("Plex 不提供章节缩略图");
         var url = EmbyUrl.ChapterImage(ApiBase, itemId, index, tag, maxWidth);
@@ -1005,12 +1030,14 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     }
 
     public Uri StreamUrl(EmbyItem item, MediaSource? source) =>
-        Connection.IsFnNas ? Momoka.FnNas.FnNasPlaybackSelection.MediaUrl(Connection, source)
+        Connection.IsFnMusic ? source?.DirectStreamUrl ?? throw new NotSupportedException("飞牛音乐不支持播放此曲目格式")
+        : Connection.IsFnNas ? Momoka.FnNas.FnNasPlaybackSelection.MediaUrl(Connection, source)
         : Connection.IsPlex ? Momoka.Plex.PlexPlaybackSelection.MediaUrl(Connection.ApiBase, source)
         : EmbyUrl.Stream(ApiBase, item.Id, source?.Id, source?.Container);
 
     public Uri SubtitleUrl(EmbyItem item, MediaSource source, MediaStream subtitle) =>
-        Connection.IsFnNas ? throw new NotSupportedException("飞牛影视不支持此外挂字幕操作")
+        Connection.IsFnMusic ? throw new NotSupportedException("飞牛音乐不支持字幕操作")
+        : Connection.IsFnNas ? throw new NotSupportedException("飞牛影视不支持此外挂字幕操作")
         : Connection.IsPlex ? Momoka.Plex.PlexPlaybackSelection.SubtitleUrl(Connection.ApiBase, subtitle)
         : EmbyUrl.Subtitle(ApiBase, item.Id, source.Id, subtitle.Index, subtitle.Codec);
 

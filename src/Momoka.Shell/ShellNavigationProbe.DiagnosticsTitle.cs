@@ -26,7 +26,7 @@ internal sealed partial class ShellNavigationProbe
         // Only a managed status owner is installed; Start/Play/monitor/commands are never called.
         current.SetValue(playback, handle);
         generation.SetValue(playback, 1L);
-        publish.Invoke(playback, [new EmbyItem { Name = "首次进入前的匿名片名", Type = EmbyItemType.Movie }, 1L]);
+        publish.Invoke(playback, [new EmbyItem { Name = "首次进入前的匿名片名", Type = EmbyItemType.Movie }, 1L, false]);
         var page = new DiagnosticsPage();
         _root.Children.Add(page);
         try
@@ -39,8 +39,8 @@ internal sealed partial class ShellNavigationProbe
             AssertTitle("首次进入前的匿名片名");
             await SaveProbeScreenAsync("diagnostics-initial-title-screen.png");
             generation.SetValue(playback, 2L);
-            publish.Invoke(playback, [new EmbyItem { Name = "当前匿名片名", Type = EmbyItemType.Movie }, 2L]);
-            publish.Invoke(playback, [new EmbyItem { Name = "迟到旧匿名片名", Type = EmbyItemType.Movie }, 1L]);
+            publish.Invoke(playback, [new EmbyItem { Name = "当前匿名片名", Type = EmbyItemType.Movie }, 2L, false]);
+            publish.Invoke(playback, [new EmbyItem { Name = "迟到旧匿名片名", Type = EmbyItemType.Movie }, 1L, false]);
             await SettleAsync();
             await LayoutAsync(page);
             AssertTitle("当前匿名片名");

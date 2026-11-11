@@ -35,6 +35,20 @@ internal static class Program
         RegisterBoundaryMatrix();
         RegisterEntryAndReturnGuards();
         RegisterNormalBehavior();
+        TestHarness.Test("R-045 窗口缩放事件：附加、分离与关闭保留实际订阅边界", () =>
+        {
+            using var f = new Fixture();
+            Assert.Equal(1, f.Window.ClientSizeChangingSubscriptions);
+            Assert.Throws<AssertionException>(() => f.Window.RaiseClientSizeChanging());
+            f.Page.Detach();
+            Assert.Equal(0, f.Window.ClientSizeChangingSubscriptions);
+            Assert.True(f.Window.RaiseClientSizeChanging());
+            f.Page.Attach(f.Vm, f.Shell, f.Window);
+            Assert.Equal(1, f.Window.ClientSizeChangingSubscriptions);
+            f.Page.Shutdown();
+            Assert.Equal(0, f.Window.ClientSizeChangingSubscriptions);
+            Assert.True(f.Window.RaiseClientSizeChanging());
+        });
         return TestHarness.Run();
     }
 

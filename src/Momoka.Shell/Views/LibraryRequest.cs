@@ -37,6 +37,9 @@ internal sealed record LibraryRequest
     /// </summary>
     public string? CollectionType { get; init; }
 
+    public string? MusicContainerType { get; init; }
+    public string? MusicRootId { get; init; }
+
     // Navigation history retains the section and its scoped genre/studio drill-down.
     public LibrarySection Section { get; set; }
 

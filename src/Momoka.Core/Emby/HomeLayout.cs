@@ -175,6 +175,7 @@ public static class HomeLayout
 
         foreach (var library in libraries ?? [])
         {
+            if (Momoka.Music.MusicCatalog.IsLibrary(library.CollectionType)) continue;
             if (library.Id is not { Length: > 0 } id) continue;
 
             var key = LibraryKey(library);

@@ -27,7 +27,7 @@ public sealed partial class PlaybackService
     private PlaybackContinuation? RetainAfterEndOfFile(EmbySessionScope scope, PlaybackTicket ticket,
         PlayOperation operation, PlayingAttempt attempt, PlaybackResult result, MpvBackendKind backend)
     {
-        if (!ticket.RetainForAutomaticContinuation || !settings.Playback.AutoPlayNextEpisode
+        if (ticket.AudioOnly || !ticket.RetainForAutomaticContinuation || !settings.Playback.AutoPlayNextEpisode
             || backend != MpvBackendKind.BuiltInLibMpv || result.Exit.Reason != PlaybackEndReason.EndOfFile
             || !scope.IsAvailable) return null;
         lock (_requestGate)

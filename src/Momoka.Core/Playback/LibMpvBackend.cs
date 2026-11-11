@@ -79,7 +79,7 @@ public sealed class LibMpvBackend(
             httpTransport = PlaybackHttpTransport.Create(request);
             var nativeRequest = httpTransport?.Prepare(request) ?? request;
             var dllPath = ResolveLibMpv() ?? throw new InvalidOperationException(Validate() ?? $"找不到 {LibraryName}");
-            if (MpvCustomConfig.Resolve(settings) is { } customPath) customConfig = MpvCustomConfig.Prepare(customPath);
+            if (!request.AudioOnly && MpvCustomConfig.Resolve(settings) is { } customPath) customConfig = MpvCustomConfig.Prepare(customPath);
 
             // The dll is bound by absolute path rather than by name: a path from the settings is
             // otherwise validated here and then ignored by the loader, which only searches its
@@ -89,7 +89,7 @@ public sealed class LibMpvBackend(
             var dllFolder = Path.GetDirectoryName(dllPath) ?? "";
             LibMpvNative.UseLibrary(dllPath);
             LibMpvNative.EnsureDependencyDirectories(dllFolder, AppContext.BaseDirectory);
-            if (request.SvpEnabled)
+            if (!request.AudioOnly && request.SvpEnabled)
             {
                 if (customConfig is not null) throw new InvalidOperationException("SVP 接入不能与自定义 mpv.conf 同时启用");
                 svpLease = MpvSvpRuntime.Prepare(request.SvpVapourSynthPath);
@@ -101,24 +101,24 @@ public sealed class LibMpvBackend(
             // 独占模式才装配视频窗的 Lua UI（uosc 嵌入版）：mpv 在这一档自建顶层窗口，屏幕控件
             // 只能画在它自己的 OSD 层里。集成模式的画面合成进 XAML 树，控件是 shell 的事，一概不装。
             // 装箱缺失降级为「没有屏幕控件的独占播放」，只记日志不拦起播。
-            var uiOptions = settings.Pipeline == VideoPipelineKind.Standalone
+            var uiOptions = !request.AudioOnly && settings.Pipeline == VideoPipelineKind.Standalone
                 ? MpvUi.Bootstrap(AppContext.BaseDirectory)
                 : null;
-            if (uiOptions is null && settings.Pipeline == VideoPipelineKind.Standalone)
+            if (!request.AudioOnly && uiOptions is null && settings.Pipeline == VideoPipelineKind.Standalone)
                 Log.Warn(Category, $"独占模式未找到 Lua UI 装箱（{MpvUi.ScriptRelativePath}），本次播放没有屏幕控件");
 
             // 独占模式那四颗方向键的步长（2026-09-20）。集成模式的键盘归 shell 的快捷键表、mpv 的输入层
             // 整个是关的（input-default-bindings=no），所以那一档不碰 mpv 的绑定表；独占模式正好反过来 ——
             // 视频窗里的键由 mpv 自己那张内建表处理，而内建值是 ↑↓ = ±60 秒，得从这里改写。为什么走
             // keybind、为什么秒数不写进装箱文件，都在 MpvSeekKeys 的类注释里。
-            var seekKeys = settings.Pipeline == VideoPipelineKind.Standalone
+            var seekKeys = !request.AudioOnly && settings.Pipeline == VideoPipelineKind.Standalone
                 ? MpvSeekKeys.Bindings(playback)
                 : null;
 
             // 独占模式还要多两颗统计键（i 一次性 / I 常驻）。与方向键同一个理由：视频窗里的键由 mpv 的输入层
             // 处理，得自己绑；集成模式的键归 shell 的快捷键表，那两颗不在这里发（见 MpvStats 的类注释）。
             // 它们不随设置变，所以不进换片快路的签名 —— 那一节只装「改了设置就该换一层」的东西。
-            var statsKeys = settings.Pipeline == VideoPipelineKind.Standalone ? MpvStats.Keys() : null;
+            var statsKeys = !request.AudioOnly && settings.Pipeline == VideoPipelineKind.Standalone ? MpvStats.Keys() : null;
 
             // 呼出 uosc 右键菜单的两颗键（MBTN_RIGHT / MENU）。gate 在 uiOptions —— uosc 没装载时
             // `script-binding uosc/menu` 这条绑定压根不存在，绑了也只是白发一条被拒的命令。config=no 之下
@@ -126,10 +126,10 @@ public sealed class LibMpvBackend(
             var menuKeys = uiOptions is not null ? MpvUi.MenuKeys() : null;
 
             // uosc 请求与弹幕图层的文件序号、加载回执都经 ClientMessage；集成模式也要保留弹幕通道。
-            PruneEvents(context, keepClientMessage: uiOptions is not null || MpvDanmaku.Exists(AppContext.BaseDirectory));
+            PruneEvents(context, keepClientMessage: !request.AudioOnly && (uiOptions is not null || MpvDanmaku.Exists(AppContext.BaseDirectory)));
 
             var (surface, pipelineOptions) = ApplyOptions(context, nativeRequest, uiOptions, customConfig);
-            if (request.SvpEnabled)
+            if (!request.AudioOnly && request.SvpEnabled)
             {
                 var ipcError = LibMpvNative.mpv_set_option_string(context, "input-ipc-server", MpvSvp.PipePath);
                 if (ipcError < 0) throw new InvalidOperationException("内置播放器拒绝了 SVP 接入通道，未启动播放");
@@ -137,7 +137,7 @@ public sealed class LibMpvBackend(
 
             var error = LibMpvNative.mpv_initialize(context);
             if (error < 0) throw new InvalidOperationException($"mpv 初始化失败：{Describe(error)}");
-            if (request.SvpEnabled)
+            if (!request.AudioOnly && request.SvpEnabled)
                 // Continue on the caller's UI context: handle.Start attaches the WinUI surface.
                 await MpvSvpRuntime.VerifyPipeAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
@@ -160,23 +160,23 @@ public sealed class LibMpvBackend(
             // 播放统计脚本：两条管线都在这里装。为什么是运行期的 load-script 而不是那条 scripts 选项
             // （独占模式的 uosc 走的正是它），为什么文件名必须是 stats.lua —— 见 MpvStats 的类注释。
             // 缺席与失败都只记日志：统计是读数，不是播放的一部分。
-            if (MpvStats.Exists(AppContext.BaseDirectory))
+            if (!request.AudioOnly && MpvStats.Exists(AppContext.BaseDirectory))
             {
                 if (!Run(context, "load-script", MpvStats.ScriptPath(AppContext.BaseDirectory)))
                     Log.Warn(Category, $"统计脚本装载失败（{MpvStats.ScriptRelativePath}），本次播放没有统计面板");
             }
-            else
+            else if (!request.AudioOnly)
             {
                 Log.Warn(Category, $"统计脚本装箱缺失（{MpvStats.ScriptRelativePath}），本次播放没有统计面板");
             }
 
-            if (customConfig is null && MpvAnalysis.Exists(AppContext.BaseDirectory)
+            if (!request.AudioOnly && customConfig is null && MpvAnalysis.Exists(AppContext.BaseDirectory)
                 && !Run(context, "load-script", MpvAnalysis.ScriptPath(AppContext.BaseDirectory)))
                 Log.Warn(Category, "播放分析脚本装载失败，本次播放没有黑边/静音检测");
 
             LibMpvNative.mpv_request_log_messages(context, "warn");
 
-            if (MpvDanmaku.Exists(AppContext.BaseDirectory)
+            if (!request.AudioOnly && MpvDanmaku.Exists(AppContext.BaseDirectory)
                 && !Run(context, "load-script", MpvDanmaku.ScriptPath(AppContext.BaseDirectory)))
                 Log.Warn(Category, "弹幕脚本装载失败，本次播放不显示弹幕");
 
@@ -193,10 +193,11 @@ public sealed class LibMpvBackend(
             // 下一次的签名按当时的设置现算（管线换了就自然对不上）；独立管线的选项表不含画布尺寸，
             // 所以这里不传 size —— 集成管线本来就不走这条快路（surface 非空）。
             cancellationToken.ThrowIfCancellationRequested();
-            var signature = Signature(settings, playback, request, uiOptions ?? []) with { UsesCustomConfig = customConfig is not null };
+            var signature = request.AudioOnly ? null
+                : Signature(settings, playback, request, uiOptions ?? []) with { UsesCustomConfig = customConfig is not null };
             var handle = new LibMpvHandle(context, surface, signature,
-                next => Signature(settings, playback, next, uiOptions ?? []))
-            { CustomConfig = customConfig, SvpLease = svpLease, HttpTransport = httpTransport };
+                request.AudioOnly ? null : next => Signature(settings, playback, next, uiOptions ?? []))
+            { AudioOnly = request.AudioOnly, CustomConfig = customConfig, SvpLease = svpLease, HttpTransport = httpTransport };
             httpTransport = null;
             customConfig = null;
             svpLease = null;
@@ -249,10 +250,11 @@ public sealed class LibMpvBackend(
         // Snapshot once: settings may change while a session starts. Standalone must never
         // call the provider, not even to discover that the shell has no usable surface.
         var pipeline = settings.Pipeline;
-        var surface = SelectSurface(pipeline, surfaceProvider);
+        var surface = SelectSurface(pipeline, surfaceProvider, request.AudioOnly);
 
         // 先写普通设置，再读用户文件，最后收口窗口、认证和播放控制。不能在读完后重放普通设置。
-        var contract = LibMpvPipelinePolicy.Build(pipeline, request.PlayerOptions, surface?.Size ?? default);
+        var contract = request.AudioOnly ? LibMpvPipelinePolicy.BuildAudioOnly(request.PlayerOptions)
+            : LibMpvPipelinePolicy.Build(pipeline, request.PlayerOptions, surface?.Size ?? default);
         foreach (var option in contract.Where(option => !option.Required || custom is not null && option.Name == "gpu-api"))
             Set(context, option.Name, option.Value);
         if (custom is not null)
@@ -344,7 +346,7 @@ public sealed class LibMpvBackend(
 
         // 独占模式那扇 mpv 窗口的窗口策略（窗口形状跟画面、出生尺寸下限、拖窗吸附）—— 参考项目 mpv.conf
         // 那一组里的三条，理由与出处见 StandaloneWindowPolicy。与上面那串同在管线契约之前，且都不是必需项。
-        foreach (var option in StandaloneWindowPolicy.Options(pipeline)) Set(context, option.Key, option.Value);
+        foreach (var option in request.AudioOnly ? [] : StandaloneWindowPolicy.Options(pipeline)) Set(context, option.Key, option.Value);
 
         // 「开始播放后自动全屏」在独占模式的落地：起播即全屏，不先冒一个小窗再跳
         // （mpv 自建窗口没有宿主动画可借，直接以全屏出生就是最接近集成模式的形态）。
@@ -354,7 +356,7 @@ public sealed class LibMpvBackend(
         // 播放页进场换手、播放页开播应答、独占模式开播应答）从此共用一个答主。这里传「窗口化」＝
         // 「还没全屏」，那是事实：起播前 mpv 窗口还没出生、fullscreen 属性也还没读；而 fullscreen=yes
         // 是幂等的，最坏情况只是多发一条命令。
-        if (pipeline == VideoPipelineKind.Standalone)
+        if (!request.AudioOnly && pipeline == VideoPipelineKind.Standalone)
             Set(context, "fullscreen", (request.Fullscreen ?? autoFullscreen?.Invoke() ?? false) ? "yes" : "no");
 
         // Ordinary options keep their order; pipeline-critical options are filtered and pinned
@@ -376,15 +378,15 @@ public sealed class LibMpvBackend(
             if (option.Name == "gpu-api") pinnedApi = option.Value;
         }
 
-        Log.Info(Category, surface is null
+        Log.Info(Category, request.AudioOnly ? "音乐播放：仅音频输出，无视频窗口" : surface is null
             ? $"独立播放：mpv 原生 window（无边框窗口化全屏，切换顺滑），图形接口 "
                 + $"{(custom is not null ? "跟随自定义 mpv.conf" : pinnedApi.Length > 0 ? pinnedApi : "自动挑选（Windows 上是 Direct3D 11）")}；客户端不介入几何"
             : "集成播放：D3D11 composition，独占全屏关闭，画面由宿主合成");
         return (surface, pipelineOptions);
     }
 
-    internal static IVideoSurface? SelectSurface(VideoPipelineKind pipeline, Func<IVideoSurface?> provider) =>
-        LibMpvPipelinePolicy.RequiresSurface(pipeline)
+    internal static IVideoSurface? SelectSurface(VideoPipelineKind pipeline, Func<IVideoSurface?> provider, bool audioOnly = false) =>
+        !audioOnly && LibMpvPipelinePolicy.RequiresSurface(pipeline)
             ? provider() ?? throw new InvalidOperationException("播放面板尚未就绪")
             : null;
 
@@ -530,6 +532,7 @@ internal sealed class LibMpvHandle(
     PlaybackLaunchSignature? signature,
     Func<PlaybackRequest, PlaybackLaunchSignature>? signatureFor) : IPlaybackHandle, IPlayerControl, IPlayerHostMessages, IFileScopedPlayerControl, IShaderBatchPlayerControl
 {
+    internal bool AudioOnly { get; init; }
     internal MpvCustomConfig? CustomConfig { get; init; }
     public bool UsesCustomConfig => signature?.UsesCustomConfig == true;
     public IReadOnlyDictionary<string, string>? ShaderRestoreOptions { get; private set; }
@@ -632,7 +635,7 @@ internal sealed class LibMpvHandle(
 
     public bool HasControlChannel => true;
 
-    public bool? PictureInHostWindow => surface is not null;
+    public bool? PictureInHostWindow => AudioOnly ? null : surface is not null;
 
     public bool IsPaused => _status.Paused;
 
@@ -659,8 +662,11 @@ internal sealed class LibMpvHandle(
         cancellationToken.ThrowIfCancellationRequested();
         // 换片要用的「出厂值」在这一拍读：事件线程还没起来，没有任何并发，而且此刻还没有任何一集
         // 改过这些属性（见 InlineSwitch.FilmScoped 的说明）。
-        _filmDefaults = ReadFilmDefaults();
-        CaptureShaderRestoreOptions();
+        if (!AudioOnly)
+        {
+            _filmDefaults = ReadFilmDefaults();
+            CaptureShaderRestoreOptions();
+        }
 
         Observe(ObserveTimePos, "time-pos", LibMpvNative.FormatDouble);
         Observe(ObserveDuration, "duration", LibMpvNative.FormatDouble);
@@ -695,7 +701,7 @@ internal sealed class LibMpvHandle(
             // transparent while the stream opens.
             _ = Task.Run(RefreshComposition);
         }
-        else
+        else if (!AudioOnly)
         {
             // 独占模式：出生时 force-window=no，窗口要等画面，所以「按住窗口」得等 vo-configured
             // 翻真（见 OnPropertyChange）。集成模式不需要——它的 force-window 一直是 immediate。
@@ -720,7 +726,7 @@ internal sealed class LibMpvHandle(
     // 下一票的运行期部分写下去、发一条 loadfile。窗口、全屏状态、整套 uosc 都不动。
 
     /// <summary>快路只对独占模式的内置会话开放：集成管线的画面挂在宿主合成树上，换源要动的几何不止一份。</summary>
-    private bool Swapable => surface is null && signature is not null && signatureFor is not null;
+    private bool Swapable => !AudioOnly && surface is null && signature is not null && signatureFor is not null;
 
     public bool WasHandedOver => _handedOver;
 
@@ -729,7 +735,7 @@ internal sealed class LibMpvHandle(
     // question 「may the next file reuse this window」 would then hang the caller for as long as the GPU
     // takes (2026-10-27). Nothing here can touch freed memory — the only shared state is a flag.
     public bool CanSwapTo(PlaybackRequest request) =>
-        Swapable && _status.Loaded && !_swapping && !_contextClosed.Task.IsCompleted
+        !request.AudioOnly && Swapable && _status.Loaded && !_swapping && !_contextClosed.Task.IsCompleted
         && InlineSwitch.CanTakeOver(_stopRequested, _handedOver, _exit.Task.IsCompleted, _apiGate.IsDestroyed)
         && InlineSwitch.SameSignature(signature!, signatureFor!(request));
 
@@ -770,7 +776,7 @@ internal sealed class LibMpvHandle(
     private bool Swap(PlaybackRequest request, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!Swapable || _contextClosed.Task.IsCompleted || !InlineSwitch.SameSignature(signature!, signatureFor!(request))
+        if (request.AudioOnly || !Swapable || _contextClosed.Task.IsCompleted || !InlineSwitch.SameSignature(signature!, signatureFor!(request))
             || !InlineSwitch.CanTakeOver(_stopRequested, _handedOver, _exit.Task.IsCompleted, _apiGate.IsDestroyed)) return false;
 
         // Analysis restores temporary settings in its unload hook. Recreate while it owns a task,
@@ -984,14 +990,14 @@ internal sealed class LibMpvHandle(
                 // 只有声音的文件（没有视频轨）永远不会让 vo 立起来，force-window=no 之下就一个窗口都
                 // 没有 —— 那种片子还是得给扇窗，不然连 uosc 的控件都无处可画。视频文件走 vo-configured
                 // 那条路（见 OnPropertyChange），这里是给「没有画面可等」的情形兜底。
-                if (surface is null && !_windowHeld && (ReadText("vid") is null or "no"))
+                if (!AudioOnly && surface is null && !_windowHeld && (ReadText("vid") is null or "no"))
                 {
                     _windowHeld = true;
                     Write("force-window", "yes");
                     Log.Debug(Category, "这一版没有视频轨，独占窗口提前立起（force-window=yes）");
                 }
 
-                Publish(_status with { Loaded = true, Chapters = ReadChapterList() ?? [] });
+                Publish(_status with { Loaded = true, Chapters = AudioOnly ? [] : ReadChapterList() ?? [] });
                 PublishTracks();
                 break;
 
@@ -1052,7 +1058,7 @@ internal sealed class LibMpvHandle(
         // 独占模式：窗口带着画面立起来了 —— 出生时是 force-window=no（不冒黑框），这一刻改回 yes，
         // 窗口此后跨 EOF、跨换片都活着（运行期可改，2026-09-19 实测：改这一下窗口不闪，且换源与播完
         // 之后窗口都还在）。只做一次；文件换掉时 vo-configured 可能再翻一遍，不必重复写。
-        if (mpvEvent.ReplyUserData == ObserveVoConfigured)
+        if (!AudioOnly && mpvEvent.ReplyUserData == ObserveVoConfigured)
         {
             var configured = Marshal.PtrToStructure<LibMpvNative.MpvEventProperty>(mpvEvent.Data);
             if (configured.Data != IntPtr.Zero && ReadFlag(configured) && !_windowHeld)

@@ -14,6 +14,46 @@ internal static class AccountShutdownTests
 {
     internal static void Register(Action<string, Func<Task>> test)
     {
+        test("音乐关闭：未附加音乐仍完成原关闭流程，不解析产品服务", () => Run(async () =>
+        {
+            using var f = new Fixture("player");
+            var stopping = f.Shell.ShutdownAsync();
+            await f.StopEntered();
+            Assert.Equal(1L, f.Shell.PlayIntent, "所有播放入口先被代次撤销");
+            f.ReleaseStop();
+            await stopping;
+            Assert.Equal(1, f.Shell.PlayerStop.Stops);
+            Assert.Null(f.Shell.ContentFrame.Content);
+        }));
+        test("音乐关闭：停止等待前撤销事件和起播委托，等待后仅释放一次", () => Run(async () =>
+        {
+            using var f = new Fixture("player");
+            var music = f.Shell.AttachMusicForShutdown();
+            music.Hold = true;
+            music.RaiseNotice("attached");
+            music.RaiseVisibility();
+            var notices = f.Shell.Notices.Count;
+            var updates = f.Shell.MusicVisibilityUpdates;
+            var stopping = f.Shell.ShutdownAsync();
+            await music.Entered.Task;
+            var repeated = f.Shell.ShutdownAsync();
+            Assert.True(ReferenceEquals(stopping, repeated));
+            Assert.Null(music.BeforeStart, "停止前必须摘掉旧起播委托");
+            Assert.Equal(0, music.Disposals, "Stop尚未完成时不能Dispose音乐VM");
+            Assert.Equal(0, f.Shell.PlayerStop.Stops, "音乐停止完成前不应跳到视频退出");
+            music.RaiseNotice("late");
+            music.RaiseVisibility();
+            Assert.Equal(notices, f.Shell.Notices.Count, "音乐迟到通知重新进入关闭Shell");
+            Assert.Equal(updates, f.Shell.MusicVisibilityUpdates, "音乐迟到可见性通知重新布局关闭Shell");
+            music.Release.TrySetResult();
+            await f.StopEntered();
+            Assert.Equal(1, music.Disposals);
+            f.ReleaseStop();
+            await stopping;
+            Assert.Equal(1, music.Stops);
+            Assert.Equal(1, music.Disposals);
+            Assert.Equal(1L, f.Shell.PlayIntent);
+        }));
         foreach (var stage in new[] { "translation", "player" })
             foreach (var outcome in new[] { "success", "failure" })
                 test($"R03-005 {stage}关闭等待中迟到登录{outcome}不接回外壳", () => Run(async () =>

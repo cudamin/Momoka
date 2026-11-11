@@ -16,6 +16,12 @@ internal static class Program
 {
     private static int Main()
     {
+        Test("图片父页Cancel保留预告终端重置调用", () =>
+        {
+            var vm = new DetailArtworkFixture();
+            vm.Cancel();
+            Assert.Equal(1, vm.TrailerResets);
+        });
         Test("首帧门控前文字已可读且缓存命中的图片也不解码", () =>
         {
             var release = Gate();

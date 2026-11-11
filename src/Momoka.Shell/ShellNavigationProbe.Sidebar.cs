@@ -55,12 +55,14 @@ internal sealed partial class ShellNavigationProbe
                     {
                         new EmbyItem { Id = prefix + "-movies", Name = prefix + " 的电影", Type = EmbyItemType.CollectionFolder, CollectionType = "movies" },
                         new EmbyItem { Id = prefix + "-shows", Name = prefix + " 的电视剧", Type = EmbyItemType.CollectionFolder, CollectionType = "tvshows" },
-                        new EmbyItem { Id = "music", Name = "不应出现的音乐库", Type = EmbyItemType.CollectionFolder, CollectionType = "music" }
+                        new EmbyItem { Id = "music", Name = "音乐库", Type = EmbyItemType.CollectionFolder, CollectionType = "music" }
                     }
                 }));
             }
             if (Query(request, "Filters")?.Contains("IsFavorite", StringComparison.Ordinal) == true)
                 return Task.FromResult(Json(new { Items = favorite ? movies.Take(1).ToArray() : [], TotalRecordCount = favorite ? 1 : 0 }));
+            if (Query(request, "IncludeItemTypes") == EmbyItemType.Audio)
+                return Task.FromResult(Json(new ItemsResult { Items = [new() { Id = "song", Name = "侧栏音乐曲目", Type = EmbyItemType.Audio }], TotalRecordCount = 1 }));
             if (path.EndsWith("/Items/Latest", StringComparison.Ordinal)) return Task.FromResult(Json(movies.Take(6).ToArray()));
             if (path.EndsWith("/Items", StringComparison.Ordinal) || path.EndsWith("/Items/Resume", StringComparison.Ordinal))
                 return Task.FromResult(Json(new { Items = movies, TotalRecordCount = movies.Length }));
@@ -119,12 +121,19 @@ internal sealed partial class ShellNavigationProbe
                 $"宽窗侧栏未展开：shown={host.Visibility} pane={nav.IsPaneOpen} host={host.ActualWidth:0.0}/{host.Width:0.0} shell={shell.ActualWidth:0.0} mode={fixture.Settings.Ui.SidebarMode} live={fixture.Session.IsSignedIn} loaded={shell.IsLoaded}");
             Require(ReferenceEquals(home, frame.Content) && shelves.SequenceEqual(home.ViewModel.Shelves)
                 && DataRequests() == requests, "切换侧栏重建主页货架或重新请求了数据");
-            Require(shell.LibraryViews.Count == 2 && nav.MenuItems.OfType<NavigationViewItem>().Count(item =>
-                item.Tag is string tag && tag.StartsWith("library:", StringComparison.Ordinal)) == 2, "媒体库数量或音乐过滤错误");
+            Require(shell.LibraryViews.Count == 3 && nav.MenuItems.OfType<NavigationViewItem>().Count(item =>
+                item.Tag is string tag && tag.StartsWith("library:", StringComparison.Ordinal)) == 3, "媒体库数量或音乐入口错误");
             Require(home.BleedRead().Ok, "侧栏模式轮播没有铺满内容区：" + home.BleedRead().Detail);
             AssertSidebarGeometry(shell, host, true);
             DumpSidebarLayout(shell, "1240 expanded");
             await SaveProbeScreenAsync("sidebar-on-1240-screen.png");
+
+            var musicTag = HomeLayout.LibraryKey(shell.LibraryViews.Single(view => view.Id == "music"));
+            Select(nav.MenuItems.OfType<NavigationViewItem>().Single(item => item.Tag as string == musicTag));
+            await UntilAsync(() => frame.Content is MusicLibraryPage music && music.ViewModel.IsReady);
+            Require(((MusicLibraryPage)frame.Content).ViewModel.Rows.Single().Item.Type == EmbyItemType.Audio,
+                "侧栏音乐库未进入歌曲页面");
+            await SaveProbeScreenAsync("sidebar-music-1240-screen.png");
 
             var moviesTag = HomeLayout.LibraryKey(shell.LibraryViews.Single(view => view.Id == "A-movies"));
             Select(nav.MenuItems.OfType<NavigationViewItem>().Single(item => item.Tag as string == moviesTag));
@@ -257,10 +266,10 @@ internal sealed partial class ShellNavigationProbe
 
             await fixture.SelectAsync("b.invalid");
             await (Task)Call(shell, "EnterShellAsync")!;
-            await UntilAsync(() => shell.ActiveContentReady && shell.LibraryViews.Count == 4);
+            await UntilAsync(() => shell.ActiveContentReady && shell.LibraryViews.Count == 6);
             var switched = nav.MenuItems.OfType<NavigationViewItem>()
                 .Where(item => item.Tag is string tag && tag.StartsWith("library:", StringComparison.Ordinal)).ToArray();
-            Require(switched.Length == 4 && fixture.Settings.Ui.SidebarMode
+            Require(switched.Length == 6 && fixture.Settings.Ui.SidebarMode
                 && switched.Select(item => (string)item.Tag).ToHashSet(StringComparer.Ordinal)
                     .SetEquals(shell.LibraryViews.Select(HomeLayout.LibraryKey)), "第二个账号上线后没有保留所有来源的独立媒体库");
             Call(shell, "ShowSignIn", null, false, null);
