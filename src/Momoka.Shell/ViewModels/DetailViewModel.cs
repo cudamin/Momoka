@@ -1704,10 +1704,15 @@ public sealed partial class DetailViewModel : PageViewModel
     public partial IReadOnlyList<string> SublineGenres { get; set; } = [];
 
     /// <summary>
-    /// 跨库题材页 Plex 客户端未实现、飞牛的适配器对 Genre 条件直接抛不支持，两家都没有这条路；
-    /// 只用详情所属 scope，不借默认管理来源。
+    /// Emby/Jellyfin 使用跨库题材页；Plex 使用该详情所属库的原生标签，缺身份时保持文字。
+    /// 来源及条目都须属于当前详情，旧事件不能借重新附加的账号执行。
     /// </summary>
-    internal bool CanOpenGenre => Attached && _scope?.Connection.SupportsGenreBrowse == true;
+    internal bool CanOpenGenre => SublineGenres.Any(CanOpenGenreValue);
+
+    internal bool CanOpenGenreValue(string genre) => Attached && _detail is { } item
+        && item.Id == _seed?.Id && item.Source?.Key == _scope!.Key
+        && (_scope.Connection.IsPlex ? item.PlexGenres.TryGetValue(genre, out var relation) && relation.IsValid
+            : _scope.Connection.SupportsGenreBrowse);
 
     /// <summary>
     /// 点了一个类型：交给外壳开一格「这个类型下的全部影片和剧集」（<see cref="IShellActions.OpenGenre"/>）。
@@ -1715,8 +1720,16 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     internal void OpenGenre(string genre)
     {
-        if (!CanOpenGenre) return;
-        _actions?.OpenGenre(genre, _scope);
+        if (!CanOpenGenreValue(genre)) return;
+        if (_scope!.Connection.IsPlex)
+            _actions?.OpenItem(new EmbyItem
+            {
+                Name = genre,
+                Type = EmbyItemType.Genre,
+                Source = _scope,
+                PlexRelation = _detail!.PlexGenres[genre]
+            });
+        else _actions?.OpenGenre(genre, _scope);
     }
 
     /// <summary>
@@ -4026,7 +4039,11 @@ public sealed partial class DetailViewModel : PageViewModel
     /// made — this page used to make the person half of that choice again for itself, and now that the
     /// shell knows a person is not a folder there is no reason for two copies of the answer.
     /// </summary>
-    internal void OpenCard(CardItem card) => _actions?.OpenItem(card.Item);
+    internal void OpenCard(CardItem card)
+    {
+        if (!Attached || card.Item.IsDisplayOnly || card.Scope?.Key != _scope!.Key) return;
+        _actions?.OpenItem(card.Item);
+    }
 
     /// <summary>
     /// Opens the first card in 单集, the same way a click on it would. For the startup self-check, whose

@@ -3262,6 +3262,18 @@ public sealed partial class LibraryViewModel : PageViewModel
             };
         }
 
+        if (request.PlexRelation is { } relation)
+            return new ItemQuery
+            {
+                ParentId = relation.SectionId,
+                PlexRelation = relation,
+                SortBy = SortKey,
+                Descending = SortDescending,
+                StartIndex = start,
+                Limit = limit,
+                Filters = _filters.Clone()
+            };
+
         // 演职人员：a person's credits. Ahead of the folder query on purpose — a person has no children,
         // so the query below would answer with the server's library list instead of an empty grid, which
         // is a far more confusing wrong answer.

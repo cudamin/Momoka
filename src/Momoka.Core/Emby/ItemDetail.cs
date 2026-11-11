@@ -775,12 +775,12 @@ public static class ItemDetail
 
         foreach (var person in item.People)
         {
-            if (person.Id.Length == 0 || person.Name.Length == 0) continue;
+            if (person.Name.Length == 0 || person.Id.Length == 0 && !person.DisplayWithoutIdentity) continue;
 
             // 先按头像筛、再去重：Emby 同一个人的第二条署名带着同一张头像，筛在前面等于「第一条没图」不会
             // 连累后面那条有图的；不筛的时候次序和从前一样，先到的那条署名照样是算数的那条。
             if (portraitsOnly && person.PrimaryImageTag is not { Length: > 0 }) continue;
-            if (!seen.Add(person.Id)) continue;
+            if (person.Id.Length > 0 && !seen.Add(person.Id)) continue;
 
             var card = new EmbyItem
             {
@@ -788,7 +788,9 @@ public static class ItemDetail
                 Source = item.Source,
                 Name = person.Name,
                 Type = EmbyItemType.Person,
-                IsStub = true
+                IsStub = true,
+                PlexRelation = person.PlexRelation,
+                IsDisplayOnly = person.DisplayWithoutIdentity && person.PlexRelation is null
             };
             if (person.PrimaryImageTag is { Length: > 0 } tag) card.ImageTags["Primary"] = tag;
 

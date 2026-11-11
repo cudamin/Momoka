@@ -157,6 +157,7 @@ internal sealed class AffordanceTransport : HttpMessageHandler
     public HttpStatusCode DetailFailureStatus { get; set; } = HttpStatusCode.ServiceUnavailable;
     public bool StaleDetailRead { get; set; }
     public Action? BeforeDetailRead { get; set; }
+    public bool PlexRelations { get; set; }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -201,6 +202,16 @@ internal sealed class AffordanceTransport : HttpMessageHandler
                 if (FailDetailRead && parts[2] == "item") return new HttpResponseMessage(DetailFailureStatus);
                 var item = Resolve(uri.Host, parts[2]);
                 var metadata = Plex(item);
+                if (PlexRelations)
+                {
+                    metadata["librarySectionID"] = "3";
+                    metadata["Genre"] = new JsonArray(new JsonObject { ["tag"] = "动画", ["id"] = "41" },
+                        new JsonObject { ["tag"] = "剧情" });
+                    metadata["Role"] = new JsonArray(new JsonObject { ["tag"] = "演员甲", ["id"] = "42" },
+                        new JsonObject { ["tag"] = "演员乙" });
+                    metadata["Director"] = new JsonObject { ["tag"] = "导演甲", ["id"] = "43" };
+                    metadata["Writer"] = new JsonObject { ["tag"] = "编剧甲", ["id"] = "44" };
+                }
                 if (StaleDetailRead) metadata["viewCount"] = item.IsWatched ? 0 : 1;
                 return Json(new JsonObject { ["MediaContainer"] = new JsonObject { ["Metadata"] = new JsonArray(metadata) } });
             }
@@ -261,6 +272,7 @@ public class PlexActionsProxy : DispatchProxy
     public List<EmbyItem> FavoriteRefreshes { get; } = [];
     public List<EmbyItem> WatchedReports { get; } = [];
     public List<(string Genre, EmbySessionScope? Scope)> Navigation { get; } = [];
+    public List<EmbyItem> ItemsNavigation { get; } = [];
     protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
     {
         switch (targetMethod?.Name)
@@ -270,6 +282,7 @@ public class PlexActionsProxy : DispatchProxy
             case "RefreshFavorites": FavoriteRefreshes.Add((EmbyItem)args![0]!); return null;
             case "ReportMarkedWatched": WatchedReports.Add((EmbyItem)args![0]!); return null;
             case "OpenGenre": Navigation.Add(((string)args![0]!, (EmbySessionScope?)args[1])); return null;
+            case "OpenItem": ItemsNavigation.Add((EmbyItem)args![0]!); return null;
             case "get_MoviePilotEnabled":
             case "get_MoviePilotMediaManagementEnabled":
             case "get_MoviePilotSmartReorganizeEnabled": return false;
@@ -329,11 +342,20 @@ internal sealed class ShellAssembly
         Invoke(vm, "Attach", Request(item), actions, fixture.Settings, fixture.Session, fixture.Images);
     public object GenreRequest(string genre, EmbySessionScope? scope) => Type("Views.LibraryRequest")
         .GetMethod("ForGenre", BindingFlags.Static | BindingFlags.Public)!.Invoke(null, [new NoServices(), genre, scope])!;
+    public object RelationRequest(EmbyItem item) => Type("Views.LibraryRequest")
+        .GetMethod("ForPlexRelation", BindingFlags.Static | BindingFlags.Public)!.Invoke(null, [new NoServices(), item])!;
+    public ItemQuery RelationQuery(object request, int start, int limit)
+    {
+        var vm = Activator.CreateInstance(Type("ViewModels.LibraryViewModel"), nonPublic: true)!;
+        vm.GetType().GetField("_request", Members)!.SetValue(vm, request);
+        return (ItemQuery)Invoke(vm, "BuildQueryCore", start, limit)!;
+    }
     private sealed class NoServices : IServiceProvider
     {
         private readonly RemovedMedia _removed = new();
         public object? GetService(Type serviceType) => serviceType == typeof(RemovedMedia)
-            ? _removed : throw new AssertionException("不启动容器/App");
+            ? _removed : serviceType.FullName == "Momoka.Shell.Platform.ISystemLauncher" ? null
+            : throw new AssertionException("不启动容器/App：" + serviceType.FullName);
     }
 }
 

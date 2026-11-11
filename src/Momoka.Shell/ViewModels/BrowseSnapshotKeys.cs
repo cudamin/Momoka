@@ -80,6 +80,7 @@ internal static class BrowseSnapshotKeys
         Add(text, request.SearchCategory.ToString());
         Add(text, request.Genre);
         Add(text, request.PersonId);
+        Add(text, request.PlexRelation?.Identity);
         Add(text, request.Row?.ToString());
         Add(text, request.IsFavorites);
         Add(text, request.IsSearch);

@@ -1762,19 +1762,19 @@ public sealed partial class DetailPage : Page, IShellContent
             return (true, $"这一条目没有类型可点（{ViewModel.ItemType} 页，那一行是「{ViewModel.Subline}」）");
 
         var links = GenreLine.Inlines.OfType<Hyperlink>().ToList();
-        if (!ViewModel.CanOpenGenre)
+        var clickable = wanted.Where(ViewModel.CanOpenGenreValue).ToList();
+        var text = string.Concat(GenreLine.Inlines.Select(inline => inline switch
         {
-            var text = string.Concat(GenreLine.Inlines.OfType<Run>().Select(run => run.Text));
-            var expected = string.Join("  ·  ", wanted);
-            return (GenreLine.Visibility == Visibility.Visible && links.Count == 0 && text == expected,
-                $"当前来源题材只作文字：{text}，{links.Count} 段可点（应为 0）");
-        }
+            Run run => run.Text,
+            Hyperlink link => string.Concat(link.Inlines.OfType<Run>().Select(run => run.Text)),
+            _ => ""
+        }));
         var texts = links
             .Select(link => string.Concat(link.Inlines.OfType<Run>().Select(run => run.Text)))
             .ToList();
 
         var drawn = GenreLine.Visibility == Visibility.Visible;
-        var same = texts.Count == wanted.Count && texts.SequenceEqual(wanted, StringComparer.Ordinal);
+        var same = texts.SequenceEqual(clickable, StringComparer.Ordinal) && text == string.Join("  ·  ", wanted);
 
         // 墨也要和上一行同一支。Hyperlink 自带框架的强调色，忘了压就是这一行独自变亮 —— 而它是整页最大那行片名
         // 底下紧贴的一行，屏上非常扎眼（用户为此提过一次）。比的是画刷对象本身：那一支不跟主题走，全程同一个。
@@ -1854,7 +1854,7 @@ public sealed partial class DetailPage : Page, IShellContent
         {
             if (GenreLine.Inlines.Count > 0) GenreLine.Inlines.Add(new Run { Text = "  ·  " });
 
-            if (!ViewModel.CanOpenGenre)
+            if (!ViewModel.CanOpenGenreValue(genre))
             {
                 GenreLine.Inlines.Add(new Run { Text = genre });
                 continue;

@@ -97,6 +97,8 @@ internal sealed record LibraryRequest
     /// </summary>
     public string? PersonId { get; init; }
 
+    public Plex.PlexBrowseRelation? PlexRelation { get; init; }
+
     /// <summary>
     /// 主页某一排点进来的那一页，装的是那一排自己的清单（2026-09-14「新增点击图中红框的标题可以进入对应的
     /// 页面」）。空的时候就是别的四种网格。
@@ -130,6 +132,8 @@ internal sealed record LibraryRequest
     /// </summary>
     public string Eyebrow => IsSearch ? "SEARCH"
         : IsFavorites ? "FAVORITES"
+        : PlexRelation is { Field: "genre" } ? "GENRE · PLEX"
+        : PlexRelation is not null ? "CREDITS · PLEX"
         : PersonId is not null ? "CREDITS"
         : Genre is not null ? "GENRE"
         : Row is not null ? "CONTINUE"
@@ -200,6 +204,15 @@ internal sealed record LibraryRequest
         Title = person.Name,
         Source = person.Source,
         PersonId = person.Id
+    };
+
+    public static LibraryRequest ForPlexRelation(IServiceProvider services, EmbyItem item) => new()
+    {
+        Services = services,
+        Title = item.Name + " · 来源库 " + item.PlexRelation!.SectionId,
+        Source = item.Source,
+        ParentId = item.PlexRelation.SectionId,
+        PlexRelation = item.PlexRelation
     };
 
     /// <summary>

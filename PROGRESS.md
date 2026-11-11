@@ -12343,3 +12343,10 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 2026-11-10 集成缩放：codex/integrated-resize-smooth（307d）已修复 HWND 与视频提交间右下露底，主测试4537/4537、交接16/Input18/Motion23专项通过；3px自动453稳定帧与真实鼠标4事务/1982稳定帧均0坏帧，录像和范围见 docs/verification/2026-11-10-integrated-resize.md。主树另一会话仍修改ShellNavigationProbe.Collections.cs，待产品提交合入主树后重验、发布共同目录，桌面快捷方式未刷新。
 
 2026-11-10 集成缩放收尾：产品8a68a6f、回归1288773；本树合入媒体库主树e91d7f5至7e08947，Release组合4573/4573与398稳定缩放样本0坏帧。主树随后被界面会话接管合并（文档冲突），本树保留待主树合入/重验/共同发布；未推远端。详见docs/verification/2026-11-10-integrated-resize.md。
+
+## 2026-11-11 媒体库第二批 Plex 人物与题材（待主代理整合）
+
+- 独立树 `C:/Users/89400/.codex/worktrees/library-plex-people/Momoka`，基点 efd2ffd。负责 Plex 人物/题材 Core 映射、typed 同库关系、现有详情/作品页导航、静态无身份署名与相关协议/实际VM测试；筛选目录及最终主树交付由主代理负责。
+- 固定官方 Plex Web 4.163.0 / 8246fd2 原始字节本轮哈希核对相同；模块 84160/7537 按 librarySectionID 及 actor/director/writer/genre=id 下钻。模块3632的/library/people属于myPlex云来源，没有借成本地PMS路由。具体位置及本地按稳定ID区分同名人的选择见 docs/媒体库第二批.md。
+- 失败先行：旧代码新增人物映射2项失败；关系参数/非法身份5项失败。实现后当前Release Core/Tests编译0警告错误，plex-protocol-fixture273/273、0失败0跳过；当前Shell DLL+实际详情VM/卡片/提取页面83/83、0失败0跳过。既有PlexAffordance夹具漂移修正仅补生产LocalLibraryArtwork编译链接和可选ISystemLauncher返回null，未知服务继续拒绝。
+- 自动化定位扫描0缺失；diff/编码/行尾与改动文件whitespace通过。未运行实际WinUI窗口/UIA/实屏、未接真实PMS、未真实播放或写服务器数据；尚未合入master、publish或上传。主代理整合后须重验最终代码和实际页面再交付。

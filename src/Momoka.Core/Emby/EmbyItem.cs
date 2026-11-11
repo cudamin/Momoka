@@ -662,6 +662,14 @@ public sealed class MediaSource
 /// </summary>
 public sealed class EmbyPerson
 {
+    /// <summary>Local Plex tag navigation; never an Emby person id or a cloud URL.</summary>
+    [JsonIgnore]
+    public Plex.PlexBrowseRelation? PlexRelation { get; set; }
+
+    /// <summary>Plex may supply a readable credit without a navigable tag identity.</summary>
+    [JsonIgnore]
+    public bool DisplayWithoutIdentity { get; set; }
+
     public string Id { get; set; } = "";
 
     public string Name { get; set; } = "";
@@ -987,6 +995,20 @@ public sealed class EmbyItem
     /// produced — the detail page is the only place with enough of the item to show it.
     /// </summary>
     public List<EmbyPerson> People { get; set; } = [];
+
+    [JsonIgnore]
+    public string? PlexSectionId { get; set; }
+
+    [JsonIgnore]
+    public Plex.PlexBrowseRelation? PlexRelation { get; set; }
+
+    /// <summary>Genres retain the tag id supplied by this library alongside their readable names.</summary>
+    [JsonIgnore]
+    public Dictionary<string, Plex.PlexBrowseRelation> PlexGenres { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>An unidentifiable credit is display content and cannot open a browse page.</summary>
+    [JsonIgnore]
+    public bool IsDisplayOnly { get; set; }
 
     /// <summary>
     /// 宣传语，服务器只在 <c>Fields=Taglines</c> 时才给。列表接口默认不带它 —— 媒体库设置里勾了

@@ -1450,9 +1450,17 @@ public sealed partial class ShellPage : UserControl, IShellActions
     internal void OpenItem(EmbyItem item)
     {
         if (_services is null) return;
+        if (item.IsDisplayOnly) return;
         if (item.Source is { IsAvailable: false })
         {
             Notify("此媒体所属的账号已退出，请重新登录后打开", InfoBarSeverity.Warning);
+            return;
+        }
+
+        if (item.PlexRelation is { } relation)
+        {
+            if (item.Source?.Connection.IsPlex != true || !relation.IsValid) return;
+            OpenChild(LibraryRequest.ForPlexRelation(_services, item));
             return;
         }
 

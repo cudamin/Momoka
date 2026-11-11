@@ -178,6 +178,9 @@ public sealed class ItemQuery
     /// </summary>
     public string? PersonId { get; init; }
 
+    /// <summary>Fixed local Plex tag identity of a drill-down, independent of removable toolbar filters.</summary>
+    public Plex.PlexBrowseRelation? PlexRelation { get; init; }
+
     /// <summary>
     /// 需求 5：the filter panel's selection, or null for none. Merged with <see cref="IsPlayed"/> and
     /// <see cref="Genre"/> rather than sent alongside them: those two already occupy <c>Filters</c> and

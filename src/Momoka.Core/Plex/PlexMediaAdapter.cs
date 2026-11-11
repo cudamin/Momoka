@@ -137,10 +137,14 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
 
     public async Task<ItemsResult> GetItemsAsync(ItemQuery query, CancellationToken ct)
     {
+        query.PlexRelation?.Validate(query.ParentId);
         if (query.IsFavorite) throw new NotSupportedException("Plex 不支持收藏列表");
         if (query.Filters is { IsBlank: false } || !string.IsNullOrEmpty(query.PersonId)
             || !string.IsNullOrEmpty(query.NameStartsWith))
             throw new NotSupportedException("Plex 尚不支持此浏览条件");
+        if (query.PlexRelation is not null && (query.IsResumable || !string.IsNullOrWhiteSpace(query.SearchTerm)
+            || !string.IsNullOrWhiteSpace(query.Genre)))
+            throw new NotSupportedException("Plex 关联页不能更换为其他查询范围");
         if (query.IsResumable) return await QueryResumeAsync(query.StartIndex, query.Limit, ct).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(query.SearchTerm))
         {

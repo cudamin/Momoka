@@ -374,12 +374,15 @@ public sealed class CardItem : INotifyPropertyChanged
     /// <summary>The item behind the card. Whoever opens it needs the real thing, not a projection.</summary>
     public EmbyItem Item => _item;
 
+    public Visibility PersonNavigationVisibility => Show(!_item.IsDisplayOnly);
+    public Visibility PersonDisplayVisibility => Show(_item.IsDisplayOnly);
+
     internal EmbySessionScope? Scope { get; }
 
     internal bool IsCurrent => Scope?.IsAvailable == true;
     internal bool IsNavigation => _navigate is not null;
     internal void OpenNavigation() => _navigate?.Invoke();
-    public Visibility MoreVisibility => Show(!IsNavigation);
+    public Visibility MoreVisibility => Show(!IsNavigation && !_item.IsDisplayOnly);
 
     internal ItemUserStateOrder UserStateOrder
     {

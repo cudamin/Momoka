@@ -100,20 +100,28 @@
         <!-- 人物卡：Person 不是可播放类型，所以卡上不会长出播放键，也没有已看和收藏，
              右键也不挂菜单 —— 那些命令都是针对可播放条目的。水洗底同上压掉。 -->
         <DataTemplate x:Key="PersonTemplate" x:DataType="local:CardItem">
-            <Button
-                Background="Transparent"
-                BorderThickness="0"
-                Click="OnCardClicked"
-                Padding="0">
-                <Button.Resources>
-                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
-                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
-                </Button.Resources>
+            <Grid>
+                <Button
+                    Visibility="{x:Bind PersonNavigationVisibility}"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Click="OnCardClicked"
+                    Padding="0">
+                    <Button.Resources>
+                        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
+                        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
+                    </Button.Resources>
+                    <local:PosterCard
+                        Card="{x:Bind}"
+                        CardWidth="{x:Bind CardWidth}"
+                        PosterHeight="{x:Bind PosterHeight}" />
+                </Button>
                 <local:PosterCard
+                    Visibility="{x:Bind PersonDisplayVisibility}"
                     Card="{x:Bind}"
                     CardWidth="{x:Bind CardWidth}"
                     PosterHeight="{x:Bind PosterHeight}" />
-            </Button>
+            </Grid>
         </DataTemplate>
 
         <!-- 单集的一行：控件本身和媒体库列表模式用的是同一个 EpisodeRow，只是外面包的不一样 ——

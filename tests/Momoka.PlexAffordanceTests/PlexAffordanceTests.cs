@@ -36,6 +36,7 @@ internal static partial class PlexAffordanceTests
             RegisterDetails();
             RegisterWatchedWrites();
             RegisterGenres();
+            RegisterPlexRelations();
             return TestHarness.Run();
         }
         catch (Exception error)
@@ -471,6 +472,7 @@ internal static partial class PlexAffordanceTests
                 old.ClickForFixture();
                 Assert.Equal(0, actions.Navigation.Count);
                 _shell.Attach(vm, f, f.Item("jellyfin"), actions);
+                await (Task)ShellAssembly.Invoke(vm, "ReloadAsync")!;
                 Assert.Equal(2, page.Links.Count);
                 page.Links[1].ClickForFixture();
                 Assert.Equal("剧情", actions.Navigation.Single().Genre);

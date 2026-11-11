@@ -63,6 +63,8 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
 
     public Task<ItemsResult> GetItemsAsync(ItemQuery query, CancellationToken cancellationToken)
     {
+        if (query.PlexRelation is not null && !Connection.IsPlex)
+            throw new NotSupportedException("Plex 关联条件不能用于其他服务器");
         if (Connection.IsFnNas) return FnNasMedia.GetItemsAsync(query, cancellationToken);
         if (Connection.IsPlex) return PlexMedia.GetItemsAsync(query, cancellationToken);
         var url = Url($"Users/{Connection.UserId}/Items", query.ToParameters());

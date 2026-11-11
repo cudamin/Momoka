@@ -21,6 +21,7 @@ public sealed partial class PlexMediaAdapter
     /// </summary>
     public static IReadOnlyList<PlexParameter> Query(ItemQuery query)
     {
+        query.PlexRelation?.Validate(query.ParentId);
         var sort = query.SortBy switch
         {
             EmbySortBy.Name => "titleSort",
@@ -32,7 +33,12 @@ public sealed partial class PlexMediaAdapter
         };
 
         var pairs = new List<PlexParameter> { new("sort", query.Descending ? sort + ":desc" : sort) };
-        if (Type(query.IncludeItemTypes) is { Length: > 0 } type) pairs.Add(new("type", type));
+        if (query.PlexRelation is { } relation)
+        {
+            pairs.Add(new("type", relation.ItemType.ToString(CultureInfo.InvariantCulture)));
+            pairs.Add(new(relation.Field, relation.Value));
+        }
+        else if (Type(query.IncludeItemTypes) is { Length: > 0 } type) pairs.Add(new("type", type));
         // Plex filters watched state with one key rather than Emby's Filters list: 1 keeps the unwatched,
         // 0 keeps the watched.
         if (query.IsPlayed is { } played) pairs.Add(new("unwatched", played ? "0" : "1"));
@@ -138,6 +144,7 @@ public sealed partial class PlexMediaAdapter
         };
 
         item.ProductionYear = Integer(value, "year") ?? item.PremiereDate?.Year;
+        AddBrowseRelations(item, value);
         AddProviderIds(item, value);
         AddArtwork(item, value, type);
         return item;

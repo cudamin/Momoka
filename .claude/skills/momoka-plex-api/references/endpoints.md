@@ -29,6 +29,7 @@ The password is never placed in the query string. The URI is built inside `PlexH
 | Item detail | `GET /library/metadata/{ratingKey}` | `Metadata[]`; carries `Media[].Part[].Stream[]`. |
 | Children (seasons, episodes) | `GET /library/metadata/{ratingKey}/children` | One route serves both; the parent's type decides which. |
 | Similar | `GET /library/metadata/{ratingKey}/similar` | |
+| Person/genre relation | `GET /library/sections/{section}/all` | Runtime `PlexBrowseRelation` fixes section, movie/show type and one native `actor/director/writer/genre` id. Missing identity stays readable static content. See [batch evidence](../../../../docs/媒体库第二批.md); no live PMS coverage. |
 | Image | `GET {path}` | The `thumb` / `art` path the item itself carried, plus `?width=`. |
 
 Query keys used on a section listing:

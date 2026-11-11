@@ -224,7 +224,7 @@ public sealed record EmbyConnection(
 
     /// <summary>
     /// 跨库题材页（详情页那一行类型点进去的「这个类型下的全部影片和剧集」）目前只有 Emby 与 Jellyfin 有路：
-    /// Plex 客户端未实现，飞牛的适配器对 <c>Genre</c> 条件直接抛 <see cref="NotSupportedException"/>。
+    /// Plex 使用独立的本库 <c>PlexBrowseRelation</c>；飞牛的适配器对 <c>Genre</c> 条件直接抛不支持。
     /// </summary>
     public bool SupportsGenreBrowse => !IsPlex && !IsFnNas;
 
