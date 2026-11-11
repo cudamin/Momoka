@@ -18,6 +18,7 @@ internal sealed partial class ShellNavigationProbe
     /// <summary>正式多选控件与匿名HTTP；取消只阻止下一项，已发请求保留自己的确证结果。</summary>
     private async Task LibraryBatchAsync()
     {
+        await LibraryBatchCollectionsAsync();
         var receipts = new List<object>();
         var poster = await FixtureImageAsync();
         foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin, MediaServerKind.Plex })
@@ -274,6 +275,157 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
+    /// <summary>走正式菜单与确认表批加/批移出合集，验证空成员页仍保留全部成功回执。</summary>
+    private async Task LibraryBatchCollectionsAsync()
+    {
+        var receipts = new List<object>();
+        var poster = await FixtureImageAsync();
+        foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
+        {
+            using var fixture = CreateFixture();
+            var server = new LibraryBatchCollectionsServer(kind, poster);
+            fixture.Transport.Reply = server.ReplyAsync;
+            await fixture.SelectAsync("library-batch-collections.invalid", kind: kind);
+            var source = fixture.Session.Capture();
+            var capabilities = new ServerCapabilities(fixture.Session);
+            await capabilities.ProbeAsync();
+            fixture.Actions.MenuPermissions = scope => capabilities.PermissionsFor(scope.Key);
+            var frame = new Frame();
+            LibraryPage? page = null;
+            _root.Children.Add(frame);
+            var topMost = _window!.TopMost;
+            try
+            {
+                _window.TopMost = true;
+                ResizeProbeClient(1100, 900);
+                await NavigateAsync("1", null);
+                await BeginSelectAndOpenMenuAsync(ItemCommand.AddToCollection);
+                await UntilAsync(() => OpenDialogs().OfType<CollectionDialog>().Count() == 1);
+                var add = OpenDialogs().OfType<CollectionDialog>().Single();
+                await LayoutAsync(add);
+                var choices = Get<ListView>(add, "List");
+                Require(choices.Items.Count == 1 && Get<TextBox>(add, "NewBox").Visibility == Visibility.Collapsed,
+                    "批加入合集没有仅展示当前来源的已有合集");
+                choices.SelectedItem = choices.Items.Cast<EmbyItem>().Single(item => item.Id == "set");
+                await LayoutAsync(add);
+                Require(add.Chosen?.Id == "set" && add.IsPrimaryButtonEnabled, "实际合集选择没有启用确认");
+                await SaveProbeScreenAsync($"library-batch-collections-{kind}-choose-screen.png");
+                InvokePrimary(add);
+                await UntilAsync(() => server.Adds.Count == 3 && HasResult(page!, 3));
+                RequireBatchStatuses(page!, "Succeeded", "Succeeded", "Succeeded");
+                Require(server.Members.SetEquals(["101", "102", "103"]), "三项成功加入没有落在目标合集");
+                Require(server.Adds.Select(write => write.Id).SequenceEqual(new[] { "101", "102", "103" })
+                    && server.Adds.All(write => write.Method == "POST"), "批加入没有逐项复用当前后端协议");
+                await LayoutAsync(page!);
+                Require(Get<InfoBar>(page!, "LibraryBatchResult").IsOpen, "加入三项成功没有结果反馈");
+                await SaveProbeScreenAsync($"library-batch-collections-{kind}-added-screen.png");
+
+                page!.Release();
+                frame.Content = null;
+                ResizeProbeClient(760, 900);
+                await NavigateAsync("set", EmbyItemType.BoxSet);
+                await BeginSelectAndOpenMenuAsync(ItemCommand.RemoveFromCollection);
+                await UntilAsync(() => OpenDialogs().Length == 1);
+                var remove = OpenDialogs().Single();
+                await LayoutAsync(remove);
+                Require(remove.IsPrimaryButtonEnabled, "批移出当前合集确认不可执行");
+                await SaveProbeScreenAsync($"library-batch-collections-{kind}-confirm-remove-screen.png");
+                InvokePrimary(remove);
+                await UntilAsync(() => server.Removes.Count == 3 && page!.ViewModel.Cards.Count == 0 && HasResult(page, 3));
+                RequireBatchStatuses(page!, "Succeeded", "Succeeded", "Succeeded");
+                await LayoutAsync(page!);
+                var result = Get<InfoBar>(page!, "LibraryBatchResult");
+                Require(Get<FrameworkElement>(page!, "LibraryBatchSurface").Visibility == Visibility.Visible
+                    && result.Visibility == Visibility.Visible && result.IsOpen && result.ActualHeight > 0,
+                    "移出最后全部成员后结果面板丢失");
+                Require(Get<TextBlock>(page!, "LibraryItemCount").Text == "共 0 项"
+                    && Get<ItemsView>(page!, "CardWall").SelectedItems.Count == 0,
+                    "空合集仍保留旧总数或旧选择");
+                Require(server.Members.Count == 0 && server.Removes.All(write => write.Method == (kind == MediaServerKind.Emby ? "POST" : "DELETE")),
+                    "批移出没有复用Emby/Jellyfin各自成员关系路由");
+                foreach (var id in new[] { "101", "102", "103" })
+                {
+                    var retained = await source.ExecuteAsync((client, token) => client.GetItemAsync(id, token), CancellationToken.None);
+                    Require(retained.Id == id && retained.UserData?.IsFavorite == true
+                        && retained.UserData.PlaybackPositionTicks == 1234 && !retained.IsWatched,
+                        "移出成员关系删除了媒体或改写观看/收藏状态");
+                }
+                Require(fixture.Actions.Plays == 0 && fixture.Actions.Opened == 0, "合集批处理触发播放或详情导航");
+                await SaveProbeScreenAsync($"library-batch-collections-{kind}-empty-result-screen.png");
+                receipts.Add(new
+                {
+                    Product = kind.ToString(),
+                    Adds = server.Adds.ToArray(),
+                    Removes = server.Removes.ToArray(),
+                    Results = BatchStatuses(page!),
+                    Members = server.Members.Count,
+                    MediaRetained = 3,
+                    EmptyResultVisible = result.IsOpen && result.ActualHeight > 0,
+                    fixture.Actions.Plays
+                });
+            }
+            finally
+            {
+                foreach (var dialog in OpenDialogs()) dialog.Hide();
+                CloseMenus();
+                page?.Release();
+                frame.Content = null;
+                _root.Children.Remove(frame);
+                _window.TopMost = topMost;
+            }
+
+            async Task NavigateAsync(string parent, string? type)
+            {
+                Require(frame.Navigate(typeof(LibraryPage), new LibraryRequest
+                {
+                    Services = fixture.Services,
+                    Title = "匿名批合集 · " + kind,
+                    ParentId = parent,
+                    ParentType = type,
+                    CollectionType = "movies",
+                    Source = source
+                }), "批合集匿名页导航失败");
+                page = frame.Content as LibraryPage ?? throw new InvalidOperationException("批合集导航没有返回媒体库页面");
+                await UntilAsync(() => page.IsReady && !page.ViewModel.Busy && page.ViewModel.Cards.Count == 3);
+                Require(!page.ViewModel.NoticeOpen, "批合集初次成员读取失败");
+                await LayoutAsync(page);
+            }
+            async Task BeginSelectAndOpenMenuAsync(ItemCommand command)
+            {
+                new ButtonAutomationPeer(Get<Button>(page!, "LibrarySelectButton")).Invoke();
+                await UntilAsync(() => Get<FrameworkElement>(page!, "LibraryBatchSurface").Visibility == Visibility.Visible);
+                for (var index = 0; index < 3; index++) Call(page!, "ProbeSelectBatch", index);
+                Require(Get<ItemsView>(page!, "CardWall").SelectedItems.Count == 3, "合集页面未选择三项");
+                new ButtonAutomationPeer(Get<Button>(page!, "LibraryBatchActions")).Invoke();
+                await UntilAsync(() => MenuItems().Any(item => item.Tag is ItemCommand value && value == command));
+                new MenuFlyoutItemAutomationPeer(MenuItems().Single(item => item.Tag is ItemCommand value && value == command)).Invoke();
+            }
+        }
+        await File.WriteAllTextAsync(Path.Combine(_options.Paths.LogDirectory, "library-batch-collections-receipt.json"),
+            JsonSerializer.Serialize(receipts, new JsonSerializerOptions { WriteIndented = true }));
+
+        ContentDialog[] OpenDialogs() => VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+            .SelectMany(popup => Descendants(popup.Child)).OfType<ContentDialog>().Distinct().ToArray();
+        MenuFlyoutItem[] MenuItems() => VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+            .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutItem>().ToArray();
+        void CloseMenus()
+        {
+            foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+                .Where(popup => Descendants(popup.Child).OfType<MenuFlyoutPresenter>().Any()).ToArray()) popup.IsOpen = false;
+        }
+        static void InvokePrimary(ContentDialog dialog)
+        {
+            var button = Descendants(dialog).OfType<Button>().Single(button => button.Name == "PrimaryButton");
+            Require(button.IsEnabled && button.Visibility == Visibility.Visible, "合集确认按钮没有实际启用");
+            new ButtonAutomationPeer(button).Invoke();
+        }
+        static bool HasResult(LibraryPage page, int expected)
+        {
+            var result = page.GetType().GetProperty("LastBatchResult", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(page);
+            return result?.GetType().GetProperty("Succeeded")?.GetValue(result) is int successes && successes == expected;
+        }
+    }
+
     private static Task BatchOperationAsync(LibraryPage page, ItemCommand command, CancellationToken token = default) =>
         page.GetType().GetMethod("ProbeBatchOperationAsync", BindingFlags.Instance | BindingFlags.NonPublic)
             ?.Invoke(page, [command, token]) as Task ?? throw new InvalidOperationException("缺少正式多选执行入口");
@@ -295,6 +447,57 @@ internal sealed partial class ShellNavigationProbe
         Require(BatchStatuses(page).SequenceEqual(expected), "多选成功、失败与未尝试读数不符：" + string.Join(',', BatchStatuses(page)));
 
     private sealed record LibraryBatchWrite(string Id, string Method, string Path);
+
+    private sealed class LibraryBatchCollectionsServer(MediaServerKind kind, byte[] poster)
+    {
+        private readonly Dictionary<string, EmbyItem> _media = new[] { "101", "102", "103" }.ToDictionary(id => id, id => new EmbyItem
+        {
+            Id = id,
+            Name = "保留媒体 " + id,
+            Type = EmbyItemType.Movie,
+            UserData = new() { Played = false, IsFavorite = true, PlaybackPositionTicks = 1234 },
+            ImageTags = new() { ["Primary"] = "fixture" }
+        });
+        public HashSet<string> Members { get; } = [];
+        public List<LibraryBatchWrite> Adds { get; } = [];
+        public List<LibraryBatchWrite> Removes { get; } = [];
+
+        public Task<HttpResponseMessage> ReplyAsync(HttpRequestMessage request, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var path = request.RequestUri!.AbsolutePath;
+            if (request.Method != HttpMethod.Get)
+            {
+                var add = path.EndsWith("/Collections/set/Items", StringComparison.Ordinal) && request.Method == HttpMethod.Post;
+                var remove = kind == MediaServerKind.Emby
+                    ? path.EndsWith("/Collections/set/Items/Delete", StringComparison.Ordinal) && request.Method == HttpMethod.Post
+                    : path.EndsWith("/Collections/set/Items", StringComparison.Ordinal) && request.Method == HttpMethod.Delete;
+                Require(add || remove, "批合集探针拒绝成员关系以外的写入：" + path);
+                var id = Query(request, "Ids");
+                Require(id is not null && _media.ContainsKey(id), "批合集写入没有锁定当前来源单个成员");
+                (add ? Adds : Removes).Add(new(id!, request.Method.Method, request.RequestUri.PathAndQuery));
+                if (add) Members.Add(id!);
+                else Members.Remove(id!);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+            }
+            if (path.Contains("/Images/", StringComparison.Ordinal))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(poster) });
+            if (path.EndsWith("/System/Info/Public", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { ProductName = kind.ToString(), ServerName = "匿名批合集", Version = kind == MediaServerKind.Emby ? "4.10.1.0" : "10.10.7" }));
+            if (path.EndsWith("/Users/Me", StringComparison.Ordinal) || path.EndsWith("/Users/user", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { Id = "user", Policy = new { IsAdministrator = kind == MediaServerKind.Emby, EnableCollectionManagement = true, EnableContentDeletion = false } }));
+            if (path.EndsWith("/Items", StringComparison.Ordinal))
+            {
+                if (Query(request, "IncludeItemTypes") == EmbyItemType.BoxSet)
+                    return Task.FromResult(Json(new { Items = new[] { new EmbyItem { Id = "set", Name = "既有合集", Type = EmbyItemType.BoxSet, IsFolder = true } }, TotalRecordCount = 1 }));
+                var items = Query(request, "ParentId") == "set" ? Members.Select(id => _media[id]).ToArray() : _media.Values.ToArray();
+                return Task.FromResult(Json(new { Items = items, TotalRecordCount = items.Length }));
+            }
+            if (path.Contains("/Items/", StringComparison.Ordinal) && _media.TryGetValue(path.Split('/')[^1], out var item))
+                return Task.FromResult(Json(item));
+            return Task.FromResult(FakeTransport.Standard(request));
+        }
+    }
 
     private sealed class LibraryBatchServer(MediaServerKind kind, byte[] poster)
     {
