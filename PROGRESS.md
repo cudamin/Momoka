@@ -12347,3 +12347,5 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 ## 2026-11-11 集成窗口缩放主树交付完成
 
 用户明确要求合并交付。d649eba合入全部分支内容，产品自动合并、PROGRESS追加冲突保留双方。主树验收补出拖回原尺寸松手1坏帧，889c219修正承接帧提前撤回，源链接新增用例先红后绿。最终Release Shell/Tests零警告零错误，主测试4574/4574，ResizeHandoff17/Input17/Motion23专项通过；真实鼠标4事务26尺寸变化2557稳定样本0坏帧，发布版531稳定样本0坏帧。publish.ps1 -NoArchive -Shortcut成功（547文件287.5MB、批准mpv60文件），桌面快捷方式目标/工作目录及EXE/DLL/PRI哈希核对一致。证据artifacts/resize-delivery-20261111，报告docs/verification/2026-11-10-integrated-resize.md；未真实服务器起播，未上传GitHub。分支顶端a69c065全部已进入master，准备归档307d干净工作树并删除临时分支。
+
+307d清理结果：应用archive_worktree返回 The task's primary checkout cannot be removed.，按保护保留、不绕过删除；工作树干净并detach于a69c065，已删除全部合入主树的codex/integrated-resize-smooth临时分支。
