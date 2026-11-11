@@ -102,9 +102,7 @@ public sealed partial class ShellPage
 
         // 账号那一组现在是 Root 的孩子（它要能落在左下角，也要能回标题栏右上角），播放时 Chrome 收着而它
         // 不会跟着收 —— 所以这里按外壳在不在屏上把它一起收掉。
-        // 2026-11-11 起设置与搜索也在这一组里：没登录的时候账号那颗收着、工具还留着（登录页要能进设置）。
-        AccountCluster.Visibility = Chrome.Visibility == Visibility.Visible
-            && (AccountButton.Visibility == Visibility.Visible || TitleUtilities.Visibility == Visibility.Visible)
+        AccountCluster.Visibility = Chrome.Visibility == Visibility.Visible && AccountButton.Visibility == Visibility.Visible
             ? Visibility.Visible : Visibility.Collapsed;
 
         // A detail page has no destination tag; its first breadcrumb still identifies its library/search.
@@ -200,12 +198,10 @@ public sealed partial class ShellPage
             SidebarSettingsButton.HorizontalContentAlignment = expanded ? HorizontalAlignment.Left : HorizontalAlignment.Center;
             SidebarSettingsText.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
             Grid.SetRow(SidebarSettingsButton, expanded ? 0 : 1);
-            Grid.SetColumn(SidebarSettingsButton, expanded ? 2 : 1);
+            Grid.SetColumn(SidebarSettingsButton, expanded ? 1 : 0);
 
-            // 第 0 列是标题栏那两颗工具按钮（设置/搜索），侧栏模式里它们收起、列也收成 0。
-            AccountCluster.ColumnDefinitions[0].Width = new GridLength(0);
-            AccountCluster.ColumnDefinitions[1].Width = new GridLength(1, GridUnitType.Star);
-            AccountCluster.ColumnDefinitions[2].Width = expanded ? GridLength.Auto : new GridLength(0);
+            AccountCluster.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+            AccountCluster.ColumnDefinitions[1].Width = expanded ? GridLength.Auto : new GridLength(0);
             AccountCluster.RowDefinitions[1].Height = expanded ? new GridLength(0) : GridLength.Auto;
         }
         else
@@ -230,10 +226,9 @@ public sealed partial class ShellPage
             SidebarSettingsButton.Padding = new Thickness(10, 3, 10, 3);
             SidebarSettingsButton.HorizontalContentAlignment = HorizontalAlignment.Left;
             Grid.SetRow(SidebarSettingsButton, 0);
-            Grid.SetColumn(SidebarSettingsButton, 2);
-            AccountCluster.ColumnDefinitions[0].Width = GridLength.Auto;
-            AccountCluster.ColumnDefinitions[1].Width = new GridLength(1, GridUnitType.Star);
-            AccountCluster.ColumnDefinitions[2].Width = new GridLength(0);
+            Grid.SetColumn(SidebarSettingsButton, 1);
+            AccountCluster.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+            AccountCluster.ColumnDefinitions[1].Width = GridLength.Auto;
             AccountCluster.RowDefinitions[1].Height = new GridLength(0);
         }
 

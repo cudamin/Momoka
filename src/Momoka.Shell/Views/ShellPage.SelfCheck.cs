@@ -68,10 +68,11 @@ public sealed partial class ShellPage
             // 收藏页也是 LibraryPage：只有不在首页/收藏页的时候才按「媒体页」算。
             var media = !tabs && ContentFrame.Content is LibraryPage or MusicLibraryPage
                 or LocalLibraryPage or FnNasLibrariesPage or DetailPage;
-            // 顺序必须和视觉顺序一致：胶囊 · 后退 · 前进 · 主页（媒体库那一档前进收起，后退仍在主页左边）。
+            // 顺序必须和视觉顺序一致：胶囊 · 后退 · 前进 · 主页 · 设置 · 搜索
+            //（媒体库那一档前进收起，后退仍在主页左边；侧栏模式里只余 ≡ 与两支箭头）。
             FrameworkElement[] candidates = SidebarShown
                 ? [NavToggleButton, BackButton, ForwardButton]
-                : [HomeNavigation, BackButton, ForwardButton, HomeButton];
+                : [HomeNavigation, BackButton, ForwardButton, HomeButton, SettingsButton, SearchButton];
             var keys = candidates.Where(key => key.Visibility == Visibility.Visible).ToArray();
             var navSlot = SidebarShown
                 ? HomeNavigation.Visibility == Visibility.Collapsed && HomeButton.Visibility == Visibility.Collapsed

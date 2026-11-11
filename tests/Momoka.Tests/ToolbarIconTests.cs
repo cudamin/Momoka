@@ -40,21 +40,23 @@ internal static class ToolbarIconTests
             Assert.True(!document.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "FavoritesButton"));
             var order = Named(document, "TitleActions").Elements()
                 .Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
-            Assert.Equal("HomeButton", order[^1]);
-            Assert.Equal("ForwardButton", order[^2]);
-            Assert.Equal("BackButton", order[^3]);
+            // 后退在前进左边、主页在最右：媒体库那一档收起前进，剩下的正是「后退(左) + 主页(右)」。
+            Assert.True(Array.IndexOf(order, "BackButton") < Array.IndexOf(order, "ForwardButton")
+                && Array.IndexOf(order, "ForwardButton") < Array.IndexOf(order, "HomeButton"), "三颗按钮的先后不对");
         });
-        TestHarness.Test("标题栏工具：设置与搜索站在账号名左边", () =>
+        TestHarness.Test("标题栏工具：设置与搜索排在左上这一排、主页右边", () =>
         {
+            var panel = Named(Shell(), "TitleActions");
+            var order = panel.Elements().Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
+            Assert.True(order.SequenceEqual(new[]
+            {
+                "NavToggleButton", "HomeNavigation", "BackButton", "ForwardButton", "HomeButton", "TitleUtilities"
+            }), "标题栏这一排的顺序不对：" + string.Join('、', order));
             var utilities = Named(Shell(), "TitleUtilities");
             Assert.Equal("StackPanel", utilities.Name.LocalName);
-            Assert.Equal("TitleUtilities", utilities.Attribute(Xaml + "Name")?.Value);
-            Assert.Equal("0", utilities.Attribute("Grid.Column")?.Value);
-            var cluster = utilities.Parent;
-            Assert.Equal("AccountCluster", cluster?.Attribute(Xaml + "Name")?.Value);
             var buttons = utilities.Elements().Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
             Assert.True(buttons.SequenceEqual(new[] { "SettingsButton", "SearchButton" }), "工具按钮顺序不对");
-            Assert.Equal("1", Named(Shell(), "AccountButton").Attribute("Grid.Column")?.Value);
+            Assert.Equal("0", Named(Shell(), "AccountButton").Attribute("Grid.Column")?.Value);
         });
         TestHarness.Test("标题栏导航：两颗箭头的快捷键挂在外壳而不是按钮上", () =>
         {

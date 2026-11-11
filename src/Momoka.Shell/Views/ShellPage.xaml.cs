@@ -431,16 +431,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
         AppTitleBar.Resources["ButtonForegroundPressed"] = _titleInkHover;
         AppTitleBar.Resources["ButtonForegroundDisabled"] = _titleInk;
 
-        // 设置与搜索 2026-11-11 搬到账号那一组（账号名左边），已经不在 AppTitleBar 里：同样的四支墨
-        // 写到它们自己身上，压在同一套文字底上。
-        foreach (var button in new[] { SettingsButton, SearchButton })
-        {
-            button.Resources["ButtonForeground"] = _titleInk;
-            button.Resources["ButtonForegroundPointerOver"] = _titleInkHover;
-            button.Resources["ButtonForegroundPressed"] = _titleInkHover;
-            button.Resources["ButtonForegroundDisabled"] = _titleInk;
-        }
-
         // 账号那几样直接写在元素上，不走键：那行字一个走 FontWeight、一个走 EgDataStyle，而样式自己设了
         // Foreground —— 写在元素上的值压得过样式里的 setter，写进字典里的键则压不过。
         //
@@ -2114,12 +2104,12 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // 侧边栏模式里这一组在左下角、不在标题栏那 40 像素里 —— 报出去就是在一个跟标题栏无关的地方挖洞。
         if (SidebarShown) return null;
 
-        // 挖的是整组：2026-11-11 起设置与搜索也站在这组里（在账号名左边），只挖账号那颗的话，
-        // 那两颗的点击会被窗口当成拖动标题栏吃掉。
-        if (AccountCluster.ActualWidth <= 0 || AccountCluster.ActualHeight <= 0) return null;
+        if (AccountButton.Visibility != Visibility.Visible
+            || AccountButton.ActualWidth <= 0
+            || AccountButton.ActualHeight <= 0) return null;
 
-        var origin = AccountCluster.TransformToVisual(this).TransformPoint(new Windows.Foundation.Point(0, 0));
-        return (origin.X, origin.Y, AccountCluster.ActualWidth, AccountCluster.ActualHeight);
+        var origin = AccountButton.TransformToVisual(this).TransformPoint(new Windows.Foundation.Point(0, 0));
+        return (origin.X, origin.Y, AccountButton.ActualWidth, AccountButton.ActualHeight);
     }
 
     /// <summary>需求 1 的第一颗：「点击后弹出设置窗口」.</summary>
