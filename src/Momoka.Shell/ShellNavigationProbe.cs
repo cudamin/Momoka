@@ -127,6 +127,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("字幕无确认回执、只读恢复与关闭（匿名UIA）", SubtitleDownloadReceiptAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("电影与电视剧网页分类、工具栏、作用域及主题", LibraryBrowseAsync, 120);
             await CaseAsync("Emby与Jellyfin合集菜单权限、移除和恢复（匿名UIA）", LibraryCollectionsAsync, 60, section: ShellProbeSections.Library);
+            await CaseAsync("媒体库多选、权限恢复、取消剩余与逐项结果（匿名UIA）", LibraryBatchAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("Jellyfin 媒体库标签、排序、筛选、布局与建议", JellyfinLibraryAsync, 90);
             await CaseAsync("Jellyfin 两版最新剧集逐集保留（匿名宽窄货架）", JellyfinLatestShelfAsync, 90, section: ShellProbeSections.JellyfinLatest);
             await CaseAsync("Emby与Jellyfin继续观看紧凑页头", LibraryHeaderPolishAsync, 90, section: ShellProbeSections.Library);

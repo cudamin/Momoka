@@ -107,6 +107,7 @@ internal sealed partial class ShellNavigationProbe
         Add("InspectSettingsOpening", "聚合设置开窗", () => SettingsOpeningAsync(inspect: true));
         AddCheck("InspectLibraryCache", "媒体库缓存往返", PerformanceLibraryCacheAsync);
         AddCheck("InspectLibraryCollections", "合集移除与权限", LibraryCollectionsAsync);
+        AddCheck("InspectLibraryBatch", "多选取消与逐项结果", LibraryBatchAsync);
         AddCheck("InspectLibraryDiscoverySearch", "搜索人物合集和列表", LibraryDiscoverySearchAsync);
         AddCheck("InspectLibraryDiscoveryPeople", "Plex人物与题材", LibraryDiscoveryPeopleAsync);
         AddCheck("InspectLibraryDiscoveryFilters", "Plex筛选排序和字母", LibraryDiscoveryFiltersAsync);

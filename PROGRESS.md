@@ -12437,3 +12437,9 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - publish.ps1 -NoArchive -Shortcut退出0；547文件/287.8MB、60批准mpv载荷通过。桌面Momoka.lnk指向主树artifacts/publish/win-x64/Momoka.exe，版本0.2.7.0，12:07生成；没有push/新版本/真实服务器写入或播放。证据artifacts/library-batch2-final。三个子工作树已请求应用归档，证据先复制到主树；当前d614任务树产品已全入master。
 
 - 归档回执确认：library-plex-people、library-plex-filters、library-search-types 三棵子树已由应用归档并从git worktree清单移除；独立证据已保存主树。d614是本聊天原有托管工作区，保持干净，产品内容已全部进入master。
+
+## 2026-11-11 媒体库第三批 Plex证据与多选验收探针（待父树整合）
+
+独立树 C:/Users/89400/.codex/worktrees/library-batch3-plex/Momoka，基点8dea65c。直接读取固定官方Plex Web4.163.0/8246fd2原始JS并核SHA256，跟踪provider默认scrobble action、实际GET调用、UI门控与逐项多选；另读官方plexinc/plex-for-kodi97191f2的video.py95-103/query默认GET。只确证Movie/Series/Season/Episode单项已看复用，不接未确证收藏/合集，不加Emby管理员门控；当前PMS/账号/实际落库未核。精确偏移、哈希与边界在docs/媒体库第三批-Plex与多选验证.md。
+
+新增ShellNavigationProbe.LibraryBatch.cs与InspectLibraryBatch/library注册，覆盖真实选择控件/UIA、1100/760布局、播放和单项动作隐藏、真实确认遮罩取消/预取消零写、合集权限恢复、成功/失败/取消剩余三态、Plex在飞补读先确认/补读失败不重写；反射父树新入口避免把探针复制成假业务。探针本身为实施前验收测试；本树不启动窗口，未得到原生红绿/截图证据，父在整合树串行运行并修最终API差异。Shell/Tests当前Release0警告0错误、Plex单项基线300/300、0失败0跳过，5文本行尾/BOM/空白检查与句柄扫描0missing通过；本树当前Release默认全量4667/4667、失败0/跳过0（153290ms，artifacts/library-batch-plex/tests-full.log），最终探针代码再编译后提交，原生验收由父树进行。未真实服务写入/播放、publish或push。
