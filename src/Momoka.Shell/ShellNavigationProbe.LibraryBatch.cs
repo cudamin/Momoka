@@ -338,9 +338,31 @@ internal sealed partial class ShellNavigationProbe
                 Require(Get<FrameworkElement>(page!, "LibraryBatchSurface").Visibility == Visibility.Visible
                     && result.Visibility == Visibility.Visible && result.IsOpen && result.ActualHeight > 0,
                     "移出最后全部成员后结果面板丢失");
-                Require(Get<TextBlock>(page!, "LibraryItemCount").Text == "共 0 项"
-                    && Get<ItemsView>(page!, "CardWall").SelectedItems.Count == 0,
-                    "空合集仍保留旧总数或旧选择");
+                var countText = Get<TextBlock>(page!, "LibraryItemCount").Text;
+                var total = Get<int>(page.ViewModel, "_total");
+                var listPage = page.ViewModel.GetType().GetProperty("IsJellyfinListPage", BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.GetValue(page.ViewModel) is true;
+                var selected = Get<ItemsView>(page!, "CardWall").SelectedItems.ToArray();
+                await SaveProbeScreenAsync($"library-batch-collections-{kind}-empty-before-assert-screen.png");
+                await File.WriteAllTextAsync(Path.Combine(_options.Paths.LogDirectory, $"library-batch-collections-{kind}-empty-readings.json"),
+                    JsonSerializer.Serialize(new
+                    {
+                        Product = kind.ToString(),
+                        Total = total,
+                        VmTotalLabel = page.ViewModel.TotalLabel,
+                        ItemCountText = countText,
+                        IsJellyfinListPage = listPage,
+                        Cards = page.ViewModel.Cards.Select(card => card.Item.Id).ToArray(),
+                        SelectedCount = selected.Length,
+                        Selected = selected.Select(item => item is CardItem card ? card.Item.Id : item.GetType().FullName).ToArray(),
+                        Members = server.Members.ToArray(),
+                        Results = BatchStatuses(page)
+                    }, new JsonSerializerOptions { WriteIndented = true }));
+                Require(total == 0, $"空合集VM总数未归零：{total}");
+                var expectedCount = listPage ? "0 的 0-0" : "共 0 项";
+                Require(countText == expectedCount,
+                    $"空合集总数文本未更新：VM={page.ViewModel.TotalLabel}，控件={countText}，预期={expectedCount}");
+                Require(selected.Length == 0, "空合集仍保留旧选择：" + string.Join(',', selected.OfType<CardItem>().Select(card => card.Item.Id)));
                 Require(server.Members.Count == 0 && server.Removes.All(write => write.Method == (kind == MediaServerKind.Emby ? "POST" : "DELETE")),
                     "批移出没有复用Emby/Jellyfin各自成员关系路由");
                 foreach (var id in new[] { "101", "102", "103" })

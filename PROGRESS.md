@@ -12452,3 +12452,5 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 匿名原生InspectLibraryBatch先复现首次选择通知重入，修正后Emby/Jellyfin/Plex1100/760、真实ItemContainer与UIA选择、确认取消、部分失败/取消剩余、权限显隐恢复、Plex补读失败全部通过；12张截图已核代表宽窄/错误反馈。证据artifacts/library-batch3/native-first-red和native-multiselect-pass；非真实服务器写入或播放。
 - 合集真实加入/移除补测与飞牛移出/恢复尚在整合；master仍8dea65c，快捷方式仍旧版。完成最终批次、合入主树重验再发布；本批未获push授权，不上传。
 - 2026-11-11 第三批批合集原生验收补充：仅扩ShellNavigationProbe.LibraryBatch.cs，LibraryBatchAsync开头顺序调用LibraryBatchCollectionsAsync；Emby/Jellyfin各走真实多选菜单、既有set选择表/Primary加入三项，再开set成员页实际确认移出三项，核空页结果仍可见且逐项Succeeded、原媒体/收藏/观看进度不改。读写均匿名假HTTP，实际UI由父树串行执行；独立树首次编译有page导航nullable警告，改为明确类型/空值拒绝后重编零警告再提交；文本检查通过，不重复主套件、不启动窗口。
+
+- 2026-11-11 批合集原生红读数补全：父树Emby三项加入/移空与成功回执已完成后，原合并断言无法区分总数文本与原生选择异常；探针在断言前留真实空页截图和原始JSON（VM总数/文字、控件Text、原生SelectedItems、成员及逐项结果），分开断言，Jellyfin list词法按0的0-0核对。不据猜测改产品；父树统一编译并重跑，独立树未UI/编译/全量。
