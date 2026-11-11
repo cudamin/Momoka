@@ -34,15 +34,21 @@
     FontFamily="{StaticResource EgUiFontFamily}"
     FontSize="{StaticResource EgBodyFontSize}">
 
+    <!-- 两支箭头的 Alt+← / Alt+→ 挂在外壳上，而不是按钮自己：主页上那两颗按钮收着
+         （2026-11-11 用户令「主页不显示前进后退按钮」），快捷键不该跟着失效。 -->
     <UserControl.KeyboardAccelerators>
+        <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="OnBackInvoked" />
         <KeyboardAccelerator Key="Right" Modifiers="Menu" Invoked="OnForwardInvoked" />
     </UserControl.KeyboardAccelerators>
 
     <!--
       外壳一行，浮在页面上面，40 像素高（<c>ChromeHeight</c>）：
 
-        没有侧边栏： 主页 · 设置 · 搜索 · 收藏 · 后退 ┄┄ 拖动区 ┄┄ 账号 ┄┄ 系统那三颗窗口按钮
-        侧边栏模式： 导航开关(≡) · 收藏 · 后退 ┄┄ 拖动区 ┄┄ 系统那三颗窗口按钮
+        左端（页面导航）：首页/收藏胶囊（首页与收藏页）· 后退 · 前进 · 主页
+        首页/收藏页只有胶囊（2026-11-11 用户令「主页不显示前进后退按钮」）；
+        媒体库与媒体详情页只有 后退(左) + 主页(右)，前进收起；其余页面 后退 · 前进 · 主页。
+        右端（工具与身份）：设置 · 搜索 · 账号（用户名 · 服务器名） ┄┄ 系统那三颗窗口按钮
+        设置与搜索 2026-11-11 从左边挪到账号名左边（用户令）；侧边栏模式里它们收回栏里。
         ────────────────────────────────────────────────────────────────────
         页面（从窗口最左边开始；侧边栏模式时它让开那条栏的宽）
 
@@ -143,37 +149,68 @@
                         <PathIcon Data="F1 M 3.5,6 L 20.5,6 A 0.9,0.9 0 0 1 20.5,7.8 L 3.5,7.8 A 0.9,0.9 0 0 1 3.5,6 Z M 3.5,11.1 L 20.5,11.1 A 0.9,0.9 0 0 1 20.5,12.9 L 3.5,12.9 A 0.9,0.9 0 0 1 3.5,11.1 Z M 3.5,16.2 L 20.5,16.2 A 0.9,0.9 0 0 1 20.5,18 L 3.5,18 A 0.9,0.9 0 0 1 3.5,16.2 Z" />
                     </Viewbox>
                 </Button>
+                <!-- 首页／收藏胶囊。2026-11-11 用户令「移到主页左上角，替换原有的按钮」：它站在主页那颗
+                     按钮的位置上，只在首页与收藏页现身 —— 其余页面收起、主页按钮回来。高透明亚克力 12%、
+                     选中项底色 EgOverlayPressedBrush，主题与高对比度由 PaintHomeNavigation 跟着换。
+                     收藏那半按来源能力显隐：纯 Plex 这类没有收藏的服务器只留「首页」。 -->
+                <SelectorBar x:Name="HomeNavigation" Height="32" Padding="2" CornerRadius="16"
+                    VerticalAlignment="Center" Visibility="Collapsed" AutomationProperties.Name="首页与收藏">
+                    <SelectorBar.Resources>
+                        <ResourceDictionary>
+                            <ResourceDictionary.ThemeDictionaries>
+                                <ResourceDictionary x:Key="Dark">
+                                    <AcrylicBrush x:Key="HomeNavigationBrush" TintOpacity="0.12" TintLuminosityOpacity="0.12" />
+                                    <StaticResource x:Key="SelectorBarItemForegroundSelected" ResourceKey="EgTextBrush" />
+                                </ResourceDictionary>
+                                <ResourceDictionary x:Key="Light">
+                                    <AcrylicBrush x:Key="HomeNavigationBrush" TintOpacity="0.12" TintLuminosityOpacity="0.12" />
+                                    <StaticResource x:Key="SelectorBarItemForegroundSelected" ResourceKey="EgTextBrush" />
+                                </ResourceDictionary>
+                                <ResourceDictionary x:Key="HighContrast">
+                                    <SolidColorBrush x:Key="HomeNavigationBrush" Color="{ThemeResource SystemColorWindowColor}" />
+                                    <StaticResource x:Key="SelectorBarItemForegroundSelected" ResourceKey="SystemColorHighlightTextColor" />
+                                    <StaticResource x:Key="SelectorBarItemForegroundPointerOver" ResourceKey="SystemColorHighlightTextColor" />
+                                    <StaticResource x:Key="SelectorBarItemForegroundPressed" ResourceKey="SystemColorHighlightTextColor" />
+                                </ResourceDictionary>
+                            </ResourceDictionary.ThemeDictionaries>
+                            <StaticResource x:Key="SelectorBarItemBackgroundSelected" ResourceKey="EgOverlayPressedBrush" />
+                            <StaticResource x:Key="SelectorBarItemBackgroundPointerOver" ResourceKey="EgSurfaceHoverBrush" />
+                            <StaticResource x:Key="SelectorBarItemBackgroundPressed" ResourceKey="EgSurfaceElevatedBrush" />
+                            <StaticResource x:Key="SelectorBarItemForeground" ResourceKey="EgTextDimBrush" />
+                            <StaticResource x:Key="SelectorBarItemForegroundPointerOver" ResourceKey="EgTextBrush" />
+                            <StaticResource x:Key="SelectorBarItemForegroundPressed" ResourceKey="EgTextBrush" />
+                            <StaticResource x:Key="SelectorBarItemPillFill" ResourceKey="SubtleFillColorTransparentBrush" />
+                            <Style x:Key="HomeNavigationItemStyle" TargetType="SelectorBarItem">
+                                <Setter Property="Height" Value="28" />
+                                <Setter Property="MinHeight" Value="28" />
+                                <Setter Property="MinWidth" Value="56" />
+                                <Setter Property="Padding" Value="12,4" />
+                                <Setter Property="CornerRadius" Value="14" />
+                                <Setter Property="FontSize" Value="{StaticResource EgBodyFontSize}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                            </Style>
+                        </ResourceDictionary>
+                    </SelectorBar.Resources>
+                    <SelectorBarItem x:Name="HomeNavigationHome" Text="首页" AutomationProperties.Name="首页" Style="{StaticResource HomeNavigationItemStyle}" />
+                    <SelectorBarItem x:Name="HomeNavigationFavorites" Text="收藏" AutomationProperties.Name="收藏" Style="{StaticResource HomeNavigationItemStyle}" />
+                </SelectorBar>
+                <Button x:Name="BackButton" x:Uid="ShellPage_BackButton" Click="OnBackClicked" IsEnabled="False">
+                    <Viewbox Width="26" Height="26">
+                        <PathIcon Data="F1 M 11.74,5.73 L 4.94,12.63 A 0.9,0.9 0 0 1 3.66,11.37 L 10.46,4.47 A 0.9,0.9 0 0 1 11.74,5.73 Z M 4.94,11.37 L 11.74,18.27 A 0.9,0.9 0 0 1 10.46,19.53 L 3.66,12.63 A 0.9,0.9 0 0 1 4.94,11.37 Z M 4.6,11.1 L 20.3,11.1 A 0.9,0.9 0 0 1 20.3,12.9 L 4.6,12.9 A 0.9,0.9 0 0 1 4.6,11.1 Z" />
+                    </Viewbox>
+                </Button>
+                <Button x:Name="ForwardButton" x:Uid="ShellPage_ForwardButton" Click="OnForwardClicked" IsEnabled="False">
+                    <Viewbox Width="26" Height="26">
+                        <PathIcon Data="F1 M 13.54,4.47 L 20.34,11.37 A 0.9,0.9 0 0 1 19.06,12.63 L 12.26,5.73 A 0.9,0.9 0 0 1 13.54,4.47 Z M 20.34,12.63 L 13.54,19.53 A 0.9,0.9 0 0 1 12.26,18.27 L 19.06,11.37 A 0.9,0.9 0 0 1 20.34,12.63 Z M 3.7,11.1 L 19.4,11.1 A 0.9,0.9 0 0 1 19.4,12.9 L 3.7,12.9 A 0.9,0.9 0 0 1 3.7,11.1 Z" />
+                    </Viewbox>
+                </Button>
                 <Button x:Name="HomeButton" x:Uid="ShellPage_HomeButton" Click="OnHomeClicked">
                     <Viewbox Width="26" Height="26">
                         <PathIcon Data="F1 M 2.92,9.61 L 11.42,2.51 A 0.9,0.9 0 0 1 12.58,3.89 L 4.08,10.99 A 0.9,0.9 0 0 1 2.92,9.61 Z M 12.58,2.51 L 21.08,9.61 A 0.9,0.9 0 0 1 19.92,10.99 L 11.42,3.89 A 0.9,0.9 0 0 1 12.58,2.51 Z M 6.1,9.2 L 6.1,20 A 0.9,0.9 0 0 1 4.3,20 L 4.3,9.2 A 0.9,0.9 0 0 1 6.1,9.2 Z M 5.2,19.1 L 9.5,19.1 A 0.9,0.9 0 0 1 9.5,20.9 L 5.2,20.9 A 0.9,0.9 0 0 1 5.2,19.1 Z M 8.6,20 L 8.6,14.5 A 0.9,0.9 0 0 1 10.4,14.5 L 10.4,20 A 0.9,0.9 0 0 1 8.6,20 Z M 9.5,13.6 L 14.5,13.6 A 0.9,0.9 0 0 1 14.5,15.4 L 9.5,15.4 A 0.9,0.9 0 0 1 9.5,13.6 Z M 15.4,14.5 L 15.4,20 A 0.9,0.9 0 0 1 13.6,20 L 13.6,14.5 A 0.9,0.9 0 0 1 15.4,14.5 Z M 14.5,19.1 L 18.8,19.1 A 0.9,0.9 0 0 1 18.8,20.9 L 14.5,20.9 A 0.9,0.9 0 0 1 14.5,19.1 Z M 17.9,20 L 17.9,9.2 A 0.9,0.9 0 0 1 19.7,9.2 L 19.7,20 A 0.9,0.9 0 0 1 17.9,20 Z" />
                     </Viewbox>
                 </Button>
-                <Button x:Name="SettingsButton" x:Uid="ShellPage_SettingsButton" Click="OnSettingsClicked">
-                    <Viewbox Width="26" Height="26">
-                        <PathIcon Data="F1 M 8.14,5.11 L 9.09,2.46 A 0.83,0.83 0 0 1 10.64,3.02 L 9.69,5.66 A 0.83,0.83 0 0 1 8.14,5.11 Z M 9.86,1.92 L 14.14,1.92 A 0.83,0.83 0 0 1 14.14,3.57 L 9.86,3.57 A 0.83,0.83 0 0 1 9.86,1.92 Z M 14.91,2.46 L 15.86,5.11 A 0.83,0.83 0 0 1 14.31,5.66 L 13.36,3.02 A 0.83,0.83 0 0 1 14.91,2.46 Z M 15.5,4.67 L 16.6,5.31 A 0.83,0.83 0 0 1 15.77,6.73 L 14.67,6.1 A 0.83,0.83 0 0 1 15.5,4.67 Z M 16.04,5.21 L 18.8,4.71 A 0.83,0.83 0 0 1 19.09,6.33 L 16.33,6.83 A 0.83,0.83 0 0 1 16.04,5.21 Z M 19.66,5.11 L 21.8,8.81 A 0.83,0.83 0 0 1 20.37,9.63 L 18.23,5.93 A 0.83,0.83 0 0 1 19.66,5.11 Z M 21.71,9.76 L 19.9,11.9 A 0.83,0.83 0 0 1 18.64,10.83 L 20.46,8.69 A 0.83,0.83 0 0 1 21.71,9.76 Z M 20.1,11.36 L 20.1,12.64 A 0.83,0.83 0 0 1 18.45,12.64 L 18.45,11.36 A 0.83,0.83 0 0 1 20.1,11.36 Z M 19.9,12.1 L 21.71,14.24 A 0.83,0.83 0 0 1 20.46,15.31 L 18.64,13.17 A 0.83,0.83 0 0 1 19.9,12.1 Z M 21.8,15.19 L 19.66,18.89 A 0.83,0.83 0 0 1 18.23,18.07 L 20.37,14.37 A 0.83,0.83 0 0 1 21.8,15.19 Z M 18.8,19.29 L 16.04,18.79 A 0.83,0.83 0 0 1 16.33,17.17 L 19.09,17.67 A 0.83,0.83 0 0 1 18.8,19.29 Z M 16.6,18.69 L 15.5,19.33 A 0.83,0.83 0 0 1 14.67,17.9 L 15.77,17.27 A 0.83,0.83 0 0 1 16.6,18.69 Z M 15.86,18.89 L 14.91,21.54 A 0.83,0.83 0 0 1 13.36,20.98 L 14.31,18.34 A 0.83,0.83 0 0 1 15.86,18.89 Z M 14.14,22.08 L 9.86,22.08 A 0.83,0.83 0 0 1 9.86,20.43 L 14.14,20.43 A 0.83,0.83 0 0 1 14.14,22.08 Z M 9.09,21.54 L 8.14,18.89 A 0.83,0.83 0 0 1 9.69,18.34 L 10.64,20.98 A 0.83,0.83 0 0 1 9.09,21.54 Z M 8.5,19.33 L 7.4,18.69 A 0.83,0.83 0 0 1 8.23,17.27 L 9.33,17.9 A 0.83,0.83 0 0 1 8.5,19.33 Z M 7.96,18.79 L 5.2,19.29 A 0.83,0.83 0 0 1 4.91,17.67 L 7.67,17.17 A 0.83,0.83 0 0 1 7.96,18.79 Z M 4.34,18.89 L 2.2,15.19 A 0.83,0.83 0 0 1 3.63,14.37 L 5.77,18.07 A 0.83,0.83 0 0 1 4.34,18.89 Z M 2.29,14.24 L 4.1,12.1 A 0.83,0.83 0 0 1 5.36,13.17 L 3.54,15.31 A 0.83,0.83 0 0 1 2.29,14.24 Z M 3.9,12.64 L 3.9,11.36 A 0.83,0.83 0 0 1 5.55,11.36 L 5.55,12.64 A 0.83,0.83 0 0 1 3.9,12.64 Z M 4.1,11.9 L 2.29,9.76 A 0.83,0.83 0 0 1 3.54,8.69 L 5.36,10.83 A 0.83,0.83 0 0 1 4.1,11.9 Z M 2.2,8.81 L 4.34,5.11 A 0.83,0.83 0 0 1 5.77,5.93 L 3.63,9.63 A 0.83,0.83 0 0 1 2.2,8.81 Z M 5.2,4.71 L 7.96,5.21 A 0.83,0.83 0 0 1 7.67,6.83 L 4.91,6.33 A 0.83,0.83 0 0 1 5.2,4.71 Z M 7.4,5.31 L 8.5,4.67 A 0.83,0.83 0 0 1 9.33,6.1 L 8.23,6.73 A 0.83,0.83 0 0 1 7.4,5.31 Z M 12,8.28 A 3.72,3.72 0 1 1 12,15.73 A 3.72,3.72 0 1 1 12,8.28 Z M 12,9.93 A 2.08,2.08 0 1 0 12,14.08 A 2.08,2.08 0 1 0 12,9.93 Z" />
-                    </Viewbox>
-                </Button>
-                <Button x:Name="SearchButton" x:Uid="ShellPage_SearchButton" Click="OnSearchClicked">
-                    <Viewbox Width="26" Height="26">
-                        <PathIcon Data="F1 M 10.25,2.75 A 7.5,7.5 0 1 1 10.25,17.75 A 7.5,7.5 0 1 1 10.25,2.75 Z M 10.25,4.55 A 5.7,5.7 0 1 0 10.25,15.95 A 5.7,5.7 0 1 0 10.25,4.55 Z M 16.19,14.91 L 21.64,20.36 A 0.9,0.9 0 0 1 20.36,21.64 L 14.91,16.19 A 0.9,0.9 0 0 1 16.19,14.91 Z" />
-                    </Viewbox>
-                </Button>
-                <Button x:Name="FavoritesButton" Click="OnFavoritesClicked"
-                    Visibility="{x:Bind Favorites.Visibility, Mode=OneWay}"
-                    AutomationProperties.Name="收藏" ToolTipService.ToolTip="收藏">
-                    <Viewbox Width="26" Height="26">
-                        <PathIcon Data="F0 M 12,2.6 Q 12.7,2.6 13.1,3.4 L 15.6,8.4 L 21.1,9.2 Q 22.3,9.4 21.4,10.3 L 17.4,14.2 L 18.3,19.7 Q 18.5,20.9 17.4,20.3 L 12,17.5 L 6.6,20.3 Q 5.5,20.9 5.7,19.7 L 6.6,14.2 L 2.6,10.3 Q 1.7,9.4 2.9,9.2 L 8.4,8.4 L 10.9,3.4 Q 11.3,2.6 12,2.6 Z M 12,5 L 9.6,9.9 L 4.2,10.7 L 8.1,14.5 L 7.5,18.2 L 12,15.8 L 16.5,18.2 L 15.9,14.5 L 19.8,10.7 L 14.4,9.9 Z" />
-                    </Viewbox>
-                </Button>
-                <Button x:Name="BackButton" x:Uid="ShellPage_BackButton" Click="OnBackClicked" IsEnabled="False">
-                    <Button.KeyboardAccelerators>
-                        <KeyboardAccelerator Key="Left" Modifiers="Menu" />
-                    </Button.KeyboardAccelerators>
-                    <Viewbox Width="26" Height="26">
-                        <PathIcon Data="F1 M 11.74,5.73 L 4.94,12.63 A 0.9,0.9 0 0 1 3.66,11.37 L 10.46,4.47 A 0.9,0.9 0 0 1 11.74,5.73 Z M 4.94,11.37 L 11.74,18.27 A 0.9,0.9 0 0 1 10.46,19.53 L 3.66,12.63 A 0.9,0.9 0 0 1 4.94,11.37 Z M 4.6,11.1 L 20.3,11.1 A 0.9,0.9 0 0 1 20.3,12.9 L 4.6,12.9 A 0.9,0.9 0 0 1 4.6,11.1 Z" />
-                    </Viewbox>
-                </Button>
-            </StackPanel>
+                </StackPanel>
         </Grid>
 
     </Grid>
@@ -203,14 +240,41 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
+            <!-- 设置与搜索（2026-11-11 用户令「设置和搜索移到左上，用户名和服务器名的左边」）：挪到账号那一组
+                 的左边，与它同一行。侧边栏模式里两颗收起 —— 那一档设置与搜索都在栏里。 -->
+            <StackPanel
+                x:Name="TitleUtilities"
+                Grid.Row="0"
+                Grid.Column="0"
+                Orientation="Horizontal"
+                Spacing="2"
+                Margin="0,2,8,0"
+                VerticalAlignment="Top">
+                <!-- 这两颗从标题栏那一排搬过来，那边的 Button 样式够不着了：高度、宽度、透明底和圆角
+                     在这里自己写一遍，墨由 PaintTitleInk 直接写进各自的资源。 -->
+                <Button x:Name="SettingsButton" x:Uid="ShellPage_SettingsButton" Click="OnSettingsClicked"
+                    Height="32" Width="42" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="8">
+                    <Viewbox Width="26" Height="26">
+                        <PathIcon Data="F1 M 8.14,5.11 L 9.09,2.46 A 0.83,0.83 0 0 1 10.64,3.02 L 9.69,5.66 A 0.83,0.83 0 0 1 8.14,5.11 Z M 9.86,1.92 L 14.14,1.92 A 0.83,0.83 0 0 1 14.14,3.57 L 9.86,3.57 A 0.83,0.83 0 0 1 9.86,1.92 Z M 14.91,2.46 L 15.86,5.11 A 0.83,0.83 0 0 1 14.31,5.66 L 13.36,3.02 A 0.83,0.83 0 0 1 14.91,2.46 Z M 15.5,4.67 L 16.6,5.31 A 0.83,0.83 0 0 1 15.77,6.73 L 14.67,6.1 A 0.83,0.83 0 0 1 15.5,4.67 Z M 16.04,5.21 L 18.8,4.71 A 0.83,0.83 0 0 1 19.09,6.33 L 16.33,6.83 A 0.83,0.83 0 0 1 16.04,5.21 Z M 19.66,5.11 L 21.8,8.81 A 0.83,0.83 0 0 1 20.37,9.63 L 18.23,5.93 A 0.83,0.83 0 0 1 19.66,5.11 Z M 21.71,9.76 L 19.9,11.9 A 0.83,0.83 0 0 1 18.64,10.83 L 20.46,8.69 A 0.83,0.83 0 0 1 21.71,9.76 Z M 20.1,11.36 L 20.1,12.64 A 0.83,0.83 0 0 1 18.45,12.64 L 18.45,11.36 A 0.83,0.83 0 0 1 20.1,11.36 Z M 19.9,12.1 L 21.71,14.24 A 0.83,0.83 0 0 1 20.46,15.31 L 18.64,13.17 A 0.83,0.83 0 0 1 19.9,12.1 Z M 21.8,15.19 L 19.66,18.89 A 0.83,0.83 0 0 1 18.23,18.07 L 20.37,14.37 A 0.83,0.83 0 0 1 21.8,15.19 Z M 18.8,19.29 L 16.04,18.79 A 0.83,0.83 0 0 1 16.33,17.17 L 19.09,17.67 A 0.83,0.83 0 0 1 18.8,19.29 Z M 16.6,18.69 L 15.5,19.33 A 0.83,0.83 0 0 1 14.67,17.9 L 15.77,17.27 A 0.83,0.83 0 0 1 16.6,18.69 Z M 15.86,18.89 L 14.91,21.54 A 0.83,0.83 0 0 1 13.36,20.98 L 14.31,18.34 A 0.83,0.83 0 0 1 15.86,18.89 Z M 14.14,22.08 L 9.86,22.08 A 0.83,0.83 0 0 1 9.86,20.43 L 14.14,20.43 A 0.83,0.83 0 0 1 14.14,22.08 Z M 9.09,21.54 L 8.14,18.89 A 0.83,0.83 0 0 1 9.69,18.34 L 10.64,20.98 A 0.83,0.83 0 0 1 9.09,21.54 Z M 8.5,19.33 L 7.4,18.69 A 0.83,0.83 0 0 1 8.23,17.27 L 9.33,17.9 A 0.83,0.83 0 0 1 8.5,19.33 Z M 7.96,18.79 L 5.2,19.29 A 0.83,0.83 0 0 1 4.91,17.67 L 7.67,17.17 A 0.83,0.83 0 0 1 7.96,18.79 Z M 4.34,18.89 L 2.2,15.19 A 0.83,0.83 0 0 1 3.63,14.37 L 5.77,18.07 A 0.83,0.83 0 0 1 4.34,18.89 Z M 2.29,14.24 L 4.1,12.1 A 0.83,0.83 0 0 1 5.36,13.17 L 3.54,15.31 A 0.83,0.83 0 0 1 2.29,14.24 Z M 3.9,12.64 L 3.9,11.36 A 0.83,0.83 0 0 1 5.55,11.36 L 5.55,12.64 A 0.83,0.83 0 0 1 3.9,12.64 Z M 4.1,11.9 L 2.29,9.76 A 0.83,0.83 0 0 1 3.54,8.69 L 5.36,10.83 A 0.83,0.83 0 0 1 4.1,11.9 Z M 2.2,8.81 L 4.34,5.11 A 0.83,0.83 0 0 1 5.77,5.93 L 3.63,9.63 A 0.83,0.83 0 0 1 2.2,8.81 Z M 5.2,4.71 L 7.96,5.21 A 0.83,0.83 0 0 1 7.67,6.83 L 4.91,6.33 A 0.83,0.83 0 0 1 5.2,4.71 Z M 7.4,5.31 L 8.5,4.67 A 0.83,0.83 0 0 1 9.33,6.1 L 8.23,6.73 A 0.83,0.83 0 0 1 7.4,5.31 Z M 12,8.28 A 3.72,3.72 0 1 1 12,15.73 A 3.72,3.72 0 1 1 12,8.28 Z M 12,9.93 A 2.08,2.08 0 1 0 12,14.08 A 2.08,2.08 0 1 0 12,9.93 Z" />
+                    </Viewbox>
+                </Button>
+                <Button x:Name="SearchButton" x:Uid="ShellPage_SearchButton" Click="OnSearchClicked"
+                    Height="32" Width="42" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="8">
+                    <Viewbox Width="26" Height="26">
+                        <PathIcon Data="F1 M 10.25,2.75 A 7.5,7.5 0 1 1 10.25,17.75 A 7.5,7.5 0 1 1 10.25,2.75 Z M 10.25,4.55 A 5.7,5.7 0 1 0 10.25,15.95 A 5.7,5.7 0 1 0 10.25,4.55 Z M 16.19,14.91 L 21.64,20.36 A 0.9,0.9 0 0 1 20.36,21.64 L 14.91,16.19 A 0.9,0.9 0 0 1 16.19,14.91 Z" />
+                    </Viewbox>
+                </Button>
+            </StackPanel>
+
             <Button
                 x:Name="AccountButton"
                 Grid.Row="0"
-                Grid.Column="0"
+                Grid.Column="1"
                 Padding="10,3"
                 MaxWidth="240"
                 HorizontalAlignment="Stretch"
@@ -372,7 +436,7 @@
                 x:Name="SidebarSettingsButton"
                 x:Uid="ShellPage_SidebarSettingsButton"
                 Grid.Row="0"
-                Grid.Column="1"
+                Grid.Column="2"
                 Padding="10,3"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Center"

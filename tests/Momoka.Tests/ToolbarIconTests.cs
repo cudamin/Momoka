@@ -9,31 +9,66 @@ internal static class ToolbarIconTests
 
     internal static void Register()
     {
-        TestHarness.Test("标题栏收藏：入口在左上角且跟随收藏状态隐藏", () =>
+        TestHarness.Test("标题栏首页收藏：胶囊在左上角，占的是主页按钮的位置", () =>
+        {
+            var panel = Named(Shell(), "TitleActions");
+            var order = panel.Elements().Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
+            var pill = Array.IndexOf(order, "HomeNavigation");
+            Assert.True(pill > 0, "标题栏里找不到首页/收藏胶囊");
+            // 胶囊 · 后退 · 前进 · 主页：媒体库与详情页收起前进，剩下「后退(左) + 主页(右)」。
+            Assert.Equal("BackButton", order[pill + 1]);
+            Assert.Equal("ForwardButton", order[pill + 2]);
+            Assert.Equal("HomeButton", order[pill + 3]);
+            Assert.Equal("NavToggleButton", order[pill - 1]);
+
+            var bar = Named(Shell(), "HomeNavigation");
+            Assert.Equal("SelectorBar", bar.Name.LocalName);
+            Assert.Equal("Collapsed", bar.Attribute("Visibility")?.Value);
+            Assert.Equal("首页与收藏", bar.Attribute("AutomationProperties.Name")?.Value);
+            var items = bar.Elements().Where(element => element.Name.LocalName == "SelectorBarItem").ToArray();
+            Assert.Equal(2, items.Length);
+            Assert.Equal("HomeNavigationHome", items[0].Attribute(Xaml + "Name")?.Value);
+            Assert.Equal("HomeNavigationFavorites", items[1].Attribute(Xaml + "Name")?.Value);
+            Assert.Equal("首页", items[0].Attribute("Text")?.Value);
+            Assert.Equal("收藏", items[1].Attribute("Text")?.Value);
+            Assert.Equal("首页", items[0].Attribute("AutomationProperties.Name")?.Value);
+            Assert.Equal("收藏", items[1].Attribute("AutomationProperties.Name")?.Value);
+        });
+        TestHarness.Test("标题栏导航：星标退役而前进按钮回来", () =>
         {
             var document = Shell();
-            var button = Named(document, "FavoritesButton");
-            Assert.Equal("Button", button.Name.LocalName);
-            Assert.Equal("TitleActions", button.Parent?.Attribute(Xaml + "Name")?.Value);
-            Assert.Equal("{x:Bind Favorites.Visibility, Mode=OneWay}", button.Attribute("Visibility")?.Value);
-            Assert.Equal("收藏", button.Attribute("AutomationProperties.Name")?.Value);
-            Assert.Equal("收藏", button.Attribute("ToolTipService.ToolTip")?.Value);
-            Assert.True(button.Descendants().Any(element => element.Name.LocalName == "PathIcon"));
+            Assert.True(!document.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "FavoritesButton"));
+            var order = Named(document, "TitleActions").Elements()
+                .Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
+            Assert.Equal("HomeButton", order[^1]);
+            Assert.Equal("ForwardButton", order[^2]);
+            Assert.Equal("BackButton", order[^3]);
         });
-        TestHarness.Test("标题栏导航：旧胶囊与前进按钮没有残留控件", () =>
+        TestHarness.Test("标题栏工具：设置与搜索站在账号名左边", () =>
+        {
+            var utilities = Named(Shell(), "TitleUtilities");
+            Assert.Equal("StackPanel", utilities.Name.LocalName);
+            Assert.Equal("TitleUtilities", utilities.Attribute(Xaml + "Name")?.Value);
+            Assert.Equal("0", utilities.Attribute("Grid.Column")?.Value);
+            var cluster = utilities.Parent;
+            Assert.Equal("AccountCluster", cluster?.Attribute(Xaml + "Name")?.Value);
+            var buttons = utilities.Elements().Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
+            Assert.True(buttons.SequenceEqual(new[] { "SettingsButton", "SearchButton" }), "工具按钮顺序不对");
+            Assert.Equal("1", Named(Shell(), "AccountButton").Attribute("Grid.Column")?.Value);
+        });
+        TestHarness.Test("标题栏导航：两颗箭头的快捷键挂在外壳而不是按钮上", () =>
         {
             var document = Shell();
-            var retired = new[] { "ForwardButton", "HomeNavigation", "HomeNavigationHost", "HomeNavigationHome", "HomeNavigationFavorites" };
-            Assert.True(!document.Descendants().Any(element => retired.Contains(element.Attribute(Xaml + "Name")?.Value)));
-            Assert.Equal("Button", Named(document, "HomeButton").Name.LocalName);
-            Assert.Equal("Button", Named(document, "BackButton").Name.LocalName);
-        });
-        TestHarness.Test("标题栏导航：前进快捷键独立于已移除的按钮", () =>
-        {
-            var accelerator = Shell().Descendants().Single(element => element.Name.LocalName == "KeyboardAccelerator"
-                && element.Attribute("Key")?.Value == "Right" && element.Attribute("Modifiers")?.Value == "Menu");
-            Assert.Equal("UserControl.KeyboardAccelerators", accelerator.Parent?.Name.LocalName);
-            Assert.True(!string.IsNullOrWhiteSpace(accelerator.Attribute("Invoked")?.Value));
+            var accelerators = document.Descendants().Where(element => element.Name.LocalName == "KeyboardAccelerator").ToArray();
+            Assert.Equal(2, accelerators.Length);
+            foreach (var accelerator in accelerators)
+            {
+                Assert.Equal("UserControl.KeyboardAccelerators", accelerator.Parent?.Name.LocalName);
+                Assert.Equal("Menu", accelerator.Attribute("Modifiers")?.Value);
+                Assert.True(!string.IsNullOrWhiteSpace(accelerator.Attribute("Invoked")?.Value));
+            }
+            Assert.Equal("Left", accelerators[0].Attribute("Key")?.Value);
+            Assert.Equal("Right", accelerators[1].Attribute("Key")?.Value);
         });
     }
 
