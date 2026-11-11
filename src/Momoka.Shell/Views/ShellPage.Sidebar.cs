@@ -75,12 +75,12 @@ public sealed partial class ShellPage
         SidebarHost.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
 
         // 导航开关（≡）只在这条栏出现时露脸：没有栏就没有可开可关的东西，而它站在标题栏那一排的最前面
-        // （见 ApplySidebarLayout 的缩进），所以收藏/后退跟在它右边。
+        // （见 ApplySidebarLayout 的缩进），所以收藏/后退/前进跟在它右边。
         NavToggleButton.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
         SettingsButton.Visibility = SearchButton.Visibility =
             shown ? Visibility.Collapsed : Visibility.Visible;
         TitleUtilities.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
-        // 主页与返回每一档都在；设置、搜索、收藏在侧边栏那一档让给栏里的入口（见 SyncTitleActions）。
+        // 主页、返回与前进每一档都在；设置、搜索、收藏在侧边栏那一档让给栏里的入口（见 SyncTitleActions）。
         SyncTitleActions();
         SidebarFavorites.Visibility = Favorites.Visibility;
         SidebarSettingsButton.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;

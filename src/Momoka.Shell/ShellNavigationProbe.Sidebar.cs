@@ -239,7 +239,8 @@ internal sealed partial class ShellNavigationProbe
                     && Get<Button>(shell, "FavoritesButton").Visibility == Visibility.Visible
                     && Get<Button>(shell, "SettingsButton").Visibility == Visibility.Visible
                     && Get<Button>(shell, "SearchButton").Visibility == Visibility.Visible
-                    && Get<Button>(shell, "BackButton").Visibility == Visibility.Visible,
+                    && Get<Button>(shell, "BackButton").Visibility == Visibility.Visible
+                    && Get<Button>(shell, "ForwardButton").Visibility == Visibility.Visible,
                     "媒体库页的标题栏那一排缺了按键");
                 await SaveProbeScreenAsync($"toolbar-navigation-{width}-screen.png");
             }

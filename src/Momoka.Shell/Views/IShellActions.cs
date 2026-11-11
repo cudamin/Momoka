@@ -72,7 +72,7 @@ internal interface IShellActions
     /// <para>
     /// 页面自己说而不是外壳自己猜：那一块是不是一张图要等服务器把「最近添加」送回来才知道，而外壳这边
     /// 没有比这一句更早的时机。收到之后怎么用是外壳的事（见 <c>ShellPage.PaintTitleInk</c>）：系统那三颗
-    /// 永远在工作区那一列的右上角，我们那五颗只在侧边栏收起时才压到图上。
+    /// 永远在工作区那一列的右上角，我们左边那一排只在侧边栏收起时才压到图上。
     /// </para>
     /// </summary>
     void SetTitleStrip(TitleStrip strip);

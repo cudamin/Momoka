@@ -216,7 +216,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Trail.ItemsSource = _trail;
 
         // 鼠标上那两颗侧键。从前它们由 NavigationView 认（连 Alt+← 一起，走 BackRequested）；栏删掉之后
-        // Alt+← 挂在返回按钮，Alt+→ 挂在外壳自己的加速器上，而鼠标侧键没有加速器可挂，只能自己听。
+        // 两支快捷键都挂在外壳自己的加速器上，而鼠标侧键没有加速器可挂，只能自己听。
         // handledEventsToo，因为卡片、列表、滚动视图都会把 PointerPressed 标成已处理 —— 不加这一句，只有
         // 点在空白处才退得回去。
         Root.AddHandler(PointerPressedEvent, new PointerEventHandler(OnRootPointerPressed), handledEventsToo: true);
@@ -283,7 +283,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>只缩放按钮内容，点击范围和非客户区穿透矩形始终保持布局尺寸。</summary>
     private void WireTitleFeedback()
     {
-        foreach (var button in new[] { NavToggleButton, HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, AccountButton })
+        foreach (var button in new[] { NavToggleButton, HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton, AccountButton })
         {
             button.PointerEntered += OnTitlePointerEntered;
             button.PointerExited += OnTitlePointerExited;
@@ -2043,21 +2043,22 @@ public sealed partial class ShellPage : UserControl, IShellActions
         HomeButton.IsEnabled = _session?.IsSignedIn == true && (_current != "home" || _librariesFailed);
         SyncTitleActions();
 
-        ApplyChrome(ContentFrame.CanGoBack, _trail.Count);
+        ApplyChrome(ContentFrame.CanGoBack, ContentFrame.CanGoForward, _trail.Count);
         SyncSidebar();
     }
 
     /// <summary>
-    /// Keep the back button and the breadcrumb row in sync with the current navigation state.
+    /// Keep the two arrows and the breadcrumb row in sync with the current navigation state.
     /// <para>
-    /// 2026-11-11 起返回每一页都在这一排、走不动时只是变暗（用户令「左上角统一留主页、收藏、设置、搜索、
-    /// 返回」）：旧的「首页不显示箭头」「媒体库与详情页只留后退+主页」两条按页型收起的分档同日退役。
-    /// 前进按钮也退了役 —— Alt+→ 仍挂在外壳的加速器上，鼠标前进侧键照旧（见 OnRootPointerPressed）。
+    /// 2026-11-11 起返回与前进每一页都在这一排、走不动时只是变暗（用户令「左上角统一留主页、收藏、设置、
+    /// 搜索、返回」，当晚又令「把左上角的前进键加回去」）：旧的「首页不显示箭头」「媒体库与详情页只留
+    /// 后退+主页」两条按页型收起的分档同日退役。前进只补回刚退回去的那一步（见 <see cref="GoForward"/>）。
     /// </para>
     /// </summary>
-    private void ApplyChrome(bool canGoBack, int crumbs)
+    private void ApplyChrome(bool canGoBack, bool canGoForward, int crumbs)
     {
         BackButton.IsEnabled = canGoBack;
+        ForwardButton.IsEnabled = canGoForward;
 
         // The whole row, not just the trail inside it: one crumb only repeats the heading the page draws
         // right below, and a row left standing empty is a band of nothing 38 pixels tall.
@@ -2067,7 +2068,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>
     /// Tells the window which rectangles of its title bar the shell's buttons occupy, in the island's
     /// logical pixels, so the frame stops answering 「caption」 there and their clicks arrive. Two of them:
-    /// the row of five on the left, and the account button at the right end — which moved into this strip
+    /// the row of buttons on the left, and the account button at the right end — which moved into this strip
     /// when its own row below went away (2026-09-09), and would otherwise read as a drag handle instead of
     /// a button. Measured rather than assumed: the positions depend on the current scale, the icons' own
     /// metrics, and the account name's own width.
@@ -2157,6 +2158,16 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         NavigationTiming.Click("back-button");
         GoBack();
+    }
+
+    /// <summary>
+    /// 标题栏那颗「前进」（2026-11-11 晚按用户令加回，站在返回右边）：只补回刚退回去的那一步 ——
+    /// 前进栈由 <see cref="GoBack"/> 填，别的导航会把它清空，所以它从来不往前开新路。
+    /// </summary>
+    private void OnForwardClicked(object sender, RoutedEventArgs e)
+    {
+        NavigationTiming.Click("forward-button");
+        GoForward();
     }
 
     /// <summary>
@@ -2712,7 +2723,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         RebuildSidebarLibraries();
 
         // 账号那颗也收起来：没登录它没的可切，而且在登录卡上它上面的菜单（切换服务器／注销）一个都不通。
-        // 标题栏那一排（主页、收藏、设置、搜索、返回）照旧留着 —— 它是窗口的外壳。
+        // 标题栏那一排（主页、收藏、设置、搜索、返回、前进）照旧留着 —— 它是窗口的外壳。
         AccountButton.Visibility = Visibility.Collapsed;
         SignIn.Visibility = Visibility.Visible;
 

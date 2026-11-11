@@ -34,8 +34,9 @@
     FontFamily="{StaticResource EgUiFontFamily}"
     FontSize="{StaticResource EgBodyFontSize}">
 
-    <!-- Alt+← / Alt+→ 挂在外壳上，而不是按钮自己：前进按钮 2026-11-11 退役、返回在走不动时只是
-         变暗，但两支快捷键与鼠标侧键都照旧可用。 -->
+    <!-- Alt+← / Alt+→ 挂在外壳上，而不是按钮自己：两支箭头走不动时只是变暗（停用的按钮自己那条
+         加速器不响），而这两支快捷键要一直能按 —— 它们自己查外壳在不在屏上、Frame 的栈里还有没有路。
+         鼠标那两颗侧键是同一条路（见 OnRootPointerPressed）。 -->
     <UserControl.KeyboardAccelerators>
         <KeyboardAccelerator Key="Left" Modifiers="Menu" Invoked="OnBackInvoked" />
         <KeyboardAccelerator Key="Right" Modifiers="Menu" Invoked="OnForwardInvoked" />
@@ -44,9 +45,9 @@
     <!--
       外壳一行，浮在页面上面，40 像素高（<c>ChromeHeight</c>）：
 
-        左端（页面导航，2026-11-11 起按页型不再换脸）：主页 · 收藏（没有收藏时不在）· 设置 · 搜索 · 返回
+        左端（页面导航，2026-11-11 起按页型不再换脸）：主页 · 收藏（没有收藏时不在）· 设置 · 搜索 · 返回 · 前进
         右端（身份）：账号（用户名 · 服务器名） ┄┄ 系统那三颗窗口按钮
-        侧边栏模式里 ≡ 站在最前面，设置／搜索／收藏让给栏里的入口，那一档是 ≡ · 主页 · 返回。
+        侧边栏模式里 ≡ 站在最前面，设置／搜索／收藏让给栏里的入口，那一档是 ≡ · 主页 · 返回 · 前进。
         ────────────────────────────────────────────────────────────────────
         页面（从窗口最左边开始；侧边栏模式时它让开那条栏的宽）
 
@@ -78,12 +79,13 @@
             Background="Transparent">
 
         <!-- App-drawn title bar, laid out the way the Claude app lays the same strip out: a flat row of icon
-             buttons — 主页, 收藏, 设置, 搜索, 返回 — with 返回 dimmed rather than removed when there is
-             nowhere to go.
+             buttons — 主页, 收藏, 设置, 搜索, 返回, 前进 — with both arrows dimmed rather than removed when
+             there is nowhere to go.
 
              2026-11-11 用户令「左上角统一留主页、收藏（没有收藏时隐藏该按钮）、设置、搜索、返回」：这一排
-             从此按页型不再换脸 —— 旧版的首页/收藏胶囊与前进按钮同日退役，五颗（收藏按内容显隐）在所有
-             页面都一样。退不回去的箭头仍只是变暗、不收起，排面因此不会随页面跳动。
+             从此按页型不再换脸 —— 旧版的首页/收藏胶囊同日退役，六颗（收藏按内容显隐）在所有页面都一样。
+             前进按钮当天下午随那批一起退役、当晚又按用户令「把左上角的前进键加回去」站在返回右边回来了，
+             仍是「走不动就变暗」的老规矩。退不回去的箭头只是变暗、不收起，排面因此不会随页面跳动。
 
              需求 1 的第一句是「去掉窗口标题的 Momoka」, so the word is gone; the green mark that used to sit
              at the left end went with 「左上角这个绿标移除掉」. The indent stays, because the strip's left end
@@ -152,8 +154,9 @@
                     </Viewbox>
                 </Button>
                 <!-- 主页。2026-11-11 用户令「左上角统一留主页、收藏、设置、搜索、返回」，于是这一排不再按页型
-                     换脸（旧版：首页/收藏页露胶囊、媒体页只留后退+主页），五颗固定按这个次序从左排到右；
-                     收藏那颗按「有没有收藏」显隐，见 SyncTitleActions。在主页上它自己变暗（见 SyncChrome）。 -->
+                     换脸（旧版：首页/收藏页露胶囊、媒体页只留后退+主页），六颗固定按这个次序从左排到右
+                     （前进当晚加回、排在返回右边）；收藏那颗按「有没有收藏」显隐，见 SyncTitleActions。
+                     在主页上它自己变暗（见 SyncChrome）。 -->
                 <Button x:Name="HomeButton" x:Uid="ShellPage_HomeButton" Click="OnHomeClicked">
                     <Viewbox Width="26" Height="26">
                         <PathIcon Data="F1 M 2.92,9.61 L 11.42,2.51 A 0.9,0.9 0 0 1 12.58,3.89 L 4.08,10.99 A 0.9,0.9 0 0 1 2.92,9.61 Z M 12.58,2.51 L 21.08,9.61 A 0.9,0.9 0 0 1 19.92,10.99 L 11.42,3.89 A 0.9,0.9 0 0 1 12.58,2.51 Z M 6.1,9.2 L 6.1,20 A 0.9,0.9 0 0 1 4.3,20 L 4.3,9.2 A 0.9,0.9 0 0 1 6.1,9.2 Z M 5.2,19.1 L 9.5,19.1 A 0.9,0.9 0 0 1 9.5,20.9 L 5.2,20.9 A 0.9,0.9 0 0 1 5.2,19.1 Z M 8.6,20 L 8.6,14.5 A 0.9,0.9 0 0 1 10.4,14.5 L 10.4,20 A 0.9,0.9 0 0 1 8.6,20 Z M 9.5,13.6 L 14.5,13.6 A 0.9,0.9 0 0 1 14.5,15.4 L 9.5,15.4 A 0.9,0.9 0 0 1 9.5,13.6 Z M 15.4,14.5 L 15.4,20 A 0.9,0.9 0 0 1 13.6,20 L 13.6,14.5 A 0.9,0.9 0 0 1 15.4,14.5 Z M 14.5,19.1 L 18.8,19.1 A 0.9,0.9 0 0 1 18.8,20.9 L 14.5,20.9 A 0.9,0.9 0 0 1 14.5,19.1 Z M 17.9,20 L 17.9,9.2 A 0.9,0.9 0 0 1 19.7,9.2 L 19.7,20 A 0.9,0.9 0 0 1 17.9,20 Z" />
@@ -189,12 +192,18 @@
                         </Viewbox>
                     </Button>
                 </StackPanel>
-                <!-- 返回。2026-11-11 起每一页都在这一排的最右边（用户令「统一留…返回」），走不动时暗着、
-                     不再按页型收起；旧版首页与媒体页是把它摆在主页左边的。前进按钮同日退役 —— Alt+→
-                     仍挂在外壳的加速器上，鼠标前进侧键照旧（见 OnRootPointerPressed）。 -->
+                <!-- 返回与前进：这一排的最后两格。2026-11-11 起每一页都在（用户令「统一留…返回」），走不动时
+                     暗着、不再按页型收起；旧版首页与媒体页是把返回摆在主页左边的。前进当天下午退役、当晚
+                     按用户令加回，就站在返回右边 —— 它只补回「刚退回去那一步」，别处不往前进栈里添东西
+                     （见 GoForward）。两支的 Alt+← / Alt+→ 都挂在外壳上，鼠标侧键同路。 -->
                 <Button x:Name="BackButton" x:Uid="ShellPage_BackButton" Click="OnBackClicked" IsEnabled="False">
                     <Viewbox Width="26" Height="26">
                         <PathIcon Data="F1 M 11.74,5.73 L 4.94,12.63 A 0.9,0.9 0 0 1 3.66,11.37 L 10.46,4.47 A 0.9,0.9 0 0 1 11.74,5.73 Z M 4.94,11.37 L 11.74,18.27 A 0.9,0.9 0 0 1 10.46,19.53 L 3.66,12.63 A 0.9,0.9 0 0 1 4.94,11.37 Z M 4.6,11.1 L 20.3,11.1 A 0.9,0.9 0 0 1 20.3,12.9 L 4.6,12.9 A 0.9,0.9 0 0 1 4.6,11.1 Z" />
+                    </Viewbox>
+                </Button>
+                <Button x:Name="ForwardButton" x:Uid="ShellPage_ForwardButton" Click="OnForwardClicked" IsEnabled="False">
+                    <Viewbox Width="26" Height="26">
+                        <PathIcon Data="F1 M 13.54,4.47 L 20.34,11.37 A 0.9,0.9 0 0 1 19.06,12.63 L 12.26,5.73 A 0.9,0.9 0 0 1 13.54,4.47 Z M 20.34,12.63 L 13.54,19.53 A 0.9,0.9 0 0 1 12.26,18.27 L 19.06,11.37 A 0.9,0.9 0 0 1 20.34,12.63 Z M 3.7,11.1 L 19.4,11.1 A 0.9,0.9 0 0 1 19.4,12.9 L 3.7,12.9 A 0.9,0.9 0 0 1 3.7,11.1 Z" />
                     </Viewbox>
                 </Button>
                 </StackPanel>
@@ -214,7 +223,7 @@
              右上角那一档从顶下 4 像素起（2026-11-01 与按钮同步）：系统那三颗窗口按钮仍是 32 高的标准
              标题栏居中，这一组落在这个位置才和它们同一条中线，不会在加高后的条子里显得贴顶。
 
-             它站在窗口算成标题栏的那 40 像素里（右上角那一档），所以得像左边那五颗一样挖洞
+             它站在窗口算成标题栏的那 40 像素里（右上角那一档），所以得像左边那一排一样挖洞
              （见 ReportTitleBarHoles）；挪进侧边栏之后它在标题栏之外，那一头不再为它挖洞。 -->
         <Grid
             x:Name="AccountCluster"
@@ -565,7 +574,7 @@
         <!-- The shell's one notification channel, replacing the WinForms toast window. Docked at the
              top because the player owns the bottom of the window, and closable because a report of what
              a playback did is worth reading at the user's pace rather than the timer's.
-             顶上 52 = 标题栏那 40 加原来的 12：这一条不该压在那五颗按钮上。 -->
+             顶上 52 = 标题栏那 40 加原来的 12：这一条不该压在那排按钮上。 -->
         <InfoBar
             x:Name="Toast"
             Canvas.ZIndex="30"

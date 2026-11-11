@@ -49,13 +49,14 @@ public sealed partial class ShellPage
     }
 
     /// <summary>
-    /// Check the visible title actions, the back button's state and the breadcrumb depth. The returned
+    /// Check the visible title actions, both arrows' states and the breadcrumb depth. The returned
     /// rectangle also lets the window check its clickable title-bar region after favorites appear or disappear.
     /// <para>
-    /// 2026-11-11 起这一排是一组固定的按键：主页 · 收藏 · 设置 · 搜索 · 返回（用户令「左上角统一留主页、
-    /// 收藏（没有收藏时隐藏该按钮）、设置、搜索、返回」）。按页型换脸的那套判据（胶囊/主页二选一、首页无
-    /// 箭头、媒体页只留后退+主页）随之退役 —— 现在只判三件：该在的都在、顺序就是这个次序、收藏按有没有
-    /// 收藏收放。侧边栏模式里设置/搜索/收藏让给栏里那几份，只余 ≡ · 主页 · 返回。
+    /// 2026-11-11 起这一排是一组固定的按键：主页 · 收藏 · 设置 · 搜索 · 返回 · 前进（用户令「左上角统一留
+    /// 主页、收藏（没有收藏时隐藏该按钮）、设置、搜索、返回」，当晚又令「把左上角的前进键加回去」）。按页型
+    /// 换脸的那套判据（胶囊/主页二选一、首页无箭头、媒体页只留后退+主页）随之退役 —— 现在只判三件：该在的
+    /// 都在、顺序就是这个次序、收藏按有没有收藏收放。侧边栏模式里设置/搜索/收藏让给栏里那几份，只余
+    /// ≡ · 主页 · 返回 · 前进。
     /// </para>
     /// </summary>
     internal TitleActionProbe ProbeTitleActions()
@@ -67,36 +68,43 @@ public sealed partial class ShellPage
             Windows.Foundation.Point At(FrameworkElement element) =>
                 element.TransformToVisual(this).TransformPoint(new Windows.Foundation.Point(0, 0));
 
-            // 顺序必须和视觉顺序一致：主页 · 收藏 · 设置 · 搜索 · 返回（侧栏模式里只余 ≡ · 主页 · 返回）。
+            // 顺序必须和视觉顺序一致：主页 · 收藏 · 设置 · 搜索 · 返回 · 前进（侧栏模式里只余 ≡ · 主页 · 返回 · 前进）。
             FrameworkElement[] candidates = SidebarShown
-                ? [NavToggleButton, HomeButton, BackButton]
-                : [HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton];
+                ? [NavToggleButton, HomeButton, BackButton, ForwardButton]
+                : [HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton];
             var keys = candidates.Where(key => key.Visibility == Visibility.Visible).ToArray();
             // 收藏是唯一会自己收放的一颗：判据与 SyncTitleActions 同一句 —— 有收藏且不在侧边栏模式。
             var favoritesShown = !SidebarShown && _session?.IsSignedIn == true && Favorites.HasItems;
             var slots = HomeButton.Visibility == Visibility.Visible
                 && BackButton.Visibility == Visibility.Visible
+                && ForwardButton.Visibility == Visibility.Visible
                 && FavoritesButton.Visibility == (favoritesShown ? Visibility.Visible : Visibility.Collapsed)
                 && (SidebarShown
                     ? SettingsButton.Visibility == Visibility.Collapsed && SearchButton.Visibility == Visibility.Collapsed
                     : SettingsButton.Visibility == Visibility.Visible && SearchButton.Visibility == Visibility.Visible);
             bool AlwaysOn() => SettingsButton.IsEnabled && SearchButton.IsEnabled;
 
-            ApplyChrome(false, 1);
+            // 哪儿也走不动：两支箭头都在、都暗着（会消失的按键会挪动旁边那些，而这一排就是窗口挖洞的位置）。
+            ApplyChrome(false, false, 1);
             UpdateLayout();
             var idle = Chrome.Visibility == Visibility.Visible
                 && AppTitleBar.Visibility == Visibility.Visible
-                && slots && AlwaysOn() && !BackButton.IsEnabled && TrailBar.Visibility == Visibility.Collapsed;
+                && slots && AlwaysOn() && !BackButton.IsEnabled && !ForwardButton.IsEnabled
+                && TrailBar.Visibility == Visibility.Collapsed;
 
-            ApplyChrome(true, 1);
+            // 只退得回去：返回亮、前进暗。
+            ApplyChrome(true, false, 1);
             UpdateLayout();
-            var shallow = AlwaysOn() && slots && BackButton.IsEnabled && TrailBar.Visibility == Visibility.Collapsed;
+            var shallow = AlwaysOn() && slots && BackButton.IsEnabled && !ForwardButton.IsEnabled
+                && TrailBar.Visibility == Visibility.Collapsed;
 
+            // 退过一步又没被新导航清栈：两支都亮，面包屑那一行也在。
             _trail.Add(new Crumb("自检", string.Empty));
             _trail.Add(new Crumb("自检 · 下一层", string.Empty));
-            ApplyChrome(true, _trail.Count);
+            ApplyChrome(true, true, _trail.Count);
             UpdateLayout();
-            var deep = AlwaysOn() && slots && BackButton.IsEnabled && TrailBar.Visibility == Visibility.Visible;
+            var deep = AlwaysOn() && slots && BackButton.IsEnabled && ForwardButton.IsEnabled
+                && TrailBar.Visibility == Visibility.Visible;
 
             // 位置：整排在标题栏那 40 像素里，左端留白在它左边，页面在它下面。
             var group = At(TitleActions);
@@ -141,14 +149,15 @@ public sealed partial class ShellPage
                     + $"标题栏 {AppTitleBar.ActualWidth:0}×{AppTitleBar.Height:0}，{(inBar ? "整排在里面" : "整排没落在标题栏里")}；"
                     + $"{(lined ? "依次排成一行" : "没排成一行")}；"
                     + $"该在的{(slots ? "都在" : "有缺")}、"
-                    + $"退不回去时{(idle ? "返回按不动、面包屑收起" : "不对")}、"
-                    + $"退得回去时{(shallow ? "返回按得动" : "不对")}、"
-                    + $"多层路径时{(deep ? "返回可用且面包屑可见" : "不对")}；"
+                    + $"哪儿都走不动时{(idle ? "两支箭头按不动、面包屑收起" : "不对")}、"
+                    + $"只退得回去时{(shallow ? "返回亮、前进暗" : "不对")}、"
+                    + $"退过一步时{(deep ? "两支都亮且面包屑可见" : "不对")}；"
                     + $"收藏 {(FavoritesButton.Visibility == Visibility.Visible ? "在" : "收")}"
                     + $"（{(favoritesShown ? "有收藏" : "没有收藏")}）、"
                     + $"设置 {(SettingsButton.Visibility == Visibility.Visible ? "在" : "收")}/{SettingsButton.IsEnabled}、"
                     + $"搜索 {(SearchButton.Visibility == Visibility.Visible ? "在" : "收")}/{SearchButton.IsEnabled}、"
-                    + $"返回 {(BackButton.Visibility == Visibility.Visible ? "在" : "收")}/{BackButton.IsEnabled}",
+                    + $"返回 {(BackButton.Visibility == Visibility.Visible ? "在" : "收")}/{BackButton.IsEnabled}、"
+                    + $"前进 {(ForwardButton.Visibility == Visibility.Visible ? "在" : "收")}/{ForwardButton.IsEnabled}",
                 group.X, group.Y, TitleActions.ActualWidth, TitleActions.ActualHeight);
         }
         finally
@@ -170,7 +179,7 @@ public sealed partial class ShellPage
     /// <item>整条外壳正好 40 高（<c>ChromeHeight</c>）—— 页面顶上让开的那一段就是这个数，少让就是页头被切半行，
     /// 多让就是图上一条底色，而第 1 行没删干净的样子正是这里多出来的那 48。内容区自己的上内边距也得是同一
     /// 个数：标题栏加高时只改一边，页面就会被压掉或露出一条底。</item>
-    /// <item>账号那颗按钮贴着右上角（留在系统那三颗窗口按钮左边），而且和左边那一排五颗同在标题栏那 40 像素里
+    /// <item>账号那颗按钮贴着右上角（留在系统那三颗窗口按钮左边），而且和左边那一排同在标题栏那 40 像素里
     /// —— 它挪进来是第 1 行删掉的后果，落位错了就压不进挖给它的洞，一按就是拖窗口。</item>
     /// <item>账号那两格字的排法跟着落位走：侧边栏展开那一档两行（用户名在上、服务器名在下），其余各档一行
     /// （「名字 · 服务器」）。</item>

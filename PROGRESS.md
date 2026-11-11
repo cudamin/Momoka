@@ -1,3 +1,15 @@
+## 2026-11-12 标题栏加回前进按钮（已提交，未发布：同树有另一批未提交的动效改动）
+
+用户一句「把左上角的前进键加回去」。前进按钮 2026-11-11 下午随「标题栏收藏星标」那批退役，今晚按原位置加回：站在返回右边，仍是「走不动就变暗、不收起」；侧边栏模式那一排是 ≡ · 主页 · 返回 · 前进。
+
+实现：`ShellPage.xaml` 恢复 `ForwardButton`（24 网格右箭头 PathIcon、默认停用、`OnForwardClicked`、`x:Uid=ShellPage_ForwardButton`），`zh-Hans` 补回「前进」两条可访问名称／悬停提示；`ShellPage.xaml.cs` 的 `ApplyChrome` 恢复 `canGoForward` 参数并同步 `ForwardButton.IsEnabled`，`SyncChrome` 从 `Frame.CanGoForward` 取现场，`OnForwardClicked` 走同一条 `GoForward`（只补回刚退回去的那一步），标题反馈名单补上这一颗。Alt+← / Alt+→ 与鼠标侧键不动 —— 仍挂在外壳上（停用按钮自带的加速器不响，挂外壳才一直能按）。
+
+自检与探针：`ProbeTitleActions` 改成三档都验两支箭头（都暗／只返回亮／两支都亮），读数补「前进 在/收、可用与否」；收藏探针的次序断言排到「…返回 < 前进」，历史那一段改成真按前进那颗回收藏页；侧栏探针的媒体页按键齐全断言补上它。句柄基线补 `ForwardButton`；`ToolbarIconTests` 换成正向契约（点击接线、默认停用、无自带加速器、本地化名称），旧「前进已退役」那条改成「胶囊退役、快捷键挂外壳」。`docs/开发与验证.md` 标题栏段落同步。
+
+**验证（受限，见下）**：Shell 与 Momoka.Tests 单编 **0 警告 0 错误**；`toolbar-icon-fixture` **5/5**、`moviepilot-subscription-fixture`（含约定 99 项）**99/99**。整方案构建这一轮红了 1 个项目：`Momoka.SearchLifetimeTests` 的生成代码引用 `SurfaceMotion`／`_settingsScrimMotion` 等，而该夹具的边界替身还没有这些成员 —— 那是同树另一批**未提交** UI 动效改动（`SurfaceMotion.cs`／`GlyphPulse.cs` 未跟踪，详情页、海报卡、媒体库设置面板与 `ShellPage.Music.cs` 已改，新增 `Momoka.UiMotionTests` 并已进 `Momoka.sln`）的中间态，与本轮无关，也没有被我改动。
+
+**未做**：未跑原生探针与截图、未发布 —— 发布会把那批未提交的半成品一起打进 `artifacts/publish/win-x64`。等同树并行改动收尾或用户确认后再补 UI 证据与交付。
+
 ## 2026-11-11 订阅墙与显示模式前置两批一起合入主树并桌面交付
 
 用户先指名 `C:\Users\89400\.codex\worktrees\949b`（分支 `codex/mp-subscription-covers`，顶端 `6621078`），再补一句「一起合并发布了就是」——把当时也在主树等确认的另一批「显示模式前置／简洁模式按钮固定材质」（`5b4d16e`，分支 `workbuddy/master-55cd46d3`）一并合入发布。
