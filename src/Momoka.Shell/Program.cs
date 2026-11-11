@@ -53,6 +53,9 @@ public sealed record StartupOptions
 
     public string? ProbePlayerMotionFile { get; init; }
 
+    public bool ProbeResizeOnly { get; init; }
+    public bool ProbeResizeManual { get; init; }
+
     /// <summary>
     /// 跑测试的时候在第二屏幕跑: which monitor the window opens on. 1-based in the order Windows enumerates
     /// them (<c>--screen 2</c>), <see cref="ScreenPlacement.NotThePrimary"/> for 「any screen but the main
@@ -464,7 +467,10 @@ internal static class Program
             ProbeCursor = CursorVisibilityProbe.IsRequested(args),
             ProbeCursorFile = Text(args, "--probe-cursor"),
             ProbePlayerMotion = PlayerMotionProbe.IsRequested(args),
-            ProbePlayerMotionFile = Text(args, "--probe-player-motion"),
+            ProbePlayerMotionFile = Text(args, "--probe-player-motion") ?? Text(args, "--probe-resize")
+                ?? Text(args, "--probe-resize-manual"),
+            ProbeResizeOnly = PlayerMotionProbe.IsResizeRequested(args),
+            ProbeResizeManual = Text(args, "--probe-resize-manual") is not null,
             Screen = Number(args, "--screen")
                 ?? (selfCheck ? ScreenPlacement.NotThePrimary : ScreenPlacement.WhereverWindows),
             ShowLibrary = Has(args, "--show-library"),

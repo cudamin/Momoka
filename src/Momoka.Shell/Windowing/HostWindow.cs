@@ -789,6 +789,21 @@ internal sealed class HostWindow : IDisposable
     /// <summary>连续调整时的真实客户区，早于 XAML SizeChanged。</summary>
     internal event Action<NativeRect>? ClientSizeChanged;
 
+    /// <summary>Interactive target client rectangle, before USER32 changes the window.</summary>
+    internal event Func<NativeRect, bool>? ClientSizeChanging;
+    private NativeRect? _pendingInteractiveRect;
+
+    internal void CancelPendingInteractiveResize() => _pendingInteractiveRect = null;
+
+    internal void ResumeInteractiveResize()
+    {
+        if (!_interactiveResize || Handle == IntPtr.Zero || _pendingInteractiveRect is not { } pending) return;
+        _pendingInteractiveRect = null;
+        if (!Native.SetWindowPos(Handle, IntPtr.Zero, pending.Left, pending.Top, pending.Width, pending.Height,
+                Native.SwpNoZOrder | Native.SwpNoActivate))
+            throw new InvalidOperationException("恢复拖边目标尺寸失败");
+    }
+
     internal event Action<bool>? InteractiveResizeChanged;
     private bool _interactiveResize;
 
@@ -3194,6 +3209,7 @@ internal sealed class HostWindow : IDisposable
                 break;
 
             case Native.WmExitSizeMove:
+                _pendingInteractiveRect = null;
                 if (_interactiveResize)
                 {
                     _interactiveResize = false;
@@ -3349,6 +3365,27 @@ internal sealed class HostWindow : IDisposable
         proposed.Right = locked.Right;
         proposed.Bottom = locked.Bottom;
         Marshal.StructureToPtr(proposed, lParam, false);
+
+        if (_interactiveResize && Native.GetWindowRect(window, out var outer))
+        {
+            var client = ClientRectOnScreen();
+            var next = new NativeRect
+            {
+                Left = proposed.Left + client.Left - outer.Left,
+                Top = proposed.Top + client.Top - outer.Top
+            };
+            next.Right = next.Left + proposed.Width - (outer.Width - client.Width);
+            next.Bottom = next.Top + proposed.Height - (outer.Height - client.Height);
+            if (next.Width != client.Width || next.Height != client.Height || _pendingInteractiveRect is not null)
+            {
+                if (ClientSizeChanging?.Invoke(next) == false)
+                {
+                    _pendingInteractiveRect = proposed;
+                    Marshal.StructureToPtr(outer, lParam, false);
+                }
+                else _pendingInteractiveRect = null;
+            }
+        }
 
         // TRUE, which is what tells Windows the rectangle was rewritten.
         return new IntPtr(1);

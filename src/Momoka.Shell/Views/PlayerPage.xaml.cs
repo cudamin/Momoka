@@ -531,6 +531,7 @@ public sealed partial class PlayerPage : UserControl
 
         window.ClientRectTransition += OnClientRectTransition;
         window.ClientSizeChanged += OnClientSizeChanged;
+        window.ClientSizeChanging += OnClientSizeChanging;
         window.InteractiveResizeChanged += OnInteractiveResizeChanged;
 
         // mpv.net 的「未激活不藏」（2026-09-16 照搬）：焦点位喂给规则，藏匿条件里那一问由它回答。
@@ -576,6 +577,7 @@ public sealed partial class PlayerPage : UserControl
             _window.GeometryChanged -= OnGeometryChanged;
             _window.ClientRectTransition -= OnClientRectTransition;
             _window.ClientSizeChanged -= OnClientSizeChanged;
+            _window.ClientSizeChanging -= OnClientSizeChanging;
             _window.InteractiveResizeChanged -= OnInteractiveResizeChanged;
         }
         _onStage = false;
@@ -634,6 +636,7 @@ public sealed partial class PlayerPage : UserControl
             _window.GeometryChanged -= OnGeometryChanged;
             _window.ClientRectTransition -= OnClientRectTransition;
             _window.ClientSizeChanged -= OnClientSizeChanged;
+            _window.ClientSizeChanging -= OnClientSizeChanging;
             _window.InteractiveResizeChanged -= OnInteractiveResizeChanged;
         }
 

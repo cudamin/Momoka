@@ -693,6 +693,8 @@ switch  --play
 switch  --probe-composition
 switch  --probe-cursor
 switch  --probe-player-motion
+switch  --probe-resize
+switch  --probe-resize-manual
 switch  --probe-section
 switch  --probe-shell
 switch  --probe-subtitles

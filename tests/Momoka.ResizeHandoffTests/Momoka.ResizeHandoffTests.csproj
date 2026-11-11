@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <SourceRoot Condition="'$(SourceRoot)' == ''">$(MSBuildProjectDirectory)/../..</SourceRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Momoka.Core/Momoka.Core.csproj" />
+    <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
+  </ItemGroup>
+  <UsingTask TaskName="ExtractResizeHandoff" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Root ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string,string,string,string> between = (text,start,end) => {
+          int at=text.IndexOf(start,StringComparison.Ordinal), finish=at < 0 ? -1 : text.IndexOf(end,at+start.Length,StringComparison.Ordinal);
+          if(at<0 || finish<0 || text.IndexOf(start,at+start.Length,StringComparison.Ordinal)>=0) throw new InvalidOperationException("Missing/ambiguous source " + start);
+          return text.Substring(at,finish-at);
+        };
+        Func<string,string> read = path => File.ReadAllText(Path.Combine(Root,path)).Replace("\r\n","\n");
+        string page=read("src/Momoka.Shell/Views/PlayerPage.ClientRect.cs");
+        string interaction=read("src/Momoka.Shell/ViewModels/PlayerViewModel.Interaction.cs");
+        string host=read("src/Momoka.Shell/Windowing/HostWindow.cs");
+        string native=read("src/Momoka.Shell/Interop/Native.cs");
+        string source="#nullable enable\nusing System; using System.Diagnostics; using System.Runtime.InteropServices; using System.Threading; using System.Threading.Tasks; using Momoka.Diagnostics; using Momoka.Emby; using Momoka.Infrastructure; using Momoka.Playback; using Momoka.Shell.Interop; using Momoka.Shell.ViewModels; using Momoka.Shell.Windowing;\n"+
+          "namespace Momoka.Shell.ViewModels { public sealed partial class PlayerViewModel {\n"+
+          between(interaction,"    internal readonly record struct InteractionContext","\n    internal async Task<bool?> ScrollStatsAsync")+"\n} }\n"+
+          "namespace Momoka.Shell.Views { public sealed partial class PlayerPage {\n"+
+          between(page,"    private void SetPaused(bool paused)","\n    /// <summary>\n    /// 缓冲与布局")+
+          between(page,"    private bool OnClientSizeChanging(","\n    private void EnterAutoFullscreen()")+"\n} }\n"+
+          "namespace Momoka.Shell.Windowing { public sealed partial class HostWindow {\n"+
+          between(host,"    internal void CancelPendingInteractiveResize()","\n    internal event Action<bool>? InteractiveResizeChanged;")+
+          between(host,"    private IntPtr LockAspectDuringResize(","\n    /// <summary>\n    /// 窗口能拖到多小")+"\n} }\n"+
+          "namespace Momoka.Shell.Interop {\n"+between(native,"internal struct NativeRect","\n[StructLayout(LayoutKind.Sequential)]\ninternal struct NativePoint")+"\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(Output));
+        File.WriteAllText(Output,source,new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="ExtractHandoff" BeforeTargets="CoreCompile">
+    <ExtractResizeHandoff Root="$(SourceRoot)" Output="$(IntermediateOutputPath)ResizeHandoff.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)ResizeHandoff.g.cs" /></ItemGroup>
+  </Target>
+</Project>
