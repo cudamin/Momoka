@@ -1,4 +1,6 @@
+using Microsoft.UI.Xaml;
 using Momoka.Emby;
+using Momoka.Music;
 using Momoka.Playback;
 
 namespace Momoka.MusicViewModelTests;
@@ -20,7 +22,11 @@ internal static class Program
             ("队列第二页 HTTP 挂起时停止拒绝迟到余页", StopSecondPageAsync),
             ("旧音频事件排队不覆盖新歌曲准备", QueuedAudioAsync),
             ("上一首拖动结束不能 seek 新歌曲", OldScrubAsync),
-            ("页面释放后迟到列表不回填，重新附加能正常读取", ReleaseListAsync)
+            ("页面释放后迟到列表不回填，重新附加能正常读取", ReleaseListAsync),
+            ("分区决定曲目表与封面墙，读数与第二行跟着换", SectionShapeAsync),
+            ("专辑容器里的曲目第二行不再重复专辑名", AlbumRowSubtitleAsync),
+            ("正在播放的那一行跟着播放栏标记，重新载入仍保留", PlayingMarkAsync),
+            ("正在播放的身份键跟着曲目走，停止后清空", CurrentKeyAsync)
         };
         var failures = 0;
         foreach (var (name, run) in cases)
@@ -306,6 +312,104 @@ internal static class Program
             TotalRecordCount = 100
         });
     }
+
+    /// <summary>按查询里要的类型造条目：曲目带艺术家与专辑，专辑带专辑艺术家。</summary>
+    private static System.Net.Http.HttpResponseMessage TypedPage(Transport transport, string query)
+    {
+        var type = query.Contains("IncludeItemTypes=MusicAlbum", StringComparison.Ordinal) ? EmbyItemType.MusicAlbum
+            : query.Contains("IncludeItemTypes=MusicArtist", StringComparison.Ordinal) ? EmbyItemType.MusicArtist
+            : EmbyItemType.Audio;
+        var items = Enumerable.Range(0, 6).Select(index =>
+        {
+            var item = transport.Track("t" + index);
+            item.Type = type;
+            if (type == EmbyItemType.Audio)
+            {
+                item.Artists = ["独立音乐人"];
+                item.Album = "城市漫游";
+            }
+            else if (type == EmbyItemType.MusicAlbum)
+            {
+                item.AlbumArtists = [new EmbyNamedId { Id = "artist-1", Name = "独立音乐人" }];
+            }
+            return item;
+        }).ToList();
+        return Transport.Json(new ItemsResult { Items = items, TotalRecordCount = items.Count });
+    }
+
+    /// <summary>歌曲／收藏是一张 44 的曲目表，专辑／艺术家／歌单是一面 170 的方形封面墙。</summary>
+    private static async Task SectionShapeAsync()
+    {
+        await using var fixture = new Fixture();
+        fixture.Transport.Reply = (request, _) => Task.FromResult(TypedPage(fixture.Transport, request.Query));
+        using var library = fixture.Library();
+        await library.ReloadAsync();
+        Require(library.Rows.Count == 6 && library.TrackViewVisibility == Visibility.Visible
+            && library.WallVisibility == Visibility.Collapsed, "歌曲分区没有用曲目表");
+        Require(library.Rows[0].Width == 44 && !library.Rows[0].Indicators, "曲目行不是 44 的方图");
+        Require(library.Rows[0].Subtitle == "独立音乐人 · 城市漫游",
+            "整库列表第二行不是「艺术家 · 专辑」：" + library.Rows[0].Subtitle);
+        Require(library.CountLabel == "6 首" && library.ColumnHeaderVisibility == Visibility.Visible,
+            "歌曲读数或列头不对：" + library.CountLabel);
+
+        await library.SelectAsync(MusicSection.Albums);
+        Require(library.WallVisibility == Visibility.Visible && library.TrackViewVisibility == Visibility.Collapsed,
+            "专辑分区没有换成封面墙");
+        Require(library.ColumnHeaderVisibility == Visibility.Collapsed, "封面墙上还留着曲目表的列头");
+        Require(library.Rows[0].Width == 170, "封面墙格子不是 170");
+        Require(library.Rows[0].Subtitle == "独立音乐人", "专辑第二行不是艺术家：" + library.Rows[0].Subtitle);
+        Require(library.CountLabel == "6 张", "专辑读数不是「6 张」：" + library.CountLabel);
+
+        await library.SelectAsync(MusicSection.Artists);
+        Require(library.CountLabel == "6 位", "艺术家读数不是「6 位」：" + library.CountLabel);
+        Require(library.Rows[0].Subtitle == "", "艺术家第二行不该编一个数出来：" + library.Rows[0].Subtitle);
+    }
+
+    /// <summary>专辑容器里，第二行不再把专辑名写第二遍。</summary>
+    private static async Task AlbumRowSubtitleAsync()
+    {
+        await using var fixture = new Fixture();
+        fixture.Transport.Reply = (request, _) => Task.FromResult(TypedPage(fixture.Transport, request.Query));
+        using var library = fixture.Library(EmbyItemType.MusicAlbum, "album-1");
+        await library.ReloadAsync();
+        Require(library.Rows[0].Subtitle == "独立音乐人", "专辑页曲目第二行仍写着专辑名：" + library.Rows[0].Subtitle);
+    }
+
+    private static async Task PlayingMarkAsync()
+    {
+        await using var fixture = new Fixture();
+        fixture.Transport.Reply = (request, _) => Task.FromResult(Page(fixture.Transport, request.Query));
+        using var library = fixture.Library();
+        await library.ReloadAsync();
+        var key = library.Rows[3].Item.IdentityKey;
+        library.MarkPlaying(key);
+        Require(library.Rows[3].IsPlaying && library.Rows.Count(row => row.IsPlaying) == 1, "标记没有落到那一行");
+        library.MarkPlaying("");
+        Require(library.Rows.All(row => !row.IsPlaying), "停止后仍留着标记");
+        library.MarkPlaying(key);
+        await library.ReloadAsync();
+        Require(library.Rows[3].IsPlaying, "重新载入后丢了正在播放标记");
+    }
+
+    /// <summary>曲目表那一行靠身份键认人：同一台服务器换曲要跟着换，停止要清空。</summary>
+    private static async Task CurrentKeyAsync()
+    {
+        await using var fixture = new Fixture();
+        var a = fixture.Track("a");
+        var b = fixture.Track("b");
+        var play = fixture.Music.PlayAsync(a, [a, b]);
+        await UntilAsync(() => fixture.Backend.Handles.Length == 1);
+        await fixture.Backend.Handles[0].Listening.Task;
+        Require(fixture.Music.CurrentKey == a.IdentityKey, "起播后没有记下正在播放的身份键");
+        fixture.Backend.Handles[0].End();
+        await UntilAsync(() => fixture.Backend.Handles.Length == 2);
+        await fixture.Backend.Handles[1].Listening.Task;
+        Require(fixture.Music.CurrentKey == b.IdentityKey, "自动下一曲后身份键没有跟着换");
+        await fixture.Music.StopAsync();
+        await play;
+        Require(fixture.Music.CurrentKey.Length == 0, "停止后仍留着正在播放的身份键");
+    }
+
     private static TaskCompletionSource Signal() => new(TaskCreationOptions.RunContinuationsAsynchronously);
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
     private static async Task UntilAsync(Func<bool> condition)

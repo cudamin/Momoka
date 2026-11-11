@@ -23,6 +23,13 @@ namespace Momoka.Shell.Views
         private Momoka.MoviePilot.MoviePilotService? _moviePilot;
         private Momoka.Services.ISettingsService? _settings = null; // Unused owner boundary; no saved settings in this fixture.
         private int _navigation;
+        // 批选择（第三批多选）是另一份夹具的面，这里没有它的控件、命令与权限通道；Release 里那几句
+        // 退订与收尾因此落在替身上：_session 永远为空，块体不执行，EndSelection 什么都不做。
+        // 写成属性而不是字段：这份夹具从不为它赋值，字段会招来 CS0649，而「这里没有会话」正是要说的意思。
+        private Momoka.Emby.EmbySession? _session => null;
+        private void EndSelection() { }
+        private void OnBatchPermissionsChanged(object? sender, Momoka.Emby.EmbySessionScope source) { }
+        private void OnBatchSourcesChanged(object? sender, EventArgs args) { }
         // Search never owns a library window anchor; real Release still clears these inactive slots.
         internal object? _pendingAnchor;
         internal double? _pendingScroll;

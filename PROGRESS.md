@@ -1,3 +1,13 @@
+## 2026-11-11 标题栏收藏星标与前进按钮退役
+
+工作树 `C:\Users\89400\.codex\worktrees\0bd5\Momoka`，基准 `52f8449`。按用户截图移除首页／收藏胶囊及其亚克力、缩放、内容顶部占位，左上角标题栏新增空心星标，复用 Favorites.Visibility：有收藏即显示，取消最后一项、退出登录及无适用来源时隐藏，空收藏页本身保留。前进按钮退役，Alt+→ 移至外壳，鼠标前进侧键和返回历史保留。星标参与标题反馈、可访问名称和点击区域测量；更新原生收藏、侧栏、音乐及标题栏自检契约，ForwardButton 句柄基线逐行替换为 FavoritesButton。
+
+本树 Release Core/Tests、Shell 编译0警告0错误；主测试4703/4703、零失败零跳过（149496ms），定向标题栏3/3、HomeDirectory82/82、句柄扫描零缺失、编码及差异检查通过。首轮主测试因其他树探针占同用户诊断锁导致16项拒绝，另1项已有图片探针间歇超时；保留 `artifacts-toolbar-tests.log`，独占重验日志 `artifacts-toolbar-tests-serial.log` 全绿，没有放宽超时或基线。
+
+匿名原生 shell/favorites/music 共22项中21通过，收藏显隐、返回、跨来源恢复、600/760/1240/1280布局及音乐侧栏均通过；实屏目录 `%LOCALAPPDATA%\Momoka\logs\shell-probe-20261111-062921409-3308\logs`。剩余旧 DeletePagingRaceAsync 把所有HTTP挂同一pending，搜索页删除后的重读和旧分页循环等待。按现有搜索刷新语义改用60项稳定假目录，仅挂旧offset20；验证删后59、补齐20、原19卡片引用保留、迟到响应拒绝及旧查询令牌隔离。修后Shell重编0警告0错误，favorites分区全部通过，日志 `shell-probe-20261111-063832781-17252`；未改变产品分页行为。
+
+待收尾：产品提交后合入 master，按最终主树重验和发布，当前快捷方式仍是旧版。未访问真实服务器或播放媒体，未上传。
+
 ## 2026-11-11 媒体库第三批飞牛仅移出与恢复（独立树待整合）
 
 基点8dea65c，原生managed工作树`C:\Users\89400\.codex\worktrees\library-batch3-fnnas\Momoka`，仅此树写入。读取官方0.9.8匿名前端缓存三个产物并核SHA256，确认DELETE item/:guid的delete_file=0、GET fileViewAdmin/list根mdb_guid/子fv_guid、恢复POST scrap/removeFromBlackByPath(mdb_guid,path)、管理员非IPTV入口及blacked=1判断，详见docs/媒体库第三批-飞牛移出恢复.md。没有联系真实服务器、登录、写入、播放或起UI。
@@ -12482,3 +12492,14 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 三棵本次子树已检查干净及逐文件独有内容：emby无改动，fnnas47a8712/plexa8a0c86全部已合入并有父树后续修正；差异仅整合注册、当前验证修复与进度。必要ignored证据保存到主树后已请求应用归档；b517为本聊天既有托管树，不删除其他会话。完整验证记录docs/verification/2026-11-11-library-batch3.md。
 
 - 应用归档回执已确认：library-batch3-emby、library-batch3-fnnas、library-batch3-plex 三棵子树现均为 archived_worktree；主树与b517工作区干净。
+
+## 2026-11-11 音乐库界面改版主树交付完成
+
+用户要求重新设计音乐库界面，随后明确「别在扩大范围了，尽快交付」「收尾」。产品提交 4188af6（改版）、13bc6fd（前置夹具修复）已快进合入 master，两个提交与工作树 `workbuddy/master-7920c69a` 内容一致；本聊天托管树未删除。
+
+- 界面：歌曲／收藏是曲目表（44 方封面、等宽时长、只从标题列起的发丝线、正在播放那一行的强调色竖线与强调色标题）；专辑／艺术家／歌单是 170 方形封面墙。页头眉字＋库名＋等宽读数（首／张／位／个），分区由单选圆点换成药丸，搜索框按剩余宽度收放、窄窗独占一行，空态与读取进度重做。底部播放栏 `CurrentKey` 驱动曲目表标记。
+- 前置修复（13bc6fd）：第三批合入后三处卡片命令夹具缺飞牛移出命令替身、搜索生命周期夹具缺批选择边界、`SourcePins.json` 里 EmbyItem.cs 哈希漂移，都是 master 2d538bc 上本来就红的项；逐一按夹具既有写法补齐并复核，未改产品行为。
+- 本树验证：Release 全方案 0 警告 0 错误；主测试 4705/4705、音乐 VM 16/16、搜索生命周期 43/43、AniBT 51/51、卡片命令 74/74、Plex 能力 85/85、自然接续 caller 69/69、提取器反例 10/10；本次改动文件 `dotnet format whitespace --include` 通过； Agreements 59/59（字号基线按 3 处 FontIcon 字形度量逐行确认）。
+- 原生界面：`--probe-shell --probe-section music --screen 1` 两项全通过，五主题 × 1280/760/360 的曲目表与 1280 封面墙共 20 张实屏、版面读数 `music-layout.txt` 已复制到 `artifacts/music-redesign/probe-worktree`。主树合并后重新编译 0/0、主测试 4705/4705、音乐 VM 16/16；主树重跑探针时用户正在播放「第 2 季 10. 支持」的 mpv 窗口覆盖了探针窗口，像素守卫按设计拒绝截图（侧边栏项仍通过），保留该红项，不冒充主树实屏通过。
+- 交付：`tools/publish.ps1 -NoArchive -Shortcut` 发布成功（547 文件 / 288.0 MB，批准 mpv 60 文件校验）；旧交付目录改名为 `artifacts/publish/win-x64-pre-music-redesign` 作为备份，未做批量删除。快捷方式写入因 `Momoka.lnk` 保存权限被拒，但读取该 lnk 确认目标仍是 `C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`，指向本次新发布的目录。
+- 未做：真实服务器播放/收藏写入、外部 mpv 与独占窗口、物理扬声器；未推远端。主树另有 14 个与本次无关的文件本来就过不了全量 `dotnet format whitespace`，按用户「别扩大范围」要求未顺手格式化，全量空白检查仍会报这些既有项。

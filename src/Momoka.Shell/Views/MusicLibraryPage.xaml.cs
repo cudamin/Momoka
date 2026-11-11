@@ -1,6 +1,8 @@
+using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Navigation;
 using Momoka.Emby;
 using Momoka.Music;
@@ -12,9 +14,18 @@ public sealed partial class MusicLibraryPage : Page, IShellContent
 {
     private IShellActions? _actions;
     private LibraryRequest? _request;
+    private MusicPlaybackViewModel? _music;
+    private bool _released;
+
     public MusicLibraryViewModel ViewModel { get; } = new();
     public object? NavigationRequest => _request;
-    public MusicLibraryPage() => InitializeComponent();
+
+    public MusicLibraryPage()
+    {
+        InitializeComponent();
+        Root.SizeChanged += (_, _) => PlaceSearchBox();
+    }
+
     public static Visibility Show(bool value) => value ? Visibility.Visible : Visibility.Collapsed;
 
     protected override async void OnNavigatedTo(NavigationEventArgs args)
@@ -22,25 +33,87 @@ public sealed partial class MusicLibraryPage : Page, IShellContent
         base.OnNavigatedTo(args);
         if (args.Parameter is not LibraryRequest request) return;
         _request = request;
+        _released = false;
         _actions = request.Services.GetRequiredService<IShellActions>();
         _actions.SetTitleStrip(TitleStrip.Plain);
         ViewModel.Attach(request, request.Services.GetRequiredService<EmbySession>(), request.Services.GetRequiredService<EmbyImageStore>());
+
+        // 底部播放栏的视图模型只在应用容器里注册；离线检查台没有它。没有就只是不标「正在放的是哪一首」，
+        // 页面其余部分照常 —— 这一行装饰不该让整页解析失败。
+        _music = request.Services.GetService(typeof(MusicPlaybackViewModel)) as MusicPlaybackViewModel;
+        if (_music is not null)
+        {
+            _music.PropertyChanged += OnMusicChanged;
+            ViewModel.MarkPlaying(_music.CurrentKey);
+        }
+
+        PlaceSearchBox();
         await ViewModel.ReloadAsync();
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs args) { Release(); base.OnNavigatedFrom(args); }
-    public void Release() { ViewModel.Release(); _actions = null; _request = null; }
-    private async void OnRefresh(object sender, RoutedEventArgs args) => await ViewModel.ReloadAsync();
-    private async void OnSearch(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args) => await ViewModel.ReloadAsync();
-    private async void OnMore(object sender, RoutedEventArgs args) => await ViewModel.LoadMoreAsync();
-    private async void OnSection(object sender, RoutedEventArgs args)
+
+    public void Release()
     {
-        if (_request is not null && sender is RadioButton { Tag: string tag } && int.TryParse(tag, out var index))
-            await ViewModel.SelectAsync((MusicSection)index);
+        _released = true;
+        if (_music is not null) { _music.PropertyChanged -= OnMusicChanged; _music = null; }
+        ViewModel.Release();
+        _actions = null;
+        _request = null;
     }
-    private async void OnItemClick(object sender, ItemClickEventArgs args)
+
+    /// <summary>
+    /// 搜索框的宽度按「药丸占完之后还剩多少」算：宽窗 340 封顶，窄到一行放不下时让它换到下一行、独占整行
+    /// （180 的输入框连占位提示都读不全）。写死一个宽度的话，360 宽的窗口里它会被右沿切掉半截。
+    /// 中间那颗占位跟着剩余空间走 —— 宽窗里它把搜索框顶到右沿（与页头那颗刷新键对齐）。
+    /// </summary>
+    private void PlaceSearchBox()
     {
-        if (args.ClickedItem is not CardItem card || _actions is null) return;
+        var available = Root.ActualWidth - Root.Padding.Left - Root.Padding.Right;
+        // 页面还没量过（导航那一刻 ActualWidth 是 0）就没有「剩余空间」可言，等第一次 SizeChanged 再说；
+        // 给它一个负宽度会当场抛 ArgumentException。
+        if (available <= 0) return;
+        var room = available - SectionSurface.ActualWidth - Toolbar.Spacing * 2;
+        var width = room >= 180 ? Math.Clamp(room, 180, 340) : Math.Clamp(available, 180, 340);
+        // Width 没设过是 NaN，而 NaN 参与的比较一律为假 —— 少了 IsFinite 这一句，宽度永远写不进去。
+        if (!double.IsFinite(MusicSearch.Width) || Math.Abs(MusicSearch.Width - width) > 0.5) MusicSearch.Width = width;
+        var spacer = MusicSearch.Visibility == Visibility.Visible ? Math.Max(0, room - width) : 0;
+        if (Math.Abs(ToolbarSpacer.Width - spacer) > 0.5) ToolbarSpacer.Width = spacer;
+    }
+
+    private async void OnRefresh(object sender, RoutedEventArgs args) => await ViewModel.ReloadAsync();
+
+    private async void OnSearch(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args) => await ViewModel.ReloadAsync();
+
+    private async void OnMore(object sender, RoutedEventArgs args) => await ViewModel.LoadMoreAsync();
+
+    /// <summary>
+    /// 分区互斥由这里保证：<see cref="ToggleButton"/> 只认得自己，点第二颗不会替第一颗取消；
+    /// 再点已选中的那一颗则要把它按回去，否则一排里会一颗都不亮。
+    /// </summary>
+    private async void OnSectionClick(object sender, RoutedEventArgs args)
+    {
+        if (sender is not ToggleButton { Tag: string tag } || !int.TryParse(tag, out var index)) return;
+        var section = (MusicSection)index;
+        foreach (var tab in SectionTabs.Children.OfType<ToggleButton>())
+            tab.IsChecked = ReferenceEquals(tab, sender);
+        if (ViewModel.Section == section) return;
+
+        await ViewModel.SelectAsync(section);
+        if (_released) return;
+        WallScroll.ChangeView(null, 0, null, disableAnimation: true);
+    }
+
+    private async void OnItemClick(object sender, ItemClickEventArgs args) =>
+        await OpenAsync(args.ClickedItem as CardItem);
+
+    private async void OnWallItemInvoked(ItemsView sender, ItemsViewItemInvokedEventArgs args) =>
+        await OpenAsync(args.InvokedItem as CardItem);
+
+    /// <summary>曲目行和封面格子是同一件事：歌曲开始播放，容器打开下一层。</summary>
+    private async Task OpenAsync(CardItem? card)
+    {
+        if (card is null || _actions is null) return;
         if (MusicCatalog.IsAudio(card.Item.Type))
         {
             if (_actions is ShellPage shell) await shell.PlayMusicAsync(card.Item, ViewModel.Tracks, ViewModel.CaptureQueueLoader());
@@ -49,10 +122,11 @@ public sealed partial class MusicLibraryPage : Page, IShellContent
         else if (_actions is ShellPage shell && _request is not null)
             shell.OpenMusicContainer(card.Item, _request.MusicRootId ?? _request.ParentId);
     }
-    private void OnContainerChanged(ListViewBase sender, ContainerContentChangingEventArgs args)
+
+    /// <summary>底部播放栏换了歌：把曲目表里那一行标出来。播放状态归播放服务所有，这里只跟着画。</summary>
+    private void OnMusicChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.Item is not CardItem card) return;
-        if (args.InRecycleQueue) card.ReleasePoster(args.ItemContainer, keepWaiting: false);
-        else { card.ClaimCard(args.ItemContainer); _ = card.EnsurePosterAsync(); }
+        if (args.PropertyName != nameof(MusicPlaybackViewModel.CurrentKey)) return;
+        ViewModel.MarkPlaying(_music?.CurrentKey);
     }
 }

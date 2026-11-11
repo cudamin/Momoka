@@ -211,15 +211,13 @@ internal sealed partial class ShellNavigationProbe
                 "账号没有落在左下角");
             Require(Left(account, shell) + account.ActualWidth <= host.ActualWidth + 1,
                 "账号溢出了侧边栏的宽");
-            // 导航开关站在标题栏最左边（标题的位置），后退/前进紧跟在它右边。
+            // 导航开关站在标题栏最左边（标题的位置），收藏和后退排在它右边。
             var backButton = Get<Button>(shell, "BackButton");
-            var forwardButton = Get<Button>(shell, "ForwardButton");
             Require(Left(toggle, shell) <= 20 && Left(toggle, shell) < Left(backButton, shell)
                 && Top(toggle, shell) + toggle.ActualHeight <= HomePage.ChromeHeight + 1,
                 "导航开关不在标题栏最左边");
-            Require(Left(backButton, shell) >= Left(toggle, shell) + toggle.ActualWidth
-                && Left(forwardButton, shell) >= Left(backButton, shell) + backButton.ActualWidth,
-                "后退/前进没有排在导航开关右边");
+            Require(Left(backButton, shell) >= Left(toggle, shell) + toggle.ActualWidth,
+                "后退没有排在导航开关右边");
             await SaveProbeScreenAsync("sidebar-expanded-600-screen.png");
             ((IInvokeProvider)new ButtonAutomationPeer(toggle).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(shell);
@@ -235,15 +233,16 @@ internal sealed partial class ShellNavigationProbe
             {
                 ResizeProbeClient(width, 900);
                 await LayoutAsync(shell);
-                Require(shell.ProbeTitleActions().Ok, "移除爱心后标题栏布局不合法");
-                Require(Get<SelectorBar>(shell, "HomeNavigation").Visibility == Visibility.Collapsed,
-                    "媒体库页错误显示首页收藏导航");
+                Require(shell.ProbeTitleActions().Ok, "收藏星标加入后标题栏布局不合法");
+                Require(Get<Button>(shell, "FavoritesButton").Visibility == Visibility.Visible,
+                    "媒体库页没有显示收藏星标");
                 await SaveProbeScreenAsync($"toolbar-navigation-{width}-screen.png");
             }
             await ToggleAsync(true);
             favorite = false;
             await shell.Favorites.RefreshAsync();
-            Require(Get<NavigationViewItem>(shell, "SidebarFavorites").Visibility == Visibility.Collapsed, "空收藏没有隐藏");
+            Require(Get<NavigationViewItem>(shell, "SidebarFavorites").Visibility == Visibility.Collapsed
+                && Get<Button>(shell, "FavoritesButton").Visibility == Visibility.Collapsed, "空收藏没有隐藏");
 
             shell.ShowPlayer(true);
             await ToggleAsync(false);

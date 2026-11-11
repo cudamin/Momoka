@@ -185,6 +185,10 @@ namespace Momoka.Shell.Views
         private static Task RefreshAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card) => throw Unrelated();
         private static Task MissingEpisodesAsync(EmbySessionScope scope, IShellActions shell, CardItem card) => throw Unrelated();
         private static Task DeleteAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card, Action? changed, Action<CardItem>? removed) => throw Unrelated();
+        // 飞牛「移出媒体库」是第三批多选/移除那一轮新增的命令，它自己的服务、确认框与恢复记录都不在这几份
+        // 卡片命令夹具里。照上面那一整排的办法当边界：真被调到就是夹具越界，而不是静悄悄什么都不做。
+        private static Task FnNasRemoveFromLibraryAsync(EmbySessionScope session, IShellActions shell, FrameworkElement owner,
+            CardItem card, Action? changed, Action<CardItem>? removed) => throw Unrelated();
     }
 }
 #endif
