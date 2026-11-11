@@ -619,17 +619,17 @@ internal static class AcrylicControlsTests
             }
         });
 
-        Test("卡片亚克力：媒体库分类胶囊、搜索来源栏和飞牛筛选复用设置卡片刷子", () =>
+        Test("云母卡片：媒体库分类胶囊、搜索来源栏和飞牛筛选使用独立内容刷子", () =>
         {
             var page = Read("Views/LibraryPage.xaml");
-            Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}",
+            Assert.Equal("{ThemeResource EgMicaCardBrush}",
                 (string?)Named(page, "LibrarySectionsSurface").Attribute("Background"));
-            Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}",
+            Assert.Equal("{ThemeResource EgMicaCardBrush}",
                 (string?)Named(page, "FnNasFilterPanel").Attribute("Background"));
             var style = Named(page, "SourceTabs").Elements()
                 .Single(element => element.Name.LocalName == "SearchSourceTabs.Style")
                 .Elements().Single(element => element.Name.LocalName == "Style");
-            Assert.Equal("{ThemeResource CardBackgroundFillColorDefaultBrush}", Setter(style, "Background"));
+            Assert.Equal("{ThemeResource EgMicaCardBrush}", Setter(style, "Background"));
             Assert.Equal("16", Setter(style, "CornerRadius"), "来源栏圆角应保持原样");
         });
 
@@ -660,6 +660,41 @@ internal static class AcrylicControlsTests
                 Assert.Equal("EgSurfaceBrush", (string?)Resource(dictionary, "FlyoutPresenterBackground").Attribute("ResourceKey"));
                 Assert.Equal("{StaticResource EgWindowColor}", (string?)Resource(dictionary, "EgFrostBrush").Attribute("TintColor"));
             }
+        });
+
+        Test("简洁详情：两种页面只叠窗口云母上的命令层与内容层", () =>
+        {
+            foreach (var name in new[] { "DetailPage", "MoviePilotSubscriptionPage" })
+            {
+                var page = Read("Views/" + name + ".xaml");
+                Assert.False(page.Descendants().Any(element => element.Name.LocalName == "SystemBackdropElement"),
+                    name + " 仍然把窗口背景材质重复创建在页面或卡片上");
+                var backdrop = Named(page, "PlainBackdrop");
+                Assert.Equal("Border", backdrop.Name.LocalName);
+                Assert.Equal("{ThemeResource EgMicaCommandBrush}", (string?)backdrop.Attribute("Background"));
+                Assert.Equal("Collapsed", (string?)backdrop.Attribute("Visibility"));
+                Assert.Equal("{ThemeResource EgMicaContentBrush}",
+                    (string?)Named(page, "MicaLayerSource").Attribute("Background"));
+                var code = Source("Views/" + name + ".Showcase.cs");
+                Assert.False(code.Contains(".SystemBackdrop", StringComparison.Ordinal), name + " 仍持有局部背景控制器");
+                Assert.Contains("Background = plain ? null : _pageBackground;", code);
+                Assert.Contains("PlainBackdrop.Visibility = plain ? Visibility.Visible : Visibility.Collapsed;", code);
+                Assert.Contains("internal bool UsesMicaBackground", code);
+            }
+        });
+
+        Test("简洁详情：头部和资料卡复用内容层，沉浸仍保留原卡面", () =>
+        {
+            var detail = Source("Views/DetailPage.Showcase.cs");
+            Assert.Contains("var surface = plain ? MicaLayerSource.Background", detail);
+            Assert.Contains("HeroCardTop.Background = surface;", detail);
+            Assert.Contains("HeroCardBottom.Background = surface;", detail);
+            Assert.Contains("panel.Background = plain ? MicaLayerSource.Background : _panelFill;", detail);
+            var subscription = Source("Views/MoviePilotSubscriptionPage.Showcase.cs");
+            Assert.Contains("HeroSurface.Background = plain ? MicaLayerSource.Background : null;", subscription);
+            Assert.Contains("HeroFacts.Background = plain ? MicaLayerSource.Background : CardMaterialSource.Background;", subscription);
+            Assert.Contains("SeasonPanel.Background = plain ? MicaLayerSource.Background : CardMaterialSource.Background;", subscription);
+            Assert.Contains("SyncTitleStrip();", subscription);
         });
 
         Test("云母详情探针：登记媒体库分区，局部运行不产生未分区失败", () =>

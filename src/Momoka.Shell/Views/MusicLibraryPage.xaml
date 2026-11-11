@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:vm="using:Momoka.Shell.ViewModels"
-    Background="{ThemeResource EgWindowBrush}">
+    Background="{ThemeResource EgMicaCommandBrush}">
     <Grid Padding="28,24,28,20" RowSpacing="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
@@ -36,7 +36,7 @@
         <InfoBar x:Name="Notice" Grid.Row="3" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
             Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
-        <Grid Grid.Row="4">
+        <Grid x:Name="MusicContent" Grid.Row="4" Background="{ThemeResource EgMicaContentBrush}" CornerRadius="{StaticResource OverlayCornerRadius}">
             <ListView x:Name="MusicRows" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" IsItemClickEnabled="True"
                 SelectionMode="None" ItemClick="OnItemClick" ContainerContentChanging="OnContainerChanged">
                 <ListView.ItemContainerStyle>

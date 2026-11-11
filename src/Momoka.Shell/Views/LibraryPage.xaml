@@ -25,7 +25,7 @@
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:tkcontrols="using:CommunityToolkit.WinUI.Controls"
     xmlns:vm="using:Momoka.Shell.ViewModels"
-    Background="{ThemeResource LayerFillColorDefaultBrush}">
+    Background="{ThemeResource EgMicaCommandBrush}">
 
     <Page.Resources>
         <Style x:Key="LibraryPillStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
@@ -317,7 +317,7 @@
                 <!-- 分类胶囊和下面两条搜索容器都是页面上的一层低透明度玻璃：tint 与设置卡片同族，
                      压在纯色页面上只透出一点模糊和噪点，字和圆角保持原样。 -->
                 <Border x:Name="LibrarySectionsSurface" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="18" Padding="3"
+                    Background="{ThemeResource EgMicaCardBrush}" CornerRadius="18" Padding="3"
                     Visibility="{x:Bind ViewModel.SectionVisibility, Mode=OneWay}">
                     <local:WrapRow x:Name="LibrarySections" Spacing="0" RowSpacing="4" CenterRows="True" />
                 </Border>
@@ -398,7 +398,7 @@
                             </local:SearchSourceTabs.Resources>
                             <local:SearchSourceTabs.Style>
                                 <Style TargetType="local:SearchSourceTabs" BasedOn="{StaticResource ButtonSegmentedStyle}">
-                                    <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+                                    <Setter Property="Background" Value="{ThemeResource EgMicaCardBrush}" />
                                     <Setter Property="Padding" Value="4" />
                                     <Setter Property="CornerRadius" Value="16" />
                                 </Style>
@@ -761,9 +761,9 @@
 
             <!-- 飞牛筛选：官网页端展开在工具栏下面的那一条，不是 Emby 那种盖住整页的浮层。
                  行和值都来自 /tag/list，题材、地区再经官方映射表换成中文。
-                 底色与设置卡片同一层低透明度亚克力，边线、圆角和展开行为不变。 -->
+                 使用云母命令层上的半透明卡片色，边线、圆角和展开行为不变。 -->
             <Border x:Name="FnNasFilterPanel" Grid.Row="2" Margin="0,0,0,4" Padding="16,12"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                Background="{ThemeResource EgMicaCardBrush}"
                 BorderBrush="{ThemeResource EgBorderBrush}"
                 BorderThickness="1"
                 CornerRadius="12"
@@ -809,7 +809,7 @@
                 </StackPanel>
             </Border>
             <Border x:Name="PlexFilterPanel" Grid.Row="2" Margin="0,0,0,4" Padding="16,12"
-                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                Background="{ThemeResource EgMicaCardBrush}"
                 BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1"
                 CornerRadius="{StaticResource EgSearchCornerRadius}"
                 Visibility="{x:Bind ViewModel.PlexFilterVisibility, Mode=OneWay}">
@@ -882,7 +882,7 @@
 
         <!-- Emby 结果区整块（网格 + 字母条 + 空态）包进 EmbyContent，好被「MoviePilot」分段一处切走
              （见 OnSourceChanged）。 -->
-        <Grid x:Name="EmbyContent" Grid.Row="2">
+        <Grid x:Name="EmbyContent" Grid.Row="2" Background="{ThemeResource EgMicaContentBrush}" CornerRadius="{StaticResource OverlayCornerRadius}">
             <!-- Grid so the letter bar can sit over the scroller's right edge without taking a column
                  away from it（Emby 的 alphaPicker 是 position:fixed 的覆盖层，不是布局成员）。 -->
             <Grid RowSpacing="16">

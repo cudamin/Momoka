@@ -70,7 +70,6 @@ public sealed partial class DetailPage
     private void StopAppearance()
     {
         _appearanceObserved = false;
-        ReleasePlainMica();
         _appearanceSystemTimer?.Stop();
         _appearanceLifetime++;
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;

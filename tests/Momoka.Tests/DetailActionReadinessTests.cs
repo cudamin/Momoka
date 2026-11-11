@@ -30,6 +30,21 @@ internal static partial class DetailActionReadinessTests
             AssemblyLoadContext.Default.Resolving += (context, name) => File.Exists(Path.Combine(directory, name.Name + ".dll"))
                 ? context.LoadFromAssemblyPath(Path.Combine(directory, name.Name + ".dll")) : null;
             var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(dll);
+            Test("简洁详情：所有可播放视频类型收起剧照并支持沉浸恢复", () =>
+            {
+                using var f = new Fixture(assembly, root, Shape.Movie);
+                var appearance = (UiSettings)f.Vm.GetType().GetProperty("AppearanceSettings", Members)!.GetValue(f.Vm)!;
+                var spreads = f.Vm.GetType().GetMethod("SpreadsBackdrop", Members)!;
+                foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season,
+                    EmbyItemType.Episode, EmbyItemType.Video, EmbyItemType.Trailer, EmbyItemType.MusicVideo })
+                {
+                    var item = new EmbyItem { Type = type, BackdropImageTags = ["fixture"] };
+                    appearance.EnableImmersive = false;
+                    Assert.False((bool)spreads.Invoke(f.Vm, [item])!, type + " 简洁模式仍铺图");
+                    appearance.EnableImmersive = true;
+                    Assert.True((bool)spreads.Invoke(f.Vm, [item])!, type + " 沉浸模式未恢复剧照");
+                }
+            });
             RegisterShapeTests(assembly, root);
             RegisterTrailerTests(assembly, root);
 

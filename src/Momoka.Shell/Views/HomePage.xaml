@@ -27,7 +27,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:vm="using:Momoka.Shell.ViewModels"
-    Background="{ThemeResource EgWindowBrush}">
+    Background="{ThemeResource EgMicaCommandBrush}">
 
     <Page.Resources>
         <!-- Declared before the shelf template that reaches for it: a StaticResource inside a
@@ -261,7 +261,7 @@
                  2026-09-14 主页那两排卡片缩了一档（继续观看 300→256、媒体库 240→208，见 CardSize），这四个数
                  一个没动：上沿贴的是轮播的下沿、下沿贴的是窗口底，都跟卡片高矮无关，跟着缩反而会让内容贴到边
                  上。行与行的间隔见下面 StackLayout 那一句。 -->
-            <Grid x:Name="Overlay" Background="Transparent" Padding="36,16,13,28">
+            <Grid x:Name="Overlay" Background="{ThemeResource EgMicaContentBrush}" Padding="36,16,13,28">
                 <StackPanel>
                     <!-- TwoWay on IsOpen, so dismissing the bar is recorded rather than only drawn: the next
                          failure has to be able to reopen it, and a view model that thinks it is still open
