@@ -150,7 +150,7 @@ internal static class HomeLayoutTests
                 Row(HomeLayout.LibraryKey(second), "最近添加 · 电影", visible: false),
                 Row(HomeLayout.Resume, "继续观看"),
                 Row(HomeLayout.LibraryKey(first), "最近添加 · 电影", visible: false),
-                Row(HomeLayout.MoviePilotSeries, "MP 电视剧订阅", visible: false)], [first, second]);
+                Row(HomeLayout.MoviePilotSeries, "订阅·电视剧", visible: false)], [first, second]);
             var shown = HomeLayout.ForSources(full, [first.Source!.Key], moviePilotAvailable: false);
             var edits = shown.Reverse().Select(row => row.Key == HomeLayout.LibraryKey(first)
                 ? row with { Visible = true } : row).ToArray();
@@ -382,7 +382,7 @@ internal static class HomeLayoutTests
             var restored = HomeLayout.Plan(saved, null);
             Assert.True(HomeLayout.Same(saved, restored), "订阅混排没有完整保存");
             Assert.False(restored[2].Visible, "关闭的电影订阅被重新勾选");
-            Assert.Equal("MP 电视剧订阅", restored[0].Title);
+            Assert.Equal("订阅·电视剧", restored[0].Title);
         });
 
         Test("主页版面：断线时编辑其他排不抹掉订阅偏好", () =>
@@ -412,7 +412,7 @@ internal static class HomeLayoutTests
         {
             var b = new HomeRowPlan(HomeLayout.LibraryKey("b"), "乙", true);
             var c = new HomeRowPlan(HomeLayout.LibraryKey("c"), "丙", true);
-            // 「MoviePilot 电影订阅」是改名之前存档里那一份标题（2026-10-13 晚起叫「MP 电影订阅」）：
+            // 「MoviePilot 电影订阅」是改名之前存档里那一份标题（2026-11-11 起叫「订阅·电影」）：
             // 这一条要的正是「认得出的键，标题照存档里那份留着」—— 拿旧名字当夹具比拿新名字更能说明问题。
             var mp = new HomeRowPlan(HomeLayout.MoviePilotMovies, "MoviePilot 电影订阅", false);
             var changed = HomeLayout.MergeEdits([b, mp, c], [
@@ -430,7 +430,7 @@ internal static class HomeLayoutTests
                 Row(HomeLayout.MoviePilotMovies, "重复", true)], null);
             Assert.Equal(1, plan.Count(row => row.Key == HomeLayout.MoviePilotMovies));
             Assert.False(plan[0].Visible);
-            Assert.Equal("MP 电影订阅", plan[0].Title);
+            Assert.Equal("订阅·电影", plan[0].Title);
         });
 
         Test("主页版面：只有真变了才回写设置文件", () =>
@@ -465,7 +465,7 @@ internal static class HomeLayoutTests
                 new HomeRowPlan(HomeLayout.NextUp, "接下来看", false),
                 new HomeRowPlan(HomeLayout.LibraryKey("lib-1"), "最近添加 · 电影", false),
                 new HomeRowPlan(HomeLayout.Libraries, "媒体库", true),
-                new HomeRowPlan(HomeLayout.MoviePilotMovies, "MP 电影订阅", true)
+                new HomeRowPlan(HomeLayout.MoviePilotMovies, "订阅·电影", true)
             };
             Assert.False(HomeLayout.CanRefresh(hidden, banner: false), "没有东西会跟着新入库换，这一拍不该问");
             Assert.False(HomeLayout.CanRefresh([], banner: false), "一排都没有也一样");

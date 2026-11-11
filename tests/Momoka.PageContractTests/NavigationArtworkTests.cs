@@ -56,7 +56,7 @@ internal static class NavigationArtworkTests
         var parameters = constructor.GetParameters();
         Assert.True(parameters.Any(parameter => parameter.Name == "fetchPoster"), "导航卡缺少独立封面读取入口");
         var args = parameters.Select(parameter => parameter.HasDefaultValue ? parameter.DefaultValue : null).ToArray();
-        args[0] = new EmbyItem { Id = HomeLayout.MoviePilotMovies, Name = "MP 电影订阅", Type = EmbyItemType.CollectionFolder };
+        args[0] = new EmbyItem { Id = HomeLayout.MoviePilotMovies, Name = "订阅·电影", Type = EmbyItemType.CollectionFolder };
         args[1] = fixture.Images;
         args[2] = 208;
         args[Array.FindIndex(parameters, parameter => parameter.Name == "navigate")] = (Action)(() => { });
