@@ -25,16 +25,18 @@ internal static class ToolbarIconTests
             var buttons = utilities.Elements().Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
             Assert.True(buttons.SequenceEqual(new[] { "SettingsButton", "SearchButton" }), "工具按钮顺序不对");
         });
-        TestHarness.Test("标题栏收藏：空心星标默认收着，没有收藏时不出现在那一排", () =>
+        TestHarness.Test("标题栏收藏：爱心字形默认收着，没有收藏时不出现在那一排", () =>
         {
-            var star = Named(Shell(), "FavoritesButton");
-            Assert.Equal("Button", star.Name.LocalName);
-            Assert.Equal("Collapsed", star.Attribute("Visibility")?.Value);
-            Assert.Equal("OnFavoritesClicked", star.Attribute("Click")?.Value);
-            Assert.Equal("ShellPage_FavoritesButton", star.Attribute(Xaml + "Uid")?.Value);
-            // 空心星：填充规则 F0 + 内圈镂空，和外圈那条 F1 的实心图标区分开。
-            var icon = star.Descendants().Single(element => element.Name.LocalName == "PathIcon");
-            Assert.True(icon.Attribute("Data")?.Value.StartsWith("F0 ", StringComparison.Ordinal) == true, "收藏不是空心星标");
+            var heart = Named(Shell(), "FavoritesButton");
+            Assert.Equal("Button", heart.Name.LocalName);
+            Assert.Equal("Collapsed", heart.Attribute("Visibility")?.Value);
+            Assert.Equal("OnFavoritesClicked", heart.Attribute("Click")?.Value);
+            Assert.Equal("ShellPage_FavoritesButton", heart.Attribute(Xaml + "Uid")?.Value);
+            // 2026-11-11 用户令「不要星星，改回之前的爱心」：EB51 是 Segoe 的空心心形，和详情页、音乐播放栏、
+            // 侧栏收藏入口同一颗；这一排里其余图标仍是 24 网格的 PathIcon，收藏这颗是字体字形。
+            var icon = heart.Descendants().Single(element => element.Name.LocalName == "FontIcon");
+            Assert.Equal("\uEB51", icon.Attribute("Glyph")?.Value);
+            Assert.True(!heart.Descendants().Any(element => element.Name.LocalName == "PathIcon"), "收藏又画成路径图标了");
         });
         TestHarness.Test("标题栏收藏：可访问名称与悬停提示走本地化资源", () =>
         {

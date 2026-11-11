@@ -98,7 +98,7 @@ internal sealed partial class ShellNavigationProbe
                 "标题栏那一排没有从左上角起");
             await SaveProbeScreenAsync("favorites-star-home-empty-screen.png");
 
-            // 有收藏之后星标露面，并且站在主页与设置之间。
+            // 有收藏之后爱心露面，并且站在主页与设置之间。
             ItemCommands.ToggleFavorite(fixture.Session, shell, new CardItem(favorite, fixture.Images, 170));
             await UntilAsync(() => shell.Favorites.HasItems);
             await LayoutAsync(shell);
@@ -108,7 +108,7 @@ internal sealed partial class ShellNavigationProbe
             Require(shell.ProbeTitleActions().Ok, "有收藏时标题栏布局不合法" + shell.ProbeTitleActions().Detail);
             await SaveProbeScreenAsync("favorites-star-home-screen.png");
 
-            // 星标进收藏页：聚合在线账号的收藏，季也在里面。
+            // 爱心进收藏页：聚合在线账号的收藏，季也在里面。
             Invoke(favoritesButton);
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag
                 && shell.Pages.Content is LibraryPage { ViewModel.IsReady: true });
@@ -133,18 +133,18 @@ internal sealed partial class ShellNavigationProbe
                 await SaveProbeScreenAsync($"favorites-screen-{width}.png");
             }
 
-            // 取消最后一项：留在空收藏页（旧规矩不变），星标随之收起。
+            // 取消最后一项：留在空收藏页（旧规矩不变），爱心随之收起。
             ItemCommands.ToggleFavorite(fixture.Session, shell, page.ViewModel.Cards[0]);
             await UntilAsync(() => !shell.Favorites.HasItems && page.ViewModel.Cards.Count == 0);
             await LayoutAsync(shell);
-            Require(favoritesButton.Visibility == Visibility.Collapsed, "取消最后一项收藏后星标没有收起");
+            Require(favoritesButton.Visibility == Visibility.Collapsed, "取消最后一项收藏后爱心没有收起");
             Require(page.ViewModel.ShowEmptyNotice && shell.CurrentTag == LibraryRequest.FavoritesTag,
                 "取消最后一项收藏没有停留在空收藏页");
             Require(shell.ProbeTitleActions().Ok, "空收藏页标题栏布局不合法" + shell.ProbeTitleActions().Detail);
             await SaveReturnFrameAsync(shell, "favorites-empty.png");
             await SaveProbeScreenAsync("favorites-empty-screen.png");
 
-            // 空态没有星标可点，用返回离开；主页照旧不给页面留旧导航空间。
+            // 空态没有爱心可点，用返回离开；主页照旧不给页面留旧导航空间。
             Invoke(backButton);
             await UntilAsync(() => shell.CurrentTag == "home");
             await LayoutAsync(shell);
@@ -173,21 +173,21 @@ internal sealed partial class ShellNavigationProbe
             Require(shell.Pages.Margin.Top == 0, "关闭轮播后残留旧导航留白");
             await SaveProbeScreenAsync("home-favorites-no-banner-screen.png");
 
-            // 历史：收藏页 → 返回回首页（返回在收藏页是亮的），再前进回收藏页；星标全程都在。
+            // 历史：收藏页 → 返回回首页（返回在收藏页是亮的），再前进回收藏页；爱心全程都在。
             Invoke(favoritesButton);
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag);
             await LayoutAsync(shell);
             Invoke(backButton);
             await UntilAsync(() => shell.CurrentTag == "home");
             await LayoutAsync(shell);
-            Require(favoritesButton.Visibility == Visibility.Visible, "历史返回首页后星标丢了（收藏还在）");
+            Require(favoritesButton.Visibility == Visibility.Visible, "历史返回首页后爱心丢了（收藏还在）");
             Require(!backButton.IsEnabled, "回到首页后返回按钮仍按得动");
             Call(shell, "GoForward");
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag);
 
-            // 登录卡：收藏清空、星标收起，外壳那一排照旧留着。
+            // 登录卡：收藏清空、爱心收起，外壳那一排照旧留着。
             Call(shell, "ShowSignIn", new object?[] { null, false, null });
-            Require(favoritesButton.Visibility == Visibility.Collapsed, "退出登录没有收起星标");
+            Require(favoritesButton.Visibility == Visibility.Collapsed, "退出登录没有收起爱心");
             Require(homeButton.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Visible
                 && settingsButton.Visibility == Visibility.Visible, "登录卡上标题栏那一排缺了按键");
             fixture.Session.SignOut();
@@ -196,7 +196,7 @@ internal sealed partial class ShellNavigationProbe
             await (Task)Call(shell, "EnterShellAsync")!;
             await LayoutAsync(shell);
             Require(favoritesButton.Visibility == Visibility.Collapsed
-                && shell.Pages.Margin.Top == 0, "纯 Plex 仍显示收藏星标或残留占位");
+                && shell.Pages.Margin.Top == 0, "纯 Plex 仍显示收藏爱心或残留占位");
             await SaveProbeScreenAsync("home-favorites-plex-screen.png");
             fixture.Session.SignOut();
             fixture.Transport.Reply = (request, _) => Query(request, "Filters")?.Contains("IsFavorite", StringComparison.Ordinal) == true
@@ -206,7 +206,7 @@ internal sealed partial class ShellNavigationProbe
             await (Task)Call(shell, "EnterShellAsync")!;
             await shell.Favorites.RefreshAsync();
             await LayoutAsync(shell);
-            Require(favoritesButton.Visibility == Visibility.Visible, "恢复有收藏的来源后没有恢复星标");
+            Require(favoritesButton.Visibility == Visibility.Visible, "恢复有收藏的来源后没有恢复爱心");
             await SaveProbeScreenAsync("home-favorites-restored-screen.png");
         }
         finally
