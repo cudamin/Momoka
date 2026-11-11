@@ -317,6 +317,15 @@
             </Grid>
         </Border>
 
+        <!-- Keep the selection on the artwork: the title row is outside this outline. -->
+        <Border x:Name="SelectionOutline"
+            Height="{x:Bind PosterHeight, Mode=OneWay}"
+            Margin="{x:Bind Card.ArtMargin, Mode=OneWay}"
+            Style="{StaticResource EgFrameActiveStyle}"
+            Background="Transparent"
+            IsHitTestVisible="False"
+            Visibility="{x:Bind IsSelected, Mode=OneWay}" />
+
         <StackPanel Grid.Row="1" Margin="{x:Bind Card.TextMargin, Mode=OneWay}">
             <TextBlock
                 x:Name="TitleLine"

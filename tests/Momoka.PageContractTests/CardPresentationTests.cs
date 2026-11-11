@@ -14,7 +14,8 @@ internal static class CardPresentationTests
             await using var fixture = new CardImageFixture(false, MediaServerKind.Emby);
             var card = new CardItem(fixture.Scope.Bind(new EmbyItem
             {
-                Id = "movie", Type = EmbyItemType.Movie, Name = "影片"
+                Id = "movie", Type = EmbyItemType.Movie, Name = "影片",
+                UserData = new EmbyUserData { IsFavorite = true }
             }), fixture.Images, 170);
             var original = new[] { card.PlayVisibility, card.UserStateVisibility, card.FavoriteActionVisibility, card.MoreVisibility };
             var selecting = typeof(CardItem).GetProperty("IsSelecting");
@@ -26,13 +27,15 @@ internal static class CardPresentationTests
             Assert.Equal("Collapsed", card.UserStateVisibility.ToString());
             Assert.Equal("Collapsed", card.FavoriteActionVisibility.ToString());
             Assert.Equal("Collapsed", card.MoreVisibility.ToString());
-            foreach (var name in new[] { "PlayVisibility", "UserStateVisibility", "FavoriteActionVisibility", "MoreVisibility" })
+            Assert.Equal("Collapsed", card.FavoriteBadgeVisibility.ToString());
+            foreach (var name in new[] { "PlayVisibility", "UserStateVisibility", "FavoriteActionVisibility", "MoreVisibility", "FavoriteBadgeVisibility" })
                 Assert.True(changed.Contains(name));
             selecting.SetValue(card, false);
             Assert.Equal(original[0], card.PlayVisibility);
             Assert.Equal(original[1], card.UserStateVisibility);
             Assert.Equal(original[2], card.FavoriteActionVisibility);
             Assert.Equal(original[3], card.MoreVisibility);
+            Assert.Equal("Visible", card.FavoriteBadgeVisibility.ToString());
         }));
         foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin, MediaServerKind.FnNas, MediaServerKind.Plex })
             Test("MP 订阅库导航卡不绑定媒体服务器 " + kind, () => CardImageContext.Run(async () =>

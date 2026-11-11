@@ -16,6 +16,7 @@ public sealed partial class LibraryPage
     private int _confirmationGeneration;
     private CancellationToken _selectionQuery;
     private CancellationTokenSource? _batchCancellation;
+    private CancellationTokenSource? _batchConfirmation;
     private readonly HashSet<CardItem> _selectionCards = [];
 
     private void InitializeSelection()
@@ -39,11 +40,30 @@ public sealed partial class LibraryPage
     {
         if (_selecting && (!ViewModel.QueryCurrent(_selectionQuery)
             || !CanSelectItems && !_batchBusy && LastBatchResult is null)) EndSelection();
-        LibrarySelectButton.Visibility = CanSelectItems && !_selecting ? Visibility.Visible : Visibility.Collapsed;
         if (_selecting) RefreshBatchControls();
     }
 
-    private void OnBeginSelection(object sender, RoutedEventArgs e) => BeginSelection();
+    private Func<CardItem, Action?> SelectionCallback()
+    {
+        var visit = _navigation;
+        var query = ViewModel.QueryToken;
+        return card =>
+        {
+            if (_released || _selecting || visit != _navigation || !ViewModel.QueryCurrent(query)
+                || !CanSelectItems || !CanSelectCard(card)) return null;
+            var index = ViewModel.Cards.IndexOf(card);
+            if (index < 0) return null;
+            return () =>
+            {
+                if (_released || visit != _navigation || !ViewModel.QueryCurrent(query)
+                    || !CanSelectItems || !CanSelectCard(card)) return;
+                var currentIndex = ViewModel.Cards.IndexOf(card);
+                if (currentIndex < 0) return;
+                BeginSelection();
+                if (_selecting) CardWall.Select(currentIndex);
+            };
+        };
+    }
 
     private void BeginSelection()
     {
@@ -87,6 +107,8 @@ public sealed partial class LibraryPage
 
     private void EndSelection()
     {
+        _batchConfirmation?.Cancel();
+        _batchConfirmation = null;
         _batchCancellation?.Cancel();
         _batchCancellation = null;
         _batchBusy = false;
@@ -108,7 +130,6 @@ public sealed partial class LibraryPage
         LibraryBatchMenu.Hide();
         LibraryBatchSurface.Visibility = Visibility.Collapsed;
         PlaceBatchEmptyNotice();
-        LibrarySelectButton.Visibility = CanSelectItems ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private CardItem[] SelectedBatchCards() => CardWall.SelectedItems.OfType<CardItem>().ToArray();
@@ -189,11 +210,20 @@ public sealed partial class LibraryPage
 
     private static string BatchLabel(ItemCommand command) => command switch
     {
+        ItemCommand.Play => "立即播放",
+        ItemCommand.PlayFromBeginning => "从头播放",
+        ItemCommand.Shuffle => "随机播放",
         ItemCommand.MarkPlayed => "标记为已看",
         ItemCommand.MarkUnplayed => "标记为未看",
         ItemCommand.Favorite => "添加收藏",
         ItemCommand.Unfavorite => "取消收藏",
         ItemCommand.AddToCollection => "加入合集…",
+        ItemCommand.AddToPlaylist => "加入播放列表…",
+        ItemCommand.Convert => "转换…",
+        ItemCommand.Delete => "删除…",
+        ItemCommand.ResetMetadata => "移除识别…",
+        ItemCommand.RefreshMetadata => "刷新元数据…",
+        ItemCommand.ScanLibraryFiles => "扫描媒体库文件",
         ItemCommand.RemoveFromCollection => "移出当前合集",
         _ => throw new ArgumentOutOfRangeException(nameof(command))
     };
@@ -201,14 +231,38 @@ public sealed partial class LibraryPage
     private void OnBatchMenuOpening(object sender, object e)
     {
         LibraryBatchMenu.Items.Clear();
-        foreach (var command in ProbeBatchCommands())
+        var commands = ProbeBatchCommands();
+        if (commands.Contains(ItemCommand.Play))
         {
-            var item = new MenuFlyoutItem { Text = BatchLabel(command), Tag = command };
+            var play = new MenuFlyoutSubItem { Text = "播放", Icon = new FontIcon { Glyph = "\uE768" } };
+            AutomationProperties.SetAutomationId(play, "LibraryBatchPlayback");
+            play.Items.Add(Entry(ItemCommand.Play));
+            if (commands.Contains(ItemCommand.PlayFromBeginning)) play.Items.Add(Entry(ItemCommand.PlayFromBeginning));
+            LibraryBatchMenu.Items.Add(play);
+        }
+        foreach (var command in commands.Where(command => command is not (ItemCommand.Play or ItemCommand.PlayFromBeginning)))
+            LibraryBatchMenu.Items.Add(Entry(command));
+
+        MenuFlyoutItem Entry(ItemCommand command)
+        {
+            var item = new MenuFlyoutItem { Text = BatchLabel(command), Tag = command, Icon = new FontIcon { Glyph = BatchGlyph(command) } };
             AutomationProperties.SetAutomationId(item, "LibraryBatch" + command);
             item.Click += OnBatchCommand;
-            LibraryBatchMenu.Items.Add(item);
+            return item;
         }
     }
+
+    private static string BatchGlyph(ItemCommand command) => command switch
+    {
+        ItemCommand.Play or ItemCommand.PlayFromBeginning => "\uE768",
+        ItemCommand.Shuffle => "\uE8B1",
+        ItemCommand.AddToCollection or ItemCommand.AddToPlaylist => "\uE8F4",
+        ItemCommand.Favorite or ItemCommand.Unfavorite => "\uEB52",
+        ItemCommand.MarkPlayed or ItemCommand.MarkUnplayed => "\uE73E",
+        ItemCommand.Delete => "\uE74D",
+        ItemCommand.ResetMetadata => "\uE8E4",
+        _ => "\uE72C"
+    };
 
     internal void ProbeBeginSelection() => BeginSelection();
     internal void ProbeSelectBatch(int index) { if (_selecting) CardWall.Select(index); }
@@ -237,12 +291,28 @@ public sealed partial class LibraryPage
         var visit = _navigation;
         var generation = _selectionGeneration;
         var confirmation = ++_confirmationGeneration;
+        _batchConfirmation?.Cancel();
+        using var confirmationCancellation = CancellationTokenSource.CreateLinkedTokenSource(query, source.Lifetime);
+        _batchConfirmation = confirmationCancellation;
+        var confirmationToken = confirmationCancellation.Token;
         string? collectionId = null;
+        ItemBatchOptions? options = null;
+        var executing = false;
+        bool Current() => _selecting && !_released && visit == _navigation && generation == _selectionGeneration
+            && confirmation == _confirmationGeneration && ViewModel.QueryCurrent(query) && source.IsAvailable
+            && cards.All(card => CardWall.SelectedItems.Contains(card)
+                && ItemBatch.Allowed(command, source, new(card.Item, card.CollectionMembership), _actions!.MenuPermissionsFor(source)));
         try
         {
+            if (!Current()) return;
+            if (command is ItemCommand.Play or ItemCommand.PlayFromBeginning or ItemCommand.Shuffle)
+            {
+                await PlaySelectedAsync(cards, command == ItemCommand.Shuffle, command == ItemCommand.PlayFromBeginning);
+                return;
+            }
             if (command == ItemCommand.AddToCollection)
             {
-                var collections = await source.ExecuteAsync((client, token) => client.GetCollectionsAsync(token), query).ConfigureAwait(true);
+                var collections = await source.ExecuteAsync((client, token) => client.GetCollectionsAsync(token), confirmationToken).ConfigureAwait(true);
                 if (!_selecting || _released || visit != _navigation || generation != _selectionGeneration
                     || confirmation != _confirmationGeneration || !ViewModel.QueryCurrent(query)) return;
                 var dialog = new CollectionDialog(cards[0].Item, collections, allowCreate: false)
@@ -250,29 +320,75 @@ public sealed partial class LibraryPage
                     XamlRoot = XamlRoot,
                     Title = $"将 {cards.Length} 项加入合集"
                 };
+                using var close = LibraryBatchDialogs.CancelDialog(this, dialog, confirmationToken);
                 if (await dialog.ShowAsync() != ContentDialogResult.Primary || dialog.Chosen is not { } chosen) return;
                 collectionId = chosen.Id;
             }
-            else if (!await ConfirmDialog.ForLibrary(this)(BatchLabel(command),
-                $"对所选 {cards.Length} 项执行“{BatchLabel(command)}”？", "确认")) return;
-            if (!_selecting || _released || visit != _navigation || generation != _selectionGeneration
-                || confirmation != _confirmationGeneration || !ViewModel.QueryCurrent(query)) return;
-            await ExecuteBatchAsync(cards, command, collectionId, default).ConfigureAwait(true);
+            else if (command == ItemCommand.AddToPlaylist)
+            {
+                var playlists = await source.ExecuteAsync((client, token) => client.GetEditablePlaylistsAsync(token), confirmationToken).ConfigureAwait(true);
+                if (!Current()) return;
+                options = await LibraryBatchDialogs.PlaylistAsync(this, cards.Length, playlists, confirmationToken);
+                if (options is null) return;
+            }
+            else if (command == ItemCommand.Convert)
+            {
+                var ids = cards.Select(card => card.Item.Id).ToArray();
+                var available = await source.ExecuteAsync((client, token) => client.GetConversionOptionsAsync(ids, null, token), confirmationToken).ConfigureAwait(true);
+                if (!Current()) return;
+                var conversion = await LibraryBatchDialogs.ConvertAsync(this, cards.Length, available,
+                    (target, token) => source.ExecuteAsync((client, ct) => client.GetConversionOptionsAsync(ids, target, ct), token), confirmationToken);
+                if (conversion is null) return;
+                options = new(Conversion: conversion);
+            }
+            else if (command == ItemCommand.RefreshMetadata)
+            {
+                var dialog = new RefreshMetadataDialog { XamlRoot = XamlRoot, Title = $"刷新所选 {cards.Length} 项的元数据" };
+                using var close = LibraryBatchDialogs.CancelDialog(this, dialog, confirmationToken);
+                if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+                options = new(RefreshMode: dialog.Mode, ReplaceImages: dialog.ReplaceImages, ReplaceThumbnails: dialog.ReplaceThumbnails);
+            }
+            else
+            {
+                var names = string.Join("\n", cards.Take(8).Select(card => "• " + card.Item.Name));
+                var warning = command switch
+                {
+                    ItemCommand.Delete => "这些媒体及其磁盘文件将被永久删除；剧集、季或目录包含的内容也会删除，无法撤销。",
+                    ItemCommand.ResetMetadata => "将重置所选媒体的识别信息，手动编辑的片名、简介和分级等元数据也会丢失，无法撤销。媒体文件会保留。",
+                    ItemCommand.ScanLibraryFiles => "将扫描所选目录中的媒体文件，由服务器在后台处理。",
+                    _ => $"对所选 {cards.Length} 项执行“{BatchLabel(command)}”？"
+                };
+                if (!await ConfirmDialog.ForLibrary(this, async dialog =>
+                    {
+                        using var close = LibraryBatchDialogs.CancelDialog(this, dialog, confirmationToken);
+                        return confirmationToken.IsCancellationRequested ? ContentDialogResult.None : await dialog.ShowAsync();
+                    })(BatchLabel(command), warning + "\n\n" + names,
+                    command == ItemCommand.Delete ? "永久删除" : "确认")) return;
+            }
+            if (!Current()) return;
+            executing = true;
+            await ExecuteBatchAsync(cards, command, collectionId, default, options).ConfigureAwait(true);
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (_released || visit != _navigation) return;
+            if (_released || visit != _navigation || generation != _selectionGeneration || !ViewModel.QueryCurrent(query)
+                || !executing && confirmation != _confirmationGeneration) return;
             LibraryBatchResult.Message = error.Message;
             LibraryBatchResult.Severity = InfoBarSeverity.Error;
             LibraryBatchResult.IsOpen = true;
+        }
+        finally
+        {
+            if (ReferenceEquals(_batchConfirmation, confirmationCancellation)) _batchConfirmation = null;
         }
     }
 
     internal Task ProbeBatchOperationAsync(ItemCommand command, CancellationToken token = default) =>
         ExecuteBatchAsync(SelectedBatchCards(), command, null, token);
 
-    private async Task ExecuteBatchAsync(CardItem[] cards, ItemCommand command, string? collectionId, CancellationToken token)
+    private async Task ExecuteBatchAsync(CardItem[] cards, ItemCommand command, string? collectionId, CancellationToken token,
+        ItemBatchOptions? options = null)
     {
         if (!_selecting || _batchBusy || _released || cards.Length == 0 || _actions is not { } actions
             || cards[0].Scope is not { IsAvailable: true } source) return;
@@ -280,10 +396,12 @@ public sealed partial class LibraryPage
         _confirmationGeneration++;
         ViewModel.PrepareCollectionMembers();
         var entries = cards.Select(card => new ItemBatchEntry(card.Item, card.CollectionMembership)).ToArray();
+        var deletionAnchor = command == ItemCommand.Delete ? ReadScrollAnchor() : null;
+        var deletionOffset = command == ItemCommand.Delete ? ContentScrollOffset : 0;
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(token, _selectionQuery);
         _batchCancellation = cancellation;
         _batchBusy = true;
-        if (command == ItemCommand.RemoveFromCollection) CardWall.DeselectAll();
+        if (command is ItemCommand.RemoveFromCollection or ItemCommand.Delete) CardWall.DeselectAll();
         LibraryBatchResult.IsOpen = false;
         RefreshBatchControls();
         var visit = _navigation;
@@ -302,6 +420,7 @@ public sealed partial class LibraryPage
                 () => actions.MenuPermissionsFor(source), collectionId, cancellation.Token, receipt =>
                 {
                     if (receipt.Status != ItemBatchStatus.Succeeded) return;
+                    if (command == ItemCommand.Delete) ViewModel.ConfirmBatchDeletion(receipt.Item);
                     var card = cards.First(candidate => ReferenceEquals(candidate.Item, receipt.Item));
                     var currentState = true;
                     if (stateChanges.TryGetValue(card, out var edit) && card.IsCurrent)
@@ -312,7 +431,7 @@ public sealed partial class LibraryPage
                     }
                     if (_released || visit != _navigation || !ReferenceEquals(_batchCancellation, cancellation)) return;
                     var index = ViewModel.Cards.IndexOf(card);
-                    if (index >= 0 && command != ItemCommand.RemoveFromCollection) CardWall.Deselect(index);
+                    if (index >= 0 && command is not (ItemCommand.RemoveFromCollection or ItemCommand.Delete)) CardWall.Deselect(index);
                     if (command == ItemCommand.MarkPlayed && currentState)
                     {
                         actions.ReportMarkedWatched(card.Item);
@@ -329,26 +448,59 @@ public sealed partial class LibraryPage
                     if (card.IsCurrent && stateChanges.TryGetValue(card, out var edit) && receipt.RefreshedUserData is { } refreshed
                         && edit.Order.RefreshConfirmed(edit.Change, card.Item.UserData, refreshed) is { } state)
                         card.ApplyUserState(state, watched: false);
-                }).ConfigureAwait(true);
+                }, options).ConfigureAwait(true);
             if (_released || visit != _navigation || !ReferenceEquals(_batchCancellation, cancellation)) return;
             LastBatchResult = result;
-            if (command == ItemCommand.RemoveFromCollection)
+            if (command == ItemCommand.Delete)
+            {
+                var deleted = result.Results.Where(receipt => receipt.Status == ItemBatchStatus.Succeeded).Select(receipt => receipt.Item).ToArray();
+                if (deleted.Length > 0)
+                {
+                    _removingCard = true;
+                    string? refreshError = null;
+                    try
+                    {
+                        if (!await ViewModel.RemoveBatchAsync(deleted, _selectionQuery).ConfigureAwait(true))
+                            refreshError = "媒体已删除，刷新列表失败，请稍后刷新。";
+                    }
+                    catch (Exception error) { refreshError = error.Message; }
+                    finally { _removingCard = false; }
+                    if (_released || visit != _navigation || !ViewModel.QueryCurrent(_selectionQuery)) return;
+                    if (refreshError is not null)
+                    {
+                        // A failed UI refresh cannot turn an accepted deletion into a retryable write.
+                        result = new(result.Results.Select(item => item.Status == ItemBatchStatus.Succeeded
+                            ? item with { RefreshError = refreshError } : item).ToArray());
+                        LastBatchResult = result;
+                    }
+                    if (deletionAnchor is not null) { _pendingAnchor = deletionAnchor; ApplyPendingScroll(); }
+                    else
+                    {
+                        CardWall.UpdateLayout();
+                        _scroll?.ScrollTo(0, deletionOffset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+                    }
+                }
+                actions.RefreshFavorites();
+            }
+            if (command is ItemCommand.RemoveFromCollection or ItemCommand.Delete)
             {
                 CardWall.DeselectAll();
                 foreach (var receipt in result.Results.Where(receipt => receipt.Status != ItemBatchStatus.Succeeded))
                 {
-                    var index = ViewModel.Cards.ToList().FindIndex(card => ReferenceEquals(card.Item, receipt.Item));
+                    var index = ViewModel.Cards.ToList().FindIndex(card => card.Item.IdentityKey == receipt.Item.IdentityKey);
                     if (index >= 0) CardWall.Select(index);
                 }
             }
             var details = result.Results.Where(receipt => receipt.Error is not null || receipt.RefreshError is not null)
                 .Select(receipt => $"{receipt.Item.Name}：{receipt.Error ?? "已保存，但刷新失败：" + receipt.RefreshError}");
-            LibraryBatchResult.Message = $"成功 {result.Succeeded} 项，失败 {result.Failed} 项，取消 {result.Canceled} 项。"
+            var successLabel = command == ItemCommand.Convert ? "已提交转换任务" : command is ItemCommand.RefreshMetadata
+                or ItemCommand.ScanLibraryFiles or ItemCommand.ResetMetadata ? "已提交" : "成功";
+            LibraryBatchResult.Message = $"{successLabel} {result.Succeeded} 项，失败 {result.Failed} 项，取消 {result.Canceled} 项。"
                 + (details.Any() ? "\n" + string.Join("\n", details.Take(5)) : "");
             LibraryBatchResult.Severity = result.Failed > 0 ? InfoBarSeverity.Warning
                 : result.Results.Any(receipt => receipt.RefreshError is not null) ? InfoBarSeverity.Warning : InfoBarSeverity.Success;
             LibraryBatchResult.IsOpen = true;
-            if (command == ItemCommand.RemoveFromCollection && result.Succeeded > 0) PumpIfShort();
+            if (command is ItemCommand.RemoveFromCollection or ItemCommand.Delete && result.Succeeded > 0) PumpIfShort();
         }
         finally
         {

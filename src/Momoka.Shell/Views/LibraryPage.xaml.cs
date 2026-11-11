@@ -1096,7 +1096,8 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (_selecting) { args.Handled = true; return; }
         ViewModel.PrepareCollectionMembers();
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched);
+        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched,
+            select: SelectionCallback());
     }
 
     /// <summary>需求 6：the same commands from the strip that appears on a card under the pointer.</summary>
@@ -1110,7 +1111,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         }
 
         ViewModel.PrepareCollectionMembers();
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched);
+        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched,
+            select: SelectionCallback());
     }
 
     private double ContentScrollOffset => ViewModel.IsUpcomingPage ? UpcomingScroll.VerticalOffset

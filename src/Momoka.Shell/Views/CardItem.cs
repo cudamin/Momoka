@@ -402,6 +402,7 @@ public sealed class CardItem : INotifyPropertyChanged
             Raise(nameof(UserStateVisibility));
             Raise(nameof(FavoriteActionVisibility));
             Raise(nameof(MoreVisibility));
+            Raise(nameof(FavoriteBadgeVisibility));
         }
     }
 
@@ -773,7 +774,7 @@ public sealed class CardItem : INotifyPropertyChanged
     public Visibility WatchedBadgeVisibility => Show(_indicators && Watched);
 
     /// <summary>飞牛横卡的左上角让给评分，收藏状态仍可在悬停层里看到。</summary>
-    public Visibility FavoriteBadgeVisibility => Show(_indicators && IsFavorite && !_fnNasWide);
+    public Visibility FavoriteBadgeVisibility => Show(!IsSelecting && _indicators && IsFavorite && !_fnNasWide);
 
     /// <summary>
     /// The two halves of each of the hover buttons' icon pairs: the white glyph shows when the state is

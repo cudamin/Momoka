@@ -175,12 +175,22 @@
         <DataTemplate x:Key="PosterTemplate" x:DataType="local:CardItem">
             <!-- ItemContainer, not a Button in a Border: it is the one element that gives an
                  ItemsView child its hover state, keyboard focus and invoke handling for free. -->
-            <ItemContainer>
+            <ItemContainer x:Name="PosterContainer">
+                <ItemContainer.Resources>
+                    <!-- Preserve native selection/keyboard behavior; PosterCard draws the cover-only outline. -->
+                    <HorizontalAlignment x:Key="ItemContainerCheckboxHorizontalAlignment">Left</HorizontalAlignment>
+                    <Thickness x:Key="ItemContainerCheckboxMargin">12,12,0,0</Thickness>
+                    <SolidColorBrush x:Key="ItemContainerSelectionVisualBackground" Color="Transparent" />
+                    <SolidColorBrush x:Key="ItemContainerSelectionVisualPointerOverBackground" Color="Transparent" />
+                    <SolidColorBrush x:Key="ItemContainerSelectionVisualPressedBackground" Color="Transparent" />
+                    <SolidColorBrush x:Key="ItemContainerSelectedInnerBorderBrush" Color="Transparent" />
+                </ItemContainer.Resources>
                 <!-- The card carries its own drawn size, which is provably the width its bitmap was
                      decoded for; see CardSize. -->
                 <local:PosterCard
                     ActionRequested="OnCardActionRequested"
                     Card="{x:Bind}"
+                    IsSelected="{Binding IsSelected, ElementName=PosterContainer, Mode=OneWay}"
                     CardWidth="{x:Bind CardWidth, Mode=OneWay}"
                     ContextRequested="OnCardContextRequested"
                     PosterHeight="{x:Bind PosterHeight, Mode=OneWay}" />
@@ -190,10 +200,19 @@
         <!-- 缩略图视图：16:9 宽卡。PosterCard 本身就支持宽幅（CardItem 的 wide 决定取剧照优先），
              这里只需要让卡片以自己的宽高绘制 —— 数据驱动，模板零分支。 -->
         <DataTemplate x:Key="ThumbTemplate" x:DataType="local:CardItem">
-            <ItemContainer>
+            <ItemContainer x:Name="ThumbContainer">
+                <ItemContainer.Resources>
+                    <HorizontalAlignment x:Key="ItemContainerCheckboxHorizontalAlignment">Left</HorizontalAlignment>
+                    <Thickness x:Key="ItemContainerCheckboxMargin">12,12,0,0</Thickness>
+                    <SolidColorBrush x:Key="ItemContainerSelectionVisualBackground" Color="Transparent" />
+                    <SolidColorBrush x:Key="ItemContainerSelectionVisualPointerOverBackground" Color="Transparent" />
+                    <SolidColorBrush x:Key="ItemContainerSelectionVisualPressedBackground" Color="Transparent" />
+                    <SolidColorBrush x:Key="ItemContainerSelectedInnerBorderBrush" Color="Transparent" />
+                </ItemContainer.Resources>
                 <local:PosterCard
                     ActionRequested="OnCardActionRequested"
                     Card="{x:Bind}"
+                    IsSelected="{Binding IsSelected, ElementName=ThumbContainer, Mode=OneWay}"
                     CardWidth="{x:Bind CardWidth, Mode=OneWay}"
                     ContextRequested="OnCardContextRequested"
                     PosterHeight="{x:Bind PosterHeight, Mode=OneWay}" />
@@ -694,8 +713,6 @@
                                 </Flyout>
                             </Button.Flyout>
                         </Button>
-                        <Button x:Name="LibrarySelectButton" Content="多选" Style="{StaticResource LibraryPillStyle}"
-                            Visibility="Collapsed" Click="OnBeginSelection" AutomationProperties.AutomationId="LibrarySelectButton" />
                         <!-- 网页端那颗齿轮：视图、图像大小、分组、显示字段。原来 ⋯ 里那个「视图」三选一的
                              子菜单由它接手 —— 那三档只是网页端七档里的三档，图像大小和显示字段也没有入口。
                              打开的是本页盖上来的一块面板（网页端也是个模态框），不是浮层：浮层是亚克力的，

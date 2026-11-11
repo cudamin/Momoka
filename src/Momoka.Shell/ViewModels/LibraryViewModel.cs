@@ -138,6 +138,9 @@ public sealed partial class LibraryViewModel : PageViewModel
         }
     }
 
+    /// <summary>An accepted deletion remains true after the initiating page has been released.</summary>
+    internal void ConfirmBatchDeletion(EmbyItem item) => _removed.Remember(item);
+
     /// <summary>
     /// Which grid this is: the navigation payload, and at the same time the witness that
     /// <see cref="Attach"/> has run. The four services below arrive in that same call as non-nullable
@@ -1541,6 +1544,26 @@ public sealed partial class LibraryViewModel : PageViewModel
         return true;
     }
 
+    /// <summary>Accepted batch deletions stay hidden even when the following page refresh fails.</summary>
+    internal async Task<bool> RemoveBatchAsync(IReadOnlyList<EmbyItem> deleted, CancellationToken queryToken)
+    {
+        if (!QueryCurrent(queryToken)) return false;
+        _rawReadEnd = Math.Max(_rawReadEnd, WindowEnd);
+        foreach (var item in deleted) _removed.Remember(item);
+        base.Cancel();
+        _jumps.Cancel();
+        foreach (var card in Cards.Where(card => _removed.Hides(card.Item)).ToArray())
+        {
+            card.AbandonPoster();
+            Cards.Remove(card);
+        }
+        ShowEmptyNotice = Cards.Count == 0;
+        RowsArrived();
+        // Once removals break server-index mapping, retain the prefix through the old viewport.
+        // This keeps its anchor available and gives the next page one consistent raw cursor.
+        return await RefreshAfterRemovalAsync(queryToken, _rawReadEnd).ConfigureAwait(true);
+    }
+
     /// <summary>
     /// 「继续观看」那一页的一张卡被标成已看之后，把那一格收拾干净 —— 单集换成本剧的下一集，电影、以及没有
     /// 下一集的单集一律撤掉（用户令 2026-10-15）。
@@ -1674,10 +1697,10 @@ public sealed partial class LibraryViewModel : PageViewModel
         ? LibraryCardText.Subtitle(item, Fields, Section)
         : LibraryCardText.Line(item, Fields) is { Length: > 0 } line ? line : null;
 
-    private async Task<bool> RefreshAfterRemovalAsync(CancellationToken queryToken)
+    private async Task<bool> RefreshAfterRemovalAsync(CancellationToken queryToken, int minimumRows = 0)
     {
         if (WindowEligible) return await RefreshWindowAsync(queryToken, background: false).ConfigureAwait(true);
-        var wanted = Math.Max(Cards.Count, _settings!.PageSize);
+        var wanted = Math.Max(minimumRows, Math.Max(Cards.Count, _settings!.PageSize));
         _firstPage = false;
         _jumps.Cancel();
         var token = BeginLoad();
@@ -1702,6 +1725,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             var desired = items.Where(item => !_removed.Hides(item)).Select(item => retained.TryGetValue(item.IdentityKey, out var existing) ? existing
                 : NewCard(item)).ToArray();
             _cursor = cursor;
+            _rawReadEnd = items.Count;
+            _windowStart = 0;
             _resumeRead.Clear();
             if (IsResumePage)
                 foreach (var item in items) _resumeRead.Add(item.IdentityKey);
