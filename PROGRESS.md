@@ -6,9 +6,11 @@
 
 自检与探针：`ProbeTitleActions` 改成三档都验两支箭头（都暗／只返回亮／两支都亮），读数补「前进 在/收、可用与否」；收藏探针的次序断言排到「…返回 < 前进」，历史那一段改成真按前进那颗回收藏页；侧栏探针的媒体页按键齐全断言补上它。句柄基线补 `ForwardButton`；`ToolbarIconTests` 换成正向契约（点击接线、默认停用、无自带加速器、本地化名称），旧「前进已退役」那条改成「胶囊退役、快捷键挂外壳」。`docs/开发与验证.md` 标题栏段落同步。
 
-**验证（受限，见下）**：Shell 与 Momoka.Tests 单编 **0 警告 0 错误**；`toolbar-icon-fixture` **5/5**、`moviepilot-subscription-fixture`（含约定 99 项）**99/99**。整方案构建这一轮红了 1 个项目：`Momoka.SearchLifetimeTests` 的生成代码引用 `SurfaceMotion`／`_settingsScrimMotion` 等，而该夹具的边界替身还没有这些成员 —— 那是同树另一批**未提交** UI 动效改动（`SurfaceMotion.cs`／`GlyphPulse.cs` 未跟踪，详情页、海报卡、媒体库设置面板与 `ShellPage.Music.cs` 已改，新增 `Momoka.UiMotionTests` 并已进 `Momoka.sln`）的中间态，与本轮无关，也没有被我改动。
+**验证**：Shell 与 Momoka.Tests 单编 **0 警告 0 错误**；`toolbar-icon-fixture` **5/5**、`moviepilot-subscription-fixture`（含约定 99 项）**99/99**。整方案构建这一轮红了 1 个项目：`Momoka.SearchLifetimeTests` 的生成代码引用 `SurfaceMotion`／`_settingsScrimMotion` 等，而该夹具的边界替身还没有这些成员 —— 那是同树另一批**未提交** UI 动效改动（`SurfaceMotion.cs`／`GlyphPulse.cs` 未跟踪，详情页、海报卡、媒体库设置面板与 `ShellPage.Music.cs` 已改，新增 `Momoka.UiMotionTests` 并已进 `Momoka.sln`）的中间态，与本轮无关，也没有被我改动。
 
-**未做**：未跑原生探针与截图、未发布 —— 发布会把那批未提交的半成品一起打进 `artifacts/publish/win-x64`。等同树并行改动收尾或用户确认后再补 UI 证据与交付。
+原生探针（主屏 `--screen 1`、匿名假服务）：`--probe-shell --probe-section favorites` **6/7**，标题栏那条「收藏入口显隐、跳转及取消最后一项」通过 —— 次序 主页·(收藏)·设置·搜索·返回·前进、首页两支箭头都暗、退回来以后前进亮并真按它回收藏页；唯一红 `删除确认、失败和成功保持列表位置`（writes=2、reads=4→4、rows=80→79）用上一轮发布件（23:26）同尺复跑一字不差重现，属既有红。`--probe-section shell` **12/14**，两条红是 `登录页两步流程、主题与宽窄布局` 与 `侧边栏模式、导航与宽窄布局` 的「滚动请求未到达目标」，同样在发布件上原样重现，属既有红。实屏 `favorites-screen-1240.png` 目视左上「🏠 ♡ ⚙ 🔍 ← →」。
+
+**未做**：完整 `--self-check` 没跑（它会登录保存的账号、读真实库）；标题栏几何与挖洞矩形由探针的 `ProbeTitleActions` 量过（整排落在 40 像素里、依次排成一行）。未发布 —— 发布要整份编译 Shell，会把同树那批未提交的动效改动一起打进 `artifacts/publish/win-x64`。等同树并行改动收尾或用户确认后再发。
 
 ## 2026-11-11 订阅墙与显示模式前置两批一起合入主树并桌面交付
 
