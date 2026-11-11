@@ -10,6 +10,7 @@ internal static class LibrarySearchTests
 {
     public static void Register()
     {
+        LibrarySearchProtocolTests.Register();
         Test("媒体库搜索：分类改变查询范围且保留服务器相关性顺序", () =>
         {
             foreach (var (category, type) in new[] { (LibrarySearchCategory.Series, "Series"),
@@ -39,7 +40,7 @@ internal static class LibrarySearchTests
             Assert.Equal(LibrarySearchGroupKind.Video, LibrarySearchGroups.KindOf("ServerOnlyType"));
             Assert.Equal(LibrarySearchGroupKind.Video, LibrarySearchGroups.KindOf(null));
             Assert.True(LibrarySearchGroups.Order.Select(LibrarySearchGroups.TitleOf)
-                .SequenceEqual(["节目", "影片", "单集", "视频"]), "分组标题或次序变了");
+                .SequenceEqual(["节目", "影片", "单集", "视频", "人物", "合集", "播放列表"]), "分组标题或次序变了");
         });
         Test("最近搜索：关键词升级成选中媒体、去重置顶并限制数量", () =>
         {

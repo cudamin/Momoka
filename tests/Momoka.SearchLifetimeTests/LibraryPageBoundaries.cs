@@ -92,6 +92,7 @@ namespace Momoka.Shell.Views
         public int WindowStart => 0;
         public Microsoft.UI.Xaml.Visibility MoviePilotTabsVisibility { get; set; } = Microsoft.UI.Xaml.Visibility.Visible;
         public Microsoft.UI.Xaml.Visibility ToolbarVisibility { get; set; } = Microsoft.UI.Xaml.Visibility.Visible;
+        public Microsoft.UI.Xaml.Visibility ExtendedSearchCategoriesVisibility { get; set; } = Microsoft.UI.Xaml.Visibility.Collapsed;
         public List<object> Cards { get; } = [new(), new(), new()];
         public int LoadedCount => Cards.Count;
         public bool NoticeOpen { get; set; }

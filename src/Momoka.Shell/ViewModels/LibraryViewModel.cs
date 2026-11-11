@@ -185,7 +185,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     private long _retainedPermissionRevision;
     private bool Aggregated => _sources.Count > 1;
     // 单来源继续观看同样按服务器消费量计数；补入的下一集只占显示槽，不占 Resume 偏移。
-    private bool UsesQueryCursor => Aggregated || IsResumePage;
+    private bool UsesQueryCursor => Aggregated || IsResumePage || _request?.IsSearch == true;
     private bool SourcesAvailable => _sources.Any(source => source.IsAvailable);
     private bool _active;
     private bool _firstPage;
@@ -471,7 +471,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     public Visibility AlphaVisibility => Show(
         !Aggregated && !IsUpcomingPage && !IsFavoritesPage && Section != LibrarySection.Recommended
-        && Section != LibrarySection.Collections && !IsJellyfinNextUpPage
+        && Section != LibrarySection.Collections && !IsJellyfinNextUpPage && !IsServerPlaylistPage
         && (IsPlex ? PlexHasAlphabet : SupportsBrowseConditions) && _request?.IsSearch != true && IsNameSortInForce
         && (!IsJellyfin || JellyfinLibrary.HasAlphabetPicker(CollectionType, Section))
         && !SortDescending && _total is > 30);
@@ -534,6 +534,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         PlayAllCommand.NotifyCanExecuteChanged();
         PlayRandomCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(AlphaVisibility));
+        OnPropertyChanged(nameof(ExtendedSearchCategoriesVisibility));
     }
 
     [ObservableProperty]
@@ -808,7 +809,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             nameof(FnNasLayoutWide), nameof(FilterButtonWidth), nameof(JellyfinListShowsTitles),
             nameof(FavoriteAccountFilterVisibility), nameof(FavoriteAccountLabel),
             nameof(RecommendedVisibility), nameof(GridVisibility), nameof(UpcomingVisibility), nameof(FavoritesVisibility),
-            nameof(SearchGroupsVisibility) }) OnPropertyChanged(name);
+            nameof(SearchGroupsVisibility), nameof(ExtendedSearchCategoriesVisibility) }) OnPropertyChanged(name);
         RefreshUpcomingState();
         // 查询身份（分区、分组、账号）与排序／筛选／显示条件都在这里落定，缓存键跟着一起更新。
         RefreshSnapshotKey();
@@ -1243,7 +1244,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// （<c>getVisibleFilters</c> 对 nextup 返回空数组），这边的接口只认 StartIndex/Limit 与服务器自己的次序。
     /// </para>
     /// </summary>
-    public Visibility SortFilterVisibility => Show(HasToolbar && !IsResumePage && !IsJellyfinNextUpPage && !Aggregated
+    public Visibility SortFilterVisibility => Show(HasToolbar && !IsResumePage && !IsJellyfinNextUpPage && !IsServerPlaylistPage && !Aggregated
         && !IsBrowseIndex
         && (!IsPlexSection || PlexHasSorts)
         // 飞牛搜索走 /search/list，排序参数不会随搜索发出；摆一颗按了不动的排序键比不摆更糟。
@@ -1265,7 +1266,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     private string? FilterCollectionType => CollectionType ?? (_request?.IsSearch == true ? "movies" : null);
 
-    public Visibility FilterVisibility => Show(HasToolbar && !IsResumePage && !IsJellyfinNextUpPage && !Aggregated
+    public Visibility FilterVisibility => Show(HasToolbar && !IsResumePage && !IsJellyfinNextUpPage && !IsServerPlaylistPage && !Aggregated
         && !IsBrowseIndex
         && Section != LibrarySection.Folders && Section != LibrarySection.Collections
         && (IsJellyfin ? JellyfinFiltersSupported : SupportsFilterPanel)
@@ -1312,6 +1313,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             if (_sources.Count == 1) _scope = _sources[0];
         }
         _request = request;
+        if (request.IsSearch && !_sources.Any(source => LibrarySearch.SupportsCategory(source.Connection.ServerKind, request.SearchCategory)))
+            request.SearchCategory = LibrarySearchCategory.TopResults;
         _removed = request.Services.GetService(typeof(RemovedMedia)) as RemovedMedia ?? _removed;
         _sourceTokens = BrowseSnapshotKeys.Sources(_sources);
         _restoredFromCache = false;
@@ -1502,7 +1505,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (!Cards.Contains(card)) return false;
         if (IsFavoritesPage) return await RemoveFavoriteAsync(card, deleted).ConfigureAwait(true);
         // 容器会连带删除未加载的后代；查询刚切换时屏上也可能仍是旧排序，不能据旧集合推算新分页。
-        if (WindowEligible || Aggregated || !_firstPage || deleted && (card.Item.IsFolder || card.Item.Type is EmbyItemType.Series
+        if (WindowEligible || Aggregated || _request?.IsSearch == true || !_firstPage || deleted && (card.Item.IsFolder || card.Item.Type is EmbyItemType.Series
             or EmbyItemType.Season or EmbyItemType.Folder or EmbyItemType.BoxSet or EmbyItemType.Playlist))
             return await RefreshAfterRemovalAsync(queryToken).ConfigureAwait(true);
         base.Cancel();
@@ -2134,6 +2137,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (_active) return;
         _active = SourcesAvailable;
         OnPropertyChanged(nameof(LayoutVisibility));
+        OnPropertyChanged(nameof(ExtendedSearchCategoriesVisibility));
         if (_active && !reload) _queryToken = _queries.Begin();
         if (_active && reload) _ = ReloadAsync();
     }
@@ -2171,7 +2175,8 @@ public sealed partial class LibraryViewModel : PageViewModel
         return await ReadSourceAsync(_sources[0], start, token).ConfigureAwait(true);
     }
 
-    private AggregateQueryCursor NewCursor() => new(_sources.Select(source => source.Key));
+    private AggregateQueryCursor NewCursor() => new(_request?.IsSearch == true
+        ? SearchChannels().Select(channel => channel.Key) : _sources.Select(source => source.Key));
 
     private void ResetCursor()
     {
@@ -2181,8 +2186,9 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     private async Task<ItemsResult> ReadCursorAsync(AggregateQueryCursor cursor, CancellationToken token)
     {
-        var page = await cursor.ReadAsync((key, offset, ct) =>
-            ReadSourceAsync(_sources.First(source => source.Key == key), offset, ct), token,
+        var page = await cursor.ReadAsync((key, offset, ct) => _request?.IsSearch == true
+            ? ReadSearchChannelAsync(key, offset, ct)
+            : ReadSourceAsync(_sources.First(source => source.Key == key), offset, ct), token,
             allowPartialFailure: Aggregated).ConfigureAwait(true);
         if (_active && !token.IsCancellationRequested && page.Failures.Count > 0)
         {
@@ -2213,6 +2219,12 @@ public sealed partial class LibraryViewModel : PageViewModel
     private async Task<ItemsResult> ReadSourceRangeAsync(EmbySessionScope scope, int start, int limit, CancellationToken token)
     {
         if (IsPlexSection) await EnsurePlexCatalogAsync(token).ConfigureAwait(true);
+        if (IsServerPlaylistPage)
+            return await scope.ExecuteAsync((client, ct) => client.GetPlaylistItemsAsync(_request!.ParentId!, start, limit, ct), token)
+                .ConfigureAwait(true);
+        if (_request is { IsSearch: true } search)
+            return await scope.ExecuteAsync((client, ct) => client.SearchItemsAsync(search.SearchTerm, search.SearchCategory, start, limit, ct), token)
+                .ConfigureAwait(true);
         if (BuildRangeQuery(start, limit) is not { } query) return new ItemsResult();
 
         if (IsSectionLibrary)
@@ -2268,6 +2280,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal IReadOnlyList<SortEntry> SortEntries()
     {
         if (_request is null) return [];
+        if (IsServerPlaylistPage) return [];
 
         if (IsPlexSection) return PlexSortEntries();
 
@@ -2927,6 +2940,12 @@ public sealed partial class LibraryViewModel : PageViewModel
             SortKey = EmbySortBy.Name;
             ShowSort("标题", false);
             RestorePlexSort();
+            return;
+        }
+        if (IsServerPlaylistPage)
+        {
+            SortKey = "ListItemOrder";
+            ShowSort("列表顺序", false);
             return;
         }
         if (IsFnNas)

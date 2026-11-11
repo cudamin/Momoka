@@ -12356,3 +12356,10 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 固定官方Web4.163.0/8246fd2源JS本轮核验SHA256并实际读模块链；细节在docs/媒体库第二批-Plex浏览.md。section原始filters声明与实际目录共同控制入口，值和标签分开，保存条件失效明确恢复，不借Emby路由。快照/设置/取消及每section目录generation覆盖。
 - 回归先红：初始8项目标失败；新增目录刷新竞争与设置保存边界2项失败。最终273/273协议、5/5实际LibraryViewModel，0失败0跳过；Core/Tests Release/x64编译0警告0错误。Shell前几趟编译0警告错误，最后重叠构建退出0但4个MSB3026（XAML编译器锁Core复制重试）；最后微调对应的warning-free完整Shell证据须由主树整合再验，不能把此次有警告构建称全部通过。
 - 21文本check-diff、git diff --check、改动Core/Tests whitespace与自动化0missing通过。证据在本树artifacts/plex-catalog-*.log、plex-library-vm-final.log、plex-automation.log。真实WinUI、宽窄布局、PMS、主树整合与桌面发布未执行；root负责串行最终验收。没有跑默认主套件或共享桌面探针。
+## 2026-11-11 媒体库第二批：搜索实体（待根代理整合）
+
+独立树 C:/Users/89400/.codex/worktrees/library-search-types/Momoka，基点 efd2ffd。Emby/Jellyfin 搜索新增人物、合集、播放列表和热门分组；Plex/飞牛不显示未实现分类。Jellyfin Persons 的旧版无 startIndex、Limit=0 无 SQL LIMIT 已读 v10.10.7 控制器和仓库源码，只读匹配人物全集再本地分页；热门媒体/人物各自独立 cursor 通道，取消旧词和删除后刷新不漏末页。人物沿现有 PersonIds 作品导航，合集容器保留，播放列表按 ListItemOrder/Playlists/{id}/Items 原序成员读取。窄窗分类增加水平滚动，旧 SearchHeaderLayout 原生检查改测 viewport 和最右分类 BringIntoView 可达性。
+
+匿名回归先红：协议 15 项 6 过/9 个目标失败；真实 VM 6 项 1 过/5 个缺口；删除后分页反例 24/25、末项遗漏。最终 Core/Tests、Shell 当前 Release 编译 0 警告 0 错误，搜索协议 15/15、真实 VM 7/7，0 跳过；SearchLifetime 原样页面合同 43/43。合同旧语言常量抽取边界会捎带第一批续播命令而编译失败，已精确收窄至常量；保留原有 43 项覆盖。变更 whitespace、check-diff/git diff --check 通过，自动化扫描无句柄缺失。证据本树 artifacts/library-search，来源详见 docs/媒体库第二批-搜索.md。
+
+根代理负责整合与最终默认全量、原生导航/宽窄实屏、master 重验和发布；本树无 UI、无真实服务器登录/播放/写入、未 publish/push。默认全量曾误启动，收到根代理串行提示后停止；未完成的默认运行不作为通过证据，不与其 native probe 并发。此记录不宣称主树交付。

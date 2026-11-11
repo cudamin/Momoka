@@ -40,7 +40,7 @@ public sealed partial class LibraryViewModel
     /// <summary>当前搜索来源是不是「媒体库」；MoviePilot 与 AniBT 那几段看不到最近搜索。</summary>
     private bool _embySourceActive = true;
 
-    /// <summary>四个分组对象从头到尾不变；卡片对象仍由 <see cref="Cards"/> 持有，这里只是同一批对象的另一份按类型排好的清单。</summary>
+    /// <summary>分组对象从头到尾不变；卡片对象仍由 <see cref="Cards"/> 持有，这里只是同一批对象的另一份按类型排好的清单。</summary>
     private readonly SearchResultGroup[] _searchGroupBuckets =
         [.. LibrarySearchGroups.Order.Select(kind => new SearchResultGroup(kind))];
 
@@ -59,6 +59,40 @@ public sealed partial class LibraryViewModel
     public Visibility NoRecentVisibility => Show(RecentSearches.Count == 0);
     public Visibility SearchResultsVisibility => Show(_request?.IsSearch != true || SearchText.Length > 0);
     public Visibility SearchCategoriesVisibility => Show(_request?.IsSearch == true && SearchText.Length > 0);
+    public Visibility ExtendedSearchCategoriesVisibility => Show(_sources.Any(source => source.IsAvailable
+        && LibrarySearch.SupportsCategory(source.Connection.ServerKind, LibrarySearchCategory.People)));
+
+    private bool IsServerPlaylistPage => _request is { IsSearch: false, ParentId.Length: > 0, ParentType: EmbyItemType.Playlist }
+        && _scope?.Connection.ServerKind is MediaServerKind.Emby or MediaServerKind.Jellyfin;
+
+    /// <summary>一个服务器里的媒体和人物拥有各自偏移；不能把人物数量加到媒体的 startIndex。</summary>
+    private IReadOnlyList<SearchChannel> SearchChannels()
+    {
+        if (_request is not { IsSearch: true } request) return [];
+        var channels = new List<SearchChannel>();
+        foreach (var source in _sources.Where(source => source.IsAvailable
+            && LibrarySearch.SupportsCategory(source.Connection.ServerKind, request.SearchCategory)))
+        {
+            channels.Add(new("items:" + source.Key, source, false));
+            if (source.Connection.IsJellyfin && request.SearchCategory == LibrarySearchCategory.TopResults)
+                channels.Add(new("people:" + source.Key, source, true));
+        }
+        return channels;
+    }
+
+    private Task<ItemsResult> ReadSearchChannelAsync(string key, int start, CancellationToken token)
+    {
+        var channel = SearchChannels().FirstOrDefault(channel => channel.Key == key);
+        if (channel is null) throw new OperationCanceledException("搜索来源已改变");
+        var term = _request!.SearchTerm;
+        var category = _request.SearchCategory;
+        var limit = _settings!.PageSize;
+        return channel.Source.ExecuteAsync((client, ct) => channel.People
+            ? client.QuerySearchPeopleAsync(term, start, limit, ct)
+            : client.SearchItemsAsync(term, category, start, limit, ct), token);
+    }
+
+    private sealed record SearchChannel(string Key, EmbySessionScope Source, bool People);
 
     /// <summary>搜索页有词时，卡片按类型分组的视图取代那一面平铺的墙。</summary>
     public Visibility SearchGroupsVisibility => Show(IsGroupedSearch);
@@ -190,6 +224,8 @@ public sealed partial class LibraryViewModel
     internal Task ChooseSearchCategoryAsync(LibrarySearchCategory category)
     {
         if (!_active || _request is not { IsSearch: true } request || request.SearchCategory == category)
+            return Task.CompletedTask;
+        if (!_sources.Any(source => source.IsAvailable && LibrarySearch.SupportsCategory(source.Connection.ServerKind, category)))
             return Task.CompletedTask;
         request.SearchCategory = category;
         request.ScrollOffset = 0;

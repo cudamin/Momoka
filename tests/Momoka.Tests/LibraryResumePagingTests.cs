@@ -23,6 +23,7 @@ internal static class LibraryResumePagingTests
         try
         {
             var shell = new ShellFixture(shellAssemblyPath, sourceRoot);
+            LibrarySearchViewTests.Register(shell);
             Case("R09-008 删除主体记忆过滤后续旧索引及跨来源同ID", async () =>
             {
                 using var f = new Fixture(shell, 25);
@@ -1169,6 +1170,7 @@ internal static class LibraryResumePagingTests
         public bool FailReleasedTag { get; set; }
         public ConcurrentQueue<(string Host, int Start, int Limit)> LibraryReads { get; } = new();
         public Gate? LibraryGate { get; set; }
+        internal Func<Uri, Task<HttpResponseMessage>>? SearchReply { get; set; }
         public System.Net.HttpStatusCode? LibraryFailure { get; set; }
         public ConcurrentQueue<(string Host, string Body)> FavoriteBodies { get; } = new();
         public ConcurrentQueue<string> TagHosts { get; } = new();
@@ -1186,6 +1188,9 @@ internal static class LibraryResumePagingTests
                     || FnNasHomeReply is not null && uri.AbsolutePath.EndsWith("/api/v1/item/list", StringComparison.Ordinal))), "夹具只允许媒体/标签读取");
             Assert.True(uri.Host is "a.invalid" or "b.invalid" or "c.invalid", "禁止夹具以外的来源");
             Requests.Enqueue(uri.AbsolutePath);
+            if (SearchReply is { } searchReply && (uri.AbsolutePath.EndsWith("/Persons", StringComparison.Ordinal)
+                || uri.AbsolutePath.EndsWith("/Items", StringComparison.Ordinal)))
+                return await searchReply(uri).ConfigureAwait(false);
             if (FnNasHomeReply is not null && uri.AbsolutePath.Contains("/api/v1/", StringComparison.Ordinal))
                 return await FnNasHomeReply(uri).ConfigureAwait(false);
             if (RecentPosterRequested is { } poster && uri.AbsolutePath == "/emby/Items/a-0/Images/Primary")

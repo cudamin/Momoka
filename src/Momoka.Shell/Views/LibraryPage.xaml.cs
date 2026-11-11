@@ -831,7 +831,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         HeaderGrid.RowSpacing = search || contentPage || headerByMargin ? 0 : 16;
         HeaderLayout.RowSpacing = search || headerByMargin ? 0 : sectionLibrary ? 12 : 20;
         ((Grid)UpcomingScroll.Parent).RowSpacing = search || contentPage || headerByMargin ? 0 : 16;
-        SearchCategories.Margin = search ? new Thickness(0, 0, 0, 12) : new Thickness(0);
+        SearchCategoriesScroll.Margin = search ? new Thickness(0, 0, 0, 12) : new Thickness(0);
         LibrarySectionsSurface.Margin = headerByMargin ? new Thickness(0, 12, 0, 0) : new Thickness(0);
         ToolbarSurface.Margin = headerByMargin ? new Thickness(0, 12, 0, 0) : new Thickness(0);
         LibraryBrowseGroup.Margin = headerByMargin ? new Thickness(0, 12, 0, 0) : new Thickness(0);
@@ -1764,7 +1764,8 @@ public sealed partial class LibraryPage : Page, IShellContent
             1 => "输入关键词，按回车搜索可订阅的影视",
             2 => "输入资源关键词，按回车搜索",
             3 => "输入番剧名称，按回车搜索 AniBT",
-            _ => "搜索媒体库中的影片、节目和单集"
+            _ => ViewModel.ExtendedSearchCategoriesVisibility == Visibility.Visible
+                ? "搜索影片、节目、人物、合集和播放列表" : "搜索媒体库中的影片、节目和单集"
         };
         ApplyHeaderLayout();
         ViewModel.Cancel();

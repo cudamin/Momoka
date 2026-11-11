@@ -143,6 +143,7 @@ internal sealed record LibraryRequest
             "Series" => "SEASONS",
             "Season" => "EPISODES",
             "BoxSet" => "COLLECTION",
+            "Playlist" => "PLAYLIST",
             _ => "FOLDER"
         };
 

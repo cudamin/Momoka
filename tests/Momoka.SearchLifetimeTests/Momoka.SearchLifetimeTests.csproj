@@ -52,7 +52,9 @@
             "using Momoka.MoviePilot;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\nnamespace Momoka.Shell.Views;\n" +
             "internal static partial class ItemCommands\n{\n" +
             "    private const string Category = \"条目命令\";\n" +
-            between(fnnas, "    private const string FnNasLanguage", "    private static Task FnNasRefreshAsync(") +
+            // Batch 1 inserted resume removal before Refresh; this search fixture needs only the language,
+            // not an unrelated command whose real CardItem/dialog boundaries it intentionally does not host.
+            between(fnnas, "    private const string FnNasLanguage", "    private static readonly ConditionalWeakTable<object, HashSet<string>> ContinueRemovals") +
             between(server, "    private static async Task GuardAsync(", "\n    /// <summary>\n    /// 一次请求。") +
             between(server, "    private static async Task<T> AskAsync<T>(", "\n    /// <inheritdoc cref=\"AskAsync{T}\"/>") +
             between(server, "    private static async Task TellAsync(", "\n    /// <summary>\n    /// 取一段字节，") +

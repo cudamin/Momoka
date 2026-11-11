@@ -887,13 +887,22 @@
                  away from it（Emby 的 alphaPicker 是 position:fixed 的覆盖层，不是布局成员）。 -->
             <Grid RowSpacing="16">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                <SelectorBar x:Name="SearchCategories" HorizontalAlignment="Center"
-                    Visibility="{x:Bind ViewModel.SearchCategoriesVisibility, Mode=OneWay}">
-                    <SelectorBarItem x:Name="TopResultsCategory" Text="热门结果" IsSelected="True" Tag="TopResults" />
-                    <SelectorBarItem x:Name="SeriesCategory" Text="节目" Tag="Series" />
-                    <SelectorBarItem x:Name="MoviesCategory" Text="影片" Tag="Movies" />
-                    <SelectorBarItem x:Name="EpisodesCategory" Text="集" Tag="Episodes" />
-                </SelectorBar>
+                <ScrollViewer x:Name="SearchCategoriesScroll" HorizontalScrollBarVisibility="Auto"
+                    HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled"
+                    HorizontalContentAlignment="Center" Visibility="{x:Bind ViewModel.SearchCategoriesVisibility, Mode=OneWay}">
+                    <SelectorBar x:Name="SearchCategories" HorizontalAlignment="Center">
+                        <SelectorBarItem x:Name="TopResultsCategory" Text="热门结果" IsSelected="True" Tag="TopResults" />
+                        <SelectorBarItem x:Name="SeriesCategory" Text="节目" Tag="Series" />
+                        <SelectorBarItem x:Name="MoviesCategory" Text="影片" Tag="Movies" />
+                        <SelectorBarItem x:Name="EpisodesCategory" Text="集" Tag="Episodes" />
+                        <SelectorBarItem x:Name="PeopleCategory" Text="人物" Tag="People"
+                            Visibility="{x:Bind ViewModel.ExtendedSearchCategoriesVisibility, Mode=OneWay}" />
+                        <SelectorBarItem x:Name="CollectionsCategory" Text="合集" Tag="Collections"
+                            Visibility="{x:Bind ViewModel.ExtendedSearchCategoriesVisibility, Mode=OneWay}" />
+                        <SelectorBarItem x:Name="PlaylistsCategory" Text="播放列表" Tag="Playlists"
+                            Visibility="{x:Bind ViewModel.ExtendedSearchCategoriesVisibility, Mode=OneWay}" />
+                    </SelectorBar>
+                </ScrollViewer>
             <!-- 表格视图要能横向滚：勾满字段时一行比页面宽，从前是从右边裁掉。列头与每一行必须在同一个
                  滚动面里 —— 各滚各的，滚了行、列头就留在原处。其余视图这个滚动器不滚（横向滚动关掉、
                  画布宽度跟着页面走），卡片墙的排布与从前一模一样。 -->

@@ -6,14 +6,17 @@ public enum LibrarySearchGroupKind
     Series,
     Movie,
     Episode,
-    Video
+    Video,
+    Person,
+    Collection,
+    Playlist
 }
 
 /// <summary>
 /// 搜索结果的类型分组。Emby、Jellyfin 与飞牛的搜索都会把整库扫回的条目混在一份相关性清单里；
 /// 页面上要按类型分开摆，分到哪一组、组叫什么名字由这里一处说清。
 /// <para>
-/// 只认 <see cref="ItemQuery.SweptTypes"/> 那四种类型。别的类型仍要有一格可去 —— 服务器多送一种不会让它
+/// 媒体与可打开的人物、合集、播放列表分别成组。别的类型仍要有一格可去 —— 服务器多送一种不会让它
 /// 从屏上消失，落进最后一组即可。这一条纯规则放在 Core，页面和视图模型都不各写一遍判据。
 /// </para>
 /// </summary>
@@ -25,7 +28,10 @@ public static class LibrarySearchGroups
         LibrarySearchGroupKind.Series,
         LibrarySearchGroupKind.Movie,
         LibrarySearchGroupKind.Episode,
-        LibrarySearchGroupKind.Video
+        LibrarySearchGroupKind.Video,
+        LibrarySearchGroupKind.Person,
+        LibrarySearchGroupKind.Collection,
+        LibrarySearchGroupKind.Playlist
     ];
 
     public static LibrarySearchGroupKind KindOf(string? type) => type switch
@@ -33,6 +39,9 @@ public static class LibrarySearchGroups
         EmbyItemType.Series => LibrarySearchGroupKind.Series,
         EmbyItemType.Movie => LibrarySearchGroupKind.Movie,
         EmbyItemType.Episode => LibrarySearchGroupKind.Episode,
+        EmbyItemType.Person => LibrarySearchGroupKind.Person,
+        EmbyItemType.BoxSet => LibrarySearchGroupKind.Collection,
+        EmbyItemType.Playlist => LibrarySearchGroupKind.Playlist,
         _ => LibrarySearchGroupKind.Video
     };
 
@@ -42,6 +51,9 @@ public static class LibrarySearchGroups
         LibrarySearchGroupKind.Series => "节目",
         LibrarySearchGroupKind.Movie => "影片",
         LibrarySearchGroupKind.Episode => "单集",
+        LibrarySearchGroupKind.Person => "人物",
+        LibrarySearchGroupKind.Collection => "合集",
+        LibrarySearchGroupKind.Playlist => "播放列表",
         _ => "视频"
     };
 }

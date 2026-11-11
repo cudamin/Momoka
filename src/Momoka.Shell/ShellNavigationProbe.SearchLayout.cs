@@ -107,8 +107,16 @@ internal sealed partial class ShellNavigationProbe
                 Require(box.Left >= -1 && box.Right <= header.ActualWidth + 1, "搜索超出内容区");
                 Require(Get<Grid>(page, "ToolbarSurface").Visibility == Visibility.Collapsed, "搜索页仍显示浏览工具栏");
                 var categories = Get<SelectorBar>(page, "SearchCategories");
-                var categoryBox = Bounds(categories, page);
-                Require(categoryBox.Left >= -1 && categoryBox.Right <= page.ActualWidth + 1, "搜索分类被裁切");
+                var categoryScroll = Get<ScrollViewer>(page, "SearchCategoriesScroll");
+                var categoryBox = Bounds(categoryScroll, page);
+                Require(categoryBox.Left >= -1 && categoryBox.Right <= page.ActualWidth + 1, "搜索分类滚动区域超出窗口");
+                var lastCategory = Get<SelectorBarItem>(page, "PlaylistsCategory");
+                lastCategory.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+                await LayoutAsync(page);
+                var lastBox = Bounds(lastCategory, categoryScroll);
+                Require(lastBox.Left >= -1 && lastBox.Right <= categoryScroll.ViewportWidth + 1,
+                    $"最右侧播放列表分类不可达：{lastBox.Right:F1}/{categoryScroll.ViewportWidth:F1}");
+                categoryScroll.ChangeView(0, null, null, disableAnimation: true);
                 var tabs = Get<Segmented>(page, "SourceTabs");
                 Require(tabs.ActualWidth <= search.ActualWidth, "来源切换超出搜索区");
                 Require(tabs.CornerRadius == new CornerRadius(16) && tabs.BorderThickness == new Thickness(0)
