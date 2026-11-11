@@ -12,6 +12,22 @@ internal static partial class PlexMediaTests
 {
     private static void RegisterLibraryCatalog()
     {
+        Test("Plex 关联与库筛选：两类查询不能互相覆盖并扩大范围", () =>
+        {
+            using var fixture = new CatalogFixture();
+            foreach (var withFilters in new[] { true, false })
+            {
+                var query = new ItemQuery
+                {
+                    ParentId = "1",
+                    PlexRelation = new PlexBrowseRelation("1", 1, "actor", "41"),
+                    PlexFilters = withFilters ? new PlexFilterSelection { Type = "1" } : null,
+                    PlexSortKey = withFilters ? null : "titleSort"
+                };
+                Assert.Throws<NotSupportedException>(() => fixture.Adapter.GetItemsAsync(query, default).GetAwaiter().GetResult());
+            }
+            Assert.Equal(0, fixture.Transport.Requests.Count);
+        });
         Test("Plex 浏览设置：恢复偏好保留库选择，null输入归一化且不丢未知条件", () =>
         {
             var settings = new AppSettings();

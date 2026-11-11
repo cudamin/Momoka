@@ -142,7 +142,8 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
         if (query.Filters is { IsBlank: false } || !string.IsNullOrEmpty(query.PersonId)
             || !string.IsNullOrEmpty(query.NameStartsWith))
             throw new NotSupportedException("Plex 尚不支持此浏览条件");
-        if (query.PlexRelation is not null && (query.IsResumable || !string.IsNullOrWhiteSpace(query.SearchTerm)
+        if (query.PlexRelation is not null && (query.PlexFilters is not null || query.PlexSortKey is not null
+            || query.IsResumable || !string.IsNullOrWhiteSpace(query.SearchTerm)
             || !string.IsNullOrWhiteSpace(query.Genre)))
             throw new NotSupportedException("Plex 关联页不能更换为其他查询范围");
         if (query.IsResumable) return await QueryResumeAsync(query.StartIndex, query.Limit, ct).ConfigureAwait(false);
