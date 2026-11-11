@@ -12335,3 +12335,5 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 用户明确要求合并交付。以2ea91cd为主树基点合入2435cb3，产品代码自动三方合并；仅PROGRESS追加段落冲突，保留双方完整记录。保留本地媒体库导航/协调器、合集权限修复与简洁详情Mica。开始主树最终代码重新构建、测试、窗口/截图验证及正式发布。
 
 - 主树验证完成：Release Shell/Tests 0警告0错误，完整4572/4572、目录专项79/79、Lua56/56、材料源码38/38。补齐目录提取夹具PaintInk边界和云母探针Library分区登记，两项有失败后修复证据。首次组合窗口29项有3红（漏分区、快捷键宽窗输入时序、窄窗遮挡）；除这些外26项通过，主树独立shortcuts复验5/5，云母Inspect复验1/1且40张实屏，保留首次失败日志。主页1280/760/600及五主题、Plex显隐恢复、本地媒体库、两种右键菜单实屏已核对。证据artifacts/home-nav-delivery-20261111；窗口日志分别shell-probe-20261111-020727127-23556、021535216-4300、021632272-17652。不真实起播或写服务器记录。下一步正式发布与快捷方式核对。
+
+- 2026-11-11 10:21 主树交付完成：合并5ad8b80，publish.ps1 -NoArchive -Shortcut退出0；547文件/287.5MB、60批准mpv载荷验证通过。桌面Momoka.lnk目标/工作目录均为主树artifacts/publish/win-x64，参数空；Shell/Core/PRI与本次发布构建SHA256一致，回执artifacts/home-nav-delivery-20261111/delivery.json。未上传GitHub。2435cb3及所有父提交已完整进入master；4f9e工作树干净，调用应用archive_worktree返回“The task's primary checkout cannot be removed.”，按保护保留，不绕过删除。此前待整合/尚未交付记录为历史，此条完成收尾。
