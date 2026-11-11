@@ -15,17 +15,27 @@ internal static class MoviePilotSubscriptionWallTests
 
     private static MoviePilotSubscriptionExecution Execution(string state, string phase = "", string source = "",
         string nextRunAt = "", int submitted = 0, string updatedAt = "") => new()
-    {
-        State = state, Phase = phase, Source = source, NextRunAt = nextRunAt,
-        SubmittedCount = submitted, UpdatedAt = updatedAt
-    };
+        {
+            State = state,
+            Phase = phase,
+            Source = source,
+            NextRunAt = nextRunAt,
+            SubmittedCount = submitted,
+            UpdatedAt = updatedAt
+        };
 
     private static MoviePilotSubscriptionBatch Batch(string id, string state, string phase = "", string source = "manual",
         string updatedAt = "", int total = 10, int processed = 0, bool canCancel = false) => new()
-    {
-        BatchId = id, State = state, Phase = phase, Source = source, UpdatedAt = updatedAt,
-        TotalCount = total, ProcessedCount = processed, CanCancel = canCancel
-    };
+        {
+            BatchId = id,
+            State = state,
+            Phase = phase,
+            Source = source,
+            UpdatedAt = updatedAt,
+            TotalCount = total,
+            ProcessedCount = processed,
+            CanCancel = canCancel
+        };
 
     private static MoviePilotSubscription Subscription(int id, string type = "电视剧", string state = "R",
         int? total = null, int? lack = null, int? completed = null, string name = "示例", string date = "", string lastUpdate = "",

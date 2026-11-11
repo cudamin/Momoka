@@ -391,21 +391,38 @@ internal static class WallTests
 
     private static object Sub(int id, string name, string type, string state, int total = 0, int lack = 0, int completed = 0,
         string date = "", string lastUpdate = "", object? execution = null, int bestVersion = 0) => new
-    {
-        id, name, type, state,
-        total_episode = total, lack_episode = lack, completed_episode = completed,
-        date, last_update = lastUpdate, execution_status = execution, best_version = bestVersion,
-        media_source = "themoviedb", media_id = id.ToString(), season = type == "电视剧" ? 1 : (int?)null,
-        username = "tester"
-    };
+        {
+            id,
+            name,
+            type,
+            state,
+            total_episode = total,
+            lack_episode = lack,
+            completed_episode = completed,
+            date,
+            last_update = lastUpdate,
+            execution_status = execution,
+            best_version = bestVersion,
+            media_source = "themoviedb",
+            media_id = id.ToString(),
+            season = type == "电视剧" ? 1 : (int?)null,
+            username = "tester"
+        };
 
     private static object Batch(string id, string source, string state, string phase = "", int total = 0, int processed = 0,
         bool canCancel = false, string updatedAt = "") => new
-    {
-        batch_id = id, source, state, phase,
-        total_count = total, processed_count = processed, can_cancel = canCancel, updated_at = updatedAt,
-        download_counts = new { submitted = 0 }, downloads = Array.Empty<object>()
-    };
+        {
+            batch_id = id,
+            source,
+            state,
+            phase,
+            total_count = total,
+            processed_count = processed,
+            can_cancel = canCancel,
+            updated_at = updatedAt,
+            download_counts = new { submitted = 0 },
+            downloads = Array.Empty<object>()
+        };
 }
 
 /// <summary>一套真实服务＋真实墙 VM，只把 HTTP 换成假处理器；Dispose 时收掉寿命与连接。</summary>
