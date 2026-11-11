@@ -35,8 +35,11 @@ public sealed partial class LibraryViewModel
     public Visibility PlexFilterErrorVisibility => Show(PlexFilterError.Length > 0);
     public Visibility PlexTypeVisibility => Show(PlexTypes.Count > 1);
     private bool PlexHasSorts => IsPlexSection && PlexType?.Sorts.Count > 0;
-    private bool IsPlexSection => IsPlex && _request is { IsSearch: false, Row: null, PersonId: null, Genre: null,
-        ParentId.Length: > 0, ParentType: null or EmbyItemType.CollectionFolder, CollectionType: "movies" or "tvshows" or "homevideos" or "mixed" };
+    private bool IsPlexSection => IsPlex && _request is
+    {
+        IsSearch: false, Row: null, PersonId: null, Genre: null,
+        ParentId.Length: > 0, ParentType: null or EmbyItemType.CollectionFolder, CollectionType: "movies" or "tvshows" or "homevideos" or "mixed"
+    };
     private PlexLibraryType? PlexType => PlexCatalog?.Types.FirstOrDefault(type => type.Id == _plexFilters.Type);
     private bool PlexHasFilters => IsPlexSection && (PlexType?.Filters.Count > 0 || PlexFilterError.Length > 0 || _plexFilters.HasConditions || PlexTypes.Count > 1);
     private bool PlexHasAlphabet => IsPlexSection && _active && _scope?.IsAvailable == true
@@ -283,7 +286,14 @@ public sealed partial class LibraryViewModel
     private void RestorePlexSort()
     {
         var options = PlexType?.Sorts;
-        if (options is null || options.Count == 0) return;
+        if (options is null || options.Count == 0)
+        {
+            // Empty directories may still allow ordinary browsing. Its legacy query accepts shared
+            // sort names, whereas a retained native key (titleSort) belongs only to the typed route.
+            SortKey = EmbySortBy.Name;
+            ShowSort("标题", false);
+            return;
+        }
         var fallback = options.FirstOrDefault(option => option.Key == "titleSort") ?? options[0];
         if (MemoryKey() is { } key && Settings.Ui.Sort.TryGetValue(key, out var saved)
             && options.FirstOrDefault(option => option.Key == saved.By) is { } option)

@@ -17,6 +17,21 @@ internal static class PlexLibraryViewTests
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         var shell = new ShellFixture(shellPath, root);
+        foreach (var operation in new[] { "RetryPlexFiltersAsync", "ClearPlexFiltersAsync" })
+            Test("Plex 实际VM：原生排序目录变空后普通浏览恢复 " + operation, () => SingleThread.Run(async () =>
+            {
+                using var f = new Fixture(shell);
+                await f.Load();
+                Assert.Equal("titleSort", f.Get<string>("SortKey"));
+                var reads = f.Transport.Requests.Count(uri => uri.AbsolutePath.EndsWith("/all", StringComparison.Ordinal));
+                f.Transport.Empty = true;
+                await (Task)shell.Invoke(f.Vm, operation)!;
+                Assert.False(f.Get<bool>("NoticeOpen"));
+                Assert.True(f.Transport.Requests.Count(uri => uri.AbsolutePath.EndsWith("/all", StringComparison.Ordinal)) > reads);
+                Assert.True(f.Many("Cards").Count > 0);
+                Assert.Equal(EmbySortBy.Name, f.Query().SortBy);
+                Assert.Null(f.Query().PlexSortKey);
+            }));
         Test("Plex 实际VM：正式页面取消恢复后首读与暖返回仍可筛选", () => SingleThread.Run(async () =>
         {
             using var f = new Fixture(shell);
