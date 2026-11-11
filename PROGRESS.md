@@ -12340,6 +12340,10 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 
 - 2026-11-10 集成拖边回归（测试子代理）：独立树 C:\Users\89400\.codex\worktrees\resize-handoff-tests\Momoka，仅新增 tests/Momoka.ResizeHandoffTests 与方案/专项登记。逐字提取页面首帧、冻结、收尾和Host待目标，主实施树SourceRoot当前Release/x64编译0警告0错误；16/16通过0跳过，三份单守卫负例各1项对应红。产品提交由主实施会话完成；本测试提交待根代理cherry-pick后按当前树重新验证，未GUI/native/指针/生产设置/主树交付。
 
-2026-11-10 集成缩放：codex/integrated-resize-smooth（307d）已修复 HWND 与视频提交间右下露底，主测试4537/4537、交接16/Input18/Motion23专项通过；3px自动453稳定帧与真实鼠标4事务/1982稳定帧均0坏帧，录像和范围见 docs/verification/2026-11-10-integrated-resize.md。主树另一会话仍修改ShellNavigationProbe.Collections.cs，待产品提交合入主树后重验、发布共同目录，桌面快捷方式未刷新。
+2026-11-10 集成缩放：codex/integrated-resize-smooth（307d）已修复 HWND 与视频提交间右下露底，主测试4537/4537、交接16/Input17/Motion23专项通过；3px自动453稳定帧与真实鼠标4事务/1982稳定帧均0坏帧，录像和范围见 docs/verification/2026-11-10-integrated-resize.md。主树另一会话仍修改ShellNavigationProbe.Collections.cs，待产品提交合入主树后重验、发布共同目录，桌面快捷方式未刷新。
 
 2026-11-10 集成缩放收尾：产品8a68a6f、回归1288773；本树合入媒体库主树e91d7f5至7e08947，Release组合4573/4573与398稳定缩放样本0坏帧。主树随后被界面会话接管合并（文档冲突），本树保留待主树合入/重验/共同发布；未推远端。详见docs/verification/2026-11-10-integrated-resize.md。
+
+## 2026-11-11 集成窗口缩放主树交付完成
+
+用户明确要求合并交付。d649eba合入全部分支内容，产品自动合并、PROGRESS追加冲突保留双方。主树验收补出拖回原尺寸松手1坏帧，889c219修正承接帧提前撤回，源链接新增用例先红后绿。最终Release Shell/Tests零警告零错误，主测试4574/4574，ResizeHandoff17/Input17/Motion23专项通过；真实鼠标4事务26尺寸变化2557稳定样本0坏帧，发布版531稳定样本0坏帧。publish.ps1 -NoArchive -Shortcut成功（547文件287.5MB、批准mpv60文件），桌面快捷方式目标/工作目录及EXE/DLL/PRI哈希核对一致。证据artifacts/resize-delivery-20261111，报告docs/verification/2026-11-10-integrated-resize.md；未真实服务器起播，未上传GitHub。分支顶端a69c065全部已进入master，准备归档307d干净工作树并删除临时分支。
