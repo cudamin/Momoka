@@ -422,6 +422,15 @@ internal static class Program
             MoviePilotLoginRedirectTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["fnnas-removal-vm-fixture", var fnRemovalShell, var fnRemovalRoot])
+            return FnNasRemovedFilesViewTests.Run(fnRemovalShell, fnRemovalRoot);
+        if (args is ["fnnas-removal-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            FnNasProtocolTests.RegisterLibraryRemoval();
+            FnNasLibraryRemovalServiceTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["fnnas-protocol-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -572,6 +581,7 @@ internal static class Program
         EmbyMetadataEditorTests.Register();
         EmbyRealtimeTests.Register();
         FnNasProtocolTests.Register();
+        FnNasLibraryRemovalServiceTests.Register();
         FnNasLibraryInputTests.Register();
         FnNasUserStateWriteTests.Register();
         FnMusicTests.Register();

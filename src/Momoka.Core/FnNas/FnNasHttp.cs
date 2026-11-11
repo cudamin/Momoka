@@ -36,6 +36,16 @@ public sealed class FnNasHttp : IDisposable
         CancellationToken cancellationToken = default) =>
         SendAndReadAsync(method, uri, body, accessToken, ReadEnvelopeAsync, cancellationToken);
 
+    /// <summary>Record an acknowledged mutation before caller lifetime checks can replace success with cancellation.</summary>
+    internal Task<JsonNode?> SendConfirmedActionAsync(HttpMethod method, Uri uri, JsonNode? body, string accessToken,
+        Action confirmed, CancellationToken cancellationToken) => SendAndReadAsync(method, uri, body, accessToken,
+        async (response, token) =>
+        {
+            var data = await ReadEnvelopeAsync(response, token).ConfigureAwait(false);
+            confirmed();
+            return data;
+        }, cancellationToken, retainAcknowledgedAction: true);
+
     internal Task<JsonNode?> UploadAsync(Uri uri, byte[] bytes, string filename, string? accessToken, CancellationToken cancellationToken) =>
         SendAndReadAsync(HttpMethod.Post, uri, null, accessToken, ReadEnvelopeAsync, cancellationToken, () =>
         {
@@ -53,7 +63,7 @@ public sealed class FnNasHttp : IDisposable
 
     private async Task<T> SendAndReadAsync<T>(HttpMethod method, Uri uri, JsonNode? body, string? accessToken,
         Func<HttpResponseMessage, CancellationToken, Task<T>> read, CancellationToken cancellationToken,
-        Func<HttpContent>? createContent = null, bool sign = true, TimeSpan? timeout = null)
+        Func<HttpContent>? createContent = null, bool sign = true, TimeSpan? timeout = null, bool retainAcknowledgedAction = false)
     {
         FnNasEndpoint.Validate(uri);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -92,7 +102,7 @@ public sealed class FnNasHttp : IDisposable
                 if (!response.IsSuccessStatusCode)
                     throw new FnNasApiException($"飞牛影视服务器返回 HTTP {(int)response.StatusCode}", statusCode: response.StatusCode);
                 var result = await read(response, deadline.Token).ConfigureAwait(false);
-                deadline.Token.ThrowIfCancellationRequested();
+                if (!retainAcknowledgedAction) deadline.Token.ThrowIfCancellationRequested();
                 return result;
             }
         }

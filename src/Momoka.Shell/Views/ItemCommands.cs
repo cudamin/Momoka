@@ -314,6 +314,7 @@ internal static partial class ItemCommands
             permissions: permissions, aniBtEnabled: shell.AniBtEnabled, allowResumeRemoval: card.AllowResumeRemoval,
             collectionMembership: card.CollectionMembership))
         {
+            if (row.Command == ItemCommand.RemoveFromLibrary && !shell.FnNasRemovalAvailable) continue;
             if (row.Command is not { } command)
             {
                 rows.Add(new MenuFlyoutSeparator());
@@ -484,6 +485,10 @@ internal static partial class ItemCommands
 
             case ItemCommand.ManageVersions:
                 _ = FnNasVersionsAsync(scope, shell, owner, card, changed, removed);
+                break;
+
+            case ItemCommand.RemoveFromLibrary:
+                _ = FnNasRemoveFromLibraryAsync(scope, shell, owner, card, changed, removed);
                 break;
 
             case ItemCommand.FnNasMatch:

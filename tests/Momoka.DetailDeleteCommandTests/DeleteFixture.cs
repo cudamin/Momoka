@@ -31,6 +31,7 @@ internal sealed class DeleteFixture : IDisposable
     public CardItem Card { get; private set; } = null!;
     public int Changed { get; private set; }
     public int Removed { get; private set; }
+    public Momoka.Shell.Services.FnNasLibraryRemovalService RemovalService { get; } = new(new RemovedMedia());
     public DeleteFixture(MediaServerKind kind = MediaServerKind.FnNas, int sourceCount = 1)
     {
         DialogPlan.Current = Dialogs;
@@ -44,7 +45,7 @@ internal sealed class DeleteFixture : IDisposable
         var connection = new EmbyConnection(new Uri("https://delete-fixture.invalid/" +
             (kind == MediaServerKind.FnNas ? "v/" : kind == MediaServerKind.Emby ? "emby/" : "")),
             "placeholder-only", "fixture-user", "anonymous", "anonymous", device)
-        { ServerKind = kind };
+        { ServerKind = kind, IsAdministrator = true };
         var identityType = typeof(EmbySessionScope).GetNestedType("Identity", BindingFlags.NonPublic)!;
         var identity = Activator.CreateInstance(identityType, Members, null,
             [new EmbyClient(http, connection), new ServerProfile { Id = "fixture-server", Name = "anonymous", ServerKind = kind },
@@ -76,6 +77,7 @@ internal sealed class DeleteFixture : IDisposable
         Id = id,
         Name = "anonymous movie",
         Type = EmbyItemType.Movie,
+        FnNasLibraryGuid = "library",
         RunTimeTicks = 600_000_000,
         MediaSources = Enumerable.Range(1, sources).Select(index => new MediaSource
         {
@@ -100,8 +102,8 @@ internal sealed class DeleteFixture : IDisposable
     {
         var method = typeof(ItemCommands).GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic)!;
         var args = method.GetParameters().Length == 5
-            ? new object?[] { Scope, new CommandActions(Actions), Owner, Card, changed }
-            : new object?[] { Scope, new CommandActions(Actions), Owner, Card, changed, removed };
+            ? new object?[] { Scope, new CommandActions(Actions, RemovalService), Owner, Card, changed }
+            : new object?[] { Scope, new CommandActions(Actions, RemovalService), Owner, Card, changed, removed };
         try { return (Task)method.Invoke(null, args)!; }
         catch (TargetInvocationException error) when (error.InnerException is not null)
         {
@@ -213,8 +215,11 @@ public class DetailActionsProxy : DispatchProxy
     }
 }
 
-internal sealed class CommandActions(DetailActionsProxy proxy) : IShellActions
+internal sealed class CommandActions(DetailActionsProxy proxy, Momoka.Shell.Services.FnNasLibraryRemovalService? removal = null) : IShellActions
 {
+    public bool FnNasRemovalAvailable => removal is not null;
+    public Task<Momoka.FnNas.FnNasRemovalReceipt> RemoveFnNasLibraryItemAsync(EmbySessionScope scope, EmbyItem item, IReadOnlyList<Momoka.FnNas.FnNasVersion> versions,
+        string? mediaGuid, CancellationToken cancellationToken = default) => (removal ?? throw Reject()).RemoveAsync(scope, item, versions, mediaGuid, cancellationToken);
     public ItemMenuPermissions MenuPermissionsFor(EmbySessionScope scope) => proxy.Permissions;
     public void Notify(string message, InfoBarSeverity severity = InfoBarSeverity.Informational) => proxy.Notices.Add((message, severity.ToString()));
     public void RefreshFavorites(EmbyItem? changed = null) => proxy.Refreshes++;
@@ -246,6 +251,7 @@ internal sealed class DeleteTransport(MediaServerKind kind) : HttpMessageHandler
 {
     public List<(string Method, string Path, string Body)> Requests { get; } = [];
     public int Forbidden { get; private set; }
+    public bool ExpectRetainedFile { get; set; }
     public string FilesJson { get; set; } = """{"code":0,"msg":"","data":[{"media_guid":"version-1","file_path":"/anonymous/1.mkv","file_size":1048576,"height":1080}]}""";
     public HttpStatusCode DeleteStatus { get; set; } = HttpStatusCode.OK;
     public string DeleteJson { get; set; } = """{"code":0,"msg":"","data":{}}""";
@@ -272,6 +278,8 @@ internal sealed class DeleteTransport(MediaServerKind kind) : HttpMessageHandler
         var body = request.Content is null ? "" : await request.Content.ReadAsStringAsync(token);
         Requests.Add((request.Method.Method, uri.AbsolutePath, body));
         var fnnas = kind == MediaServerKind.FnNas;
+        if (fnnas && request.Method == HttpMethod.Get && uri.AbsolutePath == "/v/api/v1/user/info")
+            return Response(HttpStatusCode.OK, """{"code":0,"data":{"is_admin":1}}""");
         if (fnnas && request.Method == HttpMethod.Delete && uri.AbsolutePath == "/v/api/v1/play/record")
         {
             ContinueDeletes++;
@@ -298,7 +306,7 @@ internal sealed class DeleteTransport(MediaServerKind kind) : HttpMessageHandler
             if (fnnas)
             {
                 using var json = JsonDocument.Parse(body);
-                Assert.Equal(1, json.RootElement.GetProperty("delete_file").GetInt32());
+                Assert.Equal(ExpectRetainedFile ? 0 : 1, json.RootElement.GetProperty("delete_file").GetInt32());
                 Assert.Equal(JsonValueKind.Array, json.RootElement.GetProperty("media_guids").ValueKind);
             }
             else Assert.Equal("", body);

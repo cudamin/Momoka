@@ -233,6 +233,7 @@
     <Style TargetType="local:FnNasMatchDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
     <Style TargetType="local:FnNasMetadataDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
     <Style TargetType="local:FnNasVersionsDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+    <Style TargetType="local:FnNasRemovedFilesDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
     <Style TargetType="local:IdentifyDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
     <Style TargetType="local:MetadataDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
     <Style TargetType="local:MissingEpisodesDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />

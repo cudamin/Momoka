@@ -44,7 +44,8 @@ $build = @('-c', 'Release', '--no-restore', '-m:1', '-p:BuildInParallel=false',
     '-p:UseSharedCompilation=false', '-p:MSBuildNodeReuse=false')
 $sourcePaths = @('src/Momoka.Shell/ViewModels/DetailViewModel.cs', 'src/Momoka.Shell/Views/DetailPage.xaml.cs',
     'src/Momoka.Shell/Views/ItemCommands.cs', 'src/Momoka.Shell/Views/ItemCommands.FnNas.cs',
-    'src/Momoka.Shell/Views/ItemCommands.Server.cs')
+    'src/Momoka.Shell/Views/ItemCommands.Server.cs', 'src/Momoka.Shell/Views/ItemCommands.FnNasRemoval.cs',
+    'src/Momoka.Shell/Services/FnNasLibraryRemovalService.cs')
 $before = @($sourcePaths | ForEach-Object {
     [pscustomobject]@{ Path = $_; Sha256 = (Get-FileHash -LiteralPath (Join-Path $root $_) -Algorithm SHA256).Hash }
 })
@@ -52,13 +53,13 @@ $before = @($sourcePaths | ForEach-Object {
 Invoke-Logged 'shell-restore' (@('restore', $shellProject) + $restore)
 Invoke-Logged 'fixture-restore' (@('restore', $fixtureProject) + $restore)
 Invoke-Logged 'shell-build' (@('build', $shellProject) + $build)
-Invoke-Logged 'fixture-build' (@('build', $fixtureProject) + $build)
+Invoke-Logged 'fixture-build' (@('build', $fixtureProject) + $build + @('-p:Platform=x64'))
 foreach ($source in $before) {
     if ($source.Sha256 -ne (Get-FileHash -LiteralPath (Join-Path $root $source.Path) -Algorithm SHA256).Hash) {
         throw '构建期间题内产品源变化，拒绝给快照盖章；需确认新快照后重验。'
     }
 }
-$fixtureDll = Join-Path $PSScriptRoot 'bin\Release\net10.0\Momoka.DetailDeleteCommandTests.dll'
+$fixtureDll = Join-Path $PSScriptRoot 'bin\x64\Release\net10.0\Momoka.DetailDeleteCommandTests.dll'
 $proof = [ordered]@{
     ShellPath = $expectedShell
     ShellSha256 = (Get-FileHash -LiteralPath $expectedShell -Algorithm SHA256).Hash

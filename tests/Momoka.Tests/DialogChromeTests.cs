@@ -13,7 +13,7 @@ internal static class DialogChromeTests
     private static readonly HashSet<string> LibraryDialogs = new(StringComparer.Ordinal)
     {
         "AniBtScrapeDialog", "ArtworkViewer", "CollectionDialog", "CoverDialog", "CoverPickerDialog", "EmbyMetadataDialog",
-        "FnNasMatchDialog", "FnNasMetadataDialog", "FnNasVersionsDialog", "IdentifyDialog", "MetadataDialog",
+        "FnNasMatchDialog", "FnNasMetadataDialog", "FnNasVersionsDialog", "FnNasRemovedFilesDialog", "IdentifyDialog", "MetadataDialog",
         "MissingEpisodesDialog", "RefreshMetadataDialog", "SubtitleDialog"
     };
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";

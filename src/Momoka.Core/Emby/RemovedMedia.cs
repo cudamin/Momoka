@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Momoka.Emby;
 
 /// <summary>
@@ -14,13 +16,19 @@ namespace Momoka.Emby;
 /// </summary>
 public sealed class RemovedMedia
 {
+    private sealed record Entry(EmbyItem Item, object? Ticket);
+    private static readonly AsyncLocal<object?> CurrentTicket = new();
+    private static readonly ConditionalWeakTable<object, object> RetiredTickets = new();
     private readonly object _gate = new();
-    private readonly List<EmbyItem> _items = [];
+    private readonly List<Entry> _items = [];
 
     /// <summary>本次运行记下的件数；关闭程序即归零。</summary>
     public int Count
     {
-        get { lock (_gate) return _items.Count; }
+        get
+        {
+            lock (_gate) return _items.Select(entry => (entry.Item.Source?.Key, entry.Item.Id)).Distinct().Count();
+        }
     }
 
     /// <summary>记住这一件已经删掉。同一件重复提交（菜单和确认窗各喊一声）只算一次。</summary>
@@ -29,15 +37,42 @@ public sealed class RemovedMedia
         if (string.IsNullOrEmpty(item.Id)) return;
         lock (_gate)
         {
-            if (_items.Any(known => SameSource(known, item) && known.Id == item.Id)) return;
-            _items.Add(item);
+            var ticket = CurrentTicket.Value;
+            if (ticket is not null && RetiredTickets.TryGetValue(ticket, out _)) return;
+            if (_items.Any(known => SameSource(known.Item, item) && known.Item.Id == item.Id && ReferenceEquals(known.Ticket, ticket))) return;
+            _items.Add(new(item, ticket));
         }
+    }
+
+    /// <summary>只解除本次已移出原因的隐藏；同条目的物理删除原因仍然保留。</summary>
+    public void Forget(object ticket)
+    {
+        ArgumentNullException.ThrowIfNull(ticket);
+        lock (_gate)
+        {
+            _ = RetiredTickets.GetValue(ticket, static _ => new());
+            _items.RemoveAll(known => ReferenceEquals(known.Ticket, ticket));
+        }
+    }
+
+    /// <summary>现有摘卡回调同时负责动画和Remember；此范围给这一条异步回调附加独立移出原因。</summary>
+    public static IDisposable TemporaryRemoval(object ticket)
+    {
+        ArgumentNullException.ThrowIfNull(ticket);
+        var previous = CurrentTicket.Value;
+        CurrentTicket.Value = ticket;
+        return new TicketScope(previous);
+    }
+
+    private sealed class TicketScope(object? previous) : IDisposable
+    {
+        public void Dispose() => CurrentTicket.Value = previous;
     }
 
     /// <summary>这个条目是不是属于已经删掉的那一份媒体。</summary>
     public bool Hides(EmbyItem item)
     {
-        lock (_gate) return _items.Any(removed => Covers(removed, item));
+        lock (_gate) return _items.Any(removed => Covers(removed.Item, item));
     }
 
     /// <summary>忘掉全部记录。给测试，以及整份换身份、要按新服务器重新读一遍的地方用。</summary>

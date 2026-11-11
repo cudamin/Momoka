@@ -115,6 +115,9 @@ public enum ItemCommand
 
     Delete,
 
+    /// <summary>飞牛仅移出媒体库并保留文件；恢复入口在该库的已移除文件目录。</summary>
+    RemoveFromLibrary,
+
     /// <summary>只解除当前合集的成员关系，不删除媒体。</summary>
     RemoveFromCollection
 }
@@ -170,6 +173,8 @@ public static class ItemMenu
         {
             ItemCommand.Download => CanDownload(permissions),
             ItemCommand.Delete or ItemCommand.ManageVersions => CanDelete(permissions),
+            ItemCommand.RemoveFromLibrary => kind == MediaServerKind.FnNas && permissions.IsAdministrator == true
+                && CanDelete(permissions) && (item is null || IsFile(item)),
             ItemCommand.Subtitles => CanManageSubtitles(permissions),
             ItemCommand.AddToCollection or ItemCommand.RemoveFromCollection => ItemCollections.CanManage(kind, permissions, item),
             ItemCommand.EditMetadata or ItemCommand.ChangeCover or ItemCommand.Identify or ItemCommand.RefreshMetadata
@@ -220,6 +225,7 @@ public static class ItemMenu
     /// </summary>
     public static bool Supports(ItemCommand command, bool jellyfin, bool fnNas = false, bool plex = false)
     {
+        if (command == ItemCommand.RemoveFromLibrary) return fnNas;
         if (command == ItemCommand.RemoveContinueWatching) return fnNas;
         if (IsMoviePilot(command) && command != ItemCommand.MoviePilotReorganize || command == ItemCommand.AniBtVersions) return true;
         if (fnNas) return command is ItemCommand.Play or ItemCommand.Details or ItemCommand.Open or ItemCommand.MarkPlayed
@@ -266,6 +272,7 @@ public static class ItemMenu
         if (CanDelete(permissions))
         {
             if (rows.Count > 0) rows.Add(ItemMenuEntry.Rule);
+            if (permissions.IsAdministrator == true && IsFile(item)) rows.Add(new(ItemCommand.RemoveFromLibrary, "移出媒体库…"));
             rows.Add(new(ItemCommand.Delete, "删除"));
         }
         return rows;

@@ -313,6 +313,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectJellyfinPolish", "Jellyfin列表验证", JellyfinLibraryAsync);
         AddCheck("InspectFnNasPolish", "飞牛列表验证", FnNasLibrarySpacingAsync);
         AddCheck("InspectFnNasContinueRemoval", "飞牛续播移除验证", FnNasContinueRemovalAsync);
+        AddCheck("InspectFnNasRemoval", "飞牛移出恢复验证", FnNasRemovalAsync);
         AddCheck("InspectFnNasDetail", "飞牛详情人员与类似验证", FnNasDetailAsync);
         AddCheck("InspectSearchPolish", "搜索布局回归", SearchHeaderLayoutAsync);
         AddCheck("InspectDetailMica", "简洁详情云母验证", DetailMicaAsync);

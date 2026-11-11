@@ -15,6 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\src\Momoka.Shell\Services\FnNasLibraryRemovalService.cs" Link="Shell\FnNasLibraryRemovalService.cs" />
     <!-- The listener has no WinUI dependency; exercise the exact production source, not a copied model. -->
     <Compile Include="..\..\src\Momoka.Shell\ActivationListener.cs" Link="Shell\ActivationListener.cs" />
     <!-- The entire production source; test-only namespace boundaries replace registry/package endpoints, never control flow. -->

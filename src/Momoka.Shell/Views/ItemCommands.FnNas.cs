@@ -121,8 +121,17 @@ internal static partial class ItemCommands
                 return;
             }
 
-            var dialog = new FnNasVersionsDialog(item.Name, versions) { XamlRoot = root };
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary || dialog.Selected is not { } chosen) return;
+            var allowRemoval = shell.FnNasRemovalAvailable && ItemMenu.Allows(ItemCommand.RemoveFromLibrary,
+                shell.MenuPermissionsFor(session), session.Connection.ServerKind, item);
+            var dialog = new FnNasVersionsDialog(item.Name, versions, allowRemoval) { XamlRoot = root };
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Secondary && allowRemoval && dialog.Selected is { } selected)
+            {
+                await FnNasRemoveConfirmedAsync(session, shell, owner, card, files.Select(FnNasVersion.From).ToArray(),
+                    selected.MediaGuid, changed, removed).ConfigureAwait(true);
+                return;
+            }
+            if (result != ContentDialogResult.Primary || dialog.Selected is not { } chosen) return;
             if (chosen.MediaGuid.Length == 0)
             {
                 shell.Notify("这一版没有文件标识，无法单独删除", InfoBarSeverity.Warning);

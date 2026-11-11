@@ -97,6 +97,11 @@ internal interface IShellActions
     /// </summary>
     ItemMenuPermissions MenuPermissionsFor(EmbySessionScope scope) => default;
 
+    /// <summary>飞牛保留文件移出能力；未附加外壳时隐藏入口。</summary>
+    bool FnNasRemovalAvailable => false;
+    Task<Momoka.FnNas.FnNasRemovalReceipt> RemoveFnNasLibraryItemAsync(EmbySessionScope scope, EmbyItem item, IReadOnlyList<Momoka.FnNas.FnNasVersion> versions,
+        string? mediaGuid, CancellationToken cancellationToken = default) => throw new NotSupportedException("飞牛移出能力尚未附加");
+
     /// <summary>
     /// 打开一部 MoviePilot 媒体的订阅页（搜索结果、相关推荐）。给了订阅就开那条订阅的详情，
     /// 没给就开同一页的媒体模式（列季、按季订阅）。走外壳 —— 面包屑、返回栈和标题条只有外壳知道。

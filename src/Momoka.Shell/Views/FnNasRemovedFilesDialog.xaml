@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog x:Class="Momoka.Shell.Views.FnNasRemovedFilesDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:fn="using:Momoka.FnNas"
+    Title="已移除文件"
+    PrimaryButtonText="恢复所选项"
+    CloseButtonText="关闭"
+    DefaultButton="Close"
+    IsPrimaryButtonEnabled="{x:Bind ViewModel.CanRestore, Mode=OneWay}"
+    PrimaryButtonClick="OnRestore"
+    Closing="OnClosing">
+    <ContentDialog.Resources>
+        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+        <x:Double x:Key="ContentDialogMaxWidth">720</x:Double>
+    </ContentDialog.Resources>
+    <Grid MinWidth="240" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TextBlock Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap"
+            Text="这里只显示文件夹与已移除项目。恢复会重新加入媒体库；磁盘文件一直保留。" />
+        <ProgressBar Grid.Row="1" IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+        <InfoBar Grid.Row="2" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}" IsClosable="False"
+            Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
+            Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
+        <Grid Grid.Row="3" ColumnSpacing="8" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <Button x:Name="FnNasRemovedBack" Content="返回上级" Click="OnBack" Visibility="{x:Bind ViewModel.BackVisibility, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.CanGoBack, Mode=OneWay}" />
+            <TextBlock Grid.Column="1" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center"
+                Text="{x:Bind ViewModel.CurrentPath, Mode=OneWay}" TextWrapping="Wrap" />
+            <Button x:Name="FnNasRemovedRefresh" Grid.Column="2" Content="刷新" Click="OnRefresh" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}" />
+        </Grid>
+        <Grid Grid.Row="4" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
+            <ListView x:Name="FnNasRemovedList" MaxHeight="340" SelectionMode="Single"
+                ItemsSource="{x:Bind ViewModel.Entries, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.Selected, Mode=TwoWay}"
+                IsItemClickEnabled="True" ItemClick="OnItemClick" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}"
+                AutomationProperties.Name="已移除文件与文件夹" Padding="{StaticResource EgScrollBarLane}">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Padding" Value="8,6" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="fn:FnNasRemovedFile">
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="{x:Bind Name}" Style="{StaticResource EgBodyStyle}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{x:Bind Status}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" />
+                            <TextBlock Text="{x:Bind Path}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            <TextBlock Text="{x:Bind ViewModel.EmptyText, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap"
+                Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}" />
+        </Grid>
+    </Grid>
+</ContentDialog>

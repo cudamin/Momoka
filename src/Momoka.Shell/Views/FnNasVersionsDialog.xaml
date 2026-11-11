@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   飞牛的「管理版本」：列出 media/itemfile 交回来的文件。官方页面在这张表上还能改季集号、重新匹配；
-  这里只做这个客户端说得清的一件事 —— 看清单，选一个删掉，删除前再问一次。
+  保留原删除入口，并提供仅移出且保留文件；两种操作都在下一步单独确认。
 -->
 <ContentDialog x:Class="Momoka.Shell.Views.FnNasVersionsDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -9,6 +9,7 @@
     xmlns:fn="using:Momoka.FnNas"
     Title="管理版本"
     PrimaryButtonText="删除所选版本"
+    SecondaryButtonText=""
     CloseButtonText="关闭"
     IsPrimaryButtonEnabled="False">
 
@@ -22,7 +23,7 @@
         <TextBlock
             Foreground="{ThemeResource EgTextDimBrush}"
             Style="{StaticResource EgCaptionStyle}"
-            Text="这是服务器上属于这个条目的文件。删除版本会同时删除磁盘上的文件，下一步还会再确认一次。"
+            Text="选择一个版本。删除会删除磁盘文件；移出仅从媒体库移除并保留文件，可在“已移除文件”中恢复。下一步会单独确认。"
             TextWrapping="Wrap" />
 
         <ListView

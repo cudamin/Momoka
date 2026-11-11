@@ -26,6 +26,7 @@ internal static class Program
         {
             Runtime = new ShellRuntime(shell, root, proof);
             DeleteCommandTests.Register();
+            RemovalCommandTests.Register();
             return TestHarness.Run();
         }
         catch (Exception error)
@@ -59,11 +60,12 @@ internal sealed class ShellRuntime
             var relative = source.GetProperty("Path").GetString()!;
             Assert.True(relative is "src/Momoka.Shell/ViewModels/DetailViewModel.cs"
                 or "src/Momoka.Shell/Views/DetailPage.xaml.cs" or "src/Momoka.Shell/Views/ItemCommands.cs"
-                or "src/Momoka.Shell/Views/ItemCommands.FnNas.cs" or "src/Momoka.Shell/Views/ItemCommands.Server.cs", "构建证明仅题内命令与详情源");
+                or "src/Momoka.Shell/Views/ItemCommands.FnNas.cs" or "src/Momoka.Shell/Views/ItemCommands.Server.cs"
+                or "src/Momoka.Shell/Views/ItemCommands.FnNasRemoval.cs" or "src/Momoka.Shell/Services/FnNasLibraryRemovalService.cs", "构建证明仅题内命令与详情源");
             Assert.Equal(Hash(Path.Combine(Root, relative)), source.GetProperty("Sha256").GetString(), "源改后必须重编译");
             Console.WriteLine($"SOURCE {relative} {source.GetProperty("Sha256").GetString()}");
         }
-        Assert.Equal(5, evidence.GetProperty("Sources").GetArrayLength());
+        Assert.Equal(7, evidence.GetProperty("Sources").GetArrayLength());
         var directory = Path.GetDirectoryName(expected)!;
         Assert.Equal(Hash(typeof(EmbyClient).Assembly.Location), Hash(Path.Combine(directory, "Momoka.Core.dll")),
             "命令与真VM必须使用相同 Core");
@@ -185,7 +187,7 @@ internal sealed class DialogPlan
         }
         Assert.Equal(ContentDialogButton.Close, dialog.DefaultButton, "实际确认默认必须取消");
         Assert.Equal("取消", dialog.CloseButtonText);
-        Assert.True(dialog.PrimaryButtonText is "删除" or "移除");
+        Assert.True(dialog.PrimaryButtonText is "删除" or "移除" or "移出");
         Confirmations.Add(dialog);
         BeforeConfirm?.Invoke();
         if (FailConfirm) throw new InvalidOperationException("anonymous dialog busy");

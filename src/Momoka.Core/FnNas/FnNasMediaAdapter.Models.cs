@@ -246,6 +246,7 @@ public sealed partial class FnNasMediaAdapter
             IndexNumber = Integer(value, type == EmbyItemType.Season ? "season_number" : "episode_number"),
             ParentIndexNumber = Integer(value, "season_number"),
             ParentId = Text(value, "parent_guid"),
+            FnNasLibraryGuid = Text(value, "ancestor_guid"),
             // 官方季详情只带 parent_guid（父剧）；单集的 parent_guid 则是季，不能直接当剧 ID。
             SeriesId = Text(value, "tv_guid") is { Length: > 0 } tv ? tv
                 : type == EmbyItemType.Season ? Text(value, "parent_guid") : null,

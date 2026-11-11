@@ -973,6 +973,9 @@ public sealed class EmbyItem
 
     public List<MediaSource> MediaSources { get; set; } = [];
 
+    /// <summary>飞牛 item 的 ancestor_guid；用于精确匹配移出/恢复所属媒体库，不是父季或目录ID。</summary>
+    public string? FnNasLibraryGuid { get; set; }
+
     /// <summary>
     /// 列表响应自带的画质档位（飞牛 <c>media_stream.resolutions</c>，如 <c>1080p</c> / <c>4k</c>）。
     /// 别的后端不在列表里发这一项，所以为空；要完整流信息的地方仍读 <see cref="MediaSources"/>。

@@ -106,10 +106,11 @@ namespace Momoka.Shell.Views
             public bool IsDark => true;
         }
     }
-    public sealed class FnNasVersionsDialog(string itemName, IReadOnlyList<FnNasVersion> versions) : ContentDialog
+    public sealed class FnNasVersionsDialog(string itemName, IReadOnlyList<FnNasVersion> versions, bool allowRemoval = false) : ContentDialog
     {
         public string ItemName { get; } = itemName;
         public IReadOnlyList<FnNasVersion> Versions { get; } = versions;
+        public bool AllowRemoval { get; } = allowRemoval;
         public FnNasVersion? Selected { get; set; }
     }
     // Menu placement/visuals are a boundary; dispatch below enters the verbatim Invoke slice.

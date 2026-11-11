@@ -64,6 +64,7 @@
                                             IsEnabled="{x:Bind CanMoveDown, Mode=OneWay}" Click="OnMoveDown" />
                                     </StackPanel>
                                     <Button x:Name="FnNasLibraryScan" Content="扫描" Tag="{x:Bind}" Click="OnScan" Visibility="{x:Bind ScanVisibility}" />
+                                    <Button x:Name="FnNasLibraryRemovedFiles" Content="已移除文件…" Tag="{x:Bind}" Click="OnRemovedFiles" Visibility="{x:Bind ScanVisibility}" />
                                 </StackPanel>
                             </Grid>
                         </DataTemplate>

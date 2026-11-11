@@ -13,6 +13,7 @@ internal static partial class FnNasProtocolTests
 
     public static void Register()
     {
+        RegisterLibraryRemoval();
         Test("飞牛续播移除：签名覆盖DELETE单条正文，不夹带读取", () =>
         {
             using var transport = new FixtureTransport(request =>

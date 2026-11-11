@@ -36,6 +36,7 @@ public sealed partial class FnNasLibrariesPage : Page, IShellContent, ISessionSc
         _request = request;
         // 此页唯一服务解析点；外部交互通过视图模型及已捕获的会话身份。
         ViewModel.Attach(request.Services.GetRequiredService<EmbySession>(), request.SourceKey);
+        ViewModel.UseRemovalService(request.Services.GetRequiredService<Momoka.Shell.Services.FnNasLibraryRemovalService>());
         _ = ViewModel.ReloadAsync();
     }
 
@@ -86,7 +87,8 @@ public sealed partial class FnNasLibrariesPage : Page, IShellContent, ISessionSc
     public void Release()
     {
         ViewModel.Cancel();
-        _dialog?.Hide();
+        if (_dialog is FnNasRemovedFilesDialog recovery) recovery.Release();
+        else _dialog?.Hide();
         HomeMotion.Stop(PageLayout);
     }
 
