@@ -191,14 +191,24 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(shell);
             Require(nav.IsPaneOpen, "侧栏展开按钮没有生效");
             AssertSidebarGeometry(shell, host, true);
-            // 展开前后同一格必须同色，而且就是主题的面色（2026-10-14 用户：「侧边栏展开后不要变色」）。
-            // 只比属性证明不了屏上画了什么 —— 这里读的是元素树自己渲染出来的那一格像素。
+            // 展开前后同一格必须同色（2026-10-14 用户：「侧边栏展开后不要变色」）。只比属性证明不了屏上
+            // 画了什么 —— 这里读的是元素树自己渲染出来的那一格像素。
             var expandedColor = await SidebarColorAsync(shell, railSpot.X, railSpot.Y);
-            var surface = ThemeHost.ToColor(ThemeHost.Current.Colors.Surface);
             Require(railColor == expandedColor,
                 $"侧栏展开后底色变了：收起时 {railColor}、展开后 {expandedColor}");
-            Require(expandedColor == $"#{surface.R:X2}{surface.G:X2}{surface.B:X2}",
-                $"侧栏底色不是主题的面色：{expandedColor} 对 #{surface.R:X2}{surface.G:X2}{surface.B:X2}");
+            // 2026-11-12「改为Mica」之后，栏的底是「面色 + 50%」压在画布上（LayerFillColorAltBrush），
+            // 屏上那一格不再是纯面色：渲染帧把半透明画刷记成预乘读数（透明度 × 面色）。期望值因此从
+            // 面色本身换成这个预乘值 —— 判据仍要证明「画上去的是这支角色」，只是不再假装它不透明。
+            if (Application.Current.Resources["LayerFillColorAltBrush"] is not SolidColorBrush layer)
+                throw new InvalidOperationException("找不到侧边栏那一层画刷");
+            var premultiplied = (
+                R: (byte)Math.Round(layer.Color.R * layer.Color.A / 255.0),
+                G: (byte)Math.Round(layer.Color.G * layer.Color.A / 255.0),
+                B: (byte)Math.Round(layer.Color.B * layer.Color.A / 255.0));
+            Require(NearColor(expandedColor, premultiplied, 1),
+                $"侧栏底色不是那一层半透明面色：{expandedColor} 对预乘 "
+                + $"#{premultiplied.R:X2}{premultiplied.G:X2}{premultiplied.B:X2}"
+                + (layer.Color.A == 0xFF ? "（画刷又变回不透明了，Mica 被盖住）" : string.Empty));
             DumpSidebarLayout(shell, "600 expanded");
             var title = Get<StackPanel>(shell, "TitleActions");
             var account = Get<Button>(shell, "AccountButton");
@@ -339,6 +349,24 @@ internal sealed partial class ShellNavigationProbe
         var row = Math.Clamp((int)Math.Round(y * scale), 0, bitmap.PixelHeight - 1);
         var at = ((row * bitmap.PixelWidth) + column) * 4;
         return $"#{pixels[at + 2]:X2}{pixels[at + 1]:X2}{pixels[at]:X2}";
+    }
+
+    /// <summary>
+    /// 渲染帧是 8 位整数，半透明画刷的预乘读数会差上一级，所以逐通道给 ±tolerance。
+    /// 只用于侧栏那一格底色：它现在是一支半透明角色（2026-11-12 改为 Mica 之后），不是不透明实色。
+    /// </summary>
+    private static bool NearColor(string actual, (byte R, byte G, byte B) want, int tolerance)
+    {
+        if (actual is not { Length: 7 } || actual[0] != '#') return false;
+
+        static bool Near(string text, int offset, byte want, int tolerance) =>
+            int.TryParse(text.AsSpan(offset, 2), System.Globalization.NumberStyles.HexNumber,
+                System.Globalization.CultureInfo.InvariantCulture, out var value)
+            && Math.Abs(value - want) <= tolerance;
+
+        return Near(actual, 1, want.R, tolerance)
+            && Near(actual, 3, want.G, tolerance)
+            && Near(actual, 5, want.B, tolerance);
     }
 
     /// <summary>读数：窗宽、栏宽、面板状态与每个入口图标的可见矩形，写进日志目录供复核（不参与断言）。</summary>
