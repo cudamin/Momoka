@@ -12435,3 +12435,5 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 产品及音乐整合 fa0a173 已进入 master；Plex演员/导演/编剧和题材同库关联、实际目录筛选排序/字母定位，Emby/Jellyfin人物/合集/播放列表搜索和正确打开全部交付。音乐误用视频关系及审查发现均已修复，PMS实服仍未验证。
 - 主树当前Release Core/Tests/Shell0警告错误，完整4667/4667、Plex库VM10/10、人物页面85/85、库搜索VM47/47、搜索生命周期43/43、音乐VM12/12、页头18/18通过；65文件差异检查和UIA句柄扫描通过。主树匿名页面检查4/4及音乐目录2/2通过，截图已核。完整路径与失败先行见docs/verification/2026-11-11-library-batch2.md。
 - publish.ps1 -NoArchive -Shortcut退出0；547文件/287.8MB、60批准mpv载荷通过。桌面Momoka.lnk指向主树artifacts/publish/win-x64/Momoka.exe，版本0.2.7.0，12:07生成；没有push/新版本/真实服务器写入或播放。证据artifacts/library-batch2-final。三个子工作树已请求应用归档，证据先复制到主树；当前d614任务树产品已全入master。
+
+- 归档回执确认：library-plex-people、library-plex-filters、library-search-types 三棵子树已由应用归档并从git worktree清单移除；独立证据已保存主树。d614是本聊天原有托管工作区，保持干净，产品内容已全部进入master。
