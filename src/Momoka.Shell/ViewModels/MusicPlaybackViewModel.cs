@@ -73,6 +73,15 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
     [ObservableProperty] public partial string RepeatLabel { get; set; } = "顺序播放";
     [ObservableProperty] public partial int QueueIndex { get; set; } = -1;
 
+    /// <summary>
+    /// 此刻在放的那一首的 <see cref="EmbyItem.IdentityKey"/>，没有在放就是空串。
+    /// <para>
+    /// 音乐页拿它把曲目表里那一行标出来（左缘强调色、标题换色）。用身份键而不是 Id：同一个 Id 在两台服务器上
+    /// 是两首不同的歌。停止、换曲和队列结束都由这一位自己说，页面不必去猜播放状态。
+    /// </para>
+    /// </summary>
+    [ObservableProperty] public partial string CurrentKey { get; set; } = "";
+
     public Visibility BarVisibility => Visible ? Visibility.Visible : Visibility.Collapsed;
     public string PlayGlyph => char.ConvertFromUtf32(Paused ? 0xE768 : 0xE769);
     public string PlayLabel => Paused ? "播放" : "暂停";
@@ -147,6 +156,7 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
                 var scope = item.Source ?? _session.Capture(item);
                 scope.ThrowIfUnavailable();
                 QueueIndex = _queue.Index;
+                CurrentKey = item.IdentityKey;
                 Title = item.Name;
                 Subtitle = MusicCatalog.Subtitle(item);
                 Favorite = item.UserData?.IsFavorite == true;
@@ -316,6 +326,7 @@ public sealed partial class MusicPlaybackViewModel : ObservableObject, IDisposab
         _scrubbing = false;
         Visible = false;
         Preparing = false;
+        CurrentKey = "";
         Artwork?.AbandonPoster();
         Artwork = null;
     }

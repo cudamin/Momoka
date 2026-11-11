@@ -609,6 +609,35 @@ public sealed class CardItem : INotifyPropertyChanged
     /// <summary>The accent bar down the row's left edge, which is how <see cref="IsCurrentEpisode"/> reads.</summary>
     public Visibility CurrentVisibility => Show(IsCurrentEpisode);
 
+    private bool _isPlaying;
+
+    /// <summary>
+    /// 音乐曲目表里「正在放的就是这一行」。与 <see cref="IsCurrentEpisode"/> 分开：那一位说的是「你正看着这一页」，
+    /// 构造时定死；这一位跟着底部播放栏换，所以它要通知。
+    /// <para>
+    /// 只有音乐页会设它（<c>MusicLibraryViewModel.MarkPlaying</c>）。别的页面从不赋值，永远是 false，
+    /// 于是曲目表以外的地方一个像素都不多画。
+    /// </para>
+    /// </summary>
+    public bool IsPlaying
+    {
+        get => _isPlaying;
+        internal set
+        {
+            if (_isPlaying == value) return;
+            _isPlaying = value;
+            Raise(nameof(IsPlaying));
+            Raise(nameof(PlayingVisibility));
+            Raise(nameof(NotPlayingVisibility));
+        }
+    }
+
+    /// <summary>正在放的那一行：左缘一条强调色，标题换成强调色。</summary>
+    public Visibility PlayingVisibility => Show(IsPlaying);
+
+    /// <summary>其余行的常态。两半互斥，写成一对而不是一个取反转换器。</summary>
+    public Visibility NotPlayingVisibility => Show(!IsPlaying);
+
     public string Subtitle => _subtitle ?? _item.CardSubtitle;
 
     /// <summary>本地媒体库的入库数量变化保持卡片及可见容器，直接通知已绑定文本。</summary>

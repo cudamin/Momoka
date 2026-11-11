@@ -36,6 +36,7 @@ font-size  Views/EpisodeRow.xaml  3
 font-size  Views/HomeBanner.xaml  4
 font-size  Views/LibraryPage.xaml  8
 font-size  Views/MoviePilotSearchPanel.xaml  2
+font-size  Views/MusicLibraryPage.xaml  3
 font-size  Views/NotificationsPage.xaml  3
 font-size  Views/PosterCard.xaml  9
 font-size  Views/ServersPage.xaml  5

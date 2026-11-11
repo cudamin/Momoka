@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
@@ -7,6 +8,7 @@ using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
+using Momoka.Music;
 using Momoka.Playback;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
@@ -33,13 +35,27 @@ internal sealed partial class ShellNavigationProbe
             RunTimeTicks = TimeSpan.FromSeconds(215 + index).Ticks,
             ImageTags = new() { ["Primary"] = "music-art" }
         }).ToArray();
+        // 封面墙那一半要的是专辑：方形封面加艺术家，第二行不该把专辑名再写一遍。
+        var albums = Enumerable.Range(0, 9).Select(index => new EmbyItem
+        {
+            Id = "album-" + index,
+            Name = "专辑 " + (index + 1),
+            Type = EmbyItemType.MusicAlbum,
+            AlbumArtists = [new EmbyNamedId { Id = "artist-1", Name = "独立音乐人" }],
+            ChildCount = 10,
+            ImageTags = new() { ["Primary"] = "album-art" }
+        }).ToArray();
         foreach (var track in tracks) scope.Bind(track);
+        foreach (var album in albums) scope.Bind(album);
         fixture.Transport.Reply = (request, _) =>
         {
             Require(request.Method == HttpMethod.Get, "音乐 UI 探针拒绝写入");
             if (request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal))
                 return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(picture) });
-            return Task.FromResult(Json(new ItemsResult { Items = [.. tracks], TotalRecordCount = tracks.Length }));
+            var wall = request.RequestUri.Query.Contains("MusicAlbum", StringComparison.Ordinal);
+            return Task.FromResult(Json(wall
+                ? new ItemsResult { Items = [.. albums], TotalRecordCount = albums.Length }
+                : new ItemsResult { Items = [.. tracks], TotalRecordCount = tracks.Length }));
         };
         var playback = new PlaybackService(fixture.Session, fixture.Settings,
             () => new MusicProbeBackend(), new PlaybackPlanner(fixture.Settings, new ShaderGroupResolver(fixture.Settings.Shaders)), allowPlayback: false);
@@ -91,6 +107,15 @@ internal sealed partial class ShellNavigationProbe
             foreach (var track in tracks) vm.Queue.Add(track);
             vm.Visible = true;
             vm.Paused = true;
+
+            // 曲目表里「正在放的是哪一首」：把播放栏换曲那一下交给页面真正的事件处理，不是直接改行。
+            Field(page, "_music", vm);
+            vm.CurrentKey = tracks[3].IdentityKey;
+            Call(page, "OnMusicChanged", vm, new PropertyChangedEventArgs(nameof(MusicPlaybackViewModel.CurrentKey)));
+            Require(page.ViewModel.Rows[3].IsPlaying && page.ViewModel.Rows.Count(row => row.IsPlaying) == 1,
+                "正在播放的那一行没有被标出来");
+            Require(Get<Grid>(page, "TrackHeader").Visibility == Visibility.Visible, "曲目表没有列头");
+
             foreach (var theme in UiThemes.All)
             {
                 ThemeHost.Apply(theme.Id);
@@ -111,7 +136,36 @@ internal sealed partial class ShellNavigationProbe
                         Require(FrameworkElementAutomationPeer.CreatePeerForElement(button) is not null, name + " 缺少自动化节点");
                     }
                     await SaveProbeScreenAsync($"music-{theme.Id}-{width}-screen.png");
+
+                    // 版面的读数：药丸、搜索框和页边的关系没法靠肉眼从截图里量准，写进同目录的文本供复核。
+                    var search = Get<AutoSuggestBox>(page, "MusicSearch");
+                    var searchLeft = search.TransformToVisual(page).TransformPoint(new()).X;
+                    var searchRight = searchLeft + search.ActualWidth;
+                    File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "music-layout.txt"),
+                        $"{theme.Id} {width}: page={page.ActualWidth:0.#} pill={Get<Border>(page, "SectionSurface").ActualWidth:0.#} "
+                        + $"search={search.Width:0.#}/{search.ActualWidth:0.#} [{searchLeft:0.#}..{searchRight:0.#}] "
+                        + $"lane={page.ActualWidth - 32:0.#} rows={page.ViewModel.Rows.Count}{Environment.NewLine}");
+                    Require(search.ActualWidth >= 179, $"{width} 窗口下搜索框窄到不可用：{search.ActualWidth:0.#}");
+                    Require(searchRight <= page.ActualWidth - 31, $"{width} 窗口下搜索框越过页边：{searchRight:0.#}");
                 }
+
+                // 专辑那一半：同一份数据换成方形封面墙。曲目表与墙互斥，列头跟着收起。
+                ResizeProbeClient(1280, 760);
+                await page.ViewModel.SelectAsync(MusicSection.Albums);
+                await UntilAsync(() => page.ViewModel.IsReady && page.ViewModel.Rows.Count == albums.Length);
+                await LayoutAsync(container);
+                frame.Margin = new Thickness(0, 0, 0, bar.ActualHeight + 32);
+                await LayoutAsync(container);
+                Require(page.ViewModel.WallVisibility == Visibility.Visible
+                    && page.ViewModel.TrackViewVisibility == Visibility.Collapsed, "专辑分区没有换成封面墙");
+                Require(Get<Grid>(page, "TrackHeader").Visibility == Visibility.Collapsed, "封面墙上还留着曲目表列头");
+                Require(Get<ItemsView>(page, "MusicWall").ActualWidth > 0, "封面墙没有画出宽度");
+                Require(page.ViewModel.Rows[0].CardWidth == MusicCatalog.WallTileWidth, "封面墙格子宽度不是 170");
+                await SaveProbeScreenAsync($"music-wall-{theme.Id}-1280-screen.png");
+
+                await page.ViewModel.SelectAsync(MusicSection.Tracks);
+                await UntilAsync(() => page.ViewModel.IsReady && page.ViewModel.Rows.Count == tracks.Length);
+                await LayoutAsync(container);
             }
             var peer = new ButtonAutomationPeer(Get<Button>(bar, "StopButton"));
             ((IInvokeProvider)peer.GetPattern(PatternInterface.Invoke)).Invoke();
