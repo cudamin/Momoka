@@ -96,6 +96,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>What the grid or shelf handed over. Used for its id; everything else is re-fetched.</summary>
     private EmbyItem? _seed;
+    private object _browseVisit = new();
 
     /// <summary>The item as the server describes it in full — the thing the whole page is about.</summary>
     private EmbyItem? _detail;
@@ -1720,16 +1721,36 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     internal void OpenGenre(string genre)
     {
-        if (!CanOpenGenreValue(genre)) return;
-        if (_scope!.Connection.IsPlex)
-            _actions?.OpenItem(new EmbyItem
+        CaptureGenreNavigation(genre)?.Invoke();
+    }
+
+    /// <summary>Every rendered link owns its visit, subject, source and native tag value.</summary>
+    internal Action? CaptureGenreNavigation(string genre)
+    {
+        if (!CanOpenGenreValue(genre)) return null;
+        var visit = _browseVisit;
+        var subject = _seed!;
+        var source = _scope!;
+        var actions = _actions;
+        var relation = source.Connection.IsPlex ? _detail!.PlexGenres[genre] : null;
+        return () =>
+        {
+            if (!Attached || !ReferenceEquals(visit, _browseVisit) || !ReferenceEquals(subject, _seed)
+                || !ReferenceEquals(source, _scope) || !ReferenceEquals(actions, _actions)
+                || _detail?.Id != subject.Id || _detail.Source?.Key != source.Key) return;
+            if (relation is not null)
             {
-                Name = genre,
-                Type = EmbyItemType.Genre,
-                Source = _scope,
-                PlexRelation = _detail!.PlexGenres[genre]
-            });
-        else _actions?.OpenGenre(genre, _scope);
+                if (!_detail.PlexGenres.TryGetValue(genre, out var current) || current != relation) return;
+                actions?.OpenItem(new EmbyItem
+                {
+                    Name = genre,
+                    Type = EmbyItemType.Genre,
+                    Source = source,
+                    PlexRelation = relation
+                });
+            }
+            else if (CanOpenGenreValue(genre)) actions?.OpenGenre(genre, source);
+        };
     }
 
     /// <summary>
@@ -2392,6 +2413,7 @@ public sealed partial class DetailViewModel : PageViewModel
         EmbyImageStore images)
     {
         Cancel();
+        _browseVisit = new();
         _deletedItems.Clear();
         _deletedSourceIds.Clear();
         _deletedSourcePaths.Clear();

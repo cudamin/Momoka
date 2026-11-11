@@ -12363,3 +12363,4 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 匿名回归先红：协议 15 项 6 过/9 个目标失败；真实 VM 6 项 1 过/5 个缺口；删除后分页反例 24/25、末项遗漏。最终 Core/Tests、Shell 当前 Release 编译 0 警告 0 错误，搜索协议 15/15、真实 VM 7/7，0 跳过；SearchLifetime 原样页面合同 43/43。合同旧语言常量抽取边界会捎带第一批续播命令而编译失败，已精确收窄至常量；保留原有 43 项覆盖。变更 whitespace、check-diff/git diff --check 通过，自动化扫描无句柄缺失。证据本树 artifacts/library-search，来源详见 docs/媒体库第二批-搜索.md。
 
 根代理负责整合与最终默认全量、原生导航/宽窄实屏、master 重验和发布；本树无 UI、无真实服务器登录/播放/写入、未 publish/push。默认全量曾误启动，收到根代理串行提示后停止；未完成的默认运行不作为通过证据，不与其 native probe 并发。此记录不宣称主树交付。
+- 2026-11-11 独立审查修复：题材Hyperlink捕获访问期、原subject/source/actions及typed关系，重新Attach或离页后旧Click不借新详情执行。实际page/VM新增Plex异源与同源换片且Reload完成回归先红2项，修复后重编专项验证；最终主树native由根任务验收。

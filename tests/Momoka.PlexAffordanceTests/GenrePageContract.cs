@@ -18,6 +18,7 @@ internal sealed class ReflectedDetail(object value) : INotifyPropertyChanged
     public IReadOnlyList<string> SublineGenres => ShellAssembly.Get<IReadOnlyList<string>>(Value, nameof(SublineGenres));
     public bool CanOpenGenre => ShellAssembly.Get<bool>(Value, nameof(CanOpenGenre));
     public bool CanOpenGenreValue(string genre) => (bool)ShellAssembly.Invoke(Value, nameof(CanOpenGenreValue), genre)!;
+    public Action? CaptureGenreNavigation(string genre) => (Action?)ShellAssembly.Invoke(Value, nameof(CaptureGenreNavigation), genre);
     public string ItemType => ShellAssembly.Get<string>(Value, nameof(ItemType));
     public string Subline => ShellAssembly.Get<string>(Value, nameof(Subline));
     public bool BackdropShown => ShellAssembly.Get<bool>(Value, nameof(BackdropShown));

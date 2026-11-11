@@ -1854,7 +1854,8 @@ public sealed partial class DetailPage : Page, IShellContent
         {
             if (GenreLine.Inlines.Count > 0) GenreLine.Inlines.Add(new Run { Text = "  ·  " });
 
-            if (!ViewModel.CanOpenGenreValue(genre))
+            var navigate = ViewModel.CaptureGenreNavigation(genre);
+            if (navigate is null)
             {
                 GenreLine.Inlines.Add(new Run { Text = genre });
                 continue;
@@ -1867,9 +1868,8 @@ public sealed partial class DetailPage : Page, IShellContent
             };
             link.Inlines.Add(new Run { Text = genre });
 
-            // 捕获一份自己的：委托跑起来的时候循环那个变量已经走到下一个了。
-            var name = genre;
-            link.Click += (_, _) => ViewModel.OpenGenre(name);
+            // 委托保留绘制当时的访问身份；旧元素迟到的事件不能借新详情导航。
+            link.Click += (_, _) => navigate();
 
             GenreLine.Inlines.Add(link);
         }

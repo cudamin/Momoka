@@ -158,6 +158,8 @@ internal sealed class AffordanceTransport : HttpMessageHandler
     public bool StaleDetailRead { get; set; }
     public Action? BeforeDetailRead { get; set; }
     public bool PlexRelations { get; set; }
+    public string PlexRelationSection { get; set; } = "3";
+    public string PlexRelationGenreId { get; set; } = "41";
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -204,8 +206,8 @@ internal sealed class AffordanceTransport : HttpMessageHandler
                 var metadata = Plex(item);
                 if (PlexRelations)
                 {
-                    metadata["librarySectionID"] = "3";
-                    metadata["Genre"] = new JsonArray(new JsonObject { ["tag"] = "动画", ["id"] = "41" },
+                    metadata["librarySectionID"] = PlexRelationSection;
+                    metadata["Genre"] = new JsonArray(new JsonObject { ["tag"] = "动画", ["id"] = PlexRelationGenreId },
                         new JsonObject { ["tag"] = "剧情" });
                     metadata["Role"] = new JsonArray(new JsonObject { ["tag"] = "演员甲", ["id"] = "42" },
                         new JsonObject { ["tag"] = "演员乙" });
