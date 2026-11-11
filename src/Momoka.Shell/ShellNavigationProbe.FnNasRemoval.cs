@@ -32,6 +32,8 @@ internal sealed partial class ShellNavigationProbe
             if (path.EndsWith("/user/info", StringComparison.Ordinal)) return FnNasEnvelope(new { guid = "user", username = "user", is_admin = 1 });
             if (path.EndsWith("/mediadb/list", StringComparison.Ordinal) || path.EndsWith("/mdb/list", StringComparison.Ordinal))
                 return FnNasEnvelope(new[] { new { guid = "library", name = "飞牛电影", category = "Movie", dir_list = new[] { "/media/电影" } } });
+            if (path.EndsWith("/mediadb/sum", StringComparison.Ordinal)) return FnNasEnvelope(new { total = 1 });
+            if (path.EndsWith("/play/list", StringComparison.Ordinal)) return FnNasEnvelope(Array.Empty<object>());
             if (path.Contains("/sys/img/", StringComparison.Ordinal)) return new(HttpStatusCode.OK) { Content = new ByteArrayContent(picture) };
             if (path.EndsWith("/media/itemfile/movie", StringComparison.Ordinal)) return FnNasEnvelope(new[]
             {

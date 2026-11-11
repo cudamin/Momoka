@@ -22,6 +22,7 @@ public sealed partial class LibraryPage
     {
         CardWall.SelectionChanged += OnBatchSelectionChanged;
         ViewModel.Cards.CollectionChanged += OnBatchCardsChanged;
+        LibraryBatchSurface.SizeChanged += (_, _) => PlaceBatchEmptyNotice();
         PreviewKeyDown += OnSelectionKeyDown;
     }
 
@@ -77,7 +78,9 @@ public sealed partial class LibraryPage
             if (!ViewModel.QueryCurrent(_selectionQuery)) EndSelection();
             else ApplySelectingToCards();
         }
-        if (!_attaching) RefreshSelectionAvailability();
+        // ObservableCollection invokes this handler before ItemsView has adjusted its native
+        // selection indices. Reading SelectedItems here can dereference an already removed row.
+        if (!_attaching) QueueSelectionRefresh();
     }
 
     private void OnEndSelection(object sender, RoutedEventArgs e) => EndSelection();
@@ -104,6 +107,7 @@ public sealed partial class LibraryPage
         finally { _syncingSelection = false; }
         LibraryBatchMenu.Hide();
         LibraryBatchSurface.Visibility = Visibility.Collapsed;
+        PlaceBatchEmptyNotice();
         LibrarySelectButton.Visibility = CanSelectItems ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -125,7 +129,7 @@ public sealed partial class LibraryPage
 
     private void OnBatchSelectionChanged(ItemsView sender, ItemsViewSelectionChangedEventArgs args)
     {
-        if (!_selecting || _syncingSelection) return;
+        if (!_selecting || _syncingSelection || _batchBusy) return;
         var cards = SelectedBatchCards();
         var source = cards.FirstOrDefault()?.Scope;
         _syncingSelection = true;
@@ -153,7 +157,11 @@ public sealed partial class LibraryPage
         LibraryEndSelection.IsEnabled = !_batchBusy;
         LibraryCancelBatch.Visibility = _batchBusy ? Visibility.Visible : Visibility.Collapsed;
         CardWall.IsHitTestVisible = !_batchBusy;
+        PlaceBatchEmptyNotice();
     }
+
+    private void PlaceBatchEmptyNotice() =>
+        LibraryEmptyPanel.Margin = new Thickness(24, 72 + (_selecting ? LibraryBatchSurface.ActualHeight : 0), 24, 0);
 
     private void OnSelectLoaded(object sender, RoutedEventArgs e)
     {
@@ -275,6 +283,7 @@ public sealed partial class LibraryPage
         using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(token, _selectionQuery);
         _batchCancellation = cancellation;
         _batchBusy = true;
+        if (command == ItemCommand.RemoveFromCollection) CardWall.DeselectAll();
         LibraryBatchResult.IsOpen = false;
         RefreshBatchControls();
         var visit = _navigation;
@@ -303,7 +312,7 @@ public sealed partial class LibraryPage
                     }
                     if (_released || visit != _navigation || !ReferenceEquals(_batchCancellation, cancellation)) return;
                     var index = ViewModel.Cards.IndexOf(card);
-                    if (index >= 0) CardWall.Deselect(index);
+                    if (index >= 0 && command != ItemCommand.RemoveFromCollection) CardWall.Deselect(index);
                     if (command == ItemCommand.MarkPlayed && currentState)
                     {
                         actions.ReportMarkedWatched(card.Item);
@@ -323,6 +332,15 @@ public sealed partial class LibraryPage
                 }).ConfigureAwait(true);
             if (_released || visit != _navigation || !ReferenceEquals(_batchCancellation, cancellation)) return;
             LastBatchResult = result;
+            if (command == ItemCommand.RemoveFromCollection)
+            {
+                CardWall.DeselectAll();
+                foreach (var receipt in result.Results.Where(receipt => receipt.Status != ItemBatchStatus.Succeeded))
+                {
+                    var index = ViewModel.Cards.ToList().FindIndex(card => ReferenceEquals(card.Item, receipt.Item));
+                    if (index >= 0) CardWall.Select(index);
+                }
+            }
             var details = result.Results.Where(receipt => receipt.Error is not null || receipt.RefreshError is not null)
                 .Select(receipt => $"{receipt.Item.Name}：{receipt.Error ?? "已保存，但刷新失败：" + receipt.RefreshError}");
             LibraryBatchResult.Message = $"成功 {result.Succeeded} 项，失败 {result.Failed} 项，取消 {result.Canceled} 项。"

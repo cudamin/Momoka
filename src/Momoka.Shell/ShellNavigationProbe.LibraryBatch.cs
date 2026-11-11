@@ -343,6 +343,10 @@ internal sealed partial class ShellNavigationProbe
                 var listPage = page.ViewModel.GetType().GetProperty("IsJellyfinListPage", BindingFlags.Instance | BindingFlags.NonPublic)
                     ?.GetValue(page.ViewModel) is true;
                 var selected = Get<ItemsView>(page!, "CardWall").SelectedItems.ToArray();
+                var emptyPanel = Get<FrameworkElement>(page!, "LibraryEmptyPanel");
+                var emptyTop = emptyPanel.TransformToVisual(page).TransformPoint(new(0, 0)).Y;
+                var resultBottom = result.TransformToVisual(page).TransformPoint(new(0, result.ActualHeight)).Y;
+                Require(emptyTop >= resultBottom, "空合集提示遮挡了批量操作结果");
                 await SaveProbeScreenAsync($"library-batch-collections-{kind}-empty-before-assert-screen.png");
                 await File.WriteAllTextAsync(Path.Combine(_options.Paths.LogDirectory, $"library-batch-collections-{kind}-empty-readings.json"),
                     JsonSerializer.Serialize(new

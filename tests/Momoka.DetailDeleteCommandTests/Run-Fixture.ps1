@@ -52,7 +52,7 @@ $before = @($sourcePaths | ForEach-Object {
 
 Invoke-Logged 'shell-restore' (@('restore', $shellProject) + $restore)
 Invoke-Logged 'fixture-restore' (@('restore', $fixtureProject) + $restore)
-Invoke-Logged 'shell-build' (@('build', $shellProject) + $build)
+Invoke-Logged 'shell-build' (@('build', $shellProject) + $build + @('-p:Platform=x64'))
 Invoke-Logged 'fixture-build' (@('build', $fixtureProject) + $build + @('-p:Platform=x64'))
 foreach ($source in $before) {
     if ($source.Sha256 -ne (Get-FileHash -LiteralPath (Join-Path $root $source.Path) -Algorithm SHA256).Hash) {

@@ -1078,7 +1078,7 @@
         <Button x:Name="UpcomingRetryButton" Content="重新加载" HorizontalAlignment="Center" VerticalAlignment="Center"
             Click="OnUpcomingRetryClicked" Visibility="{x:Bind ViewModel.UpcomingErrorVisibility, Mode=OneWay}" />
 
-        <StackPanel
+        <StackPanel x:Name="LibraryEmptyPanel"
             HorizontalAlignment="Center"
             Margin="24,72,24,0"
             Spacing="20"
