@@ -12513,3 +12513,12 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 空白：改动文件 `format whitespace --include` 通过；全量仍报 17 个与本次无关的既有项（上批记 14 个，第三批合入后增多），按用户「别扩大范围」不顺手格式化。
 - 文档：`docs/音乐媒体库.md` 播放栏一段与探针条目同步改版描述。
 - 未做：真实服务器播放/收藏写入、物理扬声器；未 push、未合 master、未发布——等用户确认后再走交付。
+
+## 2026-11-11 音乐胶囊播放栏主树交付完成
+
+用户确认「合并 交付」。产品提交 9358fc1 已快进合入 master（合并前主树干净、master 停在分支基点 637af97）。
+
+- 主树复验：Release 全方案 0 警告 0 错误；主测试 4705/4705、0 失败 0 跳过（可写 TEMP 下）；`--probe-shell --probe-section music --screen 1` 2/2 退出 0（shell-probe-20261111-100103341-4732），1280 曲目表实屏目视与分支一致：胶囊压住曲目行、亚克力透底。
+- 交付：旧交付目录改名 `artifacts/publish/win-x64-pre-music-capsule` 备份（再上一份 `win-x64-pre-music-redesign` 仍在）；`tools/publish.ps1 -NoArchive -Shortcut` 退出 0，547 文件 / 288.0 MB、批准 mpv 60 文件校验通过；发布件与主树构建 `Momoka.dll` SHA-256 相同（df6512c2…）。桌面 `Momoka.lnk` 本次写入成功，目标 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。发布前确认无运行中的 Momoka 实例。
+- 清理：`music-bar-capsule` 已确认无 master 缺失内容后删除；本聊天托管工作树因会话进程占用保留目录，已 detach 到最终 master，不假装清干净。
+- 未做：真实服务器播放/收藏写入、物理扬声器；未推远端、未生成新安装包（沿用 0.2.7 交付目录形态）。全量空白检查的 17 个既有无关项仍未动。
