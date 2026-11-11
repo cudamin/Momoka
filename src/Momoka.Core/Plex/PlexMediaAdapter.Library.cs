@@ -64,9 +64,9 @@ public sealed partial class PlexMediaAdapter
     {
         var catalog = await GetLibraryCatalogAsync(query.ParentId!, ct).ConfigureAwait(false);
         var selection = query.PlexFilters ?? new PlexFilterSelection();
-        if (catalog.Types.Count == 0 && selection.Count == 0 && query.PlexSortKey is null) return Query(query);
+        if (catalog.Types.Count == 0 && !selection.HasConditions && query.PlexSortKey is null) return Query(query);
         if (selection.Type.Length == 0)
-            selection = new PlexFilterSelection { Type = catalog.Types.FirstOrDefault()?.Id ?? "", Values = selection.Values };
+            selection = new PlexFilterSelection { Type = catalog.Types.FirstOrDefault()?.Id ?? "", TypeIsExplicit = false, Values = selection.Values };
         await ValidateSelectionAsync(catalog, selection, ct).ConfigureAwait(false);
         var result = FilterParameters(selection).ToList();
         if (query.PlexSortKey is { Length: > 0 } key)

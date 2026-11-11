@@ -28,6 +28,16 @@ internal static partial class PlexMediaTests
             }
             Assert.Equal(0, fixture.Transport.Requests.Count);
         });
+        Test("Plex 浏览条件：空目录不能放宽显式仅类型选择", () =>
+        {
+            using var f = new CatalogFixture();
+            f.Transport.Empty = true;
+            var query = new ItemQuery { ParentId = "1" };
+            var property = typeof(ItemQuery).GetProperty("PlexFilters")!;
+            property.SetValue(query, Selection("""{"Type":"4","Values":{}}"""));
+            Assert.Throws<InvalidOperationException>(() => f.Adapter.GetItemsAsync(query, default).GetAwaiter().GetResult());
+            Assert.False(f.Transport.Requests.Any(uri => uri.AbsolutePath.EndsWith("/all", StringComparison.Ordinal)));
+        });
         Test("Plex 浏览设置：恢复偏好保留库选择，null输入归一化且不丢未知条件", () =>
         {
             var settings = new AppSettings();

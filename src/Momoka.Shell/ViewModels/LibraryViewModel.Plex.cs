@@ -13,6 +13,8 @@ public sealed partial class LibraryViewModel
     private Task? _plexCatalogTask;
     private long _plexEpoch;
     private bool _plexTypeRestoring;
+    private readonly Dictionary<string, long> _plexSelectionOperations = new(StringComparer.Ordinal);
+    private bool _plexRefreshCatalog;
     internal bool IsPlex => _scope?.Connection.IsPlex == true;
     internal PlexLibraryCatalog? PlexCatalog { get; private set; }
     public ObservableCollection<PlexFilterChoice> PlexTypes { get; } = [];
@@ -36,7 +38,7 @@ public sealed partial class LibraryViewModel
     private bool IsPlexSection => IsPlex && _request is { IsSearch: false, Row: null, PersonId: null, Genre: null,
         ParentId.Length: > 0, ParentType: null or EmbyItemType.CollectionFolder, CollectionType: "movies" or "tvshows" or "homevideos" or "mixed" };
     private PlexLibraryType? PlexType => PlexCatalog?.Types.FirstOrDefault(type => type.Id == _plexFilters.Type);
-    private bool PlexHasFilters => IsPlexSection && (PlexType?.Filters.Count > 0 || PlexFilterError.Length > 0 || _plexFilters.Count > 0 || PlexTypes.Count > 1);
+    private bool PlexHasFilters => IsPlexSection && (PlexType?.Filters.Count > 0 || PlexFilterError.Length > 0 || _plexFilters.HasConditions || PlexTypes.Count > 1);
     private bool PlexHasAlphabet => IsPlexSection && _active && _scope?.IsAvailable == true
         && PlexType?.Sorts.Any(sort => sort.Key == SortKey && sort.FirstCharacterKey.Length > 0) == true;
 
@@ -48,6 +50,7 @@ public sealed partial class LibraryViewModel
         _plexLifetime = new CancellationTokenSource();
         _plexCatalogTask = null;
         PlexCatalog = null;
+        _plexRefreshCatalog = true;
         PlexFilterRows.Clear();
         PlexTypes.Clear();
         PlexFilterOpen = false;
@@ -55,13 +58,28 @@ public sealed partial class LibraryViewModel
         PlexFilterError = "";
         _plexFilters = IsPlex && MemoryKey() is { } key && Settings.Ui.PlexFilters.TryGetValue(key, out var saved)
             ? saved.Clone() : new();
+        _plexSelectionOperations.Clear();
+    }
+
+    /// <summary>Cancel/Resume is also used by LibraryPage.ApplySource, before its first load.</summary>
+    private void ResumePlex()
+    {
+        _plexEpoch++;
+        _plexLifetime?.Cancel();
+        _plexLifetime?.Dispose();
+        _plexLifetime = new CancellationTokenSource();
+        _plexCatalogTask = null;
+        _plexSelectionOperations.Clear();
+        PlexFilterLoading = false;
+        _plexRefreshCatalog = true;
     }
 
     internal Task EnsurePlexCatalogAsync(CancellationToken token = default, bool refresh = false)
     {
         if (!IsPlexSection || _scope is not { IsAvailable: true } scope || _request?.ParentId is not { } section) return Task.CompletedTask;
-        if (!refresh && PlexCatalog is not null) return Task.CompletedTask;
         if (!refresh && _plexCatalogTask is not null) return _plexCatalogTask.WaitAsync(token);
+        refresh |= _plexRefreshCatalog;
+        if (!refresh && PlexCatalog is not null) return Task.CompletedTask;
         if (refresh)
         {
             _plexEpoch++;
@@ -89,13 +107,18 @@ public sealed partial class LibraryViewModel
             var catalog = await scope.ExecuteAsync((client, ct) => client.GetPlexLibraryCatalogAsync(section, ct, refresh), token).ConfigureAwait(true);
             if (!PlexCurrent(scope, request, epoch, token)) return;
             PlexCatalog = catalog;
-            if (_plexFilters.Type.Length == 0) _plexFilters.Type = catalog.Types.FirstOrDefault()?.Id ?? "";
+            _plexRefreshCatalog = false;
+            if (_plexFilters.Type.Length == 0)
+            {
+                _plexFilters.Type = catalog.Types.FirstOrDefault()?.Id ?? "";
+                _plexFilters.TypeIsExplicit = false;
+            }
             PlexTypes.Clear();
             foreach (var type in catalog.Types) PlexTypes.Add(new(type.Id, type.Title));
             _plexTypeRestoring = true;
             PlexSelectedType = PlexTypes.FirstOrDefault(type => type.Value == _plexFilters.Type);
             _plexTypeRestoring = false;
-            if (_plexFilters.Type.Length > 0 && PlexType is null && _plexFilters.Count > 0)
+            if (_plexFilters.Type.Length > 0 && PlexType is null && _plexFilters.HasConditions)
                 PlexFilterError = "保存的媒体类型已失效，请清除筛选或重试。";
             RestorePlexSort();
             await LoadPlexRowsAsync(scope, request, epoch, token).ConfigureAwait(true);
@@ -179,6 +202,8 @@ public sealed partial class LibraryViewModel
     {
         if (!IsPlexSection || !_active || _scope?.IsAvailable != true || PlexType is not { } type) return;
         if (!type.Filters.Any(filter => filter.Field == field)) return;
+        var operation = _plexSelectionOperations.GetValueOrDefault(field) + 1;
+        _plexSelectionOperations[field] = operation;
         var row = PlexFilterRows.FirstOrDefault(row => row.Field == field);
         if (value.Length > 0 && (row is null || !row.Options.Any(option => option.Value == value))) return;
         if (value.Length > 0 && _scope is { } currentScope && _request?.ParentId is { } section)
@@ -190,11 +215,17 @@ public sealed partial class LibraryViewModel
             try
             {
                 var options = await currentScope.ExecuteAsync((client, ct) => client.GetPlexLibraryFilterOptionsAsync(section, type.Id, field, selection, ct), token).ConfigureAwait(true);
-                if (!PlexCurrent(currentScope, request, epoch, token) || _plexFilters.Type != type.Id) return;
+                if (!PlexCurrent(currentScope, request, epoch, token) || _plexFilters.Type != type.Id
+                    || _plexSelectionOperations.GetValueOrDefault(field) != operation) return;
                 if (!options.Any(option => option.Value == value)) { PlexFilterError = "筛选选项已改变，请重试或清除筛选。"; return; }
             }
             catch (OperationCanceledException) { return; }
-            catch (Exception error) { PlexFilterError = "读取筛选选项失败，可重试。"; Report("读取筛选选项失败", error); return; }
+            catch (Exception error)
+            {
+                if (PlexCurrent(currentScope, request, epoch, token) && _plexSelectionOperations.GetValueOrDefault(field) == operation)
+                { PlexFilterError = "读取筛选选项失败，可重试。"; Report("读取筛选选项失败", error); }
+                return;
+            }
         }
         if ((_plexFilters.Values.GetValueOrDefault(field)?.FirstOrDefault() ?? "") == value) return;
         if (value.Length == 0) _plexFilters.Values.Remove(field); else _plexFilters.Values[field] = [value];
@@ -209,12 +240,14 @@ public sealed partial class LibraryViewModel
     {
         if (!IsPlexSection || !_active || PlexCatalog?.Types.Any(entry => entry.Id == type) != true || _plexFilters.Type == type) return;
         _plexFilters.Type = type;
+        _plexFilters.TypeIsExplicit = true;
         _plexFilters.Values.Clear();
         _plexEpoch++;
         _plexLifetime?.Cancel();
         _plexLifetime?.Dispose();
         _plexLifetime = new CancellationTokenSource();
         _plexCatalogTask = null;
+        _plexSelectionOperations.Clear();
         RememberPlexFilters();
         RestorePlexSort();
         _plexTypeRestoring = true;
@@ -234,7 +267,7 @@ public sealed partial class LibraryViewModel
     internal async Task ClearPlexFiltersAsync()
     {
         if (!IsPlexSection || !_active) return;
-        _plexFilters = new() { Type = PlexCatalog?.Types.FirstOrDefault()?.Id ?? "" };
+        _plexFilters = new() { Type = PlexCatalog?.Types.FirstOrDefault()?.Id ?? "", TypeIsExplicit = false };
         PlexFilterError = "";
         RememberPlexFilters();
         await EnsurePlexCatalogAsync(refresh: true).ConfigureAwait(true);

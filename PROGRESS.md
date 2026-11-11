@@ -12364,3 +12364,4 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 
 根代理负责整合与最终默认全量、原生导航/宽窄实屏、master 重验和发布；本树无 UI、无真实服务器登录/播放/写入、未 publish/push。默认全量曾误启动，收到根代理串行提示后停止；未完成的默认运行不作为通过证据，不与其 native probe 并发。此记录不宣称主树交付。
 - 2026-11-11 独立审查修复：题材Hyperlink捕获访问期、原subject/source/actions及typed关系，重新Attach或离页后旧Click不借新详情执行。实际page/VM新增Plex异源与同源换片且Reload完成回归先红2项，修复后重编专项验证；最终主树native由根任务验收。
+- 2026-11-11 Task2审查round1：修复正式ApplySource的Cancel→Resume(false)及暖返回续读，恢复访问建立新CTS/epoch并重新确认PMS目录。TypeIsExplicit区分自动默认(false)、主动选择(true)及旧非空选择(null按主动保留)，显式Type4无Values遇空目录拒绝，不放宽；同字段options校验新增操作代次，逆序旧响应/错误不能覆盖最后选择。原8项VM5过3败、协议274项273过1败；最后当前Release/x64 Shell/Tests/Core0警告0错误，实际VM8/8、协议274/274，0失败0跳过。8文本差异/encoding/whitespace通过。无真实PMS或原生UI，等待root整合复验。

@@ -111,6 +111,7 @@ internal static class BrowseSnapshotKeys
         AddList(text, fnNasFilters.RecognitionStatuses);
 
         Add(text, plexFilters?.Type);
+        Add(text, plexFilters?.TypeIsExplicit?.ToString());
         if (plexFilters is not null)
             foreach (var pair in plexFilters.Values.OrderBy(pair => pair.Key, StringComparer.Ordinal))
             {

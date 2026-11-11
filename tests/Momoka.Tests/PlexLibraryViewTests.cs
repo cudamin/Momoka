@@ -17,6 +17,59 @@ internal static class PlexLibraryViewTests
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         var shell = new ShellFixture(shellPath, root);
+        Test("Plex 实际VM：正式页面取消恢复后首读与暖返回仍可筛选", () => SingleThread.Run(async () =>
+        {
+            using var f = new Fixture(shell);
+            shell.Invoke(f.Vm, "Cancel");
+            shell.Invoke(f.Vm, "Resume", false);
+            await f.Load();
+            Assert.Equal(4, f.Many("PlexFilterRows").Count);
+            Assert.False(f.Get<bool>("PlexFilterLoading"));
+            await f.Select("genre", "7");
+            shell.Invoke(f.Vm, "Cancel");
+            var request = f.Vm.GetType().GetField("_request", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(f.Vm)!;
+            Assert.True((bool)shell.Invoke(f.Vm, "TryResumeNavigation", request, f.Settings)!);
+            await f.Select("genre", "8");
+            Assert.Equal("8", f.Settings.Settings.Ui.PlexFilters.Single().Value.Values["genre"].Single());
+            Assert.False(f.Get<bool>("PlexFilterLoading"));
+        }));
+        Test("Plex 实际VM：显式仅媒体类型遇空目录拒绝，初次未选类型可浏览", () => SingleThread.Run(async () =>
+        {
+            using var f = new Fixture(shell);
+            f.Transport.Empty = true;
+            await f.Load();
+            Assert.True(f.Get<bool>("IsReady"));
+            f.Transport.Empty = false;
+            await (Task)shell.Invoke(f.Vm, "RetryPlexFiltersAsync")!;
+            await (Task)shell.Invoke(f.Vm, "SelectPlexTypeAsync", "4")!;
+            Assert.Equal("4", f.Settings.Settings.Ui.PlexFilters.Single().Value.Type);
+            f.Transport.Empty = true;
+            f.Reattach();
+            Assert.True(f.Query().PlexFilters!.HasConditions);
+            Assert.Equal(true, f.Query().PlexFilters!.TypeIsExplicit);
+            var reads = f.Transport.Requests.Count(uri => uri.AbsolutePath.EndsWith("/all", StringComparison.Ordinal));
+            await f.Load();
+            Assert.Equal(reads, f.Transport.Requests.Count(uri => uri.AbsolutePath.EndsWith("/all", StringComparison.Ordinal)));
+            Assert.True(f.Get<string>("PlexFilterError").Length > 0);
+            await (Task)shell.Invoke(f.Vm, "ClearPlexFiltersAsync")!;
+            Assert.True(f.Transport.Requests.Count(uri => uri.AbsolutePath.EndsWith("/all", StringComparison.Ordinal)) > reads);
+        }));
+        Test("Plex 实际VM：同字段选项响应逆序完成保留最后选择", () => SingleThread.Run(async () =>
+        {
+            using var f = new Fixture(shell);
+            await f.Load();
+            f.Transport.OptionGates = [new(TaskCreationOptions.RunContinuationsAsynchronously), new(TaskCreationOptions.RunContinuationsAsynchronously)];
+            var first = f.Select("genre", "7");
+            await f.Transport.FirstOptionEntered.Task;
+            var second = f.Select("genre", "8");
+            await f.Transport.SecondOptionEntered.Task;
+            f.Transport.OptionGates[1].SetResult();
+            await second;
+            f.Transport.OptionGates[0].SetResult();
+            await first;
+            Assert.Equal("8", f.Query().PlexFilters!.Values["genre"].Single());
+            Assert.Equal("8", f.Settings.Settings.Ui.PlexFilters.Single().Value.Values["genre"].Single());
+        }));
         Test("Plex 实际VM：目录加载后筛选排序显现，选择写入同源库且查询带原生值", () => SingleThread.Run(async () =>
         {
             using var f = new Fixture(shell);
@@ -143,25 +196,44 @@ internal static class PlexLibraryViewTests
         public bool Empty { get; set; }
         public TaskCompletionSource? Gate { get; set; }
         public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource[]? OptionGates { get; set; }
+        public TaskCompletionSource FirstOptionEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource SecondOptionEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _optionReads;
         public List<Uri> Requests { get; } = [];
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var uri = request.RequestUri!;
             lock (Requests) Requests.Add(uri);
+            if (uri.AbsolutePath == "/library/sections/1/genre" && OptionGates is { } gates)
+            {
+                var read = Interlocked.Increment(ref _optionReads) - 1;
+                if (read < gates.Length)
+                {
+                    (read == 0 ? FirstOptionEntered : SecondOptionEntered).TrySetResult();
+                    await gates[read].Task;
+                }
+            }
             if (uri.AbsolutePath == "/library/sections/1" && Gate is { } gate) { Entered.TrySetResult(); await gate.Task; }
             if (Fail) return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
             var json = uri.AbsolutePath switch
             {
                 "/library/sections" => """{"Directory":[{"key":"1","type":"movie","title":"电影","filters":true}]}""",
                 "/library/sections/1" => Empty ? """{"Type":[]}""" : """{"Type":[{"type":"movie","key":"/library/sections/1/all?type=1","title":"电影","Filter":[{"filter":"genre","filterType":"string","key":"/library/sections/1/genre?type=1","title":"类型"},{"filter":"year","filterType":"integer","key":"/library/sections/1/year?type=1","title":"年份"},{"filter":"unwatched","filterType":"boolean","title":"已看状态"},{"filter":"resolution","filterType":"string","key":"/library/sections/1/resolution?type=1","title":"分辨率"}],"Sort":[{"key":"titleSort","descKey":"titleSort:desc","title":"标题","default":"asc","firstCharacterKey":"firstCharacter"},{"key":"addedAt","descKey":"addedAt:desc","title":"添加时间","default":"desc"}]}]}""",
-                "/library/sections/1/genre" => """{"Directory":[{"key":"7","title":"动画"}]}""",
+                "/library/sections/1/genre" => """{"Directory":[{"key":"7","title":"动画"},{"key":"8","title":"剧情"}]}""",
                 "/library/sections/1/year" => """{"Directory":[{"key":"2025","title":"2025"}]}""",
                 "/library/sections/1/resolution" => """{"Directory":[{"key":"4k","title":"4K"}]}""",
                 "/library/sections/1/firstCharacter" => """{"Directory":[{"key":"A","title":"A","size":3},{"key":"B","title":"B","size":40}]}""",
                 "/library/sections/1/all" => JsonSerializer.Serialize(new { Metadata = Enumerable.Range(0, 43).Skip(Header("X-Plex-Container-Start")).Take(Header("X-Plex-Container-Size")).Select(index => new { ratingKey = index.ToString(), type = "movie", title = (index < 3 ? "A" : "B") + index, titleSort = (index < 3 ? "A" : "B") + index }), totalSize = 43 }),
                 _ => throw new AssertionException("未授权的夹具请求 " + uri.AbsolutePath)
             };
+            if (uri.AbsolutePath == "/library/sections/1" && !Empty)
+            {
+                var container = System.Text.Json.Nodes.JsonNode.Parse(json)!.AsObject();
+                container["Type"]!.AsArray().Add(System.Text.Json.Nodes.JsonNode.Parse("""{"type":"episode","key":"/library/sections/1/all?type=4","title":"单集","Filter":[],"Sort":[{"key":"titleSort","descKey":"titleSort:desc","title":"标题"}]}"""));
+                json = container.ToJsonString();
+            }
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{\"MediaContainer\":" + json + "}") };
             int Header(string key) => request.Headers.TryGetValues(key, out var values) && int.TryParse(values.Single(), out var value) ? value : 0;
         }

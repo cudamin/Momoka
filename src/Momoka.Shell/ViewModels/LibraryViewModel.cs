@@ -2136,6 +2136,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (_active) return;
         _active = SourcesAvailable;
+        if (_active && IsPlex) ResumePlex();
         OnPropertyChanged(nameof(LayoutVisibility));
         OnPropertyChanged(nameof(ExtendedSearchCategoriesVisibility));
         if (_active && !reload) _queryToken = _queries.Begin();
@@ -3267,7 +3268,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         var query = BuildQueryCore(start, limit);
         if (query is not null) query.FnNasFilters = IsFnNas ? _fnNasFilters.Clone() : null;
-        if (query is not null && IsPlexSection && (PlexCatalog?.Types.Count > 0 || _plexFilters.Count > 0))
+        if (query is not null && IsPlexSection && (PlexCatalog?.Types.Count > 0 || _plexFilters.HasConditions))
         {
             query.PlexFilters = _plexFilters.Clone();
             query.PlexSortKey = PlexType?.Sorts.Any(sort => sort.Key == SortKey) == true ? SortKey : null;
