@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
 using Momoka.Shell.Views;
@@ -57,6 +58,40 @@ internal sealed partial class ShellNavigationProbe
                 foreach (var width in new[] { 1200, 760 })
                 {
                     await ResizeResponsiveAsync(page, width, 900);
+                    // 简洁模式的按钮与闭合选择框吃那支固定面色（2026-11-11 用户令）：先核四态画笔，
+                    // 再把按钮材质那几项改到另一个极端，证明它一个字节都不读。
+                    var actions = new[] { Get<StackPanel>(page, "ColumnActions"), Get<StackPanel>(page, "CompactBlock") }
+                        .SelectMany(group => group.Children).OfType<WrapRow>()
+                        .SelectMany(row => row.Children).OfType<Control>()
+                        .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
+                        .ToArray();
+                    if (width == 1200)
+                    {
+                        Require(actions.Length > 0, "简洁详情没有找到操作按钮");
+                        RequireFixedSurface(actions);
+                        var saved = (fixture.Settings.Ui.UseAcrylicControls, fixture.Settings.Ui.ControlTintOpacity,
+                            fixture.Settings.Ui.ControlTintLuminosityOpacity, fixture.Settings.Ui.ControlBackgroundOpacity,
+                            fixture.Settings.Ui.ControlBackgroundColor);
+                        try
+                        {
+                            fixture.Settings.Ui.UseAcrylicControls = false;
+                            fixture.Settings.Ui.ControlBackgroundOpacity = 100;
+                            fixture.Settings.Ui.ControlTintOpacity = 90;
+                            fixture.Settings.Ui.ControlTintLuminosityOpacity = 5;
+                            fixture.Settings.Ui.ControlBackgroundColor = "#FF00FF";
+                            ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                            await LayoutAsync(page);
+                            RequireFixedSurface(actions);
+                        }
+                        finally
+                        {
+                            (fixture.Settings.Ui.UseAcrylicControls, fixture.Settings.Ui.ControlTintOpacity,
+                                fixture.Settings.Ui.ControlTintLuminosityOpacity, fixture.Settings.Ui.ControlBackgroundOpacity,
+                                fixture.Settings.Ui.ControlBackgroundColor) = saved;
+                            ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                            await LayoutAsync(page);
+                        }
+                    }
                     foreach (var theme in UiThemes.All)
                     {
                         ThemeHost.Apply(theme.Id);

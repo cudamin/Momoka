@@ -594,6 +594,8 @@ internal sealed partial class ShellNavigationProbe
                 && Get<SystemBackdropElement>(page, "PlainBackdrop").SystemBackdrop is MicaBackdrop, "简洁模式正文遮住了 Mica Alt");
             Require(ReferenceEquals(panel.Background, Get<Border>(page, "MicaLayerSource").Background), "简洁模式正文没有使用云母叠层");
             Require(fade.Visibility == Visibility.Collapsed, "简洁模式没有图，图下沿的渐变却还画着");
+            // 简洁模式的按钮同样是那支固定面色（2026-11-11 用户令），不读按钮材质那四项设置。
+            RequireFixedSurface(Get<WrapRow>(page, "DetailActions").Children.OfType<Button>());
             Require(hero.MinHeight <= 0.5, "简洁模式仍按背景图让开第一屏");
             Require(overview.VerticalAlignment == VerticalAlignment.Top, "简洁模式的简介没有顶对齐");
             Require(strips.Count > 0 && strips[^1] == TitleStrip.PagePainted, "简洁模式的标题栏没有回到页面字色");
@@ -636,6 +638,12 @@ internal sealed partial class ShellNavigationProbe
             RequireSubscriptionBodyLayout(page, false);
             Require(Get<Border>(page, "DetailBackdropScrim").Background is SolidColorBrush,
                 "窄窗背景仍在使用亚克力而非实色阅读罩");
+            // 切回沉浸模式：按钮回到按钮材质那一组设置（简洁模式那套固定玻璃不再生效）。
+            if (!new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast)
+                Require(Get<WrapRow>(page, "DetailActions").Children.OfType<Button>().First()
+                    .Resources["ButtonBackground"] is AcrylicBrush { AlwaysUseFallback: false } restoredFill
+                    && Math.Abs(restoredFill.TintOpacity - settings.Ui.ControlTintOpacity / 100) < 0.000001,
+                    "切回沉浸模式后按钮没有回到按钮材质设置");
             Require(strips.Count > 0 && strips[^1] == TitleStrip.OnScrim, "有图的窄窗没有把标题栏换成浅墨");
             readings.Add($"沉浸 760：页宽 {media.PageWidth:0}、图 {image.ActualHeight:0}、头部下限 {hero.MinHeight:0}");
             await SaveProbeScreenAsync("mp-subscription-mode-immersive-760.png");

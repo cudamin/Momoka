@@ -18,6 +18,10 @@ namespace Momoka.Shell.Views;
 /// <para>
 /// 详情按钮与闭合选择框共用这套材质；主页轮播那颗「详情」按钮仍按原来的底色浓度走，不吃这三项。
 /// </para>
+/// <para>
+/// 第三条路是 <see cref="ApplyFixedSurface"/>：简洁模式不铺背景图、底是系统云母，按钮与闭合选择框改吃
+/// 一支固定的半透明面色（四态各一个定值浓度），不参与上面两种材质的任何设置（2026-11-11 用户令）。
+/// </para>
 /// </summary>
 internal sealed class ControlBackgroundBrushes
 {
@@ -248,6 +252,48 @@ internal sealed class ControlBackgroundBrushes
             }
         }
     }
+
+    /// <summary>
+    /// 简洁模式的固定按钮材质（2026-11-11 用户令「重新设计简洁模式下按钮与选择框的颜色与材质样式，
+    /// 使其为固定值，不再跟随沉浸模式的设置变化」）。
+    /// <para>
+    /// 颜色取主题的悬停面（<c>EgSurfaceHoverBrush</c>，这套主题里最亮的一档面色），四态各铺一个定值浓度；
+    /// 换主题跟着换色相，但<b>一个字节都不读</b>按钮材质那四项设置 —— 四条滑块拖成什么样都改不到它。
+    /// </para>
+    /// <para>
+    /// 这一档<b>故意不再用亚克力</b>：简洁模式的底是页面局部的系统云母（<c>MicaBackdrop</c>），那层东西不在
+    /// XAML 树里，应用内亚克力采不到它 —— 同一支玻璃在云母上会落成一块比页面更暗的板。这里改用可预期的
+    /// 半透明面色：常态 55%、悬停 85%、按下 40%、禁用 25%，压在云母上仍是「比页面亮一点」的那颗按钮。
+    /// （2026-11-11 实屏核对：直接用操作玻璃那一版比页面暗，像内凹。）
+    /// </para>
+    /// <para>
+    /// 四条顺序就是构造时的顺序：常态、悬停、按下、禁用。
+    /// </para>
+    /// </summary>
+    public void ApplyFixedSurface()
+    {
+        var surface = Resource("EgSurfaceHoverBrush");
+        var levels = new[] { FixedRest, FixedHover, FixedPressed, FixedDisabled };
+        for (var index = 0; index < _brushes.Count; index++)
+        {
+            var (_, _, copy, _, _) = _brushes[index];
+            copy.TintColor = surface.Color;
+            copy.FallbackColor = surface.Color;
+            copy.TintOpacity = 0;
+            copy.TintLuminosityOpacity = 0;
+            copy.Opacity = levels[index];
+            copy.AlwaysUseFallback = true;
+        }
+    }
+
+    /// <summary>简洁模式固定材质的四态浓度：常态、悬停、按下、禁用。见 <see cref="ApplyFixedSurface"/>。</summary>
+    public const double FixedRest = 0.55;
+
+    public const double FixedHover = 0.85;
+
+    public const double FixedPressed = 0.40;
+
+    public const double FixedDisabled = 0.25;
 
     private AcrylicBrush Copy(SolidColorBrush source, string targetKey, bool feedback, double extra)
     {

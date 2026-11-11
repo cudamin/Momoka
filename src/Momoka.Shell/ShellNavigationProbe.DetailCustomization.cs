@@ -193,14 +193,35 @@ internal sealed partial class ShellNavigationProbe
             await Set("背景明暗不透明度（%）", 51);
             Require(fixture.Settings.Ui.BackdropTintOpacity == 42 && fixture.Settings.Ui.BackdropTintLuminosityOpacity == 51,
                 "背景染色参数没有写回设置");
+            // 显示模式排在最前（2026-11-11 用户令），简洁模式把按钮与背景两组整块收起，只留它自己。
+            // 行是整组重建的：切完重新从 appearance.Rows 里拿那一行，不拿切换前那个实例。
             var modeRow = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "显示模式");
+            Require(ReferenceEquals(appearance.Rows[0], modeRow), "显示模式没有排在详情页外观的第一行");
             modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "简洁模式");
-            Require(!appearance.Rows.Any(row => row.Label is "背景亚克力色调" or "背景染色不透明度（%）" or "背景明暗不透明度（%）"),
-                "简洁模式没有隐藏完整背景设置组");
-            modeRow.Selected = modeRow.Choices.Single(choice => choice.Label == "沉浸模式");
+            Require(appearance.Rows.Count == 1 && appearance.Rows[0].Label == "显示模式"
+                && appearance.Rows[0] is SettingChoiceRow { Selected.Label: "简洁模式" },
+                "简洁模式没有收起按钮与背景两组：" + string.Join('|', appearance.Rows.Select(row => row.Label)));
+            Require(appearance.Rows.All(row => row.Label is not ("按钮与选择框背景" or "按钮与选择框颜色"
+                or "按钮与选择框底色不透明度（%）" or "背景亚克力色调" or "背景染色不透明度（%）" or "背景明暗不透明度（%）")),
+                "简洁模式仍留着按钮或背景的设置行");
+            // 截图取景对着卡头：只 bring 行的话卡片标题会被卷到视口上面，看不出这一行属于哪张卡。
+            var appearanceTitle = Descendants(page).OfType<TextBlock>().First(item => item.Text == "详情页外观");
+            appearanceTitle.StartBringIntoView();
+            await LayoutAsync(appearanceTitle);
+            await SaveProbeScreenAsync("settings-detail-appearance-plain-screen.png");
+            var restoredMode = appearance.Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "显示模式");
+            restoredMode.Selected = restoredMode.Choices.Single(choice => choice.Label == "沉浸模式");
             await UntilAsync(() => fixture.Settings.Ui.EnableImmersive);
             Require(appearance.Rows.OfType<SettingColorRow>().Any(row => row.Label == "背景亚克力色调")
-                && fixture.Settings.Ui.EnableImmersive, "显示模式选择没有同步沉浸状态或恢复背景行");
+                && appearance.Rows.OfType<SettingColorRow>().Any(row => row.Label == "按钮与选择框颜色")
+                && fixture.Settings.Ui.EnableImmersive, "显示模式选择没有同步沉浸状态或恢复按钮与背景行");
+            Require(appearance.Rows[0].Label == "显示模式", "切回沉浸模式后显示模式没有留在第一行");
+            var immersiveHost = Descendants(page).OfType<ContentPresenter>().First(item => ReferenceEquals(item.Content, appearance.Rows[0]));
+            immersiveHost.StartBringIntoView();
+            await LayoutAsync(immersiveHost);
+            appearanceTitle.StartBringIntoView();
+            await LayoutAsync(appearanceTitle);
+            await SaveProbeScreenAsync("settings-detail-appearance-immersive-screen.png");
             Require(fixture.Actions.Plays == 0, "设置自定义探针意外请求播放");
 
             async Task Choose(string label, string choice)
@@ -589,6 +610,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(ReferenceEquals(target, page.ViewModel.PlayTarget), "外观切换改变播放目标");
                 Require(page.ViewModel.Title == title && page.ViewModel.Subline == subline
                     && ReferenceEquals(subject, page.ViewModel.CurrentItem), "外观切换改变详情主体或标题");
+                if (wide) await CheckSimpleControlMaterialAsync(page, ui);
                 await ScrollProbeAsync(Get<ScrollView>(page, "Body"), 0);
                 await SaveProbeScreenAsync($"detail-immersive-disabled-{page.ViewModel.ItemType}-{width}-screen.png");
                 ui.EnableImmersive = true;
@@ -890,6 +912,80 @@ internal sealed partial class ShellNavigationProbe
             Brush? Fill() => control is EgPicker
                 ? Descendants(control).OfType<Border>().Single(border => border.Name == "Background").Background
                 : Descendants(control).OfType<ContentPresenter>().Single(presenter => presenter.Name == "ContentPresenter").Background;
+        }
+    }
+
+    /// <summary>
+    /// 简洁模式（2026-11-11 用户令）：按钮与闭合选择框吃那一支固定面色，按钮材质那四项设置怎么改都不动它。
+    /// 与 <see cref="CheckControlBackgroundOpacityAsync"/> 的沉浸档相对 —— 那一档量的是四条滑块落到画笔上，
+    /// 这一档量的是「不读它们」。
+    /// </summary>
+    private async Task CheckSimpleControlMaterialAsync(DetailPage page, UiSettings ui)
+    {
+        if (new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast) return;
+        var controls = Descendants(Get<StackPanel>(page, "ColumnActions")).OfType<Control>()
+            .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
+            .Concat(Descendants(page).OfType<EgPicker>().Where(picker => picker.Visibility == Visibility.Visible).Cast<Control>())
+            .ToArray();
+        Require(controls.Length > 0, "简洁模式夹具没有操作按钮或选择框");
+        RequireFixedSurface(controls);
+        var snapshot = (ui.UseAcrylicControls, ui.ControlTintOpacity, ui.ControlTintLuminosityOpacity,
+            ui.ControlBackgroundOpacity, ui.ControlBackgroundColor);
+        try
+        {
+            ui.UseAcrylicControls = false;
+            ui.ControlBackgroundOpacity = 100;
+            ui.ControlBackgroundColor = "#FF00FF";
+            ShellPrefs.ApplyAppearance(ui);
+            await LayoutAsync(page);
+            RequireFixedSurface(controls);
+            ui.UseAcrylicControls = true;
+            ui.ControlTintOpacity = 88;
+            ui.ControlTintLuminosityOpacity = 12;
+            ui.ControlBackgroundColor = "#00FF00";
+            ShellPrefs.ApplyAppearance(ui);
+            await LayoutAsync(page);
+            RequireFixedSurface(controls);
+        }
+        finally
+        {
+            (ui.UseAcrylicControls, ui.ControlTintOpacity, ui.ControlTintLuminosityOpacity,
+                ui.ControlBackgroundOpacity, ui.ControlBackgroundColor) = snapshot;
+            ShellPrefs.ApplyAppearance(ui);
+            await LayoutAsync(page);
+        }
+    }
+
+    /// <summary>
+    /// 这组控件的四态底色是不是那支固定面色 —— 比画笔自己的读数：颜色取当前主题的悬停面，
+    /// 浓度取 <see cref="ControlBackgroundBrushes"/> 上那四个定值。
+    /// </summary>
+    private static void RequireFixedSurface(IEnumerable<Control> controls)
+    {
+        var surface = ((SolidColorBrush)Application.Current.Resources["EgSurfaceHoverBrush"]).Color;
+        var levels = new[]
+        {
+            ControlBackgroundBrushes.FixedRest, ControlBackgroundBrushes.FixedHover,
+            ControlBackgroundBrushes.FixedPressed, ControlBackgroundBrushes.FixedDisabled
+        };
+        foreach (var control in controls)
+        {
+            var prefix = control is ComboBox ? "ComboBox" : control is ToggleButton ? "ToggleButton" : "Button";
+            for (var index = 0; index < 4; index++)
+            {
+                var suffix = new[] { "", "PointerOver", "Pressed", "Disabled" }[index];
+                Require(control.Resources[prefix + "Background" + suffix] is AcrylicBrush { AlwaysUseFallback: true } copy
+                    && copy.FallbackColor == surface
+                    && Math.Abs(copy.Opacity - levels[index]) < 0.000001,
+                    $"{control.Name}/{suffix} 简洁模式没有用固定面色："
+                        + (control.Resources[prefix + "Background" + suffix] is AcrylicBrush actual
+                            ? $"实际 {actual.FallbackColor}、{actual.Opacity:0.###}、回退 {actual.AlwaysUseFallback}"
+                            : "不是亚克力画刷"));
+            }
+            if (control is ComboBox)
+                Require(ReferenceEquals(control.Resources["ComboBoxBackground"], control.Resources["ComboBoxBackgroundFocused"])
+                    && ReferenceEquals(control.Resources["ComboBoxBackground"], control.Resources["ComboBoxBackgroundUnfocused"]),
+                    control.Name + " 简洁模式的聚焦底色没有沿用固定面色");
         }
     }
 

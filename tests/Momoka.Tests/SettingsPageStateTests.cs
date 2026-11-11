@@ -119,12 +119,13 @@ internal static class SettingsPageStateTests
                     Assert.Equal(1, saves);
                     Assert.Equal(1, applied);
                 });
-        TestHarness.Test("详情显示模式：材质行随二选一换挡，简洁模式收起完整背景组并保留偏好", () =>
+        TestHarness.Test("详情显示模式：排在按钮材质之前，简洁模式收起按钮与背景两组并保留偏好", () =>
         {
             var settings = new FakeSettings();
             settings.Settings.Ui.EnableImmersive = true;
             settings.Settings.Ui.BackdropColor = "#123456";
             settings.Settings.Ui.BackdropTintOpacity = 37;
+            settings.Settings.Ui.ControlBackgroundColor = "#654321";
             settings.Settings.Ui.ControlTintOpacity = 45;
             settings.Settings.Ui.UseAcrylicControls = true;
             var vm = fixture.NewViewModel();
@@ -134,13 +135,15 @@ internal static class SettingsPageStateTests
             var rows = fixture.List(section, "Rows");
             var mode = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "显示模式");
             Assert.Equal("SettingChoiceRow", mode.GetType().Name);
-            Assert.Equal("电影、剧、季、单集与 MoviePilot 订阅详情页有背景图时使用沉浸布局；关掉改用不铺图的简洁卡面",
+            Assert.Equal("电影、剧、季、单集与 MoviePilot 订阅详情页有背景图时使用沉浸布局；关掉改用不铺图的简洁卡面，"
+                + "按钮与选择框换成固定材质，下面两组参数随之收起。",
                 fixture.Get<string>(mode, "Note"));
-            // 亚克力这套：色调 + 两档浓度，没有第四格整体浓度；背景那三行排在显示模式之后。
+            // 2026-11-11 用户令：显示模式挪到按钮与选择框背景上方，它决定下面几组在不在。
+            // 亚克力这套：色调 + 两档浓度，没有第四格整体浓度；背景那三行排在按钮之后。
             Assert.True(Labels().SequenceEqual(new[]
             {
-                "按钮与选择框背景", "按钮与选择框颜色", "按钮与选择框染色不透明度（%）",
-                "按钮与选择框明暗不透明度（%）", "显示模式", "背景亚克力色调",
+                "显示模式", "按钮与选择框背景", "按钮与选择框颜色", "按钮与选择框染色不透明度（%）",
+                "按钮与选择框明暗不透明度（%）", "背景亚克力色调",
                 "背景染色不透明度（%）", "背景明暗不透明度（%）"
             }), "亚克力模式的行集合不对：" + string.Join('|', Labels()));
             var choices = fixture.List(mode, "Choices");
@@ -148,11 +151,10 @@ internal static class SettingsPageStateTests
                 .SequenceEqual(new[] { "沉浸模式", "简洁模式" }));
             fixture.Set(mode, "Selected", choices[1]!);
             Assert.False(settings.Settings.Ui.EnableImmersive);
-            Assert.True(Labels().SequenceEqual(new[]
-            {
-                "按钮与选择框背景", "按钮与选择框颜色", "按钮与选择框染色不透明度（%）",
-                "按钮与选择框明暗不透明度（%）", "显示模式"
-            }), "简洁模式没有收起完整背景组：" + string.Join('|', Labels()));
+            // 简洁模式：按钮与选择框改用固定材质、背景图收起，两组参数都不再生效，整张卡只剩显示模式。
+            Assert.True(Labels().SequenceEqual(new[] { "显示模式" }),
+                "简洁模式没有收起按钮与背景两组：" + string.Join('|', Labels()));
+            Assert.Equal("#654321", settings.Settings.Ui.ControlBackgroundColor);
             Assert.Equal("#123456", settings.Settings.Ui.BackdropColor);
             Assert.Equal(37d, settings.Settings.Ui.BackdropTintOpacity);
             Assert.Equal(45d, settings.Settings.Ui.ControlTintOpacity);
@@ -160,6 +162,8 @@ internal static class SettingsPageStateTests
             Assert.True(settings.Settings.Ui.EnableImmersive);
             var restoredColor = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "背景亚克力色调");
             Assert.Equal("#123456", fixture.Get<string>(restoredColor, "Color"));
+            var restoredButton = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "按钮与选择框颜色");
+            Assert.Equal("#654321", fixture.Get<string>(restoredButton, "Color"));
             // 切回半透明叠层：三行染色参数收起，底色浓度那一格回来。
             var material = rows.Cast<object>().Single(row => fixture.Get<string>(row, "Label") == "按钮与选择框背景");
             var materialChoices = fixture.List(material, "Choices");

@@ -79,8 +79,16 @@ public sealed partial class MoviePilotSubscriptionPage
         }
 
         var controlTint = contrast ? tint : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ui));
+        // 简洁模式的按钮同样改用那支固定面色（2026-11-11 用户令），与详情页同一条规矩：
+        // 设置页里按钮材质那一组在这一档收起，页面也就不再读它。高对比度仍走系统实色。
+        var simple = !contrast && !ui.EnableImmersive;
         foreach (var brushes in _actionBackgrounds)
         {
+            if (simple)
+            {
+                brushes.ApplyFixedSurface();
+                continue;
+            }
             brushes.Apply(contrast ? 100 : ui.ControlBackgroundOpacity, !contrast && ui.UseAcrylicControls, controlTint,
                 AppearanceOpacity.Tint(ui.ControlTintOpacity, UiSettings.DefaultControlTintOpacity),
                 AppearanceOpacity.Tint(ui.ControlTintLuminosityOpacity, UiSettings.DefaultControlTintLuminosityOpacity));
