@@ -75,7 +75,7 @@ internal sealed partial class ShellNavigationProbe
                 "Jellyfin 播放状态不是一组复选");
             await LayoutAsync(page);
             await SaveProbeScreenAsync("jellyfin-library-filter-screen.png");
-            page.CloseFilter();
+            page.CloseFilterImmediately();
             await SettleAsync();
 
             page.ViewModel.ChooseJellyfinView(LibraryView.PosterCard);
@@ -130,7 +130,7 @@ internal sealed partial class ShellNavigationProbe
             await SettleAsync();
             Require(string.Join(',', page.FilterPane.RowLabels) == "播放状态,剧集,功能,类型,家长分级,标签,视频类型,年份",
                 $"Jellyfin 剧集筛选行与网页端不同：{string.Join(',', page.FilterPane.RowLabels)}");
-            page.CloseFilter();
+            page.CloseFilterImmediately();
             await SettleAsync();
             await LayoutAsync(page);
             await SaveReturnFrameAsync(page, "jellyfin-library-episodes.png");
@@ -217,7 +217,7 @@ internal sealed partial class ShellNavigationProbe
                 .Single(row => row.Label == "播放状态");
             Require(string.Join(',', mixedStatus.Values.Select(check => check.Label)) == "未播放,已播放,我的最爱,继续观看",
                 "Jellyfin 混合内容播放状态不是 filtermenu.js 的四颗复选");
-            page.CloseFilter();
+            page.CloseFilterImmediately();
             await SettleAsync();
 
             Require(string.Join(',', page.BuildJellyfinMoreMenu()) == "封面图,横幅图,光盘封面图,徽标,缩略图,列表",

@@ -95,6 +95,8 @@ internal sealed partial class ShellNavigationProbe
                 "收藏入口出现改变了音乐栏预留");
             vm.Visible = false;
             Place();
+            // 收起是 140ms 淡出，避让在落定那一拍才归还。
+            await UntilAsync(() => bar.Visibility == Visibility.Collapsed);
             Require(shell.Pages.Margin.Top == 0 && shell.Pages.Margin.Bottom == 0,
                 "停止音乐后没有清除预留空间");
             var request = new LibraryRequest { Services = fixture.Services, Title = "音乐", ParentId = "music", CollectionType = "music", Source = scope };
@@ -198,6 +200,8 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => !vm.Visible && vm.Queue.Count == 0);
             Require(!playback.IsPlaying, "停止控件意外启动播放");
             Place();
+            // 停止后播放栏先淡出再收起，避让也在落定那一拍才归还。
+            await UntilAsync(() => bar.Visibility == Visibility.Collapsed);
             Require(bar.Visibility == Visibility.Collapsed, "停止后播放栏没有收起");
             Require(Get<ScrollViewer>(page, "WallScroll").Padding.Bottom == 32
                 && Get<ListView>(page, "MusicRows").Padding.Bottom == 0, "停止后没有归还滚动区避让");

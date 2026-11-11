@@ -733,9 +733,18 @@ public sealed partial class PosterCard : UserControl
 
     private void OnPlayClicked(object sender, RoutedEventArgs e) => Raise(sender, CardAction.Play);
 
-    private void OnWatchedClicked(object sender, RoutedEventArgs e) => Raise(sender, CardAction.Watched);
+    private void OnWatchedClicked(object sender, RoutedEventArgs e)
+    {
+        // 先给一下回音：服务器那一趟无论成败，按下去这一拍总得响。
+        GlyphPulse.Play(WatchedGlyphs);
+        Raise(sender, CardAction.Watched);
+    }
 
-    private void OnFavoriteClicked(object sender, RoutedEventArgs e) => Raise(sender, CardAction.Favorite);
+    private void OnFavoriteClicked(object sender, RoutedEventArgs e)
+    {
+        GlyphPulse.Play(FavoriteGlyphs);
+        Raise(sender, CardAction.Favorite);
+    }
 
     private void OnMoreClicked(object sender, RoutedEventArgs e) => Raise(sender, CardAction.More);
 

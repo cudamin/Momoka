@@ -2293,6 +2293,15 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     /// <summary>
+    /// 已看／收藏按下时先弹一下图标。宽版式与紧凑版式各一对，脉冲只落在图标那一小块上 ——
+    /// 已看那颗里还有「已看／未看」的文字，连字一起放大会像按错了键。
+    /// </summary>
+    private void OnColumnWatchedPulse(object sender, RoutedEventArgs e) => GlyphPulse.Play(ColumnWatchedGlyphs);
+    private void OnColumnFavoritePulse(object sender, RoutedEventArgs e) => GlyphPulse.Play(ColumnFavoriteGlyphs);
+    private void OnCompactWatchedPulse(object sender, RoutedEventArgs e) => GlyphPulse.Play(CompactWatchedGlyphs);
+    private void OnCompactFavoritePulse(object sender, RoutedEventArgs e) => GlyphPulse.Play(CompactFavoriteGlyphs);
+
+    /// <summary>
     /// The menu is a view concern: its anchor is a laid-out control and its entries are WinUI flyout
     /// elements. The view model only supplies the currently loaded domain item and the sibling episodes
     /// needed by the shared command builder.

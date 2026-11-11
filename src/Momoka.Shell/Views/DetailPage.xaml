@@ -892,18 +892,21 @@
 
                                     <Button x:Uid="DetailPage_ButtonA1"
                                         AutomationProperties.AutomationId="ColumnWatchedButton"
+                                        Click="OnColumnWatchedPulse"
                                         Command="{x:Bind ViewModel.ToggleWatchedCommand}"
                                         Style="{StaticResource EgPillButtonStyle}">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <FontIcon
-                                                FontSize="15"
-                                                Glyph="&#xE73E;"
-                                                Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
-                                            <FontIcon
-                                                FontSize="15"
-                                                Foreground="{ThemeResource EgAccentBrush}"
-                                                Glyph="&#xE73E;"
-                                                Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
+                                            <Grid x:Name="ColumnWatchedGlyphs">
+                                                <FontIcon
+                                                    FontSize="15"
+                                                    Glyph="&#xE73E;"
+                                                    Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
+                                                <FontIcon
+                                                    FontSize="15"
+                                                    Foreground="{ThemeResource EgAccentBrush}"
+                                                    Glyph="&#xE73E;"
+                                                    Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
+                                            </Grid>
                                             <TextBlock x:Uid="DetailPage_WatchedOn" Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
                                             <TextBlock x:Uid="DetailPage_WatchedOff" Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
                                         </StackPanel>
@@ -911,10 +914,11 @@
 
                                     <Button x:Uid="DetailPage_ButtonA2"
                                         AutomationProperties.AutomationId="ColumnFavoriteButton"
+                                        Click="OnColumnFavoritePulse"
                                         Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
                                         Visibility="{x:Bind ViewModel.FavoriteActionVisibility, Mode=OneWay}"
                                         Style="{StaticResource EgRoundButtonStyle}">
-                                        <Grid>
+                                        <Grid x:Name="ColumnFavoriteGlyphs">
                                             <FontIcon
                                                 FontSize="15"
                                                 Glyph="&#xEB51;"
@@ -1300,18 +1304,21 @@
 
                                 <Button x:Uid="DetailPage_ButtonA1"
                                     AutomationProperties.AutomationId="CompactWatchedButton"
+                                    Click="OnCompactWatchedPulse"
                                     Command="{x:Bind ViewModel.ToggleWatchedCommand}"
                                     Style="{StaticResource EgPillButtonStyle}">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <FontIcon
-                                            FontSize="15"
-                                            Glyph="&#xE73E;"
-                                            Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
-                                        <FontIcon
-                                            FontSize="15"
-                                            Foreground="{ThemeResource EgAccentBrush}"
-                                            Glyph="&#xE73E;"
-                                            Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
+                                        <Grid x:Name="CompactWatchedGlyphs">
+                                            <FontIcon
+                                                FontSize="15"
+                                                Glyph="&#xE73E;"
+                                                Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
+                                            <FontIcon
+                                                FontSize="15"
+                                                Foreground="{ThemeResource EgAccentBrush}"
+                                                Glyph="&#xE73E;"
+                                                Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
+                                        </Grid>
                                         <TextBlock x:Uid="DetailPage_WatchedOn" Visibility="{x:Bind ViewModel.WatchedVisibility, Mode=OneWay}" />
                                         <TextBlock x:Uid="DetailPage_WatchedOff" Visibility="{x:Bind ViewModel.NotWatchedVisibility, Mode=OneWay}" />
                                     </StackPanel>
@@ -1319,10 +1326,11 @@
 
                                 <Button x:Uid="DetailPage_ButtonA2"
                                     AutomationProperties.AutomationId="CompactFavoriteButton"
+                                    Click="OnCompactFavoritePulse"
                                     Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
                                     Visibility="{x:Bind ViewModel.FavoriteActionVisibility, Mode=OneWay}"
                                     Style="{StaticResource EgRoundButtonStyle}">
-                                    <Grid>
+                                    <Grid x:Name="CompactFavoriteGlyphs">
                                         <FontIcon
                                             FontSize="15"
                                             Glyph="&#xEB51;"

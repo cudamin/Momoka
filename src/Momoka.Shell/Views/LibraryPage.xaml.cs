@@ -84,6 +84,12 @@ public sealed partial class LibraryPage : Page, IShellContent
     private FilterPanel? _filterPane;
     private LibrarySettingsPanel? _settingsPane;
 
+    // 浮层的进出只动不透明度与位移：遮罩快一点，面板慢一点并轻推一段。
+    private SurfaceMotion? _filterScrimMotion;
+    private SurfaceMotion? _filterMotion;
+    private SurfaceMotion? _settingsScrimMotion;
+    private SurfaceMotion? _settingsMotion;
+
     /// <summary>返回搜索页时先记下 MoviePilot 那段的结果，等面板真正建出来再恢复。</summary>
     private MoviePilotSearchSnapshot? _pendingMoviePilotSearch;
 
@@ -700,7 +706,10 @@ public sealed partial class LibraryPage : Page, IShellContent
         _restoringAnchor = false;
         ViewModel.ReleaseSearchPosters();
         _filterPane?.Dismiss();
-        CloseSettings();
+        // 离开这一页不播淡出：把两层的值复位，回来时看到的仍是原来那一档。
+        _filterScrimMotion?.Collapse();
+        _filterMotion?.Collapse();
+        CloseSettings(animated: false);
         _moviePilotPanel?.Release();
         _moviePilotResources?.Release();
         _aniBtPanel?.Release();
@@ -1371,6 +1380,8 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         FilterOverlay.Visibility = Visibility.Visible;
         ApplyPanelSize();
+        (_filterScrimMotion ??= new SurfaceMotion(FilterScrim)).Enter(150, 0);
+        if (_filterPane is { } filter) (_filterMotion ??= new SurfaceMotion(filter)).Enter(200, 12);
     }
 
     /// <summary>
@@ -1386,12 +1397,41 @@ public sealed partial class LibraryPage : Page, IShellContent
             ViewModel.FetchFilterValuesAsync, ViewModel.SourceServerKind, ViewModel.FilterFieldsForPage());
     }
 
-    /// <summary>收起筛选层，回到原来的网格。</summary>
-    internal void CloseFilter()
+    /// <summary>
+    /// 两个浮层此刻都没有在播进出动画。截图与几何检查前等这一条 —— 尺寸不受动画影响（只动不透明度
+    /// 与 RenderTransform），但画面还在淡入淡出里，拍下来的证据会是一片半透明。
+    /// </summary>
+    internal bool OverlayMotionSettled =>
+        _filterScrimMotion?.IsAnimating != true && _filterMotion?.IsAnimating != true
+        && _settingsScrimMotion?.IsAnimating != true && _settingsMotion?.IsAnimating != true;
+
+    /// <summary>收起筛选层，回到原来的网格。用户点外面或按 ✕ 时先播完淡出再收。</summary>
+    internal void CloseFilter() => CloseFilter(animated: true);
+
+    /// <summary>
+    /// 探针与页面释放用：不播淡出，立即收起。用户路径仍是 <see cref="CloseFilter()"/>，
+    /// 那一段 140ms 的淡出不该让读可见性的检查去猜时序。
+    /// </summary>
+    internal void CloseFilterImmediately() => CloseFilter(animated: false);
+
+    private void CloseFilter(bool animated)
     {
         ViewModel.ClosePlexFilter();
-        FilterOverlay.Visibility = Visibility.Collapsed;
         _filterPane?.Dismiss();
+
+        if (!animated)
+        {
+            _filterScrimMotion?.Collapse();
+            _filterMotion?.Collapse();
+            FilterOverlay.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        // 遮罩比面板先落定；只由面板的落定收起整层，中途重新打开会打断这两段、不会误收。
+        (_filterScrimMotion ??= new SurfaceMotion(FilterScrim)).Exit(120, 0);
+        if (_filterPane is { } filter)
+            (_filterMotion ??= new SurfaceMotion(filter)).Exit(140, 8, () => FilterOverlay.Visibility = Visibility.Collapsed);
+        else FilterOverlay.Visibility = Visibility.Collapsed;
     }
 
     private void OnFilterScrimClicked(object sender, RoutedEventArgs e) => CloseFilter();
@@ -1816,14 +1856,36 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnSettingsClicked(object sender, RoutedEventArgs e)
     {
-        EnsureSettingsPanel().Show(ViewModel.Display, ViewModel.Section, ViewModel.SourceServerKind,
+        var settings = EnsureSettingsPanel();
+        settings.Show(ViewModel.Display, ViewModel.Section, ViewModel.SourceServerKind,
             ViewModel.IndexKind, ViewModel.CollectionType);
         SettingsOverlay.Visibility = Visibility.Visible;
         ApplyPanelSize();
+        (_settingsScrimMotion ??= new SurfaceMotion(SettingsScrim)).Enter(150, 0);
+        (_settingsMotion ??= new SurfaceMotion(settings)).Enter(200, 12);
     }
 
     /// <summary>面板上那颗 ✕，或者面板外面那片空位。收起面板层，回到原来的网格。</summary>
-    internal void CloseSettings() => SettingsOverlay.Visibility = Visibility.Collapsed;
+    internal void CloseSettings() => CloseSettings(animated: true);
+
+    /// <summary>探针与页面释放用：不播淡出，立即收起。理由同 <see cref="CloseFilterImmediately"/>。</summary>
+    internal void CloseSettingsImmediately() => CloseSettings(animated: false);
+
+    private void CloseSettings(bool animated)
+    {
+        if (!animated)
+        {
+            _settingsScrimMotion?.Collapse();
+            _settingsMotion?.Collapse();
+            SettingsOverlay.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        (_settingsScrimMotion ??= new SurfaceMotion(SettingsScrim)).Exit(120, 0);
+        if (_settingsPane is { } settings)
+            (_settingsMotion ??= new SurfaceMotion(settings)).Exit(140, 8, () => SettingsOverlay.Visibility = Visibility.Collapsed);
+        else SettingsOverlay.Visibility = Visibility.Collapsed;
+    }
 
     /// <summary>点面板外面。遮罩铺满整层，点它就是把面板收起来。</summary>
     private void OnSettingsScrimClicked(object sender, RoutedEventArgs e) => CloseSettings();

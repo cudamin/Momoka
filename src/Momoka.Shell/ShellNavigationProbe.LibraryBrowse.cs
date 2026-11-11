@@ -217,7 +217,7 @@ internal sealed partial class ShellNavigationProbe
                         $"这一页的筛选面板与网页端不同：{string.Join(',', page.FilterPane.RowLabels)}");
                     await LayoutAsync(page);
                     await SaveProbeScreenAsync($"library-movies-{name}-filter-screen.png");
-                    page.CloseFilter();
+                    page.CloseFilterImmediately();
                     await SettleAsync();
                     var gear = Get<Button>(page, "LibrarySettingsButton");
                     var invoke = FrameworkElementAutomationPeer.CreatePeerForElement(gear)
@@ -233,7 +233,7 @@ internal sealed partial class ShellNavigationProbe
                     Require(labels.Contains("IMDb 评分"), $"电影设置面板的评分行不对：{string.Join(',', labels)}");
                     await LayoutAsync(page);
                     await SaveProbeScreenAsync($"library-movies-{name}-settings-screen.png");
-                    page.CloseSettings();
+                    page.CloseSettingsImmediately();
                     await SettleAsync();
                 }
                 page.ViewModel.ChooseSort(EmbySortBy.Find(EmbySortBy.DateAdded)!);
@@ -422,7 +422,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(folderLabels.Contains("社区评分"), $"文件夹设置的评分行不对：{string.Join(',', folderLabels)}");
                 await LayoutAsync(page);
                 await SaveProbeScreenAsync($"library-{collection}-folders-settings-screen.png");
-                page.CloseSettings();
+                page.CloseSettingsImmediately();
                 await SettleAsync();
                 if (collection == "mixed")
                 {
@@ -472,7 +472,7 @@ internal sealed partial class ShellNavigationProbe
 
                 // 筛选面板：网页端 modules/filtermenu 那一块。这里走用户点那颗筛选键的同一条路 ——
                 // 打开面板、读它的行、改一处、看请求跟着变。
-                page.CloseFilter();
+                page.CloseFilterImmediately();
                 var filterButton = Get<Button>(page, "FilterButton");
                 var openFilter = FrameworkElementAutomationPeer.CreatePeerForElement(filterButton)
                     ?.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
@@ -539,7 +539,7 @@ internal sealed partial class ShellNavigationProbe
                     && !page.FilterPane.ViewModel.Rows.OfType<FilterSwitchRow>().First(row => row.Label == "收藏").IsOn,
                     "清空筛选之后控件没有回到全部");
 
-                page.CloseFilter();
+                page.CloseFilterImmediately();
                 await SettleAsync();
                 Require(page.FilterOverlay.Visibility == Visibility.Collapsed, "筛选面板关不上");
                 // 设置面板：网页端那颗齿轮里的四组东西。这里走的是用户点齿轮的同一条路 —— 打开面板、
@@ -622,7 +622,8 @@ internal sealed partial class ShellNavigationProbe
                     ?.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
                 Require(closeByOutside is not null, "面板外面那片空位没有可点的自动化入口");
                 closeByOutside!.Invoke();
-                await SettleAsync();
+                // 用户这条路是带淡出的：先等整层收干净再读，别把 140ms 的动画当成关不上。
+                await UntilAsync(() => page.SettingsOverlay.Visibility == Visibility.Collapsed);
                 Require(page.SettingsOverlay.Visibility == Visibility.Collapsed, "点面板外面没有关掉设置");
                 Require(page.ViewModel.View == before.View && page.ViewModel.CardSize == before.CardSize
                     && page.ViewModel.Fields.SequenceEqual(before.Fields), "设置面板没有把原来的那一套还回去");
@@ -732,7 +733,7 @@ internal sealed partial class ShellNavigationProbe
                         await LayoutAsync(page);
                         await SaveProbeScreenAsync($"library-tvshows-episodes-settings-{width}-screen.png");
                     }
-                    page.CloseSettings();
+                    page.CloseSettingsImmediately();
                     foreach (var width in new[] { 1100, 760, 360 })
                     {
                         ResizeProbeClient(width, 800);
@@ -801,7 +802,7 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(page);
                     Require(filterScroll.VerticalOffset > 0, "集页筛选面板没有滚动到下半部");
                     await SaveProbeScreenAsync("library-tvshows-episodes-filter-bottom-screen.png");
-                    page.CloseFilter();
+                    page.CloseFilterImmediately();
                     page.ShowSortMenu();
                     await LayoutAsync(page);
                     await SaveProbeScreenAsync("library-tvshows-episodes-sort-screen.png");
@@ -813,7 +814,7 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(page);
                     Require(page.SettingsPane.FieldRows.Children.Count == 22, "文件夹设置字段不对");
                     await SaveProbeScreenAsync("library-tvshows-folders-settings-screen.png");
-                    page.CloseSettings();
+                    page.CloseSettingsImmediately();
                     foreach (var width in new[] { 1100, 760, 360 })
                     {
                         ResizeProbeClient(width, 800);
@@ -826,7 +827,7 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(page);
                     await SaveProbeScreenAsync("library-tvshows-folders-sort-screen.png");
                     Get<Flyout>(page, "SortMenu").Hide();
-                    page.CloseSettings();
+                    page.CloseSettingsImmediately();
                     await SettleAsync();
                     await SelectAsync(LibrarySection.Items);
                 }
@@ -917,7 +918,7 @@ internal sealed partial class ShellNavigationProbe
             folderSettings!.Invoke();
             await SettleAsync();
             Require(Get<Grid>(page, "SettingsOverlay").Visibility == Visibility.Visible, "文件夹下钻页设置面板没有打开");
-            page.CloseSettings();
+            page.CloseSettingsImmediately();
             await SettleAsync();
             fixture.Actions.CapturePlay = (_, _) => { };
             var playsBefore = fixture.Actions.Plays;
@@ -1006,7 +1007,7 @@ internal sealed partial class ShellNavigationProbe
             $"索引页换了图像大小，格宽没变（{defaultWidth:0} → {page.ViewModel.CellWidth:0}）");
         page.SettingsPane.SetCardSize(LibraryCardSize.Default);
         await UntilAsync(() => !page.ViewModel.Busy);
-        page.CloseSettings();
+        page.CloseSettingsImmediately();
         await SettleAsync();
 
         // 三档窗口：卡片不越界、列数随宽度变。
@@ -1030,6 +1031,8 @@ internal sealed partial class ShellNavigationProbe
 
     private async Task CheckLibraryPanelSizingAsync(LibraryPage page, FrameworkElement pane, string name)
     {
+        // 面板打开时有一段淡入；尺寸与居中不受它影响，但截图会拍在半透明中间帧上。
+        await UntilAsync(() => page.OverlayMotionSettled);
         double previousWidth = 0, previousHeight = 0;
         foreach (var size in new[] { (Width: 360, Height: 500), (Width: 760, Height: 640), (Width: 1100, Height: 900), (Width: 1600, Height: 1040) })
         {

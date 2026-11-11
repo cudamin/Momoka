@@ -11,6 +11,8 @@ public sealed partial class ShellPage
 {
     private long _shellPlayIntent;
     private MusicPlaybackViewModel? _music;
+    private SurfaceMotion? _musicBarMotion;
+    private bool _musicBarShown;
     private MusicPlaybackViewModel Music => _music ??= _services!.GetRequiredService<MusicPlaybackViewModel>();
 
     internal Task PlayMusicAsync(EmbyItem item, IReadOnlyList<EmbyItem> items,
@@ -40,7 +42,42 @@ public sealed partial class ShellPage
     {
         if (_music is null) return;
         var visible = _music.Visible;
-        MusicBar.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        var changed = visible != _musicBarShown;
+        _musicBarShown = visible;
+        var motion = _musicBarMotion ??= new SurfaceMotion(MusicBar);
+
+        if (visible)
+        {
+            MusicBar.Visibility = Visibility.Visible;
+            MusicBar.IsHitTestVisible = true;
+            PlaceMusicBarMargins(true);
+            if (changed) motion.Enter();
+            return;
+        }
+
+        if (changed)
+        {
+            // 收起：栏先淡出，内容区等它落定再收回 —— 先跳一下再看着栏消失更别扭。
+            MusicBar.IsHitTestVisible = false;
+            motion.Exit(landed: () =>
+            {
+                MusicBar.Visibility = Visibility.Collapsed;
+                PlaceMusicBarMargins(false);
+            });
+            return;
+        }
+
+        // 正在淡出：让动画自己收尾，别让一次尺寸变化把栏当场抹掉。
+        if (motion.IsAnimating) return;
+
+        motion.Collapse();
+        MusicBar.Visibility = Visibility.Collapsed;
+        PlaceMusicBarMargins(false);
+    }
+
+    /// <summary>栏与内容区各让多少位：栏自己永远悬浮，内容区按当前页决定要不要留底。</summary>
+    private void PlaceMusicBarMargins(bool visible)
+    {
         var left = ContentHost.Margin.Left;
         MusicBar.Margin = new Thickness(left + 16, 0, 16, 16);
         if (ContentFrame.Content is MusicLibraryPage musicPage)
