@@ -51,6 +51,7 @@ public sealed record MoviePilotSubscriptionExecution : IMoviePilotExecutionStatu
 public sealed record MoviePilotSubscriptionBatch : IMoviePilotExecutionStatus
 {
     public required string BatchId { get; init; }
+    internal string ConnectionStamp { get; init; } = "";
     public string Source { get; init; } = "";
     public required string State { get; init; }
     public string Phase { get; init; } = "";
