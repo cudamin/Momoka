@@ -26,6 +26,12 @@ internal sealed partial class ShellNavigationProbe
             Require(!commands.Contains(ItemCommand.ScanLibraryFiles), "电影文件不应出现目录扫描入口");
             new ButtonAutomationPeer(Get<Button>(page, "LibraryBatchActions")).Invoke();
             await UntilAsync(() => MenuItems().Any(item => item.Tag is ItemCommand.Convert));
+            await SettleAsync();
+            var presenter = VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+                .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutPresenter>().Single();
+            var menuBounds = presenter.TransformToVisual(_root).TransformBounds(new(0, 0, presenter.ActualWidth, presenter.ActualHeight));
+            Require(menuBounds.Top >= 0 && menuBounds.Bottom <= _root.ActualHeight,
+                "批量菜单超出窗口，部分操作不可见");
             await SaveProbeScreenAsync($"library-batch-Emby-menu-{width}-screen.png");
             Get<MenuFlyout>(page, "LibraryBatchMenu").Hide();
             await UntilAsync(() => MenuItems().Length == 0);

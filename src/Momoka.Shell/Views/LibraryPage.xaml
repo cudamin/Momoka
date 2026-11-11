@@ -929,7 +929,7 @@
                         <Button x:Name="LibrarySelectLoaded" Content="全选已加载" Click="OnSelectLoaded" />
                         <Button x:Name="LibraryClearSelection" Content="清空选择" Click="OnClearSelection" />
                         <Button x:Name="LibraryBatchActions" Content="批量操作" IsEnabled="False">
-                            <Button.Flyout><MenuFlyout x:Name="LibraryBatchMenu" Opening="OnBatchMenuOpening" /></Button.Flyout>
+                            <Button.Flyout><MenuFlyout x:Name="LibraryBatchMenu" Opening="OnBatchMenuOpening" Placement="BottomEdgeAlignedLeft" /></Button.Flyout>
                         </Button>
                         <Button x:Name="LibraryCancelBatch" Content="取消剩余" Click="OnCancelBatch" Visibility="Collapsed" />
                         <Button x:Name="LibraryEndSelection" Content="完成" Click="OnEndSelection" />
