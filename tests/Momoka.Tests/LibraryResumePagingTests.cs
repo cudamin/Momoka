@@ -60,6 +60,42 @@ internal static class LibraryResumePagingTests
 
     private static void Register(ShellFixture shell)
     {
+        Case("合集多选：确认移除只调整成员和分页，其他来源与离页拒绝", async () =>
+        {
+            using var fixture = new Fixture(shell, 25, secondSource: true);
+            var vm = fixture.CreateLibraryView(collectionType: null, parentType: EmbyItemType.BoxSet);
+            try
+            {
+                await (Task)shell.Invoke(vm, "LoadAsync", true)!;
+                shell.Invoke(vm, "PrepareCollectionMembers");
+                var cards = CardObjects(vm).ToArray();
+                shell.Set(vm, "SelectingItems", true);
+                Assert.Equal("Collapsed", shell.Get<object>(vm, "DirectPlayVisibility").ToString());
+                Assert.Equal("Collapsed", shell.Get<object>(vm, "PlayRandomVisibility").ToString());
+                await (Task)shell.Invoke(vm, "PlayAllAsync")!;
+                await (Task)shell.Invoke(vm, "PlayRandomAsync")!;
+                shell.Set(vm, "SelectingItems", false);
+                var query = shell.Get<CancellationToken>(vm, "QueryToken");
+                var gate = new Gate(captureBefore: true);
+                fixture.Transport.LibraryGate = gate;
+                var next = (Task)shell.Invoke(vm, "LoadAsync", false)!;
+                await gate.Entered.Task;
+                Assert.False(shell.Get<bool>(vm, "IsReady"));
+                shell.Invoke(vm, "ForgetCollectionMember", cards[0], query);
+                gate.Release.TrySetResult();
+                await next;
+                Assert.True(shell.Get<bool>(vm, "IsReady"));
+                shell.Invoke(vm, "ForgetCollectionMember", cards[1], query);
+                Assert.Equal(cards.Length - 2, CardObjects(vm).Count);
+                Assert.True(shell.Get<bool>(vm, "HasMore"));
+                Assert.False(CardObjects(vm).Contains(cards[0]));
+                var count = CardObjects(vm).Count;
+                shell.Invoke(vm, "Cancel");
+                shell.Invoke(vm, "ForgetCollectionMember", cards[2], query);
+                Assert.Equal(count, CardObjects(vm).Count);
+            }
+            finally { ((IDisposable)vm).Dispose(); }
+        });
         Case("合集页：真实VM只给当前账号当前成员生成关系，离页和下钻立即失效", async () =>
         {
             using var fixture = new Fixture(shell, 3, secondSource: true);

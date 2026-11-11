@@ -121,6 +121,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         NavigationTiming.Mark("page-ctor-begin");
         InitializeComponent();
+        InitializeSelection();
         NavigationTiming.Mark("init-end");
         NavigationCacheMode = NavigationCacheMode.Enabled;
 
@@ -249,6 +250,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             ToolbarSurface.Visibility = _request?.IsSearch == true ? Visibility.Collapsed : ViewModel.ToolbarVisibility;
         // Attach 那一段的通知不逐条执行：挂完之后统一跑一次最终视图、分区和头部布局。
         if (_attaching) return;
+        RefreshSelectionAvailability();
         if (e.PropertyName == nameof(LibraryViewModel.View)) ApplyView();
         if (e.PropertyName == nameof(LibraryViewModel.Fields)) ApplyTableWidth();
         if (e.PropertyName == nameof(LibraryViewModel.SectionVisibility))
@@ -538,6 +540,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         var services = request.Services;
         _settings = services.GetRequiredService<ISettingsService>();
         _session = services.GetRequiredService<EmbySession>();
+        _session.PermissionsChanged += OnBatchPermissionsChanged;
+        _session.SourcesChanged += OnBatchSourcesChanged;
         _capabilities = services.GetRequiredService<IServerCapabilities>();
         _actions = services.GetRequiredService<IShellActions>();
 
@@ -573,6 +577,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         // Attach 期间的通知只跳过不执行；依赖接完、来源也定下之后跑一次最终版面。
         _attaching = false;
+        RefreshSelectionAvailability();
         if (!resumed)
         {
             ApplyView();
@@ -654,6 +659,12 @@ public sealed partial class LibraryPage : Page, IShellContent
     public void Release()
     {
         if (_released) return;
+        EndSelection();
+        if (_session is { } batchSession)
+        {
+            batchSession.PermissionsChanged -= OnBatchPermissionsChanged;
+            batchSession.SourcesChanged -= OnBatchSourcesChanged;
+        }
         // Frame caches one instance per page type. Non-root, incomplete and oversized pages must not
         // turn search/results or unbounded card histories into an application-lifetime cache.
         if (!ViewModel.NavigationReuseEligible || ViewModel.WindowStart > 0 || ContentScrollOffset > 1)
@@ -1017,6 +1028,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     private void OnItemInvoked(ItemsView sender, ItemsViewItemInvokedEventArgs args)
     {
+        if (_selecting) return;
         if (args.InvokedItem is not CardItem card) return;
         if (ConsumeActionInvoke(card)) return;
         NavigationTiming.Click("card");
@@ -1058,6 +1070,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnShelfCardClicked(object sender, RoutedEventArgs e)
     {
+        if (_selecting) return;
         if (sender is Button { Content: PosterCard { Card: { } card } } && !ConsumeActionInvoke(card))
         {
             NavigationTiming.Click("card");
@@ -1072,6 +1085,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args)
     {
+        if (_selecting) { args.Handled = true; return; }
         ViewModel.PrepareCollectionMembers();
         ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched);
     }
@@ -1079,6 +1093,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// <summary>需求 6：the same commands from the strip that appears on a card under the pointer.</summary>
     private void OnCardActionRequested(object? sender, CardActionEventArgs args)
     {
+        if (_selecting) return;
         if (sender is PosterCard { Card: { } card })
         {
             _lastActionCard = card;

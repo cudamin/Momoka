@@ -753,7 +753,7 @@ public sealed partial class PosterCard : UserControl
     /// </summary>
     private void Raise(object sender, CardAction action)
     {
-        if (Card is null || sender is not FrameworkElement anchor) return;
+        if (Card is null || Card.IsSelecting || sender is not FrameworkElement anchor) return;
 
         ActionRequested?.Invoke(this, new CardActionEventArgs(action, anchor));
     }

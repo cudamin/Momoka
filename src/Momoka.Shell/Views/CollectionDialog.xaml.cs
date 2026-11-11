@@ -13,7 +13,7 @@ public sealed partial class CollectionDialog : ContentDialog
     /// <summary>两处互相清空的时候不要再触发对方的处理，见 <see cref="OnPicked"/>。</summary>
     private bool _syncing;
 
-    public CollectionDialog(EmbyItem item, IReadOnlyList<EmbyItem> collections)
+    public CollectionDialog(EmbyItem item, IReadOnlyList<EmbyItem> collections, bool allowCreate = true)
     {
         InitializeComponent();
 
@@ -28,6 +28,8 @@ public sealed partial class CollectionDialog : ContentDialog
         List.ItemsSource = collections;
         List.Visibility = collections.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         Empty.Visibility = collections.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
+        NewBox.Visibility = allowCreate ? Visibility.Visible : Visibility.Collapsed;
+        if (!allowCreate && collections.Count == 0) Empty.Text = "暂无可用合集，请先创建合集。";
 
         Validate();
     }

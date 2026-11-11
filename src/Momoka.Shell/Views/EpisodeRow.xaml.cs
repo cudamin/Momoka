@@ -190,7 +190,7 @@ public sealed partial class EpisodeRow : UserControl
 
     private void OnPlayClicked(object sender, RoutedEventArgs e)
     {
-        if (Card is null || sender is not FrameworkElement anchor) return;
+        if (Card is null || Card.IsSelecting || sender is not FrameworkElement anchor) return;
 
         ActionRequested?.Invoke(this, new CardActionEventArgs(CardAction.Play, anchor));
     }

@@ -426,6 +426,11 @@ internal static class Program
             FnNasMediaTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["item-batch-fixture"])
+        {
+            ItemBatchTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["plex-protocol-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;

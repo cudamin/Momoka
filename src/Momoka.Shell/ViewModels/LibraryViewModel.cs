@@ -710,13 +710,28 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 电视剧库的「节目」页装的是剧集本身，一集都播不了 —— 那种页面上两颗键没有意义，整对收起
     /// （原来它们藏在「更多」里，那个菜单 2026-10-17 按用户的话删掉了：菜单里除了这两颗常年灰着的键什么都没有）。
     /// </summary>
-    public Visibility DirectPlayVisibility => Show(CanDirectPlay);
+    public Visibility DirectPlayVisibility => Show(!SelectingItems && CanDirectPlay);
+
+    private bool _selectingItems;
+    internal bool SelectingItems
+    {
+        get => _selectingItems;
+        set
+        {
+            if (_selectingItems == value) return;
+            _selectingItems = value;
+            OnPropertyChanged(nameof(DirectPlayVisibility));
+            OnPropertyChanged(nameof(PlayRandomVisibility));
+            PlayAllCommand.NotifyCanExecuteChanged();
+            PlayRandomCommand.NotifyCanExecuteChanged();
+        }
+    }
 
     /// <summary>
     /// 随机播放那颗键。Jellyfin 的 list.js 在 nextup 页显式不收它（<c>params.type !== 'nextup'</c>），
     /// 其余页面和「播放」同一判据。
     /// </summary>
-    public Visibility PlayRandomVisibility => Show(CanDirectPlay && !IsJellyfinNextUpPage);
+    public Visibility PlayRandomVisibility => Show(!SelectingItems && CanDirectPlay && !IsJellyfinNextUpPage);
 
     private bool CanDirectPlay =>
         // 飞牛官网页端没有这两颗键；2026-11-01 用户令「飞牛媒体库上方只留筛选／排序／布局」。
@@ -1636,6 +1651,21 @@ public sealed partial class LibraryViewModel : PageViewModel
                     ? new CollectionMembership(source, _request.ParentId, card.Item.Id, _queryToken) : null;
     }
 
+    /// <summary>成员关系已确认移除；只更新当前合集的分页计数，不将媒体列为删除。</summary>
+    internal void ForgetCollectionMember(CardItem card, CancellationToken query)
+    {
+        if (!QueryCurrent(query) || card.CollectionMembership?.Matches(card.Item) != true
+            || !Cards.Contains(card)) return;
+        base.Cancel();
+        _jumps.Cancel();
+        card.AbandonPoster();
+        Cards.Remove(card);
+        if (_total > 0) _total--;
+        IsReady = _firstPage;
+        ShowEmptyNotice = Cards.Count == 0;
+        RowsArrived();
+    }
+
     /// <summary>
     /// 卡片底下那一行字。勾了字段就按勾的拼；一项能说的都没有时交回卡片自己的副标题（
     /// 剧集的「S01E02 · 剧名」、文件夹的「文件夹」），总比留一行空白强。
@@ -2388,10 +2418,10 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     internal async Task PlayAllAsync()
     {
-        if (_request is null || _actions is null || !HasPlayable) return;
+        if (SelectingItems || _request is null || _actions is null || !HasPlayable) return;
 
         var (items, token) = await PlayableItemsAsync().ConfigureAwait(true);
-        if (items.Count == 0 || !IsCurrent(token)) return;
+        if (SelectingItems || items.Count == 0 || !IsCurrent(token)) return;
 
         Log.Info(Category, $"播放全部：{items.Count} 项，从「{items[0].Name}」开始");
         await _actions.PlayAsync(items[0], episodes: new UserPlaybackQueue(items)).ConfigureAwait(true);
@@ -2403,10 +2433,10 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     internal async Task PlayRandomAsync()
     {
-        if (_request is null || _actions is null || !HasPlayable) return;
+        if (SelectingItems || _request is null || _actions is null || !HasPlayable) return;
 
         var (items, token) = await PlayableItemsAsync().ConfigureAwait(true);
-        if (items.Count == 0 || !IsCurrent(token)) return;
+        if (SelectingItems || items.Count == 0 || !IsCurrent(token)) return;
 
         var random = Random.Shared;
         for (var index = items.Count - 1; index > 0; index--)

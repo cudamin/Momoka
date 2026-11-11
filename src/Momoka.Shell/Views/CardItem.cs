@@ -382,7 +382,25 @@ public sealed class CardItem : INotifyPropertyChanged
     internal bool IsCurrent => Scope?.IsAvailable == true;
     internal bool IsNavigation => _navigate is not null;
     internal void OpenNavigation() => _navigate?.Invoke();
-    public Visibility MoreVisibility => Show(!IsNavigation && !_item.IsDisplayOnly);
+    public Visibility MoreVisibility => Show(!IsSelecting && !IsNavigation && !_item.IsDisplayOnly);
+
+    private bool _isSelecting;
+
+    /// <summary>库页选择期间，卡片只供勾选；离开选择模式恢复原来的单项动作。</summary>
+    public bool IsSelecting
+    {
+        get => _isSelecting;
+        internal set
+        {
+            if (_isSelecting == value) return;
+            _isSelecting = value;
+            Raise(nameof(IsSelecting));
+            Raise(nameof(PlayVisibility));
+            Raise(nameof(UserStateVisibility));
+            Raise(nameof(FavoriteActionVisibility));
+            Raise(nameof(MoreVisibility));
+        }
+    }
 
     internal ItemUserStateOrder UserStateOrder
     {
@@ -756,7 +774,7 @@ public sealed class CardItem : INotifyPropertyChanged
     /// instead: a button offering to play one of them would be offering nothing.
     /// </summary>
     public Visibility PlayVisibility =>
-        Show((!IsUpcoming || !string.Equals(_item.LocationType, "Virtual", StringComparison.OrdinalIgnoreCase))
+        Show(!IsSelecting && (!IsUpcoming || !string.Equals(_item.LocationType, "Virtual", StringComparison.OrdinalIgnoreCase))
             && (_item.IsPlayable || _item.Type is EmbyItemType.Series or EmbyItemType.Season));
 
     /// <summary>
@@ -770,13 +788,13 @@ public sealed class CardItem : INotifyPropertyChanged
     /// and this one is whether the action exists at all.
     /// </para>
     /// </summary>
-    public Visibility UserStateVisibility => Show(_item.TracksUserState);
+    public Visibility UserStateVisibility => Show(!IsSelecting && _item.TracksUserState);
 
     /// <summary>收藏单独按条目所属来源判断；Plex 的已看仍由 UserStateVisibility 保留。</summary>
     internal bool CanFavorite => _item.TracksUserState
         && Scope is { IsAvailable: true, Connection.SupportsFavorites: true };
 
-    public Visibility FavoriteActionVisibility => Show(CanFavorite);
+    public Visibility FavoriteActionVisibility => Show(!IsSelecting && CanFavorite);
 
     public string PlayActionTip =>
         _item.HasResumePosition ? $"继续播放（{TimeFormat.Clock(_item.ResumeTicks)}）" : "立即播放";

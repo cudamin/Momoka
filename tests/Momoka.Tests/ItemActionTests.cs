@@ -31,6 +31,7 @@ internal static class ItemActionTests
         RegisterIdentify();
         RegisterCollections();
         CollectionManagementTests.Register();
+        ItemBatchTests.Register();
         RegisterMissingEpisodes();
         RegisterImagesAndSubtitles();
         RegisterDownload();

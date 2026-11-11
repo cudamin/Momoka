@@ -694,6 +694,8 @@
                                 </Flyout>
                             </Button.Flyout>
                         </Button>
+                        <Button x:Name="LibrarySelectButton" Content="多选" Style="{StaticResource LibraryPillStyle}"
+                            Visibility="Collapsed" Click="OnBeginSelection" AutomationProperties.AutomationId="LibrarySelectButton" />
                         <!-- 网页端那颗齿轮：视图、图像大小、分组、显示字段。原来 ⋯ 里那个「视图」三选一的
                              子菜单由它接手 —— 那三档只是网页端七档里的三档，图像大小和显示字段也没有入口。
                              打开的是本页盖上来的一块面板（网页端也是个模态框），不是浮层：浮层是亚克力的，
@@ -885,7 +887,7 @@
         <Grid x:Name="EmbyContent" Grid.Row="2">
             <!-- Grid so the letter bar can sit over the scroller's right edge without taking a column
                  away from it（Emby 的 alphaPicker 是 position:fixed 的覆盖层，不是布局成员）。 -->
-            <Grid RowSpacing="16">
+            <Grid x:Name="LibraryResultLayout" RowSpacing="16">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                 <ScrollViewer x:Name="SearchCategoriesScroll" HorizontalScrollBarVisibility="Auto"
                     HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled"
@@ -903,6 +905,20 @@
                             Visibility="{x:Bind ViewModel.ExtendedSearchCategoriesVisibility, Mode=OneWay}" />
                     </SelectorBar>
                 </ScrollViewer>
+                <StackPanel x:Name="LibraryBatchSurface" Grid.Row="0" Visibility="Collapsed" Spacing="8">
+                    <local:WrapRow Spacing="8">
+                        <TextBlock x:Name="LibrarySelectionCount" Text="已选 0 项" Style="{StaticResource EgBodyStyle}"
+                            VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+                        <Button x:Name="LibrarySelectLoaded" Content="全选已加载" Click="OnSelectLoaded" />
+                        <Button x:Name="LibraryClearSelection" Content="清空选择" Click="OnClearSelection" />
+                        <Button x:Name="LibraryBatchActions" Content="批量操作" IsEnabled="False">
+                            <Button.Flyout><MenuFlyout x:Name="LibraryBatchMenu" Opening="OnBatchMenuOpening" /></Button.Flyout>
+                        </Button>
+                        <Button x:Name="LibraryCancelBatch" Content="取消剩余" Click="OnCancelBatch" Visibility="Collapsed" />
+                        <Button x:Name="LibraryEndSelection" Content="完成" Click="OnEndSelection" />
+                    </local:WrapRow>
+                    <InfoBar x:Name="LibraryBatchResult" IsOpen="False" IsClosable="True" Severity="Informational" />
+                </StackPanel>
             <!-- 表格视图要能横向滚：勾满字段时一行比页面宽，从前是从右边裁掉。列头与每一行必须在同一个
                  滚动面里 —— 各滚各的，滚了行、列头就留在原处。其余视图这个滚动器不滚（横向滚动关掉、
                  画布宽度跟着页面走），卡片墙的排布与从前一模一样。 -->

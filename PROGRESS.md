@@ -12443,3 +12443,11 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 独立树 C:/Users/89400/.codex/worktrees/library-batch3-plex/Momoka，基点8dea65c。直接读取固定官方Plex Web4.163.0/8246fd2原始JS并核SHA256，跟踪provider默认scrobble action、实际GET调用、UI门控与逐项多选；另读官方plexinc/plex-for-kodi97191f2的video.py95-103/query默认GET。只确证Movie/Series/Season/Episode单项已看复用，不接未确证收藏/合集，不加Emby管理员门控；当前PMS/账号/实际落库未核。精确偏移、哈希与边界在docs/媒体库第三批-Plex与多选验证.md。
 
 新增ShellNavigationProbe.LibraryBatch.cs与InspectLibraryBatch/library注册，覆盖真实选择控件/UIA、1100/760布局、播放和单项动作隐藏、真实确认遮罩取消/预取消零写、合集权限恢复、成功/失败/取消剩余三态、Plex在飞补读先确认/补读失败不重写；反射父树新入口避免把探针复制成假业务。探针本身为实施前验收测试；本树不启动窗口，未得到原生红绿/截图证据，父在整合树串行运行并修最终API差异。Shell/Tests当前Release0警告0错误、Plex单项基线300/300、0失败0跳过，5文本行尾/BOM/空白检查与句柄扫描0missing通过；本树当前Release默认全量4667/4667、失败0/跳过0（153290ms，artifacts/library-batch-plex/tests-full.log），最终探针代码再编译后提交，原生验收由父树进行。未真实服务写入/播放、publish或push。
+
+## 2026-11-11 媒体库第三批：多选整理实现（b517，待整批主树交付）
+
+- 正式媒体卡墙增加多选：Emby/Jellyfin 已看、未看、收藏、取消收藏、加入已有合集、移出当前合集；Plex只支持已核实的电影/节目/季/单集已看。选择在同一在线账号内，逐条权限，选择态隐藏并守卫播放和单项动作。
+- Core ItemBatchService逐项保存Succeeded/Failed/Canceled；取消只停止下一项；HTTP成功与账号退出后的检查分开，Plex写入先更新卡片后独立补读，刷新失败不重写。成功移合集仅移关系、同步本地分页，不删除媒体。完成确认与选择期分别保留代次，迟到回调不借新选择期。
+- 当前Release Core/Tests/Shell编译0警告错误；完整4680/4680，批规则13/13，实际库VM48/48，页面契约178/178。一次并发Shell/Tests构建发生Core文件锁7警告，后改为串行并重建0/0，不采用该次警告证据。
+- 匿名原生InspectLibraryBatch先复现首次选择通知重入，修正后Emby/Jellyfin/Plex1100/760、真实ItemContainer与UIA选择、确认取消、部分失败/取消剩余、权限显隐恢复、Plex补读失败全部通过；12张截图已核代表宽窄/错误反馈。证据artifacts/library-batch3/native-first-red和native-multiselect-pass；非真实服务器写入或播放。
+- 合集真实加入/移除补测与飞牛移出/恢复尚在整合；master仍8dea65c，快捷方式仍旧版。完成最终批次、合入主树重验再发布；本批未获push授权，不上传。
