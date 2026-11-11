@@ -662,6 +662,11 @@ internal static class AcrylicControlsTests
             }
         });
 
+        Test("云母详情探针：登记媒体库分区，局部运行不产生未分区失败", () =>
+        {
+            Assert.Contains("[nameof(DetailMicaAsync)] = ShellProbeSections.Library", Source("ShellNavigationProbe.Sections.cs"));
+        });
+
         Test("亚克力探针：materials 是唯一全量分区项且拒绝真实播放组合", () =>
         {
             Assert.True(ShellProbeSections.IsKnown("MATERIALS"), "材料分区尚未接入");

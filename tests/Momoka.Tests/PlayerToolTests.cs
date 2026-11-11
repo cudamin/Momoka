@@ -229,12 +229,26 @@ internal static class PlayerToolTests
                 using var cancel = new CancellationTokenSource();
                 var running = PlayerToolRunner.RunAsync(plan, cancel.Token);
                 var deadline = Environment.TickCount64 + 10_000;
-                while (!File.Exists(target) && !running.IsCompleted && Environment.TickCount64 < deadline) Thread.Sleep(10);
-                Assert.True(File.Exists(target), "受控工具应已写出半成品");
-                var pid = int.Parse(File.ReadAllText(target), CultureInfo.InvariantCulture);
-                cancel.Cancel();
-                try { running.GetAwaiter().GetResult(); throw new AssertionException("未取消"); }
-                catch (OperationCanceledException) { }
+                var pid = 0;
+                var canceled = false;
+                try
+                {
+                    while (pid == 0 && !running.IsCompleted && Environment.TickCount64 < deadline)
+                    {
+                        // File creation precedes WriteAllText closing its handle and publishing the complete PID.
+                        try { int.TryParse(File.ReadAllText(target), NumberStyles.Integer, CultureInfo.InvariantCulture, out pid); }
+                        catch (IOException) { }
+                        if (pid == 0) Thread.Sleep(10);
+                    }
+                    Assert.True(pid > 0, "受控工具应已完整写出半成品和进程号");
+                }
+                finally
+                {
+                    cancel.Cancel();
+                    try { running.GetAwaiter().GetResult(); }
+                    catch (OperationCanceledException) { canceled = true; }
+                }
+                Assert.True(canceled, "未取消");
                 try
                 {
                     using var process = System.Diagnostics.Process.GetProcessById(pid);

@@ -169,6 +169,33 @@ do
 			end)
 			-- 尺寸门槛跟着 2026-10-17 的 menu_scale 0.88 下调一档（原 hint 12、最小宽 200）：这两条守的是
 			-- 「还看得清、还点得中」，不是某个绝对像素；缩放档本身由下面的全屏 1.3× 与 hidpi 两条用例钉住。
+			test('picture menus shrink independently and retain submenu navigation', function()
+				local item = menu({type = 'picture', items = {{title = 'Subtitles', items = {{title = 'Track', value = 1}}}}})
+				require_equal(item.font_size, 13)
+				require_equal(item.item_height, 26)
+				require_equal(item.min_width, 175)
+				assert(item.font_size_hint >= 10, 'picture hints became unreadable')
+				item:select_index(1)
+				item:handle_shortcut(create_shortcut('right'), {event = 'press', is_mouse = false})
+				require_equal(item.current.items[1].title, 'Track')
+				state.fullscreen = true
+				update_fullormaxed()
+				require_equal(item.font_size, 17)
+				require_equal(item.item_height, 34)
+				state.fullscreen = false
+				update_fullormaxed()
+				state.hidpi_scale = 1.5
+				update_display_dimensions()
+				item:on_display()
+				require_equal(item.font_size, 19)
+				state.hidpi_scale = 1
+				update_display_dimensions()
+				item:close(true)
+				local regular = menu()
+				require_equal(regular.font_size, 14)
+				require_equal(regular.item_height, 28)
+				regular:close(true)
+			end)
 			test('menu rows keep text legible with space for a check and hints', function()
 				local item = menu()
 				assert(item.item_height >= item.font_size + 12, 'rows crowd the text')

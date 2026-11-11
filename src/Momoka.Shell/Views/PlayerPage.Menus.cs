@@ -473,6 +473,17 @@ public sealed partial class PlayerPage
                 ? shortcutTexts.GetValueOrDefault(action)
                 : null;
 
+        ApplyCompactPictureMenu(PictureMenu.Items);
+    }
+
+    private void ApplyCompactPictureMenu(IEnumerable<MenuFlyoutItemBase> items)
+    {
+        var fontSize = (double)Application.Current.Resources["EgSublineFontSize"];
+        foreach (var item in items)
+        {
+            item.FontSize = fontSize;
+            if (item is MenuFlyoutSubItem group) ApplyCompactPictureMenu(group.Items);
+        }
     }
 
     /// <summary>

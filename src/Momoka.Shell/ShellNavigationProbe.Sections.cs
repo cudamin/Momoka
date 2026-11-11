@@ -38,6 +38,7 @@ internal sealed partial class ShellNavigationProbe
         // 媒体库：浏览、详情、集页、文件选项与主页行
         [nameof(EpisodeBandAsync)] = ShellProbeSections.Library,
         [nameof(DetailResponsiveAsync)] = ShellProbeSections.Library,
+        [nameof(DetailMicaAsync)] = ShellProbeSections.Library,
         [nameof(SeriesCardDatesAsync)] = ShellProbeSections.Library,
         [nameof(LibraryBrowseAsync)] = ShellProbeSections.Library,
         [nameof(JellyfinLibraryAsync)] = ShellProbeSections.Library,

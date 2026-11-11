@@ -24,6 +24,7 @@ namespace Momoka.Tests
                         Assert.False(page.PlaybackEntranceSuppressed, "普通导航不改变播放返回与折叠抑制位");
                         Assert.Equal(restored ? 1 : 0, page.ViewModel.BackgroundReads);
                         Assert.Equal(restored ? 0 : 1, page.ViewModel.InitialReads);
+                        Assert.Equal(1, page.TitlePaintCalls, "冷访问与暖返回都要同步轮播标题状态");
                         return Task.CompletedTask;
                     });
                 }
@@ -77,6 +78,8 @@ namespace Momoka.Shell.Views
         internal EntranceState ViewModel { get; } = new();
         internal ScrollBoundary Scroller { get; } = new();
         internal int EnterCalls { get; set; }
+        internal int TitlePaintCalls { get; private set; }
+        private void PaintInk() => TitlePaintCalls++;
         internal bool PlaybackEntranceSuppressed => _entranceSuppressed;
         internal void Visit(NavigationMode mode, bool restored)
         {

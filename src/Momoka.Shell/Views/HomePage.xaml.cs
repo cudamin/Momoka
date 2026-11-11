@@ -1444,6 +1444,8 @@ public sealed partial class HomePage : Page, IShellContent
         {
             _ = ViewModel.ReloadAsync();
         }
+        // Cached empty slides need not raise SlideChanged again on return.
+        PaintInk();
     }
 
     public void Release()

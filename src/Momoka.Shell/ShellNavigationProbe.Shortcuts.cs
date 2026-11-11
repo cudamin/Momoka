@@ -471,6 +471,8 @@ internal sealed partial class ShellNavigationProbe
                 { Position = new Windows.Foundation.Point(80, 80) });
                 await LayoutAsync(page);
                 Require(menu.IsOpen, "播放右键菜单未打开");
+                Require(CompactRows(menu.Items),
+                    "右键菜单或子菜单没有使用紧凑字号");
                 var subtitleGroup = menu.Items.OfType<MenuFlyoutSubItem>().Single(group => group.Text == "字幕");
                 var expansion = FrameworkElementAutomationPeer.CreatePeerForElement(subtitleGroup)?.GetPattern(PatternInterface.ExpandCollapse) as IExpandCollapseProvider
                     ?? throw new InvalidOperationException("字幕子菜单没有可展开入口");
@@ -522,6 +524,9 @@ internal sealed partial class ShellNavigationProbe
                 Call(page, "OnPictureMenuOpening", page, new object());
                 return Rows();
             }
+            static bool CompactRows(IEnumerable<MenuFlyoutItemBase> items) => items.All(item =>
+                Math.Abs(item.FontSize - 12.75) < 0.01 && (item is not MenuFlyoutSubItem group || CompactRows(group.Items)));
+
             static IEnumerable<MenuFlyoutItem> MenuRows(IEnumerable<MenuFlyoutItemBase> items)
             {
                 foreach (var item in items)

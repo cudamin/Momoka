@@ -194,7 +194,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("候选完整60张列表与四路并发上限", CoverCandidateLimitAsync, 30);
             await CaseAsync("完整返回历史和主页按钮", ShellHistoryAsync);
             await CaseAsync("迟到目录的历史主页、固定标题与滚动恢复（匿名UI）", FoundationHomeDirectoryReturnAsync, 45, section: ShellProbeSections.Shell);
-            await CaseAsync("收藏入口显隐、跳转及取消最后一项", FavoritesNavigationAsync);
+            await CaseAsync("收藏入口显隐、跳转及取消最后一项", FavoritesNavigationAsync, 60);
             await CaseAsync("收藏页聚合所有在线账号与分账号筛选", FavoriteAccountsAsync, 30);
             await CaseAsync("收藏刷新、切服和退出的迟到结果隔离", FavoritesRaceAsync);
             await CaseAsync("删除确认、失败和成功保持列表位置", DeletePreservesListAsync);
@@ -725,7 +725,8 @@ internal sealed partial class ShellNavigationProbe
             SwitchedProfile = (server, account);
             return Task.CompletedTask;
         }
-        public void SetTitleStrip(TitleStrip strip) { }
+        public Action<TitleStrip>? TitleStripChanged { get; set; }
+        public void SetTitleStrip(TitleStrip strip) => TitleStripChanged?.Invoke(strip);
         /// <summary>「更多」菜单的能力补齐探针要拨这几档：开机探测是异步的，菜单先开、能力后到。</summary>
         public bool MoviePilotEnabled { get; set; }
         public Func<EmbySessionScope, ItemMenuPermissions>? MenuPermissions { get; set; }

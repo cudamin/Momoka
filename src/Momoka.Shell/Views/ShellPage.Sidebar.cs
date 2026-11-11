@@ -79,7 +79,7 @@ public sealed partial class ShellPage
         NavToggleButton.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
         HomeButton.Visibility = SettingsButton.Visibility = SearchButton.Visibility =
             shown ? Visibility.Collapsed : Visibility.Visible;
-        FavoritesButton.Visibility = !shown && Favorites.HasItems ? Visibility.Visible : Visibility.Collapsed;
+        SyncHomeNavigation();
         SidebarFavorites.Visibility = Favorites.Visibility;
         SidebarSettingsButton.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
 
