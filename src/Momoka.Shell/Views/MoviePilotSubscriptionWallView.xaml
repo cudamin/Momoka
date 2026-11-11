@@ -70,7 +70,7 @@
         <!-- 批量操作横幅：摘要＋提示＋选择全部／批量启用／暂停／删除＋退出。 -->
         <Border Visibility="{x:Bind ViewModel.WallBatchBannerVisibility, Mode=OneWay}"
             Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
-            Padding="{StaticResource EgSpaceM}">
+            Padding="12">
             <Grid ColumnSpacing="{StaticResource EgSpaceM}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -101,7 +101,7 @@
         <!-- 执行批次横幅：标签＋进度＋停止／关闭。色调按批次 tone 映射到角色笔刷。 -->
         <Border Visibility="{x:Bind ViewModel.WallBatchVisibility, Mode=OneWay}"
             Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
-            Padding="{StaticResource EgSpaceM}" BorderThickness="1"
+            Padding="12" BorderThickness="1"
             BorderBrush="{x:Bind ToneBrush(ViewModel.WallBatchTone), Mode=OneWay}">
             <Grid ColumnSpacing="{StaticResource EgSpaceM}">
                 <Grid.ColumnDefinitions>
@@ -137,7 +137,7 @@
         <!-- 拖拽排序横幅 -->
         <Border Visibility="{x:Bind VisibleWhen(ViewModel.WallSortMode), Mode=OneWay}"
             Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
-            Padding="{StaticResource EgSpaceM}">
+            Padding="12">
             <Grid ColumnSpacing="{StaticResource EgSpaceM}">
                 <TextBlock Text="已进入拖拽排序模式" Style="{StaticResource EgBodyStyle}"
                     Foreground="{ThemeResource EgWarningBrush}" VerticalAlignment="Center" />
@@ -149,7 +149,7 @@
         <!-- 列表错误条 -->
         <Border Visibility="{x:Bind ViewModel.WallListErrorVisibility, Mode=OneWay}"
             Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
-            Padding="{StaticResource EgSpaceM}" BorderThickness="1" BorderBrush="{ThemeResource EgDangerBrush}">
+            Padding="12" BorderThickness="1" BorderBrush="{ThemeResource EgDangerBrush}">
             <TextBlock Text="请求失败，请稍后重试" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgDangerBrush}" />
         </Border>
 

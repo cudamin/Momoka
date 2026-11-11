@@ -26,7 +26,7 @@
             BorderBrush="{ThemeResource EgAccentBrush}" BorderThickness="2" IsHitTestVisible="False"
             Visibility="{x:Bind SelectedVisible(Card.IsSelected, Card.BatchMode), Mode=OneWay}" />
 
-        <Grid Padding="{StaticResource EgSpaceM}" ColumnSpacing="{StaticResource EgSpaceM}">
+        <Grid Padding="12" ColumnSpacing="{StaticResource EgSpaceM}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -82,14 +82,14 @@
         </Grid>
 
         <!-- 洗版标识（左上角）。 -->
-        <Border x:Name="BestVersionBadge" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="{StaticResource EgSpaceS}"
+        <Border x:Name="BestVersionBadge" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8"
             Background="{ThemeResource EgWarningBrush}" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}"
             Padding="4,2" IsHitTestVisible="False"
             Visibility="{x:Bind BestVersionVisible(Card.Subscription.BestVersion), Mode=OneWay}">
             <FontIcon Glyph="&#xE945;" FontSize="{StaticResource EgEyebrowFontSize}" Foreground="{ThemeResource EgOnScrimBrush}" />
         </Border>
         <!-- 批量模式右上角的选择勾选（非交互，整卡点击切换）。 -->
-        <Border x:Name="SelectionCheck" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="{StaticResource EgSpaceS}"
+        <Border x:Name="SelectionCheck" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8"
             Width="{StaticResource EgCornerBadgeSize}" Height="{StaticResource EgCornerBadgeSize}"
             Background="{ThemeResource EgAccentBrush}" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}" IsHitTestVisible="False"
             Visibility="{x:Bind VisibleWhen(Card.BatchMode), Mode=OneWay}">

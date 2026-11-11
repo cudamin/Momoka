@@ -696,7 +696,10 @@ internal sealed partial class ShellNavigationProbe
         finally
         {
             Call(shell, "StopMoviePilotMonitoring");
-            Call(shell, "ReleaseContent");
+            // 探针的 shell 用完即从视觉树移除并丢弃：让当前页面放开它的加载与订阅就够了。
+            // 不走产品 ReleaseContent 那一步清 Frame 返回栈 —— 断线那一拍的导航可能仍在
+            // Navigating，WinUI 会以 0x800710DD 拒绝 Clear，把本已通过的检查盖成失败。
+            if (shell.Pages.Content is IShellContent current) current.Release();
             shell.SignInRoot.Detach();
             Field(shell, "_window", null);
             _root.Children.Remove(shell);

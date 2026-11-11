@@ -78,6 +78,33 @@ namespace Momoka.Tests
                 page.Release();
                 Assert.False(page.ContractWallActive);
             });
+            // 契约测试用的是边界替身，加载不了真实 XAML：EgSpace* 是 Double 刻度，
+            // 接到 Padding / Margin / BorderThickness（都是 Thickness）上会在 InitializeComponent
+            // 抛 XamlParseException，订阅页当场打不开。Spacing 那几个是 Double，可以照常引。
+            Test("订阅墙 XAML：Thickness 属性不引用 Double 刻度键", () =>
+            {
+                var root = FindRoot();
+                foreach (var file in new[]
+                {
+                    "MoviePilotSubscriptionsPage.xaml",
+                    "MoviePilotSubscriptionWallView.xaml",
+                    "MoviePilotSubscriptionWallCard.xaml"
+                })
+                {
+                    var text = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", file));
+                    foreach (var property in new[] { "Padding", "Margin", "BorderThickness" })
+                        foreach (var key in new[] { "EgSpaceXS", "EgSpaceS", "EgSpaceM", "EgSpaceL", "EgSpaceXL", "EgSpace2XL" })
+                            Assert.False(text.Contains(property + "=\"{StaticResource " + key + "}\""),
+                                file + " 的 " + property + " 引了 Double 刻度键 " + key + "，运行时会在 InitializeComponent 抛 XamlParseException");
+                }
+            });
+        }
+
+        private static string FindRoot()
+        {
+            for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+                if (File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) return directory.FullName;
+            throw new AssertionException("找不到本次编译所属的工作树");
         }
 
         private static MoviePilotSubscriptionsRequest Request(string key) => new(null!, key,
