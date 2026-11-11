@@ -33,8 +33,10 @@
                     AutomationProperties.LiveSetting="Polite" />
             </StackPanel>
             <local:MoviePilotSubscriptionsView x:Name="Subscriptions" ShowRefresh="True" />
+            <!-- 分类页（电影／电视剧）立墙、收横排；汇总库仍走横排。显隐由 code-behind 按入口判定。 -->
+            <local:MoviePilotSubscriptionWallView x:Name="Wall" />
             <StackPanel x:Name="EmptyState" Spacing="{StaticResource EgSpaceM}"
-                Visibility="{x:Bind ViewModel.EmptyStateVisibility, Mode=OneWay}">
+                Visibility="{x:Bind PageEmptyVisibility(ViewModel.EmptyStateVisibility), Mode=OneWay}">
                 <TextBlock x:Name="EmptyText" Style="{StaticResource EgBodyStyle}" />
                 <Button x:Name="RefreshSubscriptions" Content="刷新订阅"
                     Style="{StaticResource EgSecondaryButtonStyle}" Click="OnRefresh" />

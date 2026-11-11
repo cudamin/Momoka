@@ -91,6 +91,7 @@ internal static class Program
         DeferredCardsTests.Register();
         FilterValuesTests.Register();
         HomeSubscriptionRefreshTests.Register();
+        SubscriptionWallWiringTests.Register();
         return TestHarness.Run();
     }
 

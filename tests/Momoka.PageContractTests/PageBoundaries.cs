@@ -77,6 +77,7 @@ namespace Momoka.Shell.Views
     internal sealed class MoviePilotSubscriptionsView
     {
         public ViewModels.MoviePilotSubscriptionsViewModel ViewModel { get; } = new();
+        public Microsoft.UI.Xaml.Visibility Visibility { get; set; } = Microsoft.UI.Xaml.Visibility.Visible;
         public int Attaches { get; private set; }
         public int Detaches { get; private set; }
         public int Releases { get; private set; }
@@ -91,6 +92,26 @@ namespace Momoka.Shell.Views
         public void Release() => Releases++;
     }
 
+    // 墙视图的边界替身：只记录宿主页面交给它的接线与轮询收放信号，不创建 WinUI 控件或定时器。
+    // 真实 DispatcherTimer 的启停住在墙视图 code-behind，由运行期 UI 探针覆盖，不在本契约项目证明。
+    internal sealed class MoviePilotSubscriptionWallView
+    {
+        public Microsoft.UI.Xaml.Visibility Visibility { get; set; } = Microsoft.UI.Xaml.Visibility.Collapsed;
+        public int Attaches { get; private set; }
+        public int Detaches { get; private set; }
+        public bool Active { get; private set; }
+        public void Attach(MoviePilotHomeSubscriptions owner, MoviePilotService service, Action<MoviePilotSubscription> open)
+        {
+            Attaches++;
+            Active = true;
+        }
+        public void Detach()
+        {
+            Detaches++;
+            Active = false;
+        }
+    }
+
     public sealed partial class MoviePilotSubscriptionsPage
     {
         internal sealed class TextBoundary { public string Text { get; set; } = ""; }
@@ -100,6 +121,7 @@ namespace Momoka.Shell.Views
             public void Update() => Updates++;
         }
         private readonly MoviePilotSubscriptionsView Subscriptions = new();
+        private readonly MoviePilotSubscriptionWallView Wall = new();
         private readonly TextBoundary PageTitle = new();
         private readonly TextBoundary EmptyText = new();
         private readonly BindingBoundary Bindings = new();
@@ -111,6 +133,13 @@ namespace Momoka.Shell.Views
         internal string? ContractPageCategory => _owner?.ViewModel.PageCategory;
         internal int ContractAttaches => Subscriptions.Attaches;
         internal int ContractDetaches => Subscriptions.Detaches;
+        internal Microsoft.UI.Xaml.Visibility ContractWallVisibility => Wall.Visibility;
+        internal Microsoft.UI.Xaml.Visibility ContractRowVisibility => Subscriptions.Visibility;
+        internal int ContractWallAttaches => Wall.Attaches;
+        internal int ContractWallDetaches => Wall.Detaches;
+        internal bool ContractWallActive => Wall.Active;
+        internal bool ContractWallCategory => _wallCategory;
+        internal Microsoft.UI.Xaml.Visibility ContractEmptyVisibility => PageEmptyVisibility(Microsoft.UI.Xaml.Visibility.Visible);
         internal void ContractNavigateTo(object? request) => OnNavigatedTo(new(request));
         internal void ContractNavigateFrom() => OnNavigatedFrom(new(null));
     }
