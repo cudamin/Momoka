@@ -12492,3 +12492,14 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 三棵本次子树已检查干净及逐文件独有内容：emby无改动，fnnas47a8712/plexa8a0c86全部已合入并有父树后续修正；差异仅整合注册、当前验证修复与进度。必要ignored证据保存到主树后已请求应用归档；b517为本聊天既有托管树，不删除其他会话。完整验证记录docs/verification/2026-11-11-library-batch3.md。
 
 - 应用归档回执已确认：library-batch3-emby、library-batch3-fnnas、library-batch3-plex 三棵子树现均为 archived_worktree；主树与b517工作区干净。
+
+## 2026-11-11 音乐库界面改版主树交付完成
+
+用户要求重新设计音乐库界面，随后明确「别在扩大范围了，尽快交付」「收尾」。产品提交 4188af6（改版）、13bc6fd（前置夹具修复）已快进合入 master，两个提交与工作树 `workbuddy/master-7920c69a` 内容一致；本聊天托管树未删除。
+
+- 界面：歌曲／收藏是曲目表（44 方封面、等宽时长、只从标题列起的发丝线、正在播放那一行的强调色竖线与强调色标题）；专辑／艺术家／歌单是 170 方形封面墙。页头眉字＋库名＋等宽读数（首／张／位／个），分区由单选圆点换成药丸，搜索框按剩余宽度收放、窄窗独占一行，空态与读取进度重做。底部播放栏 `CurrentKey` 驱动曲目表标记。
+- 前置修复（13bc6fd）：第三批合入后三处卡片命令夹具缺飞牛移出命令替身、搜索生命周期夹具缺批选择边界、`SourcePins.json` 里 EmbyItem.cs 哈希漂移，都是 master 2d538bc 上本来就红的项；逐一按夹具既有写法补齐并复核，未改产品行为。
+- 本树验证：Release 全方案 0 警告 0 错误；主测试 4705/4705、音乐 VM 16/16、搜索生命周期 43/43、AniBT 51/51、卡片命令 74/74、Plex 能力 85/85、自然接续 caller 69/69、提取器反例 10/10；本次改动文件 `dotnet format whitespace --include` 通过； Agreements 59/59（字号基线按 3 处 FontIcon 字形度量逐行确认）。
+- 原生界面：`--probe-shell --probe-section music --screen 1` 两项全通过，五主题 × 1280/760/360 的曲目表与 1280 封面墙共 20 张实屏、版面读数 `music-layout.txt` 已复制到 `artifacts/music-redesign/probe-worktree`。主树合并后重新编译 0/0、主测试 4705/4705、音乐 VM 16/16；主树重跑探针时用户正在播放「第 2 季 10. 支持」的 mpv 窗口覆盖了探针窗口，像素守卫按设计拒绝截图（侧边栏项仍通过），保留该红项，不冒充主树实屏通过。
+- 交付：`tools/publish.ps1 -NoArchive -Shortcut` 发布成功（547 文件 / 288.0 MB，批准 mpv 60 文件校验）；旧交付目录改名为 `artifacts/publish/win-x64-pre-music-redesign` 作为备份，未做批量删除。快捷方式写入因 `Momoka.lnk` 保存权限被拒，但读取该 lnk 确认目标仍是 `C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`，指向本次新发布的目录。
+- 未做：真实服务器播放/收藏写入、外部 mpv 与独占窗口、物理扬声器；未推远端。主树另有 14 个与本次无关的文件本来就过不了全量 `dotnet format whitespace`，按用户「别扩大范围」要求未顺手格式化，全量空白检查仍会报这些既有项。
