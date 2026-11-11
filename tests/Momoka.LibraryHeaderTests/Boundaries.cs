@@ -123,6 +123,7 @@ namespace Momoka.Shell.Views
         public Grid HeaderGrid { get; } = new();
         public FrameworkElement UpcomingScroll { get; } = new() { Parent = new Grid() };
         public FrameworkElement SearchCategories { get; } = new();
+        public FrameworkElement SearchCategoriesScroll { get; } = new();
         public FrameworkElement LibrarySectionsSurface { get; } = new();
         public FrameworkElement LibrarySections { get; } = new();
         public FrameworkElement ToolbarSurface { get; } = new();

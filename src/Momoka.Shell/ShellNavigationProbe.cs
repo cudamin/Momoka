@@ -66,6 +66,9 @@ internal sealed partial class ShellNavigationProbe
             }
             await CaseAsync("首页详情按钮圆角轮廓、三态与旧模板实屏对照", HomeButtonEdgesAsync, 120, section: ShellProbeSections.Materials);
             await CaseAsync("Plex 观看写后确认、真实卡片与宽窄详情刷新失败", PlexUserStateAsync, 90, section: ShellProbeSections.PlexState);
+            await CaseAsync("媒体库搜索人物、合集、播放列表与实际导航", LibraryDiscoverySearchAsync, 90, section: ShellProbeSections.Search);
+            await CaseAsync("Plex 人物题材身份与同库作品导航", LibraryDiscoveryPeopleAsync, 90, section: ShellProbeSections.Library);
+            await CaseAsync("Plex 服务端筛选排序、字母跳转与目录恢复", LibraryDiscoveryFiltersAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("亚克力操作按钮、翻页圆钮与手写设置卡片", AcrylicControlsAsync, 180, section: ShellProbeSections.Materials);
             await CaseAsync("筛选多选下拉等宽、滚动与单字段全选", FilterValuesAsync, 60, section: ShellProbeSections.Library);
             await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
@@ -697,8 +700,13 @@ internal sealed partial class ShellNavigationProbe
     {
         public int Plays { get; private set; }
         public int Opened { get; private set; }
+        public Action<EmbyItem>? CaptureOpen { get; set; }
         public Action<EmbyItem, IReadOnlyList<EmbyItem>?>? CapturePlay { get; set; }
-        public void OpenItem(EmbyItem item) => Opened++;
+        public void OpenItem(EmbyItem item)
+        {
+            Opened++;
+            CaptureOpen?.Invoke(item);
+        }
         public Task PlayAsync(EmbyItem item, EmbyItem? parent = null, PlaybackChoice? choice = null, IReadOnlyList<EmbyItem>? episodes = null)
         {
             Plays++;

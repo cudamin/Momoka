@@ -23,6 +23,9 @@ The password is never placed in the query string. The URI is built inside `PlexH
 | Server description, and token validity for this server | `GET /` | Token required; 401 means the token is not good for this server. Answers `friendlyName`, `version`, `machineIdentifier`. |
 | Library sections | `GET /library/sections` | `Directory[]` with `key`, `title`, `type`. Only `movie` and `show` sections are kept. |
 | Items in a section | `GET /library/sections/{key}/all` | `Metadata[]` for films, `Directory[]` for shows. Query: `sort`, `type`, `unwatched`. Paging via headers. |
+| Library discovery catalog | `GET /library/sections/{key}?includeDetails=1&includeAdvanced=1` | Reads actual `Type/Filter/Sort` entries; section `filters` and supported fields govern the filter UI. |
+| Filter choices | `GET /library/sections/{key}/{field}` | Only validated declared genre/year/resolution endpoints, with current type and other filters. Display labels remain separate from native values. |
+| Alphabet buckets | `GET /library/sections/{key}/firstCharacter` | Current type and filter combination; `Directory.key/title/size` determines target positions. |
 | Recently added | `GET /library/recentlyAdded` or `GET /library/sections/{key}/recentlyAdded` | Section-scoped when a library is given. |
 | Continue watching | `GET /library/onDeck` | Plex's own rule for that row; also the source for 接下来播放. |
 | Search | `GET /search?query=` | Answers `Metadata[]` (older servers) or `Hub[].Metadata[]`. |
@@ -60,8 +63,7 @@ server failed to match to a film.
 | Feature | Why |
 | --- | --- |
 | Favourites | Plex's server API has no per-item favourite flag; favourites live in the account service. `SetFavoriteAsync` throws rather than faking it as a label. |
-| Filter values (genres/tags/years) | No equivalent of Emby's `/Items/Filters`; the filter panel is hidden for Plex. |
-| Letter jump | No `NameStartsWithOrGreater` equivalent; the letter bar is hidden. |
+| Arbitrarily nested filters | First batch supports declared single-level fields, not a general AND/OR editor. |
 | Collections, add-to-collection | Not mapped; the row is not offered. |
 | Metadata edit, identify, reset, delete | Plex's editing model is not this client's; the rows are not offered. |
 | Chapter thumbnails | No route this client uses; `GetChapterImageBytesAsync` throws. |
