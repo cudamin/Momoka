@@ -5,6 +5,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <Compile Include="../../src/Momoka.Shell/ViewModels/PageViewModel.cs" Link="Production/PageViewModel.cs" />
     <Compile Include="../../src/Momoka.Shell/ViewModels/MoviePilotSubscriptionsViewModel.cs" Link="Production/MoviePilotSubscriptionsViewModel.cs" />
+    <Compile Include="../../src/Momoka.Shell/ViewModels/MoviePilotSubscriptionsViewModel.Wall.cs" Link="Production/MoviePilotSubscriptionsViewModel.Wall.cs" />
     <Compile Include="../../src/Momoka.Shell/ViewModels/MoviePilotSubscriptionEpisodeRow.cs" Link="Production/MoviePilotSubscriptionEpisodeRow.cs" />
     <Compile Include="../../src/Momoka.Shell/Views/MoviePilotMediaSeasonsView.xaml.cs" Link="Production/MoviePilotMediaSeasonsView.xaml.cs" />
     <Compile Include="$(IntermediateOutputPath)MediaRows.g.cs" />

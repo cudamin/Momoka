@@ -54,6 +54,7 @@ public sealed class CardItem : INotifyPropertyChanged
     private readonly EmbyImageStore _images;
     private readonly Action? _navigate;
     private readonly string _localPosterPath;
+    private readonly Func<CancellationToken, Task<byte[]>>? _fetchPoster;
     /// <summary>
     /// 画出来、解码、取图三处共用的那个宽度。**不是 readonly**：窗口被拖动时整面墙一起换宽度（见
     /// <see cref="Resize"/>），三处必须一起动，否则卡片要么糊要么白占内存。
@@ -326,12 +327,14 @@ public sealed class CardItem : INotifyPropertyChanged
         bool cardLayout = false,
         bool episodeFrame = false,
         Action? navigate = null,
-        string? localPosterPath = null)
+        string? localPosterPath = null,
+        Func<CancellationToken, Task<byte[]>>? fetchPoster = null)
     {
         _item = item;
         _images = images;
         _navigate = navigate;
         _localPosterPath = LocalLibraryArtwork.NormalizePath(localPosterPath);
+        _fetchPoster = fetchPoster;
         Scope = navigate is null ? images.CaptureScope(item) : null;
         if (item.Source is null) Scope?.Bind(item);
         _userState = Scope is { } scope
@@ -864,9 +867,9 @@ public sealed class CardItem : INotifyPropertyChanged
         }
 
         if (_missing || _poster is not null || _loading is not null) return;
-        if (_localPosterPath.Length > 0)
+        if (_localPosterPath.Length > 0 || _fetchPoster is not null)
         {
-            await EnsureLocalPosterAsync().ConfigureAwait(true);
+            await EnsureNavigationPosterAsync().ConfigureAwait(true);
             return;
         }
         if (Scope is not { IsAvailable: true } scope) return;
@@ -1014,8 +1017,8 @@ public sealed class CardItem : INotifyPropertyChanged
         ClearCollageTiles();
     }
 
-    /// <summary>导航卡的本机海报不捕获服务器来源，仍遵守取消、尺寸与容器需求。</summary>
-    private async Task EnsureLocalPosterAsync()
+    /// <summary>导航封面由其属主读取，不捕获媒体服务器来源；保留取消、尺寸和容器需求守卫。</summary>
+    private async Task EnsureNavigationPosterAsync()
     {
         if (_failedAt != default && !ImageCachePolicy.WorthRetrying(_failedAt, DateTime.UtcNow)) return;
         var loading = new CancellationTokenSource();
@@ -1023,13 +1026,15 @@ public sealed class CardItem : INotifyPropertyChanged
         _loading = loading;
         try
         {
-            var bytes = await LocalLibraryArtwork.ReadAsync(_localPosterPath, loading.Token).ConfigureAwait(true);
+            var bytes = await (_fetchPoster is { } fetch ? fetch(loading.Token)
+                : LocalLibraryArtwork.ReadAsync(_localPosterPath, loading.Token)).ConfigureAwait(true);
             if (!Current()) return;
             var bitmap = await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true);
             if (Current() && _wanted) Poster = bitmap;
         }
         catch (Exception error) when (error is OperationCanceledException or IOException or UnauthorizedAccessException
-            or ArgumentException or System.Runtime.InteropServices.COMException)
+            or ArgumentException or HttpRequestException or Momoka.MoviePilot.MoviePilotException
+            or System.Runtime.InteropServices.COMException)
         {
             if (Current()) _failedAt = DateTime.UtcNow;
         }

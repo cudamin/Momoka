@@ -23,7 +23,7 @@ internal sealed record HomeRequest(
     Windowing.HostWindow? Window,
     Action<MoviePilotSubscription>? OpenSubscription = null)
 {
-    internal Action? OpenSubscriptionLibrary { get; init; }
+    internal Action<string>? OpenSubscriptionLibrary { get; init; }
     internal Action<string>? OpenLocalLibrary { get; init; }
     internal Func<IReadOnlyList<EmbyItem>>? CurrentLibraryViews { get; init; }
     internal Action<EmbySessionScope, IReadOnlyList<EmbyItem>>? LibraryDirectoryUpdated { get; init; }
@@ -1411,7 +1411,7 @@ public sealed partial class HomePage : Page, IShellContent
             HomeRows.Clear();
             ViewModel.Attach(_actions, request.EffectiveLibraryViews, settings, _session, images, dispatcher);
         }
-        ViewModel.UseMoviePilotLibrary(Subscriptions.Service!, request.OpenSubscriptionLibrary);
+        ViewModel.UseMoviePilotLibrary(Subscriptions, request.OpenSubscriptionLibrary);
         if (_localLibraries is { } previousLocalLibraries) previousLocalLibraries.Changed -= OnLocalLibrariesChanged;
         _localLibraries = services.GetService<LocalLibraryCoordinator>();
         ViewModel.UseLocalLibraries(_localLibraries, request.OpenLocalLibrary);

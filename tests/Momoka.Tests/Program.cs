@@ -110,6 +110,8 @@ internal static class Program
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             MoviePilotSubscriptionTests.Register();
+            MoviePilotSubscriptionWallTests.Register();
+            MoviePilotSubscriptionExecutionTests.Register();
             NeutralFeedbackTests.Register();
             AgreementsTests.Register();
             return TestHarness.Run();
@@ -682,6 +684,8 @@ internal static class Program
         AniBtIntegrationTests.Register();
         AniBtReceiptStateTests.Register();
         MoviePilotSubscriptionTests.Register();
+        MoviePilotSubscriptionWallTests.Register();
+        MoviePilotSubscriptionExecutionTests.Register();
         MoviePilotEpisodeGroupPlaybackTests.Register();
         MoviePilotAuditTests.Register();
         MoviePilotMediaManagementTests.Register();

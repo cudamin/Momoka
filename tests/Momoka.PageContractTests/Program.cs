@@ -82,6 +82,7 @@ internal static class Program
         CardImageResizeTests.Register();
         BrowseImageGateTests.Register();
         CardPresentationTests.Register();
+        NavigationArtworkTests.Register();
         BannerCacheTests.Register();
         ImageRecoveryTests.Register();
         CardArtworkRecoveryTests.Register();
@@ -90,6 +91,7 @@ internal static class Program
         DeferredCardsTests.Register();
         FilterValuesTests.Register();
         HomeSubscriptionRefreshTests.Register();
+        SubscriptionWallWiringTests.Register();
         return TestHarness.Run();
     }
 

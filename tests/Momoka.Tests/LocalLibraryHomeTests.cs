@@ -15,8 +15,10 @@ internal static class LocalLibraryHomeTests
             Assert.True(home.Contains("LocalLibraryRequest.Prefix", StringComparison.Ordinal));
             Assert.True(home.Contains("entry.IsInLibrary", StringComparison.Ordinal));
             Assert.True(home.Contains("localPosterPath:", StringComparison.Ordinal));
-            Assert.True(moviePilot.Contains("cards[index].Item.Id != MoviePilotSubscriptionsRequest.LibraryKey", StringComparison.Ordinal),
+            Assert.True(moviePilot.Contains("!IsSubscriptionLibrary(cards[index].Item.Id)", StringComparison.Ordinal),
                 "MP 更新不能摘掉其他来源的导航卡片");
+            Assert.True(moviePilot.Contains("key is HomeLayout.MoviePilotMovies or HomeLayout.MoviePilotSeries or MoviePilotSubscriptionsRequest.LibraryKey", StringComparison.Ordinal),
+                "MP 同步只认自己的三把导航钥匙（电影／电视剧／旧汇总），别的来源一律不碰");
             Assert.True(Read("ViewModels/HomeViewModel.cs").Contains("SyncLocalLibraries();", StringComparison.Ordinal));
         });
         Test("本地媒体库：首页通知带访问归属并在离页退订", () =>
