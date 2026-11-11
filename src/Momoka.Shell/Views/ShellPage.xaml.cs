@@ -1150,7 +1150,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             var homeSources = SourcesStamp();
             Open(typeof(HomePage), new HomeRequest(_services, _libraryViews.ToArray(), _window, OpenSubscription)
             {
-                OpenSubscriptionLibrary = () => GoTo(MoviePilotSubscriptionsRequest.LibraryKey),
+                OpenSubscriptionLibrary = key => GoTo(key),
                 OpenLocalLibrary = id => GoTo(LocalLibraryRequest.Prefix + id),
                 CurrentLibraryViews = () => !_closing && homeScope?.IsCurrent == true && SourcesStamp() == homeSources
                     ? _libraryViews.ToArray() : [],

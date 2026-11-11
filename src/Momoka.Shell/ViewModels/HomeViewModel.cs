@@ -1611,7 +1611,7 @@ public sealed partial class HomeViewModel : PageViewModel
     {
         if (card.IsNavigation)
         {
-            if (_active && (ReferenceEquals(card, _moviePilotLibrary)
+            if (_active && (_moviePilotLibraries.Values.Any(entry => ReferenceEquals(entry.Card, card))
                 || _localLibraryCards.Values.Any(entry => ReferenceEquals(entry.Card, card)))) card.OpenNavigation();
             return;
         }
@@ -1687,6 +1687,7 @@ public sealed partial class HomeViewModel : PageViewModel
         _directoryRead?.Cancel();
         _directoryRead = null;
         _active = false;
+        foreach (var entry in _moviePilotLibraries.Values) entry.Card.AbandonPoster();
         // 这一页走了，实时通道一起收：它听的是这一页上的数据，页都不在了没人接这个结果。
         _realtime.Release();
         _fnNasTasks.Release();
