@@ -12480,3 +12480,5 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 主树publish.ps1 -NoArchive -Shortcut退出0，547文件/288.0MB与60批准mpv载荷校验通过；桌面Momoka.lnk实际指向C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe，2026-11-11 14:00生成。沿用0.2.7，不推远端、不生成新GitHub/Store安装包。未操作真实媒体库写入/播放，PMS实服未验；飞牛恢复需从媒体库重新打开，索引可能延迟。
 
 三棵本次子树已检查干净及逐文件独有内容：emby无改动，fnnas47a8712/plexa8a0c86全部已合入并有父树后续修正；差异仅整合注册、当前验证修复与进度。必要ignored证据保存到主树后已请求应用归档；b517为本聊天既有托管树，不删除其他会话。完整验证记录docs/verification/2026-11-11-library-batch3.md。
+
+- 应用归档回执已确认：library-batch3-emby、library-batch3-fnnas、library-batch3-plex 三棵子树现均为 archived_worktree；主树与b517工作区干净。
