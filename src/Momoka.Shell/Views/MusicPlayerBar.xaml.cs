@@ -63,17 +63,17 @@ public sealed partial class MusicPlayerBar : UserControl
         var narrow = args.NewSize.Width < 480;
         ShuffleButton.Visibility = RepeatButton.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
         CoverFrame.Visibility = narrow ? Visibility.Collapsed : Visibility.Visible;
-        PositionLabel.Visibility = DurationLabel.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
-        BarGrid.ColumnSpacing = narrow ? 4 : 16;
+        ClockPanel.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+        BarGrid.ColumnSpacing = narrow ? 4 : 12;
         Surface.Padding = new Thickness(narrow ? 6 : 12, 8, narrow ? 6 : 12, 8);
-        Grid.SetColumn(TrackInfo, narrow ? 0 : 1);
-        Grid.SetColumnSpan(TrackInfo, narrow ? 3 : 1);
+        // 胶囊的两端必须是半圆：圆角取实测高度的一半，字号行高怎么量都不破形；
+        // 窄窗两行排布时收回到固定圆角，免得半圆端啃掉左缘的传输键。
+        Surface.CornerRadius = new CornerRadius(narrow ? 24 : args.NewSize.Height / 2);
+        Grid.SetColumn(TrackInfo, narrow ? 0 : 2);
+        Grid.SetColumnSpan(TrackInfo, narrow ? 4 : 1);
+        Grid.SetRow(TrackInfo, 0);
         Grid.SetRow(Transport, narrow ? 1 : 0);
-        Grid.SetRowSpan(Transport, narrow ? 1 : 2);
+        Grid.SetColumnSpan(Transport, narrow ? 2 : 1);
         Grid.SetRow(Extras, narrow ? 1 : 0);
-        Grid.SetRowSpan(Extras, narrow ? 1 : 2);
-        Grid.SetRow(Timeline, narrow ? 2 : 1);
-        Grid.SetColumn(Timeline, narrow ? 0 : 1);
-        Grid.SetColumnSpan(Timeline, narrow ? 3 : 1);
     }
 }

@@ -502,6 +502,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     internal Frame Pages => ContentFrame;
 
+    /// <summary>音乐播放栏本体：探针借外壳的 Frame 时也要替它量这份栏（外壳本体不上屏）。</summary>
+    internal MusicPlayerBar MusicBarHost => MusicBar;
+
     internal string? CurrentTag => _current;
 
     internal bool SignInVisible => SignIn.Visibility == Visibility.Visible;
@@ -649,6 +652,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
             {
                 case DetailPage detail: detail.AttachWindow(window); break;
             }
+            // 进出音乐页要重算播放栏的让位方式：音乐页滚动区自留避让，其余页面外壳预留。
+            PlaceMusicBar();
         };
 
         // The buttons may well have been measured already, before there was a window to tell.

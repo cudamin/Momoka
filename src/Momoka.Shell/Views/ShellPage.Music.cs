@@ -43,7 +43,17 @@ public sealed partial class ShellPage
         MusicBar.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
         var left = ContentHost.Margin.Left;
         MusicBar.Margin = new Thickness(left + 16, 0, 16, 16);
-        ContentFrame.Margin = new Thickness(0, ContentFrame.Margin.Top, 0, visible ? Math.Max(92, MusicBar.ActualHeight + 28) : 0);
+        if (ContentFrame.Content is MusicLibraryPage musicPage)
+        {
+            // 胶囊直接压在封面墙上：内容区不整行让位，否则亚克力底下永远是纯色纸面。
+            // 末行的可达性改由滚动区自己的避让保证（SetPlayerClearance），停播后归还。
+            ContentFrame.Margin = new Thickness(0, ContentFrame.Margin.Top, 0, 0);
+            musicPage.SetPlayerClearance(visible ? MusicBar.ActualHeight + 32 : 0);
+        }
+        else
+        {
+            ContentFrame.Margin = new Thickness(0, ContentFrame.Margin.Top, 0, visible ? Math.Max(92, MusicBar.ActualHeight + 28) : 0);
+        }
     }
 
     internal void OpenMusicContainer(EmbyItem item, string? rootId)

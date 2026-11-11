@@ -12503,3 +12503,13 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 原生界面：`--probe-shell --probe-section music --screen 1` 两项全通过，五主题 × 1280/760/360 的曲目表与 1280 封面墙共 20 张实屏、版面读数 `music-layout.txt` 已复制到 `artifacts/music-redesign/probe-worktree`。主树合并后重新编译 0/0、主测试 4705/4705、音乐 VM 16/16；主树重跑探针时用户正在播放「第 2 季 10. 支持」的 mpv 窗口覆盖了探针窗口，像素守卫按设计拒绝截图（侧边栏项仍通过），保留该红项，不冒充主树实屏通过。
 - 交付：`tools/publish.ps1 -NoArchive -Shortcut` 发布成功（547 文件 / 288.0 MB，批准 mpv 60 文件校验）；旧交付目录改名为 `artifacts/publish/win-x64-pre-music-redesign` 作为备份，未做批量删除。快捷方式写入因 `Momoka.lnk` 保存权限被拒，但读取该 lnk 确认目标仍是 `C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`，指向本次新发布的目录。
 - 未做：真实服务器播放/收藏写入、外部 mpv 与独占窗口、物理扬声器；未推远端。主树另有 14 个与本次无关的文件本来就过不了全量 `dotnet format whitespace`，按用户「别扩大范围」要求未顺手格式化，全量空白检查仍会报这些既有项。
+
+## 2026-11-11 音乐播放栏改悬浮胶囊亚克力（本树 music-bar-capsule，待合入）
+
+用户令「参考图一修改图二的音乐播放控件：直接压在封面上、透明亚克力、胶囊形状」。产品：`MusicPlayerBar` 改单行胶囊——沿用 `EgFrostBrush` 应用内亚克力，圆角由代码取实测高度一半（窄窗两行档收回固定圆角），进度条用框架 Slider 覆写尺寸资源键改细（不手写模板），时间读数收进艺术家行右侧；`ShellPage.PlaceMusicBar` 在音乐页不再整行让位，改由 `MusicLibraryPage.SetPlayerClearance` 让滚动区自留避让、停播归还，其余页面保留外壳预留；`ContentFrame.Navigated` 进出音乐页重算。紧凑档 <760 收随机/循环/读数，窄窗 <480 收封面退两行。
+
+- 探针：music 探针改整棵外壳上屏、播放栏用外壳自己那份。实测把 Frame 从外壳摘出来塞进别容器会当场 COM 异常（0x800F1000），故不走借 Frame 的路；探针不走 AttachMusic，手动挂同一条 `SizeChanged → PlaceMusicBar` 反馈（栏从隐藏变显示量过第一遍才有高度）。新增断言：亚克力画刷、单行高度 ≤80、半圆端、栏压在页面内容上、曲目表/封面墙避让与停播归还。
+- 验证：Release 全方案 0 警告 0 错误；主测试 4705/4705（首跑 2 红是 TEMP 指向无权限的 C:\WINDOWS\TEMP，改用户临时目录复跑全绿，与改动无关）；Agreements 七项全绿、基线未动；`--probe-shell --probe-section music --screen 1` 2/2 退出 0（shell-probe-20261111-093409752-17232），五主题 ×1280/760/360 加封面墙 20 张实屏目视：胶囊压住曲目行、行内容从亚克力下透出、窄窗两行控件齐全；`--probe-section favorites,shell` 21/21 退出 0（shell-probe-20261111-093640364-16632）。代表截图与读数在 `artifacts/music-capsule/`（ignored）。
+- 空白：改动文件 `format whitespace --include` 通过；全量仍报 17 个与本次无关的既有项（上批记 14 个，第三批合入后增多），按用户「别扩大范围」不顺手格式化。
+- 文档：`docs/音乐媒体库.md` 播放栏一段与探针条目同步改版描述。
+- 未做：真实服务器播放/收藏写入、物理扬声器；未 push、未合 master、未发布——等用户确认后再走交付。

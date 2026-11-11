@@ -1,15 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  底部播放栏：单行胶囊，悬浮压在内容上（2026-11-11 用户令「参考图一……直接压在封面上，
+  使用透明的亚克力材质，胶囊形状」）。材质沿用 EgFrostBrush —— 应用内亚克力，音乐页的封面墙
+  从它底下透上来模糊的一点；圆角由代码取高度的一半（见 OnBarSizeChanged），正常窗宽两端永远是
+  半圆；窄窗退成两行圆角矩形，先保所有控件放得下。
+
+  内容区不再为它整行让位：音乐页由滚动区自己留避让（ShellPage.PlaceMusicBar →
+  MusicLibraryPage.SetPlayerClearance），末行能滚到栏上方；其余页面仍由外壳预留底部空间。
+
+  进度条是框架 Slider 覆写尺寸资源键改细：拖动、键盘、焦点与三态反馈全部保留平台行为，
+  不手写模板。时间读数收进艺术家那一行右侧，窄窗收起（同旧版紧凑档）。
+-->
 <UserControl x:Class="Momoka.Shell.Views.MusicPlayerBar"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Momoka.Shell.Views" xmlns:emby="using:Momoka.Emby"
     SizeChanged="OnBarSizeChanged">
-    <Border x:Name="Surface" CornerRadius="32" Background="{ThemeResource EgFrostBrush}"
+    <Border x:Name="Surface" CornerRadius="36" Background="{ThemeResource EgFrostBrush}"
         BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" Padding="12,8">
-        <Grid x:Name="BarGrid" ColumnSpacing="16" RowSpacing="2">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-            <StackPanel x:Name="Transport" Orientation="Horizontal" VerticalAlignment="Center" Grid.RowSpan="2" Spacing="2">
+        <Grid x:Name="BarGrid" ColumnSpacing="12" RowSpacing="8">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <StackPanel x:Name="Transport" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
                 <Button x:Name="PreviousButton" Click="OnPrevious" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="上一曲" ToolTipService.ToolTip="上一曲"><FontIcon Glyph="&#xE892;" /></Button>
                 <Button x:Name="PauseButton" Click="OnPause" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="{x:Bind ViewModel.PlayLabel, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind ViewModel.PlayLabel, Mode=OneWay}"><FontIcon Glyph="{x:Bind ViewModel.PlayGlyph, Mode=OneWay}" /></Button>
                 <Button x:Name="StopButton" Click="OnStop" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="停止播放并隐藏播放栏" ToolTipService.ToolTip="停止播放并隐藏">
@@ -17,29 +29,41 @@
                 </Button>
                 <Button x:Name="NextButton" Click="OnNext" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="下一曲" ToolTipService.ToolTip="下一曲"><FontIcon Glyph="&#xE893;" /></Button>
             </StackPanel>
-            <Grid x:Name="TrackInfo" Grid.Column="1" ColumnSpacing="12">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <Border x:Name="CoverFrame" Width="42" Height="42" CornerRadius="8" Background="{ThemeResource EgSurfaceBrush}" DataContext="{x:Bind ViewModel.Artwork, Mode=OneWay}">
-                    <Grid><FontIcon Glyph="&#xE8D6;" /><Image Source="{Binding Poster}" Stretch="UniformToFill" /></Grid>
-                </Border>
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                    <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" TextTrimming="CharacterEllipsis" />
+            <Border x:Name="CoverFrame" Grid.Column="1" Width="42" Height="42" CornerRadius="8" Background="{ThemeResource EgSurfaceBrush}" VerticalAlignment="Center" DataContext="{x:Bind ViewModel.Artwork, Mode=OneWay}">
+                <Grid><FontIcon Glyph="&#xE8D6;" /><Image Source="{Binding Poster}" Stretch="UniformToFill" /></Grid>
+            </Border>
+            <Grid x:Name="TrackInfo" Grid.Column="2" RowSpacing="2" VerticalAlignment="Center">
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <Grid Grid.Row="1" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <Grid>
                         <TextBlock x:Name="ArtistText" Text="{x:Bind ViewModel.Subtitle, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" />
                         <Border Background="{ThemeResource EgSurfaceBrush}" Visibility="{x:Bind ViewModel.PreparingVisibility, Mode=OneWay}">
                             <TextBlock Text="正在准备音乐…" Style="{StaticResource EgCaptionStyle}" />
                         </Border>
                     </Grid>
-                </StackPanel>
+                    <StackPanel x:Name="ClockPanel" Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <TextBlock x:Name="PositionLabel" Text="{x:Bind ViewModel.PositionClock, Mode=OneWay}" Style="{StaticResource EgDataStyle}" />
+                        <TextBlock Text="/" Style="{StaticResource EgDataStyle}" />
+                        <TextBlock x:Name="DurationLabel" Text="{x:Bind ViewModel.DurationClock, Mode=OneWay}" Style="{StaticResource EgDataStyle}" />
+                    </StackPanel>
+                </Grid>
+                <Slider x:Name="SeekSlider" Grid.Row="2" Minimum="0" Maximum="{x:Bind ViewModel.Duration, Mode=OneWay}"
+                    Value="{x:Bind ViewModel.Position, Mode=OneWay}" ValueChanged="OnSeek" AutomationProperties.Name="音乐进度" MinWidth="20">
+                    <Slider.Resources>
+                        <x:Double x:Key="SliderHorizontalHeight">12</x:Double>
+                        <x:Double x:Key="SliderPreContentMargin">4</x:Double>
+                        <x:Double x:Key="SliderPostContentMargin">4</x:Double>
+                        <x:Double x:Key="SliderHorizontalThumbWidth">12</x:Double>
+                        <x:Double x:Key="SliderHorizontalThumbHeight">12</x:Double>
+                        <x:Double x:Key="SliderInnerThumbWidth">8</x:Double>
+                        <x:Double x:Key="SliderInnerThumbHeight">8</x:Double>
+                        <CornerRadius x:Key="SliderThumbCornerRadius">6</CornerRadius>
+                    </Slider.Resources>
+                </Slider>
             </Grid>
-            <Grid x:Name="Timeline" Grid.Row="1" Grid.Column="1" ColumnSpacing="8">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <TextBlock x:Name="PositionLabel" Text="{x:Bind ViewModel.PositionClock, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
-                <Slider x:Name="SeekSlider" Grid.Column="1" Minimum="0" Maximum="{x:Bind ViewModel.Duration, Mode=OneWay}"
-                    Value="{x:Bind ViewModel.Position, Mode=OneWay}" ValueChanged="OnSeek" AutomationProperties.Name="音乐进度" MinWidth="20" />
-                <TextBlock x:Name="DurationLabel" Grid.Column="2" Text="{x:Bind ViewModel.DurationClock, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
-            </Grid>
-            <StackPanel x:Name="Extras" Grid.Column="2" Grid.RowSpan="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
+            <StackPanel x:Name="Extras" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
                 <Button x:Name="ShuffleButton" Click="OnShuffle" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="随机播放" ToolTipService.ToolTip="随机播放"><FontIcon Glyph="&#xE8B1;" /></Button>
                 <Button x:Name="RepeatButton" Click="OnRepeat" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="{x:Bind ViewModel.RepeatLabel, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind ViewModel.RepeatLabel, Mode=OneWay}"><FontIcon Glyph="&#xE8EE;" /></Button>
                 <Button x:Name="FavoriteButton" Click="OnFavorite" Visibility="{x:Bind ViewModel.FavoriteVisibility, Mode=OneWay}" Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="收藏歌曲" ToolTipService.ToolTip="收藏"><FontIcon Glyph="{x:Bind local:MusicPlayerBar.FavoriteGlyph(ViewModel.Favorite), Mode=OneWay}" /></Button>

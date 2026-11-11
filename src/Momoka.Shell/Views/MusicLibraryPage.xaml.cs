@@ -129,4 +129,14 @@ public sealed partial class MusicLibraryPage : Page, IShellContent
         if (args.PropertyName != nameof(MusicPlaybackViewModel.CurrentKey)) return;
         ViewModel.MarkPlaying(_music?.CurrentKey);
     }
+
+    /// <summary>
+    /// 播放栏悬浮压在封面墙上（外壳不再整行预留），滚动区自己留避让：末行／「加载更多」
+    /// 能滚到栏上方。clearance 为 0 时回到出厂内边距。墙保留原有的 32 底边。
+    /// </summary>
+    internal void SetPlayerClearance(double clearance)
+    {
+        WallScroll.Padding = new Thickness(0, 0, 20, 32 + clearance);
+        MusicRows.Padding = new Thickness(0, 0, 20, clearance);
+    }
 }
