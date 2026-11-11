@@ -12472,3 +12472,11 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 最终Release/x64 Core/Tests/Shell0警告错误，主测试4702/4702、0失败0跳过；页契约178/178、库VM48/48、飞牛恢复VM6/6、实际命令/详情41/41，脚本63通过。批规则13与飞牛协议/服务22包含于主套件，不另累加。
 - 原生检查台两项通过：InspectLibraryBatch（含Emby/Jellyfin批加三项与批移空合集、Plex和部分失败/取消）与InspectFnNasRemoval（1280/760移出版本、恢复与刷新失败不重发）；空合集与恢复窗口截图已目视。最终日志shell-probe-20261111-054420239-32136，保存artifacts/library-batch3/native-final-pass。早期红与文件锁/平台混用构建报告保留，不用于最终通过。
 - 待主树合入本提交后按最终代码重验并发布到实际交付目录；未真实服务器写入/播放、未push或发新版本。用户已关闭发布目录实例。
+
+## 2026-11-11 媒体库第三批已完成主树交付
+
+产品184c746已进入master；主树重新编译Release/x64 0警告错误、主测试4702/4702、页契约178/178、库VM48/48、飞牛恢复VM6/6、实际命令与详情41/41。主树InspectLibraryBatch和InspectFnNasRemoval两项全部通过，28张实屏与回执在artifacts/library-batch3-final/native-main（shell-probe-20261111-055559635-30600），代表宽窄/空合集/恢复截图目视。
+
+主树publish.ps1 -NoArchive -Shortcut退出0，547文件/288.0MB与60批准mpv载荷校验通过；桌面Momoka.lnk实际指向C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe，2026-11-11 14:00生成。沿用0.2.7，不推远端、不生成新GitHub/Store安装包。未操作真实媒体库写入/播放，PMS实服未验；飞牛恢复需从媒体库重新打开，索引可能延迟。
+
+三棵本次子树已检查干净及逐文件独有内容：emby无改动，fnnas47a8712/plexa8a0c86全部已合入并有父树后续修正；差异仅整合注册、当前验证修复与进度。必要ignored证据保存到主树后已请求应用归档；b517为本聊天既有托管树，不删除其他会话。完整验证记录docs/verification/2026-11-11-library-batch3.md。
