@@ -440,6 +440,7 @@ internal static class Program
         if (args is ["item-batch-fixture"])
         {
             ItemBatchTests.Register();
+            ItemBatchPlaybackTests.Register();
             return TestHarness.Run();
         }
         if (args is ["plex-protocol-fixture"])
@@ -620,6 +621,7 @@ internal static class Program
         ItemMenuTests.Register();
         ItemIdentifyTests.Register();
         ItemActionTests.Register();
+        ItemBatchPlaybackTests.Register();
         DownloadCollisionTests.Register();
         HomeCarouselTests.Register();
         HomeFoldTests.Register();

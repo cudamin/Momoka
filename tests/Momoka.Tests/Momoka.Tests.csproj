@@ -12,10 +12,13 @@
     <AssemblyName>Momoka.Tests</AssemblyName>
     <RootNamespace>Momoka.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
+    <DefineConstants>$(DefineConstants);ITEM_BATCH_PLAYBACK_FIXTURE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Include="..\..\src\Momoka.Shell\Services\FnNasLibraryRemovalService.cs" Link="Shell\FnNasLibraryRemovalService.cs" />
+    <!-- Execute the actual selected-playback handoff; this fixture supplies inert UI and shell owners. -->
+    <Compile Include="..\..\src\Momoka.Shell\Views\LibraryPage.SelectionPlayback.cs" Link="Shell\LibraryPage.SelectionPlayback.cs" />
     <!-- The listener has no WinUI dependency; exercise the exact production source, not a copied model. -->
     <Compile Include="..\..\src\Momoka.Shell\ActivationListener.cs" Link="Shell\ActivationListener.cs" />
     <!-- The entire production source; test-only namespace boundaries replace registry/package endpoints, never control flow. -->
