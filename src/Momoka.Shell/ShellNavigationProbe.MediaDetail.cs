@@ -29,7 +29,7 @@ internal sealed partial class ShellNavigationProbe
             && surface.VerticalAlignment == VerticalAlignment.Top && hero.MinHeight <= 0.5,
             "资料卡位置或简介容器不对，或头部仍由背景图撑高");
         Require(surface.Parent is Grid materialHost && primary.Children.Contains(materialHost)
-            && materialHost.Children.Contains(surface) && content.Children.Contains(overview)
+            && materialHost.Children.Contains(Get<SystemBackdropElement>(page, "HeroMica")) && content.Children.Contains(overview)
             && overview.VerticalAlignment == VerticalAlignment.Top,
             "简介没有放在按钮所在文字列");
         Require(Top(overview, page) - Top(actions, page) - actions.ActualHeight is >= 10 and <= 14
@@ -47,9 +47,7 @@ internal sealed partial class ShellNavigationProbe
             Require(Top(season, page) >= Math.Max(Top(primary, page) + primary.ActualHeight, Top(facts, page) + facts.ActualHeight)
                 && Top(season, page) - Top(hero, page) - hero.ActualHeight is >= 6 and <= 10,
                 "全宽季区没有紧接完整头部，或覆盖了简介/资料卡");
-            Require(page.MediaViewModel.Plain
-                ? ReferenceEquals(season.Background, Get<Border>(page, "MicaLayerSource").Background)
-                : season.Background is AcrylicBrush { Opacity: 1 } or SolidColorBrush { Color.A: 255 },
+            Require(season.Background is AcrylicBrush { Opacity: 1 } or SolidColorBrush { Color.A: 255 },
                 "季区域没有保留主题材质或高对比度实色回退");
         }
         Require(side
@@ -584,9 +582,8 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => media.Plain && !media.Showcase);
             await LayoutAsync(page);
             Require(backdrop.Visibility == Visibility.Collapsed, "简洁模式仍铺着背景图");
-            Require(ReferenceEquals(surface.Background, Get<Border>(page, "MicaLayerSource").Background)
-                && surface.Background is SolidColorBrush, "简洁模式的头部未复用窗口云母内容层");
-            Require(!Descendants(page).OfType<SystemBackdropElement>().Any(), "订阅详情重复创建页面或卡片云母背景");
+            Require(surface.Background is null && Get<SystemBackdropElement>(page, "HeroMica").SystemBackdrop is MicaBackdrop,
+                "简洁模式的头部没有使用 Mica");
             Require(surface.Padding.Left == 12 && surface.Padding.Top == 12, "简洁模式的卡面没有内边距：" + surface.Padding);
             Require(surface.VerticalAlignment == VerticalAlignment.Top,
                 "简洁模式的卡面没有按自己的内容收边");
@@ -594,12 +591,8 @@ internal sealed partial class ShellNavigationProbe
             Require(surface.BorderThickness == (Thickness)Application.Current.Resources["EgCardBorderThickness"],
                 "简洁模式的卡面没有接主题那一条描边");
             Require(sheet.Background is SolidColorBrush { Color.A: 0 }
-                && page.Background is null && Get<Border>(page, "PlainBackdrop") is
-                    { Visibility: Visibility.Visible, Background: SolidColorBrush },
-                "简洁模式正文遮住窗口云母或命令层没有保持半透明");
+                && Get<SystemBackdropElement>(page, "PlainBackdrop").SystemBackdrop is MicaBackdrop, "简洁模式正文遮住了 Mica Alt");
             Require(ReferenceEquals(panel.Background, Get<Border>(page, "MicaLayerSource").Background), "简洁模式正文没有使用云母叠层");
-            Require(ReferenceEquals(Get<StackPanel>(page, "SeasonPanel").Background, Get<Border>(page, "MicaLayerSource").Background),
-                "简洁模式季列表仍使用背景亚克力");
             Require(fade.Visibility == Visibility.Collapsed, "简洁模式没有图，图下沿的渐变却还画着");
             Require(hero.MinHeight <= 0.5, "简洁模式仍按背景图让开第一屏");
             Require(overview.VerticalAlignment == VerticalAlignment.Top, "简洁模式的简介没有顶对齐");
@@ -611,8 +604,6 @@ internal sealed partial class ShellNavigationProbe
                 ThemeHost.Apply(theme.Id);
                 await LayoutAsync(page);
                 Require(sheet.Background is SolidColorBrush { Color.A: 0 }, "换主题后正文挡住云母");
-                RequireMicaFill(surface.Background, "LayerFillColorDefault", "订阅详情内容层");
-                RequireMicaFill(Get<Border>(page, "PlainBackdrop").Background, "LayerOnMicaBaseAltFillColorDefault", "订阅详情命令层");
                 await SaveProbeScreenAsync($"mp-subscription-mica-{theme.Id}-1240-screen.png");
             }
             await SaveProbeScreenAsync("mp-subscription-mode-plain-1240.png");

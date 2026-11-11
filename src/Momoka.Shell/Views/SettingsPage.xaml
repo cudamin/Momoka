@@ -18,14 +18,13 @@
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:primitives="using:Microsoft.UI.Xaml.Controls.Primitives"
     xmlns:vm="using:Momoka.Shell.ViewModels"
-    Background="Transparent"
+    Background="{ThemeResource LayerFillColorDefaultBrush}"
     PointerPressed="OnSettingsPointerPressed">
 
     <Page.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="ms-appx:///Theme/SettingsInputs.xaml" />
-                <ResourceDictionary Source="ms-appx:///Theme/MicaCards.xaml" />
             </ResourceDictionary.MergedDictionaries>
         <CollectionViewSource x:Name="CategoryGroupsSource" IsSourceGrouped="True" />
         <Style x:Key="SettingsSearchTextBox" TargetType="TextBox" BasedOn="{StaticResource AutoSuggestBoxTextBoxStyle}">

@@ -68,13 +68,9 @@
     </Page.Resources>
 
     <Grid Loaded="OnDetailLoaded" SizeChanged="OnDetailSizeChanged">
-        <!-- 云母由主窗口提供；页面与卡片只使用叠在同一背景上的半透明层。 -->
-        <Border x:Name="PlainBackdrop" IsHitTestVisible="False" Visibility="Collapsed"
-                Background="{ThemeResource EgMicaCommandBrush}" />
+        <SystemBackdropElement x:Name="PlainBackdrop" IsHitTestVisible="False" />
         <Border x:Name="MicaLayerSource" Width="0" Height="0" IsHitTestVisible="False"
-                Background="{ThemeResource EgMicaContentBrush}" />
-        <Border x:Name="PageBackgroundSource" Width="0" Height="0" IsHitTestVisible="False"
-                Background="{ThemeResource EgWindowBrush}" />
+                Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}" />
         <Border x:Name="CardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
     <Grid x:Name="DetailContent" Visibility="{x:Bind MediaViewModel.DetailContentVisibility, Mode=OneWay}">
@@ -107,6 +103,8 @@
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition x:Name="HeroFactColumn" Width="288" /></Grid.ColumnDefinitions>
                 <StackPanel x:Name="BodyPrimary" Spacing="8" VerticalAlignment="Top">
                 <Grid>
+                <SystemBackdropElement x:Name="HeroMica" IsHitTestVisible="False"
+                    CornerRadius="{StaticResource EgCardCornerRadius}" />
                 <Border x:Name="HeroSurface" VerticalAlignment="Top" CornerRadius="{StaticResource EgCardCornerRadius}">
                 <Grid x:Name="HeroGrid" MinHeight="340" ColumnSpacing="20" RowSpacing="16" SizeChanged="OnHeroSizeChanged">
                     <Grid.RowDefinitions>

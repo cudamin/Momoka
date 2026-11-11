@@ -4,11 +4,6 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
-        if (args is ["mica-surfaces-fixture"])
-        {
-            MicaSurfaceTests.Register();
-            return TestHarness.Run();
-        }
         if (args is ["music-fixture"])
         {
             MusicTests.Register();
@@ -647,7 +642,6 @@ internal static class Program
         WrapLayoutTests.Register();
         StartupArgsTests.Register();
         ThemeTests.Register();
-        MicaSurfaceTests.Register();
         InputControlThemeTests.Register();
         AcrylicControlsTests.Register();
         DialogChromeTests.Register();

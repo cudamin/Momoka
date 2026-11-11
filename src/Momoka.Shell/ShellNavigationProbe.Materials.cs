@@ -160,8 +160,7 @@ internal sealed partial class ShellNavigationProbe
                     foreach (var width in new[] { 1280, 760 })
                     {
                         ThemeHost.Apply(theme);
-                        _root.Background = stage == "library" ? null
-                            : new SolidColorBrush(ThemeHost.ToColor(theme.Colors.Window));
+                        _root.Background = new SolidColorBrush(ThemeHost.ToColor(theme.Colors.Window));
                         ResizeProbeClient(width, stage == "mpcards" ? 920 : 700);
                         var page = stage is "shelf" or "mpcards" or "anibtcards"
                             ? (FrameworkElement)holder : (FrameworkElement)frame.Content;
@@ -435,7 +434,7 @@ internal sealed partial class ShellNavigationProbe
                             CheckCard(EnclosingCard(action));
                             Require(notifications.StopReport.Bound && notifications.NoteState.Follows, "通知卡原有绑定失效");
                         }
-                        if (samples && stage is "mpcards" or "anibtcards")
+                        if (samples && stage is "library" or "mpcards" or "anibtcards")
                         {
                             var cardGlass = (AcrylicBrush)dark["CardBackgroundFillColorDefaultBrush"];
                             var previous = cardGlass.AlwaysUseFallback;
@@ -458,9 +457,6 @@ internal sealed partial class ShellNavigationProbe
                 var paths = new Momoka.Infrastructure.AppPaths(Path.Combine(_options.Paths.Root, "card-settings"));
                 paths.EnsureCreated();
                 var settingsPage = CreateMotionSettingsPage(fixture, moviePilot, paths);
-                // This fixture uses the main island's BaseAlt. The independent Mica Base settings
-                // window is covered by MicaSurfacesAsync, including real HWND screenshots.
-                _root.Background = (Brush)Application.Current.Resources["EgMicaCommandBrush"];
                 _root.Children.Add(settingsPage);
                 try
                 {
@@ -477,7 +473,7 @@ internal sealed partial class ShellNavigationProbe
                             .Where(control => control.Name == "SettingsRowsList" && control.ActualWidth > 0)
                             .Select(control => VisualTreeHelper.GetParent(control)).OfType<Border>().ToArray();
                         Require(settingsCards.Length > 0, "设置卡片没有实际呈现");
-                        foreach (var card in settingsCards) CheckMicaLayer(card.Background, "设置卡片", "EgMicaContentBrush");
+                        foreach (var card in settingsCards) CheckCardMaterial(card, "设置卡片", theme);
                         await SaveProbeScreenAsync($"acrylic-settings-{theme.Id}-screen.png");
                     }
                 }
@@ -538,16 +534,9 @@ internal sealed partial class ShellNavigationProbe
         }
         void CheckLibraryMaterials(LibraryPage page, UiTheme theme)
         {
-            CheckMicaLayer(Get<Border>(page, "LibrarySectionsSurface").Background, "媒体库分类胶囊", "EgMicaCardBrush");
-            CheckMicaLayer(Get<Border>(page, "FnNasFilterPanel").Background, "飞牛筛选面板", "EgMicaCardBrush");
-            CheckMicaLayer(Get<SearchSourceTabs>(page, "SourceTabs").Background, "搜索来源栏", "EgMicaCardBrush");
-        }
-        static void CheckMicaLayer(Brush? background, string what, string role)
-        {
-            var expected = (SolidColorBrush)Application.Current.Resources[role];
-            Require(background is SolidColorBrush actual && actual.Color == expected.Color
-                && (new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast
-                    || actual.Color.A is > 0 and < 255), what + "未使用云母上的半透明内容层");
+            CheckCardMaterial(Get<Border>(page, "LibrarySectionsSurface"), "媒体库分类胶囊", theme);
+            CheckCardMaterial(Get<Border>(page, "FnNasFilterPanel"), "飞牛筛选面板", theme);
+            CheckCardMaterial(Get<SearchSourceTabs>(page, "SourceTabs"), "搜索来源栏", theme);
         }
         async Task CheckMoviePilotCardsAsync(UiTheme theme)
         {
