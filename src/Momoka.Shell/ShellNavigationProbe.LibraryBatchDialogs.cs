@@ -28,6 +28,8 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => MenuItems().Any(item => item.Tag is ItemCommand.Convert));
             await SaveProbeScreenAsync($"library-batch-Emby-menu-{width}-screen.png");
             Get<MenuFlyout>(page, "LibraryBatchMenu").Hide();
+            await UntilAsync(() => MenuItems().Length == 0);
+            await SettleAsync();
 
             await OpenAsync(ItemCommand.AddToPlaylist);
             var playlist = await DialogAsync();
@@ -145,6 +147,8 @@ internal sealed partial class ShellNavigationProbe
         }
         async Task OpenAsync(ItemCommand command)
         {
+            await UntilAsync(() => MenuItems().Length == 0);
+            await SettleAsync();
             new ButtonAutomationPeer(Get<Button>(page, "LibraryBatchActions")).Invoke();
             await UntilAsync(() => MenuItems().Any(item => item.Tag is ItemCommand value && value == command));
             new MenuFlyoutItemAutomationPeer(MenuItems().Single(item => item.Tag is ItemCommand value && value == command)).Invoke();
