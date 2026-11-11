@@ -235,6 +235,27 @@ internal static class Program
             Assert.Equal(0, page.ViewModel.Playback.Pauses.Count);
             Assert.True(page.ViewModel.Paused);
         });
+        Test("拖回原尺寸时缓冲已就绪，仍等最后的呈现提交后撤帧", () =>
+        {
+            var page = Page();
+            page.Window.Begin(); Size(page, Outer(960, 540));
+            page.Target.Captures[0].SetResult(new FrameBoundary(14)); Complete(page.Capture);
+            Size(page, Outer(640, 360));
+            var overlay = page.Overlay!;
+            var commit = new TaskCompletionSource();
+            page.Target.PendingCommit = commit;
+            Assert.True(page.Target.IsContentReady);
+            page.Window.End();
+            var finish = page.Change;
+            Assert.False(finish.IsCompleted, "缓冲尺寸相同不代表最终画面已经提交");
+            Assert.False(overlay.Disposed);
+            Assert.True(page.Frozen);
+            Until(() => page.Target.Trace.Contains("commit"));
+            Assert.False(overlay.Disposed);
+            commit.SetResult(); Complete(finish);
+            Assert.True(overlay.Disposed);
+            Assert.True(page.ViewModel.Playback.Pauses.SequenceEqual([true, false]));
+        });
         Test("旧提交在飞时第二趟已松手，新收尾保留层不被旧提交撤掉", () =>
         {
             var page = Page();

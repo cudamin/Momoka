@@ -562,9 +562,10 @@ public sealed partial class PlayerPage
     /// </summary>
     private async Task FinishResizeAsync(HostWindow window, int generation)
     {
-        if (_videoTarget.IsContentReady)
+        if (_videoTarget.IsContentReady && _resizeFrame is null)
         {
-            // 缓冲在松手之前就追上了（这一趟没怎么改尺寸）：没有覆盖层可撤，放开当场做。
+            // 纯移动或没有承接帧时可直接结束；拖回原尺寸虽然缓冲没变，最后一拍的合成变换仍可能在途。
+            // 有承接帧必须走下方稳定/提交路径后再撤，不能只凭缓冲尺寸提前露出旧呈现。
             _videoTarget.SetInteractiveResize(false);
             _resizeFrame?.Dispose();
             _resizeFrame = null;
