@@ -61,29 +61,56 @@ public sealed partial class ShellPage
             Windows.Foundation.Point At(FrameworkElement element) =>
                 element.TransformToVisual(this).TransformPoint(new Windows.Foundation.Point(0, 0));
 
-            Button[] candidates = SidebarShown ? [NavToggleButton, FavoritesButton, BackButton]
-                : [HomeButton, SettingsButton, SearchButton, FavoritesButton, BackButton];
+            // 首页／收藏胶囊和主页按钮是同一个位置的两副面孔；设置与搜索 2026-11-11 挪到账号那一组
+            // 左边，不再属于这一排。
+            var onHome = _current == "home";
+            var tabs = onHome || _current == LibraryRequest.FavoritesTag;
+            // 收藏页也是 LibraryPage：只有不在首页/收藏页的时候才按「媒体页」算。
+            var media = !tabs && ContentFrame.Content is LibraryPage or MusicLibraryPage
+                or LocalLibraryPage or FnNasLibrariesPage or DetailPage;
+            // 顺序必须和视觉顺序一致：胶囊 · 后退 · 前进 · 主页 · 设置 · 搜索
+            //（媒体库那一档前进收起，后退仍在主页左边；侧栏模式里只余 ≡ 与两支箭头）。
+            FrameworkElement[] candidates = SidebarShown
+                ? [NavToggleButton, BackButton, ForwardButton]
+                : [HomeNavigation, BackButton, ForwardButton, HomeButton, SettingsButton, SearchButton];
             var keys = candidates.Where(key => key.Visibility == Visibility.Visible).ToArray();
-            var favoritesVisible = FavoritesButton.Visibility == Favorites.Visibility;
-            bool AlwaysOn() => SettingsButton.IsEnabled && SearchButton.IsEnabled && FavoritesButton.IsEnabled;
+            var navSlot = SidebarShown
+                ? HomeNavigation.Visibility == Visibility.Collapsed && HomeButton.Visibility == Visibility.Collapsed
+                : tabs
+                    ? HomeNavigation.Visibility == Visibility.Visible && HomeButton.Visibility == Visibility.Collapsed
+                    : HomeNavigation.Visibility == Visibility.Collapsed && HomeButton.Visibility == Visibility.Visible;
+            bool AlwaysOn() => SettingsButton.IsEnabled && SearchButton.IsEnabled;
+            // 首页没有两支箭头；媒体库与详情页只留后退；其余页面两颗都在（2026-11-11 用户令）。
+            var arrows = BackButton.Visibility == (onHome ? Visibility.Collapsed : Visibility.Visible)
+                && ForwardButton.Visibility == (onHome || media ? Visibility.Collapsed : Visibility.Visible);
+            // 侧栏模式里设置与搜索让给栏里那两份；没有侧栏时它们在账号那一组左边。
+            var buttonsVisible = SidebarShown
+                ? SettingsButton.Visibility == Visibility.Collapsed && SearchButton.Visibility == Visibility.Collapsed
+                : SettingsButton.Visibility == Visibility.Visible && SearchButton.Visibility == Visibility.Visible;
 
-            ApplyChrome(false, 1);
+            ApplyChrome(false, false, 1);
             UpdateLayout();
             var idle = Chrome.Visibility == Visibility.Visible
                 && AppTitleBar.Visibility == Visibility.Visible
-                && keys.Length == candidates.Length - (Favorites.HasItems ? 0 : 1)
-                && favoritesVisible && AlwaysOn()
-                && !BackButton.IsEnabled && TrailBar.Visibility == Visibility.Collapsed;
+                && navSlot && arrows && buttonsVisible && AlwaysOn()
+                && !BackButton.IsEnabled && !ForwardButton.IsEnabled && TrailBar.Visibility == Visibility.Collapsed;
 
-            ApplyChrome(true, 1);
+            ApplyChrome(true, false, 1);
             UpdateLayout();
-            var shallow = AlwaysOn() && BackButton.IsEnabled && TrailBar.Visibility == Visibility.Collapsed;
+            var shallow = AlwaysOn() && navSlot && arrows && buttonsVisible
+                && BackButton.IsEnabled && !ForwardButton.IsEnabled && TrailBar.Visibility == Visibility.Collapsed;
+
+            ApplyChrome(true, true, 1);
+            UpdateLayout();
+            var deeper = AlwaysOn() && navSlot && arrows && buttonsVisible
+                && BackButton.IsEnabled && ForwardButton.IsEnabled;
 
             _trail.Add(new Crumb("自检", string.Empty));
             _trail.Add(new Crumb("自检 · 下一层", string.Empty));
-            ApplyChrome(true, _trail.Count);
+            ApplyChrome(true, true, _trail.Count);
             UpdateLayout();
-            var deep = AlwaysOn() && BackButton.IsEnabled && TrailBar.Visibility == Visibility.Visible;
+            var deep = AlwaysOn() && navSlot && arrows && buttonsVisible
+                && BackButton.IsEnabled && TrailBar.Visibility == Visibility.Visible;
 
             // 位置：整排在标题栏那 40 像素里，左端留白在它左边，页面在它下面。
             var group = At(TitleActions);
@@ -91,9 +118,11 @@ public sealed partial class ShellPage
             var places = keys.Select(At).ToArray();
 
             // 图标外面那层 26 是放大那一步（PathIcon 不缩放几何，见 ShellPage.xaml 的注释）：
-            // 谁把它退回一颗裸 PathIcon，这里量到的就不是 26。
-            var glyph = keys[0].Content as Viewbox;
-            var enlarged = glyph is { ActualWidth: >= 26, ActualHeight: >= 26 };
+            // 谁把它退回一颗裸 PathIcon，这里量到的就不是 26。胶囊不是按钮，跳过去找第一颗带放大框的。
+            var glyph = keys.OfType<Button>().Select(button => button.Content as Viewbox)
+                .FirstOrDefault(viewbox => viewbox is not null);
+            // 首页那一档整排只有胶囊，没有按钮可量；其余页面必须量到放大框。
+            var enlarged = glyph is null ? tabs : glyph is { ActualWidth: >= 26, ActualHeight: >= 26 };
 
             var sized = TitleActions.ActualWidth > 0 && TitleActions.ActualHeight > 0
                 && keys.All(key => key.ActualWidth > 0 && key.ActualHeight > 0);
@@ -117,7 +146,7 @@ public sealed partial class ShellPage
                 lined &= gap >= 0 && gap <= 8 && Math.Abs(places[index].Y - places[0].Y) < 1;
             }
 
-            var ok = idle && shallow && deep && sized && enlarged && inBar && lined;
+            var ok = idle && shallow && deeper && deep && sized && enlarged && inBar && lined;
 
             return new TitleActionProbe(ok,
                 $"{keys.Length} 颗按键各 {keys[0].ActualWidth:0}×{keys[0].ActualHeight:0}、图标 "
@@ -126,9 +155,14 @@ public sealed partial class ShellPage
                     + $"，占 {TitleActions.ActualWidth:0}×{TitleActions.ActualHeight:0}，最大间距 {widest:0}；"
                     + $"标题栏 {AppTitleBar.ActualWidth:0}×{AppTitleBar.Height:0}，{(inBar ? "整排在里面" : "整排没落在标题栏里")}；"
                     + $"{(lined ? "依次排成一行" : "没排成一行")}；"
-                    + $"哪儿都走不动时{(idle ? "当前模式按键及收藏显隐正确、返回按不动、面包屑收起" : "不对")}、"
+                    + $"哪儿都走不动时{(idle ? "当前模式按键及主页/收藏位正确、两支箭头按不动、面包屑收起" : "不对")}、"
                     + $"只能退时{(shallow ? "只有返回按得动" : "不对")}、"
-                    + $"多层路径时{(deep ? "返回可用且面包屑可见" : "不对")}",
+                    + $"能进能退时{(deeper ? "两支都按得动" : "不对")}、"
+                    + $"多层路径时{(deep ? "返回可用且面包屑可见" : "不对")}；"
+                    + $"胶囊 {(HomeNavigation.Visibility == Visibility.Visible ? "在" : "收")}、"
+                    + $"主页 {(HomeButton.Visibility == Visibility.Visible ? "在" : "收")}、"
+                    + $"设置 {(SettingsButton.Visibility == Visibility.Visible ? "在" : "收")}/{SettingsButton.IsEnabled}、"
+                    + $"搜索 {(SearchButton.Visibility == Visibility.Visible ? "在" : "收")}/{SearchButton.IsEnabled}",
                 group.X, group.Y, TitleActions.ActualWidth, TitleActions.ActualHeight);
         }
         finally

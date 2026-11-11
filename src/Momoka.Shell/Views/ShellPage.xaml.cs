@@ -176,6 +176,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         InitializeComponent();
         InitializeSidebar();
+        HomeNavigation.SelectionChanged += OnHomeNavigationChanged;
         ContentFrame.CacheSize = BrowsePageCacheSize;
         _browsePresentation = new BrowsePresentation(ContentFrame);
 
@@ -283,7 +284,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>只缩放按钮内容，点击范围和非客户区穿透矩形始终保持布局尺寸。</summary>
     private void WireTitleFeedback()
     {
-        foreach (var button in new[] { NavToggleButton, HomeButton, SettingsButton, SearchButton, FavoritesButton, BackButton, AccountButton })
+        foreach (var button in new[] { NavToggleButton, HomeButton, SettingsButton, SearchButton, BackButton, ForwardButton, AccountButton })
         {
             button.PointerEntered += OnTitlePointerEntered;
             button.PointerExited += OnTitlePointerExited;
@@ -411,6 +412,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void PaintTitleInk()
     {
+        PaintHomeNavigation();
         var onScrim = _titleStrip == TitleStrip.OnScrim;
         var highContrast = new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast;
 
@@ -2041,15 +2043,33 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // 主页那颗按钮在主页上自己变暗（同两支箭头「走不动就暗」的规矩）：_current 是 "home" 就是已经在主页，
         // 下钻和别的页面会把它清空，那时按钮亮着、一按回主页。
         HomeButton.IsEnabled = _session?.IsSignedIn == true && (_current != "home" || _librariesFailed);
+        SyncHomeNavigation();
 
-        ApplyChrome(ContentFrame.CanGoBack, _trail.Count);
+        ApplyChrome(ContentFrame.CanGoBack, ContentFrame.CanGoForward, _trail.Count);
         SyncSidebar();
     }
 
-    /// <summary>Keep the back button and breadcrumb row in sync with the current navigation state.</summary>
-    private void ApplyChrome(bool canGoBack, int crumbs)
+    /// <summary>
+    /// Keep the back/forward buttons and the breadcrumb row in sync with the current navigation state.
+    /// <para>
+    /// 首页上没有这两颗（2026-11-11 用户令「主页不显示前进后退按钮」）：那一格被首页／收藏胶囊占着。
+    /// 它们只是收起，Alt+← / Alt+→ 仍挂在外壳的加速器上，主页按下去照样能用。
+    /// </para>
+    /// </summary>
+    private void ApplyChrome(bool canGoBack, bool canGoForward, int crumbs)
     {
         BackButton.IsEnabled = canGoBack;
+        ForwardButton.IsEnabled = canGoForward;
+
+        // 首页那一格由首页/收藏胶囊占着（2026-11-11 用户令「主页不显示前进后退按钮」）；
+        // 媒体库与媒体详情页只要 后退(左) + 主页(右)，前进收起；其余页面三颗都在。
+        var onHome = _current == "home";
+        // 收藏页也是 LibraryPage，但那不是「媒体库」：只有在不是首页/收藏页的时候才按媒体页算。
+        var media = _current != LibraryRequest.FavoritesTag && IsMediaPage();
+        var back = onHome ? Visibility.Collapsed : Visibility.Visible;
+        var forward = onHome || media ? Visibility.Collapsed : Visibility.Visible;
+        if (BackButton.Visibility != back) BackButton.Visibility = back;
+        if (ForwardButton.Visibility != forward) ForwardButton.Visibility = forward;
 
         // The whole row, not just the trail inside it: one crumb only repeats the heading the page draws
         // right below, and a row left standing empty is a band of nothing 38 pixels tall.
@@ -2151,11 +2171,25 @@ public sealed partial class ShellPage : UserControl, IShellActions
         GoBack();
     }
 
-    private void OnFavoritesClicked(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// 媒体库与媒体详情页：左端只留 后退 + 主页（2026-11-11 用户令）。按内容页类型认，不按标签猜 ——
+    /// 音乐库、本机库、飞牛库与详情页各是各的类型，标签还会随来源不同而变。
+    /// </summary>
+    private bool IsMediaPage() => ContentFrame.Content is LibraryPage or MusicLibraryPage
+        or LocalLibraryPage or FnNasLibrariesPage or DetailPage;
+
+    private void OnForwardClicked(object sender, RoutedEventArgs e)
     {
-        if (_session?.IsSignedIn != true || !Favorites.HasItems) return;
-        NavigationTiming.Click("favorites-button");
-        GoTo(LibraryRequest.FavoritesTag);
+        NavigationTiming.Click("forward-button");
+        GoForward();
+    }
+
+    private void OnBackInvoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (Chrome.Visibility != Visibility.Visible || !ContentFrame.CanGoBack) return;
+        NavigationTiming.Click("back-keyboard");
+        GoBack();
+        args.Handled = true;
     }
 
     private void OnForwardInvoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)

@@ -233,16 +233,18 @@ internal sealed partial class ShellNavigationProbe
             {
                 ResizeProbeClient(width, 900);
                 await LayoutAsync(shell);
-                Require(shell.ProbeTitleActions().Ok, "收藏星标加入后标题栏布局不合法");
-                Require(Get<Button>(shell, "FavoritesButton").Visibility == Visibility.Visible,
-                    "媒体库页没有显示收藏星标");
+                Require(shell.ProbeTitleActions().Ok, "收藏页加入后标题栏布局不合法" + shell.ProbeTitleActions().Detail);
+                // 胶囊只在首页与收藏页露面；媒体库页要用的是主页按钮。
+                Require(Get<SelectorBar>(shell, "HomeNavigation").Visibility == Visibility.Collapsed
+                    && Get<Button>(shell, "HomeButton").Visibility == Visibility.Visible,
+                    "媒体库页错误显示首页/收藏胶囊");
                 await SaveProbeScreenAsync($"toolbar-navigation-{width}-screen.png");
             }
             await ToggleAsync(true);
             favorite = false;
             await shell.Favorites.RefreshAsync();
-            Require(Get<NavigationViewItem>(shell, "SidebarFavorites").Visibility == Visibility.Collapsed
-                && Get<Button>(shell, "FavoritesButton").Visibility == Visibility.Collapsed, "空收藏没有隐藏");
+            Require(Get<NavigationViewItem>(shell, "SidebarFavorites").Visibility == Visibility.Collapsed,
+                "空收藏没有隐藏");
 
             shell.ShowPlayer(true);
             await ToggleAsync(false);
