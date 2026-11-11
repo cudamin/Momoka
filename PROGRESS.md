@@ -12482,3 +12482,9 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 三棵本次子树已检查干净及逐文件独有内容：emby无改动，fnnas47a8712/plexa8a0c86全部已合入并有父树后续修正；差异仅整合注册、当前验证修复与进度。必要ignored证据保存到主树后已请求应用归档；b517为本聊天既有托管树，不删除其他会话。完整验证记录docs/verification/2026-11-11-library-batch3.md。
 
 - 应用归档回执已确认：library-batch3-emby、library-batch3-fnnas、library-batch3-plex 三棵子树现均为 archived_worktree；主树与b517工作区干净。
+
+## 2026-11-11 媒体库第四批花絮特典子任务
+
+独立 managed 树 `library-batch4-extras/Momoka`，基点52f8449，正式实装Emby/Jellyfin详情「花絮与特典」、独立协议与零起点播放选择；两家入口前提分别按固定官方源码，空态隐藏/重读恢复、失败重试、来源owner与旧菜单/迟到守卫。实际401同身份重试先红71/73，修复新Scope合法重绑后73/73；Core11/11、图片提取20/20、字幕对话提取51/51，Release/x64 Core/Tests/Shell最终构建0警告错误，句柄扫描无缺失、文本检查通过。源码提取正文未裁剪，只加无作用ResetExtras partial边界。
+
+新 `InspectDetailExtras` / library 原生探针已编译：Emby/Jellyfin各1280/760、真实菜单UIA与假播放、失败/空态恢复/离页迟到；未在子树启动桌面，待主控串行运行/目视、整合主树完整验证与交付。本子树未推/发布/实服播放写入。协议固定文件/hash、运行覆盖与AdditionalParts独立技术评估在 `docs/媒体库第四批-附加内容.md`；AdditionalParts未实现，现有Plex EDL仍需两家版本绑定/时钟/上报专项才能复用。

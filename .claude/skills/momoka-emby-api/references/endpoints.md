@@ -38,6 +38,12 @@
 
 这两个端点要求管理员。Emby 的令牌恢复不写用户策略；登录响应带 `Policy` 时才写进连接快照（2026-10-30 起），没带就仍是「还没问到」的 null（Jellyfin／飞牛在登录时读 `Policy`）。能力探测另按在线来源读一次用户策略，供「更多」菜单收起无权限入口，但不回写连接。权限判断走 `ServerAccess.CanAdminister`，只有服务器明确答「不是管理员」才在本地拒绝，未知时放行、真没权限由服务器以 403 拒绝（2026-10-29 修：此前要求 `== true`，管理员也打不开这张表）。
 
+## 花絮与特典（2026-11-11）
+
+`EmbyClient.Extras.cs` 调用 `GET Users/{UserId}/Items/{Id}/SpecialFeatures?Fields=MediaSources,Path`，响应是独立媒体裸数组。官方 4.10.1.0 `modules/common/itemhelper.js` 的 `supportsExtras` 只接受 `!IsFolder`、非 `TvChannel/Program` 且 `MediaType == Video`，不依赖 `SpecialFeatureCount`；`item/item.js` 经 `getSpecialFeatures` 读数组再做前端分页。当前菜单只需要文件字段，复用正式播放链，附加媒体从零开始。
+
+空结果隐藏入口，重新读取详情恢复尝试；错误保留重试。`extras-fixture`、真实详情 VM 和待执行的 `InspectDetailExtras` 各有独立覆盖层，不能据此声称真实服务器播放成功。固定来源、哈希和 `AdditionalParts` 区别见 [第四批附加内容](../../../../docs/媒体库第四批-附加内容.md)。
+
 ## 图片
 
 | 方法 | 路径 | 用途 |

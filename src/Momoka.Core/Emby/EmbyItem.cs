@@ -764,6 +764,9 @@ public sealed class EmbyItem
 
     public string Type { get; set; } = "";
 
+    /// <summary>服务器声明的媒体类别；花絮入口按 Emby 的 Video 前提判断。</summary>
+    public string? MediaType { get; set; }
+
     public string? ServerId { get; set; }
 
     /// <summary>
@@ -781,6 +784,15 @@ public sealed class EmbyItem
 
     /// <summary>关联在此条目下的服务器内预告数量；缺失时不假定存在。</summary>
     public int? LocalTrailerCount { get; set; }
+
+    /// <summary>Jellyfin 详情提供的特典数量；Emby 官方详情不以此数量决定读取。</summary>
+    public int? SpecialFeatureCount { get; set; }
+
+    /// <summary>服务器给附加内容的分类，例如 BehindTheScenes、Interview、DeletedScene。</summary>
+    public string? ExtraType { get; set; }
+
+    /// <summary>Jellyfin 条目的播放许可；明确 None 的附加项不提供播放操作。</summary>
+    public string? PlayAccess { get; set; }
 
     /// <summary>服务器提供的预告网页地址。播放前由 <see cref="ItemTrailers.Remote"/> 筛选。</summary>
     public List<MediaTrailerUrl>? RemoteTrailers { get; set; }

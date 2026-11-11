@@ -126,6 +126,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("弹窗点外面关闭与字幕弹窗右上角关闭钮", DialogDismissAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("字幕无确认回执、只读恢复与关闭（匿名UIA）", SubtitleDownloadReceiptAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("电影与电视剧网页分类、工具栏、作用域及主题", LibraryBrowseAsync, 120);
+            await CaseAsync("Emby与Jellyfin花絮特典、空态恢复与零起点（匿名UIA）", DetailExtrasAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("Emby与Jellyfin合集菜单权限、移除和恢复（匿名UIA）", LibraryCollectionsAsync, 60, section: ShellProbeSections.Library);
             await CaseAsync("媒体库多选、权限恢复、取消剩余与逐项结果（匿名UIA）", LibraryBatchAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("Jellyfin 媒体库标签、排序、筛选、布局与建议", JellyfinLibraryAsync, 90);
@@ -711,6 +712,7 @@ internal sealed partial class ShellNavigationProbe
     private sealed class FakeActions : IShellActions
     {
         public int Plays { get; private set; }
+        public (EmbyItem Item, EmbyItem? Parent, PlaybackChoice? Choice, IReadOnlyList<EmbyItem>? Episodes)? LastPlayback { get; private set; }
         public int Opened { get; private set; }
         public Action<EmbyItem>? CaptureOpen { get; set; }
         public Action<EmbyItem, IReadOnlyList<EmbyItem>?>? CapturePlay { get; set; }
@@ -722,6 +724,7 @@ internal sealed partial class ShellNavigationProbe
         public Task PlayAsync(EmbyItem item, EmbyItem? parent = null, PlaybackChoice? choice = null, IReadOnlyList<EmbyItem>? episodes = null)
         {
             Plays++;
+            LastPlayback = (item, parent, choice, episodes);
             if (CapturePlay is { } capture) { capture(item, episodes); return Task.CompletedTask; }
             throw new InvalidOperationException("探针禁止播放");
         }

@@ -64,6 +64,7 @@ namespace Momoka.Shell.ViewModels
         // still calls its terminal reset dependency, without inventing a second trailer lifecycle.
         public int TrailerResets { get; private set; }
         private void ResetTrailers() => TrailerResets++;
+        private void ResetExtras() { }
         private void OnSubjectStateChanged(object? sender, PropertyChangedEventArgs args) { }
         private Task<EmbyItem?> LoadShowAsync(EmbyItem item, CancellationTokenSource art)
         {

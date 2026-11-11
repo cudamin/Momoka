@@ -96,6 +96,12 @@ internal static class Program
             ItemTrailerTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["extras-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            ItemExtraTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["playback-http-native-probe", var probeDll])
             return PlaybackHttpNativeProbe.Run(probeDll);
         if (args is ["playback-http-fixture"])
@@ -612,6 +618,7 @@ internal static class Program
         MoviePilotMediaDetailTests.Register();
         ItemDetailTests.Register();
         ItemTrailerTests.Register();
+        ItemExtraTests.Register();
         EpisodeDisplayTests.Register();
         ItemArtworkTests.Register();
         ArtworkPreviewTests.Register();

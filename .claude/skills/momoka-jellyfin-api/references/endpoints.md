@@ -30,6 +30,12 @@ The left column is what `EmbyClient*.cs`, `EmbyServerGateway` and `EmbyUrl` call
 
 Jellyfin also documents `GET /Items/Filters2` next to the legacy `GET /Items/Filters`; the latter is what Momoka's `GetFilterValuesAsync` matches.
 
+## Extras route exception (2026-11-11)
+
+`EmbyClient.Extras.cs` uses `GET Items/{itemId}/SpecialFeatures?UserId=` for both the fixed 10.10.7 controller and inspected server revision `8466670`. The 10.10.7 `UserLibraryController.GetSpecialFeatures` already declares this top-level route; its user-path alias is obsolete and excluded from API discovery. Do not run this call through the generic old-version user-path map. It returns an enumerable of `BaseItemDto`, not `QueryResult`; the controller filters `GetExtras()` by `BaseItem.DisplayExtraTypes`.
+
+The fixed 10.10.7 Web `itemDetails.js` gates the section on `SpecialFeatureCount > 0`. Momoka preserves that prerequisite, hides an actually empty playable result, retries errors and restores an attempt after reloading the detail. The actual VM retains source/owner checks and plays the extra's own item/file from exact zero, without inheriting the feature's queue or resume point. `extras-fixture` and the native `InspectDetailExtras` boundary are separate from real-server results. Fixed source locations and the separate AdditionalParts assessment are in [batch-four extras](../../../../docs/媒体库第四批-附加内容.md).
+
 ## Images
 
 | Momoka today | Jellyfin 12.2.0 | Note |

@@ -32,6 +32,7 @@ internal static partial class DetailActionReadinessTests
             var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(dll);
             RegisterShapeTests(assembly, root);
             RegisterTrailerTests(assembly, root);
+            RegisterExtraTests(assembly, root);
 
             Test("P1 主体Apply前不提前放开按钮", () =>
             {
@@ -190,7 +191,8 @@ internal static partial class DetailActionReadinessTests
         public EmbyItem Seed { get; }
         public bool Busy => Get("Busy") is true;
 
-        public Fixture(Assembly assembly, string root, Shape shape, bool stub = false)
+        public Fixture(Assembly assembly, string root, Shape shape, bool stub = false,
+            MediaServerKind kind = MediaServerKind.Emby, string version = "4.10.1.0")
         {
             _assembly = assembly;
             var device = new DeviceIdentity("fixture", "fixture", "fixture", "0");
@@ -200,8 +202,8 @@ internal static partial class DetailActionReadinessTests
             _session = new EmbySession(_settings.Settings, new SettingsStore(new AppPaths(output + "|no-settings"), secrets), new CredentialVault(secrets), device, Transport);
             var http = (EmbyHttp)typeof(EmbySession).GetField("_http", Members)!.GetValue(_session)!;
             var connection = new EmbyConnection(new Uri("https://detail-readiness.invalid/emby/"), "placeholder-only", "fixture", "fixture", "fixture", device)
-            { ServerKind = MediaServerKind.Emby };
-            var identity = new EmbySessionScope.Identity(new EmbyClient(http, connection), new ServerProfile { Id = "fixture", ServerKind = MediaServerKind.Emby }, new AccountProfile { Id = "fixture" });
+            { ServerKind = kind, ServerVersion = version, ServerId = "fixture-server" };
+            var identity = new EmbySessionScope.Identity(new EmbyClient(http, connection), new ServerProfile { Id = "fixture", ServerKind = kind }, new AccountProfile { Id = "fixture" });
             _scope = new EmbySessionScope(_session, identity);
             ((Dictionary<string, EmbySessionScope>)typeof(EmbySession).GetField("_sources", Members)!.GetValue(_session)!).Add(_scope.Key, _scope);
             typeof(EmbySession).GetField("_current", Members)!.SetValue(_session, _scope);
@@ -278,9 +280,20 @@ internal static partial class DetailActionReadinessTests
 
         public bool Can(string command) => ((ICommand)Get(command)!).CanExecute(null);
 
+        public void SignOut() => _session.SignOut();
+
+        public void ReplaceClient()
+        {
+            var current = _scope.IdentityState.Client;
+            var http = (EmbyHttp)typeof(EmbySession).GetField("_http", Members)!.GetValue(_session)!;
+            _scope.IdentityState.Client = new EmbyClient(http, current.Connection with { AccessToken = "replacement-placeholder" });
+            Transport.BeforeExtrasReply = null;
+        }
+
         public void Dispose()
         {
             Transport.TrailerRelease.TrySetResult(true);
+            Transport.ExtrasRelease.TrySetResult(true);
             Transport.DetailRelease.TrySetResult(true);
             Transport.EpisodesRelease.TrySetResult(true);
             Transport.SimilarRelease.TrySetResult(true);
@@ -326,6 +339,14 @@ internal static partial class DetailActionReadinessTests
         public List<EmbyItem> Episodes { get; } = [];
         public List<EmbyItem> Similar { get; } = [];
         public List<EmbyItem> Trailers { get; } = [];
+        public List<EmbyItem> Extras { get; } = [];
+        public int ExtraRequests { get; private set; }
+        public Action? BeforeExtrasReply { get; set; }
+        public List<string> ExtraPaths { get; } = [];
+        public bool HoldExtras { get; set; }
+        public HttpStatusCode ExtraStatus { get; set; } = HttpStatusCode.OK;
+        public TaskCompletionSource<bool> ExtrasRequested { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource<bool> ExtrasRelease { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int TrailerRequests { get; private set; }
         public bool HoldTrailers { get; set; }
         public HttpStatusCode TrailerStatus { get; set; } = HttpStatusCode.OK;
@@ -351,6 +372,19 @@ internal static partial class DetailActionReadinessTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             var path = request.RequestUri?.AbsolutePath ?? "";
+            if (path.EndsWith("/SpecialFeatures", StringComparison.Ordinal))
+            {
+                Assert.Equal(HttpMethod.Get, request.Method);
+                Assert.Equal("detail-readiness.invalid", request.RequestUri!.Host);
+                ExtraRequests++;
+                ExtraPaths.Add(path + request.RequestUri.Query);
+                ExtrasRequested.TrySetResult(true);
+                BeforeExtrasReply?.Invoke();
+                // A late completed read is possible even after its owner cancels it.
+                if (HoldExtras) await ExtrasRelease.Task.ConfigureAwait(false);
+                if (ExtraStatus == HttpStatusCode.Unauthorized && ExtraRequests > 1) ExtraStatus = HttpStatusCode.OK;
+                return ExtraStatus == HttpStatusCode.OK ? Json(Extras) : Status(ExtraStatus);
+            }
             if (path.EndsWith("/LocalTrailers", StringComparison.Ordinal))
             {
                 TrailerRequests++;

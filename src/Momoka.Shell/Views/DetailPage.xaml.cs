@@ -105,6 +105,7 @@ public sealed partial class DetailPage : Page, IShellContent
         ViewModel.PropertyChanged += OnShowcaseChanged;
         ViewModel.PropertyChanged += OnBackdropImageChanged;
         ViewModel.PropertyChanged += OnTrailerStateChanged;
+        ViewModel.PropertyChanged += OnExtraStateChanged;
 
         // 集带左沿换了一张卡：把季锚点（和牌子上的季名）跟着带子走。页面这一份控件与页同寿，不用退订。
         EpisodeStrip.LeadingChanged += OnEpisodeStripLeadingChanged;
@@ -1878,6 +1879,7 @@ public sealed partial class DetailPage : Page, IShellContent
     public void Release()
     {
         _trailerMenu?.Hide();
+        _extraMenu?.Hide();
         StopArtworkArrival();
         StopAppearance();
         StopCardLayout();

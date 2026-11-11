@@ -2481,7 +2481,7 @@ public sealed partial class DetailViewModel : PageViewModel
             return;
         }
 
-        var token = BeginLoad(_ => ResetTrailers());
+        var token = BeginLoad(_ => { ResetTrailers(); ResetExtras(); });
         NavigationTiming.Mark("load-begin");
 
         try
@@ -2636,6 +2636,7 @@ public sealed partial class DetailViewModel : PageViewModel
     private void AnnounceAffordances()
     {
         OnPropertyChanged(nameof(TrailerVisibility));
+        OnPropertyChanged(nameof(ExtraVisibility));
         OnPropertyChanged(nameof(FavoriteActionVisibility));
         OnPropertyChanged(nameof(CanOpenGenre));
         ToggleFavoriteCommand.NotifyCanExecuteChanged();
@@ -2954,7 +2955,9 @@ public sealed partial class DetailViewModel : PageViewModel
 
         _actionsReady = true;
         _trailersReady = true;
+        _extrasReady = true;
         OnPropertyChanged(nameof(TrailerVisibility));
+        OnPropertyChanged(nameof(ExtraVisibility));
         NotifyActionAvailability();
         NavigationTiming.Mark("actions-ready");
     }
@@ -4307,6 +4310,7 @@ public sealed partial class DetailViewModel : PageViewModel
         _active = false;
         _actionsReady = false;
         ResetTrailers();
+        ResetExtras();
         _versionLoad?.Cancel();
         _lifetime++;
         base.Cancel();

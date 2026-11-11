@@ -104,6 +104,7 @@ internal sealed partial class DetailViewModel : PageViewModel
     // its terminal boundary has no requests or presentation state to cancel.
     internal int TrailerResets { get; private set; }
     private void ResetTrailers() => TrailerResets++;
+    private void ResetExtras() { }
     private sealed record FixtureSettings(AppSettings Settings);
     private sealed class EpisodeShelfBoundary
     {
