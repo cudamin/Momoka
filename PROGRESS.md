@@ -8,7 +8,10 @@
 
 当前主树 music,shell,playback,favorites 原生探针31/31通过，169个不相关检查未执行，不称全探针通过。五主题×1280/760/360的音乐实屏和侧栏音乐页已目视，灰屏问题本次未复现；方块停止实控验证通过。当前Core本地静音WAV/libmpv92项、4场景通过，48次顶层窗口采样均0，报告SHA256 98D4BB58337C2D541FE0215A6B3EEA0F9739E5C60AEC6254C1EDA66ABFDD5A28。证据 artifacts/verification/music-merge；分支历史证据已保留于 music-branch-evidence。未使用真实服务器播放、收藏或历史写入，未验证物理音箱；无远端上传授权。
 
-以下完成合并提交后发布到主树 artifacts/publish/win-x64 并核对桌面快捷方式；完成前不把开发构建当交付。音乐子树顶端恢复线索：fnmusic-core9284b52、plex-music95abab4、music-audio-only508686c、music-vm-tests21b8772、music-test-seams eb889569（完整 SHA 以工作树归档回执为准）；内容审计均无主树缺少的产品/测试行为，VM树7份脏文件为已整合旧副本，归档保留恢复快照。
+合并提交48d4830已完成；主树 publish.ps1 -NoArchive -Shortcut 成功，547文件、287.7MB，60项批准mpv载荷全部通过。桌面 Momoka.lnk 目标和工作目录已核对，Momoka.exe/Momoka.dll/Core.dll/PRI四份SHA256均匹配本次发布构建，回执 artifacts/verification/music-merge/delivery-receipt.json。版本保持0.2.7，未上传GitHub、未生成新安装包。
+
+五个音乐子树已由原生工具归档，list_artifacts确认全部为archived_worktree；恢复线索：fnmusic-core9284b52、plex-music95abab4、music-audio-only508686c、music-vm-tests21b8772、music-test-seams eb88956。内容审计均无主树缺少的产品/测试行为，VM树7份脏文件为已整合旧副本并随归档保留；必要ignored证据已复制到主树。六个本批临时分支已删除。f974是本聊天的工作区，按宿主主工作区保护保留，已脱离临时分支停在已合入的d98718c；不作第二交付线。其他聊天工作树未动。
+
 ## 2026-11-10 简洁详情云母已合入并交付
 
 产品提交 `d92c448` 已 cherry-pick 为主树 `ab756c7`；仅开发文档新增段落冲突，两侧内容均保留。主树当前Shell/Tests/Core Release均0警告0错误，完整4571/4571、详情实际VM46/46、MP页面40/40；主树定向格式无加载警告、0文件需改。原生报告 `C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261110-145040707-9404/logs/shell-probe.json` 7/7通过，四类型双宽五主题40张和MP双宽五主题10张实屏，详情布局57个截图/读数文件及设置与三类详情自定义恢复均重跑。单项覆盖不冒充全量，真实服务/播放/系统高对比度切换未执行。
