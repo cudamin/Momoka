@@ -106,9 +106,18 @@ public sealed partial class DetailPage
         var contrast = _actionAccessibility.HighContrast;
         var tint = contrast ? _actionUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Background)
             : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ViewModel.AppearanceSettings));
+        // 简洁模式的按钮与选择框用固定的面色，与按钮材质那四项设置脱钩（2026-11-11 用户令）：
+        // 那一档不铺背景图，设置页里那一整组也随显示模式收起，两条保持一致。高对比度仍走系统实色。
+        var simple = !contrast && !ViewModel.AppearanceSettings.EnableImmersive;
         foreach (var brushes in _controlBackgrounds)
-            brushes.Apply(contrast ? 100 : ViewModel.ControlBackgroundOpacity, !contrast && ViewModel.UseAcrylicControls, tint,
-                ViewModel.ControlTintOpacity, ViewModel.ControlTintLuminosityOpacity);
+        {
+            if (simple)
+                brushes.ApplyFixedSurface();
+            else
+                brushes.Apply(contrast ? 100 : ViewModel.ControlBackgroundOpacity,
+                    !contrast && ViewModel.UseAcrylicControls, tint,
+                    ViewModel.ControlTintOpacity, ViewModel.ControlTintLuminosityOpacity);
+        }
         ViewModel.RefreshAppearance();
         PaintScrim();
         // 模式与背景强度直接应用终值，窄窗仍使用自己的排版。

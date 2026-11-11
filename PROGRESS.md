@@ -12553,3 +12553,15 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 交付：旧交付目录改名 `artifacts/publish/win-x64-pre-music-capsule` 备份（再上一份 `win-x64-pre-music-redesign` 仍在）；`tools/publish.ps1 -NoArchive -Shortcut` 退出 0，547 文件 / 288.0 MB、批准 mpv 60 文件校验通过；发布件与主树构建 `Momoka.dll` SHA-256 相同（df6512c2…）。桌面 `Momoka.lnk` 本次写入成功，目标 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。发布前确认无运行中的 Momoka 实例。
 - 清理：`music-bar-capsule` 已确认无 master 缺失内容后删除；本聊天托管工作树因会话进程占用保留目录，已 detach 到最终 master，不假装清干净。
 - 未做：真实服务器播放/收藏写入、物理扬声器；未推远端、未生成新安装包（沿用 0.2.7 交付目录形态）。全量空白检查的 17 个既有无关项仍未动。
+
+## 2026-11-11 显示模式前置与简洁模式按钮固定材质（本树已验证，待合入主树交付）
+
+用户令两条：①把「显示模式」移到「按钮与选择框背景」上方，简洁模式开启后该项一并折叠隐藏；②重新设计简洁模式下按钮与选择框的颜色与材质样式，改为固定值，不再跟随沉浸模式的设置变化。
+
+- 设置「详情页外观」卡：显示模式排第一，按钮组（背景／颜色／染色或底色浓度）与背景亚克力组排在后面；简洁模式整组收起，卡里只剩显示模式。收起只影响显示，偏好留在设置里，切回沉浸模式原样回来；两条行说明与卡片说明同步改写。
+- 简洁模式固定材质：`ControlBackgroundBrushes.ApplyFixedSurface` 取主题 `EgSurfaceHoverBrush`，四态定值 55／85／40／25%；详情页与 MoviePilot 订阅详情共用，四项按钮材质设置在这一档完全不读，高对比度仍退系统实色，换主题仍换色相。首轮曾照抄「操作玻璃」亚克力，实屏显示应用内亚克力采不到系统云母、按钮反而比页面暗（像内凹），按截图改成可预期的半透明面色；最终按钮像素约 (38,42,47)，页面 (32,32,32)，卡片更亮一档。
+- 测试：Release Core/Shell/Tests 0 警告 0 错误；全量主测试 **4706/4706、0 失败 0 跳过**（可写 TEMP）；`Momoka.AppearanceOpacityTests` **71/71**（新增按钮／连播开关／选择框三条固定面色用例）；`settings-page-state-fixture` **57/57**（显示模式顺序、简洁收起、切回恢复原值）；改动文件 `format whitespace --include` 与 `check-diff` 通过。
+- 原生：`--probe-shell --probe-section settings --screen 1` **28/28 退出 0**（shell-probe-20261111-123037918-17920；`settings-detail-appearance-plain-screen.png` 只有显示模式一行、`-immersive-screen.png` 顺序为显示模式 → 按钮与选择框 → 背景亚克力，均含卡头）；`--probe-section library --screen 1` 35/42 退出 1（shell-probe-20261111-120645828-13244，其中「简洁详情 Mica」通过并把按钮材质四项改到两个极端核固定面色，`detail-mica-*` 五主题 × 1200/760 实屏已目视）；`--probe-section moviepilot --screen 1` 36/37 退出 1（shell-probe-20261111-124109895-3600，订阅详情简洁/沉浸切换通过，`mp-subscription-mica-*` 已目视）。
+- 既有红（用 master `c986839` 独立基线工作树同命令复现，library 35/42、moviepilot 36/37，红项完全一致，与本批无关，仍如实报红）：详情自定义三页与「宽窗沉浸」的 `CastRow` 副行墨色、集页 819 背景显隐、飞牛详情人员头像进模板、合集菜单像素探针被 mpv 播放窗口遮挡、MP 剧资源 TMDB 批量预览超时。按用户既有「别扩大范围」不顺手修。
+- 环境：本机当下只有一块 2560×1440 屏，`--screen 2` 全量像素探针读不到客户区（首跑已留红），按单屏回退走 `--screen 1`；用户的 mpv 播放器仍开着，遮挡类红项按设计保留。基线树 `momoka-baseline` 只为判定既有红而建，验证完即删。
+- 未做：合入 `C:/Users/89400/Momoka` 主树（当前 200715e，比本树多四笔标题栏提交）、发布到桌面快捷方式所指向的交付目录、push 远端。等用户确认「合并 交付」后按主树最终整合代码重验再发布；本批不推远端、不发新版本。

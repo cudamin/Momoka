@@ -177,6 +177,48 @@ foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Butt
                 Equal(1, control.Opacity);
             }
     });
+foreach (var (control, prefix) in new (Control, string)[] { (new Button(), "Button"), (new ToggleButton(), "ToggleButton"), (new ComboBox(), "ComboBox") })
+    Check(prefix + "简洁模式用固定面色，按钮材质四项设置不再参与", () =>
+    {
+        var brushes = ControlBackgroundBrushes.ForDetail(control, lightSurface: true);
+        // 先按用户设置画一遍（亚克力那条路），再切简洁模式：结果必须只剩那一支固定面色。
+        brushes.Apply(37, useAcrylic: true, tint: (Windows.UI.Color)0xFF345678,
+            tintOpacity: 0.43, luminosityOpacity: 0.59);
+        brushes.ApplyFixedSurface();
+        var surface = (SolidColorBrush)resources["EgSurfaceHoverBrush"];
+        var levels = new[]
+        {
+            ControlBackgroundBrushes.FixedRest, ControlBackgroundBrushes.FixedHover,
+            ControlBackgroundBrushes.FixedPressed, ControlBackgroundBrushes.FixedDisabled
+        };
+        foreach (var (suffix, index) in new (string, int)[] { ("", 0), ("PointerOver", 1), ("Pressed", 2), ("Disabled", 3) })
+        {
+            var copy = (AcrylicBrush)control.Resources[prefix + "Background" + suffix];
+            if (copy.TintColor != surface.Color || copy.FallbackColor != surface.Color)
+                throw new InvalidOperationException(suffix + " 没有用那支固定面色");
+            if (!copy.AlwaysUseFallback) throw new InvalidOperationException(suffix + " 还在合成亚克力");
+            Equal(0, copy.TintOpacity);
+            Equal(levels[index], copy.Opacity);
+        }
+        if (control is ToggleButton)
+            foreach (var suffix in new[] { "", "PointerOver", "Pressed", "Disabled" })
+                if (!ReferenceEquals(control.Resources[prefix + "Background" + suffix],
+                    control.Resources[prefix + "BackgroundChecked" + suffix]))
+                    throw new InvalidOperationException("连播选中态没有沿用固定面色");
+        // 主题换色：EgSurfaceHoverBrush 换了颜色，重画一次就跟上，不重建控件。
+        var ink = surface.Color;
+        try
+        {
+            surface.Color = 0xFF38492B;
+            brushes.ApplyFixedSurface();
+            if (((AcrylicBrush)control.Resources[prefix + "Background"]).FallbackColor != 0xFF38492B)
+                throw new InvalidOperationException("固定面色没有跟随主题换色");
+        }
+        finally { surface.Color = ink; }
+        if (!ReferenceEquals(control.Background, control.Resources[prefix + "Background"]))
+            throw new InvalidOperationException("固定面色替换了控件自己的底色画刷");
+        Equal(1, control.Opacity);
+    });
 Check("延迟连播别名在原字典重写时能复现键冲突", () =>
 {
     var dictionary = new ResourceDictionary();
