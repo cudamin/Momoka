@@ -1,3 +1,13 @@
+## 2026-11-11 标题栏左上统一为「主页、收藏、设置、搜索、返回」（已合入并交付）
+
+用户连着三条指令：先「左上角统一留主页、收藏（没有收藏时隐藏该按钮）、设置、搜索、返回」，再「返回按钮放最右边」，最后「不要星星，改回之前的爱心」。标题栏左上自此是一组固定按键，从左到右就是这个次序，按页型换脸的那套（首页/收藏胶囊、前进按钮、媒体库与详情页只留后退+主页）整体退役 —— 胶囊的 SelectorBar／亚克力／选中同步一起删掉，`ShellPage.HomeNavigation.cs` 换成只判收藏收放的 `ShellPage.TitleActions.cs`；收藏那颗是 Segoe EB51 空心爱心（先做成了星标，按用户当轮指令换回爱心，字号取 `EgTitleFontSize` 与这一排 26 放大框同量级）。收藏按**内容**显隐：取消最后一项、退出登录、纯 Plex 这类没有收藏能力的来源整颗收起，空收藏页保留（取消最后一项后停在空态，此后靠返回离开）。返回每一页都在、走不动时只是变暗；主页在主页上变暗照旧。侧边栏模式整排是 ≡ · 主页 · 返回（设置／搜索／收藏让给栏里，同一页不出两个入口）。Alt+← / Alt+→ 与鼠标侧键不受按钮显隐影响。
+
+独立树 `C://Users//89400//WorkBuddy//Worktrees//Momoka//master-ee92bc1e`（分支 `workbuddy/master-ee92bc1e`，产品提交 `fb41ff2`）以 `--no-ff` 合入 master（`9d29fe9`），爱心那一版直接在主树提交 `e746702`。合入后按最终整合代码复验：Release 整方案 **0 警告 0 错误**；完整主测试 **4706/4706**、零失败零跳过（首轮 16 项因另一会话的 library 探针占着用户级自检锁为红，日志 `artifacts/tests-main-heart.log` 保留，独占重跑 `tests-main-heart-2.log` 全绿；更早的星标版首轮同样是这 16 项）；`toolbar-icon-fixture` 4/4、约定夹具 59/59（句柄基线逐行核对后才删掉胶囊三条与前进一条、补上 `FavoritesButton`）。
+
+原生探针 `--probe-shell --probe-section favorites,shell,accounts --screen 2` **26/26**（副屏、匿名假服务）。首跑 1 项红：`顶部账号菜单聚合开关、下线与紧凑布局` 在 `HideMenuAsync` 等 Flyout `Closed` 超时 2 秒，单跑 accounts 分区 6/6 绿、三分区合跑复绿，属菜单收起的时序抖动、与标题栏无关；红报告照实留在 `artifacts/probe-main-star.log`。实屏 `favorites-star-home-screen.png`、`favorites-screen-1240.png`、`toolbar-navigation-1240-screen.png` 目视左上「🏠 ♡ ⚙ 🔍 ←」、爱心与相邻图标同高同大小、返回在最右。
+
+`tools/publish.ps1 -Shortcut` 发布到 `artifacts/publish/win-x64`：547 个文件、288.0 MB、ZIP `Momoka-0.2.7-win-x64.zip`，桌面 `Momoka.lnk` 已重写到本次 exe（20:08）。**一处事故照实记**：首次发布在清旧目录那一步撞上 safe-delete 的 `trash-failed`，报错的同时把当时在用的 `artifacts/publish/win-x64` 整个删掉了（快捷方式因此短暂指向不存在的目标）；补跑发布后重建完整，`pre-toolbar-rework` 等旧副本未受影响。工作树 `master-ee92bc1e` 仍留在原地（本聊天工作区，主树已包含它的全部改动，按前例不自行删除）。
+
 ## 2026-11-11 标题栏重排合入主树与交付
 
 按用户「合并，交付」：把独立树 `C:\Users\89400\.codex\worktrees\0bd5\Momoka`（顶端 `1091c1d`，含 `dd1f985`）以 `--no-ff` 合入 master。合入时主树已从 `637af97` 前进到 `118792f`（音乐胶囊播放栏），12 个文件自动合并、无冲突。
