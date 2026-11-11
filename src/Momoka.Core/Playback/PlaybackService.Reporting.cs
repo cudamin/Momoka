@@ -41,7 +41,7 @@ public sealed partial class PlaybackService
         var request = attempt.Request;
         var exitTask = handle.WaitForExitAsync(cancellationToken);
         var interval = TimeSpan.FromSeconds(Math.Clamp(settings.Playback.ProgressReportIntervalSeconds, 1, 60));
-        var stopEnabled = scope.Connection.ServerKind == MediaServerKind.Emby && settings.Playback.StopReportEnabled && settings.Playback.ReportProgressToServer;
+        var stopEnabled = !request.AudioOnly && scope.Connection.ServerKind == MediaServerKind.Emby && settings.Playback.StopReportEnabled && settings.Playback.ReportProgressToServer;
         var stopPercent = StopReportPercent(request.IsDonghua,
             settings.Playback.MarkWatchedPercent, settings.Playback.DonghuaMarkWatchedPercent);
 
@@ -69,7 +69,7 @@ public sealed partial class PlaybackService
                 if (position is not { } seconds || !double.IsFinite(seconds) || seconds < 0) continue;
                 attempt.HasStarted |= seconds > request.StartSeconds + 0.5;
                 var ticks = TimeFormat.ToTicks(seconds);
-                Raise(ProgressChanged, new PlaybackProgress(ticks, request.RunTimeTicks, handle.IsPaused, request.Title, attempt.Generation));
+                Raise(ProgressChanged, new PlaybackProgress(ticks, request.RunTimeTicks, handle.IsPaused, request.Title, attempt.Generation) { AudioOnly = request.AudioOnly });
                 if (ShouldReportStop(ticks, request.RunTimeTicks, stopEnabled, stopPercent))
                     await ReportThresholdAsync(scope, attempt, ticks).ConfigureAwait(false);
                 await ReportProgressAsync(scope, attempt, ticks, handle.IsPaused, "timeupdate", cancellationToken).ConfigureAwait(false);
@@ -327,7 +327,7 @@ public sealed partial class PlaybackService
             var ticks = TimeFormat.ToTicks(seconds);
             if (!Current()) return;
             Raise(ProgressChanged, new PlaybackProgress(ticks, attempt.Request.RunTimeTicks, paused,
-                attempt.Request.Title, attempt.Generation));
+                attempt.Request.Title, attempt.Generation) { AudioOnly = attempt.Request.AudioOnly });
             await ReportProgressAsync(scope, attempt, ticks, paused, paused ? "pause" : "unpause", CancellationToken.None, revision)
                 .ConfigureAwait(false);
         }
@@ -380,7 +380,7 @@ public sealed partial class PlaybackService
 
     private bool ShouldMarkWatched(PlaybackExit exit, PlaybackRequest request, long positionTicks)
     {
-        if (!settings.Playback.ReportProgressToServer) return false;
+        if (!settings.Playback.ReportProgressToServer || request.AudioOnly) return false;
         if (exit.Reason == PlaybackEndReason.EndOfFile) return true;
         if (exit.PositionSeconds is null || request.RunTimeTicks <= 0) return false;
         var percent = StopReportPercent(request.IsDonghua, settings.Playback.MarkWatchedPercent, settings.Playback.DonghuaMarkWatchedPercent);

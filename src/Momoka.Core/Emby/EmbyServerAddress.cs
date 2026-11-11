@@ -16,6 +16,7 @@ public static class EmbyServerAddress
     public static bool TryNormalize(string input, out Uri address, out string error, MediaServerKind kind = MediaServerKind.Emby)
     {
         if (kind == MediaServerKind.FnNas) return Momoka.FnNas.FnNasEndpoint.TryNormalize(input, out address, out error);
+        if (kind == MediaServerKind.FnMusic) return Momoka.FnMusic.FnMusicEndpoint.TryNormalize(input, out address, out error);
         if (kind == MediaServerKind.Plex) return Momoka.Plex.PlexEndpoint.TryNormalize(input, out address, out error);
         address = null!;
         error = "";
@@ -68,7 +69,7 @@ public static class EmbyServerAddress
         // Plex must retain an explicit HTTP :80; its default port for a portless host is 32400.
         if (kind == MediaServerKind.Plex) return Momoka.Plex.PlexEndpoint.ToDisplayString(apiBase);
         var text = apiBase.GetLeftPart(UriPartial.Path).TrimEnd('/');
-        if (kind == MediaServerKind.FnNas) return text;
+        if (kind is MediaServerKind.FnNas or MediaServerKind.FnMusic) return text;
         return kind == MediaServerKind.Emby && text.EndsWith("/emby", StringComparison.OrdinalIgnoreCase) ? text[..^5] : text;
     }
 

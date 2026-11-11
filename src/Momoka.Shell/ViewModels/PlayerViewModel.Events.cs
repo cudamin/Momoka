@@ -39,6 +39,7 @@ public sealed partial class PlayerViewModel
 
     private void OnProgressChanged(PlaybackProgress progress) => OnUi(() =>
     {
+        if (progress.AudioOnly) return;
         // 迟到防线：旧一场（或同实例换片前的旧文件）的读数不许盖住现在这一场的标题。
         // 服务端在发出时就带上了代次；这里只认当前那一场。
         if (progress.Generation != _playback.Generation) return;
@@ -589,6 +590,7 @@ public sealed partial class PlayerViewModel
 
     private void OnStatusChanged(PlaybackUpdate<PlayerStatus> update) => OnUi(() =>
     {
+        if (update.AudioOnly) return;
         if (update.Generation != _playback.Generation || !_playback.IsPlaying) return;
         _statusGeneration = update.Generation;
         ApplyStatus(update.Value);
@@ -596,6 +598,7 @@ public sealed partial class PlayerViewModel
 
     private void OnTracksChanged(PlaybackUpdate<IReadOnlyList<MpvTrack>> update) => OnUi(() =>
     {
+        if (update.AudioOnly) return;
         if (update.Generation != _playback.Generation || !_playback.IsPlaying) return;
         _tracksRevision++;
         Tracks = update.Value;
@@ -603,6 +606,7 @@ public sealed partial class PlayerViewModel
 
     private void OnNowPlayingChanged(PlaybackUpdate<EmbyItem?> update) => OnUi(() =>
     {
+        if (update.AudioOnly) return;
         if (update.Generation != _playback.Generation) return;
         var item = update.Value;
         if (item is not null && !_playback.IsPlaying) return;

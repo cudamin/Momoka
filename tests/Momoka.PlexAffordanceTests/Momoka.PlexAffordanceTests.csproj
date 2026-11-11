@@ -13,6 +13,7 @@
     <Compile Include="..\..\src\Momoka.Shell\Views\ItemCommands.cs" Link="Production\ItemCommands.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Media\LocalLibraryArtwork.cs" Link="Production\LocalLibraryArtwork.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\IShellActions.cs" Link="Production\IShellActions.cs" />
     <!-- Reuse only the existing fail-closed framework/unrelated-command boundaries, not its tests. -->
     <Compile Include="..\Momoka.Tests\ItemUserStateOrderTests.Boundaries.cs" Link="FrameworkBoundaries.cs" />

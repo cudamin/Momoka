@@ -148,7 +148,6 @@ internal static partial class PlexMediaTests
             {"Directory":[
                 {"key":"1","title":"电影","type":"movie"},
                 {"key":"2","title":"剧集","type":"show"},
-                {"key":"3","title":"音乐","type":"artist"},
                 {"key":"4","title":"照片","type":"photo"}]}
             """;
 

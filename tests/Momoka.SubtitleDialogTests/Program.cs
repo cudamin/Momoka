@@ -10,6 +10,12 @@ internal static class Program
 
     private static int Main()
     {
+        Test("字幕父页Cancel保留预告终端重置调用", () =>
+        {
+            var parent = new Momoka.Shell.ViewModels.DetailViewModel();
+            parent.Cancel();
+            Assert.Equal(1, parent.TrailerResets);
+        });
         SubtitleReceiptTests.Register();
         Case("字幕命令重新核权限，拒绝后零写入并允许关闭", async ui =>
         {

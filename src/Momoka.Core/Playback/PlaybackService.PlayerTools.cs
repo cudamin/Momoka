@@ -2,7 +2,7 @@ namespace Momoka.Playback;
 
 public sealed partial class PlaybackService
 {
-    public bool CanUsePlayerTools => _active is { } attempt && IsCurrent(attempt)
+    public bool CanUsePlayerTools => _active is { Request.AudioOnly: false } attempt && IsCurrent(attempt)
         && attempt.Scope.IsAvailable && CanControl && attempt.Request.MediaParts.Count <= 1;
     /// <summary>工具任务只持有起点文件与认证，不能重新读取替换后的播放请求。</summary>
     public PlayerToolSession? CapturePlayerToolSession()

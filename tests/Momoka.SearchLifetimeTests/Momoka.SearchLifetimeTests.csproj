@@ -48,7 +48,7 @@
         var library = File.ReadAllText(Path.Combine(SourceRoot, "LibraryPage.xaml.cs")).Replace("\r\n", "\n");
         var subscription = File.ReadAllText(Path.Combine(SourceRoot, "MoviePilotSubscriptionPage.xaml.cs")).Replace("\r\n", "\n");
         var generated = "#nullable enable\n// Extracted verbatim from this tree at build time.\n" +
-            "using Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Momoka.FnNas;\n" +
+            "using System.Runtime.CompilerServices;\nusing Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Momoka.FnNas;\n" +
             "using Momoka.MoviePilot;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\nnamespace Momoka.Shell.Views;\n" +
             "internal static partial class ItemCommands\n{\n" +
             "    private const string Category = \"条目命令\";\n" +

@@ -86,7 +86,7 @@ public sealed class EmbyUserPolicy
         EnableSubtitleDownloading == true || EnableSubtitleManagement == true
             ? true
             : EnableSubtitleDownloading == false && EnableSubtitleManagement == false ? false : null,
-        kind == MediaServerKind.Jellyfin
+        kind == MediaServerKind.FnMusic ? false : kind == MediaServerKind.Jellyfin
             ? (IsAdministrator || EnableCollectionManagement == true ? true : EnableCollectionManagement)
             : IsAdministrator);
 }
@@ -218,6 +218,7 @@ public sealed record EmbyConnection(
     public bool IsJellyfin => ServerKind == MediaServerKind.Jellyfin;
     public bool IsFnNas => ServerKind == MediaServerKind.FnNas;
     public bool IsPlex => ServerKind == MediaServerKind.Plex;
+    public bool IsFnMusic => ServerKind == MediaServerKind.FnMusic;
 
     /// <summary>Plex 没有收藏列表；收藏页与账号筛选不把它算作来源。</summary>
     public bool SupportsFavorites => !IsPlex;
@@ -226,14 +227,14 @@ public sealed record EmbyConnection(
     /// 跨库题材页（详情页那一行类型点进去的「这个类型下的全部影片和剧集」）目前只有 Emby 与 Jellyfin 有路：
     /// Plex 客户端未实现，飞牛的适配器对 <c>Genre</c> 条件直接抛 <see cref="NotSupportedException"/>。
     /// </summary>
-    public bool SupportsGenreBrowse => !IsPlex && !IsFnNas;
+    public bool SupportsGenreBrowse => !IsPlex && !IsFnNas && !IsFnMusic;
 
     /// <summary>
     /// Whether this product's routes and identity have to be re-probed before a saved token is trusted.
     /// All three non-Emby products do, and for the same reason: what was saved is a token and an address,
     /// and only the server can confirm that the two still belong together.
     /// </summary>
-    public bool IsProbedProduct => IsJellyfin || IsFnNas || IsPlex;
+    public bool IsProbedProduct => IsJellyfin || IsFnNas || IsPlex || IsFnMusic;
 
     public bool UsesJellyfin12Routes => IsJellyfin && (!Version.TryParse(ServerVersion?.Split('-')[0], out var version) || version.Major >= 12);
 

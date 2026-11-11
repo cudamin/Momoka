@@ -71,6 +71,13 @@ namespace Momoka.Shell.Views
     {
         internal void Release() { }
     }
+    // Event-only source; this fold fixture never starts a local index or filesystem monitor.
+    internal sealed class TestLocalLibraries
+    {
+        internal event EventHandler? Changed;
+        internal int Subscribers => Changed?.GetInvocationList().Length ?? 0;
+        internal void Notify() => Changed?.Invoke(this, EventArgs.Empty);
+    }
     internal static class ShellPrefs
     {
         internal static event Action? Changed;
@@ -100,6 +107,7 @@ namespace Momoka.Shell.Views
         private readonly DispatcherQueueTimer _watch = new();
         private TestWindow? _window = new();
         private TestShellActions? _actions = new();
+        private TestLocalLibraries? _localLibraries;
         private object? _homeSettings = new();
         private int _homeLibraryFlowIndex;
         private double _libraryFlowHeight;
@@ -121,6 +129,7 @@ namespace Momoka.Shell.Views
         internal HomeFoldMotion? LateMotion => _foldLate;
         internal bool EntranceSuppressed => _entranceSuppressed;
         internal bool HasSettings => _homeSettings is not null;
+        internal bool HasLocalLibraries => _localLibraries is not null;
         internal DispatcherQueueTimer? Retry => _foldRetry;
         internal void Apply() => ApplyLibraryChrome();
         internal void UpdateFold() => UpdateLibraryOverlay();
@@ -140,6 +149,13 @@ namespace Momoka.Shell.Views
         internal void ReplaceLate(HomeFoldMotion motion) => _foldLate = motion;
         internal void SetFlowIndex(int index) => _homeLibraryFlowIndex = index;
         private void OnShellPrefsChanged() { }
+        internal void UseLocalLibraries(TestLocalLibraries source)
+        {
+            _localLibraries = source;
+            source.Changed += OnLocalLibrariesChanged;
+        }
+        private static void OnLocalLibrariesChanged(object? sender, EventArgs args) =>
+            throw new InvalidOperationException("翻档夹具禁止本地媒体库刷新");
         private (double Line, bool HasNext)? MeasureMixedCoversLine(double gap) =>
             throw new InvalidOperationException("Mixed directory/VM rows are outside R066's fixture");
         internal static Storyboard BoardOf(HomeFoldMotion motion) =>

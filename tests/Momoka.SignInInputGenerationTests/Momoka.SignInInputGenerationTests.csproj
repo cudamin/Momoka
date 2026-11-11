@@ -24,6 +24,8 @@
         <Compile Include="..\..\src\Momoka.Core\Emby\EmbySignInIdentity.cs" Link="Production\EmbySignInIdentity.cs" />
         <Compile Include="..\..\src\Momoka.Core\Emby\EmbyServerAddress.cs" Link="Production\EmbyServerAddress.cs" />
         <Compile Include="..\..\src\Momoka.Core\FnNas\FnNasEndpoint.cs" Link="Production\FnNasEndpoint.cs" />
+        <Compile Include="..\..\src\Momoka.Core\FnMusic\FnMusicEndpoint.cs" Link="Production\FnMusicEndpoint.cs" />
+        <Compile Include="..\..\src\Momoka.Core\Emby\EmbyUrl.cs" Link="Production\EmbyUrl.cs" />
         <Compile Include="..\..\src\Momoka.Core\Plex\PlexEndpoint.cs" Link="Production\PlexEndpoint.cs" />
         <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
         <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="UiQueue.cs" />

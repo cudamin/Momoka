@@ -95,6 +95,14 @@ namespace Momoka.Shell.Windowing
 {
     public sealed class HostWindow
     {
+        private Func<Momoka.Shell.Interop.NativeRect, bool>? _clientSizeChanging;
+        public int ClientSizeChangingSubscriptions => _clientSizeChanging?.GetInvocationList().Length ?? 0;
+        public event Func<Momoka.Shell.Interop.NativeRect, bool>? ClientSizeChanging
+        {
+            add => _clientSizeChanging += value;
+            remove => _clientSizeChanging -= value;
+        }
+        public bool RaiseClientSizeChanging() => _clientSizeChanging?.Invoke(default) ?? true;
         public IntPtr Handle => IntPtr.Zero;
         public double RefreshHz() => 60;
         public event Action? GeometryChanged { add { } remove { } }

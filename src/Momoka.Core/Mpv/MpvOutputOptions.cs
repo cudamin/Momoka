@@ -529,6 +529,17 @@ public static class MpvOutputOptions
             Add(options, "demuxer-max-back-bytes", (bytes / 2).ToString(CultureInfo.InvariantCulture));
         }
 
+        options.AddRange(BuildAudio(audio, audioDevice));
+
+        if (subtitles is not null) AddSubtitleStyle(options, subtitles, source);
+
+        return options;
+    }
+
+    /// <summary>Audio output settings shared by video and windowless music playback.</summary>
+    public static IReadOnlyList<KeyValuePair<string, string>> BuildAudio(AudioSettings audio, string? audioDevice = null)
+    {
+        var options = new List<KeyValuePair<string, string>>(12);
         Add(options, "audio-channels", audio.Channels);
 
         // Filtered through the catalogue rather than joined as stored: the order stays the same however
@@ -583,8 +594,6 @@ public static class MpvOutputOptions
         {
             Add(options, "audio-delay", (audio.DelayMilliseconds / 1000.0).ToString("0.###", CultureInfo.InvariantCulture));
         }
-
-        if (subtitles is not null) AddSubtitleStyle(options, subtitles, source);
 
         return options;
     }

@@ -72,7 +72,7 @@ public sealed partial class PlaybackService
         }
         catch
         {
-            if (_current is null) RaiseNowPlaying(null, Generation);
+            if (_current is null) RaiseNowPlaying(null, Generation, ticket.AudioOnly);
             throw;
         }
 
@@ -223,10 +223,10 @@ public sealed partial class PlaybackService
         ThrowIfSuperseded(operation);
         var connection = await scope.ExecuteAsync((client, _) => Task.FromResult(client.Connection), operation.Startup.Token)
             .ConfigureAwait(false);
-        var audioDevice = await ResolveAudioDeviceAsync().WaitAsync(operation.Startup.Token).ConfigureAwait(false);
+        var audioDevice = await ResolveAudioDeviceAsync(ticket.AudioOnly).WaitAsync(operation.Startup.Token).ConfigureAwait(false);
         ThrowIfSuperseded(operation);
         var request = planner.Plan(ticket, connection, audioDevice) with { Fullscreen = fullscreen };
-        var backendKind = settings.Mpv.Backend;
+        var backendKind = ticket.AudioOnly ? MpvBackendKind.BuiltInLibMpv : settings.Mpv.Backend;
         PlayingAttempt? old;
         IPlaybackHandle? live;
         long predecessorGeneration;
@@ -239,7 +239,8 @@ public sealed partial class PlaybackService
             parkedPredecessor = old is null && ReferenceEquals(_continuation?.Handle, live)
                 && _continuation?.Generation == predecessorGeneration;
         }
-        var takeover = backendKind == MpvBackendKind.BuiltInLibMpv && live?.CanSwapTo(request) == true ? live : null;
+        var takeover = !request.AudioOnly && old?.Request.AudioOnly != true
+            && backendKind == MpvBackendKind.BuiltInLibMpv && live?.CanSwapTo(request) == true ? live : null;
         ThrowIfSuperseded(operation);
         if (takeover is not null) takeover.HandOver();
         else if (!parkedPredecessor)
@@ -278,7 +279,10 @@ public sealed partial class PlaybackService
                 handle = null;
             }
             ThrowIfSuperseded(operation);
-            if (handle is null) handle = await backendFactory().StartAsync(request, operation.Startup.Token).ConfigureAwait(false);
+            if (handle is null) handle = await (ticket.AudioOnly ? audioBackendFactory ?? backendFactory : backendFactory)()
+                .StartAsync(request, operation.Startup.Token).ConfigureAwait(false);
+            if (request.AudioOnly && !handle.HasControlChannel)
+                throw new InvalidOperationException("音乐播放器没有建立控制通道，已停止启动");
 
             var trackState = new PlaybackTrackState(ticket.Source, request);
             lock (_requestGate)
@@ -306,7 +310,7 @@ public sealed partial class PlaybackService
             LaunchShaderProfile = request.ShaderProfile;
             LaunchShaderDecision = request.ShaderDecision;
             LaunchShaderReason = request.ShaderReason;
-            LaunchQualityPreset = settings.Video.QualityPreset;
+            LaunchQualityPreset = request.AudioOnly ? null : settings.Video.QualityPreset;
             PlayingSource = ticket.Source;
             AudioDeviceInUse = null;
             LastLaunch = new LaunchRecord(DateTimeOffset.Now, request.Title, request.ShaderProfile,
@@ -330,7 +334,7 @@ public sealed partial class PlaybackService
                     catch (OperationCanceledException) { }
                     catch (Exception error) { Log.Warn(Category, "读取起播轨道快照失败，等待下一次轨道通知", error); }
                 }
-                RaiseNowPlaying(ticket.Item, attempt.Generation);
+                RaiseNowPlaying(ticket.Item, attempt.Generation, attempt.Request.AudioOnly);
                 await ReportAsync(scope, "开始", (client, token) => client.ReportPlaybackStartAsync(
                     Build(attempt, TimeFormat.ToTicks(Math.Max(0, request.StartSeconds)), false, null), token), operation.Lifetime.Token)
                     .ConfigureAwait(false);
@@ -398,7 +402,7 @@ public sealed partial class PlaybackService
                     LaunchShaderReason = null;
                     LaunchQualityPreset = null;
                     PlayingSource = null;
-                    if (attempt is not null) RaiseNowPlaying(null, attempt.Generation);
+                    if (attempt is not null) RaiseNowPlaying(null, attempt.Generation, attempt.Request.AudioOnly);
                 }
             }
             finally { _gate.Release(); }
@@ -412,7 +416,7 @@ public sealed partial class PlaybackService
         {
             if (!IsCurrent(attempt)) return;
             attempt.HasStarted |= status.PictureStarted || status.HasPosition && status.Position > attempt.Request.StartSeconds + 0.5;
-            Raise(StatusUpdated, new PlaybackUpdate<PlayerStatus>(attempt.Generation, status));
+            Raise(StatusUpdated, new PlaybackUpdate<PlayerStatus>(attempt.Generation, status) { AudioOnly = attempt.Request.AudioOnly });
             Raise(StatusChanged, status);
         }
         void OnTracks(IReadOnlyList<MpvTrack> tracks)
@@ -420,13 +424,13 @@ public sealed partial class PlaybackService
             if (!IsCurrent(attempt)) return;
             attempt.TrackState.Observe(tracks);
             _ = SelectInitialExternalSubtitleAsync(attempt, tracks);
-            Raise(TracksUpdated, new PlaybackUpdate<IReadOnlyList<MpvTrack>>(attempt.Generation, tracks));
+            Raise(TracksUpdated, new PlaybackUpdate<IReadOnlyList<MpvTrack>>(attempt.Generation, tracks) { AudioOnly = attempt.Request.AudioOnly });
             Raise(TracksChanged, tracks);
         }
         void OnHost(string key, string value)
         {
             if (!IsCurrent(attempt)) return;
-            Raise(VideoWindowUpdated, new PlaybackUpdate<(string Key, string Value)>(attempt.Generation, (key, value)));
+            Raise(VideoWindowUpdated, new PlaybackUpdate<(string Key, string Value)>(attempt.Generation, (key, value)) { AudioOnly = attempt.Request.AudioOnly });
             try { VideoWindowMessage?.Invoke(key, value); }
             catch (Exception error) { Log.Warn(Category, "视频窗口通知失败", error); }
         }

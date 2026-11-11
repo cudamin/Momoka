@@ -60,6 +60,10 @@ namespace Momoka.Shell.ViewModels
         public void ReplaceOwner() => _art = new();
         private void BusyChanged() { }
         private void AnnounceAffordances() { }
+        // Trailer loading is never initialized by this image fixture; the complete production Cancel
+        // still calls its terminal reset dependency, without inventing a second trailer lifecycle.
+        public int TrailerResets { get; private set; }
+        private void ResetTrailers() => TrailerResets++;
         private void OnSubjectStateChanged(object? sender, PropertyChangedEventArgs args) { }
         private Task<EmbyItem?> LoadShowAsync(EmbyItem item, CancellationTokenSource art)
         {

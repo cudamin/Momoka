@@ -100,6 +100,10 @@ internal sealed partial class DetailViewModel : PageViewModel
     private static Task LoadEpisodesAsync(EmbyItem? item, bool retarget, CancellationToken token) => throw new InvalidOperationException("Movie-only fixture");
     private void BusyChanged() { }
     private void AnnounceAffordances() { }
+    // This movie fixture never initializes trailer work. Retain the real caller's cancellation seam;
+    // its terminal boundary has no requests or presentation state to cancel.
+    internal int TrailerResets { get; private set; }
+    private void ResetTrailers() => TrailerResets++;
     private sealed record FixtureSettings(AppSettings Settings);
     private sealed class EpisodeShelfBoundary
     {

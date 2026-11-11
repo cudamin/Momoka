@@ -11,7 +11,7 @@ public sealed partial class EmbyClient
         var supported = LibraryBrowse.Sections(collectionType, Connection.ServerKind).Any(entry => entry.Section == section)
             || Connection.IsJellyfin && section == LibrarySection.Favorites;
         if (!supported) throw new NotSupportedException("当前服务器不支持此媒体库分类");
-        if (Connection.IsFnNas || Connection.IsPlex) return GetItemsAsync(query, cancellationToken);
+        if (Connection.IsFnNas || Connection.IsPlex || Connection.IsFnMusic) return GetItemsAsync(query, cancellationToken);
         var path = LibraryBrowse.Path(section, group, Connection.UserId);
         if (section == LibrarySection.Upcoming)
             return http.GetJsonAsync<ItemsResult>(Url(path, LibraryUpcoming.Parameters(query, Connection.UserId, Connection.ServerKind)),
@@ -28,7 +28,7 @@ public sealed partial class EmbyClient
     /// </summary>
     public async Task FetchLibrarySubviewsAsync(IReadOnlyList<EmbyItem> libraries, CancellationToken cancellationToken)
     {
-        if (Connection.IsFnNas || Connection.IsPlex) return;
+        if (Connection.IsFnNas || Connection.IsPlex || Connection.IsFnMusic) return;
         var ids = libraries
             .Where(item => item.CollectionType is null && item.Subviews is null && item.Id.Length > 0)
             .Select(item => item.Id)

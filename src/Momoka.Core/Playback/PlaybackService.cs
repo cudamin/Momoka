@@ -12,6 +12,8 @@ public readonly record struct PlaybackProgress(long PositionTicks, long RunTimeT
     public PlaybackProgress(long PositionTicks, long RunTimeTicks, bool IsPaused, string Title)
         : this(PositionTicks, RunTimeTicks, IsPaused, Title, 0) { }
 
+    public bool AudioOnly { get; init; }
+
     public double Fraction => RunTimeTicks > 0 ? Math.Clamp(PositionTicks / (double)RunTimeTicks, 0, 1) : 0;
     public string Clock => RunTimeTicks > 0
         ? $"{TimeFormat.Clock(PositionTicks)} / {TimeFormat.Clock(RunTimeTicks)}"
@@ -19,7 +21,10 @@ public readonly record struct PlaybackProgress(long PositionTicks, long RunTimeT
 }
 
 /// <summary>The generation is captured at the source, before a UI dispatcher can delay delivery.</summary>
-public readonly record struct PlaybackUpdate<T>(long Generation, T Value);
+public readonly record struct PlaybackUpdate<T>(long Generation, T Value)
+{
+    public bool AudioOnly { get; init; }
+}
 
 /// <summary>
 /// Owns playback and server reporting independently of any page. Request cancellation, handle ownership,
@@ -31,7 +36,8 @@ public sealed partial class PlaybackService(
     Func<IPlaybackBackend> backendFactory,
     PlaybackPlanner planner,
     AudioDeviceCatalogue? audioDevices = null,
-    bool allowPlayback = true)
+    bool allowPlayback = true,
+    Func<IPlaybackBackend>? audioBackendFactory = null)
 {
     private const string Category = "playback";
     private const int MarkWatchedFloor = 50;
@@ -71,12 +77,13 @@ public sealed partial class PlaybackService(
 
     public long Generation => Interlocked.Read(ref _playbackGeneration);
     public bool IsPlaying => _current is not null;
+    public bool IsAudioOnly => _active?.Request.AudioOnly == true;
     public long? ActiveFileGeneration => (_current as IFileScopedPlayerControl)?.FileGeneration;
     public EmbyItem? NowPlaying => _current is not null && _playingItem is { } item && item.Generation == Generation
         ? item.Item : null;
     public bool? PictureInHostWindow => _current?.PictureInHostWindow;
     public MpvBackendKind? PlayingBackend => _active?.BackendKind;
-    public bool PlayingWithSvp => _active?.Request.SvpEnabled == true;
+    public bool PlayingWithSvp => _active is { Request: { AudioOnly: false, SvpEnabled: true } };
     public PlayerStatus Status => (_current as IPlayerControl)?.Status ?? new PlayerStatus();
     public bool CanControl => _current is IPlayerControl and IPlaybackHandle { HasControlChannel: true };
     public bool ReadsOverlap => _current?.ReadsOverlap ?? false;
@@ -110,11 +117,12 @@ public sealed partial class PlaybackService(
     public string? AudioDeviceInUse { get; private set; }
     public void NoteAudioDevice(string? description) => AudioDeviceInUse = description;
     public string? Validate() => backendFactory().Validate();
+    public string? ValidateAudio() => (audioBackendFactory ?? backendFactory)().Validate();
 
-    private async Task<string?> ResolveAudioDeviceAsync()
+    private async Task<string?> ResolveAudioDeviceAsync(bool audioOnly = false)
     {
         var stored = settings.Audio.Device.Trim();
-        if (stored.Length == 0 || audioDevices is null || settings.Mpv.Backend != MpvBackendKind.BuiltInLibMpv) return null;
+        if (stored.Length == 0 || audioDevices is null || !audioOnly && settings.Mpv.Backend != MpvBackendKind.BuiltInLibMpv) return null;
         var devices = await audioDevices.LoadAsync().ConfigureAwait(false);
         var usable = AudioDeviceCatalogue.UsableDevice(stored, devices);
         if (usable.Length > 0) return usable;
@@ -145,10 +153,10 @@ public sealed partial class PlaybackService(
         }
     }
 
-    private void RaiseNowPlaying(EmbyItem? item, long generation)
+    private void RaiseNowPlaying(EmbyItem? item, long generation, bool audioOnly = false)
     {
         if (generation == Generation) _playingItem = new(generation, item);
-        Raise(NowPlayingUpdated, new PlaybackUpdate<EmbyItem?>(generation, item));
+        Raise(NowPlayingUpdated, new PlaybackUpdate<EmbyItem?>(generation, item) { AudioOnly = audioOnly });
         Raise(NowPlayingChanged, item);
     }
 
@@ -300,7 +308,8 @@ public sealed partial class PlaybackService(
         return handle is null ? Task.CompletedTask : SetPropertyAsync(handle, Generation, name, value);
     }
 
-    public Task ApplyScreenshotDirectoryAsync(string directory) => SetPropertyAsync("screenshot-directory", directory);
+    public Task ApplyScreenshotDirectoryAsync(string directory) => IsAudioOnly
+        ? Task.CompletedTask : SetPropertyAsync("screenshot-directory", directory);
 
     /// <summary>
     /// 「截图格式与画质那几行改了，推给正在播的那一部」（用户令 2026-10-11：截图参数做成设置页的自定义选项）。
@@ -311,13 +320,13 @@ public sealed partial class PlaybackService(
     /// </summary>
     public async Task ApplyScreenshotOptionsAsync()
     {
-        if (_current is not { } handle) return;
+        if (IsAudioOnly || _current is not { } handle) return;
         var generation = Generation;
         var revision = Interlocked.Increment(ref _screenshotOptionsRevision);
         var options = MpvBaseline.ScreenshotOptions.From(settings.Mpv).ToMpvOptions().ToArray();
         var scoped = handle as IFileScopedPlayerControl;
         var file = scoped?.FileGeneration;
-        bool Current() => IsCurrent(handle, generation) && revision == Volatile.Read(ref _screenshotOptionsRevision)
+        bool Current() => !IsAudioOnly && IsCurrent(handle, generation) && revision == Volatile.Read(ref _screenshotOptionsRevision)
             && (scoped is null || file == scoped.FileGeneration);
         await _screenshotOptionsGate.WaitAsync().ConfigureAwait(false);
         try
@@ -358,14 +367,14 @@ public sealed partial class PlaybackService(
     /// <summary>Unspecified live options restore mpv defaults; omitting a write would keep the old value.</summary>
     public async Task ApplySubtitleStyleAsync()
     {
-        if (_current is not { } handle) return;
+        if (IsAudioOnly || _current is not { } handle) return;
         var generation = Generation;
         var revision = Interlocked.Increment(ref _subtitleStyleRevision);
         var scoped = handle as IFileScopedPlayerControl;
         var file = scoped?.FileGeneration;
         var wanted = MpvOutputOptions.SubtitleAppearance(settings.Playback)
             .ToDictionary(option => option.Key, option => option.Value, StringComparer.Ordinal);
-        bool Current() => ReferenceEquals(_current, handle) && Generation == generation
+        bool Current() => !IsAudioOnly && ReferenceEquals(_current, handle) && Generation == generation
             && Volatile.Read(ref _subtitleStyleRevision) == revision
             && (scoped is null || _active is { Ending: false } && file == scoped.FileGeneration);
 
@@ -521,7 +530,7 @@ public sealed partial class PlaybackService(
     public async Task<bool> SetShaderGroupAsync(ShaderGroup? group)
     {
         var handle = _current;
-        if (handle is not IPlayerControl control || !handle.HasControlChannel) return false;
+        if (IsAudioOnly || handle is not IPlayerControl control || !handle.HasControlChannel) return false;
         var generation = Generation;
         // The native file counter is not the service counter: HandOver and Swap each advance it.
         // Capture once before waiting/reading, and retain it for both writes and rollback.
@@ -642,7 +651,7 @@ public sealed partial class PlaybackService(
 
         // A retained handle may already contain B while the service has not established B yet.
         // Do not bind a new transaction in that handoff gap; normal external controls keep their contract.
-        bool Current() => ReferenceEquals(_current, handle) && generation == Generation
+        bool Current() => !IsAudioOnly && ReferenceEquals(_current, handle) && generation == Generation
             && (fileControl is null || _active is { Ending: false } && fileGeneration == fileControl.FileGeneration)
             && (batchControl is null || batchGeneration == batchControl.FileGeneration);
 

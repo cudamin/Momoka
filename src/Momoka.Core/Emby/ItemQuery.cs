@@ -102,6 +102,14 @@ public sealed class ItemQuery
 {
     public string? ParentId { get; init; }
 
+    /// <summary>
+    /// Local routing hint for backends whose library sections and media containers share numeric IDs.
+    /// Never sent to Emby/Jellyfin; the server's own ParentId/ArtistIds remain their query contract.
+    /// </summary>
+    public string? ParentItemType { get; init; }
+    /// <summary>音乐艺术家关联的曲目/专辑查询，ID 属于当前服务器。</summary>
+    public IReadOnlyList<string> ArtistIds { get; init; } = [];
+
     public string? SearchTerm { get; init; }
 
     public bool Recursive { get; init; }
@@ -348,6 +356,7 @@ public sealed class ItemQuery
         if (GroupItemsIntoCollections is { } group) parameters.Add(("GroupItemsIntoCollections", group ? "true" : "false"));
         if (!string.IsNullOrWhiteSpace(SearchTerm)) parameters.Add(("SearchTerm", SearchTerm!.Trim()));
         if (!string.IsNullOrWhiteSpace(PersonId)) parameters.Add(("PersonIds", PersonId!.Trim()));
+        if (ArtistIds.Count > 0) parameters.Add(("ArtistIds", string.Join(',', ArtistIds)));
         if (IncludeItemTypes.Count > 0) parameters.Add(("IncludeItemTypes", string.Join(',', IncludeItemTypes)));
         if (!string.IsNullOrWhiteSpace(MediaTypes)) parameters.Add(("MediaTypes", MediaTypes));
         if (!string.IsNullOrWhiteSpace(NameStartsWith)) parameters.Add(("NameStartsWithOrGreater", NameStartsWith!.Trim()));

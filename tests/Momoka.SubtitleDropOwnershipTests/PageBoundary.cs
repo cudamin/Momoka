@@ -38,6 +38,8 @@ public sealed partial class PlayerPage
     private void OnSystemCursorChanged() { }
     private void OnGeometryChanged() { }
     private void OnClientRectTransition(NativeRect from, NativeRect to) { }
+    private bool OnClientSizeChanging(NativeRect client) =>
+        throw new Momoka.Tests.AssertionException("字幕拖拽专项禁止进入窗口缩放");
     private void OnClientSizeChanged(NativeRect client) { }
     private void OnInteractiveResizeChanged(bool active) { }
     private void CancelWindowChange() { }

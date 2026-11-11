@@ -38,6 +38,22 @@ public sealed class EmbyHttp : IDisposable
     private Momoka.Plex.PlexHttp? _plexHttp;
     private Momoka.Plex.PlexClient? _plexClient;
     private readonly object _plexGate = new();
+    private Momoka.FnMusic.FnMusicHttp? _fnMusicHttp;
+    private Momoka.FnMusic.FnMusicClient? _fnMusicClient;
+    private readonly object _fnMusicGate = new();
+
+    internal Momoka.FnMusic.FnMusicClient FnMusicClient
+    {
+        get
+        {
+            lock (_fnMusicGate)
+            {
+                _fnMusicHttp ??= _handlerInjected ? new Momoka.FnMusic.FnMusicHttp(_handler, disposeHandler: false)
+                    : new Momoka.FnMusic.FnMusicHttp();
+                return _fnMusicClient ??= new Momoka.FnMusic.FnMusicClient(_fnMusicHttp);
+            }
+        }
+    }
 
     internal Momoka.FnNas.FnNasClient FnNasClient
     {
@@ -495,6 +511,7 @@ public sealed class EmbyHttp : IDisposable
         _long.Dispose();
         _fnNasHttp?.Dispose();
         _plexHttp?.Dispose();
+        _fnMusicHttp?.Dispose();
         _handler.Dispose();
     }
 

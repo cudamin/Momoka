@@ -16,6 +16,14 @@ internal static class HomeLayoutTests
 {
     public static void Register()
     {
+        Test("主页版面：保留媒体库入口但不为音乐建立影视最近添加", () =>
+        {
+            var music = new EmbyItem { Id = "music", Name = "音乐", CollectionType = "music" };
+            var plan = HomeLayout.Plan(null, [music, Library("movies", "电影")]);
+            Assert.True(plan.Any(row => row.Key == HomeLayout.Libraries));
+            Assert.False(plan.Any(row => row.Key == HomeLayout.LibraryKey(music)));
+            Assert.True(plan.Any(row => row.Key == HomeLayout.LibraryKey(Library("movies", "电影"))));
+        });
         Test("主页版面：没有存档时按默认次序，媒体库排在后面", () =>
         {
             var plan = HomeLayout.Plan(null, [Library("1", "电影"), Library("2", "电视节目")]);

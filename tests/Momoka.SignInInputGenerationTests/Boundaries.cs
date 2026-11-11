@@ -99,7 +99,7 @@ namespace Momoka.Emby
 {
     public sealed class EmbyApiException(string message) : Exception(message);
 
-    public enum MediaServerKind { Emby, Jellyfin, FnNas, Plex }
+    public enum MediaServerKind { Emby, Jellyfin, FnNas, Plex, FnMusic }
 
     public sealed class EmbyUser
     {
@@ -131,6 +131,12 @@ namespace Momoka.Emby
     }
 
     // Rebase is not exercised by the VM. Fail closed instead of loading real redirect/HTTP code.
+    internal static class EmbyClient
+    {
+        internal static string ImagePath(string itemId, string imageType, int? index) =>
+            throw new InvalidOperationException("登录输入测试禁止图片请求");
+    }
+
     internal static class EmbyHttpRedirect
     {
         internal static void Validate(Uri address) => throw new InvalidOperationException("R-008禁止重定向入口");

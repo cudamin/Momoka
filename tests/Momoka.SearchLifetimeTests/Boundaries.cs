@@ -173,7 +173,18 @@ namespace Momoka.Shell.Views
         { var args = new Microsoft.UI.Xaml.Controls.ContentDialogButtonClickEventArgs(); OnMatch(this, args); return args; }
     }
     // The command only consumes the current item and not the actual card rendering/image lifecycle.
-    public sealed class CardItem(Momoka.Emby.EmbyItem item) { public Momoka.Emby.EmbyItem Item { get; } = item; }
+    public sealed class CardItem(Momoka.Emby.EmbyItem item)
+    {
+        public Momoka.Emby.EmbyItem Item { get; } = item;
+        public bool IsCurrent => Item.Source?.IsAvailable != false;
+        // This search fixture has no continue-watching row; that unrelated action must never dispatch.
+        public bool AllowResumeRemoval => false;
+    }
+    internal static class ConfirmDialog
+    {
+        internal static Func<string, string, string, Task<bool>> ForLibrary(Microsoft.UI.Xaml.FrameworkElement owner) =>
+            (_, _, _) => throw new InvalidOperationException("搜索夹具禁止续播移除确认");
+    }
     public interface IShellActions
     {
         void Notify(string text, Microsoft.UI.Xaml.Controls.InfoBarSeverity severity = Microsoft.UI.Xaml.Controls.InfoBarSeverity.Informational);

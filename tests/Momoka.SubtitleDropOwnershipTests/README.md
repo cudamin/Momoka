@@ -1,6 +1,8 @@
 # R-045 字幕拖拽所有权专项回归
 
-本项目已最小注册到方案构建，仍独立于共享 `Momoka.Tests` 跑器、需要单独运行；不覆盖共享 Program、不启动 Shell/App/WinUI/native。74 项实际生产方法回归，另有 5 项提取器 fail-closed 构建反例，不把它们与 74 项相加。
+本项目已最小注册到方案构建，仍独立于共享 `Momoka.Tests` 跑器、需要单独运行；不覆盖共享 Program、不启动 Shell/App/WinUI/native。75 项实际生产方法回归，另有 5 项提取器 fail-closed 构建反例，不把它们与 75 项相加。
+
+2026-11-11 主树整合补齐 `ClientSizeChanging` 的真实委托订阅边界：实际 Attach／Detach／Shutdown 仍原样抽取；新增检查附加、分离、重新附加和关闭后的订阅数，误触发缩放端点必须拒绝。真实缩放行为由 `Momoka.ResizeHandoffTests` 另验。
 
 ## 实际生产边界
 

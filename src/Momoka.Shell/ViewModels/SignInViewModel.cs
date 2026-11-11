@@ -57,7 +57,7 @@ public sealed partial class SignInViewModel : PageViewModel
     private const string Category = "login";
 
     /// <summary>The caption the card wears whenever it is not saying something more specific.</summary>
-    private const string FirstCaption = "连接到你的 Emby、Jellyfin、飞牛影视或 Plex 服务器";
+    private const string FirstCaption = "连接到你的 Emby、Jellyfin、飞牛影视、飞牛音乐或 Plex 服务器";
 
     private PublicSystemInfo? _detectedServer;
 
@@ -356,7 +356,7 @@ public sealed partial class SignInViewModel : PageViewModel
             if (!IsCurrent(token) || !EmbySignInIdentity.SameAddress(Address, apiBase.AbsoluteUri, info.ServerKind)) return;
 
             ServerLabel = info.ServerName is { Length: > 0 } name
-                ? $"{name}　·　{(info.ServerKind == MediaServerKind.FnNas ? "飞牛影视" : info.ServerKind.ToString())} {info.Version}"
+                ? $"{name}　·　{(info.ServerKind == MediaServerKind.FnNas ? "飞牛影视" : info.ServerKind == MediaServerKind.FnMusic ? "飞牛音乐" : info.ServerKind.ToString())} {info.Version}"
                 : apiBase.Host;
 
             _detectedServer = info;
