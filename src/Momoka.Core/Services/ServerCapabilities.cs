@@ -159,7 +159,7 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
         {
             var connection = source.CurrentConnection;
             return new ItemMenuPermissions(connection.IsAdministrator, connection.CanDownload,
-                connection.CanDeleteContent, connection.CanManageSubtitles, connection.CanManageCollections);
+                connection.CanDeleteContent, connection.CanManageSubtitles, connection.CanManageCollections, connection.CanConvertMedia);
         }
         catch (OperationCanceledException) { return default; }
     }

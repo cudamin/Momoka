@@ -119,7 +119,24 @@ public enum ItemCommand
     RemoveFromLibrary,
 
     /// <summary>只解除当前合集的成员关系，不删除媒体。</summary>
-    RemoveFromCollection
+    RemoveFromCollection,
+
+    /// <summary>批量播放从第一项的开头开始；由播放服务执行。</summary>
+    PlayFromBeginning,
+
+    /// <summary>随机播放本次所选项目；由播放服务执行。</summary>
+    Shuffle,
+
+    AddToPlaylist,
+
+    /// <summary>通过服务器提供的目标与选项提交媒体转换任务。</summary>
+    Convert,
+
+    /// <summary>清除所选媒体的识别与元数据；确认后调用 Metadata/Reset。</summary>
+    ResetMetadata,
+
+    /// <summary>扫描所选文件夹中的媒体库文件，不扫描整台服务器。</summary>
+    ScanLibraryFiles
 }
 
 /// <summary>
@@ -142,7 +159,8 @@ public readonly record struct ItemMenuPermissions(
     bool? CanDownload = null,
     bool? CanDeleteContent = null,
     bool? CanManageSubtitles = null,
-    bool? CanManageCollections = null);
+    bool? CanManageCollections = null,
+    bool? CanConvertMedia = null);
 
 /// <summary>
 /// 一张卡片的「更多」菜单上有哪几条、按什么次序、每条写什么字 —— 整个答案由条目自己决定，一个输入一个输出。
@@ -177,6 +195,9 @@ public static class ItemMenu
                 && CanDelete(permissions) && (item is null || IsFile(item)),
             ItemCommand.Subtitles => CanManageSubtitles(permissions),
             ItemCommand.AddToCollection or ItemCommand.RemoveFromCollection => ItemCollections.CanManage(kind, permissions, item),
+            ItemCommand.AddToPlaylist => kind == MediaServerKind.Emby,
+            ItemCommand.Convert => kind == MediaServerKind.Emby && permissions.CanConvertMedia != false,
+            ItemCommand.ResetMetadata or ItemCommand.ScanLibraryFiles => kind == MediaServerKind.Emby && IsAdministrator(permissions),
             ItemCommand.EditMetadata or ItemCommand.ChangeCover or ItemCommand.Identify or ItemCommand.RefreshMetadata
                 or ItemCommand.ScanLibrary or ItemCommand.FnNasMatch or ItemCommand.FnNasUnmatch => IsAdministrator(permissions),
             _ => true

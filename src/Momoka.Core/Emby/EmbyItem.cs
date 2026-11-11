@@ -812,6 +812,12 @@ public sealed class EmbyItem
 
     public bool IsFolder { get; set; }
 
+    /// <summary>Emby 的逐项删除授权；批量删除同时核对当前账号策略。</summary>
+    public bool? CanDelete { get; set; }
+
+    /// <summary>服务器返回的媒体种类，用于媒体转换与播放列表适用性。</summary>
+    public string? MediaType { get; set; }
+
     public string? CollectionType { get; set; }
 
     /// <summary>
