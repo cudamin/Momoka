@@ -197,11 +197,8 @@ internal static class MoviePilotSubscriptionPageStateTests
             Assert.True(ReferenceEquals(primary.Parent, Named("HeroRow")));
             var materialHost = Named("HeroSurface").Parent!;
             Assert.True(ReferenceEquals(materialHost.Parent, primary));
-            Assert.False(document.Descendants().Any(element => element.Name.LocalName == "SystemBackdropElement"),
-                "订阅详情应只复用主窗口云母，不能在头部卡片重复创建背景");
-            Assert.Equal("Border", Named("PlainBackdrop").Name.LocalName);
-            Assert.Equal("{ThemeResource EgMicaCommandBrush}", (string?)Named("PlainBackdrop").Attribute("Background"));
-            Assert.Equal("{ThemeResource EgMicaContentBrush}", (string?)Named("MicaLayerSource").Attribute("Background"));
+            Assert.True(ReferenceEquals(Named("HeroMica").Parent, materialHost));
+            Assert.Equal("False", (string?)Named("HeroMica").Attribute("IsHitTestVisible"));
             Assert.True(ReferenceEquals(Named("HeroOverview").Parent, Named("HeroContent")));
             Assert.True(ReferenceEquals(Named("DetailActions").ElementsAfterSelf().First(), Named("HeroOverview")));
             Assert.True(ReferenceEquals(Named("SeasonPanel").Parent, body));

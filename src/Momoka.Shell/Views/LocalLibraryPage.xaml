@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:vm="using:Momoka.Shell.ViewModels"
-    Background="{ThemeResource EgMicaCommandBrush}">
+    Background="{ThemeResource LayerFillColorDefaultBrush}">
     <Grid Padding="{StaticResource EgPageMargin}" RowSpacing="{StaticResource EgSpaceL}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -33,7 +33,6 @@
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
             Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
         <ListView x:Name="LocalLibraryEntries" Grid.Row="3" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}"
-            Background="{ThemeResource EgMicaContentBrush}" CornerRadius="{StaticResource OverlayCornerRadius}"
             SelectionMode="None" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="vm:LocalLibraryRow">

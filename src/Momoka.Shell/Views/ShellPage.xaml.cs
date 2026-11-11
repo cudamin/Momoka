@@ -192,7 +192,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
         ContentFrame.Navigated += (_, _) =>
         {
             _browsePresentation.Attach();
-            PaintTitleInk();
             CompleteNavigation();
         };
         ContentFrame.NavigationStopped += (_, _) => _browsePresentation.Stop();
@@ -380,8 +379,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <inheritdoc />
     public void SetTitleStrip(TitleStrip strip)
     {
-        // Compact/immersive mode can change while both states use the same title ink.
-        SyncMicaSurfaces();
         if (_titleStrip == strip) return;
 
         _titleStrip = strip;
@@ -421,7 +418,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private void PaintTitleInk()
     {
         PaintHomeNavigation();
-        SyncMicaSurfaces();
         var onScrim = _titleStrip == TitleStrip.OnScrim;
         var highContrast = new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast;
 
@@ -429,7 +425,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _titleInkHover.Color = Ink(highContrast ? "SystemColorWindowTextColor" : "EgAccentBrush");
         _trailInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimBrush" : "EgTextDimBrush");
 
-        TrailBar.Background = _titleStrip == TitleStrip.Plain && !UsesMicaBackground
+        TrailBar.Background = _titleStrip == TitleStrip.Plain
             ? Application.Current.Resources["LayerFillColorDefaultBrush"] as Brush
             : null;
 

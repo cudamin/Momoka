@@ -26,7 +26,6 @@ namespace Microsoft.UI.Xaml
     public class DependencyObject { }
     public class FrameworkElement : DependencyObject
     {
-        public object? Background { get; set; }
         public object? Tag { get; set; }
         public object? XamlRoot { get; set; }
         public event EventHandler? Loaded;
