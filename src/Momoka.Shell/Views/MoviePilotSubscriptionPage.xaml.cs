@@ -151,9 +151,6 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         // 头部那一段让开的高度是「图的下沿折进滚动内容坐标」，所以要减掉这一截（赶在提前返回之前写：
         // 换主题、面包屑显隐都会挪它，而那些时候边距未必变）。
         MediaViewModel.HeaderLift = lift;
-        if (Math.Abs(PlainBackdrop.Margin.Top + lift) > 0.5)
-            PlainBackdrop.Margin = new Thickness(0, -lift, 0, 0);
-
         if (Math.Abs(DetailBackdropRoot.Margin.Top + lift) > 0.5)
             DetailBackdropRoot.Margin = new Thickness(0, -lift, 0, 0);
     }
@@ -220,7 +217,6 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         Unloaded += (_, _) =>
         {
             _appearanceObserved = false;
-            ReleasePlainMica();
             _appearanceSystemTimer?.Stop();
             ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         };
@@ -259,7 +255,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private void ApplyHeroSurface()
     {
         var plain = MediaViewModel.Plain;
-        HeroSurface.Background = null;
+        HeroSurface.Background = plain ? MicaLayerSource.Background : null;
         HeroSurface.BorderBrush = plain ? ResourceBrush("EgBorderBrush") : null;
         HeroSurface.BorderThickness = plain ? CardBorderThickness : default;
         HeroSurface.Padding = plain ? new Thickness(HeroCardPadding) : default;
@@ -558,7 +554,6 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         _pageLifetime?.Cancel(); _pageLifetime?.Dispose(); _pageLifetime = null;
         ThemeHost.Changed -= OnShowcaseThemeChanged;
         _appearanceObserved = false;
-        ReleasePlainMica();
         _appearanceSystemTimer?.Stop();
         ShellPrefs.AppearanceChanged -= OnAppearanceChanged;
         MediaViewModel.PropertyChanged -= OnShowcaseChanged;

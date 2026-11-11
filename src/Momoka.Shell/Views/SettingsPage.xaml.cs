@@ -758,6 +758,9 @@ public sealed partial class SettingsPage : Page, IShellContent
         }
 
         HostedFrame.Navigate(page, parameter);
+        // Only the hosted instance shares this window's Mica; standalone pages keep their fill.
+        if (HostedFrame.Content is Page hostedPage)
+            hostedPage.Background = Background;
 
         // Nothing in this frame goes back, and a stack that grows by one per visit keeps a page alive with it.
         HostedFrame.BackStack.Clear();

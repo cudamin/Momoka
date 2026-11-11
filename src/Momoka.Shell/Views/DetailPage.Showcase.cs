@@ -15,17 +15,18 @@ public sealed partial class DetailPage
     /// 半透明黑（<see cref="DetailHero.ScrimCeiling"/> 那一档），改全局画刷会把别的页面一起改掉。
     /// </summary>
     private readonly SolidColorBrush _sheetBrush = new();
+    private Brush? _pageBackground;
 
-    private bool PlainMica => !ViewModel.AppearanceSettings.EnableImmersive
-        && ViewModel.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode;
+    private bool PlainMica => !ViewModel.AppearanceSettings.EnableImmersive;
+
+    internal bool UsesMicaBackground => PlainMica;
 
     private void ApplyPlainMica()
     {
         var plain = PlainMica;
-        DetailMica.Apply(PlainBackdrop, plain && _appearanceObserved, alternate: true);
-        DetailMica.Apply(HeroMicaTop, plain && _appearanceObserved && ViewModel.HeroCardShown);
-        DetailMica.Apply(HeroMicaBottom, plain && _appearanceObserved && ViewModel.HeroCardShown);
-        var surface = plain ? null : Application.Current.Resources["EgSurfaceBrush"] as Brush;
+        Background = plain ? null : _pageBackground;
+        PlainBackdrop.Visibility = plain ? Visibility.Visible : Visibility.Collapsed;
+        var surface = plain ? MicaLayerSource.Background : Application.Current.Resources["EgSurfaceBrush"] as Brush;
         HeroCardTop.Background = surface;
         HeroCardBottom.Background = surface;
         PlainHeroSurface.Background = surface;
@@ -33,13 +34,6 @@ public sealed partial class DetailPage
         HeroScrim.Opacity = plain ? 0 : 1;
         foreach (var panel in BodyPanels)
             panel.Background = plain ? MicaLayerSource.Background : _panelFill;
-    }
-
-    private void ReleasePlainMica()
-    {
-        PlainBackdrop.SystemBackdrop = null;
-        HeroMicaTop.SystemBackdrop = null;
-        HeroMicaBottom.SystemBackdrop = null;
     }
 
     /// <summary>五块正文面板的底 —— 沉浸档里淡到 0，纸面让开之后不再有「板里的板」那一层。</summary>
@@ -61,6 +55,7 @@ public sealed partial class DetailPage
     /// <summary>第一帧之前准备本页的正文画刷。</summary>
     private void PrepareShowcase()
     {
+        _pageBackground = PageBackgroundSource.Background;
         _sheetBrush.Color = PaperColor;
         BodyPaper.Background = _sheetBrush;
         BodySheet.Background = null;
@@ -75,6 +70,11 @@ public sealed partial class DetailPage
             PaintBackdropReading();
         });
         MicaLayerSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => ApplyPlainMica());
+        PageBackgroundSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) =>
+        {
+            _pageBackground = PageBackgroundSource.Background;
+            ApplyPlainMica();
+        });
         RefreshPanelBrushes();
         foreach (var panel in BodyPanels)
         {

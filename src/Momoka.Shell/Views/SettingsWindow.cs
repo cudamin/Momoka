@@ -1,4 +1,5 @@
 using Microsoft.UI;
+using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -112,14 +113,14 @@ internal sealed class SettingsWindow
             {
                 // 需求 9 的同一条：没有过渡。也让第一次导航不闪。
                 Transitions = null,
-                Background = WindowFill()
+                Background = new SolidColorBrush(Colors.Transparent)
             };
 
             // 深浅跟着当前主题走，而不是写死 Dark：这个窗口里全是框架自己的控件（Expander、NumberBox、
             // ComboBox），它们只认 ElementTheme。
             ThemeHost.Register(frame);
 
-            // Top-level in Palette.xaml, so unlike the brushes it is safe to index; see WindowFill.
+            // The font is top-level in Palette.xaml, independent of the window's backdrop.
             if (Application.Current.Resources.TryGetValue("EgUiFontFamily", out var font) &&
                 font is FontFamily family)
                 frame.FontFamily = family;
@@ -148,7 +149,7 @@ internal sealed class SettingsWindow
     /// <summary>空白标题栏独占顶部一行；设置正文始终在下一行，系统只保留关闭按钮。</summary>
     internal static Window CreateCaptionedWindow(FrameworkElement content)
     {
-        var root = new Grid { Background = new SolidColorBrush(ThemeHost.ToColor(ThemeHost.Current.Colors.Window)) };
+        var root = new Grid { Background = new SolidColorBrush(Colors.Transparent) };
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         var caption = new Border { Name = "SettingsWindowTitleBar", Background = new SolidColorBrush(Colors.Transparent) };
@@ -156,7 +157,13 @@ internal sealed class SettingsWindow
         Grid.SetRow(content, 1);
         root.Children.Add(content);
         ThemeHost.Register(root);
-        var window = new Window { ExtendsContentIntoTitleBar = true, Content = root, Title = string.Empty };
+        var window = new Window
+        {
+            ExtendsContentIntoTitleBar = true,
+            Content = root,
+            Title = string.Empty,
+            SystemBackdrop = new MicaBackdrop { Kind = MicaKind.Base }
+        };
         window.AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Standard;
         if (window.AppWindow.Presenter is OverlappedPresenter presenter)
         {
@@ -287,10 +294,8 @@ internal sealed class SettingsWindow
             Math.Min((int)Math.Round(logical * scale), available - (int)Math.Round(48 * scale)));
 
     /// <summary>
-    /// The same caption as the main window's, and for the same reason: the app has one appearance, and a
-    /// caption left to the system is a pale strip over a window whose every other pixel is the theme's
-    /// window colour. The inactive twins are set to their active partners because an unset twin does not
-    /// inherit — see <c>HostWindow.ConfigureTitleBar</c>, which this mirrors.
+    /// Caption foregrounds follow the app theme; transparent backgrounds expose the window's Mica.
+    /// MicaBackdrop owns the active/inactive, accessibility and transparency fallback configuration.
     /// <para>
     /// 颜色取自当前主题，所以换主题时这里要再跑一遍（<see cref="_repaint"/>）。悬停和按下那两档故意用
     /// 半透明的白／黑而不是主题里的某个面：它们压在标题栏底色上，靠透明度叠出来的那一档在每一套主题里都对。
@@ -323,11 +328,10 @@ internal sealed class SettingsWindow
             var titleBar = _window.AppWindow.TitleBar;
             if (titleBar is null) return;
 
-            titleBar.BackgroundColor = ThemeHost.ToColor(theme.Colors.Window);
-            if (_window.Content is Grid root) root.Background = new SolidColorBrush(titleBar.BackgroundColor.Value);
+            titleBar.BackgroundColor = Colors.Transparent;
             titleBar.ForegroundColor = ThemeHost.ToColor(theme.Colors.Text);
 
-            // 系统关闭按钮与空白标题栏使用同一不透明底色，避免失焦时露出默认背景。
+            // Caption and close button expose the same Mica, including its inactive fallback.
             titleBar.ButtonBackgroundColor = titleBar.BackgroundColor;
             titleBar.ButtonForegroundColor = ThemeHost.ToColor(theme.Colors.Text);
             titleBar.ButtonHoverBackgroundColor = theme.IsDark
@@ -347,15 +351,4 @@ internal sealed class SettingsWindow
         }
     }
 
-    /// <summary>
-    /// What the frame paints under the page. <c>EgWindowBrush</c> is asked for and usually not given:
-    /// it is declared inside <c>Palette.xaml</c>'s <c>ThemeDictionaries</c>, and only the XAML parser
-    /// resolves those — a code lookup does not see them (see the note at <c>EpisodeRow.xaml</c>). Hence
-    /// <c>TryGetValue</c> and not the indexer, which throws, and hence the literal: it is
-    /// <c>EgWindowColor</c>'s dark value, so the two agree whichever way the lookup goes.
-    /// </summary>
-    private static Brush WindowFill() =>
-        Application.Current.Resources.TryGetValue("EgWindowBrush", out var value) && value is Brush brush
-            ? brush
-            : new SolidColorBrush(Color.FromArgb(255, 0x16, 0x18, 0x1C));
 }

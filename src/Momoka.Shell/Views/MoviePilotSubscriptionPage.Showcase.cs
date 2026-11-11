@@ -116,6 +116,9 @@ public sealed partial class MoviePilotSubscriptionPage
     }
 
     private readonly SolidColorBrush _sheetBrush = new();
+    private Brush? _pageBackground;
+
+    internal bool UsesMicaBackground => MediaViewModel.Plain;
 
     private readonly AcrylicBrush _panelFill = new();
     private readonly SolidColorBrush _panelLine = new();
@@ -125,6 +128,7 @@ public sealed partial class MoviePilotSubscriptionPage
 
     private void PrepareShowcase()
     {
+        _pageBackground = PageBackgroundSource.Background;
         _sheetBrush.Color = PaperColor;
         BodySheet.Background = _sheetBrush;
         DetailBackdropBand.Opacity = DetailHero.BackdropOpacity;
@@ -132,6 +136,11 @@ public sealed partial class MoviePilotSubscriptionPage
         // 监听本页的 ThemeResource 替换，覆盖系统高对比度；不订阅需要 CoreWindow 的系统事件。
         CardMaterialSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => RefreshPanelBrushes());
         MicaLayerSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) => ApplyPlainMica());
+        PageBackgroundSource.RegisterPropertyChangedCallback(Border.BackgroundProperty, (_, _) =>
+        {
+            _pageBackground = PageBackgroundSource.Background;
+            ApplyPlainMica();
+        });
         RefreshPanelBrushes();
         foreach (var panel in BodyPanels)
         {
@@ -203,17 +212,13 @@ public sealed partial class MoviePilotSubscriptionPage
     private void ApplyPlainMica()
     {
         var plain = MediaViewModel.Plain;
-        DetailMica.Apply(PlainBackdrop, plain && _appearanceObserved, alternate: true);
-        DetailMica.Apply(HeroMica, plain && _appearanceObserved);
+        Background = plain ? null : _pageBackground;
+        PlainBackdrop.Visibility = plain ? Visibility.Visible : Visibility.Collapsed;
+        HeroSurface.Background = plain ? MicaLayerSource.Background : null;
         foreach (var panel in BodyPanels)
             panel.Background = plain ? MicaLayerSource.Background : _panelFill;
         HeroFacts.Background = plain ? MicaLayerSource.Background : CardMaterialSource.Background;
-    }
-
-    private void ReleasePlainMica()
-    {
-        PlainBackdrop.SystemBackdrop = null;
-        HeroMica.SystemBackdrop = null;
+        SeasonPanel.Background = plain ? MicaLayerSource.Background : CardMaterialSource.Background;
     }
 
     private void SettleShowcase()
@@ -226,5 +231,6 @@ public sealed partial class MoviePilotSubscriptionPage
         DetailBackdropBand.Opacity = showcase
             ? DetailHero.ShowcaseBackdropOpacity
             : DetailHero.BackdropOpacity;
+        SyncTitleStrip();
     }
 }
