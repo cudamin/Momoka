@@ -176,11 +176,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         InitializeComponent();
         InitializeSidebar();
-        HomeNavigation.SelectionChanged += OnHomeNavigationChanged;
-        ContentHost.SizeChanged += (_, args) =>
-        {
-            if (Math.Abs(args.NewSize.Width - args.PreviousSize.Width) > 0.5) ScheduleHomeNavigationSize();
-        };
         ContentFrame.CacheSize = BrowsePageCacheSize;
         _browsePresentation = new BrowsePresentation(ContentFrame);
 
@@ -221,7 +216,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Trail.ItemsSource = _trail;
 
         // 鼠标上那两颗侧键。从前它们由 NavigationView 认（连 Alt+← 一起，走 BackRequested）；栏删掉之后
-        // Alt+← / Alt+→ 挂在两支箭头自己的加速器上，而鼠标侧键没有加速器可挂，只能自己听。
+        // Alt+← 挂在返回按钮，Alt+→ 挂在外壳自己的加速器上，而鼠标侧键没有加速器可挂，只能自己听。
         // handledEventsToo，因为卡片、列表、滚动视图都会把 PointerPressed 标成已处理 —— 不加这一句，只有
         // 点在空白处才退得回去。
         Root.AddHandler(PointerPressedEvent, new PointerEventHandler(OnRootPointerPressed), handledEventsToo: true);
@@ -288,7 +283,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>只缩放按钮内容，点击范围和非客户区穿透矩形始终保持布局尺寸。</summary>
     private void WireTitleFeedback()
     {
-        foreach (var button in new[] { NavToggleButton, HomeButton, SettingsButton, SearchButton, BackButton, ForwardButton, AccountButton })
+        foreach (var button in new[] { NavToggleButton, HomeButton, SettingsButton, SearchButton, FavoritesButton, BackButton, AccountButton })
         {
             button.PointerEntered += OnTitlePointerEntered;
             button.PointerExited += OnTitlePointerExited;
@@ -383,7 +378,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         _titleStrip = strip;
         PaintTitleInk();
-        SyncHomeNavigation();
     }
 
     /// <summary>标题栏那一条此刻按哪一档在画，给自检读（<c>ShellSelfCheck.Reads.ReadHome</c> 的页眉那一行）。</summary>
@@ -417,7 +411,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void PaintTitleInk()
     {
-        PaintHomeNavigation();
         var onScrim = _titleStrip == TitleStrip.OnScrim;
         var highContrast = new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast;
 
@@ -2044,26 +2037,14 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // 下钻和别的页面会把它清空，那时按钮亮着、一按回主页。
         HomeButton.IsEnabled = _session?.IsSignedIn == true && (_current != "home" || _librariesFailed);
 
-        ApplyChrome(ContentFrame.CanGoBack, ContentFrame.CanGoForward, _trail.Count);
+        ApplyChrome(ContentFrame.CanGoBack, _trail.Count);
         SyncSidebar();
     }
 
-    /// <summary>
-    /// The chrome above the frame, from the three facts that decide it: whether the frame has somewhere to go
-    /// back to, somewhere to go forward to, and how deep the trail is. Split out from
-    /// <see cref="SyncChrome"/> so the self-check can drive every state — nothing can make
-    /// <c>Frame.CanGoBack</c> say what a check needs it to say.
-    /// <para>
-    /// Both arrows stay in place and go dim rather than disappearing, the way the Claude app's own title bar
-    /// does it: an arrow that comes and goes moves the one beside it, and the strip they sit in is the
-    /// window's drag area with a hole cut for exactly their rectangle, which a moving button would put in
-    /// the wrong place.
-    /// </para>
-    /// </summary>
-    private void ApplyChrome(bool canGoBack, bool canGoForward, int crumbs)
+    /// <summary>Keep the back button and breadcrumb row in sync with the current navigation state.</summary>
+    private void ApplyChrome(bool canGoBack, int crumbs)
     {
         BackButton.IsEnabled = canGoBack;
-        ForwardButton.IsEnabled = canGoForward;
 
         // The whole row, not just the trail inside it: one crumb only repeats the heading the page draws
         // right below, and a row left standing empty is a band of nothing 38 pixels tall.
@@ -2165,10 +2146,19 @@ public sealed partial class ShellPage : UserControl, IShellActions
         GoBack();
     }
 
-    private void OnForwardClicked(object sender, RoutedEventArgs e)
+    private void OnFavoritesClicked(object sender, RoutedEventArgs e)
     {
-        NavigationTiming.Click("forward-button");
+        if (_session?.IsSignedIn != true || !Favorites.HasItems) return;
+        NavigationTiming.Click("favorites-button");
+        GoTo(LibraryRequest.FavoritesTag);
+    }
+
+    private void OnForwardInvoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (Chrome.Visibility != Visibility.Visible || !ContentFrame.CanGoForward) return;
+        NavigationTiming.Click("forward-keyboard");
         GoForward();
+        args.Handled = true;
     }
 
     /// <summary>

@@ -58,29 +58,21 @@ internal sealed partial class ShellNavigationProbe
             var shell = new ShellPage();
             Field(shell, "_music", vm);
             Field(shell, "_current", LibraryRequest.FavoritesTag);
-            var navigation = Get<SelectorBar>(shell, "HomeNavigation");
-            var navigationHost = Get<Viewbox>(shell, "HomeNavigationHost");
-            navigation.Visibility = Visibility.Visible;
-            navigationHost.Height = 36;
-            navigationHost.Margin = new Thickness(0, 12, 0, 0);
-            Call(shell, "UpdateHomeNavigationInset");
             Call(shell, "PlaceMusicBar");
-            Require(shell.Pages.Margin.Top == 60 && shell.Pages.Margin.Bottom == 0,
-                "未播放音乐时丢失首页导航预留");
+            Require(shell.Pages.Margin.Top == 0 && shell.Pages.Margin.Bottom == 0,
+                "未播放音乐时残留旧首页导航占位");
             vm.Visible = true;
             Call(shell, "PlaceMusicBar");
-            Require(shell.Pages.Margin.Top == 60 && shell.Pages.Margin.Bottom >= 92,
-                "显示音乐栏清掉首页导航预留");
-            navigation.Visibility = Visibility.Collapsed;
-            Call(shell, "UpdateHomeNavigationInset");
             Require(shell.Pages.Margin.Top == 0 && shell.Pages.Margin.Bottom >= 92,
-                "离开首页清掉音乐栏预留");
-            navigation.Visibility = Visibility.Visible;
-            Call(shell, "UpdateHomeNavigationInset");
+                "显示音乐栏后顶部多出导航占位或底部未留空间");
+            shell.Favorites.HasItems = true;
+            Call(shell, "PlaceMusicBar");
+            Require(shell.Pages.Margin.Top == 0 && shell.Pages.Margin.Bottom >= 92,
+                "收藏入口出现改变了音乐栏预留");
             vm.Visible = false;
             Call(shell, "PlaceMusicBar");
-            Require(shell.Pages.Margin.Top == 60 && shell.Pages.Margin.Bottom == 0,
-                "停止音乐后首页导航预留没有保留");
+            Require(shell.Pages.Margin.Top == 0 && shell.Pages.Margin.Bottom == 0,
+                "停止音乐后没有清除预留空间");
             Field(shell, "_music", null);
             var request = new LibraryRequest { Services = fixture.Services, Title = "音乐", ParentId = "music", CollectionType = "music", Source = scope };
             Require(frame.Navigate(typeof(MusicLibraryPage), request), "音乐页未导航");

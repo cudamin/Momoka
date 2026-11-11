@@ -1,3 +1,13 @@
+## 2026-11-11 标题栏收藏星标与前进按钮退役
+
+工作树 `C:\Users\89400\.codex\worktrees\0bd5\Momoka`，基准 `52f8449`。按用户截图移除首页／收藏胶囊及其亚克力、缩放、内容顶部占位，左上角标题栏新增空心星标，复用 Favorites.Visibility：有收藏即显示，取消最后一项、退出登录及无适用来源时隐藏，空收藏页本身保留。前进按钮退役，Alt+→ 移至外壳，鼠标前进侧键和返回历史保留。星标参与标题反馈、可访问名称和点击区域测量；更新原生收藏、侧栏、音乐及标题栏自检契约，ForwardButton 句柄基线逐行替换为 FavoritesButton。
+
+本树 Release Core/Tests、Shell 编译0警告0错误；主测试4703/4703、零失败零跳过（149496ms），定向标题栏3/3、HomeDirectory82/82、句柄扫描零缺失、编码及差异检查通过。首轮主测试因其他树探针占同用户诊断锁导致16项拒绝，另1项已有图片探针间歇超时；保留 `artifacts-toolbar-tests.log`，独占重验日志 `artifacts-toolbar-tests-serial.log` 全绿，没有放宽超时或基线。
+
+匿名原生 shell/favorites/music 共22项中21通过，收藏显隐、返回、跨来源恢复、600/760/1240/1280布局及音乐侧栏均通过；实屏目录 `%LOCALAPPDATA%\Momoka\logs\shell-probe-20261111-062921409-3308\logs`。剩余旧 DeletePagingRaceAsync 把所有HTTP挂同一pending，搜索页删除后的重读和旧分页循环等待。按现有搜索刷新语义改用60项稳定假目录，仅挂旧offset20；验证删后59、补齐20、原19卡片引用保留、迟到响应拒绝及旧查询令牌隔离。修后Shell重编0警告0错误，favorites分区全部通过，日志 `shell-probe-20261111-063832781-17252`；未改变产品分页行为。
+
+待收尾：产品提交后合入 master，按最终主树重验和发布，当前快捷方式仍是旧版。未访问真实服务器或播放媒体，未上传。
+
 ## 2026-11-11 媒体库第三批飞牛仅移出与恢复（独立树待整合）
 
 基点8dea65c，原生managed工作树`C:\Users\89400\.codex\worktrees\library-batch3-fnnas\Momoka`，仅此树写入。读取官方0.9.8匿名前端缓存三个产物并核SHA256，确认DELETE item/:guid的delete_file=0、GET fileViewAdmin/list根mdb_guid/子fv_guid、恢复POST scrap/removeFromBlackByPath(mdb_guid,path)、管理员非IPTV入口及blacked=1判断，详见docs/媒体库第三批-飞牛移出恢复.md。没有联系真实服务器、登录、写入、播放或起UI。

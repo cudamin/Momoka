@@ -10,7 +10,7 @@ namespace Momoka.Shell.Views;
 public sealed partial class ShellPage
 {
     /// <summary>标题栏那一排按键的样子，逻辑像素，量的是整排。</summary>
-    /// <param name="Ok">五颗都摆对了，排成一行，整排也在标题栏里。</param>
+    /// <param name="Ok">可见按键都摆对了，排成一行，整排也在标题栏里。</param>
     internal sealed record TitleActionProbe(bool Ok, string Detail, double X, double Y, double Width, double Height);
 
     /// <summary>
@@ -49,20 +49,8 @@ public sealed partial class ShellPage
     }
 
     /// <summary>
-    /// 把这一排按键的几种状态各摆一遍，量出来对一遍：设置、搜索两颗任何时候都按得动；两头都走不动时两支箭头
-    /// 都在、都按不动（**2026-10-13 晚起不再变淡** —— 停用走的是静止那支墨，见 <c>_titleInk</c>，所以这一关
-    /// 问的是 <c>IsEnabled</c>，不是墨的深浅）；能退不能进时只有返回按得动；两样都能走又有两层路径时，两支箭头
-    /// 加面包屑那一行。主页那颗的亮暗跟着 <c>_current</c> 走，这里不摆它 —— 排成一行、落在标题栏里这两件事照量。
-    /// <para>
-    /// 之所以要一个探针而不是直接看现场：后两颗由 <c>Frame.CanGoBack</c>、<c>Frame.CanGoForward</c> 和路径深度
-    /// 决定，而前两件是框架自己算的，自检没法让它说某句话。<see cref="ApplyChrome"/> 把三件事变成参数，于是每
-    /// 种状态都能摆出来 —— 收尾时把路径原样放回去，再按现场重新决定一次。
-    /// </para>
-    /// <para>
-    /// 量回来的矩形还有第二个用处：<c>ShellSelfCheck</c> 拿它和窗口留的那个洞对一遍。洞开错了地方在屏幕上
-    /// 完全看不出来，直到有人去点按键，结果把窗口拖走。账号那颗按钮也在这一条上、也有自己的洞，那半个由
-    /// <see cref="ProbeChrome"/> 量 —— 这里只管左边这一排五颗的次序和落位。
-    /// </para>
+    /// Check the visible title actions, back-button states and breadcrumb depth. The returned rectangle
+    /// also lets the window check its clickable title-bar region after favorites appear or disappear.
     /// </summary>
     internal TitleActionProbe ProbeTitleActions()
     {
@@ -73,44 +61,29 @@ public sealed partial class ShellPage
             Windows.Foundation.Point At(FrameworkElement element) =>
                 element.TransformToVisual(this).TransformPoint(new Windows.Foundation.Point(0, 0));
 
-            // 顺序就是屏幕上从左到右的顺序。侧边栏模式里前三颗是「导航开关、后退、前进」—— 开关 2026-10-13
-            // 从侧边栏内部挪到标题栏左上角，两支箭头因此紧跟在它右边（见 ShellPage.Sidebar.cs）。
-            Button[] keys = SidebarShown ? [NavToggleButton, BackButton, ForwardButton]
-                : [HomeButton, SettingsButton, SearchButton, BackButton, ForwardButton];
+            Button[] candidates = SidebarShown ? [NavToggleButton, FavoritesButton, BackButton]
+                : [HomeButton, SettingsButton, SearchButton, FavoritesButton, BackButton];
+            var keys = candidates.Where(key => key.Visibility == Visibility.Visible).ToArray();
+            var favoritesVisible = FavoritesButton.Visibility == Favorites.Visibility;
+            bool AlwaysOn() => SettingsButton.IsEnabled && SearchButton.IsEnabled && FavoritesButton.IsEnabled;
 
-            // 前两颗跟去过哪儿无关，所以三种状态下都得亮着 —— 一颗跟着导航变暗的设置按键，是按不出设置窗口。
-            bool AlwaysOn() => SettingsButton.IsEnabled && SearchButton.IsEnabled;
-
-            // 哪儿也走不动：五颗照旧站着，只是后两颗按不动 —— 会消失的按键会挪动旁边那些，而这一排的位置就是
-            // 窗口那个洞的位置，挪一下洞就开歪了。面包屑那一行此时整行收起，不留一条空带子。
-            ApplyChrome(false, false, 1);
+            ApplyChrome(false, 1);
             UpdateLayout();
             var idle = Chrome.Visibility == Visibility.Visible
                 && AppTitleBar.Visibility == Visibility.Visible
-                && keys.All(key => key.Visibility == Visibility.Visible)
-                && AlwaysOn()
-                && !BackButton.IsEnabled
-                && !ForwardButton.IsEnabled
-                && TrailBar.Visibility == Visibility.Collapsed;
+                && keys.Length == candidates.Length - (Favorites.HasItems ? 0 : 1)
+                && favoritesVisible && AlwaysOn()
+                && !BackButton.IsEnabled && TrailBar.Visibility == Visibility.Collapsed;
 
-            // 退得动、进不动、只有一层：只有返回亮着，面包屑那行收着 —— 一条只有一格的面包屑说的就是页面
-            // 标题自己那句话。
-            ApplyChrome(true, false, 1);
+            ApplyChrome(true, 1);
             UpdateLayout();
-            var shallow = AlwaysOn()
-                && BackButton.IsEnabled
-                && !ForwardButton.IsEnabled
-                && TrailBar.Visibility == Visibility.Collapsed;
+            var shallow = AlwaysOn() && BackButton.IsEnabled && TrailBar.Visibility == Visibility.Collapsed;
 
-            // 钻进去一层又退回来过：两支箭头都亮，面包屑那行也在。
             _trail.Add(new Crumb("自检", string.Empty));
             _trail.Add(new Crumb("自检 · 下一层", string.Empty));
-            ApplyChrome(true, true, _trail.Count);
+            ApplyChrome(true, _trail.Count);
             UpdateLayout();
-            var deep = AlwaysOn()
-                && BackButton.IsEnabled
-                && ForwardButton.IsEnabled
-                && TrailBar.Visibility == Visibility.Visible;
+            var deep = AlwaysOn() && BackButton.IsEnabled && TrailBar.Visibility == Visibility.Visible;
 
             // 位置：整排在标题栏那 40 像素里，左端留白在它左边，页面在它下面。
             var group = At(TitleActions);
@@ -153,9 +126,9 @@ public sealed partial class ShellPage
                     + $"，占 {TitleActions.ActualWidth:0}×{TitleActions.ActualHeight:0}，最大间距 {widest:0}；"
                     + $"标题栏 {AppTitleBar.ActualWidth:0}×{AppTitleBar.Height:0}，{(inBar ? "整排在里面" : "整排没落在标题栏里")}；"
                     + $"{(lined ? "依次排成一行" : "没排成一行")}；"
-                    + $"哪儿都走不动时{(idle ? "当前模式的按键都在、设置搜索可用、两支箭头按不动、面包屑整行收起" : "不对")}、"
+                    + $"哪儿都走不动时{(idle ? "当前模式按键及收藏显隐正确、返回按不动、面包屑收起" : "不对")}、"
                     + $"只能退时{(shallow ? "只有返回按得动" : "不对")}、"
-                    + $"两头都能走时{(deep ? "两支都按得动加面包屑" : "不对")}",
+                    + $"多层路径时{(deep ? "返回可用且面包屑可见" : "不对")}",
                 group.X, group.Y, TitleActions.ActualWidth, TitleActions.ActualHeight);
         }
         finally

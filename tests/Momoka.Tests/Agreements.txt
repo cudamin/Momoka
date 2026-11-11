@@ -620,7 +620,7 @@ handle  Views/ShellPage.xaml  BackButton
 handle  Views/ShellPage.xaml  Chrome
 handle  Views/ShellPage.xaml  ContentFrame
 handle  Views/ShellPage.xaml  ContentHost
-handle  Views/ShellPage.xaml  ForwardButton
+handle  Views/ShellPage.xaml  FavoritesButton
 handle  Views/ShellPage.xaml  HomeButton
 handle  Views/ShellPage.xaml  NavToggleButton
 handle  Views/ShellPage.xaml  Player
