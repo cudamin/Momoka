@@ -44,6 +44,7 @@ internal static class MoviePilotSubscriptionWallTests
         SearchSubmission();
         WallClassifyAndFilter();
         WallSort();
+        WallOptionsAndLabels();
     }
 
     private static void StageAndLabel()
@@ -402,6 +403,38 @@ internal static class MoviePilotSubscriptionWallTests
             // 缺失字段按 0 处理，不抛异常。
             var bare = new[] { Subscription(5), Subscription(6, lack: 2) };
             Assert.True(new[] { 6, 5 }.SequenceEqual(MoviePilotSubscriptionWall.Sort(bare, MoviePilotSubscriptionSort.LackEpisode, []).Select(item => item.Id)));
+        });
+    }
+
+    private static void WallOptionsAndLabels()
+    {
+        Test("订阅墙选项：电影只有基本筛选与三种排序，电视剧展开进度状态与缺失集数", () =>
+        {
+            Assert.True(new[] { MoviePilotSubscriptionWallFilter.All, MoviePilotSubscriptionWallFilter.BestVersion,
+                MoviePilotSubscriptionWallFilter.Pending, MoviePilotSubscriptionWallFilter.Paused }
+                .SequenceEqual(MoviePilotSubscriptionWall.FilterOptions(false)));
+            Assert.True(new[] { MoviePilotSubscriptionWallFilter.All, MoviePilotSubscriptionWallFilter.BestVersion,
+                MoviePilotSubscriptionWallFilter.NotStarted, MoviePilotSubscriptionWallFilter.Subscribing,
+                MoviePilotSubscriptionWallFilter.Pending, MoviePilotSubscriptionWallFilter.Paused, MoviePilotSubscriptionWallFilter.Completed }
+                .SequenceEqual(MoviePilotSubscriptionWall.FilterOptions(true)));
+            Assert.False(MoviePilotSubscriptionWall.SortOptions(false).Contains(MoviePilotSubscriptionSort.LackEpisode));
+            Assert.True(MoviePilotSubscriptionWall.SortOptions(true).Contains(MoviePilotSubscriptionSort.LackEpisode));
+            Assert.True(new[] { MoviePilotSubscriptionSort.Custom, MoviePilotSubscriptionSort.LastUpdate, MoviePilotSubscriptionSort.AddTime }
+                .SequenceEqual(MoviePilotSubscriptionWall.SortOptions(false)));
+        });
+        Test("订阅墙展示词：筛选与排序选项的中文标签", () =>
+        {
+            Assert.Equal("全部", MoviePilotSubscriptionWall.FilterLabel(MoviePilotSubscriptionWallFilter.All));
+            Assert.Equal("洗版中", MoviePilotSubscriptionWall.FilterLabel(MoviePilotSubscriptionWallFilter.BestVersion));
+            Assert.Equal("未开始", MoviePilotSubscriptionWall.FilterLabel(MoviePilotSubscriptionWallFilter.NotStarted));
+            Assert.Equal("订阅中", MoviePilotSubscriptionWall.FilterLabel(MoviePilotSubscriptionWallFilter.Subscribing));
+            Assert.Equal("待定", MoviePilotSubscriptionWall.FilterLabel(MoviePilotSubscriptionWallFilter.Pending));
+            Assert.Equal("暂停", MoviePilotSubscriptionWall.FilterLabel(MoviePilotSubscriptionWallFilter.Paused));
+            Assert.Equal("订阅完成", MoviePilotSubscriptionWall.FilterLabel(MoviePilotSubscriptionWallFilter.Completed));
+            Assert.Equal("自定义", MoviePilotSubscriptionWall.SortLabel(MoviePilotSubscriptionSort.Custom));
+            Assert.Equal("最后更新时间", MoviePilotSubscriptionWall.SortLabel(MoviePilotSubscriptionSort.LastUpdate));
+            Assert.Equal("添加时间", MoviePilotSubscriptionWall.SortLabel(MoviePilotSubscriptionSort.AddTime));
+            Assert.Equal("缺失集数", MoviePilotSubscriptionWall.SortLabel(MoviePilotSubscriptionSort.LackEpisode));
         });
     }
 }

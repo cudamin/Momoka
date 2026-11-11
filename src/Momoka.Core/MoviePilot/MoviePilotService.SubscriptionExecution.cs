@@ -52,6 +52,33 @@ public sealed partial class MoviePilotService
     }
 
     /// <summary>
+    /// 订阅墙的排序偏好（纯界面偏好，网页端存 localStorage）。读不到就是 null，由调用方按默认排序起步；
+    /// 不要求连接代次 —— 它不是服务器数据，换账号也沿用同一份显示习惯。
+    /// </summary>
+    public string? SubscriptionSortPreference(string mediaType) =>
+        _settings.MoviePilot.SubscriptionSorts.GetValueOrDefault(mediaType);
+
+    /// <summary>
+    /// 落盘排序偏好。<paramref name="sortKey"/> 为空表示清除（回到「未显式选择」）。写盘失败只记日志、
+    /// 不抛出也不回滚内存值 —— 与网页端 localStorage 写入失败仅告警一致，界面照常按新排序显示。
+    /// </summary>
+    public void SaveSubscriptionSortPreference(string mediaType, string? sortKey)
+    {
+        var sorts = _settings.MoviePilot.SubscriptionSorts;
+        if (string.IsNullOrEmpty(sortKey))
+        {
+            if (!sorts.Remove(mediaType)) return;
+        }
+        else
+        {
+            if (sorts.GetValueOrDefault(mediaType) == sortKey) return;
+            sorts[mediaType] = sortKey;
+        }
+        try { _saveSettings?.Invoke(); }
+        catch (Exception error) { Log.Info(Category, $"保存订阅排序偏好失败：{error.Message}"); }
+    }
+
+    /// <summary>
     /// 订阅墙的自定义顺序（<c>GET user/config/{SubscribeMovieOrder|SubscribeTvOrder}</c>）。
     /// 没存过时服务器回 <c>{"value":null}</c>，读作空表；传输失败照常抛出，由调用方按空表兜底。
     /// </summary>

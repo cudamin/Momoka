@@ -81,6 +81,40 @@ public static class MoviePilotSubscriptionWall
     /// <summary>自定义顺序存在服务器用户配置里，电影与电视剧各一把键（与网页端 orderRequestKey 一致）。</summary>
     public static string OrderConfigKey(bool isSeries) => isSeries ? "SubscribeTvOrder" : "SubscribeMovieOrder";
 
+    /// <summary>状态筛选的可选项与顺序，照网页端 filterOptions：电影只有基本＋待定／暂停，电视剧展开全部进度状态。</summary>
+    public static IReadOnlyList<MoviePilotSubscriptionWallFilter> FilterOptions(bool isSeries) => isSeries
+        ? [MoviePilotSubscriptionWallFilter.All, MoviePilotSubscriptionWallFilter.BestVersion, MoviePilotSubscriptionWallFilter.NotStarted,
+            MoviePilotSubscriptionWallFilter.Subscribing, MoviePilotSubscriptionWallFilter.Pending, MoviePilotSubscriptionWallFilter.Paused,
+            MoviePilotSubscriptionWallFilter.Completed]
+        : [MoviePilotSubscriptionWallFilter.All, MoviePilotSubscriptionWallFilter.BestVersion,
+            MoviePilotSubscriptionWallFilter.Pending, MoviePilotSubscriptionWallFilter.Paused];
+
+    /// <summary>排序的可选项与顺序，照网页端 sortOptions：缺失集数只有电视剧有。</summary>
+    public static IReadOnlyList<MoviePilotSubscriptionSort> SortOptions(bool isSeries) => isSeries
+        ? [MoviePilotSubscriptionSort.Custom, MoviePilotSubscriptionSort.LastUpdate, MoviePilotSubscriptionSort.AddTime, MoviePilotSubscriptionSort.LackEpisode]
+        : [MoviePilotSubscriptionSort.Custom, MoviePilotSubscriptionSort.LastUpdate, MoviePilotSubscriptionSort.AddTime];
+
+    /// <summary>筛选项的展示词（网页端 subscribe.* 与 common.all）。</summary>
+    public static string FilterLabel(MoviePilotSubscriptionWallFilter filter) => filter switch
+    {
+        MoviePilotSubscriptionWallFilter.All => "全部",
+        MoviePilotSubscriptionWallFilter.BestVersion => "洗版中",
+        MoviePilotSubscriptionWallFilter.Pending => "待定",
+        MoviePilotSubscriptionWallFilter.Paused => "暂停",
+        MoviePilotSubscriptionWallFilter.NotStarted => "未开始",
+        MoviePilotSubscriptionWallFilter.Subscribing => "订阅中",
+        _ => "订阅完成"
+    };
+
+    /// <summary>排序项的展示词（网页端 subscribe.sort.*）。</summary>
+    public static string SortLabel(MoviePilotSubscriptionSort sort) => sort switch
+    {
+        MoviePilotSubscriptionSort.Custom => "自定义",
+        MoviePilotSubscriptionSort.LastUpdate => "最后更新时间",
+        MoviePilotSubscriptionSort.LackEpisode => "缺失集数",
+        _ => "添加时间"
+    };
+
     /// <summary>
     /// 拖拽排序只在「自定义排序 + 无关键词 + 状态全部 + 非批量」时可用；
     /// 其余语境下排序结果不代表完整顺序，落盘会把没显示的订阅挤到末尾。

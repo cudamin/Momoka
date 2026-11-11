@@ -30,6 +30,15 @@ public sealed partial class MoviePilotService
 
     public event EventHandler? AvailabilityChanged;
 
+    /// <summary>
+    /// 当前缓存会话是否超级管理员。订阅维护里「刷新订阅资源」「更新订阅元数据」是管理员入口
+    /// （网页端 canAdmin），界面据此显隐；未登录、会话失效或配置已变时为 false。真正的权限仍由服务器裁决。
+    /// </summary>
+    public bool IsSuperUser
+    {
+        get { lock (_sessionGate) return _session is { } session && MatchesConfiguration(session.Identity) && session.Session.SuperUser; }
+    }
+
     private bool MatchesConfiguration(SessionIdentity identity) =>
         identity.Generation == Interlocked.Read(ref _connectionGeneration)
         && MoviePilotAddress.TryNormalize(_settings.MoviePilot.Url, out var address, out _) && address == identity.ApiBase

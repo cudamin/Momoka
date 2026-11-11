@@ -235,5 +235,27 @@ internal static class MoviePilotSubscriptionExecutionTests
             Assert.Throws<MoviePilotOperationBlockedException>(() => service.RefreshSubscriptionMetadataAsync(true, CancellationToken.None).GetAwaiter().GetResult());
             Assert.Equal(1, transport.Count("subscribe/check?type="));
         });
+        Test("MoviePilot 订阅排序偏好：按媒体类型读写、同值不重复落盘、空值清除", () =>
+        {
+            var settings = Settings();
+            var saves = 0;
+            var service = new MoviePilotService(new MoviePilotClient(Transport()), new(PassthroughSecretProtector.Instance), settings, () => saves++);
+            Assert.Null(service.SubscriptionSortPreference("电视剧"));
+            service.SaveSubscriptionSortPreference("电视剧", "last_update");
+            Assert.Equal("last_update", service.SubscriptionSortPreference("电视剧"));
+            Assert.Equal(1, saves);
+            // 同值再存不触发落盘；另一类互不影响。
+            service.SaveSubscriptionSortPreference("电视剧", "last_update");
+            Assert.Equal(1, saves);
+            Assert.Null(service.SubscriptionSortPreference("电影"));
+            service.SaveSubscriptionSortPreference("电影", "date");
+            Assert.Equal(2, saves);
+            Assert.Equal("last_update", service.SubscriptionSortPreference("电视剧"));
+            // 空值清除那一类。
+            service.SaveSubscriptionSortPreference("电视剧", null);
+            Assert.Null(service.SubscriptionSortPreference("电视剧"));
+            Assert.Equal(3, saves);
+            Assert.Equal("date", service.SubscriptionSortPreference("电影"));
+        });
     }
 }
