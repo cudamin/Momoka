@@ -80,8 +80,8 @@ public sealed partial class ShellPage
         SettingsButton.Visibility = SearchButton.Visibility =
             shown ? Visibility.Collapsed : Visibility.Visible;
         TitleUtilities.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
-        // 主页按钮与首页／收藏胶囊的显隐归 SyncHomeNavigation（同一个位置的两副面孔）。
-        SyncHomeNavigation();
+        // 主页与返回每一档都在；设置、搜索、收藏在侧边栏那一档让给栏里的入口（见 SyncTitleActions）。
+        SyncTitleActions();
         SidebarFavorites.Visibility = Favorites.Visibility;
         SidebarSettingsButton.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
 

@@ -9,58 +9,54 @@ internal static class ToolbarIconTests
 
     internal static void Register()
     {
-        TestHarness.Test("标题栏首页收藏：胶囊在左上角，占的是主页按钮的位置", () =>
+        TestHarness.Test("标题栏那一排：主页、收藏、设置、搜索、返回按这个次序", () =>
         {
             var panel = Named(Shell(), "TitleActions");
             var order = panel.Elements().Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
-            var pill = Array.IndexOf(order, "HomeNavigation");
-            Assert.True(pill > 0, "标题栏里找不到首页/收藏胶囊");
-            // 胶囊 · 后退 · 前进 · 主页：媒体库与详情页收起前进，剩下「后退(左) + 主页(右)」。
-            Assert.Equal("BackButton", order[pill + 1]);
-            Assert.Equal("ForwardButton", order[pill + 2]);
-            Assert.Equal("HomeButton", order[pill + 3]);
-            Assert.Equal("NavToggleButton", order[pill - 1]);
-
-            var bar = Named(Shell(), "HomeNavigation");
-            Assert.Equal("SelectorBar", bar.Name.LocalName);
-            Assert.Equal("Collapsed", bar.Attribute("Visibility")?.Value);
-            Assert.Equal("首页与收藏", bar.Attribute("AutomationProperties.Name")?.Value);
-            var items = bar.Elements().Where(element => element.Name.LocalName == "SelectorBarItem").ToArray();
-            Assert.Equal(2, items.Length);
-            Assert.Equal("HomeNavigationHome", items[0].Attribute(Xaml + "Name")?.Value);
-            Assert.Equal("HomeNavigationFavorites", items[1].Attribute(Xaml + "Name")?.Value);
-            Assert.Equal("首页", items[0].Attribute("Text")?.Value);
-            Assert.Equal("收藏", items[1].Attribute("Text")?.Value);
-            Assert.Equal("首页", items[0].Attribute("AutomationProperties.Name")?.Value);
-            Assert.Equal("收藏", items[1].Attribute("AutomationProperties.Name")?.Value);
-        });
-        TestHarness.Test("标题栏导航：星标退役而前进按钮回来", () =>
-        {
-            var document = Shell();
-            Assert.True(!document.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "FavoritesButton"));
-            var order = Named(document, "TitleActions").Elements()
-                .Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
-            // 后退在前进左边、主页在最右：媒体库那一档收起前进，剩下的正是「后退(左) + 主页(右)」。
-            Assert.True(Array.IndexOf(order, "BackButton") < Array.IndexOf(order, "ForwardButton")
-                && Array.IndexOf(order, "ForwardButton") < Array.IndexOf(order, "HomeButton"), "三颗按钮的先后不对");
-        });
-        TestHarness.Test("标题栏工具：设置与搜索排在左上这一排、主页右边", () =>
-        {
-            var panel = Named(Shell(), "TitleActions");
-            var order = panel.Elements().Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
+            // 2026-11-11 用户令「左上角统一留主页、收藏（没有收藏时隐藏该按钮）、设置、搜索、返回」：这一排
+            // 不再按页型换脸，声明次序就是视觉次序里的固定几格（收藏自己收起时不占宽）。
             Assert.True(order.SequenceEqual(new[]
             {
-                "NavToggleButton", "HomeNavigation", "BackButton", "ForwardButton", "HomeButton", "TitleUtilities"
+                "NavToggleButton", "HomeButton", "FavoritesButton", "TitleUtilities", "BackButton"
             }), "标题栏这一排的顺序不对：" + string.Join('、', order));
+
             var utilities = Named(Shell(), "TitleUtilities");
             Assert.Equal("StackPanel", utilities.Name.LocalName);
             var buttons = utilities.Elements().Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
             Assert.True(buttons.SequenceEqual(new[] { "SettingsButton", "SearchButton" }), "工具按钮顺序不对");
-            Assert.Equal("0", Named(Shell(), "AccountButton").Attribute("Grid.Column")?.Value);
         });
-        TestHarness.Test("标题栏导航：两颗箭头的快捷键挂在外壳而不是按钮上", () =>
+        TestHarness.Test("标题栏收藏：空心星标默认收着，没有收藏时不出现在那一排", () =>
+        {
+            var star = Named(Shell(), "FavoritesButton");
+            Assert.Equal("Button", star.Name.LocalName);
+            Assert.Equal("Collapsed", star.Attribute("Visibility")?.Value);
+            Assert.Equal("OnFavoritesClicked", star.Attribute("Click")?.Value);
+            Assert.Equal("ShellPage_FavoritesButton", star.Attribute(Xaml + "Uid")?.Value);
+            // 空心星：填充规则 F0 + 内圈镂空，和外圈那条 F1 的实心图标区分开。
+            var icon = star.Descendants().Single(element => element.Name.LocalName == "PathIcon");
+            Assert.True(icon.Attribute("Data")?.Value.StartsWith("F0 ", StringComparison.Ordinal) == true, "收藏不是空心星标");
+        });
+        TestHarness.Test("标题栏收藏：可访问名称与悬停提示走本地化资源", () =>
+        {
+            var resources = ShellResources();
+            foreach (var property in new[]
+            {
+                "[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name",
+                "[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip"
+            })
+            {
+                var value = resources.Descendants("data")
+                    .FirstOrDefault(element => element.Attribute("name")?.Value == "ShellPage_FavoritesButton." + property)
+                    ?.Element("value")?.Value;
+                Assert.Equal("收藏", value);
+            }
+        });
+        TestHarness.Test("标题栏导航：前进按钮与首页/收藏胶囊已退役，快捷键仍在外壳上", () =>
         {
             var document = Shell();
+            Assert.True(!document.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "ForwardButton"));
+            Assert.True(!document.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "HomeNavigation"));
+            // 前进按钮退了役，Alt+→ 与鼠标侧键照旧 —— 加速器挂在外壳上，不跟着按钮一起消失。
             var accelerators = document.Descendants().Where(element => element.Name.LocalName == "KeyboardAccelerator").ToArray();
             Assert.Equal(2, accelerators.Length);
             foreach (var accelerator in accelerators)
@@ -82,6 +78,15 @@ internal static class ToolbarIconTests
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
             if (File.Exists(Path.Combine(directory.FullName, "Momoka.sln")))
                 return XDocument.Load(Path.Combine(directory.FullName, "src", "Momoka.Shell", "Views", "ShellPage.xaml"));
+        throw new InvalidOperationException("找不到源码树");
+    }
+
+    private static XDocument ShellResources()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+            if (File.Exists(Path.Combine(directory.FullName, "Momoka.sln")))
+                return XDocument.Load(Path.Combine(directory.FullName,
+                    "src", "Momoka.Shell", "Strings", "zh-Hans", "Resources.resw"));
         throw new InvalidOperationException("找不到源码树");
     }
 }
