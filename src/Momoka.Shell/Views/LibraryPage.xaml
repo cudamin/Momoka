@@ -25,7 +25,7 @@
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:tkcontrols="using:CommunityToolkit.WinUI.Controls"
     xmlns:vm="using:Momoka.Shell.ViewModels"
-    Background="{ThemeResource LayerFillColorDefaultBrush}">
+    Background="Transparent">
 
     <Page.Resources>
         <Style x:Key="LibraryPillStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">

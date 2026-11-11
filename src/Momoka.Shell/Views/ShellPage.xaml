@@ -433,14 +433,18 @@
              NavigationView 模板的东西）。
 
              顶上留出 40（ChromeHeight，标题栏那一行）并自己上底色：外壳压在这一块的上面，页面从第 40 行
-             起画，那 40 像素由这里补上底色（页面自己的底色和它同一支，多涂一层看不出来）。整套里只有主页
-             把这 40 顶开 —— 见 HomePage.xaml 里那块大图。
+             起画，那 40 像素由这里补上底色。整套里只有主页把这 40 顶开 —— 见 HomePage.xaml 里那块大图。
+
+             **整棵树唯一画窗口画布的地方（2026-11-12，用户令「改为Mica」）**：EgCanvasBrush 是压在 Mica 上
+             的一层 60% 窗口色，各页面的根背景因此都写 Transparent —— 见 Palette.xaml 那颗键的注释。这一块
+             不上底色的话，页面背后就是一块裸的 Mica，正文压上去会花；上两层的话 Mica 又白开。换底色、换
+             浓度都只改这一行和 Palette/ThemeHost 那三处。
 
              这一块整个收起（登录页、播放时）就是「浏览态在不在」，所以 Visibility 写在它身上：从前那是
              NavigationView 的活。 -->
         <Grid
             x:Name="ContentHost"
-            Background="{ThemeResource LayerFillColorDefaultBrush}"
+            Background="{ThemeResource EgCanvasBrush}"
             Padding="0,40,0,0"
             Visibility="Collapsed">
             <Grid.RowDefinitions>
@@ -510,7 +514,7 @@
              设置那一项也从 FooterMenuItems 搬走了（它现在和账号一起站在左下角，见 AccountCluster）——
              那一栏只能竖着摞，而那里要的是「展开并排、折叠上下叠」。 -->
         <Grid x:Name="SidebarHost" Canvas.ZIndex="1" HorizontalAlignment="Left"
-            Background="{ThemeResource EgSurfaceBrush}" Visibility="Collapsed">
+            Background="{ThemeResource LayerFillColorAltBrush}" Visibility="Collapsed">
             <NavigationView x:Name="Sidebar" Margin="0,40,0,0"
                 PaneDisplayMode="Left" OpenPaneLength="220" CompactPaneLength="48"
                 IsPaneOpen="True" IsSettingsVisible="False" IsBackButtonVisible="Collapsed"

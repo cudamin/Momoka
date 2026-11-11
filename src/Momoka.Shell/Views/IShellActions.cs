@@ -158,7 +158,7 @@ internal interface IShellActions
 /// </summary>
 public enum TitleStrip
 {
-    /// <summary>页面自己的底色，什么都没铺过来：面包屑那一行自己上一层底，墨走主题那支。</summary>
+    /// <summary>页面自己的底色，什么都没铺过来：墨走主题那支。底色由外壳那份画布（ContentHost）出，这一行不涂。</summary>
     Plain,
 
     /// <summary>一张剧照铺到了窗口顶边：那一行不上底色（一条实心条压在图上就是那道要去掉的横边），墨走图上那支浅墨。</summary>

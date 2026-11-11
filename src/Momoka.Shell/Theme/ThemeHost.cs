@@ -37,6 +37,22 @@ public static class ThemeHost
     private static readonly ThemeColor Black = ThemeColor.Rgb(0, 0, 0);
 
     /// <summary>
+    /// 主窗口画布压在 Mica 上的浓度：0x99 ≈ 60%。Palette.xaml 里 <c>EgCanvasBrush</c> 的首帧字面值是同一个数，
+    /// 两处必须一起改 —— 前者决定第一帧，后者决定换主题之后。
+    /// <para>
+    /// 为什么是 60% 而不是「干脆全透」：深色 Mica 本身就是一张被壁纸染过、又压暗过的底，全透时壁纸的亮块会
+    /// 从正文的字缝里钻出来；60% 把它压到只剩明暗结构，海报和正文的对比度与实色时代一个量级。
+    /// </para>
+    /// </summary>
+    private const byte CanvasAlpha = 0x99;
+
+    /// <summary>
+    /// 侧边栏那一层（<c>LayerFillColorAltBrush</c>）的浓度：0x80 ≈ 50%，比画布再透一档。
+    /// 栏本来就该比内容「薄」一层：它是外壳，不是纸面。
+    /// </summary>
+    private const byte SidebarLayerAlpha = 0x80;
+
+    /// <summary>
     /// 每个画刷键 → 这套主题里的哪个角色。前二十条是我们自己的角色名，后面那些是框架控件真正读的键。
     /// <para>
     /// 后半截必须在这里再写一遍，不能只覆盖 <c>SystemAccentColor</c>：框架在解析它自己那份字典时就用
@@ -66,6 +82,10 @@ public static class ThemeHost
         ("EgWarningBrush", theme => theme.Colors.Warning),
         ("EgInfoBrush", theme => theme.Colors.Info),
         ("EgScrimBrush", theme => theme.Colors.Scrim),
+
+        // 主窗口画布（2026-11-12 用户令「改为Mica」）：窗口角色加上浓度，压在本窗口的 Mica 上。
+        // 只有 ShellPage.ContentHost 画它；各页面根背景都是 Transparent，整页因此只有一道底。
+        ("EgCanvasBrush", theme => theme.Colors.Window.WithAlpha(CanvasAlpha)),
 
         // 详情页正文那张亚克力（见 Apply 里的亚克力分支）。取窗口底色 ——
         // 它是这一页正文本来的底，亚克力只是让背后那张剧照透上来一点点，不是换一种颜色。
@@ -123,7 +143,7 @@ public static class ThemeHost
         // 设置卡片（2026-10-29 用户令「所有的卡片也要用亚克力」）：深色取抬两档的悬停面色，
         // 浅色取白面 —— 两边的浓度都归 Palette 的两份字典，这里只管「这套主题该用哪个色」。
         ("LayerFillColorDefaultBrush", theme => theme.Colors.Window),
-        ("LayerFillColorAltBrush", theme => theme.Colors.Surface),
+        ("LayerFillColorAltBrush", theme => theme.Colors.Surface.WithAlpha(SidebarLayerAlpha)),
         ("CardBackgroundFillColorDefaultBrush", theme => theme.Colors.SurfaceAlt),
         ("CardBackgroundFillColorSecondaryBrush", theme => theme.Colors.SurfaceAlt),
         ("CardStrokeColorDefaultBrush", theme => theme.Colors.Border),

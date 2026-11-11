@@ -644,6 +644,7 @@ internal static class Program
         WrapLayoutTests.Register();
         StartupArgsTests.Register();
         ThemeTests.Register();
+        MicaMaterialTests.Register();
         InputControlThemeTests.Register();
         AcrylicControlsTests.Register();
         DialogChromeTests.Register();

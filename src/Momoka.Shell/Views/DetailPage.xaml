@@ -18,7 +18,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:emby="using:Momoka.Emby"
-    Background="{ThemeResource LayerFillColorDefaultBrush}">
+    Background="Transparent">
 
     <Page.Resources>
         <!-- 当前 WinUI 模板的箭头另有最小高度，须与闭合框一起收紧。仅作用于详情页。 -->

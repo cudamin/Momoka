@@ -4,7 +4,7 @@
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:mp="using:Momoka.MoviePilot"
     xmlns:vm="using:Momoka.Shell.ViewModels"
-    Background="{ThemeResource EgWindowBrush}">
+    Background="Transparent">
     <Page.Resources>
         <Style x:Key="EgActionButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />

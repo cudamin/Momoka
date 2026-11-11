@@ -5,7 +5,7 @@
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:vm="using:Momoka.Shell.ViewModels"
     xmlns:configuration="using:Momoka.Configuration"
-    Background="{ThemeResource EgWindowBrush}">
+    Background="Transparent">
     <Page.Resources>
         <DataTemplate x:Key="CandidateTemplate" x:DataType="vm:LocalMediaCandidate">
             <TextBlock Text="{x:Bind Label}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />

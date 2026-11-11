@@ -418,9 +418,10 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _titleInkHover.Color = Ink(highContrast ? "SystemColorWindowTextColor" : "EgAccentBrush");
         _trailInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimBrush" : "EgTextDimBrush");
 
-        TrailBar.Background = _titleStrip == TitleStrip.Plain
-            ? Application.Current.Resources["LayerFillColorDefaultBrush"] as Brush
-            : null;
+        // 面包屑那一行不再自己上底色（2026-11-12 用户令「改为Mica」）：它站的那一格由 ContentHost 的
+        // EgCanvasBrush 提供。这里再涂一层同色会让顶上那一条比正文暗两档 —— 两次 60% 叠起来是 84%。
+        // 有图（OnScrim）与页面自己洗过（PagePainted）两档本来就不涂，现在三种页型一致。
+        TrailBar.Background = null;
 
         // 状态画刷对象保持不变，主题切换只修改颜色；悬停以图标前景反馈，不铺背景。停用那一档也指回
         // 静止那支（见 _titleInk 的注释）：走不动的箭头不再变淡。
