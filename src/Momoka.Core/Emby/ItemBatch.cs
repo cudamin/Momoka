@@ -223,9 +223,12 @@ public sealed class ItemBatchService
         if (confirmed)
         {
             source.ConfirmUserStateChange();
+            var refreshError = command == ItemCommand.Convert
+                ? string.IsNullOrWhiteSpace(conversionJobId) ? "服务器已接受转换任务，但未返回任务编号，请查看服务器任务列表" : null
+                : string.IsNullOrWhiteSpace(playlistId) ? "服务器已接受播放列表创建，但未返回列表编号，请刷新播放列表" : null;
             foreach (var index in eligible)
                 results[index] = new(entries[index], ItemBatchStatus.Succeeded,
-                    ConversionJobId: conversionJobId, PlaylistId: playlistId);
+                    RefreshError: refreshError, ConversionJobId: conversionJobId, PlaylistId: playlistId);
         }
         // HTTP continuations may run on a worker; callbacks touch the native UI and belong to
         // the caller's captured context after the entire server write has produced its receipt.

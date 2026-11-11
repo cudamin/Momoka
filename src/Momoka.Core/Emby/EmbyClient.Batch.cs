@@ -22,13 +22,15 @@ public sealed partial class EmbyClient
     }
 
     /// <summary>Creates the playlist with its complete initial selection in one request.</summary>
-    public Task<EmbyPlaylistCreationResult> CreatePlaylistAsync(string name, IReadOnlyList<string> itemIds,
+    public async Task<EmbyPlaylistCreationResult> CreatePlaylistAsync(string name, IReadOnlyList<string> itemIds,
         CancellationToken cancellationToken)
     {
         RequireEmby("播放列表管理");
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("请填写播放列表名称", nameof(name));
-        return http.PostJsonAsync<EmbyPlaylistCreationResult>(Url("Playlists", ("Name", name.Trim()),
-            ("Ids", BatchIds(itemIds)), ("UserId", Connection.UserId)), null, Context, cancellationToken);
+        // Optional receipt metadata must not make an accepted create look like a retryable write.
+        return await http.PostForJsonAsync<EmbyPlaylistCreationResult>(Url("Playlists", ("Name", name.Trim()),
+            ("Ids", BatchIds(itemIds)), ("UserId", Connection.UserId)), null, Context, cancellationToken)
+            .ConfigureAwait(false) ?? new();
     }
 
     public Task AddToPlaylistAsync(string playlistId, IReadOnlyList<string> itemIds, bool skipDuplicates,
@@ -51,19 +53,19 @@ public sealed partial class EmbyClient
     }
 
     /// <summary>ItemLimit and the automatic-conversion switches belong to this single shared job.</summary>
-    public Task<EmbyConversionJobReceipt> CreateConversionJobAsync(IReadOnlyList<string> itemIds,
+    public async Task<EmbyConversionJobReceipt> CreateConversionJobAsync(IReadOnlyList<string> itemIds,
         EmbyConversionSelection selection, CancellationToken cancellationToken)
     {
         RequireEmby("媒体转换");
         if (string.IsNullOrWhiteSpace(selection.TargetId)) throw new ArgumentException("请选择转换目标", nameof(selection));
         if (selection.Bitrate is <= 0 || selection.ItemLimit is <= 0)
             throw new ArgumentException("转换码率和数量上限必须大于零", nameof(selection));
-        return http.PostJsonAsync<EmbyConversionJobReceipt>(Url("Sync/Jobs"), new
+        return await http.PostForJsonAsync<EmbyConversionJobReceipt>(Url("Sync/Jobs"), new
         {
             UserId = Connection.UserId, ItemIds = BatchIds(itemIds), selection.TargetId,
             selection.Profile, selection.Quality, selection.Bitrate, selection.Container,
             selection.VideoCodec, selection.AudioCodec, selection.UnwatchedOnly, selection.SyncNewContent, selection.ItemLimit
-        }, Context, cancellationToken);
+        }, Context, cancellationToken).ConfigureAwait(false) ?? new();
     }
 
     /// <summary>Scans the selected folder's files using the same Default refresh as Emby Web.</summary>

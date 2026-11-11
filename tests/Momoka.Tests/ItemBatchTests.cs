@@ -143,6 +143,45 @@ internal static class ItemBatchTests
             Assert.Contains("UserId=user", sent.Url);
             Assert.Equal("", sent.Body);
         }));
+        Test("媒体批量：Emby聚合写成功但响应无效仍保留确认且不重发", () => Run(async () =>
+        {
+            using var fixture = new Fixture(MediaServerKind.Emby);
+            fixture.Http.Answer("Playlists", "not-json").Answer("Sync/Options", ConversionChoices).Answer("Sync/Jobs", "");
+            foreach (var command in new[] { ItemCommand.AddToPlaylist, ItemCommand.Convert })
+            {
+                var options = command == ItemCommand.Convert
+                    ? new ItemBatchOptions(Conversion: new("target", Profile: "mobile", Quality: "high"))
+                    : new ItemBatchOptions(NewPlaylistName: "列表");
+                var result = await new ItemBatchService().ExecuteAsync(fixture.Source, fixture.Entries, command,
+                    () => default, null, default, options: options);
+                Assert.Equal(3, result.Succeeded);
+                Assert.True(result.Results.All(value => value.RefreshError is not null));
+            }
+            Assert.Equal(1, fixture.Http.Count("Playlists"));
+            Assert.Equal(1, fixture.Http.Count("Sync/Jobs"));
+        }));
+        Test("媒体批量：Emby转换拒绝后续HTTP并保留聚合成功回执上下文", () =>
+        {
+            using var fixture = new Fixture(MediaServerKind.Emby, new BatchBackgroundTransport());
+            using var context = new BatchContext();
+            var previous = SynchronizationContext.Current;
+            SynchronizationContext.SetSynchronizationContext(context);
+            try
+            {
+                var callbackThread = Environment.CurrentManagedThreadId;
+                var published = 0;
+                var task = new ItemBatchService().ExecuteAsync(fixture.Source, fixture.Entries, ItemCommand.Convert,
+                    () => default, null, default, _ =>
+                    {
+                        Assert.Equal(callbackThread, Environment.CurrentManagedThreadId);
+                        published++;
+                    }, options: new(Conversion: new("target", Profile: "mobile", Quality: "high")));
+                context.DrainUntil(task);
+                Assert.Equal(3, task.GetAwaiter().GetResult().Succeeded);
+                Assert.Equal(3, published);
+            }
+            finally { SynchronizationContext.SetSynchronizationContext(previous); }
+        });
         Test("媒体批量：Emby播放列表追加携带用户和去重选择", () => Run(async () =>
         {
             using var fixture = new Fixture(MediaServerKind.Emby);
@@ -481,6 +520,31 @@ internal static class ItemBatchTests
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             { Content = new ReceiptContent(() => AfterReceipt?.Invoke()) });
         }
+    }
+
+    private sealed class BatchContext : SynchronizationContext, IDisposable
+    {
+        private readonly System.Collections.Concurrent.BlockingCollection<(SendOrPostCallback Work, object? State)> _queue = new();
+        public override void Post(SendOrPostCallback work, object? state) => _queue.Add((work, state));
+        public void DrainUntil(Task task)
+        {
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+            while (!task.IsCompleted && DateTime.UtcNow < deadline)
+                if (_queue.TryTake(out var next, 50)) next.Work(next.State);
+            Assert.True(task.IsCompleted, "聚合回执必须在调用线程完成");
+        }
+        public void Dispose() => _queue.Dispose();
+    }
+
+    private sealed class BatchBackgroundTransport : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.Run(() =>
+            {
+                var body = request.RequestUri!.AbsolutePath.EndsWith("Sync/Options", StringComparison.Ordinal)
+                    ? ConversionChoices : "{\"Job\":{\"Id\":\"job\"}}";
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) };
+            }, cancellationToken);
     }
     private sealed class ReceiptContent(Action afterReceipt) : StringContent("{\"Played\":true}")
     {
