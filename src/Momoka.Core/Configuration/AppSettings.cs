@@ -1658,6 +1658,8 @@ public sealed class UiSettings
     /// </summary>
     public Dictionary<string, ItemFilters> Filters { get; set; } = new(StringComparer.Ordinal);
 
+    public Dictionary<string, Momoka.Plex.PlexFilterSelection> PlexFilters { get; set; } = new(StringComparer.Ordinal);
+
     /// <summary>
     /// The view shape (海报 / 缩略图 / 列表) each library was last left in, keyed by library id, on the
     /// same terms as <see cref="Sort"/> — library roots only. Stored as the enum's name: an int would

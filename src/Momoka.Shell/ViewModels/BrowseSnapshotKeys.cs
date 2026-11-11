@@ -63,7 +63,8 @@ internal static class BrowseSnapshotKeys
         ItemFilters filters,
         FnNasFilterSelection fnNasFilters,
         LibraryDisplay display,
-        int pageSize)
+        int pageSize,
+        Momoka.Plex.PlexFilterSelection? plexFilters = null)
     {
         var text = new StringBuilder(320);
         AddSources(text, sources);
@@ -108,6 +109,14 @@ internal static class BrowseSnapshotKeys
         AddList(text, fnNasFilters.Locations);
         AddList(text, fnNasFilters.Decades);
         AddList(text, fnNasFilters.RecognitionStatuses);
+
+        Add(text, plexFilters?.Type);
+        if (plexFilters is not null)
+            foreach (var pair in plexFilters.Values.OrderBy(pair => pair.Key, StringComparer.Ordinal))
+            {
+                Add(text, pair.Key);
+                AddList(text, pair.Value);
+            }
 
         Add(text, display.View.ToString());
         Add(text, display.CardSize.ToString());

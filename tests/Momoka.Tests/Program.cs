@@ -414,6 +414,8 @@ internal static class Program
             PlexMediaTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["plex-library-vm-fixture", var plexLibraryShell, var plexLibraryRoot])
+            return PlexLibraryViewTests.Run(plexLibraryShell, plexLibraryRoot);
         if (args is ["plex-multipart-native-fixture", var plexNative])
             return PlexMultipartNativeTests.Run(plexNative);
         if (args is ["plex-multipart-http-native-fixture", var plexHttpNative])

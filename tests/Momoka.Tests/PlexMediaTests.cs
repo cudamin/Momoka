@@ -23,6 +23,7 @@ internal static partial class PlexMediaTests
     public static void Register()
     {
         RegisterLibraries();
+        RegisterLibraryCatalog();
         RegisterBitrates();
         RegisterWatchedCounts();
         RegisterWatchedWrites();

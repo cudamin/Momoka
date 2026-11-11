@@ -27,7 +27,7 @@ namespace Momoka.Shell.ViewModels;
 /// <param name="Option">The key.</param>
 /// <param name="IsChecked">Whether this is the key in force.</param>
 /// <param name="Descending">Which way it runs; only drawn on the ticked row.</param>
-public sealed record SortEntry(EmbySortOption Option, bool IsChecked, bool Descending)
+public sealed record SortEntry(EmbySortOption Option, bool IsChecked, bool Descending, bool CanReverse = true)
 {
     /// <summary>What the row says.</summary>
     public string Label => Option.Label;
@@ -36,7 +36,7 @@ public sealed record SortEntry(EmbySortOption Option, bool IsChecked, bool Desce
     public Visibility CheckVisibility => IsChecked ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>The direction arrow, only on the row in force.</summary>
-    public Visibility ArrowVisibility => CheckVisibility;
+    public Visibility ArrowVisibility => CanReverse ? CheckVisibility : Visibility.Collapsed;
 
     /// <summary>The arrow itself: the same two glyphs the toolbar's sort button uses.</summary>
     public string Glyph => char.ConvertFromUtf32(Descending ? 0xE70D : 0xE70E);
@@ -472,7 +472,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     public Visibility AlphaVisibility => Show(
         !Aggregated && !IsUpcomingPage && !IsFavoritesPage && Section != LibrarySection.Recommended
         && Section != LibrarySection.Collections && !IsJellyfinNextUpPage
-        && SupportsBrowseConditions && _request?.IsSearch != true && IsNameSortInForce
+        && (IsPlex ? PlexHasAlphabet : SupportsBrowseConditions) && _request?.IsSearch != true && IsNameSortInForce
         && (!IsJellyfin || JellyfinLibrary.HasAlphabetPicker(CollectionType, Section))
         && !SortDescending && _total is > 30);
 
@@ -480,7 +480,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// Jellyfin's name sort carries a year tie-breaker (<c>SortName,ProductionYear</c>) and the mixed
     /// library's default starts with <c>IsFolder</c>; both are still name orderings for the letter bar.
     /// </summary>
-    private bool IsNameSortInForce => IsJellyfin ? JellyfinLibrary.IsNameSort(SortKey) : SortKey == EmbySortBy.Name;
+    private bool IsNameSortInForce => IsPlex ? PlexHasAlphabet : IsJellyfin ? JellyfinLibrary.IsNameSort(SortKey) : SortKey == EmbySortBy.Name;
 
     /// <summary>
     /// 这台服务器认不认 Emby 那套浏览条件 —— 字母跳转、筛选面板、按库记住筛选。飞牛与 Plex 各有自己的
@@ -490,7 +490,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     private bool SupportsBrowseConditions => _scope?.Connection.IsFnNas != true && _scope?.Connection.IsPlex != true;
 
     /// <summary>飞牛有自己的一套标签筛选；Emby 那套条件与 Plex 仍按原样收起。</summary>
-    private bool SupportsFilterPanel => IsFnNas || SupportsBrowseConditions;
+    private bool SupportsFilterPanel => IsPlex ? PlexHasFilters : IsFnNas || SupportsBrowseConditions;
 
     /// <summary>Whether this grid has anything the player could start, for the two play buttons.</summary>
     /// <remarks>
@@ -774,6 +774,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         _request.ScrollOffset = 0;
         _request.LoadedCount = 0;
         ResetFnNasFilters();
+        ResetPlex();
         RestoreSort();
         RestoreFilters();
         RestoreDisplay();
@@ -1244,6 +1245,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     public Visibility SortFilterVisibility => Show(HasToolbar && !IsResumePage && !IsJellyfinNextUpPage && !Aggregated
         && !IsBrowseIndex
+        && (!IsPlexSection || PlexHasSorts)
         // 飞牛搜索走 /search/list，排序参数不会随搜索发出；摆一颗按了不动的排序键比不摆更糟。
         && !(IsFnNas && _request?.IsSearch == true));
 
@@ -1347,6 +1349,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         OnPropertyChanged(nameof(ItemCountVisibility));
 
         ResetFnNasFilters();
+        ResetPlex();
 
         if (IsSectionLibrary && !BrowseSections.Any(entry => entry.Section == request.Section))
         {
@@ -1371,7 +1374,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         && Cards.Count <= BrowseSnapshotStore.MaxItemsPerSnapshot && _scope?.IsAvailable == true;
 
     private string NavigationContentKey() => BrowseSnapshotKeys.Library(_sourceTokens, _request!, SortKey,
-        SortDescending, _filters, _fnNasFilters, _display, _settings!.PageSize);
+        SortDescending, _filters, _fnNasFilters, _display, _settings!.PageSize, _plexFilters);
 
     private string NavigationPreferencesKey()
     {
@@ -1382,7 +1385,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         return JsonSerializer.Serialize(new object?[]
         {
             ui.Sort.GetValueOrDefault(key), ui.Filters.GetValueOrDefault(key),
-            ui.Display.GetValueOrDefault(key), ui.Views.GetValueOrDefault(key), _settings!.PageSize
+            ui.Display.GetValueOrDefault(key), ui.Views.GetValueOrDefault(key), ui.PlexFilters.GetValueOrDefault(key), _settings!.PageSize
         }, EmbyHttp.Json);
     }
 
@@ -1447,7 +1450,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         _snapshotKey = BrowseSnapshotKeys.Library(
             _sourceTokens, _request, SortKey, SortDescending, _filters, _fnNasFilters, _display,
-            _settings.PageSize);
+            _settings.PageSize, _plexFilters);
         if (_request.AnchorQueryKey is not null && _request.AnchorQueryKey != _snapshotKey) ClearAnchor();
     }
 
@@ -2117,6 +2120,9 @@ public sealed partial class LibraryViewModel : PageViewModel
         _jumps.Cancel();
         _favoriteLoads.Cancel();
         _fnNasFilterLifetime?.Cancel();
+        _plexLifetime?.Cancel();
+        PlexFilterOpen = false;
+        PlexFilterLoading = false;
         FnNasFilterLoading = false;
         foreach (var row in FavoriteRows) row.Loading = false;
         base.Cancel();
@@ -2140,6 +2146,8 @@ public sealed partial class LibraryViewModel : PageViewModel
         _favoriteLoads.Dispose();
         _fnNasFilterLifetime?.Dispose();
         _fnNasFilterLifetime = null;
+        _plexLifetime?.Dispose();
+        _plexLifetime = null;
         foreach (var row in RecentSearches) row.Card.AbandonPoster();
         _queries.Dispose();
         _jumps.Dispose();
@@ -2204,6 +2212,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     private async Task<ItemsResult> ReadSourceRangeAsync(EmbySessionScope scope, int start, int limit, CancellationToken token)
     {
+        if (IsPlexSection) await EnsurePlexCatalogAsync(token).ConfigureAwait(true);
         if (BuildRangeQuery(start, limit) is not { } query) return new ItemsResult();
 
         if (IsSectionLibrary)
@@ -2260,6 +2269,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (_request is null) return [];
 
+        if (IsPlexSection) return PlexSortEntries();
+
         if (IsFnNas)
             return [.. FnNasSortCatalog.Options.Select(option =>
                 new SortEntry(option, option.Value == SortKey, SortDescending))];
@@ -2288,7 +2299,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal void FlipSort(EmbySortOption option)
     {
         if (!_active || !SourcesAvailable || _request is null || Aggregated) return;
-        if ((IsJellyfin ? option.Value : option.ValueOf(SortPreset)) != SortKey) return;
+        if ((IsJellyfin || IsPlex ? option.Value : option.ValueOf(SortPreset)) != SortKey) return;
+        if (IsPlexSection && PlexType?.Sorts.Any(sort => sort.Key == SortKey && sort.DescKey.Length > 0) != true) return;
 
         SortDescending = !SortDescending;
     }
@@ -2298,7 +2310,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (!_active || !SourcesAvailable || _request is null || _actions is null || Aggregated) return;
 
-        var key = IsJellyfin ? option.Value : option.ValueOf(SortPreset);
+        var key = IsJellyfin || IsPlex ? option.Value : option.ValueOf(SortPreset);
         if (!SupportsSort(key)) return;
 
         // Emby's own behaviour, and the only sensible one: a date key opens newest first and a name key
@@ -2308,6 +2320,10 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (IsJellyfin)
         {
             if (!JellyfinLibrary.SortOptions(_request.CollectionType, Section).Any(entry => entry.Value == key)) return;
+        }
+        else if (IsPlexSection)
+        {
+            if (PlexType?.Sorts.Any(sort => sort.Key == key) != true) return;
         }
         else if (!IsFnNas && !option.AppliesTo(SortPreset, SourceServerVersion)) return;
         if (key == SortKey && option.DescendingByDefault == SortDescending) return;
@@ -2463,6 +2479,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (!_active || Aggregated || Busy || !_firstPage || _scope is not { IsAvailable: true } scope || BuildQuery(0) is not { } source)
             return null;
+        if (IsPlex) return await JumpPlexAsync(letter).ConfigureAwait(true);
         var queryToken = _queryToken;
         var jumpToken = _jumps.Begin();
         using var stopping = CancellationTokenSource.CreateLinkedTokenSource(queryToken, jumpToken);
@@ -2870,6 +2887,11 @@ public sealed partial class LibraryViewModel : PageViewModel
     partial void OnSortDescendingChanged(bool value)
     {
         if (_syncingDirection) return;
+        if (IsPlexSection && value && PlexType?.Sorts.Any(sort => sort.Key == SortKey && sort.DescKey.Length > 0) != true)
+        {
+            ShowSort(SortLabel, false);
+            return;
+        }
 
         RememberSort();
         Requery();
@@ -2900,6 +2922,13 @@ public sealed partial class LibraryViewModel : PageViewModel
     private void RestoreSort()
     {
         var request = _request!;
+        if (IsPlexSection)
+        {
+            SortKey = EmbySortBy.Name;
+            ShowSort("标题", false);
+            RestorePlexSort();
+            return;
+        }
         if (IsFnNas)
         {
             var fnNasFallback = FnNasSortCatalog.Default;
@@ -2974,7 +3003,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     private bool SupportsSort(string value) => _scope?.Connection.IsFnNas == true
         ? Momoka.FnNas.FnNasMediaAdapter.SupportsSort(value)
         : _scope?.Connection.IsPlex == true
-            ? Momoka.Plex.PlexMediaAdapter.SupportsSort(value)
+            ? IsPlexSection ? PlexType?.Sorts.Any(sort => sort.Key == value) == true : Momoka.Plex.PlexMediaAdapter.SupportsSort(value)
             : _scope?.Connection.IsJellyfin != true || JellyfinQuery.SupportsSort(value);
 
     private void RememberSort()
@@ -3091,6 +3120,12 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     private void RestoreFilters()
     {
+        if (IsPlex)
+        {
+            _filters = new();
+            ShowPlexFilterState();
+            return;
+        }
         _filters = SupportsBrowseConditions && MemoryKey() is { } memoryKey
             && Settings.Ui.Filters.TryGetValue(memoryKey, out var saved)
                 ? saved.Clone()
@@ -3118,6 +3153,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     private void ShowFilterState()
     {
+        if (IsPlex) { ShowPlexFilterState(); return; }
         if (IsFnNas)
         {
             ShowFnNasFilterState();
@@ -3165,6 +3201,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     [RelayCommand]
     private void ClearFilters()
     {
+        if (IsPlex) { _ = ClearPlexFiltersAsync(); return; }
         if (IsFnNas)
         {
             if (FnNasFilterRows.Count == 0) return;
@@ -3211,6 +3248,11 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         var query = BuildQueryCore(start, limit);
         if (query is not null) query.FnNasFilters = IsFnNas ? _fnNasFilters.Clone() : null;
+        if (query is not null && IsPlexSection && (PlexCatalog?.Types.Count > 0 || _plexFilters.Count > 0))
+        {
+            query.PlexFilters = _plexFilters.Clone();
+            query.PlexSortKey = PlexType?.Sorts.Any(sort => sort.Key == SortKey) == true ? SortKey : null;
+        }
         return query;
     }
 

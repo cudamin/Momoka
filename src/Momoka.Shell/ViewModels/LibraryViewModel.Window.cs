@@ -35,8 +35,8 @@ public sealed partial class LibraryViewModel
         Section: LibrarySection.Items, BrowseGroup: null
     }
         && _request.CollectionType is "movies" or "tvshows" or "mixed" or "homevideos"
-        && SortKey != EmbySortBy.Random
-        && _fnNasFilters.Type != "Episode";
+        && SortKey != EmbySortBy.Random && SortKey != "random"
+        && _fnNasFilters.Type != "Episode" && _plexFilters.Type != "4";
 
     internal bool HasSavedAnchor => WindowEligible && _request is { AnchorIndex: >= 0, AnchorIdentityKey: not null }
         && _snapshotKey is not null && _request.AnchorQueryKey == _snapshotKey;

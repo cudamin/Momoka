@@ -1291,11 +1291,20 @@ public sealed partial class LibraryPage : Page, IShellContent
             _ = ViewModel.ToggleFnNasFilterAsync();
             return;
         }
+        if (ViewModel.IsPlex)
+        {
+            _ = ViewModel.TogglePlexFilterAsync();
+            return;
+        }
 
         OpenFilter();
     }
 
     private void OnFnNasFilterCloseClicked(object sender, RoutedEventArgs e) => ViewModel.CloseFnNasFilter();
+
+    private void OnPlexFilterCloseClicked(object sender, RoutedEventArgs e) => ViewModel.ClosePlexFilter();
+    private void OnPlexFilterClearClicked(object sender, RoutedEventArgs e) => _ = ViewModel.ClearPlexFiltersAsync();
+    private void OnPlexFilterRetryClicked(object sender, RoutedEventArgs e) => _ = ViewModel.RetryPlexFiltersAsync();
 
     private void OnFnNasLayoutMenuOpening(object sender, object e) => BuildFnNasLayoutMenu();
 
@@ -1341,6 +1350,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     internal void OpenFilter()
     {
+        if (ViewModel.IsPlex) { _ = ViewModel.TogglePlexFilterAsync(); return; }
         PrepareFilterPanel();
         if (_capabilities is null) return;
 
@@ -1364,6 +1374,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// <summary>收起筛选层，回到原来的网格。</summary>
     internal void CloseFilter()
     {
+        ViewModel.ClosePlexFilter();
         FilterOverlay.Visibility = Visibility.Collapsed;
         _filterPane?.Dismiss();
     }

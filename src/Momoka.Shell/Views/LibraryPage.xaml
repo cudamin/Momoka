@@ -808,6 +808,46 @@
                         Command="{x:Bind ViewModel.ClearFiltersCommand}" Padding="4,2,4,2" />
                 </StackPanel>
             </Border>
+            <Border x:Name="PlexFilterPanel" Grid.Row="2" Margin="0,0,0,4" Padding="16,12"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1"
+                CornerRadius="{StaticResource EgSearchCornerRadius}"
+                Visibility="{x:Bind ViewModel.PlexFilterVisibility, Mode=OneWay}">
+                <StackPanel Spacing="10">
+                    <Grid>
+                        <TextBlock Text="筛选" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
+                        <HyperlinkButton x:Name="PlexFilterCollapse" Content="收起" HorizontalAlignment="Right"
+                            Click="OnPlexFilterCloseClicked" Padding="4,2,4,2" />
+                    </Grid>
+                    <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.PlexFilterLoadingVisibility, Mode=OneWay}" />
+                    <ComboBox x:Name="PlexTypePicker" Header="媒体类型" HorizontalAlignment="Stretch"
+                        Visibility="{x:Bind ViewModel.PlexTypeVisibility, Mode=OneWay}"
+                        ItemsSource="{x:Bind ViewModel.PlexTypes, Mode=OneWay}"
+                        SelectedItem="{x:Bind ViewModel.PlexSelectedType, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PlexFilterChoice"><TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" /></DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <ItemsControl x:Name="PlexFilterRowsList" ItemsSource="{x:Bind ViewModel.PlexFilterRows, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PlexFilterRow">
+                                <ComboBox x:Name="PlexFilterPicker" Header="{x:Bind Label}" Margin="0,0,0,8"
+                                    HorizontalAlignment="Stretch" ItemsSource="{x:Bind Options, Mode=OneWay}"
+                                    SelectedItem="{x:Bind SelectedOption, Mode=TwoWay}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:PlexFilterChoice"><TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" /></DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <StackPanel Visibility="{x:Bind ViewModel.PlexFilterErrorVisibility, Mode=OneWay}" Spacing="4">
+                        <TextBlock Text="{x:Bind ViewModel.PlexFilterError, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
+                        <HyperlinkButton x:Name="PlexFilterRetry" Content="重试" HorizontalAlignment="Left" Click="OnPlexFilterRetryClicked" />
+                    </StackPanel>
+                    <HyperlinkButton x:Name="PlexFilterClear" Content="清除筛选" HorizontalAlignment="Left" Click="OnPlexFilterClearClicked" />
+                </StackPanel>
+            </Border>
         </Grid>
 
         <!-- Indeterminate and one row of its own: a ring in the middle of the page would move the

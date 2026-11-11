@@ -428,6 +428,7 @@ public static class SettingsMigration
 
         if (settings.Ui.Sort is null) settings.Ui.Sort = new(StringComparer.Ordinal);
         if (settings.Ui.Filters is null) settings.Ui.Filters = new(StringComparer.Ordinal);
+        if (settings.Ui.PlexFilters is null) settings.Ui.PlexFilters = new(StringComparer.Ordinal);
         if (settings.Ui.Views is null) settings.Ui.Views = new(StringComparer.Ordinal);
         if (settings.Ui.Display is null) settings.Ui.Display = new(StringComparer.Ordinal);
 
@@ -435,6 +436,13 @@ public static class SettingsMigration
         // which SettingsStore already treats as a corrupt file.
         DropNullValues(settings.Ui.Sort);
         DropNullValues(settings.Ui.Filters);
+        DropNullValues(settings.Ui.PlexFilters);
+        foreach (var selection in settings.Ui.PlexFilters.Values)
+        {
+            selection.Type ??= "";
+            selection.Values ??= new(StringComparer.Ordinal);
+            DropNullValues(selection.Values);
+        }
         DropNullValues(settings.Ui.Display);
         foreach (var display in settings.Ui.Display.Values)
             display.Fields ??= [.. LibraryDisplayCatalog.DefaultFields];

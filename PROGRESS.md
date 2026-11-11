@@ -12350,3 +12350,9 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 - 固定官方 Plex Web 4.163.0 / 8246fd2 原始字节本轮哈希核对相同；模块 84160/7537 按 librarySectionID 及 actor/director/writer/genre=id 下钻。模块3632的/library/people属于myPlex云来源，没有借成本地PMS路由。具体位置及本地按稳定ID区分同名人的选择见 docs/媒体库第二批.md。
 - 失败先行：旧代码新增人物映射2项失败；关系参数/非法身份5项失败。实现后当前Release Core/Tests编译0警告错误，plex-protocol-fixture273/273、0失败0跳过；当前Shell DLL+实际详情VM/卡片/提取页面83/83、0失败0跳过。既有PlexAffordance夹具漂移修正仅补生产LocalLibraryArtwork编译链接和可选ISystemLauncher返回null，未知服务继续拒绝。
 - 自动化定位扫描0缺失；diff/编码/行尾与改动文件whitespace通过。未运行实际WinUI窗口/UIA/实屏、未接真实PMS、未真实播放或写服务器数据；尚未合入master、publish或上传。主代理整合后须重验最终代码和实际页面再交付。
+## 2026-11-11 媒体库第二批 Plex 浏览（待主交付整合）
+
+- 独立树 `C:/Users/89400/.codex/worktrees/library-plex-filters/Momoka`，基点efd2ffd；负责Plex服务端Type/Filter/Sort目录、原生筛选与排序、firstCharacter分桶跳转及LibraryViewModel.Plex正式页面接线，未操作master、真实凭据或PMS。
+- 固定官方Web4.163.0/8246fd2源JS本轮核验SHA256并实际读模块链；细节在docs/媒体库第二批-Plex浏览.md。section原始filters声明与实际目录共同控制入口，值和标签分开，保存条件失效明确恢复，不借Emby路由。快照/设置/取消及每section目录generation覆盖。
+- 回归先红：初始8项目标失败；新增目录刷新竞争与设置保存边界2项失败。最终273/273协议、5/5实际LibraryViewModel，0失败0跳过；Core/Tests Release/x64编译0警告0错误。Shell前几趟编译0警告错误，最后重叠构建退出0但4个MSB3026（XAML编译器锁Core复制重试）；最后微调对应的warning-free完整Shell证据须由主树整合再验，不能把此次有警告构建称全部通过。
+- 21文本check-diff、git diff --check、改动Core/Tests whitespace与自动化0missing通过。证据在本树artifacts/plex-catalog-*.log、plex-library-vm-final.log、plex-automation.log。真实WinUI、宽窄布局、PMS、主树整合与桌面发布未执行；root负责串行最终验收。没有跑默认主套件或共享桌面探针。

@@ -159,7 +159,8 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
         if (string.IsNullOrWhiteSpace(query.ParentId)) throw new NotSupportedException("Plex 需要指定媒体库才能浏览");
 
         var page = await client
-            .GetSectionItemsAsync(connection, query.ParentId, Query(query), query.StartIndex, query.Limit, ct)
+            .GetSectionItemsAsync(connection, query.ParentId, query.PlexFilters is not null || query.PlexSortKey is not null
+                ? await LibraryParametersAsync(query, ct).ConfigureAwait(false) : Query(query), query.StartIndex, query.Limit, ct)
             .ConfigureAwait(false);
         var values = Items(page).Select(Item).ToList();
         return new ItemsResult { Items = values, TotalRecordCount = Integer(page, "totalSize") ?? values.Count };
