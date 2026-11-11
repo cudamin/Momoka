@@ -12429,3 +12429,9 @@ R8真实批准libmpv无媒体补验：匿名顶层config deband=no覆盖planner 
 用户明确要求合并交付。d649eba合入全部分支内容，产品自动合并、PROGRESS追加冲突保留双方。主树验收补出拖回原尺寸松手1坏帧，889c219修正承接帧提前撤回，源链接新增用例先红后绿。最终Release Shell/Tests零警告零错误，主测试4574/4574，ResizeHandoff17/Input17/Motion23专项通过；真实鼠标4事务26尺寸变化2557稳定样本0坏帧，发布版531稳定样本0坏帧。publish.ps1 -NoArchive -Shortcut成功（547文件287.5MB、批准mpv60文件），桌面快捷方式目标/工作目录及EXE/DLL/PRI哈希核对一致。证据artifacts/resize-delivery-20261111，报告docs/verification/2026-11-10-integrated-resize.md；未真实服务器起播，未上传GitHub。分支顶端a69c065全部已进入master，准备归档307d干净工作树并删除临时分支。
 
 307d清理结果：应用archive_worktree返回 The task's primary checkout cannot be removed.，按保护保留、不绕过删除；工作树干净并detach于a69c065，已删除全部合入主树的codex/integrated-resize-smooth临时分支。
+
+## 2026-11-11 媒体库第二批主树交付完成
+
+- 产品及音乐整合 fa0a173 已进入 master；Plex演员/导演/编剧和题材同库关联、实际目录筛选排序/字母定位，Emby/Jellyfin人物/合集/播放列表搜索和正确打开全部交付。音乐误用视频关系及审查发现均已修复，PMS实服仍未验证。
+- 主树当前Release Core/Tests/Shell0警告错误，完整4667/4667、Plex库VM10/10、人物页面85/85、库搜索VM47/47、搜索生命周期43/43、音乐VM12/12、页头18/18通过；65文件差异检查和UIA句柄扫描通过。主树匿名页面检查4/4及音乐目录2/2通过，截图已核。完整路径与失败先行见docs/verification/2026-11-11-library-batch2.md。
+- publish.ps1 -NoArchive -Shortcut退出0；547文件/287.8MB、60批准mpv载荷通过。桌面Momoka.lnk指向主树artifacts/publish/win-x64/Momoka.exe，版本0.2.7.0，12:07生成；没有push/新版本/真实服务器写入或播放。证据artifacts/library-batch2-final。三个子工作树已请求应用归档，证据先复制到主树；当前d614任务树产品已全入master。
