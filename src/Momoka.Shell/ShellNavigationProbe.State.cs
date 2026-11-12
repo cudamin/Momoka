@@ -351,6 +351,12 @@ internal sealed partial class ShellNavigationProbe
                 vm.SelectedAudio = vm.AudioTracks[index];
                 await SettleAsync();
                 var closed = Box(audio);
+                // Close and reopen in the same dispatcher turn: the first queued sizing
+                // callback must not acquire the next dropdown's width/event ownership.
+                audio.IsDropDownOpen = true;
+                audio.IsDropDownOpen = false;
+                await SettleAsync();
+                Require(double.IsNaN(audio.Width), "快速开关后旧回调仍钉住闭合框宽度");
                 audio.IsDropDownOpen = true;
                 await SettleAsync();
                 await SettleAsync();
@@ -377,6 +383,7 @@ internal sealed partial class ShellNavigationProbe
                 // 收起之后要回到内容撑出来的宽度：展开态那个数不许留在身上。
                 Require(Math.Abs(Box(audio).Width - closed.Width) < 0.5,
                     $"收起后选择框没有回到原来的宽度：{Box(audio).Width:0} 对 {closed.Width:0}");
+                Require(double.IsNaN(audio.Width), "关闭后仍保留展开态Width");
             }
             Require(fixture.Actions.Plays == 0, "文件选项展开检查意外请求播放");
         }

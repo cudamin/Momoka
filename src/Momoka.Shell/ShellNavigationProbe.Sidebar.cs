@@ -135,13 +135,40 @@ internal sealed partial class ShellNavigationProbe
                 "侧栏音乐库未进入歌曲页面");
             await SaveProbeScreenAsync("sidebar-music-1240-screen.png");
 
+            Call(shell, "GoBack");
+            await UntilAsync(() => frame.Content is HomePage && shell.ActiveContentReady);
+            Call(shell, "GoForward");
+            await CheckMusicDestinationAsync("前进");
+
             var moviesTag = HomeLayout.LibraryKey(shell.LibraryViews.Single(view => view.Id == "A-movies"));
             Select(nav.MenuItems.OfType<NavigationViewItem>().Single(item => item.Tag as string == moviesTag));
             await UntilAsync(() => shell.ActiveContentReady);
             Require(shell.CurrentTag == moviesTag, "侧栏选择没有导航到媒体库");
+            Call(shell, "GoBack");
+            await CheckMusicDestinationAsync("返回");
+            Call(shell, "GoForward");
+            await UntilAsync(() => frame.Content is LibraryPage && shell.CurrentTag == moviesTag && shell.ActiveContentReady);
             shell.OpenDetail(DetailRequest.For(fixture.Services, Series()));
             await UntilAsync(() => shell.ActiveContentReady);
             Require((nav.SelectedItem as NavigationViewItem)?.Tag as string == moviesTag, "详情页丢失所属媒体库高亮");
+
+            async Task CheckMusicDestinationAsync(string direction)
+            {
+                await UntilAsync(() => frame.Content is MusicLibraryPage music && music.IsLoaded
+                    && music.ViewModel.IsReady && !music.ViewModel.Busy && music.ViewModel.Rows.Count == 1);
+                var music = (MusicLibraryPage)frame.Content;
+                Require(shell.CurrentTag == musicTag && music.Tag as string == musicTag
+                    && (nav.SelectedItem as NavigationViewItem)?.Tag as string == musicTag,
+                    direction + "音乐根页后目的地没有恢复");
+                var backEntries = frame.BackStack.ToArray();
+                var forwardEntries = frame.ForwardStack.ToArray();
+                var rows = music.ViewModel.Rows.ToArray();
+                var beforeRequests = DataRequests();
+                shell.GoTo(musicTag);
+                Require(ReferenceEquals(frame.Content, music) && backEntries.SequenceEqual(frame.BackStack)
+                    && forwardEntries.SequenceEqual(frame.ForwardStack) && rows.SequenceEqual(music.ViewModel.Rows)
+                    && beforeRequests == DataRequests(), direction + "音乐根页后重复选择重建了页面或历史");
+            }
             Call(shell, "GoBack");
             await UntilAsync(() => shell.ActiveContentReady);
             var libraryPage = (LibraryPage)frame.Content;

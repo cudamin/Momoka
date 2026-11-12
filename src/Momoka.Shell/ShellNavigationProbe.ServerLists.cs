@@ -37,6 +37,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(frame.Navigate(typeof(ServerListsPage), new ServerListsRequest(fixture.Services, source)), "服务器清单页导航失败");
                 var page = (ServerListsPage)frame.Content;
                 await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
+                Require(page.Tag as string == ServerListsRequest.Tag, "服务器清单目录没有根目的地标记");
                 Require(page.ViewModel.Lists.Count == 1 && !page.ViewModel.NoticeOpen, "清单目录没有读到普通视频清单");
                 await LayoutAsync(page);
                 Require(Bounds(Get<ComboBox>(page, "ServerListAccount"), page).Right <= page.ActualWidth + 1, "账号选择器超出窄窗");
@@ -110,6 +111,36 @@ internal sealed partial class ShellNavigationProbe
                 server.Editable = true;
                 await page.ViewModel.ReloadAsync();
                 Require(Get<AppBarButton>(page, "ServerListAdd").Visibility == Visibility.Visible, "恢复编辑权限后入口未恢复");
+                if (width == 1280)
+                {
+                    var item = page.ViewModel.OpenedList!.Item;
+                    Require(item.Source?.Key == source.Key && ReferenceEquals(item.Source.UserStateOwner, source.UserStateOwner),
+                        "清单下钻请求缺少读取时绑定的来源身份");
+                    var request = new ServerListsRequest(fixture.Services, source, item);
+                    Require(frame.Navigate(typeof(ServerListsPage), request), "服务器清单下钻导航失败");
+                    await UntilAsync(() => frame.Content is ServerListsPage detail && detail.ViewModel.IsReady
+                        && !detail.ViewModel.Busy && detail.ViewModel.OpenedList is not null);
+                    Require((frame.Content as FrameworkElement)?.Tag as string == string.Empty,
+                        "服务器清单下钻冒充目录目的地");
+                    Require(frame.Content is ServerListsPage entered && !entered.ViewModel.NoticeOpen
+                        && entered.ViewModel.Members.Count == 3 && entered.ViewModel.OpenedList?.Id == item.Id
+                        && entered.ViewModel.Scope?.Key == source.Key, "清单下钻实际读取失败或身份不符");
+                    frame.GoBack();
+                    await UntilAsync(() => frame.Content is ServerListsPage directory && directory.ViewModel.IsReady && !directory.ViewModel.Busy);
+                    Require((frame.Content as FrameworkElement)?.Tag as string == ServerListsRequest.Tag,
+                        "返回服务器清单目录后根目的地未恢复");
+                    Require(frame.Content is ServerListsPage returned && !returned.ViewModel.NoticeOpen
+                        && returned.ViewModel.OpenedList is null && returned.ViewModel.Lists.Count == 1,
+                        "返回清单目录实际读取失败或仍保留下钻状态");
+                    frame.GoForward();
+                    await UntilAsync(() => frame.Content is ServerListsPage detail && detail.ViewModel.IsReady
+                        && !detail.ViewModel.Busy && detail.ViewModel.OpenedList is not null);
+                    Require((frame.Content as FrameworkElement)?.Tag as string == string.Empty,
+                        "前进服务器清单下钻后冒充目录目的地");
+                    Require(frame.Content is ServerListsPage forwarded && !forwarded.ViewModel.NoticeOpen
+                        && forwarded.ViewModel.Members.Count == 3 && forwarded.ViewModel.OpenedList?.Id == item.Id,
+                        "前进清单下钻实际读取失败");
+                }
             }
             Require(fixture.Actions.Plays == 0, "清单探针触发真实播放");
         }

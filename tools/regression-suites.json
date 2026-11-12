@@ -4,6 +4,26 @@
   "shellAssembly": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
   "suites": [
     {
+      "id": "Momoka.NavigationStateTests",
+      "project": "tests/Momoka.NavigationStateTests/Momoka.NavigationStateTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.NavigationStateTests/README.md",
+      "notes": "严格提取当前音乐/服务器清单导航与Shell历史方法；Frame/ViewModel为边界替身，无窗口、登录或播放。"
+    },
+    {
+      "id": "Momoka.PickerLifecycleTests",
+      "project": "tests/Momoka.PickerLifecycleTests/Momoka.PickerLifecycleTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.PickerLifecycleTests/README.md",
+      "notes": "逐字链接真实EgPicker延迟撑宽与关闭/卸载/模板有效期，匿名WinUI边界和真实Core轨道；不创建窗口或读取账号。"
+    },
+    {
       "id": "Momoka.SettingsAppearanceTests",
       "project": "tests/Momoka.SettingsAppearanceTests/Momoka.SettingsAppearanceTests.csproj",
       "mode": "dotnet",

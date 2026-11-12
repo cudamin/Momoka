@@ -33,6 +33,9 @@ public sealed partial class MusicLibraryPage : Page, IShellContent
         base.OnNavigatedTo(args);
         if (args.Parameter is not LibraryRequest request) return;
         _request = request;
+        // Frame history restores this page, while the shell adopts its destination tag.
+        // Music containers keep the request's empty tag and remain drill-down pages.
+        Tag = request.Tag;
         _released = false;
         _actions = request.Services.GetRequiredService<IShellActions>();
         _actions.SetTitleStrip(TitleStrip.Plain);

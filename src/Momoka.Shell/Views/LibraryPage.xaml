@@ -923,17 +923,25 @@
                     </SelectorBar>
                 </ScrollViewer>
                 <StackPanel x:Name="LibraryBatchSurface" Grid.Row="0" Visibility="Collapsed" Spacing="8">
-                    <local:WrapRow Spacing="8">
-                        <TextBlock x:Name="LibrarySelectionCount" Text="已选 0 项" Style="{StaticResource EgBodyStyle}"
-                            VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
-                        <Button x:Name="LibrarySelectLoaded" Content="全选已加载" Click="OnSelectLoaded" />
-                        <Button x:Name="LibraryClearSelection" Content="清空选择" Click="OnClearSelection" />
-                        <Button x:Name="LibraryBatchActions" Content="批量操作" IsEnabled="False">
-                            <Button.Flyout><MenuFlyout x:Name="LibraryBatchMenu" Opening="OnBatchMenuOpening" Placement="BottomEdgeAlignedLeft" /></Button.Flyout>
-                        </Button>
-                        <Button x:Name="LibraryCancelBatch" Content="取消剩余" Click="OnCancelBatch" Visibility="Collapsed" />
-                        <Button x:Name="LibraryEndSelection" Content="完成" Click="OnEndSelection" />
-                    </local:WrapRow>
+                    <CommandBar x:Name="LibraryBatchCommandBar" DefaultLabelPosition="Right"
+                        Background="Transparent" HorizontalContentAlignment="Stretch"
+                        AutomationProperties.Name="媒体库多选操作">
+                        <CommandBar.Content>
+                            <TextBlock x:Name="LibrarySelectionCount" Text="已选 0 项" Style="{StaticResource EgBodyStyle}"
+                                Margin="0,0,12,0" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+                        </CommandBar.Content>
+                        <AppBarButton x:Name="LibrarySelectLoaded" Label="全选已加载" Icon="SelectAll"
+                            DynamicOverflowOrder="1" Click="OnSelectLoaded" />
+                        <AppBarButton x:Name="LibraryBatchActions" Label="批量操作" Icon="More" IsEnabled="False">
+                            <AppBarButton.Flyout><MenuFlyout x:Name="LibraryBatchMenu" Opening="OnBatchMenuOpening" Placement="BottomEdgeAlignedLeft" /></AppBarButton.Flyout>
+                        </AppBarButton>
+                        <AppBarButton x:Name="LibraryCancelBatch" Label="取消剩余" Icon="Cancel"
+                            Click="OnCancelBatch" Visibility="Collapsed" />
+                        <AppBarButton x:Name="LibraryEndSelection" Label="完成" Icon="Accept" Click="OnEndSelection" />
+                        <CommandBar.SecondaryCommands>
+                            <AppBarButton x:Name="LibraryClearSelection" Label="清空选择" Icon="ClearSelection" Click="OnClearSelection" />
+                        </CommandBar.SecondaryCommands>
+                    </CommandBar>
                     <InfoBar x:Name="LibraryBatchResult" IsOpen="False" IsClosable="True" Severity="Informational" />
                 </StackPanel>
             <!-- 表格视图要能横向滚：勾满字段时一行比页面宽，从前是从右边裁掉。列头与每一行必须在同一个
