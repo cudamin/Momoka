@@ -136,8 +136,7 @@ internal sealed partial class ShellNavigationProbe
                         }
                         else
                         {
-                            list.ScrollIntoView(page.ViewModel.Rows[^1]);
-                            await LayoutAsync(page);
+                            await ScrollMusicTracksAsync(list, total - 1, $"{total}-tail");
                         }
                         await WaitForDiagnosticsFrameAsync();
                         await CheckItemAsync(total - 1);
@@ -153,7 +152,7 @@ internal sealed partial class ShellNavigationProbe
                         });
                         Check(tail);
                         if (wall) await ScrollMusicWallAsync(scroll!, false, $"{section}-{total}-head");
-                        else list.ScrollIntoView(page.ViewModel.Rows[0]);
+                        else await ScrollMusicTracksAsync(list, 0, $"{total}-head");
                         await LayoutAsync(page);
                         await WaitForDiagnosticsFrameAsync();
                         await CheckItemAsync(0);
@@ -217,8 +216,21 @@ internal sealed partial class ShellNavigationProbe
                                 .Select(bitmap => bitmap.DecodePixelWidth).Distinct().ToArray());
                     }
 
-                    void Check(MusicArtworkReading reading) => MusicArtworkProbeRules.Demands(total, reading.Realized, reading.Images,
-                        reading.HeldPosters, reading.WantedRows, reading.LiveHolders);
+                    void Check(MusicArtworkReading reading)
+                    {
+                        var maximum = MusicArtworkProbeRules.MaxRealizedAtProbeSize;
+                        if (!wall)
+                        {
+                            var nativeScroll = Descendants(list).OfType<ScrollViewer>().First();
+                            var panel = list.ItemsPanelRoot as ItemsStackPanel
+                                ?? throw new InvalidOperationException("曲目列表缺少原生ItemsStackPanel");
+                            var rowHeight = Enumerable.Range(0, total).Select(value => list.ContainerFromIndex(value))
+                                .OfType<FrameworkElement>().Select(element => element.ActualHeight).Where(value => value > 0).DefaultIfEmpty(0).Min();
+                            maximum = MusicArtworkProbeRules.TrackRealizationBudget(nativeScroll.ViewportHeight, rowHeight, panel.CacheLength);
+                        }
+                        MusicArtworkProbeRules.Demands(total, reading.Realized, reading.Images,
+                            reading.HeldPosters, reading.WantedRows, reading.LiveHolders, maximum);
+                    }
 
                     async Task CheckItemAsync(int index)
                     {

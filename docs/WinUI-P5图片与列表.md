@@ -52,11 +52,11 @@ Gallery同提交使用实验SDK，本单元保留Momoka现有WinUI2.3.9/Runtime2
 ## 测试和运行入口
 
 `Momoka.MusicArtworkTests` 编译链接完整生产CardArtwork/CardItem和真实Core，
-29项涵盖两模板、四音乐类型、首帧/读取/尺寸、旧项与旧容器、真离树与幻影、源撤销、404与坏解码恢复、
+30项涵盖两模板、四音乐类型、首帧/读取/尺寸、旧项与旧容器、真离树与幻影、源撤销、404与坏解码恢复、
 100/1,000/10,000元数据和20个模拟容器。控制台边界不冒充实际WinUI、WinRT解码或GPU显存。
 新增6例保留Tree/XamlRoot/x:Bind项的同owner池、prepared无Loaded、首次订阅池区分、
 ListView回收和旧持有者/重入事件；新增3例预算/页面入口，拒绝真实超预算读数反例。
-当前Release：新专项29/29、音乐VM与P4分页39/39，失败/跳过均0，各自构建0警告错误；
+当前Release：新专项30/30、音乐VM与P4分页39/39，失败/跳过均0，各自构建0警告错误；
 原页面契约207/207是上一单元的覆盖，本修复不复用其日志称已重验。
 加入坏解码项的首轮因测试只交付一次坏响应，
 真实Store正在重取而非已回传失败，17项中5项失败（后续4项为前例未清边界）；
@@ -82,7 +82,7 @@ Albums/Artists/Playlists的100/1000/10000条内视口分别5036/50576/505976 DIP
 返回首屏Realized21而图片/需求25–26。realized最高26，证明列表已在虚拟化，
 缺口是滚动宿主边界与池图片需求，不能改写成“全部10000项都建了”。
 
-新预算以这次1100×760/scale1基线制定：实际layout项最多34（原26加8个明确平台cache/首测波动），
+墙预算以这次1100×760/scale1基线制定：实际layout项最多34（原26加8个明确平台cache/首测波动），
 图片、CardItem持图、wanted和live holder都不超过当时realized，池额外需求容许0；
 有限Grid实际高度与内部viewport差不超过1 DIP。
 上述预算是此受控窗口的验收，不推广为全部页面/文字缩放/显示器的万能上限。
@@ -102,6 +102,24 @@ finite产品首次原生检查`190016656-31692`：Albums100初始realized/held/w
 `music-scroll-*.json`保留requested/前后offset、presenter、extent和viewport，
 `music-focus-*.json`保留焦点前后bounds、原expected ID和bring/completed关联；
 没有放宽可见判据，也不从Source非null推断实屏已呈现。
+
+下一轮`191654262-37212`的Tracks100恢复为38个rawContainer、35张图、37个需求，
+所有需求仍≤rawContainer，原34上限对ListView缓存不适用，保留失败记录。
+核当前2.3.9 `Microsoft.WinUI.xml`与fixed
+`ModernCollectionBasePanel_Partial.cpp`默认CacheLength4；
+`WindowManagement_Partial.cpp::SetRealizationWindowFromVisibleWindow`以cacheLength×viewport/2作每边预算，
+完整region为(1+cacheLength)×viewport，每40DIP渐进建立。
+曲目现在按实际viewport、实测最小行高和实际CacheLength推导ceil(region/rowHeight)+3，
+3为两边部分相交行及1个可聚焦pin；589/58/4对应54，而非把本轮失败38当新快照。
+墙继续34；所有需求≤actual rawContainer约束继续。
+`ModernCollectionBasePanel::ContainerManager::Interface_ElementFromDataIndex`返回valid range、
+单个preparationHoldingArea或pinned项，故ContainerFromIndex是raw保留口径，不能称屏上可见数。
+曲目工具等待ScrollIntoView后的真实ViewChanged/首末项可见，再保存First/LastCache、Visible、cacheLength与raw数。
+
+同轮P4滚尾请求13485、布局重估后currentMax13232、actual13232、Idle，
+平台已夹到最终底部而共用静态offset断言误报；当前仅音乐端点helper按真实correlation等完成，
+精确核actual==clamp(requested,currentMax)且tail==currentMax，并继续末项ID/Focus/严格bounds。
+纯反例拒绝未到bottom和extent扩大后只停旧target，不改变其他页面的静态ScrollProbeAsync。
 
 ## 曲目原生绑定时序
 

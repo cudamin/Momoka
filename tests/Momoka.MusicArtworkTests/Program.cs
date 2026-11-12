@@ -465,6 +465,18 @@ internal static class MusicArtworkProgram
             Assert.Equal("0,0,20,32", (string?)wall.Attribute("Padding"));
         });
 
+        Test("曲目缓存预算按原生总缓存长推导，端点夹取必须仍在当前bottom", () =>
+        {
+            var maximum = Momoka.Shell.MusicArtworkProbeRules.TrackRealizationBudget(589, 58, 4);
+            Assert.Equal(54, maximum);
+            Momoka.Shell.MusicArtworkProbeRules.Demands(100, 38, 35, 35, 37, 37, maximum);
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.Demands(1000, 1000, 1000, 1000, 1000, 1000, maximum));
+            Momoka.Shell.MusicArtworkProbeRules.EndOffset(13485, 13232, 13232, true);
+            Momoka.Shell.MusicArtworkProbeRules.EndOffset(0, 13232, 0, false);
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.EndOffset(13485, 13232, 13100, true));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.EndOffset(13485, 14000, 13485, true));
+        });
+
         Case("音乐池页面：已Release的迟到Loaded不能重订阅，附加恢复仅订阅一次", async () =>
         {
             await using var f = new CardImageFixture();

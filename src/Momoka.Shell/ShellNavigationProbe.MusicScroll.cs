@@ -13,21 +13,103 @@ internal sealed partial class ShellNavigationProbe
         await WaitForDiagnosticsFrameAsync();
         var requested = tail ? scroll.ScrollableHeight : 0;
         var before = MusicScrollState(scroll);
+        var completed = Pending<bool>();
+        var seen = new HashSet<int>();
+        var correlation = -1;
+        var trace = new List<object>();
+        void Record(string stage) => trace.Add(new { stage, current = MusicScrollState(scroll) });
+        void OnCompleted(ScrollView sender, ScrollingScrollCompletedEventArgs args)
+        {
+            seen.Add(args.CorrelationId);
+            Record("completed-" + args.CorrelationId);
+            if (args.CorrelationId == correlation) completed.TrySetResult(true);
+        }
+        void OnChanged(ScrollView sender, object args)
+        {
+            if (trace.Count < 40) Record("changed");
+        }
+        scroll.ScrollCompleted += OnCompleted;
+        scroll.ViewChanged += OnChanged;
         try
         {
-            // 共用既有helper：等待ScrollTo返回的真实correlation完成，再验证最终offset。
-            await ScrollProbeAsync(scroll, requested);
+            // 虚拟布局在滚尾时可重估extent，平台会把旧请求夹到新的最大offset。
+            // 等真实correlation完成，随后核当前端点和首/末项；不改变共享静态offset helper。
+            Record("before");
+            correlation = scroll.ScrollTo(0, requested,
+                new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+            if (correlation != -1 && !seen.Contains(correlation))
+                await completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
             await UntilAsync(() => scroll.State == ScrollingInteractionState.Idle);
             await WaitForDiagnosticsFrameAsync();
+            scroll.UpdateLayout();
+            MusicArtworkProbeRules.EndOffset(requested, scroll.ScrollableHeight, scroll.VerticalOffset, tail);
         }
         finally
         {
             await WritePerformanceEvidenceAsync("music-scroll-" + key + ".json", new
             {
                 requested,
+                correlation,
                 before,
-                after = MusicScrollState(scroll)
+                after = MusicScrollState(scroll),
+                trace
             });
+            scroll.ScrollCompleted -= OnCompleted;
+            scroll.ViewChanged -= OnChanged;
+        }
+    }
+
+    private async Task ScrollMusicTracksAsync(ListView list, int index, string key)
+    {
+        var scroll = Descendants(list).OfType<ScrollViewer>().FirstOrDefault()
+            ?? throw new InvalidOperationException("音乐曲目没有原生ScrollViewer");
+        var trace = new List<object>();
+        void Record(string stage)
+        {
+            var panel = list.ItemsPanelRoot as ItemsStackPanel;
+            trace.Add(new
+            {
+                stage,
+                offset = scroll.VerticalOffset,
+                extent = scroll.ExtentHeight,
+                viewport = scroll.ViewportHeight,
+                cacheLength = panel?.CacheLength,
+                firstCache = panel?.FirstCacheIndex,
+                lastCache = panel?.LastCacheIndex,
+                firstVisible = panel?.FirstVisibleIndex,
+                lastVisible = panel?.LastVisibleIndex,
+                rawContainers = Enumerable.Range(0, list.Items.Count).Count(value => list.ContainerFromIndex(value) is not null)
+            });
+        }
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnChanged(object? sender, ScrollViewerViewChangedEventArgs args)
+        {
+            if (trace.Count < 40) Record(args.IsIntermediate ? "intermediate" : "view-complete");
+            if (!args.IsIntermediate) done.TrySetResult();
+        }
+        scroll.ViewChanged += OnChanged;
+        try
+        {
+            Record("before");
+            list.ScrollIntoView(list.Items[index]);
+            await LayoutAsync(list);
+            await WaitForDiagnosticsFrameAsync();
+            if (!IsVisible()) await done.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await UntilAsync(IsVisible);
+            await WaitForDiagnosticsFrameAsync();
+            Record("after");
+        }
+        finally
+        {
+            await WritePerformanceEvidenceAsync("music-tracks-scroll-" + key + ".json", new { index, trace });
+            scroll.ViewChanged -= OnChanged;
+        }
+
+        bool IsVisible()
+        {
+            if (list.ContainerFromIndex(index) is not FrameworkElement element) return false;
+            var point = element.TransformToVisual(scroll).TransformPoint(new());
+            return point.Y + element.ActualHeight > 0 && point.Y < scroll.ViewportHeight;
         }
     }
 
