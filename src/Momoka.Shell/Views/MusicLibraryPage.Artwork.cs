@@ -7,6 +7,8 @@ namespace Momoka.Shell.Views;
 public sealed partial class MusicLibraryPage
 {
     private ItemsRepeater? _artworkRepeater;
+    private static readonly DependencyProperty TrackDemandGenerationProperty = DependencyProperty.RegisterAttached(
+        "TrackDemandGeneration", typeof(int), typeof(MusicLibraryPage), new PropertyMetadata(0));
 
     private void OnWallLoaded(object sender, RoutedEventArgs args)
     {
@@ -37,8 +39,24 @@ public sealed partial class MusicLibraryPage
     private static void OnArtworkClearing(ItemsRepeater sender, ItemsRepeaterElementClearingEventArgs args) =>
         SetArtworkRealized(args.Element, false);
 
-    private void OnTrackContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args) =>
-        SetArtworkRealized(args.ItemContainer, !_released && !args.InRecycleQueue);
+    private void OnTrackContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    {
+        var container = args.ItemContainer;
+        var generation = (container.GetValue(TrackDemandGenerationProperty) is int previous ? previous : 0) + 1;
+        container.SetValue(TrackDemandGenerationProperty, generation);
+        // 原生CCC先raise、之后才ProcessBindings phase0。此刻图片仍可绑着旧项，
+        // 先关需求，到平台下一phase确认绑定身份再开启，不能凭XamlRoot先读旧图。
+        SetArtworkRealized(container, false);
+        if (_released || args.InRecycleQueue || args.Item is not CardItem item) return;
+        args.RegisterUpdateCallback((_, current) =>
+        {
+            if (_released || current.InRecycleQueue || !ReferenceEquals(current.ItemContainer, container)
+                || !ReferenceEquals(current.Item, item)
+                || container.GetValue(TrackDemandGenerationProperty) is not int currentGeneration || currentGeneration != generation) return;
+            foreach (var image in ArtworkTree(container).OfType<Image>())
+                if (ReferenceEquals(CardArtwork.GetItem(image), item)) CardArtwork.SetRealized(image, true);
+        });
+    }
 
     private void DetachWallArtwork()
     {

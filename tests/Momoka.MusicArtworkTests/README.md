@@ -19,7 +19,9 @@ ListView边界提供InRecycleQueue事件输入。该池模型不是实际WinUI�
 100/1,000/10,000匿名元数据各使用20个模拟容器，两次换项只保留20张卡片首图，全部卸载回0；
 这是生产图片需求生命周期证据，不是 WinUI 实际 viewport/虚拟化/帧测量。
 新增预算纯断言使用实际native基线反例：Realized21而四口径25、557宿主而50576内viewport必须拒绝；
-当前独立入口26项，0失败/跳过。实际有限viewport与首末项聚焦仍由运行probe验收。
+当前独立入口29项，0失败/跳过。实际有限viewport与首末项聚焦仍由运行probe验收。
+新增精确ListView顺序：先CCC旧绑定，后phase0新绑定，再原生下一phase callback；
+无缓存旧tag不能产生GET，代次/身份/回收/离页守卫全部执行生产方法，框架callback边界只负责输入时序。
 
 HTTP只允许 `card-image.invalid` 图片GET，数据在本测试输出的随机 `fixtures/r012` 目录，
 无网络、真实账号、设置、播放或媒体写入。程序集名沿用Core已有友元以构造匿名来源，不新增公共测试API。

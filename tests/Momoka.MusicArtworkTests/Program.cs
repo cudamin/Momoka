@@ -492,6 +492,90 @@ internal static class MusicArtworkProgram
             page.ReleaseArtwork();
             CardArtwork.SetItem(image, null);
         });
+
+        Case("曲目原生顺序：CCC先旧绑定后新x:Bind，phase以前不能开旧图GET", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var page = new MusicLibraryPage();
+            var image = new Image();
+            var container = new Microsoft.UI.Xaml.UIElement();
+            container.Children.Add(image);
+            CardArtwork.SetItem(image, f.Card);
+            image.Load();
+            (await f.Handler.AtAsync(0)).Complete("old displayed");
+            await CardImageFixture.UntilAsync(() => f.Card.Poster is not null, "旧显示图未完成");
+            page.ClearTrack(container);
+            PosterCache.Clear();
+            // 更换图tag令旧项重领会产生真实GET，而不是偷偷命中磁盘/位图缓存。
+            f.Item.ImageTags[EmbyImageStore.Primary] = "old uncached tag";
+            var next = new CardItem(f.Scope.Bind(new EmbyItem
+            { Id = "next-phase", Type = EmbyItemType.Audio, ImageTags = new() { [EmbyImageStore.Primary] = "next" } }), f.Images, 44, aspect: 1);
+            var args = page.PrepareTrack(container, next);
+            Assert.Equal(1, f.Handler.Count, "CCC立即重新领取了旧绑定并开GET");
+            Assert.Null(f.Card.Poster);
+            CardArtwork.SetItem(image, next); // 平台在同步CCC后ProcessBindings phase0。
+            Assert.Equal(1, f.Handler.Count, "phase0新绑定不等于下一phase已核身份");
+            args.RunCallback();
+            (await f.Handler.AtAsync(1)).Complete("new only");
+            await CardImageFixture.UntilAsync(() => next.Poster is not null, "下一phase未读取新项");
+            Assert.Equal("new only", next.Poster!.FixtureImage);
+            Assert.Equal(2, f.Handler.Count);
+            CardArtwork.SetItem(image, null);
+            next.AbandonPoster();
+        });
+
+        Case("曲目phase：旧回调不能抬同容器后一次准备需求，捕获身份和代次都要成立", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var page = new MusicLibraryPage();
+            var image = new Image();
+            var container = new Microsoft.UI.Xaml.UIElement();
+            container.Children.Add(image);
+            CardArtwork.SetRealized(image, false);
+            CardArtwork.SetItem(image, f.Card);
+            image.Load();
+            var oldArgs = page.PrepareTrack(container, f.Card);
+            var next = new CardItem(f.Scope.Bind(new EmbyItem
+            { Id = "phase-new-owner", Type = EmbyItemType.Audio, ImageTags = new() { [EmbyImageStore.Primary] = "other" } }), f.Images, 44, aspect: 1);
+            var nextArgs = page.PrepareTrack(container, next);
+            CardArtwork.SetItem(image, next);
+            oldArgs.RunCallback();
+            Assert.Equal(0, f.Handler.Count);
+            Assert.Null(next.Poster);
+            nextArgs.RunCallback();
+            (await f.Handler.AtAsync(0)).Complete("new owner");
+            await CardImageFixture.UntilAsync(() => next.Poster is not null, "新回调未恢复");
+            Assert.Null(f.Card.Poster);
+            CardArtwork.SetItem(image, null);
+            next.AbandonPoster();
+        });
+
+        Case("曲目phase：回收及离页后已捕获回调均不能恢复需求", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var page = new MusicLibraryPage();
+            var image = new Image();
+            var container = new Microsoft.UI.Xaml.UIElement();
+            container.Children.Add(image);
+            CardArtwork.SetRealized(image, false);
+            CardArtwork.SetItem(image, f.Card);
+            image.Load();
+            var recycled = page.PrepareTrack(container, f.Card);
+            page.ClearTrack(container);
+            recycled.RunCallback();
+            Assert.Equal(0, f.Handler.Count);
+            var leaving = page.PrepareTrack(container, f.Card);
+            page.SetReleased(true);
+            leaving.RunCallback();
+            Assert.Equal(0, f.Handler.Count);
+            Assert.Null(f.Card.Poster);
+            page.SetReleased(false);
+            var current = page.PrepareTrack(container, f.Card);
+            current.RunCallback();
+            (await f.Handler.AtAsync(0)).Complete("reentered phase");
+            await CardImageFixture.UntilAsync(() => f.Card.Poster is not null, "重入有效phase未恢复");
+            CardArtwork.SetItem(image, null);
+        });
     }
 
     private static void Case(string name, Func<Task> body) => Test(name, () => CardImageContext.Run(body));

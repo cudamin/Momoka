@@ -52,11 +52,11 @@ Gallery同提交使用实验SDK，本单元保留Momoka现有WinUI2.3.9/Runtime2
 ## 测试和运行入口
 
 `Momoka.MusicArtworkTests` 编译链接完整生产CardArtwork/CardItem和真实Core，
-26项涵盖两模板、四音乐类型、首帧/读取/尺寸、旧项与旧容器、真离树与幻影、源撤销、404与坏解码恢复、
+29项涵盖两模板、四音乐类型、首帧/读取/尺寸、旧项与旧容器、真离树与幻影、源撤销、404与坏解码恢复、
 100/1,000/10,000元数据和20个模拟容器。控制台边界不冒充实际WinUI、WinRT解码或GPU显存。
 新增6例保留Tree/XamlRoot/x:Bind项的同owner池、prepared无Loaded、首次订阅池区分、
 ListView回收和旧持有者/重入事件；新增3例预算/页面入口，拒绝真实超预算读数反例。
-当前Release：新专项26/26、音乐VM与P4分页39/39，失败/跳过均0，各自构建0警告错误；
+当前Release：新专项29/29、音乐VM与P4分页39/39，失败/跳过均0，各自构建0警告错误；
 原页面契约207/207是上一单元的覆盖，本修复不复用其日志称已重验。
 加入坏解码项的首轮因测试只交付一次坏响应，
 真实Store正在重取而非已回传失败，17项中5项失败（后续4项为前例未清边界）；
@@ -92,6 +92,17 @@ Albums/Artists/Playlists的100/1000/10000条内视口分别5036/50576/505976 DIP
 协调会话已用正常可见启动的`175841122-13352`检查台看到标题、封面和滚动区，
 原黑图与该辅助显示方式有关，不据此宣称产品黑屏。
 本次finiteviewport/explicit回收的最终正常可见运行仍须协调会话重验。
+
+## 曲目原生绑定时序
+
+固定源码`ListViewBase_Partial_ContainerPhase.cpp`同步Raise CCC之后才ProcessBindings phase0；
+首帧完成后的BrowsePresentation门控已经完成，立即开启需求确能对池里旧项发GET。
+曲目处理现在先结束需求，再RegisterUpdateCallback默认下一phase，
+回调只认同container、同准备代次、同args.Item和实际CardArtwork.Item；离页或回收拒绝。
+`ContainerContentChangingEventArgs_Partial.cpp`默认注册m_phase+1；框架回收清callback/wants，
+执行阶段先清delegate再invoke，没有重新登记就结束，不引入第二个Dispatcher等待队列。
+新增3例模拟精确“CCC旧绑定→新x:Bind→下一phase”，旧图tag换成无缓存标识确保检测额外GET；
+旧回调、新准备、回收和离页均拒绝，当前有效回调恢复读取。该源链和回归不代替实际WinUI phase运行。
 
 量测不能预写提升比例。先在当前同条件记录数值，再判断有限viewport与保留增长；
 无GPU/功耗测量，不能由PixelWidth/Height元数据推导解码纹理峰值。

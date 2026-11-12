@@ -83,10 +83,20 @@ namespace Microsoft.UI.Xaml.Controls
         public UIElement Element => element;
     }
     public class ListViewBase : UIElement;
-    public sealed class ContainerContentChangingEventArgs(UIElement itemContainer, bool inRecycleQueue)
+    public sealed class ContainerContentChangingEventArgs(UIElement itemContainer, bool inRecycleQueue, object? item = null)
     {
         public UIElement ItemContainer => itemContainer;
         public bool InRecycleQueue => inRecycleQueue;
+        public object? Item => item;
+        private Action<ListViewBase, ContainerContentChangingEventArgs>? _callback;
+        public void RegisterUpdateCallback(Action<ListViewBase, ContainerContentChangingEventArgs> callback) => _callback = callback;
+        internal Action<ListViewBase, ContainerContentChangingEventArgs>? Callback => _callback;
+        internal void RunCallback()
+        {
+            var callback = _callback;
+            _callback = null;
+            callback?.Invoke(new(), this);
+        }
     }
 }
 
@@ -128,7 +138,22 @@ namespace Momoka.Shell.Views
         internal void UnloadArtwork() => OnWallUnloaded(this, new());
         internal void ReleaseArtwork() => DetachWallArtwork();
         internal void SetReleased(bool value) => _released = value;
-        internal static void RecycleTrack(Microsoft.UI.Xaml.UIElement container, bool recycle) =>
-            new MusicLibraryPage().OnTrackContentChanging(new Microsoft.UI.Xaml.Controls.ListViewBase(), new(container, recycle));
+        internal static void RecycleTrack(Microsoft.UI.Xaml.UIElement container, bool recycle)
+        {
+            var item = ArtworkTree(container).OfType<Microsoft.UI.Xaml.Controls.Image>().Select(CardArtwork.GetItem).FirstOrDefault();
+            var args = new Microsoft.UI.Xaml.Controls.ContainerContentChangingEventArgs(container, recycle, item);
+            new MusicLibraryPage().OnTrackContentChanging(new Microsoft.UI.Xaml.Controls.ListViewBase(), args);
+            if (!recycle) args.RunCallback();
+        }
+        internal Microsoft.UI.Xaml.Controls.ContainerContentChangingEventArgs PrepareTrack(Microsoft.UI.Xaml.UIElement container, CardItem item)
+        {
+            var args = new Microsoft.UI.Xaml.Controls.ContainerContentChangingEventArgs(container, false, item);
+            OnTrackContentChanging(new Microsoft.UI.Xaml.Controls.ListViewBase(), args);
+            return args;
+        }
+        internal void ClearTrack(Microsoft.UI.Xaml.UIElement container)
+        {
+            OnTrackContentChanging(new Microsoft.UI.Xaml.Controls.ListViewBase(), new(container, true));
+        }
     }
 }
