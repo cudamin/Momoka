@@ -51,7 +51,7 @@ internal interface IWin32KeySink
 /// <para>
 /// 这个宿主沿用早期 child HWND 视频试验的窗口能力，但当前集成视频在页面自己的 SpriteVisual 中合成
 /// mpv 交换链，独占视频由 mpv 自建顶层窗口管理。旧试验不能作为普通 Window 不支持当前视频管线的结论。
-/// 浏览时接入 Mica Base，播放页请求暂时摘除浏览材质；<see cref="UseBackdrop"/> 记录该请求，
+/// 浏览时接入 Mica BaseAlt，播放页请求暂时摘除浏览材质；<see cref="UseBackdrop"/> 记录该请求，
 /// 连接结果与系统材质状态另外记录。窗口补画未被岛覆盖的客户区，Shell 负责唯一的半透明画布。
 /// </para>
 /// </summary>
