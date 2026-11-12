@@ -1580,9 +1580,14 @@ public sealed partial class HomePage : Page, IShellContent
 
     private void OnCardClicked(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button { Content: PosterCard { Card: { } card } }) return;
+        if (sender is not Button { Content: PosterCard { Card: { } card } poster }) return;
+        var prepared = CardDetailTransition.Prepare(Frame, poster);
         NavigationTiming.Click("card");
-        ViewModel.Open(card);
+        try { ViewModel.Open(card); }
+        finally
+        {
+            if (prepared && ReferenceEquals(Frame?.Content, this)) CardDetailTransition.Cancel(Frame);
+        }
     }
 
     /// <summary>

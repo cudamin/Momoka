@@ -187,16 +187,21 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         ContentFrame.Navigating += (_, args) =>
         {
-            _browsePresentation.Begin();
+            var returning = args.NavigationMode == Microsoft.UI.Xaml.Navigation.NavigationMode.Back
+                && ContentFrame.Content is DetailPage detail && CardDetailTransition.BeginReturn(detail);
+            var connected = returning || CardDetailTransition.IsPrepared(ContentFrame, args.Parameter);
+            if (!connected) CardDetailTransition.Cancel(ContentFrame);
+            _browsePresentation.Begin(deferMotion: connected);
             BeginNavigation(args.SourcePageType);
         };
         ContentFrame.Navigated += (_, _) =>
         {
             _browsePresentation.Attach();
+            CardDetailTransition.CompleteReturn(ContentFrame);
             CompleteNavigation();
         };
-        ContentFrame.NavigationStopped += (_, _) => _browsePresentation.Stop();
-        ContentFrame.NavigationFailed += (_, _) => _browsePresentation.Stop();
+        ContentFrame.NavigationStopped += (_, _) => { CardDetailTransition.Cancel(ContentFrame); _browsePresentation.Stop(); };
+        ContentFrame.NavigationFailed += (_, _) => { CardDetailTransition.Cancel(ContentFrame); _browsePresentation.Stop(); };
 
         // 深浅跟着当前主题走。登记之后换主题会连带把这棵树翻过去 —— 框架自己那些没被调色板覆盖的刷子
         // 只认 ElementTheme，不登记的话浅色主题下就是「白面配深色控件」。

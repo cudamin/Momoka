@@ -338,6 +338,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectPlayerQueue", "播放画面队列选择", PlayerQueueAsync);
         AddCheck("InspectWindowHostResearch", "P7窗口宿主研究", () => WindowHostResearchAsync(), ShellProbeSections.Shell);
         AddCheck("InspectWindowHostFailure", "P7窗口失败清理", () => WindowHostResearchAsync(injectFailure: true), ShellProbeSections.Shell);
+        AddCheck("InspectCardDetailConnected", "P6海报详情关联动画", CardDetailConnectedAnimationAsync, ShellProbeSections.Shell, timeoutSeconds: 120);
         Add("InspectDone", "结束检查", () => { finished.TrySetResult(); return Task.CompletedTask; });
         frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services, "离线示例"));
         await LayoutAsync(layout);

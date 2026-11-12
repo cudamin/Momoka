@@ -4,6 +4,16 @@
   "shellAssembly": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
   "suites": [
     {
+      "id": "Momoka.ConnectedAnimationTests",
+      "project": "tests/Momoka.ConnectedAnimationTests/Momoka.ConnectedAnimationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.ConnectedAnimationTests/README.md",
+      "notes": "原样海报到详情关联动画身份、Frame、弱源与取消生命周期；匿名XAML/API事件边界，不创建窗口或真实播放。"
+    },
+    {
       "id": "Momoka.WindowResearchTests",
       "project": "tests/Momoka.WindowResearchTests/Momoka.WindowResearchTests.csproj",
       "mode": "dotnet",

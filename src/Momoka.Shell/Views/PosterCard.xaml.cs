@@ -202,6 +202,7 @@ public sealed partial class PosterCard : UserControl
     private bool _previewHovered;
 
     internal bool PosterArrivalRunning => _posterArrival.IsRunning;
+    internal Image ConnectedPoster => Poster;
 
     /// <summary>删除确认后的离场动画；<see cref="ResetRemoval"/> 或换卡时停掉。</summary>
     private Storyboard? _removal;

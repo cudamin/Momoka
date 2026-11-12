@@ -1,0 +1,251 @@
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
+using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Emby;
+using Momoka.Shell.Views;
+using Windows.UI.ViewManagement;
+using static Momoka.Tests.TestHarness;
+
+namespace Momoka.Tests;
+
+internal static class Program
+{
+    private static int Main()
+    {
+        Test("仅可见当前视频海报准备，音乐缺图与过期身份走普通导航", () =>
+        {
+            foreach (var state in new[] { "music", "missing", "stale", "hidden", "outside" })
+            {
+                using var fixture = new Fixture();
+                if (state == "music") fixture.Item.Type = "Audio";
+                if (state == "missing") fixture.Source.ConnectedPoster.Source = null;
+                if (state == "stale") fixture.Item.Source!.IsCurrent = false;
+                if (state == "hidden") fixture.Source.Visibility = Visibility.Collapsed;
+                if (state == "outside") fixture.Source.ConnectedPoster.X = 2000;
+                Assert.False(CardDetailTransition.Prepare(fixture.Frame, fixture.Source));
+            }
+        });
+        Test("实际身份与目标就绪后启动一次，并取消图片淡入", () =>
+        {
+            using var fixture = new Fixture();
+            Assert.True(fixture.Prepare());
+            var animation = ConnectedAnimationService.Created.Last();
+            fixture.Target.ConnectedPoster.Source = null;
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            Assert.Equal(0, animation.StartCalls);
+            fixture.Target.ConnectedPoster.Source = new BitmapSource();
+            fixture.Target.Layout();
+            fixture.Target.Layout();
+            Assert.Equal(1, animation.StartCalls);
+            Assert.Equal(1, fixture.Target.StoppedArrivals);
+            Assert.True(BrowsePresentation.Results.Any(result => result.Started));
+            animation.Complete();
+            Assert.Null(animation.Handlers);
+            Assert.Null(HomeMotion.Handlers);
+        });
+        Test("原生TryStart拒绝或抛错恢复普通呈现", () =>
+        {
+            foreach (var throws in new[] { false, true })
+            {
+                using var fixture = new Fixture();
+                fixture.Prepare();
+                var animation = ConnectedAnimationService.Created.Last();
+                animation.Starts = false;
+                animation.ThrowOnStart = throws;
+                CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                Assert.True(BrowsePresentation.Results.Any(result => !result.Started));
+                Assert.False(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+                Assert.Null(animation.Handlers);
+            }
+        });
+        Test("错账号同ID和目标身份更正不能复用旧准备", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            var other = new EmbyItem { IdentityKey = fixture.Item.IdentityKey };
+            Assert.False(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = other }));
+            CardDetailTransition.Attach(fixture.Target, other);
+            Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
+        });
+        Test("来源过期和准备超时解除目标等待", () =>
+        {
+            foreach (var stale in new[] { false, true })
+            {
+                using var fixture = new Fixture();
+                fixture.Prepare();
+                fixture.Target.ConnectedPoster.Source = null;
+                CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                if (stale)
+                {
+                    fixture.Item.Source!.IsCurrent = false;
+                    fixture.Target.Layout();
+                }
+                else DispatcherTimer.Created.Last().Fire();
+                fixture.Target.ConnectedPoster.Source = new BitmapSource();
+                fixture.Target.Layout();
+                Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
+                Assert.False(DispatcherTimer.Created.Last().IsRunning);
+            }
+        });
+        Test("关应用或系统动画立即取消，后台系统事件回UI队列", () =>
+        {
+            foreach (var system in new[] { false, true })
+            {
+                using var fixture = new Fixture();
+                fixture.Prepare();
+                if (system)
+                {
+                    fixture.Frame.DispatcherQueue.HasThreadAccess = false;
+                    UISettings.Change(false);
+                    fixture.Frame.DispatcherQueue.Drain();
+                }
+                else HomeMotion.Change(false);
+                Assert.False(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+                Assert.Null(HomeMotion.Handlers);
+            }
+        });
+        Test("导航取消与Frame离树拒绝晚到Loaded和旧完成", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            var stale = ConnectedAnimationService.Created.Last().LateComplete();
+            fixture.Frame.Unload();
+            fixture.Target.Load();
+            stale();
+            Assert.Null(HomeMotion.Handlers);
+            Assert.False(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+        });
+        Test("返回只用原已存在可见源，成功后完成再释放", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            ConnectedAnimationService.Created.Last().Complete();
+            Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            fixture.Frame.Content = fixture.Source;
+            CardDetailTransition.CompleteReturn(fixture.Frame);
+            fixture.Frame.DispatcherQueue.Drain();
+            var returning = ConnectedAnimationService.Created.Last();
+            Assert.Equal(1, returning.StartCalls);
+            Assert.True(CardDetailTransition.Returning(fixture.Frame));
+            returning.Complete();
+            Assert.False(CardDetailTransition.Returning(fixture.Frame));
+        });
+        Test("返回源回收或队列拒绝正常回退，不强制创建源", () =>
+        {
+            foreach (var rejected in new[] { false, true })
+            {
+                using var fixture = new Fixture();
+                fixture.Prepare();
+                CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                ConnectedAnimationService.Created.Last().Complete();
+                Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+                fixture.Frame.Content = fixture.Source;
+                fixture.Frame.DispatcherQueue.RejectEnqueue = rejected;
+                fixture.Source.ConnectedPoster.Source = null;
+                CardDetailTransition.CompleteReturn(fixture.Frame);
+                fixture.Frame.DispatcherQueue.Drain();
+                Assert.False(CardDetailTransition.Returning(fixture.Frame));
+                Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
+            }
+        });
+        Test("原生Prepare失败和Cancel失败不阻止普通导航", () =>
+        {
+            using var fixture = new Fixture();
+            ConnectedAnimationService.ThrowOnPrepare = true;
+            Assert.False(fixture.Prepare());
+            ConnectedAnimationService.ThrowOnPrepare = false;
+            fixture.Prepare();
+            ConnectedAnimationService.Created.Last().ThrowOnCancel = true;
+            CardDetailTransition.Cancel(fixture.Frame);
+            Assert.False(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+        });
+        Test("进入不相关页面取消旧票据；已使用准备不能借相同Item重复", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            fixture.Frame.Navigate(new DetailRequest { Item = fixture.Item });
+            Assert.True(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            Assert.False(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+            fixture.Frame.Navigate(new object());
+            Assert.Null(HomeMotion.Handlers);
+            Assert.False(CardDetailTransition.Started(fixture.Frame));
+        });
+        Test("快速第二次准备拒绝旧Completed且仅新目标生效", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            var old = ConnectedAnimationService.Created.Last();
+            var stale = old.LateComplete();
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            var current = ConnectedAnimationService.Created.Last();
+            stale();
+            Assert.Equal(1, current.StartCalls);
+            Assert.NotNull(current.Handlers);
+            current.Complete();
+            Assert.Null(current.Handlers);
+        });
+        Test("窄窗隐藏目标等待超时仍静态回退，返回错误页面不启动", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            fixture.Target.Visibility = Visibility.Collapsed;
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            DispatcherTimer.Created.Last().Fire();
+            Assert.False(CardDetailTransition.Started(fixture.Frame));
+            fixture.Target.Visibility = Visibility.Visible;
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            ConnectedAnimationService.Created.Last().Complete();
+            Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            fixture.Frame.Content = new object();
+            CardDetailTransition.CompleteReturn(fixture.Frame);
+            fixture.Frame.DispatcherQueue.Drain();
+            Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
+        });
+        return Run();
+    }
+
+    private sealed class Fixture : IDisposable
+    {
+        public Frame Frame { get; } = new();
+        public EmbyItem Item { get; } = new();
+        public PosterCard Source { get; } = new();
+        public DetailPage Target { get; } = new();
+        public Fixture()
+        {
+            HomeMotion.Preference = true;
+            UISettings.Enabled = true;
+            ConnectedAnimationService.ThrowOnPrepare = false;
+            BrowsePresentation.Results.Clear();
+            var root = new FrameworkElement { ActualWidth = 1280, ActualHeight = 900 };
+            var xaml = new XamlRoot { Content = root };
+            Frame.XamlRoot = xaml;
+            Frame.Content = Source;
+            Source.XamlRoot = xaml;
+            Source.Card!.Item = Item;
+            Source.ConnectedPoster.Parent = Source;
+            Source.ConnectedPoster.XamlRoot = xaml;
+            Source.ConnectedPoster.Source = new BitmapSource();
+            Target.Frame = Frame;
+            Target.ViewModel.CurrentItem = Item;
+            Target.XamlRoot = xaml;
+            Target.ConnectedPoster.Parent = Target;
+            Target.ConnectedPoster.XamlRoot = xaml;
+            Target.ConnectedPoster.Source = new BitmapSource();
+        }
+        public bool Prepare() => CardDetailTransition.Prepare(Frame, Source);
+        public void Dispose()
+        {
+            CardDetailTransition.Cancel(Frame);
+            Frame.DispatcherQueue.Drain();
+            Assert.Null(HomeMotion.Handlers);
+            Assert.True(UISettings.Created.All(settings => settings.Handlers is null));
+        }
+    }
+}

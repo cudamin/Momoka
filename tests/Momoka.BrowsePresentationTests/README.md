@@ -4,6 +4,8 @@
 
 覆盖首帧之后低优先级放行、快速换页的迟到回调、应用/系统关闭动画、未进入 UI 树的调用、动画异常、队列拒绝和异步请求自己的门控归属。补充清空 ExecutionContext 后按所属 Frame 捕获、尚无视觉父节点的 Page.Frame、同 UI 线程两窗口隔离与旧 Task 不被新导航替换。默认没有窗口、登录、真实网络、媒体播放或用户设置读取。
 
+2026-11-13新增关联动画呈现责任三项：成功只抑制整页淡入、失败恢复原180ms淡入、关联先成功再Loaded不重播。三条均保留所属Frame首帧图片门控，当前22/22，失败0、跳过0。
+
 ```powershell
 & 'C:\Users\89400\.dotnet\dotnet.exe' restore tests/Momoka.BrowsePresentationTests/Momoka.BrowsePresentationTests.csproj
 & 'C:\Users\89400\.dotnet\dotnet.exe' build tests/Momoka.BrowsePresentationTests/Momoka.BrowsePresentationTests.csproj -c Release --no-restore -p:Platform=x64 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false -m:1

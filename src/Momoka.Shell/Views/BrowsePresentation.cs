@@ -27,6 +27,8 @@ internal sealed class BrowsePresentation(Frame frame)
     private Storyboard? _motion;
     private EventHandler<object>? _completed;
     private bool _watchingPreference;
+    private bool _deferMotion;
+    private bool _connectedStarted;
     private int _generation;
 
     /// <summary>
@@ -58,12 +60,13 @@ internal sealed class BrowsePresentation(Frame frame)
         return Task.CompletedTask;
     }
 
-    internal void Begin()
+    internal void Begin(bool deferMotion = false)
     {
         Stop();
         // 离线视图模型夹具和未上树的启动路径没有可提交的帧，不给它们制造永远等不到的门。
         if (frame.XamlRoot is null) return;
         _images = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _deferMotion = deferMotion;
         _timing = NavigationTiming.Capture();
         ImageGate.Value = _images.Task;
         Owners.Remove(frame);
@@ -119,7 +122,21 @@ internal sealed class BrowsePresentation(Frame frame)
         };
         CompositionTarget.Rendering += _rendering;
 
-        if (!HomeMotion.AnimationsEnabled || frame.XamlRoot is null) return;
+        if (!_deferMotion && !_connectedStarted) StartMotion(generation);
+    }
+
+    /// <summary>关联动画只接管呈现；首帧图片门控始终继续，失败恢复原页面淡入。</summary>
+    internal static void ResolveConnectedMotion(Frame frame, bool started)
+    {
+        if (!Owners.TryGetValue(frame, out var owner) || !owner._deferMotion) return;
+        owner._deferMotion = false;
+        owner._connectedStarted = started;
+        if (!started && owner._page?.IsLoaded == true) owner.StartMotion(owner._generation);
+    }
+
+    private void StartMotion(int generation)
+    {
+        if (!HomeMotion.AnimationsEnabled || frame.XamlRoot is null || _motion is not null) return;
         WatchPreference();
 
         var motion = new Storyboard();
@@ -215,6 +232,8 @@ internal sealed class BrowsePresentation(Frame frame)
             page.Unloaded -= _unloaded;
         }
         _page = null;
+        _deferMotion = false;
+        _connectedStarted = false;
         _loaded = null;
         _unloaded = null;
         DetachRendering();

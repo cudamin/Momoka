@@ -263,6 +263,45 @@ internal static class Program
             Assert.True(gate.IsCompletedSuccessfully);
             Assert.Equal(1d, fixture.Frame.Opacity);
         });
+        Test("关联动画成功抑制整页淡入但首帧图片门控保持", () =>
+        {
+            using var fixture = new Fixture(loaded: true);
+            fixture.Begin(deferMotion: true);
+            var gate = Gate();
+            fixture.Attach();
+            Assert.Equal(1d, fixture.Frame.Opacity);
+            Assert.False(Storyboard.Created.Any(board => board.IsRunning));
+            BrowsePresentation.ResolveConnectedMotion(fixture.Frame, started: true);
+            Assert.Equal(1d, fixture.Frame.Opacity);
+            Assert.False(gate.IsCompleted);
+            CompositionTarget.Render();
+            fixture.Frame.DispatcherQueue.Drain();
+            Assert.True(gate.IsCompletedSuccessfully);
+        });
+        Test("关联动画失败恢复原淡入，图片仍等所属Frame首帧", () =>
+        {
+            using var fixture = new Fixture(loaded: true);
+            fixture.Begin(deferMotion: true);
+            var gate = Gate();
+            fixture.Attach();
+            BrowsePresentation.ResolveConnectedMotion(fixture.Frame, started: false);
+            Assert.Equal(0.8d, fixture.Frame.Opacity);
+            Assert.True(Storyboard.Created.Any(board => board.IsRunning));
+            Assert.False(gate.IsCompleted);
+            CompositionTarget.Render();
+            fixture.Frame.DispatcherQueue.Drain();
+            Assert.True(gate.IsCompletedSuccessfully);
+        });
+        Test("关联动画先成功再Loaded不重复整页动效", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Begin(deferMotion: true);
+            fixture.Attach();
+            BrowsePresentation.ResolveConnectedMotion(fixture.Frame, started: true);
+            fixture.Page.Load();
+            Assert.Equal(1d, fixture.Frame.Opacity);
+            Assert.False(Storyboard.Created.Any(board => board.IsRunning));
+        });
         return Run();
     }
 
@@ -294,7 +333,7 @@ internal static class Program
             _presentation = Activator.CreateInstance(Production, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
                 null, [Frame], null)!;
         }
-        public void Begin() => Invoke("Begin");
+        public void Begin(bool deferMotion = false) => Production.GetMethod("Begin", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(_presentation, [deferMotion]);
         public void Attach() => Invoke("Attach");
         public void Stop() => Invoke("Stop");
         private void Invoke(string name) => Production.GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(_presentation, null);
