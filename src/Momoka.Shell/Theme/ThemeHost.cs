@@ -80,6 +80,7 @@ public static class ThemeHost
         ("EgWarningBrush", theme => theme.Colors.Warning),
         ("EgInfoBrush", theme => theme.Colors.Info),
         ("EgScrimBrush", theme => theme.Colors.Scrim),
+        ("EgHomeLibraryBlurBrush", theme => theme.Colors.Window),
 
         // 主窗口画布（2026-11-12 用户令「改为Mica」）：窗口角色加上浓度，压在本窗口的 Mica 上。
         // 只有 ShellPage.ContentHost 画它；各页面根背景都是 Transparent，整页因此只有一道底。

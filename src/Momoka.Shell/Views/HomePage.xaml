@@ -238,7 +238,16 @@
                     <Border.RenderTransform>
                         <TranslateTransform />
                     </Border.RenderTransform>
-                    <ContentPresenter x:Name="LibraryHost" ContentTemplate="{StaticResource ShelfCardsTemplate}" />
+                    <Grid>
+                        <!-- 整排标题共用背景模糊和半透明遮罩；画在清晰封面与文字后面，不逐卡制造实色底板。 -->
+                        <Grid x:Name="LibraryReadingLayer" Height="64" VerticalAlignment="Bottom"
+                            IsHitTestVisible="False">
+                            <Border x:Name="LibraryReadingBlur" Background="{ThemeResource EgHomeLibraryBlurBrush}" />
+                            <Border x:Name="LibraryReadingShade" Background="{ThemeResource EgScrimBrush}" Opacity="0.9" />
+                        </Grid>
+                        <ContentPresenter x:Name="LibraryHost" ContentTemplate="{StaticResource ShelfCardsTemplate}"
+                            SizeChanged="OnLibraryHostSizeChanged" />
+                    </Grid>
                 </Border>
             </Grid>
 

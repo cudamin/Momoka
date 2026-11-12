@@ -105,7 +105,14 @@ internal sealed partial class ShellNavigationProbe
                     var caption = Get<Border>(poster, "CaptionSurface");
                     Require(poster.OnScrim == (placement == HomeLibraryPlacement.OnCarousel)
                         && caption.Background is SolidColorBrush background
-                        && background.Color.A == (poster.OnScrim ? 255 : 0), "图上标题底色没有随位置恢复");
+                        && background.Color.A == 0 && caption.Padding == new Thickness(0), "标题仍有实色底板或额外内边距");
+                    if (poster.OnScrim)
+                    {
+                        var layer = Get<Grid>(home, "LibraryReadingLayer");
+                        Require(layer.ActualHeight > caption.ActualHeight && layer.ActualHeight < 85
+                            && Get<Border>(home, "LibraryReadingBlur").Background is AcrylicBrush,
+                            "整排高斯阅读层没有限在标题下段");
+                    }
                     await SaveProbeScreenAsync($"mp-library-{placement}-{width}-screen.png");
                 }
             await CheckLibraryCaptionAsync();
@@ -218,84 +225,146 @@ internal sealed partial class ShellNavigationProbe
         var originalTheme = ThemeHost.Current;
         var card = new CardItem(new EmbyItem { Id = "caption-fixture", Name = "订阅·电影", Type = EmbyItemType.CollectionFolder },
             null!, 208, wide: true, subtitle: "", navigate: () => { });
-        var panel = new Grid { Width = 260, Height = 210, Background = new SolidColorBrush(Microsoft.UI.Colors.White) };
+        var panel = new Grid { Width = 560, Height = 210, Background = new SolidColorBrush(Microsoft.UI.Colors.White) };
+        var shade = new Border { Height = 64, VerticalAlignment = VerticalAlignment.Bottom, Opacity = 0.9 };
+        var blur = new Border { Height = 64, VerticalAlignment = VerticalAlignment.Bottom };
         var poster = new PosterCard
         {
             Card = card,
             CardWidth = 208,
             PosterHeight = 117,
             OnScrim = true,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Bottom
         };
+        panel.Children.Add(blur);
+        panel.Children.Add(shade);
         panel.Children.Add(poster);
         _root.Children.Add(panel);
+        var topMost = _window!.TopMost;
         try
         {
+            _window.TopMost = true;
             foreach (var theme in UiThemes.All)
             {
                 ThemeHost.Apply(theme);
+                blur.Background = (Brush)Application.Current.Resources["EgHomeLibraryBlurBrush"];
+                shade.Background = (Brush)Application.Current.Resources["EgScrimBrush"];
                 await LayoutAsync(panel);
-                var caption = Get<Border>(poster, "CaptionSurface");
+                await Task.Delay(300);
                 var title = Get<TextBlock>(poster, "TitleLine");
-                Require(caption.ActualHeight >= title.ActualHeight + 7 && title.ActualHeight > 0,
-                    "标题阅读底色裁切文字");
-                Require(await CaptionContrastAsync(caption) >= 4.5, "白背景上的标题对比度不足");
+                Require(title.ActualHeight > 0 && Get<Border>(poster, "CaptionSurface").Background is SolidColorBrush { Color.A: 0 },
+                    "透明标题层没有恢复");
+                Require(CaptionScreenContrast(title) >= 4.5, "纯白背景上的标题对比度不足");
                 await SaveProbeScreenAsync($"mp-library-caption-{theme.Id}-screen.png");
             }
-            var surface = Get<Border>(poster, "CaptionSurface");
-            var kept = surface.Background;
-            try
-            {
-                surface.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
-                Require(await CaptionContrastAsync(surface) < 4.5, "文字像素检查未拒绝透明底反例");
-            }
-            finally { surface.Background = kept; }
-            var ink = Get<TextBlock>(poster, "TitleLine");
-            var foreground = ink.Foreground;
-            try
-            {
-                ink.Foreground = kept;
-                Require(await CaptionContrastAsync(surface) < 4.5, "文字像素检查未拒绝同色前景反例");
-            }
-            finally { ink.Foreground = foreground; }
+            await CheckLibraryBlurAsync(panel, blur, shade);
+            blur.Visibility = shade.Visibility = Visibility.Collapsed;
+            await LayoutAsync(panel);
+            await Task.Delay(200);
+            Require(CaptionScreenContrast(Get<TextBlock>(poster, "TitleLine")) < 4.5, "文字检查未拒绝无模糊遮罩反例");
+            blur.Visibility = shade.Visibility = Visibility.Visible;
+            await LayoutAsync(panel);
         }
         finally
         {
+            _window.TopMost = topMost;
             _root.Children.Remove(panel);
             ThemeHost.Apply(originalTheme);
         }
     }
 
-    private static async Task<double> CaptionContrastAsync(Border surface)
+    private async Task CheckLibraryBlurAsync(Grid panel, Border blur, Border shade)
     {
-        var bitmap = new RenderTargetBitmap();
-        await bitmap.RenderAsync(surface);
-        var buffer = await bitmap.GetPixelsAsync();
-        var bytes = new byte[buffer.Length];
-        using (var reader = DataReader.FromBuffer(buffer)) reader.ReadBytes(bytes);
-        double minimum = 1, maximum = 0;
-        // 排除圆角外的透明像素；白色背景不能被误当成标题字形。
-        var inset = Math.Max(4, (int)Math.Round(5 * surface.XamlRoot.RasterizationScale));
-        for (var y = inset; y < bitmap.PixelHeight - inset; y++)
-            for (var x = inset; x < bitmap.PixelWidth - inset; x++)
+        var stripes = new Grid { Width = 352, HorizontalAlignment = HorizontalAlignment.Right };
+        for (var index = 0; index < 88; index++)
+            stripes.Children.Add(new Border
             {
-                var index = (y * bitmap.PixelWidth + x) * 4;
-                var alpha = bytes[index + 3] / 255d;
-                var luminance = 0.2126 * Channel(bytes[index + 2], alpha)
-                    + 0.7152 * Channel(bytes[index + 1], alpha) + 0.0722 * Channel(bytes[index], alpha);
+                Width = 4,
+                Margin = new Thickness(index * 4, 0, 0, 0),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Background = new SolidColorBrush(index % 2 == 0 ? Microsoft.UI.Colors.White : Microsoft.UI.Colors.Black)
+            });
+        panel.Children.Insert(0, stripes);
+        var acrylic = blur.Background as AcrylicBrush ?? throw new InvalidOperationException("阅读层不是原生亚克力");
+        var forceFallback = acrylic.AlwaysUseFallback;
+        try
+        {
+            await LayoutAsync(panel);
+            await Task.Delay(300);
+            var shown = Capture();
+            await SaveProbeScreenAsync("mp-library-gaussian-screen.png");
+            blur.Visibility = Visibility.Collapsed;
+            await LayoutAsync(panel);
+            await Task.Delay(200);
+            var clear = Capture();
+            Require(clear.Edge > 40 && shown.Edge < clear.Edge * 0.4, "阅读层没有实际柔化背景条纹");
+            Require(shown.Mean > 2 && shown.Mean < 245, "阅读层没有保留背景透出");
+            blur.Visibility = Visibility.Visible;
+            acrylic.AlwaysUseFallback = true;
+            await LayoutAsync(panel);
+            await Task.Delay(300);
+            var fallback = Capture();
+            Require(Math.Abs(shown.Mean - fallback.Mean) > 2, "常态材质与不透明回退没有像素差异");
+            await SaveProbeScreenAsync("mp-library-gaussian-fallback-screen.png");
+        }
+        finally
+        {
+            acrylic.AlwaysUseFallback = forceFallback;
+            blur.Visibility = shade.Visibility = Visibility.Visible;
+            panel.Children.Remove(stripes);
+        }
+
+        (double Edge, double Mean) Capture()
+        {
+            var frame = CompositionPlaybackProbe.CaptureResizeFrame(_window!.Handle, 0);
+            Require(frame.Stable, "模糊像素检查没有稳定画面");
+            var position = panel.TransformToVisual(_root).TransformPoint(new Windows.Foundation.Point(250, panel.ActualHeight - 24));
+            var scale = panel.XamlRoot.RasterizationScale;
+            var left = (int)Math.Round(position.X * scale);
+            var row = (int)Math.Round(position.Y * scale);
+            var count = (int)Math.Round(220 * scale);
+            double edge = 0, total = 0, previous = 0;
+            for (var x = 0; x < count; x++)
+            {
+                var at = (row * frame.Width + left + x) * 4;
+                var value = (frame.Bytes[at] + frame.Bytes[at + 1] + frame.Bytes[at + 2]) / 3d;
+                total += value;
+                if (x > 0) edge = Math.Max(edge, Math.Abs(value - previous));
+                previous = value;
+            }
+            return (edge, total / count);
+        }
+    }
+
+    private double CaptionScreenContrast(TextBlock title)
+    {
+        var frame = CompositionPlaybackProbe.CaptureResizeFrame(_window!.Handle, 0);
+        Require(frame.Stable && frame.Bytes.Length > 0, "文字检查未取得稳定真实屏幕帧");
+        var bounds = title.TransformToVisual(_root).TransformBounds(new Windows.Foundation.Rect(0, 0, title.ActualWidth, title.ActualHeight));
+        var scale = title.XamlRoot.RasterizationScale;
+        var left = Math.Clamp((int)Math.Floor(bounds.Left * scale), 0, frame.Width - 1);
+        var right = Math.Clamp((int)Math.Ceiling(bounds.Right * scale), left + 1, frame.Width);
+        var top = Math.Clamp((int)Math.Floor(bounds.Top * scale), 0, frame.Height - 1);
+        var bottom = Math.Clamp((int)Math.Ceiling(bounds.Bottom * scale), top + 1, frame.Height);
+        double minimum = 1, maximum = 0;
+        for (var y = top; y < bottom; y++)
+            for (var x = left; x < right; x++)
+            {
+                var index = (y * frame.Width + x) * 4;
+                var luminance = 0.2126 * Channel(frame.Bytes[index + 2])
+                    + 0.7152 * Channel(frame.Bytes[index + 1]) + 0.0722 * Channel(frame.Bytes[index]);
                 minimum = Math.Min(minimum, luminance);
                 maximum = Math.Max(maximum, luminance);
             }
         return (maximum + 0.05) / (minimum + 0.05);
 
-        static double Channel(byte premultiplied, double alpha)
+        static double Channel(byte channel)
         {
-            var value = Math.Clamp(premultiplied / 255d + 1 - alpha, 0, 1);
+            var value = channel / 255d;
             return value <= 0.04045 ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4);
         }
     }
-
     private static async Task<byte[]> LibraryCoverFixtureAsync(int index)
     {
         const int width = 200, height = 300;

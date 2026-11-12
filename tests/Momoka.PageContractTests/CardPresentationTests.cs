@@ -100,7 +100,7 @@ internal static class CardPresentationTests
             Assert.Null(title.Attribute("Height"));
             Assert.False(card.Descendants().Any(element => (string?)element.Attribute(x + "Name") == "PlaceholderTitle"));
         });
-        Test("图上标题：局部阅读底色随状态恢复且高对比度使用配对系统色", () =>
+        Test("图上标题：透明文字层与整排高斯遮罩，高对比度使用配对系统色", () =>
         {
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
             while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
@@ -115,12 +115,18 @@ internal static class CardPresentationTests
             var plain = states.Single(element => (string?)element.Attribute(x + "Name") == "CaptionPlain");
             Assert.False(plain.Descendants().Any());
             var scrim = states.Single(element => (string?)element.Attribute(x + "Name") == "CaptionOnScrim");
-            Assert.True(scrim.Descendants().Any(element => (string?)element.Attribute("Target") == "CaptionSurface.Background"));
+            Assert.False(scrim.Descendants().Any(element => ((string?)element.Attribute("Target"))?.StartsWith("CaptionSurface.", StringComparison.Ordinal) == true));
+            var home = XDocument.Load(Path.Combine(directory.FullName, "src/Momoka.Shell/Views/HomePage.xaml"));
+            var overlay = home.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "LibraryOverlay");
+            var layer = overlay.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "LibraryReadingLayer");
+            Assert.Equal("False", (string?)layer.Attribute("IsHitTestVisible"));
+            Assert.True(layer.Descendants().Any(element => (string?)element.Attribute("Background") == "{ThemeResource EgHomeLibraryBlurBrush}"));
+            Assert.True(layer.Descendants().Any(element => (string?)element.Attribute("Background") == "{ThemeResource EgScrimBrush}"));
             var palette = XDocument.Load(Path.Combine(directory.FullName, "src/Momoka.Shell/Theme/Palette.xaml"));
             var contrast = palette.Descendants().Single(element => (string?)element.Attribute(x + "Key") == "HighContrast");
             foreach (var (key, color) in new[]
             {
-                ("EgCardCaptionBackgroundBrush", "SystemColorWindowColor"),
+                ("EgHomeLibraryBlurBrush", "SystemColorWindowColor"),
                 ("EgCardCaptionForegroundBrush", "SystemColorWindowTextColor"),
                 ("EgCardCaptionSecondaryBrush", "SystemColorWindowTextColor")
             })

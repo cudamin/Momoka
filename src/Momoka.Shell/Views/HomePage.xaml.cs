@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Momoka.Diagnostics;
 using Momoka.Emby;
+using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Services;
 using Momoka.Shell.Platform;
@@ -816,6 +817,18 @@ public sealed partial class HomePage : Page, IShellContent
         return true;
     }
 
+    private void OnLibraryHostSizeChanged(object sender, SizeChangedEventArgs args) => PlaceLibraryReadingLayer();
+
+    private void PlaceLibraryReadingLayer()
+    {
+        if (LibraryOverlay.Visibility != Visibility.Visible || LibraryOverlay.ActualHeight <= 0
+            || ViewModel.LibraryShelf is not { } shelf) return;
+        // 用布局的海报高与Chrome余量，排除卡片进场/悬停RenderTransform，避免动画把阅读层高度永久带偏。
+        var height = Math.Clamp(shelf.RowHeight - CardSize.HeightFor(CardSize.LibraryWidth, true) - 8 + 12,
+            0, LibraryOverlay.ActualHeight);
+        if (Math.Abs(LibraryReadingLayer.Height - height) >= 0.5) LibraryReadingLayer.Height = height;
+    }
+
     /// <summary>
     /// 按视图模型此刻的矮窗档状态拨这一页的屏上开关：宿主、浅墨、轮播那头的让位；翻档的那一趟还要把三样东西的
     /// 位移补一趟（见 <see cref="HomeFoldMotion"/>）。
@@ -868,6 +881,7 @@ public sealed partial class HomePage : Page, IShellContent
         if (contentChanged) LibraryHost.Content = content;
         if (scrimChanged) shelf!.OnScrim = on;
         if (visibilityChanged || contentChanged || scrimChanged || marginChanged) ForceLayout();
+        PlaceLibraryReadingLayer();
 
         // 刚插回横排的那一排会自己走一遍进场（HomeMotion 挂在 ElementPrepared 上）——那 20 像素的上浮是渲染
         // 位移，会把这一拍的几何量读歪、还喂给滚动视口的锚定；回默认这一趟它的模样归矮窗档的动画管，当场按掉。

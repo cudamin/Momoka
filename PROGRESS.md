@@ -10,6 +10,14 @@ Frame/视图模型/控件和MP历史筛选是明确边界替身，测试不证�
 
 ## 2026-11-12 WinUI P2 合入master，主树复验完成
 
+## 2026-11-12 首页底部半透明遮罩与原生高斯修正
+
+用户明确要求底部加遮罩和高斯模糊、不要不透明背景。移除各卡CaptionSurface背景/Padding状态，首页LibraryOverlay在整排文字之后共用一支轻tint原生Acrylic和半透明EgScrim；常态背景可见，封面保持清晰。阅读层只占标题下段，布局高度排除卡片动画变换，不阻挡命中，普通页面与折叠恢复透明。Dark/Light资源均使用现有主题角色，HighContrast/系统透明关闭保持平台回退。Gallery 6de91fe的AcrylicPage及框架AcrylicBrush.cpp GaussianBlurEffect已核对，不新增依赖。
+
+本树Shell Release0警告0错误，页面199/199、订阅111/111、文本/空白通过；全量4993/5009的16项失败为另一会话SelfCheckRun互斥，释放后同树隔离专项21/21全部通过，日志保留。独立发布547文件288.8MB批准60项，PID16616原生首页专项1/1，宽窄/五主题纯白文字真实屏幕对比≥4.5、删除遮罩拒绝、4DIP黑白细条纹的模糊边缘下降与常态/强制实色回退差异均通过；零MP写入，截图artifacts/subscription-artwork/blur-runtime已目视。系统高对比度切换/透明开关/Narrator/触摸/跨DPI没有实测。累计输入13张图片，未达40张暂停线。
+
+产品前次7807dbc已在master；本修正待合入最新主树2c0cb6c并复验、刷新桌面，保留其P3工作。未上传远程。
+
 ## 2026-11-12 首页订阅分类封面与标题可读性
 
 开发树 `C:/Users/89400/.codex/worktrees/9b2d/Momoka`，基于f8b1795。订阅电影/电视剧入口复用当前订阅中最多四张不同海报（缺海报时用该作品背景图），576×324等比裁满并添加淡出倒影；每张独立容错，保留属主身份、取消、失败冷却与导航边界。图上标题新增局部实色底板，复用Palette各主题既有表面/正文角色，高对比度配对系统色，普通页面恢复透明与原边距。原生Button/Image/TextBlock保留；Gallery 6de91feccadfbb0a796b71caedead5a2284f730e 的ImagePage/TextBlockPage/AccessibilityColorContrast源码已核对，不新增依赖。
