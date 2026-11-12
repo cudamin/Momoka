@@ -1,0 +1,172 @@
+{
+  "sourceCommit": "2646b6e9e3d8b66aabe19e1cb4ae9a833c66311a",
+  "sourceSha256": "63cdc80538cf530c5866ceadee5ef02d3b45c1b9a870f6043834bd1a93f08f7a",
+  "sourceFingerprint": "SHA256(sorted path + NUL + file bytes + NUL; tracked src/tests and solution/manifest)",
+  "builds": [
+    {
+      "id": "shell-core",
+      "warnings": 0,
+      "errors": 0,
+      "sourceSha256": "63cdc80538cf530c5866ceadee5ef02d3b45c1b9a870f6043834bd1a93f08f7a",
+      "log": "artifacts/winui-p2/build-p2-probe-final.log"
+    },
+    {
+      "id": "tests-core",
+      "warnings": 0,
+      "errors": 0,
+      "sourceSha256": "63cdc80538cf530c5866ceadee5ef02d3b45c1b9a870f6043834bd1a93f08f7a",
+      "log": "artifacts/winui-p2/build-p2-final-tests.log"
+    }
+  ],
+  "tests": [
+    {
+      "id": "material",
+      "checks": 56,
+      "passed": 56,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "source-linked",
+      "native": false
+    },
+    {
+      "id": "appearance",
+      "checks": 47,
+      "passed": 47,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "source-linked",
+      "native": false
+    },
+    {
+      "id": "settings-lifetime",
+      "checks": 61,
+      "passed": 61,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "source-linked",
+      "native": false
+    },
+    {
+      "id": "finalization",
+      "checks": 106,
+      "passed": 106,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "source-linked",
+      "native": false
+    },
+    {
+      "id": "main",
+      "checks": 4881,
+      "passed": 4881,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "core",
+      "native": false
+    },
+    {
+      "id": "input",
+      "checks": 29,
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "core",
+      "native": false
+    },
+    {
+      "id": "acrylic",
+      "checks": 39,
+      "passed": 39,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "core",
+      "native": false
+    }
+  ],
+  "runtime": [
+    {
+      "id": "materials",
+      "checks": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "native-ui",
+      "pid": 28220,
+      "runDirectory": "shell-probe-20261112-115344700-28220",
+      "binarySha256": "2f6d71162bc6b2569e2de8fc23fd3234c3ad543c5cf3c096534bd6a865a65af6",
+      "sourceSha256": "63cdc80538cf530c5866ceadee5ef02d3b45c1b9a870f6043834bd1a93f08f7a"
+    },
+    {
+      "id": "settings",
+      "checks": 28,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "native-ui",
+      "pid": 14048,
+      "runDirectory": "shell-probe-20261112-115736550-14048",
+      "binarySha256": "2f6d71162bc6b2569e2de8fc23fd3234c3ad543c5cf3c096534bd6a865a65af6",
+      "sourceSha256": "63cdc80538cf530c5866ceadee5ef02d3b45c1b9a870f6043834bd1a93f08f7a"
+    },
+    {
+      "id": "high-contrast",
+      "checks": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "native-ui",
+      "pid": 12988,
+      "runDirectory": "shell-probe-20261112-114624533-12988",
+      "binarySha256": "2f6d71162bc6b2569e2de8fc23fd3234c3ad543c5cf3c096534bd6a865a65af6",
+      "sourceSha256": "63cdc80538cf530c5866ceadee5ef02d3b45c1b9a870f6043834bd1a93f08f7a"
+    },
+    {
+      "id": "transparency",
+      "checks": 1,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "native-ui",
+      "pid": 2868,
+      "runDirectory": "shell-probe-20261112-121429133-2868",
+      "binarySha256": "2f6d71162bc6b2569e2de8fc23fd3234c3ad543c5cf3c096534bd6a865a65af6",
+      "sourceSha256": "63cdc80538cf530c5866ceadee5ef02d3b45c1b9a870f6043834bd1a93f08f7a"
+    }
+  ],
+  "systemRecovery": {
+    "authorized": true,
+    "restored": true,
+    "before": {
+      "highContrast": false,
+      "effects": true
+    },
+    "after": {
+      "highContrast": false,
+      "effects": true
+    },
+    "evidence": "two final native state receipts plus registry EnableTransparency=1 / HighContrast.Flags=126"
+  },
+  "remaining": [
+    "main-tree merge/reverification/publish pending explicit instruction",
+    "opening screenshot presentation timing",
+    "P2 section6 candidates",
+    "GPU/Narrator/touch/DPI/RDP/power/real media not measured",
+    "Latest materials exit-code run failed two guarded screenshots; subsequent settings exit-code run not executed"
+  ],
+  "delivered": false,
+  "mainTreeCommit": "88692b534da315b261e94bda226934c89ab66e76",
+  "runtimeAttempts": [
+    {
+      "id": "exit-materials",
+      "checks": 3,
+      "passed": 1,
+      "failed": 2,
+      "skipped": 0,
+      "evidenceKind": "native-ui",
+      "pid": 31280,
+      "exitCode": 1,
+      "log": "artifacts/winui-p2/exit-materials.json",
+      "reason": "QQ and another desktop window occluded guarded screen points"
+    }
+  ]
+}

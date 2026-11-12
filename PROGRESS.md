@@ -1,3 +1,13 @@
+## 2026-11-12 WinUI P2：材质与系统回退收尾，待主树整合
+
+接续被图片上限打断的winui-rules-plan独立树，原34项未提交改动已核对并提交：产品`b4cd92f`、真实探针与契约`2646b6e`。收尾只读审查发现并修复设置创建后旧外观快照阻止失败恢复、主岛相同激活意图不能重试setter失败、菜单首次系统颜色读错留下透明面的三处异常分支；新增对应测试。旧亚克力探针把当前出厂默认与历史薄白混用，明确先核当前参数再选择匿名薄白夹具，并修正AutomationId误当字段的定位错误。规则、默认产品范围、播放管线和依赖未变。
+
+当前Release Shell/Core和Tests/Core构建均0警告0错误；完整主测试4881/4881、MaterialLifecycle56/56、SettingsAppearance47/47、SettingsLifetime61/61、ProbeFinalization106/106，input29/29、acrylic39/39，0失败0跳过。真实materials PID28220报告3/3、settings PID14048报告28/28且正常退出；五主题输入和菜单截图已逐张核对，开窗截图配色延迟只作布局证据。高对比PID12988与透明关闭/恢复PID2868均1/1正常收尾，Windows原值EnableTransparency1、HighContrast.Flags126已实际读回。系统事件订阅本机0x80070490由显示期观察回退覆盖，模拟测试不冒称native计数、像素或释放。全部详细路径/hash/范围见[本批报告](docs/WinUI-P2材质与主题.md)及[证据回执](docs/winui-p2/verification.json)。
+
+额外退出码补验PID31280于20:43–20:44因QQ及另一桌面窗口遮挡两个截图点，结果1/3、退出1；保留失败并停止后续settings退出码补验，不改像素守卫、不关闭用户程序。此前同源码/hash的通过覆盖仍保留，最新红项不能当交付通过。用户要求少用鼠标后已释放控制，最后透明检查仅使用明确UIA Invoke/TogglePattern。累计输入35张图片，未达到40张暂停线。
+
+当前master为`88692b5`且干净，相比原交接a072a8b已有第五批产品及文档；整合须保留这些代码和新增测试项目。只读merge-tree预演发现Momoka.sln和regression-suites.json两处登记冲突，须保留两批项目，未修改主树。此轮尚未收到明确“合并 交付”，未合入、未主树复验、未发布/推送；快捷方式仍指向既有主树版本。下一步为桌面像素补验及明确指令后的主树整合/适用复验/发布。P2第6节候选、GPU/功耗/Narrator/触摸/多DPI/真实媒体服务等未覆盖边界保留。
+
 ## 2026-11-12 WinUI P1：现状盘点、匿名基线与决策准备
 
 用户要求“开始做p1”。在本聊天受保护的 `winui-rules-plan/Momoka` 独立树完成调查：先重读主树CLAUDE、Shell/验证及通用WinUI技能，快进到 `4e0394a`；随后吸收同期 `07e991b` 的字幕/花絮，原运行基线与增量源码分别记录，不混作新产品已验收。三名子代理分工材质/窗口、页面/布局、验证路径；源码与固定Gallery SHA `6de91feccadfbb0a796b71caedead5a2284f730e` 实读，Gallery2.6.6-experimental依赖未引入。
