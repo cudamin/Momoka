@@ -84,6 +84,16 @@
       "notes": "真实音乐VM、播放服务和会话的匿名取消/事件/队列/音量回归；UI及图片为边界值，不启动窗口、原生内核或真实服务器。"
     },
     {
+      "id": "Momoka.MusicArtworkTests",
+      "project": "tests/Momoka.MusicArtworkTests/Momoka.MusicArtworkTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.MusicArtworkTests/README.md",
+      "notes": "真实音乐图片需求与回收、取消和尺寸；控制台图像边界不证明WinUI实际viewport或GPU显存。"
+    },
+    {
       "id": "Momoka.LocalLibraryPageTests",
       "project": "tests/Momoka.LocalLibraryPageTests/Momoka.LocalLibraryPageTests.csproj",
       "mode": "dotnet",
