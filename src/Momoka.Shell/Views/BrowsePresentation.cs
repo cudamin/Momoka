@@ -27,6 +27,7 @@ internal sealed class BrowsePresentation(Frame frame)
     private Storyboard? _motion;
     private EventHandler<object>? _completed;
     private bool _watchingPreference;
+    private SettingsPreferenceWatch? _preferenceWatch;
     private bool _deferMotion;
     private bool _connectedStarted;
     private int _generation;
@@ -137,7 +138,6 @@ internal sealed class BrowsePresentation(Frame frame)
     private void StartMotion(int generation)
     {
         if (!HomeMotion.AnimationsEnabled || frame.XamlRoot is null || _motion is not null) return;
-        WatchPreference();
 
         var motion = new Storyboard();
         var fade = new DoubleAnimation
@@ -159,6 +159,7 @@ internal sealed class BrowsePresentation(Frame frame)
         frame.Opacity = 0.8;
         try
         {
+            WatchPreference();
             _timing?.Mark("browse-motion-start");
             motion.Begin();
         }
@@ -174,7 +175,9 @@ internal sealed class BrowsePresentation(Frame frame)
         if (_watchingPreference) return;
         _watchingPreference = true;
         HomeMotion.PreferenceChanged += OnPreferenceChanged;
-        _systemSettings.AnimationsEnabledChanged += OnSystemPreferenceChanged;
+        var watch = new SettingsPreferenceWatch(this);
+        _preferenceWatch = watch;
+        _systemSettings.AnimationsEnabledChanged += watch.OnChanged;
     }
 
     private void OnPreferenceChanged()
@@ -182,14 +185,21 @@ internal sealed class BrowsePresentation(Frame frame)
         if (!HomeMotion.AnimationsEnabled) StopMotion();
     }
 
-    private void OnSystemPreferenceChanged(UISettings sender, object args)
+    private sealed class SettingsPreferenceWatch(BrowsePresentation owner)
     {
-        var generation = _generation;
-        frame.DispatcherQueue.TryEnqueue(() =>
+        internal bool Active { get; set; } = true;
+        internal void OnChanged(UISettings sender, object args)
         {
-            if (generation == _generation) OnPreferenceChanged();
-        });
+            if (!Active) return;
+            var generation = owner._generation;
+            owner.FrameDispatcher.TryEnqueue(() =>
+            {
+                if (Active && generation == owner._generation) owner.OnPreferenceChanged();
+            });
+        }
     }
+
+    private DispatcherQueue FrameDispatcher => frame.DispatcherQueue;
 
     private void StopMotion()
     {
@@ -197,15 +207,22 @@ internal sealed class BrowsePresentation(Frame frame)
         _motion = null;
         if (motion is not null)
         {
-            motion.Completed -= _completed;
+            try { motion.Completed -= _completed; }
+            catch (Exception) { /* 平台事件清理失败不阻断终值或图片放行。 */ }
             _completed = null;
-            motion.Stop();
+            try { motion.Stop(); }
+            catch (Exception) { /* native时钟停止失败仍继续本地清理。 */ }
         }
         frame.Opacity = 1;
         if (!_watchingPreference) return;
         _watchingPreference = false;
         HomeMotion.PreferenceChanged -= OnPreferenceChanged;
-        _systemSettings.AnimationsEnabledChanged -= OnSystemPreferenceChanged;
+        var watch = _preferenceWatch;
+        _preferenceWatch = null;
+        if (watch is null) return;
+        watch.Active = false;
+        try { _systemSettings.AnimationsEnabledChanged -= watch.OnChanged; }
+        catch (Exception) { /* 只确认本地观察失效，不能声称native已退订。 */ }
     }
 
     private void DetachRendering()
@@ -236,13 +253,18 @@ internal sealed class BrowsePresentation(Frame frame)
         _connectedStarted = false;
         _loaded = null;
         _unloaded = null;
-        DetachRendering();
-        StopMotion();
         var images = _images;
         _images = null;
         _timing = null;
-        if (images is null) return;
-        images.TrySetResult();
-        if (ReferenceEquals(ImageGate.Value, images.Task)) ImageGate.Value = null;
+        try
+        {
+            DetachRendering();
+            StopMotion();
+        }
+        finally
+        {
+            images?.TrySetResult();
+            if (images is not null && ReferenceEquals(ImageGate.Value, images.Task)) ImageGate.Value = null;
+        }
     }
 }

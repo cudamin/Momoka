@@ -144,13 +144,30 @@ namespace Microsoft.UI.Xaml.Media.Animation
 {
     public sealed class ConnectedAnimation
     {
+        public enum EventFailure { None, Before, After }
+        public EventFailure AddFailure { get; set; }
+        public EventFailure RemoveFailure { get; set; }
         public bool Starts { get; set; } = true;
         public bool ThrowOnStart { get; set; }
         public bool ThrowOnCancel { get; set; }
         public int StartCalls { get; private set; }
         public int CancelCalls { get; private set; }
         public Windows.Foundation.TypedEventHandler<ConnectedAnimation, object>? Handlers;
-        public event Windows.Foundation.TypedEventHandler<ConnectedAnimation, object>? Completed { add => Handlers += value; remove => Handlers -= value; }
+        public event Windows.Foundation.TypedEventHandler<ConnectedAnimation, object>? Completed
+        {
+            add
+            {
+                if (AddFailure == EventFailure.Before) throw new InvalidOperationException("Injected Completed pre-add failure.");
+                Handlers += value;
+                if (AddFailure == EventFailure.After) throw new InvalidOperationException("Injected Completed post-add failure.");
+            }
+            remove
+            {
+                if (RemoveFailure == EventFailure.Before) throw new InvalidOperationException("Injected Completed pre-remove failure.");
+                Handlers -= value;
+                if (RemoveFailure == EventFailure.After) throw new InvalidOperationException("Injected Completed post-remove failure.");
+            }
+        }
         public bool TryStart(Microsoft.UI.Xaml.UIElement target)
         {
             StartCalls++;
@@ -227,6 +244,13 @@ namespace Windows.UI.ViewManagement
 
 namespace Momoka.Emby
 {
+    public readonly record struct ArtworkRef(string ItemId, string ImageType, string Tag);
+    public static class EmbyImageStore
+    {
+        public const string Primary = "Primary";
+        public static string? TagFor(EmbyItem item, string type) => item.PrimaryTag;
+        public static string ImageItemId(EmbyItem item, string type) => item.ImageOwner;
+    }
     public static class EmbyItemType
     {
         public const string Movie = "Movie", Series = "Series", Season = "Season", Episode = "Episode";
@@ -241,6 +265,8 @@ namespace Momoka.Emby
         public string IdentityKey { get; set; } = "source:item";
         public string Type { get; set; } = "Movie";
         public SourceScope? Source { get; set; } = new();
+        public string? PrimaryTag { get; set; } = "poster";
+        public string ImageOwner { get; set; } = "item";
     }
 }
 
@@ -249,6 +275,7 @@ namespace Momoka.Shell.Views
     public sealed class CardItem
     {
         public Momoka.Emby.EmbyItem Item { get; set; } = new();
+        public Momoka.Emby.ArtworkRef? LoadedPosterArtwork { get; set; } = new("item", "Primary", "poster");
     }
     public sealed class PosterCard : Microsoft.UI.Xaml.FrameworkElement
     {

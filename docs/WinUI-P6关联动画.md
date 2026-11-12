@@ -35,3 +35,11 @@ Gallery固定 `6de91feccadfbb0a796b71caedead5a2284f730e`：ConnectedAnimationPag
 ## 活动原生动画完成兜底
 
 准备目标700ms等待保持；原生TryStart成功后的活动观察增加1200ms兜底，完成事件缺失仍取消native动画及观察。前进保留弱返回线索，返回从准备阶段重开兜底，超时彻底取消票据。每次超时委托有本地代次，旧Tick不能处理新原生动画；重复CompleteReturn只排一次。新增缺Completed、返回未投递超时与旧Tick、重复完成合并三项，当前26/26。该兜底只取消可选动效，不延迟页面导航或服务器请求。
+
+## 稳定同图范围与正式返回证据
+
+复核CardItem/DetailViewModel真实取图链：宽卡优先Thumb/Backdrop，集页左上图按既有产品要求取Series图。因此关联范围收窄到Movie/Series/Season已成功显示的自身Primary引用，核ItemId/ImageType/Tag，不靠纵横比猜；Episode和实际Thumb/Backdrop图继续普通导航。CardItem暴露只在当前Poster非null时有效的LoadedPosterArtwork，解码缓存命中记录实际命中引用。4项真实卡片冷/热缓存、Thumb优先及Primary失败回退测试新增后PageContract211/211。
+
+原生研究原return只改frame.Content并记录Prepared，不能算正式返回完成。现以缓存CardDetailConnectedSourcePage正式Navigate/Frame.GoBack，弱原页必须真正恢复；原生回执区分TryStart、Completed、TimedOut，成功返回必须记录Started且Completed。第二轮强制源图片缺失、前进图版本变化仍正式导航/返回，并记录普通回退。真实结果由主树协调会话当前轮补记，base旧日志保留其原覆盖边界。
+
+原生ConnectedAnimation.Completed退订同样先撤本地动画引用再try退订，异常仍继续Cancel/普通回退；BrowsePresentation的系统观察与Storyboard.Stop异常不再阻断首帧图片TCS最终释放，失败旧观察本地失效。当前原样关联33/33、Browse27/27与PageContract211/211；原生事件实际释放在故障路径未确认，不能当作native资源已释放。

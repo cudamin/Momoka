@@ -34,3 +34,7 @@ The abandoned first-image case gates the actual shared download cancellation cal
 old immediate HTTP-token assertion while propagation is pending, and waits for the transport token
 before delivering its late response. All original no-cache/no-decode/no-revival assertions remain;
 card-waiter completion is not treated as completion of every linked cancellation callback.
+
+## 2026-11-13实际卡片取图身份
+
+CardArtworkIdentityTests原样执行CardItem.EnsurePosterAsync：冷下载记录Primary，释放图使引用不可用，热缓存/全新卡命中恢复真实引用；宽卡Thumb成功和Primary失败后Thumb回退准确记图种，不以首选候选猜图。新增4项后当前PageContract211/211，失败0、跳过0。该证据用于关联动画选源，仍不证明实际WinUI显示或动画帧。

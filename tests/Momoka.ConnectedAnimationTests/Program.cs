@@ -369,6 +369,76 @@ internal static class Program
             Assert.Equal(1, animation.StartCalls);
             animation.Complete();
         });
+        Test("实际图引用收窄到自身Primary，集剧照与宽缩略图保持普通导航", () =>
+        {
+            foreach (var state in new[] { "episode", "thumb", "backdrop", "other-owner", "other-tag" })
+            {
+                using var fixture = new Fixture();
+                if (state == "episode") fixture.Item.Type = EmbyItemType.Episode;
+                else fixture.Source.Card!.LoadedPosterArtwork = state switch
+                {
+                    "thumb" => new("item", "Thumb", "poster"),
+                    "backdrop" => new("item", "Backdrop", "poster"),
+                    "other-owner" => new("series", "Primary", "poster"),
+                    _ => new("item", "Primary", "other")
+                };
+                Assert.False(fixture.Prepare());
+            }
+        });
+        Test("主体更正Primary图版本后旧海报不启动且返回重取不借旧图", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            fixture.Item.PrimaryTag = "new-poster";
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
+            fixture.Item.PrimaryTag = "poster";
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            ConnectedAnimationService.Created.Last().Complete();
+            fixture.Source.Card!.LoadedPosterArtwork = new("item", "Thumb", "alternate");
+            Assert.False(CardDetailTransition.BeginReturn(fixture.Target));
+        });
+        foreach (var add in new[] { ConnectedAnimation.EventFailure.Before, ConnectedAnimation.EventFailure.After })
+            foreach (var remove in new[] { ConnectedAnimation.EventFailure.Before, ConnectedAnimation.EventFailure.After })
+                Test($"原生Completed订阅{add}退订{remove}异常不阻断回退", () =>
+                {
+                    using var fixture = new Fixture();
+                    fixture.Prepare();
+                    var animation = ConnectedAnimationService.Created.Last();
+                    animation.AddFailure = add;
+                    animation.RemoveFailure = remove;
+                    CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                    Assert.False(CardDetailTransition.Started(fixture.Frame));
+                    Assert.True(BrowsePresentation.Results.Any(result => !result.Started));
+                    Assert.True(animation.CancelCalls > 0);
+                    var stale = animation.LateComplete();
+                    fixture.Prepare();
+                    CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                    stale();
+                    Assert.True(CardDetailTransition.Started(fixture.Frame));
+                    animation.Handlers = null; // 释放故障测试端点，生产只证明本地失效。
+                });
+        Test("原生回执分别报告前进返回启动完成与超时，观察异常不影响清理", () =>
+        {
+            using var fixture = new Fixture();
+            var receipts = new List<CardDetailTransitionReceipt>();
+            fixture.Prepare();
+            var detach = CardDetailTransition.Observe(fixture.Frame, receipts.Add);
+            var detachFault = CardDetailTransition.Observe(fixture.Frame, _ => throw new InvalidOperationException("faulting observer"));
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            ConnectedAnimationService.Created.Last().Complete();
+            Assert.True(receipts.Any(receipt => receipt.Direction == "forward" && receipt.Started && receipt.Completed));
+            Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            fixture.Frame.Content = fixture.Source;
+            CardDetailTransition.CompleteReturn(fixture.Frame);
+            fixture.Frame.DispatcherQueue.Drain();
+            Assert.True(receipts.Any(receipt => receipt.Direction == "return" && receipt.Started && !receipt.Completed));
+            ConnectedAnimationService.Created.Last().Complete();
+            Assert.True(receipts.Any(receipt => receipt.Direction == "return" && receipt.Started && receipt.Completed));
+            detach?.Invoke();
+            detachFault?.Invoke();
+        });
         return Run();
     }
 

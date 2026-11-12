@@ -6,6 +6,8 @@
 
 2026-11-13新增关联动画呈现责任三项：成功只抑制整页淡入、失败恢复原180ms淡入、关联先成功再Loaded不重播。三条均保留所属Frame首帧图片门控，当前22/22，失败0、跳过0。
 
+后续系统订阅add/remove前后异常与Storyboard.Stop异常五项验证门控最终放行，旧失败系统观察不能取消新动画；当前27/27。Stop先捕获并清本地TCS，在finally释放图片等待，原生停止/退订失败只记本地收尾，不冒称native已释放。
+
 ```powershell
 & 'C:\Users\89400\.dotnet\dotnet.exe' restore tests/Momoka.BrowsePresentationTests/Momoka.BrowsePresentationTests.csproj
 & 'C:\Users\89400\.dotnet\dotnet.exe' build tests/Momoka.BrowsePresentationTests/Momoka.BrowsePresentationTests.csproj -c Release --no-restore -p:Platform=x64 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false -m:1

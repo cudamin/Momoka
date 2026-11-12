@@ -730,6 +730,9 @@ public sealed class CardItem : INotifyPropertyChanged
     /// <summary>列表行只显示一张图；目录封面拼图以第一张已到达海报作为首图。</summary>
     public BitmapImage? RowPoster => Poster ?? FolderTile0;
 
+    /// <summary>已显示图片的真实取图引用；仅成功解码或解码缓存命中后有效，不用首选候选猜图。</summary>
+    internal ArtworkRef? LoadedPosterArtwork => _poster is not null ? _loadedArtwork : null;
+
     public bool Watched => _item.IsWatched;
 
     public bool IsFavorite => _item.UserData?.IsFavorite ?? false;
@@ -881,8 +884,9 @@ public sealed class CardItem : INotifyPropertyChanged
 
         // Already decoded once this run: hand it straight over. Synchronous on purpose — a container
         // coming back to a poster it has shown before should not flicker through an empty frame first.
-        if (PosterKey() is { } key && PosterCache.TryGet(key, out var kept))
+        if (PosterArtwork is { } cachedArtwork && PosterKey() is { } key && PosterCache.TryGet(key, out var kept))
         {
+            _loadedArtwork = cachedArtwork;
             Poster = kept;
             return;
         }
