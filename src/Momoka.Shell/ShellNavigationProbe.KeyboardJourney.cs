@@ -118,7 +118,9 @@ internal sealed partial class ShellNavigationProbe
                 // ItemsView's item container is the actual navigation target; its Enter invokes the card, never the playback overlay.
                 var wall = Get<ItemsView>(searchPage, "CardWall");
                 result = null;
-                var container = Descendants(wall).OfType<ItemContainer>().FirstOrDefault(item => item.DataContext is CardItem { Item.Id: KeyboardJourneyProbeServer.MovieId });
+                var container = KeyboardJourneyProbeRules.FindResult(Descendants(wall).OfType<ItemContainer>(),
+                    item => Descendants(item).OfType<PosterCard>().FirstOrDefault()?.Card?.Item.Id,
+                    KeyboardJourneyProbeServer.MovieId);
                 Require(container is not null, "实际搜索结果没有可聚焦导航容器");
                 Focus(container!, "KeyboardJourneyResult");
             }

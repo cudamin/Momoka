@@ -10,6 +10,15 @@ internal static class Program
 {
     private static int Main()
     {
+        Test("键盘结果定位按子卡片身份，不依赖原生容器DataContext", () =>
+        {
+            var correct = new object();
+            var wrong = new object();
+            var cards = new Dictionary<object, string?> { [correct] = KeyboardJourneyProbeServer.MovieId, [wrong] = "other" };
+            Assert.True(ReferenceEquals(correct, KeyboardJourneyProbeRules.FindResult([wrong, correct], container => cards[container], KeyboardJourneyProbeServer.MovieId)));
+            Assert.Null(KeyboardJourneyProbeRules.FindResult([wrong], container => cards[container], KeyboardJourneyProbeServer.MovieId));
+            Assert.Null(KeyboardJourneyProbeRules.FindResult([correct], _ => null, KeyboardJourneyProbeServer.MovieId));
+        });
         foreach (var host in new[] { "keyboard-a.invalid", "keyboard-b.invalid" })
             Test("键盘匿名源公开信息和目录 " + host, () => TestHarnessRun(async () =>
             {

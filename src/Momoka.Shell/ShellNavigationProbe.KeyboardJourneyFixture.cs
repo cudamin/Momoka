@@ -87,6 +87,9 @@ internal sealed class KeyboardJourneyProbeServer
 
 internal static class KeyboardJourneyProbeRules
 {
+    // x:Bind fills PosterCard.Card; ItemsView's outer container does not need a DataContext.
+    internal static T? FindResult<T>(IEnumerable<T> containers, Func<T, string?> cardIdentity, string wanted) where T : class =>
+        containers.FirstOrDefault(container => cardIdentity(container) == wanted);
     internal static void RequireName(string actual, string expected)
     {
         if (actual != expected) throw new InvalidOperationException("键盘流程自动化名称不匹配实际字段");

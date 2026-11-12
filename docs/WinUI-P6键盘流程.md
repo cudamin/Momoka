@@ -40,3 +40,5 @@
 ```
 
 子树Shell编译成功不代表这条原生任务链已经走过；实际成功与预期失败回执由根代理补充。新增两张实屏（设置、返回搜索），不要把直接Focus/UIA属性读数当成Narrator或真实键盘全过程通过。
+
+P8只读修正：ItemsView模板使用`x:Bind`填`PosterCard.Card`，外层ItemContainer未必有DataContext。结果定位改读实际子卡片身份并聚焦原ItemContainer，补离线正确/错误/空子卡身份验证，总8项；不以假的DataContext定位取得原生通过。Alt+F4阶段`minimumKeys=0`，系统关闭路径不冒称一定产生XAML键盘事件；其关闭/隐藏与主体恢复单独断言。
