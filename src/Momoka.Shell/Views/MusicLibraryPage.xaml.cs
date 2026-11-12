@@ -59,6 +59,8 @@ public sealed partial class MusicLibraryPage : Page, IShellContent
     public void Release()
     {
         _released = true;
+        DetachWallArtwork();
+        SetArtworkRealized(MusicRows, false);
         if (_music is not null) { _music.PropertyChanged -= OnMusicChanged; _music = null; }
         ViewModel.Release();
         _actions = null;
@@ -104,7 +106,8 @@ public sealed partial class MusicLibraryPage : Page, IShellContent
 
         await ViewModel.SelectAsync(section);
         if (_released) return;
-        WallScroll.ChangeView(null, 0, null, disableAnimation: true);
+        MusicWall.ScrollView?.ScrollTo(0, 0,
+            new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
     }
 
     private async void OnItemClick(object sender, ItemClickEventArgs args) =>
@@ -139,7 +142,7 @@ public sealed partial class MusicLibraryPage : Page, IShellContent
     /// </summary>
     internal void SetPlayerClearance(double clearance)
     {
-        WallScroll.Padding = new Thickness(0, 0, 20, 32 + clearance);
+        MusicWall.Padding = new Thickness(0, 0, 20, 32 + clearance);
         WallMoreButton.Margin = new Thickness(0, 16, 20, clearance);
         MusicRows.Padding = new Thickness(0, 0, 20, clearance);
     }

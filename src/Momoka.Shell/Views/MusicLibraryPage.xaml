@@ -342,6 +342,7 @@
                 <ListView
                     x:Name="MusicRows"
                     Grid.Row="1"
+                    ContainerContentChanging="OnTrackContentChanging"
                     Padding="{StaticResource EgScrollBarLane}"
                     IsItemClickEnabled="True"
                     ItemClick="OnItemClick"
@@ -371,15 +372,12 @@
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <ScrollViewer
-                    x:Name="WallScroll"
-                    HorizontalScrollBarVisibility="Disabled"
-                    HorizontalScrollMode="Disabled"
-                    Padding="0,0,20,32"
-                    VerticalScrollBarVisibility="Auto"
-                    VerticalScrollMode="Auto">
+                <Grid x:Name="WallScroll">
                     <ItemsView
                         x:Name="MusicWall"
+                        Padding="0,0,20,32"
+                        Loaded="OnWallLoaded"
+                        Unloaded="OnWallUnloaded"
                         IsItemInvokedEnabled="True"
                         ItemInvoked="OnWallItemInvoked"
                         ItemTemplate="{StaticResource MusicTileTemplate}"
@@ -395,7 +393,7 @@
                                 MinRowSpacing="24" />
                         </ItemsView.Layout>
                     </ItemsView>
-                </ScrollViewer>
+                </Grid>
                 <Button
                     x:Name="WallMoreButton"
                     x:Uid="MusicLibraryPage_LoadMore"

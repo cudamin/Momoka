@@ -8,7 +8,7 @@ namespace Microsoft.UI.Xaml
 
 namespace Microsoft.UI.Xaml.Controls
 {
-    public sealed class ScrollViewer
+    public sealed class ItemsView
     {
         public Microsoft.UI.Xaml.Thickness Padding { get; set; }
     }
@@ -30,7 +30,7 @@ namespace Momoka.Shell.Views
     internal sealed partial class MusicLibraryPage(MusicLibraryViewModel viewModel)
     {
         public MusicLibraryViewModel ViewModel { get; } = viewModel;
-        internal Microsoft.UI.Xaml.Controls.ScrollViewer WallScroll { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.ItemsView MusicWall { get; } = new();
         internal Microsoft.UI.Xaml.Controls.ListView MusicRows { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Button WallMoreButton { get; } = new();
         internal void InvokeMore() => OnMore(this, new Microsoft.UI.Xaml.RoutedEventArgs());

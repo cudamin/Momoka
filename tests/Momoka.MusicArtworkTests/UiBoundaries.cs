@@ -20,6 +20,8 @@ namespace Microsoft.UI.Xaml
     public class DependencyObject
     {
         private readonly Dictionary<DependencyProperty, object?> _values = [];
+        public List<DependencyObject> Children { get; } = [];
+        public object? XamlRoot { get; set; }
         public object? GetValue(DependencyProperty property) => _values.TryGetValue(property, out var value) ? value : property.Metadata.DefaultValue;
         public void SetValue(DependencyProperty property, object? value)
         {
@@ -31,13 +33,13 @@ namespace Microsoft.UI.Xaml
     }
     public sealed class RoutedEventArgs : EventArgs;
     public delegate void RoutedEventHandler(object sender, RoutedEventArgs args);
+    public class UIElement : DependencyObject;
 }
 
 namespace Microsoft.UI.Xaml.Controls
 {
-    public sealed class Image : DependencyObject
+    public sealed class Image : UIElement
     {
-        public object? XamlRoot { get; set; }
         public event RoutedEventHandler? Loaded;
         public event RoutedEventHandler? Unloaded;
         internal int LoadedHandlers => Loaded?.GetInvocationList().Length ?? 0;
@@ -48,6 +50,52 @@ namespace Microsoft.UI.Xaml.Controls
             if (!phantom) XamlRoot = null;
             Unloaded?.Invoke(this, new());
         }
+    }
+    public sealed class ItemsView : UIElement;
+    public sealed class ItemsRepeater : UIElement
+    {
+        private readonly Dictionary<UIElement, int> _realized = [];
+        public event Action<ItemsRepeater, ItemsRepeaterElementPreparedEventArgs>? ElementPrepared;
+        public event Action<ItemsRepeater, ItemsRepeaterElementClearingEventArgs>? ElementClearing;
+        public int GetElementIndex(UIElement element) => _realized.GetValueOrDefault(element, -1);
+        internal int PreparedHandlers => ElementPrepared?.GetInvocationList().Length ?? 0;
+        internal int ClearingHandlers => ElementClearing?.GetInvocationList().Length ?? 0;
+        internal void Prepare(UIElement element, int index)
+        {
+            if (!Children.Contains(element)) Children.Add(element);
+            _realized[element] = index;
+            ElementPrepared?.Invoke(this, new(element, index));
+        }
+        internal void Clear(UIElement element)
+        {
+            _realized.Remove(element);
+            // 同属主回收池故意保留Tree/XamlRoot与x:Bind项，只结束layout持有。
+            ElementClearing?.Invoke(this, new(element));
+        }
+    }
+    public sealed class ItemsRepeaterElementPreparedEventArgs(UIElement element, int index)
+    {
+        public UIElement Element => element;
+        public int Index => index;
+    }
+    public sealed class ItemsRepeaterElementClearingEventArgs(UIElement element)
+    {
+        public UIElement Element => element;
+    }
+    public class ListViewBase : UIElement;
+    public sealed class ContainerContentChangingEventArgs(UIElement itemContainer, bool inRecycleQueue)
+    {
+        public UIElement ItemContainer => itemContainer;
+        public bool InRecycleQueue => inRecycleQueue;
+    }
+}
+
+namespace Microsoft.UI.Xaml.Media
+{
+    public static class VisualTreeHelper
+    {
+        public static int GetChildrenCount(Microsoft.UI.Xaml.DependencyObject element) => element.Children.Count;
+        public static Microsoft.UI.Xaml.DependencyObject GetChild(Microsoft.UI.Xaml.DependencyObject element, int index) => element.Children[index];
     }
 }
 
@@ -71,5 +119,16 @@ namespace Momoka.Shell.Views
         private static Microsoft.UI.Xaml.Controls.Image Track(Microsoft.UI.Xaml.Controls.Image image) { Living++; return image; }
         internal void Stop() { }
         public void Dispose() { Living--; GC.KeepAlive(_image); }
+    }
+    public sealed partial class MusicLibraryPage
+    {
+        private bool _released;
+        internal Microsoft.UI.Xaml.Controls.ItemsView MusicWall { get; } = new();
+        internal void LoadArtwork() => OnWallLoaded(this, new());
+        internal void UnloadArtwork() => OnWallUnloaded(this, new());
+        internal void ReleaseArtwork() => DetachWallArtwork();
+        internal void SetReleased(bool value) => _released = value;
+        internal static void RecycleTrack(Microsoft.UI.Xaml.UIElement container, bool recycle) =>
+            new MusicLibraryPage().OnTrackContentChanging(new Microsoft.UI.Xaml.Controls.ListViewBase(), new(container, recycle));
     }
 }

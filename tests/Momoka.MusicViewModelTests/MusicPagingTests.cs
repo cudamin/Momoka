@@ -49,6 +49,10 @@ internal static class MusicPagingTests
         Require(rows is { Length: 2 } && (string?)rows[0].Attribute("Height") == "*"
             && (string?)rows[1].Attribute("Height") == "Auto", "墙与分页入口未分别分配剩余高度和自身高度");
         Require(ReferenceEquals(Named(page, "WallScroll").Parent, host), "墙滚动区没有被有限高度行承载");
+        Require(Named(page, "WallScroll").Name.LocalName == "Grid"
+            && Named(page, "MusicWall").Name.LocalName == "ItemsView"
+            && !Named(page, "MusicWall").Ancestors().Any(element => element.Name.LocalName == "ScrollViewer"),
+            "音乐墙仍由外层竖滚宿主无界量测");
         Require(!wall.Ancestors().Any(element => element.Name.LocalName is "ListView" or "ListView.Footer" or "ScrollViewer"),
             "墙分页按钮仍依赖曲目表或滚动页尾");
         Require(MusicLibraryPage.Show(true) == Visibility.Visible && MusicLibraryPage.Show(false) == Visibility.Collapsed,
@@ -76,11 +80,11 @@ internal static class MusicPagingTests
         using var library = fixture.Library();
         var page = new MusicLibraryPage(library);
         page.SetPlayerClearance(88);
-        Require(page.WallMoreButton.Margin.Bottom == 88 && page.WallScroll.Padding.Bottom == 120
+        Require(page.WallMoreButton.Margin.Bottom == 88 && page.MusicWall.Padding.Bottom == 120
             && page.MusicRows.Padding.Bottom == 88, "分页入口或原有滚动区未让开悬浮播放栏");
         page.SetPlayerClearance(0);
         Require(page.WallMoreButton.Margin.Bottom == 0 && page.WallMoreButton.Margin.Top == 16
-            && page.WallScroll.Padding.Bottom == 32 && page.MusicRows.Padding.Bottom == 0,
+            && page.MusicWall.Padding.Bottom == 32 && page.MusicRows.Padding.Bottom == 0,
             "播放栏退出后没有恢复原有页尾空隙");
     }
 

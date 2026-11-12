@@ -277,6 +277,221 @@ internal static class MusicArtworkProgram
             Assert.Null(card.Poster);
             Assert.Equal(0, ImageArrivalFade.Living);
         });
+
+        Case("音乐回收池：ElementClearing有XamlRoot也释放，Prepared无Loaded也恢复", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var page = new MusicLibraryPage();
+            var repeater = new ItemsRepeater();
+            page.MusicWall.Children.Add(repeater);
+            var image = new Image();
+            var container = new Microsoft.UI.Xaml.UIElement();
+            container.Children.Add(image);
+            CardArtwork.SetItem(image, f.Card);
+            image.Load();
+            repeater.Prepare(container, 0);
+            page.LoadArtwork();
+            (await f.Handler.AtAsync(0)).Complete("pooled");
+            await CardImageFixture.UntilAsync(() => f.Card.Poster is not null, "初始池图未完成");
+            repeater.Clear(container);
+            Assert.NotNull(image.XamlRoot, "夹具必须保留真实同属主池模型");
+            Assert.True(ReferenceEquals(f.Card, CardArtwork.GetItem(image)), "清layout不抹x:Bind身份");
+            Assert.Null(f.Card.Poster);
+            Assert.Equal(0, ImageArrivalFade.Living);
+            image.Unload(phantom: true);
+            image.Load();
+            Assert.Null(f.Card.Poster, "池元素的幻影Loaded不能恢复需求");
+            repeater.Prepare(container, 0);
+            Assert.Equal("pooled", f.Card.Poster!.FixtureImage);
+            Assert.Equal(1, f.Handler.Count);
+            page.ReleaseArtwork();
+            Assert.Null(f.Card.Poster);
+            Assert.Equal(0, repeater.PreparedHandlers);
+            Assert.Equal(0, repeater.ClearingHandlers);
+            CardArtwork.SetItem(image, null);
+        });
+
+        Case("音乐回收池：x:Bind换项发生在Prepared前不得重启已回收需求", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var page = new MusicLibraryPage();
+            var repeater = new ItemsRepeater();
+            var image = new Image();
+            var container = new Microsoft.UI.Xaml.UIElement();
+            container.Children.Add(image);
+            page.MusicWall.Children.Add(repeater);
+            page.LoadArtwork();
+            CardArtwork.SetItem(image, f.Card);
+            image.Load();
+            repeater.Prepare(container, 0);
+            var old = await f.Handler.AtAsync(0);
+            repeater.Clear(container);
+            var next = new CardItem(f.Scope.Bind(new EmbyItem
+            { Id = "pool-next", Type = EmbyItemType.MusicAlbum, ImageTags = new() { [EmbyImageStore.Primary] = "pool-next" } }), f.Images, 170, aspect: 1);
+            CardArtwork.SetItem(image, next);
+            Assert.Equal(1, f.Handler.Count, "绑定换项不等于容器已prepared");
+            old.Complete("old");
+            await CardImageFixture.UntilAsync(() => PosterCache.TryGet(f.Key(170), out _), "旧图片缓存未结清");
+            Assert.Null(f.Card.Poster);
+            Assert.Null(next.Poster);
+            repeater.Prepare(container, 1);
+            (await f.Handler.AtAsync(1)).Complete("prepared next");
+            await CardImageFixture.UntilAsync(() => next.Poster is not null, "Prepared没有恢复新图");
+            page.ReleaseArtwork();
+            CardArtwork.SetItem(image, null);
+            next.AbandonPoster();
+            Assert.Equal(0, ImageArrivalFade.Living);
+        });
+
+        Case("音乐回收池：首次订阅只领取真实layout项，池项仍在树不领取", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var page = new MusicLibraryPage();
+            var repeater = new ItemsRepeater();
+            var image = new Image();
+            var container = new Microsoft.UI.Xaml.UIElement();
+            container.Children.Add(image);
+            repeater.Children.Add(container);
+            page.MusicWall.Children.Add(repeater);
+            CardArtwork.SetItem(image, f.Card);
+            image.Load();
+            var request = await f.Handler.AtAsync(0);
+            page.LoadArtwork();
+            request.Complete("before subscription");
+            await CardImageFixture.UntilAsync(() => PosterCache.TryGet(f.Key(170), out _), "订阅前图片缓存未结清");
+            Assert.Null(f.Card.Poster);
+            page.LoadArtwork();
+            Assert.Equal(1, repeater.PreparedHandlers, "重复Loaded不能重复订阅");
+            repeater.Prepare(container, 0);
+            Assert.NotNull(f.Card.Poster);
+            page.ReleaseArtwork();
+            CardArtwork.SetItem(image, null);
+        });
+
+        Case("音乐曲目池：InRecycleQueue释放已在树图，返回准备恢复同项", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var image = new Image();
+            var container = new Microsoft.UI.Xaml.UIElement();
+            container.Children.Add(image);
+            CardArtwork.SetItem(image, f.Card);
+            image.Load();
+            (await f.Handler.AtAsync(0)).Complete("track pool");
+            await CardImageFixture.UntilAsync(() => f.Card.Poster is not null, "曲目池图未完成");
+            MusicLibraryPage.RecycleTrack(container, true);
+            Assert.NotNull(image.XamlRoot);
+            Assert.Null(f.Card.Poster);
+            image.Load();
+            Assert.Null(f.Card.Poster);
+            MusicLibraryPage.RecycleTrack(container, false);
+            Assert.Equal("track pool", f.Card.Poster!.FixtureImage);
+            Assert.Equal(1, f.Handler.Count);
+            CardArtwork.SetItem(image, null);
+        });
+
+        Case("音乐池释放：旧容器Clearing不能清新持有者，离页重入无重复事件", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var page = new MusicLibraryPage();
+            var repeater = new ItemsRepeater();
+            page.MusicWall.Children.Add(repeater);
+            var old = new Image();
+            var current = new Image();
+            var oldContainer = new Microsoft.UI.Xaml.UIElement();
+            var currentContainer = new Microsoft.UI.Xaml.UIElement();
+            oldContainer.Children.Add(old);
+            currentContainer.Children.Add(current);
+            page.LoadArtwork();
+            CardArtwork.SetItem(old, f.Card);
+            old.Load();
+            repeater.Prepare(oldContainer, 0);
+            (await f.Handler.AtAsync(0)).Complete("owner");
+            await CardImageFixture.UntilAsync(() => f.Card.Poster is not null, "共享图未完成");
+            CardArtwork.SetItem(current, f.Card);
+            current.Load();
+            repeater.Prepare(currentContainer, 0);
+            var poster = f.Card.Poster;
+            repeater.Clear(oldContainer);
+            Assert.True(ReferenceEquals(poster, f.Card.Poster));
+            page.ReleaseArtwork();
+            Assert.Null(f.Card.Poster);
+            page.LoadArtwork();
+            Assert.NotNull(f.Card.Poster);
+            Assert.Equal(1, repeater.ClearingHandlers);
+            Assert.Equal(1, repeater.PreparedHandlers);
+            page.ReleaseArtwork();
+            CardArtwork.SetItem(old, null);
+            CardArtwork.SetItem(current, null);
+            Assert.Equal(0, ImageArrivalFade.Living);
+        });
+
+        Test("音乐预算：realized与需求分口径，已测池多保留反例必须拒绝", () =>
+        {
+            Momoka.Shell.MusicArtworkProbeRules.Demands(1_000, 21, 21, 21, 21, 21);
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.Demands(1_000, 21, 25, 25, 25, 25));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.Demands(10_000, 10_000, 10_000, 10_000, 10_000, 10_000));
+            foreach (var tuple in new[] { (22, 21, 21, 21), (21, 22, 21, 21), (21, 21, 22, 21), (21, 21, 21, 22) })
+                Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.Demands(1_000, 21,
+                    tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4));
+        });
+
+        Test("音乐预算：有限viewport拒绝实际50576反例，首末项需正确身份及焦点", () =>
+        {
+            Momoka.Shell.MusicArtworkProbeRules.Viewport(557, 557);
+            Momoka.Shell.MusicArtworkProbeRules.Viewport(557, 556.5);
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.Viewport(557, 50_576));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.Viewport(double.NaN, 557));
+            Momoka.Shell.MusicArtworkProbeRules.Item("last", "last", true, 400, 100, 557);
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.Item("last", "old", true, 400, 100, 557));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.Item("last", "last", false, 400, 100, 557));
+            Assert.Throws<InvalidOperationException>(() => Momoka.Shell.MusicArtworkProbeRules.Item("last", "last", true, 557, 100, 557));
+        });
+
+        Test("音乐池入口：墙原生prepared/clearing与曲目回收均接正式行为", () =>
+        {
+            var root = new DirectoryInfo(AppContext.BaseDirectory);
+            while (root is not null && !File.Exists(Path.Combine(root.FullName, "Momoka.sln"))) root = root.Parent;
+            Assert.NotNull(root);
+            var document = XDocument.Load(Path.Combine(root!.FullName, "src/Momoka.Shell/Views/MusicLibraryPage.xaml"));
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            var rows = document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "MusicRows");
+            var wall = document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "MusicWall");
+            var outer = document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "WallScroll");
+            Assert.Equal("OnTrackContentChanging", (string?)rows.Attribute("ContainerContentChanging"));
+            Assert.Equal("OnWallLoaded", (string?)wall.Attribute("Loaded"));
+            Assert.Equal("OnWallUnloaded", (string?)wall.Attribute("Unloaded"));
+            Assert.Equal("Grid", outer.Name.LocalName);
+            Assert.False(wall.Ancestors().Any(element => element.Name.LocalName == "ScrollViewer"));
+            Assert.Equal("0,0,20,32", (string?)wall.Attribute("Padding"));
+        });
+
+        Case("音乐池页面：已Release的迟到Loaded不能重订阅，附加恢复仅订阅一次", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var page = new MusicLibraryPage();
+            var repeater = new ItemsRepeater();
+            page.MusicWall.Children.Add(repeater);
+            var image = new Image();
+            var container = new Microsoft.UI.Xaml.UIElement();
+            container.Children.Add(image);
+            CardArtwork.SetItem(image, f.Card);
+            image.Load();
+            repeater.Prepare(container, 0);
+            page.LoadArtwork();
+            (await f.Handler.AtAsync(0)).Complete("released visit");
+            await CardImageFixture.UntilAsync(() => f.Card.Poster is not null, "离页前图未完成");
+            page.ReleaseArtwork();
+            page.SetReleased(true);
+            page.LoadArtwork();
+            Assert.Equal(0, repeater.PreparedHandlers);
+            Assert.Null(f.Card.Poster);
+            page.SetReleased(false);
+            page.LoadArtwork();
+            Assert.Equal(1, repeater.PreparedHandlers);
+            Assert.NotNull(f.Card.Poster);
+            page.ReleaseArtwork();
+            CardArtwork.SetItem(image, null);
+        });
     }
 
     private static void Case(string name, Func<Task> body) => Test(name, () => CardImageContext.Run(body));
