@@ -36,7 +36,8 @@ internal static class Program
             research.Dispose();
             Assert.True(research.IsClosed);
             Assert.Equal(1, window.CloseCalls);
-            Assert.Null(window.Content);
+            Assert.True(research.ContentReleased);
+            Assert.Throws<InvalidOperationException>(() => _ = window.Content);
         });
         Test("重复隐藏与释放幂等，窗口关闭解除所有订阅", () =>
         {
@@ -99,7 +100,8 @@ internal static class Program
             Assert.True(ReferenceEquals(draft, window.Content));
             window.DeliverClosed();
             Assert.True(research.IsClosed);
-            Assert.Null(window.Content);
+            Assert.True(research.ContentReleased);
+            Assert.Throws<InvalidOperationException>(() => _ = window.Content);
             Assert.Equal(0, window.ClosedSubscriptions);
         });
         return Run();

@@ -35,8 +35,14 @@ namespace Microsoft.UI.Xaml
     public sealed class Window
     {
         private WindowClosedHandler? _closed;
+        private object? _content;
+        private bool _closedDelivered;
         public Microsoft.UI.Windowing.AppWindow AppWindow { get; } = new();
-        public object? Content { get; set; }
+        public object? Content
+        {
+            get => _closedDelivered ? throw new InvalidOperationException("Cannot read a closed Desktop Window.") : _content;
+            set => _content = value;
+        }
         internal int ActivateCalls { get; private set; }
         internal int CloseCalls { get; private set; }
         internal bool ThrowOnActivate { get; set; }
@@ -58,6 +64,10 @@ namespace Microsoft.UI.Xaml
             AppWindow.Visible = false;
             if (!DeferClosed) DeliverClosed();
         }
-        internal void DeliverClosed() => _closed?.Invoke(this, new());
+        internal void DeliverClosed()
+        {
+            _closed?.Invoke(this, new());
+            _closedDelivered = true;
+        }
     }
 }

@@ -21,6 +21,7 @@ internal sealed class FrameworkWindowResearch : IDisposable
 
     internal bool IsOpen { get; private set; }
     internal bool IsClosed { get; private set; }
+    internal bool ContentReleased { get; private set; }
     internal Window Window => _window;
     internal event Action? Hidden;
 
@@ -53,6 +54,7 @@ internal sealed class FrameworkWindowResearch : IDisposable
         _window.AppWindow.Closing -= OnClosing;
         _window.Closed -= OnClosed;
         _window.Content = null;
+        ContentReleased = true;
         Hidden = null;
     }
 

@@ -115,11 +115,11 @@ internal sealed partial class ShellNavigationProbe
             {
                 app.Changed -= OnChanged;
                 window.Closed -= OnClosed;
-                hostApp.ResizeClient(new SizeInt32(baselineClient.Width, baselineClient.Height));
+                ResizeProbeClient((int)Math.Round(baselineClient.Width / hostScale), (int)Math.Round(baselineClient.Height / hostScale));
                 _window.Activate();
             }
         }
-        Require(research.IsClosed && closed == 1 && window.Content is null, "研究收尾未关闭或释放内容");
+        Require(research.IsClosed && closed == 1 && research.ContentReleased, "研究收尾未关闭或释放内容");
         Require(injectFailure == failureObserved, "故障路径未执行预定异常");
         var file = injectFailure ? "window-host-research-failure.json" : "window-host-research.json";
         await File.WriteAllTextAsync(Path.Combine(_options.Paths.LogDirectory, file), JsonSerializer.Serialize(new
