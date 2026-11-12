@@ -21,6 +21,9 @@ internal sealed partial class BannerClockFixture
     private Visibility Visibility { get; set; }
     private BannerSlide? Current => _slides.ElementAtOrDefault(_index);
     private event EventHandler<BannerSlide?>? SlideChanged;
+    private event Action<Windows.UI.Color>? AmbientChanged;
+    internal List<Windows.UI.Color> AmbientReadings { get; } = [];
+    internal BannerClockFixture() => AmbientChanged += AmbientReadings.Add;
     internal bool Running => _timer.Running;
     internal int Starts => _timer.Starts;
     internal int Stops => _timer.Stops;

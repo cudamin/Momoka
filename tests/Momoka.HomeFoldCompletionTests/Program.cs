@@ -97,6 +97,16 @@ internal static class Program
             Check(clock.Running, "reattaching multiple slides resumes automatic paging");
         }
         ));
+        Cases.Add(("banner/empty-list-clears-ambient-and-clock", () =>
+        {
+            var clock = new BannerClockFixture();
+            clock.Apply([new BannerSlide("first"), new BannerSlide("second")]);
+            Check(clock.Running, "nonempty carousel runs");
+            clock.Apply([]);
+            Check(!clock.Running, "empty carousel cannot retain paging timer");
+            Equal(Microsoft.UI.Colors.Transparent, clock.AmbientReadings.Single(), "empty carousel publishes transparent ambient");
+        }
+        ));
         var passed = 0;
         var failed = 0;
         foreach (var test in Cases)

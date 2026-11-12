@@ -1,6 +1,8 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
+using Windows.UI.ViewManagement;
 
 namespace Momoka.Shell.Views;
 
@@ -23,11 +25,16 @@ internal sealed class SurfaceMotion
     internal const double EnterOffset = 12;
     internal const double ExitOffset = 8;
 
+    private static readonly UISettings SystemSettings = new();
     private readonly FrameworkElement _element;
     private Storyboard? _board;
+    private EventHandler<object>? _completed;
     private Action? _landed;
+    private double _finalOpacity;
+    private double _finalY;
     private int _generation;
     private bool _shown;
+    private bool _watchingPreferences;
 
     internal SurfaceMotion(FrameworkElement element)
     {
@@ -42,7 +49,7 @@ internal sealed class SurfaceMotion
 
     internal void Enter(int milliseconds = EnterMilliseconds, double offset = EnterOffset)
     {
-        if (!HomeMotion.AnimationsEnabled || _element.XamlRoot is null)
+        if (milliseconds <= 0 || !HomeMotion.AnimationsEnabled || _element.XamlRoot is null)
         {
             Settle();
             return;
@@ -67,7 +74,7 @@ internal sealed class SurfaceMotion
 
     internal void Exit(int milliseconds = ExitMilliseconds, double offset = ExitOffset, Action? landed = null)
     {
-        if (!HomeMotion.AnimationsEnabled || _element.XamlRoot is null)
+        if (milliseconds <= 0 || !HomeMotion.AnimationsEnabled || _element.XamlRoot is null)
         {
             Collapse();
             landed?.Invoke();
@@ -106,6 +113,8 @@ internal sealed class SurfaceMotion
         Cancel();
         var generation = _generation;
         _landed = landed;
+        _finalOpacity = toOpacity;
+        _finalY = toY;
 
         var duration = new Duration(TimeSpan.FromMilliseconds(milliseconds));
         var ease = new CubicEase { EasingMode = mode };
@@ -137,23 +146,43 @@ internal sealed class SurfaceMotion
         }
 
         _board = board;
-        board.Completed += (_, _) =>
+        _completed = (_, _) =>
         {
-            if (generation != _generation) return;
-            _board = null;
-            var settle = _landed;
-            _landed = null;
-            settle?.Invoke();
+            if (generation == _generation && ReferenceEquals(_board, board)) Finish();
         };
-        board.Begin();
+        board.Completed += _completed;
+        WatchPreferences();
+        try
+        {
+            board.Begin();
+        }
+        catch (Exception)
+        {
+            // 关闭窗口或离树可能使平台拒绝启动；落定与取消的语义仍由当前调用决定。
+            Finish();
+        }
+    }
+
+    private void Finish()
+    {
+        var landed = _landed;
+        var opacity = _finalOpacity;
+        var y = _finalY;
+        Cancel();
+        _element.Opacity = opacity;
+        if (_element.RenderTransform is TranslateTransform drift) drift.Y = y;
+        landed?.Invoke();
     }
 
     private void Cancel()
     {
         var board = _board;
         _board = null;
+        if (board is not null && _completed is not null) board.Completed -= _completed;
+        _completed = null;
         _landed = null;
         _generation++;
+        StopWatchingPreferences();
         if (board is null) return;
 
         // 先把动画值抄回本地值，Stop 之后不跳回起点（打断时新动画从这里接上）。
@@ -163,6 +192,38 @@ internal sealed class SurfaceMotion
         board.Stop();
         _element.Opacity = opacity;
         if (drift is not null) drift.Y = y;
+    }
+
+    private void WatchPreferences()
+    {
+        if (_watchingPreferences) return;
+        _watchingPreferences = true;
+        HomeMotion.PreferenceChanged += ApplyPreference;
+        SystemSettings.AnimationsEnabledChanged += OnSystemPreferenceChanged;
+    }
+
+    private void StopWatchingPreferences()
+    {
+        if (!_watchingPreferences) return;
+        _watchingPreferences = false;
+        HomeMotion.PreferenceChanged -= ApplyPreference;
+        SystemSettings.AnimationsEnabledChanged -= OnSystemPreferenceChanged;
+    }
+
+    private void ApplyPreference()
+    {
+        if (_board is not null && !HomeMotion.AnimationsEnabled) Finish();
+    }
+
+    private void OnSystemPreferenceChanged(UISettings sender, UISettingsAnimationsEnabledChangedEventArgs args)
+    {
+        var generation = _generation;
+        void ApplyCurrentPreference()
+        {
+            if (generation == _generation) ApplyPreference();
+        }
+        if (_element.DispatcherQueue.HasThreadAccess) ApplyCurrentPreference();
+        else _element.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.High, ApplyCurrentPreference);
     }
 
     /// <summary>

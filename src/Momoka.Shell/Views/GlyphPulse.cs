@@ -1,6 +1,9 @@
+using System.Runtime.CompilerServices;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
+using Windows.UI.ViewManagement;
 
 namespace Momoka.Shell.Views;
 
@@ -16,10 +19,15 @@ internal static class GlyphPulse
     /// <summary>单程时长；往返共 180ms，短到不挡下一次点击。</summary>
     internal const int HalfMilliseconds = 90;
     internal const double Peak = 1.14;
+    private static readonly UISettings SystemSettings = new();
+    private static readonly ConditionalWeakTable<FrameworkElement, PulseMotion> Active = new();
 
     internal static bool Play(FrameworkElement? target)
     {
-        if (target is null || target.XamlRoot is null || !HomeMotion.AnimationsEnabled) return false;
+        if (target is null) return false;
+        Stop(target);
+        if (target.XamlRoot is null || !HomeMotion.AnimationsEnabled || target.ActualWidth <= 0 || target.ActualHeight <= 0)
+            return false;
 
         var scale = ScaleFor(target);
         if (scale is null) return false;
@@ -35,13 +43,17 @@ internal static class GlyphPulse
         var board = new Storyboard();
         board.Children.Add(Pulse(scale, "ScaleX", duration, ease));
         board.Children.Add(Pulse(scale, "ScaleY", duration, ease));
-        board.Completed += (_, _) =>
-        {
-            scale.ScaleX = 1;
-            scale.ScaleY = 1;
-        };
-        board.Begin();
-        return true;
+        var motion = new PulseMotion(target, scale, board);
+        Active.Add(target, motion);
+        return motion.Start();
+    }
+
+    /// <summary>离树、再次点击与动画偏好改变共用；仅清理本次脉冲拥有的缩放。</summary>
+    private static void Stop(FrameworkElement target)
+    {
+        if (!Active.TryGetValue(target, out var motion)) return;
+        Active.Remove(target);
+        motion.Stop();
     }
 
     private static DoubleAnimation Pulse(ScaleTransform scale, string property, Duration duration, CubicEase ease)
@@ -67,5 +79,73 @@ internal static class GlyphPulse
         var scale = new ScaleTransform();
         target.RenderTransform = scale;
         return scale;
+    }
+
+    private sealed class PulseMotion
+    {
+        private readonly FrameworkElement _target;
+        private readonly ScaleTransform _scale;
+        private readonly Storyboard _board;
+        private readonly EventHandler<object> _completed;
+        private bool _stopped;
+
+        internal PulseMotion(FrameworkElement target, ScaleTransform scale, Storyboard board)
+        {
+            _target = target;
+            _scale = scale;
+            _board = board;
+            _completed = (_, _) => Finish();
+        }
+
+        internal bool Start()
+        {
+            _board.Completed += _completed;
+            _target.Unloaded += OnUnloaded;
+            HomeMotion.PreferenceChanged += ApplyPreference;
+            SystemSettings.AnimationsEnabledChanged += OnSystemPreferenceChanged;
+            try
+            {
+                _board.Begin();
+                return true;
+            }
+            catch (Exception)
+            {
+                Finish();
+                return false;
+            }
+        }
+
+        private void Finish()
+        {
+            // 已投递的旧 Completed 不得停止下一次点击启动的脉冲。
+            if (!_stopped && Active.TryGetValue(_target, out var current) && ReferenceEquals(current, this))
+                GlyphPulse.Stop(_target);
+        }
+
+        internal void Stop()
+        {
+            if (_stopped) return;
+            _stopped = true;
+            _board.Completed -= _completed;
+            _target.Unloaded -= OnUnloaded;
+            HomeMotion.PreferenceChanged -= ApplyPreference;
+            SystemSettings.AnimationsEnabledChanged -= OnSystemPreferenceChanged;
+            _board.Stop();
+            _scale.ScaleX = 1;
+            _scale.ScaleY = 1;
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs args) => Finish();
+
+        private void ApplyPreference()
+        {
+            if (!HomeMotion.AnimationsEnabled) Finish();
+        }
+
+        private void OnSystemPreferenceChanged(UISettings sender, UISettingsAnimationsEnabledChangedEventArgs args)
+        {
+            if (_target.DispatcherQueue.HasThreadAccess) ApplyPreference();
+            else _target.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.High, ApplyPreference);
+        }
     }
 }
