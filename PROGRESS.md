@@ -1,5 +1,13 @@
 ## 2026-11-13 侧边栏商店样式已合入 master，构建与发布按用户要求暂停
 
+## 2026-11-13 三库视口主树交付
+
+产品cbb5406与整合修正29e9188已在master。保留侧栏/圆角轮播/ambient新功能，LibraryOverlay位于BannerCard内且左24、MaxWidth660，底部reading模糊遮罩及资源/回调已完全移除；全部库仍滚动/翻页。合并漏Grid结束标签由当前编译及XML测试拒绝，补齐后重编。圆角轮播实际宽比页面少49，探针以Banner.ActualWidth判断800界线，增加窗口848/849/850连续跨界验证。
+
+主树当前Core/Tests/Shell Release0警告0错误，完整5019/5019、页面207/207，文本/定向空白通过。publish -NoArchive -Shortcut成功547文件288.8MB、批准60项；旧生成bin deps移至证据再按一致参数生成，未改产品依赖或批准清单。PID34568正式发布件原生检查台首页布局及订阅入口2/2通过并结束；宽窄首三卡/首翻/末库/读数避让与单张恢复，轮播内外/订阅导航/关闭恢复均执行，零真实播放/MP写入；runtime截图已目视。回执artifacts/home-three-libraries-final/delivery-receipt.json，快捷方式Target/工作目录指向主树发布。无远程上传。
+
+系统高对比度/跨DPI/文字缩放/Narrator/触摸未验证。无底部遮罩后亮背景的标题对比度随原图变化，这是用户选择的展示；不冒称全背景对比≥4.5。累计输入27张图片，未达到40暂停线。
+
 `5352953`（workbuddy/master-8f12571e）以 `449f261` 合入 master `171a1e6`。冲突三处：PROGRESS 与开发文档两段都留、新的在前；`HomePage.xaml` 的 `LibraryOverlay` 取「卡片内左边距 24」并保留主树新加的 `LibraryReadingLayer` 模糊/遮罩层（`LibraryHost` 的 `SizeChanged` 也在）。合并后只做了静态核对：三个改动过的 XAML 用 XML 解析器验过结构完整（合并时曾漏掉 `BannerCard` 与 `BannerZone` 的两条闭合标签，已补齐），全树再无 `SyncBleed`/`BleedRead`/`ForwardButton` 的活代码引用（只剩注释与 `obj/` 旧产物），`Agreements.txt` 的 Palette 颜色计数 88 与实际字面值数一致。
 
 **没有做**（用户 00:42 明确「合并后暂停主树构建和发布」）：未编译、未跑主测试/探针/自检、未发布、未推远端。桌面快捷方式仍指向既有主树发布件（`%USERPROFILE%\Momoka\artifacts\publish\win-x64`），那一份不含本批改动。
