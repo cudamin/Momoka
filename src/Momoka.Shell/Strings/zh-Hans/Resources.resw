@@ -546,6 +546,9 @@
   <data name="ShelfStrip_Root.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>媒体卡片列表</value>
   </data>
+  <data name="ShellPage_AccountButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>账号与服务器</value>
+  </data>
   <data name="ShellPage_AccountServer.Text" xml:space="preserve">
     <value>未连接服务器</value>
   </data>

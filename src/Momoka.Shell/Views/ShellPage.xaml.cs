@@ -1174,6 +1174,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         AccountUser.Text = string.IsNullOrWhiteSpace(user) ? "未登录" : user;
         AccountServer.Text = string.IsNullOrWhiteSpace(server) ? "未连接服务器" : server;
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(AccountButton,
+            $"账号与服务器：{AccountUser.Text} · {AccountServer.Text}");
     }
 
     /// <summary>
