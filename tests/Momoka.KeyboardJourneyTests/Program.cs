@@ -10,6 +10,7 @@ internal static class Program
 {
     private static int Main()
     {
+        InfoTableProbeTests.Register();
         Test("键盘结果定位按子卡片身份，不依赖原生容器DataContext", () =>
         {
             var correct = new object();

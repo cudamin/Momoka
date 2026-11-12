@@ -118,6 +118,8 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectMusicPagingFailure", "音乐分页定位失败反例", () => MusicPagingAsync(failEntryLocator: true), ShellProbeSections.Music);
         AddCheck("InspectKeyboardJourney", "登录到设置的真实键盘流程", () => KeyboardJourneyAsync(), ShellProbeSections.Shell, timeoutSeconds: 900);
         AddCheck("InspectKeyboardJourneyFailure", "键盘流程名称失败反例", () => KeyboardJourneyAsync(failFocusName: true), ShellProbeSections.Shell);
+        AddCheck("InspectInfoTable", "匿名10行媒体信息定位", () => InfoTableAsync(), ShellProbeSections.Library);
+        AddCheck("InspectInfoTableFailure", "媒体信息定位失败反例", () => InfoTableAsync(wrongOffset: true), ShellProbeSections.Library);
         AddCheck("InspectSignInKeyboardSurface", "登录输入可达与恢复", SignInAppearanceAsync, ShellProbeSections.Shell);
         AddCheck("InspectInputFocusSurface", "全站原生输入焦点", InputFocusControlsAsync, ShellProbeSections.Search);
         AddCheck("InspectCardFocusSurface", "卡片与设置名称", CardFocusAndSettingNamesAsync, ShellProbeSections.Settings);
