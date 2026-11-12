@@ -1,3 +1,19 @@
+## 2026-11-12 详情页与订阅详情的简洁模式改用窗口画布作底（已提交并发布）
+
+用户一句「把媒体详情页的简洁模式也改成跟主页一样的」。先读两边现状：主页的底是外壳 `ContentHost` 那一块画布（Mica Base 加 60% 窗口色，全树只画一次），详情页简洁模式却在自己页面上铺了一块整页的 `Mica Alt`，把画布整个盖掉。问清范围时用户选「只换底材，保留卡面」。
+
+**改了什么。** `DetailPage.xaml` 与 `MoviePilotSubscriptionPage.xaml` 删掉那块铺满整页的 `SystemBackdropElement`（`PlainBackdrop`），两页的简洁模式从此直接坐在外壳画布上。卡面与正文一个像素没动：集页那块板（`HeroMicaTop`／`HeroMicaBottom`）与订阅详情头部（`HeroMica`）的局部 `MicaKind.Base` 保留，正文纸面仍透明，信息面板与正文面板仍用 `LayerOnMicaBaseAltFillColorDefaultBrush` 那层半透明面色。跟着收尾的还有三处：`PlainMica` 改名 `PlainMode`（判据里不再引用材质）、`LiftBackdrop` 不再挪页面材质（`Backdrop` 与订阅页的背景层照旧顶到窗口上沿）、`BodySeal` 的「纸没挡住底」只问纸面 `A=0`。
+
+**测试。** 整方案 Release **0 警告 0 错误**；`Momoka.Tests` **4812 项、4809 通过、3 项红** —— 三条全是本机符号链接权限的既有环境红（`本机扫描：源目录和文件重解析点不跟随`、`本机软链接：真实目标路径且无复制降级`、`本机链接执行：新同名文件在图片等待读取中出现也不覆盖`），在上一轮同一台机器上原样复现。新增 `MicaMaterialTests`「简洁模式底材：详情页与订阅详情页不再挂页面级材质」一条（两份 XAML 的根层直接子 + 两份 `*Showcase.cs` 的源码）；`AcrylicControlsTests` 那条钉住 `InfoPanel.Background` 的契约跟着改名。
+
+**探针。** 改判据后 `--probe-section library` **42 项 7 红**、`--probe-section moviepilot` **37 项 1 红**，红项与上一轮逐条一致（飞牛人员头像、详情自定义三页与电影/剧/季的 `CastRow` 副行墨色 4 项、集页 819 背景显隐、合集菜单像素被遮挡；MP 剧资源 TMDB 批量预览超时），都不是本批引起。相关两项全绿：「简洁详情底材与卡面的主题、宽窄和导航恢复」（四类详情 × 1200/760 × 五主题，读数 `detail-mica.txt` 记 `canvas + Base, body=transparent`）与「MoviePilot 订阅详情沉浸与简洁模式切换」。
+
+**实屏。** 探针拍了 `detail-mica-<类型>-<宽度>-<主题>-screen.png` 与 `mp-subscription-mode-plain-{1240,760}.png`；另用发布件 `--show-episode` 拍了一张 `artifacts/shots/plain-episode-1240.png` 目视集页：整页底与主页同一档，上半那块板只是略亮一点，与正文分得开、不抢字。
+
+**交付件。** 旧目录按惯例挪到 `C:\Users\89400\Momoka-stale\publish-20261112-1246-pre-plain-canvas`；`tools/publish.ps1 -NoArchive -Shortcut` 发布 **547 文件 / 288.3 MB**（先 bash 删掉上一轮的旧 ZIP，safe-delete 会拦 `trash-failed`）。最后一步重写桌面 `Momoka.lnk` 被拒（已知坑），按字节核对 `TargetPath` 仍是 `artifacts/publish/win-x64/Momoka.exe`、该文件是本次 12:48 构建，无需重写。
+
+**留给用户的判断。** 集页那块板与订阅详情头部的卡面还挂着自己的局部 `MicaKind.Base`（用户选的是「保留卡面」）。它在深色壁纸上几乎看不出差别，但如果想要「整页一处材质都没有」的一致，把这两处也换成正文面板那种层色即可，改动只有两行。
+
 ## 2026-11-12 设置窗口改用云母材质：整窗一块（已提交并发布）
 
 撤销半小时后（11:08）用户重提「把设置页面改为云母材质」。这次问清范围，用户选「上窗口级 Mica 并通过 Mica 实现应用分层」。第一版照搬主窗口侧栏的分法（分类栏 50% 层色、内容区 60% 画布），用户看到后立刻回「不是，你为什么一定要给标题和侧边栏加卡片」——那层 50% 面色在设置窗口里就是一张有边界的卡片，加上标题栏比内容区透，整窗成了三块拼贴。于是改成整窗一块。
