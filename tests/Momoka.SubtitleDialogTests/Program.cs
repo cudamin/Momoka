@@ -17,6 +17,8 @@ internal static class Program
             Assert.Equal(1, parent.TrailerResets);
         });
         SubtitleReceiptTests.Register();
+        JellyfinUploadDialogTests.Register();
+        SubtitlePickerTests.Register();
         Case("字幕命令重新核权限，拒绝后零写入并允许关闭", async ui =>
         {
             using var f = new SubtitleFixture();

@@ -21,6 +21,8 @@
     <InternalsVisibleTo Include="Momoka.DetailDeleteCommandTests" />
     <InternalsVisibleTo Include="Momoka.AniBtEntryTests" />
     <InternalsVisibleTo Include="Momoka.FnNasSubtitleTests" />
+
+    <InternalsVisibleTo Include="Momoka.SubtitleDialogTests" />
   </ItemGroup>
 
 </Project>

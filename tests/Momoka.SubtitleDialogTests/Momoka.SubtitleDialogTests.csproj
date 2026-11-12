@@ -11,6 +11,9 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <Compile Include="$(R056DialogSource)" Link="Production\SubtitleDialog.xaml.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\SubtitleDialog.Upload.cs" Link="Production\SubtitleDialog.Upload.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\SubtitleDialogTarget.cs" Link="Production\SubtitleDialogTarget.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\ServerSubtitlePicker.cs" Link="Production\ServerSubtitlePicker.cs" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
   </ItemGroup>
   <!-- Only current production control flow is extracted. Missing or duplicate boundaries fail closed.

@@ -23,6 +23,7 @@ internal sealed class SubtitleFixture : IDisposable
     internal SubtitleTransport Transport { get; } = new();
     internal DetailViewModel Parent { get; } = new();
     internal FrameworkElement Owner { get; } = new() { XamlRoot = new() };
+    internal Page OwnerPage { get; } = new();
     internal EmbyItem Item { get; }
     internal SubtitleDialog Dialog { get; private set; } = null!;
     internal Task Caller { get; private set; } = Task.CompletedTask;
@@ -30,15 +31,20 @@ internal sealed class SubtitleFixture : IDisposable
     internal void DenySubtitles() => _actions.Permissions = new(CanManageSubtitles: false);
     internal IReadOnlyList<EmbySessionScope> PermissionScopes => _actions.PermissionScopes;
 
-    internal SubtitleFixture(MediaServerKind product = MediaServerKind.Emby, string version = "10.10.7")
+    internal SubtitleFixture(MediaServerKind product = MediaServerKind.Emby, string version = "10.10.7", bool multiVersion = false, bool? uploadGrant = null)
     {
+        OwnerPage.XamlRoot = Owner.XamlRoot;
+        Owner.Parent = OwnerPage;
         Transport.Product = product;
         Transport.Version = version;
+        Transport.MultiVersion = multiVersion;
+        _actions.Permissions = new(CanUploadSubtitles: uploadGrant);
         var secrets = new NoSecrets();
         var paths = new AppPaths(Path.Combine(AppContext.BaseDirectory, "no-settings-io"));
         Session = (EmbySession)Activator.CreateInstance(typeof(EmbySession), Private, null,
             [new AppSettings(), new SettingsStore(paths, secrets), new CredentialVault(secrets), _device, Transport], null)!;
         Scope = AddSource("original");
+        GrantUpload(uploadGrant, notify: false);
         SetDefault(Scope);
         Item = Scope.Bind(Transport.Snapshot());
         Parent.FixtureAttach(Scope, Item);
@@ -66,7 +72,18 @@ internal sealed class SubtitleFixture : IDisposable
 
     private void SetDefault(EmbySessionScope scope) => typeof(EmbySession).GetField("_current", Private)!.SetValue(Session, scope);
     internal void SwitchDefault() => SetDefault(AddSource("replacement"));
-    internal void Revoke() => _lifetimes[0].Cancel();
+    internal void Revoke()
+    {
+        _lifetimes[0].Cancel();
+        (typeof(EmbySession).GetField("SourcesChanged", Private)!.GetValue(Session) as EventHandler)?.Invoke(Session, EventArgs.Empty);
+    }
+    internal void GrantUpload(bool? grant, bool notify = true)
+    {
+        var connection = ((EmbyClient)typeof(EmbySessionScope).GetProperty("Client", Private)!.GetValue(Scope)!).Connection with { CanUploadSubtitles = grant };
+        typeof(EmbySession).GetMethod("ReplaceClient", Private)!.Invoke(Session, [Scope, connection]);
+        _actions.Permissions = _actions.Permissions with { CanUploadSubtitles = grant };
+        if (notify) typeof(EmbySession).GetMethod("NotifyPermissionsChanged", Private)!.Invoke(Session, [Scope]);
+    }
 
     internal async Task OpenAsync()
     {
@@ -79,6 +96,7 @@ internal sealed class SubtitleFixture : IDisposable
         });
         Dialog = await shown.Task.WaitAsync(TimeSpan.FromSeconds(10));
         ContentDialog.Shown = null;
+        SubtitlePickerBoundary.Reset();
     }
 
     internal async Task CloseAsync()
@@ -128,12 +146,16 @@ internal sealed class ReadPlan
 // The virtual server applies a POST/DELETE before losing its response. It never contacts any host.
 internal sealed class SubtitleTransport : HttpMessageHandler
 {
+    internal const string VersionA = "11111111111111111111111111111111";
+    internal const string VersionB = "22222222222222222222222222222222";
     private readonly Queue<ReadPlan> _reads = new();
     internal MediaServerKind Product { get; set; }
     internal string Version { get; set; } = "10.10.7";
     internal bool ApplyDownloads { get; set; } = true;
-    private string ItemId => Product == MediaServerKind.Jellyfin ? "11111111111111111111111111111111" : "item";
+    private string ItemId => Product == MediaServerKind.Jellyfin ? VersionA : "item";
+    internal bool MultiVersion { get; set; }
     internal List<MediaStream> Tracks { get; } = [Track(1, "original")];
+    internal List<MediaStream> TracksB { get; } = [Track(1, "original-b")];
     internal List<(string Method, string Host, string Path)> Requests { get; } = [];
     internal int Reads { get; private set; }
     internal int Writes { get; private set; }
@@ -143,6 +165,11 @@ internal sealed class SubtitleTransport : HttpMessageHandler
     internal Exception ResponseLoss { get; set; } = new IOException("Virtual server applied write; response interrupted");
     internal TaskCompletionSource? WriteGate { get; set; }
     internal TaskCompletionSource WriteEntered { get; } = new();
+    internal TaskCompletionSource<List<RemoteSubtitleInfo>>? SearchGate { get; set; }
+    internal TaskCompletionSource SearchEntered { get; } = new();
+    internal string? LastUploadBody { get; private set; }
+    internal bool IndexUploads { get; set; } = true;
+    internal Action? AfterUpload { get; set; }
 
     internal ReadPlan PlanRead(bool hold = false, HttpStatusCode? failure = null)
     {
@@ -152,17 +179,17 @@ internal sealed class SubtitleTransport : HttpMessageHandler
         return plan;
     }
 
-    internal EmbyItem Snapshot() => new()
+    internal EmbyItem Snapshot(string? requestedId = null)
     {
-        Id = ItemId,
-        Name = "virtual-movie",
-        Type = EmbyItemType.Movie,
-        MediaSources = [new MediaSource
+        var sources = new List<MediaSource>
         {
-            Id = Product == MediaServerKind.Jellyfin ? ItemId : "file", Name = "virtual-file", Path = "/virtual/not-opened/movie.mkv",
-            MediaStreams = [.. Tracks.Select(track => Track(track.Index, track.Title!))]
-        }]
-    };
+            new() { Id = Product == MediaServerKind.Jellyfin ? ItemId : "file", Name = "virtual-file", Path = "/virtual/not-opened/movie.mkv",
+                MediaStreams = [.. Tracks.Select(track => Track(track.Index, track.Title!))] }
+        };
+        if (MultiVersion) sources.Add(new() { Id = VersionB, Name = "second-version", Path = "/virtual/not-opened/second.mkv",
+            MediaStreams = [.. TracksB.Select(track => Track(track.Index, track.Title!))] });
+        return new() { Id = requestedId ?? ItemId, Name = "virtual-movie", Type = EmbyItemType.Movie, MediaSources = sources };
+    }
 
     private static MediaStream Track(int index, string title) => new()
     {
@@ -181,7 +208,8 @@ internal sealed class SubtitleTransport : HttpMessageHandler
         if (uri.Host is not ("r056-original.invalid" or "r056-replacement.invalid"))
             throw new InvalidOperationException("Unexpected host in source fixture");
 
-        if (request.Method == HttpMethod.Get && uri.AbsolutePath.EndsWith("/Items/" + ItemId, StringComparison.Ordinal))
+        if (request.Method == HttpMethod.Get && (uri.AbsolutePath.EndsWith("/Items/" + ItemId, StringComparison.Ordinal)
+            || MultiVersion && uri.AbsolutePath.EndsWith("/Items/" + VersionB, StringComparison.Ordinal)))
         {
             Reads++;
             if (_reads.TryDequeue(out var plan))
@@ -190,36 +218,49 @@ internal sealed class SubtitleTransport : HttpMessageHandler
                 await plan.Gate.Task.WaitAsync(token).ConfigureAwait(false);
                 if (plan.Failure is { } failure) return new(failure);
             }
-            return Json(Snapshot());
+            return Json(Snapshot(uri.Segments[^1]));
         }
         if (request.Method == HttpMethod.Get && uri.AbsolutePath.Contains("/RemoteSearch/Subtitles/", StringComparison.Ordinal))
-            return Json(Array.Empty<RemoteSubtitleInfo>());
+        {
+            SearchEntered.TrySetResult();
+            return Json<IEnumerable<RemoteSubtitleInfo>>(SearchGate is { } search ? await search.Task.WaitAsync(token) : Array.Empty<RemoteSubtitleInfo>());
+        }
         // The actual Jellyfin parent detail read requests optional skip markers as well as files.
         if (Product == MediaServerKind.Jellyfin && request.Method == HttpMethod.Get
             && uri.AbsolutePath.EndsWith("/MediaSegments/" + ItemId, StringComparison.Ordinal))
             return Json(new { Items = Array.Empty<object>() });
 
         var downloading = request.Method == HttpMethod.Post && uri.AbsolutePath.Contains("/RemoteSearch/Subtitles/", StringComparison.Ordinal);
+        var uploading = Product == MediaServerKind.Jellyfin && request.Method == HttpMethod.Post && uri.AbsolutePath.EndsWith("/Subtitles", StringComparison.Ordinal)
+            && !downloading;
         var deleting = request.Method == HttpMethod.Delete && uri.AbsolutePath.Contains("/Subtitles/", StringComparison.Ordinal);
-        if (!downloading && !deleting) throw new InvalidOperationException("Forbidden endpoint in R056 fixture: " + request.Method + " " + uri.AbsolutePath);
+        if (!downloading && !deleting && !uploading) throw new InvalidOperationException("Forbidden endpoint in R056 fixture: " + request.Method + " " + uri.AbsolutePath);
         Writes++;
         if (WriteFailure is { } rejected) return new(rejected);
-        if (downloading)
+        var targetTracks = uri.AbsolutePath.Contains(VersionB, StringComparison.Ordinal) ? TracksB : Tracks;
+        if (uploading)
+        {
+            LastUploadBody = await request.Content!.ReadAsStringAsync(token);
+            if (IndexUploads) targetTracks.Add(Track(targetTracks.Max(track => track.Index) + 1, "uploaded-" + Writes));
+            AppliedWrites++;
+        }
+        else if (downloading)
         {
             if (ApplyDownloads)
             {
-                Tracks.Add(Track(Tracks.Max(track => track.Index) + 1, "downloaded-" + Writes));
+                targetTracks.Add(Track(targetTracks.Max(track => track.Index) + 1, "downloaded-" + Writes));
                 AppliedWrites++;
             }
         }
         else
         {
-            Tracks.RemoveAll(track => track.Index == int.Parse(uri.Segments[^1], System.Globalization.CultureInfo.InvariantCulture));
+            targetTracks.RemoveAll(track => track.Index == int.Parse(uri.Segments[^1], System.Globalization.CultureInfo.InvariantCulture));
             AppliedWrites++;
         }
         WriteEntered.TrySetResult();
         if (WriteGate is { } gate) await gate.Task.WaitAsync(token).ConfigureAwait(false);
         if (LoseResponse) throw ResponseLoss;
+        if (uploading) AfterUpload?.Invoke();
         return downloading && Product != MediaServerKind.Jellyfin
             ? Json(new SubtitleDownloadResult { NewIndex = Tracks[^1].Index })
             : new(HttpStatusCode.NoContent);

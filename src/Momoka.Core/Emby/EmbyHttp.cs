@@ -144,6 +144,34 @@ public sealed class EmbyHttp : IDisposable
         SendAndReadAsync(HttpMethod.Post, url, body, context,
             static (_, _) => Task.FromResult(true), cancellationToken);
 
+    /// <summary>需要已核对的 204 回执时使用；其他成功状态也不能追认一次字幕写入。</summary>
+    internal async Task PostNoContentAsync(Uri url, object body, RequestContext context, CancellationToken cancellationToken,
+        Action? confirmed = null)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(_http.Timeout);
+        try
+        {
+            using var response = await SendAsync(HttpMethod.Post, url, body, context, deadline.Token).ConfigureAwait(false);
+            if (response.StatusCode != HttpStatusCode.NoContent)
+                throw new InvalidDataException("服务器返回了无法确认的字幕上传回执。");
+            // A complete, bodyless 204 is the receipt. Later lifetime cancellation must not erase it.
+            confirmed?.Invoke();
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new EmbyUnreachableException($"连接 {url.Host} 超时");
+        }
+        catch (HttpRequestException error)
+        {
+            throw new EmbyUnreachableException($"读取 {url.Host} 的响应失败（{error.HttpRequestError}）");
+        }
+        catch (IOException)
+        {
+            throw new EmbyUnreachableException($"读取 {url.Host} 的响应失败");
+        }
+    }
+
     /// <summary>
     /// POSTs raw bytes with <paramref name="contentType"/> as the whole body — 「上传这张图」用。
     /// <para>

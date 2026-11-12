@@ -34,6 +34,9 @@ public sealed class EmbySessionScope
     /// <summary>读取该身份的当前合集权限，不能复用捕获时的旧策略。</summary>
     public bool? CanManageCollections => IsAvailable ? CurrentConnection.CanManageCollections : null;
 
+    /// <summary>该身份当前确认的 Jellyfin 上传权限；不能复用捕获时的旧策略。</summary>
+    public bool? CanUploadSubtitles => IsAvailable ? CurrentConnection.CanUploadSubtitles : null;
+
     /// <summary>同一在线身份的作用域共享此所有者；退出再登录后使用新的所有者。</summary>
     public object UserStateOwner => IdentityState.UserStateOwner;
 

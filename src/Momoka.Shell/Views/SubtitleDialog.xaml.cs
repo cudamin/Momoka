@@ -41,14 +41,18 @@ public sealed partial class SubtitleDialog : ContentDialog
         ("韩语", "kor")
     ];
 
-    private readonly Func<ServerSubtitleSearch, Task<List<RemoteSubtitleInfo>>> _search;
-    private readonly Func<RemoteSubtitleInfo, Task> _download;
-    private readonly Func<MediaStream, Task> _delete;
-    private readonly Func<Task<MediaSource>>? _reload;
-    private readonly bool _supportsForcedOnly;
-    private readonly bool _downloadProvidesConfirmation;
+    private readonly IReadOnlyList<SubtitleDialogTarget> _targets;
+    private readonly Func<bool>? _available;
+    private readonly Func<XamlRoot, Func<bool>, Task<ServerSubtitleFile?>> _pickUpload;
+    private SubtitleDialogTarget _target;
+    private Func<ServerSubtitleSearch, Task<List<RemoteSubtitleInfo>>> _search => _target.Search;
+    private Func<RemoteSubtitleInfo, Task> _download => _target.Download;
+    private Func<MediaStream, Task> _delete => _target.Delete;
+    private Func<Task<MediaSource>>? _reload => _target.Reload;
+    private bool _supportsForcedOnly => _target.SupportsForcedOnly;
+    private bool _downloadProvidesConfirmation => _target.DownloadProvidesConfirmation;
     private XamlRoot? _dialogRoot;
-    private string _sourceLabel;
+    private string _sourceLabel = "";
     private SubtitleTrack? _pendingDelete;
     private Button? _deleteButton;
     private bool _deleting;
@@ -57,6 +61,9 @@ public sealed partial class SubtitleDialog : ContentDialog
     private bool _closed;
     private bool _tracksStale;
     private string? _unconfirmedDownload;
+    private int _readGeneration;
+    private int _selectedVersion;
+    private bool _changingVersion;
 
     private readonly ObservableCollection<SubtitleTrack> _tracks = [];
     private readonly ObservableCollection<SubtitleCandidate> _results = [];
@@ -70,7 +77,20 @@ public sealed partial class SubtitleDialog : ContentDialog
         Func<Task<MediaSource>>? reload = null,
         bool supportsForcedOnly = true,
         bool downloadProvidesConfirmation = true)
+        : this(item, [new SubtitleDialogTarget
+        {
+            Source = source, Search = search, Download = download, Delete = delete, Reload = reload,
+            SupportsForcedOnly = supportsForcedOnly, DownloadProvidesConfirmation = downloadProvidesConfirmation
+        }]) { }
+
+    internal SubtitleDialog(EmbyItem item, IReadOnlyList<SubtitleDialogTarget> targets, Func<bool>? available = null,
+        Func<XamlRoot, Func<bool>, Task<ServerSubtitleFile?>>? pickUpload = null)
     {
+        if (targets.Count == 0) throw new InvalidOperationException("字幕管理缺少可用的媒体版本。");
+        _targets = targets;
+        _target = targets[0];
+        _available = available;
+        _pickUpload = pickUpload ?? ServerSubtitlePicker.PickAsync;
         InitializeComponent();
         RequestedTheme = ThemeHost.Current.IsDark ? ElementTheme.Dark : ElementTheme.Light;
         // 标题是这张表自己画的一行（右上角那颗 ✕ 就在它右边）：文字交给行里的 TextBlock，读屏名字另给一份，
@@ -78,33 +98,38 @@ public sealed partial class SubtitleDialog : ContentDialog
         var title = $"搜索和修改字幕 — {item.Name}";
         DialogTitleText.Text = title;
         AutomationProperties.SetName(this, title);
-        _search = search;
-        _download = download;
-        _delete = delete;
-        _reload = reload;
-        _supportsForcedOnly = supportsForcedOnly;
-        _downloadProvidesConfirmation = downloadProvidesConfirmation;
-        ForcedOnlyRow.Visibility = supportsForcedOnly ? Visibility.Visible : Visibility.Collapsed;
+        ForcedOnlyRow.Visibility = _supportsForcedOnly ? Visibility.Visible : Visibility.Collapsed;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
-        _sourceLabel = ItemDetail.SourceLabel(source);
-        RefreshTracksButton.Visibility = reload is null ? Visibility.Collapsed : Visibility.Visible;
+        RefreshTracksButton.Visibility = _reload is null ? Visibility.Collapsed : Visibility.Visible;
         Closing += (_, args) =>
         {
             if (_mutating) args.Cancel = true;
             else
             {
                 _closed = true;
+                _readGeneration++;
                 CancelDelete();
             }
         };
 
         Tracks.ItemsSource = _tracks;
         Results.ItemsSource = _results;
-        FillTracks(source);
+        FillTracks(_target.Source);
         foreach (var (label, code) in Languages)
+        {
             LanguageBox.Items.Add(new ComboBoxItem { Content = label, Tag = code });
+            UploadLanguageBox.Items.Add(new ComboBoxItem { Content = label, Tag = code });
+        }
         LanguageBox.SelectedIndex = 0;
+        UploadLanguageBox.SelectedIndex = 0;
+        _changingVersion = true;
+        foreach (var target in _targets)
+            VersionBox.Items.Add(new ComboBoxItem { Content = ItemDetail.SourceLabel(target.Source), Tag = target });
+        VersionBox.SelectedIndex = 0;
+        _changingVersion = false;
+        VersionRow.Visibility = _targets.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        RefreshUploadAvailability();
     }
 
     /// <summary>只有可靠写回执才置位；回读成功不能追认一次未知写入或 Jellyfin 的无确认回执。</summary>
@@ -123,7 +148,7 @@ public sealed partial class SubtitleDialog : ContentDialog
             _tracks.Add(new SubtitleTrack(stream));
         // Jellyfin has no remote candidate ID on a read-back track. A changed list is useful data,
         // but cannot confirm this candidate or make another write safe in the same dialog.
-        _tracksStale = _unconfirmedDownload is not null;
+        _tracksStale = ReadOnlyRecovery;
         ShowTracks();
     }
 
@@ -144,10 +169,10 @@ public sealed partial class SubtitleDialog : ContentDialog
     {
         _busy = busy;
         _mutating = busy && mutating;
-        SearchButton.IsEnabled = !busy && _unconfirmedDownload is null;
+        SearchButton.IsEnabled = !busy && !ReadOnlyRecovery;
         RefreshTracksButton.IsEnabled = !busy;
-        LanguageBox.IsEnabled = !busy && _unconfirmedDownload is null;
-        ForcedOnly.IsEnabled = !busy && _unconfirmedDownload is null;
+        LanguageBox.IsEnabled = !busy && !ReadOnlyRecovery;
+        ForcedOnly.IsEnabled = !busy && !ReadOnlyRecovery;
         Results.IsEnabled = !busy && !_tracksStale;
         Tracks.IsEnabled = !busy && !_tracksStale;
         ConfirmDeleteButton.IsEnabled = !busy && !_tracksStale;
@@ -156,6 +181,8 @@ public sealed partial class SubtitleDialog : ContentDialog
         HeaderCloseButton.IsEnabled = !_mutating;
         Busy.IsActive = busy;
         Busy.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
+        VersionBox.IsEnabled = !_mutating && !_tracksStale && !ReadOnlyRecovery;
+        UpdateUploadControls();
     }
 
     private void OnLoaded(object sender, RoutedEventArgs args)
@@ -193,7 +220,7 @@ public sealed partial class SubtitleDialog : ContentDialog
 
     private void OnSearchConditionsChanged(object sender, RoutedEventArgs args)
     {
-        if (_busy || _closed || _unconfirmedDownload is not null) return;
+        if (_busy || _closed || ReadOnlyRecovery) return;
         _results.Clear();
         Results.Visibility = Visibility.Collapsed;
         NoSearchResults.Visibility = Visibility.Collapsed;
@@ -202,7 +229,9 @@ public sealed partial class SubtitleDialog : ContentDialog
 
     private async void OnSearch(object sender, RoutedEventArgs e)
     {
-        if (_busy || _closed || _unconfirmedDownload is not null || LanguageBox.SelectedItem is not ComboBoxItem { Tag: string code }) return;
+        if (_busy || !ContextAvailable || ReadOnlyRecovery || LanguageBox.SelectedItem is not ComboBoxItem { Tag: string code }) return;
+        var generation = ++_readGeneration;
+        var target = _target;
         CancelDelete();
         SetBusy(true);
         Say("正在搜索…");
@@ -212,25 +241,25 @@ public sealed partial class SubtitleDialog : ContentDialog
         var search = new ServerSubtitleSearch(code, _supportsForcedOnly && ForcedOnly.IsOn);
         try
         {
-            var found = await _search(search).ConfigureAwait(true);
-            if (_closed) return;
+            var found = await target.Search(search).ConfigureAwait(true);
+            if (!ReadIsCurrent(generation)) return;
             foreach (var candidate in found) _results.Add(new SubtitleCandidate(candidate));
             Results.Visibility = _results.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             NoSearchResults.Visibility = _results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             Say(_results.Count > 0 ? $"找到 {_results.Count} 条字幕，点击「下载」添加到这个媒体文件。" : "");
         }
-        catch (OperationCanceledException) { Say("登录身份已改变，请关闭后重新打开字幕管理。"); }
+        catch (OperationCanceledException) { if (ReadIsCurrent(generation)) Say("登录身份已改变，请关闭后重新打开字幕管理。"); }
         catch (Exception error)
         {
             Log.Warn(Category, "搜索字幕失败", error);
-            Say($"搜索字幕失败：{Failure.Describe(error)}");
+            if (ReadIsCurrent(generation)) Say($"搜索字幕失败：{Failure.Describe(error)}");
         }
-        finally { SetBusy(false); }
+        finally { FinishRead(generation); }
     }
 
     private async void OnDownload(object sender, RoutedEventArgs e)
     {
-        if (_busy || _closed || _tracksStale || sender is not Button { DataContext: SubtitleCandidate candidate }) return;
+        if (_busy || !ContextAvailable || _tracksStale || ReadOnlyRecovery || sender is not Button { DataContext: SubtitleCandidate candidate }) return;
         CancelDelete();
         SetBusy(true, mutating: true);
         Say($"正在下载「{candidate.Name}」，完成后可关闭…");
@@ -253,22 +282,25 @@ public sealed partial class SubtitleDialog : ContentDialog
         catch (OperationCanceledException) { Say("登录身份已改变，请关闭后重新打开字幕管理。"); }
         catch (Exception error)
         {
-            MarkUncertainMutation(error);
+            MarkUncertainMutation(error, $"下载「{candidate.Name}」");
             Log.Warn(Category, "下载字幕失败", error);
             Say($"下载字幕未完成确认：{Failure.Describe(error)}。请刷新列表后再操作。");
         }
         finally { SetBusy(false); }
     }
 
-    private void MarkUncertainMutation(Exception error)
+    private void MarkUncertainMutation(Exception error, string operation)
     {
         _tracksStale = _reload is not null;
         // Local validation and explicit permission/request rejection can happen before any write.
-        if (error is InvalidOperationException or UnauthorizedAccessException
+        if (error is InvalidOperationException or ArgumentException or UnauthorizedAccessException
             || error is EmbyApiException { StatusCode: { } status } && (int)status is >= 400 and < 500) return;
         // A lost response may follow an applied write. Record the debt before closing becomes possible;
         // a later failed/closed recovery GET must not erase it, nor turn it into Touched success.
         NeedsRefresh = true;
+        // Jellyfin's version selector must not clear an unknown write by switching A→B→A. Read-back
+        // cannot prove which download/removal produced the observed list; keep this dialog read-only.
+        if (!_downloadProvidesConfirmation) _unconfirmedMutation = operation;
     }
 
     private string UnconfirmedDownloadMessage =>
@@ -276,42 +308,49 @@ public sealed partial class SubtitleDialog : ContentDialog
 
     private async void OnRefreshTracks(object sender, RoutedEventArgs e)
     {
-        if (_busy || _closed || _reload is null) return;
+        if (_busy || !ContextAvailable || _reload is null) return;
+        var generation = ++_readGeneration;
+        var target = _target;
         CancelDelete();
         SetBusy(true);
         try
         {
-            await ReloadTracksAsync();
-            Say(_unconfirmedDownload is null ? "字幕列表已刷新。" : UnconfirmedDownloadMessage);
+            await ReloadTracksAsync(target, generation);
+            if (ReadIsCurrent(generation)) Say(RecoveryMessage ?? "字幕列表已刷新。");
         }
-        catch (OperationCanceledException) { Say("登录身份已改变，请关闭后重新打开字幕管理。"); }
+        catch (OperationCanceledException) { if (ReadIsCurrent(generation)) Say("登录身份已改变，请关闭后重新打开字幕管理。"); }
         catch (Exception error)
         {
+            if (!ReadIsCurrent(generation)) return;
             _tracksStale = true;
             Log.Warn(Category, "刷新字幕列表失败", error);
-            Say((_unconfirmedDownload is null ? "" : UnconfirmedDownloadMessage + " ")
+            Say((RecoveryMessage is { } recovery ? recovery + " " : "")
                 + $"刷新字幕列表失败：{Failure.Describe(error)}。请重试刷新。");
         }
-        finally { SetBusy(false); }
+        finally { FinishRead(generation); }
     }
 
-    private async Task ReloadTracksAsync()
+    private async Task ReloadTracksAsync(SubtitleDialogTarget target, int generation)
     {
-        if (_reload is null) return;
-        var source = await _reload().ConfigureAwait(true);
-        if (!_closed)
+        if (target.Reload is null) return;
+        var source = await target.Reload().ConfigureAwait(true);
+        if (ReadIsCurrent(generation) && ReferenceEquals(target, _target))
         {
+            target.AcceptReload?.Invoke(source);
             NeedsRefresh = true;
+            target.Source = source;
             FillTracks(source);
         }
     }
 
     private async Task RefreshAfterMutationAsync(string message)
     {
+        NeedsRefresh = true;
         _tracksStale = _reload is not null;
+        var generation = _readGeneration;
         try
         {
-            await ReloadTracksAsync();
+            await ReloadTracksAsync(_target, generation);
             Say(message);
         }
         catch (Exception error)
@@ -328,7 +367,7 @@ public sealed partial class SubtitleDialog : ContentDialog
 
     private void BeginDelete(SubtitleTrack track, Button? button = null)
     {
-        if (_busy || _closed || _tracksStale || !_tracks.Contains(track)) return;
+        if (_busy || !ContextAvailable || _tracksStale || ReadOnlyRecovery || !_tracks.Contains(track)) return;
         CancelDelete();
         _pendingDelete = track;
         _deleteButton = button;
@@ -397,7 +436,7 @@ public sealed partial class SubtitleDialog : ContentDialog
 
     private async Task DeleteConfirmedAsync()
     {
-        if (_busy || _closed || _tracksStale || _pendingDelete is not { } track || !_tracks.Contains(track)) return;
+        if (_busy || !ContextAvailable || _tracksStale || ReadOnlyRecovery || _pendingDelete is not { } track || !_tracks.Contains(track)) return;
         _deleting = true;
         SetBusy(true, mutating: true);
         try
@@ -411,7 +450,7 @@ public sealed partial class SubtitleDialog : ContentDialog
         catch (OperationCanceledException) { Say("登录身份已改变，请关闭后重新打开字幕管理。"); }
         catch (Exception error)
         {
-            MarkUncertainMutation(error);
+            MarkUncertainMutation(error, $"删除「{track.Label}」");
             Log.Warn(Category, "删除字幕失败", error);
             Say($"删除字幕未完成确认：{Failure.Describe(error)}。请刷新列表后重新确认。");
         }

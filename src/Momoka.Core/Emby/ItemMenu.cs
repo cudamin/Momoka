@@ -160,7 +160,8 @@ public readonly record struct ItemMenuPermissions(
     bool? CanDeleteContent = null,
     bool? CanManageSubtitles = null,
     bool? CanManageCollections = null,
-    bool? CanConvertMedia = null);
+    bool? CanConvertMedia = null,
+    bool? CanUploadSubtitles = null);
 
 /// <summary>
 /// 一张卡片的「更多」菜单上有哪几条、按什么次序、每条写什么字 —— 整个答案由条目自己决定，一个输入一个输出。

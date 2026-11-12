@@ -24,6 +24,7 @@ public static class ShellProbeSections
     public const string Materials = "materials";
     public const string PlexState = "plex-state";
     public const string JellyfinLatest = "jellyfin-latest";
+    public const string JellyfinUpload = "jellyfin-upload";
     public const string LocalMedia = "local-media";
     public const string Music = "music";
     public const string FnNasSubtitles = "fnnas-subtitles";
@@ -32,7 +33,7 @@ public static class ShellProbeSections
 
     public static readonly IReadOnlyList<string> All =
     [
-        Shell, Settings, Shortcuts, Shaders, Svp, Library, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback, Metadata, Performance, Materials, PlexState, JellyfinLatest, LocalMedia, Music, FnNasSubtitles,
+        Shell, Settings, Shortcuts, Shaders, Svp, Library, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback, Metadata, Performance, Materials, PlexState, JellyfinLatest, JellyfinUpload, LocalMedia, Music, FnNasSubtitles,
     ];
 
     public static bool IsKnown(string name) =>

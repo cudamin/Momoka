@@ -43,8 +43,34 @@
         HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"
         VerticalScrollBarVisibility="Auto">
         <StackPanel x:Name="SubtitleBody" MinWidth="260" Spacing="16">
+            <StackPanel x:Name="VersionRow" Spacing="8" Visibility="Collapsed">
+                <TextBlock Text="媒体版本" Style="{StaticResource EgSubheadStyle}" />
+                <ComboBox x:Name="VersionBox" HorizontalAlignment="Stretch" SelectionChanged="OnVersionChanged"
+                    AutomationProperties.Name="字幕所属媒体版本" />
+            </StackPanel>
             <TextBlock x:Name="SourceFileText" Style="{StaticResource EgDataStyle}"
                 TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+
+            <StackPanel x:Name="UploadSection" Spacing="12" Visibility="Collapsed">
+                <TextBlock Text="上传本地字幕" Style="{StaticResource EgSubheadStyle}" />
+                <Button x:Name="PickSubtitleButton" Content="选择字幕文件" Click="OnPickUpload"
+                    HorizontalAlignment="Stretch" AutomationProperties.Name="选择本地字幕文件" />
+                <StackPanel x:Name="UploadDraft" Spacing="12" Visibility="Collapsed">
+                    <TextBlock x:Name="UploadFileText" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
+                    <ComboBox x:Name="UploadLanguageBox" Header="字幕语言" HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="上传字幕语言" />
+                    <ToggleSwitch x:Name="UploadForced" Header="强制字幕" OnContent="" OffContent=""
+                        AutomationProperties.Name="上传为强制字幕" />
+                    <ToggleSwitch x:Name="UploadHearingImpaired" Header="听障字幕" OnContent="" OffContent=""
+                        AutomationProperties.Name="上传为听障字幕" />
+                    <TextBlock Text="文件原样上传到选定的媒体版本，所有用户都可使用。支持 SUB、SRT、VTT、ASS、SSA、MKS，最大 10 MiB。"
+                        Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
+                    <Button x:Name="UploadSubtitleButton" Content="上传字幕" Click="OnUploadSubtitle"
+                        Style="{StaticResource EgPrimaryButtonStyle}" HorizontalAlignment="Stretch"
+                        AutomationProperties.Name="上传所选字幕文件" />
+                </StackPanel>
+                <Border Style="{StaticResource EgRuleStyle}" />
+            </StackPanel>
 
             <Grid ColumnSpacing="12">
                 <Grid.ColumnDefinitions>

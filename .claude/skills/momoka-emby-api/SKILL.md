@@ -84,6 +84,8 @@ Videos/{itemId}/stream{ext}?Static=true&MediaSourceId=…
 
 ## Subtitle search filters
 
+Jellyfin alone adds native local subtitle upload in the shared dialog; do not send that route to Emby. Its explicit management grant, five-field Base64 DTO, version target and 204/unknown receipts belong to [momoka-jellyfin-api](../momoka-jellyfin-api/SKILL.md) and [fourth-batch report](../../../docs/媒体库第四批-Jellyfin字幕上传.md). Existing Emby source-bound search/download/delete remains separately verified.
+
 For the More menu's subtitle editor, pass an immutable `ServerSubtitleSearch` through `ServerSubtitles` to `EmbyClient.SearchSubtitlesAsync`. Keep `MediaSourceId` bound to the file captured when the dialog opened. Send `IsForced=true` only when “仅强制字幕” is on; omit the query when it is off, rather than excluding forced subtitles with `false`. The current Emby web editor has no hash-match toggle: do not restore it from the older screenshots in the manual-download article or send `IsPerfectMatch` from this editor. See [the subtitle endpoint notes](references/endpoints.md#字幕) for the dated protocol evidence and the Jellyfin difference.
 
 Deletion requires that same captured `MediaSourceId`; never call the Emby subtitle DELETE with only the parent item and stream index. `subtitle-target-fixture` covers per-file routing and snapshot/path changes through actual Core operations. Jellyfin file-source IDs represent version item IDs and select the route instead of this query parameter.

@@ -18,6 +18,16 @@ internal static class ThemeHost
 
 public sealed partial class SubtitleDialog
 {
+    internal ComboBox VersionBox { get; } = new();
+    internal FrameworkElement VersionRow { get; } = new() { Visibility = Visibility.Collapsed };
+    internal FrameworkElement UploadSection { get; } = new() { Visibility = Visibility.Collapsed };
+    internal Button PickSubtitleButton { get; } = new();
+    internal Button UploadSubtitleButton { get; } = new();
+    internal ComboBox UploadLanguageBox { get; } = new();
+    internal ToggleSwitch UploadForced { get; } = new();
+    internal ToggleSwitch UploadHearingImpaired { get; } = new();
+    internal TextBlock UploadFileText { get; } = new();
+    internal FrameworkElement UploadDraft { get; } = new() { Visibility = Visibility.Collapsed };
     internal Button SearchButton { get; } = new();
     internal Button RefreshTracksButton { get; } = new();
     internal Button ConfirmDeleteButton { get; } = new();
@@ -52,4 +62,20 @@ public sealed partial class SubtitleDialog
     internal void FixtureCancelDelete() => OnCancelDelete(CancelDeleteButton, new());
     internal Task FixtureConfirmDelete() => DeleteConfirmedAsync();
     internal void FixtureRefresh() => OnRefreshTracks(RefreshTracksButton, new());
+    internal void FixtureSearch() => OnSearch(SearchButton, new());
+    internal IReadOnlyList<SubtitleCandidate> FixtureCandidates => _results;
+    internal void FixtureVersion(int index)
+    {
+        VersionBox.SelectedIndex = index;
+        InvokeFixture("OnVersionChanged", VersionBox, new SelectionChangedEventArgs());
+    }
+    internal void FixturePick() => InvokeFixture("OnPickUpload", PickSubtitleButton, new RoutedEventArgs());
+    internal Task FixtureUpload() => (Task)InvokeFixture("UploadSelectedAsync")!;
+    private object? InvokeFixture(string name, params object[] args)
+    {
+        var method = typeof(SubtitleDialog).GetMethod(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Momoka.Tests.Assert.True(method is not null, "Missing production " + name);
+        try { return method!.Invoke(this, args); }
+        catch (System.Reflection.TargetInvocationException error) { System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.InnerException!).Throw(); throw; }
+    }
 }

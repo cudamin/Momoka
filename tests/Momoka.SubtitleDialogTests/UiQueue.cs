@@ -17,6 +17,8 @@ internal sealed class UiQueue : SynchronizationContext, IDisposable
         _ready.Set();
     }
 
+    internal void Enqueue(Action action) => Post(_ => action(), null);
+
     public override void OperationStarted() => _operations++;
     public override void OperationCompleted()
     {

@@ -1,5 +1,7 @@
 # Jellyfin 连接与服务器管理
 
+2026-11-12 第四批接入原生本地字幕上传：当前明确获字幕管理授权的 Jellyfin 账号在「修改字幕」选择媒体版本和本地字幕，原字节 Base64、语言及强制/听障标记按官方五字段上传。只有下载权不显示上传。204 接收后列表可稍后更新，回读失败仅刷新；回执未知保持只读恢复。六格式与本地 10 MiB 限制、固定源码和验收边界见 [第四批报告](媒体库第四批-Jellyfin字幕上传.md)；真实上传与主树原生验收尚待完成。
+
 在登录页输入 Jellyfin 地址即可，包含反向代理子路径的地址也会保留。客户端通过匿名 `System/Info/Public` 识别产品，保存产品与版本；Jellyfin 使用服务根目录和 `Authorization: MediaBrowser` 请求头。**Jellyfin 10.10.7 的 `ProductName` 是 `Jellyfin Server`，不是简称 `Jellyfin`**；客户端按前缀识别，并在登录/恢复后用公开信息纠正误存为 Emby 的服务器类型与 API 基址。令牌不放入 URL、日志或播放器启动参数。
 
 接口分别适配 Jellyfin 10.x 与 12.x：12.x 用户内容路由使用 `UserViews`、`Items`、`UserItems/Resume` 等顶层路径，旧版继续使用其用户路径。恢复保存的 Jellyfin 登录时先刷新公开版本信息，避免服务端升级后沿用旧路由。主页实时通道对 Jellyfin 使用 `/socket?deviceId=…`，令牌与 REST 一样只通过 `Authorization: MediaBrowser` 请求头发送，不放进 URL；Emby 才走 `/embywebsocket`。协议对照来自 Jellyfin 12.2.0 OpenAPI 快照与官方 10.11 源码；离线测试不等于对真实服务器的验证。

@@ -485,30 +485,86 @@ internal static partial class ItemCommands
             }
 
             var item = card.Item;
-            var full = await AskAsync(session, (client, token) =>
-                    client.GetItemAsync(item.Id, token, EmbyFields.Files))
-                .ConfigureAwait(true);
-
-            if (full.DefaultMediaSource is not { } source)
+            using var pageLifetime = new CancellationTokenSource();
+            Page? page = null;
+            for (DependencyObject? ancestor = owner; ancestor is not null; ancestor = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(ancestor))
             {
-                shell.Notify($"服务器上找不到「{item.Name}」的媒体文件", InfoBarSeverity.Warning);
-                return;
+                if (ancestor is not Page candidate) continue;
+                page = candidate;
+                break;
             }
-
-            var subtitles = new ServerSubtitles(session, full, source);
-            var dialog = new SubtitleDialog(full, source,
-                search => { RequirePermission(shell, session, ItemCommand.Subtitles); return subtitles.SearchAsync(search); },
-                subtitle => { RequirePermission(shell, session, ItemCommand.Subtitles); return subtitles.DownloadAsync(subtitle); },
-                stream => { RequirePermission(shell, session, ItemCommand.Subtitles); return subtitles.DeleteAsync(stream); }, subtitles.ReloadAsync,
-                subtitles.SupportsForcedOnly, subtitles.DownloadProvidesConfirmation)
+            bool PageIsCurrent() => !pageLifetime.IsCancellationRequested && ReferenceEquals(owner.XamlRoot, root)
+                && (page is null || page.IsLoaded && ReferenceEquals(page.XamlRoot, root));
+            void OnPageUnloaded(object sender, RoutedEventArgs args) => pageLifetime.Cancel();
+            void OnOwnerUnloaded(object sender, RoutedEventArgs args)
             {
-                XamlRoot = root
-            };
+                // Recycled item containers can raise Unloaded while still attached to the same root.
+                if (!ReferenceEquals(owner.XamlRoot, root)) pageLifetime.Cancel();
+            }
+            owner.Unloaded += OnOwnerUnloaded;
+            if (page is not null) page.Unloaded += OnPageUnloaded;
+            try
+            {
+                var full = await AskAsync(session, (client, token) =>
+                        client.GetItemAsync(item.Id, token, EmbyFields.Files))
+                    .ConfigureAwait(true);
 
-            await dialog.ShowAsync();
+                if (full.DefaultMediaSource is not { } source)
+                {
+                    shell.Notify($"服务器上找不到「{item.Name}」的媒体文件", InfoBarSeverity.Warning);
+                    return;
+                }
 
-            // 这一页上「字幕」那个下拉列的是这个文件的轨道，动过就得重读一遍，否则新下的那条挑不到。
-            if ((dialog.Touched || dialog.NeedsRefresh) && subtitles.IsCurrent) changed?.Invoke();
+                if (!PageIsCurrent()) return;
+                var targets = new List<SubtitleDialogTarget>();
+                var operations = new List<ServerSubtitles>();
+                foreach (var file in session.Connection.IsJellyfin ? full.MediaSources : [source])
+                {
+                    var subtitles = new ServerSubtitles(session, full, file, pageLifetime.Token);
+                    operations.Add(subtitles);
+                    targets.Add(new SubtitleDialogTarget
+                    {
+                        Source = file,
+                        Search = search => { RequirePermission(shell, session, ItemCommand.Subtitles); return subtitles.SearchAsync(search); },
+                        Download = subtitle => { RequirePermission(shell, session, ItemCommand.Subtitles); return subtitles.DownloadAsync(subtitle); },
+                        Delete = stream => { RequirePermission(shell, session, ItemCommand.Subtitles); return subtitles.DeleteAsync(stream); },
+                        Reload = subtitles.ReadReloadAsync,
+                        AcceptReload = subtitles.AcceptReload,
+                        SupportsForcedOnly = subtitles.SupportsForcedOnly,
+                        DownloadProvidesConfirmation = subtitles.DownloadProvidesConfirmation,
+                        Upload = subtitles.SupportsUpload ? subtitles.UploadAsync : null,
+                        CanUpload = () => subtitles.CanUpload && shell.MenuPermissionsFor(session).CanUploadSubtitles == true
+                    });
+                }
+                var dialog = new SubtitleDialog(full, targets, () => PageIsCurrent() && session.IsAvailable)
+                {
+                    XamlRoot = root
+                };
+                void AvailabilityChanged(object? sender, EventArgs args) =>
+                    owner.DispatcherQueue.TryEnqueue(dialog.RefreshUploadAvailability);
+                foreach (var subtitles in operations)
+                {
+                    subtitles.AvailabilityChanged += AvailabilityChanged;
+                    subtitles.StartObservingAvailability();
+                }
+                try { await dialog.ShowAsync(); }
+                finally
+                {
+                    foreach (var subtitles in operations)
+                    {
+                        subtitles.StopObservingAvailability();
+                        subtitles.AvailabilityChanged -= AvailabilityChanged;
+                    }
+                }
+
+                // 这一页上「字幕」那个下拉列的是这个文件的轨道，动过就得重读一遍，否则新下的那条挑不到。
+                if ((dialog.Touched || dialog.NeedsRefresh) && session.IsAvailable && PageIsCurrent()) changed?.Invoke();
+            }
+            finally
+            {
+                owner.Unloaded -= OnOwnerUnloaded;
+                if (page is not null) page.Unloaded -= OnPageUnloaded;
+            }
         });
 
     /// <summary>

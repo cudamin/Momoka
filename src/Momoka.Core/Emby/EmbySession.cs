@@ -412,7 +412,9 @@ public sealed class EmbySession : IDisposable
                     connection = connection with
                     {
                         IsAdministrator = current.Policy?.IsAdministrator,
-                        CanManageCollections = current.Policy?.ToPermissions(connection.ServerKind).CanManageCollections
+                        CanManageSubtitles = current.Policy?.ToPermissions(connection.ServerKind).CanManageSubtitles,
+                        CanManageCollections = current.Policy?.ToPermissions(connection.ServerKind).CanManageCollections,
+                        CanUploadSubtitles = current.Policy?.ToPermissions(connection.ServerKind).CanUploadSubtitles
                     };
                     candidate = new EmbyClient(_http, connection);
                 }
@@ -514,15 +516,21 @@ public sealed class EmbySession : IDisposable
             return IsAvailable(scope) ? (scope.Client.Connection.IsAdministrator, scope.IdentityState.PermissionRevision) : (null, -1);
     }
 
-    /// <summary>只确认同代次合集权限；调用方发布其缓存后在锁外通知，不改变令牌或播放连接。</summary>
-    internal long ConfirmCollectionPermission(EmbySessionScope source, bool? allowed, long revision)
+    /// <summary>只确认同代次的库管理权限；调用方发布缓存后在锁外通知，不改变令牌或播放连接。</summary>
+    internal long ConfirmCollectionPermission(EmbySessionScope source, bool? allowed, long revision,
+        bool? uploadSubtitles = null, bool confirmUpload = false)
     {
         lock (_lifecycleGate)
         {
             if (!IsAvailable(source) || source.IdentityState.PermissionRevision != revision) return -1;
             var connection = source.Client.Connection;
-            if (connection.CanManageCollections == allowed) return revision;
-            source.IdentityState.Client = new EmbyClient(_http, connection with { CanManageCollections = allowed });
+            var upload = confirmUpload ? uploadSubtitles : connection.CanUploadSubtitles;
+            if (connection.CanManageCollections == allowed && connection.CanUploadSubtitles == upload) return revision;
+            source.IdentityState.Client = new EmbyClient(_http, connection with
+            {
+                CanManageCollections = allowed,
+                CanUploadSubtitles = upload
+            });
             source.IdentityState.PermissionRevision++;
             return source.IdentityState.PermissionRevision;
         }

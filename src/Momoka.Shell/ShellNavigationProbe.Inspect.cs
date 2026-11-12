@@ -107,6 +107,8 @@ internal sealed partial class ShellNavigationProbe
         Add("InspectSettingsOpening", "聚合设置开窗", () => SettingsOpeningAsync(inspect: true));
         AddCheck("InspectLibraryCache", "媒体库缓存往返", PerformanceLibraryCacheAsync);
         AddCheck("InspectLibraryCollections", "合集移除与权限", LibraryCollectionsAsync);
+        AddCheck("InspectJellyfinUpload", "Jellyfin字幕上传", JellyfinUploadAsync);
+        AddCheck("InspectJellyfinUploadRecovery", "字幕未知上传恢复", JellyfinUploadRecoveryAsync);
         AddCheck("InspectLibraryBatch", "多选取消与逐项结果", LibraryBatchAsync);
         AddCheck("InspectLibraryDiscoverySearch", "搜索人物合集和列表", LibraryDiscoverySearchAsync);
         AddCheck("InspectLibraryDiscoveryPeople", "Plex人物与题材", LibraryDiscoveryPeopleAsync);

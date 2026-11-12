@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 namespace Microsoft.UI.Xaml.Controls;
 
 public enum InfoBarSeverity { Informational, Success, Warning, Error }
+public class Page : FrameworkElement;
 public sealed class ContentDialogClosingEventArgs : EventArgs { public bool Cancel { get; set; } }
 
 public class ContentDialog : FrameworkElement
@@ -37,6 +38,7 @@ public sealed class Button : FrameworkElement;
 public sealed class TextBlock : FrameworkElement { public string Text { get; set; } = ""; }
 public sealed class ItemsControl : FrameworkElement { public object? ItemsSource { get; set; } }
 public sealed class ComboBoxItem { public object? Content { get; set; } public object? Tag { get; set; } }
+public sealed class SelectionChangedEventArgs : RoutedEventArgs;
 public sealed class ComboBox : FrameworkElement
 {
     public List<object> Items { get; } = [];

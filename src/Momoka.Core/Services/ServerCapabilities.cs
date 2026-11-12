@@ -159,7 +159,8 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
         {
             var connection = source.CurrentConnection;
             return new ItemMenuPermissions(connection.IsAdministrator, connection.CanDownload,
-                connection.CanDeleteContent, connection.CanManageSubtitles, connection.CanManageCollections, connection.CanConvertMedia);
+                connection.CanDeleteContent, connection.CanManageSubtitles, connection.CanManageCollections,
+                connection.CanConvertMedia, connection.CanUploadSubtitles);
         }
         catch (OperationCanceledException) { return default; }
     }
@@ -306,11 +307,12 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
                 lock (_gate)
                 {
                     if (generation != _generation || token.IsCancellationRequested) return;
-                    confirmed = session.ConfirmCollectionPermission(source, permissions.CanManageCollections, revision);
+                    confirmed = session.ConfirmCollectionPermission(source, permissions.CanManageCollections, revision,
+                        permissions.CanUploadSubtitles, confirmUpload: source.Connection.IsJellyfin);
                     if (source.IsAvailable && source.PermissionRevision == confirmed)
                     {
                         _sourcePermissions[source.Key] = (permissions, source.UserStateOwner, confirmed);
-                        // This same probe changed only collection permission. Keep its already-confirmed
+                        // This same probe changed only library permissions. Keep its already-confirmed
                         // system result valid for the migrated revision; external replacements still expire it.
                         if (_scope is { } scope && ReferenceEquals(scope.UserStateOwner, source.UserStateOwner)
                             && _permissionRevision == revision) _permissionRevision = confirmed;

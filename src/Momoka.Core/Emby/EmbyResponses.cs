@@ -78,7 +78,8 @@ public sealed class EmbyUserPolicy
             CanDeleteContent = permissions.CanDeleteContent,
             CanManageSubtitles = permissions.CanManageSubtitles,
             CanManageCollections = permissions.CanManageCollections,
-            CanConvertMedia = permissions.CanConvertMedia
+            CanConvertMedia = permissions.CanConvertMedia,
+            CanUploadSubtitles = permissions.CanUploadSubtitles
         };
     }
 
@@ -93,7 +94,8 @@ public sealed class EmbyUserPolicy
         kind == MediaServerKind.FnMusic ? false : kind == MediaServerKind.Jellyfin
             ? (IsAdministrator || EnableCollectionManagement == true ? true : EnableCollectionManagement)
             : IsAdministrator,
-        kind == MediaServerKind.Emby ? EnableMediaConversion : false);
+        kind == MediaServerKind.Emby ? EnableMediaConversion : false,
+        kind == MediaServerKind.Jellyfin ? EnableSubtitleManagement : false);
 }
 
 public sealed class AuthenticationResult
@@ -219,6 +221,9 @@ public sealed record EmbyConnection(
     /// 两个策略位都没答时是 null。
     /// </summary>
     public bool? CanManageSubtitles { get; init; }
+
+    /// <summary>Jellyfin 原生字幕上传只认 EnableSubtitleManagement；下载权或管理员身份不代替它。</summary>
+    public bool? CanUploadSubtitles { get; init; }
 
     /// <summary>合集管理独立于删除媒体和管理服务器；null 为尚未确认。</summary>
     public bool? CanManageCollections { get; init; }

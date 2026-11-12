@@ -176,6 +176,10 @@ tools/publish.ps1 -NoArchive -Shortcut 发布验证通过547文件/288.3MB；快
 
 待收尾：产品提交后合入 master，按最终主树重验和发布，当前快捷方式仍是旧版。未访问真实服务器或播放媒体，未上传。
 
+## 2026-11-12 媒体库第四批 Jellyfin 上传（独立树待整合）
+
+`library-batch4-jellyfin` 基点52f8449，原生ContentDialog/ComboBox/FileOpenPicker，本地原字节上传、固定各版本、当前EnableSubtitleManagement独立授权、204与未知只读恢复、Page/picker/迟到读归属；保Emby及下载未确认/删除全快照/父刷新。Core上传55/55、目标207/207、身份115/115、HTTP45/45，Dialog/picker89/89，最终Shell零警告错误、42文件编码空白及句柄缺失0，见 [报告](docs/媒体库第四批-Jellyfin字幕上传.md)。原生jellyfin-upload探针交主控串行运行，SourcePins Session/Scope交主控逐项核，待合主树重验/发布；子树无桌面、实服写、推送或发布。
+
 ## 2026-11-11 媒体库第三批飞牛仅移出与恢复（独立树待整合）
 
 基点8dea65c，原生managed工作树`C:\Users\89400\.codex\worktrees\library-batch3-fnnas\Momoka`，仅此树写入。读取官方0.9.8匿名前端缓存三个产物并核SHA256，确认DELETE item/:guid的delete_file=0、GET fileViewAdmin/list根mdb_guid/子fv_guid、恢复POST scrap/removeFromBlackByPath(mdb_guid,path)、管理员非IPTV入口及blacked=1判断，详见docs/媒体库第三批-飞牛移出恢复.md。没有联系真实服务器、登录、写入、播放或起UI。

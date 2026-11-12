@@ -182,10 +182,16 @@ internal static class Program
             SignInServerBindingTests.RegisterCore();
             return TestHarness.Run();
         }
+        if (args is ["jellyfin-subtitle-upload-fixture"])
+        {
+            JellyfinSubtitleUploadTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["subtitle-target-fixture"])
         {
             SubtitleManagementTests.Register();
             SubtitleTargetTests.Register();
+            JellyfinSubtitleUploadTests.Register();
             ItemActionTests.Register();
             JellyfinProtocolTests.Register();
             return TestHarness.Run();
@@ -562,6 +568,7 @@ internal static class Program
         SubtitleForcedOnlyTests.Register();
         SubtitleManagementTests.Register();
         SubtitleTargetTests.Register();
+        JellyfinSubtitleUploadTests.Register();
         MpvProcessTests.Register();
         SelfCheckTests.Register();
         SelfCheckOutputIsolationTests.Register();

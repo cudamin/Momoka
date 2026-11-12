@@ -267,6 +267,10 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("服务器页聚合模式开关、在线账号与凭据保留", ServersPageSummaryAsync, 45);
             await CaseAsync("Jellyfin 控制台只走外层路由并落到 Jellyfin Web 地址", JellyfinConsoleNavigationAsync, 45);
             await CaseAsync("Jellyfin 通用对话框能力显隐", JellyfinDialogCapabilitiesAsync, 30);
+            await CaseAsync("Jellyfin 本地字幕上传、权限恢复和版本绑定", JellyfinUploadAsync, 90,
+                section: ShellProbeSections.JellyfinUpload);
+            await CaseAsync("Jellyfin 字幕未知上传只读恢复", JellyfinUploadRecoveryAsync, 60,
+                section: ShellProbeSections.JellyfinUpload);
             await CaseAsync("MoviePilot 订阅分区、封面与管理操作", MoviePilotSubscriptionsAsync, 30);
             // 这一条从 2026-10-12 起多两帧「下方三段」的截图与一段等待（演职员／相关推荐／相似作品那三排卡片
             // 的图是异步抓的），12 秒的默认限时不够 —— 同视频基础输出用例的理由。
