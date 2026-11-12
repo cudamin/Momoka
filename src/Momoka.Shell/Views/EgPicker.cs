@@ -51,10 +51,9 @@ namespace Momoka.Shell.Views;
 /// <c>OnApplyTemplate</c> 里把它设成 false，所以这里要先 <c>base</c> 再改。
 /// </para>
 /// <para>
-/// 只给详情页那六颗用（<c>DetailPage.xaml</c>；宽版式三颗、尾部三颗），别的页面照旧 ——
-/// 用户点名的是剧、电影、集、季四个页面。季选择栏那一颗（原来挂在集列表牌子右端）2026-11-02 已按用户令删掉。
-/// 要把它铺到全应用的下拉上，说一声就行：把
-/// <c>SettingsPage.xaml</c> 等处那颗 <c>ComboBox</c> 也换成它就完了，样式与材料都是现成的。
+/// 当前调用者是详情页六颗文件选择框（<c>DetailPage.xaml</c>；宽版式三颗、尾部三颗）和
+/// <c>AniBtSearchPanel.xaml</c> 的三颗筛选框。设置页仍使用框架 ComboBox；不因维护此扩展而扩大应用范围。
+/// 季选择栏那一颗（原来挂在集列表牌子右端）2026-11-02 已按用户令删掉。
 /// </para>
 /// </summary>
 public sealed class EgPicker : ComboBox
@@ -71,6 +70,8 @@ public sealed class EgPicker : ComboBox
 
     /// <summary>展开中的那一份弹层内容 —— 只在展开期间挂着，收起时解掉订阅并清掉封顶。</summary>
     private FrameworkElement? _dropDown;
+    private int _dropDownVersion;
+    private bool _widthPinned;
 
     public EgPicker()
     {
@@ -79,8 +80,10 @@ public sealed class EgPicker : ComboBox
             if (!IsDropDownOpen) _restingWidth = e.NewSize.Width;
         };
         // 列表那一份的宽度要等它自己布完才量得到，所以撑宽这一步排在下一个 UI 回合。
-        DropDownOpened += (_, _) => DispatcherQueue.TryEnqueue(WidenToDropDown);
+        DropDownOpened += (_, _) => QueueWidenToDropDown();
         DropDownClosed += (_, _) => RestoreDropDownWidths();
+        Loaded += (_, _) => { if (IsDropDownOpen) QueueWidenToDropDown(); };
+        Unloaded += (_, _) => { if (!IsLoaded) RestoreDropDownWidths(); };
     }
 
     /// <summary>
@@ -98,12 +101,33 @@ public sealed class EgPicker : ComboBox
 
     protected override void OnApplyTemplate()
     {
+        // End the old popup's sizing ownership before the base replaces its template parts.
+        RestoreDropDownWidths();
+        PopupPart = null;
         base.OnApplyTemplate();
 
         PopupPart = GetTemplateChild("Popup") as Popup;
         if (PopupPart is null) return;
 
         PopupPart.ShouldConstrainToRootBounds = true;
+        if (IsDropDownOpen) QueueWidenToDropDown();
+    }
+
+    /// <summary>只让当前打开及模板所属的排队请求取得撑宽责任。</summary>
+    private void QueueWidenToDropDown()
+    {
+        var version = ++_dropDownVersion;
+        var popup = PopupPart;
+        if (popup is null) return;
+
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            // Closing, unloading, reapplying the template or another open notification ends
+            // this request. An old queue item must not pin a closed/reopened picker again.
+            if (version != _dropDownVersion || !IsLoaded || !IsDropDownOpen
+                || !popup.IsOpen || !ReferenceEquals(PopupPart, popup)) return;
+            WidenToDropDown();
+        });
     }
 
     /// <summary>
@@ -127,8 +151,17 @@ public sealed class EgPicker : ComboBox
 
         var room = RoomInParent();
         var width = Math.Min(Math.Max(_restingWidth, list.ActualWidth), room);
-        if (width > 0) Width = width;
+        if (width > 0)
+        {
+            Width = width;
+            _widthPinned = true;
+        }
 
+        if (_dropDown is { } previous && !ReferenceEquals(previous, list))
+        {
+            previous.SizeChanged -= OnDropDownSizeChanged;
+            previous.ClearValue(FrameworkElement.MaxWidthProperty);
+        }
         _dropDown = list;
         list.SizeChanged -= OnDropDownSizeChanged;
         list.SizeChanged += OnDropDownSizeChanged;
@@ -147,12 +180,21 @@ public sealed class EgPicker : ComboBox
         else if (list.ActualWidth < cap - 0.5) list.ClearValue(FrameworkElement.MaxWidthProperty);
     }
 
-    private void OnDropDownSizeChanged(object sender, SizeChangedEventArgs e) => ClampDropDown();
+    private void OnDropDownSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (IsLoaded && IsDropDownOpen && PopupPart is { IsOpen: true } popup
+            && ReferenceEquals(sender, _dropDown) && ReferenceEquals(popup.Child, _dropDown)) ClampDropDown();
+    }
 
     /// <summary>收起时把展开态钉下的宽度放回去 —— 下一次展开照旧由内容与容器重新撑。</summary>
     private void RestoreDropDownWidths()
     {
-        ClearValue(WidthProperty);
+        _dropDownVersion++;
+        if (_widthPinned)
+        {
+            ClearValue(WidthProperty);
+            _widthPinned = false;
+        }
 
         if (_dropDown is not { } list) return;
         list.SizeChanged -= OnDropDownSizeChanged;

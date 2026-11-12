@@ -155,6 +155,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.MaterialLifecycleTes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SettingsAppearanceTests", "tests\Momoka.SettingsAppearanceTests\Momoka.SettingsAppearanceTests.csproj", "{018E7C98-5DF0-4958-90BD-2B53E0D4E9CB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.PickerLifecycleTests", "tests\Momoka.PickerLifecycleTests\Momoka.PickerLifecycleTests.csproj", "{1ABA459D-F40E-4237-A41D-6B651C2C459F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -457,6 +459,10 @@ Global
 		{018E7C98-5DF0-4958-90BD-2B53E0D4E9CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{018E7C98-5DF0-4958-90BD-2B53E0D4E9CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{018E7C98-5DF0-4958-90BD-2B53E0D4E9CB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1ABA459D-F40E-4237-A41D-6B651C2C459F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1ABA459D-F40E-4237-A41D-6B651C2C459F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1ABA459D-F40E-4237-A41D-6B651C2C459F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1ABA459D-F40E-4237-A41D-6B651C2C459F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{317F20C8-62FF-4DE5-98D4-9E5CA2D44E7C} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
@@ -520,5 +526,6 @@ Global
 		{BF05A574-E1C8-488B-9B89-38A519A5CAEF} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{5030F4ED-5591-499C-951B-E03C88D35901} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{F7D0465F-51D8-4CF0-B963-1271C14EF133} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
+		{1ABA459D-F40E-4237-A41D-6B651C2C459F} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 	EndGlobalSection
 EndGlobal
