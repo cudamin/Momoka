@@ -351,7 +351,10 @@
                     <ListView.Footer>
                         <Button
                             x:Name="MoreButton"
+                            x:Uid="MusicLibraryPage_LoadMore"
                             Margin="0,16,0,0"
+                            AutomationProperties.AutomationId="MusicTrackLoadMore"
+                            AutomationProperties.Name="加载更多音乐"
                             Click="OnMore"
                             Content="加载更多"
                             HorizontalAlignment="Center"
@@ -361,33 +364,51 @@
                 </ListView>
             </Grid>
 
-            <!-- 封面墙：专辑、艺术家、歌单。一格 170 的方块，排不下就往下排。 -->
-            <ScrollViewer
-                x:Name="WallScroll"
-                HorizontalScrollBarVisibility="Disabled"
-                HorizontalScrollMode="Disabled"
-                Padding="0,0,20,32"
-                VerticalScrollBarVisibility="Auto"
-                VerticalScrollMode="Auto"
-                Visibility="{x:Bind ViewModel.WallVisibility, Mode=OneWay}">
-                <ItemsView
-                    x:Name="MusicWall"
-                    IsItemInvokedEnabled="True"
-                    ItemInvoked="OnWallItemInvoked"
-                    ItemTemplate="{StaticResource MusicTileTemplate}"
-                    ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}"
-                    SelectionMode="None">
-                    <ItemsView.Layout>
-                        <UniformGridLayout
-                            ItemsJustification="Start"
-                            ItemsStretch="None"
-                            MinColumnSpacing="16"
-                            MinItemHeight="{x:Bind ViewModel.TileHeight, Mode=OneWay}"
-                            MinItemWidth="{x:Bind ViewModel.TileWidth, Mode=OneWay}"
-                            MinRowSpacing="24" />
-                    </ItemsView.Layout>
-                </ItemsView>
-            </ScrollViewer>
+            <!-- 封面墙的分页入口归墙区域所有，不能藏在曲目表的 Footer 中。
+                 列表占剩余高度，分页单独占 Auto 行；键盘和短窗都不用先滚完 80 张才能请求下一页。 -->
+            <Grid x:Name="WallHost" Visibility="{x:Bind ViewModel.WallVisibility, Mode=OneWay}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <ScrollViewer
+                    x:Name="WallScroll"
+                    HorizontalScrollBarVisibility="Disabled"
+                    HorizontalScrollMode="Disabled"
+                    Padding="0,0,20,32"
+                    VerticalScrollBarVisibility="Auto"
+                    VerticalScrollMode="Auto">
+                    <ItemsView
+                        x:Name="MusicWall"
+                        IsItemInvokedEnabled="True"
+                        ItemInvoked="OnWallItemInvoked"
+                        ItemTemplate="{StaticResource MusicTileTemplate}"
+                        ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}"
+                        SelectionMode="None">
+                        <ItemsView.Layout>
+                            <UniformGridLayout
+                                ItemsJustification="Start"
+                                ItemsStretch="None"
+                                MinColumnSpacing="16"
+                                MinItemHeight="{x:Bind ViewModel.TileHeight, Mode=OneWay}"
+                                MinItemWidth="{x:Bind ViewModel.TileWidth, Mode=OneWay}"
+                                MinRowSpacing="24" />
+                        </ItemsView.Layout>
+                    </ItemsView>
+                </ScrollViewer>
+                <Button
+                    x:Name="WallMoreButton"
+                    x:Uid="MusicLibraryPage_LoadMore"
+                    Grid.Row="1"
+                    Margin="0,16,20,0"
+                    AutomationProperties.AutomationId="MusicWallLoadMore"
+                    AutomationProperties.Name="加载更多音乐"
+                    Click="OnMore"
+                    Content="加载更多"
+                    HorizontalAlignment="Center"
+                    Style="{StaticResource EgSecondaryButtonStyle}"
+                    Visibility="{x:Bind local:MusicLibraryPage.Show(ViewModel.MoreAvailable), Mode=OneWay}" />
+            </Grid>
 
             <!-- 空态：说清「这里没有东西」和「可以做什么」，不是一句光秃秃的「暂无音乐」。 -->
             <StackPanel

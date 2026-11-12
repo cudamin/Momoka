@@ -27,7 +27,7 @@ internal static class Program
             ("专辑容器里的曲目第二行不再重复专辑名", AlbumRowSubtitleAsync),
             ("正在播放的那一行跟着播放栏标记，重新载入仍保留", PlayingMarkAsync),
             ("正在播放的身份键跟着曲目走，停止后清空", CurrentKeyAsync)
-        };
+        }.Concat(MusicPagingTests.Cases()).ToArray();
         var failures = 0;
         foreach (var (name, run) in cases)
         {

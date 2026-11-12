@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!--
     界面文字的资源表。winui-code-review 的全球化清单要求界面字符串走 x:Uid + .resw 而不是写死在标记里，
@@ -847,5 +847,11 @@
   </data>
   <data name="NotificationsPage_StopReportToggle.OnContent" xml:space="preserve">
     <value>开</value>
+  </data>
+  <data name="MusicLibraryPage_LoadMore.Content" xml:space="preserve">
+    <value>加载更多</value>
+  </data>
+  <data name="MusicLibraryPage_LoadMore.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>加载更多音乐</value>
   </data>
 </root>

@@ -13,4 +13,39 @@
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MusicLibraryViewModel.cs" Link="Production\MusicLibraryViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
   </ItemGroup>
+  <UsingTask TaskName="ExtractMusicPagingSource" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <OutputSource ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var source = File.ReadAllText(Source).Replace("\r\n", "\n");
+        Func<string, string, string> between = (start, end) =>
+        {
+            var first = source.IndexOf(start, StringComparison.Ordinal);
+            if (first < 0 || source.IndexOf(start, first + start.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing or ambiguous music paging start: " + start);
+            var last = source.IndexOf(end, first + start.Length, StringComparison.Ordinal);
+            if (last < 0 || source.IndexOf(end, last + end.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing or ambiguous music paging end: " + end);
+            return source.Substring(first, last - first);
+        };
+        var generated = "// Extracted verbatim from this tree. XAML controls are offline boundaries.\n#nullable enable\n" +
+            "using Microsoft.UI.Xaml;\nnamespace Momoka.Shell.Views;\ninternal sealed partial class MusicLibraryPage\n{\n" +
+            between("    public static Visibility Show(bool value)", "\n    protected override async void OnNavigatedTo(") +
+            between("    private async void OnMore(object sender, RoutedEventArgs args)", "\n    /// <summary>\n    /// 分区互斥") +
+            between("    internal void SetPlayerClearance(double clearance)", "\n}\n") +
+            "\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+        if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+            File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateMusicPagingSource" BeforeTargets="CoreCompile">
+    <ExtractMusicPagingSource Source="$(MSBuildProjectDirectory)/../../src/Momoka.Shell/Views/MusicLibraryPage.xaml.cs" OutputSource="$(IntermediateOutputPath)MusicPagingSource.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)MusicPagingSource.g.cs" /></ItemGroup>
+  </Target>
 </Project>

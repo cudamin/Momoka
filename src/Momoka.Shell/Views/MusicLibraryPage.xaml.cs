@@ -140,6 +140,7 @@ public sealed partial class MusicLibraryPage : Page, IShellContent
     internal void SetPlayerClearance(double clearance)
     {
         WallScroll.Padding = new Thickness(0, 0, 20, 32 + clearance);
+        WallMoreButton.Margin = new Thickness(0, 16, 20, clearance);
         MusicRows.Padding = new Thickness(0, 0, 20, clearance);
     }
 }
