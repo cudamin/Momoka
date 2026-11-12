@@ -102,7 +102,7 @@
                             FontSize="18"
                             Foreground="{ThemeResource EgTextFaintBrush}"
                             Glyph="&#xE8D6;" />
-                        <Image Source="{x:Bind RowPoster, Mode=OneWay}" Stretch="UniformToFill" />
+                        <Image local:CardArtwork.Item="{x:Bind Mode=OneWay}" Source="{x:Bind RowPoster, Mode=OneWay}" Stretch="UniformToFill" />
                     </Grid>
                 </Border>
 
@@ -165,7 +165,7 @@
                                 FontSize="30"
                                 Foreground="{ThemeResource EgTextFaintBrush}"
                                 Glyph="{x:Bind Glyph, Mode=OneWay}" />
-                            <Image Source="{x:Bind RowPoster, Mode=OneWay}" Stretch="UniformToFill" />
+                            <Image local:CardArtwork.Item="{x:Bind Mode=OneWay}" Source="{x:Bind RowPoster, Mode=OneWay}" Stretch="UniformToFill" />
                         </Grid>
                     </Border>
                     <StackPanel Grid.Row="1" Spacing="2">
