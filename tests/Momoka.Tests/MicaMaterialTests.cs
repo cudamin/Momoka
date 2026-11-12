@@ -117,6 +117,30 @@ internal static class MicaMaterialTests
             Assert.DoesNotContain("SystemBackdropElement", page, "设置页里又挂了局部材质");
             Assert.DoesNotContain("SettingsNavigationLayer", page, "分类栏又铺了一块自己的底");
         });
+
+        Test("简洁模式底材：详情页与订阅详情页不再挂页面级材质", () =>
+        {
+            // 2026-11-12 用户令「把媒体详情页的简洁模式也改成跟主页一样的」：这两页的底从此就是外壳那块画布
+            // （Mica Base ＋ 60% 窗口色，只在 ShellPage.ContentHost 画一次）。从前它们各自铺一块 Mica Alt 把
+            // 画布盖掉，同一格设置在主页与详情页是两种底 —— 屏上不报错，只有截图与探针读得出来。
+            foreach (var (file, label, showcase) in new[]
+            {
+                ("DetailPage.xaml", "媒体详情页", "DetailPage.Showcase.cs"),
+                ("MoviePilotSubscriptionPage.xaml", "MP 订阅详情页", "MoviePilotSubscriptionPage.Showcase.cs"),
+            })
+            {
+                var document = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", file));
+                // Page.Content 那一层就是页面底；卡面自己的 SystemBackdropElement 在更深的子树里，不算。
+                var surface = document.Root!.Elements().FirstOrDefault(element => element.Name.LocalName == "Grid")
+                    ?? throw new InvalidOperationException($"{label} 的根不是 Grid");
+                var backdrop = surface.Elements().FirstOrDefault(element => element.Name.LocalName == "SystemBackdropElement");
+                Assert.True(backdrop is null,
+                    $"{label} 又给页面挂了局部材质：{backdrop?.Attribute(Xaml + "Name")?.Value}");
+
+                var source = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", showcase));
+                Assert.DoesNotContain("DetailMica.Apply(PlainBackdrop", source, $"{label} 的简洁档又去挂页面级材质了");
+            }
+        });
     }
 
     private static XDocument Palette() =>

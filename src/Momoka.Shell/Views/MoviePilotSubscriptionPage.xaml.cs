@@ -151,9 +151,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         // 头部那一段让开的高度是「图的下沿折进滚动内容坐标」，所以要减掉这一截（赶在提前返回之前写：
         // 换主题、面包屑显隐都会挪它，而那些时候边距未必变）。
         MediaViewModel.HeaderLift = lift;
-        if (Math.Abs(PlainBackdrop.Margin.Top + lift) > 0.5)
-            PlainBackdrop.Margin = new Thickness(0, -lift, 0, 0);
-
+        // 简洁档不再有页面级的局部材质要挪（2026-11-12 起底是外壳那块画布，它本来就铺满窗口）；
+        // 只有背景图那一层还要顶到窗口上沿。
         if (Math.Abs(DetailBackdropRoot.Margin.Top + lift) > 0.5)
             DetailBackdropRoot.Margin = new Thickness(0, -lift, 0, 0);
     }

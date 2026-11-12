@@ -211,7 +211,7 @@ public sealed partial class MoviePilotSubscriptionPage
     private void ApplyPlainMica()
     {
         var plain = MediaViewModel.Plain;
-        DetailMica.Apply(PlainBackdrop, plain && _appearanceObserved, alternate: true);
+        // 页面级的底材交回外壳画布（2026-11-12，同媒体详情页）；头部那块卡面自己的局部 Mica 保留。
         DetailMica.Apply(HeroMica, plain && _appearanceObserved);
         foreach (var panel in BodyPanels)
             panel.Background = plain ? MicaLayerSource.Background : _panelFill;
@@ -220,7 +220,6 @@ public sealed partial class MoviePilotSubscriptionPage
 
     private void ReleasePlainMica()
     {
-        PlainBackdrop.SystemBackdrop = null;
         HeroMica.SystemBackdrop = null;
     }
 

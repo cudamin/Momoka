@@ -316,8 +316,8 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectFnNasRemoval", "飞牛移出恢复验证", FnNasRemovalAsync);
         AddCheck("InspectFnNasDetail", "飞牛详情人员与类似验证", FnNasDetailAsync);
         AddCheck("InspectSearchPolish", "搜索布局回归", SearchHeaderLayoutAsync);
-        AddCheck("InspectDetailMica", "简洁详情云母验证", DetailMicaAsync);
-        AddCheck("InspectMoviePilotMica", "MP 简洁云母验证", MoviePilotSubscriptionShowcaseAsync);
+        AddCheck("InspectDetailMica", "简洁详情底材验证", DetailMicaAsync);
+        AddCheck("InspectMoviePilotMica", "MP 简洁底材验证", MoviePilotSubscriptionShowcaseAsync);
         AddCheck("InspectDetailResponsive", "详情布局回归", DetailResponsiveAsync);
         AddCheck("InspectDetailResize", "详情连续缩放回归", DetailResizeAsync);
         AddCheck("InspectDetailCoverGap", "详情封面等距", DetailCoverGapAsync);

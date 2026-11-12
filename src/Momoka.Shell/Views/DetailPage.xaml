@@ -193,7 +193,11 @@
     </Page.Resources>
 
     <Grid>
-        <SystemBackdropElement x:Name="PlainBackdrop" IsHitTestVisible="False" />
+        <!-- 简洁模式（不铺背景图那一档）的底就是外壳那块窗口画布 —— Mica Base 加一层 60% 窗口色，全树只在
+             ShellPage.ContentHost 画一次（2026-11-12 用户令「把媒体详情页的简洁模式也改成跟主页一样的」）。
+             这一页因此不再挂自己的局部材质：从前这里是一块铺满整页的 SystemBackdropElement（Mica Alt），它把外壳
+             那层画布整个盖掉，同一档设置在主页是「Base + 60% 画布」、在详情页却是「Alt 原样」，两页的底对不上。
+             页面上还在的只有卡面与信息面板那层半透明层色（下面的 MicaLayerSource），它们压在画布上读。 -->
         <Border x:Name="MicaLayerSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}" />
         <!-- 零尺寸资源接收器：系统主题替换卡片画刷时，同步用于沉浸动画的私有副本。 -->

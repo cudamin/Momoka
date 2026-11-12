@@ -16,13 +16,22 @@ public sealed partial class DetailPage
     /// </summary>
     private readonly SolidColorBrush _sheetBrush = new();
 
-    private bool PlainMica => !ViewModel.AppearanceSettings.EnableImmersive
+    /// <summary>
+    /// 简洁模式 —— 设置里那条「显示模式」关掉沉浸之后这一页的样子：不铺背景图，底就是外壳那块窗口画布。
+    /// <para>
+    /// 名字里不再带 Mica：2026-11-12 用户令「把媒体详情页的简洁模式也改成跟主页一样的」之后，这一页不再挂自己的
+    /// 局部材质（从前那块铺满整页的 Mica Alt 把外壳的「Base ＋ 60% 画布」盖掉了），剩下的判断只是「哪几类页面
+    /// 走这一档」—— 电影、剧、季、单集，四类都听这一格。
+    /// </para>
+    /// </summary>
+    private bool PlainMode => !ViewModel.AppearanceSettings.EnableImmersive
         && ViewModel.ItemType is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode;
 
     private void ApplyPlainMica()
     {
-        var plain = PlainMica;
-        DetailMica.Apply(PlainBackdrop, plain && _appearanceObserved, alternate: true);
+        var plain = PlainMode;
+        // 集页那块板（HeroCardTop／HeroCardBottom）在简洁档仍是卡面，它自己那层局部 Mica 保留；页面级的底材
+        // 已经交回外壳画布，见 DetailPage.xaml 顶上那段。
         DetailMica.Apply(HeroMicaTop, plain && _appearanceObserved && ViewModel.HeroCardShown);
         DetailMica.Apply(HeroMicaBottom, plain && _appearanceObserved && ViewModel.HeroCardShown);
         var surface = plain ? null : Application.Current.Resources["EgSurfaceBrush"] as Brush;
@@ -37,7 +46,6 @@ public sealed partial class DetailPage
 
     private void ReleasePlainMica()
     {
-        PlainBackdrop.SystemBackdrop = null;
         HeroMicaTop.SystemBackdrop = null;
         HeroMicaBottom.SystemBackdrop = null;
     }
@@ -90,7 +98,7 @@ public sealed partial class DetailPage
     private void RefreshShowcaseBrushes()
     {
         RefreshPanelBrushes();
-        if (!ViewModel.Showcase) _sheetBrush.Color = PlainMica ? Microsoft.UI.Colors.Transparent : PaperColor;
+        if (!ViewModel.Showcase) _sheetBrush.Color = PlainMode ? Microsoft.UI.Colors.Transparent : PaperColor;
     }
 
     private void RefreshPanelBrushes()
@@ -140,7 +148,7 @@ public sealed partial class DetailPage
     {
         PaintScrim();
         var showcase = ViewModel.Showcase;
-        _sheetBrush.Color = PlainMica ? Microsoft.UI.Colors.Transparent : showcase ? WashColor : PaperColor;
+        _sheetBrush.Color = PlainMode ? Microsoft.UI.Colors.Transparent : showcase ? WashColor : PaperColor;
         ApplyPlainMica();
         _panelFill.Opacity = showcase ? 0 : 1;
         _panelLine.Opacity = showcase ? 0 : 1;

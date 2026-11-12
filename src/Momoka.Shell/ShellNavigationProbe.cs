@@ -109,7 +109,7 @@ internal sealed partial class ShellNavigationProbe
             // 范围」「当拉长窗口导致背景图接近被裁剪时，自动切换到最大化（无遮挡）页面状态」（2026-11-02）：
             // 电影、剧、季三页在六档宽度上各量一遍竖留白、带高与简介下沿，再单独量裁切触发与最大化两档。
             // 截图 `detail-responsive-<类型>-<宽度>.png` 与 `detail-responsive-crop-*`／`-maximized`。
-            await CaseAsync("简洁详情 Mica 与 Mica Alt 的主题、宽窄和导航恢复", DetailMicaAsync, 120);
+            await CaseAsync("简洁详情底材与卡面的主题、宽窄和导航恢复", DetailMicaAsync, 120);
             await CaseAsync("电影/剧/季页面的宽窗沉浸、窄窗紧凑与无图恢复", DetailResponsiveAsync, 150);
             await CaseAsync("电视媒体库封面显示网页版年份", SeriesCardDatesAsync, 30);
             await CaseAsync("Emby 元数据表单字段、锁定和宽窄布局", MetadataLayoutAsync, 75, section: ShellProbeSections.Metadata);
