@@ -1,0 +1,180 @@
+{
+  "sourceCommit": "6ca9358de00470141c8bda1db078de794d35cb2d",
+  "sourceSha256": "da71c6e679737265d6637c249b6304af052f5f65cfcd44fb0e9bc32f2c2916f7",
+  "merged": true,
+  "published": false,
+  "pushed": false,
+  "baseMaster": "88692b534da315b261e94bda226934c89ab66e76",
+  "inputCommit": "a76f04d1384a1891d74ec34dc7995adffa5698ee",
+  "tests": {
+    "main": {
+      "checks": 4991,
+      "passed": 4991,
+      "failed": 0,
+      "skipped": 0
+    },
+    "suites": [
+      {
+        "suite": "Momoka.MaterialLifecycleTests",
+        "status": "passed",
+        "phase": "run",
+        "counts": {
+          "passed": 56,
+          "failed": 0,
+          "skipped": 0
+        },
+        "notes": "编译链接真实材质、Host请求与菜单表面生命周期，匿名WinUI/Controller边界；不创建窗口、读账号或播放。",
+        "evidence": "C:\\Users\\89400\\Momoka\\artifacts\\winui-p2-merge\\regressions\\Momoka.MaterialLifecycleTests",
+        "error": null
+      },
+      {
+        "suite": "Momoka.SettingsAppearanceTests",
+        "status": "passed",
+        "phase": "run",
+        "counts": {
+          "passed": 47,
+          "failed": 0,
+          "skipped": 0
+        },
+        "notes": "链接真实设置系统外观观察与选色，匿名系统事件/窗口边界；不改变Windows设置、读账号或播放。",
+        "evidence": "C:\\Users\\89400\\Momoka\\artifacts\\winui-p2-merge\\regressions\\Momoka.SettingsAppearanceTests",
+        "error": null
+      },
+      {
+        "suite": "Momoka.SettingsLifetimeTests",
+        "status": "passed",
+        "phase": "run",
+        "counts": {
+          "passed": 61,
+          "failed": 0,
+          "skipped": 0
+        },
+        "notes": "加载本树当前 Release Shell DLL 执行托管夹具；不启动 App/WinUI。",
+        "evidence": "C:\\Users\\89400\\Momoka\\artifacts\\winui-p2-merge\\regressions\\Momoka.SettingsLifetimeTests",
+        "error": null
+      },
+      {
+        "suite": "Momoka.ProbeFinalizationTests",
+        "status": "passed",
+        "phase": "run",
+        "counts": {
+          "passed": 106,
+          "failed": 0,
+          "skipped": 0
+        },
+        "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。",
+        "evidence": "C:\\Users\\89400\\Momoka\\artifacts\\winui-p2-merge\\regressions\\Momoka.ProbeFinalizationTests",
+        "error": null
+      },
+      {
+        "suite": "Momoka.ServerListsTests",
+        "status": "passed",
+        "phase": "run",
+        "counts": {
+          "passed": 11,
+          "failed": 0,
+          "skipped": 0
+        },
+        "notes": "真实清单服务与VM、匿名HTTP、重复成员/写回执/取消/来源/权限回归；不启动窗口、原生播放或真实服务器。",
+        "evidence": "C:\\Users\\89400\\Momoka\\artifacts\\winui-p2-merge\\regressions\\Momoka.ServerListsTests",
+        "error": null
+      },
+      {
+        "suite": "Momoka.ServerListsOwnershipTests",
+        "status": "passed",
+        "phase": "run",
+        "counts": {
+          "passed": 14,
+          "failed": 0,
+          "skipped": 0
+        },
+        "notes": "真实清单服务与VM的同步通知、晚失败、身份与Plex分页完整性；匿名HTTP，不启动窗口或真实服务器。",
+        "evidence": "C:\\Users\\89400\\Momoka\\artifacts\\winui-p2-merge\\regressions\\Momoka.ServerListsOwnershipTests",
+        "error": null
+      }
+    ]
+  },
+  "runtime": [
+    {
+      "id": "materials",
+      "checks": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "native-ui",
+      "runDirectory": "shell-probe-20261112-130350946-30792",
+      "section": "materials",
+      "pid": 30792,
+      "created": "2026-11-12T21:03:50.7268439+08:00",
+      "finished": "2026-11-12T21:05:55.1307445+08:00",
+      "exitCode": 0,
+      "binarySha256": "01643BAD4AFD281385A48F5DB643C88C406C197637750320A62FC0413C9E1302",
+      "sourceCommit": "6ca9358de00470141c8bda1db078de794d35cb2d"
+    },
+    {
+      "id": "settings",
+      "checks": 28,
+      "passed": 28,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "native-ui",
+      "runDirectory": "shell-probe-20261112-130555318-34368",
+      "section": "settings",
+      "pid": 34368,
+      "created": "2026-11-12T21:05:55.2130056+08:00",
+      "finished": "2026-11-12T21:11:59.4649418+08:00",
+      "exitCode": 0,
+      "binarySha256": "01643BAD4AFD281385A48F5DB643C88C406C197637750320A62FC0413C9E1302",
+      "sourceCommit": "6ca9358de00470141c8bda1db078de794d35cb2d"
+    },
+    {
+      "id": "server-lists",
+      "checks": 5,
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "evidenceKind": "native-ui",
+      "runDirectory": "shell-probe-20261112-131159648-27972",
+      "section": "server-lists",
+      "pid": 27972,
+      "created": "2026-11-12T21:11:59.5410161+08:00",
+      "finished": "2026-11-12T21:13:36.4628342+08:00",
+      "exitCode": 0,
+      "binarySha256": "01643BAD4AFD281385A48F5DB643C88C406C197637750320A62FC0413C9E1302",
+      "sourceCommit": "6ca9358de00470141c8bda1db078de794d35cb2d"
+    }
+  ],
+  "builds": {
+    "shell": "artifacts/winui-p2-merge/build-shell.log",
+    "tests": "artifacts/winui-p2-merge/build-tests.log",
+    "warnings": 0,
+    "errors": 0
+  },
+  "historicalFailures": [
+    "P2 worktree latest exit-code run31280: two screen points occluded, exit1",
+    "architecture extra build overlapped this run27972: DLL copy lock, no old test run"
+  ],
+  "omitted": [
+    "post-merge system contrast/transparency repeat",
+    "Narrator/touch/physical keyboard/DPI/GPU/real media",
+    "application publication and remote push"
+  ],
+  "notes": [
+    "Historical P2 verification.json retained with its original source/binary identity",
+    "Current main-tree source fingerprint excludes subsequent documentation-only commits"
+  ],
+  "architecture": {
+    "checks": 7,
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0,
+    "log": "artifacts/winui-p2-merge/architecture-final/summary.json"
+  },
+  "finalBuild": {
+    "warnings": 0,
+    "errors": 0,
+    "log": "artifacts/winui-p2-merge/architecture-final/Momoka.ArchitectureTests/shell-build.log",
+    "binarySha256": "eae3840071b19b109268949550d0224e5c705182292bf2bb36f3e9479f9c51f5",
+    "scope": "same product source; later documentation only; UI run hashes retained separately"
+  }
+}
