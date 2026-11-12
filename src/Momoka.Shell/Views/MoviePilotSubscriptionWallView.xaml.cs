@@ -117,42 +117,95 @@ public sealed partial class MoviePilotSubscriptionWallView : UserControl
     private void OnCancelBatch(object sender, RoutedEventArgs e) => _ = ViewModel.CancelWallBatchAsync();
     private void OnDismissBatch(object sender, RoutedEventArgs e) => ViewModel.DismissWallBatch();
 
-    private void OnFilterFlyoutOpening(object sender, object e)
+    private void OnFilterFlyoutOpening(object sender, object e) => BuildFilterPanel();
+
+    /// <summary>清掉名称筛选；输入框自己那一颗清除键，和网页端可清空的输入框一致。</summary>
+    private void OnClearKeyword(object sender, RoutedEventArgs e) => ViewModel.WallKeyword = "";
+
+    /// <summary>
+    /// 筛选浮层的内容（网页端 subscribe.vue 那颗筛选键的 VMenu）：名称搜索、状态列表、排序列表。
+    /// 每次开浮层按当前选择重建；选完排序不收起面板，勾选要当场挪过去，所以选完再重建一遍。
+    /// </summary>
+    private void BuildFilterPanel()
     {
         WallFilterOptions.Children.Clear();
         foreach (var filter in ViewModel.WallFilterOptions)
         {
             var current = filter;
-            WallFilterOptions.Children.Add(OptionButton(
+            WallFilterOptions.Children.Add(OptionRow(
                 MoviePilotSubscriptionWall.FilterLabel(current),
+                FilterGlyph(current),
+                FilterToneKey(current),
                 ViewModel.WallFilter == current,
                 "WallFilter" + current,
                 () => { ViewModel.SelectWallFilter(current); WallFilterFlyout.Hide(); }));
         }
-    }
-
-    private void OnSortFlyoutOpening(object sender, object e)
-    {
         WallSortOptions.Children.Clear();
         foreach (var sort in ViewModel.WallSortOptions)
         {
             var current = sort;
-            WallSortOptions.Children.Add(OptionButton(
+            WallSortOptions.Children.Add(OptionRow(
                 MoviePilotSubscriptionWall.SortLabel(current),
+                glyph: null,
+                toneKey: null,
                 ViewModel.EffectiveWallSort == current,
                 "WallSort" + current,
-                () => { ViewModel.SelectWallSort(current); WallSortFlyout.Hide(); }));
+                // 网页端 selectSubscribeSort 不动弹层：勾选当场挪过去，面板留着。
+                () => { ViewModel.SelectWallSort(current); BuildFilterPanel(); }));
         }
     }
 
-    /// <summary>筛选／排序浮层里的一条：标签＋选中勾，点选即生效并收起浮层。每次开浮层按当前选项重建。</summary>
-    private static Button OptionButton(string label, bool selected, string automationId, Action action)
+    /// <summary>状态行的小图标（网页端 filterOptions 的 mdi 图标，换成 Segoe 的同义字形）。</summary>
+    private static string FilterGlyph(MoviePilotSubscriptionWallFilter filter) => filter switch
+    {
+        MoviePilotSubscriptionWallFilter.BestVersion => "\uE72C",   // Refresh：洗版
+        MoviePilotSubscriptionWallFilter.NotStarted => "\uE823",    // Recent：未开始
+        MoviePilotSubscriptionWallFilter.Subscribing => "\uE896",   // Download：订阅中
+        MoviePilotSubscriptionWallFilter.Pending => "\uE897",       // Help：待定
+        MoviePilotSubscriptionWallFilter.Paused => "\uE769",        // Pause：暂停
+        MoviePilotSubscriptionWallFilter.Completed => "\uE930",     // Completed：订阅完成
+        _ => "\uE71C"                                              // Filter：全部
+    };
+
+    /// <summary>状态行的图标色（网页端 filterOptions 的 color）：洗版警示、订阅中信息、暂停危险、完成强调。</summary>
+    private static string FilterToneKey(MoviePilotSubscriptionWallFilter filter) => filter switch
+    {
+        MoviePilotSubscriptionWallFilter.BestVersion => "EgWarningBrush",
+        MoviePilotSubscriptionWallFilter.Subscribing => "EgInfoBrush",
+        MoviePilotSubscriptionWallFilter.Paused => "EgDangerBrush",
+        MoviePilotSubscriptionWallFilter.Completed => "EgAccentBrush",
+        _ => "EgTextDimBrush"
+    };
+
+    /// <summary>
+    /// 筛选／排序浮层里的一条：可选图标＋标签＋选中勾（网页端 VListItem）。
+    /// 选中的一条铺强调色底、字与图标转强调色；每次开浮层按当前选择重建。
+    /// </summary>
+    private Button OptionRow(string label, string? glyph, string? toneKey, bool selected, string automationId, Action action)
     {
         var resources = Application.Current.Resources;
         var grid = new Grid { ColumnSpacing = 8 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var text = new TextBlock { Text = label, Style = (Style)resources["EgBodyStyle"], VerticalAlignment = VerticalAlignment.Center };
+        if (glyph is { Length: > 0 })
+        {
+            grid.Children.Add(new FontIcon
+            {
+                Glyph = glyph,
+                FontSize = (double)resources["EgCaptionFontSize"],
+                Foreground = (Brush)resources[selected ? "EgAccentBrush" : toneKey ?? "EgTextDimBrush"],
+                VerticalAlignment = VerticalAlignment.Center
+            });
+        }
+        var text = new TextBlock
+        {
+            Text = label,
+            Style = (Style)resources["EgBodyStyle"],
+            Foreground = (Brush)resources[selected ? "EgAccentBrush" : "EgTextBrush"],
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(text, 1);
         grid.Children.Add(text);
         if (selected)
         {
@@ -163,16 +216,16 @@ public sealed partial class MoviePilotSubscriptionWallView : UserControl
                 Foreground = (Brush)resources["EgAccentBrush"],
                 VerticalAlignment = VerticalAlignment.Center
             };
-            Grid.SetColumn(check, 1);
+            Grid.SetColumn(check, 2);
             grid.Children.Add(check);
         }
         var button = new Button
         {
-            Style = (Style)resources["EgSecondaryButtonStyle"],
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            // 行样式住在这个视图自己的 Resources 里（它只服务这块面板），别处的角色样式仍在 App 上。
+            Style = (Style)Resources["WallOptionRowStyle"],
             Content = grid
         };
+        if (selected) button.Background = (Brush)resources["EgAccentSoftBrush"];
         AutomationProperties.SetAutomationId(button, automationId);
         button.Click += (_, _) => action();
         return button;
@@ -210,8 +263,20 @@ public sealed partial class MoviePilotSubscriptionWallView : UserControl
 
     private Brush ToneBrush(MoviePilotExecutionTone tone) => MoviePilotWallUi.Tone(tone);
     private Visibility VisibleWhen(bool value) => MoviePilotWallUi.Show(value);
+    private Visibility KeywordClearVisibility(string keyword) => MoviePilotWallUi.Show(keyword.Length > 0);
     private bool NotBusy(bool busy) => !busy;
     private string SelectAllLabel(bool all) => all ? "取消全选订阅" : "选择全部订阅";
-    private Brush SortModeForeground(bool active) => MoviePilotWallUi.Role(active ? "EgWarningBrush" : "EgTextBrush");
-    private Brush BatchModeForeground(bool active) => MoviePilotWallUi.Role(active ? "EgAccentBrush" : "EgTextBrush");
+
+    /// <summary>
+    /// 筛选键的图标色（网页端 filterButtonColor）：有名称或非「全部」的状态筛选时是强调色，否则跟随正文。
+    /// 网页端那颗键是 text 变体，靠颜色而不是底色说明「筛过」。
+    /// </summary>
+    private Brush FilterTone(MoviePilotSubscriptionWallFilter filter, string keyword) => MoviePilotWallUi.Role(
+        keyword.Trim().Length > 0 || filter != MoviePilotSubscriptionWallFilter.All ? "EgAccentBrush" : "EgTextBrush");
+
+    /// <summary>拖拽排序键的图标色（网页端 subscribeSortMode ? warning : gray）。</summary>
+    private Brush SortModeTone(bool active) => MoviePilotWallUi.Role(active ? "EgWarningBrush" : "EgTextBrush");
+
+    /// <summary>批量键的图标色（网页端 subscribeBatchState.enabled ? primary : gray）。</summary>
+    private Brush BatchModeTone(bool active) => MoviePilotWallUi.Role(active ? "EgAccentBrush" : "EgTextBrush");
 }

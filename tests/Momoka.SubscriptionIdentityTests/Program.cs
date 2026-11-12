@@ -115,7 +115,7 @@ Console.WriteLine(JsonSerializer.Serialize(new { production = "Actual subscripti
 
 Console.WriteLine($"3 identity edit cases; {failures.Count} failures");
 Console.WriteLine("1 actual availability-handler ownership case completed (foreign/current/departed).");
-Console.WriteLine("10 subscription-wall cases completed (filter/sort, preference, order, selection, batch, maintenance, banner, polling, card execution, list failure).");
+Console.WriteLine("11 subscription-wall cases completed (filter/sort, preference, order, selection, batch, maintenance, banner, polling, card execution, card year/title, list failure).");
 if (failures.Count > 0) throw new InvalidOperationException(string.Join("; ", failures));
 
 static int? HostSeason(MoviePilotMediaViewModel media) => media.Seasons.SingleOrDefault(row => row.Files is not null)?.Season.Number;

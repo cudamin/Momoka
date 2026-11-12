@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -33,6 +34,18 @@ public sealed partial class MoviePilotSubscriptionCard
     public Visibility WallStateVisibility => WallStateText.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     public MoviePilotExecutionTone WallStateTone => HasExecution ? ExecutionTone
         : Subscription.Paused ? MoviePilotExecutionTone.Secondary : MoviePilotExecutionTone.Info;
+
+    /// <summary>
+    /// 墙上那张卡的片名（网页端 SubscribeCard 桌面档）：年份单独一行摆在片名上方，片名本身只写名字，
+    /// 电视剧再跟上季号。从前这里用的是带年份的 <see cref="Title"/>，年份和片名挤在同一行、正对着右上角
+    /// 那颗更多键；拆开以后片名这一段整体下移到卡片中线上（2026-11-12 用户令）。
+    /// </summary>
+    public string WallTitle => Subscription.Media.Title
+        + (Subscription.IsSeries && Subscription.Media.Season is { } season ? $" · 第 {season} 季" : "");
+
+    /// <summary>年份那一行；服务器没给年份就不占位，片名照旧从中间排。</summary>
+    public string WallYear => Subscription.Media.Year is { } year ? year.ToString(CultureInfo.InvariantCulture) : "";
+    public Visibility WallYearVisibility => WallYear.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>按当前时间重算可见执行态；只在读数变化时通知，避免每个轮询节拍都惊动整张卡片。</summary>
     internal void RefreshExecution(DateTimeOffset now)

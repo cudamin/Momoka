@@ -5,44 +5,102 @@
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:vm="using:Momoka.Shell.ViewModels">
     <!--
-      MoviePilot「我的订阅」墙：工具栏（筛选／排序／拖拽排序／批量／维护）＋各种横幅＋宽背景卡片网格＋空态。
+      MoviePilot「我的订阅」墙：工具栏（网页端那三个图标：筛选／拖拽排序／批量）＋各种横幅＋宽背景卡片网格＋空态。
       行为逐条对着网页端 SubscribeListView／subscribe-index 移植，状态与判断都在视图模型，这里只绑定与接事件。
       分类页（电影／电视剧）由宿主页面立起来并接同一份订阅数据；汇总库仍走原来的横排，不立墙。
     -->
+    <UserControl.Resources>
+        <!--
+          网页端那颗筛选键弹出来的 VMenu → VCard：面板自己排内边距，不留框架那圈 12。
+          浮层默认是亚克力的，底下的海报会透上来；这里给实底，和网页端那张卡片一致。
+        -->
+        <Style x:Key="WallMenuSurfaceStyle" TargetType="FlyoutPresenter">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MaxWidth" Value="Infinity" />
+            <Setter Property="Background" Value="{ThemeResource LayerFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+        </Style>
+        <!-- 面板里「状态」「排序」两个小标题（网页端 VListSubheader）。 -->
+        <Style x:Key="WallMenuHeadingStyle" TargetType="TextBlock" BasedOn="{StaticResource EgCaptionStyle}">
+            <Setter Property="Margin" Value="14,10,14,4" />
+        </Style>
+        <!-- 面板里的一条（网页端 VListItem）：平铺一行，悬停吃默认按钮底色，选中另有强调色底。 -->
+        <Style x:Key="WallOptionRowStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+    </UserControl.Resources>
     <StackPanel Spacing="{StaticResource EgSpaceM}">
-        <!-- 工具栏 -->
+        <!--
+          工具栏：网页端订阅页头部那三个图标（筛选／拖拽排序／批量），从左往右排在原来那排药丸的位置。
+          筛选浮层里放的是网页端同一块面板：名称搜索＋状态列表＋排序列表；选状态收起面板，选排序不收起。
+          维护与刷新是本地独有的管理入口（网页端没有），摆在同一行右端，不混进那三个图标里。
+        -->
         <Grid ColumnSpacing="{StaticResource EgSpaceS}">
-            <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
-                <Button x:Name="WallFilterButton" Style="{StaticResource EgSecondaryButtonStyle}"
-                    Content="{x:Bind ViewModel.WallFilterLabel, Mode=OneWay}" ToolTipService.ToolTip="筛选订阅">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceXS}" HorizontalAlignment="Left">
+                <Button x:Name="WallFilterButton" Style="{StaticResource EgIconButtonStyle}"
+                    AutomationProperties.Name="筛选订阅" ToolTipService.ToolTip="筛选订阅">
+                    <FontIcon Glyph="&#xE71C;" FontSize="{StaticResource EgSubheadFontSize}"
+                        Foreground="{x:Bind FilterTone(ViewModel.WallFilter, ViewModel.WallKeyword), Mode=OneWay}" />
                     <Button.Flyout>
-                        <Flyout x:Name="WallFilterFlyout" Opening="OnFilterFlyoutOpening">
-                            <StackPanel Width="240" Spacing="{StaticResource EgSpaceS}">
-                                <TextBox x:Name="WallKeywordBox"
-                                    PlaceholderText="名称" Text="{x:Bind ViewModel.WallKeyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                <StackPanel x:Name="WallFilterOptions" Spacing="{StaticResource EgSpaceXS}" />
+                        <Flyout x:Name="WallFilterFlyout" Placement="BottomEdgeAlignedLeft"
+                            FlyoutPresenterStyle="{StaticResource WallMenuSurfaceStyle}" Opening="OnFilterFlyoutOpening">
+                            <StackPanel Width="264">
+                                <!-- 名称：网页端那颗带放大镜、可清空的外框输入框。 -->
+                                <Grid Margin="12,12,12,10">
+                                    <TextBox x:Name="WallKeywordBox" Style="{StaticResource EgTextBoxStyle}" Height="36"
+                                        Padding="30,0,30,0" PlaceholderText="名称"
+                                        Text="{x:Bind ViewModel.WallKeyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <FontIcon Glyph="&#xE721;" FontSize="{StaticResource EgCaptionFontSize}"
+                                        Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                        IsHitTestVisible="False" Foreground="{ThemeResource EgTextDimBrush}" />
+                                    <Button x:Name="WallKeywordClear" Style="{StaticResource EgIconButtonStyle}"
+                                        Width="24" Height="24" HorizontalAlignment="Right" Margin="0,0,4,0"
+                                        Click="OnClearKeyword" Visibility="{x:Bind KeywordClearVisibility(ViewModel.WallKeyword), Mode=OneWay}"
+                                        AutomationProperties.Name="清除名称筛选" ToolTipService.ToolTip="清除">
+                                        <FontIcon Glyph="&#xE711;" FontSize="{StaticResource EgCaptionFontSize}"
+                                            Foreground="{ThemeResource EgTextDimBrush}" />
+                                    </Button>
+                                </Grid>
+                                <Border Style="{StaticResource EgRuleStyle}" />
+                                <TextBlock Text="状态" Style="{StaticResource WallMenuHeadingStyle}" />
+                                <StackPanel x:Name="WallFilterOptions" Margin="6,0,6,8" Spacing="2" />
+                                <Border Style="{StaticResource EgRuleStyle}" />
+                                <TextBlock Text="排序" Style="{StaticResource WallMenuHeadingStyle}" />
+                                <StackPanel x:Name="WallSortOptions" Margin="6,0,6,10" Spacing="2" />
                             </StackPanel>
                         </Flyout>
                     </Button.Flyout>
                 </Button>
-                <Button x:Name="WallSortButton" Style="{StaticResource EgSecondaryButtonStyle}"
-                    Content="{x:Bind ViewModel.WallSortLabel, Mode=OneWay}" ToolTipService.ToolTip="排序订阅">
-                    <Button.Flyout>
-                        <Flyout x:Name="WallSortFlyout" Opening="OnSortFlyoutOpening">
-                            <StackPanel x:Name="WallSortOptions" Width="200" Spacing="{StaticResource EgSpaceXS}" />
-                        </Flyout>
-                    </Button.Flyout>
+                <Button x:Name="WallSortModeButton" Style="{StaticResource EgIconButtonStyle}" Click="OnToggleSortMode"
+                    AutomationProperties.Name="拖拽排序" ToolTipService.ToolTip="拖拽排序">
+                    <FontIcon Glyph="&#xE8CB;" FontSize="{StaticResource EgSubheadFontSize}"
+                        Foreground="{x:Bind SortModeTone(ViewModel.WallSortMode), Mode=OneWay}" />
                 </Button>
-                <Button x:Name="WallSortModeButton" Style="{StaticResource EgSecondaryButtonStyle}"
-                    Content="拖拽排序" Click="OnToggleSortMode"
-                    Foreground="{x:Bind SortModeForeground(ViewModel.WallSortMode), Mode=OneWay}"
-                    ToolTipService.ToolTip="进入拖拽排序模式" />
-                <Button x:Name="WallBatchButton" Style="{StaticResource EgSecondaryButtonStyle}"
-                    Content="批量操作" Click="OnToggleBatchMode"
-                    Foreground="{x:Bind BatchModeForeground(ViewModel.WallBatchMode), Mode=OneWay}"
-                    ToolTipService.ToolTip="批量选择订阅" />
-                <Button x:Name="WallMaintenanceButton" Style="{StaticResource EgSecondaryButtonStyle}" Content="维护"
-                    ToolTipService.ToolTip="订阅维护">
+                <Button x:Name="WallBatchButton" Style="{StaticResource EgIconButtonStyle}" Click="OnToggleBatchMode"
+                    AutomationProperties.Name="批量操作" ToolTipService.ToolTip="批量操作">
+                    <FontIcon Glyph="&#xE762;" FontSize="{StaticResource EgSubheadFontSize}"
+                        Foreground="{x:Bind BatchModeTone(ViewModel.WallBatchMode), Mode=OneWay}" />
+                </Button>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceXS}" HorizontalAlignment="Right">
+                <Button x:Name="WallRefresh" Style="{StaticResource EgIconButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}"
+                    AutomationProperties.Name="刷新订阅" ToolTipService.ToolTip="刷新订阅">
+                    <FontIcon Glyph="&#xE72C;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextBrush}" />
+                </Button>
+                <!-- 维护键用扳手（E90F）而不是「⋯」：卡片右上角那颗「⋯」是订阅管理，同屏两个 ⋯ 会混。 -->
+                <Button x:Name="WallMaintenanceButton" Style="{StaticResource EgIconButtonStyle}"
+                    AutomationProperties.Name="订阅维护" ToolTipService.ToolTip="订阅维护">
+                    <FontIcon Glyph="&#xE90F;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextBrush}" />
                     <Button.Flyout>
                         <MenuFlyout x:Name="WallMaintenanceMenu">
                             <MenuFlyoutItem x:Name="WallSearchAll" Text="搜索当前媒体类型订阅" Click="OnSearchAll"
@@ -62,8 +120,6 @@
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
-                <Button x:Name="WallRefresh" Style="{StaticResource EgSecondaryButtonStyle}" Content="刷新订阅"
-                    Command="{x:Bind ViewModel.RefreshCommand}" ToolTipService.ToolTip="重新读取订阅列表" />
             </StackPanel>
         </Grid>
 

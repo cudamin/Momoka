@@ -23,7 +23,7 @@ internal static class Program
                 Assert.Equal(28d, page.EmbyContent.Margin.Top);
                 Assert.Equal(12d, page.ToolbarSurface.Margin.Top);
                 Assert.Equal(12d, page.LibraryNoticeBar.Margin.Top);
-                Assert.Equal("EgSectionTitleStyle", page.LibraryTitle.Style!.Key);
+                Assert.Equal("EgPageTitleStyle", page.LibraryTitle.Style!.Key);
                 Assert.Equal(HorizontalAlignment.Left, page.ToolbarSurface.HorizontalAlignment);
             });
         foreach (var kind in new[] { MediaServerKind.FnNas, MediaServerKind.Plex })
@@ -33,7 +33,7 @@ internal static class Program
                 page.ViewModel.SourceServerKind = kind;
                 page.Apply(resume: true);
                 Assert.Equal(kind == MediaServerKind.FnNas ? 20d : 0d, page.EmbyContent.Margin.Top);
-                Assert.Equal(kind == MediaServerKind.FnNas ? "EgSectionTitleStyle" : "EgPageTitleStyle", page.LibraryTitle.Style!.Key);
+                Assert.Equal("EgPageTitleStyle", page.LibraryTitle.Style!.Key);
                 Assert.Equal(kind == MediaServerKind.FnNas ? 0d : 20d, page.PageRoot.RowSpacing);
                 Assert.Equal(HorizontalAlignment.Left, page.ToolbarSurface.HorizontalAlignment);
             });
@@ -76,7 +76,28 @@ internal static class Program
             Assert.Equal("EgPageTitleStyle", page.LibraryTitle.Style!.Key);
             page.Apply(resume: true);
             Assert.Equal(28d, page.EmbyContent.Margin.Top);
-            Assert.Equal("EgSectionTitleStyle", page.LibraryTitle.Style!.Key);
+            Assert.Equal("EgPageTitleStyle", page.LibraryTitle.Style!.Key);
+        });
+        // 2026-11-12 用户令：参考 emby 媒体库左上角标题的大小，统一其他库左上角标题的大小。
+        // 从前分类库、飞牛库根、Jellyfin list、继续观看各落到 20 那一档；现在库页只认 36 这一档。
+        Test("所有库页标题同一档（Emby 媒体库那一档）", () =>
+        {
+            foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin, MediaServerKind.FnNas, MediaServerKind.Plex })
+            {
+                foreach (var section in new[] { false, true })
+                {
+                    var page = new LibraryPage();
+                    page.ViewModel.SourceServerKind = kind;
+                    page.ViewModel.IsSectionLibrary = section;
+                    page.Apply();
+                    Assert.Equal("EgPageTitleStyle", page.LibraryTitle.Style!.Key);
+
+                    var resume = new LibraryPage();
+                    resume.ViewModel.SourceServerKind = kind;
+                    resume.Apply(resume: true);
+                    Assert.Equal("EgPageTitleStyle", resume.LibraryTitle.Style!.Key);
+                }
+            }
         });
         Test("文件夹恢复原有面包屑和居中工具条", () =>
         {

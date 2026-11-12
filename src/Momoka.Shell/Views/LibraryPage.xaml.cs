@@ -826,8 +826,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         var folderDrillDown = ViewModel.IsFolderDrillDown;
         // 飞牛库根：只留筛选、排序、布局，摆到左上角（2026-11-01 用户令，照官网页端）。
         var fnNasRoot = ViewModel.IsFnNas && !folderDrillDown && !search;
-        // Jellyfin 的混合内容库根沿用网页端 list.html：没有分区签，工具条居中；页内标题照旧留着，
-        // 但落到分区库那一档字号（36 → 20，2026-11-01 用户令）。文件夹下钻页标题仍由面包屑承担。
+        // Jellyfin 的混合内容库根沿用网页端 list.html：没有分区签，工具条居中。文件夹下钻页标题仍由面包屑承担。
         var jellyfinList = ViewModel.IsJellyfinListPage;
         var contentPage = ViewModel.IsUpcomingPage || ViewModel.IsFavoritesPage;
         // 截图整理仅保留 Emby/Jellyfin 继续观看的小标题与紧凑留白，其他页面沿用原版。
@@ -868,8 +867,11 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 文件夹下钻页的面包屑已经写着「媒体库 > 文件夹名」，网页端 list.html 也把这一行放在顶栏里，
         // 页内不再重复一道大标题；标题收起后工具条独占头部，居中摆放。
         LibraryTitle.Visibility = search || folderDrillDown ? Visibility.Collapsed : Visibility.Visible;
-        LibraryTitle.Style = (Style)Application.Current.Resources[sectionLibrary || fnNasRoot || folderDrillDown || jellyfinList || compactResume
-            ? "EgSectionTitleStyle" : "EgPageTitleStyle"];
+        // 库页左上角标题一律是 Emby 媒体库那一档（2026-11-12 用户令：参考 emby 媒体库左上角标题的大小，
+        // 统一其他库左上角标题的大小）。从前分类库、飞牛库根、Jellyfin list 与继续观看会落到分区库那一档
+        // （36 → 20，2026-11-01 用户令），同一个库名在不同页面大小不一。档位只由 EgPageTitleStyle 决定，
+        // 页面差异仍由下面的间距与对齐表达。
+        LibraryTitle.Style = (Style)Application.Current.Resources["EgPageTitleStyle"];
         LibrarySectionsSurface.MaxWidth = width;
         LibrarySectionsSurface.HorizontalAlignment = HorizontalAlignment.Center;
         Grid.SetRow(LibrarySectionsSurface, 1);

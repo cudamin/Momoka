@@ -8,6 +8,40 @@
 
 当前Core/专项、旧字幕专项、主测试项目和最终Shell Release单节点编译均0警告0错误；飞牛85/85、旧字幕51/51、定向外轨42/42、HTTP52/52、匿名runner清单/失败路径22/22，0失败0跳过；句柄694/0缺失，变更文件编码/空白检查通过。新增fnnas-subtitles独立1280/760匿名真实控件区域，整段TopMost/finally恢复，截图前验Show/Popup；未在子树启动UI/native/完整主测试/真实写入/播放，不推/发布。产品提交待主控整合重验、原生截图及最终主树交付；快捷方式仍由主控维护。
 
+## 2026-11-12 主窗口云母没采壁纸：改用自配的 SystemBackdrop（已合并并交付）
+
+用户先说「感觉云母不够透，完全没有桌面的颜色？我想要微软商店的那种质感，只读审查」。审查后（未改代码）用发布件实屏逐像素量出两件事：①加载完的内容区是一整片 `#14171A`、1611×1163 的取样区里**只有 1 种颜色**，一点壁纸色都没有；②同一台机器、同一张蓝色壁纸下，**设置窗口**的云母实测 `45,57,70` 带蓝且逐处不同，**主窗口**的云母是 `32,32,32` 纯灰。结论是主窗口那块云母根本没在采样壁纸，与画布浓度无关（画布只是把 `#202020` 压成 `#14171A`）。用户随后令「另开一个工作树做A」。
+
+**根因（读了框架源码）。** `controls/dev/Materials/MicaBackdrop/MicaBackdrop.cpp`：框架的 `MicaBackdrop.OnTargetConnected` 新建 `MicaController`，配置取自 `GetDefaultSystemBackdropConfiguration`；`dxaml/xcp/dxaml/lib/SystemBackdrop_Partial.cpp` 的 `AttachInputActivationChanged` 把这个配置的 `IsInputActive` 挂在 `XamlRoot.IsInputActive` 上。`dxaml/xcp/dxaml/lib/XamlIsland_Partial.cpp` 的 `UpdateSystemBackdrop` 把岛自己当 target 传进去 —— 岛是宿主窗口的子窗口，永远报不出激活，于是配置里 `IsInputActive` 一直是假，云母按「窗口不在前台」渲染成实心 `#202020`。设置窗口走框架 `Window`，它的 XamlRoot 拿得到激活，所以同一个程序里两块云母长得不一样。运行时日志证实：`框架配置：active=False theme=Dark contrast=False`。
+
+**改了什么。** 新增 `Windowing/IslandMicaBackdrop.cs`：仍是 `MicaController{Kind=Base}`，仍借框架那份配置（主题与高对比度由框架自动维护，不另抄一套），只把 `IsInputActive` 换成宿主窗口 `WM_ACTIVATE` 的真实值；`OnDefaultSystemBackdropConfigurationChanged` 里再钉一次，防止框架重算时写回假。`HostWindow` 改挂它（不再用框架 `MicaBackdrop`），`FocusChanged` 转给它，换主题时重钉 `Theme`；顺手把材质失败那条日志改成实话（它并不画纯色底，露出的是类背景刷 `#16181C` 加画布）。`MicaMaterialTests` 那条「岛底材是 Mica（Base）」改判据：原来钉 `HostWindow` 里那句 `new MicaBackdrop { Kind = MicaKind.Base }`，而那句话正是错的；现在钉「主窗口不许回到框架默认配置」＋「激活这条线接上了」＋「新文件里 Base 而非 Alt、问了 IsSupported」。
+
+**实屏（同一窗口位置 169,108，同一张壁纸）。** 修前内容区 `(20,23,26)`、1 种颜色；修后 `(19,24,41)`、10 种颜色带蓝渐变；把画布临时设成 0% 看裸云母是 `(26,31,54)`、38 种颜色。云母采的是窗口背后那块壁纸，窗口挪到 870,70 时同一处会淡一档（`(19,23,28)`），属正常。窗口不在前台时云母按系统规则退回实心 `#202020`，也复现到了。
+
+**测试。** 整方案 Release **0 警告 0 错误**；`Momoka.Tests` **4812 项、4812 通过、0 失败 0 跳过**（早一轮有 1～3 条本机符号链接权限的既有环境红，重跑即绿）。
+
+**合并与交付。** 主树 `b47a65c` 上合入 `mica-wallpaper-sampling`，唯一冲突是 `PROGRESS.md` 两边都在顶上加了本批记录，两段都留、新的在前（`0a29e9e`）。合并后以主树整合代码重验：Shell Release **0 警告 0 错误**；`Momoka.Tests` **4812 项、4812 通过、0 失败 0 跳过**（154 s）；本批四个文件行尾 LF、无 BOM、末尾有换行。旧发布目录挪到 `Momoka-stale\publish-20261112-1432-pre-mica-sampling`，`tools/publish.ps1 -NoArchive -Shortcut` 发布 **547 文件 / 288.3 MB**，发布验证通过；快捷方式那一步照旧被拒（已知坑），按字节核对 `.lnk` 仍指向 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`，该 exe 是本次 14:40 构建，`Momoka.dll` 里查得到 `IslandMicaBackdrop`／`SetInputActive`，无需重写。
+
+**实屏（发布件，五套存活主题各一张）。** `artifacts/shots/mica-<主题>.png`，同一窗口位置：薄荷影院 `(19,23,28)`、纯黑 `(13,13,13)`、午夜 `(21,25,34)`、石墨 `(26,27,31)`、紫夜 `(25,24,32)`，每张 2～5 种颜色（修前同一处是 1 种）。纯黑那套把画布压到 `#000000`，云母只剩四成，蓝相最淡 —— 符合预期，不是没生效。
+
+**没做的。** ①**没跑自检与探针**：主窗口材质根本没有对应的自检／探针项（连画布浓度也只有设置窗口那一项有读数），按「主题颜色」那一行只做了五套实屏；②**没跑播放往返**：`UseBackdrop` 的断开／重连语义与改前一致（改前每次重挂一个新的 `MicaBackdrop`，改后复用同一个实例），真实播放要授权；③**没推远端**：未获上传授权，只在本地 master；④`dotnet format whitespace` 在 master 上本就有一批非本批文件的报红（`ShellNavigationProbe.FnNasMixed.cs`、`PlaybackHttpNativeProbe.cs` 等），本批四个文件干净，没去动别人的文件。
+
+**留给用户的判断。** 画布浓度仍是 60%。实测降到 40% 只差 2～6 级（`#0C1116` 与云母都极暗），真正让云母显形的是上面那个 `IsInputActive` 修复；要不要再降、降到多少，等用户看五张实屏定。
+
+## 2026-11-12 库页标题统一档、订阅墙复刻网页端三图标、卡片年份上移（已提交并发布）
+
+用户四张截图四条令：「1.参考emby媒体库左上角标题的大小，统一其他库左上角标题的大小 2.删除[订阅墙那排药丸] 3.复刻网页端的[截图][截图]左上角三个按钮 4.[截图]日期该到片名上方，然后往下移，不要和更多按钮一行」。两次追问定下边界：「维护／刷新订阅放哪」→「网页端什么样你就怎么改」（网页端没有这两项）；「三个图标放哪一行」→「原位左上角」。
+
+**改了什么。** ①库页左上角标题一律是 Emby 媒体库那一档：`LibraryPage.xaml.cs` 删掉按页型降档的判据（原先 Jellyfin 那几页降成 `EgSectionTitleStyle`），`FnNasLibrariesPage.xaml` 的「媒体库」从 `EgSectionTitleStyle` 提到 `EgPageTitleStyle`；四类来源 × 继续观看与否都有断言。②订阅墙工具栏照网页端 `subscribe.vue` 的 `appendButtons` 复刻：筛选／拖拽排序／批量三颗圆形图标键，取代原来那排带字药丸（全部／添加时间／拖拽排序／批量操作／维护／刷新订阅，整排删掉）。筛选浮层是网页端同一块面板——名称输入框（框内放大镜，有字时右端出现清除键）、一道细分隔线、状态列表（电影四项／电视剧七项，与网页端同一份 `filterOptions`，每行带图标与角色色，当前项铺 `EgAccentSoftBrush` 并在右端打勾）、排序列表（电影三项／电视剧四项）；选状态随即收起面板，选排序留在面板里不收起，照网页端。三颗键在没有生效的筛选／排序／批量时是常态墨色，生效时转强调色。③维护与刷新是本地独有的管理入口，网页端没有，按用户令不混进那三颗图标，改摆同一行右端两颗纯图标键：刷新（E72C）、维护（菜单三项，后两项按 `CanWallAdmin` 显隐）。维护键最初用「⋯」（E712），实屏上与卡片右上角那颗「⋯」（订阅管理）同屏撞脸，改成扳手（E90F）。④卡片右侧年份拆成独立一行排在片名上方（`WallYear`／`WallTitle`，剧集带「· 第 N 季」），文字块在卡片中线上垂直居中、右留 26 给更多键，不再和「⋯」挤同一行；没有年份时整行收起。
+
+**测试。** 三套都绿：`Momoka.LibraryHeaderTests` **19/19**（新增「所有库页标题同一档」）、`Momoka.PageContractTests` **198/198**（新增「订阅墙工具栏：网页端三个图标键，不再有药丸」与「订阅墙卡片：年份一行排在片名上方」）、`Momoka.SubscriptionIdentityTests` 的 **11 项墙用例 0 失败**（新增卡片年份／片名：电影「2025」「Alpha」、剧集「Beta · 第 1 季」、无年份整行收起）。本批 11 个改动文件 `format whitespace --verify-no-changes` 退出 0；`tools/check-diff.ps1` 12 个变更路径行尾／末尾换行／BOM／空白通过。Shell Release 构建 **0 警告 0 错误**。
+
+**探针。** `--probe-shell --probe-section moviepilot --screen 1`（副屏、匿名假服务）两跑都 **36/37**，唯一红项是既有「MoviePilot 剧资源按 TMDB 筛选、多选与批量预览」超时（上一轮发布件同命令同样复现）。新增断言落在「侧栏 MoviePilot 订阅入口、可用性显隐与订阅列表页」那条里并通过：三颗图标与右端刷新／维护的实际宽度都大于零、带字药丸一个都不在、筛选浮层里状态 4 项／排序 3 项且每行是「图标＋文字＋右端勾」的行按钮、点第四行「暂停」后 `WallFilter` 变成 Paused 且浮层已收起、再切回全部。实屏 `sidebar-moviepilot-page-screen.png`（三颗图标＋右端刷新与扳手、卡片年份在片名上方）与 `mp-wall-filter-panel-screen.png`（面板：名称框、状态四项、排序三项，选中项铺强调色并在右端打勾）。中间有一跑在第 4 条「媒体管理四档」的像素读数上红（「像素探针无法读取客户区」）并连带中断，同一份二进制重跑即 36/37，判为环境（当时同屏有别的窗口／并发进程），不作产品结论。
+
+**交付件。** 旧发布目录先挪到 `C:\Users\89400\Momoka-stale\publish-20261112-1352-pre-wall-toolbar`；`tools/publish.ps1 -NoArchive -Shortcut` 发布 **547 文件 / 288.3 MB**，14 个 GLSL、4 个 HOOK 着色器与 60 项批准 mpv 载荷逐文件校验通过。发布件 `Momoka.dll`（8 450 048 字节）与 `Momoka.exe` 的 SHA-256 与跑过探针的开发构建**逐份一致**（`2ef197a9…`／`e27c16c5…`），所以探针读数就是这一份交付件的读数。最后一步重写桌面 `Momoka.lnk` 仍被拒（已知坑），按字节核对 TargetPath 仍是 `%USERPROFILE%\Momoka\artifacts\publish\win-x64\Momoka.exe`，无需重写。版本仍 0.2.7，未打 tag、未推远端。
+
+**未验证。** 批量操作与执行轮询仍只在离线夹具里跑过；真实 MoviePilot 服务器的写入、维护端点与执行批次行为未核对。假传输不联网、不播放。
+
 ## 2026-11-12 详情页与订阅详情的简洁模式改用窗口画布作底（已提交并发布）
 
 用户一句「把媒体详情页的简洁模式也改成跟主页一样的」。先读两边现状：主页的底是外壳 `ContentHost` 那一块画布（Mica Base 加 60% 窗口色，全树只画一次），详情页简洁模式却在自己页面上铺了一块整页的 `Mica Alt`，把画布整个盖掉。问清范围时用户选「只换底材，保留卡面」。
