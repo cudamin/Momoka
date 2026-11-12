@@ -320,6 +320,55 @@ internal static class Program
             fixture.Source.ConnectedPoster.Y = 250; // 内层可见但被外页纵向视口裁掉。
             Assert.False(fixture.Prepare());
         });
+        Test("原生前进缺完成事件仍释放活动观察，返回缺完成彻底取消", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            var timer = DispatcherTimer.Created.Last();
+            Assert.True(timer.IsRunning);
+            timer.Fire();
+            Assert.Null(HomeMotion.Handlers);
+            Assert.Null(ConnectedAnimationService.Created.Last().Handlers);
+            Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            fixture.Frame.Content = fixture.Source;
+            CardDetailTransition.CompleteReturn(fixture.Frame);
+            fixture.Frame.DispatcherQueue.Drain();
+            timer.Fire();
+            Assert.False(CardDetailTransition.Returning(fixture.Frame));
+            Assert.Null(HomeMotion.Handlers);
+            Assert.Null(ConnectedAnimationService.Created.Last().Handlers);
+        });
+        Test("返回尚未投递时超时释放票据，旧Timer通知不能取消新准备", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            ConnectedAnimationService.Created.Last().Complete();
+            Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            var timer = DispatcherTimer.Created.Last();
+            var stale = timer.CapturePostedTick();
+            timer.Fire();
+            Assert.False(CardDetailTransition.Returning(fixture.Frame));
+            fixture.Prepare();
+            stale();
+            Assert.True(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+        });
+        Test("重复返回完成请求只排一次并启动一次原生动画", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            ConnectedAnimationService.Created.Last().Complete();
+            Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+            fixture.Frame.Content = fixture.Source;
+            CardDetailTransition.CompleteReturn(fixture.Frame);
+            CardDetailTransition.CompleteReturn(fixture.Frame);
+            fixture.Frame.DispatcherQueue.Drain();
+            var animation = ConnectedAnimationService.Created.Last();
+            Assert.Equal(1, animation.StartCalls);
+            animation.Complete();
+        });
         return Run();
     }
 

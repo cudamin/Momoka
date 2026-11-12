@@ -75,6 +75,11 @@ namespace Microsoft.UI.Xaml
         public void Start() => IsRunning = true;
         public void Stop() => IsRunning = false;
         public void Fire() { if (IsRunning) Tick?.Invoke(this, new()); }
+        public Action CapturePostedTick()
+        {
+            var callback = Tick;
+            return () => callback?.Invoke(this, new());
+        }
     }
 }
 

@@ -142,7 +142,10 @@ internal static class CardDetailTransition
         private bool _watching;
         private bool _disposed;
         private bool _resolved;
+        private bool _returnQueued;
         private int _generation;
+        private int _timeoutGeneration;
+        private EventHandler<object>? _timedOut;
         private int _preferenceGeneration;
         private Action? _preferenceChanged;
         private TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? _systemPreferenceChanged;
@@ -168,8 +171,7 @@ internal static class CardDetailTransition
         {
             WatchPreferences();
             _frame.Unloaded += OnFrameUnloaded;
-            _timeout.Tick += OnTimeout;
-            _timeout.Start();
+            BeginTimeout(700, () => Resolve(false));
         }
 
         internal void Attach(DetailPage page)
@@ -208,10 +210,15 @@ internal static class CardDetailTransition
             _resolved = true;
             Started = started;
             DetachTargetWait();
-            _timeout.Stop();
+            StopTimeout();
             if (!started) StopAnimation();
             BrowsePresentation.ResolveConnectedMotion(_frame, started);
             if (!started) Cancel(_frame);
+            else BeginTimeout(1200, () =>
+            {
+                StopAnimation();
+                StopWatchingPreferences();
+            });
         }
 
         internal bool BeginReturn(DetailPage page)
@@ -224,8 +231,10 @@ internal static class CardDetailTransition
                 StopAnimation();
                 _animation = ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Momoka.CardDetail.Return." + Guid.NewGuid().ToString("N"), page.ConnectedPoster);
                 IsReturning = true;
+                _returnQueued = false;
                 _generation++;
                 WatchPreferences();
+                BeginTimeout(1200, () => Cancel(_frame));
                 return true;
             }
             catch (Exception) { Cancel(_frame); return false; }
@@ -233,7 +242,8 @@ internal static class CardDetailTransition
 
         internal void CompleteReturn()
         {
-            if (!IsReturning) return;
+            if (!IsReturning || _returnQueued) return;
+            _returnQueued = true;
             var generation = _generation;
             if (!_frame.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
             {
@@ -254,7 +264,28 @@ internal static class CardDetailTransition
             })) Cancel(_frame);
         }
 
-        private void OnTimeout(object? sender, object args) => Resolve(false);
+        private void BeginTimeout(int milliseconds, Action expired)
+        {
+            StopTimeout();
+            var generation = _timeoutGeneration;
+            _timeout.Interval = TimeSpan.FromMilliseconds(milliseconds);
+            _timedOut = (_, _) =>
+            {
+                if (_disposed || generation != _timeoutGeneration) return;
+                StopTimeout();
+                expired();
+            };
+            _timeout.Tick += _timedOut;
+            _timeout.Start();
+        }
+
+        private void StopTimeout()
+        {
+            ++_timeoutGeneration;
+            _timeout.Stop();
+            if (_timedOut is not null) _timeout.Tick -= _timedOut;
+            _timedOut = null;
+        }
 
         private void WatchAnimationCompletion()
         {
@@ -264,6 +295,7 @@ internal static class CardDetailTransition
             {
                 if (_disposed || generation != _generation || !ReferenceEquals(_animation, animation)) return;
                 StopAnimation();
+                StopTimeout();
                 if (IsReturning) Cancel(_frame);
                 else StopWatchingPreferences();
             };
@@ -338,8 +370,7 @@ internal static class CardDetailTransition
             _disposed = true;
             _generation++;
             DetachTargetWait();
-            _timeout.Stop();
-            _timeout.Tick -= OnTimeout;
+            StopTimeout();
             _frame.Unloaded -= OnFrameUnloaded;
             StopAnimation();
             StopWatchingPreferences();
