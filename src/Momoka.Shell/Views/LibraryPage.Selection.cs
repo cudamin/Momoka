@@ -128,6 +128,7 @@ public sealed partial class LibraryPage
         }
         finally { _syncingSelection = false; }
         LibraryBatchMenu.Hide();
+        LibraryBatchCommandBar.IsOpen = false;
         LibraryBatchSurface.Visibility = Visibility.Collapsed;
         PlaceBatchEmptyNotice();
     }
@@ -199,14 +200,6 @@ public sealed partial class LibraryPage
     }
 
     private void OnCancelBatch(object sender, RoutedEventArgs e) => _batchCancellation?.Cancel();
-
-    private void OnSelectionKeyDown(object sender, KeyRoutedEventArgs e)
-    {
-        if (!_selecting || e.Key != Windows.System.VirtualKey.Escape) return;
-        if (_batchBusy) _batchCancellation?.Cancel();
-        else EndSelection();
-        e.Handled = true;
-    }
 
     private static string BatchLabel(ItemCommand command) => command switch
     {

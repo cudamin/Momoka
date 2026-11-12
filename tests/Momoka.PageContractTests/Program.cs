@@ -92,6 +92,7 @@ internal static class Program
         FilterValuesTests.Register();
         HomeSubscriptionRefreshTests.Register();
         SubscriptionWallWiringTests.Register();
+        SelectionInputTests.Register();
         return TestHarness.Run();
     }
 

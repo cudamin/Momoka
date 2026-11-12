@@ -52,6 +52,7 @@ namespace Microsoft.UI.Xaml.Media
     public static class VisualTreeHelper
     {
         public static DependencyObject? GetParent(DependencyObject node) => node.TreeParent;
+        public static IReadOnlyList<object> GetOpenPopupsForXamlRoot(object root) => ((List<object>)root).ToArray();
     }
 }
 

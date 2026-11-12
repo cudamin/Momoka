@@ -99,7 +99,7 @@ internal sealed partial class ShellNavigationProbe
                     CloseBatchMenus();
                     await LayoutAsync(page);
                     await SaveProbeScreenAsync($"library-batch-{kind}-{width}-selection-screen.png");
-                    Invoke(Get<Button>(page, "LibraryEndSelection"));
+                    Invoke(Get<AppBarButton>(page, "LibraryEndSelection"));
                     await UntilAsync(() => Get<FrameworkElement>(page, "LibraryBatchSurface").Visibility == Visibility.Collapsed);
                     Require(wall.SelectedItems.Count == 0 && server.Writes.Count == 0, "退出选择没有清空选择或产生写入");
                     Require(realized.All(card => Get<Border>(card, "SelectionOutline").Visibility == Visibility.Collapsed),
@@ -172,7 +172,7 @@ internal sealed partial class ShellNavigationProbe
                 {
                     await server.SecondWriteEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
                     await LayoutAsync(page);
-                    var cancel = Get<Button>(page, "LibraryCancelBatch");
+                    var cancel = Get<AppBarButton>(page, "LibraryCancelBatch");
                     Require(cancel.Visibility == Visibility.Visible && cancel.IsEnabled, "执行中没有取消剩余入口");
                     Invoke(cancel);
                     server.SecondWriteRelease.TrySetResult();
@@ -290,7 +290,7 @@ internal sealed partial class ShellNavigationProbe
             {
                 CloseBatchMenus();
                 await LayoutAsync(page!);
-                Invoke(Get<Button>(page!, "LibraryBatchActions"));
+                Invoke(Get<AppBarButton>(page!, "LibraryBatchActions"));
                 await UntilAsync(() => BatchMenuItems().Length > 0);
             }
         }
@@ -491,7 +491,7 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => Get<FrameworkElement>(page!, "LibraryBatchSurface").Visibility == Visibility.Visible);
                 for (var index = 0; index < 3; index++) Call(page!, "ProbeSelectBatch", index);
                 Require(Get<ItemsView>(page!, "CardWall").SelectedItems.Count == 3, "合集页面未选择三项");
-                new ButtonAutomationPeer(Get<Button>(page!, "LibraryBatchActions")).Invoke();
+                new AppBarButtonAutomationPeer(Get<AppBarButton>(page!, "LibraryBatchActions")).Invoke();
                 await UntilAsync(() => MenuItems().Any(item => item.Tag is ItemCommand value && value == command));
                 new MenuFlyoutItemAutomationPeer(MenuItems().Single(item => item.Tag is ItemCommand value && value == command)).Invoke();
             }

@@ -110,6 +110,10 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectJellyfinUpload", "Jellyfin字幕上传", JellyfinUploadAsync);
         AddCheck("InspectJellyfinUploadRecovery", "字幕未知上传恢复", JellyfinUploadRecoveryAsync);
         AddCheck("InspectLibraryBatch", "多选取消与逐项结果", LibraryBatchAsync);
+        AddCheck("InspectLibraryBatchKeyboard", "多选原生命令栏键盘", BatchCommandBarKeyboardAsync, timeoutSeconds: 420);
+        AddCheck("InspectPickerDropDown", "下拉有效期与展开限宽", PickerDropDownAsync);
+        AddCheck("InspectShellHistory", "返回前进完整历史", ShellHistoryAsync, ShellProbeSections.Shell);
+        AddCheck("InspectSidebarNavigation", "音乐目的地返回与前进", SidebarAsync, ShellProbeSections.Shell);
         AddCheck("InspectLibraryDiscoverySearch", "搜索人物合集和列表", LibraryDiscoverySearchAsync);
         AddCheck("InspectLibraryDiscoveryPeople", "Plex人物与题材", LibraryDiscoveryPeopleAsync);
         AddCheck("InspectLibraryDiscoveryFilters", "Plex筛选排序和字母", LibraryDiscoveryFiltersAsync);
