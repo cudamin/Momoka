@@ -71,11 +71,32 @@ internal static class MicaMaterialTests
                 "登录页根上那层还在，Mica 透不上来");
         });
 
-        Test("窗口画布：岛底材是 Mica（Base），不是 Mica Alt", () =>
+        Test("窗口画布：岛底材是 Mica（Base），「在前台」由宿主窗口说了算", () =>
         {
-            var source = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Windowing", "HostWindow.cs"));
-            Assert.Contains("new MicaBackdrop { Kind = MicaKind.Base }", source);
-            Assert.DoesNotContain("MicaKind.BaseAlt", source);
+            // 2026-11-12 改判据：原来钉的是 HostWindow 里那句 `new MicaBackdrop { Kind = MicaKind.Base }`。
+            // 实屏逐像素量出那句话是错的 —— 框架的 MicaBackdrop 拿默认配置，而默认配置的 IsInputActive
+            // 跟 XamlRoot 走，岛是子窗口、拿不到激活，于是云母按「不在前台」渲染成实心 #202020，壁纸一点
+            // 没采（同一台机器上设置窗口的云母是带蓝的 45,57,70）。现在改由 IslandMicaBackdrop 自己钉这一项。
+            // 档位（Base 而不是 Alt）与「不许回到框架默认配置」两件事仍要守着，所以判据搬到新文件上。
+            var host = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Windowing", "HostWindow.cs"));
+            Assert.Contains("_backdrop ??= new IslandMicaBackdrop();", host, "主窗口没有挂自己那份云母");
+            Assert.DoesNotContain("new MicaBackdrop", host, "又回到框架默认配置了：岛上的云母会渲染成实心灰");
+            Assert.DoesNotContain("MicaKind.BaseAlt", host);
+
+            // 「在前台」这条线要接上：断了云母就退回实心，而屏上不报错，只有像素量得出来。
+            Assert.Contains("FocusChanged += OnBackdropFocusChanged;", host, "宿主窗口的激活没有转给云母");
+            Assert.Contains("_backdrop?.SetInputActive(active)", host, "激活转给了别的东西");
+            Assert.Contains("_backdrop?.ApplyTheme()", host, "换主题时没有重钉云母的深浅");
+
+            var backdrop = File.ReadAllText(
+                Path.Combine(Root(), "src", "Momoka.Shell", "Windowing", "IslandMicaBackdrop.cs"));
+            Assert.Contains("new MicaController { Kind = MicaKind.Base }", backdrop);
+            Assert.DoesNotContain("MicaKind.BaseAlt", backdrop);
+            Assert.Contains("configuration.IsInputActive = _inputActive;", backdrop,
+                "又把「在前台」交回框架默认值了，岛上报的永远是假");
+            Assert.Contains("OnDefaultSystemBackdropConfigurationChanged", backdrop,
+                "框架重算配置之后没人钉回来，IsInputActive 会被写回假");
+            Assert.Contains("MicaController.IsSupported()", backdrop, "没问本机支不支持就挂控制器");
         });
 
         Test("窗口画布：换主题时重画这一层仍带着浓度", () =>

@@ -126,6 +126,7 @@ internal sealed class HostWindow : IDisposable
     private InputNonClientPointerSource? _nonClient;
     private UIElement? _content;
     private bool _useBackdrop = true;
+    private IslandMicaBackdrop? _backdrop;
     private bool _disposed;
 
     /// <summary>The frame, style and maximize state to restore, held only while fullscreen.</summary>
@@ -2588,6 +2589,8 @@ internal sealed class HostWindow : IDisposable
                 {
                     ApplyWindowsChrome();
                     PaintCaption(titleBar);
+                    // 云母的深浅只认配置里的 Theme：画刷换了它不知道，这一句得自己补。
+                    _backdrop?.ApplyTheme();
                 };
                 ThemeHost.Changed += _repaint;
             }
@@ -2929,6 +2932,12 @@ internal sealed class HostWindow : IDisposable
         _source.SiteBridge.Show();
 
         ApplyBackdrop();
+
+        // 云母的「在前台」由宿主窗口说了算，不由岛说 —— 岛是子窗口，XamlRoot 拿不到激活。见
+        // IslandMicaBackdrop 的注释。接在创建这里而不是 ApplyBackdrop 里：那一个每次开关材质都会再跑一遍，
+        // 接在那儿会一次一次地往同一个事件上叠。
+        FocusChanged += OnBackdropFocusChanged;
+
         ConfigureTitleBar();
 
         // The island has to sit above the video child, and mpv's window is created later and starts
@@ -3056,16 +3065,36 @@ internal sealed class HostWindow : IDisposable
             // Mica（Base），不是 Mica Alt：主窗口是普通窗口，不是带标签页的那一档。这一档与 Palette 的
             // EgCanvasBrush 浓度成对（2026-11-12 用户令「改为Mica」）—— 换回 BaseAlt，那 60% 底下会实成
             // 一块平色，屏上就看不出材质了。
-            _source.SystemBackdrop = _useBackdrop ? new MicaBackdrop { Kind = MicaKind.Base } : null;
+            //
+            // 不用框架的 MicaBackdrop：它那份配置的 IsInputActive 跟 XamlRoot 走，而岛拿不到窗口激活，
+            // 云母于是按「不在前台」渲染成实心 #202020，壁纸一点没采。见 IslandMicaBackdrop 的注释。
+            if (_useBackdrop)
+            {
+                _backdrop ??= new IslandMicaBackdrop();
+                _source.SystemBackdrop = _backdrop;
+            }
+            else
+            {
+                _source.SystemBackdrop = null;
+            }
         }
         catch (Exception error)
         {
             // Mica is a nicety. A machine with transparency effects off, an unsupported GPU or a
             // remote session must still get a window.
-            Log.Warn(Category, "设置 Mica 背景失败，改用纯色底", error);
+            //
+            // 说清楚退到哪一层：这里并不画任何底色，只是把材质摘掉 —— 露出来的是岛的类背景刷
+            // （BaseBrush，#16181C）再压上外壳那层画布。写成「改用纯色底」会让人以为下面刷过一道主题色。
+            Log.Warn(Category, "设置 Mica 背景失败，岛面退回类背景刷＋画布", error);
             _useBackdrop = false;
         }
     }
+
+    /// <summary>
+    /// 宿主窗口的激活状态转给云母。系统对「窗口不在前台」的云母给的是实心底，而岛自己报不出激活 ——
+    /// 这一句是把系统真正在说的那件事补上。
+    /// </summary>
+    private void OnBackdropFocusChanged(bool active) => _backdrop?.SetInputActive(active);
 
     /// <summary>
     /// 集成播放的画面去处是播放页自己的 SpriteVisual（<c>CompositionVideoTarget</c>）， HostWindow 对它
