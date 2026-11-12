@@ -19,3 +19,11 @@
 ## 下一步
 
 根代理需在匿名检查台当轮运行成功/预期失败，并返回几何JSON。先比较每眼panelContentY是否变化、offset是否准确、tableViewportY与realized首索引，再决定是否修正文定位/锚定或采用有证据的逐段可达验收。原自检10行判据与历史报告不变；得到原生证据前没有生产修复或“已洗绿”结论。
+
+## 原生复现后的最小定位修复
+
+根代理`190016656-31692`匿名运行在1280×900的全部9眼固定10行；760×760首两眼尚未滚动，look1实际offset1346（ScrollableHeight1346），panelContentY1364、tableContentY1468、tableViewportY122，10行全部渲染且行坐标122–320。look2–7所有几何与offset不变却realized清空。不是视口太短，也未证明与真实自检“10/7”同根因。
+
+正式ScrollToInfo原来每眼发目标1364，超过实际可滚上限1346；即使已经到达页尾也重开原生view-change。固定框架`693f472`的`Repeater/ViewportManagerWithPlatformFeatures.cpp`在`OnEffectiveViewportChanged`里对未完成ScrollPresenter correlation提前返回；实际几何未动不等于effectiveviewport更新。此源码说明了反复超范围事务为何值得消除，但没有把框架内部状态猜测写成已测根因。
+
+最小修复只将目标限制到`[0, Body.ScrollableHeight]`，距离当前offset少于0.5 DIP时不发重复请求，保持原信息块上沿语义、正常滚动、虚拟化和10行判据。编译时严格提取真实ScrollToInfo方法，匿名控件边界覆盖1364/1346、连续8眼只发一次、短内容不发事务、正常上沿/负上沿与缺内容；缺失/重复源码边界使构建失败。专项扩到12项，仍需根实际同路径原生复核；旧失败保留。

@@ -1526,7 +1526,11 @@ public sealed partial class DetailPage : Page, IShellContent
         if (Body.Content is not UIElement content) return;
 
         var top = InfoPanel.TransformToVisual(content).TransformPoint(new Point(0, 0)).Y;
-        Body.ScrollTo(0, top, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+        var target = Math.Clamp(top, 0, Body.ScrollableHeight);
+        // 位于页尾时上沿可能超过最后可滚偏移。重复发超范围请求会再开启原生view-change，
+        // 在坐标未动时暂时失去Repeater的有效视口；到达同一目标就不要重新滚动。
+        if (Math.Abs(Body.VerticalOffset - target) < 0.5) return;
+        Body.ScrollTo(0, target, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
     }
 
     private double? _revealScrollTarget;

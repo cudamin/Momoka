@@ -7,3 +7,5 @@
 ```
 
 此离线测试不创建WinUI窗口，不证明真实Tab/Enter、焦点/peer或框架返回。实际检查台 `InspectKeyboardJourney` 在阶段JSON指定的进程/HWND等待根代理的真实按键；`InspectKeyboardJourneyFailure`用错误字段名测试原生失败路径，预期报红。两条实际运行均由主控串行执行。
+
+P8媒体信息定位另外编译时严格提取真实`DetailPage.ScrollToInfo`，缺失或重复入口使构建失败；匿名范围夹具核对目标1364超出可滚1346时只请求边界一次，后续8眼不重开事务，正常/负上沿和无内容保持原语义。共享MediaInfo10行源及严格渲染反例也在本项目，当前12项。控件端点只记录参数，原生重复请求/effectiveviewport仍由InfoTable检查台实测。
