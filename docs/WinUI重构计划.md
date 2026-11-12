@@ -1,8 +1,8 @@
 # Momoka WinUI 分阶段重构计划
 
-制定日期：2026-11-12。范围：先完成项目规则、项目技能及其验证方法，再按本计划逐批重构产品。本文中的产品任务均为待实施；源码盘点不等于运行验收，不把本轮文档交付写成界面已经改好。
+制定日期：2026-11-12。范围：先完成项目规则、项目技能及其验证方法，再按本计划逐批重构产品。P0规则与技能、P1现状盘点和匿名基线已经完成；后续产品任务待实施，源码盘点和测量完成不等于产品验收通过。
 
-当前状态：P0文档与技能提交 `9b182dd` 已整合master，并完成主树文档复验；P1–P8未启动。复验结果见 [PROGRESS](../PROGRESS.md)。同期设置窗口/Mica产品提交 `0b24d0e` 已在master，其产品验证由对应批次负责；P1盘点和P2决策须以新的主树实际行为为准，不能再把该设置窗列为未改造的旧实现。
+当前状态：P0提交 `9b182dd` 已整合master；P1以 `4e0394a` 建立现状和匿名运行基线，再盘点同期 `07e991b` 的字幕/花絮增量，未修改产品或依赖。P1表面检查85项74通过11红；性能比较轮10/11、11/11、11/11，另保留存在编译并行的三探索轮及红项；音乐18墙场景证实第81项不可达和未请求封面。完整结果、版本边界及后续单元见 [P1基线](WinUI-P1基线.md)、[材质与窗口清单](WinUI-P1材质与窗口清单.md)、[页面与控件清单](WinUI-P1页面与控件清单.md)。P2–P8未实施；这些红项不洗绿，也不替代产品批次验收。
 
 ## 1. 目标与决策方式
 
@@ -14,7 +14,7 @@
 
 ## 2. 已核对的起点和证据边界
 
-本轮源码基线为 `da64fe3a87c758c51c0654a3ba73c17101fe56dd`。主树同时存在设置窗口/Mica等未提交工作，本轮使用独立工作树只改文档与退役技能文件。后续阶段须先重新检查最终 master、活动会话、脏文件、运行程序和当前交付件，吸收已经完成的变化，不能按本表覆盖新实现。
+P0制定时源码基线为 `da64fe3a87c758c51c0654a3ba73c17101fe56dd`，当时主树存在设置窗口/Mica等未提交工作，P0只改文档与退役技能。下表保留制定时的方向，最新事实以P1清单为准：主岛已使用IslandMicaBackdrop，设置现为Base和同一画布、局部Alt已撤，详情简洁页级材质也已移除。每个后续阶段仍先核对最终master、活动会话、脏文件、运行程序及实际交付件，不能用旧表覆盖同期新实现。
 
 Gallery 固定参考提交：[6de91feccadfbb0a796b71caedead5a2284f730e](https://github.com/microsoft/WinUI-Gallery/tree/6de91feccadfbb0a796b71caedead5a2284f730e)。已读导航、CommandBar、材质窗口及其 helper、Acrylic、SystemBackdropElement、ItemsRepeater、关联动画、主题切换和工程配置；路径、符号及已读边界在 [源码对照表](../.claude/skills/momoka-winui-shell/references/gallery-source-map.md)。该提交用 `2.6.6-experimental`，只能按 API/版本核对后吸收实现。Momoka 当前 split 包包括 WinUI 2.3.9、Runtime 2.5.1；以届时 csproj 为准。
 
@@ -91,11 +91,13 @@ Gallery 固定参考提交：[6de91feccadfbb0a796b71caedead5a2284f730e](https://
 
 **验收。** 每个后续任务都有真实文件、明确缺口、已有覆盖和新增验证；量测预算有基线，未知项明确。要跑的 UI/性能探针使用匿名数据；任何必要真实服务写入另按项目授权边界处理。
 
+**2026-11-12完成记录。** 清单包含19个Page、31个UserControl、24个XAML ContentDialog及代码/系统窗口边界；逐表面材料、导航/绑定/尺寸/图片/滚动/释放归属已登记。当前源码重新构建及音乐VM16项、页面契约198项、PerfList80项通过；运行基线保留上述红项，五主题设置截图存在呈现代次疑点，DPI/高对比/回退/Narrator/GPU功耗仍列未覆盖。临时音乐仪器已移除，主树增量重新编译并跑所选回归/music。后续只在当批必要决定触及时询问，不自动恢复浅色、改变宿主或新增通知。
+
 ### P2 — 主题、材质与表面层次
 
 建议分三批：P2a 材质状态与生命周期；P2b 资源/表面整理；P2c 主题与系统状态。
 
-- **P2a**：完整追踪 `HostWindow.ApplyBackdrop` 的失败回退、UseBackdrop/VideoVisible读写与浏览/播放切换。当前 catch 设置 `_useBackdrop=false`，而 VideoVisible由其取反；核实调用者后分离“希望开启材质”“实际材质状态”和“播放状态”的必要性。为失败、重试、切换/恢复增加真实生产逻辑测试，不能只改断言。
+- **P2a**：基于P1已追完整的 `HostWindow.ApplyBackdrop/IslandMicaBackdrop` 链审查失败、重试与浏览/播放切换。外层catch写 `_useBackdrop=false`，内层不支持/异常却保留true；VideoVisible读者只在诊断/自检，没有据它误起播的分支。核对AddSystemBackdropTarget返回false与构造/配置/attach失败清理，按实际需要分离意图、接入结果和播放状态，补生产逻辑测试，不能称已修复播放故障。
 - **P2a**：审查 `DetailMenuBackdrop.OnTargetConnected/Disconnected` 的支持性、AddSystemBackdropTarget回执、初始化异常、菜单/子菜单目标和主题变更。当前控制器只在连接时取得主题色；验证打开期间换主题是否陈旧，再做最小修复。记录系统配置与自定义参数分别由谁更新。
 - **P2b**：对照 Gallery SystemBackdrops/Acrylic/SystemBackdropElement 与当前模板，梳理 Palette/ThemeHost/ActionButtons/InputControlTheme/SettingsInputs；每个表面只保留有职责的层，优先原生资源，去掉确有证据的双重背景/双重模糊/重复卡片边框。
 - **P2b**：当前 CanvasAlpha/SidebarLayerAlpha 和详情菜单参数先当产品参数处理；新增或改变参数要写清作用域、预览、保存、隐藏/恢复和默认值。材料名字必须与实际API一致。
@@ -145,6 +147,7 @@ Gallery 固定参考提交：[6de91feccadfbb0a796b71caedead5a2284f730e](https://
    横向货架数据状态在 `ViewModels/CardShelf.cs`，视觉/焦点/虚拟化在 `Views/ShelfStrip.xaml` 与 `.xaml.cs`；已有 `OnNoFocusCandidateFound`、`FocusItem`、`FocusByPage`、`QueueFocusRetry` 和 FocusWatch，先测试再决定简化。音乐墙已用 ItemsView/UniformGridLayout，外层ScrollViewer的影响需量测viewport/realized元素，不能只凭嵌套形状判错。
 3. 修整增量更新、失败重试、后台排序/计算、图片尺寸请求、取消与持有者释放；仅在确有重复开销时合并dispatcher刷新。
 4. 复核自定义卡片在重复绑定、快速滚动、图片失败/恢复、移出又回树时的责任，不用Loaded一次性标志代替实际item身份。
+   P1已实测音乐模板有Primary标签却零图片GET、零Image.Source/CardItem.Poster；优先补其容器claim/load/release/recycle，底部栏独立图片正常不能证明列表正常。树中80个保留容器与TryGetElement约31–33个是不同口径，不能未经后续量测就判全量实现或换控件。
 5. 审查 `Views/ItemCommands*.cs` 现有业务交互责任，把有收益的操作服务化，保留同身份状态排序、回执与权限；该工作与UI列表批次分开提交，避免测不清性能来源。
 
 **数据与测量。** 使用100/1,000/10,000条匿名元数据与受控本地图片；固定滚动/往返路线，区分冷/热缓存。记录首屏时间、帧时序、realized数、内存/保留图片及事件/队列指标。P1基线后再写具体预算与容许波动，不能先承诺“提升30%”。
@@ -196,7 +199,7 @@ Gallery 固定参考提交：[6de91feccadfbb0a796b71caedead5a2284f730e](https://
 
 每个实现单元先证明实际缺口，再做最小修改。提交须含其覆盖测试及必要文档；不要为让测试变绿仅替换字符串/快照。更换控件、页面生命周期或窗口宿主时保留接口/设置迁移边界；回滚按本次diff定点逆向，遵守“不覆盖用户改动”的项目规则。已发生服务端写入或设置迁移不能靠Git回滚宣称撤销。
 
-计划验收账本从P1开始填实际结果。本轮只完成P0，不填写未来测试数、性能增益、视觉通过或硬件覆盖。每阶段收尾更新本计划和PROGRESS：已完成什么、未完成什么、下一步依赖什么，恢复会话时先从账本接续。
+计划验收账本已从[P1基线](WinUI-P1基线.md)开始记录实际结果；P0/P1调查交付完成，后续测试数、性能增益、视觉通过及硬件覆盖不预填。每阶段收尾更新本计划和PROGRESS：已完成什么、未完成什么、下一步依赖什么，恢复会话时先从账本接续。
 
 ## 7. 规则与技能的只读评估案例
 

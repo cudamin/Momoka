@@ -1,0 +1,199 @@
+using System.Diagnostics;
+using System.Net;
+using System.Security.Cryptography;
+using System.Text.Json;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
+using Microsoft.UI.Xaml.Automation.Provider;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Emby;
+using Momoka.Music;
+using Momoka.Shell.Views;
+
+namespace Momoka.Shell;
+
+// Temporary P1 instrument: observes the unmodified page, never calls LoadMore or starts media.
+internal sealed partial class ShellNavigationProbe
+{
+    private async Task WinuiP1MusicSurveyAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync("p1-music.invalid");
+        var image = await FixtureImageAsync(160, 160);
+        var imageHash = Convert.ToHexString(SHA256.HashData(image));
+        var samples = new List<object>();
+        var requests = new List<object>();
+        var imageGets = 0;
+        var catalogue = new Dictionary<string, EmbyItem[]>(StringComparer.Ordinal);
+        fixture.Transport.Reply = (request, _) =>
+        {
+            Require(request.Method == HttpMethod.Get, "P1 music survey rejects all writes");
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.Contains("/Images/", StringComparison.Ordinal))
+            {
+                Interlocked.Increment(ref imageGets);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(image) });
+            }
+            if (!path.EndsWith("/Items", StringComparison.Ordinal) && !path.EndsWith("/Artists", StringComparison.Ordinal))
+                return Task.FromResult(FakeTransport.Standard(request));
+            var type = path.EndsWith("/Artists", StringComparison.Ordinal) ? EmbyItemType.MusicArtist
+                : Query(request, "IncludeItemTypes") ?? "";
+            Require(catalogue.TryGetValue(type, out var items), "Unknown anonymous music query type");
+            Require(int.TryParse(Query(request, "StartIndex"), out var start) && start >= 0, "Missing music page offset");
+            Require(Query(request, "Limit") == "80" && MusicCatalog.PageSize == 80, "Unexpected production music page size");
+            var selected = items!.Skip(start).Take(80).ToArray();
+            requests.Add(new { type, start, limit = 80, returned = selected.Length, total = items!.Length });
+            return Task.FromResult(Json(new ItemsResult { Items = [.. selected], TotalRecordCount = items.Length }));
+        };
+        var shell = new ShellPage();
+        Get<FrameworkElement>(shell, "SignIn").Visibility = Visibility.Collapsed;
+        Get<FrameworkElement>(shell, "Chrome").Visibility = Visibility.Collapsed;
+        var host = Get<Grid>(shell, "ContentHost");
+        host.Visibility = Visibility.Visible;
+        host.Padding = new Thickness(0);
+        var frame = shell.Pages;
+        var theme = ThemeHost.Current;
+        var motion = HomeMotion.PreferenceEnabled;
+        _root.Children.Add(shell);
+        try
+        {
+            HomeMotion.ApplyPreference(false);
+            foreach (var width in new[] { 1280, 760, 600 })
+            foreach (var total in new[] { 81, 160 })
+            {
+                var visit = Guid.NewGuid().ToString("N")[..8];
+                catalogue.Clear();
+                foreach (var type in new[] { EmbyItemType.Audio, EmbyItemType.MusicAlbum, EmbyItemType.MusicArtist, EmbyItemType.Playlist })
+                    catalogue[type] = Enumerable.Range(0, type == EmbyItemType.Audio ? 12 : total).Select(index => new EmbyItem
+                    {
+                        Id = $"p1-{visit}-{type}-{index}", Name = $"匿名{type} {index + 1:000}", Type = type,
+                        Artists = ["匿名艺术家"], Album = "匿名专辑", RunTimeTicks = TimeSpan.FromSeconds(180).Ticks,
+                        ImageTags = new() { ["Primary"] = "p1-fixed-art" }
+                    }).ToArray();
+                ResizeProbeClient(width, 760);
+                var firstWatch = Stopwatch.StartNew();
+                Require(frame.Navigate(typeof(MusicLibraryPage), new LibraryRequest
+                {
+                    Services = fixture.Services, Title = "P1 匿名音乐", ParentId = "p1-music-" + visit,
+                    CollectionType = "music", Source = fixture.Session.Capture()
+                }), "Anonymous music Frame navigation failed");
+                var page = frame.Content as MusicLibraryPage ?? throw new InvalidOperationException("Music page missing after navigation");
+                try
+                {
+                    await UntilAsync(() => page.ViewModel.IsReady && page.ViewModel.Rows.Count == 12);
+                    var readyMs = firstWatch.Elapsed.TotalMilliseconds;
+                    await LayoutAsync(page);
+                    samples.Add(new { width, total, phase = "tracks-first", readyMs, layoutReadyMs = firstWatch.Elapsed.TotalMilliseconds,
+                        reading = Read(page), requestCount = requests.Count, imageGets = Volatile.Read(ref imageGets) });
+                    foreach (var (section, tabName) in new[]
+                    {
+                        (MusicSection.Albums, "AlbumsTab"), (MusicSection.Artists, "ArtistsTab"), (MusicSection.Playlists, "PlaylistsTab")
+                    })
+                    {
+                        var beforeImages = Volatile.Read(ref imageGets);
+                        var beforeRequests = requests.Count;
+                        var watch = Stopwatch.StartNew();
+                        var tab = Get<ToggleButton>(page, tabName);
+                        var peer = FrameworkElementAutomationPeer.CreatePeerForElement(tab)
+                            ?? throw new InvalidOperationException("Music tab has no real UIA peer");
+                        string input;
+                        if (peer.GetPattern(PatternInterface.Invoke) is IInvokeProvider invoke)
+                        { input = "uia-invoke"; invoke.Invoke(); }
+                        else if (peer.GetPattern(PatternInterface.Toggle) is IToggleProvider toggle)
+                        { input = "uia-toggle-click"; toggle.Toggle(); }
+                        else throw new InvalidOperationException("Music tab exposes neither Invoke nor Toggle");
+                        await UntilAsync(() => page.ViewModel.Section == section && page.ViewModel.IsReady && page.ViewModel.Rows.Count == 80);
+                        var sectionReadyMs = watch.Elapsed.TotalMilliseconds;
+                        await LayoutAsync(page);
+                        await Task.Delay(300); // Explicitly recorded image-settle sampling delay; not part of readyMs.
+                        var first = Read(page);
+                        var wall = Get<ItemsView>(page, "MusicWall");
+                        var outer = Get<ScrollViewer>(page, "WallScroll");
+                        var scrolling = new List<object>();
+                        if (wall.ScrollView is { ViewportHeight: > 0 } inner)
+                        {
+                            try { await ScrollProbeAsync(inner, inner.ScrollableHeight); scrolling.Add(new { owner = "inner", result = "completed", offset = inner.VerticalOffset }); }
+                            catch (Exception error) { scrolling.Add(new { owner = "inner", result = error.GetType().Name, detail = error.Message }); }
+                        }
+                        else scrolling.Add(new { owner = "inner", result = "no-finite-viewport" });
+                        try { await ScrollProbeAsync(outer, outer.ScrollableHeight); scrolling.Add(new { owner = "outer", result = "completed", offset = outer.VerticalOffset }); }
+                        catch (Exception error) { scrolling.Add(new { owner = "outer", result = error.GetType().Name, detail = error.Message }); }
+                        await LayoutAsync(page);
+                        await Task.Delay(300);
+                        var more = Get<Button>(page, "MoreButton");
+                        var containers = Descendants(wall).OfType<ItemContainer>().Where(EffectiveVisible).ToArray();
+                        var row81 = page.ViewModel.Rows.Skip(80).FirstOrDefault();
+                        var reached81 = row81 is not null && containers.Any(container =>
+                            ReferenceEquals(container.DataContext, row81) && Intersects(container, outer));
+                        samples.Add(new
+                        {
+                            width, total, section = section.ToString(), input, sectionReadyMs, imageSampleDelayMs = 300,
+                            elapsedIncludingLayoutAndScrollMs = watch.Elapsed.TotalMilliseconds,
+                            first, final = Read(page), scrolling, imageGets = Volatile.Read(ref imageGets) - beforeImages,
+                            pageRequests = requests.Skip(beforeRequests).ToArray(), effectiveMoreVisible = EffectiveVisible(more),
+                            moreUiaName = FrameworkElementAutomationPeer.CreatePeerForElement(more)?.GetName() ?? "",
+                            moreCollapsedAncestors = HiddenAncestors(more), row81Loaded = row81 is not null, reached81,
+                            requirementPass = reached81, measurementOnly = true, realNetwork = false, playback = false
+                        });
+                        await SaveProbeScreenAsync($"winui-p1-music-{section}-{total}-{width}-screen.png");
+                    }
+                }
+                finally { page.Release(); frame.Content = null; frame.BackStack.Clear(); }
+            }
+        }
+        finally
+        {
+            (frame.Content as IShellContent)?.Release();
+            frame.Content = null;
+            frame.BackStack.Clear();
+            _root.Children.Remove(shell);
+            HomeMotion.ApplyPreference(motion);
+            ThemeHost.Apply(theme.Id);
+            File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "winui-p1-music.json"), JsonSerializer.Serialize(new
+            {
+                instrument = "temporary-observation-only", fixtureImage = new { width = 160, height = 160, sha256 = imageHash },
+                pageSize = MusicCatalog.PageSize, theme = theme.Id, animationPreferenceDuringSurvey = false,
+                samples, requests, totalImageGets = imageGets, loadMoreInvoked = false, realNetwork = false, playback = false
+            }, new JsonSerializerOptions { WriteIndented = true }));
+        }
+
+        static object Read(MusicLibraryPage page)
+        {
+            var wall = Get<ItemsView>(page, "MusicWall");
+            var outer = Get<ScrollViewer>(page, "WallScroll");
+            var images = Descendants(wall).OfType<Image>().ToArray();
+            var containers = Descendants(wall).OfType<ItemContainer>().ToArray();
+            var repeaters = Descendants(wall).OfType<ItemsRepeater>().ToArray();
+            return new
+            {
+                rows = page.ViewModel.Rows.Count, page.ViewModel.MoreAvailable, page.ViewModel.CountLabel,
+                pageWidth = page.ActualWidth, pageHeight = page.ActualHeight,
+                imageElements = images.Length, imageSources = images.Count(image => image.Source is not null),
+                bitmapSources = images.Count(image => image.Source is BitmapSource), cardPosters = page.ViewModel.Rows.Count(card => card.Poster is not null),
+                containerElements = containers.Length, containersWithSize = containers.Count(item => item.ActualWidth > 0 && item.ActualHeight > 0),
+                viewportContainers = containers.Count(item => EffectiveVisible(item) && Intersects(item, outer)),
+                repeaterRealized = repeaters.Sum(repeater => Enumerable.Range(0, page.ViewModel.Rows.Count).Count(index => repeater.TryGetElement(index) is not null)),
+                outerViewport = outer.ViewportHeight, outerExtent = outer.ExtentHeight, outerOffset = outer.VerticalOffset,
+                innerViewport = wall.ScrollView?.ViewportHeight, innerExtent = wall.ScrollView?.ExtentHeight,
+                innerOffset = wall.ScrollView?.VerticalOffset, wallHeight = wall.ActualHeight, wallMaxHeight = double.IsFinite(wall.MaxHeight) ? wall.MaxHeight : (double?)null
+            };
+        }
+        static string[] HiddenAncestors(DependencyObject node)
+        {
+            var hidden = new List<string>();
+            for (DependencyObject? parent = node; parent is not null; parent = VisualTreeHelper.GetParent(parent))
+                if (parent is FrameworkElement { Visibility: Visibility.Collapsed } element) hidden.Add(element.GetType().Name + ":" + element.Name);
+            return [.. hidden];
+        }
+        static bool EffectiveVisible(FrameworkElement element) => element.IsLoaded && HiddenAncestors(element).Length == 0;
+        static bool Intersects(FrameworkElement element, ScrollViewer viewport)
+        {
+            var top = element.TransformToVisual(viewport).TransformPoint(new()).Y;
+            return top < viewport.ViewportHeight && top + element.ActualHeight > 0;
+        }
+    }
+}

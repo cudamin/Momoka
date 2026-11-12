@@ -1,3 +1,17 @@
+## 2026-11-12 WinUI P1：现状盘点、匿名基线与决策准备
+
+用户要求“开始做p1”。在本聊天受保护的 `winui-rules-plan/Momoka` 独立树完成调查：先重读主树CLAUDE、Shell/验证及通用WinUI技能，快进到 `4e0394a`；随后吸收同期 `07e991b` 的字幕/花絮，原运行基线与增量源码分别记录，不混作新产品已验收。三名子代理分工材质/窗口、页面/布局、验证路径；源码与固定Gallery SHA `6de91feccadfbb0a796b71caedead5a2284f730e` 实读，Gallery2.6.6-experimental依赖未引入。
+
+交付文档：[P1基线](docs/WinUI-P1基线.md)、[材质与窗口](docs/WinUI-P1材质与窗口清单.md)、[页面与控件](docs/WinUI-P1页面与控件清单.md)，及 `docs/winui-p1` 匿名读数/音乐仪器源文本。19 Page、31 UserControl、24 XAML ContentDialog（同期新增1）；逐表面Root/target/长期短暂/材质覆盖/状态/释放，绑定/导航/断点/焦点/滚动/图片与P2–P7最小单元已列。现主窗已为IslandMicaBackdrop，设置Base＋唯一画布，分类Alt已撤；Host失败仅污染诊断/重试意图，无误起播读者；菜单同target换主题、false回执和异常清理仍需P2覆盖。
+
+实际验证：4e0394a Shell、修正后的临时仪器、07e991b无仪器最终构建均Release0警告0错误；音乐VM16/16、页面契约198/198、PerfList80/80，0失败0跳过，吸收07e后用统一脚本重跑同样通过。最初统一脚本因缺UiMotion清单拒绝，已由同期主树修复；PerfList首次猜错DLL路径未执行，读csproj后纠正并保留原命令错误。未运行完整主套件或self-check，不冒充全量交付。
+
+原生基线（全匿名，主屏100%缩放，拒绝播放和真实写入）：4e的shell/settings/library/music **85项74通过11红、退出1**；历史飞牛人物模板、4项CastRow墨色、819背景仍红，另2条旧标题期待20对实际36、合集菜单Popup取样守卫、飞牛移出空序列及QQ遮挡设置截图。性能比较轮 **10/11、11/11、11/11**，无本任务编译并行，第4轮缓存路径等Rendering超时仍保留；另保留有编译并行的探索轮11/11、10/11、10/11与深返回1500锚点等待红，未归因或洗绿。比较导航click→Rendering回调427.17/595.66/405.58ms，中位427.17；内存采样500/505/518次、实际步长中位218/219/219ms，整轮Private峰值928.9/973.5/963.9MiB，不是单页泄漏或GPU/功耗预算。机器编译Runtime2.5.1、启动请求2.5，实际模块来自2.6.5.0，三种版本分开。原始匿名日志目录、hash、scope及失败原因均在基线。
+
+临时MusicSurvey仅插检查台观察入口，不改页面：真实Tab/内外滚动 **18个墙场景**（1280/760/600×81/160×专辑/艺术家/歌单）均Rows80/MoreAvailabletrue、offset80请求0、More祖先Collapsed、图片GET0/Image.Source0/CardItem.Poster0；第81项不可达和未启动封面加载由实测证实，分别交P4/P5。测量用例通过不等于产品通过，JSON明确requirementPass/productPassed=false。1280宽下树中80与TryGetElement约31–33容器不混算虚拟化；仪器逐字移除并留源hash，07e无仪器件music **2/2**也不抵消缺口。截图目视13张，设置五主题文件名与色/勾选不同步疑点保留，高对比/关闭透明/文字放大/跨DPI/Narrator/GPU/真实服务与播放均未覆盖。
+
+本批只保留文档、匿名数据和 `tools/check-winui-p1.py` 内容/链接/证据反例检查，产品路径无diff；D01–D07继续按当批具体取舍处理，没有新冲突要求需现在确认。P1调查完成，产品红项未修，P2–P8未实施；不发布、不改快捷方式、不推送。临时实验构建和原红日志保留在本树ignored artifacts；受保护工作树保持，未创建长期分支或清理其它聊天。 文档交付检查：10个本批文件UTF-8/LF/BOM/末尾换行0错误；P1检查5输入、213本地链接、11个拒绝反例，政策检查3文档21反例，独立核对6轮/2表面/18墙原回执均通过；这些检查不把红运行算产品绿。
+
 ## 2026-11-12 媒体库第四批飞牛字幕（独立树待主控整合）
 
 追加修复：正式caller后台检查不触碰XAML，UI采样根/撤销及缓存dispatcher；真实caller旧blob红2/88、修正全绿。extra_file有容器index保留内轨，不重复加载提取别名；SDK14缓存确认subtitle/dl仍要签名，受限类型在受管HTTP逐URI即时authx，媒体/native/跨源不带签名，字幕导出同规则。坏redirect派发后保留未知债务；原生补正式入口/匿名sum等和本dialog Popup HWND截图守卫。父执行旧探针首次漏sum失败如实保留，新原生需父重跑。

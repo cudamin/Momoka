@@ -1,0 +1,1963 @@
+{
+  "instrument": "temporary-observation-only",
+  "fixtureImage": {
+    "width": 160,
+    "height": 160,
+    "sha256": "F4931040B72A1225DBEF4E6F65EA03AF01C57E66757EE50889029997B3935790"
+  },
+  "pageSize": 80,
+  "theme": "midnight",
+  "animationPreferenceDuringSurvey": false,
+  "samples": [
+    {
+      "width": 1280,
+      "total": 81,
+      "phase": "tracks-first",
+      "readyMs": 24.416,
+      "layoutReadyMs": 243.256,
+      "reading": {
+        "rows": 12,
+        "MoreAvailable": false,
+        "CountLabel": "12 首",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 0,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 0,
+        "containersWithSize": 0,
+        "viewportContainers": 0,
+        "repeaterRealized": 0,
+        "outerViewport": 0,
+        "outerExtent": 0,
+        "outerOffset": 0,
+        "innerViewport": null,
+        "innerExtent": null,
+        "innerOffset": null,
+        "wallHeight": 0,
+        "wallMaxHeight": null
+      },
+      "requestCount": 1,
+      "imageGets": 0
+    },
+    {
+      "width": 1280,
+      "total": 81,
+      "section": "Albums",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 15.5931,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1206.2953,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 张",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 31,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 31,
+        "containersWithSize": 31,
+        "viewportContainers": 18,
+        "repeaterRealized": 31,
+        "outerViewport": 557,
+        "outerExtent": 3518,
+        "outerOffset": 0,
+        "innerViewport": 3518,
+        "innerExtent": 3518,
+        "innerOffset": 0,
+        "wallHeight": 3518,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 张",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 14,
+        "repeaterRealized": 33,
+        "outerViewport": 557,
+        "outerExtent": 3518,
+        "outerOffset": 2961,
+        "innerViewport": 3518,
+        "innerExtent": 3518,
+        "innerOffset": 0,
+        "wallHeight": 3518,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 2961
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "MusicAlbum",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 81
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 1280,
+      "total": 81,
+      "section": "Artists",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 39.4444,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1080.012,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 位",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 18,
+        "repeaterRealized": 31,
+        "outerViewport": 557,
+        "outerExtent": 3518,
+        "outerOffset": 0,
+        "innerViewport": 3518,
+        "innerExtent": 3518,
+        "innerOffset": 0,
+        "wallHeight": 3518,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 位",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 14,
+        "repeaterRealized": 33,
+        "outerViewport": 557,
+        "outerExtent": 3518,
+        "outerOffset": 2961,
+        "innerViewport": 3518,
+        "innerExtent": 3518,
+        "innerOffset": 0,
+        "wallHeight": 3518,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 2961
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "MusicArtist",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 81
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 1280,
+      "total": 81,
+      "section": "Playlists",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 13.0214,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1077.0358,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 个",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 18,
+        "repeaterRealized": 31,
+        "outerViewport": 557,
+        "outerExtent": 3518,
+        "outerOffset": 0,
+        "innerViewport": 3518,
+        "innerExtent": 3518,
+        "innerOffset": 0,
+        "wallHeight": 3518,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 个",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 14,
+        "repeaterRealized": 33,
+        "outerViewport": 557,
+        "outerExtent": 3518,
+        "outerOffset": 2961,
+        "innerViewport": 3518,
+        "innerExtent": 3518,
+        "innerOffset": 0,
+        "wallHeight": 3518,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 2961
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "Playlist",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 81
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 1280,
+      "total": 160,
+      "phase": "tracks-first",
+      "readyMs": 4.085,
+      "layoutReadyMs": 197.2088,
+      "reading": {
+        "rows": 12,
+        "MoreAvailable": false,
+        "CountLabel": "12 首",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 0,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 0,
+        "containersWithSize": 0,
+        "viewportContainers": 0,
+        "repeaterRealized": 0,
+        "outerViewport": 0,
+        "outerExtent": 0,
+        "outerOffset": 0,
+        "innerViewport": null,
+        "innerExtent": null,
+        "innerOffset": null,
+        "wallHeight": 0,
+        "wallMaxHeight": null
+      },
+      "requestCount": 5,
+      "imageGets": 0
+    },
+    {
+      "width": 1280,
+      "total": 160,
+      "section": "Albums",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 6.305,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1127.0367,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 张",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 31,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 31,
+        "containersWithSize": 31,
+        "viewportContainers": 18,
+        "repeaterRealized": 31,
+        "outerViewport": 557,
+        "outerExtent": 3518,
+        "outerOffset": 0,
+        "innerViewport": 3518,
+        "innerExtent": 3518,
+        "innerOffset": 0,
+        "wallHeight": 3518,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 张",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 14,
+        "repeaterRealized": 33,
+        "outerViewport": 557,
+        "outerExtent": 3518,
+        "outerOffset": 2961,
+        "innerViewport": 3518,
+        "innerExtent": 3518,
+        "innerOffset": 0,
+        "wallHeight": 3518,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 2961
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "MusicAlbum",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 160
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 1280,
+      "total": 160,
+      "section": "Artists",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 13.1446,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1062.4246,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 位",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 18,
+        "repeaterRealized": 31,
+        "outerViewport": 557,
+        "outerExtent": 3518,
+        "outerOffset": 0,
+        "innerViewport": 3518,
+        "innerExtent": 3518,
+        "innerOffset": 0,
+        "wallHeight": 3518,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 位",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 14,
+        "repeaterRealized": 33,
+        "outerViewport": 557,
+        "outerExtent": 3518,
+        "outerOffset": 2961,
+        "innerViewport": 3518,
+        "innerExtent": 3518,
+        "innerOffset": 0,
+        "wallHeight": 3518,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 2961
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "MusicArtist",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 160
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 1280,
+      "total": 160,
+      "section": "Playlists",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 124.1387,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1211.1522,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 个",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 18,
+        "repeaterRealized": 31,
+        "outerViewport": 557,
+        "outerExtent": 3518,
+        "outerOffset": 0,
+        "innerViewport": 3518,
+        "innerExtent": 3518,
+        "innerOffset": 0,
+        "wallHeight": 3518,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 个",
+        "pageWidth": 1280,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 14,
+        "repeaterRealized": 33,
+        "outerViewport": 557,
+        "outerExtent": 3518,
+        "outerOffset": 2961,
+        "innerViewport": 3518,
+        "innerExtent": 3518,
+        "innerOffset": 0,
+        "wallHeight": 3518,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 2961
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "Playlist",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 160
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 760,
+      "total": 81,
+      "phase": "tracks-first",
+      "readyMs": 4.4767,
+      "layoutReadyMs": 197.4116,
+      "reading": {
+        "rows": 12,
+        "MoreAvailable": false,
+        "CountLabel": "12 首",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 0,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 0,
+        "containersWithSize": 0,
+        "viewportContainers": 0,
+        "repeaterRealized": 0,
+        "outerViewport": 0,
+        "outerExtent": 0,
+        "outerOffset": 0,
+        "innerViewport": null,
+        "innerExtent": null,
+        "innerOffset": null,
+        "wallHeight": 0,
+        "wallMaxHeight": null
+      },
+      "requestCount": 9,
+      "imageGets": 0
+    },
+    {
+      "width": 760,
+      "total": 81,
+      "section": "Albums",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 47.8502,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1205.8496,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 张",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 16,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 16,
+        "containersWithSize": 16,
+        "viewportContainers": 9,
+        "repeaterRealized": 16,
+        "outerViewport": 557,
+        "outerExtent": 6807,
+        "outerOffset": 0,
+        "innerViewport": 6807,
+        "innerExtent": 6807,
+        "innerOffset": 0,
+        "wallHeight": 6807,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 张",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 8,
+        "repeaterRealized": 18,
+        "outerViewport": 557,
+        "outerExtent": 6807,
+        "outerOffset": 6250,
+        "innerViewport": 6807,
+        "innerExtent": 6807,
+        "innerOffset": 0,
+        "wallHeight": 6807,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 6250
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "MusicAlbum",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 81
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 760,
+      "total": 81,
+      "section": "Artists",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 12.3254,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1109.8249,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 位",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 9,
+        "repeaterRealized": 16,
+        "outerViewport": 557,
+        "outerExtent": 6807,
+        "outerOffset": 0,
+        "innerViewport": 6807,
+        "innerExtent": 6807,
+        "innerOffset": 0,
+        "wallHeight": 6807,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 位",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 8,
+        "repeaterRealized": 18,
+        "outerViewport": 557,
+        "outerExtent": 6807,
+        "outerOffset": 6250,
+        "innerViewport": 6807,
+        "innerExtent": 6807,
+        "innerOffset": 0,
+        "wallHeight": 6807,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 6250
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "MusicArtist",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 81
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 760,
+      "total": 81,
+      "section": "Playlists",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 57.481,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1102.1936,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 个",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 9,
+        "repeaterRealized": 16,
+        "outerViewport": 557,
+        "outerExtent": 6807,
+        "outerOffset": 0,
+        "innerViewport": 6807,
+        "innerExtent": 6807,
+        "innerOffset": 0,
+        "wallHeight": 6807,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 个",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 8,
+        "repeaterRealized": 18,
+        "outerViewport": 557,
+        "outerExtent": 6807,
+        "outerOffset": 6250,
+        "innerViewport": 6807,
+        "innerExtent": 6807,
+        "innerOffset": 0,
+        "wallHeight": 6807,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 6250
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "Playlist",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 81
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 760,
+      "total": 160,
+      "phase": "tracks-first",
+      "readyMs": 7.8527,
+      "layoutReadyMs": 208.66,
+      "reading": {
+        "rows": 12,
+        "MoreAvailable": false,
+        "CountLabel": "12 首",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 0,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 0,
+        "containersWithSize": 0,
+        "viewportContainers": 0,
+        "repeaterRealized": 0,
+        "outerViewport": 0,
+        "outerExtent": 0,
+        "outerOffset": 0,
+        "innerViewport": null,
+        "innerExtent": null,
+        "innerOffset": null,
+        "wallHeight": 0,
+        "wallMaxHeight": null
+      },
+      "requestCount": 13,
+      "imageGets": 0
+    },
+    {
+      "width": 760,
+      "total": 160,
+      "section": "Albums",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 7.214,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1175.6996,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 张",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 16,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 16,
+        "containersWithSize": 16,
+        "viewportContainers": 9,
+        "repeaterRealized": 16,
+        "outerViewport": 557,
+        "outerExtent": 6807,
+        "outerOffset": 0,
+        "innerViewport": 6807,
+        "innerExtent": 6807,
+        "innerOffset": 0,
+        "wallHeight": 6807,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 张",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 8,
+        "repeaterRealized": 18,
+        "outerViewport": 557,
+        "outerExtent": 6807,
+        "outerOffset": 6250,
+        "innerViewport": 6807,
+        "innerExtent": 6807,
+        "innerOffset": 0,
+        "wallHeight": 6807,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 6250
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "MusicAlbum",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 160
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 760,
+      "total": 160,
+      "section": "Artists",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 52.8719,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1161.6575,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 位",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 9,
+        "repeaterRealized": 16,
+        "outerViewport": 557,
+        "outerExtent": 6807,
+        "outerOffset": 0,
+        "innerViewport": 6807,
+        "innerExtent": 6807,
+        "innerOffset": 0,
+        "wallHeight": 6807,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 位",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 8,
+        "repeaterRealized": 18,
+        "outerViewport": 557,
+        "outerExtent": 6807,
+        "outerOffset": 6250,
+        "innerViewport": 6807,
+        "innerExtent": 6807,
+        "innerOffset": 0,
+        "wallHeight": 6807,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 6250
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "MusicArtist",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 160
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 760,
+      "total": 160,
+      "section": "Playlists",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 20.492,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1095.5493,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 个",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 9,
+        "repeaterRealized": 16,
+        "outerViewport": 557,
+        "outerExtent": 6807,
+        "outerOffset": 0,
+        "innerViewport": 6807,
+        "innerExtent": 6807,
+        "innerOffset": 0,
+        "wallHeight": 6807,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 个",
+        "pageWidth": 760,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 8,
+        "repeaterRealized": 18,
+        "outerViewport": 557,
+        "outerExtent": 6807,
+        "outerOffset": 6250,
+        "innerViewport": 6807,
+        "innerExtent": 6807,
+        "innerOffset": 0,
+        "wallHeight": 6807,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 6250
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "Playlist",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 160
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 600,
+      "total": 81,
+      "phase": "tracks-first",
+      "readyMs": 6.7528,
+      "layoutReadyMs": 196.7988,
+      "reading": {
+        "rows": 12,
+        "MoreAvailable": false,
+        "CountLabel": "12 首",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 0,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 0,
+        "containersWithSize": 0,
+        "viewportContainers": 0,
+        "repeaterRealized": 0,
+        "outerViewport": 0,
+        "outerExtent": 0,
+        "outerOffset": 0,
+        "innerViewport": null,
+        "innerExtent": null,
+        "innerOffset": null,
+        "wallHeight": 0,
+        "wallMaxHeight": null
+      },
+      "requestCount": 17,
+      "imageGets": 0
+    },
+    {
+      "width": 600,
+      "total": 81,
+      "section": "Albums",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 44.4351,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1231.4486,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 张",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 11,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 11,
+        "containersWithSize": 11,
+        "viewportContainers": 6,
+        "repeaterRealized": 11,
+        "outerViewport": 557,
+        "outerExtent": 10096,
+        "outerOffset": 0,
+        "innerViewport": 10096,
+        "innerExtent": 10096,
+        "innerOffset": 0,
+        "wallHeight": 10096,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 张",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 6,
+        "repeaterRealized": 13,
+        "outerViewport": 557,
+        "outerExtent": 10096,
+        "outerOffset": 9539,
+        "innerViewport": 10096,
+        "innerExtent": 10096,
+        "innerOffset": 0,
+        "wallHeight": 10096,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 9539
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "MusicAlbum",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 81
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 600,
+      "total": 81,
+      "section": "Artists",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 15.8911,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1071.5861,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 位",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 6,
+        "repeaterRealized": 11,
+        "outerViewport": 557,
+        "outerExtent": 10096,
+        "outerOffset": 0,
+        "innerViewport": 10096,
+        "innerExtent": 10096,
+        "innerOffset": 0,
+        "wallHeight": 10096,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 位",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 6,
+        "repeaterRealized": 13,
+        "outerViewport": 557,
+        "outerExtent": 10096,
+        "outerOffset": 9539,
+        "innerViewport": 10096,
+        "innerExtent": 10096,
+        "innerOffset": 0,
+        "wallHeight": 10096,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 9539
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "MusicArtist",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 81
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 600,
+      "total": 81,
+      "section": "Playlists",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 60.0127,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1276.2518,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 个",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 6,
+        "repeaterRealized": 11,
+        "outerViewport": 557,
+        "outerExtent": 10096,
+        "outerOffset": 0,
+        "innerViewport": 10096,
+        "innerExtent": 10096,
+        "innerOffset": 0,
+        "wallHeight": 10096,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "81 个",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 6,
+        "repeaterRealized": 13,
+        "outerViewport": 557,
+        "outerExtent": 10096,
+        "outerOffset": 9539,
+        "innerViewport": 10096,
+        "innerExtent": 10096,
+        "innerOffset": 0,
+        "wallHeight": 10096,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 9539
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "Playlist",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 81
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 600,
+      "total": 160,
+      "phase": "tracks-first",
+      "readyMs": 5.834,
+      "layoutReadyMs": 246.9404,
+      "reading": {
+        "rows": 12,
+        "MoreAvailable": false,
+        "CountLabel": "12 首",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 0,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 0,
+        "containersWithSize": 0,
+        "viewportContainers": 0,
+        "repeaterRealized": 0,
+        "outerViewport": 0,
+        "outerExtent": 0,
+        "outerOffset": 0,
+        "innerViewport": null,
+        "innerExtent": null,
+        "innerOffset": null,
+        "wallHeight": 0,
+        "wallMaxHeight": null
+      },
+      "requestCount": 21,
+      "imageGets": 0
+    },
+    {
+      "width": 600,
+      "total": 160,
+      "section": "Albums",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 9.2254,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1474.194,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 张",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 11,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 11,
+        "containersWithSize": 11,
+        "viewportContainers": 6,
+        "repeaterRealized": 11,
+        "outerViewport": 557,
+        "outerExtent": 10096,
+        "outerOffset": 0,
+        "innerViewport": 10096,
+        "innerExtent": 10096,
+        "innerOffset": 0,
+        "wallHeight": 10096,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 张",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 6,
+        "repeaterRealized": 13,
+        "outerViewport": 557,
+        "outerExtent": 10096,
+        "outerOffset": 9539,
+        "innerViewport": 10096,
+        "innerExtent": 10096,
+        "innerOffset": 0,
+        "wallHeight": 10096,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 9539
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "MusicAlbum",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 160
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 600,
+      "total": 160,
+      "section": "Artists",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 23.1752,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1138.9589,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 位",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 6,
+        "repeaterRealized": 11,
+        "outerViewport": 557,
+        "outerExtent": 10096,
+        "outerOffset": 0,
+        "innerViewport": 10096,
+        "innerExtent": 10096,
+        "innerOffset": 0,
+        "wallHeight": 10096,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 位",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 6,
+        "repeaterRealized": 13,
+        "outerViewport": 557,
+        "outerExtent": 10096,
+        "outerOffset": 9539,
+        "innerViewport": 10096,
+        "innerExtent": 10096,
+        "innerOffset": 0,
+        "wallHeight": 10096,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 9539
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "MusicArtist",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 160
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    },
+    {
+      "width": 600,
+      "total": 160,
+      "section": "Playlists",
+      "input": "uia-toggle-click",
+      "sectionReadyMs": 91.6805,
+      "imageSampleDelayMs": 300,
+      "elapsedIncludingLayoutAndScrollMs": 1184.9805,
+      "first": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 个",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 6,
+        "repeaterRealized": 11,
+        "outerViewport": 557,
+        "outerExtent": 10096,
+        "outerOffset": 0,
+        "innerViewport": 10096,
+        "innerExtent": 10096,
+        "innerOffset": 0,
+        "wallHeight": 10096,
+        "wallMaxHeight": null
+      },
+      "final": {
+        "rows": 80,
+        "MoreAvailable": true,
+        "CountLabel": "160 个",
+        "pageWidth": 600,
+        "pageHeight": 760,
+        "imageElements": 80,
+        "imageSources": 0,
+        "bitmapSources": 0,
+        "cardPosters": 0,
+        "containerElements": 80,
+        "containersWithSize": 80,
+        "viewportContainers": 6,
+        "repeaterRealized": 13,
+        "outerViewport": 557,
+        "outerExtent": 10096,
+        "outerOffset": 9539,
+        "innerViewport": 10096,
+        "innerExtent": 10096,
+        "innerOffset": 0,
+        "wallHeight": 10096,
+        "wallMaxHeight": null
+      },
+      "scrolling": [
+        {
+          "owner": "inner",
+          "result": "completed",
+          "offset": 0
+        },
+        {
+          "owner": "outer",
+          "result": "completed",
+          "offset": 9539
+        }
+      ],
+      "imageGets": 0,
+      "pageRequests": [
+        {
+          "type": "Playlist",
+          "start": 0,
+          "limit": 80,
+          "returned": 80,
+          "total": 160
+        }
+      ],
+      "effectiveMoreVisible": false,
+      "moreUiaName": "加载更多",
+      "moreCollapsedAncestors": [
+        "Grid:"
+      ],
+      "row81Loaded": false,
+      "reached81": false,
+      "requirementPass": false,
+      "measurementOnly": true,
+      "realNetwork": false,
+      "playback": false
+    }
+  ],
+  "requests": [
+    {
+      "type": "Audio",
+      "start": 0,
+      "limit": 80,
+      "returned": 12,
+      "total": 12
+    },
+    {
+      "type": "MusicAlbum",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 81
+    },
+    {
+      "type": "MusicArtist",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 81
+    },
+    {
+      "type": "Playlist",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 81
+    },
+    {
+      "type": "Audio",
+      "start": 0,
+      "limit": 80,
+      "returned": 12,
+      "total": 12
+    },
+    {
+      "type": "MusicAlbum",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 160
+    },
+    {
+      "type": "MusicArtist",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 160
+    },
+    {
+      "type": "Playlist",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 160
+    },
+    {
+      "type": "Audio",
+      "start": 0,
+      "limit": 80,
+      "returned": 12,
+      "total": 12
+    },
+    {
+      "type": "MusicAlbum",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 81
+    },
+    {
+      "type": "MusicArtist",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 81
+    },
+    {
+      "type": "Playlist",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 81
+    },
+    {
+      "type": "Audio",
+      "start": 0,
+      "limit": 80,
+      "returned": 12,
+      "total": 12
+    },
+    {
+      "type": "MusicAlbum",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 160
+    },
+    {
+      "type": "MusicArtist",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 160
+    },
+    {
+      "type": "Playlist",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 160
+    },
+    {
+      "type": "Audio",
+      "start": 0,
+      "limit": 80,
+      "returned": 12,
+      "total": 12
+    },
+    {
+      "type": "MusicAlbum",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 81
+    },
+    {
+      "type": "MusicArtist",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 81
+    },
+    {
+      "type": "Playlist",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 81
+    },
+    {
+      "type": "Audio",
+      "start": 0,
+      "limit": 80,
+      "returned": 12,
+      "total": 12
+    },
+    {
+      "type": "MusicAlbum",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 160
+    },
+    {
+      "type": "MusicArtist",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 160
+    },
+    {
+      "type": "Playlist",
+      "start": 0,
+      "limit": 80,
+      "returned": 80,
+      "total": 160
+    }
+  ],
+  "totalImageGets": 0,
+  "loadMoreInvoked": false,
+  "realNetwork": false,
+  "playback": false
+}
