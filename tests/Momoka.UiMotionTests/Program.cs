@@ -323,6 +323,7 @@ internal static class Program
         });
 
         HomeEntranceTests.Register();
+        SubscriptionFailureTests.Register();
         ShelfFocusTests.Register();
 
         var result = Run();

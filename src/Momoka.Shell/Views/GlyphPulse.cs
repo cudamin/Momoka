@@ -102,9 +102,9 @@ internal static class GlyphPulse
             _board.Completed += _completed;
             _target.Unloaded += OnUnloaded;
             HomeMotion.PreferenceChanged += ApplyPreference;
-            SystemSettings.AnimationsEnabledChanged += OnSystemPreferenceChanged;
             try
             {
+                SystemSettings.AnimationsEnabledChanged += OnSystemPreferenceChanged;
                 _board.Begin();
                 return true;
             }
@@ -129,7 +129,11 @@ internal static class GlyphPulse
             _board.Completed -= _completed;
             _target.Unloaded -= OnUnloaded;
             HomeMotion.PreferenceChanged -= ApplyPreference;
-            SystemSettings.AnimationsEnabledChanged -= OnSystemPreferenceChanged;
+            try { SystemSettings.AnimationsEnabledChanged -= OnSystemPreferenceChanged; }
+            catch (Exception)
+            {
+                // 原生退订失败不保证目标已释放；_stopped 仍让遗留回调无权操作下一次脉冲。
+            }
             _board.Stop();
             _scale.ScaleX = 1;
             _scale.ScaleY = 1;

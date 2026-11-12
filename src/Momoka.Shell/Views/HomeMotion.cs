@@ -248,8 +248,12 @@ internal static class HomeMotion
         {
             _element.Unloaded -= OnUnloaded;
             _board.Completed -= _completed;
-            Settings.AnimationsEnabledChanged -= OnSystemPreferenceChanged;
-            _board.Stop();
+            try { Settings.AnimationsEnabledChanged -= OnSystemPreferenceChanged; }
+            catch (Exception)
+            {
+                // 退订失败仅说明原生观察者释放未知；当前记录已摘除，不能挡住时钟与可读终值清理。
+            }
+            finally { _board.Stop(); }
         }
 
         private void StopCurrent()

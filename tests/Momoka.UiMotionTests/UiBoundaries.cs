@@ -575,13 +575,27 @@ namespace Windows.UI.ViewManagement
         private static bool _animationsEnabled = true;
         private Windows.Foundation.TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? _changed;
         public static List<UISettings> Created { get; } = [];
+        public static bool ThrowOnAdd { get; set; }
+        public static bool ThrowAfterAdd { get; set; }
+        public static bool ThrowOnRemove { get; set; }
+        public static bool ThrowAfterRemove { get; set; }
         public UISettings() => Created.Add(this);
         public bool AnimationsEnabled => _animationsEnabled;
         public int SubscriptionCount => _changed?.GetInvocationList().Length ?? 0;
         public event Windows.Foundation.TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? AnimationsEnabledChanged
         {
-            add => _changed += value;
-            remove => _changed -= value;
+            add
+            {
+                if (ThrowOnAdd) throw new InvalidOperationException("Injected event registration failure.");
+                _changed += value;
+                if (ThrowAfterAdd) throw new InvalidOperationException("Injected post-registration failure.");
+            }
+            remove
+            {
+                if (ThrowOnRemove) throw new InvalidOperationException("Injected event removal failure.");
+                _changed -= value;
+                if (ThrowAfterRemove) throw new InvalidOperationException("Injected post-removal failure.");
+            }
         }
         public static void SetAnimationsEnabled(bool enabled)
         {
@@ -593,6 +607,14 @@ namespace Windows.UI.ViewManagement
         {
             if (Created.Any(settings => settings.SubscriptionCount != 0)) throw new InvalidOperationException("Leaked system animation preference subscription.");
             _animationsEnabled = true;
+            ThrowOnAdd = ThrowAfterAdd = ThrowOnRemove = ThrowAfterRemove = false;
+        }
+        public static void EndFaultFixture()
+        {
+            // Only injected native-remove-before failure leaves the simulated registration unknown.
+            // This releases fake event handles after asserting the exact leftover; no product state is repaired.
+            foreach (var settings in Created) settings._changed = null;
+            ThrowOnAdd = ThrowAfterAdd = ThrowOnRemove = ThrowAfterRemove = false;
         }
     }
 }

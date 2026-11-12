@@ -151,9 +151,9 @@ internal sealed class SurfaceMotion
             if (generation == _generation && ReferenceEquals(_board, board)) Finish();
         };
         board.Completed += _completed;
-        WatchPreferences();
         try
         {
+            WatchPreferences();
             board.Begin();
         }
         catch (Exception)
@@ -207,7 +207,11 @@ internal sealed class SurfaceMotion
         if (!_watchingPreferences) return;
         _watchingPreferences = false;
         HomeMotion.PreferenceChanged -= ApplyPreference;
-        SystemSettings.AnimationsEnabledChanged -= OnSystemPreferenceChanged;
+        try { SystemSettings.AnimationsEnabledChanged -= OnSystemPreferenceChanged; }
+        catch (Exception)
+        {
+            // 平台拒绝退订不应中断本地时钟和终值清理；已排队回调由代次与空 _board 拒绝。
+        }
     }
 
     private void ApplyPreference()
