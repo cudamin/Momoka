@@ -1,4 +1,14 @@
-## 2026-11-12 媒体库第五批整合：待主树复验与交付
+## 2026-11-12 媒体库第五批主树验收与桌面交付
+
+产品62e03a8已进入master，方案整理b356c44保留旧名称/Any CPU配置，仅登记两新测试项目，未保留dotnet sln自动重写。主树Core/Tests/Shell Release0警告0错误；完整4989/4989、清单11/归属14/EOF29/菜单76/AniBT51/Plex界面85/架构7、调用者81均当前复验通过。主树并行构建引起DLL/PDB锁失败已保留，串行当前复编成功，没有跑旧caller掩盖警告。
+
+主树原生server-lists5/5，运行shell-probe-20261112-103403045-29372，三后端1280/760/360 DIP、原生Primary/取消、单项选择、搜索导航、多选兼容、本次队列选择均过；代表性主树截图目视。证据artifacts/library-batch5-final，详见docs/媒体库第五批验收-2026-11-12.md。既有全方案空白提示未涉及产品行为，不宣称全方案format通过；本批涉及文件空白/文本检查已过。
+
+publish -NoArchive -Shortcut已成功547文件288.7MB、批准载荷60项；桌面Target/工作目录及EXE/Shell/Core/PRI当前发布哈希全匹配，delivery-receipt.json。版本0.2.7，未上传/打新安装包；正式主窗PID31760标题Momoka、响应正常，只读登录恢复，不播放。真实PMS和服务器写入/播放、独占uosc实操、系统picker/点外指针/Narrator/跨DPI未验证；本批全部适用匿名测试与原生检查完成。
+
+子树ignored上游/失败/调用者证据已复制到artifacts/library-batch5-final/worker-evidence；plex和playlists两树已由原生archive_worktree归档并list_artifacts确认。队列树顶端ecfd80a代码与测试已按内容进入master，树干净，但原生归档连续两次拒绝“Another active task still uses this worktree”；不绕过保护删除，保留该干净树和attachment待占用释放。37ba聊天开发区保留当前提交供追溯，不影响主树交付。
+
+## 2026-11-12 媒体库第五批开发整合（历史记录）
 
 开发树 `C:\Users\89400\.codex\worktrees\37ba\Momoka`，基线 `a072a8b`。本次队列、Emby/Jellyfin普通视频播放列表、Plex独立播放列表/合集及正式账号清单页已整合；子树提交按内容合并，保留固定上游和离线边界。队列两管线原生菜单与当前播放票、持久清单身份/权限/成员entry、确认写与只读刷新分开，清单单项播放不传混合数组。最终同步集合通知的取消/切账号、权限降级和未知写/创建刷新失败保护均经回归修复。
 
