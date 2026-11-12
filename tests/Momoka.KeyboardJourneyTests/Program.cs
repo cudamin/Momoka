@@ -10,6 +10,14 @@ internal static class Program
 {
     private static int Main()
     {
+        Test("键盘来源阶段等待自己的账号菜单关闭，不把别的提示气泡算成账号浮层", () =>
+        {
+            Assert.True(KeyboardJourneyProbeRules.SourceReady(true, true, false, false));
+            Assert.False(KeyboardJourneyProbeRules.SourceReady(true, true, true, false));
+            Assert.False(KeyboardJourneyProbeRules.SourceReady(true, true, false, true));
+            Assert.False(KeyboardJourneyProbeRules.SourceReady(false, true, false, false));
+            Assert.False(KeyboardJourneyProbeRules.SourceReady(true, false, false, false));
+        });
         InfoTableProbeTests.Register();
         Test("键盘结果定位按子卡片身份，不依赖原生容器DataContext", () =>
         {

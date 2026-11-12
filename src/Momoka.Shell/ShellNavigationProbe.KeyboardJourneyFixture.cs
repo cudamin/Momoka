@@ -87,6 +87,8 @@ internal sealed class KeyboardJourneyProbeServer
 
 internal static class KeyboardJourneyProbeRules
 {
+    internal static bool SourceReady(bool selectedSource, bool homeReady, bool accountMenuOpen, bool accountPopupPresent) =>
+        selectedSource && homeReady && !accountMenuOpen && !accountPopupPresent;
     // x:Bind fills PosterCard.Card; ItemsView's outer container does not need a DataContext.
     internal static T? FindResult<T>(IEnumerable<T> containers, Func<T, string?> cardIdentity, string wanted) where T : class =>
         containers.FirstOrDefault(container => cardIdentity(container) == wanted);

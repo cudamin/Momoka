@@ -91,13 +91,14 @@ internal sealed partial class ShellNavigationProbe
             await FocusAsync(account, "KeyboardJourneyAccount");
             var accountMenu = Get<Flyout>(shell, "AccountMenu");
             await Stage("account-ready", "press Enter to open the account menu", _window.Handle,
-                () => Get<FrameworkElement>(shell, "AccountMenuBody").IsLoaded && VisualTreeHelper.GetOpenPopupsForXamlRoot(shell.XamlRoot).Count > 0);
+                () => accountMenu.IsOpen && AccountPopupPresent());
             var select = Descendants(Get<FrameworkElement>(shell, "AccountMenuBody")).OfType<Button>()
                 .Single(button => AutomationProperties.GetAutomationId(button) == "AccountSelect:" + second.Key);
             await FocusAsync(select, "KeyboardJourneySecondSource");
             await Stage("source-ready", "press Enter to select keyboard-b.invalid", _window.Handle,
-                () => fixture.Session.Capture().Connection.ApiBase.Host == "keyboard-b.invalid" && shell.Pages.Content is HomePage { IsReady: true });
-            Require(VisualTreeHelper.GetOpenPopupsForXamlRoot(shell.XamlRoot).Count == 0, "选来源后菜单没关闭");
+                () => KeyboardJourneyProbeRules.SourceReady(fixture.Session.Capture().Connection.ApiBase.Host == "keyboard-b.invalid",
+                    shell.Pages.Content is HomePage { IsReady: true }, accountMenu.IsOpen, AccountPopupPresent()));
+            Require(!accountMenu.IsOpen && !AccountPopupPresent(), "选来源后账号菜单仍未结束关闭");
             var openSearch = Get<Button>(shell, "TitleSearchBox");
             await FocusAsync(openSearch, "KeyboardJourneyOpenSearch");
             await Stage("search-entry-ready", "press Enter to open search", _window.Handle,
@@ -184,6 +185,12 @@ internal sealed partial class ShellNavigationProbe
                 focus is not null; focus = VisualTreeHelper.GetParent(focus))
                 if (ReferenceEquals(focus, target)) return true;
             return false;
+        }
+        bool AccountPopupPresent()
+        {
+            var body = Get<FrameworkElement>(shell, "AccountMenuBody");
+            return VisualTreeHelper.GetOpenPopupsForXamlRoot(shell.XamlRoot)
+                .Any(popup => popup.Child is DependencyObject child && Descendants(child).Any(node => ReferenceEquals(node, body)));
         }
         void RequireFocus(FrameworkElement target)
         {
