@@ -179,6 +179,9 @@ public sealed partial class LibraryPage
         LibraryEndSelection.IsEnabled = !_batchBusy;
         LibraryCancelBatch.Visibility = _batchBusy ? Visibility.Visible : Visibility.Collapsed;
         CardWall.IsHitTestVisible = !_batchBusy;
+        // Keep available commands current with selection; opening still rechecks the
+        // current source and permissions before a native menu item can be invoked.
+        OnBatchMenuOpening(this, EventArgs.Empty);
         PlaceBatchEmptyNotice();
     }
 

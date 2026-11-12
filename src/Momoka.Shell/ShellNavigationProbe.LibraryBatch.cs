@@ -491,8 +491,30 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => Get<FrameworkElement>(page!, "LibraryBatchSurface").Visibility == Visibility.Visible);
                 for (var index = 0; index < 3; index++) Call(page!, "ProbeSelectBatch", index);
                 Require(Get<ItemsView>(page!, "CardWall").SelectedItems.Count == 3, "合集页面未选择三项");
+                await UntilAsync(() => MenuItems().Length == 0);
+                await LayoutAsync(page!);
                 new AppBarButtonAutomationPeer(Get<AppBarButton>(page!, "LibraryBatchActions")).Invoke();
-                await UntilAsync(() => MenuItems().Any(item => item.Tag is ItemCommand value && value == command));
+                try { await UntilAsync(() => MenuItems().Any(item => item.Tag is ItemCommand value && value == command)); }
+                catch
+                {
+                    var menu = Get<MenuFlyout>(page!, "LibraryBatchMenu");
+                    var bar = Get<CommandBar>(page!, "LibraryBatchCommandBar");
+                    var actions = Get<AppBarButton>(page!, "LibraryBatchActions");
+                    File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "library-batch-menu-failure.json"),
+                        JsonSerializer.Serialize(new
+                        {
+                            Command = command.ToString(), menu.IsOpen, Items = menu.Items.OfType<MenuFlyoutItem>().Select(item => item.Tag?.ToString()).ToArray(),
+                            BarOpen = bar.IsOpen, actions.IsInOverflow, actions.IsLoaded, actions.IsEnabled,
+                            Commands = page!.ProbeBatchCommands().Select(value => value.ToString()).ToArray(),
+                            Popups = VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot).Where(popup => popup.Child is not null).Select(popup => new
+                            {
+                                Child = popup.Child?.GetType().Name,
+                                Presenters = Descendants(popup.Child!).OfType<MenuFlyoutPresenter>().Select(presenter => new { presenter.IsLoaded, Count = presenter.Items.Count }).ToArray(),
+                                Items = Descendants(popup.Child!).OfType<MenuFlyoutItem>().Select(item => item.Tag?.ToString()).ToArray()
+                            }).ToArray()
+                        }, new JsonSerializerOptions { WriteIndented = true }));
+                    throw;
+                }
                 new MenuFlyoutItemAutomationPeer(MenuItems().Single(item => item.Tag is ItemCommand value && value == command)).Invoke();
             }
         }

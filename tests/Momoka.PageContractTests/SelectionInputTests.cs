@@ -24,6 +24,18 @@ internal static class SelectionInputTests
             Assert.False(page.PressSelectionKey(VirtualKey.Enter).Handled);
             Assert.Equal(0, page.SelectionEnds);
         });
+        TestHarness.Test("多选Escape：提示气泡不阻止退出或取消剩余", () =>
+        {
+            var page = new LibraryPage();
+            page.SetSelection(true);
+            page.XamlRoot.Add(new Microsoft.UI.Xaml.Controls.ToolTip());
+            Assert.True(page.PressSelectionKey(VirtualKey.Escape).Handled);
+            Assert.Equal(1, page.SelectionEnds);
+            using var cancellation = new CancellationTokenSource();
+            page.SetSelection(true, cancellation);
+            Assert.True(page.PressSelectionKey(VirtualKey.Escape).Handled);
+            Assert.True(cancellation.IsCancellationRequested);
+        });
         foreach (var overflow in new[] { false, true })
         {
             TestHarness.Test($"多选Escape：{(overflow ? "溢出菜单" : "原生浮层")}先交给平台关闭", () =>

@@ -14,9 +14,18 @@ namespace Microsoft.UI.Xaml.Input
 
 namespace Microsoft.UI.Xaml.Controls
 {
+    public sealed class ToolTip;
     public sealed class CommandBar
     {
         public bool IsOpen { get; set; }
+    }
+}
+
+namespace Microsoft.UI.Xaml.Controls.Primitives
+{
+    public sealed class Popup
+    {
+        public object? Child { get; set; }
     }
 }
 

@@ -1,3 +1,4 @@
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 
@@ -10,7 +11,8 @@ public sealed partial class LibraryPage
         if (!_selecting || e.Key != Windows.System.VirtualKey.Escape) return;
         // PreviewKeyDown precedes the platform menu/dialog handler. Let Escape close its
         // current layer before another Escape ends selection or cancels remaining work.
-        if (LibraryBatchCommandBar.IsOpen || VisualTreeHelper.GetOpenPopupsForXamlRoot(XamlRoot).Count > 0) return;
+        if (LibraryBatchCommandBar.IsOpen || VisualTreeHelper.GetOpenPopupsForXamlRoot(XamlRoot)
+            .Any(popup => popup.Child is not ToolTip)) return;
         if (_batchBusy) _batchCancellation?.Cancel();
         else EndSelection();
         e.Handled = true;

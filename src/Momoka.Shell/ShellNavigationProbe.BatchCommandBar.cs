@@ -58,6 +58,12 @@ internal sealed partial class ShellNavigationProbe
             var actions = Get<AppBarButton>(page, "LibraryBatchActions");
             var clear = Get<AppBarButton>(page, "LibraryClearSelection");
             var menu = Get<MenuFlyout>(page, "LibraryBatchMenu");
+            actions.Click += (_, _) => Read("actions-click");
+            menu.Opening += (_, _) => Read("menu-opening");
+            page.AddHandler(UIElement.PreviewKeyDownEvent, new Microsoft.UI.Xaml.Input.KeyEventHandler((_, args) =>
+            {
+                if (args.Key == Windows.System.VirtualKey.Escape) Read("escape-preview-handled-" + args.Handled);
+            }), handledEventsToo: true);
             foreach (var width in new[] { 1100, 760, 600 })
             {
                 ResizeProbeClient(width, 760);
@@ -74,6 +80,7 @@ internal sealed partial class ShellNavigationProbe
             Read("constrained-overflow");
             Require(actions.IsInOverflow, "匿名窄命令栏没有真正把批量按钮移入溢出");
             var more = Descendants(bar).OfType<Button>().Single(button => button.Name == "MoreButton");
+            Require(more.Focus(FocusState.Keyboard), "更多按钮无法成为打开菜单的焦点属主");
             Invoke(more);
             await UntilAsync(() => bar.IsOpen && clear.IsLoaded);
             Require(clear.Focus(FocusState.Keyboard), "原生溢出操作不能接受键盘焦点");
@@ -92,11 +99,14 @@ internal sealed partial class ShellNavigationProbe
             Call(page, "ProbeBeginSelection");
             for (var index = 0; index < 3; index++) wall.Select(index);
             await LayoutAsync(page);
+            Require(more.Focus(FocusState.Keyboard), "再次打开菜单前更多按钮无法聚焦");
             Invoke(more);
             await UntilAsync(() => bar.IsOpen);
             Require(actions.Focus(FocusState.Keyboard), "溢出中的批量按钮不能接受键盘焦点");
             Invoke(actions);
             await UntilAsync(() => menu.IsOpen);
+            await UntilAsync(() => VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+                .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutItem>().Any(item => item.Tag is ItemCommand.MarkPlayed));
             var mark = VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot).SelectMany(popup => Descendants(popup.Child))
                 .OfType<MenuFlyoutItem>().Single(item => item.Tag is ItemCommand.MarkPlayed);
             Require(mark.Focus(FocusState.Keyboard), "批量菜单项不能接受键盘焦点");
@@ -125,6 +135,7 @@ internal sealed partial class ShellNavigationProbe
                     Stage = stage, PageWidth = page.ActualWidth, BarWidth = bar.ActualWidth,
                     Overflow = bar.PrimaryCommands.OfType<AppBarButton>().Where(button => button.IsInOverflow).Select(button => button.Name).ToArray(),
                     bar.IsOpen, SubmenuOpen = menu.IsOpen, Selection = wall.SelectedItems.Count,
+                    FlyoutMatches = ReferenceEquals(actions.Flyout, menu), MenuItems = menu.Items.OfType<MenuFlyoutItem>().Select(item => item.Tag?.ToString()).ToArray(),
                     FocusName = focus?.Name, FocusType = focus?.GetType().Name, FocusId = focus is null ? null : AutomationProperties.GetAutomationId(focus),
                     Popups = VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot).Count, Writes = server.Writes.Count
                 });
