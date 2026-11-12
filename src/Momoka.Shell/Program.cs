@@ -164,6 +164,20 @@ public sealed record StartupOptions
     public bool ShowCover { get; init; }
 
     /// <summary>
+    /// Tooling only: 把主页上一张看得见的卡的封面预览摆出来留着（<c>--show-preview</c>），好给它拍一张。
+    /// <para>
+    /// 和 <see cref="ShowMenu"/> 同一个理由：这块面板只在指针停满一秒之后才出现，而这台机器注不进
+    /// 鼠标事件。它挑一张有概要、靠窗口中间的卡 —— 空着字的预览拍下来是一块空板，贴着边的那张又看不出
+    /// 「从中心向两边扩散」。
+    /// </para>
+    /// <para>
+    /// 单独用：它留下的是一块浮层，而 <see cref="ShowSettings"/>、<see cref="ShowLibrary"/> 和两个详情
+    /// 开关都会抢走激活或者换页，那一下浮层自己就散了。
+    /// </para>
+    /// </summary>
+    public bool ShowPreview { get; init; }
+
+    /// <summary>
     /// Tooling only: with a detail page open, pop the 查看遗漏集 panel on that item and leave it there
     /// (<c>--show-missing</c>). Same reason as <see cref="ShowCover"/>: a dialog exists only while a
     /// command is running and this machine cannot inject mouse input, so without a switch the table has
@@ -483,6 +497,7 @@ internal static class Program
             ShowDetail = Has(args, "--show-detail"),
             ShowEpisode = Has(args, "--show-episode"),
             ShowCover = Has(args, "--show-cover"),
+            ShowPreview = Has(args, "--show-preview"),
             ShowMissing = Has(args, "--show-missing"),
             ShowIdentify = Has(args, "--show-identify"),
             ShowRefresh = Has(args, "--show-refresh"),
@@ -497,6 +512,7 @@ internal static class Program
                 || Has(args, "--dump-ui") || Has(args, "--show-library") || Has(args, "--show-menu")
                 || Has(args, "--show-osd") || Has(args, "--hide-cursor") || Has(args, "--show-settings")
                 || Has(args, "--show-detail") || Has(args, "--show-episode") || Has(args, "--show-cover")
+                || Has(args, "--show-preview")
                 || Has(args, "--show-missing") || Has(args, "--show-identify") || Has(args, "--show-refresh")
                 || Has(args, "--show-picker") || Has(args, "--play") || Has(args, "--navigation-timing")
                 || Text(args, "--theme") is not null,

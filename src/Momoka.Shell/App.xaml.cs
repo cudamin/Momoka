@@ -232,6 +232,10 @@ public partial class App : Application
         // 鼠标事件。摆在换页的那几个开关之前：一次导航就把浮层散掉了。
         if (_options.ShowMenu) await shell.ShowCardMenuAsync().ConfigureAwait(true);
 
+        // Tooling: --show-preview 把主页一张看得见的卡的封面预览摆出来留着。同 --show-menu 的理由：这块
+        // 面板要指针停满一秒才出现，而这台机器上注不进鼠标事件；照片里要看的是它自己的排版，不是等不等得到。
+        if (_options.ShowPreview) await shell.ShowCardPreviewAsync().ConfigureAwait(true);
+
         // Tooling: --show-detail clicks a poster and stays on whatever that click opened, which is how a
         // screenshot can be compared against Emby Theater's own detail page. --show-episode clicks one
         // card further, onto the page of a file, which is the only page 媒体信息 appears on. --scroll-end

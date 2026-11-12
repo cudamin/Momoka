@@ -1195,6 +1195,45 @@ public sealed partial class HomePage : Page, IShellContent
     }
 
     /// <summary>
+    /// 工具：把一张看得见的卡的封面预览摆出来（<c>--show-preview</c>），返回那张卡的片名；
+    /// 一张可预览的卡都没渲染出来时是 null。
+    /// <para>
+    /// 优先**竖版海报**、有概要、而且靠近窗口中间的那张：竖版海报裁进 2:1 的框、再换成服务器那张宽图，
+    /// 正是这块面板要证明的事；贴着左右沿的卡会被夹回窗口，看不出「从中心向两边扩散」。
+    /// 继续观看那种本来就是宽图的卡拍不出前一层，放在后面兜底。
+    /// </para>
+    /// </summary>
+    internal string? ShowCardPreviewForShot()
+    {
+        if (XamlRoot?.Content is not FrameworkElement page) return null;
+
+        // 只挑此刻真的看得见的卡：货架里回收着、滚出屏幕的那些，位置换算是窗口外的几千像素，
+        // 拍出来的面板也跟着跑到窗口外面去。
+        var visible = new List<(PosterCard Poster, Windows.Foundation.Point Origin)>();
+        foreach (var poster in RealisedCards())
+        {
+            if (poster.Card is not { IsNavigation: false }) continue;
+
+            var origin = poster.TransformToVisual(page).TransformPoint(new Windows.Foundation.Point(0, 0));
+            if (origin.X < 0 || origin.X > page.ActualWidth - poster.ActualWidth) continue;
+            if (origin.Y < 120 || origin.Y > page.ActualHeight - 160) continue;
+            visible.Add((poster, origin));
+        }
+
+        // 优先竖版海报（裁成 2:1 再换成服务器宽图，正是这块面板要证明的事），并且尽量挑靠中间的那张 ——
+        // 贴着左右沿的卡会被夹回窗口，看不出「从中心向两边扩散」。
+        var target = visible.FirstOrDefault(pair => pair.Poster.Card is { } card
+                && card.Item.Overview is { Length: > 0 } && card.PosterHeight > card.CardWidth * 1.2
+                && pair.Origin.X > page.ActualWidth * 0.25)
+            .Poster
+            ?? visible.FirstOrDefault(pair => pair.Poster.Card?.Item.Overview is { Length: > 0 }
+                && pair.Origin.X > page.ActualWidth * 0.25).Poster
+            ?? visible.FirstOrDefault(pair => pair.Poster.Card?.Item.Overview is { Length: > 0 }).Poster
+            ?? visible.FirstOrDefault().Poster;
+        return target?.ShowPreviewForShot();
+    }
+
+    /// <summary>
     /// 自检：「更多」点开的那张菜单真的搭出来了 —— 行数、每行的字、每行带的那条命令，都和 Core 排的那一份
     /// （<see cref="ItemMenu.For"/>）对得上，而且每一行都有图标、按得动。
     /// <para>

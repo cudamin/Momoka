@@ -732,6 +732,7 @@ internal static class Program
         PerformanceProbeRulesTests.Register();
         PlayerToolDownloadTests.Register();
         MusicTests.Register();
+        CardPreviewPlacementTests.Register();
         AgreementsTests.Register();
 
         return TestHarness.Run();

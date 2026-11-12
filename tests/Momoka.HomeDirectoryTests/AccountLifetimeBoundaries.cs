@@ -99,6 +99,9 @@ namespace Momoka.Shell.Views
             _playerDialogs(action);
         }
         internal event Action DanmakuRequested { add { } remove { } }
+        // 第五批播放队列给外壳的收场加了一条摘挂（ShellPage 关窗时 QueueRequested -= OnQueueRequested）。
+        // 这个夹具不排队列，事件不落订阅者，与上面几条同一种处理。
+        internal event Action<bool> QueueRequested { add { } remove { } }
         internal event Action<string, InfoBarSeverity> Noticed { add { } remove { } }
         internal event Action RefreshRequested { add { } remove { } }
         internal object? PreparePresentation { get; set; }
@@ -167,6 +170,7 @@ namespace Momoka.Shell.Views
         private void OnPlayerSettingsRequested() { }
         private void OnPlayerDialogRequested(string action) => throw new Momoka.Tests.AssertionException("匿名目录夹具禁止播放器对话框：" + action);
         private void OnDanmakuRequested() { }
+        private void OnQueueRequested(bool next) { }
         private void RefreshActive() { }
         private void Notify(string message) => Notify(message, InfoBarSeverity.Informational);
     }
