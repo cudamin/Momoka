@@ -98,6 +98,11 @@ internal sealed partial class ShellNavigationProbe
             foreach (var current in Momoka.Theming.UiThemes.All)
             {
                 ThemeHost.Apply(current.Id);
+                await UntilAsync(() => ThemeHost.Current.Id == current.Id
+                    && Get<Microsoft.UI.Xaml.Media.SolidColorBrush>(window, "_canvas").Color
+                        == SettingsWindow.SelectCanvasColor(
+                            (SettingsWindow.SettingsSystemAppearance)Call(window, "ReadSystemAppearance")!,
+                            ThemeHost.ToColor(current.Colors.Window), window.BackdropState.Mica));
                 await WaitForDiagnosticsFrameAsync();
                 await CompositionPlaybackProbe.SaveScreenAsync(window.Handle,
                     Path.Combine(_options.Paths.LogDirectory, $"settings-opening-{current.Id}-screen.png"));

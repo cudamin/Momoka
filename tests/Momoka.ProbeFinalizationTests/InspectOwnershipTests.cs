@@ -7,6 +7,16 @@ internal static partial class Program
 {
     private static void RegisterInspectOwnership()
     {
+        Test("inspect-check-materials-section", async () =>
+        {
+            var fixture = new InspectCheckFixture(() => Task.CompletedTask,
+                (path, text, encoding) => File.WriteAllText(path, text, encoding), Paths("inspect-materials-section"));
+            fixture.Register(ShellProbeSections.Materials, 540);
+            await fixture.Action!();
+            Equal(ShellProbeSections.Materials, fixture.ObservedSection, "explicit materials section reaches the real Case");
+            Equal(540, fixture.ObservedTimeout, "system-state inspection timeout reaches the real Case");
+            Ensure(fixture.Checks is [{ Passed: true }], "materials success recorded by the real writer");
+        });
         foreach (var writerThrows in new[] { false, true })
         {
             Test("inspect-check-" + (writerThrows ? "writer-fails-after-timeout" : "timeout-retains-owner"), async () =>

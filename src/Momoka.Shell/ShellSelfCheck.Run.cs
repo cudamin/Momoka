@@ -291,14 +291,12 @@ internal static partial class ShellSelfCheck
 
             // 「设置页面改为云母材质，通过 Mica 实现应用分层」（2026-11-12 用户令）。两节一起看：窗口级
             // Mica Base 在 SettingsWindow，中间那层画布是 60% —— 画布还实着则材质白开，材质没挂上则整窗是
-            // 一块平色；两种坏法在屏上都不报错，只有这里读得出来。不支持 Mica 的机器（关掉透明效果、
-            // 远程桌面）走的是回退路，那时画布应当是不透明的。
+            // 一块平色。支持检查和系统回退分开：高对比或关闭透明时画布应为实色，controller仍可连接。
             var micaSupported = MicaController.IsSupported();
             var backdrop = shell.SettingsBackdrop;
-            var backdropOk = backdrop.Mica == micaSupported
-                && (micaSupported
-                    ? backdrop is { CanvasAlpha: 0x99 }
-                    : backdrop.CanvasAlpha == 0xFF);
+            var backdropOk = SettingsBackdropCheck.Matches(micaSupported, backdrop.Mica, backdrop.CanvasAlpha,
+                new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast,
+                new Windows.UI.ViewManagement.UISettings().AdvancedEffectsEnabled);
             Check("设置窗口底材", backdropOk,
                 micaSupported
                     ? $"窗口 {(backdrop.Mica ? "Mica Base" : "没有材质")}，画布 {backdrop.CanvasAlpha}/255"

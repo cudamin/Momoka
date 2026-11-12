@@ -1669,6 +1669,7 @@
                     VerticalScrollBarVisibility="Auto"
                     Visibility="{x:Bind ViewModel.CardsVisibility, Mode=OneWay}">
                     <ScrollViewer.Resources>
+                        <ResourceDictionary>
                         <Thickness x:Key="ScrollViewerScrollBarMargin">0</Thickness>
 
                         <!--
@@ -1679,8 +1680,21 @@
                           玻璃切成侧栏色，失焦又回到玻璃。左侧搜索框在这一层之外，因此一个像素不变。
                           Disabled 不覆盖，留全局窗口色，停用的框和可输入的框还分得开。
                         -->
-                        <StaticResource x:Key="TextControlBackground" ResourceKey="EgInputGlassBrush" />
-                        <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="EgInputGlassBrush" />
+                        <ResourceDictionary.ThemeDictionaries>
+                            <ResourceDictionary x:Key="Dark">
+                                <StaticResource x:Key="TextControlBackground" ResourceKey="EgInputGlassBrush" />
+                                <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="EgInputGlassBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="Light">
+                                <StaticResource x:Key="TextControlBackground" ResourceKey="EgInputGlassBrush" />
+                                <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="EgInputGlassBrush" />
+                            </ResourceDictionary>
+                            <ResourceDictionary x:Key="HighContrast">
+                                <SolidColorBrush x:Key="TextControlBackground" Color="{ThemeResource SystemColorWindowColor}" />
+                                <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{ThemeResource SystemColorWindowColor}" />
+                            </ResourceDictionary>
+                        </ResourceDictionary.ThemeDictionaries>
+                        </ResourceDictionary>
                     </ScrollViewer.Resources>
                     <!-- 右侧 20 DIP 是滚动条的独立槽位；卡片不伸进滚动指示器区域。 -->
                     <StackPanel x:Name="SettingsCardsContent" Margin="0,0,20,0">

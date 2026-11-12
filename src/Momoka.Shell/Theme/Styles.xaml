@@ -21,6 +21,7 @@
     <Style x:Key="EgDetailMenuPresenterStyle" TargetType="MenuFlyoutPresenter"
            BasedOn="{StaticResource DefaultMenuFlyoutPresenterStyle}">
         <Setter Property="Background" Value="{ThemeResource DesktopAcrylicTransparentBrush}" />
+        <Setter Property="local:DetailMenuSurface.Enabled" Value="True" />
         <Setter Property="SystemBackdrop">
             <Setter.Value><local:DetailMenuBackdrop /></Setter.Value>
         </Setter>

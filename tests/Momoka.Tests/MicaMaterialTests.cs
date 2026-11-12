@@ -79,18 +79,20 @@ internal static class MicaMaterialTests
             // 没采（同一台机器上设置窗口的云母是带蓝的 45,57,70）。现在改由 IslandMicaBackdrop 自己钉这一项。
             // 档位（Base 而不是 Alt）与「不许回到框架默认配置」两件事仍要守着，所以判据搬到新文件上。
             var host = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Windowing", "HostWindow.cs"));
-            Assert.Contains("_backdrop ??= new IslandMicaBackdrop();", host, "主窗口没有挂自己那份云母");
+            var hostBackdrop = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Windowing", "HostWindow.Backdrop.cs"));
+            Assert.Contains("_backdrop ??= new IslandMicaBackdrop();", hostBackdrop, "主窗口没有挂自己那份云母");
             Assert.DoesNotContain("new MicaBackdrop", host, "又回到框架默认配置了：岛上的云母会渲染成实心灰");
             Assert.DoesNotContain("MicaKind.BaseAlt", host);
 
             // 「在前台」这条线要接上：断了云母就退回实心，而屏上不报错，只有像素量得出来。
             Assert.Contains("FocusChanged += OnBackdropFocusChanged;", host, "宿主窗口的激活没有转给云母");
-            Assert.Contains("_backdrop?.SetInputActive(active)", host, "激活转给了别的东西");
+            Assert.Contains("_backdrop?.SetInputActive(active)", hostBackdrop, "激活转给了别的东西");
             Assert.Contains("_backdrop?.ApplyTheme()", host, "换主题时没有重钉云母的深浅");
 
             var backdrop = File.ReadAllText(
                 Path.Combine(Root(), "src", "Momoka.Shell", "Windowing", "IslandMicaBackdrop.cs"));
-            Assert.Contains("new MicaController { Kind = MicaKind.Base }", backdrop);
+            Assert.Contains("controller = new MicaController();", backdrop);
+            Assert.Contains("controller.Kind = MicaKind.Base;", backdrop);
             Assert.DoesNotContain("MicaKind.BaseAlt", backdrop);
             Assert.Contains("configuration.IsInputActive = _inputActive;", backdrop,
                 "又把「在前台」交回框架默认值了，岛上报的永远是假");
@@ -121,8 +123,10 @@ internal static class MicaMaterialTests
             Assert.Contains("new MicaBackdrop { Kind = MicaKind.Base }", window, "设置窗口没有挂 Mica（Base）");
             // 画布浓度与主窗口成对；回退路必须落回不透明，否则没材质时整窗是透明的。
             Assert.Contains("private const byte CanvasAlpha = 0x99", window, "设置窗口的画布浓度和主窗口不是一档");
-            Assert.Contains("_canvas.Color = _mica ? CanvasColor(theme) : WindowColor(theme)", window,
-                "换主题时画布没有跟着 Mica／实色两条路重新算");
+            Assert.Contains("_canvas.Color = SelectCanvasColor(systemAppearance, WindowColor(theme), _mica)", window,
+                "换主题时画布没有按系统状态重新算");
+            Assert.Contains("created.InvalidateSystemAppearance();", window,
+                "材质赋值后仍绕过外观缓存失效，失败重画后相同系统状态无法恢复");
             Assert.DoesNotContain("TryGetValue(\"EgWindowBrush\"", window,
                 "又回去按资源键取窗口色了：EgWindowBrush 在 ThemeDictionaries 里，代码查找取不到");
 

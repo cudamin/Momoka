@@ -15,10 +15,8 @@ namespace Momoka.Shell.Views;
 /// <summary>
 /// 设置窗口 —— 需求 1 的第二颗按键，「点击后弹出设置窗口」.
 /// <para>
-/// A real second top-level window, and the app's only <see cref="Window"/>: the main window is a bare
-/// <see cref="Windowing.HostWindow"/> HWND with a XAML island in it, because it has to have an mpv child
-/// window under the island. This one has no video in it, so it can be the framework's own window and get
-/// the caption, the resize frame and the DPI handling for free.
+/// 设置使用 framework Window，系统提供窗口和 DPI 行为。主窗口沿用 HWND＋XAML 岛；当前集成视频在页面的
+/// Composition 树里，独占视频由 mpv 自建顶层窗口管理。搜索版本窗同样是 framework Window。
 /// </para>
 /// <para>
 /// Which is also the hazard: a WinUI app exits when its last <see cref="Window"/> closes, and this app
@@ -33,7 +31,7 @@ namespace Momoka.Shell.Views;
 /// showing over it; a window that can be sent behind and brought back by pressing 设置 again is not.
 /// </para>
 /// </summary>
-internal sealed class SettingsWindow
+internal sealed partial class SettingsWindow
 {
     private const string Category = "设置窗口";
 
@@ -67,10 +65,11 @@ internal sealed class SettingsWindow
         _mica = mica;
 
         // 自绘空白标题栏和系统关闭按钮一起随主题更新；画布的颜色也在同一趟里改。
-        _repaint = _ => PaintCaption();
+        _repaint = _ => InvalidateSystemAppearance();
         ThemeHost.Changed += _repaint;
 
         window.AppWindow.Closing += OnClosing;
+        StartSystemAppearanceWatch();
     }
 
     /// <summary>
@@ -86,8 +85,7 @@ internal sealed class SettingsWindow
     private readonly SolidColorBrush _canvas;
 
     /// <summary>
-    /// 这扇窗的窗口级底材是不是 Mica。系统不支持、关了透明效果或在远程桌面里时落回实色，见
-    /// <see cref="ApplyBackdrop"/>。
+    /// Mica 的支持检查/属性赋值是否成功。不是 controller Active 状态；系统回退不等于赋值失败。
     /// </summary>
     private bool _mica;
 
@@ -174,7 +172,9 @@ internal sealed class SettingsWindow
             Place(window, owner);
             var created = new SettingsWindow(window, frame, canvas, mica);
             created.ApplyBackdrop();
-            created.PaintCaption();
+            // The constructor already cached system appearance. Backdrop assignment may have
+            // changed the canvas/assignment result; failed repaint must leave the cache invalid.
+            created.InvalidateSystemAppearance();
 
             Log.Info(Category, $"设置窗口已创建（底材：{(mica ? "Mica" : "纯色")}）");
             return created;
@@ -241,6 +241,7 @@ internal sealed class SettingsWindow
         // Activate 已执行 ShowWindow + UpdateWindow；避免在内容首帧前额外显窗。
         _window.Activate();
         _open = true;
+        ResumeSystemAppearance();
     }
 
     /// <summary>
@@ -257,6 +258,7 @@ internal sealed class SettingsWindow
         if (!_open) return;
 
         _open = false;
+        PauseSystemAppearance();
         Page?.ReleaseHosted();
         _window.AppWindow.Hide();
         Hidden?.Invoke();
@@ -270,6 +272,7 @@ internal sealed class SettingsWindow
     {
         _closing = true;
         _open = false;
+        StopSystemAppearanceWatch();
         Page?.ReleaseHosted();
         ThemeHost.Changed -= _repaint;
 
@@ -333,14 +336,15 @@ internal sealed class SettingsWindow
             Math.Min((int)Math.Round(logical * scale), available - (int)Math.Round(48 * scale)));
 
     /// <summary>
-    /// 窗口级底材：Mica（Base）。与主窗口同一个档位、同一个浓度 —— 设置窗口也是普通窗口，不是带标签页
-    /// 的那一档，所以不用 BaseAlt。**整窗只有这一块底和一层画布**：标题栏、分类栏、正文压在同一个画布
+    /// 窗口级底材：Mica（Base），这是当前项目的档位选择。**整窗只有这一块底和一层画布**：标题栏、分类栏、正文压在同一个画布
     /// 对象上，没有「标题一条、侧栏一块」的分块（2026-11-12 用户令「不是，你为什么一定要给标题和侧边栏
     /// 加卡片」）。层次由设置卡自己的底色给出，不靠窗口再切几块。
     /// </summary>
     private void ApplyBackdrop()
     {
         if (!_mica) return;
+
+        _lastSystemAppearance = null;
 
         try
         {
@@ -376,11 +380,14 @@ internal sealed class SettingsWindow
     /// cosmetic loss, and falling back to the in-frame settings page over one would be a worse trade.
     /// </para>
     /// </summary>
-    private void PaintCaption()
+    private bool PaintCaption()
     {
         try
         {
             var theme = ThemeHost.Current;
+            var systemAppearance = ReadSystemAppearance();
+            // 画布先更新；非客户区API失败也不让整窗保留旧的高对比/透明状态。
+            _canvas.Color = SelectCanvasColor(systemAppearance, WindowColor(theme), _mica);
             var handle = Win32Interop.GetWindowFromWindowId(_window.AppWindow.Id);
 
             var dark = theme.IsDark ? 1 : 0;
@@ -397,13 +404,12 @@ internal sealed class SettingsWindow
             Native.SendMessage(handle, Native.WmSetIcon, (IntPtr)0, BlankCaptionIcon.Handle);
 
             var titleBar = _window.AppWindow.TitleBar;
-            if (titleBar is null) return;
+            if (titleBar is null) return false;
 
             // 画布：Mica 那一档是 60% 的窗口色，回退那一档是不透明窗口色。改颜色而不是换画刷 —— 根 Grid
             // 上挂的就是这个对象，标题栏和正文当场一起变。
-            _canvas.Color = _mica ? CanvasColor(theme) : WindowColor(theme);
-
-            titleBar.ForegroundColor = ThemeHost.ToColor(theme.Colors.Text);
+            titleBar.ForegroundColor = systemAppearance.HighContrast
+                ? systemAppearance.Foreground : ThemeHost.ToColor(theme.Colors.Text);
             titleBar.ButtonForegroundColor = titleBar.ForegroundColor;
 
             // 标题栏不画底，三颗系统按钮的四种底色也全透明：它们底下就是根 Grid 那块画布，整窗从上沿到
@@ -413,18 +419,23 @@ internal sealed class SettingsWindow
             titleBar.InactiveBackgroundColor = Colors.Transparent;
             titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
 
-            titleBar.ButtonHoverBackgroundColor = theme.IsDark
+            titleBar.ButtonHoverBackgroundColor = systemAppearance.HighContrast ? systemAppearance.Highlight : theme.IsDark
                 ? Color.FromArgb(35, 255, 255, 255)
                 : Color.FromArgb(25, 0, 0, 0);
-            titleBar.ButtonPressedBackgroundColor = theme.IsDark
+            titleBar.ButtonPressedBackgroundColor = systemAppearance.HighContrast ? systemAppearance.Highlight : theme.IsDark
                 ? Color.FromArgb(55, 255, 255, 255)
                 : Color.FromArgb(45, 0, 0, 0);
+            titleBar.ButtonHoverForegroundColor = systemAppearance.HighContrast
+                ? systemAppearance.HighlightText : titleBar.ButtonForegroundColor;
+            titleBar.ButtonPressedForegroundColor = titleBar.ButtonHoverForegroundColor;
             titleBar.InactiveForegroundColor = titleBar.ForegroundColor;
             titleBar.ButtonInactiveForegroundColor = titleBar.ButtonForegroundColor;
+            return true;
         }
         catch (Exception error)
         {
             Log.Warn(Category, "设置窗口标题栏配色失败", error);
+            return false;
         }
     }
 

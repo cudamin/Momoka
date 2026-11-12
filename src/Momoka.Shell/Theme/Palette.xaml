@@ -10,14 +10,13 @@
 
   Merged after XamlControlsResources in App.xaml, so these keys shadow the framework's own.
 
-  这里写下的每个色值现在只画第一帧。真正生效的是 Momoka.Core 的 UiThemes 那九套主题，由
+  这里写下的色值用于初始资源；运行时 Momoka.Core 的 UiThemes 存活主题由
   Theme/ThemeHost.cs 在窗口出现之前把它们写进下面这些 SolidColorBrush 对象里 —— 改的是画刷自己的
   Color，不是换字典条目，所以已经绑上去的那几百处会当场跟着变。字面值和默认那套（emby-dark）保持一致，
   只为了「万一 ThemeHost 没跑起来」时界面还是这个样子，而不是一片透明。Light 那一份现在没有哪套主题会
   选到（唯一的浅色 daylight 2026-09-05 删了），但 ThemeHost 照旧往它里面写，理由见 App.xaml 顶上那段。
 
-  三份字典的键是 Dark / Light / HighContrast，没有 Default —— winui-design 那条规矩，见下面第一份自己
-  那段说明。
+  三份字典的键是 Dark / Light / HighContrast；这是本项目的资源组织，Default 也是 WinUI 支持的键。
 -->
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -28,19 +27,8 @@
         <!-- Dark is the app's real theme: this is a client whose job is to hand a video to mpv,
              usually in a dim room, and poster art reads better against a dark surface.
 
-             The key is 「Dark」 rather than 「Default」 — winui-design's theming rule is 「custom theme
-             dictionaries cover Light, Dark and HighContrast explicitly — never Default」, and this file
-             has had a full Light and a full HighContrast beside it all along, so the key name was the
-             last thing standing between this dictionary and that rule.
-
-             It is not only a name. 「Default」 is the fallback WinUI reaches for when no dictionary matches
-             the current theme, so a dark-keyed entry was being found by accident rather than by request;
-             a mistyped 「Dark」 elsewhere would have silently landed here and looked correct. Keyed 「Dark」
-             it is found because the theme *is* Dark — App.xaml pins Application.RequestedTheme to Dark for
-             exactly that reason, and with no Default left, a lookup that matches nothing now falls through
-             to the framework's own value instead of quietly borrowing this one. Two application-scope
-             readers (DiagnosticsViewModel.Resolve, PlayerPage.BrushFor), ThemeHost's Painted list, and
-             the self-check's PaintedDictionaries all name this key; they moved with it. -->
+             本项目显式维护 Dark/Light/HighContrast。Default 是受支持的兜底键，Gallery 和框架也使用它；
+             本项目选择不用，并非 WinUI 禁令。相关应用级读者、ThemeHost 和自检按这三份字典组织。 -->
         <ResourceDictionary x:Key="Dark">
 
             <!-- surfaces -->
@@ -50,7 +38,7 @@
             <Color x:Key="EgSurfaceElevatedColor">#FF20262D</Color>
             <Color x:Key="EgSurfaceHoverColor">#FF2C343D</Color>
             <Color x:Key="EgBorderColor">#FF303941</Color>
-            <Color x:Key="EgBorderStrongColor">#FF49515A</Color>
+            <Color x:Key="EgBorderStrongColor">#FF495158</Color>
 
             <!-- text -->
             <Color x:Key="EgTextColor">#FFF2F6FA</Color>
@@ -63,7 +51,7 @@
             <Color x:Key="EgAccentColor">#FF6EE7C5</Color>
             <Color x:Key="EgAccentHoverColor">#FF82EACD</Color>
             <Color x:Key="EgAccentPressedColor">#FF5FC7A9</Color>
-            <Color x:Key="EgAccentSoftColor">#FF1C332F</Color>
+            <Color x:Key="EgAccentSoftColor">#FF1C3332</Color>
 
             <!-- 半透明的强调色，给侧边栏选中那颗药丸：压在 Mica 上要透得过去。 -->
             <Color x:Key="EgAccentMutedColor">#336EE7C5</Color>
@@ -99,12 +87,11 @@
             <!-- 详情页正文那几块玻璃 —— 「把下面的板块也坐上亚克力效果」。
                  这支亚克力要的就是「透出背后那张图，但透得看不清」，而它
                  背后那张图是固定在页面背景里的剧照（见 DetailPage 的 Backdrop 那一层），正文从它上面滑过去。
-                 WinUI 3 只有应用内亚克力（采样的是同一棵树里画在它后面的东西），而这里要的正是这一种。
+                 这里使用应用内 AcrylicBrush；桌面 AcrylicController 是另一种背景来源，不能混称。
                  两个 Opacity 一高一低分工：Tint 那个是这层色本身的浓度，Luminosity 那个管背后的明暗透上来
-                 多少；透上来的份量约等于 (1-Luminosity)×(1-Tint)。原来那对 0.85/0.55 只剩不到一成，一块玻璃
+                 多少；两项与模糊、噪声和混合共同决定合成效果，不能用透明度乘法推算准确像素。原来那对 0.85/0.55
                  和一块实心板在屏上看不出差别 —— 而「板块也坐上亚克力」要的就是看得出底下压着一张图，所以
-                 Luminosity 松到 0.62，透上来的份量翻到一成八。再松就该担心字了：最亮的一格天空能把玻璃抬到
-                 #35 上下，简介那档暗字（EgTextDimBrush）压在上面还剩 4.8:1，而正文的底线是 4.5:1。
+                 Luminosity 调为 0.62 是项目参数；明亮/繁杂图片下的文字与焦点可读性需实屏核验，不能由参数保证。
                  「看得到背景图」这件事不指望这块玻璃透多少 —— 那件事由板块之间的缝和最后一块底下那条空带
                  保证（见 DetailPage 正文那一叠），一张全黑的剧照也不会让缝合上。
                  FallbackColor 是关掉透明效果（省电模式、远程桌面）时的样子：一整块不透明的窗口底色，正文照旧
@@ -197,7 +184,7 @@
             <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="{StaticResource EgAccentColor}" />
             <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#E86EE7C5" />
             <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#C46EE7C5" />
-            <SolidColorBrush x:Key="AccentFillColorDisabledBrush" Color="#FF2D544F" />
+            <SolidColorBrush x:Key="AccentFillColorDisabledBrush" Color="#FF2D5450" />
             <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="{StaticResource EgAccentHoverColor}" />
             <SolidColorBrush x:Key="AccentTextFillColorSecondaryBrush" Color="{StaticResource EgAccentHoverColor}" />
             <SolidColorBrush x:Key="AccentTextFillColorTertiaryBrush" Color="{StaticResource EgAccentColor}" />
@@ -378,8 +365,7 @@
             <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
         </ResourceDictionary>
 
-        <!-- Not the app's normal theme, but the framework demands a Light dictionary and a user who
-             turns the system light should not get unreadable text. Same roles, inverted surfaces. -->
+        <!-- 保留的 Light 资源路线，目前没有出货浅色主题；恢复/新增主题需按项目产品决定处理。 -->
         <ResourceDictionary x:Key="Light">
             <Color x:Key="EgWindowColor">#FFF1F3F6</Color>
             <Color x:Key="EgSurfaceColor">#FFFFFFFF</Color>

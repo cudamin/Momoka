@@ -33,7 +33,7 @@ Read [CLAUDE.md](../../../CLAUDE.md), especially [official guidance and deviatio
 - `src/Momoka.Core`: framework-independent domain rules. Read current project references before making package claims.
 - `src/Momoka.Shell/Composition/ShellServices.cs`: dependency registration and lifetimes.
 - `Views/`, `ViewModels/`: presentation and page/identity ownership. Pure UI behavior may remain in code-behind under CLAUDE.
-- `Windowing/HostWindow.cs`: Win32 HWND plus `DesktopWindowXamlSource`; integrated video uses `CompositionVideoTarget`. This is distinct from `Views/SettingsWindow.cs`, which uses a framework `Window`.
+- `Windowing/HostWindow.cs`, `HostWindow.Backdrop.cs`, `IslandMicaBackdrop.cs`: Win32 HWND plus `DesktopWindowXamlSource`, caller intent, target ownership and HWND activation. Integrated video uses `CompositionVideoTarget`. `Views/SettingsWindow.cs` and `SettingsWindow.Appearance.cs` own a framework Window, its canvas/caption and system observations.
 - `Theme/Palette.xaml`, `Theme/Styles.xaml`, `Theme/ThemeHost.cs`, Core `Theming/UiThemes.cs`: first-frame resources, shared styles, live updates and available palettes.
 - `src/Momoka.Shell/ActivationListener.cs`: framework-free activation listener. Do not use the obsolete `Shell/ActivationListener.cs` path.
 - `tests/Momoka.Tests`, `tests/Momoka.PageContractTests` and focused test projects have different boundaries; read their actual runners and the [development commands](../../../docs/开发与验证.md).
@@ -47,6 +47,8 @@ Read the [implementation and failure cases](references/xaml-pitfalls.md#capabili
 This is an existing Momoka requirement, not a claim about default ContentDialog behavior. Read [overlay ownership, cancellation and lifecycle details](references/xaml-pitfalls.md#dialogs-close-on-outside-click). Changing this behavior requires the policy decision first; retaining it does not authorize additional custom modal behavior.
 
 ## Themes and material ownership
+
+Read `DetailMenuBackdrop` with `DetailMenuSurface`: successful controller attachment, system Fallback and a presenter's XAML solid fallback are separate results. Copied canvas/caption colors need UI-dispatched system observations. Read the material guide before changing these paths; diagnostics are not pixel evidence.
 
 Read [materials](references/materials.md) before touching a brush or backdrop. `Palette.xaml` currently uses `Dark`, `Light`, `HighContrast`; the first two are repainted, while high contrast uses system roles. This is a project contract, not a platform prohibition on a `Default` dictionary. Existing shipped palettes are dark; adding light/system mode remains a product decision in the plan. Keep theme keys, first-frame values and runtime updates aligned.
 

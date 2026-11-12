@@ -106,6 +106,15 @@ internal static class InputControlThemeTests
                     themeName + "/玻璃回退色");
             }
         });
+        Test("输入主题：默认Dark中性边线与Accent派生字节和真实主题一致", () =>
+        {
+            var dark = Dictionaries().Single(dictionary => (string?)dictionary.Attribute(X + "Key") == "Dark");
+            var colors = UiThemes.Default.Colors;
+            Assert.Equal(colors.BorderStrong.ToHex(), Resource(dark, "EgBorderStrongColor").Value);
+            Assert.Equal(colors.AccentSoft.ToHex(), Resource(dark, "EgAccentSoftColor").Value);
+            Assert.Equal(colors.Surface.Mix(colors.Accent, 0.28).ToHex(),
+                (string?)Resource(dark, "AccentFillColorDisabledBrush").Attribute("Color"));
+        });
         Test("输入主题：普通主题焦点四边保持 1 DIP，高对比度不覆盖系统输入资源", () =>
         {
             foreach (var dictionary in Dictionaries())
@@ -125,10 +134,19 @@ internal static class InputControlThemeTests
             var page = Read("src/Momoka.Shell/Views/SettingsPage.xaml");
             var scroll = page.Descendants(Xaml + "ScrollViewer")
                 .Single(element => (string?)element.Attribute(X + "Name") == "SettingsScroll");
-            var resources = scroll.Element(Xaml + "ScrollViewer.Resources")!;
-            AssertAlias(resources, "TextControlBackground", "EgInputGlassBrush");
-            AssertAlias(resources, "TextControlBackgroundPointerOver", "EgInputGlassBrush");
-            Assert.True(!resources.Elements().Any(element =>
+            var resources = scroll.Element(Xaml + "ScrollViewer.Resources")!.Element(Xaml + "ResourceDictionary")!;
+            foreach (var theme in new[] { "Dark", "Light" })
+            {
+                var dictionary = resources.Descendants(Xaml + "ResourceDictionary")
+                    .Single(element => (string?)element.Attribute(X + "Key") == theme);
+                AssertAlias(dictionary, "TextControlBackground", "EgInputGlassBrush");
+                AssertAlias(dictionary, "TextControlBackgroundPointerOver", "EgInputGlassBrush");
+            }
+            var contrast = resources.Descendants(Xaml + "ResourceDictionary")
+                .Single(element => (string?)element.Attribute(X + "Key") == "HighContrast");
+            foreach (var key in new[] { "TextControlBackground", "TextControlBackgroundPointerOver" })
+                Assert.Equal("{ThemeResource SystemColorWindowColor}", (string?)Resource(contrast, key).Attribute("Color"));
+            Assert.True(!resources.Descendants().Any(element =>
                 (string?)element.Attribute(X + "Key") == "TextControlBackgroundFocused"), "聚焦底色被局部覆盖，回不到侧栏色");
 
             var search = page.Descendants(Xaml + "AutoSuggestBox")

@@ -34,6 +34,8 @@ Read the [material guide](../../momoka-winui-shell/references/materials.md). Use
 
 Exercise every live product palette when colors change. Light/system mode is tested as a product mode only after it exists by approved design; isolated alternate resource fixtures must be labeled as fixtures. A missing OS/hardware state stays an explicit coverage gap. Use screenshots plus state/log evidence to explain fallback; do not claim measured energy consumption without a power measurement.
 
+For material failures distinguish support/constructor/property/configuration/add false or throw/post-registration state-read failure. Test same-intent retry with a source whose same-reference assignment does not reconnect. Check target and observer counts after cleanup; disposal exceptions prove attempts rather than native release. Settings appearance tests cover actual selection, event dispatch/coalescing, rejected posts, theme repaint retry and stopped-window callbacks; settings lifetime's system stubs do not cover appearance. Real OS changes require the user's scoped authorization, original/restored state and current-window screenshots. An interrupted or missing sample remains incomplete.
+
 ## Layout, DPI and typography
 
 - Cover representative wide, medium and minimum supported sizes and relevant short heights. Test threshold−1, threshold and threshold+1 for each changed breakpoint, including repeated transitions with data still loading.

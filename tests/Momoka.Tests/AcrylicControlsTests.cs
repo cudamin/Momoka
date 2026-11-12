@@ -15,6 +15,17 @@ internal static class AcrylicControlsTests
 
     public static void Register()
     {
+        Test("亚克力探针：先验当前出厂参数，再显式构造旧薄白夹具", () =>
+        {
+            var probe = Source("ShellNavigationProbe.Materials.cs");
+            Assert.Contains("factory-acrylic:", probe);
+            Assert.Contains("fixture.Settings.Ui.UseAcrylicControls = false;", probe);
+            Assert.Contains("fixture.Settings.Ui.ControlBackgroundOpacity = 15d / 255 * 100;", probe);
+            Assert.Contains("fixture.Settings.Ui.ControlBackgroundColor = \"#FFFFFF\";", probe);
+            Assert.Contains("ShellPrefs.ApplyAppearance(fixture.Settings.Ui);", probe);
+            Assert.True(probe.IndexOf("factory-acrylic:", StringComparison.Ordinal)
+                < probe.IndexOf("fixture.Settings.Ui.UseAcrylicControls = false;", StringComparison.Ordinal));
+        });
         Test("卡片材质：共用深色染色和浓度，高对比度保留系统实色", () =>
         {
             foreach (var theme in new[] { "Dark", "Light" })

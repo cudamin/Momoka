@@ -49,28 +49,13 @@ internal interface IWin32KeySink
 /// <see cref="Microsoft.UI.Xaml.Window"/>, and all of the UI lives in a WinUI 3 XAML island
 /// (<see cref="DesktopWindowXamlSource"/>) filling its client area.
 /// <para>
-/// That choice was measured, not assumed. Four facts decided it:
+/// 这个宿主沿用早期 child HWND 视频试验的窗口能力，但当前集成视频在页面自己的 SpriteVisual 中合成
+/// mpv 交换链，独占视频由 mpv 自建顶层窗口管理。旧试验不能作为普通 Window 不支持当前视频管线的结论。
+/// 浏览时接入 Mica Base，播放页请求暂时摘除浏览材质；<see cref="UseBackdrop"/> 记录该请求，
+/// 连接结果与系统材质状态另外记录。窗口补画未被岛覆盖的客户区，Shell 负责唯一的半透明画布。
 /// </para>
-/// <list type="number">
-///   <item>An island over a sibling child HWND composites correctly on 1.8: opaque XAML paints over
-///   the child, unpainted XAML reveals it, and a semi-transparent brush alpha-blends against it
-///   exactly. The island's transparency is what a browsing page's opaque background rides on. The
-///   video rides the 集成模式 pipeline (2026-09-16): a SpriteVisual in the tree fed by mpv's D3D11
-///   composition swapchain — no render API and no ANGLE. The 独立播放 pipeline (mpv's own top-level
-///   window) does not live in this window at all; the wid child-HWND shape it briefly had did, and
-///   that is what this fact once carried.</item>
-///   <item>A real <see cref="Microsoft.UI.Xaml.Window"/> hides child HWNDs. Its backdrop is
-///   composited <em>into</em> the island surface, so that island can never be transparent and the
-///   video never appears. This is why the window has to be ours.</item>
-///   <item>Client-area Mica and hosting mpv as a child HWND are mutually exclusive for the same
-///   reason. Mica on the frame is free; Mica behind the client area costs the video. Hence
-///   <see cref="UseBackdrop"/> — on while browsing, off the moment video is on screen.</item>
-///   <item>Anything nobody paints comes back white. So the window fills its client area with the
-///   app's base colour on <c>WM_ERASEBKGND</c>, the island root stays unpainted, and every page
-///   paints its own full-bleed opaque background.</item>
-/// </list>
 /// </summary>
-internal sealed class HostWindow : IDisposable
+internal sealed partial class HostWindow : IDisposable
 {
     private const string Category = "窗口";
     private const string ClassName = "MomokaHost";
@@ -125,8 +110,6 @@ internal sealed class HostWindow : IDisposable
     private AppWindow? _appWindow;
     private InputNonClientPointerSource? _nonClient;
     private UIElement? _content;
-    private bool _useBackdrop = true;
-    private IslandMicaBackdrop? _backdrop;
     private bool _disposed;
 
     /// <summary>The frame, style and maximize state to restore, held only while fullscreen.</summary>
@@ -931,40 +914,6 @@ internal sealed class HostWindow : IDisposable
             _content = value;
             if (_source is not null) _source.Content = value;
         }
-    }
-
-    /// <summary>
-    /// Whether the island asks DWM for Mica. True is the right answer for every browsing page and
-    /// gives the shell the wallpaper-aware material a Fluent app is expected to have; it must be
-    /// turned off before the video child HWND is shown, because a backdrop is composited into the
-    /// island surface and an opaque island hides the video (fact 3 above).
-    /// </summary>
-    public bool UseBackdrop
-    {
-        get => _useBackdrop;
-        set
-        {
-            if (_useBackdrop == value) return;
-            _useBackdrop = value;
-            ApplyBackdrop();
-        }
-    }
-
-    /// <summary>
-    /// Whether video is on screen. Setting it turns Mica off (fact 3: a backdrop is composited into the
-    /// island surface, and running the backdrop sampler under a full-bleed picture is spend with no
-    /// audience) and back on again afterwards.
-    /// <para>
-    /// 两条管线在这里共用一个开关。集成模式：画面在播放页的视觉树里——SpriteVisual 合成 mpv 的
-    /// D3D11 交换链——这里什么也不显不藏，只是省掉垫在下面的背景采样。独立播放：画面在 mpv 自己的
-    /// 顶层窗口里，这个开关对它 nothing to say——但播放态把岛面垫黑仍是该有的样子（岛面上只剩播放器
-    /// 的 chrome），所以照旧共用。
-    /// </para>
-    /// </summary>
-    public bool VideoVisible
-    {
-        get => !_useBackdrop;
-        set => UseBackdrop = !value;
     }
 
     /// <summary>
@@ -3056,46 +3005,6 @@ internal sealed class HostWindow : IDisposable
             : Native.DefWindowProc(window, message, wParam, lParam);
     }
 
-    private void ApplyBackdrop()
-    {
-        if (_source is null) return;
-
-        try
-        {
-            // Mica（Base），不是 Mica Alt：主窗口是普通窗口，不是带标签页的那一档。这一档与 Palette 的
-            // EgCanvasBrush 浓度成对（2026-11-12 用户令「改为Mica」）—— 换回 BaseAlt，那 60% 底下会实成
-            // 一块平色，屏上就看不出材质了。
-            //
-            // 不用框架的 MicaBackdrop：它那份配置的 IsInputActive 跟 XamlRoot 走，而岛拿不到窗口激活，
-            // 云母于是按「不在前台」渲染成实心 #202020，壁纸一点没采。见 IslandMicaBackdrop 的注释。
-            if (_useBackdrop)
-            {
-                _backdrop ??= new IslandMicaBackdrop();
-                _source.SystemBackdrop = _backdrop;
-            }
-            else
-            {
-                _source.SystemBackdrop = null;
-            }
-        }
-        catch (Exception error)
-        {
-            // Mica is a nicety. A machine with transparency effects off, an unsupported GPU or a
-            // remote session must still get a window.
-            //
-            // 说清楚退到哪一层：这里并不画任何底色，只是把材质摘掉 —— 露出来的是岛的类背景刷
-            // （BaseBrush，#16181C）再压上外壳那层画布。写成「改用纯色底」会让人以为下面刷过一道主题色。
-            Log.Warn(Category, "设置 Mica 背景失败，岛面退回类背景刷＋画布", error);
-            _useBackdrop = false;
-        }
-    }
-
-    /// <summary>
-    /// 宿主窗口的激活状态转给云母。系统对「窗口不在前台」的云母给的是实心底，而岛自己报不出激活 ——
-    /// 这一句是把系统真正在说的那件事补上。
-    /// </summary>
-    private void OnBackdropFocusChanged(bool active) => _backdrop?.SetInputActive(active);
-
     /// <summary>
     /// 集成播放的画面去处是播放页自己的 SpriteVisual（<c>CompositionVideoTarget</c>）， HostWindow 对它
     /// 无所事事。独立播放同样不经过这里（2026-09-16 第二形态）：那是 mpv 自己的顶层窗口，自建自管，
@@ -3511,6 +3420,7 @@ internal sealed class HostWindow : IDisposable
             _blank = IntPtr.Zero;
         }
 
+        ReleaseBackdrop();
         _source?.Dispose();
         _source = null;
 

@@ -26,9 +26,7 @@ public static class ThemeHost
     /// <summary>
     /// Palette.xaml 里那两份跟着主题走的字典。第三份 HighContrast 故意不在内。
     /// <para>
-    /// 第一份从前叫 <c>Default</c>，2026-09-05 按 <c>winui-design</c> 那条「只写 Light / Dark /
-    /// HighContrast，不要 Default」改成 <c>Dark</c>。改的不只是名字：<c>Default</c> 是「没有哪份字典对得上
-    /// 当前主题」时的兜底，写错一个键名会悄悄落到它身上还看着正常。
+    /// 本项目从 Default 改为显式 Dark；Default 是 WinUI 支持的兜底键，显式三主题字典是项目组织选择。
     /// </para>
     /// </summary>
     private static readonly string[] Painted = ["Dark", "Light"];
@@ -138,7 +136,7 @@ public static class ThemeHost
         ("NavigationViewItemForegroundSelectedPressed", theme => theme.Colors.Text),
         ("NavigationViewItemHeaderForeground", theme => theme.Colors.Text),
 
-        // 影院画布使用稳定的实色层次，避免桌面壁纸透进内容区后冲淡海报和正文。
+        // 外壳画布/侧栏保留项目半透明层，弹窗使用实色，卡片保留应用内 Acrylic。
         // 浮层仍由 EgFrostBrush 提供材质，底层画布与卡片各用自己的主题角色。
         // 设置卡片（2026-10-29 用户令「所有的卡片也要用亚克力」）：深色取抬两档的悬停面色，
         // 浅色取白面 —— 两边的浓度都归 Palette 的两份字典，这里只管「这套主题该用哪个色」。
