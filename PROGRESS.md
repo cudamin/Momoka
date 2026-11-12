@@ -1,3 +1,11 @@
+## 2026-11-13 侧边栏商店样式已合入 master，构建与发布按用户要求暂停
+
+`5352953`（workbuddy/master-8f12571e）以 `449f261` 合入 master `171a1e6`。冲突三处：PROGRESS 与开发文档两段都留、新的在前；`HomePage.xaml` 的 `LibraryOverlay` 取「卡片内左边距 24」并保留主树新加的 `LibraryReadingLayer` 模糊/遮罩层（`LibraryHost` 的 `SizeChanged` 也在）。合并后只做了静态核对：三个改动过的 XAML 用 XML 解析器验过结构完整（合并时曾漏掉 `BannerCard` 与 `BannerZone` 的两条闭合标签，已补齐），全树再无 `SyncBleed`/`BleedRead`/`ForwardButton` 的活代码引用（只剩注释与 `obj/` 旧产物），`Agreements.txt` 的 Palette 颜色计数 88 与实际字面值数一致。
+
+**没有做**（用户 00:42 明确「合并后暂停主树构建和发布」）：未编译、未跑主测试/探针/自检、未发布、未推远端。桌面快捷方式仍指向既有主树发布件（`%USERPROFILE%\Momoka\artifacts\publish\win-x64`），那一份不含本批改动。
+
+**恢复时的待办**：①主树 Shell/Core 与 Tests Release/x64 编译（0 警告 0 错误）；②`Momoka.Tests` 全量与 `dotnet format whitespace`；③`--probe-shell --probe-section shell`（含新用例「启动时侧边栏模式已经开着」）与 `favorites`；④`--self-check --dump-ui --screen 1` 对照基线（既有红项「媒体信息表格 10 行渲染 9 行」）；⑤全部通过后 `tools/publish.ps1 -NoArchive -Shortcut` 发布并核快捷方式与哈希；⑥收尾再删 `workbuddy/master-8f12571e` 临时树。本批详细改动与在临时树上的验证读数见 `docs/开发与验证.md`「2026-11-12 晚 侧边栏模式改商店样式」。
+
 ## 2026-11-12 晚 侧边栏模式改商店样式：Mica Alt、标题、搜索框、圆角轮播
 
 用户六条令（附商店截图）＋两处追问（轮播「你看微软商店怎么弄的你就怎么改」、前进键退役）。**改了什么**：①窗口底材 `IslandMicaBackdrop` 换 `MicaKind.BaseAlt`，侧边栏去掉 `LayerFillColorAltBrush`、`ContentHost` 的让位从内边距改成外边距，标题栏与侧边栏因此露出同一块材质（系统标题栏底色同时改透明）；②折叠键换成用户给的面板图标（24×24 三笔：外框、内孔、左栏），主页上它是那一排第一颗；③`BackButton` 只在非主页露面、站最左，折叠键紧跟它右边，`ForwardButton` 整颗删除（`Alt+→`／鼠标侧键仍走 `GoForward`）；④轮播改成四边留白的圆角卡片（36/20/13），四周那圈染色由 `CarouselAmbient`（Core 纯函数）从当前剧照算出来，`BannerSlide.Ambient → HomeBanner.AmbientChanged → HomePage.PaintBannerGlow` 写四个停点；⑤`ShelfHead.ShowRule`（主页那几份为 `False`）去掉标题下那条通栏线，间距 `EgSpaceM → EgSpaceS`；⑥标题栏正中加搜索框（按钮语义，点进搜索页，窄窗收起由放大镜／栏里「搜索」接手）。通栏版式连同 `SyncBleed`、标题栏浅墨联动一起退役。
