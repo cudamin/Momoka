@@ -83,9 +83,7 @@
             <SolidColorBrush x:Key="EgWarningBrush" Color="{StaticResource EgWarningColor}" />
             <SolidColorBrush x:Key="EgInfoBrush" Color="{StaticResource EgInfoColor}" />
             <SolidColorBrush x:Key="EgScrimBrush" Color="{StaticResource EgScrimColor}" />
-            <!-- 标题用浅墨，首页整排在其后共用原生高斯亚克力和半透明阅读遮罩。 -->
-            <AcrylicBrush x:Key="EgHomeLibraryBlurBrush" TintColor="{StaticResource EgWindowColor}"
-                FallbackColor="{StaticResource EgWindowColor}" TintOpacity="0.15" TintLuminosityOpacity="0.15" />
+            <!-- 图上卡片标题使用正文墨；透明文字区不添加底板或模糊遮罩。 -->
             <StaticResource x:Key="EgCardCaptionForegroundBrush" ResourceKey="EgTextBrush" />
             <StaticResource x:Key="EgCardCaptionSecondaryBrush" ResourceKey="EgTextBrush" />
 
@@ -426,8 +424,6 @@
             <SolidColorBrush x:Key="EgWarningBrush" Color="{StaticResource EgWarningColor}" />
             <SolidColorBrush x:Key="EgInfoBrush" Color="{StaticResource EgInfoColor}" />
             <SolidColorBrush x:Key="EgScrimBrush" Color="{StaticResource EgScrimColor}" />
-            <AcrylicBrush x:Key="EgHomeLibraryBlurBrush" TintColor="{StaticResource EgWindowColor}"
-                FallbackColor="{StaticResource EgWindowColor}" TintOpacity="0.15" TintLuminosityOpacity="0.15" />
             <StaticResource x:Key="EgCardCaptionForegroundBrush" ResourceKey="EgTextBrush" />
             <StaticResource x:Key="EgCardCaptionSecondaryBrush" ResourceKey="EgTextBrush" />
 
@@ -652,7 +648,6 @@
             <SolidColorBrush x:Key="EgWarningBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgInfoBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgScrimBrush" Color="{ThemeResource SystemColorWindowColor}" />
-            <SolidColorBrush x:Key="EgHomeLibraryBlurBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgCardCaptionForegroundBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgCardCaptionSecondaryBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
 

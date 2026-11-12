@@ -272,27 +272,17 @@
                 -->
                         <Border
                             x:Name="LibraryOverlay"
+                            MaxWidth="660"
                             Margin="24,0,36,0"
                             HorizontalAlignment="Left"
                             VerticalAlignment="Bottom"
                             Visibility="Collapsed">
-                            <!-- 位移同样必须写在标记里（理由见 ShelfTemplate 里那一段）：翻档那一趟它要先站在横排里
-                                 那一排排卡的位置上、再滑到轮播左下角（或反过来），落笔处就是这支变换。 -->
                             <Border.RenderTransform>
                                 <TranslateTransform />
                             </Border.RenderTransform>
-                            <Grid>
-                                <!-- 整排标题共用背景模糊和半透明遮罩；画在清晰封面与文字后面，不逐卡制造实色底板。 -->
-                                <Grid x:Name="LibraryReadingLayer" Height="64" VerticalAlignment="Bottom"
-                                    IsHitTestVisible="False">
-                                    <Border x:Name="LibraryReadingBlur" Background="{ThemeResource EgHomeLibraryBlurBrush}" />
-                                    <Border x:Name="LibraryReadingShade" Background="{ThemeResource EgScrimBrush}" Opacity="0.9" />
-                                </Grid>
-                                <ContentPresenter x:Name="LibraryHost" ContentTemplate="{StaticResource ShelfCardsTemplate}"
-                                    SizeChanged="OnLibraryHostSizeChanged" />
-                            </Grid>
+                            <!-- 三张208 DIP库卡加两段18 DIP间距；更多库仍通过横向滚动/翻页查看。 -->
+                            <ContentPresenter x:Name="LibraryHost" ContentTemplate="{StaticResource ShelfCardsTemplate}" />
                         </Border>
-                    </Grid>
                 </Border>
             </Grid>
 

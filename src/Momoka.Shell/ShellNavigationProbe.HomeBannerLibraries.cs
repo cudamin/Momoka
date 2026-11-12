@@ -92,7 +92,7 @@ internal sealed partial class ShellNavigationProbe
                     var rejected = false;
                     try
                     {
-                        strip.RenderTransform = new TranslateTransform { X = 24 };
+                        strip.RenderTransform = new TranslateTransform { X = Bounds(status).Left - Bounds(strip).Right + 1 };
                         try { CheckRoom(width, "injected-overlap", strip); }
                         catch (InvalidOperationException error) when (error.Message == "媒体库实际滚动视口超出避让边界")
                         {
@@ -104,6 +104,13 @@ internal sealed partial class ShellNavigationProbe
                     CheckRoom(width, "recovered-overlap", strip);
                 }
                 await SaveProbeScreenAsync($"home-banner-libraries-{width}-start-screen.png");
+                if (Math.Abs(scroll.ViewportWidth - 660) < 1)
+                {
+                    var firstThree = Descendants(strip).OfType<PosterCard>()
+                        .Where(card => libraries.Take(3).Any(item => item.Id == card.Card?.Item.Id)).ToArray();
+                    Require(firstThree.Length == 3 && firstThree.All(card => Bounds(card).Left >= Bounds(scroll).Left - 1
+                        && Bounds(card).Right <= Bounds(scroll).Right + 1), "三库视口没有完整显示前三库");
+                }
 
                 // 通过已有翻页按钮走真实滚动路径，不点击媒体卡片本体。
                 Field(strip, "_hover", true);
@@ -112,6 +119,8 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => next.Visibility == Visibility.Visible && next.IsHitTestVisible);
                 ((IInvokeProvider)new ButtonAutomationPeer(next).GetPattern(PatternInterface.Invoke)).Invoke();
                 await UntilAsync(() => scroll.HorizontalOffset > 1);
+                var expectedStep = scroll.ViewportWidth >= 659 ? 678 : 452;
+                await UntilAsync(() => Math.Abs(scroll.HorizontalOffset - expectedStep) < 1);
                 strip.FocusOn(libraries.Length - 1);
                 await UntilAsync(() => scroll.HorizontalOffset >= scroll.ScrollableWidth - 1);
                 await LayoutAsync(strip);
@@ -203,6 +212,11 @@ internal sealed partial class ShellNavigationProbe
             void CheckRoom(int width, string stage, ShelfStrip strip)
             {
                 Require(home.ViewModel.LibraryOnBanner, "媒体库没有按固定轮播档显示");
+                Require(home.ViewModel.LibraryShelf?.Cards.Count == libraries.Length, "收窄视口丢掉了媒体库");
+                var viewport = Get<ScrollView>(strip, "Scroller");
+                var available = banner.ActualWidth - overlay.Margin.Left - overlay.Margin.Right;
+                Require(Math.Abs(viewport.ViewportWidth - Math.Min(660, available)) < 1,
+                    "轮播媒体库视口没有收窄到三库宽度");
                 var visible = width >= 800;
                 Require(status.Visibility == (visible ? Visibility.Visible : Visibility.Collapsed), "轮播读数显隐界线改变");
                 if (!visible)
