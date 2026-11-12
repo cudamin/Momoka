@@ -1,3 +1,17 @@
+## 2026-11-12 设置窗口改用云母材质：整窗一块（已提交并发布）
+
+撤销半小时后（11:08）用户重提「把设置页面改为云母材质」。这次问清范围，用户选「上窗口级 Mica 并通过 Mica 实现应用分层」。第一版照搬主窗口侧栏的分法（分类栏 50% 层色、内容区 60% 画布），用户看到后立刻回「不是，你为什么一定要给标题和侧边栏加卡片」——那层 50% 面色在设置窗口里就是一张有边界的卡片，加上标题栏比内容区透，整窗成了三块拼贴。于是改成整窗一块。
+
+**改了什么。** `SettingsWindow` 挂框架的 `Window.SystemBackdrop`（`MicaBackdrop{Base}`）；客户区只压一层 60% 窗口色的画布，挂在根 Grid 上，`Frame` 让空（两层都画就是 60% 叠 60%）；标题栏与系统三颗按钮的四种底色全透明，底下就是那层画布，窗口从上沿到下沿不断开。`MicaController.IsSupported()` 为假时画布换成不透明窗口色，一处改、整窗跟上。设置页里那块分类栏层色先加后撤，净改动为零。
+
+**测试。** `MicaMaterialTests` 新增一条：窗口 Base、画布 `0x99`、换主题两条路重算、标题栏四态透明、窗口与页面都不得再出现 `SystemBackdropElement` 或分类栏自己的底。`SettingsLifetimeTests` 的源码提取边界跟着构造函数签名改。
+
+**验证。** 全方案 Release 0 警告 0 错误；本批四个改动文件的 `format whitespace` 通过（整方案另有 530 处空白红，全在 23 个与本批无关的文件里，均为 master 既有）。`Momoka.Tests` 4811 项、4808 通过、3 项红：`本机扫描：源目录和文件重解析点不跟随`、`本机软链接：真实目标路径且无复制降级`、`本机链接执行：新同名文件在图片等待读取中出现也不覆盖` —— 在干净 master（`9844372`）上用同一命令复现同样三条（4810 项 4807 通过），属本机符号链接权限的既有环境红。`SettingsLifetimeTests` 61/61。
+
+**自检。** `--self-check --dump-ui --screen 1` 三次，「设置窗口底材 — 窗口 Mica Base，画布 153/255」三次通过；三次红项分别是「媒体信息表格」×2、「设置分类走查／设置行模板」×1，都是虚拟化少渲染一行的时序抖动。基线件（`Momoka-stale/publish-20261112-113909-solid-before-mica`，02:43 构建）同一命令也红一项（「播放回来那一页」的滚动位置），红项不同、同样不是本批引起。`selfcheck-diff.ps1` 如实判红，未改基线。
+
+**交付件。** `artifacts/publish/win-x64` 547 文件／288.3 MB（`Momoka.dll` 8 444 928 字节）；桌面 `Momoka.lnk` 因 `publish.ps1 -Shortcut` 写不进去（已知坑），按老办法改名重建后指回同一路径。实屏 `artifacts/shots/settings-mica.png`（1100×760）：整窗一块，标题栏、分类栏、内容区同色，没有分块。
+
 ## 2026-11-12 设置窗口 Mica 与分类栏 Mica Alt（已撤销）
 
 用户先问设置页是否采用 Mica 与 Mica Alt，核对后答两者都没有，给出「窗口级 Base ＋ 分类栏局部 BaseAlt」方案，获「可以」后实施并发布（`0b24d0e`、`f3e9bfb`）。同日 10:49 用户要求「撤销本窗口的更改」，整批撤回（`560bd31`）：`SettingsWindow` 回到纯主题实色窗口，`SettingsPage` 的分类栏材质元素与 `DetailMica` 挂载、`ShellPage` 的读数出口、自检「设置窗口底材」、`MicaMaterialTests` 的材质契约、`docs/开发与验证.md` 那一节与基线登记全部撤掉；除本节外，文件内容与 `5736e95` 一致。两处挡构建的既有修复（`ItemUserStateOrderTests.Boundaries.cs` 的重复定义、`SourcePins.json` 的过期哈希）不属本特性，保留。交付件回滚到撤销前那份：`publish-20261112-104209` 已挪回 `artifacts/publish/win-x64`（`Momoka.dll` 8 443 392 字节、02:43 构建），本轮材质构建挪到 `Momoka-stale/publish-20261112-110216-mica`；撤销后截图确认设置窗口是实色、无材质层。
