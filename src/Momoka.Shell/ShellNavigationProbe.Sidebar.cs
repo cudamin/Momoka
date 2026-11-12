@@ -191,14 +191,24 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(shell);
             Require(nav.IsPaneOpen, "侧栏展开按钮没有生效");
             AssertSidebarGeometry(shell, host, true);
-            // 展开前后同一格必须同色，而且就是主题的面色（2026-10-14 用户：「侧边栏展开后不要变色」）。
-            // 只比属性证明不了屏上画了什么 —— 这里读的是元素树自己渲染出来的那一格像素。
+            // 展开前后同一格必须同色（2026-10-14 用户：「侧边栏展开后不要变色」）。只比属性证明不了屏上
+            // 画了什么 —— 这里读的是元素树自己渲染出来的那一格像素。
             var expandedColor = await SidebarColorAsync(shell, railSpot.X, railSpot.Y);
-            var surface = ThemeHost.ToColor(ThemeHost.Current.Colors.Surface);
             Require(railColor == expandedColor,
                 $"侧栏展开后底色变了：收起时 {railColor}、展开后 {expandedColor}");
-            Require(expandedColor == $"#{surface.R:X2}{surface.G:X2}{surface.B:X2}",
-                $"侧栏底色不是主题的面色：{expandedColor} 对 #{surface.R:X2}{surface.G:X2}{surface.B:X2}");
+            // 2026-11-12「改为Mica」之后，栏的底是「面色 + 50%」压在画布上（LayerFillColorAltBrush），
+            // 屏上那一格不再是纯面色：渲染帧把半透明画刷记成预乘读数（透明度 × 面色）。期望值因此从
+            // 面色本身换成这个预乘值 —— 判据仍要证明「画上去的是这支角色」，只是不再假装它不透明。
+            if (Application.Current.Resources["LayerFillColorAltBrush"] is not SolidColorBrush layer)
+                throw new InvalidOperationException("找不到侧边栏那一层画刷");
+            var premultiplied = (
+                R: (byte)Math.Round(layer.Color.R * layer.Color.A / 255.0),
+                G: (byte)Math.Round(layer.Color.G * layer.Color.A / 255.0),
+                B: (byte)Math.Round(layer.Color.B * layer.Color.A / 255.0));
+            Require(NearColor(expandedColor, premultiplied, 1),
+                $"侧栏底色不是那一层半透明面色：{expandedColor} 对预乘 "
+                + $"#{premultiplied.R:X2}{premultiplied.G:X2}{premultiplied.B:X2}"
+                + (layer.Color.A == 0xFF ? "（画刷又变回不透明了，Mica 被盖住）" : string.Empty));
             DumpSidebarLayout(shell, "600 expanded");
             var title = Get<StackPanel>(shell, "TitleActions");
             var account = Get<Button>(shell, "AccountButton");
@@ -211,15 +221,13 @@ internal sealed partial class ShellNavigationProbe
                 "账号没有落在左下角");
             Require(Left(account, shell) + account.ActualWidth <= host.ActualWidth + 1,
                 "账号溢出了侧边栏的宽");
-            // 导航开关站在标题栏最左边（标题的位置），后退/前进紧跟在它右边。
+            // 导航开关站在标题栏最左边（标题的位置），主页与返回排在它右边。
             var backButton = Get<Button>(shell, "BackButton");
-            var forwardButton = Get<Button>(shell, "ForwardButton");
             Require(Left(toggle, shell) <= 20 && Left(toggle, shell) < Left(backButton, shell)
                 && Top(toggle, shell) + toggle.ActualHeight <= HomePage.ChromeHeight + 1,
                 "导航开关不在标题栏最左边");
-            Require(Left(backButton, shell) >= Left(toggle, shell) + toggle.ActualWidth
-                && Left(forwardButton, shell) >= Left(backButton, shell) + backButton.ActualWidth,
-                "后退/前进没有排在导航开关右边");
+            Require(Left(backButton, shell) >= Left(toggle, shell) + toggle.ActualWidth,
+                "后退没有排在导航开关右边");
             await SaveProbeScreenAsync("sidebar-expanded-600-screen.png");
             ((IInvokeProvider)new ButtonAutomationPeer(toggle).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(shell);
@@ -235,15 +243,22 @@ internal sealed partial class ShellNavigationProbe
             {
                 ResizeProbeClient(width, 900);
                 await LayoutAsync(shell);
-                Require(shell.ProbeTitleActions().Ok, "移除爱心后标题栏布局不合法");
-                Require(Get<SelectorBar>(shell, "HomeNavigation").Visibility == Visibility.Collapsed,
-                    "媒体库页错误显示首页收藏导航");
+                Require(shell.ProbeTitleActions().Ok, "收藏页加入后标题栏布局不合法" + shell.ProbeTitleActions().Detail);
+                // 2026-11-11 起标题栏不再按页型换脸：媒体库页上也是同一排，收藏此刻有内容、所以也在。
+                Require(Get<Button>(shell, "HomeButton").Visibility == Visibility.Visible
+                    && Get<Button>(shell, "FavoritesButton").Visibility == Visibility.Visible
+                    && Get<Button>(shell, "SettingsButton").Visibility == Visibility.Visible
+                    && Get<Button>(shell, "SearchButton").Visibility == Visibility.Visible
+                    && Get<Button>(shell, "BackButton").Visibility == Visibility.Visible
+                    && Get<Button>(shell, "ForwardButton").Visibility == Visibility.Visible,
+                    "媒体库页的标题栏那一排缺了按键");
                 await SaveProbeScreenAsync($"toolbar-navigation-{width}-screen.png");
             }
             await ToggleAsync(true);
             favorite = false;
             await shell.Favorites.RefreshAsync();
-            Require(Get<NavigationViewItem>(shell, "SidebarFavorites").Visibility == Visibility.Collapsed, "空收藏没有隐藏");
+            Require(Get<NavigationViewItem>(shell, "SidebarFavorites").Visibility == Visibility.Collapsed,
+                "空收藏没有隐藏");
 
             shell.ShowPlayer(true);
             await ToggleAsync(false);
@@ -334,6 +349,24 @@ internal sealed partial class ShellNavigationProbe
         var row = Math.Clamp((int)Math.Round(y * scale), 0, bitmap.PixelHeight - 1);
         var at = ((row * bitmap.PixelWidth) + column) * 4;
         return $"#{pixels[at + 2]:X2}{pixels[at + 1]:X2}{pixels[at]:X2}";
+    }
+
+    /// <summary>
+    /// 渲染帧是 8 位整数，半透明画刷的预乘读数会差上一级，所以逐通道给 ±tolerance。
+    /// 只用于侧栏那一格底色：它现在是一支半透明角色（2026-11-12 改为 Mica 之后），不是不透明实色。
+    /// </summary>
+    private static bool NearColor(string actual, (byte R, byte G, byte B) want, int tolerance)
+    {
+        if (actual is not { Length: 7 } || actual[0] != '#') return false;
+
+        static bool Near(string text, int offset, byte want, int tolerance) =>
+            int.TryParse(text.AsSpan(offset, 2), System.Globalization.NumberStyles.HexNumber,
+                System.Globalization.CultureInfo.InvariantCulture, out var value)
+            && Math.Abs(value - want) <= tolerance;
+
+        return Near(actual, 1, want.R, tolerance)
+            && Near(actual, 3, want.G, tolerance)
+            && Near(actual, 5, want.B, tolerance);
     }
 
     /// <summary>读数：窗宽、栏宽、面板状态与每个入口图标的可见矩形，写进日志目录供复核（不参与断言）。</summary>
@@ -692,7 +725,10 @@ internal sealed partial class ShellNavigationProbe
         finally
         {
             Call(shell, "StopMoviePilotMonitoring");
-            Call(shell, "ReleaseContent");
+            // 探针的 shell 用完即从视觉树移除并丢弃：让当前页面放开它的加载与订阅就够了。
+            // 不走产品 ReleaseContent 那一步清 Frame 返回栈 —— 断线那一拍的导航可能仍在
+            // Navigating，WinUI 会以 0x800710DD 拒绝 Clear，把本已通过的检查盖成失败。
+            if (shell.Pages.Content is IShellContent current) current.Release();
             shell.SignInRoot.Detach();
             Field(shell, "_window", null);
             _root.Children.Remove(shell);

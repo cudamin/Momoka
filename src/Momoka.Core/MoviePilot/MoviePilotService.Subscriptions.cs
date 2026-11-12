@@ -171,12 +171,12 @@ public sealed partial class MoviePilotService
             lock (_operationGate) _operations.Remove(SubscribeKey(subscription.Media, subscription.EpisodeGroup));
     }
 
-    private async Task MutateSubscriptionAsync(MoviePilotSubscription subscription, HttpMethod method, string path,
+    private async Task<JsonElement> MutateSubscriptionAsync(MoviePilotSubscription subscription, HttpMethod method, string path,
         object? body, CancellationToken cancellationToken)
     {
         var identity = RequireResultConnection(subscription.ConnectionStamp);
         var key = SubscriptionOperationKey(subscription);
-        await WriteAsync(identity, [key], async (address, token, client) =>
+        var data = await WriteAsync(identity, [key], async (address, token, client) =>
         {
             try { return await client.MutateAsync(address, token, method, path, body, cancellationToken).ConfigureAwait(false); }
             // 官方公开文档的旧版搜索/重置仍用 GET。只有明确 405 拒绝 POST 才退回；超时等不重放。
@@ -185,5 +185,6 @@ public sealed partial class MoviePilotService
         }, cancellationToken).ConfigureAwait(false);
         // 明确成功后可继续暂停/恢复/编辑；结果不明仍由 WriteAsync 锁住，禁止自动重放。
         lock (_operationGate) _operations.Remove(key);
+        return data;
     }
 }

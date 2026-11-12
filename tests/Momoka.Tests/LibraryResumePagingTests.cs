@@ -60,6 +60,79 @@ internal static class LibraryResumePagingTests
 
     private static void Register(ShellFixture shell)
     {
+        Case("批量删除：页面释放后的成功回执仍保留删除事实", async () =>
+        {
+            using var fixture = new Fixture(shell, 25);
+            foreach (var item in fixture.Transport.Rows["a"]) item.Type = EmbyItemType.Movie;
+            var vm = fixture.CreateLibraryView();
+            await (Task)shell.Invoke(vm, "LoadAsync", true)!;
+            var cards = CardObjects(vm).ToArray();
+            var deleted = shell.Get<EmbyItem>(cards[0], "Item");
+            ((IDisposable)vm).Dispose();
+            shell.Invoke(vm, "ConfirmBatchDeletion", deleted);
+            var remembered = (RemovedMedia)vm.GetType().GetField("_removed", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(vm)!;
+            Assert.True(remembered.Hides(deleted));
+            Assert.Equal(1, remembered.Count);
+            shell.Invoke(vm, "ConfirmBatchDeletion", deleted);
+            Assert.Equal(1, remembered.Count, "迟到回执不能重复记录删除事实");
+        });
+        Case("批量删除：深窗保留锚点前缀，继续分页不跳过条目", async () =>
+        {
+            using var fixture = new Fixture(shell, 180);
+            foreach (var item in fixture.Transport.Rows["a"]) item.Type = EmbyItemType.Movie;
+            var vm = fixture.CreateLibraryView();
+            try
+            {
+                await (Task)shell.Invoke(vm, "LoadAsync", true)!;
+                await (Task)shell.Invoke(vm, "LoadWindowAtAsync", 80)!;
+                Assert.True(shell.Get<int>(vm, "WindowStart") > 0);
+                var cards = CardObjects(vm).ToArray();
+                var deleted = shell.Get<EmbyItem>(cards[0], "Item");
+                var anchor = shell.Get<EmbyItem>(cards[2], "Item").IdentityKey;
+                var query = shell.Get<CancellationToken>(vm, "QueryToken");
+                var removed = await (Task<bool>)shell.Invoke(vm, "RemoveBatchAsync", new[] { deleted }, query)!;
+                Assert.True(removed);
+                Assert.Equal(0, shell.Get<int>(vm, "WindowStart"));
+                var remaining = CardObjects(vm).Select(card => shell.Get<EmbyItem>(card, "Item")).ToArray();
+                Assert.True(remaining.Any(item => item.IdentityKey == anchor), "删除后的前缀必须包含原视口锚点");
+                Assert.False(remaining.Any(item => item.IdentityKey == deleted.IdentityKey));
+                var reads = fixture.Transport.LibraryReads.ToArray();
+                var next = reads[^1].Start + Math.Min(reads[^1].Limit, 180 - reads[^1].Start);
+                await (Task)shell.Invoke(vm, "LoadAsync", false)!;
+                Assert.Equal(next, fixture.Transport.LibraryReads.Last().Start);
+                remaining = CardObjects(vm).Select(card => shell.Get<EmbyItem>(card, "Item")).ToArray();
+                Assert.Equal(remaining.Length, remaining.Select(item => item.IdentityKey).Distinct().Count());
+                Assert.True(remaining.Any(item => item.Id == "a-" + next), "下一页不能跳过刷新前缀后的第一个条目");
+            }
+            finally { ((IDisposable)vm).Dispose(); }
+        });
+        Case("批量删除：刷新失败仍摘卡，重试保留查询和原始分页账", async () =>
+        {
+            using var fixture = new Fixture(shell, 180);
+            foreach (var item in fixture.Transport.Rows["a"]) item.Type = EmbyItemType.Movie;
+            var vm = fixture.CreateLibraryView();
+            try
+            {
+                await (Task)shell.Invoke(vm, "LoadAsync", true)!;
+                await (Task)shell.Invoke(vm, "LoadWindowAtAsync", 80)!;
+                var cards = CardObjects(vm).ToArray();
+                var deleted = shell.Get<EmbyItem>(cards[0], "Item");
+                var query = shell.Get<CancellationToken>(vm, "QueryToken");
+                fixture.Transport.LibraryFailure = System.Net.HttpStatusCode.ServiceUnavailable;
+                Assert.False(await (Task<bool>)shell.Invoke(vm, "RemoveBatchAsync", new[] { deleted }, query)!);
+                Assert.Equal(query, shell.Get<CancellationToken>(vm, "QueryToken"));
+                Assert.False(CardObjects(vm).Any(card => shell.Get<EmbyItem>(card, "Item").IdentityKey == deleted.IdentityKey));
+                fixture.Transport.LibraryFailure = null;
+                Assert.True(await (Task<bool>)shell.Invoke(vm, "RemoveBatchAsync", new[] { deleted }, query)!);
+                Assert.Equal(0, shell.Get<int>(vm, "WindowStart"));
+                var reads = fixture.Transport.LibraryReads.ToArray();
+                var next = reads[^1].Start + Math.Min(reads[^1].Limit, 180 - reads[^1].Start);
+                await (Task)shell.Invoke(vm, "LoadAsync", false)!;
+                Assert.Equal(next, fixture.Transport.LibraryReads.Last().Start);
+                Assert.False(CardObjects(vm).Any(card => shell.Get<EmbyItem>(card, "Item").IdentityKey == deleted.IdentityKey));
+            }
+            finally { ((IDisposable)vm).Dispose(); }
+        });
         Case("合集多选：确认移除只调整成员和分页，其他来源与离页拒绝", async () =>
         {
             using var fixture = new Fixture(shell, 25, secondSource: true);

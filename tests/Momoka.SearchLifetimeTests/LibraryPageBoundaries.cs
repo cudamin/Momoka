@@ -23,6 +23,13 @@ namespace Momoka.Shell.Views
         private Momoka.MoviePilot.MoviePilotService? _moviePilot;
         private Momoka.Services.ISettingsService? _settings = null; // Unused owner boundary; no saved settings in this fixture.
         private int _navigation;
+        // 批选择（第三批多选）是另一份夹具的面，这里没有它的控件、命令与权限通道；Release 里那几句
+        // 退订与收尾因此落在替身上：_session 永远为空，块体不执行，EndSelection 什么都不做。
+        // 写成属性而不是字段：这份夹具从不为它赋值，字段会招来 CS0649，而「这里没有会话」正是要说的意思。
+        private Momoka.Emby.EmbySession? _session => null;
+        private void EndSelection() { }
+        private void OnBatchPermissionsChanged(object? sender, Momoka.Emby.EmbySessionScope source) { }
+        private void OnBatchSourcesChanged(object? sender, EventArgs args) { }
         // Search never owns a library window anchor; real Release still clears these inactive slots.
         internal object? _pendingAnchor;
         internal double? _pendingScroll;
@@ -46,6 +53,16 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.FrameworkElement EmbyContent { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement ToolbarSurface { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement SettingsOverlay { get; } = new();
+        // 浮层进出动画只属于真页面：这份夹具让 SurfaceMotion 的替身把进出直接落定，
+        // 设置面板本身也是边界（Release 走「立即收起」，替身让它为空）。
+        // 筛选那一对写成属性：提取的 Release 只读它们，字段会招来 CS0649。
+        private SurfaceMotion? _filterScrimMotion => null;
+        private SurfaceMotion? _filterMotion => null;
+        private SurfaceMotion? _settingsScrimMotion;
+        private SurfaceMotion? _settingsMotion;
+        internal Microsoft.UI.Xaml.FrameworkElement FilterScrim { get; } = new();
+        internal Microsoft.UI.Xaml.FrameworkElement SettingsScrim { get; } = new();
+        private Microsoft.UI.Xaml.FrameworkElement? _settingsPane => null;
         internal Microsoft.UI.Xaml.FrameworkElement SearchUnavailableSurface { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBox SearchUnavailableTitle { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBox SearchUnavailableMessage { get; } = new();
@@ -120,5 +137,15 @@ namespace Momoka.Shell.Views
         internal int Closes { get; private set; }
         public void ClosePopup() { Closes++; }
         public void Dismiss() { Closes++; }
+    }
+    /// <summary>这份夹具不播浮层动效：进出都当场落定，待落定的回调立即兑现。</summary>
+    internal sealed class SurfaceMotion
+    {
+        internal SurfaceMotion(Microsoft.UI.Xaml.FrameworkElement element) { }
+        internal bool IsAnimating => false;
+        internal void Enter(int milliseconds, double offset) { }
+        internal void Exit(int milliseconds, double offset, System.Action? landed = null) => landed?.Invoke();
+        internal void Collapse() { }
+        internal void Settle() { }
     }
 }

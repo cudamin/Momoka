@@ -77,7 +77,7 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid x:Name="SignInRoot" Background="{ThemeResource EgWindowBrush}">
+    <Grid x:Name="SignInRoot" Background="Transparent">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup>
                 <VisualState x:Name="CompactWelcome">

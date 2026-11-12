@@ -4,6 +4,8 @@
 # 2026-11-03：LibraryPage 的 MoviePilotPanel / MoviePilotResources / AniBtPanel / FilterPane / SettingsPane 改为首次
 # 使用时创建，原 x:Name 句柄由 LibraryPage.Ensure* 里的 AutomationProperties.SetAutomationId 保留同名；
 # 「约定：懒创建的面板保留原 UIA 句柄」盯着这五个名字，对应的 LibraryPage.xaml 旧 handle 行随之移除。
+# 2026-11-12：Palette.xaml 新增 EgCanvasBrush（主窗口 Mica 画布，60% 窗口色）。它是角色色，写法与同一份字典里
+# 别的层色一样是字面值，因此颜色计数 81→82；浓度那两处（Palette 首帧 + ThemeHost 常量）由 MicaMaterialTests 盯着。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C
 analyzer  Microsoft.WindowsAppSDK.Analyzers.targets  80E801C7D787248009CF365268A8DBDD16A30399806B3FE85A7FE87BADBA3727
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Cards
@@ -21,7 +23,7 @@ bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Cards
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Note
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.RowHeight
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Title
-color  Theme/Palette.xaml  81
+color  Theme/Palette.xaml  82
 color  Views/DetailPage.xaml  12
 color  Views/HomeBanner.xaml  18
 color  Views/HtmlColorPicker.xaml  11
@@ -36,6 +38,7 @@ font-size  Views/EpisodeRow.xaml  3
 font-size  Views/HomeBanner.xaml  4
 font-size  Views/LibraryPage.xaml  8
 font-size  Views/MoviePilotSearchPanel.xaml  2
+font-size  Views/MusicLibraryPage.xaml  3
 font-size  Views/NotificationsPage.xaml  3
 font-size  Views/PosterCard.xaml  9
 font-size  Views/ServersPage.xaml  5
@@ -620,6 +623,7 @@ handle  Views/ShellPage.xaml  BackButton
 handle  Views/ShellPage.xaml  Chrome
 handle  Views/ShellPage.xaml  ContentFrame
 handle  Views/ShellPage.xaml  ContentHost
+handle  Views/ShellPage.xaml  FavoritesButton
 handle  Views/ShellPage.xaml  ForwardButton
 handle  Views/ShellPage.xaml  HomeButton
 handle  Views/ShellPage.xaml  NavToggleButton
@@ -641,6 +645,7 @@ handle  Views/ShellPage.xaml  SidebarSettingsText
 handle  Views/ShellPage.xaml  SidebarSubscriptionsHeader
 handle  Views/ShellPage.xaml  SignIn
 handle  Views/ShellPage.xaml  TitleActions
+handle  Views/ShellPage.xaml  TitleUtilities
 handle  Views/ShellPage.xaml  Toast
 handle  Views/ShellPage.xaml  Trail
 handle  Views/ShellPage.xaml  TrailBar

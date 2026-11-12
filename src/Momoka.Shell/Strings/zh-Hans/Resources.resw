@@ -558,6 +558,12 @@
   <data name="ShellPage_ForwardButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>前进</value>
   </data>
+  <data name="ShellPage_FavoritesButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>收藏</value>
+  </data>
+  <data name="ShellPage_FavoritesButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>收藏</value>
+  </data>
   <data name="ShellPage_HomeButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>主页</value>
   </data>

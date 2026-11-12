@@ -52,6 +52,9 @@ public sealed record MoviePilotSubscription
     /// <summary>洗版开关（<c>best_version</c> 是 0/1 的数字，不是布尔）。</summary>
     public bool BestVersion => Number(Data, "best_version") is > 0;
 
+    /// <summary>当前搜索执行状态（<c>execution_status</c> 投影）；服务器没给就是 null，卡片不显示执行态。</summary>
+    public MoviePilotSubscriptionExecution? Execution => MoviePilotSubscriptionExecution.Parse(Member(Data, "execution_status"));
+
     /// <summary>订阅范围里的站点个数。服务器不给 <c>sites</c> 时是 0，屏上就不显示这一行。</summary>
     public int SiteCount => Member(Data, "sites") is { ValueKind: JsonValueKind.Array } sites ? sites.GetArrayLength() : 0;
 

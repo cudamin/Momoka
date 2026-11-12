@@ -17,7 +17,7 @@
     xmlns:emby="using:Momoka.Emby"
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:vm="using:Momoka.Shell.ViewModels"
-    Background="{ThemeResource EgWindowBrush}">
+    Background="Transparent">
 
     <Page.Resources>
         <!--

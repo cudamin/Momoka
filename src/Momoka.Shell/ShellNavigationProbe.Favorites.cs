@@ -16,11 +16,11 @@ internal sealed partial class ShellNavigationProbe
 {
     private async Task FavoritesNavigationAsync()
     {
-        static void Select(SelectorBarItem item)
+        static void Invoke(Button button)
         {
-            var provider = FrameworkElementAutomationPeer.CreatePeerForElement(item)?.GetPattern(PatternInterface.SelectionItem)
-                as ISelectionItemProvider ?? throw new InvalidOperationException("首页收藏项没有 UIA 选择入口");
-            provider.Select();
+            var provider = FrameworkElementAutomationPeer.CreatePeerForElement(button)?.GetPattern(PatternInterface.Invoke)
+                as IInvokeProvider ?? throw new InvalidOperationException("标题栏按钮没有 UIA 调用入口");
+            provider.Invoke();
         }
 
         using var fixture = CreateFixture();
@@ -29,8 +29,11 @@ internal sealed partial class ShellNavigationProbe
         var bannerImage = await FixtureImageAsync(1280, 720);
         var bannerItem = new EmbyItem
         {
-            Id = "home-navigation-banner", Name = "首页轮播", Type = EmbyItemType.Movie,
-            BackdropImageTags = ["backdrop"], Overview = "首页与收藏始终在上方，轮播图保持贴顶。"
+            Id = "home-navigation-banner",
+            Name = "首页轮播",
+            Type = EmbyItemType.Movie,
+            BackdropImageTags = ["backdrop"],
+            Overview = "标题栏左上统一留主页、收藏、设置、搜索、返回、前进，轮播图保持贴顶。"
         };
         fixture.Session.Capture().Bind(bannerItem);
         var favorite = new EmbyItem
@@ -72,117 +75,146 @@ internal sealed partial class ShellNavigationProbe
             await (Task)Call(shell, "EnterShellAsync")!;
             await LayoutAsync(shell);
             await shell.Favorites.RefreshAsync();
-            var navigation = Get<SelectorBar>(shell, "HomeNavigation");
-            var navigationHost = Get<Viewbox>(shell, "HomeNavigationHost");
-            var homeTab = Get<SelectorBarItem>(shell, "HomeNavigationHome");
-            var favoriteTab = Get<SelectorBarItem>(shell, "HomeNavigationFavorites");
-            Require(navigation.Visibility == Visibility.Visible && navigation.SelectedItem == homeTab,
-                "支持收藏的空列表没有保留首页收藏导航");
-            Select(favoriteTab);
-            await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag
-                && shell.Pages.Content is LibraryPage { ViewModel.IsReady: true });
-            Require(((LibraryPage)shell.Pages.Content).ViewModel.Cards.Count == 0,
-                "初始空收藏不能进入空列表");
-            Select(homeTab);
-            await UntilAsync(() => shell.CurrentTag == "home");
+            var homeButton = Get<Button>(shell, "HomeButton");
+            var favoritesButton = Get<Button>(shell, "FavoritesButton");
+            var settingsButton = Get<Button>(shell, "SettingsButton");
+            var searchButton = Get<Button>(shell, "SearchButton");
+            var backButton = Get<Button>(shell, "BackButton");
+            var forwardButton = Get<Button>(shell, "ForwardButton");
+            await LayoutAsync(shell);
+
+            // 首页、空收藏：统一那一排只剩五颗（收藏没有内容可去，收起），主页与两支箭头在首页都走不动、暗着。
+            Require(favoritesButton.Visibility == Visibility.Collapsed, "没有收藏时收藏按钮没有收起");
+            Require(homeButton.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Visible
+                && forwardButton.Visibility == Visibility.Visible,
+                "统一的一排缺了主页、返回或前进");
+            Require(settingsButton.Visibility == Visibility.Visible && searchButton.Visibility == Visibility.Visible,
+                "设置或搜索没在左上这一排");
+            Require(!homeButton.IsEnabled && !backButton.IsEnabled && !forwardButton.IsEnabled,
+                "首页上主页、返回或前进没有变暗");
+            Require(Left(homeButton, shell) < Left(settingsButton, shell)
+                && Left(settingsButton, shell) < Left(searchButton, shell)
+                && Left(searchButton, shell) < Left(backButton, shell)
+                && Left(backButton, shell) < Left(forwardButton, shell),
+                "标题栏这一排的次序不是 主页·(收藏)·设置·搜索·返回·前进");
+            Require(shell.Pages.Margin.Top == 0, "标题栏又给页面留了旧的顶部占位");
+            Require(shell.ProbeTitleActions().Ok, "首页标题栏布局不合法" + shell.ProbeTitleActions().Detail);
+            Require(Left(homeButton, shell) <= 24 && Top(homeButton, shell) + homeButton.ActualHeight <= HomePage.ChromeHeight,
+                "标题栏那一排没有从左上角起");
+            await SaveProbeScreenAsync("favorites-star-home-empty-screen.png");
+
+            // 有收藏之后爱心露面，并且站在主页与设置之间。
             ItemCommands.ToggleFavorite(fixture.Session, shell, new CardItem(favorite, fixture.Images, 170));
             await UntilAsync(() => shell.Favorites.HasItems);
-            Require(AutomationProperties.GetName(favoriteTab) == "收藏", "收藏选择项缺少自动化名称");
-            Select(favoriteTab);
+            await LayoutAsync(shell);
+            Require(favoritesButton.Visibility == Visibility.Visible, "有收藏后收藏按钮没有出现");
+            Require(Left(homeButton, shell) < Left(favoritesButton, shell)
+                && Left(favoritesButton, shell) < Left(settingsButton, shell), "收藏没有排在主页与设置之间");
+            Require(shell.ProbeTitleActions().Ok, "有收藏时标题栏布局不合法" + shell.ProbeTitleActions().Detail);
+            await SaveProbeScreenAsync("favorites-star-home-screen.png");
+
+            // 爱心进收藏页：聚合在线账号的收藏，季也在里面。
+            Invoke(favoritesButton);
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag
                 && shell.Pages.Content is LibraryPage { ViewModel.IsReady: true });
             var page = (LibraryPage)shell.Pages.Content;
             Require(page.ViewModel.Cards.Count == 1 && page.ViewModel.Cards[0].Item.Type == EmbyItemType.Season,
-                "收藏按钮未打开包含季的收藏页面");
+                "收藏按钮没有打开包含季的收藏页面");
             Require(page.ViewModel.FavoriteAccountFilterVisibility == Visibility.Collapsed
                 && Get<Button>(page, "FavoriteAccountButton").Visibility == Visibility.Collapsed,
                 "单账号收藏页仍显示账号筛选");
+            Require(backButton.Visibility == Visibility.Visible && backButton.IsEnabled,
+                "收藏页的返回没有露出来或按不动");
+            Require(shell.ProbeTitleActions().Ok, "收藏页标题栏布局不合法" + shell.ProbeTitleActions().Detail);
             foreach (var width in new[] { 1240, 760 })
             {
                 ResizeInspect(width, 800);
                 await LayoutAsync(shell);
-                var top = navigation.TransformToVisual(shell).TransformPoint(new(0, 0));
-                Require(top.Y >= 40 && top.Y + navigation.ActualHeight <= 108, "首页收藏导航没有让开标题栏");
-                Require(navigation.ActualWidth is >= 98 and < 180 && navigation.ActualHeight is > 24 and <= 44,
-                    "首页收藏胶囊尺寸不紧凑");
-                Require(navigation.SelectedItem == favoriteTab, "收藏页没有同步选中项");
-                Require(shell.ProbeTitleActions().Ok, "删除爱心后标题栏布局不合法");
+                var origin = favoritesButton.TransformToVisual(shell).TransformPoint(new(0, 0));
+                Require(origin.Y >= 0 && origin.Y + favoritesButton.ActualHeight <= HomePage.ChromeHeight,
+                    "收藏页的收藏按钮没有落在标题栏");
+                Require(shell.ProbeTitleActions().Ok, "收藏页标题栏自检失败" + shell.ProbeTitleActions().Detail);
                 await SaveReturnFrameAsync(shell, $"favorites-{width}.png");
                 await SaveProbeScreenAsync($"favorites-screen-{width}.png");
             }
+
+            // 取消最后一项：留在空收藏页（旧规矩不变），爱心随之收起。
             ItemCommands.ToggleFavorite(fixture.Session, shell, page.ViewModel.Cards[0]);
             await UntilAsync(() => !shell.Favorites.HasItems && page.ViewModel.Cards.Count == 0);
-            Require(navigation.Visibility == Visibility.Visible && navigation.SelectedItem == favoriteTab, "空收藏丢失选中入口");
+            await LayoutAsync(shell);
+            Require(favoritesButton.Visibility == Visibility.Collapsed, "取消最后一项收藏后爱心没有收起");
             Require(page.ViewModel.ShowEmptyNotice && shell.CurrentTag == LibraryRequest.FavoritesTag,
                 "取消最后一项收藏没有停留在空收藏页");
+            Require(shell.ProbeTitleActions().Ok, "空收藏页标题栏布局不合法" + shell.ProbeTitleActions().Detail);
             await SaveReturnFrameAsync(shell, "favorites-empty.png");
-            Select(homeTab);
+            await SaveProbeScreenAsync("favorites-empty-screen.png");
+
+            // 空态没有爱心可点，用返回离开；主页照旧不给页面留旧导航空间。
+            Invoke(backButton);
             await UntilAsync(() => shell.CurrentTag == "home");
-            Require(navigation.SelectedItem == homeTab, "返回首页未同步选择项");
             await LayoutAsync(shell);
-            Require(shell.Pages.Margin.Top >= 46, "无轮播主页缓存返回没有保留导航空间");
+            Require(shell.Pages.Margin.Top == 0, "无轮播主页缓存返回残留旧导航空间");
             var home = (HomePage)shell.Pages.Content;
             var banner = Get<HomeBanner>(home, "Banner");
             fixture.Settings.Ui.ShowHomeBanner = true;
             await home.ViewModel.ApplyLayoutAsync();
             await UntilAsync(() => banner.FrontPicture is not null);
-            var previousNavigationWidth = double.MaxValue;
-            var previousNavigationHeight = double.MaxValue;
+            ItemCommands.ToggleFavorite(fixture.Session, shell, new CardItem(favorite, fixture.Images, 170));
+            await UntilAsync(() => shell.Favorites.HasItems);
             foreach (var width in new[] { 1280, 760, 600 })
             {
                 ResizeProbeClient(width, 820);
                 await LayoutAsync(shell);
-                var origin = banner.TransformToVisual(shell).TransformPoint(new(0, 0));
-                Require(shell.Pages.Margin.Top == 0 && Math.Abs(origin.Y) < 1,
-                    "轮播被导航条向下推离窗口顶边");
-                Require(navigation.TransformToVisual(banner).TransformPoint(new(0, 0)).Y >= 40,
-                    "导航条没有叠在轮播顶部安全区域");
-                Require(navigation.Background is AcrylicBrush acrylic && Math.Abs(acrylic.TintOpacity - 0.12) < 0.00001
-                    && acrylic.TintLuminosityOpacity is { } luminosity && Math.Abs(luminosity - 0.12) < 0.00001,
-                    $"首页胶囊没有使用高透明亚克力：{navigation.Background?.GetType().Name} "
-                    + (navigation.Background is AcrylicBrush actual ? $"{actual.TintOpacity:R}/{actual.TintLuminosityOpacity:R}" : ""));
-                Require(navigationHost.ActualWidth < previousNavigationWidth && navigationHost.ActualHeight < previousNavigationHeight,
-                    "胶囊没有随窗口收窄而缩小");
-                previousNavigationWidth = navigationHost.ActualWidth;
-                previousNavigationHeight = navigationHost.ActualHeight;
-                await SaveProbeScreenAsync($"home-navigation-banner-{width}-screen.png");
+                var center = banner.TransformToVisual(shell).TransformPoint(new(0, 0));
+                Require(shell.Pages.Margin.Top == 0 && Math.Abs(center.Y) < 1,
+                    "轮播被旧导航占位向下推离窗口顶边");
+                Require(favoritesButton.Visibility == Visibility.Visible && shell.ProbeTitleActions().Ok,
+                    "轮播页的标题栏那一排没有正确排列");
+                await SaveProbeScreenAsync($"home-favorites-banner-{width}-screen.png");
             }
-            foreach (var theme in Momoka.Theming.UiThemes.All)
-            {
-                ThemeHost.Apply(theme);
-                await LayoutAsync(shell);
-                var surface = ((SolidColorBrush)Application.Current.Resources["EgSurfaceBrush"]).Color;
-                Require(navigation.Background is AcrylicBrush glass && glass.TintColor == surface && glass.FallbackColor == surface,
-                    "高透明亚克力没有跟随主题更新染色和回退色");
-                await SaveProbeScreenAsync($"home-navigation-{theme.Id}-screen.png");
-            }
-            ThemeHost.Apply(_options.Theme ?? "midnight");
             fixture.Settings.Ui.ShowHomeBanner = false;
             await home.ViewModel.ApplyLayoutAsync();
             await LayoutAsync(shell);
-            Require(shell.Pages.Margin.Top >= 46, "关闭轮播后导航没有恢复留白");
-            await SaveProbeScreenAsync("home-navigation-no-banner-screen.png");
-            Call(shell, "OnBackClicked", new object[] { shell, new RoutedEventArgs() });
+            Require(shell.Pages.Margin.Top == 0, "关闭轮播后残留旧导航留白");
+            await SaveProbeScreenAsync("home-favorites-no-banner-screen.png");
+
+            // 历史：收藏页 → 返回回首页（返回在收藏页是亮的），再按前进那颗回收藏页；爱心全程都在。
+            Invoke(favoritesButton);
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag);
-            Require(navigation.SelectedItem == favoriteTab, "历史返回未恢复收藏选中态");
+            await LayoutAsync(shell);
+            Invoke(backButton);
+            await UntilAsync(() => shell.CurrentTag == "home");
+            await LayoutAsync(shell);
+            Require(favoritesButton.Visibility == Visibility.Visible, "历史返回首页后爱心丢了（收藏还在）");
+            Require(!backButton.IsEnabled, "回到首页后返回按钮仍按得动");
+            Require(forwardButton.IsEnabled, "退回来以后前进按钮没有亮");
+            Invoke(forwardButton);
+            await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag);
+
+            // 登录卡：收藏清空、爱心收起，外壳那一排照旧留着。
             Call(shell, "ShowSignIn", new object?[] { null, false, null });
-            Require(!shell.Favorites.HasItems, "退出登录未清除收藏入口");
+            Require(favoritesButton.Visibility == Visibility.Collapsed, "退出登录没有收起爱心");
+            Require(homeButton.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Visible
+                && forwardButton.Visibility == Visibility.Visible
+                && settingsButton.Visibility == Visibility.Visible, "登录卡上标题栏那一排缺了按键");
             fixture.Session.SignOut();
             fixture.Transport.Reply = new PlexStateProbeServer(false).ReplyAsync;
             await fixture.SelectAsync("home-navigation-plex.invalid", kind: MediaServerKind.Plex);
             await (Task)Call(shell, "EnterShellAsync")!;
             await LayoutAsync(shell);
-            Require(navigation.Visibility == Visibility.Collapsed && shell.Pages.Margin.Top == 0,
-                "纯 Plex 仍显示收藏导航或残留占位");
-            await SaveProbeScreenAsync("home-navigation-plex-screen.png");
+            Require(favoritesButton.Visibility == Visibility.Collapsed
+                && shell.Pages.Margin.Top == 0, "纯 Plex 仍显示收藏爱心或残留占位");
+            await SaveProbeScreenAsync("home-favorites-plex-screen.png");
             fixture.Session.SignOut();
-            fixture.Transport.Reply = (_, _) => Task.FromResult(Json(new { Items = Array.Empty<EmbyItem>(), TotalRecordCount = 0 }));
+            fixture.Transport.Reply = (request, _) => Query(request, "Filters")?.Contains("IsFavorite", StringComparison.Ordinal) == true
+                ? Task.FromResult(Json(new { Items = new[] { favorite }, TotalRecordCount = 1 }))
+                : Task.FromResult(FakeTransport.Standard(request));
             await fixture.SelectAsync("home-navigation-restored.invalid");
             await (Task)Call(shell, "EnterShellAsync")!;
+            await shell.Favorites.RefreshAsync();
             await LayoutAsync(shell);
-            Require(navigation.Visibility == Visibility.Visible && navigation.SelectedItem == homeTab && shell.Pages.Margin.Top >= 46,
-                "恢复支持收藏的来源后没有恢复导航和留白");
-            await SaveProbeScreenAsync("home-navigation-restored-screen.png");
+            Require(favoritesButton.Visibility == Visibility.Visible, "恢复有收藏的来源后没有恢复爱心");
+            await SaveProbeScreenAsync("home-favorites-restored-screen.png");
         }
         finally
         {
@@ -434,17 +466,43 @@ internal sealed partial class ShellNavigationProbe
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
         using var vm = fixture.Library();
-        fixture.Transport.Reply = (_, _) => Task.FromResult(Items(20, 60));
+        var items = Enumerable.Range(0, 60).Select(index => new EmbyItem
+        { Id = "race-" + index, Name = $"影片 {index:000}", Type = EmbyItemType.Movie }).ToList();
+        var pending = Pending<HttpResponseMessage>();
+        var delayNextPage = false;
+        var delayedReads = 0;
+        fixture.Transport.Reply = (request, _) =>
+        {
+            var offset = int.Parse(Query(request, "StartIndex") ?? "0");
+            if (delayNextPage && offset == 20)
+            {
+                delayNextPage = false;
+                delayedReads++;
+                return pending.Task;
+            }
+            return Task.FromResult(Json(new { Items = items.Skip(offset).Take(20).ToArray(), TotalRecordCount = items.Count }));
+        };
         await vm.ReloadAsync();
         var before = vm.Cards.ToArray();
-        var pending = Pending<HttpResponseMessage>();
-        fixture.Transport.Reply = (_, _) => pending.Task;
+        var stalePage = items.Skip(20).Take(20).ToArray();
+        delayNextPage = true;
         vm.LoadMore();
-        Require(vm.Busy, "未发出在途分页");
-        Require(await vm.RemoveAsync(before[5], vm.QueryToken), "删除未移除当前卡片");
-        pending.SetResult(Items(20, 60, "stale"));
-        await SettleAsync();
-        Require(!vm.Busy && vm.Cards.SequenceEqual(before.Where(card => card != before[5])), "旧分页回填删除后的列表");
+        try
+        {
+            await UntilAsync(() => delayedReads == 1);
+            Require(vm.Busy, "未发出在途分页");
+            items.RemoveAt(5);
+            // A search page refreshes from zero after deletion. Only the old append request waits;
+            // its replacement must read the current catalog and refill the first twenty results.
+            Require(await vm.RemoveAsync(before[5], vm.QueryToken), "删除未移除当前卡片");
+            pending.SetResult(Json(new { Items = stalePage, TotalRecordCount = 60 }));
+            await SettleAsync();
+            Require(!vm.Busy && vm.Cards.Count == 20
+                && vm.Cards.Take(19).SequenceEqual(before.Where(card => card != before[5]))
+                && vm.Cards.Select(card => card.Item.Id).SequenceEqual(items.Take(20).Select(item => item.Id))
+                && Get<int>(vm, "_total") == 59, "旧分页回填、删除后补位错误或重建了保留卡片");
+        }
+        finally { pending.TrySetCanceled(); }
         var oldToken = vm.QueryToken;
         fixture.Transport.Reply = (_, _) => Task.FromResult(Items(20, 60, "new"));
         await vm.SearchAsync("new");

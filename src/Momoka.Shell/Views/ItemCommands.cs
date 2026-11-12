@@ -47,12 +47,13 @@ internal static partial class ItemCommands
         Action? changed = null,
         Action<CardItem>? removed = null,
         Action<CardItem>? watched = null,
-        Style? presenterStyle = null)
+        Style? presenterStyle = null,
+        Func<CardItem, Action?>? select = null)
     {
         if (session is null || shell is null || sender is not FrameworkElement owner) return;
         if (Card(owner) is not { } card) return;
 
-        Show(session, shell, owner, card, args.TryGetPosition(owner, out var point) ? point : null, siblings, changed, removed, watched, presenterStyle);
+        Show(session, shell, owner, card, args.TryGetPosition(owner, out var point) ? point : null, siblings, changed, removed, watched, presenterStyle, select);
 
         // Handled, or the request keeps bubbling and the page behind opens its own menu over ours.
         args.Handled = true;
@@ -73,7 +74,8 @@ internal static partial class ItemCommands
         Action? changed = null,
         Action<CardItem>? removed = null,
         Action<CardItem>? watched = null,
-        Style? presenterStyle = null)
+        Style? presenterStyle = null,
+        Func<CardItem, Action?>? select = null)
     {
         if (session is null || shell is null) return;
 
@@ -97,7 +99,7 @@ internal static partial class ItemCommands
                 ToggleFavorite(session, shell, card);
                 break;
             default:
-                Show(session, shell, args.Anchor, card, position: null, siblings, changed, removed, watched, presenterStyle);
+                Show(session, shell, args.Anchor, card, position: null, siblings, changed, removed, watched, presenterStyle, select);
                 break;
         }
     }
@@ -137,7 +139,8 @@ internal static partial class ItemCommands
         Action? changed = null,
         Action<CardItem>? removed = null,
         Action<CardItem>? watched = null,
-        Style? presenterStyle = null)
+        Style? presenterStyle = null,
+        Func<CardItem, Action?>? select = null)
     {
         var invalidated = 0;
         bool CanContinue() => Volatile.Read(ref invalidated) == 0;
@@ -145,7 +148,7 @@ internal static partial class ItemCommands
         {
             if (CanContinue()) Invoke(command, shell, owner, card, siblings, changed, removed, watched);
         }
-        var menu = Build(session, shell, owner, card, siblings, changed, removed, watched, CanContinue);
+        var menu = Build(session, shell, owner, card, siblings, changed, removed, watched, CanContinue, select);
         if (presenterStyle is not null) menu.MenuFlyoutPresenterStyle = presenterStyle;
         menu.Closed += (_, _) => Interlocked.Exchange(ref invalidated, 1);
 
@@ -198,7 +201,7 @@ internal static partial class ItemCommands
         // 服务器权限探测迟到而收起的那几条也不该连累整张菜单。
         void AvailabilityChanged(object? sender, EventArgs args)
         {
-            var rows = Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue);
+            var rows = Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select);
             var before = MoviePilotCommands(menu.Items);
             var after = MoviePilotCommands(rows);
             if (before.SetEquals(after)) return;
@@ -222,7 +225,7 @@ internal static partial class ItemCommands
             if (source.Key != card.Scope?.Key) return;
             owner.DispatcherQueue.TryEnqueue(() =>
             {
-                if (CanContinue()) Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue));
+                if (CanContinue()) Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select));
             });
         }
         menu.Opened += (_, _) => session.PermissionsChanged += PermissionsChanged;
@@ -282,10 +285,11 @@ internal static partial class ItemCommands
         Action? changed = null,
         Action<CardItem>? removed = null,
         Action<CardItem>? watched = null,
-        Func<bool>? canContinue = null)
+        Func<bool>? canContinue = null,
+        Func<CardItem, Action?>? select = null)
     {
         var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
-        Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, canContinue));
+        Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, canContinue, select));
         return menu;
     }
 
@@ -301,10 +305,23 @@ internal static partial class ItemCommands
         Action? changed,
         Action<CardItem>? removed,
         Action<CardItem>? watched,
-        Func<bool>? canContinue)
+        Func<bool>? canContinue,
+        Func<CardItem, Action?>? select)
     {
         var rows = new List<MenuFlyoutItemBase>(16);
         var permissions = card.Scope is { } scope ? shell.MenuPermissionsFor(scope) : default;
+
+        if (select?.Invoke(card) is not null)
+        {
+            var selection = new MenuFlyoutItem { Text = "多选", Icon = new FontIcon { Glyph = "\uE762" } };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(selection, "LibrarySelectItem");
+            selection.Click += (_, _) =>
+            {
+                if (canContinue?.Invoke() != false) select?.Invoke(card)?.Invoke();
+            };
+            rows.Add(selection);
+            rows.Add(new MenuFlyoutSeparator());
+        }
 
         foreach (var row in ItemMenu.For(card.Item, shell.MoviePilotEnabled,
             jellyfin: card.Scope?.Connection.IsJellyfin == true, fnNas: card.Scope?.Connection.IsFnNas == true,

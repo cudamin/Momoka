@@ -219,6 +219,9 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     internal void UsePageCategory(string key)
     {
         _pageCategory = key is HomeLayout.MoviePilotMovies or HomeLayout.MoviePilotSeries ? key : null;
+        // 三个列表目的地（电影／电视剧分类页与汇总库）都立轮询；汇总库键见 MoviePilotSubscriptionsRequest.LibraryKey。
+        // 主页那两排从不进这个方法，_wallPage 保持 false。
+        _wallPage = _pageCategory is not null || key == "mp-subscriptions";
         RaisePageState();
     }
 
@@ -429,12 +432,23 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
             }
             else
             {
+                // 分类页每个连接读一次自定义顺序与排序偏好；汇总库不立墙，跳过这一步。
+                if (_pageCategory is not null && _wallOrderConnection != _connection)
+                {
+                    await LoadWallOrderAsync(pending.Token);
+                    if (!IsCurrent(token) || !Live) return;
+                    _wallOrderConnection = _connection;
+                }
+                _wallListRequestedAt = DateTimeOffset.Now;
                 var items = await _service.SubscriptionsAsync(pending.Token);
                 if (!IsCurrent(token) || !Live) return;
                 _fetchImage = fetchImage;
+                _wallListFailed = false;
                 Apply(Movies, items.Where(item => !item.IsSeries).ToArray());
                 Apply(Series, items.Where(item => item.IsSeries).ToArray());
                 NotifyRows();
+                // 列表页首屏即取一次批次，让横幅尽快立起来；后续由视图的轮询节拍接管。
+                if (_wallPage) _ = ReadWallBatchesAsync();
             }
         }
         catch (OperationCanceledException) { }
@@ -443,6 +457,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
             if (IsCurrent(token))
             {
                 if (_detail) { FileSummary = "文件统计未读取成功，不能据此判断是否入库"; LibraryBadge = ""; }
+                else { _wallListFailed = true; OnPropertyChanged(nameof(WallListErrorVisibility)); }
                 Report("读取 MoviePilot 订阅失败", error);
             }
         }
@@ -726,6 +741,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         OnPropertyChanged(nameof(MoviesNote)); OnPropertyChanged(nameof(SeriesNote));
         OnPropertyChanged(nameof(MoviesVisibility)); OnPropertyChanged(nameof(SeriesVisibility));
         RaisePageState();
+        RebuildWall();
     }
 
     [RelayCommand]
@@ -743,6 +759,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
 
         // 离页/换连接时把上一次的报错一起收掉：那条提示条也在 Visible 的判据里（见它），留着就是「返回主页
         // 又弹出一块已经过时的空板块」。这一句放在 ClearCards 前面，收起卡片那一下按的是同一条新判据。
+        ResetWall();
         ClearNotice();
         ClearCards();
         base.Cancel();

@@ -4,7 +4,7 @@
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:mp="using:Momoka.MoviePilot"
     xmlns:vm="using:Momoka.Shell.ViewModels"
-    Background="{ThemeResource EgWindowBrush}">
+    Background="Transparent">
     <Page.Resources>
         <Style x:Key="EgActionButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
@@ -68,7 +68,9 @@
     </Page.Resources>
 
     <Grid Loaded="OnDetailLoaded" SizeChanged="OnDetailSizeChanged">
-        <SystemBackdropElement x:Name="PlainBackdrop" IsHitTestVisible="False" />
+        <!-- 简洁模式的底就是外壳那块窗口画布（Mica Base ＋ 60% 窗口色，只在 ShellPage.ContentHost 画一次）。
+             2026-11-12 跟媒体详情页一起改：从前这里有一块铺满整页的 SystemBackdropElement（Mica Alt），它盖掉
+             了外壳画布，同一格设置在主页与媒体详情页是「Base ＋ 画布」、在这一页却是「Alt 原样」。 -->
         <Border x:Name="MicaLayerSource" Width="0" Height="0" IsHitTestVisible="False"
                 Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}" />
         <Border x:Name="CardMaterialSource" Width="0" Height="0" IsHitTestVisible="False"

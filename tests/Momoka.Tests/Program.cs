@@ -116,6 +116,8 @@ internal static class Program
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             MoviePilotSubscriptionTests.Register();
+            MoviePilotSubscriptionWallTests.Register();
+            MoviePilotSubscriptionExecutionTests.Register();
             NeutralFeedbackTests.Register();
             AgreementsTests.Register();
             return TestHarness.Run();
@@ -444,6 +446,7 @@ internal static class Program
         if (args is ["item-batch-fixture"])
         {
             ItemBatchTests.Register();
+            ItemBatchPlaybackTests.Register();
             return TestHarness.Run();
         }
         if (args is ["plex-protocol-fixture"])
@@ -625,6 +628,7 @@ internal static class Program
         ItemMenuTests.Register();
         ItemIdentifyTests.Register();
         ItemActionTests.Register();
+        ItemBatchPlaybackTests.Register();
         DownloadCollisionTests.Register();
         HomeCarouselTests.Register();
         HomeFoldTests.Register();
@@ -649,6 +653,7 @@ internal static class Program
         WrapLayoutTests.Register();
         StartupArgsTests.Register();
         ThemeTests.Register();
+        MicaMaterialTests.Register();
         InputControlThemeTests.Register();
         AcrylicControlsTests.Register();
         DialogChromeTests.Register();
@@ -689,6 +694,8 @@ internal static class Program
         AniBtIntegrationTests.Register();
         AniBtReceiptStateTests.Register();
         MoviePilotSubscriptionTests.Register();
+        MoviePilotSubscriptionWallTests.Register();
+        MoviePilotSubscriptionExecutionTests.Register();
         MoviePilotEpisodeGroupPlaybackTests.Register();
         MoviePilotAuditTests.Register();
         MoviePilotMediaManagementTests.Register();

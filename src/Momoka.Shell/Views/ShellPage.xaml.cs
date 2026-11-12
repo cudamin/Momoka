@@ -176,11 +176,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         InitializeComponent();
         InitializeSidebar();
-        HomeNavigation.SelectionChanged += OnHomeNavigationChanged;
-        ContentHost.SizeChanged += (_, args) =>
-        {
-            if (Math.Abs(args.NewSize.Width - args.PreviousSize.Width) > 0.5) ScheduleHomeNavigationSize();
-        };
         ContentFrame.CacheSize = BrowsePageCacheSize;
         _browsePresentation = new BrowsePresentation(ContentFrame);
 
@@ -221,7 +216,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Trail.ItemsSource = _trail;
 
         // 鼠标上那两颗侧键。从前它们由 NavigationView 认（连 Alt+← 一起，走 BackRequested）；栏删掉之后
-        // Alt+← / Alt+→ 挂在两支箭头自己的加速器上，而鼠标侧键没有加速器可挂，只能自己听。
+        // 两支快捷键都挂在外壳自己的加速器上，而鼠标侧键没有加速器可挂，只能自己听。
         // handledEventsToo，因为卡片、列表、滚动视图都会把 PointerPressed 标成已处理 —— 不加这一句，只有
         // 点在空白处才退得回去。
         Root.AddHandler(PointerPressedEvent, new PointerEventHandler(OnRootPointerPressed), handledEventsToo: true);
@@ -288,7 +283,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>只缩放按钮内容，点击范围和非客户区穿透矩形始终保持布局尺寸。</summary>
     private void WireTitleFeedback()
     {
-        foreach (var button in new[] { NavToggleButton, HomeButton, SettingsButton, SearchButton, BackButton, ForwardButton, AccountButton })
+        foreach (var button in new[] { NavToggleButton, HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton, AccountButton })
         {
             button.PointerEntered += OnTitlePointerEntered;
             button.PointerExited += OnTitlePointerExited;
@@ -383,7 +378,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         _titleStrip = strip;
         PaintTitleInk();
-        SyncHomeNavigation();
     }
 
     /// <summary>标题栏那一条此刻按哪一档在画，给自检读（<c>ShellSelfCheck.Reads.ReadHome</c> 的页眉那一行）。</summary>
@@ -417,7 +411,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void PaintTitleInk()
     {
-        PaintHomeNavigation();
         var onScrim = _titleStrip == TitleStrip.OnScrim;
         var highContrast = new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast;
 
@@ -425,9 +418,10 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _titleInkHover.Color = Ink(highContrast ? "SystemColorWindowTextColor" : "EgAccentBrush");
         _trailInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimBrush" : "EgTextDimBrush");
 
-        TrailBar.Background = _titleStrip == TitleStrip.Plain
-            ? Application.Current.Resources["LayerFillColorDefaultBrush"] as Brush
-            : null;
+        // 面包屑那一行不再自己上底色（2026-11-12 用户令「改为Mica」）：它站的那一格由 ContentHost 的
+        // EgCanvasBrush 提供。这里再涂一层同色会让顶上那一条比正文暗两档 —— 两次 60% 叠起来是 84%。
+        // 有图（OnScrim）与页面自己洗过（PagePainted）两档本来就不涂，现在三种页型一致。
+        TrailBar.Background = null;
 
         // 状态画刷对象保持不变，主题切换只修改颜色；悬停以图标前景反馈，不铺背景。停用那一档也指回
         // 静止那支（见 _titleInk 的注释）：走不动的箭头不再变淡。
@@ -509,6 +503,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     internal Frame Pages => ContentFrame;
 
+    /// <summary>音乐播放栏本体：探针借外壳的 Frame 时也要替它量这份栏（外壳本体不上屏）。</summary>
+    internal MusicPlayerBar MusicBarHost => MusicBar;
+
     internal string? CurrentTag => _current;
 
     internal bool SignInVisible => SignIn.Visibility == Visibility.Visible;
@@ -578,6 +575,14 @@ public sealed partial class ShellPage : UserControl, IShellActions
             _settingsWindow?.Size.Width ?? 0,
             _settingsWindow?.Size.Height ?? 0,
             _settingsWindow?.Handle ?? IntPtr.Zero);
+
+    /// <summary>
+    /// 设置窗口的底材两节：窗口级 Mica 与那层画布的浓度。窗口级那一层在
+    /// <see cref="SettingsWindow"/> 上；分类栏那层 50% 面色在页面里，由页面自己的契约钉住。
+    /// 没有窗口（回退到主窗口内的设置页）时两项都是默认值。
+    /// </summary>
+    internal (bool Mica, byte CanvasAlpha) SettingsBackdrop =>
+        _settingsWindow is { IsOpen: true } window ? window.BackdropState : (false, (byte)0);
 
     /// <summary>
     /// The settings page wherever it ended up: in its own window, or in this frame on a machine where that
@@ -656,6 +661,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
             {
                 case DetailPage detail: detail.AttachWindow(window); break;
             }
+            // 进出音乐页要重算播放栏的让位方式：音乐页滚动区自留避让，其余页面外壳预留。
+            PlaceMusicBar();
         };
 
         // The buttons may well have been measured already, before there was a window to tell.
@@ -1150,7 +1157,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             var homeSources = SourcesStamp();
             Open(typeof(HomePage), new HomeRequest(_services, _libraryViews.ToArray(), _window, OpenSubscription)
             {
-                OpenSubscriptionLibrary = () => GoTo(MoviePilotSubscriptionsRequest.LibraryKey),
+                OpenSubscriptionLibrary = key => GoTo(key),
                 OpenLocalLibrary = id => GoTo(LocalLibraryRequest.Prefix + id),
                 CurrentLibraryViews = () => !_closing && homeScope?.IsCurrent == true && SourcesStamp() == homeSources
                     ? _libraryViews.ToArray() : [],
@@ -2043,21 +2050,18 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // 主页那颗按钮在主页上自己变暗（同两支箭头「走不动就暗」的规矩）：_current 是 "home" 就是已经在主页，
         // 下钻和别的页面会把它清空，那时按钮亮着、一按回主页。
         HomeButton.IsEnabled = _session?.IsSignedIn == true && (_current != "home" || _librariesFailed);
+        SyncTitleActions();
 
         ApplyChrome(ContentFrame.CanGoBack, ContentFrame.CanGoForward, _trail.Count);
         SyncSidebar();
     }
 
     /// <summary>
-    /// The chrome above the frame, from the three facts that decide it: whether the frame has somewhere to go
-    /// back to, somewhere to go forward to, and how deep the trail is. Split out from
-    /// <see cref="SyncChrome"/> so the self-check can drive every state — nothing can make
-    /// <c>Frame.CanGoBack</c> say what a check needs it to say.
+    /// Keep the two arrows and the breadcrumb row in sync with the current navigation state.
     /// <para>
-    /// Both arrows stay in place and go dim rather than disappearing, the way the Claude app's own title bar
-    /// does it: an arrow that comes and goes moves the one beside it, and the strip they sit in is the
-    /// window's drag area with a hole cut for exactly their rectangle, which a moving button would put in
-    /// the wrong place.
+    /// 2026-11-11 起返回与前进每一页都在这一排、走不动时只是变暗（用户令「左上角统一留主页、收藏、设置、
+    /// 搜索、返回」，当晚又令「把左上角的前进键加回去」）：旧的「首页不显示箭头」「媒体库与详情页只留
+    /// 后退+主页」两条按页型收起的分档同日退役。前进只补回刚退回去的那一步（见 <see cref="GoForward"/>）。
     /// </para>
     /// </summary>
     private void ApplyChrome(bool canGoBack, bool canGoForward, int crumbs)
@@ -2073,7 +2077,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>
     /// Tells the window which rectangles of its title bar the shell's buttons occupy, in the island's
     /// logical pixels, so the frame stops answering 「caption」 there and their clicks arrive. Two of them:
-    /// the row of five on the left, and the account button at the right end — which moved into this strip
+    /// the row of buttons on the left, and the account button at the right end — which moved into this strip
     /// when its own row below went away (2026-09-09), and would otherwise read as a drag handle instead of
     /// a button. Measured rather than assumed: the positions depend on the current scale, the icons' own
     /// metrics, and the account name's own width.
@@ -2165,10 +2169,41 @@ public sealed partial class ShellPage : UserControl, IShellActions
         GoBack();
     }
 
+    /// <summary>
+    /// 标题栏那颗「前进」（2026-11-11 晚按用户令加回，站在返回右边）：只补回刚退回去的那一步 ——
+    /// 前进栈由 <see cref="GoBack"/> 填，别的导航会把它清空，所以它从来不往前开新路。
+    /// </summary>
     private void OnForwardClicked(object sender, RoutedEventArgs e)
     {
         NavigationTiming.Click("forward-button");
         GoForward();
+    }
+
+    /// <summary>
+    /// 标题栏那颗「收藏」（2026-11-11 用户令「左上角统一留…收藏」）：进收藏页，聚合所有在线账号的收藏。
+    /// 它只在有收藏时露面（见 <see cref="SyncTitleActions"/>），所以这里那道门是防迟到点击，不是显隐判据。
+    /// </summary>
+    private void OnFavoritesClicked(object sender, RoutedEventArgs e)
+    {
+        if (_session?.IsSignedIn != true || !Favorites.HasItems) return;
+        NavigationTiming.Click("favorites-button");
+        GoTo(LibraryRequest.FavoritesTag);
+    }
+
+    private void OnBackInvoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (Chrome.Visibility != Visibility.Visible || !ContentFrame.CanGoBack) return;
+        NavigationTiming.Click("back-keyboard");
+        GoBack();
+        args.Handled = true;
+    }
+
+    private void OnForwardInvoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (Chrome.Visibility != Visibility.Visible || !ContentFrame.CanGoForward) return;
+        NavigationTiming.Click("forward-keyboard");
+        GoForward();
+        args.Handled = true;
     }
 
     /// <summary>
@@ -2697,7 +2732,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         RebuildSidebarLibraries();
 
         // 账号那颗也收起来：没登录它没的可切，而且在登录卡上它上面的菜单（切换服务器／注销）一个都不通。
-        // 标题栏那一排（主页、设置、搜索、两支箭头）照旧留着 —— 它是窗口的外壳。
+        // 标题栏那一排（主页、收藏、设置、搜索、返回、前进）照旧留着 —— 它是窗口的外壳。
         AccountButton.Visibility = Visibility.Collapsed;
         SignIn.Visibility = Visibility.Visible;
 

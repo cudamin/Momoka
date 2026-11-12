@@ -54,6 +54,7 @@ public sealed class CardItem : INotifyPropertyChanged
     private readonly EmbyImageStore _images;
     private readonly Action? _navigate;
     private readonly string _localPosterPath;
+    private readonly Func<CancellationToken, Task<byte[]>>? _fetchPoster;
     /// <summary>
     /// 画出来、解码、取图三处共用的那个宽度。**不是 readonly**：窗口被拖动时整面墙一起换宽度（见
     /// <see cref="Resize"/>），三处必须一起动，否则卡片要么糊要么白占内存。
@@ -326,12 +327,14 @@ public sealed class CardItem : INotifyPropertyChanged
         bool cardLayout = false,
         bool episodeFrame = false,
         Action? navigate = null,
-        string? localPosterPath = null)
+        string? localPosterPath = null,
+        Func<CancellationToken, Task<byte[]>>? fetchPoster = null)
     {
         _item = item;
         _images = images;
         _navigate = navigate;
         _localPosterPath = LocalLibraryArtwork.NormalizePath(localPosterPath);
+        _fetchPoster = fetchPoster;
         Scope = navigate is null ? images.CaptureScope(item) : null;
         if (item.Source is null) Scope?.Bind(item);
         _userState = Scope is { } scope
@@ -399,6 +402,7 @@ public sealed class CardItem : INotifyPropertyChanged
             Raise(nameof(UserStateVisibility));
             Raise(nameof(FavoriteActionVisibility));
             Raise(nameof(MoreVisibility));
+            Raise(nameof(FavoriteBadgeVisibility));
         }
     }
 
@@ -609,6 +613,35 @@ public sealed class CardItem : INotifyPropertyChanged
     /// <summary>The accent bar down the row's left edge, which is how <see cref="IsCurrentEpisode"/> reads.</summary>
     public Visibility CurrentVisibility => Show(IsCurrentEpisode);
 
+    private bool _isPlaying;
+
+    /// <summary>
+    /// 音乐曲目表里「正在放的就是这一行」。与 <see cref="IsCurrentEpisode"/> 分开：那一位说的是「你正看着这一页」，
+    /// 构造时定死；这一位跟着底部播放栏换，所以它要通知。
+    /// <para>
+    /// 只有音乐页会设它（<c>MusicLibraryViewModel.MarkPlaying</c>）。别的页面从不赋值，永远是 false，
+    /// 于是曲目表以外的地方一个像素都不多画。
+    /// </para>
+    /// </summary>
+    public bool IsPlaying
+    {
+        get => _isPlaying;
+        internal set
+        {
+            if (_isPlaying == value) return;
+            _isPlaying = value;
+            Raise(nameof(IsPlaying));
+            Raise(nameof(PlayingVisibility));
+            Raise(nameof(NotPlayingVisibility));
+        }
+    }
+
+    /// <summary>正在放的那一行：左缘一条强调色，标题换成强调色。</summary>
+    public Visibility PlayingVisibility => Show(IsPlaying);
+
+    /// <summary>其余行的常态。两半互斥，写成一对而不是一个取反转换器。</summary>
+    public Visibility NotPlayingVisibility => Show(!IsPlaying);
+
     public string Subtitle => _subtitle ?? _item.CardSubtitle;
 
     /// <summary>本地媒体库的入库数量变化保持卡片及可见容器，直接通知已绑定文本。</summary>
@@ -741,7 +774,7 @@ public sealed class CardItem : INotifyPropertyChanged
     public Visibility WatchedBadgeVisibility => Show(_indicators && Watched);
 
     /// <summary>飞牛横卡的左上角让给评分，收藏状态仍可在悬停层里看到。</summary>
-    public Visibility FavoriteBadgeVisibility => Show(_indicators && IsFavorite && !_fnNasWide);
+    public Visibility FavoriteBadgeVisibility => Show(!IsSelecting && _indicators && IsFavorite && !_fnNasWide);
 
     /// <summary>
     /// The two halves of each of the hover buttons' icon pairs: the white glyph shows when the state is
@@ -835,9 +868,9 @@ public sealed class CardItem : INotifyPropertyChanged
         }
 
         if (_missing || _poster is not null || _loading is not null) return;
-        if (_localPosterPath.Length > 0)
+        if (_localPosterPath.Length > 0 || _fetchPoster is not null)
         {
-            await EnsureLocalPosterAsync().ConfigureAwait(true);
+            await EnsureNavigationPosterAsync().ConfigureAwait(true);
             return;
         }
         if (Scope is not { IsAvailable: true } scope) return;
@@ -985,8 +1018,8 @@ public sealed class CardItem : INotifyPropertyChanged
         ClearCollageTiles();
     }
 
-    /// <summary>导航卡的本机海报不捕获服务器来源，仍遵守取消、尺寸与容器需求。</summary>
-    private async Task EnsureLocalPosterAsync()
+    /// <summary>导航封面由其属主读取，不捕获媒体服务器来源；保留取消、尺寸和容器需求守卫。</summary>
+    private async Task EnsureNavigationPosterAsync()
     {
         if (_failedAt != default && !ImageCachePolicy.WorthRetrying(_failedAt, DateTime.UtcNow)) return;
         var loading = new CancellationTokenSource();
@@ -994,13 +1027,15 @@ public sealed class CardItem : INotifyPropertyChanged
         _loading = loading;
         try
         {
-            var bytes = await LocalLibraryArtwork.ReadAsync(_localPosterPath, loading.Token).ConfigureAwait(true);
+            var bytes = await (_fetchPoster is { } fetch ? fetch(loading.Token)
+                : LocalLibraryArtwork.ReadAsync(_localPosterPath, loading.Token)).ConfigureAwait(true);
             if (!Current()) return;
             var bitmap = await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true);
             if (Current() && _wanted) Poster = bitmap;
         }
         catch (Exception error) when (error is OperationCanceledException or IOException or UnauthorizedAccessException
-            or ArgumentException or System.Runtime.InteropServices.COMException)
+            or ArgumentException or HttpRequestException or Momoka.MoviePilot.MoviePilotException
+            or System.Runtime.InteropServices.COMException)
         {
             if (Current()) _failedAt = DateTime.UtcNow;
         }

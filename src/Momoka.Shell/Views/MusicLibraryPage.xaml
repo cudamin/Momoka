@@ -1,71 +1,422 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Page x:Class="Momoka.Shell.Views.MusicLibraryPage"
+<!--
+  音乐库。同一份数据按分区画成两种形状，而不是五个长得一样的列表：
+
+    · 歌曲、收藏 —— 一张**曲目表**：等宽时长的读数列、发丝线分隔的窄行、正在放的那一行左缘一条强调色。
+      收藏收的是歌曲，不是专辑，所以它和歌曲同形。
+    · 专辑、艺术家、歌单 —— 一面**方形封面墙**：唱片是方的，2:3 的海报形状在这里是错的。
+
+  为什么是两种形状而不是一套网格：这一页最多的东西是「几百首歌」，一首歌的封面只有 44 像素见方，
+  把它摊成一面墙等于让每张图都变成一格模糊的色块；反过来，专辑、艺术家、歌单各只有几十个，它们要的是
+  一眼认得出的封面。形状由 MusicCatalog.UsesCoverWall 决定（Core 里，有测试钉着）。
+
+  页头是一块场记板：眉字说这是哪一区，标题是库名，紧跟着等宽的条目读数 —— 数字走等宽是整套界面的老规矩，
+  「492 首」比「492 项」多说一件事（这一页读的是歌，不是条目）。
+
+  分区按钮用 ToggleButton 而不是 RadioButton：后者带一圈单选圆点，是表单的写法；媒体库那边同一件事用的
+  就是一排药丸，两页不该各说一套。互斥由这里的 Click 处理（见 code-behind），RadioButton 的 GroupName
+  换不来「点已选中的那一颗不会把自己取消」。
+
+  曲目表的列头是死的（曲目／时长），它和行必须在同一条竖线上：两边都从内容左缘 12 起，右边都让开
+  滚动条那条 20 的车道（ListView 的 Padding 与列头的右内边距是同一个数，见下面的 32 = 12 + 20）。
+-->
+<Page
+    x:Class="Momoka.Shell.Views.MusicLibraryPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:vm="using:Momoka.Shell.ViewModels"
-    Background="{ThemeResource EgWindowBrush}">
-    <Grid Padding="28,24,28,20" RowSpacing="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
-        </Grid.RowDefinitions>
-        <Grid ColumnSpacing="16">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-            <StackPanel Spacing="4">
-                <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" Style="{StaticResource EgPageTitleStyle}" TextTrimming="CharacterEllipsis" />
-                <TextBlock Text="{x:Bind ViewModel.CountLabel, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" />
-            </StackPanel>
-            <Button x:Name="RefreshButton" Grid.Column="1" Click="OnRefresh" Style="{StaticResource EgIconButtonStyle}"
-                AutomationProperties.Name="刷新音乐" ToolTipService.ToolTip="刷新"><FontIcon Glyph="&#xE72C;" /></Button>
-        </Grid>
-        <AutoSuggestBox x:Name="MusicSearch" Grid.Row="1" MaxWidth="560" HorizontalAlignment="Stretch"
-            Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}"
-            PlaceholderText="搜索歌曲、专辑、艺术家或歌单" QueryIcon="Find" QuerySubmitted="OnSearch"
-            Text="{x:Bind ViewModel.Search, Mode=TwoWay}" />
-        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
-            HorizontalScrollMode="Enabled" Visibility="{x:Bind ViewModel.TabsVisibility, Mode=OneWay}">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <RadioButton x:Name="TracksTab" Content="歌曲" Tag="0" GroupName="MusicSection" IsChecked="True" Checked="OnSection" />
-                <RadioButton x:Name="AlbumsTab" Content="专辑" Tag="1" GroupName="MusicSection" Checked="OnSection" />
-                <RadioButton x:Name="ArtistsTab" Content="艺术家" Tag="2" GroupName="MusicSection" Checked="OnSection" />
-                <RadioButton x:Name="PlaylistsTab" Content="歌单" Tag="3" GroupName="MusicSection" Checked="OnSection" />
-                <RadioButton x:Name="FavoritesTab" Content="收藏" Tag="4" GroupName="MusicSection" Checked="OnSection" Visibility="{x:Bind ViewModel.FavoriteTabVisibility, Mode=OneWay}" />
-            </StackPanel>
-        </ScrollViewer>
-        <InfoBar x:Name="Notice" Grid.Row="3" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
-            Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
-            Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
-        <Grid Grid.Row="4">
-            <ListView x:Name="MusicRows" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" IsItemClickEnabled="True"
-                SelectionMode="None" ItemClick="OnItemClick" ContainerContentChanging="OnContainerChanged">
-                <ListView.ItemContainerStyle>
-                    <Style TargetType="ListViewItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Padding" Value="8,6" /></Style>
-                </ListView.ItemContainerStyle>
-                <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="local:CardItem">
-                        <Grid ColumnSpacing="14" MinHeight="56">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="56" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                            <Border CornerRadius="8" Background="{ThemeResource EgSurfaceBrush}">
-                                <Grid><FontIcon Glyph="&#xE8D6;" Foreground="{ThemeResource EgTextDimBrush}" /><Image Source="{x:Bind Poster, Mode=OneWay}" Stretch="UniformToFill" /></Grid>
-                            </Border>
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-                                <TextBlock Text="{x:Bind Title, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{x:Bind Subtitle, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" />
-                            </StackPanel>
-                            <TextBlock Grid.Column="2" Text="{x:Bind vm:MusicLibraryViewModel.Duration(Item), Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+    Background="Transparent">
+
+    <Page.Resources>
+        <!--
+          分区药丸。与媒体库的 LibraryTabStyle 同一档高度、同一档圆角：两页的「换个分区看」是同一种东西。
+          选中的底色/字色接主题角色而不是写死颜色 —— ThemeResource 会跟着换主题，不需要代码在换主题时重涂。
+        -->
+        <Style x:Key="MusicTabStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="CornerRadius" Value="15" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{ThemeResource EgTextDimBrush}" />
+        </Style>
+
+        <!-- 选中态：抬起一档的面色 + 正文墨。三态同色，指针压在已选中的那一颗上不再变深。 -->
+        <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgSurfaceHoverBrush" />
+        <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgSurfaceHoverBrush" />
+        <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgSurfaceHoverBrush" />
+        <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgTextBrush" />
+        <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgTextBrush" />
+        <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgTextBrush" />
+        <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="EgTextBrush" />
+        <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="EgTextBrush" />
+
+        <!--
+          曲目表的一行。指针上来是「抬起一档的面色」而不是框架那层中灰：这一页的底就是窗口纸面，
+          一格中灰会让整行看着像被选中了。按压再深一档，圆角取面板那一档的一半。
+        -->
+        <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="MinHeight" Value="58" />
+            <Setter Property="CornerRadius" Value="10" />
+        </Style>
+        <StaticResource x:Key="ListViewItemBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
+        <StaticResource x:Key="ListViewItemBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
+
+        <!-- 封面墙一格：指针上来抬起一档，按压再深一档。PosterCard 不在这一页，所以这层底由格子自己画。 -->
+        <StaticResource x:Key="ItemContainerPointerOverBackground" ResourceKey="EgSurfaceBrush" />
+        <StaticResource x:Key="ItemContainerPressedBackground" ResourceKey="EgSurfaceAltBrush" />
+
+        <!-- 曲目表的一行：左缘那条「正在放」的竖线、44 的方封面、标题与副标题、等宽时长。
+             分隔线只从标题那一列开始画：封面那一列没有横线，一列图才读成一列。 -->
+        <DataTemplate x:Key="MusicTrackTemplate" x:DataType="local:CardItem">
+            <Grid ColumnSpacing="14" MinHeight="58">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3" />
+                    <ColumnDefinition Width="44" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="48" />
+                </Grid.ColumnDefinitions>
+
+                <!-- 正在放的就是这一行。3 像素，和详情页「你在这里」那条同一档宽。 -->
+                <Border
+                    Background="{ThemeResource EgAccentBrush}"
+                    CornerRadius="2"
+                    Margin="0,6"
+                    Visibility="{x:Bind PlayingVisibility, Mode=OneWay}" />
+
+                <Border
+                    Grid.Column="1"
+                    Width="44"
+                    Height="44"
+                    Background="{ThemeResource EgSurfaceAltBrush}"
+                    CornerRadius="8"
+                    VerticalAlignment="Center">
+                    <Grid>
+                        <FontIcon
+                            FontSize="18"
+                            Foreground="{ThemeResource EgTextFaintBrush}"
+                            Glyph="&#xE8D6;" />
+                        <Image Source="{x:Bind RowPoster, Mode=OneWay}" Stretch="UniformToFill" />
+                    </Grid>
+                </Border>
+
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="2">
+                    <Grid>
+                        <TextBlock
+                            Style="{StaticResource EgBodyStyle}"
+                            FontWeight="SemiBold"
+                            MaxLines="1"
+                            Text="{x:Bind Title, Mode=OneWay}"
+                            TextTrimming="CharacterEllipsis"
+                            ToolTipService.ToolTip="{x:Bind Title, Mode=OneWay}"
+                            Visibility="{x:Bind NotPlayingVisibility, Mode=OneWay}" />
+                        <TextBlock
+                            Style="{StaticResource EgBodyStyle}"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource EgAccentBrush}"
+                            MaxLines="1"
+                            Text="{x:Bind Title, Mode=OneWay}"
+                            TextTrimming="CharacterEllipsis"
+                            ToolTipService.ToolTip="{x:Bind Title, Mode=OneWay}"
+                            Visibility="{x:Bind PlayingVisibility, Mode=OneWay}" />
+                    </Grid>
+                    <TextBlock
+                        Style="{StaticResource EgCaptionStyle}"
+                        MaxLines="1"
+                        Text="{x:Bind Subtitle, Mode=OneWay}"
+                        TextTrimming="CharacterEllipsis"
+                        Visibility="{x:Bind SubtitleVisibility, Mode=OneWay}" />
+                </StackPanel>
+
+                <TextBlock
+                    Grid.Column="3"
+                    Style="{StaticResource EgDataStyle}"
+                    Text="{x:Bind vm:MusicLibraryViewModel.Duration(Item), Mode=OneWay}"
+                    TextAlignment="Right"
+                    VerticalAlignment="Center" />
+
+                <Border
+                    Grid.Column="2"
+                    Grid.ColumnSpan="2"
+                    Height="1"
+                    VerticalAlignment="Bottom"
+                    Background="{ThemeResource EgBorderBrush}"
+                    Opacity="0.55" />
+            </Grid>
+        </DataTemplate>
+
+        <!-- 封面墙的一格：方封面加两行字。专辑第二行是艺术家；艺术家与歌单没有稳定可说的话，那一行收起。 -->
+        <DataTemplate x:Key="MusicTileTemplate" x:DataType="local:CardItem">
+            <ItemContainer CornerRadius="12" Width="{x:Bind CardWidth, Mode=OneWay}">
+                <Grid RowSpacing="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Border Height="{x:Bind CardWidth, Mode=OneWay}" Style="{StaticResource EgFrameStyle}">
+                        <Grid>
+                            <FontIcon
+                                FontSize="30"
+                                Foreground="{ThemeResource EgTextFaintBrush}"
+                                Glyph="{x:Bind Glyph, Mode=OneWay}" />
+                            <Image Source="{x:Bind RowPoster, Mode=OneWay}" Stretch="UniformToFill" />
                         </Grid>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-                <ListView.Footer>
-                    <Button x:Name="MoreButton" Content="加载更多" Click="OnMore" HorizontalAlignment="Center"
-                        Visibility="{x:Bind local:MusicLibraryPage.Show(ViewModel.MoreAvailable), Mode=OneWay}" />
-                </ListView.Footer>
-            </ListView>
-            <TextBlock Text="暂无音乐" Style="{StaticResource EgBodyStyle}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}" />
-            <ProgressRing x:Name="LoadingRing" IsActive="{x:Bind ViewModel.Busy, Mode=OneWay}" Width="32" Height="32"
-                HorizontalAlignment="Center" VerticalAlignment="Top" />
+                    </Border>
+                    <StackPanel Grid.Row="1" Spacing="2">
+                        <TextBlock
+                            Style="{StaticResource EgBodyStyle}"
+                            FontWeight="SemiBold"
+                            MaxLines="1"
+                            Text="{x:Bind Title, Mode=OneWay}"
+                            TextTrimming="CharacterEllipsis"
+                            ToolTipService.ToolTip="{x:Bind Title, Mode=OneWay}" />
+                        <TextBlock
+                            Style="{StaticResource EgDataStyle}"
+                            MaxLines="1"
+                            Text="{x:Bind Subtitle, Mode=OneWay}"
+                            TextTrimming="CharacterEllipsis"
+                            Visibility="{x:Bind SubtitleVisibility, Mode=OneWay}" />
+                    </StackPanel>
+                </Grid>
+            </ItemContainer>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid x:Name="Root" Padding="{StaticResource EgPageMargin}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- 场记板：眉字、库名、条目读数、刷新。 -->
+        <Grid ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Spacing="2">
+                <TextBlock Style="{StaticResource EgEyebrowStyle}" Text="音乐库" />
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <TextBlock
+                        Style="{StaticResource EgPageTitleStyle}"
+                        Text="{x:Bind ViewModel.Title, Mode=OneWay}"
+                        TextTrimming="CharacterEllipsis"
+                        ToolTipService.ToolTip="{x:Bind ViewModel.Title, Mode=OneWay}" />
+                    <TextBlock
+                        Style="{StaticResource EgDataStyle}"
+                        Margin="0,0,0,6"
+                        Text="{x:Bind ViewModel.CountLabel, Mode=OneWay}"
+                        VerticalAlignment="Bottom" />
+                </StackPanel>
+            </StackPanel>
+            <Button
+                x:Name="RefreshButton"
+                Grid.Column="1"
+                Click="OnRefresh"
+                Style="{StaticResource EgIconButtonStyle}"
+                VerticalAlignment="Top"
+                AutomationProperties.Name="刷新音乐"
+                ToolTipService.ToolTip="刷新"><FontIcon Glyph="&#xE72C;" /></Button>
+        </Grid>
+
+        <Border Grid.Row="1" Margin="0,10,0,0" Style="{StaticResource EgRuleStyle}" />
+
+        <!-- 分区药丸与搜索框：宽的时候并排，窄了自己换行（WrapRow）。 -->
+        <local:WrapRow x:Name="Toolbar" Grid.Row="2" Margin="0,14,0,0" Spacing="12" RowSpacing="10">
+            <Border
+                x:Name="SectionSurface"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                CornerRadius="18"
+                Padding="3"
+                Visibility="{x:Bind ViewModel.TabsVisibility, Mode=OneWay}">
+                <local:WrapRow x:Name="SectionTabs" Spacing="0" RowSpacing="4" CenterRows="True">
+                    <ToggleButton
+                        x:Name="TracksTab"
+                        AutomationProperties.Name="歌曲"
+                        Click="OnSectionClick"
+                        Content="歌曲"
+                        IsChecked="True"
+                        Style="{StaticResource MusicTabStyle}"
+                        Tag="0" />
+                    <ToggleButton
+                        x:Name="AlbumsTab"
+                        AutomationProperties.Name="专辑"
+                        Click="OnSectionClick"
+                        Content="专辑"
+                        Style="{StaticResource MusicTabStyle}"
+                        Tag="1" />
+                    <ToggleButton
+                        x:Name="ArtistsTab"
+                        AutomationProperties.Name="艺术家"
+                        Click="OnSectionClick"
+                        Content="艺术家"
+                        Style="{StaticResource MusicTabStyle}"
+                        Tag="2" />
+                    <ToggleButton
+                        x:Name="PlaylistsTab"
+                        AutomationProperties.Name="歌单"
+                        Click="OnSectionClick"
+                        Content="歌单"
+                        Style="{StaticResource MusicTabStyle}"
+                        Tag="3" />
+                    <ToggleButton
+                        x:Name="FavoritesTab"
+                        AutomationProperties.Name="收藏"
+                        Click="OnSectionClick"
+                        Content="收藏"
+                        Style="{StaticResource MusicTabStyle}"
+                        Tag="4"
+                        Visibility="{x:Bind ViewModel.FavoriteTabVisibility, Mode=OneWay}" />
+                </local:WrapRow>
+            </Border>
+            <!-- 宽窗里把搜索框顶到右沿，与页头那颗刷新键对齐；宽度由代码按剩余空间算（见 PlaceSearchBox）。
+                 窄到放不下时它是 0 宽，搜索框由 WrapRow 换到下一行。 -->
+            <Border x:Name="ToolbarSpacer" Width="0" />
+            <AutoSuggestBox
+                x:Name="MusicSearch"
+                AutomationProperties.Name="搜索音乐"
+                PlaceholderText="搜索歌曲、专辑、艺术家或歌单"
+                QueryIcon="Find"
+                QuerySubmitted="OnSearch"
+                Text="{x:Bind ViewModel.Search, Mode=TwoWay}"
+                Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}" />
+        </local:WrapRow>
+
+        <InfoBar
+            x:Name="Notice"
+            Grid.Row="3"
+            Margin="0,12,0,0"
+            IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
+            Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
+            Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
+            Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
+            Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
+
+        <Grid Grid.Row="4" Margin="0,14,0,0">
+            <!-- 曲目表。列头固定在表头上方，不跟着列表滚：滚到第 300 首时仍然读得到「曲目／时长」。 -->
+            <Grid Visibility="{x:Bind ViewModel.TrackViewVisibility, Mode=OneWay}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid
+                    x:Name="TrackHeader"
+                    Height="30"
+                    Padding="12,0,32,0"
+                    ColumnSpacing="14"
+                    Visibility="{x:Bind ViewModel.ColumnHeaderVisibility, Mode=OneWay}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3" />
+                        <ColumnDefinition Width="44" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="48" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        Grid.Column="2"
+                        Style="{StaticResource EgEyebrowStyle}"
+                        Text="曲目"
+                        VerticalAlignment="Center" />
+                    <TextBlock
+                        Grid.Column="3"
+                        Style="{StaticResource EgEyebrowStyle}"
+                        Text="时长"
+                        TextAlignment="Right"
+                        VerticalAlignment="Center" />
+                    <!-- 与每一行同一条起点：列头的线也从标题那一列开始。 -->
+                    <Border
+                        Grid.Column="2"
+                        Grid.ColumnSpan="2"
+                        Height="1"
+                        VerticalAlignment="Bottom"
+                        Background="{ThemeResource EgBorderBrush}" />
+                </Grid>
+                <ListView
+                    x:Name="MusicRows"
+                    Grid.Row="1"
+                    Padding="{StaticResource EgScrollBarLane}"
+                    IsItemClickEnabled="True"
+                    ItemClick="OnItemClick"
+                    ItemTemplate="{StaticResource MusicTrackTemplate}"
+                    ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}"
+                    SelectionMode="None">
+                    <ListView.Footer>
+                        <Button
+                            x:Name="MoreButton"
+                            Margin="0,16,0,0"
+                            Click="OnMore"
+                            Content="加载更多"
+                            HorizontalAlignment="Center"
+                            Style="{StaticResource EgSecondaryButtonStyle}"
+                            Visibility="{x:Bind local:MusicLibraryPage.Show(ViewModel.MoreAvailable), Mode=OneWay}" />
+                    </ListView.Footer>
+                </ListView>
+            </Grid>
+
+            <!-- 封面墙：专辑、艺术家、歌单。一格 170 的方块，排不下就往下排。 -->
+            <ScrollViewer
+                x:Name="WallScroll"
+                HorizontalScrollBarVisibility="Disabled"
+                HorizontalScrollMode="Disabled"
+                Padding="0,0,20,32"
+                VerticalScrollBarVisibility="Auto"
+                VerticalScrollMode="Auto"
+                Visibility="{x:Bind ViewModel.WallVisibility, Mode=OneWay}">
+                <ItemsView
+                    x:Name="MusicWall"
+                    IsItemInvokedEnabled="True"
+                    ItemInvoked="OnWallItemInvoked"
+                    ItemTemplate="{StaticResource MusicTileTemplate}"
+                    ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}"
+                    SelectionMode="None">
+                    <ItemsView.Layout>
+                        <UniformGridLayout
+                            ItemsJustification="Start"
+                            ItemsStretch="None"
+                            MinColumnSpacing="16"
+                            MinItemHeight="{x:Bind ViewModel.TileHeight, Mode=OneWay}"
+                            MinItemWidth="{x:Bind ViewModel.TileWidth, Mode=OneWay}"
+                            MinRowSpacing="24" />
+                    </ItemsView.Layout>
+                </ItemsView>
+            </ScrollViewer>
+
+            <!-- 空态：说清「这里没有东西」和「可以做什么」，不是一句光秃秃的「暂无音乐」。 -->
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="8"
+                Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
+                <FontIcon
+                    FontSize="30"
+                    Foreground="{ThemeResource EgTextFaintBrush}"
+                    Glyph="&#xE8D6;"
+                    HorizontalAlignment="Center" />
+                <TextBlock
+                    Style="{StaticResource EgSubheadStyle}"
+                    HorizontalAlignment="Center"
+                    Text="这里还没有音乐" />
+                <TextBlock
+                    Style="{StaticResource EgCaptionStyle}"
+                    HorizontalAlignment="Center"
+                    Text="换个关键词，或者刷新一下这个库" />
+            </StackPanel>
+
+            <!-- 读取：一条 2 像素的进度线，不是压在列表正中的一颗转圈。 -->
+            <ProgressBar
+                x:Name="LoadingBar"
+                Height="2"
+                IsIndeterminate="True"
+                VerticalAlignment="Top"
+                Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
         </Grid>
     </Grid>
 </Page>

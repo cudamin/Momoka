@@ -58,10 +58,18 @@ internal sealed class Fixture : IAsyncDisposable
     public MusicPlaybackViewModel Music { get; }
     public ConcurrentQueue<string> Notices { get; } = new();
     public EmbyItem Track(string id) => Scope.Bind(Transport.Track(id));
-    public MusicLibraryViewModel Library()
+    public MusicLibraryViewModel Library(string? containerType = null, string? containerId = null)
     {
         var vm = new MusicLibraryViewModel();
-        vm.Attach(new LibraryRequest { Services = EmptyServices.Instance, Title = "fixture", Source = Scope, ParentId = "music" }, Session, Images);
+        vm.Attach(new LibraryRequest
+        {
+            Services = EmptyServices.Instance,
+            Title = "fixture",
+            Source = Scope,
+            ParentId = containerId ?? "music",
+            MusicRootId = "music",
+            MusicContainerType = containerType
+        }, Session, Images);
         return vm;
     }
     public async ValueTask DisposeAsync()
@@ -122,7 +130,10 @@ internal sealed class Transport : HttpMessageHandler
     public Func<Sent, CancellationToken, Task<HttpResponseMessage>>? Reply { get; set; }
     public EmbyItem Track(string id) => new()
     {
-        Id = id, Name = id, Type = EmbyItemType.Audio, RunTimeTicks = TimeSpan.FromSeconds(120).Ticks,
+        Id = id,
+        Name = id,
+        Type = EmbyItemType.Audio,
+        RunTimeTicks = TimeSpan.FromSeconds(120).Ticks,
         MediaSources = [new MediaSource { Id = "source-" + id, Container = "flac", SupportsDirectPlay = true,
             RunTimeTicks = TimeSpan.FromSeconds(120).Ticks,
             MediaStreams = [new MediaStream { Type = "Audio", Index = 1, Codec = "flac", IsDefault = true }] }],
@@ -171,8 +182,14 @@ internal sealed class Handle : IPlaybackHandle, IPlayerControl
     public Handle(PlaybackRequest request)
     {
         var volume = request.PlayerOptions.FirstOrDefault(pair => pair.Key == "volume").Value;
-        Status = new PlayerStatus { Loaded = true, Duration = 120, Position = 0,
-            VolumeKnown = true, Volume = double.TryParse(volume, CultureInfo.InvariantCulture, out var level) ? level : 100 };
+        Status = new PlayerStatus
+        {
+            Loaded = true,
+            Duration = 120,
+            Position = 0,
+            VolumeKnown = true,
+            Volume = double.TryParse(volume, CultureInfo.InvariantCulture, out var level) ? level : 100
+        };
     }
     public TaskCompletionSource Listening { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public bool HasControlChannel => true;

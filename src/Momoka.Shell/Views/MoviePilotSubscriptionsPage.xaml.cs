@@ -29,6 +29,7 @@ public sealed partial class MoviePilotSubscriptionsPage : Page, IShellContent
 {
     private MoviePilotSubscriptionsRequest? _request;
     private MoviePilotHomeSubscriptions? _owner;
+    private bool _wallCategory;
 
     public MoviePilotSubscriptionsPage() => InitializeComponent();
 
@@ -61,10 +62,18 @@ public sealed partial class MoviePilotSubscriptionsPage : Page, IShellContent
         _owner.ViewModel.UsePageCategory(request.Key);
         var series = request.Key == HomeLayout.MoviePilotSeries;
         var all = request.Key == MoviePilotSubscriptionsRequest.LibraryKey;
+        _wallCategory = request.Key is HomeLayout.MoviePilotMovies or HomeLayout.MoviePilotSeries;
         PageTitle.Text = request.Title;
         EmptyText.Text = all ? "暂无订阅。" : series ? "暂无电视剧订阅。" : "暂无电影订阅。";
         var row = all ? new MoviePilotHomeRow(_owner, request.Key) : series ? _owner.Series : _owner.Movies;
         Subscriptions.AttachRow(_owner, row, request.Service, request.Open);
+
+        // 分类页立墙、收横排；汇总库保留横排、收墙。墙与横排共用这一页自己那份订阅数据与确认框。
+        // 墙的空态自带标题与说明，分类页把页面空态收起，避免两块「什么都没有」打架。
+        Wall.Visibility = _wallCategory ? Visibility.Visible : Visibility.Collapsed;
+        Subscriptions.Visibility = _wallCategory ? Visibility.Collapsed : Visibility.Visible;
+        if (_wallCategory) Wall.Attach(_owner, request.Service, request.Open);
+        else Wall.Detach();
 
         // 转圈／空态那两档绑的是**这一页的 ViewModel**，而它要等 AttachRow 把 Row 落定才指向这一页自己那份
         // 订阅数据（AttachRow 之前拿到的是 MoviePilotSubscriptionsView 的备用属主）。绑定路径换了一个对象，
@@ -72,10 +81,14 @@ public sealed partial class MoviePilotSubscriptionsPage : Page, IShellContent
         Bindings.Update();
     }
 
+    /// <summary>分类页的空态交给墙自己那块，页面空态收起；汇总库沿用页面空态。</summary>
+    private Visibility PageEmptyVisibility(Visibility visibility) => _wallCategory ? Visibility.Collapsed : visibility;
+
     /// <inheritdoc />
     public void Release()
     {
         if (_owner is null) return;
+        Wall.Detach();
         Subscriptions.DetachRow();
         Subscriptions.Release();
         _owner.Release();

@@ -1335,6 +1335,14 @@ public sealed class MoviePilotSettings
     /// <summary>按服务地址、账号和目录类型隔离的站点选择；键不含凭据或运行期连接代次。</summary>
     public Dictionary<string, MoviePilotSearchSitePreference> SearchSitePreferences { get; set; } = new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// 订阅墙的排序偏好，键是媒体类型（电影／电视剧），值是排序键（custom/last_update/date/lack_episode，
+    /// 见 <see cref="MoviePilot.MoviePilotSubscriptionWall.SortKey"/>）。纯界面偏好，与服务器无关 ——
+    /// 网页端存在 localStorage 的 <c>MPSubscribeSortBy:{subType}</c>，这里按同样的「每类一份」落进设置文件。
+    /// 自定义顺序本身存在服务器用户配置里，不在这里。
+    /// </summary>
+    public Dictionary<string, string> SubscriptionSorts { get; set; } = new(StringComparer.Ordinal);
+
     [JsonIgnore]
     public bool HasSavedPassword => ProtectedPassword.Length > 0;
 }

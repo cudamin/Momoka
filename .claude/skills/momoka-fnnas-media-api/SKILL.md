@@ -121,4 +121,4 @@ Card commands first apply the acknowledged target field and callbacks, then inde
 
 浏览与播放仍按 [momoka-verification](../momoka-verification/SKILL.md) 验证协议、错误、重定向、身份/取消、分页和播放进度。区分只读服务器证据、离线测试和真实播放/写入覆盖。
 
-协议变化记录版本与一手来源；维护本技能按 [momoka-skill-creator](../momoka-skill-creator/SKILL.md) 做结构/事实检查。不得将本机地址、账号、Cookie 或 token 写入仓库。
+协议变化记录版本与一手来源；维护本技能按 [project skill maintenance](../../../docs/开发与验证.md#项目技能维护) 做结构/事实检查。不得将本机地址、账号、Cookie 或 token 写入仓库。

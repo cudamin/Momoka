@@ -54,8 +54,13 @@ internal sealed partial class ShellNavigationProbe
                 {
                     ResizeProbeClient(width, 900);
                     await LayoutAsync(page);
-                    Invoke(Get<Button>(page, "LibrarySelectButton"));
+                    var firstCard = Descendants(page).OfType<PosterCard>().First(card => card.Card?.Item.Id == "101");
+                    Call(page, "OnCardActionRequested", firstCard, new CardActionEventArgs(CardAction.More, Get<Button>(firstCard, "MoreButton")));
+                    await UntilAsync(() => BatchMenuItems().Any(item => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(item) == "LibrarySelectItem"));
+                    Invoke(BatchMenuItems().Single(item => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(item) == "LibrarySelectItem"));
                     await UntilAsync(() => Get<FrameworkElement>(page, "LibraryBatchSurface").Visibility == Visibility.Visible);
+                    Require(Get<ItemsView>(page, "CardWall").SelectedItems.Count == 1,
+                        "从封面更多菜单进入多选没有选中当前卡");
                     SelectAll();
                     await LayoutAsync(page);
                     var wall = Get<ItemsView>(page, "CardWall");
@@ -77,6 +82,7 @@ internal sealed partial class ShellNavigationProbe
                                 "选择期间仍显示单项动作：" + name);
                         var container = AncestorContainer(card);
                         Require(container.IsSelected, "正式ItemContainer没有显示已选");
+                        VerifySelectionLayout(card, container);
                         var peer = FrameworkElementAutomationPeer.CreatePeerForElement(container);
                         Require(peer.GetPattern(PatternInterface.SelectionItem) is ISelectionItemProvider { IsSelected: true },
                             "正式选择容器未暴露UIA已选状态");
@@ -96,7 +102,31 @@ internal sealed partial class ShellNavigationProbe
                     Invoke(Get<Button>(page, "LibraryEndSelection"));
                     await UntilAsync(() => Get<FrameworkElement>(page, "LibraryBatchSurface").Visibility == Visibility.Collapsed);
                     Require(wall.SelectedItems.Count == 0 && server.Writes.Count == 0, "退出选择没有清空选择或产生写入");
+                    Require(realized.All(card => Get<Border>(card, "SelectionOutline").Visibility == Visibility.Collapsed),
+                        "退出多选后封面选框仍显示");
                 }
+
+                if (kind == MediaServerKind.Jellyfin)
+                {
+                    foreach (var view in new[] { LibraryView.PosterCard, LibraryView.ThumbCard })
+                    {
+                        page.ViewModel.ChooseJellyfinView(view);
+                        await UntilAsync(() => !page.ViewModel.Busy && page.ViewModel.Cards.Count == 3);
+                        await LayoutAsync(page);
+                        BeginAndSelectAll();
+                        await LayoutAsync(page);
+                        foreach (var card in Descendants(page).OfType<PosterCard>().Where(card => card.Card?.IsSelecting == true))
+                            VerifySelectionLayout(card, AncestorContainer(card));
+                        await SaveProbeScreenAsync($"library-batch-Jellyfin-{view}-selection-screen.png");
+                        Call(page, "ProbeEndSelection");
+                    }
+                    page.ViewModel.ChooseJellyfinView(LibraryView.Poster);
+                    await UntilAsync(() => !page.ViewModel.Busy && page.ViewModel.Cards.Count == 3);
+                    await LayoutAsync(page);
+                }
+
+                if (kind == MediaServerKind.Emby)
+                    await VerifyEmbyBatchDialogsAsync(page, server, fixture.Actions);
 
                 BeginAndSelectAll();
                 await OpenBatchMenuAsync();
@@ -217,7 +247,23 @@ internal sealed partial class ShellNavigationProbe
                         fixture.Actions.Plays
                     });
                 }
-                Require(fixture.Actions.Plays == 0 && fixture.Actions.Opened == 0, "多选探针触发了播放或详情导航");
+                if (kind == MediaServerKind.Emby)
+                {
+                    Call(page, "ProbeEndSelection");
+                    BeginAndSelectAll();
+                    server.FailBrowse = true;
+                    await BatchOperationAsync(page, ItemCommand.Delete);
+                    Require(page.LastBatchResult is { Succeeded: 3 } deleted && deleted.Results.All(item => item.RefreshError is not null),
+                        "删除已成功但列表刷新失败没有单独保留刷新错误");
+                    Require(page.ViewModel.Cards.Count == 0 && Get<ItemsView>(page, "CardWall").SelectedItems.Count == 0,
+                        "刷新失败后已删除媒体仍显示或可选");
+                    Require(server.ExtendedWrites.Count(path => path.StartsWith("DELETE ", StringComparison.Ordinal)) == 3,
+                        "刷新失败重复发送了删除请求");
+                    await SaveProbeScreenAsync("library-batch-delete-refresh-failed-screen.png");
+                    server.FailBrowse = false;
+                }
+                Require(fixture.Actions.Plays == (kind == MediaServerKind.Emby ? 3 : 0) && fixture.Actions.Opened == 0,
+                    "多选探针触发了未声明的播放请求或详情导航");
             }
             finally
             {
@@ -272,6 +318,26 @@ internal sealed partial class ShellNavigationProbe
             for (var parent = VisualTreeHelper.GetParent(child); parent is not null; parent = VisualTreeHelper.GetParent(parent))
                 if (parent is ItemContainer container) return container;
             throw new InvalidOperationException("正式海报不在ItemContainer里");
+        }
+        static void VerifySelectionLayout(PosterCard card, ItemContainer container)
+        {
+            var art = Get<Border>(card, "Art");
+            var outline = Get<Border>(card, "SelectionOutline");
+            var title = Get<TextBlock>(card, "TitleLine");
+            var check = Descendants(container).OfType<CheckBox>().Single(element => element.Name == "PART_SelectionCheckbox");
+            var artBounds = art.TransformToVisual(card).TransformBounds(new(0, 0, art.ActualWidth, art.ActualHeight));
+            var outlineBounds = outline.TransformToVisual(card).TransformBounds(new(0, 0, outline.ActualWidth, outline.ActualHeight));
+            var checkBounds = check.TransformToVisual(card).TransformBounds(new(0, 0, check.ActualWidth, check.ActualHeight));
+            var titleBounds = title.TransformToVisual(card).TransformBounds(new(0, 0, title.ActualWidth, title.ActualHeight));
+            Require(outline.Visibility == Visibility.Visible && !outline.IsHitTestVisible
+                && Math.Abs(artBounds.Left - outlineBounds.Left) < 1 && Math.Abs(artBounds.Top - outlineBounds.Top) < 1
+                && Math.Abs(artBounds.Width - outlineBounds.Width) < 1 && Math.Abs(artBounds.Height - outlineBounds.Height) < 1,
+                "选框未贴合封面或阻止原生选择");
+            Require(title.Visibility == Visibility.Collapsed || outlineBounds.Bottom <= titleBounds.Top,
+                "封面选框与下方标题重叠");
+            Require(checkBounds.Left >= artBounds.Left && checkBounds.Right <= artBounds.Left + artBounds.Width / 2
+                && checkBounds.Top >= artBounds.Top && checkBounds.Bottom < artBounds.Bottom,
+                "多选勾选框没有完全落在封面左上角");
         }
     }
 
@@ -418,7 +484,10 @@ internal sealed partial class ShellNavigationProbe
             }
             async Task BeginSelectAndOpenMenuAsync(ItemCommand command)
             {
-                new ButtonAutomationPeer(Get<Button>(page!, "LibrarySelectButton")).Invoke();
+                var firstCard = Descendants(page!).OfType<PosterCard>().First(card => card.Card is not null);
+                Call(page!, "OnCardActionRequested", firstCard, new CardActionEventArgs(CardAction.More, Get<Button>(firstCard, "MoreButton")));
+                await UntilAsync(() => MenuItems().Any(item => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(item) == "LibrarySelectItem"));
+                new MenuFlyoutItemAutomationPeer(MenuItems().Single(item => Microsoft.UI.Xaml.Automation.AutomationProperties.GetAutomationId(item) == "LibrarySelectItem")).Invoke();
                 await UntilAsync(() => Get<FrameworkElement>(page!, "LibraryBatchSurface").Visibility == Visibility.Visible);
                 for (var index = 0; index < 3; index++) Call(page!, "ProbeSelectBatch", index);
                 Require(Get<ItemsView>(page!, "CardWall").SelectedItems.Count == 3, "合集页面未选择三项");
@@ -536,10 +605,12 @@ internal sealed partial class ShellNavigationProbe
             ImageTags = new() { ["Primary"] = "fixture" }
         });
         public List<LibraryBatchWrite> Writes { get; } = [];
+        public List<string> ExtendedWrites { get; } = [];
         public int MetadataReads { get; private set; }
         public bool HoldSecondWrite { get; set; }
         public bool FailMetadata { get; set; }
         public bool HoldMetadata { get; set; }
+        public bool FailBrowse { get; set; }
         public TaskCompletionSource SecondWriteEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource SecondWriteRelease { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource MetadataEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -549,6 +620,37 @@ internal sealed partial class ShellNavigationProbe
         {
             token.ThrowIfCancellationRequested();
             var path = request.RequestUri!.AbsolutePath;
+            if (kind == MediaServerKind.Emby)
+            {
+                if (path.EndsWith("/Sync/Options", StringComparison.Ordinal))
+                    return Json(new EmbyConversionOptions
+                    {
+                        Targets = [new() { Id = "convert", Name = "原始媒体目录" }],
+                        Options = ["Profile", "Quality", "UnwatchedOnly", "SyncNewContent", "ItemLimit"],
+                        ProfileOptions = [new() { Id = "mobile", Name = "移动设备", IsDefault = true, EnableQualityOptions = true },
+                            new() { Id = "custom", Name = "自定义", EnableQualityOptions = true }],
+                        QualityOptions = [new() { Id = "high", Name = "高质量", IsDefault = true }, new() { Id = "custom", Name = "自定义码率" }]
+                    });
+                if (request.Method == HttpMethod.Get && Query(request, "IncludeItemTypes") == "Playlist")
+                    return Json(new { Items = new[] { new EmbyItem { Id = "playlist", Name = "稍后观看", Type = EmbyItemType.Playlist } }, TotalRecordCount = 1 });
+                if (request.Method == HttpMethod.Delete && _items.TryGetValue(path.Split('/')[^1], out var deleting))
+                {
+                    ExtendedWrites.Add("DELETE " + deleting.Id);
+                    return new(HttpStatusCode.NoContent);
+                }
+                if (request.Method == HttpMethod.Post && (path.EndsWith("/Playlists", StringComparison.Ordinal)
+                    || path.EndsWith("/Playlists/playlist/Items", StringComparison.Ordinal)
+                    || path.EndsWith("/Sync/Jobs", StringComparison.Ordinal)
+                    || path.EndsWith("/Items/Metadata/Reset", StringComparison.Ordinal)
+                    || path.EndsWith("/Refresh", StringComparison.Ordinal)))
+                {
+                    ExtendedWrites.Add(path + " " + request.RequestUri.Query);
+                    if (path.EndsWith("/Sync/Jobs", StringComparison.Ordinal))
+                        return Json(new EmbyConversionJobReceipt { Job = new() { Id = "conversion-job", Status = "Queued" } });
+                    if (path.EndsWith("/Playlists", StringComparison.Ordinal)) return Json(new EmbyPlaylistCreationResult { Id = "new-playlist", ItemAddedCount = 3 });
+                    return new(HttpStatusCode.NoContent);
+                }
+            }
             var plexWrite = path.EndsWith("/:/scrobble", StringComparison.Ordinal) || path.EndsWith("/:/unscrobble", StringComparison.Ordinal);
             if (plexWrite || request.Method != HttpMethod.Get)
             {
@@ -581,9 +683,20 @@ internal sealed partial class ShellNavigationProbe
                     : Json(new { ProductName = kind.ToString(), ServerName = "匿名多选", Version = kind == MediaServerKind.Emby ? "4.10.1.0" : "10.10.7" });
             if (path.EndsWith("/api/v1/sys/version", StringComparison.Ordinal)) return new(HttpStatusCode.NotFound);
             if (path.EndsWith("/Users/Me", StringComparison.Ordinal) || path.EndsWith("/Users/user", StringComparison.Ordinal))
-                return Json(new { Id = "user", Policy = new { IsAdministrator = kind == MediaServerKind.Emby, EnableCollectionManagement = true, EnableContentDeletion = false } });
+                return Json(new
+                {
+                    Id = "user",
+                    Policy = new
+                    {
+                        IsAdministrator = kind == MediaServerKind.Emby,
+                        EnableCollectionManagement = true,
+                        EnableContentDeletion = kind == MediaServerKind.Emby,
+                        EnableMediaConversion = true
+                    }
+                });
             if (kind != MediaServerKind.Plex && path.EndsWith("/Items", StringComparison.Ordinal))
-                return Json(new { Items = _items.Values.ToArray(), TotalRecordCount = _items.Count });
+                return FailBrowse ? new(HttpStatusCode.ServiceUnavailable)
+                    : Json(new { Items = _items.Values.ToArray(), TotalRecordCount = _items.Count });
             if (kind != MediaServerKind.Plex && path.Contains("/Items/", StringComparison.Ordinal) && _items.TryGetValue(path.Split('/')[^1], out var embyItem))
                 return Json(embyItem);
             if (path.EndsWith("/identity", StringComparison.Ordinal) || path is "/media" or "/media/")

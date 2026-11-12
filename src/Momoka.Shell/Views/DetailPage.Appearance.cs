@@ -106,9 +106,18 @@ public sealed partial class DetailPage
         var contrast = _actionAccessibility.HighContrast;
         var tint = contrast ? _actionUiSettings.GetColorValue(Windows.UI.ViewManagement.UIColorType.Background)
             : ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, ViewModel.AppearanceSettings));
+        // 简洁模式的按钮与选择框用固定的面色，与按钮材质那四项设置脱钩（2026-11-11 用户令）：
+        // 那一档不铺背景图，设置页里那一整组也随显示模式收起，两条保持一致。高对比度仍走系统实色。
+        var simple = !contrast && !ViewModel.AppearanceSettings.EnableImmersive;
         foreach (var brushes in _controlBackgrounds)
-            brushes.Apply(contrast ? 100 : ViewModel.ControlBackgroundOpacity, !contrast && ViewModel.UseAcrylicControls, tint,
-                ViewModel.ControlTintOpacity, ViewModel.ControlTintLuminosityOpacity);
+        {
+            if (simple)
+                brushes.ApplyFixedSurface();
+            else
+                brushes.Apply(contrast ? 100 : ViewModel.ControlBackgroundOpacity,
+                    !contrast && ViewModel.UseAcrylicControls, tint,
+                    ViewModel.ControlTintOpacity, ViewModel.ControlTintLuminosityOpacity);
+        }
         ViewModel.RefreshAppearance();
         PaintScrim();
         // 模式与背景强度直接应用终值，窄窗仍使用自己的排版。
@@ -127,7 +136,7 @@ public sealed partial class DetailPage
         // 信息卡的逐行标签、内联链接与数据统一留在深色亚克力卡面上，避免整段文字另做蒙版寿命管理。
         // 2026-11-08 用户令「参考集页面给其他媒体页面的其他信息也加上亚克力背景」：这张卡在沉浸档四类页面上
         // 都保留卡面，不再只管单集页（电影、剧、季三页从前在这里让开，表里的暗字直接压在剧照上）。
-        InfoPanel.Background = PlainMica ? MicaLayerSource.Background
+        InfoPanel.Background = PlainMode ? MicaLayerSource.Background
             : ViewModel.Showcase ? CardMaterialSource.Background : _panelFill;
         PaintReadingColors();
     }

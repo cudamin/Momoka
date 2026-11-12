@@ -26,9 +26,19 @@ namespace Momoka.Shell.Views
     public sealed class CardItem
     {
         public CardItem(EmbyItem item, EmbyImageStore images, int width, double aspect = 1,
-            string? subtitle = null, bool indicators = true) => Item = item;
+            string? subtitle = null, bool indicators = true)
+        {
+            Item = item;
+            Width = width;
+            Subtitle = subtitle;
+            Indicators = indicators;
+        }
         public EmbyItem Item { get; }
+        public int Width { get; }
+        public string? Subtitle { get; }
+        public bool Indicators { get; }
         public bool Abandoned { get; private set; }
+        public bool IsPlaying { get; set; }
         public void ClaimCard(object owner) { }
         public void AbandonPoster() => Abandoned = true;
         public Task EnsurePosterAsync(Task? readiness = null) => Task.CompletedTask;

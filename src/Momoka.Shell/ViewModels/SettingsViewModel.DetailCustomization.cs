@@ -10,54 +10,59 @@ public sealed partial class SettingsViewModel
     private SettingSection DetailAppearanceCard()
     {
         var ui = Settings.Ui;
+        // 显示模式排在按钮材质前面（2026-11-11 用户令）：它决定下面几组在不在，先说它，再列从属于它的行。
         var rows = new List<SettingRow>
         {
-            Choice("按钮与选择框背景", new[] { ("半透明叠层", false), ("亚克力", true) },
+            Choice("显示模式", new[] { ("沉浸模式", true), ("简洁模式", false) },
+                () => ui.EnableImmersive,
+                value => ui.EnableImmersive = value,
+                "电影、剧、季、单集与 MoviePilot 订阅详情页有背景图时使用沉浸布局；关掉改用不铺图的简洁卡面，"
+                    + "按钮与选择框换成固定材质，下面两组参数随之收起。",
+                after: () =>
+                {
+                    ShellPrefs.ApplyAppearance(ui);
+                    RefreshDetailAppearance();
+                })
+        };
+        // 简洁模式的按钮与选择框改用页面自己的固定材质，这一整组参数在那一档不生效，整组收起；
+        // 收起只影响显示，用户调好的值留在设置里，切回沉浸模式照旧回来。
+        if (ui.EnableImmersive)
+        {
+            rows.Add(Choice("按钮与选择框背景", new[] { ("半透明叠层", false), ("亚克力", true) },
                 () => ui.UseAcrylicControls, value => ui.UseAcrylicControls = value,
-                "详情按钮与闭合选择框共用同一份背景；选亚克力时由下面三项染色参数决定材质。",
+                "详情按钮与闭合选择框共用同一份背景；选亚克力时由下面三项染色参数决定材质。"
+                    + "简洁模式改用固定材质，不读这一组。",
                 after: () =>
                 {
                     ShellPrefs.ApplyAppearance(ui);
                     // 两套参数各自属于一种材质：换材质时把不适用的行整组收起来（2026-11-07 用户令三项可调）。
                     RefreshDetailAppearance();
-                }),
-            AppearanceColorRow("按钮与选择框颜色", false, ui,
+                }));
+            rows.Add(AppearanceColorRow("按钮与选择框颜色", false, ui,
                 ui.UseAcrylicControls
                     ? "亚克力的染色颜色（TintColor）。"
-                    : "半透明叠层那层底色的 RGB；浓度在下一行。")
-        };
-        if (ui.UseAcrylicControls)
-        {
-            rows.AddRange(
-            [
-                Slider("按钮与选择框染色不透明度（%）", 0, 100, 1,
-                    () => ui.ControlTintOpacity, value => ui.ControlTintOpacity = value,
-                    "亚克力的 TintOpacity：染色层压得多浓，越高颜色盖得越实。",
-                    after: () => ShellPrefs.ApplyAppearance(ui)),
-                Slider("按钮与选择框明暗不透明度（%）", 0, 100, 1,
-                    () => ui.ControlTintLuminosityOpacity, value => ui.ControlTintLuminosityOpacity = value,
-                    "亚克力的 TintLuminosityOpacity：背后画面的明暗透上来多少，与染色层各管一头。",
-                    after: () => ShellPrefs.ApplyAppearance(ui))
-            ]);
-        }
-        else
-        {
-            rows.Add(Slider("按钮与选择框底色不透明度（%）", 0, 100, 0.01,
-                () => ui.ControlBackgroundOpacity, value => ui.ControlBackgroundOpacity = value,
-                "出厂 39.25%（那层中灰底的浓度）。0 常态完全透明，100 完全不透明；悬停与按下保留反馈。",
-                after: () => ShellPrefs.ApplyAppearance(ui)));
-        }
-        rows.Add(Choice("显示模式", new[] { ("沉浸模式", true), ("简洁模式", false) },
-            () => ui.EnableImmersive,
-            value => ui.EnableImmersive = value,
-            "电影、剧、季、单集与 MoviePilot 订阅详情页有背景图时使用沉浸布局；关掉改用不铺图的简洁卡面",
-            after: () =>
+                    : "半透明叠层那层底色的 RGB；浓度在下一行。"));
+            if (ui.UseAcrylicControls)
             {
-                ShellPrefs.ApplyAppearance(ui);
-                RefreshDetailAppearance();
-            }));
-        if (ui.EnableImmersive)
-        {
+                rows.AddRange(
+                [
+                    Slider("按钮与选择框染色不透明度（%）", 0, 100, 1,
+                        () => ui.ControlTintOpacity, value => ui.ControlTintOpacity = value,
+                        "亚克力的 TintOpacity：染色层压得多浓，越高颜色盖得越实。",
+                        after: () => ShellPrefs.ApplyAppearance(ui)),
+                    Slider("按钮与选择框明暗不透明度（%）", 0, 100, 1,
+                        () => ui.ControlTintLuminosityOpacity, value => ui.ControlTintLuminosityOpacity = value,
+                        "亚克力的 TintLuminosityOpacity：背后画面的明暗透上来多少，与染色层各管一头。",
+                        after: () => ShellPrefs.ApplyAppearance(ui))
+                ]);
+            }
+            else
+            {
+                rows.Add(Slider("按钮与选择框底色不透明度（%）", 0, 100, 0.01,
+                    () => ui.ControlBackgroundOpacity, value => ui.ControlBackgroundOpacity = value,
+                    "出厂 39.25%（那层中灰底的浓度）。0 常态完全透明，100 完全不透明；悬停与按下保留反馈。",
+                    after: () => ShellPrefs.ApplyAppearance(ui)));
+            }
             rows.AddRange(
             [
                 AppearanceColorRow("背景亚克力色调", true, ui,
@@ -72,7 +77,8 @@ public sealed partial class SettingsViewModel
                     after: () => ShellPrefs.ApplyAppearance(ui))
             ]);
         }
-        return new SettingSection("界面", "详情页外观", "调整媒体库详情页的按钮材质与背景图亚克力。", rows);
+        return new SettingSection("界面", "详情页外观",
+            "调整媒体库详情页的显示模式、按钮材质与背景图亚克力。", rows);
     }
 
     private void RefreshDetailAppearance()

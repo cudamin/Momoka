@@ -109,6 +109,9 @@ public sealed partial class PosterCard : UserControl
         typeof(PosterCard),
         new PropertyMetadata(255d));
 
+    public static readonly DependencyProperty IsSelectedProperty = DependencyProperty.Register(
+        nameof(IsSelected), typeof(bool), typeof(PosterCard), new PropertyMetadata(false));
+
     /// <summary>
     /// 这张卡压在一张剧照上，而不是站在页面那张纸上 —— 集页把同季那一带摆在头图底下的画面里
     /// （见 <c>DetailPage.PlaceEpisodes</c>）。底下那两行字于是得换成压在图上那一套不随主题走的墨：
@@ -217,6 +220,13 @@ public sealed partial class PosterCard : UserControl
     {
         get => (double)GetValue(PosterHeightProperty);
         set => SetValue(PosterHeightProperty, value);
+    }
+
+    /// <summary>Selection belongs to the ItemsView container; only its cover outline is drawn here.</summary>
+    public bool IsSelected
+    {
+        get => (bool)GetValue(IsSelectedProperty);
+        set => SetValue(IsSelectedProperty, value);
     }
 
     /// <inheritdoc cref="OnScrimProperty"/>
@@ -733,9 +743,18 @@ public sealed partial class PosterCard : UserControl
 
     private void OnPlayClicked(object sender, RoutedEventArgs e) => Raise(sender, CardAction.Play);
 
-    private void OnWatchedClicked(object sender, RoutedEventArgs e) => Raise(sender, CardAction.Watched);
+    private void OnWatchedClicked(object sender, RoutedEventArgs e)
+    {
+        // 先给一下回音：服务器那一趟无论成败，按下去这一拍总得响。
+        GlyphPulse.Play(WatchedGlyphs);
+        Raise(sender, CardAction.Watched);
+    }
 
-    private void OnFavoriteClicked(object sender, RoutedEventArgs e) => Raise(sender, CardAction.Favorite);
+    private void OnFavoriteClicked(object sender, RoutedEventArgs e)
+    {
+        GlyphPulse.Play(FavoriteGlyphs);
+        Raise(sender, CardAction.Favorite);
+    }
 
     private void OnMoreClicked(object sender, RoutedEventArgs e) => Raise(sender, CardAction.More);
 

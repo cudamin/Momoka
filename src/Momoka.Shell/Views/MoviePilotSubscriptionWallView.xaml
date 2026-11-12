@@ -1,0 +1,206 @@
+<UserControl
+    x:Class="Momoka.Shell.Views.MoviePilotSubscriptionWallView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Momoka.Shell.Views"
+    xmlns:vm="using:Momoka.Shell.ViewModels">
+    <!--
+      MoviePilot「我的订阅」墙：工具栏（筛选／排序／拖拽排序／批量／维护）＋各种横幅＋宽背景卡片网格＋空态。
+      行为逐条对着网页端 SubscribeListView／subscribe-index 移植，状态与判断都在视图模型，这里只绑定与接事件。
+      分类页（电影／电视剧）由宿主页面立起来并接同一份订阅数据；汇总库仍走原来的横排，不立墙。
+    -->
+    <StackPanel Spacing="{StaticResource EgSpaceM}">
+        <!-- 工具栏 -->
+        <Grid ColumnSpacing="{StaticResource EgSpaceS}">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
+                <Button x:Name="WallFilterButton" Style="{StaticResource EgSecondaryButtonStyle}"
+                    Content="{x:Bind ViewModel.WallFilterLabel, Mode=OneWay}" ToolTipService.ToolTip="筛选订阅">
+                    <Button.Flyout>
+                        <Flyout x:Name="WallFilterFlyout" Opening="OnFilterFlyoutOpening">
+                            <StackPanel Width="240" Spacing="{StaticResource EgSpaceS}">
+                                <TextBox x:Name="WallKeywordBox"
+                                    PlaceholderText="名称" Text="{x:Bind ViewModel.WallKeyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <StackPanel x:Name="WallFilterOptions" Spacing="{StaticResource EgSpaceXS}" />
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+                <Button x:Name="WallSortButton" Style="{StaticResource EgSecondaryButtonStyle}"
+                    Content="{x:Bind ViewModel.WallSortLabel, Mode=OneWay}" ToolTipService.ToolTip="排序订阅">
+                    <Button.Flyout>
+                        <Flyout x:Name="WallSortFlyout" Opening="OnSortFlyoutOpening">
+                            <StackPanel x:Name="WallSortOptions" Width="200" Spacing="{StaticResource EgSpaceXS}" />
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+                <Button x:Name="WallSortModeButton" Style="{StaticResource EgSecondaryButtonStyle}"
+                    Content="拖拽排序" Click="OnToggleSortMode"
+                    Foreground="{x:Bind SortModeForeground(ViewModel.WallSortMode), Mode=OneWay}"
+                    ToolTipService.ToolTip="进入拖拽排序模式" />
+                <Button x:Name="WallBatchButton" Style="{StaticResource EgSecondaryButtonStyle}"
+                    Content="批量操作" Click="OnToggleBatchMode"
+                    Foreground="{x:Bind BatchModeForeground(ViewModel.WallBatchMode), Mode=OneWay}"
+                    ToolTipService.ToolTip="批量选择订阅" />
+                <Button x:Name="WallMaintenanceButton" Style="{StaticResource EgSecondaryButtonStyle}" Content="维护"
+                    ToolTipService.ToolTip="订阅维护">
+                    <Button.Flyout>
+                        <MenuFlyout x:Name="WallMaintenanceMenu">
+                            <MenuFlyoutItem x:Name="WallSearchAll" Text="搜索当前媒体类型订阅" Click="OnSearchAll"
+                                IsEnabled="{x:Bind NotBusy(ViewModel.WallSearchBusy), Mode=OneWay}">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE721;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem x:Name="WallRefreshResources" Text="刷新订阅资源" Click="OnRefreshResources"
+                                Visibility="{x:Bind VisibleWhen(ViewModel.CanWallAdmin), Mode=OneWay}"
+                                IsEnabled="{x:Bind NotBusy(ViewModel.WallRefreshBusy), Mode=OneWay}">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE72C;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem x:Name="WallRefreshMetadata" Text="更新订阅元数据" Click="OnRefreshMetadata"
+                                Visibility="{x:Bind VisibleWhen(ViewModel.CanWallAdmin), Mode=OneWay}"
+                                IsEnabled="{x:Bind NotBusy(ViewModel.WallMetadataBusy), Mode=OneWay}">
+                                <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8B5;" /></MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+                <Button x:Name="WallRefresh" Style="{StaticResource EgSecondaryButtonStyle}" Content="刷新订阅"
+                    Command="{x:Bind ViewModel.RefreshCommand}" ToolTipService.ToolTip="重新读取订阅列表" />
+            </StackPanel>
+        </Grid>
+
+        <!-- 批量操作横幅：摘要＋提示＋选择全部／批量启用／暂停／删除＋退出。 -->
+        <Border Visibility="{x:Bind ViewModel.WallBatchBannerVisibility, Mode=OneWay}"
+            Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
+            Padding="12">
+            <Grid ColumnSpacing="{StaticResource EgSpaceM}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Spacing="{StaticResource EgSpaceXS}" VerticalAlignment="Center">
+                    <TextBlock Text="批量操作" Style="{StaticResource EgSubheadStyle}" />
+                    <TextBlock x:Name="WallBatchSummary" Text="{x:Bind ViewModel.WallBatchSummary, Mode=OneWay}"
+                        Style="{StaticResource EgCaptionStyle}" />
+                    <TextBlock Text="点击卡片选择订阅，再使用右下角按钮操作。" Style="{StaticResource EgCaptionStyle}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}"
+                    HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button x:Name="WallSelectAll" Style="{StaticResource EgSecondaryButtonStyle}"
+                        Content="{x:Bind SelectAllLabel(ViewModel.IsWallAllSelected), Mode=OneWay}" Click="OnSelectAll" />
+                    <Button x:Name="WallBatchResume" Style="{StaticResource EgSecondaryButtonStyle}" Content="批量启用"
+                        Click="OnBatchResume" Visibility="{x:Bind VisibleWhen(ViewModel.CanWallBatchOperate), Mode=OneWay}" />
+                    <Button x:Name="WallBatchPause" Style="{StaticResource EgSecondaryButtonStyle}" Content="批量暂停"
+                        Click="OnBatchPause" Visibility="{x:Bind VisibleWhen(ViewModel.CanWallBatchOperate), Mode=OneWay}" />
+                    <Button x:Name="WallBatchDelete" Style="{StaticResource EgSecondaryButtonStyle}" Content="批量删除"
+                        Click="OnBatchDelete" Foreground="{ThemeResource EgDangerBrush}"
+                        Visibility="{x:Bind VisibleWhen(ViewModel.CanWallBatchOperate), Mode=OneWay}" />
+                    <Button x:Name="WallExitBatch" Style="{StaticResource EgSecondaryButtonStyle}" Content="退出批量操作" Click="OnExitBatch" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 执行批次横幅：标签＋进度＋停止／关闭。色调按批次 tone 映射到角色笔刷。 -->
+        <Border Visibility="{x:Bind ViewModel.WallBatchVisibility, Mode=OneWay}"
+            Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
+            Padding="12" BorderThickness="1"
+            BorderBrush="{x:Bind ToneBrush(ViewModel.WallBatchTone), Mode=OneWay}">
+            <Grid ColumnSpacing="{StaticResource EgSpaceM}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Spacing="{StaticResource EgSpaceXS}" VerticalAlignment="Center">
+                    <Grid ColumnSpacing="{StaticResource EgSpaceS}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="WallBatchLabel" Text="{x:Bind ViewModel.WallBatchLabel, Mode=OneWay}"
+                            Style="{StaticResource EgBodyStyle}" TextTrimming="CharacterEllipsis"
+                            Foreground="{x:Bind ToneBrush(ViewModel.WallBatchTone), Mode=OneWay}" />
+                        <TextBlock x:Name="WallBatchProgressText" Grid.Column="1" Text="{x:Bind ViewModel.WallBatchProgressText, Mode=OneWay}"
+                            Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+                    </Grid>
+                    <ProgressBar x:Name="WallBatchProgress" Maximum="100"
+                        Value="{x:Bind ViewModel.WallBatchProgress, Mode=OneWay}"
+                        IsIndeterminate="{x:Bind ViewModel.WallBatchIndeterminate, Mode=OneWay}"
+                        Foreground="{x:Bind ToneBrush(ViewModel.WallBatchTone), Mode=OneWay}" />
+                </StackPanel>
+                <Button x:Name="WallBatchCancel" Grid.Column="1" Style="{StaticResource EgSecondaryButtonStyle}" Content="停止"
+                    Click="OnCancelBatch" VerticalAlignment="Center"
+                    Visibility="{x:Bind VisibleWhen(ViewModel.WallBatchCanCancel), Mode=OneWay}" />
+                <Button x:Name="WallBatchDismiss" Grid.Column="1" Style="{StaticResource EgSecondaryButtonStyle}" Content="关闭"
+                    Click="OnDismissBatch" VerticalAlignment="Center"
+                    Visibility="{x:Bind VisibleWhen(ViewModel.WallBatchCanDismiss), Mode=OneWay}" />
+            </Grid>
+        </Border>
+
+        <!-- 拖拽排序横幅 -->
+        <Border Visibility="{x:Bind VisibleWhen(ViewModel.WallSortMode), Mode=OneWay}"
+            Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
+            Padding="12">
+            <Grid ColumnSpacing="{StaticResource EgSpaceM}">
+                <TextBlock Text="已进入拖拽排序模式" Style="{StaticResource EgBodyStyle}"
+                    Foreground="{ThemeResource EgWarningBrush}" VerticalAlignment="Center" />
+                <Button x:Name="WallExitSort" Style="{StaticResource EgSecondaryButtonStyle}" Content="退出"
+                    Click="OnExitSort" HorizontalAlignment="Right" />
+            </Grid>
+        </Border>
+
+        <!-- 列表错误条 -->
+        <Border Visibility="{x:Bind ViewModel.WallListErrorVisibility, Mode=OneWay}"
+            Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
+            Padding="12" BorderThickness="1" BorderBrush="{ThemeResource EgDangerBrush}">
+            <TextBlock Text="请求失败，请稍后重试" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgDangerBrush}" />
+        </Border>
+
+        <!-- 业务提示条（复用 VM 的 Notice*） -->
+        <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
+            Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}"
+            Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
+
+        <!-- 卡片网格：拖拽排序语境下 CanReorderItems 立起，拖完落盘；其余语境就是一张普通换行网格。
+             内层滚动关掉，整页由宿主 ScrollViewer 统一滚（避免两层滚动条抢拖拽）。 -->
+        <ListView x:Name="WallGrid" ItemsSource="{x:Bind ViewModel.Wall, Mode=OneWay}"
+            SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnWallItemClick"
+            CanReorderItems="{x:Bind ViewModel.CanWallDrag, Mode=OneWay}"
+            CanDragItems="{x:Bind ViewModel.CanWallDrag, Mode=OneWay}"
+            AllowDrop="{x:Bind ViewModel.CanWallDrag, Mode=OneWay}"
+            ReorderMode="Enabled" DragItemsCompleted="OnWallDragCompleted"
+            Visibility="{x:Bind ViewModel.WallVisibility, Mode=OneWay}"
+            ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+            ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+            <ListView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsWrapGrid Orientation="Horizontal" ItemWidth="352" ItemHeight="162" />
+                </ItemsPanelTemplate>
+            </ListView.ItemsPanel>
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="Margin" Value="0,0,12,12" />
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="MinWidth" Value="0" />
+                    <Setter Property="MinHeight" Value="0" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="vm:MoviePilotSubscriptionCard">
+                    <local:MoviePilotSubscriptionWallCard Card="{x:Bind Mode=OneWay}"
+                        MenuRequested="OnCardMenu" ImageRequested="OnCardImage" />
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <!-- 空态 -->
+        <StackPanel Visibility="{x:Bind ViewModel.WallEmptyVisibility, Mode=OneWay}"
+            HorizontalAlignment="Center" Spacing="{StaticResource EgSpaceS}">
+            <FontIcon Glyph="&#xE8D6;" FontSize="{StaticResource EgHeaderFontSize}"
+                Foreground="{ThemeResource EgTextFaintBrush}" HorizontalAlignment="Center" />
+            <TextBlock x:Name="WallEmptyTitle" Text="{x:Bind ViewModel.WallEmptyTitle, Mode=OneWay}"
+                Style="{StaticResource EgSubheadStyle}" HorizontalAlignment="Center" />
+            <TextBlock x:Name="WallEmptyDescription" Text="{x:Bind ViewModel.WallEmptyDescription, Mode=OneWay}"
+                Style="{StaticResource EgCaptionStyle}" HorizontalAlignment="Center" />
+        </StackPanel>
+    </StackPanel>
+</UserControl>

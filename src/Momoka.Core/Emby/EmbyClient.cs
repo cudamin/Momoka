@@ -741,7 +741,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         if (mode is not ("missing" or "all")) throw new ArgumentException("未知的刷新模式。");
 
         return http.PostAsync(
-            Url($"Items/{itemId}/Refresh",
+            Url($"Items/{CollectionSegment(itemId)}/Refresh",
                 ("Recursive", "true"),
                 ("MetadataRefreshMode", "FullRefresh"),
                 ("ImageRefreshMode", "FullRefresh"),
@@ -865,8 +865,8 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public Task ResetMetadataAsync(string itemId, CancellationToken cancellationToken) =>
         http.PostAsync(
-            Url("Items/Metadata/Reset", ("ItemIds", itemId)),
-            new { ItemIds = itemId },
+            Url("Items/Metadata/Reset", ("ItemIds", CollectionId(itemId))),
+            new { ItemIds = CollectionId(itemId) },
             Context,
             cancellationToken);
 
@@ -875,7 +875,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// <c>ItemCommands</c> 那一句确认）。账号没有删除权限时服务器答 403，那是要报给用户的话。
     /// </summary>
     public Task DeleteItemAsync(string itemId, CancellationToken cancellationToken) =>
-        http.DeleteAsync(Url($"Items/{itemId}"), Context, cancellationToken);
+        http.DeleteAsync(Url($"Items/{CollectionSegment(itemId)}"), Context, cancellationToken);
 
     // ---- playback reporting ---------------------------------------------------
 

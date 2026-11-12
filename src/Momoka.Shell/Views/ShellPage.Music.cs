@@ -11,6 +11,8 @@ public sealed partial class ShellPage
 {
     private long _shellPlayIntent;
     private MusicPlaybackViewModel? _music;
+    private SurfaceMotion? _musicBarMotion;
+    private bool _musicBarShown;
     private MusicPlaybackViewModel Music => _music ??= _services!.GetRequiredService<MusicPlaybackViewModel>();
 
     internal Task PlayMusicAsync(EmbyItem item, IReadOnlyList<EmbyItem> items,
@@ -40,10 +42,55 @@ public sealed partial class ShellPage
     {
         if (_music is null) return;
         var visible = _music.Visible;
-        MusicBar.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        var changed = visible != _musicBarShown;
+        _musicBarShown = visible;
+        var motion = _musicBarMotion ??= new SurfaceMotion(MusicBar);
+
+        if (visible)
+        {
+            MusicBar.Visibility = Visibility.Visible;
+            MusicBar.IsHitTestVisible = true;
+            PlaceMusicBarMargins(true);
+            if (changed) motion.Enter();
+            return;
+        }
+
+        if (changed)
+        {
+            // 收起：栏先淡出，内容区等它落定再收回 —— 先跳一下再看着栏消失更别扭。
+            MusicBar.IsHitTestVisible = false;
+            motion.Exit(landed: () =>
+            {
+                MusicBar.Visibility = Visibility.Collapsed;
+                PlaceMusicBarMargins(false);
+            });
+            return;
+        }
+
+        // 正在淡出：让动画自己收尾，别让一次尺寸变化把栏当场抹掉。
+        if (motion.IsAnimating) return;
+
+        motion.Collapse();
+        MusicBar.Visibility = Visibility.Collapsed;
+        PlaceMusicBarMargins(false);
+    }
+
+    /// <summary>栏与内容区各让多少位：栏自己永远悬浮，内容区按当前页决定要不要留底。</summary>
+    private void PlaceMusicBarMargins(bool visible)
+    {
         var left = ContentHost.Margin.Left;
         MusicBar.Margin = new Thickness(left + 16, 0, 16, 16);
-        ContentFrame.Margin = new Thickness(0, ContentFrame.Margin.Top, 0, visible ? Math.Max(92, MusicBar.ActualHeight + 28) : 0);
+        if (ContentFrame.Content is MusicLibraryPage musicPage)
+        {
+            // 胶囊直接压在封面墙上：内容区不整行让位，否则亚克力底下永远是纯色纸面。
+            // 末行的可达性改由滚动区自己的避让保证（SetPlayerClearance），停播后归还。
+            ContentFrame.Margin = new Thickness(0, ContentFrame.Margin.Top, 0, 0);
+            musicPage.SetPlayerClearance(visible ? MusicBar.ActualHeight + 32 : 0);
+        }
+        else
+        {
+            ContentFrame.Margin = new Thickness(0, ContentFrame.Margin.Top, 0, visible ? Math.Max(92, MusicBar.ActualHeight + 28) : 0);
+        }
     }
 
     internal void OpenMusicContainer(EmbyItem item, string? rootId)

@@ -3053,7 +3053,10 @@ internal sealed class HostWindow : IDisposable
 
         try
         {
-            _source.SystemBackdrop = _useBackdrop ? new MicaBackdrop { Kind = MicaKind.BaseAlt } : null;
+            // Mica（Base），不是 Mica Alt：主窗口是普通窗口，不是带标签页的那一档。这一档与 Palette 的
+            // EgCanvasBrush 浓度成对（2026-11-12 用户令「改为Mica」）—— 换回 BaseAlt，那 60% 底下会实成
+            // 一块平色，屏上就看不出材质了。
+            _source.SystemBackdrop = _useBackdrop ? new MicaBackdrop { Kind = MicaKind.Base } : null;
         }
         catch (Exception error)
         {

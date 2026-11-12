@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:vm="using:Momoka.Shell.ViewModels"
-    Background="{ThemeResource LayerFillColorDefaultBrush}">
+    Background="Transparent">
     <Grid Padding="{StaticResource EgPageMargin}" RowSpacing="{StaticResource EgSpaceL}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />

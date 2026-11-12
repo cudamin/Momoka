@@ -287,7 +287,7 @@
                             Style="{StaticResource EgCardActionButtonStyle}"
                             ToolTipService.ToolTip="{x:Bind Card.WatchedActionTip, Mode=OneWay}"
                             Visibility="{x:Bind Card.UserStateVisibility, Mode=OneWay}">
-                            <Grid>
+                            <Grid x:Name="WatchedGlyphs">
                                 <FontIcon FontSize="20" Glyph="&#xEC61;" Visibility="{x:Bind Card.NotWatchedVisibility, Mode=OneWay}" />
                                 <FontIcon FontSize="20" Foreground="{ThemeResource EgAccentBrush}" Glyph="&#xEC61;" Visibility="{x:Bind Card.WatchedVisibility, Mode=OneWay}" />
                             </Grid>
@@ -299,7 +299,7 @@
                             Style="{StaticResource EgCardActionButtonStyle}"
                             ToolTipService.ToolTip="{x:Bind Card.FavoriteActionTip, Mode=OneWay}"
                             Visibility="{x:Bind Card.FavoriteActionVisibility, Mode=OneWay}">
-                            <Grid>
+                            <Grid x:Name="FavoriteGlyphs">
                                 <FontIcon FontSize="20" Glyph="&#xEB52;" Visibility="{x:Bind Card.NotFavoriteVisibility, Mode=OneWay}" />
                                 <FontIcon FontSize="20" Foreground="{ThemeResource EgDangerBrush}" Glyph="&#xEB52;" Visibility="{x:Bind Card.FavoriteVisibility, Mode=OneWay}" />
                             </Grid>
@@ -316,6 +316,15 @@
                 </Grid>
             </Grid>
         </Border>
+
+        <!-- Keep the selection on the artwork: the title row is outside this outline. -->
+        <Border x:Name="SelectionOutline"
+            Height="{x:Bind PosterHeight, Mode=OneWay}"
+            Margin="{x:Bind Card.ArtMargin, Mode=OneWay}"
+            Style="{StaticResource EgFrameActiveStyle}"
+            Background="Transparent"
+            IsHitTestVisible="False"
+            Visibility="{x:Bind IsSelected, Mode=OneWay}" />
 
         <StackPanel Grid.Row="1" Margin="{x:Bind Card.TextMargin, Mode=OneWay}">
             <TextBlock

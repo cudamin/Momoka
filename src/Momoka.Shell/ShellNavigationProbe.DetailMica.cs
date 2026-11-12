@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Emby;
 using Momoka.Shell.Views;
@@ -57,48 +58,90 @@ internal sealed partial class ShellNavigationProbe
                 foreach (var width in new[] { 1200, 760 })
                 {
                     await ResizeResponsiveAsync(page, width, 900);
+                    // 简洁模式的按钮与闭合选择框吃那支固定面色（2026-11-11 用户令）：先核四态画笔，
+                    // 再把按钮材质那几项改到另一个极端，证明它一个字节都不读。
+                    var actions = new[] { Get<StackPanel>(page, "ColumnActions"), Get<StackPanel>(page, "CompactBlock") }
+                        .SelectMany(group => group.Children).OfType<WrapRow>()
+                        .SelectMany(row => row.Children).OfType<Control>()
+                        .Where(control => control is Button or ToggleButton && control.Visibility == Visibility.Visible)
+                        .ToArray();
+                    if (width == 1200)
+                    {
+                        Require(actions.Length > 0, "简洁详情没有找到操作按钮");
+                        RequireFixedSurface(actions);
+                        var saved = (fixture.Settings.Ui.UseAcrylicControls, fixture.Settings.Ui.ControlTintOpacity,
+                            fixture.Settings.Ui.ControlTintLuminosityOpacity, fixture.Settings.Ui.ControlBackgroundOpacity,
+                            fixture.Settings.Ui.ControlBackgroundColor);
+                        try
+                        {
+                            fixture.Settings.Ui.UseAcrylicControls = false;
+                            fixture.Settings.Ui.ControlBackgroundOpacity = 100;
+                            fixture.Settings.Ui.ControlTintOpacity = 90;
+                            fixture.Settings.Ui.ControlTintLuminosityOpacity = 5;
+                            fixture.Settings.Ui.ControlBackgroundColor = "#FF00FF";
+                            ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                            await LayoutAsync(page);
+                            RequireFixedSurface(actions);
+                        }
+                        finally
+                        {
+                            (fixture.Settings.Ui.UseAcrylicControls, fixture.Settings.Ui.ControlTintOpacity,
+                                fixture.Settings.Ui.ControlTintLuminosityOpacity, fixture.Settings.Ui.ControlBackgroundOpacity,
+                                fixture.Settings.Ui.ControlBackgroundColor) = saved;
+                            ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
+                            await LayoutAsync(page);
+                        }
+                    }
                     foreach (var theme in UiThemes.All)
                     {
                         ThemeHost.Apply(theme.Id);
                         await LayoutAsync(shell);
                         Call(page, "SettleShowcase");
-                        var mica = Get<SystemBackdropElement>(page, "PlainBackdrop");
+                        // 2026-11-12 用户令「把媒体详情页的简洁模式也改成跟主页一样的」：这一页不再挂页面级的
+                        // 局部材质，底就是外壳 ContentHost 那块画布（Mica Base ＋ 60% 窗口色）。从前这里读的是
+                        // PlainBackdrop 上的 Mica Alt —— 它把外壳画布整个盖掉，两页的底因此对不上。
+                        var host = Get<Grid>(shell, "ContentHost");
                         var top = Get<SystemBackdropElement>(page, "HeroMicaTop");
-                        Require(mica.SystemBackdrop is MicaBackdrop { Kind: MicaKind.BaseAlt }, "简洁页面缺少 Mica Alt");
-                        Require(Get<Border>(page, "BodyPaper").Background is SolidColorBrush { Color.A: 0 }, "正文实色挡住云母");
+                        Require(!((Grid)page.Content).Children.OfType<SystemBackdropElement>().Any(),
+                            "简洁详情又给页面挂了局部材质");
+                        Require(host.Background is SolidColorBrush { Color.A: 0x99 }, "外壳画布不是那层 60% 的窗口色");
+                        Require(Get<Border>(page, "BodyPaper").Background is SolidColorBrush { Color.A: 0 }, "正文实色挡住了窗口画布");
                         Require(!page.ViewModel.BackdropShown && Get<StackPanel>(page, "HeroTail").Background is null, "简洁详情仍铺图或黑色尾部");
                         Require(!page.ViewModel.HeroCardShown || top.SystemBackdrop is MicaBackdrop { Kind: MicaKind.Base }, "头部卡面缺少 Mica");
-                        Require(Math.Abs(Bounds(mica, shell).Top) < 1 && Bounds(mica, shell).Bottom >= shell.ActualHeight - 1,
-                            "云母背景未覆盖整个真实外壳");
-                        Require(shell.TrailBase is null && shell.TitleStripNow == TitleStrip.PagePainted, "面包屑实色挡住云母");
+                        Require(shell.TrailBase is null && shell.TitleStripNow == TitleStrip.PagePainted, "面包屑实色挡住了窗口画布");
                         Require(Get<Border>(page, "PlainHeroSurface").Opacity == 0
-                            && Get<Border>(page, "HeroScrim").Opacity == 0, "旧顶部渐变挡住简洁云母");
+                            && Get<Border>(page, "HeroScrim").Opacity == 0, "旧顶部渐变挡住了窗口画布");
                         var paper = (SolidColorBrush)Get<Border>(page, "BodyPaper").Background;
                         var original = paper.Color;
                         try
                         {
                             paper.Color = Microsoft.UI.Colors.Black;
                             var rejected = false;
-                            try { Require(paper.Color.A == 0, "正文实色挡住云母"); }
+                            try { Require(paper.Color.A == 0, "正文实色挡住了窗口画布"); }
                             catch (InvalidOperationException) { rejected = true; }
-                            Require(rejected, "云母检查没有拒绝旧实色正文");
+                            Require(rejected, "画布检查没有拒绝旧实色正文");
                         }
                         finally { paper.Color = original; }
-                        reads.Add($"{item.Type}/{width}/{theme.Id}: BaseAlt + Base, top={Bounds(mica, shell).Top:0.##}, body=transparent");
+                        reads.Add($"{item.Type}/{width}/{theme.Id}: canvas + {(page.ViewModel.HeroCardShown ? "Base" : "—")}, "
+                            + $"body=transparent");
                         await SaveProbeScreenAsync($"detail-mica-{item.Type}-{width}-{theme.Id}-screen.png");
                     }
                 }
                 fixture.Settings.Ui.EnableImmersive = true;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
-                Require(Get<SystemBackdropElement>(page, "PlainBackdrop").SystemBackdrop is null
-                    && Get<SystemBackdropElement>(page, "HeroMicaTop").SystemBackdrop is null, "沉浸恢复后未释放简洁材质");
+                Require(Get<SystemBackdropElement>(page, "HeroMicaTop").SystemBackdrop is null
+                    && Get<SystemBackdropElement>(page, "HeroMicaBottom").SystemBackdrop is null, "沉浸恢复后未释放简洁材质");
                 fixture.Settings.Ui.EnableImmersive = false;
                 ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
                 await LayoutAsync(page);
-                Require(Get<SystemBackdropElement>(page, "PlainBackdrop").SystemBackdrop is MicaBackdrop, "简洁恢复没有重新连接材质");
+                Require(!((Grid)page.Content).Children.OfType<SystemBackdropElement>().Any(),
+                    "简洁恢复后页面级材质又回来了");
+                Require(!page.ViewModel.HeroCardShown
+                    || Get<SystemBackdropElement>(page, "HeroMicaTop").SystemBackdrop is MicaBackdrop,
+                    "简洁恢复后卡面没有重新连接材质");
                 page.Release();
-                Require(Get<SystemBackdropElement>(page, "PlainBackdrop").SystemBackdrop is null
+                Require(Get<SystemBackdropElement>(page, "HeroMicaTop").SystemBackdrop is null
                     && Get<SystemBackdropElement>(page, "HeroMicaBottom").SystemBackdrop is null, "离页未释放材质");
             }
         }
