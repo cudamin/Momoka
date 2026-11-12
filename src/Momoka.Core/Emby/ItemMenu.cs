@@ -196,7 +196,8 @@ public static class ItemMenu
                 && CanDelete(permissions) && (item is null || IsFile(item)),
             ItemCommand.Subtitles => kind == MediaServerKind.FnNas ? permissions.CanManageSubtitles != false : CanManageSubtitles(permissions),
             ItemCommand.AddToCollection or ItemCommand.RemoveFromCollection => ItemCollections.CanManage(kind, permissions, item),
-            ItemCommand.AddToPlaylist => kind == MediaServerKind.Emby,
+            ItemCommand.AddToPlaylist => kind is MediaServerKind.Emby or MediaServerKind.Jellyfin
+                && (item is null || ServerPlaylistItems.CanAddVideo(item)),
             ItemCommand.Convert => kind == MediaServerKind.Emby && permissions.CanConvertMedia != false,
             ItemCommand.ResetMetadata or ItemCommand.ScanLibraryFiles => kind == MediaServerKind.Emby && IsAdministrator(permissions),
             ItemCommand.EditMetadata or ItemCommand.ChangeCover or ItemCommand.Identify or ItemCommand.RefreshMetadata
@@ -383,7 +384,7 @@ public static class ItemMenu
         return rows;
     }
 
-    /// <summary>把它放进哪儿、拿到哪儿去：合集和下载。</summary>
+    /// <summary>把它放进哪儿、拿到哪儿去：合集、服务器播放列表和下载。</summary>
     private static List<ItemMenuEntry> Organising(EmbyItem item, bool jellyfin, ItemMenuPermissions permissions, CollectionMembership? membership)
     {
         var rows = new List<ItemMenuEntry>(3);
@@ -392,6 +393,8 @@ public static class ItemMenu
             rows.Add(new(ItemCommand.RemoveFromCollection, "从合集中移除"));
         if (IsCatalogue(item) && ItemCollections.CanManage(jellyfin ? MediaServerKind.Jellyfin : MediaServerKind.Emby, permissions, item))
             rows.Add(new(ItemCommand.AddToCollection, jellyfin ? "加入集合" : "添加到合集…"));
+        if (ServerPlaylistItems.CanAddVideo(item))
+            rows.Add(new(ItemCommand.AddToPlaylist, "加入播放列表…"));
         if ((IsFile(item) || IsEpisodeSet(item)) && CanDownload(permissions))
             rows.Add(new(ItemCommand.Download, jellyfin ? "下载" : "下载到设备"));
         return rows;

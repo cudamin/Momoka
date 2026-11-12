@@ -16,7 +16,7 @@ Project rules live in [CLAUDE.md](../../../CLAUDE.md). This skill records only w
 | File | Responsibility |
 | --- | --- |
 | `PlexEndpoint` | Address normalisation, the default port, the `/:/` special-endpoint rule, `RelativeKey` |
-| `PlexHttp` | The sole HTTP boundary, including the one request that leaves the server's origin |
+| `PlexHttp` | The sole HTTP boundary, including fixed account sign-in and conditional permission-profile reads |
 | `PlexClient` | Paths, field names, paging headers, the timeline/scrobble verbs |
 | `PlexMediaAdapter` + `.Models.cs` | Plex JSON → `EmbyItem` / `MediaSource` / `MediaStream` / `ItemsResult` |
 | `PlexPlaybackSelection` | The metadata key and whole-version duration a playback report needs |
@@ -35,7 +35,7 @@ A plain HTTP host without a port uses 32400; an explicit HTTP port, including 80
 
 Sign-in is two steps and both are required. `POST https://plex.tv/api/v2/users/signin` exchanges the account credentials for an **account** token; `GET {server}` with `X-Plex-Token` then proves the account has been shared *this* server. A login that stopped after the first step looks successful and then 401s on every browse — `PlexMediaAdapter.SignInAsync` throws `EmbyAuthenticationException` for that case rather than adopting a token that cannot be used.
 
-The password goes in the JSON body, never in the query string. The account URI is built inside `PlexHttp` from the `AccountAuthority` constant so no caller can point it elsewhere, and it is the only request in that class allowed off the server's origin.
+The password goes in the JSON body, never in the query string. Account sign-in and the conditional nonAnonymousAccount profile read use fixed paths inside `PlexHttp` with `AccountAuthority`, so no caller can point either elsewhere; foreign redirects remain rejected.
 
 **R-005 response contract:** the official v2 password form passes the JSON success object through and its completion consumes top-level `id` and `authToken`. The official desktop UserModel declares integer `id` and string `authToken`, `username` and `title`. Read one bare account object; do not join its token to an unproven nested `user` identity or reuse the PMS XML-string coercion helpers for credentials. No official evidence here establishes string-valued account ids, legacy nested signin envelopes or a PIN/2FA flow. See [the source manifest](references/v2-login-official-evidence.json) for URLs, versions, hashes and exact marker offsets.
 
@@ -105,6 +105,14 @@ Favorites are a separate capability from watched state. `CardItem.CanFavorite` a
 Plex person and genre links use `PlexBrowseRelation` with the metadata's local `librarySectionID`, numeric movie/show type and native tag id. `Role`, `Director` and `Writer` map readable credits; a credit without identity remains static content. Local navigation uses the section `/all` query with `actor/director/writer/genre=id`; `/library/people` in official module 3632 targets `myPlex` cloud metadata and is not a PMS route. Genre links are evaluated individually: missing ids stay text, and stale detail events cannot borrow a new scope. Cross-library navigation remains unimplemented. `DetailPage` repaints after capability changes and reentry. Fixed source offsets, intended differences and offline evidence are in [媒体库第二批](../../../docs/媒体库第二批.md). `Momoka.PlexAffordanceTests` executes current Shell detail VM, actual cards and extracted page paint/events with fake HTTP and inert framework values; this is not rendered WinUI, UIA or live PMS evidence.
 
 ## Verification
+
+### Ordinary video playlists and collections
+
+`PlexClient.Containers` owns distinct video playlist and per-section collection directories, native membership, and explicit permissions from the local library provider's `/media/providers` Feature catalog. A playlist is editable only with explicit `smart=false`, `readOnly=false`, and a usable playlist feature; collections additionally require collection + manage features and same-section movie/show metadata. `nonAnonymousAccount` is checked through `PlexHttp.GetAccountProfileAsync` at fixed `https://plex.tv/api/v2/user`, requiring strict numeric matching id and explicit `anonymous=false`; a saved AccountId is not proof of this flag. Other unknown account `requires` stays unavailable. Failed/malformed profile checks leave VerificationError and the affected actions read-only without concealing PMS provider failure. The missing-flag restriction deliberately narrows the official web's `!readOnly` branch rather than inventing ownership.
+
+Keep `playlistItemID` separate from media ratingKey, including duplicate entries. Removal and `after` ordering use that entry identity; collections remove a ratingKey from their children route and retain disk media. Current collections expose create/add/remove, not custom ordering. Creation needs initial media selection; no empty-URI support was established. `PlexPlaylistType` routes video lists separately from the existing shared music browser.
+
+`PlexContainerPage.Consumed` advances through raw entries even when local smart filtering removes rows; HasMore handles missing totalSize without truncating a full page. Every write rechecks current provider/container/member state and invokes the optional beforeWrite guard after its asynchronous preflight reads, so the caller can reject a changed permission revision immediately before sending. `PlexHttp.WriteAsync` confirms HTTP 2xx headers through the optional callback before reading receipt metadata; no usable creation identity is still acknowledged success. `PlexWriteUncertainException` is not a retryable token failure. Session callers keep confirmed state through late cancellation and refresh separately. Fixed byte/source positions, intentional differences and offline scope are in [第五批 Plex 清单](../../../docs/媒体库第五批-Plex清单.md); no real PMS or rendered UI coverage is claimed.
 
 ### Multipart versions
 

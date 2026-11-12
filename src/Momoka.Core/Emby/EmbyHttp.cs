@@ -15,7 +15,7 @@ namespace Momoka.Emby;
 /// against itself as soon as posters were fetched concurrently.
 /// </para>
 /// </summary>
-public sealed class EmbyHttp : IDisposable
+public sealed partial class EmbyHttp : IDisposable
 {
     private const string Category = "http";
     private const int MaxErrorBodyBytes = 8000;
@@ -395,7 +395,8 @@ public sealed class EmbyHttp : IDisposable
         object? body,
         RequestContext context,
         CancellationToken cancellationToken,
-        HttpClient? via = null)
+        HttpClient? via = null,
+        bool retainErrorStatus = false)
     {
         EmbyHttpRedirect.Validate(url);
         var payload = body switch
@@ -441,7 +442,7 @@ public sealed class EmbyHttp : IDisposable
 
             using (response)
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                if (!retainErrorStatus) cancellationToken.ThrowIfCancellationRequested();
                 if (EmbyHttpRedirect.IsRedirect(response.StatusCode))
                 {
                     if (redirects >= EmbyHttpRedirect.Limit)
@@ -452,8 +453,12 @@ public sealed class EmbyHttp : IDisposable
                     continue;
                 }
 
-                await ReadBodySafelyAsync(response, cancellationToken).ConfigureAwait(false);
-                cancellationToken.ThrowIfCancellationRequested();
+                // Playlist writes classify the actual rejection headers before optional error IO.
+                if (!retainErrorStatus)
+                {
+                    await ReadBodySafelyAsync(response, cancellationToken).ConfigureAwait(false);
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
                 Log.Warn(Category, $"{method} {Redact(url)} -> {(int)response.StatusCode}");
                 // 资源来源的 401 不是 Emby 令牌失效，不能触发原服务器重新登录。
                 if (!authenticated && response.StatusCode == HttpStatusCode.Unauthorized)

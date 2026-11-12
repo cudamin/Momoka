@@ -740,6 +740,9 @@ public sealed class EmbyItem
 
     public string Id { get; set; } = "";
 
+    /// <summary>Server playlist member identity; two occurrences of one media item have different values.</summary>
+    public string? PlaylistItemId { get; set; }
+
     public string Name { get; set; } = "";
 
     /// <summary>
@@ -1027,6 +1030,10 @@ public sealed class EmbyItem
 
     [JsonIgnore]
     public string? PlexSectionId { get; set; }
+
+    /// <summary>Native playlist media family; video lists must not open the shared music browser.</summary>
+    [JsonIgnore]
+    public string? PlexPlaylistType { get; set; }
 
     [JsonIgnore]
     public Plex.PlexBrowseRelation? PlexRelation { get; set; }

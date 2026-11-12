@@ -8,9 +8,9 @@ namespace Momoka.Tests;
 internal sealed partial class ServiceFixture
 {
     internal Task<PlaybackResult> BeginContinuable(string file = "A", bool retain = true, CancellationToken token = default,
-        PlaybackContinuation? continuation = null, bool alternateSource = false)
+        PlaybackContinuation? continuation = null, bool alternateSource = false, SessionPlaybackQueue? queue = null)
     {
-        var ticket = Ticket(file) with { RetainForAutomaticContinuation = retain };
+        var ticket = Ticket(file) with { RetainForAutomaticContinuation = retain, PendingQueue = queue };
         if (alternateSource)
             ticket.Item.MediaSources.Add(new Momoka.Emby.MediaSource { Id = file + "-alternative", Container = "mkv", RunTimeTicks = ticket.Item.RunTimeTicks });
         var task = Service.PlayAsync(ticket, Scope, token,

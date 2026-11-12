@@ -326,6 +326,9 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectDetailTrailers", "详情预告片验证", DetailTrailersAsync);
         AddCheck("InspectDetailExtras", "详情花絮特典验证", DetailExtrasAsync);
         AddCheck("InspectEpisodeBand", "单集两种模式布局", EpisodeBandAsync);
+        AddCheck("InspectServerLists", "服务器清单与成员管理", ServerListsAsync);
+        AddCheck("InspectPlexServerLists", "Plex清单与独立合集", PlexServerListsAsync);
+        AddCheck("InspectPlayerQueue", "播放画面队列选择", PlayerQueueAsync);
         Add("InspectDone", "结束检查", () => { finished.TrySetResult(); return Task.CompletedTask; });
         frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services, "离线示例"));
         await LayoutAsync(layout);

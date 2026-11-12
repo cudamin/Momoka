@@ -10,6 +10,39 @@ internal static class Program
     private static int Main()
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
+        Case("batch5 explicit pending video retains EOF with automatic episode playback disabled", async () =>
+        {
+            await using var f = new ServiceFixture();
+            f.Settings.Playback.AutoPlayNextEpisode = false;
+            var queue = new SessionPlaybackQueue();
+            queue.Begin();
+            var running = f.BeginContinuable(retain: false, queue: queue);
+            await f.WaitUntilStarted();
+            var next = f.Scope.Bind(new Momoka.Emby.EmbyItem { Id = "queued", Type = Momoka.Emby.EmbyItemType.Movie });
+            Assert.True(queue.Add(next, f.Scope, next: true), "live queue can be added after ticket creation");
+            f.EndNative();
+            var result = await running;
+            Assert.NotNull(result.Continuation, "live explicit queue controls EOF retention without changing settings");
+            Assert.False(f.Settings.Playback.AutoPlayNextEpisode);
+            Assert.Equal(0, f.NativeHandle.Native.DestroyCalls);
+            await result.Continuation!.DisposeAsync();
+            Assert.Equal(1, f.NativeHandle.Native.DestroyCalls);
+        });
+        Case("batch5 cleared pending video does not retain EOF", async () =>
+        {
+            await using var f = new ServiceFixture();
+            f.Settings.Playback.AutoPlayNextEpisode = false;
+            var queue = new SessionPlaybackQueue(); queue.Begin();
+            var next = f.Scope.Bind(new Momoka.Emby.EmbyItem { Id = "queued", Type = Momoka.Emby.EmbyItemType.Movie });
+            Assert.True(queue.Add(next, f.Scope, next: false));
+            var running = f.BeginContinuable(retain: false, queue: queue);
+            await f.WaitUntilStarted();
+            queue.Clear();
+            f.EndNative();
+            var result = await running;
+            Assert.Null(result.Continuation);
+            Assert.Equal(1, f.NativeHandle.Native.DestroyCalls);
+        });
         Case("R046 Natural EOF hands an ended reusable context to caller without destroying it", async () =>
         {
             await using var f = new ServiceFixture();

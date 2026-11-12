@@ -5,6 +5,8 @@ description: "Momoka playback: libmpv and external-mpv backends, integrated and 
 
 # Momoka — playback
 
+The current viewing queue is separate from server-persisted lists. Both picture menus request the same native read-only media picker through `PlayerViewModel.QueueRequested`; its captured intent/attempt/original account owns selection and confirmation. `SessionPlaybackQueue` consumes only an established `NowPlaying`, retains unconfirmed failures for resume, and clears on stop/new manual playback. The `server-lists` native section uses a non-playing handle to verify the picker; it does not establish actual standalone uosc/native switching. See [fifth-batch queue evidence](../../../docs/媒体库第五批-本次播放队列.md).
+
 Momoka is a WinUI 3 + .NET desktop client, unpackaged and x64, with libmpv as its built-in playback core. Work from the current checkout. Earlier application names survive in settings migration; current names and paths come from the source.
 
 **Policy lives in [CLAUDE.md](../../../CLAUDE.md)**: playback authorization and probe coverage, credentials, navigation, dependency upgrades and verification gates. Read that policy rather than maintaining another copy here. `PROGRESS.md` records in-flight work and earlier measurements.
@@ -14,6 +16,8 @@ Use [momoka-winui-shell](../momoka-winui-shell/SKILL.md) for architecture, [momo
 This skill owns backend, pipeline and playback-lifecycle integration. Read [momoka-subtitles](../momoka-subtitles/SKILL.md) for subtitle selection, appearance and management; [momoka-audio-output](../momoka-audio-output/SKILL.md) for devices, audio options and volume persistence; [momoka-video-output](../momoka-video-output/SKILL.md) for video settings and HDR; and [mpv-shader-quality](../mpv-shader-quality/SKILL.md) for shader chains. Use the owning skill alongside this integration overview when a task touches its domain.
 
 Operational details:
+
+- The video's in-memory `SessionPlaybackQueue` owns explicit next/tail slots separately from server playlists and series navigation. `PlayerViewModel.Queue` freezes each slot's source, consumes only on accepted NowPlaying, retains an unconfirmed failed head for explicit retry and clears on Stop/new manual viewing. `PlaybackTicket.PendingQueue` participates only in natural EOF retention; do not change the auto-episode preference to make an explicit queue run. Existing pipeline/backend/lease guards remain. See [fifth-batch queue evidence](../../../docs/媒体库第五批-本次播放队列.md) for caller/Core/menu coverage and native gaps.
 
 - The normal player's self-check uses synthetic state without loading a film. Local-file probes are a different path; their isolation and integrated-only coverage are specified in CLAUDE.md. Neither proves standalone playback works.
 - **`libmpv-2.dll` lives in the current working-tree root**, is linked into build output by `Momoka.Shell.csproj` and copied next to the exe on publish. The binary is not tracked; a new worktree needs an explicitly supplied, matching copy before publishing.

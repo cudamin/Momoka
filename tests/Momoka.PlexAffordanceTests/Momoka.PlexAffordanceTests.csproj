@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <Compile Include="..\..\src\Momoka.Shell\Views\ItemCommands.cs" Link="Production\ItemCommands.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\ItemCommands.Queue.cs" Link="Production\ItemCommands.Queue.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Media\LocalLibraryArtwork.cs" Link="Production\LocalLibraryArtwork.cs" />

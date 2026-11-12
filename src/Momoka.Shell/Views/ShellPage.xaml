@@ -391,6 +391,7 @@
                                 </Style>
                             </ListView.ItemContainerStyle>
                         </ListView>
+                        <Button x:Name="ServerListsEntry" Content="服务器清单" Visibility="Collapsed" Style="{StaticResource AccountActionStyle}" Click="OnServerListsClicked" />
                         <Button x:Name="AddServerItem" x:Uid="ShellPage_AddServerItem" Content="添加服务器…" Style="{StaticResource AccountActionStyle}" Click="OnAddServerClicked" />
                         <Button x:Name="AddAccountItem" x:Uid="ShellPage_AddAccountItem" Content="添加账号…" Style="{StaticResource AccountActionStyle}" Click="OnAddAccountClicked" />
                         <Button x:Name="AccountSignOutItem" x:Uid="ShellPage_AccountSignOutItem" Content="注销" Style="{StaticResource AccountActionStyle}" Click="OnSignOut" />

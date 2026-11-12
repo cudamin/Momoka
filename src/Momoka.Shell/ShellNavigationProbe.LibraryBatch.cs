@@ -632,7 +632,9 @@ internal sealed partial class ShellNavigationProbe
                         QualityOptions = [new() { Id = "high", Name = "高质量", IsDefault = true }, new() { Id = "custom", Name = "自定义码率" }]
                     });
                 if (request.Method == HttpMethod.Get && Query(request, "IncludeItemTypes") == "Playlist")
-                    return Json(new { Items = new[] { new EmbyItem { Id = "playlist", Name = "稍后观看", Type = EmbyItemType.Playlist } }, TotalRecordCount = 1 });
+                    return Json(new { Items = new[] { new EmbyItem { Id = "playlist", Name = "稍后观看", Type = EmbyItemType.Playlist, MediaType = "Video", CanEditItems = true } }, TotalRecordCount = 1 });
+                if (request.Method == HttpMethod.Get && path.EndsWith("/Items/playlist", StringComparison.Ordinal))
+                    return Json(new EmbyItem { Id = "playlist", Name = "稍后观看", Type = EmbyItemType.Playlist, MediaType = "Video", CanEditItems = true });
                 if (request.Method == HttpMethod.Delete && _items.TryGetValue(path.Split('/')[^1], out var deleting))
                 {
                     ExtendedWrites.Add("DELETE " + deleting.Id);

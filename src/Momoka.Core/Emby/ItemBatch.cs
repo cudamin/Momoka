@@ -52,7 +52,8 @@ public static class ItemBatch
             ItemCommand.RemoveFromCollection => entry.Membership?.Matches(item) == true
                 && ItemCollections.CanManage(kind, permissions, item),
             ItemCommand.Play or ItemCommand.PlayFromBeginning or ItemCommand.Shuffle => kind == MediaServerKind.Emby && CanCollect(item),
-            ItemCommand.AddToPlaylist => kind == MediaServerKind.Emby && CanAddToPlaylist(item),
+            ItemCommand.AddToPlaylist => kind == MediaServerKind.Emby ? CanAddToPlaylist(item)
+                : ServerPlaylistItems.CanAddVideo(item),
             ItemCommand.Convert => kind == MediaServerKind.Emby && CanConvert(item) && permissions.CanConvertMedia != false,
             ItemCommand.Delete => kind == MediaServerKind.Emby && CanDelete(item, permissions),
             ItemCommand.ResetMetadata => kind == MediaServerKind.Emby && ItemIdentify.Supports(item)
@@ -169,6 +170,7 @@ public sealed class ItemBatchService
             {
                 await source.ExecuteAsync(async (client, token) =>
                 {
+                    var permissionRevision = source.PermissionRevision;
                     // A read or authentication retry can replace the account's permission snapshot.
                     // Each attempt keeps only currently allowed items; no old selection lends a grant.
                     void Recheck()
@@ -205,7 +207,13 @@ public sealed class ItemBatchService
                         Recheck();
                         if (eligible.Count == 0) return;
                         ids = eligible.Select(index => entries[index].Item.Id).ToArray();
-                        var receipt = await client.CreatePlaylistAsync(options?.NewPlaylistName ?? "", ids, token).ConfigureAwait(false);
+                        var receipt = await client.CreatePlaylistAsync(options?.NewPlaylistName ?? "", ids, token,
+                            () => confirmed = true, () =>
+                            {
+                                Recheck();
+                                if (source.PermissionRevision != permissionRevision || eligible.Count != ids.Length)
+                                    throw new OperationCanceledException("播放列表提交前的账号或选择已改变。");
+                            }).ConfigureAwait(false);
                         playlistId = receipt.Id;
                     }
                     // A server acceptance must survive the session's later result-publication guard.
@@ -251,6 +259,7 @@ public sealed class ItemBatchService
         {
             data = await source.ExecuteAsync(async (client, token) =>
             {
+                var permissionRevision = source.PermissionRevision;
                 if (!ItemBatch.Allowed(command, source, entry, permissions()))
                     throw new UnauthorizedAccessException("当前媒体或账号不允许此操作");
                 var item = entry.Item;
@@ -271,7 +280,14 @@ public sealed class ItemBatchService
                     case ItemCommand.AddToPlaylist:
                         if (string.IsNullOrWhiteSpace(options?.PlaylistId) || options.PlaylistId == item.Id)
                             throw new InvalidOperationException("请选择有效播放列表");
-                        await client.AddToPlaylistAsync(options.PlaylistId, [item.Id], options.SkipPlaylistDuplicates, token).ConfigureAwait(false);
+                        await client.AddToPlaylistAsync(options.PlaylistId, [item.Id], options.SkipPlaylistDuplicates, token,
+                            () => confirmed = true, () =>
+                            {
+                                source.ThrowIfUnavailable();
+                                if (source.PermissionRevision != permissionRevision
+                                    || !ItemBatch.Allowed(command, source, entry, permissions()))
+                                    throw new UnauthorizedAccessException("播放列表提交前的账号权限已改变。");
+                            }).ConfigureAwait(false);
                         break;
                     case ItemCommand.Delete:
                         await client.DeleteItemAsync(item.Id, token).ConfigureAwait(false);

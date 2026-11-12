@@ -299,6 +299,7 @@ public static class VideoWindowContract
     /// 按当前值现算，不认菜单推送那一份旧值（推送与点击之间设置可能被设置窗口改过）。
     /// </summary>
     public const string AutoPlayNext = "momoka-autoplay-next";
+    public const string Queue = "momoka-video-queue";
 
     /// <summary>
     /// uosc → 宿主：右键画面菜单里点了「播放信息…」，值保留。宿主把 <c>MediaInfoText</c> 那份正文
@@ -356,6 +357,7 @@ public static class VideoWindowContract
         }
         if (key == SkipMode) return value is "ask" or "auto" or "off" ? new VideoWindowMessage(key, value) : null;
         if (key == AutoPlayNext) return value == "toggle" ? new VideoWindowMessage(key, value) : null;
+        if (key == Queue) return value is "next" or "append" or "clear" ? new VideoWindowMessage(key, value) : null;
         if (key == OpenSettings)
             return PlayerSettingsLinks.For(value) is not null ? new VideoWindowMessage(key, value) : null;
 

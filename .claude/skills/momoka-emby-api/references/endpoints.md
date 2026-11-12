@@ -6,6 +6,12 @@
 
 ## 浏览与条目
 
+## 普通视频播放列表（2026-11-12）
+
+补充来源为固定官方 SDK f8499bd9（4.10.2.0）及 Web 4.10.1.0，主表的历史规格基准未更换。目录 GET Users/{UserId}/Items 读取 Playlist/Recursive/SortName；成员沿官方 Web 的同用户 Items?ParentId=&SortBy=ListItemOrder。服务端 `CanEditItems=true` 才成为可写目标，写前重新读相同账号/ID/Playlist DTO。
+
+创建 POST Playlists（Name/Ids/UserId/MediaType=Video），添加 POST Playlists/{id}/Items（Ids/UserId/SkipDuplicates JSON），移除 POST Playlists/{id}/Items/Delete?EntryIds，排序 POST Playlists/{id}/Items/{entryId}/Move/{newIndex}。EntryIds 来自成员 PlaylistItemId，不是媒体 Id；不触碰 DeleteItem。2xx头确认与可选创建ID正文分开，缺回执为独立未知写，不自动重发。固定源码文件、hash、Web byte偏移和未实服边界见 [第五批协议报告](../../../../docs/媒体库第五批-Emby与Jellyfin播放列表.md)。
+
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
 | GET | `/Users/{UserId}/Views` | 媒体库视图 |

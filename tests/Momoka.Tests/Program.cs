@@ -4,6 +4,11 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["plex-container-fixture"])
+        {
+            PlexContainerTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["music-fixture"])
         {
             MusicTests.Register();
@@ -449,6 +454,12 @@ internal static class Program
             FnNasMediaTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["server-playlist-fixture"])
+        {
+            ServerPlaylistTests.Register();
+            ItemMenuTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["item-batch-fixture"])
         {
             ItemBatchTests.Register();
@@ -588,6 +599,7 @@ internal static class Program
         AppearanceColorSettingsTests.Register();
         SubtitlePreviewTests.Register();
         EmbyTests.Register();
+        ServerPlaylistTests.Register();
         ItemMetadataDateTests.Register();
         EmbyMetadataEditorTests.Register();
         EmbyRealtimeTests.Register();

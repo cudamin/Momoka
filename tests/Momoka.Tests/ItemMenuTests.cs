@@ -62,7 +62,7 @@ internal static class ItemMenuTests
                 RunTimeTicks = 6000_000_000
             };
             Assert.Equal(
-                "播放 | 详细信息 | 标为已播放 | 加入收藏 | 加入集合 | 下载 | 编辑元数据 | 修改图片 | 修改字幕 | 刮削元数据 | 刷新元数据 | 重新扫描媒体库 | 删除媒体",
+                "播放 | 详细信息 | 标为已播放 | 加入收藏 | 加入集合 | 加入播放列表… | 下载 | 编辑元数据 | 修改图片 | 修改字幕 | 刮削元数据 | 刷新元数据 | 重新扫描媒体库 | 删除媒体",
                 JellyfinLabels(movie));
             Assert.Equal("删除系列", ItemMenu.For(new EmbyItem { Id = "s", Type = EmbyItemType.Series }, jellyfin: true)
                 .Single(row => row.Command == ItemCommand.Delete).Label);

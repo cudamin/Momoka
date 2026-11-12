@@ -133,6 +133,14 @@ On 2026-10-26 Jellyfin 10.10.7 passed saved-token restore, library/detail reads,
 
 ## Delivery
 
+## Single-account video playlists
+
+Before native CanEdit, read the current Playlist DTO and require MediaType=Video plus exact ID/type. DtoService line802 forwards item.MediaType, and Playlist overrides that with its saved PlaylistMediaType; unknown/Audio are member-readable but never editable by the video page. `GetEditableVideoPlaylistsAsync` supplies only explicit video targets.
+
+The native directory uses the existing versioned Items dialect. Each playlist independently reads `Playlists/{id}/Users/{currentUserId}` and requires matching UserId plus CanEdit=true; administrator/collection/deletion grants cannot substitute. New lists send the fixed DTO with MediaType=Video, Users=[] and IsPublic=false (the 10.10.7 DTO otherwise defaults public, and empty-kind playlists default Audio). Existing lists add by POST query Ids/UserId, remove by DELETE Items?EntryIds, and move an occurrence by PlaylistItemId/Move/newIndex; do not send Emby's SkipDuplicates JSON or Items/Delete route. Optional skip-duplicates is a complete member-read snapshot filter, not a concurrency guarantee.
+
+The server's 10.10.7 Move implementation has a demonstrated first-position indexing defect; 10.11.1's helper corrects that specific path. Preserve native routes and independent actual-order readback rather than rebuilding entries or claiming a 2xx proves the requested position. Sent writes without confirmation use `PlaylistWriteUncertainException`; 2xx receipt callbacks precede optional body IO, and caller `beforeWrite` rechecks the original owner/revision/page immediately before send. Details, hashes, intended differences and 79 anonymous cases are in [the fifth-batch protocol report](../../../docs/媒体库第五批-Emby与Jellyfin播放列表.md). This does not establish live Jellyfin management or WinUI behavior.
+
 When the supported boundary changes, update this skill, the "which product" boundary in `momoka-emby-api`, [docs/开发与验证.md](../../../docs/开发与验证.md), and the domain docs that declare which server they were written against. Keep this skill from drifting into a copy of the Jellyfin specification: link the version you measured and name the route you chose.
 
 ## Collection management permission and membership

@@ -194,6 +194,11 @@ public sealed partial class PlayerViewModel
                 AutoPlayNextEpisode = !AutoPlayNextEpisode;
                 break;
 
+            case VideoWindowContract.Queue:
+                if (value is "next" or "append") RequestQueue(value == "next");
+                else if (value == "clear" && HasPendingQueue) ClearQueue();
+                break;
+
             case VideoWindowContract.MediaInfo:
                 // 右键画面菜单点了「播放信息…」。独占模式播放页是摘下去的，弹窗归外壳（ShellPage 接
                 // MediaInfoRequested 弹主窗口）；集成模式不走这条 —— 页面上的菜单行自己弹同一张。
@@ -257,6 +262,16 @@ public sealed partial class PlayerViewModel
         items.Add(BuildUoscSkipMenu());
         items.Add(new UoscMenuItem("自动播放下一集",
             $"script-message {VideoWindowContract.AutoPlayNext} toggle", true, AutoPlayNextEpisode, Separator: true));
+        if (CanArrangeQueue)
+        {
+            var queue = new List<UoscMenuItem>
+            {
+                new("下一项播放…", $"script-message {VideoWindowContract.Queue} next", true, false),
+                new("追加到队尾…", $"script-message {VideoWindowContract.Queue} append", true, false)
+            };
+            if (HasPendingQueue) queue.Add(new("清空待播项", $"script-message {VideoWindowContract.Queue} clear", true, false));
+            items.Add(new("本次播放队列", null, true, false, Items: queue));
+        }
         items.Add(new UoscMenuItem("播放信息…", $"script-message {VideoWindowContract.MediaInfo} open", true, false,
             shortcutTexts.GetValueOrDefault(PlayerMenuCatalog.PlaybackInfoShortcut)));
 
@@ -715,6 +730,7 @@ public sealed partial class PlayerViewModel
             _activeIntent = pending.Intent;
             _activePlaybackAttempt = pending.Attempt;
             _activeStartTicks = pending.StartTicks;
+            AdoptQueueStart(item, pending);
             _pendingPlayback = null;
         }
         PlayingItemId = item.Id;

@@ -18,6 +18,8 @@ internal sealed class AnonymousTransport(Tape tape) : HttpMessageHandler
     internal void Item(EmbySessionScope source, string id, Func<Read, Task<object>> response) =>
         _routes.Add(source.Connection.ApiBase.Host + "/emby/Users/anonymous/Items/" + id, response);
     internal void Item(EmbySessionScope source, EmbyItem item) => Item(source, item.Id, _ => Task.FromResult<object>(item));
+    internal void Search(EmbySessionScope source, IReadOnlyList<EmbyItem> items) =>
+        _routes[source.Connection.ApiBase.Host + "/emby/Users/anonymous/Items"] = _ => Task.FromResult<object>(new { Items = items, TotalRecordCount = items.Count });
     internal void Seasons(EmbySessionScope source, string series, IReadOnlyList<EmbyItem> rows) =>
         _routes.Add(source.Connection.ApiBase.Host + "/emby/Shows/" + series + "/Seasons", _ => Task.FromResult<object>(new { Items = rows }));
     // 后登记者覆盖先前的同一条路由（下标而不是 Add）：夹具在构造时给「series」放一条空表，

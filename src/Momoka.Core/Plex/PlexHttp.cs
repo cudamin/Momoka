@@ -36,16 +36,14 @@ public readonly record struct PlexCall(
 /// <summary>
 /// The single place that performs HTTP for Plex.
 /// <para>
-/// Server requests stay on the server's own origin. The one request that deliberately leaves it is
-/// <see cref="SignInToAccountAsync"/>, which talks to Plex's account service because that is where a
-/// Plex account is authenticated — a Plex server does not verify an account password itself. That URI
-/// is built here from a constant rather than handed in, so no caller can point it somewhere else, and
-/// the account password goes in a JSON body rather than a query string.
+/// Server requests stay on the server's own origin. Account sign-in and the required account-profile
+/// permission read use fixed Plex account-service paths. Their authority is built here rather than
+/// handed in, so callers cannot point either request elsewhere; the password stays in a JSON body.
 /// </para>
 /// </summary>
 public sealed class PlexHttp : IDisposable
 {
-    /// <summary>Plex's account authority. Reached only by <see cref="SignInToAccountAsync"/>.</summary>
+    /// <summary>Plex's account authority for the fixed sign-in and account-permission paths.</summary>
     public const string AccountAuthority = "https://plex.tv";
 
     public const string Product = "Momoka";
@@ -97,9 +95,24 @@ public sealed class PlexHttp : IDisposable
     public async Task<byte[]> GetBytesAsync(Uri uri, PlexCall call, CancellationToken cancellationToken = default) =>
         await SendAsync(HttpMethod.Get, uri, null, call, cancellationToken).ConfigureAwait(false);
 
+    /// <summary>2xx headers acknowledge the write; optional body IO or parsing cannot turn it into a replay.</summary>
+    public async Task<JsonObject?> WriteAsync(HttpMethod method, Uri uri, PlexCall call, CancellationToken cancellationToken = default,
+        Action? confirmed = null)
+    {
+        if (method != HttpMethod.Post && method != HttpMethod.Put && method != HttpMethod.Delete)
+            throw new ArgumentException("Plex 清单写入方式无效", nameof(method));
+        var bytes = await SendAsync(method, uri, null, call, cancellationToken, optionalWriteReceipt: true, confirmed).ConfigureAwait(false);
+        if (bytes.Length == 0) return null;
+        try
+        {
+            var root = JsonNode.Parse(bytes) as JsonObject;
+            return root?["MediaContainer"] as JsonObject ?? root;
+        }
+        catch (JsonException) { return null; }
+    }
+
     /// <summary>
-    /// Exchanges a Plex account's credentials for an access token. This is the only request in this
-    /// class that leaves the server's origin; see the class comment.
+    /// Exchanges a Plex account's credentials for an access token at the fixed account-service path.
     /// </summary>
     public async Task<JsonObject> SignInToAccountAsync(string username, string password, PlexCall call,
         CancellationToken cancellationToken = default)
@@ -120,18 +133,30 @@ public sealed class PlexHttp : IDisposable
         }
     }
 
-    private async Task<byte[]> SendAsync(HttpMethod method, Uri uri, byte[]? body, PlexCall call,
-        CancellationToken cancellationToken)
+    /// <summary>Fixed account-service read for nonAnonymousAccount; no caller-controlled authority or path.</summary>
+    public async Task<JsonObject> GetAccountProfileAsync(PlexCall call, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        var bytes = await SendCoreAsync(HttpMethod.Get, new Uri(AccountAuthority + "/api/v2/user"), null, null, call,
+            cancellationToken).ConfigureAwait(false);
+        try { return JsonNode.Parse(bytes) as JsonObject ?? throw new PlexApiException("Plex 账号权限响应不是可识别对象"); }
+        catch (JsonException) { throw new PlexApiException("Plex 账号权限响应无法解析"); }
+    }
+
+    private async Task<byte[]> SendAsync(HttpMethod method, Uri uri, byte[]? body, PlexCall call,
+        CancellationToken cancellationToken, bool optionalWriteReceipt = false, Action? confirmed = null)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
         PlexEndpoint.Validate(uri);
-        return await SendCoreAsync(method, uri, body, body is null ? null : "application/json", call, cancellationToken)
+        return await SendCoreAsync(method, uri, body, body is null ? null : "application/json", call, cancellationToken, optionalWriteReceipt, confirmed)
             .ConfigureAwait(false);
     }
 
     private async Task<byte[]> SendCoreAsync(HttpMethod method, Uri uri, byte[]? body, string? contentType,
-        PlexCall call, CancellationToken cancellationToken)
+        PlexCall call, CancellationToken cancellationToken, bool optionalWriteReceipt = false, Action? confirmed = null)
     {
         var origin = uri;
+        var writeStarted = false;
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(30));
         try
@@ -160,30 +185,56 @@ public sealed class PlexHttp : IDisposable
                     request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType ?? "application/json");
                 }
 
+                deadline.Token.ThrowIfCancellationRequested();
+                writeStarted = optionalWriteReceipt;
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token)
                     .ConfigureAwait(false);
                 if ((int)response.StatusCode is 301 or 302 or 303 or 307 or 308)
                 {
                     if (redirects >= 3 || response.Headers.Location is null)
+                    {
+                        if (optionalWriteReceipt) throw new PlexWriteUncertainException("Plex 写入收到无效重定向；请刷新清单确认结果");
                         throw new PlexApiException("Plex 服务器重定向无效", response.StatusCode);
+                    }
                     var next = new Uri(uri, response.Headers.Location);
                     PlexEndpoint.Validate(next);
                     if (!PlexEndpoint.SameOrigin(origin, next))
+                    {
+                        if (optionalWriteReceipt) throw new PlexWriteUncertainException("Plex 写入重定向到不同来源，已停止；请刷新原清单确认结果");
                         throw new PlexApiException("Plex 服务器重定向到了不同来源，已停止发送登录信息", response.StatusCode);
+                    }
                     if (method != HttpMethod.Get && (int)response.StatusCode is not (307 or 308))
+                    {
+                        if (optionalWriteReceipt) throw new PlexWriteUncertainException("Plex 写入要求改变请求方式，已停止；请刷新清单确认结果");
                         throw new PlexApiException("Plex 服务器要求改变请求方式的重定向", response.StatusCode);
+                    }
                     uri = next;
                     continue;
                 }
+                if (optionalWriteReceipt && (int)response.StatusCode >= 500)
+                    throw new PlexWriteUncertainException("Plex 写入返回服务器错误，结果未能确认；请刷新清单后再操作");
                 if (!response.IsSuccessStatusCode)
                     throw PlexApiException.FromStatus(response.StatusCode);
+                if (optionalWriteReceipt)
+                {
+                    confirmed?.Invoke();
+                    try { return await ReadLimitedAsync(response.Content, 64 * 1024 * 1024, deadline.Token).ConfigureAwait(false); }
+                    catch (Exception error) when (error is OperationCanceledException or HttpRequestException or IOException or PlexApiException)
+                    { return []; }
+                }
                 var bytes = await ReadLimitedAsync(response.Content, 64 * 1024 * 1024, deadline.Token).ConfigureAwait(false);
                 deadline.Token.ThrowIfCancellationRequested();
                 return bytes;
             }
         }
+        catch (OperationCanceledException) when (optionalWriteReceipt && writeStarted)
+        { throw new PlexWriteUncertainException("Plex 写入请求已发送，但没有收到完整结果；请刷新清单确认后再操作"); }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         { throw new PlexApiException("连接 Plex 服务器超时"); }
+        catch (HttpRequestException) when (optionalWriteReceipt)
+        { throw new PlexWriteUncertainException("Plex 写入请求没有收到可确认的结果；请刷新清单确认后再操作"); }
+        catch (IOException) when (optionalWriteReceipt)
+        { throw new PlexWriteUncertainException("Plex 写入响应未完成；请刷新清单确认后再操作"); }
         catch (HttpRequestException)
         { throw new PlexApiException("无法连接 Plex 服务器，请检查地址和网络"); }
         catch (IOException)

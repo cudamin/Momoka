@@ -5,41 +5,85 @@ public sealed partial class EmbyClient
     /// <summary>The native playlist picker only lists playlists this account can edit.</summary>
     public async Task<IReadOnlyList<EmbyItem>> GetEditablePlaylistsAsync(CancellationToken cancellationToken)
     {
-        RequireEmby("播放列表管理");
-        var items = new List<EmbyItem>();
-        const int PageSize = 200;
-        for (var start = 0; ; start += PageSize)
-        {
-            var result = await http.GetJsonAsync<ItemsResult>(Url($"Users/{CollectionSegment(Connection.UserId)}/Items",
-                ("Recursive", "true"), ("IncludeItemTypes", "Playlist"), ("SortBy", "SortName"),
-                ("Fields", "PrimaryImageAspectRatio"), ("EnableUserData", "false"), ("CanEditItems", "true"),
-                ("StartIndex", start.ToString(System.Globalization.CultureInfo.InvariantCulture)), ("Limit", "200")),
-                Context, cancellationToken).ConfigureAwait(false);
-            items.AddRange(result.Items);
-            if (result.Items.Count < PageSize || result.TotalRecordCount > 0 && start + result.Items.Count >= result.TotalRecordCount)
-                return items;
-        }
+        var items = await GetServerPlaylistsAsync(cancellationToken).ConfigureAwait(false);
+        return items.Where(item => item.CanEditItems == true).ToArray();
+    }
+
+    /// <summary>The video-library picker must not offer an audio/unknown playlist as a writable target.</summary>
+    public async Task<IReadOnlyList<EmbyItem>> GetEditableVideoPlaylistsAsync(CancellationToken cancellationToken)
+    {
+        var items = await GetServerPlaylistsAsync(cancellationToken).ConfigureAwait(false);
+        return items.Where(item => item.CanEditItems == true && item.MediaType == "Video").ToArray();
     }
 
     /// <summary>Creates the playlist with its complete initial selection in one request.</summary>
     public async Task<EmbyPlaylistCreationResult> CreatePlaylistAsync(string name, IReadOnlyList<string> itemIds,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, Action? confirmed = null, Action? beforeWrite = null)
     {
-        RequireEmby("播放列表管理");
+        RequireServerPlaylists();
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("请填写播放列表名称", nameof(name));
-        // Optional receipt metadata must not make an accepted create look like a retryable write.
-        return await http.PostForJsonAsync<EmbyPlaylistCreationResult>(Url("Playlists", ("Name", name.Trim()),
-            ("Ids", BatchIds(itemIds)), ("UserId", Connection.UserId)), null, Context, cancellationToken)
+        var ids = PlaylistIds(itemIds, allowEmpty: true);
+        // An empty Jellyfin playlist otherwise defaults to Audio in PlaylistManager.
+        var url = Connection.IsJellyfin ? Url("Playlists") : Url("Playlists", ("Name", name.Trim()),
+            ("Ids", ids.Length > 0 ? ids : null), ("UserId", Connection.UserId), ("MediaType", "Video"));
+        object? body = Connection.IsJellyfin ? new
+        {
+            Name = name.Trim(),
+            Ids = itemIds,
+            UserId = Connection.UserId,
+            MediaType = "Video",
+            Users = Array.Empty<object>(),
+            IsPublic = false
+        } : null;
+        cancellationToken.ThrowIfCancellationRequested();
+        beforeWrite?.Invoke();
+        return await http.WritePlaylistForJsonAsync<EmbyPlaylistCreationResult>(HttpMethod.Post, url,
+            body, Context, cancellationToken, confirmed)
             .ConfigureAwait(false) ?? new();
     }
 
     public Task AddToPlaylistAsync(string playlistId, IReadOnlyList<string> itemIds, bool skipDuplicates,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, Action? confirmed = null, Action? beforeWrite = null)
     {
-        RequireEmby("播放列表管理");
-        var ids = BatchIds(itemIds);
-        return http.PostAsync(Url($"Playlists/{CollectionSegment(playlistId)}/Items"),
-            new { Ids = ids, UserId = Connection.UserId, SkipDuplicates = skipDuplicates }, Context, cancellationToken);
+        RequireServerPlaylists();
+        var id = PlaylistSegment(playlistId);
+        var ids = PlaylistIds(itemIds);
+        return AddToPlaylistCoreAsync(playlistId, id, itemIds, ids, skipDuplicates, cancellationToken, confirmed, beforeWrite);
+    }
+
+    private async Task AddToPlaylistCoreAsync(string playlistId, string id, IReadOnlyList<string> itemIds,
+        string ids, bool skipDuplicates, CancellationToken cancellationToken, Action? confirmed, Action? beforeWrite)
+    {
+        await RequirePlaylistEditAsync(playlistId, cancellationToken).ConfigureAwait(false);
+        if (Connection.IsJellyfin)
+        {
+            if (skipDuplicates)
+            {
+                var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var members = await ReadAllPlaylistMembersAsync(playlistId, cancellationToken).ConfigureAwait(false);
+                foreach (var item in members) existing.Add(item.Id);
+                var selected = itemIds.Where(existing.Add).ToArray();
+                if (selected.Length == 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    beforeWrite?.Invoke();
+                    return;
+                }
+                ids = PlaylistIds(selected);
+                // A second read may have spanned a permission change; refresh the native grant.
+                await RequirePlaylistEditAsync(playlistId, cancellationToken).ConfigureAwait(false);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            beforeWrite?.Invoke();
+            await http.WritePlaylistAsync(HttpMethod.Post, Url($"Playlists/{id}/Items",
+                ("Ids", ids), ("UserId", Connection.UserId)), null, Context, cancellationToken, confirmed).ConfigureAwait(false);
+            return;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        beforeWrite?.Invoke();
+        await http.WritePlaylistAsync(HttpMethod.Post, Url($"Playlists/{id}/Items"),
+            new { Ids = ids, UserId = Connection.UserId, SkipDuplicates = skipDuplicates }, Context, cancellationToken, confirmed)
+            .ConfigureAwait(false);
     }
 
     /// <summary>Conversion uses only server conversion providers, never a download target.</summary>
@@ -62,9 +106,18 @@ public sealed partial class EmbyClient
             throw new ArgumentException("转换码率和数量上限必须大于零", nameof(selection));
         return await http.PostForJsonAsync<EmbyConversionJobReceipt>(Url("Sync/Jobs"), new
         {
-            UserId = Connection.UserId, ItemIds = BatchIds(itemIds), selection.TargetId,
-            selection.Profile, selection.Quality, selection.Bitrate, selection.Container,
-            selection.VideoCodec, selection.AudioCodec, selection.UnwatchedOnly, selection.SyncNewContent, selection.ItemLimit
+            UserId = Connection.UserId,
+            ItemIds = BatchIds(itemIds),
+            selection.TargetId,
+            selection.Profile,
+            selection.Quality,
+            selection.Bitrate,
+            selection.Container,
+            selection.VideoCodec,
+            selection.AudioCodec,
+            selection.UnwatchedOnly,
+            selection.SyncNewContent,
+            selection.ItemLimit
         }, Context, cancellationToken).ConfigureAwait(false) ?? new();
     }
 

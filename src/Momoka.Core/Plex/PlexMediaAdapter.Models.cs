@@ -123,6 +123,7 @@ public sealed partial class PlexMediaAdapter
             Id = Text(value, "ratingKey"),
             Name = Text(value, "title"),
             Type = type,
+            PlexPlaylistType = type == EmbyItemType.Playlist ? Blank(Text(value, "playlistType")) : null,
             IsFolder = type is EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.BoxSet or EmbyItemType.Folder
                 or EmbyItemType.MusicArtist or EmbyItemType.MusicAlbum or EmbyItemType.Playlist,
             OriginalTitle = Blank(Text(value, "originalTitle")),

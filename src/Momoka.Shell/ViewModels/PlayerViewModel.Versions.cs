@@ -11,6 +11,7 @@ public sealed partial class PlayerViewModel
 
     private void OnVersionSourcesChanged(object? sender, EventArgs e) => OnUi(() =>
     {
+        UpdateQueueAvailability();
         VersionControlsVisible = Versions.Count > 1;
         NoteVersionCount();
         if (_nowPlaying is { } item && item.Source?.IsAvailable != false)

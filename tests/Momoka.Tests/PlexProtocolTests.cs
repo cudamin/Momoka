@@ -22,6 +22,7 @@ internal static partial class PlexProtocolTests
 
     public static void Register()
     {
+        PlexContainerTests.Register();
         RegisterEndpoints();
         Test("Plex 地址：默认端口、https 保留 443、Web 路径与账户信息", () =>
         {

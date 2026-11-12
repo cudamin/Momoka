@@ -26,9 +26,10 @@ and the test suite pins that no token reaches it.
 - Redirects are followed at most three times, and **only** within the same scheme, host and port. A
   redirect that changes origin ends the request instead of replaying the token at the new host. A
   non-`GET` redirect that is not 307/308 is refused rather than replayed with a changed method.
-- The one request that leaves the server's origin is the account sign-in. Its URI is built inside
-  `PlexHttp` from the `AccountAuthority` constant, so it cannot be redirected by a caller, and its
-  password travels in the body.
+- Account sign-in and the conditional nonAnonymousAccount profile read use the fixed account authority
+  inside `PlexHttp`. Sign-in sends the password in the body; `GET /api/v2/user` sends only token headers
+  and validates the bare current account identity and explicit anonymous flag. Both reject foreign
+  redirects, and neither accepts a caller-provided authority or path.
 
 ## Credentials at rest
 

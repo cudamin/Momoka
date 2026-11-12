@@ -52,6 +52,15 @@ internal sealed partial class ShellNavigationProbe
         {
             ThemeHost.Apply(_options.Theme ?? "midnight");
             await InitializeProbeWindowAsync();
+            if (_options.ProbeSections is { Count: 1 } listsOnly && listsOnly.Contains(ShellProbeSections.ServerLists))
+            {
+                await CaseAsync("服务器普通清单目录、重复成员、排序与权限恢复", ServerListsAsync, 120, section: ShellProbeSections.ServerLists);
+                await CaseAsync("Plex普通清单目录、成员、独立合集与权限恢复", PlexServerListsAsync, 120, section: ShellProbeSections.ServerLists);
+                await CaseAsync("播放画面本次队列搜索、确认与取消", PlayerQueueAsync, 90, section: ShellProbeSections.ServerLists);
+                await CaseAsync("搜索播放列表打开独立清单页", LibraryDiscoverySearchAsync, 120, section: ShellProbeSections.ServerLists);
+                await CaseAsync("媒体多选播放列表保持原授权和写入", LibraryBatchAsync, 150, section: ShellProbeSections.ServerLists);
+                return;
+            }
             // Music also exercises the real navigation shell; the music controls themselves cannot
             // establish directory dispatch or sidebar integration. Keep this under the same selected scope.
             if (_options.ProbeSections is { Count: 1 } musicOnly && musicOnly.Contains(ShellProbeSections.Music))
@@ -74,6 +83,9 @@ internal sealed partial class ShellNavigationProbe
             }
             await CaseAsync("首页详情按钮圆角轮廓、三态与旧模板实屏对照", HomeButtonEdgesAsync, 120, section: ShellProbeSections.Materials);
             await CaseAsync("Plex 观看写后确认、真实卡片与宽窄详情刷新失败", PlexUserStateAsync, 90, section: ShellProbeSections.PlexState);
+            await CaseAsync("服务器普通清单目录、重复成员、排序与权限恢复", ServerListsAsync, 120, section: ShellProbeSections.Library);
+            await CaseAsync("Plex普通清单目录、成员、独立合集与权限恢复", PlexServerListsAsync, 120, section: ShellProbeSections.Library);
+            await CaseAsync("播放画面本次队列搜索、确认与取消", PlayerQueueAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("媒体库搜索人物、合集、播放列表与实际导航", LibraryDiscoverySearchAsync, 90, section: ShellProbeSections.Search);
             await CaseAsync("Plex 人物题材身份与同库作品导航", LibraryDiscoveryPeopleAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("Plex 服务端筛选排序、字母跳转与目录恢复", LibraryDiscoveryFiltersAsync, 90, section: ShellProbeSections.Library);
@@ -544,6 +556,7 @@ internal sealed partial class ShellNavigationProbe
             var moviePilot = new MoviePilotService(new MoviePilotClient(moviePilotTransport ?? new RejectNetwork()),
                 new MoviePilotCredentials(PassthroughSecretProtector.Instance), Settings);
             Services = new ServiceCollection().AddSingleton(Session).AddSingleton(SettingsService).AddSingleton(paths)
+                .AddSingleton<Momoka.Shell.Services.ServerListsService>()
                 .AddSingleton(new Momoka.AniBt.AniBtClient(aniBtTransport ?? new RejectNetwork()))
                 .AddSingleton<Momoka.AniBt.AniBtService>()
                 // 按接口注册，不按 FakeCapabilities：页面解析的是 IServerCapabilities，而泛型参数写死之后
@@ -613,11 +626,14 @@ internal sealed partial class ShellNavigationProbe
 
     private sealed class FakeTransport : HttpMessageHandler
     {
+        internal bool AllowPlexProfile { get; set; }
         public Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>?>? Reply { get; set; }
         public List<string> Requests { get; } = [];
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            Require(request.RequestUri!.Host.EndsWith(".invalid", StringComparison.Ordinal), "探针拒绝真实网络目标");
+            Require(request.RequestUri!.Host.EndsWith(".invalid", StringComparison.Ordinal)
+                || AllowPlexProfile && request.Method == HttpMethod.Get && request.RequestUri.AbsoluteUri == "https://plex.tv/api/v2/user",
+                "探针拒绝真实网络目标");
             Requests.Add(request.Method.Method + " " + request.RequestUri.PathAndQuery);
             return Reply?.Invoke(request, cancellationToken) ?? Task.FromResult(Standard(request));
         }

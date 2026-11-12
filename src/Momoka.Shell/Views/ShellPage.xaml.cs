@@ -652,6 +652,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Player.ViewModel.SettingsRequested += OnPlayerSettingsRequested;
         Player.ViewModel.PlayerDialogRequested += OnPlayerDialogRequested;
         Player.ViewModel.DanmakuRequested += OnDanmakuRequested;
+        Player.ViewModel.QueueRequested += OnQueueRequested;
 
         // 详情页要认显示器多大（纸面上沿那条线跟着显示器走，见 DetailHero.PaperLineFor），挂在这一个事件上
         // 而不是 OpenDetail 里：后退/前进重建的详情页实例不走 OpenDetail，却一样要从外壳领窗口。
@@ -715,6 +716,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Player.ViewModel.SettingsRequested -= OnPlayerSettingsRequested;
         Player.ViewModel.PlayerDialogRequested -= OnPlayerDialogRequested;
         Player.ViewModel.DanmakuRequested -= OnDanmakuRequested;
+        Player.ViewModel.QueueRequested -= OnQueueRequested;
         Player.ViewModel.Noticed -= Notify;
         Player.ViewModel.RefreshRequested -= RefreshActive;
         Player.ViewModel.PreparePresentation = null;
@@ -747,6 +749,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         var intent = ++_shellPlayIntent;
         if (Momoka.Music.MusicCatalog.IsAudio(item.Type))
         {
+            Player.ViewModel.ClearQueue();
             await Music.PlayAsync(item, episodes);
             return;
         }
@@ -820,6 +823,14 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private void OnPlayerSettingsRequested(PlayerSettingsLink link) => ShowSettings(link.Category);
 
     private bool _danmakuDialogOpen;
+
+    private async void OnQueueRequested(bool next)
+    {
+        if (_shutdownTask is not null || Root.XamlRoot is not { } root) return;
+        _window?.Activate();
+        try { await Player.ShowQueueDialogAsync(root, next); }
+        catch (Exception error) { Notify($"播放队列：{error.Message}", InfoBarSeverity.Error); }
+    }
 
     private async void OnDanmakuRequested()
     {
@@ -896,6 +907,29 @@ public sealed partial class ShellPage : UserControl, IShellActions
         EmbyItem? parent,
         PlaybackChoice? choice,
         IReadOnlyList<EmbyItem>? episodes) => PlayAsync(item, parent, choice, episodes);
+
+    bool IShellActions.CanQueueVideo(EmbyItem item) => _services is not null && _shutdownTask is null
+        && Player.ViewModel.CanQueue(item);
+    bool IShellActions.QueueVideo(EmbyItem item, bool next) => _services is not null && _shutdownTask is null
+        && Player.ViewModel.Queue(item, next);
+    bool IShellActions.HasPendingVideoQueue => _services is not null && Player.ViewModel.HasPendingQueue;
+    bool IShellActions.CanResumeVideoQueue => _services is not null && _shutdownTask is null && Player.ViewModel.CanResumeQueue;
+    async Task IShellActions.ResumeVideoQueueAsync()
+    {
+        if (_services is null || _shutdownTask is not null || !Player.ViewModel.CanResumeQueue) return;
+        var intent = ++_shellPlayIntent;
+        await Music.StopAsync();
+        if (intent == _shellPlayIntent) await Player.ViewModel.ResumeQueueAsync();
+    }
+    void IShellActions.ClearVideoQueue()
+    {
+        if (_services is not null) Player.ViewModel.ClearQueue();
+    }
+    event EventHandler? IShellActions.VideoQueueChanged
+    {
+        add { if (_services is not null) Player.ViewModel.QueueChanged += value; }
+        remove { if (_services is not null) Player.ViewModel.QueueChanged -= value; }
+    }
 
     /// <summary>进播放前记下的详情页滚动位；收起播放层那一路交给详情页按回去（见 <see cref="ShowPlayer"/>、DetailPage.KeepScrollThroughReveal）。</summary>
     private double? _detailScrollBeforePlayer;
@@ -1020,6 +1054,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
                 break;
             case LibraryPage library:
                 _ = library.ViewModel.ReloadAsync();
+                break;
+            case ServerListsPage lists:
+                _ = lists.ViewModel.ReloadAsync();
                 break;
             case MusicLibraryPage music:
                 _ = music.ViewModel.ReloadAsync();
@@ -1492,6 +1529,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
             OpenChild(LibraryRequest.ForPlexRelation(_services, item));
             return;
         }
+
+        if (OpenServerList(item)) return;
 
         if (Momoka.Music.MusicCatalog.IsAudio(item.Type))
         {
@@ -2486,6 +2525,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void FillSwitchMenus()
     {
+        RefreshServerListEntrance();
         var session = _session!;
         var sources = session.Sources;
         var aggregate = Settings.AggregateMode;

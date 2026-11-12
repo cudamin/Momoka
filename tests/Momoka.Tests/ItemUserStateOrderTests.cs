@@ -23,6 +23,7 @@ internal static partial class ItemUserStateOrderTests
     {
         FnNasUserStateCardTests.Register();
         RegisterCardCopies();
+        RegisterQueueMenu();
         Test("R-016夹具：完成的异常不能被泵洗成成功", () =>
             Assert.Throws<InvalidOperationException>(() => ItemUserStateContext.Run(() => Task.FromException(new InvalidOperationException("synthetic pump failure")))));
         Test("R-016夹具：完成的取消不能被泵洗成成功", () =>

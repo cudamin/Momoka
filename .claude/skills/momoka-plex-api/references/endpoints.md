@@ -49,6 +49,11 @@ server failed to match to a film.
 
 ## Server: state and playback
 
+When a local library provider requires `nonAnonymousAccount` for list edits, the client additionally
+reads fixed `GET https://plex.tv/api/v2/user`. Only a strict numeric id matching the captured account and
+an explicit boolean `anonymous=false` confirm this requirement; unknown/failed profile reads retain a
+VerificationError and read-only list state. This is a read at the account service, not a PMS user route.
+
 | Purpose | Call | Notes |
 | --- | --- | --- |
 | Mark watched | `GET /:/scrobble?key={ratingKey}&identifier=com.plexapp.plugins.library` | |
@@ -58,13 +63,29 @@ server failed to match to a film.
 `/:/…` cannot be expressed as a relative `Uri` — the leading colon reads as a scheme — which is what
 `PlexEndpoint.Special` exists for.
 
+## Ordinary video lists
+
+The fixed official Web 4.163.0 source, permissions and intentional limits are in [batch 5](../../../../docs/媒体库第五批-Plex清单.md). These calls remain offline protocol coverage without real PMS verification.
+
+| Purpose | Call | Notes |
+| --- | --- | --- |
+| Account-visible features | `GET /media/providers` | Match library provider Feature; playlist capability, collection + manage, unknown requires refused. |
+| Video playlist directory | `GET /playlists/all?type=15&playlistType=video&smart=0&sort=titleSort:asc` | Raw paging headers; smart/non-video rows filtered separately. |
+| Collection directory | `GET /library/sections/{section}/collections?subtype=1|2&smart=0&sort=titleSort:asc` | One movie/show section at a time. |
+| Container metadata | `GET /playlists/{id}` or `GET /library/collections/{id}` | Explicit smart/readOnly/capability checks before edits. |
+| Members | `GET /playlists/{id}/items` or `GET /library/collections/{id}/children` | Preserve raw order and distinct playlistItemID. |
+| Create | `POST /playlists?type=video&title=&smart=0&uri=` or `POST /library/collections?type=1|2&sectionId=&title=&smart=0&uri=` | Initial same-server media required; collection inputs revalidated for section/type. |
+| Add | `PUT /playlists/{id}/items?uri=` or `PUT /library/collections/{id}/items?uri=` | Source URI uses current machineIdentifier and library metadata IDs. |
+| Remove member | `DELETE /playlists/{id}/items/{playlistItemID}` or `DELETE /library/collections/{id}/children/{ratingKey}` | Never deletes disk media. |
+| Playlist ordering | `PUT /playlists/{id}/items/{playlistItemID}/move?after={entry}` | Omit after to move first; no collection custom-sort management in this batch. |
+
 ## Not called
 
 | Feature | Why |
 | --- | --- |
 | Favourites | Plex's server API has no per-item favourite flag; favourites live in the account service. `SetFavoriteAsync` throws rather than faking it as a label. |
 | Arbitrarily nested filters | First batch supports declared single-level fields, not a general AND/OR editor. |
-| Collections, add-to-collection | Not mapped; the row is not offered. |
+| Smart playlists, collaborative grants, cloud Watchlist and cross-server lists | Outside ordinary single-account list scope. |
 | Metadata edit, identify, reset, delete | Plex's editing model is not this client's; the rows are not offered. |
 | Chapter thumbnails | No route this client uses; `GetChapterImageBytesAsync` throws. |
 | Missing episodes | No equivalent of Emby's `Shows/Missing`. |

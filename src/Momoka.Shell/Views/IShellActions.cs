@@ -19,6 +19,14 @@ internal interface IShellActions
         PlaybackChoice? choice = null,
         IReadOnlyList<EmbyItem>? episodes = null);
 
+    bool CanQueueVideo(EmbyItem item) => false;
+    bool QueueVideo(EmbyItem item, bool next) => false;
+    bool HasPendingVideoQueue => false;
+    bool CanResumeVideoQueue => false;
+    Task ResumeVideoQueueAsync() => Task.CompletedTask;
+    void ClearVideoQueue() { }
+    event EventHandler? VideoQueueChanged { add { } remove { } }
+
     void Notify(string message, InfoBarSeverity severity = InfoBarSeverity.Informational);
 
     /// <summary>

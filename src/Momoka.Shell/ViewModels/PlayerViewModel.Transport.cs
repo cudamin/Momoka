@@ -89,6 +89,7 @@ public sealed partial class PlayerViewModel
     {
         try
         {
+            if (!_playback.IsPlaying) _sessionQueue.Begin();
             await StartPlaybackAsync(item, parent, choice, episodes, replaceExisting: false).ConfigureAwait(true);
         }
         catch (OperationCanceledException)
@@ -120,6 +121,7 @@ public sealed partial class PlayerViewModel
     {
         try
         {
+            _sessionQueue.Begin();
             await StartPlaybackAsync(item, parent, choice, episodes, replaceExisting: true).ConfigureAwait(true);
         }
         catch (OperationCanceledException)
@@ -136,6 +138,7 @@ public sealed partial class PlayerViewModel
     /// <summary>停止播放. Asks mpv to quit rather than cancelling, so the final position is still reported.</summary>
     internal Task StopAsync()
     {
+        _sessionQueue.Clear();
         _playerTools?.Cancel();
         _playerCapture?.Cancel();
         InvalidateMenuInteractions();
@@ -189,6 +192,7 @@ public sealed partial class PlayerViewModel
         }
         var scope = identity ?? _session.Capture(item);
         scope.ThrowIfUnavailable();
+        if (!_sessionQueue.Active) _sessionQueue.Begin();
         if (item.Source is { } itemSource && itemSource.Key != scope.Key)
             throw new InvalidOperationException("播放条目与登录来源不一致");
         scope.Bind(item);
@@ -326,6 +330,7 @@ public sealed partial class PlayerViewModel
                 Parent = parentItem,
                 ShaderSettings = _shaderSettings,
                 RetainForAutomaticContinuation = detail.Type == EmbyItemType.Episode,
+                PendingQueue = _sessionQueue,
                 OutputWidth = output.Width,
                 OutputHeight = output.Height,
                 DisplayRefreshHz = MeasureRefreshHz?.Invoke() ?? 0
@@ -346,7 +351,8 @@ public sealed partial class PlayerViewModel
             // 来源、续集与标题只在后端确认建立后一起提交；准备失败时仍保留旧播放的身份。
             var acceptedStart = ticket.ExactStart ? Math.Max(0, ticket.StartTicks)
                 : Math.Max(0, ticket.StartTicks - Settings.Playback.ResumeRewindSeconds * TimeSpan.TicksPerSecond);
-            _pendingPlayback = new(detail, parentItem, episodes ?? [], scope, intent, attempt, acceptedStart);
+            _pendingPlayback = new(detail, parentItem, episodes ?? [], scope, intent, attempt, acceptedStart,
+                _sessionQueue.ReservedFor(item, scope));
             var result = await _playback.PlayAsync(ticket, scope, _lifetime.Token, preparation.Token,
                 continuationCancellation, expectedContinuation).ConfigureAwait(true);
             await using var continuation = result.Continuation;
@@ -364,8 +370,12 @@ public sealed partial class PlayerViewModel
             var newest = attempt == _playbackAttempt || ownsViewing && _startIntent.IsCurrent(_activeIntent);
 
             var endingIntent = ownsViewing ? _activeIntent : intent;
-            var following = newest && _startIntent.IsCurrent(endingIntent) ? NextEpisodeToAutoPlay(result, detail) : null;
-            if (newest && following is null)
+            if (newest && result.Exit.Reason != PlaybackEndReason.EndOfFile && !result.Exit.IsFailure)
+                _sessionQueue.Clear();
+            var queued = QueuedAfterEnd(result, endingIntent, newest);
+            var following = queued is null && newest && _startIntent.IsCurrent(endingIntent)
+                ? NextEpisodeToAutoPlay(result, detail) : null;
+            if (newest && following is null && queued is null)
             {
                 // 这一版打不开就说到点子上（2026-10-22 用户令：「你要提示无法播放」）：多版本条目上「播放失败」
                 // 四个字说的是这个条目，而坏的其实只是选中那一份文件 —— 说清是哪一版、还能换一版，用户才知道
@@ -380,7 +390,11 @@ public sealed partial class PlayerViewModel
             // 自己收尾时会再报一次，被接手的那一场不必替它做。
             if (newest) RefreshRequested?.Invoke();
 
-            if (following is not null)
+            if (queued is not null)
+            {
+                await ContinueQueuedAsync(queued, detail, scope, endingIntent, continuation).ConfigureAwait(true);
+            }
+            else if (following is not null)
             {
                 // 自动接下一集**不报**任何浮出提示（2026-11-03 用户令「自动播放下一集时不要在画面上弄悬浮
                 // 提示」）：那条黑条压在画面上，说的是用户刚刚看的东西的下一件，看得见的人不需要它，而它
@@ -778,10 +792,13 @@ public sealed partial class PlayerViewModel
 
     private async Task StartEpisodeAsync(EpisodeDestination destination)
     {
+        SessionPlaybackQueue.Entry? queueEntry = null;
         try
         {
             if (_playbackScope is null || !_startIntent.IsCurrent(_activeIntent)) return;
             var scope = _session.Capture(destination.Episode);
+            if (_sessionQueue.Peek() is { } head && head.Item.IdentityKey == destination.Episode.IdentityKey
+                && _sessionQueue.Reserve(head)) queueEntry = head;
             await StartPlaybackAsync(
                     destination.Episode,
                     _nowPlaying is { } current ? ParentForFollowing(current, destination.Episode, scope, _playbackScope) : null,
@@ -801,6 +818,7 @@ public sealed partial class PlayerViewModel
         }
         finally
         {
+            _sessionQueue.Release(queueEntry);
             if (string.Equals(_episodeSwitchTargetId, destination.Episode.IdentityKey, StringComparison.Ordinal))
                 _episodeSwitchTargetId = null;
         }
@@ -850,6 +868,7 @@ public sealed partial class PlayerViewModel
 
         Tracks = [];
         Episodes = [];
+        FinishQueueViewing();
         _parent = null;
         _nowPlaying = null;
         _playbackScope = null;

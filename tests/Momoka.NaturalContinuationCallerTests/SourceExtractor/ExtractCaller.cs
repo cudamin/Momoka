@@ -108,6 +108,7 @@ public sealed class ExtractCaller : BuildTask
         var transport = Owner("src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs");
         var events = Owner("src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs");
         var versions = Owner("src/Momoka.Shell/ViewModels/PlayerViewModel.Versions.cs");
+        var queue = Owner("src/Momoka.Shell/ViewModels/PlayerViewModel.Queue.cs");
         var start = (MethodDeclarationSyntax)Node(transport, "StartPlaybackAsync");
         var expectedParameters = new[] { "item", "parent", "choice", "episodes", "replaceExisting", "identity", "continuingIntent", "continuationCancellation", "expectedContinuation" };
         if (!start.ParameterList.Parameters.Select(p => p.Identifier.ValueText).SequenceEqual(expectedParameters))
@@ -162,6 +163,14 @@ public sealed class ExtractCaller : BuildTask
         Emit(events, "_volumeReady");
         Emit(events, "_volumeConfirmedSample");
         Emit(versions, "_versionLoad");
+        foreach (var name in new[]
+        {
+            "_sessionQueue", "QueueChanged", "QueueRequested", "QueueArrangement", "CurrentQueueScope", "CanArrangeQueue",
+            "CaptureQueueArrangement", "IsCurrentQueueArrangement", "RequestQueue", "SearchQueueAsync", "ArrangeQueue",
+            "CanQueue", "HasPendingQueue", "CanResumeQueue", "PendingQueue",
+            "Queue", "ClearQueue", "ResumeQueueAsync", "QueuedAfterEnd", "ContinueQueuedAsync",
+            "AdoptQueueStart", "FinishQueueViewing", "UpdateQueueAvailability"
+        }) Emit(queue, name);
         foreach (var name in new[]
         {
             "PlayAsync", "PlayReplacingAsync", "StopAsync", "StopPlaybackAsync", "StartPlaybackAsync", "NextEpisodeToAutoPlay",

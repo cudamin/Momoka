@@ -177,6 +177,7 @@ namespace Momoka.Shell.Views
         private static void ScanLibrary(EmbySessionScope scope, IShellActions shell) => throw Unrelated();
         private static void OpenSeries(EmbySessionScope scope, IShellActions shell, EmbyItem item) => throw Unrelated();
         private static Task CollectAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card) => throw Unrelated();
+        private static Task AddPlaylistAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card) => throw Unrelated();
         private static Task RemoveCollectionMemberAsync(EmbySessionScope scope, IShellActions shell, CardItem card, Action? changed) => throw Unrelated();
         private static Task DownloadAsync(EmbySessionScope scope, IShellActions shell, CardItem card) => throw Unrelated();
         private static Task EditAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card, Action? changed) => throw Unrelated();

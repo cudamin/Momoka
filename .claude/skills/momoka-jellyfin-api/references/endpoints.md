@@ -1,5 +1,11 @@
 # Endpoint map: Momoka's Emby calls → Jellyfin 12.2.0
 
+## Ordinary single-account video playlists (2026-11-12)
+
+The main table retains its original 12.2.0 snapshot; new source evidence is fixed server/web 10.10.7, with 10.11.1 read only to assess Move indexing. Directory uses versioned current-user Items; per-playlist GET Playlists/{id}/Users/{userId} returns native CanEdit, independently of administrator/collection/deletion grants. Creation POST Playlists sends Name/Ids/UserId/MediaType=Video/Users=[]/IsPublic=false JSON; add POST Items uses query Ids/UserId, remove DELETE Items uses EntryIds, Move POST uses member PlaylistItemId and zero-based newIndex. Empty video lists must not take Audio or public defaults. Emby's SkipDuplicates and Items/Delete are not Jellyfin parameters/routes.
+
+Received 2xx headers confirm writes before optional creation-ID reading; sent writes without a receipt become PlaylistWriteUncertainException and require independent readback. Fixed files/hashes, old Move limitation, intended snapshot-only duplicate filtering, and anonymous actual-client evidence are in [the fifth-batch protocol report](../../../../docs/媒体库第五批-Emby与Jellyfin播放列表.md). No live management write, new collaborative permission UI or real playback has been verified.
+
 The left column is what `EmbyClient*.cs`, `EmbyServerGateway` and `EmbyUrl` call today, taken from [momoka-emby-api's endpoint list](../../momoka-emby-api/references/endpoints.md). The right column is the Jellyfin 12.2.0 route with the same purpose, from `work/jellyfin/openapi.json`. Paths are written with the specification's parameter names; the two products spell them differently (`{Id}` vs `{itemId}`, `{MediaSourceId}` vs `{routeMediaSourceId}`), which is a naming difference, not a routing one.
 
 "Absent" means the shape does not exist in the 12.2.0 document — not that the server refuses it. See [Version drift](#version-drift-and-what-it-costs) for why that distinction matters.

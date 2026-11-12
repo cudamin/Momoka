@@ -32,6 +32,9 @@ public sealed record PlaybackTicket
     /// <summary>Allows only a natural EOF to keep a reusable context until this caller resumes or disposes the lease.</summary>
     public bool RetainForAutomaticContinuation { get; init; }
 
+    /// <summary>Live caller-owned pending order; an explicit queued item also retains EOF with auto-next disabled.</summary>
+    public SessionPlaybackQueue? PendingQueue { get; init; }
+
     public long StartTicks { get; init; }
 
     /// <summary>播放中换版本使用当前读数，不重复应用从保存位置续播的回退秒数。</summary>

@@ -125,6 +125,14 @@ Evidence and fixed upstream source hashes are in [媒体库实时更新](../../.
 
 ## 交付
 
+## Server video playlists
+
+Video-library pickers use `GetEditableVideoPlaylistsAsync` and require a declared Video media type. Every existing-list write reads a fresh Playlist DTO and refuses Audio/unknown targets even when CanEditItems=true; generic music callers do not borrow this video's write path.
+
+`EmbyClient.Playlists` reads the single account's complete server-persisted directory; this is not its current playback queue. Emby preserves the native `CanEditItems` and refreshes that exact Playlist DTO before every write. Missing/false remains read-only without an administrator inference. `EmbyItem.PlaylistItemId` identifies an occurrence, so duplicate media keep distinct remove/move identities. The official Web's current-user Items/ParentId/ListItemOrder member read feeds its PlaylistItemId-based helpers; removal uses POST Items/Delete with EntryIds, and Move uses the entry plus a zero-based target. Jellyfin has independent CanEdit/query/DELETE handling in its skill.
+
+The playlist-specific HTTP path confirms 2xx headers before optional creation-ID parsing. Accepted writes survive body IO, cancellation and result-publication failure; sent writes lacking a receipt throw `PlaylistWriteUncertainException` and require independent readback, never automatic re-write. The caller supplies `beforeWrite` to recheck the captured owner, permission revision and page after native permission reads. Empty video creation specifies MediaType=Video. Fixed source hashes and the 79-case anonymous actual-client fixture are in [fifth-batch protocol report](../../../docs/媒体库第五批-Emby与Jellyfin播放列表.md). No real playlist write or playback was performed.
+
 改到协议层时同步本技能与 [docs/开发与验证.md](../../../docs/开发与验证.md) 的相关命令。`references/endpoints.md` 声明了对照的服务器版本与快照日期，**换基准时一起更新**。
 
 ## Collection membership

@@ -13,7 +13,7 @@
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackContracts.cs",
-      "sha256": "9e06daf3a80382a3ec54da15d4f22b69a0ff2103ba64b119596f7e98e58c9a16"
+      "sha256": "bdb07896f3c0e145429846c4aa322667072b72e5f4860fd761611911ea225fbc"
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackContinuation.cs",
@@ -21,7 +21,7 @@
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackService.Continuation.cs",
-      "sha256": "3bb93cb860b2c07ae0900c58a5d916654006b0f43694516442f176b048896328"
+      "sha256": "2802be2bc689fd799c0ef1c8434da863c2b296347101e696af023710d003ad13"
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackService.Lifecycle.cs",
@@ -29,7 +29,7 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs",
-      "sha256": "be77961d19d82bb176cde4ea4c393ad3a40de5175b1029c2809d8917ec7cbafc"
+      "sha256": "8fcf9573c5fbdf4c01e2389a2f3826ff36e25fd3e85ea35b3f92d8831339d443"
     },
     {
       "path": "tests/Momoka.ShaderCommandGenerationTests/HandleFixture.cs",
@@ -49,11 +49,11 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.cs",
-      "sha256": "3e9a19f4c17d4339369c5eed512fe5e333c64e2c8cd455f6f40a7f23b88f0911"
+      "sha256": "7f5ab425d88987e706001a658f72795151d13298241a80a29e6a7f55128ab76a"
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
-      "sha256": "3b78ddf20c63837fde1a26e50fdf304365d82775981cefb546b6bc85d786ecb9"
+      "sha256": "47fbcde69f7a2cbdf11501e6c4b7845aa697415ab84903097cb3f804a38c927d"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySession.cs",
@@ -65,7 +65,7 @@
     },
     {
       "path": "src/Momoka.Core/Emby/EmbyItem.cs",
-      "sha256": "04db415734bf423e092c24ec597772bd2a84357f2c215ae1d8c542502b26971e"
+      "sha256": "4b53a801425948e42815431e7cbab3e04c703e2daf5b38e8eeb7f210862bfc00"
     },
     {
       "path": "src/Momoka.Core/Playback/EpisodeNavigation.cs",
@@ -77,7 +77,11 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Versions.cs",
-      "sha256": "22df6179b57c82cb89bf2902d14b56555c2212fa3ed82faf51c4a63d1ad705b3"
+      "sha256": "6e8baecbac3a90a368aaf8c47862cc442353afbef062f5647c4141c358ac2a74"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Queue.cs",
+      "sha256": "8d871eccf2749fe464ab551dee1b638082d400370ca7adfb4642c2bde41704cb"
     }
   ]
 }

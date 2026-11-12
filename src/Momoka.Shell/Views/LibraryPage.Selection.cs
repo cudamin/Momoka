@@ -326,7 +326,7 @@ public sealed partial class LibraryPage
             }
             else if (command == ItemCommand.AddToPlaylist)
             {
-                var playlists = await source.ExecuteAsync((client, token) => client.GetEditablePlaylistsAsync(token), confirmationToken).ConfigureAwait(true);
+                var playlists = await source.ExecuteAsync((client, token) => client.GetEditableVideoPlaylistsAsync(token), confirmationToken).ConfigureAwait(true);
                 if (!Current()) return;
                 options = await LibraryBatchDialogs.PlaylistAsync(this, cards.Length, playlists, confirmationToken);
                 if (options is null) return;

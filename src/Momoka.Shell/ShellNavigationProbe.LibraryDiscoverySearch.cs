@@ -66,6 +66,26 @@ internal sealed partial class ShellNavigationProbe
                         var target = page.ViewModel.Cards[0];
                         var searchRequest = page.NavigationRequest;
                         page.ViewModel.Open(target);
+                        if (expected == EmbyItemType.Playlist)
+                        {
+                            await UntilAsync(() => frame.Content is ServerListsPage listPage && listPage.ViewModel.IsReady && !listPage.ViewModel.Busy);
+                            var listPage = (ServerListsPage)frame.Content;
+                            Require(!listPage.ViewModel.NoticeOpen && listPage.ViewModel.Scope?.Key == source.Key
+                                && listPage.ViewModel.OpenedList?.Id == target.Item.Id, "播放列表打开失去身份或成员上下文");
+                            Require(listPage.ViewModel.Members.Select(entry => entry.Item.Id).SequenceEqual(new[] { "list-z", "list-a" }),
+                                "播放列表成员被标题排序或未读到");
+                            await LayoutAsync(listPage);
+                            await SaveProbeScreenAsync($"discovery-open-{kind}-{category}-{width}-screen.png");
+                            evidence.Add(new
+                            {
+                                Backend = kind.ToString(),
+                                Width = width,
+                                Category = category,
+                                SourceRetained = true,
+                                Items = listPage.ViewModel.Members.Select(entry => entry.Item.Id).ToArray()
+                            });
+                            continue;
+                        }
                         // Frame may reuse the cached LibraryPage; its request, rather than page object, identifies navigation.
                         await UntilAsync(() => frame.Content is LibraryPage next && !ReferenceEquals(next.NavigationRequest, searchRequest)
                             && next.IsReady && !next.ViewModel.Busy);
@@ -161,6 +181,10 @@ internal sealed partial class ShellNavigationProbe
                 return Reply(Page([Entry("list-z", "Z 顺序第一部", EmbyItemType.Movie),
                     Entry("list-a", "A 顺序第二部", EmbyItemType.Movie)], request));
             }
+            if (path.EndsWith("/Playlists/playlist/Users/user", StringComparison.Ordinal))
+                return Reply(Json(new { UserId = "user", CanEdit = false }));
+            if (path.EndsWith("/Items/playlist", StringComparison.Ordinal))
+                return Reply(Json(new { Id = "playlist", Type = "Playlist", Name = "星海 播放列表", MediaType = "Video", CanEditItems = false }));
             if (path.EndsWith("/Items", StringComparison.Ordinal))
             {
                 if (Query(request, "ParentId") == "playlist")

@@ -124,7 +124,10 @@ internal static class ItemBatchTests
                 foreach (var command in new[] { ItemCommand.Play, ItemCommand.PlayFromBeginning, ItemCommand.Shuffle,
                     ItemCommand.Delete, ItemCommand.AddToPlaylist, ItemCommand.Convert, ItemCommand.ResetMetadata,
                     ItemCommand.RefreshMetadata, ItemCommand.ScanLibraryFiles })
+                {
+                    if (kind == MediaServerKind.Jellyfin && command == ItemCommand.AddToPlaylist) continue;
                     Assert.False(ItemBatch.Allowed(command, fixture.Source, fixture.Entries[0], new(IsAdministrator: true)));
+                }
                 Assert.Equal(0, fixture.Http.Total);
             });
         }
@@ -185,7 +188,8 @@ internal static class ItemBatchTests
         Test("媒体批量：Emby播放列表追加携带用户和去重选择", () => Run(async () =>
         {
             using var fixture = new Fixture(MediaServerKind.Emby);
-            fixture.Http.Answer("Playlists/list/Items", "{\"ItemAddedCount\":1}");
+            fixture.Http.Answer("Users/user/Items/list", "{\"Id\":\"list\",\"Type\":\"Playlist\",\"MediaType\":\"Video\",\"CanEditItems\":true}")
+                .Answer("Playlists/list/Items", "{\"ItemAddedCount\":1}");
             var result = await new ItemBatchService().ExecuteAsync(fixture.Source, fixture.Entries, ItemCommand.AddToPlaylist,
                 () => default, null, default, options: new(PlaylistId: "list", SkipPlaylistDuplicates: false));
             Assert.Equal(3, result.Succeeded);

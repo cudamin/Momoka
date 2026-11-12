@@ -250,6 +250,23 @@ internal sealed class ItemUserStateRequest(HttpMethod method, string field, stri
 
 internal sealed class ItemUserStateShell : IShellActions
 {
+    public bool QueueAvailable { get; set; }
+    public bool HasPendingVideoQueue { get; set; }
+    public bool CanResumeVideoQueue { get; set; }
+    public List<(EmbyItem Item, bool Next)> Queued { get; } = [];
+    public int QueueResumes { get; private set; }
+    public int QueueClears { get; private set; }
+    public bool CanQueueVideo(EmbyItem item) => QueueAvailable && Momoka.Playback.SessionPlaybackQueue.Supports(item);
+    public bool QueueVideo(EmbyItem item, bool next)
+    {
+        if (!CanQueueVideo(item)) return false;
+        Queued.Add((item, next));
+        return true;
+    }
+    public Task ResumeVideoQueueAsync() { QueueResumes++; return Task.CompletedTask; }
+    public void ClearVideoQueue() { QueueClears++; }
+    public event EventHandler? VideoQueueChanged;
+    public void QueueChangedForFixture() => VideoQueueChanged?.Invoke(this, EventArgs.Empty);
     public List<(string Message, InfoBarSeverity Severity)> Notices { get; } = [];
     public List<EmbyItem> WatchedReports { get; } = [];
     public List<EmbyItem?> FavoriteRefreshes { get; } = [];

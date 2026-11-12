@@ -49,6 +49,7 @@ internal static class ShellServices
 
         // ---- the ground floor: where files live and how secrets are protected -------------------------
         services.AddSingleton(paths);
+        services.AddSingleton<Momoka.Shell.Services.ServerListsService>();
         services.AddSingleton<ISecretProtector>(DpapiSecretProtector.Instance);
         services.AddSingleton<SubtitleTranslationCredentials>();
         services.AddSingleton(_ => new Momoka.Translation.SubtitleTranslationClient());

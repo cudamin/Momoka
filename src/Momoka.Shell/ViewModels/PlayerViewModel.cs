@@ -153,7 +153,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     private IReadOnlyList<MediaVersion> _versions = [];
     private int _versionDiscovery;
     private sealed record PendingPlayback(EmbyItem Item, EmbyItem? Parent, IReadOnlyList<EmbyItem> Episodes,
-        EmbySessionScope Scope, long Intent, int Attempt, long StartTicks);
+        EmbySessionScope Scope, long Intent, int Attempt, long StartTicks, SessionPlaybackQueue.Entry? QueueEntry);
     private PendingPlayback? _pendingPlayback;
     private int _activePlaybackAttempt;
     private long _activeStartTicks;
@@ -369,6 +369,7 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     private async Task ShutdownPlaybackAsync()
     {
+        _sessionQueue.Clear();
         _playerCapture?.Cancel();
         if (_playerTools is not null)
         {

@@ -661,6 +661,14 @@ internal static class MpvUiTests
             Assert.Equal(VideoWindowContract.MediaInfo, info?.Key);
         });
 
+        TestHarness.Test("本次视频队列消息只接受下一项追加和清空", () =>
+        {
+            foreach (var action in new[] { "next", "append", "clear" })
+                Assert.Equal(VideoWindowContract.Queue, VideoWindowContract.Parse([VideoWindowContract.Queue, action])?.Key);
+            foreach (var action in new[] { "play", "save", "", "next;loadfile" })
+                Assert.Null(VideoWindowContract.Parse([VideoWindowContract.Queue, action]));
+        });
+
         // 画面菜单末尾那三行设置入口（2026-10-01 用户令「在右键菜单中添加字幕、视频输出、音频输出三个按钮，
         // 点击后打开设置页面」）。表在 Core、两条管线都读它，所以这里钉三件事：
         //   · 表本身立得住：三行、令牌唯一、文案不空、落点互不相同；

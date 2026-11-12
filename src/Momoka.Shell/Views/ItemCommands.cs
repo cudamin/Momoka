@@ -230,6 +230,12 @@ internal static partial class ItemCommands
         }
         menu.Opened += (_, _) => session.PermissionsChanged += PermissionsChanged;
         menu.Closed += (_, _) => session.PermissionsChanged -= PermissionsChanged;
+        void QueueChanged(object? sender, EventArgs args) => owner.DispatcherQueue.TryEnqueue(() =>
+        {
+            if (CanContinue()) Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select));
+        });
+        menu.Opened += (_, _) => shell.VideoQueueChanged += QueueChanged;
+        menu.Closed += (_, _) => shell.VideoQueueChanged -= QueueChanged;
 
         // AniBT identification still belongs to the default management source, unlike independent searches.
         // Keep an open menu from advertising a now-inapplicable action; reopening recomputes the rows.
@@ -344,6 +350,7 @@ internal static partial class ItemCommands
             }));
         }
 
+        AddQueueRows(rows, shell, card, canContinue);
         return rows;
     }
 
@@ -474,6 +481,10 @@ internal static partial class ItemCommands
 
             case ItemCommand.AddToCollection:
                 _ = CollectAsync(scope, shell, owner, card);
+                break;
+
+            case ItemCommand.AddToPlaylist:
+                _ = AddPlaylistAsync(scope, shell, owner, card);
                 break;
 
             case ItemCommand.RemoveFromCollection:
@@ -820,6 +831,7 @@ internal static partial class ItemCommands
             ItemCommand.RemoveContinueWatching => 0xE894,
             ItemCommand.RemoveFromCollection => 0xECC9,
             ItemCommand.AddToCollection => 0xE8F4,
+            ItemCommand.AddToPlaylist => 0xE8F4,
             ItemCommand.Download => 0xE896,
             ItemCommand.EditMetadata => 0xE70F,
             ItemCommand.ChangeCover => 0xE91B,
