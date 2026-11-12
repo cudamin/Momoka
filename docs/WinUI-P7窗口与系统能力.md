@@ -24,6 +24,8 @@ Momoka目前 `Program` 使用版本化命名mutex/event维护单实例，`App` �
 
 检查台按钮为 `InspectWindowHostResearch` 和 `InspectWindowHostFailure`，以 `--probe-shell inspect --screen 1` 开启，运行两项后用InspectDone结束；该入口只存在于原有离线探针，不新增CLI开关，不访问服务/凭据或加载媒体。
 
+协调复核后，HostWindow路径改用现有ResizeProbeClient按实际client/nonclient差调整外框，并同时断言600 DIP客户区高度，避免普通ResizeClient在XAML岛宿主重复加入系统标题栏高度。framework Window路径仍用原生ResizeClient；研究背景使用ThemeHost当前颜色创建画刷，避免直接索引ThemeDictionary别名造成假失败。新专项手工登记Momoka.sln四个配置和tests嵌套，未改其他项目映射。
+
 ## 验证与结论边界
 
 独立 `Momoka.WindowResearchTests` 原样链接研究生命周期，6/6通过、0失败、0跳过；SDK10.0.400 Release编译0警告0错误。首次边界错用了EventHandler导致2错误/2警告，修成对应强类型事件后通过。首次Shell研究编译的集合类型错误修正为framework Window存留集合，空peer改为明确拒绝；随后Shell编译0警告0错误，最终微调再验证。新增专项已登记统一regression清单，runner通过当前新专项6/6；相关工具清单自测22/22通过。未用旧编译产物冒充失败后成功。

@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Momoka.Shell.Views;
 using Momoka.Shell.Interop;
 using Momoka.Shell.Windowing;
 using Windows.Graphics;
@@ -24,7 +25,7 @@ internal sealed partial class ShellNavigationProbe
         var focus = new Button { Name = "WindowResearchFocus", Content = "焦点验证" };
         panel.Children.Add(input);
         panel.Children.Add(focus);
-        var root = new Grid { RequestedTheme = ElementTheme.Dark, Background = (Brush)Application.Current.Resources["EgWindowBrush"] };
+        var root = new Grid { RequestedTheme = ElementTheme.Dark, Background = new SolidColorBrush(ThemeHost.ToColor(ThemeHost.Current.Colors.Window)) };
         root.Children.Add(panel);
         var window = new Window { Content = root, Title = "Momoka P7 Window/AppWindow research" };
         var research = new FrameworkWindowResearch(window);
@@ -55,9 +56,10 @@ internal sealed partial class ShellNavigationProbe
             var scale = root.XamlRoot.RasterizationScale;
             foreach (var width in new[] { 600, 760, 1100 })
             {
-                hostApp.ResizeClient(new SizeInt32((int)Math.Round(width * hostScale), (int)Math.Round(600 * hostScale)));
+                ResizeProbeClient(width, 600);
                 await LayoutAsync(_root);
-                Require(Math.Abs(_root.ActualWidth - width) < 2, "现有HostWindow客户区DIP未匹配AppWindow请求");
+                Require(Math.Abs(_root.ActualWidth - width) < 2 && Math.Abs(_root.ActualHeight - 600) < 2,
+                    "现有HostWindow客户区DIP未匹配实际client/nonclient尺寸请求");
                 var physicalHost = _window.ClientSize;
                 readings.Add(new { Host = "HostWindow", WidthDip = _root.ActualWidth, HeightDip = _root.ActualHeight,
                     Physical = new { physicalHost.Width, physicalHost.Height }, Scale = hostScale, AppWindow = hostApp.Id.Value });
