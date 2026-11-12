@@ -4,6 +4,16 @@
   "shellAssembly": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
   "suites": [
     {
+      "id": "Momoka.WindowResearchTests",
+      "project": "tests/Momoka.WindowResearchTests/Momoka.WindowResearchTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.WindowResearchTests/README.md",
+      "notes": "P7隔离窗口研究的真实生命周期代码，匿名Window/AppWindow事件边界；不创建窗口、注册表、真实账号或播放。"
+    },
+    {
       "id": "Momoka.KeyboardJourneyTests",
       "project": "tests/Momoka.KeyboardJourneyTests/Momoka.KeyboardJourneyTests.csproj",
       "mode": "dotnet",
