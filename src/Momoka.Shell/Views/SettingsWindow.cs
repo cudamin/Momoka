@@ -1,12 +1,10 @@
 using Microsoft.UI;
-using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Diagnostics;
 using Momoka.Shell.Interop;
-using Momoka.Theming;
 using Windows.Graphics;
 using Windows.UI;
 
@@ -37,12 +35,6 @@ internal sealed class SettingsWindow
 {
     private const string Category = "设置窗口";
 
-    /// <summary>
-    /// 画布压在 Mica 上的浓度，与主窗口的 <c>EgCanvasBrush</c> 是同一个数（见 <c>ThemeHost.CanvasAlpha</c>）。
-    /// 两个窗口是同一套外观，底也不能一个 60%、一个别的。
-    /// </summary>
-    private const byte CanvasAlpha = 0x99;
-
     /// <summary>Logical pixels, scaled to the owner's DPI in <see cref="Place"/>.</summary>
     private const int LogicalWidth = 1100;
 
@@ -59,39 +51,17 @@ internal sealed class SettingsWindow
 
     private bool _open;
 
-    private SettingsWindow(Window window, Grid root, Frame frame, SolidColorBrush canvas, bool mica)
+    private SettingsWindow(Window window, Frame frame)
     {
         _window = window;
-        _root = root;
         _frame = frame;
-        _canvas = canvas;
-        _mica = mica;
 
-        // 自绘空白标题栏和系统关闭按钮一起随主题更新；画布的颜色也在同一趟里改。
+        // 自绘空白标题栏和系统关闭按钮一起随主题更新。
         _repaint = _ => PaintCaption();
         ThemeHost.Changed += _repaint;
 
         window.AppWindow.Closing += OnClosing;
     }
-
-    /// <summary>
-    /// 这三个字段写在构造函数下面，不在上面那一组里：<c>Momoka.SettingsLifetimeTests</c> 按
-    /// 「<c>Category</c> 常量 → 构造函数」切一段源码进那个没有 WinUI 引用的测试项目，字段留在上面会把
-    /// <see cref="Grid"/> 与 <see cref="SolidColorBrush"/> 带进一段编译不了的源码。位置不影响含义。
-    /// </summary>
-    private readonly Grid _root;
-
-    /// <summary>
-    /// <see cref="_frame"/> 的底。当前窗口的那一层画布 —— Mica 那一档是 60% 的窗口色，回退那一档是不透明
-    /// 窗口色。改这一个对象的颜色，已经画上去的那块当场跟着变（同 ThemeHost 的手法）。
-    /// </summary>
-    private readonly SolidColorBrush _canvas;
-
-    /// <summary>
-    /// 这扇窗的窗口级底材是不是 Mica。系统不支持、关了透明效果或在远程桌面里时落回实色，见
-    /// <see cref="ApplyBackdrop"/>。
-    /// </summary>
-    private bool _mica;
 
     /// <summary>
     /// Whether the window is on screen. Tracked rather than asked of the OS, because 「shown」 and
@@ -101,16 +71,6 @@ internal sealed class SettingsWindow
 
     /// <summary>Outer size in physical pixels. Read by the self-check.</summary>
     internal SizeInt32 Size => _window.AppWindow.Size;
-
-    /// <summary>
-    /// 自检用：窗口级底材是不是 Mica、那层画布多浓、分类栏那块局部材质是不是 Mica Alt。三样一起报，
-    /// 是因为它们是一条链上的三节 —— 窗口没有材质时画布必须落回不透明，材质在而画布还实着则等于白开。
-    /// 分类栏那一块在页面里（<c>SettingsPage.xaml</c> 的 <c>NavigationMica</c>），按名字问页面要。
-    /// </summary>
-    internal (bool Mica, byte CanvasAlpha, bool NavigationAlt) BackdropState =>
-        (_mica, _canvas.Color.A,
-            (_frame.Content as SettingsPage)?.FindName("NavigationMica")
-                is SystemBackdropElement { SystemBackdrop: MicaBackdrop { Kind: MicaKind.BaseAlt } });
 
     /// <summary>
     /// 这扇窗的 HWND。自检量「设置窗口真的盖在画面之上」要用它 —— 那句问的是屏幕坐标上谁在最前面，
@@ -148,16 +108,11 @@ internal sealed class SettingsWindow
     {
         try
         {
-            // 这扇窗和主窗口一样上 Mica（Base）。主窗口是在 HWND 上直接问 DWM，这里走框架的窗口级
-            // SystemBackdrop：两者的档位与画布浓度必须成对，见 ApplyBackdrop 与 Palette 的 EgCanvasBrush。
-            var mica = MicaController.IsSupported();
-            var canvas = new SolidColorBrush(mica ? CanvasColor(ThemeHost.Current) : WindowColor(ThemeHost.Current));
-
             var frame = new Frame
             {
                 // 需求 9 的同一条：没有过渡。也让第一次导航不闪。
                 Transitions = null,
-                Background = canvas
+                Background = WindowFill()
             };
 
             // 深浅跟着当前主题走，而不是写死 Dark：这个窗口里全是框架自己的控件（Expander、NumberBox、
@@ -174,15 +129,13 @@ internal sealed class SettingsWindow
             // 兜底显示「WinUI Desktop」（当天截图为证）。写一个空串进去，左上角才是真的没有字。图标那
             // 一半在 <see cref="PaintCaption"/>。任务栏上那一格照旧有字有图（进程名和应用图标兜着），
             // 只有标题栏是空的。
-            var window = CreateCaptionedWindow(frame, mica);
-            var root = (Grid)window.Content;
+            var window = CreateCaptionedWindow(frame);
 
             Place(window, owner);
-            var created = new SettingsWindow(window, root, frame, canvas, mica);
-            created.ApplyBackdrop();
+            var created = new SettingsWindow(window, frame);
             created.PaintCaption();
 
-            Log.Info(Category, $"设置窗口已创建（底材：{(mica ? "Mica" : "纯色")}）");
+            Log.Info(Category, "设置窗口已创建");
             return created;
         }
         catch (Exception error)
@@ -193,19 +146,9 @@ internal sealed class SettingsWindow
     }
 
     /// <summary>空白标题栏独占顶部一行；设置正文始终在下一行，系统只保留关闭按钮。</summary>
-    /// <param name="content">标题栏下面那一整块。</param>
-    /// <param name="mica">
-    /// True 时这层根 Grid 不铺底，让窗口的 Mica 一直透到标题栏和内容后面；False 时它是不透明窗口色，
-    /// 也就是「没有材质」那一条回退路。探针建的窗口走默认的 False。
-    /// </param>
-    internal static Window CreateCaptionedWindow(FrameworkElement content, bool mica = false)
+    internal static Window CreateCaptionedWindow(FrameworkElement content)
     {
-        var root = new Grid
-        {
-            Background = mica
-                ? new SolidColorBrush(Colors.Transparent)
-                : new SolidColorBrush(WindowColor(ThemeHost.Current))
-        };
+        var root = new Grid { Background = new SolidColorBrush(ThemeHost.ToColor(ThemeHost.Current.Colors.Window)) };
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         var caption = new Border { Name = "SettingsWindowTitleBar", Background = new SolidColorBrush(Colors.Transparent) };
@@ -344,43 +287,13 @@ internal sealed class SettingsWindow
             Math.Min((int)Math.Round(logical * scale), available - (int)Math.Round(48 * scale)));
 
     /// <summary>
-    /// 窗口级底材：Mica（Base）。与主窗口同一个档位、同一个浓度 —— 设置窗口也是普通窗口，不是带标签页
-    /// 的那一档，所以不用 BaseAlt；分类栏那一块 BaseAlt 在页面里（<c>SettingsPage.xaml</c> 的
-    /// <c>NavigationMica</c>），一块材质只管自己那块地，两层不会互相把对方盖死。
-    /// </summary>
-    private void ApplyBackdrop()
-    {
-        if (!_mica) return;
-
-        try
-        {
-            _window.SystemBackdrop = new MicaBackdrop { Kind = MicaKind.Base };
-        }
-        catch (Exception error)
-        {
-            // Mica is a nicety. 关了透明效果、远程桌面或 GPU 不支持时，这扇窗必须还是一扇读得清的实色窗
-            // ——画布、根 Grid 与标题栏三处一起落回不透明，光把材质摘掉会露出后面那层没上底的空架子。
-            Log.Warn(Category, "设置 Mica 背景失败，改用纯色底", error);
-            _mica = false;
-            _canvas.Color = WindowColor(ThemeHost.Current);
-            _root.Background = new SolidColorBrush(WindowColor(ThemeHost.Current));
-        }
-    }
-
-    /// <summary>
     /// The same caption as the main window's, and for the same reason: the app has one appearance, and a
     /// caption left to the system is a pale strip over a window whose every other pixel is the theme's
     /// window colour. The inactive twins are set to their active partners because an unset twin does not
     /// inherit — see <c>HostWindow.ConfigureTitleBar</c>, which this mirrors.
     /// <para>
-    /// **有材质时标题栏不画底。** 窗口的 Mica 一直铺到上沿，标题栏再压一条不透明的窗口色就是把它切断；
-    /// 系统那三颗按钮的四种底色同样给透明，它们底下就是这块 Mica —— 失焦时也没有第二块默认底可露，
-    /// 原先那组实色正是为了盖住它。没有材质的那一条回退路照旧全实色，两条路只在同一个方法里分岔。
-    /// </para>
-    /// <para>
-    /// 颜色取自当前主题，所以换主题时这里要再跑一遍（<see cref="_repaint"/>）。Frame 那层画布也在这里改：
-    /// 它和标题栏是同一支窗口角色，换主题时两处必须同一拍翻。悬停和按下那两档故意用半透明的白／黑而不是
-    /// 主题里的某个面：它们压在标题栏底色（或 Mica）上，靠透明度叠出来的那一档在每一套主题里都对。
+    /// 颜色取自当前主题，所以换主题时这里要再跑一遍（<see cref="_repaint"/>）。悬停和按下那两档故意用
+    /// 半透明的白／黑而不是主题里的某个面：它们压在标题栏底色上，靠透明度叠出来的那一档在每一套主题里都对。
     /// </para>
     /// <para>
     /// Its own try/catch, inside <see cref="TryCreate"/>'s: a caption colour that will not take is a
@@ -410,37 +323,22 @@ internal sealed class SettingsWindow
             var titleBar = _window.AppWindow.TitleBar;
             if (titleBar is null) return;
 
-            // 画布：Mica 那一档是 60% 的窗口色，回退那一档是不透明窗口色。改颜色而不是换画刷 —— 已经
-            // 绑在 Frame.Background 上的那个对象会当场跟着变。
-            _canvas.Color = _mica ? CanvasColor(theme) : WindowColor(theme);
-
+            titleBar.BackgroundColor = ThemeHost.ToColor(theme.Colors.Window);
+            if (_window.Content is Grid root) root.Background = new SolidColorBrush(titleBar.BackgroundColor.Value);
             titleBar.ForegroundColor = ThemeHost.ToColor(theme.Colors.Text);
-            titleBar.ButtonForegroundColor = titleBar.ForegroundColor;
 
-            if (_mica)
-            {
-                titleBar.BackgroundColor = Colors.Transparent;
-                titleBar.ButtonBackgroundColor = Colors.Transparent;
-                titleBar.InactiveBackgroundColor = Colors.Transparent;
-                titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
-            }
-            else
-            {
-                var fill = new SolidColorBrush(WindowColor(theme));
-                _root.Background = fill;
-                titleBar.BackgroundColor = fill.Color;
-                titleBar.ButtonBackgroundColor = fill.Color;
-                titleBar.InactiveBackgroundColor = fill.Color;
-                titleBar.ButtonInactiveBackgroundColor = fill.Color;
-            }
-
+            // 系统关闭按钮与空白标题栏使用同一不透明底色，避免失焦时露出默认背景。
+            titleBar.ButtonBackgroundColor = titleBar.BackgroundColor;
+            titleBar.ButtonForegroundColor = ThemeHost.ToColor(theme.Colors.Text);
             titleBar.ButtonHoverBackgroundColor = theme.IsDark
                 ? Color.FromArgb(35, 255, 255, 255)
                 : Color.FromArgb(25, 0, 0, 0);
             titleBar.ButtonPressedBackgroundColor = theme.IsDark
                 ? Color.FromArgb(55, 255, 255, 255)
                 : Color.FromArgb(45, 0, 0, 0);
+            titleBar.InactiveBackgroundColor = titleBar.BackgroundColor;
             titleBar.InactiveForegroundColor = titleBar.ForegroundColor;
+            titleBar.ButtonInactiveBackgroundColor = titleBar.ButtonBackgroundColor;
             titleBar.ButtonInactiveForegroundColor = titleBar.ButtonForegroundColor;
         }
         catch (Exception error)
@@ -449,10 +347,15 @@ internal sealed class SettingsWindow
         }
     }
 
-    /// <summary>压在 Mica 上的那层画布：窗口角色加浓度。</summary>
-    private static Color CanvasColor(UiTheme theme) =>
-        ThemeHost.ToColor(theme.Colors.Window.WithAlpha(CanvasAlpha));
-
-    /// <summary>没有材质时那一整块不透明底：就是窗口角色本身。</summary>
-    private static Color WindowColor(UiTheme theme) => ThemeHost.ToColor(theme.Colors.Window);
+    /// <summary>
+    /// What the frame paints under the page. <c>EgWindowBrush</c> is asked for and usually not given:
+    /// it is declared inside <c>Palette.xaml</c>'s <c>ThemeDictionaries</c>, and only the XAML parser
+    /// resolves those — a code lookup does not see them (see the note at <c>EpisodeRow.xaml</c>). Hence
+    /// <c>TryGetValue</c> and not the indexer, which throws, and hence the literal: it is
+    /// <c>EgWindowColor</c>'s dark value, so the two agree whichever way the lookup goes.
+    /// </summary>
+    private static Brush WindowFill() =>
+        Application.Current.Resources.TryGetValue("EgWindowBrush", out var value) && value is Brush brush
+            ? brush
+            : new SolidColorBrush(Color.FromArgb(255, 0x16, 0x18, 0x1C));
 }

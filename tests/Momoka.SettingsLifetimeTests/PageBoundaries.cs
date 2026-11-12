@@ -92,10 +92,6 @@ namespace Microsoft.UI.Xaml.Controls
         public int Writes { get; private set; }
         public object? Source { get => _source; set { _source = value; Writes++; } }
     }
-    public sealed class SystemBackdropElement : Microsoft.UI.Xaml.FrameworkElement
-    {
-        public object? SystemBackdrop { get; set; }
-    }
 }
 
 namespace Microsoft.UI.Windowing
@@ -288,7 +284,6 @@ namespace Momoka.Shell.Views
     {
         internal Microsoft.UI.Xaml.Controls.Frame HostedFrame { get; } = new();
         internal Microsoft.UI.Xaml.Controls.CollectionViewSource CategoryGroupsSource { get; } = new();
-        internal Microsoft.UI.Xaml.Controls.SystemBackdropElement NavigationMica { get; } = new();
         private void InitializeComponent() { }
         private void ObserveCategoryGroups() { }
         private void ApplySettingsMotionPreference() { }
@@ -311,15 +306,6 @@ namespace Momoka.Shell.Views
         }
         internal IntPtr Handle => (IntPtr)1;
         internal Microsoft.UI.Windowing.AppWindow BoundaryWindow => _window.AppWindow;
-    }
-
-    /// <summary>设置页分类栏那块局部材质的开关；真实实现要 WinUI 的 SystemBackdropElement，这里只吞掉调用。</summary>
-    internal static class DetailMica
-    {
-        internal static void Apply(
-            Microsoft.UI.Xaml.Controls.SystemBackdropElement surface, bool enabled, bool alternate = false)
-        {
-        }
     }
 
     public sealed partial class FnNasPreferencesPage

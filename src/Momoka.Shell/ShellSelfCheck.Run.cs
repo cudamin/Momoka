@@ -289,24 +289,6 @@ internal static partial class ShellSelfCheck
                     ? $"{(settingsWindow.Open ? "已弹出" : "已建但没弹出")}，{settingsWindow.Width}×{settingsWindow.Height} 物理像素"
                     : "没建出设置窗口（已回退到主窗口内的设置页）");
 
-            // 「设置页面也采用 Mica 和 Mica Alt」（2026-11-12 用户令）。三节一起看：窗口级 Mica Base 在
-            // SettingsWindow，分类栏那块 Mica Alt 在页面里，中间那层画布是 60% —— 画布还实着则材质白开，
-            // 材质没挂上则整窗是一块平色；两种坏法在屏上都不报错，只有这里读得出来。
-            // 不支持 Mica 的机器（关掉透明效果、远程桌面）走的是回退路，那时画布应当是不透明的。
-            var micaSupported = MicaController.IsSupported();
-            var backdrop = shell.SettingsBackdrop;
-            var backdropOk = backdrop.Mica == micaSupported
-                && (micaSupported
-                    ? backdrop is { CanvasAlpha: 0x99, NavigationAlt: true }
-                    : backdrop.CanvasAlpha == 0xFF);
-            Check("设置窗口底材", backdropOk,
-                micaSupported
-                    ? $"窗口 {(backdrop.Mica ? "Mica Base" : "没有材质")}，画布 {backdrop.CanvasAlpha}/255，"
-                        + $"分类栏 {(backdrop.NavigationAlt ? "Mica Alt" : "没有材质")}"
-                    : backdrop.Mica
-                        ? "本机说不出支持 Mica，窗口却挂着材质"
-                        : $"本机不支持 Mica，已回退纯色底（画布 {backdrop.CanvasAlpha}/255）");
-
             // Put away before anything looks at the screen: everything past this point either samples the
             // display or photographs the shell, and a second window parked over the middle of the main one
             // would be in both. 屏幕像素 failing because the settings window was in the way is the exact

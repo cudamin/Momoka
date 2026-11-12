@@ -1,17 +1,3 @@
-## 2026-11-12 设置窗口改用 Mica 与分类栏 Mica Alt（已提交并发布）
-
-用户先问「设置页面是否采用 Mica 和 Mica Alt？」，核对后答「两者都没有 —— 设置窗口是一整块不透明的主题窗口色」，并给出「窗口级 Base ＋ 分类栏局部 BaseAlt」的方案与代价（标题栏要一起去底、回退路三处一起落实色、验证要实屏），用户回「可以」。按 CLAUDE.md「WinUI 官方优先与偏离确认」记下这次确认：日期 2026-11-12，范围＝设置窗口与设置页分类栏，依据＝材质指南第 3 节「Separate settings/MoviePilot window」与「Mica Alt option」两行，重新审查条件＝更换设置窗口宿主、需要浅色主题或改成随系统深浅。
-
-**改了什么。** `SettingsWindow` 挂窗口级 `MicaBackdrop { Kind = Base }`（框架 `Window.SystemBackdrop`，与主窗口同档）；`Frame` 的画布从实色 `EgWindowBrush` 换成窗口色 60%（`CanvasAlpha = 0x99`，与 `ThemeHost.CanvasAlpha` 成对），根 Grid 在有材质时透明；标题栏在材质档不画底（系统三颗按钮四态全透明），没有材质时画布、根 Grid、标题栏三处一起落回实色。分类栏是 `SettingsPage.xaml` 里一块跨两行的 `SystemBackdropElement`（`NavigationMica`，不吃指针），`OnNavigatedTo` 由 `DetailMica.Apply(..., alternate: true)` 挂 `BaseAlt`，上面压 `LayerFillColorAltBrush`（面色 50%）。窗口色改用 `ThemeHost.Current.Colors.Window` 直接算 —— `EgWindowBrush` 在 `ThemeDictionaries` 里，代码 `TryGetValue` 取不到。XAML 不写属性元素（会让 XAML 编译器 pass2 崩成 `WMC9999`、连带所有 `local:` 类型报未知）；新增的三个字段放在构造函数下面，避开 `SettingsLifetimeTests` 的源码提取边界。
-
-**顺手修的既有红（它们挡着整方案构建）。** `tests/Momoka.Tests/ItemUserStateOrderTests.Boundaries.cs` 里 `FnNasRemoveFromLibraryAsync` 在 HEAD 里定义了两遍（173 行与 192 行），删掉后一份、把注释并在前一份上；`Momoka.NaturalContinuationCallerTests/SourcePins.json` 里 `EmbyItem.cs` 的哈希还停在旧内容（`79ae63…`，HEAD 实际 `5f8eda…`），按实际值更新。两处都不动其它断言。
-
-**验证。** 整方案 Release **0 警告 0 错误**（修完上面两处后）；`Momoka.Tests` **4811/4811**、0 失败 0 跳过（`MicaMaterialTests` 新增一条材质契约）；`Momoka.SettingsLifetimeTests` **61/61**（替身补 `NavigationMica` 与 `DetailMica`）；`SettingsProbeContract`、`HomeOrderProbe` 通过。自检两次，「设置窗口底材」都通过：`窗口 Mica Base，画布 153/255，分类栏 Mica Alt`；两次失败项不同（第一次 1 项、第二次 3 项：媒体信息表格 9/10、详情评分来源读到空值、通知页面 0/1），三项都在本轮未触碰的页面上，属既有时序抖动，未改基线、未放宽断言。`selfcheck-diff -Log` 对第二次报告报 **3 失败、2 降级、0 消失、0 新增**，新增检查已登记进 `docs/selfcheck-baseline.txt`。`dotnet format whitespace --verify-no-changes` 本树有 **530 条既有 WHITESPACE 错误**，全在 18 个本轮未触碰的文件（`EmbyClient.Batch.cs`、`LocalLibraryPageTests/Program.cs` 等），本轮改动文件不在其中，未整份重排别人的文件。`tools/check-diff.ps1` 12 个变更路径全部通过。
-
-**发布。** 旧交付目录挪到 `C:\Users\89400\Momoka-stale\publish-20261112-104209`；`tools/publish.ps1 -NoArchive -Shortcut` 发布验证通过 **547 文件 / 288.3 MB**（14 GLSL、4 HOOK，mpv 清单 60 文件），最后写桌面快捷方式那一步被沙箱拒绝（`UnauthorizedAccessException`），核对 `.lnk` 目标仍是 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`，无需重写。发布件 `Momoka.dll` SHA-256 `19B91CA4C186FD1F8FCA7E8C4B2F83B01C8F7938CBACB1E2012A56F9B6B1C803`（8 444 928 字节；与开发构建的 `56AA474F…` 不同，是 publish 按自己的 `DebugType=None` 重编，属正常）。发布件与开发件各拍一张设置窗口：分类栏比内容亮一档、标题栏与内容同底、无接缝与实色横条。
-
-**未做/未验证。** 浅色主题（现行产品全是深色）、透明效果关闭与高对比度实机、跨屏缩放与 DPI 迁移、隐藏再打开的材质恢复（自检只读属性、未连续开关取像素）；设置探针窗口仍是 `mica:false` 的 `CreateCaptionedWindow`，布局断言不受影响，但它的外观截图不代表材质。未推 origin。
-
 ## 2026-11-12 WinUI 规则、项目技能与分阶段重构计划（P0）
 
 用户要求先整理项目规则/技能，再制定充分使用 WinUI 特性的详细重构计划；与特性或官方推荐冲突时先说明取舍并询问，确认后才实现；材质适用位置、用法和限制需详细记录。用户另明确确认删除 `momoka-skill-creator`。

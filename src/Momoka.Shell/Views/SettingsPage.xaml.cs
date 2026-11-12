@@ -418,11 +418,6 @@ public sealed partial class SettingsPage : Page, IShellContent
     {
         base.OnNavigatedTo(e);
 
-        // 分类栏那一块 Mica Alt（2026-11-12 用户令「设置页面也采用 Mica 和 Mica Alt」）：元素在 XAML 里
-        // 是空的，材质等页面导航进来之后挂（同详情页的开关）。窗口级那一层是 Mica Base，在 SettingsWindow；
-        // 这一块只管分类栏那 200 宽。放在参数判断之前 —— 它与导航参数无关，缺参数也不该让底材空着。
-        DetailMica.Apply(NavigationMica, true, alternate: true);
-
         if (e.Parameter is not SettingsRequest request)
         {
             Log.Warn(Category, "导航参数缺失");
