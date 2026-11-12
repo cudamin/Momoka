@@ -717,6 +717,7 @@ switch  --show-menu
 switch  --show-missing
 switch  --show-osd
 switch  --show-picker
+switch  --show-preview
 switch  --show-refresh
 switch  --show-settings
 switch  --theme

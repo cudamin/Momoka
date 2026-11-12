@@ -1,9 +1,13 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Diagnostics;
+using Momoka.Infrastructure;
 
 namespace Momoka.Shell.Views;
 
@@ -152,6 +156,51 @@ public sealed partial class PosterCard : UserControl
     private readonly ImageArrivalFade _posterArrival;
     private readonly ImageArrivalFade[] _tileArrivals;
 
+    /// <summary>
+    /// 用户令（2026-11-12，参考微软商店）：鼠标停在封面上一秒之后才浮出那块预览。一秒是**停留**，
+    /// 不是「经过」—— 指针扫过一整排封面时一张都不该弹；离开卡片或按下卡片就把这一秒作废。
+    /// </summary>
+    private const int PreviewDwellMs = 1000;
+
+    /// <summary>
+    /// 卡片与面板之间那一点空隙的宽限：指针从卡片跨到面板上时先经过一小段谁都不属于的地方，
+    /// 太短会在半路把面板收掉，太长又像卡住。收起动画本身还要 120 毫秒，两者不叠加。
+    /// </summary>
+    private const int PreviewCloseGraceMs = 180;
+
+    /// <summary>
+    /// 撑开之后那块预览的宽，以及窗口太窄时允许缩到的下限。400 是照商店那块与卡片的比例定的：
+    /// 预览比一张竖版海报宽两倍出头，压住左右各一张卡，不至于横跨整条货架。
+    /// </summary>
+    private const double PreviewWidth = 400;
+    private const double PreviewMinWidth = 300;
+
+    /// <summary>面板离窗口左右两边至少留这么多，别贴着边。</summary>
+    private const double PreviewMargin = 12;
+
+    /// <summary>停留计时。只在指针停在卡片上时跑；一秒到了才去建面板，路过的卡片不为此多造一棵树。</summary>
+    private DispatcherQueueTimer? _previewDwell;
+
+    /// <summary>离开卡片之后到真正收起之间的宽限，指针进面板或回到卡片就取消。</summary>
+    private DispatcherQueueTimer? _previewClose;
+
+    private Popup? _previewHost;
+    private CardPreview? _preview;
+
+    /// <summary>
+    /// 面板打开之后去取那张宽图的那一趟。收起、换卡或离树就取消 —— 停一秒又走开的卡片不该在后台
+    /// 接着下载一张没人看的图。
+    /// </summary>
+    private CancellationTokenSource? _previewArtwork;
+
+    /// <summary>面板打开时盯住的那几条滚动：内容一动，卡片和面板就错位了，先收起再说。</summary>
+    private readonly List<ScrollViewer> _previewScrolls = [];
+
+    private bool _previewOpen;
+
+    /// <summary>指针此刻在面板上。宽限到点时它也算「别收」—— 用户正读着那一块。</summary>
+    private bool _previewHovered;
+
     internal bool PosterArrivalRunning => _posterArrival.IsRunning;
 
     /// <summary>删除确认后的离场动画；<see cref="ResetRemoval"/> 或换卡时停掉。</summary>
@@ -168,6 +217,18 @@ public sealed partial class PosterCard : UserControl
         {
             _hovered = up;
             if (!up) _pressed = false;
+
+            // 停留一秒才轮到预览；离开就作废。收起那一下留一小段宽限，好让指针从卡片走到面板上。
+            if (up)
+            {
+                CancelPreviewClose();
+                ArmPreview();
+            }
+            else
+            {
+                _previewDwell?.Stop();
+                SchedulePreviewClose();
+            }
             AnimateCard();
         });
 
@@ -292,6 +353,9 @@ public sealed partial class PosterCard : UserControl
             card.OnScrim ? "EgOnScrimDataStyle" : card.Card?.IsUpcoming == true ? "EgCaptionStyle" : "EgDataStyle"];
 
         // ItemsRepeater 也会在仍然加载着的容器里换内容；新条目不能继承上一张的悬停、按压或淡入。
+        // 预览面板写的是上一张的片名和概要，更不能跟着容器搬过去。
+        card.ClosePreview(immediately: true);
+        card._previewDwell?.Stop();
         card._watch.Leave();
         card.ResetMotion();
 
@@ -343,6 +407,8 @@ public sealed partial class PosterCard : UserControl
 
         // A recycled container must not come back with the buttons already up: the pointer that revealed
         // them is nowhere near wherever this container is reused.
+        _previewDwell?.Stop();
+        ClosePreview(immediately: true);
         _watch.Leave();
         _hovered = false;
         _focus.Detach();
@@ -361,13 +427,15 @@ public sealed partial class PosterCard : UserControl
         _motion = null;
 
         var enabled = HomeMotion.AnimationsEnabled;
-        var active = _hovered || _focused;
+        // 预览面板开着也算「这张卡正被看着」：指针移到面板上时卡片不退回静止，否则那一对读起来像
+        // 两块无关的东西。操作层仍只跟指针走 —— 指针不在卡片上时那几颗按钮按不到，就不该留在屏上。
+        var active = _hovered || _focused || _previewOpen;
         // 外层按钮和滚动视口仍按布局尺寸裁剪；整卡向外放大或上移会切掉描边。
         // 悬停只推近框内图片，按压仍可向内轻缩，边框始终留在原来的命中范围内。
         var scale = enabled && _pressed ? 0.985 : 1;
         var zoom = enabled && active ? 1.045 : 1;
         var opacity = _hovered ? 1 : 0;
-        var shade = _hovered ? 0.78 : 0;
+        var shade = _hovered || _previewOpen ? 0.78 : 0;
         var play = enabled && !_hovered ? 0.92 : 1;
 
         Hover.IsHitTestVisible = _hovered;
@@ -512,6 +580,9 @@ public sealed partial class PosterCard : UserControl
     private void OnPointerPressed(object sender, PointerRoutedEventArgs e)
     {
         if (!e.GetCurrentPoint(Root).Properties.IsLeftButtonPressed) return;
+
+        // 按下去这一下不是「看」，是「用」：预览立刻退场，别挡着接下来要打开的页面或菜单。
+        ClosePreview(immediately: true);
         NavigationTiming.Press("card");
         _pressed = true;
         AnimateCard();
@@ -571,6 +642,278 @@ public sealed partial class PosterCard : UserControl
             return;
 
         _watch.Leave();
+    }
+
+    /// <summary>
+    /// 这张卡值不值得给一块预览。导航卡（文件夹、媒体库、人物）没有可读的简介，选择模式下的卡片
+    /// 只等着被勾，两者都不弹 —— 弹出来也只是一块把邻居盖住的空板。
+    /// </summary>
+    private bool PreviewEligible() => _live && XamlRoot is not null && Card is { IsNavigation: false, IsSelecting: false } card
+        && !card.Item.IsDisplayOnly;
+
+    /// <summary>指针停在卡片上：开始计那一秒。已经在预览的卡片不重计。</summary>
+    private void ArmPreview()
+    {
+        if (_previewOpen || !PreviewEligible()) return;
+
+        if (_previewDwell is null)
+        {
+            _previewDwell = DispatcherQueue.GetForCurrentThread()?.CreateTimer();
+            if (_previewDwell is null) return;
+
+            _previewDwell.Interval = TimeSpan.FromMilliseconds(PreviewDwellMs);
+            _previewDwell.IsRepeating = false;
+            _previewDwell.Tick += OnPreviewDwellTick;
+        }
+
+        _previewDwell.Stop();
+        _previewDwell.Start();
+    }
+
+    private void OnPreviewDwellTick(DispatcherQueueTimer sender, object args)
+    {
+        sender.Stop();
+
+        // 计时这一秒里指针可能已经走了，也可能有别的浮层弹开（更多菜单、对话框）：那两种都不该再弹一块。
+        if (!_hovered || AnotherPopupOpen()) return;
+        OpenPreview();
+    }
+
+    /// <summary>
+    /// 把面板摆到屏上。面板本身第一次用到才建 —— 一张从没被停住的卡片不该为它多背一棵树。
+    /// <para>
+    /// 位置自己算，不用 <see cref="Popup.PlacementTarget"/> 的贴边模式：2026-11-12 第二轮用户要的是
+    /// 「从卡片中心向两边扩散」，也就是面板中心必须压在卡片中心上，靠边时再夹回窗口里 —— 贴左／贴右那种
+    /// 模式给不了这个位置。坐标只问一次 <see cref="UIElement.TransformToVisual"/>，卡片在货架里、在页面滚动里
+    /// 都已经被它算进去了。
+    /// </para>
+    /// </summary>
+    private void OpenPreview()
+    {
+        if (_previewOpen || !PreviewEligible() || AnotherPopupOpen()) return;
+
+        if (_previewHost is null)
+        {
+            _preview = new CardPreview();
+            _preview.PointerEntered += OnPreviewPointerEntered;
+            _preview.PointerExited += OnPreviewPointerExited;
+            _preview.PlayRequested += (_, _) => Raise(_preview.PlayAnchor, CardAction.Play);
+
+            _previewHost = new Popup
+            {
+                // 面板里有播放键，按项目约定（CLAUDE.md「弹窗」）点外面就该收起；点到的若是另一张卡，
+                // 那一下本来也是导航，两件事不冲突。
+                IsLightDismissEnabled = true,
+                ShouldConstrainToRootBounds = true,
+                Child = _preview,
+
+                // 代码里新建的 Popup 不在任何页面自己的 XAML 树里，XamlRoot 得点名给 —— 不给的话 IsOpen
+                // 只是把它记成「想开」，屏上什么都不出来。要在挂进树之前给：挂进去之后再设会抛。
+                XamlRoot = XamlRoot,
+            };
+            Root.Children.Add(_previewHost);
+        }
+
+        var content = (UIElement)XamlRoot!.Content;
+        var rootWidth = content is FrameworkElement page ? page.ActualWidth : 0;
+        var rootHeight = content is FrameworkElement frame ? frame.ActualHeight : 0;
+        var width = Math.Min(PreviewWidth, Math.Max(PreviewMinWidth, rootWidth - (PreviewMargin * 2)));
+
+        // 卡片左上角在窗口内容里的位置。面板以卡片中心为原点向左右长，纵向与卡片齐平往下长。
+        var origin = Root.TransformToVisual(content).TransformPoint(new Windows.Foundation.Point(0, 0));
+
+        _preview!.SetSize(width);
+        // 面板至少要盖住原来那张卡：底下的片名和副标题不能从面板边缘露出来。
+        _preview.MinHeight = Math.Max(Root.ActualHeight, 0);
+        _preview.Show(Card!);
+
+        // 量一遍才知道面板多高：图是固定的 2:1，字有几行却不一定（简介两行封顶，续播那块时有时无）。
+        // 量出来是 0（还没进树、量不出来）就按「与卡片齐平」摆，底下的夹取自然也就退化成不夹。
+        _preview.Measure(new Windows.Foundation.Size(width, double.PositiveInfinity));
+        var height = _preview.DesiredSize.Height;
+
+        _preview.IsHitTestVisible = true;
+        _previewHost!.HorizontalOffset = CardPreviewPlacement.Horizontal(
+            origin.X, Root.ActualWidth, width, rootWidth, PreviewMargin);
+        _previewHost.VerticalOffset = CardPreviewPlacement.Vertical(origin.Y, height, rootHeight, PreviewMargin);
+        _previewHost.IsOpen = true;
+        _previewOpen = true;
+
+        // 起手宽度就是卡片自己的宽：缩放原点在面板正中，于是它看起来是从卡片里向左右两边长开的。
+        _preview.PlayEnter(Root.ActualWidth / width);
+        WatchPreviewScroll();
+        AnimateCard();
+        LoadPreviewArtwork(width);
+        Log.Debug("封面预览", $"打开「{Card?.Title}」：offset=({_previewHost.HorizontalOffset:0},{_previewHost.VerticalOffset:0})，width={width:0}，height={height:0}，card={Root.ActualWidth:0}x{Root.ActualHeight:0}，origin=({origin.X:0},{origin.Y:0})");
+    }
+
+    /// <summary>
+    /// 去取底下那块宽图（Thumb／Backdrop／Primary）。面板已经开着、字已经在了，这张图到得晚一点只是
+    /// 把它自己换上去；取不到就留着手上的海报。
+    /// </summary>
+    private void LoadPreviewArtwork(double width)
+    {
+        _previewArtwork?.Cancel();
+        var cts = new CancellationTokenSource();
+        _previewArtwork = cts;
+        _ = LoadPreviewArtworkAsync(Card!, _preview!, (int)Math.Round(width), cts);
+    }
+
+    private async Task LoadPreviewArtworkAsync(CardItem card, CardPreview preview, int width, CancellationTokenSource cts)
+    {
+        try
+        {
+            var artwork = await card.LoadPreviewArtworkAsync(width, cts.Token).ConfigureAwait(true);
+
+            // 收起之后到点的那一趟不再往上贴：面板可能已经装了另一张卡。
+            if (cts.IsCancellationRequested || !_previewOpen || !ReferenceEquals(_preview, preview)) return;
+            preview.SetArtwork(artwork);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception error)
+        {
+            Log.Debug("封面预览", $"宽图加载失败（{card.Title}）：{error.Message}");
+        }
+        finally
+        {
+            // 先清字段再释放：中间没有 await，别人看到的要么是空、要么是一个还能用的。
+            if (ReferenceEquals(_previewArtwork, cts)) _previewArtwork = null;
+            cts.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// 工具用（<c>--show-preview</c>）：不等那一秒，直接把预览摆出来给截图。这台机器注不进鼠标事件，
+    /// 而「停满一秒才出现」正是这次要拍的那一块。
+    /// </summary>
+    internal string? ShowPreviewForShot()
+    {
+        OpenPreview();
+        return _previewOpen ? Card?.Title : null;
+    }
+
+    /// <summary>指针离开卡片：给一小段宽限再收，好让指针跨到面板上。</summary>
+    private void SchedulePreviewClose()
+    {
+        if (!_previewOpen) return;
+
+        if (_previewClose is null)
+        {
+            _previewClose = DispatcherQueue.GetForCurrentThread()?.CreateTimer();
+            if (_previewClose is null) return;
+
+            _previewClose.Interval = TimeSpan.FromMilliseconds(PreviewCloseGraceMs);
+            _previewClose.IsRepeating = false;
+            _previewClose.Tick += OnPreviewCloseTick;
+        }
+
+        _previewClose.Stop();
+        _previewClose.Start();
+    }
+
+    private void CancelPreviewClose() => _previewClose?.Stop();
+
+    private void OnPreviewCloseTick(DispatcherQueueTimer sender, object args)
+    {
+        sender.Stop();
+
+        // 宽限里指针可能已经站到面板上或回到卡片上 —— 那两个都不该收。
+        if (_hovered || _previewHovered) return;
+        ClosePreview();
+    }
+
+    private void OnPreviewPointerEntered(object sender, PointerRoutedEventArgs e)
+    {
+        _previewHovered = true;
+        CancelPreviewClose();
+    }
+
+    private void OnPreviewPointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        _previewHovered = false;
+        SchedulePreviewClose();
+    }
+
+    /// <summary>
+    /// 收起面板。面板是回收着用的：先停计时与滚动监听，再让动画把它带走；卡片自己按原来的节奏退回静止。
+    /// </summary>
+    private void ClosePreview(bool immediately = false)
+    {
+        CancelPreviewClose();
+        if (!_previewOpen) return;
+
+        Log.Debug("封面预览", $"收起「{Card?.Title}」：immediate={immediately}");
+        _previewOpen = false;
+        _previewHovered = false;
+        _previewArtwork?.Cancel();
+        UnwatchPreviewScroll();
+        AnimateCard();
+
+        if (_preview is null || _previewHost is null) return;
+
+        // 淡出的那一百多毫秒里别再挡住底下的卡片：指针可能已经落到邻居上了。
+        _preview.IsHitTestVisible = false;
+
+        if (immediately || !HomeMotion.AnimationsEnabled)
+        {
+            _previewHost.IsOpen = false;
+            _preview.Reset();
+            return;
+        }
+
+        _preview.PlayExit(_preview.Width > 0 ? Root.ActualWidth / _preview.Width : 0.5, () =>
+        {
+            // 收起途中又被打开：这一次的落点作废，别把新打开的面板关掉。
+            if (_previewOpen) return;
+
+            _previewHost!.IsOpen = false;
+            _preview!.Reset();
+        });
+    }
+
+    /// <summary>
+    /// 盯住卡片所在的那几条滚动：面板是照打开那一刻的卡片位置摆的，内容一动两者就错位。
+    /// 卡片在横向货架里、货架又在页面的纵向滚动里，两条都要盯。
+    /// </summary>
+    private void WatchPreviewScroll()
+    {
+        if (_previewScrolls.Count > 0) return;
+
+        for (var parent = VisualTreeHelper.GetParent(this); parent is not null; parent = VisualTreeHelper.GetParent(parent))
+        {
+            if (parent is not ScrollViewer viewer) continue;
+
+            viewer.ViewChanged += OnPreviewScrolled;
+            _previewScrolls.Add(viewer);
+        }
+    }
+
+    private void UnwatchPreviewScroll()
+    {
+        foreach (var viewer in _previewScrolls) viewer.ViewChanged -= OnPreviewScrolled;
+        _previewScrolls.Clear();
+    }
+
+    private void OnPreviewScrolled(object? sender, ScrollViewerViewChangedEventArgs e) => ClosePreview(immediately: true);
+
+    /// <summary>
+    /// 有没有别的浮层正开着（更多菜单、对话框、筛选面板）。面板自己不算，工具提示也不算 ——
+    /// 提示是「指针正停在这颗按钮上」的副产品，它开着的时候预览该照常出现。
+    /// </summary>
+    private bool AnotherPopupOpen()
+    {
+        if (XamlRoot is not { } root) return false;
+
+        foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(root))
+        {
+            if (ReferenceEquals(popup, _previewHost)) continue;
+            if (popup.Child is ToolTip) continue;
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -774,6 +1117,8 @@ public sealed partial class PosterCard : UserControl
     {
         if (Card is null || Card.IsSelecting || sender is not FrameworkElement anchor) return;
 
+        // 面板上的播放键按下去之后，这块预览就该退场：接下来起播、换页，它没有留下来的理由。
+        ClosePreview(immediately: true);
         ActionRequested?.Invoke(this, new CardActionEventArgs(action, anchor));
     }
 }

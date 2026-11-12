@@ -721,8 +721,12 @@ public static class LibraryCardText
     /// <summary>
     /// 时长：电影是整片，剧集是「每集 45 分钟」—— 一部剧自己的 <c>RunTimeTicks</c> 是单集时长，
     /// 不写「每集」两个字，读起来就成了这部剧只有 45 分钟。
+    /// <para>
+    /// 悬停预览面板（<see cref="CardPreviewText.Meta"/>）写的是同一条读数，所以这一支从 private 提上来：
+    /// 两处各写一份「每集」的话，改一处就会漏另一处。
+    /// </para>
     /// </summary>
-    private static string Runtime(EmbyItem item)
+    public static string Runtime(EmbyItem item)
     {
         var duration = TimeFormat.Duration(item.RunTimeTicks);
         if (duration.Length == 0) return "";

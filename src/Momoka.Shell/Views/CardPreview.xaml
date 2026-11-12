@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  封面悬停预览：指针在封面上停满一秒之后，这张卡自己撑开成的一块预览（2026-11-12 用户令，参考微软商店）。
+
+  2026-11-12 第四轮（用户令「改成这种，缩略图在下，播放按钮在右上角的」）：
+  · 顶上一行是片名与读数，播放键在右上角 —— 商店那块的应用名字与「获取」同一处。
+  · 中间是简介，两行封顶。
+  · 底下才是那张 2:1 的宽缩略图，左右留出内边距，四角圆着。
+  · 续播进度缩成图下的一条细线加读数；没有续播位置时整块收起。
+  · 第五轮按用户令去掉左上角的小海报，顶栏只留文字。
+
+  宽度、高度与位置由 PosterCard 打开时按卡片尺寸和窗口算，这里只写排版。
+-->
+<UserControl
+    x:Class="Momoka.Shell.Views.CardPreview"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    AutomationProperties.AccessibilityView="Raw">
+
+    <!-- 实心面色而不是亚克力：2026-10-30 用户令「弹窗背景不要用亚克力，卡片和按钮等可以用」，
+         这块浮层跟菜单、弹窗同一档，读字优先；2026-11-12 用户又明确「不要亚克力」。
+         边线接跟主题走的那支发丝色。 -->
+    <Border
+        x:Name="Panel"
+        Background="{ThemeResource EgSurfaceBrush}"
+        BorderBrush="{ThemeResource EgBorderBrush}"
+        BorderThickness="1"
+        CornerRadius="{StaticResource EgCardCornerRadius}"
+        RenderTransformOrigin="0.5,0">
+        <Border.RenderTransform>
+            <CompositeTransform x:Name="PanelMotion" />
+        </Border.RenderTransform>
+
+        <!-- 四行：顶栏、简介、缩略图、续播。缩略图那一行是 *：卡片比面板高时（媒体库的大格子）
+             多出来的高度由这张图吸收，面板不会在底下留一块空白，卡片自己的片名也不会从底下露出来。 -->
+        <Grid Padding="14" RowSpacing="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- 顶栏：片名与读数在左，播放键在右上角（用户令 2026-11-12：左上角不要小海报）。 -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel VerticalAlignment="Center" Spacing="4">
+                    <TextBlock
+                        x:Name="TitleText"
+                        MaxLines="2"
+                        Style="{StaticResource EgSubheadStyle}"
+                        TextTrimming="CharacterEllipsis"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        x:Name="MetaText"
+                        Foreground="{ThemeResource EgTextDimBrush}"
+                        MaxLines="2"
+                        Style="{StaticResource EgDataStyle}"
+                        TextTrimming="CharacterEllipsis"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Button
+                    x:Name="PlayButton"
+                    x:Uid="CardPreview_PlayButton"
+                    Grid.Column="1"
+                    Click="OnPlayClicked"
+                    MinHeight="32"
+                    CornerRadius="16"
+                    Padding="14,4"
+                    Style="{StaticResource EgSecondaryButtonStyle}"
+                    VerticalAlignment="Top" />
+            </Grid>
+
+            <!-- 简介。两行封顶：预览是让人决定「看不看」，不是让人在这里读完整篇简介。 -->
+            <TextBlock
+                x:Name="OverviewText"
+                Grid.Row="1"
+                Foreground="{ThemeResource EgTextDimBrush}"
+                MaxLines="2"
+                Style="{StaticResource EgBodyStyle}"
+                TextTrimming="CharacterEllipsis"
+                TextWrapping="Wrap" />
+
+            <!-- 缩略图。最小高度由 PosterCard 按面板宽度减掉左右内边距再算（宽 × 1/2）；
+                 面板被撑高时这一行跟着长，图始终铺满。 -->
+            <Border
+                x:Name="Media"
+                Grid.Row="2"
+                Background="{ThemeResource EgSurfaceAltBrush}"
+                CornerRadius="12">
+                <Image x:Name="PreviewImage" Stretch="UniformToFill" />
+            </Border>
+
+            <!-- 续播进度：一条细线加读数。没有续播位置时整块收起。 -->
+            <StackPanel x:Name="ResumeBlock" Grid.Row="3" Spacing="5">
+                <Grid Height="{StaticResource EgProgressThickness}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Name="ProgressDone" Width="0*" />
+                        <ColumnDefinition x:Name="ProgressLeft" Width="1*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.ColumnSpan="2" Background="{ThemeResource EgBorderBrush}" />
+                    <Border Background="{ThemeResource EgAccentBrush}" />
+                </Grid>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock
+                        x:Uid="CardPreview_Resume"
+                        Foreground="{ThemeResource EgTextFaintBrush}"
+                        Style="{StaticResource EgCaptionStyle}" />
+                    <TextBlock x:Name="ResumeText" Style="{StaticResource EgDataStyle}" />
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

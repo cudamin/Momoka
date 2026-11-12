@@ -961,6 +961,59 @@ public sealed class CardItem : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// 悬停预览底下那块宽缩略图（2026-11-12「图片统一显示缩略图」）。先 Thumb、再 Backdrop、最后 Primary，
+    /// 取第一张服务器确实有的 —— 竖版海报裁成宽条会切掉大半张脸，有一张宽图就用宽图。
+    /// <para>
+    /// 只在预览真的撑开时才问，且走 <see cref="PosterCache"/> 与图片库自己的磁盘缓存：停在同一张卡上两次，
+    /// 第二次不再下载；路过的卡片一次都不问。取不到就返回 null，调用方留着手上那张海报，不留空框。
+    /// </para>
+    /// <para>
+    /// 宽度按面板宽度要（<see cref="EmbyImageStore.RequestWidth"/> 会再翻一倍给高 DPI），不用卡片那档 ——
+    /// 170 宽的卡把图放大到 480 宽的面板里会糊，而这张图正是面板的主角。
+    /// </para>
+    /// </summary>
+    internal async Task<BitmapImage?> LoadPreviewArtworkAsync(int width, CancellationToken cancellationToken)
+    {
+        if (width <= 0 || Scope is not { IsAvailable: true } scope) return null;
+
+        foreach (var imageType in PreviewImageTypes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (EmbyImageStore.TagFor(_item, imageType) is not { } tag) continue;
+
+            var itemId = EmbyImageStore.ImageItemId(_item, imageType);
+            var key = PosterCache.Key(scope.Connection, itemId, imageType, tag, width);
+            if (PosterCache.TryGet(key, out var cached)) return cached;
+
+            try
+            {
+                var bitmap = await _images.GetDecodedAsync(scope, itemId, imageType, tag,
+                    EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width),
+                    cancellationToken).ConfigureAwait(true);
+                if (bitmap is null) continue;
+
+                PosterCache.Remember(key, bitmap);
+                return bitmap;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception error)
+            {
+                // 这一种取不到就换下一种；三种都没有时返回 null，面板留着卡片自己那张图。
+                Log.Debug(Category, $"预览宽图取不到（{_item.Name} / {imageType}）：{error.Message}");
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>预览按这个顺序找宽图：缩略图最像「一格画面」，背景图次之，海报最后兜底。</summary>
+    private static readonly string[] PreviewImageTypes =
+        [EmbyImageStore.Thumb, EmbyImageStore.Backdrop, EmbyImageStore.Primary];
+
+    /// <summary>
     /// 一个容器接手这张卡（<c>PosterCard.Card</c> 被赋值的那一刻）。见 <see cref="_holder"/>：回收的那一下会有两个
     /// 容器同时说自己拿着它，认最后一个接手的。
     /// </summary>

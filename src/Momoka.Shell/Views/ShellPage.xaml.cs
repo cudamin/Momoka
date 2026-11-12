@@ -1737,6 +1737,33 @@ public sealed partial class ShellPage : UserControl, IShellActions
     }
 
     /// <summary>
+    /// 工具用：把主页一张看得见的卡的封面预览摆出来留着（<c>--show-preview</c>）。等卡片画出来的那几步
+    /// 与 <see cref="ShowCardMenuAsync"/> 同一套；挑有概要、靠窗口中间的那一张，因为空的面板拍下来什么都
+    /// 证明不了，贴着边的那张又看不出「从中心向两边扩散」。
+    /// </summary>
+    internal async Task ShowCardPreviewAsync()
+    {
+        for (var attempt = 0; attempt < 40 && ContentFrame.Content is not HomePage { IsReady: true }; attempt++)
+            await Task.Delay(250).ConfigureAwait(true);
+
+        await Task.Delay(400).ConfigureAwait(true);
+
+        if (ContentFrame.Content is not HomePage home)
+        {
+            Log.Warn(Category, "--show-preview：这一刻框里不是主页");
+            return;
+        }
+
+        if (home.ShowCardPreviewForShot() is not { } title)
+        {
+            Log.Warn(Category, "--show-preview：主页上还没有可预览的卡片");
+            return;
+        }
+
+        Log.Info(Category, $"--show-preview：已摆出「{title}」的封面预览");
+    }
+
+    /// <summary>
     /// 工具用：把播放器的浮层摆到屏上留着，好给它拍一张（<c>--show-osd [pinned|paused|playing]</c>）。
     /// <para>
     /// 和 <see cref="ShowCardMenuAsync"/> 同一个理由：这几层只有指针走到对应的位置才浮上来，而这台机器注不进
