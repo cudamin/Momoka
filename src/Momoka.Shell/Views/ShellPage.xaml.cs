@@ -577,6 +577,14 @@ public sealed partial class ShellPage : UserControl, IShellActions
             _settingsWindow?.Handle ?? IntPtr.Zero);
 
     /// <summary>
+    /// 设置窗口的底材两节：窗口级 Mica 与那层画布的浓度。窗口级那一层在
+    /// <see cref="SettingsWindow"/> 上；分类栏那层 50% 面色在页面里，由页面自己的契约钉住。
+    /// 没有窗口（回退到主窗口内的设置页）时两项都是默认值。
+    /// </summary>
+    internal (bool Mica, byte CanvasAlpha) SettingsBackdrop =>
+        _settingsWindow is { IsOpen: true } window ? window.BackdropState : (false, (byte)0);
+
+    /// <summary>
     /// The settings page wherever it ended up: in its own window, or in this frame on a machine where that
     /// window could not be built. What the self-check drives its walk through the cards with —
     /// <see cref="SettingsContent"/> is for reading whichever tree is on screen, and for 服务器 and 诊断

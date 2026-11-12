@@ -91,6 +91,32 @@ internal static class MicaMaterialTests
             Assert.Contains("(\"EgCanvasBrush\", theme => theme.Colors.Window.WithAlpha(CanvasAlpha))", source,
                 "ThemeHost 没有把画布按窗口角色加重画");
         });
+
+        Test("设置页材质：整窗一块 Mica ＋ 一层画布，标题栏与分类栏都不另铺底", () =>
+        {
+            var window = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "SettingsWindow.cs"));
+
+            // 窗口级那一层：普通窗口用 Base，和主窗口同一个档位。
+            Assert.Contains("new MicaBackdrop { Kind = MicaKind.Base }", window, "设置窗口没有挂 Mica（Base）");
+            // 画布浓度与主窗口成对；回退路必须落回不透明，否则没材质时整窗是透明的。
+            Assert.Contains("private const byte CanvasAlpha = 0x99", window, "设置窗口的画布浓度和主窗口不是一档");
+            Assert.Contains("_canvas.Color = _mica ? CanvasColor(theme) : WindowColor(theme)", window,
+                "换主题时画布没有跟着 Mica／实色两条路重新算");
+            Assert.DoesNotContain("TryGetValue(\"EgWindowBrush\"", window,
+                "又回去按资源键取窗口色了：EgWindowBrush 在 ThemeDictionaries 里，代码查找取不到");
+
+            // 整窗只有一块底（2026-11-12 用户令「不是，你为什么一定要给标题和侧边栏加卡片」）：标题栏与
+            // 三颗按钮的四种底色全透明，底下就是根 Grid 那支画布，窗口从上沿到下沿不断开。
+            Assert.Contains("titleBar.BackgroundColor = Colors.Transparent", window, "标题栏又铺了自己的一块底");
+            Assert.Contains("titleBar.ButtonInactiveBackgroundColor = Colors.Transparent", window,
+                "失焦时按钮底下会露出第二块默认底");
+            Assert.DoesNotContain("SystemBackdropElement", window, "设置窗口里又挂了局部材质");
+
+            // 页面里不许再出现分类栏那块自己的底：那是第二块「卡片」，窗口就分成两截了。
+            var page = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "SettingsPage.xaml"));
+            Assert.DoesNotContain("SystemBackdropElement", page, "设置页里又挂了局部材质");
+            Assert.DoesNotContain("SettingsNavigationLayer", page, "分类栏又铺了一块自己的底");
+        });
     }
 
     private static XDocument Palette() =>
