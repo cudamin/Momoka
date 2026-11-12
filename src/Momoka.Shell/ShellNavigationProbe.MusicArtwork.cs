@@ -132,9 +132,7 @@ internal sealed partial class ShellNavigationProbe
                     {
                         if (wall)
                         {
-                            scroll!.ScrollTo(0, scroll.ScrollableHeight,
-                                new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
-                            await LayoutAsync(page);
+                            await ScrollMusicWallAsync(scroll!, true, $"{section}-{total}-tail");
                         }
                         else
                         {
@@ -154,8 +152,7 @@ internal sealed partial class ShellNavigationProbe
                             innerViewportHeight = scroll?.ViewportHeight
                         });
                         Check(tail);
-                        if (wall) scroll!.ScrollTo(0, 0,
-                            new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                        if (wall) await ScrollMusicWallAsync(scroll!, false, $"{section}-{total}-head");
                         else list.ScrollIntoView(page.ViewModel.Rows[0]);
                         await LayoutAsync(page);
                         await WaitForDiagnosticsFrameAsync();
@@ -226,13 +223,7 @@ internal sealed partial class ShellNavigationProbe
                     async Task CheckItemAsync(int index)
                     {
                         if (!wall) return;
-                        var repeater = Descendants(wallView).OfType<ItemsRepeater>().Single();
-                        await UntilAsync(() => repeater.TryGetElement(index) is not null);
-                        var element = (FrameworkElement)repeater.TryGetElement(index)!;
-                        var card = Descendants(element).OfType<Image>().Select(CardArtwork.GetItem).FirstOrDefault(item => item is not null);
-                        var focused = element is Control control && control.Focus(FocusState.Keyboard);
-                        var point = element.TransformToVisual(scroll).TransformPoint(new());
-                        MusicArtworkProbeRules.Item(prefix + index, card?.Item.Id ?? "", focused, point.Y, element.ActualHeight, scroll!.ViewportHeight);
+                        await FocusMusicItemAsync(wallView, index, prefix + index, $"{section}-{total}-{index}");
                     }
                 }
             }

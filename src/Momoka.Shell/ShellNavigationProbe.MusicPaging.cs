@@ -107,17 +107,13 @@ internal sealed partial class ShellNavigationProbe
                         var wall = Get<ItemsView>(page, "MusicWall");
                         var scroll = wall.ScrollView ?? throw new InvalidOperationException("音乐墙没有原生滚动宿主");
                         MusicArtworkProbeRules.Viewport(Get<Grid>(page, "WallScroll").ActualHeight, scroll.ViewportHeight);
-                        scroll.ScrollTo(0, scroll.ScrollableHeight, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
-                        await LayoutAsync(page);
+                        var scrollKey = $"paging-{section}-{total}-{width}";
+                        await ScrollMusicWallAsync(scroll, true, scrollKey);
+                        var lastCard = await FocusMusicItemAsync(wall, total - 1,
+                            MusicPagingProbeServer.ItemId(type, total - 1), scrollKey);
                         var repeater = Descendants(wall).OfType<ItemsRepeater>().Single();
-                        await UntilAsync(() => repeater.TryGetElement(total - 1) is not null);
                         var last = (FrameworkElement)repeater.TryGetElement(total - 1)!;
-                        var lastCard = Descendants(last).OfType<Image>().Select(CardArtwork.GetItem).FirstOrDefault(card => card is not null)
-                            ?? throw new InvalidOperationException("末项没有实际x:Bind图片身份");
-                        var focused = last is Control lastControl && lastControl.Focus(FocusState.Keyboard);
                         var endPoint = last.TransformToVisual(scroll).TransformPoint(new());
-                        MusicArtworkProbeRules.Item(MusicPagingProbeServer.ItemId(type, total - 1), lastCard.Item.Id,
-                            focused, endPoint.Y, last.ActualHeight, scroll.ViewportHeight);
                         evidence.Add(new
                         {
                             section = section.ToString(),

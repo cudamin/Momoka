@@ -93,6 +93,16 @@ Albums/Artists/Playlists的100/1000/10000条内视口分别5036/50576/505976 DIP
 原黑图与该辅助显示方式有关，不据此宣称产品黑屏。
 本次finiteviewport/explicit回收的最终正常可见运行仍须协调会话重验。
 
+finite产品首次原生检查`190016656-31692`：Albums100初始realized/held/wanted=21/21/21、
+宿主/内部viewport=589/589，证明两条修复已落实；首/末项检查仍红：
+图片末项ID99正确且Focus=true，但Y4807/高229/viewport589，分页末项80为Y10120/229/549。
+原probe只受理ScrollTo后立即Focus，没有等待关联完成，不能把此结果直接判产品不可达。
+当前工具统一用既有ScrollProbeAsync等真实correlation及offset、Idle和帧，
+再等Focus引出的BringIntoView关联和Idle后读同一严格bounds。
+`music-scroll-*.json`保留requested/前后offset、presenter、extent和viewport，
+`music-focus-*.json`保留焦点前后bounds、原expected ID和bring/completed关联；
+没有放宽可见判据，也不从Source非null推断实屏已呈现。
+
 ## 曲目原生绑定时序
 
 固定源码`ListViewBase_Partial_ContainerPhase.cpp`同步Raise CCC之后才ProcessBindings phase0；
