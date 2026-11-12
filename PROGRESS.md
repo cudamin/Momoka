@@ -12830,3 +12830,15 @@ Release Shell/三项测试编译0警告0错误；真实caller78/78、Core自然E
 本子树不发布、不开真实播放、不碰master、不push。产品commit交父树定点集成后，父会话须重编译当前代码、核原生MenuFlyout/队列入口与适用隔离验证，整合到master、发布快捷方式交付目录，再清理已保留子树。当前仍待父集成，子树测试通过不代表主树已交付。
 
 2026-11-12 队列后续边界修复：清空播放全部的待播槽时也把原UserPlaybackQueue导航缩为当前行，避免EOF兜底从旧导航复活刚清掉的下一项。当前真实caller新增此反例并复验79/79、0失败0跳过，Release编译0/0；证据artifacts/r046-caller/batch5-queue-clear。父方须同时集成该补丁并重编译Shell。
+
+## 2026-11-12 主页封面悬停预览：主树交付完成
+
+用户令「合并交付」。产品提交 `f8b1795`（分支 `workbuddy/master-824d2d4f`，rebase 到 `2f74559` 后快进合入 master），另有一笔 `2a1ad76` 补两处夹具的编译边界。
+
+- 产品：鼠标停满一秒才撑开一块预览；横向以卡片中心为原点向左右长开，靠边夹回窗口；版式是片名与读数在左上、播放键在右上、简介两行、2:1 缩略图在下；缩略图优先 Thumb／Backdrop、取不到用手上的海报裁，宽图按面板宽度另取并走图片缓存；面板播放键接回卡片同一条 `ActionRequested`；点面板外面收起。工具开关 `--show-preview` 把一块预览摆出来拍照。
+- 主树复验（最终整合代码）：Release 全方案 **0 警告 0 错误**；主测试 **4997/4997、0 失败 0 跳过**（含新增 6 项摆位与 2:1 比例）；`Momoka.HomeDirectoryTests` **82/82**、`Momoka.SettingsDeferredSaveTests` **24/24**（带本树 Shell DLL 与根目录参数）。
+- 顺带修红（与本批无关，但挡住闸门 1）：第五批播放队列给外壳收场加了 `QueueRequested` 摘挂（62e03a8）、设置窗口拆分部后 `Hide()` 调 `PauseSystemAppearance`（b4cd92f），两处源码抽取夹具没跟上，全方案编译因此 3 个错误。补空实现，行为不变；夹具 82/82、24/24 复验。
+- UI 实屏：`--show-preview --maximized` 与 780×900 窄窗各一张（`artifacts/shots/deliver-preview-max.png`、`deliver-preview-narrow.png`）。最大化下 400 宽面板中心压在卡片中心上；780 宽窗口里面板左右各留 12 仍然完整，简介与缩略图不裁切。
+- 交付：旧目录改名 `artifacts/publish/win-x64-pre-card-preview` 备份；`tools\publish.ps1 -NoArchive -Shortcut` 发布本体成功，**389 文件 / 290 MB**，发布件与主树构建 `Momoka.dll` SHA-256 同为 `80b4888d…`；交付目录里的 exe 再跑一次 `--show-preview` 冒烟通过。
+- 快捷方式：`C:/Users/89400/Desktop/Momoka.lnk` 目标仍是 `C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`（同一交付目录，二进制已刷新）。脚本重写那一步被沙箱拒绝 —— 桌面上的 .lnk 只读、沙箱进程只能读；目标路径没变，快捷方式不是旧版，未另建。
+- 未做：预告片（列表接口没有 `RemoteTrailers`，Shell 没有内嵌播放面）；未推远端（master 仍比 origin/master 多 213 笔，沿用既有做法）；未做 `--probe-section` 全分区（本批只碰卡片悬停，走实屏 + 单测）。
