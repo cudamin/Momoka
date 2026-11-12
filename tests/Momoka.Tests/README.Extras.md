@@ -18,3 +18,5 @@
 `Momoka.DetailImageArrivalTests` 和 `Momoka.SubtitleDialogTests` 逐字提取的详情生命周期现在包含 `ResetExtras()`；各自只补无作用的外部 partial 边界，不删改提取正文。运行这两项可确认新增接线没有切断既有图片/字幕调用覆盖。
 
 多段正片 AdditionalParts 没有实现，评估见 [媒体库第四批-附加内容](../../docs/媒体库第四批-附加内容.md)。以上均不证明真实服务器或播放管线运行结果。
+
+关闭回归执行 `CloseExtras` 的实际 VM 路径：仅关闭保持入口但撤销旧选项、关闭在飞读取拒绝迟到结果、旧关闭不撤销新菜单且旧重试代次失效。原生探针在 Reload 之前直接调用已经关闭菜单的缓存 UIA peer 与旧 VM option，确认零播放；正常点击和 Closed 后重试继续可用。

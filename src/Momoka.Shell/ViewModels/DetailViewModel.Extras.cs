@@ -11,12 +11,14 @@ public sealed partial class DetailViewModel
     private ExtraSelection? _extraSelection;
     private bool _extrasReady;
     private bool _extrasEmpty;
+    private long _extraEpoch;
 
     public Visibility ExtraVisibility => Show(CanAct && _extrasReady && !_extrasEmpty
         && _detail is { } item && ItemExtras.CanRead(item, _scope!.Connection.ServerKind));
 
     private void ResetExtras()
     {
+        _extraEpoch++;
         _extraSelection = null;
         _extraLoad?.Cancel();
         _extraLoad?.Dispose();
@@ -34,12 +36,13 @@ public sealed partial class DetailViewModel
         public string Category { get; } = ItemExtras.Category(item.ExtraType);
     }
 
-    internal sealed class ExtraSelection(EmbyItem subject, EmbySessionScope source, CancellationToken token)
+    internal sealed class ExtraSelection(EmbyItem subject, EmbySessionScope source, CancellationToken token, long epoch)
     {
         internal EmbyItem Subject { get; } = subject;
         internal string SubjectId { get; } = subject.Id;
         internal EmbySessionScope Source { get; } = source;
         internal CancellationToken Token { get; } = token;
+        internal long Epoch { get; } = epoch;
         public List<ExtraOption> Options { get; } = [];
         public string? Error { get; internal set; }
     }
@@ -50,13 +53,28 @@ public sealed partial class DetailViewModel
         && ReferenceEquals(_scope, selection.Source) && selection.Source.IsAvailable
         && ItemExtras.CanRead(selection.Subject, selection.Source.Connection.ServerKind);
 
+    internal bool CanRetryExtras(ExtraSelection selection) => CanAct && _extrasReady
+        && selection.Epoch == _extraEpoch && ReferenceEquals(_detail, selection.Subject)
+        && selection.Subject.Id == selection.SubjectId && ReferenceEquals(_scope, selection.Source)
+        && selection.Source.IsAvailable && ItemExtras.CanRead(selection.Subject, selection.Source.Connection.ServerKind);
+
+    /// <summary>Closing only ends this menu's selection and read, leaving the detail's entry available.</summary>
+    internal void CloseExtras(ExtraSelection? selection)
+    {
+        if (selection is not null && !ReferenceEquals(_extraSelection, selection)) return;
+        _extraSelection = null;
+        _extraLoad?.Cancel();
+        _extraLoad?.Dispose();
+        _extraLoad = null;
+    }
+
     internal async Task<ExtraSelection?> GetExtrasAsync()
     {
         if (ExtraVisibility != Visibility.Visible || _detail is not { } subject || _scope is not { } scope) return null;
         _extraLoad?.Cancel();
         _extraLoad?.Dispose();
         _extraLoad = new CancellationTokenSource();
-        var selection = new ExtraSelection(subject, scope, _extraLoad.Token);
+        var selection = new ExtraSelection(subject, scope, _extraLoad.Token, ++_extraEpoch);
         _extraSelection = selection;
         try
         {

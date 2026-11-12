@@ -24,11 +24,15 @@ internal sealed partial class ShellNavigationProbe
             fixture.Settings.Ui.EnableImmersive = true;
             var movie = new EmbyItem
             {
-                Id = "movie", Name = "花絮与特典 · 离线测试电影", Type = EmbyItemType.Movie, MediaType = "Video",
+                Id = "movie",
+                Name = "花絮与特典 · 离线测试电影",
+                Type = EmbyItemType.Movie,
+                MediaType = "Video",
                 Overview = "查看幕后制作、访谈与删减片段，每段内容使用自己的媒体，从头开始播放。",
                 SpecialFeatureCount = kind == MediaServerKind.Jellyfin ? 2 : 0,
                 UserData = new() { PlaybackPositionTicks = 450_000_000 },
-                ImageTags = new() { ["Primary"] = "fixture" }, BackdropImageTags = ["fixture"],
+                ImageTags = new() { ["Primary"] = "fixture" },
+                BackdropImageTags = ["fixture"],
                 MediaSources = [new() { Id = "movie-file", Container = "mkv", RunTimeTicks = 900_000_000 }]
             };
             var first = Extra("extra-first", "幕后制作", "BehindTheScenes");
@@ -65,8 +69,10 @@ internal sealed partial class ShellNavigationProbe
                 if (path.EndsWith("/System/Info/Public", StringComparison.Ordinal))
                     return Task.FromResult(Json(new
                     {
-                        ProductName = kind.ToString(), ServerName = "匿名附加内容",
-                        Version = kind == MediaServerKind.Emby ? "4.10.1.0" : "10.10.7", Id = "extras-server"
+                        ProductName = kind.ToString(),
+                        ServerName = "匿名附加内容",
+                        Version = kind == MediaServerKind.Emby ? "4.10.1.0" : "10.10.7",
+                        Id = "extras-server"
                     }));
                 if (path.EndsWith("/Users/Me", StringComparison.Ordinal) || path.EndsWith("/Users/user", StringComparison.Ordinal))
                     return Task.FromResult(Json(new { Id = "user", Policy = new { IsAdministrator = false } }));
@@ -85,6 +91,10 @@ internal sealed partial class ShellNavigationProbe
             host.Children.Add(frame);
             _root.Children.Add(host);
             DetailPage? page = null;
+            var originalTopMost = _window!.TopMost;
+            // Keep the capture host's z-order stable while its popup is open. Toggling TopMost
+            // inside SaveProbeScreenAsync can put the main HWND above its own transient menu.
+            _window.TopMost = true;
             try
             {
                 frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, movie));
@@ -120,8 +130,18 @@ internal sealed partial class ShellNavigationProbe
                         && page.ViewModel.PlayTarget?.Id == "movie" && movie.ResumeTicks == 450_000_000,
                         "真实菜单没有把独立媒体与零起点交到假播放边界");
                     menu.Hide();
-                    receipts.Add(new { Kind = kind.ToString(), Width = width, Options = options.Select(row => row.Text).ToArray(),
-                        StartTicks = 0, ExactStart = true, ParentPassed = false, QueuePassed = false, RealNetwork = 0, RealPlayback = 0 });
+                    receipts.Add(new
+                    {
+                        Kind = kind.ToString(),
+                        Width = width,
+                        Options = options.Select(row => row.Text).ToArray(),
+                        StartTicks = 0,
+                        ExactStart = true,
+                        ParentPassed = false,
+                        QueuePassed = false,
+                        RealNetwork = 0,
+                        RealPlayback = 0
+                    });
                 }
 
                 var narrow = Get<Button>(page, "CompactExtrasButton");
@@ -137,10 +157,14 @@ internal sealed partial class ShellNavigationProbe
                 new MenuFlyoutItemAutomationPeer(retry).Invoke();
                 await UntilAsync(() => Get<MenuFlyout?>(page, "_extraMenu") is { IsOpen: true } restored
                     && !ReferenceEquals(restored, failed) && restored.Items.OfType<MenuFlyoutItem>().Count() == 2);
-                Get<MenuFlyout>(page, "_extraMenu").Hide();
+                var retryMenu = Get<MenuFlyout>(page, "_extraMenu");
+                retryMenu.Hide();
+                await UntilAsync(() => !retryMenu.IsOpen && Get<MenuFlyout?>(page, "_extraMenu") is null);
 
                 extras.Clear();
                 await page.ShowExtrasAsync(narrow);
+                await UntilAsync(() => page.ViewModel.ExtraVisibility == Visibility.Collapsed
+                    && Get<MenuFlyout?>(page, "_extraMenu") is null);
                 await LayoutAsync(page);
                 Require(page.ViewModel.ExtraVisibility == Visibility.Collapsed && Get<MenuFlyout?>(page, "_extraMenu") is null,
                     "真实空结果没有隐藏按钮并关闭菜单");
@@ -164,6 +188,9 @@ internal sealed partial class ShellNavigationProbe
                 var capturedMenu = Get<MenuFlyout>(page, "_extraMenu");
                 var beforeCancel = fixture.Actions.Plays;
                 capturedMenu.Hide();
+                await UntilAsync(() => !capturedMenu.IsOpen && Get<MenuFlyout?>(page, "_extraMenu") is null);
+                new MenuFlyoutItemAutomationPeer(capturedMenu.Items.OfType<MenuFlyoutItem>().Single()).Invoke();
+                await page.ViewModel.OpenExtraAsync(stale, oldOption);
                 Require(fixture.Actions.Plays == beforeCancel, "关闭菜单执行了播放");
                 await page.ViewModel.ReloadAsync();
                 await page.ViewModel.OpenExtraAsync(stale, oldOption);
@@ -183,9 +210,19 @@ internal sealed partial class ShellNavigationProbe
                 try { Require(page.ViewModel.ExtraVisibility == Visibility.Visible, "负向对照：离页入口不可显示"); }
                 catch (InvalidOperationException) { rejected = true; }
                 Require(rejected, "花絮探针断言没有拒绝反例");
-                receipts.Add(new { Kind = kind.ToString(), Paths = paths, EmptyHidden = true, Restored = true,
-                    RetryRecovered = true, StaleRejected = true, LateRejected = true, PlaybackCalls = fixture.Actions.Plays,
-                    RealNetwork = 0, RealPlayback = 0 });
+                receipts.Add(new
+                {
+                    Kind = kind.ToString(),
+                    Paths = paths,
+                    EmptyHidden = true,
+                    Restored = true,
+                    RetryRecovered = true,
+                    StaleRejected = true,
+                    LateRejected = true,
+                    PlaybackCalls = fixture.Actions.Plays,
+                    RealNetwork = 0,
+                    RealPlayback = 0
+                });
             }
             finally
             {
@@ -193,6 +230,7 @@ internal sealed partial class ShellNavigationProbe
                 page?.Release();
                 frame.Content = null;
                 _root.Children.Remove(host);
+                _window.TopMost = originalTopMost;
             }
         }
         await File.WriteAllTextAsync(Path.Combine(_options.Paths.LogDirectory, "detail-extras-receipt.json"),
@@ -200,7 +238,11 @@ internal sealed partial class ShellNavigationProbe
 
         static EmbyItem Extra(string id, string name, string category) => new()
         {
-            Id = id, Name = name, Type = EmbyItemType.Video, MediaType = "Video", ExtraType = category,
+            Id = id,
+            Name = name,
+            Type = EmbyItemType.Video,
+            MediaType = "Video",
+            ExtraType = category,
             UserData = new() { PlaybackPositionTicks = 300_000_000 },
             MediaSources = [new() { Id = id + "-file", Container = "mkv", RunTimeTicks = 600_000_000 }]
         };

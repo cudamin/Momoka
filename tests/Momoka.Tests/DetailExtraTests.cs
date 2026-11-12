@@ -218,6 +218,54 @@ internal static partial class DetailActionReadinessTests
             OpenExtra(f, second, option);
             Assert.Equal(0, f.Actions.Plays);
         });
+
+        Test("花絮详情：仅关闭菜单立即撤销旧选择且入口可重新打开", () =>
+        {
+            using var f = ExtrasFixture(assembly, root);
+            Await(f.Load());
+            var selection = ExtraMenu(f);
+            var option = ExtraOptions(selection)[0];
+            var close = f.Vm.GetType().GetMethod("CloseExtras", Members);
+            Assert.NotNull(close, "关闭菜单必须撤销已生成的播放选择");
+            close!.Invoke(f.Vm, [selection]);
+            Assert.False((bool)Invoke(f.Vm, "OwnsExtras", selection)!);
+            OpenExtra(f, selection, option);
+            Assert.Equal(0, f.Actions.Plays);
+            Assert.Equal("Visible", f.Get("ExtraVisibility")!.ToString());
+            var reopened = ExtraMenu(f);
+            OpenExtra(f, reopened, ExtraOptions(reopened)[0]);
+            Assert.Equal(1, f.Actions.Plays);
+        });
+
+        Test("花絮详情：关闭在飞菜单拒绝迟到结果但保留入口", () =>
+        {
+            using var f = ExtrasFixture(assembly, root);
+            Await(f.Load());
+            f.Transport.HoldExtras = true;
+            var pending = (Task)Invoke(f.Vm, "GetExtrasAsync")!;
+            Await(f.Transport.ExtrasRequested.Task);
+            Invoke(f.Vm, "CloseExtras", (object?)null);
+            f.Transport.ExtrasRelease.TrySetResult(true);
+            Await(pending);
+            Assert.True(Result(pending) is null);
+            Assert.Equal("Visible", f.Get("ExtraVisibility")!.ToString());
+            Assert.Equal(0, f.Actions.Plays);
+        });
+
+        Test("花絮详情：旧关闭不会撤销新菜单且旧重试意图失效", () =>
+        {
+            using var f = ExtrasFixture(assembly, root);
+            Await(f.Load());
+            var old = ExtraMenu(f);
+            Invoke(f.Vm, "CloseExtras", old);
+            Assert.True((bool)Invoke(f.Vm, "CanRetryExtras", old)!);
+            var current = ExtraMenu(f);
+            Invoke(f.Vm, "CloseExtras", old);
+            Assert.True((bool)Invoke(f.Vm, "OwnsExtras", current)!);
+            Assert.False((bool)Invoke(f.Vm, "CanRetryExtras", old)!);
+            OpenExtra(f, current, ExtraOptions(current)[0]);
+            Assert.Equal(1, f.Actions.Plays);
+        });
     }
 
     private static Fixture ExtrasFixture(Assembly assembly, string root, MediaServerKind kind = MediaServerKind.Emby, int count = 1)
