@@ -54,7 +54,8 @@ public sealed partial class PlaybackService
             using var client = PlayerToolDownload.CreateClient();
             using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, Lifetime);
             var headers = Momoka.Emby.EmbyHttpRedirect.SameOrigin(_request.MediaUrl, url) ? _request.HttpHeaders : [];
-            await PlayerToolDownload.CopyAsync(client, url, headers, destination, null, linked.Token).ConfigureAwait(false);
+            await PlayerToolDownload.CopyAsync(client, url, headers, destination, null, linked.Token,
+                headers.Count > 0 ? _request.FnNasSubtitleAuthorization : null).ConfigureAwait(false);
             if (!IsCurrent) throw new OperationCanceledException(cancellationToken);
             return destination;
         }

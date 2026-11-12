@@ -41,6 +41,31 @@ internal sealed partial class ShellNavigationProbe
             Id = "movie", Name = "匿名双版本电影", Type = EmbyItemType.Movie,
             MediaSources = [new() { Id = "file-a", Path = "/media/movie.1080p.mkv" }, new() { Id = "file-b", Path = "/media/movie.2160p.mkv" }]
         });
+        var menuOwner = new Page();
+        _root.Children.Add(menuOwner);
+        Task? menuOperation = null;
+        FnNasSubtitleDialog? menuDialog = null;
+        try
+        {
+            await LayoutAsync(menuOwner);
+            var card = new CardItem(item, fixture.Images, 160);
+            var changed = 0;
+            menuOperation = (Task)typeof(ItemCommands).GetMethod("SubtitlesAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+                .Invoke(null, [scope, fixture.Actions, menuOwner, card, (Action)(() => changed++)])!;
+            await UntilAsync(() => (menuDialog = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+                .SelectMany(popup => Descendants(popup.Child)).OfType<FnNasSubtitleDialog>().SingleOrDefault()) is not null
+                && !Get<bool>(menuDialog, "_busy") && Get<FnNasSubtitles>(menuDialog, "_service").CanWrite);
+            await LayoutAsync(menuDialog!);
+            MetadataInvoke(Get<Button>(menuDialog!, "HeaderCloseButton"));
+            await menuOperation;
+            Require(changed == 0 && state.Writes.Count == 0, "正式字幕菜单读取/取消触发了写入或父刷新");
+        }
+        finally
+        {
+            menuDialog?.Hide();
+            if (menuOperation is not null) await menuOperation;
+            _root.Children.Remove(menuOwner);
+        }
         FnNasSubtitles[] Services() => item.MediaSources.Select(source =>
             new FnNasSubtitles(scope, item, source, () => permissions, () => current)).ToArray();
         var versions = Services();
@@ -202,8 +227,7 @@ internal sealed partial class ShellNavigationProbe
                 await ScrollProbeAsync(Get<ScrollViewer>(unknown, "SubtitleScroll"), Get<ScrollViewer>(unknown, "SubtitleScroll").ScrollableHeight);
                 Require(!unknownShown.IsCompleted && Microsoft.UI.Xaml.Media.VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
                     .Any(popup => Descendants(popup.Child).Contains(unknown)), "未知写入截图时字幕弹窗已关闭或未挂在Popup内");
-                await CompositionPlaybackProbe.SaveScreenAsync(_window!, Path.Combine(_options.Paths.LogDirectory,
-                    $"fnnas-subtitles-{width}-unknown-recovered-screen.png"));
+                await SaveFnNasSubtitleDialogScreenAsync(unknown, $"fnnas-subtitles-{width}-unknown-recovered-screen.png");
             }
         }
         finally
@@ -241,9 +265,26 @@ internal sealed partial class ShellNavigationProbe
             Require(AutomationProperties.GetName(close).Length > 0, "字幕关闭按钮缺少可访问名称");
             Require(!shown.IsCompleted && Microsoft.UI.Xaml.Media.VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
                 .Any(popup => Descendants(popup.Child).Contains(dialog)), "字幕截图时弹窗已关闭或未挂在Popup内");
-            await CompositionPlaybackProbe.SaveScreenAsync(_window!, Path.Combine(_options.Paths.LogDirectory,
-                $"fnnas-subtitles-{width}-{stage}-screen.png"));
+            await SaveFnNasSubtitleDialogScreenAsync(dialog, $"fnnas-subtitles-{width}-{stage}-screen.png");
         }
+    }
+
+    private async Task SaveFnNasSubtitleDialogScreenAsync(FnNasSubtitleDialog dialog, string name)
+    {
+        await Task.Delay(300);
+        if (_window is null) throw new InvalidOperationException("飞牛字幕探针窗口不存在");
+        var viewport = Get<ScrollViewer>(dialog, "SubtitleScroll");
+        var centre = viewport.TransformToVisual(_root).TransformPoint(new(viewport.ActualWidth / 2, viewport.ActualHeight / 2));
+        var origin = new Interop.NativePoint();
+        Require(Interop.Native.ClientToScreen(_window.Handle, ref origin), "飞牛字幕探针坐标不可用");
+        var scale = _root.XamlRoot.RasterizationScale;
+        var point = new Interop.NativePoint { X = origin.X + (int)Math.Round(centre.X * scale), Y = origin.Y + (int)Math.Round(centre.Y * scale) };
+        var target = Interop.Native.GetAncestor(Interop.Native.WindowFromPoint(point), 2);
+        Interop.Native.GetWindowThreadProcessId(target, out var process);
+        Require(process == (uint)Environment.ProcessId && (target == _window.Handle || Interop.Native.GetWindow(target, 4) == _window.Handle),
+            "飞牛字幕实际像素窗口不属于本次探针宿主");
+        // Capture the verified dialog Popup HWND; keep the shared main-window occlusion guard intact.
+        await CompositionPlaybackProbe.SaveWindowScreenAsync(target, Path.Combine(_options.Paths.LogDirectory, name));
     }
 
     private sealed class FnNasSubtitleProbeState
@@ -266,6 +307,11 @@ internal sealed partial class ShellNavigationProbe
             if (path.EndsWith("/sys/config", StringComparison.Ordinal)) return FnNasEnvelope(new { server_guid = "anonymous-subtitles", server_name = "匿名飞牛" });
             if (path.EndsWith("/user/info", StringComparison.Ordinal)) return FnNasEnvelope(new { guid = "user", username = "user", is_admin = Administrator ? 1 : 0 });
             if (path.EndsWith("/mediadb/list", StringComparison.Ordinal) || path.EndsWith("/mdb/list", StringComparison.Ordinal)) return FnNasEnvelope(Array.Empty<object>());
+            if (path.EndsWith("/mediadb/sum", StringComparison.Ordinal)) return FnNasEnvelope(new { total = 0 });
+            if (path.EndsWith("/play/list", StringComparison.Ordinal)) return FnNasEnvelope(Array.Empty<object>());
+            if (path.EndsWith("/item/movie", StringComparison.Ordinal)) return FnNasEnvelope(new { guid = "movie", title = "匿名双版本电影", type = "Movie", parent_guid = "", genres = Array.Empty<int>() });
+            if (path.EndsWith("/play/info", StringComparison.Ordinal)) return FnNasEnvelope(new { duration = 0, ts = 0 });
+            if (path.EndsWith("/tag/genres", StringComparison.Ordinal)) return FnNasEnvelope(Array.Empty<object>());
             if (path.EndsWith("/stream/list/movie", StringComparison.Ordinal))
                 return FailRead ? new(HttpStatusCode.ServiceUnavailable) : FnNasEnvelope(Streams());
             if (path.EndsWith("/subtitle/search", StringComparison.Ordinal))

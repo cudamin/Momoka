@@ -16,7 +16,8 @@ public static class PlayerToolDownload
 
     public static async Task CopyAsync(HttpClient client, Uri source,
         IReadOnlyList<KeyValuePair<string, string>> headers, string destination,
-        IProgress<(long Bytes, long? Total)>? progress, CancellationToken cancellationToken)
+        IProgress<(long Bytes, long? Total)>? progress, CancellationToken cancellationToken,
+        Momoka.FnNas.FnNasSubtitleAuthorization? fnNasSubtitles = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!Path.IsPathFullyQualified(destination) || File.Exists(destination))
@@ -31,8 +32,11 @@ public static class PlayerToolDownload
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, current);
                 if (authenticated)
+                {
                     foreach (var header in headers)
                         request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                    fnNasSubtitles?.Apply(request);
+                }
                 using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
                 if (EmbyHttpRedirect.IsRedirect(response.StatusCode))
                 {

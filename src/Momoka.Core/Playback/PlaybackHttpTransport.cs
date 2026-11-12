@@ -20,6 +20,7 @@ public sealed class PlaybackHttpTransport : IAsyncDisposable
         [".m3u", ".m3u8", ".mpd", ".pls", ".asx", ".xspf", ".cue", ".edl", ".url", ".f4m"];
     private readonly Uri _origin;
     private readonly IReadOnlyList<KeyValuePair<string, string>> _headers;
+    private readonly Momoka.FnNas.FnNasSubtitleAuthorization? _fnNasSubtitles;
     private readonly HttpClient _http;
     private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
     private readonly CancellationTokenSource _lifetime = new();
@@ -49,6 +50,7 @@ public sealed class PlaybackHttpTransport : IAsyncDisposable
         EmbyHttpRedirect.Validate(request.MediaUrl);
         _origin = request.MediaUrl;
         _headers = request.HttpHeaders.ToArray();
+        _fnNasSubtitles = request.FnNasSubtitleAuthorization;
         _http = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
         _listener.Start();
         _base = "http://127.0.0.1:" + ((IPEndPoint)_listener.LocalEndpoint).Port;
@@ -64,7 +66,8 @@ public sealed class PlaybackHttpTransport : IAsyncDisposable
         MediaParts = request.MediaParts.Select(part => part with { MediaUrl = new Uri(Map(part.MediaUrl)) }).ToArray(),
         ExternalSubtitles = request.ExternalSubtitles.Select(resource => new Uri(Map(resource))).ToArray(),
         SelectedExternalSubtitle = request.SelectedExternalSubtitle is { } selected ? new Uri(Map(selected)) : null,
-        HttpHeaders = []
+        HttpHeaders = [],
+        FnNasSubtitleAuthorization = null
     };
 
     public string Map(Uri resource)
@@ -221,7 +224,10 @@ public sealed class PlaybackHttpTransport : IAsyncDisposable
         {
             using var request = new HttpRequestMessage(method, resource);
             if (authenticated)
+            {
                 foreach (var header in _headers) request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                _fnNasSubtitles?.Apply(request);
+            }
             request.Headers.TryAddWithoutValidation("Accept-Encoding", "identity");
             if (range is not null) request.Headers.TryAddWithoutValidation("Range", range);
             if (ifRange is not null) request.Headers.TryAddWithoutValidation("If-Range", ifRange);

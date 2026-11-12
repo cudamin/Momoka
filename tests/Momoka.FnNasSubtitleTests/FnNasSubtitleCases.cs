@@ -115,7 +115,7 @@ internal static class FnNasSubtitleCases
                 Assert.False(f.Service.NeedsRefresh);
                 Assert.False(f.Service.IsUnconfirmed);
             });
-        foreach (var failure in new[] { "http503", "broken-envelope", "transport" })
+        foreach (var failure in new[] { "http503", "broken-envelope", "transport", "redirect-fragment", "redirect-ftp" })
             Test("未知写回执只读恢复且从不追认成功：" + failure, () =>
             {
                 using var f = new Fixture();
@@ -257,6 +257,26 @@ internal static class FnNasSubtitleCases
                 Assert.True(f.Service.CanDownload(latest[0]));
             });
         });
+        Test("extra_file含原容器index保留内轨及后续sid，不重复提取别名", () =>
+        {
+            using var f = new Fixture();
+            var streams = f.Streams();
+            var tracks = (JsonArray)streams["subtitle_streams"]!;
+            tracks.Add(new JsonObject { ["guid"] = "extracted-inner", ["media_guid"] = "file-b", ["is_external"] = 0,
+                ["extra_file"] = 1, ["index"] = 2, ["codec_name"] = "subrip", ["format"] = "srt" });
+            tracks.Add(new JsonObject { ["guid"] = "later-inner", ["media_guid"] = "file-b", ["is_external"] = 0,
+                ["index"] = 4, ["codec_name"] = "ass", ["format"] = "ass" });
+            var source = FnNasMediaAdapter.Sources(streams, "movie", f.Scope.Client.FnNas, f.Scope.Client.FnNasConnection).Single(value => value.Id == "file-b");
+            var extracted = source.SubtitleStreams.Single(track => track.ProviderId == "extracted-inner");
+            Assert.Equal(2, extracted.Index);
+            Assert.False(extracted.IsExternal);
+            Assert.Equal(1, source.SubtitleStreams.Count(track => track.ProviderId == "extracted-inner"));
+            var map = MpvTrackMap.Build(source);
+            Assert.Equal(1, map.SubtitleId(2));
+            Assert.Equal(2, map.SubtitleId(4));
+            Assert.Equal(3, map.SubtitleId(source.SubtitleStreams.Single(track => track.ProviderId == "sidecar-b").Index));
+            Assert.Equal(1, map.ExternalSubtitleIndexes.Count);
+        });
         Test("请求内容准备失败不制造未知写入债务", () =>
         {
             using var f = new Fixture();
@@ -293,6 +313,83 @@ internal static class FnNasSubtitleCases
             Assert.False(f.Service.IsCurrent);
         });
         RegisterDialogs();
+        RegisterCallers();
+    }
+
+    private static void RegisterCallers()
+    {
+        Test("正式飞牛caller：Core后台重读/写入不触碰XAML且成功交原父", () =>
+        {
+            using var f = new Fixture();
+            using var queue = new UiQueue();
+            queue.Run(async () =>
+            {
+                var owner = new Microsoft.UI.Xaml.Controls.Page { XamlRoot = new() };
+                owner.RestrictToCurrentThread();
+                var changes = 0;
+                var operation = ItemCommands.FixtureFnNasSubtitles(f.Scope, new CallerActions(() => f.Permissions), owner,
+                    new CardItem(f.Item), () => changes++);
+                await queue.IdleAsync();
+                var dialog = FnNasSubtitleDialog.FixtureShown!;
+                try
+                {
+                    await Task.Run(async () =>
+                    {
+                        await dialog.FixtureService.ReloadAsync();
+                        await dialog.FixtureService.UploadAsync(new("background.srt", [1]));
+                    });
+                    Assert.Equal(0, owner.WrongThreadReads);
+                    Assert.True(dialog.Touched && dialog.NeedsRefresh);
+                    Assert.Equal(1, f.Writes.Count);
+                }
+                finally { dialog.Hide(); await operation; }
+                Assert.Equal(1, changes);
+            });
+        });
+        Test("正式飞牛caller：后台权限事件用缓存dispatcher且离页撤销纯谓词", () =>
+        {
+            using var f = new Fixture();
+            using var queue = new UiQueue();
+            queue.Run(async () =>
+            {
+                var page = new Microsoft.UI.Xaml.Controls.Page { XamlRoot = new() };
+                var owner = new Microsoft.UI.Xaml.Controls.Button { XamlRoot = page.XamlRoot, Parent = page };
+                page.RestrictToCurrentThread();
+                owner.RestrictToCurrentThread();
+                var operation = ItemCommands.FixtureFnNasSubtitles(f.Scope, new CallerActions(() => f.Permissions), owner, new CardItem(f.Item));
+                await queue.IdleAsync();
+                var dialog = FnNasSubtitleDialog.FixtureShown!;
+                await Task.Run(() => f.Invalidate("permission"));
+                Assert.Equal(0, owner.WrongThreadReads);
+                page.RaiseUnloaded();
+                Assert.False(await Task.Run(() => dialog.FixtureService.IsCurrent));
+                Assert.Equal(0, owner.WrongThreadReads);
+                Assert.Equal(0, f.Writes.Count);
+                dialog.Hide();
+                await operation;
+            });
+        });
+        Test("正式飞牛caller：UI根变化只在UI采样并拒绝后台旧操作", () =>
+        {
+            using var f = new Fixture();
+            using var queue = new UiQueue();
+            queue.Run(async () =>
+            {
+                var root = new XamlRoot();
+                var owner = new Microsoft.UI.Xaml.Controls.Page { XamlRoot = root };
+                owner.RestrictToCurrentThread();
+                var operation = ItemCommands.FixtureFnNasSubtitles(f.Scope, new CallerActions(() => f.Permissions), owner, new CardItem(f.Item));
+                await queue.IdleAsync();
+                var dialog = FnNasSubtitleDialog.FixtureShown!;
+                owner.XamlRoot = new();
+                root.RaiseChanged();
+                Assert.False(await Task.Run(() => dialog.FixtureService.IsCurrent));
+                Assert.Equal(0, owner.WrongThreadReads);
+                Assert.Equal(0, f.Writes.Count);
+                dialog.Hide();
+                await operation;
+            });
+        });
     }
 
     private static void RegisterDialogs()
@@ -575,6 +672,9 @@ internal static class FnNasSubtitleCases
                     fixture.BeforeReadReturn?.Invoke();
                     return fixture.ReadFailure is { } status ? new(status) : Reply(fixture.Streams());
                 }
+                if (path.EndsWith("/item/movie", StringComparison.Ordinal)) return Reply(new JsonObject { ["guid"] = "movie", ["title"] = "anonymous", ["type"] = "Movie", ["genres"] = new JsonArray() });
+                if (path.EndsWith("/play/info", StringComparison.Ordinal)) return Reply(new JsonObject { ["duration"] = 0, ["ts"] = 0 });
+                if (path.EndsWith("/tag/genres", StringComparison.Ordinal)) return Reply(new JsonArray());
                 if (path.EndsWith("/user/info", StringComparison.Ordinal)) return Reply(new JsonObject { ["is_admin"] = 1 });
                 if (path.EndsWith("/subtitle/search", StringComparison.Ordinal) && fixture.SearchReply is { } searchReply) return await searchReply;
                 if (path.EndsWith("/subtitle/search", StringComparison.Ordinal)) return Reply(new JsonObject { ["subtitles"] = new JsonArray(
@@ -586,6 +686,9 @@ internal static class FnNasSubtitleCases
                     if (fixture.WriteFailure == "http403") return new(HttpStatusCode.Forbidden);
                     if (fixture.WriteFailure == "http401") return new(HttpStatusCode.Unauthorized);
                     if (fixture.WriteFailure == "http503") return new(HttpStatusCode.ServiceUnavailable);
+                    if (fixture.WriteFailure is "redirect-fragment" or "redirect-ftp")
+                        return new(HttpStatusCode.TemporaryRedirect) { Headers = { Location = new(fixture.WriteFailure == "redirect-fragment"
+                            ? "https://subtitles.invalid/v/api/v1/subtitle/dl/file#fragment" : "ftp://subtitles.invalid/file") } };
                     if (fixture.WriteFailure == "business-permission") return Raw("{\"code\":-5}");
                     if (fixture.WriteFailure == "business-file-permission") return Raw("{\"code\":-16}");
                     if (fixture.WriteFailure == "business-expired") return Raw("{\"code\":-2}");

@@ -124,6 +124,8 @@ public sealed record PlaybackRequest
     public bool AudioOnly { get; init; }
 
     public Momoka.FnNas.FnNasPlaybackSelection? FnNasSelection { get; init; }
+    /// <summary>Managed-only, route-scoped live signatures; never forwarded to native options.</summary>
+    public Momoka.FnNas.FnNasSubtitleAuthorization? FnNasSubtitleAuthorization { get; init; }
 
     /// <summary>Plex's metadata key and whole-version duration for timeline reporting.</summary>
     public Momoka.Plex.PlexPlaybackSelection? PlexSelection { get; init; }

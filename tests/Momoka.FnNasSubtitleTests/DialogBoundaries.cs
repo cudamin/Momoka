@@ -8,6 +8,8 @@ namespace Momoka.Shell.Views;
 // All dialog decisions and async event handlers compile directly from the production file.
 public sealed partial class FnNasSubtitleDialog
 {
+    internal static FnNasSubtitleDialog? FixtureShown { get; private set; }
+    internal IReadOnlyList<FnNasSubtitles> FixtureVersions => _versions;
     internal FrameworkElement DialogTitleRow { get; } = new();
     internal TextBlock DialogTitleText { get; } = new();
     internal Button HeaderCloseButton { get; } = new();
@@ -34,7 +36,7 @@ public sealed partial class FnNasSubtitleDialog
     internal Button CancelDeleteButton { get; } = new();
     internal TextBlock Status { get; } = new();
     internal ProgressRing Busy { get; } = new();
-    private void InitializeComponent() { }
+    private void InitializeComponent() => FixtureShown = this;
 
     internal bool FixtureBusy => _busy;
     internal bool FixtureClosed => _closed;

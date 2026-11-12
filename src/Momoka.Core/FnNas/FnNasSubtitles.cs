@@ -227,7 +227,6 @@ public sealed class FnNasSubtitles
         if (error is EmbyApiException { InnerException: FnNasApiException native }) error = native;
         return error is FnNasApiException { Code: not null }
             || error is EmbyApiException { StatusCode: >= HttpStatusCode.BadRequest and < HttpStatusCode.InternalServerError }
-            || error is FnNasApiException { StatusCode: >= HttpStatusCode.BadRequest and < HttpStatusCode.InternalServerError }
-            || error is ArgumentException;
+            || error is FnNasApiException { StatusCode: >= HttpStatusCode.BadRequest and < HttpStatusCode.InternalServerError };
     }
 }

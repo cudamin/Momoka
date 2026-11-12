@@ -115,6 +115,7 @@ public sealed class PlaybackPlanner(
             SvpEnabled = MpvSvp.IsEnabled(settings.Mpv),
             SvpVapourSynthPath = settings.Mpv.SvpVapourSynthPath ?? "",
             HttpHeaders = BuildHeaders(connection),
+            FnNasSubtitleAuthorization = connection.IsFnNas ? new(connection.ApiBase) : null,
             StartSeconds = TimeFormat.ToSeconds(ticket.ExactStart ? Math.Max(0, ticket.StartTicks) : ResumeFrom(ticket.StartTicks)),
             AudioId = map.AudioId(tracks.AudioIndex),
             SubtitleId = externalSelection >= 0 ? null : map.SubtitleId(tracks.SubtitleIndex),

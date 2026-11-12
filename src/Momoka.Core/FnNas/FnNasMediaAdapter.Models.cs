@@ -348,9 +348,12 @@ public sealed partial class FnNasMediaAdapter
         {
             // An external subtitle requires a separate, verified download contract. Do not invent a
             // container index or silently request an Emby subtitle URL for a FnNas sidecar.
-            if (Flag(stream, "is_external") || type == "Subtitle" && Flag(stream, "extra_file")) continue;
+            if (Flag(stream, "is_external")) continue;
             var index = Integer(stream, "index");
             if (index is null && type != "Video") continue;
+            // extra_file marks downloadable/extracted subtitle content, not absence from the
+            // original container. Keep an explicit container index so later mpv sid values count it.
+            if (type == "Subtitle" && index is < 0) continue;
             source.MediaStreams.Add(new MediaStream
             {
                 Index = index ?? 0,

@@ -15,6 +15,7 @@ TestHarness.Test("飞牛普通登录账号的字幕管理可达", () =>
         .Any(row => row.Command == ItemCommand.Subtitles));
 });
 FnNasSubtitleCases.Register();
+SubtitleTransportTests.Register();
 DialogChromeTests.Register();
 StartupArgsTests.Register();
 return TestHarness.Run();

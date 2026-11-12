@@ -16,15 +16,58 @@ namespace Microsoft.UI.Xaml
     }
     public class FrameworkElement
     {
+        private XamlRoot? _xamlRoot;
+        private int _uiThread;
+        private readonly DispatcherQueue _dispatcher = new();
         public object? DataContext { get; set; }
-        public XamlRoot? XamlRoot { get; set; }
+        internal FrameworkElement? Parent { get; set; }
+        internal int WrongThreadReads { get; private set; }
+        internal void RestrictToCurrentThread() => _uiThread = Environment.CurrentManagedThreadId;
+        public XamlRoot? XamlRoot
+        {
+            get
+            {
+                if (_uiThread != 0 && Environment.CurrentManagedThreadId != _uiThread)
+                {
+                    WrongThreadReads++;
+                    throw new InvalidOperationException("RPC_E_WRONG_THREAD: XamlRoot accessed off UI thread");
+                }
+                return _xamlRoot;
+            }
+            set => _xamlRoot = value;
+        }
+        public DispatcherQueue DispatcherQueue
+        {
+            get
+            {
+                if (_uiThread != 0 && Environment.CurrentManagedThreadId != _uiThread)
+                {
+                    WrongThreadReads++;
+                    throw new InvalidOperationException("RPC_E_WRONG_THREAD: DispatcherQueue accessed off UI thread");
+                }
+                return _dispatcher;
+            }
+        }
         public double Width { get; set; }
         public double MaxHeight { get; set; }
         public bool IsEnabled { get; set; } = true;
         public Visibility Visibility { get; set; } = Visibility.Visible;
         public event Action<object, RoutedEventArgs>? Loaded { add { } remove { } }
-        public event Action<object, RoutedEventArgs>? Unloaded { add { } remove { } }
+        public event Action<object, RoutedEventArgs>? Unloaded;
+        internal void RaiseUnloaded() => Unloaded?.Invoke(this, new());
         public bool Focus(FocusState state) => true;
+    }
+    public sealed class DispatcherQueue
+    {
+        private readonly SynchronizationContext? _context = SynchronizationContext.Current;
+        // In-memory dispatcher is the terminal UI queue boundary, with no JoinableTask or native API.
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "VSTHRD001", Justification = "Anonymous SynchronizationContext queue only")]
+        public bool TryEnqueue(Action action)
+        {
+            if (_context is null) action();
+            else _context.Post(_ => action(), null);
+            return true;
+        }
     }
 }
 
@@ -63,6 +106,16 @@ namespace Microsoft.UI.Xaml.Controls
         public object? SelectedItem => Items.ElementAtOrDefault(SelectedIndex);
     }
     public sealed class ProgressRing : FrameworkElement { public bool IsActive { get; set; } }
+    public sealed class Page : FrameworkElement;
+    public enum InfoBarSeverity { Informational, Success, Warning, Error }
+}
+
+namespace Microsoft.UI.Xaml.Media
+{
+    public static class VisualTreeHelper
+    {
+        public static FrameworkElement? GetParent(FrameworkElement owner) => owner.Parent;
+    }
 }
 
 namespace Microsoft.UI.Xaml.Automation
