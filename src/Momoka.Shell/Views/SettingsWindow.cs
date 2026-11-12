@@ -331,9 +331,7 @@ internal sealed partial class SettingsWindow
     /// the page needs to lay out — a settings page 400 pixels wide is not a smaller settings page.
     /// </summary>
     private static int Fit(int logical, int minimum, int available, double scale) =>
-        Math.Max(
-            (int)Math.Round(minimum * scale),
-            Math.Min((int)Math.Round(logical * scale), available - (int)Math.Round(48 * scale)));
+        Momoka.Infrastructure.ScreenPlacement.FitAxis(logical, minimum, available, scale);
 
     /// <summary>
     /// 窗口级底材：Mica（Base），这是当前项目的档位选择。**整窗只有这一块底和一层画布**：标题栏、分类栏、正文压在同一个画布

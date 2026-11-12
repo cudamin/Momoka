@@ -13,6 +13,34 @@ internal static class ScreenTests
 {
     public static void Register()
     {
+        Test("设置窗口尺寸：DIP 按缩放换算，工作区小于页面下限时仍完整可见", () =>
+        {
+            foreach (var scale in new[] { 1d, 1.25d, 1.5d, 2d })
+            {
+                Assert.Equal((int)Math.Round(1100 * scale), ScreenPlacement.FitAxis(1100, 640, 3840, scale));
+                Assert.Equal((int)Math.Round(760 * scale), ScreenPlacement.FitAxis(760, 480, 2160, scale));
+                foreach (var available in new[] { 1, 240, 320, 480, 600, 760, 1080, 1920 })
+                {
+                    var width = ScreenPlacement.FitAxis(1100, 640, available, scale);
+                    var height = ScreenPlacement.FitAxis(760, 480, available, scale);
+                    Assert.True(width >= 0 && width <= available, "宽度不得压过工作区");
+                    Assert.True(height >= 0 && height <= available, "高度不得压过工作区");
+                    if (available < 640 * scale) Assert.Equal(available, width);
+                    if (available < 480 * scale) Assert.Equal(available, height);
+                }
+            }
+            Assert.Equal(992, ScreenPlacement.FitAxis(760, 480, 1088, 2));
+            Assert.Equal(0, ScreenPlacement.FitAxis(1100, 640, 0, 2));
+            Assert.Equal(0, ScreenPlacement.FitAxis(1100, 640, -1, 2));
+        });
+
+        Test("设置窗口尺寸：无效缩放回退，极大缩放不会溢出物理尺寸", () =>
+        {
+            foreach (var scale in new[] { 0d, -1d, double.NaN, double.PositiveInfinity })
+                Assert.Equal(1100, ScreenPlacement.FitAxis(1100, 640, 1920, scale));
+            Assert.Equal(1920, ScreenPlacement.FitAxis(1100, 640, 1920, double.MaxValue));
+        });
+
         Test("选屏幕：第几块就是第几块", () =>
         {
             bool[] two = [true, false];
