@@ -1,3 +1,10 @@
+## 2026-11-12 P3首批合入主树，交付待共享状态固定
+
+P3产品 `09a1c3e/e1e186b/7a87c9b/bbb9ff7` 经 `ae3ceaf` 合入master，保留 `7807dbc`。修EgPicker延迟撑宽有效期、音乐/清单根与容器目的地，媒体多选改CommandBar并按菜单层级处理Escape，非交互ToolTip不阻退出。
+
+主树Shell/Tests Release0警告0错误，完整5009/5009，相关17/18/207/72/39/51及架构7全过。原完整5009项16失败为诊断锁冲突，后独立复跑通过；31684运行4/5、6104运行1/2（后一次键盘完整通过），焦点/输入历史红保留，不能报整个原生验证稳定全绿。实屏拼图目视通过；本聊天累计39图片。
+
+发布脚本成功并写桌面快捷方式，但另一会话在发布期间提交86a40f1，随后PID28432重新发布共同目录，产物身份未锁定；最终交付未确认，未push。用户明确选择“先停止 P3 交付”；本会话停止构建、发布和桌面验证。恢复后最终适用验证和发布由唯一写入会话继续，P3三个临时树及P2旧树暂留至交付完成。详见docs/WinUI-P3原生控件与导航.md第7节。
 ## 2026-11-12 P3 导航目的地恢复（独立树待主控集成）
 
 唯一写入树`C:\Users\89400\.codex\worktrees\winui-p3-navigation\Momoka`，基点`2f74559`。读取现行CLAUDE/Shell技能/P3与D02/D07，并实读固定Gallery `6de91feccadfbb0a796b71caedead5a2284f730e` 的MainWindow.xaml/.cs、NavigationViewPage.xaml/.cs及NavigationHelper/NavigationOrientationHelper。Gallery使用Frame历史与页面/NavigationView选择语义，不能直接据其普通Window改变Momoka主宿主、固定导航模式或点外取消。
