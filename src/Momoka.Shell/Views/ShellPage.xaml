@@ -45,9 +45,11 @@
     <!--
       外壳一行，浮在页面上面，40 像素高（<c>ChromeHeight</c>）：
 
-        左端（页面导航，2026-11-11 起按页型不再换脸）：主页 · 收藏（没有收藏时不在）· 设置 · 搜索 · 返回 · 前进
+        左端（页面导航）：返回（只在非主页）· 主页 · 收藏（没有收藏时不在）· 设置 · 搜索
+        正中：搜索框（够宽时才在）
         右端（身份）：账号（用户名 · 服务器名） ┄┄ 系统那三颗窗口按钮
-        侧边栏模式里 ≡ 站在最前面，设置／搜索／收藏让给栏里的入口，那一档是 ≡ · 主页 · 返回 · 前进。
+        侧边栏模式里这一排换成：返回（只在非主页）· 折叠 · 标题 Momoka —— 主页/收藏/设置/搜索让给栏里的
+        入口，前进键 2026-11-12 晚按用户令退役（Alt+→ 与鼠标侧键还在，见 GoForward）。
         ────────────────────────────────────────────────────────────────────
         页面（从窗口最左边开始；侧边栏模式时它让开那条栏的宽）
 
@@ -138,21 +140,45 @@
                 Spacing="2"
                 VerticalAlignment="Top"
                 HorizontalAlignment="Left">
-                <!-- 导航开关（≡）。2026-10-13：它从侧边栏内部挪到窗口左上角（标题的位置）—— 侧边栏里
-                     那颗自带的 ≡ 与这一颗是同一件事，所以框架那颗收掉（Sidebar 的
-                     IsPaneToggleButtonVisible="False"），菜单项因此往上顶到标题栏下沿；这一颗接管
-                     开合，导航栏展开时主页与返回就排在它右边（见 ShellPage.Sidebar.cs 的 ApplySidebarLayout）。
-                     只在这条侧边栏出现时露脸 —— 没有侧边栏就没有可开可关的东西。
-                     图标照这一排的规矩按 24×24 画：三条圆头横杠，就是那颗自带 ≡ 的字形。
-                     **内容靠左、不带内边距**：这一排的缩进是 12，而栏里那几项的字形中线落在 24 上
-                     （栏的图标格 48 宽、字形居中）—— 靠左摆，这颗的字形正好落在同一条竖线上（用户
-                     2026-10-13：「关闭导航没和下面对齐」）。居中的话会右偏 9 像素。 -->
+                <!-- 返回。**2026-11-12 晚起它站在这一排的最前面，而且只在非主页露面**（用户令「主页不显示
+                     返回按钮，进入媒体页面或者媒体库页面的时候显示，放左上角，折叠侧边栏按钮移到它右边」）。
+                     旧规矩「每一页都在、走不动时只是变暗」同日退役：主页没有可退的东西，那一格让给折叠键。
+                     显隐由 SyncChrome 按当前页决定（判据是 BackVisibilityFor），这里不写死。
+                     图标仍按 24×24 画；走不动时变暗那一档没变（见 ApplyChrome）。 -->
+                <Button x:Name="BackButton" x:Uid="ShellPage_BackButton" Click="OnBackClicked" IsEnabled="False">
+                    <Viewbox Width="26" Height="26">
+                        <PathIcon Data="F1 M 11.74,5.73 L 4.94,12.63 A 0.9,0.9 0 0 1 3.66,11.37 L 10.46,4.47 A 0.9,0.9 0 0 1 11.74,5.73 Z M 4.94,11.37 L 11.74,18.27 A 0.9,0.9 0 0 1 10.46,19.53 L 3.66,12.63 A 0.9,0.9 0 0 1 4.94,11.37 Z M 4.6,11.1 L 20.3,11.1 A 0.9,0.9 0 0 1 20.3,12.9 L 4.6,12.9 A 0.9,0.9 0 0 1 4.6,11.1 Z" />
+                    </Viewbox>
+                </Button>
+                <!-- 导航开关（≡ 已换成「面板」图标，2026-11-12 晚按用户给的图）。2026-10-13 起它从侧边栏内部
+                     挪到窗口左上角（标题的位置）：侧边栏里那颗自带的 ≡ 与这一颗是同一件事，所以框架那颗收掉
+                     （Sidebar 的 IsPaneToggleButtonVisible="False"），菜单项因此往上顶到标题栏下沿。
+                     它只在这条侧边栏出现时露脸 —— 没有侧边栏就没有可开可关的东西。
+                     位置：主页上它就是这一排的第一颗（返回收起）；进了媒体页或媒体库页，返回站到最左，
+                     它退到返回右边（用户令「折叠侧边栏按钮移到它右边」）。
+                     图标照这一排的规矩按 24×24 画：一个圆角面板，左栏实心、右侧留白 —— 就是用户给的那张图。
+                     三笔：外框（顺时针）、内孔（逆时针，非零绕数成洞）、左栏（顺时针，盖住洞的左半）。
+                     **内容靠左、不带内边距**：这一排的缩进是 11，栏里那几项的字形中线落在 26 上（栏的图标格
+                     48 宽、字形居中）—— 靠左摆，这颗的字形中线落在 24，和那几项差 2 像素（探针按 3 像素判，
+                     理由见 ShellPage.Sidebar.cs 的 ApplySidebarLayout）。居中会偏到 32，差 6 像素。 -->
                 <Button x:Name="NavToggleButton" x:Uid="ShellPage_NavToggleButton" Click="OnNavToggleClicked"
                     Padding="0" HorizontalContentAlignment="Left" Visibility="Collapsed">
                     <Viewbox Width="26" Height="26">
-                        <PathIcon Data="F1 M 3.5,6 L 20.5,6 A 0.9,0.9 0 0 1 20.5,7.8 L 3.5,7.8 A 0.9,0.9 0 0 1 3.5,6 Z M 3.5,11.1 L 20.5,11.1 A 0.9,0.9 0 0 1 20.5,12.9 L 3.5,12.9 A 0.9,0.9 0 0 1 3.5,11.1 Z M 3.5,16.2 L 20.5,16.2 A 0.9,0.9 0 0 1 20.5,18 L 3.5,18 A 0.9,0.9 0 0 1 3.5,16.2 Z" />
+                        <PathIcon Data="F1 M 6.2,3.6 L 17.8,3.6 A 3.6,3.6 0 0 1 21.4,7.2 L 21.4,16.8 A 3.6,3.6 0 0 1 17.8,20.4 L 6.2,20.4 A 3.6,3.6 0 0 1 2.6,16.8 L 2.6,7.2 A 3.6,3.6 0 0 1 6.2,3.6 Z M 6.2,5.3 A 1.9,1.9 0 0 0 4.3,7.2 L 4.3,16.8 A 1.9,1.9 0 0 0 6.2,18.7 L 17.8,18.7 A 1.9,1.9 0 0 0 19.7,16.8 L 19.7,7.2 A 1.9,1.9 0 0 0 17.8,5.3 Z M 4.3,7.2 A 1.9,1.9 0 0 1 6.2,5.3 L 9.6,5.3 L 9.6,18.7 L 6.2,18.7 A 1.9,1.9 0 0 1 4.3,16.8 Z" />
                     </Viewbox>
                 </Button>
+                <!-- 标题（2026-11-12 用户令「侧边栏模式新增标题」）：商店那种样子 —— 应用名站在标题栏左上、
+                     折叠键右边。只在侧边栏模式露脸（没有那条栏的时候这一排是主页/收藏/设置，应用名在任务栏上），
+                     墨跟着标题栏那支走（见 PaintTitleInk）。 -->
+                <TextBlock
+                    x:Name="AppTitleText"
+                    Margin="8,0,8,0"
+                    VerticalAlignment="Center"
+                    FontWeight="SemiBold"
+                    Style="{StaticResource EgBodyStyle}"
+                    Text="Momoka"
+                    Visibility="Collapsed" />
+
                 <!-- 主页。2026-11-11 用户令「左上角统一留主页、收藏、设置、搜索、返回」，于是这一排不再按页型
                      换脸（旧版：首页/收藏页露胶囊、媒体页只留后退+主页），六颗固定按这个次序从左排到右
                      （前进当晚加回、排在返回右边）；收藏那颗按「有没有收藏」显隐，见 SyncTitleActions。
@@ -192,22 +218,42 @@
                         </Viewbox>
                     </Button>
                 </StackPanel>
-                <!-- 返回与前进：这一排的最后两格。2026-11-11 起每一页都在（用户令「统一留…返回」），走不动时
-                     暗着、不再按页型收起；旧版首页与媒体页是把返回摆在主页左边的。前进当天下午退役、当晚
-                     按用户令加回，就站在返回右边 —— 它只补回「刚退回去那一步」，别处不往前进栈里添东西
-                     （见 GoForward）。两支的 Alt+← / Alt+→ 都挂在外壳上，鼠标侧键同路。 -->
-                <Button x:Name="BackButton" x:Uid="ShellPage_BackButton" Click="OnBackClicked" IsEnabled="False">
-                    <Viewbox Width="26" Height="26">
-                        <PathIcon Data="F1 M 11.74,5.73 L 4.94,12.63 A 0.9,0.9 0 0 1 3.66,11.37 L 10.46,4.47 A 0.9,0.9 0 0 1 11.74,5.73 Z M 4.94,11.37 L 11.74,18.27 A 0.9,0.9 0 0 1 10.46,19.53 L 3.66,12.63 A 0.9,0.9 0 0 1 4.94,11.37 Z M 4.6,11.1 L 20.3,11.1 A 0.9,0.9 0 0 1 20.3,12.9 L 4.6,12.9 A 0.9,0.9 0 0 1 4.6,11.1 Z" />
-                    </Viewbox>
-                </Button>
-                <Button x:Name="ForwardButton" x:Uid="ShellPage_ForwardButton" Click="OnForwardClicked" IsEnabled="False">
-                    <Viewbox Width="26" Height="26">
-                        <PathIcon Data="F1 M 13.54,4.47 L 20.34,11.37 A 0.9,0.9 0 0 1 19.06,12.63 L 12.26,5.73 A 0.9,0.9 0 0 1 13.54,4.47 Z M 20.34,12.63 L 13.54,19.53 A 0.9,0.9 0 0 1 12.26,18.27 L 19.06,11.37 A 0.9,0.9 0 0 1 20.34,12.63 Z M 3.7,11.1 L 19.4,11.1 A 0.9,0.9 0 0 1 19.4,12.9 L 3.7,12.9 A 0.9,0.9 0 0 1 3.7,11.1 Z" />
-                    </Viewbox>
-                </Button>
-                </StackPanel>
+            </StackPanel>
         </Grid>
+
+        <!-- 搜索框（2026-11-12 用户令「标题上方新增搜索栏，点击搜索栏进入搜索页面，搜索栏里写搜索媒体库、订阅等」）：
+             商店那颗的样子 —— 标题栏正中一段半透明圆角框，放大镜加一行占位字。它**不是输入框**，按下去就进搜索页
+             （那一页有自己的输入框和来源栏），所以用 Button 而不是 TextBox：键盘焦点、UIA 名字和回车都是按钮语义。
+             它站在窗口算成标题栏的那 40 像素里，所以和左边那一排、账号那颗一样要挖洞（见 ReportTitleBarHoles）——
+             不挖洞的话按下去是拖窗口。窄窗收起（门槛见 SyncTitleSearch）：这一排左边是按钮、右边是账号，
+             中间再塞一段就挤了；非侧边栏模式那一档由这一排里那颗放大镜键接手，侧边栏模式由栏里的「搜索」接手。 -->
+        <Button
+            x:Name="TitleSearchBox"
+            x:Uid="ShellPage_TitleSearchBox"
+            Height="30"
+            Margin="0,5,0,0"
+            Padding="12,0,12,0"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Background="{ThemeResource EgFieldFillBrush}"
+            BorderBrush="{ThemeResource EgFieldStrokeBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Foreground="{ThemeResource EgTextDimBrush}"
+            Click="OnSearchBoxClicked"
+            Visibility="Collapsed">
+            <Button.Resources>
+                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgFieldFillHoverBrush" />
+                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgFieldFillHoverBrush" />
+            </Button.Resources>
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <!-- 放大镜照这一排的规矩按 24×24 画（和标题栏那颗同一份几何），外面那层 16 的 Viewbox 是缩小那一步。 -->
+                <Viewbox Width="16" Height="16" VerticalAlignment="Center">
+                    <PathIcon Data="F1 M 10.25,2.75 A 7.5,7.5 0 1 1 10.25,17.75 A 7.5,7.5 0 1 1 10.25,2.75 Z M 10.25,4.55 A 5.7,5.7 0 1 0 10.25,15.95 A 5.7,5.7 0 1 0 10.25,4.55 Z M 16.19,14.91 L 21.64,20.36 A 0.9,0.9 0 0 1 20.36,21.64 L 14.91,16.19 A 0.9,0.9 0 0 1 16.19,14.91 Z" />
+                </Viewbox>
+                <TextBlock x:Uid="ShellPage_TitleSearchBoxText" Text="搜索媒体库、订阅等" VerticalAlignment="Center" />
+            </StackPanel>
+        </Button>
 
     </Grid>
 
@@ -433,8 +479,11 @@
              片场之间那一根）跟着走了，框架给「工作区」画的那道边、那个圆角、那圈边距也一起没了（它们是
              NavigationView 模板的东西）。
 
-             顶上留出 40（ChromeHeight，标题栏那一行）并自己上底色：外壳压在这一块的上面，页面从第 40 行
-             起画，那 40 像素由这里补上底色。整套里只有主页把这 40 顶开 —— 见 HomePage.xaml 里那块大图。
+             **顶上让出 40（ChromeHeight，标题栏那一行）的方式 2026-11-12 晚从内边距改成了外边距**：用户令
+             「侧边栏和标题栏采用云母 Alt」，那两处从此不再压画布、直接露出窗口材质；内边距只推孩子、画布仍会
+             铺满整个客户区（包括标题栏那 40 像素），于是标题栏那一档永远是画布色、云母一点也露不出来。
+             改成外边距之后，这一块从 y=40 起画，顶上那一条留给材质。**页面的坐标系没有变**：孩子仍从 40 起，
+             和原来的内边距一模一样；变的是画布自己的上沿。
 
              **整棵树唯一画窗口画布的地方（2026-11-12，用户令「改为Mica」）**：EgCanvasBrush 是压在 Mica 上
              的一层 60% 窗口色，各页面的根背景因此都写 Transparent —— 见 Palette.xaml 那颗键的注释。这一块
@@ -446,7 +495,7 @@
         <Grid
             x:Name="ContentHost"
             Background="{ThemeResource EgCanvasBrush}"
-            Padding="0,40,0,0"
+            Margin="0,40,0,0"
             Visibility="Collapsed">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -513,9 +562,15 @@
              到标题栏下沿」：那颗开关原先在栏里占着一格，主页/搜索那几项因此被压到它下面。
 
              设置那一项也从 FooterMenuItems 搬走了（它现在和账号一起站在左下角，见 AccountCluster）——
-             那一栏只能竖着摞，而那里要的是「展开并排、折叠上下叠」。 -->
+             那一栏只能竖着摞，而那里要的是「展开并排、折叠上下叠」。
+
+             **底色 2026-11-12 晚清掉了**（用户令「侧边栏和标题栏采用云母 Alt」）：这一块原先是
+             LayerFillColorAltBrush（面色 + 50%），压在画布上比内容再透一档；现在它和标题栏一样直接露出
+             窗口的 Mica Alt，只在底下压着这一页的画布（ContentHost 从 y=40 起画）。栏自己的
+             NavigationViewDefaultPaneBackground 早在 2026-10-14 就钉成 Transparent 了，所以这一处透明之后
+             整条栏只剩一层材质 —— 没有第二道面。 -->
         <Grid x:Name="SidebarHost" Canvas.ZIndex="1" HorizontalAlignment="Left"
-            Background="{ThemeResource LayerFillColorAltBrush}" Visibility="Collapsed">
+            Background="Transparent" Visibility="Collapsed">
             <NavigationView x:Name="Sidebar" Margin="0,40,0,0"
                 PaneDisplayMode="Left" OpenPaneLength="220" CompactPaneLength="48"
                 IsPaneOpen="True" IsSettingsVisible="False" IsBackButtonVisible="Collapsed"

@@ -79,7 +79,10 @@ internal sealed class IslandMicaBackdrop : SystemBackdrop
 
             // 先取得所有权再设置属性：对象初始化器的 setter 抛出时不会把对象赋给变量。
             controller = new MicaController();
-            controller.Kind = MicaKind.Base;
+            // 2026-11-12 晚按用户令「侧边栏和标题栏采用云母 Alt」换成 BaseAlt：整块窗口都是这一档，
+            // 侧边栏与标题栏不再压画布、直接露出它；内容区仍压着 60% 的窗口色（EgCanvasBrush），
+            // 于是「外壳比纸面亮一档」这层层次由材质与画布共同给出来，不是另画两块面。
+            controller.Kind = MicaKind.BaseAlt;
             var configuration = GetDefaultSystemBackdropConfiguration(connectedTarget, xamlRoot);
             Configure(configuration);
             controller.SetSystemBackdropConfiguration(configuration);

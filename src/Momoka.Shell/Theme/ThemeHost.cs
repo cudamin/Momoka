@@ -46,7 +46,11 @@ public static class ThemeHost
 
     /// <summary>
     /// 侧边栏那一层（<c>LayerFillColorAltBrush</c>）的浓度：0x80 ≈ 50%，比画布再透一档。
-    /// 栏本来就该比内容「薄」一层：它是外壳，不是纸面。
+    /// <para>
+    /// 2026-11-12 晚起侧边栏不再铺这一层（用户令「侧边栏和标题栏采用云母 Alt」，栏直接露出窗口材质），
+    /// 这颗键留在表里是给框架模板与以后可能再用到它的表面 —— 它与 Palette 的字面值仍要成对，见
+    /// <c>MicaMaterialTests</c> 那一条。
+    /// </para>
     /// </summary>
     private const byte SidebarLayerAlpha = 0x80;
 
@@ -106,6 +110,11 @@ public static class ThemeHost
         // 设的那组一致，标题栏两头才是同一种手感。
         ("EgOverlayHoverBrush", theme => theme.IsDark ? White.WithAlpha(0x23) : Black.WithAlpha(0x19)),
         ("EgOverlayPressedBrush", theme => theme.IsDark ? White.WithAlpha(0x37) : Black.WithAlpha(0x2D)),
+
+        // 标题栏那颗搜索框（2026-11-12）：压在 Mica Alt 上的一层半透明，深浅两边翻白/翻黑，理由同上一对。
+        ("EgFieldFillBrush", theme => theme.IsDark ? White.WithAlpha(0x14) : Black.WithAlpha(0x0F)),
+        ("EgFieldFillHoverBrush", theme => theme.IsDark ? White.WithAlpha(0x24) : Black.WithAlpha(0x1A)),
+        ("EgFieldStrokeBrush", theme => theme.IsDark ? White.WithAlpha(0x1F) : Black.WithAlpha(0x24)),
 
         // 框架的强调色一族：按钮、开关、滑块、评分、导航栏那条选中指示。
         ("AccentFillColorDefaultBrush", theme => theme.Colors.Accent),

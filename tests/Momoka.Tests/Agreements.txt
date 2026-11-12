@@ -6,6 +6,10 @@
 # 「约定：懒创建的面板保留原 UIA 句柄」盯着这五个名字，对应的 LibraryPage.xaml 旧 handle 行随之移除。
 # 2026-11-12：Palette.xaml 新增 EgCanvasBrush（主窗口 Mica 画布，60% 窗口色）。它是角色色，写法与同一份字典里
 # 别的层色一样是字面值，因此颜色计数 81→82；浓度那两处（Palette 首帧 + ThemeHost 常量）由 MicaMaterialTests 盯着。
+# 2026-11-12 晚（标题栏与轮播改版）：Palette.xaml 再添三对角色（EgFieldFill / EgFieldFillHover / EgFieldStroke，
+# 标题栏那颗搜索框压在 Mica Alt 上的底、悬停底与边线），Dark/Light 各三处，颜色计数 82→88 —— 同样是角色色按字面值写，
+# ThemeHost.Brushes 一并接上（自检「主题角色覆盖」盯着）。句柄：ForwardButton 随「前进键退役」有意删除，
+# 新增 AppTitleText / TitleSearchBox（标题栏标题与搜索框）、BannerCard / BannerGlow / BannerGlowBrush（主页轮播卡片）。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C
 analyzer  Microsoft.WindowsAppSDK.Analyzers.targets  80E801C7D787248009CF365268A8DBDD16A30399806B3FE85A7FE87BADBA3727
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Cards
@@ -23,7 +27,7 @@ bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Cards
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Note
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.RowHeight
 bind  Views/DetailPage.xaml  ViewModel.SimilarShelf.Title
-color  Theme/Palette.xaml  82
+color  Theme/Palette.xaml  88
 color  Views/DetailPage.xaml  12
 color  Views/HomeBanner.xaml  18
 color  Views/HtmlColorPicker.xaml  11
@@ -212,6 +216,9 @@ handle  Views/HomeBanner.xaml  TitleShift
 handle  Views/HomeBanner.xaml  TitleText
 handle  Views/HomeBanner.xaml  Top
 handle  Views/HomePage.xaml  Banner
+handle  Views/HomePage.xaml  BannerCard
+handle  Views/HomePage.xaml  BannerGlow
+handle  Views/HomePage.xaml  BannerGlowBrush
 handle  Views/HomePage.xaml  BannerZone
 handle  Views/HomePage.xaml  LibraryHost
 handle  Views/HomePage.xaml  LibraryOverlay
@@ -619,12 +626,12 @@ handle  Views/ShellPage.xaml  AccountSignOutItem
 handle  Views/ShellPage.xaml  AccountText
 handle  Views/ShellPage.xaml  AccountUser
 handle  Views/ShellPage.xaml  AppTitleBar
+handle  Views/ShellPage.xaml  AppTitleText
 handle  Views/ShellPage.xaml  BackButton
 handle  Views/ShellPage.xaml  Chrome
 handle  Views/ShellPage.xaml  ContentFrame
 handle  Views/ShellPage.xaml  ContentHost
 handle  Views/ShellPage.xaml  FavoritesButton
-handle  Views/ShellPage.xaml  ForwardButton
 handle  Views/ShellPage.xaml  HomeButton
 handle  Views/ShellPage.xaml  NavToggleButton
 handle  Views/ShellPage.xaml  Player
@@ -645,6 +652,7 @@ handle  Views/ShellPage.xaml  SidebarSettingsText
 handle  Views/ShellPage.xaml  SidebarSubscriptionsHeader
 handle  Views/ShellPage.xaml  SignIn
 handle  Views/ShellPage.xaml  TitleActions
+handle  Views/ShellPage.xaml  TitleSearchBox
 handle  Views/ShellPage.xaml  TitleUtilities
 handle  Views/ShellPage.xaml  Toast
 handle  Views/ShellPage.xaml  Trail

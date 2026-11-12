@@ -13,6 +13,7 @@ internal sealed partial class ShellNavigationProbe
         // 外壳：登录、侧边栏、历史、身份切换、通知、诊断与对话框
         [nameof(SignInAppearanceAsync)] = ShellProbeSections.Shell,
         [nameof(SidebarAsync)] = ShellProbeSections.Shell,
+        [nameof(SidebarAtStartupAsync)] = ShellProbeSections.Shell,
         [nameof(NotificationEmptyAsync)] = ShellProbeSections.Shell,
         [nameof(NotificationCancelAsync)] = ShellProbeSections.Shell,
         [nameof(StaleCardAsync)] = ShellProbeSections.Shell,

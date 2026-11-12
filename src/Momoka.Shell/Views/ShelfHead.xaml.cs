@@ -86,6 +86,20 @@ public sealed partial class ShelfHead : UserControl
         new PropertyMetadata(true, OnShowLinesChanged));
 
     /// <summary>
+    /// 标题底下那条通栏线画不画（2026-11-12 用户令「去掉主页媒体库标题下方的线条并收紧间距」）。默认画；
+    /// 主页那几排不画 —— 商店那种样子是标题直接压在卡片上沿，一条横贯整页的发丝线在那儿只是一道多余的分隔。
+    /// <para>
+    /// 与 <see cref="ShowLines"/> 分开：那一支是「沉浸详情页一条线都不要」（强调线和通栏线一起收），
+    /// 这一支只收底下那条，标题前面那道短强调线照留 —— 用户点的是「标题下方的线条」。
+    /// </para>
+    /// </summary>
+    public static readonly DependencyProperty ShowRuleProperty = DependencyProperty.Register(
+        nameof(ShowRule),
+        typeof(bool),
+        typeof(ShelfHead),
+        new PropertyMetadata(true, OnShowRuleChanged));
+
+    /// <summary>
     /// 下划线的看门人（<see cref="HoverWatch"/>），看的是 <see cref="Scope"/>。事件是快路，十分之一秒一次的
     /// 轮询兜底 —— 指针从牌子上直接出窗时，Exited 报的位置是旧的，没有这道网下划线就永远亮着
     /// （「鼠标移出窗口后不会自动恢复」在同一块牌子上重演一遍）。
@@ -153,13 +167,27 @@ public sealed partial class ShelfHead : UserControl
         set => SetValue(ShowLinesProperty, value);
     }
 
+    /// <inheritdoc cref="ShowRuleProperty"/>
+    public bool ShowRule
+    {
+        get => (bool)GetValue(ShowRuleProperty);
+        set => SetValue(ShowRuleProperty, value);
+    }
+
     private static void OnShowLinesChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
         var head = (ShelfHead)sender;
-        var shown = (bool)args.NewValue ? Visibility.Visible : Visibility.Collapsed;
+        var shown = (bool)args.NewValue;
 
-        head.Accent.Visibility = shown;
-        head.Rule.Visibility = shown;
+        head.Accent.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+        // 两条线各有一支开关：ShowLines 是「沉浸详情页一条都不要」，ShowRule 是「只收底下那条」。
+        head.Rule.Visibility = shown && head.ShowRule ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private static void OnShowRuleChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
+    {
+        var head = (ShelfHead)sender;
+        head.Rule.Visibility = (bool)args.NewValue && head.ShowLines ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <inheritdoc cref="OfferProperty"/>

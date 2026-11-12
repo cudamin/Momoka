@@ -159,7 +159,7 @@ internal static partial class ShellSelfCheck
         var (typeOk, type) = home.BannerType();
         var (pictureOk, picture) = home.BannerPicture();
         var (layoutOk, layout) = home.LayoutRead();
-        var (bleedOk, bleed) = home.BleedRead();
+        var (bleedOk, bleed) = home.BannerCardRead();
         var (foldOk, fold) = shell.ProbeHomeFold();
         return (shell.CurrentTag == "home", home.LoadedCount, home.ShelfSummary, home.BannerSummary, typeOk, type,
             pictureOk, picture, layoutOk, layout, bleedOk, bleed, foldOk, fold, Slate(shell));
@@ -170,41 +170,42 @@ internal static partial class ShellSelfCheck
     /// 不是一条断言；真正会红的是 <see cref="ReadInk"/> 那一条（系统那三颗按钮的墨）。
     /// <para>
     /// 这一读从前问的是页头那块牌子（<c>PageSlate.OnScrim</c>），页头 2026-09-11 删掉之后改成问外壳：面包屑那
-    /// 一行自己上不上底色、走哪支墨，全由 <c>ShellPage.PaintTitleInk</c> 按同一档决定。**轮播通栏之后底下是
-    /// 剧照，所以主页该是 <see cref="TitleStrip.OnScrim"/>**；报出 <see cref="TitleStrip.Plain"/> 就说明
-    /// <c>HomePage.PaintInk</c> 那一句没接上（或者带子收起来之后没还回去）。
+    /// 一行自己上不上底色、走哪支墨，全由 <c>ShellPage.PaintTitleInk</c> 按同一档决定。**2026-11-12 晚起主页
+    /// 该是 <see cref="TitleStrip.Plain"/>** —— 轮播改成四边留白的圆角卡片，剧照不再铺到窗口顶边；报出
+    /// <see cref="TitleStrip.OnScrim"/> 就说明通栏版式又回来了（或者 <c>HomePage.PaintInk</c> 那句没改）。
     /// </para>
     /// </summary>
     private static string Slate(ShellPage shell) => shell.TitleStripNow switch
     {
-        TitleStrip.OnScrim => "外壳那一行按「浮在图上」那档画（主页通栏后该是这样）",
+        TitleStrip.OnScrim => "外壳那一行按「浮在图上」那档画（主页改成圆角卡片之后不该是这样）",
         TitleStrip.PagePainted => "外壳那一行按「图还在、页面自己洗成纸色」那档画",
-        _ => "外壳那一行按「页面自己的纸」那档画（主页轮播通栏之后不该是这样）",
+        _ => "外壳那一行按「页面自己的纸」那档画（主页圆角卡片之后该是这样）",
     };
 
     /// <summary>
-    /// 自检：标题栏那三颗系统按钮的墨。轮播 2026-09-11 起通栏（剧照铺到窗口的顶边，标题栏浮在图上）之后，那一行
-    /// 底下是剧照，所以这一支墨必须是固定的浅墨 —— 谁把联动删了、或者换回主题那支深墨，这一条当场红（深墨画在
-    /// 一张亮剧照上，就是三颗看不见的按钮，其中一颗是关闭）。
+    /// 自检：标题栏那三颗系统按钮的墨。
+    /// <para>
+    /// 2026-11-12 晚起主页轮播是四边留白的圆角卡片，剧照不再铺到窗口顶边，所以这一行底下是画布而不是剧照 ——
+    /// 三颗按钮走主题那支墨。<see cref="TitleStrip.OnScrim"/> 那一档（固定浅墨）仍留给详情页的沉浸头图，
+    /// 但主页不该再报它：谁把通栏版式请回来、或者把联动接错，这一条当场红（浅墨画在一套浅色主题的页面上，
+    /// 就是三颗看不见的按钮，其中一颗是关闭）。
+    /// </para>
     /// <para>
     /// 只问这三颗，不问左边那一排：那一排在左端，底色由 <c>PaintTitleInk</c> 按侧边栏换，不归这一条管。
     /// 系统这三颗在右端，只有它们的墨跟着顶上那一块走。
-    /// </para>
-    /// <para>
-    /// 2026-09-10 到 09-11 之间这条判的正好相反（那时轮播框成卡片、标题栏底下永远是页面底色，所以要求这一支
-    /// 是主题那支）。谁把这一读改回去，等于把已经删掉的卡片版式又请了回来。
     /// </para>
     /// </summary>
     private static (bool Ok, string Detail) ReadInk(ShellPage shell, HostWindow window)
     {
         if (window.TitleBarColours is not { Glyph: { } glyph }) return (false, "没有自定义标题栏可问颜色");
 
-        var pale = glyph.R == 0xF3 && glyph.G == 0xF5 && glyph.B == 0xF8;
+        var themed = ThemeHost.ToColor(ThemeHost.Current.Colors.Text);
+        var matches = glyph.R == themed.R && glyph.G == themed.G && glyph.B == themed.B;
         var shown = $"#{glyph.A:X2}{glyph.R:X2}{glyph.G:X2}{glyph.B:X2}";
 
-        return (pale,
-            $"轮播通栏、标题栏浮在剧照上，按钮图标 {shown}"
-                + (pale ? "（图上那支浅墨）" : " —— 却还是主题那支深墨（联动没接上）"));
+        return (matches,
+            $"标题栏底下是页面画布，按钮图标 {shown}"
+                + (matches ? "（主题那支墨）" : " —— 却还是「浮在图上」那支浅墨（联动没还回来）"));
     }
 
     /// <summary>

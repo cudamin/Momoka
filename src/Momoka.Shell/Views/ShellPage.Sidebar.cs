@@ -77,9 +77,16 @@ public sealed partial class ShellPage
         // 导航开关（≡）只在这条栏出现时露脸：没有栏就没有可开可关的东西，而它站在标题栏那一排的最前面
         // （见 ApplySidebarLayout 的缩进），所以收藏/后退/前进跟在它右边。
         NavToggleButton.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
-        SettingsButton.Visibility = SearchButton.Visibility =
-            shown ? Visibility.Collapsed : Visibility.Visible;
+        // 标题（2026-11-12「侧边栏模式新增标题」）和导航开关同进同退：没有那条栏的时候应用名在任务栏上，
+        // 标题栏那一排是主页/收藏/设置，不需要再写一遍名字。
+        AppTitleText.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+        // 主页与收藏也在这条栏出现时让给栏里的入口（2026-11-12 晚）：那一档左边只剩返回 · 折叠 · 标题，
+        // 栏里第一项就是「主页」、收藏那条也在栏里 —— 同一页不出两个同样的入口。
+        HomeButton.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
+        SettingsButton.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
         TitleUtilities.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
+        // 搜索框（标题栏正中）与那一排里的放大镜：门槛与顶班规则在 SyncTitleSearch 里。
+        SyncTitleSearch();
         // 主页、返回与前进每一档都在；设置、搜索、收藏在侧边栏那一档让给栏里的入口（见 SyncTitleActions）。
         SyncTitleActions();
         SidebarFavorites.Visibility = Favorites.Visibility;
@@ -127,12 +134,21 @@ public sealed partial class ShellPage
         // This control only hosts the menu. Explicitly select compact presentation
         // when its host shrinks, and retain persistent navigation while expanded.
         var mode = Sidebar.IsPaneOpen ? NavigationViewPaneDisplayMode.Left : NavigationViewPaneDisplayMode.LeftCompact;
-        if (Sidebar.PaneDisplayMode != mode) Sidebar.PaneDisplayMode = mode;
+        if (Sidebar.PaneDisplayMode != mode)
+        {
+            Sidebar.PaneDisplayMode = mode;
+            // 换档会换掉 SplitView 里那支裁剪几何：旧的那支不再在树上，缓存着它只会一直去修一支没人用的变换，
+            // 而新那支带着 −172 的位移把整条栏推到栏外 —— 屏上就是「只有标题、没有栏」。下一次 AlignSidebarPaneClip
+            // 重新找一遍。
+            _sidebarPaneClip = null;
+        }
         AlignSidebarPaneClip();
         var shown = SidebarShown;
         var width = shown ? Sidebar.IsPaneOpen ? Sidebar.OpenPaneLength : Sidebar.CompactPaneLength : 0;
         SidebarHost.Width = width;
-        ContentHost.Margin = new Thickness(width, 0, 0, 0);
+        // 顶上那 40 是标题栏：2026-11-12 晚起画布让开它（见 ShellPage.xaml 里 ContentHost 那一段），
+        // 所以这一份外边距是「让开侧边栏的宽 + 让开标题栏的高」两件事合起来的一个值。
+        ContentHost.Margin = new Thickness(width, HomePage.ChromeHeight, 0, 0);
         PlaceMusicBar();
 
         // 标题栏那一排的缩进：侧边栏在屏上时是 11，其余时候是 18（标记里那个值）。11 是「导航开关的字形
@@ -153,6 +169,11 @@ public sealed partial class ShellPage
 
         ToolTipService.SetToolTip(NavToggleButton, Sidebar.IsPaneOpen ? "关闭导航" : "打开导航");
         ApplyAccountCluster(shown, width);
+
+        // 标题栏那三个洞跟着窗宽走（正中那颗搜索框、右上角那组账号都是随窗宽落位的），而这条路径是
+        // 「窗口尺寸变了」唯一一定会走到的地方 —— 不在这里补一次，拉宽之后点搜索框就变成拖窗口。
+        // 坐标没变时 ReportTitleBarHoles 自己会跳过。
+        ReportTitleBarHoles();
     }
 
     /// <summary>

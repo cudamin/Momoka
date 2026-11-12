@@ -166,15 +166,18 @@ public sealed partial class HomePage : Page, IShellContent
         NavigationTiming.Mark("init-end");
         _stayProbe = (_, _) => _stayAsked++;
 
-        // 这一页的三件事都挂在轮播上：剧照一上来就把外壳那 40 像素顶回去（SyncBleed），标题栏那一行的墨
-        // 跟着带面走（PaintInk），竖滚动条不从带子上压过去（PlaceScrollBar —— 「滚动条不要延伸到轮播图上，
-        // 在下半部分显示就行」，2026-10-01）。三件都只在带子可见时有意义 —— 没有幻灯片时 Apply 会把
-        // Visibility 收起来，各条都在那之后重新对一遍。
-        Banner.Loaded += (_, _) => { SyncBleed(); PlaceScrollBar(); };
-        Banner.SizeChanged += (_, _) => { SyncBleed(); PlaceScrollBar(); };
+        // 这一页的两件事都挂在轮播上：卡片外沿那圈染色跟着台上那张的颜色走（PaintBannerGlow），竖滚动条
+        // 不从卡片上压过去（PlaceScrollBar —— 「滚动条不要延伸到轮播图上，在下半部分显示就行」，2026-10-01）。
+        // 两件都只在带子可见时有意义 —— 没有幻灯片时 Apply 会把 Visibility 收起来，各条都在那之后重新对一遍。
+        //
+        // 2026-11-12 晚起不再有「把外壳那 40 像素顶回去」那一条（SyncBleed）：轮播改成四边留白的圆角卡片
+        // 之后它本来就不碰窗口的边，标题栏也不必再按「压在图上的浅墨」画（见 PaintInk）。
+        Banner.Loaded += (_, _) => { PaintBannerGlow(); PlaceScrollBar(); };
+        Banner.SizeChanged += (_, _) => PlaceScrollBar();
+        Banner.AmbientChanged += color => { _ambientInk = color; PaintBannerGlow(); };
         Banner.SlideChanged += (_, _) =>
         {
-            SyncBleed();
+            PaintBannerGlow();
             PaintInk();
             PlaceScrollBar();
         };
@@ -351,58 +354,73 @@ public sealed partial class HomePage : Page, IShellContent
     }
 
     /// <summary>
-    /// 自检：轮播真铺满了窗口的上半部分 —— 左沿落在窗口左边（0）、右沿吃满窗口宽、上沿顶回到窗口顶边（也就是
-    /// 把外壳留给标题栏的那 40 像素也吃掉，标题栏浮在剧照上）。「占满窗口的上半部分（包括窗口标题）」，2026-09-11。
+    /// 自检：轮播是一块四边留白的圆角卡片，不是通栏。
     /// <para>
-    /// 量 Banner 自己在窗口里的位置：左、上两条都该贴到 0，右沿也该到 0。下沿与内容之间的界线不在这里量 ——
-    /// 那是画面上的渐变过渡，由 HomeBanner 的读数负责。
+    /// 2026-11-12 晚按用户令「参考上图给轮播图添加圆角，和四周染色的效果」改：卡片左沿让出页脊线（36）、
+    /// 右沿让出滚动条那条车道（13）、上沿落在标题栏底下（≥ 40，也就是页面自己的第 0 行再加 20 的那一口气），
+    /// 整块都圆角。量的是 Banner 在窗口里的位置与 BannerCard 的圆角 —— 卡片和带子现在同宽（带子在卡片里），
+    /// 所以两者的内缩是同一个数。
     /// </para>
     /// <para>
-    /// 2026-09-10 到 09-11 之间判的正好相反：「弄个框把轮播图框起来」被落定成四边各留 24 的卡片，那一版要求
-    /// 左、右、上三条都让出 PageInset。谁把 Banner 的负边距删掉（<c>Margin="0,-40,0,0"</c>）、或者给这一页
-    /// 补回左右留白，这一条当场红。
+    /// 判据与上一版正好相反：上一版（2026-09-11「占满窗口的上半部分（包括窗口标题）」）要求左、上、右三条
+    /// 都贴到 0。谁把 BannerZone 的边距删掉、或者把卡片拆了换回通栏，这一条当场红。
     /// </para>
     /// </summary>
-    internal (bool Ok, string Detail) BleedRead()
+    internal (bool Ok, string Detail) BannerCardRead()
     {
         var at = Banner.TransformToVisual(null).TransformPoint(new Windows.Foundation.Point(0, 0));
         var window = XamlRoot?.Size.Width ?? 0;
         var pageLeft = TransformToVisual(null).TransformPoint(new Windows.Foundation.Point()).X;
+        var left = at.X - pageLeft;
         var right = window - (at.X + Banner.ActualWidth);
         var viewportTop = Scroller.TransformToVisual(null).TransformPoint(new Windows.Foundation.Point()).Y;
+        var rounded = BannerCard.CornerRadius.TopLeft > 0
+            && BannerCard.CornerRadius.TopLeft == BannerCard.CornerRadius.BottomRight;
+
         var ok = Banner.ActualWidth > 0
             && window > 0
-            && Math.Abs(at.X - pageLeft) <= 0.5
-            && right <= 0.5
-            && at.Y <= 0.5
-            && viewportTop <= 0.5;
+            && Math.Abs(left - 36) <= 0.5
+            && Math.Abs(right - 13) <= 0.5
+            && at.Y >= ChromeHeight + 12
+            && Math.Abs(viewportTop - ChromeHeight) <= 0.5
+            && rounded;
 
         return (ok,
             $"起点 ({at.X:0},{at.Y:0})、{Banner.ActualWidth:0}×{Banner.ActualHeight:0}"
-                + $"，左让 {at.X:0}、右让 {right:0}、上让 {at.Y:0}，滚动视口从 {viewportTop:0} 起（含标题栏 {ChromeHeight:0}）"
-                + (ok ? " —— 通栏铺满，标题栏浮在图上" : " —— 有哪条边没顶到窗口的边"));
+                + $"，左让 {left:0}、右让 {right:0}、上让 {at.Y:0}（标题栏 {ChromeHeight:0}），"
+                + $"圆角 {(rounded ? $"{BannerCard.CornerRadius.TopLeft:0}" : "没有")}"
+                + $"，滚动视口从 {viewportTop:0} 起"
+                + (ok ? " —— 四边留白的圆角卡片" : " —— 卡片的内缩、圆角或滚动视口不对"));
     }
 
     /// <summary>
-    /// 把外壳留给标题栏的那 40 像素顶回来，让剧照铺到窗口的顶边去。这一页是整套里唯一这么干的一页（别的页
-    /// 都把那 40 留白让给标题栏），所以它是这一页自己的事，不是外壳的开关。
+    /// 卡片外沿那圈染色的颜色（2026-11-12 用户令「参考上图给轮播图添加圆角，和四周染色的效果」）。
     /// <para>
-    /// 负边距必须落在 Scroller 本身：只把 Banner 往上移，布局坐标虽然到了 0，图片仍被滚动视口在 40 处裁掉。
-    /// 连视口一起上移后，图像才真正铺进标题栏。没有幻灯片时归零，普通货架继续让开标题栏。
+    /// 颜色来自台上那张剧照：<c>BannerSlide.Ambient</c> → Core 的 <c>CarouselAmbient</c> 从像素里挑一个
+    /// 有代表性的色相，这条带子换人（或者那一张的图迟到）时报一次，这里把四个停点重写一遍。
+    /// 传过来的是透明就表示这一张没有可借的颜色 —— 四个停点全透明，光晕收掉，不拿上一张的颜色继续画。
     /// </para>
     /// <para>
-    /// 2026-09-10 到 09-11 之间这个方法不存在：那一版「框成卡片」之后大图不再贴窗口的边，没人要顶那 32。
-    /// 「占满窗口的上半部分（包括窗口标题）」之后它回来了。
+    /// 停点的位置在 XAML 里（0 / 0.52 / 0.82 / 1）：卡片边沿落在归一化半径 0.5 上，所以 0.52 是紧贴卡片外沿
+    /// 最浓的一档，往外两档散尽。浓度（alpha）压得低：它压在深色画布上，浓了就是一圈发光的边，而商店那张
+    /// 只是「四周有一点这张图的颜色」。
     /// </para>
     /// </summary>
-    internal void SyncBleed()
+    private void PaintBannerGlow()
     {
-        var sheet = Scroller.Margin;
-        var wanted = Banner.Visibility == Visibility.Visible ? -ChromeHeight : 0;
+        var color = _ambientInk;
+        var stops = BannerGlowBrush.GradientStops;
+        stops[0].Color = Fade(color, 0x50);
+        stops[1].Color = Fade(color, 0x3C);
+        stops[2].Color = Fade(color, 0x10);
+        stops[3].Color = Microsoft.UI.Colors.Transparent;
 
-        if (Math.Abs(sheet.Top - wanted) > 0.5)
-            Scroller.Margin = new Thickness(sheet.Left, wanted, sheet.Right, sheet.Bottom);
+        static Windows.UI.Color Fade(Windows.UI.Color color, byte alpha) =>
+            color.A == 0 ? Microsoft.UI.Colors.Transparent : Windows.UI.Color.FromArgb(alpha, color.R, color.G, color.B);
     }
+
+    /// <summary>台上那张的代表色，见 <see cref="PaintBannerGlow"/>；透明表示这一张没有可借的颜色。</summary>
+    private Windows.UI.Color _ambientInk = Microsoft.UI.Colors.Transparent;
 
     /// <summary>
     /// 这一页自己的竖滚动条（EgNarrowScrollBarStyle 那支），模板树里找到后缓存。
@@ -413,7 +431,7 @@ public sealed partial class HomePage : Page, IShellContent
     /// 把竖滚动条的顶压到轮播的下沿（「滚动条不要延伸到轮播图上，在下半部分显示就行」，2026-10-01）。
     /// 滚动条跟着视口铺满整页，而这一页第一块内容就是通栏轮播 —— 不挪的话，滚动或悬停时那条 bar 正压在
     /// 剧照上。量 <see cref="HomeBanner.ActualHeight"/> 而不是按宽换算（HomeCarousel.Height）：轮播收起、
-    /// 矮窗档这些档位下事件来源（与 SyncBleed 同一批 Banner 钩子）已把「带子变了」都送过来，读实际值
+    /// 矮窗档这些档位下事件来源（与 PaintBannerGlow／PlaceScrollBar 同一批 Banner 钩子）已把「带子变了」都送过来，读实际值
     /// 省得再算；**窗口高矮不必单独听** —— 带高只随宽度走，宽度一变 Banner.SizeChanged 必响。没有幻灯片时
     /// 带子收起（ActualHeight 归零），滚动条回到通长，本来就没有要避的东西。
     /// <para>
@@ -1164,13 +1182,14 @@ public sealed partial class HomePage : Page, IShellContent
     }
 
     /// <summary>
-    /// <c>ShellPage.xaml</c> 里 <c>ContentHost</c> 给外壳留的那一段（<c>Padding="0,40,0,0"</c>）：标题栏那一行
-    /// 的高。轮播通栏之后这一页要把它顶回去（<see cref="SyncBleed"/>，Banner 挂一条 −40 的上边距），所以这个数
-    /// 有三份用场：SyncBleed 拿它当那口负边距的大小、BleedRead 拿它写读数、自检那一关
-    /// （<c>ShellPage.ProbeChrome</c>）拿它和屏上量出来的外壳高度对一遍 —— 对账要的正是「两边引的是同一个数」。
+    /// <c>ShellPage.xaml</c> 里 <c>ContentHost</c> 给外壳让开的那一段（<c>Margin="0,40,0,0"</c>）：标题栏那一行
+    /// 的高。这个数有三份用场：外壳自己按它摆内容区、<see cref="BannerCardRead"/> 拿它判「卡片落在标题栏底下」、
+    /// 自检那一关（<c>ShellPage.ProbeChrome</c>）拿它和屏上量出来的外壳高度对一遍 —— 对账要的正是「两边引的是
+    /// 同一个数」。
     /// <para>
     /// 2026-09-09 起外壳只有标题栏这一行：第 1 行（标签栏删掉后剩下的那条空带）删掉了，这个数从 80 收到 32；
-    /// 2026-11-01 按钮再下移并放大，标题栏加到 40。
+    /// 2026-11-01 按钮再下移并放大，标题栏加到 40。2026-11-12 晚之前主页拿它当一口 −40 的上边距把画布顶开
+    /// （通栏轮播那一版），那一手随圆角卡片版式一起退役。
     /// </para>
     /// </summary>
     internal const double ChromeHeight = 40;
@@ -1435,9 +1454,8 @@ public sealed partial class HomePage : Page, IShellContent
             host.PlayerLayerEnded += OnPlayerLayerEnded;
         }
 
-        // 标题栏那一行浮在剧照上，所以那一行的墨走固定的浅墨（不跟主题走）—— 和详情页头图铺到顶边时一个规矩。
-        // 带子还没有幻灯片时下面判成 Plain，见 PaintInk。
-        _actions?.SetTitleStrip(TitleStrip.OnScrim);
+        // 标题栏那一行不再压在剧照上（2026-11-12 晚轮播改成四边留白的圆角卡片），所以那一行的墨走主题那一支。
+        _actions?.SetTitleStrip(TitleStrip.Plain);
 
         // The one place this page resolves anything. It is deliberately a single block: it is the line
         // that goes when the shell stops handing a container around, and spreading it would turn one
@@ -1525,16 +1543,14 @@ public sealed partial class HomePage : Page, IShellContent
     }
 
     /// <summary>
-    /// 标题栏那一行的墨：带子真在屏上（有幻灯片、并且这一块没被收起来）走 <see cref="TitleStrip.OnScrim"/>，
-    /// 剧照顶上那层暗罩托着它；一张幻灯片都没有、这一块自己收起来了的时候，标题栏底下又变回页面底色，那时得还
-    /// 回 <see cref="TitleStrip.Plain"/>，不然浅墨画在浅色页底上就是几颗看不见的按钮。
+    /// 标题栏那一行的墨：**2026-11-12 晚起主页永远是 <see cref="TitleStrip.Plain"/>**。
     /// <para>
-    /// 这是 2026-09-10 删掉、2026-09-11 找回来的那条联动 —— 那时候「框成卡片」让剧照不再碰窗口的顶边，标题栏
-    /// 底下永远是页面底色，联动没有意义。参照详情页的 <c>DetailPage.SyncTitleInk</c>。
+    /// 轮播改成四边留白的圆角卡片之后，剧照不再铺到窗口的顶边，标题栏底下是页面自己的画布 —— 于是那条
+    /// 「带子在屏上就换浅墨」的联动（2026-09-11 找回来的）失去了对象。留着它在两种墨之间来回切，反而会在
+    /// 换幻灯片时把标题栏闪一下。
     /// </para>
     /// </summary>
-    private void PaintInk() =>
-        _actions?.SetTitleStrip(Banner.Visibility == Visibility.Visible ? TitleStrip.OnScrim : TitleStrip.Plain);
+    private void PaintInk() => _actions?.SetTitleStrip(TitleStrip.Plain);
 
     /// <summary>
     /// 设置里主页那一组改了（拖拽排序、勾选、轮播的来源媒体张数秒数），照新的重排一遍 —— 轮播那几行
