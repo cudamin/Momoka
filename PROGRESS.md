@@ -1,3 +1,7 @@
+## 2026-11-12 设置窗口 Mica 与分类栏 Mica Alt（已撤销）
+
+用户先问设置页是否采用 Mica 与 Mica Alt，核对后答两者都没有，给出「窗口级 Base ＋ 分类栏局部 BaseAlt」方案，获「可以」后实施并发布（`0b24d0e`、`f3e9bfb`）。同日 10:49 用户要求「撤销本窗口的更改」，整批撤回（`560bd31`）：`SettingsWindow` 回到纯主题实色窗口，`SettingsPage` 的分类栏材质元素与 `DetailMica` 挂载、`ShellPage` 的读数出口、自检「设置窗口底材」、`MicaMaterialTests` 的材质契约、`docs/开发与验证.md` 那一节与基线登记全部撤掉；除本节外，文件内容与 `5736e95` 一致。两处挡构建的既有修复（`ItemUserStateOrderTests.Boundaries.cs` 的重复定义、`SourcePins.json` 的过期哈希）不属本特性，保留。交付件回滚到撤销前那份：`publish-20261112-104209` 已挪回 `artifacts/publish/win-x64`（`Momoka.dll` 8 443 392 字节、02:43 构建），本轮材质构建挪到 `Momoka-stale/publish-20261112-110216-mica`；撤销后截图确认设置窗口是实色、无材质层。
+
 ## 2026-11-12 WinUI 规则、项目技能与分阶段重构计划（P0）
 
 用户要求先整理项目规则/技能，再制定充分使用 WinUI 特性的详细重构计划；与特性或官方推荐冲突时先说明取舍并询问，确认后才实现；材质适用位置、用法和限制需详细记录。用户另明确确认删除 `momoka-skill-creator`。
