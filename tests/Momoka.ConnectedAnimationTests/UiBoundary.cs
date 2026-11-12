@@ -80,12 +80,18 @@ namespace Microsoft.UI.Xaml
 
 namespace Microsoft.UI.Xaml.Controls
 {
+    public sealed class ScrollView : Microsoft.UI.Xaml.FrameworkElement;
+    public sealed class ScrollViewer : Microsoft.UI.Xaml.FrameworkElement;
     public sealed class Frame : Microsoft.UI.Xaml.FrameworkElement
     {
         public object? Content { get; set; }
         public event Microsoft.UI.Xaml.Navigation.NavigatingCancelEventHandler? Navigating;
+        public event Microsoft.UI.Xaml.Navigation.NavigationEventHandler? NavigationStopped;
+        public event Microsoft.UI.Xaml.Navigation.NavigationFailedEventHandler? NavigationFailed;
         public void Navigate(object? parameter, bool back = false) => Navigating?.Invoke(this, new()
         { Parameter = parameter, NavigationMode = back ? Microsoft.UI.Xaml.Navigation.NavigationMode.Back : Microsoft.UI.Xaml.Navigation.NavigationMode.New });
+        public void StopNavigation() => NavigationStopped?.Invoke(this, new());
+        public void FailNavigation() => NavigationFailed?.Invoke(this, new());
     }
     public sealed class Image : Microsoft.UI.Xaml.FrameworkElement
     {
@@ -97,6 +103,10 @@ namespace Microsoft.UI.Xaml.Navigation
 {
     public enum NavigationMode { New, Back }
     public delegate void NavigatingCancelEventHandler(object sender, NavigatingCancelEventArgs args);
+    public delegate void NavigationEventHandler(object sender, NavigationEventArgs args);
+    public delegate void NavigationFailedEventHandler(object sender, NavigationFailedEventArgs args);
+    public sealed class NavigationEventArgs : EventArgs;
+    public sealed class NavigationFailedEventArgs : EventArgs;
     public sealed class NavigatingCancelEventArgs : EventArgs
     {
         public object? Parameter { get; set; }
@@ -175,11 +185,33 @@ namespace Windows.UI.ViewManagement
     public sealed class UISettingsAnimationsEnabledChangedEventArgs : EventArgs;
     public sealed class UISettings
     {
+        public enum EventFailure { None, Before, After }
         public static bool Enabled { get; set; } = true;
+        public static EventFailure AddFailure { get; set; }
+        public static EventFailure RemoveFailure { get; set; }
         public static List<UISettings> Created { get; } = [];
         public UISettings() => Created.Add(this);
         public Windows.Foundation.TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? Handlers;
-        public event Windows.Foundation.TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? AnimationsEnabledChanged { add => Handlers += value; remove => Handlers -= value; }
+        public event Windows.Foundation.TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? AnimationsEnabledChanged
+        {
+            add
+            {
+                if (AddFailure == EventFailure.Before) throw new InvalidOperationException("Injected pre-add failure.");
+                Handlers += value;
+                if (AddFailure == EventFailure.After) throw new InvalidOperationException("Injected post-add failure.");
+            }
+            remove
+            {
+                if (RemoveFailure == EventFailure.Before) throw new InvalidOperationException("Injected pre-remove failure.");
+                Handlers -= value;
+                if (RemoveFailure == EventFailure.After) throw new InvalidOperationException("Injected post-remove failure.");
+            }
+        }
+        public Action CapturePostedChange()
+        {
+            var callbacks = Handlers;
+            return () => callbacks?.Invoke(this, new());
+        }
         public static void Change(bool value)
         {
             Enabled = value;

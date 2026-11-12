@@ -29,6 +29,8 @@ internal static class CardDetailTransition
             Tickets.Add(frame, ticket);
             ticket.Watch();
             frame.Navigating += OnNavigating;
+            frame.NavigationStopped += OnNavigationStopped;
+            frame.NavigationFailed += OnNavigationFailed;
             return true;
         }
         catch (Exception)
@@ -41,6 +43,16 @@ internal static class CardDetailTransition
     private static void OnNavigating(object sender, Microsoft.UI.Xaml.Navigation.NavigatingCancelEventArgs args)
     {
         if (sender is Frame frame) NavigationStarted(frame, args.Parameter, args.NavigationMode == Microsoft.UI.Xaml.Navigation.NavigationMode.Back);
+    }
+
+    private static void OnNavigationStopped(object sender, Microsoft.UI.Xaml.Navigation.NavigationEventArgs args)
+    {
+        if (sender is Frame frame) Cancel(frame);
+    }
+
+    private static void OnNavigationFailed(object sender, Microsoft.UI.Xaml.Navigation.NavigationFailedEventArgs args)
+    {
+        if (sender is Frame frame) Cancel(frame);
     }
 
     internal static bool IsPrepared(Frame frame, object? parameter) =>
@@ -79,6 +91,8 @@ internal static class CardDetailTransition
         if (frame is null || !Tickets.TryGetValue(frame, out var ticket)) return;
         Tickets.Remove(frame);
         frame.Navigating -= OnNavigating;
+        frame.NavigationStopped -= OnNavigationStopped;
+        frame.NavigationFailed -= OnNavigationFailed;
         ticket.Dispose();
     }
 
@@ -93,7 +107,21 @@ internal static class CardDetailTransition
         try
         {
             var bounds = image.TransformToVisual(root).TransformBounds(new Rect(0, 0, image.ActualWidth, image.ActualHeight));
-            return root is FrameworkElement host && bounds.Right > 0 && bounds.Bottom > 0 && bounds.Left < host.ActualWidth && bounds.Top < host.ActualHeight;
+            if (root is not FrameworkElement host) return false;
+            var left = Math.Max(0, bounds.Left);
+            var top = Math.Max(0, bounds.Top);
+            var right = Math.Min(host.ActualWidth, bounds.Right);
+            var bottom = Math.Min(host.ActualHeight, bounds.Bottom);
+            for (var ancestor = VisualTreeHelper.GetParent(image); ancestor is not null; ancestor = VisualTreeHelper.GetParent(ancestor))
+            {
+                if (ancestor is not FrameworkElement viewport || ancestor is not (ScrollView or ScrollViewer)) continue;
+                var clip = viewport.TransformToVisual(root).TransformBounds(new Rect(0, 0, viewport.ActualWidth, viewport.ActualHeight));
+                left = Math.Max(left, clip.Left);
+                top = Math.Max(top, clip.Top);
+                right = Math.Min(right, clip.Right);
+                bottom = Math.Min(bottom, clip.Bottom);
+            }
+            return right > left && bottom > top;
         }
         catch (Exception) { return false; }
     }
@@ -115,6 +143,9 @@ internal static class CardDetailTransition
         private bool _disposed;
         private bool _resolved;
         private int _generation;
+        private int _preferenceGeneration;
+        private Action? _preferenceChanged;
+        private TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? _systemPreferenceChanged;
 
         internal Ticket(Frame frame, EmbyItem item, PosterCard source, ConnectedAnimation animation)
         {
@@ -223,15 +254,6 @@ internal static class CardDetailTransition
             })) Cancel(_frame);
         }
 
-        private void ApplyPreference()
-        {
-            if (!HomeMotion.AnimationsEnabled) Cancel(_frame);
-        }
-        private void OnSystemPreferenceChanged(UISettings sender, UISettingsAnimationsEnabledChangedEventArgs args)
-        {
-            if (_frame.DispatcherQueue.HasThreadAccess) ApplyPreference();
-            else _frame.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.High, ApplyPreference);
-        }
         private void OnTimeout(object? sender, object args) => Resolve(false);
 
         private void WatchAnimationCompletion()
@@ -271,16 +293,39 @@ internal static class CardDetailTransition
         {
             if (_watching) return;
             _watching = true;
-            HomeMotion.PreferenceChanged += ApplyPreference;
-            _settings.AnimationsEnabledChanged += OnSystemPreferenceChanged;
+            var generation = ++_preferenceGeneration;
+            void ApplyCurrentPreference()
+            {
+                if (_disposed || !_watching || generation != _preferenceGeneration
+                    || !Tickets.TryGetValue(_frame, out var ticket) || !ReferenceEquals(ticket, this)) return;
+                if (!HomeMotion.AnimationsEnabled) Cancel(_frame);
+            }
+            _preferenceChanged = ApplyCurrentPreference;
+            _systemPreferenceChanged = (_, _) =>
+            {
+                if (_disposed || !_watching || generation != _preferenceGeneration) return;
+                if (_frame.DispatcherQueue.HasThreadAccess) ApplyCurrentPreference();
+                else _frame.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.High, ApplyCurrentPreference);
+            };
+            HomeMotion.PreferenceChanged += _preferenceChanged;
+            _settings.AnimationsEnabledChanged += _systemPreferenceChanged;
         }
 
         private void StopWatchingPreferences()
         {
             if (!_watching) return;
             _watching = false;
-            HomeMotion.PreferenceChanged -= ApplyPreference;
-            _settings.AnimationsEnabledChanged -= OnSystemPreferenceChanged;
+            ++_preferenceGeneration;
+            HomeMotion.PreferenceChanged -= _preferenceChanged;
+            _preferenceChanged = null;
+            var systemChanged = _systemPreferenceChanged;
+            _systemPreferenceChanged = null;
+            try { _settings.AnimationsEnabledChanged -= systemChanged; }
+            catch (Exception)
+            {
+                // 先撤销本地回调资格；平台退订失败不阻断动画清理与普通页面回退。
+                // 这里只证明发起了退订，不能证明native已释放；保留的旧委托也不能取消后来的票据。
+            }
         }
 
         private void OnFrameUnloaded(object sender, RoutedEventArgs args) => Cancel(_frame);

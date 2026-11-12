@@ -23,3 +23,11 @@ Gallery固定 `6de91feccadfbb0a796b71caedead5a2284f730e`：ConnectedAnimationPag
 匿名真实实验入口 `--probe-shell inspect --screen 1` 的 `InspectCardDetailConnected`。它使用真实XAML岛、现有PosterCard、真实详情页、固定本地生成图片和`.invalid`匿名传输；记录成功前进、原源返回、动画关闭、缺源及离页取消，保存 `card-detail-connected.json` 与 `card-detail-connected-forward-screen.png`。启动失败必须记录红项，不能因为API存在就宣称成功。没有真实服务器、媒体文件、用户设置或播放。
 
 本子代理禁止驱动桌面，真实前进/返回动画与帧、来源回收/快速反向实屏、Narrator和触摸未执行，协调会话负责同轮运行并将事实补到主树报告。本单元源码与离线通过不等于P6完整流程或正式交付通过。
+
+## 系统事件异常补修
+
+同轮复核发现系统AnimationsEnabledChanged退订异常会打断Dispose的普通页面回退，准备阶段add失败后清理也可能把异常带回卡片导航。现在每次观察登记自己的偏好代次委托，先撤销本地资格再尝试native退订；失败不阻止取消native动画与BrowsePresentation回退，保留旧系统委托也不能取消后来票据或新返回。Frame的Stopped/Failed在票据层立即取消匹配准备，不等待700ms超时。
+
+新增add前后/remove前后失败、保留委托迟到、完成后旧事件、返回重新观察失败、Stopped/Failed即时取消与同ID重登/卡片复用测试，关联专项22/22；BrowsePresentation22/22继续通过。测试明确保留remove前失败的模拟订阅以确认「仅本地失效」，不会冒称native已经释放。
+
+进一步复核补祖先ScrollView/ScrollViewer可视区域交集，root内但横带/外页视口外的已实现图片不能作动画源。新增嵌套视口用例后当前23/23。原0334a8f生产文件配新增22项的独立负例13通过9失败（前几项残留异常也影响后续），保留原异常，恢复当前后全部通过；负例不作为产品构建前提。

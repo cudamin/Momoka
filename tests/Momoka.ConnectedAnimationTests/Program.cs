@@ -208,6 +208,118 @@ internal static class Program
             fixture.Frame.DispatcherQueue.Drain();
             Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
         });
+        foreach (var add in new[] { UISettings.EventFailure.Before, UISettings.EventFailure.After })
+            foreach (var remove in new[] { UISettings.EventFailure.Before, UISettings.EventFailure.After })
+                Test($"系统动画订阅{add}与退订{remove}失败仍清票据并回普通呈现", () =>
+                {
+                    using var fixture = new Fixture();
+                    UISettings.AddFailure = add;
+                    UISettings.RemoveFailure = remove;
+                    Assert.False(fixture.Prepare());
+                    Assert.False(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+                    Assert.False(DispatcherTimer.Created.Last().IsRunning);
+                    Assert.Null(HomeMotion.Handlers);
+                    Assert.True(BrowsePresentation.Results.Any(result => !result.Started));
+                    var failedSettings = UISettings.Created.Last();
+                    var stale = failedSettings.CapturePostedChange();
+                    if (add == UISettings.EventFailure.After && remove == UISettings.EventFailure.Before)
+                        Assert.NotNull(failedSettings.Handlers); // 退订失败不伪称native已释放。
+                    UISettings.AddFailure = UISettings.EventFailure.None;
+                    UISettings.RemoveFailure = UISettings.EventFailure.None;
+                    fixture.Prepare();
+                    UISettings.Enabled = false; // 不向新订阅发通知，仅投递已经失效的旧委托。
+                    stale();
+                    Assert.True(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+                    UISettings.Enabled = true;
+                    failedSettings.Handlers = null; // 只释放测试故障端点，不改变生产取消路径。
+                });
+
+        foreach (var remove in new[] { UISettings.EventFailure.Before, UISettings.EventFailure.After })
+            Test("完成退订" + remove + "失败旧系统事件不能取消新返回", () =>
+            {
+                using var fixture = new Fixture();
+                fixture.Prepare();
+                CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                var failedSettings = UISettings.Created.Last();
+                var stale = failedSettings.CapturePostedChange();
+                UISettings.RemoveFailure = remove;
+                ConnectedAnimationService.Created.Last().Complete();
+                Assert.Null(HomeMotion.Handlers);
+                UISettings.RemoveFailure = UISettings.EventFailure.None;
+                Assert.True(CardDetailTransition.BeginReturn(fixture.Target));
+                UISettings.Enabled = false; // 旧观察期不能读取这次偏好后取消新返回票据。
+                stale();
+                Assert.True(CardDetailTransition.Returning(fixture.Frame));
+                UISettings.Enabled = true;
+                CardDetailTransition.Cancel(fixture.Frame);
+                Assert.False(CardDetailTransition.Returning(fixture.Frame));
+                failedSettings.Handlers = null;
+            });
+
+        Test("返回重新订阅失败不会向导航抛错，清票据与回退继续", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            ConnectedAnimationService.Created.Last().Complete();
+            UISettings.AddFailure = UISettings.EventFailure.After;
+            UISettings.RemoveFailure = UISettings.EventFailure.Before;
+            Assert.False(CardDetailTransition.BeginReturn(fixture.Target));
+            Assert.False(CardDetailTransition.Returning(fixture.Frame));
+            Assert.True(BrowsePresentation.Results.Any(result => !result.Started));
+            UISettings.Created.Last().Handlers = null;
+        });
+
+        Test("导航Stopped或Failed立即取消匹配准备而不等待700ms", () =>
+        {
+            foreach (var failure in new[] { false, true })
+            {
+                using var fixture = new Fixture();
+                fixture.Prepare();
+                fixture.Frame.Navigate(new DetailRequest { Item = fixture.Item });
+                var timer = DispatcherTimer.Created.Last();
+                if (failure) fixture.Frame.FailNavigation();
+                else fixture.Frame.StopNavigation();
+                Assert.False(timer.IsRunning);
+                Assert.False(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+                Assert.True(BrowsePresentation.Results.Any(result => !result.Started));
+                fixture.Target.Layout();
+                Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
+            }
+        });
+        Test("退出再登录同ID不能借原owner返回，源卡被复用也不借新项", () =>
+        {
+            foreach (var rebind in new[] { false, true })
+            {
+                using var fixture = new Fixture();
+                fixture.Prepare();
+                CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                ConnectedAnimationService.Created.Last().Complete();
+                if (rebind) fixture.Source.Card!.Item = new EmbyItem { IdentityKey = "source:replacement", Source = fixture.Item.Source };
+                else
+                {
+                    fixture.Item.Source!.IsCurrent = false;
+                    fixture.Target.ViewModel.CurrentItem = new EmbyItem { IdentityKey = fixture.Item.IdentityKey };
+                }
+                Assert.False(CardDetailTransition.BeginReturn(fixture.Target));
+            }
+        });
+        Test("货架内已实现但被滚动视口裁掉的海报不准备关联动画", () =>
+        {
+            using var fixture = new Fixture();
+            var viewport = new ScrollView { ActualWidth = 300, ActualHeight = 400, X = 40, Y = 40 };
+            fixture.Source.Parent = viewport;
+            fixture.Source.ConnectedPoster.X = 400; // root内但横带视口外。
+            fixture.Source.ConnectedPoster.Y = 80;
+            Assert.False(fixture.Prepare());
+            fixture.Source.ConnectedPoster.X = 80;
+            Assert.True(fixture.Prepare());
+            CardDetailTransition.Cancel(fixture.Frame);
+            var outer = new ScrollViewer { ActualWidth = 600, ActualHeight = 200, X = 20, Y = 20 };
+            viewport.Parent = outer;
+            fixture.Source.ConnectedPoster.Y = 250; // 内层可见但被外页纵向视口裁掉。
+            Assert.False(fixture.Prepare());
+        });
         return Run();
     }
 
@@ -221,6 +333,8 @@ internal static class Program
         {
             HomeMotion.Preference = true;
             UISettings.Enabled = true;
+            UISettings.AddFailure = UISettings.EventFailure.None;
+            UISettings.RemoveFailure = UISettings.EventFailure.None;
             ConnectedAnimationService.ThrowOnPrepare = false;
             BrowsePresentation.Results.Clear();
             var root = new FrameworkElement { ActualWidth = 1280, ActualHeight = 900 };
@@ -246,6 +360,8 @@ internal static class Program
             Frame.DispatcherQueue.Drain();
             Assert.Null(HomeMotion.Handlers);
             Assert.True(UISettings.Created.All(settings => settings.Handlers is null));
+            UISettings.AddFailure = UISettings.EventFailure.None;
+            UISettings.RemoveFailure = UISettings.EventFailure.None;
         }
     }
 }
