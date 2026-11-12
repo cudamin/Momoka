@@ -57,7 +57,7 @@
             between(page, "    internal void ReleaseHosted()", "\n    /// <summary>\n    /// Counts realised") +
             between(colors, "    private void CancelAppearanceColors()", "\n}") +
             "\n}\ninternal sealed partial class SettingsWindow\n{\n" +
-            between(window, "    private const string Category = \"设置窗口\";", "    private SettingsWindow(Window window, Frame frame)") +
+            between(window, "    private const string Category = \"设置窗口\";", "    private SettingsWindow(Window window, Grid root, Frame frame, SolidColorBrush canvas, bool mica)") +
             between(window, "    internal bool IsOpen =>", "\n    /// <summary>Outer size") +
             between(window, "    internal event Action? Hidden;", "\n    /// <summary>\n    /// What is on screen") +
             between(window, "    internal SettingsPage? Page =>", "\n    /// <summary>\n    /// Builds the window") +

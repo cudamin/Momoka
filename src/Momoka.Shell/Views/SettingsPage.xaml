@@ -1489,6 +1489,26 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
+            <!--
+              分类栏的底（2026-11-12，用户令「设置页面也采用 Mica 和 Mica Alt」）：左栏是一块 Mica Alt
+              局部材质，右栏是窗口级 Mica（Base）上的 60% 画布。两档并排，分类栏比内容沉一档 —— 和主窗口
+              侧栏与内容的关系同一个意思，只是这里用的是材质本身，不是两层半透明色叠出来的。
+
+              材质只铺在分类这一列（Column 0、跨两行）：它身后没有别的东西要采样，右栏的卡片各自压在
+              自己那层画布上。两条都不吃指针 —— 底下的搜索框和分类列表照常点。材质本身在 code-behind
+              里挂（<c>DetailMica.Apply</c> 那一支，和详情页同一处开关）：XAML 里只写一个空元素，
+              属性元素的写法这台编译器啃不动。
+            -->
+            <SystemBackdropElement x:Name="NavigationMica" Grid.RowSpan="2" IsHitTestVisible="False" />
+            <!--
+              材质上压一层主题面色（50%，LayerFillColorAltBrush）：Mica Alt 自己那点浓度托不住正文，
+              纯材质上排 200 宽的分类名会发花。这层和主窗口侧栏是同一支角色，栏与内容的明暗关系因此一致。
+            -->
+            <Border
+                Grid.RowSpan="2"
+                Background="{ThemeResource LayerFillColorAltBrush}"
+                IsHitTestVisible="False" />
+
             <!-- 搜索和分类共用这一列；窄窗只换分类选择器，不增删或过滤侧栏分区。 -->
             <Grid x:Name="SettingsNavigation" Grid.RowSpan="2">
                 <Grid.RowDefinitions>

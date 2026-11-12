@@ -91,6 +91,41 @@ internal static class MicaMaterialTests
             Assert.Contains("(\"EgCanvasBrush\", theme => theme.Colors.Window.WithAlpha(CanvasAlpha))", source,
                 "ThemeHost 没有把画布按窗口角色加重画");
         });
+
+        Test("设置页材质：窗口 Mica Base、画布 60%、分类栏 Mica Alt", () =>
+        {
+            var window = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "SettingsWindow.cs"));
+
+            // 窗口级那一层：普通窗口用 Base，和主窗口同一个档位。
+            Assert.Contains("new MicaBackdrop { Kind = MicaKind.Base }", window, "设置窗口没有挂 Mica（Base）");
+            // 画布浓度与主窗口成对；回退路必须落回不透明，否则没材质时整窗是透明的。
+            Assert.Contains("private const byte CanvasAlpha = 0x99", window, "设置窗口的画布浓度和主窗口不是一档");
+            Assert.Contains("_canvas.Color = _mica ? CanvasColor(theme) : WindowColor(theme)", window,
+                "换主题时画布没有跟着 Mica／实色两条路重新算");
+            Assert.DoesNotContain("TryGetValue(\"EgWindowBrush\"", window,
+                "又回去按资源键取窗口色了：EgWindowBrush 在 ThemeDictionaries 里，代码查找取不到");
+
+            // 分类栏那一块：页面里的局部 BaseAlt，只铺 Column 0、跨两行。材质由 code-behind 挂
+            // （属性元素那种写法这台 XAML 编译器啃不动），所以两头都要核对。
+            var page = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "SettingsPage.xaml"));
+            var material = Named(page, "NavigationMica");
+            Assert.Equal("2", material.Attribute("Grid.RowSpan")?.Value, "分类栏材质没有跨满两行，InfoBar 那一带会露出别的底");
+            Assert.Equal("False", material.Attribute("IsHitTestVisible")?.Value, "分类栏材质会吃掉指针");
+            Assert.Null(material.Elements().FirstOrDefault(), "分类栏材质不该在 XAML 里写属性元素，代码里那一支才是生效的那条");
+
+            var pageSource = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "SettingsPage.xaml.cs"));
+            Assert.Contains("DetailMica.Apply(NavigationMica, true, alternate: true)", pageSource,
+                "分类栏没有挂 Mica Alt");
+
+            // 材质上那层 50% 面色：纯 Mica Alt 上排 200 宽的分类名会发花。
+            var body = Named(page, "SettingsBody");
+            Assert.True(
+                body.Elements().Any(element =>
+                    element.Name.LocalName == "Border"
+                    && element.Attribute("Background")?.Value == "{ThemeResource LayerFillColorAltBrush}"
+                    && element.Attribute("Grid.RowSpan")?.Value == "2"),
+                "分类栏材质上没有那层 50% 面色，纯材质托不住正文");
+        });
     }
 
     private static XDocument Palette() =>
