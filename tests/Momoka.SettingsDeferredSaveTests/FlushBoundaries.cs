@@ -86,6 +86,10 @@ namespace Momoka.Shell.Views
         internal event Action? Hidden;
         internal bool IsHidden => _window.AppWindow.Hidden;
         internal FlushWindowFixture(Action release) => Page = new(release);
+
+        // 设置窗口拆成三个分部之后，Hide() 收场时要先停掉系统外观观察（SettingsWindow.Appearance.cs）。
+        // 这个夹具不订阅系统外观事件，停不停都一样，所以什么也不做。
+        private void PauseSystemAppearance() { }
     }
     internal static class ShellSelfCheck
     {
