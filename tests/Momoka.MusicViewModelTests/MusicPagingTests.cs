@@ -25,6 +25,7 @@ internal static class MusicPagingTests
         yield return ("墙模式切换拒绝前一分区迟到第二页", SectionSwitchAsync);
         yield return ("页面释放与重新附加身份拒绝旧第二页", IdentitySwitchAsync);
         yield return ("服务器空第二页结束分页且不清空已有列表", EmptyMoreAsync);
+        foreach (var test in MusicPagingProbeTests.Cases()) yield return test;
     }
 
     private static Task WallEntryAsync()

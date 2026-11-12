@@ -2,9 +2,11 @@
 
 此控制台链接当前树的真实 `MusicPlaybackViewModel`、`MusicLibraryViewModel` 和 `PageViewModel`，使用与 Shell 相同的 CommunityToolkit.Mvvm 8.4.2 生成器。Core 的 `PlaybackService`、`PlaybackPlanner`、`EmbySession`、`EmbyClient`、`MusicCatalog` 与 `MusicQueue` 是当前项目引用。
 
-34 项覆盖停止后 metadata 与队列迟到、队列第二页 HTTP 取消、加载队列时切槽、未提交搜索与已加载查询隔离、旧视频/音频事件排队、自动下一曲后收藏迟到、确认音量保存与下一曲起播、80+20 分页完整队列、离页仍播放、旧曲目拖动释放及页面释放后的迟到列表；也覆盖曲目/墙分型、正在播放标记与字幕。
+39 项覆盖停止后 metadata 与队列迟到、队列第二页 HTTP 取消、加载队列时切槽、未提交搜索与已加载查询隔离、旧视频/音频事件排队、自动下一曲后收藏迟到、确认音量保存与下一曲起播、80+20 分页完整队列、离页仍播放、旧曲目拖动释放及页面释放后的迟到列表；也覆盖曲目/墙分型、正在播放标记与副标题。
 
 P4 新增18项：实际墙分页按钮独立于曲目 Footer、实时显隐与自动化名称；正式 `OnMore`、`Show`、`SetPlayerClearance` 在编译时严格提取，缺失或重复边界使构建失败。三种墙各用81/100/160条验证第81项、末页、稳定集合/首项与原地追加；再检查曲目/收藏入口、重复点击、HTTP失败重试、分区切换迟到响应、释放并重新附加另一身份及空余页。`PageBoundaries.cs`只提供页面所需的控件值和入口调用，分页/避让控制流来自生产方法；XAML入口关系从本树实际页面读取。
+
+原生分页探针另新增5项，直接编译链接 `ShellNavigationProbe.MusicPagingFixture.cs`。核对81/160、三类型、StartIndex/Limit、HTTP500一次后原偏移重试、真实域名/POST/非法参数拒绝、图片404与取消不执行请求；正式 `ValidateLoaded` 对漏项、乱序、混合类型和末页仍显示分页的伪读数必须拒绝。这些测试验证探针的成功/失败边界，不代替实际WinUI运行。实际入口是music分区的“音乐墙分页、原生入口与重试”，或检查台 `InspectMusicPaging`；`InspectMusicPagingFailure`主动使自动化ID错误，预期记录失败，用于验证实际失败路径。
 
 假 HTTP 只接受 `music-vm.invalid`，测试拒绝凭据读写和服务器账号配置；假后端只记录启动请求、运行可手动结束的控制句柄，不打开媒体或原生内核。未读取生产设置，临时图片目录在所属工作树 `artifacts/music-vm-tests/`。
 

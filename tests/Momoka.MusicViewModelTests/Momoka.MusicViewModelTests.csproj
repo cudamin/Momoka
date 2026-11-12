@@ -12,6 +12,7 @@
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MusicPlaybackViewModel.cs" Link="Production\MusicPlaybackViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MusicLibraryViewModel.cs" Link="Production\MusicLibraryViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ShellNavigationProbe.MusicPagingFixture.cs" Link="Production\MusicPagingProbeServer.cs" />
   </ItemGroup>
   <UsingTask TaskName="ExtractMusicPagingSource" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>

@@ -66,6 +66,7 @@ internal sealed partial class ShellNavigationProbe
             if (_options.ProbeSections is { Count: 1 } musicOnly && musicOnly.Contains(ShellProbeSections.Music))
             {
                 await CaseAsync("音乐媒体库与底部亚克力播放栏", MusicAsync, 120, section: ShellProbeSections.Music);
+                await CaseAsync("音乐墙分页、原生入口与重试", () => MusicPagingAsync(), 120, section: ShellProbeSections.Music);
                 await CaseAsync("侧边栏音乐目录与导航", SidebarAsync, 60, section: ShellProbeSections.Music);
                 return;
             }
@@ -92,6 +93,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("亚克力操作按钮、翻页圆钮与手写设置卡片", AcrylicControlsAsync, 180, section: ShellProbeSections.Materials);
             await CaseAsync("材质目标、浏览恢复与菜单打开期间切主题", MaterialLifecycleAsync, 90, section: ShellProbeSections.Materials);
             await CaseAsync("音乐媒体库与底部亚克力播放栏", MusicAsync, 120, section: ShellProbeSections.Music);
+            await CaseAsync("音乐墙分页、原生入口与重试", () => MusicPagingAsync(), 120, section: ShellProbeSections.Music);
             await CaseAsync("筛选多选下拉等宽、滚动与单字段全选", FilterValuesAsync, 60, section: ShellProbeSections.Library);
             await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
             await CaseAsync("侧边栏模式、导航与宽窄布局", SidebarAsync, 45);
