@@ -4,6 +4,16 @@
   "shellAssembly": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
   "suites": [
     {
+      "id": "Momoka.KeyboardJourneyTests",
+      "project": "tests/Momoka.KeyboardJourneyTests/Momoka.KeyboardJourneyTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.KeyboardJourneyTests/README.md",
+      "notes": "键盘流程匿名HTTP与真实输入/焦点/最终回执的成功失败边界；无原生窗口或真实账号。"
+    },
+    {
       "id": "Momoka.NavigationStateTests",
       "project": "tests/Momoka.NavigationStateTests/Momoka.NavigationStateTests.csproj",
       "mode": "dotnet",

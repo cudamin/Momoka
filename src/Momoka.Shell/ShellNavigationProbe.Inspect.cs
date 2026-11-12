@@ -116,6 +116,12 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectSidebarNavigation", "音乐目的地返回与前进", SidebarAsync, ShellProbeSections.Shell);
         AddCheck("InspectMusicPaging", "音乐墙分页与重试", () => MusicPagingAsync(), ShellProbeSections.Music);
         AddCheck("InspectMusicPagingFailure", "音乐分页定位失败反例", () => MusicPagingAsync(failEntryLocator: true), ShellProbeSections.Music);
+        AddCheck("InspectKeyboardJourney", "登录到设置的真实键盘流程", () => KeyboardJourneyAsync(), ShellProbeSections.Shell, timeoutSeconds: 900);
+        AddCheck("InspectKeyboardJourneyFailure", "键盘流程名称失败反例", () => KeyboardJourneyAsync(failFocusName: true), ShellProbeSections.Shell);
+        AddCheck("InspectSignInKeyboardSurface", "登录输入可达与恢复", SignInAppearanceAsync, ShellProbeSections.Shell);
+        AddCheck("InspectInputFocusSurface", "全站原生输入焦点", InputFocusControlsAsync, ShellProbeSections.Search);
+        AddCheck("InspectCardFocusSurface", "卡片与设置名称", CardFocusAndSettingNamesAsync, ShellProbeSections.Settings);
+        AddCheck("InspectHomeReturnSurface", "主页键盘返回与动画", HomeNavigationReturnAsync, ShellProbeSections.Shell);
         AddCheck("InspectMusicArtwork", "音乐图片读取与列表量测", MusicArtworkAsync, ShellProbeSections.Music, timeoutSeconds: 120);
         AddCheck("InspectLibraryDiscoverySearch", "搜索人物合集和列表", LibraryDiscoverySearchAsync);
         AddCheck("InspectLibraryDiscoveryPeople", "Plex人物与题材", LibraryDiscoveryPeopleAsync);

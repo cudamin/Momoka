@@ -161,6 +161,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.NavigationStateTests
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.MusicArtworkTests", "tests\Momoka.MusicArtworkTests\Momoka.MusicArtworkTests.csproj", "{661C1586-0DD8-47CF-8B1D-7075DF39AF80}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.KeyboardJourneyTests", "tests\Momoka.KeyboardJourneyTests\Momoka.KeyboardJourneyTests.csproj", "{639C1A1B-C1B7-489B-B53F-1EBE8A02FD9B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -170,6 +172,10 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{639C1A1B-C1B7-489B-B53F-1EBE8A02FD9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{639C1A1B-C1B7-489B-B53F-1EBE8A02FD9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{639C1A1B-C1B7-489B-B53F-1EBE8A02FD9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{639C1A1B-C1B7-489B-B53F-1EBE8A02FD9B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{661C1586-0DD8-47CF-8B1D-7075DF39AF80}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{661C1586-0DD8-47CF-8B1D-7075DF39AF80}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{661C1586-0DD8-47CF-8B1D-7075DF39AF80}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -477,6 +483,7 @@ Global
 		{D22BE2F4-5BB8-4516-8A21-624DDFCF2E9E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{639C1A1B-C1B7-489B-B53F-1EBE8A02FD9B} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{661C1586-0DD8-47CF-8B1D-7075DF39AF80} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{317F20C8-62FF-4DE5-98D4-9E5CA2D44E7C} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{3FB41F67-CDF2-4D51-88CC-F7913E6EBD5E} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
