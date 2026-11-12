@@ -116,6 +116,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectSidebarNavigation", "音乐目的地返回与前进", SidebarAsync, ShellProbeSections.Shell);
         AddCheck("InspectMusicPaging", "音乐墙分页与重试", () => MusicPagingAsync(), ShellProbeSections.Music);
         AddCheck("InspectMusicPagingFailure", "音乐分页定位失败反例", () => MusicPagingAsync(failEntryLocator: true), ShellProbeSections.Music);
+        AddCheck("InspectMusicArtwork", "音乐图片读取与列表量测", MusicArtworkAsync, ShellProbeSections.Music, timeoutSeconds: 120);
         AddCheck("InspectLibraryDiscoverySearch", "搜索人物合集和列表", LibraryDiscoverySearchAsync);
         AddCheck("InspectLibraryDiscoveryPeople", "Plex人物与题材", LibraryDiscoveryPeopleAsync);
         AddCheck("InspectLibraryDiscoveryFilters", "Plex筛选排序和字母", LibraryDiscoveryFiltersAsync);
