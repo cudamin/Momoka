@@ -1,11 +1,19 @@
 ---
 name: "momoka-verification"
-description: "Verify Momoka changes using the current gates in CLAUDE.md. Interpret self-check results, distinguish fresh Release tests from stale output, check capability-dependent hiding and restoration, inspect screenshots and pointer evidence, and report playback coverage gaps. Use at delivery-batch close, when editing verification tools, or when asked to 验证 / 跑一遍闸门 / 发新版本."
+description: "Verify Momoka changes using CLAUDE.md: fresh build/test evidence, WinUI material and fallback pixels, responsive layout/DPI, keyboard and Narrator, motion interruption, virtualization, capability restoration and playback coverage boundaries. Use at delivery-batch close, when editing verification tools, or when asked to 验证 / 跑一遍闸门 / 发新版本."
 ---
 
 # Momoka — verification evidence
 
 **Policy lives in [CLAUDE.md](../../../CLAUDE.md); commands and report paths live in [docs/开发与验证.md](../../../docs/开发与验证.md).** This skill explains what measurements mean, not a second gate schedule. Architecture is `momoka-winui-shell`; playback is `momoka-playback`; shaders are `mpv-shader-quality`.
+
+## Select WinUI evidence by feature
+
+For material, layout/DPI, input/accessibility, binding, collection, animation, window or deployment changes, read the relevant rows of the [WinUI validation matrix](references/winui-validation.md). For Mica/Acrylic also read the [surface and API guide](../momoka-winui-shell/references/materials.md). Source/API support, recommended placement, real pixels and measured performance are separate claims.
+
+Use [CLAUDE.md's official-guidance confirmation rule](../../../CLAUDE.md#winui-官方优先与偏离确认) before a requested deviation is implemented. A visual test cannot retrospectively approve an unconfirmed product choice. Keep unavailable system/monitor/assistive-technology coverage explicit; a simulated configuration is only evidence for the simulated boundary.
+
+For documentation-only skill changes, check routing, links, source assertions and realistic read-only decision scenarios. Structure validation does not measure actual automatic skill discovery or prove product runtime behavior.
 
 ## Delivery batches
 

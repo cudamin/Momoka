@@ -112,7 +112,7 @@ moviepilot-subscription-page-state-fixture
 | DanmakuPerformanceTests/run-lua.py | `--root --output [--baseline-source] [--real-timers] [--inject-failure]` | 前两可选模式互斥；4份性能/真实计时Lua，native无媒体 |
 | tools/test-uosc-review.py | `--lua <可信Lua5.1 DLL> --suite uosc或translation` | 独立Lua解释器，不是libmpv；stdout |
 | website/worker/credential.test.mjs | `node --test website/worker/credential.test.mjs` | Node内建test/assert/WebCrypto，无npm依赖，匿名Secret不部署 |
-| 技能check-skill.py/test-check-skill.py | `py -B -X utf8 …/check-skill.py --all --root <tree>`；测试无参 | .claude/skills/momoka-skill-creator/scripts |
+| 原技能检查脚本（2026-11-12 退役） | 历史审查入口；现行覆盖见[项目技能维护](../../../开发与验证.md#项目技能维护)，不再执行已删脚本 | 用户要求删除 momoka-skill-creator |
 | 音频技能test-probe-audio-native.py | `py -B -X utf8 …/test-probe-audio-native.py` | 不加载native |
 | 音频技能probe-audio-native.py | `--dll <libmpv> --out <NEW report.json>` | native无声；open x拒覆盖，默认work/audio-probe时间戳 |
 | tools/check-server-support-docs.py | `--root <tree>`；tests/test_server_support_docs.py | 内容/文档一致性 |
