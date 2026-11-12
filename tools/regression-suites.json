@@ -4,6 +4,26 @@
   "shellAssembly": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
   "suites": [
     {
+      "id": "Momoka.SettingsAppearanceTests",
+      "project": "tests/Momoka.SettingsAppearanceTests/Momoka.SettingsAppearanceTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsAppearanceTests/README.md",
+      "notes": "链接真实设置系统外观观察与选色，匿名系统事件/窗口边界；不改变Windows设置、读账号或播放。"
+    },
+    {
+      "id": "Momoka.MaterialLifecycleTests",
+      "project": "tests/Momoka.MaterialLifecycleTests/Momoka.MaterialLifecycleTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.MaterialLifecycleTests/README.md",
+      "notes": "编译链接真实材质、Host请求与菜单表面生命周期，匿名WinUI/Controller边界；不创建窗口、读账号或播放。"
+    },
+    {
       "id": "Momoka.FnNasSubtitleTests",
       "project": "tests/Momoka.FnNasSubtitleTests/Momoka.FnNasSubtitleTests.csproj",
       "mode": "dotnet",

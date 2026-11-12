@@ -297,6 +297,10 @@ namespace Momoka.Shell.Views
 
     internal sealed partial class SettingsWindow
     {
+        // OS appearance is independently covered by source-linked SettingsAppearanceTests.
+        private void ResumeSystemAppearance() { }
+        private void PauseSystemAppearance() { }
+        private void StopSystemAppearanceWatch() { }
         internal SettingsWindow(SettingsPage page)
         {
             _frame = new() { Content = page };

@@ -147,6 +147,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.MusicViewModelTests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.FnNasSubtitleTests", "tests\Momoka.FnNasSubtitleTests\Momoka.FnNasSubtitleTests.csproj", "{68B4CF37-60D8-40C7-9702-EA0F2FE5F4DC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.MaterialLifecycleTests", "tests\Momoka.MaterialLifecycleTests\Momoka.MaterialLifecycleTests.csproj", "{73337E41-333C-4A94-810A-8CD6519FAF3E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SettingsAppearanceTests", "tests\Momoka.SettingsAppearanceTests\Momoka.SettingsAppearanceTests.csproj", "{018E7C98-5DF0-4958-90BD-2B53E0D4E9CB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -433,6 +437,14 @@ Global
 		{A1FBFBCD-362A-4030-B927-1886E8E2EB79}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1FBFBCD-362A-4030-B927-1886E8E2EB79}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1FBFBCD-362A-4030-B927-1886E8E2EB79}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73337E41-333C-4A94-810A-8CD6519FAF3E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73337E41-333C-4A94-810A-8CD6519FAF3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73337E41-333C-4A94-810A-8CD6519FAF3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73337E41-333C-4A94-810A-8CD6519FAF3E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{018E7C98-5DF0-4958-90BD-2B53E0D4E9CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{018E7C98-5DF0-4958-90BD-2B53E0D4E9CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{018E7C98-5DF0-4958-90BD-2B53E0D4E9CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{018E7C98-5DF0-4958-90BD-2B53E0D4E9CB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{68B4CF37-60D8-40C7-9702-EA0F2FE5F4DC} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}

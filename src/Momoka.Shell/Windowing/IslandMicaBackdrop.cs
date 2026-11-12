@@ -36,25 +36,30 @@ internal sealed class IslandMicaBackdrop : SystemBackdrop
     /// </summary>
     private bool _inputActive = true;
 
+    internal int ConnectedTargetCount => _entries.Count;
+
+    internal string MaterialState => string.Join(",", _entries.Values.Select(entry =>
+        $"{entry.Controller.State}/{entry.Controller.Kind}/active={entry.Configuration.IsInputActive}"
+        + $"/contrast={entry.Configuration.IsHighContrast}/theme={entry.Configuration.Theme}"));
+
     /// <summary>宿主窗口的激活状态。由 <c>HostWindow</c> 的 <c>FocusChanged</c> 喂。</summary>
     internal void SetInputActive(bool active)
     {
-        if (_inputActive == active) return;
-
         _inputActive = active;
+        // An earlier setter can fail after intent is saved. Reapply the snapshot even for
+        // the same intent so a later activation notification can repair that configuration.
         foreach (var entry in _entries.Values)
         {
-            entry.Configuration.IsInputActive = active;
+            UpdateConfiguration(entry.Configuration);
         }
     }
 
     /// <summary>换主题时重钉一次深浅。云母只认配置里的 <c>Theme</c>，画刷改了它不知道。</summary>
     internal void ApplyTheme()
     {
-        var theme = ThemeHost.Current.IsDark ? SystemBackdropTheme.Dark : SystemBackdropTheme.Light;
         foreach (var entry in _entries.Values)
         {
-            entry.Configuration.Theme = theme;
+            UpdateConfiguration(entry.Configuration);
         }
     }
 
@@ -62,46 +67,54 @@ internal sealed class IslandMicaBackdrop : SystemBackdrop
     {
         base.OnTargetConnected(connectedTarget, xamlRoot);
 
-        if (!MicaController.IsSupported())
-        {
-            // 没有云母就没有：底由窗口画布给，与材质失败那条路一样，不假装挂上了。
-            Log.Warn(Category, "本机不支持云母，窗口退回画布实色");
-            return;
-        }
-
-        var controller = new MicaController { Kind = MicaKind.Base };
-        var configuration = GetDefaultSystemBackdropConfiguration(connectedTarget, xamlRoot);
-
-        Log.Info(
-            Category,
-            $"框架配置：active={configuration.IsInputActive} theme={configuration.Theme}"
-            + $" contrast={configuration.IsHighContrast} → 改成 active={_inputActive}");
-
-        configuration.IsInputActive = _inputActive;
-
+        MicaController? controller = null;
+        var addAttempted = false;
         try
         {
-            var attached = controller.AddSystemBackdropTarget(connectedTarget);
+            if (!MicaController.IsSupported())
+            {
+                Log.Warn(Category, "本机不支持云母，窗口退回类背景刷＋画布");
+                return;
+            }
+
+            // 先取得所有权再设置属性：对象初始化器的 setter 抛出时不会把对象赋给变量。
+            controller = new MicaController();
+            controller.Kind = MicaKind.Base;
+            var configuration = GetDefaultSystemBackdropConfiguration(connectedTarget, xamlRoot);
+            Configure(configuration);
             controller.SetSystemBackdropConfiguration(configuration);
-            _entries[connectedTarget] = new Entry(controller, configuration);
-            Log.Info(Category, $"云母已挂上：attached={attached} state={controller.State}");
+            addAttempted = true;
+            var attached = controller.AddSystemBackdropTarget(connectedTarget);
+            if (!attached)
+            {
+                Log.Warn(Category, "云母目标拒绝连接，窗口退回类背景刷＋画布");
+                return;
+            }
+
+            var entry = new Entry(controller, configuration);
+            _entries.Add(connectedTarget, entry);
+            controller = null; // Entry 接管。State=Fallback 仍是成功连接，由系统策略决定呈现。
+            try { Log.Info(Category, $"云母目标已连接：state={entry.Controller.State}"); }
+            catch (Exception error) { Log.Warn(Category, "读取云母目标状态失败", error); }
         }
         catch (Exception error)
         {
-            // 云母是锦上添花：挂不上还有画布那层底，窗口照旧能用。
-            controller.Dispose();
-            Log.Warn(Category, "挂云母失败，窗口退回画布实色", error);
+            Log.Warn(Category, "挂云母失败，窗口退回类背景刷＋画布", error);
+        }
+        finally
+        {
+            if (controller is not null) ReleaseController(controller, connectedTarget, addAttempted);
         }
     }
 
     protected override void OnTargetDisconnected(ICompositionSupportsSystemBackdrop disconnectedTarget)
     {
-        base.OnTargetDisconnected(disconnectedTarget);
-
-        if (!_entries.Remove(disconnectedTarget, out var entry)) return;
-
-        entry.Controller.RemoveSystemBackdropTarget(disconnectedTarget);
-        entry.Controller.Dispose();
+        try { base.OnTargetDisconnected(disconnectedTarget); }
+        finally
+        {
+            if (_entries.Remove(disconnectedTarget, out var entry))
+                ReleaseController(entry.Controller, disconnectedTarget, true);
+        }
     }
 
     /// <summary>
@@ -115,9 +128,36 @@ internal sealed class IslandMicaBackdrop : SystemBackdrop
 
         if (!_entries.TryGetValue(target, out var entry)) return;
 
-        if (entry.Configuration.IsInputActive != _inputActive)
+        UpdateConfiguration(entry.Configuration);
+    }
+
+    private void UpdateConfiguration(SystemBackdropConfiguration configuration)
+    {
+        try
         {
-            entry.Configuration.IsInputActive = _inputActive;
+            Configure(configuration);
+        }
+        catch (Exception error) { Log.Warn(Category, "更新云母配置失败", error); }
+    }
+
+    private void Configure(SystemBackdropConfiguration configuration)
+    {
+        configuration.IsInputActive = _inputActive;
+        configuration.Theme = ThemeHost.Current.IsDark ? SystemBackdropTheme.Dark : SystemBackdropTheme.Light;
+    }
+
+    private static void ReleaseController(
+        MicaController controller, ICompositionSupportsSystemBackdrop target, bool remove)
+    {
+        try
+        {
+            if (remove) controller.RemoveSystemBackdropTarget(target);
+        }
+        catch (Exception error) { Log.Warn(Category, "移除云母目标失败", error); }
+        finally
+        {
+            try { controller.Dispose(); }
+            catch (Exception error) { Log.Warn(Category, "释放云母控制器失败", error); }
         }
     }
 

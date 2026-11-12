@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Momoka.SettingsAppearanceTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <SettingsSelfCheckSource Condition="'$(SettingsSelfCheckSource)' == ''">$(MSBuildProjectDirectory)/../../src/Momoka.Shell/ShellSelfCheck.Run.cs</SettingsSelfCheckSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Momoka.Tests/TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="../../src/Momoka.Shell/Views/SettingsWindow.Appearance.cs" Link="Production/SettingsWindow.Appearance.cs" />
+    <Compile Include="../../src/Momoka.Shell/SettingsBackdropCheck.cs" Link="Production/SettingsBackdropCheck.cs" />
+  </ItemGroup>
+  <UsingTask TaskName="ExtractSettingsSelfCheckRead" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var source = File.ReadAllText(Source).Replace("\r\n", "\n");
+        const string start = "            var micaSupported = MicaController.IsSupported();";
+        const string end = "\n            // Put away before anything looks at the screen:";
+        var first = source.IndexOf(start, StringComparison.Ordinal);
+        if (first < 0 || source.IndexOf(start, first + start.Length, StringComparison.Ordinal) >= 0)
+            throw new InvalidOperationException("Missing or ambiguous settings backdrop read start");
+        var last = source.IndexOf(end, first, StringComparison.Ordinal);
+        if (last < 0 || source.IndexOf(end, last + end.Length, StringComparison.Ordinal) >= 0)
+            throw new InvalidOperationException("Missing or ambiguous settings backdrop read end");
+        var block = source.Substring(first, last - first);
+        var generated = "// Compiled verbatim from this tree's ShellSelfCheck.Run.cs; only UI readers are substituted.\n#nullable enable\n" +
+            "using Microsoft.UI.Composition.SystemBackdrops;\nnamespace Momoka.Shell;\n" +
+            "internal static class SettingsSelfCheckReadFixture\n{\n" +
+            "    internal static void Run(SettingsReadShell shell, System.Action<string, bool, string> Check)\n    {\n" +
+            block + "\n    }\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(Output));
+        if (!File.Exists(Output) || File.ReadAllText(Output) != generated)
+            File.WriteAllText(Output, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateSettingsSelfCheckRead" BeforeTargets="CoreCompile">
+    <ExtractSettingsSelfCheckRead Source="$(SettingsSelfCheckSource)" Output="$(IntermediateOutputPath)SettingsSelfCheckRead.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)SettingsSelfCheckRead.g.cs" /></ItemGroup>
+  </Target>
+</Project>
