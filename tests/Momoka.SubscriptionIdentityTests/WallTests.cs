@@ -26,6 +26,7 @@ internal static class WallTests
         await ExecutionBanner(failures);
         await Polling(failures);
         CardExecution(failures);
+        CardYearAboveTitle(failures);
         await ListFailure(failures);
     }
 
@@ -366,6 +367,28 @@ internal static class WallTests
         if (background.WallStateText != "已暂停") failures.Add("card: paused wall state wrong without execution");
     }
 
+    /// <summary>
+    /// 卡片上那一段文字（2026-11-12 用户令：日期该到片名上方，不要和更多按钮一行）。
+    /// 网页端 SubscribeCard 桌面档是「年份一行 + 片名一行」；片名本身不再带年份，电视剧只跟季号。
+    /// </summary>
+    private static void CardYearAboveTitle(List<string> failures)
+    {
+        var movie = new MoviePilotSubscriptionCard(Parse(Sub(1, "Alpha", "电影", "R", year: 2025)));
+        if (movie.WallYear != "2025") failures.Add("card: movie year missing above the title");
+        if (movie.WallYearVisibility != Microsoft.UI.Xaml.Visibility.Visible) failures.Add("card: movie year row not visible");
+        if (movie.WallTitle != "Alpha") failures.Add($"card: movie title should drop the year, got '{movie.WallTitle}'");
+
+        var series = new MoviePilotSubscriptionCard(Parse(Sub(2, "Beta", "电视剧", "R", total: 10, year: 2020)));
+        if (series.WallYear != "2020") failures.Add("card: series year missing above the title");
+        if (series.WallTitle != "Beta · 第 1 季") failures.Add($"card: series title should keep only the season, got '{series.WallTitle}'");
+
+        // 服务器没给年份时那一行整行收起，片名照旧。
+        var unknown = new MoviePilotSubscriptionCard(Parse(Sub(3, "Gamma", "电影", "R")));
+        if (unknown.WallYear.Length != 0) failures.Add("card: missing year invented a value");
+        if (unknown.WallYearVisibility != Microsoft.UI.Xaml.Visibility.Collapsed) failures.Add("card: missing year left an empty row");
+        if (unknown.WallTitle != "Gamma") failures.Add("card: title without year wrong");
+    }
+
     private static async Task ListFailure(List<string> failures)
     {
         using var wall = new WallHarness(HomeLayout.MoviePilotSeries);
@@ -390,7 +413,7 @@ internal static class WallTests
     }
 
     private static object Sub(int id, string name, string type, string state, int total = 0, int lack = 0, int completed = 0,
-        string date = "", string lastUpdate = "", object? execution = null, int bestVersion = 0) => new
+        string date = "", string lastUpdate = "", object? execution = null, int bestVersion = 0, int year = 0) => new
         {
             id,
             name,
@@ -403,6 +426,7 @@ internal static class WallTests
             last_update = lastUpdate,
             execution_status = execution,
             best_version = bestVersion,
+            year = year > 0 ? year : (int?)null,
             media_source = "themoviedb",
             media_id = id.ToString(),
             season = type == "电视剧" ? 1 : (int?)null,

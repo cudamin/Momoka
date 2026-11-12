@@ -693,6 +693,43 @@ internal sealed partial class ShellNavigationProbe
                 "订阅列表整页的标题旁没有刷新入口");
             await SaveProbeScreenAsync("sidebar-moviepilot-page-screen.png");
 
+            // 订阅墙的工具栏（2026-11-12 用户令）：删掉那一排带字的药丸，换成网页端订阅页头部那三个图标
+            // ——筛选、拖拽排序、批量；排序项并进筛选面板。这里量的是三颗键真立起来、面板里真是
+            // 「名称＋状态＋排序」、选中一行真把墙筛掉，而不是只读 XAML 文本。
+            var wall = Get<MoviePilotSubscriptionWallView>(page, "Wall");
+            Require(wall.Visibility == Visibility.Visible, "分类页没有立起订阅墙");
+            var wallFilter = Get<Button>(wall, "WallFilterButton");
+            var wallSortMode = Get<Button>(wall, "WallSortModeButton");
+            var wallBatch = Get<Button>(wall, "WallBatchButton");
+            Require(wallFilter.ActualWidth > 0 && wallSortMode.ActualWidth > 0 && wallBatch.ActualWidth > 0,
+                $"订阅墙三颗图标键没有尺寸：{wallFilter.ActualWidth:0.#}／{wallSortMode.ActualWidth:0.#}／{wallBatch.ActualWidth:0.#}");
+            Require(Get<Button>(wall, "WallRefresh").ActualWidth > 0 && Get<Button>(wall, "WallMaintenanceButton").ActualWidth > 0,
+                "订阅墙的刷新／维护入口没有画出来");
+            var pills = Descendants(wall).OfType<Button>()
+                .Select(button => button.Content as string)
+                .Where(text => text is "筛选订阅" or "排序订阅" or "拖拽排序" or "批量操作" or "维护" or "刷新订阅")
+                .ToArray();
+            Require(pills.Length == 0, "订阅墙还留着带字的药丸键：" + string.Join("、", pills));
+
+            wallFilter.Flyout.ShowAt(wallFilter);
+            var filterOptions = Get<StackPanel>(wall, "WallFilterOptions");
+            var sortOptions = Get<StackPanel>(wall, "WallSortOptions");
+            await UntilAsync(() => filterOptions.Children.Count == 4 && sortOptions.Children.Count == 3);
+            Require(filterOptions.Children.Count == 4 && sortOptions.Children.Count == 3,
+                $"筛选面板的条目不对：状态 {filterOptions.Children.Count} 项、排序 {sortOptions.Children.Count} 项（电影应为 4／3）");
+            Require(filterOptions.Children.Concat(sortOptions.Children).All(row => row is Button { Content: Grid }),
+                "筛选面板的行不是「图标＋标签＋勾」那种行");
+            await LayoutAsync(wall);
+            await SaveProbeScreenAsync("mp-wall-filter-panel-screen.png");
+            // 选状态：墙跟着筛、面板收起（网页端 selectFilter）。
+            InvokeSubscriptionButton((Button)filterOptions.Children[3]);
+            await UntilAsync(() => wall.ViewModel.WallFilter == MoviePilotSubscriptionWallFilter.Paused);
+            Require(wall.ViewModel.WallFilter == MoviePilotSubscriptionWallFilter.Paused, "选中「暂停」没有改到筛选条件");
+            await UntilAsync(() => !wallFilter.Flyout.IsOpen);
+            Require(!wallFilter.Flyout.IsOpen, "选完状态，筛选面板没有收起");
+            wall.ViewModel.SelectWallFilter(MoviePilotSubscriptionWallFilter.All);
+            await LayoutAsync(wall);
+
             SelectSidebarItem(series);
             await UntilAsync(() => shell.CurrentTag == HomeLayout.MoviePilotSeries);
             // 换目的地是**新的一页**（Frame 不缓存页面），旧那一页在 OnNavigatedFrom 里已经放开它的订阅数据 ——

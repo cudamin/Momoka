@@ -98,6 +98,32 @@ namespace Momoka.Tests
                                 file + " 的 " + property + " 引了 Double 刻度键 " + key + "，运行时会在 InitializeComponent 抛 XamlParseException");
                 }
             });
+            // 2026-11-12 用户令：删掉那排药丸，复刻网页端订阅页左上角那三个图标。
+            // 网页端 subscribe.vue 的 appendButtons 就是筛选／拖拽排序／批量三颗；排序项并进筛选面板。
+            Test("订阅墙工具栏：网页端三个图标键，不再有药丸", () =>
+            {
+                var text = File.ReadAllText(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionWallView.xaml"));
+                foreach (var name in new[] { "WallFilterButton", "WallSortModeButton", "WallBatchButton" })
+                    Assert.True(text.Contains("x:Name=\"" + name + "\""), "工具栏缺少 " + name);
+                foreach (var pill in new[] { "Content=\"拖拽排序\"", "Content=\"批量操作\"", "Content=\"维护\"", "Content=\"刷新订阅\"" })
+                    Assert.False(text.Contains(pill), "工具栏还留着药丸键 " + pill);
+                // 筛选面板照网页端那颗键的 VMenu：名称搜索 + 状态列表 + 排序列表。
+                Assert.True(text.Contains("PlaceholderText=\"名称\""), "筛选面板缺少名称搜索");
+                Assert.True(text.Contains("Text=\"状态\"") && text.Contains("Text=\"排序\""), "筛选面板缺少状态／排序两个小标题");
+                Assert.True(text.Contains("x:Name=\"WallFilterOptions\"") && text.Contains("x:Name=\"WallSortOptions\""),
+                    "筛选面板缺少状态／排序两个列表");
+                Assert.False(text.Contains("WallSortFlyout"), "排序浮层应当并进筛选面板，不再单独一颗键");
+            });
+            // 2026-11-12 用户令：日期该到片名上方，不要和更多按钮一行（网页端 SubscribeCard 桌面档的 year 行）。
+            Test("订阅墙卡片：年份一行排在片名上方", () =>
+            {
+                var text = File.ReadAllText(Path.Combine(FindRoot(), "src", "Momoka.Shell", "Views", "MoviePilotSubscriptionWallCard.xaml"));
+                var year = text.IndexOf("x:Name=\"CardYear\"", StringComparison.Ordinal);
+                var title = text.IndexOf("x:Name=\"CardTitle\"", StringComparison.Ordinal);
+                Assert.True(year > 0, "卡片缺少年份那一行");
+                Assert.True(title > year, "年份那一行必须排在片名之前");
+                Assert.True(text.Contains("Card.WallYear") && text.Contains("Card.WallTitle"), "年份／片名要读墙上的那一对读数");
+            });
         }
 
         private static string FindRoot()
