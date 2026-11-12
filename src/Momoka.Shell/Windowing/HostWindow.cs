@@ -2599,7 +2599,10 @@ internal sealed partial class HostWindow : IDisposable
         // 的字用的都是它。
         var onScrim = _captionOnScrim;
 
-        titleBar.BackgroundColor = ThemeHost.ToColor(theme.Colors.Window);
+        // 底色透明（2026-11-12 晚「侧边栏和标题栏采用云母 Alt」）：标题栏那一块现在露的是窗口材质，
+        // 铺一个不透明的窗口色会在右上角那三颗按钮底下留一块方角的实底，和左边的材质对不上。
+        // 压在剧照上那一档（详情页沉浸）也不受影响 —— 剧照归页面画，这一层本来就是透明的。
+        titleBar.BackgroundColor = Color.FromArgb(0, 0, 0, 0);
         titleBar.ForegroundColor = ThemeHost.ToColor(theme.Colors.Text);
         titleBar.ButtonBackgroundColor = Color.FromArgb(0, 0, 0, 0);
         titleBar.ButtonForegroundColor = onScrim

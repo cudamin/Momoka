@@ -123,7 +123,7 @@ internal sealed partial class ShellNavigationProbe
                 && DataRequests() == requests, "切换侧栏重建主页货架或重新请求了数据");
             Require(shell.LibraryViews.Count == 3 && nav.MenuItems.OfType<NavigationViewItem>().Count(item =>
                 item.Tag is string tag && tag.StartsWith("library:", StringComparison.Ordinal)) == 3, "媒体库数量或音乐入口错误");
-            Require(home.BleedRead().Ok, "侧栏模式轮播没有铺满内容区：" + home.BleedRead().Detail);
+            Require(home.BannerCardRead().Ok, "侧栏模式轮播不是四边留白的圆角卡片：" + home.BannerCardRead().Detail);
             AssertSidebarGeometry(shell, host, true);
             DumpSidebarLayout(shell, "1240 expanded");
             await SaveProbeScreenAsync("sidebar-on-1240-screen.png");
@@ -196,19 +196,10 @@ internal sealed partial class ShellNavigationProbe
             var expandedColor = await SidebarColorAsync(shell, railSpot.X, railSpot.Y);
             Require(railColor == expandedColor,
                 $"侧栏展开后底色变了：收起时 {railColor}、展开后 {expandedColor}");
-            // 2026-11-12「改为Mica」之后，栏的底是「面色 + 50%」压在画布上（LayerFillColorAltBrush），
-            // 屏上那一格不再是纯面色：渲染帧把半透明画刷记成预乘读数（透明度 × 面色）。期望值因此从
-            // 面色本身换成这个预乘值 —— 判据仍要证明「画上去的是这支角色」，只是不再假装它不透明。
-            if (Application.Current.Resources["LayerFillColorAltBrush"] is not SolidColorBrush layer)
-                throw new InvalidOperationException("找不到侧边栏那一层画刷");
-            var premultiplied = (
-                R: (byte)Math.Round(layer.Color.R * layer.Color.A / 255.0),
-                G: (byte)Math.Round(layer.Color.G * layer.Color.A / 255.0),
-                B: (byte)Math.Round(layer.Color.B * layer.Color.A / 255.0));
-            Require(NearColor(expandedColor, premultiplied, 1),
-                $"侧栏底色不是那一层半透明面色：{expandedColor} 对预乘 "
-                + $"#{premultiplied.R:X2}{premultiplied.G:X2}{premultiplied.B:X2}"
-                + (layer.Color.A == 0xFF ? "（画刷又变回不透明了，Mica 被盖住）" : string.Empty));
+            // 2026-11-12 晚按用户令「侧边栏和标题栏采用云母 Alt」：栏自己不再铺那层半透明面色
+            // （LayerFillColorAltBrush），直接露出窗口材质 —— 再铺一块就是第二道面，云母被盖住。
+            Require(Get<Grid>(shell, "SidebarHost").Background is null or SolidColorBrush { Color.A: 0 },
+                "侧边栏又铺了自己的一块底，云母 Alt 被盖住了");
             DumpSidebarLayout(shell, "600 expanded");
             var title = Get<StackPanel>(shell, "TitleActions");
             var account = Get<Button>(shell, "AccountButton");
@@ -221,13 +212,16 @@ internal sealed partial class ShellNavigationProbe
                 "账号没有落在左下角");
             Require(Left(account, shell) + account.ActualWidth <= host.ActualWidth + 1,
                 "账号溢出了侧边栏的宽");
-            // 导航开关站在标题栏最左边（标题的位置），主页与返回排在它右边。
+            // 2026-11-12 晚的排法（用户令「主页不显示返回按钮…放左上角，折叠侧边栏按钮移到它右边」）：
+            // 这一跑停在详情页（非主页），返回在最左、折叠键紧贴它右边、标题跟在折叠键右边。
             var backButton = Get<Button>(shell, "BackButton");
-            Require(Left(toggle, shell) <= 20 && Left(toggle, shell) < Left(backButton, shell)
+            var titleText = Get<TextBlock>(shell, "AppTitleText");
+            Require(backButton.Visibility == Visibility.Visible
+                && Left(backButton, shell) <= 20
+                && Left(toggle, shell) >= Left(backButton, shell) + backButton.ActualWidth
+                && Left(titleText, shell) > Left(toggle, shell) + toggle.ActualWidth
                 && Top(toggle, shell) + toggle.ActualHeight <= HomePage.ChromeHeight + 1,
-                "导航开关不在标题栏最左边");
-            Require(Left(backButton, shell) >= Left(toggle, shell) + toggle.ActualWidth,
-                "后退没有排在导航开关右边");
+                "媒体库页上「返回 · 折叠 · 标题」的次序不对");
             await SaveProbeScreenAsync("sidebar-expanded-600-screen.png");
             ((IInvokeProvider)new ButtonAutomationPeer(toggle).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(shell);
@@ -244,14 +238,18 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(width, 900);
                 await LayoutAsync(shell);
                 Require(shell.ProbeTitleActions().Ok, "收藏页加入后标题栏布局不合法" + shell.ProbeTitleActions().Detail);
-                // 2026-11-11 起标题栏不再按页型换脸：媒体库页上也是同一排，收藏此刻有内容、所以也在。
+                // 2026-11-12 晚：这一排是 返回 · 主页 · 收藏（有收藏才在）· 设置，前进键退役；
+                // 搜索入口在标题栏正中那颗框里，框收起来（窄窗）时才由这一排的放大镜顶班。
                 Require(Get<Button>(shell, "HomeButton").Visibility == Visibility.Visible
                     && Get<Button>(shell, "FavoritesButton").Visibility == Visibility.Visible
                     && Get<Button>(shell, "SettingsButton").Visibility == Visibility.Visible
-                    && Get<Button>(shell, "SearchButton").Visibility == Visibility.Visible
-                    && Get<Button>(shell, "BackButton").Visibility == Visibility.Visible
-                    && Get<Button>(shell, "ForwardButton").Visibility == Visibility.Visible,
+                    && Get<Button>(shell, "BackButton").Visibility == Visibility.Visible,
                     "媒体库页的标题栏那一排缺了按键");
+                var box = Get<Button>(shell, "TitleSearchBox");
+                var wide = width >= 1000;
+                Require(box.Visibility == (wide ? Visibility.Visible : Visibility.Collapsed)
+                    && Get<Button>(shell, "SearchButton").Visibility == (wide ? Visibility.Collapsed : Visibility.Visible),
+                    $"搜索入口没有按窗宽换班（{width}）");
                 await SaveProbeScreenAsync($"toolbar-navigation-{width}-screen.png");
             }
             await ToggleAsync(true);
@@ -323,6 +321,60 @@ internal sealed partial class ShellNavigationProbe
 
         static void Select(NavigationViewItem item) =>
             ((ISelectionItemProvider)new NavigationViewItemAutomationPeer(item).GetPattern(PatternInterface.SelectionItem)).Select();
+    }
+
+    /// <summary>
+    /// 启动时侧边栏模式已经开着（2026-11-13 用户：「侧边栏模式怎么只有标题没有侧边栏」）。
+    /// <para>
+    /// 与「运行中拨开关」不是同一条路：那一档设置文件里存着 true，<c>Loaded</c> 那一刻外壳还没量到宽度
+    /// （ActualWidth 是 0），宽窄档与栏的宽都要等第一次 SizeChanged 才落定。这一条要证明的就是 —— 等它落定之后
+    /// 屏上是「标题 + 220 宽的栏」，而不是只剩标题、栏被裁到看不见。
+    /// </para>
+    /// </summary>
+    private async Task SidebarAtStartupAsync()
+    {
+        using var fixture = CreateFixture();
+        fixture.Settings.Ui.SidebarMode = true;
+        fixture.Settings.Ui.AnimationsEnabled = false;
+        fixture.Settings.Ui.ShowHomeBanner = false;
+        await fixture.SelectAsync();
+
+        var shell = new ShellPage();
+        shell.Attach(fixture.Services);
+        fixture.Actions.TitleStripChanged = shell.SetTitleStrip;
+        // 只借已经跑着的那扇探针窗口量标题栏几何；没有播放器。
+        Field(shell, "_window", _window);
+        _root.Children.Add(shell);
+        try
+        {
+            await (Task)Call(shell, "EnterShellAsync")!;
+            await LayoutAsync(shell);
+            await Task.Delay(200);
+
+            var host = Get<Grid>(shell, "SidebarHost");
+            var nav = Get<NavigationView>(shell, "Sidebar");
+            var title = Get<TextBlock>(shell, "AppTitleText");
+            Require(host.Visibility == Visibility.Visible && Math.Abs(host.ActualWidth - 220) < 1,
+                $"启动时侧栏没有展开：显示 {host.Visibility}、宽 {host.ActualWidth:0}、pane={nav.IsPaneOpen}、"
+                    + $"外壳宽 {shell.ActualWidth:0}");
+            Require(title.Visibility == Visibility.Visible, "启动时侧栏模式没有标题");
+            Require(Math.Abs(shell.BrowseRoot.Margin.Left - 220) < 1,
+                $"内容区没有让开侧栏：左让 {shell.BrowseRoot.Margin.Left:0}");
+
+            // 栏里的项真的在屏上：几何上「有一块 220 宽的栏」和「栏里画得出字」是两件事，后者才是用户看到的。
+            var home = Get<NavigationViewItem>(shell, "SidebarHome");
+            Require(home.Visibility == Visibility.Visible && home.ActualWidth > 0 && home.ActualHeight > 0,
+                "启动时栏里的入口没有实现出来");
+            await SaveProbeScreenAsync("sidebar-startup-screen.png");
+        }
+        finally
+        {
+            Call(shell, "StopMoviePilotMonitoring");
+            Call(shell, "ReleaseContent");
+            Field(shell, "_window", null);
+            _root.Children.Remove(shell);
+            ResizeInspect(1420, 980);
+        }
     }
 
     /// <summary>
@@ -475,7 +527,11 @@ internal sealed partial class ShellNavigationProbe
         // 导航开关的字形要和栏里那几项的图标落在同一条竖线上（用户 2026-10-13：「关闭导航没和下面对齐」）。
         // 判 3 像素：栏收成 48 宽那一档，框架模板把图标中线放在 26 上（展开时是 24），而缩进只有一个数，
         // 两档里必有一档差 2 像素 —— 这里钉的是「不再差 15 像素」，不是「两档都精确到 0」。
+        //
+        // **2026-11-12 晚起只在返回收起时判**：用户令「返回放左上角，折叠侧边栏按钮移到它右边」，于是媒体页
+        // 与媒体库页上折叠键被返回顶开一整格 —— 那一档它本来就不该和栏里的图标对齐。主页上它仍是第一颗。
         if (shown
+            && Get<Button>(shell, "BackButton").Visibility != Visibility.Visible
             && Get<Button>(shell, "NavToggleButton") is { Visibility: Visibility.Visible } toggle
             && toggle.Content is FrameworkElement glyph
             && Get<NavigationViewItem>(shell, "SidebarHome").Icon is { } navIcon

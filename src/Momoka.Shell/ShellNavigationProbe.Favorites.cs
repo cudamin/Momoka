@@ -80,23 +80,21 @@ internal sealed partial class ShellNavigationProbe
             var settingsButton = Get<Button>(shell, "SettingsButton");
             var searchButton = Get<Button>(shell, "SearchButton");
             var backButton = Get<Button>(shell, "BackButton");
-            var forwardButton = Get<Button>(shell, "ForwardButton");
             await LayoutAsync(shell);
 
-            // 首页、空收藏：统一那一排只剩五颗（收藏没有内容可去，收起），主页与两支箭头在首页都走不动、暗着。
+            // 首页、空收藏（2026-11-12 晚的规矩）：收藏没有内容可去、收起；主页走不动、暗着；**返回在主页上整个
+            // 收起**（用户令「主页不显示返回按钮」）；前进键退役；搜索入口在标题栏正中那颗框里（1420 宽够放），
+            // 这一排的放大镜让位。
+            var box = Get<Button>(shell, "TitleSearchBox");
             Require(favoritesButton.Visibility == Visibility.Collapsed, "没有收藏时收藏按钮没有收起");
-            Require(homeButton.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Visible
-                && forwardButton.Visibility == Visibility.Visible,
-                "统一的一排缺了主页、返回或前进");
-            Require(settingsButton.Visibility == Visibility.Visible && searchButton.Visibility == Visibility.Visible,
-                "设置或搜索没在左上这一排");
-            Require(!homeButton.IsEnabled && !backButton.IsEnabled && !forwardButton.IsEnabled,
-                "首页上主页、返回或前进没有变暗");
-            Require(Left(homeButton, shell) < Left(settingsButton, shell)
-                && Left(settingsButton, shell) < Left(searchButton, shell)
-                && Left(searchButton, shell) < Left(backButton, shell)
-                && Left(backButton, shell) < Left(forwardButton, shell),
-                "标题栏这一排的次序不是 主页·(收藏)·设置·搜索·返回·前进");
+            Require(homeButton.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Collapsed,
+                "主页上主页键不在、或者返回没有收起");
+            Require(settingsButton.Visibility == Visibility.Visible, "设置没在左上这一排");
+            Require(box.Visibility != searchButton.Visibility,
+                $"搜索入口不对：搜索框 {box.Visibility}、放大镜 {searchButton.Visibility}（两者应当恰好一个在）");
+            Require(!homeButton.IsEnabled && !backButton.IsEnabled, "首页上主页或返回没有变暗");
+            Require(Left(homeButton, shell) < Left(settingsButton, shell),
+                "标题栏这一排的次序不是 主页 · 设置");
             Require(shell.Pages.Margin.Top == 0, "标题栏又给页面留了旧的顶部占位");
             Require(shell.ProbeTitleActions().Ok, "首页标题栏布局不合法" + shell.ProbeTitleActions().Detail);
             Require(Left(homeButton, shell) <= 24 && Top(homeButton, shell) + homeButton.ActualHeight <= HomePage.ChromeHeight,
@@ -166,8 +164,9 @@ internal sealed partial class ShellNavigationProbe
                 ResizeProbeClient(width, 820);
                 await LayoutAsync(shell);
                 var center = banner.TransformToVisual(shell).TransformPoint(new(0, 0));
-                Require(shell.Pages.Margin.Top == 0 && Math.Abs(center.Y) < 1,
-                    "轮播被旧导航占位向下推离窗口顶边");
+                // 2026-11-12 晚：轮播是四边留白的圆角卡片，上沿落在标题栏底下 20 处（BannerZone 的 36,20,13,0）。
+                Require(shell.Pages.Margin.Top == 0 && Math.Abs(center.Y - (HomePage.ChromeHeight + 20)) < 1,
+                    $"轮播没有落在标题栏底下 20 处（实测 {center.Y:0}）");
                 Require(favoritesButton.Visibility == Visibility.Visible && shell.ProbeTitleActions().Ok,
                     "轮播页的标题栏那一排没有正确排列");
                 await SaveProbeScreenAsync($"home-favorites-banner-{width}-screen.png");
@@ -178,7 +177,7 @@ internal sealed partial class ShellNavigationProbe
             Require(shell.Pages.Margin.Top == 0, "关闭轮播后残留旧导航留白");
             await SaveProbeScreenAsync("home-favorites-no-banner-screen.png");
 
-            // 历史：收藏页 → 返回回首页（返回在收藏页是亮的），再按前进那颗回收藏页；爱心全程都在。
+            // 历史：收藏页 → 返回回首页（返回在收藏页是亮的）；爱心全程都在。
             Invoke(favoritesButton);
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag);
             await LayoutAsync(shell);
@@ -187,16 +186,17 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(shell);
             Require(favoritesButton.Visibility == Visibility.Visible, "历史返回首页后爱心丢了（收藏还在）");
             Require(!backButton.IsEnabled, "回到首页后返回按钮仍按得动");
-            Require(forwardButton.IsEnabled, "退回来以后前进按钮没有亮");
-            Invoke(forwardButton);
+            Require(backButton.Visibility == Visibility.Collapsed, "回到首页后返回按钮没有收起");
+            // 前进键 2026-11-12 晚退役（用户选「前进键退役」）：那一步改由 Alt+→ / 鼠标侧键走同一条 GoForward。
+            Call(shell, "GoForward");
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.FavoritesTag);
 
-            // 登录卡：收藏清空、爱心收起，外壳那一排照旧留着。
+            // 登录卡：收藏清空、爱心收起，外壳那一排照旧留着；返回在登录卡上收起（没有可退的地方）。
             Call(shell, "ShowSignIn", new object?[] { null, false, null });
             Require(favoritesButton.Visibility == Visibility.Collapsed, "退出登录没有收起爱心");
-            Require(homeButton.Visibility == Visibility.Visible && backButton.Visibility == Visibility.Visible
-                && forwardButton.Visibility == Visibility.Visible
-                && settingsButton.Visibility == Visibility.Visible, "登录卡上标题栏那一排缺了按键");
+            Require(homeButton.Visibility == Visibility.Visible
+                && settingsButton.Visibility == Visibility.Visible
+                && backButton.Visibility == Visibility.Collapsed, "登录卡上标题栏那一排不对");
             fixture.Session.SignOut();
             fixture.Transport.Reply = new PlexStateProbeServer(false).ReplyAsync;
             await fixture.SelectAsync("home-navigation-plex.invalid", kind: MediaServerKind.Plex);

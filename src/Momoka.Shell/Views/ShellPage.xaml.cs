@@ -168,6 +168,12 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>标题栏那一条底下是什么，见 <see cref="SetTitleStrip"/>。</summary>
     private TitleStrip _titleStrip;
 
+    /// <summary>
+    /// 上一次报给窗口的标题栏穿透矩形（这一排、正中搜索框、账号那一块）。窗口那一头只认最近一份，
+    /// 所以坐标没变就不必再说一遍 —— 见 <see cref="ReportTitleBarHoles"/>。
+    /// </summary>
+    private (double X, double Y, double Width, double Height)?[] _titleHoles = [];
+
     /// <summary>The gesture that owns the navigation in flight; only set when stage timing is enabled.</summary>
     private NavigationTimingRun? _navigationRun;
     private readonly BrowsePresentation _browsePresentation;
@@ -283,7 +289,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>只缩放按钮内容，点击范围和非客户区穿透矩形始终保持布局尺寸。</summary>
     private void WireTitleFeedback()
     {
-        foreach (var button in new[] { NavToggleButton, HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton, AccountButton })
+        foreach (var button in new[] { NavToggleButton, HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, AccountButton })
         {
             button.PointerEntered += OnTitlePointerEntered;
             button.PointerExited += OnTitlePointerExited;
@@ -429,6 +435,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
         AppTitleBar.Resources["ButtonForegroundPointerOver"] = _titleInkHover;
         AppTitleBar.Resources["ButtonForegroundPressed"] = _titleInkHover;
         AppTitleBar.Resources["ButtonForegroundDisabled"] = _titleInk;
+
+        // 标题那几个字（侧边栏模式）走同一支墨：它压的是标题栏那一层材质，和旁边那几颗按钮同一块底。
+        AppTitleText.Foreground = _titleInk;
 
         // 账号那几样直接写在元素上，不走键：那行字一个走 FontWeight、一个走 EgDataStyle，而样式自己设了
         // Foreground —— 写在元素上的值压得过样式里的 setter，写进字典里的键则压不过。
@@ -2091,22 +2100,26 @@ public sealed partial class ShellPage : UserControl, IShellActions
         HomeButton.IsEnabled = _session?.IsSignedIn == true && (_current != "home" || _librariesFailed);
         SyncTitleActions();
 
-        ApplyChrome(ContentFrame.CanGoBack, ContentFrame.CanGoForward, _trail.Count);
+        ApplyChrome(ContentFrame.CanGoBack, _trail.Count);
         SyncSidebar();
     }
 
     /// <summary>
-    /// Keep the two arrows and the breadcrumb row in sync with the current navigation state.
+    /// 返回与面包屑跟着导航状态走。
     /// <para>
-    /// 2026-11-11 起返回与前进每一页都在这一排、走不动时只是变暗（用户令「左上角统一留主页、收藏、设置、
-    /// 搜索、返回」，当晚又令「把左上角的前进键加回去」）：旧的「首页不显示箭头」「媒体库与详情页只留
-    /// 后退+主页」两条按页型收起的分档同日退役。前进只补回刚退回去的那一步（见 <see cref="GoForward"/>）。
+    /// **2026-11-12 晚起返回只在非主页露面**（用户令「主页不显示返回按钮，进入媒体页面或者媒体库页面的时候
+    /// 显示，放左上角，折叠侧边栏按钮移到它右边」）：主页没有可退的东西，那一格让给折叠键；前进键同晚退役
+    /// （<c>ForwardButton</c> 整颗删掉，Alt+→ 与鼠标侧键仍走 <see cref="GoForward"/>）。旧规矩「每一页都在、
+    /// 走不动时只是变暗」只对非主页那一档还成立。
     /// </para>
     /// </summary>
-    private void ApplyChrome(bool canGoBack, bool canGoForward, int crumbs)
+    private void ApplyChrome(bool canGoBack, int crumbs)
     {
         BackButton.IsEnabled = canGoBack;
-        ForwardButton.IsEnabled = canGoForward;
+        // 登录卡上没有可退的地方（内容区整个收着），所以那一档也收起 —— 判据是「有没有浏览态」，不是目的地。
+        BackButton.Visibility = ContentHost.Visibility == Visibility.Visible
+            ? BackVisibilityFor(_current)
+            : Visibility.Collapsed;
 
         // The whole row, not just the trail inside it: one crumb only repeats the heading the page draws
         // right below, and a row left standing empty is a band of nothing 38 pixels tall.
@@ -2114,12 +2127,22 @@ public sealed partial class ShellPage : UserControl, IShellActions
     }
 
     /// <summary>
+    /// 返回键在某个目的地上的显隐：主页收起、其余（媒体库、详情、搜索、收藏、服务器…）都在。
+    /// <para>
+    /// 立成纯函数是为了自检：它拿目的地直接问，不必真的导航一趟再量屏上那颗按钮。登录卡那一档目的地是空，
+    /// 但整块内容区收着、这一排也一并收起，所以这里不必再为它分一档。
+    /// </para>
+    /// </summary>
+    internal static Visibility BackVisibilityFor(string? tag) =>
+        tag == "home" ? Visibility.Collapsed : Visibility.Visible;
+
+    /// <summary>
     /// Tells the window which rectangles of its title bar the shell's buttons occupy, in the island's
-    /// logical pixels, so the frame stops answering 「caption」 there and their clicks arrive. Two of them:
-    /// the row of buttons on the left, and the account button at the right end — which moved into this strip
-    /// when its own row below went away (2026-09-09), and would otherwise read as a drag handle instead of
-    /// a button. Measured rather than assumed: the positions depend on the current scale, the icons' own
-    /// metrics, and the account name's own width.
+    /// logical pixels, so the frame stops answering 「caption」 there and their clicks arrive. Three of them:
+    /// the row of buttons on the left, the search box in the middle (2026-11-12), and the account button at
+    /// the right end — which moved into this strip when its own row below went away (2026-09-09), and would
+    /// otherwise read as a drag handle instead of a button. Measured rather than assumed: the positions depend
+    /// on the current scale, the icons' own metrics, and the account name's own width.
     /// </summary>
     private void ReportTitleBarHoles()
     {
@@ -2128,13 +2151,36 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // already claimed the strip whole by then anyway, so the last real rectangle is the one to keep.
         if (_window is null) return;
 
-        if (TitleActions.ActualWidth > 0 && TitleActions.ActualHeight > 0)
-        {
-            var origin = TitleActions.TransformToVisual(this).TransformPoint(new Windows.Foundation.Point(0, 0));
-            _window.SetTitleBarHoles(
-                (origin.X, origin.Y, TitleActions.ActualWidth, TitleActions.ActualHeight),
-                AccountRect());
-        }
+        if (TitleActions.ActualWidth <= 0 || TitleActions.ActualHeight <= 0) return;
+
+        var origin = TitleActions.TransformToVisual(this).TransformPoint(new Windows.Foundation.Point(0, 0));
+        (double X, double Y, double Width, double Height)?[] holes =
+        [
+            (origin.X, origin.Y, TitleActions.ActualWidth, TitleActions.ActualHeight),
+            SearchRect(),
+            AccountRect()
+        ];
+
+        // 只在真的挪了才报：这条路径也挂在窗口尺寸上（正中那颗搜索框和右上角的账号都随窗宽走），拖一次边
+        // 会响几十次，而每一次都往下走三趟 SetRegionRects。坐标没变就什么都不必说。
+        if (holes.Length == _titleHoles.Length && holes.Zip(_titleHoles).All(pair => pair.First == pair.Second)) return;
+
+        _titleHoles = holes;
+        _window.SetTitleBarHoles(holes);
+    }
+
+    /// <summary>
+    /// 标题栏正中那颗搜索框落在窗口里的矩形，给自检和窗口挖洞用。null 是「不在屏上」（窄窗收着、或者播放时
+    /// 整条外壳收着）—— 收着的时候不该在标题栏正中留一个看不见的洞。
+    /// </summary>
+    private (double X, double Y, double Width, double Height)? SearchRect()
+    {
+        if (TitleSearchBox.Visibility != Visibility.Visible
+            || TitleSearchBox.ActualWidth <= 0
+            || TitleSearchBox.ActualHeight <= 0) return null;
+
+        var origin = TitleSearchBox.TransformToVisual(this).TransformPoint(new Windows.Foundation.Point(0, 0));
+        return (origin.X, origin.Y, TitleSearchBox.ActualWidth, TitleSearchBox.ActualHeight);
     }
 
     /// <summary>
@@ -2162,6 +2208,39 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         NavigationTiming.Click("search-button");
         OpenSearch();
+    }
+
+    /// <summary>
+    /// 标题栏正中那颗搜索框（2026-11-12）：和旁边那颗放大镜走同一条路 —— 进这一页的搜索页，不另开窗口。
+    /// 它只是个按钮，不是输入框：搜索页自己有输入框和来源栏，焦点要落在那一页里。
+    /// </summary>
+    private void OnSearchBoxClicked(object sender, RoutedEventArgs e)
+    {
+        NavigationTiming.Click("search-box");
+        OpenSearch();
+    }
+
+    /// <summary>
+    /// 标题栏正中那颗搜索框在不在屏上、多宽。
+    /// <para>
+    /// 门槛按这一排两头占多少算：非侧边栏模式左边是主页/收藏/设置/返回，右边是账号那一组（最宽 240，离右沿
+    /// 160），中间再塞一段就得一千像素往上；侧边栏模式左边只有返回/折叠/标题，右边只有系统那三颗，
+    /// 七百就够。收起来的时候各有替代：非侧边栏模式那一排里的放大镜键（<see cref="SearchButton"/>），
+    /// 侧边栏模式栏里那条「搜索」。
+    /// </para>
+    /// <para>
+    /// 宽度取窗口的三成、夹在 220–420 之间：商店那颗也是这么一段，窄窗跟着缩、宽屏不会拉成一条横杠。
+    /// </para>
+    /// </summary>
+    private void SyncTitleSearch()
+    {
+        var room = SidebarShown ? 700 : 1000;
+        var shown = Chrome.Visibility == Visibility.Visible && ActualWidth >= room;
+        TitleSearchBox.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+        if (shown) TitleSearchBox.Width = Math.Clamp(ActualWidth * 0.30, 220, 420);
+
+        // 那一排里的放大镜只在「框收起来了、这一排又还在」的时候顶班（侧边栏模式那一排整个收着，栏里有搜索）。
+        SearchButton.Visibility = !SidebarShown && !shown ? Visibility.Visible : Visibility.Collapsed;
     }
 
     /// <summary>

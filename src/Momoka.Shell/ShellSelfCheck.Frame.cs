@@ -177,13 +177,14 @@ internal static partial class ShellSelfCheck
     }
 
     /// <summary>
-    /// 标题栏上那两块按键：外壳把它们摆成什么样，窗口在那两块地方答什么。两件事一起问才算数 —— 按键画的地方
-    /// 必须是客户区（不然指针压下去变成拖窗口，按钮永远收不到点击），而同一条带子上两块以外的地方必须还是
+    /// 标题栏上那三块：外壳把它们摆成什么样，窗口在那几块地方答什么。两件事一起问才算数 —— 按键画的地方
+    /// 必须是客户区（不然指针压下去变成拖窗口，按钮永远收不到点击），而同一条带子上那几块以外的地方必须还是
     /// 标题栏，否则挖洞挖成了把整条拖动区挖掉。窗口自己报的洞还要和量出来的矩形对得上：洞开歪了在屏幕上完全
     /// 看不出来，直到有人去点按键。
     /// <para>
-    /// 两块：左边那一排按键（主页、收藏、设置、搜索、返回、前进 —— 收藏没有内容时不在），和右端的账号按钮 —— 它 2026-09-09 从删掉的第 1 行
-    /// 挪进来，账号名一换宽度就变，所以它的洞跟着现场量，不写死。
+    /// 三块：左边那一排按键（返回、主页、收藏、设置、搜索 —— 返回在主页上收着、收藏没有内容时不在）、
+    /// 正中那颗搜索框（2026-11-12 晚新增），和右端的账号按钮 —— 它 2026-09-09 从删掉的第 1 行挪进来。
+    /// 三块的宽度都跟着现场量（账号名一换、窗宽一变就不同），所以洞也不写死。
     /// </para>
     /// </summary>
     /// <param name="captionBefore">
@@ -208,6 +209,24 @@ internal static partial class ShellSelfCheck
         // 整排右侧 40 身上那条空带问一次 —— 窗口那边只改了按钮位置、没改 TitleBarHeight 时，这一点会落回客户区。
         var low = HitAt(window, probe.X + probe.Width + 40, probe.Y + probe.Height - 2);
 
+        // 正中那颗搜索框：中点是客户区（按得动），它左端外面 12 像素还是标题栏（洞没有开过头）。
+        var search = shell.ProbeSearchHole();
+        bool searchOk;
+        string searchNote;
+        if (search is null)
+        {
+            searchOk = true;
+            searchNote = "搜索框收着（窄窗或播放中）";
+        }
+        else
+        {
+            var searchCentre = HitAt(window, search.Value.X + search.Value.Width / 2, search.Value.Y + search.Value.Height / 2);
+            var searchEdge = HitAt(window, search.Value.X - 12, search.Value.Y + search.Value.Height / 2);
+            searchOk = searchCentre == Native.HitClient && searchEdge == Native.HitCaption;
+            searchNote = $"搜索框 {search.Value.Width:0}×{search.Value.Height:0}，中点 {HitName(searchCentre)}、"
+                + $"洞左 12 像素处 {HitName(searchEdge)}";
+        }
+
         // 账号那一块：量得到就问三件事 —— 按钮中点得是客户区（不然一按就是拖窗口，这正是它挪进标题栏
         // 要挖第二个洞的理由），窗口留的洞和量出来的矩形对得上，洞左边那一点还得是标题栏（洞开过头把
         // 拖动区挖掉的坏法）。量不到（没登录）就只报不判。
@@ -229,18 +248,16 @@ internal static partial class ShellSelfCheck
         }
 
         var holes = window.TitleBarHoles;
+        // 三个洞按矩形找，不按次序：次序是「谁先量出来谁先到」，而这一排、搜索框、账号三者的相对位置随窗宽变。
         var matched = holes is { } rects
-            && rects.Count >= 1
-            && Math.Abs(rects[0].X - probe.X) <= 1
-            && Math.Abs(rects[0].Y - probe.Y) <= 1
-            && Math.Abs(rects[0].Width - probe.Width) <= 1
-            && Math.Abs(rects[0].Height - probe.Height) <= 1
-            && (account is null
-                || (rects.Count >= 2
-                    && Math.Abs(rects[1].X - account.Value.X) <= 1
-                    && Math.Abs(rects[1].Y - account.Value.Y) <= 1
-                    && Math.Abs(rects[1].Width - account.Value.Width) <= 1
-                    && Math.Abs(rects[1].Height - account.Value.Height) <= 1));
+            && Has(rects, probe.X, probe.Y, probe.Width, probe.Height)
+            && (search is null || Has(rects, search.Value.X, search.Value.Y, search.Value.Width, search.Value.Height))
+            && (account is null || Has(rects, account.Value.X, account.Value.Y, account.Value.Width, account.Value.Height));
+
+        static bool Has(IReadOnlyList<(double X, double Y, double Width, double Height)> rects,
+            double x, double y, double width, double height) =>
+            rects.Any(rect => Math.Abs(rect.X - x) <= 1 && Math.Abs(rect.Y - y) <= 1
+                && Math.Abs(rect.Width - width) <= 1 && Math.Abs(rect.Height - height) <= 1);
 
         var ok = probe.Ok
             && centre == Native.HitClient
@@ -249,10 +266,12 @@ internal static partial class ShellSelfCheck
             && low == Native.HitCaption
             && captionBefore == Native.HitCaption
             && accountOk
+            && searchOk
             && matched;
 
         return (ok, $"{probe.Detail}；整排中点 {HitName(centre)}、左端留白 {HitName(edge)}、"
-            + $"右侧 40 像素处 {HitName(beyond)}、靠近下沿 {HitName(low)}（切播放前 {HitName(captionBefore)}）；{accountNote}；"
+            + $"右侧 40 像素处 {HitName(beyond)}、靠近下沿 {HitName(low)}（切播放前 {HitName(captionBefore)}）；"
+            + $"{accountNote}；{searchNote}；"
             + $"窗口留的洞 {(holes is { } r ? string.Join("、", r.Select(x => $"({x.X:0},{x.Y:0}) {x.Width:0}×{x.Height:0}")) : "没有")}"
             + $"，{(matched ? "和按键对得上" : "和按键对不上")}");
     }

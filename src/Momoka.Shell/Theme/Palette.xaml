@@ -167,6 +167,13 @@
             <SolidColorBrush x:Key="EgOverlayHoverBrush" Color="#23FFFFFF" />
             <SolidColorBrush x:Key="EgOverlayPressedBrush" Color="#37FFFFFF" />
 
+            <!-- 标题栏那颗搜索框的底（2026-11-12 用户令「标题上方新增搜索栏」）。它压在 Mica Alt 上，所以是一层
+                 半透明的白、不是实心面色：实心块在云母上看着像贴了一张纸，而商店那颗搜索框就是「比底亮一点点」。
+                 浅色那份翻成半透明的黑（同 EgOverlay 那一对的道理），高对比度接系统色。 -->
+            <SolidColorBrush x:Key="EgFieldFillBrush" Color="#14FFFFFF" />
+            <SolidColorBrush x:Key="EgFieldFillHoverBrush" Color="#24FFFFFF" />
+            <SolidColorBrush x:Key="EgFieldStrokeBrush" Color="#1FFFFFFF" />
+
             <!-- what the framework's own controls read -->
             <!-- The accent brushes are what a Button, ToggleSwitch, Slider, RatingControl and
                  NavigationView selection indicator actually paint with. Overriding SystemAccentColor
@@ -248,7 +255,9 @@
                  卡片随之各自压在自己的层上，不再叠加整页底色。
 
                  0x99 这一档是取舍的结果：再透一档，壁纸的色块会从字缝里钻出来；再实一档，Mica 只是个名词。
-                 与它配对的是 `HostWindow.ApplyBackdrop` 里那个 `MicaKind.Base` —— 材质这一头改了浓度就不成对。
+                 与它配对的是 `IslandMicaBackdrop` 里那个 `MicaKind.BaseAlt` —— 2026-11-12 晚起窗口整块走 Alt
+                 （用户令「侧边栏和标题栏采用云母 Alt」），侧边栏与标题栏不再压这层画布、直接露出材质，
+                 内容区仍是这一层 60% 的窗口色压在上面。材质那一头换了，这里的浓度也得跟着重新核。
                  高对比度那一档由下面的 HighContrast 字典接管成系统实色，规则与别的角色一样。
 
                  别把这颗接到 LayerFillColorDefaultBrush 上：那一支被十几张弹窗和 ContentDialogTopOverlay
@@ -475,6 +484,11 @@
             <SolidColorBrush x:Key="EgOverlayHoverBrush" Color="#19000000" />
             <SolidColorBrush x:Key="EgOverlayPressedBrush" Color="#2D000000" />
 
+            <!-- 同 Dark 那三颗：搜索框的底、悬停底与边线。浅色这边是半透明的黑 —— 白的半透明压在白面上等于没画。 -->
+            <SolidColorBrush x:Key="EgFieldFillBrush" Color="#0F000000" />
+            <SolidColorBrush x:Key="EgFieldFillHoverBrush" Color="#1A000000" />
+            <SolidColorBrush x:Key="EgFieldStrokeBrush" Color="#24000000" />
+
             <Color x:Key="SystemAccentColor">#FF2E7D32</Color>
             <Color x:Key="SystemAccentColorLight1">#FF479045</Color>
             <Color x:Key="SystemAccentColorLight2">#FF60A45C</Color>
@@ -643,6 +657,9 @@
             <SolidColorBrush x:Key="EgPlayGlassPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="EgOverlayHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="EgOverlayPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="EgFieldFillBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgFieldFillHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="EgFieldStrokeBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 

@@ -95,6 +95,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("筛选多选下拉等宽、滚动与单字段全选", FilterValuesAsync, 60, section: ShellProbeSections.Library);
             await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
             await CaseAsync("侧边栏模式、导航与宽窄布局", SidebarAsync, 45);
+            await CaseAsync("启动时侧边栏模式已经开着", SidebarAtStartupAsync, 45);
             await CaseAsync("侧栏 MoviePilot 订阅入口、可用性显隐与订阅列表页", MoviePilotSidebarAsync, 45);
             await CaseAsync("首页 MP 订阅库入口、汇总与连接恢复", HomeMoviePilotLibraryAsync, 60, section: ShellProbeSections.MoviePilot);
             await CaseAsync("本机整理：三种方式、双识别入口、宽窄预览与确认取消", LocalMediaAsync, 75, section: ShellProbeSections.LocalMedia);

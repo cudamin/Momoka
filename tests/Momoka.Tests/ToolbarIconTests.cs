@@ -9,22 +9,59 @@ internal static class ToolbarIconTests
 
     internal static void Register()
     {
-        TestHarness.Test("标题栏那一排：主页、收藏、设置、搜索、返回、前进按这个次序", () =>
+        TestHarness.Test("标题栏那一排：返回、折叠、标题、主页、收藏、设置、搜索按这个次序", () =>
         {
             var panel = Named(Shell(), "TitleActions");
             var order = panel.Elements().Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
-            // 2026-11-11 用户令「左上角统一留主页、收藏（没有收藏时隐藏该按钮）、设置、搜索、返回」，当晚又令
-            // 「把左上角的前进键加回去」：这一排不再按页型换脸，声明次序就是视觉次序里的固定几格（收藏自己
-            // 收起时不占宽），前进站在返回右边补回刚退回去的那一步。
+            // 2026-11-12 晚用户令「主页不显示返回按钮，进入媒体页面或者媒体库页面的时候显示，放左上角，折叠侧边栏
+            // 按钮移到它右边」「标题栏左上角写 Momoka」，并选定「前进键退役」：这一排从此是
+            // 返回 · 折叠 · 标题 · 主页 · 收藏 · 设置/搜索。前进那颗整颗删掉，Alt+→ 与鼠标侧键仍在（GoForward）。
             Assert.True(order.SequenceEqual(new[]
             {
-                "NavToggleButton", "HomeButton", "FavoritesButton", "TitleUtilities", "BackButton", "ForwardButton"
+                "BackButton", "NavToggleButton", "AppTitleText", "HomeButton", "FavoritesButton", "TitleUtilities"
             }), "标题栏这一排的顺序不对：" + string.Join('、', order));
 
             var utilities = Named(Shell(), "TitleUtilities");
             Assert.Equal("StackPanel", utilities.Name.LocalName);
             var buttons = utilities.Elements().Select(element => element.Attribute(Xaml + "Name")?.Value).ToArray();
             Assert.True(buttons.SequenceEqual(new[] { "SettingsButton", "SearchButton" }), "工具按钮顺序不对");
+        });
+        TestHarness.Test("标题栏折叠键：面板图形，主页上它就是这一排的第一格", () =>
+        {
+            var toggle = Named(Shell(), "NavToggleButton");
+            Assert.Equal("Button", toggle.Name.LocalName);
+            Assert.Equal("OnNavToggleClicked", toggle.Attribute("Click")?.Value);
+            Assert.Equal("Collapsed", toggle.Attribute("Visibility")?.Value);
+            // 2026-11-12 晚用户给了图：一个圆角面板、左栏实心。三笔几何 —— 外框、内孔、左栏 —— 都在同一段 Data 里。
+            var icon = toggle.Descendants().Single(element => element.Name.LocalName == "PathIcon");
+            var data = icon.Attribute("Data")?.Value ?? string.Empty;
+            Assert.True(data.StartsWith("F1 M 6.2,3.6", StringComparison.Ordinal), "折叠键的图标不是那块面板：" + data);
+            Assert.Equal(3, data.Split('Z').Length - 1, "面板图标不是三笔（外框、内孔、左栏）");
+            Assert.Equal("Left", toggle.Attribute("HorizontalContentAlignment")?.Value);
+            // 外面那层 26 的放大框和这一排别的图标一样（PathIcon 不缩放几何）。
+            Assert.True(toggle.Descendants().Any(element => element.Name.LocalName == "Viewbox"
+                && element.Attribute("Width")?.Value == "26"), "折叠键没有走 26 的放大框");
+        });
+        TestHarness.Test("标题栏标题：侧边栏模式才露脸，默认收起", () =>
+        {
+            var title = Named(Shell(), "AppTitleText");
+            Assert.Equal("TextBlock", title.Name.LocalName);
+            Assert.Equal("Momoka", title.Attribute("Text")?.Value);
+            Assert.Equal("Collapsed", title.Attribute("Visibility")?.Value);
+        });
+        TestHarness.Test("标题栏搜索框：标题栏正中一颗按钮，写着搜索媒体库、订阅等", () =>
+        {
+            var box = Named(Shell(), "TitleSearchBox");
+            Assert.Equal("Button", box.Name.LocalName);
+            Assert.Equal("OnSearchBoxClicked", box.Attribute("Click")?.Value);
+            Assert.Equal("Center", box.Attribute("HorizontalAlignment")?.Value);
+            Assert.Equal("Collapsed", box.Attribute("Visibility")?.Value);
+
+            // 它只是个按钮，不是输入框：搜索页自己有输入框与来源栏。
+            Assert.True(!box.Descendants().Any(element => element.Name.LocalName is "TextBox" or "AutoSuggestBox"),
+                "标题栏那颗搜索框变成了输入框");
+            var text = box.Descendants().Single(element => element.Name.LocalName == "TextBlock");
+            Assert.Equal("搜索媒体库、订阅等", text.Attribute("Text")?.Value);
         });
         TestHarness.Test("标题栏收藏：爱心字形默认收着，没有收藏时不出现在那一排", () =>
         {
@@ -54,30 +91,16 @@ internal static class ToolbarIconTests
                 Assert.Equal("收藏", value);
             }
         });
-        TestHarness.Test("标题栏前进：加回的按钮站在返回右边，走不动时只是变暗", () =>
+        TestHarness.Test("标题栏前进：按钮已退役，Alt+→ 与鼠标侧键仍走同一条 GoForward", () =>
         {
-            var forward = Named(Shell(), "ForwardButton");
-            Assert.Equal("Button", forward.Name.LocalName);
-            Assert.Equal("TitleActions", forward.Parent?.Attribute(Xaml + "Name")?.Value);
-            Assert.Equal("OnForwardClicked", forward.Attribute("Click")?.Value);
-            Assert.Equal("ShellPage_ForwardButton", forward.Attribute(Xaml + "Uid")?.Value);
-            // 与返回同一条规矩：默认停用、走不动时暗着而不是收起 —— 这一排就是窗口挖洞的位置。
-            Assert.Equal("False", forward.Attribute("IsEnabled")?.Value);
-            Assert.Equal(null, forward.Attribute("Visibility")?.Value);
-            Assert.True(forward.Descendants().Any(element => element.Name.LocalName == "PathIcon"), "前进没有画成路径图标");
-            Assert.True(!forward.Descendants().Any(element => element.Name.LocalName == "KeyboardAccelerator"),
-                "前进按钮自带加速器：按钮停用后 Alt+→ 会一起失灵，快捷键应挂在外壳上");
-            foreach (var property in new[]
-            {
-                "[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name",
-                "[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip"
-            })
-            {
-                var value = ShellResources().Descendants("data")
-                    .FirstOrDefault(element => element.Attribute("name")?.Value == "ShellPage_ForwardButton." + property)
-                    ?.Element("value")?.Value;
-                Assert.Equal("前进", value);
-            }
+            var document = Shell();
+            // 2026-11-12 晚用户选定「前进键退役」：标题栏不再有那颗按钮，那一格让给折叠与标题。
+            // 「刚退回去那一步还能补回来」这件事本身没删 —— 两支快捷键和鼠标侧键仍在，见下一条。
+            Assert.True(!document.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "ForwardButton"),
+                "前进按钮又回到了标题栏");
+            Assert.True(!document.Descendants().Any(element =>
+                    element.Name.LocalName == "Button" && element.Attribute(Xaml + "Uid")?.Value == "ShellPage_ForwardButton"),
+                "前进按钮的本地化键还在");
         });
         TestHarness.Test("标题栏导航：首页/收藏胶囊已退役，两支快捷键挂在外壳上", () =>
         {

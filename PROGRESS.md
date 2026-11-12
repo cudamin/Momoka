@@ -1,3 +1,13 @@
+## 2026-11-12 晚 侧边栏模式改商店样式：Mica Alt、标题、搜索框、圆角轮播
+
+用户六条令（附商店截图）＋两处追问（轮播「你看微软商店怎么弄的你就怎么改」、前进键退役）。**改了什么**：①窗口底材 `IslandMicaBackdrop` 换 `MicaKind.BaseAlt`，侧边栏去掉 `LayerFillColorAltBrush`、`ContentHost` 的让位从内边距改成外边距，标题栏与侧边栏因此露出同一块材质（系统标题栏底色同时改透明）；②折叠键换成用户给的面板图标（24×24 三笔：外框、内孔、左栏），主页上它是那一排第一颗；③`BackButton` 只在非主页露面、站最左，折叠键紧跟它右边，`ForwardButton` 整颗删除（`Alt+→`／鼠标侧键仍走 `GoForward`）；④轮播改成四边留白的圆角卡片（36/20/13），四周那圈染色由 `CarouselAmbient`（Core 纯函数）从当前剧照算出来，`BannerSlide.Ambient → HomeBanner.AmbientChanged → HomePage.PaintBannerGlow` 写四个停点；⑤`ShelfHead.ShowRule`（主页那几份为 `False`）去掉标题下那条通栏线，间距 `EgSpaceM → EgSpaceS`；⑥标题栏正中加搜索框（按钮语义，点进搜索页，窄窗收起由放大镜／栏里「搜索」接手）。通栏版式连同 `SyncBleed`、标题栏浅墨联动一起退役。
+
+**顺手修的隐患**：`AlignSidebarPaneClip` 换档时丢弃缓存的裁剪变换 —— SplitView 换档会换掉那支几何，留着旧缓存就一直修一支不在树上的变换，新那支带着 −172 的位移把整条栏推到栏外（屏上就是「只有标题、没有栏」）。`ReportTitleBarHoles` 改成三个洞（这一排、正中搜索框、账号），坐标不变时不重复下 Win32 调用。
+
+**验证**：Shell/Core 与 Tests Release/x64 均 0 警告 0 错误；主测试 **5001/5001、0 失败 0 跳过**（新增 `CarouselAmbientTests` 5、`HomeChromeTests` 2；`ToolbarIconTests`/`MicaMaterialTests` 按新次序与新底材改判；约定基线逐行复核：Palette 颜色 82→88、句柄 ForwardButton 有意删除并登记新句柄）。`--probe-section shell --screen 1` **15/15 退出 0**，新增「启动时侧边栏模式已经开着」（设置文件里存 true、Loaded 时 ActualWidth 还是 0 的那条路），实屏 `sidebar-startup-screen.png` 等 6 张逐张目视；`--probe-section favorites --screen 1` **7/7 退出 0**。`--self-check --dump-ui --screen 1` **163 通过 / 1 失败**，红项是既有的「媒体信息表格 10 行（已渲染 9）」，读数「主页大图通栏 —— 起点 (36,60)、1357×580，左让 36、右让 13、上让 60，圆角 16」「标题栏按键 —— 三个洞和按键对得上」。改动 27 个文本文件行尾/BOM/空白通过，`dotnet format whitespace` 定向 22 个源文件通过。
+
+**未做**：未发布、未推远端（未获上传授权）；真实服务器只做只读启动目视，无播放与写入；商店那种「标题栏左侧应用图标」没复刻；系统高对比度、跨 DPI、Narrator 未覆盖。
+
 ## 2026-11-12 WinUI P2 合入master，主树复验完成
 
 用户指令“合并”，P2 b4cd92f/2646b6e/a76f04d以6ca9358合入原master88692b5；解决方案、回归登记和PROGRESS三冲突，保留P2与第五批四新项目/74专项，第五批Core和清单/队列产品源码不覆盖。主树Shell/Core、Tests/Core Release0警告0错误；完整4991/4991和六专项56/47/61/106/11/14均0失败0跳过。
