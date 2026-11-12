@@ -2,6 +2,10 @@
 
 Read only for the affected code path. Policy is in [CLAUDE.md](../../../../CLAUDE.md); these are implementation notes and historical evidence, not extra approval rules. Recheck named owners in the current tree.
 
+## Frame destination tags
+
+`ShellPage.AdoptContentTag` derives the current top-level destination from the restored page's `Tag`; returning from a cached or recreated page must obey the same contract as initial navigation. `MusicLibraryPage` uses `LibraryRequest.Tag`, retaining empty tags for album/playlist drill-downs. `ServerListsPage` uses `server-lists` only when its request has no Item; a specific server list remains a drill-down. Its account-menu directory entrance retains explicit refresh behavior. `Momoka.NavigationStateTests` extracts the actual page visits/releases and shell navigation methods with strict source boundaries. Its Frame and view-model substitutes do not prove native event order, caching, input, focus or scroll restoration.
+
 ## Resume paging and displayed next episodes
 
 `LibraryViewModel` uses the existing `AggregateQueryCursor` for both aggregated queries and a single-source Resume page. Resume consumption belongs to server records, not `Cards.Count`: a watched episode can be replaced by a synthetic NextUp card that the Resume route does not contain. `_resumeRead` records which item identities actually came from that route; only removing one of those identities rolls back its source cursor and server total. Record the confirmed removal before awaiting NextUp, and cancel the in-flight page without changing the page's query identity.

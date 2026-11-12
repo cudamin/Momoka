@@ -31,6 +31,9 @@ public sealed partial class ServerListsPage : Page, IShellContent
         base.OnNavigatedTo(args);
         if (args.Parameter is not ServerListsRequest request) return;
         _request = request;
+        // A server-list directory is a destination; an individual list is a drill-down.
+        // Keep the directory entrance's existing explicit refresh behavior.
+        Tag = request.Item is null ? ServerListsRequest.Tag : string.Empty;
         var visit = ++_visit;
         _actions = request.Services.GetRequiredService<IShellActions>();
         _seeding = true;

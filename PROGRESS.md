@@ -1,3 +1,13 @@
+## 2026-11-12 P3 导航目的地恢复（独立树待主控集成）
+
+唯一写入树`C:\Users\89400\.codex\worktrees\winui-p3-navigation\Momoka`，基点`2f74559`。读取现行CLAUDE/Shell技能/P3与D02/D07，并实读固定Gallery `6de91feccadfbb0a796b71caedead5a2284f730e` 的MainWindow.xaml/.cs、NavigationViewPage.xaml/.cs及NavigationHelper/NavigationOrientationHelper。Gallery使用Frame历史与页面/NavigationView选择语义，不能直接据其普通Window改变Momoka主宿主、固定导航模式或点外取消。
+
+已修MusicLibraryPage导航时漏写LibraryRequest.Tag，返回/前进音乐库根页后Shell.AdoptContentTag不再得到null，重复选择同库保留现页。ServerListsPage无Item时写server-lists，带Item保持空Tag；只修恢复目的地一致性，账号菜单清单根入口每次显式刷新保留。音乐容器、空参数、离页取消和旧Tag重入边界均保留。没有修改可见导航模式、布局、按钮或服务调用语义，不触及D02/D07产品决定。
+
+新增NavigationStateTests严格提取实际页面导航/释放与Shell GoTo/Open/RememberTrail/RestoreTrail/GoBack/GoForward/AdoptContentTag、music容器及lists目录入口；LibraryRequest/清单模型直接链接，Core来自同树。当前Core/测试Release0警告0错误，统一专项17/17、0失败0跳过。6个缺失/歧义开始/结束哨兵反例均构建拒绝；去掉Music生产Tag原回归10/17、去掉Lists生产Tag11/17，确认测试拒绝真实漏写，最后恢复正式提取并复编17/17。首轮夹具缺诊断using/匿名构造边界等4错误留在artifacts/winui-p3-navigation/build-initial.log，未运行该失败产物。脚本/测试记录在同目录，文本行尾/BOM/空白检查通过。
+
+Frame/视图模型/控件和MP历史筛选是明确边界替身，测试不证明真实缓存/事件顺序、页面渲染、键盘或UIA焦点、滚动/跨DPI。未构建Shell、未跑完整主测试/原生WinUI/桌面、未输入图片；父主控统一集成并按shell/music/server-lists实际运行验证。导航状态重复、失败Navigate事务、侧栏headers窄开宽与输入完整流程仍是后续候选，不能写P3全部完成。未发布、推送或修改主树。
+
 ## 2026-11-12 WinUI P2 合入master，主树复验完成
 
 用户指令“合并”，P2 b4cd92f/2646b6e/a76f04d以6ca9358合入原master88692b5；解决方案、回归登记和PROGRESS三冲突，保留P2与第五批四新项目/74专项，第五批Core和清单/队列产品源码不覆盖。主树Shell/Core、Tests/Core Release0警告0错误；完整4991/4991和六专项56/47/61/106/11/14均0失败0跳过。
