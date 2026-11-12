@@ -99,7 +99,8 @@ internal sealed partial class ShellNavigationProbe
                     strip.FocusOn(home.ViewModel.LibraryShelf.Cards.Count - 1);
                     await LayoutAsync(strip);
                     if (placement == HomeLibraryPlacement.OnCarousel)
-                        Require(Math.Abs(Get<ScrollView>(strip, "Scroller").ViewportWidth - 660) < 1,
+                        Require(Math.Abs(Get<ScrollView>(strip, "Scroller").ViewportWidth
+                            - Math.Min(660, Get<HomeBanner>(home, "Banner").ActualWidth - holder.Margin.Left - holder.Margin.Right)) < 1,
                             "订阅入口所在的轮播媒体库没有收窄到三库宽度");
                     var poster = Descendants(strip).OfType<PosterCard>().Single(poster => ReferenceEquals(poster.Card, card));
                     Require(poster.ActualWidth > 0 && Bounds(poster, strip).Left >= -1

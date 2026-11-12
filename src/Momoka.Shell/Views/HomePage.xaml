@@ -283,6 +283,7 @@
                             <!-- 三张208 DIP库卡加两段18 DIP间距；更多库仍通过横向滚动/翻页查看。 -->
                             <ContentPresenter x:Name="LibraryHost" ContentTemplate="{StaticResource ShelfCardsTemplate}" />
                         </Border>
+                    </Grid>
                 </Border>
             </Grid>
 

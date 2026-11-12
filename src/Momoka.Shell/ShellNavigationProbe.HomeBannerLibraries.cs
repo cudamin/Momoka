@@ -70,12 +70,12 @@ internal sealed partial class ShellNavigationProbe
             var countdown = Get<Border>(banner, "CountdownBar");
 
             // 连续跨越原有800 DIP显隐界线，不能只量启动时的宽度。
-            foreach (var width in new[] { 1280, 800, 760, 801, 1100 })
+            foreach (var width in new[] { 1280, 800, 760, 848, 849, 850, 1100 })
             {
                 ResizeProbeClient(width, 760);
                 await LayoutAsync(home);
                 await UntilAsync(() => overlay.Visibility == Visibility.Visible
-                    && Math.Abs(overlay.Margin.Right - (width >= 800 ? 244 : 36)) < 1);
+                    && Math.Abs(overlay.Margin.Right - (banner.ActualWidth >= 800 ? 244 : 36)) < 1);
                 var strip = HomeFoldMotion.Find<ShelfStrip>(overlay)
                     ?? throw new InvalidOperationException("轮播上的媒体库横排没有实现");
                 await LayoutAsync(strip);
@@ -162,7 +162,7 @@ internal sealed partial class ShellNavigationProbe
                     $"剧情说明没有单独收窄到75%：Info实际/上限={info.ActualWidth}/{info.MaxWidth}，简介实际/指定={synopsis.ActualWidth}/{synopsis.Width}，窗口={banner.ActualWidth}");
                 Require(Math.Abs(fade.ActualWidth - Math.Min(banner.ActualWidth, 60 + info.MaxWidth + 64)) < 1,
                     "左侧阅读渐变没有收窄");
-                if (width < 800)
+                if (banner.ActualWidth < 800)
                 {
                     Require(synopsis.Visibility == Visibility.Collapsed, "窄窗剧情说明没有按原有高度条件收起");
                     readings.Add($"{width}/synopsis-hidden：简介指定={synopsis.Width:0.0}，渐变={fade.ActualWidth:0.0}");
@@ -217,7 +217,7 @@ internal sealed partial class ShellNavigationProbe
                 var available = banner.ActualWidth - overlay.Margin.Left - overlay.Margin.Right;
                 Require(Math.Abs(viewport.ViewportWidth - Math.Min(660, available)) < 1,
                     "轮播媒体库视口没有收窄到三库宽度");
-                var visible = width >= 800;
+                var visible = banner.ActualWidth >= 800;
                 Require(status.Visibility == (visible ? Visibility.Visible : Visibility.Collapsed), "轮播读数显隐界线改变");
                 if (!visible)
                 {
