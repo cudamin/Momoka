@@ -22,6 +22,18 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- Fixed backdrop ink is declared before its themed aliases; high contrast overrides the media roles below. -->
+    <!-- 0.2.0 默认按钮的薄白三态；详情闭合选择框共用，滑块调整有效浓度，默认15/255。 -->
+    <SolidColorBrush x:Key="EgDetailActionBrush" Color="#0FFFFFFF" />
+    <SolidColorBrush x:Key="EgDetailActionHoverBrush" Color="#15FFFFFF" />
+    <SolidColorBrush x:Key="EgDetailActionPressedBrush" Color="#08FFFFFF" />
+    <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="#FFFFFFFF" />
+    <!-- 头图压着深色遮罩，与当前主题无关；媒体卡片通过主题别名支持系统高对比度覆盖。 -->
+    <SolidColorBrush x:Key="EgOnScrimBrush" Color="#FFF3F5F8" />
+    <SolidColorBrush x:Key="EgOnScrimDimBrush" Color="#FFC9D0D9" />
+    <!-- 只在主页剧照尚未解码或整条带收起前出现，跟压图浅墨配对。 -->
+    <SolidColorBrush x:Key="EgBannerBaseBrush" Color="#FF0C0E11" />
+
     <ResourceDictionary.ThemeDictionaries>
 
         <!-- Dark is the app's real theme: this is a client whose job is to hand a video to mpv,
@@ -86,6 +98,8 @@
             <!-- 图上卡片标题使用正文墨；透明文字区不添加底板或模糊遮罩。 -->
             <StaticResource x:Key="EgCardCaptionForegroundBrush" ResourceKey="EgTextBrush" />
             <StaticResource x:Key="EgCardCaptionSecondaryBrush" ResourceKey="EgTextBrush" />
+            <StaticResource x:Key="EgMediaCaptionForegroundBrush" ResourceKey="EgOnScrimBrush" />
+            <StaticResource x:Key="EgMediaCaptionSecondaryBrush" ResourceKey="EgOnScrimDimBrush" />
 
             <!-- 详情页正文那几块玻璃 —— 「把下面的板块也坐上亚克力效果」。
                  这支亚克力要的就是「透出背后那张图，但透得看不清」，而它
@@ -426,6 +440,8 @@
             <SolidColorBrush x:Key="EgScrimBrush" Color="{StaticResource EgScrimColor}" />
             <StaticResource x:Key="EgCardCaptionForegroundBrush" ResourceKey="EgTextBrush" />
             <StaticResource x:Key="EgCardCaptionSecondaryBrush" ResourceKey="EgTextBrush" />
+            <StaticResource x:Key="EgMediaCaptionForegroundBrush" ResourceKey="EgOnScrimBrush" />
+            <StaticResource x:Key="EgMediaCaptionSecondaryBrush" ResourceKey="EgOnScrimDimBrush" />
 
             <!-- 同上，浓一档，而且这一档不跟着 Default 那份松：这一边的字是深色的，背后透上来的剧照是亮的，
                  一成半的画面就够把 #64676B 那档说明字吃掉 —— 深色那边是亮画面把玻璃抬高、暗字更难读，浅色
@@ -650,6 +666,8 @@
             <SolidColorBrush x:Key="EgScrimBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgCardCaptionForegroundBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgCardCaptionSecondaryBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="EgMediaCaptionForegroundBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="EgMediaCaptionSecondaryBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
 
             <!-- 高对比度下不上亚克力：那一档的整个意思是「别让任何东西半透明」。换成系统的窗口底色，
                  正文那张纸于是是实心的，背后那张剧照被它整块盖住 —— 这正是该有的样子。
@@ -670,23 +688,4 @@
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
-    <!-- 与主题无关的颜色 —— 只有这三个。字号、字体、圆角那一整段搬到 Theme/Styles.xaml 去了：
-         判据是「换主题会不会动它」，颜色会，字号和圆角不会。 -->
-
-    <!-- 详情页头图上的文字。头图永远是一张压了深色遮罩的剧照，所以这两个刷子故意不进
-         ThemeDictionaries：跟着主题走的话，浅色主题下就是深色字压在深色遮罩上。 -->
-    <!-- 0.2.0 默认按钮的薄白三态；详情闭合选择框共用，滑块调整有效浓度，默认15/255。 -->
-    <SolidColorBrush x:Key="EgDetailActionBrush" Color="#0FFFFFFF" />
-    <SolidColorBrush x:Key="EgDetailActionHoverBrush" Color="#15FFFFFF" />
-    <SolidColorBrush x:Key="EgDetailActionPressedBrush" Color="#08FFFFFF" />
-    <SolidColorBrush x:Key="EgDetailActionTextBrush" Color="#FFFFFFFF" />
-    <SolidColorBrush x:Key="EgOnScrimBrush" Color="#FFF3F5F8" />
-    <SolidColorBrush x:Key="EgOnScrimDimBrush" Color="#FFC9D0D9" />
-
-    <!-- 主页第一屏那条大图的底（HomeBanner 的 Band）。剧照 2026-09-11 起铺满整条带（「去掉首页封面轮播图的黑边」，
-         UniformToFill），所以这个底色只在图还没解码到的那一瞬、还有整条带收起来之前的那一帧看得见 —— 从前它还是
-         「剧照只占六成宽、左右那两片就是这个颜色」的那两片，也就是他要去掉的那两条黑边。用它的只剩这一条带。
-         和上面那两支同一个理由不跟主题走：带上的字走的是 EgOnScrim 那套浅墨，底色跟着主题变成近白的话就是白底
-         白字。 -->
-    <SolidColorBrush x:Key="EgBannerBaseBrush" Color="#FF0C0E11" />
 </ResourceDictionary>

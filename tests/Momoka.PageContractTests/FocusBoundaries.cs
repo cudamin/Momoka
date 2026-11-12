@@ -59,7 +59,7 @@ namespace Microsoft.UI.Xaml.Media
 
 namespace Momoka.Shell.Views
 {
-    public sealed class PosterCard : Microsoft.UI.Xaml.Controls.UserControl
+    public sealed partial class PosterCard : Microsoft.UI.Xaml.Controls.UserControl
     {
         public CardItem? Card { get; set; }
     }

@@ -21,7 +21,7 @@ namespace Microsoft.UI.Xaml
     public enum Visibility { Visible, Collapsed }
     public sealed class Application
     {
-        public static Application? Current => null;
+        public static Application Current { get; } = new();
         public Dictionary<string, object> Resources { get; } = [];
     }
 }
