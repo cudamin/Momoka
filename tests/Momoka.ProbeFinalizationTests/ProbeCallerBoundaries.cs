@@ -74,6 +74,8 @@ internal sealed partial class InspectCheckFixture
     internal Func<Task> Check { get; }
     internal Func<Task>? Action { get; set; }
     internal IReadOnlyList<ShellProbeReport.Check> Checks => _report.Checks;
+    internal string? ObservedSection { get; private set; }
+    internal int ObservedTimeout { get; private set; }
 
     internal InspectCheckFixture(Func<Task> check, Action<string, string, Encoding> writer, AppPaths paths)
     {
@@ -84,8 +86,10 @@ internal sealed partial class InspectCheckFixture
 
     private Task CaseAsync(string name, Func<Task> run, int timeoutSeconds, string? section)
     {
-        if (timeoutSeconds != 180 || section != ShellProbeSections.Library)
+        if (timeoutSeconds is not (180 or 540) || section is not (ShellProbeSections.Library or ShellProbeSections.Materials))
             throw new InvalidOperationException("Unexpected production case boundary");
+        ObservedSection = section;
+        ObservedTimeout = timeoutSeconds;
         // Only shorten the timeout boundary; execution, timeout recording and writer are real production.
         return _report.CaseAsync(name, run, 1, section);
     }

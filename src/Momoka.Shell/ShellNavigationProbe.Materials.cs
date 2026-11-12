@@ -105,6 +105,24 @@ internal sealed partial class ShellNavigationProbe
             var detail = (DetailPage)frame.Content;
             await UntilAsync(() => detail.IsReady && detail.ViewModel.HeroImage is not null
                 && detail.ViewModel.PlayTarget?.HasResumePosition == true);
+            // Validate the current factory Acrylic branch before selecting the historical
+            // thin-white overlay fixture used by the exact 15/21/8 assertions below.
+            await LayoutAsync(detail);
+            var factoryPlay = Descendants(Get<StackPanel>(detail, "ColumnActions")).OfType<Button>()
+                .Single(button => AutomationProperties.GetAutomationId(button) == "ColumnPlayButton");
+            var factoryFill = (AcrylicBrush)factoryPlay.Resources["ButtonBackground"];
+            var factoryColor = ThemeHost.ToColor(ShellPrefs.AppearanceColor(false, fixture.Settings.Ui));
+            Require(!factoryFill.AlwaysUseFallback && factoryFill.Opacity == 1
+                && factoryFill.TintColor == factoryColor && factoryFill.FallbackColor == factoryColor
+                && Math.Abs(factoryFill.TintOpacity - fixture.Settings.Ui.ControlTintOpacity / 100) < 0.001
+                && Math.Abs((factoryFill.TintLuminosityOpacity ?? -1) - fixture.Settings.Ui.ControlTintLuminosityOpacity / 100) < 0.001,
+                "详情出厂亚克力参数未使用当前设置");
+            reads.Add($"factory-acrylic: tint={factoryFill.TintColor}, opacity={factoryFill.TintOpacity}, luminosity={factoryFill.TintLuminosityOpacity}");
+            fixture.Settings.Ui.EnableImmersive = true;
+            fixture.Settings.Ui.UseAcrylicControls = false;
+            fixture.Settings.Ui.ControlBackgroundOpacity = 15d / 255 * 100;
+            fixture.Settings.Ui.ControlBackgroundColor = "#FFFFFF";
+            ShellPrefs.ApplyAppearance(fixture.Settings.Ui);
             strip.ItemTemplate = (DataTemplate)detail.Resources["CardTemplate"];
             holder.Children.Add(strip);
             foreach (var stage in new[] { "detail", "shelf", "servers", "notifications", "library", "mpcards", "anibtcards", "fnnas" })

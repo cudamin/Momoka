@@ -90,11 +90,11 @@
                     "using Application = Momoka.Shell.ProbeApplication;\nusing Grid = Momoka.Shell.ProbeGrid;\n" +
                     "using MoviePilotClient = Momoka.Shell.ProbeClientResource;\nusing UpdateClient = Momoka.Shell.ProbeClientResource;\n") + probeCallers;
                 var inspect = File.ReadAllText(InspectSource).Replace("\r\n", "\n");
-                var addCheck = between(inspect, "        void AddCheck(string id, string label, Func<Task> check)", "\n    }\n\n    private void ResizeInspect(");
+                var addCheck = between(inspect, "        void AddCheck(string id, string label, Func<Task> check, string section = ShellProbeSections.Library, int timeoutSeconds = 180)", "\n    }\n\n    private void ResizeInspect(");
                 generated += "\ninternal sealed partial class InspectCheckFixture\n{\n" +
-                    "    internal void Register()\n    {\n        var layout = Layout;\n" +
+                    "    internal void Register(string selectedSection = ShellProbeSections.Library, int selectedTimeout = 180)\n    {\n        var layout = Layout;\n" +
                     "        void Add(string id, string label, Func<Task> action) => Action = action;\n" +
-                    addCheck + "\n        AddCheck(\"fixture\", \"inspect ownership\", Check);\n    }\n}\n";
+                    addCheck + "\n        AddCheck(\"fixture\", \"inspect ownership\", Check, selectedSection, selectedTimeout);\n    }\n}\n";
                 var program = File.ReadAllText(ProgramSource).Replace("\r\n", "\n");
                 var exit = between(program, "            return options.ProbeShell ?", "\n        }\n        catch (Exception error)");
                 generated += "\ninternal static class ProgramExitFixture\n{\n    internal static int Exit(StartupOptions options)\n    {\n" + exit + "\n    }\n}\n";

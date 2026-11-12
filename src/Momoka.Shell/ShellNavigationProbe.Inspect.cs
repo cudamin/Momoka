@@ -169,16 +169,8 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => subscriptionCovers.ViewModel.Movies[0].SubscriberAvatar is not null);
         });
         AddCheck("InspectMoviePilotSeriesResources", "MP 剧资源菜单检查", MoviePilotSeriesReorganizeAsync);
-        Add("InspectDetailMenu", "详情菜单材质", async () =>
-        {
-            if (frame.Content is IShellContent previous) previous.Release();
-            frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, item));
-            var page = (DetailPage)frame.Content;
-            await UntilAsync(() => page.IsReady);
-            await LayoutAsync(page);
-            try { await CheckDetailMenuAcrylicAsync(page, fixture, ThemeHost.Current.Id); }
-            catch (Exception error) { Momoka.Diagnostics.Log.Warn("详情菜单检查", error.Message); }
-        });
+        AddCheck("InspectDetailMenu", "详情菜单材质", MaterialLifecycleAsync, ShellProbeSections.Materials);
+        AddCheck("InspectSystemAppearance", "系统外观切换检查", SettingsSystemAppearanceAsync, ShellProbeSections.Materials, 540);
         Add("InspectSettingsMotion", "设置动画", async () =>
         {
             if (frame.Content is IShellContent previous) previous.Release();
@@ -339,13 +331,13 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Remove(layout);
         HomeMotion.ApplyPreference(animationPreference);
 
-        void AddCheck(string id, string label, Func<Task> check) => Add(id, label, async () =>
+        void AddCheck(string id, string label, Func<Task> check, string section = ShellProbeSections.Library, int timeoutSeconds = 180) => Add(id, label, async () =>
         {
             layout.Visibility = Visibility.Collapsed;
             Task? running = null;
             try
             {
-                await CaseAsync(label, () => running = check(), 180, section: ShellProbeSections.Library);
+                await CaseAsync(label, () => running = check(), timeoutSeconds, section: section);
             }
             finally
             {
