@@ -1,3 +1,17 @@
+## 2026-11-12 主窗口云母没采壁纸：改用自配的 SystemBackdrop（临时分支，待合并）
+
+用户先说「感觉云母不够透，完全没有桌面的颜色？我想要微软商店的那种质感，只读审查」。审查后（未改代码）用发布件实屏逐像素量出两件事：①加载完的内容区是一整片 `#14171A`、1611×1163 的取样区里**只有 1 种颜色**，一点壁纸色都没有；②同一台机器、同一张蓝色壁纸下，**设置窗口**的云母实测 `45,57,70` 带蓝且逐处不同，**主窗口**的云母是 `32,32,32` 纯灰。结论是主窗口那块云母根本没在采样壁纸，与画布浓度无关（画布只是把 `#202020` 压成 `#14171A`）。用户随后令「另开一个工作树做A」。
+
+**根因（读了框架源码）。** `controls/dev/Materials/MicaBackdrop/MicaBackdrop.cpp`：框架的 `MicaBackdrop.OnTargetConnected` 新建 `MicaController`，配置取自 `GetDefaultSystemBackdropConfiguration`；`dxaml/xcp/dxaml/lib/SystemBackdrop_Partial.cpp` 的 `AttachInputActivationChanged` 把这个配置的 `IsInputActive` 挂在 `XamlRoot.IsInputActive` 上。`dxaml/xcp/dxaml/lib/XamlIsland_Partial.cpp` 的 `UpdateSystemBackdrop` 把岛自己当 target 传进去 —— 岛是宿主窗口的子窗口，永远报不出激活，于是配置里 `IsInputActive` 一直是假，云母按「窗口不在前台」渲染成实心 `#202020`。设置窗口走框架 `Window`，它的 XamlRoot 拿得到激活，所以同一个程序里两块云母长得不一样。运行时日志证实：`框架配置：active=False theme=Dark contrast=False`。
+
+**改了什么。** 新增 `Windowing/IslandMicaBackdrop.cs`：仍是 `MicaController{Kind=Base}`，仍借框架那份配置（主题与高对比度由框架自动维护，不另抄一套），只把 `IsInputActive` 换成宿主窗口 `WM_ACTIVATE` 的真实值；`OnDefaultSystemBackdropConfigurationChanged` 里再钉一次，防止框架重算时写回假。`HostWindow` 改挂它（不再用框架 `MicaBackdrop`），`FocusChanged` 转给它，换主题时重钉 `Theme`；顺手把材质失败那条日志改成实话（它并不画纯色底，露出的是类背景刷 `#16181C` 加画布）。`MicaMaterialTests` 那条「岛底材是 Mica（Base）」改判据：原来钉 `HostWindow` 里那句 `new MicaBackdrop { Kind = MicaKind.Base }`，而那句话正是错的；现在钉「主窗口不许回到框架默认配置」＋「激活这条线接上了」＋「新文件里 Base 而非 Alt、问了 IsSupported」。
+
+**实屏（同一窗口位置 169,108，同一张壁纸）。** 修前内容区 `(20,23,26)`、1 种颜色；修后 `(19,24,41)`、10 种颜色带蓝渐变；把画布临时设成 0% 看裸云母是 `(26,31,54)`、38 种颜色。云母采的是窗口背后那块壁纸，窗口挪到 870,70 时同一处会淡一档（`(19,23,28)`），属正常。窗口不在前台时云母按系统规则退回实心 `#202020`，也复现到了。
+
+**测试。** 整方案 Release **0 警告 0 错误**；`Momoka.Tests` **4812 项、4812 通过、0 失败 0 跳过**（早一轮有 1～3 条本机符号链接权限的既有环境红，重跑即绿）。
+
+**没做的（等用户定）。** ①画布浓度仍是 60%：现在有东西可透了，降到 40% 实测只差 2～6 级，是口味不是开关，改不改等用户看截图；②未合并 master、未发布、未跑自检与探针；③`dotnet format whitespace` 在 master 上本就有一批非本批文件的报红（`ShellNavigationProbe.FnNasMixed.cs`、`PlaybackHttpNativeProbe.cs` 等），本批三个文件干净，没去动别人的文件。
+
 ## 2026-11-12 详情页与订阅详情的简洁模式改用窗口画布作底（已提交并发布）
 
 用户一句「把媒体详情页的简洁模式也改成跟主页一样的」。先读两边现状：主页的底是外壳 `ContentHost` 那一块画布（Mica Base 加 60% 窗口色，全树只画一次），详情页简洁模式却在自己页面上铺了一块整页的 `Mica Alt`，把画布整个盖掉。问清范围时用户选「只换底材，保留卡面」。
