@@ -67,4 +67,14 @@ public sealed record FnNasPlaybackSelection(string VideoGuid, IReadOnlyDictionar
             throw new InvalidOperationException("飞牛影视未提供可安全播放的原始媒体地址");
         return address;
     }
+
+    public static Uri SubtitleUrl(Uri apiBase, MediaStream stream)
+    {
+        if (!stream.IsExternal || !stream.IsSubtitle || !stream.IsTextSubtitle || string.IsNullOrWhiteSpace(stream.ProviderId))
+            throw new InvalidOperationException("飞牛影视字幕缺少可加载的外部文件身份");
+        var expected = FnNasClient.SubtitleUrl(apiBase, stream.ProviderId);
+        if (!Uri.TryCreate(stream.DeliveryUrl, UriKind.Absolute, out var address) || address != expected)
+            throw new InvalidOperationException("飞牛影视字幕地址与文件身份不一致，请重新读取详情");
+        return address;
+    }
 }

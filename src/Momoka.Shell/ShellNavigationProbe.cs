@@ -125,6 +125,7 @@ internal sealed partial class ShellNavigationProbe
             // 遮罩那一层只能验到「找得到、铺满、不在弹窗树里」；真实按下那一米归 UIA 鼠标回归（见 DialogDismissAsync 头上那段）。
             await CaseAsync("弹窗点外面关闭与字幕弹窗右上角关闭钮", DialogDismissAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("字幕无确认回执、只读恢复与关闭（匿名UIA）", SubtitleDownloadReceiptAsync, 45, section: ShellProbeSections.Metadata);
+            await CaseAsync("飞牛字幕版本、权限、取消及未知回执（匿名宽窄控件）", FnNasSubtitlesAsync, 120, section: ShellProbeSections.FnNasSubtitles);
             await CaseAsync("电影与电视剧网页分类、工具栏、作用域及主题", LibraryBrowseAsync, 120);
             await CaseAsync("Emby与Jellyfin花絮特典、空态恢复与零起点（匿名UIA）", DetailExtrasAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("Emby与Jellyfin合集菜单权限、移除和恢复（匿名UIA）", LibraryCollectionsAsync, 60, section: ShellProbeSections.Library);

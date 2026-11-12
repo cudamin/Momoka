@@ -25,6 +25,10 @@ internal interface IShellActions
 internal static partial class ItemCommands
 {
     private const string Category = "ui";
+    // This suite exercises Emby/Jellyfin callers. FnNas owns a separate dialog/protocol fixture.
+    private static Task FnNasSubtitlesAsync(EmbySessionScope scope, IShellActions actions,
+        FrameworkElement owner, CardItem card, Action? changed) =>
+        throw new InvalidOperationException("飞牛字幕应由独立专项验证");
     internal static Task FixtureSubtitles(EmbySessionScope scope, IShellActions actions,
         FrameworkElement owner, EmbyItem item, Action changed) =>
         SubtitlesAsync(scope, actions, owner, new CardItem(item), changed);

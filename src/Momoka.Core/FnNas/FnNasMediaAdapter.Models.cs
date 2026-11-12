@@ -331,6 +331,7 @@ public sealed partial class FnNasMediaAdapter
             AddStreams(source, value, "video_streams", "Video");
             AddStreams(source, value, "audio_streams", "Audio");
             AddStreams(source, value, "subtitle_streams", "Subtitle");
+            AddExternalSubtitles(source, value, connection);
             source.DefaultAudioStreamIndex = source.MediaStreams.FirstOrDefault(stream => stream.IsAudio && stream.IsDefault)?.Index;
             source.DefaultSubtitleStreamIndex = source.MediaStreams.FirstOrDefault(stream => stream.IsSubtitle && stream.IsDefault)?.Index;
             result.Add(source);
@@ -347,7 +348,7 @@ public sealed partial class FnNasMediaAdapter
         {
             // An external subtitle requires a separate, verified download contract. Do not invent a
             // container index or silently request an Emby subtitle URL for a FnNas sidecar.
-            if (Flag(stream, "is_external")) continue;
+            if (Flag(stream, "is_external") || type == "Subtitle" && Flag(stream, "extra_file")) continue;
             var index = Integer(stream, "index");
             if (index is null && type != "Video") continue;
             source.MediaStreams.Add(new MediaStream
@@ -373,6 +374,36 @@ public sealed partial class FnNasMediaAdapter
                 VideoRange = Strings(stream["color_range_type"]).FirstOrDefault(),
                 VideoRangeType = Integer(stream, "dv_profile") is > 0 ? "DOVI" : null,
                 AspectRatio = Text(stream, "display_aspect_ratio"),
+                IsDefault = Flag(stream, "is_default"),
+                IsForced = Flag(stream, "forced")
+            });
+        }
+    }
+
+    private static void AddExternalSubtitles(MediaSource source, JsonObject value, FnNasConnection connection)
+    {
+        // Sidecars have opaque GUIDs and often no container index. Assign local picker indexes after
+        // every real ff-index, then preserve the GUID for play/record; never claim these are ff-indexes.
+        var next = source.MediaStreams.Select(stream => stream.Index).DefaultIfEmpty(-1).Max();
+        foreach (var stream in Objects(value, "subtitle_streams").Where(stream => Text(stream, "media_guid") == source.Id
+                     && (Flag(stream, "is_external") || Flag(stream, "extra_file"))))
+        {
+            var guid = Text(stream, "guid");
+            if (guid.Length == 0 || Text(stream, "url").Length > 0 || source.MediaStreams.Any(known => known.ProviderId == guid)) continue;
+            Uri address;
+            try { address = FnNasClient.SubtitleUrl(connection.ApiBase, guid); }
+            catch (ArgumentException) { continue; }
+            if (next == int.MaxValue) break;
+            source.MediaStreams.Add(new MediaStream
+            {
+                Index = ++next,
+                ProviderId = guid,
+                Type = "Subtitle",
+                Codec = Text(stream, "format") is { Length: > 0 } format ? format : Text(stream, "codec_name"),
+                Language = Text(stream, "language"),
+                Title = Text(stream, "title") is { Length: > 0 } title ? title : Text(stream, "filename"),
+                IsExternal = true,
+                DeliveryUrl = address.AbsoluteUri,
                 IsDefault = Flag(stream, "is_default"),
                 IsForced = Flag(stream, "forced")
             });

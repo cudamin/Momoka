@@ -82,6 +82,7 @@ public sealed class EmbySessionScope
     }
 
     internal EmbyConnection CurrentConnection => _session.CurrentConnection(this);
+    internal EmbySession Session => _session;
     internal EmbyClient Client => IdentityState.Client;
     internal Identity IdentityState { get; }
     internal CancellationToken Lifetime { get; }

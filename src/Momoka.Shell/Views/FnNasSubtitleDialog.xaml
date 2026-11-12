@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Momoka.Shell.Views.FnNasSubtitleDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:views="using:Momoka.Shell.Views">
+    <ContentDialog.Resources>
+        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+        <x:Double x:Key="ContentDialogMaxWidth">760</x:Double>
+    </ContentDialog.Resources>
+    <ContentDialog.Title>
+        <Grid x:Name="DialogTitleRow" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="DialogTitleText" Style="{StaticResource EgSectionTitleStyle}"
+                TextWrapping="Wrap" VerticalAlignment="Center" />
+            <Button x:Name="HeaderCloseButton" Grid.Column="1" Click="OnClose"
+                AutomationProperties.Name="关闭飞牛字幕管理" Background="Transparent" BorderThickness="0"
+                Padding="8" ToolTipService.ToolTip="关闭" VerticalAlignment="Center">
+                <FontIcon FontSize="{StaticResource EgSubheadFontSize}" Glyph="&#xE711;" />
+            </Button>
+        </Grid>
+    </ContentDialog.Title>
+    <ScrollViewer x:Name="SubtitleScroll" Padding="{StaticResource EgScrollBarLane}"
+        HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled" VerticalScrollBarVisibility="Auto">
+        <StackPanel x:Name="SubtitleBody" Spacing="16">
+            <ComboBox x:Name="VersionBox" Header="媒体版本" HorizontalAlignment="Stretch"
+                SelectionChanged="OnVersionChanged" AutomationProperties.Name="字幕所属媒体版本" />
+            <TextBlock x:Name="SourceFileText" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap"
+                MaxLines="2" TextTrimming="CharacterEllipsis" />
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="服务器外部字幕" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
+                <Button x:Name="RefreshTracksButton" Grid.Column="1" Content="刷新列表" Click="OnRefreshTracks" />
+            </Grid>
+            <TextBlock x:Name="NoTracks" Text="这个版本还没有外部字幕。" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
+            <ItemsControl x:Name="Tracks">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="views:FnNasSubtitleRow">
+                        <Grid ColumnSpacing="12" Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap"
+                                    TextTrimming="CharacterEllipsis" MaxLines="2" />
+                                <TextBlock Text="{x:Bind Detail}" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Button x:Name="DeleteFnNasSubtitleButton" Grid.Column="1" Content="删除"
+                                Click="OnDelete" Visibility="{x:Bind DeleteVisibility}" VerticalAlignment="Center"
+                                AutomationProperties.Name="删除服务器字幕文件" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Border x:Name="DeleteConfirmation" Visibility="Collapsed" BorderBrush="{ThemeResource EgBorderBrush}"
+                BorderThickness="1" Padding="12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="删除服务器字幕文件？" Style="{StaticResource EgSubheadStyle}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="DeleteConfirmationText" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+                    <Button x:Name="CancelDeleteButton" Content="取消" Click="OnCancelDelete" />
+                    <Button x:Name="ConfirmDeleteButton" Content="删除服务器文件" Click="OnConfirmDelete" />
+                </StackPanel>
+            </Border>
+            <StackPanel x:Name="ManagementArea" Spacing="16">
+                <Border Style="{StaticResource EgRuleStyle}" />
+                <StackPanel x:Name="SearchArea" Spacing="12">
+                    <TextBlock Text="搜索字幕" Style="{StaticResource EgSubheadStyle}" />
+                    <ComboBox x:Name="LanguageBox" Header="字幕语言" HorizontalAlignment="Stretch"
+                        SelectionChanged="OnLanguageChanged" AutomationProperties.Name="飞牛字幕搜索语言" />
+                    <Button x:Name="SearchButton" Content="搜索字幕" Click="OnSearch"
+                        Style="{StaticResource EgPrimaryButtonStyle}" HorizontalAlignment="Stretch" />
+                    <TextBlock x:Name="NoSearchResults" Text="没有找到字幕，请更换语言后重试。"
+                        Visibility="Collapsed" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
+                    <ItemsControl x:Name="Results">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="views:FnNasSubtitleResultRow">
+                                <Grid ColumnSpacing="12" Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{x:Bind Name}" Style="{StaticResource EgBodyStyle}"
+                                            TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind Detail}" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <Button x:Name="DownloadFnNasSubtitleButton" Grid.Column="1" Content="添加"
+                                        Click="OnDownload" Visibility="{x:Bind DownloadVisibility}" VerticalAlignment="Center"
+                                        AutomationProperties.Name="下载并添加飞牛字幕" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+                <Button x:Name="UploadButton" Content="上传本地字幕…" Click="OnUpload" HorizontalAlignment="Stretch" />
+                <TextBlock Text="支持 SRT、SUB、SSA、ASS、VTT、SUP；文件不超过 32 MiB。"
+                    Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
+                <StackPanel x:Name="ServerFileArea" Spacing="8" Visibility="Collapsed">
+                    <Border Style="{StaticResource EgRuleStyle}" />
+                    <TextBlock Text="指定服务器文件" Style="{StaticResource EgSubheadStyle}" />
+                    <TextBox x:Name="ServerPathBox" Header="服务器字幕完整路径" PlaceholderText="/media/movie.zh.srt"
+                        AutomationProperties.Name="服务器字幕完整路径" />
+                    <Button x:Name="MarkServerFileButton" Content="添加服务器字幕" Click="OnMarkServerFile" HorizontalAlignment="Stretch" />
+                </StackPanel>
+            </StackPanel>
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <ProgressRing x:Name="Busy" Width="20" Height="20" IsActive="False" Visibility="Collapsed" />
+                <TextBlock x:Name="Status" Grid.Column="1" Style="{StaticResource EgDataStyle}"
+                    TextWrapping="Wrap" Visibility="Collapsed" VerticalAlignment="Center" />
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>

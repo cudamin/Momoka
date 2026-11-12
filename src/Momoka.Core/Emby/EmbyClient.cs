@@ -1037,7 +1037,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
 
     public Uri SubtitleUrl(EmbyItem item, MediaSource source, MediaStream subtitle) =>
         Connection.IsFnMusic ? throw new NotSupportedException("飞牛音乐不支持字幕操作")
-        : Connection.IsFnNas ? throw new NotSupportedException("飞牛影视不支持此外挂字幕操作")
+        : Connection.IsFnNas ? Momoka.FnNas.FnNasPlaybackSelection.SubtitleUrl(ApiBase, subtitle)
         : Connection.IsPlex ? Momoka.Plex.PlexPlaybackSelection.SubtitleUrl(Connection.ApiBase, subtitle)
         : EmbyUrl.Subtitle(ApiBase, item.Id, source.Id, subtitle.Index, subtitle.Codec);
 

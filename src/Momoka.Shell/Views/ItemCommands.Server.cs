@@ -478,6 +478,12 @@ internal static partial class ItemCommands
         {
             if (Root(owner) is not { } root) return;
 
+            if (session.Connection.IsFnNas)
+            {
+                await FnNasSubtitlesAsync(session, shell, owner, card, changed).ConfigureAwait(true);
+                return;
+            }
+
             var item = card.Item;
             var full = await AskAsync(session, (client, token) =>
                     client.GetItemAsync(item.Id, token, EmbyFields.Files))

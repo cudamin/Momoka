@@ -14,6 +14,16 @@ internal static class StartupArgsTests
 {
     public static void Register()
     {
+        Test("飞牛字幕探针：独立分区与错误组合隔离", () =>
+        {
+            var selected = StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "FNNAS-SUBTITLES,fnnas-subtitles"]);
+            Assert.True(selected is { Count: 1 } && selected.Contains(ShellProbeSections.FnNasSubtitles));
+            StartupArgs.ValidateShellProbe(["--probe-shell", "--probe-section", "fnnas-subtitles", "--screen", "1"]);
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(
+                ["--probe-shell", "--probe-section", "fnnas-subtitles", "--play"]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(
+                ["--probe-shell", "inspect", "--probe-section", "fnnas-subtitles"]));
+        });
         Test("音乐界面探针：独立分区拒绝真实播放组合", () =>
         {
             Assert.True(StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "MUSIC"])!.SetEquals(["music"]));

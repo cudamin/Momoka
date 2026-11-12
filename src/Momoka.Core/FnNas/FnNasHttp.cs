@@ -38,13 +38,13 @@ public sealed class FnNasHttp : IDisposable
 
     /// <summary>Record an acknowledged mutation before caller lifetime checks can replace success with cancellation.</summary>
     internal Task<JsonNode?> SendConfirmedActionAsync(HttpMethod method, Uri uri, JsonNode? body, string accessToken,
-        Action confirmed, CancellationToken cancellationToken) => SendAndReadAsync(method, uri, body, accessToken,
+        Action confirmed, CancellationToken cancellationToken, Action? dispatched = null) => SendAndReadAsync(method, uri, body, accessToken,
         async (response, token) =>
         {
             var data = await ReadEnvelopeAsync(response, token).ConfigureAwait(false);
             confirmed();
             return data;
-        }, cancellationToken, retainAcknowledgedAction: true);
+        }, cancellationToken, retainAcknowledgedAction: true, dispatched: dispatched);
 
     internal Task<JsonNode?> UploadAsync(Uri uri, byte[] bytes, string filename, string? accessToken, CancellationToken cancellationToken) =>
         SendAndReadAsync(HttpMethod.Post, uri, null, accessToken, ReadEnvelopeAsync, cancellationToken, () =>
@@ -56,6 +56,22 @@ public sealed class FnNasHttp : IDisposable
             return form;
         }, sign: false, timeout: TransferTimeout);
 
+    internal Task<JsonNode?> UploadConfirmedAsync(Uri uri, byte[] bytes, string filename, string accessToken,
+        Action confirmed, CancellationToken cancellationToken, Action? dispatched = null) =>
+        SendAndReadAsync(HttpMethod.Post, uri, null, accessToken, async (response, token) =>
+        {
+            var data = await ReadEnvelopeAsync(response, token).ConfigureAwait(false);
+            confirmed();
+            return data;
+        }, cancellationToken, () =>
+        {
+            var form = new MultipartFormDataContent();
+            var file = new ByteArrayContent(bytes);
+            file.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            form.Add(file, "file", filename);
+            return form;
+        }, sign: false, timeout: TransferTimeout, retainAcknowledgedAction: true, dispatched: dispatched);
+
     public Task<byte[]> GetBytesAsync(Uri uri, string? accessToken, CancellationToken cancellationToken = default) =>
         SendAndReadAsync(HttpMethod.Get, uri, null, accessToken,
             (response, token) => ReadLimitedAsync(response.Content, 64 * 1024 * 1024, token), cancellationToken,
@@ -63,7 +79,8 @@ public sealed class FnNasHttp : IDisposable
 
     private async Task<T> SendAndReadAsync<T>(HttpMethod method, Uri uri, JsonNode? body, string? accessToken,
         Func<HttpResponseMessage, CancellationToken, Task<T>> read, CancellationToken cancellationToken,
-        Func<HttpContent>? createContent = null, bool sign = true, TimeSpan? timeout = null, bool retainAcknowledgedAction = false)
+        Func<HttpContent>? createContent = null, bool sign = true, TimeSpan? timeout = null, bool retainAcknowledgedAction = false,
+        Action? dispatched = null)
     {
         FnNasEndpoint.Validate(uri);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -85,6 +102,8 @@ public sealed class FnNasHttp : IDisposable
                 if (sign) request.Headers.TryAddWithoutValidation("authx", FnNasSigner.Create(method, uri, payload));
                 if (createContent is not null) request.Content = createContent();
                 else if (payload is not null) request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+                deadline.Token.ThrowIfCancellationRequested();
+                dispatched?.Invoke();
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
                 if ((int)response.StatusCode is 301 or 302 or 303 or 307 or 308)
                 {

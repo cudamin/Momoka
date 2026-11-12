@@ -68,7 +68,9 @@ public sealed class PlaybackPlanner(
 
         var externalSubtitles = map.ExternalSubtitleIndexes
             .Select(index => source.MediaStreams.First(stream => stream.Index == index))
-            .Select(stream => connection.IsPlex
+            .Select(stream => connection.IsFnNas
+                ? Momoka.FnNas.FnNasPlaybackSelection.SubtitleUrl(connection.ApiBase, stream)
+                : connection.IsPlex
                 ? Momoka.Plex.PlexPlaybackSelection.SubtitleUrl(connection.ApiBase, stream)
                 : EmbyUrl.Subtitle(connection.ApiBase, item.Id, source.Id, stream.Index, stream.Codec))
             .ToList();

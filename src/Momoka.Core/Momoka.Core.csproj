@@ -20,6 +20,7 @@
     <InternalsVisibleTo Include="Momoka.PlexAffordanceTests" />
     <InternalsVisibleTo Include="Momoka.DetailDeleteCommandTests" />
     <InternalsVisibleTo Include="Momoka.AniBtEntryTests" />
+    <InternalsVisibleTo Include="Momoka.FnNasSubtitleTests" />
   </ItemGroup>
 
 </Project>

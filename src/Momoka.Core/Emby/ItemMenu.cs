@@ -193,7 +193,7 @@ public static class ItemMenu
             ItemCommand.Delete or ItemCommand.ManageVersions => CanDelete(permissions),
             ItemCommand.RemoveFromLibrary => kind == MediaServerKind.FnNas && permissions.IsAdministrator == true
                 && CanDelete(permissions) && (item is null || IsFile(item)),
-            ItemCommand.Subtitles => CanManageSubtitles(permissions),
+            ItemCommand.Subtitles => kind == MediaServerKind.FnNas ? permissions.CanManageSubtitles != false : CanManageSubtitles(permissions),
             ItemCommand.AddToCollection or ItemCommand.RemoveFromCollection => ItemCollections.CanManage(kind, permissions, item),
             ItemCommand.AddToPlaylist => kind == MediaServerKind.Emby,
             ItemCommand.Convert => kind == MediaServerKind.Emby && permissions.CanConvertMedia != false,
@@ -251,7 +251,7 @@ public static class ItemMenu
         if (IsMoviePilot(command) && command != ItemCommand.MoviePilotReorganize || command == ItemCommand.AniBtVersions) return true;
         if (fnNas) return command is ItemCommand.Play or ItemCommand.Details or ItemCommand.Open or ItemCommand.MarkPlayed
             or ItemCommand.MarkUnplayed or ItemCommand.Favorite or ItemCommand.Unfavorite or ItemCommand.OpenSeries
-            or ItemCommand.ManageVersions or ItemCommand.FnNasMatch or ItemCommand.FnNasUnmatch
+            or ItemCommand.ManageVersions or ItemCommand.FnNasMatch or ItemCommand.FnNasUnmatch or ItemCommand.Subtitles
             or ItemCommand.RefreshMetadata or ItemCommand.EditMetadata or ItemCommand.Delete
             or ItemCommand.MoviePilotVersions or ItemCommand.AniBtVersions;
         if (plex) return command is ItemCommand.Play or ItemCommand.Details or ItemCommand.Open or ItemCommand.MarkPlayed
@@ -282,6 +282,7 @@ public static class ItemMenu
 
         var rows = new List<ItemMenuEntry>(8);
         if (IsFile(item) && CanDelete(permissions)) rows.Add(new(ItemCommand.ManageVersions, "管理版本"));
+        if (IsFile(item) && permissions.CanManageSubtitles != false) rows.Add(new(ItemCommand.Subtitles, "管理字幕…"));
         if (IsAdministrator(permissions))
         {
             rows.Add(new(ItemCommand.FnNasMatch, "手动匹配影片"));
