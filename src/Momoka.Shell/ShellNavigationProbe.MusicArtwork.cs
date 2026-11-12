@@ -48,6 +48,8 @@ internal sealed partial class ShellNavigationProbe
             foreach (var section in new[] { MusicSection.Tracks, MusicSection.Albums, MusicSection.Artists, MusicSection.Playlists })
             {
                 await page.ViewModel.SelectAsync(section);
+                foreach (var tab in Get<WrapRow>(page, "SectionTabs").Children.OfType<Microsoft.UI.Xaml.Controls.Primitives.ToggleButton>())
+                    tab.IsChecked = tab.Tag is string value && int.TryParse(value, out var index) && index == (int)section;
                 foreach (var total in new[] { 100, 1_000, 10_000 })
                 {
                     foreach (var card in page.ViewModel.Rows) card.AbandonPoster();
@@ -63,6 +65,8 @@ internal sealed partial class ShellNavigationProbe
                     };
                     var width = wall ? MusicCatalog.WallTileWidth : MusicCatalog.TrackArtWidth;
                     var prefix = $"art-{section}-{total}-";
+                    page.ViewModel.Title = "匿名音乐容器量测";
+                    page.ViewModel.CountLabel = MusicCatalog.CountLabel(section, total);
                     var readsBefore = requests;
                     var build = Stopwatch.StartNew();
                     for (var index = 0; index < total; index++)
@@ -78,11 +82,27 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(page);
                     var list = Get<ListView>(page, "MusicRows");
                     var wallView = Get<ItemsView>(page, "MusicWall");
-                    var outer = Get<ScrollViewer>(page, "WallScroll");
+                    var outer = Get<Grid>(page, "WallScroll");
+                    var scroll = wallView.ScrollView;
+                    if (wall)
+                    {
+                        Require(scroll is not null, "音乐墙没有原生ScrollView");
+                        MusicArtworkProbeRules.Viewport(outer.ActualHeight, scroll!.ViewportHeight);
+                    }
                     await UntilAsync(() => Descendants(wall ? wallView : list).OfType<Image>()
                         .Any(image => CardArtwork.GetItem(image)?.Item.Id.StartsWith(prefix, StringComparison.Ordinal) == true && image.Source is not null));
                     var firstImageMs = first.Elapsed.TotalMilliseconds;
                     var initial = Read();
+                    await WritePerformanceEvidenceAsync("music-artwork-current-state.json", new
+                    {
+                        section = section.ToString(),
+                        total,
+                        stage = "initial",
+                        initial,
+                        hostHeight = outer.ActualHeight,
+                        innerViewportHeight = scroll?.ViewportHeight
+                    });
+                    Check(initial);
                     Require(initial.Images > 0 && requests > readsBefore, "音乐模板有标签但没有图请求或实际Image.Source");
                     Require(initial.DecodeWidths.All(value => value == width), "音乐解码宽度与44/170 DIP不一致");
                     var firstImage = Descendants(wall ? wallView : list).OfType<Image>().First(image =>
@@ -112,7 +132,8 @@ internal sealed partial class ShellNavigationProbe
                     {
                         if (wall)
                         {
-                            outer.ChangeView(null, outer.ScrollableHeight, null, disableAnimation: true);
+                            scroll!.ScrollTo(0, scroll.ScrollableHeight,
+                                new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
                             await LayoutAsync(page);
                         }
                         else
@@ -121,12 +142,35 @@ internal sealed partial class ShellNavigationProbe
                             await LayoutAsync(page);
                         }
                         await WaitForDiagnosticsFrameAsync();
+                        await CheckItemAsync(total - 1);
                         var tail = Read();
-                        if (wall) outer.ChangeView(null, 0, null, disableAnimation: true);
+                        await WritePerformanceEvidenceAsync("music-artwork-current-state.json", new
+                        {
+                            section = section.ToString(),
+                            total,
+                            stage = "tail",
+                            tail,
+                            hostHeight = outer.ActualHeight,
+                            innerViewportHeight = scroll?.ViewportHeight
+                        });
+                        Check(tail);
+                        if (wall) scroll!.ScrollTo(0, 0,
+                            new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
                         else list.ScrollIntoView(page.ViewModel.Rows[0]);
                         await LayoutAsync(page);
                         await WaitForDiagnosticsFrameAsync();
+                        await CheckItemAsync(0);
                         var restored = Read();
+                        await WritePerformanceEvidenceAsync("music-artwork-current-state.json", new
+                        {
+                            section = section.ToString(),
+                            total,
+                            stage = "restored",
+                            restored,
+                            hostHeight = outer.ActualHeight,
+                            innerViewportHeight = scroll?.ViewportHeight
+                        });
+                        Check(restored);
                         var ordered = intervals.Order().ToArray();
                         using var process = Process.GetCurrentProcess();
                         process.Refresh();
@@ -146,8 +190,8 @@ internal sealed partial class ShellNavigationProbe
                             workingSetBytes = process.WorkingSet64,
                             privateBytes = process.PrivateMemorySize64,
                             removedDemandRejected = negativeRejected,
-                            viewportWidth = wall ? outer.ViewportWidth : list.ActualWidth,
-                            viewportHeight = wall ? outer.ViewportHeight : list.ActualHeight,
+                            viewportWidth = wall ? scroll?.ViewportWidth : list.ActualWidth,
+                            viewportHeight = wall ? outer.ActualHeight : list.ActualHeight,
                             innerViewportHeight = wall ? wallView.ScrollView?.ViewportHeight : null,
                             rasterizationScale = _root.XamlRoot.RasterizationScale,
                             decodedTextureBytesMeasured = false,
@@ -174,6 +218,21 @@ internal sealed partial class ShellNavigationProbe
                                 && holder.TryGetTarget(out var target) && target is Image { XamlRoot: not null }),
                             loaded.Select(image => image.Source).OfType<Microsoft.UI.Xaml.Media.Imaging.BitmapImage>()
                                 .Select(bitmap => bitmap.DecodePixelWidth).Distinct().ToArray());
+                    }
+
+                    void Check(MusicArtworkReading reading) => MusicArtworkProbeRules.Demands(total, reading.Realized, reading.Images,
+                        reading.HeldPosters, reading.WantedRows, reading.LiveHolders);
+
+                    async Task CheckItemAsync(int index)
+                    {
+                        if (!wall) return;
+                        var repeater = Descendants(wallView).OfType<ItemsRepeater>().Single();
+                        await UntilAsync(() => repeater.TryGetElement(index) is not null);
+                        var element = (FrameworkElement)repeater.TryGetElement(index)!;
+                        var card = Descendants(element).OfType<Image>().Select(CardArtwork.GetItem).FirstOrDefault(item => item is not null);
+                        var focused = element is Control control && control.Focus(FocusState.Keyboard);
+                        var point = element.TransformToVisual(scroll).TransformPoint(new());
+                        MusicArtworkProbeRules.Item(prefix + index, card?.Item.Id ?? "", focused, point.Y, element.ActualHeight, scroll!.ViewportHeight);
                     }
                 }
             }

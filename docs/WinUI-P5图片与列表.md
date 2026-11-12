@@ -13,12 +13,17 @@
 两个现有原生Image现在用 `CardArtwork.Item` 附加行为承接图片需求。
 首次绑定离树只记项，Loaded且有XamlRoot才Claim/Ensure，传控件所属BrowsePresentation门控；
 换项放开旧持有者再领取新项；回收幻影仍有XamlRoot时忽略卸载；真离树释放并停止晚到图回填。
+随后实际量测证实仅看XamlRoot不足：同属主回收池仍在树中。当前实现另用Realized状态，
+音乐墙的内部Repeater在ElementClearing结束需求、ElementPrepared恢复，
+曲目用ListView的InRecycleQueue；绑定换项和幻影Loaded不能绕过已回收状态。
 卡片自己判断当前持有者，旧容器迟到释放不能清掉新容器图。重新进树同步复用有限PosterCache。
 局部复用ImageArrivalFade，离树/移除行为释放其订阅；没有新增逐帧布局或窗口级订阅。
 
 保留RowPoster的OneWay绑定、曲目44 DIP/方墙170 DIP、方形比例、UniformToFill、ListView与ItemsView/UniformGridLayout。
 PosterLoader使用已有Logical解码宽，服务请求使用既有RequestWidth的2倍/80阶梯，
 没有改变图片全局缓存、协议、身份守卫或现有分页。音乐墙分页由P4独立单元实现。
+WallScroll由滚动容器改为有限高度Grid，MusicWall自身ScrollView为唯一竖滚宿主，
+其Padding承接音乐栏避让；P4加载更多仍在独立Auto行，不挪回列表内部。
 
 ## 上游证据
 
@@ -37,14 +42,23 @@ Gallery同提交使用实验SDK，本单元保留Momoka现有WinUI2.3.9/Runtime2
 仅在MustClearDataContext为真时清DataContext，再调用工厂回收；
 `RecyclingElementFactory.cpp::RecycleElementCore` 将元素按reuse key和parent留入池。
 所以树内容器、layout realized和当前图需求必须分开读，不能把单次Unloaded当全部释放的证明。
+同提交ViewManager::GetElementFromElementFactory先Recycle/ProcessBindings处理x:Bind；
+只在普通Binding分支置MustClearDataContext=true，解释了音乐x:Bind池项为何不会清掉附加Item。
+`ItemsView.xaml`将ItemsView.Padding绑到内部Repeater.Margin；本单元保留平台模板并从ItemsView接避让。
+`dxaml/xcp/dxaml/lib/ListViewBase_Partial_ContainerPhase.cpp::RaiseContainerContentChangingOnRecycle`
+在模板Recycle前以InRecycleQueue=true发事件；afterPrepare将其置false且先保证模板量测，
+生产回归覆盖这两种容器输入的需求收放，不复制框架算法。
 
 ## 测试和运行入口
 
 `Momoka.MusicArtworkTests` 编译链接完整生产CardArtwork/CardItem和真实Core，
-17项涵盖两模板、四音乐类型、首帧/读取/尺寸、旧项与旧容器、真离树与幻影、源撤销、404与坏解码恢复、
+26项涵盖两模板、四音乐类型、首帧/读取/尺寸、旧项与旧容器、真离树与幻影、源撤销、404与坏解码恢复、
 100/1,000/10,000元数据和20个模拟容器。控制台边界不冒充实际WinUI、WinRT解码或GPU显存。
-最终当前Release：新专项17/17、页面契约207/207，失败/跳过均0，各自构建0警告错误；
-CardArtwork产品和probe当前包编译已通过。加入坏解码项的首轮因测试只交付一次坏响应，
+新增6例保留Tree/XamlRoot/x:Bind项的同owner池、prepared无Loaded、首次订阅池区分、
+ListView回收和旧持有者/重入事件；新增3例预算/页面入口，拒绝真实超预算读数反例。
+当前Release：新专项26/26、音乐VM与P4分页39/39，失败/跳过均0，各自构建0警告错误；
+原页面契约207/207是上一单元的覆盖，本修复不复用其日志称已重验。
+加入坏解码项的首轮因测试只交付一次坏响应，
 真实Store正在重取而非已回传失败，17项中5项失败（后续4项为前例未清边界）；
 已按真实Store的坏图恢复语义交付第二次失败并finally清理，保留断言后重新17/17。
 
@@ -56,6 +70,28 @@ CardArtwork产品和probe当前包编译已通过。加入坏解码项的首轮�
 CardItem当前wanted和实际live holder数、
 viewport/DIP/scale、帧p95/max与工作集。只有tracks/albums100各一张实屏，共2张。
 反例移除一个可见图需求必须被实际入口检查拒绝，再恢复原图；离页所有CardItem首图为null。
+首尾各确认原expected项ID、聚焦与实际可见bounds；x:Bind模板身份从CardArtwork.Item读，
+不把DataContext为空误当缺项。仪器同步分区选中态、总数与“匿名音乐容器量测”标题，
+直接注入元数据仍不冒称网络分页或物理键盘输入。
+
+## 实际基线、修复预算和视觉边界
+
+协调会话2026-11-13读取的`173627596-7556`运行最终共有12组。
+Tracks 100/1000/10000返回首屏Realized19，但Wanted/LiveHolders可21、HeldPosters可21；
+Albums/Artists/Playlists的100/1000/10000条内视口分别5036/50576/505976 DIP，外视口均557，
+返回首屏Realized21而图片/需求25–26。realized最高26，证明列表已在虚拟化，
+缺口是滚动宿主边界与池图片需求，不能改写成“全部10000项都建了”。
+
+新预算以这次1100×760/scale1基线制定：实际layout项最多34（原26加8个明确平台cache/首测波动），
+图片、CardItem持图、wanted和live holder都不超过当时realized，池额外需求容许0；
+有限Grid实际高度与内部viewport差不超过1 DIP。
+上述预算是此受控窗口的验收，不推广为全部页面/文字缩放/显示器的万能上限。
+首图原读数约176–227ms；未给帧、工作集预设性能提升指标，也没有GPU显存/功耗测量。
+
+首轮通过Hidden启动再ShowWindow拍出的两张空客户区图保留为失效证据，不能算视觉通过。
+协调会话已用正常可见启动的`175841122-13352`检查台看到标题、封面和滚动区，
+原黑图与该辅助显示方式有关，不据此宣称产品黑屏。
+本次finiteviewport/explicit回收的最终正常可见运行仍须协调会话重验。
 
 量测不能预写提升比例。先在当前同条件记录数值，再判断有限viewport与保留增长；
 无GPU/功耗测量，不能由PixelWidth/Height元数据推导解码纹理峰值。

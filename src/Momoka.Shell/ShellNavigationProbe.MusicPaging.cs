@@ -81,7 +81,7 @@ internal sealed partial class ShellNavigationProbe
                             && point.Y >= -0.5 && point.Y + more.ActualHeight <= barPoint.Y + 0.5,
                             "分页按钮越过页面或被悬浮播放栏覆盖");
                         Require(more.Margin.Bottom >= shell.MusicBarHost.ActualHeight + 32
-                            && Get<ScrollViewer>(page, "WallScroll").Padding.Bottom >= shell.MusicBarHost.ActualHeight + 64,
+                            && Get<ItemsView>(page, "MusicWall").Padding.Bottom >= shell.MusicBarHost.ActualHeight + 64,
                             "分页按钮/墙滚动区的音乐栏避让没有同步");
                         var first = page.ViewModel.Rows[0];
                         var showFailure = section == MusicSection.Playlists && total == 160 && width == 760;
@@ -105,25 +105,34 @@ internal sealed partial class ShellNavigationProbe
                             && server.Requests.All(entry => entry.Limit == MusicCatalog.PageSize), "分页请求的边界或重试次数不符");
                         // Scroll the real wall to its loaded end, then confirm the last item owns a visible/focusable container.
                         var wall = Get<ItemsView>(page, "MusicWall");
-                        var scroll = Get<ScrollViewer>(page, "WallScroll");
-                        scroll.ChangeView(null, double.MaxValue, null, disableAnimation: true);
-                        wall.ScrollView?.ScrollTo(0, double.MaxValue, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                        var scroll = wall.ScrollView ?? throw new InvalidOperationException("音乐墙没有原生滚动宿主");
+                        MusicArtworkProbeRules.Viewport(Get<Grid>(page, "WallScroll").ActualHeight, scroll.ViewportHeight);
+                        scroll.ScrollTo(0, scroll.ScrollableHeight, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
                         await LayoutAsync(page);
                         var repeater = Descendants(wall).OfType<ItemsRepeater>().Single();
                         await UntilAsync(() => repeater.TryGetElement(total - 1) is not null);
                         var last = (FrameworkElement)repeater.TryGetElement(total - 1)!;
-                        if (last.DataContext is not CardItem lastCard || lastCard.Item.Id != MusicPagingProbeServer.ItemId(type, total - 1))
-                            throw new InvalidOperationException("末项没有实际封面墙容器");
-                        Require(last is Control lastControl && lastControl.Focus(FocusState.Keyboard), "末项容器不能键盘聚焦");
+                        var lastCard = Descendants(last).OfType<Image>().Select(CardArtwork.GetItem).FirstOrDefault(card => card is not null)
+                            ?? throw new InvalidOperationException("末项没有实际x:Bind图片身份");
+                        var focused = last is Control lastControl && lastControl.Focus(FocusState.Keyboard);
                         var endPoint = last.TransformToVisual(scroll).TransformPoint(new());
-                        Require(endPoint.Y + last.ActualHeight > 0 && endPoint.Y < scroll.ActualHeight,
-                            "墙末项没有进入可见滚动区域");
+                        MusicArtworkProbeRules.Item(MusicPagingProbeServer.ItemId(type, total - 1), lastCard.Item.Id,
+                            focused, endPoint.Y, last.ActualHeight, scroll.ViewportHeight);
                         evidence.Add(new
                         {
-                            section = section.ToString(), total, width, rows = page.ViewModel.Rows.Count,
-                            loadMoreX = point.X, loadMoreY = point.Y, loadMoreHeight = moreHeight,
-                            barY = barPoint.Y, lastId = lastCard.Item.Id, endY = endPoint.Y, retry = showFailure,
-                            offsetRequests = server.Requests.Select(entry => entry.Offset).ToArray(), physicalKeys = false
+                            section = section.ToString(),
+                            total,
+                            width,
+                            rows = page.ViewModel.Rows.Count,
+                            loadMoreX = point.X,
+                            loadMoreY = point.Y,
+                            loadMoreHeight = moreHeight,
+                            barY = barPoint.Y,
+                            lastId = lastCard.Item.Id,
+                            endY = endPoint.Y,
+                            retry = showFailure,
+                            offsetRequests = server.Requests.Select(entry => entry.Offset).ToArray(),
+                            physicalKeys = false
                         });
                         if (section == MusicSection.Albums && total == 160 && width == 1280
                             || section == MusicSection.Artists && total == 81 && width == 600
@@ -135,7 +144,7 @@ internal sealed partial class ShellNavigationProbe
             music.Visible = false;
             Call(shell, "PlaceMusicBar");
             await UntilAsync(() => shell.MusicBarHost.Visibility == Visibility.Collapsed);
-            Require(Get<Button>(page, "WallMoreButton").Margin.Bottom == 0 && Get<ScrollViewer>(page, "WallScroll").Padding.Bottom == 32,
+            Require(Get<Button>(page, "WallMoreButton").Margin.Bottom == 0 && Get<ItemsView>(page, "MusicWall").Padding.Bottom == 32,
                 "音乐栏关闭后分页避让没有恢复");
             Require(!playback.IsPlaying, "分页探针意外开始播放");
             File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "music-paging-receipt.json"), JsonSerializer.Serialize(evidence, new JsonSerializerOptions { WriteIndented = true }));
