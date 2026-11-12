@@ -67,12 +67,12 @@ internal sealed partial class ShellNavigationProbe
             var signIn = shell.SignInRoot;
             var address = Get<TextBox>(signIn, "ServerBox");
             if (failFocusName) AutomationProperties.SetName(address, "错误名称夹具");
-            Focus(address, "KeyboardJourneyAddress");
+            await FocusAsync(address, "KeyboardJourneyAddress");
             await Stage("address-ready", "type https://keyboard-a.invalid then Enter", _window.Handle,
                 () => signIn.ViewModel.Step == ViewModels.SignInStep.Credential && !signIn.ViewModel.Busy);
             Require(!signIn.ViewModel.NoticeOpen, "匿名连接没有成功到账号页");
             var user = Get<TextBox>(signIn, "UserBox");
-            Focus(user, "KeyboardJourneyUsername");
+            await FocusAsync(user, "KeyboardJourneyUsername");
             var password = Get<PasswordBox>(signIn, "PasswordInput");
             await Stage("username-ready", "Ctrl+A, type keyboard-user, then Enter", _window.Handle,
                 () => signIn.ViewModel.Username == KeyboardJourneyProbeServer.Username && IsWithin(password));
@@ -88,23 +88,23 @@ internal sealed partial class ShellNavigationProbe
             await (Task)Call(shell, "EnterShellAsync")!;
             await LayoutAsync(shell);
             var account = Get<Button>(shell, "AccountButton");
-            Focus(account, "KeyboardJourneyAccount");
+            await FocusAsync(account, "KeyboardJourneyAccount");
             var accountMenu = Get<Flyout>(shell, "AccountMenu");
             await Stage("account-ready", "press Enter to open the account menu", _window.Handle,
                 () => Get<FrameworkElement>(shell, "AccountMenuBody").IsLoaded && VisualTreeHelper.GetOpenPopupsForXamlRoot(shell.XamlRoot).Count > 0);
             var select = Descendants(Get<FrameworkElement>(shell, "AccountMenuBody")).OfType<Button>()
                 .Single(button => AutomationProperties.GetAutomationId(button) == "AccountSelect:" + second.Key);
-            Focus(select, "KeyboardJourneySecondSource");
+            await FocusAsync(select, "KeyboardJourneySecondSource");
             await Stage("source-ready", "press Enter to select keyboard-b.invalid", _window.Handle,
                 () => fixture.Session.Capture().Connection.ApiBase.Host == "keyboard-b.invalid" && shell.Pages.Content is HomePage { IsReady: true });
             Require(VisualTreeHelper.GetOpenPopupsForXamlRoot(shell.XamlRoot).Count == 0, "选来源后菜单没关闭");
             var openSearch = Get<Button>(shell, "TitleSearchBox");
-            Focus(openSearch, "KeyboardJourneyOpenSearch");
+            await FocusAsync(openSearch, "KeyboardJourneyOpenSearch");
             await Stage("search-entry-ready", "press Enter to open search", _window.Handle,
                 () => shell.Pages.Content is LibraryPage search && search.SearchState.IsSearch);
             var searchPage = (LibraryPage)shell.Pages.Content;
             var searchInput = Get<AutoSuggestBox>(searchPage, "SearchInput");
-            Focus(searchInput, "KeyboardJourneySearch");
+            await FocusAsync(searchInput, "KeyboardJourneySearch");
             await Stage("search-ready", "type keyboard-query then Enter", _window.Handle,
                 () => !searchPage.ViewModel.Busy && searchPage.ViewModel.Cards.Count == 1
                     && searchPage.ViewModel.SearchText == KeyboardJourneyProbeServer.Keyword);
@@ -122,16 +122,16 @@ internal sealed partial class ShellNavigationProbe
                     item => Descendants(item).OfType<PosterCard>().FirstOrDefault()?.Card?.Item.Id,
                     KeyboardJourneyProbeServer.MovieId);
                 Require(container is not null, "实际搜索结果没有可聚焦导航容器");
-                Focus(container!, "KeyboardJourneyResult");
+                await FocusAsync(container!, "KeyboardJourneyResult");
             }
-            else Focus(result, "KeyboardJourneyResult");
+            else await FocusAsync(result, "KeyboardJourneyResult");
             await Stage("result-ready", "press Enter to open the selected movie details", _window.Handle,
                 () => shell.Pages.Content is DetailPage { IsReady: true });
             var detail = (DetailPage)shell.Pages.Content;
             Require(detail.ViewModel.CurrentItem?.Id == KeyboardJourneyProbeServer.MovieId && actions.Plays == 0, "结果Enter未进详情或触发播放");
             detail.AttachWindow(_window);
             var settingsButton = Get<Button>(shell, "SettingsButton");
-            Focus(settingsButton, "KeyboardJourneyOpenSettings");
+            await FocusAsync(settingsButton, "KeyboardJourneyOpenSettings");
             await Stage("settings-entry-ready", "press Enter to open settings", _window.Handle,
                 () => shell.SettingsRoot is { IsReady: true });
             settingsWindow = Get<SettingsWindow>(shell, "_settingsWindow");
@@ -140,7 +140,7 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(settings);
             settings.AddHandler(UIElement.PreviewKeyDownEvent, witness, handledEventsToo: true);
             var settingsSearch = Get<AutoSuggestBox>(settings, "SettingsSearchBox");
-            Focus(settingsSearch, "KeyboardJourneySettingsSearch");
+            await FocusAsync(settingsSearch, "KeyboardJourneySettingsSearch");
             await Stage("settings-ready", "press Tab then Shift+Tab to return to the settings search field", settingsWindow.Handle,
                 () => keys >= 2 && IsWithin(settingsSearch), minimumKeys: 2);
             RequireFocus(settingsSearch);
@@ -151,7 +151,7 @@ internal sealed partial class ShellNavigationProbe
             Require(ReferenceEquals(shell.Pages.Content, detail), "关闭设置改变了详情主体");
             _window.Activate();
             var back = Get<Button>(shell, "BackButton");
-            Focus(back, "KeyboardJourneyBack");
+            await FocusAsync(back, "KeyboardJourneyBack");
             await Stage("back-ready", "press Alt+Left to return to search", _window.Handle,
                 () => shell.Pages.Content is LibraryPage restored && restored.SearchState.IsSearch && restored.ViewModel.IsReady);
             var restoredSearch = (LibraryPage)shell.Pages.Content;
@@ -188,12 +188,26 @@ internal sealed partial class ShellNavigationProbe
         void RequireFocus(FrameworkElement target)
         {
             var peer = FrameworkElementAutomationPeer.CreatePeerForElement(target) ?? throw new InvalidOperationException("缺少自动化peer");
-            KeyboardJourneyProbeRules.RequireFocus(peer.GetName(), peer.GetAutomationControlType().ToString(), IsWithin(target));
+            try { KeyboardJourneyProbeRules.RequireFocus(peer.GetName(), peer.GetAutomationControlType().ToString(), IsWithin(target)); }
+            catch (InvalidOperationException error)
+            {
+                var actual = FocusManager.GetFocusedElement(target.XamlRoot) as FrameworkElement;
+                var bounds = target.TransformToVisual(target.XamlRoot.Content).TransformBounds(new Windows.Foundation.Rect(0, 0, target.ActualWidth, target.ActualHeight));
+                throw new InvalidOperationException($"{error.Message}：target={target.Name}/{AutomationProperties.GetAutomationId(target)}，"
+                    + $"name={peer.GetName()} role={peer.GetAutomationControlType()}，focus={actual?.Name}/{actual?.GetType().Name}，"
+                    + $"within={IsWithin(target)} visible={target.Visibility} bounds={bounds.X:0.#},{bounds.Y:0.#},{bounds.Width:0.#},{bounds.Height:0.#}", error);
+            }
         }
-        void Focus(Control target, string id)
+        async Task FocusAsync(Control target, string id)
         {
             AutomationProperties.SetAutomationId(target, id);
-            Require(target.Focus(FocusState.Keyboard), "键盘起点无法聚焦：" + id);
+            await LayoutAsync(target);
+            for (var attempt = 0; attempt < 40; attempt++)
+            {
+                target.Focus(FocusState.Keyboard);
+                await Task.Delay(50);
+                if (IsWithin(target)) break;
+            }
             RequireFocus(target);
             if (id == "KeyboardJourneyAddress")
                 KeyboardJourneyProbeRules.RequireName(FrameworkElementAutomationPeer.CreatePeerForElement(target)!.GetName(), "服务器地址");
