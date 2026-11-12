@@ -309,6 +309,7 @@ public sealed partial class PosterCard : UserControl
 
         card.TitleLine.Style = Ink(scrim ? "EgOnScrimBodyStyle" : "EgBodyStyle");
         card.SubLine.Style = Ink(scrim ? "EgOnScrimDataStyle" : card.Card?.IsUpcoming == true ? "EgCaptionStyle" : "EgDataStyle");
+        VisualStateManager.GoToState(card, scrim ? "CaptionOnScrim" : "CaptionPlain", false);
 
         static Style Ink(string key) => (Style)Application.Current.Resources[key];
     }

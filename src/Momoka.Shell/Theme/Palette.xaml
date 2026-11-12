@@ -83,6 +83,10 @@
             <SolidColorBrush x:Key="EgWarningBrush" Color="{StaticResource EgWarningColor}" />
             <SolidColorBrush x:Key="EgInfoBrush" Color="{StaticResource EgInfoColor}" />
             <SolidColorBrush x:Key="EgScrimBrush" Color="{StaticResource EgScrimColor}" />
+            <!-- 图上标题复用主题的实色表面与正文墨，别名位于其引用资源之后。 -->
+            <StaticResource x:Key="EgCardCaptionBackgroundBrush" ResourceKey="EgSurfaceBrush" />
+            <StaticResource x:Key="EgCardCaptionForegroundBrush" ResourceKey="EgTextBrush" />
+            <StaticResource x:Key="EgCardCaptionSecondaryBrush" ResourceKey="EgTextBrush" />
 
             <!-- 详情页正文那几块玻璃 —— 「把下面的板块也坐上亚克力效果」。
                  这支亚克力要的就是「透出背后那张图，但透得看不清」，而它
@@ -412,6 +416,10 @@
             <SolidColorBrush x:Key="EgWarningBrush" Color="{StaticResource EgWarningColor}" />
             <SolidColorBrush x:Key="EgInfoBrush" Color="{StaticResource EgInfoColor}" />
             <SolidColorBrush x:Key="EgScrimBrush" Color="{StaticResource EgScrimColor}" />
+            <!-- 图上标题复用主题的实色表面与正文墨，别名位于其引用资源之后。 -->
+            <StaticResource x:Key="EgCardCaptionBackgroundBrush" ResourceKey="EgSurfaceBrush" />
+            <StaticResource x:Key="EgCardCaptionForegroundBrush" ResourceKey="EgTextBrush" />
+            <StaticResource x:Key="EgCardCaptionSecondaryBrush" ResourceKey="EgTextBrush" />
 
             <!-- 同上，浓一档，而且这一档不跟着 Default 那份松：这一边的字是深色的，背后透上来的剧照是亮的，
                  一成半的画面就够把 #64676B 那档说明字吃掉 —— 深色那边是亮画面把玻璃抬高、暗字更难读，浅色
@@ -629,6 +637,9 @@
             <SolidColorBrush x:Key="EgWarningBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgInfoBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="EgScrimBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgCardCaptionBackgroundBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgCardCaptionForegroundBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="EgCardCaptionSecondaryBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
 
             <!-- 高对比度下不上亚克力：那一档的整个意思是「别让任何东西半透明」。换成系统的窗口底色，
                  正文那张纸于是是实心的，背后那张剧照被它整块盖住 —— 这正是该有的样子。

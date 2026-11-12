@@ -1,5 +1,13 @@
 ## 2026-11-12 WinUI P2 合入master，主树复验完成
 
+## 2026-11-12 首页订阅分类封面与标题可读性
+
+开发树 `C:/Users/89400/.codex/worktrees/9b2d/Momoka`，基于f8b1795。订阅电影/电视剧入口复用当前订阅中最多四张不同海报（缺海报时用该作品背景图），576×324等比裁满并添加淡出倒影；每张独立容错，保留属主身份、取消、失败冷却与导航边界。图上标题新增局部实色底板，复用Palette各主题既有表面/正文角色，高对比度配对系统色，普通页面恢复透明与原边距。原生Button/Image/TextBlock保留；Gallery 6de91feccadfbb0a796b71caedead5a2284f730e 的ImagePage/TextBlockPage/AccessibilityColorContrast源码已核对，不新增依赖。
+
+当前Core/Tests/Shell Release编译通过；主测试曾5009/5009、页面199/199、订阅专项111/111，文本与定向空白检查通过。后续完整主测试两次4993/5009的16项失败均明确为其他会话诊断占用SelfCheckRun互斥，保留日志、不改判据；最终集成仍需释放互斥后复验。发布件547文件288.8MB、批准载荷60项。独立发布件原生检查台PID34124首页专项1/1通过，1280/760、轮播内外、部分缺图/内部超时/全部缺图/取消、两类导航及关闭恢复、五主题白背景文字像素和透明底/同色前景拒绝反例全部执行，零MP写入；实屏在artifacts/subscription-artwork/runtime并已目视。先前开发件直接dotnet启动的XAML资源失败与缺少根libmpv发布失败保留，使用完整发布件解决启动，未改宿主或依赖。没有真实播放/服务器写入、系统高对比度切换/文字缩放/跨DPI/触摸/Narrator验证。本轮输入9张图片，未达到40张暂停线。
+
+本提交待合入master、主树适用复验与桌面发布，不上传远程。主树现为25fe7c2且干净，保留其两处夹具修复；共同桌面诊断串行，不关闭其他会话程序。
+
 用户指令“合并”，P2 b4cd92f/2646b6e/a76f04d以6ca9358合入原master88692b5；解决方案、回归登记和PROGRESS三冲突，保留P2与第五批四新项目/74专项，第五批Core和清单/队列产品源码不覆盖。主树Shell/Core、Tests/Core Release0警告0错误；完整4991/4991和六专项56/47/61/106/11/14均0失败0跳过。
 
 主树materials30792=3/3、settings34368=28/28、server-lists27972=5/5，三进程退出0；DLL SHA01643BAD4AFD281385A48F5DB643C88C406C197637750320A62FC0413C9E1302，证据artifacts/winui-p2-merge及docs/winui-p2/main-tree-verification.json。菜单五主题、设置五主题输入与代表性清单实屏联系表已核，鼠标未注入；系统Flags126/EnableTransparency1保持，合并后未重复全局系统切换，独立树原系统实验与历史红仍分开记录。累计图片38，未达40暂停线。

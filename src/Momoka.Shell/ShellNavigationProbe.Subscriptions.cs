@@ -943,6 +943,7 @@ internal sealed partial class ShellNavigationProbe
         internal bool CompactEpisodes { get; set; }
 
         internal byte[] Poster { get; set; } = [];
+        internal Dictionary<string, byte[]> ImageReplies { get; } = [];
         internal bool SubscriberAvatars { get; set; }
         internal TaskCompletionSource<HttpResponseMessage>? PendingList { get; set; }
         internal int SubscriptionReads { get; private set; }
@@ -959,7 +960,11 @@ internal sealed partial class ShellNavigationProbe
             {
                 var url = Query(request, "url") ?? "";
                 ImageRequests.Add(url);
-                return new(HttpStatusCode.OK) { Content = new ByteArrayContent(url == FailedImageUrl ? [] : Poster) };
+                return new(HttpStatusCode.OK)
+                {
+                    Content = new ByteArrayContent(url == FailedImageUrl ? []
+                    : ImageReplies.TryGetValue(url, out var reply) ? reply : Poster)
+                };
             }
             if (path.EndsWith("login/access-token", StringComparison.Ordinal)) return Json(new { access_token = "fixture-token", super_user = true });
             if (path == "/api/v1/user/") return Json(new[]

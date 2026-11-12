@@ -1,5 +1,7 @@
 using Momoka.Emby;
 using Momoka.Infrastructure;
+using Momoka.MoviePilot;
+using Momoka.Shell.Media;
 using Momoka.Shell.Views;
 
 namespace Momoka.Shell.ViewModels;
@@ -8,7 +10,7 @@ public sealed partial class HomeViewModel
 {
     private MoviePilotHomeSubscriptions? _librarySubscriptions;
     private Action<string>? _openSubscriptionLibrary;
-    private readonly Dictionary<string, (CardItem Card, string Url, Func<string, CancellationToken, Task<byte[]>> Fetch)> _moviePilotLibraries = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (CardItem Card, IReadOnlyList<string> Urls, Func<string, CancellationToken, Task<byte[]>> Fetch)> _moviePilotLibraries = new(StringComparer.Ordinal);
 
     internal void UseMoviePilotLibrary(MoviePilotHomeSubscriptions subscriptions, Action<string>? open)
     {
@@ -46,11 +48,9 @@ public sealed partial class HomeViewModel
                 var rows = key == HomeLayout.MoviePilotMovies ? owner.ViewModel.Movies : owner.ViewModel.Series;
                 var current = rows.Where(row => owner.ViewModel.Owns(row) && row.UsesImages(fetch)
                     && service.IsCurrentSubscription(row.Subscription)).ToArray();
-                var url = current.Select(row => row.Subscription.Media.BackdropUrl)
-                    .Concat(current.Select(row => row.Subscription.Media.PosterUrl))
-                    .FirstOrDefault(IsArtworkUrl) ?? "";
+                var urls = MoviePilotLibraryArtwork.Select(current.Select(row => row.Subscription));
                 if (!_moviePilotLibraries.TryGetValue(key, out var kept)
-                    || kept.Url != url || !ReferenceEquals(kept.Fetch, fetch))
+                    || !kept.Urls.SequenceEqual(urls, StringComparer.Ordinal) || !ReferenceEquals(kept.Fetch, fetch))
                 {
                     kept.Card?.AbandonPoster();
                     var card = new CardItem(new EmbyItem
@@ -60,14 +60,18 @@ public sealed partial class HomeViewModel
                         Type = EmbyItemType.CollectionFolder
                     }, images, CardSize.LibraryWidth, wide: true, subtitle: "", indicators: false,
                         navigate: () => { if (Current()) _openSubscriptionLibrary?.Invoke(key); },
-                        fetchPoster: url.Length == 0 ? null : async token =>
+                        fetchPoster: urls.Count == 0 ? null : async token =>
                         {
                             if (!Current()) throw new OperationCanceledException();
-                            var bytes = await fetch(url, token).ConfigureAwait(true);
+                            var bytes = await MoviePilotLibraryCoverLoader.LoadAsync(urls, async (url, ct) =>
+                            {
+                                if (!Current()) throw new OperationCanceledException(ct);
+                                return await fetch(url, ct).ConfigureAwait(true);
+                            }, token).ConfigureAwait(true);
                             if (!Current()) throw new OperationCanceledException();
                             return bytes;
                         });
-                    kept = (card, url, fetch);
+                    kept = (card, urls, fetch);
                     _moviePilotLibraries[key] = kept;
                 }
                 wanted.Add(kept.Card);
@@ -101,7 +105,4 @@ public sealed partial class HomeViewModel
 
     private static bool IsSubscriptionLibrary(string key) =>
         key is HomeLayout.MoviePilotMovies or HomeLayout.MoviePilotSeries or MoviePilotSubscriptionsRequest.LibraryKey;
-
-    private static bool IsArtworkUrl(string? value) =>
-        Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https";
 }

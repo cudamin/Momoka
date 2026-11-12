@@ -100,5 +100,36 @@ internal static class CardPresentationTests
             Assert.Null(title.Attribute("Height"));
             Assert.False(card.Descendants().Any(element => (string?)element.Attribute(x + "Name") == "PlaceholderTitle"));
         });
+        Test("图上标题：局部阅读底色随状态恢复且高对比度使用配对系统色", () =>
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
+            Assert.NotNull(directory);
+            var card = XDocument.Load(Path.Combine(directory!.FullName, "src/Momoka.Shell/Views/PosterCard.xaml"));
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            var surface = card.Descendants().Single(element => (string?)element.Attribute(x + "Name") == "CaptionSurface");
+            Assert.Null(surface.Attribute("Height"));
+            Assert.Equal("Transparent", (string?)surface.Attribute("Background"));
+            Assert.True(surface.Descendants().Any(element => (string?)element.Attribute(x + "Name") == "TitleLine"));
+            var states = card.Descendants().Where(element => element.Name.LocalName == "VisualState").ToArray();
+            var plain = states.Single(element => (string?)element.Attribute(x + "Name") == "CaptionPlain");
+            Assert.False(plain.Descendants().Any());
+            var scrim = states.Single(element => (string?)element.Attribute(x + "Name") == "CaptionOnScrim");
+            Assert.True(scrim.Descendants().Any(element => (string?)element.Attribute("Target") == "CaptionSurface.Background"));
+            var palette = XDocument.Load(Path.Combine(directory.FullName, "src/Momoka.Shell/Theme/Palette.xaml"));
+            var contrast = palette.Descendants().Single(element => (string?)element.Attribute(x + "Key") == "HighContrast");
+            foreach (var (key, color) in new[]
+            {
+                ("EgCardCaptionBackgroundBrush", "SystemColorWindowColor"),
+                ("EgCardCaptionForegroundBrush", "SystemColorWindowTextColor"),
+                ("EgCardCaptionSecondaryBrush", "SystemColorWindowTextColor")
+            })
+            {
+                var brush = contrast.Descendants().Single(element => (string?)element.Attribute(x + "Key") == key);
+                Assert.Equal("{ThemeResource " + color + "}", (string?)brush.Attribute("Color"));
+                Assert.False(palette.Root!.Elements().Any(element => (string?)element.Attribute(x + "Key") == key),
+                    "顶层同名资源会遮住高对比度字典");
+            }
+        });
     }
 }
