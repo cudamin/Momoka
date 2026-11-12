@@ -81,7 +81,8 @@ public sealed partial class SubtitleDialog : ContentDialog
         {
             Source = source, Search = search, Download = download, Delete = delete, Reload = reload,
             SupportsForcedOnly = supportsForcedOnly, DownloadProvidesConfirmation = downloadProvidesConfirmation
-        }]) { }
+        }])
+    { }
 
     internal SubtitleDialog(EmbyItem item, IReadOnlyList<SubtitleDialogTarget> targets, Func<bool>? available = null,
         Func<XamlRoot, Func<bool>, Task<ServerSubtitleFile?>>? pickUpload = null)

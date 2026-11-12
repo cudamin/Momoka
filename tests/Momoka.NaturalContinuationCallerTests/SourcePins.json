@@ -13,7 +13,7 @@
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackContracts.cs",
-      "sha256": "92a5c739d2dcae52cd7d955497bbd29a1dfe26d8d6e496360ed8fa4b507d7575"
+      "sha256": "9e06daf3a80382a3ec54da15d4f22b69a0ff2103ba64b119596f7e98e58c9a16"
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackContinuation.cs",
@@ -57,15 +57,15 @@
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySession.cs",
-      "sha256": "0c5d68195fdad449c9fbb151fb3ed5bc38e18ec69f82c107f13a63927c1aa8d8"
+      "sha256": "751fd7faf9db357a5c0c73f1adc2e06ad16eaf48c0430b013b25d17c7c7a2baf"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
-      "sha256": "50488d65cfd338aef25aabc113cb2ffa4027abae25ffd220a7bf456458c1c9a0"
+      "sha256": "931ef9e8711cb74631ed09b18ff7d71978bedf4217db7be53832cea8e7577dc7"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbyItem.cs",
-      "sha256": "5f8eda9bbcc91d6c2a2a9e5c6fc3dbba9011e54c69de21fa7a3574d9431be991"
+      "sha256": "04db415734bf423e092c24ec597772bd2a84357f2c215ae1d8c542502b26971e"
     },
     {
       "path": "src/Momoka.Core/Playback/EpisodeNavigation.cs",

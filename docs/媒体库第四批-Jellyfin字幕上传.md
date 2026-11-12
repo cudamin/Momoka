@@ -60,3 +60,9 @@ WinUI Gallery 固定 `6de91feccadfbb0a796b71caedead5a2284f730e`，已读 `Sample
 1160/680：授权→隐藏→恢复草稿、原生版本下拉、切版清稿、B 版原字节五字段、写中关闭/切版阻止、204 回读失败只 GET、未知 GET 后仍只读。输出 `jellyfin-upload-*-screen.png`、`jellyfin-upload-*-receipt.json`。主控需看浮层与宽窄截图、核自动化定位/点外输入；本树不运行这些原生场景。
 
 完整主测试、真实 Jellyfin 上传、系统 picker 手选、主树整合后验收及发布未执行。`Momoka.NaturalContinuationCallerTests/SourcePins.json` 的 Session/Scope 哈希交主控逐项审查更新，子树不整份接受。主控完成后追加最终提交、运行目录和结果。
+
+## 2026-11-12 集成原生检查
+
+父树整合后的 `jellyfin-upload` 两个场景已执行通过 2/2，1160/680 的上传稿、权限隐藏恢复、版本下拉、在飞保护、204 后只读刷新与未知回执恢复均完成。实际请求回执各为一次写入，未知场景未重复写入；真实 picker、真实网络和播放调用为零。实屏与回执在 `artifacts/library-batch4/jellyfin-native-final`，版本下拉截图针对其实际 Popup HWND，其余针对字幕滚动视口所在窗口；核对 PID 和窗口所有者，不放宽通用视频遮挡守卫。前几轮截图定位失败保留原日志。
+
+当前集成专项上传 55/55、对话/caller/picker 89/89通过；来源 pin 四项逐份核对后自然接续 69/69与10个提取拒绝反例通过。主树最终完整验证与发布仍由本批收尾记录确认。

@@ -74,7 +74,8 @@ internal sealed partial class ShellNavigationProbe
                     version.IsDropDownOpen = true;
                     await LayoutAsync(dialog);
                     Require(version.Items.OfType<ComboBoxItem>().All(option => option.IsLoaded), "原生版本下拉未实现候选");
-                    await SaveJellyfinUploadScreenAsync($"jellyfin-upload-version-open-{width}-screen.png");
+                    await SaveJellyfinUploadScreenAsync($"jellyfin-upload-version-open-{width}-screen.png",
+                        version.Items.OfType<ComboBoxItem>().First());
                     version.SelectedIndex = 1;
                     version.IsDropDownOpen = false;
                     await LayoutAsync(dialog);
@@ -118,8 +119,17 @@ internal sealed partial class ShellNavigationProbe
                     Require(server.Writes == 1 && Get<bool>(dialog, "_tracksStale") == false, "只读重试又上传或列表未恢复");
                     await SaveJellyfinUploadScreenAsync($"jellyfin-upload-confirmed-{width}-screen.png");
                     await File.WriteAllTextAsync(Path.Combine(_options.Paths.LogDirectory, $"jellyfin-upload-{width}-receipt.json"),
-                        JsonSerializer.Serialize(new { server.Writes, server.UploadItem, server.Reads, dialog.Touched, dialog.NeedsRefresh,
-                            NativePickerCalls = 0, RealNetworkCalls = 0, Plays = fixture.Actions.Plays }));
+                        JsonSerializer.Serialize(new
+                        {
+                            server.Writes,
+                            server.UploadItem,
+                            server.Reads,
+                            dialog.Touched,
+                            dialog.NeedsRefresh,
+                            NativePickerCalls = 0,
+                            RealNetworkCalls = 0,
+                            Plays = fixture.Actions.Plays
+                        }));
                     Require(fixture.Actions.Plays == 0, "上传探针启动播放");
                 }
                 finally
@@ -188,8 +198,16 @@ internal sealed partial class ShellNavigationProbe
                     dialog.Hide();
                     Require(await shown == ContentDialogResult.None, "未知回执结算后不能关闭");
                     await File.WriteAllTextAsync(Path.Combine(_options.Paths.LogDirectory, $"jellyfin-upload-unknown-{width}-receipt.json"),
-                        JsonSerializer.Serialize(new { server.Writes, server.Reads, dialog.Touched, dialog.NeedsRefresh,
-                            NativePickerCalls = 0, RealNetworkCalls = 0, Plays = fixture.Actions.Plays }));
+                        JsonSerializer.Serialize(new
+                        {
+                            server.Writes,
+                            server.Reads,
+                            dialog.Touched,
+                            dialog.NeedsRefresh,
+                            NativePickerCalls = 0,
+                            RealNetworkCalls = 0,
+                            Plays = fixture.Actions.Plays
+                        }));
                 }
                 finally { dialog.Hide(); await shown; ResizeProbeClient(1280, 800); }
             }
@@ -197,24 +215,50 @@ internal sealed partial class ShellNavigationProbe
         finally { _window.TopMost = topMost; }
     }
 
-    private async Task SaveJellyfinUploadScreenAsync(string name)
+    private async Task SaveJellyfinUploadScreenAsync(string name, FrameworkElement? popupTarget = null)
     {
         // Keep z-order unchanged while ContentDialog/ComboBox own native popup windows.
         await Task.Delay(300);
-        await CompositionPlaybackProbe.SaveScreenAsync(_window!, Path.Combine(_options.Paths.LogDirectory, name));
+        if (_window is null) throw new InvalidOperationException("字幕上传探针窗口不存在。");
+        var origin = new Interop.NativePoint();
+        Require(Interop.Native.ClientToScreen(_window.Handle, ref origin), "字幕上传探针坐标不可用。");
+        var popups = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot);
+        var dialog = popups.SelectMany(popup => Descendants(popup.Child)).OfType<SubtitleDialog>().Single();
+        popupTarget ??= Get<ScrollViewer>(dialog, "SubtitleScroll");
+        var bounds = popupTarget.TransformToVisual(_root).TransformBounds(
+            new(0, 0, popupTarget.ActualWidth, popupTarget.ActualHeight));
+        Require(bounds.Width > 0 && bounds.Height > 0, "字幕截图控件尚未实际布局。");
+        origin.X += (int)Math.Round((bounds.Left + bounds.Width / 2) * _root.XamlRoot.RasterizationScale);
+        origin.Y += (int)Math.Round((bounds.Top + bounds.Height / 2) * _root.XamlRoot.RasterizationScale);
+        var target = Interop.Native.GetAncestor(Interop.Native.WindowFromPoint(origin), 2);
+        Interop.Native.GetWindowThreadProcessId(target, out var process);
+        var owner = target;
+        for (var hop = 0; owner != IntPtr.Zero && owner != _window.Handle && hop < 8; hop++)
+            owner = Interop.Native.GetWindow(owner, 4);
+        Require(process == (uint)Environment.ProcessId && owner == _window.Handle,
+            $"字幕截图目标不属于本次窗口：target=0x{target:X} owner=0x{owner:X} pid={process} point={origin.X},{origin.Y}。");
+        await CompositionPlaybackProbe.SaveWindowScreenAsync(target, Path.Combine(_options.Paths.LogDirectory, name));
     }
 
     private SubtitleDialog CreateJellyfinUploadDialog(EmbyItem item, ServerSubtitles[] services, EmbySessionScope scope)
     {
         var targets = item.MediaSources.Select((source, index) => new SubtitleDialogTarget
         {
-            Source = source, Search = services[index].SearchAsync, Download = services[index].DownloadAsync,
-            Delete = services[index].DeleteAsync, Reload = services[index].ReadReloadAsync, AcceptReload = services[index].AcceptReload, SupportsForcedOnly = false,
-            DownloadProvidesConfirmation = false, Upload = services[index].UploadAsync, CanUpload = () => services[index].CanUpload
+            Source = source,
+            Search = services[index].SearchAsync,
+            Download = services[index].DownloadAsync,
+            Delete = services[index].DeleteAsync,
+            Reload = services[index].ReadReloadAsync,
+            AcceptReload = services[index].AcceptReload,
+            SupportsForcedOnly = false,
+            DownloadProvidesConfirmation = false,
+            Upload = services[index].UploadAsync,
+            CanUpload = () => services[index].CanUpload
         }).ToArray();
         return new SubtitleDialog(item, targets, () => scope.IsAvailable,
             (_, isCurrent) => Task.FromResult(isCurrent()
-                ? new ServerSubtitleFile("原字节.srt", [0xff, 0xfe, 0x2d, 0x4e, 0x87, 0x65, 0, 0x0a]) : null)) { XamlRoot = _root.XamlRoot };
+                ? new ServerSubtitleFile("原字节.srt", [0xff, 0xfe, 0x2d, 0x4e, 0x87, 0x65, 0, 0x0a]) : null))
+        { XamlRoot = _root.XamlRoot };
     }
 
     private sealed class JellyfinUploadProbeServer
@@ -261,8 +305,13 @@ internal sealed partial class ShellNavigationProbe
                 var second = uri.AbsolutePath.EndsWith(JellyfinUploadB, StringComparison.Ordinal);
                 var sourceA = new MediaSource { Id = JellyfinUploadA, Name = "版本甲", Path = "/fixture/version-a.mkv", MediaStreams = [.. TracksA] };
                 var sourceB = new MediaSource { Id = JellyfinUploadB, Name = "版本乙", Path = "/fixture/version-b.mkv", MediaStreams = [.. TracksB] };
-                return Json(new EmbyItem { Id = second ? JellyfinUploadB : JellyfinUploadA, Name = "匿名 Jellyfin 字幕上传", Type = EmbyItemType.Movie,
-                    MediaSources = second ? [sourceB] : [sourceA, sourceB] });
+                return Json(new EmbyItem
+                {
+                    Id = second ? JellyfinUploadB : JellyfinUploadA,
+                    Name = "匿名 Jellyfin 字幕上传",
+                    Type = EmbyItemType.Movie,
+                    MediaSources = second ? [sourceB] : [sourceA, sourceB]
+                });
             }
             return Json(Array.Empty<object>());
         }

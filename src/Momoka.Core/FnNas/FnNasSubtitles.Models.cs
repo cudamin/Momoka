@@ -29,7 +29,7 @@ public sealed record FnNasSubtitleTrack(string Guid, string MediaGuid, string Pa
         FnNasMediaAdapter.Text(value, "language"), FnNasMediaAdapter.Text(value, "title"), FnNasMediaAdapter.Text(value, "trim_id"),
         FnNasMediaAdapter.Integer(value, "index"), FnNasMediaAdapter.Flag(value, "is_external"),
         FnNasMediaAdapter.Flag(value, "extra_file"), FnNasMediaAdapter.Text(value, "url"))
-        { Identity = Canonical(value)!.ToJsonString(FnNasHttp.Json) };
+    { Identity = Canonical(value)!.ToJsonString(FnNasHttp.Json) };
 
     private static JsonNode? Canonical(JsonNode? value) => value switch
     {

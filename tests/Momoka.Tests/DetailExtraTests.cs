@@ -36,7 +36,9 @@ internal static partial class DetailActionReadinessTests
                 var planner = new PlaybackPlanner(new AppSettings(), new ShaderGroupResolver(new ShaderAutomationSettings()));
                 var request = planner.Plan(new PlaybackTicket
                 {
-                    Item = item, Source = item.MediaSources[0], StartTicks = f.Actions.Choice.StartTicks,
+                    Item = item,
+                    Source = item.MediaSources[0],
+                    StartTicks = f.Actions.Choice.StartTicks,
                     ExactStart = f.Actions.Choice.ExactStart
                 }, item.Source!.Connection);
                 Assert.Equal("extra", request.ItemId);
@@ -280,7 +282,9 @@ internal static partial class DetailActionReadinessTests
 
     private static EmbyItem Extra() => new()
     {
-        Id = "extra", Name = "幕后花絮", Type = EmbyItemType.Video,
+        Id = "extra",
+        Name = "幕后花絮",
+        Type = EmbyItemType.Video,
         UserData = new() { PlaybackPositionTicks = 300_000_000 },
         MediaSources = [new() { Id = "extra-file", Container = "mkv", RunTimeTicks = 600_000_000 }]
     };

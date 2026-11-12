@@ -305,14 +305,17 @@ internal static class AcrylicControlsTests
         });
 
         foreach (var name in new[] { "ColumnActions", "CompactBlock" })
-            Test($"详情操作：{name} 七颗键共用灰色背景和平台模板", () =>
+            Test($"详情操作：{name} 八颗键共用灰色背景和平台模板", () =>
             {
                 var page = Read("Views/DetailPage.xaml");
                 var actions = Named(page, name).Elements().First(element => element.Name.LocalName == "WrapRow");
                 Assert.False(actions.Elements().Any(element => element.Name.LocalName == "WrapRow.Resources"),
                     name + " 仍带局部材质字典");
                 var buttons = actions.Elements().Where(element => element.Name.LocalName is "Button" or "ToggleButton").ToArray();
-                Assert.Equal(7, buttons.Length, name + " 的动作范围变了（包含预告片入口）");
+                Assert.Equal(8, buttons.Length, name + " 的动作范围变了（包含预告片与花絮入口）");
+                var extras = buttons.Single(button => ((string?)button.Attribute(X + "Name"))?.EndsWith("ExtrasButton", StringComparison.Ordinal) == true);
+                Assert.Equal("OnExtrasClick", (string?)extras.Attribute("Click"));
+                Assert.Equal("{x:Bind ViewModel.ExtraVisibility, Mode=OneWay}", (string?)extras.Attribute("Visibility"));
                 foreach (var button in buttons)
                 {
                     var type = button.Name.LocalName;

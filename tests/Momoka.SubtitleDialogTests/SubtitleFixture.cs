@@ -186,8 +186,13 @@ internal sealed class SubtitleTransport : HttpMessageHandler
             new() { Id = Product == MediaServerKind.Jellyfin ? ItemId : "file", Name = "virtual-file", Path = "/virtual/not-opened/movie.mkv",
                 MediaStreams = [.. Tracks.Select(track => Track(track.Index, track.Title!))] }
         };
-        if (MultiVersion) sources.Add(new() { Id = VersionB, Name = "second-version", Path = "/virtual/not-opened/second.mkv",
-            MediaStreams = [.. TracksB.Select(track => Track(track.Index, track.Title!))] });
+        if (MultiVersion) sources.Add(new()
+        {
+            Id = VersionB,
+            Name = "second-version",
+            Path = "/virtual/not-opened/second.mkv",
+            MediaStreams = [.. TracksB.Select(track => Track(track.Index, track.Title!))]
+        });
         return new() { Id = requestedId ?? ItemId, Name = "virtual-movie", Type = EmbyItemType.Movie, MediaSources = sources };
     }
 

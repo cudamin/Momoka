@@ -262,10 +262,25 @@ internal static class FnNasSubtitleCases
             using var f = new Fixture();
             var streams = f.Streams();
             var tracks = (JsonArray)streams["subtitle_streams"]!;
-            tracks.Add(new JsonObject { ["guid"] = "extracted-inner", ["media_guid"] = "file-b", ["is_external"] = 0,
-                ["extra_file"] = 1, ["index"] = 2, ["codec_name"] = "subrip", ["format"] = "srt" });
-            tracks.Add(new JsonObject { ["guid"] = "later-inner", ["media_guid"] = "file-b", ["is_external"] = 0,
-                ["index"] = 4, ["codec_name"] = "ass", ["format"] = "ass" });
+            tracks.Add(new JsonObject
+            {
+                ["guid"] = "extracted-inner",
+                ["media_guid"] = "file-b",
+                ["is_external"] = 0,
+                ["extra_file"] = 1,
+                ["index"] = 2,
+                ["codec_name"] = "subrip",
+                ["format"] = "srt"
+            });
+            tracks.Add(new JsonObject
+            {
+                ["guid"] = "later-inner",
+                ["media_guid"] = "file-b",
+                ["is_external"] = 0,
+                ["index"] = 4,
+                ["codec_name"] = "ass",
+                ["format"] = "ass"
+            });
             var source = FnNasMediaAdapter.Sources(streams, "movie", f.Scope.Client.FnNas, f.Scope.Client.FnNasConnection).Single(value => value.Id == "file-b");
             var extracted = source.SubtitleStreams.Single(track => track.ProviderId == "extracted-inner");
             Assert.Equal(2, extracted.Index);
@@ -529,7 +544,8 @@ internal static class FnNasSubtitleCases
             {
                 var first = new FnNasSubtitles(f.Scope, f.Item, f.Item.MediaSources[0], () => f.Permissions);
                 var dialog = new FnNasSubtitleDialog("双版本", new[] { first, f.Service }, null,
-                    (_, _) => Task.FromResult<FnNasSubtitleUpload?>(new("a.srt", [1]))) { XamlRoot = new() };
+                    (_, _) => Task.FromResult<FnNasSubtitleUpload?>(new("a.srt", [1])))
+                { XamlRoot = new() };
                 var shown = dialog.ShowAsync();
                 try
                 {
@@ -574,7 +590,8 @@ internal static class FnNasSubtitleCases
 
     private static FnNasSubtitleDialog Dialog(Fixture f, Func<XamlRoot, Func<bool>, Task<FnNasSubtitleUpload?>>? pick = null) =>
         new("匿名电影", new[] { f.Service }, () => f.Service.IsCurrent,
-            pick ?? ((_, _) => Task.FromResult<FnNasSubtitleUpload?>(null))) { XamlRoot = new() };
+            pick ?? ((_, _) => Task.FromResult<FnNasSubtitleUpload?>(null)))
+        { XamlRoot = new() };
 
     private static async Task FailsAsync<T>(Func<Task> action) where T : Exception
     {
@@ -677,18 +694,24 @@ internal static class FnNasSubtitleCases
                 if (path.EndsWith("/tag/genres", StringComparison.Ordinal)) return Reply(new JsonArray());
                 if (path.EndsWith("/user/info", StringComparison.Ordinal)) return Reply(new JsonObject { ["is_admin"] = 1 });
                 if (path.EndsWith("/subtitle/search", StringComparison.Ordinal) && fixture.SearchReply is { } searchReply) return await searchReply;
-                if (path.EndsWith("/subtitle/search", StringComparison.Ordinal)) return Reply(new JsonObject { ["subtitles"] = new JsonArray(
+                if (path.EndsWith("/subtitle/search", StringComparison.Ordinal)) return Reply(new JsonObject
+                {
+                    ["subtitles"] = new JsonArray(
                     new JsonObject { ["trim_id"] = "provider", ["filename"] = "候选.srt", ["format"] = "srt", ["download"] = 20 },
                     new JsonObject { ["trim_id"] = "provider", ["filename"] = "重复.srt", ["format"] = "srt" },
-                    new JsonObject { ["trim_id"] = "bitmap", ["filename"] = "候选.sup", ["format"] = "sup" }) });
+                    new JsonObject { ["trim_id"] = "bitmap", ["filename"] = "候选.sup", ["format"] = "sup" })
+                });
                 if (path.Contains("/subtitle/", StringComparison.Ordinal))
                 {
                     if (fixture.WriteFailure == "http403") return new(HttpStatusCode.Forbidden);
                     if (fixture.WriteFailure == "http401") return new(HttpStatusCode.Unauthorized);
                     if (fixture.WriteFailure == "http503") return new(HttpStatusCode.ServiceUnavailable);
                     if (fixture.WriteFailure is "redirect-fragment" or "redirect-ftp")
-                        return new(HttpStatusCode.TemporaryRedirect) { Headers = { Location = new(fixture.WriteFailure == "redirect-fragment"
-                            ? "https://subtitles.invalid/v/api/v1/subtitle/dl/file#fragment" : "ftp://subtitles.invalid/file") } };
+                        return new(HttpStatusCode.TemporaryRedirect)
+                        {
+                            Headers = { Location = new(fixture.WriteFailure == "redirect-fragment"
+                            ? "https://subtitles.invalid/v/api/v1/subtitle/dl/file#fragment" : "ftp://subtitles.invalid/file") }
+                        };
                     if (fixture.WriteFailure == "business-permission") return Raw("{\"code\":-5}");
                     if (fixture.WriteFailure == "business-file-permission") return Raw("{\"code\":-16}");
                     if (fixture.WriteFailure == "business-expired") return Raw("{\"code\":-2}");

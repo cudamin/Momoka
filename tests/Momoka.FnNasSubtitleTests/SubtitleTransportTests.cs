@@ -16,8 +16,14 @@ internal static class SubtitleTransportTests
             var api = new Uri("https://signed.invalid/v/");
             var authorization = new FnNasSubtitleAuthorization(api);
             var source = FnNasClient.SubtitleUrl(api, "subtitle-a");
-            var request = new PlaybackRequest { MediaUrl = new("https://signed.invalid/v/api/v1/media/range/video"), Title = "anonymous",
-                HttpHeaders = [new("Authorization", "placeholder")], FnNasSubtitleAuthorization = authorization, ExternalSubtitles = [source] };
+            var request = new PlaybackRequest
+            {
+                MediaUrl = new("https://signed.invalid/v/api/v1/media/range/video"),
+                Title = "anonymous",
+                HttpHeaders = [new("Authorization", "placeholder")],
+                FnNasSubtitleAuthorization = authorization,
+                ExternalSubtitles = [source]
+            };
             using var endpoint = new Endpoint();
             await using var transport = new PlaybackHttpTransport(request, endpoint);
             var native = transport.Prepare(request);
@@ -56,8 +62,13 @@ internal static class SubtitleTransportTests
                 2 => Redirect("https://signed.invalid/v/api/v1/subtitle/dl/subtitle-d"),
                 _ => new(HttpStatusCode.OK) { Content = new StringContent("subtitle") }
             };
-            var request = new PlaybackRequest { MediaUrl = new("https://signed.invalid/v/api/v1/media/range/video"), Title = "anonymous",
-                HttpHeaders = [new("Authorization", "placeholder")], FnNasSubtitleAuthorization = new(api) };
+            var request = new PlaybackRequest
+            {
+                MediaUrl = new("https://signed.invalid/v/api/v1/media/range/video"),
+                Title = "anonymous",
+                HttpHeaders = [new("Authorization", "placeholder")],
+                FnNasSubtitleAuthorization = new(api)
+            };
             await using var transport = new PlaybackHttpTransport(request, endpoint);
             using var client = new HttpClient(new SocketsHttpHandler { UseProxy = false });
             await client.GetByteArrayAsync(transport.Map(FnNasClient.SubtitleUrl(api, "subtitle-a")));

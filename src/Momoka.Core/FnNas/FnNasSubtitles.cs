@@ -201,8 +201,11 @@ public sealed class FnNasSubtitles
     }
 
     private FnNasConnection Scoped(EmbyClient client, long revision, bool administrator = false) =>
-        client.FnNasConnection with { IsCurrent = () => CanManage && _scope.PermissionRevision == revision
-            && (!administrator || CanMarkServerFile) };
+        client.FnNasConnection with
+        {
+            IsCurrent = () => CanManage && _scope.PermissionRevision == revision
+            && (!administrator || CanMarkServerFile)
+        };
 
     private void RequireCurrent()
     {

@@ -38,7 +38,9 @@ internal sealed partial class ShellNavigationProbe
         fixture.Actions.MenuPermissions = _ => permissions;
         var item = scope.Bind(new EmbyItem
         {
-            Id = "movie", Name = "匿名双版本电影", Type = EmbyItemType.Movie,
+            Id = "movie",
+            Name = "匿名双版本电影",
+            Type = EmbyItemType.Movie,
             MediaSources = [new() { Id = "file-a", Path = "/media/movie.1080p.mkv" }, new() { Id = "file-b", Path = "/media/movie.2160p.mkv" }]
         });
         var menuOwner = new Page();

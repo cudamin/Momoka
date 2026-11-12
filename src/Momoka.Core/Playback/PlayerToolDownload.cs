@@ -12,7 +12,8 @@ public static class PlayerToolDownload
         AllowAutoRedirect = false,
         UseCookies = false,
         ConnectTimeout = TimeSpan.FromSeconds(20)
-    }) { Timeout = Timeout.InfiniteTimeSpan };
+    })
+    { Timeout = Timeout.InfiniteTimeSpan };
 
     public static async Task CopyAsync(HttpClient client, Uri source,
         IReadOnlyList<KeyValuePair<string, string>> headers, string destination,
