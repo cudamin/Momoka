@@ -43,7 +43,9 @@
 
 **既有红**：`Momoka.HomeFoldCompletionTests` 在本树与 master 都编译失败（生成夹具引用不存在的 `AmbientChanged`、`Microsoft.UI.Colors`），与本批无关，未改。
 
-**待办**：主树按主规则重跑受影响验证；用户令「只合并到主树 不交付」，未发布。本批未改真实服务器数据、未播放。
+**主树整合（15:58）**：以 `dc07fd0`（`--no-ff`）合入 master，唯一冲突在 PROGRESS（两段都留、新的在前）。主树 Shell Release **0 警告 0 错误**；`Momoka.Tests` **5031/5031**、页面契约 **210/210**、`DetailImageArrival` **23/23**、`SubtitleDialog` **89/89**；定向 `dotnet format whitespace` 通过。`--probe-section library` **未跑**：Explorer 启动的发布件 `artifacts/publish/win-x64/Momoka.exe`（PID 27708）开着，占单实例锁，按规则不擅自杀进程。未 publish、未改快捷方式、未推远端。
+
+**待办**：应用关掉后补一次 `--probe-section library`；用户令「只合并到主树 不交付」，未发布。本批未改真实服务器数据、未播放。
 
 ## 2026-11-13 侧边栏商店样式已合入 master，构建与发布按用户要求暂停
 
