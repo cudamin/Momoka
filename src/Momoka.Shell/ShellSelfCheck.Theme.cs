@@ -78,6 +78,7 @@ internal static partial class ShellSelfCheck
         var painted = ThemeHost.BrushKeys.ToHashSet(StringComparer.Ordinal);
         var darkKeys = PaletteKeys("Dark");
         var lightKeys = PaletteKeys("Light");
+        var systemManaged = darkKeys.Where(ThemeHost.IsSystemManagedBrush).ToHashSet(StringComparer.Ordinal);
 
         var absent = painted
             .Where(key => !darkKeys.Contains(key) || !lightKeys.Contains(key))
@@ -87,7 +88,8 @@ internal static partial class ShellSelfCheck
         var unpainted = darkKeys
             .Where(key => key.StartsWith("Eg", StringComparison.Ordinal)
                           && key.EndsWith("Brush", StringComparison.Ordinal)
-                          && !painted.Contains(key))
+                          && !painted.Contains(key)
+                          && !systemManaged.Contains(key))
             .Order()
             .ToArray();
 
@@ -96,7 +98,8 @@ internal static partial class ShellSelfCheck
                 ? $"ThemeHost 要涂 {absent.Length} 个调色板里没有的键：{string.Join("、", absent.Take(8))}{(absent.Length > 8 ? " 等" : "")}"
                 : unpainted.Length > 0
                     ? $"调色板有 {unpainted.Length} 个 ThemeHost 不涂的角色，它们会一直停在第一帧的字面值上：{string.Join("、", unpainted.Take(8))}{(unpainted.Length > 8 ? " 等" : "")}"
-                    : $"{painted.Count} 个键，Dark 和 Light 两份都涂到了");
+                    : $"{painted.Count} 个键，Dark 和 Light 两份都涂到了；"
+                        + $"{systemManaged.Count} 个明确系统管理的角色在三主题字典中保持原生画刷");
 
         (string Key, ThemeColor Want)[] anchors =
         [
