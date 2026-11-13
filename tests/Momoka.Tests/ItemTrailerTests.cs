@@ -113,7 +113,8 @@ internal static class ItemTrailerTests
 
     private static EmbyClient Client(EmbyHttp http, MediaServerKind kind, string version = "4.10.1.0") =>
         new(http, new EmbyConnection(new Uri("https://trailers.invalid/media/"), "placeholder-only", "user", "user", "fixture",
-            new DeviceIdentity("fixture", "fixture", "fixture", "0")) { ServerKind = kind, ServerVersion = version });
+            new DeviceIdentity("fixture", "fixture", "fixture", "0"))
+        { ServerKind = kind, ServerVersion = version });
 
     private sealed class Transport(string body) : HttpMessageHandler
     {

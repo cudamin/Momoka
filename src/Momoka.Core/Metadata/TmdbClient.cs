@@ -50,9 +50,15 @@ public sealed class TmdbClient : IDisposable
             var date = Date(result, series ? "first_air_date" : "release_date");
             found.Add(new()
             {
-                Id = Id(result), Title = Title(result, series), OriginalTitle = Text(result, series ? "original_name" : "original_title"),
-                Year = Year(date), IsSeries = series, AutoMatchEligible = complete,
-                Overview = Text(result, "overview"), PosterUrl = ImageUrl(result, "poster_path"), BackdropUrl = ImageUrl(result, "backdrop_path")
+                Id = Id(result),
+                Title = Title(result, series),
+                OriginalTitle = Text(result, series ? "original_name" : "original_title"),
+                Year = Year(date),
+                IsSeries = series,
+                AutoMatchEligible = complete,
+                Overview = Text(result, "overview"),
+                PosterUrl = ImageUrl(result, "poster_path"),
+                BackdropUrl = ImageUrl(result, "backdrop_path")
             });
         }
         if (found.GroupBy(item => item.Id, StringComparer.Ordinal).Any(group => group.Distinct().Count() > 1)) throw InvalidResponse();
@@ -73,9 +79,17 @@ public sealed class TmdbClient : IDisposable
         var premiered = Date(root, series ? "first_air_date" : "release_date");
         var details = new TmdbLocalMetadata
         {
-            Id = canonicalId, Title = Title(root, series), OriginalTitle = Text(root, series ? "original_name" : "original_title"),
-            IsSeries = series, Year = Year(premiered), Season = season, Episode = episode, Premiered = premiered,
-            Overview = Text(root, "overview"), PosterUrl = ImageUrl(root, "poster_path"), BackdropUrl = ImageUrl(root, "backdrop_path")
+            Id = canonicalId,
+            Title = Title(root, series),
+            OriginalTitle = Text(root, series ? "original_name" : "original_title"),
+            IsSeries = series,
+            Year = Year(premiered),
+            Season = season,
+            Episode = episode,
+            Premiered = premiered,
+            Overview = Text(root, "overview"),
+            PosterUrl = ImageUrl(root, "poster_path"),
+            BackdropUrl = ImageUrl(root, "backdrop_path")
         };
         if (!episode.HasValue) return details;
 
@@ -88,8 +102,11 @@ public sealed class TmdbClient : IDisposable
         if (episodeTitle.Length == 0) throw InvalidResponse();
         return details with
         {
-            EpisodeId = Id(one), EpisodeTitle = episodeTitle, EpisodeOverview = Text(one, "overview"),
-            EpisodeImageUrl = ImageUrl(one, "still_path"), EpisodeAired = Date(one, "air_date")
+            EpisodeId = Id(one),
+            EpisodeTitle = episodeTitle,
+            EpisodeOverview = Text(one, "overview"),
+            EpisodeImageUrl = ImageUrl(one, "still_path"),
+            EpisodeAired = Date(one, "air_date")
         };
     }
 

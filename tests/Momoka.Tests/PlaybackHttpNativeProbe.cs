@@ -49,11 +49,23 @@ internal static class PlaybackHttpNativeProbe
         {
             foreach (var (option, value) in new Dictionary<string, string>
             {
-                ["config"] = "no", ["load-scripts"] = "no", ["scripts"] = "", ["ytdl"] = "no",
-                ["vo"] = "null", ["ao"] = "null", ["audio"] = "no", ["terminal"] = "no", ["log-file"] = "",
-                ["http-proxy"] = "", ["http-header-fields"] = "", ["input-ipc-server"] = "",
-                ["access-references"] = "no", ["load-unsafe-playlists"] = "no", ["idle"] = "yes",
-                ["save-position-on-quit"] = "no", ["resume-playback"] = "no"
+                ["config"] = "no",
+                ["load-scripts"] = "no",
+                ["scripts"] = "",
+                ["ytdl"] = "no",
+                ["vo"] = "null",
+                ["ao"] = "null",
+                ["audio"] = "no",
+                ["terminal"] = "no",
+                ["log-file"] = "",
+                ["http-proxy"] = "",
+                ["http-header-fields"] = "",
+                ["input-ipc-server"] = "",
+                ["access-references"] = "no",
+                ["load-unsafe-playlists"] = "no",
+                ["idle"] = "yes",
+                ["save-position-on-quit"] = "no",
+                ["resume-playback"] = "no"
             }) Assert.True(LibMpvNative.mpv_set_option_string(context, option, value) >= 0, "native option " + option);
             Assert.True(LibMpvNative.mpv_initialize(context) >= 0);
             Assert.True(LibMpvBackend.Run(context, "loadfile", nativeRequest.MediaUrl.AbsoluteUri, "replace"));

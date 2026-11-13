@@ -5,6 +5,19 @@ using Windows.Foundation;
 
 // These substitutes have no HWND, WinRT, application, timer thread, network or settings IO.
 // Only the framework value/event boundary is fake; all fold rules and methods are production.
+namespace Windows.UI
+{
+    public readonly record struct Color(byte A, byte R, byte G, byte B);
+}
+
+namespace Microsoft.UI
+{
+    public static class Colors
+    {
+        public static Windows.UI.Color Transparent => new(0, 255, 255, 255);
+    }
+}
+
 namespace Windows.Foundation
 {
     public readonly record struct Point(double X, double Y);

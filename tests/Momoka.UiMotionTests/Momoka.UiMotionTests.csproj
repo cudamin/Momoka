@@ -11,5 +11,47 @@
         <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\SurfaceMotion.cs" Link="Production\SurfaceMotion.cs" />
         <Compile Include="..\..\src\Momoka.Shell\Views\GlyphPulse.cs" Link="Production\GlyphPulse.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\HomeMotion.cs" Link="Production\HomeMotion.cs" />
     </ItemGroup>
+    <UsingTask TaskName="ExtractShelfFocus" TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <Source ParameterType="System.String" Required="true" />
+            <Output ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Text" />
+            <Code Type="Fragment" Language="cs"><![CDATA[
+                var source = File.ReadAllText(Source).Replace("\r\n", "\n");
+                Func<string, string, string> between = (start, end) =>
+                {
+                    var first = source.IndexOf(start, StringComparison.Ordinal);
+                    if (first < 0 || source.IndexOf(start, first + start.Length, StringComparison.Ordinal) >= 0)
+                        throw new InvalidOperationException("Missing or ambiguous shelf source: " + start);
+                    var last = source.IndexOf(end, first + start.Length, StringComparison.Ordinal);
+                    if (last < 0) throw new InvalidOperationException("Missing shelf source end: " + end);
+                    return source.Substring(first, last - first);
+                };
+                var output = "// Verbatim current production input control flow. Do not edit.\n#nullable enable\n" +
+                    "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Input;\n" +
+                    "using Microsoft.UI.Xaml.Media;\nusing Momoka.Infrastructure;\nusing Windows.System;\n" +
+                    "namespace Momoka.Shell.Views;\npublic sealed partial class ShelfFocusFixture\n{\n" +
+                    between("    private void OnNoFocusCandidateFound(", "    /// <summary>页面被移除时") +
+                    between("    private void OnUnloaded(", "    /// <summary>\n    /// 当前焦点落到带内") +
+                    between("    private void FocusItem(", "    /// <summary>\n    /// 指针进到带上") + "\n}\n";
+                Directory.CreateDirectory(Path.GetDirectoryName(Output));
+                if (!File.Exists(Output) || File.ReadAllText(Output) != output)
+                    File.WriteAllText(Output, output, new UTF8Encoding(false));
+            ]]></Code>
+        </Task>
+    </UsingTask>
+    <Target Name="GenerateShelfFocus" BeforeTargets="CoreCompile">
+        <ExtractShelfFocus Source="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\ShelfStrip.xaml.cs"
+                           Output="$(IntermediateOutputPath)ShelfFocus.g.cs" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)ShelfFocus.g.cs" />
+        </ItemGroup>
+    </Target>
 </Project>

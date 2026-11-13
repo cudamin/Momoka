@@ -115,6 +115,7 @@ namespace Microsoft.UI.Xaml.Media.Animation
         private EventHandler<object>? _completed;
         public static List<Storyboard> Created { get; } = [];
         public static bool FailNextBegin { get; set; }
+        public bool ThrowOnStop { get; set; }
         public Storyboard() => Created.Add(this);
         public List<DoubleAnimation> Children { get; } = [];
         public bool IsRunning { get; private set; }
@@ -131,7 +132,11 @@ namespace Microsoft.UI.Xaml.Media.Animation
             }
             IsRunning = true;
         }
-        public void Stop() => IsRunning = false;
+        public void Stop()
+        {
+            if (ThrowOnStop) throw new InvalidOperationException("Controlled native Stop failure");
+            IsRunning = false;
+        }
         public void Complete() => _completed?.Invoke(this, EventArgs.Empty);
         public Action LateCompletion()
         {
@@ -146,12 +151,35 @@ namespace Windows.UI.ViewManagement
     public delegate void SettingsChanged(UISettings sender, object args);
     public sealed class UISettings
     {
+        public enum EventFailure { None, Before, After }
+        public static EventFailure AddFailure { get; set; }
+        public static EventFailure RemoveFailure { get; set; }
         private SettingsChanged? _changed;
         public static List<UISettings> Created { get; } = [];
         public static bool Enabled { get; set; } = true;
         public UISettings() => Created.Add(this);
         public bool AnimationsEnabled => Enabled;
-        public event SettingsChanged AnimationsEnabledChanged { add => _changed += value; remove => _changed -= value; }
+        public event SettingsChanged AnimationsEnabledChanged
+        {
+            add
+            {
+                if (AddFailure == EventFailure.Before) throw new InvalidOperationException("System event pre-add failure");
+                _changed += value;
+                if (AddFailure == EventFailure.After) throw new InvalidOperationException("System event post-add failure");
+            }
+            remove
+            {
+                if (RemoveFailure == EventFailure.Before) throw new InvalidOperationException("System event pre-remove failure");
+                _changed -= value;
+                if (RemoveFailure == EventFailure.After) throw new InvalidOperationException("System event post-remove failure");
+            }
+        }
+        public Action CaptureChange()
+        {
+            var callback = _changed;
+            return () => callback?.Invoke(this, new());
+        }
+        public void ReleaseFaultEndpoint() => _changed = null;
         public int Handlers => _changed?.GetInvocationList().Length ?? 0;
         public void Change(bool enabled)
         {

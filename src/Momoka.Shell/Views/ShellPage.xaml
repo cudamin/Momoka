@@ -291,6 +291,7 @@
 
             <Button
                 x:Name="AccountButton"
+                x:Uid="ShellPage_AccountButton"
                 Grid.Row="0"
                 Grid.Column="0"
                 Padding="10,3"

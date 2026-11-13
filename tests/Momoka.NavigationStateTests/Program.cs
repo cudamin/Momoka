@@ -47,6 +47,29 @@ internal static class Program
             page.VisitForTest(fixture.MusicRequest(""), NavigationMode.Forward);
             Assert.Equal("", page.Tag as string); Assert.False(page.ReleasedForTest);
         });
+        Test("音乐导航离页每次结束墙与曲目图片需求，返回历史重新附加不重建", () =>
+        {
+            using var fixture = new Fixture();
+            var shell = fixture.Shell;
+            var request = fixture.MusicRequest("library:music-root");
+            shell.AddLibraryForTest(request);
+            shell.GoTo(request.Tag);
+            var page = (MusicLibraryPage)shell.ContentFrame.Content!;
+            Assert.Equal(0, page.ArtworkDetachesForTest);
+            Assert.Equal(0, page.TrackArtworkStopsForTest);
+            shell.GoTo("home");
+            Assert.Equal(1, page.ArtworkDetachesForTest);
+            Assert.Equal(1, page.TrackArtworkStopsForTest);
+            Assert.Equal(1, page.ViewModel.Releases);
+            shell.BackForTest();
+            Assert.True(ReferenceEquals(page, shell.ContentFrame.Content));
+            Assert.False(page.ReleasedForTest);
+            Assert.Equal(request.Tag, page.Tag as string);
+            shell.GoTo("home");
+            Assert.Equal(2, page.ArtworkDetachesForTest);
+            Assert.Equal(2, page.TrackArtworkStopsForTest);
+            Assert.Equal(2, page.ViewModel.Releases);
+        });
         Test("服务器清单Item导航是下钻，重用页面不会遗留目录Tag", () =>
         {
             using var fixture = new Fixture(); var page = new ServerListsPage();

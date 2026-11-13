@@ -1,18 +1,26 @@
 # Momoka.UiMotionTests
 
-`SurfaceMotion`（常驻元素/浮层的进出）与 `GlyphPulse`（图标换状态时弹一下）的独立回归。
+`HomeMotion`（页面与货架入场）、`SurfaceMotion`（常驻元素/浮层进出）、`GlyphPulse`（图标脉冲）与货架焦点重试的独立回归。
 
 生产文件按原样链接进本工程，WinUI 类型与时钟由 `UiBoundaries.cs` 提供：
 
 - `Storyboard.Advance(ms)` 推进假时钟；`AutoReverse` 与 `CubicEase` 的 EaseIn/EaseOut 都按生产的语义走；
 - `FrameworkElement` 的 `XamlRoot` 可设为 `null`，用来模拟真正离树；
-- `HomeMotion` 是可切换的动画偏好替身，与生产的开关同名。
+- 三个动效文件均原样链接；系统 `UISettings` 提供可控事件，后台通知通过假 DispatcherQueue 回到 UI 线程。
+- `ShelfStrip` 的键盘、焦点、排队与离树方法由构建任务原样提取；只替换视口、容器实现与 Focus 返回值。
 
 覆盖的是**时间轴与值**：起点、中点、落点、打断续接、重复显示不重播、关掉动画立即落定、
 元素自己的 RenderTransform 不被抢占、离树复位、图标脉冲的峰值与回位、连点不越弹越大。
-不覆盖真实渲染、合成器上的实际补间、Acrylic 材质在 Opacity 动画下的观感 —— 那些要实机看。
+新增进行中关闭系统/应用动画、零时长、Begin 失败、完成回收、迟到回调、缺源目标与页面离树检查。货架持续拒绝聚焦时只能投递一次，后续布局恢复；换来源及离树的旧回调不再操作新状态。
+
+2026-11-13 当前源码 34/34，失败0、跳过0。用同一测试及原始 `29e9188` 四个生产文件运行独立负例，34项中21失败，包括持续拒绝焦点产生无界队列；恢复当前源码再次34/34。负例复制项目在 ignored `work/`，不属于干净检出运行前提。
+
+P8可靠性检查补充注册/退订前后异常12项，当前46/46。三动效仍原样链接；注入UISettings add/remove失败验证本地钟/Active记录、终值、回调一次、重复启动及迟到拒绝。remove前失败明确保留一个假原生handle，释放未知不算零泄漏；用例断言后只结束该fake事件边界，不偷偷清产品状态。实际本机并未观察到此WinRT故障，不把故障注入通过说成原生释放实测。
+
+不覆盖真实渲染、合成器补间、材质像素、原生键盘与 Narrator —— 这些由主树最终运行验收。
 
 ```powershell
-& "$HOME/.dotnet/dotnet.exe" build ./tests/Momoka.UiMotionTests/Momoka.UiMotionTests.csproj -c Release
-& ./tests/Momoka.UiMotionTests/bin/Release/net10.0/Momoka.UiMotionTests.exe
+& "$HOME/.dotnet/dotnet.exe" restore ./tests/Momoka.UiMotionTests/Momoka.UiMotionTests.csproj --disable-parallel -m:1 -p:BuildInParallel=false
+& "$HOME/.dotnet/dotnet.exe" build ./tests/Momoka.UiMotionTests/Momoka.UiMotionTests.csproj -c Release --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false
+& "$HOME/.dotnet/dotnet.exe" run --project ./tests/Momoka.UiMotionTests/Momoka.UiMotionTests.csproj -c Release --no-build --no-restore
 ```

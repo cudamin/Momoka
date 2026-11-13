@@ -263,6 +263,88 @@ internal static class Program
             Assert.True(gate.IsCompletedSuccessfully);
             Assert.Equal(1d, fixture.Frame.Opacity);
         });
+        Test("关联动画成功抑制整页淡入但首帧图片门控保持", () =>
+        {
+            using var fixture = new Fixture(loaded: true);
+            fixture.Begin(deferMotion: true);
+            var gate = Gate();
+            fixture.Attach();
+            Assert.Equal(1d, fixture.Frame.Opacity);
+            Assert.False(Storyboard.Created.Any(board => board.IsRunning));
+            BrowsePresentation.ResolveConnectedMotion(fixture.Frame, started: true);
+            Assert.Equal(1d, fixture.Frame.Opacity);
+            Assert.False(gate.IsCompleted);
+            CompositionTarget.Render();
+            fixture.Frame.DispatcherQueue.Drain();
+            Assert.True(gate.IsCompletedSuccessfully);
+        });
+        Test("关联动画失败恢复原淡入，图片仍等所属Frame首帧", () =>
+        {
+            using var fixture = new Fixture(loaded: true);
+            fixture.Begin(deferMotion: true);
+            var gate = Gate();
+            fixture.Attach();
+            BrowsePresentation.ResolveConnectedMotion(fixture.Frame, started: false);
+            Assert.Equal(0.8d, fixture.Frame.Opacity);
+            Assert.True(Storyboard.Created.Any(board => board.IsRunning));
+            Assert.False(gate.IsCompleted);
+            CompositionTarget.Render();
+            fixture.Frame.DispatcherQueue.Drain();
+            Assert.True(gate.IsCompletedSuccessfully);
+        });
+        Test("关联动画先成功再Loaded不重复整页动效", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Begin(deferMotion: true);
+            fixture.Attach();
+            BrowsePresentation.ResolveConnectedMotion(fixture.Frame, started: true);
+            fixture.Page.Load();
+            Assert.Equal(1d, fixture.Frame.Opacity);
+            Assert.False(Storyboard.Created.Any(board => board.IsRunning));
+        });
+        foreach (var add in new[] { UISettings.EventFailure.Before, UISettings.EventFailure.After })
+            foreach (var remove in new[] { UISettings.EventFailure.Before, UISettings.EventFailure.After })
+                Test($"首帧系统事件订阅{add}退订{remove}失败不挂住图片门控", () =>
+                {
+                    using var fixture = new Fixture(loaded: true);
+                    fixture.Begin();
+                    var gate = Gate();
+                    UISettings.AddFailure = add;
+                    UISettings.RemoveFailure = remove;
+                    fixture.Attach();
+                    Assert.Equal(1d, fixture.Frame.Opacity);
+                    Assert.False(gate.IsCompleted);
+                    var failed = UISettings.Created.Last();
+                    var stale = failed.CaptureChange();
+                    fixture.Stop();
+                    Assert.True(gate.IsCompletedSuccessfully);
+                    UISettings.AddFailure = UISettings.EventFailure.None;
+                    UISettings.RemoveFailure = UISettings.EventFailure.None;
+                    fixture.Begin();
+                    fixture.Attach();
+                    var latest = Storyboard.Created.Last();
+                    UISettings.Enabled = false;
+                    stale();
+                    fixture.Frame.DispatcherQueue.Drain();
+                    Assert.True(latest.IsRunning, "旧失败观察不能停止新动画");
+                    UISettings.Enabled = true;
+                    failed.ReleaseFaultEndpoint();
+                });
+        Test("原生Storyboard.Stop抛错仍放行所有图片与本地透明终值", () =>
+        {
+            using var fixture = new Fixture(loaded: true);
+            fixture.Begin();
+            var gate = Gate();
+            fixture.Attach();
+            var board = Storyboard.Created.Last();
+            board.ThrowOnStop = true;
+            fixture.Stop();
+            Assert.True(gate.IsCompletedSuccessfully);
+            Assert.Equal(1d, fixture.Frame.Opacity);
+            Assert.Equal(0, board.Handlers);
+            board.ThrowOnStop = false;
+            board.Stop();
+        });
         return Run();
     }
 
@@ -287,6 +369,8 @@ internal static class Program
         {
             HomeMotion.ApplyPreference(true);
             UISettings.Enabled = true;
+            UISettings.AddFailure = UISettings.EventFailure.None;
+            UISettings.RemoveFailure = UISettings.EventFailure.None;
             Frame.Load();
             Frame.Content = Page;
             Page.VisualParent = Frame;
@@ -294,7 +378,7 @@ internal static class Program
             _presentation = Activator.CreateInstance(Production, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public,
                 null, [Frame], null)!;
         }
-        public void Begin() => Invoke("Begin");
+        public void Begin(bool deferMotion = false) => Production.GetMethod("Begin", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(_presentation, [deferMotion]);
         public void Attach() => Invoke("Attach");
         public void Stop() => Invoke("Stop");
         private void Invoke(string name) => Production.GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(_presentation, null);
@@ -304,6 +388,8 @@ internal static class Program
             Frame.DispatcherQueue.Drain();
             HomeMotion.ApplyPreference(true);
             UISettings.Enabled = true;
+            UISettings.AddFailure = UISettings.EventFailure.None;
+            UISettings.RemoveFailure = UISettings.EventFailure.None;
         }
     }
 }

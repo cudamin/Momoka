@@ -115,7 +115,8 @@ internal static class AcrylicControlsTests
             Assert.Equal("{StaticResource EgOnScrimDimBrush}", Setter(Resource(styles, "EgOnScrimDataStyle"), "Foreground"));
             Assert.Equal("{ThemeResource EgTextDimBrush}", Setter(Resource(styles, "EgDataStyle"), "Foreground"));
             // 卡片自己那一支：OnScrim 换的是样式，不是把画刷抄一份（抄了就不跟主题走）。
-            Assert.Contains("EgOnScrimDataStyle", Source("Views/PosterCard.xaml.cs"));
+            Assert.Contains("card.ApplyCaptionStyles();", Source("Views/PosterCard.xaml.cs"));
+            Assert.Contains("EgOnScrimDataStyle", Source("Views/PosterCard.Caption.cs"));
             // 详情页：沉浸档四条卡片带一起换墨，纸面档换回来。
             var showcase = Source("Views/DetailPage.Showcase.cs");
             foreach (var strip in new[] { "EpisodeStrip", "SeasonRow", "CastRow", "SimilarRow" })

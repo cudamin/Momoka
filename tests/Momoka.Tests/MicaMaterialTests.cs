@@ -19,6 +19,28 @@ internal static class MicaMaterialTests
 
     public static void Register()
     {
+        Test("卡片主题角色：别名与运行涂色登记一致，媒体副行保留压图层级", () =>
+        {
+            var host = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Theme", "ThemeHost.cs"));
+            var palette = Palette();
+            foreach (var dictionary in new[] { "Dark", "Light" })
+            {
+                var entries = Dictionaries(palette)[dictionary];
+                foreach (var key in new[] { "EgCardCaptionForegroundBrush", "EgCardCaptionSecondaryBrush" })
+                {
+                    Assert.Equal("EgTextBrush", Entry(entries, key).Attribute("ResourceKey")?.Value);
+                    Assert.Contains("(\"" + key + "\", theme => theme.Colors.Text)", host);
+                }
+                Assert.Equal("EgOnScrimBrush", Entry(entries, "EgMediaCaptionForegroundBrush").Attribute("ResourceKey")?.Value);
+                Assert.Equal("EgOnScrimDimBrush", Entry(entries, "EgMediaCaptionSecondaryBrush").Attribute("ResourceKey")?.Value);
+            }
+            Assert.Contains("(\"EgMediaCaptionForegroundBrush\", _ => White)", host);
+            Assert.Contains("(\"EgMediaCaptionSecondaryBrush\", _ => ThemeColor.Rgb(0xC9, 0xD0, 0xD9))", host);
+            var contrast = Dictionaries(palette)["HighContrast"];
+            foreach (var key in new[] { "EgCardCaptionForegroundBrush", "EgCardCaptionSecondaryBrush", "EgMediaCaptionForegroundBrush", "EgMediaCaptionSecondaryBrush" })
+                Assert.Equal("{ThemeResource SystemColorWindowTextColor}", Entry(contrast, key).Attribute("Color")?.Value);
+        });
+
         Test("窗口画布：Mica 上那一层是半透明窗口色，弹窗表面仍不透明", () =>
         {
             var palette = Palette();

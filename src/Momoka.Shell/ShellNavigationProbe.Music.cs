@@ -187,7 +187,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(Get<Grid>(page, "TrackHeader").Visibility == Visibility.Collapsed, "封面墙上还留着曲目表列头");
                 Require(Get<ItemsView>(page, "MusicWall").ActualWidth > 0, "封面墙没有画出宽度");
                 Require(page.ViewModel.Rows[0].CardWidth == MusicCatalog.WallTileWidth, "封面墙格子宽度不是 170");
-                Require(Get<ScrollViewer>(page, "WallScroll").Padding.Bottom >= bar.ActualHeight + 16,
+                Require(Get<ItemsView>(page, "MusicWall").Padding.Bottom >= bar.ActualHeight + 16,
                     "封面墙没有给悬浮播放栏留避让");
                 await SaveProbeScreenAsync($"music-wall-{theme.Id}-1280-screen.png");
 
@@ -203,7 +203,7 @@ internal sealed partial class ShellNavigationProbe
             // 停止后播放栏先淡出再收起，避让也在落定那一拍才归还。
             await UntilAsync(() => bar.Visibility == Visibility.Collapsed);
             Require(bar.Visibility == Visibility.Collapsed, "停止后播放栏没有收起");
-            Require(Get<ScrollViewer>(page, "WallScroll").Padding.Bottom == 32
+            Require(Get<ItemsView>(page, "MusicWall").Padding.Bottom == 32
                 && Get<ListView>(page, "MusicRows").Padding.Bottom == 0, "停止后没有归还滚动区避让");
             page.Release();
         }

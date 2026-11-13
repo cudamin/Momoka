@@ -135,6 +135,8 @@ public sealed partial class ShelfStrip : UserControl
 
     /// <summary>防止同一轮布局里重复排队焦点重试。</summary>
     private bool _focusRetryQueued;
+    private bool _applyingFocusRetry;
+    private int _focusGeneration;
 
     public ShelfStrip()
     {
@@ -550,6 +552,7 @@ public sealed partial class ShelfStrip : UserControl
         _focusedIndex = -1;
         _pendingFocusedIndex = -1;
         _focusRetryQueued = false;
+        _focusGeneration++;
 
         // 带自己离开了树，指针在不在它上面已经无所谓了 —— 留着的话十赫兹那一拍还会继续问一个量不到的矩形。
         _watch.Leave();
@@ -600,7 +603,7 @@ public sealed partial class ShelfStrip : UserControl
     /// </summary>
     private void FocusItem(int index)
     {
-        if (index < 0 || index >= ItemCount) return;
+        if (!_live || index < 0 || index >= ItemCount) return;
 
         _focusedIndex = index;
 
@@ -624,7 +627,7 @@ public sealed partial class ShelfStrip : UserControl
         _pendingFocusedIndex = -1;
         BringFocusedElementIntoView(element);
 
-        // Realised 元素通常可以立即接收焦点；若仍在布局中，下一帧再试。Focus 返回 false 而不是抛异常，
+        // Realised 元素通常可以立即接收焦点；若仍在布局中，下一次布局再试。Focus 返回 false 而不是抛异常，
         // 所以这里必须检查返回值。
         if (!element.Focus(FocusState.Keyboard)) QueueFocusRetry(index);
     }
@@ -668,26 +671,36 @@ public sealed partial class ShelfStrip : UserControl
 
     private void QueueFocusRetry(int index)
     {
-        if (index < 0 || index >= ItemCount) return;
+        if (!_live || index < 0 || index >= ItemCount) return;
 
         _pendingFocusedIndex = index;
-        if (_focusRetryQueued) return;
+        if (_focusRetryQueued || _applyingFocusRetry) return;
 
         _focusRetryQueued = true;
-        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        var generation = _focusGeneration;
+        if (!DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
         {
+            if (generation != _focusGeneration || !_live) return;
             _focusRetryQueued = false;
             ApplyPendingFocusedItem();
-        });
+        })) _focusRetryQueued = false;
     }
 
     private void ApplyPendingFocusedItem()
     {
+        if (!_live || _applyingFocusRetry) return;
         var index = _pendingFocusedIndex;
-        if (index < 0) return;
+        if (index < 0 || index >= ItemCount)
+        {
+            _pendingFocusedIndex = -1;
+            return;
+        }
 
         _pendingFocusedIndex = -1;
-        FocusItem(index);
+        // 若容器仍不可聚焦，保留索引等待下一次 Loaded/SizeChanged；不在同一轮低优先级回调里自排队。
+        _applyingFocusRetry = true;
+        try { FocusItem(index); }
+        finally { _applyingFocusRetry = false; }
     }
 
     /// <summary>
@@ -764,6 +777,7 @@ public sealed partial class ShelfStrip : UserControl
         strip._focusedIndex = -1;
         strip._pendingFocusedIndex = -1;
         strip._focusRetryQueued = false;
+        strip._focusGeneration++;
         // 换了一批卡，上一批的定位请求（尤其是换季的强制左对齐）不该落到新列表上。
         strip._focus = -1;
         strip._align = false;

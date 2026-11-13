@@ -72,8 +72,12 @@ public static class LocalMediaName
         if (title.Length == 0 && problem.Length == 0) problem = "未识别到标题，请手动输入标题。";
         return new()
         {
-            Title = title, Year = year, Season = season, Episode = episode,
-            IsSeries = season.HasValue || episode.HasValue, Problem = problem
+            Title = title,
+            Year = year,
+            Season = season,
+            Episode = episode,
+            IsSeries = season.HasValue || episode.HasValue,
+            Problem = problem
         };
     }
 

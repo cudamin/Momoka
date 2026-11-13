@@ -4,6 +4,36 @@
   "shellAssembly": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
   "suites": [
     {
+      "id": "Momoka.ConnectedAnimationTests",
+      "project": "tests/Momoka.ConnectedAnimationTests/Momoka.ConnectedAnimationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.ConnectedAnimationTests/README.md",
+      "notes": "原样海报到详情关联动画身份、Frame、弱源与取消生命周期；匿名XAML/API事件边界，不创建窗口或真实播放。"
+    },
+    {
+      "id": "Momoka.WindowResearchTests",
+      "project": "tests/Momoka.WindowResearchTests/Momoka.WindowResearchTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.WindowResearchTests/README.md",
+      "notes": "P7隔离窗口研究的真实生命周期代码，匿名Window/AppWindow事件边界；不创建窗口、注册表、真实账号或播放。"
+    },
+    {
+      "id": "Momoka.KeyboardJourneyTests",
+      "project": "tests/Momoka.KeyboardJourneyTests/Momoka.KeyboardJourneyTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.KeyboardJourneyTests/README.md",
+      "notes": "键盘流程匿名HTTP与真实输入/焦点/最终回执的成功失败边界；无原生窗口或真实账号。"
+    },
+    {
       "id": "Momoka.NavigationStateTests",
       "project": "tests/Momoka.NavigationStateTests/Momoka.NavigationStateTests.csproj",
       "mode": "dotnet",
@@ -82,6 +112,16 @@
       "wrapper": null,
       "readme": "tests/Momoka.MusicViewModelTests/README.md",
       "notes": "真实音乐VM、播放服务和会话的匿名取消/事件/队列/音量回归；UI及图片为边界值，不启动窗口、原生内核或真实服务器。"
+    },
+    {
+      "id": "Momoka.MusicArtworkTests",
+      "project": "tests/Momoka.MusicArtworkTests/Momoka.MusicArtworkTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.MusicArtworkTests/README.md",
+      "notes": "真实音乐图片需求与回收、取消和尺寸；控制台图像边界不证明WinUI实际viewport或GPU显存。"
     },
     {
       "id": "Momoka.LocalLibraryPageTests",

@@ -517,6 +517,8 @@ internal static partial class PlexAffordanceTests
                 f.Transport.FailDetailRead = true;
                 page.Enter(_shell.Request(f.Item("plex")), actions, new FixtureServices(f.Settings), f.Session, f.Images);
                 await page.ViewModel.LastLoad;
+                Assert.Equal(1, page.VisualTransitionAttaches, "原样进入尾段必须保留无关视觉接线");
+                Assert.True(ReferenceEquals(f.Scope("plex"), page.TransitionItem!.Source), "视觉边界必须转发请求自己的来源");
                 Assert.True(ReferenceEquals(genres, ShellAssembly.Get<IReadOnlyList<string>>(vm, "SublineGenres")));
                 Assert.True(ShellAssembly.Get<bool>(vm, "NoticeOpen"), "真实Load失败，不能借题材setter重画");
                 Assert.Equal(0, page.Links.Count, "实际进入尾段必须在重新订阅后显式刷新题材能力");
@@ -528,6 +530,8 @@ internal static partial class PlexAffordanceTests
                 f.Transport.FailDetailRead = false;
                 page.Enter(_shell.Request(f.Item("emby")), actions, new FixtureServices(f.Settings), f.Session, f.Images);
                 await page.ViewModel.LastLoad;
+                Assert.Equal(2, page.VisualTransitionAttaches);
+                Assert.True(ReferenceEquals(f.Scope("emby"), page.TransitionItem!.Source));
                 Assert.Equal(2, page.Links.Count);
                 page.Links[0].ClickForFixture();
                 Assert.True(ReferenceEquals(f.Scope("emby"), actions.Navigation.Single().Scope));
