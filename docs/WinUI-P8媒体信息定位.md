@@ -27,3 +27,19 @@
 正式ScrollToInfo原来每眼发目标1364，超过实际可滚上限1346；即使已经到达页尾也重开原生view-change。固定框架`693f472`的`Repeater/ViewportManagerWithPlatformFeatures.cpp`在`OnEffectiveViewportChanged`里对未完成ScrollPresenter correlation提前返回；实际几何未动不等于effectiveviewport更新。此源码说明了反复超范围事务为何值得消除，但没有把框架内部状态猜测写成已测根因。
 
 最小修复只将目标限制到`[0, Body.ScrollableHeight]`，距离当前offset少于0.5 DIP时不发重复请求，保持原信息块上沿语义、正常滚动、虚拟化和10行判据。编译时严格提取真实ScrollToInfo方法，匿名控件边界覆盖1364/1346、连续8眼只发一次、短内容不发事务、正常上沿/负上沿与缺内容；缺失/重复源码边界使构建失败。专项扩到12项，仍需根实际同路径原生复核；旧失败保留。
+
+## 完整自检逐拍几何诊断
+
+2026-11-13完整自检 `run-2fce1e53acf14c359fc754be880af384` 的信息表10/7再红，返回801→临时456→801通过；
+二者分别保留，不把返回成功当信息表成功。自检仍在刷新和返回后的每拍读取InfoRealised，不能保存旧10行结果来洗绿。
+
+独立诊断树 `winui-p8-info-realized`、起点 `290f579` 增加 `selfcheck-info-geometry.json`：
+每个正式ReadInfo记录tick/stage、before-reload/after-reload/after-return、infoLooks、returned/detailReloaded，
+Body offset/max/extent/viewport/state、内容高度、InfoPanel/InfoTable到内容及视口坐标、每个行索引是否realized和其盒子。
+只保存数字、固定阶段和控件状态，不含真实标题、文件名、标签、地址或凭据。
+记录器不发滚动、不调用UpdateLayout、不强制GetOrCreate、不改集合和原10行判据；读数/写入异常保留最终失败资格，
+后拍写成功不能抹前次失败。正式自检仍通过本轮独立运行目录写入，实际原生由主控串行执行。
+
+链接真实记录器的三项回归覆盖10→7证据累积、写入失败后重试/红资格、缺目标拒绝/非有限几何null/文本禁止与接线，
+在现有KeyboardJourneyTests内当前38/38、0失败0跳过，Shell/Core/专项构建0警告0错误。
+这是取得根因所需的诊断，不证明本轮10/7已修复；下一运行须比较各拍表格真实视口与实现索引，再决定最小修复。

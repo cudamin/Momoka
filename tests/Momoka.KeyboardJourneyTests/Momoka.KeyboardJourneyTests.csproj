@@ -10,6 +10,7 @@
     <Compile Include="../../src/Momoka.Shell/ShellNavigationProbe.KeyboardJourneyFixture.cs" Link="Production/KeyboardJourneyProbeServer.cs" />
     <Compile Include="../../src/Momoka.Shell/ShellNavigationProbe.InfoTableFixture.cs" Link="Production/InfoTableProbeFixture.cs" />
     <Compile Include="../../src/Momoka.Shell/PlaybackReturnTrace.cs" Link="Production/PlaybackReturnTrace.cs" />
+    <Compile Include="../../src/Momoka.Shell/ShellSelfCheck.InfoGeometry.cs" Link="Production/ShellSelfCheck.InfoGeometry.cs" />
   </ItemGroup>
   <UsingTask TaskName="ExtractInfoScrollSource" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>

@@ -535,6 +535,7 @@ internal static partial class ShellSelfCheck
         _fileHero = model.HeroImage is not null;
 
         var (drawn, first) = page.InfoRealised;
+        RecordInfoGeometry(page);
         var other = page.OtherInfoRealised;
         return new InfoState(
             model.ItemType,

@@ -264,6 +264,7 @@ internal static class Program
             Assert.False(KeyboardJourneyProbeRules.SourceReady(true, false, false, false));
         });
         InfoTableProbeTests.Register();
+        InfoGeometryTraceTests.Register();
         PlaybackReturnTraceTests.Register();
         PlaybackReturnScrollTests.Register();
         Test("键盘结果定位按子卡片身份，不依赖原生容器DataContext", () =>

@@ -568,6 +568,9 @@ internal static partial class ShellSelfCheck
         StartupOptions options)
     {
         _writePlaybackReturnTrace = text => Write(options.Paths, "selfcheck-playback-return.json", text);
+        _writeInfoGeometry = text => Write(options.Paths, "selfcheck-info-geometry.json", text);
+        _infoGeometryFailure = error => Log.Warn(Category, "媒体信息几何证据失败", error);
+        InfoGeometryReadings.Clear();
         // Invalidate the last run's report before this one has anything to say. Without this a crash
         // leaves the previous report on disk, and a passing report from twenty minutes ago is worse than
         // no report at all: it reads as "this build is fine" when the build under test never finished.

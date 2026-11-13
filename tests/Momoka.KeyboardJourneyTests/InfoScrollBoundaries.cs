@@ -6,6 +6,13 @@ namespace Windows.Foundation
 namespace Microsoft.UI.Xaml
 {
     public class UIElement;
+    public class FrameworkElement : UIElement
+    {
+        public double Top { get; set; }
+        public double ActualWidth { get; set; } = 600;
+        public double ActualHeight { get; set; } = 20;
+        public InfoTransform TransformToVisual(UIElement target) => new(Top - (target is Microsoft.UI.Xaml.Controls.ScrollView body ? body.VerticalOffset : 0));
+    }
     public sealed class InfoPanelBoundary
     {
         public double Top { get; set; }
@@ -24,11 +31,13 @@ namespace Microsoft.UI.Xaml.Controls
     {
         public ScrollingAnimationMode Mode { get; } = mode;
     }
-    public sealed class ScrollView
+    public sealed class ScrollView : Microsoft.UI.Xaml.FrameworkElement
     {
         public object? Content { get; set; } = new Microsoft.UI.Xaml.UIElement();
         public double ScrollableHeight { get; set; }
         public double VerticalOffset { get; set; }
+        public double ExtentHeight { get; set; }
+        public double ViewportHeight { get; set; }
         public List<double> Requests { get; } = [];
         public int LayoutReads { get; private set; }
         public void UpdateLayout() => LayoutReads++;
@@ -71,6 +80,11 @@ namespace Microsoft.UI.Xaml.Controls
     }
     public enum ScrollingInteractionState { Idle, Interaction }
     public sealed class ScrollingScrollCompletedEventArgs(int correlation) { public int CorrelationId { get; } = correlation; }
+    public sealed class ItemsRepeater : Microsoft.UI.Xaml.FrameworkElement
+    {
+        public Dictionary<int, Microsoft.UI.Xaml.UIElement> Rows { get; } = [];
+        public Microsoft.UI.Xaml.UIElement? TryGetElement(int index) => Rows.GetValueOrDefault(index);
+    }
 }
 
 namespace Momoka.Shell.Views
@@ -87,11 +101,14 @@ namespace Momoka.Shell.Views
         internal void EndRevealLayoutForFixture() { _revealArmedAt = Environment.TickCount64 - 601; _revealStopTimer!.Fire(); }
         internal void StopRevealForFixture() => StopScrollReveal();
         internal void SetRevealAgeForFixture(long age) => _revealArmedAt = Environment.TickCount64 - age;
+        internal Dictionary<string, object> GeometryNames { get; } = [];
+        public object? FindName(string name) => name == "Body" ? Body : GeometryNames.GetValueOrDefault(name);
     }
     internal sealed class ReturnLoadBoundary : System.ComponentModel.INotifyPropertyChanged
     {
         public bool Busy { get; set; }
         public bool IsReady { get; set; } = true;
+        public List<int> InfoRows { get; } = [];
         public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
         internal void Finish() { Busy = false; IsReady = true; PropertyChanged?.Invoke(this, new(nameof(IsReady))); }
     }
