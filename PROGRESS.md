@@ -12934,3 +12934,5 @@ Release Shell/三项测试编译0警告0错误；真实caller78/78、Core自然E
 主树publish -NoArchive -Shortcut成功，547文件288.9MB，批准载荷60项；快捷方式Target与工作目录都指向主树artifacts/publish/win-x64，发布/构建Momoka.dll SHA256同为81C5B8BAF8AC46F6AB52B47FD2A5AD172DB87B323DF3E94823E3A05B0CC27E4D，回执artifacts/hover-preview-final/delivery-receipt.json。正式发布件PID20384以show-preview启动、顶层窗口响应，真实媒体悬停实屏published-preview-screen.png已目视，保留运行供用户体验；未操作播放。程序化Closed覆盖不等于物理点外点击，高对比度/跨DPI/文字缩放/Narrator/触摸与OS动画切换仍未覆盖；输入图片19张，未达40暂停线。
 
 本轮无远程上传。临时codex/hover-preview-refresh顶端9f13da1的全部产品/测试内容已逐文件确认在master，工作树清洁，原构建失败及后续通过日志一并保存在主树artifacts/hover-preview-final/worktree-evidence；交付后移除本聊天1294树与临时分支。
+
+清理结果：Git已解除1294工作树登记、临时分支已删除。目录删除末步返回Permission denied，检查目录为空；保留该空目录，不绕过权限删除。主树交付与应用运行不受影响。
