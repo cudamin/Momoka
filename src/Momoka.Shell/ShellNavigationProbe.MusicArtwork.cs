@@ -34,6 +34,7 @@ internal sealed partial class ShellNavigationProbe
         var samples = new List<object>();
         var recycling = new List<object>();
         ItemsRepeater? tracedRepeater = null;
+        MusicLibraryPage? artworkPage = null;
         string currentSet = "";
         string currentStage = "";
         void RecordRecycle(string operation, UIElement element)
@@ -45,6 +46,10 @@ internal sealed partial class ShellNavigationProbe
                 stage = currentStage,
                 operation,
                 index = tracedRepeater?.GetElementIndex(element),
+                productionRepeater = artworkPage is null ? null : Get<ItemsRepeater?>(artworkPage, "_artworkRepeater") is { } production
+                    ? System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(production) : (int?)null,
+                productionSame = artworkPage is not null && ReferenceEquals(Get<ItemsRepeater?>(artworkPage, "_artworkRepeater"), tracedRepeater),
+                pageReleased = artworkPage is not null && Get<bool>(artworkPage, "_released"),
                 images = Descendants(element).OfType<Image>().Select(image => new
                 {
                     item = CardArtwork.GetItem(image)?.Item.Id,
@@ -68,6 +73,7 @@ internal sealed partial class ShellNavigationProbe
                 Source = scope
             }), "音乐图片页未导航");
             var page = (MusicLibraryPage)frame.Content;
+            artworkPage = page;
             await UntilAsync(() => page.ViewModel.IsReady);
             foreach (var section in new[] { MusicSection.Tracks, MusicSection.Albums, MusicSection.Artists, MusicSection.Playlists })
             {
@@ -315,6 +321,16 @@ internal sealed partial class ShellNavigationProbe
                                 };
                             }).ToArray();
                         await WritePerformanceEvidenceAsync($"music-containers-{section}-{total}-{stage}.json", containers);
+                        await WritePerformanceEvidenceAsync($"music-production-owner-{section}-{total}-{stage}.json", new
+                        {
+                            productionExists = Get<ItemsRepeater?>(page, "_artworkRepeater") is not null,
+                            productionSame = ReferenceEquals(Get<ItemsRepeater?>(page, "_artworkRepeater"), tracedRepeater),
+                            released = Get<bool>(page, "_released"),
+                            wallLoaded = wallView.IsLoaded,
+                            wallRoot = wallView.XamlRoot is not null,
+                            wallVisibility = wallView.Visibility.ToString(),
+                            repeaterCount = Descendants(wallView).OfType<ItemsRepeater>().Count()
+                        });
                         await WritePerformanceEvidenceAsync("music-recycling-trace.json", recycling);
                     }
                 }
