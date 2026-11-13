@@ -1,3 +1,9 @@
+## 2026-11-13 收藏页残留最近搜索（已合并，待交付）
+
+用户截图：收藏页整页只剩「最近搜索」，收藏卡片一个也看不到。原因是 Frame 复用同一个 `LibraryPage` 实例：空搜索框切到收藏时 `SearchText` 前后都是空串，生成的 setter 不发通知，`RecentSearchVisibility`／`SearchResultsVisibility` 停在搜索页的值上；最近搜索块占着结果区第一行，还把下面的收藏挤到屏外。`Attach` 现在拿到新请求后按新身份重算这几块显隐（`RaiseSearchVisibility`），并补上同一场景的空态刷新。
+
+**验证**：Shell／Tests Release 编译 0 警告 0 错误；`library-resume-paging-fixture` **52/52**（新增「空搜索页切到收藏页」用例，断言两类显隐都发通知）；`--probe-shell --probe-section search --screen 2` **13/13**（新增「空搜索切收藏」，先断言 Frame 确实复用同一页面实例，再断言最近搜索退场、结果区接位；截图 `foundation-favorites-after-empty-search-screen.png` 上收藏卡片正常）。产品 `5a2acee`，合并 `bf3f15c`，台账 `cfeb799` 记第 5 条待交付。主树未发布、未推远端。本聊天工作树 `WorkBuddy/Worktrees/Momoka/master-a6bdca58` 与分支 `workbuddy/master-a6bdca58` 的内容已全部进入 master，待本会话关闭后按同一条口径删除（这一段只存在于 master，分支不用跟着更新）。
+
 ## 2026-11-13 主页「继续观看」那一排改用剧集缩略图
 
 用户令「主页继续观看那一列改用缩略图」（附当前主页那一排与「修改媒体封面图 — 青之箱」的缩略图两图）。只读查询真实 Emby 4.10.1 的 Resume 返回：续播条目全是单集，单集只有 `Primary`（从视频截的剧照），`Thumb` 只挂在剧那一层（`ParentThumbItemId`/`ParentThumbImageTag`）；「青之箱」的剧缩略图正是用户圈出的那张宽图。所以改的是取图来源，卡片形状不变（那一排本来就是 16:9 宽卡）。
@@ -6,7 +12,7 @@
 
 **验证**：分支合入最新 master 后 Shell/Core Release/x64 编译 0 警告 0 错误；主测试 **5045/5045、0 失败 0 跳过**（新增 `ItemArtworkTests` 四条、`HomeLayoutTests` 一条、页面契约三条）；`Momoka.PageContractTests` **226/226**。环境注意：本会话 shell 的 `TEMP=/tmp` 会让 .NET 回退到 `C:\WINDOWS\TEMP`，主测试里的自检复制与下载到设备用例因此先红；改用用户临时目录后全绿。未做真实主页截图（按规则留到交付），未播放、未写服务器、未推远端。
 
-**合入状态**：产品 `50366e0`，合入 master `5144aed`（ff）。待交付台账第 5 条。
+**合入状态**：产品 `50366e0`，合入 master `5144aed`（ff）。待交付台账第 6 条。
 
 ## 2026-11-13 P4–P8 合并收尾与最后工具回执
 
