@@ -327,6 +327,26 @@ public sealed partial class DetailViewModel : PageViewModel
     public partial ImageSource? StillImage { get; set; }
 
     /// <summary>
+    /// 这一页的封面还在路上 —— 那一格底下的流光问它（见 <c>Shimmer</c>）。
+    /// <para>
+    /// 存在的理由是那一格原来要等图到了才站住：从前它按「<see cref="StillImage"/> 有没有值」显隐，图没到时整格
+    /// 收着，片名那一栏直接顶到板的内沿，图一到又整页往右挪一格 —— 画面上就是开页之后抖一下。现在这一格先以
+    /// 空框站好（260×375 的兜底尺寸本来就占着带高，见 <see cref="FitStill"/>），底下一道光，图到了换成画面。
+    /// </para>
+    /// <para>
+    /// 由取图那一趟自己抬起来、自己按下去（<see cref="LoadArtworkAsync"/> 起止那两句），所以「这条目没有封面」
+    /// 和「这一张没取到」都不会让空框一直站着 —— 那两种收尾走的是同一条路，框跟着收，版面回到没有封面的那一档。
+    /// 换条目时新一代那一趟会重新抬起，旧的一趟按代次比对，不把新的那一次按下去。
+    /// </para>
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StillVisibility))]
+    [NotifyPropertyChangedFor(nameof(CoverPlayVisibility))]
+    [NotifyPropertyChangedFor(nameof(CoverShadeVisibility))]
+    [NotifyPropertyChangedFor(nameof(TailInset))]
+    public partial bool StillPending { get; set; }
+
+    /// <summary>
     /// 徽标 or 横幅图 —— 剧名上方那一枚（「统一改为在剧名上方显示徽标」）。四种页面同一个位置，不再按页面的种类
     /// 分左上角右上角。服务器两种都没有的条目上是 null，那一格就空着 —— 片名那一行照旧把名字说全，这一页没有
     /// 一样东西等这张图。
@@ -1165,8 +1185,14 @@ public sealed partial class DetailViewModel : PageViewModel
     private bool CoverShown => DetailHero.ShowsStill(IsCompact);
 
     /// <summary>
-    /// 带子左边那张海报（集页上是剧照）显不显 —— 两句话合起来：「图解出来了没有」，和「这一档版面要不要它」
+    /// 带子左边那张海报（集页上是剧照）显不显 —— 两句话合起来：「这一格现在有东西可画吗」，和「这一档版面要不要它」
     /// （<see cref="CoverShown"/>）。
+    /// <para>
+    /// 第一句从 2026-11-13 起有两条路：图已经解出来（<see cref="StillImage"/>），或者还在一趟请求上
+    /// （<see cref="StillPending"/>）。后者是为了让那一格先以空框站住 —— 空框底下一道光（<c>Shimmer</c>），
+    /// 图到了换成画面。从前只认前一条，片名那一栏在图没到时顶在板的内沿、图一到整页右移一格。
+    /// 请求空手回来（这条目没有封面，或者这一张没取到）时两条都落了空，框照旧收起，版面回到没有封面的那一档。
+    /// </para>
     /// <para>
     /// 第二句的规矩翻过好几回（2026-09-12 一天四句，来龙去脉记在 <see cref="DetailHero.ShowsStill"/> 那边），
     /// 最后落在 2026-10-13 的「窄窗口下不要封面」：紧凑版式下四种页面都不画，宽版式四页全画。规则本体在
@@ -1178,7 +1204,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 跟着回落到没有海报的那一档。
     /// </para>
     /// </summary>
-    public Visibility StillVisibility => Show(StillImage is not null && CoverShown);
+    public Visibility StillVisibility => Show(CoverShown && (StillImage is not null || StillPending));
 
     /// <summary>
     /// 窗口窄到什么程度 —— 0 是常态，1 是最紧，曲线在 <see cref="DetailHero.Narrow"/>。
@@ -2012,8 +2038,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public Visibility CoverPlayVisibility => Show(CoverPlayShown);
 
-    private bool CoverPlayShown => StillVisibility == Visibility.Visible && PlayTarget is not null
-        && ItemType is EmbyItemType.Movie or EmbyItemType.Series;
+    private bool CoverPlayShown => StillImage is not null && StillVisibility == Visibility.Visible
+        && PlayTarget is not null && ItemType is EmbyItemType.Movie or EmbyItemType.Series;
 
     /// <summary>
     /// 左上角封面上的悬停遮罩画不画 —— 2026-11-08 用户令「集页面鼠标移到左上角的封面的时候要显示遮罩」。
@@ -2028,7 +2054,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public Visibility CoverShadeVisibility => Show(CoverShadeShown);
 
-    private bool CoverShadeShown => IsEpisodePage && StillVisibility == Visibility.Visible;
+    private bool CoverShadeShown => IsEpisodePage && StillImage is not null
+        && StillVisibility == Visibility.Visible;
 
     public Visibility RestartVisibility => Show(PlayTarget?.HasResumePosition == true);
 
@@ -3545,6 +3572,24 @@ public sealed partial class DetailViewModel : PageViewModel
     private async Task LoadArtworkAsync(EmbyItem item, CancellationTokenSource art)
     {
         if (!Attached) return;
+        // 封面那一格从第一帧就站住（底下一道光，见 StillPending）：图到了换成画面，空手回来就收起。
+        // 摆在等首帧之前是有意的 —— 摆在那句后面的话，这一格会等页面画完才冒出来，片名那一栏跟着再挪一次。
+        StillPending = true;
+        try
+        {
+            await LoadArtworkCoreAsync(item, art).ConfigureAwait(true);
+        }
+        finally
+        {
+            // 不管从哪条路出去（成、缺、取消、离树、代次过期），只要没有更新的一趟接手（_art 换了），
+            // 或者页面已经扔了（Dispose 把 _art 归空），就把这一格收掉。收在 finally 里而不是结尾那一句：
+            // 早退的那两条也是收尾，从前只靠「下次进入会重来」兜着，等于把一条永不消失的光押在别处。
+            if (_art is null || ReferenceEquals(art, _art)) StillPending = false;
+        }
+    }
+
+    private async Task LoadArtworkCoreAsync(EmbyItem item, CancellationTokenSource art)
+    {
         var presentation = _imagePresentation;
         // 文字与主体 GET 继续先行；缓存命中的图片也等这次页面首帧之后再开始解码/回填。
         try
@@ -3596,6 +3641,7 @@ public sealed partial class DetailViewModel : PageViewModel
             Log.Debug(Category, $"加载详情图片失败：{error.Message}");
         }
 
+        // 图都落定了（成的成、缺的缺、取消的取消）：空框由外层 finally 收 —— 有图的档由 StillImage 自己撑着。
         NavigationTiming.Mark("art-load-end");
 
         // Every one of the four ends the same way: show it if it arrived and if this page is still the

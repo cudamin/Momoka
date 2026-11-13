@@ -9,7 +9,8 @@
 <UserControl
     x:Class="Momoka.Shell.Views.HomeBanner"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:views="using:Momoka.Shell.Views">
 
     <UserControl.Resources>
         <ResourceDictionary>
@@ -194,6 +195,12 @@
           <c>EgOnScrim</c> 那套浅墨，底色跟着主题变成近白就是白底白字）。
         -->
         <Grid x:Name="Frame" Background="{StaticResource EgBannerBaseBrush}">
+            <!-- 台上那张剧照还没到的那一瞬（开场第一张，或者换到一张还没解码的）：整条带扫一道光。
+                 **摆在 Band 外面**：那一层自己的规矩是「只有两层剧照，别的什么都不铺」（下面那一段长注释），
+                 而这一层不是画，是「这儿马上有图」的说明 —— 图一到就整个停掉（见 HomeBanner.Paint）。
+                 判据是台上那层画刷有没有图，不是「这一批里有没有幻灯片」：换张时另一层还压着上一张，
+                 那时台上永远有图，光不该冒出来。 -->
+            <views:Shimmer x:Name="PictureShimmer" />
             <!--
               保留单位 ScaleTransform 与定位名称；图片停留与换张均不再自动缩放。
               位图与高斯过渡始终共用同一层布局，尺寸变化只调整裁切，不重放背景动画。

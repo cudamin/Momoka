@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  加载占位上的流光：一块不参与布局、不吃指针的透明面，只在 IsActive 为真时用 Composition 画一条
+  横向扫过的高光。
+
+  为什么不是 Storyboard 或渐变位移：这一层要跟着卡片一起被回收、一起被尺寸变化重算，动画必须能在
+  任意时刻停掉并整块移除；Composition 的 SpriteVisual 关掉就是真没了，Storyboard 还得管时钟与
+  目标已离树的那几种情况。系统或应用关了动画时整层不出现 —— 占位底板本身仍在，只是不闪。
+-->
+<UserControl
+    x:Class="Momoka.Shell.Views.Shimmer"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    AutomationProperties.AccessibilityView="Raw"
+    IsHitTestVisible="False"
+    IsTabStop="False"
+    UseLayoutRounding="False">
+</UserControl>

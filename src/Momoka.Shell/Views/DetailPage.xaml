@@ -442,10 +442,19 @@
                                     SizeChanged="OnCoverSizeChanged"
                                     Visibility="{x:Bind ViewModel.StillVisibility, Mode=OneWay}"
                                     Width="{x:Bind ViewModel.StillWidth, Mode=OneWay}">
-                                    <Image
-                                        x:Name="PosterImage"
-                                        Source="{x:Bind ViewModel.StillImage, Mode=OneWay}"
-                                        Stretch="Uniform" />
+                                    <Grid>
+                                        <!-- 图还在路上的那一格：底下一道光（同海报卡、同换封面那张表的候选格）。
+                                             这一格先以空框站好（见 ViewModel.StillVisibility 的第一句），
+                                             图到了换成画面、光就停；请求空手回来时整格收起，不留空框。
+                                             不吃指针：点封面要落到下面那颗按钮上。 -->
+                                        <local:Shimmer
+                                            CornerRadius="{StaticResource EgPosterCornerRadius}"
+                                            IsActive="{x:Bind ViewModel.StillPending, Mode=OneWay}" />
+                                        <Image
+                                            x:Name="PosterImage"
+                                            Source="{x:Bind ViewModel.StillImage, Mode=OneWay}"
+                                            Stretch="Uniform" />
+                                    </Grid>
                                 </Border>
                             </Button>
 

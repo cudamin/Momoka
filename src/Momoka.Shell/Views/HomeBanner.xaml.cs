@@ -441,6 +441,7 @@ public sealed partial class HomeBanner : UserControl
             LayerB.Opacity = 0;
             Brush(LayerA).ImageSource = null;
             Brush(LayerB).ImageSource = null;
+            PictureShimmer.IsActive = false;
             LogoImage.Source = null;
             LogoRow.Visibility = Visibility.Collapsed;
             SlideChanged?.Invoke(this, null);
@@ -557,6 +558,11 @@ public sealed partial class HomeBanner : UserControl
     {
         PaintBackdropShade();
         PaintOpenButtonInk();
+
+        // 台上没有图 = 「这一张还在取」：整条带底下扫一道光。这一句要摆在下面那个「同一张就不动」之前 ——
+        // 开场第一趟传进来的正是 null，而那一刻台上的也是 null，提前返回的话这道光永远等不到人点亮。
+        PictureShimmer.IsActive = picture is null;
+
         if (ReferenceEquals(FrontPicture, picture)) return;
 
         StopMotion("image");
@@ -1060,6 +1066,7 @@ public sealed partial class HomeBanner : UserControl
             LayerB.Opacity = 0;
             Brush(LayerA).ImageSource = null;
             Brush(LayerB).ImageSource = null;
+            PictureShimmer.IsActive = false;
             LogoImage.Source = null;
             LogoRow.Visibility = Visibility.Collapsed;
             Visibility = Visibility.Collapsed;
@@ -1225,6 +1232,7 @@ public sealed partial class HomeBanner : UserControl
         foreach (var slide in _slides) slide.Release();
         Brush(LayerA).ImageSource = null;
         Brush(LayerB).ImageSource = null;
+        PictureShimmer.IsActive = false;
         LogoImage.Source = null;
     }
 
