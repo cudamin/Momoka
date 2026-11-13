@@ -194,6 +194,55 @@ internal static class Program
             var settings = source.IndexOf("settingsPromptHost.Children.Add(settingsPrompt.Surface);", StringComparison.Ordinal);
             Assert.True(settings >= 0);
         });
+        Test("设置Tab验收只接受正Tab离开搜索后ShiftTab返回，任意两个键不能通过", () =>
+        {
+            var sequence = new KeyboardSettingsTabSequence();
+            sequence.Observe(false, false, false, false, false, true, true);
+            sequence.Observe(false, false, false, false, false, true, true);
+            Assert.False(sequence.Complete);
+            sequence.Observe(true, false, false, false, false, true, false);
+            Assert.Equal(1, sequence.Steps);
+            Assert.False(sequence.Complete);
+            sequence.Observe(true, true, false, false, false, false, true);
+            Assert.True(sequence.Complete);
+            Assert.Equal(2, sequence.Steps);
+        });
+        Test("设置Tab验收拒逆序、未离焦、重复Tab、CtrlAlt组合与非搜索起点", () =>
+        {
+            foreach (var invalid in new[]
+            {
+                new (bool Tab, bool Shift, bool Ctrl, bool Alt, bool Repeated, bool WasIn, bool NowIn)[]
+                    { (true, true, false, false, false, true, false), (true, false, false, false, false, false, true) },
+                [(true, false, false, false, false, true, true), (true, true, false, false, false, true, true)],
+                [(true, false, false, false, false, true, false), (true, false, false, false, false, false, true)],
+                [(true, false, true, false, false, true, false), (true, true, false, false, false, false, true)],
+                [(true, false, false, true, false, true, false), (true, true, false, false, false, false, true)],
+                [(true, false, false, false, true, true, false), (true, true, false, false, false, false, true)],
+                [(true, false, false, false, false, false, false), (true, true, false, false, false, false, true)]
+            })
+            {
+                var sequence = new KeyboardSettingsTabSequence();
+                foreach (var press in invalid) sequence.Observe(press.Tab, press.Shift, press.Ctrl, press.Alt, press.Repeated, press.WasIn, press.NowIn);
+                Assert.False(sequence.Complete);
+            }
+        });
+        Test("设置Tab原生witness读取修饰键与导航后焦点，离阶段解除并拒迟到回调", () =>
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
+            Assert.NotNull(directory);
+            var source = File.ReadAllText(Path.Combine(directory!.FullName, "src/Momoka.Shell/ShellNavigationProbe.KeyboardJourney.cs"));
+            Assert.Contains("args.Key == VirtualKey.Tab", source);
+            foreach (var modifier in new[] { "Native.ShiftHeld", "Native.CtrlHeld", "Native.AltHeld" }) Assert.Contains(modifier, source);
+            Assert.Contains("var wasInSearch = IsWithin(settingsSearch);", source);
+            Assert.Contains("var nowInSearch = IsWithin(settingsSearch);", source);
+            Assert.Contains("tabSequence.Observe(tab, shift, control, alt, repeated, wasInSearch, nowInSearch);", source);
+            Assert.Contains("tabGeneration != settingsTabGeneration", source);
+            Assert.Contains("settingsTabWitnessHost.RemoveHandler", source);
+            Assert.Contains("settingsTabSequence = settingsTabs?.Steps", source);
+            Assert.Contains("settingsTabKeys = settingsTabObservations.ToArray()", source);
+            Assert.Contains("() => tabSequence.Complete && IsWithin(settingsSearch), minimumKeys: 2", source);
+        });
         Test("键盘流程菜单按键独立挂Flyout分支并在finally解绑，来源仍要求按键增量", () =>
         {
             var directory = new DirectoryInfo(AppContext.BaseDirectory);

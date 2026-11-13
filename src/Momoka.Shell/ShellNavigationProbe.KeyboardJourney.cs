@@ -12,6 +12,7 @@ using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Playback;
 using Momoka.Services;
+using Momoka.Shell.Interop;
 using Momoka.Shell.Platform;
 using Momoka.Shell.Views;
 using Momoka.Updates;
@@ -55,6 +56,8 @@ internal sealed partial class ShellNavigationProbe
         var keys = 0;
         var lastKey = "";
         string? cancelSource = null;
+        KeyboardSettingsTabSequence? settingsTabs = null;
+        var settingsTabObservations = new List<object>();
         var run = Guid.NewGuid().ToString("N");
         SettingsWindow? settingsWindow = null;
         var topMost = _window!.TopMost;
@@ -84,6 +87,9 @@ internal sealed partial class ShellNavigationProbe
         Grid? settingsPromptHost = null;
         List<(FrameworkElement Element, int Row)>? settingsOriginalRows = null;
         FrameworkElement? settingsWitnessHost = null;
+        FrameworkElement? settingsTabWitnessHost = null;
+        KeyEventHandler? settingsTabWitness = null;
+        var settingsTabGeneration = 0;
         try
         {
             HomeMotion.ApplyPreference(true);
@@ -207,17 +213,51 @@ internal sealed partial class ShellNavigationProbe
                 settingsPromptHost.Children.Add(settingsPrompt.Surface);
             }
             await LayoutAsync(settings);
-            settings.AddHandler(UIElement.PreviewKeyDownEvent, witness, handledEventsToo: true);
-            settingsWitnessHost = settings;
+            settingsWitnessHost = (FrameworkElement?)settingsPromptHost ?? settings;
+            settingsWitnessHost.AddHandler(UIElement.PreviewKeyDownEvent, witness, handledEventsToo: true);
             var settingsSearch = Get<AutoSuggestBox>(settings, "SettingsSearchBox");
             await FocusAsync(settingsSearch, "KeyboardJourneySettingsSearch");
-            await Stage("settings-ready", "press Tab then Shift+Tab to return to the settings search field", settingsWindow.Handle,
-                () => keys >= 2 && IsWithin(settingsSearch), minimumKeys: 2);
+            var tabSequence = new KeyboardSettingsTabSequence();
+            settingsTabs = tabSequence;
+            var tabGeneration = ++settingsTabGeneration;
+            settingsTabWitness = (_, args) =>
+            {
+                var tab = args.Key == VirtualKey.Tab;
+                if (!tab) return;
+                var shift = Native.ShiftHeld;
+                var control = Native.CtrlHeld;
+                var alt = Native.AltHeld;
+                var repeated = args.KeyStatus.WasKeyDown;
+                var wasInSearch = IsWithin(settingsSearch);
+                // PreviewKeyDown先于原生Tab导航；下一UI回调只读取焦点，不模拟按键或程序搬焦点。
+                settings.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+                {
+                    if (cancelled.IsCancellationRequested || tabGeneration != settingsTabGeneration) return;
+                    var nowInSearch = IsWithin(settingsSearch);
+                    tabSequence.Observe(tab, shift, control, alt, repeated, wasInSearch, nowInSearch);
+                    settingsTabObservations.Add(new { shift, control, alt, repeated, wasInSearch, nowInSearch, steps = tabSequence.Steps });
+                    Read("settings-tab-observed", settingsWindow.Handle);
+                });
+            };
+            settingsTabWitnessHost = (FrameworkElement?)settingsPromptHost ?? settings;
+            settingsTabWitnessHost.AddHandler(UIElement.PreviewKeyDownEvent, settingsTabWitness, handledEventsToo: true);
+            try
+            {
+                await Stage("settings-ready", "press Tab then Shift+Tab to return to the settings search field", settingsWindow.Handle,
+                    () => tabSequence.Complete && IsWithin(settingsSearch), minimumKeys: 2);
+            }
+            finally
+            {
+                ++settingsTabGeneration;
+                settingsTabWitnessHost.RemoveHandler(UIElement.PreviewKeyDownEvent, settingsTabWitness);
+                settingsTabWitnessHost = null;
+                settingsTabWitness = null;
+            }
             RequireFocus(settingsSearch);
             await CompositionPlaybackProbe.SaveScreenAsync(settingsWindow.Handle, Path.Combine(_options.Paths.LogDirectory, "keyboard-journey-settings-760-screen.png"));
             await Stage("settings-close-ready", "press Alt+F4 to hide the settings window", settingsWindow.Handle,
                 () => !settingsWindow.IsOpen, minimumKeys: 0);
-            settings.RemoveHandler(UIElement.PreviewKeyDownEvent, witness);
+            settingsWitnessHost.RemoveHandler(UIElement.PreviewKeyDownEvent, witness);
             settingsWitnessHost = null;
             Require(ReferenceEquals(shell.Pages.Content, detail), "关闭设置改变了详情主体");
             _window.Activate();
@@ -241,6 +281,8 @@ internal sealed partial class ShellNavigationProbe
         {
             settingsWindow?.Hide();
             settingsWitnessHost?.RemoveHandler(UIElement.PreviewKeyDownEvent, witness);
+            ++settingsTabGeneration;
+            if (settingsTabWitness is not null) settingsTabWitnessHost?.RemoveHandler(UIElement.PreviewKeyDownEvent, settingsTabWitness);
             if (settingsPromptHost is not null && settingsPrompt is not null && settingsOriginalRows is not null)
             {
                 settingsPromptHost.Children.Remove(settingsPrompt.Surface);
@@ -390,6 +432,8 @@ internal sealed partial class ShellNavigationProbe
                 seededSearch = resumeFromResult,
                 cancelSource,
                 promptGeometry = (settingsWindow?.IsOpen == true ? settingsPrompt : prompt)?.ReadGeometry(),
+                settingsTabSequence = settingsTabs?.Steps,
+                settingsTabKeys = settingsTabObservations.ToArray(),
                 plays = actions.Plays,
                 server.AuthenticationPosts,
                 server.RejectedWrites

@@ -94,3 +94,11 @@ Gallery固定ItemsViewPage的各ItemContainer模板显式绑定AutomationPropert
 新增3项几何/重复激活/源码接线回归；当前KeyboardJourneyTests24/24、0失败0跳过，编译0警告0错误。首轮Shell有2个委托捕获局部变量未初始化编译错误及连带XAML错误，已先显式初始化两个prompt变量，保留原日志。最终Shell与格式验证结果随本提交记录；不读取真实数据、不驱动桌面、不合主树/发布或远端推送。
 
 后续只读复核固定同提交`dxaml/xcp/core/dll/focusmgr.cpp::GetTabIndex/CompareTabIndex`确认默认Int32.MaxValue且同值按focus children集合排序，因此主manualHost改成先登记Shell、后登记提示；布局Row0/1和正ZIndex保持。新增实际源码登记顺序契约，本树KeyboardJourneyTests25/25；不把TabIndex数值存在当原生Tab末序已测。
+
+## 设置 Tab 验收真实性补修
+
+最终审查发现原settings-ready只检查按键计数新增2和焦点仍在设置搜索框，两个编辑键/方向键也能满足，不能证明Tab往返。现在PreviewKeyDown捕获实际Tab、Shift/Ctrl/Alt与WasKeyDown，下一低优先UI回调只读正式FocusManager位置。共享有限序列只接受正Tab从搜索框离开，再Shift+Tab从框外返回；错误修饰、重复Tab、逆序、未离焦与任意两个键均不能完成。阶段仍要求真实按键增量2与最终Search焦点，未由探针程序搬焦点取得通过。
+
+settings根树登记按键witness覆盖工具取消分支，序列观察在该阶段结束及finally解绑，代次拒绝迟到回调。回执新增settingsTabSequence和每次Tab的修饰/前后焦点读数；未接入输入注入，不改正式设置或快捷键。Alt+F4系统关闭仍minimumKeys=0，读数仅证明设置隐藏和详情主体不变；它不保证XAML一定收到该系统组合键，手动操作范围与观察须分开记。设置原caption仍在row0且Window.Content未换，不需要重声明SetTitleBar。
+
+新增正确Tab往返、七类反例及正式接线/解绑/读数契约3项，本树KeyboardJourneyTests28/28、0失败0跳过；Shell、格式及最终提交仍按本单元当前日志核实。首次Shell缺Interop using及局部捕获变量初始化导致5错误及连带XAML红，已修且保留原日志；没有运行失败产物冒称原生通过。主控须用新入口实际重验后半，旧两键回执不得记新序列通过。

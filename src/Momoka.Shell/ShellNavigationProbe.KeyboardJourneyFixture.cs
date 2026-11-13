@@ -94,6 +94,25 @@ internal sealed class KeyboardJourneyProbeServer
 internal sealed record KeyboardManualPromptReading(bool Connected, bool Visible, double Left, double Top, double Width, double Height,
     double RootWidth, double RootHeight, double InstructionWidth, double InstructionHeight, int ZIndex);
 
+internal sealed class KeyboardSettingsTabSequence
+{
+    internal int Steps { get; private set; }
+    internal bool Complete => Steps == 2;
+    internal bool IsExpectedPress(bool tab, bool shift, bool control, bool alt, bool repeated) =>
+        tab && !control && !alt && !repeated && (Steps == 0 && !shift || Steps == 1 && shift);
+
+    internal void Observe(bool tab, bool shift, bool control, bool alt, bool repeated, bool wasInSearch, bool nowInSearch)
+    {
+        if (Steps >= 2) return;
+        if (IsExpectedPress(tab, shift, control, alt, repeated))
+        {
+            if (Steps == 0 && wasInSearch && !nowInSearch || Steps == 1 && !wasInSearch && nowInSearch) Steps++;
+            else Steps = 0;
+        }
+        else if (tab) Steps = 0;
+    }
+}
+
 internal static class KeyboardJourneyProbeRules
 {
     internal const int ManualStageMilliseconds = 300_000;
