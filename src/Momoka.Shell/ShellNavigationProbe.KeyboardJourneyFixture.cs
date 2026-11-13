@@ -87,6 +87,26 @@ internal sealed class KeyboardJourneyProbeServer
 
 internal static class KeyboardJourneyProbeRules
 {
+    internal const int ManualStageMilliseconds = 300_000;
+    internal const int AutomaticStageMilliseconds = 60_000;
+
+    internal static string ManualInstruction(string stage) => stage switch
+    {
+        "address-ready" => "第1步：焦点已放到服务器地址。输入 https://keyboard-a.invalid 后按 Enter。",
+        "username-ready" => "第2步：焦点已放到用户名。按 Ctrl+A，输入 keyboard-user，再按 Enter。",
+        "password-ready" => "第3步：焦点已放到密码。输入 fixture-password 后按 Enter 登录匿名测试账号。",
+        "account-ready" => "第4步：焦点已放到右上角账号按钮。按 Enter 打开账号菜单。",
+        "source-ready" => "第5步：焦点已放到 keyboard-b.invalid 来源。按 Enter 切换来源。",
+        "search-entry-ready" => "第6步：焦点已放到标题栏搜索入口。按 Enter 进入搜索页。",
+        "search-ready" => "第7步：焦点已放到搜索框。输入 keyboard-query 后按 Enter 搜索。",
+        "result-ready" => "第8步：焦点已放到匿名影片的导航容器。按 Enter 打开详情。",
+        "settings-entry-ready" => "第9步：焦点已放到设置按钮。按 Enter 打开设置窗口。",
+        "settings-ready" => "第10步：焦点已放到设置搜索框。按 Tab，再按 Shift+Tab 返回该框。",
+        "settings-close-ready" => "第11步：按 Alt+F4 关闭设置窗口。这里只隐藏测试设置窗口，继续回到详情页。",
+        "back-ready" => "第12步：焦点已放到返回按钮。按 Alt+← 返回搜索页。",
+        "complete" => "键盘流程已完成。测试已记录输入与返回结果，可回到检查台。",
+        _ => "正在准备匿名键盘验收。每步最多等待5分钟；焦点由测试定位，按屏幕提示操作。"
+    };
     internal static bool SourceReady(bool selectedSource, bool homeReady, bool accountMenuOpen, bool accountPopupPresent) =>
         selectedSource && homeReady && !accountMenuOpen && !accountPopupPresent;
     // x:Bind fills PosterCard.Card; ItemsView's outer container does not need a DataContext.

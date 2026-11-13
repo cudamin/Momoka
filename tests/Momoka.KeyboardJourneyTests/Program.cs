@@ -10,6 +10,46 @@ internal static class Program
 {
     private static int Main()
     {
+        Test("手动键盘提示：12步中文动作与5分钟时限，普通模式仍60秒", () =>
+        {
+            Assert.Equal(300_000, KeyboardJourneyProbeRules.ManualStageMilliseconds);
+            Assert.Equal(60_000, KeyboardJourneyProbeRules.AutomaticStageMilliseconds);
+            var stages = new[] { "address-ready", "username-ready", "password-ready", "account-ready", "source-ready", "search-entry-ready",
+                "search-ready", "result-ready", "settings-entry-ready", "settings-ready", "settings-close-ready", "back-ready" };
+            foreach (var stage in stages)
+            {
+                var text = KeyboardJourneyProbeRules.ManualInstruction(stage);
+                Assert.Contains("第", text);
+                Assert.Contains("步", text);
+                Assert.True(text.Any(ch => ch is >= '\u4e00' and <= '\u9fff'));
+            }
+            Assert.Contains(KeyboardJourneyProbeServer.Address, KeyboardJourneyProbeRules.ManualInstruction("address-ready"));
+            Assert.Contains(KeyboardJourneyProbeServer.Username, KeyboardJourneyProbeRules.ManualInstruction("username-ready"));
+            Assert.Contains(KeyboardJourneyProbeServer.Password, KeyboardJourneyProbeRules.ManualInstruction("password-ready"));
+            Assert.Contains(KeyboardJourneyProbeServer.Keyword, KeyboardJourneyProbeRules.ManualInstruction("search-ready"));
+        });
+        Test("手动键盘提示：独立提示行/取消入口/状态播报不覆盖产品按钮", () =>
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
+            Assert.NotNull(directory);
+            var root = directory!.FullName;
+            var prompt = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/ShellNavigationProbe.KeyboardManualPrompt.cs"));
+            var journey = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/ShellNavigationProbe.KeyboardJourney.cs"));
+            var inspect = File.ReadAllText(Path.Combine(root, "src/Momoka.Shell/ShellNavigationProbe.Inspect.cs"));
+            Assert.Contains("KeyboardManualInstruction", prompt);
+            Assert.Contains("AutomationLiveSetting.Polite", prompt);
+            Assert.Contains("KeyboardManualCancel", prompt);
+            Assert.Contains("cancel();", prompt);
+            Assert.Contains("Grid.SetRow(shell, 1);", journey);
+            Assert.Contains("cancelled.Token.ThrowIfCancellationRequested();", journey);
+            Assert.Contains("Task.Delay(50, cancelled.Token)", journey);
+            Assert.Contains("settingsWitnessHost?.RemoveHandler", journey);
+            Assert.Contains("InspectKeyboardJourneyManual", inspect);
+            Assert.Contains("KeyboardJourneyAsync(manual: true)", inspect);
+            Assert.Contains("inspectKeyboardStarted.TrySetResult();", inspect);
+            Assert.Contains("Task.Delay(TimeSpan.FromMinutes(20))", inspect);
+        });
         Test("键盘流程菜单按键独立挂Flyout分支并在finally解绑，来源仍要求按键增量", () =>
         {
             var directory = new DirectoryInfo(AppContext.BaseDirectory);

@@ -48,3 +48,11 @@ P8只读修正：ItemsView模板使用`x:Bind`填`PosterCard.Card`，外层ItemC
 第二次真实链完成登录、账号菜单选择第二来源，但工具在来源已切换/主页就绪后立刻断言全树Popup数量零，误把关闭动画或其它提示浮层混为账号菜单。正式账号选择Click先AccountMenu.Hide再SwitchAsync；阶段现等待自身`AccountMenu.IsOpen=false`且包含AccountMenuBody的相关Popup退出，保留严格关闭验收，忽略无关ToolTip。共享SourceReady规则覆盖菜单开启/关闭过渡、错来源与未就绪，不修改产品账号菜单行为。
 
 后续原生选来源已到B且菜单已关闭，但工具按键计数未增加：Flyout内容移到独立Popup，菜单事件不冒泡到ShellPage。现在同时在实际AccountMenuBody分支登记同一个PreviewKeyDown witness，finally解绑；source-ready继续要求真实按键增量，不改minimumKeys。挂载/解绑和严格来源阶段回归新增1项，实际修复后链由根代理重跑，旧超时报告保留。
+
+## 用户手动验收模式
+
+`InspectKeyboardJourneyManual`新增屏内中文步骤提示：每步说明“焦点已放到哪一控件”和实际输入/Enter/Tab组合，用户不用返回聊天等待下一条消息。提示在工具单独Auto行，产品Shell在下一行，避免遮住原标题按钮；设置独立窗口也临时增加工具提示行，finally恢复其原content。提示TextBlock具有Polite状态播报与标题语义，但这不证明Narrator实际读出。
+
+屏内“取消验收（Ctrl+Shift+Q）”按钮可键盘到达；取消令牌终止当前步骤，finally解绑输入witness、还原工具占位及窗口。只有manual阶段等待上限为5分钟，普通工具仍60秒；manual Case仍15分钟，只有点击这个manual检查入口才将检查台外层驻留延到20分钟，其它检查路径保持8分钟。12步动作/匿名数据/零播放写入/真实按键判据不变，程序焦点起点仍单独记录，不把手动模式算全链纯Tab无需定位。
+
+新增两条中文动作/时限与提示行/取消/解绑契约，当前KeyboardJourneyTests16项通过、0失败0跳过。原生屏内布局、用户输入和取消成功/失败路径须主控当轮验证，不以源码存在冒称已完成。

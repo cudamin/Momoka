@@ -22,8 +22,9 @@ namespace Momoka.Shell;
 internal sealed partial class ShellNavigationProbe
 {
     /// <summary>Single inspect task held at concrete stages for real keyboard input from the coordinating run.</summary>
-    private async Task KeyboardJourneyAsync(bool failFocusName = false)
+    private async Task KeyboardJourneyAsync(bool failFocusName = false, bool manual = false)
     {
+        using var cancelled = new CancellationTokenSource();
         using var fixture = CreateFixture();
         var server = new KeyboardJourneyProbeServer { Poster = await FixtureImageAsync(400, 600) };
         fixture.Transport.Reply = server.ReplyAsync;
@@ -59,7 +60,26 @@ internal sealed partial class ShellNavigationProbe
         // Flyout内容被平台移动到独立Popup，菜单按键不沿Shell的可视父链冒泡。
         var accountMenuBody = Get<FrameworkElement>(shell, "AccountMenuBody");
         accountMenuBody.AddHandler(UIElement.PreviewKeyDownEvent, witness, handledEventsToo: true);
-        _root.Children.Add(shell);
+        KeyboardManualPrompt? prompt = manual ? new KeyboardManualPrompt(cancelled.Cancel) : null;
+        Grid? manualHost = null;
+        if (prompt is not null)
+        {
+            prompt.Surface.Margin = new Thickness(0, 40, 0, 0);
+            manualHost = new Grid();
+            manualHost.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            manualHost.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            manualHost.Children.Add(prompt.Surface);
+            Grid.SetRow(shell, 1);
+            manualHost.Children.Add(shell);
+            _root.Children.Add(manualHost);
+            prompt.Show("preparing");
+        }
+        else _root.Children.Add(shell);
+        KeyboardManualPrompt? settingsPrompt = null;
+        Grid? settingsPromptHost = null;
+        FrameworkElement? settingsOriginalContent = null;
+        Window? settingsFrameworkWindow = null;
+        FrameworkElement? settingsWitnessHost = null;
         try
         {
             HomeMotion.ApplyPreference(true);
@@ -141,8 +161,25 @@ internal sealed partial class ShellNavigationProbe
             settingsWindow = Get<SettingsWindow>(shell, "_settingsWindow");
             _openingProbeWindows.Add(settingsWindow);
             var settings = shell.SettingsRoot!;
+            if (manual)
+            {
+                settingsFrameworkWindow = Get<Window>(settingsWindow, "_window");
+                settingsOriginalContent = settingsFrameworkWindow.Content as FrameworkElement
+                    ?? throw new InvalidOperationException("手动设置窗口缺少实际内容");
+                settingsPrompt = new KeyboardManualPrompt(cancelled.Cancel);
+                settingsPrompt.Surface.Margin = new Thickness(0, 40, 0, 0);
+                settingsPromptHost = new Grid();
+                settingsPromptHost.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                settingsPromptHost.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                settingsFrameworkWindow.Content = null;
+                settingsPromptHost.Children.Add(settingsPrompt.Surface);
+                Grid.SetRow(settingsOriginalContent, 1);
+                settingsPromptHost.Children.Add(settingsOriginalContent);
+                settingsFrameworkWindow.Content = settingsPromptHost;
+            }
             await LayoutAsync(settings);
             settings.AddHandler(UIElement.PreviewKeyDownEvent, witness, handledEventsToo: true);
+            settingsWitnessHost = settings;
             var settingsSearch = Get<AutoSuggestBox>(settings, "SettingsSearchBox");
             await FocusAsync(settingsSearch, "KeyboardJourneySettingsSearch");
             await Stage("settings-ready", "press Tab then Shift+Tab to return to the settings search field", settingsWindow.Handle,
@@ -152,6 +189,7 @@ internal sealed partial class ShellNavigationProbe
             await Stage("settings-close-ready", "press Alt+F4 to hide the settings window", settingsWindow.Handle,
                 () => !settingsWindow.IsOpen, minimumKeys: 0);
             settings.RemoveHandler(UIElement.PreviewKeyDownEvent, witness);
+            settingsWitnessHost = null;
             Require(ReferenceEquals(shell.Pages.Content, detail), "关闭设置改变了详情主体");
             _window.Activate();
             var back = Get<Button>(shell, "BackButton");
@@ -168,6 +206,14 @@ internal sealed partial class ShellNavigationProbe
         finally
         {
             settingsWindow?.Hide();
+            settingsWitnessHost?.RemoveHandler(UIElement.PreviewKeyDownEvent, witness);
+            if (settingsFrameworkWindow is not null && settingsPromptHost is not null && settingsOriginalContent is not null)
+            {
+                settingsFrameworkWindow.Content = null;
+                settingsPromptHost.Children.Remove(settingsOriginalContent);
+                Grid.SetRow(settingsOriginalContent, 0);
+                settingsFrameworkWindow.Content = settingsOriginalContent;
+            }
             Call(shell, "StopMoviePilotMonitoring");
             Get<BrowsePresentation>(shell, "_browsePresentation").Stop();
             (shell.Pages.Content as IShellContent)?.Release();
@@ -175,7 +221,13 @@ internal sealed partial class ShellNavigationProbe
             shell.RemoveHandler(UIElement.PreviewKeyDownEvent, witness);
             accountMenuBody.RemoveHandler(UIElement.PreviewKeyDownEvent, witness);
             Field(shell, "_window", null);
-            _root.Children.Remove(shell);
+            if (manualHost is not null)
+            {
+                manualHost.Children.Remove(shell);
+                Grid.SetRow(shell, 0);
+                _root.Children.Remove(manualHost);
+            }
+            else _root.Children.Remove(shell);
             await playback.ShutdownAsync();
             _window.TopMost = topMost;
             _window.PlaybackTitleBar = false;
@@ -215,8 +267,9 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(target);
             for (var attempt = 0; attempt < 40; attempt++)
             {
+                cancelled.Token.ThrowIfCancellationRequested();
                 target.Focus(FocusState.Keyboard);
-                await Task.Delay(50);
+                await Task.Delay(50, cancelled.Token);
                 if (IsWithin(target)) break;
             }
             RequireFocus(target);
@@ -227,23 +280,28 @@ internal sealed partial class ShellNavigationProbe
         {
             var before = keys;
             WriteStage(stage, input, hwnd);
-            for (var attempt = 0; attempt < 1200; attempt++)
+            var waits = (manual ? KeyboardJourneyProbeRules.ManualStageMilliseconds : KeyboardJourneyProbeRules.AutomaticStageMilliseconds) / 50;
+            for (var attempt = 0; attempt < waits; attempt++)
             {
+                cancelled.Token.ThrowIfCancellationRequested();
                 if (keys >= before + minimumKeys && ready())
                 {
                     if (minimumKeys > 0) KeyboardJourneyProbeRules.RequireKeyProgress(before, keys);
                     Read(stage + "-passed", hwnd);
                     return;
                 }
-                await Task.Delay(50);
+                await Task.Delay(50, cancelled.Token);
             }
             throw new TimeoutException("未完成真实键盘阶段：" + stage);
         }
         void WriteStage(string stage, string input, IntPtr hwnd)
         {
+            prompt?.Show(stage);
+            settingsPrompt?.Show(stage);
             Read(stage, hwnd);
             File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "keyboard-journey-stage.json"), JsonSerializer.Serialize(new
-            { stage, input, process = Environment.ProcessId, hwnd = hwnd.ToInt64(), run, keys, physicalInputRequired = true }));
+            { stage, input = manual ? KeyboardJourneyProbeRules.ManualInstruction(stage) : input, process = Environment.ProcessId,
+                hwnd = hwnd.ToInt64(), run, keys, manual, physicalInputRequired = true }));
         }
         void Read(string stage, IntPtr hwnd)
         {

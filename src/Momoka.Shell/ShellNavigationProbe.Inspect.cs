@@ -52,6 +52,7 @@ internal sealed partial class ShellNavigationProbe
         layout.Children.Add(frame);
         _root.Children.Add(layout);
         var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var inspectKeyboardStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var busy = false;
         MoviePilotJourneySession? moviePilotJourney = null;
         using var settingsMoviePilot = new MoviePilotClient(new RejectNetwork());
@@ -117,6 +118,11 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectMusicPaging", "音乐墙分页与重试", () => MusicPagingAsync(), ShellProbeSections.Music);
         AddCheck("InspectMusicPagingFailure", "音乐分页定位失败反例", () => MusicPagingAsync(failEntryLocator: true), ShellProbeSections.Music);
         AddCheck("InspectKeyboardJourney", "登录到设置的真实键盘流程", () => KeyboardJourneyAsync(), ShellProbeSections.Shell, timeoutSeconds: 900);
+        AddCheck("InspectKeyboardJourneyManual", "手动完成键盘验收（屏内提示）", async () =>
+        {
+            inspectKeyboardStarted.TrySetResult();
+            await KeyboardJourneyAsync(manual: true);
+        }, ShellProbeSections.Shell, timeoutSeconds: 900);
         AddCheck("InspectKeyboardJourneyFailure", "键盘流程名称失败反例", () => KeyboardJourneyAsync(failFocusName: true), ShellProbeSections.Shell);
         AddCheck("InspectInfoTable", "匿名10行媒体信息定位", () => InfoTableAsync(), ShellProbeSections.Library);
         AddCheck("InspectInfoTableFailure", "媒体信息定位失败反例", () => InfoTableAsync(wrongOffset: true), ShellProbeSections.Library);
@@ -345,7 +351,9 @@ internal sealed partial class ShellNavigationProbe
         await LayoutAsync(layout);
         File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "shell-probe-ready.txt"), Environment.ProcessId.ToString());
         // 到时若仍有一项检查在飞，先等它收尾再释放宿主，避免检查触及已销毁的XAML。
-        await Task.WhenAny(finished.Task, Task.Delay(TimeSpan.FromMinutes(8)));
+        var inspectWait = await Task.WhenAny(finished.Task, Task.Delay(TimeSpan.FromMinutes(8)), inspectKeyboardStarted.Task);
+        if (ReferenceEquals(inspectWait, inspectKeyboardStarted.Task))
+            await Task.WhenAny(finished.Task, Task.Delay(TimeSpan.FromMinutes(20)));
         while (busy) await Task.Delay(100);
         moviePilotJourney?.Dispose();
         subscriptionCovers?.Release();
