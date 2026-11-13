@@ -60,8 +60,7 @@ internal sealed partial class ShellNavigationProbe
                 await Task.Delay(800);
                 var scroller = Get<ScrollView>(home, "Scroller");
                 var repeater = Get<ItemsRepeater>(home, "ShelfRepeater");
-                var gap = ((StackLayout)repeater.Layout).Spacing;
-                var line = ((ValueTuple<double, bool>)Call(home, "MeasureCoversLine", gap)!).Item1;
+                var line = ((ValueTuple<double, bool>)Call(home, "MeasureCoversLine")!).Item1;
                 ResizeProbeClient(width, (int)Math.Ceiling(_root.ActualHeight + line + 10 - scroller.ActualHeight));
                 await LayoutAsync(home);
                 fixture.Settings.Ui.HomeLibraryPlacement = HomeLibraryPlacement.Auto;
@@ -73,7 +72,7 @@ internal sealed partial class ShellNavigationProbe
                 HomeMotion.Enter(home, repeater, home.HomeRows.Count);
                 var animated = ShelfTargets(repeater).Any(target => target.RenderTransform is TranslateTransform { Y: > 0 });
                 Require(!HomeMotion.AnimationsEnabled || animated, "货架入场正对照没有开始");
-                var movingLine = ((ValueTuple<double, bool>)Call(home, "MeasureCoversLine", gap)!).Item1;
+                var movingLine = ((ValueTuple<double, bool>)Call(home, "MeasureCoversLine")!).Item1;
                 Require(Math.Abs(movingLine - line) <= 0.5, $"入场动画改变阈值：{line:0.0} → {movingLine:0.0}");
                 Call(home, "UpdateLibraryOverlay");
                 Require(!home.ViewModel.LibraryOnBanner, "普通入场误把媒体库压上轮播");

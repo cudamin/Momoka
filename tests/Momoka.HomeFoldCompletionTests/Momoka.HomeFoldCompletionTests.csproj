@@ -16,7 +16,6 @@
                AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
         <ParameterGroup>
             <PageSource ParameterType="System.String" Required="true" />
-            <RowsSource ParameterType="System.String" Required="true" />
             <BannerSource ParameterType="System.String" Required="true" />
             <PosterSource ParameterType="System.String" Required="true" />
             <EpisodeSource ParameterType="System.String" Required="true" />
@@ -38,7 +37,6 @@
                     return source.Substring(begin, finish - begin);
                 };
                 var page = File.ReadAllText(PageSource).Replace("\r\n", "\n");
-                var rows = File.ReadAllText(RowsSource).Replace("\r\n", "\n");
                 var generated = "// Extracted verbatim from this tree's current production at build time; do not edit.\n#nullable enable\n" +
                     "using Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Microsoft.UI.Dispatching;\nusing Microsoft.UI.Xaml;\n" +
                     "using Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Media;\nnamespace Momoka.Shell.Views;\n" +
@@ -47,9 +45,8 @@
                     between(page, "    private bool _foldScheduled;", "\n    public HomePage()") +
                     between(page, "    internal void PreparePlaybackReturn()", "\n    /// <summary>\n    /// The rows the page actually drew") +
                     between(page, "    private static long Now =>", "\n    /// <summary>\n    /// 元素顶边在「滚回顶上」") +
-                    between(page, "    private double ScreenTopAtScrollZero", "\n    /// <summary>\n    /// 自检：轮播这条带的高度") +
+                    between(page, "    private double ViewportTopAtScrollZero", "\n    /// <summary>\n    /// 自检：轮播这条带的高度") +
                     between(page, "    public void Release()", "\n    /// <summary>\n    /// 标题栏那一行的墨") +
-                    between(rows, "    private static double RowHeightOf", "\n    private static string RowTitle") +
                     "\n}\n";
                 var banner = File.ReadAllText(BannerSource).Replace("\r\n", "\n");
                 generated += "\ninternal sealed partial class BannerClockFixture\n{\n" +
@@ -78,7 +75,6 @@
     <Target Name="GenerateHomeFoldSources" BeforeTargets="CoreCompile">
         <ExtractHomeFoldSources
             PageSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomePage.xaml.cs"
-            RowsSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomePage.Rows.cs"
             BannerSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomeBanner.xaml.cs"
             PosterSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\PosterCard.xaml.cs"
             EpisodeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\EpisodeRow.xaml.cs"

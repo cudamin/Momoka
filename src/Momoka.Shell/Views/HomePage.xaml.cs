@@ -554,17 +554,17 @@ public sealed partial class HomePage : Page, IShellContent
         element.TransformToVisual(space).TransformPoint(new Windows.Foundation.Point(0, 0)).Y;
 
     /// <summary>
-    /// 矮窗档：窗口拉矮到那条线被第一屏裁掉之后，把媒体库那一排压到轮播封面的左下角，下面那排向上补位；再矮到轮播
-    /// 被一屏压矮（裁切超出设计形状）就恢复默认（用户的话，2026-09-13；2026-09-22 那条线又往下挪了一排 ——「改为
-    /// 快要显示下方媒体库封面的时候上移」，见 <see cref="HomeFold"/> 开头那一段）。
+    /// 矮窗档：窗口拉矮到媒体库那一排被第一屏裁掉之后，把媒体库那一排压到轮播封面的左下角，下面那排向上补位；再矮到轮播
+    /// 被一屏压矮（裁切超出设计形状）就恢复默认（用户的话，2026-09-13；那条线改过三站，当前量的是媒体库整排
+    /// 自己的下沿 —— 2026-11-13「这都重叠了媒体库还不下移」，见 <see cref="HomeFold"/> 开头那一段）。
     /// 界线本身是 <see cref="HomeFold"/> 的纯函数（Core 的单测盯着），这里出的是量几何和执行的那一半。
     /// <para>
-    /// 量的全是「滚回顶上」的几何（<see cref="ScreenTopAtScrollZero"/> 添回滚动位移）：判定认的是窗口高矮，
-    /// 不认滚动位置 —— 拿现场坐标判，用户往下滚一下这一档就会自己翻面。那条线由 <see cref="HomeFold.CoversLine"/>
-    /// 从「媒体库下面那一排」的顶算出来（它自己的封面顶，或者再下面那一排的封面顶）；压上档里媒体库不在横排了，
-    /// 补位那排站在它那一格上，顶就是「媒体库的顶」，而媒体库那一排的高要按默认摆法还原（牌子 ＋ 空当 ＋ 排卡）
-    /// —— 牌子和空当从补位那排的模板上量（<see cref="HeadOf"/>），同一张模板同一个宽，两头一个数；排卡那一截
-    /// 量轮播上那份宿主（<c>LibraryOverlay</c>，压上档里牌子收起、宿主里只有排卡）。
+    /// 量的全是「滚回顶上」的几何（<see cref="ViewportTopAtScrollZero"/> 添回滚动位移）：判定认的是窗口高矮，
+    /// 不认滚动位置 —— 拿现场坐标判，用户往下滚一下这一档就会自己翻面。那条线是媒体库那一排在默认摆法里的下沿
+    /// （顶 ＋ 整排实高）；压上档里媒体库不在横排了，补位那排站在它那一格上，顶就是「媒体库的顶」，而媒体库那一排
+    /// 的高要按默认摆法还原（牌子 ＋ 空当 ＋ 排卡）—— 牌子和空当从补位那排的模板上量（<see cref="HeadOf"/>），
+    /// 同一张模板同一个宽，两头一个数；排卡那一截量轮播上那份宿主（<c>LibraryOverlay</c>，压上档里牌子收起、
+    /// 宿主里只有排卡）。
     /// </para>
     /// <para>
     /// 无声退出的几档：轮播收起来（没有幻灯片／设置里关掉）没有左下角可压；媒体库那一排不存在（勾掉或者空）；
@@ -641,7 +641,6 @@ public sealed partial class HomePage : Page, IShellContent
         }
 
         var placement = ViewModel.LibraryPlacement;
-        var gap = ShelfRepeater.Layout is StackLayout stack ? stack.Spacing : 0;
         var hasNext = true;
         var nextRowLine = 0.0;
 
@@ -649,7 +648,7 @@ public sealed partial class HomePage : Page, IShellContent
         // 语义就是用户说了算，媒体库下面有没有别的排、那一排站在哪儿都不参与。默认档才去量几何（下面那一句）。
         if (placement == HomeLibraryPlacement.Auto)
         {
-            if (MeasureCoversLine(gap) is not { } site) return;
+            if (MeasureCoversLine() is not { } site) return;
             (nextRowLine, hasNext) = site;
         }
 
@@ -659,7 +658,7 @@ public sealed partial class HomePage : Page, IShellContent
 
         var decided = hasNext && HomeFold.LibraryOnBanner(placement, viewport, nextRowLine, bandNatural);
 
-        // 翻档前后各记一条线的账：验收这一档时不用去猜界线落在哪一排（<see cref="HomeFold.CoversLine"/>）。
+        // 翻档前后各记一条线的账：验收这一档时不用去猜界线落在谁身上（线 ＝ 媒体库整排的下沿）。
         // 被「等上一趟落地」拦下的那一次也记 —— 那条日志正好说明这一拍量到的是哪条线。
         if (decided != ViewModel.LibraryOnBanner)
             Log.Info(Category, $"矮窗档界线：档 {placement}、线 {nextRowLine:0}、视口 {viewport:0}"
@@ -670,18 +669,23 @@ public sealed partial class HomePage : Page, IShellContent
     }
 
     /// <summary>
-    /// 默认档那条界线在哪儿（<see cref="HomeFold.CoversLine"/>）：媒体库下面那一排的**再下面那一排**的封面顶。
-    /// 压上档里横排媒体库那个位置站着补位的下一排，把它当作回到媒体库的格子算，再往下一排才是那条线 —— 牌子和
-    /// 空当从排好的树上量，不写死。
+    /// 默认档那条界线在哪儿：**媒体库那一排在默认摆法里的下沿**（排顶 ＋ 整排实高 —— 牌子、空当、卡片连卡底那
+    /// 两行字全在里面）。它还在第一屏里就留在轮播下方，被第一屏裁掉（下沿到了视口底或更靠下）才压上轮播 ——
+    /// 2026-11-13 用户截图「这都重叠了媒体库还不下移」之后的规则；从前那条「下面第二排的封面顶」的线在圆角矮轮播
+    /// 上会让放得下的媒体库也压上去，见 <see cref="HomeFold"/> 开头那一段。
+    /// <para>
+    /// 两个方向量的是同一条线：默认档直接量媒体库自己那一排；压上档里媒体库不在横排，它那一格站着补位的下一排，
+    /// 补位排的顶就是媒体库的顶，添回媒体库整排的高就是它的下沿（<see cref="_libraryFlowHeight"/> 是翻档前量的
+    /// 那一份；还没量到的那一拍用补位排的牌子＋空当＋排卡折算，下一拍校正）。
+    /// </para>
     /// <para>
     /// 交回 <c>null</c> 是「这一档没得判」（媒体库那一排不在横排里）：调用方什么都不动，保持现状 —— 与从前那句
     /// 裸 <c>return</c> 同义。交回 <c>(0, false)</c> 是「有得判、但压上去没有意义」（媒体库是最后一排，下面没有
     /// 排可以补位）：这一档要**回默认**，调用方照旧摆一次屏。
     /// </para>
     /// </summary>
-    private (double Line, bool HasNext)? MeasureCoversLine(double gap)
+    private (double Line, bool HasNext)? MeasureCoversLine()
     {
-        if (HomeRows.Any(row => row is MoviePilotHomeRow)) return MeasureMixedCoversLine(gap);
         if (ViewModel.LibraryOnBanner)
         {
             // 压上档：横排里媒体库那个位置现在是补上来的下一排，它的顶就是「媒体库的顶」。补位的排没了
@@ -699,8 +703,7 @@ public sealed partial class HomePage : Page, IShellContent
             }
 
             // 那条线按默认摆法还原：补位那排此刻站在媒体库那一格上，它的顶就是**媒体库**的顶；添回媒体库整排的
-            // 高（牌子 ＋ 空当 ＋ 排卡）和一道排间空当，才是补位那排自己在默认摆法里的顶 —— 线由
-            // <see cref="HomeFold.CoversLine"/> 从这个顶往下算，两个方向量到的因此是同一条线。宿主还没排完的
+            // 高（牌子 ＋ 空当 ＋ 排卡）就是媒体库的下沿 —— 两个方向量到的因此是同一条线。宿主还没排完的
             // 那一拍退回排卡自己的高（RowHeight，条带绑的就是它），牌子量不到的那一拍退回排顶口径 —— 都有下一拍校正。
             var head = HeadOf(filler);
             var strip = LibraryOverlay.ActualHeight > 0
@@ -708,44 +711,25 @@ public sealed partial class HomePage : Page, IShellContent
                 : ViewModel.LibraryShelf?.RowHeight ?? 0;
             var libraryHeight = _libraryFlowHeight > 0 ? _libraryFlowHeight : (head?.Height ?? 0) + (head?.Gap ?? 0) + strip;
 
-            return (HomeFold.CoversLine(
-                ScreenTopAtScrollZero(filler)
-                    + libraryHeight
-                    + gap,
-                head?.Height ?? 0,
-                head?.Gap ?? 0,
-                RowHeightOf(HomeRows[index]),
-                gap,
-                hasBelow: index + 1 < HomeRows.Count), true);
+            return (ViewportTopAtScrollZero(filler) + libraryHeight, true);
         }
-        else
+
+        // 默认档：媒体库还在横排里，量它自己那一排的下沿。媒体库是最后一排时它下面没有排可以补位，
+        // 压上去没有意义（同从前那一档）。
+        if (ViewModel.LibraryShelf is not { } shelf || !ViewModel.Shelves.Contains(shelf)) return null;
+
+        var libraryIndex = _homeLibraryFlowIndex;
+        if (libraryIndex < 0 || libraryIndex >= HomeRows.Count) return null;
+        if (libraryIndex + 1 >= HomeRows.Count) return (0, false);
+
+        if (RowAt(libraryIndex) is not { } library)
         {
-            // 默认档：媒体库还在横排里，线 ＝ 它**下面那一排的再下面那一排**的封面顶（<see cref="HomeFold.CoversLine"/>；
-            // 2026-09-22 从「下面那一排自己的封面顶」往下挪了一排，见 HomeFold 开头那一段）。牌子、空当、排卡
-            // 都从排好的树上量 —— 同一张模板，每排的牌子一个高，不写死。
-            if (ViewModel.LibraryShelf is not { } shelf || !ViewModel.Shelves.Contains(shelf)) return null;
-
-            var below = _homeLibraryFlowIndex + 1;
-
-            // 媒体库是最后一排：它下面没有排可以补位，压上去没有意义（同从前那一档）。
-            if (below >= HomeRows.Count) return (0, false);
-
-            if (ShelfRepeater.TryGetElement(below) is not FrameworkElement next)
-            {
-                next = (FrameworkElement)ShelfRepeater.GetOrCreateElement(below);
-                ForceLayout();
-            }
-
-            var head = HeadOf(next);
-
-            return (HomeFold.CoversLine(
-                ScreenTopAtScrollZero(next),
-                head?.Height ?? 0,
-                head?.Gap ?? 0,
-                RowHeightOf(HomeRows[below]),
-                gap,
-                hasBelow: below + 1 < HomeRows.Count), true);
+            library = (FrameworkElement)ShelfRepeater.GetOrCreateElement(libraryIndex);
+            ForceLayout();
+            library = RowAt(libraryIndex) ?? library;
         }
+
+        return (ViewportTopAtScrollZero(library) + library.ActualHeight, true);
     }
 
     /// <summary>统计用：页面真正跑了一趟强制布局。</summary>
@@ -1031,11 +1015,16 @@ public sealed partial class HomePage : Page, IShellContent
     }
 
     /// <summary>
-    /// 元素顶边在「滚回顶上」之后的位置：现场坐标添回滚动位移。判定认窗口高矮不认滚动位置，见
-    /// <see cref="UpdateLibraryOverlay"/>。
+    /// 元素顶边在「滚回顶上」之后的位置 —— **视口坐标**（滚动视口 <see cref="Scroller"/> 的上沿为 0）：现场坐标
+    /// 添回滚动位移。判定认窗口高矮不认滚动位置，见 <see cref="UpdateLibraryOverlay"/>。
+    /// <para>
+    /// 零点取视口而不是整棵 XamlRoot：量出来的视口高就是 <see cref="Scroller"/> 自己的 ActualHeight，两者得用同
+    /// 一个零点比。拿 XamlRoot 当零点会把页面上方让给标题栏的那一段（<see cref="ChromeHeight"/>）算进线里，界线
+    /// 整体偏下几十像素 —— 面板矮、轮播矮的那几档会先压上轮播（2026-11-13 收这一条时一并校正）。
+    /// </para>
     /// </summary>
-    private double ScreenTopAtScrollZero(FrameworkElement element) =>
-        LayoutTopIn(element, null) + Scroller.VerticalOffset;
+    private double ViewportTopAtScrollZero(FrameworkElement element) =>
+        LayoutTopIn(element, Scroller) + Scroller.VerticalOffset;
 
     /// <summary>
     /// 翻档判定只读布局位置。返回主页时模板根的入场上浮，以及补位时的位移，都会进入 TransformToVisual；
