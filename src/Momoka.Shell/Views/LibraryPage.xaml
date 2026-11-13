@@ -118,6 +118,7 @@
              PosterCard 画（与主页同一份写法）。 -->
         <DataTemplate x:Key="ShelfCardTemplate" x:DataType="local:CardItem">
             <Button
+                AutomationProperties.Name="{x:Bind Title, Mode=OneWay}"
                 Background="Transparent"
                 BorderThickness="0"
                 Click="OnShelfCardClicked"
@@ -175,7 +176,7 @@
         <DataTemplate x:Key="PosterTemplate" x:DataType="local:CardItem">
             <!-- ItemContainer, not a Button in a Border: it is the one element that gives an
                  ItemsView child its hover state, keyboard focus and invoke handling for free. -->
-            <ItemContainer x:Name="PosterContainer">
+            <ItemContainer x:Name="PosterContainer" AutomationProperties.Name="{x:Bind Title, Mode=OneWay}">
                 <ItemContainer.Resources>
                     <!-- Preserve native selection/keyboard behavior; PosterCard draws the cover-only outline. -->
                     <HorizontalAlignment x:Key="ItemContainerCheckboxHorizontalAlignment">Left</HorizontalAlignment>
@@ -200,7 +201,7 @@
         <!-- 缩略图视图：16:9 宽卡。PosterCard 本身就支持宽幅（CardItem 的 wide 决定取剧照优先），
              这里只需要让卡片以自己的宽高绘制 —— 数据驱动，模板零分支。 -->
         <DataTemplate x:Key="ThumbTemplate" x:DataType="local:CardItem">
-            <ItemContainer x:Name="ThumbContainer">
+            <ItemContainer x:Name="ThumbContainer" AutomationProperties.Name="{x:Bind Title, Mode=OneWay}">
                 <ItemContainer.Resources>
                     <HorizontalAlignment x:Key="ItemContainerCheckboxHorizontalAlignment">Left</HorizontalAlignment>
                     <Thickness x:Key="ItemContainerCheckboxMargin">12,12,0,0</Thickness>

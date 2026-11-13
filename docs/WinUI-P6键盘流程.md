@@ -72,3 +72,9 @@ P8只读修正：ItemsView模板使用`x:Bind`填`PosterCard.Card`，外层ItemC
 屏内提示明确“前六步上轮已验证，本轮从搜索继续；本轮账号为匿名播种”。第7步搜索真实键入、结果Enter、设置Enter、Tab/Shift+Tab、Alt+F4与Alt+Left继续用原真实按键增量和最终查询/来源/零播放写入断言。取消写`cancelled`阶段并重新抛出，保留已执行步骤而不登记通过。恢复入口与此前运行只能分别报告范围，不能拼成同运行全链通过。
 
 新增manual恢复限制、前六步播种/回执与取消读数两项源码/规则契约；实际后半成功与取消仍由用户/根代理本轮验证。
+
+## 原生结果容器名称
+
+用户从搜索真实输入`keyboard-query`后查询成功，但搜索分组的外Button peer名为空（角色Button、焦点within为true）。内层PosterCard有片名不保证外Button自动获取名称；ShelfCardTemplate、PosterTemplate与ThumbTemplate现将外导航容器的AutomationProperties.Name以OneWay绑定当前CardItem.Title。保留原Button/ItemContainer模板、选择与事件语义，不在探针Focus时造名字。
+
+Gallery固定ItemsViewPage的各ItemContainer模板显式绑定AutomationProperties.Name到Title，框架已有PositionInSet/SizeOfSet位置语义，本修复不重写它们。页面契约新增实际模板绑定检查与正式CardItem展示标题/身份/原地标题通知验证；原生结果名称及Enter导航由主控本轮重验，原失败保留。
