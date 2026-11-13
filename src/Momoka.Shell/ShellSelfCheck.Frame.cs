@@ -176,6 +176,13 @@ internal static partial class ShellSelfCheck
             colour is { } c ? $"#{c.A:X2}{c.R:X2}{c.G:X2}{c.B:X2}" : "未设";
     }
 
+    private static Windows.Foundation.Point CaptionDragPoint(HostWindow window)
+    {
+        var dpi = Native.GetDpiForWindow(window.Handle);
+        var scale = (dpi == 0 ? 96 : dpi) / 96d;
+        return new Windows.Foundation.Point(window.ClientSize.Width / scale / 2,
+            window.TitleBarMetrics.Height / scale - 2);
+    }
     /// <summary>
     /// 标题栏上那三块：外壳把它们摆成什么样，窗口在那几块地方答什么。两件事一起问才算数 —— 按键画的地方
     /// 必须是客户区（不然指针压下去变成拖窗口，按钮永远收不到点击），而同一条带子上那几块以外的地方必须还是
@@ -191,7 +198,7 @@ internal static partial class ShellSelfCheck
     /// 播放/浏览标题栏来回切之前，标题栏左端答的是什么。带进来是因为这份自检自己就切过一轮：切回浏览以后那
     /// 条拖动区必须还在，否则「看完一部片回到界面，标题栏就拖不动了」。
     /// </param>
-    private static (bool Ok, string Detail) TitleBarKeys(HostWindow window, ShellPage shell, int captionBefore)
+    private static (bool Ok, string Detail) TitleBarKeys(HostWindow window, ShellPage shell, (Windows.Foundation.Point Point, int Hit) captionBefore)
     {
         var probe = shell.ProbeTitleActions();
 
@@ -203,7 +210,8 @@ internal static partial class ShellSelfCheck
         // 报的是「左端留白 客户区」。一个跟着现场走的数字不会再有第二次。
         // 下限 9 而不是 2：窗口自己那圈缩放边框占着最左边约 8 像素（2026-10-13 实测 x=2 答「左边框」），
         // 压在上面问到的不是标题栏。侧边栏在屏上时整排从 11 起，9 仍在洞的左边。
-        var edge = HitAt(window, Math.Max(9, probe.X / 2), 16);
+        var edge = probe.X > 9 ? HitAt(window, Math.Max(9, probe.X / 2), 16)
+            : HitAt(window, captionBefore.Point.X, captionBefore.Point.Y);
         var beyond = HitAt(window, probe.X + probe.Width + 40, probe.Y + probe.Height / 2);
         // 标题栏 2026-11-01 加到 40（按钮下移并放大）：加高的那一段也得是拖动区。取按键下沿往上一像素、
         // 整排右侧 40 身上那条空带问一次 —— 窗口那边只改了按钮位置、没改 TitleBarHeight 时，这一点会落回客户区。
@@ -264,13 +272,14 @@ internal static partial class ShellSelfCheck
             && edge == Native.HitCaption
             && beyond == Native.HitCaption
             && low == Native.HitCaption
-            && captionBefore == Native.HitCaption
+            && captionBefore.Hit == Native.HitCaption
+            && HitAt(window, captionBefore.Point.X, captionBefore.Point.Y) == Native.HitCaption
             && accountOk
             && searchOk
             && matched;
 
-        return (ok, $"{probe.Detail}；整排中点 {HitName(centre)}、左端留白 {HitName(edge)}、"
-            + $"右侧 40 像素处 {HitName(beyond)}、靠近下沿 {HitName(low)}（切播放前 {HitName(captionBefore)}）；"
+        return (ok, $"{probe.Detail}；整排中点 {HitName(centre)}、按钮外拖动点 {HitName(edge)}、"
+            + $"右侧 40 像素处 {HitName(beyond)}、靠近下沿 {HitName(low)}（同点切播放前 {HitName(captionBefore.Hit)}）；"
             + $"{accountNote}；{searchNote}；"
             + $"窗口留的洞 {(holes is { } r ? string.Join("、", r.Select(x => $"({x.X:0},{x.Y:0}) {x.Width:0}×{x.Height:0}")) : "没有")}"
             + $"，{(matched ? "和按键对得上" : "和按键对不上")}");

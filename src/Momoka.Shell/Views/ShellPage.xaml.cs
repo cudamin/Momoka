@@ -931,27 +931,27 @@ public sealed partial class ShellPage : UserControl, IShellActions
         PlaybackChoice? choice,
         IReadOnlyList<EmbyItem>? episodes) => PlayAsync(item, parent, choice, episodes);
 
-    bool IShellActions.CanQueueVideo(EmbyItem item) => _services is not null && _shutdownTask is null
+    bool IShellActions.CanQueueVideo(EmbyItem item) => _services is not null && _shutdownTask is null && Player.Attached
         && Player.ViewModel.CanQueue(item);
-    bool IShellActions.QueueVideo(EmbyItem item, bool next) => _services is not null && _shutdownTask is null
+    bool IShellActions.QueueVideo(EmbyItem item, bool next) => _services is not null && _shutdownTask is null && Player.Attached
         && Player.ViewModel.Queue(item, next);
-    bool IShellActions.HasPendingVideoQueue => _services is not null && Player.ViewModel.HasPendingQueue;
-    bool IShellActions.CanResumeVideoQueue => _services is not null && _shutdownTask is null && Player.ViewModel.CanResumeQueue;
+    bool IShellActions.HasPendingVideoQueue => _services is not null && Player.Attached && Player.ViewModel.HasPendingQueue;
+    bool IShellActions.CanResumeVideoQueue => _services is not null && _shutdownTask is null && Player.Attached && Player.ViewModel.CanResumeQueue;
     async Task IShellActions.ResumeVideoQueueAsync()
     {
-        if (_services is null || _shutdownTask is not null || !Player.ViewModel.CanResumeQueue) return;
+        if (_services is null || _shutdownTask is not null || !Player.Attached || !Player.ViewModel.CanResumeQueue) return;
         var intent = ++_shellPlayIntent;
         await Music.StopAsync();
         if (intent == _shellPlayIntent) await Player.ViewModel.ResumeQueueAsync();
     }
     void IShellActions.ClearVideoQueue()
     {
-        if (_services is not null) Player.ViewModel.ClearQueue();
+        if (_services is not null && Player.Attached) Player.ViewModel.ClearQueue();
     }
     event EventHandler? IShellActions.VideoQueueChanged
     {
-        add { if (_services is not null) Player.ViewModel.QueueChanged += value; }
-        remove { if (_services is not null) Player.ViewModel.QueueChanged -= value; }
+        add { if (_services is not null && Player.Attached) Player.ViewModel.QueueChanged += value; }
+        remove { if (_services is not null && Player.Attached) Player.ViewModel.QueueChanged -= value; }
     }
 
     /// <summary>进播放前记下的详情页滚动位；收起播放层那一路交给详情页按回去（见 <see cref="ShowPlayer"/>、DetailPage.KeepScrollThroughReveal）。</summary>

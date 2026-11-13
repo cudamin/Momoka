@@ -765,7 +765,8 @@ public sealed partial class PosterCard : UserControl
                 if (_previewHost.IsOpen) return;
                 ClosePreview(immediately: true);
             };
-            Root.Children.Add(_previewHost);
+            // Popup不放进正在缩放的Root：693f472 Popup.cpp会把祖先变换乘进偏移。
+            // 独立popup仍以同一XamlRoot定位，宽高和焦点/点外关闭保持原生语义。
         }
 
         var content = (UIElement)XamlRoot!.Content;
@@ -773,7 +774,7 @@ public sealed partial class PosterCard : UserControl
         var rootHeight = content is FrameworkElement frame ? frame.ActualHeight : 0;
         var width = Math.Min(PreviewWidth, Math.Max(PreviewMinWidth, rootWidth - (PreviewMargin * 2)));
 
-        // Popup 偏移相对 Root，居中与动画起点都使用不含标题的真实封面矩形。
+        // Popup 偏移使用窗口坐标，居中与动画起点都使用不含标题的真实封面矩形。
         var origin = Root.TransformToVisual(content).TransformPoint(new Windows.Foundation.Point(0, 0));
         var art = Art.TransformToVisual(content).TransformBounds(new Windows.Foundation.Rect(0, 0, Art.ActualWidth, Art.ActualHeight));
 
@@ -788,14 +789,14 @@ public sealed partial class PosterCard : UserControl
 
         _preview.IsHitTestVisible = true;
         _previewHost!.HorizontalOffset = CardPreviewPlacement.Horizontal(
-            art.Left, art.Width, width, rootWidth, PreviewMargin) + art.Left - origin.X;
+            art.Left, art.Width, width, rootWidth, PreviewMargin) + art.Left;
         _previewHost.VerticalOffset = CardPreviewPlacement.Vertical(
-            art.Top, art.Height, height, rootHeight, PreviewMargin) + art.Top - origin.Y;
+            art.Top, art.Height, height, rootHeight, PreviewMargin) + art.Top;
         // Popup 接入活动视觉树后才可测量图片 Canvas；关闭时它的布局处于暂停状态。
         _previewHost.IsOpen = true;
         _preview.Prepare(new Windows.Foundation.Rect(
-            art.Left - origin.X - _previewHost.HorizontalOffset,
-            art.Top - origin.Y - _previewHost.VerticalOffset, art.Width, art.Height), height);
+            art.Left - _previewHost.HorizontalOffset,
+            art.Top - _previewHost.VerticalOffset, art.Width, art.Height), height);
         _previewOpen = true;
 
         // 原封面边框与图片撑开，内容只通过裁剪显露，文字不拉伸。
