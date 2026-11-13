@@ -30,8 +30,8 @@ internal sealed class ReflectedDetail(object value) : INotifyPropertyChanged
     public Task LastLoad { get; private set; } = Task.CompletedTask;
     public void UseImagePresentation(Task presentation) =>
         ShellAssembly.Invoke(Value, nameof(UseImagePresentation), presentation);
-    public void Attach(object request, PlexActionsProxy actions, ISettingsService settings, EmbySession session, EmbyImageStore images) =>
-        ShellAssembly.Invoke(Value, "Attach", request, actions, settings, session, images);
+    public void Attach(ReflectedDetailRequest request, PlexActionsProxy actions, ISettingsService settings, EmbySession session, EmbyImageStore images) =>
+        ShellAssembly.Invoke(Value, "Attach", request.Value, actions, settings, session, images);
     public Task ReloadAsync() => LastLoad = (Task)ShellAssembly.Invoke(Value, "ReloadAsync")!;
     public void OpenGenre(string genre) => ShellAssembly.Invoke(Value, nameof(OpenGenre), genre);
 }
@@ -45,6 +45,8 @@ internal sealed partial class GenrePageContract : IDisposable
     private int _paintPhase;
     private bool _washedInk;
     public bool PaintStateReset => _paperCover == -1 && _paintPhase == -1 && !_washedInk;
+    public int VisualTransitionAttaches { get; private set; }
+    public EmbyItem? TransitionItem { get; private set; }
     public GenrePageContract(object vm)
     {
         ViewModel = new ReflectedDetail(vm);
@@ -55,6 +57,13 @@ internal sealed partial class GenrePageContract : IDisposable
         GenreLine.Visibility = ShellAssembly.Get<object>(ViewModel.Value, "GenreVisibility").ToString() == "Visible"
             ? Visibility.Visible : Visibility.Collapsed;
         PaintGenres();
+    }
+    internal void Enter(object request, PlexActionsProxy actions, FixtureServices services, EmbySession session, EmbyImageStore images) =>
+        EnterCore(new ReflectedDetailRequest(request), actions, services, session, images);
+    internal void ObserveTransitionBoundary(EmbyItem item)
+    {
+        VisualTransitionAttaches++;
+        TransitionItem = item;
     }
     public (bool Ok, string Detail) Read() => GenreRead();
     public IReadOnlyList<Hyperlink> Links => GenreLine.Inlines.OfType<Hyperlink>().ToArray();
@@ -75,6 +84,19 @@ internal sealed partial class GenrePageContract : IDisposable
         ShellAssembly.Invoke(ViewModel.Value, "Cancel");
     }
     public void Dispose() => ((INotifyPropertyChanged)ViewModel.Value).PropertyChanged -= OnViewModelChanged;
+}
+
+/// <summary>只转发当前Shell的DetailRequest值与Item，不复制任何权限或视图模型逻辑。</summary>
+internal sealed class ReflectedDetailRequest(object value)
+{
+    internal object Value { get; } = value;
+    internal EmbyItem Item => ShellAssembly.Get<EmbyItem>(Value, nameof(Item));
+}
+
+/// <summary>无Frame/XamlRoot的无关视觉端点：记录源接线，不访问账号、页面或native动画。</summary>
+internal static class CardDetailTransition
+{
+    internal static void Attach(GenrePageContract page, EmbyItem item) => page.ObserveTransitionBoundary(item);
 }
 
 internal sealed class InlineText
