@@ -1636,6 +1636,9 @@ public sealed partial class DetailPage : Page, IShellContent
         if (Math.Abs(Body.VerticalOffset - target) < 1
             || _revealScrollCorrelation is not null && _revealRequestedOffset is { } requested
                 && Math.Abs(requested - target) < 1) return;
+        // ScrollTo 会在返回新 ID 前同步完成较旧的延迟操作。先撤掉旧资格，
+        // 其 ScrollCompleted 就不能重入这次尚在提交的请求。
+        _revealScrollCorrelation = null;
         _revealRequestedOffset = target;
         var correlation = Body.ScrollTo(0, target, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
         _revealScrollCorrelation = correlation >= 0 ? correlation : null;

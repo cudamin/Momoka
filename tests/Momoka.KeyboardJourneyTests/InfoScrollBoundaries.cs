@@ -43,6 +43,7 @@ namespace Microsoft.UI.Xaml.Controls
         public void UpdateLayout() => LayoutReads++;
         private int _correlation;
         public bool AutoComplete { get; set; } = true;
+        public Action? BeforeScrollRequest { get; set; }
         public ScrollingInteractionState State { get; set; }
         public event Windows.Foundation.TypedEventHandler<ScrollView, object>? ViewChanged;
         public event Windows.Foundation.TypedEventHandler<ScrollView, object>? ExtentChanged;
@@ -54,6 +55,7 @@ namespace Microsoft.UI.Xaml.Controls
             + _handlers.Values.Sum(list => list.Count);
         public int ScrollTo(double x, double y, ScrollingScrollOptions _)
         {
+            BeforeScrollRequest?.Invoke();
             Requests.Add(y);
             var correlation = ++_correlation;
             if (AutoComplete) VerticalOffset = Math.Clamp(y, 0, ScrollableHeight);

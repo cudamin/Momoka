@@ -17,3 +17,5 @@
 生产恢复保留原偏移目标，滚动请求按当前 ScrollableHeight 夹取，范围恢复时再次落实原目标。除 ViewChanged 外观察 ExtentChanged 与本次 Busy/IsReady；600ms 布局期从真实 Ready 开始，而非网络刷新开始，因此没有把时间数值加大。同 correlation 尚在途且目标未变不重复发请求；完成只认当前 correlation，旧回执不能覆盖新目标。用户滚轮、指针操作、Tab/方向/翻页键或原生 Interaction 立即解除所有观察；Release/真 Unloaded 同样清理。单次定时器到期主动退订，避免旧逻辑无后续 ViewChanged 就长留观察。
 
 严格原样提取实际恢复方法执行，覆盖临时夹取→extent 恢复、加载超过旧 600ms、在途同目标去重/新范围、用户输入放手、重复登记/无效目标、释放后的迟到完成；不存在并行复制算法。真实 WinUI 范围/事件时序与自检稳定性仍由主控当轮复验，离线通过不等于最终交付。原10行媒体信息判据与自检基线保持。
+
+固定框架 `693f472` 的 `ScrollPresenter::ChangeOffsetsPrivate` 在返回新 correlation 之前调用 `CompleteDelayedOperations`，后者同步发布旧操作的 ScrollCompleted。新请求现在先撤销旧 correlation 资格再调用 ScrollTo，旧完成不能重入当前提交。边界按这一真实顺序同步发送旧完成：原方法 31 过 1 红、请求多发；修后仅两个请求，无递归，当前完成正常，释放后的迟到完成仍不能重拉用户。

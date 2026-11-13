@@ -63,6 +63,24 @@ internal static class PlaybackReturnScrollTests
             Assert.Equal(787d, page.Body.VerticalOffset);
             page.StopRevealForFixture();
         });
+        Test("正式返回发新滚动时同步到达的旧correlation不能重入发送", () =>
+        {
+            var page = new DetailPage();
+            page.Body.AutoComplete = false;
+            page.Body.ScrollableHeight = 900;
+            page.KeepScrollThroughReveal(787);
+            var callbackCount = 0;
+            page.Body.BeforeScrollRequest = () =>
+            {
+                // Native ChangeOffsetsPrivate completes older delayed operations before publishing the new ID.
+                if (++callbackCount == 1) page.Body.SignalCompleted(1);
+            };
+            page.Body.ChangeExtent(442);
+            Assert.Equal(2, page.Body.Requests.Count, "新extent只应发送一次当前目标");
+            page.Body.Complete(2);
+            Assert.Equal(442d, page.Body.VerticalOffset);
+            page.StopRevealForFixture();
+        });
         Test("正式返回用户滚轮、导航键或原生Interaction立即解除", () =>
         {
             foreach (var kind in new[] { "wheel", "key", "interaction" })
