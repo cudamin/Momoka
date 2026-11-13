@@ -7,15 +7,35 @@ namespace Momoka.Shell.Views;
 public sealed partial class MusicLibraryPage
 {
     private ItemsRepeater? _artworkRepeater;
+    private long _wallTemplateToken;
+    private bool _watchingWallTemplate;
     private static readonly DependencyProperty TrackDemandGenerationProperty = DependencyProperty.RegisterAttached(
         "TrackDemandGeneration", typeof(int), typeof(MusicLibraryPage), new PropertyMetadata(0));
 
     private void OnWallLoaded(object sender, RoutedEventArgs args)
     {
         if (_released) return;
-        var repeater = ArtworkTree(MusicWall).OfType<ItemsRepeater>().FirstOrDefault();
+        if (!_watchingWallTemplate)
+        {
+            _wallTemplateToken = MusicWall.RegisterPropertyChangedCallback(ItemsView.ScrollViewProperty, OnWallTemplateChanged);
+            _watchingWallTemplate = true;
+        }
+        ConnectWallArtwork();
+    }
+
+    private void OnWallTemplateChanged(DependencyObject sender, DependencyProperty property)
+    {
+        if (!_released && _watchingWallTemplate) ConnectWallArtwork();
+    }
+
+    private void ConnectWallArtwork()
+    {
+        // 初始曲目模式里墙被Collapsed，Loaded可能先于ControlTemplate创建。
+        // 等原生只读ScrollView属性出现，其Content在模板中就是Repeater；不靠再次Loaded。
+        var repeater = MusicWall.ScrollView?.Content as ItemsRepeater
+            ?? ArtworkTree(MusicWall).OfType<ItemsRepeater>().FirstOrDefault();
         if (ReferenceEquals(repeater, _artworkRepeater)) return;
-        DetachWallArtwork();
+        DisconnectWallRepeater();
         _artworkRepeater = repeater;
         if (repeater is null) return;
         repeater.ElementPrepared += OnArtworkPrepared;
@@ -59,6 +79,16 @@ public sealed partial class MusicLibraryPage
     }
 
     private void DetachWallArtwork()
+    {
+        if (_watchingWallTemplate)
+        {
+            MusicWall.UnregisterPropertyChangedCallback(ItemsView.ScrollViewProperty, _wallTemplateToken);
+            _watchingWallTemplate = false;
+        }
+        DisconnectWallRepeater();
+    }
+
+    private void DisconnectWallRepeater()
     {
         if (_artworkRepeater is not { } repeater) return;
         repeater.ElementPrepared -= OnArtworkPrepared;

@@ -54,11 +54,11 @@ Gallery同提交使用实验SDK，本单元保留Momoka现有WinUI2.3.9/Runtime2
 ## 测试和运行入口
 
 `Momoka.MusicArtworkTests` 编译链接完整生产CardArtwork/CardItem和真实Core，
-32项涵盖两模板、四音乐类型、首帧/读取/尺寸、旧项与旧容器、真离树与幻影、源撤销、404与坏解码恢复、
+35项涵盖两模板、四音乐类型、首帧/读取/尺寸、旧项与旧容器、真离树与幻影、源撤销、404与坏解码恢复、
 100/1,000/10,000元数据和20个模拟容器。控制台边界不冒充实际WinUI、WinRT解码或GPU显存。
 新增6例保留Tree/XamlRoot/x:Bind项的同owner池、prepared无Loaded、首次订阅池区分、
 ListView回收和旧持有者/重入事件；新增3例预算/页面入口，拒绝真实超预算读数反例。
-当前Release：新专项32/32、音乐VM与P4分页39/39，失败/跳过均0，各自构建0警告错误；
+当前Release：新专项35/35、音乐VM与P4分页39/39，失败/跳过均0，各自构建0警告错误；
 原页面契约207/207是上一单元的覆盖，本修复不复用其日志称已重验。
 加入坏解码项的首轮因测试只交付一次坏响应，
 真实Store正在重取而非已回传失败，17项中5项失败（后续4项为前例未清边界）；
@@ -130,6 +130,19 @@ tail Realized21/Tree26/Images26/HeldWanted22。
 `music-recycling-trace.json`记录prepared/clearing时序。
 固定VirtualizationInfo.cpp的IsRealized包含Layout与PinnedPool，TryGetElement已包含Pinned；
 不能把需求22/Realized21直接解释为“允许多一张焦点图”。
+
+9116同轮逐容器读数更精确：末尾5个池容器mappedIndex=-1、TryGetSame=false，
+都绑定art-Albums-100-0、需求true、Source/RowPoster=true，仅一个为当前holder；
+所有Clearing时画像状态仍true，说明生产事件没有作用到被观测实例，而非先证明DP被平台重置。
+只读追踪增加生产_artworkRepeater存在性/同一性和页面Released/Loaded。
+当前代码存在明确晚模板缺口：初始Tracks使墙Collapsed，Loaded取不到内部Repeater就返回；
+之后ItemsView模板第一次出现不能依赖再次Loaded。
+固定ItemsView.cpp::OnApplyTemplate先UpdateScrollView，通过SetValue(ScrollViewProperty,scrollView)通知，
+ItemsView.xaml的ScrollView.Content就是内部ItemsRepeater；读取这个Content不要求它已经在VisualTree中。
+显示期观察该原生只读属性，晚模板出现/模板替换连接当前内部Repeater，旧订阅与图片需求释放；
+离页注销属性回调，已捕获迟到通知拒绝。不新增逐帧LayoutUpdated或扫pool补正结果。
+新增3例生产源码夹具覆盖无模板Loaded→晚Content、模板更换、离页已捕获通知及重复Loaded，
+预算保持原样，真实验证由协调会话重新运行。
 
 同轮P4滚尾请求13485、布局重估后currentMax13232、actual13232、Idle，
 平台已夹到最终底部而共用静态offset断言误报；当前仅音乐端点helper按真实correlation等完成，

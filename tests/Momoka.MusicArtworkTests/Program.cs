@@ -639,6 +639,85 @@ internal static class MusicArtworkProgram
             CardArtwork.SetItem(current, null);
             Assert.Equal(0, ImageArrivalFade.Living);
         });
+
+        Case("音乐墙晚模板：首次Loaded没有Repeater，原生ScrollView出现后才订阅且回收清图", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var page = new MusicLibraryPage();
+            page.LoadArtwork();
+            Assert.Equal(1, page.MusicWall.PropertyCallbacks);
+            var repeater = new ItemsRepeater();
+            page.MusicWall.ApplyTemplate(repeater); // 模板Content存在但还未挂进VisualTree。
+            Assert.Equal(1, repeater.PreparedHandlers);
+            Assert.Equal(1, repeater.ClearingHandlers);
+            var image = new Image();
+            var container = new Microsoft.UI.Xaml.UIElement();
+            container.Children.Add(image);
+            CardArtwork.SetItem(image, f.Card);
+            image.Load();
+            repeater.Prepare(container, 0);
+            (await f.Handler.AtAsync(0)).Complete("late template");
+            await CardImageFixture.UntilAsync(() => image.Source is not null, "晚模板图片未显示");
+            repeater.Clear(container);
+            Assert.False(CardArtwork.IsRealized(image));
+            Assert.Null(image.Source);
+            Assert.Null(f.Card.RowPoster);
+            page.LoadArtwork();
+            Assert.Equal(1, page.MusicWall.PropertyCallbacks);
+            Assert.Equal(1, repeater.PreparedHandlers);
+            page.ReleaseArtwork();
+            Assert.Equal(0, page.MusicWall.PropertyCallbacks);
+            Assert.Equal(0, repeater.ClearingHandlers);
+            CardArtwork.SetItem(image, null);
+        });
+
+        Case("音乐墙模板替换：旧Repeater解绑、释放Source，新模板只订阅一次", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var page = new MusicLibraryPage();
+            page.LoadArtwork();
+            var old = new ItemsRepeater();
+            page.MusicWall.ApplyTemplate(old);
+            var image = new Image();
+            var container = new Microsoft.UI.Xaml.UIElement();
+            container.Children.Add(image);
+            CardArtwork.SetItem(image, f.Card);
+            image.Load();
+            old.Prepare(container, 0);
+            (await f.Handler.AtAsync(0)).Complete("old template");
+            await CardImageFixture.UntilAsync(() => image.Source is not null, "旧模板图未完成");
+            var next = new ItemsRepeater();
+            page.MusicWall.ApplyTemplate(next);
+            Assert.Equal(0, old.PreparedHandlers);
+            Assert.Equal(0, old.ClearingHandlers);
+            Assert.Null(image.Source);
+            Assert.Null(f.Card.RowPoster);
+            Assert.Equal(1, next.PreparedHandlers);
+            Assert.Equal(1, next.ClearingHandlers);
+            page.ReleaseArtwork();
+            CardArtwork.SetItem(image, null);
+        });
+
+        Case("音乐墙晚模板回调：离页移除订阅，已捕获回调不能重连新模板", async () =>
+        {
+            await using var f = new CardImageFixture();
+            var page = new MusicLibraryPage();
+            page.LoadArtwork();
+            var captured = page.MusicWall.CapturePropertyCallback();
+            Assert.NotNull(captured);
+            page.ReleaseArtwork();
+            page.SetReleased(true);
+            var repeater = new ItemsRepeater();
+            page.MusicWall.ApplyTemplate(repeater);
+            captured!(page.MusicWall, ItemsView.ScrollViewProperty);
+            Assert.Equal(0, repeater.PreparedHandlers);
+            Assert.Equal(0, page.MusicWall.PropertyCallbacks);
+            page.SetReleased(false);
+            page.LoadArtwork();
+            Assert.Equal(1, repeater.PreparedHandlers);
+            Assert.Equal(1, page.MusicWall.PropertyCallbacks);
+            page.ReleaseArtwork();
+        });
     }
 
     private static void Case(string name, Func<Task> body) => Test(name, () => CardImageContext.Run(body));

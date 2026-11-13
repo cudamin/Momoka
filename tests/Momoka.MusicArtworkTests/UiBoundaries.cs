@@ -20,6 +20,8 @@ namespace Microsoft.UI.Xaml
     public class DependencyObject
     {
         private readonly Dictionary<DependencyProperty, object?> _values = [];
+        private readonly Dictionary<long, (DependencyProperty Property, Action<DependencyObject, DependencyProperty> Callback)> _callbacks = [];
+        private long _nextCallback;
         public List<DependencyObject> Children { get; } = [];
         public object? XamlRoot { get; set; }
         public object? GetValue(DependencyProperty property) => _values.TryGetValue(property, out var value) ? value : property.Metadata.DefaultValue;
@@ -28,8 +30,20 @@ namespace Microsoft.UI.Xaml
             var old = GetValue(property);
             _values[property] = value;
             if (!ReferenceEquals(old, value)) property.Metadata.Changed?.Invoke(this, new(old, value));
+            if (!ReferenceEquals(old, value))
+                foreach (var callback in _callbacks.Values.Where(entry => ReferenceEquals(entry.Property, property)).ToArray())
+                    callback.Callback(this, property);
         }
         public void ClearValue(DependencyProperty property) => _values.Remove(property);
+        public long RegisterPropertyChangedCallback(DependencyProperty property, Action<DependencyObject, DependencyProperty> callback)
+        {
+            var token = ++_nextCallback;
+            _callbacks.Add(token, (property, callback));
+            return token;
+        }
+        public void UnregisterPropertyChangedCallback(DependencyProperty property, long token) => _callbacks.Remove(token);
+        internal int PropertyCallbacks => _callbacks.Count;
+        internal Action<DependencyObject, DependencyProperty>? CapturePropertyCallback() => _callbacks.Values.FirstOrDefault().Callback;
     }
     public sealed class RoutedEventArgs : EventArgs;
     public delegate void RoutedEventHandler(object sender, RoutedEventArgs args);
@@ -52,7 +66,16 @@ namespace Microsoft.UI.Xaml.Controls
             Unloaded?.Invoke(this, new());
         }
     }
-    public sealed class ItemsView : UIElement;
+    public sealed class ItemsView : UIElement
+    {
+        public static DependencyProperty ScrollViewProperty { get; } = new(new(null));
+        public ScrollView? ScrollView => GetValue(ScrollViewProperty) as ScrollView;
+        internal void ApplyTemplate(ItemsRepeater repeater) => SetValue(ScrollViewProperty, new ScrollView { Content = repeater });
+    }
+    public sealed class ScrollView : UIElement
+    {
+        public UIElement? Content { get; set; }
+    }
     public sealed class ItemsRepeater : UIElement
     {
         private readonly Dictionary<UIElement, int> _realized = [];
