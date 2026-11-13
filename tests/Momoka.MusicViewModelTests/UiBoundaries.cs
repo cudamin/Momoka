@@ -5,11 +5,30 @@ using Momoka.Emby;
 namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
+    public enum FocusState { Programmatic }
+}
+
+namespace Microsoft.UI.Xaml.Input
+{
+    public sealed class KeyboardAccelerator;
+    public sealed class KeyboardAcceleratorInvokedEventArgs
+    {
+        public bool Handled { get; set; }
+    }
 }
 
 namespace Microsoft.UI.Xaml.Controls
 {
     public enum InfoBarSeverity { Informational, Success, Warning, Error }
+    public sealed class AutoSuggestBox
+    {
+        public bool IsLoaded { get; set; } = true;
+        public bool IsEnabled { get; set; } = true;
+        public bool AcceptFocus { get; set; } = true;
+        public Microsoft.UI.Xaml.Visibility Visibility { get; set; }
+        public int FocusCalls { get; private set; }
+        public bool Focus(Microsoft.UI.Xaml.FocusState _) { FocusCalls++; return AcceptFocus; }
+    }
 }
 
 namespace Momoka.Shell.Platform

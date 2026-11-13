@@ -1,5 +1,7 @@
 # 音乐视图模型离线回归
 
+2026-11-14 补充长标题有限列与原生 Ctrl+F 接线契约，并完整链接 `MusicLibraryPage.Search.cs` 验证未附加、离页、隐藏、禁用、未加载及聚焦失败时放行。它只验证处理器与边界，实际截断、焦点和快捷键路由在交付时由 WinUI 运行检查确认。
+
 此控制台链接当前树的真实 `MusicPlaybackViewModel`、`MusicLibraryViewModel` 和 `PageViewModel`，使用与 Shell 相同的 CommunityToolkit.Mvvm 8.4.2 生成器。Core 的 `PlaybackService`、`PlaybackPlanner`、`EmbySession`、`EmbyClient`、`MusicCatalog` 与 `MusicQueue` 是当前项目引用。
 
 39 项覆盖停止后 metadata 与队列迟到、队列第二页 HTTP 取消、加载队列时切槽、未提交搜索与已加载查询隔离、旧视频/音频事件排队、自动下一曲后收藏迟到、确认音量保存与下一曲起播、80+20 分页完整队列、离页仍播放、旧曲目拖动释放及页面释放后的迟到列表；也覆盖曲目/墙分型、正在播放标记与副标题。

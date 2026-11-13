@@ -8,10 +8,12 @@ namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
     public enum FocusState { Programmatic }
+    public sealed class XamlRoot;
 
     public class DependencyObject
     {
         public List<DependencyObject> Children { get; } = [];
+        public DependencyObject? Parent { get; set; }
     }
 
     public class FrameworkElement : DependencyObject
@@ -20,6 +22,8 @@ namespace Microsoft.UI.Xaml
         public double ActualHeight { get; set; } = 40;
         public double Top { get; set; }
         public Visibility Visibility { get; set; } = Visibility.Visible;
+        public bool IsLoaded { get; set; } = true;
+        public XamlRoot? XamlRoot { get; set; } = new();
         public int LayoutCalls { get; private set; }
         public Action? Layout { get; set; }
         public void UpdateLayout() { LayoutCalls++; Layout?.Invoke(); }
@@ -58,6 +62,21 @@ namespace Microsoft.UI.Xaml.Media
     {
         public static int GetChildrenCount(Xaml.DependencyObject root) => root.Children.Count;
         public static Xaml.DependencyObject GetChild(Xaml.DependencyObject root, int index) => root.Children[index];
+        public static Xaml.DependencyObject? GetParent(Xaml.DependencyObject root) => root.Parent;
+    }
+}
+
+namespace Microsoft.UI.Xaml.Input
+{
+    public sealed class KeyboardAccelerator;
+    public sealed class KeyboardAcceleratorInvokedEventArgs
+    {
+        public bool Handled { get; set; }
+    }
+    public static class FocusManager
+    {
+        public static object? Current { get; set; }
+        public static object? GetFocusedElement(Xaml.XamlRoot _) => Current;
     }
 }
 
@@ -85,9 +104,11 @@ namespace Microsoft.UI.Xaml.Controls
     public class Control : FrameworkElement
     {
         public bool IsTabStop { get; set; } = true;
+        public bool IsEnabled { get; set; } = true;
+        public bool AcceptFocus { get; set; } = true;
         public int FocusCalls { get; private set; }
         public Action? Focused { get; set; }
-        public bool Focus(FocusState _) { FocusCalls++; Focused?.Invoke(); return true; }
+        public bool Focus(FocusState _) { FocusCalls++; if (!AcceptFocus) return false; Focused?.Invoke(); return true; }
     }
 
     public sealed class ItemsControl : FrameworkElement
@@ -192,6 +213,10 @@ namespace Momoka.Shell.ViewModels
 
 namespace Momoka.Shell.Views
 {
+    public sealed class ShortcutCaptureBox : Microsoft.UI.Xaml.Controls.Control
+    {
+        public bool IsCapturing { get; set; }
+    }
     public sealed partial class SettingsPage : IDisposable
     {
         private const string Category = "Settings";
@@ -203,6 +228,7 @@ namespace Momoka.Shell.Views
         public Microsoft.UI.Xaml.FrameworkElement SettingsCardsContent { get; } = new() { ActualHeight = 2000 };
         public Microsoft.UI.Xaml.FrameworkElement SettingsSections { get; } = new();
         public Microsoft.UI.Xaml.Controls.ScrollViewer SettingsScroll { get; } = new() { ActualHeight = 400 };
+        public Microsoft.UI.Xaml.Controls.AutoSuggestBox SettingsSearchBox { get; } = new();
         public bool Pending => HasPendingSearchNavigation;
         public bool HasPendingOwner => _pendingSearchNavigation is not null;
         public SettingsPage() => _activityToken = _activity.Begin();
@@ -210,6 +236,12 @@ namespace Momoka.Shell.Views
         public void Reenter() => _activityToken = _activity.Begin();
         public void Submit(Microsoft.UI.Xaml.Controls.AutoSuggestBox box, object? suggestion) =>
             OnSettingsSearchSubmitted(box, new() { ChosenSuggestion = suggestion });
+        public bool InvokeFind()
+        {
+            var args = new Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs();
+            CtrlF_Invoked(new(), args);
+            return args.Handled;
+        }
         public void Dispose() => _activity.Dispose();
     }
 

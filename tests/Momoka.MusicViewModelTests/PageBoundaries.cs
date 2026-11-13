@@ -27,12 +27,23 @@ namespace Microsoft.UI.Xaml.Controls
 namespace Momoka.Shell.Views
 {
     // Methods come from MusicLibraryPage.xaml.cs at build time; no paging decision is copied here.
-    internal sealed partial class MusicLibraryPage(MusicLibraryViewModel viewModel)
+    public sealed partial class MusicLibraryPage(MusicLibraryViewModel viewModel)
     {
+        private bool _released;
+        private LibraryRequest? _request;
+        internal Microsoft.UI.Xaml.Controls.AutoSuggestBox MusicSearch { get; } = new();
         public MusicLibraryViewModel ViewModel { get; } = viewModel;
         internal Microsoft.UI.Xaml.Controls.ItemsView MusicWall { get; } = new();
         internal Microsoft.UI.Xaml.Controls.ListView MusicRows { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Button WallMoreButton { get; } = new();
         internal void InvokeMore() => OnMore(this, new Microsoft.UI.Xaml.RoutedEventArgs());
+        internal void AttachSearch(LibraryRequest request) { _request = request; _released = false; }
+        internal void ReleaseSearch() => _released = true;
+        internal bool InvokeFind()
+        {
+            var args = new Microsoft.UI.Xaml.Input.KeyboardAcceleratorInvokedEventArgs();
+            CtrlF_Invoked(new(), args);
+            return args.Handled;
+        }
     }
 }

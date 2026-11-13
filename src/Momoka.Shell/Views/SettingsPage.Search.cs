@@ -1,6 +1,7 @@
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Diagnostics;
 using Momoka.Shell.ViewModels;
@@ -16,6 +17,23 @@ public sealed partial class SettingsPage
 
     // 分类入场不能抢走搜索的目标位置；两个滚动请求只允许搜索这一份负责。
     private bool HasPendingSearchNavigation => _pendingSearchNavigation?.CategoryKey == ViewModel.SelectedCategory;
+
+    // Gallery MainWindow.xaml.cs, CtrlF_Invoked, v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7.
+    // Cached settings windows also need activity ownership; returning to search cancels an older row-focus request.
+    private void CtrlF_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (!_activity.IsCurrent(_activityToken) || !SettingsSearchBox.IsLoaded
+            || SettingsSearchBox.Visibility != Visibility.Visible || !SettingsSearchBox.IsEnabled) return;
+        if (SettingsSearchBox.XamlRoot is not { } root) return;
+        for (var node = FocusManager.GetFocusedElement(root) as DependencyObject;
+             node is not null; node = VisualTreeHelper.GetParent(node))
+            if (node is ShortcutCaptureBox { IsCapturing: true }) return;
+        if (!SettingsSearchBox.Focus(FocusState.Programmatic)) return;
+        ++_searchNavigationGeneration;
+        _pendingSearchNavigation = null;
+        RestoreSearchFocusScrolling();
+        args.Handled = true;
+    }
 
     private void OnSettingsSearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
         => SubmitSettingsSearch(sender, args.ChosenSuggestion as SettingsSearchResult);

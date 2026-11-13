@@ -205,18 +205,29 @@
             </Grid.ColumnDefinitions>
             <StackPanel Spacing="2">
                 <TextBlock Style="{StaticResource EgEyebrowStyle}" Text="音乐库" />
-                <StackPanel Orientation="Horizontal" Spacing="12">
+                <!-- Gallery v2.9.3 / 14a4a1a2b8ddc527dc4a7d5f7e743d7c2bc97db7:
+                     Styles/ItemTemplates.xaml keeps trimmed text in a star column beside Auto content.
+                     The music heading has no leading image, so it needs only the final two columns. -->
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                     <TextBlock
+                        x:Name="MusicTitle"
+                        AutomationProperties.HeadingLevel="Level1"
                         Style="{StaticResource EgPageTitleStyle}"
                         Text="{x:Bind ViewModel.Title, Mode=OneWay}"
                         TextTrimming="CharacterEllipsis"
                         ToolTipService.ToolTip="{x:Bind ViewModel.Title, Mode=OneWay}" />
                     <TextBlock
+                        x:Name="MusicCount"
+                        Grid.Column="1"
                         Style="{StaticResource EgDataStyle}"
                         Margin="0,0,0,6"
                         Text="{x:Bind ViewModel.CountLabel, Mode=OneWay}"
                         VerticalAlignment="Bottom" />
-                </StackPanel>
+                </Grid>
             </StackPanel>
             <Button
                 x:Name="RefreshButton"
@@ -285,10 +296,16 @@
                 x:Name="MusicSearch"
                 AutomationProperties.Name="搜索音乐"
                 PlaceholderText="搜索歌曲、专辑、艺术家或歌单"
+                KeyboardAcceleratorPlacementMode="Hidden"
                 QueryIcon="Find"
                 QuerySubmitted="OnSearch"
                 Text="{x:Bind ViewModel.Search, Mode=TwoWay}"
-                Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}" />
+                Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}">
+                <!-- Gallery MainWindow.xaml at the pinned revision above. -->
+                <AutoSuggestBox.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="F" Invoked="CtrlF_Invoked" Modifiers="Control" />
+                </AutoSuggestBox.KeyboardAccelerators>
+            </AutoSuggestBox>
         </local:WrapRow>
 
         <InfoBar

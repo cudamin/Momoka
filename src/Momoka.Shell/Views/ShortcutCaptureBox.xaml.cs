@@ -16,6 +16,7 @@ namespace Momoka.Shell.Views;
 public sealed partial class ShortcutCaptureBox : UserControl
 {
     private bool _capturing;
+    internal bool IsCapturing => _capturing;
 
     public ShortcutCaptureBox()
     {

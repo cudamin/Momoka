@@ -16,6 +16,8 @@ internal static class MusicPagingTests
         yield return ("墙分页原生入口独立于曲目 Footer，绑定通知不冻结", WallEntryAsync);
         yield return ("曲目 Footer 分页入口保留并具备自动化名称", TrackEntryAsync);
         yield return ("墙分页按钮随悬浮播放栏避让并能恢复", ClearanceAsync);
+        yield return ("音乐长标题在剩余宽度裁切，读数与刷新独立保留", HeaderAsync);
+        yield return ("Ctrl+F聚焦已附加且可用的音乐搜索，离页和隐藏时放行", FindAsync);
         foreach (var section in new[] { MusicSection.Albums, MusicSection.Artists, MusicSection.Playlists })
             foreach (var total in new[] { 81, 100, 160 })
                 yield return ($"{section} {total} 项能经正式页面入口取得第 81 项与末页", () => WallPagesAsync(section, total));
@@ -26,6 +28,53 @@ internal static class MusicPagingTests
         yield return ("页面释放与重新附加身份拒绝旧第二页", IdentitySwitchAsync);
         yield return ("服务器空第二页结束分页且不清空已有列表", EmptyMoreAsync);
         foreach (var test in MusicPagingProbeTests.Cases()) yield return test;
+    }
+
+    private static Task HeaderAsync()
+    {
+        var title = Named(ReadPage(), "MusicTitle");
+        var grid = title.Parent!;
+        var columns = grid.Element(Presentation + "Grid.ColumnDefinitions")!.Elements().ToArray();
+        Require(grid.Name.LocalName == "Grid" && columns.Length == 2
+            && (string?)columns[0].Attribute("Width") == "*" && (string?)columns[1].Attribute("Width") == "Auto",
+            "长标题必须按剩余列宽测量，计数按内容宽度保留");
+        Require((string?)title.Attribute("TextTrimming") == "CharacterEllipsis"
+            && (string?)title.Attribute("ToolTipService.ToolTip") == "{x:Bind ViewModel.Title, Mode=OneWay}"
+            && (string?)title.Attribute("AutomationProperties.HeadingLevel") == "Level1", "标题丢失裁切、全文或一级标题语义");
+        Require((string?)Named(new XDocument(new XElement(grid)), "MusicCount").Attribute("Grid.Column") == "1", "计数没有自己的列");
+        var search = Named(ReadPage(), "MusicSearch");
+        var accelerator = search.Descendants(Presentation + "KeyboardAccelerator").Single();
+        Require((string?)accelerator.Attribute("Key") == "F" && (string?)accelerator.Attribute("Modifiers") == "Control"
+            && (string?)accelerator.Attribute("Invoked") == "CtrlF_Invoked", "音乐搜索未接原生Ctrl+F");
+        return Task.CompletedTask;
+    }
+
+    private static async Task FindAsync()
+    {
+        await using var fixture = new Fixture();
+        var page = new MusicLibraryPage(fixture.Library());
+        Require(!page.InvokeFind() && page.MusicSearch.FocusCalls == 0, "未附加页面消费快捷键");
+        page.AttachSearch(new LibraryRequest { Services = new EmptySearchServices(), Title = "音乐" });
+        Require(page.InvokeFind(), "有效搜索没有获得焦点");
+        page.MusicSearch.Visibility = Visibility.Collapsed;
+        Require(!page.InvokeFind(), "隐藏搜索消费快捷键");
+        page.MusicSearch.Visibility = Visibility.Visible;
+        page.MusicSearch.IsLoaded = false;
+        Require(!page.InvokeFind(), "未加载搜索消费快捷键");
+        page.MusicSearch.IsLoaded = true;
+        page.MusicSearch.IsEnabled = false;
+        Require(!page.InvokeFind(), "禁用搜索消费快捷键");
+        page.MusicSearch.IsEnabled = true;
+        page.MusicSearch.AcceptFocus = false;
+        Require(!page.InvokeFind(), "聚焦失败消费快捷键");
+        page.MusicSearch.AcceptFocus = true;
+        page.ReleaseSearch();
+        Require(!page.InvokeFind() && page.MusicSearch.FocusCalls == 2, "离页仍尝试聚焦");
+    }
+
+    private sealed class EmptySearchServices : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => null;
     }
 
     private static Task WallEntryAsync()

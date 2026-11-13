@@ -11,5 +11,6 @@
         <PackageReference Remove="@(PackageReference)" />
         <Compile Include="$(SourceRoot)\src\Momoka.Shell\Views\SettingsPage.Search.cs" Link="Production\SettingsPage.Search.cs" />
         <EmbeddedResource Include="$(SourceRoot)\src\Momoka.Shell\Views\SettingsPage.Search.cs" LogicalName="SettingsPage.Search.cs" />
+        <EmbeddedResource Include="$(SourceRoot)\src\Momoka.Shell\Views\SettingsPage.xaml" LogicalName="SettingsPage.xaml" />
     </ItemGroup>
 </Project>

@@ -12,6 +12,7 @@
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MusicPlaybackViewModel.cs" Link="Production\MusicPlaybackViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MusicLibraryViewModel.cs" Link="Production\MusicLibraryViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\MusicLibraryPage.Search.cs" Link="Production\MusicLibraryPage.Search.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ShellNavigationProbe.MusicPagingFixture.cs" Link="Production\MusicPagingProbeServer.cs" />
   </ItemGroup>
   <UsingTask TaskName="ExtractMusicPagingSource" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
@@ -34,7 +35,7 @@
             return source.Substring(first, last - first);
         };
         var generated = "// Extracted verbatim from this tree. XAML controls are offline boundaries.\n#nullable enable\n" +
-            "using Microsoft.UI.Xaml;\nnamespace Momoka.Shell.Views;\ninternal sealed partial class MusicLibraryPage\n{\n" +
+            "using Microsoft.UI.Xaml;\nnamespace Momoka.Shell.Views;\npublic sealed partial class MusicLibraryPage\n{\n" +
             between("    public static Visibility Show(bool value)", "\n    protected override async void OnNavigatedTo(") +
             between("    private async void OnMore(object sender, RoutedEventArgs args)", "\n    /// <summary>\n    /// 分区互斥") +
             between("    internal void SetPlayerClearance(double clearance)", "\n}\n") +

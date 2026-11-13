@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Xml.Linq;
 using Momoka.Diagnostics;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
@@ -31,6 +32,10 @@ internal static class Program
             ("Release取消完成等待并清理事件，重入只聚焦新任务", CancelScrollAsync),
             ("dispatcher拒绝及仅分类结果不保留pending", DispatcherRefusedAsync),
             ("ChangeView异常仍退订并记录失败、不聚焦", ScrollFailureAsync),
+            ("Ctrl+F只聚焦活动搜索，隐藏、未加载、禁用和失败时放行", FindAsync),
+            ("设置搜索原生Ctrl+F接线保留查询和建议浏览行为", FindWiringAsync),
+            ("Ctrl+F放行快捷键捕获控件及其后代", FindCaptureAsync),
+            ("Ctrl+F撤销旧搜索位置焦点，保留已选分类", FindPendingAsync),
             ("完成超时退订并记录失败、不聚焦", CompletionTimeoutAsync),
             ("焦点自动滚动不能覆盖搜索位置，完成后解除专属守卫", FocusBringIntoViewAsync),
             ("滚动请求拒绝时不聚焦、退订且不保留临时偏好", ClampedOffsetAsync)
@@ -44,6 +49,89 @@ internal static class Program
         }
         Console.WriteLine($"共 {tests.Length} 项，通过 {tests.Length - failed}，失败 {failed}，跳过 0");
         return failed == 0 ? 0 : 1;
+    }
+
+    private static Task FindWiringAsync()
+    {
+        using var source = Assembly.GetExecutingAssembly().GetManifestResourceStream("SettingsPage.xaml")!;
+        var document = XDocument.Load(source);
+        XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+        XNamespace ui = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        var search = document.Descendants().Single(element => (string?)element.Attribute(xaml + "Name") == "SettingsSearchBox");
+        var accelerator = search.Descendants(ui + "KeyboardAccelerator").Single();
+        Check((string?)accelerator.Attribute("Key") == "F" && (string?)accelerator.Attribute("Modifiers") == "Control"
+            && (string?)accelerator.Attribute("Invoked") == "CtrlF_Invoked");
+        Check((string?)search.Attribute("KeyboardAcceleratorPlacementMode") == "Hidden"
+            && (string?)search.Attribute("UpdateTextOnSelect") == "False"
+            && (string?)search.Attribute("QuerySubmitted") == "OnSettingsSearchSubmitted");
+        return Task.CompletedTask;
+    }
+
+    private static Task FindAsync()
+    {
+        using var f = new Fixture();
+        Microsoft.UI.Xaml.Input.FocusManager.Current = null;
+        Check(f.Page.InvokeFind() && f.Page.SettingsSearchBox.FocusCalls == 1);
+        f.Page.Release();
+        Check(!f.Page.InvokeFind() && f.Page.SettingsSearchBox.FocusCalls == 1);
+        f.Page.Reenter();
+        var box = f.Page.SettingsSearchBox;
+        box.IsLoaded = false;
+        Check(!f.Page.InvokeFind());
+        box.IsLoaded = true;
+        box.Visibility = Visibility.Collapsed;
+        Check(!f.Page.InvokeFind());
+        box.Visibility = Visibility.Visible;
+        box.IsEnabled = false;
+        Check(!f.Page.InvokeFind());
+        box.IsEnabled = true;
+        box.XamlRoot = null;
+        Check(!f.Page.InvokeFind() && box.FocusCalls == 1);
+        box.XamlRoot = new();
+        box.AcceptFocus = false;
+        Check(!f.Page.InvokeFind() && box.FocusCalls == 2);
+        box.AcceptFocus = true;
+        Check(f.Page.InvokeFind() && box.FocusCalls == 3);
+        return Task.CompletedTask;
+    }
+
+    private static Task FindCaptureAsync()
+    {
+        using var f = new Fixture();
+        var capture = new ShortcutCaptureBox { IsCapturing = true };
+        try
+        {
+            Microsoft.UI.Xaml.Input.FocusManager.Current = capture;
+            Check(!f.Page.InvokeFind());
+            Microsoft.UI.Xaml.Input.FocusManager.Current = new FrameworkElement { Parent = capture };
+            Check(!f.Page.InvokeFind() && f.Page.SettingsSearchBox.FocusCalls == 0);
+            capture.IsCapturing = false;
+            Check(f.Page.InvokeFind() && f.Page.SettingsSearchBox.FocusCalls == 1);
+            Microsoft.UI.Xaml.Input.FocusManager.Current = capture;
+            Check(f.Page.InvokeFind() && f.Page.SettingsSearchBox.FocusCalls == 2);
+        }
+        finally { Microsoft.UI.Xaml.Input.FocusManager.Current = null; }
+        Check(f.Page.InvokeFind());
+        return Task.CompletedTask;
+    }
+
+    private static async Task FindPendingAsync()
+    {
+        using var queued = new Fixture();
+        Check(queued.Page.NavigateSettingsSearchResult(queued.Result));
+        var category = queued.Page.ViewModel.SelectedCategory;
+        Check(queued.Page.InvokeFind() && !queued.Page.HasPendingOwner);
+        queued.Page.DispatcherQueue.Drain();
+        Check(queued.Focus.FocusCalls == 0 && queued.Page.SettingsScroll.Requests.Count == 0);
+        Check(queued.Page.ViewModel.SelectedCategory == category);
+        using var scrolling = new Fixture();
+        scrolling.Start();
+        var id = await scrolling.Started.Task;
+        Check(scrolling.Page.InvokeFind());
+        scrolling.Page.SettingsScroll.Complete(id);
+        await scrolling.CleanAsync();
+        Check(scrolling.Focus.FocusCalls == 0 && scrolling.Page.SettingsSearchBox.FocusCalls == 1);
+        Check(scrolling.Page.SettingsScroll.Subscribers == 0 && scrolling.Page.SettingsScroll.BringIntoViewOnFocusChange);
     }
 
     private static async Task SynchronousCompletionAsync()
