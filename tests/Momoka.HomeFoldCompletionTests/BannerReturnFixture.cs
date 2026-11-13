@@ -17,6 +17,7 @@ namespace Momoka.Shell.Views
         private readonly Layer LayerB = new();
         private readonly Layer LogoImage = new();
         private readonly Layer LogoRow = new();
+        private readonly ShimmerBoundary PictureShimmer = new();
         private readonly TranslateTransform LogoShift = new();
         private static readonly TimeSpan CrossFade = TimeSpan.FromMilliseconds(650);
         private static readonly TimeSpan Lift = TimeSpan.FromMilliseconds(600);
@@ -27,10 +28,13 @@ namespace Momoka.Shell.Views
         internal Action? DuringShow { get; set; }
         internal double PictureOpacity => FrontLayer.Opacity;
         internal double LogoOpacity => LogoRow.Opacity;
+        internal bool ShimmerActive => PictureShimmer.IsActive;
+        internal int ShimmerStops => PictureShimmer.Stops;
         private Layer FrontLayer => _second ? LayerB : LayerA;
         private object? FrontPicture => Brush(FrontLayer).ImageSource;
         internal void Loaded() => PaintVisit();
         internal void RestoreImage() => Paint(new BitmapImage());
+        internal void SetLoadingPicture() => Paint(null);
         internal void RestoreLogo()
         {
             _slides[0].Logo = new BitmapImage();

@@ -9,12 +9,47 @@ internal static class CardPresentationTests
 {
     internal static void Register()
     {
+        Test("原生搜索结果名称：外层导航按钮和两种卡墙容器绑定当前卡片标题", () =>
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
+            Assert.NotNull(directory);
+            var page = XDocument.Load(Path.Combine(directory!.FullName, "src/Momoka.Shell/Views/LibraryPage.xaml"));
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            foreach (var key in new[] { "ShelfCardTemplate", "PosterTemplate", "ThumbTemplate" })
+            {
+                var template = page.Descendants().Single(element => (string?)element.Attribute(x + "Key") == key);
+                var root = template.Elements().Single();
+                Assert.True(root.Name.LocalName is "Button" or "ItemContainer");
+                Assert.Equal("{x:Bind Title, Mode=OneWay}", (string?)root.Attribute("AutomationProperties.Name"));
+                Assert.False(root.Attributes().Any(attribute => attribute.Name.LocalName == "Template"));
+            }
+        });
+        Test("原生结果命名数据：正式CardItem标题覆盖与来源身份原地通知", () => CardImageContext.Run(async () =>
+        {
+            await using var fixture = new CardImageFixture(false, MediaServerKind.Emby);
+            var item = fixture.Scope.Bind(new EmbyItem { Id = "named-result", Name = "服务器影片名", Type = EmbyItemType.Movie });
+            var card = new CardItem(item, fixture.Images, 170, title: "展示影片名");
+            Assert.Equal("展示影片名", card.Title);
+            Assert.True(ReferenceEquals(item.Source, card.Item.Source));
+            Assert.True(card.Title.Length > 0);
+            var navigational = new CardItem(new EmbyItem { Id = "navigation", Name = "原名" }, fixture.Images, 170, navigate: () => { });
+            var changed = new List<string?>();
+            navigational.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+            navigational.UpdateNavigationText("新展示标题", "");
+            Assert.Equal("新展示标题", navigational.Title);
+            Assert.True(changed.Contains(nameof(CardItem.Title)));
+            navigational.AbandonPoster();
+            card.AbandonPoster();
+        }));
         Test("媒体多选：选择时收起单项动作，退出恢复并通知", () => CardImageContext.Run(async () =>
         {
             await using var fixture = new CardImageFixture(false, MediaServerKind.Emby);
             var card = new CardItem(fixture.Scope.Bind(new EmbyItem
             {
-                Id = "movie", Type = EmbyItemType.Movie, Name = "影片",
+                Id = "movie",
+                Type = EmbyItemType.Movie,
+                Name = "影片",
                 UserData = new EmbyUserData { IsFavorite = true }
             }), fixture.Images, 170);
             var original = new[] { card.PlayVisibility, card.UserStateVisibility, card.FavoriteActionVisibility, card.MoreVisibility };

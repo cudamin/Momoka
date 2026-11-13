@@ -57,7 +57,7 @@
             "using Momoka.Services;\nusing Momoka.Shell.Views;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Documents;\nusing DetailViewModel = Momoka.Tests.ReflectedDetail;\n" +
             "namespace Momoka.Shell.Views\n{\ninternal static partial class ItemCommands\n{\n" + guard + "\n" + ask + "\n}\n" + action + "\n}\n" +
             "namespace Momoka.Tests\n{\ninternal sealed partial class GenrePageContract\n{\n" + changed + "\n" + paint + "\n" + reading + "\n" +
-            "    internal void Enter(object request, PlexActionsProxy _actions, FixtureServices services, EmbySession _session, EmbyImageStore images)\n    {\n" + enter + "\n    }\n}\n}\n";
+            "    private void EnterCore(ReflectedDetailRequest request, PlexActionsProxy _actions, FixtureServices services, EmbySession _session, EmbyImageStore images)\n    {\n" + enter + "\n    }\n}\n}\n";
         Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
         if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
             File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));

@@ -74,6 +74,11 @@ public static class ThemeHost
         ("EgTextBrush", theme => theme.Colors.Text),
         ("EgTextDimBrush", theme => theme.Colors.TextDim),
         ("EgTextFaintBrush", theme => theme.Colors.TextFaint),
+        // 主题别名仍共享原画刷；登记同一角色使首帧和运行覆盖清单一致，不漏掉卡片文字。
+        ("EgCardCaptionForegroundBrush", theme => theme.Colors.Text),
+        ("EgCardCaptionSecondaryBrush", theme => theme.Colors.Text),
+        ("EgMediaCaptionForegroundBrush", _ => White),
+        ("EgMediaCaptionSecondaryBrush", _ => ThemeColor.Rgb(0xC9, 0xD0, 0xD9)),
         ("EgTextOnAccentBrush", theme => theme.Colors.TextOnAccent),
         ("EgAccentBrush", theme => theme.Colors.Accent),
         ("EgAccentHoverBrush", theme => theme.Colors.AccentHover),

@@ -1042,8 +1042,13 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (_selecting) return;
         if (args.InvokedItem is not CardItem card) return;
         if (ConsumeActionInvoke(card)) return;
+        var prepared = CardDetailTransition.Prepare(Frame, DescendantsOf(sender).OfType<PosterCard>().FirstOrDefault(poster => ReferenceEquals(poster.Card, card)));
         NavigationTiming.Click("card");
-        ViewModel.Open(card);
+        try { ViewModel.Open(card); }
+        finally
+        {
+            if (prepared && ReferenceEquals(Frame?.Content, this)) CardDetailTransition.Cancel(Frame);
+        }
     }
 
     /// <summary>
@@ -1082,10 +1087,15 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnShelfCardClicked(object sender, RoutedEventArgs e)
     {
         if (_selecting) return;
-        if (sender is Button { Content: PosterCard { Card: { } card } } && !ConsumeActionInvoke(card))
+        if (sender is Button { Content: PosterCard { Card: { } card } poster } && !ConsumeActionInvoke(card))
         {
+            var prepared = CardDetailTransition.Prepare(Frame, poster);
             NavigationTiming.Click("card");
-            ViewModel.Open(card);
+            try { ViewModel.Open(card); }
+            finally
+            {
+                if (prepared && ReferenceEquals(Frame?.Content, this)) CardDetailTransition.Cancel(Frame);
+            }
         }
     }
 

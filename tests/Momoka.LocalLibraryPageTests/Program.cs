@@ -106,11 +106,16 @@ internal static class Program
     private static LocalMediaLibraryEntry Entry(string library, string id, bool inLibrary, string directory)
         => JsonSerializer.Deserialize<LocalMediaLibraryEntry>(JsonSerializer.Serialize(new
         {
-            Id = id, LibraryId = library, TargetPath = Path.Combine(directory, "Movie.mkv"),
+            Id = id,
+            LibraryId = library,
+            TargetPath = Path.Combine(directory, "Movie.mkv"),
             Source = new { RootPath = directory, Path = Path.Combine(directory, "Movie.mkv") },
             Metadata = new { Title = "Movie", Year = 2026, MediaType = 0, MediaSource = "tmdb", MediaId = "1" },
-            Mode = 0, Outputs = inLibrary ? new[] { new { Path = Path.Combine(directory, "Movie.mkv"), Kind = 0, Success = true, Message = "" } } : [],
-            AddedAt = DateTimeOffset.UtcNow, IsInLibrary = inLibrary, Complete = true
+            Mode = 0,
+            Outputs = inLibrary ? new[] { new { Path = Path.Combine(directory, "Movie.mkv"), Kind = 0, Success = true, Message = "" } } : [],
+            AddedAt = DateTimeOffset.UtcNow,
+            IsInLibrary = inLibrary,
+            Complete = true
         }))!;
 
     private sealed class Launcher : ISystemLauncher

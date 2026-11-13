@@ -17,16 +17,24 @@ public sealed partial class FnMusicMediaAdapter
         var item = new EmbyItem
         {
             Id = audio ? guid : ContainerPrefix + Family(type) + ":" + guid,
-            Name = Text(value, audio ? "title" : "name"), Type = type, IsFolder = !audio,
-            PrimaryImageAspectRatio = 1, CanEditItems = false,
-            IndexNumber = Integer(value, "trackNo"), ParentIndexNumber = Integer(value, "discNo"),
-            RunTimeTicks = Ticks(duration), ChildCount = Integer(value, "trackCount"),
+            Name = Text(value, audio ? "title" : "name"),
+            Type = type,
+            IsFolder = !audio,
+            PrimaryImageAspectRatio = 1,
+            CanEditItems = false,
+            IndexNumber = Integer(value, "trackNo"),
+            ParentIndexNumber = Integer(value, "discNo"),
+            RunTimeTicks = Ticks(duration),
+            ChildCount = Integer(value, "trackCount"),
             Album = album is null ? null : Text(album, "name"),
             AlbumId = album is null || Text(album, "guid").Length == 0 ? null : ContainerPrefix + "album:" + Text(album, "guid"),
-            Artists = artists.Select(artist => artist.Name).ToList(), ArtistItems = artists,
-            AlbumArtists = Names(album?["artists"]), UserData = audio ? new() { IsFavorite = Flag(value, "isFavorite") } : null,
+            Artists = artists.Select(artist => artist.Name).ToList(),
+            ArtistItems = artists,
+            AlbumArtists = Names(album?["artists"]),
+            UserData = audio ? new() { IsFavorite = Flag(value, "isFavorite") } : null,
             ProductionYear = Integer(value, "year") ?? (album is null ? Integer(value, "originalReleaseYear") : Integer(album, "originalReleaseYear")),
-            DateCreated = Date(Number(value, "createdAt")), Path = audio ? Text(spec, "path") : null
+            DateCreated = Date(Number(value, "createdAt")),
+            Path = audio ? Text(spec, "path") : null
         };
         var coverId = Text(value, "coverId");
         if (coverId.Length == 0 && album is not null) coverId = Text(album, "coverId");
@@ -37,8 +45,15 @@ public sealed partial class FnMusicMediaAdapter
         var unsupported = Flag(value, "isCue") || format.ToLowerInvariant() is "cue" or "iso" or "sacd"
             || Number(value, "accessStatus") is not (null or 0) || Flag(value, "isAdminDeleted");
         if (unsupported) return item;
-        var stream = new MediaStream { Type = "Audio", Index = 0, Codec = Text(spec, "codec"),
-            Channels = Integer(spec, "channel"), BitDepth = Integer(spec, "bitDepth"), BitRate = Integer(spec, "bitrate") };
+        var stream = new MediaStream
+        {
+            Type = "Audio",
+            Index = 0,
+            Codec = Text(spec, "codec"),
+            Channels = Integer(spec, "channel"),
+            BitDepth = Integer(spec, "bitDepth"),
+            BitRate = Integer(spec, "bitrate")
+        };
         item.MediaStreams = [stream];
         item.Size = Number(spec, "size") is > 0 and var size ? size : null;
         item.MediaSources = [new() { Id = guid, ItemId = guid, Name = item.Name, Path = item.Path, Container = format,

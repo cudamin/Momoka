@@ -78,7 +78,8 @@ public sealed class PlayerCaptureController : IDisposable
             var picture = await LoadPictureAsync(temporary).ConfigureAwait(true);
             if (!Current(generation, fileGeneration) || cts.IsCancellationRequested) return null;
             var dialog = new PlayerCaptureDialog(picture, subtitleRegion,
-                crop => SaveCropAsync(temporary, crop, subtitleRegion, generation, fileGeneration, cts.Token)) { XamlRoot = root };
+                crop => SaveCropAsync(temporary, crop, subtitleRegion, generation, fileGeneration, cts.Token))
+            { XamlRoot = root };
             _dialog = dialog;
             await dialog.ShowAsync();
             return dialog.SavedPath;

@@ -58,13 +58,25 @@ internal sealed partial class ShellNavigationProbe
                 await WaitForDiagnosticsFrameAsync();
                 Require(ThemeHost.Current.Id == theme.Id && holder.RequestedTheme == ElementTheme.Dark,
                     "主题代次与根不同步");
-                receipts.Add(new { stage = "island", theme = theme.Id, state = _window.BackdropState,
-                    contrast = new AccessibilitySettings().HighContrast, effects = new UISettings().AdvancedEffectsEnabled });
+                receipts.Add(new
+                {
+                    stage = "island",
+                    theme = theme.Id,
+                    state = _window.BackdropState,
+                    contrast = new AccessibilitySettings().HighContrast,
+                    effects = new UISettings().AdvancedEffectsEnabled
+                });
                 await SaveProbeScreenAsync($"p2-island-{theme.Id}-screen.png");
             }
 
-            var item = new EmbyItem { Id = "material-menu", Type = EmbyItemType.Movie, Name = "材质生命周期",
-                ProviderIds = new() { ["Tmdb"] = "12345" }, MediaType = "Video" };
+            var item = new EmbyItem
+            {
+                Id = "material-menu",
+                Type = EmbyItemType.Movie,
+                Name = "材质生命周期",
+                ProviderIds = new() { ["Tmdb"] = "12345" },
+                MediaType = "Video"
+            };
             fixture.Transport.Reply = (request, _) => Task.FromResult(
                 request.RequestUri!.AbsolutePath.EndsWith("/Items/material-menu", StringComparison.Ordinal)
                     ? Json(item) : FakeTransport.Standard(request));
@@ -105,10 +117,17 @@ internal sealed partial class ShellNavigationProbe
                         Require(presenter.Background is SolidColorBrush brush
                             && (material.NeedsSolidSurface ? brush.Color == solidColor : brush.Color.A == 0),
                             "菜单透明/实色层没有跟随连接结果");
-                        receipts.Add(new { stage = "menu", cycle, theme = theme.Id,
-                            targets = material.TargetCount, attached = material.ConnectedTargetCount,
-                            solid = material.SolidTargetCount, state = material.MaterialState,
-                            host = _window.BackdropState });
+                        receipts.Add(new
+                        {
+                            stage = "menu",
+                            cycle,
+                            theme = theme.Id,
+                            targets = material.TargetCount,
+                            attached = material.ConnectedTargetCount,
+                            solid = material.SolidTargetCount,
+                            state = material.MaterialState,
+                            host = _window.BackdropState
+                        });
                     }
                     // 此截图允许该主菜单和子菜单自己的Popup；宿主归属守卫仍检查主窗客户区。
                     if (cycle == 0) await SaveProbeScreenAsync($"p2-menu-{theme.Id}-screen.png");
@@ -177,10 +196,18 @@ internal sealed partial class ShellNavigationProbe
                     && bar.ButtonPressedForegroundColor == state.HighlightText,
                     "高对比caption悬停/按下没有使用系统Highlight/HighlightText");
                 await WaitForDiagnosticsFrameAsync();
-                readings.Add(new { theme = ThemeHost.Current.Id, state.HighContrast, state.AdvancedEffects, canvas = canvas.Color.ToString(),
+                readings.Add(new
+                {
+                    theme = ThemeHost.Current.Id,
+                    state.HighContrast,
+                    state.AdvancedEffects,
+                    canvas = canvas.Color.ToString(),
                     foreground = bar.ButtonForegroundColor?.ToString(),
-                    hoverBackground = bar.ButtonHoverBackgroundColor?.ToString(), pressedBackground = bar.ButtonPressedBackgroundColor?.ToString(),
-                    hoverForeground = bar.ButtonHoverForegroundColor?.ToString(), pressedForeground = bar.ButtonPressedForegroundColor?.ToString() });
+                    hoverBackground = bar.ButtonHoverBackgroundColor?.ToString(),
+                    pressedBackground = bar.ButtonPressedBackgroundColor?.ToString(),
+                    hoverForeground = bar.ButtonHoverForegroundColor?.ToString(),
+                    pressedForeground = bar.ButtonPressedForegroundColor?.ToString()
+                });
                 await CompositionPlaybackProbe.SaveWindowScreenAsync(window.Handle,
                     Path.Combine(_options.Paths.LogDirectory, $"p2-system-{readings.Count}-screen.png"));
                 sample.Content = $"已记录 {readings.Count} 次系统外观";

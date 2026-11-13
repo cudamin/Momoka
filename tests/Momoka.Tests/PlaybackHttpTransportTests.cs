@@ -70,7 +70,8 @@ internal static class PlaybackHttpTransportTests
             handle.TracksChanged += tracks => observed = tracks.Single().ExternalFilename;
             var raw = System.Text.Json.JsonSerializer.Serialize(new
             {
-                @event = "property-change", name = "track-list",
+                @event = "property-change",
+                name = "track-list",
                 data = new[] { new Dictionary<string, object> { ["id"] = 1, ["type"] = "sub", ["external-filename"] = mapped } }
             });
             Assert.True(MpvIpcMessage.TryParse(raw, out var message));

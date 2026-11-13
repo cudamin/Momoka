@@ -82,10 +82,13 @@ internal static class Program
         CardImageResizeTests.Register();
         BrowseImageGateTests.Register();
         CardPresentationTests.Register();
+        PosterCaptionTests.Register();
         NavigationArtworkTests.Register();
         BannerCacheTests.Register();
         ImageRecoveryTests.Register();
         CardArtworkRecoveryTests.Register();
+        CardArtworkIdentityTests.Register();
+        ConnectedProbeSourceTests.Register();
         FocusWatchTests.Register();
         SettingsControlNameTests.Register();
         DeferredCardsTests.Register();

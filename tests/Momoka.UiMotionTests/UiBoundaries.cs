@@ -1,4 +1,4 @@
-// UI/clock boundaries only. SurfaceMotion.cs and GlyphPulse.cs are compiled unchanged from the production tree.
+// UI/clock boundaries only. HomeMotion, SurfaceMotion and GlyphPulse are compiled unchanged from production.
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using Microsoft.UI.Xaml;
@@ -17,6 +17,25 @@ namespace Windows.Foundation
         public double Top => Y;
         public double Right => X + Width;
         public double Bottom => Y + Height;
+    }
+}
+
+namespace Windows.System
+{
+    public enum VirtualKey { Home, End, PageUp, PageDown, Escape, Enter }
+}
+
+namespace Microsoft.UI.Xaml.Input
+{
+    public sealed class KeyRoutedEventArgs(Windows.System.VirtualKey key)
+    {
+        public Windows.System.VirtualKey Key { get; } = key;
+        public bool Handled { get; set; }
+    }
+    public sealed class NoFocusCandidateFoundEventArgs(FocusNavigationDirection direction)
+    {
+        public FocusNavigationDirection Direction { get; } = direction;
+        public bool Handled { get; set; }
     }
 }
 
@@ -64,6 +83,8 @@ namespace Microsoft.UI.Xaml
     public delegate void SizeChangedEventHandler(object sender, SizeChangedEventArgs args);
     public sealed class RoutedEventArgs : EventArgs;
     public enum Visibility { Visible, Collapsed }
+    public enum FocusState { Unfocused, Pointer, Keyboard, Programmatic }
+    public enum FocusNavigationDirection { Next, Previous, Left, Right, Up, Down }
     public enum ElementTheme { Default, Light, Dark }
     public enum HorizontalAlignment { Left, Center, Right, Stretch }
     public enum VerticalAlignment { Top, Center, Bottom, Stretch }
@@ -162,6 +183,16 @@ namespace Microsoft.UI.Xaml
         public RectangleGeometry? Clip { get; set; }
         public bool IsHitTestVisible { get; set; } = true;
         public bool IsTabStop { get; set; } = true;
+        public bool FocusAccepted { get; set; } = true;
+        public int FocusCalls { get; private set; }
+        public FocusState FocusState { get; private set; }
+        public bool Focus(FocusState state)
+        {
+            FocusCalls++;
+            if (!FocusAccepted) return false;
+            FocusState = state;
+            return true;
+        }
     }
 
     public class FrameworkElement : UIElement
@@ -169,12 +200,15 @@ namespace Microsoft.UI.Xaml
         public static DependencyProperty HeightProperty { get; } = new("Height", double.NaN);
         private EventHandler<object>? _layoutUpdated;
         private RoutedEventHandler? _unloaded;
+        private RoutedEventHandler? _loaded;
         private SizeChangedEventHandler? _sizeChanged;
         public event EventHandler<object>? LayoutUpdated { add => _layoutUpdated += value; remove => _layoutUpdated -= value; }
         public event RoutedEventHandler? Unloaded { add => _unloaded += value; remove => _unloaded -= value; }
+        public event RoutedEventHandler? Loaded { add => _loaded += value; remove => _loaded -= value; }
         public event SizeChangedEventHandler? SizeChanged { add => _sizeChanged += value; remove => _sizeChanged -= value; }
         public int LayoutSubscriptionCount => _layoutUpdated?.GetInvocationList().Length ?? 0;
         public int UnloadedSubscriptionCount => _unloaded?.GetInvocationList().Length ?? 0;
+        public int LoadedSubscriptionCount => _loaded?.GetInvocationList().Length ?? 0;
         public int SizeSubscriptionCount => _sizeChanged?.GetInvocationList().Length ?? 0;
         public bool IsLoaded { get; set; } = true;
         public double Width { get; set; } = double.NaN;
@@ -196,6 +230,7 @@ namespace Microsoft.UI.Xaml
         }
         public void RaiseLayout() => _layoutUpdated?.Invoke(this, new());
         public void RaiseUnload() => _unloaded?.Invoke(this, new());
+        public void RaiseLoaded() { IsLoaded = true; _loaded?.Invoke(this, new()); }
         public void Resize(double width, double naturalHeight)
         {
             var previous = new Windows.Foundation.Size(ActualWidth, ActualHeight);
@@ -234,6 +269,54 @@ namespace Microsoft.UI.Xaml
 
 namespace Microsoft.UI.Xaml.Controls
 {
+    public sealed class ItemsSourceView(int count)
+    {
+        public int Count { get; } = count;
+    }
+    public sealed class ItemsRepeaterElementPreparedEventArgs(UIElement element, int index) : EventArgs
+    {
+        public UIElement Element { get; } = element;
+        public int Index { get; } = index;
+    }
+    public sealed class ItemsRepeaterElementClearingEventArgs(UIElement element) : EventArgs
+    {
+        public UIElement Element { get; } = element;
+    }
+    public sealed class ItemsRepeater : FrameworkElement
+    {
+        private readonly Dictionary<int, UIElement> _realized = [];
+        public ItemsSourceView? ItemsSourceView { get; set; }
+        public event Windows.Foundation.TypedEventHandler<ItemsRepeater, ItemsRepeaterElementPreparedEventArgs>? ElementPrepared;
+        public event Windows.Foundation.TypedEventHandler<ItemsRepeater, ItemsRepeaterElementClearingEventArgs>? ElementClearing;
+        public int TryGetCount { get; private set; }
+        public int CreateCount { get; private set; }
+        public bool ThrowOnCreate { get; set; }
+        public Func<int, UIElement>? CreateElement { get; set; }
+        public UIElement? TryGetElement(int index) { TryGetCount++; return _realized.GetValueOrDefault(index); }
+        public UIElement GetOrCreateElement(int index)
+        {
+            CreateCount++;
+            if (ThrowOnCreate) throw new InvalidOperationException("Injected realization failure.");
+            var element = CreateElement?.Invoke(index) ?? new FrameworkElement();
+            _realized.Add(index, element);
+            AddVisualChild(element);
+            return element;
+        }
+        public int GetElementIndex(UIElement element) => _realized.FirstOrDefault(pair => ReferenceEquals(pair.Value, element), new(-1, element)).Key;
+        public void Prepare(int index, FrameworkElement element)
+        {
+            _realized.Add(index, element);
+            AddVisualChild(element);
+            ElementPrepared?.Invoke(this, new(element, index));
+        }
+        public void Clear(int index)
+        {
+            var element = _realized[index];
+            ElementClearing?.Invoke(this, new(element));
+            _realized.Remove(index);
+            RemoveVisualChild(element);
+        }
+    }
     public class ItemsControl : FrameworkElement
     {
         private readonly Dictionary<object, FrameworkElement> _containers = new(ReferenceEqualityComparer.Instance);
@@ -261,6 +344,7 @@ namespace Microsoft.UI.Xaml.Controls
     }
     public sealed class Grid : FrameworkElement;
     public sealed class ScrollView : FrameworkElement;
+    public sealed class Button : FrameworkElement;
     public sealed class ScrollViewer : FrameworkElement;
 
     public sealed class ContentPresenter : FrameworkElement
@@ -491,13 +575,27 @@ namespace Windows.UI.ViewManagement
         private static bool _animationsEnabled = true;
         private Windows.Foundation.TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? _changed;
         public static List<UISettings> Created { get; } = [];
+        public static bool ThrowOnAdd { get; set; }
+        public static bool ThrowAfterAdd { get; set; }
+        public static bool ThrowOnRemove { get; set; }
+        public static bool ThrowAfterRemove { get; set; }
         public UISettings() => Created.Add(this);
         public bool AnimationsEnabled => _animationsEnabled;
         public int SubscriptionCount => _changed?.GetInvocationList().Length ?? 0;
         public event Windows.Foundation.TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? AnimationsEnabledChanged
         {
-            add => _changed += value;
-            remove => _changed -= value;
+            add
+            {
+                if (ThrowOnAdd) throw new InvalidOperationException("Injected event registration failure.");
+                _changed += value;
+                if (ThrowAfterAdd) throw new InvalidOperationException("Injected post-registration failure.");
+            }
+            remove
+            {
+                if (ThrowOnRemove) throw new InvalidOperationException("Injected event removal failure.");
+                _changed -= value;
+                if (ThrowAfterRemove) throw new InvalidOperationException("Injected post-removal failure.");
+            }
         }
         public static void SetAnimationsEnabled(bool enabled)
         {
@@ -508,8 +606,15 @@ namespace Windows.UI.ViewManagement
         public static void Reset()
         {
             if (Created.Any(settings => settings.SubscriptionCount != 0)) throw new InvalidOperationException("Leaked system animation preference subscription.");
-            Created.Clear();
             _animationsEnabled = true;
+            ThrowOnAdd = ThrowAfterAdd = ThrowOnRemove = ThrowAfterRemove = false;
+        }
+        public static void EndFaultFixture()
+        {
+            // Only injected native-remove-before failure leaves the simulated registration unknown.
+            // This releases fake event handles after asserting the exact leftover; no product state is repaired.
+            foreach (var settings in Created) settings._changed = null;
+            ThrowOnAdd = ThrowAfterAdd = ThrowOnRemove = ThrowAfterRemove = false;
         }
     }
 }
@@ -544,23 +649,9 @@ namespace Momoka.Shell.ViewModels
 
 namespace Momoka.Shell.Views
 {
-    internal static class HomeMotion
+    public sealed class SettingsPage : FrameworkElement
     {
-        private static bool _preference = true;
-        private static Action? _changed;
-        internal static bool AnimationsEnabled => _preference && Windows.UI.ViewManagement.UISettings.Created.LastOrDefault()?.AnimationsEnabled != false;
-        internal static int PreferenceSubscriptionCount => _changed?.GetInvocationList().Length ?? 0;
-        internal static event Action? PreferenceChanged { add => _changed += value; remove => _changed -= value; }
-        internal static void ApplyPreference(bool enabled)
-        {
-            if (_preference == enabled) return;
-            _preference = enabled;
-            _changed?.Invoke();
-        }
-        internal static void Reset()
-        {
-            if (PreferenceSubscriptionCount != 0) throw new InvalidOperationException("Leaked application animation preference subscription.");
-            _preference = true;
-        }
+        internal const int PageTransitionDurationMs = 180;
+        internal const double PageTransitionDistance = 12;
     }
 }

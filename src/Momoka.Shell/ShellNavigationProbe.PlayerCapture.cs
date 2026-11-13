@@ -35,7 +35,8 @@ internal sealed partial class ShellNavigationProbe
             {
                 attempts++;
                 throw new PlayerToolException("离线保存失败示例");
-            }) { XamlRoot = _root.XamlRoot };
+            })
+            { XamlRoot = _root.XamlRoot };
             Exception? error = null;
             dialog.Opened += async (_, _) =>
             {
@@ -84,7 +85,7 @@ internal sealed partial class ShellNavigationProbe
         await File.WriteAllBytesAsync(input, await FixtureImageAsync(1280, 720));
         var picture = await PlayerCaptureController.LoadPictureAsync(input);
         var dialog = new PlayerCaptureDialog(picture, true, _ => throw new PlayerToolException("离线保存失败示例，请重试或取消。"))
-            { XamlRoot = _root.XamlRoot };
+        { XamlRoot = _root.XamlRoot };
         await dialog.ShowAsync();
     }
 

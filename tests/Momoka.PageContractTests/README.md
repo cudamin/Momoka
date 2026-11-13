@@ -4,6 +4,8 @@
 
 WinUI P3 多选栏直接链接 `LibraryPage.SelectionInput.cs`：有原生浮层或 CommandBar 溢出时 Escape 交给平台，关闭后才退出选择或取消剩余。六个控制流场景和一项 XAML 主次操作接线检查不证明真实键盘、焦点或溢出像素；`InspectLibraryBatchKeyboard` 使用实际菜单和外部键盘输入补齐该边界。
 
+WinUI P4详情副行3项直接链接`PosterCard.Caption.cs`，真实CardItem驱动人员/媒体/库卡/Upcoming、OnScrim开关及同容器换型；解析实际Caption视觉状态和Dark/Light/HighContrast资源链，错误首页角色覆盖副行的反例必须拒绝。控件样式和VisualStateManager只记录值；实际状态优先级/像素由`InspectDetailResponsive`及原`RequireCardInk`验证，不把离线210项通过当作原生红项已消失。
+
 - 当前覆盖：订阅列表导航 Tag／重入／释放；诊断 VM 快照与通知交接；真实 CardItem／PosterCache 的首图在飞换宽、旧下载和解码迟到、离屏与重复 Loaded、来源撤销及缓存宽度；R-014 同键坏缓存的有界恢复、无损错误分类、共享请求与迟到缓存保护。
 - 订阅共享属主直接编译链接 `MoviePilotHomeSubscriptions`：受控时钟验证停留三分钟不再自动读取、重入首读与两个属主独立释放。VM 和时钟是边界替身，不代表真实网络或屏幕验证；实际主页停留 65 秒、手动刷新及连接恢复由 `HomeOrderAsync` 检查。
 - P3 长剧测试编译链接真实 `CardShelf`、`CardCollection` 与 `CardItem`：2000 项计数与深处索引只创建被访问卡，删除未访问季、清理及 30 次重新填充不创建隐藏卡；非泛型 `IList` 增删改、移动、完整枚举和复制保留原语义。这里不证明 WinRT 的 `IBindableVector` 投影及 `ItemsRepeater` 布局访问数量，真实 Frame 检查由性能探针执行。
@@ -32,3 +34,9 @@ The abandoned first-image case gates the actual shared download cancellation cal
 old immediate HTTP-token assertion while propagation is pending, and waits for the transport token
 before delivering its late response. All original no-cache/no-decode/no-revival assertions remain;
 card-waiter completion is not treated as completion of every linked cancellation callback.
+
+## 2026-11-13实际卡片取图身份
+
+CardArtworkIdentityTests原样执行CardItem.EnsurePosterAsync：冷下载记录Primary，释放图使引用不可用，热缓存/全新卡命中恢复真实引用；宽卡Thumb成功和Primary失败后Thumb回退准确记图种，不以首选候选猜图。新增4项后当前PageContract211/211，失败0、跳过0。该证据用于关联动画选源，仍不证明实际WinUI显示或动画帧。
+
+实际原生研究在首次自定义Page Frame.Navigate崩溃，dump定位于关联Prepare前。改用已有LibraryPage正式导航与缓存返回，新增源契约核现有Page、真实realized源、原Page/Poster实例恢复、Started且Completed、匿名失败回退与禁止直接Content替换。当前212/212，真实运行由协调会话复验。

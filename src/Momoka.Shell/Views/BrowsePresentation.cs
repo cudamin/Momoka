@@ -27,6 +27,9 @@ internal sealed class BrowsePresentation(Frame frame)
     private Storyboard? _motion;
     private EventHandler<object>? _completed;
     private bool _watchingPreference;
+    private SettingsPreferenceWatch? _preferenceWatch;
+    private bool _deferMotion;
+    private bool _connectedStarted;
     private int _generation;
 
     /// <summary>
@@ -58,12 +61,13 @@ internal sealed class BrowsePresentation(Frame frame)
         return Task.CompletedTask;
     }
 
-    internal void Begin()
+    internal void Begin(bool deferMotion = false)
     {
         Stop();
         // 离线视图模型夹具和未上树的启动路径没有可提交的帧，不给它们制造永远等不到的门。
         if (frame.XamlRoot is null) return;
         _images = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _deferMotion = deferMotion;
         _timing = NavigationTiming.Capture();
         ImageGate.Value = _images.Task;
         Owners.Remove(frame);
@@ -119,8 +123,21 @@ internal sealed class BrowsePresentation(Frame frame)
         };
         CompositionTarget.Rendering += _rendering;
 
-        if (!HomeMotion.AnimationsEnabled || frame.XamlRoot is null) return;
-        WatchPreference();
+        if (!_deferMotion && !_connectedStarted) StartMotion(generation);
+    }
+
+    /// <summary>关联动画只接管呈现；首帧图片门控始终继续，失败恢复原页面淡入。</summary>
+    internal static void ResolveConnectedMotion(Frame frame, bool started)
+    {
+        if (!Owners.TryGetValue(frame, out var owner) || !owner._deferMotion) return;
+        owner._deferMotion = false;
+        owner._connectedStarted = started;
+        if (!started && owner._page?.IsLoaded == true) owner.StartMotion(owner._generation);
+    }
+
+    private void StartMotion(int generation)
+    {
+        if (!HomeMotion.AnimationsEnabled || frame.XamlRoot is null || _motion is not null) return;
 
         var motion = new Storyboard();
         var fade = new DoubleAnimation
@@ -142,6 +159,7 @@ internal sealed class BrowsePresentation(Frame frame)
         frame.Opacity = 0.8;
         try
         {
+            WatchPreference();
             _timing?.Mark("browse-motion-start");
             motion.Begin();
         }
@@ -157,7 +175,9 @@ internal sealed class BrowsePresentation(Frame frame)
         if (_watchingPreference) return;
         _watchingPreference = true;
         HomeMotion.PreferenceChanged += OnPreferenceChanged;
-        _systemSettings.AnimationsEnabledChanged += OnSystemPreferenceChanged;
+        var watch = new SettingsPreferenceWatch(this);
+        _preferenceWatch = watch;
+        _systemSettings.AnimationsEnabledChanged += watch.OnChanged;
     }
 
     private void OnPreferenceChanged()
@@ -165,14 +185,21 @@ internal sealed class BrowsePresentation(Frame frame)
         if (!HomeMotion.AnimationsEnabled) StopMotion();
     }
 
-    private void OnSystemPreferenceChanged(UISettings sender, object args)
+    private sealed class SettingsPreferenceWatch(BrowsePresentation owner)
     {
-        var generation = _generation;
-        frame.DispatcherQueue.TryEnqueue(() =>
+        internal bool Active { get; set; } = true;
+        internal void OnChanged(UISettings sender, object args)
         {
-            if (generation == _generation) OnPreferenceChanged();
-        });
+            if (!Active) return;
+            var generation = owner._generation;
+            owner.FrameDispatcher.TryEnqueue(() =>
+            {
+                if (Active && generation == owner._generation) owner.OnPreferenceChanged();
+            });
+        }
     }
+
+    private DispatcherQueue FrameDispatcher => frame.DispatcherQueue;
 
     private void StopMotion()
     {
@@ -180,15 +207,22 @@ internal sealed class BrowsePresentation(Frame frame)
         _motion = null;
         if (motion is not null)
         {
-            motion.Completed -= _completed;
+            try { motion.Completed -= _completed; }
+            catch (Exception) { /* 平台事件清理失败不阻断终值或图片放行。 */ }
             _completed = null;
-            motion.Stop();
+            try { motion.Stop(); }
+            catch (Exception) { /* native时钟停止失败仍继续本地清理。 */ }
         }
         frame.Opacity = 1;
         if (!_watchingPreference) return;
         _watchingPreference = false;
         HomeMotion.PreferenceChanged -= OnPreferenceChanged;
-        _systemSettings.AnimationsEnabledChanged -= OnSystemPreferenceChanged;
+        var watch = _preferenceWatch;
+        _preferenceWatch = null;
+        if (watch is null) return;
+        watch.Active = false;
+        try { _systemSettings.AnimationsEnabledChanged -= watch.OnChanged; }
+        catch (Exception) { /* 只确认本地观察失效，不能声称native已退订。 */ }
     }
 
     private void DetachRendering()
@@ -215,15 +249,22 @@ internal sealed class BrowsePresentation(Frame frame)
             page.Unloaded -= _unloaded;
         }
         _page = null;
+        _deferMotion = false;
+        _connectedStarted = false;
         _loaded = null;
         _unloaded = null;
-        DetachRendering();
-        StopMotion();
         var images = _images;
         _images = null;
         _timing = null;
-        if (images is null) return;
-        images.TrySetResult();
-        if (ReferenceEquals(ImageGate.Value, images.Task)) ImageGate.Value = null;
+        try
+        {
+            DetachRendering();
+            StopMotion();
+        }
+        finally
+        {
+            images?.TrySetResult();
+            if (images is not null && ReferenceEquals(ImageGate.Value, images.Task)) ImageGate.Value = null;
+        }
     }
 }

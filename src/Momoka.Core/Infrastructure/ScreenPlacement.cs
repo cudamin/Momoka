@@ -15,6 +15,21 @@ namespace Momoka.Infrastructure;
 /// </summary>
 public static class ScreenPlacement
 {
+    /// <summary>
+    /// 将一条窗口尺寸从 DIP 换成物理像素并限制在当前工作区内。
+    /// 小工作区优先于页面下限，否则高 DPI 下整个窗口会越出屏幕，标题栏也可能无法操作。
+    /// </summary>
+    public static int FitAxis(int logical, int minimum, int available, double scale, int inset = 48)
+    {
+        if (available <= 0) return 0;
+        if (!double.IsFinite(scale) || scale <= 0) scale = 1;
+
+        int Pixels(int value) => (int)Math.Min(int.MaxValue, Math.Round(Math.Max(0, value) * scale));
+        var floor = Math.Min(available, Pixels(minimum));
+        var ceiling = Math.Max(floor, available - Math.Min(available, Pixels(inset)));
+        return Math.Clamp(Pixels(logical), floor, ceiling);
+    }
+
     /// <summary>Leave the placement to Windows, which is what every ordinary launch wants.</summary>
     public const int WhereverWindows = 0;
 

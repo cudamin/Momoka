@@ -54,6 +54,14 @@
                 <VisualState x:Name="CaptionPlain" />
                 <VisualState x:Name="CaptionOnScrim">
                     <VisualState.Setters>
+                        <Setter Target="TitleLine.Foreground" Value="{ThemeResource EgMediaCaptionForegroundBrush}" />
+                        <Setter Target="SubLine.Foreground" Value="{ThemeResource EgMediaCaptionSecondaryBrush}" />
+                        <Setter Target="SourceLine.Foreground" Value="{ThemeResource EgMediaCaptionSecondaryBrush}" />
+                        <Setter Target="NoteLine.Foreground" Value="{ThemeResource EgMediaCaptionSecondaryBrush}" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="CaptionLibrary">
+                    <VisualState.Setters>
                         <Setter Target="TitleLine.Foreground" Value="{ThemeResource EgCardCaptionForegroundBrush}" />
                         <Setter Target="SubLine.Foreground" Value="{ThemeResource EgCardCaptionSecondaryBrush}" />
                         <Setter Target="SourceLine.Foreground" Value="{ThemeResource EgCardCaptionSecondaryBrush}" />

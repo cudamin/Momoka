@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -97,6 +98,11 @@ internal static class HomeMotion
 
     private static void RevealWhenLoaded(FrameworkElement element, int delay)
     {
+        if (!AnimationsEnabled)
+        {
+            Stop(element);
+            return;
+        }
         if (element.IsLoaded)
         {
             Reveal(element, delay);
@@ -107,12 +113,13 @@ internal static class HomeMotion
         RoutedEventHandler handler = (_, _) => Reveal(element, delay);
         Waiting.Add(element, handler);
         element.Loaded += handler;
+        element.Unloaded += OnUnloaded;
     }
 
     internal static void Reveal(FrameworkElement element, int delay, int durationMs = DurationMs, double distance = 20)
     {
         Stop(element);
-        if (element.XamlRoot is null || !AnimationsEnabled) return;
+        if (element.XamlRoot is null || !AnimationsEnabled || durationMs <= 0) return;
 
         // 2026-09-16 十六报：这一段原来是 composition 的 SetIsTranslationEnabled + GetElementVisual +
         // StartAnimation。系统窗口动画被打开的这一天现形 —— 动画关着的时候这里全部短路，雷埋着不响；
@@ -157,15 +164,17 @@ internal static class HomeMotion
             board.Children.Add(rise);
         }
 
-        var motion = new Motion(board);
+        var motion = new Motion(element, board);
         Active.Add(element, motion);
-        element.Unloaded += OnUnloaded;
-        board.Completed += (_, _) =>
+        try
         {
-            if (Active.TryGetValue(element, out var current) && ReferenceEquals(current, motion)) Stop(element);
-        };
-
-        board.Begin();
+            motion.Start();
+        }
+        catch (Exception)
+        {
+            // 进场失败不能把内容停在透明上，也不能保留关闭窗口后失效的系统订阅。
+            Stop(element);
+        }
     }
 
     /// <summary>
@@ -197,13 +206,14 @@ internal static class HomeMotion
         if (!Active.TryGetValue(element, out var motion))
         {
             element.Opacity = 1;
+            if (element.RenderTransform is TranslateTransform resting) resting.Y = 0;
             return;
         }
 
         // 先摘下记录，Completed 引发的递归 Stop 便不会二次清理。Stop 释放 HoldEnd 的值，
         // 落点再用本地值写死一遍，反复 Stop 也幂等。
         Active.Remove(element);
-        motion.Board.Stop();
+        motion.Stop();
         element.Opacity = 1;
         if (element.RenderTransform is TranslateTransform drift) drift.Y = 0;
     }
@@ -213,7 +223,55 @@ internal static class HomeMotion
         if (sender is FrameworkElement element) Stop(element);
     }
 
-    private sealed record Motion(Storyboard Board);
+    private sealed class Motion
+    {
+        private readonly FrameworkElement _element;
+        private readonly Storyboard _board;
+        private readonly EventHandler<object> _completed;
+
+        internal Motion(FrameworkElement element, Storyboard board)
+        {
+            _element = element;
+            _board = board;
+            _completed = (_, _) => StopCurrent();
+        }
+
+        internal void Start()
+        {
+            _element.Unloaded += OnUnloaded;
+            _board.Completed += _completed;
+            Settings.AnimationsEnabledChanged += OnSystemPreferenceChanged;
+            _board.Begin();
+        }
+
+        internal void Stop()
+        {
+            _element.Unloaded -= OnUnloaded;
+            _board.Completed -= _completed;
+            try { Settings.AnimationsEnabledChanged -= OnSystemPreferenceChanged; }
+            catch (Exception)
+            {
+                // 退订失败仅说明原生观察者释放未知；当前记录已摘除，不能挡住时钟与可读终值清理。
+            }
+            finally { _board.Stop(); }
+        }
+
+        private void StopCurrent()
+        {
+            if (Active.TryGetValue(_element, out var current) && ReferenceEquals(current, this))
+                HomeMotion.Stop(_element);
+        }
+
+        private void OnSystemPreferenceChanged(UISettings sender, UISettingsAnimationsEnabledChangedEventArgs args)
+        {
+            void ApplyCurrentPreference()
+            {
+                if (!AnimationsEnabled) StopCurrent();
+            }
+            if (_element.DispatcherQueue.HasThreadAccess) ApplyCurrentPreference();
+            else _element.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.High, ApplyCurrentPreference);
+        }
+    }
 
     /// <summary>监听只活到页面离树；元素回收时取消待播放和正在播放的动画。</summary>
     private sealed class ShelfEntrance

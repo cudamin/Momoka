@@ -1,5 +1,11 @@
 # R-029 / R-030 Plex 入口适用性专项（2026-10-23～24）
 
+## 2026-11-13关联动画接线的源夹具兼容
+
+当前DetailPage进入尾段已新增CardDetailTransition.Attach(this,request.Item)。原样提取的正文保留；旧Enter(object request)只适配VM反射调用，因object无Item且缺视觉端点，当前编译出现2错。改为ReflectedDetailRequest最窄包装：Value仍是本树真实Shell DetailRequest，Item只反射读取该对象；实际ViewModel.Attach继续传原Value，不复制身份/权限/业务判断。
+
+无Frame/XamlRoot的CardDetailTransition边界只记录原请求Item，不创建WinUI或native动画。在原页面释放/重入失败读回归中增加两次视觉接线与请求原scope断言，保留所有题材/收藏/观看及旧事件能力守卫。当前85通过、0失败、0跳过；Release当前Core/专项编译0警告0错误。纯测试适配没有产品、权限、真实服务或播放改动，真实关联动画另由其专项/原生探针覆盖。
+
 ## 范围与实现取舍
 
 - 收藏独立判断条目所属 `Scope.Connection.SupportsFavorites`，不合并到 UserState 显隐。Plex 的电影/集卡片及宽窄详情只收起收藏，已看保留；聚合 Emby/Jellyfin 仍可收藏，管理默认来源不参与判定。

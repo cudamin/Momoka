@@ -204,6 +204,7 @@ public sealed partial class PosterCard : UserControl
     private bool _previewHovered;
 
     internal bool PosterArrivalRunning => _posterArrival.IsRunning;
+    internal Image ConnectedPoster => Poster;
 
     /// <summary>删除确认后的离场动画；<see cref="ResetRemoval"/> 或换卡时停掉。</summary>
     private Storyboard? _removal;
@@ -307,13 +308,7 @@ public sealed partial class PosterCard : UserControl
     private static void OnScrimChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {
         var card = (PosterCard)sender;
-        var scrim = (bool)args.NewValue;
-
-        card.TitleLine.Style = Ink(scrim ? "EgOnScrimBodyStyle" : "EgBodyStyle");
-        card.SubLine.Style = Ink(scrim ? "EgOnScrimDataStyle" : card.Card?.IsUpcoming == true ? "EgCaptionStyle" : "EgDataStyle");
-        VisualStateManager.GoToState(card, scrim ? "CaptionOnScrim" : "CaptionPlain", false);
-
-        static Style Ink(string key) => (Style)Application.Current.Resources[key];
+        card.ApplyCaptionStyles();
     }
 
     private readonly Dictionary<TextBlock, SolidColorBrush> _backdropInk = [];
@@ -352,8 +347,7 @@ public sealed partial class PosterCard : UserControl
         // 2026-09-13 实测：容器 A 拿到「超常技能」的同一毫秒里，容器 B 正把它换成别的卡，B 那一放手就把 A 屏上
         // 那张卡的图清空了，成了三张「标题正常、封面永远灰着」的卡）。所以交给 ReleasePoster 判断，它只认持有者。
         (args.OldValue as CardItem)?.ReleasePoster(card, keepWaiting: false);
-        card.SubLine.Style = (Style)Application.Current.Resources[
-            card.OnScrim ? "EgOnScrimDataStyle" : card.Card?.IsUpcoming == true ? "EgCaptionStyle" : "EgDataStyle"];
+        card.ApplyCaptionStyles();
 
         // ItemsRepeater 也会在仍然加载着的容器里换内容；新条目不能继承上一张的悬停、按压或淡入。
         // 预览面板写的是上一张的片名和概要，更不能跟着容器搬过去。

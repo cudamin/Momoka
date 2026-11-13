@@ -9,6 +9,37 @@ internal static partial class DetailActionReadinessTests
 {
     private static void RegisterShapeTests(Assembly assembly, string root)
     {
+        Test("P4 详情布局：请求在途跨真实断点，完整主体到达保留最新宽高和集合", () =>
+        {
+            foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season, Shape.Episode })
+            {
+                using var f = new Fixture(assembly, root, shape);
+                f.Ui.EnableImmersive = true;
+                f.Transport.HoldDetail = true;
+                var load = f.Load();
+                f.Transport.WaitForDetail();
+                var shelf = f.Get("EpisodeShelf");
+                var notices = new List<string>();
+                ((INotifyPropertyChanged)f.Vm).PropertyChanged += (_, args) => notices.Add(args.PropertyName ?? "");
+                foreach (var width in new[] { 600d, 760d, 819d, 820d, 821d, 1100d, 1280d, 819d, 821d })
+                {
+                    notices.Clear();
+                    f.Vm.GetType().GetProperty("Viewport")!.SetValue(f.Vm, 560d);
+                    f.Vm.GetType().GetProperty("PageWidth")!.SetValue(f.Vm, width);
+                    Assert.Equal(width < DetailHero.CompactFloor, (bool)f.Get("IsCompact")!);
+                    Assert.Equal(width, (double)f.Get("HeroLayoutWidth")!);
+                    foreach (var name in new[] { "IsCompact", "HeroLayoutWidth", "CompactVisibility", "ColumnActionsVisibility", "PickersVisibility" })
+                        Assert.True(notices.Contains(name), "在途宽窄切换未通知：" + name);
+                }
+                f.Transport.DetailRelease.TrySetResult(true);
+                Await(load);
+                Assert.Equal(821d, (double)f.Get("PageWidth")!);
+                Assert.Equal(560d, (double)f.Get("Viewport")!);
+                Assert.False((bool)f.Get("IsCompact")!);
+                Assert.True(ReferenceEquals(shelf, f.Get("EpisodeShelf")), "布局变化重建集带");
+            }
+        });
+
         Test("详情两种模式：开启宽窗固定沉浸，窄窗仍紧凑，关闭一律无背景", () =>
         {
             foreach (var shape in new[] { Shape.Movie, Shape.Series, Shape.Season })

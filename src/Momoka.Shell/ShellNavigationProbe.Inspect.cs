@@ -52,6 +52,7 @@ internal sealed partial class ShellNavigationProbe
         layout.Children.Add(frame);
         _root.Children.Add(layout);
         var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var inspectKeyboardStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var busy = false;
         MoviePilotJourneySession? moviePilotJourney = null;
         using var settingsMoviePilot = new MoviePilotClient(new RejectNetwork());
@@ -114,6 +115,32 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectPickerDropDown", "下拉有效期与展开限宽", PickerDropDownAsync);
         AddCheck("InspectShellHistory", "返回前进完整历史", ShellHistoryAsync, ShellProbeSections.Shell);
         AddCheck("InspectSidebarNavigation", "音乐目的地返回与前进", SidebarAsync, ShellProbeSections.Shell);
+        AddCheck("InspectMusicPaging", "音乐墙分页与重试", () => MusicPagingAsync(), ShellProbeSections.Music);
+        AddCheck("InspectMusicPagingFailure", "音乐分页定位失败反例", () => MusicPagingAsync(failEntryLocator: true), ShellProbeSections.Music);
+        AddCheck("InspectKeyboardJourney", "登录到设置的真实键盘流程", () => KeyboardJourneyAsync(), ShellProbeSections.Shell, timeoutSeconds: 900);
+        AddCheck("InspectKeyboardJourneyManual", "手动完成键盘验收（屏内提示）", async () =>
+        {
+            inspectKeyboardStarted.TrySetResult();
+            await KeyboardJourneyAsync(manual: true);
+        }, ShellProbeSections.Shell, timeoutSeconds: 900);
+        AddCheck("InspectKeyboardJourneyManualFromSearch", "从搜索继续手动键盘验收", async () =>
+        {
+            inspectKeyboardStarted.TrySetResult();
+            await KeyboardJourneyAsync(manual: true, resumeFromSearch: true);
+        }, ShellProbeSections.Shell, timeoutSeconds: 900);
+        AddCheck("InspectKeyboardJourneyManualFromResult", "从结果继续手动键盘验收", async () =>
+        {
+            inspectKeyboardStarted.TrySetResult();
+            await KeyboardJourneyAsync(manual: true, resumeFromResult: true);
+        }, ShellProbeSections.Shell, timeoutSeconds: 900);
+        AddCheck("InspectKeyboardJourneyFailure", "键盘流程名称失败反例", () => KeyboardJourneyAsync(failFocusName: true), ShellProbeSections.Shell);
+        AddCheck("InspectInfoTable", "匿名10行媒体信息定位", () => InfoTableAsync(), ShellProbeSections.Library);
+        AddCheck("InspectInfoTableFailure", "媒体信息定位失败反例", () => InfoTableAsync(wrongOffset: true), ShellProbeSections.Library);
+        AddCheck("InspectSignInKeyboardSurface", "登录输入可达与恢复", SignInAppearanceAsync, ShellProbeSections.Shell);
+        AddCheck("InspectInputFocusSurface", "全站原生输入焦点", InputFocusControlsAsync, ShellProbeSections.Search);
+        AddCheck("InspectCardFocusSurface", "卡片与设置名称", CardFocusAndSettingNamesAsync, ShellProbeSections.Settings);
+        AddCheck("InspectHomeReturnSurface", "主页键盘返回与动画", HomeNavigationReturnAsync, ShellProbeSections.Shell);
+        AddCheck("InspectMusicArtwork", "音乐图片读取与列表量测", MusicArtworkAsync, ShellProbeSections.Music, timeoutSeconds: 120);
         AddCheck("InspectLibraryDiscoverySearch", "搜索人物合集和列表", LibraryDiscoverySearchAsync);
         AddCheck("InspectLibraryDiscoveryPeople", "Plex人物与题材", LibraryDiscoveryPeopleAsync);
         AddCheck("InspectLibraryDiscoveryFilters", "Plex筛选排序和字母", LibraryDiscoveryFiltersAsync);
@@ -326,12 +353,17 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectServerLists", "服务器清单与成员管理", ServerListsAsync);
         AddCheck("InspectPlexServerLists", "Plex清单与独立合集", PlexServerListsAsync);
         AddCheck("InspectPlayerQueue", "播放画面队列选择", PlayerQueueAsync);
+        AddCheck("InspectWindowHostResearch", "P7窗口宿主研究", () => WindowHostResearchAsync(), ShellProbeSections.Shell);
+        AddCheck("InspectWindowHostFailure", "P7窗口失败清理", () => WindowHostResearchAsync(injectFailure: true), ShellProbeSections.Shell);
+        AddCheck("InspectCardDetailConnected", "P6海报详情关联动画", CardDetailConnectedAnimationAsync, ShellProbeSections.Shell, timeoutSeconds: 120);
         Add("InspectDone", "结束检查", () => { finished.TrySetResult(); return Task.CompletedTask; });
         frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services, "离线示例"));
         await LayoutAsync(layout);
         File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "shell-probe-ready.txt"), Environment.ProcessId.ToString());
         // 到时若仍有一项检查在飞，先等它收尾再释放宿主，避免检查触及已销毁的XAML。
-        await Task.WhenAny(finished.Task, Task.Delay(TimeSpan.FromMinutes(8)));
+        var inspectWait = await Task.WhenAny(finished.Task, Task.Delay(TimeSpan.FromMinutes(8)), inspectKeyboardStarted.Task);
+        if (ReferenceEquals(inspectWait, inspectKeyboardStarted.Task))
+            await Task.WhenAny(finished.Task, Task.Delay(TimeSpan.FromMinutes(20)));
         while (busy) await Task.Delay(100);
         moviePilotJourney?.Dispose();
         subscriptionCovers?.Release();

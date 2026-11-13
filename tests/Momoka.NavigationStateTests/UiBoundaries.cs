@@ -160,6 +160,16 @@ namespace Momoka.Shell.Views
         public ViewModels.MusicLibraryViewModel ViewModel { get; } = new();
         internal object? RequestForTest => _request;
         internal bool ReleasedForTest => _released;
+        internal int ArtworkDetachesForTest { get; private set; }
+        internal int TrackArtworkStopsForTest { get; private set; }
+        private FrameworkElement MusicRows { get; } = new();
+        private void DetachWallArtwork() => ArtworkDetachesForTest++;
+        private void SetArtworkRealized(FrameworkElement root, bool realized)
+        {
+            if (!ReferenceEquals(root, MusicRows) || realized)
+                throw new InvalidOperationException("导航释放边界仅允许结束曲目图片需求");
+            TrackArtworkStopsForTest++;
+        }
         private void PlaceSearchBox() { }
         private void OnMusicChanged(object? sender, PropertyChangedEventArgs args) { }
     }

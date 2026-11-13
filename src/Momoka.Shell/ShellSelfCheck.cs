@@ -567,6 +567,14 @@ internal static partial class ShellSelfCheck
         IServiceProvider services,
         StartupOptions options)
     {
+        _writePlaybackReturnTrace = text => Write(options.Paths, "selfcheck-playback-return.json", text);
+        _writeInfoGeometry = text => Write(options.Paths, "selfcheck-info-geometry.json", text);
+        _infoGeometryFailure = error => Log.Warn(Category, "媒体信息几何证据失败", error);
+        InfoGeometryReadings.Clear();
+        _notificationsLayoutWaits = 0;
+        _writeNotificationsLayout = text => Write(options.Paths, "selfcheck-notifications-layout.json", text);
+        _notificationsLayoutFailure = error => Log.Warn(Category, "通知页面布局证据失败", error);
+        NotificationsLayoutReadings.Clear();
         // Invalidate the last run's report before this one has anything to say. Without this a crash
         // leaves the previous report on disk, and a passing report from twenty minutes ago is worse than
         // no report at all: it reads as "this build is fine" when the build under test never finished.
@@ -754,6 +762,7 @@ internal static partial class ShellSelfCheck
 
                 if (_fileReturn is null && shell.Pages.Content is DetailPage back)
                 {
+                    EndPlaybackReturnTrace();
                     var (returnOk, returnRead) = back.ReturnRead(_returnScrollBefore, _returnScrollAfterRefresh, _returnScrollAfterHide);
                     _fileReturn = (back.ViewModel.ItemType, returnOk, returnRead);
                 }
@@ -886,7 +895,16 @@ internal static partial class ShellSelfCheck
             // 页面自己会画进度条，快照要的是装载完的那份。
             if (page.Notifications is not { } notifications || !notifications.IsReady) return true;
 
+            notifications.UpdateLayout();
             var (bound, drawn) = notifications.Realised;
+            RecordNotificationsLayout(notifications, bound, drawn);
+            // HTTP/VM就绪不表示嵌入页刚显示后的列表模板已经量过。
+            // 每拍500ms，最多另等8拍；空列表不等待，期满仍按原bound/drawn判红。
+            if (bound > 0 && drawn < bound && _notificationsLayoutWaits < 8)
+            {
+                _notificationsLayoutWaits++;
+                return true;
+            }
             var stopReport = notifications.StopReport;
             var note = notifications.NoteState;
             _notifications = new NotificationsState(
@@ -1122,17 +1140,21 @@ internal static partial class ShellSelfCheck
         // 这一趟开始前的位置。走完三步之后再读的是绝对值，而自检为了让媒体信息与页尾横幅进视口，早就把这一页自己
         // 滚过了 —— 只有这两个数之差才说明是这一趟干的（见 DetailPage.ReturnRead）。
         _returnScrollBefore = back.BodyScrollOffset;
+        BeginPlaybackReturnTrace(back);
 
         shell.PlayerRoot.Visibility = Visibility.Visible;
         shell.PlayerRoot.Focus(FocusState.Programmatic);
         shell.ShowPlayer(true);
+        _playbackReturnTrace?.Record("player-shown");
 
         shell.RefreshActive();
         _returnScrollAfterRefresh = back.BodyScrollOffset;
+        _playbackReturnTrace?.Record("refresh-requested");
 
         shell.PlayerRoot.Visibility = Visibility.Collapsed;
         shell.ShowPlayer(false);
         _returnScrollAfterHide = back.BodyScrollOffset;
+        _playbackReturnTrace?.Record("player-hidden");
         return true;
     }
 

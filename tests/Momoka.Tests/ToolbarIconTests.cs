@@ -9,6 +9,23 @@ internal static class ToolbarIconTests
 
     internal static void Register()
     {
+        TestHarness.Test("账号按钮：嵌套文字提供明确可访问名称并随身份刷新", () =>
+        {
+            var account = Named(Shell(), "AccountButton");
+            Assert.Equal("ShellPage_AccountButton", account.Attribute(Xaml + "Uid")?.Value);
+            var resources = ShellResources();
+            var name = resources.Root!.Elements("data").Single(entry =>
+                entry.Attribute("name")?.Value == "ShellPage_AccountButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name");
+            Assert.Equal("账号与服务器", name.Element("value")?.Value);
+            var root = new DirectoryInfo(AppContext.BaseDirectory);
+            while (!File.Exists(Path.Combine(root.FullName, "Momoka.sln"))) root = root.Parent!;
+            var source = File.ReadAllText(Path.Combine(root.FullName, "src", "Momoka.Shell", "Views", "ShellPage.xaml.cs"));
+            var method = source[source.IndexOf("public void ShowAccount(", StringComparison.Ordinal)..];
+            method = method[..method.IndexOf("\n    }", StringComparison.Ordinal)];
+            Assert.Contains("AutomationProperties.SetName(AccountButton,", method);
+            Assert.Contains("AccountUser.Text} · {AccountServer.Text}", method);
+        });
+
         TestHarness.Test("标题栏那一排：返回、折叠、主页、收藏、设置、搜索按这个次序", () =>
         {
             var panel = Named(Shell(), "TitleActions");

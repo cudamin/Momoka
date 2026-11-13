@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AssemblyName>Momoka.Tests</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+        <DefineConstants>$(DefineConstants);CARD_IMAGE_RESIZE_FIXTURE</DefineConstants>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+        <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+        <Compile Include="..\Momoka.Tests\CardImageResizeTests.Boundaries.cs" Link="Existing\CardImageResizeTests.Boundaries.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\CardArtwork.cs" Link="Production\CardArtwork.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\MusicLibraryPage.Artwork.cs" Link="Production\MusicLibraryPage.Artwork.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\MusicArtworkProbeRules.cs" Link="Production\MusicArtworkProbeRules.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Media\LocalLibraryArtwork.cs" Link="Production\LocalLibraryArtwork.cs" />
+    </ItemGroup>
+</Project>

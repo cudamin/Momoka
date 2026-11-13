@@ -272,6 +272,7 @@
             VerticalAlignment="Top">
             <Button
                 x:Name="AccountButton"
+                x:Uid="ShellPage_AccountButton"
                 Padding="10,3"
                 MaxWidth="240"
                 HorizontalAlignment="Stretch"

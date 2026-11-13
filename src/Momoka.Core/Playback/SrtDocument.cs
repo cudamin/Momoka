@@ -76,10 +76,15 @@ public sealed partial class SrtDocument
         // 整份字幕使用一份服务快照，切换设置不把同一个输出发给两个不同服务。
         var snapshot = new SubtitleTranslationSettings
         {
-            Enabled = true, Provider = settings.Provider, SourceLanguage = settings.SourceLanguage,
-            TargetLanguage = settings.TargetLanguage, GoogleEndpoint = settings.GoogleEndpoint,
-            MicrosoftEndpoint = settings.MicrosoftEndpoint, MicrosoftRegion = settings.MicrosoftRegion,
-            AiEndpoint = settings.AiEndpoint, AiModel = settings.AiModel
+            Enabled = true,
+            Provider = settings.Provider,
+            SourceLanguage = settings.SourceLanguage,
+            TargetLanguage = settings.TargetLanguage,
+            GoogleEndpoint = settings.GoogleEndpoint,
+            MicrosoftEndpoint = settings.MicrosoftEndpoint,
+            MicrosoftRegion = settings.MicrosoftRegion,
+            AiEndpoint = settings.AiEndpoint,
+            AiModel = settings.AiModel
         };
         if (Cues.Any(cue => cue.Text.Length > SubtitleTranslationClient.MaxTextLength))
             throw new PlayerToolException("字幕中存在过长的单句，无法整片翻译。");
