@@ -22,7 +22,7 @@
 
 **采用**：①新增 `Views/Shimmer.xaml(.cs)`：Composition 的高光带，只认 `HomeMotion.AnimationsEnabled`，失活／离树／关动画时整层摘掉，不参与布局与命中；用在 `CoverPickerDialog` 候选封面的 `CoverChoice.IsLoading` 期间，图回来即停。②`ArtworkViewer` 画框试装现有 `CommunityToolkit.WinUI.Extensions` 的 `AttachedDropShadow`（零新包）：透明宿主 ＋ `CastTo=ViewerRoot` ＋ `IsMasked=False`，四周留 24 给影子落脚。
 
-**不采用**：ConstrainedBox —— 只缩不放（`ScaleX/ScaleY` 0～1），与本项目「三尺寸分家、窄窗重排」冲突；现有唯一 Viewbox（登录页欢迎图）需要放大到 640，它给不了。TransitionHelper —— 8.x 组件与本地 Animations 程序集都没有此类型，项目又刻意统一 `SuppressNavigationTransitionInfo`，加了就是双重动画。
+**不采用**：ConstrainedBox —— 只缩不放（`ScaleX/ScaleY` 0～1）。理由不是「和几套固定版面冲突」：这一页的版面本来就不是一个尺寸维度上的分档 —— `简洁`／`沉浸` 各自还要按条目类型、宽窄、有图无图再分（`DetailViewModel.IsCompact` 在简洁的电影／剧／季上恒 false，任何宽度都保留卡面、封面与双栏，只靠按钮换行；单集才走 819.2 断点。沉浸档 `Showcase` 要开关、非紧凑、有图、四类同时成立，落不到就是裸头／集页板／单列带图／单列裸底四种），宽版式内部 819.2–1440 还是 `Narrow()` 的连续收紧曲线，且只在 `Crowdable`（非紧凑、非卡面）时生效。整体缩放没有单一设计尺寸可依，而且正是 2026-09-12 撤掉的那一版（1024–1280 缩到八成「又小又松」，改成换行）。现有唯一 Viewbox（登录页欢迎图）需要放大到 640，它给不了。TransitionHelper —— 8.x 组件与本地 Animations 程序集都没有此类型，项目又刻意统一 `SuppressNavigationTransitionInfo`，加了就是双重动画。
 
 **验证**：Shell Release 0 警告 0 错误；`--probe-shell --probe-section metadata` **11/11 退出 0**（新增两条断言：候选等待格的流光子视觉 `SpriteVisual` 存在且尺寸非零、看大图的阴影容器挂在 `ViewerRoot` 上），`library-dialog-cover-loading-screen.png` 光带按行采样 40→68→45，`library-dialog-ArtworkViewer-*-screen.png` 五主题均出图并目视；主测试 **5028/5028、0 失败 0 跳过**，页面契约 **207/207**。首跑 18 项失败是沙箱把 `TEMP` 指到 `C:\WINDOWS\TEMP` 造成的环境红，换可写临时目录后全绿。
 
