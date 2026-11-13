@@ -24,7 +24,7 @@
 
 **改了什么。** ①`PosterCard` 悬停时整卡抬到 1.03（`HoverScale`），原来只把框内图片推近 1.045、整卡不动；键盘焦点不触发整卡放大，避免 Tab 扫过时整排跳动。抬起那一下用 `BackEase`（Amplitude 0.3、EaseOut）过冲一点再落定，不照搬 1.5（卡片网格里会压邻居），也不取 Composition 的 visual Scale —— `HomeMotion` 记着 2026-09-16「Calling Scale API is not allowed」那次进程崩溃，弹簧只借手感，仍走 `CardMotion` 的 RenderTransform。②`CardPreview` 的撑开/收起从一段 cubic keyframe 换成 `CreateSpringScalarAnimation` 驱动同一个 `Progress`（`DampingRatio` 撑开 0.82／收起 1.0，`Period` 取原时长÷6），边框、裁剪区、命中区与封面的表达式一个没改。弹簧没有跨线程完成回调，落定仍按原时长（250/167 ms）由 `DispatcherQueueTimer` 接住，反转与关动画走同一条路。
 
-**验证。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/hover-scale`，分支 `workbuddy/hover-scale`，基点 `8bb4676`。本树 Shell Release/x64 0 警告 0 错误；`Momoka.PageContractTests` 228/228（新增 `HoverMotionTests` 两条源码契约：卡片 1.03 + BackEase + Gallery 出处、面板 spring 且不再用 keyframe）。**未做运行截图**：启动 `--probe-shell` 时桌面锁被另一会话的 `--probe-shell inspect`（PID 33300，`.codex/worktrees/6b9b`）占着；代码层面的完成回调风险已由 timer 方案消除，但卡片放大后的实际观感、边缘卡片的裁剪和面板回弹仍需在交付探针里看一眼。合并后记 [待交付批次](docs/待交付批次.md)。
+**验证。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/hover-scale`，分支 `workbuddy/hover-scale`，从 `8bb4676` 起、最终变基到 `01f3df9`。Shell Release/x64 0 警告 0 错误；`Momoka.PageContractTests` 228/228（新增 `HoverMotionTests` 两条源码契约：卡片 1.03 + BackEase + Gallery 出处、面板 spring 且不再用 keyframe）。**运行截图没做成**：先是另一会话的 `--probe-shell inspect`（PID 33300，`.codex/worktrees/6b9b`）占着桌面锁；等它退出后 `--probe-section library` 连试两次都在 `server-lists` 之后进程退出，检查台写过 `shell-probe-ready.txt` 后也退出（普通启动稳定 12 秒以上；原因未定位，也没有证据表明与本轮改动有关）。代码层面的完成回调风险已由 timer 方案消除，但卡片放大后的实际观感、边缘卡片的裁剪和面板回弹仍需在交付探针里看一眼。已以 `4b6007c` 进入 master（基线 `01f3df9`），台账第 10 条登记交付时要跑的检查；工作树与分支本轮收尾删除。
 
 ## 2026-11-13 封面进入详情的 Gallery 原生关联动画
 
