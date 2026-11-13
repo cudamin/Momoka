@@ -3,6 +3,181 @@
 用户已授权完成后自动合入master并交付；暂不再开子代理。工作树6b9b、分支codex/store-detail-mode。简洁改商店、随滚动的小背景及图片取色遮罩、无外卡框/右上艺术图、180×270封面与右侧操作、下方媒体信息、路径/剩余时间隐藏、两行剧情ToolTip、最大化内容居中、两模式单音轨整行隐藏；独立本地及YouTube预告右侧预览和能力控制。发现更多保留原交互。
 
 分支当前Shell/Core与Tests正常入口编译0警告0错误，定向81/81、57/57、40/40、48/48。真实青之箱截图store6-wide验证背景重新显示、操作右侧、两行剧情及音频整行隐藏；临时runner与数据副本仅在ignored work，正常Program入口已恢复。预告实帧及最终主树原生检查、整表待交付并集尚待执行；不宣称完成发布。Gallery固定14a4a1a2依据见开发文档。无需新增请求加载艺术图；取色算法新增原因是master已删除CarouselAmbient，未恢复旧轮播功能。
+## 2026-11-13 人物页关联动画与侧栏设置 AnimatedIcon（已合入 master，未发布）
+
+按上一轮只读动效审查的建议落地三处：人物页作品卡复用现有 `CardDetailTransition`；详情页演职人员卡新增只做前进的 `PersonTransition`；侧栏设置项换 Gallery 的 `AnimatedSettingsVisualSource`。
+
+**人物票据。** `PersonPage.OnCardClicked` 把作品卡（节目／电影／集三排）交给 `CardDetailTransition.Navigate`。`PersonTransition` 只接当前账号、可见、已加载自身 Primary 图的人物卡；准备时保留来源位图，人物页 `PortraitImage` 在还没有高清头像时先接住它，高清到达后由 `PersonViewModel` 替换；只做前进，返回继续普通导航／页面淡入（详情页没有缓存，不为了动画改缓存策略）。失败、700 ms 准备超时、Stopped／Failed、应用或系统动画关闭、身份变化都回普通导航并释放保留图。壳层 `Navigating` 同时识别详情票据和人物票据，人物页有动画时不叠页面淡入。
+
+**侧栏图标。** `ShellPage.xaml` 的页脚设置项改成 `AnimatedIcon`，`Source` 是 `AnimatedSettingsVisualSource`，回退是同一颗 `E713` 齿轮。`HomeMotion.AnimationsEnabled` 为假时把 `Source` 置空，落到静态回退；系统或应用开关变化都重新同步；标题栏手绘 PathIcon 不动。
+
+**验证。** Shell Release/x64 **0 警告 0 错误**；`Momoka.ConnectedAnimationTests` **48/48**、`Momoka.PageContractTests` **230/230**，均 0 失败 0 跳过；`dotnet format whitespace` 通过；重复代码 **65 段 / 0.51%**（预算 70 段 / 1%）。匿名原生 `--probe-shell --probe-section person --screen 1` **2/2、退出 0**（`shell-probe-20261113-152816842-8012`），新增用例确认人物卡到人物页关联动画真实启动并接住来源照片，实屏 `person-transition-screen.png`；`--probe-section shell --screen 1` **15/15、退出 0**（`shell-probe-20261113-153739072-35620`），AnimatedIcon 20×20 完整可见、设置项与其它条目同尺寸，新增关动画 Source 为空／开动画恢复／再次关动画收起三条断言全过。共享桌面锁被另一 worktree 的 Momoka 占用时等待释放后重跑，未结束其他进程。
+
+**没做／边界。** 本树开发发布被既有 mpv 载荷核对拦下：`assets/mpv-runtime/approved-payload.json` 仍记 `THIRD-PARTY-NOTICES.md` 8964 字节，而当前文件 10761 字节；该红与本批代码无关，`publish.ps1` 在核对前生成的发布目录只用于本树探针，不是交付。未连接真实服务器、未播放、未写服务器；未做触摸、读屏、高对比度、跨 DPI 覆盖。人物页作品卡→详情的入口只在代码与单测层覆盖，原生探针本轮验的是详情演职人员卡→人物页；交付时按台账补实际入口与截图。
+
+**合入状态。** 产品与测试提交 `ad0898e` 以 ff 合入 master（基线 `120c4da`）；本轮只合并，不发布、不推远端，快捷方式仍指向当前发布版。
+
+## 2026-11-13 主页矮窗档判定线改为媒体库整排下沿（已合入 master，未发布）
+
+用户一张 951×395 的实屏截图加一句「这都重叠了媒体库还不下移，修复」：截图里媒体库三张库卡压在圆角轮播左下角，
+轮播的播放/详情键离压上来的卡片只剩几个像素，轮播下方只露着「继续观看」。
+
+**现场取证。** 当天的应用日志（`%LOCALAPPDATA%\Momoka\logs\app-20261113-000047.log`）说明这是他那一档窗口：
+客户区 1064×761、视口 744、轮播带宽 758/带高 324，矮窗档判定记的是「档 Auto、线 909、视口 744（带子的设计形状
+324）→ 压上轮播」。线 909 是 2026-09-22 定的「媒体库下面那一排的再下面那一排的封面顶」；可那一档里媒体库整排
+（牌子和卡片）从 360 到 590 整个都在第一屏里，第一屏还露得下继续观看的封面 —— 旧线在圆角矮轮播（2026-11-12 晚
+改成四边留白）上把放得下的媒体库也压了上去。
+
+**改了什么。** 判定线收回「媒体库那一排自己」：线 ＝ 媒体库整排在默认摆法里的下沿（排顶 ＋ 整排实高，牌子、
+空当、卡片连卡底那两行字都在里面）；它整个露在第一屏里就留在轮播下方，被第一屏裁掉（下沿到视口底或更靠下）
+才压上轮播、下一排补位。两条边界（线、带子的设计形状）的形状没动，动的是线上量的是谁。压上档从站进媒体库那
+一格的补位排倒推（补位排的顶就是媒体库的顶，添回 `_libraryFlowHeight` 就是下沿），两个方向仍是同一条线。
+`HomeFold.CoversLine`（再下面那一排的算术）随旧线删除；`HomePage.MeasureMixedCoversLine` 与 `RowHeightOf` 不再
+需要，整段删除（旧线要量「下一排」才需要混排特判，新线只量媒体库自己）。
+
+**顺带收的一处坐标口径。** `ScreenTopAtScrollZero` 原来以整棵 XamlRoot 为原点、却拿 `Scroller.ActualHeight`（视口
+高）作比较，让标题栏让出的那 48 像素算进了线里；改名 `ViewportTopAtScrollZero` 并改用 `LayoutTopIn(element,
+Scroller) + VerticalOffset`，零点和视口高同一个坐标系。这条对默认档窗口的结论不变（1422×808 仍压上），但少了几
+十像素的偏置。
+
+**验证。** Core/Shell/Tests Release x64 均 0 警告 0 错误；`Momoka.HomeFoldCompletionTests`（从 HomePage.xaml.cs
+原样提取生产方法）**68/68、0 失败 0 跳过**；主测试 **5074 项，通过 5055、失败 19** —— 19 项逐条看全是本机环境或
+既有基线的红（15 条自检隔离/`C:\WINDOWS\TEMP` 相关、2 条下载到设备、1 条既有内联字号基线 `DetailPage.xaml`
+19→21），矮窗档 11 条全绿（含新加的两条：线是整排下沿、用户那一档 744/590/324 不压上）。新增原生单项
+「矮窗档判定线：媒体库整排放得下留在轮播下方」：`--probe-shell --probe-section library --screen 1` 该分区
+**49 项、35 过、14 红**（红项逐条落在本批未触碰的详情自定义颜色、像素探针被前台 Chrome 遮挡、飞牛人物头像、
+集页背景显隐、Jellyfin 标题字号和主页旧分隔线等既有红名单；本批新用例与同组的 HomeBannerLibraries／
+HomeBannerClock／HiddenHome 全过）。新用例在 807×761（用户那一档页面宽高）量到媒体库整排下沿小于视口、宿主
+收起、轮播是设计形状；缩到 807×560 后压上、且轮播字块底在宿主顶之上；两张实屏 `home-fold-room-below-screen.png`
+/ `home-fold-on-screen.png` 已逐张目视。PlaybackReturn 夹具里「1000 宽压上」那一档的窗口高从 980 挪到 560
+（新线在 980 上判「放得下」，不再压上），动画与设置三档的断言原样保留。
+
+**没做／边界。** 未发布、未推远端；没有连接真实服务器以外的写入，截图与探针只用匿名假 HTTP。设置里
+「固定在轮播图中／下方」两档不受影响。真机高对比、跨 DPI、物理输入与本轮无关，未测。
+
+**合入状态。** 产品与测试提交 `7e42158`（先按 master `82e265e` 变基，无冲突）以 ff 合入 master，主检出已快进到它。合并后的树 Shell/Core/Tests Release x64 0 警告 0 错误；主测试 5074 项通过 5071，3 红为环境与既有基线（2 条下载到设备枚举 `C:\WINDOWS\TEMP` 被拒、1 条既有内联字号基线 `DetailPage.xaml` 19→21），矮窗档 11 条、翻档专项 68/68、页面契约 228/228 全绿。原生单项与两张实屏沿用变基前同一份产品源。未发布、未推远端。
+
+## 2026-11-13 详情滚动悬浮卡片（已合入 master，待交付）
+
+用户要求主播放键在顶部被裁切约一半时显示缩略亚克力卡片，先查桌面WinUIGallery.exe。有对应show/hide动效：实际2.10.0/7b4314a的ControlExample.xaml，显示400/200ms、隐藏200/100ms，配套Toolkit8.2.251219 DLL与本地哈希完全相同。先读实际XAML/CIL/helper，沿用Implicit显示/隐藏与EaseOut；没有半切滚动头完整样例，本地组合ScrollView同级Border和原详情绑定。Translation代替布局Offset、顶部负24DIP、去From适配反转和取消；来源、必要适配和MIT许可见docs/详情悬浮卡片.md。
+
+当前树4a79；专项代理仅在独立detail-sticky-tests树写测试（原f548ea5挑拣为ffc5912，已干净），主代理写产品及原生单项。完整正式partial源链接专项54/54；界面动效46/46、详情能力85/85、图片到达23/23，均0失败0跳过，当前Shell Release/x64 0警告0错误。新增InspectDetailStickyHeader/library原生单项只用匿名假HTTP和零起播，1000/760/360 DIP检查实际滚动、系统刷子、绑定、关动画、离页和实屏。首轮Transform断树异常及首次Translation未注册导致原生导航失败均已修并补正式边界测试，保留原红报告。共享桌面锁被同期诊断占用时已用轻量探针等待释放，未结束其他进程或绕锁；最终可见窗口原生单项1/1通过，1000/760/360三张实屏逐张目视，命令/名称/系统亚克力/阈值/关动画与零位移/离页通过，零起播，6次匿名GET。证据artifacts/detail-sticky-native-final；未测实际系统高对比/关闭透明/节电、跨DPI、Narrator、物理键鼠及GPU帧连续性，不把静态或托管边界当这些实证。首次Hidden宿主与Translation红报告均保留。产品14a195e挑拣为dff6018进入master，测试ffc5912/1e43703挑拣为22c4d2c/9c87e2f；保留master新海报关联Attach/Release/Navigate与同期测试注册。合并未跑全量或发布，统一交付按台账复验；本任务detached开发树核对产品/测试内容均入master；测试子树已通过应用工具归档。4a79原SHA14a195e已无独有产品或测试内容，但应用archive_worktree拒绝移除当前聊天主检出（The task's primary checkout cannot be removed），按应用保护保留干净检出，不用原生命令绕过。本轮按规则仅合并，不发布、不上传。
+
+## 2026-11-13 侧栏搜索删除、标题搜索框下落、媒体库同步搜订阅与 MP 已订阅角标（未发布）
+
+用户四条令：①「标题上的搜索栏怎么给我做成按钮了，开启侧边栏模式时候，点击标题上的搜索栏，新增 ui 动画，把标题上的搜索栏移到下方」；②「开启侧边栏模式时删除侧边栏的搜索按钮」；③「搜索媒体库时候同时搜索订阅，并且在媒体搜索结果里面显示已订阅的媒体」；④「新增媒体库中 mp 已订阅的资源在封面左上角新增一个 mp 的灰色图标（设置中那个），放集数左边，大小要和集数一致」。
+
+**改了什么。** 栏里 `SidebarSearch` 与 `SearchTag` 选中映射删除；新增 `TitleSearchTransition`（ConnectedAnimation，Direct 补间；侧边栏模式点标题框时备票，搜索页 Loaded 接到 `SearchInput`，失败/离树/900 ms 超时取消并回退淡入，遵循动画偏好）。Core 新增 `MoviePilotSubscriptionSearch.Match` 与 `MoviePilotSubscriptionIndex`（身份规则复用 `MoviePilotLibraryPlayback.Provider`）；媒体库页进入时读一次订阅清单，搜索页首次有词时读一次，键入只做内存过滤；命中项以「订阅 · N 条」组摆在搜索结果最上面，点封面进订阅媒体页；只有订阅命中时不显示「没有找到」。`CardItem.MoviePilotSubscribed` 接到 `PosterCard` 右上角角标簇最左的 20×20 scrim 方块（设置页同一份 MP 标记，压暗 0.72），集数/未看集数/已看对勾在其右 —— 当前集数角标在右上角，故按「放集数左边」落在同一角；首页/详情/最近搜索小卡不置位。
+
+**验证。** Shell/Core 与 Tests Release/x64 均 0 警告 0 错误；主测试变基前 **5043/5043**、合并后 **5073/5073**（见下；新增三条 Core 判断；`Agreements.txt` 按有意删除 `SidebarSearch` 更新；两条下载用例需要可写 TEMP，本轮把 TEMP/TMP 指向用户临时目录后全绿）。`--probe-shell --probe-section shell --screen 1` **15/15**（新增栏里无搜索项、标题搜索框关联动画 started）；`--probe-section search --screen 1` 变基前 **12/12**、合并后 **13/13**（新增订阅同步、已订阅标记落地、订阅组实屏与截图）；`--probe-section library --screen 1` 47 项 **35 过、12 红**，红项均在本批未触碰区域，相关的「飞牛剧集卡片右上角的集数角标」通过。`dotnet format whitespace` 定向改动文件无差异，`git diff --check` 干净。
+
+**变基与合并轮。** 会话期间 master 连续前进到 `bf2d143`（轮播外圈删除与折叠侧栏媒体库悬停预览、图片筛选、封面到媒体详情关联动画，以及各自的台账）；本批先后两轮变基解冲突（PROGRESS／docs 两条记录都留，`Agreements.txt` 保留新预览句柄、删 `SidebarSearch`，`OnSearchTextChanged` 保留新 `RaiseSearchVisibility` 与本批订阅刷新，`LibraryPage.OnLoaded` 同时保留卡片关联动画与本批标题搜索关联动画的接线）。最终变基后 Shell/Tests Release/x64 重新编译 **0 警告 0 错误**；中途一轮主测试有 16 项因另一会话桌面探针占用 `SelfCheckRun` 锁失败，锁释放后在合并后的 master 重跑：**5073/5073、0 失败 0 跳过**（master 新批次带来更多用例）；`--probe-section shell` **15/15**（`shell-probe-20261113-122325949-33444`）、`--probe-section search` **13/13**（`shell-probe-20261113-122409197-35000`，含订阅组实屏与 `search-subscription-matches-screen.png`）。变基前的 `library` 47 项 35 过 12 红记录保留（红项与本批无关）。
+
+**没做／边界。** 未发布、未推远端；未连接真实 MoviePilot、未读用户真实订阅清单、未写服务器；MP 只用 `.invalid` 假 HTTP。12 项 library 红未在基线树同命令复跑，不全部认作既有红。侧边栏模式窄于 700 时标题搜索框收起且栏里没有第二个搜索入口（用户令的直接结果）。
+
+**合入状态。** 产品提交 `41ac2d1`、台账 `6bbe15b`，以 ff 合入 master（基线 `bf2d143`）；合并后主测试 5073/5073、shell/search 分区全绿。用户令「只合并，先不交付」，发布与交付件仍不动，交付轮再统一验证发布。
+
+## 2026-11-13 悬停放大：卡片整卡 1.03、预览面板换弹簧（参考 Gallery 6de91fe）
+
+用户令「单开一个工作树，参考源码修改本项目的」，接前一轮只读查证。参考 WinUI Gallery 的 Motion > Animation interop（`WinUIGallery/Samples/XamlCompInterop/XamlCompInteropPage.xaml.cs`，固定提交 `6de91fe`）：那份示例在 `PointerEntered/Exited` 里用 `CreateSpringVector3Animation` 把元素 Scale 从 1 弹到 1.5，`Target="Scale"`，阻尼 0.6、周期 50 ms。
+
+**改了什么。** ①`PosterCard` 悬停时整卡抬到 1.03（`HoverScale`），原来只把框内图片推近 1.045、整卡不动；键盘焦点不触发整卡放大，避免 Tab 扫过时整排跳动。抬起那一下用 `BackEase`（Amplitude 0.3、EaseOut）过冲一点再落定，不照搬 1.5（卡片网格里会压邻居），也不取 Composition 的 visual Scale —— `HomeMotion` 记着 2026-09-16「Calling Scale API is not allowed」那次进程崩溃，弹簧只借手感，仍走 `CardMotion` 的 RenderTransform。②`CardPreview` 的撑开/收起从一段 cubic keyframe 换成 `CreateSpringScalarAnimation` 驱动同一个 `Progress`（`DampingRatio` 撑开 0.82／收起 1.0，`Period` 取原时长÷6），边框、裁剪区、命中区与封面的表达式一个没改。弹簧没有跨线程完成回调，落定仍按原时长（250/167 ms）由 `DispatcherQueueTimer` 接住，反转与关动画走同一条路。
+
+**验证。** 工作树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/hover-scale`，分支 `workbuddy/hover-scale`，从 `8bb4676` 起、最终变基到 `01f3df9`。Shell Release/x64 0 警告 0 错误；`Momoka.PageContractTests` 228/228（新增 `HoverMotionTests` 两条源码契约：卡片 1.03 + BackEase + Gallery 出处、面板 spring 且不再用 keyframe）。**运行截图没做成**：先是另一会话的 `--probe-shell inspect`（PID 33300，`.codex/worktrees/6b9b`）占着桌面锁；等它退出后 `--probe-section library` 连试两次都在 `server-lists` 之后进程退出，检查台写过 `shell-probe-ready.txt` 后也退出（普通启动稳定 12 秒以上；原因未定位，也没有证据表明与本轮改动有关）。代码层面的完成回调风险已由 timer 方案消除，但卡片放大后的实际观感、边缘卡片的裁剪和面板回弹仍需在交付探针里看一眼。已以 `4b6007c` 进入 master（基线 `01f3df9`），台账第 10 条登记交付时要跑的检查；工作树与分支本轮收尾删除。
+
+## 2026-11-13 封面进入详情的 Gallery 原生关联动画
+
+用户要求原封面保持可见并移动到详情左上角；沿用 Gallery 6de91fe 的 ItemsRepeaterCollectionPage→DetailedInfoPage，保留前进Gravity/返回Direct和Momoka身份取消守卫。源码、必要本地适配及验证见 [封面关联动画](docs/封面关联动画.md)。本任务树21c5、范围CardDetailTransition/PosterCard/详情图片及三页入口、两个定向测试项目。Shell最终Release/x64 0警告0错误；关联40/40、图片26/26、页面契约223/223；最终原生单项1/1通过，零真实网络/播放。修复原生回退在新页Loaded前打断Frame创建的红，并保留原报告与遮挡红。证据artifacts/cover-connected-animation-20261113。纯UI状态留code-behind，不新增抽象层或依赖。产品08cd474已挑拣为4027fe6进入master；仅PROGRESS新增记录冲突，双方记录均保留。合并不跑全量或刷新publish、不上传。已将同哈希开发件复制到artifacts/cover-connected-development-win-x64，Shell SHA256 84049B515ACA62B30482E331516219C9F80EDC22CC826F4073B7891AA1B379EB，PID22432/窗口0x100820可响应，匿名详情供用户查看。复制件再次单项因Chrome遮挡截图红，未作为通过；原开发件最终独立运行1/1绿仍保留。复制件不等于master重编译或发布。源树干净、产品逐文件已纳入master（主页仅另批改动不同），21c5的Git登记和全部文件已移除；空目录因当前会话占用Permission denied保留，目录项0、无源码或独有提交。顶端08cd474恢复线索已记，开发查看实例运行于主树artifacts独立副本。
+## 2026-11-13 图片筛选已合入 master、待交付
+
+图片筛选收尾：两测试子树原SHA 2bd6a6b/470d1ea经git cherry均为已纳入主树，干净后移除；60b2最终HEAD 75a0d2a与master内容一致，无独有改动，清理本次开发树。原生证据保留用户隔离日志目录，当前无本任务临时分支。60b2的Git工作树登记与全部内容已移除，空目录因本会话当前目录占用返回Permission denied；不含源码、未提交内容或独有提交，待会话关闭释放后移除空目录。
+
+
+产品 `cff3676`，测试 `409b388`/`09bcd5b`，整合 `06cfb2d` 已ff进入主树。只解双方PROGRESS与开发文档的新增记录冲突，图片产品文件逐项对比与验证版本一致；保留同期主页、收藏、侧栏与Gallery规则。待交付台账第8项登记最终主树要跑的检查，本轮不发布/推远端。分支26/30/72与covers11项证据及7张实屏见下方记录，不冒充主树交付通过。
+
+## 2026-11-13 图片选择来源与语言筛选、光盘空态修复
+
+产品在 `60b2` 树实现，匿名测试来自独立子树 `artwork-search-tests`（原SHA `2bd6a6b`，挑拣 `409b388`）与 `artwork-query-tests`（原SHA `470d1ea`，挑拣 `09bcd5b`）。来源和所有语言由服务器重新筛选，默认全部来源/所有语言开，仍最多60张；清旧选择、取消旧查询/首批预览、拒绝迟到结果、失败重试、本机上传保持可达。光盘候选为空只陈述无结果，不再从Providers空推测插件或条目识别；未选图隐藏使用按钮，宿主动态同步并清理订阅。Thumb/Logo/Banner/Disc等候选按现有图种比例画框。
+
+实现前读取Emby4.10.1.0发布前端、固定SDK与Jellyfin10.10.7前后端，路径/哈希/行为在 [图片筛选证据](docs/图片搜索筛选.md)。Microsoft Learn ComboBox/Toggle指南与Gallery固定 `6de91feccadfbb0a796b71caedead5a2284f730e` 的Samples/ComboBox、ToggleSwitch XAML/code-behind已读；沿用原生Header/ItemsSource/IsOn与事件。Gallery没有服务器图片查询、四路预览与同宿主子面板的完整现成实现，异步归属与窄窗组合按本项目既有生命周期适配，未引入实验包或新样式体系。
+
+本树最终Shell/Core、主Tests、ArtworkSearchDialogTests Release均0警告0错误；协议30/30、候选实际控制流26/26、既有预览72/72（各0失败0跳过）。候选新增目录大小写与请求预取消曾红，产品修复后本树重新编译全部定向通过。曾并行编译共同Core产生文件锁重试警告，后续串行重编已0警告。文本/空白检查、回归清单81项一致性通过。
+
+原生 `--probe-shell --probe-section covers --screen 2` 最终 `shell-probe-20261113-115406645-36244`：11/11、退出0；新筛选用例执行1000/760/360宽度、来源/语言、旧请求取消、失败重试、动态宿主按钮、Disc空态，断言筛选/上传实际边界，7张artwork-search实屏逐张目视。此前 `shell-probe-20261113-115043391-23512` 与紧接一次运行停于已有宿主IsHostVisible前件；保留失败日志，不改断言，诊断占用释放后最终同代码运行通过。证据目录在 `%LOCALAPPDATA%/Momoka/logs/`，只用匿名假端点，不登录、不真实上传/应用图片或播放；未验证真实服务器筛选、原生键盘输入和提供商成功率。按用户规则只合master记台账，不发布、不推远端。
+
+## 2026-11-13 图片筛选专项测试子树（待父会话整合）
+
+测试树 `C:/Users/89400/.codex/worktrees/artwork-search-tests/Momoka`，基点 `5c6dfee`。仅新增 `Momoka.ArtworkSearchDialogTests` 并登记方案与统一回归清单，产品由父会话在 `60b2` 树实现。本专项编译链接完整候选弹窗，WinUI 为最小值/事件边界，外层仅匿名读取与选文件委托；覆盖默认值与初始化 Toggled、真实筛选事件、稳定集合、选择按钮恢复、快切迟到结果/错误、关闭取消、客观空态、请求/预览重试、上传取消/失败/成功、无代理文字选择、图种比例、首批预览释放和实际 XAML 接线。
+
+临时复制父树产品文件仅供本树编译，提交前已按原 Git blob 定点写回并删除临时新 record，没有暂存产品。验证对应候选源 SHA256 `2D33EBA48129DDF04D082BE47967C8BEBF7125A869581C35819B29AD3007A293`：Core/专项 Release 0 警告 0 错误，26/26、0 失败 0 跳过；新来源大小写反例曾 25/26，通过修复后重编再全过。定向 `format whitespace`、文本/差异检查及 `run-regressions.ps1 -List` 清单一致性通过，当前清单 81 专项。Copy-Item 保留时间戳曾让增量编译使用旧链接输出，本轮已更新仅验证副本时间后重编，旧红保留为过程证据。
+
+没有运行原生 UI、网络、真实账号、媒体写入或播放，不以本专项证明外层原生按钮同步/渲染。待父会话挑拣测试提交、在最终产品树重新编译本专项及按批次规则合入 master；不发布或上传远端。
+## 2026-11-13 轮播删外圈与折叠侧栏媒体库悬停预览（已合并 master，待交付）
+
+用户三句话（附主页截图）：①删除轮播图外面那一圈卡片；②继续观看改用缩略图；③侧边栏折叠时媒体库鼠标悬停添加
+从左到右展开的 UI 动画，显示在内容区、不遮挡侧边栏，支持查看媒体库名与媒体封面，聚合模式下支持查看更多。
+追问第②条后用户明确「算了，这个你别改了」，**继续观看本批未动**。
+
+**改了什么。** ①轮播按第①条撤掉 2026-11-12 晚那层外圈：`BannerGlow` / `BannerGlowBrush` /
+`PaintBannerGlow` / `BannerSlide.Ambient` / `HomeBanner.AmbientChanged` / Core `CarouselAmbient` 及其 5 条单测、
+`HomeFoldCompletionTests` 的 ambient 断言一起退役；`BannerZone` 的 36/20/13 与 `BannerCard` 的
+`EgCardCornerRadius` 保留（后者改 `Background=Transparent`，只做圆角剪裁）。②新增
+`ShellPage.LibraryPreview.cs`：56 宽图标栏里指针停在库图标上，200ms 后从栏右沿（栏宽 + 8）滑出一块
+160～360 宽的浮层，`ScaleX 0.72→1` 渐显展开、不压侧栏；显示库名、多账号时的来源服务器名与最多三张封面
+（主图 → 缩略图 → 背景图），封面走 `GetLatestAsync`／`HomeLatest.SeriesQuery` 与既有图片缓存；聚合模式显示
+「查看更多」，点它关闭面板并进入该库。指针移入面板取消收起；侧栏展开、选择变化、重建库列表、离树都会关闭并
+取消在飞请求。③测试：`HomeChromeTests` 改判「四边留白 + 圆角 + 无光晕/无卡片底」并新增
+`home-chrome-fixture` 入口；`AgreementsTests` 句柄基线按有意删除 `BannerGlow*`、新增 `LibraryPreview*` 与
+`SidebarLibraryPreviewMore` 逐行更新。
+
+**验证。** Shell/Core 与 Momoka.Tests Release/x64 编译 0 警告 0 错误；`home-carousel-fixture` **35/35**、
+`home-chrome-fixture` **2/2**、`Momoka.HomeFoldCompletionTests` **68/68**、`moviepilot-subscription-fixture`
+**111/111**；`--probe-shell --probe-section shell --screen 1` **15/15、退出 0**
+（`shell-probe-20261113-113242845-35244`），新增用例核对预览面板不压栏、库名、三张封面加载与聚合模式
+「查看更多」显隐；截图 `sidebar-library-preview-760-screen.png`、`sidebar-on-1240-screen.png` 已目视。
+全量 `Momoka.Tests` 未跑成完整一份：先因 `C:\WINDOWS\TEMP` 不可写红 20 项，改到可写临时目录后又被另一会话的
+桌面探针占住 `SelfCheckRun` 锁，按「不结束其他进程」的规则停止本会话这一趟；不把局部通过冒充全量通过。
+
+**边界与待办。** 未真实播放、未写服务器、未推远端；悬停由探针调用真实指针事件处理函数，不移动真实鼠标。
+产品提交 `39c8987`，以 ff 方式合入 master。工作树 `C:/Users/89400/.qoder-cn/worktrees/app/333f9d/Momoka`，
+分支 `qoder/hero-sidebar-preview`；按「分支只合并不交付」的规则不发布、不推远端，待交付验证登记在
+[待交付批次](docs/待交付批次.md) 第 7 条。rebase 时 PROGRESS 顶部的规则条目与本条各保留，文档已按最新 master 对齐。
+
+## 2026-11-13 规则：改 UI 先抄 WinUI Gallery 现成实现
+
+用户令：「修改项目规则，改ui时优先查WinUIGallery有没有现成的代码，有就直接抄」。
+
+**改了什么**：`CLAUDE.md`「WinUI 官方优先与偏离确认」在「多参考官方设计指南」后加一条：动手改任何界面前，先在 WinUI Gallery 源码里找同一控件、同一交互的现成实现，能用的就照抄那一份（保留资源键、附加属性、事件接线、焦点与无障碍语义，只改命名空间、项目字号刻度与 `Eg*Style`、绑定与生命周期归属），注释留 Gallery 路径与固定提交；没有现成实现或样例依赖本项目不用的版本／实验包时，才按「默认顺序」自行组合或自定义，并在 PROGRESS 记一行查过哪些路由、为什么不能抄。同步 `momoka-winui-shell` 技能第 3 步（copy-first）、其 `gallery-source-map.md` 的许可证条目，以及 `docs/开发与验证.md`「WinUI 重构与规则入口」那一段。
+
+**检查**：`py tools/check-main-tree-policy.py --self-test` 通过（4 份文档、51 条反例）；`tools/check-diff.ps1 -Paths` 四个文件的行尾、末尾换行、BOM 与空白通过。纯规则、技能说明与文档改动，未构建、未跑测试、未跑探针、未发布。
+
+## 2026-11-13 收藏页残留最近搜索（已合并，待交付）
+
+用户截图：收藏页整页只剩「最近搜索」，收藏卡片一个也看不到。原因是 Frame 复用同一个 `LibraryPage` 实例：空搜索框切到收藏时 `SearchText` 前后都是空串，生成的 setter 不发通知，`RecentSearchVisibility`／`SearchResultsVisibility` 停在搜索页的值上；最近搜索块占着结果区第一行，还把下面的收藏挤到屏外。`Attach` 现在拿到新请求后按新身份重算这几块显隐（`RaiseSearchVisibility`），并补上同一场景的空态刷新。
+
+**验证**：Shell／Tests Release 编译 0 警告 0 错误；`library-resume-paging-fixture` **52/52**（新增「空搜索页切到收藏页」用例，断言两类显隐都发通知）；`--probe-shell --probe-section search --screen 2` **13/13**（新增「空搜索切收藏」，先断言 Frame 确实复用同一页面实例，再断言最近搜索退场、结果区接位；截图 `foundation-favorites-after-empty-search-screen.png` 上收藏卡片正常）。产品 `5a2acee`，合并 `bf3f15c`，台账 `cfeb799` 记第 5 条待交付。主树未发布、未推远端。本聊天工作树 `WorkBuddy/Worktrees/Momoka/master-a6bdca58` 与分支 `workbuddy/master-a6bdca58` 的内容已全部进入 master，待本会话关闭后按同一条口径删除（这一段只存在于 master，分支不用跟着更新）。
+
+## 2026-11-13 主页「继续观看」那一排改用剧集缩略图
+
+用户令「主页继续观看那一列改用缩略图」（附当前主页那一排与「修改媒体封面图 — 青之箱」的缩略图两图）。只读查询真实 Emby 4.10.1 的 Resume 返回：续播条目全是单集，单集只有 `Primary`（从视频截的剧照），`Thumb` 只挂在剧那一层（`ParentThumbItemId`/`ParentThumbImageTag`）；「青之箱」的剧缩略图正是用户圈出的那张宽图。所以改的是取图来源，卡片形状不变（那一排本来就是 16:9 宽卡）。
+
+**改了什么**：新增 `ItemArtwork.InheritedThumb`（集/季借剧集那一层的缩略图，电影与剧不借媒体库）、`HomeLayout.WantsShowThumb`（只有 `resume` 打开）、`CardItem`/`CardShelf` 的 `preferShowThumb`；主页 `BuildShelves` 只给继续观看传这个开关。卡片候选顺序变成「剧集缩略图 → 条目自己的缩略图/背景图/剧照」，取不到照旧往下退。接下来看、继续观看那一页（库页缩略图视图）、轮播和悬停预览不动。
+
+**验证**：分支合入最新 master 后 Shell/Core Release/x64 编译 0 警告 0 错误；主测试 **5045/5045、0 失败 0 跳过**（新增 `ItemArtworkTests` 四条、`HomeLayoutTests` 一条、页面契约三条）；`Momoka.PageContractTests` **226/226**。环境注意：本会话 shell 的 `TEMP=/tmp` 会让 .NET 回退到 `C:\WINDOWS\TEMP`，主测试里的自检复制与下载到设备用例因此先红；改用用户临时目录后全绿。未做真实主页截图（按规则留到交付），未播放、未写服务器、未推远端。
+
+**合入状态**：产品 `50366e0`，合入 master `5144aed`（ff）。待交付台账第 6 条。
+
+## 2026-11-13 P4–P8 合并收尾与最后工具回执
+
+本任务16个子树Git登记/分支已清（15目录完整移除，空白树长路径残留保留）；3个早期空树移除，协调ebd7按应用保护保持干净detached，本任务分支已删。原红/绿证据都已主树归档。系统角色工具本轮Shell0警告0错误，实际自检run6a460f41767c4e21a6b1cfaf833b526c角色覆盖通过、188过1红（标题栏下沿命中），未把整报告报绿。该标题栏红登记同期待交付批次，按新规则不在合并轮自动执行交付；没有自行发布或远端上传。
+
+## 2026-11-13 WinUI P4–P8 本批已合并，按新规则待用户交付
+
+整合6af303f与系统角色自检ce6ffbd已在master，保留同期悬停/封面流光/简洁详情内容层/标题侧栏改动。P4布局分页、P5音乐生命周期与资源、P6动效关联和键盘、P7隔离研究及P8工具修复已入库。原生音乐12组预算全过、匿名信息表三档全0–9；用户FromResult第8–12步同run7c0bd6a82bc44766b0b654cb2fe9ebd9通过，严格Tab序列2、零起播与服务写入，前7步分轮记录而不拼同run。通知修复协调树自检189项0失败/消失/降级，新系统动态角色修正Page223/223；各中间红项及最终代码未做的交付验收照实保留。
+
+用户当日更新规则「分支做完只合并，要求交付再交付」后，本会话停止自动全量交付构建和发布；P8统一交付检查移到docs/待交付批次.md，桌面目录由此前其它批次更新，不作为本任务最终交付。未推远端。恢复时按台账并集验证最终master，不复用协调树旧报告。
+
+本任务16子树/分支和3个早期空开发树已清，提交SHA与clean/等效检查在artifacts/winui-p48-20261113/task-worktree-cleanup-inventory.json；协调及子树的原红/绿证据已归档。空白树Git删除遇Filename too long留下无Git登记目录，递归清残留被自动审批拒绝（仅blocked by policy），不绕过。协调树ebd7归档被应用拒绝（primary checkout），保留干净detached并删除本任务分支，不绕保护；其它聊天/P3/WorkBuddy树保持原样。全报告docs/WinUI-P4-P8执行记录.md；真实跨DPI/文字200%/Narrator/触摸/新宿主mpvHDR仍未验证。
 
 ## 2026-11-13 规则改为「分支做完只合并，要求交付再交付」＋待交付批次台账
 
@@ -13078,3 +13253,20 @@ Release Shell/三项测试编译0警告0错误；真实caller78/78、Core自然E
 仅改本次文案与行为：有播放位置/次数/LastPlayedDate显示继续播放，手工Played标记不作为真实记录；实际续播起点仍由已有规则决定。评分类型使用服务器真实字段；没有评分不造分。徽标引用存在但加载失败时44DIP预留会留空，这是本轮固定动画目标的取舍。系统动画即时切换/跨DPI/文字缩放/触摸/Narrator未覆盖，程序化Closed也不等同物理点外点击。
 
 清理补记：本次工作树由Codex登记为当前聊天主检出，archive_worktree明确拒绝删除（The task's primary checkout cannot be removed）。不绕过该保护，临时树与分支保持已提交、干净；全部产品内容已在master，证据已复制到主树。
+## 2026-11-13 花絮入口点击后像变成连播（只合并，交付由用户另交聊天）
+
+工作树 `4175/Momoka`，临时分支 `codex/detail-extras-availability`。根因是支持读取的视频先显示花絮入口，点击得到空列表才收起，旁边连播左移。详情现在先读取并过滤实际内容，非空或读取失败才显示入口，首次菜单复用读取结果；各服务器的协议前提、读取失败的重试入口、正片播放和连播偏好保持。新增8条实际VM回归；字幕父页提取夹具只补新依赖的空边界。
+
+独立树 Shell/Core/Tests 与字幕专项 Release/x64 编译均0警告0错误；详情动作专项85/85、花絮协议11/11、字幕生命周期89/89。`InspectDetailExtras` PID15480、退出0、单项通过：空花絮单集简洁/沉浸×1280/760，以及Emby/Jellyfin菜单、失败重试、空态恢复、旧选项/离页迟到；实屏16张、代表4张目视通过；最终格式化后重新编译、详情专项及原生检查通过，7个变更文件行尾/编码/差异检查和3项目定向空白检查通过。日志 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261113-110316147-15480/logs`。首轮辅助启动使用隐藏窗口导致宿主可见性红项，改为可见检查窗口后正常通过；另一次原生探针编译因调用私有外观方法失败，修正后重新编译0警告0错误，未使用失败产物。
+
+用户明确只合并，不发布、不联系其他聊天；主树最终整合的完整测试、适用UI复验及发布由用户安排交付聊天完成。当前分支验证不能代替主树交付验证。只用匿名GET/假播放，无真实服务器播放或写入，未推远端。等待主树并行文档写入释放后，产品 `9126482` 先整合最新master，再以 `331eaef` 快进合入master；受影响产品文件无整合冲突、逐文件相同。已追加待交付台账第4项，主树未构建/跑全量/发布。临时分支在内容核对后删除；当前4175为本聊天受保护primary工作树，保留干净detached，不绕过保护删除。
+
+## 2026-11-13 演职人员页：Emby／Jellyfin 独立人物页与本树验证
+
+用户令参考 WinUI Gallery 与网页端人物页新增演职人员功能和页面。产品：`PersonRequest` / `PersonPage` / `PersonViewModel`，从左栏人物卡进入；照片、名字、出生/逝世与年龄、出生地、简介；「节目」「电影」「集」三排；「其他信息」数据库链接；「影视作品」按职务分组（演员/导演/编剧/制片/客串/配乐），显示总数与前 20 行，「查看全部」进入带 `PersonTypes` 的人物作品网格。人物卡右键菜单按人物排收藏、编辑元数据、修改照片、识别、刷新；合集、删除、扫库不出现；人物页自己的「更多」不重复「打开」。飞牛没有人物条目，保留原人物作品网格；Plex 无导航身份仍不可点。人物卡悬浮层仍不长收藏键，人物页有独立的心；`ItemCommands.SetFavorite` 对人物单独放行，飞牛人物仍拒绝。
+
+协议：人物详情先走 `Users/{userId}/Items/{id}`，404/400 退回 `Persons/{Name}?UserId=`；`Fields` 点名 `ProductionLocations`/`PremiereDate`/`EndDate`/`ProviderIds`。作品沿用 `PersonIds`，影视作品每组带 `PersonTypes` 与 `People` 读角色；`PersonTypes` 只在有 `PersonIds` 时发送。源 pin：`EmbyItem.cs` 新增 `ProductionLocations`、`EmbyPerson.DescribeCredit` 公开为 `CreditName`，自然接续专项的 18 份其它 pin 逐份核对一致，仅定点更新该文件 SHA256。
+
+验证（变基前）：Release 全方案 **0 警告 0 错误**；主测试 **5089/5089、0 失败 0 跳过**；Plex 入口 **85/85**、页面源码控制流 **228/228**、导航目的地 **18/18**；自然接续 caller **81/81**、源提取反例 **10/10**。新增 `--probe-shell --probe-section person --screen 1` 原生检查 **1/1、退出 0**（`shell-probe-20261113-140246626-20284`），真实 PersonPage 1280/760 实屏、资料/三条作品带/影视作品分组/其他信息/人物菜单/收藏写入全部通过；实屏 `person-page-1280-screen.png`、`person-page-760-screen.png`、`person-page-filmography-screen.png` 已目视。只用匿名假 HTTP、假身份和假播放；未在真实服务器执行人物详情、收藏、元数据、识别或照片写入；飞牛人物页、物理点外、触摸、读屏、跨 DPI、高对比度未覆盖。未推远端、未发布。
+
+**合入状态。** 以 `--ff-only` 合入 master（产品提交 `2652191`）；合并后 Core/Shell/Tests x64 Release **0 警告 0 错误**，主测试 **5090/5090、0 失败 0 跳过**，人物页探针复跑 **1/1**（`shell-probe-20261113-143627378-25732`，三张实屏重新生成）。未推远端、未发布。

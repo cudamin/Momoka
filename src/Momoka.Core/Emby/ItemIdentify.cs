@@ -23,6 +23,10 @@ public static class ItemIdentify
     /// 服务器的 <c>Items/RemoteSearch/{Type}</c> 认哪几种。**季和单集不在里头** —— 它们跟着所属的剧一起
     /// 识别，服务器没有「这一集单独对哪一部片子」这回事（官方网页端那三点的菜单里，剧集那一页也没有「识别」）。
     /// 文件夹、播放列表、媒体库同样没有可对上的片子。
+    /// <para>
+    /// 人物在里头：Emby 的 SDK 有 <c>Items/RemoteSearch/Person</c>，Jellyfin 网页端的人物菜单也把它列进
+    /// <c>canIdentify</c>。人物页的「识别」因此和电影、剧走同一条路，不同的只有 Type 那一段是 <c>Person</c>。
+    /// </para>
     /// </summary>
     private static readonly HashSet<string> Identifiable = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -32,7 +36,8 @@ public static class ItemIdentify
         EmbyItemType.Trailer,
         EmbyItemType.MusicVideo,
         EmbyItemType.MusicAlbum,
-        EmbyItemType.MusicArtist
+        EmbyItemType.MusicArtist,
+        EmbyItemType.Person
     };
 
     /// <summary>这个条目能不能识别 —— 「更多」菜单上那条「识别」看不看得到，全看这一位。</summary>

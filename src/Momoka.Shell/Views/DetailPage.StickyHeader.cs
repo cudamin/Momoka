@@ -1,0 +1,239 @@
+using System.ComponentModel;
+using System.Numerics;
+using System.Runtime.InteropServices;
+using CommunityToolkit.WinUI.Animations;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Hosting;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
+using Momoka.Shell.ViewModels;
+using Windows.Foundation;
+using Windows.UI.ViewManagement;
+
+namespace Momoka.Shell.Views;
+
+public sealed partial class DetailPage
+{
+    private readonly UISettings _headerSystemSettings = new();
+    private ImplicitAnimationSet? _headerShow;
+    private ImplicitAnimationSet? _headerHide;
+    private bool _headerActive;
+    private bool _headerShown;
+    private bool _headerQueued;
+    private bool _headerCompact;
+    private bool _headerMotionPrimed;
+    private int _headerLifetime;
+
+    public static Visibility HeaderPosterVisibility(ImageSource? image) =>
+        image is null ? Visibility.Collapsed : Visibility.Visible;
+
+    public static Visibility HeaderSubtitleVisibility(string? text) =>
+        string.IsNullOrWhiteSpace(text) ? Visibility.Collapsed : Visibility.Visible;
+
+    private void PrepareStickyHeader()
+    {
+        Loaded += (_, _) => WatchStickyHeader();
+        Unloaded += (_, _) => StopStickyHeader();
+    }
+
+    private void WatchStickyHeader()
+    {
+        if (_headerActive) return;
+        _headerActive = true;
+        ViewModel.PropertyChanged += OnHeaderStateChanged;
+        ViewModel.PlayCommand.CanExecuteChanged += OnHeaderPlayChanged;
+        LayoutUpdated += OnHeaderLayoutUpdated;
+        HomeMotion.PreferenceChanged += OnHeaderMotionChanged;
+        _headerSystemSettings.AnimationsEnabledChanged += OnHeaderSystemMotionChanged;
+        SyncHeaderMotion();
+        QueueStickyHeader();
+    }
+
+    private void StopStickyHeader()
+    {
+        _headerActive = false;
+        _headerLifetime++;
+        _headerQueued = false;
+        ViewModel.PropertyChanged -= OnHeaderStateChanged;
+        ViewModel.PlayCommand.CanExecuteChanged -= OnHeaderPlayChanged;
+        LayoutUpdated -= OnHeaderLayoutUpdated;
+        HomeMotion.PreferenceChanged -= OnHeaderMotionChanged;
+        _headerSystemSettings.AnimationsEnabledChanged -= OnHeaderSystemMotionChanged;
+        ResetStickyHeader();
+    }
+
+    private void ResetStickyHeader()
+    {
+        _headerShown = false;
+        StickyHeader.IsHitTestVisible = false;
+        ClearHeaderMotion();
+        StickyHeader.Visibility = Visibility.Collapsed;
+    }
+
+    private void OnHeaderStateChanged(object? sender, PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName is nameof(DetailViewModel.PlayVisibility) or nameof(DetailViewModel.IsCompact)
+            or nameof(DetailViewModel.StillImage) or nameof(DetailViewModel.PageWidth))
+            QueueStickyHeader();
+    }
+
+    private void OnHeaderPlayChanged(object? sender, EventArgs args) => QueueStickyHeader();
+    private void OnHeaderLayoutUpdated(object? sender, object args) => QueueStickyHeader();
+
+    private void QueueStickyHeader()
+    {
+        if (!_headerActive || _headerQueued) return;
+        _headerQueued = true;
+        var lifetime = _headerLifetime;
+        if (!DispatcherQueue.TryEnqueue(() =>
+        {
+            if (!_headerActive || lifetime != _headerLifetime) return;
+            _headerQueued = false;
+            UpdateStickyHeader();
+        })) _headerQueued = false;
+    }
+
+    private Button HeaderAnchor => ViewModel.IsCompact ? CompactPlayButton : ColumnPlayButton;
+
+    private void UpdateStickyHeader()
+    {
+        if (!_headerActive) return;
+        UpdateHeaderSize();
+        var anchor = HeaderAnchor;
+        if (XamlRoot is null || Body.VerticalOffset <= 0 || Body.ActualHeight <= 0
+            || ViewModel.PlayVisibility != Visibility.Visible || !ViewModel.PlayCommand.CanExecute(null)
+            || anchor.Visibility != Visibility.Visible || anchor.ActualWidth <= 0 || anchor.ActualHeight <= 0)
+        {
+            HideStickyHeader(anchor, immediate: true);
+            return;
+        }
+
+        Rect box;
+        try
+        {
+            if (!ReferenceEquals(anchor.XamlRoot, XamlRoot))
+            {
+                HideStickyHeader(anchor, immediate: true);
+                return;
+            }
+            box = anchor.TransformToVisual(Body)
+                .TransformBounds(new Rect(0, 0, anchor.ActualWidth, anchor.ActualHeight));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or COMException)
+        {
+            // ScrollView在导航和布局断树时可能仍派发最后一次ViewChanged。
+            HideStickyHeader(anchor, immediate: true);
+            return;
+        }
+        // 在视口顶部被裁切一半才接手，底部尚未滚到的按钮不触发。收回多让4 DIP，避免触控滚动临界抖动。
+        var center = box.Top + box.Height / 2;
+        var threshold = _headerShown ? Math.Min(4, box.Height * 0.1) : 0;
+        if (center <= threshold) ShowStickyHeader();
+        else HideStickyHeader(anchor, immediate: false);
+    }
+
+    private void UpdateHeaderSize()
+    {
+        var compact = Body.ActualWidth < 520;
+        if (_headerCompact != compact)
+        {
+            _headerCompact = compact;
+            StickyHeader.Margin = new Thickness(compact ? 12 : 32, 12, compact ? 12 : 32, 0);
+            StickyHeader.Padding = new Thickness(compact ? 12 : 16, 12, compact ? 12 : 16, 12);
+            StickyHeaderContent.ColumnSpacing = compact ? 8 : 16;
+            StickyPlayText.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+        }
+        // 属性通知与x:Bind的回填顺序不固定；每次最终布局后重算，窄窗不会被晚到的封面挤掉片名。
+        StickyPoster.Visibility = compact ? Visibility.Collapsed : HeaderPosterVisibility(ViewModel.StillImage);
+    }
+
+    private void ShowStickyHeader()
+    {
+        if (_headerShown) return;
+        _headerShown = true;
+        SyncHeaderMotion();
+        if (HeaderAnimationsEnabled)
+        {
+            var visual = ElementCompositionPreview.GetElementVisual(StickyHeader);
+            // 仅首次入场播起点；已在隐式退场中的反转由Composition接续当前帧。
+            // 隐式动画结束保留目标值，下一次显示无需重置到From。
+            if (!_headerMotionPrimed)
+            {
+                _headerMotionPrimed = true;
+                visual.Opacity = 0;
+                visual.Properties.InsertVector3("Translation", new Vector3(0, -24, 0));
+            }
+        }
+        StickyHeader.IsHitTestVisible = true;
+        StickyHeader.Visibility = Visibility.Visible;
+    }
+
+    private void HideStickyHeader(Button anchor, bool immediate)
+    {
+        if (!_headerShown && !immediate) return;
+        _headerShown = false;
+        if (XamlRoot is { } root && ReferenceEquals(FocusManager.GetFocusedElement(root), StickyPlayButton)
+            && anchor.Visibility == Visibility.Visible && anchor.IsEnabled)
+            anchor.Focus(FocusState.Keyboard);
+        StickyHeader.IsHitTestVisible = false;
+        if (immediate) ClearHeaderMotion();
+        StickyHeader.Visibility = Visibility.Collapsed;
+    }
+
+    private bool HeaderAnimationsEnabled => HomeMotion.PreferenceEnabled && _headerSystemSettings.AnimationsEnabled;
+
+    private void OnHeaderMotionChanged() => SyncHeaderMotion();
+
+    private void OnHeaderSystemMotionChanged(UISettings sender, UISettingsAnimationsEnabledChangedEventArgs args)
+    {
+        var lifetime = _headerLifetime;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (_headerActive && lifetime == _headerLifetime) SyncHeaderMotion();
+        });
+    }
+
+    private void SyncHeaderMotion()
+    {
+        if (!_headerActive || !HeaderAnimationsEnabled)
+        {
+            ClearHeaderMotion();
+            return;
+        }
+
+        // WinUI Gallery 2.10.0（桌面exe，7b4314a）的ControlExample.xaml显示/隐藏参数。
+        // MIT，Copyright (c) Microsoft Corporation，许可见docs/详情悬浮卡片.md。
+        // 用Translation替代样例Offset以保留XAML布局位置；去掉From让快速反向从当前帧继续。
+        _headerShow ??=
+        [
+            new TranslationAnimation { To = "0", Duration = TimeSpan.FromMilliseconds(400), EasingMode = EasingMode.EaseOut },
+            new OpacityAnimation { To = 1, Duration = TimeSpan.FromMilliseconds(200), EasingMode = EasingMode.EaseOut },
+        ];
+        _headerHide ??=
+        [
+            new TranslationAnimation { To = "0,-24,0", Duration = TimeSpan.FromMilliseconds(200), EasingMode = EasingMode.EaseOut },
+            new OpacityAnimation { To = 0, Duration = TimeSpan.FromMilliseconds(100), EasingMode = EasingMode.EaseOut },
+        ];
+        Implicit.SetShowAnimations(StickyHeader, _headerShow);
+        Implicit.SetHideAnimations(StickyHeader, _headerHide);
+        if (StickyHeader.Visibility == Visibility.Visible) _headerMotionPrimed = true;
+    }
+
+    private void ClearHeaderMotion()
+    {
+        _headerMotionPrimed = false;
+        // 首次OnNavigatedTo早于implicit hook；Translation须先注册，否则StopAnimation会被平台拒绝。
+        ElementCompositionPreview.SetIsTranslationEnabled(StickyHeader, true);
+        Implicit.SetShowAnimations(StickyHeader, null!);
+        Implicit.SetHideAnimations(StickyHeader, null!);
+        var visual = ElementCompositionPreview.GetElementVisual(StickyHeader);
+        // 未上树时平台可能尚未建立存值，先补齐属性再停止，首次导航同样可安全清理。
+        visual.Properties.InsertVector3("Translation", Vector3.Zero);
+        visual.StopAnimation("Opacity");
+        visual.StopAnimation("Translation");
+        visual.Properties.InsertVector3("Translation", Vector3.Zero);
+        visual.Opacity = 1;
+    }
+}

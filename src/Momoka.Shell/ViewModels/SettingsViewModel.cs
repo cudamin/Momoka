@@ -2192,7 +2192,7 @@ public sealed partial class SettingsViewModel : PageViewModel
                 value => ui.AnimationsEnabled = value,
                 after: () => ShellPrefs.Apply(ui)),
 
-            Toggle("侧边栏模式", "在主窗口左侧显示主页、搜索、收藏和媒体库导航；默认关闭，改完立即生效",
+            Toggle("侧边栏模式", "在主窗口左侧显示主页、收藏和媒体库导航；默认关闭，改完立即生效",
                 () => ui.SidebarMode,
                 value => ui.SidebarMode = value,
                 after: () => ShellPrefs.ApplySidebar(ui)),

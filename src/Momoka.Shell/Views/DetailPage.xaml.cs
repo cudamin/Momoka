@@ -100,6 +100,7 @@ public sealed partial class DetailPage : Page, IShellContent
         PrepareShowcase();
         PrepareCardLayout();
         PrepareCoverHover();
+        PrepareStickyHeader();
 
         // 沉浸版式那一支单独订阅：OnViewModelChanged 是 Plex 入口夹具原样提取的契约正文，往里塞这一页新加的
         // 字段会让那份提取出来的类编译不过。视图模型与这一页同寿，挂着不用退订。
@@ -1775,6 +1776,7 @@ public sealed partial class DetailPage : Page, IShellContent
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
+        ResetStickyHeader();
 
         if (e.Parameter is not DetailRequest request)
         {
@@ -1811,7 +1813,6 @@ public sealed partial class DetailPage : Page, IShellContent
         // Native Frame navigation callbacks do not inherit AsyncLocal; capture this Frame's gate
         // after Attach resets the prior visit and before Reload starts artwork.
         ViewModel.UseImagePresentation(BrowsePresentation.WaitForImagesAsync(this));
-        CardDetailTransition.Attach(this, request.Item);
 
         // 标题栏那几处的字得跟着这一页有没有背景图翻墨色 —— 图现在画进标题栏了（见 LiftBackdrop），黑字压在
         // 一张亮剧照上读不出来。订阅是为了「图是后到的」那一路；这一句显式的调用是为了「页面被复用」那一路：
@@ -1833,6 +1834,8 @@ public sealed partial class DetailPage : Page, IShellContent
         NavigationTiming.Mark("reload-start");
 
         _ = ViewModel.ReloadAsync();
+        // Reload同步建立条目预览后接住原图，不能被Preview的尺寸初始化覆盖。
+        CardDetailTransition.Attach(this, request.Item);
     }
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs args)
@@ -1996,8 +1999,9 @@ public sealed partial class DetailPage : Page, IShellContent
     public void Release()
     {
         StopStoreTrailer();
+        StopStickyHeader();
         StopScrollReveal();
-        if (Frame is { } frame && !CardDetailTransition.Returning(frame)) CardDetailTransition.Cancel(frame);
+        CardDetailTransition.Release(this);
         _trailerMenu?.Hide();
         _extraMenu?.Hide();
         StopArtworkArrival();
@@ -2288,6 +2292,7 @@ public sealed partial class DetailPage : Page, IShellContent
     private void OnBodyViewChanged(ScrollView sender, object args)
     {
         ScrollStoreTrailer();
+        UpdateStickyHeader();
         PaintWash();
         PaintReadingColors();
     }
@@ -2466,17 +2471,21 @@ public sealed partial class DetailPage : Page, IShellContent
     /// </summary>
     private void OnCardClicked(object sender, RoutedEventArgs e)
     {
-        var card = sender switch
+        var content = (sender as Button)?.Content;
+        var card = content switch
         {
-            Button { Content: PosterCard { Card: { } poster } } => poster,
-            Button { Content: EpisodeRow { Card: { } row } } => row,
+            PosterCard { Card: { } poster } => poster,
+            EpisodeRow { Card: { } row } => row,
             _ => null
         };
 
         if (card is not null)
         {
-            NavigationTiming.Click("card");
-            ViewModel.OpenCard(card);
+            NavigationTiming.Click(card.Item.Type == EmbyItemType.Person ? "person-card" : "card");
+            if (card.Item.Type == EmbyItemType.Person)
+                PersonTransition.Navigate(this, content as PosterCard, () => ViewModel.OpenCard(card));
+            else
+                CardDetailTransition.Navigate(this, content as PosterCard, () => ViewModel.OpenCard(card));
         }
     }
 
@@ -2500,8 +2509,9 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         var card = sender switch { PosterCard { Card: { } poster } => poster, EpisodeRow { Card: { } row } => row, _ => null };
         if (card is null) return;
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.CaptureCardReload(card.Item), ViewModel.CaptureRemoval(),
-            presenterStyle: (Style)Application.Current.Resources["EgDetailMenuPresenterStyle"]);
+        CardDetailTransition.Navigate(this, args.Action == CardAction.Details ? sender as PosterCard : null, () =>
+            ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.CaptureCardReload(card.Item), ViewModel.CaptureRemoval(),
+                presenterStyle: (Style)Application.Current.Resources["EgDetailMenuPresenterStyle"]));
     }
 
     /// <summary>

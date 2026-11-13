@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  一个人物的页面：左边一张照片，右边是名字、生卒/出生地和简介；下面按「节目」「电影」「集」摆三排，
+  再接「其他信息」和按职务分组的「影视作品」。
+
+  版面和详情页是同一套纸面/板：页边取 EgPageMargin，每一块内容住在 EgBodyPanelStyle 的板里。人物没有
+  剧照可铺满整屏，所以这一页不画背景图；照片是这一页唯一的大图，放在页头，用详情页同一条胶片框。
+
+  页头那一排用 WrapRow 而不是 Grid：宽窗上照片和信息并排，窄窗上信息落到照片下面，和详情页那三个
+  媒体下拉的换行是同一条规则。信息那一叠的 MaxWidth 取 EgProseWidth —— 简介是给人读的句子，行长不跟
+  1480 像素的窗口一起长。
+-->
+<Page
+    x:Class="Momoka.Shell.Views.PersonPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:emby="using:Momoka.Emby"
+    xmlns:local="using:Momoka.Shell.Views"
+    xmlns:vm="using:Momoka.Shell.ViewModels"
+    Background="Transparent">
+
+    <Page.Resources>
+        <!-- 人物作品的一行：整行可点，悬停用框架自己的按钮底。行里三格：年份、片名、署名。 -->
+        <Style x:Key="PersonCreditRowStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0,9" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgPosterCornerRadius}" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+
+        <!-- 一排卡片。和详情页那张模板同一份写法：Button 保留点击、键盘和焦点框，三态底色透明，
+             PosterCard 自己画悬停和封面框。 -->
+        <DataTemplate x:Key="CardTemplate" x:DataType="local:CardItem">
+            <Button
+                AutomationProperties.Name="{x:Bind Title, Mode=OneWay}"
+                Background="Transparent"
+                BorderThickness="0"
+                Click="OnCardClicked"
+                ContextRequested="OnCardContextRequested"
+                Padding="0">
+                <Button.Resources>
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
+                </Button.Resources>
+                <local:PosterCard
+                    ActionRequested="OnCardActionRequested"
+                    Card="{x:Bind}"
+                    CardWidth="{x:Bind CardWidth, Mode=OneWay}"
+                    PosterHeight="{x:Bind PosterHeight, Mode=OneWay}" />
+            </Button>
+        </DataTemplate>
+
+        <!-- 一排：牌子 + 横向带子。牌子的读数不绑，人物页上这三排不报「几项」；
+             要不要显示整块由外层 ContentControl 的 Visible 决定。 -->
+        <DataTemplate x:Key="ShelfTemplate" x:DataType="vm:CardShelf">
+            <StackPanel Spacing="{StaticResource EgSpaceM}">
+                <local:ShelfHead Title="{x:Bind Title, Mode=OneWay}" />
+                <local:ShelfStrip
+                    Height="{x:Bind RowHeight}"
+                    ItemSpacing="16"
+                    ItemTemplate="{StaticResource CardTemplate}"
+                    ItemsSource="{x:Bind Cards}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- 影视作品的一行。标题和署名各占自己的格：片名过长时省略，署名不把年份挤掉。 -->
+        <DataTemplate x:Key="CreditRowTemplate" x:DataType="emby:PersonCreditRow">
+            <Button
+                Tag="{x:Bind}"
+                Click="OnCreditClicked"
+                AutomationProperties.Name="{x:Bind Title}"
+                Style="{StaticResource PersonCreditRowStyle}">
+                <Grid ColumnSpacing="{StaticResource EgSpaceM}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="48" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource EgDataStyle}"
+                        Text="{x:Bind Year}" />
+                    <TextBlock
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource EgBodyStyle}"
+                        Text="{x:Bind Title}"
+                        TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                        Grid.Column="2"
+                        MaxWidth="280"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource EgCaptionStyle}"
+                        Text="{x:Bind Role}"
+                        TextTrimming="CharacterEllipsis" />
+                </Grid>
+            </Button>
+        </DataTemplate>
+
+        <!-- 一组影视作品：小标题「演员 (156)」、行清单、以及更多的去处。 -->
+        <DataTemplate x:Key="CreditGroupTemplate" x:DataType="vm:PersonCreditGroup">
+            <StackPanel Margin="0,0,0,12" Spacing="{StaticResource EgSpaceS}">
+                <TextBlock
+                    AutomationProperties.HeadingLevel="Level3"
+                    Style="{StaticResource EgSubheadStyle}"
+                    Text="{x:Bind Heading}" />
+                <ItemsRepeater ItemsSource="{x:Bind Rows}" ItemTemplate="{StaticResource CreditRowTemplate}">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Spacing="0" />
+                    </ItemsRepeater.Layout>
+                </ItemsRepeater>
+                <HyperlinkButton
+                    Click="OnGroupMoreClicked"
+                    Content="查看全部"
+                    Tag="{x:Bind}"
+                    Visibility="{x:Bind MoreVisibility}" />
+            </StackPanel>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid>
+        <ScrollView
+            x:Name="Body"
+            ContentOrientation="Vertical"
+            HorizontalScrollBarVisibility="Hidden"
+            HorizontalScrollMode="Disabled">
+            <StackPanel Margin="{StaticResource EgPageMargin}" Spacing="{StaticResource EgSpace2XL}">
+                <!-- 页头：照片和信息。窄窗时信息换到照片下面。 -->
+                <local:WrapRow Spacing="{StaticResource EgSpace2XL}" RowSpacing="{StaticResource EgSpaceXL}">
+                    <Border
+                        Width="200"
+                        Height="300"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Style="{StaticResource EgFrameStyle}">
+                        <Grid>
+                            <Image
+                                x:Name="PortraitImage"
+                                Source="{x:Bind ViewModel.Portrait, Mode=OneWay}"
+                                Stretch="UniformToFill"
+                                Visibility="{x:Bind ViewModel.PortraitVisibility, Mode=OneWay}" />
+                            <FontIcon
+                                FontSize="{StaticResource EgDisplayFontSize}"
+                                Foreground="{ThemeResource EgTextFaintBrush}"
+                                Glyph="&#xE77B;"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Visibility="{x:Bind ViewModel.PortraitPlaceholderVisibility, Mode=OneWay}" />
+                        </Grid>
+                    </Border>
+
+                    <StackPanel
+                        MaxWidth="{StaticResource EgProseWidth}"
+                        VerticalAlignment="Center"
+                        Spacing="{StaticResource EgSpaceS}">
+                        <TextBlock Style="{StaticResource EgEyebrowStyle}" Text="演职人员" />
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
+                            <TextBlock
+                                Style="{StaticResource EgPageTitleStyle}"
+                                Text="{x:Bind ViewModel.Name, Mode=OneWay}"
+                                TextWrapping="Wrap" />
+                            <Button
+                                AutomationProperties.Name="编辑演职人员元数据"
+                                Click="OnEditClicked"
+                                Style="{StaticResource EgIconButtonStyle}"
+                                ToolTipService.ToolTip="编辑元数据"
+                                Visibility="{x:Bind ViewModel.EditVisibility, Mode=OneWay}">
+                                <FontIcon FontSize="{StaticResource EgBodyFontSize}" Glyph="&#xE70F;" />
+                            </Button>
+                        </StackPanel>
+
+                        <TextBlock
+                            Style="{StaticResource EgDataStyle}"
+                            Text="{x:Bind ViewModel.BirthLine, Mode=OneWay}"
+                            Visibility="{x:Bind ViewModel.BirthVisibility, Mode=OneWay}" />
+                        <TextBlock
+                            Style="{StaticResource EgDataStyle}"
+                            Text="{x:Bind ViewModel.DeathLine, Mode=OneWay}"
+                            Visibility="{x:Bind ViewModel.DeathVisibility, Mode=OneWay}" />
+                        <TextBlock
+                            Style="{StaticResource EgDataStyle}"
+                            Text="{x:Bind ViewModel.BirthplaceLine, Mode=OneWay}"
+                            Visibility="{x:Bind ViewModel.BirthplaceVisibility, Mode=OneWay}" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
+                            <Button
+                                AutomationProperties.Name="{x:Bind ViewModel.FavoriteActionTip, Mode=OneWay}"
+                                Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
+                                Style="{StaticResource EgIconButtonStyle}"
+                                ToolTipService.ToolTip="{x:Bind ViewModel.FavoriteActionTip, Mode=OneWay}"
+                                Visibility="{x:Bind ViewModel.FavoriteActionVisibility, Mode=OneWay}">
+                                <Grid>
+                                    <FontIcon
+                                        FontSize="{StaticResource EgBodyFontSize}"
+                                        Glyph="&#xEB51;"
+                                        Visibility="{x:Bind ViewModel.NotFavoriteVisibility, Mode=OneWay}" />
+                                    <FontIcon
+                                        FontSize="{StaticResource EgBodyFontSize}"
+                                        Foreground="{ThemeResource EgDangerBrush}"
+                                        Glyph="&#xEB52;"
+                                        Visibility="{x:Bind ViewModel.FavoriteVisibility, Mode=OneWay}" />
+                                </Grid>
+                            </Button>
+                            <Button
+                                x:Name="MoreButton"
+                                AutomationProperties.Name="更多人物操作"
+                                Click="OnMoreClicked"
+                                Style="{StaticResource EgIconButtonStyle}"
+                                ToolTipService.ToolTip="更多">
+                                <FontIcon FontSize="{StaticResource EgBodyFontSize}" Glyph="&#xE712;" />
+                            </Button>
+                            <Button
+                                Command="{x:Bind ViewModel.RetryCommand}"
+                                Content="重试"
+                                Style="{StaticResource EgSecondaryButtonStyle}"
+                                Visibility="{x:Bind ViewModel.RetryVisibility, Mode=OneWay}" />
+                        </StackPanel>
+
+                        <TextBlock
+                            Margin="0,8,0,0"
+                            Style="{StaticResource EgBodyStyle}"
+                            Text="{x:Bind ViewModel.Overview, Mode=OneWay}"
+                            TextWrapping="Wrap"
+                            Visibility="{x:Bind ViewModel.OverviewVisibility, Mode=OneWay}" />
+                    </StackPanel>
+                </local:WrapRow>
+
+                <StackPanel
+                    Style="{StaticResource EgBodyPanelStyle}"
+                    Spacing="{StaticResource EgSpaceM}"
+                    Visibility="{x:Bind ViewModel.SeriesVisibility, Mode=OneWay}">
+                    <ContentControl
+                        Content="{x:Bind ViewModel.SeriesShelf, Mode=OneWay}"
+                        ContentTemplate="{StaticResource ShelfTemplate}" />
+                </StackPanel>
+
+                <StackPanel
+                    Style="{StaticResource EgBodyPanelStyle}"
+                    Spacing="{StaticResource EgSpaceM}"
+                    Visibility="{x:Bind ViewModel.MovieVisibility, Mode=OneWay}">
+                    <ContentControl
+                        Content="{x:Bind ViewModel.MovieShelf, Mode=OneWay}"
+                        ContentTemplate="{StaticResource ShelfTemplate}" />
+                </StackPanel>
+
+                <StackPanel
+                    Style="{StaticResource EgBodyPanelStyle}"
+                    Spacing="{StaticResource EgSpaceM}"
+                    Visibility="{x:Bind ViewModel.EpisodeVisibility, Mode=OneWay}">
+                    <ContentControl
+                        Content="{x:Bind ViewModel.EpisodeShelf, Mode=OneWay}"
+                        ContentTemplate="{StaticResource ShelfTemplate}" />
+                </StackPanel>
+
+                <StackPanel
+                    Style="{StaticResource EgBodyPanelStyle}"
+                    Spacing="{StaticResource EgSpaceM}"
+                    Visibility="{x:Bind ViewModel.OtherVisibility, Mode=OneWay}">
+                    <TextBlock
+                        AutomationProperties.HeadingLevel="Level2"
+                        Style="{StaticResource EgSectionTitleStyle}"
+                        Text="其他信息" />
+                    <local:WrapRow x:Name="OtherFactsRow" RowSpacing="{StaticResource EgSpaceXS}" Spacing="{StaticResource EgSpaceS}" />
+                </StackPanel>
+
+                <StackPanel
+                    Style="{StaticResource EgBodyPanelStyle}"
+                    Spacing="{StaticResource EgSpaceM}"
+                    Visibility="{x:Bind ViewModel.FilmographyVisibility, Mode=OneWay}">
+                    <TextBlock
+                        AutomationProperties.HeadingLevel="Level2"
+                        Style="{StaticResource EgSectionTitleStyle}"
+                        Text="影视作品" />
+                    <ItemsControl
+                        ItemTemplate="{StaticResource CreditGroupTemplate}"
+                        ItemsSource="{x:Bind ViewModel.Filmography, Mode=OneWay}" />
+                </StackPanel>
+
+                <StackPanel
+                    Style="{StaticResource EgBodyPanelStyle}"
+                    Spacing="{StaticResource EgSpaceS}"
+                    Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
+                    <TextBlock Style="{StaticResource EgBodyStyle}" Text="没有找到这个人的参演作品。" />
+                    <TextBlock Style="{StaticResource EgCaptionStyle}" Text="作品可能还在服务器上整理，也可能这个人物只有照片和简介。" TextWrapping="Wrap" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollView>
+
+        <ProgressBar
+            VerticalAlignment="Top"
+            IsIndeterminate="True"
+            Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+
+        <InfoBar
+            IsClosable="True"
+            IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
+            Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
+            Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
+            Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
+            VerticalAlignment="Bottom"
+            Margin="{StaticResource EgPageMargin}" />
+    </Grid>
+</Page>

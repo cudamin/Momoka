@@ -14,6 +14,76 @@ internal static partial class DetailActionReadinessTests
     {
         foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
         {
+            Test($"花絮详情：{kind} 先确认内容，首次打开复用结果且不影响连播", () =>
+            {
+                using var f = ExtrasFixture(assembly, root, kind, shape: Shape.Episode);
+                f.Transport.HoldExtras = true;
+                var load = f.Load();
+                Await(f.Transport.ExtrasRequested.Task);
+                Assert.Equal("Collapsed", f.Get("ExtraVisibility")!.ToString());
+                Assert.True(f.Can("PlayCommand"), "花絮读取不能阻塞正片播放");
+                var continuePlay = f.Get("ContinuePlay");
+                Assert.Equal("Visible", f.Get("ContinueVisibility")!.ToString());
+                f.Transport.ExtrasRelease.TrySetResult(true);
+                Await(load);
+                Assert.Equal("Visible", f.Get("ExtraVisibility")!.ToString());
+                Assert.Equal(1, ExtraOptions(ExtraMenu(f)).Count);
+                Assert.Equal(1, f.Transport.ExtraRequests, "首次点击不应重复发送详情已完成的读取");
+                Assert.Equal(continuePlay, f.Get("ContinuePlay"));
+                Assert.Equal(0, f.Actions.Plays);
+            });
+
+            Test($"花絮详情：{kind} 单集空列表从未显示入口，重进页面恢复", () =>
+            {
+                using var f = ExtrasFixture(assembly, root, kind, shape: Shape.Episode);
+                f.Transport.Extras.Clear();
+                var visible = 0;
+                ((System.ComponentModel.INotifyPropertyChanged)f.Vm).PropertyChanged += (_, args) =>
+                {
+                    if (args.PropertyName == "ExtraVisibility" && f.Get("ExtraVisibility")!.ToString() == "Visible") visible++;
+                };
+                var continuePlay = f.Get("ContinuePlay");
+                Await(f.Load());
+                Assert.Equal(0, visible, "空入口不能先露出再在点击后消失");
+                Assert.Equal("Collapsed", f.Get("ExtraVisibility")!.ToString());
+                var empty = (Task)Invoke(f.Vm, "GetExtrasAsync")!;
+                Await(empty);
+                Assert.True(Result(empty) is null);
+                Assert.Equal(1, f.Transport.ExtraRequests);
+                Assert.Equal("Visible", f.Get("ContinueVisibility")!.ToString());
+                Assert.Equal(continuePlay, f.Get("ContinuePlay"));
+                f.Transport.Extras.Add(Extra());
+                Await(f.Load());
+                Assert.Equal("Visible", f.Get("ExtraVisibility")!.ToString());
+                Assert.Equal(1, ExtraOptions(ExtraMenu(f)).Count);
+                Assert.Equal(2, f.Transport.ExtraRequests);
+                Assert.Equal(0, f.Actions.Plays);
+            });
+
+            Test($"花絮详情：{kind} 仅含不可播放内容也不显示入口", () =>
+            {
+                using var f = ExtrasFixture(assembly, root, kind);
+                f.Transport.Extras.Clear();
+                f.Transport.Extras.Add(new() { Id = "audio", Type = EmbyItemType.Audio });
+                f.Transport.Extras.Add(new() { Id = "offline", Type = EmbyItemType.Video, LocationType = "Offline" });
+                Await(f.Load());
+                Assert.Equal("Collapsed", f.Get("ExtraVisibility")!.ToString());
+                Assert.Equal(1, f.Transport.ExtraRequests);
+            });
+
+            Test($"花絮详情：{kind} 离页后的可用性回复不能恢复入口", () =>
+            {
+                using var f = ExtrasFixture(assembly, root, kind);
+                f.Transport.HoldExtras = true;
+                var load = f.Load();
+                Await(f.Transport.ExtrasRequested.Task);
+                Invoke(f.Vm, "Cancel");
+                f.Transport.ExtrasRelease.TrySetResult(true);
+                Await(load);
+                Assert.Equal("Collapsed", f.Get("ExtraVisibility")!.ToString());
+                Assert.Equal(0, f.Actions.Plays);
+            });
+
             Test($"花絮详情：{kind} 独立媒体、零起点与原播放请求链", () =>
             {
                 using var f = ExtrasFixture(assembly, root, kind);
@@ -69,9 +139,10 @@ internal static partial class DetailActionReadinessTests
                 using var f = ExtrasFixture(assembly, root, kind);
                 f.Transport.Extras.Clear();
                 Await(f.Load());
-                Assert.Equal(0, ExtraOptions(ExtraMenu(f)).Count);
                 Assert.Equal("Collapsed", f.Get("ExtraVisibility")!.ToString());
-                Assert.True(Invoke(f.Vm, "GetExtrasAsync") is Task empty);
+                var empty = (Task)Invoke(f.Vm, "GetExtrasAsync")!;
+                Await(empty);
+                Assert.True(Result(empty) is null);
                 f.Transport.Extras.Add(Extra());
                 Await(f.Load());
                 Assert.Equal("Visible", f.Get("ExtraVisibility")!.ToString());
@@ -82,9 +153,9 @@ internal static partial class DetailActionReadinessTests
             Test($"花絮详情：{kind} 同身份重认证重新绑定来源仍可从零播放", () =>
             {
                 using var f = ExtrasFixture(assembly, root, kind);
-                Await(f.Load());
                 f.Transport.BeforeExtrasReply = f.ReplaceClient;
                 f.Transport.ExtraStatus = HttpStatusCode.Unauthorized;
+                Await(f.Load());
                 var selection = ExtraMenu(f);
                 Assert.Equal(1, ExtraOptions(selection).Count);
                 var item = (EmbyItem)ExtraOptions(selection)[0]!.GetType().GetProperty("Item")!.GetValue(ExtraOptions(selection)[0])!;
@@ -193,6 +264,7 @@ internal static partial class DetailActionReadinessTests
             {
                 using var f = ExtrasFixture(assembly, root);
                 Await(f.Load());
+                Invoke(f.Vm, "CloseExtras", ExtraMenu(f));
                 f.Transport.HoldExtras = true;
                 var pending = (Task)Invoke(f.Vm, "GetExtrasAsync")!;
                 Await(f.Transport.ExtrasRequested.Task);
@@ -243,6 +315,7 @@ internal static partial class DetailActionReadinessTests
         {
             using var f = ExtrasFixture(assembly, root);
             Await(f.Load());
+            Invoke(f.Vm, "CloseExtras", ExtraMenu(f));
             f.Transport.HoldExtras = true;
             var pending = (Task)Invoke(f.Vm, "GetExtrasAsync")!;
             Await(f.Transport.ExtrasRequested.Task);
@@ -270,9 +343,10 @@ internal static partial class DetailActionReadinessTests
         });
     }
 
-    private static Fixture ExtrasFixture(Assembly assembly, string root, MediaServerKind kind = MediaServerKind.Emby, int count = 1)
+    private static Fixture ExtrasFixture(Assembly assembly, string root, MediaServerKind kind = MediaServerKind.Emby,
+        int count = 1, Shape shape = Shape.Movie)
     {
-        var f = new Fixture(assembly, root, Shape.Movie, kind: kind,
+        var f = new Fixture(assembly, root, shape, kind: kind,
             version: kind == MediaServerKind.Jellyfin ? "10.10.7" : "4.10.1.0");
         typeof(EmbyItem).GetProperty("MediaType")?.SetValue(f.Seed, "Video");
         typeof(EmbyItem).GetProperty("SpecialFeatureCount")?.SetValue(f.Seed, count);

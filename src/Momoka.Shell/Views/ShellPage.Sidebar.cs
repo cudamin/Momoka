@@ -1,10 +1,13 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.AnimatedVisuals;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Momoka.Configuration;
 using Momoka.Emby;
+using Windows.Foundation;
+using Windows.UI.ViewManagement;
 
 namespace Momoka.Shell.Views;
 
@@ -12,6 +15,9 @@ public sealed partial class ShellPage
 {
     private const double SidebarWideThreshold = 1008;
     private readonly Dictionary<string, NavigationViewItem> _sidebarLibraries = new(StringComparer.Ordinal);
+    private readonly AnimatedSettingsVisualSource _sidebarSettingsIconSource = new();
+    private readonly UISettings _sidebarSettings = new();
+    private TypedEventHandler<UISettings, UISettingsAnimationsEnabledChangedEventArgs>? _sidebarSettingsChanged;
     private CompositeTransform? _sidebarPaneClip;
     private bool _sidebarMode;
     private bool _sidebarWide;
@@ -35,14 +41,51 @@ public sealed partial class ShellPage
         {
             if (args.PropertyName == nameof(Favorites.HasItems)) SyncSidebar();
         };
+        InitializeLibraryPreview();
+        SyncSidebarSettingsIcon();
         Loaded += (_, _) =>
         {
             ShellPrefs.SidebarChanged -= OnSidebarPreferencesChanged;
             ShellPrefs.SidebarChanged += OnSidebarPreferencesChanged;
             if (_settings is not null) OnSidebarPreferencesChanged(Settings.Ui);
+            HomeMotion.PreferenceChanged -= OnSidebarMotionPreferenceChanged;
+            HomeMotion.PreferenceChanged += OnSidebarMotionPreferenceChanged;
+            _sidebarSettingsChanged ??= OnSidebarSettingsChanged;
+            try { _sidebarSettings.AnimationsEnabledChanged -= _sidebarSettingsChanged; }
+            catch (Exception) { /* 先重挂一个本地失效的旧回调；退订失败不阻断后续同步。 */ }
+            _sidebarSettings.AnimationsEnabledChanged += _sidebarSettingsChanged;
+            SyncSidebarSettingsIcon();
             UpdateSidebarWidth();
         };
-        Unloaded += (_, _) => ShellPrefs.SidebarChanged -= OnSidebarPreferencesChanged;
+        Unloaded += (_, _) =>
+        {
+            ShellPrefs.SidebarChanged -= OnSidebarPreferencesChanged;
+            HomeMotion.PreferenceChanged -= OnSidebarMotionPreferenceChanged;
+            if (_sidebarSettingsChanged is not null)
+            {
+                try { _sidebarSettings.AnimationsEnabledChanged -= _sidebarSettingsChanged; }
+                catch (Exception) { /* 只确认本地回调失效，不能声称 native 已退订。 */ }
+            }
+            HideLibraryPreview();
+        };
+    }
+
+    /// <summary>
+    /// 设置那颗齿轮的动画只在应用与系统都允许时跑。关掉时把 Source 置空，AnimatedIcon 落到
+    /// Gallery 样例里那颗 FontIconSource 静态回退，不为动画留住一帧。
+    /// </summary>
+    private void SyncSidebarSettingsIcon()
+    {
+        var source = HomeMotion.AnimationsEnabled ? _sidebarSettingsIconSource : null;
+        if (!ReferenceEquals(SidebarSettingsIcon.Source, source)) SidebarSettingsIcon.Source = source;
+    }
+
+    private void OnSidebarMotionPreferenceChanged() => SyncSidebarSettingsIcon();
+
+    private void OnSidebarSettingsChanged(UISettings sender, UISettingsAnimationsEnabledChangedEventArgs args)
+    {
+        if (DispatcherQueue.HasThreadAccess) SyncSidebarSettingsIcon();
+        else DispatcherQueue.TryEnqueue(SyncSidebarSettingsIcon);
     }
 
     private void OnSidebarPreferencesChanged(UiSettings ui)
@@ -85,7 +128,8 @@ public sealed partial class ShellPage
         TitleUtilities.Visibility = shown ? Visibility.Collapsed : Visibility.Visible;
         // 搜索框（标题栏正中）与那一排里的放大镜：门槛与顶班规则在 SyncTitleSearch 里。
         SyncTitleSearch();
-        // 主页、返回与前进每一档都在；设置、搜索、收藏在侧边栏那一档让给栏里的入口（见 SyncTitleActions）。
+        // 主页、返回与前进每一档都在；设置、收藏在侧边栏那一档让给栏里的入口（见 SyncTitleActions）。
+        // 搜索 2026-11-13 起只在标题栏正中那颗框里，栏里不再有第二份入口。
         SyncTitleActions();
         SidebarFavorites.Visibility = Favorites.Visibility;
 
@@ -114,7 +158,6 @@ public sealed partial class ShellPage
         var selected = tag switch
         {
             "home" => SidebarHome,
-            LibraryRequest.SearchTag => SidebarSearch,
             LibraryRequest.FavoritesTag when Favorites.HasItems => SidebarFavorites,
             HomeLayout.MoviePilotMovies when moviePilot => SidebarMoviePilotMovies,
             HomeLayout.MoviePilotSeries when moviePilot => SidebarMoviePilotSeries,
@@ -141,6 +184,7 @@ public sealed partial class ShellPage
         }
         AlignSidebarPaneClip();
         var shown = SidebarShown;
+        if (!shown || Sidebar.IsPaneOpen) HideLibraryPreview();
         var width = shown ? Sidebar.IsPaneOpen ? Sidebar.OpenPaneLength : Sidebar.CompactPaneLength : 0;
         SidebarHost.Width = width;
         // 顶上那 40 是标题栏：2026-11-12 晚起画布让开它（见 ShellPage.xaml 里 ContentHost 那一段），
@@ -284,6 +328,7 @@ public sealed partial class ShellPage
     /// </summary>
     private void RebuildSidebarLibraries()
     {
+        HideLibraryPreview();
         foreach (var item in _sidebarLibraries.Values) Sidebar.MenuItems.Remove(item);
         _sidebarLibraries.Clear();
         var at = Sidebar.MenuItems.IndexOf(SidebarLibrariesHeader) + 1;
@@ -297,6 +342,8 @@ public sealed partial class ShellPage
             };
             AutomationProperties.SetAutomationId(item, "SidebarLibrary_" + library.ParentId);
             AutomationProperties.SetName(item, library.Title);
+            item.PointerEntered += OnSidebarLibraryPointerEntered;
+            item.PointerExited += OnSidebarLibraryPointerExited;
             Sidebar.MenuItems.Insert(at++, item);
             _sidebarLibraries.Add(tag, item);
         }
@@ -306,6 +353,7 @@ public sealed partial class ShellPage
 
     private void OnSidebarItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
     {
+        HideLibraryPreview();
         if (!SidebarShown || args.InvokedItemContainer is not NavigationViewItem { Tag: string tag }) return;
         // 页脚那颗设置开的是另一个窗口，不改变这一页的选中目的地（SelectsOnInvoked="False" 已把选中挡在
         // 外面，这里连 GoTo 也不走）。
@@ -328,6 +376,7 @@ public sealed partial class ShellPage
     {
         if (_syncingSidebar || !SidebarShown || args.SelectedItem is not NavigationViewItem { Tag: string tag }
             || tag == "settings") return;
+        HideLibraryPreview();
         GoTo(tag);
     }
 }

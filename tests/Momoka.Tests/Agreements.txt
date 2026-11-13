@@ -10,10 +10,16 @@
 # 标题栏那颗搜索框压在 Mica Alt 上的底、悬停底与边线），Dark/Light 各三处，颜色计数 82→88 —— 同样是角色色按字面值写，
 # ThemeHost.Brushes 一并接上（自检「主题角色覆盖」盯着）。句柄：ForwardButton 随「前进键退役」有意删除，
 # 新增 AppTitleText / TitleSearchBox（标题栏标题与搜索框）、BannerCard / BannerGlow / BannerGlowBrush（主页轮播卡片）。
+# 2026-11-13（删除轮播外圈与折叠侧栏预览）：BannerGlow / BannerGlowBrush 随用户令「删除轮播图外面那一圈卡片」
+# 有意删除，轮播只剩 BannerCard 的圆角剪裁；新增 LibraryPreview* 六处 x:Name 与 SidebarLibraryPreviewMore
+# AutomationId（折叠侧栏的媒体库悬停预览）。
 # 2026-11-13（标题栏与侧边栏加高加宽）：AppTitleText 随用户令「移除左上角的 momoka」有意删除；
 # SidebarSettingsButton / SidebarSettingsGlyph / SidebarSettingsText 三处换成 NavigationView 的页脚项 SidebarSettings
 # （用户令「统一侧边栏按钮的大小」，尺寸由框架同一条度量算，不再手摆两档）。覆盖仍在：ShellChromeTests 钉住
 # 页脚项本身、它的 Tag/SelectsOnInvoked 与本地化键，--probe-shell 的 sidebar 分区量它在屏上的矩形与尺寸。
+# 2026-11-13（人物页）：基线在这一批开始前就与 DetailPage 的现状差 2（工作树 HEAD 的 git show 也是 21 处，
+# 不是这批新写的）；人物页自己的字号全部走 Eg* 刻度，计数为 0，不新增行。这里一并把 DetailPage 的读数
+# 校正到现状，未改任何一个字面字号。
 analyzer  Microsoft.WindowsAppSDK.Analyzers.dll  E989099A0E369A1F2C114B4D86A82789F1006D73EFC719DB96E9BBE45D88671C
 analyzer  Microsoft.WindowsAppSDK.Analyzers.targets  80E801C7D787248009CF365268A8DBDD16A30399806B3FE85A7FE87BADBA3727
 bind  Views/DetailPage.xaml  ViewModel.CastShelf.Cards
@@ -40,7 +46,7 @@ font-size  Theme/Styles.xaml  2
 font-size  Views/CoverDialog.xaml  6
 font-size  Views/CoverPickerDialog.xaml  1
 font-size  Views/DashboardPage.xaml  5
-font-size  Views/DetailPage.xaml  19
+font-size  Views/DetailPage.xaml  21
 font-size  Views/DiagnosticsPage.xaml  2
 font-size  Views/EpisodeRow.xaml  3
 font-size  Views/HomeBanner.xaml  4
@@ -221,8 +227,6 @@ handle  Views/HomeBanner.xaml  TitleText
 handle  Views/HomeBanner.xaml  Top
 handle  Views/HomePage.xaml  Banner
 handle  Views/HomePage.xaml  BannerCard
-handle  Views/HomePage.xaml  BannerGlow
-handle  Views/HomePage.xaml  BannerGlowBrush
 handle  Views/HomePage.xaml  BannerZone
 handle  Views/HomePage.xaml  LibraryHost
 handle  Views/HomePage.xaml  LibraryOverlay
@@ -637,6 +641,13 @@ handle  Views/ShellPage.xaml  ContentHost
 handle  Views/ShellPage.xaml  FavoritesButton
 handle  Views/ShellPage.xaml  HomeButton
 handle  Views/ShellPage.xaml  NavToggleButton
+handle  Views/ShellPage.xaml  LibraryPreviewCovers
+handle  Views/ShellPage.xaml  LibraryPreviewEmpty
+handle  Views/ShellPage.xaml  LibraryPreviewLoading
+handle  Views/ShellPage.xaml  LibraryPreviewMeta
+handle  Views/ShellPage.xaml  LibraryPreviewMore
+handle  Views/ShellPage.xaml  LibraryPreviewPanel
+handle  Views/ShellPage.xaml  LibraryPreviewTitle
 handle  Views/ShellPage.xaml  Player
 handle  Views/ShellPage.xaml  Root
 handle  Views/ShellPage.xaml  SearchButton
@@ -648,7 +659,7 @@ handle  Views/ShellPage.xaml  SidebarHost
 handle  Views/ShellPage.xaml  SidebarLibrariesHeader
 handle  Views/ShellPage.xaml  SidebarMoviePilotMovies
 handle  Views/ShellPage.xaml  SidebarMoviePilotSeries
-handle  Views/ShellPage.xaml  SidebarSearch
+handle  Views/ShellPage.xaml  SidebarLibraryPreviewMore
 handle  Views/ShellPage.xaml  SidebarSettings
 handle  Views/ShellPage.xaml  SidebarSubscriptionsHeader
 handle  Views/ShellPage.xaml  SignIn

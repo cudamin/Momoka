@@ -97,14 +97,13 @@ internal static class Program
             Check(clock.Running, "reattaching multiple slides resumes automatic paging");
         }
         ));
-        Cases.Add(("banner/empty-list-clears-ambient-and-clock", () =>
+        Cases.Add(("banner/empty-list-clears-clock", () =>
         {
             var clock = new BannerClockFixture();
             clock.Apply([new BannerSlide("first"), new BannerSlide("second")]);
             Check(clock.Running, "nonempty carousel runs");
             clock.Apply([]);
             Check(!clock.Running, "empty carousel cannot retain paging timer");
-            Equal(Microsoft.UI.Colors.Transparent, clock.AmbientReadings.Single(), "empty carousel publishes transparent ambient");
         }
         ));
         Cases.Add(("banner/loading-placeholder-updates-before-same-null-shortcut", () =>
@@ -335,10 +334,10 @@ internal static class Program
             var stable = scene.Page.ReadCoversLine()!.Value.Line;
             scene.Page.Scroller.ActualHeight = stable + 10;
             var template = new FrameworkElement { RenderTransform = new TranslateTransform() };
-            scene.FillerRow.TestChildren.Add(template);
-            foreach (var child in scene.FillerRow.TestChildren.Where(child => !ReferenceEquals(child, template)))
+            scene.LibraryRow.TestChildren.Add(template);
+            foreach (var child in scene.LibraryRow.TestChildren.Where(child => !ReferenceEquals(child, template)))
                 child.TestParent = template;
-            template.TestParent = scene.FillerRow;
+            template.TestParent = scene.LibraryRow;
 
             foreach (var shift in new[] { 20d, 10d, 5d, 0d })
             {
@@ -355,8 +354,8 @@ internal static class Program
             var scene = new Scene();
             var stable = scene.Page.ReadCoversLine()!.Value.Line;
             var ancestor = new FrameworkElement { RenderTransform = new TranslateTransform { Y = -80 } };
-            scene.FillerRow.TestParent = ancestor;
-            ((TranslateTransform)scene.FillerRow.RenderTransform!).Y = 240;
+            scene.LibraryRow.TestParent = ancestor;
+            ((TranslateTransform)scene.LibraryRow.RenderTransform!).Y = 240;
             Equal(stable, scene.Page.ReadCoversLine()!.Value.Line, "row and parent motion leave the threshold unchanged");
         });
         Case("page/library-viewport-reserves-and-restores-carousel-status-room", () =>
@@ -380,9 +379,9 @@ internal static class Program
             var scene = new Scene();
             scene.Page.HomeRows.RemoveAt(2);
             var stable = scene.Page.ReadCoversLine()!.Value.Line;
-            scene.FillerRow.TestTop -= 120;
+            scene.LibraryRow.TestTop -= 120;
             scene.Page.Scroller.VerticalOffset = 120;
-            var drift = (TranslateTransform)scene.FillerRow.RenderTransform!;
+            var drift = (TranslateTransform)scene.LibraryRow.RenderTransform!;
             drift.Y = -90;
             Equal(stable, scene.Page.ReadCoversLine()!.Value.Line, "scroll restoration and animation preserve the single-row threshold");
             Equal(-90d, drift.Y, "measurement cannot stop or reset the running visual animation");
@@ -850,7 +849,7 @@ internal static class Program
         internal CardShelf Library { get; } = new();
         private CardShelf Filler { get; } = new();
         private CardShelf Below { get; } = new();
-        private FrameworkElement LibraryRow { get; } = Row(520);
+        internal FrameworkElement LibraryRow { get; } = Row(520);
         internal FrameworkElement FillerRow { get; } = Row(760);
         private FrameworkElement BelowRow { get; } = Row(1020);
         internal ShelfStrip FillerStrip => FillerRow.TestChildren.OfType<ShelfStrip>().Single();

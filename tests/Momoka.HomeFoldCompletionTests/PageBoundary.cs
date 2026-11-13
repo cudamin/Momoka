@@ -144,7 +144,7 @@ namespace Momoka.Shell.Views
         internal void SetReal(bool real) => _foldReal = real;
         internal void ResumeVisit() { _released = false; _navigation++; }
         internal void SetPlaced(bool on) => _foldOn = on;
-        internal (double Line, bool HasNext)? ReadCoversLine() => MeasureCoversLine(0);
+        internal (double Line, bool HasNext)? ReadCoversLine() => MeasureCoversLine();
         internal void ReplaceMain(HomeFoldMotion motion) => _fold = motion;
         internal void ReplaceLate(HomeFoldMotion motion) => _foldLate = motion;
         internal void SetFlowIndex(int index) => _homeLibraryFlowIndex = index;
@@ -156,8 +156,6 @@ namespace Momoka.Shell.Views
         }
         private static void OnLocalLibrariesChanged(object? sender, EventArgs args) =>
             throw new InvalidOperationException("翻档夹具禁止本地媒体库刷新");
-        private (double Line, bool HasNext)? MeasureMixedCoversLine(double gap) =>
-            throw new InvalidOperationException("Mixed directory/VM rows are outside R066's fixture");
         internal static Storyboard BoardOf(HomeFoldMotion motion) =>
             (Storyboard)(typeof(HomeFoldMotion).GetField("_board", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .GetValue(motion) ?? throw new InvalidOperationException("Missing production storyboard"));

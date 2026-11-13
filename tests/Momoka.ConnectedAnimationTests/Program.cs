@@ -32,13 +32,15 @@ internal static class Program
             Assert.True(fixture.Prepare());
             var animation = ConnectedAnimationService.Created.Last();
             fixture.Target.ConnectedPoster.Source = null;
+            fixture.Target.ConnectedPoster.IsLoaded = false;
             CardDetailTransition.Attach(fixture.Target, fixture.Item);
             Assert.Equal(0, animation.StartCalls);
-            fixture.Target.ConnectedPoster.Source = new BitmapSource();
+            Assert.True(ReferenceEquals(fixture.Source.ConnectedPoster.Source, fixture.Target.ConnectedPoster.Source));
+            fixture.Target.ConnectedPoster.IsLoaded = true;
             fixture.Target.Layout();
             fixture.Target.Layout();
             Assert.Equal(1, animation.StartCalls);
-            Assert.Equal(1, fixture.Target.StoppedArrivals);
+            Assert.Equal(2, fixture.Target.StoppedArrivals);
             Assert.True(BrowsePresentation.Results.Any(result => result.Started));
             animation.Complete();
             Assert.Null(animation.Handlers);
@@ -75,6 +77,7 @@ internal static class Program
                 using var fixture = new Fixture();
                 fixture.Prepare();
                 fixture.Target.ConnectedPoster.Source = null;
+                fixture.Target.ConnectedPoster.IsLoaded = false;
                 CardDetailTransition.Attach(fixture.Target, fixture.Item);
                 if (stale)
                 {
@@ -83,6 +86,7 @@ internal static class Program
                 }
                 else DispatcherTimer.Created.Last().Fire();
                 fixture.Target.ConnectedPoster.Source = new BitmapSource();
+                fixture.Target.ConnectedPoster.IsLoaded = true;
                 fixture.Target.Layout();
                 Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
                 Assert.False(DispatcherTimer.Created.Last().IsRunning);
@@ -456,6 +460,254 @@ internal static class Program
             Assert.Equal(1, ConnectedAnimationService.Created.Last().StartCalls);
             ConnectedAnimationService.Created.Last().Complete();
         });
+        Test("源卡离树清图后仍把准备时的位图交接给详情，完成后释放保留", () =>
+        {
+            using var fixture = new Fixture();
+            var picture = fixture.Source.ConnectedPoster.Source;
+            fixture.Prepare();
+            Assert.Equal(1, fixture.Source.Retentions);
+            fixture.Source.ConnectedPoster.Source = null;
+            fixture.Target.ConnectedPoster.Source = null;
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            Assert.True(ReferenceEquals(picture, fixture.Target.ConnectedPoster.Source));
+            Assert.True(CardDetailTransition.Started(fixture.Frame));
+            ConnectedAnimationService.Created.Last().Complete();
+            Assert.Equal(0, fixture.Source.Retentions);
+        });
+        Test("详情页深入导航保留新准备，普通Release仍取消本页动画", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Frame.Content = fixture.Target;
+            fixture.Prepare();
+            CardDetailTransition.Release(fixture.Target);
+            Assert.True(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+            CardDetailTransition.Cancel(fixture.Frame);
+            fixture.Frame.Content = fixture.Source;
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            CardDetailTransition.Release(fixture.Target);
+            Assert.False(CardDetailTransition.Started(fixture.Frame));
+            Assert.Equal(0, fixture.Source.Retentions);
+        });
+        Test("卡片详情动作只准备真实导航，拒绝与异常及时释放源", () =>
+        {
+            using var fixture = new Fixture();
+            var page = new Page { Frame = fixture.Frame };
+            fixture.Frame.Content = page;
+            CardDetailTransition.Navigate(page, fixture.Source, () => { });
+            Assert.Equal(0, fixture.Source.Retentions);
+            try { CardDetailTransition.Navigate(page, fixture.Source, () => throw new InvalidOperationException("navigation rejected")); }
+            catch (InvalidOperationException) { }
+            Assert.Equal(0, fixture.Source.Retentions);
+            CardDetailTransition.Navigate(page, fixture.Source, () => fixture.Frame.Content = fixture.Target);
+            Assert.True(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+        });
+        Test("完整主体更正图片或来源容器换项时不交接旧图", () =>
+        {
+            foreach (var sourceChanged in new[] { false, true })
+            {
+                using var fixture = new Fixture();
+                fixture.Prepare();
+                var targetPicture = fixture.Target.ConnectedPoster.Source;
+                if (sourceChanged) fixture.Source.Card!.Item = new EmbyItem { IdentityKey = "replacement", Source = fixture.Item.Source };
+                else fixture.Target.ViewModel.CurrentItem = new EmbyItem
+                {
+                    IdentityKey = fixture.Item.IdentityKey,
+                    Source = fixture.Item.Source,
+                    PrimaryTag = "new-poster"
+                };
+                CardDetailTransition.Attach(fixture.Target, fixture.Item);
+                Assert.False(CardDetailTransition.Started(fixture.Frame));
+                if (!sourceChanged) Assert.True(ReferenceEquals(targetPicture, fixture.Target.ConnectedPoster.Source));
+                Assert.Equal(0, fixture.Source.Retentions);
+            }
+        });
+        Test("目标高清封面已经完成时不覆盖成来源小图", () =>
+        {
+            using var fixture = new Fixture();
+            var highResolution = new BitmapSource();
+            fixture.Target.ViewModel.StillImage = highResolution;
+            fixture.Target.ConnectedPoster.Source = highResolution;
+            fixture.Prepare();
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            Assert.True(ReferenceEquals(highResolution, fixture.Target.ConnectedPoster.Source));
+            Assert.True(CardDetailTransition.Started(fixture.Frame));
+        });
+        Test("新页尚未Loaded时图片更正不打断Frame创建，Loaded后普通回退", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Prepare();
+            fixture.Target.IsLoaded = false;
+            fixture.Target.ViewModel.CurrentItem = new EmbyItem
+            {
+                IdentityKey = fixture.Item.IdentityKey,
+                Source = fixture.Item.Source,
+                PrimaryTag = "corrected"
+            };
+            CardDetailTransition.Attach(fixture.Target, fixture.Item);
+            Assert.True(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+            fixture.Target.Load();
+            Assert.False(CardDetailTransition.IsPrepared(fixture.Frame, new DetailRequest { Item = fixture.Item }));
+            Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
+            Assert.Equal(0, fixture.Source.Retentions);
+        });
+        Test("人物关联动画只准备可见、当前账号且Primary图的人物卡", () =>
+        {
+            foreach (var state in new[] { "video", "missing", "stale", "hidden", "outside", "other-artwork" })
+            {
+                using var fixture = new PersonFixture();
+                switch (state)
+                {
+                    case "video": fixture.Item.Type = "Movie"; break;
+                    case "missing": fixture.Source.ConnectedPoster.Source = null; break;
+                    case "stale": fixture.Item.Source!.IsCurrent = false; break;
+                    case "hidden": fixture.Source.Visibility = Visibility.Collapsed; break;
+                    case "outside": fixture.Source.ConnectedPoster.X = 2000; break;
+                    case "other-artwork": fixture.Source.Card!.LoadedPosterArtwork = new("person", "Backdrop", "poster"); break;
+                }
+                Assert.False(fixture.Prepare(), state);
+            }
+        });
+        Test("人物原图交接目标照片后只启动一次，完成释放保留", () =>
+        {
+            using var fixture = new PersonFixture();
+            Assert.True(fixture.Prepare());
+            var picture = fixture.Source.ConnectedPoster.Source;
+            var animation = ConnectedAnimationService.Created.Last();
+            var receipts = new List<bool>();
+            var detach = PersonTransition.Observe(fixture.Frame, receipts.Add);
+            fixture.Frame.Content = fixture.TargetPage;
+            var adopted = false;
+            PersonTransition.Attach(fixture.TargetPage, fixture.Item, fixture.TargetImage, received =>
+            {
+                adopted = ReferenceEquals(received, picture);
+                return true;
+            });
+            Assert.True(adopted);
+            Assert.True(ReferenceEquals(picture, fixture.TargetImage.Source));
+            Assert.Equal(1, animation.StartCalls);
+            Assert.True(PersonTransition.Started(fixture.Frame));
+            Assert.True(receipts.SequenceEqual([true]));
+            detach?.Invoke();
+            Assert.True(BrowsePresentation.Results.Any(result => result.Started));
+            animation.Complete();
+            Assert.Null(animation.Handlers);
+            Assert.Null(HomeMotion.Handlers);
+            Assert.Equal(0, fixture.Source.Retentions);
+        });
+        Test("人物目标未Loaded时等待，隐藏或身份不符时回退", () =>
+        {
+            using (var fixture = new PersonFixture())
+            {
+                fixture.Prepare();
+                fixture.TargetPage.IsLoaded = false;
+                fixture.Frame.Content = fixture.TargetPage;
+                PersonTransition.Attach(fixture.TargetPage, fixture.Item, fixture.TargetImage);
+                var animation = ConnectedAnimationService.Created.Last();
+                Assert.Equal(0, animation.StartCalls);
+                fixture.TargetPage.Load();
+                Assert.Equal(1, animation.StartCalls);
+                animation.Complete();
+            }
+            using (var fixture = new PersonFixture())
+            {
+                fixture.Prepare();
+                fixture.TargetImage.Visibility = Visibility.Collapsed;
+                fixture.Frame.Content = fixture.TargetPage;
+                PersonTransition.Attach(fixture.TargetPage, fixture.Item, fixture.TargetImage);
+                Assert.False(PersonTransition.Started(fixture.Frame));
+                Assert.False(PersonTransition.IsPrepared(fixture.Frame, fixture.Item));
+                Assert.Equal(0, fixture.Source.Retentions);
+            }
+            using (var fixture = new PersonFixture())
+            {
+                fixture.Prepare();
+                var other = new EmbyItem { IdentityKey = "other", Type = "Person", Source = fixture.Item.Source };
+                PersonTransition.Attach(fixture.TargetPage, other, fixture.TargetImage);
+                Assert.Equal(0, ConnectedAnimationService.Created.Last().StartCalls);
+                Assert.False(PersonTransition.IsPrepared(fixture.Frame, fixture.Item));
+            }
+        });
+        Test("人物动画关闭或系统动画关闭立即取消并释放保留", () =>
+        {
+            foreach (var system in new[] { false, true })
+            {
+                using var fixture = new PersonFixture();
+                fixture.Prepare();
+                Assert.Equal(1, fixture.Source.Retentions);
+                if (system)
+                {
+                    fixture.Frame.DispatcherQueue.HasThreadAccess = false;
+                    UISettings.Change(false);
+                    fixture.Frame.DispatcherQueue.Drain();
+                }
+                else HomeMotion.Change(false);
+                Assert.False(PersonTransition.IsPrepared(fixture.Frame, fixture.Item));
+                Assert.Null(HomeMotion.Handlers);
+                Assert.Equal(0, fixture.Source.Retentions);
+                UISettings.Enabled = true;
+                HomeMotion.Preference = true;
+            }
+        });
+        Test("人物卡片动作只准备真实导航，拒绝与异常及时释放来源", () =>
+        {
+            using var fixture = new PersonFixture();
+            var page = new Page { Frame = fixture.Frame };
+            fixture.Frame.Content = page;
+            PersonTransition.Navigate(page, fixture.Source, () => { });
+            Assert.Equal(0, fixture.Source.Retentions);
+            try { PersonTransition.Navigate(page, fixture.Source, () => throw new InvalidOperationException("navigation rejected")); }
+            catch (InvalidOperationException) { }
+            Assert.Equal(0, fixture.Source.Retentions);
+            PersonTransition.Navigate(page, fixture.Source, () => fixture.Frame.Content = fixture.TargetPage);
+            Assert.True(PersonTransition.IsPrepared(fixture.Frame, fixture.Item));
+        });
+        Test("人物导航Stopped或Failed立即取消票据", () =>
+        {
+            foreach (var failure in new[] { false, true })
+            {
+                using var fixture = new PersonFixture();
+                fixture.Prepare();
+                if (failure) fixture.Frame.FailNavigation();
+                else fixture.Frame.StopNavigation();
+                Assert.False(PersonTransition.IsPrepared(fixture.Frame, fixture.Item));
+                Assert.Null(HomeMotion.Handlers);
+                Assert.Equal(0, fixture.Source.Retentions);
+            }
+        });
+        Test("人物快速第二次准备拒绝旧完成且只让新目标启动", () =>
+        {
+            using var fixture = new PersonFixture();
+            fixture.Prepare();
+            var old = ConnectedAnimationService.Created.Last();
+            var stale = old.LateComplete();
+            fixture.Prepare();
+            var current = ConnectedAnimationService.Created.Last();
+            stale();
+            fixture.Frame.Content = fixture.TargetPage;
+            PersonTransition.Attach(fixture.TargetPage, fixture.Item, fixture.TargetImage);
+            Assert.Equal(1, current.StartCalls);
+            Assert.Equal(0, old.StartCalls);
+            current.Complete();
+        });
+        Test("人物目标已有高清照片时不覆盖成来源小图", () =>
+        {
+            using var fixture = new PersonFixture();
+            var highResolution = new BitmapSource();
+            fixture.TargetImage.Source = highResolution;
+            fixture.Prepare();
+            fixture.Frame.Content = fixture.TargetPage;
+            var adopted = false;
+            PersonTransition.Attach(fixture.TargetPage, fixture.Item, fixture.TargetImage, _ =>
+            {
+                adopted = true;
+                return true;
+            });
+            Assert.False(adopted);
+            Assert.True(ReferenceEquals(highResolution, fixture.TargetImage.Source));
+            Assert.Equal(1, ConnectedAnimationService.Created.Last().StartCalls);
+            ConnectedAnimationService.Created.Last().Complete();
+        });
         return Run();
     }
 
@@ -498,6 +750,54 @@ internal static class Program
             Assert.True(UISettings.Created.All(settings => settings.Handlers is null));
             UISettings.AddFailure = UISettings.EventFailure.None;
             UISettings.RemoveFailure = UISettings.EventFailure.None;
+        }
+    }
+
+    private sealed class PersonFixture : IDisposable
+    {
+        public Frame Frame { get; } = new();
+        public EmbyItem Item { get; } = new() { Type = "Person" };
+        public PosterCard Source { get; } = new();
+        public Page TargetPage { get; } = new();
+        public Image TargetImage { get; } = new();
+
+        public PersonFixture()
+        {
+            HomeMotion.Preference = true;
+            UISettings.Enabled = true;
+            UISettings.AddFailure = UISettings.EventFailure.None;
+            UISettings.RemoveFailure = UISettings.EventFailure.None;
+            ConnectedAnimationService.ThrowOnPrepare = false;
+            BrowsePresentation.Results.Clear();
+            var root = new FrameworkElement { ActualWidth = 1280, ActualHeight = 900 };
+            var xaml = new XamlRoot { Content = root };
+            Frame.XamlRoot = xaml;
+            Frame.Content = Source;
+            Source.XamlRoot = xaml;
+            Source.Card!.Item = Item;
+            Source.ConnectedPoster.Parent = Source;
+            Source.ConnectedPoster.XamlRoot = xaml;
+            Source.ConnectedPoster.Source = new BitmapSource();
+            TargetPage.Frame = Frame;
+            TargetPage.XamlRoot = xaml;
+            TargetImage.Parent = TargetPage;
+            TargetImage.XamlRoot = xaml;
+            TargetImage.ActualWidth = 200;
+            TargetImage.ActualHeight = 300;
+        }
+
+        public bool Prepare() => PersonTransition.Prepare(Frame, Source);
+
+        public void Dispose()
+        {
+            PersonTransition.Cancel(Frame);
+            Frame.DispatcherQueue.Drain();
+            Assert.Null(HomeMotion.Handlers);
+            Assert.True(UISettings.Created.All(settings => settings.Handlers is null));
+            UISettings.AddFailure = UISettings.EventFailure.None;
+            UISettings.RemoveFailure = UISettings.EventFailure.None;
+            HomeMotion.Preference = true;
+            UISettings.Enabled = true;
         }
     }
 }

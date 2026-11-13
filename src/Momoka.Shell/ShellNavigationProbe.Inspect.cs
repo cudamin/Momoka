@@ -233,7 +233,7 @@ internal sealed partial class ShellNavigationProbe
         Add("InspectCover", "封面管理", async () =>
         {
             var dialog = new CoverDialog(item,
-                (_, _) => Task.FromResult(new RemoteImageResult { Images = [new RemoteImageInfo { Url = "https://fixture.invalid/art", ProviderName = "离线候选", Width = 320, Height = 200 }] }),
+                (_, _, _, _) => Task.FromResult(new RemoteImageResult { Images = [new RemoteImageInfo { Url = "https://fixture.invalid/art", ProviderName = "离线候选", Width = 320, Height = 200 }] }),
                 (_, _, _, _, _) => Task.FromResult<byte[]?>(image),
                 (_, type, _, _) => { item.ImageTags[type] = "changed"; return Task.CompletedTask; },
                 (_, type, index) =>
@@ -349,6 +349,7 @@ internal sealed partial class ShellNavigationProbe
         AddCheck("InspectDetailCoverGap", "详情封面等距", DetailCoverGapAsync);
         AddCheck("InspectDetailTrailers", "详情预告片验证", DetailTrailersAsync);
         AddCheck("InspectDetailExtras", "详情花絮特典验证", DetailExtrasAsync);
+        AddCheck("InspectDetailStickyHeader", "详情滚动悬浮卡片", DetailStickyHeaderAsync);
         AddCheck("InspectEpisodeBand", "单集两种模式布局", EpisodeBandAsync);
         AddCheck("InspectServerLists", "服务器清单与成员管理", ServerListsAsync);
         AddCheck("InspectPlexServerLists", "Plex清单与独立合集", PlexServerListsAsync);

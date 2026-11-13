@@ -143,7 +143,8 @@ internal static partial class ItemCommands
         Action<CardItem>? removed = null,
         Action<CardItem>? watched = null,
         Style? presenterStyle = null,
-        Func<CardItem, Action?>? select = null)
+        Func<CardItem, Action?>? select = null,
+        bool self = false)
     {
         var invalidated = 0;
         bool CanContinue() => Volatile.Read(ref invalidated) == 0;
@@ -151,7 +152,7 @@ internal static partial class ItemCommands
         {
             if (CanContinue()) Invoke(command, shell, owner, card, siblings, changed, removed, watched);
         }
-        var menu = Build(session, shell, owner, card, siblings, changed, removed, watched, CanContinue, select);
+        var menu = Build(session, shell, owner, card, siblings, changed, removed, watched, CanContinue, select, self);
         if (presenterStyle is not null) menu.MenuFlyoutPresenterStyle = presenterStyle;
         menu.Closed += (_, _) => Interlocked.Exchange(ref invalidated, 1);
 
@@ -204,7 +205,7 @@ internal static partial class ItemCommands
         // 服务器权限探测迟到而收起的那几条也不该连累整张菜单。
         void AvailabilityChanged(object? sender, EventArgs args)
         {
-            var rows = Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select);
+            var rows = Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select, self);
             var before = MoviePilotCommands(menu.Items);
             var after = MoviePilotCommands(rows);
             if (before.SetEquals(after)) return;
@@ -228,14 +229,14 @@ internal static partial class ItemCommands
             if (source.Key != card.Scope?.Key) return;
             owner.DispatcherQueue.TryEnqueue(() =>
             {
-                if (CanContinue()) Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select));
+                if (CanContinue()) Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select, self));
             });
         }
         menu.Opened += (_, _) => session.PermissionsChanged += PermissionsChanged;
         menu.Closed += (_, _) => session.PermissionsChanged -= PermissionsChanged;
         void QueueChanged(object? sender, EventArgs args) => owner.DispatcherQueue.TryEnqueue(() =>
         {
-            if (CanContinue()) Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select));
+            if (CanContinue()) Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue, select, self));
         });
         menu.Opened += (_, _) => shell.VideoQueueChanged += QueueChanged;
         menu.Closed += (_, _) => shell.VideoQueueChanged -= QueueChanged;
@@ -295,10 +296,11 @@ internal static partial class ItemCommands
         Action<CardItem>? removed = null,
         Action<CardItem>? watched = null,
         Func<bool>? canContinue = null,
-        Func<CardItem, Action?>? select = null)
+        Func<CardItem, Action?>? select = null,
+        bool self = false)
     {
         var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
-        Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, canContinue, select));
+        Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, canContinue, select, self));
         return menu;
     }
 
@@ -315,7 +317,8 @@ internal static partial class ItemCommands
         Action<CardItem>? removed,
         Action<CardItem>? watched,
         Func<bool>? canContinue,
-        Func<CardItem, Action?>? select)
+        Func<CardItem, Action?>? select,
+        bool self = false)
     {
         var rows = new List<MenuFlyoutItemBase>(16);
         var permissions = card.Scope is { } scope ? shell.MenuPermissionsFor(scope) : default;
@@ -338,7 +341,7 @@ internal static partial class ItemCommands
             moviePilotManagementAvailable: shell.MoviePilotMediaManagementEnabled,
             moviePilotSmartAvailable: shell.MoviePilotSmartReorganizeEnabled,
             permissions: permissions, aniBtEnabled: shell.AniBtEnabled, allowResumeRemoval: card.AllowResumeRemoval,
-            collectionMembership: card.CollectionMembership))
+            collectionMembership: card.CollectionMembership, self: self))
         {
             if (row.Command == ItemCommand.RemoveFromLibrary && !shell.FnNasRemovalAvailable) continue;
             if (row.Command is not { } command)
@@ -672,7 +675,11 @@ internal static partial class ItemCommands
     private static void SetFavorite(EmbySessionScope session, IShellActions shell, CardItem card, bool favourite)
     {
         // 旧快捷/菜单入口也须在创建状态操作账之前拒绝；隐藏按钮不能代替执行守卫。
-        if (!card.CanFavorite || !session.IsAvailable || !session.Connection.SupportsFavorites) return;
+        // 人物是唯一的例外：它的悬浮层不长收藏键（CanFavorite 仍按 TracksUserState 收着），
+        // 但人物页和右键菜单上那一行是成立的。飞牛的人物只有 person_guid，没有可收藏的媒体条目，
+        // 所以那一家仍拒绝。
+        var person = card.Item.Type == EmbyItemType.Person && !session.Connection.IsFnNas;
+        if ((!card.CanFavorite && !person) || !session.IsAvailable || !session.Connection.SupportsFavorites) return;
 
         var item = card.Item;
         var identity = item.IdentityKey;

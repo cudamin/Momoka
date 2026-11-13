@@ -177,14 +177,13 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(1100, 980);
             await LayoutAsync(home);
             await Task.Delay(700);
-            var gap = ((StackLayout)repeater.Layout).Spacing;
-            var before = ((double Line, bool HasNext))Call(home, "MeasureCoversLine", gap)!;
+            var before = ((double Line, bool HasNext))Call(home, "MeasureCoversLine")!;
             fixture.Settings.Ui.HomeLibraryPlacement = HomeLibraryPlacement.OnCarousel;
             ShellPrefs.Apply(fixture.Settings.Ui);
             await UntilAsync(() => home.IsReady && home.ViewModel.LibraryOnBanner);
             await LayoutAsync(home);
             await Task.Delay(700);
-            var after = ((double Line, bool HasNext))Call(home, "MeasureCoversLine", gap)!;
+            var after = ((double Line, bool HasNext))Call(home, "MeasureCoversLine")!;
             Require(before.HasNext && after.HasNext && Math.Abs(before.Line - after.Line) < 2,
                 $"订阅混排的轮播折叠阈值漂移：{before.Line:0.0} → {after.Line:0.0}");
             await SaveProbeScreenAsync("home-subscription-order-overlay.png");

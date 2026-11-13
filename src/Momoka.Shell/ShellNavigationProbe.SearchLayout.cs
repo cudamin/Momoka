@@ -384,6 +384,27 @@ internal sealed partial class ShellNavigationProbe
         fixture.Settings.MoviePilot.Username = "fixture";
         new MoviePilotCredentials(PassthroughSecretProtector.Instance).SetPassword(fixture.Settings.MoviePilot, "fixture");
         await ((MoviePilotService)fixture.Services.GetService(typeof(MoviePilotService))!).RefreshAvailabilityAsync();
+        // 媒体库搜索同时搜订阅（2026-11-13）：订阅清单里有一条作品名带「新词」的电影，身份与下面第一张
+        // 搜索结果（Tmdb 777）对得上 —— 因此它既该出现在「订阅」那一组，也该把第一张卡标成已订阅。
+        mp.Subscriptions =
+        [
+            new { id = 77, name = "新词示例剧", year = "2026", type = "电影", media_source = "themoviedb", media_id = "777", state = "R" }
+        ];
+        fixture.Transport.Reply = (request, _) => request.RequestUri!.PathAndQuery.Contains("SearchTerm=", StringComparison.Ordinal)
+            ? Task.FromResult(Json(new
+            {
+                Items = new[]
+                {
+                    new EmbyItem
+                    {
+                        Id = "search-a", Name = "搜索结果甲", Type = EmbyItemType.Movie,
+                        ProviderIds = new() { ["Tmdb"] = "777" }
+                    },
+                    new EmbyItem { Id = "search-b", Name = "搜索结果乙", Type = EmbyItemType.Movie }
+                },
+                TotalRecordCount = 2
+            }))
+            : Task.FromResult(FakeTransport.Standard(request));
         var frame = new Frame();
         _root.Children.Add(frame);
         try
@@ -397,6 +418,23 @@ internal sealed partial class ShellNavigationProbe
             Require(fixture.Transport.Requests.All(request => !request.Contains(Uri.EscapeDataString("旧词"), StringComparison.Ordinal)), "防抖仍发送旧词");
             Require(page.LoadedCount == 2 && page.ViewModel.SearchText == "新词",
                 $"键入后没有结果：rows={page.LoadedCount}, text={page.ViewModel.SearchText}, source={Get<Segmented>(page, "SourceTabs").SelectedIndex}, busy={page.ViewModel.Busy}, notice={page.ViewModel.NoticeMessage}, requests={string.Join(';', fixture.Transport.Requests)}");
+
+            // 同一趟媒体库搜索还该在结果里摆出订阅命中（只过滤本机订阅清单，不另发 MP 媒体搜索），
+            // 身份对得上的结果卡同时带上已订阅标记。
+            await UntilAsync(() => page.ViewModel.MatchingSubscriptions.Count == 1);
+            Require(page.ViewModel.SubscriptionMatchesVisibility == Visibility.Visible,
+                "媒体库搜索没有显示订阅命中");
+            Require(!mp.Paths.Any(path => path.Contains("media/search", StringComparison.Ordinal)),
+                "同时搜索订阅不应请求 MoviePilot 媒体搜索");
+            Require(page.ViewModel.Cards.Count == 2
+                && page.ViewModel.Cards[0].MoviePilotBadgeVisibility == Visibility.Visible
+                && page.ViewModel.Cards[1].MoviePilotBadgeVisibility == Visibility.Collapsed,
+                "已订阅标记没有按身份落到对应结果卡");
+            await LayoutAsync(page);
+            await UntilAsync(() => Descendants(page).OfType<MoviePilotSubscriptionPoster>()
+                .Any(poster => poster.Card is { } card && page.ViewModel.MatchingSubscriptions.Contains(card)));
+            await SaveProbeScreenAsync("search-subscription-matches-screen.png");
+
             Get<SelectorBar>(page, "SearchCategories").SelectedItem = Get<SelectorBarItem>(page, "SeriesCategory");
             await UntilAsync(() => !page.ViewModel.Busy);
             Require(fixture.Transport.Requests.Last().Contains("IncludeItemTypes=Series", StringComparison.Ordinal), "节目分类没有查询剧集");
@@ -631,6 +669,8 @@ internal sealed partial class ShellNavigationProbe
     {
         internal bool Offline { get; set; }
         internal object[]? MediaResults { get; set; }
+        /// <summary>媒体库搜索同时搜订阅（2026-11-13）：这一页读到的那份订阅清单。</summary>
+        internal object[]? Subscriptions { get; set; }
         internal List<string> Paths { get; } = [];
         internal TaskCompletionSource<HttpResponseMessage>? PendingResource { get; set; }
         internal static HttpResponseMessage Sources() => Json(new[]
@@ -649,6 +689,8 @@ internal sealed partial class ShellNavigationProbe
             if (path.EndsWith("login/access-token", StringComparison.Ordinal)) return Task.FromResult(Json(new { access_token = "fixture-token" }));
             if (path.EndsWith("dashboard/system", StringComparison.Ordinal)) return Task.FromResult(Json(new { version = "fixture" }));
             Require(request.Method == HttpMethod.Get, "搜索不应提交写请求");
+            if (request.RequestUri.AbsolutePath.TrimEnd('/').EndsWith("/subscribe", StringComparison.Ordinal))
+                return Task.FromResult(Json(Subscriptions ?? Array.Empty<object>()));
             if (path.Contains("/site/", StringComparison.Ordinal)) return Task.FromResult(Json(new[]
             {
                 new { id = 1, name = "站点甲", is_active = true },

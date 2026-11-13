@@ -2558,6 +2558,7 @@ public sealed partial class DetailViewModel : PageViewModel
             // finished before the page calls itself loaded. Started after Apply, which clears the shelf
             // it fills.
             var similar = LoadSimilarAsync(detail, token);
+            var extras = LoadExtrasAvailabilityAsync();
 
             NavigationTiming.Mark("branch-begin");
             switch (detail.Type)
@@ -2589,6 +2590,7 @@ public sealed partial class DetailViewModel : PageViewModel
             NavigationTiming.Mark("similar-wait-begin");
             await similar.ConfigureAwait(true);
             NavigationTiming.Mark("similar-wait-end");
+            await extras.ConfigureAwait(true);
 
             NavigationTiming.Mark("end-load-begin");
             EndLoad(token);
@@ -3822,11 +3824,20 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 所以这一拍之前那个尺寸谁也没看见。
     /// </para>
     /// </summary>
-    private void ShowStill(BitmapImage picture)
+    private void ShowStill(BitmapSource picture)
     {
         _stillPixels = (picture.PixelWidth, picture.PixelHeight);
         RefitArtwork();
         StillImage = picture;
+    }
+
+    /// <summary>沿用 Gallery 先填目标再启动的顺序；网络高清图继续加载，首帧先接住实际源图。</summary>
+    internal bool UseConnectedPoster(EmbyItem item, BitmapSource picture)
+    {
+        if (!Attached || _detail is not { } current || current.IdentityKey != item.IdentityKey
+            || !ReferenceEquals(current.Source?.UserStateOwner, item.Source?.UserStateOwner)) return false;
+        ShowStill(picture);
+        return true;
     }
 
     /// <summary>

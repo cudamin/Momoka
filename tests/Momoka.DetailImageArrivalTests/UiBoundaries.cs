@@ -74,11 +74,12 @@ namespace Microsoft.UI.Xaml.Media
 
 namespace Microsoft.UI.Xaml.Media.Imaging
 {
-    public sealed class BitmapImage : Microsoft.UI.Xaml.Media.ImageSource
+    public class BitmapSource : Microsoft.UI.Xaml.Media.ImageSource
     {
         public int PixelWidth { get; set; } = 600;
         public int PixelHeight { get; set; } = 400;
     }
+    public sealed class BitmapImage : BitmapSource;
 }
 
 namespace Microsoft.UI.Xaml.Controls

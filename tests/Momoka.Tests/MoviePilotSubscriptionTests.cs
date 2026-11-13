@@ -460,5 +460,43 @@ internal static class MoviePilotSubscriptionTests
             targets = MoviePilotLibraryPlayback.FindAsync(client, movie, new([episode]), CancellationToken.None).GetAwaiter().GetResult();
             Assert.Equal("movie", targets[0].Item.Id);
         });
+        SubscriptionMarkTests();
+    }
+
+    /// <summary>媒体库「已订阅」标记与搜索页同时搜索订阅的两条 Core 判断。</summary>
+    private static void SubscriptionMarkTests()
+    {
+        Test("MoviePilot 已订阅标记：按来源、编号与剧/电影类型对上库条目，季与单集不打标", () =>
+        {
+            var subscription = Subscription;
+            var index = MoviePilotSubscriptionIndex.Build([subscription]);
+            Assert.True(index.Contains(new EmbyItem { Type = EmbyItemType.Series, ProviderIds = new() { ["Douban"] = "42" } }));
+            Assert.True(index.Contains(new EmbyItem { Type = EmbyItemType.Series, ProviderIds = new() { ["douban"] = "42" } }));
+            Assert.False(index.Contains(new EmbyItem { Type = EmbyItemType.Movie, ProviderIds = new() { ["Douban"] = "42" } }));
+            Assert.False(index.Contains(new EmbyItem { Type = EmbyItemType.Series, ProviderIds = new() { ["Douban"] = "43" } }));
+            Assert.False(index.Contains(new EmbyItem { Type = EmbyItemType.Series, ProviderIds = new() { ["Tmdb"] = "42" } }));
+            Assert.False(index.Contains(new EmbyItem { Type = EmbyItemType.Season, ProviderIds = new() { ["Douban"] = "42" } }));
+            Assert.False(index.Contains(new EmbyItem { Type = EmbyItemType.Episode, ProviderIds = new() { ["Douban"] = "42" } }));
+            Assert.False(MoviePilotSubscriptionIndex.Empty.Contains(
+                new EmbyItem { Type = EmbyItemType.Series, ProviderIds = new() { ["Douban"] = "42" } }));
+        });
+        Test("MoviePilot 已订阅标记：没有可用来源映射的订阅不参与匹配", () =>
+        {
+            var unknown = MoviePilotSubscription.Parse(Json(Series.Replace("\"douban\"", "\"unknown-source\"")))!;
+            var index = MoviePilotSubscriptionIndex.Build([unknown]);
+            Assert.False(index.Contains(new EmbyItem { Type = EmbyItemType.Series, ProviderIds = new() { ["Douban"] = "42" } }));
+        });
+        Test("媒体库搜索同时搜索订阅：按作品名命中，忽略空白与大小写，空词不返回", () =>
+        {
+            var items = MoviePilotSubscription.ParseList(Json("[" + Series + ","
+                + Series.Replace("\"id\":12", "\"id\":13").Replace("示例剧", "Other Show").Replace("电视剧", "电影") + "]"));
+            var hit = MoviePilotSubscriptionSearch.Match(items, " 示例 ");
+            Assert.Equal(1, hit.Count);
+            Assert.Equal(12, hit[0].Id);
+            Assert.Equal(1, MoviePilotSubscriptionSearch.Match(items, "other show").Count);
+            Assert.Equal(0, MoviePilotSubscriptionSearch.Match(items, "   ").Count);
+            Assert.Equal(0, MoviePilotSubscriptionSearch.Match(items, "不存在").Count);
+            Assert.Equal(24, MoviePilotSubscriptionSearch.Limit);
+        });
     }
 }

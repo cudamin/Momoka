@@ -91,6 +91,19 @@ public static class EmbyFields
     /// </para>
     /// </summary>
     public const string Files = "MediaSources,Path";
+
+    /// <summary>
+    /// 人物详情：出生/逝世、出生地、简介和刮削源标识。出生日期在 Emby 上也叫 <c>PremiereDate</c>，
+    /// 出生地是 <c>ProductionLocations</c>（Jellyfin 的 TMDB 人物提供器把 PlaceOfBirth 放在这里）。
+    /// 不点名的请求拿回来的 Person 没有这几项，屏上就只剩一个名字。
+    /// </summary>
+    public const string Person = "Overview,PremiereDate,EndDate,ProductionLocations,ProviderIds";
+
+    /// <summary>
+    /// 人物作品：比 <see cref="Browse"/> 多一个 <c>People</c>，影视作品那一行要读这个人在该条目上的
+    /// 角色名。只给人物页的影视作品查询用，媒体库网格不付这份代价。
+    /// </summary>
+    public const string Credits = Browse + ",People";
 }
 
 /// <summary>
@@ -185,6 +198,13 @@ public sealed class ItemQuery
     /// </para>
     /// </summary>
     public string? PersonId { get; init; }
+
+    /// <summary>
+    /// 人物的哪一种署名：<c>Actor</c>、<c>Director</c>…，和 <see cref="PersonId"/> 一起发给
+    /// <c>PersonTypes</c>。服务器把这一位定义成逗号分隔的列表；人物页按职务一组一组问，所以这里
+    /// 通常只有一项。<see cref="PersonId"/> 为空时它没有意义，也不会发出去。
+    /// </summary>
+    public IReadOnlyList<string> PersonTypes { get; init; } = [];
 
     /// <summary>Fixed local Plex tag identity of a drill-down, independent of removable toolbar filters.</summary>
     public Plex.PlexBrowseRelation? PlexRelation { get; init; }
@@ -363,6 +383,10 @@ public sealed class ItemQuery
         if (GroupItemsIntoCollections is { } group) parameters.Add(("GroupItemsIntoCollections", group ? "true" : "false"));
         if (!string.IsNullOrWhiteSpace(SearchTerm)) parameters.Add(("SearchTerm", SearchTerm!.Trim()));
         if (!string.IsNullOrWhiteSpace(PersonId)) parameters.Add(("PersonIds", PersonId!.Trim()));
+        // 只有真的带着人物 id 时 PersonTypes 才有意义；没有 id 的一份类型列表会被服务器当成
+        // 「这一页只要这几种署名」，于是演职人员原来那一格会答出半个库。服务器自己规定的是逗号。
+        if (!string.IsNullOrWhiteSpace(PersonId) && PersonTypes.Count > 0)
+            parameters.Add(("PersonTypes", string.Join(',', PersonTypes)));
         if (ArtistIds.Count > 0) parameters.Add(("ArtistIds", string.Join(',', ArtistIds)));
         if (IncludeItemTypes.Count > 0) parameters.Add(("IncludeItemTypes", string.Join(',', IncludeItemTypes)));
         if (!string.IsNullOrWhiteSpace(MediaTypes)) parameters.Add(("MediaTypes", MediaTypes));

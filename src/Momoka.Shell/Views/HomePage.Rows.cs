@@ -41,13 +41,6 @@ public sealed partial class HomePage
         timing?.Mark("home-rows-end", HomeRows.Count);
     }
 
-    private static double RowHeightOf(object row) => row switch
-    {
-        CardShelf shelf => shelf.RowHeight,
-        MoviePilotHomeRow subscription => subscription.RowHeight,
-        _ => 0
-    };
-
     private static string RowTitle(object row) => row switch
     {
         CardShelf shelf => shelf.Title,
@@ -56,26 +49,4 @@ public sealed partial class HomePage
     };
 
     private static Visibility HomeEmptyVisibility(Visibility empty, int rows) => rows == 0 ? empty : Visibility.Collapsed;
-
-    /// <summary>混排的标题、加载与错误区域高度不同，直接读取目标条带，不能按相同标题高拼算。</summary>
-    private (double Line, bool HasNext)? MeasureMixedCoversLine(double gap)
-    {
-        if (_homeLibraryFlowIndex < 0) return null;
-        var below = _homeLibraryFlowIndex + (ViewModel.LibraryOnBanner ? 0 : 1);
-        if (below >= HomeRows.Count) return (0, false);
-        var target = Math.Min(below + 1, HomeRows.Count - 1);
-        var element = (FrameworkElement)(ShelfRepeater.TryGetElement(target) ?? ShelfRepeater.GetOrCreateElement(target));
-        var timing = _timing;
-        timing?.Mark("home-mixed-layout-begin");
-        UpdateLayout();
-        timing?.Mark("home-mixed-layout-end", 1);
-        if (HomeFoldMotion.Find<ShelfStrip>(element) is not { ActualHeight: > 0 } strip) return null;
-        var line = ScreenTopAtScrollZero(strip);
-        if (ViewModel.LibraryOnBanner)
-        {
-            if (_libraryFlowHeight <= 0) return null;
-            line += _libraryFlowHeight + gap;
-        }
-        return (line, true);
-    }
 }

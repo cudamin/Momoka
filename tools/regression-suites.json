@@ -4,6 +4,26 @@
   "shellAssembly": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
   "suites": [
     {
+      "id": "Momoka.DetailStickyHeaderTests",
+      "project": "tests/Momoka.DetailStickyHeaderTests/Momoka.DetailStickyHeaderTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.DetailStickyHeaderTests/README.md",
+      "notes": "完整正式详情悬浮卡片控制流与XAML接入；匿名平台边界，不运行窗口、真实服务或播放。"
+    },
+    {
+      "id": "Momoka.ArtworkSearchDialogTests",
+      "project": "tests/Momoka.ArtworkSearchDialogTests/Momoka.ArtworkSearchDialogTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.ArtworkSearchDialogTests/README.md",
+      "notes": "原样图片选择筛选、异步换代取消、客观空态和预览恢复；WinUI/外层仅值事件委托边界，无窗口、真实账号、网络或媒体写入。"
+    },
+    {
       "id": "Momoka.ConnectedAnimationTests",
       "project": "tests/Momoka.ConnectedAnimationTests/Momoka.ConnectedAnimationTests.csproj",
       "mode": "dotnet",

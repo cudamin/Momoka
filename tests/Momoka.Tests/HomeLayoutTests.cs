@@ -372,6 +372,17 @@ internal static class HomeLayoutTests
             Assert.Equal(HomeLayout.HomeRowTarget.None, HomeLayout.TargetOf(""));
         });
 
+        Test("主页版面：只有继续观看那一排要剧集缩略图", () =>
+        {
+            // 2026-11-13 用户令「主页继续观看那一列改用缩略图」：那一排几乎全是单集，单集自己只有剧照。
+            // 接下来看同样是单集，但这一条要求只点了继续观看 —— 不顺手扩大。
+            Assert.True(HomeLayout.WantsShowThumb(HomeLayout.Resume));
+            Assert.False(HomeLayout.WantsShowThumb(HomeLayout.NextUp));
+            Assert.False(HomeLayout.WantsShowThumb(HomeLayout.Libraries));
+            Assert.False(HomeLayout.WantsShowThumb(HomeLayout.LibraryKey("1")));
+            Assert.False(HomeLayout.WantsShowThumb(null));
+        });
+
         Test("主页版面：订阅与媒体库混排，隐藏的勾选和次序可以往返", () =>
         {
             var original = HomeLayout.Plan(null, [Library("1", "电影")]);

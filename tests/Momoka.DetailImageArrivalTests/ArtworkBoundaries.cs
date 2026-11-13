@@ -42,7 +42,11 @@ namespace Momoka.Shell.ViewModels
         public BitmapImage? PlateImage { get; private set; }
         public BitmapImage? HeroImage { get; private set; }
         public BitmapImage? FooterImage { get; private set; }
-        public BitmapImage? StillImage { get; private set; }
+        public BitmapSource? StillImage { get; private set; }
+        private (int Width, int Height)? _stillPixels;
+        public (int Width, int Height)? RefittedPixels { get; private set; }
+        public EmbyItem? CurrentItem => _detail;
+        private void RefitArtwork() => RefittedPixels = _stillPixels;
         public bool StillPending { get; private set; }
         public BitmapImage? CornerImage { get; private set; }
         public ArtworkRef? FooterPick { get; private set; }
@@ -82,7 +86,6 @@ namespace Momoka.Shell.ViewModels
             // Deliberately permit a late result after cancellation to exercise publication ownership.
             return HoldDecode ? DecodeRelease.Task : Task.FromResult<BitmapImage?>(new());
         }
-        private void ShowStill(BitmapImage picture) => StillImage = picture;
         private void ShowCorner(BitmapImage picture) => CornerImage = picture;
         private Task<BitmapImage?> RenderHeroAsync(HeroPictureLoader.HeroPixels pixels, int radius, CancellationToken token,
             DetailHeroCache.Ticket? ticket, object? timing) => Task.FromResult<BitmapImage?>(new());

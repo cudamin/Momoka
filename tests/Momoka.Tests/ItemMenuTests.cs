@@ -316,15 +316,43 @@ internal static class ItemMenuTests
             Assert.Contains("重新扫描媒体库", labels);
         });
 
-        Test("更多菜单：演职人员那张卡上只有打开和编辑", () =>
+        Test("更多菜单：演职人员有收藏、编辑、照片、识别和刷新，没有合集和删除", () =>
         {
-            // 那一排卡片是存根（只有 id、名字和类型），照它去识别、改封面或者扫库是拿一个人名当影片使。
+            // 人物页按 id 读回了完整人物条目，照片、识别和刷新作用在人物自己身上；合集、删除和扫库
+            // 仍然不属于一个人名。
             var labels = Labels(new EmbyItem { Id = "p1", Type = EmbyItemType.Person });
 
+            Assert.Contains("打开", labels);
+            Assert.Contains("添加到收藏", labels);
+            Assert.Contains("编辑元数据…", labels);
+            Assert.Contains("修改照片…", labels);
+            Assert.Contains("识别", labels);
+            Assert.Contains("刷新元数据", labels);
             Assert.DoesNotContain("删除", labels);
             Assert.DoesNotContain("重新扫描媒体库", labels);
-            Assert.DoesNotContain("修改封面图", labels);
-            Assert.DoesNotContain("添加到收藏", labels);
+            Assert.DoesNotContain("添加到合集", labels);
+        });
+
+        Test("更多菜单：人物页自己的更多不再重复「打开」", () =>
+        {
+            var labels = string.Join(" | ", ItemMenu.For(new EmbyItem { Id = "p1", Type = EmbyItemType.Person }, self: true)
+                .Where(row => !row.IsRule)
+                .Select(row => row.Label));
+
+            Assert.DoesNotContain("打开", labels);
+            Assert.Contains("添加到收藏", labels);
+            Assert.Contains("编辑元数据…", labels);
+        });
+
+        Test("更多菜单：飞牛人物没有收藏，因为 person_guid 不是可收藏的媒体条目", () =>
+        {
+            var labels = string.Join(" | ", ItemMenu.For(new EmbyItem { Id = "p1", Type = EmbyItemType.Person }, fnNas: true)
+                .Where(row => !row.IsRule)
+                .Select(row => row.Label));
+
+            Assert.Contains("打开", labels);
+            Assert.DoesNotContain("收藏", labels);
+            Assert.DoesNotContain("编辑元数据", labels);
         });
 
         Test("更多菜单：单集上多一条「打开所属剧集」，电影上没有", () =>

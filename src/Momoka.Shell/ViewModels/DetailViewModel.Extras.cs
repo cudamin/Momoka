@@ -9,21 +9,25 @@ public sealed partial class DetailViewModel
 {
     private CancellationTokenSource? _extraLoad;
     private ExtraSelection? _extraSelection;
+    private ExtraSelection? _preparedExtras;
     private bool _extrasReady;
+    private bool _extrasChecked;
     private bool _extrasEmpty;
     private long _extraEpoch;
 
-    public Visibility ExtraVisibility => Show(CanAct && _extrasReady && !_extrasEmpty
+    public Visibility ExtraVisibility => Show(CanAct && _extrasReady && _extrasChecked && !_extrasEmpty
         && _detail is { } item && ItemExtras.CanRead(item, _scope!.Connection.ServerKind));
 
     private void ResetExtras()
     {
         _extraEpoch++;
         _extraSelection = null;
+        _preparedExtras = null;
         _extraLoad?.Cancel();
         _extraLoad?.Dispose();
         _extraLoad = null;
         _extrasReady = false;
+        _extrasChecked = false;
         _extrasEmpty = false;
         OnPropertyChanged(nameof(ExtraVisibility));
     }
@@ -63,6 +67,7 @@ public sealed partial class DetailViewModel
     {
         if (selection is not null && !ReferenceEquals(_extraSelection, selection)) return;
         _extraSelection = null;
+        _preparedExtras = null;
         _extraLoad?.Cancel();
         _extraLoad?.Dispose();
         _extraLoad = null;
@@ -70,7 +75,27 @@ public sealed partial class DetailViewModel
 
     internal async Task<ExtraSelection?> GetExtrasAsync()
     {
-        if (ExtraVisibility != Visibility.Visible || _detail is not { } subject || _scope is not { } scope) return null;
+        if (ExtraVisibility != Visibility.Visible) return null;
+        if (_preparedExtras is { } prepared && OwnsExtras(prepared))
+        {
+            _preparedExtras = null;
+            return prepared;
+        }
+        return await ReadExtrasAsync().ConfigureAwait(true);
+    }
+
+    private async Task LoadExtrasAvailabilityAsync()
+    {
+        // 支持查询不等于有内容。进入详情先读一次，首个菜单复用结果，避免点击后空入口
+        // 才消失、把旁边的连播挤到原位置；读取失败仍保留菜单中的原因和重试入口。
+        var selection = await ReadExtrasAsync().ConfigureAwait(true);
+        if (selection is not null && OwnsExtras(selection)) _preparedExtras = selection;
+    }
+
+    private async Task<ExtraSelection?> ReadExtrasAsync()
+    {
+        if (!CanAct || !_extrasReady || _detail is not { } subject || _scope is not { } scope
+            || !ItemExtras.CanRead(subject, scope.Connection.ServerKind)) return null;
         _extraLoad?.Cancel();
         _extraLoad?.Dispose();
         _extraLoad = new CancellationTokenSource();
@@ -98,6 +123,7 @@ public sealed partial class DetailViewModel
             selection.Error = "读取花絮与特典失败：" + Failure.Describe(error);
         }
         if (!OwnsExtras(selection)) return null;
+        _extrasChecked = true;
         _extrasEmpty = selection.Options.Count == 0 && selection.Error is null;
         OnPropertyChanged(nameof(ExtraVisibility));
         return selection;

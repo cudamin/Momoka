@@ -4,15 +4,16 @@ using static Momoka.Tests.TestHarness;
 namespace Momoka.Tests;
 
 /// <summary>
-/// 主页首屏的矮窗档 —— 窗口拉矮到那条线被第一屏裁掉之后，媒体库那一排压上轮播左下角、
-/// 下一排补位；轮播被一屏压矮、上下裁切超出默认形状时才恢复默认（<see cref="HomeFold.LibraryOnBanner"/>，
-/// 2026-09-13「轮播图上下裁切过多时隐藏，默认大小时不隐藏」—— 媒体库整个出屏但轮播还完好的那一档压着不放）。
-/// 触发线 2026-09-13 改成「裁到那条线就上移」；2026-09-22 那条线又往下挪了一排 —— 现在是**媒体库下面那一排的
-/// 再下面那一排的封面顶**（用户的话：「改为快要显示下方媒体库封面的时候上移」，配一张红线压在「最近添加 · 电视
-/// 节目」封面顶上的截图）。线由 <see cref="HomeFold.CoversLine"/> 算；这里的数字只钉边界形状，不钉牌子的高。
+/// 主页首屏的矮窗档 —— 窗口拉矮到媒体库那一排被第一屏裁掉之后，媒体库那一排压上轮播左下角、下一排补位；
+/// 轮播被一屏压矮、上下裁切超出默认形状时才恢复默认（<see cref="HomeFold.LibraryOnBanner"/>，2026-09-13「轮播图
+/// 上下裁切过多时隐藏，默认大小时不隐藏」—— 媒体库整个出屏但轮播还完好的那一档压着不放）。
+/// 触发线改过三站：2026-09-13 落在「继续观看」牌子底下那条线；2026-09-22 又往下挪了一排（「再下面那一排」的
+/// 封面顶）；**2026-11-13 收回媒体库那一排自己的下沿**（用户截图「这都重叠了媒体库还不下移」——窗口 1064×761、
+/// 视口 744 时媒体库整排放得下却还压在圆角轮播上）。线由页面量（媒体库整排的顶 ＋ 实高），这里的数字只钉边界
+/// 形状与几档真实窗口。
 /// <para>
 /// 钉的是两条边界的形状，数字取 1422 宽的默认窗那一档：带子的设计形状 608（<see cref="HomeCarousel.NaturalHeight"/>），
-/// 那条线在 922。形状与从前一字未动 —— 挪的是线上站着的那一排（见下面那组算术的测试）。
+/// 媒体库那一排的下沿在 874。形状与从前一字未动 —— 挪的是线上站着的那一排（见下面那组算术的测试）。
 /// </para>
 /// <para>
 /// 上面这一整套只属于 <see cref="HomeLibraryPlacement.Auto"/>（「随窗口高度变换」）那一档。2026-10-12 起设置里
@@ -26,7 +27,7 @@ internal static class HomeFoldTests
     {
         Test("矮窗档：那条线被裁掉 —— 压上", () =>
         {
-            // 视口 900：线在 922、整个在第一屏外 —— 线以下（那一排的卡）一个像素都不露，这正是要压上轮播的那一档。
+            // 视口 900：线在 922、整个在第一屏外 —— 媒体库整排一个像素都不露，这正是要压上轮播的那一档。
             Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, viewport: 900, nextRowLine: 922, bandHeight: 608));
             Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 700, 922, 608), "更矮一点还是同一档");
         });
@@ -60,24 +61,27 @@ internal static class HomeFoldTests
             Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 608, 922, 608), "视口 ＝ 设计形状：正好撑住，还没多裁");
         });
 
-        Test("矮窗档：那条线落在下面那一排的再下面那一排的封面顶上", () =>
+        Test("矮窗档：线是媒体库整排的下沿（牌子和卡底那两行字都在里面）", () =>
         {
-            // 他用的一档：1422／1527 宽的窗口，带子 653；媒体库（排卡 176）在顶上一格，从 669 起，
-            // 它下面那一排（继续观看，排卡 203、牌子 46、牌子底下让 12）在默认摆法里从 921 起。
-            // 那条线 ＝ 再下面那一排的封面顶 ＝ 921 ＋（牌子 46 ＋ 空当 12 ＋ 排卡 203）＋ 排间空当 4 ＋ 牌子 46 ＋ 空当 12。
-            // 排间空当 2026-09-30 从 18 收到 8、同日再收到 4（HomePage.xaml 的 StackLayout.Spacing，用户要求
-            // 缩短媒体库与继续观看之间的距离）—— 这里的三个数跟着换，线自己矮了 14。
-            var rowTop = 921.0;
-            var line = HomeFold.CoversLine(921, 46, 12, 203, 4, hasBelow: true);
+            // 1422／1527 宽那一档（用户 2026-09-22 的截图）：轮播带宽 1422 时带高 608，媒体库那一排从 624 起，
+            // 牌子 46、牌子底下让 8、排卡 176（208 宽的 16:9 卡 117 ＋ 卡底 59）—— 下沿 ＝ 20 ＋ 608 ＋ 16 ＋ 230 ＝ 874。
+            var rowTop = 20.0 + 608 + 16;
+            var rowBottom = rowTop + 46 + 8 + 176;
 
-            Assert.Equal(921 + (46 + 12 + 203) + 4 + (46 + 12), line);
-            Assert.Equal(1244, line);
+            Assert.Equal(874, rowBottom);
+            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 760, rowBottom, 608), "默认窗放不下整排 —— 压上");
+            Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 900, rowBottom, 608), "窗口再高一点、整排露出来了 —— 留在下方");
+        });
 
-            // 没有第二排（媒体库下面只有一排）：退回那一排自己的封面顶 —— 压上腾出的位置只够托它进第一屏。
-            Assert.Equal(rowTop + 46 + 12, HomeFold.CoversLine(rowTop, 46, 12, 203, 4, hasBelow: false));
+        Test("矮窗档：媒体库放得下的窗口不再压上轮播（2026-11-13 实屏回归）", () =>
+        {
+            // 用户报的那一档：窗口 1064×761、视口 744、轮播带宽 758（带高 324），媒体库整排在默认摆法里
+            // 从 360 到 590 —— 整个放得进第一屏。旧线（看下面第二排封面顶）在 909，压上；新线是 590，留在下方。
+            Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, viewport: 744, nextRowLine: 590, bandHeight: 324));
 
-            // 线比「下面那一排自己的封面顶」整整低一排：这正是 2026-09-22 挪的那一格。
-            Assert.Equal(1244 - (46 + 12 + 203) - 4, HomeFold.CoversLine(rowTop, 46, 12, 203, 4, hasBelow: false));
+            // 窗口再矮到整排被裁（视口 590 ＝ 下沿）：按等号算压上；轮播还撑得住设计形状 324。
+            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 590, 590, 324));
+            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 589, 590, 324), "再矮一像素只会更该压");
         });
 
         Test("矮窗档：量不到视口不做决定", () =>

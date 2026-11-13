@@ -69,7 +69,9 @@ internal sealed partial class ShellNavigationProbe
             var repeater = Get<ItemsRepeater>(home, "ShelfRepeater");
             foreach (var width in new[] { 1420, 1000 })
             {
-                ResizeInspect(width, 980);
+                // 1000 那一宽要的是默认档「压上轮播」的现场：媒体库整排的判定线（2026-11-13 起量整排下沿）
+                // 在 560 高的窗口上确实被第一屏裁掉；980 高的窗口媒体库整排放得下，按新规则留在轮播下方。
+                ResizeInspect(width, width == 1000 ? 560 : 980);
                 await LayoutAsync(shell);
                 await Task.Delay(800);
                 Require(home.ViewModel.Shelves.Count >= 3, "主页夹具未实现足够货架");
@@ -98,7 +100,7 @@ internal sealed partial class ShellNavigationProbe
                     await UntilAsync(() => !home.ViewModel.LibraryOnBanner);
                     Require(Get<HomeFoldMotion?>(home, "_fold") is null && Get<HomeFoldMotion?>(home, "_foldLate") is null,
                         "返回后切换布局仍播放媒体库位移动画");
-                    ResizeInspect(width, 980);
+                    ResizeInspect(width, 560);
                     await UntilAsync(() => home.ViewModel.LibraryOnBanner);
                 }
                 items[0].Name = "刷新已完成 · " + width;
@@ -123,9 +125,9 @@ internal sealed partial class ShellNavigationProbe
 
             // 设置 → 主页 → 「主页媒体库位置」（2026-10-12 进设置、2026-10-16 挪进主页卡）：两个「固定」档不看窗口
             // 高矮。上面那一轮已经在
-            // 1000 宽上量出默认档的两个答案（980 高压上、300 高回默认），这里就在同一套几何上把设置拨过去 ——
+            // 1000 宽上量出默认档的两个答案（560 高压上、300 高回默认），这里就在同一套几何上把设置拨过去 ——
             // 该压的松了手、该落的不落，都当场看得出来。拨完放回装机那一档，别把状态留给下一次运行。
-            ResizeInspect(1000, 980);
+            ResizeInspect(1000, 560);
             await LayoutAsync(shell);
             await UntilAsync(() => home.ViewModel.LibraryOnBanner);
 
@@ -151,7 +153,7 @@ internal sealed partial class ShellNavigationProbe
             ShellPrefs.Apply(fixture.Settings.Ui);
             await UntilAsync(() => !home.ViewModel.LibraryOnBanner);
 
-            ResizeInspect(1000, 980);
+            ResizeInspect(1000, 560);
             await LayoutAsync(shell);
             await UntilAsync(() => home.ViewModel.LibraryOnBanner);
         }

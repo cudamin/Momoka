@@ -4,6 +4,11 @@ internal static class Program
 {
     private static int Main(string[] args)
     {
+        if (args is ["remote-image-search-fixture"])
+        {
+            RemoteImageSearchTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["hover-preview-fixture"])
         {
             CardPreviewTextTests.Register();
@@ -177,8 +182,12 @@ internal static class Program
         if (args is ["home-carousel-fixture"])
         {
             HomeCarouselTests.Register();
-            CarouselAmbientTests.Register();
             GaussianBackdropTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["home-chrome-fixture"])
+        {
+            HomeChromeTests.Register();
             return TestHarness.Run();
         }
         if (args is ["verification-harness-fixture"])
@@ -648,18 +657,19 @@ internal static class Program
         MoviePilotAvailabilityTests.Register();
         MoviePilotMediaDetailTests.Register();
         ItemDetailTests.Register();
+        PersonDetailTests.Register();
         ItemTrailerTests.Register();
         ItemExtraTests.Register();
         EpisodeDisplayTests.Register();
         ItemArtworkTests.Register();
         ArtworkPreviewTests.Register();
+        RemoteImageSearchTests.Register();
         ItemMenuTests.Register();
         ItemIdentifyTests.Register();
         ItemActionTests.Register();
         ItemBatchPlaybackTests.Register();
         DownloadCollisionTests.Register();
         HomeCarouselTests.Register();
-        CarouselAmbientTests.Register();
         HomeChromeTests.Register();
         ShellChromeTests.Register();
         HomeFoldTests.Register();

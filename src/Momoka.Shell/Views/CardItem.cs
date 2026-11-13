@@ -107,6 +107,13 @@ public sealed class CardItem : INotifyPropertyChanged
 
     /// <summary>Whether artwork exists to ask for, or null when the item has none worth asking for.</summary>
     private readonly IReadOnlyList<string> _imageTypes;
+
+    /// <summary>
+    /// 这一张卡先要剧集那一层的缩略图（见 <see cref="ItemArtwork.InheritedThumb"/>）。主页「继续观看」那一排
+    /// 打开它：单集自己只有剧照，而那一排要的是这个剧的缩略图。
+    /// </summary>
+    private readonly bool _preferShowThumb;
+
     private ArtworkRef? _loadedArtwork;
 
     /// <summary>
@@ -328,7 +335,8 @@ public sealed class CardItem : INotifyPropertyChanged
         bool episodeFrame = false,
         Action? navigate = null,
         string? localPosterPath = null,
-        Func<CancellationToken, Task<byte[]>>? fetchPoster = null)
+        Func<CancellationToken, Task<byte[]>>? fetchPoster = null,
+        bool preferShowThumb = false)
     {
         _item = item;
         _images = images;
@@ -356,6 +364,7 @@ public sealed class CardItem : INotifyPropertyChanged
         _note = note;
         _indicators = indicators;
         _sourceLine = sourceLine;
+        _preferShowThumb = preferShowThumb;
         IsCurrentEpisode = current;
 
         _imageTypes = imageTypes is { Count: > 0 } wanted
@@ -846,7 +855,14 @@ public sealed class CardItem : INotifyPropertyChanged
     /// </summary>
     public Visibility UserStateVisibility => Show(!IsSelecting && _item.TracksUserState);
 
-    /// <summary>收藏单独按条目所属来源判断；Plex 的已看仍由 UserStateVisibility 保留。</summary>
+    /// <summary>
+    /// 收藏单独按条目所属来源判断；Plex 的已看仍由 UserStateVisibility 保留。
+    /// <para>
+    /// 演职人员在这里仍是 false：它的 <see cref="EmbyItem.TracksUserState"/> 为 false，人物卡的悬浮层
+    /// 不长收藏键。人物页自己那颗心和右键菜单里的「添加到收藏」不走这一位 —— 前者由人物页的视图模型
+    /// 直接写，后者在 <c>ItemCommands.SetFavorite</c> 里单独放行。
+    /// </para>
+    /// </summary>
     internal bool CanFavorite => _item.TracksUserState
         && Scope is { IsAvailable: true, Connection.SupportsFavorites: true };
 
@@ -867,6 +883,30 @@ public sealed class CardItem : INotifyPropertyChanged
     /// </summary>
     public Visibility EpisodeCountVisibility =>
         Show(EpisodeCountText.Length > 0 && !Watched && UnplayedText.Length == 0);
+
+    private bool _moviePilotSubscribed;
+
+    /// <summary>
+    /// 这一项在 MoviePilot 的订阅清单里（2026-11-13 用户令：媒体库里已订阅的资源在封面加一颗灰色 MP 图标）。
+    /// <para>
+    /// 订阅清单是这一页打开之后才读的一趟附加数据，卡片可能已经画出来了，所以它是可变的并会发通知；
+    /// 只在媒体库页面由 <c>LibraryViewModel</c> 写入，主页、详情页和搜索建议的小卡不会置位。
+    /// 角标本身跟随 <see cref="_indicators"/>：搜索建议那张 56 宽的小卡上没有它的位置。
+    /// </para>
+    /// </summary>
+    internal bool MoviePilotSubscribed
+    {
+        get => _moviePilotSubscribed;
+        set
+        {
+            if (_moviePilotSubscribed == value) return;
+            _moviePilotSubscribed = value;
+            Raise(nameof(MoviePilotSubscribed));
+            Raise(nameof(MoviePilotBadgeVisibility));
+        }
+    }
+
+    public Visibility MoviePilotBadgeVisibility => Show(_indicators && _moviePilotSubscribed);
 
     private static Visibility Show(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
 
@@ -1174,6 +1214,7 @@ public sealed class CardItem : INotifyPropertyChanged
     private IEnumerable<ArtworkRef> PosterCandidates()
     {
         if (_artwork is { } explicitArtwork) { yield return explicitArtwork; yield break; }
+        if (_preferShowThumb && ItemArtwork.InheritedThumb(_item) is { } inherited) yield return inherited;
         foreach (var type in _imageTypes.Distinct(StringComparer.OrdinalIgnoreCase))
             if (EmbyImageStore.TagFor(_item, type) is { } tag)
                 yield return new(EmbyImageStore.ImageItemId(_item, type), type, tag);

@@ -90,6 +90,7 @@ internal static class Program
         CardArtworkIdentityTests.Register();
         ConnectedProbeSourceTests.Register();
         FocusWatchTests.Register();
+        SidebarMotionContractTests.Register();
         SettingsControlNameTests.Register();
         SystemManagedThemeRoleTests.Register();
         DeferredCardsTests.Register();
@@ -97,6 +98,7 @@ internal static class Program
         HomeSubscriptionRefreshTests.Register();
         SubscriptionWallWiringTests.Register();
         SelectionInputTests.Register();
+        HoverMotionTests.Register();
         return TestHarness.Run();
     }
 

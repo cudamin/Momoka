@@ -105,6 +105,7 @@ internal sealed partial class DetailViewModel : PageViewModel
     internal int TrailerResets { get; private set; }
     private void ResetTrailers() => TrailerResets++;
     private void ResetExtras() { }
+    private static Task LoadExtrasAvailabilityAsync() => Task.CompletedTask;
     private sealed record FixtureSettings(AppSettings Settings);
     private sealed class EpisodeShelfBoundary
     {

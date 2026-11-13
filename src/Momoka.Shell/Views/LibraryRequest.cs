@@ -100,6 +100,12 @@ internal sealed record LibraryRequest
     /// </summary>
     public string? PersonId { get; init; }
 
+    /// <summary>
+    /// 人物作品里只看哪一种署名（<c>Actor</c>、<c>Director</c>…）。人物页的影视作品分组点「查看全部」
+    /// 时带上它，这一格就只列这一组；不从人物页进来时为空，媒体库网格照旧什么都不加。
+    /// </summary>
+    public string? PersonType { get; init; }
+
     public Plex.PlexBrowseRelation? PlexRelation { get; init; }
 
     /// <summary>
@@ -202,12 +208,15 @@ internal sealed record LibraryRequest
     /// separate query parameter, which is what <see cref="PersonId"/> becomes.
     /// </para>
     /// </summary>
-    public static LibraryRequest ForPerson(IServiceProvider services, EmbyItem person) => new()
+    public static LibraryRequest ForPerson(IServiceProvider services, EmbyItem person, string? personType = null) => new()
     {
         Services = services,
-        Title = person.Name,
+        Title = personType is { Length: > 0 } type
+            ? $"{person.Name} · {PersonDetail.CreditLabel(type)}"
+            : person.Name,
         Source = person.Source,
-        PersonId = person.Id
+        PersonId = person.Id,
+        PersonType = personType
     };
 
     public static LibraryRequest ForPlexRelation(IServiceProvider services, EmbyItem item) => new()

@@ -285,8 +285,7 @@ public sealed class CollectionCreationResult
 
 /// <summary>
 /// 「修改媒体封面图」问服务器要来的那一批候选图：各家刮削源上这个条目有哪些封面。
-/// <see cref="Providers"/> 是这个条目能问的几家，一家都没有的时候那一批也是空的（服务器没装刮削插件、
-/// 或者这个条目没有对上任何一家的记录）。
+/// <see cref="Providers"/> 是服务器返回的当前图种来源目录；空目录不能证明服务器未装插件或条目未识别。
 /// </summary>
 public sealed class RemoteImageResult
 {

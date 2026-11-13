@@ -171,21 +171,21 @@ internal static partial class ShellSelfCheck
     /// <para>
     /// 这一读从前问的是页头那块牌子（<c>PageSlate.OnScrim</c>），页头 2026-09-11 删掉之后改成问外壳：面包屑那
     /// 一行自己上不上底色、走哪支墨，全由 <c>ShellPage.PaintTitleInk</c> 按同一档决定。**2026-11-12 晚起主页
-    /// 该是 <see cref="TitleStrip.Plain"/>** —— 轮播改成四边留白的圆角卡片，剧照不再铺到窗口顶边；报出
+    /// 该是 <see cref="TitleStrip.Plain"/>** —— 轮播改成四边留白的圆角大图，剧照不再铺到窗口顶边；报出
     /// <see cref="TitleStrip.OnScrim"/> 就说明通栏版式又回来了（或者 <c>HomePage.PaintInk</c> 那句没改）。
     /// </para>
     /// </summary>
     private static string Slate(ShellPage shell) => shell.TitleStripNow switch
     {
-        TitleStrip.OnScrim => "外壳那一行按「浮在图上」那档画（主页改成圆角卡片之后不该是这样）",
+        TitleStrip.OnScrim => "外壳那一行按「浮在图上」那档画（主页改成四边留白的圆角大图之后不该是这样）",
         TitleStrip.PagePainted => "外壳那一行按「图还在、页面自己洗成纸色」那档画",
-        _ => "外壳那一行按「页面自己的纸」那档画（主页圆角卡片之后该是这样）",
+        _ => "外壳那一行按「页面自己的纸」那档画（主页四边留白的圆角大图之后该是这样）",
     };
 
     /// <summary>
     /// 自检：标题栏那三颗系统按钮的墨。
     /// <para>
-    /// 2026-11-12 晚起主页轮播是四边留白的圆角卡片，剧照不再铺到窗口顶边，所以这一行底下是画布而不是剧照 ——
+    /// 2026-11-12 晚起主页轮播是四边留白的圆角大图，剧照不再铺到窗口顶边，所以这一行底下是画布而不是剧照 ——
     /// 三颗按钮走主题那支墨。<see cref="TitleStrip.OnScrim"/> 那一档（固定浅墨）仍留给详情页的沉浸头图，
     /// 但主页不该再报它：谁把通栏版式请回来、或者把联动接错，这一条当场红（浅墨画在一套浅色主题的页面上，
     /// 就是三颗看不见的按钮，其中一颗是关闭）。
@@ -800,7 +800,7 @@ internal static partial class ShellSelfCheck
         // 这张面板自己要的八个动作，在这儿全是空答复：这一关问的是「面板搭得起来吗」，一条网络都不该走
         // （<see cref="ReadDialogs"/> 头上那段说明）。以前那一版只传两个，因为面板只做一件事；这一版每一格
         // 都能换能删能看，所以这八个全都要给。
-        static Task<RemoteImageResult> Find(string itemId, string imageType) => Task.FromResult(new RemoteImageResult
+        static Task<RemoteImageResult> Find(string itemId, string imageType, RemoteImageSearch search, CancellationToken cancellationToken) => Task.FromResult(new RemoteImageResult
         {
             Images = [new RemoteImageInfo { Url = "https://selfcheck.invalid/a.jpg", ProviderName = "自检" }],
             Providers = ["自检"]

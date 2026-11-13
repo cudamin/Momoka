@@ -170,6 +170,13 @@ public sealed partial class PosterCard : UserControl
     private const int PreviewCloseGraceMs = 180;
 
     /// <summary>
+    /// 指针停在卡片上时整卡抬起的幅度。参考 WinUI Gallery 的悬停缩放（<c>Samples/XamlCompInterop</c>，
+    /// 固定提交 6de91fe）：那份示例把 Scale 从 1 弹到 1.5，但那是单颗按钮的尺度；卡片在货架和网格里
+    /// 挨着邻居，取 1.03 —— 一张 208 宽的卡每边只多出三四个像素，不碰邻卡也不改布局步长。
+    /// </summary>
+    private const double HoverScale = 1.03;
+
+    /// <summary>
     /// 撑开之后那块预览的宽，以及窗口太窄时允许缩到的下限。400 是照商店那块与卡片的比例定的：
     /// 预览比一张竖版海报宽两倍出头，压住左右各一张卡，不至于横跨整条货架。
     /// </summary>
@@ -205,6 +212,30 @@ public sealed partial class PosterCard : UserControl
 
     internal bool PosterArrivalRunning => _posterArrival.IsRunning;
     internal Image ConnectedPoster => Poster;
+
+    /// <summary>平台下一帧才冻结来源；离页清空卡片图片时保留这张图，完成或取消后释放。</summary>
+    internal Action RetainConnectedPoster()
+    {
+        var card = Card;
+        var picture = Poster.Source;
+        var active = true;
+        _posterArrival.Stop();
+        var token = Poster.RegisterPropertyChangedCallback(Image.SourceProperty, (_, _) =>
+        {
+            if (active && ReferenceEquals(Card, card) && Poster.Source is null)
+            {
+                Poster.Source = picture;
+                _posterArrival.Stop();
+            }
+        });
+        return () =>
+        {
+            active = false;
+            Poster.UnregisterPropertyChangedCallback(Image.SourceProperty, token);
+            if (ReferenceEquals(Card, card) && ReferenceEquals(Poster.Source, picture)) Poster.Source = card?.Poster;
+            _posterArrival.Stop();
+        };
+    }
 
     /// <summary>删除确认后的离场动画；<see cref="ResetRemoval"/> 或换卡时停掉。</summary>
     private Storyboard? _removal;
@@ -415,6 +446,14 @@ public sealed partial class PosterCard : UserControl
     /// <summary>
     /// 卡片、图片和操作层共享同一段短动画。中途换向从当前值继续，离开时立即停止命中，避免透明按钮拦住点击。
     /// 动画不写宽高和 Margin，虚拟化和横向滚动仍使用原来的卡片尺寸。
+    /// <para>
+    /// 指针停在卡上时整卡抬到 <see cref="HoverScale"/>，参考 WinUI Gallery 的悬停缩放
+    /// （<c>WinUIGallery/Samples/XamlCompInterop/XamlCompInteropPage.xaml.cs</c>，固定提交 6de91fe）。
+    /// 那一份用 <c>CreateSpringVector3Animation</c> 直接驱动元素的 Scale；这里不取 Composition 的
+    /// visual Scale —— <see cref="HomeMotion"/> 记着 2026-09-16 那次事故：对框架同时也在调 Scale 的元素
+    /// 取 visual 并起动画，渲染遍会抛「Calling Scale API is not allowed」把进程带走。弹簧只借它的手感：
+    /// 抬起那一下用 <c>BackEase</c> 在终点前过冲一点再落定，其余仍走 <see cref="CardMotion"/>。
+    /// </para>
     /// </summary>
     private void AnimateCard()
     {
@@ -427,9 +466,10 @@ public sealed partial class PosterCard : UserControl
         // 预览面板开着也算「这张卡正被看着」：指针移到面板上时卡片不退回静止，否则那一对读起来像
         // 两块无关的东西。操作层仍只跟指针走 —— 指针不在卡片上时那几颗按钮按不到，就不该留在屏上。
         var active = _hovered || _focused || _previewOpen;
-        // 外层按钮和滚动视口仍按布局尺寸裁剪；整卡向外放大或上移会切掉描边。
-        // 悬停只推近框内图片，按压仍可向内轻缩，边框始终留在原来的命中范围内。
-        var scale = enabled && _pressed ? 0.985 : 1;
+        // 指针在卡上（或预览面板还开着）整卡抬起一档；键盘焦点只推近封面，不让 Tab 扫过时整排卡片跟着跳。
+        // 1.03 只让描边向外多出三四个像素，外层按钮和滚动视口仍按布局尺寸裁剪。
+        var lifted = _hovered || _previewOpen;
+        var scale = enabled && _pressed ? 0.985 : lifted ? HoverScale : 1;
         var zoom = enabled && active ? 1.045 : 1;
         var opacity = _hovered ? 1 : 0;
         var shade = _hovered || _previewOpen ? 0.78 : 0;
@@ -456,8 +496,12 @@ public sealed partial class PosterCard : UserControl
 
         var board = new Storyboard();
         var duration = _pressed ? 90 : _hovered ? 240 : 180;
-        Add(CardMotion, "ScaleX", from.Item1, scale);
-        Add(CardMotion, "ScaleY", from.Item1, scale);
+        // 抬起那一下借用弹簧的手感：BackEase 在终点前过冲一点再落定（Gallery 的
+        // CreateSpringVector3Animation 做的就是这件事，只是它在合成线程上一直弹到静止）；
+        // 缩回去和按下去仍是一次 EaseOut，免得离场时先缩过头再弹回来。
+        var spring = scale > from.Item1 ? new BackEase { Amplitude = 0.3, EasingMode = EasingMode.EaseOut } : null;
+        Add(CardMotion, "ScaleX", from.Item1, scale, spring);
+        Add(CardMotion, "ScaleY", from.Item1, scale, spring);
         Add(PosterMotion, "ScaleX", from.Item2, zoom);
         Add(PosterMotion, "ScaleY", from.Item2, zoom);
         Add(Hover, "Opacity", from.Item3, opacity);
@@ -474,14 +518,14 @@ public sealed partial class PosterCard : UserControl
         };
         board.Begin();
 
-        void Add(DependencyObject target, string path, double start, double end)
+        void Add(DependencyObject target, string path, double start, double end, EasingFunctionBase? easing = null)
         {
             var animation = new DoubleAnimation
             {
                 From = start,
                 To = end,
                 Duration = new Duration(TimeSpan.FromMilliseconds(duration)),
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                EasingFunction = easing ?? new CubicEase { EasingMode = EasingMode.EaseOut }
             };
             Storyboard.SetTarget(animation, target);
             Storyboard.SetTargetProperty(animation, path);

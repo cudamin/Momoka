@@ -90,6 +90,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("播放画面本次队列搜索、确认与取消", PlayerQueueAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("媒体库搜索人物、合集、播放列表与实际导航", LibraryDiscoverySearchAsync, 90, section: ShellProbeSections.Search);
             await CaseAsync("Plex 人物题材身份与同库作品导航", LibraryDiscoveryPeopleAsync, 90, section: ShellProbeSections.Library);
+            await CaseAsync("人物页：资料、作品带、影视作品与人物菜单", PersonPageAsync, 90, section: ShellProbeSections.Person);
+            await CaseAsync("人物页：演职人员卡到人物页关联动画", PersonTransitionAsync, 60, section: ShellProbeSections.Person);
             await CaseAsync("Plex 服务端筛选排序、字母跳转与目录恢复", LibraryDiscoveryFiltersAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("亚克力操作按钮、翻页圆钮与手写设置卡片", AcrylicControlsAsync, 180, section: ShellProbeSections.Materials);
             await CaseAsync("材质目标、浏览恢复与菜单打开期间切主题", MaterialLifecycleAsync, 90, section: ShellProbeSections.Materials);
@@ -129,6 +131,7 @@ internal sealed partial class ShellNavigationProbe
             // 截图 `detail-responsive-<类型>-<宽度>.png` 与 `detail-responsive-crop-*`／`-maximized`。
             await CaseAsync("简洁详情底材与卡面的主题、宽窄和导航恢复", DetailMicaAsync, 120);
             await CaseAsync("电影/剧/季页面的宽窗沉浸、窄窗紧凑与无图恢复", DetailResponsiveAsync, 150);
+            await CaseAsync("详情滚动悬浮亚克力卡片", DetailStickyHeaderAsync, 120, section: ShellProbeSections.Library);
             await CaseAsync("电视媒体库封面显示网页版年份", SeriesCardDatesAsync, 30);
             await CaseAsync("悬停预览布局与关闭重开", HoverPreviewAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("Emby 元数据表单字段、锁定和宽窄布局", MetadataLayoutAsync, 75, section: ShellProbeSections.Metadata);
@@ -162,6 +165,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("电视节目预告日期分组、加载动画、分页和恢复", LibraryUpcomingAsync, 45);
             await CaseAsync("切回 Emby 恢复查询代次", ResumeQueryAsync);
             await CaseAsync("当前搜索来源、迟到旧查询与 Frame 返回（匿名UI）", FoundationSearchReturnAsync, 45, section: ShellProbeSections.Search);
+            await CaseAsync("空搜索切收藏：最近搜索退场、收藏结果接位（匿名UI）", FoundationFavoritesAfterEmptySearchAsync, 45, section: ShellProbeSections.Search);
             await CaseAsync("剧页换季只换锚点与集带起点", EpisodeSeasonAnchorAsync);
             await CaseAsync("旧导航恢复不补新搜索", NavigationRestoreRaceAsync);
             await CaseAsync("分页失败立即停止", PagingFailureAsync);
@@ -212,12 +216,14 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("文件选项下拉展开的位置与宽度", PickerDropDownAsync);
             await CaseAsync("主页标题点击范围与封面悬停态", HomeHeaderAsync, 60);
             await CaseAsync("多媒体库避让轮播读数与进度条", HomeBannerLibrariesAsync, 60);
+            await CaseAsync("矮窗档判定线：媒体库整排放得下留在轮播下方", HomeFoldThresholdAsync, 60);
             await CaseAsync("轮播读秒连续、悬停不停与无图摘除", HomeBannerClockAsync, 60);
             await CaseAsync("隐藏首页行不请求", HiddenHomeAsync);
             await CaseAsync("通知空态属性通知", NotificationEmptyAsync);
             await CaseAsync("离开通知页不弹旧编辑器", NotificationCancelAsync);
             await CaseAsync("过期卡片不发送菜单命令", StaleCardAsync);
             await CaseAsync("封面选择取消不接受迟到上传", CoverPickRaceAsync);
+            await CaseAsync("图片来源语言筛选、旧结果取消与光盘空态", CoverSearchFiltersAsync, 45, section: ShellProbeSections.Covers);
             await CaseAsync("封面列表及绑定跟随刷新", CoverRefreshAsync);
             await CaseAsync("封面确认复用对话框且取消安全", CoverCancelAsync);
             await CaseAsync("封面写入期间等待关闭", CoverWriteAsync);

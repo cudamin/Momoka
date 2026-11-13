@@ -38,6 +38,12 @@ public static class HomeLayout
 
     public static bool IsAvailable(string key, bool moviePilotAvailable) => !IsMoviePilot(key) || moviePilotAvailable;
 
+    /// <summary>
+    /// 这一排的宽卡先要剧集那一层的缩略图，而不是条目自己的剧照 —— 2026-11-13 用户令「主页继续观看那一列
+    /// 改用缩略图」。只有继续观看要：它的条目几乎全是单集，而单集自己只有一张从视频里截的剧照。
+    /// </summary>
+    public static bool WantsShowThumb(string? key) => key == Resume;
+
     /// <summary>媒体库那几排的钥匙前缀，后面跟着那个库的 id。</summary>
     private const string LibraryPrefix = "library:";
     private const string ScopedLibraryPrefix = LibraryPrefix + "source:";

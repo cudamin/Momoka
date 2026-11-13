@@ -99,14 +99,30 @@ public sealed partial class LibraryViewModel
 
     internal bool IsGroupedSearch => _request?.IsSearch == true && SearchText.Length > 0;
 
-    partial void OnSearchTextChanged(string value)
+    /// <summary>
+    /// 这几块的显隐由「是不是搜索页」和「词是不是空的」一起决定，两个条件都不在搜索框的事件里。
+    /// Frame 会缓存页面实例，同一份视图模型会先后接到搜索、收藏、媒体库几个请求；空搜索框切到收藏页时
+    /// <see cref="SearchText"/> 前后都是空串，setter 不会触发 <see cref="OnSearchTextChanged"/>，
+    /// 最近搜索就会留在收藏页上（2026-11-13 用户截图）。换请求时按新的 <c>_request</c> 重算一次。
+    /// </summary>
+    private void RaiseSearchVisibility()
     {
         OnPropertyChanged(nameof(RecentSearchVisibility));
         OnPropertyChanged(nameof(SearchResultsVisibility));
         OnPropertyChanged(nameof(SearchCategoriesVisibility));
+        OnPropertyChanged(nameof(EmptyVisibility));
+    }
+
+    partial void OnSearchTextChanged(string value)
+    {
+        RaiseSearchVisibility();
         OnPropertyChanged(nameof(SearchGroupsVisibility));
         OnPropertyChanged(nameof(GridVisibility));
-        OnPropertyChanged(nameof(EmptyVisibility));
+        if (_request?.IsSearch == true)
+        {
+            EnsureMoviePilotSubscriptions();
+            RefreshMatchingSubscriptions();
+        }
         if (value.Length == 0) EnsureRecentSearches();
     }
 
@@ -120,7 +136,9 @@ public sealed partial class LibraryViewModel
                 && !string.Equals(request.SearchTerm, SearchText.Trim(), StringComparison.Ordinal))
                 PrepareSearch(SearchText);
             EnsureRecentSearches();
+            EnsureMoviePilotSubscriptions();
         }
+        RefreshMatchingSubscriptions();
     }
 
     /// <summary>Cards 的所有增删都经过这里，分组清单因此不会与平铺清单走散。</summary>

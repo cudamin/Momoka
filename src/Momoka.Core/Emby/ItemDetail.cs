@@ -696,7 +696,7 @@ public static class ItemDetail
     /// One provider id, matched without regard to case: Emby sends <c>IMDB</c> on episodes and <c>Imdb</c> on
     /// the series that owns them, and the dictionary is the one the JSON deserializer built.
     /// </summary>
-    private static string ProviderId(EmbyItem item, string name) =>
+    internal static string ProviderId(EmbyItem item, string name) =>
         item.ProviderIds
             .FirstOrDefault(pair => string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
             .Value?.Trim() ?? "";

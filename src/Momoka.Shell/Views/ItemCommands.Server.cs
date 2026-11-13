@@ -435,7 +435,15 @@ internal static partial class ItemCommands
 
             var dialog = new CoverDialog(
                 item,
-                (id, type) => AskAsync(session, (client, token) => client.GetRemoteImagesAsync(id, type, token)),
+                async (id, type, search, token) =>
+                {
+                    session.ThrowIfUnavailable();
+                    var result = await session.ExecuteAsync((client, requestToken) =>
+                        client.GetRemoteImagesAsync(id, type, search, requestToken), token).ConfigureAwait(false);
+                    token.ThrowIfCancellationRequested();
+                    session.ThrowIfUnavailable();
+                    return result;
+                },
                 (id, type, tag, width, index) => FetchAsync(session, (client, token) =>
                     client.GetImageBytesAsync(id, type, tag, width, token, index)),
                 (id, type, index, chosen) => TellAsync(session, (client, token) => client.ApplyRemoteImageAsync(

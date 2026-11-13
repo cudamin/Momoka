@@ -27,6 +27,7 @@
     x:Class="Momoka.Shell.Views.ShellPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:animatedvisuals="using:Microsoft.UI.Xaml.Controls.AnimatedVisuals"
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -50,7 +51,8 @@
         左端（页面导航）：返回（只在非主页）· 主页 · 收藏（没有收藏时不在）· 设置 · 搜索
         正中：搜索框（够宽时才在）
         右端（身份）：账号 ┄┄ 系统那三颗窗口按钮
-        侧边栏模式里这一排换成：返回（只在非主页）· 折叠 —— 主页/收藏/设置/搜索让给栏里的入口，
+        侧边栏模式里这一排换成：返回（只在非主页）· 折叠 —— 主页/收藏/设置让给栏里的入口（搜索 2026-11-13
+        起从栏里删除，只留标题栏正中那颗框），
         前进键 2026-11-12 晚按用户令退役（Alt+→ 与鼠标侧键还在，见 GoForward）；标题「Momoka」
         2026-11-13 按用户令删掉，账号那一颗从窗口左下角回到右上角、只留人像。
         ────────────────────────────────────────────────────────────────────
@@ -196,7 +198,8 @@
                         Glyph="&#xEB51;" />
                 </Button>
                 <!-- 设置与搜索：2026-11-11 从账号那一组挪回标题栏左上这一排（用户令「把设置和搜索移回左上」），
-                     排在收藏右边。侧边栏模式里两颗收起 —— 那一档设置与搜索都在栏里。 -->
+                     排在收藏右边。侧边栏模式里这一整排收起：设置回到栏的页脚；搜索 2026-11-13 起不在栏里
+                     （用户令删除栏里的搜索按钮），只剩标题栏正中那颗框。 -->
                 <StackPanel
                     x:Name="TitleUtilities"
                     Orientation="Horizontal"
@@ -220,7 +223,8 @@
              （那一页有自己的输入框和来源栏），所以用 Button 而不是 TextBox：键盘焦点、UIA 名字和回车都是按钮语义。
              它站在窗口算成标题栏的那 48 像素里，所以和左边那一排、账号那颗一样要挖洞（见 ReportTitleBarHoles）——
              不挖洞的话按下去是拖窗口。窄窗收起（门槛见 SyncTitleSearch）：这一排左边是按钮、右边是账号，
-             中间再塞一段就挤了；非侧边栏模式那一档由这一排里那颗放大镜键接手，侧边栏模式由栏里的「搜索」接手。 -->
+             中间再塞一段就挤了；非侧边栏模式那一档由这一排里那颗放大镜键接手，侧边栏模式没有第二个搜索入口。
+             侧边栏模式下按下它时，搜索框会顺着关联动画落到搜索页那只输入框上（见 TitleSearchTransition）。 -->
         <Button
             x:Name="TitleSearchBox"
             x:Uid="ShellPage_TitleSearchBox"
@@ -497,6 +501,86 @@
 
         </Grid>
 
+        <!-- 折叠侧栏的媒体库悬停预览（2026-11-13 用户令「侧边栏折叠时，媒体库鼠标悬停也添加一个 ui 动画，
+             从左到右扩出来，显示在内容区，不要遮挡侧边栏，支持查看媒体库名、媒体封面，聚合模式下支持查看更多」）：
+             一条跟着鼠标所在库图标走的浮层，左沿钉在栏右边（代码里算，永远不压住 56 宽的图标栏），盖在内容区上面。
+             底色用 EgFrostBrush —— 它是一块短暂浮层，不是长期窗口基底（材质分工见 CLAUDE.md 的材质表）。
+
+             内容只有三块：库名/服务器那一行、最多三张媒体封面、以及聚合模式下的一颗「查看更多」。封面在代码里
+            按面板宽现摆，面板本身不做虚拟化 —— 一次最多三张，没有长列表要收。 -->
+        <Border
+            x:Name="LibraryPreviewPanel"
+            Canvas.ZIndex="2"
+            Width="340"
+            Padding="16"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Background="{ThemeResource EgFrostBrush}"
+            BorderBrush="{ThemeResource EgBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource EgCardCornerRadius}"
+            RenderTransformOrigin="0,0.5"
+            Visibility="Collapsed"
+            PointerEntered="OnLibraryPreviewPointerEntered"
+            PointerExited="OnLibraryPreviewPointerExited">
+            <Grid RowSpacing="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Spacing="2">
+                    <TextBlock
+                        x:Name="LibraryPreviewTitle"
+                        MaxLines="1"
+                        Style="{StaticResource EgSubheadStyle}"
+                        TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                        x:Name="LibraryPreviewMeta"
+                        MaxLines="1"
+                        Style="{StaticResource EgCaptionStyle}"
+                        TextTrimming="CharacterEllipsis"
+                        Visibility="Collapsed" />
+                </StackPanel>
+
+                <Grid Grid.Row="1" MinHeight="120">
+                    <Grid x:Name="LibraryPreviewCovers" ColumnSpacing="10" HorizontalAlignment="Left">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                    <ProgressRing
+                        x:Name="LibraryPreviewLoading"
+                        Width="28"
+                        Height="28"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        IsActive="False" />
+                    <TextBlock
+                        x:Name="LibraryPreviewEmpty"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource EgCaptionStyle}"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap"
+                        Visibility="Collapsed" />
+                </Grid>
+
+                <Button
+                    x:Name="LibraryPreviewMore"
+                    Grid.Row="2"
+                    AutomationProperties.AutomationId="SidebarLibraryPreviewMore"
+                    Click="OnLibraryPreviewMoreClicked"
+                    Content="查看更多"
+                    HorizontalAlignment="Stretch"
+                    Style="{StaticResource EgSecondaryButtonStyle}"
+                    Visibility="Collapsed" />
+            </Grid>
+        </Border>
+
         <!-- 只承载导航菜单，页面仍留在原来的 Frame 中。关闭模式时不改页面的父节点或返回栈。
 
              **2026-10-13：这条栏自带的那颗 ≡ 收掉了**（IsPaneToggleButtonVisible="False"）—— 它挪到窗口
@@ -544,7 +628,8 @@
                 </NavigationView.Resources>
                 <NavigationView.MenuItems>
                     <NavigationViewItem x:Name="SidebarHome" Content="主页" Tag="home" Icon="Home" />
-                    <NavigationViewItem x:Name="SidebarSearch" Content="搜索" Tag="search" Icon="Find" />
+                    <!-- 「搜索」这一项 2026-11-13 按用户令删掉（「开启侧边栏模式时删除侧边栏的搜索按钮」）：
+                         搜索入口只剩标题栏正中那颗框（窄窗没有替代入口），点它进搜索页。 -->
                     <NavigationViewItem x:Name="SidebarFavorites" Content="收藏" Tag="favorites" Visibility="Collapsed">
                         <NavigationViewItem.Icon><FontIcon Glyph="&#xEB51;" /></NavigationViewItem.Icon>
                     </NavigationViewItem>
@@ -585,9 +670,26 @@
                 </NavigationView.MenuItems>
                 <NavigationView.FooterMenuItems>
                     <!-- 设置（2026-11-13 回到页脚）：栏里那几项的字形是 16 的 PathIcon/FontIcon，由同一个图标盒
-                         放大，这里只换字形本身。名字与提示沿用原来那颗按钮的本地化键。 -->
+                         放大，这里只换字形本身。名字与提示沿用原来那颗按钮的本地化键。
+
+                         WinUI Gallery, Microsoft (MIT), 6de91feccadfbb0a796b71caedead5a2284f730e:
+                         WinUIGallery/Samples/AnimatedIcon/AnimatedIconPage.xaml 的 NavigationView 示例：
+                         NavigationViewItem 会在 Normal/PointerOver/Pressed 之间自己驱动 AnimatedIcon，
+                         回退仍是同一颗设置齿轮。应用「UI 动画」关闭时由 ShellPage.Sidebar.cs 把 Source
+                         置空，只留这颗静态回退。 -->
                     <NavigationViewItem x:Name="SidebarSettings" x:Uid="ShellPage_SidebarSettingsButton"
-                        Content="设置" Tag="settings" SelectsOnInvoked="False" Icon="Setting" />
+                        Content="设置" Tag="settings" SelectsOnInvoked="False">
+                        <NavigationViewItem.Icon>
+                            <AnimatedIcon x:Name="SidebarSettingsIcon">
+                                <AnimatedIcon.Source>
+                                    <animatedvisuals:AnimatedSettingsVisualSource />
+                                </AnimatedIcon.Source>
+                                <AnimatedIcon.FallbackIconSource>
+                                    <FontIconSource Glyph="&#xE713;" />
+                                </AnimatedIcon.FallbackIconSource>
+                            </AnimatedIcon>
+                        </NavigationViewItem.Icon>
+                    </NavigationViewItem>
                 </NavigationView.FooterMenuItems>
             </NavigationView>
         </Grid>

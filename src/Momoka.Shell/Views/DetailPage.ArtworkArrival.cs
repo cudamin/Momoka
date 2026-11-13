@@ -4,7 +4,7 @@ public sealed partial class DetailPage
 {
     private ImageArrivalFade[]? _artworkArrivals;
     internal Microsoft.UI.Xaml.Controls.Image ConnectedPoster => PosterImage;
-    internal void StopConnectedPosterArrival() => _artworkArrivals?[1].Stop();
+    internal void StopConnectedPosterArrival() => _artworkArrivals?[1].Suppress();
 
     internal bool ArtworkArrivalRunning => _artworkArrivals?.Any(fade => fade.IsRunning) == true;
 
