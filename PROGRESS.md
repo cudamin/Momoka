@@ -12952,3 +12952,5 @@ Release Shell/三项测试编译0警告0错误；真实caller78/78、Core自然E
 主树publish -NoArchive -Shortcut通过，547文件288.9MB，批准载荷60项。快捷方式Target/工作目录指向主树artifacts/publish/win-x64；发布/构建Momoka.dll SHA256同为F44D9D8D86C78AED18B82AEA35089C056FD02E398D75654D67CCE1B02F207C10，回执delivery-receipt.json。当前等待另一会话PID12284释放桌面后启动正式版。没有真实播放/写入或远程上传。
 
 仅改本次文案与行为：有播放位置/次数/LastPlayedDate显示继续播放，手工Played标记不作为真实记录；实际续播起点仍由已有规则决定。评分类型使用服务器真实字段；没有评分不造分。徽标引用存在但加载失败时44DIP预留会留空，这是本轮固定动画目标的取舍。系统动画即时切换/跨DPI/文字缩放/触摸/Narrator未覆盖，程序化Closed也不等同物理点外点击。
+
+清理补记：本次工作树由Codex登记为当前聊天主检出，archive_worktree明确拒绝删除（The task's primary checkout cannot be removed）。不绕过该保护，临时树与分支保持已提交、干净；全部产品内容已在master，证据已复制到主树。
