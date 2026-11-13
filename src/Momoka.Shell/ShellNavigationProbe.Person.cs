@@ -1,6 +1,8 @@
 using System.Net;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
 using Momoka.Shell.Views;
 
@@ -212,6 +214,88 @@ internal sealed partial class ShellNavigationProbe
             (frame.Content as IShellContent)?.Release();
             frame.Content = null;
             _root.Children.Remove(frame);
+        }
+    }
+
+    /// <summary>
+    /// 演职人员卡上的真实封面进入人物页：匿名假 HTTP，只验证原生准备、目标照片交接和启动一次。
+    /// 源卡是一个已实现、已取图的 PosterCard；人物页仍走正式构造和 OnNavigatedTo。
+    /// </summary>
+    private async Task PersonTransitionAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        var image = await FixtureImageAsync(400, 600);
+        var person = new EmbyItem
+        {
+            Id = "person-transition-1",
+            Name = "关联动画人物",
+            Type = EmbyItemType.Person
+        };
+        person.ImageTags["Primary"] = "fixture";
+        fixture.Transport.Reply = (request, token) =>
+        {
+            token.ThrowIfCancellationRequested();
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.Contains("/Images/", StringComparison.Ordinal))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(image) });
+            if (path.EndsWith("/Items/person-transition-1", StringComparison.Ordinal))
+                return Task.FromResult(Json(person));
+            if (path.EndsWith("/Items", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { Items = Array.Empty<EmbyItem>(), TotalRecordCount = 0 }));
+            return Task.FromResult(FakeTransport.Standard(request));
+        };
+
+        var frame = new Frame();
+        var sourceHost = new Grid
+        {
+            Width = 200,
+            Height = 300,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top
+        };
+        var source = new PosterCard
+        {
+            Card = new CardItem(person, fixture.Images, 200),
+            CardWidth = 200,
+            PosterHeight = 300
+        };
+        sourceHost.Children.Add(source);
+        _root.Children.Add(frame);
+        _root.Children.Add(sourceHost);
+        var receipts = new List<bool>();
+        var motion = HomeMotion.PreferenceEnabled;
+        Action? disconnect = null;
+        try
+        {
+            ResizeProbeClient(1280, 900);
+            HomeMotion.ApplyPreference(true);
+            await LayoutAsync(sourceHost);
+            await source.Card!.EnsurePosterAsync();
+            await UntilAsync(() => source.ConnectedPoster.Source is BitmapSource { PixelWidth: > 0, PixelHeight: > 0 }
+                && !source.PosterArrivalRunning);
+            Require(person.Source is { IsCurrent: true }, "人物关联动画源卡没有当前账号身份");
+            Require(PersonTransition.Prepare(frame, source), "真实人物卡不能准备关联动画");
+            disconnect = PersonTransition.Observe(frame, receipts.Add);
+            Require(frame.Navigate(typeof(PersonPage), PersonRequest.For(fixture.Services, person),
+                new SuppressNavigationTransitionInfo()), "人物页导航失败");
+            sourceHost.Visibility = Visibility.Collapsed;
+            var page = (PersonPage)frame.Content;
+            await UntilAsync(() => receipts.Count > 0 && page.ViewModel.Portrait is not null);
+            Require(receipts[0], "人物页关联动画没有启动");
+            Require(page.ViewModel.Portrait is not null, "人物页没有接住关联动画的来源照片");
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync("person-transition-screen.png");
+        }
+        finally
+        {
+            disconnect?.Invoke();
+            PersonTransition.Cancel(frame);
+            (frame.Content as IShellContent)?.Release();
+            frame.Content = null;
+            _root.Children.Remove(frame);
+            _root.Children.Remove(sourceHost);
+            HomeMotion.ApplyPreference(motion);
         }
     }
 }

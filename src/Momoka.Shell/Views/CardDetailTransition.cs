@@ -140,10 +140,10 @@ internal static class CardDetailTransition
 
     private static bool VideoDetail(EmbyItem item) => item.Type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
-    private static ArtworkRef? PrimaryArtwork(EmbyItem item) => EmbyImageStore.TagFor(item, EmbyImageStore.Primary) is { } tag
+    internal static ArtworkRef? PrimaryArtwork(EmbyItem item) => EmbyImageStore.TagFor(item, EmbyImageStore.Primary) is { } tag
         ? new(EmbyImageStore.ImageItemId(item, EmbyImageStore.Primary), EmbyImageStore.Primary, tag) : null;
 
-    private static bool VisibleImage(Image image)
+    internal static bool VisibleImage(Image image)
     {
         if (image.Source is not BitmapSource { PixelWidth: > 0, PixelHeight: > 0 } || image.XamlRoot?.Content is not UIElement root || !image.IsLoaded
             || image.ActualWidth <= 0 || image.ActualHeight <= 0) return false;

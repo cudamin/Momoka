@@ -189,8 +189,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
         {
             var returning = args.NavigationMode == Microsoft.UI.Xaml.Navigation.NavigationMode.Back
                 && ContentFrame.Content is DetailPage detail && CardDetailTransition.BeginReturn(detail);
-            var connected = returning || CardDetailTransition.IsPrepared(ContentFrame, args.Parameter);
-            if (!connected) CardDetailTransition.Cancel(ContentFrame);
+            var detailConnected = returning || CardDetailTransition.IsPrepared(ContentFrame, args.Parameter);
+            var personConnected = PersonTransition.IsPrepared(ContentFrame, (args.Parameter as PersonRequest)?.Person);
+            var connected = detailConnected || personConnected;
+            if (!detailConnected) CardDetailTransition.Cancel(ContentFrame);
+            if (!personConnected) PersonTransition.Cancel(ContentFrame);
             _browsePresentation.Begin(deferMotion: connected);
             BeginNavigation(args.SourcePageType);
         };
@@ -200,8 +203,18 @@ public sealed partial class ShellPage : UserControl, IShellActions
             CardDetailTransition.CompleteReturn(ContentFrame);
             CompleteNavigation();
         };
-        ContentFrame.NavigationStopped += (_, _) => { CardDetailTransition.Cancel(ContentFrame); _browsePresentation.Stop(); };
-        ContentFrame.NavigationFailed += (_, _) => { CardDetailTransition.Cancel(ContentFrame); _browsePresentation.Stop(); };
+        ContentFrame.NavigationStopped += (_, _) =>
+        {
+            CardDetailTransition.Cancel(ContentFrame);
+            PersonTransition.Cancel(ContentFrame);
+            _browsePresentation.Stop();
+        };
+        ContentFrame.NavigationFailed += (_, _) =>
+        {
+            CardDetailTransition.Cancel(ContentFrame);
+            PersonTransition.Cancel(ContentFrame);
+            _browsePresentation.Stop();
+        };
 
         // 深浅跟着当前主题走。登记之后换主题会连带把这棵树翻过去 —— 框架自己那些没被调色板覆盖的刷子
         // 只认 ElementTheme，不登记的话浅色主题下就是「白面配深色控件」。

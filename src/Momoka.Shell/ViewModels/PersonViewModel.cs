@@ -441,6 +441,20 @@ public sealed partial class PersonViewModel : PageViewModel
         }
     }
 
+    /// <summary>
+    /// 关联动画准备时交来的来源头像：只在还是同一个人、同一次登录、页头还没有图时收下。
+    /// 高清头像随后到达会正常替换它，不会把来源小图当成最终图。
+    /// </summary>
+    internal bool UseConnectedPortrait(EmbyItem person, BitmapSource picture)
+    {
+        if (_person?.Source is not { IsCurrent: true } source
+            || !ReferenceEquals(source.UserStateOwner, person.Source?.UserStateOwner)
+            || _person.IdentityKey != person.IdentityKey
+            || Portrait is not null) return false;
+        Portrait = picture;
+        return true;
+    }
+
     internal void OpenCard(CardItem card) => _actions?.OpenItem(card.Item);
 
     internal void OpenAll(PersonCreditGroup group) => _actions?.OpenPersonCredits(Subject, group.Type);

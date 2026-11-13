@@ -2468,17 +2468,21 @@ public sealed partial class DetailPage : Page, IShellContent
     /// </summary>
     private void OnCardClicked(object sender, RoutedEventArgs e)
     {
-        var card = sender switch
+        var content = (sender as Button)?.Content;
+        var card = content switch
         {
-            Button { Content: PosterCard { Card: { } poster } } => poster,
-            Button { Content: EpisodeRow { Card: { } row } } => row,
+            PosterCard { Card: { } poster } => poster,
+            EpisodeRow { Card: { } row } => row,
             _ => null
         };
 
         if (card is not null)
         {
-            NavigationTiming.Click("card");
-            CardDetailTransition.Navigate(this, (sender as Button)?.Content as PosterCard, () => ViewModel.OpenCard(card));
+            NavigationTiming.Click(card.Item.Type == EmbyItemType.Person ? "person-card" : "card");
+            if (card.Item.Type == EmbyItemType.Person)
+                PersonTransition.Navigate(this, content as PosterCard, () => ViewModel.OpenCard(card));
+            else
+                CardDetailTransition.Navigate(this, content as PosterCard, () => ViewModel.OpenCard(card));
         }
     }
 

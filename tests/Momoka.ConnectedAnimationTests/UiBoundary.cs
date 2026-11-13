@@ -259,7 +259,7 @@ namespace Momoka.Emby
     }
     public static class EmbyItemType
     {
-        public const string Movie = "Movie", Series = "Series", Season = "Season", Episode = "Episode";
+        public const string Movie = "Movie", Series = "Series", Season = "Season", Episode = "Episode", Person = "Person";
     }
     public sealed class SourceScope
     {

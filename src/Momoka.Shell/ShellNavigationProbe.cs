@@ -91,6 +91,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("媒体库搜索人物、合集、播放列表与实际导航", LibraryDiscoverySearchAsync, 90, section: ShellProbeSections.Search);
             await CaseAsync("Plex 人物题材身份与同库作品导航", LibraryDiscoveryPeopleAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("人物页：资料、作品带、影视作品与人物菜单", PersonPageAsync, 90, section: ShellProbeSections.Person);
+            await CaseAsync("人物页：演职人员卡到人物页关联动画", PersonTransitionAsync, 60, section: ShellProbeSections.Person);
             await CaseAsync("Plex 服务端筛选排序、字母跳转与目录恢复", LibraryDiscoveryFiltersAsync, 90, section: ShellProbeSections.Library);
             await CaseAsync("亚克力操作按钮、翻页圆钮与手写设置卡片", AcrylicControlsAsync, 180, section: ShellProbeSections.Materials);
             await CaseAsync("材质目标、浏览恢复与菜单打开期间切主题", MaterialLifecycleAsync, 90, section: ShellProbeSections.Materials);

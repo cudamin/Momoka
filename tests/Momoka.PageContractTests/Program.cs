@@ -90,6 +90,7 @@ internal static class Program
         CardArtworkIdentityTests.Register();
         ConnectedProbeSourceTests.Register();
         FocusWatchTests.Register();
+        SidebarMotionContractTests.Register();
         SettingsControlNameTests.Register();
         SystemManagedThemeRoleTests.Register();
         DeferredCardsTests.Register();

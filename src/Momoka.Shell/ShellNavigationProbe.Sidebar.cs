@@ -100,6 +100,8 @@ internal sealed partial class ShellNavigationProbe
             HomeMotion.ApplyPreference(false);
             ResizeProbeClient(1240, 900);
             await LayoutAsync(shell);
+            var settingsIcon = Get<AnimatedIcon>(shell, "SidebarSettingsIcon");
+            Require(settingsIcon.Source is null, "关动画后侧栏设置图标仍挂着动态源");
             Require(!fixture.Settings.Ui.SidebarMode && host.Visibility == Visibility.Collapsed, "默认侧栏没有关闭");
             await ToggleAsync(true);
             Require(host.Visibility == Visibility.Collapsed && Get<Button>(shell, "SettingsButton").Visibility == Visibility.Visible,
@@ -134,6 +136,7 @@ internal sealed partial class ShellNavigationProbe
             var titleSearch = Get<Button>(shell, "TitleSearchBox");
             Require(titleSearch.Visibility == Visibility.Visible, "宽窗侧边栏模式没有标题搜索框");
             HomeMotion.ApplyPreference(true);
+            Require(settingsIcon.Source is not null, "开动画后侧栏设置图标没有恢复动态源");
             TitleSearchTransition.ResetOutcome();
             ((IInvokeProvider)new ButtonAutomationPeer(titleSearch).GetPattern(PatternInterface.Invoke)).Invoke();
             await UntilAsync(() => shell.CurrentTag == LibraryRequest.SearchTag
@@ -145,6 +148,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => frame.Content is HomePage && shell.ActiveContentReady);
             await LayoutAsync(shell);
             HomeMotion.ApplyPreference(false);
+            Require(settingsIcon.Source is null, "再次关动画后侧栏设置图标没有收起动态源");
 
             var musicTag = HomeLayout.LibraryKey(shell.LibraryViews.Single(view => view.Id == "music"));
             Select(nav.MenuItems.OfType<NavigationViewItem>().Single(item => item.Tag as string == musicTag));

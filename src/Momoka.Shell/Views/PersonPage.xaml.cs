@@ -61,6 +61,9 @@ public sealed partial class PersonPage : Page, IShellContent
         ViewModel.PropertyChanged += OnViewModelChanged;
         ViewModel.Attach(request, _actions, services.GetRequiredService<EmbyImageStore>());
         _actions.SetTitleStrip(TitleStrip.Plain);
+        // 演职人员卡那张图先交给页头，原生关联动画才有目标快照；高清头像到达后由视图模型替换。
+        PersonTransition.Attach(this, request.Person, PortraitImage,
+            picture => ViewModel.UseConnectedPortrait(request.Person, picture));
         _ = ViewModel.LoadAsync();
     }
 
@@ -76,6 +79,7 @@ public sealed partial class PersonPage : Page, IShellContent
         if (_released) return;
         _released = true;
 
+        PersonTransition.Release(this);
         ViewModel.PropertyChanged -= OnViewModelChanged;
         ViewModel.Cancel();
         ViewModel.Dispose();
@@ -156,10 +160,12 @@ public sealed partial class PersonPage : Page, IShellContent
 
     private void OnCardClicked(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button { Content: PosterCard { Card: { } card } }) return;
+        if (sender is not Button { Content: PosterCard { Card: { } card } poster }) return;
 
         NavigationTiming.Click("person-card");
-        ViewModel.OpenCard(card);
+        // Gallery 的同一份关联动画在本页只做前进：人物作品卡 → 详情。返回不接管 —— 人物页没有
+        // 缓存，来源卡在返回时已经重建；普通导航与页面淡入仍由外壳负责。
+        CardDetailTransition.Navigate(this, poster, () => ViewModel.OpenCard(card));
     }
 
     private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args) =>

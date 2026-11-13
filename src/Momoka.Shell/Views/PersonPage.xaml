@@ -139,6 +139,7 @@
                         Style="{StaticResource EgFrameStyle}">
                         <Grid>
                             <Image
+                                x:Name="PortraitImage"
                                 Source="{x:Bind ViewModel.Portrait, Mode=OneWay}"
                                 Stretch="UniformToFill"
                                 Visibility="{x:Bind ViewModel.PortraitVisibility, Mode=OneWay}" />
