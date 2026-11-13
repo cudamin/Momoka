@@ -240,6 +240,12 @@ internal sealed partial class ShellNavigationProbe
             await dialog.ViewModel.ReloadAsync();
             var showing = dialog.ShowAsync();
             await LayoutAsync(dialog);
+            var pickerBody = Get<StackPanel>(dialog, "PickerBody");
+            // ContentDialog 根会铺满弹层，真正画底色的那颗 Border 才是「弹窗本体」；宽度上限落在它身上。
+            var surface = DialogDismiss.Surface(dialog) ?? throw new InvalidOperationException("弹窗模板里没有 BackgroundElement");
+            // 2026-11-13 用户令「这个弹窗窗口缩小一点，紧凑一点」：本体 620 以内、正文封顶 540。
+            Require(surface.ActualWidth <= 620 && pickerBody.ActualWidth <= 540,
+                $"季选择弹窗没有收窄：本体 {surface.ActualWidth:0}、正文 {pickerBody.ActualWidth:0}");
             var list = Get<ItemsRepeater>(dialog, "SubscribeSeasons");
             var first = (FrameworkElement)list.GetOrCreateElement(0);
             var second = (FrameworkElement)list.GetOrCreateElement(1);
@@ -252,7 +258,6 @@ internal sealed partial class ShellNavigationProbe
             Require(dialog.ViewModel.Seasons[1].ModeIndex == 1, "第二季模式选择没有写回草稿");
             Require(dialog.PrimaryButtonText == "提交订阅" && dialog.IsPrimaryButtonEnabled, "选中季后提交按钮没有恢复");
             Require(dialog.ViewModel.Plan().Count == 2 && server.Writes.Count == 0, "季选择或模式草稿提前写入服务器");
-            var pickerBody = Get<StackPanel>(dialog, "PickerBody");
             var modeControls = Descendants(dialog).OfType<CommunityToolkit.WinUI.Controls.Segmented>().ToArray();
             Require(modeControls.Length == 2 && modeControls.All(mode => mode.ActualWidth <= pickerBody.ActualWidth), "订阅方式超出季卡片宽度");
             var originalTheme = ThemeHost.Current.Id;
@@ -268,7 +273,12 @@ internal sealed partial class ShellNavigationProbe
             finally { ThemeHost.Apply(originalTheme); }
             await SaveProbeScreenAsync("mp-subscribe-season-picker-760.png");
             InvokeSubscriptionButton(Descendants(dialog).OfType<Button>().Single(button => button.Name == "PrimaryButton"));
-            await showing;
+            // 2026-11-13：点提交当场收窗，写入在窗外接着跑；检查台自己 ShowAsync 才能量真实控件，
+            // 所以这里跟产品入口同一段收尾（CompleteAsync），再核对两次写请求。
+            var closed = await showing;
+            Require(closed == ContentDialogResult.Primary, "点提交没有直接收起季选择弹窗");
+            var report = await dialog.CompleteAsync(closed);
+            Require(report.Succeeded, "关窗之后的订阅写入没有成功：" + report.NoticeMessage);
             Require(server.Writes.Count == 2 && server.Items[4]["best_version_full"]!.GetValue<int>() == 1, "已有季没有改为全集洗版");
             var added = server.Items.Values.Single(item => item["id"]!.GetValue<int>() > 5);
             Require(added["season"]!.GetValue<int>() == 2 && added["best_version"]!.GetValue<int>() == 1 && added["best_version_full"]!.GetValue<int>() == 0, "新增季没有使用分集洗版");
@@ -282,7 +292,17 @@ internal sealed partial class ShellNavigationProbe
             cancelled.ViewModel.Seasons[0].Selected = false;
             ResizeInspect(360, 900); await LayoutAsync(cancelled);
             var narrowBody = Get<StackPanel>(cancelled, "PickerBody");
-            Require(Descendants(cancelled).OfType<CommunityToolkit.WinUI.Controls.Segmented>().All(mode => mode.ActualWidth <= narrowBody.ActualWidth), "窄窗订阅方式被裁切");
+            var narrowModes = Descendants(cancelled).OfType<CommunityToolkit.WinUI.Controls.Segmented>().ToArray();
+            Require(narrowModes.All(mode => mode.ActualWidth <= narrowBody.ActualWidth), "窄窗订阅方式被裁切");
+            // 控件自己的宽度够不代表里面三段没被裁：把三颗键的实际宽度加起来比按钮条（2026-11-13 修窄窗裁字）。
+            foreach (var mode in narrowModes)
+            {
+                var items = Descendants(mode).OfType<CommunityToolkit.WinUI.Controls.SegmentedItem>().ToArray();
+                if (items.Length == 0) continue;
+                var needed = items.Sum(item => item.ActualWidth) + 2 * (items.Length - 1);
+                Require(needed <= mode.ActualWidth + 1,
+                    $"窄窗最后一种订阅方式被裁掉：三段共 {needed:0}、按钮条宽 {mode.ActualWidth:0}");
+            }
             await SaveProbeScreenAsync("mp-subscribe-season-picker-360.png");
             // 关闭按钮的文案会随产品改（2026-10-25 起是「取消」，之前是「关闭」），探针不钉文案：
             // 只按 ContentDialog 模板里的 CloseButton 名字定位，再与对话框自己的 CloseButtonText 核对一次，
@@ -705,10 +725,12 @@ internal sealed partial class ShellNavigationProbe
             await vm.ReloadAsync();
             vm.Seasons[0].ModeIndex = 2;
             vm.Seasons[1].Selected = true;
-            Require(!await vm.SubmitAsync(), "部分失败被当作整批成功");
+            var partial = await vm.SubmitAsync();
+            Require(partial.Kind == MoviePilotSubscribeReportKind.Failed, "部分失败被当作整批成功");
             Require(server.Writes.Count == 2 && server.Items[4]["best_version_full"]!.GetValue<int>() == 1
                 && vm.SubmitSummary.Contains("已提交", StringComparison.Ordinal) && vm.Submitted, "没有保留已经成功的季或锁住结果不明的季");
-            Require(!await vm.SubmitAsync() && server.Writes.Count == 2, "部分失败后重放了整批");
+            Require(partial.NoticeMessage.Contains("结果不明", StringComparison.Ordinal), "部分失败的提示没有交代结果不明");
+            Require((await vm.SubmitAsync()).Kind != MoviePilotSubscribeReportKind.Succeeded && server.Writes.Count == 2, "部分失败后重放了整批");
             vm.ReviewConfirmed = true;
             await vm.ReviewAsync();
             Require(vm.Seasons[0].ModeIndex == 2 && !vm.Seasons[1].Selected && !vm.Submitted, "核对后没有按服务器现状重新读取");
@@ -717,7 +739,7 @@ internal sealed partial class ShellNavigationProbe
             await vm.ReloadAsync();
             vm.Seasons[1].Selected = true;
             owner.Cancel();
-            Require(!await vm.SubmitAsync() && server.Writes.Count == 2, "所属页面已离开，旧季选择仍提交订阅");
+            Require((await vm.SubmitAsync()).Kind == MoviePilotSubscribeReportKind.Cancelled && server.Writes.Count == 2, "所属页面已离开，旧季选择仍提交订阅");
         }
         finally { vm.Cancel(); }
     }

@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Momoka.Diagnostics;
 using Momoka.Infrastructure;
 using Momoka.Shell.Interop;
+using Momoka.Shell.Platform;
 using Momoka.Shell.Security;
 using static Momoka.Infrastructure.StartupArgs;
 
@@ -539,6 +540,10 @@ internal static class Program
 
             WinRT.ComWrappersSupport.InitializeComWrappers();
 
+            // 系统通知只在正式启动时注册（2026-11-13 用户令「订阅失败时使用系统通知」）。自检、探针和截图
+            // 跑的是假服务器，会故意制造订阅失败 —— 那些失败不该弹进用户真实的通知中心。
+            if (!ToolingRun(options)) SystemNotification.Register();
+
             Application.Start(_ =>
             {
                 // Without this an `await` on the UI thread can resume on the thread pool, which in a
@@ -565,6 +570,7 @@ internal static class Program
         }
         finally
         {
+            SystemNotification.Unregister();
             NavigationTiming.Stop();
             if (navigationTiming is not null)
             {
@@ -573,6 +579,15 @@ internal static class Program
             }
         }
     }
+
+    /// <summary>
+    /// 这一趟是不是工具在跑（自检、探针、截图）。工具运行用假服务器制造订阅失败，那不是用户要看的通知；
+    /// <c>--probe-shell</c> 一族不在 <see cref="StartupOptions.Tooling"/> 里，所以这里单独列全。
+    /// </summary>
+    private static bool ToolingRun(StartupOptions options) =>
+        options.Tooling || options.ProbeShell || options.InspectShell || options.ProbeSubtitles || options.InspectSubtitles
+        || options.ProbeComposition || options.ProbeCursor || options.ProbePlayerMotion
+        || options.ProbeResizeOnly || options.ProbeResizeManual;
 
     private static void StartLogging(AppPaths paths)
     {

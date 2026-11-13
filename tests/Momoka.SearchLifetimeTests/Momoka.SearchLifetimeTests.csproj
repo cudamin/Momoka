@@ -15,6 +15,7 @@
     <!-- Complete production VMs and views, not a duplicate lifetime model. -->
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSearchViewModel.cs" Link="Production\MoviePilotSearchViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSubscribeReport.cs" Link="Production\MoviePilotSubscribeReport.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSearchSnapshot.cs" Link="Production\MoviePilotSearchSnapshot.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\MoviePilotSearchPanel.xaml.cs" Link="Production\MoviePilotSearchPanel.xaml.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\FnNasMatchDialog.xaml.cs" Link="Production\FnNasMatchDialog.xaml.cs" />
@@ -49,7 +50,9 @@
         var subscription = File.ReadAllText(Path.Combine(SourceRoot, "MoviePilotSubscriptionPage.xaml.cs")).Replace("\r\n", "\n");
         var generated = "#nullable enable\n// Extracted verbatim from this tree at build time.\n" +
             "using System.Runtime.CompilerServices;\nusing Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Momoka.FnNas;\n" +
-            "using Momoka.MoviePilot;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\nnamespace Momoka.Shell.Views;\n" +
+            "using Momoka.MoviePilot;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\n" +
+            // 提取出来的季选择提交要报告结果、并在失败时弹系统通知；两个类型都在生产命名空间里，生成文件自带这两条。
+            "using Momoka.Shell.Platform;\nusing Momoka.Shell.ViewModels;\nnamespace Momoka.Shell.Views;\n" +
             "internal static partial class ItemCommands\n{\n" +
             "    private const string Category = \"条目命令\";\n" +
             // Batch 1 inserted resume removal before Refresh; this search fixture needs only the language,

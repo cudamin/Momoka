@@ -812,42 +812,68 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         OnPropertyChanged(nameof(SubmitButtonText));
     }
 
-    internal async Task<bool> SubmitAsync()
+    /// <summary>
+    /// 把当前草稿提交给 MoviePilot，并把结果整理成一句能直接上屏的话。
+    /// <para>
+    /// 调用它的时候弹窗已经收起来了（<c>MoviePilotSeasonPicker</c>），所以这里不再往自己的提示条上写东西 ——
+    /// 那句话跟结果一起交回调用方。中途断线也算「没完成」而不是「取消」：写请求可能已经发出去了，
+    /// 静默地把这一趟抹掉等于让用户以为没订。
+    /// </para>
+    /// </summary>
+    internal async Task<MoviePilotSubscribeReport> SubmitAsync()
     {
-        if (!CanSubmit || _service is null) return false;
+        if (!CanSubmit || _service is null) return MoviePilotSubscribeReport.Cancelled;
         var plan = Plan();
+        var title = Title;
         var lifetime = _lifetime!;
         var token = lifetime.Token;
         Submitting = true;
         var completed = new List<string>();
         try
         {
-            if (!ReferenceEquals(lifetime, _lifetime) || !Live || token.IsCancellationRequested) return false;
-            if (plan.Count == 0) { SubmitSummary = "订阅没有变化。"; return false; }
+            if (!ReferenceEquals(lifetime, _lifetime) || token.IsCancellationRequested) return MoviePilotSubscribeReport.Cancelled;
+            if (!Live) return Disconnected(title, completed);
+            if (plan.Count == 0) { SubmitSummary = "订阅没有变化。"; return MoviePilotSubscribeReport.Cancelled; }
             foreach (var change in plan)
             {
                 token.ThrowIfCancellationRequested();
-                if (!ReferenceEquals(lifetime, _lifetime) || !Live) return false;
+                if (!ReferenceEquals(lifetime, _lifetime)) return MoviePilotSubscribeReport.Cancelled;
+                if (!Live) return Disconnected(title, completed);
                 await _service.ApplySubscriptionChangeAsync(change, token);
                 token.ThrowIfCancellationRequested();
-                if (!ReferenceEquals(lifetime, _lifetime) || !Live) return false;
+                if (!ReferenceEquals(lifetime, _lifetime)) return MoviePilotSubscribeReport.Cancelled;
+                if (!Live) return Disconnected(title, completed);
                 completed.Add(change.Description);
             }
             SubmitSummary = string.Join("\n", completed.Select(value => "已提交：" + value));
             Submitted = true;
-            return true;
+            return new(MoviePilotSubscribeReportKind.Succeeded, "已提交订阅",
+                $"《{title}》{string.Join("；", completed)}", InfoBarSeverity.Success);
         }
-        catch (OperationCanceledException) { return false; }
+        catch (OperationCanceledException) { return MoviePilotSubscribeReport.Cancelled; }
         catch (Exception error)
         {
-            if (!ReferenceEquals(lifetime, _lifetime) || !Live) return false;
+            if (!ReferenceEquals(lifetime, _lifetime)) return MoviePilotSubscribeReport.Cancelled;
             Submitted = true;
             SubmitSummary = string.Join("\n", completed.Select(value => "已提交：" + value)) + (completed.Count > 0 ? "\n\n" : "") + error.Message + "\n未继续提交后续季。";
             await RefreshFailedSubscriptionStateAsync(lifetime, token);
-            if (Live) Report("部分订阅未提交", error);
-            return false;
+            return new(MoviePilotSubscribeReportKind.Failed, "订阅未完成", FailureText(title, completed, Failure.Describe(error), Submitted),
+                Submitted ? InfoBarSeverity.Warning : InfoBarSeverity.Error);
         }
         finally { if (ReferenceEquals(lifetime, _lifetime)) Submitting = false; }
+    }
+
+    /// <summary>提交途中连接断了：写请求可能已经落地，只能请用户先去 MoviePilot 看一眼。</summary>
+    private static MoviePilotSubscribeReport Disconnected(string title, IReadOnlyList<string> completed) => new(
+        MoviePilotSubscribeReportKind.Failed, "订阅未完成",
+        FailureText(title, completed, "与 MoviePilot 的连接已中断，无法确认这一趟是否已经提交", true), InfoBarSeverity.Warning);
+
+    private static string FailureText(string title, IReadOnlyList<string> completed, string reason, bool uncertain)
+    {
+        var text = $"《{title}》" + (completed.Count > 0 ? "部分订阅未提交：" : "订阅未提交：") + reason;
+        if (!text.EndsWith('。')) text += "。";
+        if (completed.Count > 0) text += $"已提交：{string.Join("；", completed)}。";
+        return text + (uncertain ? "结果不明，请先在 MoviePilot 核对订阅和下载任务，再决定是否重试。" : "可以重试。");
     }
 
     private async Task RefreshFailedSubscriptionStateAsync(CancellationTokenSource lifetime, CancellationToken token)
@@ -900,6 +926,15 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     }
 
     internal void OperationFailed(Exception error) => Report("订阅操作失败", error);
+
+    /// <summary>
+    /// 把季选择弹窗带回来的那句话放到这一页的提示条上。弹窗自己已经收起来了，说结果的地方只能是它背后这一页。
+    /// </summary>
+    internal void Announce(MoviePilotSubscribeReport report)
+    {
+        if (report.NoticeMessage.Length == 0) return;
+        Notify(report.NoticeTitle, report.NoticeMessage, report.Severity);
+    }
 
     public override void Cancel()
     {

@@ -336,7 +336,7 @@ internal static class MoviePilotLifetimeTests
             using var f = new MoviePilotFixture(); await f.ConnectAsync();
             f.Http.SearchJson = """[{"title":"匿名剧","type":"电视剧","media_source":"themoviedb","media_id":"42","poster_path":"https://poster.invalid/fixture.jpg"}]""";
             using var vm = new MoviePilotSearchViewModel(); vm.Attach(f.Service);
-            var first = new TaskCompletionSource(); var second = new TaskCompletionSource(); var picks = 0;
+            var first = new TaskCompletionSource<MoviePilotSubscribeReport>(); var second = new TaskCompletionSource<MoviePilotSubscribeReport>(); var picks = 0;
             vm.UseSeasonPicker((_, _) => { picks++; return first.Task; });
             await vm.SearchAsync("一词"); var row = vm.Results.Single(); var oldImage = row.Poster!;
             var oldAction = row.SubscribeCommand.ExecuteAsync(null); Check.Equal(1, picks);
@@ -344,14 +344,14 @@ internal static class MoviePilotLifetimeTests
             vm.Attach(f.Service); vm.UseSeasonPicker((_, _) => { picks++; return second.Task; });
             await vm.SearchAsync("二词"); var fresh = vm.Results.Single();
             var newAction = fresh.SubscribeCommand.ExecuteAsync(null); Check.Equal(2, picks);
-            first.SetResult(); await oldAction;
+            first.SetResult(MoviePilotSubscribeReport.Cancelled); await oldAction;
             Check.Equal(MoviePilotSubscribeState.Working, fresh.State);
             var alias = new MoviePilotResult(fresh.Media, _ => Task.CompletedTask, _ => Task.CompletedTask);
             // Actual callback plus a same-identity extra current row tests the VM's per-visit lock.
             var method = typeof(MoviePilotSearchViewModel).GetMethod("SubscribeAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
             vm.Results.Add(alias); await (Task)method.Invoke(vm, [alias])!;
             Check.Equal(2, picks);
-            second.SetResult(); await newAction;
+            second.SetResult(MoviePilotSubscribeReport.Cancelled); await newAction;
             var freshImage = fresh.Poster!;
             await vm.SearchAsync(""); Check.Equal(0, vm.Results.Count); Check.Null(fresh.Poster); Check.Equal(0, freshImage.Subscribers);
             Check.Equal(0, f.Http.Writes);
@@ -402,7 +402,7 @@ internal static class MoviePilotLifetimeTests
         internal void Open(MoviePilotMedia media, MoviePilotSubscription? subscription) { }
         internal Task<bool> Confirm(string title, string message, string primary) => Task.FromResult(false);
         internal Task Resources(MoviePilotMedia media) => Task.CompletedTask;
-        internal Task Picker(MoviePilotMedia media, CancellationToken token) => Task.CompletedTask;
+        internal Task<MoviePilotSubscribeReport> Picker(MoviePilotMedia media, CancellationToken token) => Task.FromResult(MoviePilotSubscribeReport.Cancelled);
     }
     private static string Between(string source, string start, string end)
     {

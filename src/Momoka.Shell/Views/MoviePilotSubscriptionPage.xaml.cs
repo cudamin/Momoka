@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Momoka.AniBt;
 using Momoka.Configuration;
+using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Services;
@@ -501,9 +502,13 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
             {
                 var before = MediaViewModel.Seasons.Where(row => row.CurrentSubscription is not null)
                     .Select(row => row.CurrentSubscription!.Id).ToHashSet();
-                var submitted = await MoviePilotSeasonPicker.ShowAsync(this, request.Service, detail.Media, MediaViewModel.GroupId, season, token);
+                var report = await MoviePilotSeasonPicker.ShowAsync(this, request.Service, detail.Media, MediaViewModel.GroupId, season, token);
                 if (!ReferenceEquals(_request, request) || token.IsCancellationRequested) return;
-                if (submitted && request.Subscribed is not null)
+                // 弹窗一点提交就收起来了，成败由它带回来（2026-11-13 用户令）；先把这句话放到本页提示条上。
+                if (report.NoticeMessage.Length > 0) MediaViewModel.Announce(report);
+                // 失败再弹一条系统通知：用户切走或者收起窗口以后也看得见结果（2026-11-13 用户令）。
+                if (report.Kind == MoviePilotSubscribeReportKind.Failed) SystemNotification.Show(report.NoticeTitle ?? "订阅未完成", report.NoticeMessage);
+                if (report.Succeeded && request.Subscribed is not null)
                 {
                     var after = await request.Service.SubscriptionsAsync(token);
                     subscribed = after.Any(item => MoviePilotSubscriptionPlan.SameMedia(item.Media, detail.Media) && !before.Contains(item.Id));
@@ -528,7 +533,12 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
                 catch (OperationCanceledException) { }
                 catch (Exception) { /* 保留原失败；未取得新状态时不冒充成功。 */ }
             }
-            if (ReferenceEquals(_request, request)) MediaViewModel.OperationFailed(error);
+            if (ReferenceEquals(_request, request))
+            {
+                MediaViewModel.OperationFailed(error);
+                // 电影这条没有季弹窗，失败也只在这里；系统通知跟页面提示一起发出去（2026-11-13 用户令）。
+                SystemNotification.Show("订阅操作未完成", Failure.Describe(error));
+            }
         }
         finally { _choosingSeasons = false; }
     }

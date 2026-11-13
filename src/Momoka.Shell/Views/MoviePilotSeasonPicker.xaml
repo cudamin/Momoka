@@ -12,27 +12,33 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="ms-appx:///CommunityToolkit.WinUI.Controls.Segmented/Themes/Generic.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <x:Double x:Key="ContentDialogMaxWidth">720</x:Double>
-            <Thickness x:Key="ContentDialogPadding">20</Thickness>
-            <Thickness x:Key="ContentDialogTitleMargin">0,0,0,16</Thickness>
+            <!-- 2026-11-13 用户令「这个弹窗窗口缩小一点，紧凑一点」：比原来那版窄一档，四边留白也收了一档。 -->
+            <x:Double x:Key="ContentDialogMaxWidth">620</x:Double>
+            <Thickness x:Key="ContentDialogPadding">16</Thickness>
+            <Thickness x:Key="ContentDialogTitleMargin">0,0,0,10</Thickness>
             <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgAccentBrush" />
             <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
             <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
             <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
             <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgAccentHoverBrush" />
             <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgAccentPressedBrush" />
+            <!-- 三种订阅方式：网页端一枚图标配一句短名，这里用 SegmentedItem 自带的 Icon 位，
+                 字形在 16 的方框里，和旁边那颗开关同一行高。 -->
             <Style x:Key="SeasonModeItemStyle" TargetType="toolkit:SegmentedItem" BasedOn="{StaticResource ButtonSegmentedItemStyle}">
-                <Setter Property="Padding" Value="8,6" />
+                <Setter Property="Padding" Value="4,4" />
                 <Setter Property="MinWidth" Value="0" />
+                <Setter Property="FontSize" Value="{StaticResource EgEyebrowFontSize}" />
+            </Style>
+            <Style x:Key="SeasonModeIconStyle" TargetType="FontIcon">
                 <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
             </Style>
         </ResourceDictionary>
     </ContentDialog.Resources>
     <ContentDialog.Title>
-        <Grid x:Name="PickerTitleBar" ColumnSpacing="12">
+        <Grid x:Name="PickerTitleBar" ColumnSpacing="10">
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <FontIcon Glyph="&#xE8F1;" Foreground="{ThemeResource EgTextDimBrush}" FontSize="{StaticResource EgSubheadFontSize}" />
-            <StackPanel Grid.Column="1" Spacing="4">
+            <StackPanel Grid.Column="1" Spacing="2">
                 <TextBlock Text="请选择订阅季" Style="{StaticResource EgSectionTitleStyle}" />
                 <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" MaxLines="1" />
             </StackPanel>
@@ -43,11 +49,11 @@
         </Grid>
     </ContentDialog.Title>
     <ScrollViewer x:Name="PickerScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel x:Name="PickerBody" Spacing="16" Padding="0,0,4,0">
+        <StackPanel x:Name="PickerBody" Spacing="12" Padding="0,0,4,0">
             <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.SubscribeProgressVisibility, Mode=OneWay}" />
             <InfoBar Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
-            <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.GroupsVisibility, Mode=OneWay}">
+            <StackPanel Spacing="6" Visibility="{x:Bind ViewModel.GroupsVisibility, Mode=OneWay}">
                 <TextBlock Text="选择剧集组" Style="{StaticResource EgCaptionStyle}" />
                 <Grid>
                     <ScrollViewer x:Name="EpisodeGroupRail" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled"
@@ -57,13 +63,13 @@
                             <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="8" /></ItemsRepeater.Layout>
                             <ItemsRepeater.ItemTemplate>
                                 <DataTemplate x:DataType="vm:MoviePilotEpisodeGroupRow">
-                                    <Button x:Name="PickEpisodeGroup" Width="184" Padding="0" Command="{x:Bind SwitchCommand}"
+                                    <Button x:Name="PickEpisodeGroup" Width="168" Padding="0" Command="{x:Bind SwitchCommand}"
                                         Style="{StaticResource EgArtworkTileStyle}" AutomationProperties.Name="{x:Bind SwitchName}">
-                                        <Grid MinHeight="48">
+                                        <Grid MinHeight="44">
                                             <Border Background="{ThemeResource EgAccentMutedBrush}" CornerRadius="8" IsHitTestVisible="False" Visibility="{x:Bind CurrentVisibility}" />
-                                            <StackPanel Orientation="Horizontal" Padding="12,8" Spacing="10">
+                                            <StackPanel Orientation="Horizontal" Padding="10,7" Spacing="8">
                                                 <FontIcon Glyph="{x:Bind PickerGlyph}" FontSize="{StaticResource EgBodyFontSize}" Foreground="{x:Bind PickerBrush}" />
-                                                <StackPanel Width="132" Spacing="2">
+                                                <StackPanel Width="118" Spacing="1">
                                                     <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}" Foreground="{x:Bind PickerBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                                     <TextBlock Text="{x:Bind PickerSummary}" Style="{StaticResource EgCaptionStyle}" Foreground="{x:Bind PickerBrush}" TextTrimming="CharacterEllipsis" />
                                                 </StackPanel>
@@ -87,6 +93,11 @@
                 <Button x:Name="RetrySeasonStates" Grid.Column="1" Content="重试入库状态" VerticalAlignment="Center"
                     Visibility="{x:Bind ViewModel.SeasonStateRetryVisibility, Mode=OneWay}" Click="OnRetrySeasonStates" />
             </Grid>
+            <!--
+                季卡照网页端的 SubscribeSeasonDialog：一张 2:3 海报、季名一行、评分／首播／集数一行、
+                入库与订阅标签一行，右边一颗开关，底下一条带图标的三段订阅方式（2026-11-13 用户令
+                「参考网页端重新设计卡片」）。整卡点一下就是选中／取消，开关和方式条各自单独命中。
+            -->
             <ItemsRepeater x:Name="SubscribeSeasons" ItemsSource="{x:Bind ViewModel.Seasons, Mode=OneWay}">
                 <ItemsRepeater.Layout><StackLayout Spacing="8" /></ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
@@ -95,22 +106,22 @@
                             <Grid>
                                 <Border Background="{ThemeResource EgAccentMutedBrush}" CornerRadius="{StaticResource EgPosterCornerRadius}"
                                     Visibility="{x:Bind SelectedVisibility, Mode=OneWay}" IsHitTestVisible="False" />
-                                <Grid Padding="14" ColumnSpacing="12" RowSpacing="10">
+                                <Grid Padding="10" ColumnSpacing="6" RowSpacing="4">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                     <Button x:Name="ToggleSeasonCard" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                                        Background="Transparent" BorderThickness="0" Padding="0" Tag="{x:Bind}" Click="OnToggleSeasonCard"
+                                        VerticalAlignment="Top" Background="Transparent" BorderThickness="0" Padding="0" Tag="{x:Bind}" Click="OnToggleSeasonCard"
                                         IsEnabled="{x:Bind Editable, Mode=OneWay}" AutomationProperties.Name="{x:Bind PickerTitle}">
-                                        <Grid ColumnSpacing="12">
-                                            <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                            <Border Width="54" Height="81" CornerRadius="4" VerticalAlignment="Top" Background="{ThemeResource EgSurfaceAltBrush}">
+                                        <Grid ColumnSpacing="10">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                            <Border Width="58" Height="87" CornerRadius="4" VerticalAlignment="Top" Background="{ThemeResource EgSurfaceAltBrush}">
                                                 <Image Source="{x:Bind Poster, Mode=OneWay}" Stretch="UniformToFill" AutomationProperties.Name="{x:Bind PickerTitle}" />
                                             </Border>
-                                            <StackPanel Grid.Column="1" Spacing="6">
+                                            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Top">
                                                 <TextBlock Text="{x:Bind PickerTitle}" Style="{StaticResource EgBodyStyle}" Foreground="{x:Bind PickerTitleBrush, Mode=OneWay}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                                <local:WrapRow Spacing="10" RowSpacing="6">
-                                                    <Border Padding="6,2" CornerRadius="10" Background="{ThemeResource EgAccentMutedBrush}" Visibility="{x:Bind RatingVisibility}">
-                                                        <TextBlock Text="{x:Bind RatingText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" />
+                                                <local:WrapRow Spacing="10" RowSpacing="3">
+                                                    <Border Padding="6,1" CornerRadius="9" Background="{ThemeResource EgAccentMutedBrush}" VerticalAlignment="Center" Visibility="{x:Bind RatingVisibility}">
+                                                        <TextBlock Text="{x:Bind RatingText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" FontWeight="SemiBold" />
                                                     </Border>
                                                     <Grid ColumnSpacing="4" VerticalAlignment="Center" Visibility="{x:Bind AirDateVisibility}">
                                                         <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -122,11 +133,11 @@
                                                         <TextBlock Text="{x:Bind EpisodeCountText}" Style="{StaticResource EgCaptionStyle}" />
                                                     </StackPanel>
                                                 </local:WrapRow>
-                                                <local:WrapRow Spacing="6" RowSpacing="4">
-                                                    <Border Padding="7,3" CornerRadius="12" Background="{ThemeResource EgSurfaceAltBrush}">
+                                                <local:WrapRow Spacing="6" RowSpacing="3">
+                                                    <Border Padding="6,1" CornerRadius="9" Background="{ThemeResource EgSurfaceAltBrush}">
                                                         <TextBlock Text="{x:Bind Status, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" Foreground="{x:Bind StatusBrush, Mode=OneWay}" />
                                                     </Border>
-                                                    <Border Padding="7,3" CornerRadius="12" Background="{ThemeResource EgSurfaceAltBrush}" Visibility="{x:Bind SubscriptionVisibility, Mode=OneWay}">
+                                                    <Border Padding="6,1" CornerRadius="9" Background="{ThemeResource EgSurfaceAltBrush}" Visibility="{x:Bind SubscriptionVisibility, Mode=OneWay}">
                                                         <TextBlock Text="已订阅" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgDangerBrush}" />
                                                     </Border>
                                                 </local:WrapRow>
@@ -140,9 +151,15 @@
                                         Style="{StaticResource ButtonSegmentedStyle}" SelectedIndex="{x:Bind ModeIndex, Mode=TwoWay}"
                                         Tag="{x:Bind}" KeyDown="OnSeasonModeKeyDown" IsEnabled="{x:Bind Editable, Mode=OneWay}"
                                         Visibility="{x:Bind SelectedVisibility, Mode=OneWay}" AutomationProperties.Name="订阅方式">
-                                        <toolkit:SegmentedItem x:Name="NormalSubscribeMode" Style="{StaticResource SeasonModeItemStyle}" Content="普通订阅" Tapped="OnSeasonModeTapped" Tag="{x:Bind}" />
-                                        <toolkit:SegmentedItem x:Name="EpisodeUpgradeMode" Style="{StaticResource SeasonModeItemStyle}" Content="分集洗版" Tapped="OnSeasonModeTapped" Tag="{x:Bind}" />
-                                        <toolkit:SegmentedItem x:Name="FullSeasonUpgradeMode" Style="{StaticResource SeasonModeItemStyle}" Content="全集洗版" Tapped="OnSeasonModeTapped" Tag="{x:Bind}" />
+                                        <toolkit:SegmentedItem x:Name="NormalSubscribeMode" Style="{StaticResource SeasonModeItemStyle}" Content="普通订阅" Tapped="OnSeasonModeTapped" Tag="{x:Bind}">
+                                            <toolkit:SegmentedItem.Icon><FontIcon Glyph="&#xE710;" Style="{StaticResource SeasonModeIconStyle}" /></toolkit:SegmentedItem.Icon>
+                                        </toolkit:SegmentedItem>
+                                        <toolkit:SegmentedItem x:Name="EpisodeUpgradeMode" Style="{StaticResource SeasonModeItemStyle}" Content="分集洗版" Tapped="OnSeasonModeTapped" Tag="{x:Bind}">
+                                            <toolkit:SegmentedItem.Icon><FontIcon Glyph="&#xE72C;" Style="{StaticResource SeasonModeIconStyle}" /></toolkit:SegmentedItem.Icon>
+                                        </toolkit:SegmentedItem>
+                                        <toolkit:SegmentedItem x:Name="FullSeasonUpgradeMode" Style="{StaticResource SeasonModeItemStyle}" Content="全集洗版" Tapped="OnSeasonModeTapped" Tag="{x:Bind}">
+                                            <toolkit:SegmentedItem.Icon><FontIcon Glyph="&#xE735;" Style="{StaticResource SeasonModeIconStyle}" /></toolkit:SegmentedItem.Icon>
+                                        </toolkit:SegmentedItem>
                                     </toolkit:Segmented>
                                 </Grid>
                             </Grid>

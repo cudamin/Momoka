@@ -1,10 +1,15 @@
 using Momoka.MoviePilot;
+using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 
 namespace Momoka.Tests
 {
     internal static class SubscriptionNavigationTests
     {
+        /// <summary>弹窗交回来的一份「提交成功」——导航只看这个，不看弹窗自己怎么收场。</summary>
+        private static MoviePilotSubscribeReport Submitted() =>
+            new(MoviePilotSubscribeReportKind.Succeeded, "已提交订阅", "匿名", Microsoft.UI.Xaml.Controls.InfoBarSeverity.Success);
+
         internal static void Register(List<(string Name, Func<Task> Run)> cases)
         {
             void Test(string name, Func<Task> run) => cases.Add(("订阅成功导航 " + name, run));
@@ -19,12 +24,12 @@ namespace Momoka.Tests
             Test("电视剧真正新增后跳转，取消弹窗与删除季不跳", async () =>
             {
                 var page = new MoviePilotSubscriptionPage(); page.Setup("电视剧");
-                page.Service.Pick = _ => { page.Service.Items = [page.Subscription(8)]; return Task.FromResult(true); };
+                page.Service.Pick = _ => { page.Service.Items = [page.Subscription(8)]; return Task.FromResult(Submitted()); };
                 await page.Choose(); Check.Equal(1, page.Navigations);
-                page.Setup("电视剧"); page.Service.Pick = _ => Task.FromResult(false);
+                page.Setup("电视剧"); page.Service.Pick = _ => Task.FromResult(MoviePilotSubscribeReport.Cancelled);
                 await page.Choose(); Check.Equal(0, page.Navigations); Check.Equal(1, page.Refreshes);
                 page.Setup("电视剧", existing: true);
-                page.Service.Pick = _ => { page.Service.Items = []; return Task.FromResult(true); };
+                page.Service.Pick = _ => { page.Service.Items = []; return Task.FromResult(Submitted()); };
                 await page.Choose(); Check.Equal(0, page.Navigations); Check.Equal(1, page.Refreshes);
             });
             Test("写入失败与页面离开不误跳转", async () =>
@@ -88,7 +93,7 @@ namespace Momoka.Shell.Views
         public bool CurrentConnection { get; set; } = true;
         public IReadOnlyList<MoviePilotSubscription> Items { get; set; } = [];
         public Func<CancellationToken, Task> Apply { get; set; } = _ => Task.CompletedTask;
-        public Func<CancellationToken, Task<bool>> Pick { get; set; } = _ => Task.FromResult(false);
+        internal Func<CancellationToken, Task<MoviePilotSubscribeReport>> Pick { get; set; } = _ => Task.FromResult(MoviePilotSubscribeReport.Cancelled);
         public int Applies { get; private set; }
         public bool IsCurrentConnection(string stamp) => CurrentConnection && stamp == "fixture";
         public Task<IReadOnlyList<MoviePilotSubscription>> SubscriptionsAsync(CancellationToken token) => Task.FromResult(Items);
@@ -104,6 +109,8 @@ namespace Momoka.Shell.Views
         public IReadOnlyList<SubscriptionSeasonBoundary> Seasons { get; set; } = [];
         public string GroupId => "";
         public int Failures { get; set; }
+        public int Announces { get; private set; }
         public void OperationFailed(Exception error) => Failures++;
+        public void Announce(MoviePilotSubscribeReport report) { Announces++; }
     }
 }

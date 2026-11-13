@@ -226,13 +226,31 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
 
     /// <summary>「搜资源」交给视图去开那层覆盖面板（要 XamlRoot），视图模型只管把媒体递出去。</summary>
     private Func<MoviePilotMedia, Task>? _openResources;
-    private Func<MoviePilotMedia, CancellationToken, Task>? _openSeasonPicker;
+
+    /// <summary>季选择交给视图去开弹窗；它关窗之后把提交结果交回来，这里负责把它放到页面的提示条上。</summary>
+    private Func<MoviePilotMedia, CancellationToken, Task<MoviePilotSubscribeReport>>? _openSeasonPicker;
 
     /// <summary>点一张卡：把媒体交给页面去开订阅页；唯一对上的订阅一起带过去（见 <see cref="RefreshResult"/>）。</summary>
     private Action<MoviePilotMedia, MoviePilotSubscription?>? _openMedia;
     private readonly HashSet<(int Visit, MoviePilotSubscriptionIdentity Identity)> _subscriptionActions = [];
 
-    internal void UseSeasonPicker(Func<MoviePilotMedia, CancellationToken, Task> open) => _openSeasonPicker = open;
+    internal void UseSeasonPicker(Func<MoviePilotMedia, CancellationToken, Task<MoviePilotSubscribeReport>> open) => _openSeasonPicker = open;
+
+    /// <summary>
+    /// 订阅失败时弹一条系统通知（2026-11-13 用户令「订阅失败时使用系统通知」）。交给视图注入，是因为
+    /// 通知是平台能力，测试项目只编译这个视图模型，不该为此拖进 Windows App SDK 的通知投影。
+    /// </summary>
+    private Action<string, string>? _notifyFailure;
+
+    internal void UseSystemNotification(Action<string, string> notify) => _notifyFailure = notify;
+
+    /// <summary>通知失败不能连累订阅：调用方已经拿到结果了，这里只是再喊一声。</summary>
+    private void AnnounceFailure(string? title, string message)
+    {
+        if (_notifyFailure is null || message.Length == 0) return;
+        try { _notifyFailure(title ?? "订阅未完成", message); }
+        catch (Exception error) { Log.Warn(Category, "系统通知发送失败", error); }
+    }
 
     public MoviePilotSearchViewModel()
     {
@@ -393,6 +411,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
         _dispatch = null;
         _openResources = null;
         _openSeasonPicker = null;
+        _notifyFailure = null;
         _openMedia = null;
         // 基类只接收非空确认委托；替换为静态拒绝，解除可能捕获页面的旧委托。
         UseConfirm(static (_, _, _) => Task.FromResult(false));
@@ -554,6 +573,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
         var token = _query;
         var previous = result.State;
         var original = result.Subscription;
+        var report = MoviePilotSubscribeReport.Cancelled;
         result.State = MoviePilotSubscribeState.Working;
         try
         {
@@ -561,7 +581,8 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
             if (result.Media.Type == "电视剧")
             {
                 if (_openSeasonPicker is null) throw new MoviePilotOperationBlockedException("订阅季设置尚未就绪");
-                await _openSeasonPicker(result.Media, token).ConfigureAwait(true);
+                // 弹窗一点提交就收起，这个任务等写入走完才回来；结果先收着，等卡片状态重读完再上屏。
+                report = await _openSeasonPicker(result.Media, token).ConfigureAwait(true);
             }
             else if (previous == MoviePilotSubscribeState.Unknown)
             {
@@ -579,7 +600,11 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (QueryCurrent(service, visit, token) && Results.Contains(result)) Report($"《{result.Media.Title}》订阅操作未完成", error);
+            if (QueryCurrent(service, visit, token) && Results.Contains(result))
+            {
+                Report($"《{result.Media.Title}》订阅操作未完成", error);
+                AnnounceFailure("订阅操作未完成", $"《{result.Media.Title}》{Failure.Describe(error)}");
+            }
         }
         finally
         {
@@ -595,7 +620,17 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
                         foreach (var current in Results.Where(item => MoviePilotSubscriptionPlan.SameMedia(item.Media, result.Media))) RefreshResult(current, subscriptions);
                 }
             }
-            finally { _subscriptionActions.Remove(action); }
+            finally
+            {
+                _subscriptionActions.Remove(action);
+                // 卡片状态已经是读回来的真值，这时候再说「成了还是没成」，不会跟卡上的字打架。
+                if (QueryCurrent(service, visit, token) && Results.Contains(result) && report.NoticeMessage.Length > 0)
+                {
+                    Notify(report.NoticeTitle, report.NoticeMessage, report.Severity);
+                    // 成功只留在页面上；失败再弹一条系统通知，用户切走以后也看得见。
+                    if (report.Kind == MoviePilotSubscribeReportKind.Failed) AnnounceFailure(report.NoticeTitle, report.NoticeMessage);
+                }
+            }
         }
     }
 

@@ -126,7 +126,17 @@ namespace Microsoft.UI.Xaml.Controls
         }
     }
 }
-namespace Momoka.Shell.Platform { public interface ISystemLauncher; }
+namespace Momoka.Shell.Platform
+{
+    public interface ISystemLauncher;
+
+    /// <summary>系统通知是平台能力；这个夹具只跑页面控制流，通知本身不落地、也不证明真的弹过。</summary>
+    public static class SystemNotification
+    {
+        public static int Shown { get; private set; }
+        public static void Show(string title, string message) { Shown++; }
+    }
+}
 namespace Momoka.Shell.Views
 {
     public static class ThemeHost
@@ -146,10 +156,10 @@ namespace Momoka.Shell.Views
     public static class MoviePilotSeasonPicker
     {
         public static int Opens { get; private set; }
-        public static Task<bool> ShowAsync(Microsoft.UI.Xaml.FrameworkElement owner, Momoka.MoviePilot.MoviePilotService service,
+        internal static Task<Momoka.Shell.ViewModels.MoviePilotSubscribeReport> ShowAsync(Microsoft.UI.Xaml.FrameworkElement owner, Momoka.MoviePilot.MoviePilotService service,
             Momoka.MoviePilot.MoviePilotMedia media, string group, int? season, CancellationToken token)
-        { Opens++; return Task.FromResult(false); }
-        public static Task<bool> ShowAsync(Microsoft.UI.Xaml.FrameworkElement owner, SubscriptionPageFixtureService service,
+        { Opens++; return Task.FromResult(Momoka.Shell.ViewModels.MoviePilotSubscribeReport.Cancelled); }
+        internal static Task<Momoka.Shell.ViewModels.MoviePilotSubscribeReport> ShowAsync(Microsoft.UI.Xaml.FrameworkElement owner, SubscriptionPageFixtureService service,
             Momoka.MoviePilot.MoviePilotMedia media, string group, int? season, CancellationToken token) => service.Pick(token);
     }
     public sealed partial class MoviePilotSearchPanel

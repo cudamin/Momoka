@@ -190,7 +190,7 @@ internal sealed partial class ShellNavigationProbe
                     picker.Attach(service, subscription.Media, picker: true);
                     await picker.ReloadAsync();
                     picker.Seasons[0].Selected = true;
-                    Require(await picker.SubmitAsync(), "重新订阅未成功：" + picker.NoticeMessage);
+                    Require((await picker.SubmitAsync()).Succeeded, "重新订阅未成功：" + picker.NoticeMessage);
                 }
                 finally { picker.Cancel(); }
                 await page.RefreshSubscriptionStateAsync();

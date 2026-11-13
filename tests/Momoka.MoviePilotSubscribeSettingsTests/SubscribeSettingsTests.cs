@@ -322,7 +322,7 @@ internal static class SubscribeSettingsTests
             ContentDialog.Reset(); using var f = new SubscriptionFixture(); using var vm = new MoviePilotSearchViewModel(); vm.Attach(f.Service);
             var confirms = 0; var pickers = 0;
             vm.UseConfirm((_, _, _) => { confirms++; return Task.FromResult(true); });
-            vm.UseSeasonPicker((_, _) => { pickers++; return Task.CompletedTask; });
+            vm.UseSeasonPicker((_, _) => { pickers++; return Task.FromResult(MoviePilotSubscribeReport.Cancelled); });
             await vm.SearchAsync("匿名"); var row = vm.Results.Single(); Check.Equal("订阅", row.SubscribeLabel);
             await row.SubscribeCommand.ExecuteAsync(null); Check.Equal("取消订阅", row.SubscribeLabel); Check.True(row.CanSubscribe);
             Check.Contains("取消订阅（TMDB）", row.SubscribeAutomationName);
@@ -333,23 +333,61 @@ internal static class SubscribeSettingsTests
         {
             using var f = new SubscriptionFixture(); f.Http.SearchResults = Json("""[{"title":"匿名示例","type":"电视剧","media_source":"themoviedb","media_id":"42"}]""");
             f.Seed(Subscription(1), Subscription(2, season: 3)); using var vm = new MoviePilotSearchViewModel(); vm.Attach(f.Service);
-            var opened = 0; vm.UseSeasonPicker((media, _) => { opened++; Check.Equal("电视剧", media.Type); return Task.CompletedTask; });
+            var opened = 0; vm.UseSeasonPicker((media, _) => { opened++; Check.Equal("电视剧", media.Type); return Task.FromResult(MoviePilotSubscribeReport.Cancelled); });
             await vm.SearchAsync("匿名"); var row = vm.Results.Single(); Check.Contains("选择季", row.SubscribeLabel);
             await row.SubscribeCommand.ExecuteAsync(null); Check.Equal(1, opened); Check.Equal(0, f.Http.Writes); Check.Equal(MoviePilotSubscribeState.Done, row.State);
+        });
+        Test("季弹窗关窗后才提示成败，提示条写的是它交回的那句话", async () =>
+        {
+            using var f = new SubscriptionFixture();
+            f.Http.SearchResults = Json("""[{"title":"匿名示例","type":"电视剧","media_source":"themoviedb","media_id":"42"}]""");
+            using var vm = new MoviePilotSearchViewModel(); vm.Attach(f.Service);
+            var succeed = true; var notifications = 0;
+            vm.UseSystemNotification((_, _) => notifications++);
+            vm.UseSeasonPicker((_, _) =>
+            {
+                // 弹窗此刻已经收起来了：这里回的就是「窗外」那一趟的结论。
+                return Task.FromResult(succeed
+                    ? new MoviePilotSubscribeReport(MoviePilotSubscribeReportKind.Succeeded, "已提交订阅", "《匿名示例》第 1 季 · 普通订阅", InfoBarSeverity.Success)
+                    : new MoviePilotSubscribeReport(MoviePilotSubscribeReportKind.Failed, "订阅未完成", "《匿名示例》订阅未提交：匿名拒绝。可以重试。", InfoBarSeverity.Error));
+            });
+            await vm.SearchAsync("匿名");
+            var row = vm.Results.Single();
+            await row.SubscribeCommand.ExecuteAsync(null);
+            Check.True(vm.NoticeOpen); Check.Equal(InfoBarSeverity.Success, vm.NoticeSeverity);
+            Check.Equal("已提交订阅", vm.NoticeTitle); Check.Contains("第 1 季 · 普通订阅", vm.NoticeMessage ?? "");
+            Check.Equal(0, notifications);
+            succeed = false;
+            await row.SubscribeCommand.ExecuteAsync(null);
+            Check.Equal(InfoBarSeverity.Error, vm.NoticeSeverity); Check.Contains("订阅未提交", vm.NoticeMessage ?? "");
+            // 失败除了页面提示，还要走系统通知（2026-11-13 用户令）。
+            Check.Equal(1, notifications);
+            Check.Equal(0, f.Http.Writes);
+        });
+        Test("季弹窗什么都没交回时页面上一个字都不说", async () =>
+        {
+            using var f = new SubscriptionFixture();
+            f.Http.SearchResults = Json("""[{"title":"匿名示例","type":"电视剧","media_source":"themoviedb","media_id":"42"}]""");
+            using var vm = new MoviePilotSearchViewModel(); vm.Attach(f.Service);
+            vm.UseSeasonPicker((_, _) => Task.FromResult(MoviePilotSubscribeReport.Cancelled));
+            await vm.SearchAsync("匿名");
+            await vm.Results.Single().SubscribeCommand.ExecuteAsync(null);
+            Check.False(vm.NoticeOpen); Check.Equal(0, f.Http.Writes);
         });
         Test("两张相同身份卡防重复点击，只开一个picker", async () =>
         {
             using var f = new SubscriptionFixture(); f.Http.SearchResults = Json("""[{"title":"匿名示例","type":"电视剧","media_source":"themoviedb","media_id":"42"},{"title":"重复卡","type":"电视剧","media_source":"themoviedb","media_id":"42"}]""");
             using var vm = new MoviePilotSearchViewModel(); vm.Attach(f.Service);
-            var hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); var opened = 0;
+            var hold = new TaskCompletionSource<MoviePilotSubscribeReport>(TaskCreationOptions.RunContinuationsAsynchronously); var opened = 0;
             vm.UseSeasonPicker((_, _) => { opened++; return hold.Task; }); await vm.SearchAsync("匿名");
             var first = vm.Results[0].SubscribeCommand.ExecuteAsync(null); await vm.Results[1].SubscribeCommand.ExecuteAsync(null);
-            Check.Equal(1, opened); hold.SetResult(); await first; Check.Equal(0, f.Http.Writes);
+            Check.Equal(1, opened); hold.SetResult(MoviePilotSubscribeReport.Cancelled); await first; Check.Equal(0, f.Http.Writes);
         });
         Test("电影写失败后实际重读，外部已订阅不显示为重试新增", async () =>
         {
             using var f = new SubscriptionFixture(); using var vm = new MoviePilotSearchViewModel(); vm.Attach(f.Service); await vm.SearchAsync("匿名");
-            var row = vm.Results.Single();
+            var row = vm.Results.Single(); var notifications = 0;
+            vm.UseSystemNotification((_, _) => notifications++);
             f.Http.Before = (request, _) =>
             {
                 if (!FakeMoviePilot.IsWrite(request)) return Task.FromResult<HttpResponseMessage?>(null);
@@ -358,6 +396,7 @@ internal static class SubscribeSettingsTests
             };
             await row.SubscribeCommand.ExecuteAsync(null);
             Check.Equal("取消订阅", row.SubscribeLabel); Check.Equal(77, row.Subscription!.Id); Check.True(vm.NoticeOpen);
+            Check.Equal(1, notifications);
         });
         Test("搜索状态读取失败，第一次点击仅重读不新增", async () =>
         {
@@ -377,10 +416,10 @@ internal static class SubscribeSettingsTests
         {
             using var f = new SubscriptionFixture(); f.Http.SearchResults = Json("""[{"title":"匿名示例","type":"电视剧","media_source":"themoviedb","media_id":"42"}]""");
             using var vm = new MoviePilotSearchViewModel(); vm.Attach(f.Service);
-            var hold = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); vm.UseSeasonPicker((_, _) => hold.Task);
+            var hold = new TaskCompletionSource<MoviePilotSubscribeReport>(TaskCreationOptions.RunContinuationsAsynchronously); vm.UseSeasonPicker((_, _) => hold.Task);
             await vm.SearchAsync("匿名"); var old = vm.Results.Single(); var pending = old.SubscribeCommand.ExecuteAsync(null);
             vm.Cancel(); f.Http.SearchResults = Json("""[{"title":"新电影","type":"电影","media_source":"douban","media_id":"42"}]""");
-            await vm.SearchAsync("新词"); var fresh = vm.Results.Single(); hold.SetResult(); await pending;
+            await vm.SearchAsync("新词"); var fresh = vm.Results.Single(); hold.SetResult(MoviePilotSubscribeReport.Cancelled); await pending;
             Check.True(ReferenceEquals(fresh, vm.Results.Single())); Check.Equal(MoviePilotSubscribeState.Idle, fresh.State); Check.Equal(0, f.Http.Writes);
         });
         Test("电影不明结果的显式恢复键只读，恢复后可明确取消", async () =>
@@ -620,11 +659,11 @@ internal static class SubscribeSettingsTests
             vm.Seasons.Single(item => item.Season.Number == 3).Selected = true;
             f.Http.Before = (request, _) => Task.FromResult<HttpResponseMessage?>(request.Method == "POST" && request.Path == "subscribe/" && request.Body.GetProperty("season").GetInt32() == 3
                 ? FakeMoviePilot.Reply(new { detail = "fixture rejection" }, HttpStatusCode.UnprocessableEntity) : null);
-            Check.False(await vm.SubmitAsync()); Check.False(vm.Submitted);
+            Check.Equal(MoviePilotSubscribeReportKind.Failed, (await vm.SubmitAsync()).Kind); Check.False(vm.Submitted);
             Check.True(vm.Seasons.Single(item => item.Season.Number == 1).CurrentSubscription is not null);
             Check.False(vm.Seasons.Single(item => item.Season.Number == 3).Selected); Check.Contains("重新读取", vm.SubmitSummary);
             f.Http.Before = null; vm.Seasons.Single(item => item.Season.Number == 3).Selected = true;
-            Check.True(await vm.SubmitAsync());
+            Check.Equal(MoviePilotSubscribeReportKind.Succeeded, (await vm.SubmitAsync()).Kind);
             Check.Equal(1, f.Http.Requests.Count(item => item.Method == "POST" && item.Path == "subscribe/" && item.Body.GetProperty("season").GetInt32() == 1));
         });
         Test("picker重入只提交一次；提交中切组无效", async () =>
@@ -634,8 +673,8 @@ internal static class SubscribeSettingsTests
             var hold = new TaskCompletionSource<HttpResponseMessage?>(TaskCreationOptions.RunContinuationsAsynchronously);
             f.Http.Before = (request, _) => request.Method == "POST" && request.Path == "subscribe/" ? hold.Task : Task.FromResult<HttpResponseMessage?>(null);
             var pending = vm.SubmitAsync(); Check.False(vm.CanSubmit); Check.Equal(Visibility.Visible, vm.SubscribeProgressVisibility);
-            Check.False(await vm.SubmitAsync()); await vm.SelectGroupAsync(vm.Groups.Single(item => item.Group.Id == "group-a")); Check.Equal("", vm.GroupId);
-            hold.SetResult(null); Check.True(await pending); Check.Equal(1, f.Http.Writes);
+            Check.Equal(MoviePilotSubscribeReportKind.Cancelled, (await vm.SubmitAsync()).Kind); await vm.SelectGroupAsync(vm.Groups.Single(item => item.Group.Id == "group-a")); Check.Equal("", vm.GroupId);
+            hold.SetResult(null); Check.Equal(MoviePilotSubscribeReportKind.Succeeded, (await pending).Kind); Check.Equal(1, f.Http.Writes);
         });
         Test("入库统计错误不显示成缺失，选择模式前不提交", async () =>
         {
@@ -662,21 +701,21 @@ internal static class SubscribeSettingsTests
             using var f = new SubscriptionFixture(); await f.ConnectAsync(); using var vm = Picker(f); await vm.ReloadAsync();
             vm.Seasons.Single(item => item.Season.Number == 1).Selected = true;
             vm.PropertyChanged += (_, args) => { if (args.PropertyName == nameof(vm.Submitting) && vm.Submitting) vm.Cancel(); };
-            Check.False(await vm.SubmitAsync()); Check.Equal(0, f.Http.Writes); Check.False(vm.CanSubmit);
+            Check.Equal(MoviePilotSubscribeReportKind.Cancelled, (await vm.SubmitAsync()).Kind); Check.Equal(0, f.Http.Writes); Check.False(vm.CanSubmit);
         });
         Test("已保存组草稿与写后真实模式冲突，review必须采用真实模式", async () =>
         {
             using var f = new SubscriptionFixture(); f.Http.KeepWrongMode = true; await f.ConnectAsync(); using var vm = Picker(f); await vm.ReloadAsync();
             await vm.SelectGroupAsync(vm.Groups.Single(item => item.Group.Id == "group-a")); vm.Seasons.Single().Selected = true; vm.Seasons.Single().FullMode = true; vm.Seasons.Single().MarkModePicked();
             await vm.SelectGroupAsync(vm.Groups.Single(item => item.Group.Id == "")); await vm.SelectGroupAsync(vm.Groups.Single(item => item.Group.Id == "group-a"));
-            Check.False(await vm.SubmitAsync()); Check.True(vm.Submitted); Check.Equal(0, vm.Seasons.Single().ModeIndex);
+            Check.Equal(MoviePilotSubscribeReportKind.Failed, (await vm.SubmitAsync()).Kind); Check.True(vm.Submitted); Check.Equal(0, vm.Seasons.Single().ModeIndex);
             vm.ReviewConfirmed = true; await vm.ReviewAsync(); Check.Equal(0, vm.Seasons.Single().ModeIndex); Check.False(vm.CanSubmit); Check.Equal(1, f.Http.Writes);
         });
         Test("提交不明后真实订阅可见但不解锁，明确review只读恢复", async () =>
         {
             using var f = new SubscriptionFixture(); f.Http.NoId = true; await f.ConnectAsync(); using var vm = Picker(f); await vm.ReloadAsync();
             vm.Seasons.Single(item => item.Season.Number == 1).Selected = true;
-            Check.False(await vm.SubmitAsync()); Check.True(vm.Submitted); Check.False(vm.CanSubmit);
+            Check.Equal(MoviePilotSubscribeReportKind.Failed, (await vm.SubmitAsync()).Kind); Check.True(vm.Submitted); Check.False(vm.CanSubmit);
             Check.True(vm.Seasons.Single(item => item.Season.Number == 1).CurrentSubscription is not null); Check.Equal(Visibility.Visible, vm.ReviewVisibility);
             vm.ReviewConfirmed = true; await vm.ReviewAsync(); Check.False(vm.Submitted); Check.False(vm.CanSubmit); Check.Equal(1, f.Http.Writes);
             Check.Equal(MoviePilotOperationState.Idle, f.Service.SeasonSubscribeState(f.Media(season: 1)));
@@ -703,24 +742,25 @@ internal static class SubscribeSettingsTests
             using var f = new SubscriptionFixture(); f.Seed(Subscription(1)); await f.ConnectAsync(); using var vm = Picker(f); await vm.ReloadAsync();
             vm.Seasons.Single(item => item.Season.Number == 1).FullMode = true;
             f.Http.Subscriptions[0] = Subscription(1, mode: MoviePilotSubscribeMode.Episodes);
-            Check.False(await vm.SubmitAsync()); Check.Equal(0, f.Http.Writes);
+            Check.Equal(MoviePilotSubscribeReportKind.Failed, (await vm.SubmitAsync()).Kind); Check.Equal(0, f.Http.Writes);
             Check.Equal(1, vm.Seasons.Single(item => item.Season.Number == 1).ModeIndex); Check.False(vm.Submitted);
         });
         Test("取消对话只读无写；电影误入Show不构造dialog", async () =>
         {
             using var f = new SubscriptionFixture(); await f.ConnectAsync(); ContentDialog.Reset();
             ContentDialog.ShowEndpoint = async dialog => { var picker = (MoviePilotSeasonPicker)dialog; await picker.ViewModel.ReloadAsync(); return ContentDialogResult.None; };
-            Check.False(await MoviePilotSeasonPicker.ShowAsync(new FrameworkElement(), f.Service, f.Media(), "", null));
+            Check.Equal(MoviePilotSubscribeReportKind.Cancelled, (await MoviePilotSeasonPicker.ShowAsync(new FrameworkElement(), f.Service, f.Media(), "", null)).Kind);
             Check.Equal(0, f.Http.Writes); Check.Equal(1, ContentDialog.Created);
-            Check.False(await MoviePilotSeasonPicker.ShowAsync(new FrameworkElement(), f.Service, f.Media("电影"), "", null));
+            Check.Equal(MoviePilotSubscribeReportKind.Cancelled, (await MoviePilotSeasonPicker.ShowAsync(new FrameworkElement(), f.Service, f.Media("电影"), "", null)).Kind);
             Check.Equal(1, ContentDialog.Created); ContentDialog.Reset();
         });
-        Test("选季结果仅真实提交成功为true，失败留窗且取消仍为false", async () =>
+        Test("点提交就收窗：不等写入，成败随 ShowAsync 交回", async () =>
         {
             foreach (var fail in new[] { false, true })
             {
                 using var f = new SubscriptionFixture(); await f.ConnectAsync(); ContentDialog.Reset();
                 f.Http.NoId = fail;
+                var closedBeforeWrite = false;
                 ContentDialog.ShowEndpoint = async dialog =>
                 {
                     var picker = (MoviePilotSeasonPicker)dialog;
@@ -728,12 +768,15 @@ internal static class SubscribeSettingsTests
                     picker.ViewModel.Seasons.Single(row => row.Season.Number == 1).Selected = true;
                     var args = new ContentDialogButtonClickEventArgs();
                     typeof(MoviePilotSeasonPicker).GetMethod("OnSubmit", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(picker, [picker, args]);
-                    await args.Completion.Task.WaitAsync(TimeSpan.FromSeconds(5));
-                    Check.Equal(fail, args.Cancel);
-                    Check.Equal(!fail, picker.Succeeded);
-                    return args.Cancel ? ContentDialogResult.None : ContentDialogResult.Primary;
+                    // 点下去当场放行关闭，不等提交；此时一个写请求都还没发。
+                    Check.False(args.Cancel); Check.Equal(0, f.Http.Writes);
+                    closedBeforeWrite = true;
+                    return ContentDialogResult.Primary;
                 };
-                Check.Equal(!fail, await MoviePilotSeasonPicker.ShowAsync(new FrameworkElement(), f.Service, f.Media(), "", null));
+                var report = await MoviePilotSeasonPicker.ShowAsync(new FrameworkElement(), f.Service, f.Media(), "", null);
+                Check.True(closedBeforeWrite);
+                Check.Equal(fail ? MoviePilotSubscribeReportKind.Failed : MoviePilotSubscribeReportKind.Succeeded, report.Kind);
+                Check.True(report.NoticeMessage.Contains(fail ? "订阅未提交" : "普通订阅", StringComparison.Ordinal));
                 Check.Equal(1, f.Http.Writes);
                 ContentDialog.Reset();
             }
@@ -755,7 +798,8 @@ internal static class SubscribeSettingsTests
             ContentDialog.ShowEndpoint = dialog => { active = (MoviePilotSeasonPicker)dialog; return hold.Task; };
             var pending = MoviePilotSeasonPicker.ShowAsync(new FrameworkElement(), f.Service, f.Media(), "", null);
             Check.True(active is not null); f.Settings.MoviePilot.Enabled = false; Check.True(active!.Hidden);
-            f.Settings.MoviePilot.Enabled = true; await f.ConnectAsync(); hold.SetResult(ContentDialogResult.Primary); Check.False(await pending);
+            f.Settings.MoviePilot.Enabled = true; await f.ConnectAsync(); hold.SetResult(ContentDialogResult.Primary);
+            Check.Equal(MoviePilotSubscribeReportKind.Cancelled, (await pending).Kind);
             Check.False(active.ViewModel.CanSubmit); Check.Equal(0, f.Http.Writes); ContentDialog.Reset();
         });
         Test("订阅搜索：移除来源筛选与空列，保留标题和结果计数", () =>
@@ -824,6 +868,14 @@ internal static class SubscribeSettingsTests
             var modes = xaml.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "SeasonModes");
             Check.Equal("Segmented", modes.Name.LocalName);
             Check.Contains("ModeIndex", modes.Attribute("SelectedIndex")?.Value ?? "");
+            // 2026-11-13 用户令「弹窗窗口缩小一点」与「参考网页端重新设计卡片」：窄一档，三种订阅方式各带一枚字形。
+            var maxWidth = xaml.Descendants().Single(item => (string?)item.Attribute(x + "Key") == "ContentDialogMaxWidth");
+            Check.Equal("620", maxWidth.Value);
+            foreach (var name in new[] { "NormalSubscribeMode", "EpisodeUpgradeMode", "FullSeasonUpgradeMode" })
+            {
+                var item = xaml.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
+                Check.True(item.Elements().Any(element => element.Name.LocalName == "SegmentedItem.Icon"), name + " 没有图标");
+            }
             Check.True(xaml.Descendants().Any(item => (string?)item.Attribute(x + "Name") == "ToggleSeasonCard" && (string?)item.Attribute("Click") == "OnToggleSeasonCard"));
             var text = Resource("Production.MoviePilotSearchPanel.xaml.cs"); Check.Contains("UseSeasonPicker", text); Check.Contains("MoviePilotSeasonPicker.ShowAsync", text);
             var page = Resource("Production.MoviePilotSubscriptionPage.xaml.cs"); Check.Contains("ApplyMovieSubscriptionAsync", page);

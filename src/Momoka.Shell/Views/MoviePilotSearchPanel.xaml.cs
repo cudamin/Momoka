@@ -68,6 +68,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         if (!_active || visit != _visit) return;
         ViewModel.UseResourceOpener(ShowResourcesAsync);
         ViewModel.UseSeasonPicker((media, token) => MoviePilotSeasonPicker.ShowAsync(this, service, media, "", media.Season, token));
+        ViewModel.UseSystemNotification(SystemNotification.Show);
         if (openMedia is not null) ViewModel.UseMediaOpener(openMedia);
     }
 

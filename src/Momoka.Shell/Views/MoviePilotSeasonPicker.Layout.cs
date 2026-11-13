@@ -12,7 +12,8 @@ public sealed partial class MoviePilotSeasonPicker
     private void OnPickerSizeChanged(object sender, SizeChangedEventArgs args)
     {
         // ContentDialog 表面按内容定宽，正文先给出目标宽度，窄窗自然换行。
-        var width = Math.Min(672, Math.Max(232, args.NewSize.Width - 80));
+        // 2026-11-13 用户令「这个弹窗窗口缩小一点」：正文最多 540（原来 672），弹窗跟着收到 620 以内。
+        var width = Math.Min(540, Math.Max(232, args.NewSize.Width - 72));
         PickerBody.Width = width;
         PickerTitleBar.Width = width;
         PickerScroll.MaxHeight = Math.Max(180, (XamlRoot?.Size.Height ?? 900) - 220);

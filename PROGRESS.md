@@ -13265,3 +13265,13 @@ Release Shell/三项测试编译0警告0错误；真实caller78/78、Core自然E
 验证（变基前）：Release 全方案 **0 警告 0 错误**；主测试 **5089/5089、0 失败 0 跳过**；Plex 入口 **85/85**、页面源码控制流 **228/228**、导航目的地 **18/18**；自然接续 caller **81/81**、源提取反例 **10/10**。新增 `--probe-shell --probe-section person --screen 1` 原生检查 **1/1、退出 0**（`shell-probe-20261113-140246626-20284`），真实 PersonPage 1280/760 实屏、资料/三条作品带/影视作品分组/其他信息/人物菜单/收藏写入全部通过；实屏 `person-page-1280-screen.png`、`person-page-760-screen.png`、`person-page-filmography-screen.png` 已目视。只用匿名假 HTTP、假身份和假播放；未在真实服务器执行人物详情、收藏、元数据、识别或照片写入；飞牛人物页、物理点外、触摸、读屏、跨 DPI、高对比度未覆盖。未推远端、未发布。
 
 **合入状态。** 以 `--ff-only` 合入 master（产品提交 `2652191`）；合并后 Core/Shell/Tests x64 Release **0 警告 0 错误**，主测试 **5090/5090、0 失败 0 跳过**，人物页探针复跑 **1/1**（`shell-probe-20261113-143627378-25732`，三张实屏重新生成）。未推远端、未发布。
+
+## 2026-11-14 订阅季弹窗：点提交即关窗、紧凑卡片与失败系统通知（workbuddy/master-61e096a8 树）
+
+用户令：①「点完订阅直接退出这个弹窗，然后再提示订阅是否成功」；②「这个弹窗窗口缩小一点，紧凑一点」；③「参考网页端重新设计卡片」；④「订阅失败时使用系统通知」；⑤「做完自动合并」。
+
+按规则先读上游源码再动手：`jxxghp/MoviePilot-Frontend` v3 `edf0554a07f1889bc371c29b26d11d09d13abde6` 的 `src/components/dialog/SubscribeSeasonDialog.vue`（VDialog max-width 45rem、剧集组横向轨道、VListItem 的 60×90 海报／评分 chip／首播／集数／入库与已订阅 chip、右上 VSwitch、底部带图标的三段 VBtnToggle、居中单颗提交按钮），以及 CommunityToolkit 8.2.251219 的 `SegmentedItem.xaml`（`Icon` 属性、`ButtonItem*Selected` 资源键与选中态）。有意偏离并记档：保留项目单一强调色而不照搬网页端三色，保留「取消」按钮与点外关闭；窄窗不隐去方式文字（网页端在 ≤960px 只留图标），改为更紧的字号与内边距，并用探针断言三段实际宽度总和不超出按钮条。
+
+实现：`MoviePilotSeasonPicker.OnSubmit` 只放行关闭并记下「要提交」，收窗后由 `CompleteAsync` 才发写入；`MoviePilotSubscribeReport` 把成败、标题、一句可直接上屏的话交回搜索页／订阅详情的提示条。`MoviePilotMediaViewModel.SubmitAsync` 改回报告，中途断线按「结果不明」提示而不是静默取消；失败另经 `SystemNotification`（Windows App SDK `AppNotificationManager.Register/Show`）弹系统通知，只有正式启动注册，自检／探针不注册也不弹，提权或通知失败只记日志不连累订阅。弹窗本体宽度 720→620、正文 672→540，季卡按网页端重排：2:3 海报、季名、读数一行、入库／已订阅标签、右上开关、底部三种带图标的订阅方式；间距与内边距同步收紧。
+
+验证：本树全方案 Release **0 警告 0 错误**，`check-diff` 19 个变更文件行尾／BOM／空白通过；`Momoka.MoviePilotSubscribeSettingsTests` **77/77**、`Momoka.SearchLifetimeTests` **43/43**。主测试 **5090 项 / 5072 通过 / 18 红**：16 项「自检」是另一个会话占着桌面锁（`已有当前用户的自检运行中`），2 项「下载到设备」是 `C:\WINDOWS\TEMP` 访问被拒，都在未改动的隔离／下载代码，如实报红，未重跑洗绿。`--probe-shell --probe-section moviepilot --screen 2` **34/37 通过**：季选择用例通过（点提交即收窗、本体 ≤620、正文 ≤540、三种方式图标、关窗后两次写入且模式正确、窄窗不裁字），宽窄与各主题截图 `mp-subscribe-season-picker-*.png` 已在最终代码上目视；另 3 项红是 2 处 `ShellPage.CanQueueVideo` 空引用与 1 处资源浏览器超时，均属未改动的菜单／资源代码。探针期间按规则用短间隔只读等待桌面锁释放后自动重跑，未结束其它会话进程。系统通知的真实 Toast 未实弹验证：工具运行刻意不注册，也没有真实失败服务器；本轮只覆盖通知接线（成功不弹、失败弹一次）与官方未打包应用 API 契约，提权运行与通知中心实际呈现留待交付聊天在真实失败场景核对。
