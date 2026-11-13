@@ -25,9 +25,9 @@
 桌面探针占住 `SelfCheckRun` 锁，按「不结束其他进程」的规则停止本会话这一趟；不把局部通过冒充全量通过。
 
 **边界与待办。** 未真实播放、未写服务器、未推远端；悬停由探针调用真实指针事件处理函数，不移动真实鼠标。
-工作树 `C:/Users/89400/.qoder-cn/worktrees/app/333f9d/Momoka`，分支 `qoder/hero-sidebar-preview`，基于 master
-`39acbff` 合并。本批已进 master，按「分支只合并不交付」的规则不发布、不推远端；待交付验证登记在
-[待交付批次](docs/待交付批次.md)。
+产品提交 `39c8987`，以 ff 方式合入 master。工作树 `C:/Users/89400/.qoder-cn/worktrees/app/333f9d/Momoka`，
+分支 `qoder/hero-sidebar-preview`；按「分支只合并不交付」的规则不发布、不推远端，待交付验证登记在
+[待交付批次](docs/待交付批次.md) 第 7 条。rebase 时 PROGRESS 顶部的规则条目与本条各保留，文档已按最新 master 对齐。
 
 ## 2026-11-13 规则：改 UI 先抄 WinUI Gallery 现成实现
 
