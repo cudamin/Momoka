@@ -2537,6 +2537,7 @@ public sealed partial class DetailViewModel : PageViewModel
             // finished before the page calls itself loaded. Started after Apply, which clears the shelf
             // it fills.
             var similar = LoadSimilarAsync(detail, token);
+            var extras = LoadExtrasAvailabilityAsync();
 
             NavigationTiming.Mark("branch-begin");
             switch (detail.Type)
@@ -2568,6 +2569,7 @@ public sealed partial class DetailViewModel : PageViewModel
             NavigationTiming.Mark("similar-wait-begin");
             await similar.ConfigureAwait(true);
             NavigationTiming.Mark("similar-wait-end");
+            await extras.ConfigureAwait(true);
 
             NavigationTiming.Mark("end-load-begin");
             EndLoad(token);
