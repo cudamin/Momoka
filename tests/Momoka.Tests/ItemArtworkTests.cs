@@ -21,6 +21,7 @@ internal static partial class ItemArtworkTests
         RegisterSplit();
         RegisterBanner();
         RegisterHero();
+        RegisterInheritedThumb();
         RegisterHas();
         RegisterReport();
     }
@@ -595,6 +596,74 @@ internal static partial class ItemArtworkTests
 
             Assert.True(ItemArtwork.Hero(episode).Count > 0);
             Assert.False(ItemArtwork.HeroOrder.Any(type => ItemArtwork.Has(episode, type)));
+        });
+    }
+
+    /// <summary>
+    /// 主页「继续观看」那一排的宽卡（2026-11-13 用户令「主页继续观看那一列改用缩略图」）：那一排几乎全是
+    /// 单集，而单集自己只有一张从视频里截的剧照 —— 缩略图在剧那一层，问的就是这一支。
+    /// </summary>
+    private static void RegisterInheritedThumb()
+    {
+        Test("图片：单集借剧集的缩略图", () =>
+        {
+            var episode = Episode("ep40", (EmbyImageStore.Primary, "still"));
+            episode.SeriesId = "series20";
+            episode.SeriesThumbImageTag = "seriesthumb";
+
+            var thumb = ItemArtwork.InheritedThumb(episode);
+
+            Assert.NotNull(thumb);
+            Assert.Equal("series20", thumb!.Value.ItemId);
+            Assert.Equal(EmbyImageStore.Thumb, thumb.Value.ImageType);
+            Assert.Equal("seriesthumb", thumb.Value.Tag);
+        });
+
+        Test("图片：这个剧没有自己的缩略图时用上溯那一对", () =>
+        {
+            // 服务器只发了 ParentThumb 那一对（实测这台 4.10.1 就是这一档）—— 上溯停在剧那一层。
+            var episode = Episode("ep41");
+            episode.ParentThumbItemId = "series21";
+            episode.ParentThumbImageTag = "parentthumb";
+
+            var thumb = ItemArtwork.InheritedThumb(episode);
+
+            Assert.NotNull(thumb);
+            Assert.Equal("series21", thumb!.Value.ItemId);
+            Assert.Equal("parentthumb", thumb.Value.Tag);
+        });
+
+        Test("图片：电影和剧不借媒体库的缩略图", () =>
+        {
+            // 同 Hero 那一条：那趟上溯走到最后是媒体库，媒体库的缩略图不是这部片子的画面。
+            foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series })
+            {
+                var item = Item("item-" + type);
+                item.Type = type;
+                item.ParentThumbItemId = "library1";
+                item.ParentThumbImageTag = "librarythumb";
+
+                Assert.Null(ItemArtwork.InheritedThumb(item));
+            }
+
+            Assert.Null(ItemArtwork.InheritedThumb(null));
+        });
+
+        Test("图片：只有一半的继承缩略图不借", () =>
+        {
+            // 同名牌那一条：id 和标签必须齐。
+            var noTag = Episode("ep42");
+            noTag.ParentThumbItemId = "series22";
+            Assert.Null(ItemArtwork.InheritedThumb(noTag));
+
+            var noId = Episode("ep43");
+            noId.SeriesThumbImageTag = "seriesthumb";
+            Assert.Null(ItemArtwork.InheritedThumb(noId));
+
+            var blank = Episode("ep44");
+            blank.ParentThumbItemId = "series23";
+            blank.ParentThumbImageTag = "";
+            Assert.Null(ItemArtwork.InheritedThumb(blank));
         });
     }
 

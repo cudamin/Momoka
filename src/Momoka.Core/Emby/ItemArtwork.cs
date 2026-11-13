@@ -256,6 +256,18 @@ public static class ItemArtwork
     }
 
     /// <summary>
+    /// 剧集那一层的缩略图，只给集和季；其余条目是 null。
+    /// <para>
+    /// 主页「继续观看」那一排从 2026-11-13 起先要这一张（用户令「主页继续观看那一列改用缩略图」）：那一排
+    /// 几乎全是单集，而单集自己只有一张从视频里截的剧照 —— 服务器实测只发 <c>Primary</c>，缩略图挂在剧
+    /// 那一层。电影和剧集不借上一层的理由同 <see cref="Hero"/>：那趟上溯走到最后是媒体库，媒体库的缩略图
+    /// 不是这部片子的画面。
+    /// </para>
+    /// </summary>
+    public static ArtworkRef? InheritedThumb(EmbyItem? item) =>
+        item is { Type: EmbyItemType.Episode or EmbyItemType.Season } ? ParentThumb(item) : null;
+
+    /// <summary>
     /// 详情页背后那张铺满页面的画面取谁的哪一种，按优先序排的一串；一张都没有就是空的。
     /// <para>
     /// 集页和季页先要剧集那一层的宽幅图 —— 「集页面要用这个剧的背景图或缩略图」。单集自己那张图是 海报，而单集的

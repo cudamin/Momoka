@@ -500,6 +500,9 @@ public sealed partial class HomeViewModel : PageViewModel
         // 继续观看 / 接下来看 那一档 2026-09-14 从 CardSize.WideWidth(300) 收到 CardSize.HomeWideWidth(256)
         // （「缩小首页中的媒体库卡片和继续观看卡片，调整其尺寸使其更紧凑，同时保持布局对齐、间距协调以及各屏幕
         // 尺寸下的响应式显示效果」）—— 主页单独一档，不动 WideWidth，详情页的 更多单集 和媒体库网格那两处照旧。
+        // **继续观看 2026-11-13 起先要剧集那一层的缩略图**（用户令「主页继续观看那一列改用缩略图」）：那一排
+        // 全是单集，而单集自己只有一张从视频里截的剧照，缩略图挂在剧那一层（判据在 HomeLayout.WantsShowThumb，
+        // 卡片怎么接在 CardItem.preferShowThumb）。接下来看不动。
         _all = [.. plan.Select(row =>
         {
             var (wide, width) = row.Key switch
@@ -521,7 +524,8 @@ public sealed partial class HomeViewModel : PageViewModel
             return (row, new CardShelf(
                 title, images, width, wide, badges,
                 HomeLayout.LibraryId(row.Key), HomeLayout.TargetOf(row.Key),
-                sourceLine: row.Key == HomeLayout.Resume && ShowServerNames)
+                sourceLine: row.Key == HomeLayout.Resume && ShowServerNames,
+                preferShowThumb: HomeLayout.WantsShowThumb(row.Key))
             {
                 HomeKey = row.Key,
                 Source = source
