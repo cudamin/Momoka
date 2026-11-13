@@ -2,7 +2,7 @@
 
 主树产品已在 `c561f4f`。首次发布核验失败后未放宽批准；查到默认发布路径因项目 `SelfContained=false` 与CLI自包含参数、以及同期构建，导致bin依赖清单/restore与发布内容不一致。用一致的显式 `-p:SelfContained=true -p:WindowsAppSDKSelfContained=true` 从同一主树重新生成后完整 `verify-publish.ps1 -SelfContained` 通过：547文件、289.1MB、14GLSL/4HOOK、批准mpv60文件，桌面Momoka.lnk仍指向主树artifacts/publish/win-x64/Momoka.exe。发布Shell SHA256 `3B31C69F143D130EFCC906D4BD52C590452D9D58A07DC2E59C57D4A1E6047248`；未改依赖版本/批准清单，未推远端。
 
-发布件PID12064已成功创建响应式匿名检查台，四类型×两宽×五主题的单项复验通过，40张实屏在 `shell-probe-20261113-101918268-12064/logs`，代表截图目视；正常通过InspectDone退出。等待规则已进入CLAUDE「资源占用与等待」，政策31反例、维护28项通过。临时分支顶端cfc51f4已全部在master，待归档已合并临时树。普通开发bin随后被另一方案编译覆盖，不以该bin hash替代发布件；发布目录本身哈希保持。
+发布件PID12064已成功创建响应式匿名检查台，四类型×两宽×五主题的单项复验通过，40张实屏在 `shell-probe-20261113-101918268-12064/logs`，代表截图目视；正常通过InspectDone退出。等待规则已进入CLAUDE「资源占用与等待」，政策31反例、维护28项通过。临时分支顶端cfc51f4已全部在master，临时分支已删除；应用archive_worktree拒绝移除本聊天primary checkout，按保护要求保留干净detached树（已对齐master），不通过文件系统删除绕过保护。普通开发bin随后被另一方案编译覆盖，不以该bin hash替代发布件；发布目录本身哈希保持。
 ## 2026-11-13 标题栏与侧边栏按 Codex 放大、账号回到标题栏右上角（未发布）
 
 用户六条令（附三张截图）：①参考 Codex 窗口边框的宽高设置 Momoka 的；②移除左上角的 Momoka；③人像图标移到最小化左边、
